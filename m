@@ -1,64 +1,153 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qt1-f195.google.com ([209.85.160.195]:43609 "EHLO
-        mail-qt1-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727528AbfGSVrz (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 19 Jul 2019 17:47:55 -0400
-Received: by mail-qt1-f195.google.com with SMTP id w17so32593147qto.10
-        for <linux-arch@vger.kernel.org>; Fri, 19 Jul 2019 14:47:54 -0700 (PDT)
-Message-ID: <1563572871.11067.2.camel@lca.pw>
-Subject: Re: [PATCH] be2net: fix adapter->big_page_size miscaculation
-From: Qian Cai <cai@lca.pw>
-Date: Fri, 19 Jul 2019 17:47:51 -0400
-In-Reply-To: <20190718.162928.124906203979938369.davem@davemloft.net>
-References: <CAKwvOdkCfqfpJYYX+iu2nLCUUkeDorDdVP3e7koB9NYsRwgCNw@mail.gmail.com>
-         <CAGG=3QUvdwJs1wW1w+5Mord-qFLa=_WkjTsiZuwGfcjkoEJGNQ@mail.gmail.com>
-         <75B428FC-734C-4B15-B1A7-A3FC5F9F2FE5@lca.pw>
-         <20190718.162928.124906203979938369.davem@davemloft.net>
-Content-Type: text/plain; charset="UTF-8"
-Mime-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Received: from mail.kernel.org ([198.145.29.99]:34372 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1727344AbfGSWZx (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 19 Jul 2019 18:25:53 -0400
+Subject: Re: [PATCH v10 8/9] kselftest: save-and-restore errno to allow for %m
+ formatting
+References: <20190719164225.27083-1-cyphar@cyphar.com>
+ <20190719164225.27083-9-cyphar@cyphar.com>
+From: shuah <shuah@kernel.org>
+Message-ID: <b32d95a1-8a49-65ef-4ddd-fe86a7ca01d5@kernel.org>
+Date: Fri, 19 Jul 2019 16:25:46 -0600
+MIME-Version: 1.0
+In-Reply-To: <20190719164225.27083-9-cyphar@cyphar.com>
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Miller <davem@davemloft.net>
-Cc: morbo@google.com, ndesaulniers@google.com, jyknight@google.com, sathya.perla@broadcom.com, ajit.khaparde@broadcom.com, sriharsha.basavapatna@broadcom.com, somnath.kotur@broadcom.com, arnd@arndb.de, dhowells@redhat.com, hpa@zytor.com, netdev@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, natechancellor@gmail.com
-Message-ID: <20190719214751.wh1w1oU0cFNZ8fzgB3IoJWKdy7VF1w68NEgAU7zJ6DU@z>
+To: Aleksa Sarai <cyphar@cyphar.com>, Al Viro <viro@zeniv.linux.org.uk>, Jeff Layton <jlayton@kernel.org>, "J. Bruce Fields" <bfields@fieldses.org>, Arnd Bergmann <arnd@arndb.de>, David Howells <dhowells@redhat.com>, Shuah Khan <skhan@linuxfoundation.org>
+Cc: Eric Biederman <ebiederm@xmission.com>, Andy Lutomirski <luto@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Alexei Starovoitov <ast@kernel.org>, Kees Cook <keescook@chromium.org>, Jann Horn <jannh@google.com>, Christian Brauner <christian@brauner.io>, Tycho Andersen <tycho@tycho.ws>, David Drysdale <drysdale@google.com>, Chanho Min <chanho.min@lge.com>, Oleg Nesterov <oleg@redhat.com>, Aleksa Sarai <asarai@suse.de>, Linus Torvalds <torvalds@linux-foundation.org>, containers@lists.linux-foundation.org, linux-alpha@vger.kernel.org, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-fsdevel@vger.kernel.org, linux-ia64@vger.kernel.org, linux-kernel@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, linux-xtensa@linux-xtensa.org, sparclinux@vger.kernel.org, shuah <shuah@kernel.org>
+Message-ID: <20190719222546.lJxnhX00old4klX9IHkS3nwxxWSNDYw1Bex2_hToNQM@z>
 
-On Thu, 2019-07-18 at 16:29 -0700, David Miller wrote:
-> From: Qian Cai <cai@lca.pw>
-> Date: Thu, 18 Jul 2019 19:26:47 -0400
+On 7/19/19 10:42 AM, Aleksa Sarai wrote:
+> Previously, using "%m" in a ksft_* format string can result in strange
+> output because the errno value wasn't saved before calling other libc
+> functions. The solution is to simply save and restore the errno before
+> we format the user-supplied format string.
 > 
-> > 
-> > 
-> >> On Jul 18, 2019, at 5:21 PM, Bill Wendling <morbo@google.com> wrote:
-> >> 
-> >> [My previous response was marked as spam...]
-> >> 
-> >> Top-of-tree clang says that it's const:
-> >> 
-> >> $ gcc a.c -O2 && ./a.out
-> >> a is a const.
-> >> 
-> >> $ clang a.c -O2 && ./a.out
-> >> a is a const.
-> > 
-> > 
-> > I used clang-7.0.1. So, this is getting worse where both GCC and clang will
-> start to suffer the
-> > same problem.
+> Signed-off-by: Aleksa Sarai <cyphar@cyphar.com>
+> ---
+>   tools/testing/selftests/kselftest.h | 15 +++++++++++++++
+>   1 file changed, 15 insertions(+)
 > 
-> Then rewrite the module parameter macros such that the non-constness
-> is evident to all compilers regardless of version.
+> diff --git a/tools/testing/selftests/kselftest.h b/tools/testing/selftests/kselftest.h
+> index ec15c4f6af55..0ac49d91a260 100644
+> --- a/tools/testing/selftests/kselftest.h
+> +++ b/tools/testing/selftests/kselftest.h
+> @@ -10,6 +10,7 @@
+>   #ifndef __KSELFTEST_H
+>   #define __KSELFTEST_H
+>   
+> +#include <errno.h>
+>   #include <stdlib.h>
+>   #include <unistd.h>
+>   #include <stdarg.h>
+> @@ -81,58 +82,68 @@ static inline void ksft_print_cnts(void)
+>   
+>   static inline void ksft_print_msg(const char *msg, ...)
+>   {
+> +	int saved_errno = errno;
+>   	va_list args;
+>   
+>   	va_start(args, msg);
+>   	printf("# ");
+> +	errno = saved_errno;
+>   	vprintf(msg, args);
+>   	va_end(args);
+>   }
+>   
+>   static inline void ksft_test_result_pass(const char *msg, ...)
+>   {
+> +	int saved_errno = errno;
+>   	va_list args;
+>   
+>   	ksft_cnt.ksft_pass++;
+>   
+>   	va_start(args, msg);
+>   	printf("ok %d ", ksft_test_num());
+> +	errno = saved_errno;
+>   	vprintf(msg, args);
+>   	va_end(args);
+>   }
+>   
+>   static inline void ksft_test_result_fail(const char *msg, ...)
+>   {
+> +	int saved_errno = errno;
+>   	va_list args;
+>   
+>   	ksft_cnt.ksft_fail++;
+>   
+>   	va_start(args, msg);
+>   	printf("not ok %d ", ksft_test_num());
+> +	errno = saved_errno;
+>   	vprintf(msg, args);
+>   	va_end(args);
+>   }
+>   
+>   static inline void ksft_test_result_skip(const char *msg, ...)
+>   {
+> +	int saved_errno = errno;
+>   	va_list args;
+>   
+>   	ksft_cnt.ksft_xskip++;
+>   
+>   	va_start(args, msg);
+>   	printf("not ok %d # SKIP ", ksft_test_num());
+> +	errno = saved_errno;
+>   	vprintf(msg, args);
+>   	va_end(args);
+>   }
+>   
+>   static inline void ksft_test_result_error(const char *msg, ...)
+>   {
+> +	int saved_errno = errno;
+>   	va_list args;
+>   
+>   	ksft_cnt.ksft_error++;
+>   
+>   	va_start(args, msg);
+>   	printf("not ok %d # error ", ksft_test_num());
+> +	errno = saved_errno;
+>   	vprintf(msg, args);
+>   	va_end(args);
+>   }
+> @@ -152,10 +163,12 @@ static inline int ksft_exit_fail(void)
+>   
+>   static inline int ksft_exit_fail_msg(const char *msg, ...)
+>   {
+> +	int saved_errno = errno;
+>   	va_list args;
+>   
+>   	va_start(args, msg);
+>   	printf("Bail out! ");
+> +	errno = saved_errno;
+>   	vprintf(msg, args);
+>   	va_end(args);
+>   
+> @@ -178,10 +191,12 @@ static inline int ksft_exit_xpass(void)
+>   static inline int ksft_exit_skip(const char *msg, ...)
+>   {
+>   	if (msg) {
+> +		int saved_errno = errno;
+>   		va_list args;
+>   
+>   		va_start(args, msg);
+>   		printf("not ok %d # SKIP ", 1 + ksft_test_num());
+> +		errno = saved_errno;
+>   		vprintf(msg, args);
+>   		va_end(args);
+>   	} else {
 > 
-> That is the place to fix this, otherwise we will just be adding hacks
-> all over the place rather than in just one spot.
 
-The problem is that when the compiler is compiling be_main.o, it has no
-knowledge about what is going to happen in load_module().  The compiler can only
-see that a "const struct kernel_param_ops" "__param_ops_rx_frag_size" at the
-time with
+Hi Aleksa,
 
-__param_ops_rx_frag_size.arg = &rx_frag_size
+Can you send this patch separate from the patch series. I will apply
+this as bug fix to 5.3-rc2 or rc3.
 
-but only in load_module()->parse_args()->parse_one()->param_set_ushort(), it
-changes "__param_ops_rx_frag_size.arg" which in-turn changes the value
-of "rx_frag_size".
+This isn't part of this series anyway and I would like to get this in
+right away.
+
+thanks,
+-- Shuah
