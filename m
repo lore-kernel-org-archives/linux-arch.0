@@ -1,58 +1,99 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from sauhun.de ([88.99.104.3]:39256 "EHLO pokefinder.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726895AbfGVLiw (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 22 Jul 2019 07:38:52 -0400
-Date: Mon, 22 Jul 2019 13:38:46 +0200
-From: Wolfram Sang <wsa@the-dreams.de>
-Subject: Re: [PATCH 03/14] docs: fix broken doc references due to renames
-Message-ID: <20190722113845.GA1115@ninjato>
-References: <cover.1563277838.git.mchehab+samsung@kernel.org>
- <aa415583bf6b812b0249093a601aa31412f3a1cf.1563277838.git.mchehab+samsung@kernel.org>
-MIME-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha512;
-        protocol="application/pgp-signature"; boundary="CE+1k2dSO48ffgeK"
-Content-Disposition: inline
-In-Reply-To: <aa415583bf6b812b0249093a601aa31412f3a1cf.1563277838.git.mchehab+samsung@kernel.org>
+Received: from mail-qk1-f195.google.com ([209.85.222.195]:44453 "EHLO
+        mail-qk1-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1732192AbfGVVNU (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 22 Jul 2019 17:13:20 -0400
+Received: by mail-qk1-f195.google.com with SMTP id d79so29536619qke.11
+        for <linux-arch@vger.kernel.org>; Mon, 22 Jul 2019 14:13:19 -0700 (PDT)
+Message-ID: <1563829996.11067.4.camel@lca.pw>
+Subject: Re: [PATCH] be2net: fix adapter->big_page_size miscaculation
+From: Qian Cai <cai@lca.pw>
+Date: Mon, 22 Jul 2019 17:13:16 -0400
+In-Reply-To: <1563572871.11067.2.camel@lca.pw>
+References: <CAKwvOdkCfqfpJYYX+iu2nLCUUkeDorDdVP3e7koB9NYsRwgCNw@mail.gmail.com>
+         <CAGG=3QUvdwJs1wW1w+5Mord-qFLa=_WkjTsiZuwGfcjkoEJGNQ@mail.gmail.com>
+         <75B428FC-734C-4B15-B1A7-A3FC5F9F2FE5@lca.pw>
+         <20190718.162928.124906203979938369.davem@davemloft.net>
+         <1563572871.11067.2.camel@lca.pw>
+Content-Type: text/plain; charset="UTF-8"
+Mime-Version: 1.0
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Mauro Carvalho Chehab <mchehab+samsung@kernel.org>
-Cc: "Paul E. McKenney" <paulmck@linux.ibm.com>, Josh Triplett <josh@joshtriplett.org>, Steven Rostedt <rostedt@goodmis.org>, Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, Lai Jiangshan <jiangshanlai@gmail.com>, Joel Fernandes <joel@joelfernandes.org>, Jonathan Corbet <corbet@lwn.net>, Rob Herring <robh+dt@kernel.org>, Mark Rutland <mark.rutland@arm.com>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, Will Deacon <will@kernel.org>, Alan Stern <stern@rowland.harvard.edu>, Andrea Parri <andrea.parri@amarulasolutions.com>, Boqun Feng <boqun.feng@gmail.com>, Nicholas Piggin <npiggin@gmail.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, Akira Yokosawa <akiyks@gmail.com>, Daniel Lustig <dlustig@nvidia.com>, Jerry Hoemann <jerry.hoemann@hpe.com>, Wim Van Sebroeck <wim@linux-watchdog.org>, Guenter Roeck <linux@roeck-us.net>, Maarten Lankhorst <maarten.lankhorst@linux.intel.com>, Maxime Ripard <maxime.ripard@bootlin.com>, Sean Paul <sean@poorly.run>, David Airlie <airlied@linux.ie>, Daniel Vetter <daniel@ffwll.ch>, Ajay Gupta <ajayg@nvidia.com>, Don Brace <don.brace@microsemi.com>, "James E.J. Bottomley" <jejb@linux.ibm.com>, "Martin K. Petersen" <martin.petersen@oracle.com>, rcu@vger.kernel.org, linux-doc@vger.kernel.org, devicetree@vger.kernel.org, linux-arch@vger.kernel.org, linux-watchdog@vger.kernel.org, dri-devel@lists.freedesktop.org, linux-i2c@vger.kernel.org, esc.storagedev@microsemi.com, linux-scsi@vger.kernel.org
-Message-ID: <20190722113846.iRIPZFAVa2ksSaxCog4aXITvg9J9fXxevgSES0mbI9I@z>
+To: David Miller <davem@davemloft.net>
+Cc: morbo@google.com, ndesaulniers@google.com, jyknight@google.com, sathya.perla@broadcom.com, ajit.khaparde@broadcom.com, sriharsha.basavapatna@broadcom.com, somnath.kotur@broadcom.com, arnd@arndb.de, dhowells@redhat.com, hpa@zytor.com, netdev@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, natechancellor@gmail.com, Jakub Jelinek <jakub@redhat.com>
+Message-ID: <20190722211316.GgeG835lDtSlUpZ_N2j3sG_cFT1fGXX3_3VfqhmRvg8@z>
 
+On Fri, 2019-07-19 at 17:47 -0400, Qian Cai wrote:
+> On Thu, 2019-07-18 at 16:29 -0700, David Miller wrote:
+> > From: Qian Cai <cai@lca.pw>
+> > Date: Thu, 18 Jul 2019 19:26:47 -0400
+> > 
+> > >  
+> > >  
+> > > > On Jul 18, 2019, at 5:21 PM, Bill Wendling <morbo@google.com> wrote:
+> > > >  
+> > > > [My previous response was marked as spam...]
+> > > >  
+> > > > Top-of-tree clang says that it's const:
+> > > >  
+> > > > $ gcc a.c -O2 && ./a.out
+> > > > a is a const.
+> > > >  
+> > > > $ clang a.c -O2 && ./a.out
+> > > > a is a const.
+> > > 
+> > >  
+> > >  
+> > > I used clang-7.0.1. So, this is getting worse where both GCC and clang
+> > > will
+> > 
+> > start to suffer the
+> > > same problem.
+> > 
+> > Then rewrite the module parameter macros such that the non-constness
+> > is evident to all compilers regardless of version.
+> > 
+> > That is the place to fix this, otherwise we will just be adding hacks
+> > all over the place rather than in just one spot.
+> 
+> The problem is that when the compiler is compiling be_main.o, it has no
+> knowledge about what is going to happen in load_module().  The compiler can
+> only
+> see that a "const struct kernel_param_ops" "__param_ops_rx_frag_size" at the
+> time with
+> 
+> __param_ops_rx_frag_size.arg = &rx_frag_size
+> 
+> but only in load_module()->parse_args()->parse_one()->param_set_ushort(), it
+> changes "__param_ops_rx_frag_size.arg" which in-turn changes the value
+> of "rx_frag_size".
 
---CE+1k2dSO48ffgeK
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
+Even for an obvious case, the compilers still go ahead optimizing a variable as
+a constant. Maybe it is best to revert the commit d66acc39c7ce ("bitops:
+Optimise get_order()") unless some compiler experts could improve the situation.
 
-On Tue, Jul 16, 2019 at 09:10:42AM -0300, Mauro Carvalho Chehab wrote:
-> Some files got renamed but probably due to some merge conflicts,
-> a few references still point to the old locations.
->=20
-> Signed-off-by: Mauro Carvalho Chehab <mchehab+samsung@kernel.org>
+#include <stdio.h>
 
-Acked-by: Wolfram Sang <wsa@the-dreams.de> # I2C part
+int a = 1;
 
+int main(void)
+{
+        int *p;
 
---CE+1k2dSO48ffgeK
-Content-Type: application/pgp-signature; name="signature.asc"
+        p = &a;
+        *p = 2;
 
------BEGIN PGP SIGNATURE-----
+        if (__builtin_constant_p(a))
+                printf("a is a const.\n");
 
-iQIzBAABCgAdFiEEOZGx6rniZ1Gk92RdFA3kzBSgKbYFAl01oEEACgkQFA3kzBSg
-KbYvLhAAiBCzjlLaOX8TozT9yXWwqRye46Tkkjqei2Gh2ruk6HulzAm4JLL1ghij
-bD5UKIqsqMqs8SThEWtBr7lpGKPY5dTOO7Lvp3Gg6Ykw4DSJHjwRbY9Gz3eKpjm6
-XCeKu+qe7IWU4PyqjfTmT2tYQBjZTg8+e5ycnPtgLxvLZGpqoOwplZvwady9klS0
-6KfODAi0M8Bv05man76ECm1z4PeUjQMjuSgO4lxWDm9QPN6pL1tZ1DN4TWoQpmY8
-gnS6iqRtIVwRqjxnx3BNP6q0iF0oMBIJbufn+udz5FVAvXkWtx6gaJ+HZO02CPnd
-DfLhbW0h0SzzRnLA8rtuTQl/wJwHcfRtlYBNitXwbXIewlBTqlhzhvuW7JZnXJTe
-QXk4bXJuRofQsmWiK/i6bP0ifWyWmH/mLQkZhXEAZXsiiSHYuLC0RGLYTk2OSbRS
-d4kM+3WQfr0F8KTgmhKZv0g6yKqxziFVCBFMkKvpYqOfk3MuRf9JREpFnAmtHaox
-310crjxth9IwT/SMq813fSz5+SueTeiTp7DZyOANc23QCyJTpTTnIsdpzYzna4+i
-t8H5nyy2JKWKP7rvIfn2O4BKHOt14Klmbno/pUak4lxLadz7Av7mC65akEwLWSiI
-0qO7h0/ZSuPlu8OPAyR3I7cvx8/RriyeQJUceA6/KjTSKtWhw/E=
-=7t6S
------END PGP SIGNATURE-----
+        printf("a = %d\n", a);
 
---CE+1k2dSO48ffgeK--
+        return 0;
+}
+
+# gcc -O2 const.c -o const
+
+# ./const
+a is a const.
+a = 2
