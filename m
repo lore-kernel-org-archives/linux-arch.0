@@ -1,61 +1,48 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wr1-f65.google.com ([209.85.221.65]:46579 "EHLO
-        mail-wr1-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S2387566AbfGXC3l (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 23 Jul 2019 22:29:41 -0400
-Date: Tue, 23 Jul 2019 19:29:36 -0700
-From: Nathan Chancellor <natechancellor@gmail.com>
-Subject: Re: [PATCH] asm-generic: fix -Wtype-limits compiler warnings
-Message-ID: <20190724022936.GA73305@archlinux-threadripper>
-References: <1563914986-26502-1-git-send-email-cai@lca.pw>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
+Received: from mx1.redhat.com ([209.132.183.28]:49420 "EHLO mx1.redhat.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1725776AbfGXHte (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 24 Jul 2019 03:49:34 -0400
+From: David Howells <dhowells@redhat.com>
 In-Reply-To: <1563914986-26502-1-git-send-email-cai@lca.pw>
+References: <1563914986-26502-1-git-send-email-cai@lca.pw>
+Subject: Re: [PATCH] asm-generic: fix -Wtype-limits compiler warnings
+MIME-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-ID: <31572.1563954571.1@warthog.procyon.org.uk>
+Date: Wed, 24 Jul 2019 08:49:31 +0100
+Message-ID: <31573.1563954571@warthog.procyon.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Qian Cai <cai@lca.pw>
-Cc: akpm@linux-foundation.org, davem@davemloft.net, arnd@arndb.de, dhowells@redhat.com, jakub@redhat.com, ndesaulniers@google.com, morbo@google.com, jyknight@google.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20190724022936.ID1Ni90nBEkBsOTQ-r58X44F7V6nbzu5Oj1sEs72yx8@z>
+Cc: dhowells@redhat.com, akpm@linux-foundation.org, davem@davemloft.net, arnd@arndb.de, jakub@redhat.com, ndesaulniers@google.com, morbo@google.com, jyknight@google.com, natechancellor@gmail.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20190724074931.Q4JaAxHRos2pCaah4tjarnh0Y1Yjz-VoNmpy4-T3F2o@z>
 
-On Tue, Jul 23, 2019 at 04:49:46PM -0400, Qian Cai wrote:
-> The commit d66acc39c7ce ("bitops: Optimise get_order()") introduced a
-> compilation warning because "rx_frag_size" is an "ushort" while
-> PAGE_SHIFT here is 16. The commit changed the get_order() to be a
-> multi-line macro where compilers insist to check all statements in the
-> macro even when __builtin_constant_p(rx_frag_size) will return false as
-> "rx_frag_size" is a module parameter.
-> 
-> In file included from ./arch/powerpc/include/asm/page_64.h:107,
->                  from ./arch/powerpc/include/asm/page.h:242,
->                  from ./arch/powerpc/include/asm/mmu.h:132,
->                  from ./arch/powerpc/include/asm/lppaca.h:47,
->                  from ./arch/powerpc/include/asm/paca.h:17,
->                  from ./arch/powerpc/include/asm/current.h:13,
->                  from ./include/linux/thread_info.h:21,
->                  from ./arch/powerpc/include/asm/processor.h:39,
->                  from ./include/linux/prefetch.h:15,
->                  from drivers/net/ethernet/emulex/benet/be_main.c:14:
-> drivers/net/ethernet/emulex/benet/be_main.c: In function
-> 'be_rx_cqs_create':
-> ./include/asm-generic/getorder.h:54:9: warning: comparison is always
-> true due to limited range of data type [-Wtype-limits]
->    (((n) < (1UL << PAGE_SHIFT)) ? 0 :  \
->          ^
-> drivers/net/ethernet/emulex/benet/be_main.c:3138:33: note: in expansion
-> of macro 'get_order'
->   adapter->big_page_size = (1 << get_order(rx_frag_size)) * PAGE_SIZE;
->                                  ^~~~~~~~~
-> 
+Qian Cai <cai@lca.pw> wrote:
+
 > Fix it by moving almost all of this multi-line macro into a proper
 > function __get_order(), and leave get_order() as a single-line macro in
 > order to avoid compilation errors.
 
-Wouldn't it just be better to rename __get_order to get_order?
+The idea was that you could compile-time initialise a global variable with
+get_order():
 
-> Fixes: d66acc39c7ce ("bitops: Optimise get_order()")
-> Signed-off-by: Qian Cai <cai@lca.pw>
+	int a = get_order(SOME_MACRO);
 
-Other than that, LGTM.
+This is the same reason that ilog2() is a macro:
 
-Reviewed-by: Nathan Chancellor <natechancellor@gmail.com>
+	int a = ilog2(SOME_MACRO);
+
+See the banner comment on get_order():
+
+ * This function may be used to initialise variables with compile time
+ * evaluations of constants.
+
+If you're moving the constant branch into __get_order(), an inline function,
+then we'll no longer be able to do this and you need to modify the comment
+too.  In fact, would there still be a point in having the get_order() macro?
+
+Also, IIRC, older versions of gcc see __builtin_constant_p(n) == 0 inside an
+function, inline or otherwise, even if the passed-in argument *is* constant.
+
+David
