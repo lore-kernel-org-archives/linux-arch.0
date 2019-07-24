@@ -1,14 +1,14 @@
 From: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-Subject: [PATCH 5.2 346/413] padata: use smp_mb in padata_reorder to avoid orphaned padata jobs
-Date: Wed, 24 Jul 2019 21:20:37 +0200
-Message-ID: <20190724191800.593614871@linuxfoundation.org>
-References: <20190724191735.096702571@linuxfoundation.org>
+Subject: [PATCH 5.1 315/371] padata: use smp_mb in padata_reorder to avoid orphaned padata jobs
+Date: Wed, 24 Jul 2019 21:21:07 +0200
+Message-ID: <20190724191747.745523249@linuxfoundation.org>
+References: <20190724191724.382593077@linuxfoundation.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
-Return-path: <stable-owner@vger.kernel.org>
-In-Reply-To: <20190724191735.096702571@linuxfoundation.org>
-Sender: stable-owner@vger.kernel.org
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20190724191724.382593077@linuxfoundation.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org
 Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, stable@vger.kernel.org, Daniel Jordan <daniel.m.jordan@oracle.com>, Andrea Parri <andrea.parri@amarulasolutions.com>, Boqun Feng <boqun.feng@gmail.com>, Herbert Xu <herbert@gondor.apana.org.au>, "Paul E. McKenney" <paulmck@linux.ibm.com>, Peter Zijlstra <peterz@infradead.org>, Steffen Klassert <steffen.klassert@secunet.com>, linux-arch@vger.kernel.org, linux-crypto@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
