@@ -1,66 +1,127 @@
-From: Qian Cai <cai@lca.pw>
-Subject: Re: [PATCH] asm-generic: fix -Wtype-limits compiler warnings
-Date: Wed, 24 Jul 2019 14:45:52 -0400
-Message-ID: <1563993952.11067.15.camel@lca.pw>
-References: <1563914986-26502-1-git-send-email-cai@lca.pw>
-         <31573.1563954571@warthog.procyon.org.uk>
+From: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+Subject: [PATCH 5.2 346/413] padata: use smp_mb in padata_reorder to avoid orphaned padata jobs
+Date: Wed, 24 Jul 2019 21:20:37 +0200
+Message-ID: <20190724191800.593614871@linuxfoundation.org>
+References: <20190724191735.096702571@linuxfoundation.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <31573.1563954571@warthog.procyon.org.uk>
-Sender: linux-kernel-owner@vger.kernel.org
-To: David Howells <dhowells@redhat.com>
-Cc: akpm@linux-foundation.org, davem@davemloft.net, arnd@arndb.de, jakub@redhat.com, ndesaulniers@google.com, morbo@google.com, jyknight@google.com, natechancellor@gmail.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Return-path: <stable-owner@vger.kernel.org>
+In-Reply-To: <20190724191735.096702571@linuxfoundation.org>
+Sender: stable-owner@vger.kernel.org
+To: linux-kernel@vger.kernel.org
+Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, stable@vger.kernel.org, Daniel Jordan <daniel.m.jordan@oracle.com>, Andrea Parri <andrea.parri@amarulasolutions.com>, Boqun Feng <boqun.feng@gmail.com>, Herbert Xu <herbert@gondor.apana.org.au>, "Paul E. McKenney" <paulmck@linux.ibm.com>, Peter Zijlstra <peterz@infradead.org>, Steffen Klassert <steffen.klassert@secunet.com>, linux-arch@vger.kernel.org, linux-crypto@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, 2019-07-24 at 08:49 +0100, David Howells wrote:
-> Qian Cai <cai@lca.pw> wrote:
-> 
-> > Fix it by moving almost all of this multi-line macro into a proper
-> > function __get_order(), and leave get_order() as a single-line macro in
-> > order to avoid compilation errors.
-> 
-> The idea was that you could compile-time initialise a global variable with
-> get_order():
-> 
-> 	int a = get_order(SOME_MACRO);
-> 
-> This is the same reason that ilog2() is a macro:
-> 
-> 	int a = ilog2(SOME_MACRO);
-> 
-> See the banner comment on get_order():
-> 
->  * This function may be used to initialise variables with compile time
->  * evaluations of constants.
-> 
-> If you're moving the constant branch into __get_order(), an inline function,
-> then we'll no longer be able to do this and you need to modify the comment
-> too.  In fact, would there still be a point in having the get_order() macro?
-> 
-> Also, IIRC, older versions of gcc see __builtin_constant_p(n) == 0 inside an
-> function, inline or otherwise, even if the passed-in argument *is* constant.
+From: Daniel Jordan <daniel.m.jordan@oracle.com>
 
-I have GCC 8.2.1 which works fine.
+commit cf144f81a99d1a3928f90b0936accfd3f45c9a0a upstream.
 
-# cat const.c 
-#include <stdio.h>
+Testing padata with the tcrypt module on a 5.2 kernel...
 
-static int i = 0;
+    # modprobe tcrypt alg="pcrypt(rfc4106(gcm(aes)))" type=3
+    # modprobe tcrypt mode=211 sec=1
 
-static inline void check()
-{
-	if (__builtin_constant_p(i))
-		printf("i is a const.\n");
-}
+...produces this splat:
 
-void main()
-{
-	check();
-}
+    INFO: task modprobe:10075 blocked for more than 120 seconds.
+          Not tainted 5.2.0-base+ #16
+    modprobe        D    0 10075  10064 0x80004080
+    Call Trace:
+     ? __schedule+0x4dd/0x610
+     ? ring_buffer_unlock_commit+0x23/0x100
+     schedule+0x6c/0x90
+     schedule_timeout+0x3b/0x320
+     ? trace_buffer_unlock_commit_regs+0x4f/0x1f0
+     wait_for_common+0x160/0x1a0
+     ? wake_up_q+0x80/0x80
+     { crypto_wait_req }             # entries in braces added by hand
+     { do_one_aead_op }
+     { test_aead_jiffies }
+     test_aead_speed.constprop.17+0x681/0xf30 [tcrypt]
+     do_test+0x4053/0x6a2b [tcrypt]
+     ? 0xffffffffa00f4000
+     tcrypt_mod_init+0x50/0x1000 [tcrypt]
+     ...
 
-# gcc -O2 const.c -o const
+The second modprobe command never finishes because in padata_reorder,
+CPU0's load of reorder_objects is executed before the unlocking store in
+spin_unlock_bh(pd->lock), causing CPU0 to miss CPU1's increment:
 
-# ./const 
-i is a const.
+CPU0                                 CPU1
+
+padata_reorder                       padata_do_serial
+  LOAD reorder_objects  // 0
+                                       INC reorder_objects  // 1
+                                       padata_reorder
+                                         TRYLOCK pd->lock   // failed
+  UNLOCK pd->lock
+
+CPU0 deletes the timer before returning from padata_reorder and since no
+other job is submitted to padata, modprobe waits indefinitely.
+
+Add a pair of full barriers to guarantee proper ordering:
+
+CPU0                                 CPU1
+
+padata_reorder                       padata_do_serial
+  UNLOCK pd->lock
+  smp_mb()
+  LOAD reorder_objects
+                                       INC reorder_objects
+                                       smp_mb__after_atomic()
+                                       padata_reorder
+                                         TRYLOCK pd->lock
+
+smp_mb__after_atomic is needed so the read part of the trylock operation
+comes after the INC, as Andrea points out.   Thanks also to Andrea for
+help with writing a litmus test.
+
+Fixes: 16295bec6398 ("padata: Generic parallelization/serialization interface")
+Signed-off-by: Daniel Jordan <daniel.m.jordan@oracle.com>
+Cc: <stable@vger.kernel.org>
+Cc: Andrea Parri <andrea.parri@amarulasolutions.com>
+Cc: Boqun Feng <boqun.feng@gmail.com>
+Cc: Herbert Xu <herbert@gondor.apana.org.au>
+Cc: Paul E. McKenney <paulmck@linux.ibm.com>
+Cc: Peter Zijlstra <peterz@infradead.org>
+Cc: Steffen Klassert <steffen.klassert@secunet.com>
+Cc: linux-arch@vger.kernel.org
+Cc: linux-crypto@vger.kernel.org
+Cc: linux-kernel@vger.kernel.org
+Signed-off-by: Herbert Xu <herbert@gondor.apana.org.au>
+Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+
+---
+ kernel/padata.c |   12 ++++++++++++
+ 1 file changed, 12 insertions(+)
+
+--- a/kernel/padata.c
++++ b/kernel/padata.c
+@@ -267,7 +267,12 @@ static void padata_reorder(struct parall
+ 	 * The next object that needs serialization might have arrived to
+ 	 * the reorder queues in the meantime, we will be called again
+ 	 * from the timer function if no one else cares for it.
++	 *
++	 * Ensure reorder_objects is read after pd->lock is dropped so we see
++	 * an increment from another task in padata_do_serial.  Pairs with
++	 * smp_mb__after_atomic in padata_do_serial.
+ 	 */
++	smp_mb();
+ 	if (atomic_read(&pd->reorder_objects)
+ 			&& !(pinst->flags & PADATA_RESET))
+ 		mod_timer(&pd->timer, jiffies + HZ);
+@@ -387,6 +392,13 @@ void padata_do_serial(struct padata_priv
+ 	list_add_tail(&padata->list, &pqueue->reorder.list);
+ 	spin_unlock(&pqueue->reorder.lock);
+ 
++	/*
++	 * Ensure the atomic_inc of reorder_objects above is ordered correctly
++	 * with the trylock of pd->lock in padata_reorder.  Pairs with smp_mb
++	 * in padata_reorder.
++	 */
++	smp_mb__after_atomic();
++
+ 	put_cpu();
+ 
+ 	/* If we're running on the wrong CPU, call padata_reorder() via a
