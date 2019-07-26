@@ -1,13 +1,13 @@
 From: Paul Burton <paul.burton@mips.com>
-Subject: Re: [PATCH v7 19/25] mips: Add support for generic vDSO
-Date: Fri, 26 Jul 2019 05:15:35 +0000
-Message-ID: <MWHPR2201MB1277C33D971A9C8945812CFCC1C00@MWHPR2201MB1277.namprd22.prod.outlook.com>
-References: <20190621095252.32307-20-vincenzo.frascino@arm.com>
+Subject: Re: [PATCH v7 20/25] mips: Add clock_getres entry point
+Date: Fri, 26 Jul 2019 05:15:41 +0000
+Message-ID: <MWHPR2201MB1277885B5C1F41C1563B4B5AC1C00@MWHPR2201MB1277.namprd22.prod.outlook.com>
+References: <20190621095252.32307-21-vincenzo.frascino@arm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="iso-8859-1"
 Content-Transfer-Encoding: quoted-printable
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20190621095252.32307-20-vincenzo.frascino@arm.com>
+In-Reply-To: <20190621095252.32307-21-vincenzo.frascino@arm.com>
 Content-Language: en-US
 Sender: linux-kernel-owner@vger.kernel.org
 To: Vincenzo Frascino <vincenzo.frascino@arm.com>
@@ -17,12 +17,10 @@ List-Id: linux-arch.vger.kernel.org
 Hello,
 
 Vincenzo Frascino wrote:
-> The mips vDSO library requires some adaptations to take advantage of the
-> newly introduced generic vDSO library.
+> The generic vDSO library provides an implementation of clock_getres()
+> that can be leveraged by each architecture.
 >=20
-> Introduce the following changes:
-> - Modification of vdso.c to be compliant with the common vdso datapage
-> - Use of lib/vdso for gettimeofday
+> Add clock_getres() entry point on mips.
 >=20
 > Cc: Ralf Baechle <ralf@linux-mips.org>
 > Cc: Paul Burton <paul.burton@mips.com>
