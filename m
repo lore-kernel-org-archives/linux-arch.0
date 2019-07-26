@@ -1,58 +1,119 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ed1-f65.google.com ([209.85.208.65]:41400 "EHLO
-        mail-ed1-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726731AbfGZOZA (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 26 Jul 2019 10:25:00 -0400
-Received: by mail-ed1-f65.google.com with SMTP id p15so53418500eds.8
-        for <linux-arch@vger.kernel.org>; Fri, 26 Jul 2019 07:24:59 -0700 (PDT)
-Date: Fri, 26 Jul 2019 16:24:50 +0200
-From: Daniel Vetter <daniel@ffwll.ch>
-Subject: Re: [PATCH 1/7] docs: fix broken doc references due to renames
-Message-ID: <20190726142450.GJ15868@phenom.ffwll.local>
-References: <cover.1564140865.git.mchehab+samsung@kernel.org>
- <430ed96cb234805d1deb216e8c8559da22cc6bac.1564140865.git.mchehab+samsung@kernel.org>
- <CAL_JsqK_rfHehrKW_NS89BOV0=dYoao0H=zOzG=D-724vKduKw@mail.gmail.com>
+Received: from foss.arm.com ([217.140.110.172]:47142 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1727514AbfGZQaH (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 26 Jul 2019 12:30:07 -0400
+From: Vincenzo Frascino <vincenzo.frascino@arm.com>
+Subject: [PATCH 2/2] mips: vdso: Fix flip/flop vdso building bug
+Date: Fri, 26 Jul 2019 17:29:44 +0100
+Message-ID: <20190726162944.12149-3-vincenzo.frascino@arm.com>
+In-Reply-To: <20190726162944.12149-1-vincenzo.frascino@arm.com>
+References: <MWHPR2201MB1277C33D971A9C8945812CFCC1C00@MWHPR2201MB1277.namprd22.prod.outlook.com>
+ <20190726162944.12149-1-vincenzo.frascino@arm.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <CAL_JsqK_rfHehrKW_NS89BOV0=dYoao0H=zOzG=D-724vKduKw@mail.gmail.com>
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Rob Herring <robh+dt@kernel.org>
-Cc: Mauro Carvalho Chehab <mchehab+samsung@kernel.org>, "Paul E. McKenney" <paulmck@linux.ibm.com>, Josh Triplett <josh@joshtriplett.org>, Steven Rostedt <rostedt@goodmis.org>, Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, Lai Jiangshan <jiangshanlai@gmail.com>, Joel Fernandes <joel@joelfernandes.org>, Jonathan Corbet <corbet@lwn.net>, Mark Rutland <mark.rutland@arm.com>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, Will Deacon <will@kernel.org>, Alan Stern <stern@rowland.harvard.edu>, Andrea Parri <andrea.parri@amarulasolutions.com>, Boqun Feng <boqun.feng@gmail.com>, Nicholas Piggin <npiggin@gmail.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, Akira Yokosawa <akiyks@gmail.com>, Daniel Lustig <dlustig@nvidia.com>, Jerry Hoemann <jerry.hoemann@hpe.com>, Wim Van Sebroeck <wim@linux-watchdog.org>, Guenter Roeck <linux@roeck-us.net>, Maarten Lankhorst <maarten.lankhorst@linux.intel.com>, Maxime Ripard <maxime.ripard@bootlin.com>, Sean Paul <sean@poorly.run>, David Airlie <airlied@linux.ie>, Daniel Vetter <daniel@ffwll.ch>, Ajay Gupta <ajayg@nvidia.com>, Don Brace <don.brace@microsemi.com>, "James E.J. Bottomley" <jejb@linux.ibm.com>, "Martin K. Petersen" <martin.petersen@oracle.com>, rcu@vger.kernel.org, Linux Doc Mailing List <linux-doc@vger.kernel.org>, devicetree@vger.kernel.org, "open list:GENERIC INCLUDE/ASM HEADER FILES" <linux-arch@vger.kernel.org>, LINUX-WATCHDOG <linux-watchdog@vger.kernel.org>, dri-devel <dri-devel@lists.freedesktop.org>, Linux I2C <linux-i2c@vger.kernel.org>, esc.storagedev@microsemi.com, SCSI <linux-scsi@vger.kernel.org>, Wolfram Sang <wsa@the-dreams.de>
-Message-ID: <20190726142450.O2qrvPH03QjJjN0jYmMMSGtH6X6xVwO5ooRelWVTwqM@z>
+To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org, linux-kselftest@vger.kernel.org
+Cc: catalin.marinas@arm.com, will.deacon@arm.com, arnd@arndb.de, linux@armlinux.org.uk, ralf@linux-mips.org, paul.burton@mips.com, daniel.lezcano@linaro.org, tglx@linutronix.de, salyzyn@android.com, pcc@google.com, shuah@kernel.org, 0x7f454c46@gmail.com, linux@rasmusvillemoes.dk, huw@codeweavers.com, sthotton@marvell.com, andre.przywara@arm.com, luto@kernel.org
+Message-ID: <20190726162944.nDOyKnAbntEo-UkzFHWxtwHxo-BU2ABUAEguBdqBlkc@z>
 
-On Fri, Jul 26, 2019 at 07:41:35AM -0600, Rob Herring wrote:
-> On Fri, Jul 26, 2019 at 5:47 AM Mauro Carvalho Chehab
-> <mchehab+samsung@kernel.org> wrote:
-> >
-> > Some files got renamed but probably due to some merge conflicts,
-> > a few references still point to the old locations.
-> >
-> > Signed-off-by: Mauro Carvalho Chehab <mchehab+samsung@kernel.org>
-> > Acked-by: Wolfram Sang <wsa@the-dreams.de> # I2C part
-> > Reviewed-by: Jerry Hoemann <jerry.hoemann@hpe.com> # hpwdt.rst
-> > ---
-> >  Documentation/RCU/rculist_nulls.txt                   |  2 +-
-> >  Documentation/devicetree/bindings/arm/idle-states.txt |  2 +-
-> >  Documentation/locking/spinlocks.rst                   |  4 ++--
-> >  Documentation/memory-barriers.txt                     |  2 +-
-> >  Documentation/translations/ko_KR/memory-barriers.txt  |  2 +-
-> >  Documentation/watchdog/hpwdt.rst                      |  2 +-
-> >  MAINTAINERS                                           | 10 +++++-----
-> >  drivers/gpu/drm/drm_modes.c                           |  2 +-
+Running "make" on an already compiled kernel tree will rebuild the
+vdso library even if this has not been modified.
 
-for the drm part:
+$ make
+  GEN     Makefile
+  Using linux as source for kernel
+  CALL   linux/scripts/atomic/check-atomics.sh
+  CALL   linux/scripts/checksyscalls.sh
+<stdin>:1511:2: warning: #warning syscall clone3 not implemented [-Wcpp]
+  CHK     include/generated/compile.h
+  VDSO    arch/mips/vdso/vdso.so.dbg.raw
+  OBJCOPY arch/mips/vdso/vdso.so.raw
+  GENVDSO arch/mips/vdso/vdso-image.c
+  CC      arch/mips/vdso/vdso-image.o
+  AR      arch/mips/vdso/built-in.a
+  AR      arch/mips/built-in.a
+  CHK     include/generated/autoksyms.h
+  GEN     .version
+  CHK     include/generated/compile.h
+  UPD     include/generated/compile.h
+  CC      init/version.o
+  AR      init/built-in.a
+  LD      vmlinux.o
+  MODPOST vmlinux.o
+  MODINFO modules.builtin.modinfo
+  KSYM    .tmp_kallsyms1.o
+  KSYM    .tmp_kallsyms2.o
+  LD      vmlinux
+  SORTEX  vmlinux
+  SYSMAP  System.map
+  Building modules, stage 2.
+  ITS     arch/mips/boot/vmlinux.gz.its
+  OBJCOPY arch/mips/boot/vmlinux.bin
+  MODPOST 7 modules
+  GZIP    arch/mips/boot/vmlinux.bin.gz
+  ITB     arch/mips/boot/vmlinux.gz.itb
 
-Acked-by: Daniel Vetter <daniel.vetter@ffwll.ch>
+The issue is generated by the fact that "if_changed" is called twice
+in a single target.
 
-> >  drivers/i2c/busses/i2c-nvidia-gpu.c                   |  2 +-
-> >  drivers/scsi/hpsa.c                                   |  4 ++--
-> >  10 files changed, 16 insertions(+), 16 deletions(-)
-> 
-> Acked-by: Rob Herring <robh@kernel.org>
+Fix the build bug merging the two commands into a single function.
 
+Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
+---
+ arch/mips/vdso/Makefile | 14 +++++++-------
+ 1 file changed, 7 insertions(+), 7 deletions(-)
+
+diff --git a/arch/mips/vdso/Makefile b/arch/mips/vdso/Makefile
+index 6b482ac52e61..69cfa0a5339e 100644
+--- a/arch/mips/vdso/Makefile
++++ b/arch/mips/vdso/Makefile
+@@ -79,11 +79,14 @@ UBSAN_SANITIZE := n
+ # Shared build commands.
+ #
+ 
++quiet_cmd_vdsold_and_vdso_check = LD      $@
++      cmd_vdsold_and_vdso_check = $(cmd_vdsold); $(cmd_vdso_check)
++
+ quiet_cmd_vdsold = VDSO    $@
+       cmd_vdsold = $(CC) $(c_flags) $(VDSO_LDFLAGS) \
+                    -Wl,-T $(filter %.lds,$^) $(filter %.o,$^) -o $@
+ 
+-quiet_cmd_vdsoas_o_S = AS       $@
++quiet_cmd_vdsoas_o_S = AS      $@
+       cmd_vdsoas_o_S = $(CC) $(a_flags) -c -o $@ $<
+ 
+ # Strip rule for the raw .so files
+@@ -119,8 +122,7 @@ $(obj-vdso): KBUILD_AFLAGS := $(aflags-vdso) $(native-abi)
+ $(obj)/vdso.lds: KBUILD_CPPFLAGS := $(ccflags-vdso) $(native-abi)
+ 
+ $(obj)/vdso.so.dbg.raw: $(obj)/vdso.lds $(obj-vdso) FORCE
+-	$(call if_changed,vdsold)
+-	$(call if_changed,vdso_check)
++	$(call if_changed,vdsold_and_vdso_check)
+ 
+ $(obj)/vdso-image.c: $(obj)/vdso.so.dbg.raw $(obj)/vdso.so.raw \
+                      $(obj)/genvdso FORCE
+@@ -158,8 +160,7 @@ $(obj)/vdso-o32.lds: $(src)/vdso.lds.S FORCE
+ 	$(call if_changed_dep,cpp_lds_S)
+ 
+ $(obj)/vdso-o32.so.dbg.raw: $(obj)/vdso-o32.lds $(obj-vdso-o32) FORCE
+-	$(call if_changed,vdsold)
+-	$(call if_changed,vdso_check)
++	$(call if_changed,vdsold_and_vdso_check)
+ 
+ $(obj)/vdso-o32-image.c: VDSO_NAME := o32
+ $(obj)/vdso-o32-image.c: $(obj)/vdso-o32.so.dbg.raw $(obj)/vdso-o32.so.raw \
+@@ -199,8 +200,7 @@ $(obj)/vdso-n32.lds: $(src)/vdso.lds.S FORCE
+ 	$(call if_changed_dep,cpp_lds_S)
+ 
+ $(obj)/vdso-n32.so.dbg.raw: $(obj)/vdso-n32.lds $(obj-vdso-n32) FORCE
+-	$(call if_changed,vdsold)
+-	$(call if_changed,vdso_check)
++	$(call if_changed,vdsold_and_vdso_check)
+ 
+ $(obj)/vdso-n32-image.c: VDSO_NAME := n32
+ $(obj)/vdso-n32-image.c: $(obj)/vdso-n32.so.dbg.raw $(obj)/vdso-n32.so.raw \
 -- 
-Daniel Vetter
-Software Engineer, Intel Corporation
-http://blog.ffwll.ch
+2.22.0
