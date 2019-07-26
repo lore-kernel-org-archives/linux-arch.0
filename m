@@ -1,58 +1,43 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:47110 "EHLO foss.arm.com"
+Received: from foss.arm.com ([217.140.110.172]:47074 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727514AbfGZQaE (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 26 Jul 2019 12:30:04 -0400
+        id S1727514AbfGZQaB (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 26 Jul 2019 12:30:01 -0400
 From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Subject: [PATCH 1/2] mips: vdso: Fix source path
-Date: Fri, 26 Jul 2019 17:29:43 +0100
-Message-ID: <20190726162944.12149-2-vincenzo.frascino@arm.com>
-In-Reply-To: <20190726162944.12149-1-vincenzo.frascino@arm.com>
+Subject: [PATCH 0/2] mips: vdso: Fix Makefile
+Date: Fri, 26 Jul 2019 17:29:42 +0100
+Message-ID: <20190726162944.12149-1-vincenzo.frascino@arm.com>
+In-Reply-To: <MWHPR2201MB1277C33D971A9C8945812CFCC1C00@MWHPR2201MB1277.namprd22.prod.outlook.com>
 References: <MWHPR2201MB1277C33D971A9C8945812CFCC1C00@MWHPR2201MB1277.namprd22.prod.outlook.com>
- <20190726162944.12149-1-vincenzo.frascino@arm.com>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org, linux-kselftest@vger.kernel.org
 Cc: catalin.marinas@arm.com, will.deacon@arm.com, arnd@arndb.de, linux@armlinux.org.uk, ralf@linux-mips.org, paul.burton@mips.com, daniel.lezcano@linaro.org, tglx@linutronix.de, salyzyn@android.com, pcc@google.com, shuah@kernel.org, 0x7f454c46@gmail.com, linux@rasmusvillemoes.dk, huw@codeweavers.com, sthotton@marvell.com, andre.przywara@arm.com, luto@kernel.org
-Message-ID: <20190726162943.S1FK9z23b0Q_jawyfFtbe_SJPc6Vr06OCKqgLU29kEs@z>
+Message-ID: <20190726162942.b7F-KIyMOt9YUwKTHEMvdwtiDr9jNTZXhKpUG-NgIJk@z>
 
-The vdso library for o32 and n32 does not compile compile correctly
-due to a wrong inclusion path for config-n32-o32-env.c resulting in
-the error below:
+Consequently to the unified vDSO transition of the MIPS architecture few
+compilation issues appeared due to:
+ - A wrong source path for the configuration environment settings for
+   the O32 and N32 vDSO library generation.
+ - A flip/flop vDSO building bug that would cause to rebuild the vDSO
+   library every second time.
 
-cc1: fatal error: arch/mips/vdso/config-n32-o32-env.c:
-No such file or dnirectory
-compilation terminated.
-arch/mips/vdso/Makefile:153: recipe for target
-'arch/mips/vdso/vgettimeofday-o32.o' failed
-make[3]: *** [arch/mips/vdso/vgettimeofday-o32.o] Error 1
-scripts/Makefile.build:490: recipe for target 'arch/mips/vdso' failed
+This patch series addresses both the issues providing the respective
+fixes.
 
-Fix the config-n32-o32-env.c inclusion path prepending the $(srctree)
-variable.
+This patchset is rebased on top of mips-next.
 
 Cc: Paul Burton <paul.burton@mips.com>
 Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
----
- arch/mips/vdso/Makefile | 4 ++--
- 1 file changed, 2 insertions(+), 2 deletions(-)
 
-diff --git a/arch/mips/vdso/Makefile b/arch/mips/vdso/Makefile
-index de853c6aab28..6b482ac52e61 100644
---- a/arch/mips/vdso/Makefile
-+++ b/arch/mips/vdso/Makefile
-@@ -40,8 +40,8 @@ CFLAGS_vgettimeofday.o = -include $(c-gettimeofday-y)
- # config-n32-o32-env.c prepares the environment to build a 32bit vDSO
- # library on a 64bit kernel.
- # Note: Needs to be included before than the generic library.
--CFLAGS_vgettimeofday-o32.o = -include $(src)/config-n32-o32-env.c -include $(c-gettimeofday-y)
--CFLAGS_vgettimeofday-n32.o = -include $(src)/config-n32-o32-env.c -include $(c-gettimeofday-y)
-+CFLAGS_vgettimeofday-o32.o = -include $(srctree)/$(src)/config-n32-o32-env.c -include $(c-gettimeofday-y)
-+CFLAGS_vgettimeofday-n32.o = -include $(srctree)/$(src)/config-n32-o32-env.c -include $(c-gettimeofday-y)
- endif
- 
- CFLAGS_REMOVE_vgettimeofday.o = -pg
+Vincenzo Frascino (2):
+  mips: vdso: Fix source path
+  mips: vdso: Fix flip/flop vdso building bug
+
+ arch/mips/vdso/Makefile | 18 +++++++++---------
+ 1 file changed, 9 insertions(+), 9 deletions(-)
+
 -- 
 2.22.0
