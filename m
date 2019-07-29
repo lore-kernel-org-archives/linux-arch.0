@@ -1,54 +1,66 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-eopbgr710092.outbound.protection.outlook.com ([40.107.71.92]:19728
-        "EHLO NAM05-BY2-obe.outbound.protection.outlook.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1726097AbfG1WUV (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Sun, 28 Jul 2019 18:20:21 -0400
-From: Paul Burton <paul.burton@mips.com>
-Subject: Re: [PATCH 0/2] mips: vdso: Fix Makefile
-Date: Sun, 28 Jul 2019 22:20:18 +0000
-Message-ID: <MWHPR2201MB1277BCF195D341D7AB3FA5EBC1C20@MWHPR2201MB1277.namprd22.prod.outlook.com>
-References: <20190726162944.12149-1-vincenzo.frascino@arm.com>
-In-Reply-To: <20190726162944.12149-1-vincenzo.frascino@arm.com>
-Content-Language: en-US
-Content-Type: text/plain; charset="iso-8859-1"
-Content-Transfer-Encoding: quoted-printable
+Received: from conssluserg-04.nifty.com ([210.131.2.83]:46479 "EHLO
+        conssluserg-04.nifty.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726216AbfG2C2K (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 28 Jul 2019 22:28:10 -0400
 MIME-Version: 1.0
+References: <alpine.DEB.2.21.1907161434260.1767@nanos.tec.linutronix.de>
+ <20190716170606.GA38406@archlinux-threadripper> <alpine.DEB.2.21.1907162059200.1767@nanos.tec.linutronix.de>
+ <alpine.DEB.2.21.1907162135590.1767@nanos.tec.linutronix.de>
+ <CAK7LNASBiaMX8ihnmhLGmYfHX=ZHZmVN91nxmFZe-OCaw6Px2w@mail.gmail.com>
+ <alpine.DEB.2.21.1907170955250.1767@nanos.tec.linutronix.de>
+ <CAHbf0-GyQzWcRg_BP2B5pVzEJoxSE_hX5xFypS--7Q5LSHxzWw@mail.gmail.com>
+ <CAK7LNATJGbSYyuxV7npC_bQiXQShb=7J7dcQcOaupnL5-GhADg@mail.gmail.com>
+ <alpine.DEB.2.21.1907230837400.1659@nanos.tec.linutronix.de> <alpine.DEB.2.21.1907231013340.1659@nanos.tec.linutronix.de>
+In-Reply-To: <alpine.DEB.2.21.1907231013340.1659@nanos.tec.linutronix.de>
+From: Masahiro Yamada <yamada.masahiro@socionext.com>
+Date: Mon, 29 Jul 2019 11:27:20 +0900
+Message-ID: <CAK7LNATg38uFeY8JKnNPXudv8y4O1g=TPtvEbcBjrqFXSaKgdQ@mail.gmail.com>
+Subject: Re: [PATCH v2] kbuild: Fail if gold linker is detected
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-mips@vger.kernel.org" <linux-mips@vger.kernel.org>, "linux-kselftest@vger.kernel.org" <linux-kselftest@vger.kernel.org>, "catalin.marinas@arm.com" <catalin.marinas@arm.com>, "will.deacon@arm.com" <will.deacon@arm.com>, "arnd@arndb.de" <arnd@arndb.de>, "linux@armlinux.org.uk" <linux@armlinux.org.uk>, "ralf@linux-mips.org" <ralf@linux-mips.org>, Paul Burton <pburton@wavecomp.com>, "daniel.lezcano@linaro.org" <daniel.lezcano@linaro.org>, "tglx@linutronix.de" <tglx@linutronix.de>, "salyzyn@android.com" <salyzyn@android.com>, "pcc@google.com" <pcc@google.com>, "shuah@kernel.org" <shuah@kernel.org>, "0x7f454c46@gmail.com" <0x7f454c46@gmail.com>, "linux@rasmusvillemoes.dk" <linux@rasmusvillemoes.dk>, "huw@codeweavers.com" <huw@codeweavers.com>, "sthotton@marvell.com" <sthotton@marvell.com>, "andre.przywara@arm.com" <andre.przywara@arm.com>, "luto@kernel.org" <luto@kernel.org>"linux-mips@vger.kernel.org" <linux-mips@vger.kernel.org>
-Message-ID: <20190728222018.QnKzkBa2yxWTKkCbGrWrXVC8yuko2GCH92oNrMzdZoM@z>
+To: Thomas Gleixner <tglx@linutronix.de>
+Cc: Mike Lothian <mike@fireburn.co.uk>, Nathan Chancellor <natechancellor@gmail.com>, LKML <linux-kernel@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, X86 ML <x86@kernel.org>, "H.J. Lu" <hjl.tools@gmail.com>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, "Theodore Y. Ts'o" <tytso@mit.edu>, linux-arch <linux-arch@vger.kernel.org>
+Message-ID: <20190729022720.eTN8l8OfappQjAwT0qsNQgtLtfpke1KgzMan1QK-3GY@z>
 
-Hello,
+On Tue, Jul 23, 2019 at 5:17 PM Thomas Gleixner <tglx@linutronix.de> wrote:
+>
+> On Tue, 23 Jul 2019, Thomas Gleixner wrote:
+> > On Tue, 23 Jul 2019, Masahiro Yamada wrote:
+> > > Right.
+> > > I was able to build with ld.gold
+> > >
+> > > So, we can use gold, depending on the kernel configuration.
+> >
+> > That's exactly the problem. It breaks with random kernel configurations
+> > which is not acceptable except for people who know what they are doing.
+> >
+> > I'm tired of dealing with half baken fixes and 'regression' reports. Either
+> > there is an effort to fix the issues with gold like the clang people fix
+> > their issues or it needs to be disabled. We have a clear statement that
+> > gold developers have other priorities.
+>
+> That said, I'm perfectly happy to move this to x86 and leave it alone for
+> other architectures, but it does not make sense to me.
 
-Vincenzo Frascino wrote:
-> Consequently to the unified vDSO transition of the MIPS architecture few
-> compilation issues appeared due to:
-> - A wrong source path for the configuration environment settings for
-> the O32 and N32 vDSO library generation.
-> - A flip/flop vDSO building bug that would cause to rebuild the vDSO
-> library every second time.
->=20
-> This patch series addresses both the issues providing the respective
-> fixes.
->=20
-> This patchset is rebased on top of mips-next.
->=20
-> Cc: Paul Burton <paul.burton@mips.com>
-> Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
->=20
-> Vincenzo Frascino (2):
-> mips: vdso: Fix source path
-> mips: vdso: Fix flip/flop vdso building bug
->=20
-> arch/mips/vdso/Makefile | 18 +++++++++---------
-> 1 file changed, 9 insertions(+), 9 deletions(-)
 
-Series applied to mips-next.
+I did not see opposition from other arch maintainers.
 
-Thanks,
-    Paul
 
-[ This message was auto-generated; if you believe anything is incorrect
-  then please email paul.burton@mips.com to report it. ]
+> If the gold fans care enough, then we can add something like
+> CONFIG_I_WANT_TO_USE_GOLD_AND_DEAL_WITH_THE_FALLOUT_MYSELF.
+
+Let's apply this and see.
+
+If somebody really wants to use gold by his risk,
+I will consider such a config option.
+
+
+Applied to linux-kbuild.
+Thanks.
+
+
+-- 
+Best Regards
+Masahiro Yamada
