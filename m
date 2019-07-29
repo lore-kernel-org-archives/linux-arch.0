@@ -1,133 +1,52 @@
-From: Joel Fernandes <joel@joelfernandes.org>
-Subject: Re: [PATCH v2] lkmm/docs: Correct ->prop example with additional rfe
- link
-Date: Mon, 29 Jul 2019 08:17:45 -0400
-Message-ID: <20190729121745.GA140682@google.com>
-References: <20190728031303.164545-1-joel@joelfernandes.org>
- <Pine.LNX.4.44L0.1907281027160.6532-100000@netrider.rowland.org>
- <20190728151959.GA82871@google.com>
- <20190728152806.GB26905@tardis>
- <20190728153544.GA87531@google.com>
- <20190729055044.GC26905@tardis>
+From: "Joel Fernandes (Google)" <joel@joelfernandes.org>
+Subject: [PATCH] Use term cumul-fence instead of fence in ->prop ordering example
+Date: Mon, 29 Jul 2019 08:36:05 -0400
+Message-ID: <20190729123605.150423-1-joel@joelfernandes.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Transfer-Encoding: 8bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20190729055044.GC26905@tardis>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Boqun Feng <boqun.feng@gmail.com>
-Cc: Alan Stern <stern@rowland.harvard.edu>, linux-kernel@vger.kernel.org, kernel-team@android.com, Akira Yokosawa <akiyks@gmail.com>, Andrea Parri <andrea.parri@amarulasolutions.com>, Daniel Lustig <dlustig@nvidia.com>, David Howells <dhowells@redhat.com>, Ingo Molnar <mingo@kernel.org>, Jade Alglave <j.alglave@ucl.ac.uk>, linux-arch@vger.kernel.org, Luc Maranget <luc.maranget@inria.fr>, Nicholas Piggin <npiggin@gmail.com>, "Paul E. McKenney" <paulmck@linux.ibm.com>, Peter Zijlstra <peterz@infradead.org>, Will Deacon <will@kernel.org>
+To: linux-kernel@vger.kernel.org
+Cc: "Joel Fernandes (Google)" <joel@joelfernandes.org>, Alan Stern <stern@rowland.harvard.edu>, Akira Yokosawa <akiyks@gmail.com>, Andrea Parri <andrea.parri@amarulasolutions.com>, Boqun Feng <boqun.feng@gmail.com>, Daniel Lustig <dlustig@nvidia.com>, David Howells <dhowells@redhat.com>, Ingo Molnar <mingo@kernel.org>, Jade Alglave <j.alglave@ucl.ac.uk>, linux-arch@vger.kernel.org, Luc Maranget <luc.maranget@inria.fr>, Nicholas Piggin <npiggin@gmail.com>, "Paul E. McKenney" <paulmck@linux.ibm.com>, Peter Zijlstra <peterz@infradead.org>, Will Deacon <will@kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Mon, Jul 29, 2019 at 01:50:44PM +0800, Boqun Feng wrote:
-> On Sun, Jul 28, 2019 at 11:35:44AM -0400, Joel Fernandes wrote:
-> [...]
-> > > > > > +load of y (rfe link), P2's smp_store_release() ensures that P2's load
-> > > > > > +of y executes before P2's store to z (second fence), which implies that
-> > > > > > +that stores to x and y propagate to P2 before the smp_store_release(), which
-> > > > > > +means that P2's smp_store_release() will propagate stores to x and y to all
-> > > > > > +CPUs before the store to z propagates (A-cumulative property of this fence).
-> > > > > > +Finally P0's load of z executes after P2's store to z has propagated to
-> > > > > > +P0 (rfe link).
-> > > > > 
-> > > > > Again, a better change would be simply to replace the two instances of
-> > > > > "fence" in the original text with "cumul-fence".
-> > > > 
-> > > > Ok that's fine. But I still feel the rfe is not a part of the cumul-fence.
-> > > > The fences have nothing to do with the rfe. Or, I am missing something quite
-> > > > badly.
-> > > > 
-> > > > Boqun, did you understand what Alan is saying?
-> > > > 
-> > > 
-> > > I think 'cumul-fence' that Alan mentioned is not a fence, but a
-> > > relation, which could be the result of combining a rfe relation and a
-> > > A-cumulative fence relation. Please see the section "PROPAGATION ORDER
-> > > RELATION: cumul-fence" or the definition of cumul-fence in
-> > > linux-kernel.cat.
-> > > 
-> > > Did I get you right, Alan? If so, your suggestion is indeed a better
-> > > change.
-> > 
-> > To be frank, I don't think it is better if that's what Alan meant. It is
-> > better to be explicit about the ->rfe so that the reader walking through the
-> > example can clearly see the ordering and make sense of it.
-> > 
-> > Just saying 'cumul-fence' and then hoping the reader sees the light is quite
-> > a big assumption and makes the document less readable.
-> > 
-> 
-> After a bit more rereading of the document, I still think Alan's way is
-> better ;-)
+To reduce ambiguity in the more exotic ->prop ordering example, let us
+use the term cumul-fence instead fence for the 2 fences, so that the
+implict ->rfe on loads/stores to Y are covered by the description.
 
-I think I finally understood. What I was missing was this definition of
-cumul-fence involves an rf relation (with writes being possibly on different
-CPUs).
+Link: https://lore.kernel.org/lkml/20190729121745.GA140682@google.com
 
-E ->cumul-fence F
-	F is a release fence and some X comes before F in program order,
-	where either X = E or else E ->rf X; or
+Suggested-by: Alan Stern <stern@rowland.harvard.edu>
+Signed-off-by: Joel Fernandes (Google) <joel@joelfernandes.org>
+---
+ tools/memory-model/Documentation/explanation.txt | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
 
-So I think what Alan meant is there is a cumul-fence between y=1 and z=1
-because fo the ->rfe of y. Thus making it not necessary to mention the rfe.
-
-Labeling E and F in the example...
-
-	P1()
-	{
-		WRITE_ONCE(x, 2);
-		smp_wmb();
-		WRITE_ONCE(y, 1);		// This is E
-	}
-
-	P2()
-	{
-		int r2;
-
-		r2 = READ_ONCE(y);		// This is X
-		smp_store_release(&z, 1);	// This is F
-	}
-
-Here, E ->rf X ->release-fence -> F
-implies,
-      E ->cumul-fence F
-
-Considering that, I agree with Alan's suggestion.
-
-> 
-> 	The formal definition of the prop relation involves a coe or
-> 	fre link, followed by an arbitrary number of cumul-fence links,
-> 	ending with an rfe link.
-> 
-> , so using "cumul-fence" actually matches the definition of ->prop.
-> 
-> For the ease of readers, I can think of two ways:
-> 
-> 1.	Add a backwards reference to cumul-fence section here, right
-> 	before using its name.
-
-Instead of that, a reference to the fact that the rfe causes a cumul-fence
-between y=1 and z=1 may be helpful. No need backward reference IMO.
-
-> 2.	Use "->cumul-fence" notation rather than "cumul-fence" here,
-> 	i.e. add an arrow "->" before the name to call it out that name
-> 	"cumul-fence" here stands for links/relations rather than a
-> 	fence/barrier. Maybe it's better to convert all references to 
-> 	links/relations to the "->" notations in the whole doc.
-
-No, it is a fence that causes the relation in this example.
-
-I don't think there is a distinction between ->cumul-fence and cumul-fence at
-least for this example. The smp_store_release() is a FENCE which in this
-example is really a cumul-fence between y=1 and z=1 because the release fence
-affects propogation order of y and z on all CPUs. For any given CPU, y
-propagates to that CPU before z does, even though y and z executed on
-different CPUs.
-
-I think what you're talking about is some other definition of cumul-fence
-that is not mentioned in the formal definitions. May be you can update the
-document with such definition then? AFAIU, cumul-fence is always a fence.
-
-thanks,
-
- - Joel
+diff --git a/tools/memory-model/Documentation/explanation.txt b/tools/memory-model/Documentation/explanation.txt
+index 68caa9a976d0..634dc6db26c4 100644
+--- a/tools/memory-model/Documentation/explanation.txt
++++ b/tools/memory-model/Documentation/explanation.txt
+@@ -1302,7 +1302,7 @@ followed by an arbitrary number of cumul-fence links, ending with an
+ rfe link.  You can concoct more exotic examples, containing more than
+ one fence, although this quickly leads to diminishing returns in terms
+ of complexity.  For instance, here's an example containing a coe link
+-followed by two fences and an rfe link, utilizing the fact that
++followed by two cumul-fences and an rfe link, utilizing the fact that
+ release fences are A-cumulative:
+ 
+ 	int x, y, z;
+@@ -1334,10 +1334,10 @@ If x = 2, r0 = 1, and r2 = 1 after this code runs then there is a prop
+ link from P0's store to its load.  This is because P0's store gets
+ overwritten by P1's store since x = 2 at the end (a coe link), the
+ smp_wmb() ensures that P1's store to x propagates to P2 before the
+-store to y does (the first fence), the store to y propagates to P2
++store to y does (the first cumul-fence), the store to y propagates to P2
+ before P2's load and store execute, P2's smp_store_release()
+ guarantees that the stores to x and y both propagate to P0 before the
+-store to z does (the second fence), and P0's load executes after the
++store to z does (the second cumul-fence), and P0's load executes after the
+ store to z has propagated to P0 (an rfe link).
+ 
+ In summary, the fact that the hb relation links memory access events
+-- 
+2.22.0.709.g102302147b-goog
