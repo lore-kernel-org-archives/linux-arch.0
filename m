@@ -1,80 +1,60 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qt1-f193.google.com ([209.85.160.193]:34513 "EHLO
-        mail-qt1-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727848AbfG3PWU (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 30 Jul 2019 11:22:20 -0400
+Received: from mail.kernel.org ([198.145.29.99]:55942 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1731021AbfG3P2n (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 30 Jul 2019 11:28:43 -0400
 MIME-Version: 1.0
-References: <1564488945-20149-1-git-send-email-guoren@kernel.org>
- <1564488945-20149-4-git-send-email-guoren@kernel.org> <CAK8P3a0v3oVS5cCkORxA7na+VE7ofTQRxiv5o5xNf5v=esnN9A@mail.gmail.com>
- <CAJF2gTQC0e3zGxtCdwvZpen=Gj8CtgjNYCuy3hSupDXt3KM0Zg@mail.gmail.com>
-In-Reply-To: <CAJF2gTQC0e3zGxtCdwvZpen=Gj8CtgjNYCuy3hSupDXt3KM0Zg@mail.gmail.com>
-From: Arnd Bergmann <arnd@arndb.de>
-Date: Tue, 30 Jul 2019 17:22:03 +0200
-Message-ID: <CAK8P3a0miz=yghtqK+1=1APGf4R1-NW64TJTtGiO5pOPBQNgKg@mail.gmail.com>
-Subject: Re: [PATCH 4/4] csky: Add dma_inv_range for DMA_FROM_DEVICE
+References: <1564488945-20149-1-git-send-email-guoren@kernel.org> <CAK8P3a03tXXHQ00QEGg=7p17mmseuJqRhuumWKzS8dCYvXHkBg@mail.gmail.com>
+In-Reply-To: <CAK8P3a03tXXHQ00QEGg=7p17mmseuJqRhuumWKzS8dCYvXHkBg@mail.gmail.com>
+From: Guo Ren <guoren@kernel.org>
+Date: Tue, 30 Jul 2019 23:28:28 +0800
+Message-ID: <CAJF2gTStGrrELOr-Dga98ueNQuSG5WBcYgzAPp_W_RjWnsGXgg@mail.gmail.com>
+Subject: Re: [PATCH 1/4] csky: Fixup dma_rmb/wmb synchronization problem
 Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Guo Ren <guoren@kernel.org>
+To: Arnd Bergmann <arnd@arndb.de>
 Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, linux-csky@vger.kernel.org, feng_shizhu@dahuatech.com, zhang_jian5@dahuatech.com, zheng_xingjian@dahuatech.com, zhu_peng@dahuatech.com, Guo Ren <ren_guo@c-sky.com>
-Message-ID: <20190730152203.IpsYBScWJsJEhb8-BHEUolmoICI7iI9mBAxvyumR8yc@z>
+Message-ID: <20190730152828.VTMF8QZEHfLtq2SyTkumc0D7EDZhtrCgykbpK8M7Ioo@z>
 
-On Tue, Jul 30, 2019 at 5:11 PM Guo Ren <guoren@kernel.org> wrote:
-> > > diff --git a/arch/csky/mm/dma-mapping.c b/arch/csky/mm/dma-mapping.c
-> > >                 cache_op(paddr, size, dma_wb_range);
-> > >                 break;
-> > >         case DMA_FROM_DEVICE:
-> > > +               cache_op(paddr, size, dma_inv_range);
-> > > +               break;
-> > >         case DMA_BIDIRECTIONAL:
-> > >                 cache_op(paddr, size, dma_wbinv_range);
-> > >                 break;
+Thx Arnd,
+
+On Tue, Jul 30, 2019 at 9:29 PM Arnd Bergmann <arnd@arndb.de> wrote:
+>
+> On Tue, Jul 30, 2019 at 2:15 PM <guoren@kernel.org> wrote:
 > >
-> > When syncing 'for_cpu', you should not need to write back, because
-> > there won't be any dirty cache lines.
->
-> I just follow the dma_data_direction param, seems dir param and
-> function are a little bit duplicated. And our cpu won't clear clean
-> cache line into memory, so dma_wb_page won't cause problem.
-> Seems arch_sync_dma_for_cpu with dir=DMA_TO_DEVICE is
-> self-contradictory.
-
-Right, you generally don't need to do cache management for that
-combination.
-
-There might be other things to do here though, e.g. with a strict
-iommu implementation one could tear down the i/o page table
-entry to prevent the device from accessing a buffer while that is
-owned by the cpu.
-
-> Do you want me modfiy like these:
-> @@ -88,6 +90,8 @@ void arch_sync_dma_for_cpu(struct device *dev,
-> phys_addr_t paddr,
->         case DMA_TO_DEVICE:
->         case DMA_FROM_DEVICE:
->         case DMA_BIDIRECTIONAL:
->                cache_op(paddr, size, dma_inv_range);
->                break;
->
-> @@ -72,6 +72,8 @@ void arch_sync_dma_for_device(struct device *dev,
-> phys_addr_t paddr,
->         case DMA_TO_DEVICE:
->                 cache_op(paddr, size, dma_wb_range);
->                 break;
->         case DMA_FROM_DEVICE:
->         case DMA_BIDIRECTIONAL:
->                 cache_op(paddr, size, dma_wbinv_range);
->                 break;
->
+> > From: Guo Ren <ren_guo@c-sky.com>
 > >
-> > If you have a CPU core that does not do speculative loads, you also don't
-> > need to invalidate here, because you have already done that in the
-> > _for_device() case, the only reason to invalidate the CPU cache
-> > again is if a speculative load created a stale cache line that now
-> > shadows the data received from the device.
-> Our CPU support speculative loads :)
+> > If arch didn't define dma_r/wmb(), linux will use w/rmb instead. Csky
+> > use bar.xxx to implement mb() and that will cause problem when sync data
+> > with dma device, becasue bar.xxx couldn't guarantee bus transactions
+> > finished at outside bus level. We must use sync.s instead of bar.xxx for
+> > dma data synchronization and it will guarantee retirement after getting
+> > the bus bresponse.
+> >
+> > Signed-off-by: Guo Ren <ren_guo@c-sky.com>
+>
+> This change looks good to me, but I think your regular barriers
+> (mb, rmb, wmb) are still wrong: These are meant to be the superset
+> of dma_{r,w}mb and smp_{,r,w}mb, and synchronize
+> against both SMP and DMA interactions.
+Wow, thanks for correction, yes! mb, rmb, wmb is the superset of dma
+and smp, and I should use sync.s for mb.
 
-Ok, then you both invalidations are indeed needed.
-I was guessing that CK610 had no speculation.
+I check the arm64, it use dsb for mb and dmb for smp_mb and dma_mb.
 
-       Arnd
+I also check the drivers, you are right , a lot of them use mb() to
+sync mem data with device.
+
+>
+> I suspect you can drop the '.s' for non-SMP builds. What I don't
+> see is whether you might need to add '.i' for dma_wmb() or
+> dma_rmb().
+It's no need for sky, when there is non-SMP, the cpu is in reset mode,
+and sync.s is equal to sync in efficient.
+
+-- 
+Best Regards
+ Guo Ren
+
+ML: https://lore.kernel.org/linux-csky/
