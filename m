@@ -1,7 +1,7 @@
 From: guoren@kernel.org
-Subject: [PATCH 2/4] csky: Fixup dma_alloc_coherent with PAGE_SO attribute
-Date: Tue, 30 Jul 2019 20:15:43 +0800
-Message-ID: <1564488945-20149-2-git-send-email-guoren@kernel.org>
+Subject: [PATCH 3/4] csky/dma: Fixup cache_op failed when cross memory ZONEs
+Date: Tue, 30 Jul 2019 20:15:44 +0800
+Message-ID: <1564488945-20149-3-git-send-email-guoren@kernel.org>
 References: <1564488945-20149-1-git-send-email-guoren@kernel.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1564488945-20149-1-git-send-email-guoren@kernel.org>
@@ -12,66 +12,118 @@ List-Id: linux-arch.vger.kernel.org
 
 From: Guo Ren <ren_guo@c-sky.com>
 
-This bug is from commit: 2b070ccdf8c0 (fixup abiv2 mmap(... O_SYNC)
-failed). In that patch we remove the _PAGE_SO for memory noncache
-mapping and this will cause problem when drivers use dma descriptors
-to control the transcations without dma_w/rmb().
+If the paddr and size are cross between NORMAL_ZONE and HIGHMEM_ZONE
+memory range, cache_op will panic in do_page_fault with bad_area.
 
-After referencing other archs' implementation, pgprot_writecombine is
-introduced for mmap(... O_SYNC).
+Optimize the code to support the range which cross memory ZONEs.
 
 Signed-off-by: Guo Ren <ren_guo@c-sky.com>
 ---
- arch/csky/include/asm/pgtable.h | 10 ++++++++++
- arch/csky/mm/ioremap.c          |  6 ++----
- 2 files changed, 12 insertions(+), 4 deletions(-)
+ arch/csky/mm/dma-mapping.c | 73 +++++++++++++++++-----------------------------
+ 1 file changed, 27 insertions(+), 46 deletions(-)
 
-diff --git a/arch/csky/include/asm/pgtable.h b/arch/csky/include/asm/pgtable.h
-index c429a6f..fc19ba4 100644
---- a/arch/csky/include/asm/pgtable.h
-+++ b/arch/csky/include/asm/pgtable.h
-@@ -258,6 +258,16 @@ static inline pgprot_t pgprot_noncached(pgprot_t _prot)
+diff --git a/arch/csky/mm/dma-mapping.c b/arch/csky/mm/dma-mapping.c
+index 80783bb..3f1ff9d 100644
+--- a/arch/csky/mm/dma-mapping.c
++++ b/arch/csky/mm/dma-mapping.c
+@@ -18,71 +18,52 @@ static int __init atomic_pool_init(void)
  {
- 	unsigned long prot = pgprot_val(_prot);
+ 	return dma_atomic_pool_init(GFP_KERNEL, pgprot_noncached(PAGE_KERNEL));
+ }
+-postcore_initcall(atomic_pool_init);
+-
+-void arch_dma_prep_coherent(struct page *page, size_t size)
+-{
+-	if (PageHighMem(page)) {
+-		unsigned int count = PAGE_ALIGN(size) >> PAGE_SHIFT;
+-
+-		do {
+-			void *ptr = kmap_atomic(page);
+-			size_t _size = (size < PAGE_SIZE) ? size : PAGE_SIZE;
+-
+-			memset(ptr, 0, _size);
+-			dma_wbinv_range((unsigned long)ptr,
+-					(unsigned long)ptr + _size);
+-
+-			kunmap_atomic(ptr);
+-
+-			page++;
+-			size -= PAGE_SIZE;
+-			count--;
+-		} while (count);
+-	} else {
+-		void *ptr = page_address(page);
+-
+-		memset(ptr, 0, size);
+-		dma_wbinv_range((unsigned long)ptr, (unsigned long)ptr + size);
+-	}
+-}
++arch_initcall(atomic_pool_init);
  
-+	prot = (prot & ~_CACHE_MASK) | _CACHE_UNCACHED | _PAGE_SO;
+ static inline void cache_op(phys_addr_t paddr, size_t size,
+ 			    void (*fn)(unsigned long start, unsigned long end))
+ {
+-	struct page *page = pfn_to_page(paddr >> PAGE_SHIFT);
+-	unsigned int offset = paddr & ~PAGE_MASK;
+-	size_t left = size;
+-	unsigned long start;
++	struct page *page    = phys_to_page(paddr);
++	void *start          = __va(page_to_phys(page));
++	unsigned long offset = offset_in_page(paddr);
++	size_t left          = size;
+ 
+ 	do {
+ 		size_t len = left;
+ 
++		if (offset + len > PAGE_SIZE)
++			len = PAGE_SIZE - offset;
 +
-+	return __pgprot(prot);
+ 		if (PageHighMem(page)) {
+-			void *addr;
++			start = kmap_atomic(page);
+ 
+-			if (offset + len > PAGE_SIZE) {
+-				if (offset >= PAGE_SIZE) {
+-					page += offset >> PAGE_SHIFT;
+-					offset &= ~PAGE_MASK;
+-				}
+-				len = PAGE_SIZE - offset;
+-			}
++			fn((unsigned long)start + offset,
++					(unsigned long)start + offset + len);
+ 
+-			addr = kmap_atomic(page);
+-			start = (unsigned long)(addr + offset);
+-			fn(start, start + len);
+-			kunmap_atomic(addr);
++			kunmap_atomic(start);
+ 		} else {
+-			start = (unsigned long)phys_to_virt(paddr);
+-			fn(start, start + size);
++			fn((unsigned long)start + offset,
++					(unsigned long)start + offset + len);
+ 		}
+ 		offset = 0;
++
+ 		page++;
++		start += PAGE_SIZE;
+ 		left -= len;
+ 	} while (left);
+ }
+ 
++static void dma_wbinv_set_zero_range(unsigned long start, unsigned long end)
++{
++	memset((void *)start, 0, end - start);
++	dma_wbinv_range(start, end);
 +}
 +
-+#define pgprot_writecombine pgprot_writecombine
-+static inline pgprot_t pgprot_writecombine(pgprot_t _prot)
++void arch_dma_prep_coherent(struct page *page, size_t size)
 +{
-+	unsigned long prot = pgprot_val(_prot);
++	cache_op(page_to_phys(page), size, dma_wbinv_set_zero_range);
++}
 +
- 	prot = (prot & ~_CACHE_MASK) | _CACHE_UNCACHED;
- 
- 	return __pgprot(prot);
-diff --git a/arch/csky/mm/ioremap.c b/arch/csky/mm/ioremap.c
-index 8473b6b..4853111 100644
---- a/arch/csky/mm/ioremap.c
-+++ b/arch/csky/mm/ioremap.c
-@@ -29,8 +29,7 @@ void __iomem *ioremap(phys_addr_t addr, size_t size)
- 
- 	vaddr = (unsigned long)area->addr;
- 
--	prot = __pgprot(_PAGE_PRESENT | __READABLE | __WRITEABLE |
--			_PAGE_GLOBAL | _CACHE_UNCACHED | _PAGE_SO);
-+	prot = pgprot_noncached(PAGE_KERNEL);
- 
- 	if (ioremap_page_range(vaddr, vaddr + size, addr, prot)) {
- 		free_vm_area(area);
-@@ -51,10 +50,9 @@ pgprot_t phys_mem_access_prot(struct file *file, unsigned long pfn,
- 			      unsigned long size, pgprot_t vma_prot)
+ void arch_sync_dma_for_device(struct device *dev, phys_addr_t paddr,
+ 			      size_t size, enum dma_data_direction dir)
  {
- 	if (!pfn_valid(pfn)) {
--		vma_prot.pgprot |= _PAGE_SO;
- 		return pgprot_noncached(vma_prot);
- 	} else if (file->f_flags & O_SYNC) {
--		return pgprot_noncached(vma_prot);
-+		return pgprot_writecombine(vma_prot);
- 	}
- 
- 	return vma_prot;
 -- 
 2.7.4
