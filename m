@@ -1,191 +1,231 @@
-From: "Paul E. McKenney" <paulmck@linux.ibm.com>
-Subject: Re: [PATCH 1/7] docs: fix broken doc references due to renames
-Date: Mon, 29 Jul 2019 16:17:24 -0700
-Message-ID: <20190729231724.GH14271@linux.ibm.com>
-References: <cover.1564140865.git.mchehab+samsung@kernel.org>
- <430ed96cb234805d1deb216e8c8559da22cc6bac.1564140865.git.mchehab+samsung@kernel.org>
-Reply-To: paulmck@linux.ibm.com
+From: Kevin Brodsky <kevin.brodsky@arm.com>
+Subject: Re: [PATCH v6 1/2] arm64: Define
+ Documentation/arm64/tagged-address-abi.rst
+Date: Tue, 30 Jul 2019 11:32:09 +0100
+Message-ID: <52fa2cfc-f7a6-af6f-0dc2-f9ea0e41ac3c@arm.com>
+References: <cover.1563904656.git.andreyknvl@google.com>
+ <20190725135044.24381-1-vincenzo.frascino@arm.com>
+ <20190725135044.24381-2-vincenzo.frascino@arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
-Return-path: <dri-devel-bounces@lists.freedesktop.org>
-Content-Disposition: inline
-In-Reply-To: <430ed96cb234805d1deb216e8c8559da22cc6bac.1564140865.git.mchehab+samsung@kernel.org>
-List-Unsubscribe: <https://lists.freedesktop.org/mailman/options/dri-devel>,
- <mailto:dri-devel-request@lists.freedesktop.org?subject=unsubscribe>
-List-Archive: <https://lists.freedesktop.org/archives/dri-devel>
-List-Post: <mailto:dri-devel@lists.freedesktop.org>
-List-Help: <mailto:dri-devel-request@lists.freedesktop.org?subject=help>
-List-Subscribe: <https://lists.freedesktop.org/mailman/listinfo/dri-devel>,
- <mailto:dri-devel-request@lists.freedesktop.org?subject=subscribe>
-Errors-To: dri-devel-bounces@lists.freedesktop.org
-Sender: "dri-devel" <dri-devel-bounces@lists.freedesktop.org>
-To: Mauro Carvalho Chehab <mchehab+samsung@kernel.org>
-Cc: Mark Rutland <mark.rutland@arm.com>, Andrea Parri <andrea.parri@amarulasolutions.com>, Ajay Gupta <ajayg@nvidia.com>, linux-doc@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Akira Yokosawa <akiyks@gmail.com>, Lai Jiangshan <jiangshanlai@gmail.com>, Jerry Hoemann <jerry.hoemann@hpe.com>, dri-devel@lists.freedesktop.org, David Howells <dhowells@redhat.com>, linux-i2c@vger.kernel.org, Joel Fernandes <joel@joelfernandes.org>, Will Deacon <will@kernel.org>, linux-arch@vger.kernel.org, linux-scsi@vger.kernel.org, Jonathan Corbet <corbet@lwn.net>, Wolfram Sang <wsa@the-dreams.de>, esc.storagedev@microsemi.com, Maxime Ripard <maxime.ripard@bootlin.com>, Ingo Molnar <mingo@redhat.com>, Alan Stern <stern@rowland.harvard.edu>, Jade Alglave <j.alglave@ucl.ac.uk>, Boqun Feng <boqun.feng@gmail.com>, Guenter Roeck <linux@roeck-us.net>, Don Brace <don.brace@microsemi.com>dev
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20190725135044.24381-2-vincenzo.frascino@arm.com>
+Content-Language: en-GB
+Sender: linux-kernel-owner@vger.kernel.org
+To: Vincenzo Frascino <vincenzo.frascino@arm.com>, linux-arm-kernel@lists.infradead.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-kernel@vger.kernel.org
+Cc: Szabolcs Nagy <szabolcs.nagy@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Andrey Konovalov <andreyknvl@google.com>
 List-Id: linux-arch.vger.kernel.org
 
-T24gRnJpLCBKdWwgMjYsIDIwMTkgYXQgMDg6NDc6MjFBTSAtMDMwMCwgTWF1cm8gQ2FydmFsaG8g
-Q2hlaGFiIHdyb3RlOgo+IFNvbWUgZmlsZXMgZ290IHJlbmFtZWQgYnV0IHByb2JhYmx5IGR1ZSB0
-byBzb21lIG1lcmdlIGNvbmZsaWN0cywKPiBhIGZldyByZWZlcmVuY2VzIHN0aWxsIHBvaW50IHRv
-IHRoZSBvbGQgbG9jYXRpb25zLgo+IAo+IFNpZ25lZC1vZmYtYnk6IE1hdXJvIENhcnZhbGhvIENo
-ZWhhYiA8bWNoZWhhYitzYW1zdW5nQGtlcm5lbC5vcmc+Cj4gQWNrZWQtYnk6IFdvbGZyYW0gU2Fu
-ZyA8d3NhQHRoZS1kcmVhbXMuZGU+ICMgSTJDIHBhcnQKPiBSZXZpZXdlZC1ieTogSmVycnkgSG9l
-bWFubiA8amVycnkuaG9lbWFubkBocGUuY29tPiAjIGhwd2R0LnJzdAoKQWNrZWQtYnk6IFBhdWwg
-RS4gTWNLZW5uZXkgPHBhdWxtY2tAbGludXguaWJtLmNvbT4KCj4gLS0tCj4gIERvY3VtZW50YXRp
-b24vUkNVL3JjdWxpc3RfbnVsbHMudHh0ICAgICAgICAgICAgICAgICAgIHwgIDIgKy0KPiAgRG9j
-dW1lbnRhdGlvbi9kZXZpY2V0cmVlL2JpbmRpbmdzL2FybS9pZGxlLXN0YXRlcy50eHQgfCAgMiAr
-LQo+ICBEb2N1bWVudGF0aW9uL2xvY2tpbmcvc3BpbmxvY2tzLnJzdCAgICAgICAgICAgICAgICAg
-ICB8ICA0ICsrLS0KPiAgRG9jdW1lbnRhdGlvbi9tZW1vcnktYmFycmllcnMudHh0ICAgICAgICAg
-ICAgICAgICAgICAgfCAgMiArLQo+ICBEb2N1bWVudGF0aW9uL3RyYW5zbGF0aW9ucy9rb19LUi9t
-ZW1vcnktYmFycmllcnMudHh0ICB8ICAyICstCj4gIERvY3VtZW50YXRpb24vd2F0Y2hkb2cvaHB3
-ZHQucnN0ICAgICAgICAgICAgICAgICAgICAgIHwgIDIgKy0KPiAgTUFJTlRBSU5FUlMgICAgICAg
-ICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgfCAxMCArKysrKy0tLS0tCj4gIGRy
-aXZlcnMvZ3B1L2RybS9kcm1fbW9kZXMuYyAgICAgICAgICAgICAgICAgICAgICAgICAgIHwgIDIg
-Ky0KPiAgZHJpdmVycy9pMmMvYnVzc2VzL2kyYy1udmlkaWEtZ3B1LmMgICAgICAgICAgICAgICAg
-ICAgfCAgMiArLQo+ICBkcml2ZXJzL3Njc2kvaHBzYS5jICAgICAgICAgICAgICAgICAgICAgICAg
-ICAgICAgICAgICB8ICA0ICsrLS0KPiAgMTAgZmlsZXMgY2hhbmdlZCwgMTYgaW5zZXJ0aW9ucygr
-KSwgMTYgZGVsZXRpb25zKC0pCj4gCj4gZGlmZiAtLWdpdCBhL0RvY3VtZW50YXRpb24vUkNVL3Jj
-dWxpc3RfbnVsbHMudHh0IGIvRG9jdW1lbnRhdGlvbi9SQ1UvcmN1bGlzdF9udWxscy50eHQKPiBp
-bmRleCA4MTUxZjAxOTVmNzYuLjIzZjExNWRjODdjZiAxMDA2NDQKPiAtLS0gYS9Eb2N1bWVudGF0
-aW9uL1JDVS9yY3VsaXN0X251bGxzLnR4dAo+ICsrKyBiL0RvY3VtZW50YXRpb24vUkNVL3JjdWxp
-c3RfbnVsbHMudHh0Cj4gQEAgLTEsNyArMSw3IEBACj4gIFVzaW5nIGhsaXN0X251bGxzIHRvIHBy
-b3RlY3QgcmVhZC1tb3N0bHkgbGlua2VkIGxpc3RzIGFuZAo+ICBvYmplY3RzIHVzaW5nIFNMQUJf
-VFlQRVNBRkVfQllfUkNVIGFsbG9jYXRpb25zLgo+ICAKPiAtUGxlYXNlIHJlYWQgdGhlIGJhc2lj
-cyBpbiBEb2N1bWVudGF0aW9uL1JDVS9saXN0UkNVLnR4dAo+ICtQbGVhc2UgcmVhZCB0aGUgYmFz
-aWNzIGluIERvY3VtZW50YXRpb24vUkNVL2xpc3RSQ1UucnN0Cj4gIAo+ICBVc2luZyBzcGVjaWFs
-IG1ha2VycyAoY2FsbGVkICdudWxscycpIGlzIGEgY29udmVuaWVudCB3YXkKPiAgdG8gc29sdmUg
-Zm9sbG93aW5nIHByb2JsZW0gOgo+IGRpZmYgLS1naXQgYS9Eb2N1bWVudGF0aW9uL2RldmljZXRy
-ZWUvYmluZGluZ3MvYXJtL2lkbGUtc3RhdGVzLnR4dCBiL0RvY3VtZW50YXRpb24vZGV2aWNldHJl
-ZS9iaW5kaW5ncy9hcm0vaWRsZS1zdGF0ZXMudHh0Cj4gaW5kZXggMzI2ZjI5YjI3MGFkLi4yZDMy
-NWJlZDM3ZTUgMTAwNjQ0Cj4gLS0tIGEvRG9jdW1lbnRhdGlvbi9kZXZpY2V0cmVlL2JpbmRpbmdz
-L2FybS9pZGxlLXN0YXRlcy50eHQKPiArKysgYi9Eb2N1bWVudGF0aW9uL2RldmljZXRyZWUvYmlu
-ZGluZ3MvYXJtL2lkbGUtc3RhdGVzLnR4dAo+IEBAIC03MDMsNCArNzAzLDQgQEAgY3B1cyB7Cj4g
-ICAgICBodHRwczovL3d3dy5kZXZpY2V0cmVlLm9yZy9zcGVjaWZpY2F0aW9ucy8KPiAgCj4gIFs2
-XSBBUk0gTGludXggS2VybmVsIGRvY3VtZW50YXRpb24gLSBCb290aW5nIEFBcmNoNjQgTGludXgK
-PiAtICAgIERvY3VtZW50YXRpb24vYXJtNjQvYm9vdGluZy50eHQKPiArICAgIERvY3VtZW50YXRp
-b24vYXJtNjQvYm9vdGluZy5yc3QKPiBkaWZmIC0tZ2l0IGEvRG9jdW1lbnRhdGlvbi9sb2NraW5n
-L3NwaW5sb2Nrcy5yc3QgYi9Eb2N1bWVudGF0aW9uL2xvY2tpbmcvc3BpbmxvY2tzLnJzdAo+IGlu
-ZGV4IDA5ODEwN2ZiN2Q4Ni4uZTkzZWM2NjQ1MjM4IDEwMDY0NAo+IC0tLSBhL0RvY3VtZW50YXRp
-b24vbG9ja2luZy9zcGlubG9ja3MucnN0Cj4gKysrIGIvRG9jdW1lbnRhdGlvbi9sb2NraW5nL3Nw
-aW5sb2Nrcy5yc3QKPiBAQCAtODIsNyArODIsNyBAQCBpdHNlbGYuICBUaGUgcmVhZCBsb2NrIGFs
-bG93cyBtYW55IGNvbmN1cnJlbnQgcmVhZGVycy4gIEFueXRoaW5nIHRoYXQKPiAgKipjaGFuZ2Vz
-KiogdGhlIGxpc3Qgd2lsbCBoYXZlIHRvIGdldCB0aGUgd3JpdGUgbG9jay4KPiAgCj4gICAgIE5P
-VEUhIFJDVSBpcyBiZXR0ZXIgZm9yIGxpc3QgdHJhdmVyc2FsLCBidXQgcmVxdWlyZXMgY2FyZWZ1
-bAo+IC0gICBhdHRlbnRpb24gdG8gZGVzaWduIGRldGFpbCAoc2VlIERvY3VtZW50YXRpb24vUkNV
-L2xpc3RSQ1UudHh0KS4KPiArICAgYXR0ZW50aW9uIHRvIGRlc2lnbiBkZXRhaWwgKHNlZSBEb2N1
-bWVudGF0aW9uL1JDVS9saXN0UkNVLnJzdCkuCj4gIAo+ICBBbHNvLCB5b3UgY2Fubm90ICJ1cGdy
-YWRlIiBhIHJlYWQtbG9jayB0byBhIHdyaXRlLWxvY2ssIHNvIGlmIHlvdSBhdCBfYW55Xwo+ICB0
-aW1lIG5lZWQgdG8gZG8gYW55IGNoYW5nZXMgKGV2ZW4gaWYgeW91IGRvbid0IGRvIGl0IGV2ZXJ5
-IHRpbWUpLCB5b3UgaGF2ZQo+IEBAIC05MCw3ICs5MCw3IEBAIHRvIGdldCB0aGUgd3JpdGUtbG9j
-ayBhdCB0aGUgdmVyeSBiZWdpbm5pbmcuCj4gIAo+ICAgICBOT1RFISBXZSBhcmUgd29ya2luZyBo
-YXJkIHRvIHJlbW92ZSByZWFkZXItd3JpdGVyIHNwaW5sb2NrcyBpbiBtb3N0Cj4gICAgIGNhc2Vz
-LCBzbyBwbGVhc2UgZG9uJ3QgYWRkIGEgbmV3IG9uZSB3aXRob3V0IGNvbnNlbnN1cy4gIChJbnN0
-ZWFkLCBzZWUKPiAtICAgRG9jdW1lbnRhdGlvbi9SQ1UvcmN1LnR4dCBmb3IgY29tcGxldGUgaW5m
-b3JtYXRpb24uKQo+ICsgICBEb2N1bWVudGF0aW9uL1JDVS9yY3UucnN0IGZvciBjb21wbGV0ZSBp
-bmZvcm1hdGlvbi4pCj4gIAo+ICAtLS0tCj4gIAo+IGRpZmYgLS1naXQgYS9Eb2N1bWVudGF0aW9u
-L21lbW9yeS1iYXJyaWVycy50eHQgYi9Eb2N1bWVudGF0aW9uL21lbW9yeS1iYXJyaWVycy50eHQK
-PiBpbmRleCAwNDViYjgxNDhmZTkuLjFhZGJiOGEzNzFjNyAxMDA2NDQKPiAtLS0gYS9Eb2N1bWVu
-dGF0aW9uL21lbW9yeS1iYXJyaWVycy50eHQKPiArKysgYi9Eb2N1bWVudGF0aW9uL21lbW9yeS1i
-YXJyaWVycy50eHQKPiBAQCAtNTQ4LDcgKzU0OCw3IEBAIFRoZXJlIGFyZSBjZXJ0YWluIHRoaW5n
-cyB0aGF0IHRoZSBMaW51eCBrZXJuZWwgbWVtb3J5IGJhcnJpZXJzIGRvIG5vdCBndWFyYW50ZWU6
-Cj4gIAo+ICAJWypdIEZvciBpbmZvcm1hdGlvbiBvbiBidXMgbWFzdGVyaW5nIERNQSBhbmQgY29o
-ZXJlbmN5IHBsZWFzZSByZWFkOgo+ICAKPiAtCSAgICBEb2N1bWVudGF0aW9uL1BDSS9wY2kucnN0
-Cj4gKwkgICAgRG9jdW1lbnRhdGlvbi9kcml2ZXItYXBpL3BjaS9wY2kucnN0Cj4gIAkgICAgRG9j
-dW1lbnRhdGlvbi9ETUEtQVBJLUhPV1RPLnR4dAo+ICAJICAgIERvY3VtZW50YXRpb24vRE1BLUFQ
-SS50eHQKPiAgCj4gZGlmZiAtLWdpdCBhL0RvY3VtZW50YXRpb24vdHJhbnNsYXRpb25zL2tvX0tS
-L21lbW9yeS1iYXJyaWVycy50eHQgYi9Eb2N1bWVudGF0aW9uL3RyYW5zbGF0aW9ucy9rb19LUi9t
-ZW1vcnktYmFycmllcnMudHh0Cj4gaW5kZXggYTMzYzJhNTM2NTQyLi4yNzc0NjI0ZWU4NDMgMTAw
-NjQ0Cj4gLS0tIGEvRG9jdW1lbnRhdGlvbi90cmFuc2xhdGlvbnMva29fS1IvbWVtb3J5LWJhcnJp
-ZXJzLnR4dAo+ICsrKyBiL0RvY3VtZW50YXRpb24vdHJhbnNsYXRpb25zL2tvX0tSL21lbW9yeS1i
-YXJyaWVycy50eHQKPiBAQCAtNTY5LDcgKzU2OSw3IEBAIEFDUVVJUkUg64qUIO2VtOuLuSDsmKTt
-jbzroIjsnbTshZjsnZgg66Gc65OcIOu2gOu2hOyXkOunjCDsoIHsmqnrkJjqs6AgUkVMRUFTRSAK
-PiAgCj4gIAlbKl0g67KE7IqkIOuniOyKpO2EsOungSBETUEg7JmAIOydvOq0gOyEseyXkCDrjIDt
-lbTshJzripQg64uk7J2M7J2EIOywuOqzoO2VmOyLnOq4sCDrsJTrno3ri4jri6Q6Cj4gIAo+IC0J
-ICAgIERvY3VtZW50YXRpb24vUENJL3BjaS5yc3QKPiArCSAgICBEb2N1bWVudGF0aW9uL2RyaXZl
-ci1hcGkvcGNpL3BjaS5yc3QKPiAgCSAgICBEb2N1bWVudGF0aW9uL0RNQS1BUEktSE9XVE8udHh0
-Cj4gIAkgICAgRG9jdW1lbnRhdGlvbi9ETUEtQVBJLnR4dAo+ICAKPiBkaWZmIC0tZ2l0IGEvRG9j
-dW1lbnRhdGlvbi93YXRjaGRvZy9ocHdkdC5yc3QgYi9Eb2N1bWVudGF0aW9uL3dhdGNoZG9nL2hw
-d2R0LnJzdAo+IGluZGV4IGMxNjVkOTJjZmQxMi4uYzgyNGNkN2Y2ZTMyIDEwMDY0NAo+IC0tLSBh
-L0RvY3VtZW50YXRpb24vd2F0Y2hkb2cvaHB3ZHQucnN0Cj4gKysrIGIvRG9jdW1lbnRhdGlvbi93
-YXRjaGRvZy9ocHdkdC5yc3QKPiBAQCAtNjMsNyArNjMsNyBAQCBMYXN0IHJldmlld2VkOiAwOC8y
-MC8yMDE4Cj4gICBhbmQgbG9vcCBmb3JldmVyLiAgVGhpcyBpcyBnZW5lcmFsbHkgbm90IHdoYXQg
-YSB3YXRjaGRvZyB1c2VyIHdhbnRzLgo+ICAKPiAgIEZvciB0aG9zZSB3aXNoaW5nIHRvIGxlYXJu
-IG1vcmUgcGxlYXNlIHNlZToKPiAtCURvY3VtZW50YXRpb24va2R1bXAva2R1bXAucnN0Cj4gKwlE
-b2N1bWVudGF0aW9uL2FkbWluLWd1aWRlL2tkdW1wL2tkdW1wLnJzdAo+ICAJRG9jdW1lbnRhdGlv
-bi9hZG1pbi1ndWlkZS9rZXJuZWwtcGFyYW1ldGVycy50eHQgKHBhbmljPSkKPiAgCVlvdXIgTGlu
-dXggRGlzdHJpYnV0aW9uIHNwZWNpZmljIGRvY3VtZW50YXRpb24uCj4gIAo+IGRpZmYgLS1naXQg
-YS9NQUlOVEFJTkVSUyBiL01BSU5UQUlORVJTCj4gaW5kZXggNGUyYTUyNWUyMmMwLi41MWJkYmQy
-MzAxNzQgMTAwNjQ0Cj4gLS0tIGEvTUFJTlRBSU5FUlMKPiArKysgYi9NQUlOVEFJTkVSUwo+IEBA
-IC04OTksNyArODk5LDcgQEAgTDoJbGludXgtaWlvQHZnZXIua2VybmVsLm9yZwo+ICBXOglodHRw
-Oi8vZXouYW5hbG9nLmNvbS9jb21tdW5pdHkvbGludXgtZGV2aWNlLWRyaXZlcnMKPiAgUzoJU3Vw
-cG9ydGVkCj4gIEY6CWRyaXZlcnMvaWlvL2FkYy9hZDcxMjQuYwo+IC1GOglEb2N1bWVudGF0aW9u
-L2RldmljZXRyZWUvYmluZGluZ3MvaWlvL2FkYy9hZGksYWQ3MTI0LnR4dAo+ICtGOglEb2N1bWVu
-dGF0aW9uL2RldmljZXRyZWUvYmluZGluZ3MvaWlvL2FkYy9hZGksYWQ3MTI0LnlhbWwKPiAgCj4g
-IEFOQUxPRyBERVZJQ0VTIElOQyBBRDc2MDYgRFJJVkVSCj4gIE06CVN0ZWZhbiBQb3BhIDxzdGVm
-YW4ucG9wYUBhbmFsb2cuY29tPgo+IEBAIC00MTkwLDcgKzQxOTAsNyBAQCBNOglKZW5zIEF4Ym9l
-IDxheGJvZUBrZXJuZWwuZGs+Cj4gIEw6CWNncm91cHNAdmdlci5rZXJuZWwub3JnCj4gIEw6CWxp
-bnV4LWJsb2NrQHZnZXIua2VybmVsLm9yZwo+ICBUOglnaXQgZ2l0Oi8vZ2l0Lmtlcm5lbC5kay9s
-aW51eC1ibG9jawo+IC1GOglEb2N1bWVudGF0aW9uL2Nncm91cC12MS9ibGtpby1jb250cm9sbGVy
-LnJzdAo+ICtGOglEb2N1bWVudGF0aW9uL2FkbWluLWd1aWRlL2Nncm91cC12MS9ibGtpby1jb250
-cm9sbGVyLnJzdAo+ICBGOglibG9jay9ibGstY2dyb3VwLmMKPiAgRjoJaW5jbHVkZS9saW51eC9i
-bGstY2dyb3VwLmgKPiAgRjoJYmxvY2svYmxrLXRocm90dGxlLmMKPiBAQCAtNjMxNyw3ICs2MzE3
-LDcgQEAgRkxFWFRJTUVSIEZUTS1RVUFEREVDIERSSVZFUgo+ICBNOglQYXRyaWNrIEhhdmVsYW5n
-ZSA8cGF0cmljay5oYXZlbGFuZ2VAZXNzZW5zaXVtLmNvbT4KPiAgTDoJbGludXgtaWlvQHZnZXIu
-a2VybmVsLm9yZwo+ICBTOglNYWludGFpbmVkCj4gLUY6CURvY3VtZW50YXRpb24vQUJJL3Rlc3Rp
-bmcvc3lzZnMtYnVzLWNvdW50ZXItZnRtLXF1YWRkZGVjCj4gK0Y6CURvY3VtZW50YXRpb24vQUJJ
-L3Rlc3Rpbmcvc3lzZnMtYnVzLWNvdW50ZXItZnRtLXF1YWRkZWMKPiAgRjoJRG9jdW1lbnRhdGlv
-bi9kZXZpY2V0cmVlL2JpbmRpbmdzL2NvdW50ZXIvZnRtLXF1YWRkZWMudHh0Cj4gIEY6CWRyaXZl
-cnMvY291bnRlci9mdG0tcXVhZGRlYy5jCj4gIAo+IEBAIC02ODU2LDcgKzY4NTYsNyBAQCBSOglT
-YWdpIFNoYWhhciA8c2FnaXNAZ29vZ2xlLmNvbT4KPiAgUjoJSm9uIE9sc29uIDxqb25vbHNvbkBn
-b29nbGUuY29tPgo+ICBMOgluZXRkZXZAdmdlci5rZXJuZWwub3JnCj4gIFM6CVN1cHBvcnRlZAo+
-IC1GOglEb2N1bWVudGF0aW9uL25ldHdvcmtpbmcvZGV2aWNlX2RyaXZlcnMvZ29vZ2xlL2d2ZS50
-eHQKPiArRjoJRG9jdW1lbnRhdGlvbi9uZXR3b3JraW5nL2RldmljZV9kcml2ZXJzL2dvb2dsZS9n
-dmUucnN0Cj4gIEY6CWRyaXZlcnMvbmV0L2V0aGVybmV0L2dvb2dsZQo+ICAKPiAgR1BEIFBPQ0tF
-VCBGQU4gRFJJVkVSCj4gQEAgLTEyMTM3LDcgKzEyMTM3LDcgQEAgTToJVGhvbWFzIEhlbGxzdHJv
-bSA8dGhlbGxzdHJvbUB2bXdhcmUuY29tPgo+ICBNOgkiVk13YXJlLCBJbmMuIiA8cHYtZHJpdmVy
-c0B2bXdhcmUuY29tPgo+ICBMOgl2aXJ0dWFsaXphdGlvbkBsaXN0cy5saW51eC1mb3VuZGF0aW9u
-Lm9yZwo+ICBTOglTdXBwb3J0ZWQKPiAtRjoJRG9jdW1lbnRhdGlvbi92aXJ0L3BhcmF2aXJ0X29w
-cy50eHQKPiArRjoJRG9jdW1lbnRhdGlvbi92aXJ0L3BhcmF2aXJ0X29wcy5yc3QKPiAgRjoJYXJj
-aC8qL2tlcm5lbC9wYXJhdmlydCoKPiAgRjoJYXJjaC8qL2luY2x1ZGUvYXNtL3BhcmF2aXJ0Ki5o
-Cj4gIEY6CWluY2x1ZGUvbGludXgvaHlwZXJ2aXNvci5oCj4gZGlmZiAtLWdpdCBhL2RyaXZlcnMv
-Z3B1L2RybS9kcm1fbW9kZXMuYyBiL2RyaXZlcnMvZ3B1L2RybS9kcm1fbW9kZXMuYwo+IGluZGV4
-IDc0YTU3MzlkZjUwNi4uODBmY2Q1ZGMxNTU4IDEwMDY0NAo+IC0tLSBhL2RyaXZlcnMvZ3B1L2Ry
-bS9kcm1fbW9kZXMuYwo+ICsrKyBiL2RyaXZlcnMvZ3B1L2RybS9kcm1fbW9kZXMuYwo+IEBAIC0x
-Njg2LDcgKzE2ODYsNyBAQCBzdGF0aWMgaW50IGRybV9tb2RlX3BhcnNlX2NtZGxpbmVfb3B0aW9u
-cyhjaGFyICpzdHIsIHNpemVfdCBsZW4sCj4gICAqCj4gICAqIEFkZGl0aW9uYWxzIG9wdGlvbnMg
-Y2FuIGJlIHByb3ZpZGVkIGZvbGxvd2luZyB0aGUgbW9kZSwgdXNpbmcgYSBjb21tYSB0bwo+ICAg
-KiBzZXBhcmF0ZSBlYWNoIG9wdGlvbi4gVmFsaWQgb3B0aW9ucyBjYW4gYmUgZm91bmQgaW4KPiAt
-ICogRG9jdW1lbnRhdGlvbi9mYi9tb2RlZGIudHh0Lgo+ICsgKiBEb2N1bWVudGF0aW9uL2ZiL21v
-ZGVkYi5yc3QuCj4gICAqCj4gICAqIFRoZSBpbnRlcm1lZGlhdGUgZHJtX2NtZGxpbmVfbW9kZSBz
-dHJ1Y3R1cmUgaXMgcmVxdWlyZWQgdG8gc3RvcmUgYWRkaXRpb25hbAo+ICAgKiBvcHRpb25zIGZy
-b20gdGhlIGNvbW1hbmQgbGluZSBtb2RsaW5lIGxpa2UgdGhlIGZvcmNlLWVuYWJsZS9kaXNhYmxl
-IGZsYWcuCj4gZGlmZiAtLWdpdCBhL2RyaXZlcnMvaTJjL2J1c3Nlcy9pMmMtbnZpZGlhLWdwdS5j
-IGIvZHJpdmVycy9pMmMvYnVzc2VzL2kyYy1udmlkaWEtZ3B1LmMKPiBpbmRleCBjZmM3NmI1ZGU3
-MjYuLjVhMTIzNWZkODZiYiAxMDA2NDQKPiAtLS0gYS9kcml2ZXJzL2kyYy9idXNzZXMvaTJjLW52
-aWRpYS1ncHUuYwo+ICsrKyBiL2RyaXZlcnMvaTJjL2J1c3Nlcy9pMmMtbnZpZGlhLWdwdS5jCj4g
-QEAgLTM2NCw3ICszNjQsNyBAQCBzdGF0aWMgdm9pZCBncHVfaTJjX3JlbW92ZShzdHJ1Y3QgcGNp
-X2RldiAqcGRldikKPiAgLyoKPiAgICogV2UgbmVlZCBncHVfaTJjX3N1c3BlbmQoKSBldmVuIGlm
-IGl0IGlzIHN0dWIsIGZvciBydW50aW1lIHBtIHRvIHdvcmsKPiAgICogY29ycmVjdGx5LiBXaXRo
-b3V0IGl0LCBsc3BjaSBzaG93cyBydW50aW1lIHBtIHN0YXR1cyBhcyAiRDAiIGZvciB0aGUgY2Fy
-ZC4KPiAtICogRG9jdW1lbnRhdGlvbi9wb3dlci9wY2kudHh0IGFsc28gaW5zaXN0cyBmb3IgZHJp
-dmVyIHRvIHByb3ZpZGUgdGhpcy4KPiArICogRG9jdW1lbnRhdGlvbi9wb3dlci9wY2kucnN0IGFs
-c28gaW5zaXN0cyBmb3IgZHJpdmVyIHRvIHByb3ZpZGUgdGhpcy4KPiAgICovCj4gIHN0YXRpYyBf
-X21heWJlX3VudXNlZCBpbnQgZ3B1X2kyY19zdXNwZW5kKHN0cnVjdCBkZXZpY2UgKmRldikKPiAg
-ewo+IGRpZmYgLS1naXQgYS9kcml2ZXJzL3Njc2kvaHBzYS5jIGIvZHJpdmVycy9zY3NpL2hwc2Eu
-Ywo+IGluZGV4IDQzYTZiNTM1MDc3NS4uZWFmNjE3N2FjOWVlIDEwMDY0NAo+IC0tLSBhL2RyaXZl
-cnMvc2NzaS9ocHNhLmMKPiArKysgYi9kcml2ZXJzL3Njc2kvaHBzYS5jCj4gQEAgLTc3OTgsNyAr
-Nzc5OCw3IEBAIHN0YXRpYyB2b2lkIGhwc2FfZnJlZV9wY2lfaW5pdChzdHJ1Y3QgY3Rscl9pbmZv
-ICpoKQo+ICAJaHBzYV9kaXNhYmxlX2ludGVycnVwdF9tb2RlKGgpOwkJLyogcGNpX2luaXQgMiAq
-Lwo+ICAJLyoKPiAgCSAqIGNhbGwgcGNpX2Rpc2FibGVfZGV2aWNlIGJlZm9yZSBwY2lfcmVsZWFz
-ZV9yZWdpb25zIHBlcgo+IC0JICogRG9jdW1lbnRhdGlvbi9QQ0kvcGNpLnJzdAo+ICsJICogRG9j
-dW1lbnRhdGlvbi9kcml2ZXItYXBpL3BjaS9wY2kucnN0Cj4gIAkgKi8KPiAgCXBjaV9kaXNhYmxl
-X2RldmljZShoLT5wZGV2KTsJCS8qIHBjaV9pbml0IDEgKi8KPiAgCXBjaV9yZWxlYXNlX3JlZ2lv
-bnMoaC0+cGRldik7CQkvKiBwY2lfaW5pdCAyICovCj4gQEAgLTc4ODEsNyArNzg4MSw3IEBAIHN0
-YXRpYyBpbnQgaHBzYV9wY2lfaW5pdChzdHJ1Y3QgY3Rscl9pbmZvICpoKQo+ICBjbGVhbjE6Cj4g
-IAkvKgo+ICAJICogY2FsbCBwY2lfZGlzYWJsZV9kZXZpY2UgYmVmb3JlIHBjaV9yZWxlYXNlX3Jl
-Z2lvbnMgcGVyCj4gLQkgKiBEb2N1bWVudGF0aW9uL1BDSS9wY2kucnN0Cj4gKwkgKiBEb2N1bWVu
-dGF0aW9uL2RyaXZlci1hcGkvcGNpL3BjaS5yc3QKPiAgCSAqLwo+ICAJcGNpX2Rpc2FibGVfZGV2
-aWNlKGgtPnBkZXYpOwo+ICAJcGNpX3JlbGVhc2VfcmVnaW9ucyhoLT5wZGV2KTsKPiAtLSAKPiAy
-LjIxLjAKPiAKX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX18K
-ZHJpLWRldmVsIG1haWxpbmcgbGlzdApkcmktZGV2ZWxAbGlzdHMuZnJlZWRlc2t0b3Aub3JnCmh0
-dHBzOi8vbGlzdHMuZnJlZWRlc2t0b3Aub3JnL21haWxtYW4vbGlzdGluZm8vZHJpLWRldmVs
+Some more comments. Mostly minor wording issues, except the prctl() exclusion at the end.
+
+On 25/07/2019 14:50, Vincenzo Frascino wrote:
+> On arm64 the TCR_EL1.TBI0 bit has been always enabled hence
+> the userspace (EL0) is allowed to set a non-zero value in the
+> top byte but the resulting pointers are not allowed at the
+> user-kernel syscall ABI boundary.
+>
+> With the relaxed ABI proposed through this document, it is now possible
+> to pass tagged pointers to the syscalls, when these pointers are in
+> memory ranges obtained by an anonymous (MAP_ANONYMOUS) mmap().
+>
+> This change in the ABI requires a mechanism to requires the userspace
+> to opt-in to such an option.
+>
+> Specify and document the way in which sysctl and prctl() can be used
+> in combination to allow the userspace to opt-in this feature.
+>
+> Cc: Catalin Marinas <catalin.marinas@arm.com>
+> Cc: Will Deacon <will.deacon@arm.com>
+> CC: Andrey Konovalov <andreyknvl@google.com>
+> Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
+> Acked-by: Szabolcs Nagy <szabolcs.nagy@arm.com>
+> ---
+>   Documentation/arm64/tagged-address-abi.rst | 148 +++++++++++++++++++++
+>   1 file changed, 148 insertions(+)
+>   create mode 100644 Documentation/arm64/tagged-address-abi.rst
+>
+> diff --git a/Documentation/arm64/tagged-address-abi.rst b/Documentation/arm64/tagged-address-abi.rst
+> new file mode 100644
+> index 000000000000..a8ecb991de82
+> --- /dev/null
+> +++ b/Documentation/arm64/tagged-address-abi.rst
+> @@ -0,0 +1,148 @@
+> +========================
+> +ARM64 TAGGED ADDRESS ABI
+> +========================
+> +
+> +Author: Vincenzo Frascino <vincenzo.frascino@arm.com>
+> +
+> +Date: 25 July 2019
+> +
+> +This document describes the usage and semantics of the Tagged Address
+> +ABI on arm64.
+> +
+> +1. Introduction
+> +---------------
+> +
+> +On arm64 the TCR_EL1.TBI0 bit has always been enabled on the kernel, hence
+> +the userspace (EL0) is entitled to perform a user memory access through a
+> +64-bit pointer with a non-zero top byte but the resulting pointers are not
+> +allowed at the user-kernel syscall ABI boundary.
+> +
+> +This document describes a relaxation of the ABI that makes it possible to
+> +to pass tagged pointers to the syscalls, when these pointers are in memory
+
+One too many "to" (at the end the previous line).
+
+> +ranges obtained as described in section 2.
+> +
+> +Since it is not desirable to relax the ABI to allow tagged user addresses
+> +into the kernel indiscriminately, arm64 provides a new sysctl interface
+> +(/proc/sys/abi/tagged_addr) that is used to prevent the applications from
+> +enabling the relaxed ABI and a new prctl() interface that can be used to
+> +enable or disable the relaxed ABI.
+> +A detailed description of the newly introduced mechanisms will be provided
+> +in section 2.
+> +
+> +2. ARM64 Tagged Address ABI
+> +---------------------------
+> +
+> +From the kernel syscall interface perspective, we define, for the purposes
+> +of this document, a "valid tagged pointer" as a pointer that either has a
+> +zero value set in the top byte or has a non-zero value, is in memory ranges
+> +privately owned by a userspace process and is obtained in one of the
+> +following ways:
+> +- mmap() done by the process itself, where either:
+> +
+> +  - flags have **MAP_PRIVATE** and **MAP_ANONYMOUS**
+> +  - flags have **MAP_PRIVATE** and the file descriptor refers to a regular
+> +    file or **/dev/zero**
+> +
+> +- brk() system call done by the process itself (i.e. the heap area between
+> +  the initial location of the program break at process creation and its
+> +  current location).
+> +- any memory mapped by the kernel in the process's address space during
+> +  creation and with the same restrictions as for mmap() (e.g. data, bss,
+> +  stack).
+> +
+> +The ARM64 Tagged Address ABI is an opt-in feature, and an application can
+> +control it using the following:
+> +
+> +- **/proc/sys/abi/tagged_addr**: a new sysctl interface that can be used to
+> +  prevent the applications from enabling the access to the relaxed ABI.
+> +  The sysctl supports the following configuration options:
+> +
+> +  - **0**: Disable the access to the ARM64 Tagged Address ABI for all
+> +    the applications.
+> +  - **1** (Default): Enable the access to the ARM64 Tagged Address ABI for
+> +    all the applications.
+> +
+> +   If the access to the ARM64 Tagged Address ABI is disabled at a certain
+> +   point in time, all the applications that were using tagging before this
+> +   event occurs, will continue to use tagging.
+
+"tagging" may be misinterpreted here. I would be more explicit by saying that the 
+tagged address ABI remains enabled in processes that opted in before the access got 
+disabled.
+
+> +- **prctl()s**:
+> +
+> +  - **PR_SET_TAGGED_ADDR_CTRL**: Invoked by a process, can be used to enable or
+> +    disable its access to the ARM64 Tagged Address ABI.
+
+I still find the wording confusing, because "access to the ABI" is not used 
+consistently. The "tagged_addr" sysctl enables *access to the ABI*, that's fine. 
+However, PR_SET_TAGGED_ADDR_CTRL enables *the ABI itself* (which is only possible if 
+access to the ABI is enabled).
+
+> +
+> +    The (unsigned int) arg2 argument is a bit mask describing the control mode
+> +    used:
+> +
+> +    - **PR_TAGGED_ADDR_ENABLE**: Enable ARM64 Tagged Address ABI.
+> +
+> +    The prctl(PR_SET_TAGGED_ADDR_CTRL, ...) will return -EINVAL if the ARM64
+> +    Tagged Address ABI is not available.
+
+For clarity, it would be good to mention that one possible reason for the ABI not to 
+be available is tagged_addr == 0.
+
+> +
+> +    The arguments arg3, arg4, and arg5 are ignored.
+> +  - **PR_GET_TAGGED_ADDR_CTRL**: can be used to check the status of the Tagged
+> +    Address ABI.
+> +
+> +    The arguments arg2, arg3, arg4, and arg5 are ignored.
+> +
+> +The ABI properties set by the mechanisms described above are inherited by threads
+> +of the same application and fork()'ed children but cleared by execve().
+> +
+> +When a process has successfully opted into the new ABI by invoking
+> +PR_SET_TAGGED_ADDR_CTRL prctl(), this guarantees the following behaviours:
+> +
+> + - Every currently available syscall, except the cases mentioned in section 3, can
+> +   accept any valid tagged pointer. The same rule is applicable to any syscall
+> +   introduced in the future.
+
+I thought Catalin wanted to drop this guarantee?
+
+> + - If a non valid tagged pointer is passed to a syscall then the behaviour
+> +   is undefined.
+> + - Every valid tagged pointer is expected to work as an untagged one.
+> + - The kernel preserves any valid tagged pointer and returns it to the
+> +   userspace unchanged (i.e. on syscall return) in all the cases except the
+> +   ones documented in the "Preserving tags" section of tagged-pointers.txt.
+> +
+> +A definition of the meaning of tagged pointers on arm64 can be found in:
+> +Documentation/arm64/tagged-pointers.txt.
+> +
+> +3. ARM64 Tagged Address ABI Exceptions
+> +--------------------------------------
+> +
+> +The behaviours described in section 2, with particular reference to the
+> +acceptance by the syscalls of any valid tagged pointer are not applicable
+> +to the following cases:
+> +
+> + - mmap() addr parameter.
+> + - mremap() new_address parameter.
+> + - prctl(PR_SET_MM, PR_SET_MM_MAP, ...) struct prctl_mm_map fields.
+> + - prctl(PR_SET_MM, PR_SET_MM_MAP_SIZE, ...) struct prctl_mm_map fields.
+
+All the PR_SET_MM options that specify pointers (PR_SET_MM_START_CODE, 
+PR_SET_MM_END_CODE, ...) should be excluded as well. AFAICT (but don't take my word 
+for it), that's all of them except PR_SET_MM_EXE_FILE. Conversely, PR_SET_MM_MAP_SIZE 
+should not be excluded (it does not pass a prctl_mm_map struct, and the pointer to 
+unsigned int can be tagged).
+
+Kevin
+
+> +
+> +Any attempt to use non-zero tagged pointers will lead to undefined behaviour.
+> +
+> +4. Example of correct usage
+> +---------------------------
+> +.. code-block:: c
+> +
+> +   void main(void)
+> +   {
+> +           static int tbi_enabled = 0;
+> +           unsigned long tag = 0;
+> +
+> +           char *ptr = mmap(NULL, PAGE_SIZE, PROT_READ | PROT_WRITE,
+> +                            MAP_ANONYMOUS, -1, 0);
+> +
+> +           if (prctl(PR_SET_TAGGED_ADDR_CTRL, PR_TAGGED_ADDR_ENABLE,
+> +                     0, 0, 0) == 0)
+> +                   tbi_enabled = 1;
+> +
+> +           if (ptr == (void *)-1) /* MAP_FAILED */
+> +                   return -1;
+> +
+> +           if (tbi_enabled)
+> +                   tag = rand() & 0xff;
+> +
+> +           ptr = (char *)((unsigned long)ptr | (tag << TAG_SHIFT));
+> +
+> +           *ptr = 'a';
+> +
+> +           ...
+> +   }
+> +
