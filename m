@@ -1,37 +1,67 @@
-From: Paul Burton <paul.burton@mips.com>
-Subject: Re: [PATCH 1/2] mips: remove nargs from __SYSCALL
-Date: Wed, 31 Jul 2019 18:37:45 +0000
-Message-ID: <CY4PR2201MB12725431D0D757F50CBDC1EBC1DF0@CY4PR2201MB1272.namprd22.prod.outlook.com>
-References: <1546440978-19569-2-git-send-email-firoz.khan@linaro.org>
+From: "Paul E. McKenney" <paulmck@linux.ibm.com>
+Subject: Re: [PATCH] tools: memory-model: add it to the Documentation body
+Date: Wed, 31 Jul 2019 13:25:17 -0700
+Message-ID: <20190731202517.GF5913@linux.ibm.com>
+References: <Pine.LNX.4.44L0.1907310947340.1497-100000@iolanthe.rowland.org>
+ <cb9785b7-ed43-b91a-7392-e50216bd5771@gmail.com>
+Reply-To: paulmck@linux.ibm.com
 Mime-Version: 1.0
-Content-Type: text/plain; charset="iso-8859-1"
-Content-Transfer-Encoding: quoted-printable
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1546440978-19569-2-git-send-email-firoz.khan@linaro.org>
-Content-Language: en-US
+Content-Disposition: inline
+In-Reply-To: <cb9785b7-ed43-b91a-7392-e50216bd5771@gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
-Cc: Paul Burton <pburton@wavecomp.com>, Ralf Baechle <ralf@linux-mips.org>, James Hogan <jhogan@kernel.org>, "linux-mips@vger.kernel.org" <linux-mips@vger.kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>, "y2038@lists.linaro.org" <y2038@lists.linaro.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "arnd@arndb.de" <arnd@arndb.de>, "deepa.kernel@gmail.com" <deepa.kernel@gmail.com>, "marcin.juszkiewicz@linaro.org" <marcin.juszkiewicz@linaro.org>, "firoz.khan@linaro.org" <firoz.khan@linaro.org>"linux-mips@vger.kernel.org" <linux-mips@vger.kernel.org>
+To: Akira Yokosawa <akiyks@gmail.com>
+Cc: Alan Stern <stern@rowland.harvard.edu>, Mauro Carvalho Chehab <mchehab+samsung@kernel.org>, Joel Fernandes <joel@joelfernandes.org>, Linux Doc Mailing List <linux-doc@vger.kernel.org>, Mauro Carvalho Chehab <mchehab@infradead.org>, linux-kernel@vger.kernel.org, Jonathan Corbet <corbet@lwn.net>, Andrea Parri <andrea.parri@amarulasolutions.com>, Will Deacon <will@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Boqun Feng <boqun.feng@gmail.com>, Nicholas Piggin <npiggin@gmail.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, Daniel Lustig <dlustig@nvidia.com>, Ingo Molnar <mingo@kernel.org>, Jason Gunthorpe <jgg@ziepe.ca>, SeongJae Park <sj38.park@gmail.com>, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-Hello,
+On Thu, Aug 01, 2019 at 12:19:25AM +0900, Akira Yokosawa wrote:
+> On Wed, 31 Jul 2019 09:52:05 -0400, Alan Stern wrote:
+> > On Tue, 30 Jul 2019, Mauro Carvalho Chehab wrote:
+> > 
+> >> Em Tue, 30 Jul 2019 18:17:01 -0400
+> >> Joel Fernandes <joel@joelfernandes.org> escreveu:
+> > 
+> >>>>> (4) I would argue that every occurence of
+> >>>>> A ->(some dependency) B should be replaced with fixed size font in the HTML
+> >>>>> results.  
+> >>>>
+> >>>> Just place those with ``A -> (some dependency)``. This will make them use
+> >>>> a fixed size font.  
+> >>>
+> >>> Ok, understood all these. I guess my point was all of these will need to be
+> >>> done to make this document useful from a ReST conversion standpoint. Until
+> >>> then it is probably just better off being plain text - since there are so
+> >>> many of those ``A -> (dep) B`` things.
+> > 
+> >> On a very quick look, it seems that, if we replace:
+> >>
+> >> 	(\S+\s->\S*\s\w+)
+> >>
+> >> by:
+> >> 	``\1``
+> >>
+> >>
+> >> On an editor that would allow to manually replace the regex (like kate),
+> >> most of those can be get.
+> >>
+> >> See patch enclosed.
+> > 
+> > Some time ago I considered the problem of converting this file to ReST 
+> > format.  But I gave up on the idea, because the necessary changes were 
+> > so widespread and the resulting text file would not be easily readable.
+> > 
+> > Replacing things of the form "A ->dep B" just scratches the surface.  
+> > That document teems with variable names, formulas, code extracts, and
+> > other things which would all need to be rendered in a different font
+> > style.  The density of the markup required to do this would be
+> > phenomenally high.
+> > 
+> > In my opinion it simply was not worthwhile.
+> 
+> +1 on keeping this and the other .txt files of LKMM intact.
 
-Firoz Khan wrote:
-> The __SYSCALL macro's arguments are system call number,
-> system call entry name and number of arguments for the
-> system call.
->=20
-> Argument- nargs in __SYSCALL(nr, entry, nargs) is neither
-> calculated nor used anywhere. So it would be better to
-> keep the implementaion as  __SYSCALL(nr, entry). This will
-> unifies the implementation with some other architetures
-> too.
->=20
-> Signed-off-by: Firoz Khan <firoz.khan@linaro.org>
+Looks like a pretty clear consensus thus far.  Any objections to keeping
+these .txt for the time being?
 
-Applied to mips-next.
-
-Thanks,
-    Paul
-
-[ This message was auto-generated; if you believe anything is incorrect
-  then please email paul.burton@mips.com to report it. ]
+							Thanx, Paul
