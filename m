@@ -1,46 +1,37 @@
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [PATCH] arm64: vdso: Fix Makefile regression
-Date: Wed, 31 Jul 2019 18:09:27 +0100
-Message-ID: <20190731170927.GD17773@arrakis.emea.arm.com>
-References: <CAGnkfhyT=2kPsiUy-V=aCA_s-C4BXgD++hAZ9ii1h0p94mMVQA@mail.gmail.com>
- <20190729125421.32482-1-vincenzo.frascino@arm.com>
+From: Paul Burton <paul.burton@mips.com>
+Subject: Re: [PATCH 1/2] mips: remove nargs from __SYSCALL
+Date: Wed, 31 Jul 2019 18:37:45 +0000
+Message-ID: <CY4PR2201MB12725431D0D757F50CBDC1EBC1DF0@CY4PR2201MB1272.namprd22.prod.outlook.com>
+References: <1546440978-19569-2-git-send-email-firoz.khan@linaro.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset="iso-8859-1"
+Content-Transfer-Encoding: quoted-printable
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20190729125421.32482-1-vincenzo.frascino@arm.com>
+In-Reply-To: <1546440978-19569-2-git-send-email-firoz.khan@linaro.org>
+Content-Language: en-US
 Sender: linux-kernel-owner@vger.kernel.org
-To: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Cc: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, will@kernel.org, arnd@arndb.de, tglx@linutronix.de, salyzyn@android.com, pcc@google.com, 0x7f454c46@gmail.com, linux@rasmusvillemoes.dk, sthotton@marvell.com, andre.przywara@arm.com, luto@kernel.org, Matteo Croce <mcroce@redhat.com>
+Cc: Paul Burton <pburton@wavecomp.com>, Ralf Baechle <ralf@linux-mips.org>, James Hogan <jhogan@kernel.org>, "linux-mips@vger.kernel.org" <linux-mips@vger.kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>, "y2038@lists.linaro.org" <y2038@lists.linaro.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "arnd@arndb.de" <arnd@arndb.de>, "deepa.kernel@gmail.com" <deepa.kernel@gmail.com>, "marcin.juszkiewicz@linaro.org" <marcin.juszkiewicz@linaro.org>, "firoz.khan@linaro.org" <firoz.khan@linaro.org>"linux-mips@vger.kernel.org" <linux-mips@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Mon, Jul 29, 2019 at 01:54:21PM +0100, Vincenzo Frascino wrote:
-> Using an old .config in combination with "make oldconfig" can cause
-> an incorrect detection of the compat compiler:
-> 
-> $ grep CROSS_COMPILE_COMPAT .config
-> CONFIG_CROSS_COMPILE_COMPAT_VDSO=""
-> 
-> $ make oldconfig && make
-> arch/arm64/Makefile:58: gcc not found, check CROSS_COMPILE_COMPAT.
-> Stop.
-> 
-> Accordingly to the section 7.2 of the GNU Make manual "Syntax of
-> Conditionals", "When the value results from complex expansions of
-> variables and functions, expansions you would consider empty may
-> actually contain whitespace characters and thus are not seen as
-> empty. However, you can use the strip function to avoid interpreting
-> whitespace as a non-empty value."
-> 
-> Fix the issue adding strip to the CROSS_COMPILE_COMPAT string
-> evaluation.
-> 
-> Cc: Will Deacon <will@kernel.org>
-> Cc: Catalin Marinas <catalin.marinas@arm.com>
-> Reported-by: Matteo Croce <mcroce@redhat.com>
-> Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
+Hello,
 
-Queued for 5.3-rc3. Thanks.
+Firoz Khan wrote:
+> The __SYSCALL macro's arguments are system call number,
+> system call entry name and number of arguments for the
+> system call.
+>=20
+> Argument- nargs in __SYSCALL(nr, entry, nargs) is neither
+> calculated nor used anywhere. So it would be better to
+> keep the implementaion as  __SYSCALL(nr, entry). This will
+> unifies the implementation with some other architetures
+> too.
+>=20
+> Signed-off-by: Firoz Khan <firoz.khan@linaro.org>
 
--- 
-Catalin
+Applied to mips-next.
+
+Thanks,
+    Paul
+
+[ This message was auto-generated; if you believe anything is incorrect
+  then please email paul.burton@mips.com to report it. ]
