@@ -1,98 +1,69 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:32444 "EHLO
-        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
-        by vger.kernel.org with ESMTP id S2389505AbfHAWVN (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 1 Aug 2019 18:21:13 -0400
+Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:54936 "EHLO
+        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S2389451AbfHAWVF (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 1 Aug 2019 18:21:05 -0400
+Received: from pps.filterd (m0098399.ppops.net [127.0.0.1])
+        by mx0a-001b2d01.pphosted.com (8.16.0.27/8.16.0.27) with SMTP id x71MGvap085129
+        for <linux-arch@vger.kernel.org>; Thu, 1 Aug 2019 18:21:04 -0400
+Received: from e14.ny.us.ibm.com (e14.ny.us.ibm.com [129.33.205.204])
+        by mx0a-001b2d01.pphosted.com with ESMTP id 2u477yk8yd-1
+        (version=TLSv1.2 cipher=AES256-GCM-SHA384 bits=256 verify=NOT)
+        for <linux-arch@vger.kernel.org>; Thu, 01 Aug 2019 18:21:04 -0400
+Received: from localhost
+        by e14.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+        for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
+        Thu, 1 Aug 2019 23:21:03 +0100
 From: "Paul E. McKenney" <paulmck@linux.ibm.com>
-Subject: [PATCH RFC memory-model 26/31] tools/memory-model: Add checktheselitmus.sh to run specified litmus tests
-Date: Thu,  1 Aug 2019 15:20:51 -0700
-Message-ID: <20190801222056.12144-26-paulmck@linux.ibm.com>
+Subject: [PATCH RFC memory-model 23/31] tools/memory-model: Make history-check scripts use mselect7
+Date: Thu,  1 Aug 2019 15:20:48 -0700
 In-Reply-To: <20190801222026.GA11315@linux.ibm.com>
 References: <20190801222026.GA11315@linux.ibm.com>
+Message-ID: <20190801222056.12144-23-paulmck@linux.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org
 Cc: stern@rowland.harvard.edu, andrea.parri@amarulasolutions.com, will@kernel.org, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, "Paul E. McKenney" <paulmck@linux.ibm.com>
-Message-ID: <20190801222051.GSqmaIlzblwKz5dTy3yc85A0dvhTYZsdl6aAkwCzeuA@z>
+Message-ID: <20190801222048.EPl3MRk9OvZZWzoiKzV7p9bAi2G4tI0_45lsuCH0yvw@z>
 
-This commit adds a checktheselitmus.sh script that runs the litmus tests
-specified on the command line.  This is useful for verifying fixes to
-specific litmus tests.
+The history-check scripts currently use grep to ignore non-C-language
+litmus tests, which is a bit fragile.  This commit therefore enlists the
+aid of "mselect7 -arch C", given Luc Maraget's recent modifications that
+allow mselect7 to operate in filter mode.
+
+This change requires herdtools 7.52-32-g1da3e0e50977 or later.
 
 Signed-off-by: Paul E. McKenney <paulmck@linux.ibm.com>
 ---
- tools/memory-model/scripts/README             |  8 ++++
- .../memory-model/scripts/checktheselitmus.sh  | 43 +++++++++++++++++++
- 2 files changed, 51 insertions(+)
- create mode 100755 tools/memory-model/scripts/checktheselitmus.sh
+ tools/memory-model/scripts/initlitmushist.sh | 2 +-
+ tools/memory-model/scripts/newlitmushist.sh  | 2 +-
+ 2 files changed, 2 insertions(+), 2 deletions(-)
 
-diff --git a/tools/memory-model/scripts/README b/tools/memory-model/scripts/README
-index 0e29a52044c1..cc2c4e5be9ec 100644
---- a/tools/memory-model/scripts/README
-+++ b/tools/memory-model/scripts/README
-@@ -27,6 +27,14 @@ checklitmushist.sh
- checklitmus.sh
+diff --git a/tools/memory-model/scripts/initlitmushist.sh b/tools/memory-model/scripts/initlitmushist.sh
+index 956b6957484d..31ea782955d3 100755
+--- a/tools/memory-model/scripts/initlitmushist.sh
++++ b/tools/memory-model/scripts/initlitmushist.sh
+@@ -60,7 +60,7 @@ fi
  
- 	Check a single litmus test against its "Result:" expected result.
-+	Not intended to for manual use.
-+
-+checktheselitmus.sh
-+
-+	Check the specified list of litmus tests against their "Result:"
-+	expected results.  This takes optional parseargs.sh arguments,
-+	followed by "--" followed by pathnames starting from the current
-+	directory.
+ # Create a list of the C-language litmus tests with no more than the
+ # specified number of processes (per the --procs argument).
+-find litmus -name '*.litmus' -exec grep -l -m 1 "^C " {} \; > $T/list-C
++find litmus -name '*.litmus' -print | mselect7 -arch C > $T/list-C
+ xargs < $T/list-C -r grep -L "^P${LKMM_PROCS}" > $T/list-C-short
  
- cmplitmushist.sh
+ scripts/runlitmushist.sh < $T/list-C-short
+diff --git a/tools/memory-model/scripts/newlitmushist.sh b/tools/memory-model/scripts/newlitmushist.sh
+index 3f4b06e29988..25235e2049cf 100755
+--- a/tools/memory-model/scripts/newlitmushist.sh
++++ b/tools/memory-model/scripts/newlitmushist.sh
+@@ -43,7 +43,7 @@ fi
  
-diff --git a/tools/memory-model/scripts/checktheselitmus.sh b/tools/memory-model/scripts/checktheselitmus.sh
-new file mode 100755
-index 000000000000..10eeb5ecea6d
---- /dev/null
-+++ b/tools/memory-model/scripts/checktheselitmus.sh
-@@ -0,0 +1,43 @@
-+#!/bin/sh
-+# SPDX-License-Identifier: GPL-2.0+
-+#
-+# Invokes checklitmus.sh on its arguments to run the specified litmus
-+# test and pass judgment on the results.
-+#
-+# Usage:
-+#	checktheselitmus.sh -- [ file1.litmus [ file2.litmus ... ] ]
-+#
-+# Run this in the directory containing the memory model, specifying the
-+# pathname of the litmus test to check.  The usual parseargs.sh arguments
-+# can be specified prior to the "--".
-+#
-+# This script is intended for use with pathnames that start from the
-+# tools/memory-model directory.  If some of the pathnames instead start at
-+# the root directory, they all must do so and the "--destdir /" parseargs.sh
-+# argument must be specified prior to the "--".  Alternatively, some other
-+# "--destdir" argument can be supplied as long as the needed subdirectories
-+# are populated.
-+#
-+# Copyright IBM Corporation, 2018
-+#
-+# Author: Paul E. McKenney <paulmck@linux.ibm.com>
-+
-+. scripts/parseargs.sh
-+
-+ret=0
-+for i in "$@"
-+do
-+	if scripts/checklitmus.sh $i
-+	then
-+		:
-+	else
-+		ret=1
-+	fi
-+done
-+if test "$ret" -ne 0
-+then
-+	echo " ^^^ VERIFICATION MISMATCHES" 1>&2
-+else
-+	echo All litmus tests verified as was expected. 1>&2
-+fi
-+exit $ret
+ # Form full list of litmus tests with no more than the specified
+ # number of processes (per the --procs argument).
+-find litmus -name '*.litmus' -exec grep -l -m 1 "^C " {} \; > $T/list-C-all
++find litmus -name '*.litmus' -print | mselect7 -arch C > $T/list-C-all
+ xargs < $T/list-C-all -r grep -L "^P${LKMM_PROCS}" > $T/list-C-short
+ 
+ # Form list of new tests.  Note: This does not handle litmus-test deletion!
 -- 
 2.17.1
