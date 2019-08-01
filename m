@@ -1,77 +1,79 @@
-Return-Path: <rppt@linux.ibm.com>
-From: Mike Rapoport <rppt@linux.ibm.com>
-Subject: [PATCH 3/3] sh: switch to generic version of pte allocation
-Date: Thu,  8 Aug 2019 10:52:08 +0300
-Message-ID: <1565250728-21721-4-git-send-email-rppt@linux.ibm.com>
-In-Reply-To: <1565250728-21721-1-git-send-email-rppt@linux.ibm.com>
-References: <1565250728-21721-1-git-send-email-rppt@linux.ibm.com>
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Nicholas Piggin <npiggin@gmail.com>, Tony Luck <tony.luck@intel.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, linux-arch@vger.kernel.org, linux-ia64@vger.kernel.org, linux-sh@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, Mike Rapoport <rppt@linux.ibm.com>
+Return-Path: <linux-arch-owner@vger.kernel.org>
+Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:43284 "EHLO
+        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
+        by vger.kernel.org with ESMTP id S1729750AbfHAWUd (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 1 Aug 2019 18:20:33 -0400
+Received: from pps.filterd (m0098417.ppops.net [127.0.0.1])
+        by mx0a-001b2d01.pphosted.com (8.16.0.27/8.16.0.27) with SMTP id x71MHrPT055448
+        for <linux-arch@vger.kernel.org>; Thu, 1 Aug 2019 18:20:31 -0400
+Received: from e14.ny.us.ibm.com (e14.ny.us.ibm.com [129.33.205.204])
+        by mx0a-001b2d01.pphosted.com with ESMTP id 2u45u86cvk-1
+        (version=TLSv1.2 cipher=AES256-GCM-SHA384 bits=256 verify=NOT)
+        for <linux-arch@vger.kernel.org>; Thu, 01 Aug 2019 18:20:31 -0400
+Received: from localhost
+        by e14.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+        for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
+        Thu, 1 Aug 2019 23:20:31 +0100
+Date: Thu, 1 Aug 2019 15:20:26 -0700
+From: "Paul E. McKenney" <paulmck@linux.ibm.com>
+Subject: [PATCH RFC memory-model 0/31] LKMM updates for review
+Reply-To: paulmck@linux.ibm.com
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+Message-ID: <20190801222026.GA11315@linux.ibm.com>
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20190808075208.h1vx7umRgcSUd0HZIoYRfWgAzi6eGhqmlbA46JpB5AU@z>
+To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org
+Cc: stern@rowland.harvard.edu, andrea.parri@amarulasolutions.com, will@kernel.org, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com
+Message-ID: <20190801222026.8mwwx1YTocteQYdSAWwGvEFtNkgVWcmv5wlcY_mw0wI@z>
 
-The sh implementation pte_alloc_one(), pte_alloc_one_kernel(),
-pte_free_kernel() and pte_free() is identical to the generic except of lack
-of __GFP_ACCOUNT for the user PTEs allocation.
+Hello!
 
-Switch sh to use generic version of these functions.
+This series contains LKMM updates:
 
-Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
----
- arch/sh/include/asm/pgalloc.h | 34 +---------------------------------
- 1 file changed, 1 insertion(+), 33 deletions(-)
+1.	Make scripts be executable.
 
-diff --git a/arch/sh/include/asm/pgalloc.h b/arch/sh/include/asm/pgalloc.h
-index 9e15054..8c6341a 100644
---- a/arch/sh/include/asm/pgalloc.h
-+++ b/arch/sh/include/asm/pgalloc.h
-@@ -3,6 +3,7 @@
- #define __ASM_SH_PGALLOC_H
- 
- #include <asm/page.h>
-+#include <asm-generic/pgalloc.h>
- 
- extern pgd_t *pgd_alloc(struct mm_struct *);
- extern void pgd_free(struct mm_struct *mm, pgd_t *pgd);
-@@ -26,39 +27,6 @@ static inline void pmd_populate(struct mm_struct *mm, pmd_t *pmd,
- }
- #define pmd_pgtable(pmd) pmd_page(pmd)
- 
--/*
-- * Allocate and free page tables.
-- */
--static inline pte_t *pte_alloc_one_kernel(struct mm_struct *mm)
--{
--	return (pte_t *)__get_free_page(GFP_KERNEL | __GFP_ZERO);
--}
--
--static inline pgtable_t pte_alloc_one(struct mm_struct *mm)
--{
--	struct page *page;
--
--	page = alloc_page(GFP_KERNEL | __GFP_ZERO);
--	if (!page)
--		return NULL;
--	if (!pgtable_page_ctor(page)) {
--		__free_page(page);
--		return NULL;
--	}
--	return page;
--}
--
--static inline void pte_free_kernel(struct mm_struct *mm, pte_t *pte)
--{
--	free_page((unsigned long)pte);
--}
--
--static inline void pte_free(struct mm_struct *mm, pgtable_t pte)
--{
--	pgtable_page_dtor(pte);
--	__free_page(pte);
--}
--
- #define __pte_free_tlb(tlb,pte,addr)			\
- do {							\
- 	pgtable_page_dtor(pte);				\
--- 
-2.7.4
+2-3.	Make LKMM scripts note timeouts instead of just saying that
+	the validation was bad.
+
+4.	Make LKMM scripts identify litmus-test typos and use of
+	unsupported primitives instead of just saying that the validation
+	was bad.
+
+5.	Make LKMM scripts detect unconditional deadlocks.
+
+6.	Fix email address on LKMM scripts.
+
+7-29.	Leverage Boqun Feng's C-to-assembly litmus-test-translation
+	capability to allow verifying LKMM against hardware models for
+	checkalllitmus.sh.  This is a work in progress.
+
+30.	Use cumul-fence instead of fence in ->prop example, courtesy
+	of Joel Fernandes.
+
+31.	Update the informal documentation, courtesy of Andrea Parri.
+
+							Thanx, Paul
+
+------------------------------------------------------------------------
+
+ Documentation/explanation.txt |   53 +++++++--------
+ README                        |   18 ++---
+ litmus-tests/.gitignore       |    4 -
+ scripts/README                |   16 +++-
+ scripts/checkalllitmus.sh     |   29 ++++----
+ scripts/checkghlitmus.sh      |   11 +--
+ scripts/checklitmus.sh        |  101 ++++++++++++-----------------
+ scripts/checklitmushist.sh    |    2 
+ scripts/checktheselitmus.sh   |   43 ++++++++++++
+ scripts/cmplitmushist.sh      |   53 ++++++++++++++-
+ scripts/hwfnseg.sh            |   20 +++++
+ scripts/initlitmushist.sh     |    2 
+ scripts/judgelitmus.sh        |  142 +++++++++++++++++++++++++++++++----------
+ scripts/newlitmushist.sh      |    4 -
+ scripts/parseargs.sh          |   21 ++++--
+ scripts/runlitmus.sh          |  144 ++++++++++++++++++++++++++++++++----------
+ scripts/runlitmushist.sh      |   30 +++++---
+ scripts/simpletest.sh         |   35 ++++++++++
+ 18 files changed, 514 insertions(+), 214 deletions(-)
