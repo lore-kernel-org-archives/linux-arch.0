@@ -1,7 +1,7 @@
 From: "Paul E. McKenney" <paulmck@linux.ibm.com>
-Subject: [PATCH RFC memory-model 16/31] tools/memory-model: Keep assembly-language litmus tests
-Date: Thu,  1 Aug 2019 15:20:41 -0700
-Message-ID: <20190801222056.12144-16-paulmck@linux.ibm.com>
+Subject: [PATCH RFC memory-model 29/31] tools/memory-model: Use "-unroll 0" to keep --hw runs finite
+Date: Thu,  1 Aug 2019 15:20:54 -0700
+Message-ID: <20190801222056.12144-29-paulmck@linux.ibm.com>
 References: <20190801222026.GA11315@linux.ibm.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20190801222026.GA11315@linux.ibm.com>
@@ -10,40 +10,33 @@ To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org
 Cc: stern@rowland.harvard.edu, andrea.parri@amarulasolutions.com, will@kernel.org, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, "Paul E. McKenney" <paulmck@linux.ibm.com>
 List-Id: linux-arch.vger.kernel.org
 
-This commit retains the assembly-language litmus tests generated from
-the C-language litmus tests, appending the hardware tag to the original
-C-language litmus test's filename.  Thus, S+poonceonces.litmus.AArch64
-contains the Armv8 assembly language corresponding to the C-language
-S+poonceonces.litmus test.
+Litmus tests involving atomic operations produce LL/SC loops on a number
+of architectures, and unrolling these loops can result in excessive
+verification times or even stack overflows.  This commit therefore uses
+the "-unroll 0" herd7 argument to avoid unrolling, on the grounds that
+additional passes through an LL/SC loop should not change the verification.
 
-This commit also updates the .gitignore to avoid commiting these
-automatically generated assembly-language litmus tests.
+Note however, that certain bugs in the mapping of the LL/SC loop to
+machine instructions may go undetected.  On the other hand, herd7 might
+not be the best vehicle for finding such bugs in any case.  (You do
+stress-test your architecture-specific code, don't you?)
 
+Suggested-by: Luc Maranget <luc.maranget@inria.fr>
 Signed-off-by: Paul E. McKenney <paulmck@linux.ibm.com>
 ---
- tools/memory-model/litmus-tests/.gitignore | 2 +-
- tools/memory-model/scripts/runlitmus.sh    | 4 ++--
- 2 files changed, 3 insertions(+), 3 deletions(-)
+ tools/memory-model/scripts/runlitmus.sh | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/tools/memory-model/litmus-tests/.gitignore b/tools/memory-model/litmus-tests/.gitignore
-index f47cb2045f13..848e62d2a9b3 100644
---- a/tools/memory-model/litmus-tests/.gitignore
-+++ b/tools/memory-model/litmus-tests/.gitignore
-@@ -1 +1 @@
--*.out
-+*.litmus.*
 diff --git a/tools/memory-model/scripts/runlitmus.sh b/tools/memory-model/scripts/runlitmus.sh
-index c84124b32bee..62b47c7e1ba9 100755
+index dfdb1f00fcc0..94608d4b6502 100755
 --- a/tools/memory-model/scripts/runlitmus.sh
 +++ b/tools/memory-model/scripts/runlitmus.sh
-@@ -69,7 +69,7 @@ fi
- 
- # Generate the assembly code and run herd7 on it.
- gen_theme7 -n 10 -map $mapfile -call Linux.call > $themefile
--jingle7 -theme $themefile $litmus > $T/$hwlitmusfile 2> $T/$hwlitmusfile.jingle7.out
--/usr/bin/time $LKMM_TIMEOUT_CMD herd7 -model $catfile $T/$hwlitmusfile > $LKMM_DESTDIR/$hwlitmus.out 2>&1
-+jingle7 -theme $themefile $litmus > $LKMM_DESTDIR/$hwlitmus 2> $T/$hwlitmusfile.jingle7.out
-+/usr/bin/time $LKMM_TIMEOUT_CMD herd7 -model $catfile $LKMM_DESTDIR/$hwlitmus > $LKMM_DESTDIR/$hwlitmus.out 2>&1
+@@ -75,6 +75,6 @@ then
+ 	cp $T/$hwlitmusfile.jingle7.out $LKMM_DESTDIR/$hwlitmus.err
+ 	exit 253
+ fi
+-/usr/bin/time $LKMM_TIMEOUT_CMD herd7 $LKMM_DESTDIR/$hwlitmus > $LKMM_DESTDIR/$hwlitmus.out 2>&1
++/usr/bin/time $LKMM_TIMEOUT_CMD herd7 -unroll 0 $LKMM_DESTDIR/$hwlitmus > $LKMM_DESTDIR/$hwlitmus.out 2>&1
  
  exit $?
 -- 
