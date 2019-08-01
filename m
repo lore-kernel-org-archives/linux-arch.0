@@ -1,7 +1,7 @@
 From: "Paul E. McKenney" <paulmck@linux.ibm.com>
-Subject: [PATCH RFC memory-model 02/31] tools/memory-model: Make judgelitmus.sh note timeouts
-Date: Thu,  1 Aug 2019 15:20:27 -0700
-Message-ID: <20190801222056.12144-2-paulmck@linux.ibm.com>
+Subject: [PATCH RFC memory-model 07/31] tools/memory-model: Update parseargs.sh for hardware verification
+Date: Thu,  1 Aug 2019 15:20:32 -0700
+Message-ID: <20190801222056.12144-7-paulmck@linux.ibm.com>
 References: <20190801222026.GA11315@linux.ibm.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20190801222026.GA11315@linux.ibm.com>
@@ -10,35 +10,54 @@ To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org
 Cc: stern@rowland.harvard.edu, andrea.parri@amarulasolutions.com, will@kernel.org, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, "Paul E. McKenney" <paulmck@linux.ibm.com>
 List-Id: linux-arch.vger.kernel.org
 
-Currently, judgelitmus.sh treats timeouts (as in the "--timeout" argument)
-as "!!! Verification error".  This can be misleading because it is quite
-possible that running the test longer would have produced a verification.
-This commit therefore changes judgelitmus.sh to check for timeouts and
-to report them with "!!! Timeout".
+This commit adds a --hw argument to parseargs.sh to specify the CPU
+family for a hardware verification.  For example, "--hw AArch64" will
+specify that a C-language litmus test is to be translated to ARMv8 and
+the result verified.  This will set the LKMM_HW_MAP_FILE environment
+variable accordingly.  If there is no --hw argument, this environment
+variable will be set to the empty string.
 
 Signed-off-by: Paul E. McKenney <paulmck@linux.ibm.com>
 ---
- tools/memory-model/scripts/judgelitmus.sh | 8 ++++++++
- 1 file changed, 8 insertions(+)
+ tools/memory-model/scripts/parseargs.sh | 9 ++++++++-
+ 1 file changed, 8 insertions(+), 1 deletion(-)
 
-diff --git a/tools/memory-model/scripts/judgelitmus.sh b/tools/memory-model/scripts/judgelitmus.sh
-index 0cc63875e395..d3c313b9a458 100755
---- a/tools/memory-model/scripts/judgelitmus.sh
-+++ b/tools/memory-model/scripts/judgelitmus.sh
-@@ -42,6 +42,14 @@ grep '^Observation' $LKMM_DESTDIR/$litmus.out
- if grep -q '^Observation' $LKMM_DESTDIR/$litmus.out
- then
- 	:
-+elif grep '^Command exited with non-zero status 124' $LKMM_DESTDIR/$litmus.out
-+then
-+	echo ' !!! Timeout' $litmus
-+	if ! grep -q '!!!' $LKMM_DESTDIR/$litmus.out
-+	then
-+		echo ' !!! Timeout' >> $LKMM_DESTDIR/$litmus.out 2>&1
-+	fi
-+	exit 124
- else
- 	echo ' !!! Verification error' $litmus
- 	if ! grep -q '!!!' $LKMM_DESTDIR/$litmus.out
+diff --git a/tools/memory-model/scripts/parseargs.sh b/tools/memory-model/scripts/parseargs.sh
+index afe7bd23de6b..5f016fc3f3af 100755
+--- a/tools/memory-model/scripts/parseargs.sh
++++ b/tools/memory-model/scripts/parseargs.sh
+@@ -27,6 +27,7 @@ initparam () {
+ 
+ initparam LKMM_DESTDIR "."
+ initparam LKMM_HERD_OPTIONS "-conf linux-kernel.cfg"
++initparam LKMM_HW_MAP_FILE ""
+ initparam LKMM_JOBS `getconf _NPROCESSORS_ONLN`
+ initparam LKMM_PROCS "3"
+ initparam LKMM_TIMEOUT "1m"
+@@ -37,10 +38,11 @@ usagehelp () {
+ 	echo "Usage $scriptname [ arguments ]"
+ 	echo "      --destdir path (place for .litmus.out, default by .litmus)"
+ 	echo "      --herdopts -conf linux-kernel.cfg ..."
++	echo "      --hw AArch64"
+ 	echo "      --jobs N (number of jobs, default one per CPU)"
+ 	echo "      --procs N (litmus tests with at most this many processes)"
+ 	echo "      --timeout N (herd7 timeout (e.g., 10s, 1m, 2hr, 1d, '')"
+-	echo "Defaults: --destdir '$LKMM_DESTDIR_DEF' --herdopts '$LKMM_HERD_OPTIONS_DEF' --jobs '$LKMM_JOBS_DEF' --procs '$LKMM_PROCS_DEF' --timeout '$LKMM_TIMEOUT_DEF'"
++	echo "Defaults: --destdir '$LKMM_DESTDIR_DEF' --herdopts '$LKMM_HERD_OPTIONS_DEF' --hw '$LKMM_HW_MAP_FILE' --jobs '$LKMM_JOBS_DEF' --procs '$LKMM_PROCS_DEF' --timeout '$LKMM_TIMEOUT_DEF'"
+ 	exit 1
+ }
+ 
+@@ -95,6 +97,11 @@ do
+ 		LKMM_HERD_OPTIONS="$2"
+ 		shift
+ 		;;
++	--hw)
++		checkarg --hw "(.map file architecture name)" "$#" "$2" '^[A-Za-z0-9_-]\+' '^--'
++		LKMM_HW_MAP_FILE="$2"
++		shift
++		;;
+ 	-j[1-9]*)
+ 		njobs="`echo $1 | sed -e 's/^-j//'`"
+ 		trailchars="`echo $njobs | sed -e 's/[0-9]\+\(.*\)$/\1/'`"
 -- 
 2.17.1
