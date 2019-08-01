@@ -1,7 +1,7 @@
 From: "Paul E. McKenney" <paulmck@linux.ibm.com>
-Subject: [PATCH RFC memory-model 06/31] tools/memory-model: Fix paulmck email address on pre-existing scripts
-Date: Thu,  1 Aug 2019 15:20:31 -0700
-Message-ID: <20190801222056.12144-6-paulmck@linux.ibm.com>
+Subject: [PATCH RFC memory-model 27/31] tools/memory-model: Add data-race capabilities to judgelitmus.sh
+Date: Thu,  1 Aug 2019 15:20:52 -0700
+Message-ID: <20190801222056.12144-27-paulmck@linux.ibm.com>
 References: <20190801222026.GA11315@linux.ibm.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20190801222026.GA11315@linux.ibm.com>
@@ -10,107 +10,59 @@ To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org
 Cc: stern@rowland.harvard.edu, andrea.parri@amarulasolutions.com, will@kernel.org, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, "Paul E. McKenney" <paulmck@linux.ibm.com>
 List-Id: linux-arch.vger.kernel.org
 
+This commit adds functionality to judgelitmus.sh to allow it to handle
+both the "DATARACE" markers in the "Result:" comments in litmus tests
+and the "Flag data-race" markers in LKMM output.  For C-language tests,
+if either marker is present, the other must also be as well, at least for
+litmus tests having a "Result:" comment.  If the LKMM output indicates
+a data race, then failures of the Always/Sometimes/Never portion of the
+"Result:" prediction are forgiven.
+
 Signed-off-by: Paul E. McKenney <paulmck@linux.ibm.com>
 ---
- tools/memory-model/scripts/checkalllitmus.sh  | 2 +-
- tools/memory-model/scripts/checklitmus.sh     | 2 +-
- tools/memory-model/scripts/checklitmushist.sh | 2 +-
- tools/memory-model/scripts/judgelitmus.sh     | 2 +-
- tools/memory-model/scripts/newlitmushist.sh   | 2 +-
- tools/memory-model/scripts/parseargs.sh       | 2 +-
- tools/memory-model/scripts/runlitmushist.sh   | 2 +-
- 7 files changed, 7 insertions(+), 7 deletions(-)
+ tools/memory-model/scripts/judgelitmus.sh | 20 +++++++++++++++++++-
+ 1 file changed, 19 insertions(+), 1 deletion(-)
 
-diff --git a/tools/memory-model/scripts/checkalllitmus.sh b/tools/memory-model/scripts/checkalllitmus.sh
-index 3c0c7fbbd223..10e14d94acee 100755
---- a/tools/memory-model/scripts/checkalllitmus.sh
-+++ b/tools/memory-model/scripts/checkalllitmus.sh
-@@ -17,7 +17,7 @@
- #
- # Copyright IBM Corporation, 2018
- #
--# Author: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
-+# Author: Paul E. McKenney <paulmck@linux.ibm.com>
- 
- . scripts/parseargs.sh
- 
-diff --git a/tools/memory-model/scripts/checklitmus.sh b/tools/memory-model/scripts/checklitmus.sh
-index 11461ed40b5e..638b8c610894 100755
---- a/tools/memory-model/scripts/checklitmus.sh
-+++ b/tools/memory-model/scripts/checklitmus.sh
-@@ -15,7 +15,7 @@
- #
- # Copyright IBM Corporation, 2018
- #
--# Author: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
-+# Author: Paul E. McKenney <paulmck@linux.ibm.com>
- 
- litmus=$1
- herdoptions=${LKMM_HERD_OPTIONS--conf linux-kernel.cfg}
-diff --git a/tools/memory-model/scripts/checklitmushist.sh b/tools/memory-model/scripts/checklitmushist.sh
-index 1d210ffb7c8a..406ecfc0aee4 100755
---- a/tools/memory-model/scripts/checklitmushist.sh
-+++ b/tools/memory-model/scripts/checklitmushist.sh
-@@ -12,7 +12,7 @@
- #
- # Copyright IBM Corporation, 2018
- #
--# Author: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
-+# Author: Paul E. McKenney <paulmck@linux.ibm.com>
- 
- . scripts/parseargs.sh
- 
 diff --git a/tools/memory-model/scripts/judgelitmus.sh b/tools/memory-model/scripts/judgelitmus.sh
-index 84c62eee321b..d82133e75580 100755
+index ca9a19829d79..eaa2cc7d3b36 100755
 --- a/tools/memory-model/scripts/judgelitmus.sh
 +++ b/tools/memory-model/scripts/judgelitmus.sh
-@@ -13,7 +13,7 @@
- #
- # Copyright IBM Corporation, 2018
- #
--# Author: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
-+# Author: Paul E. McKenney <paulmck@linux.ibm.com>
- 
- litmus=$1
- 
-diff --git a/tools/memory-model/scripts/newlitmushist.sh b/tools/memory-model/scripts/newlitmushist.sh
-index 991f8f814881..3f4b06e29988 100755
---- a/tools/memory-model/scripts/newlitmushist.sh
-+++ b/tools/memory-model/scripts/newlitmushist.sh
-@@ -12,7 +12,7 @@
- #
- # Copyright IBM Corporation, 2018
- #
--# Author: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
-+# Author: Paul E. McKenney <paulmck@linux.ibm.com>
- 
- . scripts/parseargs.sh
- 
-diff --git a/tools/memory-model/scripts/parseargs.sh b/tools/memory-model/scripts/parseargs.sh
-index 40f52080fdbd..afe7bd23de6b 100755
---- a/tools/memory-model/scripts/parseargs.sh
-+++ b/tools/memory-model/scripts/parseargs.sh
-@@ -9,7 +9,7 @@
- #
- # Copyright IBM Corporation, 2018
- #
--# Author: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
-+# Author: Paul E. McKenney <paulmck@linux.ibm.com>
- 
- T=/tmp/parseargs.sh.$$
- mkdir $T
-diff --git a/tools/memory-model/scripts/runlitmushist.sh b/tools/memory-model/scripts/runlitmushist.sh
-index 6ed376f495bb..852786fef179 100755
---- a/tools/memory-model/scripts/runlitmushist.sh
-+++ b/tools/memory-model/scripts/runlitmushist.sh
-@@ -13,7 +13,7 @@
- #
- # Copyright IBM Corporation, 2018
- #
--# Author: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
-+# Author: Paul E. McKenney <paulmck@linux.ibm.com>
- 
- T=/tmp/runlitmushist.sh.$$
- trap 'rm -rf $T' 0
+@@ -47,9 +47,27 @@ else
+ 	echo ' --- ' error: \"$LKMM_DESTDIR/$litmusout is not a readable file
+ 	exit 255
+ fi
++if grep -q '^Flag data-race$' "$LKMM_DESTDIR/$litmusout"
++then
++	datarace_modeled=1
++fi
+ if grep -q '^ \* Result: ' $litmus
+ then
+ 	outcome=`grep -m 1 '^ \* Result: ' $litmus | awk '{ print $3 }'`
++	if grep -m1 '^ \* Result: .* DATARACE' $litmus
++	then
++		datarace_predicted=1
++	fi
++	if test -n "$datarace_predicted" -a -z "$datarace_modeled" -a -z "$LKMM_HW_MAP_FILE"
++	then
++		echo '!!! Predicted data race not modeled' $litmus
++		exit 252
++	elif test -z "$datarace_predicted" -a -n "$datarace_modeled"
++	then
++		# Note that hardware models currently don't model data races
++		echo '!!! Unexpected data race modeled' $litmus
++		exit 253
++	fi
+ elif test -n "$LKMM_HW_MAP_FILE" && grep -q '^Observation' $LKMM_DESTDIR/$lkmmout > /dev/null 2>&1
+ then
+ 	outcome=`grep -m 1 '^Observation ' $LKMM_DESTDIR/$lkmmout | awk '{ print $3 }'`
+@@ -114,7 +132,7 @@ elif grep '^Observation' $LKMM_DESTDIR/$litmusout | grep -q $outcome || test "$o
+ then
+ 	ret=0
+ else
+-	if test -n "$LKMM_HW_MAP_FILE" -a "$outcome" = Sometimes
++	if test \( -n "$LKMM_HW_MAP_FILE" -a "$outcome" = Sometimes \) -o -n "$datarace_modeled"
+ 	then
+ 		flag="--- Forgiven"
+ 		ret=0
 -- 
 2.17.1
