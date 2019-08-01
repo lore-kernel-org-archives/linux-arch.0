@@ -1,7 +1,7 @@
 From: "Paul E. McKenney" <paulmck@linux.ibm.com>
-Subject: [PATCH RFC memory-model 07/31] tools/memory-model: Update parseargs.sh for hardware verification
-Date: Thu,  1 Aug 2019 15:20:32 -0700
-Message-ID: <20190801222056.12144-7-paulmck@linux.ibm.com>
+Subject: [PATCH RFC memory-model 18/31] tools/memory-model: Make runlitmus.sh check for jingle errors
+Date: Thu,  1 Aug 2019 15:20:43 -0700
+Message-ID: <20190801222056.12144-18-paulmck@linux.ibm.com>
 References: <20190801222026.GA11315@linux.ibm.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20190801222026.GA11315@linux.ibm.com>
@@ -10,54 +10,30 @@ To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org
 Cc: stern@rowland.harvard.edu, andrea.parri@amarulasolutions.com, will@kernel.org, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, "Paul E. McKenney" <paulmck@linux.ibm.com>
 List-Id: linux-arch.vger.kernel.org
 
-This commit adds a --hw argument to parseargs.sh to specify the CPU
-family for a hardware verification.  For example, "--hw AArch64" will
-specify that a C-language litmus test is to be translated to ARMv8 and
-the result verified.  This will set the LKMM_HW_MAP_FILE environment
-variable accordingly.  If there is no --hw argument, this environment
-variable will be set to the empty string.
+It turns out that the jingle7 tool is currently a bit picky about
+the litmus tests it is willing to process.  This commit therefore
+ensures that jingle7 failures are reported.
 
 Signed-off-by: Paul E. McKenney <paulmck@linux.ibm.com>
 ---
- tools/memory-model/scripts/parseargs.sh | 9 ++++++++-
- 1 file changed, 8 insertions(+), 1 deletion(-)
+ tools/memory-model/scripts/runlitmus.sh | 5 +++++
+ 1 file changed, 5 insertions(+)
 
-diff --git a/tools/memory-model/scripts/parseargs.sh b/tools/memory-model/scripts/parseargs.sh
-index afe7bd23de6b..5f016fc3f3af 100755
---- a/tools/memory-model/scripts/parseargs.sh
-+++ b/tools/memory-model/scripts/parseargs.sh
-@@ -27,6 +27,7 @@ initparam () {
+diff --git a/tools/memory-model/scripts/runlitmus.sh b/tools/memory-model/scripts/runlitmus.sh
+index afb196d7ef10..5f2d29b460ff 100755
+--- a/tools/memory-model/scripts/runlitmus.sh
++++ b/tools/memory-model/scripts/runlitmus.sh
+@@ -69,6 +69,11 @@ fi
+ # Generate the assembly code and run herd7 on it.
+ gen_theme7 -n 10 -map $mapfile -call Linux.call > $themefile
+ jingle7 -theme $themefile $litmus > $LKMM_DESTDIR/$hwlitmus 2> $T/$hwlitmusfile.jingle7.out
++if grep -q "Generated 0 tests" $T/$hwlitmusfile.jingle7.out
++then
++	echo ' !!! ' jingle7 failed, no $hwlitmus generated
++	exit 253
++fi
+ /usr/bin/time $LKMM_TIMEOUT_CMD herd7 $LKMM_DESTDIR/$hwlitmus > $LKMM_DESTDIR/$hwlitmus.out 2>&1
  
- initparam LKMM_DESTDIR "."
- initparam LKMM_HERD_OPTIONS "-conf linux-kernel.cfg"
-+initparam LKMM_HW_MAP_FILE ""
- initparam LKMM_JOBS `getconf _NPROCESSORS_ONLN`
- initparam LKMM_PROCS "3"
- initparam LKMM_TIMEOUT "1m"
-@@ -37,10 +38,11 @@ usagehelp () {
- 	echo "Usage $scriptname [ arguments ]"
- 	echo "      --destdir path (place for .litmus.out, default by .litmus)"
- 	echo "      --herdopts -conf linux-kernel.cfg ..."
-+	echo "      --hw AArch64"
- 	echo "      --jobs N (number of jobs, default one per CPU)"
- 	echo "      --procs N (litmus tests with at most this many processes)"
- 	echo "      --timeout N (herd7 timeout (e.g., 10s, 1m, 2hr, 1d, '')"
--	echo "Defaults: --destdir '$LKMM_DESTDIR_DEF' --herdopts '$LKMM_HERD_OPTIONS_DEF' --jobs '$LKMM_JOBS_DEF' --procs '$LKMM_PROCS_DEF' --timeout '$LKMM_TIMEOUT_DEF'"
-+	echo "Defaults: --destdir '$LKMM_DESTDIR_DEF' --herdopts '$LKMM_HERD_OPTIONS_DEF' --hw '$LKMM_HW_MAP_FILE' --jobs '$LKMM_JOBS_DEF' --procs '$LKMM_PROCS_DEF' --timeout '$LKMM_TIMEOUT_DEF'"
- 	exit 1
- }
- 
-@@ -95,6 +97,11 @@ do
- 		LKMM_HERD_OPTIONS="$2"
- 		shift
- 		;;
-+	--hw)
-+		checkarg --hw "(.map file architecture name)" "$#" "$2" '^[A-Za-z0-9_-]\+' '^--'
-+		LKMM_HW_MAP_FILE="$2"
-+		shift
-+		;;
- 	-j[1-9]*)
- 		njobs="`echo $1 | sed -e 's/^-j//'`"
- 		trailchars="`echo $njobs | sed -e 's/[0-9]\+\(.*\)$/\1/'`"
+ exit $?
 -- 
 2.17.1
