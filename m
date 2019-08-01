@@ -1,68 +1,98 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:3144 "EHLO
+Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:32444 "EHLO
         mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
-        by vger.kernel.org with ESMTP id S2389501AbfHAWVN (ORCPT
+        by vger.kernel.org with ESMTP id S2389505AbfHAWVN (ORCPT
         <rfc822;linux-arch@vger.kernel.org>); Thu, 1 Aug 2019 18:21:13 -0400
 From: "Paul E. McKenney" <paulmck@linux.ibm.com>
-Subject: [PATCH RFC memory-model 15/31] tools/memory-model: Move from .AArch64.litmus.out to .litmus.AArch.out
-Date: Thu,  1 Aug 2019 15:20:40 -0700
-Message-ID: <20190801222056.12144-15-paulmck@linux.ibm.com>
+Subject: [PATCH RFC memory-model 26/31] tools/memory-model: Add checktheselitmus.sh to run specified litmus tests
+Date: Thu,  1 Aug 2019 15:20:51 -0700
+Message-ID: <20190801222056.12144-26-paulmck@linux.ibm.com>
 In-Reply-To: <20190801222026.GA11315@linux.ibm.com>
 References: <20190801222026.GA11315@linux.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org
 Cc: stern@rowland.harvard.edu, andrea.parri@amarulasolutions.com, will@kernel.org, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, "Paul E. McKenney" <paulmck@linux.ibm.com>
-Message-ID: <20190801222040.WrSODwWHa9QWsEWIOaI0jY5FZBdQxwku4BhuiekfQHw@z>
+Message-ID: <20190801222051.GSqmaIlzblwKz5dTy3yc85A0dvhTYZsdl6aAkwCzeuA@z>
 
-When the github scripts see ".litmus.out", they assume that there must be
-a corresponding C-language ".litmus" file.  Won't they be disappointed
-when they instead see nothing, or, worse yet, the corresponding
-assembly-language litmus test?  This commit therefore swaps the hardware
-tag with the "litmus" to avoid this sort of disappointment.
-
-This commit also adjusts the .gitignore file so as to avoid adding these
-new ".out" files to git.
+This commit adds a checktheselitmus.sh script that runs the litmus tests
+specified on the command line.  This is useful for verifying fixes to
+specific litmus tests.
 
 Signed-off-by: Paul E. McKenney <paulmck@linux.ibm.com>
 ---
- tools/memory-model/litmus-tests/.gitignore | 2 +-
- tools/memory-model/scripts/judgelitmus.sh  | 2 +-
- tools/memory-model/scripts/runlitmus.sh    | 2 +-
- 3 files changed, 3 insertions(+), 3 deletions(-)
+ tools/memory-model/scripts/README             |  8 ++++
+ .../memory-model/scripts/checktheselitmus.sh  | 43 +++++++++++++++++++
+ 2 files changed, 51 insertions(+)
+ create mode 100755 tools/memory-model/scripts/checktheselitmus.sh
 
-diff --git a/tools/memory-model/litmus-tests/.gitignore b/tools/memory-model/litmus-tests/.gitignore
-index 6e2ddc54152f..f47cb2045f13 100644
---- a/tools/memory-model/litmus-tests/.gitignore
-+++ b/tools/memory-model/litmus-tests/.gitignore
-@@ -1 +1 @@
--*.litmus.out
-+*.out
-diff --git a/tools/memory-model/scripts/judgelitmus.sh b/tools/memory-model/scripts/judgelitmus.sh
-index fe9131f8eb96..ca9a19829d79 100755
---- a/tools/memory-model/scripts/judgelitmus.sh
-+++ b/tools/memory-model/scripts/judgelitmus.sh
-@@ -37,7 +37,7 @@ then
- 	lkmmout=
- else
- 	litmusout="`echo $litmus |
--		sed -e 's/\.litmus$/.'${LKMM_HW_MAP_FILE}'.litmus/'`.out"
-+		sed -e 's/\.litmus$/.litmus.'${LKMM_HW_MAP_FILE}'/'`.out"
- 	lkmmout=$litmus.out
- fi
- if test -f "$LKMM_DESTDIR/$litmusout" -a -r "$LKMM_DESTDIR/$litmusout"
-diff --git a/tools/memory-model/scripts/runlitmus.sh b/tools/memory-model/scripts/runlitmus.sh
-index 2865a9661b07..c84124b32bee 100755
---- a/tools/memory-model/scripts/runlitmus.sh
-+++ b/tools/memory-model/scripts/runlitmus.sh
-@@ -57,7 +57,7 @@ catfile="`echo $LKMM_HW_MAP_FILE | tr '[A-Z]' '[a-z]'`.cat"
- mapfile="Linux2${LKMM_HW_MAP_FILE}.map"
- themefile="$T/${LKMM_HW_MAP_FILE}.theme"
- herdoptions="-model $LKMM_HW_CAT_FILE"
--hwlitmus=`echo $litmus | sed -e 's/\.litmus$/.'${LKMM_HW_MAP_FILE}'.litmus/'`
-+hwlitmus=`echo $litmus | sed -e 's/\.litmus$/.litmus.'${LKMM_HW_MAP_FILE}'/'`
- hwlitmusfile=`echo $hwlitmus | sed -e 's,^.*/,,'`
+diff --git a/tools/memory-model/scripts/README b/tools/memory-model/scripts/README
+index 0e29a52044c1..cc2c4e5be9ec 100644
+--- a/tools/memory-model/scripts/README
++++ b/tools/memory-model/scripts/README
+@@ -27,6 +27,14 @@ checklitmushist.sh
+ checklitmus.sh
  
- # Don't run on litmus tests with complex synchronization
+ 	Check a single litmus test against its "Result:" expected result.
++	Not intended to for manual use.
++
++checktheselitmus.sh
++
++	Check the specified list of litmus tests against their "Result:"
++	expected results.  This takes optional parseargs.sh arguments,
++	followed by "--" followed by pathnames starting from the current
++	directory.
+ 
+ cmplitmushist.sh
+ 
+diff --git a/tools/memory-model/scripts/checktheselitmus.sh b/tools/memory-model/scripts/checktheselitmus.sh
+new file mode 100755
+index 000000000000..10eeb5ecea6d
+--- /dev/null
++++ b/tools/memory-model/scripts/checktheselitmus.sh
+@@ -0,0 +1,43 @@
++#!/bin/sh
++# SPDX-License-Identifier: GPL-2.0+
++#
++# Invokes checklitmus.sh on its arguments to run the specified litmus
++# test and pass judgment on the results.
++#
++# Usage:
++#	checktheselitmus.sh -- [ file1.litmus [ file2.litmus ... ] ]
++#
++# Run this in the directory containing the memory model, specifying the
++# pathname of the litmus test to check.  The usual parseargs.sh arguments
++# can be specified prior to the "--".
++#
++# This script is intended for use with pathnames that start from the
++# tools/memory-model directory.  If some of the pathnames instead start at
++# the root directory, they all must do so and the "--destdir /" parseargs.sh
++# argument must be specified prior to the "--".  Alternatively, some other
++# "--destdir" argument can be supplied as long as the needed subdirectories
++# are populated.
++#
++# Copyright IBM Corporation, 2018
++#
++# Author: Paul E. McKenney <paulmck@linux.ibm.com>
++
++. scripts/parseargs.sh
++
++ret=0
++for i in "$@"
++do
++	if scripts/checklitmus.sh $i
++	then
++		:
++	else
++		ret=1
++	fi
++done
++if test "$ret" -ne 0
++then
++	echo " ^^^ VERIFICATION MISMATCHES" 1>&2
++else
++	echo All litmus tests verified as was expected. 1>&2
++fi
++exit $ret
 -- 
 2.17.1
