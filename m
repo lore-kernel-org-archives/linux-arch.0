@@ -1,7 +1,7 @@
 From: "Paul E. McKenney" <paulmck@linux.ibm.com>
-Subject: [PATCH RFC memory-model 28/31] tools/memory-model: Make judgelitmus.sh handle scripted Result: tag
-Date: Thu,  1 Aug 2019 15:20:53 -0700
-Message-ID: <20190801222056.12144-28-paulmck@linux.ibm.com>
+Subject: [PATCH RFC memory-model 22/31] tools/memory-model: Make checkghlitmus.sh use mselect7
+Date: Thu,  1 Aug 2019 15:20:47 -0700
+Message-ID: <20190801222056.12144-22-paulmck@linux.ibm.com>
 References: <20190801222026.GA11315@linux.ibm.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20190801222026.GA11315@linux.ibm.com>
@@ -10,35 +10,30 @@ To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org
 Cc: stern@rowland.harvard.edu, andrea.parri@amarulasolutions.com, will@kernel.org, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, "Paul E. McKenney" <paulmck@linux.ibm.com>
 List-Id: linux-arch.vger.kernel.org
 
-The scripts that generate the litmus tests in the "auto" directory of
-the https://github.com/paulmckrcu/litmus archive place the "Result:"
-tag into a single-line ocaml comment, which judgelitmus.sh currently
-does not recognize.  This commit therefore makes judgelitmus.sh
-recognize both the multiline comment format that it currently does
-and the automatically generated single-line format.
+The checkghlitmus.sh script currently uses grep to ignore non-C-language
+litmus tests, which is a bit fragile.  This commit therefore enlists the
+aid of "mselect7 -arch C", given Luc Maraget's recent modifications that
+allow mselect7 to operate in filter mode.
+
+This change requires herdtools 7.52-32-g1da3e0e50977 or later.
 
 Signed-off-by: Paul E. McKenney <paulmck@linux.ibm.com>
 ---
- tools/memory-model/scripts/judgelitmus.sh | 6 +++---
- 1 file changed, 3 insertions(+), 3 deletions(-)
+ tools/memory-model/scripts/checkghlitmus.sh | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/tools/memory-model/scripts/judgelitmus.sh b/tools/memory-model/scripts/judgelitmus.sh
-index eaa2cc7d3b36..6408c012bdf5 100755
---- a/tools/memory-model/scripts/judgelitmus.sh
-+++ b/tools/memory-model/scripts/judgelitmus.sh
-@@ -51,10 +51,10 @@ if grep -q '^Flag data-race$' "$LKMM_DESTDIR/$litmusout"
- then
- 	datarace_modeled=1
- fi
--if grep -q '^ \* Result: ' $litmus
-+if grep -q '^[( ]\* Result: ' $litmus
- then
--	outcome=`grep -m 1 '^ \* Result: ' $litmus | awk '{ print $3 }'`
--	if grep -m1 '^ \* Result: .* DATARACE' $litmus
-+	outcome=`grep -m 1 '^[( ]\* Result: ' $litmus | awk '{ print $3 }'`
-+	if grep -m1 '^[( ]\* Result: .* DATARACE' $litmus
- 	then
- 		datarace_predicted=1
- 	fi
+diff --git a/tools/memory-model/scripts/checkghlitmus.sh b/tools/memory-model/scripts/checkghlitmus.sh
+index 2ea220d2564b..cedd0290b73f 100755
+--- a/tools/memory-model/scripts/checkghlitmus.sh
++++ b/tools/memory-model/scripts/checkghlitmus.sh
+@@ -41,7 +41,7 @@ fi
+ 
+ # Create a list of C-language litmus tests with "Result:" commands and
+ # no more than the specified number of processes.
+-find litmus -name '*.litmus' -exec grep -l -m 1 "^C " {} \; > $T/list-C
++find litmus -name '*.litmus' -print | mselect7 -arch C > $T/list-C
+ xargs < $T/list-C -r egrep -l '^ \* Result: (Never|Sometimes|Always|DEADLOCK)' > $T/list-C-result
+ xargs < $T/list-C-result -r grep -L "^P${LKMM_PROCS}" > $T/list-C-result-short
+ 
 -- 
 2.17.1
