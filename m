@@ -1,7 +1,7 @@
 From: "Paul E. McKenney" <paulmck@linux.ibm.com>
-Subject: [PATCH RFC memory-model 29/31] tools/memory-model: Use "-unroll 0" to keep --hw runs finite
-Date: Thu,  1 Aug 2019 15:20:54 -0700
-Message-ID: <20190801222056.12144-29-paulmck@linux.ibm.com>
+Subject: [PATCH RFC memory-model 05/31] tools/memory-model: Make judgelitmus.sh detect hard deadlocks
+Date: Thu,  1 Aug 2019 15:20:30 -0700
+Message-ID: <20190801222056.12144-5-paulmck@linux.ibm.com>
 References: <20190801222026.GA11315@linux.ibm.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20190801222026.GA11315@linux.ibm.com>
@@ -10,34 +10,35 @@ To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org
 Cc: stern@rowland.harvard.edu, andrea.parri@amarulasolutions.com, will@kernel.org, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, "Paul E. McKenney" <paulmck@linux.ibm.com>
 List-Id: linux-arch.vger.kernel.org
 
-Litmus tests involving atomic operations produce LL/SC loops on a number
-of architectures, and unrolling these loops can result in excessive
-verification times or even stack overflows.  This commit therefore uses
-the "-unroll 0" herd7 argument to avoid unrolling, on the grounds that
-additional passes through an LL/SC loop should not change the verification.
+If a litmus test specifies "Result: Never" and if it contains an
+unconditional ("hard") deadlock, then running checklitmus.sh on it will
+not flag any errors, despite the fact that there are no executions.
+This commit therefore updates judgelitmus.sh to complain about tests
+with no executions that are marked, but not as "Result: DEADLOCK".
 
-Note however, that certain bugs in the mapping of the LL/SC loop to
-machine instructions may go undetected.  On the other hand, herd7 might
-not be the best vehicle for finding such bugs in any case.  (You do
-stress-test your architecture-specific code, don't you?)
-
-Suggested-by: Luc Maranget <luc.maranget@inria.fr>
 Signed-off-by: Paul E. McKenney <paulmck@linux.ibm.com>
 ---
- tools/memory-model/scripts/runlitmus.sh | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+ tools/memory-model/scripts/judgelitmus.sh | 8 ++++++++
+ 1 file changed, 8 insertions(+)
 
-diff --git a/tools/memory-model/scripts/runlitmus.sh b/tools/memory-model/scripts/runlitmus.sh
-index dfdb1f00fcc0..94608d4b6502 100755
---- a/tools/memory-model/scripts/runlitmus.sh
-+++ b/tools/memory-model/scripts/runlitmus.sh
-@@ -75,6 +75,6 @@ then
- 	cp $T/$hwlitmusfile.jingle7.out $LKMM_DESTDIR/$hwlitmus.err
- 	exit 253
- fi
--/usr/bin/time $LKMM_TIMEOUT_CMD herd7 $LKMM_DESTDIR/$hwlitmus > $LKMM_DESTDIR/$hwlitmus.out 2>&1
-+/usr/bin/time $LKMM_TIMEOUT_CMD herd7 -unroll 0 $LKMM_DESTDIR/$hwlitmus > $LKMM_DESTDIR/$hwlitmus.out 2>&1
- 
- exit $?
+diff --git a/tools/memory-model/scripts/judgelitmus.sh b/tools/memory-model/scripts/judgelitmus.sh
+index d40439c7b71e..84c62eee321b 100755
+--- a/tools/memory-model/scripts/judgelitmus.sh
++++ b/tools/memory-model/scripts/judgelitmus.sh
+@@ -83,6 +83,14 @@ then
+ 		fi
+ 		ret=1
+ 	fi
++elif grep '^Observation' $LKMM_DESTDIR/$litmus.out | grep -q 'Never 0 0$'
++then
++	echo " !!! Unexpected non-$outcome deadlock" $litmus
++	if ! grep -q '!!!' $LKMM_DESTDIR/$litmus.out
++	then
++		echo " !!! Unexpected non-$outcome deadlock" $litmus >> $LKMM_DESTDIR/$litmus.out 2>&1
++	fi
++	ret=1
+ elif grep '^Observation' $LKMM_DESTDIR/$litmus.out | grep -q $outcome || test "$outcome" = Maybe
+ then
+ 	ret=0
 -- 
 2.17.1
