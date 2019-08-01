@@ -1,93 +1,133 @@
 From: "Paul E. McKenney" <paulmck@linux.ibm.com>
-Subject: [PATCH RFC memory-model 26/31] tools/memory-model: Add checktheselitmus.sh to run specified litmus tests
-Date: Thu,  1 Aug 2019 15:20:51 -0700
-Message-ID: <20190801222056.12144-26-paulmck@linux.ibm.com>
+Subject: [PATCH RFC memory-model 31/31] tools/memory-model: Update the informal documentation
+Date: Thu,  1 Aug 2019 15:20:56 -0700
+Message-ID: <20190801222056.12144-31-paulmck@linux.ibm.com>
 References: <20190801222026.GA11315@linux.ibm.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20190801222026.GA11315@linux.ibm.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org
-Cc: stern@rowland.harvard.edu, andrea.parri@amarulasolutions.com, will@kernel.org, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, "Paul E. McKenney" <paulmck@linux.ibm.com>
+Cc: stern@rowland.harvard.edu, andrea.parri@amarulasolutions.com, will@kernel.org, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, Will Deacon <will.deacon@arm.com>, "Paul E. McKenney" <paulmck@linux.ibm.com>, Daniel Lustig <dlustig@nvidia.com>
 List-Id: linux-arch.vger.kernel.org
 
-This commit adds a checktheselitmus.sh script that runs the litmus tests
-specified on the command line.  This is useful for verifying fixes to
-specific litmus tests.
+From: Andrea Parri <andrea.parri@amarulasolutions.com>
 
+The formal memory consistency model has added support for plain accesses
+(and data races).  While updating the informal documentation to describe
+this addition to the model is highly desirable and important future work,
+update the informal documentation to at least acknowledge such addition.
+
+Signed-off-by: Andrea Parri <andrea.parri@amarulasolutions.com>
+Cc: Will Deacon <will.deacon@arm.com>
+Cc: Peter Zijlstra <peterz@infradead.org>
+Cc: Boqun Feng <boqun.feng@gmail.com>
+Cc: Nicholas Piggin <npiggin@gmail.com>
+Cc: David Howells <dhowells@redhat.com>
+Cc: Jade Alglave <j.alglave@ucl.ac.uk>
+Cc: Luc Maranget <luc.maranget@inria.fr>
+Cc: "Paul E. McKenney" <paulmck@linux.ibm.com>
+Cc: Akira Yokosawa <akiyks@gmail.com>
+Cc: Daniel Lustig <dlustig@nvidia.com>
 Signed-off-by: Paul E. McKenney <paulmck@linux.ibm.com>
+Acked-by: Alan Stern <stern@rowland.harvard.edu>
 ---
- tools/memory-model/scripts/README             |  8 ++++
- .../memory-model/scripts/checktheselitmus.sh  | 43 +++++++++++++++++++
- 2 files changed, 51 insertions(+)
- create mode 100755 tools/memory-model/scripts/checktheselitmus.sh
+ .../Documentation/explanation.txt             | 47 +++++++++----------
+ tools/memory-model/README                     | 18 +++----
+ 2 files changed, 30 insertions(+), 35 deletions(-)
 
-diff --git a/tools/memory-model/scripts/README b/tools/memory-model/scripts/README
-index 0e29a52044c1..cc2c4e5be9ec 100644
---- a/tools/memory-model/scripts/README
-+++ b/tools/memory-model/scripts/README
-@@ -27,6 +27,14 @@ checklitmushist.sh
- checklitmus.sh
+diff --git a/tools/memory-model/Documentation/explanation.txt b/tools/memory-model/Documentation/explanation.txt
+index 634dc6db26c4..488f11f6c588 100644
+--- a/tools/memory-model/Documentation/explanation.txt
++++ b/tools/memory-model/Documentation/explanation.txt
+@@ -42,7 +42,8 @@ linux-kernel.bell and linux-kernel.cat files that make up the formal
+ version of the model; they are extremely terse and their meanings are
+ far from clear.
  
- 	Check a single litmus test against its "Result:" expected result.
-+	Not intended to for manual use.
+-This document describes the ideas underlying the LKMM.  It is meant
++This document describes the ideas underlying the LKMM, but excluding
++the modeling of bare C (or plain) shared memory accesses.  It is meant
+ for people who want to understand how the model was designed.  It does
+ not go into the details of the code in the .bell and .cat files;
+ rather, it explains in English what the code expresses symbolically.
+@@ -354,31 +355,25 @@ be extremely complex.
+ Optimizing compilers have great freedom in the way they translate
+ source code to object code.  They are allowed to apply transformations
+ that add memory accesses, eliminate accesses, combine them, split them
+-into pieces, or move them around.  Faced with all these possibilities,
+-the LKMM basically gives up.  It insists that the code it analyzes
+-must contain no ordinary accesses to shared memory; all accesses must
+-be performed using READ_ONCE(), WRITE_ONCE(), or one of the other
+-atomic or synchronization primitives.  These primitives prevent a
+-large number of compiler optimizations.  In particular, it is
+-guaranteed that the compiler will not remove such accesses from the
+-generated code (unless it can prove the accesses will never be
+-executed), it will not change the order in which they occur in the
+-code (within limits imposed by the C standard), and it will not
+-introduce extraneous accesses.
+-
+-This explains why the MP and SB examples above used READ_ONCE() and
+-WRITE_ONCE() rather than ordinary memory accesses.  Thanks to this
+-usage, we can be certain that in the MP example, P0's write event to
+-buf really is po-before its write event to flag, and similarly for the
+-other shared memory accesses in the examples.
+-
+-Private variables are not subject to this restriction.  Since they are
+-not shared between CPUs, they can be accessed normally without
+-READ_ONCE() or WRITE_ONCE(), and there will be no ill effects.  In
+-fact, they need not even be stored in normal memory at all -- in
+-principle a private variable could be stored in a CPU register (hence
+-the convention that these variables have names starting with the
+-letter 'r').
++into pieces, or move them around.  The use of READ_ONCE(), WRITE_ONCE(),
++or one of the other atomic or synchronization primitives prevents a
++large number of compiler optimizations.  In particular, it is guaranteed
++that the compiler will not remove such accesses from the generated code
++(unless it can prove the accesses will never be executed), it will not
++change the order in which they occur in the code (within limits imposed
++by the C standard), and it will not introduce extraneous accesses.
 +
-+checktheselitmus.sh
++The MP and SB examples above used READ_ONCE() and WRITE_ONCE() rather
++than ordinary memory accesses.  Thanks to this usage, we can be certain
++that in the MP example, the compiler won't reorder P0's write event to
++buf and P0's write event to flag, and similarly for the other shared
++memory accesses in the examples.
 +
-+	Check the specified list of litmus tests against their "Result:"
-+	expected results.  This takes optional parseargs.sh arguments,
-+	followed by "--" followed by pathnames starting from the current
-+	directory.
++Since private variables are not shared between CPUs, they can be
++accessed normally without READ_ONCE() or WRITE_ONCE().  In fact, they
++need not even be stored in normal memory at all -- in principle a
++private variable could be stored in a CPU register (hence the convention
++that these variables have names starting with the letter 'r').
  
- cmplitmushist.sh
  
-diff --git a/tools/memory-model/scripts/checktheselitmus.sh b/tools/memory-model/scripts/checktheselitmus.sh
-new file mode 100755
-index 000000000000..10eeb5ecea6d
---- /dev/null
-+++ b/tools/memory-model/scripts/checktheselitmus.sh
-@@ -0,0 +1,43 @@
-+#!/bin/sh
-+# SPDX-License-Identifier: GPL-2.0+
-+#
-+# Invokes checklitmus.sh on its arguments to run the specified litmus
-+# test and pass judgment on the results.
-+#
-+# Usage:
-+#	checktheselitmus.sh -- [ file1.litmus [ file2.litmus ... ] ]
-+#
-+# Run this in the directory containing the memory model, specifying the
-+# pathname of the litmus test to check.  The usual parseargs.sh arguments
-+# can be specified prior to the "--".
-+#
-+# This script is intended for use with pathnames that start from the
-+# tools/memory-model directory.  If some of the pathnames instead start at
-+# the root directory, they all must do so and the "--destdir /" parseargs.sh
-+# argument must be specified prior to the "--".  Alternatively, some other
-+# "--destdir" argument can be supplied as long as the needed subdirectories
-+# are populated.
-+#
-+# Copyright IBM Corporation, 2018
-+#
-+# Author: Paul E. McKenney <paulmck@linux.ibm.com>
+ A WARNING
+diff --git a/tools/memory-model/README b/tools/memory-model/README
+index 2b87f3971548..fc07b52f2028 100644
+--- a/tools/memory-model/README
++++ b/tools/memory-model/README
+@@ -167,15 +167,15 @@ scripts	Various scripts, see scripts/README.
+ LIMITATIONS
+ ===========
+ 
+-The Linux-kernel memory model has the following limitations:
+-
+-1.	Compiler optimizations are not modeled.  Of course, the use
+-	of READ_ONCE() and WRITE_ONCE() limits the compiler's ability
+-	to optimize, but there is Linux-kernel code that uses bare C
+-	memory accesses.  Handling this code is on the to-do list.
+-	For more information, see Documentation/explanation.txt (in
+-	particular, the "THE PROGRAM ORDER RELATION: po AND po-loc"
+-	and "A WARNING" sections).
++The Linux-kernel memory model (LKMM) has the following limitations:
 +
-+. scripts/parseargs.sh
-+
-+ret=0
-+for i in "$@"
-+do
-+	if scripts/checklitmus.sh $i
-+	then
-+		:
-+	else
-+		ret=1
-+	fi
-+done
-+if test "$ret" -ne 0
-+then
-+	echo " ^^^ VERIFICATION MISMATCHES" 1>&2
-+else
-+	echo All litmus tests verified as was expected. 1>&2
-+fi
-+exit $ret
++1.	Compiler optimizations are not accurately modeled.  Of course,
++	the use of READ_ONCE() and WRITE_ONCE() limits the compiler's
++	ability to optimize, but under some circumstances it is possible
++	for the compiler to undermine the memory model.  For more
++	information, see Documentation/explanation.txt (in particular,
++	the "THE PROGRAM ORDER RELATION: po AND po-loc" and "A WARNING"
++	sections).
+ 
+ 	Note that this limitation in turn limits LKMM's ability to
+ 	accurately model address, control, and data dependencies.
 -- 
 2.17.1
