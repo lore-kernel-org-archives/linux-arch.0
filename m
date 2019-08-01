@@ -1,33 +1,63 @@
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: Re: [PATCH v2] kbuild: Fail if gold linker is detected
-Date: Tue, 23 Jul 2019 08:41:24 +0200 (CEST)
-Message-ID: <alpine.DEB.2.21.1907230837400.1659@nanos.tec.linutronix.de>
-References: <alpine.DEB.2.21.1907161434260.1767@nanos.tec.linutronix.de> <20190716170606.GA38406@archlinux-threadripper> <alpine.DEB.2.21.1907162059200.1767@nanos.tec.linutronix.de> <alpine.DEB.2.21.1907162135590.1767@nanos.tec.linutronix.de>
- <CAK7LNASBiaMX8ihnmhLGmYfHX=ZHZmVN91nxmFZe-OCaw6Px2w@mail.gmail.com> <alpine.DEB.2.21.1907170955250.1767@nanos.tec.linutronix.de> <CAHbf0-GyQzWcRg_BP2B5pVzEJoxSE_hX5xFypS--7Q5LSHxzWw@mail.gmail.com>
- <CAK7LNATJGbSYyuxV7npC_bQiXQShb=7J7dcQcOaupnL5-GhADg@mail.gmail.com>
+From: "Paul E. McKenney" <paulmck@linux.ibm.com>
+Subject: [PATCH RFC memory-model 0/31] LKMM updates for review
+Date: Thu, 1 Aug 2019 15:20:26 -0700
+Message-ID: <20190801222026.GA11315@linux.ibm.com>
+Reply-To: paulmck@linux.ibm.com
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <CAK7LNATJGbSYyuxV7npC_bQiXQShb=7J7dcQcOaupnL5-GhADg@mail.gmail.com>
+Content-Disposition: inline
 Sender: linux-kernel-owner@vger.kernel.org
-To: Masahiro Yamada <yamada.masahiro@socionext.com>
-Cc: Mike Lothian <mike@fireburn.co.uk>, Nathan Chancellor <natechancellor@gmail.com>, LKML <linux-kernel@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, X86 ML <x86@kernel.org>, "H.J. Lu" <hjl.tools@gmail.com>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, "Theodore Y. Ts'o" <tytso@mit.edu>, linux-arch <linux-arch@vger.kernel.org>
+To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org
+Cc: stern@rowland.harvard.edu, andrea.parri@amarulasolutions.com, will@kernel.org, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, 23 Jul 2019, Masahiro Yamada wrote:
-> Right.
-> I was able to build with ld.gold
-> 
-> So, we can use gold, depending on the kernel configuration.
+Hello!
 
-That's exactly the problem. It breaks with random kernel configurations
-which is not acceptable except for people who know what they are doing.
+This series contains LKMM updates:
 
-I'm tired of dealing with half baken fixes and 'regression' reports. Either
-there is an effort to fix the issues with gold like the clang people fix
-their issues or it needs to be disabled. We have a clear statement that
-gold developers have other priorities.
+1.	Make scripts be executable.
 
-Thanks,
+2-3.	Make LKMM scripts note timeouts instead of just saying that
+	the validation was bad.
 
-	tglx
+4.	Make LKMM scripts identify litmus-test typos and use of
+	unsupported primitives instead of just saying that the validation
+	was bad.
+
+5.	Make LKMM scripts detect unconditional deadlocks.
+
+6.	Fix email address on LKMM scripts.
+
+7-29.	Leverage Boqun Feng's C-to-assembly litmus-test-translation
+	capability to allow verifying LKMM against hardware models for
+	checkalllitmus.sh.  This is a work in progress.
+
+30.	Use cumul-fence instead of fence in ->prop example, courtesy
+	of Joel Fernandes.
+
+31.	Update the informal documentation, courtesy of Andrea Parri.
+
+							Thanx, Paul
+
+------------------------------------------------------------------------
+
+ Documentation/explanation.txt |   53 +++++++--------
+ README                        |   18 ++---
+ litmus-tests/.gitignore       |    4 -
+ scripts/README                |   16 +++-
+ scripts/checkalllitmus.sh     |   29 ++++----
+ scripts/checkghlitmus.sh      |   11 +--
+ scripts/checklitmus.sh        |  101 ++++++++++++-----------------
+ scripts/checklitmushist.sh    |    2 
+ scripts/checktheselitmus.sh   |   43 ++++++++++++
+ scripts/cmplitmushist.sh      |   53 ++++++++++++++-
+ scripts/hwfnseg.sh            |   20 +++++
+ scripts/initlitmushist.sh     |    2 
+ scripts/judgelitmus.sh        |  142 +++++++++++++++++++++++++++++++----------
+ scripts/newlitmushist.sh      |    4 -
+ scripts/parseargs.sh          |   21 ++++--
+ scripts/runlitmus.sh          |  144 ++++++++++++++++++++++++++++++++----------
+ scripts/runlitmushist.sh      |   30 +++++---
+ scripts/simpletest.sh         |   35 ++++++++++
+ 18 files changed, 514 insertions(+), 214 deletions(-)
