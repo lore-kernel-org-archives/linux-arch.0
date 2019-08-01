@@ -1,106 +1,76 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:17438 "EHLO
+Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:28172 "EHLO
         mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S2389565AbfHAWVT (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 1 Aug 2019 18:21:19 -0400
+        by vger.kernel.org with ESMTP id S2389545AbfHAWVR (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 1 Aug 2019 18:21:17 -0400
 From: "Paul E. McKenney" <paulmck@linux.ibm.com>
-Subject: [PATCH RFC memory-model 14/31] tools/memory-model: Make runlitmus.sh generate .litmus.out for --hw
-Date: Thu,  1 Aug 2019 15:20:39 -0700
-Message-ID: <20190801222056.12144-14-paulmck@linux.ibm.com>
+Subject: [PATCH RFC memory-model 03/31] tools/memory-model: Make cmplitmushist.sh note timeouts
+Date: Thu,  1 Aug 2019 15:20:28 -0700
+Message-ID: <20190801222056.12144-3-paulmck@linux.ibm.com>
 In-Reply-To: <20190801222026.GA11315@linux.ibm.com>
 References: <20190801222026.GA11315@linux.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org
 Cc: stern@rowland.harvard.edu, andrea.parri@amarulasolutions.com, will@kernel.org, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, "Paul E. McKenney" <paulmck@linux.ibm.com>
-Message-ID: <20190801222039.lt2R-c6-OjdbhpwTgB3HFU-y91Ep910-IeS9d3zxywo@z>
+Message-ID: <20190801222028.YGy7z5voAqUode3IRBZmcp-bTLrAQByHKjM9-hqFhm4@z>
 
-In the absence of "Result:" comments, the runlitmus.sh script relies on
-litmus.out files from prior LKMM runs.  This can be a bit user-hostile,
-so this commit makes runlitmus.sh generate any needed .litmus.out files
-that don't already exist.
+Currently, cmplitmushist.sh treats timeouts (as in the "--timeout"
+argument) as "Missing Observation line".  This can be misleading because
+it is quite possible that running the test longer would have produced
+a verification.  This commit therefore changes cmplitmushist.sh to check
+for timeouts and to report them with "Timed out".
 
 Signed-off-by: Paul E. McKenney <paulmck@linux.ibm.com>
 ---
- tools/memory-model/scripts/runlitmus.sh | 54 ++++++++++++++-----------
- 1 file changed, 30 insertions(+), 24 deletions(-)
+ tools/memory-model/scripts/cmplitmushist.sh | 22 +++++++++++++++++++++
+ 1 file changed, 22 insertions(+)
 
-diff --git a/tools/memory-model/scripts/runlitmus.sh b/tools/memory-model/scripts/runlitmus.sh
-index 91af859c0e90..2865a9661b07 100755
---- a/tools/memory-model/scripts/runlitmus.sh
-+++ b/tools/memory-model/scripts/runlitmus.sh
-@@ -28,42 +28,48 @@ if test -f "$litmus" -a -r "$litmus"
- then
- 	:
- else
--	echo ' --- ' error: \"$litmus\" is not a readable file
-+	echo ' !!! ' error: \"$litmus\" is not a readable file
- 	exit 255
- fi
+diff --git a/tools/memory-model/scripts/cmplitmushist.sh b/tools/memory-model/scripts/cmplitmushist.sh
+index 0f498aeeccf5..b9c174dd8004 100755
+--- a/tools/memory-model/scripts/cmplitmushist.sh
++++ b/tools/memory-model/scripts/cmplitmushist.sh
+@@ -12,12 +12,30 @@ trap 'rm -rf $T' 0
+ mkdir $T
  
--if test -z "$LKMM_HW_MAP_FILE"
-+if test -z "$LKMM_HW_MAP_FILE" -o ! -e $LKMM_DESTDIR/$litmus.out
- then
- 	# LKMM run
- 	herdoptions=${LKMM_HERD_OPTIONS--conf linux-kernel.cfg}
- 	echo Herd options: $herdoptions > $LKMM_DESTDIR/$litmus.out
- 	/usr/bin/time $LKMM_TIMEOUT_CMD herd7 $herdoptions $litmus >> $LKMM_DESTDIR/$litmus.out 2>&1
--else
--	# Hardware run
-+	ret=$?
-+	if test -z "$LKMM_HW_MAP_FILE"
+ # comparetest oldpath newpath
++timedout=0
+ perfect=0
+ obsline=0
+ noobsline=0
+ obsresult=0
+ badcompare=0
+ comparetest () {
++	if grep -q '^Command exited with non-zero status 124' $1 ||
++	   grep -q '^Command exited with non-zero status 124' $2
 +	then
-+		exit $ret
++		if grep -q '^Command exited with non-zero status 124' $1 &&
++		   grep -q '^Command exited with non-zero status 124' $2
++		then
++			echo Both runs timed out: $2
++		elif grep -q '^Command exited with non-zero status 124' $1
++		then
++			echo Old run timed out: $2
++		elif grep -q '^Command exited with non-zero status 124' $2
++		then
++			echo New run timed out: $2
++		fi
++		timedout=`expr "$timedout" + 1`
++		return 0
 +	fi
-+	echo " --- " Automatically generated LKMM output for '"'--hw $LKMM_HW_MAP_FILE'"' run
-+fi
- 
--	T=/tmp/checklitmushw.sh.$$
--	trap 'rm -rf $T' 0 2
--	mkdir $T
-+# Hardware run
- 
--	# Generate filenames
--	catfile="`echo $LKMM_HW_MAP_FILE | tr '[A-Z]' '[a-z]'`.cat"
--	mapfile="Linux2${LKMM_HW_MAP_FILE}.map"
--	themefile="$T/${LKMM_HW_MAP_FILE}.theme"
--	herdoptions="-model $LKMM_HW_CAT_FILE"
--	hwlitmus=`echo $litmus | sed -e 's/\.litmus$/.'${LKMM_HW_MAP_FILE}'.litmus/'`
--	hwlitmusfile=`echo $hwlitmus | sed -e 's,^.*/,,'`
-+T=/tmp/checklitmushw.sh.$$
-+trap 'rm -rf $T' 0 2
-+mkdir $T
- 
--	# Don't run on litmus tests with complex synchronization
--	if ! scripts/simpletest.sh $litmus
--	then
--		echo ' --- ' error: \"$litmus\" contains locking, RCU, or SRCU
--		exit 254
--	fi
-+# Generate filenames
-+catfile="`echo $LKMM_HW_MAP_FILE | tr '[A-Z]' '[a-z]'`.cat"
-+mapfile="Linux2${LKMM_HW_MAP_FILE}.map"
-+themefile="$T/${LKMM_HW_MAP_FILE}.theme"
-+herdoptions="-model $LKMM_HW_CAT_FILE"
-+hwlitmus=`echo $litmus | sed -e 's/\.litmus$/.'${LKMM_HW_MAP_FILE}'.litmus/'`
-+hwlitmusfile=`echo $hwlitmus | sed -e 's,^.*/,,'`
- 
--	# Generate the assembly code and run herd on it.
--	gen_theme7 -n 10 -map $mapfile -call Linux.call > $themefile
--	jingle7 -theme $themefile $litmus > $T/$hwlitmusfile 2> $T/$hwlitmusfile.jingle7.out
--	/usr/bin/time $LKMM_TIMEOUT_CMD herd7 -model $catfile $T/$hwlitmusfile > $LKMM_DESTDIR/$hwlitmus.out 2>&1
-+# Don't run on litmus tests with complex synchronization
-+if ! scripts/simpletest.sh $litmus
-+then
-+	echo ' --- ' error: \"$litmus\" contains locking, RCU, or SRCU
-+	exit 254
+ 	grep -v 'maxresident)k\|minor)pagefaults\|^Time' $1 > $T/oldout
+ 	grep -v 'maxresident)k\|minor)pagefaults\|^Time' $2 > $T/newout
+ 	if cmp -s $T/oldout $T/newout && grep -q '^Observation' $1
+@@ -78,6 +96,10 @@ if test "$obsresult" -ne 0
+ then
+ 	echo Matching Observation Always/Sometimes/Never result: $obsresult 1>&2
  fi
- 
-+# Generate the assembly code and run herd7 on it.
-+gen_theme7 -n 10 -map $mapfile -call Linux.call > $themefile
-+jingle7 -theme $themefile $litmus > $T/$hwlitmusfile 2> $T/$hwlitmusfile.jingle7.out
-+/usr/bin/time $LKMM_TIMEOUT_CMD herd7 -model $catfile $T/$hwlitmusfile > $LKMM_DESTDIR/$hwlitmus.out 2>&1
-+
- exit $?
++if test "$timedout" -ne 0
++then
++	echo "!!!" Timed out: $timedout 1>&2
++fi
+ if test "$badcompare" -ne 0
+ then
+ 	echo "!!!" Result changed: $badcompare 1>&2
 -- 
 2.17.1
