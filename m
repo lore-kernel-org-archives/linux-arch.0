@@ -1,42 +1,82 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:48772 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1728855AbfHBKIj (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 2 Aug 2019 06:08:39 -0400
-Date: Fri, 2 Aug 2019 11:08:35 +0100
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [PATCH v6 1/2] arm64: Define
- Documentation/arm64/tagged-address-abi.rst
-Message-ID: <20190802100835.GA4175@arrakis.emea.arm.com>
-References: <cover.1563904656.git.andreyknvl@google.com>
- <20190725135044.24381-1-vincenzo.frascino@arm.com>
- <20190725135044.24381-2-vincenzo.frascino@arm.com>
- <b74e7ce7-d58a-68a0-2f28-6648ec6302c0@intel.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <b74e7ce7-d58a-68a0-2f28-6648ec6302c0@intel.com>
+Received: from mail-qk1-f195.google.com ([209.85.222.195]:43461 "EHLO
+        mail-qk1-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S2406257AbfHBTlk (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 2 Aug 2019 15:41:40 -0400
+Received: by mail-qk1-f195.google.com with SMTP id m14so30011018qka.10
+        for <linux-arch@vger.kernel.org>; Fri, 02 Aug 2019 12:41:39 -0700 (PDT)
+From: Qian Cai <cai@lca.pw>
+Subject: [PATCH] asm-generic: fix variable 'p4d' set but not used
+Date: Fri,  2 Aug 2019 15:41:22 -0400
+Message-ID: <1564774882-22926-1-git-send-email-cai@lca.pw>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dave Hansen <dave.hansen@intel.com>
-Cc: Vincenzo Frascino <vincenzo.frascino@arm.com>, linux-arm-kernel@lists.infradead.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-kernel@vger.kernel.org, Will Deacon <will.deacon@arm.com>, Andrey Konovalov <andreyknvl@google.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>
-Message-ID: <20190802100835.tp62cXAfpIC0_xVof2agSrd-YE_7nNeBg7KS4llm7UA@z>
+To: akpm@linux-foundation.org
+Cc: arnd@arndb.de, kirill.shutemov@linux.intel.com, mhocko@suse.com, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Qian Cai <cai@lca.pw>
+Message-ID: <20190802194122.GDu9_QjtrzjuHwZDFHvDWrcfUyDIkLeuB7ptrfgiaUQ@z>
 
-Hi Dave,
+GCC throws a warning on an arm64 system since the commit 9849a5697d3d
+("arch, mm: convert all architectures to use 5level-fixup.h"),
 
-On Wed, Jul 31, 2019 at 09:43:46AM -0700, Dave Hansen wrote:
-> On 7/25/19 6:50 AM, Vincenzo Frascino wrote:
-> > With the relaxed ABI proposed through this document, it is now possible
-> > to pass tagged pointers to the syscalls, when these pointers are in
-> > memory ranges obtained by an anonymous (MAP_ANONYMOUS) mmap().
-> 
-> I don't see a lot of description of why this restriction is necessary.
-> What's the problem with supporting MAP_SHARED?
+mm/kasan/init.c: In function 'kasan_free_p4d':
+mm/kasan/init.c:344:9: warning: variable 'p4d' set but not used
+[-Wunused-but-set-variable]
+  p4d_t *p4d;
+         ^~~
 
-We could support MAP_SHARED | MAP_ANONYMOUS (and based on some internal
-discussions, this would be fine with the hardware memory tagging as
-well). What we don't want in the ABI is to support file mmap() for
-top-byte-ignore (or MTE). If you see a use-case, please let us know.
+because p4d_none() in "5level-fixup.h" is compiled away while it is a
+static inline function in "pgtable-nopud.h". However, if converted
+p4d_none() to a static inline there, powerpc would be unhappy as it
+reads those in assembler language in
+"arch/powerpc/include/asm/book3s/64/pgtable.h",
 
+./include/asm-generic/5level-fixup.h: Assembler messages:
+./include/asm-generic/5level-fixup.h:20: Error: unrecognized opcode:
+`static'
+./include/asm-generic/5level-fixup.h:21: Error: junk at end of line,
+first unrecognized character is `{'
+./include/asm-generic/5level-fixup.h:22: Error: unrecognized opcode:
+`return'
+./include/asm-generic/5level-fixup.h:23: Error: junk at end of line,
+first unrecognized character is `}'
+./include/asm-generic/5level-fixup.h:25: Error: unrecognized opcode:
+`static'
+./include/asm-generic/5level-fixup.h:26: Error: junk at end of line,
+first unrecognized character is `{'
+./include/asm-generic/5level-fixup.h:27: Error: unrecognized opcode:
+`return'
+./include/asm-generic/5level-fixup.h:28: Error: junk at end of line,
+first unrecognized character is `}'
+./include/asm-generic/5level-fixup.h:30: Error: unrecognized opcode:
+`static'
+./include/asm-generic/5level-fixup.h:31: Error: junk at end of line,
+first unrecognized character is `{'
+./include/asm-generic/5level-fixup.h:32: Error: unrecognized opcode:
+`return'
+./include/asm-generic/5level-fixup.h:33: Error: junk at end of line,
+first unrecognized character is `}'
+make[2]: *** [scripts/Makefile.build:375:
+arch/powerpc/kvm/book3s_hv_rmhandlers.o] Error 1
+
+Fix it by reference the variable in the macro instead.
+
+Signed-off-by: Qian Cai <cai@lca.pw>
+---
+ include/asm-generic/5level-fixup.h | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/include/asm-generic/5level-fixup.h b/include/asm-generic/5level-fixup.h
+index bb6cb347018c..2c3e14c924b6 100644
+--- a/include/asm-generic/5level-fixup.h
++++ b/include/asm-generic/5level-fixup.h
+@@ -19,7 +19,7 @@
+ 
+ #define p4d_alloc(mm, pgd, address)	(pgd)
+ #define p4d_offset(pgd, start)		(pgd)
+-#define p4d_none(p4d)			0
++#define p4d_none(p4d)			((void)p4d, 0)
+ #define p4d_bad(p4d)			0
+ #define p4d_present(p4d)		1
+ #define p4d_ERROR(p4d)			do { } while (0)
 -- 
-Catalin
+1.8.3.1
