@@ -1,13 +1,13 @@
 From: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-Subject: [PATCH 4.4 068/158] padata: use smp_mb in padata_reorder to avoid orphaned padata jobs
-Date: Fri,  2 Aug 2019 11:28:09 +0200
-Message-ID: <20190802092217.814889890@linuxfoundation.org>
-References: <20190802092203.671944552@linuxfoundation.org>
+Subject: [PATCH 4.9 098/223] padata: use smp_mb in padata_reorder to avoid orphaned padata jobs
+Date: Fri,  2 Aug 2019 11:35:23 +0200
+Message-ID: <20190802092245.526242418@linuxfoundation.org>
+References: <20190802092238.692035242@linuxfoundation.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20190802092203.671944552@linuxfoundation.org>
+In-Reply-To: <20190802092238.692035242@linuxfoundation.org>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org
 Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, stable@vger.kernel.org, Daniel Jordan <daniel.m.jordan@oracle.com>, Andrea Parri <andrea.parri@amarulasolutions.com>, Boqun Feng <boqun.feng@gmail.com>, Herbert Xu <herbert@gondor.apana.org.au>, "Paul E. McKenney" <paulmck@linux.ibm.com>, Peter Zijlstra <peterz@infradead.org>, Steffen Klassert <steffen.klassert@secunet.com>, linux-arch@vger.kernel.org, linux-crypto@vger.kernel.org
@@ -98,7 +98,7 @@ Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
 
 --- a/kernel/padata.c
 +++ b/kernel/padata.c
-@@ -273,7 +273,12 @@ static void padata_reorder(struct parall
+@@ -274,7 +274,12 @@ static void padata_reorder(struct parall
  	 * The next object that needs serialization might have arrived to
  	 * the reorder queues in the meantime, we will be called again
  	 * from the timer function if no one else cares for it.
@@ -111,7 +111,7 @@ Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
  	if (atomic_read(&pd->reorder_objects)
  			&& !(pinst->flags & PADATA_RESET))
  		mod_timer(&pd->timer, jiffies + HZ);
-@@ -342,6 +347,13 @@ void padata_do_serial(struct padata_priv
+@@ -343,6 +348,13 @@ void padata_do_serial(struct padata_priv
  	list_add_tail(&padata->list, &pqueue->reorder.list);
  	spin_unlock(&pqueue->reorder.lock);
  
