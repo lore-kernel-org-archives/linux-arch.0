@@ -1,73 +1,42 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:7862 "EHLO
-        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
-        by vger.kernel.org with ESMTP id S2389526AbfHAWVP (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 1 Aug 2019 18:21:15 -0400
-From: "Paul E. McKenney" <paulmck@linux.ibm.com>
-Subject: [PATCH RFC memory-model 27/31] tools/memory-model: Add data-race capabilities to judgelitmus.sh
-Date: Thu,  1 Aug 2019 15:20:52 -0700
-Message-ID: <20190801222056.12144-27-paulmck@linux.ibm.com>
-In-Reply-To: <20190801222026.GA11315@linux.ibm.com>
-References: <20190801222026.GA11315@linux.ibm.com>
+Received: from foss.arm.com ([217.140.110.172]:48772 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1728855AbfHBKIj (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 2 Aug 2019 06:08:39 -0400
+Date: Fri, 2 Aug 2019 11:08:35 +0100
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: Re: [PATCH v6 1/2] arm64: Define
+ Documentation/arm64/tagged-address-abi.rst
+Message-ID: <20190802100835.GA4175@arrakis.emea.arm.com>
+References: <cover.1563904656.git.andreyknvl@google.com>
+ <20190725135044.24381-1-vincenzo.frascino@arm.com>
+ <20190725135044.24381-2-vincenzo.frascino@arm.com>
+ <b74e7ce7-d58a-68a0-2f28-6648ec6302c0@intel.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <b74e7ce7-d58a-68a0-2f28-6648ec6302c0@intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org
-Cc: stern@rowland.harvard.edu, andrea.parri@amarulasolutions.com, will@kernel.org, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, "Paul E. McKenney" <paulmck@linux.ibm.com>
-Message-ID: <20190801222052.b-Di4_4mR-Kk6NhmtCvPgXHoW3VcQBJsCxEGEM-H7ag@z>
+To: Dave Hansen <dave.hansen@intel.com>
+Cc: Vincenzo Frascino <vincenzo.frascino@arm.com>, linux-arm-kernel@lists.infradead.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-kernel@vger.kernel.org, Will Deacon <will.deacon@arm.com>, Andrey Konovalov <andreyknvl@google.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>
+Message-ID: <20190802100835.tp62cXAfpIC0_xVof2agSrd-YE_7nNeBg7KS4llm7UA@z>
 
-This commit adds functionality to judgelitmus.sh to allow it to handle
-both the "DATARACE" markers in the "Result:" comments in litmus tests
-and the "Flag data-race" markers in LKMM output.  For C-language tests,
-if either marker is present, the other must also be as well, at least for
-litmus tests having a "Result:" comment.  If the LKMM output indicates
-a data race, then failures of the Always/Sometimes/Never portion of the
-"Result:" prediction are forgiven.
+Hi Dave,
 
-Signed-off-by: Paul E. McKenney <paulmck@linux.ibm.com>
----
- tools/memory-model/scripts/judgelitmus.sh | 20 +++++++++++++++++++-
- 1 file changed, 19 insertions(+), 1 deletion(-)
+On Wed, Jul 31, 2019 at 09:43:46AM -0700, Dave Hansen wrote:
+> On 7/25/19 6:50 AM, Vincenzo Frascino wrote:
+> > With the relaxed ABI proposed through this document, it is now possible
+> > to pass tagged pointers to the syscalls, when these pointers are in
+> > memory ranges obtained by an anonymous (MAP_ANONYMOUS) mmap().
+> 
+> I don't see a lot of description of why this restriction is necessary.
+> What's the problem with supporting MAP_SHARED?
 
-diff --git a/tools/memory-model/scripts/judgelitmus.sh b/tools/memory-model/scripts/judgelitmus.sh
-index ca9a19829d79..eaa2cc7d3b36 100755
---- a/tools/memory-model/scripts/judgelitmus.sh
-+++ b/tools/memory-model/scripts/judgelitmus.sh
-@@ -47,9 +47,27 @@ else
- 	echo ' --- ' error: \"$LKMM_DESTDIR/$litmusout is not a readable file
- 	exit 255
- fi
-+if grep -q '^Flag data-race$' "$LKMM_DESTDIR/$litmusout"
-+then
-+	datarace_modeled=1
-+fi
- if grep -q '^ \* Result: ' $litmus
- then
- 	outcome=`grep -m 1 '^ \* Result: ' $litmus | awk '{ print $3 }'`
-+	if grep -m1 '^ \* Result: .* DATARACE' $litmus
-+	then
-+		datarace_predicted=1
-+	fi
-+	if test -n "$datarace_predicted" -a -z "$datarace_modeled" -a -z "$LKMM_HW_MAP_FILE"
-+	then
-+		echo '!!! Predicted data race not modeled' $litmus
-+		exit 252
-+	elif test -z "$datarace_predicted" -a -n "$datarace_modeled"
-+	then
-+		# Note that hardware models currently don't model data races
-+		echo '!!! Unexpected data race modeled' $litmus
-+		exit 253
-+	fi
- elif test -n "$LKMM_HW_MAP_FILE" && grep -q '^Observation' $LKMM_DESTDIR/$lkmmout > /dev/null 2>&1
- then
- 	outcome=`grep -m 1 '^Observation ' $LKMM_DESTDIR/$lkmmout | awk '{ print $3 }'`
-@@ -114,7 +132,7 @@ elif grep '^Observation' $LKMM_DESTDIR/$litmusout | grep -q $outcome || test "$o
- then
- 	ret=0
- else
--	if test -n "$LKMM_HW_MAP_FILE" -a "$outcome" = Sometimes
-+	if test \( -n "$LKMM_HW_MAP_FILE" -a "$outcome" = Sometimes \) -o -n "$datarace_modeled"
- 	then
- 		flag="--- Forgiven"
- 		ret=0
+We could support MAP_SHARED | MAP_ANONYMOUS (and based on some internal
+discussions, this would be fine with the hardware memory tagging as
+well). What we don't want in the ABI is to support file mmap() for
+top-byte-ignore (or MTE). If you see a use-case, please let us know.
+
 -- 
-2.17.1
+Catalin
