@@ -1,129 +1,74 @@
-From: guoren@kernel.org
-Subject: [PATCH V2 2/3] csky/dma: Fixup cache_op failed when cross memory ZONEs
-Date: Tue,  6 Aug 2019 15:18:41 +0800
-Message-ID: <1565075921-25734-1-git-send-email-guoren@kernel.org>
+From: Leo Yan <leo.yan@linaro.org>
+Subject: [PATCH v2 0/3] arm/arm64: Add support for function error injection
+Date: Tue,  6 Aug 2019 18:00:12 +0800
+Message-ID: <20190806100015.11256-1-leo.yan@linaro.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 Sender: linux-kernel-owner@vger.kernel.org
-To: arnd@arndb.de
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-csky@vger.kernel.org, feng_shizhu@dahuatech.com, zhang_jian5@dahuatech.com, zheng_xingjian@dahuatech.com, zhu_peng@dahuatech.com, Guo Ren <ren_guo@c-sky.com>, Christoph Hellwig <hch@infradead.org>
+To: Russell King <linux@armlinux.org.uk>, Oleg Nesterov <oleg@redhat.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, Alexei Starovoitov <ast@kernel.org>, Daniel Borkmann <daniel@iogearbox.net>, Martin KaFai Lau <kafai@fb.com>, Song Liu <songliubraving@fb.com>, Yonghong Song <yhs@fb.com>, "Naveen N. Rao" <naveen.n.rao@linux.vnet.ibm.com>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linuxppc-dev@lis
+Cc: Leo Yan <leo.yan@linaro.org>
 List-Id: linux-arch.vger.kernel.org
 
-From: Guo Ren <ren_guo@c-sky.com>
+This small patch set is to add support for function error injection;
+this can be used to eanble more advanced debugging feature, e.g.
+CONFIG_BPF_KPROBE_OVERRIDE.
 
-If the paddr and size are cross between NORMAL_ZONE and HIGHMEM_ZONE
-memory range, cache_op will panic in do_page_fault with bad_area.
+The patch 01/03 is to consolidate the function definition which can be
+suared cross architectures, patches 02,03/03 are used for enabling
+function error injection on arm64 and arm architecture respectively.
 
-Optimize the code to support the range which cross memory ZONEs.
+I tested on arm64 platform Juno-r2 and one of my laptop with x86
+architecture with below steps; I don't test for Arm architecture so
+only pass compilation.
 
-Changes for V2:
- - Revert back to postcore_initcall
+- Enable kernel configuration:
+  CONFIG_BPF_KPROBE_OVERRIDE
+  CONFIG_BTRFS_FS
+  CONFIG_BPF_EVENTS=y
+  CONFIG_KPROBES=y
+  CONFIG_KPROBE_EVENTS=y
+  CONFIG_BPF_KPROBE_OVERRIDE=y
 
-Signed-off-by: Guo Ren <ren_guo@c-sky.com>
-Cc: Christoph Hellwig <hch@infradead.org>
-Cc: Arnd Bergmann <arnd@arndb.de>
----
- arch/csky/mm/dma-mapping.c | 71 +++++++++++++++++-----------------------------
- 1 file changed, 26 insertions(+), 45 deletions(-)
+- Build samples/bpf on with Debian rootFS:
+  # cd $kernel
+  # make headers_install
+  # make samples/bpf/ LLC=llc-7 CLANG=clang-7
 
-diff --git a/arch/csky/mm/dma-mapping.c b/arch/csky/mm/dma-mapping.c
-index 80783bb..65f531d 100644
---- a/arch/csky/mm/dma-mapping.c
-+++ b/arch/csky/mm/dma-mapping.c
-@@ -20,69 +20,50 @@ static int __init atomic_pool_init(void)
- }
- postcore_initcall(atomic_pool_init);
- 
--void arch_dma_prep_coherent(struct page *page, size_t size)
--{
--	if (PageHighMem(page)) {
--		unsigned int count = PAGE_ALIGN(size) >> PAGE_SHIFT;
--
--		do {
--			void *ptr = kmap_atomic(page);
--			size_t _size = (size < PAGE_SIZE) ? size : PAGE_SIZE;
--
--			memset(ptr, 0, _size);
--			dma_wbinv_range((unsigned long)ptr,
--					(unsigned long)ptr + _size);
--
--			kunmap_atomic(ptr);
--
--			page++;
--			size -= PAGE_SIZE;
--			count--;
--		} while (count);
--	} else {
--		void *ptr = page_address(page);
--
--		memset(ptr, 0, size);
--		dma_wbinv_range((unsigned long)ptr, (unsigned long)ptr + size);
--	}
--}
--
- static inline void cache_op(phys_addr_t paddr, size_t size,
- 			    void (*fn)(unsigned long start, unsigned long end))
- {
--	struct page *page = pfn_to_page(paddr >> PAGE_SHIFT);
--	unsigned int offset = paddr & ~PAGE_MASK;
--	size_t left = size;
--	unsigned long start;
-+	struct page *page    = phys_to_page(paddr);
-+	void *start          = __va(page_to_phys(page));
-+	unsigned long offset = offset_in_page(paddr);
-+	size_t left          = size;
- 
- 	do {
- 		size_t len = left;
- 
-+		if (offset + len > PAGE_SIZE)
-+			len = PAGE_SIZE - offset;
-+
- 		if (PageHighMem(page)) {
--			void *addr;
-+			start = kmap_atomic(page);
- 
--			if (offset + len > PAGE_SIZE) {
--				if (offset >= PAGE_SIZE) {
--					page += offset >> PAGE_SHIFT;
--					offset &= ~PAGE_MASK;
--				}
--				len = PAGE_SIZE - offset;
--			}
-+			fn((unsigned long)start + offset,
-+					(unsigned long)start + offset + len);
- 
--			addr = kmap_atomic(page);
--			start = (unsigned long)(addr + offset);
--			fn(start, start + len);
--			kunmap_atomic(addr);
-+			kunmap_atomic(start);
- 		} else {
--			start = (unsigned long)phys_to_virt(paddr);
--			fn(start, start + size);
-+			fn((unsigned long)start + offset,
-+					(unsigned long)start + offset + len);
- 		}
- 		offset = 0;
-+
- 		page++;
-+		start += PAGE_SIZE;
- 		left -= len;
- 	} while (left);
- }
- 
-+static void dma_wbinv_set_zero_range(unsigned long start, unsigned long end)
-+{
-+	memset((void *)start, 0, end - start);
-+	dma_wbinv_range(start, end);
-+}
-+
-+void arch_dma_prep_coherent(struct page *page, size_t size)
-+{
-+	cache_op(page_to_phys(page), size, dma_wbinv_set_zero_range);
-+}
-+
- void arch_sync_dma_for_device(struct device *dev, phys_addr_t paddr,
- 			      size_t size, enum dma_data_direction dir)
- {
+- Run the sample tracex7:
+  # dd if=/dev/zero of=testfile.img bs=1M seek=1000 count=1
+  # DEVICE=$(losetup --show -f testfile.img)
+  # mkfs.btrfs -f $DEVICE
+  # ./tracex7 testfile.img
+  [ 1975.211781] BTRFS error (device (efault)): open_ctree failed
+  mount: /mnt/linux-kernel/linux-cs-dev/samples/bpf/tmpmnt: mount(2) system call failed: Cannot allocate memory.
+
+Changes from v1:
+* Consolidated the function definition into asm-generic header (Will);
+* Used APIs to access pt_regs elements (Will);
+* Fixed typos in the comments (Will).
+
+
+Leo Yan (3):
+  error-injection: Consolidate override function definition
+  arm64: Add support for function error injection
+  arm: Add support for function error injection
+
+ arch/arm/Kconfig                           |  1 +
+ arch/arm/include/asm/ptrace.h              |  5 +++++
+ arch/arm/lib/Makefile                      |  2 ++
+ arch/arm/lib/error-inject.c                | 19 +++++++++++++++++++
+ arch/arm64/Kconfig                         |  1 +
+ arch/arm64/include/asm/ptrace.h            |  5 +++++
+ arch/arm64/lib/Makefile                    |  2 ++
+ arch/arm64/lib/error-inject.c              | 18 ++++++++++++++++++
+ arch/powerpc/include/asm/error-injection.h | 13 -------------
+ arch/x86/include/asm/error-injection.h     | 13 -------------
+ include/asm-generic/error-injection.h      |  6 ++++++
+ include/linux/error-injection.h            |  6 +++---
+ 12 files changed, 62 insertions(+), 29 deletions(-)
+ create mode 100644 arch/arm/lib/error-inject.c
+ create mode 100644 arch/arm64/lib/error-inject.c
+ delete mode 100644 arch/powerpc/include/asm/error-injection.h
+ delete mode 100644 arch/x86/include/asm/error-injection.h
+
 -- 
-2.7.4
+2.17.1
