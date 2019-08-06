@@ -1,13 +1,13 @@
 From: Sasha Levin <sashal@kernel.org>
-Subject: [PATCH AUTOSEL 4.14 25/25] asm-generic: fix -Wtype-limits compiler warnings
-Date: Tue,  6 Aug 2019 17:36:22 -0400
-Message-ID: <20190806213624.20194-25-sashal@kernel.org>
-References: <20190806213624.20194-1-sashal@kernel.org>
+Subject: [PATCH AUTOSEL 5.2 58/59] asm-generic: fix -Wtype-limits compiler warnings
+Date: Tue,  6 Aug 2019 17:33:18 -0400
+Message-ID: <20190806213319.19203-58-sashal@kernel.org>
+References: <20190806213319.19203-1-sashal@kernel.org>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20190806213624.20194-1-sashal@kernel.org>
-Sender: linux-kernel-owner@vger.kernel.org
+Return-path: <stable-owner@vger.kernel.org>
+In-Reply-To: <20190806213319.19203-1-sashal@kernel.org>
+Sender: stable-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org, stable@vger.kernel.org
 Cc: Qian Cai <cai@lca.pw>, Nathan Chancellor <natechancellor@gmail.com>, "David S . Miller" <davem@davemloft.net>, Arnd Bergmann <arnd@arndb.de>, David Howells <dhowells@redhat.com>, Jakub Jelinek <jakub@redhat.com>, Nick Desaulniers <ndesaulniers@google.com>, Bill Wendling <morbo@google.com>, James Y Knight <jyknight@google.com>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, Sasha Levin <sashal@kernel.org>, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
