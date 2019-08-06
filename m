@@ -1,7 +1,7 @@
-From: "Kirill A. Shutemov" <kirill@shutemov.name>
+From: Jason Gunthorpe <jgg@ziepe.ca>
 Subject: Re: [PATCH] asm-generic: fix variable 'p4d' set but not used
-Date: Tue, 6 Aug 2019 13:45:16 +0300
-Message-ID: <20190806104516.yvioe2t4w2vwvs64@box>
+Date: Tue, 6 Aug 2019 11:39:04 -0300
+Message-ID: <20190806143904.GE11627@ziepe.ca>
 References: <1564774882-22926-1-git-send-email-cai@lca.pw>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
@@ -60,8 +60,19 @@ On Fri, Aug 02, 2019 at 03:41:22PM -0400, Qian Cai wrote:
 > Fix it by reference the variable in the macro instead.
 > 
 > Signed-off-by: Qian Cai <cai@lca.pw>
+>  include/asm-generic/5level-fixup.h | 2 +-
+>  1 file changed, 1 insertion(+), 1 deletion(-)
+> 
+> diff --git a/include/asm-generic/5level-fixup.h b/include/asm-generic/5level-fixup.h
+> index bb6cb347018c..2c3e14c924b6 100644
+> +++ b/include/asm-generic/5level-fixup.h
+> @@ -19,7 +19,7 @@
+>  
+>  #define p4d_alloc(mm, pgd, address)	(pgd)
+>  #define p4d_offset(pgd, start)		(pgd)
+> -#define p4d_none(p4d)			0
+> +#define p4d_none(p4d)			((void)p4d, 0)
 
-Acked-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
+Yuk, how about a static inline instead?
 
--- 
- Kirill A. Shutemov
+Jason
