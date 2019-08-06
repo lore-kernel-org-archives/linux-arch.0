@@ -1,12 +1,12 @@
 From: Sasha Levin <sashal@kernel.org>
-Subject: [PATCH AUTOSEL 4.9 17/17] asm-generic: fix -Wtype-limits compiler warnings
-Date: Tue,  6 Aug 2019 17:37:14 -0400
-Message-ID: <20190806213715.20487-17-sashal@kernel.org>
-References: <20190806213715.20487-1-sashal@kernel.org>
+Subject: [PATCH AUTOSEL 4.14 25/25] asm-generic: fix -Wtype-limits compiler warnings
+Date: Tue,  6 Aug 2019 17:36:22 -0400
+Message-ID: <20190806213624.20194-25-sashal@kernel.org>
+References: <20190806213624.20194-1-sashal@kernel.org>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20190806213715.20487-1-sashal@kernel.org>
+In-Reply-To: <20190806213624.20194-1-sashal@kernel.org>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org, stable@vger.kernel.org
 Cc: Qian Cai <cai@lca.pw>, Nathan Chancellor <natechancellor@gmail.com>, "David S . Miller" <davem@davemloft.net>, Arnd Bergmann <arnd@arndb.de>, David Howells <dhowells@redhat.com>, Jakub Jelinek <jakub@redhat.com>, Nick Desaulniers <ndesaulniers@google.com>, Bill Wendling <morbo@google.com>, James Y Knight <jyknight@google.com>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, Sasha Levin <sashal@kernel.org>, linux-arch@vger.kernel.org
@@ -70,10 +70,10 @@ Signed-off-by: Sasha Levin <sashal@kernel.org>
  1 file changed, 20 insertions(+), 30 deletions(-)
 
 diff --git a/include/asm-generic/getorder.h b/include/asm-generic/getorder.h
-index 65e4468ac53da..52fbf236a90ea 100644
+index c64bea7a52beb..e9f20b813a699 100644
 --- a/include/asm-generic/getorder.h
 +++ b/include/asm-generic/getorder.h
-@@ -6,24 +6,6 @@
+@@ -7,24 +7,6 @@
  #include <linux/compiler.h>
  #include <linux/log2.h>
  
@@ -98,7 +98,7 @@ index 65e4468ac53da..52fbf236a90ea 100644
  /**
   * get_order - Determine the allocation order of a memory size
   * @size: The size for which to get the order
-@@ -42,19 +24,27 @@ int __get_order(unsigned long size)
+@@ -43,19 +25,27 @@ int __get_order(unsigned long size)
   * to hold an object of the specified size.
   *
   * The result is undefined if the size is 0.
