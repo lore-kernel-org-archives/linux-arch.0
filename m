@@ -1,57 +1,34 @@
-From: "Paul E. McKenney" <paulmck@linux.ibm.com>
-Subject: Re: [PATCH] MAINTAINERS: Update e-mail address for Andrea Parri
-Date: Wed, 7 Aug 2019 09:01:58 -0700
-Message-ID: <20190807160158.GA15313@linux.ibm.com>
-References: <20190805121517.4734-1-parri.andrea@gmail.com>
-Reply-To: paulmck@linux.ibm.com
+From: Will Deacon <will@kernel.org>
+Subject: Re: [PATCH v2 0/3] arm/arm64: Add support for function error
+ injection
+Date: Wed, 7 Aug 2019 17:07:03 +0100
+Message-ID: <20190807160703.pe4jxak7hs7ptvde@willie-the-truck>
+References: <20190806100015.11256-1-leo.yan@linaro.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <20190805121517.4734-1-parri.andrea@gmail.com>
+In-Reply-To: <20190806100015.11256-1-leo.yan@linaro.org>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Andrea Parri <parri.andrea@gmail.com>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Alan Stern <stern@rowland.harvard.edu>, Will Deacon <will@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Boqun Feng <boqun.feng@gmail.com>, Nicholas Piggin <npiggin@gmail.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, Akira Yokosawa <akiyks@gmail.com>, Daniel Lustig <dlustig@nvidia.com>
+To: Leo Yan <leo.yan@linaro.org>
+Cc: Russell King <linux@armlinux.org.uk>, Oleg Nesterov <oleg@redhat.com>, Catalin Marinas <catalin.marinas@arm.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, Alexei Starovoitov <ast@kernel.org>, Daniel Borkmann <daniel@iogearbox.net>, Martin KaFai Lau <kafai@fb.com>, Song Liu <songliubraving@fb.com>, Yonghong Song <yhs@fb.com>, "Naveen N. Rao" <naveen.n.rao@linux.vnet.ibm.com>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-arch@vger.kernel.o
 List-Id: linux-arch.vger.kernel.org
 
-On Mon, Aug 05, 2019 at 02:15:17PM +0200, Andrea Parri wrote:
-> My @amarulasolutions.com address stopped working this July, so update
-> to my @gmail.com address where you'll still be able to reach me.
+On Tue, Aug 06, 2019 at 06:00:12PM +0800, Leo Yan wrote:
+> This small patch set is to add support for function error injection;
+> this can be used to eanble more advanced debugging feature, e.g.
+> CONFIG_BPF_KPROBE_OVERRIDE.
 > 
-> Signed-off-by: Andrea Parri <parri.andrea@gmail.com>
-
-Queued for the v5.4 merge window, thank you!
-
-							Thanx, Paul
-
-> Cc: Alan Stern <stern@rowland.harvard.edu>
-> Cc: Will Deacon <will@kernel.org>
-> Cc: Peter Zijlstra <peterz@infradead.org>
-> Cc: Boqun Feng <boqun.feng@gmail.com>
-> Cc: Nicholas Piggin <npiggin@gmail.com>
-> Cc: David Howells <dhowells@redhat.com>
-> Cc: Jade Alglave <j.alglave@ucl.ac.uk>
-> Cc: Luc Maranget <luc.maranget@inria.fr>
-> Cc: "Paul E. McKenney" <paulmck@linux.ibm.com>
-> Cc: Akira Yokosawa <akiyks@gmail.com>
-> Cc: Daniel Lustig <dlustig@nvidia.com>
-> ---
->  MAINTAINERS | 2 +-
->  1 file changed, 1 insertion(+), 1 deletion(-)
+> The patch 01/03 is to consolidate the function definition which can be
+> suared cross architectures, patches 02,03/03 are used for enabling
+> function error injection on arm64 and arm architecture respectively.
 > 
-> diff --git a/MAINTAINERS b/MAINTAINERS
-> index 6426db5198f05..527317026492f 100644
-> --- a/MAINTAINERS
-> +++ b/MAINTAINERS
-> @@ -9326,7 +9326,7 @@ F:	drivers/misc/lkdtm/*
->  
->  LINUX KERNEL MEMORY CONSISTENCY MODEL (LKMM)
->  M:	Alan Stern <stern@rowland.harvard.edu>
-> -M:	Andrea Parri <andrea.parri@amarulasolutions.com>
-> +M:	Andrea Parri <parri.andrea@gmail.com>
->  M:	Will Deacon <will@kernel.org>
->  M:	Peter Zijlstra <peterz@infradead.org>
->  M:	Boqun Feng <boqun.feng@gmail.com>
-> -- 
-> 2.17.1
-> 
+> I tested on arm64 platform Juno-r2 and one of my laptop with x86
+> architecture with below steps; I don't test for Arm architecture so
+> only pass compilation.
+
+Thanks. I've queued the first two patches up here:
+
+https://git.kernel.org/pub/scm/linux/kernel/git/arm64/linux.git/log/?h=for-next/error-injection
+
+Will
