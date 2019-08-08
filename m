@@ -1,84 +1,75 @@
-Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:13446 "EHLO
-        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1730341AbfGaUZX (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 31 Jul 2019 16:25:23 -0400
-Received: from pps.filterd (m0098399.ppops.net [127.0.0.1])
-        by mx0a-001b2d01.pphosted.com (8.16.0.27/8.16.0.27) with SMTP id x6VKNn3n029449
-        for <linux-arch@vger.kernel.org>; Wed, 31 Jul 2019 16:25:22 -0400
-Received: from e14.ny.us.ibm.com (e14.ny.us.ibm.com [129.33.205.204])
-        by mx0a-001b2d01.pphosted.com with ESMTP id 2u3hybr4qs-1
-        (version=TLSv1.2 cipher=AES256-GCM-SHA384 bits=256 verify=NOT)
-        for <linux-arch@vger.kernel.org>; Wed, 31 Jul 2019 16:25:22 -0400
-Received: from localhost
-        by e14.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-        for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
-        Wed, 31 Jul 2019 21:25:21 +0100
-Date: Wed, 31 Jul 2019 13:25:17 -0700
-From: "Paul E. McKenney" <paulmck@linux.ibm.com>
-Subject: Re: [PATCH] tools: memory-model: add it to the Documentation body
-Reply-To: paulmck@linux.ibm.com
-References: <Pine.LNX.4.44L0.1907310947340.1497-100000@iolanthe.rowland.org>
- <cb9785b7-ed43-b91a-7392-e50216bd5771@gmail.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <cb9785b7-ed43-b91a-7392-e50216bd5771@gmail.com>
-Message-ID: <20190731202517.GF5913@linux.ibm.com>
-Sender: linux-arch-owner@vger.kernel.org
+Return-Path: <rppt@linux.ibm.com>
+From: Mike Rapoport <rppt@linux.ibm.com>
+Subject: [PATCH 2/3] ia64: switch to generic version of pte allocation
+Date: Thu,  8 Aug 2019 10:52:07 +0300
+Message-ID: <1565250728-21721-3-git-send-email-rppt@linux.ibm.com>
+In-Reply-To: <1565250728-21721-1-git-send-email-rppt@linux.ibm.com>
+References: <1565250728-21721-1-git-send-email-rppt@linux.ibm.com>
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: Nicholas Piggin <npiggin@gmail.com>, Tony Luck <tony.luck@intel.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, linux-arch@vger.kernel.org, linux-ia64@vger.kernel.org, linux-sh@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, Mike Rapoport <rppt@linux.ibm.com>
 List-ID: <linux-arch.vger.kernel.org>
-To: Akira Yokosawa <akiyks@gmail.com>
-Cc: Alan Stern <stern@rowland.harvard.edu>, Mauro Carvalho Chehab <mchehab+samsung@kernel.org>, Joel Fernandes <joel@joelfernandes.org>, Linux Doc Mailing List <linux-doc@vger.kernel.org>, Mauro Carvalho Chehab <mchehab@infradead.org>, linux-kernel@vger.kernel.org, Jonathan Corbet <corbet@lwn.net>, Andrea Parri <andrea.parri@amarulasolutions.com>, Will Deacon <will@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Boqun Feng <boqun.feng@gmail.com>, Nicholas Piggin <npiggin@gmail.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, Daniel Lustig <dlustig@nvidia.com>, Ingo Molnar <mingo@kernel.org>, Jason Gunthorpe <jgg@ziepe.ca>, SeongJae Park <sj38.park@gmail.com>, linux-arch@vger.kernel.org
-Message-ID: <20190731202517.XE8HFhTnRLkFnpRjfFA0CON_7c2QQ8tjR9bjjRJsCVs@z>
+Message-ID: <20190808075207.d1vhZtROImQH-L03iPMekXPtzmMcrKCG9_s86gDoXao@z>
 
-On Thu, Aug 01, 2019 at 12:19:25AM +0900, Akira Yokosawa wrote:
-> On Wed, 31 Jul 2019 09:52:05 -0400, Alan Stern wrote:
-> > On Tue, 30 Jul 2019, Mauro Carvalho Chehab wrote:
-> > 
-> >> Em Tue, 30 Jul 2019 18:17:01 -0400
-> >> Joel Fernandes <joel@joelfernandes.org> escreveu:
-> > 
-> >>>>> (4) I would argue that every occurence of
-> >>>>> A ->(some dependency) B should be replaced with fixed size font in the HTML
-> >>>>> results.  
-> >>>>
-> >>>> Just place those with ``A -> (some dependency)``. This will make them use
-> >>>> a fixed size font.  
-> >>>
-> >>> Ok, understood all these. I guess my point was all of these will need to be
-> >>> done to make this document useful from a ReST conversion standpoint. Until
-> >>> then it is probably just better off being plain text - since there are so
-> >>> many of those ``A -> (dep) B`` things.
-> > 
-> >> On a very quick look, it seems that, if we replace:
-> >>
-> >> 	(\S+\s->\S*\s\w+)
-> >>
-> >> by:
-> >> 	``\1``
-> >>
-> >>
-> >> On an editor that would allow to manually replace the regex (like kate),
-> >> most of those can be get.
-> >>
-> >> See patch enclosed.
-> > 
-> > Some time ago I considered the problem of converting this file to ReST 
-> > format.  But I gave up on the idea, because the necessary changes were 
-> > so widespread and the resulting text file would not be easily readable.
-> > 
-> > Replacing things of the form "A ->dep B" just scratches the surface.  
-> > That document teems with variable names, formulas, code extracts, and
-> > other things which would all need to be rendered in a different font
-> > style.  The density of the markup required to do this would be
-> > phenomenally high.
-> > 
-> > In my opinion it simply was not worthwhile.
-> 
-> +1 on keeping this and the other .txt files of LKMM intact.
+The ia64 implementation pte_alloc_one(), pte_alloc_one_kernel(),
+pte_free_kernel() and pte_free() is identical to the generic except of lack
+of __GFP_ACCOUNT for the user PTEs allocation.
 
-Looks like a pretty clear consensus thus far.  Any objections to keeping
-these .txt for the time being?
+Switch ia64 to use generic version of these functions.
 
-							Thanx, Paul
+Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
+---
+ arch/ia64/include/asm/pgalloc.h | 32 ++------------------------------
+ 1 file changed, 2 insertions(+), 30 deletions(-)
+
+diff --git a/arch/ia64/include/asm/pgalloc.h b/arch/ia64/include/asm/pgalloc.h
+index b03d993..f4c4910 100644
+--- a/arch/ia64/include/asm/pgalloc.h
++++ b/arch/ia64/include/asm/pgalloc.h
+@@ -20,6 +20,8 @@
+ #include <linux/page-flags.h>
+ #include <linux/threads.h>
+ 
++#include <asm-generic/pgalloc.h>
++
+ #include <asm/mmu_context.h>
+ 
+ static inline pgd_t *pgd_alloc(struct mm_struct *mm)
+@@ -82,36 +84,6 @@ pmd_populate_kernel(struct mm_struct *mm, pmd_t * pmd_entry, pte_t * pte)
+ 	pmd_val(*pmd_entry) = __pa(pte);
+ }
+ 
+-static inline pgtable_t pte_alloc_one(struct mm_struct *mm)
+-{
+-	struct page *page;
+-
+-	page = alloc_page(GFP_KERNEL | __GFP_ZERO);
+-	if (!page)
+-		return NULL;
+-	if (!pgtable_page_ctor(page)) {
+-		__free_page(page);
+-		return NULL;
+-	}
+-	return page;
+-}
+-
+-static inline pte_t *pte_alloc_one_kernel(struct mm_struct *mm)
+-{
+-	return (pte_t *)__get_free_page(GFP_KERNEL | __GFP_ZERO);
+-}
+-
+-static inline void pte_free(struct mm_struct *mm, pgtable_t pte)
+-{
+-	pgtable_page_dtor(pte);
+-	__free_page(pte);
+-}
+-
+-static inline void pte_free_kernel(struct mm_struct *mm, pte_t *pte)
+-{
+-	free_page((unsigned long)pte);
+-}
+-
+ #define __pte_free_tlb(tlb, pte, address)	pte_free((tlb)->mm, pte)
+ 
+ #endif				/* _ASM_IA64_PGALLOC_H */
+-- 
+2.7.4
