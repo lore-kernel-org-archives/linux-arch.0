@@ -1,17 +1,17 @@
-From: Dave Martin <Dave.Martin@arm.com>
+From: Szabolcs Nagy <Szabolcs.Nagy@arm.com>
 Subject: Re: [PATCH v7 1/2] arm64: Define
  Documentation/arm64/tagged-address-abi.rst
-Date: Thu, 8 Aug 2019 17:27:02 +0100
-Message-ID: <20190808162702.GJ10425@arm.com>
+Date: Thu, 8 Aug 2019 16:30:01 +0000
+Message-ID: <c73e76dd-de90-f5de-7809-5118270471c8@arm.com>
 References: <20190807155321.9648-1-catalin.marinas@arm.com>
  <20190807155321.9648-2-catalin.marinas@arm.com>
- <826a9ace-feac-c019-843e-07e23c9fd46c@intel.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
-Content-Disposition: inline
-In-Reply-To: <826a9ace-feac-c019-843e-07e23c9fd46c@intel.com>
+In-Reply-To: <20190807155321.9648-2-catalin.marinas@arm.com>
+Content-Language: en-US
+Content-ID: <2416489F113EC049B7C1E80E7213516F@eurprd08.prod.outlook.com>
 List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
  <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
 List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
@@ -21,83 +21,45 @@ List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
  <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
 Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
 Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
-To: Dave Hansen <dave.hansen@intel.com>
-Cc: linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, Szabolcs Nagy <szabolcs.nagy@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Kevin Brodsky <kevin.brodsky@arm.com>, Will Deacon <will.deacon@arm.com>, Andrey Konovalov <andreyknvl@google.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, linux-arm-kernel@lists.infradead.org
+To: Catalin Marinas <Catalin.Marinas@arm.com>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Vincenzo Frascino <Vincenzo.Frascino@arm.com>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, Andrey Konovalov <andreyknvl@google.com>, Kevin Brodsky <Kevin.Brodsky@arm.com>, Will Deacon <Will.Deacon@arm.com>, Dave Hansen <dave.hansen@intel.com>, nd <nd@arm.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Aug 07, 2019 at 01:38:16PM -0700, Dave Hansen wrote:
-
-[Random comments below on a couple of points]
-
-> On 8/7/19 8:53 AM, Catalin Marinas wrote:
-> > +- mmap() done by the process itself (or its parent), where either:
-> > +
-> > +  - flags have the **MAP_ANONYMOUS** bit set
-> > +  - the file descriptor refers to a regular file (including those returned
-> > +    by memfd_create()) or **/dev/zero**
+On 07/08/2019 16:53, Catalin Marinas wrote:
+> From: Vincenzo Frascino <vincenzo.frascino@arm.com>
 > 
-> What's a "regular file"? ;)
-
-A file, as distinct from device nodes, sockets, symlinks etc.
-
-I think this is fairly standard UNIX terminology, even though it sounds
-vague:
-
-From glibc's <bits/stat.h>:
-
-#define	__S_IFREG	0100000	/* Regular file.  */
-
-
-Or for POSIX test (a.k.a. "[")
-
-       -f file
-              True if file exists and is a regular file.
-
-Using memfd_create() or opening /dev/zero doesn't yield a regular file
-though, so perhaps those should be a separate bullet.
-
-[...]
-
-> > +The AArch64 Tagged Address ABI is an opt-in feature and an application can
-> > +control it via **prctl()** as follows:
-> > +
-> > +- **PR_SET_TAGGED_ADDR_CTRL**: enable or disable the AArch64 Tagged Address
-> > +  ABI for the calling process.
-> > +
-> > +  The (unsigned int) arg2 argument is a bit mask describing the control mode
-> > +  used:
-> > +
-> > +  - **PR_TAGGED_ADDR_ENABLE**: enable AArch64 Tagged Address ABI. Default
-> > +    status is disabled.
-> > +
-> > +  The arguments arg3, arg4, and arg5 are ignored.
+> On arm64 the TCR_EL1.TBI0 bit has been always enabled hence
+> the userspace (EL0) is allowed to set a non-zero value in the
+> top byte but the resulting pointers are not allowed at the
+> user-kernel syscall ABI boundary.
 > 
-> For previous prctl()'s, we've found that it's best to require that the
-> unused arguments be 0.  Without that, apps are free to put garbage
-> there, which makes extending the prctl to use other arguments impossible
-> in the future.
+> With the relaxed ABI proposed through this document, it is now possible
+> to pass tagged pointers to the syscalls, when these pointers are in
+> memory ranges obtained by an anonymous (MAP_ANONYMOUS) mmap().
 
-Because arg2 is already a mask of flags with some flags unallocated,
-we can add a new flag for ABI extensions.
+description needs to be updated not to restrict tags
+to anon mmap.
 
-If arg3 is used someday, it may or may not be natural for 0 to mean
-"default".  Enabling this argument with an explicit flag in arg2 may
-be cleaner than mangling the semantics of arg3 so that 0 can have
-the right meaning.
+> +3. AArch64 Tagged Address ABI Exceptions
+> +-----------------------------------------
+> +
+> +The behaviour described in section 2, with particular reference to the
+> +acceptance by the syscalls of any valid tagged pointer, is not applicable
+> +to the following cases:
+> +
+> +- mmap() addr parameter.
+> +
+> +- mremap() new_address parameter.
+> +
+> +- prctl(PR_SET_MM, ``*``, ...) other than arg2 PR_SET_MM_MAP and
+> +  PR_SET_MM_MAP_SIZE.
+> +
+> +- prctl(PR_SET_MM, PR_SET_MM_MAP{,_SIZE}, ...) struct prctl_mm_map fields.
+> +
+> +Any attempt to use non-zero tagged pointers will lead to undefined
+> +behaviour.
 
-Avoiding redundant 0 arguments also allows userspace to take advantage
-of the glibc's variadic prototype for prctl() for example.
+i think that brk may be affected too by whatever that's
+causing problems in mmap.
 
-Not a huge deal, but that was my rationale anyway.
-
-> Also, shouldn't this be converted over to an arch_prctl()?
-
-Most arch-specific prctls seem to use prctl(), and arm64 already has a
-few there.
-
-arch_prctl() is x86-specific.  I don't know the history.
-
-[...]
-
-Cheers
----Dave
+otherwise the text looks good to me.
