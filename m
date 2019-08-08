@@ -1,7 +1,7 @@
 From: Jiri Slaby <jslaby@suse.cz>
-Subject: [PATCH v8 22/28] x86_64/asm: add ENDs to some functions and relabel with SYM_CODE_*
-Date: Thu,  8 Aug 2019 12:38:48 +0200
-Message-ID: <20190808103854.6192-23-jslaby@suse.cz>
+Subject: [PATCH v8 11/28] x86/asm/head: annotate data appropriatelly
+Date: Thu,  8 Aug 2019 12:38:37 +0200
+Message-ID: <20190808103854.6192-12-jslaby@suse.cz>
 References: <20190808103854.6192-1-jslaby@suse.cz>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
@@ -9,239 +9,309 @@ Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20190808103854.6192-1-jslaby@suse.cz>
 Sender: linux-kernel-owner@vger.kernel.org
 To: bp@alien8.de
-Cc: tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Jiri Slaby <jslaby@suse.cz>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, Juergen Gross <jgross@suse.com>, xen-devel@lists.xenproject.org
+Cc: tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Jiri Slaby <jslaby@suse.cz>
 List-Id: linux-arch.vger.kernel.org
 
-All these are functions which are invoked from elsewhere, but they are
-not typical C functions. So we annotate them using the new
-SYM_CODE_START. All these were not balanced with any END, so mark their
-ends by SYM_CODE_END appropriatelly too.
+Use the new SYM_DATA, SYM_DATA_START, and SYM_DATA_END in both 32 and 64
+bit heads.  In the 64-bit version, define also
+SYM_DATA_START_PAGE_ALIGNED locally using the new SYM_START. It is used
+in the code instead of NEXT_PAGE() which was defined in this file and
+has been using the obsolete macro GLOBAL().
+
+Now, the data in the 64-bit object file look sane:
+Value   Size Type    Bind   Vis      Ndx Name
+  0000  4096 OBJECT  GLOBAL DEFAULT   15 init_level4_pgt
+  1000  4096 OBJECT  GLOBAL DEFAULT   15 level3_kernel_pgt
+  2000  2048 OBJECT  GLOBAL DEFAULT   15 level2_kernel_pgt
+  3000  4096 OBJECT  GLOBAL DEFAULT   15 level2_fixmap_pgt
+  4000  4096 OBJECT  GLOBAL DEFAULT   15 level1_fixmap_pgt
+  5000     2 OBJECT  GLOBAL DEFAULT   15 early_gdt_descr
+  5002     8 OBJECT  LOCAL  DEFAULT   15 early_gdt_descr_base
+  500a     8 OBJECT  GLOBAL DEFAULT   15 phys_base
+  0000     8 OBJECT  GLOBAL DEFAULT   17 initial_code
+  0008     8 OBJECT  GLOBAL DEFAULT   17 initial_gs
+  0010     8 OBJECT  GLOBAL DEFAULT   17 initial_stack
+  0000     4 OBJECT  GLOBAL DEFAULT   19 early_recursion_flag
+  1000  4096 OBJECT  GLOBAL DEFAULT   19 early_level4_pgt
+  2000 0x40000 OBJECT  GLOBAL DEFAULT   19 early_dynamic_pgts
+  0000  4096 OBJECT  GLOBAL DEFAULT   22 empty_zero_page
+
+All have correct size and type.
+
+Note, that we can now see that it might be worth pushing
+early_recursion_flag after early_dynamic_pgts -- we are wasting almost
+4K of .init.data.
 
 Signed-off-by: Jiri Slaby <jslaby@suse.cz>
-Reviewed-by: Boris Ostrovsky <boris.ostrovsky@oracle.com> [xen bits]
-Cc: Boris Ostrovsky <boris.ostrovsky@oracle.com>
-Cc: Juergen Gross <jgross@suse.com>
 Cc: Thomas Gleixner <tglx@linutronix.de>
 Cc: Ingo Molnar <mingo@redhat.com>
 Cc: "H. Peter Anvin" <hpa@zytor.com>
 Cc: x86@kernel.org
-Cc: xen-devel@lists.xenproject.org
 ---
- arch/x86/boot/compressed/head_64.S   |  6 ++++--
- arch/x86/platform/olpc/xo1-wakeup.S  |  3 ++-
- arch/x86/power/hibernate_asm_64.S    |  6 ++++--
- arch/x86/realmode/rm/reboot.S        |  3 ++-
- arch/x86/realmode/rm/trampoline_64.S | 10 +++++++---
- arch/x86/realmode/rm/wakeup_asm.S    |  3 ++-
- arch/x86/xen/xen-asm_64.S            |  6 ++++--
- 7 files changed, 25 insertions(+), 12 deletions(-)
+ arch/x86/kernel/head_32.S | 29 ++++++++-------
+ arch/x86/kernel/head_64.S | 78 +++++++++++++++++++++------------------
+ 2 files changed, 58 insertions(+), 49 deletions(-)
 
-diff --git a/arch/x86/boot/compressed/head_64.S b/arch/x86/boot/compressed/head_64.S
-index 70a25e0fa71e..362bd01d3bfb 100644
---- a/arch/x86/boot/compressed/head_64.S
-+++ b/arch/x86/boot/compressed/head_64.S
-@@ -250,7 +250,7 @@ ENDPROC(efi32_stub_entry)
+diff --git a/arch/x86/kernel/head_32.S b/arch/x86/kernel/head_32.S
+index 0bae769b7b59..2d5390d84467 100644
+--- a/arch/x86/kernel/head_32.S
++++ b/arch/x86/kernel/head_32.S
+@@ -502,8 +502,7 @@ ENDPROC(early_ignore_irq)
  
- 	.code64
- 	.org 0x200
--ENTRY(startup_64)
-+SYM_CODE_START(startup_64)
- 	/*
- 	 * 64bit entry is 0x200 and it is ABI so immutable!
- 	 * We come here either from startup_32 or directly from a
-@@ -442,6 +442,7 @@ trampoline_return:
-  */
- 	leaq	relocated(%rbx), %rax
- 	jmp	*%rax
-+SYM_CODE_END(startup_64)
+ __INITDATA
+ 	.align 4
+-GLOBAL(early_recursion_flag)
+-	.long 0
++SYM_DATA(early_recursion_flag, .long 0)
  
- #ifdef CONFIG_EFI_STUB
- 
-@@ -571,7 +572,7 @@ adjust_got:
-  * ECX contains the base address of the trampoline memory.
-  * Non zero RDX means trampoline needs to enable 5-level paging.
-  */
--ENTRY(trampoline_32bit_src)
-+SYM_CODE_START(trampoline_32bit_src)
- 	/* Set up data and stack segments */
- 	movl	$__KERNEL_DS, %eax
- 	movl	%eax, %ds
-@@ -634,6 +635,7 @@ ENTRY(trampoline_32bit_src)
- 	movl	%eax, %cr0
- 
- 	lret
-+SYM_CODE_END(trampoline_32bit_src)
- 
- 	.code64
- SYM_FUNC_START_LOCAL_NOALIGN(paging_enabled)
-diff --git a/arch/x86/platform/olpc/xo1-wakeup.S b/arch/x86/platform/olpc/xo1-wakeup.S
-index 5fee3a2c2fd4..75f4faff8468 100644
---- a/arch/x86/platform/olpc/xo1-wakeup.S
-+++ b/arch/x86/platform/olpc/xo1-wakeup.S
-@@ -90,7 +90,7 @@ restore_registers:
- 
- 	ret
- 
--ENTRY(do_olpc_suspend_lowlevel)
-+SYM_CODE_START(do_olpc_suspend_lowlevel)
- 	call	save_processor_state
- 	call	save_registers
- 
-@@ -110,6 +110,7 @@ ret_point:
- 	call	restore_registers
- 	call	restore_processor_state
- 	ret
-+SYM_CODE_END(do_olpc_suspend_lowlevel)
+ __REFDATA
+ 	.align 4
+@@ -551,7 +550,7 @@ EXPORT_SYMBOL(empty_zero_page)
+ __PAGE_ALIGNED_DATA
+ 	/* Page-aligned for the benefit of paravirt? */
+ 	.align PGD_ALIGN
+-ENTRY(initial_page_table)
++SYM_DATA_START(initial_page_table)
+ 	.long	pa(initial_pg_pmd+PGD_IDENT_ATTR),0	/* low identity map */
+ # if KPMDS == 3
+ 	.long	pa(initial_pg_pmd+PGD_IDENT_ATTR),0
+@@ -569,17 +568,18 @@ ENTRY(initial_page_table)
+ #  error "Kernel PMDs should be 1, 2 or 3"
+ # endif
+ 	.align PAGE_SIZE		/* needs to be page-sized too */
++SYM_DATA_END(initial_page_table)
+ #endif
  
  .data
- saved_gdt:             .long   0,0
-diff --git a/arch/x86/power/hibernate_asm_64.S b/arch/x86/power/hibernate_asm_64.S
-index a4d5eb0a7ece..4057cd5af7e2 100644
---- a/arch/x86/power/hibernate_asm_64.S
-+++ b/arch/x86/power/hibernate_asm_64.S
-@@ -52,7 +52,7 @@ ENTRY(swsusp_arch_suspend)
- 	ret
- ENDPROC(swsusp_arch_suspend)
+ .balign 4
+-ENTRY(initial_stack)
+-	/*
+-	 * The SIZEOF_PTREGS gap is a convention which helps the in-kernel
+-	 * unwinder reliably detect the end of the stack.
+-	 */
+-	.long init_thread_union + THREAD_SIZE - SIZEOF_PTREGS - \
+-	      TOP_OF_KERNEL_STACK_PADDING;
++/*
++ * The SIZEOF_PTREGS gap is a convention which helps the in-kernel unwinder
++ * reliably detect the end of the stack.
++ */
++SYM_DATA(initial_stack,
++		.long init_thread_union + THREAD_SIZE -
++		SIZEOF_PTREGS - TOP_OF_KERNEL_STACK_PADDING)
  
--ENTRY(restore_image)
-+SYM_CODE_START(restore_image)
- 	/* prepare to jump to the image kernel */
- 	movq	restore_jump_address(%rip), %r8
- 	movq	restore_cr3(%rip), %r9
-@@ -67,9 +67,10 @@ ENTRY(restore_image)
- 	/* jump to relocated restore code */
- 	movq	relocated_restore_code(%rip), %rcx
- 	jmpq	*%rcx
-+SYM_CODE_END(restore_image)
+ __INITRODATA
+ int_msg:
+@@ -600,22 +600,25 @@ int_msg:
+ 	ALIGN
+ # early boot GDT descriptor (must use 1:1 address mapping)
+ 	.word 0				# 32 bit align gdt_desc.address
+-boot_gdt_descr:
++SYM_DATA_START(boot_gdt_descr)
+ 	.word __BOOT_DS+7
+ 	.long boot_gdt - __PAGE_OFFSET
++SYM_DATA_END(boot_gdt_descr)
  
- 	/* code below has been relocated to a safe page */
--ENTRY(core_restore_code)
-+SYM_CODE_START(core_restore_code)
- 	/* switch to temporary page tables */
- 	movq	%rax, %cr3
- 	/* flush TLB */
-@@ -97,6 +98,7 @@ ENTRY(core_restore_code)
- .Ldone:
- 	/* jump to the restore_registers address from the image header */
- 	jmpq	*%r8
-+SYM_CODE_END(core_restore_code)
- 
- 	 /* code below belongs to the image kernel */
- 	.align PAGE_SIZE
-diff --git a/arch/x86/realmode/rm/reboot.S b/arch/x86/realmode/rm/reboot.S
-index 424826afb501..f10515b10e0a 100644
---- a/arch/x86/realmode/rm/reboot.S
-+++ b/arch/x86/realmode/rm/reboot.S
-@@ -19,7 +19,7 @@
-  */
- 	.section ".text32", "ax"
- 	.code32
--ENTRY(machine_real_restart_asm)
-+SYM_CODE_START(machine_real_restart_asm)
- 
- #ifdef CONFIG_X86_64
- 	/* Switch to trampoline GDT as it is guaranteed < 4 GiB */
-@@ -63,6 +63,7 @@ SYM_INNER_LABEL(machine_real_restart_paging_off, SYM_L_GLOBAL)
- 	movl	%ecx, %gs
- 	movl	%ecx, %ss
- 	ljmpw	$8, $1f
-+SYM_CODE_END(machine_real_restart_asm)
+ # boot GDT descriptor (later on used by CPU#0):
+ 	.word 0				# 32 bit align gdt_desc.address
+-ENTRY(early_gdt_descr)
++SYM_DATA_START(early_gdt_descr)
+ 	.word GDT_ENTRIES*8-1
+ 	.long gdt_page			/* Overwritten for secondary CPUs */
++SYM_DATA_END(early_gdt_descr)
  
  /*
-  * This is 16-bit protected mode code to disable paging and the cache,
-diff --git a/arch/x86/realmode/rm/trampoline_64.S b/arch/x86/realmode/rm/trampoline_64.S
-index c1aeab1dae25..251758ed7443 100644
---- a/arch/x86/realmode/rm/trampoline_64.S
-+++ b/arch/x86/realmode/rm/trampoline_64.S
-@@ -38,7 +38,7 @@
- 	.code16
+  * The boot_gdt must mirror the equivalent in setup.S and is
+  * used only for booting.
+  */
+ 	.align L1_CACHE_BYTES
+-ENTRY(boot_gdt)
++SYM_DATA_START(boot_gdt)
+ 	.fill GDT_ENTRY_BOOT_CS,8,0
+ 	.quad 0x00cf9a000000ffff	/* kernel 4GB code at 0x00000000 */
+ 	.quad 0x00cf92000000ffff	/* kernel 4GB data at 0x00000000 */
++SYM_DATA_END(boot_gdt)
+diff --git a/arch/x86/kernel/head_64.S b/arch/x86/kernel/head_64.S
+index 6fedcda37634..6661c76a2049 100644
+--- a/arch/x86/kernel/head_64.S
++++ b/arch/x86/kernel/head_64.S
+@@ -260,16 +260,14 @@ END(start_cpu0)
+ 	/* Both SMP bootup and ACPI suspend change these variables */
+ 	__REFDATA
+ 	.balign	8
+-	GLOBAL(initial_code)
+-	.quad	x86_64_start_kernel
+-	GLOBAL(initial_gs)
+-	.quad	INIT_PER_CPU_VAR(fixed_percpu_data)
+-	GLOBAL(initial_stack)
+-	/*
+-	 * The SIZEOF_PTREGS gap is a convention which helps the in-kernel
+-	 * unwinder reliably detect the end of the stack.
+-	 */
+-	.quad  init_thread_union + THREAD_SIZE - SIZEOF_PTREGS
++SYM_DATA(initial_code,	.quad x86_64_start_kernel)
++SYM_DATA(initial_gs,	.quad INIT_PER_CPU_VAR(fixed_percpu_data))
++/*
++ * The SIZEOF_PTREGS gap is a convention which helps the in-kernel unwinder
++ * reliably detect the end of the stack.
++ */
++SYM_DATA(initial_stack,
++		.quad init_thread_union + THREAD_SIZE - SIZEOF_PTREGS)
+ 	__FINITDATA
  
- 	.balign	PAGE_SIZE
--ENTRY(trampoline_start)
-+SYM_CODE_START(trampoline_start)
- 	cli			# We should be safe anyway
- 	wbinvd
+ 	__INIT
+@@ -338,12 +336,10 @@ SYM_CODE_END(early_idt_handler_common)
+ 	__INITDATA
  
-@@ -78,12 +78,14 @@ ENTRY(trampoline_start)
- no_longmode:
- 	hlt
- 	jmp no_longmode
-+SYM_CODE_END(trampoline_start)
-+
- #include "../kernel/verify_cpu.S"
- 
- 	.section ".text32","ax"
- 	.code32
  	.balign 4
--ENTRY(startup_32)
-+SYM_CODE_START(startup_32)
- 	movl	%edx, %ss
- 	addl	$pa_real_mode_base, %esp
- 	movl	%edx, %ds
-@@ -137,13 +139,15 @@ ENTRY(startup_32)
- 	 * the new gdt/idt that has __KERNEL_CS with CS.L = 1.
- 	 */
- 	ljmpl	$__KERNEL_CS, $pa_startup_64
-+SYM_CODE_END(startup_32)
+-GLOBAL(early_recursion_flag)
+-	.long 0
++SYM_DATA(early_recursion_flag, .long 0)
  
- 	.section ".text64","ax"
- 	.code64
- 	.balign 4
--ENTRY(startup_64)
-+SYM_CODE_START(startup_64)
- 	# Now jump into the kernel using virtual addresses
- 	jmpq	*tr_start(%rip)
-+SYM_CODE_END(startup_64)
+-#define NEXT_PAGE(name) \
+-	.balign	PAGE_SIZE; \
+-GLOBAL(name)
++#define SYM_DATA_START_PAGE_ALIGNED(name)			\
++	SYM_START(name, SYM_L_GLOBAL, .balign PAGE_SIZE)
  
- 	.section ".rodata","a"
- 	# Duplicate the global descriptor table
-diff --git a/arch/x86/realmode/rm/wakeup_asm.S b/arch/x86/realmode/rm/wakeup_asm.S
-index 0af6b30d3c68..7079913adbd2 100644
---- a/arch/x86/realmode/rm/wakeup_asm.S
-+++ b/arch/x86/realmode/rm/wakeup_asm.S
-@@ -37,7 +37,7 @@ SYM_DATA_END(wakeup_header)
- 	.code16
- 
- 	.balign	16
--ENTRY(wakeup_start)
-+SYM_CODE_START(wakeup_start)
- 	cli
- 	cld
- 
-@@ -135,6 +135,7 @@ ENTRY(wakeup_start)
+ #ifdef CONFIG_PAGE_TABLE_ISOLATION
+ /*
+@@ -358,11 +354,11 @@ GLOBAL(name)
+  */
+ #define PTI_USER_PGD_FILL	512
+ /* This ensures they are 8k-aligned: */
+-#define NEXT_PGD_PAGE(name) \
+-	.balign 2 * PAGE_SIZE; \
+-GLOBAL(name)
++#define SYM_DATA_START_PTI_ALIGNED(name) \
++	SYM_START(name, SYM_L_GLOBAL, .balign 2 * PAGE_SIZE)
  #else
- 	jmp	trampoline_start
+-#define NEXT_PGD_PAGE(name) NEXT_PAGE(name)
++#define SYM_DATA_START_PTI_ALIGNED(name) \
++	SYM_DATA_START_PAGE_ALIGNED(name)
+ #define PTI_USER_PGD_FILL	0
  #endif
-+SYM_CODE_END(wakeup_start)
  
- bogus_real_magic:
- 1:
-diff --git a/arch/x86/xen/xen-asm_64.S b/arch/x86/xen/xen-asm_64.S
-index 45c1249f370d..c209c70fc5e4 100644
---- a/arch/x86/xen/xen-asm_64.S
-+++ b/arch/x86/xen/xen-asm_64.S
-@@ -85,11 +85,12 @@ hypercall_iret = hypercall_page + __HYPERVISOR_iret * 32
-  *	r11		}<-- pushed by hypercall page
-  * rsp->rax		}
-  */
--ENTRY(xen_iret)
-+SYM_CODE_START(xen_iret)
- 	pushq $0
- 	jmp hypercall_iret
-+SYM_CODE_END(xen_iret)
+@@ -375,17 +371,19 @@ GLOBAL(name)
+ 	.endr
  
--ENTRY(xen_sysret64)
-+SYM_CODE_START(xen_sysret64)
+ 	__INITDATA
+-NEXT_PGD_PAGE(early_top_pgt)
++SYM_DATA_START_PTI_ALIGNED(early_top_pgt)
+ 	.fill	512,8,0
+ 	.fill	PTI_USER_PGD_FILL,8,0
++SYM_DATA_END(early_top_pgt)
+ 
+-NEXT_PAGE(early_dynamic_pgts)
++SYM_DATA_START_PAGE_ALIGNED(early_dynamic_pgts)
+ 	.fill	512*EARLY_DYNAMIC_PAGE_TABLES,8,0
++SYM_DATA_END(early_dynamic_pgts)
+ 
+ 	.data
+ 
+ #if defined(CONFIG_XEN_PV) || defined(CONFIG_PVH)
+-NEXT_PGD_PAGE(init_top_pgt)
++SYM_DATA_START_PTI_ALIGNED(init_top_pgt)
+ 	.quad   level3_ident_pgt - __START_KERNEL_map + _KERNPG_TABLE_NOENC
+ 	.org    init_top_pgt + L4_PAGE_OFFSET*8, 0
+ 	.quad   level3_ident_pgt - __START_KERNEL_map + _KERNPG_TABLE_NOENC
+@@ -393,11 +391,13 @@ NEXT_PGD_PAGE(init_top_pgt)
+ 	/* (2^48-(2*1024*1024*1024))/(2^39) = 511 */
+ 	.quad   level3_kernel_pgt - __START_KERNEL_map + _PAGE_TABLE_NOENC
+ 	.fill	PTI_USER_PGD_FILL,8,0
++SYM_DATA_END(init_top_pgt)
+ 
+-NEXT_PAGE(level3_ident_pgt)
++SYM_DATA_START_PAGE_ALIGNED(level3_ident_pgt)
+ 	.quad	level2_ident_pgt - __START_KERNEL_map + _KERNPG_TABLE_NOENC
+ 	.fill	511, 8, 0
+-NEXT_PAGE(level2_ident_pgt)
++SYM_DATA_END(level3_ident_pgt)
++SYM_DATA_START_PAGE_ALIGNED(level2_ident_pgt)
  	/*
- 	 * We're already on the usermode stack at this point, but
- 	 * still with the kernel gs, so we can easily switch back.
-@@ -107,6 +108,7 @@ ENTRY(xen_sysret64)
+ 	 * Since I easily can, map the first 1G.
+ 	 * Don't set NX because code runs from these pages.
+@@ -407,25 +407,29 @@ NEXT_PAGE(level2_ident_pgt)
+ 	 * the CPU should ignore the bit.
+ 	 */
+ 	PMDS(0, __PAGE_KERNEL_IDENT_LARGE_EXEC, PTRS_PER_PMD)
++SYM_DATA_END(level2_ident_pgt)
+ #else
+-NEXT_PGD_PAGE(init_top_pgt)
++SYM_DATA_START_PTI_ALIGNED(init_top_pgt)
+ 	.fill	512,8,0
+ 	.fill	PTI_USER_PGD_FILL,8,0
++SYM_DATA_END(init_top_pgt)
+ #endif
  
- 	pushq $VGCF_in_syscall
- 	jmp hypercall_iret
-+SYM_CODE_END(xen_sysret64)
+ #ifdef CONFIG_X86_5LEVEL
+-NEXT_PAGE(level4_kernel_pgt)
++SYM_DATA_START_PAGE_ALIGNED(level4_kernel_pgt)
+ 	.fill	511,8,0
+ 	.quad	level3_kernel_pgt - __START_KERNEL_map + _PAGE_TABLE_NOENC
++SYM_DATA_END(level4_kernel_pgt)
+ #endif
  
- /*
-  * Xen handles syscall callbacks much like ordinary exceptions, which
+-NEXT_PAGE(level3_kernel_pgt)
++SYM_DATA_START_PAGE_ALIGNED(level3_kernel_pgt)
+ 	.fill	L3_START_KERNEL,8,0
+ 	/* (2^48-(2*1024*1024*1024)-((2^39)*511))/(2^30) = 510 */
+ 	.quad	level2_kernel_pgt - __START_KERNEL_map + _KERNPG_TABLE_NOENC
+ 	.quad	level2_fixmap_pgt - __START_KERNEL_map + _PAGE_TABLE_NOENC
++SYM_DATA_END(level3_kernel_pgt)
+ 
+-NEXT_PAGE(level2_kernel_pgt)
++SYM_DATA_START_PAGE_ALIGNED(level2_kernel_pgt)
+ 	/*
+ 	 * 512 MB kernel mapping. We spend a full page on this pagetable
+ 	 * anyway.
+@@ -442,8 +446,9 @@ NEXT_PAGE(level2_kernel_pgt)
+ 	 */
+ 	PMDS(0, __PAGE_KERNEL_LARGE_EXEC,
+ 		KERNEL_IMAGE_SIZE/PMD_SIZE)
++SYM_DATA_END(level2_kernel_pgt)
+ 
+-NEXT_PAGE(level2_fixmap_pgt)
++SYM_DATA_START_PAGE_ALIGNED(level2_fixmap_pgt)
+ 	.fill	(512 - 4 - FIXMAP_PMD_NUM),8,0
+ 	pgtno = 0
+ 	.rept (FIXMAP_PMD_NUM)
+@@ -453,21 +458,21 @@ NEXT_PAGE(level2_fixmap_pgt)
+ 	.endr
+ 	/* 6 MB reserved space + a 2MB hole */
+ 	.fill	4,8,0
++SYM_DATA_END(level2_fixmap_pgt)
+ 
+-NEXT_PAGE(level1_fixmap_pgt)
++SYM_DATA_START_PAGE_ALIGNED(level1_fixmap_pgt)
+ 	.rept (FIXMAP_PMD_NUM)
+ 	.fill	512,8,0
+ 	.endr
++SYM_DATA_END(level1_fixmap_pgt)
+ 
+ #undef PMDS
+ 
+ 	.data
+ 	.align 16
+-	.globl early_gdt_descr
+-early_gdt_descr:
+-	.word	GDT_ENTRIES*8-1
+-early_gdt_descr_base:
+-	.quad	INIT_PER_CPU_VAR(gdt_page)
++
++SYM_DATA(early_gdt_descr,		.word GDT_ENTRIES*8-1)
++SYM_DATA_LOCAL(early_gdt_descr_base,	.quad INIT_PER_CPU_VAR(gdt_page))
+ 
+ /* This must match the first entry in level2_kernel_pgt */
+ SYM_DATA(phys_base, .quad 0x0000000000000000)
+@@ -476,7 +481,8 @@ EXPORT_SYMBOL(phys_base)
+ #include "../../x86/xen/xen-head.S"
+ 
+ 	__PAGE_ALIGNED_BSS
+-NEXT_PAGE(empty_zero_page)
++SYM_DATA_START_PAGE_ALIGNED(empty_zero_page)
+ 	.skip PAGE_SIZE
++SYM_DATA_END(empty_zero_page)
+ EXPORT_SYMBOL(empty_zero_page)
+ 
 -- 
 2.22.0
