@@ -1,90 +1,94 @@
-From: Szabolcs Nagy <Szabolcs.Nagy@arm.com>
-Subject: Re: [PATCH v7 0/2] arm64 tagged address ABI
-Date: Thu, 8 Aug 2019 09:32:28 +0000
-Message-ID: <44bc76f2-e782-b3ac-5ba3-39ef59be6fe9@arm.com>
-References: <20190807155321.9648-1-catalin.marinas@arm.com>
+From: Jiri Slaby <jslaby@suse.cz>
+Subject: [PATCH v8 02/28] x86/asm/suspend: use SYM_DATA for data
+Date: Thu,  8 Aug 2019 12:38:28 +0200
+Message-ID: <20190808103854.6192-3-jslaby@suse.cz>
+References: <20190808103854.6192-1-jslaby@suse.cz>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
-In-Reply-To: <20190807155321.9648-1-catalin.marinas@arm.com>
-Content-Language: en-US
-Content-ID: <E89EAA9961235F47ADB26CEFBCAEB557@eurprd08.prod.outlook.com>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
-To: Catalin Marinas <Catalin.Marinas@arm.com>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Vincenzo Frascino <Vincenzo.Frascino@arm.com>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, Andrey Konovalov <andreyknvl@google.com>, Kevin Brodsky <Kevin.Brodsky@arm.com>, Will Deacon <Will.Deacon@arm.com>, Dave Hansen <dave.hansen@intel.com>, nd <nd@arm.com>
+Content-Transfer-Encoding: 8bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20190808103854.6192-1-jslaby@suse.cz>
+Sender: linux-kernel-owner@vger.kernel.org
+To: bp@alien8.de
+Cc: tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Jiri Slaby <jslaby@suse.cz>, "Rafael J . Wysocki" <rafael.j.wysocki@intel.com>, Pavel Machek <pavel@ucw.cz>, Len Brown <len.brown@intel.com>, linux-pm@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On 07/08/2019 16:53, Catalin Marinas wrote:
-> Hi,
-> 
-> Thanks for the feedback so far. This is an updated series documenting
-> the AArch64 Tagged Address ABI as implemented by these patches:
-> 
-> http://lkml.kernel.org/r/cover.1563904656.git.andreyknvl@google.com
-> 
-> Version 6 of the documentation series is available here:
-> 
-> http://lkml.kernel.org/r/20190725135044.24381-1-vincenzo.frascino@arm.com
-> 
-> Changes in v7:
-> 
-> - Dropped the MAP_PRIVATE requirements for tagged pointers for both
->   anonymous and file mappings. One reason is that we can't enforce such
->   restriction anyway. The other reason is that a future series
->   implementing support for the hardware MTE will detect
->   incompatibilities of the new PROT_MTE flag with various mmap()
->   options.
+Some global data in the suspend code were marked as `ENTRY'. ENTRY was
+intended for functions and shall be paired with ENDPROC. ENTRY also
+aligns symbols which creates unnecessary holes here between data. Since
+we are dropping historical markings, make proper use of newly added
+SYM_DATA in this code.
 
-OK.
+Signed-off-by: Jiri Slaby <jslaby@suse.cz>
+Acked-by: Rafael J. Wysocki <rafael.j.wysocki@intel.com>
+Acked-by: Pavel Machek <pavel@ucw.cz>
+Cc: Len Brown <len.brown@intel.com>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: Ingo Molnar <mingo@redhat.com>
+Cc: "H. Peter Anvin" <hpa@zytor.com>
+Cc: x86@kernel.org
+Cc: linux-pm@vger.kernel.org
+---
+ arch/x86/kernel/acpi/wakeup_32.S | 2 +-
+ arch/x86/kernel/acpi/wakeup_64.S | 2 +-
+ arch/x86/kernel/head_32.S        | 6 ++----
+ arch/x86/kernel/head_64.S        | 5 ++---
+ 4 files changed, 6 insertions(+), 9 deletions(-)
 
-> - As a consequence of the above, I removed Szabolcs ack as I'm not sure
->   he's ok with the change.
-> 
-> - Clarified the sysctl and prctl() interaction and reordered the
->   descriptions.
-> 
-> - Reworded the prctl(PR_SET_MM) restrictions.
-> 
-> - Removed the description of the tag preservation from the first patch
->   as it didn't really make sense (the syscall ABI has always preserved
->   all registers other than x0 on return to user).
-
-preservation is more interesting when a user pointer
-is passed to the kernel and later it is passed back
-to user space (e.g. set/get_robust_list, or sigaction
-where old handler pointer is returned), then the
-kernel may want to drop the tag to do something with
-the pointer, but user space may want it to be preserved.
-
-in principle segfault si_addr is a similar case when
-memory access via tagged pointer faults: currently
-the kernel does not preserve the tag.
-
-so i think it's interesting to know when exactly the
-kernel preserves the tags, but it may not be easy to
-document in a generic way.
-
-> 
-> - s/ARM64/AArch64/ for consistency with the tagged-pointers.rst
->   document.
-> 
-> - Other minor rewordings.
-> 
-> Vincenzo Frascino (2):
->   arm64: Define Documentation/arm64/tagged-address-abi.rst
->   arm64: Relax Documentation/arm64/tagged-pointers.rst
-> 
->  Documentation/arm64/tagged-address-abi.rst | 151 +++++++++++++++++++++
->  Documentation/arm64/tagged-pointers.rst    |  23 +++-
->  2 files changed, 167 insertions(+), 7 deletions(-)
->  create mode 100644 Documentation/arm64/tagged-address-abi.rst
-> 
+diff --git a/arch/x86/kernel/acpi/wakeup_32.S b/arch/x86/kernel/acpi/wakeup_32.S
+index e95e95960156..427249292aef 100644
+--- a/arch/x86/kernel/acpi/wakeup_32.S
++++ b/arch/x86/kernel/acpi/wakeup_32.S
+@@ -90,7 +90,7 @@ ret_point:
+ 
+ .data
+ ALIGN
+-ENTRY(saved_magic)	.long	0
++SYM_DATA(saved_magic,	.long 0)
+ saved_eip:		.long 0
+ 
+ # saved registers
+diff --git a/arch/x86/kernel/acpi/wakeup_64.S b/arch/x86/kernel/acpi/wakeup_64.S
+index b0715c3ac18d..a142c5ee0d4f 100644
+--- a/arch/x86/kernel/acpi/wakeup_64.S
++++ b/arch/x86/kernel/acpi/wakeup_64.S
+@@ -134,4 +134,4 @@ saved_rbx:		.quad	0
+ saved_rip:		.quad	0
+ saved_rsp:		.quad	0
+ 
+-ENTRY(saved_magic)	.quad	0
++SYM_DATA(saved_magic,	.quad	0)
+diff --git a/arch/x86/kernel/head_32.S b/arch/x86/kernel/head_32.S
+index 30f9cb2c0b55..d1e213da4782 100644
+--- a/arch/x86/kernel/head_32.S
++++ b/arch/x86/kernel/head_32.S
+@@ -507,10 +507,8 @@ GLOBAL(early_recursion_flag)
+ 
+ __REFDATA
+ 	.align 4
+-ENTRY(initial_code)
+-	.long i386_start_kernel
+-ENTRY(setup_once_ref)
+-	.long setup_once
++SYM_DATA(initial_code,		.long i386_start_kernel)
++SYM_DATA(setup_once_ref,	.long setup_once)
+ 
+ #ifdef CONFIG_PAGE_TABLE_ISOLATION
+ #define	PGD_ALIGN	(2 * PAGE_SIZE)
+diff --git a/arch/x86/kernel/head_64.S b/arch/x86/kernel/head_64.S
+index f3d3e9646a99..6c1bf7ae55ff 100644
+--- a/arch/x86/kernel/head_64.S
++++ b/arch/x86/kernel/head_64.S
+@@ -469,9 +469,8 @@ early_gdt_descr:
+ early_gdt_descr_base:
+ 	.quad	INIT_PER_CPU_VAR(gdt_page)
+ 
+-ENTRY(phys_base)
+-	/* This must match the first entry in level2_kernel_pgt */
+-	.quad   0x0000000000000000
++/* This must match the first entry in level2_kernel_pgt */
++SYM_DATA(phys_base, .quad 0x0000000000000000)
+ EXPORT_SYMBOL(phys_base)
+ 
+ #include "../../x86/xen/xen-head.S"
+-- 
+2.22.0
