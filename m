@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.suse.de ([195.135.220.15]:47594 "EHLO mx1.suse.de"
+Received: from mx2.suse.de ([195.135.220.15]:47422 "EHLO mx1.suse.de"
         rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S2403801AbfHHKjF (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 8 Aug 2019 06:39:05 -0400
+        id S2403797AbfHHKjE (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 8 Aug 2019 06:39:04 -0400
 From: Jiri Slaby <jslaby@suse.cz>
-Subject: [PATCH v8 10/28] x86/asm/entry: annotate interrupt symbols properly
-Date: Thu,  8 Aug 2019 12:38:36 +0200
-Message-ID: <20190808103854.6192-11-jslaby@suse.cz>
+Subject: [PATCH v8 09/28] x86/asm: annotate aliases
+Date: Thu,  8 Aug 2019 12:38:35 +0200
+Message-ID: <20190808103854.6192-10-jslaby@suse.cz>
 In-Reply-To: <20190808103854.6192-1-jslaby@suse.cz>
 References: <20190808103854.6192-1-jslaby@suse.cz>
 MIME-Version: 1.0
@@ -14,201 +14,144 @@ Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: bp@alien8.de
-Cc: tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Jiri Slaby <jslaby@suse.cz>
-Message-ID: <20190808103836.urivI33qIfsf56KXVJubUhvd-tKYXWHcftdvoW7f2oQ@z>
+Cc: tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Jiri Slaby <jslaby@suse.cz>, Herbert Xu <herbert@gondor.apana.org.au>, "David S. Miller" <davem@davemloft.net>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, Juergen Gross <jgross@suse.com>, linux-crypto@vger.kernel.org, xen-devel@lists.xenproject.org
+Message-ID: <20190808103835.2KFOm9iFQivYureeHfaqbVi90-93_8RZiO-pmeCwVSE@z>
 
-* annotate functions properly by SYM_CODE_START, SYM_CODE_START_LOCAL*
-  and SYM_CODE_END -- these are not C-like functions, so we have to
-  annotate them using CODE.
-* use SYM_INNER_LABEL* for labels being in the middle of other functions
-
-[v4] alignments preserved
+_key_expansion_128 is an alias to _key_expansion_256a, __memcpy to
+memcpy, xen_syscall32_target to xen_sysenter_target, and so on. Annotate
+them all using the new SYM_FUNC_START_ALIAS, SYM_FUNC_START_LOCAL_ALIAS,
+and SYM_FUNC_END_ALIAS. This will make the tools generating the
+debuginfo happy.
 
 Signed-off-by: Jiri Slaby <jslaby@suse.cz>
+Cc: Herbert Xu <herbert@gondor.apana.org.au>
+Cc: "David S. Miller" <davem@davemloft.net>
 Cc: Thomas Gleixner <tglx@linutronix.de>
 Cc: Ingo Molnar <mingo@redhat.com>
 Cc: "H. Peter Anvin" <hpa@zytor.com>
 Cc: <x86@kernel.org>
+Cc: Boris Ostrovsky <boris.ostrovsky@oracle.com>
+Cc: Juergen Gross <jgross@suse.com>
+Reviewed-by: Juergen Gross <jgross@suse.com> [xen parts]
+Cc: <linux-crypto@vger.kernel.org>
+Cc: <xen-devel@lists.xenproject.org>
 ---
- arch/x86/entry/entry_32.S | 28 ++++++++++++++--------------
- arch/x86/entry/entry_64.S | 13 ++++++-------
- 2 files changed, 20 insertions(+), 21 deletions(-)
+ arch/x86/crypto/aesni-intel_asm.S | 5 ++---
+ arch/x86/lib/memcpy_64.S          | 4 ++--
+ arch/x86/lib/memmove_64.S         | 4 ++--
+ arch/x86/lib/memset_64.S          | 4 ++--
+ arch/x86/xen/xen-asm_64.S         | 4 ++--
+ 5 files changed, 10 insertions(+), 11 deletions(-)
 
-diff --git a/arch/x86/entry/entry_32.S b/arch/x86/entry/entry_32.S
-index f83ca5aa8b77..f37ff583cecb 100644
---- a/arch/x86/entry/entry_32.S
-+++ b/arch/x86/entry/entry_32.S
-@@ -807,8 +807,7 @@ END(ret_from_fork)
+diff --git a/arch/x86/crypto/aesni-intel_asm.S b/arch/x86/crypto/aesni-intel_asm.S
+index e0a5fb462a0a..9d8d5f2296e1 100644
+--- a/arch/x86/crypto/aesni-intel_asm.S
++++ b/arch/x86/crypto/aesni-intel_asm.S
+@@ -1757,8 +1757,7 @@ ENDPROC(aesni_gcm_finalize)
+ #endif
+ 
+ 
+-.align 4
+-_key_expansion_128:
++SYM_FUNC_START_LOCAL_ALIAS(_key_expansion_128)
+ SYM_FUNC_START_LOCAL(_key_expansion_256a)
+ 	pshufd $0b11111111, %xmm1, %xmm1
+ 	shufps $0b00010000, %xmm0, %xmm4
+@@ -1769,8 +1768,8 @@ SYM_FUNC_START_LOCAL(_key_expansion_256a)
+ 	movaps %xmm0, (TKEYP)
+ 	add $0x10, TKEYP
+ 	ret
+-ENDPROC(_key_expansion_128)
+ SYM_FUNC_END(_key_expansion_256a)
++SYM_FUNC_END_ALIAS(_key_expansion_128)
+ 
+ SYM_FUNC_START_LOCAL(_key_expansion_192a)
+ 	pshufd $0b01010101, %xmm1, %xmm1
+diff --git a/arch/x86/lib/memcpy_64.S b/arch/x86/lib/memcpy_64.S
+index 92748660ba51..57a64266ba69 100644
+--- a/arch/x86/lib/memcpy_64.S
++++ b/arch/x86/lib/memcpy_64.S
+@@ -28,7 +28,7 @@
+  * Output:
+  * rax original destination
   */
+-ENTRY(__memcpy)
++SYM_FUNC_START_ALIAS(__memcpy)
+ ENTRY(memcpy)
+ 	ALTERNATIVE_2 "jmp memcpy_orig", "", X86_FEATURE_REP_GOOD, \
+ 		      "jmp memcpy_erms", X86_FEATURE_ERMS
+@@ -42,7 +42,7 @@ ENTRY(memcpy)
+ 	rep movsb
+ 	ret
+ ENDPROC(memcpy)
+-ENDPROC(__memcpy)
++SYM_FUNC_END_ALIAS(__memcpy)
+ EXPORT_SYMBOL(memcpy)
+ EXPORT_SYMBOL(__memcpy)
  
- 	# userspace resumption stub bypassing syscall exit tracing
--	ALIGN
--ret_from_exception:
-+SYM_CODE_START_LOCAL(ret_from_exception)
- 	preempt_stop(CLBR_ANY)
- ret_from_intr:
- #ifdef CONFIG_VM86
-@@ -825,13 +824,13 @@ ret_from_intr:
- 	cmpl	$USER_RPL, %eax
- 	jb	restore_all_kernel		# not returning to v8086 or userspace
- 
--ENTRY(resume_userspace)
-+SYM_INNER_LABEL_ALIGN(resume_userspace, SYM_L_LOCAL)
- 	DISABLE_INTERRUPTS(CLBR_ANY)
- 	TRACE_IRQS_OFF
- 	movl	%esp, %eax
- 	call	prepare_exit_to_usermode
- 	jmp	restore_all
--END(ret_from_exception)
-+SYM_CODE_END(ret_from_exception)
- 
- GLOBAL(__begin_SYSENTER_singlestep_region)
- /*
-@@ -1100,7 +1099,7 @@ restore_all_kernel:
- 	jmp	.Lirq_return
- 
- .section .fixup, "ax"
--ENTRY(iret_exc	)
-+SYM_CODE_START(iret_exc)
- 	pushl	$0				# no error code
- 	pushl	$do_iret_error
- 
-@@ -1117,6 +1116,7 @@ ENTRY(iret_exc	)
- #endif
- 
- 	jmp	common_exception
-+SYM_CODE_END(iret_exc)
- .previous
- 	_ASM_EXTABLE(.Lirq_return, iret_exc)
- ENDPROC(entry_INT80_32)
-@@ -1182,7 +1182,7 @@ ENTRY(spurious_entries_start)
-     .endr
- END(spurious_entries_start)
- 
--common_spurious:
-+SYM_CODE_START_LOCAL(common_spurious)
- 	ASM_CLAC
- 	addl	$-0x80, (%esp)			/* Adjust vector into the [-256, -1] range */
- 	SAVE_ALL switch_stacks=1
-@@ -1191,7 +1191,7 @@ common_spurious:
- 	movl	%esp, %eax
- 	call	smp_spurious_interrupt
- 	jmp	ret_from_intr
--ENDPROC(common_spurious)
-+SYM_CODE_END(common_spurious)
- #endif
- 
- /*
-@@ -1199,7 +1199,7 @@ ENDPROC(common_spurious)
-  * so IRQ-flags tracing has to follow that:
+diff --git a/arch/x86/lib/memmove_64.S b/arch/x86/lib/memmove_64.S
+index bbec69d8223b..50c1648311b3 100644
+--- a/arch/x86/lib/memmove_64.S
++++ b/arch/x86/lib/memmove_64.S
+@@ -26,7 +26,7 @@
   */
- 	.p2align CONFIG_X86_L1_CACHE_SHIFT
--common_interrupt:
-+SYM_CODE_START_LOCAL(common_interrupt)
- 	ASM_CLAC
- 	addl	$-0x80, (%esp)			/* Adjust vector into the [-256, -1] range */
+ .weak memmove
  
-@@ -1209,7 +1209,7 @@ common_interrupt:
- 	movl	%esp, %eax
- 	call	do_IRQ
- 	jmp	ret_from_intr
--ENDPROC(common_interrupt)
-+SYM_CODE_END(common_interrupt)
+-ENTRY(memmove)
++SYM_FUNC_START_ALIAS(memmove)
+ ENTRY(__memmove)
  
- #define BUILD_INTERRUPT3(name, nr, fn)			\
- ENTRY(name)						\
-@@ -1361,7 +1361,7 @@ ENTRY(xen_hypervisor_callback)
- 
- 	jmp	xen_iret_crit_fixup
- 
--ENTRY(xen_do_upcall)
-+SYM_INNER_LABEL_ALIGN(xen_do_upcall, SYM_L_GLOBAL)
- 1:	mov	%esp, %eax
- 	call	xen_evtchn_do_upcall
- #ifndef CONFIG_PREEMPTION
-@@ -1447,7 +1447,7 @@ ENTRY(page_fault)
- 	jmp	common_exception_read_cr2
- END(page_fault)
- 
--common_exception_read_cr2:
-+SYM_CODE_START_LOCAL_NOALIGN(common_exception_read_cr2)
- 	/* the function address is in %gs's slot on the stack */
- 	SAVE_ALL switch_stacks=1 skip_gs=1
- 
-@@ -1470,9 +1470,9 @@ common_exception_read_cr2:
- 	movl	%esp, %eax			# pt_regs pointer
- 	CALL_NOSPEC %edi
- 	jmp	ret_from_exception
--END(common_exception_read_cr2)
-+SYM_CODE_END(common_exception_read_cr2)
- 
--common_exception:
-+SYM_CODE_START_LOCAL_NOALIGN(common_exception)
- 	/* the function address is in %gs's slot on the stack */
- 	SAVE_ALL switch_stacks=1 skip_gs=1
- 	ENCODE_FRAME_POINTER
-@@ -1492,7 +1492,7 @@ common_exception:
- 	movl	%esp, %eax			# pt_regs pointer
- 	CALL_NOSPEC %edi
- 	jmp	ret_from_exception
--END(common_exception)
-+SYM_CODE_END(common_exception)
- 
- ENTRY(debug)
- 	/*
-diff --git a/arch/x86/entry/entry_64.S b/arch/x86/entry/entry_64.S
-index 68cb3a9ee65e..6c382ccbdeb5 100644
---- a/arch/x86/entry/entry_64.S
-+++ b/arch/x86/entry/entry_64.S
-@@ -587,18 +587,18 @@ _ASM_NOKPROBE(interrupt_entry)
-  * The interrupt stubs push (~vector+0x80) onto the stack and
-  * then jump to common_spurious/interrupt.
+ 	/* Handle more 32 bytes in loop */
+@@ -208,6 +208,6 @@ ENTRY(__memmove)
+ 13:
+ 	retq
+ ENDPROC(__memmove)
+-ENDPROC(memmove)
++SYM_FUNC_END_ALIAS(memmove)
+ EXPORT_SYMBOL(__memmove)
+ EXPORT_SYMBOL(memmove)
+diff --git a/arch/x86/lib/memset_64.S b/arch/x86/lib/memset_64.S
+index 9bc861c71e75..927ac44d34aa 100644
+--- a/arch/x86/lib/memset_64.S
++++ b/arch/x86/lib/memset_64.S
+@@ -19,7 +19,7 @@
+  *
+  * rax   original destination
   */
--common_spurious:
-+SYM_CODE_START_LOCAL(common_spurious)
- 	addq	$-0x80, (%rsp)			/* Adjust vector to [-256, -1] range */
- 	call	interrupt_entry
- 	UNWIND_HINT_REGS indirect=1
- 	call	smp_spurious_interrupt		/* rdi points to pt_regs */
- 	jmp	ret_from_intr
--END(common_spurious)
-+SYM_CODE_END(common_spurious)
- _ASM_NOKPROBE(common_spurious)
- 
- /* common_interrupt is a hotpath. Align it */
- 	.p2align CONFIG_X86_L1_CACHE_SHIFT
--common_interrupt:
-+SYM_CODE_START_LOCAL(common_interrupt)
- 	addq	$-0x80, (%rsp)			/* Adjust vector to [-256, -1] range */
- 	call	interrupt_entry
- 	UNWIND_HINT_REGS indirect=1
-@@ -693,7 +693,7 @@ GLOBAL(restore_regs_and_return_to_kernel)
- 	 */
- 	INTERRUPT_RETURN
- 
--ENTRY(native_iret)
-+SYM_INNER_LABEL_ALIGN(native_iret, SYM_L_GLOBAL)
- 	UNWIND_HINT_IRET_REGS
+-ENTRY(memset)
++SYM_FUNC_START_ALIAS(memset)
+ ENTRY(__memset)
  	/*
- 	 * Are we returning to a stack segment from the LDT?  Note: in
-@@ -704,8 +704,7 @@ ENTRY(native_iret)
- 	jnz	native_irq_return_ldt
- #endif
+ 	 * Some CPUs support enhanced REP MOVSB/STOSB feature. It is recommended
+@@ -43,8 +43,8 @@ ENTRY(__memset)
+ 	rep stosb
+ 	movq %r9,%rax
+ 	ret
+-ENDPROC(memset)
+ ENDPROC(__memset)
++SYM_FUNC_END_ALIAS(memset)
+ EXPORT_SYMBOL(memset)
+ EXPORT_SYMBOL(__memset)
  
--.global native_irq_return_iret
--native_irq_return_iret:
-+SYM_INNER_LABEL(native_irq_return_iret, SYM_L_GLOBAL)
- 	/*
- 	 * This may fault.  Non-paranoid faults on return to userspace are
- 	 * handled by fixup_bad_iret.  These include #SS, #GP, and #NP.
-@@ -787,7 +786,7 @@ native_irq_return_ldt:
- 	 */
- 	jmp	native_irq_return_iret
- #endif
--END(common_interrupt)
-+SYM_CODE_END(common_interrupt)
- _ASM_NOKPROBE(common_interrupt)
+diff --git a/arch/x86/xen/xen-asm_64.S b/arch/x86/xen/xen-asm_64.S
+index ebf610b49c06..45c1249f370d 100644
+--- a/arch/x86/xen/xen-asm_64.S
++++ b/arch/x86/xen/xen-asm_64.S
+@@ -167,13 +167,13 @@ ENDPROC(xen_sysenter_target)
  
- /*
+ #else /* !CONFIG_IA32_EMULATION */
+ 
+-ENTRY(xen_syscall32_target)
++SYM_FUNC_START_ALIAS(xen_syscall32_target)
+ ENTRY(xen_sysenter_target)
+ 	lea 16(%rsp), %rsp	/* strip %rcx, %r11 */
+ 	mov $-ENOSYS, %rax
+ 	pushq $0
+ 	jmp hypercall_iret
+-ENDPROC(xen_syscall32_target)
+ ENDPROC(xen_sysenter_target)
++SYM_FUNC_END_ALIAS(xen_syscall32_target)
+ 
+ #endif	/* CONFIG_IA32_EMULATION */
 -- 
 2.22.0
