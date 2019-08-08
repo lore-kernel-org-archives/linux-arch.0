@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.suse.de ([195.135.220.15]:47422 "EHLO mx1.suse.de"
+Received: from mx2.suse.de ([195.135.220.15]:47994 "EHLO mx1.suse.de"
         rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S2403845AbfHHKjJ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 8 Aug 2019 06:39:09 -0400
+        id S2403911AbfHHKjR (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 8 Aug 2019 06:39:17 -0400
 From: Jiri Slaby <jslaby@suse.cz>
-Subject: [PATCH v8 17/28] x86/asm: use SYM_INNER_LABEL instead of GLOBAL
-Date: Thu,  8 Aug 2019 12:38:43 +0200
-Message-ID: <20190808103854.6192-18-jslaby@suse.cz>
+Subject: [PATCH v8 28/28] x86/asm: replace WEAK uses by SYM_INNER_LABEL_ALIGN
+Date: Thu,  8 Aug 2019 12:38:54 +0200
+Message-ID: <20190808103854.6192-29-jslaby@suse.cz>
 In-Reply-To: <20190808103854.6192-1-jslaby@suse.cz>
 References: <20190808103854.6192-1-jslaby@suse.cz>
 MIME-Version: 1.0
@@ -14,200 +14,84 @@ Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: bp@alien8.de
-Cc: tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Jiri Slaby <jslaby@suse.cz>, Andy Lutomirski <luto@amacapital.net>
-Message-ID: <20190808103843.qg0ynBajWrDS05-gMLK8jU7c9W0wuV-psyZY4tJVQSc@z>
+Cc: tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Jiri Slaby <jslaby@suse.cz>
+Message-ID: <20190808103854.eBoi3LBB1sal7jLKBkPiW35cstzNkhWUK6mR-mWa_V0@z>
 
-GLOBAL had several meanings and is going away. In this patch, convert
-all the inner function labels marked with GLOBAL to use SYM_INNER_LABEL
-instead.
+Use the new SYM_INNER_LABEL_ALIGN for WEAK entries in the middle of x86
+assembly functions.
 
-Note that retint_user needs not be global, perhaps since commit
-2ec67971facc ("x86/entry/64/compat: Remove most of the fast system call
-machinery"), where entry_64_compat's caller was removed. So mark the
-label as LOCAL.
+And make sure WEAK is not defined for x86 anymore as these were the last
+users.
 
 Signed-off-by: Jiri Slaby <jslaby@suse.cz>
 Cc: Thomas Gleixner <tglx@linutronix.de>
 Cc: Ingo Molnar <mingo@redhat.com>
 Cc: "H. Peter Anvin" <hpa@zytor.com>
 Cc: x86@kernel.org
-Cc: Andy Lutomirski <luto@amacapital.net>
 ---
- arch/x86/entry/entry_64.S                |  8 ++++----
- arch/x86/entry/entry_64_compat.S         |  4 ++--
- arch/x86/entry/vdso/vdso32/system_call.S |  2 +-
- arch/x86/kernel/ftrace_32.S              |  2 +-
- arch/x86/kernel/ftrace_64.S              | 16 ++++++++--------
- arch/x86/realmode/rm/reboot.S            |  2 +-
- 6 files changed, 17 insertions(+), 17 deletions(-)
+ arch/x86/kernel/ftrace_32.S | 2 +-
+ arch/x86/kernel/ftrace_64.S | 2 +-
+ arch/x86/kernel/head_32.S   | 2 +-
+ include/linux/linkage.h     | 2 +-
+ 4 files changed, 4 insertions(+), 4 deletions(-)
 
-diff --git a/arch/x86/entry/entry_64.S b/arch/x86/entry/entry_64.S
-index 6c382ccbdeb5..50c19edbf639 100644
---- a/arch/x86/entry/entry_64.S
-+++ b/arch/x86/entry/entry_64.S
-@@ -162,7 +162,7 @@ ENTRY(entry_SYSCALL_64)
- 	pushq	%r11					/* pt_regs->flags */
- 	pushq	$__USER_CS				/* pt_regs->cs */
- 	pushq	%rcx					/* pt_regs->ip */
--GLOBAL(entry_SYSCALL_64_after_hwframe)
-+SYM_INNER_LABEL(entry_SYSCALL_64_after_hwframe, SYM_L_GLOBAL)
- 	pushq	%rax					/* pt_regs->orig_ax */
- 
- 	PUSH_AND_CLEAR_REGS rax=$-ENOSYS
-@@ -614,12 +614,12 @@ ret_from_intr:
- 	jz	retint_kernel
- 
- 	/* Interrupt came from user space */
--GLOBAL(retint_user)
-+SYM_INNER_LABEL(retint_user, SYM_L_LOCAL)
- 	mov	%rsp,%rdi
- 	call	prepare_exit_to_usermode
- 	TRACE_IRQS_IRETQ
- 
--GLOBAL(swapgs_restore_regs_and_return_to_usermode)
-+SYM_INNER_LABEL(swapgs_restore_regs_and_return_to_usermode, SYM_L_GLOBAL)
- #ifdef CONFIG_DEBUG_ENTRY
- 	/* Assert that pt_regs indicates user mode. */
- 	testb	$3, CS(%rsp)
-@@ -677,7 +677,7 @@ retint_kernel:
- 	 */
- 	TRACE_IRQS_IRETQ
- 
--GLOBAL(restore_regs_and_return_to_kernel)
-+SYM_INNER_LABEL(restore_regs_and_return_to_kernel, SYM_L_GLOBAL)
- #ifdef CONFIG_DEBUG_ENTRY
- 	/* Assert that pt_regs indicates kernel mode. */
- 	testb	$3, CS(%rsp)
-diff --git a/arch/x86/entry/entry_64_compat.S b/arch/x86/entry/entry_64_compat.S
-index 39913770a44d..5c7e71669239 100644
---- a/arch/x86/entry/entry_64_compat.S
-+++ b/arch/x86/entry/entry_64_compat.S
-@@ -146,7 +146,7 @@ ENTRY(entry_SYSENTER_compat)
- 	pushq	$X86_EFLAGS_FIXED
- 	popfq
- 	jmp	.Lsysenter_flags_fixed
--GLOBAL(__end_entry_SYSENTER_compat)
-+SYM_INNER_LABEL(__end_entry_SYSENTER_compat, SYM_L_GLOBAL)
- ENDPROC(entry_SYSENTER_compat)
- 
- /*
-@@ -215,7 +215,7 @@ ENTRY(entry_SYSCALL_compat)
- 	pushq	%r11			/* pt_regs->flags */
- 	pushq	$__USER32_CS		/* pt_regs->cs */
- 	pushq	%rcx			/* pt_regs->ip */
--GLOBAL(entry_SYSCALL_compat_after_hwframe)
-+SYM_INNER_LABEL(entry_SYSCALL_compat_after_hwframe, SYM_L_GLOBAL)
- 	movl	%eax, %eax		/* discard orig_ax high bits */
- 	pushq	%rax			/* pt_regs->orig_ax */
- 	pushq	%rdi			/* pt_regs->di */
-diff --git a/arch/x86/entry/vdso/vdso32/system_call.S b/arch/x86/entry/vdso/vdso32/system_call.S
-index 263d7433dea8..de1fff7188aa 100644
---- a/arch/x86/entry/vdso/vdso32/system_call.S
-+++ b/arch/x86/entry/vdso/vdso32/system_call.S
-@@ -62,7 +62,7 @@ __kernel_vsyscall:
- 
- 	/* Enter using int $0x80 */
- 	int	$0x80
--GLOBAL(int80_landing_pad)
-+SYM_INNER_LABEL(int80_landing_pad, SYM_L_GLOBAL)
- 
- 	/*
- 	 * Restore EDX and ECX in case they were clobbered.  EBP is not
 diff --git a/arch/x86/kernel/ftrace_32.S b/arch/x86/kernel/ftrace_32.S
-index 073aab525d80..e0061dc976e1 100644
+index b4f495bbd5a1..8ed1f5d371f0 100644
 --- a/arch/x86/kernel/ftrace_32.S
 +++ b/arch/x86/kernel/ftrace_32.S
-@@ -138,7 +138,7 @@ ENTRY(ftrace_regs_caller)
- 	movl	function_trace_op, %ecx	# 3rd argument: ftrace_pos
- 	pushl	%esp			# 4th argument: pt_regs
+@@ -85,7 +85,7 @@ ftrace_graph_call:
+ #endif
  
--GLOBAL(ftrace_regs_call)
-+SYM_INNER_LABEL(ftrace_regs_call, SYM_L_GLOBAL)
- 	call	ftrace_stub
+ /* This is weak to keep gas from relaxing the jumps */
+-WEAK(ftrace_stub)
++SYM_INNER_LABEL_ALIGN(ftrace_stub, SYM_L_WEAK)
+ 	ret
+ SYM_CODE_END(ftrace_caller)
  
- 	addl	$4, %esp		# skip 4th argument
 diff --git a/arch/x86/kernel/ftrace_64.S b/arch/x86/kernel/ftrace_64.S
-index 809d54397dba..3afaaf555637 100644
+index 16deae706950..69c8d1b9119e 100644
 --- a/arch/x86/kernel/ftrace_64.S
 +++ b/arch/x86/kernel/ftrace_64.S
-@@ -140,14 +140,14 @@ ENTRY(ftrace_caller)
- 	/* save_mcount_regs fills in first two parameters */
- 	save_mcount_regs
- 
--GLOBAL(ftrace_caller_op_ptr)
-+SYM_INNER_LABEL(ftrace_caller_op_ptr, SYM_L_GLOBAL)
- 	/* Load the ftrace_ops into the 3rd parameter */
- 	movq function_trace_op(%rip), %rdx
- 
- 	/* regs go into 4th parameter (but make it NULL) */
- 	movq $0, %rcx
- 
--GLOBAL(ftrace_call)
-+SYM_INNER_LABEL(ftrace_call, SYM_L_GLOBAL)
- 	call ftrace_stub
- 
- 	restore_mcount_regs
-@@ -157,10 +157,10 @@ GLOBAL(ftrace_call)
- 	 * think twice before adding any new code or changing the
- 	 * layout here.
- 	 */
--GLOBAL(ftrace_epilogue)
-+SYM_INNER_LABEL(ftrace_epilogue, SYM_L_GLOBAL)
- 
- #ifdef CONFIG_FUNCTION_GRAPH_TRACER
--GLOBAL(ftrace_graph_call)
-+SYM_INNER_LABEL(ftrace_graph_call, SYM_L_GLOBAL)
- 	jmp ftrace_stub
- #endif
- 
-@@ -180,7 +180,7 @@ ENTRY(ftrace_regs_caller)
- 	save_mcount_regs 8
- 	/* save_mcount_regs fills in first two parameters */
- 
--GLOBAL(ftrace_regs_caller_op_ptr)
-+SYM_INNER_LABEL(ftrace_regs_caller_op_ptr, SYM_L_GLOBAL)
- 	/* Load the ftrace_ops into the 3rd parameter */
- 	movq function_trace_op(%rip), %rdx
- 
-@@ -209,7 +209,7 @@ GLOBAL(ftrace_regs_caller_op_ptr)
- 	/* regs go into 4th parameter */
- 	leaq (%rsp), %rcx
- 
--GLOBAL(ftrace_regs_call)
-+SYM_INNER_LABEL(ftrace_regs_call, SYM_L_GLOBAL)
- 	call ftrace_stub
- 
- 	/* Copy flags back to SS, to restore them */
-@@ -239,7 +239,7 @@ GLOBAL(ftrace_regs_call)
- 	 * The trampoline will add the code to jump
- 	 * to the return.
- 	 */
--GLOBAL(ftrace_regs_caller_end)
-+SYM_INNER_LABEL(ftrace_regs_caller_end, SYM_L_GLOBAL)
- 
- 	jmp ftrace_epilogue
- 
-@@ -261,7 +261,7 @@ fgraph_trace:
- 	jnz ftrace_graph_caller
- #endif
- 
--GLOBAL(ftrace_stub)
-+SYM_INNER_LABEL(ftrace_stub, SYM_L_GLOBAL)
+@@ -168,7 +168,7 @@ SYM_INNER_LABEL(ftrace_graph_call, SYM_L_GLOBAL)
+  * This is weak to keep gas from relaxing the jumps.
+  * It is also used to copy the retq for trampolines.
+  */
+-WEAK(ftrace_stub)
++SYM_INNER_LABEL_ALIGN(ftrace_stub, SYM_L_WEAK)
  	retq
+ SYM_FUNC_END(ftrace_caller)
  
- trace:
-diff --git a/arch/x86/realmode/rm/reboot.S b/arch/x86/realmode/rm/reboot.S
-index cd2f97b9623b..f91425a01f8f 100644
---- a/arch/x86/realmode/rm/reboot.S
-+++ b/arch/x86/realmode/rm/reboot.S
-@@ -33,7 +33,7 @@ ENTRY(machine_real_restart_asm)
- 	movl	%eax, %cr0
- 	ljmpl	$__KERNEL32_CS, $pa_machine_real_restart_paging_off
+diff --git a/arch/x86/kernel/head_32.S b/arch/x86/kernel/head_32.S
+index 0f4961075792..4b2d668afd70 100644
+--- a/arch/x86/kernel/head_32.S
++++ b/arch/x86/kernel/head_32.S
+@@ -156,7 +156,7 @@ SYM_CODE_START(startup_32)
+ 	jmp *%eax
  
--GLOBAL(machine_real_restart_paging_off)
-+SYM_INNER_LABEL(machine_real_restart_paging_off, SYM_L_GLOBAL)
- 	xorl	%eax, %eax
- 	xorl	%edx, %edx
- 	movl	$MSR_EFER, %ecx
+ .Lbad_subarch:
+-WEAK(xen_entry)
++SYM_INNER_LABEL_ALIGN(xen_entry, SYM_L_WEAK)
+ 	/* Unknown implementation; there's really
+ 	   nothing we can do at this point. */
+ 	ud2a
+diff --git a/include/linux/linkage.h b/include/linux/linkage.h
+index 331a2306312c..9280209d1f62 100644
+--- a/include/linux/linkage.h
++++ b/include/linux/linkage.h
+@@ -121,13 +121,13 @@
+ #endif /* CONFIG_X86 */
+ #endif /* LINKER_SCRIPT */
+ 
++#ifndef CONFIG_X86
+ #ifndef WEAK
+ /* deprecated, use SYM_FUNC_START_WEAK* */
+ #define WEAK(name)	   \
+ 	SYM_FUNC_START_WEAK(name)
+ #endif
+ 
+-#ifndef CONFIG_X86
+ #ifndef END
+ /* deprecated, use SYM_FUNC_END, SYM_DATA_END, or SYM_END */
+ #define END(name) \
 -- 
 2.22.0
