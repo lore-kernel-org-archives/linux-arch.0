@@ -1,18 +1,15 @@
 From: Szabolcs Nagy <Szabolcs.Nagy@arm.com>
-Subject: Re: [PATCH v7 1/2] arm64: Define
- Documentation/arm64/tagged-address-abi.rst
-Date: Thu, 8 Aug 2019 09:25:47 +0000
-Message-ID: <48c5f9b3-d253-bede-e755-0aabba2757b5@arm.com>
+Subject: Re: [PATCH v7 0/2] arm64 tagged address ABI
+Date: Thu, 8 Aug 2019 09:32:28 +0000
+Message-ID: <44bc76f2-e782-b3ac-5ba3-39ef59be6fe9@arm.com>
 References: <20190807155321.9648-1-catalin.marinas@arm.com>
- <20190807155321.9648-2-catalin.marinas@arm.com>
- <826a9ace-feac-c019-843e-07e23c9fd46c@intel.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
-In-Reply-To: <826a9ace-feac-c019-843e-07e23c9fd46c@intel.com>
+In-Reply-To: <20190807155321.9648-1-catalin.marinas@arm.com>
 Content-Language: en-US
-Content-ID: <960F9790878B3346A988307D90E92E55@eurprd08.prod.outlook.com>
+Content-ID: <E89EAA9961235F47ADB26CEFBCAEB557@eurprd08.prod.outlook.com>
 List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
  <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
 List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
@@ -22,48 +19,72 @@ List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
  <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
 Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
 Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
-To: Dave Hansen <dave.hansen@intel.com>, Catalin Marinas <Catalin.Marinas@arm.com>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Vincenzo Frascino <Vincenzo.Frascino@arm.com>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, Andrey Konovalov <andreyknvl@google.com>, Kevin Brodsky <Kevin.Brodsky@arm.com>, Will Deacon <Will.Deacon@arm.com>, nd <nd@arm.com>
+To: Catalin Marinas <Catalin.Marinas@arm.com>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Vincenzo Frascino <Vincenzo.Frascino@arm.com>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, Andrey Konovalov <andreyknvl@google.com>, Kevin Brodsky <Kevin.Brodsky@arm.com>, Will Deacon <Will.Deacon@arm.com>, Dave Hansen <dave.hansen@intel.com>, nd <nd@arm.com>
 List-Id: linux-arch.vger.kernel.org
 
-On 07/08/2019 21:38, Dave Hansen wrote:
-> On 8/7/19 8:53 AM, Catalin Marinas wrote:
->> +- The syscall behaviour is undefined for non valid tagged pointers.
+On 07/08/2019 16:53, Catalin Marinas wrote:
+> Hi,
 > 
-> Do you really mean "undefined"?  I mean, a bad pointer is a bad pointer.
->  Why should it matter if it's a tagged bad pointer or an untagged bad
-> pointer?
-
-bad pointers are invalid, but some non-bad pointers are
-also invalid if they are tagged (e.g. tagged pointer to
-device memory?) those may be valid to dereference in
-userspace but don't work across the syscall abi (device
-driver does not handle the tag?).
-
->> +- mmap() addr parameter.
->> +
->> +- mremap() new_address parameter.
+> Thanks for the feedback so far. This is an updated series documenting
+> the AArch64 Tagged Address ABI as implemented by these patches:
 > 
-> Is munmap() missing?  Or was there a reason for leaving it out?
-
-the new address in mmap and mremap may not be currently
-mapped, other m* functions operate on existing mappings
-(munmap, madvise, mprotect, mlock,...)
-
-although by this logic brk (and related PR_SET_MM_*)
-should be excluded here too.
-
->> +- prctl(PR_SET_MM, ``*``, ...) other than arg2 PR_SET_MM_MAP and
->> +  PR_SET_MM_MAP_SIZE.
->> +
->> +- prctl(PR_SET_MM, PR_SET_MM_MAP{,_SIZE}, ...) struct prctl_mm_map fields.
->> +
->> +Any attempt to use non-zero tagged pointers will lead to undefined
->> +behaviour.
+> http://lkml.kernel.org/r/cover.1563904656.git.andreyknvl@google.com
 > 
-> I wonder if you want to generalize this a bit.  I think you're saying
-> that parts of the ABI that modify the *layout* of the address space
-> never accept tagged pointers.
+> Version 6 of the documentation series is available here:
+> 
+> http://lkml.kernel.org/r/20190725135044.24381-1-vincenzo.frascino@arm.com
+> 
+> Changes in v7:
+> 
+> - Dropped the MAP_PRIVATE requirements for tagged pointers for both
+>   anonymous and file mappings. One reason is that we can't enforce such
+>   restriction anyway. The other reason is that a future series
+>   implementing support for the hardware MTE will detect
+>   incompatibilities of the new PROT_MTE flag with various mmap()
+>   options.
 
-something like that, but i think this is hard to specify
-in a generic way.
+OK.
+
+> - As a consequence of the above, I removed Szabolcs ack as I'm not sure
+>   he's ok with the change.
+> 
+> - Clarified the sysctl and prctl() interaction and reordered the
+>   descriptions.
+> 
+> - Reworded the prctl(PR_SET_MM) restrictions.
+> 
+> - Removed the description of the tag preservation from the first patch
+>   as it didn't really make sense (the syscall ABI has always preserved
+>   all registers other than x0 on return to user).
+
+preservation is more interesting when a user pointer
+is passed to the kernel and later it is passed back
+to user space (e.g. set/get_robust_list, or sigaction
+where old handler pointer is returned), then the
+kernel may want to drop the tag to do something with
+the pointer, but user space may want it to be preserved.
+
+in principle segfault si_addr is a similar case when
+memory access via tagged pointer faults: currently
+the kernel does not preserve the tag.
+
+so i think it's interesting to know when exactly the
+kernel preserves the tags, but it may not be easy to
+document in a generic way.
+
+> 
+> - s/ARM64/AArch64/ for consistency with the tagged-pointers.rst
+>   document.
+> 
+> - Other minor rewordings.
+> 
+> Vincenzo Frascino (2):
+>   arm64: Define Documentation/arm64/tagged-address-abi.rst
+>   arm64: Relax Documentation/arm64/tagged-pointers.rst
+> 
+>  Documentation/arm64/tagged-address-abi.rst | 151 +++++++++++++++++++++
+>  Documentation/arm64/tagged-pointers.rst    |  23 +++-
+>  2 files changed, 167 insertions(+), 7 deletions(-)
+>  create mode 100644 Documentation/arm64/tagged-address-abi.rst
+> 
