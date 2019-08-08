@@ -1,154 +1,49 @@
-From: Jiri Slaby <jslaby@suse.cz>
-Subject: [PATCH v8 03/28] x86/asm: annotate relocate_kernel
-Date: Thu,  8 Aug 2019 12:38:29 +0200
-Message-ID: <20190808103854.6192-4-jslaby@suse.cz>
-References: <20190808103854.6192-1-jslaby@suse.cz>
+From: Szabolcs Nagy <Szabolcs.Nagy@arm.com>
+Subject: Re: [PATCH v7 1/2] arm64: Define
+ Documentation/arm64/tagged-address-abi.rst
+Date: Thu, 8 Aug 2019 16:20:51 +0000
+Message-ID: <d487294a-43b0-45ca-93ea-dcff1c2b022a@arm.com>
+References: <20190807155321.9648-1-catalin.marinas@arm.com>
+ <20190807155321.9648-2-catalin.marinas@arm.com>
+ <826a9ace-feac-c019-843e-07e23c9fd46c@intel.com>
 Mime-Version: 1.0
-Content-Transfer-Encoding: 8bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20190808103854.6192-1-jslaby@suse.cz>
-Sender: linux-kernel-owner@vger.kernel.org
-To: bp@alien8.de
-Cc: tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Jiri Slaby <jslaby@suse.cz>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+In-Reply-To: <826a9ace-feac-c019-843e-07e23c9fd46c@intel.com>
+Content-Language: en-US
+Content-ID: <F8DD9C09E60D9E4589E7C3CCF10A847A@eurprd08.prod.outlook.com>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+To: Dave Hansen <dave.hansen@intel.com>, Catalin Marinas <Catalin.Marinas@arm.com>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Vincenzo Frascino <Vincenzo.Frascino@arm.com>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, Andrey Konovalov <andreyknvl@google.com>, Kevin Brodsky <Kevin.Brodsky@arm.com>, Will Deacon <Will.Deacon@arm.com>, nd <nd@arm.com>
 List-Id: linux-arch.vger.kernel.org
 
-There are functions in relocate_kernel which are not annotated. This
-makes automatic annotations rather hard. So annotate all the functions
-now.
+On 07/08/2019 21:38, Dave Hansen wrote:
+> On 8/7/19 8:53 AM, Catalin Marinas wrote:
+>> +- mmap() done by the process itself (or its parent), where either:
+>> +
+>> +  - flags have the **MAP_ANONYMOUS** bit set
+>> +  - the file descriptor refers to a regular file (including those returned
+>> +    by memfd_create()) or **/dev/zero**
+> 
+> What's a "regular file"? ;)
 
-Note that these are not C-like functions, so we do not use FUNC, but
-CODE markers. Also they are not aligned, so we use the NOALIGN versions:
-- SYM_CODE_START_NOALIGN
-- SYM_CODE_START_LOCAL_NOALIGN
-- SYM_CODE_END
+i'd expect the posix definition.
 
-In return, we get:
-  0000   108 NOTYPE  GLOBAL DEFAULT    1 relocate_kernel
-  006c   165 NOTYPE  LOCAL  DEFAULT    1 identity_mapped
-  0146   127 NOTYPE  LOCAL  DEFAULT    1 swap_pages
-  0111    53 NOTYPE  LOCAL  DEFAULT    1 virtual_mapped
+in posix "File types include regular file, character
+special file, block special file, FIFO special file,
+symbolic link, socket, and directory. Other types of
+files may be supported by the implementation."
 
-Signed-off-by: Jiri Slaby <jslaby@suse.cz>
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: Ingo Molnar <mingo@redhat.com>
-Cc: "H. Peter Anvin" <hpa@zytor.com>
-Cc: x86@kernel.org
----
- arch/x86/kernel/relocate_kernel_32.S | 13 ++++++++-----
- arch/x86/kernel/relocate_kernel_64.S | 13 ++++++++-----
- 2 files changed, 16 insertions(+), 10 deletions(-)
-
-diff --git a/arch/x86/kernel/relocate_kernel_32.S b/arch/x86/kernel/relocate_kernel_32.S
-index ee26df08002e..94b33885f8d2 100644
---- a/arch/x86/kernel/relocate_kernel_32.S
-+++ b/arch/x86/kernel/relocate_kernel_32.S
-@@ -35,8 +35,7 @@
- #define CP_PA_BACKUP_PAGES_MAP	DATA(0x1c)
- 
- 	.text
--	.globl relocate_kernel
--relocate_kernel:
-+SYM_CODE_START_NOALIGN(relocate_kernel)
- 	/* Save the CPU context, used for jumping back */
- 
- 	pushl	%ebx
-@@ -93,8 +92,9 @@ relocate_kernel:
- 	addl    $(identity_mapped - relocate_kernel), %eax
- 	pushl   %eax
- 	ret
-+SYM_CODE_END(relocate_kernel)
- 
--identity_mapped:
-+SYM_CODE_START_LOCAL_NOALIGN(identity_mapped)
- 	/* set return address to 0 if not preserving context */
- 	pushl	$0
- 	/* store the start address on the stack */
-@@ -191,8 +191,9 @@ identity_mapped:
- 	addl	$(virtual_mapped - relocate_kernel), %eax
- 	pushl	%eax
- 	ret
-+SYM_CODE_END(identity_mapped)
- 
--virtual_mapped:
-+SYM_CODE_START_LOCAL_NOALIGN(virtual_mapped)
- 	movl	CR4(%edi), %eax
- 	movl	%eax, %cr4
- 	movl	CR3(%edi), %eax
-@@ -208,9 +209,10 @@ virtual_mapped:
- 	popl	%esi
- 	popl	%ebx
- 	ret
-+SYM_CODE_END(virtual_mapped)
- 
- 	/* Do the copies */
--swap_pages:
-+SYM_CODE_START_LOCAL_NOALIGN(swap_pages)
- 	movl	8(%esp), %edx
- 	movl	4(%esp), %ecx
- 	pushl	%ebp
-@@ -270,6 +272,7 @@ swap_pages:
- 	popl	%ebx
- 	popl	%ebp
- 	ret
-+SYM_CODE_END(swap_pages)
- 
- 	.globl kexec_control_code_size
- .set kexec_control_code_size, . - relocate_kernel
-diff --git a/arch/x86/kernel/relocate_kernel_64.S b/arch/x86/kernel/relocate_kernel_64.S
-index c51ccff5cd01..ef3ba99068d3 100644
---- a/arch/x86/kernel/relocate_kernel_64.S
-+++ b/arch/x86/kernel/relocate_kernel_64.S
-@@ -38,8 +38,7 @@
- 	.text
- 	.align PAGE_SIZE
- 	.code64
--	.globl relocate_kernel
--relocate_kernel:
-+SYM_CODE_START_NOALIGN(relocate_kernel)
- 	/*
- 	 * %rdi indirection_page
- 	 * %rsi page_list
-@@ -103,8 +102,9 @@ relocate_kernel:
- 	addq	$(identity_mapped - relocate_kernel), %r8
- 	pushq	%r8
- 	ret
-+SYM_CODE_END(relocate_kernel)
- 
--identity_mapped:
-+SYM_CODE_START_LOCAL_NOALIGN(identity_mapped)
- 	/* set return address to 0 if not preserving context */
- 	pushq	$0
- 	/* store the start address on the stack */
-@@ -209,8 +209,9 @@ identity_mapped:
- 	movq	$virtual_mapped, %rax
- 	pushq	%rax
- 	ret
-+SYM_CODE_END(identity_mapped)
- 
--virtual_mapped:
-+SYM_CODE_START_LOCAL_NOALIGN(virtual_mapped)
- 	movq	RSP(%r8), %rsp
- 	movq	CR4(%r8), %rax
- 	movq	%rax, %cr4
-@@ -228,9 +229,10 @@ virtual_mapped:
- 	popq	%rbp
- 	popq	%rbx
- 	ret
-+SYM_CODE_END(virtual_mapped)
- 
- 	/* Do the copies */
--swap_pages:
-+SYM_CODE_START_LOCAL_NOALIGN(swap_pages)
- 	movq	%rdi, %rcx 	/* Put the page_list in %rcx */
- 	xorl	%edi, %edi
- 	xorl	%esi, %esi
-@@ -283,6 +285,7 @@ swap_pages:
- 	jmp	0b
- 3:
- 	ret
-+SYM_CODE_END(swap_pages)
- 
- 	.globl kexec_control_code_size
- .set kexec_control_code_size, . - relocate_kernel
--- 
-2.22.0
+where regular file is "A file that is a randomly
+accessible sequence of bytes, with no further
+structure imposed by the system."
+http://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap03.html#tag_03_323
