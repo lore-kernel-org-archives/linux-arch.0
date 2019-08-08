@@ -1,45 +1,53 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-yw1-f67.google.com ([209.85.161.67]:43040 "EHLO
-        mail-yw1-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1731427AbfHHJJ1 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 8 Aug 2019 05:09:27 -0400
-Received: by mail-yw1-f67.google.com with SMTP id n205so33712480ywb.10
-        for <linux-arch@vger.kernel.org>; Thu, 08 Aug 2019 02:09:26 -0700 (PDT)
-Date: Thu, 8 Aug 2019 17:09:13 +0800
-From: Leo Yan <leo.yan@linaro.org>
-Subject: Re: [PATCH v2 0/3] arm/arm64: Add support for function error
- injection
-Message-ID: <20190808090913.GD8313@leoy-ThinkPad-X240s>
-References: <20190806100015.11256-1-leo.yan@linaro.org>
- <20190807160703.pe4jxak7hs7ptvde@willie-the-truck>
+Received: from mail-eopbgr20078.outbound.protection.outlook.com ([40.107.2.78]:63109
+        "EHLO EUR02-VE1-obe.outbound.protection.outlook.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1730678AbfHHJ1p (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 8 Aug 2019 05:27:45 -0400
+From: Szabolcs Nagy <Szabolcs.Nagy@arm.com>
+Subject: Re: [PATCH v7 1/2] arm64: Define
+ Documentation/arm64/tagged-address-abi.rst
+Date: Thu, 8 Aug 2019 09:25:47 +0000
+Message-ID: <48c5f9b3-d253-bede-e755-0aabba2757b5@arm.com>
+References: <20190807155321.9648-1-catalin.marinas@arm.com>
+ <20190807155321.9648-2-catalin.marinas@arm.com>
+ <826a9ace-feac-c019-843e-07e23c9fd46c@intel.com>
+In-Reply-To: <826a9ace-feac-c019-843e-07e23c9fd46c@intel.com>
+Content-Language: en-US
+Content-Type: text/plain; charset="utf-8"
+Content-ID: <960F9790878B3346A988307D90E92E55@eurprd08.prod.outlook.com>
+Content-Transfer-Encoding: base64
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20190807160703.pe4jxak7hs7ptvde@willie-the-truck>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will@kernel.org>
-Cc: Russell King <linux@armlinux.org.uk>, Oleg Nesterov <oleg@redhat.com>, Catalin Marinas <catalin.marinas@arm.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, Alexei Starovoitov <ast@kernel.org>, Daniel Borkmann <daniel@iogearbox.net>, Martin KaFai Lau <kafai@fb.com>, Song Liu <songliubraving@fb.com>, Yonghong Song <yhs@fb.com>, "Naveen N. Rao" <naveen.n.rao@linux.vnet.ibm.com>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-arch@vger.kernel.org, netdev@vger.kernel.org, bpf@vger.kernel.org, clang-built-linux@googlegroups.com, Masami Hiramatsu <mhiramat@kernel.org>
-Message-ID: <20190808090913.C80pEjxegrqSHK889JgV1iDaXZFkGangjNI7JylegAU@z>
+To: Dave Hansen <dave.hansen@intel.com>, Catalin Marinas <Catalin.Marinas@arm.com>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
+Cc: nd <nd@arm.com>, Vincenzo Frascino <Vincenzo.Frascino@arm.com>, Will Deacon <Will.Deacon@arm.com>, Andrey Konovalov <andreyknvl@google.com>, Kevin Brodsky <Kevin.Brodsky@arm.com>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+Message-ID: <20190808092547.Q0FXHhGkxwLAp1r2MWOLVxItVdl_yYkO5duo0v_vScM@z>
 
-On Wed, Aug 07, 2019 at 05:07:03PM +0100, Will Deacon wrote:
-> On Tue, Aug 06, 2019 at 06:00:12PM +0800, Leo Yan wrote:
-> > This small patch set is to add support for function error injection;
-> > this can be used to eanble more advanced debugging feature, e.g.
-> > CONFIG_BPF_KPROBE_OVERRIDE.
-> > 
-> > The patch 01/03 is to consolidate the function definition which can be
-> > suared cross architectures, patches 02,03/03 are used for enabling
-> > function error injection on arm64 and arm architecture respectively.
-> > 
-> > I tested on arm64 platform Juno-r2 and one of my laptop with x86
-> > architecture with below steps; I don't test for Arm architecture so
-> > only pass compilation.
-> 
-> Thanks. I've queued the first two patches up here:
-> 
-> https://git.kernel.org/pub/scm/linux/kernel/git/arm64/linux.git/log/?h=for-next/error-injection
-
-Thank you, Will.
-
-Leo.
+T24gMDcvMDgvMjAxOSAyMTozOCwgRGF2ZSBIYW5zZW4gd3JvdGU6DQo+IE9uIDgvNy8xOSA4OjUz
+IEFNLCBDYXRhbGluIE1hcmluYXMgd3JvdGU6DQo+PiArLSBUaGUgc3lzY2FsbCBiZWhhdmlvdXIg
+aXMgdW5kZWZpbmVkIGZvciBub24gdmFsaWQgdGFnZ2VkIHBvaW50ZXJzLg0KPiANCj4gRG8geW91
+IHJlYWxseSBtZWFuICJ1bmRlZmluZWQiPyAgSSBtZWFuLCBhIGJhZCBwb2ludGVyIGlzIGEgYmFk
+IHBvaW50ZXIuDQo+ICBXaHkgc2hvdWxkIGl0IG1hdHRlciBpZiBpdCdzIGEgdGFnZ2VkIGJhZCBw
+b2ludGVyIG9yIGFuIHVudGFnZ2VkIGJhZA0KPiBwb2ludGVyPw0KDQpiYWQgcG9pbnRlcnMgYXJl
+IGludmFsaWQsIGJ1dCBzb21lIG5vbi1iYWQgcG9pbnRlcnMgYXJlDQphbHNvIGludmFsaWQgaWYg
+dGhleSBhcmUgdGFnZ2VkIChlLmcuIHRhZ2dlZCBwb2ludGVyIHRvDQpkZXZpY2UgbWVtb3J5Pykg
+dGhvc2UgbWF5IGJlIHZhbGlkIHRvIGRlcmVmZXJlbmNlIGluDQp1c2Vyc3BhY2UgYnV0IGRvbid0
+IHdvcmsgYWNyb3NzIHRoZSBzeXNjYWxsIGFiaSAoZGV2aWNlDQpkcml2ZXIgZG9lcyBub3QgaGFu
+ZGxlIHRoZSB0YWc/KS4NCg0KPj4gKy0gbW1hcCgpIGFkZHIgcGFyYW1ldGVyLg0KPj4gKw0KPj4g
+Ky0gbXJlbWFwKCkgbmV3X2FkZHJlc3MgcGFyYW1ldGVyLg0KPiANCj4gSXMgbXVubWFwKCkgbWlz
+c2luZz8gIE9yIHdhcyB0aGVyZSBhIHJlYXNvbiBmb3IgbGVhdmluZyBpdCBvdXQ/DQoNCnRoZSBu
+ZXcgYWRkcmVzcyBpbiBtbWFwIGFuZCBtcmVtYXAgbWF5IG5vdCBiZSBjdXJyZW50bHkNCm1hcHBl
+ZCwgb3RoZXIgbSogZnVuY3Rpb25zIG9wZXJhdGUgb24gZXhpc3RpbmcgbWFwcGluZ3MNCihtdW5t
+YXAsIG1hZHZpc2UsIG1wcm90ZWN0LCBtbG9jaywuLi4pDQoNCmFsdGhvdWdoIGJ5IHRoaXMgbG9n
+aWMgYnJrIChhbmQgcmVsYXRlZCBQUl9TRVRfTU1fKikNCnNob3VsZCBiZSBleGNsdWRlZCBoZXJl
+IHRvby4NCg0KPj4gKy0gcHJjdGwoUFJfU0VUX01NLCBgYCpgYCwgLi4uKSBvdGhlciB0aGFuIGFy
+ZzIgUFJfU0VUX01NX01BUCBhbmQNCj4+ICsgIFBSX1NFVF9NTV9NQVBfU0laRS4NCj4+ICsNCj4+
+ICstIHByY3RsKFBSX1NFVF9NTSwgUFJfU0VUX01NX01BUHssX1NJWkV9LCAuLi4pIHN0cnVjdCBw
+cmN0bF9tbV9tYXAgZmllbGRzLg0KPj4gKw0KPj4gK0FueSBhdHRlbXB0IHRvIHVzZSBub24temVy
+byB0YWdnZWQgcG9pbnRlcnMgd2lsbCBsZWFkIHRvIHVuZGVmaW5lZA0KPj4gK2JlaGF2aW91ci4N
+Cj4gDQo+IEkgd29uZGVyIGlmIHlvdSB3YW50IHRvIGdlbmVyYWxpemUgdGhpcyBhIGJpdC4gIEkg
+dGhpbmsgeW91J3JlIHNheWluZw0KPiB0aGF0IHBhcnRzIG9mIHRoZSBBQkkgdGhhdCBtb2RpZnkg
+dGhlICpsYXlvdXQqIG9mIHRoZSBhZGRyZXNzIHNwYWNlDQo+IG5ldmVyIGFjY2VwdCB0YWdnZWQg
+cG9pbnRlcnMuDQoNCnNvbWV0aGluZyBsaWtlIHRoYXQsIGJ1dCBpIHRoaW5rIHRoaXMgaXMgaGFy
+ZCB0byBzcGVjaWZ5DQppbiBhIGdlbmVyaWMgd2F5Lg0K
