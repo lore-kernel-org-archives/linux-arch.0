@@ -1,66 +1,103 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-eopbgr70050.outbound.protection.outlook.com ([40.107.7.50]:1601
-        "EHLO EUR04-HE1-obe.outbound.protection.outlook.com"
+Received: from mx2.suse.de ([195.135.220.15]:47422 "EHLO mx1.suse.de"
         rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1732076AbfHHJcp (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 8 Aug 2019 05:32:45 -0400
-From: Szabolcs Nagy <Szabolcs.Nagy@arm.com>
-Subject: Re: [PATCH v7 0/2] arm64 tagged address ABI
-Date: Thu, 8 Aug 2019 09:32:28 +0000
-Message-ID: <44bc76f2-e782-b3ac-5ba3-39ef59be6fe9@arm.com>
-References: <20190807155321.9648-1-catalin.marinas@arm.com>
-In-Reply-To: <20190807155321.9648-1-catalin.marinas@arm.com>
-Content-Language: en-US
-Content-Type: text/plain; charset="utf-8"
-Content-ID: <E89EAA9961235F47ADB26CEFBCAEB557@eurprd08.prod.outlook.com>
-Content-Transfer-Encoding: base64
+        id S2403771AbfHHKjC (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 8 Aug 2019 06:39:02 -0400
+From: Jiri Slaby <jslaby@suse.cz>
+Subject: [PATCH v8 07/28] x86/boot/compressed: annotate local functions
+Date: Thu,  8 Aug 2019 12:38:33 +0200
+Message-ID: <20190808103854.6192-8-jslaby@suse.cz>
+In-Reply-To: <20190808103854.6192-1-jslaby@suse.cz>
+References: <20190808103854.6192-1-jslaby@suse.cz>
 MIME-Version: 1.0
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Catalin Marinas <Catalin.Marinas@arm.com>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
-Cc: nd <nd@arm.com>, Vincenzo Frascino <Vincenzo.Frascino@arm.com>, Will Deacon <Will.Deacon@arm.com>, Andrey Konovalov <andreyknvl@google.com>, Kevin Brodsky <Kevin.Brodsky@arm.com>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Dave Hansen <dave.hansen@intel.com>
-Message-ID: <20190808093228.jq5VAQafeKVfHVf0wKb6ZbMhWBoU1ksTkYWlcv3q_No@z>
+To: bp@alien8.de
+Cc: tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Jiri Slaby <jslaby@suse.cz>
+Message-ID: <20190808103833.nVavgqCw2B_PYsP71Dt2xvWUqKm6eXkpjS8a4xcTZVg@z>
 
-T24gMDcvMDgvMjAxOSAxNjo1MywgQ2F0YWxpbiBNYXJpbmFzIHdyb3RlOg0KPiBIaSwNCj4gDQo+
-IFRoYW5rcyBmb3IgdGhlIGZlZWRiYWNrIHNvIGZhci4gVGhpcyBpcyBhbiB1cGRhdGVkIHNlcmll
-cyBkb2N1bWVudGluZw0KPiB0aGUgQUFyY2g2NCBUYWdnZWQgQWRkcmVzcyBBQkkgYXMgaW1wbGVt
-ZW50ZWQgYnkgdGhlc2UgcGF0Y2hlczoNCj4gDQo+IGh0dHA6Ly9sa21sLmtlcm5lbC5vcmcvci9j
-b3Zlci4xNTYzOTA0NjU2LmdpdC5hbmRyZXlrbnZsQGdvb2dsZS5jb20NCj4gDQo+IFZlcnNpb24g
-NiBvZiB0aGUgZG9jdW1lbnRhdGlvbiBzZXJpZXMgaXMgYXZhaWxhYmxlIGhlcmU6DQo+IA0KPiBo
-dHRwOi8vbGttbC5rZXJuZWwub3JnL3IvMjAxOTA3MjUxMzUwNDQuMjQzODEtMS12aW5jZW56by5m
-cmFzY2lub0Bhcm0uY29tDQo+IA0KPiBDaGFuZ2VzIGluIHY3Og0KPiANCj4gLSBEcm9wcGVkIHRo
-ZSBNQVBfUFJJVkFURSByZXF1aXJlbWVudHMgZm9yIHRhZ2dlZCBwb2ludGVycyBmb3IgYm90aA0K
-PiAgIGFub255bW91cyBhbmQgZmlsZSBtYXBwaW5ncy4gT25lIHJlYXNvbiBpcyB0aGF0IHdlIGNh
-bid0IGVuZm9yY2Ugc3VjaA0KPiAgIHJlc3RyaWN0aW9uIGFueXdheS4gVGhlIG90aGVyIHJlYXNv
-biBpcyB0aGF0IGEgZnV0dXJlIHNlcmllcw0KPiAgIGltcGxlbWVudGluZyBzdXBwb3J0IGZvciB0
-aGUgaGFyZHdhcmUgTVRFIHdpbGwgZGV0ZWN0DQo+ICAgaW5jb21wYXRpYmlsaXRpZXMgb2YgdGhl
-IG5ldyBQUk9UX01URSBmbGFnIHdpdGggdmFyaW91cyBtbWFwKCkNCj4gICBvcHRpb25zLg0KDQpP
-Sy4NCg0KPiAtIEFzIGEgY29uc2VxdWVuY2Ugb2YgdGhlIGFib3ZlLCBJIHJlbW92ZWQgU3phYm9s
-Y3MgYWNrIGFzIEknbSBub3Qgc3VyZQ0KPiAgIGhlJ3Mgb2sgd2l0aCB0aGUgY2hhbmdlLg0KPiAN
-Cj4gLSBDbGFyaWZpZWQgdGhlIHN5c2N0bCBhbmQgcHJjdGwoKSBpbnRlcmFjdGlvbiBhbmQgcmVv
-cmRlcmVkIHRoZQ0KPiAgIGRlc2NyaXB0aW9ucy4NCj4gDQo+IC0gUmV3b3JkZWQgdGhlIHByY3Rs
-KFBSX1NFVF9NTSkgcmVzdHJpY3Rpb25zLg0KPiANCj4gLSBSZW1vdmVkIHRoZSBkZXNjcmlwdGlv
-biBvZiB0aGUgdGFnIHByZXNlcnZhdGlvbiBmcm9tIHRoZSBmaXJzdCBwYXRjaA0KPiAgIGFzIGl0
-IGRpZG4ndCByZWFsbHkgbWFrZSBzZW5zZSAodGhlIHN5c2NhbGwgQUJJIGhhcyBhbHdheXMgcHJl
-c2VydmVkDQo+ICAgYWxsIHJlZ2lzdGVycyBvdGhlciB0aGFuIHgwIG9uIHJldHVybiB0byB1c2Vy
-KS4NCg0KcHJlc2VydmF0aW9uIGlzIG1vcmUgaW50ZXJlc3Rpbmcgd2hlbiBhIHVzZXIgcG9pbnRl
-cg0KaXMgcGFzc2VkIHRvIHRoZSBrZXJuZWwgYW5kIGxhdGVyIGl0IGlzIHBhc3NlZCBiYWNrDQp0
-byB1c2VyIHNwYWNlIChlLmcuIHNldC9nZXRfcm9idXN0X2xpc3QsIG9yIHNpZ2FjdGlvbg0Kd2hl
-cmUgb2xkIGhhbmRsZXIgcG9pbnRlciBpcyByZXR1cm5lZCksIHRoZW4gdGhlDQprZXJuZWwgbWF5
-IHdhbnQgdG8gZHJvcCB0aGUgdGFnIHRvIGRvIHNvbWV0aGluZyB3aXRoDQp0aGUgcG9pbnRlciwg
-YnV0IHVzZXIgc3BhY2UgbWF5IHdhbnQgaXQgdG8gYmUgcHJlc2VydmVkLg0KDQppbiBwcmluY2lw
-bGUgc2VnZmF1bHQgc2lfYWRkciBpcyBhIHNpbWlsYXIgY2FzZSB3aGVuDQptZW1vcnkgYWNjZXNz
-IHZpYSB0YWdnZWQgcG9pbnRlciBmYXVsdHM6IGN1cnJlbnRseQ0KdGhlIGtlcm5lbCBkb2VzIG5v
-dCBwcmVzZXJ2ZSB0aGUgdGFnLg0KDQpzbyBpIHRoaW5rIGl0J3MgaW50ZXJlc3RpbmcgdG8ga25v
-dyB3aGVuIGV4YWN0bHkgdGhlDQprZXJuZWwgcHJlc2VydmVzIHRoZSB0YWdzLCBidXQgaXQgbWF5
-IG5vdCBiZSBlYXN5IHRvDQpkb2N1bWVudCBpbiBhIGdlbmVyaWMgd2F5Lg0KDQo+IA0KPiAtIHMv
-QVJNNjQvQUFyY2g2NC8gZm9yIGNvbnNpc3RlbmN5IHdpdGggdGhlIHRhZ2dlZC1wb2ludGVycy5y
-c3QNCj4gICBkb2N1bWVudC4NCj4gDQo+IC0gT3RoZXIgbWlub3IgcmV3b3JkaW5ncy4NCj4gDQo+
-IFZpbmNlbnpvIEZyYXNjaW5vICgyKToNCj4gICBhcm02NDogRGVmaW5lIERvY3VtZW50YXRpb24v
-YXJtNjQvdGFnZ2VkLWFkZHJlc3MtYWJpLnJzdA0KPiAgIGFybTY0OiBSZWxheCBEb2N1bWVudGF0
-aW9uL2FybTY0L3RhZ2dlZC1wb2ludGVycy5yc3QNCj4gDQo+ICBEb2N1bWVudGF0aW9uL2FybTY0
-L3RhZ2dlZC1hZGRyZXNzLWFiaS5yc3QgfCAxNTEgKysrKysrKysrKysrKysrKysrKysrDQo+ICBE
-b2N1bWVudGF0aW9uL2FybTY0L3RhZ2dlZC1wb2ludGVycy5yc3QgICAgfCAgMjMgKysrLQ0KPiAg
-MiBmaWxlcyBjaGFuZ2VkLCAxNjcgaW5zZXJ0aW9ucygrKSwgNyBkZWxldGlvbnMoLSkNCj4gIGNy
-ZWF0ZSBtb2RlIDEwMDY0NCBEb2N1bWVudGF0aW9uL2FybTY0L3RhZ2dlZC1hZGRyZXNzLWFiaS5y
-c3QNCj4gDQoNCg==
+relocated, paging_enabled, and no_longmode are self-standing local
+functions, annotate them as such. paging_enabled is annotated as
+NOALIGN, since the trampoline code has to be compact.
+
+Signed-off-by: Jiri Slaby <jslaby@suse.cz>
+Cc: "H. Peter Anvin" <hpa@zytor.com>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: Ingo Molnar <mingo@redhat.com>
+Cc: x86@kernel.org
+---
+ arch/x86/boot/compressed/head_32.S | 3 ++-
+ arch/x86/boot/compressed/head_64.S | 9 ++++++---
+ 2 files changed, 8 insertions(+), 4 deletions(-)
+
+diff --git a/arch/x86/boot/compressed/head_32.S b/arch/x86/boot/compressed/head_32.S
+index 37380c0d5999..7e8ab0bb6968 100644
+--- a/arch/x86/boot/compressed/head_32.S
++++ b/arch/x86/boot/compressed/head_32.S
+@@ -209,7 +209,7 @@ ENDPROC(efi32_stub_entry)
+ #endif
+ 
+ 	.text
+-relocated:
++SYM_FUNC_START_LOCAL(relocated)
+ 
+ /*
+  * Clear BSS (stack is currently empty)
+@@ -260,6 +260,7 @@ relocated:
+  */
+ 	xorl	%ebx, %ebx
+ 	jmp	*%eax
++SYM_FUNC_END(relocated)
+ 
+ #ifdef CONFIG_EFI_STUB
+ 	.data
+diff --git a/arch/x86/boot/compressed/head_64.S b/arch/x86/boot/compressed/head_64.S
+index 6233ae35d0d9..c8ce6ffc9fe5 100644
+--- a/arch/x86/boot/compressed/head_64.S
++++ b/arch/x86/boot/compressed/head_64.S
+@@ -511,7 +511,7 @@ ENDPROC(efi64_stub_entry)
+ #endif
+ 
+ 	.text
+-relocated:
++SYM_FUNC_START_LOCAL(relocated)
+ 
+ /*
+  * Clear BSS (stack is currently empty)
+@@ -540,6 +540,7 @@ relocated:
+  * Jump to the decompressed kernel.
+  */
+ 	jmp	*%rax
++SYM_FUNC_END(relocated)
+ 
+ /*
+  * Adjust the global offset table
+@@ -635,9 +636,10 @@ ENTRY(trampoline_32bit_src)
+ 	lret
+ 
+ 	.code64
+-paging_enabled:
++SYM_FUNC_START_LOCAL_NOALIGN(paging_enabled)
+ 	/* Return from the trampoline */
+ 	jmp	*%rdi
++SYM_FUNC_END(paging_enabled)
+ 
+ 	/*
+          * The trampoline code has a size limit.
+@@ -647,11 +649,12 @@ paging_enabled:
+ 	.org	trampoline_32bit_src + TRAMPOLINE_32BIT_CODE_SIZE
+ 
+ 	.code32
+-no_longmode:
++SYM_FUNC_START_LOCAL(no_longmode)
+ 	/* This isn't an x86-64 CPU, so hang intentionally, we cannot continue */
+ 1:
+ 	hlt
+ 	jmp     1b
++SYM_FUNC_END(no_longmode)
+ 
+ #include "../../kernel/verify_cpu.S"
+ 
+-- 
+2.22.0
