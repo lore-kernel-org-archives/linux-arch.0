@@ -1,40 +1,50 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:35818 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1728825AbfHHQ1H (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 8 Aug 2019 12:27:07 -0400
-Date: Thu, 8 Aug 2019 17:27:02 +0100
-From: Dave Martin <Dave.Martin@arm.com>
+Received: from mail-eopbgr20066.outbound.protection.outlook.com ([40.107.2.66]:10816
+        "EHLO EUR02-VE1-obe.outbound.protection.outlook.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1725535AbfHHQaT (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 8 Aug 2019 12:30:19 -0400
+From: Szabolcs Nagy <Szabolcs.Nagy@arm.com>
 Subject: Re: [PATCH v7 1/2] arm64: Define
  Documentation/arm64/tagged-address-abi.rst
-Message-ID: <20190808162702.GJ10425@arm.com>
+Date: Thu, 8 Aug 2019 16:30:01 +0000
+Message-ID: <c73e76dd-de90-f5de-7809-5118270471c8@arm.com>
 References: <20190807155321.9648-1-catalin.marinas@arm.com>
  <20190807155321.9648-2-catalin.marinas@arm.com>
- <826a9ace-feac-c019-843e-07e23c9fd46c@intel.com>
+In-Reply-To: <20190807155321.9648-2-catalin.marinas@arm.com>
+Content-Language: en-US
+Content-Type: text/plain; charset="utf-8"
+Content-ID: <2416489F113EC049B7C1E80E7213516F@eurprd08.prod.outlook.com>
+Content-Transfer-Encoding: base64
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <826a9ace-feac-c019-843e-07e23c9fd46c@intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dave Hansen <dave.hansen@intel.com>
-Cc: Catalin Marinas <catalin.marinas@arm.com>, linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, Szabolcs Nagy <szabolcs.nagy@arm.com>, Andrey Konovalov <andreyknvl@google.com>, Kevin Brodsky <kevin.brodsky@arm.com>, Will Deacon <will.deacon@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>
-Message-ID: <20190808162702.RQNvVBE_CIhgSWCOP0Q8zsz7X51AwS-MQtsJ5ZtLCFE@z>
+To: Catalin Marinas <Catalin.Marinas@arm.com>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
+Cc: nd <nd@arm.com>, Vincenzo Frascino <Vincenzo.Frascino@arm.com>, Will Deacon <Will.Deacon@arm.com>, Andrey Konovalov <andreyknvl@google.com>, Kevin Brodsky <Kevin.Brodsky@arm.com>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Dave Hansen <dave.hansen@intel.com>
+Message-ID: <20190808163001.KJ44I3Hkr2EquFKzyL-SFiZte_mUvpAahCFiEGHdlOw@z>
 
-On Wed, Aug 07, 2019 at 01:38:16PM -0700, Dave Hansen wrote:
-
-[Random comments below on a couple of points]
-
-> On 8/7/19 8:53 AM, Catalin Marinas wrote:
-> > +- mmap() done by the process itself (or its parent), where either:
-> > +
-> > +  - flags have the **MAP_ANONYMOUS** bit set
-> > +  - the file descriptor refers to a regular file (including those returned
-> > +    by memfd_create()) or **/dev/zero**
-> 
-> What's a "regular file"? ;)
-
-A file, as distinct from device nodes, sockets, symlinks etc.
-
-I think this is fairly standard UNIX terminology, even though it sounds
-vague:
+T24gMDcvMDgvMjAxOSAxNjo1MywgQ2F0YWxpbiBNYXJpbmFzIHdyb3RlOg0KPiBGcm9tOiBWaW5j
+ZW56byBGcmFzY2lubyA8dmluY2Vuem8uZnJhc2Npbm9AYXJtLmNvbT4NCj4gDQo+IE9uIGFybTY0
+IHRoZSBUQ1JfRUwxLlRCSTAgYml0IGhhcyBiZWVuIGFsd2F5cyBlbmFibGVkIGhlbmNlDQo+IHRo
+ZSB1c2Vyc3BhY2UgKEVMMCkgaXMgYWxsb3dlZCB0byBzZXQgYSBub24temVybyB2YWx1ZSBpbiB0
+aGUNCj4gdG9wIGJ5dGUgYnV0IHRoZSByZXN1bHRpbmcgcG9pbnRlcnMgYXJlIG5vdCBhbGxvd2Vk
+IGF0IHRoZQ0KPiB1c2VyLWtlcm5lbCBzeXNjYWxsIEFCSSBib3VuZGFyeS4NCj4gDQo+IFdpdGgg
+dGhlIHJlbGF4ZWQgQUJJIHByb3Bvc2VkIHRocm91Z2ggdGhpcyBkb2N1bWVudCwgaXQgaXMgbm93
+IHBvc3NpYmxlDQo+IHRvIHBhc3MgdGFnZ2VkIHBvaW50ZXJzIHRvIHRoZSBzeXNjYWxscywgd2hl
+biB0aGVzZSBwb2ludGVycyBhcmUgaW4NCj4gbWVtb3J5IHJhbmdlcyBvYnRhaW5lZCBieSBhbiBh
+bm9ueW1vdXMgKE1BUF9BTk9OWU1PVVMpIG1tYXAoKS4NCg0KZGVzY3JpcHRpb24gbmVlZHMgdG8g
+YmUgdXBkYXRlZCBub3QgdG8gcmVzdHJpY3QgdGFncw0KdG8gYW5vbiBtbWFwLg0KDQo+ICszLiBB
+QXJjaDY0IFRhZ2dlZCBBZGRyZXNzIEFCSSBFeGNlcHRpb25zDQo+ICstLS0tLS0tLS0tLS0tLS0t
+LS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLQ0KPiArDQo+ICtUaGUgYmVoYXZpb3VyIGRlc2NyaWJl
+ZCBpbiBzZWN0aW9uIDIsIHdpdGggcGFydGljdWxhciByZWZlcmVuY2UgdG8gdGhlDQo+ICthY2Nl
+cHRhbmNlIGJ5IHRoZSBzeXNjYWxscyBvZiBhbnkgdmFsaWQgdGFnZ2VkIHBvaW50ZXIsIGlzIG5v
+dCBhcHBsaWNhYmxlDQo+ICt0byB0aGUgZm9sbG93aW5nIGNhc2VzOg0KPiArDQo+ICstIG1tYXAo
+KSBhZGRyIHBhcmFtZXRlci4NCj4gKw0KPiArLSBtcmVtYXAoKSBuZXdfYWRkcmVzcyBwYXJhbWV0
+ZXIuDQo+ICsNCj4gKy0gcHJjdGwoUFJfU0VUX01NLCBgYCpgYCwgLi4uKSBvdGhlciB0aGFuIGFy
+ZzIgUFJfU0VUX01NX01BUCBhbmQNCj4gKyAgUFJfU0VUX01NX01BUF9TSVpFLg0KPiArDQo+ICst
+IHByY3RsKFBSX1NFVF9NTSwgUFJfU0VUX01NX01BUHssX1NJWkV9LCAuLi4pIHN0cnVjdCBwcmN0
+bF9tbV9tYXAgZmllbGRzLg0KPiArDQo+ICtBbnkgYXR0ZW1wdCB0byB1c2Ugbm9uLXplcm8gdGFn
+Z2VkIHBvaW50ZXJzIHdpbGwgbGVhZCB0byB1bmRlZmluZWQNCj4gK2JlaGF2aW91ci4NCg0KaSB0
+aGluayB0aGF0IGJyayBtYXkgYmUgYWZmZWN0ZWQgdG9vIGJ5IHdoYXRldmVyIHRoYXQncw0KY2F1
+c2luZyBwcm9ibGVtcyBpbiBtbWFwLg0KDQpvdGhlcndpc2UgdGhlIHRleHQgbG9va3MgZ29vZCB0
+byBtZS4NCg==
