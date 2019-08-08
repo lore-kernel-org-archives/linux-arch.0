@@ -1,7 +1,7 @@
 From: Jiri Slaby <jslaby@suse.cz>
-Subject: [PATCH v8 02/28] x86/asm/suspend: use SYM_DATA for data
-Date: Thu,  8 Aug 2019 12:38:28 +0200
-Message-ID: <20190808103854.6192-3-jslaby@suse.cz>
+Subject: [PATCH v8 07/28] x86/boot/compressed: annotate local functions
+Date: Thu,  8 Aug 2019 12:38:33 +0200
+Message-ID: <20190808103854.6192-8-jslaby@suse.cz>
 References: <20190808103854.6192-1-jslaby@suse.cz>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
@@ -9,86 +9,90 @@ Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20190808103854.6192-1-jslaby@suse.cz>
 Sender: linux-kernel-owner@vger.kernel.org
 To: bp@alien8.de
-Cc: tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Jiri Slaby <jslaby@suse.cz>, "Rafael J . Wysocki" <rafael.j.wysocki@intel.com>, Pavel Machek <pavel@ucw.cz>, Len Brown <len.brown@intel.com>, linux-pm@vger.kernel.org
+Cc: tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Jiri Slaby <jslaby@suse.cz>
 List-Id: linux-arch.vger.kernel.org
 
-Some global data in the suspend code were marked as `ENTRY'. ENTRY was
-intended for functions and shall be paired with ENDPROC. ENTRY also
-aligns symbols which creates unnecessary holes here between data. Since
-we are dropping historical markings, make proper use of newly added
-SYM_DATA in this code.
+relocated, paging_enabled, and no_longmode are self-standing local
+functions, annotate them as such. paging_enabled is annotated as
+NOALIGN, since the trampoline code has to be compact.
 
 Signed-off-by: Jiri Slaby <jslaby@suse.cz>
-Acked-by: Rafael J. Wysocki <rafael.j.wysocki@intel.com>
-Acked-by: Pavel Machek <pavel@ucw.cz>
-Cc: Len Brown <len.brown@intel.com>
+Cc: "H. Peter Anvin" <hpa@zytor.com>
 Cc: Thomas Gleixner <tglx@linutronix.de>
 Cc: Ingo Molnar <mingo@redhat.com>
-Cc: "H. Peter Anvin" <hpa@zytor.com>
 Cc: x86@kernel.org
-Cc: linux-pm@vger.kernel.org
 ---
- arch/x86/kernel/acpi/wakeup_32.S | 2 +-
- arch/x86/kernel/acpi/wakeup_64.S | 2 +-
- arch/x86/kernel/head_32.S        | 6 ++----
- arch/x86/kernel/head_64.S        | 5 ++---
- 4 files changed, 6 insertions(+), 9 deletions(-)
+ arch/x86/boot/compressed/head_32.S | 3 ++-
+ arch/x86/boot/compressed/head_64.S | 9 ++++++---
+ 2 files changed, 8 insertions(+), 4 deletions(-)
 
-diff --git a/arch/x86/kernel/acpi/wakeup_32.S b/arch/x86/kernel/acpi/wakeup_32.S
-index e95e95960156..427249292aef 100644
---- a/arch/x86/kernel/acpi/wakeup_32.S
-+++ b/arch/x86/kernel/acpi/wakeup_32.S
-@@ -90,7 +90,7 @@ ret_point:
+diff --git a/arch/x86/boot/compressed/head_32.S b/arch/x86/boot/compressed/head_32.S
+index 37380c0d5999..7e8ab0bb6968 100644
+--- a/arch/x86/boot/compressed/head_32.S
++++ b/arch/x86/boot/compressed/head_32.S
+@@ -209,7 +209,7 @@ ENDPROC(efi32_stub_entry)
+ #endif
  
- .data
- ALIGN
--ENTRY(saved_magic)	.long	0
-+SYM_DATA(saved_magic,	.long 0)
- saved_eip:		.long 0
+ 	.text
+-relocated:
++SYM_FUNC_START_LOCAL(relocated)
  
- # saved registers
-diff --git a/arch/x86/kernel/acpi/wakeup_64.S b/arch/x86/kernel/acpi/wakeup_64.S
-index b0715c3ac18d..a142c5ee0d4f 100644
---- a/arch/x86/kernel/acpi/wakeup_64.S
-+++ b/arch/x86/kernel/acpi/wakeup_64.S
-@@ -134,4 +134,4 @@ saved_rbx:		.quad	0
- saved_rip:		.quad	0
- saved_rsp:		.quad	0
+ /*
+  * Clear BSS (stack is currently empty)
+@@ -260,6 +260,7 @@ relocated:
+  */
+ 	xorl	%ebx, %ebx
+ 	jmp	*%eax
++SYM_FUNC_END(relocated)
  
--ENTRY(saved_magic)	.quad	0
-+SYM_DATA(saved_magic,	.quad	0)
-diff --git a/arch/x86/kernel/head_32.S b/arch/x86/kernel/head_32.S
-index 30f9cb2c0b55..d1e213da4782 100644
---- a/arch/x86/kernel/head_32.S
-+++ b/arch/x86/kernel/head_32.S
-@@ -507,10 +507,8 @@ GLOBAL(early_recursion_flag)
+ #ifdef CONFIG_EFI_STUB
+ 	.data
+diff --git a/arch/x86/boot/compressed/head_64.S b/arch/x86/boot/compressed/head_64.S
+index 6233ae35d0d9..c8ce6ffc9fe5 100644
+--- a/arch/x86/boot/compressed/head_64.S
++++ b/arch/x86/boot/compressed/head_64.S
+@@ -511,7 +511,7 @@ ENDPROC(efi64_stub_entry)
+ #endif
  
- __REFDATA
- 	.align 4
--ENTRY(initial_code)
--	.long i386_start_kernel
--ENTRY(setup_once_ref)
--	.long setup_once
-+SYM_DATA(initial_code,		.long i386_start_kernel)
-+SYM_DATA(setup_once_ref,	.long setup_once)
+ 	.text
+-relocated:
++SYM_FUNC_START_LOCAL(relocated)
  
- #ifdef CONFIG_PAGE_TABLE_ISOLATION
- #define	PGD_ALIGN	(2 * PAGE_SIZE)
-diff --git a/arch/x86/kernel/head_64.S b/arch/x86/kernel/head_64.S
-index f3d3e9646a99..6c1bf7ae55ff 100644
---- a/arch/x86/kernel/head_64.S
-+++ b/arch/x86/kernel/head_64.S
-@@ -469,9 +469,8 @@ early_gdt_descr:
- early_gdt_descr_base:
- 	.quad	INIT_PER_CPU_VAR(gdt_page)
+ /*
+  * Clear BSS (stack is currently empty)
+@@ -540,6 +540,7 @@ relocated:
+  * Jump to the decompressed kernel.
+  */
+ 	jmp	*%rax
++SYM_FUNC_END(relocated)
  
--ENTRY(phys_base)
--	/* This must match the first entry in level2_kernel_pgt */
--	.quad   0x0000000000000000
-+/* This must match the first entry in level2_kernel_pgt */
-+SYM_DATA(phys_base, .quad 0x0000000000000000)
- EXPORT_SYMBOL(phys_base)
+ /*
+  * Adjust the global offset table
+@@ -635,9 +636,10 @@ ENTRY(trampoline_32bit_src)
+ 	lret
  
- #include "../../x86/xen/xen-head.S"
+ 	.code64
+-paging_enabled:
++SYM_FUNC_START_LOCAL_NOALIGN(paging_enabled)
+ 	/* Return from the trampoline */
+ 	jmp	*%rdi
++SYM_FUNC_END(paging_enabled)
+ 
+ 	/*
+          * The trampoline code has a size limit.
+@@ -647,11 +649,12 @@ paging_enabled:
+ 	.org	trampoline_32bit_src + TRAMPOLINE_32BIT_CODE_SIZE
+ 
+ 	.code32
+-no_longmode:
++SYM_FUNC_START_LOCAL(no_longmode)
+ 	/* This isn't an x86-64 CPU, so hang intentionally, we cannot continue */
+ 1:
+ 	hlt
+ 	jmp     1b
++SYM_FUNC_END(no_longmode)
+ 
+ #include "../../kernel/verify_cpu.S"
+ 
 -- 
 2.22.0
