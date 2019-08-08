@@ -1,7 +1,7 @@
 From: Jiri Slaby <jslaby@suse.cz>
-Subject: [PATCH v8 12/28] x86/boot/compressed: annotate data appropriatelly
-Date: Thu,  8 Aug 2019 12:38:38 +0200
-Message-ID: <20190808103854.6192-13-jslaby@suse.cz>
+Subject: [PATCH v8 16/28] x86/asm: do not annotate functions by GLOBAL
+Date: Thu,  8 Aug 2019 12:38:42 +0200
+Message-ID: <20190808103854.6192-17-jslaby@suse.cz>
 References: <20190808103854.6192-1-jslaby@suse.cz>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
@@ -12,165 +12,139 @@ To: bp@alien8.de
 Cc: tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Jiri Slaby <jslaby@suse.cz>
 List-Id: linux-arch.vger.kernel.org
 
-Use the new SYM_DATA, SYM_DATA_START, and SYM_DATA_END* macros for data.
+GLOBAL is an x86's custom macro and is going to die very soon. It was
+meant for global symbols, but here, it was used for functions. Instead,
+use the new macros SYM_FUNC_START* and SYM_CODE_START* (depending on the
+type of a function) which are dedicated for global functions. And since
+they both require a closing by SYM_*_END, we do this here too.
 
-Now, the data in the object file look sane:
-Value   Size Type    Bind   Vis      Ndx Name
-  0000    10 OBJECT  GLOBAL DEFAULT    3 efi32_boot_gdt
-  000a    10 OBJECT  LOCAL  DEFAULT    3 save_gdt
-  0014     8 OBJECT  LOCAL  DEFAULT    3 func_rt_ptr
-  001c    48 OBJECT  GLOBAL DEFAULT    3 efi_gdt64
-  004c     0 OBJECT  LOCAL  DEFAULT    3 efi_gdt64_end
+startup_64, which does not use GLOBAL, but uses .globl explicitly, is
+converted too.
 
-  0000    48 OBJECT  LOCAL  DEFAULT    3 gdt
-  0030     0 OBJECT  LOCAL  DEFAULT    3 gdt_end
-  0030     8 OBJECT  LOCAL  DEFAULT    3 efi_config
-  0038    49 OBJECT  GLOBAL DEFAULT    3 efi32_config
-  0069    49 OBJECT  GLOBAL DEFAULT    3 efi64_config
+in_pm32 should not be global at all as it is used only locally, so
+switch to SYM_FUNC_START_LOCAL_NOALIGN.
 
-All have correct size and type now.
+"No alignments" are preserved.
 
 Signed-off-by: Jiri Slaby <jslaby@suse.cz>
 Cc: "H. Peter Anvin" <hpa@zytor.com>
 Cc: Thomas Gleixner <tglx@linutronix.de>
 Cc: Ingo Molnar <mingo@redhat.com>
-Cc: x86@kernel.org
+Cc: <x86@kernel.org>
 ---
- arch/x86/boot/compressed/efi_thunk_64.S | 21 +++++++++-------
- arch/x86/boot/compressed/head_64.S      | 32 ++++++++++++-------------
- arch/x86/boot/compressed/mem_encrypt.S  |  3 +--
- 3 files changed, 28 insertions(+), 28 deletions(-)
+ arch/x86/boot/copy.S      | 16 ++++++++--------
+ arch/x86/boot/pmjump.S    |  8 ++++----
+ arch/x86/kernel/head_64.S |  5 +++--
+ 3 files changed, 15 insertions(+), 14 deletions(-)
 
-diff --git a/arch/x86/boot/compressed/efi_thunk_64.S b/arch/x86/boot/compressed/efi_thunk_64.S
-index bff9ab7c6317..d66000d23921 100644
---- a/arch/x86/boot/compressed/efi_thunk_64.S
-+++ b/arch/x86/boot/compressed/efi_thunk_64.S
-@@ -176,16 +176,19 @@ ENDPROC(efi_enter32)
+diff --git a/arch/x86/boot/copy.S b/arch/x86/boot/copy.S
+index 4c5f4f4ad035..6afd05e819d2 100644
+--- a/arch/x86/boot/copy.S
++++ b/arch/x86/boot/copy.S
+@@ -15,7 +15,7 @@
+ 	.code16
+ 	.text
  
- 	.data
- 	.balign	8
--	.global	efi32_boot_gdt
--efi32_boot_gdt:	.word	0
--		.quad	0
-+SYM_DATA_START(efi32_boot_gdt)
-+	.word	0
-+	.quad	0
-+SYM_DATA_END(efi32_boot_gdt)
+-GLOBAL(memcpy)
++SYM_FUNC_START_NOALIGN(memcpy)
+ 	pushw	%si
+ 	pushw	%di
+ 	movw	%ax, %di
+@@ -29,9 +29,9 @@ GLOBAL(memcpy)
+ 	popw	%di
+ 	popw	%si
+ 	retl
+-ENDPROC(memcpy)
++SYM_FUNC_END(memcpy)
+ 
+-GLOBAL(memset)
++SYM_FUNC_START_NOALIGN(memset)
+ 	pushw	%di
+ 	movw	%ax, %di
+ 	movzbl	%dl, %eax
+@@ -44,22 +44,22 @@ GLOBAL(memset)
+ 	rep; stosb
+ 	popw	%di
+ 	retl
+-ENDPROC(memset)
++SYM_FUNC_END(memset)
+ 
+-GLOBAL(copy_from_fs)
++SYM_FUNC_START_NOALIGN(copy_from_fs)
+ 	pushw	%ds
+ 	pushw	%fs
+ 	popw	%ds
+ 	calll	memcpy
+ 	popw	%ds
+ 	retl
+-ENDPROC(copy_from_fs)
++SYM_FUNC_END(copy_from_fs)
+ 
+-GLOBAL(copy_to_fs)
++SYM_FUNC_START_NOALIGN(copy_to_fs)
+ 	pushw	%es
+ 	pushw	%fs
+ 	popw	%es
+ 	calll	memcpy
+ 	popw	%es
+ 	retl
+-ENDPROC(copy_to_fs)
++SYM_FUNC_END(copy_to_fs)
+diff --git a/arch/x86/boot/pmjump.S b/arch/x86/boot/pmjump.S
+index c22f9a7d1aeb..52f37b66b5ba 100644
+--- a/arch/x86/boot/pmjump.S
++++ b/arch/x86/boot/pmjump.S
+@@ -21,7 +21,7 @@
+ /*
+  * void protected_mode_jump(u32 entrypoint, u32 bootparams);
+  */
+-GLOBAL(protected_mode_jump)
++SYM_FUNC_START_NOALIGN(protected_mode_jump)
+ 	movl	%edx, %esi		# Pointer to boot_params table
+ 
+ 	xorl	%ebx, %ebx
+@@ -42,11 +42,11 @@ GLOBAL(protected_mode_jump)
+ 	.byte	0x66, 0xea		# ljmpl opcode
+ 2:	.long	in_pm32			# offset
+ 	.word	__BOOT_CS		# segment
+-ENDPROC(protected_mode_jump)
++SYM_FUNC_END(protected_mode_jump)
+ 
+ 	.code32
+ 	.section ".text32","ax"
+-GLOBAL(in_pm32)
++SYM_FUNC_START_LOCAL_NOALIGN(in_pm32)
+ 	# Set up data segments for flat 32-bit mode
+ 	movl	%ecx, %ds
+ 	movl	%ecx, %es
+@@ -72,4 +72,4 @@ GLOBAL(in_pm32)
+ 	lldt	%cx
+ 
+ 	jmpl	*%eax			# Jump to the 32-bit entrypoint
+-ENDPROC(in_pm32)
++SYM_FUNC_END(in_pm32)
+diff --git a/arch/x86/kernel/head_64.S b/arch/x86/kernel/head_64.S
+index 6661c76a2049..94d747307c6a 100644
+--- a/arch/x86/kernel/head_64.S
++++ b/arch/x86/kernel/head_64.S
+@@ -49,8 +49,7 @@ L3_START_KERNEL = pud_index(__START_KERNEL_map)
+ 	.text
+ 	__HEAD
+ 	.code64
+-	.globl startup_64
+-startup_64:
++SYM_CODE_START_NOALIGN(startup_64)
+ 	UNWIND_HINT_EMPTY
+ 	/*
+ 	 * At this point the CPU runs in 64bit mode CS.L = 1 CS.D = 0,
+@@ -90,6 +89,8 @@ startup_64:
+ 	/* Form the CR3 value being sure to include the CR3 modifier */
+ 	addq	$(early_top_pgt - __START_KERNEL_map), %rax
+ 	jmp 1f
++SYM_CODE_END(startup_64)
 +
-+SYM_DATA_START_LOCAL(save_gdt)
-+	.word	0
-+	.quad	0
-+SYM_DATA_END(save_gdt)
- 
--save_gdt:	.word	0
--		.quad	0
--func_rt_ptr:	.quad	0
-+SYM_DATA_LOCAL(func_rt_ptr, .quad 0)
- 
--	.global efi_gdt64
--efi_gdt64:
-+SYM_DATA_START(efi_gdt64)
- 	.word	efi_gdt64_end - efi_gdt64
- 	.long	0			/* Filled out by user */
- 	.word	0
-@@ -194,4 +197,4 @@ efi_gdt64:
- 	.quad	0x00cf92000000ffff	/* __KERNEL_DS */
- 	.quad	0x0080890000000000	/* TS descriptor */
- 	.quad   0x0000000000000000	/* TS continued */
--efi_gdt64_end:
-+SYM_DATA_END_LABEL(efi_gdt64, SYM_L_LOCAL, efi_gdt64_end)
-diff --git a/arch/x86/boot/compressed/head_64.S b/arch/x86/boot/compressed/head_64.S
-index c8ce6ffc9fe5..70a25e0fa71e 100644
---- a/arch/x86/boot/compressed/head_64.S
-+++ b/arch/x86/boot/compressed/head_64.S
-@@ -659,11 +659,12 @@ SYM_FUNC_END(no_longmode)
- #include "../../kernel/verify_cpu.S"
- 
- 	.data
--gdt64:
-+SYM_DATA_START_LOCAL(gdt64)
- 	.word	gdt_end - gdt
- 	.quad   0
-+SYM_DATA_END(gdt64)
- 	.balign	8
--gdt:
-+SYM_DATA_START_LOCAL(gdt)
- 	.word	gdt_end - gdt
- 	.long	gdt
- 	.word	0
-@@ -672,25 +673,24 @@ gdt:
- 	.quad	0x00cf92000000ffff	/* __KERNEL_DS */
- 	.quad	0x0080890000000000	/* TS descriptor */
- 	.quad   0x0000000000000000	/* TS continued */
--gdt_end:
-+SYM_DATA_END_LABEL(gdt, SYM_L_LOCAL, gdt_end)
- 
- #ifdef CONFIG_EFI_STUB
--efi_config:
--	.quad	0
-+SYM_DATA_LOCAL(efi_config, .quad 0)
- 
- #ifdef CONFIG_EFI_MIXED
--	.global efi32_config
--efi32_config:
-+SYM_DATA_START(efi32_config)
- 	.fill	5,8,0
- 	.quad	efi64_thunk
- 	.byte	0
-+SYM_DATA_END(efi32_config)
- #endif
- 
--	.global efi64_config
--efi64_config:
-+SYM_DATA_START(efi64_config)
- 	.fill	5,8,0
- 	.quad	efi_call
- 	.byte	1
-+SYM_DATA_END(efi64_config)
- #endif /* CONFIG_EFI_STUB */
- 
- /*
-@@ -698,23 +698,21 @@ efi64_config:
-  */
- 	.bss
- 	.balign 4
--boot_heap:
--	.fill BOOT_HEAP_SIZE, 1, 0
--boot_stack:
-+SYM_DATA_LOCAL(boot_heap,	.fill BOOT_HEAP_SIZE, 1, 0)
-+
-+SYM_DATA_START_LOCAL(boot_stack)
- 	.fill BOOT_STACK_SIZE, 1, 0
--boot_stack_end:
-+SYM_DATA_END_LABEL(boot_stack, SYM_L_LOCAL, boot_stack_end)
- 
- /*
-  * Space for page tables (not in .bss so not zeroed)
-  */
- 	.section ".pgtable","a",@nobits
- 	.balign 4096
--pgtable:
--	.fill BOOT_PGT_SIZE, 1, 0
-+SYM_DATA_LOCAL(pgtable,		.fill BOOT_PGT_SIZE, 1, 0)
- 
- /*
-  * The page table is going to be used instead of page table in the trampoline
-  * memory.
-  */
--top_pgtable:
--	.fill PAGE_SIZE, 1, 0
-+SYM_DATA_LOCAL(top_pgtable,	.fill PAGE_SIZE, 1, 0)
-diff --git a/arch/x86/boot/compressed/mem_encrypt.S b/arch/x86/boot/compressed/mem_encrypt.S
-index 6afb7130a387..28d703cad310 100644
---- a/arch/x86/boot/compressed/mem_encrypt.S
-+++ b/arch/x86/boot/compressed/mem_encrypt.S
-@@ -96,6 +96,5 @@ ENDPROC(set_sev_encryption_mask)
- 
- #ifdef CONFIG_AMD_MEM_ENCRYPT
- 	.balign	8
--GLOBAL(sme_me_mask)
--	.quad	0
-+SYM_DATA(sme_me_mask, .quad 0)
- #endif
+ ENTRY(secondary_startup_64)
+ 	UNWIND_HINT_EMPTY
+ 	/*
 -- 
 2.22.0
