@@ -1,7 +1,7 @@
 From: Jiri Slaby <jslaby@suse.cz>
-Subject: [PATCH v8 10/28] x86/asm/entry: annotate interrupt symbols properly
-Date: Thu,  8 Aug 2019 12:38:36 +0200
-Message-ID: <20190808103854.6192-11-jslaby@suse.cz>
+Subject: [PATCH v8 15/28] x86/asm/purgatory: start using annotations
+Date: Thu,  8 Aug 2019 12:38:41 +0200
+Message-ID: <20190808103854.6192-16-jslaby@suse.cz>
 References: <20190808103854.6192-1-jslaby@suse.cz>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
@@ -12,198 +12,153 @@ To: bp@alien8.de
 Cc: tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Jiri Slaby <jslaby@suse.cz>
 List-Id: linux-arch.vger.kernel.org
 
-* annotate functions properly by SYM_CODE_START, SYM_CODE_START_LOCAL*
-  and SYM_CODE_END -- these are not C-like functions, so we have to
-  annotate them using CODE.
-* use SYM_INNER_LABEL* for labels being in the middle of other functions
-
-[v4] alignments preserved
+purgatory used no annotations at all. So include linux/linkage.h and
+annotate everything:
+* code by SYM_CODE_*
+* data by SYM_DATA_*
 
 Signed-off-by: Jiri Slaby <jslaby@suse.cz>
 Cc: Thomas Gleixner <tglx@linutronix.de>
 Cc: Ingo Molnar <mingo@redhat.com>
 Cc: "H. Peter Anvin" <hpa@zytor.com>
-Cc: <x86@kernel.org>
+Cc: x86@kernel.org
 ---
- arch/x86/entry/entry_32.S | 28 ++++++++++++++--------------
- arch/x86/entry/entry_64.S | 13 ++++++-------
- 2 files changed, 20 insertions(+), 21 deletions(-)
+ arch/x86/purgatory/entry64.S      | 21 ++++++++++++---------
+ arch/x86/purgatory/setup-x86_64.S | 14 ++++++++------
+ arch/x86/purgatory/stack.S        |  7 ++++---
+ 3 files changed, 24 insertions(+), 18 deletions(-)
 
-diff --git a/arch/x86/entry/entry_32.S b/arch/x86/entry/entry_32.S
-index f83ca5aa8b77..f37ff583cecb 100644
---- a/arch/x86/entry/entry_32.S
-+++ b/arch/x86/entry/entry_32.S
-@@ -807,8 +807,7 @@ END(ret_from_fork)
+diff --git a/arch/x86/purgatory/entry64.S b/arch/x86/purgatory/entry64.S
+index 275a646d1048..9d73d3648aa6 100644
+--- a/arch/x86/purgatory/entry64.S
++++ b/arch/x86/purgatory/entry64.S
+@@ -8,13 +8,13 @@
+  * This code has been taken from kexec-tools.
   */
  
- 	# userspace resumption stub bypassing syscall exit tracing
--	ALIGN
--ret_from_exception:
-+SYM_CODE_START_LOCAL(ret_from_exception)
- 	preempt_stop(CLBR_ANY)
- ret_from_intr:
- #ifdef CONFIG_VM86
-@@ -825,13 +824,13 @@ ret_from_intr:
- 	cmpl	$USER_RPL, %eax
- 	jb	restore_all_kernel		# not returning to v8086 or userspace
++#include <linux/linkage.h>
++
+ 	.text
+ 	.balign 16
+ 	.code64
+-	.globl entry64, entry64_regs
+-
  
--ENTRY(resume_userspace)
-+SYM_INNER_LABEL_ALIGN(resume_userspace, SYM_L_LOCAL)
- 	DISABLE_INTERRUPTS(CLBR_ANY)
- 	TRACE_IRQS_OFF
- 	movl	%esp, %eax
- 	call	prepare_exit_to_usermode
- 	jmp	restore_all
--END(ret_from_exception)
-+SYM_CODE_END(ret_from_exception)
+-entry64:
++SYM_CODE_START(entry64)
+ 	/* Setup a gdt that should be preserved */
+ 	lgdt gdt(%rip)
  
- GLOBAL(__begin_SYSENTER_singlestep_region)
- /*
-@@ -1100,7 +1099,7 @@ restore_all_kernel:
- 	jmp	.Lirq_return
+@@ -54,10 +54,11 @@ new_cs_exit:
  
- .section .fixup, "ax"
--ENTRY(iret_exc	)
-+SYM_CODE_START(iret_exc)
- 	pushl	$0				# no error code
- 	pushl	$do_iret_error
+ 	/* Jump to the new code... */
+ 	jmpq	*rip(%rip)
++SYM_CODE_END(entry64)
  
-@@ -1117,6 +1116,7 @@ ENTRY(iret_exc	)
- #endif
+ 	.section ".rodata"
+ 	.balign 4
+-entry64_regs:
++SYM_DATA_START(entry64_regs)
+ rax:	.quad 0x0
+ rcx:	.quad 0x0
+ rdx:	.quad 0x0
+@@ -75,12 +76,12 @@ r13:	.quad 0x0
+ r14:	.quad 0x0
+ r15:	.quad 0x0
+ rip:	.quad 0x0
+-	.size entry64_regs, . - entry64_regs
++SYM_DATA_END(entry64_regs)
  
- 	jmp	common_exception
-+SYM_CODE_END(iret_exc)
- .previous
- 	_ASM_EXTABLE(.Lirq_return, iret_exc)
- ENDPROC(entry_INT80_32)
-@@ -1182,7 +1182,7 @@ ENTRY(spurious_entries_start)
-     .endr
- END(spurious_entries_start)
+ 	/* GDT */
+ 	.section ".rodata"
+ 	.balign 16
+-gdt:
++SYM_DATA_START_LOCAL(gdt)
+ 	/* 0x00 unusable segment
+ 	 * 0x08 unused
+ 	 * so use them as gdt ptr
+@@ -94,6 +95,8 @@ gdt:
  
--common_spurious:
-+SYM_CODE_START_LOCAL(common_spurious)
- 	ASM_CLAC
- 	addl	$-0x80, (%esp)			/* Adjust vector into the [-256, -1] range */
- 	SAVE_ALL switch_stacks=1
-@@ -1191,7 +1191,7 @@ common_spurious:
- 	movl	%esp, %eax
- 	call	smp_spurious_interrupt
- 	jmp	ret_from_intr
--ENDPROC(common_spurious)
-+SYM_CODE_END(common_spurious)
- #endif
- 
- /*
-@@ -1199,7 +1199,7 @@ ENDPROC(common_spurious)
-  * so IRQ-flags tracing has to follow that:
+ 	/* 0x18 4GB flat data segment */
+ 	.word 0xFFFF, 0x0000, 0x9200, 0x00CF
+-gdt_end:
+-stack:	.quad   0, 0
+-stack_init:
++SYM_DATA_END_LABEL(gdt, SYM_L_LOCAL, gdt_end)
++
++SYM_DATA_START_LOCAL(stack)
++	.quad   0, 0
++SYM_DATA_END_LABEL(stack, SYM_L_LOCAL, stack_init)
+diff --git a/arch/x86/purgatory/setup-x86_64.S b/arch/x86/purgatory/setup-x86_64.S
+index 321146be741d..89d9e9e53fcd 100644
+--- a/arch/x86/purgatory/setup-x86_64.S
++++ b/arch/x86/purgatory/setup-x86_64.S
+@@ -7,14 +7,14 @@
+  *
+  * This code has been taken from kexec-tools.
   */
- 	.p2align CONFIG_X86_L1_CACHE_SHIFT
--common_interrupt:
-+SYM_CODE_START_LOCAL(common_interrupt)
- 	ASM_CLAC
- 	addl	$-0x80, (%esp)			/* Adjust vector into the [-256, -1] range */
++#include <linux/linkage.h>
+ #include <asm/purgatory.h>
  
-@@ -1209,7 +1209,7 @@ common_interrupt:
- 	movl	%esp, %eax
- 	call	do_IRQ
- 	jmp	ret_from_intr
--ENDPROC(common_interrupt)
-+SYM_CODE_END(common_interrupt)
+ 	.text
+-	.globl purgatory_start
+ 	.balign 16
+-purgatory_start:
+ 	.code64
  
- #define BUILD_INTERRUPT3(name, nr, fn)			\
- ENTRY(name)						\
-@@ -1361,7 +1361,7 @@ ENTRY(xen_hypervisor_callback)
++SYM_CODE_START(purgatory_start)
+ 	/* Load a gdt so I know what the segment registers are */
+ 	lgdt	gdt(%rip)
  
- 	jmp	xen_iret_crit_fixup
+@@ -32,10 +32,12 @@ purgatory_start:
+ 	/* Call the C code */
+ 	call purgatory
+ 	jmp	entry64
++SYM_CODE_END(purgatory_start)
  
--ENTRY(xen_do_upcall)
-+SYM_INNER_LABEL_ALIGN(xen_do_upcall, SYM_L_GLOBAL)
- 1:	mov	%esp, %eax
- 	call	xen_evtchn_do_upcall
- #ifndef CONFIG_PREEMPTION
-@@ -1447,7 +1447,7 @@ ENTRY(page_fault)
- 	jmp	common_exception_read_cr2
- END(page_fault)
- 
--common_exception_read_cr2:
-+SYM_CODE_START_LOCAL_NOALIGN(common_exception_read_cr2)
- 	/* the function address is in %gs's slot on the stack */
- 	SAVE_ALL switch_stacks=1 skip_gs=1
- 
-@@ -1470,9 +1470,9 @@ common_exception_read_cr2:
- 	movl	%esp, %eax			# pt_regs pointer
- 	CALL_NOSPEC %edi
- 	jmp	ret_from_exception
--END(common_exception_read_cr2)
-+SYM_CODE_END(common_exception_read_cr2)
- 
--common_exception:
-+SYM_CODE_START_LOCAL_NOALIGN(common_exception)
- 	/* the function address is in %gs's slot on the stack */
- 	SAVE_ALL switch_stacks=1 skip_gs=1
- 	ENCODE_FRAME_POINTER
-@@ -1492,7 +1492,7 @@ common_exception:
- 	movl	%esp, %eax			# pt_regs pointer
- 	CALL_NOSPEC %edi
- 	jmp	ret_from_exception
--END(common_exception)
-+SYM_CODE_END(common_exception)
- 
- ENTRY(debug)
- 	/*
-diff --git a/arch/x86/entry/entry_64.S b/arch/x86/entry/entry_64.S
-index 68cb3a9ee65e..6c382ccbdeb5 100644
---- a/arch/x86/entry/entry_64.S
-+++ b/arch/x86/entry/entry_64.S
-@@ -587,18 +587,18 @@ _ASM_NOKPROBE(interrupt_entry)
-  * The interrupt stubs push (~vector+0x80) onto the stack and
-  * then jump to common_spurious/interrupt.
-  */
--common_spurious:
-+SYM_CODE_START_LOCAL(common_spurious)
- 	addq	$-0x80, (%rsp)			/* Adjust vector to [-256, -1] range */
- 	call	interrupt_entry
- 	UNWIND_HINT_REGS indirect=1
- 	call	smp_spurious_interrupt		/* rdi points to pt_regs */
- 	jmp	ret_from_intr
--END(common_spurious)
-+SYM_CODE_END(common_spurious)
- _ASM_NOKPROBE(common_spurious)
- 
- /* common_interrupt is a hotpath. Align it */
- 	.p2align CONFIG_X86_L1_CACHE_SHIFT
--common_interrupt:
-+SYM_CODE_START_LOCAL(common_interrupt)
- 	addq	$-0x80, (%rsp)			/* Adjust vector to [-256, -1] range */
- 	call	interrupt_entry
- 	UNWIND_HINT_REGS indirect=1
-@@ -693,7 +693,7 @@ GLOBAL(restore_regs_and_return_to_kernel)
+ 	.section ".rodata"
+ 	.balign 16
+-gdt:	/* 0x00 unusable segment
++SYM_DATA_START_LOCAL(gdt)
++	/* 0x00 unusable segment
+ 	 * 0x08 unused
+ 	 * so use them as the gdt ptr
  	 */
- 	INTERRUPT_RETURN
+@@ -48,10 +50,10 @@ gdt:	/* 0x00 unusable segment
  
--ENTRY(native_iret)
-+SYM_INNER_LABEL_ALIGN(native_iret, SYM_L_GLOBAL)
- 	UNWIND_HINT_IRET_REGS
- 	/*
- 	 * Are we returning to a stack segment from the LDT?  Note: in
-@@ -704,8 +704,7 @@ ENTRY(native_iret)
- 	jnz	native_irq_return_ldt
- #endif
+ 	/* 0x18 4GB flat data segment */
+ 	.word	0xFFFF, 0x0000, 0x9200, 0x00CF
+-gdt_end:
++SYM_DATA_END_LABEL(gdt, SYM_L_LOCAL, gdt_end)
  
--.global native_irq_return_iret
--native_irq_return_iret:
-+SYM_INNER_LABEL(native_irq_return_iret, SYM_L_GLOBAL)
- 	/*
- 	 * This may fault.  Non-paranoid faults on return to userspace are
- 	 * handled by fixup_bad_iret.  These include #SS, #GP, and #NP.
-@@ -787,7 +786,7 @@ native_irq_return_ldt:
+ 	.bss
+ 	.balign 4096
+-lstack:
++SYM_DATA_START_LOCAL(lstack)
+ 	.skip 4096
+-lstack_end:
++SYM_DATA_END_LABEL(lstack, SYM_L_LOCAL, lstack_end)
+diff --git a/arch/x86/purgatory/stack.S b/arch/x86/purgatory/stack.S
+index 8b1427422dfc..1ef507ca50a5 100644
+--- a/arch/x86/purgatory/stack.S
++++ b/arch/x86/purgatory/stack.S
+@@ -5,13 +5,14 @@
+  * Copyright (C) 2014 Red Hat Inc.
+  */
+ 
++#include <linux/linkage.h>
++
+ 	/* A stack for the loaded kernel.
+ 	 * Separate and in the data section so it can be prepopulated.
  	 */
- 	jmp	native_irq_return_iret
- #endif
--END(common_interrupt)
-+SYM_CODE_END(common_interrupt)
- _ASM_NOKPROBE(common_interrupt)
+ 	.data
+ 	.balign 4096
+-	.globl stack, stack_end
  
- /*
+-stack:
++SYM_DATA_START(stack)
+ 	.skip 4096
+-stack_end:
++SYM_DATA_END_LABEL(stack, SYM_L_GLOBAL, stack_end)
 -- 
 2.22.0
