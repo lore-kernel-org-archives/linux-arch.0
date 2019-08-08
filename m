@@ -1,7 +1,7 @@
 From: Jiri Slaby <jslaby@suse.cz>
-Subject: [PATCH v8 17/28] x86/asm: use SYM_INNER_LABEL instead of GLOBAL
-Date: Thu,  8 Aug 2019 12:38:43 +0200
-Message-ID: <20190808103854.6192-18-jslaby@suse.cz>
+Subject: [PATCH v8 10/28] x86/asm/entry: annotate interrupt symbols properly
+Date: Thu,  8 Aug 2019 12:38:36 +0200
+Message-ID: <20190808103854.6192-11-jslaby@suse.cz>
 References: <20190808103854.6192-1-jslaby@suse.cz>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
@@ -9,200 +9,201 @@ Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20190808103854.6192-1-jslaby@suse.cz>
 Sender: linux-kernel-owner@vger.kernel.org
 To: bp@alien8.de
-Cc: tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Jiri Slaby <jslaby@suse.cz>, Andy Lutomirski <luto@amacapital.net>
+Cc: tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Jiri Slaby <jslaby@suse.cz>
 List-Id: linux-arch.vger.kernel.org
 
-GLOBAL had several meanings and is going away. In this patch, convert
-all the inner function labels marked with GLOBAL to use SYM_INNER_LABEL
-instead.
+* annotate functions properly by SYM_CODE_START, SYM_CODE_START_LOCAL*
+  and SYM_CODE_END -- these are not C-like functions, so we have to
+  annotate them using CODE.
+* use SYM_INNER_LABEL* for labels being in the middle of other functions
 
-Note that retint_user needs not be global, perhaps since commit
-2ec67971facc ("x86/entry/64/compat: Remove most of the fast system call
-machinery"), where entry_64_compat's caller was removed. So mark the
-label as LOCAL.
+[v4] alignments preserved
 
 Signed-off-by: Jiri Slaby <jslaby@suse.cz>
 Cc: Thomas Gleixner <tglx@linutronix.de>
 Cc: Ingo Molnar <mingo@redhat.com>
 Cc: "H. Peter Anvin" <hpa@zytor.com>
-Cc: x86@kernel.org
-Cc: Andy Lutomirski <luto@amacapital.net>
+Cc: <x86@kernel.org>
 ---
- arch/x86/entry/entry_64.S                |  8 ++++----
- arch/x86/entry/entry_64_compat.S         |  4 ++--
- arch/x86/entry/vdso/vdso32/system_call.S |  2 +-
- arch/x86/kernel/ftrace_32.S              |  2 +-
- arch/x86/kernel/ftrace_64.S              | 16 ++++++++--------
- arch/x86/realmode/rm/reboot.S            |  2 +-
- 6 files changed, 17 insertions(+), 17 deletions(-)
+ arch/x86/entry/entry_32.S | 28 ++++++++++++++--------------
+ arch/x86/entry/entry_64.S | 13 ++++++-------
+ 2 files changed, 20 insertions(+), 21 deletions(-)
 
-diff --git a/arch/x86/entry/entry_64.S b/arch/x86/entry/entry_64.S
-index 6c382ccbdeb5..50c19edbf639 100644
---- a/arch/x86/entry/entry_64.S
-+++ b/arch/x86/entry/entry_64.S
-@@ -162,7 +162,7 @@ ENTRY(entry_SYSCALL_64)
- 	pushq	%r11					/* pt_regs->flags */
- 	pushq	$__USER_CS				/* pt_regs->cs */
- 	pushq	%rcx					/* pt_regs->ip */
--GLOBAL(entry_SYSCALL_64_after_hwframe)
-+SYM_INNER_LABEL(entry_SYSCALL_64_after_hwframe, SYM_L_GLOBAL)
- 	pushq	%rax					/* pt_regs->orig_ax */
+diff --git a/arch/x86/entry/entry_32.S b/arch/x86/entry/entry_32.S
+index f83ca5aa8b77..f37ff583cecb 100644
+--- a/arch/x86/entry/entry_32.S
++++ b/arch/x86/entry/entry_32.S
+@@ -807,8 +807,7 @@ END(ret_from_fork)
+  */
  
- 	PUSH_AND_CLEAR_REGS rax=$-ENOSYS
-@@ -614,12 +614,12 @@ ret_from_intr:
- 	jz	retint_kernel
+ 	# userspace resumption stub bypassing syscall exit tracing
+-	ALIGN
+-ret_from_exception:
++SYM_CODE_START_LOCAL(ret_from_exception)
+ 	preempt_stop(CLBR_ANY)
+ ret_from_intr:
+ #ifdef CONFIG_VM86
+@@ -825,13 +824,13 @@ ret_from_intr:
+ 	cmpl	$USER_RPL, %eax
+ 	jb	restore_all_kernel		# not returning to v8086 or userspace
  
- 	/* Interrupt came from user space */
--GLOBAL(retint_user)
-+SYM_INNER_LABEL(retint_user, SYM_L_LOCAL)
- 	mov	%rsp,%rdi
+-ENTRY(resume_userspace)
++SYM_INNER_LABEL_ALIGN(resume_userspace, SYM_L_LOCAL)
+ 	DISABLE_INTERRUPTS(CLBR_ANY)
+ 	TRACE_IRQS_OFF
+ 	movl	%esp, %eax
  	call	prepare_exit_to_usermode
- 	TRACE_IRQS_IRETQ
+ 	jmp	restore_all
+-END(ret_from_exception)
++SYM_CODE_END(ret_from_exception)
  
--GLOBAL(swapgs_restore_regs_and_return_to_usermode)
-+SYM_INNER_LABEL(swapgs_restore_regs_and_return_to_usermode, SYM_L_GLOBAL)
- #ifdef CONFIG_DEBUG_ENTRY
- 	/* Assert that pt_regs indicates user mode. */
- 	testb	$3, CS(%rsp)
-@@ -677,7 +677,7 @@ retint_kernel:
- 	 */
- 	TRACE_IRQS_IRETQ
+ GLOBAL(__begin_SYSENTER_singlestep_region)
+ /*
+@@ -1100,7 +1099,7 @@ restore_all_kernel:
+ 	jmp	.Lirq_return
  
--GLOBAL(restore_regs_and_return_to_kernel)
-+SYM_INNER_LABEL(restore_regs_and_return_to_kernel, SYM_L_GLOBAL)
- #ifdef CONFIG_DEBUG_ENTRY
- 	/* Assert that pt_regs indicates kernel mode. */
- 	testb	$3, CS(%rsp)
-diff --git a/arch/x86/entry/entry_64_compat.S b/arch/x86/entry/entry_64_compat.S
-index 39913770a44d..5c7e71669239 100644
---- a/arch/x86/entry/entry_64_compat.S
-+++ b/arch/x86/entry/entry_64_compat.S
-@@ -146,7 +146,7 @@ ENTRY(entry_SYSENTER_compat)
- 	pushq	$X86_EFLAGS_FIXED
- 	popfq
- 	jmp	.Lsysenter_flags_fixed
--GLOBAL(__end_entry_SYSENTER_compat)
-+SYM_INNER_LABEL(__end_entry_SYSENTER_compat, SYM_L_GLOBAL)
- ENDPROC(entry_SYSENTER_compat)
+ .section .fixup, "ax"
+-ENTRY(iret_exc	)
++SYM_CODE_START(iret_exc)
+ 	pushl	$0				# no error code
+ 	pushl	$do_iret_error
+ 
+@@ -1117,6 +1116,7 @@ ENTRY(iret_exc	)
+ #endif
+ 
+ 	jmp	common_exception
++SYM_CODE_END(iret_exc)
+ .previous
+ 	_ASM_EXTABLE(.Lirq_return, iret_exc)
+ ENDPROC(entry_INT80_32)
+@@ -1182,7 +1182,7 @@ ENTRY(spurious_entries_start)
+     .endr
+ END(spurious_entries_start)
+ 
+-common_spurious:
++SYM_CODE_START_LOCAL(common_spurious)
+ 	ASM_CLAC
+ 	addl	$-0x80, (%esp)			/* Adjust vector into the [-256, -1] range */
+ 	SAVE_ALL switch_stacks=1
+@@ -1191,7 +1191,7 @@ common_spurious:
+ 	movl	%esp, %eax
+ 	call	smp_spurious_interrupt
+ 	jmp	ret_from_intr
+-ENDPROC(common_spurious)
++SYM_CODE_END(common_spurious)
+ #endif
  
  /*
-@@ -215,7 +215,7 @@ ENTRY(entry_SYSCALL_compat)
- 	pushq	%r11			/* pt_regs->flags */
- 	pushq	$__USER32_CS		/* pt_regs->cs */
- 	pushq	%rcx			/* pt_regs->ip */
--GLOBAL(entry_SYSCALL_compat_after_hwframe)
-+SYM_INNER_LABEL(entry_SYSCALL_compat_after_hwframe, SYM_L_GLOBAL)
- 	movl	%eax, %eax		/* discard orig_ax high bits */
- 	pushq	%rax			/* pt_regs->orig_ax */
- 	pushq	%rdi			/* pt_regs->di */
-diff --git a/arch/x86/entry/vdso/vdso32/system_call.S b/arch/x86/entry/vdso/vdso32/system_call.S
-index 263d7433dea8..de1fff7188aa 100644
---- a/arch/x86/entry/vdso/vdso32/system_call.S
-+++ b/arch/x86/entry/vdso/vdso32/system_call.S
-@@ -62,7 +62,7 @@ __kernel_vsyscall:
+@@ -1199,7 +1199,7 @@ ENDPROC(common_spurious)
+  * so IRQ-flags tracing has to follow that:
+  */
+ 	.p2align CONFIG_X86_L1_CACHE_SHIFT
+-common_interrupt:
++SYM_CODE_START_LOCAL(common_interrupt)
+ 	ASM_CLAC
+ 	addl	$-0x80, (%esp)			/* Adjust vector into the [-256, -1] range */
  
- 	/* Enter using int $0x80 */
- 	int	$0x80
--GLOBAL(int80_landing_pad)
-+SYM_INNER_LABEL(int80_landing_pad, SYM_L_GLOBAL)
+@@ -1209,7 +1209,7 @@ common_interrupt:
+ 	movl	%esp, %eax
+ 	call	do_IRQ
+ 	jmp	ret_from_intr
+-ENDPROC(common_interrupt)
++SYM_CODE_END(common_interrupt)
  
+ #define BUILD_INTERRUPT3(name, nr, fn)			\
+ ENTRY(name)						\
+@@ -1361,7 +1361,7 @@ ENTRY(xen_hypervisor_callback)
+ 
+ 	jmp	xen_iret_crit_fixup
+ 
+-ENTRY(xen_do_upcall)
++SYM_INNER_LABEL_ALIGN(xen_do_upcall, SYM_L_GLOBAL)
+ 1:	mov	%esp, %eax
+ 	call	xen_evtchn_do_upcall
+ #ifndef CONFIG_PREEMPTION
+@@ -1447,7 +1447,7 @@ ENTRY(page_fault)
+ 	jmp	common_exception_read_cr2
+ END(page_fault)
+ 
+-common_exception_read_cr2:
++SYM_CODE_START_LOCAL_NOALIGN(common_exception_read_cr2)
+ 	/* the function address is in %gs's slot on the stack */
+ 	SAVE_ALL switch_stacks=1 skip_gs=1
+ 
+@@ -1470,9 +1470,9 @@ common_exception_read_cr2:
+ 	movl	%esp, %eax			# pt_regs pointer
+ 	CALL_NOSPEC %edi
+ 	jmp	ret_from_exception
+-END(common_exception_read_cr2)
++SYM_CODE_END(common_exception_read_cr2)
+ 
+-common_exception:
++SYM_CODE_START_LOCAL_NOALIGN(common_exception)
+ 	/* the function address is in %gs's slot on the stack */
+ 	SAVE_ALL switch_stacks=1 skip_gs=1
+ 	ENCODE_FRAME_POINTER
+@@ -1492,7 +1492,7 @@ common_exception:
+ 	movl	%esp, %eax			# pt_regs pointer
+ 	CALL_NOSPEC %edi
+ 	jmp	ret_from_exception
+-END(common_exception)
++SYM_CODE_END(common_exception)
+ 
+ ENTRY(debug)
  	/*
- 	 * Restore EDX and ECX in case they were clobbered.  EBP is not
-diff --git a/arch/x86/kernel/ftrace_32.S b/arch/x86/kernel/ftrace_32.S
-index 073aab525d80..e0061dc976e1 100644
---- a/arch/x86/kernel/ftrace_32.S
-+++ b/arch/x86/kernel/ftrace_32.S
-@@ -138,7 +138,7 @@ ENTRY(ftrace_regs_caller)
- 	movl	function_trace_op, %ecx	# 3rd argument: ftrace_pos
- 	pushl	%esp			# 4th argument: pt_regs
+diff --git a/arch/x86/entry/entry_64.S b/arch/x86/entry/entry_64.S
+index 68cb3a9ee65e..6c382ccbdeb5 100644
+--- a/arch/x86/entry/entry_64.S
++++ b/arch/x86/entry/entry_64.S
+@@ -587,18 +587,18 @@ _ASM_NOKPROBE(interrupt_entry)
+  * The interrupt stubs push (~vector+0x80) onto the stack and
+  * then jump to common_spurious/interrupt.
+  */
+-common_spurious:
++SYM_CODE_START_LOCAL(common_spurious)
+ 	addq	$-0x80, (%rsp)			/* Adjust vector to [-256, -1] range */
+ 	call	interrupt_entry
+ 	UNWIND_HINT_REGS indirect=1
+ 	call	smp_spurious_interrupt		/* rdi points to pt_regs */
+ 	jmp	ret_from_intr
+-END(common_spurious)
++SYM_CODE_END(common_spurious)
+ _ASM_NOKPROBE(common_spurious)
  
--GLOBAL(ftrace_regs_call)
-+SYM_INNER_LABEL(ftrace_regs_call, SYM_L_GLOBAL)
- 	call	ftrace_stub
- 
- 	addl	$4, %esp		# skip 4th argument
-diff --git a/arch/x86/kernel/ftrace_64.S b/arch/x86/kernel/ftrace_64.S
-index 809d54397dba..3afaaf555637 100644
---- a/arch/x86/kernel/ftrace_64.S
-+++ b/arch/x86/kernel/ftrace_64.S
-@@ -140,14 +140,14 @@ ENTRY(ftrace_caller)
- 	/* save_mcount_regs fills in first two parameters */
- 	save_mcount_regs
- 
--GLOBAL(ftrace_caller_op_ptr)
-+SYM_INNER_LABEL(ftrace_caller_op_ptr, SYM_L_GLOBAL)
- 	/* Load the ftrace_ops into the 3rd parameter */
- 	movq function_trace_op(%rip), %rdx
- 
- 	/* regs go into 4th parameter (but make it NULL) */
- 	movq $0, %rcx
- 
--GLOBAL(ftrace_call)
-+SYM_INNER_LABEL(ftrace_call, SYM_L_GLOBAL)
- 	call ftrace_stub
- 
- 	restore_mcount_regs
-@@ -157,10 +157,10 @@ GLOBAL(ftrace_call)
- 	 * think twice before adding any new code or changing the
- 	 * layout here.
+ /* common_interrupt is a hotpath. Align it */
+ 	.p2align CONFIG_X86_L1_CACHE_SHIFT
+-common_interrupt:
++SYM_CODE_START_LOCAL(common_interrupt)
+ 	addq	$-0x80, (%rsp)			/* Adjust vector to [-256, -1] range */
+ 	call	interrupt_entry
+ 	UNWIND_HINT_REGS indirect=1
+@@ -693,7 +693,7 @@ GLOBAL(restore_regs_and_return_to_kernel)
  	 */
--GLOBAL(ftrace_epilogue)
-+SYM_INNER_LABEL(ftrace_epilogue, SYM_L_GLOBAL)
+ 	INTERRUPT_RETURN
  
- #ifdef CONFIG_FUNCTION_GRAPH_TRACER
--GLOBAL(ftrace_graph_call)
-+SYM_INNER_LABEL(ftrace_graph_call, SYM_L_GLOBAL)
- 	jmp ftrace_stub
+-ENTRY(native_iret)
++SYM_INNER_LABEL_ALIGN(native_iret, SYM_L_GLOBAL)
+ 	UNWIND_HINT_IRET_REGS
+ 	/*
+ 	 * Are we returning to a stack segment from the LDT?  Note: in
+@@ -704,8 +704,7 @@ ENTRY(native_iret)
+ 	jnz	native_irq_return_ldt
  #endif
  
-@@ -180,7 +180,7 @@ ENTRY(ftrace_regs_caller)
- 	save_mcount_regs 8
- 	/* save_mcount_regs fills in first two parameters */
- 
--GLOBAL(ftrace_regs_caller_op_ptr)
-+SYM_INNER_LABEL(ftrace_regs_caller_op_ptr, SYM_L_GLOBAL)
- 	/* Load the ftrace_ops into the 3rd parameter */
- 	movq function_trace_op(%rip), %rdx
- 
-@@ -209,7 +209,7 @@ GLOBAL(ftrace_regs_caller_op_ptr)
- 	/* regs go into 4th parameter */
- 	leaq (%rsp), %rcx
- 
--GLOBAL(ftrace_regs_call)
-+SYM_INNER_LABEL(ftrace_regs_call, SYM_L_GLOBAL)
- 	call ftrace_stub
- 
- 	/* Copy flags back to SS, to restore them */
-@@ -239,7 +239,7 @@ GLOBAL(ftrace_regs_call)
- 	 * The trampoline will add the code to jump
- 	 * to the return.
+-.global native_irq_return_iret
+-native_irq_return_iret:
++SYM_INNER_LABEL(native_irq_return_iret, SYM_L_GLOBAL)
+ 	/*
+ 	 * This may fault.  Non-paranoid faults on return to userspace are
+ 	 * handled by fixup_bad_iret.  These include #SS, #GP, and #NP.
+@@ -787,7 +786,7 @@ native_irq_return_ldt:
  	 */
--GLOBAL(ftrace_regs_caller_end)
-+SYM_INNER_LABEL(ftrace_regs_caller_end, SYM_L_GLOBAL)
- 
- 	jmp ftrace_epilogue
- 
-@@ -261,7 +261,7 @@ fgraph_trace:
- 	jnz ftrace_graph_caller
+ 	jmp	native_irq_return_iret
  #endif
+-END(common_interrupt)
++SYM_CODE_END(common_interrupt)
+ _ASM_NOKPROBE(common_interrupt)
  
--GLOBAL(ftrace_stub)
-+SYM_INNER_LABEL(ftrace_stub, SYM_L_GLOBAL)
- 	retq
- 
- trace:
-diff --git a/arch/x86/realmode/rm/reboot.S b/arch/x86/realmode/rm/reboot.S
-index cd2f97b9623b..f91425a01f8f 100644
---- a/arch/x86/realmode/rm/reboot.S
-+++ b/arch/x86/realmode/rm/reboot.S
-@@ -33,7 +33,7 @@ ENTRY(machine_real_restart_asm)
- 	movl	%eax, %cr0
- 	ljmpl	$__KERNEL32_CS, $pa_machine_real_restart_paging_off
- 
--GLOBAL(machine_real_restart_paging_off)
-+SYM_INNER_LABEL(machine_real_restart_paging_off, SYM_L_GLOBAL)
- 	xorl	%eax, %eax
- 	xorl	%edx, %edx
- 	movl	$MSR_EFER, %ecx
+ /*
 -- 
 2.22.0
