@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.suse.de ([195.135.220.15]:47594 "EHLO mx1.suse.de"
+Received: from mx2.suse.de ([195.135.220.15]:47480 "EHLO mx1.suse.de"
         rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S2403838AbfHHKjI (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 8 Aug 2019 06:39:08 -0400
+        id S2403816AbfHHKjF (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 8 Aug 2019 06:39:05 -0400
 From: Jiri Slaby <jslaby@suse.cz>
-Subject: [PATCH v8 15/28] x86/asm/purgatory: start using annotations
-Date: Thu,  8 Aug 2019 12:38:41 +0200
-Message-ID: <20190808103854.6192-16-jslaby@suse.cz>
+Subject: [PATCH v8 12/28] x86/boot/compressed: annotate data appropriatelly
+Date: Thu,  8 Aug 2019 12:38:38 +0200
+Message-ID: <20190808103854.6192-13-jslaby@suse.cz>
 In-Reply-To: <20190808103854.6192-1-jslaby@suse.cz>
 References: <20190808103854.6192-1-jslaby@suse.cz>
 MIME-Version: 1.0
@@ -15,155 +15,167 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: bp@alien8.de
 Cc: tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Jiri Slaby <jslaby@suse.cz>
-Message-ID: <20190808103841.yZF0_3HF4UIgBeQP2cRh14o8u1P4ff6JAQHO14duOh8@z>
+Message-ID: <20190808103838.VxOWnwQFRYGkEmWEaTFgGAdv9lzmmFQ0cjpbKW1tD-Y@z>
 
-purgatory used no annotations at all. So include linux/linkage.h and
-annotate everything:
-* code by SYM_CODE_*
-* data by SYM_DATA_*
+Use the new SYM_DATA, SYM_DATA_START, and SYM_DATA_END* macros for data.
+
+Now, the data in the object file look sane:
+Value   Size Type    Bind   Vis      Ndx Name
+  0000    10 OBJECT  GLOBAL DEFAULT    3 efi32_boot_gdt
+  000a    10 OBJECT  LOCAL  DEFAULT    3 save_gdt
+  0014     8 OBJECT  LOCAL  DEFAULT    3 func_rt_ptr
+  001c    48 OBJECT  GLOBAL DEFAULT    3 efi_gdt64
+  004c     0 OBJECT  LOCAL  DEFAULT    3 efi_gdt64_end
+
+  0000    48 OBJECT  LOCAL  DEFAULT    3 gdt
+  0030     0 OBJECT  LOCAL  DEFAULT    3 gdt_end
+  0030     8 OBJECT  LOCAL  DEFAULT    3 efi_config
+  0038    49 OBJECT  GLOBAL DEFAULT    3 efi32_config
+  0069    49 OBJECT  GLOBAL DEFAULT    3 efi64_config
+
+All have correct size and type now.
 
 Signed-off-by: Jiri Slaby <jslaby@suse.cz>
+Cc: "H. Peter Anvin" <hpa@zytor.com>
 Cc: Thomas Gleixner <tglx@linutronix.de>
 Cc: Ingo Molnar <mingo@redhat.com>
-Cc: "H. Peter Anvin" <hpa@zytor.com>
 Cc: x86@kernel.org
 ---
- arch/x86/purgatory/entry64.S      | 21 ++++++++++++---------
- arch/x86/purgatory/setup-x86_64.S | 14 ++++++++------
- arch/x86/purgatory/stack.S        |  7 ++++---
- 3 files changed, 24 insertions(+), 18 deletions(-)
+ arch/x86/boot/compressed/efi_thunk_64.S | 21 +++++++++-------
+ arch/x86/boot/compressed/head_64.S      | 32 ++++++++++++-------------
+ arch/x86/boot/compressed/mem_encrypt.S  |  3 +--
+ 3 files changed, 28 insertions(+), 28 deletions(-)
 
-diff --git a/arch/x86/purgatory/entry64.S b/arch/x86/purgatory/entry64.S
-index 275a646d1048..9d73d3648aa6 100644
---- a/arch/x86/purgatory/entry64.S
-+++ b/arch/x86/purgatory/entry64.S
-@@ -8,13 +8,13 @@
-  * This code has been taken from kexec-tools.
-  */
+diff --git a/arch/x86/boot/compressed/efi_thunk_64.S b/arch/x86/boot/compressed/efi_thunk_64.S
+index bff9ab7c6317..d66000d23921 100644
+--- a/arch/x86/boot/compressed/efi_thunk_64.S
++++ b/arch/x86/boot/compressed/efi_thunk_64.S
+@@ -176,16 +176,19 @@ ENDPROC(efi_enter32)
  
-+#include <linux/linkage.h>
+ 	.data
+ 	.balign	8
+-	.global	efi32_boot_gdt
+-efi32_boot_gdt:	.word	0
+-		.quad	0
++SYM_DATA_START(efi32_boot_gdt)
++	.word	0
++	.quad	0
++SYM_DATA_END(efi32_boot_gdt)
 +
- 	.text
- 	.balign 16
- 	.code64
--	.globl entry64, entry64_regs
--
++SYM_DATA_START_LOCAL(save_gdt)
++	.word	0
++	.quad	0
++SYM_DATA_END(save_gdt)
  
--entry64:
-+SYM_CODE_START(entry64)
- 	/* Setup a gdt that should be preserved */
- 	lgdt gdt(%rip)
+-save_gdt:	.word	0
+-		.quad	0
+-func_rt_ptr:	.quad	0
++SYM_DATA_LOCAL(func_rt_ptr, .quad 0)
  
-@@ -54,10 +54,11 @@ new_cs_exit:
+-	.global efi_gdt64
+-efi_gdt64:
++SYM_DATA_START(efi_gdt64)
+ 	.word	efi_gdt64_end - efi_gdt64
+ 	.long	0			/* Filled out by user */
+ 	.word	0
+@@ -194,4 +197,4 @@ efi_gdt64:
+ 	.quad	0x00cf92000000ffff	/* __KERNEL_DS */
+ 	.quad	0x0080890000000000	/* TS descriptor */
+ 	.quad   0x0000000000000000	/* TS continued */
+-efi_gdt64_end:
++SYM_DATA_END_LABEL(efi_gdt64, SYM_L_LOCAL, efi_gdt64_end)
+diff --git a/arch/x86/boot/compressed/head_64.S b/arch/x86/boot/compressed/head_64.S
+index c8ce6ffc9fe5..70a25e0fa71e 100644
+--- a/arch/x86/boot/compressed/head_64.S
++++ b/arch/x86/boot/compressed/head_64.S
+@@ -659,11 +659,12 @@ SYM_FUNC_END(no_longmode)
+ #include "../../kernel/verify_cpu.S"
  
- 	/* Jump to the new code... */
- 	jmpq	*rip(%rip)
-+SYM_CODE_END(entry64)
- 
- 	.section ".rodata"
- 	.balign 4
--entry64_regs:
-+SYM_DATA_START(entry64_regs)
- rax:	.quad 0x0
- rcx:	.quad 0x0
- rdx:	.quad 0x0
-@@ -75,12 +76,12 @@ r13:	.quad 0x0
- r14:	.quad 0x0
- r15:	.quad 0x0
- rip:	.quad 0x0
--	.size entry64_regs, . - entry64_regs
-+SYM_DATA_END(entry64_regs)
- 
- 	/* GDT */
- 	.section ".rodata"
- 	.balign 16
+ 	.data
+-gdt64:
++SYM_DATA_START_LOCAL(gdt64)
+ 	.word	gdt_end - gdt
+ 	.quad   0
++SYM_DATA_END(gdt64)
+ 	.balign	8
 -gdt:
 +SYM_DATA_START_LOCAL(gdt)
- 	/* 0x00 unusable segment
- 	 * 0x08 unused
- 	 * so use them as gdt ptr
-@@ -94,6 +95,8 @@ gdt:
- 
- 	/* 0x18 4GB flat data segment */
- 	.word 0xFFFF, 0x0000, 0x9200, 0x00CF
+ 	.word	gdt_end - gdt
+ 	.long	gdt
+ 	.word	0
+@@ -672,25 +673,24 @@ gdt:
+ 	.quad	0x00cf92000000ffff	/* __KERNEL_DS */
+ 	.quad	0x0080890000000000	/* TS descriptor */
+ 	.quad   0x0000000000000000	/* TS continued */
 -gdt_end:
--stack:	.quad   0, 0
--stack_init:
 +SYM_DATA_END_LABEL(gdt, SYM_L_LOCAL, gdt_end)
-+
-+SYM_DATA_START_LOCAL(stack)
-+	.quad   0, 0
-+SYM_DATA_END_LABEL(stack, SYM_L_LOCAL, stack_init)
-diff --git a/arch/x86/purgatory/setup-x86_64.S b/arch/x86/purgatory/setup-x86_64.S
-index 321146be741d..89d9e9e53fcd 100644
---- a/arch/x86/purgatory/setup-x86_64.S
-+++ b/arch/x86/purgatory/setup-x86_64.S
-@@ -7,14 +7,14 @@
-  *
-  * This code has been taken from kexec-tools.
+ 
+ #ifdef CONFIG_EFI_STUB
+-efi_config:
+-	.quad	0
++SYM_DATA_LOCAL(efi_config, .quad 0)
+ 
+ #ifdef CONFIG_EFI_MIXED
+-	.global efi32_config
+-efi32_config:
++SYM_DATA_START(efi32_config)
+ 	.fill	5,8,0
+ 	.quad	efi64_thunk
+ 	.byte	0
++SYM_DATA_END(efi32_config)
+ #endif
+ 
+-	.global efi64_config
+-efi64_config:
++SYM_DATA_START(efi64_config)
+ 	.fill	5,8,0
+ 	.quad	efi_call
+ 	.byte	1
++SYM_DATA_END(efi64_config)
+ #endif /* CONFIG_EFI_STUB */
+ 
+ /*
+@@ -698,23 +698,21 @@ efi64_config:
   */
-+#include <linux/linkage.h>
- #include <asm/purgatory.h>
- 
- 	.text
--	.globl purgatory_start
- 	.balign 16
--purgatory_start:
- 	.code64
- 
-+SYM_CODE_START(purgatory_start)
- 	/* Load a gdt so I know what the segment registers are */
- 	lgdt	gdt(%rip)
- 
-@@ -32,10 +32,12 @@ purgatory_start:
- 	/* Call the C code */
- 	call purgatory
- 	jmp	entry64
-+SYM_CODE_END(purgatory_start)
- 
- 	.section ".rodata"
- 	.balign 16
--gdt:	/* 0x00 unusable segment
-+SYM_DATA_START_LOCAL(gdt)
-+	/* 0x00 unusable segment
- 	 * 0x08 unused
- 	 * so use them as the gdt ptr
- 	 */
-@@ -48,10 +50,10 @@ gdt:	/* 0x00 unusable segment
- 
- 	/* 0x18 4GB flat data segment */
- 	.word	0xFFFF, 0x0000, 0x9200, 0x00CF
--gdt_end:
-+SYM_DATA_END_LABEL(gdt, SYM_L_LOCAL, gdt_end)
- 
  	.bss
- 	.balign 4096
--lstack:
-+SYM_DATA_START_LOCAL(lstack)
- 	.skip 4096
--lstack_end:
-+SYM_DATA_END_LABEL(lstack, SYM_L_LOCAL, lstack_end)
-diff --git a/arch/x86/purgatory/stack.S b/arch/x86/purgatory/stack.S
-index 8b1427422dfc..1ef507ca50a5 100644
---- a/arch/x86/purgatory/stack.S
-+++ b/arch/x86/purgatory/stack.S
-@@ -5,13 +5,14 @@
-  * Copyright (C) 2014 Red Hat Inc.
-  */
- 
-+#include <linux/linkage.h>
+ 	.balign 4
+-boot_heap:
+-	.fill BOOT_HEAP_SIZE, 1, 0
+-boot_stack:
++SYM_DATA_LOCAL(boot_heap,	.fill BOOT_HEAP_SIZE, 1, 0)
 +
- 	/* A stack for the loaded kernel.
- 	 * Separate and in the data section so it can be prepopulated.
- 	 */
- 	.data
- 	.balign 4096
--	.globl stack, stack_end
++SYM_DATA_START_LOCAL(boot_stack)
+ 	.fill BOOT_STACK_SIZE, 1, 0
+-boot_stack_end:
++SYM_DATA_END_LABEL(boot_stack, SYM_L_LOCAL, boot_stack_end)
  
--stack:
-+SYM_DATA_START(stack)
- 	.skip 4096
--stack_end:
-+SYM_DATA_END_LABEL(stack, SYM_L_GLOBAL, stack_end)
+ /*
+  * Space for page tables (not in .bss so not zeroed)
+  */
+ 	.section ".pgtable","a",@nobits
+ 	.balign 4096
+-pgtable:
+-	.fill BOOT_PGT_SIZE, 1, 0
++SYM_DATA_LOCAL(pgtable,		.fill BOOT_PGT_SIZE, 1, 0)
+ 
+ /*
+  * The page table is going to be used instead of page table in the trampoline
+  * memory.
+  */
+-top_pgtable:
+-	.fill PAGE_SIZE, 1, 0
++SYM_DATA_LOCAL(top_pgtable,	.fill PAGE_SIZE, 1, 0)
+diff --git a/arch/x86/boot/compressed/mem_encrypt.S b/arch/x86/boot/compressed/mem_encrypt.S
+index 6afb7130a387..28d703cad310 100644
+--- a/arch/x86/boot/compressed/mem_encrypt.S
++++ b/arch/x86/boot/compressed/mem_encrypt.S
+@@ -96,6 +96,5 @@ ENDPROC(set_sev_encryption_mask)
+ 
+ #ifdef CONFIG_AMD_MEM_ENCRYPT
+ 	.balign	8
+-GLOBAL(sme_me_mask)
+-	.quad	0
++SYM_DATA(sme_me_mask, .quad 0)
+ #endif
 -- 
 2.22.0
