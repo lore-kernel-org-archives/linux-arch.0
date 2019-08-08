@@ -1,7 +1,7 @@
 From: Jiri Slaby <jslaby@suse.cz>
-Subject: [PATCH v8 15/28] x86/asm/purgatory: start using annotations
-Date: Thu,  8 Aug 2019 12:38:41 +0200
-Message-ID: <20190808103854.6192-16-jslaby@suse.cz>
+Subject: [PATCH v8 13/28] um: annotate data appropriatelly
+Date: Thu,  8 Aug 2019 12:38:39 +0200
+Message-ID: <20190808103854.6192-14-jslaby@suse.cz>
 References: <20190808103854.6192-1-jslaby@suse.cz>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
@@ -9,156 +9,46 @@ Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20190808103854.6192-1-jslaby@suse.cz>
 Sender: linux-kernel-owner@vger.kernel.org
 To: bp@alien8.de
-Cc: tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Jiri Slaby <jslaby@suse.cz>
+Cc: tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Jiri Slaby <jslaby@suse.cz>, Jeff Dike <jdike@addtoit.com>, Richard Weinberger <richard@nod.at>, user-mode-linux-devel@lists.sourceforge.net, user-mode-linux-user@lists.sourceforge.net
 List-Id: linux-arch.vger.kernel.org
 
-purgatory used no annotations at all. So include linux/linkage.h and
-annotate everything:
-* code by SYM_CODE_*
-* data by SYM_DATA_*
+Use the new SYM_DATA_START and SYM_DATA_END_LABEL macros for vdso_start.
+
+We get:
+  0000  2376 OBJECT  GLOBAL DEFAULT    4 vdso_start
+  0948     0 OBJECT  GLOBAL DEFAULT    4 vdso_end
 
 Signed-off-by: Jiri Slaby <jslaby@suse.cz>
+Cc: Jeff Dike <jdike@addtoit.com>
+Cc: Richard Weinberger <richard@nod.at>
 Cc: Thomas Gleixner <tglx@linutronix.de>
 Cc: Ingo Molnar <mingo@redhat.com>
 Cc: "H. Peter Anvin" <hpa@zytor.com>
 Cc: x86@kernel.org
+Cc: user-mode-linux-devel@lists.sourceforge.net
+Cc: user-mode-linux-user@lists.sourceforge.net
 ---
- arch/x86/purgatory/entry64.S      | 21 ++++++++++++---------
- arch/x86/purgatory/setup-x86_64.S | 14 ++++++++------
- arch/x86/purgatory/stack.S        |  7 ++++---
- 3 files changed, 24 insertions(+), 18 deletions(-)
+ arch/x86/um/vdso/vdso.S | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
 
-diff --git a/arch/x86/purgatory/entry64.S b/arch/x86/purgatory/entry64.S
-index 275a646d1048..9d73d3648aa6 100644
---- a/arch/x86/purgatory/entry64.S
-+++ b/arch/x86/purgatory/entry64.S
-@@ -8,13 +8,13 @@
-  * This code has been taken from kexec-tools.
-  */
- 
+diff --git a/arch/x86/um/vdso/vdso.S b/arch/x86/um/vdso/vdso.S
+index a4a3870dc059..a6eaf293a73b 100644
+--- a/arch/x86/um/vdso/vdso.S
++++ b/arch/x86/um/vdso/vdso.S
+@@ -1,11 +1,11 @@
+ /* SPDX-License-Identifier: GPL-2.0 */
+ #include <linux/init.h>
 +#include <linux/linkage.h>
-+
- 	.text
- 	.balign 16
- 	.code64
--	.globl entry64, entry64_regs
--
  
--entry64:
-+SYM_CODE_START(entry64)
- 	/* Setup a gdt that should be preserved */
- 	lgdt gdt(%rip)
+ __INITDATA
  
-@@ -54,10 +54,11 @@ new_cs_exit:
+-	.globl vdso_start, vdso_end
+-vdso_start:
++SYM_DATA_START(vdso_start)
+ 	.incbin "arch/x86/um/vdso/vdso.so"
+-vdso_end:
++SYM_DATA_END_LABEL(vdso_start, SYM_L_GLOBAL, vdso_end)
  
- 	/* Jump to the new code... */
- 	jmpq	*rip(%rip)
-+SYM_CODE_END(entry64)
- 
- 	.section ".rodata"
- 	.balign 4
--entry64_regs:
-+SYM_DATA_START(entry64_regs)
- rax:	.quad 0x0
- rcx:	.quad 0x0
- rdx:	.quad 0x0
-@@ -75,12 +76,12 @@ r13:	.quad 0x0
- r14:	.quad 0x0
- r15:	.quad 0x0
- rip:	.quad 0x0
--	.size entry64_regs, . - entry64_regs
-+SYM_DATA_END(entry64_regs)
- 
- 	/* GDT */
- 	.section ".rodata"
- 	.balign 16
--gdt:
-+SYM_DATA_START_LOCAL(gdt)
- 	/* 0x00 unusable segment
- 	 * 0x08 unused
- 	 * so use them as gdt ptr
-@@ -94,6 +95,8 @@ gdt:
- 
- 	/* 0x18 4GB flat data segment */
- 	.word 0xFFFF, 0x0000, 0x9200, 0x00CF
--gdt_end:
--stack:	.quad   0, 0
--stack_init:
-+SYM_DATA_END_LABEL(gdt, SYM_L_LOCAL, gdt_end)
-+
-+SYM_DATA_START_LOCAL(stack)
-+	.quad   0, 0
-+SYM_DATA_END_LABEL(stack, SYM_L_LOCAL, stack_init)
-diff --git a/arch/x86/purgatory/setup-x86_64.S b/arch/x86/purgatory/setup-x86_64.S
-index 321146be741d..89d9e9e53fcd 100644
---- a/arch/x86/purgatory/setup-x86_64.S
-+++ b/arch/x86/purgatory/setup-x86_64.S
-@@ -7,14 +7,14 @@
-  *
-  * This code has been taken from kexec-tools.
-  */
-+#include <linux/linkage.h>
- #include <asm/purgatory.h>
- 
- 	.text
--	.globl purgatory_start
- 	.balign 16
--purgatory_start:
- 	.code64
- 
-+SYM_CODE_START(purgatory_start)
- 	/* Load a gdt so I know what the segment registers are */
- 	lgdt	gdt(%rip)
- 
-@@ -32,10 +32,12 @@ purgatory_start:
- 	/* Call the C code */
- 	call purgatory
- 	jmp	entry64
-+SYM_CODE_END(purgatory_start)
- 
- 	.section ".rodata"
- 	.balign 16
--gdt:	/* 0x00 unusable segment
-+SYM_DATA_START_LOCAL(gdt)
-+	/* 0x00 unusable segment
- 	 * 0x08 unused
- 	 * so use them as the gdt ptr
- 	 */
-@@ -48,10 +50,10 @@ gdt:	/* 0x00 unusable segment
- 
- 	/* 0x18 4GB flat data segment */
- 	.word	0xFFFF, 0x0000, 0x9200, 0x00CF
--gdt_end:
-+SYM_DATA_END_LABEL(gdt, SYM_L_LOCAL, gdt_end)
- 
- 	.bss
- 	.balign 4096
--lstack:
-+SYM_DATA_START_LOCAL(lstack)
- 	.skip 4096
--lstack_end:
-+SYM_DATA_END_LABEL(lstack, SYM_L_LOCAL, lstack_end)
-diff --git a/arch/x86/purgatory/stack.S b/arch/x86/purgatory/stack.S
-index 8b1427422dfc..1ef507ca50a5 100644
---- a/arch/x86/purgatory/stack.S
-+++ b/arch/x86/purgatory/stack.S
-@@ -5,13 +5,14 @@
-  * Copyright (C) 2014 Red Hat Inc.
-  */
- 
-+#include <linux/linkage.h>
-+
- 	/* A stack for the loaded kernel.
- 	 * Separate and in the data section so it can be prepopulated.
- 	 */
- 	.data
- 	.balign 4096
--	.globl stack, stack_end
- 
--stack:
-+SYM_DATA_START(stack)
- 	.skip 4096
--stack_end:
-+SYM_DATA_END_LABEL(stack, SYM_L_GLOBAL, stack_end)
+ __FINIT
 -- 
 2.22.0
