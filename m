@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.suse.de ([195.135.220.15]:47480 "EHLO mx1.suse.de"
+Received: from mx2.suse.de ([195.135.220.15]:47594 "EHLO mx1.suse.de"
         rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S2403816AbfHHKjF (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        id S2403801AbfHHKjF (ORCPT <rfc822;linux-arch@vger.kernel.org>);
         Thu, 8 Aug 2019 06:39:05 -0400
 From: Jiri Slaby <jslaby@suse.cz>
-Subject: [PATCH v8 12/28] x86/boot/compressed: annotate data appropriatelly
-Date: Thu,  8 Aug 2019 12:38:38 +0200
-Message-ID: <20190808103854.6192-13-jslaby@suse.cz>
+Subject: [PATCH v8 10/28] x86/asm/entry: annotate interrupt symbols properly
+Date: Thu,  8 Aug 2019 12:38:36 +0200
+Message-ID: <20190808103854.6192-11-jslaby@suse.cz>
 In-Reply-To: <20190808103854.6192-1-jslaby@suse.cz>
 References: <20190808103854.6192-1-jslaby@suse.cz>
 MIME-Version: 1.0
@@ -15,167 +15,200 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: bp@alien8.de
 Cc: tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Jiri Slaby <jslaby@suse.cz>
-Message-ID: <20190808103838.VxOWnwQFRYGkEmWEaTFgGAdv9lzmmFQ0cjpbKW1tD-Y@z>
+Message-ID: <20190808103836.urivI33qIfsf56KXVJubUhvd-tKYXWHcftdvoW7f2oQ@z>
 
-Use the new SYM_DATA, SYM_DATA_START, and SYM_DATA_END* macros for data.
+* annotate functions properly by SYM_CODE_START, SYM_CODE_START_LOCAL*
+  and SYM_CODE_END -- these are not C-like functions, so we have to
+  annotate them using CODE.
+* use SYM_INNER_LABEL* for labels being in the middle of other functions
 
-Now, the data in the object file look sane:
-Value   Size Type    Bind   Vis      Ndx Name
-  0000    10 OBJECT  GLOBAL DEFAULT    3 efi32_boot_gdt
-  000a    10 OBJECT  LOCAL  DEFAULT    3 save_gdt
-  0014     8 OBJECT  LOCAL  DEFAULT    3 func_rt_ptr
-  001c    48 OBJECT  GLOBAL DEFAULT    3 efi_gdt64
-  004c     0 OBJECT  LOCAL  DEFAULT    3 efi_gdt64_end
-
-  0000    48 OBJECT  LOCAL  DEFAULT    3 gdt
-  0030     0 OBJECT  LOCAL  DEFAULT    3 gdt_end
-  0030     8 OBJECT  LOCAL  DEFAULT    3 efi_config
-  0038    49 OBJECT  GLOBAL DEFAULT    3 efi32_config
-  0069    49 OBJECT  GLOBAL DEFAULT    3 efi64_config
-
-All have correct size and type now.
+[v4] alignments preserved
 
 Signed-off-by: Jiri Slaby <jslaby@suse.cz>
-Cc: "H. Peter Anvin" <hpa@zytor.com>
 Cc: Thomas Gleixner <tglx@linutronix.de>
 Cc: Ingo Molnar <mingo@redhat.com>
-Cc: x86@kernel.org
+Cc: "H. Peter Anvin" <hpa@zytor.com>
+Cc: <x86@kernel.org>
 ---
- arch/x86/boot/compressed/efi_thunk_64.S | 21 +++++++++-------
- arch/x86/boot/compressed/head_64.S      | 32 ++++++++++++-------------
- arch/x86/boot/compressed/mem_encrypt.S  |  3 +--
- 3 files changed, 28 insertions(+), 28 deletions(-)
+ arch/x86/entry/entry_32.S | 28 ++++++++++++++--------------
+ arch/x86/entry/entry_64.S | 13 ++++++-------
+ 2 files changed, 20 insertions(+), 21 deletions(-)
 
-diff --git a/arch/x86/boot/compressed/efi_thunk_64.S b/arch/x86/boot/compressed/efi_thunk_64.S
-index bff9ab7c6317..d66000d23921 100644
---- a/arch/x86/boot/compressed/efi_thunk_64.S
-+++ b/arch/x86/boot/compressed/efi_thunk_64.S
-@@ -176,16 +176,19 @@ ENDPROC(efi_enter32)
+diff --git a/arch/x86/entry/entry_32.S b/arch/x86/entry/entry_32.S
+index f83ca5aa8b77..f37ff583cecb 100644
+--- a/arch/x86/entry/entry_32.S
++++ b/arch/x86/entry/entry_32.S
+@@ -807,8 +807,7 @@ END(ret_from_fork)
+  */
  
- 	.data
- 	.balign	8
--	.global	efi32_boot_gdt
--efi32_boot_gdt:	.word	0
--		.quad	0
-+SYM_DATA_START(efi32_boot_gdt)
-+	.word	0
-+	.quad	0
-+SYM_DATA_END(efi32_boot_gdt)
-+
-+SYM_DATA_START_LOCAL(save_gdt)
-+	.word	0
-+	.quad	0
-+SYM_DATA_END(save_gdt)
+ 	# userspace resumption stub bypassing syscall exit tracing
+-	ALIGN
+-ret_from_exception:
++SYM_CODE_START_LOCAL(ret_from_exception)
+ 	preempt_stop(CLBR_ANY)
+ ret_from_intr:
+ #ifdef CONFIG_VM86
+@@ -825,13 +824,13 @@ ret_from_intr:
+ 	cmpl	$USER_RPL, %eax
+ 	jb	restore_all_kernel		# not returning to v8086 or userspace
  
--save_gdt:	.word	0
--		.quad	0
--func_rt_ptr:	.quad	0
-+SYM_DATA_LOCAL(func_rt_ptr, .quad 0)
+-ENTRY(resume_userspace)
++SYM_INNER_LABEL_ALIGN(resume_userspace, SYM_L_LOCAL)
+ 	DISABLE_INTERRUPTS(CLBR_ANY)
+ 	TRACE_IRQS_OFF
+ 	movl	%esp, %eax
+ 	call	prepare_exit_to_usermode
+ 	jmp	restore_all
+-END(ret_from_exception)
++SYM_CODE_END(ret_from_exception)
  
--	.global efi_gdt64
--efi_gdt64:
-+SYM_DATA_START(efi_gdt64)
- 	.word	efi_gdt64_end - efi_gdt64
- 	.long	0			/* Filled out by user */
- 	.word	0
-@@ -194,4 +197,4 @@ efi_gdt64:
- 	.quad	0x00cf92000000ffff	/* __KERNEL_DS */
- 	.quad	0x0080890000000000	/* TS descriptor */
- 	.quad   0x0000000000000000	/* TS continued */
--efi_gdt64_end:
-+SYM_DATA_END_LABEL(efi_gdt64, SYM_L_LOCAL, efi_gdt64_end)
-diff --git a/arch/x86/boot/compressed/head_64.S b/arch/x86/boot/compressed/head_64.S
-index c8ce6ffc9fe5..70a25e0fa71e 100644
---- a/arch/x86/boot/compressed/head_64.S
-+++ b/arch/x86/boot/compressed/head_64.S
-@@ -659,11 +659,12 @@ SYM_FUNC_END(no_longmode)
- #include "../../kernel/verify_cpu.S"
+ GLOBAL(__begin_SYSENTER_singlestep_region)
+ /*
+@@ -1100,7 +1099,7 @@ restore_all_kernel:
+ 	jmp	.Lirq_return
  
- 	.data
--gdt64:
-+SYM_DATA_START_LOCAL(gdt64)
- 	.word	gdt_end - gdt
- 	.quad   0
-+SYM_DATA_END(gdt64)
- 	.balign	8
--gdt:
-+SYM_DATA_START_LOCAL(gdt)
- 	.word	gdt_end - gdt
- 	.long	gdt
- 	.word	0
-@@ -672,25 +673,24 @@ gdt:
- 	.quad	0x00cf92000000ffff	/* __KERNEL_DS */
- 	.quad	0x0080890000000000	/* TS descriptor */
- 	.quad   0x0000000000000000	/* TS continued */
--gdt_end:
-+SYM_DATA_END_LABEL(gdt, SYM_L_LOCAL, gdt_end)
+ .section .fixup, "ax"
+-ENTRY(iret_exc	)
++SYM_CODE_START(iret_exc)
+ 	pushl	$0				# no error code
+ 	pushl	$do_iret_error
  
- #ifdef CONFIG_EFI_STUB
--efi_config:
--	.quad	0
-+SYM_DATA_LOCAL(efi_config, .quad 0)
- 
- #ifdef CONFIG_EFI_MIXED
--	.global efi32_config
--efi32_config:
-+SYM_DATA_START(efi32_config)
- 	.fill	5,8,0
- 	.quad	efi64_thunk
- 	.byte	0
-+SYM_DATA_END(efi32_config)
+@@ -1117,6 +1116,7 @@ ENTRY(iret_exc	)
  #endif
  
--	.global efi64_config
--efi64_config:
-+SYM_DATA_START(efi64_config)
- 	.fill	5,8,0
- 	.quad	efi_call
- 	.byte	1
-+SYM_DATA_END(efi64_config)
- #endif /* CONFIG_EFI_STUB */
+ 	jmp	common_exception
++SYM_CODE_END(iret_exc)
+ .previous
+ 	_ASM_EXTABLE(.Lirq_return, iret_exc)
+ ENDPROC(entry_INT80_32)
+@@ -1182,7 +1182,7 @@ ENTRY(spurious_entries_start)
+     .endr
+ END(spurious_entries_start)
  
- /*
-@@ -698,23 +698,21 @@ efi64_config:
-  */
- 	.bss
- 	.balign 4
--boot_heap:
--	.fill BOOT_HEAP_SIZE, 1, 0
--boot_stack:
-+SYM_DATA_LOCAL(boot_heap,	.fill BOOT_HEAP_SIZE, 1, 0)
-+
-+SYM_DATA_START_LOCAL(boot_stack)
- 	.fill BOOT_STACK_SIZE, 1, 0
--boot_stack_end:
-+SYM_DATA_END_LABEL(boot_stack, SYM_L_LOCAL, boot_stack_end)
- 
- /*
-  * Space for page tables (not in .bss so not zeroed)
-  */
- 	.section ".pgtable","a",@nobits
- 	.balign 4096
--pgtable:
--	.fill BOOT_PGT_SIZE, 1, 0
-+SYM_DATA_LOCAL(pgtable,		.fill BOOT_PGT_SIZE, 1, 0)
- 
- /*
-  * The page table is going to be used instead of page table in the trampoline
-  * memory.
-  */
--top_pgtable:
--	.fill PAGE_SIZE, 1, 0
-+SYM_DATA_LOCAL(top_pgtable,	.fill PAGE_SIZE, 1, 0)
-diff --git a/arch/x86/boot/compressed/mem_encrypt.S b/arch/x86/boot/compressed/mem_encrypt.S
-index 6afb7130a387..28d703cad310 100644
---- a/arch/x86/boot/compressed/mem_encrypt.S
-+++ b/arch/x86/boot/compressed/mem_encrypt.S
-@@ -96,6 +96,5 @@ ENDPROC(set_sev_encryption_mask)
- 
- #ifdef CONFIG_AMD_MEM_ENCRYPT
- 	.balign	8
--GLOBAL(sme_me_mask)
--	.quad	0
-+SYM_DATA(sme_me_mask, .quad 0)
+-common_spurious:
++SYM_CODE_START_LOCAL(common_spurious)
+ 	ASM_CLAC
+ 	addl	$-0x80, (%esp)			/* Adjust vector into the [-256, -1] range */
+ 	SAVE_ALL switch_stacks=1
+@@ -1191,7 +1191,7 @@ common_spurious:
+ 	movl	%esp, %eax
+ 	call	smp_spurious_interrupt
+ 	jmp	ret_from_intr
+-ENDPROC(common_spurious)
++SYM_CODE_END(common_spurious)
  #endif
+ 
+ /*
+@@ -1199,7 +1199,7 @@ ENDPROC(common_spurious)
+  * so IRQ-flags tracing has to follow that:
+  */
+ 	.p2align CONFIG_X86_L1_CACHE_SHIFT
+-common_interrupt:
++SYM_CODE_START_LOCAL(common_interrupt)
+ 	ASM_CLAC
+ 	addl	$-0x80, (%esp)			/* Adjust vector into the [-256, -1] range */
+ 
+@@ -1209,7 +1209,7 @@ common_interrupt:
+ 	movl	%esp, %eax
+ 	call	do_IRQ
+ 	jmp	ret_from_intr
+-ENDPROC(common_interrupt)
++SYM_CODE_END(common_interrupt)
+ 
+ #define BUILD_INTERRUPT3(name, nr, fn)			\
+ ENTRY(name)						\
+@@ -1361,7 +1361,7 @@ ENTRY(xen_hypervisor_callback)
+ 
+ 	jmp	xen_iret_crit_fixup
+ 
+-ENTRY(xen_do_upcall)
++SYM_INNER_LABEL_ALIGN(xen_do_upcall, SYM_L_GLOBAL)
+ 1:	mov	%esp, %eax
+ 	call	xen_evtchn_do_upcall
+ #ifndef CONFIG_PREEMPTION
+@@ -1447,7 +1447,7 @@ ENTRY(page_fault)
+ 	jmp	common_exception_read_cr2
+ END(page_fault)
+ 
+-common_exception_read_cr2:
++SYM_CODE_START_LOCAL_NOALIGN(common_exception_read_cr2)
+ 	/* the function address is in %gs's slot on the stack */
+ 	SAVE_ALL switch_stacks=1 skip_gs=1
+ 
+@@ -1470,9 +1470,9 @@ common_exception_read_cr2:
+ 	movl	%esp, %eax			# pt_regs pointer
+ 	CALL_NOSPEC %edi
+ 	jmp	ret_from_exception
+-END(common_exception_read_cr2)
++SYM_CODE_END(common_exception_read_cr2)
+ 
+-common_exception:
++SYM_CODE_START_LOCAL_NOALIGN(common_exception)
+ 	/* the function address is in %gs's slot on the stack */
+ 	SAVE_ALL switch_stacks=1 skip_gs=1
+ 	ENCODE_FRAME_POINTER
+@@ -1492,7 +1492,7 @@ common_exception:
+ 	movl	%esp, %eax			# pt_regs pointer
+ 	CALL_NOSPEC %edi
+ 	jmp	ret_from_exception
+-END(common_exception)
++SYM_CODE_END(common_exception)
+ 
+ ENTRY(debug)
+ 	/*
+diff --git a/arch/x86/entry/entry_64.S b/arch/x86/entry/entry_64.S
+index 68cb3a9ee65e..6c382ccbdeb5 100644
+--- a/arch/x86/entry/entry_64.S
++++ b/arch/x86/entry/entry_64.S
+@@ -587,18 +587,18 @@ _ASM_NOKPROBE(interrupt_entry)
+  * The interrupt stubs push (~vector+0x80) onto the stack and
+  * then jump to common_spurious/interrupt.
+  */
+-common_spurious:
++SYM_CODE_START_LOCAL(common_spurious)
+ 	addq	$-0x80, (%rsp)			/* Adjust vector to [-256, -1] range */
+ 	call	interrupt_entry
+ 	UNWIND_HINT_REGS indirect=1
+ 	call	smp_spurious_interrupt		/* rdi points to pt_regs */
+ 	jmp	ret_from_intr
+-END(common_spurious)
++SYM_CODE_END(common_spurious)
+ _ASM_NOKPROBE(common_spurious)
+ 
+ /* common_interrupt is a hotpath. Align it */
+ 	.p2align CONFIG_X86_L1_CACHE_SHIFT
+-common_interrupt:
++SYM_CODE_START_LOCAL(common_interrupt)
+ 	addq	$-0x80, (%rsp)			/* Adjust vector to [-256, -1] range */
+ 	call	interrupt_entry
+ 	UNWIND_HINT_REGS indirect=1
+@@ -693,7 +693,7 @@ GLOBAL(restore_regs_and_return_to_kernel)
+ 	 */
+ 	INTERRUPT_RETURN
+ 
+-ENTRY(native_iret)
++SYM_INNER_LABEL_ALIGN(native_iret, SYM_L_GLOBAL)
+ 	UNWIND_HINT_IRET_REGS
+ 	/*
+ 	 * Are we returning to a stack segment from the LDT?  Note: in
+@@ -704,8 +704,7 @@ ENTRY(native_iret)
+ 	jnz	native_irq_return_ldt
+ #endif
+ 
+-.global native_irq_return_iret
+-native_irq_return_iret:
++SYM_INNER_LABEL(native_irq_return_iret, SYM_L_GLOBAL)
+ 	/*
+ 	 * This may fault.  Non-paranoid faults on return to userspace are
+ 	 * handled by fixup_bad_iret.  These include #SS, #GP, and #NP.
+@@ -787,7 +786,7 @@ native_irq_return_ldt:
+ 	 */
+ 	jmp	native_irq_return_iret
+ #endif
+-END(common_interrupt)
++SYM_CODE_END(common_interrupt)
+ _ASM_NOKPROBE(common_interrupt)
+ 
+ /*
 -- 
 2.22.0
