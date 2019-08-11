@@ -1,38 +1,59 @@
-From: Christoph Hellwig <hch-jcswGhMUV9g@public.gmane.org>
-Subject: next take at setting up a dma mask by default for platform devices
-Date: Sun, 11 Aug 2019 10:05:14 +0200
-Message-ID: <20190811080520.21712-1-hch@lst.de>
+From: Christoph Hellwig <hch@lst.de>
+Subject: [PATCH 4/6] usb/max3421: remove the dummy {un,}map_urb_for_dma methods
+Date: Sun, 11 Aug 2019 10:05:18 +0200
+Message-ID: <20190811080520.21712-5-hch@lst.de>
+References: <20190811080520.21712-1-hch@lst.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/iommu/>
-List-Post: <mailto:iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-List-Help: <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
-Sender: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-Errors-To: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-To: Greg Kroah-Hartman <gregkh-hQyY1W1yCW8ekmWlsbkhG0B+6BGkLq7r@public.gmane.org>, Maxime Chevallier <maxime.chevallier-LDxbnhwyfcJBDgjK7y7TUQ@public.gmane.org>
-Cc: linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Olav Kongas <ok-7zpu9HQY+G71rVmBwKKLGw@public.gmane.org>, Gavin Li <git-oo8+zttZ29GGv0/5viHBhw@public.gmane.org>, linuxppc-dev-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org, Mathias Nyman <mathias.nyman-ral2JQCrhuEAvxtiuMwx3w@public.gmane.org>, Geoff Levand <geoff-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org>, Fabio Estevam <festevam-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, Sascha Hauer <s.hauer-bIcnvbaLZ9MEGnE8C9+IrQ@public.gmane.org>, linux-usb-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Michal Simek <michal.simek-gjFFaj9aHVfQT0dZR+AlfA@public.gmane.org>, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Tony Prisk <linux-ci5G2KO2hbZ+pU9mqzGVBQ@public.gmane.org>, iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org, Alan Stern <stern-nwvwT67g6+6dFdvTe/nMLpVzexx5G7lz@public.gmane.org>, NXP Linux Team <linux-imx-3arQi8VN3Tc@public.gmane.org>, Pengutronix Kernel Team <kernel-bIcnvbaLZ9MEGnE8C9+IrQ@public.gmane.org>, Minas Harutyunyan <hminas-HKixBCOQz3hWk0Htik3J/w@public.gmane.org>, Shawn Guo <shawnguo-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Bin Liu <b-liu-l0cyMroinI0@public.gmane.org>, linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org
+Content-Transfer-Encoding: 8bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20190811080520.21712-1-hch@lst.de>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Maxime Chevallier <maxime.chevallier@bootlin.com>
+Cc: Gavin Li <git@thegavinli.com>, Laurentiu Tudor <laurentiu.tudor@nxp.com>, Minas Harutyunyan <hminas@synopsys.com>, Alan Stern <stern@rowland.harvard.edu>, Geoff Levand <geoff@infradead.org>, Michal Simek <michal.simek@xilinx.com>, Shawn Guo <shawnguo@kernel.org>, Sascha Hauer <s.hauer@pengutronix.de>, Pengutronix Kernel Team <kernel@pengutronix.de>, Fabio Estevam <festevam@gmail.com>, NXP Linux Team <linux-imx@nxp.com>, Olav Kongas <ok@artecdesign.ee>, Tony Prisk <linux@prisktech.co.nz>, Mathias Nyman <mathias.nyman@intel.com>, Bin Liu <b-liu@ti.com>, linux-arm-kernel@lists.infradead.org, linux-usb@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, iommu@lists.linux-foundation.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-Hi all,
+Now that we have an explicit HCD_DMA flag, there is not need to override
+these methods.
 
-this is another attempt to make sure the dma_mask pointer is always
-initialized for platform devices.  Not doing so lead to lots of
-boilerplate code, and makes platform devices different from all our
-major busses like PCI where we always set up a dma_mask.  In the long
-run this should also help to eventually make dma_mask a scalar value
-instead of a pointer and remove even more cruft.
+Signed-off-by: Christoph Hellwig <hch@lst.de>
+---
+ drivers/usb/host/max3421-hcd.c | 17 -----------------
+ 1 file changed, 17 deletions(-)
 
-The bigger blocker for this last time was the fact that the usb
-subsystem uses the presence or lack of a dma_mask to check if the core
-should do dma mapping for the driver, which is highly unusual.  So we
-fix this first.  Note that this has some overlap with the pending
-desire to use the proper dma_mmap_coherent helper for mapping usb
-buffers.  The first two patches from this series should probably
-go into 5.3 and then uses as the basis for the decision to use
-dma_mmap_coherent.
+diff --git a/drivers/usb/host/max3421-hcd.c b/drivers/usb/host/max3421-hcd.c
+index afa321ab55fc..8819f502b6a6 100644
+--- a/drivers/usb/host/max3421-hcd.c
++++ b/drivers/usb/host/max3421-hcd.c
+@@ -1800,21 +1800,6 @@ max3421_bus_resume(struct usb_hcd *hcd)
+ 	return -1;
+ }
+ 
+-/*
+- * The SPI driver already takes care of DMA-mapping/unmapping, so no
+- * reason to do it twice.
+- */
+-static int
+-max3421_map_urb_for_dma(struct usb_hcd *hcd, struct urb *urb, gfp_t mem_flags)
+-{
+-	return 0;
+-}
+-
+-static void
+-max3421_unmap_urb_for_dma(struct usb_hcd *hcd, struct urb *urb)
+-{
+-}
+-
+ static const struct hc_driver max3421_hcd_desc = {
+ 	.description =		"max3421",
+ 	.product_desc =		DRIVER_DESC,
+@@ -1826,8 +1811,6 @@ static const struct hc_driver max3421_hcd_desc = {
+ 	.get_frame_number =	max3421_get_frame_number,
+ 	.urb_enqueue =		max3421_urb_enqueue,
+ 	.urb_dequeue =		max3421_urb_dequeue,
+-	.map_urb_for_dma =	max3421_map_urb_for_dma,
+-	.unmap_urb_for_dma =	max3421_unmap_urb_for_dma,
+ 	.endpoint_disable =	max3421_endpoint_disable,
+ 	.hub_status_data =	max3421_hub_status_data,
+ 	.hub_control =		max3421_hub_control,
+-- 
+2.20.1
