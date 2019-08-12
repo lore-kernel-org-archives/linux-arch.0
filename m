@@ -1,53 +1,79 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-eopbgr800120.outbound.protection.outlook.com ([40.107.80.120]:40800
-        "EHLO NAM03-DM3-obe.outbound.protection.outlook.com"
+Received: from mail-eopbgr720105.outbound.protection.outlook.com ([40.107.72.105]:44208
+        "EHLO NAM05-CO1-obe.outbound.protection.outlook.com"
         rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1726090AbfHLSmU (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 12 Aug 2019 14:42:20 -0400
+        id S1726549AbfHLTWa (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 12 Aug 2019 15:22:30 -0400
 From: Michael Kelley <mikelley@microsoft.com>
-Subject: RE: [PATCH 2/2] clocksource/Hyper-V:  Add Hyper-V specific sched
- clock function
-Date: Mon, 12 Aug 2019 18:41:38 +0000
-Message-ID: <DM5PR21MB01371937B0E72671C4B7C990D7D30@DM5PR21MB0137.namprd21.prod.outlook.com>
+Subject: RE: [PATCH 0/2] clocksource/Hyper-V: Add Hyper-V specific sched clock
+ function
+Date: Mon, 12 Aug 2019 19:22:25 +0000
+Message-ID: <DM5PR21MB0137E03AAD8C2EA61EC81ED7D7D30@DM5PR21MB0137.namprd21.prod.outlook.com>
 References: <20190729075243.22745-1-Tianyu.Lan@microsoft.com>
- <20190729075243.22745-3-Tianyu.Lan@microsoft.com>
-In-Reply-To: <20190729075243.22745-3-Tianyu.Lan@microsoft.com>
+ <87zhkxksxd.fsf@vitty.brq.redhat.com>
+ <20190729110927.GC31398@hirez.programming.kicks-ass.net>
+ <87wog1kpib.fsf@vitty.brq.redhat.com>
+ <CAOLK0py6ngy9kAnZcRMBK8U45s2L5Wo4X0NP_qPM0zv7WjeVQQ@mail.gmail.com>
+In-Reply-To: <CAOLK0py6ngy9kAnZcRMBK8U45s2L5Wo4X0NP_qPM0zv7WjeVQQ@mail.gmail.com>
 Content-Language: en-US
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: quoted-printable
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
 MIME-Version: 1.0
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "lantianyu1986@gmail.com" <lantianyu1986@gmail.com>, KY Srinivasan <kys@microsoft.com>, Haiyang Zhang <haiyangz@microsoft.com>, Stephen Hemminger <sthemmin@microsoft.com>, "sashal@kernel.org" <sashal@kernel.org>, "tglx@linutronix.de" <tglx@linutronix.de>, "mingo@redhat.com" <mingo@redhat.com>, "bp@alien8.de" <bp@alien8.de>, "hpa@zytor.com" <hpa@zytor.com>, "x86@kernel.org" <x86@kernel.org>, "daniel.lezcano@linaro.org" <daniel.lezcano@linaro.org>, "arnd@arndb.de" <arnd@arndb.de>"ashal@kernel.org" <ashal@kernel.org>
-Cc: Tianyu Lan <Tianyu.Lan@microsoft.com>, "linux-hyperv@vger.kernel.org" <linux-hyperv@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
-Message-ID: <20190812184138.92aagWkW7Mbr163obWcZENP0gBDux6IF5MGzwcnf2R4@z>
+To: Tianyu Lan <lantianyu1986@gmail.com>, vkuznets <vkuznets@redhat.com>
+Cc: Peter Zijlstra <peterz@infradead.org>, Tianyu Lan <Tianyu.Lan@microsoft.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-hyperv@vger.kernel.org" <linux-hyperv@vger.kernel.org>, "linux-kernel@vger kernel org" <linux-kernel@vger.kernel.org>, Andy Lutomirski <luto@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, the arch/x86 maintainers <x86@kernel.org>, KY Srinivasan <kys@microsoft.com>, Haiyang Zhang <haiyangz@microsoft.com>, Stephen Hemminger <sthemmin@microsoft.com>, Sasha Levin <sashal@kernel.org>, Daniel Lezcano <daniel.lezcano@linaro.org>, Arnd Bergmann <arnd@arndb.de>"ashal@kernel.org" <ashal@kernel.org>
+Message-ID: <20190812192225.tsXut60SRz_D8AZrxA6bOMsdQwp8D2gpiil3cDiQi2Q@z>
 
-From: Tianyu Lan <Tianyu.Lan@microsoft.com>  Sent: Monday, July 29, 2019 12=
-:53 AM
->=20
-> Hyper-V guests use the default native_sched_clock() in pv_ops.time.sched_=
-clock
-> on x86.  But native_sched_clock() directly uses the raw TSC value, which
-> can be discontinuous in a Hyper-V VM. Add the generic hv_setup_sched_cloc=
-k()
-> to set the sched clock function appropriately. On x86, this sets pv_ops.t=
-ime.
-> sched_clock to read the Hyper-V reference TSC value that is scaled and ad=
-justed
-> to be continuous.
->=20
-> Also move the Hyper-V reference TSC initialization much earlier in the bo=
-ot
-> process so no discontinuity is observed when pv_ops.time.sched_clock
-> calculates its offset.
->=20
-> Signed-off-by: Tianyu Lan <Tianyu.Lan@microsoft.com>
-> ---
->  arch/x86/hyperv/hv_init.c          |  2 --
->  arch/x86/kernel/cpu/mshyperv.c     |  8 ++++++++
->  drivers/clocksource/hyperv_timer.c | 22 ++++++++++++----------
->  include/asm-generic/mshyperv.h     |  1 +
->  4 files changed, 21 insertions(+), 12 deletions(-)
->=20
-
-Reviewed-by: Michael Kelley <mikelley@microsoft.com>
+RnJvbTogVGlhbnl1IExhbiA8bGFudGlhbnl1MTk4NkBnbWFpbC5jb20+IFNlbnQ6IFR1ZXNkYXks
+IEp1bHkgMzAsIDIwMTkgNjo0MSBBTQ0KPiANCj4gT24gTW9uLCBKdWwgMjksIDIwMTkgYXQgODox
+MyBQTSBWaXRhbHkgS3V6bmV0c292IDx2a3V6bmV0c0ByZWRoYXQuY29tPiB3cm90ZToNCj4gPg0K
+PiA+IFBldGVyIFppamxzdHJhIDxwZXRlcnpAaW5mcmFkZWFkLm9yZz4gd3JpdGVzOg0KPiA+DQo+
+ID4gPiBPbiBNb24sIEp1bCAyOSwgMjAxOSBhdCAxMjo1OToyNlBNICswMjAwLCBWaXRhbHkgS3V6
+bmV0c292IHdyb3RlOg0KPiA+ID4+IGxhbnRpYW55dTE5ODZAZ21haWwuY29tIHdyaXRlczoNCj4g
+PiA+Pg0KPiA+ID4+ID4gRnJvbTogVGlhbnl1IExhbiA8VGlhbnl1LkxhbkBtaWNyb3NvZnQuY29t
+Pg0KPiA+ID4+ID4NCj4gPiA+PiA+IEh5cGVyLVYgZ3Vlc3RzIHVzZSB0aGUgZGVmYXVsdCBuYXRp
+dmVfc2NoZWRfY2xvY2soKSBpbiBwdl9vcHMudGltZS5zY2hlZF9jbG9jaw0KPiA+ID4+ID4gb24g
+eDg2LiAgQnV0IG5hdGl2ZV9zY2hlZF9jbG9jaygpIGRpcmVjdGx5IHVzZXMgdGhlIHJhdyBUU0Mg
+dmFsdWUsIHdoaWNoDQo+ID4gPj4gPiBjYW4gYmUgZGlzY29udGludW91cyBpbiBhIEh5cGVyLVYg
+Vk0uICAgQWRkIHRoZSBnZW5lcmljIGh2X3NldHVwX3NjaGVkX2Nsb2NrKCkNCj4gPiA+PiA+IHRv
+IHNldCB0aGUgc2NoZWQgY2xvY2sgZnVuY3Rpb24gYXBwcm9wcmlhdGVseS4gIE9uIHg4NiwgdGhp
+cyBzZXRzDQo+ID4gPj4gPiBwdl9vcHMudGltZS5zY2hlZF9jbG9jayB0byByZWFkIHRoZSBIeXBl
+ci1WIHJlZmVyZW5jZSBUU0MgdmFsdWUgdGhhdCBpcw0KPiA+ID4+ID4gc2NhbGVkIGFuZCBhZGp1
+c3RlZCB0byBiZSBjb250aW51b3VzLg0KPiA+ID4+DQo+ID4gPj4gSHlwZXJ2aXNvciBjYW4sIGlu
+IHRoZW9yeSwgZGlzYWJsZSBUU0MgcGFnZSBhbmQgdGhlbiB3ZSdyZSBmb3JjZWQgdG8gdXNlDQo+
+ID4gPj4gTVNSLWJhc2VkIGNsb2Nrc291cmNlIGJ1dCB1c2luZyBpdCBhcyBzY2hlZF9jbG9jaygp
+IGNhbiBiZSB2ZXJ5IHNsb3csDQo+ID4gPj4gSSdtIGFmcmFpZC4NCj4gPiA+Pg0KPiA+ID4+IE9u
+IHRoZSBvdGhlciBoYW5kLCB3aGF0IHdlIGhhdmUgbm93IGlzIHByb2JhYmx5IHdvcnNlOiBUU0Mg
+Y2FuLA0KPiA+ID4+IGFjdHVhbGx5LCBqdW1wIGJhY2t3YXJkcyAoZS5nLiBvbiBtaWdyYXRpb24p
+IGFuZCB3ZSdyZSBicmVha2luZyB0aGUNCj4gPiA+PiByZXF1aXJlbWVudHMgZm9yIHNjaGVkX2Ns
+b2NrKCkuDQo+ID4gPg0KPiA+ID4gVGhhdCAob2J2aW91c2x5KSBhbHNvIGJyZWFrcyB0aGUgcmVx
+dWlyZW1lbnRzIGZvciB1c2luZyBUU0MgYXMNCj4gPiA+IGNsb2Nrc291cmNlLg0KPiA+ID4NCj4g
+PiA+IElPVywgaXQgYnJlYWtzIHRoZSBlbnRpcmUgcHVycG9zZSBvZiBoYXZpbmcgVFNDIGluIHRo
+ZSBmaXJzdCBwbGFjZS4NCj4gPg0KPiA+IEN1cnJlbnRseSwgd2UgbWFyayByYXcgVFNDIGFzIHVu
+c3RhYmxlIHdoZW4gcnVubmluZyBvbiBIeXBlci1WIChzZWUNCj4gPiA4OGM5MjgxYTlmYmE2KSwg
+J1RTQyBwYWdlJyAod2hpY2ggaXMgVFNDICogc2NhbGUgKyBvZmZzZXQpIGlzIGJlaW5nIHVzZWQN
+Cj4gPiBpbnN0ZWFkLiBUaGUgcHJvYmxlbSBpcyB0aGF0ICdUU0MgcGFnZScgY2FuIGJlIGRpc2Fi
+bGVkIGJ5IHRoZQ0KPiA+IGh5cGVydmlzb3IgYW5kIGluIHRoYXQgY2FzZSB0aGUgb25seSByZW1h
+aW5pbmcgY2xvY2tzb3VyY2UgaXMgTVNSLWJhc2VkDQo+ID4gKHNsb3cpLg0KPiA+DQo+IA0KPiBZ
+ZXMsIHRoYXQgd2lsbCBiZSBzbG93IGlmIEh5cGVyLVYgZG9lc24ndCBleHBvc2UgaHYgdHNjIHBh
+Z2UgYW5kDQo+IGtlcm5lbCB1c2VzIE1TUiBiYXNlZA0KPiBjbG9ja3NvdXJjZS4gRWFjaCBNU1Ig
+cmVhZCB3aWxsIHRyaWdnZXIgb25lIFZNLUVYSVQuIFRoaXMgYWxzbyBoYXBwZW5zIG9uIG90aGVy
+DQo+IGh5cGVydmlzb3JzIChlLGcsIEtWTSBkb2Vzbid0IGV4cG9zZSBLVk0gY2xvY2spLiBIeXBl
+cnZpc29yIHNob3VsZA0KPiB0YWtlIHRoaXMgaW50bw0KPiBhY2NvdW50IGFuZCBkZXRlcm1pbmUg
+d2hpY2ggY2xvY2tzb3VyY2Ugc2hvdWxkIGJlIGV4cG9zZWQgb3Igbm90Lg0KPiANCg0KV2UndmUg
+Y29uZmlybWVkIHdpdGggdGhlIEh5cGVyLVYgdGVhbSB0aGF0IHRoZSBUU0MgcGFnZSBpcyBhbHdh
+eXMgYXZhaWxhYmxlDQpvbiBIeXBlci1WIDIwMTYgYW5kIGxhdGVyLCBhbmQgb24gSHlwZXItViAy
+MDEyIFIyIHdoZW4gdGhlIHBoeXNpY2FsDQpoYXJkd2FyZSBwcmVzZW50cyBhbiBJbnZhcmlhbnRU
+U0MuICBCdXQgdGhlIExpbnV4IEtjb25maWcncyBhcmUgc2V0IHVwIHNvDQp0aGUgVFNDIHBhZ2Ug
+aXMgbm90IHVzZWQgZm9yIDMyLWJpdCBndWVzdHMgLS0gYWxsIGNsb2NrIHJlYWRzIGFyZSBzeW50
+aGV0aWMgTVNSDQpyZWFkcy4gIEZvciAzMi1iaXQsIHRoaXMgc2V0IG9mIGNoYW5nZXMgd2lsbCBh
+ZGQgbW9yZSBvdmVyaGVhZCBiZWNhdXNlIHRoZQ0Kc2NoZWQgY2xvY2sgcmVhZHMgd2lsbCBub3cg
+YmUgTVNSIHJlYWRzLg0KDQpJIHdvdWxkIGJlIGluY2xpbmVkIHRvIGZpeCB0aGUgcHJvYmxlbSwg
+ZXZlbiB3aXRoIHRoZSBwZXJmIGhpdCBvbiAzMi1iaXQgTGludXguDQpJIGRvbuKAmXQgaGF2ZSBh
+bnkgZGF0YSBvbiAzMi1iaXQgTGludXggYmVpbmcgdXNlZCBpbiBhIEh5cGVyLVYgZ3Vlc3QsIGJ1
+dCBpdCdzIG5vdA0Kc3VwcG9ydGVkIGluIEF6dXJlIHNvIHVzYWdlIGlzIHByZXR0eSBzbWFsbC4g
+IFRoZSBhbHRlcm5hdGl2ZSB3b3VsZCBiZSB0byBjb250aW51ZQ0KdG8gdXNlIHRoZSByYXcgVFND
+IHZhbHVlIG9uIDMyLWJpdCwgZXZlbiB3aXRoIHRoZSByaXNrIG9mIGEgZGlzY29udGludWl0eSBp
+biBjYXNlIG9mDQpsaXZlIG1pZ3JhdGlvbiBvciBzaW1pbGFyIHNjZW5hcmlvcy4NCg0KTWljaGFl
+bA0K
