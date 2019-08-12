@@ -1,79 +1,63 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-eopbgr720105.outbound.protection.outlook.com ([40.107.72.105]:44208
-        "EHLO NAM05-CO1-obe.outbound.protection.outlook.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1726549AbfHLTWa (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 12 Aug 2019 15:22:30 -0400
-From: Michael Kelley <mikelley@microsoft.com>
-Subject: RE: [PATCH 0/2] clocksource/Hyper-V: Add Hyper-V specific sched clock
- function
-Date: Mon, 12 Aug 2019 19:22:25 +0000
-Message-ID: <DM5PR21MB0137E03AAD8C2EA61EC81ED7D7D30@DM5PR21MB0137.namprd21.prod.outlook.com>
-References: <20190729075243.22745-1-Tianyu.Lan@microsoft.com>
- <87zhkxksxd.fsf@vitty.brq.redhat.com>
- <20190729110927.GC31398@hirez.programming.kicks-ass.net>
- <87wog1kpib.fsf@vitty.brq.redhat.com>
- <CAOLK0py6ngy9kAnZcRMBK8U45s2L5Wo4X0NP_qPM0zv7WjeVQQ@mail.gmail.com>
-In-Reply-To: <CAOLK0py6ngy9kAnZcRMBK8U45s2L5Wo4X0NP_qPM0zv7WjeVQQ@mail.gmail.com>
-Content-Language: en-US
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
-MIME-Version: 1.0
+Received: from mail-pl1-f201.google.com ([209.85.214.201]:37283 "EHLO
+        mail-pl1-f201.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727966AbfHLVwt (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 12 Aug 2019 17:52:49 -0400
+Received: by mail-pl1-f201.google.com with SMTP id v13so3188557plo.4
+        for <linux-arch@vger.kernel.org>; Mon, 12 Aug 2019 14:52:48 -0700 (PDT)
+Date: Mon, 12 Aug 2019 14:50:46 -0700
+In-Reply-To: <20190812215052.71840-1-ndesaulniers@google.com>
+Message-ID: <20190812215052.71840-13-ndesaulniers@google.com>
+Mime-Version: 1.0
+References: <20190812215052.71840-1-ndesaulniers@google.com>
+Subject: [PATCH 13/16] include/asm-generic: prefer __section from compiler_attributes.h
+From: Nick Desaulniers <ndesaulniers@google.com>
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Tianyu Lan <lantianyu1986@gmail.com>, vkuznets <vkuznets@redhat.com>
-Cc: Peter Zijlstra <peterz@infradead.org>, Tianyu Lan <Tianyu.Lan@microsoft.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-hyperv@vger.kernel.org" <linux-hyperv@vger.kernel.org>, "linux-kernel@vger kernel org" <linux-kernel@vger.kernel.org>, Andy Lutomirski <luto@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, the arch/x86 maintainers <x86@kernel.org>, KY Srinivasan <kys@microsoft.com>, Haiyang Zhang <haiyangz@microsoft.com>, Stephen Hemminger <sthemmin@microsoft.com>, Sasha Levin <sashal@kernel.org>, Daniel Lezcano <daniel.lezcano@linaro.org>, Arnd Bergmann <arnd@arndb.de>"ashal@kernel.org" <ashal@kernel.org>
-Message-ID: <20190812192225.tsXut60SRz_D8AZrxA6bOMsdQwp8D2gpiil3cDiQi2Q@z>
+To: akpm@linux-foundation.org
+Cc: sedat.dilek@gmail.com, jpoimboe@redhat.com, yhs@fb.com, miguel.ojeda.sandonis@gmail.com, clang-built-linux@googlegroups.com, Nick Desaulniers <ndesaulniers@google.com>, Arnd Bergmann <arnd@arndb.de>, "Naveen N. Rao" <naveen.n.rao@linux.ibm.com>, Anil S Keshavamurthy <anil.s.keshavamurthy@intel.com>, "David S. Miller" <davem@davemloft.net>, Masami Hiramatsu <mhiramat@kernel.org>, Alexei Starovoitov <ast@kernel.org>, Daniel Borkmann <daniel@iogearbox.net>, Martin KaFai Lau <kafai@fb.com>, Song Liu <songliubraving@fb.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, netdev@vger.kernel.org, bpf@vger.kernel.org
+Message-ID: <20190812215046.9ggbIhq5cnT_0IKYz3CsFVf4RYcwTjTeQ60awzdgYmc@z>
 
-RnJvbTogVGlhbnl1IExhbiA8bGFudGlhbnl1MTk4NkBnbWFpbC5jb20+IFNlbnQ6IFR1ZXNkYXks
-IEp1bHkgMzAsIDIwMTkgNjo0MSBBTQ0KPiANCj4gT24gTW9uLCBKdWwgMjksIDIwMTkgYXQgODox
-MyBQTSBWaXRhbHkgS3V6bmV0c292IDx2a3V6bmV0c0ByZWRoYXQuY29tPiB3cm90ZToNCj4gPg0K
-PiA+IFBldGVyIFppamxzdHJhIDxwZXRlcnpAaW5mcmFkZWFkLm9yZz4gd3JpdGVzOg0KPiA+DQo+
-ID4gPiBPbiBNb24sIEp1bCAyOSwgMjAxOSBhdCAxMjo1OToyNlBNICswMjAwLCBWaXRhbHkgS3V6
-bmV0c292IHdyb3RlOg0KPiA+ID4+IGxhbnRpYW55dTE5ODZAZ21haWwuY29tIHdyaXRlczoNCj4g
-PiA+Pg0KPiA+ID4+ID4gRnJvbTogVGlhbnl1IExhbiA8VGlhbnl1LkxhbkBtaWNyb3NvZnQuY29t
-Pg0KPiA+ID4+ID4NCj4gPiA+PiA+IEh5cGVyLVYgZ3Vlc3RzIHVzZSB0aGUgZGVmYXVsdCBuYXRp
-dmVfc2NoZWRfY2xvY2soKSBpbiBwdl9vcHMudGltZS5zY2hlZF9jbG9jaw0KPiA+ID4+ID4gb24g
-eDg2LiAgQnV0IG5hdGl2ZV9zY2hlZF9jbG9jaygpIGRpcmVjdGx5IHVzZXMgdGhlIHJhdyBUU0Mg
-dmFsdWUsIHdoaWNoDQo+ID4gPj4gPiBjYW4gYmUgZGlzY29udGludW91cyBpbiBhIEh5cGVyLVYg
-Vk0uICAgQWRkIHRoZSBnZW5lcmljIGh2X3NldHVwX3NjaGVkX2Nsb2NrKCkNCj4gPiA+PiA+IHRv
-IHNldCB0aGUgc2NoZWQgY2xvY2sgZnVuY3Rpb24gYXBwcm9wcmlhdGVseS4gIE9uIHg4NiwgdGhp
-cyBzZXRzDQo+ID4gPj4gPiBwdl9vcHMudGltZS5zY2hlZF9jbG9jayB0byByZWFkIHRoZSBIeXBl
-ci1WIHJlZmVyZW5jZSBUU0MgdmFsdWUgdGhhdCBpcw0KPiA+ID4+ID4gc2NhbGVkIGFuZCBhZGp1
-c3RlZCB0byBiZSBjb250aW51b3VzLg0KPiA+ID4+DQo+ID4gPj4gSHlwZXJ2aXNvciBjYW4sIGlu
-IHRoZW9yeSwgZGlzYWJsZSBUU0MgcGFnZSBhbmQgdGhlbiB3ZSdyZSBmb3JjZWQgdG8gdXNlDQo+
-ID4gPj4gTVNSLWJhc2VkIGNsb2Nrc291cmNlIGJ1dCB1c2luZyBpdCBhcyBzY2hlZF9jbG9jaygp
-IGNhbiBiZSB2ZXJ5IHNsb3csDQo+ID4gPj4gSSdtIGFmcmFpZC4NCj4gPiA+Pg0KPiA+ID4+IE9u
-IHRoZSBvdGhlciBoYW5kLCB3aGF0IHdlIGhhdmUgbm93IGlzIHByb2JhYmx5IHdvcnNlOiBUU0Mg
-Y2FuLA0KPiA+ID4+IGFjdHVhbGx5LCBqdW1wIGJhY2t3YXJkcyAoZS5nLiBvbiBtaWdyYXRpb24p
-IGFuZCB3ZSdyZSBicmVha2luZyB0aGUNCj4gPiA+PiByZXF1aXJlbWVudHMgZm9yIHNjaGVkX2Ns
-b2NrKCkuDQo+ID4gPg0KPiA+ID4gVGhhdCAob2J2aW91c2x5KSBhbHNvIGJyZWFrcyB0aGUgcmVx
-dWlyZW1lbnRzIGZvciB1c2luZyBUU0MgYXMNCj4gPiA+IGNsb2Nrc291cmNlLg0KPiA+ID4NCj4g
-PiA+IElPVywgaXQgYnJlYWtzIHRoZSBlbnRpcmUgcHVycG9zZSBvZiBoYXZpbmcgVFNDIGluIHRo
-ZSBmaXJzdCBwbGFjZS4NCj4gPg0KPiA+IEN1cnJlbnRseSwgd2UgbWFyayByYXcgVFNDIGFzIHVu
-c3RhYmxlIHdoZW4gcnVubmluZyBvbiBIeXBlci1WIChzZWUNCj4gPiA4OGM5MjgxYTlmYmE2KSwg
-J1RTQyBwYWdlJyAod2hpY2ggaXMgVFNDICogc2NhbGUgKyBvZmZzZXQpIGlzIGJlaW5nIHVzZWQN
-Cj4gPiBpbnN0ZWFkLiBUaGUgcHJvYmxlbSBpcyB0aGF0ICdUU0MgcGFnZScgY2FuIGJlIGRpc2Fi
-bGVkIGJ5IHRoZQ0KPiA+IGh5cGVydmlzb3IgYW5kIGluIHRoYXQgY2FzZSB0aGUgb25seSByZW1h
-aW5pbmcgY2xvY2tzb3VyY2UgaXMgTVNSLWJhc2VkDQo+ID4gKHNsb3cpLg0KPiA+DQo+IA0KPiBZ
-ZXMsIHRoYXQgd2lsbCBiZSBzbG93IGlmIEh5cGVyLVYgZG9lc24ndCBleHBvc2UgaHYgdHNjIHBh
-Z2UgYW5kDQo+IGtlcm5lbCB1c2VzIE1TUiBiYXNlZA0KPiBjbG9ja3NvdXJjZS4gRWFjaCBNU1Ig
-cmVhZCB3aWxsIHRyaWdnZXIgb25lIFZNLUVYSVQuIFRoaXMgYWxzbyBoYXBwZW5zIG9uIG90aGVy
-DQo+IGh5cGVydmlzb3JzIChlLGcsIEtWTSBkb2Vzbid0IGV4cG9zZSBLVk0gY2xvY2spLiBIeXBl
-cnZpc29yIHNob3VsZA0KPiB0YWtlIHRoaXMgaW50bw0KPiBhY2NvdW50IGFuZCBkZXRlcm1pbmUg
-d2hpY2ggY2xvY2tzb3VyY2Ugc2hvdWxkIGJlIGV4cG9zZWQgb3Igbm90Lg0KPiANCg0KV2UndmUg
-Y29uZmlybWVkIHdpdGggdGhlIEh5cGVyLVYgdGVhbSB0aGF0IHRoZSBUU0MgcGFnZSBpcyBhbHdh
-eXMgYXZhaWxhYmxlDQpvbiBIeXBlci1WIDIwMTYgYW5kIGxhdGVyLCBhbmQgb24gSHlwZXItViAy
-MDEyIFIyIHdoZW4gdGhlIHBoeXNpY2FsDQpoYXJkd2FyZSBwcmVzZW50cyBhbiBJbnZhcmlhbnRU
-U0MuICBCdXQgdGhlIExpbnV4IEtjb25maWcncyBhcmUgc2V0IHVwIHNvDQp0aGUgVFNDIHBhZ2Ug
-aXMgbm90IHVzZWQgZm9yIDMyLWJpdCBndWVzdHMgLS0gYWxsIGNsb2NrIHJlYWRzIGFyZSBzeW50
-aGV0aWMgTVNSDQpyZWFkcy4gIEZvciAzMi1iaXQsIHRoaXMgc2V0IG9mIGNoYW5nZXMgd2lsbCBh
-ZGQgbW9yZSBvdmVyaGVhZCBiZWNhdXNlIHRoZQ0Kc2NoZWQgY2xvY2sgcmVhZHMgd2lsbCBub3cg
-YmUgTVNSIHJlYWRzLg0KDQpJIHdvdWxkIGJlIGluY2xpbmVkIHRvIGZpeCB0aGUgcHJvYmxlbSwg
-ZXZlbiB3aXRoIHRoZSBwZXJmIGhpdCBvbiAzMi1iaXQgTGludXguDQpJIGRvbuKAmXQgaGF2ZSBh
-bnkgZGF0YSBvbiAzMi1iaXQgTGludXggYmVpbmcgdXNlZCBpbiBhIEh5cGVyLVYgZ3Vlc3QsIGJ1
-dCBpdCdzIG5vdA0Kc3VwcG9ydGVkIGluIEF6dXJlIHNvIHVzYWdlIGlzIHByZXR0eSBzbWFsbC4g
-IFRoZSBhbHRlcm5hdGl2ZSB3b3VsZCBiZSB0byBjb250aW51ZQ0KdG8gdXNlIHRoZSByYXcgVFND
-IHZhbHVlIG9uIDMyLWJpdCwgZXZlbiB3aXRoIHRoZSByaXNrIG9mIGEgZGlzY29udGludWl0eSBp
-biBjYXNlIG9mDQpsaXZlIG1pZ3JhdGlvbiBvciBzaW1pbGFyIHNjZW5hcmlvcy4NCg0KTWljaGFl
-bA0K
+Reported-by: Sedat Dilek <sedat.dilek@gmail.com>
+Suggested-by: Josh Poimboeuf <jpoimboe@redhat.com>
+Signed-off-by: Nick Desaulniers <ndesaulniers@google.com>
+---
+ include/asm-generic/error-injection.h | 2 +-
+ include/asm-generic/kprobes.h         | 5 ++---
+ 2 files changed, 3 insertions(+), 4 deletions(-)
+
+diff --git a/include/asm-generic/error-injection.h b/include/asm-generic/error-injection.h
+index 95a159a4137f..a593a50b33e3 100644
+--- a/include/asm-generic/error-injection.h
++++ b/include/asm-generic/error-injection.h
+@@ -23,7 +23,7 @@ struct error_injection_entry {
+  */
+ #define ALLOW_ERROR_INJECTION(fname, _etype)				\
+ static struct error_injection_entry __used				\
+-	__attribute__((__section__("_error_injection_whitelist")))	\
++	__section(_error_injection_whitelist)				\
+ 	_eil_addr_##fname = {						\
+ 		.addr = (unsigned long)fname,				\
+ 		.etype = EI_ETYPE_##_etype,				\
+diff --git a/include/asm-generic/kprobes.h b/include/asm-generic/kprobes.h
+index 4a982089c95c..20d69719270f 100644
+--- a/include/asm-generic/kprobes.h
++++ b/include/asm-generic/kprobes.h
+@@ -9,12 +9,11 @@
+  * by using this macro.
+  */
+ # define __NOKPROBE_SYMBOL(fname)				\
+-static unsigned long __used					\
+-	__attribute__((__section__("_kprobe_blacklist")))	\
++static unsigned long __used __section(_kprobe_blacklist)	\
+ 	_kbl_addr_##fname = (unsigned long)fname;
+ # define NOKPROBE_SYMBOL(fname)	__NOKPROBE_SYMBOL(fname)
+ /* Use this to forbid a kprobes attach on very low level functions */
+-# define __kprobes	__attribute__((__section__(".kprobes.text")))
++# define __kprobes	__section(.kprobes.text)
+ # define nokprobe_inline	__always_inline
+ #else
+ # define NOKPROBE_SYMBOL(fname)
+-- 
+2.23.0.rc1.153.gdeed80330f-goog
