@@ -1,97 +1,126 @@
-From: Dave Martin <Dave.Martin@arm.com>
-Subject: Re: [PATCH v7 1/2] arm64: Define
- Documentation/arm64/tagged-address-abi.rst
-Date: Tue, 13 Aug 2019 12:10:04 +0100
-Message-ID: <20190813111004.GV10425@arm.com>
-References: <20190807155321.9648-1-catalin.marinas@arm.com>
- <20190807155321.9648-2-catalin.marinas@arm.com>
- <826a9ace-feac-c019-843e-07e23c9fd46c@intel.com>
- <20190808172730.GC37129@arrakis.emea.arm.com>
- <68354acd-e205-71cb-11c6-74a150178ae0@intel.com>
- <20190812173611.GD62772@arrakis.emea.arm.com>
+From: Matthias Maennich <maennich@google.com>
+Subject: [PATCH v2 0/10] Symbol namespaces - RFC
+Date: Tue, 13 Aug 2019 13:16:57 +0100
+Message-ID: <20190813121733.52480-1-maennich@google.com>
+References: <20180716122125.175792-1-maco@android.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
-Content-Disposition: inline
-In-Reply-To: <20190812173611.GD62772@arrakis.emea.arm.com>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
-To: Catalin Marinas <catalin.marinas@arm.com>
-Cc: linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, Szabolcs Nagy <szabolcs.nagy@arm.com>, Andrey Konovalov <andreyknvl@google.com>, Kevin Brodsky <kevin.brodsky@arm.com>, Will Deacon <will.deacon@arm.com>, Dave Hansen <dave.hansen@intel.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, linux-arm-kernel@lists.infradead.org
+Content-Type: text/plain; charset="UTF-8"
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20180716122125.175792-1-maco@android.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: linux-kernel@vger.kernel.org, maco@android.com
+Cc: kernel-team@android.com, maennich@google.com, arnd@arndb.de, geert@linux-m68k.org, gregkh@linuxfoundation.org, hpa@zytor.com, jeyu@kernel.org, joel@joelfernandes.org, kstewart@linuxfoundation.org, linux-arch@vger.kernel.org, linux-kbuild@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-modules@vger.kernel.org, linux-scsi@vger.kernel.org, linux-usb@vger.kernel.org, lucas.de.marchi@gmail.com, maco@google.com, michal.lkml@markovi.net, mingo@redhat.com, oneukum@suse.com, pombredanne@nexb.com, sam@ravnborg.org, sboyd@codeaurora.org, sspatil@google.com, stern@rowland.harvard.edu, tglx@linutronix.de, usb-storage@lists.one-eyed-alien.net, x86@kernel.org, yamada.masahiro@socionext.com, Adrian Reber <adrian@lisas.de>, Andrew Morton <akpm@linux-foundation.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Mon, Aug 12, 2019 at 06:36:12PM +0100, Catalin Marinas wrote:
-> On Fri, Aug 09, 2019 at 07:10:18AM -0700, Dave Hansen wrote:
-> > On 8/8/19 10:27 AM, Catalin Marinas wrote:
-> > > On Wed, Aug 07, 2019 at 01:38:16PM -0700, Dave Hansen wrote:
-> > >> Also, shouldn't this be converted over to an arch_prctl()?
-> > > 
-> > > What do you mean by arch_prctl()? We don't have such thing, apart from
-> > > maybe arch_prctl_spec_ctrl_*(). We achieve the same thing with the
-> > > {SET,GET}_TAGGED_ADDR_CTRL macros. They could be renamed to
-> > > arch_prctl_tagged_addr_{set,get} or something but I don't see much
-> > > point.
-> > 
-> > Silly me.  We have an x86-specific:
-> > 
-> > 	SYSCALL_DEFINE2(arch_prctl, int , option, unsigned long , arg2)
-> > 
-> > I guess there's no ARM equivalent so you're stuck with the generic one.
-> > 
-> > > What would be better (for a separate patch series) is to clean up
-> > > sys_prctl() and move the arch-specific options into separate
-> > > arch_prctl() under arch/*/kernel/. But it's not really for this series.
-> > 
-> > I think it does make sense for truly arch-specific features to stay out
-> > of the arch-generic prctl().  Yes, I know I've personally violated this
-> > in the past. :)
-> 
-> Maybe Dave M could revive his prctl() clean-up patches which moves the
-> arch specific cases to the corresponding arch/*/ code
+As of Linux 5.3-rc4, there are 31203 [1] exported symbols in the kernel.
+That is a growth of almost 1000 symbols since 4.17 (30206 [2]).  There
+seems to be some consensus amongst kernel devs that the export surface
+is too large, and hard to reason about.
 
-I'll try to take a look at it.
+Generally, these symbols fall in one of these categories:
+1) Symbols actually meant for drivers
+2) Symbols that are only exported because functionality is split over
+   multiple modules, yet they really shouldn't be used by modules outside
+   of their own subsystem
+3) Symbols really only meant for in-tree use
 
-> > >> What is the scope of these prctl()'s?  Are they thread-scoped or
-> > >> process-scoped?  Can two threads in the same process run with different
-> > >> tagging ABI modes?
-> > > 
-> > > Good point. They are thread-scoped and this should be made clear in the
-> > > doc. Two threads can have different modes.
-> > > 
-> > > The expectation is that this is invoked early during process start (by
-> > > the dynamic loader or libc init) while in single-thread mode and
-> > > subsequent threads will inherit the same mode. However, other uses are
-> > > possible.
-> > 
-> > If that's the expectation, it would be really nice to codify it.
-> > Basically, you can't enable the feature if another thread is already
-> > been forked off.
-> 
-> Well, that's my expectation but I'm not a userspace developer. I don't
-> think there is any good reason to prevent it. It doesn't cost us
-> anything to support in the kernel, other than making the documentation
-> clearer.
+When module developers try to upstream their code, it regularly turns
+out that they are using exported symbols that they really shouldn't be
+using. This problem is even bigger for drivers that are currently
+out-of-tree, which may be using many symbols that they shouldn't be
+using, and that break when those symbols are removed or modified.
 
-This came up for SVE and eventually we didn't bother, partly because the
-kernel doesn't fully know what userspace is trying to do, in general.
+This patch allows subsystem maintainers to partition their exported
+symbols into separate namespaces, and module authors to import such
+namespaces only when needed.
 
-If userspace has some kind of worker threads that run specific code,
-they could legitimately interface differently with the kernel compared
-with, say, the main thread.  This model already exists for e.g.,
-seccomp.
+This allows subsystem maintainers to more easily limit availability of
+these namespaced symbols to other parts of the kernel. It can also be
+used to partition the set of exported symbols for documentation
+purposes; for example, a set of symbols that is really only used for
+debugging could be in a "SUBSYSTEM_DEBUG" namespace.
 
-In any case, I think it's not up to the kernel to dictate how user
-runtimes initialise themselves.
+I continued the work mainly done by Martijn Coenen. In this v2 the
+following changes have been introduced compared to v1 of this series:
 
-[...]
+- Rather than adding and evaluating separate sections __knsimport_NS,
+  use modinfo tags to declare the namespaces a module introduces.
+  Adjust modpost and the module loader accordingly.
+- Also add support for reading multiple modinfo values for the same tag
+  to allow list-like access to modinfo tags.
+- The macros in export.h have been cleaned up to avoid redundancy in the
+  macro parameters (ns, nspost, nspost2).
+- The introduction of relative references in the ksymtab entries caused
+  a rework of the macros to accommodate that configuration as well.
+- Alignment of kernel_symbol in the ksymtab needed to be fixed to allow
+  growing the kernel_symbol struct.
+- Modpost does now also append the namespace suffix to the symbol
+  entries in Module.symvers.
+- The configuration option MODULE_ALLOW_MISSING_NAMESPACE_IMPORTS allows
+  relaxing the enforcement of properly declared namespace imports at module
+  loading time.
+- Symbols can be collectively exported into a namespace by defining
+  DEFAULT_SYMBOL_NAMESPACE in the corresponding Makefile.
+- The requirement for a very recent coccinelle spatch has been lifted by
+  simplifying the script.
+- nsdeps does now ensures MODULE_IMPORT_NS statements are sorted when
+  patching the module source files.
+- Some minor bugs have been addressed in nsdeps to allow it to work with
+  modules that have more than one source file.
+- The RFC for the usb-storage symbols has been simplified by using
+  DEFAULT_SYMBOL_NAMESPACE=USB_STORAGE rather than explicitly exporting each
+  and every symbol into that new namespace.
 
-Cheers
----Dave
+This patch series was developed against v5.3-rc4.
+
+[1] git grep "^EXPORT_SYMBOL\w*(" v5.3-rc4 | wc -l
+[2] git grep "^EXPORT_SYMBOL\w*(" v4.17    | wc -l
+
+Matthias Maennich (10):
+  module: support reading multiple values per modinfo tag
+  export: explicitly align struct kernel_symbol
+  module: add support for symbol namespaces.
+  modpost: add support for symbol namespaces
+  module: add config option MODULE_ALLOW_MISSING_NAMESPACE_IMPORTS
+  export: allow definition default namespaces in Makefiles or sources
+  modpost: add support for generating namespace dependencies
+  scripts: Coccinelle script for namespace dependencies.
+  usb-storage: remove single-use define for debugging
+  RFC: usb-storage: export symbols in USB_STORAGE namespace
+
+ MAINTAINERS                                 |   5 +
+ Makefile                                    |  12 ++
+ arch/m68k/include/asm/export.h              |   1 -
+ drivers/usb/storage/Makefile                |   2 +
+ drivers/usb/storage/alauda.c                |   1 +
+ drivers/usb/storage/cypress_atacb.c         |   1 +
+ drivers/usb/storage/datafab.c               |   1 +
+ drivers/usb/storage/debug.h                 |   2 -
+ drivers/usb/storage/ene_ub6250.c            |   1 +
+ drivers/usb/storage/freecom.c               |   1 +
+ drivers/usb/storage/isd200.c                |   1 +
+ drivers/usb/storage/jumpshot.c              |   1 +
+ drivers/usb/storage/karma.c                 |   1 +
+ drivers/usb/storage/onetouch.c              |   1 +
+ drivers/usb/storage/realtek_cr.c            |   1 +
+ drivers/usb/storage/scsiglue.c              |   2 +-
+ drivers/usb/storage/sddr09.c                |   1 +
+ drivers/usb/storage/sddr55.c                |   1 +
+ drivers/usb/storage/shuttle_usbat.c         |   1 +
+ drivers/usb/storage/uas.c                   |   1 +
+ include/asm-generic/export.h                |  14 +-
+ include/linux/export.h                      |  92 +++++++++++--
+ include/linux/module.h                      |   2 +
+ init/Kconfig                                |  14 ++
+ kernel/module.c                             |  67 ++++++++-
+ scripts/Makefile.modpost                    |   4 +-
+ scripts/coccinelle/misc/add_namespace.cocci |  23 ++++
+ scripts/mod/modpost.c                       | 144 ++++++++++++++++++--
+ scripts/mod/modpost.h                       |   9 ++
+ scripts/nsdeps                              |  54 ++++++++
+ 30 files changed, 421 insertions(+), 40 deletions(-)
+ create mode 100644 scripts/coccinelle/misc/add_namespace.cocci
+ create mode 100644 scripts/nsdeps
+
+-- 
+2.23.0.rc1.153.gdeed80330f-goog
