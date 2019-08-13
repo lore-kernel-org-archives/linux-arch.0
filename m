@@ -1,82 +1,87 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga09.intel.com ([134.134.136.24]:18664 "EHLO mga09.intel.com"
+Received: from mga09.intel.com ([134.134.136.24]:18661 "EHLO mga09.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727200AbfHMVDo (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        id S1727253AbfHMVDo (ORCPT <rfc822;linux-arch@vger.kernel.org>);
         Tue, 13 Aug 2019 17:03:44 -0400
 From: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Subject: [PATCH v8 08/14] x86/vdso: Insert endbr32/endbr64 to vDSO
-Date: Tue, 13 Aug 2019 13:53:53 -0700
-Message-ID: <20190813205359.12196-9-yu-cheng.yu@intel.com>
+Subject: [PATCH v8 13/14] x86: Discard .note.gnu.property sections
+Date: Tue, 13 Aug 2019 13:53:58 -0700
+Message-ID: <20190813205359.12196-14-yu-cheng.yu@intel.com>
 In-Reply-To: <20190813205359.12196-1-yu-cheng.yu@intel.com>
 References: <20190813205359.12196-1-yu-cheng.yu@intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@amacapital.net>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>
 Cc: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Message-ID: <20190813205353.ali7n-TgIMK0jMx3ouBW4c4ZA35GF8odmn3oW1SOQGA@z>
+Message-ID: <20190813205358.NCjrL4-TzdXvKJ9arXj264cgJ3NWgF3qFOU_3ZmQRvE@z>
 
 From: "H.J. Lu" <hjl.tools@gmail.com>
 
-When Intel indirect branch tracking is enabled, functions in vDSO which
-may be called indirectly must have endbr32 or endbr64 as the first
-instruction.  Compiler must support -fcf-protection=branch so that it
-can be used to compile vDSO.
+With the command-line option, -mx86-used-note=yes, the x86 assembler
+in binutils 2.32 and above generates a program property note in a note
+section, .note.gnu.property, to encode used x86 ISAs and features.
+To exclude .note.gnu.property sections from NOTE segment in x86 kernel
+linker script:
 
-Acked-by: Andy Lutomirski <luto@kernel.org>
+PHDRS {
+ text PT_LOAD FLAGS(5);
+ data PT_LOAD FLAGS(6);
+ percpu PT_LOAD FLAGS(6);
+ init PT_LOAD FLAGS(7);
+ note PT_NOTE FLAGS(0);
+}
+SECTIONS
+{
+...
+ .notes : AT(ADDR(.notes) - 0xffffffff80000000) { __start_notes = .; KEEP(*(.not
+e.*)) __stop_notes = .; } :text :note
+...
+}
+
+this patch discards .note.gnu.property sections in kernel linker script
+by adding
+
+ /DISCARD/ : {
+  *(.note.gnu.property)
+ }
+
+before .notes sections.  Since .exit.text and .exit.data sections are
+discarded at runtime, it undefines EXIT_TEXT and EXIT_DATA to exclude
+.exit.text and .exit.data sections from default discarded sections.
+
 Signed-off-by: H.J. Lu <hjl.tools@gmail.com>
 Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
 ---
- arch/x86/entry/vdso/Makefile          | 12 +++++++++++-
- arch/x86/entry/vdso/vdso-layout.lds.S |  1 +
- 2 files changed, 12 insertions(+), 1 deletion(-)
+ arch/x86/kernel/vmlinux.lds.S | 10 ++++++++++
+ 1 file changed, 10 insertions(+)
 
-diff --git a/arch/x86/entry/vdso/Makefile b/arch/x86/entry/vdso/Makefile
-index 8df549138193..1e6a95881e73 100644
---- a/arch/x86/entry/vdso/Makefile
-+++ b/arch/x86/entry/vdso/Makefile
-@@ -114,13 +114,17 @@ vobjx32s := $(foreach F,$(vobjx32s-y),$(obj)/$F)
+diff --git a/arch/x86/kernel/vmlinux.lds.S b/arch/x86/kernel/vmlinux.lds.S
+index e2feacf921a0..5ef137493a85 100644
+--- a/arch/x86/kernel/vmlinux.lds.S
++++ b/arch/x86/kernel/vmlinux.lds.S
+@@ -146,6 +146,10 @@ SECTIONS
+ 		_etext = .;
+ 	} :text = 0x9090
  
- # Convert 64bit object file to x32 for x32 vDSO.
- quiet_cmd_x32 = X32     $@
--      cmd_x32 = $(OBJCOPY) -O elf32-x86-64 $< $@
-+      cmd_x32 = $(OBJCOPY) -R .note.gnu.property -O elf32-x86-64 $< $@
++	/* .note.gnu.property sections should be discarded */
++	/DISCARD/ : {
++		*(.note.gnu.property)
++	}
+ 	NOTES :text :note
  
- $(obj)/%-x32.o: $(obj)/%.o FORCE
- 	$(call if_changed,x32)
+ 	EXCEPTION_TABLE(16) :text = 0x9090
+@@ -415,6 +419,12 @@ SECTIONS
+ 	STABS_DEBUG
+ 	DWARF_DEBUG
  
- targets += vdsox32.lds $(vobjx32s-y)
- 
-+ifdef CONFIG_X86_INTEL_BRANCH_TRACKING_USER
-+    $(obj)/vclock_gettime.o $(obj)/vgetcpu.o $(obj)/vdso32/vclock_gettime.o: KBUILD_CFLAGS += -fcf-protection=branch
-+endif
-+
- $(obj)/%.so: OBJCOPYFLAGS := -S
- $(obj)/%.so: $(obj)/%.so.dbg FORCE
- 	$(call if_changed,objcopy)
-@@ -178,6 +182,12 @@ quiet_cmd_vdso = VDSO    $@
- 
- VDSO_LDFLAGS = -shared --hash-style=both --build-id \
- 	$(call ld-option, --eh-frame-hdr) -Bsymbolic
-+ifdef CONFIG_X86_INTEL_BRANCH_TRACKING_USER
-+  VDSO_LDFLAGS += $(call ldoption, -z$(comma)ibt)
-+endif
-+ifdef CONFIG_X86_INTEL_SHADOW_STACK_USER
-+  VDSO_LDFLAGS += $(call ldoption, -z$(comma)shstk)
-+endif
- GCOV_PROFILE := n
- 
- quiet_cmd_vdso_and_check = VDSO    $@
-diff --git a/arch/x86/entry/vdso/vdso-layout.lds.S b/arch/x86/entry/vdso/vdso-layout.lds.S
-index 93c6dc7812d0..3fea2ce318bc 100644
---- a/arch/x86/entry/vdso/vdso-layout.lds.S
-+++ b/arch/x86/entry/vdso/vdso-layout.lds.S
-@@ -52,6 +52,7 @@ SECTIONS
- 		*(.gnu.linkonce.b.*)
- 	}						:text
- 
-+	.note.gnu.property : { *(.note.gnu.property) }	:text	:note
- 	.note		: { *(.note.*) }		:text	:note
- 
- 	.eh_frame_hdr	: { *(.eh_frame_hdr) }		:text	:eh_frame_hdr
++	/* Sections to be discarded.  EXIT_TEXT and EXIT_DATA discard at
++	 * runtime, not link time. */
++#undef EXIT_TEXT
++#define EXIT_TEXT
++#undef EXIT_DATA
++#define EXIT_DATA
+ 	DISCARDS
+ 	/DISCARD/ : {
+ 		*(.eh_frame)
 -- 
 2.17.1
