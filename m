@@ -1,93 +1,111 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:34252 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726600AbfHMLKJ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 13 Aug 2019 07:10:09 -0400
-Date: Tue, 13 Aug 2019 12:10:04 +0100
-From: Dave Martin <Dave.Martin@arm.com>
-Subject: Re: [PATCH v7 1/2] arm64: Define
- Documentation/arm64/tagged-address-abi.rst
-Message-ID: <20190813111004.GV10425@arm.com>
-References: <20190807155321.9648-1-catalin.marinas@arm.com>
- <20190807155321.9648-2-catalin.marinas@arm.com>
- <826a9ace-feac-c019-843e-07e23c9fd46c@intel.com>
- <20190808172730.GC37129@arrakis.emea.arm.com>
- <68354acd-e205-71cb-11c6-74a150178ae0@intel.com>
- <20190812173611.GD62772@arrakis.emea.arm.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20190812173611.GD62772@arrakis.emea.arm.com>
+Received: from mail-qt1-f201.google.com ([209.85.160.201]:43497 "EHLO
+        mail-qt1-f201.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727697AbfHMMTP (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 13 Aug 2019 08:19:15 -0400
+Received: by mail-qt1-f201.google.com with SMTP id p56so5474835qtb.10
+        for <linux-arch@vger.kernel.org>; Tue, 13 Aug 2019 05:19:14 -0700 (PDT)
+Date: Tue, 13 Aug 2019 13:16:59 +0100
+In-Reply-To: <20190813121733.52480-1-maennich@google.com>
+Message-ID: <20190813121733.52480-3-maennich@google.com>
+Mime-Version: 1.0
+References: <20180716122125.175792-1-maco@android.com> <20190813121733.52480-1-maennich@google.com>
+Subject: [PATCH v2 02/10] export: explicitly align struct kernel_symbol
+From: Matthias Maennich <maennich@google.com>
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Dave Hansen <dave.hansen@intel.com>, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, Szabolcs Nagy <szabolcs.nagy@arm.com>, Andrey Konovalov <andreyknvl@google.com>, Kevin Brodsky <kevin.brodsky@arm.com>, Will Deacon <will.deacon@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, linux-arm-kernel@lists.infradead.org
-Message-ID: <20190813111004.ICsE8cy8qg5-cTYPbNVpcHNhfVNJ-xUw8yikMDhyRms@z>
+To: linux-kernel@vger.kernel.org, maco@android.com
+Cc: kernel-team@android.com, maennich@google.com, arnd@arndb.de, geert@linux-m68k.org, gregkh@linuxfoundation.org, hpa@zytor.com, jeyu@kernel.org, joel@joelfernandes.org, kstewart@linuxfoundation.org, linux-arch@vger.kernel.org, linux-kbuild@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-modules@vger.kernel.org, linux-scsi@vger.kernel.org, linux-usb@vger.kernel.org, lucas.de.marchi@gmail.com, maco@google.com, michal.lkml@markovi.net, mingo@redhat.com, oneukum@suse.com, pombredanne@nexb.com, sam@ravnborg.org, sboyd@codeaurora.org, sspatil@google.com, stern@rowland.harvard.edu, tglx@linutronix.de, usb-storage@lists.one-eyed-alien.net, x86@kernel.org, yamada.masahiro@socionext.com, Andrew Morton <akpm@linux-foundation.org>, Nicolas Pitre <nico@fluxnic.net>, Michael Ellerman <mpe@ellerman.id.au>, Ard Biesheuvel <ard.biesheuvel@linaro.org>
+Message-ID: <20190813121659.-ib1YiXmMAGQn9AzEdJHXo8pn89vRbyUxLXvoAekx0g@z>
 
-On Mon, Aug 12, 2019 at 06:36:12PM +0100, Catalin Marinas wrote:
-> On Fri, Aug 09, 2019 at 07:10:18AM -0700, Dave Hansen wrote:
-> > On 8/8/19 10:27 AM, Catalin Marinas wrote:
-> > > On Wed, Aug 07, 2019 at 01:38:16PM -0700, Dave Hansen wrote:
-> > >> Also, shouldn't this be converted over to an arch_prctl()?
-> > > 
-> > > What do you mean by arch_prctl()? We don't have such thing, apart from
-> > > maybe arch_prctl_spec_ctrl_*(). We achieve the same thing with the
-> > > {SET,GET}_TAGGED_ADDR_CTRL macros. They could be renamed to
-> > > arch_prctl_tagged_addr_{set,get} or something but I don't see much
-> > > point.
-> > 
-> > Silly me.  We have an x86-specific:
-> > 
-> > 	SYSCALL_DEFINE2(arch_prctl, int , option, unsigned long , arg2)
-> > 
-> > I guess there's no ARM equivalent so you're stuck with the generic one.
-> > 
-> > > What would be better (for a separate patch series) is to clean up
-> > > sys_prctl() and move the arch-specific options into separate
-> > > arch_prctl() under arch/*/kernel/. But it's not really for this series.
-> > 
-> > I think it does make sense for truly arch-specific features to stay out
-> > of the arch-generic prctl().  Yes, I know I've personally violated this
-> > in the past. :)
-> 
-> Maybe Dave M could revive his prctl() clean-up patches which moves the
-> arch specific cases to the corresponding arch/*/ code
+This change allows growing struct kernel_symbol without wasting bytes to
+alignment. It also concretized the alignment of ksymtab entries if
+relative references are used for ksymtab entries.
 
-I'll try to take a look at it.
+struct kernel_symbol was already implicitly being aligned to the word
+size, except on x86_64 and m68k, where it is aligned to 16 and 2 bytes,
+respectively.
 
-> > >> What is the scope of these prctl()'s?  Are they thread-scoped or
-> > >> process-scoped?  Can two threads in the same process run with different
-> > >> tagging ABI modes?
-> > > 
-> > > Good point. They are thread-scoped and this should be made clear in the
-> > > doc. Two threads can have different modes.
-> > > 
-> > > The expectation is that this is invoked early during process start (by
-> > > the dynamic loader or libc init) while in single-thread mode and
-> > > subsequent threads will inherit the same mode. However, other uses are
-> > > possible.
-> > 
-> > If that's the expectation, it would be really nice to codify it.
-> > Basically, you can't enable the feature if another thread is already
-> > been forked off.
-> 
-> Well, that's my expectation but I'm not a userspace developer. I don't
-> think there is any good reason to prevent it. It doesn't cost us
-> anything to support in the kernel, other than making the documentation
-> clearer.
+As far as I can tell there is no requirement for aligning struct
+kernel_symbol to 16 bytes on x86_64, but gcc aligns structs to their
+size, and the linker aligns the custom __ksymtab sections to the largest
+data type contained within, so setting KSYM_ALIGN to 16 was necessary to
+stay consistent with the code generated for non-ASM EXPORT_SYMBOL(). Now
+that non-ASM EXPORT_SYMBOL() explicitly aligns to word size (8),
+KSYM_ALIGN is no longer necessary.
 
-This came up for SVE and eventually we didn't bother, partly because the
-kernel doesn't fully know what userspace is trying to do, in general.
+In case of relative references, the alignment has been changed
+accordingly to not waste space when adding new struct members.
 
-If userspace has some kind of worker threads that run specific code,
-they could legitimately interface differently with the kernel compared
-with, say, the main thread.  This model already exists for e.g.,
-seccomp.
+As for m68k, struct kernel_symbol is aligned to 2 bytes even though the
+structure itself is 8 bytes; using a 4-byte alignment shouldn't hurt.
 
-In any case, I think it's not up to the kernel to dictate how user
-runtimes initialise themselves.
+I manually verified the output of the __ksymtab sections didn't change
+on x86, x86_64, arm, arm64 and m68k. As expected, the section contents
+didn't change, and the ELF section alignment only changed on x86_64 and
+m68k. Feedback from other archs more than welcome.
 
-[...]
+Co-developed-by: Martijn Coenen <maco@android.com>
+Signed-off-by: Martijn Coenen <maco@android.com>
+Signed-off-by: Matthias Maennich <maennich@google.com>
+---
+ arch/m68k/include/asm/export.h | 1 -
+ include/asm-generic/export.h   | 8 +++-----
+ include/linux/export.h         | 3 ++-
+ 3 files changed, 5 insertions(+), 7 deletions(-)
 
-Cheers
----Dave
+diff --git a/arch/m68k/include/asm/export.h b/arch/m68k/include/asm/export.h
+index 0af20f48bd07..b53008b67ce1 100644
+--- a/arch/m68k/include/asm/export.h
++++ b/arch/m68k/include/asm/export.h
+@@ -1,3 +1,2 @@
+-#define KSYM_ALIGN 2
+ #define KCRC_ALIGN 2
+ #include <asm-generic/export.h>
+diff --git a/include/asm-generic/export.h b/include/asm-generic/export.h
+index 294d6ae785d4..63f54907317b 100644
+--- a/include/asm-generic/export.h
++++ b/include/asm-generic/export.h
+@@ -4,15 +4,13 @@
+ #ifndef KSYM_FUNC
+ #define KSYM_FUNC(x) x
+ #endif
+-#ifdef CONFIG_64BIT
+-#ifndef KSYM_ALIGN
++#ifdef CONFIG_HAVE_ARCH_PREL32_RELOCATIONS
++#define KSYM_ALIGN 4
++#elif defined(CONFIG_64BIT)
+ #define KSYM_ALIGN 8
+-#endif
+ #else
+-#ifndef KSYM_ALIGN
+ #define KSYM_ALIGN 4
+ #endif
+-#endif
+ #ifndef KCRC_ALIGN
+ #define KCRC_ALIGN 4
+ #endif
+diff --git a/include/linux/export.h b/include/linux/export.h
+index fd8711ed9ac4..28a4d2150689 100644
+--- a/include/linux/export.h
++++ b/include/linux/export.h
+@@ -52,7 +52,7 @@ extern struct module __this_module;
+ #define __KSYMTAB_ENTRY(sym, sec)					\
+ 	__ADDRESSABLE(sym)						\
+ 	asm("	.section \"___ksymtab" sec "+" #sym "\", \"a\"	\n"	\
+-	    "	.balign	8					\n"	\
++	    "	.balign 4					\n"	\
+ 	    "__ksymtab_" #sym ":				\n"	\
+ 	    "	.long	" #sym "- .				\n"	\
+ 	    "	.long	__kstrtab_" #sym "- .			\n"	\
+@@ -66,6 +66,7 @@ struct kernel_symbol {
+ #define __KSYMTAB_ENTRY(sym, sec)					\
+ 	static const struct kernel_symbol __ksymtab_##sym		\
+ 	__attribute__((section("___ksymtab" sec "+" #sym), used))	\
++	__aligned(sizeof(void *))					\
+ 	= { (unsigned long)&sym, __kstrtab_##sym }
+ 
+ struct kernel_symbol {
+-- 
+2.23.0.rc1.153.gdeed80330f-goog
