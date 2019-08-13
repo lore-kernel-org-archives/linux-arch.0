@@ -1,73 +1,56 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga06.intel.com ([134.134.136.31]:16071 "EHLO mga06.intel.com"
+Received: from mga09.intel.com ([134.134.136.24]:18658 "EHLO mga09.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726734AbfHMVCo (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 13 Aug 2019 17:02:44 -0400
+        id S1727215AbfHMVDl (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 13 Aug 2019 17:03:41 -0400
 From: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Subject: [PATCH v8 08/27] mm: Introduce VM_SHSTK for shadow stack memory
-Date: Tue, 13 Aug 2019 13:52:06 -0700
-Message-ID: <20190813205225.12032-9-yu-cheng.yu@intel.com>
-In-Reply-To: <20190813205225.12032-1-yu-cheng.yu@intel.com>
-References: <20190813205225.12032-1-yu-cheng.yu@intel.com>
+Subject: [PATCH v8 05/14] x86/cet/ibt: ELF header parsing for IBT
+Date: Tue, 13 Aug 2019 13:53:50 -0700
+Message-ID: <20190813205359.12196-6-yu-cheng.yu@intel.com>
+In-Reply-To: <20190813205359.12196-1-yu-cheng.yu@intel.com>
+References: <20190813205359.12196-1-yu-cheng.yu@intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@amacapital.net>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>
 Cc: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Message-ID: <20190813205206.ssDRXVzQsq6hRfm_E9u59lKBa37VrNmJQE5EnOn6D7U@z>
+Message-ID: <20190813205350.PeOOR5JQ969_BhZb-mtnWT7A42zGwZUOi3NxNqsPQKo@z>
 
-VM_SHSTK indicates a shadow stack memory area.
-The shadow stack is implemented only for the 64-bit kernel.
+Look in .note.gnu.property of an ELF file and check if Indirect
+Branch Tracking needs to be enabled for the task.
 
 Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
 ---
- fs/proc/task_mmu.c | 3 +++
- include/linux/mm.h | 8 ++++++++
- 2 files changed, 11 insertions(+)
+ arch/x86/Kconfig             | 1 +
+ arch/x86/kernel/process_64.c | 5 +++++
+ 2 files changed, 6 insertions(+)
 
-diff --git a/fs/proc/task_mmu.c b/fs/proc/task_mmu.c
-index 731642e0f5a0..09521579cc8e 100644
---- a/fs/proc/task_mmu.c
-+++ b/fs/proc/task_mmu.c
-@@ -684,6 +684,9 @@ static void show_smap_vma_flags(struct seq_file *m, struct vm_area_struct *vma)
- 		[ilog2(VM_PKEY_BIT4)]	= "",
- #endif
- #endif /* CONFIG_ARCH_HAS_PKEYS */
-+#ifdef CONFIG_X86_INTEL_SHADOW_STACK_USER
-+		[ilog2(VM_SHSTK)]	= "ss",
-+#endif
- 	};
- 	size_t i;
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index 666dc66a382e..7edb544cef00 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -1971,6 +1971,7 @@ config X86_INTEL_BRANCH_TRACKING_USER
+ 	select X86_INTEL_CET
+ 	select ARCH_HAS_AS_LIMIT
+ 	select ARCH_USE_GNU_PROPERTY
++	select ARCH_BINFMT_ELF_STATE
+ 	---help---
+ 	  Indirect Branch Tracking provides hardware protection against return-/jmp-
+ 	  oriented programming attacks.
+diff --git a/arch/x86/kernel/process_64.c b/arch/x86/kernel/process_64.c
+index 7ec60b14e96d..a051cfc5242f 100644
+--- a/arch/x86/kernel/process_64.c
++++ b/arch/x86/kernel/process_64.c
+@@ -856,6 +856,11 @@ int arch_setup_property(struct arch_elf_state *state)
+ 			return r;
+ 	}
  
-diff --git a/include/linux/mm.h b/include/linux/mm.h
-index 0334ca97c584..bc58585014c9 100644
---- a/include/linux/mm.h
-+++ b/include/linux/mm.h
-@@ -298,11 +298,13 @@ extern unsigned int kobjsize(const void *objp);
- #define VM_HIGH_ARCH_BIT_2	34	/* bit only usable on 64-bit architectures */
- #define VM_HIGH_ARCH_BIT_3	35	/* bit only usable on 64-bit architectures */
- #define VM_HIGH_ARCH_BIT_4	36	/* bit only usable on 64-bit architectures */
-+#define VM_HIGH_ARCH_BIT_5	37	/* bit only usable on 64-bit architectures */
- #define VM_HIGH_ARCH_0	BIT(VM_HIGH_ARCH_BIT_0)
- #define VM_HIGH_ARCH_1	BIT(VM_HIGH_ARCH_BIT_1)
- #define VM_HIGH_ARCH_2	BIT(VM_HIGH_ARCH_BIT_2)
- #define VM_HIGH_ARCH_3	BIT(VM_HIGH_ARCH_BIT_3)
- #define VM_HIGH_ARCH_4	BIT(VM_HIGH_ARCH_BIT_4)
-+#define VM_HIGH_ARCH_5	BIT(VM_HIGH_ARCH_BIT_5)
- #endif /* CONFIG_ARCH_USES_HIGH_VMA_FLAGS */
- 
- #ifdef CONFIG_ARCH_HAS_PKEYS
-@@ -340,6 +342,12 @@ extern unsigned int kobjsize(const void *objp);
- # define VM_MPX		VM_NONE
- #endif
- 
-+#ifdef CONFIG_X86_INTEL_SHADOW_STACK_USER
-+# define VM_SHSTK	VM_HIGH_ARCH_5
-+#else
-+# define VM_SHSTK	VM_NONE
-+#endif
++	if (cpu_feature_enabled(X86_FEATURE_IBT)) {
++		if (state->gnu_property & GNU_PROPERTY_X86_FEATURE_1_IBT)
++			r = cet_setup_ibt();
++	}
 +
- #ifndef VM_GROWSUP
- # define VM_GROWSUP	VM_NONE
+ 	return r;
+ }
  #endif
 -- 
 2.17.1
