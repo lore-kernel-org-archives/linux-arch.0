@@ -1,75 +1,229 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-yb1-f202.google.com ([209.85.219.202]:39867 "EHLO
+Received: from mail-yb1-f202.google.com ([209.85.219.202]:46646 "EHLO
         mail-yb1-f202.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728076AbfHMMTb (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 13 Aug 2019 08:19:31 -0400
-Received: by mail-yb1-f202.google.com with SMTP id f71so2868231ybg.6
-        for <linux-arch@vger.kernel.org>; Tue, 13 Aug 2019 05:19:31 -0700 (PDT)
-Date: Tue, 13 Aug 2019 13:17:03 +0100
+        with ESMTP id S1727913AbfHMMTX (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 13 Aug 2019 08:19:23 -0400
+Received: by mail-yb1-f202.google.com with SMTP id t18so80863115ybp.13
+        for <linux-arch@vger.kernel.org>; Tue, 13 Aug 2019 05:19:22 -0700 (PDT)
+Date: Tue, 13 Aug 2019 13:17:01 +0100
 In-Reply-To: <20190813121733.52480-1-maennich@google.com>
-Message-ID: <20190813121733.52480-7-maennich@google.com>
+Message-ID: <20190813121733.52480-5-maennich@google.com>
 Mime-Version: 1.0
 References: <20180716122125.175792-1-maco@android.com> <20190813121733.52480-1-maennich@google.com>
-Subject: [PATCH v2 06/10] export: allow definition default namespaces in
- Makefiles or sources
+Subject: [PATCH v2 04/10] modpost: add support for symbol namespaces
 From: Matthias Maennich <maennich@google.com>
 Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, maco@android.com
-Cc: kernel-team@android.com, maennich@google.com, arnd@arndb.de, geert@linux-m68k.org, gregkh@linuxfoundation.org, hpa@zytor.com, jeyu@kernel.org, joel@joelfernandes.org, kstewart@linuxfoundation.org, linux-arch@vger.kernel.org, linux-kbuild@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-modules@vger.kernel.org, linux-scsi@vger.kernel.org, linux-usb@vger.kernel.org, lucas.de.marchi@gmail.com, maco@google.com, michal.lkml@markovi.net, mingo@redhat.com, oneukum@suse.com, pombredanne@nexb.com, sam@ravnborg.org, sboyd@codeaurora.org, sspatil@google.com, stern@rowland.harvard.edu, tglx@linutronix.de, usb-storage@lists.one-eyed-alien.net, x86@kernel.org, yamada.masahiro@socionext.com, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Michael Ellerman <mpe@ellerman.id.au>
-Message-ID: <20190813121703.nFTfuY1sypQ5avHiKXF4AxstvJAR0KQmBhbeTsANq7w@z>
+Cc: kernel-team@android.com, maennich@google.com, arnd@arndb.de, geert@linux-m68k.org, gregkh@linuxfoundation.org, hpa@zytor.com, jeyu@kernel.org, joel@joelfernandes.org, kstewart@linuxfoundation.org, linux-arch@vger.kernel.org, linux-kbuild@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-modules@vger.kernel.org, linux-scsi@vger.kernel.org, linux-usb@vger.kernel.org, lucas.de.marchi@gmail.com, maco@google.com, michal.lkml@markovi.net, mingo@redhat.com, oneukum@suse.com, pombredanne@nexb.com, sam@ravnborg.org, sboyd@codeaurora.org, sspatil@google.com, stern@rowland.harvard.edu, tglx@linutronix.de, usb-storage@lists.one-eyed-alien.net, x86@kernel.org, yamada.masahiro@socionext.com
+Message-ID: <20190813121701.L6JpaQLMvKgzRCHoCW6325jA9j3QRjvYqoVJwg583Pg@z>
 
-To avoid excessive usage of EXPORT_SYMBOL_NS(sym, MY_NAMESPACE), where
-MY_NAMESPACE will always be the namespace we are exporting to, allow
-exporting all definitions of EXPORT_SYMBOL() and friends by defining
-DEFAULT_SYMBOL_NAMESPACE.
+Add support for symbols that are exported into namespaces. For that,
+extract any namespace suffix from the symbol name. In addition, emit a
+warning whenever a module refers to an exported symbol without
+explicitly importing the namespace that it is defined in. This patch
+consistently adds the namespace suffix to symbol names exported into
+Module.symvers.
 
-For example, to export all symbols defined in usb-common into the
-namespace USB_COMMON, add a line like this to drivers/usb/common/Makefile:
+Example warning emitted by modpost in case of the above violation:
 
-  ccflags-y += -DDEFAULT_SYMBOL_NAMESPACE=USB_COMMON
+ WARNING: module ums-usbat uses symbol usb_stor_resume from namespace
+ USB_STORAGE, but does not import it.
 
-That is equivalent to changing all EXPORT_SYMBOL(sym) definitions to
-EXPORT_SYMBOL_NS(sym, USB_COMMON). Subsequently all symbol namespaces
-functionality will apply.
-
-Another way of making use of this feature is to define the namespace
-within source or header files similar to how TRACE_SYSTEM defines are
-used:
-  #undef DEFAULT_SYMBOL_NAMESPACE
-  #define DEFAULT_SYMBOL_NAMESPACE USB_COMMON
-
-Please note that, as opposed to TRACE_SYSTEM, DEFAULT_SYMBOL_NAMESPACE
-has to be defined before including include/linux/export.h.
-
-If DEFAULT_SYMBOL_NAMESPACE is defined, a symbol can still be exported
-to another namespace by using EXPORT_SYMBOL_NS() and friends with
-explicitly specifying the namespace.
-
-Suggested-by: Arnd Bergmann <arnd@arndb.de>
-Reviewed-by: Martijn Coenen <maco@android.com>
+Co-developed-by: Martijn Coenen <maco@android.com>
+Signed-off-by: Martijn Coenen <maco@android.com>
+Reviewed-by: Joel Fernandes (Google) <joel@joelfernandes.org>
 Signed-off-by: Matthias Maennich <maennich@google.com>
 ---
- include/linux/export.h | 6 ++++++
- 1 file changed, 6 insertions(+)
+ scripts/mod/modpost.c | 91 +++++++++++++++++++++++++++++++++++++------
+ scripts/mod/modpost.h |  7 ++++
+ 2 files changed, 87 insertions(+), 11 deletions(-)
 
-diff --git a/include/linux/export.h b/include/linux/export.h
-index 8e12e05444d1..1fb243abdbc4 100644
---- a/include/linux/export.h
-+++ b/include/linux/export.h
-@@ -166,6 +166,12 @@ struct kernel_symbol {
- #define __EXPORT_SYMBOL ___EXPORT_SYMBOL
- #endif
+diff --git a/scripts/mod/modpost.c b/scripts/mod/modpost.c
+index f277e116e0eb..538bb24ffee3 100644
+--- a/scripts/mod/modpost.c
++++ b/scripts/mod/modpost.c
+@@ -164,6 +164,7 @@ struct symbol {
+ 	struct module *module;
+ 	unsigned int crc;
+ 	int crc_valid;
++	const char *namespace;
+ 	unsigned int weak:1;
+ 	unsigned int vmlinux:1;    /* 1 if symbol is defined in vmlinux */
+ 	unsigned int kernel:1;     /* 1 if symbol is from kernel
+@@ -233,6 +234,37 @@ static struct symbol *find_symbol(const char *name)
+ 	return NULL;
+ }
  
-+#ifdef DEFAULT_SYMBOL_NAMESPACE
-+#undef __EXPORT_SYMBOL
-+#define __EXPORT_SYMBOL(sym, sec)				\
-+	__EXPORT_SYMBOL_NS(sym, sec, DEFAULT_SYMBOL_NAMESPACE)
-+#endif
++static bool contains_namespace(struct namespace_list *list,
++			       const char *namespace)
++{
++	struct namespace_list *ns_entry;
 +
- #define EXPORT_SYMBOL(sym) __EXPORT_SYMBOL(sym, "")
- #define EXPORT_SYMBOL_GPL(sym) __EXPORT_SYMBOL(sym, "_gpl")
- #define EXPORT_SYMBOL_GPL_FUTURE(sym) __EXPORT_SYMBOL(sym, "_gpl_future")
++	for (ns_entry = list; ns_entry != NULL; ns_entry = ns_entry->next)
++		if (strcmp(ns_entry->namespace, namespace) == 0)
++			return true;
++
++	return false;
++}
++
++static void add_namespace(struct namespace_list **list, const char *namespace)
++{
++	struct namespace_list *ns_entry;
++
++	if (!contains_namespace(*list, namespace)) {
++		ns_entry = NOFAIL(malloc(sizeof(struct namespace_list) +
++					 strlen(namespace) + 1));
++		strcpy(ns_entry->namespace, namespace);
++		ns_entry->next = *list;
++		*list = ns_entry;
++	}
++}
++
++static bool module_imports_namespace(struct module *module,
++				     const char *namespace)
++{
++	return contains_namespace(module->imported_namespaces, namespace);
++}
++
+ static const struct {
+ 	const char *str;
+ 	enum export export;
+@@ -312,6 +344,22 @@ static enum export export_from_sec(struct elf_info *elf, unsigned int sec)
+ 		return export_unknown;
+ }
+ 
++static const char *sym_extract_namespace(const char **symname)
++{
++	size_t n;
++	char *dupsymname;
++
++	n = strcspn(*symname, ".");
++	if (n < strlen(*symname) - 1) {
++		dupsymname = NOFAIL(strdup(*symname));
++		dupsymname[n] = '\0';
++		*symname = dupsymname;
++		return dupsymname + n + 1;
++	}
++
++	return NULL;
++}
++
+ /**
+  * Add an exported symbol - it may have already been added without a
+  * CRC, in this case just update the CRC
+@@ -319,16 +367,18 @@ static enum export export_from_sec(struct elf_info *elf, unsigned int sec)
+ static struct symbol *sym_add_exported(const char *name, struct module *mod,
+ 				       enum export export)
+ {
+-	struct symbol *s = find_symbol(name);
++	const char *symbol_name = name;
++	const char *namespace = sym_extract_namespace(&symbol_name);
++	struct symbol *s = find_symbol(symbol_name);
+ 
+ 	if (!s) {
+-		s = new_symbol(name, mod, export);
++		s = new_symbol(symbol_name, mod, export);
++		s->namespace = namespace;
+ 	} else {
+ 		if (!s->preloaded) {
+-			warn("%s: '%s' exported twice. Previous export "
+-			     "was in %s%s\n", mod->name, name,
+-			     s->module->name,
+-			     is_vmlinux(s->module->name) ?"":".ko");
++			warn("%s: '%s' exported twice. Previous export was in %s%s\n",
++			     mod->name, symbol_name, s->module->name,
++			     is_vmlinux(s->module->name) ? "" : ".ko");
+ 		} else {
+ 			/* In case Module.symvers was out of date */
+ 			s->module = mod;
+@@ -1943,6 +1993,7 @@ static void read_symbols(const char *modname)
+ 	const char *symname;
+ 	char *version;
+ 	char *license;
++	char *namespace;
+ 	struct module *mod;
+ 	struct elf_info info = { };
+ 	Elf_Sym *sym;
+@@ -1974,6 +2025,12 @@ static void read_symbols(const char *modname)
+ 		license = get_next_modinfo(&info, "license", license);
+ 	}
+ 
++	namespace = get_modinfo(&info, "import_ns");
++	while (namespace) {
++		add_namespace(&mod->imported_namespaces, namespace);
++		namespace = get_next_modinfo(&info, "import_ns", namespace);
++	}
++
+ 	for (sym = info.symtab_start; sym < info.symtab_stop; sym++) {
+ 		symname = remove_dot(info.strtab + sym->st_name);
+ 
+@@ -2118,6 +2175,13 @@ static int check_exports(struct module *mod)
+ 			basename++;
+ 		else
+ 			basename = mod->name;
++
++		if (exp->namespace &&
++		    !module_imports_namespace(mod, exp->namespace)) {
++			warn("module %s uses symbol %s from namespace %s, but does not import it.\n",
++			     basename, exp->name, exp->namespace);
++		}
++
+ 		if (!mod->gpl_compatible)
+ 			check_for_gpl_usage(exp->export, basename, exp->name);
+ 		check_for_unused(exp->export, basename, exp->name);
+@@ -2395,16 +2459,21 @@ static void write_dump(const char *fname)
+ {
+ 	struct buffer buf = { };
+ 	struct symbol *symbol;
++	const char *namespace;
+ 	int n;
+ 
+ 	for (n = 0; n < SYMBOL_HASH_SIZE ; n++) {
+ 		symbol = symbolhash[n];
+ 		while (symbol) {
+-			if (dump_sym(symbol))
+-				buf_printf(&buf, "0x%08x\t%s\t%s\t%s\n",
+-					symbol->crc, symbol->name,
+-					symbol->module->name,
+-					export_str(symbol->export));
++			if (dump_sym(symbol)) {
++				namespace = symbol->namespace;
++				buf_printf(&buf, "0x%08x\t%s%s%s\t%s\t%s\n",
++					   symbol->crc, symbol->name,
++					   namespace ? "." : "",
++					   namespace ? namespace : "",
++					   symbol->module->name,
++					   export_str(symbol->export));
++			}
+ 			symbol = symbol->next;
+ 		}
+ 	}
+diff --git a/scripts/mod/modpost.h b/scripts/mod/modpost.h
+index 8453d6ac2f77..9626bf3e7424 100644
+--- a/scripts/mod/modpost.h
++++ b/scripts/mod/modpost.h
+@@ -109,6 +109,11 @@ buf_printf(struct buffer *buf, const char *fmt, ...);
+ void
+ buf_write(struct buffer *buf, const char *s, int len);
+ 
++struct namespace_list {
++	struct namespace_list *next;
++	char namespace[0];
++};
++
+ struct module {
+ 	struct module *next;
+ 	const char *name;
+@@ -121,6 +126,8 @@ struct module {
+ 	struct buffer dev_table_buf;
+ 	char	     srcversion[25];
+ 	int is_dot_o;
++	// Actual imported namespaces
++	struct namespace_list *imported_namespaces;
+ };
+ 
+ struct elf_info {
 -- 
 2.23.0.rc1.153.gdeed80330f-goog
