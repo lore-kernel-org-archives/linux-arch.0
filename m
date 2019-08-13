@@ -1,8 +1,8 @@
 From: Greg KH <gregkh@linuxfoundation.org>
 Subject: Re: [PATCH v2 06/10] export: allow definition default namespaces in
  Makefiles or sources
-Date: Tue, 13 Aug 2019 20:16:10 +0200
-Message-ID: <20190813181610.GC2378@kroah.com>
+Date: Tue, 13 Aug 2019 20:16:40 +0200
+Message-ID: <20190813181640.GD2378@kroah.com>
 References: <20180716122125.175792-1-maco@android.com>
  <20190813121733.52480-1-maennich@google.com>
  <20190813121733.52480-7-maennich@google.com>
@@ -26,9 +26,6 @@ On Tue, Aug 13, 2019 at 01:17:03PM +0100, Matthias Maennich wrote:
 > namespace USB_COMMON, add a line like this to drivers/usb/common/Makefile:
 > 
 >   ccflags-y += -DDEFAULT_SYMBOL_NAMESPACE=USB_COMMON
-
-I thought we were trying to get away from cflags :(
-
 > 
 > That is equivalent to changing all EXPORT_SYMBOL(sym) definitions to
 > EXPORT_SYMBOL_NS(sym, USB_COMMON). Subsequently all symbol namespaces
@@ -46,9 +43,33 @@ I thought we were trying to get away from cflags :(
 > If DEFAULT_SYMBOL_NAMESPACE is defined, a symbol can still be exported
 > to another namespace by using EXPORT_SYMBOL_NS() and friends with
 > explicitly specifying the namespace.
+> 
+> Suggested-by: Arnd Bergmann <arnd@arndb.de>
+> Reviewed-by: Martijn Coenen <maco@android.com>
+> Signed-off-by: Matthias Maennich <maennich@google.com>
+> ---
+>  include/linux/export.h | 6 ++++++
+>  1 file changed, 6 insertions(+)
+> 
+> diff --git a/include/linux/export.h b/include/linux/export.h
+> index 8e12e05444d1..1fb243abdbc4 100644
+> --- a/include/linux/export.h
+> +++ b/include/linux/export.h
+> @@ -166,6 +166,12 @@ struct kernel_symbol {
+>  #define __EXPORT_SYMBOL ___EXPORT_SYMBOL
+>  #endif
+>  
+> +#ifdef DEFAULT_SYMBOL_NAMESPACE
+> +#undef __EXPORT_SYMBOL
+> +#define __EXPORT_SYMBOL(sym, sec)				\
+> +	__EXPORT_SYMBOL_NS(sym, sec, DEFAULT_SYMBOL_NAMESPACE)
+> +#endif
+> +
+>  #define EXPORT_SYMBOL(sym) __EXPORT_SYMBOL(sym, "")
+>  #define EXPORT_SYMBOL_GPL(sym) __EXPORT_SYMBOL(sym, "_gpl")
+>  #define EXPORT_SYMBOL_GPL_FUTURE(sym) __EXPORT_SYMBOL(sym, "_gpl_future")
+> -- 
+> 2.23.0.rc1.153.gdeed80330f-goog
+> 
 
-Ok, good, hopefully the cflags stuff will not be the default for people.
-
-thanks,
-
-greg k-h
+Reviewed-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
