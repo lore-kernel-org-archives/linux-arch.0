@@ -1,125 +1,59 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.skyhub.de ([5.9.137.197]:42008 "EHLO mail.skyhub.de"
+Received: from mail.kernel.org ([198.145.29.99]:60180 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726705AbfHMQj0 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 13 Aug 2019 12:39:26 -0400
-Date: Tue, 13 Aug 2019 18:40:09 +0200
-From: Borislav Petkov <bp@alien8.de>
-Subject: Re: [PATCH v8 02/28] x86/asm/suspend: use SYM_DATA for data
-Message-ID: <20190813164009.GG16770@zn.tnic>
-References: <20190808103854.6192-1-jslaby@suse.cz>
- <20190808103854.6192-3-jslaby@suse.cz>
+        id S1725923AbfHMSQO (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 13 Aug 2019 14:16:14 -0400
+Date: Tue, 13 Aug 2019 20:16:10 +0200
+From: Greg KH <gregkh@linuxfoundation.org>
+Subject: Re: [PATCH v2 06/10] export: allow definition default namespaces in
+ Makefiles or sources
+Message-ID: <20190813181610.GC2378@kroah.com>
+References: <20180716122125.175792-1-maco@android.com>
+ <20190813121733.52480-1-maennich@google.com>
+ <20190813121733.52480-7-maennich@google.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
+Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20190808103854.6192-3-jslaby@suse.cz>
+In-Reply-To: <20190813121733.52480-7-maennich@google.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jiri Slaby <jslaby@suse.cz>
-Cc: tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, "Rafael J . Wysocki" <rafael.j.wysocki@intel.com>, Pavel Machek <pavel@ucw.cz>, Len Brown <len.brown@intel.com>, linux-pm@vger.kernel.org
-Message-ID: <20190813164009.WK2o3FP3WLh-UGigtX9sT2NXASbg25gC0jybgOZkNs4@z>
+To: Matthias Maennich <maennich@google.com>
+Cc: linux-kernel@vger.kernel.org, maco@android.com, kernel-team@android.com, arnd@arndb.de, geert@linux-m68k.org, hpa@zytor.com, jeyu@kernel.org, joel@joelfernandes.org, kstewart@linuxfoundation.org, linux-arch@vger.kernel.org, linux-kbuild@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-modules@vger.kernel.org, linux-scsi@vger.kernel.org, linux-usb@vger.kernel.org, lucas.de.marchi@gmail.com, maco@google.com, michal.lkml@markovi.net, mingo@redhat.com, oneukum@suse.com, pombredanne@nexb.com, sam@ravnborg.org, sboyd@codeaurora.org, sspatil@google.com, stern@rowland.harvard.edu, tglx@linutronix.de, usb-storage@lists.one-eyed-alien.net, x86@kernel.org, yamada.masahiro@socionext.com, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Michael Ellerman <mpe@ellerman.id.au>
+Message-ID: <20190813181610.xhEEdgfi5leNiLW9mWs4BHMWW9ddqTGkb4q60XgwDQo@z>
 
-On Thu, Aug 08, 2019 at 12:38:28PM +0200, Jiri Slaby wrote:
-> Some global data in the suspend code were marked as `ENTRY'. ENTRY was
-> intended for functions and shall be paired with ENDPROC. ENTRY also
-> aligns symbols which creates unnecessary holes here between data.
-
-Well, but are we sure that removing that alignment is fine in all cases?
-If so, the commit message should state why it is ok for those symbols to
-not be aligned now.
-
-And before it, phys_base looks like this:
-
-.globl phys_base ; .p2align 4, 0x90 ; phys_base:
-
-and it is correctly 8 bytes:
-
-ffffffff82011010 <phys_base>:
-ffffffff82011010:       00 00                   add    %al,(%rax)
-ffffffff82011012:       00 00                   add    %al,(%rax)
-ffffffff82011014:       00 00                   add    %al,(%rax)
-ffffffff82011016:       00 00                   add    %al,(%rax)
-
-However, with this patch, it becomes:
-
-.globl phys_base ; ; phys_base: ; .quad 0x0000000000000000 ; .type phys_base STT_OBJECT ; .size phys_base, .-phys_base
-
-which is better as now we'll have the proper symbol size:
-
- 86679: ffffffff8200f00a     8 OBJECT  GLOBAL DEFAULT   11 phys_base
-
-but in the vmlinux image it is 14(!) bytes:
-
-...
-ffffffff8200f002 <early_gdt_descr_base>:
-ffffffff8200f002:       00 a0 3b 82 ff ff       add    %ah,-0x7dc5(%rax)
-ffffffff8200f008:       ff                      (bad)
-ffffffff8200f009:       ff                      incl   (%rax)
-
-ffffffff8200f00a <phys_base>:
-ffffffff8200f00a:       00 00                   add    %al,(%rax)
-ffffffff8200f00c:       00 00                   add    %al,(%rax)
-ffffffff8200f00e:       00 00                   add    %al,(%rax)
-ffffffff8200f010:       00 00                   add    %al,(%rax)
-
-<--- should end here but the toolchain "stretches" it for whatever
-reason. Perhaps padding?
-
-ffffffff8200f012:       00 00                   add    %al,(%rax)
-ffffffff8200f014:       00 00                   add    %al,(%rax)
-ffffffff8200f016:       00 00                   add    %al,(%rax)
-
-ffffffff8200f018 <early_pmd_flags>:
-ffffffff8200f018:       e3 00                   jrcxz  ffffffff8200f01a <early_pmd_flags+0x2>
-...
-
-And that looks strange...
-
-> Since we are dropping historical markings, make proper use of newly added
-> SYM_DATA in this code.
+On Tue, Aug 13, 2019 at 01:17:03PM +0100, Matthias Maennich wrote:
+> To avoid excessive usage of EXPORT_SYMBOL_NS(sym, MY_NAMESPACE), where
+> MY_NAMESPACE will always be the namespace we are exporting to, allow
+> exporting all definitions of EXPORT_SYMBOL() and friends by defining
+> DEFAULT_SYMBOL_NAMESPACE.
 > 
-> Signed-off-by: Jiri Slaby <jslaby@suse.cz>
-> Acked-by: Rafael J. Wysocki <rafael.j.wysocki@intel.com>
-> Acked-by: Pavel Machek <pavel@ucw.cz>
-> Cc: Len Brown <len.brown@intel.com>
-> Cc: Thomas Gleixner <tglx@linutronix.de>
-> Cc: Ingo Molnar <mingo@redhat.com>
-> Cc: "H. Peter Anvin" <hpa@zytor.com>
-> Cc: x86@kernel.org
-> Cc: linux-pm@vger.kernel.org
-> ---
->  arch/x86/kernel/acpi/wakeup_32.S | 2 +-
->  arch/x86/kernel/acpi/wakeup_64.S | 2 +-
->  arch/x86/kernel/head_32.S        | 6 ++----
->  arch/x86/kernel/head_64.S        | 5 ++---
->  4 files changed, 6 insertions(+), 9 deletions(-)
+> For example, to export all symbols defined in usb-common into the
+> namespace USB_COMMON, add a line like this to drivers/usb/common/Makefile:
+> 
+>   ccflags-y += -DDEFAULT_SYMBOL_NAMESPACE=USB_COMMON
 
-...
+I thought we were trying to get away from cflags :(
 
-> diff --git a/arch/x86/kernel/head_64.S b/arch/x86/kernel/head_64.S
-> index f3d3e9646a99..6c1bf7ae55ff 100644
-> --- a/arch/x86/kernel/head_64.S
-> +++ b/arch/x86/kernel/head_64.S
-> @@ -469,9 +469,8 @@ early_gdt_descr:
->  early_gdt_descr_base:
->  	.quad	INIT_PER_CPU_VAR(gdt_page)
->  
-> -ENTRY(phys_base)
-> -	/* This must match the first entry in level2_kernel_pgt */
-> -	.quad   0x0000000000000000
-> +/* This must match the first entry in level2_kernel_pgt */
-> +SYM_DATA(phys_base, .quad 0x0000000000000000)
+> 
+> That is equivalent to changing all EXPORT_SYMBOL(sym) definitions to
+> EXPORT_SYMBOL_NS(sym, USB_COMMON). Subsequently all symbol namespaces
+> functionality will apply.
+> 
+> Another way of making use of this feature is to define the namespace
+> within source or header files similar to how TRACE_SYSTEM defines are
+> used:
+>   #undef DEFAULT_SYMBOL_NAMESPACE
+>   #define DEFAULT_SYMBOL_NAMESPACE USB_COMMON
+> 
+> Please note that, as opposed to TRACE_SYSTEM, DEFAULT_SYMBOL_NAMESPACE
+> has to be defined before including include/linux/export.h.
+> 
+> If DEFAULT_SYMBOL_NAMESPACE is defined, a symbol can still be exported
+> to another namespace by using EXPORT_SYMBOL_NS() and friends with
+> explicitly specifying the namespace.
 
-You can write it
+Ok, good, hopefully the cflags stuff will not be the default for people.
 
-SYM_DATA(phys_base, .quad 0x0)
+thanks,
 
-while at it. That string of 16 zeroes is unreadable and not needed.
-
-Thx.
-
--- 
-Regards/Gruss,
-    Boris.
-
-Good mailing practices for 400: avoid top-posting and trim the reply.
+greg k-h
