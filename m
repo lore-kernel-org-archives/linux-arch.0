@@ -1,40 +1,120 @@
-From: Greg KH <gregkh@linuxfoundation.org>
-Subject: Re: [PATCH v2 04/10] modpost: add support for symbol namespaces
-Date: Tue, 13 Aug 2019 17:27:14 +0200
-Message-ID: <20190813152714.GC26138@kroah.com>
-References: <20180716122125.175792-1-maco@android.com>
- <20190813121733.52480-1-maennich@google.com>
- <20190813121733.52480-5-maennich@google.com>
+From: Borislav Petkov <bp@alien8.de>
+Subject: Re: [PATCH v8 02/28] x86/asm/suspend: use SYM_DATA for data
+Date: Tue, 13 Aug 2019 18:40:09 +0200
+Message-ID: <20190813164009.GG16770@zn.tnic>
+References: <20190808103854.6192-1-jslaby@suse.cz>
+ <20190808103854.6192-3-jslaby@suse.cz>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=utf-8
 Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <20190813121733.52480-5-maennich@google.com>
+In-Reply-To: <20190808103854.6192-3-jslaby@suse.cz>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Matthias Maennich <maennich@google.com>
-Cc: linux-kernel@vger.kernel.org, maco@android.com, kernel-team@android.com, arnd@arndb.de, geert@linux-m68k.org, hpa@zytor.com, jeyu@kernel.org, joel@joelfernandes.org, kstewart@linuxfoundation.org, linux-arch@vger.kernel.org, linux-kbuild@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-modules@vger.kernel.org, linux-scsi@vger.kernel.org, linux-usb@vger.kernel.org, lucas.de.marchi@gmail.com, maco@google.com, michal.lkml@markovi.net, mingo@redhat.com, oneukum@suse.com, pombredanne@nexb.com, sam@ravnborg.org, sboyd@codeaurora.org, sspatil@google.com, stern@rowland.harvard.edu, tglx@linutronix.de, usb-storage@lists.one-eyed-alien.net, x86@kernel.org, yamada.masahiro@socionext.com
+To: Jiri Slaby <jslaby@suse.cz>
+Cc: tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, "Rafael J . Wysocki" <rafael.j.wysocki@intel.com>, Pavel Machek <pavel@ucw.cz>, Len Brown <len.brown@intel.com>, linux-pm@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, Aug 13, 2019 at 01:17:01PM +0100, Matthias Maennich wrote:
-> Add support for symbols that are exported into namespaces. For that,
-> extract any namespace suffix from the symbol name. In addition, emit a
-> warning whenever a module refers to an exported symbol without
-> explicitly importing the namespace that it is defined in. This patch
-> consistently adds the namespace suffix to symbol names exported into
-> Module.symvers.
-> 
-> Example warning emitted by modpost in case of the above violation:
-> 
->  WARNING: module ums-usbat uses symbol usb_stor_resume from namespace
->  USB_STORAGE, but does not import it.
-> 
-> Co-developed-by: Martijn Coenen <maco@android.com>
-> Signed-off-by: Martijn Coenen <maco@android.com>
-> Reviewed-by: Joel Fernandes (Google) <joel@joelfernandes.org>
-> Signed-off-by: Matthias Maennich <maennich@google.com>
-> ---
->  scripts/mod/modpost.c | 91 +++++++++++++++++++++++++++++++++++++------
->  scripts/mod/modpost.h |  7 ++++
->  2 files changed, 87 insertions(+), 11 deletions(-)
+On Thu, Aug 08, 2019 at 12:38:28PM +0200, Jiri Slaby wrote:
+> Some global data in the suspend code were marked as `ENTRY'. ENTRY was
+> intended for functions and shall be paired with ENDPROC. ENTRY also
+> aligns symbols which creates unnecessary holes here between data.
 
-Reviewed-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+Well, but are we sure that removing that alignment is fine in all cases?
+If so, the commit message should state why it is ok for those symbols to
+not be aligned now.
+
+And before it, phys_base looks like this:
+
+.globl phys_base ; .p2align 4, 0x90 ; phys_base:
+
+and it is correctly 8 bytes:
+
+ffffffff82011010 <phys_base>:
+ffffffff82011010:       00 00                   add    %al,(%rax)
+ffffffff82011012:       00 00                   add    %al,(%rax)
+ffffffff82011014:       00 00                   add    %al,(%rax)
+ffffffff82011016:       00 00                   add    %al,(%rax)
+
+However, with this patch, it becomes:
+
+.globl phys_base ; ; phys_base: ; .quad 0x0000000000000000 ; .type phys_base STT_OBJECT ; .size phys_base, .-phys_base
+
+which is better as now we'll have the proper symbol size:
+
+ 86679: ffffffff8200f00a     8 OBJECT  GLOBAL DEFAULT   11 phys_base
+
+but in the vmlinux image it is 14(!) bytes:
+
+...
+ffffffff8200f002 <early_gdt_descr_base>:
+ffffffff8200f002:       00 a0 3b 82 ff ff       add    %ah,-0x7dc5(%rax)
+ffffffff8200f008:       ff                      (bad)
+ffffffff8200f009:       ff                      incl   (%rax)
+
+ffffffff8200f00a <phys_base>:
+ffffffff8200f00a:       00 00                   add    %al,(%rax)
+ffffffff8200f00c:       00 00                   add    %al,(%rax)
+ffffffff8200f00e:       00 00                   add    %al,(%rax)
+ffffffff8200f010:       00 00                   add    %al,(%rax)
+
+<--- should end here but the toolchain "stretches" it for whatever
+reason. Perhaps padding?
+
+ffffffff8200f012:       00 00                   add    %al,(%rax)
+ffffffff8200f014:       00 00                   add    %al,(%rax)
+ffffffff8200f016:       00 00                   add    %al,(%rax)
+
+ffffffff8200f018 <early_pmd_flags>:
+ffffffff8200f018:       e3 00                   jrcxz  ffffffff8200f01a <early_pmd_flags+0x2>
+...
+
+And that looks strange...
+
+> Since we are dropping historical markings, make proper use of newly added
+> SYM_DATA in this code.
+> 
+> Signed-off-by: Jiri Slaby <jslaby@suse.cz>
+> Acked-by: Rafael J. Wysocki <rafael.j.wysocki@intel.com>
+> Acked-by: Pavel Machek <pavel@ucw.cz>
+> Cc: Len Brown <len.brown@intel.com>
+> Cc: Thomas Gleixner <tglx@linutronix.de>
+> Cc: Ingo Molnar <mingo@redhat.com>
+> Cc: "H. Peter Anvin" <hpa@zytor.com>
+> Cc: x86@kernel.org
+> Cc: linux-pm@vger.kernel.org
+> ---
+>  arch/x86/kernel/acpi/wakeup_32.S | 2 +-
+>  arch/x86/kernel/acpi/wakeup_64.S | 2 +-
+>  arch/x86/kernel/head_32.S        | 6 ++----
+>  arch/x86/kernel/head_64.S        | 5 ++---
+>  4 files changed, 6 insertions(+), 9 deletions(-)
+
+...
+
+> diff --git a/arch/x86/kernel/head_64.S b/arch/x86/kernel/head_64.S
+> index f3d3e9646a99..6c1bf7ae55ff 100644
+> --- a/arch/x86/kernel/head_64.S
+> +++ b/arch/x86/kernel/head_64.S
+> @@ -469,9 +469,8 @@ early_gdt_descr:
+>  early_gdt_descr_base:
+>  	.quad	INIT_PER_CPU_VAR(gdt_page)
+>  
+> -ENTRY(phys_base)
+> -	/* This must match the first entry in level2_kernel_pgt */
+> -	.quad   0x0000000000000000
+> +/* This must match the first entry in level2_kernel_pgt */
+> +SYM_DATA(phys_base, .quad 0x0000000000000000)
+
+You can write it
+
+SYM_DATA(phys_base, .quad 0x0)
+
+while at it. That string of 16 zeroes is unreadable and not needed.
+
+Thx.
+
+-- 
+Regards/Gruss,
+    Boris.
+
+Good mailing practices for 400: avoid top-posting and trim the reply.
