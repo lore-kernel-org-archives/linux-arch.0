@@ -1,8 +1,8 @@
 From: Greg KH <gregkh@linuxfoundation.org>
 Subject: Re: [PATCH v2 10/10] RFC: usb-storage: export symbols in USB_STORAGE
  namespace
-Date: Tue, 13 Aug 2019 14:45:37 +0200
-Message-ID: <20190813124537.GB12475@kroah.com>
+Date: Tue, 13 Aug 2019 14:47:08 +0200
+Message-ID: <20190813124708.GC12475@kroah.com>
 References: <20180716122125.175792-1-maco@android.com>
  <20190813121733.52480-1-maennich@google.com>
  <20190813121733.52480-11-maennich@google.com>
@@ -30,39 +30,11 @@ On Tue, Aug 13, 2019 at 01:17:07PM +0100, Matthias Maennich wrote:
 > of the method used here is that newly added symbols are automatically
 > exported and existing ones are exported without touching their
 > respective EXPORT_SYMBOL macro expansion.
-> 
-> Signed-off-by: Matthias Maennich <maennich@google.com>
-> ---
->  drivers/usb/storage/Makefile        | 2 ++
->  drivers/usb/storage/alauda.c        | 1 +
->  drivers/usb/storage/cypress_atacb.c | 1 +
->  drivers/usb/storage/datafab.c       | 1 +
->  drivers/usb/storage/ene_ub6250.c    | 1 +
->  drivers/usb/storage/freecom.c       | 1 +
->  drivers/usb/storage/isd200.c        | 1 +
->  drivers/usb/storage/jumpshot.c      | 1 +
->  drivers/usb/storage/karma.c         | 1 +
->  drivers/usb/storage/onetouch.c      | 1 +
->  drivers/usb/storage/realtek_cr.c    | 1 +
->  drivers/usb/storage/sddr09.c        | 1 +
->  drivers/usb/storage/sddr55.c        | 1 +
->  drivers/usb/storage/shuttle_usbat.c | 1 +
->  drivers/usb/storage/uas.c           | 1 +
->  15 files changed, 16 insertions(+)
-> 
-> diff --git a/drivers/usb/storage/Makefile b/drivers/usb/storage/Makefile
-> index a67ddcbb4e24..46635fa4a340 100644
-> --- a/drivers/usb/storage/Makefile
-> +++ b/drivers/usb/storage/Makefile
-> @@ -8,6 +8,8 @@
->  
->  ccflags-y := -I $(srctree)/drivers/scsi
->  
-> +ccflags-y += -DDEFAULT_SYMBOL_NAMESPACE=USB_STORAGE
 
-Wait, we have to do this for every subsystem?  I thought there was a
-macro we could use in the code itself for this.  What changed from
-earlier versions, or was this always here?
+Ok, I can't read text, this answers my previous question.
+
+But, as an example, shouldn't we also have some code here that uses the
+EXPORT_SYMBOL_NS() macro to ensure that it actually works?
 
 thanks,
 
