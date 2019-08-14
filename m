@@ -1,8 +1,8 @@
 From: Akira Yokosawa <akiyks@gmail.com>
-Subject: Subject: [PATCH 1/2] tools/memory-model: Reflect updated file name
- convention in judgelitmus.sh
-Date: Thu, 15 Aug 2019 00:13:57 +0900
-Message-ID: <1dbd392a-876c-1d6b-f718-76a37f1d55ee@gmail.com>
+Subject: [PATCH 2/2] tools/memory-model: Mention data-race capability in
+ jugdelitmus.sh's header
+Date: Thu, 15 Aug 2019 00:16:28 +0900
+Message-ID: <a94b590d-5683-932d-5354-b77b91e7af4b@gmail.com>
 References: <20190801222026.GA11315@linux.ibm.com>
  <20190801222056.12144-27-paulmck@linux.ibm.com>
  <beb07965-eb83-9cd1-2b49-cfc24928dce5@gmail.com>
@@ -19,32 +19,50 @@ To: "Paul E. McKenney" <paulmck@linux.ibm.com>
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Ingo Molnar <mingo@kernel.org>, Alan Stern <stern@rowland.harvard.edu>, Andrea Parri <parri.andrea@gmail.com>, Will Deacon <will@kernel.org>, Boqun Feng <boqun.feng@gmail.com>, Nicholas Piggin <npiggin@gmail.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, Peter Zijlstra <peterz@infradead.org>, Daniel Lustig <dlustig@nvidia.com>, Akira Yokosawa <akiyks@gmail.com>
 List-Id: linux-arch.vger.kernel.org
 
-From 6251ebb775a81f1ac158f197ad8110b8f98c4248 Mon Sep 17 00:00:00 2001
+From 67092cb93f7a0fd3c4f9a300637e4f5c61fc944a Mon Sep 17 00:00:00 2001
 From: Akira Yokosawa <akiyks@gmail.com>
-Date: Wed, 14 Aug 2019 17:20:54 +0900
-Subject: [PATCH 1/2] tools/memory-model: Reflect updated file name convention in judgelitmus.sh
+Date: Wed, 14 Aug 2019 17:48:25 +0900
+Subject: [PATCH 2/2] tools/memory-model: Mention data-race capability in jugdelitmus.sh's header
 
-Commit ("tools/memory-model: Move from .AArch64.litmus.out to
-.litmus.AArch.out") swapped "HW" and "litmus" part in .out file name.
-Reflect the change in header comment in judgelitmus.sh
+Replicate description of data-race capability from the change log of
+commit ("tools/memory-model: Add data-race capabilities to
+judgelitmus.sh") in the header comment.
 
 Signed-off-by: Akira Yokosawa <akiyks@gmail.com>
 ---
- tools/memory-model/scripts/judgelitmus.sh | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+ tools/memory-model/scripts/judgelitmus.sh | 20 +++++++++++++-------
+ 1 file changed, 13 insertions(+), 7 deletions(-)
 
 diff --git a/tools/memory-model/scripts/judgelitmus.sh b/tools/memory-model/scripts/judgelitmus.sh
-index 6408c012bdf5..c91130814593 100755
+index c91130814593..1ec5d89fcfbb 100755
 --- a/tools/memory-model/scripts/judgelitmus.sh
 +++ b/tools/memory-model/scripts/judgelitmus.sh
-@@ -6,7 +6,7 @@
+@@ -4,13 +4,19 @@
+ # Given a .litmus test and the corresponding litmus output file, check
+ # the .litmus.out file against the "Result:" comment to judge whether the
  # test ran correctly.  If the --hw argument is omitted, check against the
- # LKMM output, which is assumed to be in file.litmus.out.  If this argument
- # is provided, this is assumed to be a hardware test, and the output is
--# assumed to be in file.HW.litmus.out, where "HW" is the --hw argument.
-+# assumed to be in file.litmus.HW.out, where "HW" is the --hw argument.
- # In addition, non-Sometimes verification results will be noted, but
- # forgiven.  Furthermore, if there is no "Result:" comment but there is
- # an LKMM .litmus.out file, the observation in that file will be used
+-# LKMM output, which is assumed to be in file.litmus.out.  If this argument
+-# is provided, this is assumed to be a hardware test, and the output is
+-# assumed to be in file.litmus.HW.out, where "HW" is the --hw argument.
+-# In addition, non-Sometimes verification results will be noted, but
+-# forgiven.  Furthermore, if there is no "Result:" comment but there is
+-# an LKMM .litmus.out file, the observation in that file will be used
+-# to judge the assembly-language verification.
++# LKMM output, which is assumed to be in file.litmus.out. If either a
++# "DATARACE" marker in the "Result:" comment or a "Flag data-race" marker
++# in the LKMM output is present, the other must also be as well, at least
++# for litmus tests having a "Result:" comment. In this case, a failure of
++# the Always/Sometimes/Never portion of the "Result:" prediction will be
++# noted, but forgiven.
++#
++# If the --hw argument is provided, this is assumed to be a hardware
++# test, and the output is assumed to be in file.litmus.HW.out, where
++# "HW" is the --hw argument. In addition, non-Sometimes verification
++# results will be noted, but forgiven.  Furthermore, if there is no
++# "Result:" comment but there is an LKMM .litmus.out file, the observation
++# in that file will be used to judge the assembly-language verification.
+ #
+ # Usage:
+ #	judgelitmus.sh file.litmus
 -- 
 2.17.1
