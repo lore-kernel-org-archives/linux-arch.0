@@ -1,49 +1,79 @@
-From: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Subject: Re: [PATCH v8 15/27] mm: Handle shadow stack page fault
-Date: Wed, 14 Aug 2019 10:00:27 -0700
-Message-ID: <a47dd0338ff37ebaa7888f291d05a5fccf1cb44b.camel@intel.com>
-References: <20190813205225.12032-1-yu-cheng.yu@intel.com>
-         <20190813205225.12032-16-yu-cheng.yu@intel.com>
-         <CALCETrVKbqzivPfUOiGi5efHUpEsfPkNzP0CrmAZzcwUgf7quA@mail.gmail.com>
-         <eabd0c16bd2028ad9fef8d10ddf570b3a10d5680.camel@intel.com>
-         <bf8a6390-97a6-1ab6-90ef-6399437ed38c@intel.com>
+From: Saravana Kannan <saravanak@google.com>
+Subject: Re: [PATCH v2 05/10] module: add config option MODULE_ALLOW_MISSING_NAMESPACE_IMPORTS
+Date: Wed, 14 Aug 2019 10:34:43 -0700
+Message-ID: <CAGETcx99Xx7aRPS-2Pw8h7O5D_+3T+1hbqja=p-gLN2wXApaEQ@mail.gmail.com>
+References: <20180716122125.175792-1-maco@android.com> <20190813121733.52480-1-maennich@google.com>
+ <20190813121733.52480-6-maennich@google.com> <CAGETcx_LQDdnaU+3JVGw+6=DJ8tRoQ00+3rD2gOiHHkWomt8jg@mail.gmail.com>
+ <20190814125427.GA72826@google.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <bf8a6390-97a6-1ab6-90ef-6399437ed38c@intel.com>
+In-Reply-To: <20190814125427.GA72826@google.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@kernel.org>
-Cc: X86 ML <x86@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, LKML <linux-kernel@vger.kernel.org>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>, Linux-MM <linux-mm@kvack.org>, linux-arch <linux-arch@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@or>
+To: Matthias Maennich <maennich@google.com>
+Cc: LKML <linux-kernel@vger.kernel.org>, maco@android.com, Android Kernel Team <kernel-team@android.com>, arnd@arndb.de, geert@linux-m68k.org, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, hpa@zytor.com, jeyu@kernel.org, "Joel Fernandes (Google)" <joel@joelfernandes.org>, Kate Stewart <kstewart@linuxfoundation.org>, linux-arch@vger.kernel.org, linux-kbuild@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-modules@vger.kernel.org, linux-scsi@vger.kernel.org, linux-usb@vger.kernel.org, lucas.de.marchi@gmail.com, Martijn Coenen <maco@google.com>, michal.lkml@markovi.net, mingo@redhat.com, oneukum@suse.com, Philippe Ombredanne <pombredanne@nexb.com>, sam@ravnborg.org, Sandeep Patil <sspatil@google.com>, stern@rowland.harvard.edu, tglx@linutronix.de, usb-storage@lists.one-e
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, 2019-08-14 at 09:48 -0700, Dave Hansen wrote:
-> On 8/14/19 9:27 AM, Yu-cheng Yu wrote:
-> > On Tue, 2019-08-13 at 15:55 -0700, Andy Lutomirski wrote:
-> > > On Tue, Aug 13, 2019 at 2:02 PM Yu-cheng Yu <yu-cheng.yu@intel.com> wrote:
-> > > > When a task does fork(), its shadow stack (SHSTK) must be duplicated
-> > > > for the child.  This patch implements a flow similar to copy-on-write
-> > > > of an anonymous page, but for SHSTK.
-> > > > 
-> > > > A SHSTK PTE must be RO and dirty.  This dirty bit requirement is used
-> > > > to effect the copying.  In copy_one_pte(), clear the dirty bit from a
-> > > > SHSTK PTE to cause a page fault upon the next SHSTK access.  At that
-> > > > time, fix the PTE and copy/re-use the page.
-> > > 
-> > > Is using VM_SHSTK and special-casing all of this really better than
-> > > using a special mapping or other pseudo-file-backed VMA and putting
-> > > all the magic in the vm_operations?
-> > 
-> > A special mapping is cleaner.  However, we also need to exclude normal [RO +
-> > dirty] pages from shadow stack.
-> 
-> I don't understand what you are saying.
-> 
-> Are you saying that we need this VM_SHSTK flag in order to exclude
-> RO+HW-Dirty pages from being created in non-shadow-stack VMAs?
+On Wed, Aug 14, 2019 at 5:54 AM 'Matthias Maennich' via kernel-team
+<kernel-team@android.com> wrote:
+>
+> On Tue, Aug 13, 2019 at 01:15:44PM -0700, Saravana Kannan wrote:
+> >On Tue, Aug 13, 2019 at 5:19 AM 'Matthias Maennich' via kernel-team
+> ><kernel-team@android.com> wrote:
+> >>
+> >> If MODULE_ALLOW_MISSING_NAMESPACE_IMPORTS is enabled (default=n), the
+> >> requirement for modules to import all namespaces that are used by
+> >> the module is relaxed.
+> >>
+> >> Enabling this option effectively allows (invalid) modules to be loaded
+> >> while only a warning is emitted.
+> >>
+> >> Disabling this option keeps the enforcement at module loading time and
+> >> loading is denied if the module's imports are not satisfactory.
+> >>
+> >> Reviewed-by: Martijn Coenen <maco@android.com>
+> >> Signed-off-by: Matthias Maennich <maennich@google.com>
+> >> ---
+> >>  init/Kconfig    | 14 ++++++++++++++
+> >>  kernel/module.c | 11 +++++++++--
+> >>  2 files changed, 23 insertions(+), 2 deletions(-)
+> >>
+> >> diff --git a/init/Kconfig b/init/Kconfig
+> >> index bd7d650d4a99..b3373334cdf1 100644
+> >> --- a/init/Kconfig
+> >> +++ b/init/Kconfig
+> >> @@ -2119,6 +2119,20 @@ config MODULE_COMPRESS_XZ
+> >>
+> >>  endchoice
+> >>
+> >> +config MODULE_ALLOW_MISSING_NAMESPACE_IMPORTS
+> >> +       bool "Allow loading of modules with missing namespace imports"
+> >> +       default n
+> >> +       help
+> >> +         Symbols exported with EXPORT_SYMBOL_NS*() are considered exported in
+> >> +         a namespace. A module that makes use of a symbol exported with such a
+> >> +         namespace is required to import the namespace via MODULE_IMPORT_NS().
+> >> +         This option relaxes this requirement when loading a module.
+> >
+> >> While
+> >> +         technically there is no reason to enforce correct namespace imports,
+> >> +         it creates consistency between symbols defining namespaces and users
+> >> +         importing namespaces they make use of.
+> >
+> >I'm confused by this sentence. It sounds like it's the opposite of
+> >what the config is doing? Can you please reword it for clarify?
+>
+> How about:
+>
+>   Symbols exported with EXPORT_SYMBOL_NS*() are considered exported in
+>   a namespace. A module that makes use of a symbol exported with such a
+>   namespace is required to import the namespace via MODULE_IMPORT_NS().
+>   There is no technical reason to enforce correct namespace imports,
+>   but it creates consistency between symbols defining namespaces and
+>   users importing namespaces they make use of. This option relaxes this
+>   requirement and lifts the enforcement when loading a module.
 
-We use VM_SHSTK for page fault handling (the special-casing).  If we have a
-special mapping, all these become cleaner (but more code).  However, we still
-need most of the PTE macros (e.g. ptep_set_wrprotect, PAGE_DIRTY_SW, etc.).
+That's a lot better. Especially moving the "This option relaxes..." to
+the bottom. Thanks.
 
-Yu-cheng
+-Saravana
