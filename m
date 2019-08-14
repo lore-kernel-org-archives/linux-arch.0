@@ -1,92 +1,171 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pg1-f193.google.com ([209.85.215.193]:35162 "EHLO
-        mail-pg1-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1725800AbfHNMcb (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 14 Aug 2019 08:32:31 -0400
+Received: from mail-pg1-f195.google.com ([209.85.215.195]:36915 "EHLO
+        mail-pg1-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1725800AbfHNMch (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 14 Aug 2019 08:32:37 -0400
 From: lantianyu1986@gmail.com
-Subject: [PATCH V2 1/2] clocksource/Hyper-v: Allocate Hyper-V tsc page statically
-Date: Wed, 14 Aug 2019 20:32:15 +0800
-Message-ID: <20190814123216.32245-2-Tianyu.Lan@microsoft.com>
+Subject: [PATCH V2 2/2] clocksource/Hyper-V:  Add Hyper-V specific sched clock function
+Date: Wed, 14 Aug 2019 20:32:16 +0800
+Message-ID: <20190814123216.32245-3-Tianyu.Lan@microsoft.com>
 In-Reply-To: <20190814123216.32245-1-Tianyu.Lan@microsoft.com>
 References: <20190814123216.32245-1-Tianyu.Lan@microsoft.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: luto@kernel.org, tglx@linutronix.de, mingo@redhat.com, bp@alien8.de, hpa@zytor.com, x86@kernel.org, kys@microsoft.com, haiyangz@microsoft.com, sthemmin@microsoft.com, sashal@kernel.org, daniel.lezcano@linaro.org, arnd@arndb.de, michael.h.kelley@microsoft.com
-Cc: Tianyu Lan <Tianyu.Lan@microsoft.com>, linux-kernel@vger.kernel.org, linux-hyperv@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20190814123215.xffo1KB8WS5cRA5RyeJYADgS6ZlGjsN1kY0I6XnQQMw@z>
+To: kys@microsoft.com, haiyangz@microsoft.com, sthemmin@microsoft.com, sashal@kernel.org, tglx@linutronix.de, mingo@redhat.com, bp@alien8.de, hpa@zytor.com, x86@kernel.org, daniel.lezcano@linaro.org, arnd@arndb.de, michael.h.kelley@microsoft.com
+Cc: Tianyu Lan <Tianyu.Lan@microsoft.com>, linux-hyperv@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20190814123216.CqDFV3sI-s7DQVY45dCtLBX-kOTi0vAtKDBqOQQfNR4@z>
 
 From: Tianyu Lan <Tianyu.Lan@microsoft.com>
 
-Prepare to add Hyper-V sched clock callback and move Hyper-V
-Reference TSC initialization much earlier in the boot process.  Earlier
-initialization is needed so that it happens while the timestamp value
-is still 0 and no discontinuity in the timestamp will occur when
-pv_ops.time.sched_clock calculates its offset.  The earlier
-initialization requires that the Hyper-V TSC page be allocated
-statically instead of with vmalloc(), so fixup the references
-to the TSC page and the method of getting its physical address.
+Hyper-V guests use the default native_sched_clock() in pv_ops.time.sched_clock
+on x86.  But native_sched_clock() directly uses the raw TSC value, which
+can be discontinuous in a Hyper-V VM. Add the generic hv_setup_sched_clock()
+to set the sched clock function appropriately. On x86, this sets pv_ops.time.
+sched_clock to read the Hyper-V reference TSC value that is scaled and adjusted
+to be continuous.
 
+Also move the Hyper-V reference TSC initialization much earlier in the boot
+process so no discontinuity is observed when pv_ops.time.sched_clock
+calculates its offset.
+
+Reviewed-by: Michael Kelley <mikelley@microsoft.com>
 Signed-off-by: Tianyu Lan <Tianyu.Lan@microsoft.com>
 ---
-    Change since v1:
-           - Update commit log
-           - Remove and operation of tsc page's va with PAGE_MASK
+ arch/x86/hyperv/hv_init.c          |  2 --
+ arch/x86/kernel/cpu/mshyperv.c     |  8 ++++++++
+ drivers/clocksource/hyperv_timer.c | 22 ++++++++++++----------
+ include/asm-generic/mshyperv.h     |  1 +
+ 4 files changed, 21 insertions(+), 12 deletions(-)
 
- arch/x86/entry/vdso/vma.c          |  2 +-
- drivers/clocksource/hyperv_timer.c | 12 ++++--------
- 2 files changed, 5 insertions(+), 9 deletions(-)
-
-diff --git a/arch/x86/entry/vdso/vma.c b/arch/x86/entry/vdso/vma.c
-index 349a61d8bf34..f5937742b290 100644
---- a/arch/x86/entry/vdso/vma.c
-+++ b/arch/x86/entry/vdso/vma.c
-@@ -122,7 +122,7 @@ static vm_fault_t vvar_fault(const struct vm_special_mapping *sm,
+diff --git a/arch/x86/hyperv/hv_init.c b/arch/x86/hyperv/hv_init.c
+index 0d258688c8cf..866dfb3dca48 100644
+--- a/arch/x86/hyperv/hv_init.c
++++ b/arch/x86/hyperv/hv_init.c
+@@ -301,8 +301,6 @@ void __init hyperv_init(void)
  
- 		if (tsc_pg && vclock_was_used(VCLOCK_HVCLOCK))
- 			return vmf_insert_pfn(vma, vmf->address,
--					vmalloc_to_pfn(tsc_pg));
-+					virt_to_phys(tsc_pg) >> PAGE_SHIFT);
- 	}
+ 	x86_init.pci.arch_init = hv_pci_init;
  
- 	return VM_FAULT_SIGBUS;
+-	/* Register Hyper-V specific clocksource */
+-	hv_init_clocksource();
+ 	return;
+ 
+ remove_cpuhp_state:
+diff --git a/arch/x86/kernel/cpu/mshyperv.c b/arch/x86/kernel/cpu/mshyperv.c
+index 062f77279ce3..53afd33990eb 100644
+--- a/arch/x86/kernel/cpu/mshyperv.c
++++ b/arch/x86/kernel/cpu/mshyperv.c
+@@ -29,6 +29,7 @@
+ #include <asm/timer.h>
+ #include <asm/reboot.h>
+ #include <asm/nmi.h>
++#include <clocksource/hyperv_timer.h>
+ 
+ struct ms_hyperv_info ms_hyperv;
+ EXPORT_SYMBOL_GPL(ms_hyperv);
+@@ -338,9 +339,16 @@ static void __init ms_hyperv_init_platform(void)
+ 		x2apic_phys = 1;
+ # endif
+ 
++	/* Register Hyper-V specific clocksource */
++	hv_init_clocksource();
+ #endif
+ }
+ 
++void hv_setup_sched_clock(void *sched_clock)
++{
++	pv_ops.time.sched_clock = sched_clock;
++}
++
+ const __initconst struct hypervisor_x86 x86_hyper_ms_hyperv = {
+ 	.name			= "Microsoft Hyper-V",
+ 	.detect			= ms_hyperv_platform,
 diff --git a/drivers/clocksource/hyperv_timer.c b/drivers/clocksource/hyperv_timer.c
-index ba2c79e6a0ee..432aa331df04 100644
+index 432aa331df04..dad8af198e20 100644
 --- a/drivers/clocksource/hyperv_timer.c
 +++ b/drivers/clocksource/hyperv_timer.c
-@@ -214,17 +214,17 @@ EXPORT_SYMBOL_GPL(hyperv_cs);
- 
+@@ -215,6 +215,7 @@ EXPORT_SYMBOL_GPL(hyperv_cs);
  #ifdef CONFIG_HYPERV_TSCPAGE
  
--static struct ms_hyperv_tsc_page *tsc_pg;
-+static struct ms_hyperv_tsc_page tsc_pg __aligned(PAGE_SIZE);
+ static struct ms_hyperv_tsc_page tsc_pg __aligned(PAGE_SIZE);
++static u64 hv_sched_clock_offset __ro_after_init;
  
  struct ms_hyperv_tsc_page *hv_get_tsc_page(void)
  {
--	return tsc_pg;
-+	return &tsc_pg;
+@@ -222,7 +223,7 @@ struct ms_hyperv_tsc_page *hv_get_tsc_page(void)
  }
  EXPORT_SYMBOL_GPL(hv_get_tsc_page);
  
- static u64 notrace read_hv_sched_clock_tsc(void)
+-static u64 notrace read_hv_sched_clock_tsc(void)
++static u64 notrace read_hv_clock_tsc(struct clocksource *arg)
  {
--	u64 current_tick = hv_read_tsc_page(tsc_pg);
-+	u64 current_tick = hv_read_tsc_page(&tsc_pg);
+ 	u64 current_tick = hv_read_tsc_page(&tsc_pg);
  
- 	if (current_tick == U64_MAX)
- 		hv_get_time_ref_count(current_tick);
-@@ -280,12 +280,8 @@ static bool __init hv_init_tsc_clocksource(void)
- 	if (!(ms_hyperv.features & HV_MSR_REFERENCE_TSC_AVAILABLE))
- 		return false;
+@@ -232,9 +233,9 @@ static u64 notrace read_hv_sched_clock_tsc(void)
+ 	return current_tick;
+ }
  
--	tsc_pg = vmalloc(PAGE_SIZE);
--	if (!tsc_pg)
--		return false;
--
- 	hyperv_cs = &hyperv_cs_tsc;
--	phys_addr = page_to_phys(vmalloc_to_page(tsc_pg));
-+	phys_addr = virt_to_phys(&tsc_pg);
+-static u64 read_hv_clock_tsc(struct clocksource *arg)
++static u64 read_hv_sched_clock_tsc(void)
+ {
+-	return read_hv_sched_clock_tsc();
++	return read_hv_clock_tsc(NULL) - hv_sched_clock_offset;
+ }
  
+ static struct clocksource hyperv_cs_tsc = {
+@@ -246,7 +247,7 @@ static struct clocksource hyperv_cs_tsc = {
+ };
+ #endif
+ 
+-static u64 notrace read_hv_sched_clock_msr(void)
++static u64 notrace read_hv_clock_msr(struct clocksource *arg)
+ {
+ 	u64 current_tick;
  	/*
- 	 * The Hyper-V TLFS specifies to preserve the value of reserved
+@@ -258,9 +259,9 @@ static u64 notrace read_hv_sched_clock_msr(void)
+ 	return current_tick;
+ }
+ 
+-static u64 read_hv_clock_msr(struct clocksource *arg)
++static u64 read_hv_sched_clock_msr(void)
+ {
+-	return read_hv_sched_clock_msr();
++	return read_hv_clock_msr(NULL) - hv_sched_clock_offset;
+ }
+ 
+ static struct clocksource hyperv_cs_msr = {
+@@ -298,8 +299,9 @@ static bool __init hv_init_tsc_clocksource(void)
+ 	hv_set_clocksource_vdso(hyperv_cs_tsc);
+ 	clocksource_register_hz(&hyperv_cs_tsc, NSEC_PER_SEC/100);
+ 
+-	/* sched_clock_register is needed on ARM64 but is a no-op on x86 */
+-	sched_clock_register(read_hv_sched_clock_tsc, 64, HV_CLOCK_HZ);
++	hv_sched_clock_offset = hyperv_cs->read(hyperv_cs);
++	hv_setup_sched_clock(read_hv_sched_clock_tsc);
++
+ 	return true;
+ }
+ #else
+@@ -329,7 +331,7 @@ void __init hv_init_clocksource(void)
+ 	hyperv_cs = &hyperv_cs_msr;
+ 	clocksource_register_hz(&hyperv_cs_msr, NSEC_PER_SEC/100);
+ 
+-	/* sched_clock_register is needed on ARM64 but is a no-op on x86 */
+-	sched_clock_register(read_hv_sched_clock_msr, 64, HV_CLOCK_HZ);
++	hv_sched_clock_offset = hyperv_cs->read(hyperv_cs);
++	hv_setup_sched_clock(read_hv_sched_clock_msr);
+ }
+ EXPORT_SYMBOL_GPL(hv_init_clocksource);
+diff --git a/include/asm-generic/mshyperv.h b/include/asm-generic/mshyperv.h
+index 0becb7d9704d..18d8e2d8210f 100644
+--- a/include/asm-generic/mshyperv.h
++++ b/include/asm-generic/mshyperv.h
+@@ -167,6 +167,7 @@ void hyperv_report_panic(struct pt_regs *regs, long err);
+ void hyperv_report_panic_msg(phys_addr_t pa, size_t size);
+ bool hv_is_hyperv_initialized(void);
+ void hyperv_cleanup(void);
++void hv_setup_sched_clock(void *sched_clock);
+ #else /* CONFIG_HYPERV */
+ static inline bool hv_is_hyperv_initialized(void) { return false; }
+ static inline void hyperv_cleanup(void) {}
 -- 
 2.14.5
