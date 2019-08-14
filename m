@@ -1,36 +1,27 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:45794 "EHLO mx1.redhat.com"
+Received: from mout.web.de ([212.227.15.14]:51161 "EHLO mout.web.de"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726347AbfHNIH6 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 14 Aug 2019 04:07:58 -0400
-From: Florian Weimer <fweimer@redhat.com>
-Subject: Re: [PATCH v8 01/27] Documentation/x86: Add CET description
-References: <20190813205225.12032-1-yu-cheng.yu@intel.com>
-        <20190813205225.12032-2-yu-cheng.yu@intel.com>
-Date: Wed, 14 Aug 2019 10:07:45 +0200
-In-Reply-To: <20190813205225.12032-2-yu-cheng.yu@intel.com> (Yu-cheng Yu's
-        message of "Tue, 13 Aug 2019 13:51:59 -0700")
-Message-ID: <87tvakgofi.fsf@oldenburg2.str.redhat.com>
+        id S1725800AbfHNMCZ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 14 Aug 2019 08:02:25 -0400
+References: <20190813121733.52480-9-maennich@google.com>
+Subject: Re: [v2 08/10] scripts: Coccinelle script for namespace dependencies
+From: Markus Elfring <Markus.Elfring@web.de>
+Message-ID: <d3c852b2-0e41-1a7e-2f98-d8fd23cb8c1a@web.de>
+Date: Wed, 14 Aug 2019 14:00:23 +0200
 MIME-Version: 1.0
-Content-Type: text/plain
+In-Reply-To: <20190813121733.52480-9-maennich@google.com>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Cc: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@amacapital.net>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>
-Message-ID: <20190814080745.95eUil6DOla2FTBSQLKi_uxfxpZR_wBLMOgn6D_QKoI@z>
+To: Matthias Maennich <maennich@google.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Julia Lawall <Julia.Lawall@lip6.fr>, Martijn Coenen <maco@android.com>, Himanshu Jha <himanshujha199640@gmail.com>, cocci@systeme.lip6.fr, kernel-janitors@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, linux-kbuild@vger.kernel.org, ",linux-kernel"@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-modules@vger.kernel.org, linux-scsi@vger.kernel.org, linux-usb@vger.kernel.org, kernel-team@android.com, usb-storage@lists.one-eyed-alien.net, x86@kernel.org, Alan Stern <stern@rowland.harvard.edu>, Arnd Bergmann <arnd@arndb.de>, "David S. Miller" <davem@davemloft.net>, Geert Uytterhoeven <geert@linux-m68k.org>, Gilles Muller <Gilles.Muller@lip6.fr>, "H. Peter Anvin" <hpa@zytor.com>, Ingo Molnar <mingo@redhat.com>, Jessica Yu <jeyu@kernel.org>, Joel Fernandes <joel@joelfernandes.org>, Jonathan Cameron <Jonathan.Cameron@huawei.com>, Kate Stewart <kstewart@linuxfoundation.org>, Lucas De Marchi <lucas.de.marchi@gmail.com>, Martijn Coenen <maco@google.com>, Masahiro Yamada <yamada.masahiro@socionext.com>, Mauro Carvalho Chehab <mchehab+samsung@kernel.org>, Michal Marek <michal.lkml@markovi.net>, Nicolas Ferre <nicolas.ferre@microchip.com>, Nicolas Palix <nicolas.palix@imag.fr>, Oliver Neukum <oneukum@suse.com>, Philippe Ombredanne <pombredanne@nexb.com>, Sam Ravnborg <sam@ravnborg.org>, Sandeep Patil <sspatil@google.com>, Stephen Boyd <sboyd@codeaurora.org>, Thomas Gleixner <tglx@linutronix.de>
+Message-ID: <20190814120023.8kH47byjPed97mwsll0mfnsCswvlqX-HKZi6quXoCCM@z>
 
-* Yu-cheng Yu:
++# This script requires at least spatch
++# version 1.0.4.
 
-> +ENDBR
-> +    The compiler inserts an ENDBR at all valid branch targets.  Any
-> +    CALL/JMP to a target without an ENDBR triggers a control
-> +    protection fault.
+How do you think about to avoid the duplicate specification of this identification?
 
-Is this really correct?  I think ENDBR is needed only for indirect
-branch targets where the jump/call does not have a NOTRACK prefix.  In
-general, for security hardening, it seems best to minimize the number of
-ENDBR instructions, and use NOTRACK for indirect jumps which derive the
-branch target address from information that cannot be modified.
-
-Thanks,
-Florian
+Regards,
+Markus
