@@ -1,33 +1,43 @@
-From: Markus Elfring <Markus.Elfring@web.de>
-Subject: Re: [v2 08/10] scripts: Coccinelle script for namespace
-	dependencies
-Date: Wed, 14 Aug 2019 14:00:23 +0200
-Message-ID: <d3c852b2-0e41-1a7e-2f98-d8fd23cb8c1a@web.de>
-References: <20190813121733.52480-9-maennich@google.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <cocci-bounces@systeme.lip6.fr>
-In-Reply-To: <20190813121733.52480-9-maennich@google.com>
-Content-Language: en-US
-List-Unsubscribe: <https://systeme.lip6.fr/mailman/options/cocci>,
- <mailto:cocci-request@systeme.lip6.fr?subject=unsubscribe>
-List-Archive: <https://systeme.lip6.fr/pipermail/cocci>
-List-Post: <mailto:cocci@systeme.lip6.fr>
-List-Help: <mailto:cocci-request@systeme.lip6.fr?subject=help>
-List-Subscribe: <https://systeme.lip6.fr/mailman/listinfo/cocci>,
- <mailto:cocci-request@systeme.lip6.fr?subject=subscribe>
-Sender: cocci-bounces@systeme.lip6.fr
-Errors-To: cocci-bounces@systeme.lip6.fr
-To: Matthias Maennich <maennich@google.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Julia Lawall <Julia.Lawall@lip6.fr>, Martijn Coenen <maco@android.com>, Himanshu Jha <himanshujha199640@gmail.com>, cocci@systeme.lip6.fr, kernel-janitors@vger.kernel.org
-Cc: Kate Stewart <kstewart@linuxfoundation.org>, linux-m68k@vger.kernel.org, Oliver Neukum <oneukum@suse.com>, Mauro Carvalho Chehab <mchehab+samsung@kernel.org>, usb-storage@lists.one-eyed-alien.net, "H. Peter Anvin" <hpa@zytor.com>, Joel Fernandes <joel@joelfernandes.org>, Sam Ravnborg <sam@ravnborg.org>, linux-arch@vger.kernel.org, linux-scsi@vger.kernel.org, x86@kernel.org, Lucas De Marchi <lucas.de.marchi@gmail.com>, Ingo Molnar <mingo@redhat.com>, Alan Stern <stern@rowland.harvard.edu>, Geert Uytterhoeven <geert@linux-m68k.org>, kernel-team@android.com, ",
- linux-kernel"@vger.kernel.org, Sandeep Patil <sspatil@google.com>, Arnd Bergmann <arnd@arndb.de>, linux-kbuild@vger.kernel.org, Philippe Ombredanne <pombredanne@nexb.com>, Nicolas Palix <nicolas.palix@imag.fr>, Jonatha
+From: lantianyu1986@gmail.com
+Subject: [PATCH V2 0/2] clocksource/Hyper-V: Add Hyper-V specific sched clock
+Date: Wed, 14 Aug 2019 20:32:14 +0800
+Message-ID: <20190814123216.32245-1-Tianyu.Lan@microsoft.com>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: luto@kernel.org, tglx@linutronix.de, mingo@redhat.com, bp@alien8.de, hpa@zytor.com, x86@kernel.org, kys@microsoft.com, haiyangz@microsoft.com, sthemmin@microsoft.com, sashal@kernel.org, daniel.lezcano@linaro.org, arnd@arndb.de, michael.h.kelley@microsoft.com
+Cc: Tianyu Lan <Tianyu.Lan@microsoft.com>, linux-arch@vger.kernel.org, linux-hyperv@vger.kernel.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-+# This script requires at least spatch
-+# version 1.0.4.
+From: Tianyu Lan <Tianyu.Lan@microsoft.com>
 
-How do you think about to avoid the duplicate specification of this identification?
+Hyper-V guests use the default native_sched_clock() in pv_ops.time.sched_clock
+on x86. But native_sched_clock() directly uses the raw TSC value, which
+can be discontinuous in a Hyper-V VM.   Add the generic hv_setup_sched_clock()
+to set the sched clock function appropriately.  On x86, this sets
+pv_ops.time.sched_clock to read the Hyper-V reference TSC value that is
+scaled and adjusted to be continuous.
 
-Regards,
-Markus
+Also move the Hyper-V reference TSC initialization much earlier in the boot
+process so no discontinuity is observed when pv_ops.time.sched_clock
+calculates its offset.  This earlier initialization requires that the Hyper-V TSC
+page be allocated statically instead of with vmalloc(), so fixup the references
+to the TSC page and the method of getting its physical address.
+
+Change since v1:
+	- Update patch 1 commit log
+	- Remove and operation of tsc page's va with PAGE_MASK
+	in the read_hv_sched_clock_tsc().
+
+Tianyu Lan (2):
+  clocksource/Hyper-v: Allocate Hyper-V tsc page statically
+  clocksource/Hyper-V:  Add Hyper-V specific sched clock function
+
+ arch/x86/entry/vdso/vma.c          |  2 +-
+ arch/x86/hyperv/hv_init.c          |  2 --
+ arch/x86/kernel/cpu/mshyperv.c     |  8 ++++++++
+ drivers/clocksource/hyperv_timer.c | 34 ++++++++++++++++------------------
+ include/asm-generic/mshyperv.h     |  1 +
+ 5 files changed, 26 insertions(+), 21 deletions(-)
+
+-- 
+2.14.5
