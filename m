@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:45776 "EHLO foss.arm.com"
+Received: from foss.arm.com ([217.140.110.172]:45722 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1729975AbfHOPoR (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 15 Aug 2019 11:44:17 -0400
+        id S1729975AbfHOPoL (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 15 Aug 2019 11:44:11 -0400
 From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: [PATCH v8 5/5] arm64: Relax Documentation/arm64/tagged-pointers.rst
-Date: Thu, 15 Aug 2019 16:44:03 +0100
-Message-ID: <20190815154403.16473-6-catalin.marinas@arm.com>
+Subject: [PATCH v8 1/5] mm: untag user pointers in mmap/munmap/mremap/brk
+Date: Thu, 15 Aug 2019 16:43:59 +0100
+Message-ID: <20190815154403.16473-2-catalin.marinas@arm.com>
 In-Reply-To: <20190815154403.16473-1-catalin.marinas@arm.com>
 References: <20190815154403.16473-1-catalin.marinas@arm.com>
 MIME-Version: 1.0
@@ -15,77 +15,64 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arm-kernel@lists.infradead.org, linux-mm@kvack.org
 Cc: Andrew Morton <akpm@linux-foundation.org>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Will Deacon <will.deacon@arm.com>, Andrey Konovalov <andreyknvl@google.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Kevin Brodsky <kevin.brodsky@arm.com>, Dave P Martin <Dave.Martin@arm.com>, Dave Hansen <dave.hansen@intel.com>, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20190815154403.5nnYEeT-UKqdu2hue-GQ32AUFeXPmc83Ox-y5os8u-8@z>
+Message-ID: <20190815154359.5xKaZiK_Baf0qklmB6P4vBlrqHZ0gzhq-TqBz_XYURQ@z>
 
-From: Vincenzo Frascino <vincenzo.frascino@arm.com>
+There isn't a good reason to differentiate between the user address
+space layout modification syscalls and the other memory
+permission/attributes ones (e.g. mprotect, madvise) w.r.t. the tagged
+address ABI. Untag the user addresses on entry to these functions.
 
-On AArch64 the TCR_EL1.TBI0 bit is set by default, allowing userspace
-(EL0) to perform memory accesses through 64-bit pointers with a non-zero
-top byte. However, such pointers were not allowed at the user-kernel
-syscall ABI boundary.
-
-With the Tagged Address ABI patchset, it is now possible to pass tagged
-pointers to the syscalls. Relax the requirements described in
-tagged-pointers.rst to be compliant with the behaviours guaranteed by
-the AArch64 Tagged Address ABI.
-
-Cc: Will Deacon <will.deacon@arm.com>
-Cc: Andrey Konovalov <andreyknvl@google.com>
-Cc: Szabolcs Nagy <szabolcs.nagy@arm.com>
-Cc: Kevin Brodsky <kevin.brodsky@arm.com>
-Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Co-developed-by: Catalin Marinas <catalin.marinas@arm.com>
 Signed-off-by: Catalin Marinas <catalin.marinas@arm.com>
 ---
- Documentation/arm64/tagged-pointers.rst | 23 ++++++++++++++++-------
- 1 file changed, 16 insertions(+), 7 deletions(-)
+ mm/mmap.c   | 5 +++++
+ mm/mremap.c | 6 +-----
+ 2 files changed, 6 insertions(+), 5 deletions(-)
 
-diff --git a/Documentation/arm64/tagged-pointers.rst b/Documentation/arm64/tagged-pointers.rst
-index 2acdec3ebbeb..fd5306019e91 100644
---- a/Documentation/arm64/tagged-pointers.rst
-+++ b/Documentation/arm64/tagged-pointers.rst
-@@ -20,7 +20,9 @@ Passing tagged addresses to the kernel
- --------------------------------------
+diff --git a/mm/mmap.c b/mm/mmap.c
+index 7e8c3e8ae75f..b766b633b7ae 100644
+--- a/mm/mmap.c
++++ b/mm/mmap.c
+@@ -201,6 +201,8 @@ SYSCALL_DEFINE1(brk, unsigned long, brk)
+ 	bool downgraded = false;
+ 	LIST_HEAD(uf);
  
- All interpretation of userspace memory addresses by the kernel assumes
--an address tag of 0x00.
-+an address tag of 0x00, unless the application enables the AArch64
-+Tagged Address ABI explicitly
-+(Documentation/arm64/tagged-address-abi.rst).
- 
- This includes, but is not limited to, addresses found in:
- 
-@@ -33,13 +35,15 @@ This includes, but is not limited to, addresses found in:
-  - the frame pointer (x29) and frame records, e.g. when interpreting
-    them to generate a backtrace or call graph.
- 
--Using non-zero address tags in any of these locations may result in an
--error code being returned, a (fatal) signal being raised, or other modes
--of failure.
-+Using non-zero address tags in any of these locations when the
-+userspace application did not enable the AArch64 Tagged Address ABI may
-+result in an error code being returned, a (fatal) signal being raised,
-+or other modes of failure.
- 
--For these reasons, passing non-zero address tags to the kernel via
--system calls is forbidden, and using a non-zero address tag for sp is
--strongly discouraged.
-+For these reasons, when the AArch64 Tagged Address ABI is disabled,
-+passing non-zero address tags to the kernel via system calls is
-+forbidden, and using a non-zero address tag for sp is strongly
-+discouraged.
- 
- Programs maintaining a frame pointer and frame records that use non-zero
- address tags may suffer impaired or inaccurate debug and profiling
-@@ -59,6 +63,11 @@ be preserved.
- The architecture prevents the use of a tagged PC, so the upper byte will
- be set to a sign-extension of bit 55 on exception return.
- 
-+This behaviour is maintained when the AArch64 Tagged Address ABI is
-+enabled. In addition, with the exceptions above, the kernel will
-+preserve any non-zero tags passed by the user via syscalls and stored in
-+kernel data structures (e.g. set_robust_list(), sigaltstack()).
++	brk = untagged_addr(brk);
 +
+ 	if (down_write_killable(&mm->mmap_sem))
+ 		return -EINTR;
  
- Other considerations
- --------------------
+@@ -1573,6 +1575,8 @@ unsigned long ksys_mmap_pgoff(unsigned long addr, unsigned long len,
+ 	struct file *file = NULL;
+ 	unsigned long retval;
+ 
++	addr = untagged_addr(addr);
++
+ 	if (!(flags & MAP_ANONYMOUS)) {
+ 		audit_mmap_fd(fd, flags);
+ 		file = fget(fd);
+@@ -2874,6 +2878,7 @@ EXPORT_SYMBOL(vm_munmap);
+ 
+ SYSCALL_DEFINE2(munmap, unsigned long, addr, size_t, len)
+ {
++	addr = untagged_addr(addr);
+ 	profile_munmap(addr);
+ 	return __vm_munmap(addr, len, true);
+ }
+diff --git a/mm/mremap.c b/mm/mremap.c
+index 64c9a3b8be0a..1fc8a29fbe3f 100644
+--- a/mm/mremap.c
++++ b/mm/mremap.c
+@@ -606,12 +606,8 @@ SYSCALL_DEFINE5(mremap, unsigned long, addr, unsigned long, old_len,
+ 	LIST_HEAD(uf_unmap_early);
+ 	LIST_HEAD(uf_unmap);
+ 
+-	/*
+-	 * Architectures may interpret the tag passed to mmap as a background
+-	 * colour for the corresponding vma. For mremap we don't allow tagged
+-	 * new_addr to preserve similar behaviour to mmap.
+-	 */
+ 	addr = untagged_addr(addr);
++	new_addr = untagged_addr(new_addr);
+ 
+ 	if (flags & ~(MREMAP_FIXED | MREMAP_MAYMOVE))
+ 		return ret;
