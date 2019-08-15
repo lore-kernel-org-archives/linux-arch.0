@@ -1,78 +1,282 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:45722 "EHLO foss.arm.com"
+Received: from mail.skyhub.de ([5.9.137.197]:47390 "EHLO mail.skyhub.de"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1729975AbfHOPoL (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 15 Aug 2019 11:44:11 -0400
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: [PATCH v8 1/5] mm: untag user pointers in mmap/munmap/mremap/brk
-Date: Thu, 15 Aug 2019 16:43:59 +0100
-Message-ID: <20190815154403.16473-2-catalin.marinas@arm.com>
-In-Reply-To: <20190815154403.16473-1-catalin.marinas@arm.com>
-References: <20190815154403.16473-1-catalin.marinas@arm.com>
+        id S1726120AbfHOQGg (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 15 Aug 2019 12:06:36 -0400
+Date: Thu, 15 Aug 2019 18:07:19 +0200
+From: Borislav Petkov <bp@alien8.de>
+Subject: Re: [PATCH v8 05/28] x86/asm: annotate local pseudo-functions
+Message-ID: <20190815160719.GI15313@zn.tnic>
+References: <20190808103854.6192-1-jslaby@suse.cz>
+ <20190808103854.6192-6-jslaby@suse.cz>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <20190808103854.6192-6-jslaby@suse.cz>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arm-kernel@lists.infradead.org, linux-mm@kvack.org
-Cc: Andrew Morton <akpm@linux-foundation.org>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Will Deacon <will.deacon@arm.com>, Andrey Konovalov <andreyknvl@google.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Kevin Brodsky <kevin.brodsky@arm.com>, Dave P Martin <Dave.Martin@arm.com>, Dave Hansen <dave.hansen@intel.com>, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20190815154359.5xKaZiK_Baf0qklmB6P4vBlrqHZ0gzhq-TqBz_XYURQ@z>
+To: Jiri Slaby <jslaby@suse.cz>
+Cc: tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20190815160719.1WgojFgE4-llWzJFaS7KlmzX5PgAZuoBXl29ebo53J8@z>
 
-There isn't a good reason to differentiate between the user address
-space layout modification syscalls and the other memory
-permission/attributes ones (e.g. mprotect, madvise) w.r.t. the tagged
-address ABI. Untag the user addresses on entry to these functions.
+On Thu, Aug 08, 2019 at 12:38:31PM +0200, Jiri Slaby wrote:
+> Use the newly added SYM_CODE_START_LOCAL* to annotate starts of all
+> pseudo-functions (those ending END until now) which do not have ".globl"
+> annotation. This is needed to balance END for tools that generate
+> debuginfo. Note that we switch from END to SYM_CODE_END too so that
+> everybody can see the pairing.
 
-Signed-off-by: Catalin Marinas <catalin.marinas@arm.com>
----
- mm/mmap.c   | 5 +++++
- mm/mremap.c | 6 +-----
- 2 files changed, 6 insertions(+), 5 deletions(-)
+Please get rid of the "we" etc personal pronouns in the commit messages
+and make them all impartial and passive.
 
-diff --git a/mm/mmap.c b/mm/mmap.c
-index 7e8c3e8ae75f..b766b633b7ae 100644
---- a/mm/mmap.c
-+++ b/mm/mmap.c
-@@ -201,6 +201,8 @@ SYSCALL_DEFINE1(brk, unsigned long, brk)
- 	bool downgraded = false;
- 	LIST_HEAD(uf);
+> We are not annotating C-like functions (which handle frame ptr etc.)
+> here, hence we use SYM_CODE_* macros here, not SYM_FUNC_*.  Note that
+> early_idt_handler_common already had ENDPROC -- switch that to
+> SYM_CODE_END for the same reason as above.
+> 
+> bogus_64_magic, bad_address, bad_get_user*, and bad_put_user are now
+> aligned, as they are separate functions. They do not mind to be aligned
+> -- no need to be compact there.
+> 
+> early_idt_handler_common is aligned now too, as it is after
+> early_idt_handler_array, so as well no need to be compact there.
+> 
+> verify_cpu is self-standing and included in other .S files, so align it
+> too.
+> 
+> The others have alignment preserved to what it used to be (using the
+> _NOALIGN variant of macros).
+> 
+> [v3] annotate more functions
+> [v4] describe the alignments changes
+> 
+> Signed-off-by: Jiri Slaby <jslaby@suse.cz>
+> Cc: Thomas Gleixner <tglx@linutronix.de>
+> Cc: Ingo Molnar <mingo@redhat.com>
+> Cc: "H. Peter Anvin" <hpa@zytor.com>
+> Cc: <x86@kernel.org>
+> ---
+>  arch/x86/entry/entry_64.S        | 3 ++-
+>  arch/x86/kernel/acpi/wakeup_64.S | 3 ++-
+>  arch/x86/kernel/head_32.S        | 4 ++--
+>  arch/x86/kernel/head_64.S        | 4 ++--
+>  arch/x86/kernel/verify_cpu.S     | 4 ++--
+>  arch/x86/lib/getuser.S           | 6 ++++--
+>  arch/x86/lib/putuser.S           | 3 ++-
+>  7 files changed, 16 insertions(+), 11 deletions(-)
+> 
+> diff --git a/arch/x86/entry/entry_64.S b/arch/x86/entry/entry_64.S
+> index 9701464341e4..68cb3a9ee65e 100644
+> --- a/arch/x86/entry/entry_64.S
+> +++ b/arch/x86/entry/entry_64.S
+> @@ -1059,7 +1059,7 @@ EXPORT_SYMBOL(native_load_gs_index)
+>  	_ASM_EXTABLE(.Lgs_change, bad_gs)
+>  	.section .fixup, "ax"
+>  	/* running with kernelgs */
+> -bad_gs:
+> +SYM_CODE_START_LOCAL_NOALIGN(bad_gs)
+>  	SWAPGS					/* switch back to user gs */
+>  .macro ZAP_GS
+>  	/* This can't be a string because the preprocessor needs to see it. */
+> @@ -1070,6 +1070,7 @@ bad_gs:
+>  	xorl	%eax, %eax
+>  	movl	%eax, %gs
+>  	jmp	2b
+> +SYM_CODE_END(bad_gs)
+>  	.previous
+>  
+
+That can be made a local label:
+
+diff --git a/arch/x86/entry/entry_64.S b/arch/x86/entry/entry_64.S
+index be9ca198c581..ed4f2b6e29d5 100644
+--- a/arch/x86/entry/entry_64.S
++++ b/arch/x86/entry/entry_64.S
+@@ -1058,11 +1058,12 @@ ENTRY(native_load_gs_index)
+ ENDPROC(native_load_gs_index)
+ EXPORT_SYMBOL(native_load_gs_index)
  
-+	brk = untagged_addr(brk);
+-	_ASM_EXTABLE(.Lgs_change, bad_gs)
++	_ASM_EXTABLE(.Lgs_change, .Lbad_gs)
+ 	.section .fixup, "ax"
+ 	/* running with kernelgs */
+-bad_gs:
++.Lbad_gs:
+ 	SWAPGS					/* switch back to user gs */
 +
- 	if (down_write_killable(&mm->mmap_sem))
- 		return -EINTR;
+ .macro ZAP_GS
+ 	/* This can't be a string because the preprocessor needs to see it. */
+ 	movl $__USER_DS, %eax
+
+>  /* Call softirq on interrupt stack. Interrupts are off. */
+> diff --git a/arch/x86/kernel/acpi/wakeup_64.S b/arch/x86/kernel/acpi/wakeup_64.S
+> index a142c5ee0d4f..9f1852428a2d 100644
+> --- a/arch/x86/kernel/acpi/wakeup_64.S
+> +++ b/arch/x86/kernel/acpi/wakeup_64.S
+> @@ -37,8 +37,9 @@ ENTRY(wakeup_long64)
+>  	jmp	*%rax
+>  ENDPROC(wakeup_long64)
+>  
+> -bogus_64_magic:
+> +SYM_CODE_START_LOCAL(bogus_64_magic)
+>  	jmp	bogus_64_magic
+> +SYM_CODE_END(bogus_64_magic)
+
+That thing is not really needed if we do the below.
+
+It even tries to say that the magic was bad in %rcx if you can inspect
+registers when the endless loop happens...
+
+:-)
+
+diff --git a/arch/x86/kernel/acpi/wakeup_64.S b/arch/x86/kernel/acpi/wakeup_64.S
+index a142c5ee0d4f..2ae21cc5a67c 100644
+--- a/arch/x86/kernel/acpi/wakeup_64.S
++++ b/arch/x86/kernel/acpi/wakeup_64.S
+@@ -18,10 +18,16 @@ ENTRY(wakeup_long64)
+ 	movq	saved_magic, %rax
+ 	movq	$0x123456789abcdef0, %rdx
+ 	cmpq	%rdx, %rax
+-	jne	bogus_64_magic
++	je	2f
  
-@@ -1573,6 +1575,8 @@ unsigned long ksys_mmap_pgoff(unsigned long addr, unsigned long len,
- 	struct file *file = NULL;
- 	unsigned long retval;
- 
-+	addr = untagged_addr(addr);
++	/* stop here on a saved_magic mismatch */
++	movq	$0xbad0fa61c, %rcx
++1:
++	jmp	1b
 +
- 	if (!(flags & MAP_ANONYMOUS)) {
- 		audit_mmap_fd(fd, flags);
- 		file = fget(fd);
-@@ -2874,6 +2878,7 @@ EXPORT_SYMBOL(vm_munmap);
++2:
+ 	movw	$__KERNEL_DS, %ax
+-	movw	%ax, %ss	
++	movw	%ax, %ss
+ 	movw	%ax, %ds
+ 	movw	%ax, %es
+ 	movw	%ax, %fs
+@@ -37,9 +43,6 @@ ENTRY(wakeup_long64)
+ 	jmp	*%rax
+ ENDPROC(wakeup_long64)
  
- SYSCALL_DEFINE2(munmap, unsigned long, addr, size_t, len)
- {
-+	addr = untagged_addr(addr);
- 	profile_munmap(addr);
- 	return __vm_munmap(addr, len, true);
- }
-diff --git a/mm/mremap.c b/mm/mremap.c
-index 64c9a3b8be0a..1fc8a29fbe3f 100644
---- a/mm/mremap.c
-+++ b/mm/mremap.c
-@@ -606,12 +606,8 @@ SYSCALL_DEFINE5(mremap, unsigned long, addr, unsigned long, old_len,
- 	LIST_HEAD(uf_unmap_early);
- 	LIST_HEAD(uf_unmap);
+-bogus_64_magic:
+-	jmp	bogus_64_magic
+-
+ ENTRY(do_suspend_lowlevel)
+ 	FRAME_BEGIN
+ 	subq	$8, %rsp
+
+>  
+>  ENTRY(do_suspend_lowlevel)
+>  	FRAME_BEGIN
+> diff --git a/arch/x86/kernel/head_32.S b/arch/x86/kernel/head_32.S
+> index d1e213da4782..0bae769b7b59 100644
+> --- a/arch/x86/kernel/head_32.S
+> +++ b/arch/x86/kernel/head_32.S
+> @@ -409,7 +409,7 @@ ENTRY(early_idt_handler_array)
+>  	.endr
+>  ENDPROC(early_idt_handler_array)
+>  	
+> -early_idt_handler_common:
+> +SYM_CODE_START_LOCAL(early_idt_handler_common)
+>  	/*
+>  	 * The stack is the hardware frame, an error code or zero, and the
+>  	 * vector number.
+> @@ -460,7 +460,7 @@ early_idt_handler_common:
+>  	decl	%ss:early_recursion_flag
+>  	addl	$4, %esp	/* pop pt_regs->orig_ax */
+>  	iret
+> -ENDPROC(early_idt_handler_common)
+> +SYM_CODE_END(early_idt_handler_common)
+>  
+>  /* This is the default interrupt "handler" :-) */
+>  ENTRY(early_ignore_irq)
+
+Can be a local label...
+
+> diff --git a/arch/x86/kernel/head_64.S b/arch/x86/kernel/head_64.S
+> index 6c1bf7ae55ff..6fedcda37634 100644
+> --- a/arch/x86/kernel/head_64.S
+> +++ b/arch/x86/kernel/head_64.S
+> @@ -291,7 +291,7 @@ ENTRY(early_idt_handler_array)
+>  	UNWIND_HINT_IRET_REGS offset=16
+>  END(early_idt_handler_array)
+>  
+> -early_idt_handler_common:
+> +SYM_CODE_START_LOCAL(early_idt_handler_common)
+>  	/*
+>  	 * The stack is the hardware frame, an error code or zero, and the
+>  	 * vector number.
+> @@ -333,7 +333,7 @@ early_idt_handler_common:
+>  20:
+>  	decl early_recursion_flag(%rip)
+>  	jmp restore_regs_and_return_to_kernel
+> -END(early_idt_handler_common)
+> +SYM_CODE_END(early_idt_handler_common)
+>  
+>  	__INITDATA
+>  
+
+Ditto:
+
+diff --git a/arch/x86/kernel/head_64.S b/arch/x86/kernel/head_64.S
+index 6fedcda37634..68e8d0332873 100644
+--- a/arch/x86/kernel/head_64.S
++++ b/arch/x86/kernel/head_64.S
+@@ -283,7 +283,7 @@ ENTRY(early_idt_handler_array)
+ 		UNWIND_HINT_IRET_REGS offset=8
+ 	.endif
+ 	pushq $i		# 72(%rsp) Vector number
+-	jmp early_idt_handler_common
++	jmp .Learly_idt_handler_common
+ 	UNWIND_HINT_IRET_REGS
+ 	i = i + 1
+ 	.fill early_idt_handler_array + i*EARLY_IDT_HANDLER_SIZE - ., 1, 0xcc
+@@ -291,7 +291,7 @@ ENTRY(early_idt_handler_array)
+ 	UNWIND_HINT_IRET_REGS offset=16
+ END(early_idt_handler_array)
  
--	/*
--	 * Architectures may interpret the tag passed to mmap as a background
--	 * colour for the corresponding vma. For mremap we don't allow tagged
--	 * new_addr to preserve similar behaviour to mmap.
--	 */
- 	addr = untagged_addr(addr);
-+	new_addr = untagged_addr(new_addr);
+-SYM_CODE_START_LOCAL(early_idt_handler_common)
++SYM_CODE_START_LOCAL(.Learly_idt_handler_common)
+ 	/*
+ 	 * The stack is the hardware frame, an error code or zero, and the
+ 	 * vector number.
+@@ -333,7 +333,7 @@ SYM_CODE_START_LOCAL(early_idt_handler_common)
+ 20:
+ 	decl early_recursion_flag(%rip)
+ 	jmp restore_regs_and_return_to_kernel
+-SYM_CODE_END(early_idt_handler_common)
++SYM_CODE_END(.Learly_idt_handler_common)
  
- 	if (flags & ~(MREMAP_FIXED | MREMAP_MAYMOVE))
- 		return ret;
+ 	__INITDATA
+ 
+
+> diff --git a/arch/x86/kernel/verify_cpu.S b/arch/x86/kernel/verify_cpu.S
+> index a024c4f7ba56..641f0fe1e5b4 100644
+> --- a/arch/x86/kernel/verify_cpu.S
+> +++ b/arch/x86/kernel/verify_cpu.S
+> @@ -31,7 +31,7 @@
+>  #include <asm/cpufeatures.h>
+>  #include <asm/msr-index.h>
+>  
+> -ENTRY(verify_cpu)
+> +SYM_FUNC_START_LOCAL(verify_cpu)
+>  	pushf				# Save caller passed flags
+>  	push	$0			# Kill any dangerous flags
+>  	popf
+> @@ -137,4 +137,4 @@ ENTRY(verify_cpu)
+>  	popf				# Restore caller passed flags
+>  	xorl %eax, %eax
+>  	ret
+> -ENDPROC(verify_cpu)
+> +SYM_FUNC_END(verify_cpu)
+
+All except this one can be local labels and be removed from vmlinux'
+symtable:
+
+$ readelf -a vmlinux | grep -E "(bad_(gs|(get|put)_user)|bogus_64_magic|early_idt_handler_common|verify_cpu)"
+    45: ffffffff810000e0   241 FUNC    LOCAL  DEFAULT    1 verify_cpu
+$
+
+-- 
+Regards/Gruss,
+    Boris.
+
+Good mailing practices for 400: avoid top-posting and trim the reply.
