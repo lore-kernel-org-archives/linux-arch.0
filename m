@@ -1,43 +1,46 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from verein.lst.de ([213.95.11.211]:46797 "EHLO verein.lst.de"
+Received: from mout.web.de ([212.227.17.11]:58553 "EHLO mout.web.de"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1732324AbfHONiR (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 15 Aug 2019 09:38:17 -0400
-Date: Thu, 15 Aug 2019 15:38:12 +0200
-From: Christoph Hellwig <hch@lst.de>
-Subject: Re: [PATCH 6/6] driver core: initialize a default DMA mask for
- platform device
-Message-ID: <20190815133812.GF12036@lst.de>
-References: <20190811080520.21712-1-hch@lst.de> <20190811080520.21712-7-hch@lst.de> <20190815130325.GB17065@kroah.com>
+        id S1732426AbfHONwL (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 15 Aug 2019 09:52:11 -0400
+References: <20190813121733.52480-9-maennich@google.com>
+Subject: Re: [v2 08/10] scripts: Coccinelle script for namespace dependencies
+From: Markus Elfring <Markus.Elfring@web.de>
+Message-ID: <1c4420f4-361c-7358-49d9-87d8a51f7920@web.de>
+Date: Thu, 15 Aug 2019 15:50:38 +0200
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20190815130325.GB17065@kroah.com>
+In-Reply-To: <20190813121733.52480-9-maennich@google.com>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-GB
+Content-Transfer-Encoding: quoted-printable
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-Cc: Christoph Hellwig <hch@lst.de>, Maxime Chevallier <maxime.chevallier@bootlin.com>, Gavin Li <git@thegavinli.com>, Laurentiu Tudor <laurentiu.tudor@nxp.com>, Minas Harutyunyan <hminas@synopsys.com>, Alan Stern <stern@rowland.harvard.edu>, Geoff Levand <geoff@infradead.org>, Michal Simek <michal.simek@xilinx.com>, Shawn Guo <shawnguo@kernel.org>, Sascha Hauer <s.hauer@pengutronix.de>, Pengutronix Kernel Team <kernel@pengutronix.de>, Fabio Estevam <festevam@gmail.com>, NXP Linux Team <linux-imx@nxp.com>, Olav Kongas <ok@artecdesign.ee>, Tony Prisk <linux@prisktech.co.nz>, Mathias Nyman <mathias.nyman@intel.com>, Bin Liu <b-liu@ti.com>, linux-arm-kernel@lists.infradead.org, linux-usb@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, iommu@lists.linux-foundation.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20190815133812.3Mba2F9oiOSAYDnNivqIEgrK56PV4eF63TqtIYVXUno@z>
+To: Matthias Maennich <maennich@google.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Julia Lawall <Julia.Lawall@lip6.fr>, Martijn Coenen <maco@android.com>, cocci@systeme.lip6.fr, kernel-janitors@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-modules@vger.kernel.org, linux-scsi@vger.kernel.org, linux-usb@vger.kernel.org, kernel-team@android.com, usb-storage@lists.one-eyed-alien.net, x86@kernel.org, Alan Stern <stern@rowland.harvard.edu>, Arnd Bergmann <arnd@arndb.de>, "David S. Miller" <davem@davemloft.net>, Geert Uytterhoeven <geert@linux-m68k.org>, Gilles Muller <Gilles.Muller@lip6.fr>, "H. Peter Anvin" <hpa@zytor.com>, Ingo Molnar <mingo@redhat.com>, Jessica Yu <jeyu@kernel.org>, Joel Fernandes <joel@joelfernandes.org>, Jonathan Cameron <Jonathan.Cameron@huawei.com>, Kate Stewart <kstewart@linuxfoundation.org>, Lucas De Marchi <lucas.de.marchi@gmail.com>, Martijn Coenen <maco@google.com>, Masahiro Yamada <yamada.masahiro@socionext.com>, Mauro Carvalho Chehab <mchehab+samsung@kernel.org>, Michal Marek <michal.lkml@markovi.net>, Nicolas Ferre <nicolas.ferre@microchip.com>, Nicolas Palix <nicolas.palix@imag.fr>, Oliver Neukum <oneukum@suse.com>, Philippe Ombredanne <pombredanne@nexb.com>, Sam Ravnborg <sam@ravnborg.org>, Sandeep Patil <sspatil@google.com>, Stephen Boyd <sboyd@kernel.org>, Thomas Gleixner <tglx@linutronix.de>
+Message-ID: <20190815135038.PL-HdQAfTh1tPqY0XpmgkD_CXMomMzeVdqpnk4LLHls@z>
 
-On Thu, Aug 15, 2019 at 03:03:25PM +0200, Greg Kroah-Hartman wrote:
-> > --- a/include/linux/platform_device.h
-> > +++ b/include/linux/platform_device.h
-> > @@ -24,6 +24,7 @@ struct platform_device {
-> >  	int		id;
-> >  	bool		id_auto;
-> >  	struct device	dev;
-> > +	u64		dma_mask;
-> 
-> Why is the dma_mask in 'struct device' which is part of this structure,
-> not sufficient here?  Shouldn't the "platform" be setting that up
-> correctly already in the "archdata" type callback?
+> +generate_deps_for_ns() {
+> +    $SPATCH --very-quiet --in-place --sp-file \
+> +	    $srctree/scripts/coccinelle/misc/add_namespace.cocci -D ns=3D$1 $2
+> +}
 
-Becaus the dma_mask in struct device is a pointer that needs to point
-to something, and this is the best space we can allocate for 'something'.
-m68k and powerpc currently do something roughly equivalent at the moment,
-while everyone else just has horrible, horrible hacks.  As mentioned in
-the changelog the intent of this patch is that we treat platform devices
-like any other bus, where the bus allocates the space for the dma_mask.
-The long term plan is to eventually kill that weird pointer indirection
-that doesn't help anyone, but for that we need to sort out the basics
-first.
+* Where will the variable =E2=80=9Csrctree=E2=80=9D be set for the file =
+=E2=80=9Cscripts/nsdeps=E2=80=9D?
+
+* Would you like to support a separate build directory for desired adjustm=
+ents?
+
+* How do you think about to check error handling around such commands?
+
+
+> +generate_deps() {
+=E2=80=A6
+> +        for source_file in $mod_source_files; do
+> +            sed '/MODULE_IMPORT_NS/Q' $source_file > ${source_file}.tmp
+=E2=80=A6
+
+I suggest to assign the name for the temporary file to a variable
+which should be used by subsequent commands.
+
+Regards,
+Markus
