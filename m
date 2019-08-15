@@ -1,28 +1,52 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from verein.lst.de ([213.95.11.211]:46679 "EHLO verein.lst.de"
+Received: from verein.lst.de ([213.95.11.211]:46747 "EHLO verein.lst.de"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1730497AbfHONZh (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 15 Aug 2019 09:25:37 -0400
-Date: Thu, 15 Aug 2019 15:25:31 +0200
+        id S1730635AbfHONcM (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 15 Aug 2019 09:32:12 -0400
+Date: Thu, 15 Aug 2019 15:32:04 +0200
 From: Christoph Hellwig <hch@lst.de>
-Subject: Re: next take at setting up a dma mask by default for platform
- devices
-Message-ID: <20190815132531.GA12036@lst.de>
-References: <20190811080520.21712-1-hch@lst.de> <20190815132318.GA27208@kroah.com>
+Subject: Re: [PATCH 6/6] driver core: initialize a default DMA mask for
+ platform device
+Message-ID: <20190815133204.GD12036@lst.de>
+References: <20190811080520.21712-1-hch@lst.de> <20190811080520.21712-7-hch@lst.de> <fbea6e6d-7721-b51d-0501-582e8446e9c9@arm.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20190815132318.GA27208@kroah.com>
+In-Reply-To: <fbea6e6d-7721-b51d-0501-582e8446e9c9@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-Cc: Christoph Hellwig <hch@lst.de>, Maxime Chevallier <maxime.chevallier@bootlin.com>, Gavin Li <git@thegavinli.com>, Laurentiu Tudor <laurentiu.tudor@nxp.com>, Minas Harutyunyan <hminas@synopsys.com>, Alan Stern <stern@rowland.harvard.edu>, Geoff Levand <geoff@infradead.org>, Michal Simek <michal.simek@xilinx.com>, Shawn Guo <shawnguo@kernel.org>, Sascha Hauer <s.hauer@pengutronix.de>, Pengutronix Kernel Team <kernel@pengutronix.de>, Fabio Estevam <festevam@gmail.com>, NXP Linux Team <linux-imx@nxp.com>, Olav Kongas <ok@artecdesign.ee>, Tony Prisk <linux@prisktech.co.nz>, Mathias Nyman <mathias.nyman@intel.com>, Bin Liu <b-liu@ti.com>, linux-arm-kernel@lists.infradead.org, linux-usb@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, iommu@lists.linux-foundation.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20190815132531.I9DNggu8CknPG3vs50ZeVrFVgfmIeCg4Rkx5VBazOE0@z>
+To: Robin Murphy <robin.murphy@arm.com>
+Cc: Christoph Hellwig <hch@lst.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Maxime Chevallier <maxime.chevallier@bootlin.com>, linux-arch@vger.kernel.org, Olav Kongas <ok@artecdesign.ee>, Gavin Li <git@thegavinli.com>, linuxppc-dev@lists.ozlabs.org, Mathias Nyman <mathias.nyman@intel.com>, Geoff Levand <geoff@infradead.org>, Fabio Estevam <festevam@gmail.com>, Sascha Hauer <s.hauer@pengutronix.de>, linux-usb@vger.kernel.org, Michal Simek <michal.simek@xilinx.com>, linux-kernel@vger.kernel.org, Tony Prisk <linux@prisktech.co.nz>, iommu@lists.linux-foundation.org, Alan Stern <stern@rowland.harvard.edu>, NXP Linux Team <linux-imx@nxp.com>, Pengutronix Kernel Team <kernel@pengutronix.de>, Minas Harutyunyan <hminas@synopsys.com>, Shawn Guo <shawnguo@kernel.org>, Bin Liu <b-liu@ti.com>, linux-arm-kernel@lists.infradead.org
+Message-ID: <20190815133204.adzxp-eWiZFz3Xv4F88JHlw4xAc2hNQWU_Qmg7t9tyg@z>
 
-On Thu, Aug 15, 2019 at 03:23:18PM +0200, Greg Kroah-Hartman wrote:
-> I've taken the first 2 patches for 5.3-final.  Given that patch 3 needs
-> to be fixed, I'll wait for a respin of these before considering them.
+On Wed, Aug 14, 2019 at 04:49:13PM +0100, Robin Murphy wrote:
+>> because we have to support platform_device structures that are
+>> statically allocated.
+>
+> This would be a good point to also get rid of the long-standing bodge in 
+> platform_device_register_full().
 
-I have a respun version ready, but I'd really like to hear some
-comments from usb developers about the approach before spamming
-everyone again..
+platform_device_register_full looks odd to start with, especially
+as the coumentation is rather lacking..
+
+>>   +static void setup_pdev_archdata(struct platform_device *pdev)
+>
+> Bikeshed: painting the generic DMA API properties as "archdata" feels a bit 
+> off-target :/
+>
+>> +{
+>> +	if (!pdev->dev.coherent_dma_mask)
+>> +		pdev->dev.coherent_dma_mask = DMA_BIT_MASK(32);
+>> +	if (!pdev->dma_mask)
+>> +		pdev->dma_mask = DMA_BIT_MASK(32);
+>> +	if (!pdev->dev.dma_mask)
+>> +		pdev->dev.dma_mask = &pdev->dma_mask;
+>> +	arch_setup_pdev_archdata(pdev);
+>
+> AFAICS m68k's implementation of that arch hook becomes entirely redundant 
+> after this change, so may as well go. That would just leave powerpc's 
+> actual archdata, which at a glance looks like it could probably be cleaned 
+> up with not *too* much trouble.
+
+Actually I think we can just kill both off.  At the point archdata
+is indeed entirely misnamed.
