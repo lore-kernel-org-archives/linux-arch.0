@@ -1,39 +1,53 @@
-From: Christoph Hellwig <hch@infradead.org>
-Subject: Re: [PATCH] csky: Fixup ioremap function losing
-Date: Fri, 16 Aug 2019 00:03:48 -0700
-Message-ID: <20190816070348.GA13766@infradead.org>
-References: <1565868537-17753-1-git-send-email-guoren@kernel.org>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Subject: Re: [PATCH 6/6] driver core: initialize a default DMA mask for
+ platform device
+Date: Fri, 16 Aug 2019 09:39:03 +0200
+Message-ID: <CAMuHMdVj+4Kh6pRGrz32w4zgwGHH4-r+-iHX1CSAXU6t4sprJw@mail.gmail.com>
+References: <20190816062435.881-1-hch@lst.de> <20190816062435.881-7-hch@lst.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <1565868537-17753-1-git-send-email-guoren@kernel.org>
+In-Reply-To: <20190816062435.881-7-hch@lst.de>
 Sender: linux-kernel-owner@vger.kernel.org
-To: guoren@kernel.org
-Cc: arnd@arndb.de, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-csky@vger.kernel.org, zhang_jian5@dahuatech.com, Guo Ren <ren_guo@c-sky.com>, Christoph Hellwig <hch@infradead.org>
+To: Christoph Hellwig <hch@lst.de>
+Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Maxime Chevallier <maxime.chevallier@bootlin.com>, Gavin Li <git@thegavinli.com>, Laurentiu Tudor <laurentiu.tudor@nxp.com>, Minas Harutyunyan <hminas@synopsys.com>, Alan Stern <stern@rowland.harvard.edu>, Geoff Levand <geoff@infradead.org>, Michal Simek <michal.simek@xilinx.com>, Shawn Guo <shawnguo@kernel.org>, Sascha Hauer <s.hauer@pengutronix.de>, Pengutronix Kernel Team <kernel@pengutronix.de>, Fabio Estevam <festevam@gmail.com>, NXP Linux Team <linux-imx@nxp.com>, Mathias Nyman <mathias.nyman@intel.com>, Bin Liu <b-liu@ti.com>, Linux ARM <linux-arm-kernel@lists.infradead.org>, USB list <linux-usb@vger.kernel.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, linux-m68k <linux-m68k@lists.>
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, Aug 15, 2019 at 07:28:57PM +0800, guoren@kernel.org wrote:
-> From: Guo Ren <ren_guo@c-sky.com>
-> 
-> Implement the following apis to meet usage in different scenarios.
-> 
->  - ioremap          (NonCache + StrongOrder)
->  - ioremap_nocache  (NonCache + StrongOrder)
->  - ioremap_wc       (NonCache + WeakOrder  )
->  - ioremap_cache    (   Cache + WeakOrder  )
-> 
-> Also change flag VM_ALLOC to VM_IOREMAP in get_vm_area_caller.
+Hi Christoph,
 
-Looks generally fine, but two comments:
+On Fri, Aug 16, 2019 at 8:30 AM Christoph Hellwig <hch@lst.de> wrote:
+> We still treat devices without a DMA mask as defaulting to 32-bits for
+> both mask, but a few releases ago we've started warning about such
+> cases, as they require special cases to work around this sloppyness.
+> Add a dma_mask field to struct platform_device so that we can initialize
+> the dma_mask pointer in struct device and initialize both masks to
+> 32-bits by default, replacing similar functionality in m68k and
+> powerpc.  The arch_setup_pdev_archdata hooks is now unused and removed.
+>
+> Note that the code looks a little odd with the various conditionals
+> because we have to support platform_device structures that are
+> statically allocated.
+>
+> Signed-off-by: Christoph Hellwig <hch@lst.de>
+> ---
+>  arch/m68k/kernel/dma.c               |  9 -------
 
- - do you have a need for ioremap_cache?  We are generally try to
-   phase it out in favour of memremap, and it is generally only used
-   by arch specific code.
- - I have a big series pending to clean up the mess with our
-   ioremap_* functions, including adding a generic implementation
-   that csky should be able to use.  Unless this patch is urgent it
-   might make sense to rebase it on top.  Here is my current tree, I
-   plan to post it soon:
+Acked-by: Geert Uytterhoeven <geert@linux-m68k.org>
 
-	http://git.infradead.org/users/hch/misc.git/shortlog/refs/heads/generic-ioremap
+>  arch/sh/boards/mach-ecovec24/setup.c |  2 --
+>  arch/sh/boards/mach-migor/setup.c    |  1 -
+
+Acked-by: Geert Uytterhoeven <geert+renesas@glider.be>
+given "[PATCH 0/2] Remove calls to empty arch_setup_pdev_archdata()"
+https://lore.kernel.org/linux-renesas-soc/1526641611-2769-1-git-send-email-geert+renesas@glider.be/
+
+Gr{oetje,eeting}s,
+
+                        Geert
+
+-- 
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
