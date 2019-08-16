@@ -1,11 +1,13 @@
 From: Christoph Hellwig <hch@lst.de>
-Subject: next take at setting up a dma mask by default for platform devices v2
-Date: Fri, 16 Aug 2019 08:24:29 +0200
-Message-ID: <20190816062435.881-1-hch@lst.de>
+Subject: [PATCH 1/6] usb: don't create dma pools for HCDs with a localmem_pool
+Date: Fri, 16 Aug 2019 08:24:30 +0200
+Message-ID: <20190816062435.881-2-hch@lst.de>
+References: <20190816062435.881-1-hch@lst.de>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+In-Reply-To: <20190816062435.881-1-hch@lst.de>
 List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
  <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
 List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
@@ -19,23 +21,31 @@ To: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Maxime Chevallier <maxime.c
 Cc: linux-arch@vger.kernel.org, Gavin Li <git@thegavinli.com>, linuxppc-dev@lists.ozlabs.org, Mathias Nyman <mathias.nyman@intel.com>, Geoff Levand <geoff@infradead.org>, Fabio Estevam <festevam@gmail.com>, Sascha Hauer <s.hauer@pengutronix.de>, linux-usb@vger.kernel.org, Michal Simek <michal.simek@xilinx.com>, iommu@lists.linux-foundation.org, linux-kernel@vger.kernel.org, linux-m68k@lists.linux-m68k.org, Alan Stern <stern@rowland.harvard.edu>, NXP Linux Team <linux-imx@nxp.com>, Pengutronix Kernel Team <kernel@pengutronix.de>, Minas Harutyunyan <hminas@synopsys.com>, Shawn Guo <shawnguo@kernel.org>, Bin Liu <b-liu@ti.com>, linux-arm-kernel@lists.infradead.org, Laurentiu Tudor <laurentiu.tudor@nxp.com>
 List-Id: linux-arch.vger.kernel.org
 
-Hi all,
+If the HCD provides a localmem pool we will never use the DMA pools, so
+don't create them.
 
-this is another attempt to make sure the dma_mask pointer is always
-initialized for platform devices.  Not doing so lead to lots of
-boilerplate code, and makes platform devices different from all our
-major busses like PCI where we always set up a dma_mask.  In the long
-run this should also help to eventually make dma_mask a scalar value
-instead of a pointer and remove even more cruft.
+Fixes: b0310c2f09bb ("USB: use genalloc for USB HCs with local memory")
+Signed-off-by: Christoph Hellwig <hch@lst.de>
+---
+ drivers/usb/core/buffer.c | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
 
-The bigger blocker for this last time was the fact that the usb
-subsystem uses the presence or lack of a dma_mask to check if the core
-should do dma mapping for the driver, which is highly unusual.  So we
-fix this first.  Note that this has some overlap with the pending
-desire to use the proper dma_mmap_coherent helper for mapping usb
-buffers.  The first two patches have already been queued up by Greg
-and are only included for completeness.
-
-Changes since v1:
- - fix a compile error in the ppc of ohci driver
- - revamp the last patch to get rid of the archdata callout entirely.
+diff --git a/drivers/usb/core/buffer.c b/drivers/usb/core/buffer.c
+index 1359b78a624e..1a5b3dcae930 100644
+--- a/drivers/usb/core/buffer.c
++++ b/drivers/usb/core/buffer.c
+@@ -66,9 +66,9 @@ int hcd_buffer_create(struct usb_hcd *hcd)
+ 	char		name[16];
+ 	int		i, size;
+ 
+-	if (!IS_ENABLED(CONFIG_HAS_DMA) ||
+-	    (!is_device_dma_capable(hcd->self.sysdev) &&
+-	     !hcd->localmem_pool))
++	if (hcd->localmem_pool ||
++	    !IS_ENABLED(CONFIG_HAS_DMA) ||
++	    !is_device_dma_capable(hcd->self.sysdev))
+ 		return 0;
+ 
+ 	for (i = 0; i < HCD_BUFFER_POOLS; i++) {
+-- 
+2.20.1
