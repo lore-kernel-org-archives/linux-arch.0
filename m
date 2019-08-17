@@ -1,7 +1,7 @@
 From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 24/26] riscv: use the generic ioremap code
-Date: Sat, 17 Aug 2019 09:32:51 +0200
-Message-ID: <20190817073253.27819-25-hch@lst.de>
+Subject: [PATCH 25/26] csky: use generic ioremap
+Date: Sat, 17 Aug 2019 09:32:52 +0200
+Message-ID: <20190817073253.27819-26-hch@lst.de>
 References: <20190817073253.27819-1-hch@lst.de>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
@@ -12,124 +12,97 @@ To: Arnd Bergmann <arnd@arndb.de>, Guo Ren <guoren@kernel.org>, Michal Simek <mo
 Cc: linux-alpha@vger.kernel.org, linux-snps-arc@lists.infradead.org, linux-arm-kernel@lists.infradead.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, nios2-dev@lists.rocketboards.org, openrisc@lists.librecores.org, linux-parisc@vger.kernel.org, linux-riscv@lists.infradead.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-mtd@lists.infradead.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-Use the generic ioremap code instead of providing a local version.
-Note that this relies on the asm-generic no-op definition of
-pgprot_noncached.
+Use the generic ioremap_prot and iounmap helpers.
 
 Signed-off-by: Christoph Hellwig <hch@lst.de>
 ---
- arch/riscv/Kconfig               |  1 +
- arch/riscv/include/asm/io.h      |  3 --
- arch/riscv/include/asm/pgtable.h |  6 +++
- arch/riscv/mm/Makefile           |  1 -
- arch/riscv/mm/ioremap.c          | 84 --------------------------------
- 5 files changed, 7 insertions(+), 88 deletions(-)
- delete mode 100644 arch/riscv/mm/ioremap.c
+ arch/csky/Kconfig               |  1 +
+ arch/csky/include/asm/io.h      |  7 ------
+ arch/csky/include/asm/pgtable.h |  4 ++++
+ arch/csky/mm/ioremap.c          | 42 ---------------------------------
+ 4 files changed, 5 insertions(+), 49 deletions(-)
 
-diff --git a/arch/riscv/Kconfig b/arch/riscv/Kconfig
-index 59a4727ecd6c..468e7eba8916 100644
---- a/arch/riscv/Kconfig
-+++ b/arch/riscv/Kconfig
-@@ -30,6 +30,7 @@ config RISCV
- 	select GENERIC_STRNLEN_USER
- 	select GENERIC_SMP_IDLE_THREAD
- 	select GENERIC_ATOMIC64 if !64BIT
+diff --git a/arch/csky/Kconfig b/arch/csky/Kconfig
+index 3973847b5f42..da09c884cc30 100644
+--- a/arch/csky/Kconfig
++++ b/arch/csky/Kconfig
+@@ -17,6 +17,7 @@ config CSKY
+ 	select IRQ_DOMAIN
+ 	select HANDLE_DOMAIN_IRQ
+ 	select DW_APB_TIMER_OF
 +	select GENERIC_IOREMAP
- 	select HAVE_ARCH_AUDITSYSCALL
- 	select HAVE_MEMBLOCK_NODE_MAP
- 	select HAVE_DMA_CONTIGUOUS
-diff --git a/arch/riscv/include/asm/io.h b/arch/riscv/include/asm/io.h
-index c1de6875cc77..df4c8812ff64 100644
---- a/arch/riscv/include/asm/io.h
-+++ b/arch/riscv/include/asm/io.h
-@@ -14,9 +14,6 @@
+ 	select GENERIC_LIB_ASHLDI3
+ 	select GENERIC_LIB_ASHRDI3
+ 	select GENERIC_LIB_LSHRDI3
+diff --git a/arch/csky/include/asm/io.h b/arch/csky/include/asm/io.h
+index 800985af1c44..10e09299c912 100644
+--- a/arch/csky/include/asm/io.h
++++ b/arch/csky/include/asm/io.h
+@@ -8,13 +8,6 @@
  #include <linux/types.h>
- #include <asm/mmiowb.h>
+ #include <linux/version.h>
  
--extern void __iomem *ioremap(phys_addr_t offset, unsigned long size);
--extern void iounmap(volatile void __iomem *addr);
+-extern void __iomem *ioremap(phys_addr_t offset, size_t size);
 -
- /* Generic IO read/write.  These perform native-endian accesses. */
- #define __raw_writeb __raw_writeb
- static inline void __raw_writeb(u8 val, volatile void __iomem *addr)
-diff --git a/arch/riscv/include/asm/pgtable.h b/arch/riscv/include/asm/pgtable.h
-index a364aba23d55..57be4723626c 100644
---- a/arch/riscv/include/asm/pgtable.h
-+++ b/arch/riscv/include/asm/pgtable.h
-@@ -61,6 +61,12 @@
+-extern void iounmap(void *addr);
+-
+-extern int remap_area_pages(unsigned long address, phys_addr_t phys_addr,
+-		size_t size, unsigned long flags);
+-
+ /*
+  * I/O memory access primitives. Reads are ordered relative to any
+  * following Normal memory access. Writes are ordered relative to any prior
+diff --git a/arch/csky/include/asm/pgtable.h b/arch/csky/include/asm/pgtable.h
+index c429a6f347de..b5f605b9810c 100644
+--- a/arch/csky/include/asm/pgtable.h
++++ b/arch/csky/include/asm/pgtable.h
+@@ -86,6 +86,10 @@
+ #define PAGE_USERIO	__pgprot(_PAGE_PRESENT | _PAGE_READ | _PAGE_WRITE | \
+ 				_CACHE_CACHED)
  
- #define PAGE_TABLE		__pgprot(_PAGE_TABLE)
- 
-+/*
-+ * The RISC-V ISA doesn't yet specify how to query or modify PMAs, so we can't
-+ * change the properties of memory regions.
-+ */
-+#define _PAGE_IOREMAP _PAGE_KERNEL
++#define _PAGE_IOREMAP \
++	(_PAGE_PRESENT | __READABLE | __WRITEABLE | _PAGE_GLOBAL | \
++	 _CACHE_UNCACHED | _PAGE_SO)
 +
- extern pgd_t swapper_pg_dir[];
+ #define __P000	PAGE_NONE
+ #define __P001	PAGE_READONLY
+ #define __P010	PAGE_COPY
+diff --git a/arch/csky/mm/ioremap.c b/arch/csky/mm/ioremap.c
+index 8473b6bdf512..65614f65ce48 100644
+--- a/arch/csky/mm/ioremap.c
++++ b/arch/csky/mm/ioremap.c
+@@ -3,50 +3,8 @@
  
- /* MAP_PRIVATE permissions: xwr (copy-on-write) */
-diff --git a/arch/riscv/mm/Makefile b/arch/riscv/mm/Makefile
-index 74055e1d6f21..3b3a161feaa0 100644
---- a/arch/riscv/mm/Makefile
-+++ b/arch/riscv/mm/Makefile
-@@ -8,7 +8,6 @@ endif
- obj-y += init.o
- obj-y += fault.o
- obj-y += extable.o
--obj-y += ioremap.o
- obj-y += cacheflush.o
- obj-y += context.o
- obj-y += sifive_l2_cache.o
-diff --git a/arch/riscv/mm/ioremap.c b/arch/riscv/mm/ioremap.c
-deleted file mode 100644
-index ac621ddb45c0..000000000000
---- a/arch/riscv/mm/ioremap.c
-+++ /dev/null
-@@ -1,84 +0,0 @@
--// SPDX-License-Identifier: GPL-2.0-only
--/*
-- * (C) Copyright 1995 1996 Linus Torvalds
-- * (C) Copyright 2012 Regents of the University of California
-- */
--
--#include <linux/export.h>
--#include <linux/mm.h>
+ #include <linux/export.h>
+ #include <linux/mm.h>
 -#include <linux/vmalloc.h>
--#include <linux/io.h>
--
+ #include <linux/io.h>
+ 
 -#include <asm/pgtable.h>
 -
--/*
-- * Remap an arbitrary physical address space into the kernel virtual
-- * address space. Needed when the kernel wants to access high addresses
-- * directly.
-- *
-- * NOTE! We need to allow non-page-aligned mappings too: we will obviously
-- * have to convert them into an offset in a page-aligned mapping, but the
-- * caller shouldn't need to know that small detail.
-- */
--static void __iomem *__ioremap_caller(phys_addr_t addr, size_t size,
--	pgprot_t prot, void *caller)
+-void __iomem *ioremap(phys_addr_t addr, size_t size)
 -{
 -	phys_addr_t last_addr;
 -	unsigned long offset, vaddr;
 -	struct vm_struct *area;
+-	pgprot_t prot;
 -
--	/* Disallow wrap-around or zero size */
 -	last_addr = addr + size - 1;
 -	if (!size || last_addr < addr)
 -		return NULL;
 -
--	/* Page-align mappings */
 -	offset = addr & (~PAGE_MASK);
--	addr -= offset;
+-	addr &= PAGE_MASK;
 -	size = PAGE_ALIGN(size + offset);
 -
--	area = get_vm_area_caller(size, VM_IOREMAP, caller);
+-	area = get_vm_area_caller(size, VM_ALLOC, __builtin_return_address(0));
 -	if (!area)
 -		return NULL;
+-
 -	vaddr = (unsigned long)area->addr;
+-
+-	prot = __pgprot(_PAGE_PRESENT | __READABLE | __WRITEABLE |
+-			_PAGE_GLOBAL | _CACHE_UNCACHED | _PAGE_SO);
 -
 -	if (ioremap_page_range(vaddr, vaddr + size, addr, prot)) {
 -		free_vm_area(area);
@@ -138,38 +111,16 @@ index ac621ddb45c0..000000000000
 -
 -	return (void __iomem *)(vaddr + offset);
 -}
--
--/*
-- * ioremap     -   map bus memory into CPU space
-- * @offset:    bus address of the memory
-- * @size:      size of the resource to map
-- *
-- * ioremap performs a platform specific sequence of operations to
-- * make bus memory CPU accessible via the readb/readw/readl/writeb/
-- * writew/writel functions and the other mmio helpers. The returned
-- * address is not guaranteed to be usable directly as a virtual
-- * address.
-- *
-- * Must be freed with iounmap.
-- */
--void __iomem *ioremap(phys_addr_t offset, unsigned long size)
--{
--	return __ioremap_caller(offset, size, PAGE_KERNEL,
--		__builtin_return_address(0));
--}
 -EXPORT_SYMBOL(ioremap);
 -
--
--/**
-- * iounmap - Free a IO remapping
-- * @addr: virtual address from ioremap_*
-- *
-- * Caller must ensure there is only one unmapping for the same pointer.
-- */
--void iounmap(volatile void __iomem *addr)
+-void iounmap(void __iomem *addr)
 -{
 -	vunmap((void *)((unsigned long)addr & PAGE_MASK));
 -}
 -EXPORT_SYMBOL(iounmap);
+-
+ pgprot_t phys_mem_access_prot(struct file *file, unsigned long pfn,
+ 			      unsigned long size, pgprot_t vma_prot)
+ {
 -- 
 2.20.1
