@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.133]:35468 "EHLO
+Received: from bombadil.infradead.org ([198.137.202.133]:37902 "EHLO
         bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726477AbfHQHsl (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sat, 17 Aug 2019 03:48:41 -0400
+        with ESMTP id S1726087AbfHQHtN (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 17 Aug 2019 03:49:13 -0400
 From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 09/26] alpha: remove the unused __ioremap wrapper
-Date: Sat, 17 Aug 2019 09:32:36 +0200
-Message-ID: <20190817073253.27819-10-hch@lst.de>
+Subject: [PATCH 18/26] m68k: rename __iounmap and mark it static
+Date: Sat, 17 Aug 2019 09:32:45 +0200
+Message-ID: <20190817073253.27819-19-hch@lst.de>
 In-Reply-To: <20190817073253.27819-1-hch@lst.de>
 References: <20190817073253.27819-1-hch@lst.de>
 MIME-Version: 1.0
@@ -15,31 +15,73 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Arnd Bergmann <arnd@arndb.de>, Guo Ren <guoren@kernel.org>, Michal Simek <monstr@monstr.eu>, Greentime Hu <green.hu@gmail.com>, Vincent Chen <deanbo422@gmail.com>, Guan Xuetao <gxt@pku.edu.cn>, x86@kernel.org
 Cc: linux-alpha@vger.kernel.org, linux-snps-arc@lists.infradead.org, linux-arm-kernel@lists.infradead.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, nios2-dev@lists.rocketboards.org, openrisc@lists.librecores.org, linux-parisc@vger.kernel.org, linux-riscv@lists.infradead.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-mtd@lists.infradead.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20190817073236.ekGzKsnDnPEBtFTuO1jhRJ1-aFDnLRek5a3CG4s6gjA@z>
+Message-ID: <20190817073245.KNksIIxlrFd9wCSz7s7P1S5yJh1Tq0r_T15tIOToB7Q@z>
 
-No need for the additional namespace pollution.
+m68k uses __iounmap as the name for an internal helper that is only
+used for some CPU types.  Mark it static and give it a better name.
 
 Signed-off-by: Christoph Hellwig <hch@lst.de>
 ---
- arch/alpha/include/asm/io.h | 6 ------
- 1 file changed, 6 deletions(-)
+ arch/m68k/include/asm/kmap.h | 1 -
+ arch/m68k/mm/kmap.c          | 9 ++++++---
+ 2 files changed, 6 insertions(+), 4 deletions(-)
 
-diff --git a/arch/alpha/include/asm/io.h b/arch/alpha/include/asm/io.h
-index af2c0063dc75..1989b946a28d 100644
---- a/arch/alpha/include/asm/io.h
-+++ b/arch/alpha/include/asm/io.h
-@@ -283,12 +283,6 @@ static inline void __iomem *ioremap(unsigned long port, unsigned long size)
- 	return IO_CONCAT(__IO_PREFIX,ioremap) (port, size);
- }
+diff --git a/arch/m68k/include/asm/kmap.h b/arch/m68k/include/asm/kmap.h
+index 421b6c9c769d..559cb91bede1 100644
+--- a/arch/m68k/include/asm/kmap.h
++++ b/arch/m68k/include/asm/kmap.h
+@@ -20,7 +20,6 @@ extern void __iomem *__ioremap(unsigned long physaddr, unsigned long size,
+ 			       int cacheflag);
+ #define iounmap iounmap
+ extern void iounmap(void __iomem *addr);
+-extern void __iounmap(void *addr, unsigned long size);
  
--static inline void __iomem *__ioremap(unsigned long port, unsigned long size,
--				      unsigned long flags)
--{
--	return ioremap(port, size);
--}
--
- static inline void __iomem * ioremap_nocache(unsigned long offset,
- 					     unsigned long size)
+ #define ioremap ioremap
+ static inline void __iomem *ioremap(unsigned long physaddr, unsigned long size)
+diff --git a/arch/m68k/mm/kmap.c b/arch/m68k/mm/kmap.c
+index 40a3b327da07..4c279cf0bcc8 100644
+--- a/arch/m68k/mm/kmap.c
++++ b/arch/m68k/mm/kmap.c
+@@ -52,6 +52,7 @@ static inline void free_io_area(void *addr)
+ 
+ #define IO_SIZE		(256*1024)
+ 
++static void __free_io_area(void *addr, unsigned long size);
+ static struct vm_struct *iolist;
+ 
+ static struct vm_struct *get_io_area(unsigned long size)
+@@ -90,7 +91,7 @@ static inline void free_io_area(void *addr)
+ 		if (tmp->addr == addr) {
+ 			*p = tmp->next;
+ 			/* remove gap added in get_io_area() */
+-			__iounmap(tmp->addr, tmp->size - IO_SIZE);
++			__free_io_area(tmp->addr, tmp->size - IO_SIZE);
+ 			kfree(tmp);
+ 			return;
+ 		}
+@@ -249,12 +250,13 @@ void iounmap(void __iomem *addr)
+ }
+ EXPORT_SYMBOL(iounmap);
+ 
++#ifndef CPU_M68040_OR_M68060_ONLY
+ /*
+- * __iounmap unmaps nearly everything, so be careful
++ * __free_io_area unmaps nearly everything, so be careful
+  * Currently it doesn't free pointer/page tables anymore but this
+  * wasn't used anyway and might be added later.
+  */
+-void __iounmap(void *addr, unsigned long size)
++static void __free_io_area(void *addr, unsigned long size)
  {
+ 	unsigned long virtaddr = (unsigned long)addr;
+ 	pgd_t *pgd_dir;
+@@ -297,6 +299,7 @@ void __iounmap(void *addr, unsigned long size)
+ 
+ 	flush_tlb_all();
+ }
++#endif /* CPU_M68040_OR_M68060_ONLY */
+ 
+ /*
+  * Set new cache mode for some kernel address space.
 -- 
 2.20.1
