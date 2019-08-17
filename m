@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.133]:34566 "EHLO
+Received: from bombadil.infradead.org ([198.137.202.133]:36130 "EHLO
         bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1725864AbfHQHsa (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sat, 17 Aug 2019 03:48:30 -0400
+        with ESMTP id S1726477AbfHQHsv (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 17 Aug 2019 03:48:51 -0400
 From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 06/26] ia64: rename ioremap_nocache to ioremap_uc
-Date: Sat, 17 Aug 2019 09:32:33 +0200
-Message-ID: <20190817073253.27819-7-hch@lst.de>
+Subject: [PATCH 12/26] x86: clean up ioremap
+Date: Sat, 17 Aug 2019 09:32:39 +0200
+Message-ID: <20190817073253.27819-13-hch@lst.de>
 In-Reply-To: <20190817073253.27819-1-hch@lst.de>
 References: <20190817073253.27819-1-hch@lst.de>
 MIME-Version: 1.0
@@ -15,67 +15,102 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Arnd Bergmann <arnd@arndb.de>, Guo Ren <guoren@kernel.org>, Michal Simek <monstr@monstr.eu>, Greentime Hu <green.hu@gmail.com>, Vincent Chen <deanbo422@gmail.com>, Guan Xuetao <gxt@pku.edu.cn>, x86@kernel.org
 Cc: linux-alpha@vger.kernel.org, linux-snps-arc@lists.infradead.org, linux-arm-kernel@lists.infradead.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, nios2-dev@lists.rocketboards.org, openrisc@lists.librecores.org, linux-parisc@vger.kernel.org, linux-riscv@lists.infradead.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-mtd@lists.infradead.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20190817073233.QYT18HhRHtyqL3e9qGnPETAaJn39HcvF60ZVtakmbW8@z>
+Message-ID: <20190817073239.3L1v_LHyzVmDdU7S_ESuFBZ4Atf5Vng4CDSqm2kD34o@z>
 
-On ia64 ioremap_nocache fails if attributs don't match.  Not other
-architectures does this, and we plan to get rid of ioremap_nocache.
-So get rid of the special semantics and define ioremap_nocache in
-terms of ioremap as no portable driver could rely on the behavior
-anyway.
-
-However x86 implements ioremap_uc with a in a similar way as the ia64
-version of ioremap_nocache, so implement that instead.
+Use ioremap as the main implemented function, and defined
+ioremap_nocache to it as a deprecated alias.
 
 Signed-off-by: Christoph Hellwig <hch@lst.de>
 ---
- arch/ia64/include/asm/io.h | 6 +++---
- arch/ia64/mm/ioremap.c     | 4 ++--
- 2 files changed, 5 insertions(+), 5 deletions(-)
+ arch/x86/include/asm/io.h | 8 ++------
+ arch/x86/mm/ioremap.c     | 8 ++++----
+ arch/x86/mm/pageattr.c    | 4 ++--
+ 3 files changed, 8 insertions(+), 12 deletions(-)
 
-diff --git a/arch/ia64/include/asm/io.h b/arch/ia64/include/asm/io.h
-index a511d62d447a..febd2c6ea0b4 100644
---- a/arch/ia64/include/asm/io.h
-+++ b/arch/ia64/include/asm/io.h
-@@ -412,16 +412,16 @@ __writeq (unsigned long val, volatile void __iomem *addr)
- # ifdef __KERNEL__
- 
- extern void __iomem * ioremap(unsigned long offset, unsigned long size);
--extern void __iomem * ioremap_nocache (unsigned long offset, unsigned long size);
-+extern void __iomem * ioremap_uc(unsigned long offset, unsigned long size);
- extern void iounmap (volatile void __iomem *addr);
- static inline void __iomem * ioremap_cache (unsigned long phys_addr, unsigned long size)
- {
- 	return ioremap(phys_addr, size);
- }
- #define ioremap ioremap
+diff --git a/arch/x86/include/asm/io.h b/arch/x86/include/asm/io.h
+index 6bed97ff6db2..6b5cc41319a7 100644
+--- a/arch/x86/include/asm/io.h
++++ b/arch/x86/include/asm/io.h
+@@ -180,8 +180,6 @@ static inline unsigned int isa_virt_to_bus(volatile void *address)
+  * The default ioremap() behavior is non-cached; if you need something
+  * else, you probably want one of the following.
+  */
+-extern void __iomem *ioremap_nocache(resource_size_t offset, unsigned long size);
 -#define ioremap_nocache ioremap_nocache
+ extern void __iomem *ioremap_uc(resource_size_t offset, unsigned long size);
+ #define ioremap_uc ioremap_uc
+ extern void __iomem *ioremap_cache(resource_size_t offset, unsigned long size);
+@@ -205,11 +203,9 @@ extern void __iomem *ioremap_encrypted(resource_size_t phys_addr, unsigned long
+  * If the area you are trying to map is a PCI BAR you should have a
+  * look at pci_iomap().
+  */
+-static inline void __iomem *ioremap(resource_size_t offset, unsigned long size)
+-{
+-	return ioremap_nocache(offset, size);
+-}
++void __iomem *ioremap(resource_size_t offset, unsigned long size);
+ #define ioremap ioremap
 +#define ioremap_nocache ioremap
- #define ioremap_cache ioremap_cache
--#define ioremap_uc ioremap_nocache
-+#define ioremap_uc ioremap_uc
+ 
+ extern void iounmap(volatile void __iomem *addr);
  #define iounmap iounmap
+diff --git a/arch/x86/mm/ioremap.c b/arch/x86/mm/ioremap.c
+index 63e99f15d7cf..c9e90211bddb 100644
+--- a/arch/x86/mm/ioremap.c
++++ b/arch/x86/mm/ioremap.c
+@@ -279,11 +279,11 @@ __ioremap_caller(resource_size_t phys_addr, unsigned long size,
+ }
  
- /*
-diff --git a/arch/ia64/mm/ioremap.c b/arch/ia64/mm/ioremap.c
-index 0c0de2c4ec69..a09cfa064536 100644
---- a/arch/ia64/mm/ioremap.c
-+++ b/arch/ia64/mm/ioremap.c
-@@ -99,14 +99,14 @@ ioremap (unsigned long phys_addr, unsigned long size)
- EXPORT_SYMBOL(ioremap);
- 
- void __iomem *
--ioremap_nocache (unsigned long phys_addr, unsigned long size)
-+ioremap_uc(unsigned long phys_addr, unsigned long size)
+ /**
+- * ioremap_nocache     -   map bus memory into CPU space
++ * ioremap     -   map bus memory into CPU space
+  * @phys_addr:    bus address of the memory
+  * @size:      size of the resource to map
+  *
+- * ioremap_nocache performs a platform specific sequence of operations to
++ * ioremap performs a platform specific sequence of operations to
+  * make bus memory CPU accessible via the readb/readw/readl/writeb/
+  * writew/writel functions and the other mmio helpers. The returned
+  * address is not guaranteed to be usable directly as a virtual
+@@ -299,7 +299,7 @@ __ioremap_caller(resource_size_t phys_addr, unsigned long size,
+  *
+  * Must be freed with iounmap.
+  */
+-void __iomem *ioremap_nocache(resource_size_t phys_addr, unsigned long size)
++void __iomem *ioremap(resource_size_t phys_addr, unsigned long size)
  {
- 	if (kern_mem_attribute(phys_addr, size) & EFI_MEMORY_WB)
- 		return NULL;
- 
- 	return __ioremap_uc(phys_addr);
+ 	/*
+ 	 * Ideally, this should be:
+@@ -314,7 +314,7 @@ void __iomem *ioremap_nocache(resource_size_t phys_addr, unsigned long size)
+ 	return __ioremap_caller(phys_addr, size, pcm,
+ 				__builtin_return_address(0), false);
  }
 -EXPORT_SYMBOL(ioremap_nocache);
-+EXPORT_SYMBOL(ioremap_uc);
++EXPORT_SYMBOL(ioremap);
  
- void
- early_iounmap (volatile void __iomem *addr, unsigned long size)
+ /**
+  * ioremap_uc     -   map bus memory into CPU space as strongly uncachable
+diff --git a/arch/x86/mm/pageattr.c b/arch/x86/mm/pageattr.c
+index 6a9a77a403c9..5b7a9231b85b 100644
+--- a/arch/x86/mm/pageattr.c
++++ b/arch/x86/mm/pageattr.c
+@@ -1774,7 +1774,7 @@ static inline int cpa_clear_pages_array(struct page **pages, int numpages,
+ int _set_memory_uc(unsigned long addr, int numpages)
+ {
+ 	/*
+-	 * for now UC MINUS. see comments in ioremap_nocache()
++	 * for now UC MINUS. see comments in ioremap()
+ 	 * If you really need strong UC use ioremap_uc(), but note
+ 	 * that you cannot override IO areas with set_memory_*() as
+ 	 * these helpers cannot work with IO memory.
+@@ -1789,7 +1789,7 @@ int set_memory_uc(unsigned long addr, int numpages)
+ 	int ret;
+ 
+ 	/*
+-	 * for now UC MINUS. see comments in ioremap_nocache()
++	 * for now UC MINUS. see comments in ioremap()
+ 	 */
+ 	ret = reserve_memtype(__pa(addr), __pa(addr) + numpages * PAGE_SIZE,
+ 			      _PAGE_CACHE_MODE_UC_MINUS, NULL);
 -- 
 2.20.1
