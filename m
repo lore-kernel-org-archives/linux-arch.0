@@ -1,43 +1,30 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-io1-f66.google.com ([209.85.166.66]:43999 "EHLO
-        mail-io1-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726286AbfHQVWQ (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sat, 17 Aug 2019 17:22:16 -0400
-Received: by mail-io1-f66.google.com with SMTP id 18so13256379ioe.10
-        for <linux-arch@vger.kernel.org>; Sat, 17 Aug 2019 14:22:16 -0700 (PDT)
-Date: Sat, 17 Aug 2019 14:22:15 -0700 (PDT)
+Received: from mail-io1-f67.google.com ([209.85.166.67]:39321 "EHLO
+        mail-io1-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726366AbfHQV1E (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 17 Aug 2019 17:27:04 -0400
+Received: by mail-io1-f67.google.com with SMTP id l7so13259886ioj.6
+        for <linux-arch@vger.kernel.org>; Sat, 17 Aug 2019 14:27:04 -0700 (PDT)
+Date: Sat, 17 Aug 2019 14:27:02 -0700 (PDT)
 From: Paul Walmsley <paul.walmsley@sifive.com>
-Subject: Re: [PATCH 24/26] riscv: use the generic ioremap code
-In-Reply-To: <20190817073253.27819-25-hch@lst.de>
-Message-ID: <alpine.DEB.2.21.9999.1908171421560.4130@viisi.sifive.com>
-References: <20190817073253.27819-1-hch@lst.de> <20190817073253.27819-25-hch@lst.de>
+Subject: Re: [PATCH 14/26] asm-generic: don't provide __ioremap
+In-Reply-To: <alpine.DEB.2.21.9999.1908171357180.4130@viisi.sifive.com>
+Message-ID: <alpine.DEB.2.21.9999.1908171426390.4130@viisi.sifive.com>
+References: <20190817073253.27819-1-hch@lst.de> <20190817073253.27819-15-hch@lst.de> <alpine.DEB.2.21.9999.1908171357180.4130@viisi.sifive.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Christoph Hellwig <hch@lst.de>
 Cc: Arnd Bergmann <arnd@arndb.de>, Guo Ren <guoren@kernel.org>, Michal Simek <monstr@monstr.eu>, Greentime Hu <green.hu@gmail.com>, Vincent Chen <deanbo422@gmail.com>, Guan Xuetao <gxt@pku.edu.cn>, x86@kernel.org, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, linux-ia64@vger.kernel.org, linux-parisc@vger.kernel.org, linux-sh@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-mips@vger.kernel.org, linux-kernel@vger.kernel.org, linux-m68k@lists.linux-m68k.org, openrisc@lists.librecores.org, linux-mtd@lists.infradead.org, linux-alpha@vger.kernel.org, sparclinux@vger.kernel.org, nios2-dev@lists.rocketboards.org, linux-riscv@lists.infradead.org, linux-snps-arc@lists.infradead.org, linux-arm-kernel@lists.infradead.org
-Message-ID: <20190817212215.NejRndN7D_c4Bbsy_V-D7KfJpbViFWt2erPvNYGznc8@z>
+Message-ID: <20190817212702.U8PeYs3lb-Ol_4N4gxQjkG_DK09eYz-joUV8T8VVOfw@z>
 
-On Sat, 17 Aug 2019, Christoph Hellwig wrote:
+On Sat, 17 Aug 2019, Paul Walmsley wrote:
 
-> Use the generic ioremap code instead of providing a local version.
-> Note that this relies on the asm-generic no-op definition of
-> pgprot_noncached.
-> 
-> Signed-off-by: Christoph Hellwig <hch@lst.de>
-> ---
->  arch/riscv/Kconfig               |  1 +
->  arch/riscv/include/asm/io.h      |  3 --
->  arch/riscv/include/asm/pgtable.h |  6 +++
->  arch/riscv/mm/Makefile           |  1 -
->  arch/riscv/mm/ioremap.c          | 84 --------------------------------
->  5 files changed, 7 insertions(+), 88 deletions(-)
->  delete mode 100644 arch/riscv/mm/ioremap.c
+> Acked-by: Paul Walmsley <paul.walmsley@sifive.com> # arch/riscv
 
-Reviewed-by: Paul Walmsley <paul.walmsley@sifive.com>
-Tested-by: Paul Walmsley <paul.walmsley@sifive.com> # rv32, rv64 boot
-Acked-by: Paul Walmsley <paul.walmsley@sifive.com> # arch/riscv
+This ack is superfluous since the patch doesn't touch arch/riscv; feel 
+free to drop it
 
 
 - Paul
