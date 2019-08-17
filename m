@@ -1,7 +1,7 @@
 From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 08/26] m68k: simplify ioremap_nocache
-Date: Sat, 17 Aug 2019 09:32:35 +0200
-Message-ID: <20190817073253.27819-9-hch@lst.de>
+Subject: [PATCH 09/26] alpha: remove the unused __ioremap wrapper
+Date: Sat, 17 Aug 2019 09:32:36 +0200
+Message-ID: <20190817073253.27819-10-hch@lst.de>
 References: <20190817073253.27819-1-hch@lst.de>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
@@ -12,35 +12,29 @@ To: Arnd Bergmann <arnd@arndb.de>, Guo Ren <guoren@kernel.org>, Michal Simek <mo
 Cc: linux-alpha@vger.kernel.org, linux-snps-arc@lists.infradead.org, linux-arm-kernel@lists.infradead.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, nios2-dev@lists.rocketboards.org, openrisc@lists.librecores.org, linux-parisc@vger.kernel.org, linux-riscv@lists.infradead.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-mtd@lists.infradead.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-Just define ioremap_nocache to ioremap instead of duplicating the
-inline.  Also defined ioremap_uc in terms of ioremap instead of
-the using a double indirection.
+No need for the additional namespace pollution.
 
 Signed-off-by: Christoph Hellwig <hch@lst.de>
 ---
- arch/m68k/include/asm/kmap.h | 10 ++--------
- 1 file changed, 2 insertions(+), 8 deletions(-)
+ arch/alpha/include/asm/io.h | 6 ------
+ 1 file changed, 6 deletions(-)
 
-diff --git a/arch/m68k/include/asm/kmap.h b/arch/m68k/include/asm/kmap.h
-index 03d904fe6087..421b6c9c769d 100644
---- a/arch/m68k/include/asm/kmap.h
-+++ b/arch/m68k/include/asm/kmap.h
-@@ -28,14 +28,8 @@ static inline void __iomem *ioremap(unsigned long physaddr, unsigned long size)
- 	return __ioremap(physaddr, size, IOMAP_NOCACHE_SER);
+diff --git a/arch/alpha/include/asm/io.h b/arch/alpha/include/asm/io.h
+index af2c0063dc75..1989b946a28d 100644
+--- a/arch/alpha/include/asm/io.h
++++ b/arch/alpha/include/asm/io.h
+@@ -283,12 +283,6 @@ static inline void __iomem *ioremap(unsigned long port, unsigned long size)
+ 	return IO_CONCAT(__IO_PREFIX,ioremap) (port, size);
  }
  
--#define ioremap_nocache ioremap_nocache
--static inline void __iomem *ioremap_nocache(unsigned long physaddr,
--					    unsigned long size)
+-static inline void __iomem *__ioremap(unsigned long port, unsigned long size,
+-				      unsigned long flags)
 -{
--	return __ioremap(physaddr, size, IOMAP_NOCACHE_SER);
+-	return ioremap(port, size);
 -}
 -
--#define ioremap_uc ioremap_nocache
-+#define ioremap_nocache ioremap
-+#define ioremap_uc ioremap
- #define ioremap_wt ioremap_wt
- static inline void __iomem *ioremap_wt(unsigned long physaddr,
- 				       unsigned long size)
+ static inline void __iomem * ioremap_nocache(unsigned long offset,
+ 					     unsigned long size)
+ {
 -- 
 2.20.1
