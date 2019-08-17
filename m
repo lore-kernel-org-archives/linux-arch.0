@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.133]:36724 "EHLO
+Received: from bombadil.infradead.org ([198.137.202.133]:37004 "EHLO
         bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726097AbfHQHs6 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sat, 17 Aug 2019 03:48:58 -0400
+        with ESMTP id S1726097AbfHQHtC (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 17 Aug 2019 03:49:02 -0400
 From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 13/26] xtensa: clean up ioremap
-Date: Sat, 17 Aug 2019 09:32:40 +0200
-Message-ID: <20190817073253.27819-14-hch@lst.de>
+Subject: [PATCH 14/26] asm-generic: don't provide __ioremap
+Date: Sat, 17 Aug 2019 09:32:41 +0200
+Message-ID: <20190817073253.27819-15-hch@lst.de>
 In-Reply-To: <20190817073253.27819-1-hch@lst.de>
 References: <20190817073253.27819-1-hch@lst.de>
 MIME-Version: 1.0
@@ -15,48 +15,35 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Arnd Bergmann <arnd@arndb.de>, Guo Ren <guoren@kernel.org>, Michal Simek <monstr@monstr.eu>, Greentime Hu <green.hu@gmail.com>, Vincent Chen <deanbo422@gmail.com>, Guan Xuetao <gxt@pku.edu.cn>, x86@kernel.org
 Cc: linux-alpha@vger.kernel.org, linux-snps-arc@lists.infradead.org, linux-arm-kernel@lists.infradead.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, nios2-dev@lists.rocketboards.org, openrisc@lists.librecores.org, linux-parisc@vger.kernel.org, linux-riscv@lists.infradead.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-mtd@lists.infradead.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20190817073240.EWf6Acsr5ygshKsQ2Z7zo241fSqqoT3GXK685r9O7cE@z>
+Message-ID: <20190817073241.IBn_j9V8sTnHxbR0CXVIfmyMTJ5l411f_PzVxdB7E4Q@z>
 
-Use ioremap as the main implemented function, and defined
-ioremap_nocache to it as a deprecated alias.
+__ioremap is not a kernel API, but used for helpers with differing
+semantics in arch code.  We should not provide it in as-generic.
 
 Signed-off-by: Christoph Hellwig <hch@lst.de>
 ---
- arch/xtensa/include/asm/io.h | 14 ++++----------
- 1 file changed, 4 insertions(+), 10 deletions(-)
+ include/asm-generic/io.h | 9 ---------
+ 1 file changed, 9 deletions(-)
 
-diff --git a/arch/xtensa/include/asm/io.h b/arch/xtensa/include/asm/io.h
-index da3e783f896b..ffadc99c8601 100644
---- a/arch/xtensa/include/asm/io.h
-+++ b/arch/xtensa/include/asm/io.h
-@@ -31,8 +31,7 @@ void xtensa_iounmap(volatile void __iomem *addr);
- /*
-  * Return the virtual address for the specified bus memory.
-  */
--static inline void __iomem *ioremap_nocache(unsigned long offset,
--		unsigned long size)
-+static inline void __iomem *ioremap(unsigned long offset, unsigned long size)
- {
- 	if (offset >= XCHAL_KIO_PADDR
- 	    && offset - XCHAL_KIO_PADDR < XCHAL_KIO_SIZE)
-@@ -51,15 +50,10 @@ static inline void __iomem *ioremap_cache(unsigned long offset,
- 		return xtensa_ioremap_cache(offset, size);
+diff --git a/include/asm-generic/io.h b/include/asm-generic/io.h
+index b83e2802c969..d02806513670 100644
+--- a/include/asm-generic/io.h
++++ b/include/asm-generic/io.h
+@@ -963,15 +963,6 @@ static inline void __iomem *ioremap(phys_addr_t offset, size_t size)
  }
- #define ioremap_cache ioremap_cache
--#define ioremap_nocache ioremap_nocache
--
--#define ioremap_wc ioremap_nocache
--#define ioremap_wt ioremap_nocache
+ #endif
  
--static inline void __iomem *ioremap(unsigned long offset, unsigned long size)
+-#ifndef __ioremap
+-#define __ioremap __ioremap
+-static inline void __iomem *__ioremap(phys_addr_t offset, size_t size,
+-				      unsigned long flags)
 -{
--	return ioremap_nocache(offset, size);
+-	return ioremap(offset, size);
 -}
-+#define ioremap_nocache ioremap
-+#define ioremap_wc ioremap
-+#define ioremap_wt ioremap
+-#endif
+-
+ #ifndef iounmap
+ #define iounmap iounmap
  
- static inline void iounmap(volatile void __iomem *addr)
- {
 -- 
 2.20.1
