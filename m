@@ -1,40 +1,39 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.skyhub.de ([5.9.137.197]:48730 "EHLO mail.skyhub.de"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1725784AbfHQJQu (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Sat, 17 Aug 2019 05:16:50 -0400
-Date: Sat, 17 Aug 2019 11:17:33 +0200
-From: Borislav Petkov <bp@alien8.de>
-Subject: Re: [PATCH v8 06/28] x86/asm/crypto: annotate local functions
-Message-ID: <20190817091733.GB15364@zn.tnic>
-References: <20190808103854.6192-1-jslaby@suse.cz>
- <20190808103854.6192-7-jslaby@suse.cz>
+Received: from mail-wm1-f67.google.com ([209.85.128.67]:36695 "EHLO
+        mail-wm1-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1725947AbfHQKeJ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 17 Aug 2019 06:34:09 -0400
+Date: Sat, 17 Aug 2019 12:34:02 +0200
+From: Ingo Molnar <mingo@kernel.org>
+Subject: Re: [PATCH 12/26] x86: clean up ioremap
+Message-ID: <20190817103402.GA7602@gmail.com>
+References: <20190817073253.27819-1-hch@lst.de>
+ <20190817073253.27819-13-hch@lst.de>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
+Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20190808103854.6192-7-jslaby@suse.cz>
+In-Reply-To: <20190817073253.27819-13-hch@lst.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jiri Slaby <jslaby@suse.cz>
-Cc: tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Herbert Xu <herbert@gondor.apana.org.au>, "David S. Miller" <davem@davemloft.net>, linux-crypto@vger.kernel.org
-Message-ID: <20190817091733.6DD0ZSenPtyjziOX5uklIrCjYY__taTlN76MqMA6k0k@z>
+To: Christoph Hellwig <hch@lst.de>
+Cc: Arnd Bergmann <arnd@arndb.de>, Guo Ren <guoren@kernel.org>, Michal Simek <monstr@monstr.eu>, Greentime Hu <green.hu@gmail.com>, Vincent Chen <deanbo422@gmail.com>, Guan Xuetao <gxt@pku.edu.cn>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-snps-arc@lists.infradead.org, linux-arm-kernel@lists.infradead.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, nios2-dev@lists.rocketboards.org, openrisc@lists.librecores.org, linux-parisc@vger.kernel.org, linux-riscv@lists.infradead.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-mtd@lists.infradead.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20190817103402.UydOyfq10oPxdlgHpoX_ash16uvzufmzw-vWpJfGZ-0@z>
 
-On Thu, Aug 08, 2019 at 12:38:32PM +0200, Jiri Slaby wrote:
-> Use the newly added SYM_FUNC_START_LOCAL to annotate starts of all
-> functions which do not have ".globl" annotation, but their ends are
-> annotated by ENDPROC. This is needed to balance ENDPROC for tools that
-> generate debuginfo.
+
+* Christoph Hellwig <hch@lst.de> wrote:
+
+> Use ioremap as the main implemented function, and defined
+> ioremap_nocache to it as a deprecated alias.
 > 
-> To be symmetric, we also convert their ENDPROCs to the new SYM_FUNC_END.
+> Signed-off-by: Christoph Hellwig <hch@lst.de>
+> ---
+>  arch/x86/include/asm/io.h | 8 ++------
+>  arch/x86/mm/ioremap.c     | 8 ++++----
+>  arch/x86/mm/pageattr.c    | 4 ++--
+>  3 files changed, 8 insertions(+), 12 deletions(-)
 
-All those functions look like they could be made local symbols by
-prepending their names with ".L" so that they disappear from the
-vmlinux symtable too.
+Acked-by: Ingo Molnar <mingo@kernel.org>
 
-Thx.
+Thanks,
 
--- 
-Regards/Gruss,
-    Boris.
-
-Good mailing practices for 400: avoid top-posting and trim the reply.
+	Ingo
