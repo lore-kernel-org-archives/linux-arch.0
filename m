@@ -1,47 +1,34 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-lf1-f68.google.com ([209.85.167.68]:36288 "EHLO
-        mail-lf1-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1725784AbfHQQBI (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sat, 17 Aug 2019 12:01:08 -0400
-Received: by mail-lf1-f68.google.com with SMTP id j17so6105167lfp.3
-        for <linux-arch@vger.kernel.org>; Sat, 17 Aug 2019 09:01:07 -0700 (PDT)
-Subject: Re: [PATCH 06/26] ia64: rename ioremap_nocache to ioremap_uc
-References: <20190817073253.27819-1-hch@lst.de>
- <20190817073253.27819-7-hch@lst.de>
-From: Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>
-Message-ID: <b19607c1-07aa-e361-3c26-8bcb063ed8c1@cogentembedded.com>
-Date: Sat, 17 Aug 2019 19:00:48 +0300
+Received: from mail-io1-f65.google.com ([209.85.166.65]:40366 "EHLO
+        mail-io1-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726240AbfHQU6T (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 17 Aug 2019 16:58:19 -0400
+Received: by mail-io1-f65.google.com with SMTP id t6so13200931ios.7
+        for <linux-arch@vger.kernel.org>; Sat, 17 Aug 2019 13:58:18 -0700 (PDT)
+Date: Sat, 17 Aug 2019 13:58:16 -0700 (PDT)
+From: Paul Walmsley <paul.walmsley@sifive.com>
+Subject: Re: [PATCH 14/26] asm-generic: don't provide __ioremap
+In-Reply-To: <20190817073253.27819-15-hch@lst.de>
+Message-ID: <alpine.DEB.2.21.9999.1908171357180.4130@viisi.sifive.com>
+References: <20190817073253.27819-1-hch@lst.de> <20190817073253.27819-15-hch@lst.de>
 MIME-Version: 1.0
-In-Reply-To: <20190817073253.27819-7-hch@lst.de>
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Language: en-US
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Christoph Hellwig <hch@lst.de>, Arnd Bergmann <arnd@arndb.de>, Guo Ren <guoren@kernel.org>, Michal Simek <monstr@monstr.eu>, Greentime Hu <green.hu@gmail.com>, Vincent Chen <deanbo422@gmail.com>, Guan Xuetao <gxt@pku.edu.cn>, x86@kernel.org
-Cc: linux-alpha@vger.kernel.org, linux-snps-arc@lists.infradead.org, linux-arm-kernel@lists.infradead.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, nios2-dev@lists.rocketboards.org, openrisc@lists.librecores.org, linux-parisc@vger.kernel.org, linux-riscv@lists.infradead.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-mtd@lists.infradead.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20190817160048.xeFxvNg0LPNjl0uqLi4zJ2e0SSIXWtp9uLTUhM4lONg@z>
+To: Christoph Hellwig <hch@lst.de>
+Cc: Arnd Bergmann <arnd@arndb.de>, Guo Ren <guoren@kernel.org>, Michal Simek <monstr@monstr.eu>, Greentime Hu <green.hu@gmail.com>, Vincent Chen <deanbo422@gmail.com>, Guan Xuetao <gxt@pku.edu.cn>, x86@kernel.org, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, linux-ia64@vger.kernel.org, linux-parisc@vger.kernel.org, linux-sh@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-mips@vger.kernel.org, linux-kernel@vger.kernel.org, linux-m68k@lists.linux-m68k.org, openrisc@lists.librecores.org, linux-mtd@lists.infradead.org, linux-alpha@vger.kernel.org, sparclinux@vger.kernel.org, nios2-dev@lists.rocketboards.org, linux-riscv@lists.infradead.org, linux-snps-arc@lists.infradead.org, linux-arm-kernel@lists.infradead.org
+Message-ID: <20190817205816.dCsxEN9DwZxJ0r9R9U_kFGIVrLR5N2EHL19jCvXKBGM@z>
 
-Hello!
+On Sat, 17 Aug 2019, Christoph Hellwig wrote:
 
-On 17.08.2019 10:32, Christoph Hellwig wrote:
-
-> On ia64 ioremap_nocache fails if attributs don't match.  Not other
-
-    Attributes. :-)
-
-> architectures does this, and we plan to get rid of ioremap_nocache.
-> So get rid of the special semantics and define ioremap_nocache in
-> terms of ioremap as no portable driver could rely on the behavior
-> anyway.
-> 
-> However x86 implements ioremap_uc with a in a similar way as the ia64
-
-    "With a" not really needed?
-
-> version of ioremap_nocache, so implement that instead.
+> __ioremap is not a kernel API, but used for helpers with differing
+> semantics in arch code.  We should not provide it in as-generic.
 > 
 > Signed-off-by: Christoph Hellwig <hch@lst.de>
-[...]
 
-MBR, Sergei
+Reviewed-by: Paul Walmsley <paul.walmsley@sifive.com>
+Tested-by: Paul Walmsley <paul.walmsley@sifive.com> # rv32, rv64 boot
+Acked-by: Paul Walmsley <paul.walmsley@sifive.com> # arch/riscv
+
+
+- Paul
