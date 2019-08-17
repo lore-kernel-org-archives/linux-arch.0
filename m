@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.133]:39362 "EHLO
+Received: from bombadil.infradead.org ([198.137.202.133]:34814 "EHLO
         bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1725925AbfHQHtf (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sat, 17 Aug 2019 03:49:35 -0400
+        with ESMTP id S1726354AbfHQHsd (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 17 Aug 2019 03:48:33 -0400
 From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 25/26] csky: use generic ioremap
-Date: Sat, 17 Aug 2019 09:32:52 +0200
-Message-ID: <20190817073253.27819-26-hch@lst.de>
+Subject: [PATCH 07/26] hexagon: clean up ioremap
+Date: Sat, 17 Aug 2019 09:32:34 +0200
+Message-ID: <20190817073253.27819-8-hch@lst.de>
 In-Reply-To: <20190817073253.27819-1-hch@lst.de>
 References: <20190817073253.27819-1-hch@lst.de>
 MIME-Version: 1.0
@@ -15,117 +15,66 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Arnd Bergmann <arnd@arndb.de>, Guo Ren <guoren@kernel.org>, Michal Simek <monstr@monstr.eu>, Greentime Hu <green.hu@gmail.com>, Vincent Chen <deanbo422@gmail.com>, Guan Xuetao <gxt@pku.edu.cn>, x86@kernel.org
 Cc: linux-alpha@vger.kernel.org, linux-snps-arc@lists.infradead.org, linux-arm-kernel@lists.infradead.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, nios2-dev@lists.rocketboards.org, openrisc@lists.librecores.org, linux-parisc@vger.kernel.org, linux-riscv@lists.infradead.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-mtd@lists.infradead.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20190817073252.D3uG8emwlcPn9ya892KxV6QiqD-nuyeIO1mEh7-a2oE@z>
+Message-ID: <20190817073234.QzQPHV0cT_xflDjMkpc-qO_SXYRsKRWULjjtGX9QOQw@z>
 
-Use the generic ioremap_prot and iounmap helpers.
+Use ioremap as the main implemented function, and defined
+ioremap_nocache to it as a deprecated alias.
 
 Signed-off-by: Christoph Hellwig <hch@lst.de>
 ---
- arch/csky/Kconfig               |  1 +
- arch/csky/include/asm/io.h      |  7 ------
- arch/csky/include/asm/pgtable.h |  4 ++++
- arch/csky/mm/ioremap.c          | 42 ---------------------------------
- 4 files changed, 5 insertions(+), 49 deletions(-)
+ arch/hexagon/include/asm/io.h       | 11 ++---------
+ arch/hexagon/kernel/hexagon_ksyms.c |  2 +-
+ arch/hexagon/mm/ioremap.c           |  2 +-
+ 3 files changed, 4 insertions(+), 11 deletions(-)
 
-diff --git a/arch/csky/Kconfig b/arch/csky/Kconfig
-index 3973847b5f42..da09c884cc30 100644
---- a/arch/csky/Kconfig
-+++ b/arch/csky/Kconfig
-@@ -17,6 +17,7 @@ config CSKY
- 	select IRQ_DOMAIN
- 	select HANDLE_DOMAIN_IRQ
- 	select DW_APB_TIMER_OF
-+	select GENERIC_IOREMAP
- 	select GENERIC_LIB_ASHLDI3
- 	select GENERIC_LIB_ASHRDI3
- 	select GENERIC_LIB_LSHRDI3
-diff --git a/arch/csky/include/asm/io.h b/arch/csky/include/asm/io.h
-index 800985af1c44..10e09299c912 100644
---- a/arch/csky/include/asm/io.h
-+++ b/arch/csky/include/asm/io.h
-@@ -8,13 +8,6 @@
- #include <linux/types.h>
- #include <linux/version.h>
+diff --git a/arch/hexagon/include/asm/io.h b/arch/hexagon/include/asm/io.h
+index ba1a444d55b3..89537dc1cf97 100644
+--- a/arch/hexagon/include/asm/io.h
++++ b/arch/hexagon/include/asm/io.h
+@@ -171,16 +171,9 @@ static inline void writel(u32 data, volatile void __iomem *addr)
+ #define writew_relaxed __raw_writew
+ #define writel_relaxed __raw_writel
  
--extern void __iomem *ioremap(phys_addr_t offset, size_t size);
--
--extern void iounmap(void *addr);
--
--extern int remap_area_pages(unsigned long address, phys_addr_t phys_addr,
--		size_t size, unsigned long flags);
--
- /*
-  * I/O memory access primitives. Reads are ordered relative to any
-  * following Normal memory access. Writes are ordered relative to any prior
-diff --git a/arch/csky/include/asm/pgtable.h b/arch/csky/include/asm/pgtable.h
-index c429a6f347de..b5f605b9810c 100644
---- a/arch/csky/include/asm/pgtable.h
-+++ b/arch/csky/include/asm/pgtable.h
-@@ -86,6 +86,10 @@
- #define PAGE_USERIO	__pgprot(_PAGE_PRESENT | _PAGE_READ | _PAGE_WRITE | \
- 				_CACHE_CACHED)
+-/*
+- * Need an mtype somewhere in here, for cache type deals?
+- * This is probably too long for an inline.
+- */
+-void __iomem *ioremap_nocache(unsigned long phys_addr, unsigned long size);
++void __iomem *ioremap(unsigned long phys_addr, unsigned long size);
++#define ioremap_nocache ioremap
  
-+#define _PAGE_IOREMAP \
-+	(_PAGE_PRESENT | __READABLE | __WRITEABLE | _PAGE_GLOBAL | \
-+	 _CACHE_UNCACHED | _PAGE_SO)
-+
- #define __P000	PAGE_NONE
- #define __P001	PAGE_READONLY
- #define __P010	PAGE_COPY
-diff --git a/arch/csky/mm/ioremap.c b/arch/csky/mm/ioremap.c
-index 8473b6bdf512..65614f65ce48 100644
---- a/arch/csky/mm/ioremap.c
-+++ b/arch/csky/mm/ioremap.c
-@@ -3,50 +3,8 @@
- 
- #include <linux/export.h>
- #include <linux/mm.h>
--#include <linux/vmalloc.h>
- #include <linux/io.h>
- 
--#include <asm/pgtable.h>
--
--void __iomem *ioremap(phys_addr_t addr, size_t size)
+-static inline void __iomem *ioremap(unsigned long phys_addr, unsigned long size)
 -{
--	phys_addr_t last_addr;
--	unsigned long offset, vaddr;
--	struct vm_struct *area;
--	pgprot_t prot;
--
--	last_addr = addr + size - 1;
--	if (!size || last_addr < addr)
--		return NULL;
--
--	offset = addr & (~PAGE_MASK);
--	addr &= PAGE_MASK;
--	size = PAGE_ALIGN(size + offset);
--
--	area = get_vm_area_caller(size, VM_ALLOC, __builtin_return_address(0));
--	if (!area)
--		return NULL;
--
--	vaddr = (unsigned long)area->addr;
--
--	prot = __pgprot(_PAGE_PRESENT | __READABLE | __WRITEABLE |
--			_PAGE_GLOBAL | _CACHE_UNCACHED | _PAGE_SO);
--
--	if (ioremap_page_range(vaddr, vaddr + size, addr, prot)) {
--		free_vm_area(area);
--		return NULL;
--	}
--
--	return (void __iomem *)(vaddr + offset);
+-	return ioremap_nocache(phys_addr, size);
 -}
--EXPORT_SYMBOL(ioremap);
--
--void iounmap(void __iomem *addr)
--{
--	vunmap((void *)((unsigned long)addr & PAGE_MASK));
--}
--EXPORT_SYMBOL(iounmap);
--
- pgprot_t phys_mem_access_prot(struct file *file, unsigned long pfn,
- 			      unsigned long size, pgprot_t vma_prot)
+ 
+ static inline void iounmap(volatile void __iomem *addr)
  {
+diff --git a/arch/hexagon/kernel/hexagon_ksyms.c b/arch/hexagon/kernel/hexagon_ksyms.c
+index cf8974beb500..b3dbb472572e 100644
+--- a/arch/hexagon/kernel/hexagon_ksyms.c
++++ b/arch/hexagon/kernel/hexagon_ksyms.c
+@@ -20,7 +20,7 @@ EXPORT_SYMBOL(__vmgetie);
+ EXPORT_SYMBOL(__vmsetie);
+ EXPORT_SYMBOL(__vmyield);
+ EXPORT_SYMBOL(empty_zero_page);
+-EXPORT_SYMBOL(ioremap_nocache);
++EXPORT_SYMBOL(ioremap);
+ EXPORT_SYMBOL(memcpy);
+ EXPORT_SYMBOL(memset);
+ 
+diff --git a/arch/hexagon/mm/ioremap.c b/arch/hexagon/mm/ioremap.c
+index 77d8e1e69e9b..b103d83b5fbb 100644
+--- a/arch/hexagon/mm/ioremap.c
++++ b/arch/hexagon/mm/ioremap.c
+@@ -9,7 +9,7 @@
+ #include <linux/vmalloc.h>
+ #include <linux/mm.h>
+ 
+-void __iomem *ioremap_nocache(unsigned long phys_addr, unsigned long size)
++void __iomem *ioremap(unsigned long phys_addr, unsigned long size)
+ {
+ 	unsigned long last_addr, addr;
+ 	unsigned long offset = phys_addr & ~PAGE_MASK;
 -- 
 2.20.1
