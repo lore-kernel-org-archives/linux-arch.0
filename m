@@ -1,30 +1,61 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-io1-f67.google.com ([209.85.166.67]:39321 "EHLO
-        mail-io1-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726366AbfHQV1E (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sat, 17 Aug 2019 17:27:04 -0400
-Received: by mail-io1-f67.google.com with SMTP id l7so13259886ioj.6
-        for <linux-arch@vger.kernel.org>; Sat, 17 Aug 2019 14:27:04 -0700 (PDT)
-Date: Sat, 17 Aug 2019 14:27:02 -0700 (PDT)
-From: Paul Walmsley <paul.walmsley@sifive.com>
-Subject: Re: [PATCH 14/26] asm-generic: don't provide __ioremap
-In-Reply-To: <alpine.DEB.2.21.9999.1908171357180.4130@viisi.sifive.com>
-Message-ID: <alpine.DEB.2.21.9999.1908171426390.4130@viisi.sifive.com>
-References: <20190817073253.27819-1-hch@lst.de> <20190817073253.27819-15-hch@lst.de> <alpine.DEB.2.21.9999.1908171357180.4130@viisi.sifive.com>
+Received: from mail.kernel.org ([198.145.29.99]:37864 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726208AbfHRCUd (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Sat, 17 Aug 2019 22:20:33 -0400
 MIME-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
+References: <1565868537-17753-1-git-send-email-guoren@kernel.org> <20190816070348.GA13766@infradead.org>
+In-Reply-To: <20190816070348.GA13766@infradead.org>
+From: Guo Ren <guoren@kernel.org>
+Date: Sun, 18 Aug 2019 10:20:18 +0800
+Message-ID: <CAJF2gTTBc3+SnKMbVU4A+tekyjkd_7XUmDCUfNCcA-CZf=JUyg@mail.gmail.com>
+Subject: Re: [PATCH] csky: Fixup ioremap function losing
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Christoph Hellwig <hch@lst.de>
-Cc: Arnd Bergmann <arnd@arndb.de>, Guo Ren <guoren@kernel.org>, Michal Simek <monstr@monstr.eu>, Greentime Hu <green.hu@gmail.com>, Vincent Chen <deanbo422@gmail.com>, Guan Xuetao <gxt@pku.edu.cn>, x86@kernel.org, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, linux-ia64@vger.kernel.org, linux-parisc@vger.kernel.org, linux-sh@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-mips@vger.kernel.org, linux-kernel@vger.kernel.org, linux-m68k@lists.linux-m68k.org, openrisc@lists.librecores.org, linux-mtd@lists.infradead.org, linux-alpha@vger.kernel.org, sparclinux@vger.kernel.org, nios2-dev@lists.rocketboards.org, linux-riscv@lists.infradead.org, linux-snps-arc@lists.infradead.org, linux-arm-kernel@lists.infradead.org
-Message-ID: <20190817212702.U8PeYs3lb-Ol_4N4gxQjkG_DK09eYz-joUV8T8VVOfw@z>
+To: Christoph Hellwig <hch@infradead.org>
+Cc: Arnd Bergmann <arnd@arndb.de>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, linux-csky@vger.kernel.org, zhang_jian5@dahuatech.com, Guo Ren <ren_guo@c-sky.com>
+Message-ID: <20190818022018.G2P5qWcDhY1xmWBKesa4M2ly0ORa_u2uElgZB9M-so4@z>
 
-On Sat, 17 Aug 2019, Paul Walmsley wrote:
+Thx Christoph,
 
-> Acked-by: Paul Walmsley <paul.walmsley@sifive.com> # arch/riscv
+On Fri, Aug 16, 2019 at 3:03 PM Christoph Hellwig <hch@infradead.org> wrote:
+>
+> On Thu, Aug 15, 2019 at 07:28:57PM +0800, guoren@kernel.org wrote:
+> > From: Guo Ren <ren_guo@c-sky.com>
+> >
+> > Implement the following apis to meet usage in different scenarios.
+> >
+> >  - ioremap          (NonCache + StrongOrder)
+> >  - ioremap_nocache  (NonCache + StrongOrder)
+> >  - ioremap_wc       (NonCache + WeakOrder  )
+> >  - ioremap_cache    (   Cache + WeakOrder  )
+> >
+> > Also change flag VM_ALLOC to VM_IOREMAP in get_vm_area_caller.
+>
+> Looks generally fine, but two comments:
+>
+>  - do you have a need for ioremap_cache?  We are generally try to
+>    phase it out in favour of memremap, and it is generally only used
+>    by arch specific code.
+Yes, some drivers of our customers use ioremap_cache to map phy_addr
+which isn't belong to system memory.
 
-This ack is superfluous since the patch doesn't touch arch/riscv; feel 
-free to drop it
+>  - I have a big series pending to clean up the mess with our
+>    ioremap_* functions, including adding a generic implementation
+>    that csky should be able to use.  Unless this patch is urgent it
+>    might make sense to rebase it on top.  Here is my current tree, I
+>    plan to post it soon:
+>
+>         http://git.infradead.org/users/hch/misc.git/shortlog/refs/heads/generic-ioremap
+I agree to use GENERIC_IOREMAP, but I want to add csky support
+GENERIC_IOREMAP patch by myself.
+You could remove "csky: use generic ioremap" in your patchset first
+and I'll add support GENERIC_IORMAP patch later.
+Then we won't get confilct :)
 
+--
+Best Regards
+ Guo Ren
 
-- Paul
+ML: https://lore.kernel.org/linux-csky/
