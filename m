@@ -1,34 +1,34 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pg1-f194.google.com ([209.85.215.194]:33811 "EHLO
-        mail-pg1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1725536AbfHSPvK (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 19 Aug 2019 11:51:10 -0400
-Received: by mail-pg1-f194.google.com with SMTP id n9so1457846pgc.1
-        for <linux-arch@vger.kernel.org>; Mon, 19 Aug 2019 08:51:09 -0700 (PDT)
+Received: from mail.kernel.org ([198.145.29.99]:40818 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1727857AbfHSQZz (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 19 Aug 2019 12:25:55 -0400
+Date: Mon, 19 Aug 2019 17:25:49 +0100
+From: Will Deacon <will@kernel.org>
+Subject: Re: [PATCH v8 4/5] arm64: Define
+ Documentation/arm64/tagged-address-abi.rst
+Message-ID: <20190819162548.c7udab6g6i662qaa@willie-the-truck>
+References: <20190815154403.16473-1-catalin.marinas@arm.com>
+ <20190815154403.16473-5-catalin.marinas@arm.com>
 MIME-Version: 1.0
-References: <20190815154403.16473-1-catalin.marinas@arm.com> <20190815154403.16473-5-catalin.marinas@arm.com>
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
 In-Reply-To: <20190815154403.16473-5-catalin.marinas@arm.com>
-From: Andrey Konovalov <andreyknvl@google.com>
-Date: Mon, 19 Aug 2019 17:50:57 +0200
-Message-ID: <CAAeHK+xpfCxeMya5aiwaUw1hKTd5C32naqrREpz-3GSXM73ELw@mail.gmail.com>
-Subject: Re: [PATCH v8 4/5] arm64: Define Documentation/arm64/tagged-address-abi.rst
-Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Linux ARM <linux-arm-kernel@lists.infradead.org>, Linux Memory Management List <linux-mm@kvack.org>, Andrew Morton <akpm@linux-foundation.org>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Will Deacon <will.deacon@arm.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Kevin Brodsky <kevin.brodsky@arm.com>, Dave P Martin <Dave.Martin@arm.com>, Dave Hansen <dave.hansen@intel.com>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>
-Message-ID: <20190819155057.sRoEpUEV1kH47mQfwnDm9Ke1EhzMbrJFB62m7HZ4aKQ@z>
+Cc: linux-arm-kernel@lists.infradead.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, Szabolcs Nagy <szabolcs.nagy@arm.com>, Andrey Konovalov <andreyknvl@google.com>, Kevin Brodsky <kevin.brodsky@arm.com>, Will Deacon <will.deacon@arm.com>, Dave Hansen <dave.hansen@intel.com>, Andrew Morton <akpm@linux-foundation.org>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Dave P Martin <Dave.Martin@arm.com>
+Message-ID: <20190819162549.ohYiWhNHlPahiM_8wG0mResmQBZ9hDTXA_XGfcZPJPk@z>
 
-On Thu, Aug 15, 2019 at 5:44 PM Catalin Marinas <catalin.marinas@arm.com> wrote:
->
+On Thu, Aug 15, 2019 at 04:44:02PM +0100, Catalin Marinas wrote:
 > From: Vincenzo Frascino <vincenzo.frascino@arm.com>
->
+> 
 > On AArch64 the TCR_EL1.TBI0 bit is set by default, allowing userspace
 > (EL0) to perform memory accesses through 64-bit pointers with a non-zero
 > top byte. Introduce the document describing the relaxation of the
 > syscall ABI that allows userspace to pass certain tagged pointers to
 > kernel syscalls.
->
+> 
 > Cc: Will Deacon <will.deacon@arm.com>
 > Cc: Andrey Konovalov <andreyknvl@google.com>
 > Cc: Szabolcs Nagy <szabolcs.nagy@arm.com>
@@ -36,14 +36,11 @@ On Thu, Aug 15, 2019 at 5:44 PM Catalin Marinas <catalin.marinas@arm.com> wrote:
 > Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
 > Co-developed-by: Catalin Marinas <catalin.marinas@arm.com>
 > Signed-off-by: Catalin Marinas <catalin.marinas@arm.com>
-
-Acked-by: Andrey Konovalov <andreyknvl@google.com>
-
 > ---
 >  Documentation/arm64/tagged-address-abi.rst | 155 +++++++++++++++++++++
 >  1 file changed, 155 insertions(+)
 >  create mode 100644 Documentation/arm64/tagged-address-abi.rst
->
+> 
 > diff --git a/Documentation/arm64/tagged-address-abi.rst b/Documentation/arm64/tagged-address-abi.rst
 > new file mode 100644
 > index 000000000000..8808337775d6
@@ -83,7 +80,11 @@ Acked-by: Andrey Konovalov <andreyknvl@google.com>
 > +  - flags have the **MAP_ANONYMOUS** bit set
 > +  - the file descriptor refers to a regular file (including those
 > +    returned by memfd_create()) or **/dev/zero**
-> +
+
+nit: but the markup is pretty inconsistent throughout. Why is /dev/zero
+bold, but not memfd_create()? I think they would both be better off in
+typewriter font, if that's a thing in rst.
+
 > +- brk() system call done by the process itself (i.e. the heap area
 > +  between the initial location of the program break at process creation
 > +  and its current location).
@@ -139,6 +140,15 @@ Acked-by: Andrey Konovalov <andreyknvl@google.com>
 > +
 > +- A valid tagged pointer has the same semantics as the corresponding
 > +  untagged pointer.
+
+nit, but I'd reword this last bullet slightly to say:
+
+  - The syscall behaviour for a valid tagged pointer is the same as for
+    the corresponding untagged pointer.
+
+Since that flows better wrt the previous bullet and is explicit about
+syscall behaviour, rather than overall semantics.
+
 > +
 > +A definition of the meaning of tagged pointers on AArch64 can be found
 > +in Documentation/arm64/tagged-pointers.rst.
@@ -154,54 +164,12 @@ Acked-by: Andrey Konovalov <andreyknvl@google.com>
 > +
 > +- ioctl() other than arguments pointing to user structures to be
 > +  accessed by the kernel.
-> +
-> +- shmat() and shmdt().
-> +
-> +Any attempt to use non-zero tagged pointers may result in an error code
-> +being returned, a (fatal) signal being raised, or other modes of
-> +failure.
-> +
-> +4. Example of correct usage
-> +---------------------------
-> +.. code-block:: c
-> +
-> +   #include <stdlib.h>
-> +   #include <string.h>
-> +   #include <unistd.h>
-> +   #include <sys/mman.h>
-> +   #include <sys/prctl.h>
-> +
-> +   #define PR_SET_TAGGED_ADDR_CTRL     55
-> +   #define PR_TAGGED_ADDR_ENABLE       (1UL << 0)
-> +
-> +   #define TAG_SHIFT           56
-> +
-> +   int main(void)
-> +   {
-> +       int tbi_enabled = 0;
-> +       unsigned long tag = 0;
-> +       char *ptr;
-> +
-> +       /* check/enable the tagged address ABI */
-> +       if (!prctl(PR_SET_TAGGED_ADDR_CTRL, PR_TAGGED_ADDR_ENABLE, 0, 0, 0))
-> +               tbi_enabled = 1;
-> +
-> +       /* memory allocation */
-> +       ptr = mmap(NULL, sysconf(_SC_PAGE_SIZE), PROT_READ | PROT_WRITE,
-> +                  MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
-> +       if (ptr == MAP_FAILED)
-> +               return 1;
-> +
-> +       /* set a non-zero tag if the ABI is available */
-> +       if (tbi_enabled)
-> +               tag = rand() & 0xff;
-> +       ptr = (char *)((unsigned long)ptr | (tag << TAG_SHIFT));
-> +
-> +       /* memory access to a tagged address */
-> +       strcpy(ptr, "tagged pointer\n");
-> +
-> +       /* syscall with a tagged pointer */
-> +       write(1, ptr, strlen(ptr));
-> +
-> +       return 0;
-> +   }
+
+I agree with Kevin that we should tighten this up. How about:
+
+  - ... other than pointers to user data either passed directly or
+    indirectly as arguments to be accessed by the kernel.
+
+?
+
+Will
