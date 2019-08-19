@@ -1,7 +1,7 @@
 From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH 1/7] bug: Refactor away warn_slowpath_fmt_taint()
-Date: Mon, 19 Aug 2019 16:41:05 -0700
-Message-ID: <20190819234111.9019-2-keescook@chromium.org>
+Subject: [PATCH 4/7] bug: Lift "cut here" out of __warn()
+Date: Mon, 19 Aug 2019 16:41:08 -0700
+Message-ID: <20190819234111.9019-5-keescook@chromium.org>
 References: <20190819234111.9019-1-keescook@chromium.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20190819234111.9019-1-keescook@chromium.org>
@@ -10,92 +10,41 @@ To: Andrew Morton <akpm@linux-foundation.org>
 Cc: Kees Cook <keescook@chromium.org>, Christophe Leroy <christophe.leroy@c-s.fr>, Drew Davenport <ddavenport@chromium.org>, Peter Zijlstra <peterz@infradead.org>, Arnd Bergmann <arnd@arndb.de>, "Steven Rostedt (VMware)" <rostedt@goodmis.org>, Feng Tang <feng.tang@intel.com>, Petr Mladek <pmladek@suse.com>, Mauro Carvalho Chehab <mchehab+samsung@kernel.org>, Borislav Petkov <bp@suse.de>, YueHaibing <yuehaibing@huawei.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-There's no reason to have specialized helpers for passing the warn
-taint down to __warn(). Consolidate and refactor helper macros, removing
-__WARN_printf() and warn_slowpath_fmt_taint().
+In preparation for cleaning up "cut here", move the "cut here" logic
+up out of __warn() and into callers that pass non-NULL args. For anyone
+looking closely, there are two callers that pass NULL args: one already
+explicitly prints "cut here". The remaining case is covered by how a
+WARN is built, which will be cleaned up in the next patch.
 
 Signed-off-by: Kees Cook <keescook@chromium.org>
 ---
- include/asm-generic/bug.h | 13 ++++---------
- kernel/panic.c            | 18 +++---------------
- 2 files changed, 7 insertions(+), 24 deletions(-)
+ kernel/panic.c | 6 ++----
+ 1 file changed, 2 insertions(+), 4 deletions(-)
 
-diff --git a/include/asm-generic/bug.h b/include/asm-generic/bug.h
-index aa6c093d9ce9..ce466432ac3e 100644
---- a/include/asm-generic/bug.h
-+++ b/include/asm-generic/bug.h
-@@ -90,24 +90,19 @@ struct bug_entry {
-  * Use the versions with printk format strings to provide better diagnostics.
-  */
- #ifndef __WARN_TAINT
--extern __printf(3, 4)
--void warn_slowpath_fmt(const char *file, const int line,
--		       const char *fmt, ...);
- extern __printf(4, 5)
--void warn_slowpath_fmt_taint(const char *file, const int line, unsigned taint,
--			     const char *fmt, ...);
-+void warn_slowpath_fmt(const char *file, const int line, unsigned taint,
-+		       const char *fmt, ...);
- extern void warn_slowpath_null(const char *file, const int line);
- #define WANT_WARN_ON_SLOWPATH
- #define __WARN()		warn_slowpath_null(__FILE__, __LINE__)
--#define __WARN_printf(arg...)	warn_slowpath_fmt(__FILE__, __LINE__, arg)
- #define __WARN_printf_taint(taint, arg...)				\
--	warn_slowpath_fmt_taint(__FILE__, __LINE__, taint, arg)
-+	warn_slowpath_fmt(__FILE__, __LINE__, taint, arg)
- #else
- extern __printf(1, 2) void __warn_printk(const char *fmt, ...);
- #define __WARN() do { \
- 	printk(KERN_WARNING CUT_HERE); __WARN_TAINT(TAINT_WARN); \
- } while (0)
--#define __WARN_printf(arg...)	__WARN_printf_taint(TAINT_WARN, arg)
- #define __WARN_printf_taint(taint, arg...)				\
- 	do { __warn_printk(arg); __WARN_TAINT(taint); } while (0)
- #endif
-@@ -132,7 +127,7 @@ void __warn(const char *file, int line, void *caller, unsigned taint,
- #define WARN(condition, format...) ({					\
- 	int __ret_warn_on = !!(condition);				\
- 	if (unlikely(__ret_warn_on))					\
--		__WARN_printf(format);					\
-+		__WARN_printf_taint(TAINT_WARN, format);		\
- 	unlikely(__ret_warn_on);					\
- })
- #endif
 diff --git a/kernel/panic.c b/kernel/panic.c
-index 057540b6eee9..4d8b7577c82c 100644
+index 51efdeb2558e..dc2243429903 100644
 --- a/kernel/panic.c
 +++ b/kernel/panic.c
-@@ -592,20 +592,8 @@ void __warn(const char *file, int line, void *caller, unsigned taint,
- }
+@@ -551,9 +551,6 @@ void __warn(const char *file, int line, void *caller, unsigned taint,
+ {
+ 	disable_trace_on_warning();
  
- #ifdef WANT_WARN_ON_SLOWPATH
--void warn_slowpath_fmt(const char *file, int line, const char *fmt, ...)
--{
--	struct warn_args args;
+-	if (args)
+-		pr_warn(CUT_HERE);
 -
--	args.fmt = fmt;
--	va_start(args.args, fmt);
--	__warn(file, line, __builtin_return_address(0), TAINT_WARN, NULL,
--	       &args);
--	va_end(args.args);
--}
--EXPORT_SYMBOL(warn_slowpath_fmt);
--
--void warn_slowpath_fmt_taint(const char *file, int line,
--			     unsigned taint, const char *fmt, ...)
-+void warn_slowpath_fmt(const char *file, int line, unsigned taint,
-+		       const char *fmt, ...)
+ 	if (file)
+ 		pr_warn("WARNING: CPU: %d PID: %d at %s:%d %pS\n",
+ 			raw_smp_processor_id(), current->pid, file, line,
+@@ -597,8 +594,9 @@ void warn_slowpath_fmt(const char *file, int line, unsigned taint,
  {
  	struct warn_args args;
  
-@@ -614,7 +602,7 @@ void warn_slowpath_fmt_taint(const char *file, int line,
- 	__warn(file, line, __builtin_return_address(0), taint, NULL, &args);
- 	va_end(args.args);
- }
--EXPORT_SYMBOL(warn_slowpath_fmt_taint);
-+EXPORT_SYMBOL(warn_slowpath_fmt);
- 
- void warn_slowpath_null(const char *file, int line)
- {
++	pr_warn(CUT_HERE);
++
+ 	if (!fmt) {
+-		pr_warn(CUT_HERE);
+ 		__warn(file, line, __builtin_return_address(0), taint,
+ 		       NULL, NULL);
+ 		return;
 -- 
 2.17.1
