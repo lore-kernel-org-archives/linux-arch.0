@@ -1,73 +1,63 @@
 From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH 5/7] bug: Clean up helper macros to remove __WARN_TAINT()
-Date: Mon, 19 Aug 2019 16:41:09 -0700
-Message-ID: <20190819234111.9019-6-keescook@chromium.org>
-References: <20190819234111.9019-1-keescook@chromium.org>
+Subject: [PATCH 0/7] Clean up WARN() "cut here" handling
+Date: Mon, 19 Aug 2019 16:41:04 -0700
+Message-ID: <20190819234111.9019-1-keescook@chromium.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20190819234111.9019-1-keescook@chromium.org>
 Sender: linux-kernel-owner@vger.kernel.org
 To: Andrew Morton <akpm@linux-foundation.org>
 Cc: Kees Cook <keescook@chromium.org>, Christophe Leroy <christophe.leroy@c-s.fr>, Drew Davenport <ddavenport@chromium.org>, Peter Zijlstra <peterz@infradead.org>, Arnd Bergmann <arnd@arndb.de>, "Steven Rostedt (VMware)" <rostedt@goodmis.org>, Feng Tang <feng.tang@intel.com>, Petr Mladek <pmladek@suse.com>, Mauro Carvalho Chehab <mchehab+samsung@kernel.org>, Borislav Petkov <bp@suse.de>, YueHaibing <yuehaibing@huawei.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-In preparation for cleaning up "cut here" even more, this removes the
-__WARN_*TAINT() helpers, as they limit the ability to add new BUGFLAG_*
-flags to call sites. They are removed by expanding them into full
-__WARN_FLAGS() calls.
+Christophe Leroy noticed that the fix for missing "cut here" in the
+WARN() case was adding explicit printk() calls instead of teaching the
+exception handler to add it. This refactors the bug/warn infrastructure
+to pass this information as a new BUGFLAG.
 
+Longer details repeated from the last patch in the series:
+
+
+bug: Move WARN_ON() "cut here" into exception handler
+
+The original clean up of "cut here" missed the WARN_ON() case (that
+does not have a printk message), which was fixed recently by adding
+an explicit printk of "cut here". This had the downside of adding a
+printk() to every WARN_ON() caller, which reduces the utility of using
+an instruction exception to streamline the resulting code. By making
+this a new BUGFLAG, all of these can be removed and "cut here" can be
+handled by the exception handler.
+
+This was very pronounced on PowerPC, but the effect can be seen on
+x86 as well. The resulting text size of a defconfig build shows some
+small savings from this patch:
+
+   text    data     bss     dec     hex filename
+19691167        5134320 1646664 26472151        193eed7 vmlinux.before
+19676362        5134260 1663048 26473670        193f4c6 vmlinux.after
+
+This change also opens the door for creating something like BUG_MSG(),
+where a custom printk() before issuing BUG(), without confusing the "cut
+here" line.
+
+Reported-by: Christophe Leroy <christophe.leroy@c-s.fr>
+Fixes: Fixes: 6b15f678fb7d ("include/asm-generic/bug.h: fix "cut here" for WARN_ON for __WARN_TAINT architectures")
 Signed-off-by: Kees Cook <keescook@chromium.org>
----
- include/asm-generic/bug.h | 21 +++++++++++----------
- 1 file changed, 11 insertions(+), 10 deletions(-)
 
-diff --git a/include/asm-generic/bug.h b/include/asm-generic/bug.h
-index f76efbcbe3b5..6ea8d258cb96 100644
---- a/include/asm-generic/bug.h
-+++ b/include/asm-generic/bug.h
-@@ -62,13 +62,11 @@ struct bug_entry {
- #endif
- 
- #ifdef __WARN_FLAGS
--#define __WARN_TAINT(taint)		__WARN_FLAGS(BUGFLAG_TAINT(taint))
--#define __WARN_ONCE_TAINT(taint)	__WARN_FLAGS(BUGFLAG_ONCE|BUGFLAG_TAINT(taint))
--
- #define WARN_ON_ONCE(condition) ({				\
- 	int __ret_warn_on = !!(condition);			\
- 	if (unlikely(__ret_warn_on))				\
--		__WARN_ONCE_TAINT(TAINT_WARN);			\
-+		__WARN_FLAGS(BUGFLAG_ONCE |			\
-+			     BUGFLAG_TAINT(TAINT_WARN));	\
- 	unlikely(__ret_warn_on);				\
- })
- #endif
-@@ -89,7 +87,7 @@ struct bug_entry {
-  *
-  * Use the versions with printk format strings to provide better diagnostics.
-  */
--#ifndef __WARN_TAINT
-+#ifndef __WARN_FLAGS
- extern __printf(4, 5)
- void warn_slowpath_fmt(const char *file, const int line, unsigned taint,
- 		       const char *fmt, ...);
-@@ -99,11 +97,14 @@ void warn_slowpath_fmt(const char *file, const int line, unsigned taint,
- 	warn_slowpath_fmt(__FILE__, __LINE__, taint, arg)
- #else
- extern __printf(1, 2) void __warn_printk(const char *fmt, ...);
--#define __WARN() do { \
--	printk(KERN_WARNING CUT_HERE); __WARN_TAINT(TAINT_WARN); \
--} while (0)
--#define __WARN_printf(taint, arg...)					\
--	do { __warn_printk(arg); __WARN_TAINT(taint); } while (0)
-+#define __WARN() do {							\
-+		printk(KERN_WARNING CUT_HERE);				\
-+		__WARN_FLAGS(BUGFLAG_TAINT(TAINT_WARN));		\
-+	} while (0)
-+#define __WARN_printf(taint, arg...) do {				\
-+		__warn_printk(arg);					\
-+		__WARN_FLAGS(BUGFLAG_TAINT(taint));			\
-+	} while (0)
- #endif
- 
- /* used internally by panic.c */
+
+-Kees
+
+Kees Cook (7):
+  bug: Refactor away warn_slowpath_fmt_taint()
+  bug: Rename __WARN_printf_taint() to __WARN_printf()
+  bug: Consolidate warn_slowpath_fmt() usage
+  bug: Lift "cut here" out of __warn()
+  bug: Clean up helper macros to remove __WARN_TAINT()
+  bug: Consolidate __WARN_FLAGS usage
+  bug: Move WARN_ON() "cut here" into exception handler
+
+ include/asm-generic/bug.h | 53 ++++++++++++++++-----------------------
+ kernel/panic.c            | 34 ++++++++-----------------
+ lib/bug.c                 | 11 ++++++--
+ 3 files changed, 40 insertions(+), 58 deletions(-)
+
 -- 
 2.17.1
