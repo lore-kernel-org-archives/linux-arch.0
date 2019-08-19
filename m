@@ -1,111 +1,29 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pl1-f195.google.com ([209.85.214.195]:38049 "EHLO
-        mail-pl1-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727148AbfHSJST (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 19 Aug 2019 05:18:19 -0400
-Received: by mail-pl1-f195.google.com with SMTP id m12so683907plt.5
-        for <linux-arch@vger.kernel.org>; Mon, 19 Aug 2019 02:18:18 -0700 (PDT)
-Date: Mon, 19 Aug 2019 17:18:08 +0800
-From: Leo Yan <leo.yan@linaro.org>
-Subject: Re: [PATCH v2 3/3] arm: Add support for function error injection
-Message-ID: <20190819091808.GB5599@leoy-ThinkPad-X240s>
-References: <20190806100015.11256-1-leo.yan@linaro.org>
- <20190806100015.11256-4-leo.yan@linaro.org>
+Received: from verein.lst.de ([213.95.11.211]:45965 "EHLO verein.lst.de"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1727172AbfHSJSw (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 19 Aug 2019 05:18:52 -0400
+Date: Mon, 19 Aug 2019 11:18:46 +0200
+From: Christoph Hellwig <hch@lst.de>
+Subject: Re: [PATCH 08/26] m68k: simplify ioremap_nocache
+Message-ID: <20190819091846.GA27890@lst.de>
+References: <20190817073253.27819-1-hch@lst.de> <20190817073253.27819-9-hch@lst.de> <CAMuHMdWyXGjokWi7tn9JHCTz9YMb_vHn6XKeE7KzH5n-54Sy0A@mail.gmail.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20190806100015.11256-4-leo.yan@linaro.org>
+In-Reply-To: <CAMuHMdWyXGjokWi7tn9JHCTz9YMb_vHn6XKeE7KzH5n-54Sy0A@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Russell King <linux@armlinux.org.uk>, Oleg Nesterov <oleg@redhat.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, Alexei Starovoitov <ast@kernel.org>, Daniel Borkmann <daniel@iogearbox.net>, Martin KaFai Lau <kafai@fb.com>, Song Liu <songliubraving@fb.com>, Yonghong Song <yhs@fb.com>, "Naveen N. Rao" <naveen.n.rao@linux.vnet.ibm.com>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-arch@vger.kernel.org, netdev@vger.kernel.org, bpf@vger.kernel.org, clang-built-linux@googlegroups.com, Masami Hiramatsu <mhiramat@kernel.org>
-Message-ID: <20190819091808.SGeOShPnlNxb2S8UMOlBRmWPelegPxSw9QU9JM2eyuI@z>
+To: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: Christoph Hellwig <hch@lst.de>, Arnd Bergmann <arnd@arndb.de>, Guo Ren <guoren@kernel.org>, Michal Simek <monstr@monstr.eu>, Greentime Hu <green.hu@gmail.com>, Vincent Chen <deanbo422@gmail.com>, Guan Xuetao <gxt@pku.edu.cn>, the arch/x86 maintainers <x86@kernel.org>, alpha <linux-alpha@vger.kernel.org>, arcml <linux-snps-arc@lists.infradead.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, "open list:QUALCOMM HEXAGON..." <linux-hexagon@vger.kernel.org>, "linux-ia64@vger.kernel.org" <linux-ia64@vger.kernel.org>, linux-m68k <linux-m68k@lists.linux-m68k.org>, linux-mips@vger.kernel.org, nios2-dev@lists.rocketboards.org, Openrisc <openrisc@lists.librecores.org>, Parisc List <linux-parisc@vger.kernel.org>, linux-riscv@lists.infradead.org, linux-s390 <linux-s390@vger.kernel.org>, Linux-sh list <linux-sh@vger.kernel.org>, sparclinux <sparclinux@vger.kernel.org>, linux-xtensa@linux-xtensa.org, MTD Maling List <linux-mtd@lists.infradead.org>, Linux-Arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
+Message-ID: <20190819091846.LYMnmh7c_8wcwrs5vpasTP9f2p-D4BOd2bhzlSthoVA@z>
 
-Hi Russell,
+On Mon, Aug 19, 2019 at 10:56:02AM +0200, Geert Uytterhoeven wrote:
+> BTW, shouldn't we get rid of the sole user of ioremap_uc(), too?
+> Seems to make a difference on x86 only, where it is "strongly uncached"
+> (whatever that may mean ;-)
 
-On Tue, Aug 06, 2019 at 06:00:15PM +0800, Leo Yan wrote:
-> This patch implements arm specific functions regs_set_return_value() and
-> override_function_with_return() to support function error injection.
-> 
-> In the exception flow, it updates pt_regs::ARM_pc with pt_regs::ARM_lr
-> so can override the probed function return.
+Yes, we probably should.  However that actually seems worth a discussion
+so I wanted to defer it until after this already huge series.
 
-Gentle ping ...  Could you review this patch?
-
-Thanks,
-Leo.
-
-> Signed-off-by: Leo Yan <leo.yan@linaro.org>
-> ---
->  arch/arm/Kconfig              |  1 +
->  arch/arm/include/asm/ptrace.h |  5 +++++
->  arch/arm/lib/Makefile         |  2 ++
->  arch/arm/lib/error-inject.c   | 19 +++++++++++++++++++
->  4 files changed, 27 insertions(+)
->  create mode 100644 arch/arm/lib/error-inject.c
-> 
-> diff --git a/arch/arm/Kconfig b/arch/arm/Kconfig
-> index 33b00579beff..2d3d44a037f6 100644
-> --- a/arch/arm/Kconfig
-> +++ b/arch/arm/Kconfig
-> @@ -77,6 +77,7 @@ config ARM
->  	select HAVE_EXIT_THREAD
->  	select HAVE_FAST_GUP if ARM_LPAE
->  	select HAVE_FTRACE_MCOUNT_RECORD if !XIP_KERNEL
-> +	select HAVE_FUNCTION_ERROR_INJECTION if !THUMB2_KERNEL
->  	select HAVE_FUNCTION_GRAPH_TRACER if !THUMB2_KERNEL && !CC_IS_CLANG
->  	select HAVE_FUNCTION_TRACER if !XIP_KERNEL
->  	select HAVE_GCC_PLUGINS
-> diff --git a/arch/arm/include/asm/ptrace.h b/arch/arm/include/asm/ptrace.h
-> index 91d6b7856be4..3b41f37b361a 100644
-> --- a/arch/arm/include/asm/ptrace.h
-> +++ b/arch/arm/include/asm/ptrace.h
-> @@ -89,6 +89,11 @@ static inline long regs_return_value(struct pt_regs *regs)
->  	return regs->ARM_r0;
->  }
->  
-> +static inline void regs_set_return_value(struct pt_regs *regs, unsigned long rc)
-> +{
-> +	regs->ARM_r0 = rc;
-> +}
-> +
->  #define instruction_pointer(regs)	(regs)->ARM_pc
->  
->  #ifdef CONFIG_THUMB2_KERNEL
-> diff --git a/arch/arm/lib/Makefile b/arch/arm/lib/Makefile
-> index b25c54585048..8f56484a7156 100644
-> --- a/arch/arm/lib/Makefile
-> +++ b/arch/arm/lib/Makefile
-> @@ -42,3 +42,5 @@ ifeq ($(CONFIG_KERNEL_MODE_NEON),y)
->    CFLAGS_xor-neon.o		+= $(NEON_FLAGS)
->    obj-$(CONFIG_XOR_BLOCKS)	+= xor-neon.o
->  endif
-> +
-> +obj-$(CONFIG_FUNCTION_ERROR_INJECTION) += error-inject.o
-> diff --git a/arch/arm/lib/error-inject.c b/arch/arm/lib/error-inject.c
-> new file mode 100644
-> index 000000000000..2d696dc94893
-> --- /dev/null
-> +++ b/arch/arm/lib/error-inject.c
-> @@ -0,0 +1,19 @@
-> +// SPDX-License-Identifier: GPL-2.0
-> +
-> +#include <linux/error-injection.h>
-> +#include <linux/kprobes.h>
-> +
-> +void override_function_with_return(struct pt_regs *regs)
-> +{
-> +	/*
-> +	 * 'regs' represents the state on entry of a predefined function in
-> +	 * the kernel/module and which is captured on a kprobe.
-> +	 *
-> +	 * 'regs->ARM_lr' contains the the link register for the probed
-> +	 * function, when kprobe returns back from exception it will override
-> +	 * the end of probed function and directly return to the predefined
-> +	 * function's caller.
-> +	 */
-> +	instruction_pointer_set(regs, regs->ARM_lr);
-> +}
-> +NOKPROBE_SYMBOL(override_function_with_return);
-> -- 
-> 2.17.1
-> 
+Another thing we can do after this series is to kill of ioremap_nocache.
