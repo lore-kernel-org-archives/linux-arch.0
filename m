@@ -1,75 +1,67 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-eopbgr810109.outbound.protection.outlook.com ([40.107.81.109]:32719
-        "EHLO NAM01-BY2-obe.outbound.protection.outlook.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1727769AbfHSU5q (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 19 Aug 2019 16:57:46 -0400
-From: Paul Burton <paul.burton@mips.com>
-Subject: Re: [PATCH 04/26] mips: remove ioremap_cachable
-Date: Mon, 19 Aug 2019 20:57:30 +0000
-Message-ID: <20190819205722.4eir2edy6qgtgarl@pburton-laptop>
-References: <20190817073253.27819-1-hch@lst.de>
- <20190817073253.27819-5-hch@lst.de>
-In-Reply-To: <20190817073253.27819-5-hch@lst.de>
-Content-Language: en-US
-Content-Type: text/plain; charset="us-ascii"
-Content-ID: <F7A01E6E65132543B693A9F6442F8662@namprd22.prod.outlook.com>
-Content-Transfer-Encoding: quoted-printable
-MIME-Version: 1.0
+Received: from mail-pf1-f195.google.com ([209.85.210.195]:45160 "EHLO
+        mail-pf1-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1728363AbfHSXlS (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 19 Aug 2019 19:41:18 -0400
+Received: by mail-pf1-f195.google.com with SMTP id w26so2118028pfq.12
+        for <linux-arch@vger.kernel.org>; Mon, 19 Aug 2019 16:41:18 -0700 (PDT)
+From: Kees Cook <keescook@chromium.org>
+Subject: [PATCH 2/7] bug: Rename __WARN_printf_taint() to __WARN_printf()
+Date: Mon, 19 Aug 2019 16:41:06 -0700
+Message-ID: <20190819234111.9019-3-keescook@chromium.org>
+In-Reply-To: <20190819234111.9019-1-keescook@chromium.org>
+References: <20190819234111.9019-1-keescook@chromium.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Christoph Hellwig <hch@lst.de>
-Cc: Arnd Bergmann <arnd@arndb.de>, Guo Ren <guoren@kernel.org>, Michal Simek <monstr@monstr.eu>, Greentime Hu <green.hu@gmail.com>, Vincent Chen <deanbo422@gmail.com>, Guan Xuetao <gxt@pku.edu.cn>, "x86@kernel.org" <x86@kernel.org>, "linux-alpha@vger.kernel.org" <linux-alpha@vger.kernel.org>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-hexagon@vger.kernel.org" <linux-hexagon@vger.kernel.org>, "linux-ia64@vger.kernel.org" <linux-ia64@vger.kernel.org>, "linux-m68k@lists.linux-m68k.org" <linux-m68k@lists.linux-m68k.org>, "linux-mips@vger.kernel.org" <linux-mips@vger.kernel.org>, "nios2-dev@lists.rocketboards.org" <nios2-dev@lists.rocketboards.org>, "openrisc@lists.librecores.org" <openrisc@lists.librecores.org>, "linux-parisc@vger.kernel.org" <linux-parisc@vger.kernel.org>, "linux-riscv@lists.infradead.org" <linux-riscv@lists.infradead.org>, "linux-s390@vger.kernel.org" <linux-s390@vger.kernel.org>, "linux-sh@vger.kernel.org" <linux-sh@vger.kernel.org>, "sparclinux@vger.kernel.org" <sparclinux@vger.kernel.org>, "linux-xtensa@linux-xtensa.org" <linux-xtensa@linux-xtensa.org>, "linux-mtd@lists.infradead.org" <linux-mtd@lists.infradead.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
-Message-ID: <20190819205730.9PTDQLRhwgHxWT3VFF6uxsq07YO-Iv8FzSJpCmq99Bs@z>
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: Kees Cook <keescook@chromium.org>, Christophe Leroy <christophe.leroy@c-s.fr>, Drew Davenport <ddavenport@chromium.org>, Peter Zijlstra <peterz@infradead.org>, Arnd Bergmann <arnd@arndb.de>, "Steven Rostedt (VMware)" <rostedt@goodmis.org>, Feng Tang <feng.tang@intel.com>, Petr Mladek <pmladek@suse.com>, Mauro Carvalho Chehab <mchehab+samsung@kernel.org>, Borislav Petkov <bp@suse.de>, YueHaibing <yuehaibing@huawei.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20190819234106.VEmsgvzYdVKIzlSyM64x8XSUG1QbnIFjYlr8COkLzgg@z>
 
-Hi Christoph,
+This just renames the helper to improve readability.
 
-On Sat, Aug 17, 2019 at 09:32:31AM +0200, Christoph Hellwig wrote:
-> Just define ioremap_cache directly.
->=20
-> Signed-off-by: Christoph Hellwig <hch@lst.de>
+Signed-off-by: Kees Cook <keescook@chromium.org>
+---
+ include/asm-generic/bug.h | 8 ++++----
+ 1 file changed, 4 insertions(+), 4 deletions(-)
 
-Acked-by: Paul Burton <paul.burton@mips.com>
-
-Thanks,
-    Paul
-
-> ---
->  arch/mips/include/asm/io.h | 7 +++----
->  1 file changed, 3 insertions(+), 4 deletions(-)
->=20
-> diff --git a/arch/mips/include/asm/io.h b/arch/mips/include/asm/io.h
-> index 97a280640daf..c02db986ddf5 100644
-> --- a/arch/mips/include/asm/io.h
-> +++ b/arch/mips/include/asm/io.h
-> @@ -262,11 +262,11 @@ static inline void __iomem *ioremap_prot(phys_addr_=
-t offset,
->  #define ioremap_uc ioremap_nocache
-> =20
->  /*
-> - * ioremap_cachable -	map bus memory into CPU space
-> + * ioremap_cache -	map bus memory into CPU space
->   * @offset:	    bus address of the memory
->   * @size:	    size of the resource to map
->   *
-> - * ioremap_nocache performs a platform specific sequence of operations t=
-o
-> + * ioremap_cache performs a platform specific sequence of operations to
->   * make bus memory CPU accessible via the readb/readw/readl/writeb/
->   * writew/writel functions and the other mmio helpers. The returned
->   * address is not guaranteed to be usable directly as a virtual
-> @@ -276,9 +276,8 @@ static inline void __iomem *ioremap_prot(phys_addr_t =
-offset,
->   * the CPU.  Also enables full write-combining.	 Useful for some
->   * memory-like regions on I/O busses.
->   */
-> -#define ioremap_cachable(offset, size)					\
-> +#define ioremap_cache(offset, size)					\
->  	__ioremap_mode((offset), (size), _page_cachable_default)
-> -#define ioremap_cache ioremap_cachable
-> =20
->  /*
->   * ioremap_wc     -   map bus memory into CPU space
-> --=20
-> 2.20.1
->=20
+diff --git a/include/asm-generic/bug.h b/include/asm-generic/bug.h
+index ce466432ac3e..e9166a24b336 100644
+--- a/include/asm-generic/bug.h
++++ b/include/asm-generic/bug.h
+@@ -96,14 +96,14 @@ void warn_slowpath_fmt(const char *file, const int line, unsigned taint,
+ extern void warn_slowpath_null(const char *file, const int line);
+ #define WANT_WARN_ON_SLOWPATH
+ #define __WARN()		warn_slowpath_null(__FILE__, __LINE__)
+-#define __WARN_printf_taint(taint, arg...)				\
++#define __WARN_printf(taint, arg...)					\
+ 	warn_slowpath_fmt(__FILE__, __LINE__, taint, arg)
+ #else
+ extern __printf(1, 2) void __warn_printk(const char *fmt, ...);
+ #define __WARN() do { \
+ 	printk(KERN_WARNING CUT_HERE); __WARN_TAINT(TAINT_WARN); \
+ } while (0)
+-#define __WARN_printf_taint(taint, arg...)				\
++#define __WARN_printf(taint, arg...)					\
+ 	do { __warn_printk(arg); __WARN_TAINT(taint); } while (0)
+ #endif
+ 
+@@ -127,7 +127,7 @@ void __warn(const char *file, int line, void *caller, unsigned taint,
+ #define WARN(condition, format...) ({					\
+ 	int __ret_warn_on = !!(condition);				\
+ 	if (unlikely(__ret_warn_on))					\
+-		__WARN_printf_taint(TAINT_WARN, format);		\
++		__WARN_printf(TAINT_WARN, format);			\
+ 	unlikely(__ret_warn_on);					\
+ })
+ #endif
+@@ -135,7 +135,7 @@ void __warn(const char *file, int line, void *caller, unsigned taint,
+ #define WARN_TAINT(condition, taint, format...) ({			\
+ 	int __ret_warn_on = !!(condition);				\
+ 	if (unlikely(__ret_warn_on))					\
+-		__WARN_printf_taint(taint, format);			\
++		__WARN_printf(taint, format);				\
+ 	unlikely(__ret_warn_on);					\
+ })
+ 
+-- 
+2.17.1
