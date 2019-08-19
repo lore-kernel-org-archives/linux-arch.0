@@ -1,41 +1,43 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:41364 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727808AbfHSQ25 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 19 Aug 2019 12:28:57 -0400
-Date: Mon, 19 Aug 2019 17:28:51 +0100
-From: Will Deacon <will@kernel.org>
-Subject: Re: [PATCH v8 1/5] mm: untag user pointers in mmap/munmap/mremap/brk
-Message-ID: <20190819162851.tncj4wpwf625ofg6@willie-the-truck>
-References: <20190815154403.16473-1-catalin.marinas@arm.com>
- <20190815154403.16473-2-catalin.marinas@arm.com>
+Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:15314 "EHLO
+        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
+        by vger.kernel.org with ESMTP id S1727744AbfHSRwZ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 19 Aug 2019 13:52:25 -0400
+Received: from pps.filterd (m0098419.ppops.net [127.0.0.1])
+        by mx0b-001b2d01.pphosted.com (8.16.0.27/8.16.0.27) with SMTP id x7JHmdt7143502
+        for <linux-arch@vger.kernel.org>; Mon, 19 Aug 2019 13:52:24 -0400
+Received: from e06smtp04.uk.ibm.com (e06smtp04.uk.ibm.com [195.75.94.100])
+        by mx0b-001b2d01.pphosted.com with ESMTP id 2ufx6mnvas-1
+        (version=TLSv1.2 cipher=AES256-GCM-SHA384 bits=256 verify=NOT)
+        for <linux-arch@vger.kernel.org>; Mon, 19 Aug 2019 13:52:23 -0400
+Received: from localhost
+        by e06smtp04.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+        for <linux-arch@vger.kernel.org> from <naveen.n.rao@linux.ibm.com>;
+        Mon, 19 Aug 2019 18:52:21 +0100
+Date: Mon, 19 Aug 2019 23:22:13 +0530
+From: "Naveen N. Rao" <naveen.n.rao@linux.ibm.com>
+Subject: Re: [PATCH 13/16] include/asm-generic: prefer __section from
+ compiler_attributes.h
+References: <20190812215052.71840-1-ndesaulniers@google.com>
+        <20190812215052.71840-13-ndesaulniers@google.com>
+In-Reply-To: <20190812215052.71840-13-ndesaulniers@google.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20190815154403.16473-2-catalin.marinas@arm.com>
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Transfer-Encoding: 8BIT
+Message-ID: <1566237106.8670clhnrk.naveen@linux.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Catalin Marinas <catalin.marinas@arm.com>, akpm@linux-foundation.org
-Cc: linux-arm-kernel@lists.infradead.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, Szabolcs Nagy <szabolcs.nagy@arm.com>, Andrey Konovalov <andreyknvl@google.com>, Kevin Brodsky <kevin.brodsky@arm.com>, Will Deacon <will.deacon@arm.com>, Dave Hansen <dave.hansen@intel.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Dave P Martin <Dave.Martin@arm.com>
-Message-ID: <20190819162851.d6Bb1Fd5RgLAFQ81_CsaazzJ9dJRNvEUwvlkvoutrzM@z>
+To: akpm@linux-foundation.org, Nick Desaulniers <ndesaulniers@google.com>
+Cc: Anil S Keshavamurthy <anil.s.keshavamurthy@intel.com>, Arnd Bergmann <arnd@arndb.de>, Alexei Starovoitov <ast@kernel.org>, bpf@vger.kernel.org, clang-built-linux@googlegroups.com, Daniel Borkmann <daniel@iogearbox.net>, "David S. Miller" <davem@davemloft.net>, jpoimboe@redhat.com, Martin KaFai Lau <kafai@fb.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Masami Hiramatsu <mhiramat@kernel.org>, miguel.ojeda.sandonis@gmail.com, netdev@vger.kernel.org, sedat.dilek@gmail.com, Song Liu <songliubraving@fb.com>, yhs@fb.com
+Message-ID: <20190819175213.ucxp7uUR8EOQvaUA0EkWCQySpHSbStRTgprlY_pxE0w@z>
 
-On Thu, Aug 15, 2019 at 04:43:59PM +0100, Catalin Marinas wrote:
-> There isn't a good reason to differentiate between the user address
-> space layout modification syscalls and the other memory
-> permission/attributes ones (e.g. mprotect, madvise) w.r.t. the tagged
-> address ABI. Untag the user addresses on entry to these functions.
-> 
-> Signed-off-by: Catalin Marinas <catalin.marinas@arm.com>
+Nick Desaulniers wrote:
+> Reported-by: Sedat Dilek <sedat.dilek@gmail.com>
+> Suggested-by: Josh Poimboeuf <jpoimboe@redhat.com>
+> Signed-off-by: Nick Desaulniers <ndesaulniers@google.com>
 > ---
->  mm/mmap.c   | 5 +++++
->  mm/mremap.c | 6 +-----
->  2 files changed, 6 insertions(+), 5 deletions(-)
 
-Acked-by: Will Deacon <will@kernel.org>
+Acked-by: Naveen N. Rao <naveen.n.rao@linux.vnet.ibm.com>
 
-Andrew -- please can you pick this patch up? I'll take the rest of the
-series via arm64 once we've finished discussing the wording details.
-
-Thanks,
-
-Will
+- Naveen
