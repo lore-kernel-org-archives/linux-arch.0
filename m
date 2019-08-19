@@ -1,52 +1,54 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.skyhub.de ([5.9.137.197]:34410 "EHLO mail.skyhub.de"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1725536AbfHSO4y (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 19 Aug 2019 10:56:54 -0400
-Date: Mon, 19 Aug 2019 16:56:52 +0200
-From: Borislav Petkov <bp@alien8.de>
-Subject: Re: [PATCH v8 10/28] x86/asm/entry: annotate interrupt symbols
- properly
-Message-ID: <20190819145652.GC4522@zn.tnic>
-References: <20190808103854.6192-1-jslaby@suse.cz>
- <20190808103854.6192-11-jslaby@suse.cz>
+Received: from mail-pg1-f194.google.com ([209.85.215.194]:44949 "EHLO
+        mail-pg1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727524AbfHSPqY (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 19 Aug 2019 11:46:24 -0400
+Received: by mail-pg1-f194.google.com with SMTP id i18so1432357pgl.11
+        for <linux-arch@vger.kernel.org>; Mon, 19 Aug 2019 08:46:24 -0700 (PDT)
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-In-Reply-To: <20190808103854.6192-11-jslaby@suse.cz>
+References: <20190815154403.16473-1-catalin.marinas@arm.com> <20190815154403.16473-3-catalin.marinas@arm.com>
+In-Reply-To: <20190815154403.16473-3-catalin.marinas@arm.com>
+From: Andrey Konovalov <andreyknvl@google.com>
+Date: Mon, 19 Aug 2019 17:46:12 +0200
+Message-ID: <CAAeHK+w7Y=UgwTyjyVt6bBSi=DZROkMaz1B6-0BefK3AjSPpYw@mail.gmail.com>
+Subject: Re: [PATCH v8 2/5] arm64: Tighten the PR_{SET,GET}_TAGGED_ADDR_CTRL
+ prctl() unused arguments
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jiri Slaby <jslaby@suse.cz>
-Cc: tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20190819145652.xcHHQqH9AIwwTW98tCoZzGKUB62xOj565jTUBeHMdCE@z>
+To: Catalin Marinas <catalin.marinas@arm.com>
+Cc: Linux ARM <linux-arm-kernel@lists.infradead.org>, Linux Memory Management List <linux-mm@kvack.org>, Andrew Morton <akpm@linux-foundation.org>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Will Deacon <will.deacon@arm.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Kevin Brodsky <kevin.brodsky@arm.com>, Dave P Martin <Dave.Martin@arm.com>, Dave Hansen <dave.hansen@intel.com>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>
+Message-ID: <20190819154612.VVahDFHhxwCKg6yX9KM6RmJjWzJ6QIwUdPvJ1LxzOdc@z>
 
-On Thu, Aug 08, 2019 at 12:38:36PM +0200, Jiri Slaby wrote:
-> * annotate functions properly by SYM_CODE_START, SYM_CODE_START_LOCAL*
->   and SYM_CODE_END -- these are not C-like functions, so we have to
->   annotate them using CODE.
-> * use SYM_INNER_LABEL* for labels being in the middle of other functions
-> 
-> [v4] alignments preserved
-> 
-> Signed-off-by: Jiri Slaby <jslaby@suse.cz>
-> Cc: Thomas Gleixner <tglx@linutronix.de>
-> Cc: Ingo Molnar <mingo@redhat.com>
-> Cc: "H. Peter Anvin" <hpa@zytor.com>
-> Cc: <x86@kernel.org>
+On Thu, Aug 15, 2019 at 5:44 PM Catalin Marinas <catalin.marinas@arm.com> wrote:
+>
+> Require that arg{3,4,5} of the PR_{SET,GET}_TAGGED_ADDR_CTRL prctl and
+> arg2 of the PR_GET_TAGGED_ADDR_CTRL prctl() are zero rather than ignored
+> for future extensions.
+>
+> Signed-off-by: Catalin Marinas <catalin.marinas@arm.com>
+
+Acked-by: Andrey Konovalov <andreyknvl@google.com>
+
 > ---
->  arch/x86/entry/entry_32.S | 28 ++++++++++++++--------------
->  arch/x86/entry/entry_64.S | 13 ++++++-------
->  2 files changed, 20 insertions(+), 21 deletions(-)
-
-Here again some of the symbols are used only in a single complilation
-unit and thus made local symbols by prepending their name with ".L" so
-that they don't pollute the symbol table. Pls do that for all symbols
-you're touching, while you're at it.
-
-Thx.
-
--- 
-Regards/Gruss,
-    Boris.
-
-Good mailing practices for 400: avoid top-posting and trim the reply.
+>  kernel/sys.c | 4 ++++
+>  1 file changed, 4 insertions(+)
+>
+> diff --git a/kernel/sys.c b/kernel/sys.c
+> index c6c4d5358bd3..ec48396b4943 100644
+> --- a/kernel/sys.c
+> +++ b/kernel/sys.c
+> @@ -2499,9 +2499,13 @@ SYSCALL_DEFINE5(prctl, int, option, unsigned long, arg2, unsigned long, arg3,
+>                 error = PAC_RESET_KEYS(me, arg2);
+>                 break;
+>         case PR_SET_TAGGED_ADDR_CTRL:
+> +               if (arg3 || arg4 || arg5)
+> +                       return -EINVAL;
+>                 error = SET_TAGGED_ADDR_CTRL(arg2);
+>                 break;
+>         case PR_GET_TAGGED_ADDR_CTRL:
+> +               if (arg2 || arg3 || arg4 || arg5)
+> +                       return -EINVAL;
+>                 error = GET_TAGGED_ADDR_CTRL();
+>                 break;
+>         default:
