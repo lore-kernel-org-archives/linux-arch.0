@@ -1,83 +1,71 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:37834 "EHLO foss.arm.com"
+Received: from foss.arm.com ([217.140.110.172]:37860 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1728414AbfHTJ5u (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 20 Aug 2019 05:57:50 -0400
+        id S1728414AbfHTJ6b (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 20 Aug 2019 05:58:31 -0400
 From: Dave Martin <Dave.Martin@arm.com>
-Subject: [RFC PATCH 0/2] ELF: Alternate program property parser
-Date: Tue, 20 Aug 2019 10:57:41 +0100
-Message-ID: <1566295063-7387-1-git-send-email-Dave.Martin@arm.com>
+Subject: [RFC PATCH 1/2] ELF: UAPI and Kconfig additions for ELF program properties
+Date: Tue, 20 Aug 2019 10:57:42 +0100
+Message-ID: <1566295063-7387-2-git-send-email-Dave.Martin@arm.com>
+In-Reply-To: <1566295063-7387-1-git-send-email-Dave.Martin@arm.com>
+References: <1566295063-7387-1-git-send-email-Dave.Martin@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
 Cc: linux-arch@vger.kernel.org, Kees Cook <keescook@chromium.org>, Thomas Gleixner <tglx@linutronix.de>, Jann Horn <jannh@google.com>, "H.J. Lu" <hjl.tools@gmail.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, Yu-cheng Yu <yu-cheng.yu@intel.com>, Peter Zijlstra <peterz@infradead.org>
-Message-ID: <20190820095741.9noSB8XHBD4Axz3pzE9u0cUf1ErpgVrobGoO-jMW5GM@z>
+Message-ID: <20190820095742.0xU8qRgyq9amLn_VeS7X-Iav5FFl_eJkpMNMrDu5HLY@z>
 
-This series is an experimental reimplementation of ELF property parsing
-(see NT_GNU_PROPERTY_TYPE_0, [1]) for the ELF loader.
+Pull the basic ELF definitions from Yu-Cheng Yu's series.
 
-This is intended for comparison / merging with [2] (or could replace it,
-if people think this approach is better).
+Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Signed-off-by: Dave Martin <Dave.Martin@arm.com>
 
-Either way, I'd like to get something in place so that we can build
-AArch64 BTI support on top of it.
+---
 
-Any thoughts?
+This patch should be merged with the next patch.
 
+I kept it seprate for now to document where this code came from.
+---
+ fs/Kconfig.binfmt        | 3 +++
+ include/uapi/linux/elf.h | 7 +++++++
+ 2 files changed, 10 insertions(+)
 
-Key differences from [2]:
-
- * Scanning for the PT_PROGRAM_PROPERTY program header is intergrated
-   into the existing scan loops, rather than being done separately.
-
- * In keeping with the rest of the ELF loader code, error checks are
-   kept to a minimum.  Except to avoid buffer overruns, the ELF file is
-   not checked for well-formedness.
-
-   As a sanity check, the code still checks for a correct
-   NT_GNU_PROPERTY_TYPE_0 note header at the start of the
-   PT_PROGRAM_PROPERTY segment, but perhaps this isn't needed either.
-
- * 1K is statically allocated on the stack for the properties, and if
-   the ELF properties are larger than that, the ELF file is rejected
-   with ENOEXEC.
-
-   There is no limit defined in [1] for the total size of the
-   properties, but common sense seems suggests that 1K is likely to be
-   ample space.
-
- * The properties are found, read and parsed exactly once.  [2] does
-   this once _per property_ requested by the arch code: that's not a
-   problem today, but it will become inefficient with there are multiple
-   properties in the file that the kernel needs to look at.
-
-   Instead, the arch arch_parse_elf_property() hook is called once per
-   property found.  To minimise overhead, the arch code can implement
-   this hook inline.
-
-   This approach assumes that the number of properties in a given ELF is
-   say, no more than 20 or so.  The code could be redesigned in the
-   future if/when this iteration becomes an overhead (i.e., probably
-   never).
-
-
-[1] Linux Extensions to gABI
-https://github.com/hjl-tools/linux-abi/wiki/Linux-Extensions-to-gABI
-
-[2] [PATCH v8 22/27] binfmt_elf: Extract .note.gnu.property from an ELF file
-https://lore.kernel.org/lkml/20190813205225.12032-23-yu-cheng.yu@intel.com/
-
-
-Dave Martin (2):
-  ELF: UAPI and Kconfig additions for ELF program properties
-  ELF: Add ELF program property parsing support
-
- fs/Kconfig.binfmt        |   3 ++
- fs/binfmt_elf.c          | 109 +++++++++++++++++++++++++++++++++++++++++++++++
- fs/compat_binfmt_elf.c   |   4 ++
- include/linux/elf.h      |  21 +++++++++
- include/uapi/linux/elf.h |  11 +++++
- 5 files changed, 148 insertions(+)
-
+diff --git a/fs/Kconfig.binfmt b/fs/Kconfig.binfmt
+index 62dc4f5..d2cfe07 100644
+--- a/fs/Kconfig.binfmt
++++ b/fs/Kconfig.binfmt
+@@ -36,6 +36,9 @@ config COMPAT_BINFMT_ELF
+ config ARCH_BINFMT_ELF_STATE
+ 	bool
+ 
++config ARCH_USE_GNU_PROPERTY
++	bool
++
+ config BINFMT_ELF_FDPIC
+ 	bool "Kernel support for FDPIC ELF binaries"
+ 	default y if !BINFMT_ELF
+diff --git a/include/uapi/linux/elf.h b/include/uapi/linux/elf.h
+index 34c02e4..a3eaad9 100644
+--- a/include/uapi/linux/elf.h
++++ b/include/uapi/linux/elf.h
+@@ -36,6 +36,7 @@ typedef __s64	Elf64_Sxword;
+ #define PT_LOPROC  0x70000000
+ #define PT_HIPROC  0x7fffffff
+ #define PT_GNU_EH_FRAME		0x6474e550
++#define PT_GNU_PROPERTY		0x6474e553
+ 
+ #define PT_GNU_STACK	(PT_LOOS + 0x474e551)
+ 
+@@ -443,4 +444,10 @@ typedef struct elf64_note {
+   Elf64_Word n_type;	/* Content type */
+ } Elf64_Nhdr;
+ 
++/* NT_GNU_PROPERTY_TYPE_0 header */
++struct gnu_property {
++  __u32 pr_type;
++  __u32 pr_datasz;
++};
++
+ #endif /* _UAPI_LINUX_ELF_H */
 -- 
 2.1.4
