@@ -1,61 +1,87 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:45634 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1725971AbfHTRQ4 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 20 Aug 2019 13:16:56 -0400
+Received: from mx2.suse.de ([195.135.220.15]:46154 "EHLO mx1.suse.de"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1725983AbfHTR1y (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 20 Aug 2019 13:27:54 -0400
+Message-ID: <ef3eaf8ea03ae8dc86a1a2f293087ff5c2f56b7a.camel@suse.de>
+Subject: Re: [PATCH v2 03/11] of/fdt: add of_fdt_machine_is_compatible
+ function
+From: Nicolas Saenz Julienne <nsaenzjulienne@suse.de>
+Date: Tue, 20 Aug 2019 19:27:50 +0200
+In-Reply-To: <CAL_JsqJT3UNVKpAt+3g-tosy=uCZTosUxD4RfVYjMJ-gpGmPiA@mail.gmail.com>
+References: <20190820145821.27214-1-nsaenzjulienne@suse.de>
+         <20190820145821.27214-4-nsaenzjulienne@suse.de>
+         <CAL_JsqJT3UNVKpAt+3g-tosy=uCZTosUxD4RfVYjMJ-gpGmPiA@mail.gmail.com>
+Content-Type: multipart/signed; micalg="pgp-sha256";
+        protocol="application/pgp-signature"; boundary="=-Cm+dM0aB2YImXVa0ovlW"
 MIME-Version: 1.0
-References: <20190820145821.27214-1-nsaenzjulienne@suse.de> <20190820145821.27214-4-nsaenzjulienne@suse.de>
-In-Reply-To: <20190820145821.27214-4-nsaenzjulienne@suse.de>
-From: Rob Herring <robh+dt@kernel.org>
-Date: Tue, 20 Aug 2019 12:16:43 -0500
-Message-ID: <CAL_JsqJT3UNVKpAt+3g-tosy=uCZTosUxD4RfVYjMJ-gpGmPiA@mail.gmail.com>
-Subject: Re: [PATCH v2 03/11] of/fdt: add of_fdt_machine_is_compatible function
-Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Nicolas Saenz Julienne <nsaenzjulienne@suse.de>
-Cc: Catalin Marinas <catalin.marinas@arm.com>, Christoph Hellwig <hch@lst.de>, Stefan Wahren <wahrenst@gmx.net>, Marc Zyngier <marc.zyngier@arm.com>, Robin Murphy <robin.murphy@arm.com>, "moderated list:ARM/FREESCALE IMX / MXC ARM ARCHITECTURE" <linux-arm-kernel@lists.infradead.org>, devicetree@vger.kernel.org, "open list:GENERIC INCLUDE/ASM HEADER FILES" <linux-arch@vger.kernel.org>, Linux IOMMU <iommu@lists.linux-foundation.org>, linux-mm@kvack.org, linux-riscv@lists.infradead.org, Frank Rowand <frowand.list@gmail.com>, phill@raspberryi.org, Florian Fainelli <f.fainelli@gmail.com>, Will Deacon <will@kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Eric Anholt <eric@anholt.net>, Matthias Brugger <mbrugger@suse.com>, "moderated list:BROADCOM BCM2835 ARM ARCHITECTURE" <linux-rpi-kernel@lists.infradead.org>, Andrew Morton <akpm@linux-foundation.org>, Marek Szyprowski <m.szyprowski@samsung.com>
-Message-ID: <20190820171643.GZEuryKZ9opBqA32aLKBkfP7jxC5T6YvXlm38Z3wQlA@z>
+To: Rob Herring <robh+dt@kernel.org>
+Cc: "open list:GENERIC INCLUDE/ASM HEADER FILES" <linux-arch@vger.kernel.org>, devicetree@vger.kernel.org, "moderated list:BROADCOM BCM2835 ARM ARCHITECTURE" <linux-rpi-kernel@lists.infradead.org>, Florian Fainelli <f.fainelli@gmail.com>, Andrew Morton <akpm@linux-foundation.org>, Frank Rowand <frowand.list@gmail.com>, Eric Anholt <eric@anholt.net>, Marc Zyngier <marc.zyngier@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-mm@kvack.org, Linux IOMMU <iommu@lists.linux-foundation.org>, Matthias Brugger <mbrugger@suse.com>, Stefan Wahren <wahrenst@gmx.net>, linux-riscv@lists.infradead.org, Marek Szyprowski <m.szyprowski@samsung.com>, Robin Murphy <robin.murphy@arm.com>, Christoph Hellwig <hch@lst.de>, "moderated list:ARM/FREESCALE IMX / MXC ARM ARCHITECTURE" <linux-arm-kernel@lists.infradead.org>, phill@raspberryi.org
+Message-ID: <20190820172750.l6UxpNXaaLS7gcFdOrQ3kC0L6wNWi__7ESv0BKE7-SE@z>
 
-On Tue, Aug 20, 2019 at 9:58 AM Nicolas Saenz Julienne
-<nsaenzjulienne@suse.de> wrote:
->
-> Provides the same functionality as of_machine_is_compatible.
->
-> Signed-off-by: Nicolas Saenz Julienne <nsaenzjulienne@suse.de>
-> ---
->
-> Changes in v2: None
->
->  drivers/of/fdt.c | 7 +++++++
->  1 file changed, 7 insertions(+)
->
-> diff --git a/drivers/of/fdt.c b/drivers/of/fdt.c
-> index 9cdf14b9aaab..06ffbd39d9af 100644
-> --- a/drivers/of/fdt.c
-> +++ b/drivers/of/fdt.c
-> @@ -802,6 +802,13 @@ const char * __init of_flat_dt_get_machine_name(void)
->         return name;
->  }
->
-> +static const int __init of_fdt_machine_is_compatible(char *name)
 
-No point in const return (though name could possibly be const), and
-the return could be bool instead.
+--=-Cm+dM0aB2YImXVa0ovlW
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
 
-With that,
+Hi Rob,
+thanks for the rewiew.
 
-Reviewed-by: Rob Herring <robh@kernel.org>
+On Tue, 2019-08-20 at 12:16 -0500, Rob Herring wrote:
+> On Tue, Aug 20, 2019 at 9:58 AM Nicolas Saenz Julienne
+> <nsaenzjulienne@suse.de> wrote:
+> > Provides the same functionality as of_machine_is_compatible.
+> >=20
+> > Signed-off-by: Nicolas Saenz Julienne <nsaenzjulienne@suse.de>
+> > ---
+> >=20
+> > Changes in v2: None
+> >=20
+> >  drivers/of/fdt.c | 7 +++++++
+> >  1 file changed, 7 insertions(+)
+> >=20
+> > diff --git a/drivers/of/fdt.c b/drivers/of/fdt.c
+> > index 9cdf14b9aaab..06ffbd39d9af 100644
+> > --- a/drivers/of/fdt.c
+> > +++ b/drivers/of/fdt.c
+> > @@ -802,6 +802,13 @@ const char * __init of_flat_dt_get_machine_name(vo=
+id)
+> >         return name;
+> >  }
+> >=20
+> > +static const int __init of_fdt_machine_is_compatible(char *name)
+>=20
+> No point in const return (though name could possibly be const), and
+> the return could be bool instead.
 
-> +{
-> +       unsigned long dt_root = of_get_flat_dt_root();
-> +
-> +       return of_flat_dt_is_compatible(dt_root, name);
-> +}
-> +
->  /**
->   * of_flat_dt_match_machine - Iterate match tables to find matching machine.
->   *
-> --
-> 2.22.0
->
+Sorry, I completely missed that const, shouldn't have been there to begin w=
+ith.
+
+I'll add a const to the name argument and return a bool on the next version=
+.
+
+Regards,
+Nicolas
+
+
+
+--=-Cm+dM0aB2YImXVa0ovlW
+Content-Type: application/pgp-signature; name="signature.asc"
+Content-Description: This is a digitally signed message part
+Content-Transfer-Encoding: 7bit
+
+-----BEGIN PGP SIGNATURE-----
+
+iQEzBAABCAAdFiEErOkkGDHCg2EbPcGjlfZmHno8x/4FAl1cLZYACgkQlfZmHno8
+x/4DowgAjoLUq0qUOWOtkTx0OcxyQrKy++gIvChR7IajK1yXJKyT8kA/QNZrERqj
+nvLlebXPhJG0y4uUTzEVmzsgUFS4vopZAzL+H7TGfXsL8pQbGjnO+l62gc1oqTVd
+U+IrQWs0BPZ/MeCxUXUtKlYdMMuf9Ld8z16siDZPj5pYY6IHq8HtS1WseTvTti6S
+pHpXyK+XiPpxzupgUjNm6Lzsm8FO0P2tw5IKD3vRLS+4vLaYUPieCLdMvkf1lMU6
+DkQ71pEENpt35eBer1lLK/meYuisvK4V+tnwrWSDGZCuywbhi1fpvAyh3CRicE3t
+rvLGmR2JEXsldgQeodOoEyKoeWSAgQ==
+=hgaN
+-----END PGP SIGNATURE-----
+
+--=-Cm+dM0aB2YImXVa0ovlW--
