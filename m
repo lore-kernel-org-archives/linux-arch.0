@@ -1,157 +1,129 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:37658 "EHLO mail.kernel.org"
+Received: from mail.kernel.org ([198.145.29.99]:37612 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1729810AbfHTMev (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 20 Aug 2019 08:34:51 -0400
+        id S1729810AbfHTMes (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 20 Aug 2019 08:34:48 -0400
 From: guoren@kernel.org
-Subject: [PATCH 3/3] csky: Support kernel non-aligned access
-Date: Tue, 20 Aug 2019 20:34:29 +0800
-Message-ID: <1566304469-5601-3-git-send-email-guoren@kernel.org>
+Subject: [PATCH 2/3] csky: Fixup defer cache flush for 610
+Date: Tue, 20 Aug 2019 20:34:28 +0800
+Message-ID: <1566304469-5601-2-git-send-email-guoren@kernel.org>
 In-Reply-To: <1566304469-5601-1-git-send-email-guoren@kernel.org>
 References: <1566304469-5601-1-git-send-email-guoren@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: arnd@arndb.de
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-csky@vger.kernel.org, douzhk@nationalchip.com, Guo Ren <ren_guo@c-sky.com>
-Message-ID: <20190820123429.SD975ta5-kxuzSkOZI8LnLmFXs6tdzK-rAgMeABbqcs@z>
+Message-ID: <20190820123428.w6rnXPlDQ-EuX31dKezbWNdcU5KquavZFLUsepxwiTY@z>
 
 From: Guo Ren <ren_guo@c-sky.com>
 
-We prohibit non-aligned access in kernel mode, but some special NIC
-driver needs to support kernel-state unaligned access. For example,
-when the bus does not support unaligned access, IP header parsing
-will cause non-aligned access and driver does not recopy the skb
-buffer to dma for performance reasons.
+We use defer cache flush mechanism to improve the performance of
+610, but the implementation is wrong. We fix it up now and update
+the mechanism:
 
-Added kernel_enable & user_enable to control unaligned access and
-added kernel_count  & user_count for statistical unaligned access.
+ - Zero page needn't be flushed.
+ - If page is file mapping & non-touched in user space, defer flush.
+ - If page is anon mapping or dirty file mapping, flush immediately.
+ - In update_mmu_cache finish the defer flush by flush_dcache_page().
+
+For 610 we need take care the dcache aliasing issue:
+ - VIPT cache with 8K-bytes size per way in 4K page granularity.
 
 Signed-off-by: Guo Ren <ren_guo@c-sky.com>
 Cc: Arnd Bergmann <arnd@arndb.de>
 ---
- arch/csky/abiv1/alignment.c | 62 ++++++++++++++++++++++++++++++++-------------
- 1 file changed, 45 insertions(+), 17 deletions(-)
+ arch/csky/abiv1/cacheflush.c         | 50 +++++++++++++++++++-----------------
+ arch/csky/abiv1/inc/abi/cacheflush.h |  4 +--
+ 2 files changed, 29 insertions(+), 25 deletions(-)
 
-diff --git a/arch/csky/abiv1/alignment.c b/arch/csky/abiv1/alignment.c
-index 27ef5b2..cb2a0d9 100644
---- a/arch/csky/abiv1/alignment.c
-+++ b/arch/csky/abiv1/alignment.c
-@@ -5,8 +5,10 @@
- #include <linux/uaccess.h>
- #include <linux/ptrace.h>
+diff --git a/arch/csky/abiv1/cacheflush.c b/arch/csky/abiv1/cacheflush.c
+index 10af8b6..fee99fc 100644
+--- a/arch/csky/abiv1/cacheflush.c
++++ b/arch/csky/abiv1/cacheflush.c
+@@ -11,42 +11,46 @@
+ #include <asm/cacheflush.h>
+ #include <asm/cachectl.h>
  
--static int align_enable = 1;
--static int align_count;
-+static int align_kern_enable = 1;
-+static int align_usr_enable = 1;
-+static int align_kern_count = 0;
-+static int align_usr_count = 0;
- 
- static inline uint32_t get_ptreg(struct pt_regs *regs, uint32_t rx)
++#define PG_dcache_clean		PG_arch_1
++
+ void flush_dcache_page(struct page *page)
  {
-@@ -32,9 +34,6 @@ static int ldb_asm(uint32_t addr, uint32_t *valp)
- 	uint32_t val;
- 	int err;
+-	struct address_space *mapping = page_mapping(page);
+-	unsigned long addr;
++	struct address_space *mapping;
  
--	if (!access_ok((void *)addr, 1))
--		return 1;
--
- 	asm volatile (
- 		"movi	%0, 0\n"
- 		"1:\n"
-@@ -67,9 +66,6 @@ static int stb_asm(uint32_t addr, uint32_t val)
+-	if (mapping && !mapping_mapped(mapping)) {
+-		set_bit(PG_arch_1, &(page)->flags);
++	if (page == ZERO_PAGE(0))
+ 		return;
+-	}
+ 
+-	/*
+-	 * We could delay the flush for the !page_mapping case too.  But that
+-	 * case is for exec env/arg pages and those are %99 certainly going to
+-	 * get faulted into the tlb (and thus flushed) anyways.
+-	 */
+-	addr = (unsigned long) page_address(page);
+-	dcache_wb_range(addr, addr + PAGE_SIZE);
++	mapping = page_mapping_file(page);
++
++	if (mapping && !page_mapcount(page))
++		clear_bit(PG_dcache_clean, &page->flags);
++	else {
++		dcache_wbinv_all();
++		if (mapping)
++			icache_inv_all();
++		set_bit(PG_dcache_clean, &page->flags);
++	}
+ }
++EXPORT_SYMBOL(flush_dcache_page);
+ 
+-void update_mmu_cache(struct vm_area_struct *vma, unsigned long address,
+-		      pte_t *pte)
++void update_mmu_cache(struct vm_area_struct *vma, unsigned long addr,
++	pte_t *ptep)
  {
- 	int err;
+-	unsigned long addr;
++	unsigned long pfn = pte_pfn(*ptep);
+ 	struct page *page;
+-	unsigned long pfn;
  
--	if (!access_ok((void *)addr, 1))
--		return 1;
--
- 	asm volatile (
- 		"movi	%0, 0\n"
- 		"1:\n"
-@@ -203,8 +199,6 @@ static int stw_c(struct pt_regs *regs, uint32_t rz, uint32_t addr)
- 	if (stb_asm(addr, byte3))
- 		return 1;
+-	pfn = pte_pfn(*pte);
+-	if (unlikely(!pfn_valid(pfn)))
++	if (!pfn_valid(pfn))
+ 		return;
  
--	align_count++;
--
- 	return 0;
- }
+ 	page = pfn_to_page(pfn);
+-	addr = (unsigned long) page_address(page);
++	if (page == ZERO_PAGE(0))
++		return;
  
-@@ -226,7 +220,14 @@ void csky_alignment(struct pt_regs *regs)
- 	uint32_t addr   = 0;
+-	if (vma->vm_flags & VM_EXEC ||
+-	    pages_do_alias(addr, address & PAGE_MASK))
+-		cache_wbinv_all();
++	if (!test_and_set_bit(PG_dcache_clean, &page->flags))
++		dcache_wbinv_all();
  
- 	if (!user_mode(regs))
-+		goto kernel_area;
-+
-+	if (!align_usr_enable) {
-+		pr_err("%s user disabled.\n", __func__);
- 		goto bad_area;
+-	clear_bit(PG_arch_1, &(page)->flags);
++	if (page_mapping_file(page)) {
++		if (vma->vm_flags & VM_EXEC)
++			icache_inv_all();
 +	}
-+
-+	align_usr_count++;
- 
- 	ret = get_user(tmp, (uint16_t *)instruction_pointer(regs));
- 	if (ret) {
-@@ -234,6 +235,19 @@ void csky_alignment(struct pt_regs *regs)
- 		goto bad_area;
- 	}
- 
-+	goto good_area;
-+
-+kernel_area:
-+	if (!align_kern_enable) {
-+		pr_err("%s kernel disabled.\n", __func__);
-+		goto bad_area;
-+	}
-+
-+	align_kern_count++;
-+
-+	tmp = *(uint16_t *)instruction_pointer(regs);
-+
-+good_area:
- 	opcode = (uint32_t)tmp;
- 
- 	rx  = opcode & 0xf;
-@@ -286,18 +300,32 @@ void csky_alignment(struct pt_regs *regs)
- 	force_sig_fault(SIGBUS, BUS_ADRALN, (void __user *)addr);
  }
+diff --git a/arch/csky/abiv1/inc/abi/cacheflush.h b/arch/csky/abiv1/inc/abi/cacheflush.h
+index 5f663ae..fce5604 100644
+--- a/arch/csky/abiv1/inc/abi/cacheflush.h
++++ b/arch/csky/abiv1/inc/abi/cacheflush.h
+@@ -26,8 +26,8 @@ extern void flush_dcache_page(struct page *);
+ #define flush_icache_page(vma, page)		cache_wbinv_all()
+ #define flush_icache_range(start, end)		cache_wbinv_range(start, end)
  
--static struct ctl_table alignment_tbl[4] = {
-+static struct ctl_table alignment_tbl[5] = {
-+	{
-+		.procname = "kernel_enable",
-+		.data = &align_kern_enable,
-+		.maxlen = sizeof(align_kern_enable),
-+		.mode = 0666,
-+		.proc_handler = &proc_dointvec
-+	},
-+	{
-+		.procname = "user_enable",
-+		.data = &align_usr_enable,
-+		.maxlen = sizeof(align_usr_enable),
-+		.mode = 0666,
-+		.proc_handler = &proc_dointvec
-+	},
- 	{
--		.procname = "enable",
--		.data = &align_enable,
--		.maxlen = sizeof(align_enable),
-+		.procname = "kernel_count",
-+		.data = &align_kern_count,
-+		.maxlen = sizeof(align_kern_count),
- 		.mode = 0666,
- 		.proc_handler = &proc_dointvec
- 	},
- 	{
--		.procname = "count",
--		.data = &align_count,
--		.maxlen = sizeof(align_count),
-+		.procname = "user_count",
-+		.data = &align_usr_count,
-+		.maxlen = sizeof(align_usr_count),
- 		.mode = 0666,
- 		.proc_handler = &proc_dointvec
- 	},
+-#define flush_icache_user_range(vma, pg, adr, len) \
+-				cache_wbinv_range(adr, adr + len)
++#define flush_icache_user_range(vma,page,addr,len) \
++	flush_dcache_page(page)
+ 
+ #define copy_from_user_page(vma, page, vaddr, dst, src, len) \
+ do { \
 -- 
 2.7.4
