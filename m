@@ -1,44 +1,47 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:50390 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726049AbfHTI0n (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 20 Aug 2019 04:26:43 -0400
+Received: from mail-oi1-f194.google.com ([209.85.167.194]:47008 "EHLO
+        mail-oi1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1728545AbfHTJ4J (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 20 Aug 2019 05:56:09 -0400
+Received: by mail-oi1-f194.google.com with SMTP id t24so3607389oij.13
+        for <linux-arch@vger.kernel.org>; Tue, 20 Aug 2019 02:56:08 -0700 (PDT)
 MIME-Version: 1.0
-References: <1565868537-17753-1-git-send-email-guoren@kernel.org>
- <20190816070348.GA13766@infradead.org> <CAJF2gTTBc3+SnKMbVU4A+tekyjkd_7XUmDCUfNCcA-CZf=JUyg@mail.gmail.com>
- <20190818182118.GA30141@infradead.org>
-In-Reply-To: <20190818182118.GA30141@infradead.org>
-From: Guo Ren <guoren@kernel.org>
-Date: Tue, 20 Aug 2019 16:26:28 +0800
-Message-ID: <CAJF2gTQhEHC-PUb0bORu2DLdgPOKh5kG7=mCi7=dMfCMZOUAcA@mail.gmail.com>
-Subject: Re: [PATCH] csky: Fixup ioremap function losing
+References: <20190820024941.12640-1-dja@axtens.net>
+In-Reply-To: <20190820024941.12640-1-dja@axtens.net>
+From: Marco Elver <elver@google.com>
+Date: Tue, 20 Aug 2019 11:55:56 +0200
+Message-ID: <CANpmjNMpBAjX4G2GYmM6-z8TfXdbzLCuAMQ-fmGRwEDFMci4Ow@mail.gmail.com>
+Subject: Re: [PATCH v2 1/2] kasan: support instrumented bitops combined with
+ generic bitops
 Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Christoph Hellwig <hch@infradead.org>
-Cc: Arnd Bergmann <arnd@arndb.de>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, linux-csky@vger.kernel.org, zhang_jian5@dahuatech.com, Guo Ren <ren_guo@c-sky.com>
-Message-ID: <20190820082628.gGuaPo80xaglJOmEUuH2Xma-0qndZWkuAhDw0MsXoeo@z>
+To: Daniel Axtens <dja@axtens.net>
+Cc: christophe.leroy@c-s.fr, linux-s390@vger.kernel.org, linux-arch <linux-arch@vger.kernel.org>, the arch/x86 maintainers <x86@kernel.org>, linuxppc-dev@lists.ozlabs.org, kasan-dev <kasan-dev@googlegroups.com>
+Message-ID: <20190820095556.NSeOgoDW8-LBUyspxwThBqXaT10UJ5bcDErfD4OFwbc@z>
 
-On Mon, Aug 19, 2019 at 2:21 AM Christoph Hellwig <hch@infradead.org> wrote:
+On Tue, 20 Aug 2019 at 04:50, Daniel Axtens <dja@axtens.net> wrote:
 >
-> On Sun, Aug 18, 2019 at 10:20:18AM +0800, Guo Ren wrote:
-> > > > Also change flag VM_ALLOC to VM_IOREMAP in get_vm_area_caller.
-> > >
-> > > Looks generally fine, but two comments:
-> > >
-> > >  - do you have a need for ioremap_cache?  We are generally try to
-> > >    phase it out in favour of memremap, and it is generally only used
-> > >    by arch specific code.
-> > Yes, some drivers of our customers use ioremap_cache to map phy_addr
-> > which isn't belong to system memory.
+> Currently bitops-instrumented.h assumes that the architecture provides
+> atomic, non-atomic and locking bitops (e.g. both set_bit and __set_bit).
+> This is true on x86 and s390, but is not always true: there is a
+> generic bitops/non-atomic.h header that provides generic non-atomic
+> operations, and also a generic bitops/lock.h for locking operations.
 >
-> Which driver?  We should move it over to memremap instead of adding
-> a new ioremap_cache.
-The driver hasn't been upstreamed. OK, just remove ioremap_cache and
-seems it's not a big problem.
+> powerpc uses the generic non-atomic version, so it does not have it's
+> own e.g. __set_bit that could be renamed arch___set_bit.
+>
+> Split up bitops-instrumented.h to mirror the atomic/non-atomic/lock
+> split. This allows arches to only include the headers where they
+> have arch-specific versions to rename. Update x86 and s390.
+>
+> (The generic operations are automatically instrumented because they're
+> written in C, not asm.)
+>
+> Suggested-by: Christophe Leroy <christophe.leroy@c-s.fr>
+> Reviewed-by: Christophe Leroy <christophe.leroy@c-s.fr>
+> Signed-off-by: Daniel Axtens <dja@axtens.net>
 
--- 
-Best Regards
- Guo Ren
+Acked-by: Marco Elver <elver@google.com>
 
-ML: https://lore.kernel.org/linux-csky/
+Thanks!
