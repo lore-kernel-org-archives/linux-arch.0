@@ -1,128 +1,101 @@
-From: Nicolas Saenz Julienne <nsaenzjulienne@suse.de>
-Subject: [PATCH v2 06/11] arm64: rename variables used to calculate ZONE_DMA32's size
-Date: Tue, 20 Aug 2019 16:58:14 +0200
-Message-ID: <20190820145821.27214-7-nsaenzjulienne@suse.de>
+From: Nicolas Saenz Julienne <nsaenzjulienne-l3A5Bk7waGM@public.gmane.org>
+Subject: [PATCH v2 02/11] arm: use generic dma_zone_size
+Date: Tue, 20 Aug 2019 16:58:10 +0200
+Message-ID: <20190820145821.27214-3-nsaenzjulienne@suse.de>
 References: <20190820145821.27214-1-nsaenzjulienne@suse.de>
 Mime-Version: 1.0
-Content-Transfer-Encoding: 8bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20190820145821.27214-1-nsaenzjulienne@suse.de>
-Sender: linux-kernel-owner@vger.kernel.org
-To: catalin.marinas@arm.com, hch@lst.de, wahrenst@gmx.net, marc.zyngier@arm.com, robh+dt@kernel.org, Robin Murphy <robin.murphy@arm.com>, linux-arm-kernel@lists.infradead.org, devicetree@vger.kernel.org, linux-arch@vger.kernel.org, iommu@lists.linux-foundation.org, linux-mm@kvack.org, linux-riscv@lists.infradead.org, linux-kernel@vger.kernel.org
-Cc: phill@raspberryi.org, f.fainelli@gmail.com, will@kernel.org, nsaenzjulienne@suse.de, eric@anholt.net, mbrugger@suse.com, linux-rpi-kernel@lists.infradead.org, akpm@linux-foundation.org, frowand.list@gmail.com, m.szyprowski@samsung.com
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
+In-Reply-To: <20190820145821.27214-1-nsaenzjulienne-l3A5Bk7waGM@public.gmane.org>
+List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/iommu>,
+	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
+List-Archive: <http://lists.linuxfoundation.org/pipermail/iommu/>
+List-Post: <mailto:iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
+List-Help: <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=help>
+List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/iommu>,
+	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
+Sender: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
+Errors-To: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
+To: catalin.marinas-5wv7dgnIgG8@public.gmane.org, hch-jcswGhMUV9g@public.gmane.org, wahrenst-hi6Y0CQ0nG0@public.gmane.org, marc.zyngier-5wv7dgnIgG8@public.gmane.org, robh+dt-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, Robin Murphy <robin.murphy-5wv7dgnIgG8@public.gmane.org>, linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, devicetree-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org, linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org, linux-riscv-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+Cc: phill-FnsA7b+Nu9XCNwmyUqMw6A@public.gmane.org, f.fainelli-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org, frowand.list-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org, Russell King <linux-I+IVW8TIWO2tmTQ+vhA3Yw@public.gmane.org>, eric-WhKQ6XTQaPysTnJN9+BGXg@public.gmane.org, mbrugger-IBi9RG/b67k@public.gmane.org, linux-rpi-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org, will-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, nsaenzjulienne-l3A5Bk7waGM@public.gmane.org
 List-Id: linux-arch.vger.kernel.org
 
-Let the name indicate that they are used to calculate ZONE_DMA32's size
-as opposed to ZONE_DMA.
+'dma_zone_size' was created as a generic replacement to
+'arm_dma_zone_size'. Use it accordingly.
 
-Signed-off-by: Nicolas Saenz Julienne <nsaenzjulienne@suse.de>
+Signed-off-by: Nicolas Saenz Julienne <nsaenzjulienne-l3A5Bk7waGM@public.gmane.org>
 ---
 
 Changes in v2: None
 
- arch/arm64/mm/init.c | 30 +++++++++++++++---------------
- 1 file changed, 15 insertions(+), 15 deletions(-)
+ arch/arm/include/asm/dma.h |  8 +++++---
+ arch/arm/mm/init.c         | 12 ++++--------
+ 2 files changed, 9 insertions(+), 11 deletions(-)
 
-diff --git a/arch/arm64/mm/init.c b/arch/arm64/mm/init.c
-index 6112d6c90fa8..8956c22634dd 100644
---- a/arch/arm64/mm/init.c
-+++ b/arch/arm64/mm/init.c
-@@ -50,7 +50,7 @@
- s64 memstart_addr __ro_after_init = -1;
- EXPORT_SYMBOL(memstart_addr);
+diff --git a/arch/arm/include/asm/dma.h b/arch/arm/include/asm/dma.h
+index a81dda65c576..52d19ffd92b4 100644
+--- a/arch/arm/include/asm/dma.h
++++ b/arch/arm/include/asm/dma.h
+@@ -2,16 +2,18 @@
+ #ifndef __ASM_ARM_DMA_H
+ #define __ASM_ARM_DMA_H
  
--phys_addr_t arm64_dma_phys_limit __ro_after_init;
-+phys_addr_t arm64_dma32_phys_limit __ro_after_init;
- 
- #ifdef CONFIG_KEXEC_CORE
++#include <asm-generic/dma.h>
++
  /*
-@@ -168,7 +168,7 @@ static void __init reserve_elfcorehdr(void)
-  * currently assumes that for memory starting above 4G, 32-bit devices will
-  * use a DMA offset.
+  * This is the maximum virtual address which can be DMA'd from.
   */
--static phys_addr_t __init max_zone_dma_phys(void)
-+static phys_addr_t __init max_zone_dma32_phys(void)
- {
- 	phys_addr_t offset = memblock_start_of_DRAM() & GENMASK_ULL(63, 32);
- 	return min(offset + (1ULL << 32), memblock_end_of_DRAM());
-@@ -181,7 +181,7 @@ static void __init zone_sizes_init(unsigned long min, unsigned long max)
- 	unsigned long max_zone_pfns[MAX_NR_ZONES]  = {0};
- 
- #ifdef CONFIG_ZONE_DMA32
--	max_zone_pfns[ZONE_DMA32] = PFN_DOWN(arm64_dma_phys_limit);
-+	max_zone_pfns[ZONE_DMA32] = PFN_DOWN(arm64_dma32_phys_limit);
++#undef MAX_DMA_ADDRESS
+ #ifndef CONFIG_ZONE_DMA
+ #define MAX_DMA_ADDRESS	0xffffffffUL
+ #else
+ #define MAX_DMA_ADDRESS	({ \
+-	extern phys_addr_t arm_dma_zone_size; \
+-	arm_dma_zone_size && arm_dma_zone_size < (0x10000000 - PAGE_OFFSET) ? \
+-		(PAGE_OFFSET + arm_dma_zone_size) : 0xffffffffUL; })
++	dma_zone_size && dma_zone_size < (0x10000000 - PAGE_OFFSET) ? \
++		(PAGE_OFFSET + dma_zone_size) : 0xffffffffUL; })
  #endif
- 	max_zone_pfns[ZONE_NORMAL] = max;
  
-@@ -194,16 +194,16 @@ static void __init zone_sizes_init(unsigned long min, unsigned long max)
- {
- 	struct memblock_region *reg;
- 	unsigned long zone_size[MAX_NR_ZONES], zhole_size[MAX_NR_ZONES];
--	unsigned long max_dma = min;
-+	unsigned long max_dma32 = min;
- 
- 	memset(zone_size, 0, sizeof(zone_size));
- 
- 	/* 4GB maximum for 32-bit only capable devices */
- #ifdef CONFIG_ZONE_DMA32
--	max_dma = PFN_DOWN(arm64_dma_phys_limit);
--	zone_size[ZONE_DMA32] = max_dma - min;
-+	max_dma32 = PFN_DOWN(arm64_dma32_phys_limit);
-+	zone_size[ZONE_DMA32] = max_dma32 - min;
- #endif
--	zone_size[ZONE_NORMAL] = max - max_dma;
-+	zone_size[ZONE_NORMAL] = max - max_dma32;
- 
- 	memcpy(zhole_size, zone_size, sizeof(zhole_size));
- 
-@@ -215,14 +215,14 @@ static void __init zone_sizes_init(unsigned long min, unsigned long max)
- 			continue;
- 
- #ifdef CONFIG_ZONE_DMA32
--		if (start < max_dma) {
--			unsigned long dma_end = min(end, max_dma);
-+		if (start < max_dma32) {
-+			unsigned long dma_end = min(end, max_dma32);
- 			zhole_size[ZONE_DMA32] -= dma_end - start;
- 		}
- #endif
--		if (end > max_dma) {
-+		if (end > max_dma32) {
- 			unsigned long normal_end = min(end, max);
--			unsigned long normal_start = max(start, max_dma);
-+			unsigned long normal_start = max(start, max_dma32);
- 			zhole_size[ZONE_NORMAL] -= normal_end - normal_start;
- 		}
- 	}
-@@ -407,9 +407,9 @@ void __init arm64_memblock_init(void)
- 
- 	/* 4GB maximum for 32-bit only capable devices */
- 	if (IS_ENABLED(CONFIG_ZONE_DMA32))
--		arm64_dma_phys_limit = max_zone_dma_phys();
-+		arm64_dma32_phys_limit = max_zone_dma32_phys();
- 	else
--		arm64_dma_phys_limit = PHYS_MASK + 1;
-+		arm64_dma32_phys_limit = PHYS_MASK + 1;
- 
- 	reserve_crashkernel();
- 
-@@ -417,7 +417,7 @@ void __init arm64_memblock_init(void)
- 
- 	high_memory = __va(memblock_end_of_DRAM() - 1) + 1;
- 
--	dma_contiguous_reserve(arm64_dma_phys_limit);
-+	dma_contiguous_reserve(arm64_dma32_phys_limit);
+ #ifdef CONFIG_ISA_DMA_API
+diff --git a/arch/arm/mm/init.c b/arch/arm/mm/init.c
+index 16d373d587c4..95680bad245a 100644
+--- a/arch/arm/mm/init.c
++++ b/arch/arm/mm/init.c
+@@ -79,10 +79,6 @@ static void __init find_limits(unsigned long *min, unsigned long *max_low,
  }
  
- void __init bootmem_init(void)
-@@ -521,7 +521,7 @@ static void __init free_unused_memmap(void)
- void __init mem_init(void)
+ #ifdef CONFIG_ZONE_DMA
+-
+-phys_addr_t arm_dma_zone_size __read_mostly;
+-EXPORT_SYMBOL(arm_dma_zone_size);
+-
+ /*
+  * The DMA mask corresponding to the maximum bus address allocatable
+  * using GFP_DMA.  The default here places no restriction on DMA
+@@ -109,8 +105,8 @@ void __init setup_dma_zone(const struct machine_desc *mdesc)
  {
- 	if (swiotlb_force == SWIOTLB_FORCE ||
--	    max_pfn > (arm64_dma_phys_limit >> PAGE_SHIFT))
-+	    max_pfn > (arm64_dma32_phys_limit >> PAGE_SHIFT))
- 		swiotlb_init(1);
- 	else
- 		swiotlb_force = SWIOTLB_NO_FORCE;
+ #ifdef CONFIG_ZONE_DMA
+ 	if (mdesc->dma_zone_size) {
+-		arm_dma_zone_size = mdesc->dma_zone_size;
+-		arm_dma_limit = PHYS_OFFSET + arm_dma_zone_size - 1;
++		dma_zone_size = mdesc->dma_zone_size;
++		arm_dma_limit = PHYS_OFFSET + dma_zone_size - 1;
+ 	} else
+ 		arm_dma_limit = 0xffffffff;
+ 	arm_dma_pfn_limit = arm_dma_limit >> PAGE_SHIFT;
+@@ -164,9 +160,9 @@ static void __init zone_sizes_init(unsigned long min, unsigned long max_low,
+ 	 * Adjust the sizes according to any special requirements for
+ 	 * this machine type.
+ 	 */
+-	if (arm_dma_zone_size)
++	if (dma_zone_size)
+ 		arm_adjust_dma_zone(zone_size, zhole_size,
+-			arm_dma_zone_size >> PAGE_SHIFT);
++			dma_zone_size >> PAGE_SHIFT);
+ #endif
+ 
+ 	free_area_init_node(0, zone_size, min, zhole_size);
 -- 
 2.22.0
