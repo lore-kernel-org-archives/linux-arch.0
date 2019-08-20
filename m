@@ -1,62 +1,55 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:37940 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1729452AbfHTKCQ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 20 Aug 2019 06:02:16 -0400
-Date: Tue, 20 Aug 2019 11:02:10 +0100
-From: Dave Martin <Dave.Martin@arm.com>
-Subject: Re: [PATCH v8 22/27] binfmt_elf: Extract .note.gnu.property from an
- ELF file
-Message-ID: <20190820100208.GO10425@arm.com>
-References: <20190813205225.12032-1-yu-cheng.yu@intel.com>
- <20190813205225.12032-23-yu-cheng.yu@intel.com>
+Received: from merlin.infradead.org ([205.233.59.134]:35232 "EHLO
+        merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1729610AbfHTKHO (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 20 Aug 2019 06:07:14 -0400
+Date: Tue, 20 Aug 2019 12:06:38 +0200
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH 7/7] bug: Move WARN_ON() "cut here" into exception handler
+Message-ID: <20190820100638.GK2332@hirez.programming.kicks-ass.net>
+References: <20190819234111.9019-1-keescook@chromium.org>
+ <20190819234111.9019-8-keescook@chromium.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20190813205225.12032-23-yu-cheng.yu@intel.com>
+In-Reply-To: <20190819234111.9019-8-keescook@chromium.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Cc: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@amacapital.net>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>
-Message-ID: <20190820100210.Ptjwx9fkCTRaSg_AIEy1JqNRO2AOxQquJgs8t-lE_CU@z>
+To: Kees Cook <keescook@chromium.org>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Christophe Leroy <christophe.leroy@c-s.fr>, Drew Davenport <ddavenport@chromium.org>, Arnd Bergmann <arnd@arndb.de>, "Steven Rostedt (VMware)" <rostedt@goodmis.org>, Feng Tang <feng.tang@intel.com>, Petr Mladek <pmladek@suse.com>, Mauro Carvalho Chehab <mchehab+samsung@kernel.org>, Borislav Petkov <bp@suse.de>, YueHaibing <yuehaibing@huawei.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20190820100638.5Fzfi0nuQ8pnvDZrnnRSD8qq5ALYJ5yTbp5BKGNT5i0@z>
 
-On Tue, Aug 13, 2019 at 01:52:20PM -0700, Yu-cheng Yu wrote:
-> An ELF file's .note.gnu.property indicates features the executable file
-> can support.  For example, the property GNU_PROPERTY_X86_FEATURE_1_AND
-> indicates the file supports GNU_PROPERTY_X86_FEATURE_1_IBT and/or
-> GNU_PROPERTY_X86_FEATURE_1_SHSTK.
-> 
-> With this patch, if an arch needs to setup features from ELF properties,
-> it needs CONFIG_ARCH_USE_GNU_PROPERTY to be set, and specific
-> arch_parse_property() and arch_setup_property().
-> 
-> For example, for X86_64:
-> 
-> int arch_setup_property(void *ehdr, void *phdr, struct file *f, bool inter)
-> {
-> 	int r;
-> 	uint32_t property;
-> 
-> 	r = get_gnu_property(ehdr, phdr, f, GNU_PROPERTY_X86_FEATURE_1_AND,
-> 			     &property);
-> 	...
-> }
-> 
-> This patch is derived from code provided by H.J. Lu <hjl.tools@gmail.com>.
-> 
-> Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
+On Mon, Aug 19, 2019 at 04:41:11PM -0700, Kees Cook wrote:
 
-[...]
+> diff --git a/include/asm-generic/bug.h b/include/asm-generic/bug.h
+> index 588dd59a5b72..da471fcc5487 100644
+> --- a/include/asm-generic/bug.h
+> +++ b/include/asm-generic/bug.h
+> @@ -10,6 +10,7 @@
+>  #define BUGFLAG_WARNING		(1 << 0)
+>  #define BUGFLAG_ONCE		(1 << 1)
+>  #define BUGFLAG_DONE		(1 << 2)
+> +#define BUGFLAG_PRINTK		(1 << 3)
+>  #define BUGFLAG_TAINT(taint)	((taint) << 8)
+>  #define BUG_GET_TAINT(bug)	((bug)->flags >> 8)
+>  #endif
 
-For the hell of it, I tried implementing an alternate version [1] that
-tries to integrate into the existing ELF loader more directly.
+> diff --git a/lib/bug.c b/lib/bug.c
+> index 1077366f496b..6c22e8a6f9de 100644
+> --- a/lib/bug.c
+> +++ b/lib/bug.c
+> @@ -181,6 +181,15 @@ enum bug_trap_type report_bug(unsigned long bugaddr, struct pt_regs *regs)
+>  		}
+>  	}
+>  
+> +	/*
+> +	 * BUG() and WARN_ON() families don't print a custom debug message
+> +	 * before triggering the exception handler, so we must add the
+> +	 * "cut here" line now. WARN() issues its own "cut here" before the
+> +	 * extra debugging message it writes before triggering the handler.
+> +	 */
+> +	if ((bug->flags & BUGFLAG_PRINTK) == 0)
+> +		printk(KERN_DEFAULT CUT_HERE);
 
-This may or may not be a better approach, but tries to solve some
-issues such as not repeatedly reading and parsing the properties.
-
-Cheers
----Dave
-
-
-[1] [RFC PATCH 0/2] ELF: Alternate program property parser
-https://lore.kernel.org/lkml/1566295063-7387-1-git-send-email-Dave.Martin@arm.com/
+I'm not loving that BUGFLAG_PRINTK name, BUGFLAG_CUT_HERE makes more
+sense to me.
