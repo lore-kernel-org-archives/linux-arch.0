@@ -1,129 +1,111 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:37612 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1729810AbfHTMes (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 20 Aug 2019 08:34:48 -0400
-From: guoren@kernel.org
-Subject: [PATCH 2/3] csky: Fixup defer cache flush for 610
-Date: Tue, 20 Aug 2019 20:34:28 +0800
-Message-ID: <1566304469-5601-2-git-send-email-guoren@kernel.org>
-In-Reply-To: <1566304469-5601-1-git-send-email-guoren@kernel.org>
-References: <1566304469-5601-1-git-send-email-guoren@kernel.org>
+Received: from mail-eopbgr730099.outbound.protection.outlook.com ([40.107.73.99]:21728
+        "EHLO NAM05-DM3-obe.outbound.protection.outlook.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1729912AbfHTOcs (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 20 Aug 2019 10:32:48 -0400
+From: Michael Kelley <mikelley@microsoft.com>
+Subject: RE: [PATCH 0/2] clocksource/Hyper-V: Add Hyper-V specific sched clock
+ function
+Date: Tue, 20 Aug 2019 14:32:35 +0000
+Message-ID: <DM5PR21MB013730EB79A17AF02C170BD7D7AB0@DM5PR21MB0137.namprd21.prod.outlook.com>
+References: <20190729075243.22745-1-Tianyu.Lan@microsoft.com>
+ <87zhkxksxd.fsf@vitty.brq.redhat.com>
+ <20190729110927.GC31398@hirez.programming.kicks-ass.net>
+ <87wog1kpib.fsf@vitty.brq.redhat.com>
+ <CAOLK0py6ngy9kAnZcRMBK8U45s2L5Wo4X0NP_qPM0zv7WjeVQQ@mail.gmail.com>
+ <DM5PR21MB0137E03AAD8C2EA61EC81ED7D7D30@DM5PR21MB0137.namprd21.prod.outlook.com>
+ <87sgq5a2hq.fsf@vitty.brq.redhat.com>
+In-Reply-To: <87sgq5a2hq.fsf@vitty.brq.redhat.com>
+Content-Language: en-US
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
+MIME-Version: 1.0
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: arnd@arndb.de
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-csky@vger.kernel.org, douzhk@nationalchip.com, Guo Ren <ren_guo@c-sky.com>
-Message-ID: <20190820123428.w6rnXPlDQ-EuX31dKezbWNdcU5KquavZFLUsepxwiTY@z>
+To: vkuznets <vkuznets@redhat.com>, Tianyu Lan <lantianyu1986@gmail.com>
+Cc: Peter Zijlstra <peterz@infradead.org>, Tianyu Lan <Tianyu.Lan@microsoft.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-hyperv@vger.kernel.org" <linux-hyperv@vger.kernel.org>, "linux-kernel@vger kernel org" <linux-kernel@vger.kernel.org>, Andy Lutomirski <luto@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, the arch/x86 maintainers <x86@kernel.org>, KY Srinivasan <kys@microsoft.com>, Haiyang Zhang <haiyangz@microsoft.com>, Stephen Hemminger <sthemmin@microsoft.com>, Sasha Levin <sashal@kernel.org>, Daniel Lezcano <daniel.lezcano@linaro.org>, Arnd Bergmann <arnd@arndb.de>"ashal@kernel.org" <ashal@kernel.org>
+Message-ID: <20190820143235.zfibpaWjZ1SwIdlqj7VQW5ZJuyVR1bcRnl1-kGWxJyw@z>
 
-From: Guo Ren <ren_guo@c-sky.com>
-
-We use defer cache flush mechanism to improve the performance of
-610, but the implementation is wrong. We fix it up now and update
-the mechanism:
-
- - Zero page needn't be flushed.
- - If page is file mapping & non-touched in user space, defer flush.
- - If page is anon mapping or dirty file mapping, flush immediately.
- - In update_mmu_cache finish the defer flush by flush_dcache_page().
-
-For 610 we need take care the dcache aliasing issue:
- - VIPT cache with 8K-bytes size per way in 4K page granularity.
-
-Signed-off-by: Guo Ren <ren_guo@c-sky.com>
-Cc: Arnd Bergmann <arnd@arndb.de>
----
- arch/csky/abiv1/cacheflush.c         | 50 +++++++++++++++++++-----------------
- arch/csky/abiv1/inc/abi/cacheflush.h |  4 +--
- 2 files changed, 29 insertions(+), 25 deletions(-)
-
-diff --git a/arch/csky/abiv1/cacheflush.c b/arch/csky/abiv1/cacheflush.c
-index 10af8b6..fee99fc 100644
---- a/arch/csky/abiv1/cacheflush.c
-+++ b/arch/csky/abiv1/cacheflush.c
-@@ -11,42 +11,46 @@
- #include <asm/cacheflush.h>
- #include <asm/cachectl.h>
- 
-+#define PG_dcache_clean		PG_arch_1
-+
- void flush_dcache_page(struct page *page)
- {
--	struct address_space *mapping = page_mapping(page);
--	unsigned long addr;
-+	struct address_space *mapping;
- 
--	if (mapping && !mapping_mapped(mapping)) {
--		set_bit(PG_arch_1, &(page)->flags);
-+	if (page == ZERO_PAGE(0))
- 		return;
--	}
- 
--	/*
--	 * We could delay the flush for the !page_mapping case too.  But that
--	 * case is for exec env/arg pages and those are %99 certainly going to
--	 * get faulted into the tlb (and thus flushed) anyways.
--	 */
--	addr = (unsigned long) page_address(page);
--	dcache_wb_range(addr, addr + PAGE_SIZE);
-+	mapping = page_mapping_file(page);
-+
-+	if (mapping && !page_mapcount(page))
-+		clear_bit(PG_dcache_clean, &page->flags);
-+	else {
-+		dcache_wbinv_all();
-+		if (mapping)
-+			icache_inv_all();
-+		set_bit(PG_dcache_clean, &page->flags);
-+	}
- }
-+EXPORT_SYMBOL(flush_dcache_page);
- 
--void update_mmu_cache(struct vm_area_struct *vma, unsigned long address,
--		      pte_t *pte)
-+void update_mmu_cache(struct vm_area_struct *vma, unsigned long addr,
-+	pte_t *ptep)
- {
--	unsigned long addr;
-+	unsigned long pfn = pte_pfn(*ptep);
- 	struct page *page;
--	unsigned long pfn;
- 
--	pfn = pte_pfn(*pte);
--	if (unlikely(!pfn_valid(pfn)))
-+	if (!pfn_valid(pfn))
- 		return;
- 
- 	page = pfn_to_page(pfn);
--	addr = (unsigned long) page_address(page);
-+	if (page == ZERO_PAGE(0))
-+		return;
- 
--	if (vma->vm_flags & VM_EXEC ||
--	    pages_do_alias(addr, address & PAGE_MASK))
--		cache_wbinv_all();
-+	if (!test_and_set_bit(PG_dcache_clean, &page->flags))
-+		dcache_wbinv_all();
- 
--	clear_bit(PG_arch_1, &(page)->flags);
-+	if (page_mapping_file(page)) {
-+		if (vma->vm_flags & VM_EXEC)
-+			icache_inv_all();
-+	}
- }
-diff --git a/arch/csky/abiv1/inc/abi/cacheflush.h b/arch/csky/abiv1/inc/abi/cacheflush.h
-index 5f663ae..fce5604 100644
---- a/arch/csky/abiv1/inc/abi/cacheflush.h
-+++ b/arch/csky/abiv1/inc/abi/cacheflush.h
-@@ -26,8 +26,8 @@ extern void flush_dcache_page(struct page *);
- #define flush_icache_page(vma, page)		cache_wbinv_all()
- #define flush_icache_range(start, end)		cache_wbinv_range(start, end)
- 
--#define flush_icache_user_range(vma, pg, adr, len) \
--				cache_wbinv_range(adr, adr + len)
-+#define flush_icache_user_range(vma,page,addr,len) \
-+	flush_dcache_page(page)
- 
- #define copy_from_user_page(vma, page, vaddr, dst, src, len) \
- do { \
--- 
-2.7.4
+RnJvbTogVml0YWx5IEt1em5ldHNvdiA8dmt1em5ldHNAcmVkaGF0LmNvbT4gU2VudDogVHVlc2Rh
+eSwgQXVndXN0IDEzLCAyMDE5IDE6MzQgQU0NCj4gDQo+IE1pY2hhZWwgS2VsbGV5IDxtaWtlbGxl
+eUBtaWNyb3NvZnQuY29tPiB3cml0ZXM6DQo+IA0KPiA+IEZyb206IFRpYW55dSBMYW4gPGxhbnRp
+YW55dTE5ODZAZ21haWwuY29tPiBTZW50OiBUdWVzZGF5LCBKdWx5IDMwLCAyMDE5IDY6NDEgQU0N
+Cj4gPj4NCj4gPj4gT24gTW9uLCBKdWwgMjksIDIwMTkgYXQgODoxMyBQTSBWaXRhbHkgS3V6bmV0
+c292IDx2a3V6bmV0c0ByZWRoYXQuY29tPiB3cm90ZToNCj4gPj4gPg0KPiA+PiA+IFBldGVyIFpp
+amxzdHJhIDxwZXRlcnpAaW5mcmFkZWFkLm9yZz4gd3JpdGVzOg0KPiA+PiA+DQo+ID4+ID4gPiBP
+biBNb24sIEp1bCAyOSwgMjAxOSBhdCAxMjo1OToyNlBNICswMjAwLCBWaXRhbHkgS3V6bmV0c292
+IHdyb3RlOg0KPiA+PiA+ID4+IGxhbnRpYW55dTE5ODZAZ21haWwuY29tIHdyaXRlczoNCj4gPj4g
+PiA+Pg0KPiA+PiA+ID4+ID4gRnJvbTogVGlhbnl1IExhbiA8VGlhbnl1LkxhbkBtaWNyb3NvZnQu
+Y29tPg0KPiA+PiA+ID4+ID4NCj4gPj4gPiA+PiA+IEh5cGVyLVYgZ3Vlc3RzIHVzZSB0aGUgZGVm
+YXVsdCBuYXRpdmVfc2NoZWRfY2xvY2soKSBpbiBwdl9vcHMudGltZS5zY2hlZF9jbG9jaw0KPiA+
+PiA+ID4+ID4gb24geDg2LiAgQnV0IG5hdGl2ZV9zY2hlZF9jbG9jaygpIGRpcmVjdGx5IHVzZXMg
+dGhlIHJhdyBUU0MgdmFsdWUsIHdoaWNoDQo+ID4+ID4gPj4gPiBjYW4gYmUgZGlzY29udGludW91
+cyBpbiBhIEh5cGVyLVYgVk0uICAgQWRkIHRoZSBnZW5lcmljIGh2X3NldHVwX3NjaGVkX2Nsb2Nr
+KCkNCj4gPj4gPiA+PiA+IHRvIHNldCB0aGUgc2NoZWQgY2xvY2sgZnVuY3Rpb24gYXBwcm9wcmlh
+dGVseS4gIE9uIHg4NiwgdGhpcyBzZXRzDQo+ID4+ID4gPj4gPiBwdl9vcHMudGltZS5zY2hlZF9j
+bG9jayB0byByZWFkIHRoZSBIeXBlci1WIHJlZmVyZW5jZSBUU0MgdmFsdWUgdGhhdCBpcw0KPiA+
+PiA+ID4+ID4gc2NhbGVkIGFuZCBhZGp1c3RlZCB0byBiZSBjb250aW51b3VzLg0KPiA+PiA+ID4+
+DQo+ID4+ID4gPj4gSHlwZXJ2aXNvciBjYW4sIGluIHRoZW9yeSwgZGlzYWJsZSBUU0MgcGFnZSBh
+bmQgdGhlbiB3ZSdyZSBmb3JjZWQgdG8gdXNlDQo+ID4+ID4gPj4gTVNSLWJhc2VkIGNsb2Nrc291
+cmNlIGJ1dCB1c2luZyBpdCBhcyBzY2hlZF9jbG9jaygpIGNhbiBiZSB2ZXJ5IHNsb3csDQo+ID4+
+ID4gPj4gSSdtIGFmcmFpZC4NCj4gPj4gPiA+Pg0KPiA+PiA+ID4+IE9uIHRoZSBvdGhlciBoYW5k
+LCB3aGF0IHdlIGhhdmUgbm93IGlzIHByb2JhYmx5IHdvcnNlOiBUU0MgY2FuLA0KPiA+PiA+ID4+
+IGFjdHVhbGx5LCBqdW1wIGJhY2t3YXJkcyAoZS5nLiBvbiBtaWdyYXRpb24pIGFuZCB3ZSdyZSBi
+cmVha2luZyB0aGUNCj4gPj4gPiA+PiByZXF1aXJlbWVudHMgZm9yIHNjaGVkX2Nsb2NrKCkuDQo+
+ID4+ID4gPg0KPiA+PiA+ID4gVGhhdCAob2J2aW91c2x5KSBhbHNvIGJyZWFrcyB0aGUgcmVxdWly
+ZW1lbnRzIGZvciB1c2luZyBUU0MgYXMNCj4gPj4gPiA+IGNsb2Nrc291cmNlLg0KPiA+PiA+ID4N
+Cj4gPj4gPiA+IElPVywgaXQgYnJlYWtzIHRoZSBlbnRpcmUgcHVycG9zZSBvZiBoYXZpbmcgVFND
+IGluIHRoZSBmaXJzdCBwbGFjZS4NCj4gPj4gPg0KPiA+PiA+IEN1cnJlbnRseSwgd2UgbWFyayBy
+YXcgVFNDIGFzIHVuc3RhYmxlIHdoZW4gcnVubmluZyBvbiBIeXBlci1WIChzZWUNCj4gPj4gPiA4
+OGM5MjgxYTlmYmE2KSwgJ1RTQyBwYWdlJyAod2hpY2ggaXMgVFNDICogc2NhbGUgKyBvZmZzZXQp
+IGlzIGJlaW5nIHVzZWQNCj4gPj4gPiBpbnN0ZWFkLiBUaGUgcHJvYmxlbSBpcyB0aGF0ICdUU0Mg
+cGFnZScgY2FuIGJlIGRpc2FibGVkIGJ5IHRoZQ0KPiA+PiA+IGh5cGVydmlzb3IgYW5kIGluIHRo
+YXQgY2FzZSB0aGUgb25seSByZW1haW5pbmcgY2xvY2tzb3VyY2UgaXMgTVNSLWJhc2VkDQo+ID4+
+ID4gKHNsb3cpLg0KPiA+PiA+DQo+ID4+DQo+ID4+IFllcywgdGhhdCB3aWxsIGJlIHNsb3cgaWYg
+SHlwZXItViBkb2Vzbid0IGV4cG9zZSBodiB0c2MgcGFnZSBhbmQNCj4gPj4ga2VybmVsIHVzZXMg
+TVNSIGJhc2VkDQo+ID4+IGNsb2Nrc291cmNlLiBFYWNoIE1TUiByZWFkIHdpbGwgdHJpZ2dlciBv
+bmUgVk0tRVhJVC4gVGhpcyBhbHNvIGhhcHBlbnMgb24gb3RoZXINCj4gPj4gaHlwZXJ2aXNvcnMg
+KGUsZywgS1ZNIGRvZXNuJ3QgZXhwb3NlIEtWTSBjbG9jaykuIEh5cGVydmlzb3Igc2hvdWxkDQo+
+ID4+IHRha2UgdGhpcyBpbnRvDQo+ID4+IGFjY291bnQgYW5kIGRldGVybWluZSB3aGljaCBjbG9j
+a3NvdXJjZSBzaG91bGQgYmUgZXhwb3NlZCBvciBub3QuDQo+ID4+DQo+ID4NCj4gPiBXZSd2ZSBj
+b25maXJtZWQgd2l0aCB0aGUgSHlwZXItViB0ZWFtIHRoYXQgdGhlIFRTQyBwYWdlIGlzIGFsd2F5
+cyBhdmFpbGFibGUNCj4gPiBvbiBIeXBlci1WIDIwMTYgYW5kIGxhdGVyLCBhbmQgb24gSHlwZXIt
+ViAyMDEyIFIyIHdoZW4gdGhlIHBoeXNpY2FsDQo+ID4gaGFyZHdhcmUgcHJlc2VudHMgYW4gSW52
+YXJpYW50VFNDLg0KPiANCj4gQ3VycmVudGx5IHdlIGNoZWNrIHRoYXQgVFNDIHBhZ2UgaXMgdmFs
+aWQgb24gZXZlcnkgcmVhZCBhbmQgaXQgc2VlbXMNCj4gdGhpcyBpcyByZWR1bmRhbnQsIHJpZ2h0
+PyBJdCBpcyBlaXRoZXIgYXZhaWxhYmxlIG9uIGJvb3Qgb3Igbm90LiBJIGNhbg0KPiBvbmx5IGlt
+YWdpbmUgbWlncmF0aW5nIGEgVk0gdG8gYSBub24tSW52YXJpYW50VFNDIGhvc3Qgd2hlbiBIeXBl
+ci1WIHdpbGwNCj4gbGlrZWx5IGRpc2FibGUgdGhlIHBhZ2UgKGFuZCB3ZSBjYW4gZ2V0IHJlZW5s
+aWdodGVubWVudCBub3RpZmljYXRpb24NCj4gdGhlbikuDQoNCkkgdGhpbmsgSHlwZXItViBjYW4g
+aGF2ZSBicmllZiBpbnRlcnZhbHMgd2hlbiB0aGUgVFNDIHBhZ2UgaXMgbm90IHZhbGlkLCBzbw0K
+dGhlIGNvZGUgY2hlY2tzIGZvciB0aGUgInNlcXVlbmNlIiB2YWx1ZSBiZWluZyB6ZXJvLiAgIE90
+aGVyd2lzZSwgeWVzLCBpdA0Kc2hvdWxkIGFsd2F5cyBiZSB0aGVyZSBvciBub3QgYmUgdGhlcmUu
+ICBJcyB0aGVyZSBzb21lIG90aGVyIHZhbGlkaXR5DQpjaGVjayBvbiBldmVyeSByZWFkIHRoYXQg
+eW91IGFyZSB0aGlua2luZyBvZj8NCg0KPiANCj4gPiAgQnV0IHRoZSBMaW51eCBLY29uZmlnJ3Mg
+YXJlIHNldCB1cCBzbw0KPiA+IHRoZSBUU0MgcGFnZSBpcyBub3QgdXNlZCBmb3IgMzItYml0IGd1
+ZXN0cyAtLSBhbGwgY2xvY2sgcmVhZHMgYXJlIHN5bnRoZXRpYyBNU1INCj4gPiByZWFkcy4gIEZv
+ciAzMi1iaXQsIHRoaXMgc2V0IG9mIGNoYW5nZXMgd2lsbCBhZGQgbW9yZSBvdmVyaGVhZCBiZWNh
+dXNlIHRoZQ0KPiA+IHNjaGVkIGNsb2NrIHJlYWRzIHdpbGwgbm93IGJlIE1TUiByZWFkcy4NCj4g
+Pg0KPiA+IEkgd291bGQgYmUgaW5jbGluZWQgdG8gZml4IHRoZSBwcm9ibGVtLCBldmVuIHdpdGgg
+dGhlIHBlcmYgaGl0IG9uIDMyLWJpdCBMaW51eC4NCj4gPiBJIGRvbuKAmXQgaGF2ZSBhbnkgZGF0
+YSBvbiAzMi1iaXQgTGludXggYmVpbmcgdXNlZCBpbiBhIEh5cGVyLVYgZ3Vlc3QsIGJ1dCBpdCdz
+IG5vdA0KPiA+IHN1cHBvcnRlZCBpbiBBenVyZSBzbyB1c2FnZSBpcyBwcmV0dHkgc21hbGwuICBU
+aGUgYWx0ZXJuYXRpdmUgd291bGQgYmUgdG8gY29udGludWUNCj4gPiB0byB1c2UgdGhlIHJhdyBU
+U0MgdmFsdWUgb24gMzItYml0LCBldmVuIHdpdGggdGhlIHJpc2sgb2YgYSBkaXNjb250aW51aXR5
+IGluIGNhc2Ugb2YNCj4gPiBsaXZlIG1pZ3JhdGlvbiBvciBzaW1pbGFyIHNjZW5hcmlvcy4NCj4g
+DQo+IFRoZSBpc3N1ZSBuZWVkcyBmaXhpbmcsIEkgYWdyZWUsIGhvd2V2ZXIgdXNpbmcgTVNSIGJh
+c2VkIGNsb2Nrc291cmNlIGFzDQo+IHNjaGVkIGNsb2NrIG1heSBnaXZlIHVzIHRvbyBiaWcgb2Yg
+YSBwZXJmb3JtYW5jZSBoaXQgKG5vdCBzdXJlIHdobyBjYXJlcw0KPiBhYm91dCAzMiBiaXQgZ3Vl
+c3QgcGVyZm9ybWFuY2Ugbm93YWRheXMgYnV0IHN0aWxsKS4gV2hhdCBzdG9wcyB1cyBmcm9tDQo+
+IGVuYWJsaW5nIFRTQyBwYWdlIGZvciAzMiBiaXQgZ3Vlc3RzIGlmIGl0IGlzIGF2YWlsYWJsZT8N
+Cg0KSSB0YWxrZWQgdG8gS1kgU3Jpbml2YXNhbiBmb3IgYW55IGhpc3RvcnkgYWJvdXQgVFNDIHBh
+Z2Ugb24gMzItYml0LiAgSGUgc2FpZA0KdGhlcmUgd2FzIG5vIHRlY2huaWNhbCByZWFzb24gbm90
+IHRvIGltcGxlbWVudCBpdCwgYnV0IG91ciBmb2N1cyB3YXMgYWx3YXlzDQo2NC1iaXQgTGludXgs
+IHNvIHRoZSAzMi1iaXQgd2FzIG11Y2ggbGVzcyBpbXBvcnRhbnQuICBBbHNvLCBvbiAzMi1iaXQg
+TGludXgsDQp0aGUgcmVxdWlyZWQgNjR4NjQgbXVsdGlwbHkgYW5kIHNoaWZ0IGlzIG1vcmUgY29t
+cGxleCBhbmQgdGFrZXMgbW9yZQ0KbW9yZSBjeWNsZXMgKGNvbXBhcmUgMzItYml0IGltcGxlbWVu
+dGF0aW9uIG9mIG11bF91NjRfdTY0X3NociB2cy4NCnRoZSA2NC1iaXQgaW1wbGVtZW50YXRpb24p
+LCBzbyB0aGUgd2luIG92ZXIgYSBNU1IgcmVhZCBpcyBsZXNzLiAgSQ0KZG9uJ3Qga25vdyBvZiBh
+bnkgYWN0dWFsIG1lYXN1cmVtZW50cyBiZWluZyBtYWRlIHRvIGNvbXBhcmUgdnMuDQpNU1IgcmVh
+ZC4NCg0KTWljaGFlbA0KDQo+IA0KPiAtLQ0KPiBWaXRhbHkNCg==
