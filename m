@@ -1,111 +1,68 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-eopbgr730099.outbound.protection.outlook.com ([40.107.73.99]:21728
-        "EHLO NAM05-DM3-obe.outbound.protection.outlook.com"
+Received: from mx2.suse.de ([195.135.220.15]:59682 "EHLO mx1.suse.de"
         rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1729912AbfHTOcs (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 20 Aug 2019 10:32:48 -0400
-From: Michael Kelley <mikelley@microsoft.com>
-Subject: RE: [PATCH 0/2] clocksource/Hyper-V: Add Hyper-V specific sched clock
- function
-Date: Tue, 20 Aug 2019 14:32:35 +0000
-Message-ID: <DM5PR21MB013730EB79A17AF02C170BD7D7AB0@DM5PR21MB0137.namprd21.prod.outlook.com>
-References: <20190729075243.22745-1-Tianyu.Lan@microsoft.com>
- <87zhkxksxd.fsf@vitty.brq.redhat.com>
- <20190729110927.GC31398@hirez.programming.kicks-ass.net>
- <87wog1kpib.fsf@vitty.brq.redhat.com>
- <CAOLK0py6ngy9kAnZcRMBK8U45s2L5Wo4X0NP_qPM0zv7WjeVQQ@mail.gmail.com>
- <DM5PR21MB0137E03AAD8C2EA61EC81ED7D7D30@DM5PR21MB0137.namprd21.prod.outlook.com>
- <87sgq5a2hq.fsf@vitty.brq.redhat.com>
-In-Reply-To: <87sgq5a2hq.fsf@vitty.brq.redhat.com>
-Content-Language: en-US
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
+        id S1726717AbfHTO6b (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 20 Aug 2019 10:58:31 -0400
+From: Nicolas Saenz Julienne <nsaenzjulienne@suse.de>
+Subject: [PATCH v2 01/11] asm-generic: add dma_zone_size
+Date: Tue, 20 Aug 2019 16:58:09 +0200
+Message-ID: <20190820145821.27214-2-nsaenzjulienne@suse.de>
+In-Reply-To: <20190820145821.27214-1-nsaenzjulienne@suse.de>
+References: <20190820145821.27214-1-nsaenzjulienne@suse.de>
 MIME-Version: 1.0
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: vkuznets <vkuznets@redhat.com>, Tianyu Lan <lantianyu1986@gmail.com>
-Cc: Peter Zijlstra <peterz@infradead.org>, Tianyu Lan <Tianyu.Lan@microsoft.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-hyperv@vger.kernel.org" <linux-hyperv@vger.kernel.org>, "linux-kernel@vger kernel org" <linux-kernel@vger.kernel.org>, Andy Lutomirski <luto@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, the arch/x86 maintainers <x86@kernel.org>, KY Srinivasan <kys@microsoft.com>, Haiyang Zhang <haiyangz@microsoft.com>, Stephen Hemminger <sthemmin@microsoft.com>, Sasha Levin <sashal@kernel.org>, Daniel Lezcano <daniel.lezcano@linaro.org>, Arnd Bergmann <arnd@arndb.de>"ashal@kernel.org" <ashal@kernel.org>
-Message-ID: <20190820143235.zfibpaWjZ1SwIdlqj7VQW5ZJuyVR1bcRnl1-kGWxJyw@z>
+To: catalin.marinas@arm.com, hch@lst.de, wahrenst@gmx.net, marc.zyngier@arm.com, robh+dt@kernel.org, Robin Murphy <robin.murphy@arm.com>, linux-arm-kernel@lists.infradead.org, devicetree@vger.kernel.org, linux-arch@vger.kernel.org, iommu@lists.linux-foundation.org, linux-mm@kvack.org, linux-riscv@lists.infradead.org, Arnd Bergmann <arnd@arndb.de>
+Cc: phill@raspberryi.org, f.fainelli@gmail.com, will@kernel.org, nsaenzjulienne@suse.de, linux-kernel@vger.kernel.org, eric@anholt.net, mbrugger@suse.com, linux-rpi-kernel@lists.infradead.org, akpm@linux-foundation.org, frowand.list@gmail.com, m.szyprowski@samsung.com
+Message-ID: <20190820145809.lAdWFeWTltlTqnPY8C_4GM49_qDWG14MqKns37ZVZfU@z>
 
-RnJvbTogVml0YWx5IEt1em5ldHNvdiA8dmt1em5ldHNAcmVkaGF0LmNvbT4gU2VudDogVHVlc2Rh
-eSwgQXVndXN0IDEzLCAyMDE5IDE6MzQgQU0NCj4gDQo+IE1pY2hhZWwgS2VsbGV5IDxtaWtlbGxl
-eUBtaWNyb3NvZnQuY29tPiB3cml0ZXM6DQo+IA0KPiA+IEZyb206IFRpYW55dSBMYW4gPGxhbnRp
-YW55dTE5ODZAZ21haWwuY29tPiBTZW50OiBUdWVzZGF5LCBKdWx5IDMwLCAyMDE5IDY6NDEgQU0N
-Cj4gPj4NCj4gPj4gT24gTW9uLCBKdWwgMjksIDIwMTkgYXQgODoxMyBQTSBWaXRhbHkgS3V6bmV0
-c292IDx2a3V6bmV0c0ByZWRoYXQuY29tPiB3cm90ZToNCj4gPj4gPg0KPiA+PiA+IFBldGVyIFpp
-amxzdHJhIDxwZXRlcnpAaW5mcmFkZWFkLm9yZz4gd3JpdGVzOg0KPiA+PiA+DQo+ID4+ID4gPiBP
-biBNb24sIEp1bCAyOSwgMjAxOSBhdCAxMjo1OToyNlBNICswMjAwLCBWaXRhbHkgS3V6bmV0c292
-IHdyb3RlOg0KPiA+PiA+ID4+IGxhbnRpYW55dTE5ODZAZ21haWwuY29tIHdyaXRlczoNCj4gPj4g
-PiA+Pg0KPiA+PiA+ID4+ID4gRnJvbTogVGlhbnl1IExhbiA8VGlhbnl1LkxhbkBtaWNyb3NvZnQu
-Y29tPg0KPiA+PiA+ID4+ID4NCj4gPj4gPiA+PiA+IEh5cGVyLVYgZ3Vlc3RzIHVzZSB0aGUgZGVm
-YXVsdCBuYXRpdmVfc2NoZWRfY2xvY2soKSBpbiBwdl9vcHMudGltZS5zY2hlZF9jbG9jaw0KPiA+
-PiA+ID4+ID4gb24geDg2LiAgQnV0IG5hdGl2ZV9zY2hlZF9jbG9jaygpIGRpcmVjdGx5IHVzZXMg
-dGhlIHJhdyBUU0MgdmFsdWUsIHdoaWNoDQo+ID4+ID4gPj4gPiBjYW4gYmUgZGlzY29udGludW91
-cyBpbiBhIEh5cGVyLVYgVk0uICAgQWRkIHRoZSBnZW5lcmljIGh2X3NldHVwX3NjaGVkX2Nsb2Nr
-KCkNCj4gPj4gPiA+PiA+IHRvIHNldCB0aGUgc2NoZWQgY2xvY2sgZnVuY3Rpb24gYXBwcm9wcmlh
-dGVseS4gIE9uIHg4NiwgdGhpcyBzZXRzDQo+ID4+ID4gPj4gPiBwdl9vcHMudGltZS5zY2hlZF9j
-bG9jayB0byByZWFkIHRoZSBIeXBlci1WIHJlZmVyZW5jZSBUU0MgdmFsdWUgdGhhdCBpcw0KPiA+
-PiA+ID4+ID4gc2NhbGVkIGFuZCBhZGp1c3RlZCB0byBiZSBjb250aW51b3VzLg0KPiA+PiA+ID4+
-DQo+ID4+ID4gPj4gSHlwZXJ2aXNvciBjYW4sIGluIHRoZW9yeSwgZGlzYWJsZSBUU0MgcGFnZSBh
-bmQgdGhlbiB3ZSdyZSBmb3JjZWQgdG8gdXNlDQo+ID4+ID4gPj4gTVNSLWJhc2VkIGNsb2Nrc291
-cmNlIGJ1dCB1c2luZyBpdCBhcyBzY2hlZF9jbG9jaygpIGNhbiBiZSB2ZXJ5IHNsb3csDQo+ID4+
-ID4gPj4gSSdtIGFmcmFpZC4NCj4gPj4gPiA+Pg0KPiA+PiA+ID4+IE9uIHRoZSBvdGhlciBoYW5k
-LCB3aGF0IHdlIGhhdmUgbm93IGlzIHByb2JhYmx5IHdvcnNlOiBUU0MgY2FuLA0KPiA+PiA+ID4+
-IGFjdHVhbGx5LCBqdW1wIGJhY2t3YXJkcyAoZS5nLiBvbiBtaWdyYXRpb24pIGFuZCB3ZSdyZSBi
-cmVha2luZyB0aGUNCj4gPj4gPiA+PiByZXF1aXJlbWVudHMgZm9yIHNjaGVkX2Nsb2NrKCkuDQo+
-ID4+ID4gPg0KPiA+PiA+ID4gVGhhdCAob2J2aW91c2x5KSBhbHNvIGJyZWFrcyB0aGUgcmVxdWly
-ZW1lbnRzIGZvciB1c2luZyBUU0MgYXMNCj4gPj4gPiA+IGNsb2Nrc291cmNlLg0KPiA+PiA+ID4N
-Cj4gPj4gPiA+IElPVywgaXQgYnJlYWtzIHRoZSBlbnRpcmUgcHVycG9zZSBvZiBoYXZpbmcgVFND
-IGluIHRoZSBmaXJzdCBwbGFjZS4NCj4gPj4gPg0KPiA+PiA+IEN1cnJlbnRseSwgd2UgbWFyayBy
-YXcgVFNDIGFzIHVuc3RhYmxlIHdoZW4gcnVubmluZyBvbiBIeXBlci1WIChzZWUNCj4gPj4gPiA4
-OGM5MjgxYTlmYmE2KSwgJ1RTQyBwYWdlJyAod2hpY2ggaXMgVFNDICogc2NhbGUgKyBvZmZzZXQp
-IGlzIGJlaW5nIHVzZWQNCj4gPj4gPiBpbnN0ZWFkLiBUaGUgcHJvYmxlbSBpcyB0aGF0ICdUU0Mg
-cGFnZScgY2FuIGJlIGRpc2FibGVkIGJ5IHRoZQ0KPiA+PiA+IGh5cGVydmlzb3IgYW5kIGluIHRo
-YXQgY2FzZSB0aGUgb25seSByZW1haW5pbmcgY2xvY2tzb3VyY2UgaXMgTVNSLWJhc2VkDQo+ID4+
-ID4gKHNsb3cpLg0KPiA+PiA+DQo+ID4+DQo+ID4+IFllcywgdGhhdCB3aWxsIGJlIHNsb3cgaWYg
-SHlwZXItViBkb2Vzbid0IGV4cG9zZSBodiB0c2MgcGFnZSBhbmQNCj4gPj4ga2VybmVsIHVzZXMg
-TVNSIGJhc2VkDQo+ID4+IGNsb2Nrc291cmNlLiBFYWNoIE1TUiByZWFkIHdpbGwgdHJpZ2dlciBv
-bmUgVk0tRVhJVC4gVGhpcyBhbHNvIGhhcHBlbnMgb24gb3RoZXINCj4gPj4gaHlwZXJ2aXNvcnMg
-KGUsZywgS1ZNIGRvZXNuJ3QgZXhwb3NlIEtWTSBjbG9jaykuIEh5cGVydmlzb3Igc2hvdWxkDQo+
-ID4+IHRha2UgdGhpcyBpbnRvDQo+ID4+IGFjY291bnQgYW5kIGRldGVybWluZSB3aGljaCBjbG9j
-a3NvdXJjZSBzaG91bGQgYmUgZXhwb3NlZCBvciBub3QuDQo+ID4+DQo+ID4NCj4gPiBXZSd2ZSBj
-b25maXJtZWQgd2l0aCB0aGUgSHlwZXItViB0ZWFtIHRoYXQgdGhlIFRTQyBwYWdlIGlzIGFsd2F5
-cyBhdmFpbGFibGUNCj4gPiBvbiBIeXBlci1WIDIwMTYgYW5kIGxhdGVyLCBhbmQgb24gSHlwZXIt
-ViAyMDEyIFIyIHdoZW4gdGhlIHBoeXNpY2FsDQo+ID4gaGFyZHdhcmUgcHJlc2VudHMgYW4gSW52
-YXJpYW50VFNDLg0KPiANCj4gQ3VycmVudGx5IHdlIGNoZWNrIHRoYXQgVFNDIHBhZ2UgaXMgdmFs
-aWQgb24gZXZlcnkgcmVhZCBhbmQgaXQgc2VlbXMNCj4gdGhpcyBpcyByZWR1bmRhbnQsIHJpZ2h0
-PyBJdCBpcyBlaXRoZXIgYXZhaWxhYmxlIG9uIGJvb3Qgb3Igbm90LiBJIGNhbg0KPiBvbmx5IGlt
-YWdpbmUgbWlncmF0aW5nIGEgVk0gdG8gYSBub24tSW52YXJpYW50VFNDIGhvc3Qgd2hlbiBIeXBl
-ci1WIHdpbGwNCj4gbGlrZWx5IGRpc2FibGUgdGhlIHBhZ2UgKGFuZCB3ZSBjYW4gZ2V0IHJlZW5s
-aWdodGVubWVudCBub3RpZmljYXRpb24NCj4gdGhlbikuDQoNCkkgdGhpbmsgSHlwZXItViBjYW4g
-aGF2ZSBicmllZiBpbnRlcnZhbHMgd2hlbiB0aGUgVFNDIHBhZ2UgaXMgbm90IHZhbGlkLCBzbw0K
-dGhlIGNvZGUgY2hlY2tzIGZvciB0aGUgInNlcXVlbmNlIiB2YWx1ZSBiZWluZyB6ZXJvLiAgIE90
-aGVyd2lzZSwgeWVzLCBpdA0Kc2hvdWxkIGFsd2F5cyBiZSB0aGVyZSBvciBub3QgYmUgdGhlcmUu
-ICBJcyB0aGVyZSBzb21lIG90aGVyIHZhbGlkaXR5DQpjaGVjayBvbiBldmVyeSByZWFkIHRoYXQg
-eW91IGFyZSB0aGlua2luZyBvZj8NCg0KPiANCj4gPiAgQnV0IHRoZSBMaW51eCBLY29uZmlnJ3Mg
-YXJlIHNldCB1cCBzbw0KPiA+IHRoZSBUU0MgcGFnZSBpcyBub3QgdXNlZCBmb3IgMzItYml0IGd1
-ZXN0cyAtLSBhbGwgY2xvY2sgcmVhZHMgYXJlIHN5bnRoZXRpYyBNU1INCj4gPiByZWFkcy4gIEZv
-ciAzMi1iaXQsIHRoaXMgc2V0IG9mIGNoYW5nZXMgd2lsbCBhZGQgbW9yZSBvdmVyaGVhZCBiZWNh
-dXNlIHRoZQ0KPiA+IHNjaGVkIGNsb2NrIHJlYWRzIHdpbGwgbm93IGJlIE1TUiByZWFkcy4NCj4g
-Pg0KPiA+IEkgd291bGQgYmUgaW5jbGluZWQgdG8gZml4IHRoZSBwcm9ibGVtLCBldmVuIHdpdGgg
-dGhlIHBlcmYgaGl0IG9uIDMyLWJpdCBMaW51eC4NCj4gPiBJIGRvbuKAmXQgaGF2ZSBhbnkgZGF0
-YSBvbiAzMi1iaXQgTGludXggYmVpbmcgdXNlZCBpbiBhIEh5cGVyLVYgZ3Vlc3QsIGJ1dCBpdCdz
-IG5vdA0KPiA+IHN1cHBvcnRlZCBpbiBBenVyZSBzbyB1c2FnZSBpcyBwcmV0dHkgc21hbGwuICBU
-aGUgYWx0ZXJuYXRpdmUgd291bGQgYmUgdG8gY29udGludWUNCj4gPiB0byB1c2UgdGhlIHJhdyBU
-U0MgdmFsdWUgb24gMzItYml0LCBldmVuIHdpdGggdGhlIHJpc2sgb2YgYSBkaXNjb250aW51aXR5
-IGluIGNhc2Ugb2YNCj4gPiBsaXZlIG1pZ3JhdGlvbiBvciBzaW1pbGFyIHNjZW5hcmlvcy4NCj4g
-DQo+IFRoZSBpc3N1ZSBuZWVkcyBmaXhpbmcsIEkgYWdyZWUsIGhvd2V2ZXIgdXNpbmcgTVNSIGJh
-c2VkIGNsb2Nrc291cmNlIGFzDQo+IHNjaGVkIGNsb2NrIG1heSBnaXZlIHVzIHRvbyBiaWcgb2Yg
-YSBwZXJmb3JtYW5jZSBoaXQgKG5vdCBzdXJlIHdobyBjYXJlcw0KPiBhYm91dCAzMiBiaXQgZ3Vl
-c3QgcGVyZm9ybWFuY2Ugbm93YWRheXMgYnV0IHN0aWxsKS4gV2hhdCBzdG9wcyB1cyBmcm9tDQo+
-IGVuYWJsaW5nIFRTQyBwYWdlIGZvciAzMiBiaXQgZ3Vlc3RzIGlmIGl0IGlzIGF2YWlsYWJsZT8N
-Cg0KSSB0YWxrZWQgdG8gS1kgU3Jpbml2YXNhbiBmb3IgYW55IGhpc3RvcnkgYWJvdXQgVFNDIHBh
-Z2Ugb24gMzItYml0LiAgSGUgc2FpZA0KdGhlcmUgd2FzIG5vIHRlY2huaWNhbCByZWFzb24gbm90
-IHRvIGltcGxlbWVudCBpdCwgYnV0IG91ciBmb2N1cyB3YXMgYWx3YXlzDQo2NC1iaXQgTGludXgs
-IHNvIHRoZSAzMi1iaXQgd2FzIG11Y2ggbGVzcyBpbXBvcnRhbnQuICBBbHNvLCBvbiAzMi1iaXQg
-TGludXgsDQp0aGUgcmVxdWlyZWQgNjR4NjQgbXVsdGlwbHkgYW5kIHNoaWZ0IGlzIG1vcmUgY29t
-cGxleCBhbmQgdGFrZXMgbW9yZQ0KbW9yZSBjeWNsZXMgKGNvbXBhcmUgMzItYml0IGltcGxlbWVu
-dGF0aW9uIG9mIG11bF91NjRfdTY0X3NociB2cy4NCnRoZSA2NC1iaXQgaW1wbGVtZW50YXRpb24p
-LCBzbyB0aGUgd2luIG92ZXIgYSBNU1IgcmVhZCBpcyBsZXNzLiAgSQ0KZG9uJ3Qga25vdyBvZiBh
-bnkgYWN0dWFsIG1lYXN1cmVtZW50cyBiZWluZyBtYWRlIHRvIGNvbXBhcmUgdnMuDQpNU1IgcmVh
-ZC4NCg0KTWljaGFlbA0KDQo+IA0KPiAtLQ0KPiBWaXRhbHkNCg==
+Some architectures have platform specific DMA addressing limitations.
+This will allow for hardware description code to provide the constraints
+in a generic manner, so as for arch code to properly setup it's memory
+zones and DMA mask.
+
+Signed-off-by: Nicolas Saenz Julienne <nsaenzjulienne@suse.de>
+---
+
+Changes in v2: None
+
+ include/asm-generic/dma.h | 8 +++++++-
+ mm/page_alloc.c           | 3 +++
+ 2 files changed, 10 insertions(+), 1 deletion(-)
+
+diff --git a/include/asm-generic/dma.h b/include/asm-generic/dma.h
+index 43d0c8af8058..c2f39cdb64f6 100644
+--- a/include/asm-generic/dma.h
++++ b/include/asm-generic/dma.h
+@@ -8,7 +8,13 @@
+  *
+  * Some code relies on seeing MAX_DMA_ADDRESS though.
+  */
+-#define MAX_DMA_ADDRESS PAGE_OFFSET
++#define MAX_DMA_ADDRESS	 (PAGE_OFFSET + dma_zone_size)
++
++/*
++ * Some architectures may have platform specific DMA addressing constraints.
++ * Firmware can use this to fine tune the device's DMA memory zone.
++ */
++extern u64 dma_zone_size __ro_after_init;
+ 
+ extern int request_dma(unsigned int dmanr, const char *device_id);
+ extern void free_dma(unsigned int dmanr);
+diff --git a/mm/page_alloc.c b/mm/page_alloc.c
+index 272c6de1bf4e..b514afee5451 100644
+--- a/mm/page_alloc.c
++++ b/mm/page_alloc.c
+@@ -133,6 +133,9 @@ EXPORT_SYMBOL(_totalram_pages);
+ unsigned long totalreserve_pages __read_mostly;
+ unsigned long totalcma_pages __read_mostly;
+ 
++u64 dma_zone_size __ro_after_init;
++EXPORT_SYMBOL(dma_zone_size);
++
+ int percpu_pagelist_fraction;
+ gfp_t gfp_allowed_mask __read_mostly = GFP_BOOT_MASK;
+ #ifdef CONFIG_INIT_ON_ALLOC_DEFAULT_ON
+-- 
+2.22.0
