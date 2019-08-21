@@ -1,47 +1,91 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga07.intel.com ([134.134.136.100]:41312 "EHLO mga07.intel.com"
+Received: from foss.arm.com ([217.140.110.172]:33482 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727286AbfHUOzk (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 21 Aug 2019 10:55:40 -0400
-Message-ID: <8d2e5bc4496075032393ff9ae81a26f7fbc711e6.camel@intel.com>
-Subject: Re: [PATCH v8 02/27] x86/cpufeatures: Add CET CPU feature flags for
- Control-flow Enforcement Technology (CET)
-From: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Date: Wed, 21 Aug 2019 07:46:32 -0700
-In-Reply-To: <20190821102052.GD6752@zn.tnic>
-References: <20190813205225.12032-1-yu-cheng.yu@intel.com>
-         <20190813205225.12032-3-yu-cheng.yu@intel.com>
-         <20190821102052.GD6752@zn.tnic>
-Content-Type: text/plain; charset="UTF-8"
-Mime-Version: 1.0
-Content-Transfer-Encoding: 7bit
+        id S1729733AbfHUQrt (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 21 Aug 2019 12:47:49 -0400
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: [PATCH v9 3/3] arm64: Relax Documentation/arm64/tagged-pointers.rst
+Date: Wed, 21 Aug 2019 17:47:30 +0100
+Message-ID: <20190821164730.47450-4-catalin.marinas@arm.com>
+In-Reply-To: <20190821164730.47450-1-catalin.marinas@arm.com>
+References: <20190821164730.47450-1-catalin.marinas@arm.com>
+MIME-Version: 1.0
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Borislav Petkov <bp@alien8.de>
-Cc: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@amacapital.net>, Balbir Singh <bsingharora@gmail.com>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>
-Message-ID: <20190821144632.XbIq3uyyBBpzdyXO5cY3xclObYbGIJIsTtUGBlPJnuo@z>
+To: linux-arm-kernel@lists.infradead.org, linux-mm@kvack.org
+Cc: Andrew Morton <akpm@linux-foundation.org>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Will Deacon <will@kernel.org>, Andrey Konovalov <andreyknvl@google.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Kevin Brodsky <kevin.brodsky@arm.com>, Dave P Martin <Dave.Martin@arm.com>, Dave Hansen <dave.hansen@intel.com>, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, Will Deacon <will.deacon@arm.com>
+Message-ID: <20190821164730.9lW0LSoa98egZos4opxI4HQFCYUjrsVfMwxgOoYekg8@z>
 
-On Wed, 2019-08-21 at 12:20 +0200, Borislav Petkov wrote:
-> On Tue, Aug 13, 2019 at 01:52:00PM -0700, Yu-cheng Yu wrote:
-> > Add CPU feature flags for Control-flow Enforcement Technology (CET).
-> > 
-> > [...]
-> > diff --git a/arch/x86/kernel/cpu/cpuid-deps.c b/arch/x86/kernel/cpu/cpuid-
-> > deps.c
-> > index b5353244749b..9bf35f081080 100644
-> > --- a/arch/x86/kernel/cpu/cpuid-deps.c
-> > +++ b/arch/x86/kernel/cpu/cpuid-deps.c
-> > @@ -68,6 +68,8 @@ static const struct cpuid_dep cpuid_deps[] = {
-> >  	{ X86_FEATURE_CQM_MBM_TOTAL,	X86_FEATURE_CQM_LLC   },
-> >  	{ X86_FEATURE_CQM_MBM_LOCAL,	X86_FEATURE_CQM_LLC   },
-> >  	{ X86_FEATURE_AVX512_BF16,	X86_FEATURE_AVX512VL  },
-> > +	{ X86_FEATURE_SHSTK,		X86_FEATURE_XSAVES    },
-> > +	{ X86_FEATURE_IBT,		X86_FEATURE_XSAVES    },
-> 
-> This hunk needs re-tabbing after:
-> 
-> 1e0c08e3034d ("cpu/cpuid-deps: Add a tab to cpuid dependent features")
+From: Vincenzo Frascino <vincenzo.frascino@arm.com>
 
-Thanks, I will fix it.
+On AArch64 the TCR_EL1.TBI0 bit is set by default, allowing userspace
+(EL0) to perform memory accesses through 64-bit pointers with a non-zero
+top byte. However, such pointers were not allowed at the user-kernel
+syscall ABI boundary.
 
-Yu-cheng
+With the Tagged Address ABI patchset, it is now possible to pass tagged
+pointers to the syscalls. Relax the requirements described in
+tagged-pointers.rst to be compliant with the behaviours guaranteed by
+the AArch64 Tagged Address ABI.
+
+Cc: Will Deacon <will.deacon@arm.com>
+Cc: Szabolcs Nagy <szabolcs.nagy@arm.com>
+Cc: Kevin Brodsky <kevin.brodsky@arm.com>
+Acked-by: Andrey Konovalov <andreyknvl@google.com>
+Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
+Co-developed-by: Catalin Marinas <catalin.marinas@arm.com>
+Signed-off-by: Catalin Marinas <catalin.marinas@arm.com>
+---
+ Documentation/arm64/tagged-pointers.rst | 23 ++++++++++++++++-------
+ 1 file changed, 16 insertions(+), 7 deletions(-)
+
+diff --git a/Documentation/arm64/tagged-pointers.rst b/Documentation/arm64/tagged-pointers.rst
+index 2acdec3ebbeb..04f2ba9b779e 100644
+--- a/Documentation/arm64/tagged-pointers.rst
++++ b/Documentation/arm64/tagged-pointers.rst
+@@ -20,7 +20,9 @@ Passing tagged addresses to the kernel
+ --------------------------------------
+ 
+ All interpretation of userspace memory addresses by the kernel assumes
+-an address tag of 0x00.
++an address tag of 0x00, unless the application enables the AArch64
++Tagged Address ABI explicitly
++(Documentation/arm64/tagged-address-abi.rst).
+ 
+ This includes, but is not limited to, addresses found in:
+ 
+@@ -33,13 +35,15 @@ This includes, but is not limited to, addresses found in:
+  - the frame pointer (x29) and frame records, e.g. when interpreting
+    them to generate a backtrace or call graph.
+ 
+-Using non-zero address tags in any of these locations may result in an
+-error code being returned, a (fatal) signal being raised, or other modes
+-of failure.
++Using non-zero address tags in any of these locations when the
++userspace application did not enable the AArch64 Tagged Address ABI may
++result in an error code being returned, a (fatal) signal being raised,
++or other modes of failure.
+ 
+-For these reasons, passing non-zero address tags to the kernel via
+-system calls is forbidden, and using a non-zero address tag for sp is
+-strongly discouraged.
++For these reasons, when the AArch64 Tagged Address ABI is disabled,
++passing non-zero address tags to the kernel via system calls is
++forbidden, and using a non-zero address tag for sp is strongly
++discouraged.
+ 
+ Programs maintaining a frame pointer and frame records that use non-zero
+ address tags may suffer impaired or inaccurate debug and profiling
+@@ -59,6 +63,11 @@ be preserved.
+ The architecture prevents the use of a tagged PC, so the upper byte will
+ be set to a sign-extension of bit 55 on exception return.
+ 
++This behaviour is maintained when the AArch64 Tagged Address ABI is
++enabled. In addition, with the exceptions above, the kernel will
++preserve any non-zero tags passed by the user via syscalls and stored in
++kernel data structures (e.g. ``set_robust_list()``, ``sigaltstack()``).
++
+ 
+ Other considerations
+ --------------------
