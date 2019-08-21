@@ -1,77 +1,79 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.skyhub.de ([5.9.137.197]:47128 "EHLO mail.skyhub.de"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727669AbfHUKU7 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 21 Aug 2019 06:20:59 -0400
-Date: Wed, 21 Aug 2019 12:20:52 +0200
-From: Borislav Petkov <bp@alien8.de>
-Subject: Re: [PATCH v8 02/27] x86/cpufeatures: Add CET CPU feature flags for
- Control-flow Enforcement Technology (CET)
-Message-ID: <20190821102052.GD6752@zn.tnic>
-References: <20190813205225.12032-1-yu-cheng.yu@intel.com>
- <20190813205225.12032-3-yu-cheng.yu@intel.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-In-Reply-To: <20190813205225.12032-3-yu-cheng.yu@intel.com>
+Received: from mail-qk1-f201.google.com ([209.85.222.201]:36823 "EHLO
+        mail-qk1-f201.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726330AbfHULyJ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 21 Aug 2019 07:54:09 -0400
+Received: by mail-qk1-f201.google.com with SMTP id q62so1861528qkd.3
+        for <linux-arch@vger.kernel.org>; Wed, 21 Aug 2019 04:54:08 -0700 (PDT)
+Date: Wed, 21 Aug 2019 12:49:16 +0100
+In-Reply-To: <20190821114955.12788-1-maennich@google.com>
+Message-ID: <20190821114955.12788-2-maennich@google.com>
+Mime-Version: 1.0
+References: <20190813121733.52480-1-maennich@google.com> <20190821114955.12788-1-maennich@google.com>
+Subject: [PATCH v3 01/11] module: support reading multiple values per modinfo tag
+From: Matthias Maennich <maennich@google.com>
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Cc: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@amacapital.net>, Balbir Singh <bsingharora@gmail.com>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>
-Message-ID: <20190821102052.gN6c5aIn_CnadBTxw2OGg8sSbriJTGtX-Nwo9XSEDgc@z>
+To: linux-kernel@vger.kernel.org
+Cc: kernel-team@android.com, maennich@google.com, arnd@arndb.de, geert@linux-m68k.org, gregkh@linuxfoundation.org, hpa@zytor.com, jeyu@kernel.org, joel@joelfernandes.org, kstewart@linuxfoundation.org, linux-arch@vger.kernel.org, linux-kbuild@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-modules@vger.kernel.org, linux-scsi@vger.kernel.org, linux-usb@vger.kernel.org, lucas.de.marchi@gmail.com, maco@android.com, maco@google.com, michal.lkml@markovi.net, mingo@redhat.com, oneukum@suse.com, pombredanne@nexb.com, sam@ravnborg.org, sspatil@google.com, stern@rowland.harvard.edu, tglx@linutronix.de, usb-storage@lists.one-eyed-alien.net, x86@kernel.org, yamada.masahiro@socionext.com
+Message-ID: <20190821114916.MfU1LT8XS4CxKU70uUNtfuaMNM7wsvzAspKo8TOG-R8@z>
 
-On Tue, Aug 13, 2019 at 01:52:00PM -0700, Yu-cheng Yu wrote:
-> Add CPU feature flags for Control-flow Enforcement Technology (CET).
-> 
-> CPUID.(EAX=7,ECX=0):ECX[bit 7] Shadow stack
-> CPUID.(EAX=7,ECX=0):EDX[bit 20] Indirect branch tracking
-> 
-> Reviewed-by: Borislav Petkov <bp@suse.de>
-> Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
-> ---
->  arch/x86/include/asm/cpufeatures.h | 2 ++
->  arch/x86/kernel/cpu/cpuid-deps.c   | 2 ++
->  2 files changed, 4 insertions(+)
-> 
-> diff --git a/arch/x86/include/asm/cpufeatures.h b/arch/x86/include/asm/cpufeatures.h
-> index e880f2408e29..122265ab46c1 100644
-> --- a/arch/x86/include/asm/cpufeatures.h
-> +++ b/arch/x86/include/asm/cpufeatures.h
-> @@ -334,6 +334,7 @@
->  #define X86_FEATURE_OSPKE		(16*32+ 4) /* OS Protection Keys Enable */
->  #define X86_FEATURE_WAITPKG		(16*32+ 5) /* UMONITOR/UMWAIT/TPAUSE Instructions */
->  #define X86_FEATURE_AVX512_VBMI2	(16*32+ 6) /* Additional AVX512 Vector Bit Manipulation Instructions */
-> +#define X86_FEATURE_SHSTK		(16*32+ 7) /* Shadow Stack */
->  #define X86_FEATURE_GFNI		(16*32+ 8) /* Galois Field New Instructions */
->  #define X86_FEATURE_VAES		(16*32+ 9) /* Vector AES */
->  #define X86_FEATURE_VPCLMULQDQ		(16*32+10) /* Carry-Less Multiplication Double Quadword */
-> @@ -358,6 +359,7 @@
->  #define X86_FEATURE_MD_CLEAR		(18*32+10) /* VERW clears CPU buffers */
->  #define X86_FEATURE_TSX_FORCE_ABORT	(18*32+13) /* "" TSX_FORCE_ABORT */
->  #define X86_FEATURE_PCONFIG		(18*32+18) /* Intel PCONFIG */
-> +#define X86_FEATURE_IBT			(18*32+20) /* Indirect Branch Tracking */
->  #define X86_FEATURE_SPEC_CTRL		(18*32+26) /* "" Speculation Control (IBRS + IBPB) */
->  #define X86_FEATURE_INTEL_STIBP		(18*32+27) /* "" Single Thread Indirect Branch Predictors */
->  #define X86_FEATURE_FLUSH_L1D		(18*32+28) /* Flush L1D cache */
-> diff --git a/arch/x86/kernel/cpu/cpuid-deps.c b/arch/x86/kernel/cpu/cpuid-deps.c
-> index b5353244749b..9bf35f081080 100644
-> --- a/arch/x86/kernel/cpu/cpuid-deps.c
-> +++ b/arch/x86/kernel/cpu/cpuid-deps.c
-> @@ -68,6 +68,8 @@ static const struct cpuid_dep cpuid_deps[] = {
->  	{ X86_FEATURE_CQM_MBM_TOTAL,	X86_FEATURE_CQM_LLC   },
->  	{ X86_FEATURE_CQM_MBM_LOCAL,	X86_FEATURE_CQM_LLC   },
->  	{ X86_FEATURE_AVX512_BF16,	X86_FEATURE_AVX512VL  },
-> +	{ X86_FEATURE_SHSTK,		X86_FEATURE_XSAVES    },
-> +	{ X86_FEATURE_IBT,		X86_FEATURE_XSAVES    },
+Similar to modpost's get_next_modinfo(), introduce get_next_modinfo() in
+kernel/module.c to acquire any further values associated with the same
+modinfo tag name. That is useful for any tags that have multiple
+occurrences (such as 'alias'), but is in particular introduced here as
+part of the symbol namespaces patch series to read the (potentially)
+multiple namespaces a module is importing.
 
-This hunk needs re-tabbing after:
+Reviewed-by: Joel Fernandes (Google) <joel@joelfernandes.org>
+Reviewed-by: Martijn Coenen <maco@android.com>
+Reviewed-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+Signed-off-by: Matthias Maennich <maennich@google.com>
+---
+ kernel/module.c | 17 +++++++++++++++--
+ 1 file changed, 15 insertions(+), 2 deletions(-)
 
-1e0c08e3034d ("cpu/cpuid-deps: Add a tab to cpuid dependent features")
-
-Thx.
-
+diff --git a/kernel/module.c b/kernel/module.c
+index 5933395af9a0..a23067907169 100644
+--- a/kernel/module.c
++++ b/kernel/module.c
+@@ -2481,7 +2481,8 @@ static char *next_string(char *string, unsigned long *secsize)
+ 	return string;
+ }
+ 
+-static char *get_modinfo(struct load_info *info, const char *tag)
++static char *get_next_modinfo(const struct load_info *info, const char *tag,
++			      char *prev)
+ {
+ 	char *p;
+ 	unsigned int taglen = strlen(tag);
+@@ -2492,13 +2493,25 @@ static char *get_modinfo(struct load_info *info, const char *tag)
+ 	 * get_modinfo() calls made before rewrite_section_headers()
+ 	 * must use sh_offset, as sh_addr isn't set!
+ 	 */
+-	for (p = (char *)info->hdr + infosec->sh_offset; p; p = next_string(p, &size)) {
++	char *modinfo = (char *)info->hdr + infosec->sh_offset;
++
++	if (prev) {
++		size -= prev - modinfo;
++		modinfo = next_string(prev, &size);
++	}
++
++	for (p = modinfo; p; p = next_string(p, &size)) {
+ 		if (strncmp(p, tag, taglen) == 0 && p[taglen] == '=')
+ 			return p + taglen + 1;
+ 	}
+ 	return NULL;
+ }
+ 
++static char *get_modinfo(const struct load_info *info, const char *tag)
++{
++	return get_next_modinfo(info, tag, NULL);
++}
++
+ static void setup_modinfo(struct module *mod, struct load_info *info)
+ {
+ 	struct module_attribute *attr;
 -- 
-Regards/Gruss,
-    Boris.
-
-Good mailing practices for 400: avoid top-posting and trim the reply.
+2.23.0.rc1.153.gdeed80330f-goog
