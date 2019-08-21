@@ -1,124 +1,43 @@
-From: Dave Martin <Dave.Martin@arm.com>
-Subject: Re: [PATCH v9 3/3] arm64: Relax
- Documentation/arm64/tagged-pointers.rst
-Date: Wed, 21 Aug 2019 19:46:51 +0100
-Message-ID: <20190821184649.GD27757@arm.com>
-References: <20190821164730.47450-1-catalin.marinas@arm.com>
- <20190821164730.47450-4-catalin.marinas@arm.com>
- <20190821173352.yqfgaozi7nfhcofg@willie-the-truck>
+From: Nicolas Pitre <nico-vtqb6HGKxmzR7s880joybQ@public.gmane.org>
+Subject: Re: [PATCH v3 00/11] Symbol Namespaces
+Date: Wed, 21 Aug 2019 16:48:10 -0400 (EDT)
+Message-ID: <nycvar.YSQ.7.76.1908211642050.19480@knanqh.ubzr>
+References: <20190813121733.52480-1-maennich@google.com>
+ <20190821114955.12788-1-maennich@google.com>
+ <nycvar.YSQ.7.76.1908210840490.19480@knanqh.ubzr>
+ <20190821133737.GB4890@kroah.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
-Content-Disposition: inline
-In-Reply-To: <20190821173352.yqfgaozi7nfhcofg@willie-the-truck>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
-To: Will Deacon <will@kernel.org>
-Cc: linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, Szabolcs Nagy <szabolcs.nagy@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Kevin Brodsky <kevin.brodsky@arm.com>, Will Deacon <will.deacon@arm.com>, linux-mm@kvack.org, Dave Hansen <dave.hansen@intel.com>, Andrey Konovalov <andreyknvl@google.com>, Andrew Morton <akpm@linux-foundation.org>, Vincenzo Frascino <vincenzo.frascino@arm.com>, linux-arm-kernel@lists.infradead.org
+Return-path: <linux-mediatek-bounces+glpam-linux-mediatek=m.gmane.org-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org>
+In-Reply-To: <20190821133737.GB4890-U8xfFu+wG4EAvxtiuMwx3w@public.gmane.org>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-mediatek>,
+ <mailto:linux-mediatek-request-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-mediatek/>
+List-Post: <mailto:linux-mediatek-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org>
+List-Help: <mailto:linux-mediatek-request-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-mediatek>,
+ <mailto:linux-mediatek-request-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org?subject=subscribe>
+Sender: "Linux-mediatek" <linux-mediatek-bounces-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org>
+Errors-To: linux-mediatek-bounces+glpam-linux-mediatek=m.gmane.org-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org
+To: Greg KH <gregkh-hQyY1W1yCW8ekmWlsbkhG0B+6BGkLq7r@public.gmane.org>
+Cc: kstewart-hQyY1W1yCW8ekmWlsbkhG0B+6BGkLq7r@public.gmane.org, oneukum-IBi9RG/b67k@public.gmane.org, linux-aspeed-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org, usb-storage-ijkIwGHArpdIPJnuZ7Njw4oP9KaGy4wf@public.gmane.org, Toru Komatsu <k0ma-h7Lmzv2voGl4Eiagz67IpQ@public.gmane.org>, Mauro Carvalho Chehab <mchehab+samsung-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Nicolas Ferre <nicolas.ferre-UWL1GkI3JZL3oGB3hsPCZA@public.gmane.org>, David Howells <dhowells-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, yamada.masahiro-uWyLwvC0a2jby3iVrkZq2A@public.gmane.org, Will Deacon <will-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, patches-yzvPICuk2AA4QjBA90+/kJqQE7yCjDx5@public.gmane.org, Michael Ellerman <mpe-Gsx/Oe8HsFggBc27wqDAHg@public.gmane.org>, hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org, joel-QYYGw3jwrUn5owFQY34kdNi2O/JbrIOy@public.gmane.org, bcm-kernel-feedback-list-dY08KVG/lbpWk0Htik3J/w@public.gmane.org, sam-uyr5N9Q2VtJg9hUCZPvPmw@public.gmane.org, cocci-/FJkirnvOdkvYVN+rsErww@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-samsung-soc-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Benjamin Fair <benjaminfair-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, linux-scsi-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Fabio Estevam <festevam-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, openbmc-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org, x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, lucas.de.marchi-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org, Nancy Yuen <yuenn-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, mingo-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org, geert-Td1EMuHUCqxL1ZNQvxDV9g@public.gmane.org, NXP Linux Team <linux-imx-3arQi8VN3Tc@public.gmane.org>, Johan
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Aug 21, 2019 at 06:33:53PM +0100, Will Deacon wrote:
-> On Wed, Aug 21, 2019 at 05:47:30PM +0100, Catalin Marinas wrote:
-> > From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-> > 
-> > On AArch64 the TCR_EL1.TBI0 bit is set by default, allowing userspace
-> > (EL0) to perform memory accesses through 64-bit pointers with a non-zero
-> > top byte. However, such pointers were not allowed at the user-kernel
-> > syscall ABI boundary.
-> > 
-> > With the Tagged Address ABI patchset, it is now possible to pass tagged
-> > pointers to the syscalls. Relax the requirements described in
-> > tagged-pointers.rst to be compliant with the behaviours guaranteed by
-> > the AArch64 Tagged Address ABI.
-> > 
-> > Cc: Will Deacon <will.deacon@arm.com>
-> > Cc: Szabolcs Nagy <szabolcs.nagy@arm.com>
-> > Cc: Kevin Brodsky <kevin.brodsky@arm.com>
-> > Acked-by: Andrey Konovalov <andreyknvl@google.com>
-> > Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
-> > Co-developed-by: Catalin Marinas <catalin.marinas@arm.com>
-> > Signed-off-by: Catalin Marinas <catalin.marinas@arm.com>
-> > ---
-> >  Documentation/arm64/tagged-pointers.rst | 23 ++++++++++++++++-------
-> >  1 file changed, 16 insertions(+), 7 deletions(-)
-> > 
-> > diff --git a/Documentation/arm64/tagged-pointers.rst b/Documentation/arm64/tagged-pointers.rst
-> > index 2acdec3ebbeb..04f2ba9b779e 100644
-> > --- a/Documentation/arm64/tagged-pointers.rst
-> > +++ b/Documentation/arm64/tagged-pointers.rst
-> > @@ -20,7 +20,9 @@ Passing tagged addresses to the kernel
-> >  --------------------------------------
-> >  
-> >  All interpretation of userspace memory addresses by the kernel assumes
-> > -an address tag of 0x00.
-> > +an address tag of 0x00, unless the application enables the AArch64
-> > +Tagged Address ABI explicitly
-> > +(Documentation/arm64/tagged-address-abi.rst).
-> >  
-> >  This includes, but is not limited to, addresses found in:
-> >  
-> > @@ -33,13 +35,15 @@ This includes, but is not limited to, addresses found in:
-> >   - the frame pointer (x29) and frame records, e.g. when interpreting
-> >     them to generate a backtrace or call graph.
-> >  
-> > -Using non-zero address tags in any of these locations may result in an
-> > -error code being returned, a (fatal) signal being raised, or other modes
-> > -of failure.
-> > +Using non-zero address tags in any of these locations when the
-> > +userspace application did not enable the AArch64 Tagged Address ABI may
-> > +result in an error code being returned, a (fatal) signal being raised,
-> > +or other modes of failure.
-> >  
-> > -For these reasons, passing non-zero address tags to the kernel via
-> > -system calls is forbidden, and using a non-zero address tag for sp is
-> > -strongly discouraged.
-> > +For these reasons, when the AArch64 Tagged Address ABI is disabled,
-> > +passing non-zero address tags to the kernel via system calls is
-> > +forbidden, and using a non-zero address tag for sp is strongly
-> > +discouraged.
-> >  
-> >  Programs maintaining a frame pointer and frame records that use non-zero
-> >  address tags may suffer impaired or inaccurate debug and profiling
-> > @@ -59,6 +63,11 @@ be preserved.
-> >  The architecture prevents the use of a tagged PC, so the upper byte will
-> >  be set to a sign-extension of bit 55 on exception return.
-> >  
-> > +This behaviour is maintained when the AArch64 Tagged Address ABI is
-> > +enabled. In addition, with the exceptions above, the kernel will
-> > +preserve any non-zero tags passed by the user via syscalls and stored in
-> > +kernel data structures (e.g. ``set_robust_list()``, ``sigaltstack()``).
+On Wed, 21 Aug 2019, Greg KH wrote:
 
-sigaltstack() is interesting, since we don't support tagged stacks.
-
-Do we keep the ss_sp tag in the kernel, but squash it when delivering
-a signal to the alternate stack?
-
-(I can't remember whether this would be compatible with the
-architectural tag checking semantics...)
-
-> Hmm. I can see the need to provide this guarantee for things like
-> set_robust_list(), but the problem is that the statement above is too broad
-> and isn't strictly true: for example, mmap() doesn't propagate the tag of
-> its address parameter into the VMA.
+> On Wed, Aug 21, 2019 at 08:46:47AM -0400, Nicolas Pitre wrote:
 > 
-> So I think we need to nail this down a bit more, but I'm having a really
-> hard time coming up with some wording :(
+> > One solution for drastically reducing the effective export surface is to 
+> > have CONFIG_TRIM_UNUSED_KSYMS=y. This is more extreme than symbol 
+> > namespace, but might be worth mentioning nevertheless.
+> 
+> Oh that's amazing, I never noticed that feature.  That is a nice thing,
+> thanks for pointing it out.
 
-Time for some creative vagueness?
+For those interested, this feature was demonstrated with numbers here:
 
-We can write a statement of our overall intent, along with examples of
-a few cases where the tag should and should not be expected to emerge
-intact.
+https://lwn.net/Articles/746780/
 
-There is no foolproof rule, unless we can rewrite history...
 
-Cheers
----Dave
+Nicolas
