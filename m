@@ -1,66 +1,44 @@
-From: Greg KH <gregkh@linuxfoundation.org>
-Subject: Re: [PATCH v3 09/11] usb-storage: remove single-use define for
- debugging
-Date: Wed, 21 Aug 2019 06:32:45 -0700
-Message-ID: <20190821133245.GA4624@kroah.com>
+From: Greg KH <gregkh-hQyY1W1yCW8ekmWlsbkhG0B+6BGkLq7r@public.gmane.org>
+Subject: Re: [PATCH v3 00/11] Symbol Namespaces
+Date: Wed, 21 Aug 2019 06:37:37 -0700
+Message-ID: <20190821133737.GB4890@kroah.com>
 References: <20190813121733.52480-1-maennich@google.com>
  <20190821114955.12788-1-maennich@google.com>
- <20190821114955.12788-10-maennich@google.com>
- <alpine.DEB.2.21.1908211520360.2223@nanos.tec.linutronix.de>
+ <nycvar.YSQ.7.76.1908210840490.19480@knanqh.ubzr>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-mediatek-bounces+glpam-linux-mediatek=m.gmane.org-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org>
 Content-Disposition: inline
-In-Reply-To: <alpine.DEB.2.21.1908211520360.2223@nanos.tec.linutronix.de>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Thomas Gleixner <tglx@linutronix.de>
-Cc: Matthias Maennich <maennich@google.com>, linux-kernel@vger.kernel.org, kernel-team@android.com, arnd@arndb.de, geert@linux-m68k.org, hpa@zytor.com, jeyu@kernel.org, joel@joelfernandes.org, kstewart@linuxfoundation.org, linux-arch@vger.kernel.org, linux-kbuild@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-modules@vger.kernel.org, linux-scsi@vger.kernel.org, linux-usb@vger.kernel.org, lucas.de.marchi@gmail.com, maco@android.com, maco@google.com, michal.lkml@markovi.net, mingo@redhat.com, oneukum@suse.com, pombredanne@nexb.com, sam@ravnborg.org, sspatil@google.com, stern@rowland.harvard.edu, usb-storage@lists.one-eyed-alien.net, x86@kernel.org, yamada.masahiro@socionext.com
+In-Reply-To: <nycvar.YSQ.7.76.1908210840490.19480-fMhRO7WWcppj+hNMo8g0rg@public.gmane.org>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-mediatek>,
+ <mailto:linux-mediatek-request-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-mediatek/>
+List-Post: <mailto:linux-mediatek-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org>
+List-Help: <mailto:linux-mediatek-request-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-mediatek>,
+ <mailto:linux-mediatek-request-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org?subject=subscribe>
+Sender: "Linux-mediatek" <linux-mediatek-bounces-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org>
+Errors-To: linux-mediatek-bounces+glpam-linux-mediatek=m.gmane.org-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org
+To: Nicolas Pitre <nico-vtqb6HGKxmzR7s880joybQ@public.gmane.org>
+Cc: kstewart-hQyY1W1yCW8ekmWlsbkhG0B+6BGkLq7r@public.gmane.org, oneukum-IBi9RG/b67k@public.gmane.org, linux-aspeed-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org, usb-storage-ijkIwGHArpdIPJnuZ7Njw4oP9KaGy4wf@public.gmane.org, Toru Komatsu <k0ma-h7Lmzv2voGl4Eiagz67IpQ@public.gmane.org>, Mauro Carvalho Chehab <mchehab+samsung-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Nicolas Ferre <nicolas.ferre-UWL1GkI3JZL3oGB3hsPCZA@public.gmane.org>, David Howells <dhowells-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, yamada.masahiro-uWyLwvC0a2jby3iVrkZq2A@public.gmane.org, Will Deacon <will-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, patches-yzvPICuk2AA4QjBA90+/kJqQE7yCjDx5@public.gmane.org, Michael Ellerman <mpe-Gsx/Oe8HsFggBc27wqDAHg@public.gmane.org>, hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org, joel-QYYGw3jwrUn5owFQY34kdNi2O/JbrIOy@public.gmane.org, bcm-kernel-feedback-list-dY08KVG/lbpWk0Htik3J/w@public.gmane.org, sam-uyr5N9Q2VtJg9hUCZPvPmw@public.gmane.org, cocci-/FJkirnvOdkvYVN+rsErww@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-samsung-soc-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Benjamin Fair <benjaminfair-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, linux-scsi-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Fabio Estevam <festevam-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, openbmc-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org, x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, lucas.de.marchi-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org, Nancy Yuen <yuenn-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, mingo-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org, geert-Td1EMuHUCqxL1ZNQvxDV9g@public.gmane.org, NXP Linux Team <linux-imx-3arQi8VN3Tc@public.gmane.org>, Johan
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Aug 21, 2019 at 03:21:22PM +0200, Thomas Gleixner wrote:
+On Wed, Aug 21, 2019 at 08:46:47AM -0400, Nicolas Pitre wrote:
 > On Wed, 21 Aug 2019, Matthias Maennich wrote:
 > 
-> > USB_STORAGE was defined as "usb-storage: " and used in a single location
-> > as argument to printk. In order to be able to use the name
-> > 'USB_STORAGE', drop the definition and use the string directly for the
-> > printk call.
-> > 
-> > Signed-off-by: Matthias Maennich <maennich@google.com>
-> > ---
-> >  drivers/usb/storage/debug.h    | 2 --
-> >  drivers/usb/storage/scsiglue.c | 2 +-
-> >  2 files changed, 1 insertion(+), 3 deletions(-)
-> > 
-> > diff --git a/drivers/usb/storage/debug.h b/drivers/usb/storage/debug.h
-> > index 6d64f342f587..16ce06039a4d 100644
-> > --- a/drivers/usb/storage/debug.h
-> > +++ b/drivers/usb/storage/debug.h
-> > @@ -29,8 +29,6 @@
-> >  
-> >  #include <linux/kernel.h>
-> >  
-> > -#define USB_STORAGE "usb-storage: "
-> > -
-> >  #ifdef CONFIG_USB_STORAGE_DEBUG
-> >  void usb_stor_show_command(const struct us_data *us, struct scsi_cmnd *srb);
-> >  void usb_stor_show_sense(const struct us_data *us, unsigned char key,
-> > diff --git a/drivers/usb/storage/scsiglue.c b/drivers/usb/storage/scsiglue.c
-> > index 05b80211290d..df4de8323eff 100644
-> > --- a/drivers/usb/storage/scsiglue.c
-> > +++ b/drivers/usb/storage/scsiglue.c
-> > @@ -379,7 +379,7 @@ static int queuecommand_lck(struct scsi_cmnd *srb,
-> >  
-> >  	/* check for state-transition errors */
-> >  	if (us->srb != NULL) {
-> > -		printk(KERN_ERR USB_STORAGE "Error in %s: us->srb = %p\n",
-> > +		printk(KERN_ERR "usb-storage: Error in %s: us->srb = %p\n",
-> >  			__func__, us->srb);
+> > As of Linux 5.3-rc5, there are 31205 [1] exported symbols in the kernel.
+> > That is a growth of roughly 1000 symbols since 4.17 (30206 [2]).  There
+> > seems to be some consensus amongst kernel devs that the export surface
+> > is too large, and hard to reason about.
 > 
-> The proper fix for this is to use pr_fmt and convert the printk to pr_err().
+> This is good work.
+> 
+> One solution for drastically reducing the effective export surface is to 
+> have CONFIG_TRIM_UNUSED_KSYMS=y. This is more extreme than symbol 
+> namespace, but might be worth mentioning nevertheless.
 
-Yeah, that's the correct long-term fix, I think someone already sent
-that in for the usb tree, where I have taken this patch already.
-
-thanks,
+Oh that's amazing, I never noticed that feature.  That is a nice thing,
+thanks for pointing it out.
 
 greg k-h
