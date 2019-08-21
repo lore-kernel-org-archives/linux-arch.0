@@ -1,194 +1,88 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qk1-f201.google.com ([209.85.222.201]:37148 "EHLO
-        mail-qk1-f201.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728008AbfHULyg (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 21 Aug 2019 07:54:36 -0400
-Received: by mail-qk1-f201.google.com with SMTP id d203so1861705qke.4
-        for <linux-arch@vger.kernel.org>; Wed, 21 Aug 2019 04:54:35 -0700 (PDT)
-Date: Wed, 21 Aug 2019 12:49:22 +0100
+Received: from mail-yw1-f73.google.com ([209.85.161.73]:38081 "EHLO
+        mail-yw1-f73.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727880AbfHULy1 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 21 Aug 2019 07:54:27 -0400
+Received: by mail-yw1-f73.google.com with SMTP id f15so1275868ywb.5
+        for <linux-arch@vger.kernel.org>; Wed, 21 Aug 2019 04:54:26 -0700 (PDT)
+Date: Wed, 21 Aug 2019 12:49:20 +0100
 In-Reply-To: <20190821114955.12788-1-maennich@google.com>
-Message-ID: <20190821114955.12788-8-maennich@google.com>
+Message-ID: <20190821114955.12788-6-maennich@google.com>
 Mime-Version: 1.0
 References: <20190813121733.52480-1-maennich@google.com> <20190821114955.12788-1-maennich@google.com>
-Subject: [PATCH v3 07/11] modpost: add support for generating namespace dependencies
+Subject: [PATCH v3 05/11] module: add config option MODULE_ALLOW_MISSING_NAMESPACE_IMPORTS
 From: Matthias Maennich <maennich@google.com>
 Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: kernel-team@android.com, maennich@google.com, arnd@arndb.de, geert@linux-m68k.org, gregkh@linuxfoundation.org, hpa@zytor.com, jeyu@kernel.org, joel@joelfernandes.org, kstewart@linuxfoundation.org, linux-arch@vger.kernel.org, linux-kbuild@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-modules@vger.kernel.org, linux-scsi@vger.kernel.org, linux-usb@vger.kernel.org, lucas.de.marchi@gmail.com, maco@android.com, maco@google.com, michal.lkml@markovi.net, mingo@redhat.com, oneukum@suse.com, pombredanne@nexb.com, sam@ravnborg.org, sspatil@google.com, stern@rowland.harvard.edu, tglx@linutronix.de, usb-storage@lists.one-eyed-alien.net, x86@kernel.org, yamada.masahiro@socionext.com, Jani Nikula <jani.nikula@intel.com>, Rob Herring <robh@kernel.org>, Toru Komatsu <k0ma@utam0k.jp>, Alexey Gladkov <gladkov.alexey@gmail.com>
-Message-ID: <20190821114922.wnI61IO-kaSTrZPwXXnDbDC05fsasmjcxuOdiR-0NKs@z>
+Cc: kernel-team@android.com, maennich@google.com, arnd@arndb.de, geert@linux-m68k.org, gregkh@linuxfoundation.org, hpa@zytor.com, jeyu@kernel.org, joel@joelfernandes.org, kstewart@linuxfoundation.org, linux-arch@vger.kernel.org, linux-kbuild@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-modules@vger.kernel.org, linux-scsi@vger.kernel.org, linux-usb@vger.kernel.org, lucas.de.marchi@gmail.com, maco@android.com, maco@google.com, michal.lkml@markovi.net, mingo@redhat.com, oneukum@suse.com, pombredanne@nexb.com, sam@ravnborg.org, sspatil@google.com, stern@rowland.harvard.edu, tglx@linutronix.de, usb-storage@lists.one-eyed-alien.net, x86@kernel.org, yamada.masahiro@socionext.com, Andrew Morton <akpm@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, Mauro Carvalho Chehab <mchehab+samsung@kernel.org>, David Howells <dhowells@redhat.com>, Patrick Bellasi <patrick.bellasi@arm.com>, Dan Williams <dan.j.williams@intel.com>, Adrian Reber <adrian@lisas.de>, Richard Guy Briggs <rgb@redhat.com>
+Message-ID: <20190821114920.2jeXR5x30hg4FLNUrs7S2-wBTtgkifU37uBD745DGqE@z>
 
-This patch adds an option to modpost to generate a <module>.ns_deps file
-per module, containing the namespace dependencies for that module.
+If MODULE_ALLOW_MISSING_NAMESPACE_IMPORTS is enabled (default=n), the
+requirement for modules to import all namespaces that are used by
+the module is relaxed.
 
-E.g. if the linked module my-module.ko would depend on the symbol
-myfunc.MY_NS in the namespace MY_NS, the my-module.ns_deps file created
-by modpost would contain the entry MY_NS to express the namespace
-dependency of my-module imposed by using the symbol myfunc.
+Enabling this option effectively allows (invalid) modules to be loaded
+while only a warning is emitted.
 
-These files can subsequently be used by static analysis tools (like
-coccinelle scripts) to address issues with missing namespace imports. A
-later patch of this series will introduce such a script 'nsdeps' and a
-corresponding make target to automatically add missing
-MODULE_IMPORT_NS() definitions to the module's sources. For that it uses
-the information provided in the generated .ns_deps files.
+Disabling this option keeps the enforcement at module loading time and
+loading is denied if the module's imports are not satisfactory.
 
-Co-developed-by: Martijn Coenen <maco@android.com>
-Signed-off-by: Martijn Coenen <maco@android.com>
+Reviewed-by: Martijn Coenen <maco@android.com>
 Reviewed-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
 Signed-off-by: Matthias Maennich <maennich@google.com>
 ---
- .gitignore            |  1 +
- Makefile              |  2 +-
- scripts/mod/modpost.c | 54 +++++++++++++++++++++++++++++++++++++++----
- scripts/mod/modpost.h |  2 ++
- 4 files changed, 53 insertions(+), 6 deletions(-)
+ init/Kconfig    | 13 +++++++++++++
+ kernel/module.c | 11 +++++++++--
+ 2 files changed, 22 insertions(+), 2 deletions(-)
 
-diff --git a/.gitignore b/.gitignore
-index 2030c7a4d2f8..9ee63aa2a3fb 100644
---- a/.gitignore
-+++ b/.gitignore
-@@ -32,6 +32,7 @@
- *.lzo
- *.mod
- *.mod.c
-+*.ns_deps
- *.o
- *.o.*
- *.order
-diff --git a/Makefile b/Makefile
-index 9fa18613566f..a89870188c09 100644
---- a/Makefile
-+++ b/Makefile
-@@ -1669,7 +1669,7 @@ clean: $(clean-dirs)
- 		-o -name '*.ko.*' \
- 		-o -name '*.dtb' -o -name '*.dtb.S' -o -name '*.dt.yaml' \
- 		-o -name '*.dwo' -o -name '*.lst' \
--		-o -name '*.su' -o -name '*.mod' \
-+		-o -name '*.su' -o -name '*.mod' -o -name '*.ns_deps' \
- 		-o -name '.*.d' -o -name '.*.tmp' -o -name '*.mod.c' \
- 		-o -name '*.lex.c' -o -name '*.tab.[ch]' \
- 		-o -name '*.asn1.[ch]' \
-diff --git a/scripts/mod/modpost.c b/scripts/mod/modpost.c
-index 538bb24ffee3..81eeec063709 100644
---- a/scripts/mod/modpost.c
-+++ b/scripts/mod/modpost.c
-@@ -38,6 +38,8 @@ static int sec_mismatch_count = 0;
- static int sec_mismatch_fatal = 0;
- /* ignore missing files */
- static int ignore_missing_files;
-+/* write namespace dependencies */
-+static int write_namespace_deps;
+diff --git a/init/Kconfig b/init/Kconfig
+index bd7d650d4a99..cc28561288a7 100644
+--- a/init/Kconfig
++++ b/init/Kconfig
+@@ -2119,6 +2119,19 @@ config MODULE_COMPRESS_XZ
  
- enum export {
- 	export_plain,      export_unused,     export_gpl,
-@@ -2176,10 +2178,15 @@ static int check_exports(struct module *mod)
- 		else
- 			basename = mod->name;
+ endchoice
  
--		if (exp->namespace &&
--		    !module_imports_namespace(mod, exp->namespace)) {
--			warn("module %s uses symbol %s from namespace %s, but does not import it.\n",
--			     basename, exp->name, exp->namespace);
-+		if (exp->namespace) {
-+			add_namespace(&mod->required_namespaces,
-+				      exp->namespace);
++config MODULE_ALLOW_MISSING_NAMESPACE_IMPORTS
++	bool "Allow loading of modules with missing namespace imports"
++	help
++	  Symbols exported with EXPORT_SYMBOL_NS*() are considered exported in
++	  a namespace. A module that makes use of a symbol exported with such a
++	  namespace is required to import the namespace via MODULE_IMPORT_NS().
++	  There is no technical reason to enforce correct namespace imports,
++	  but it creates consistency between symbols defining namespaces and
++	  users importing namespaces they make use of. This option relaxes this
++	  requirement and lifts the enforcement when loading a module.
 +
-+			if (!write_namespace_deps &&
-+			    !module_imports_namespace(mod, exp->namespace)) {
-+				warn("module %s uses symbol %s from namespace %s, but does not import it.\n",
-+				     basename, exp->name, exp->namespace);
-+			}
++	  If unsure, say N.
++
+ config TRIM_UNUSED_KSYMS
+ 	bool "Trim unused exported kernel symbols"
+ 	depends on MODULES && !UNUSED_SYMBOLS
+diff --git a/kernel/module.c b/kernel/module.c
+index 57e8253f2251..7c934aaae2d3 100644
+--- a/kernel/module.c
++++ b/kernel/module.c
+@@ -1408,9 +1408,16 @@ static int verify_namespace_is_imported(const struct load_info *info,
+ 			imported_namespace = get_next_modinfo(
+ 				info, "import_ns", imported_namespace);
  		}
- 
- 		if (!mod->gpl_compatible)
-@@ -2481,6 +2488,31 @@ static void write_dump(const char *fname)
- 	free(buf.p);
- }
- 
-+static void write_namespace_deps_files(void)
-+{
-+	struct module *mod;
-+	struct namespace_list *ns;
-+	struct buffer ns_deps_buf = {};
-+
-+	for (mod = modules; mod; mod = mod->next) {
-+		char fname[PATH_MAX];
-+
-+		if (mod->skip)
-+			continue;
-+
-+		ns_deps_buf.pos = 0;
-+
-+		for (ns = mod->required_namespaces; ns; ns = ns->next)
-+			buf_printf(&ns_deps_buf, "%s\n", ns->namespace);
-+
-+		if (ns_deps_buf.pos == 0)
-+			continue;
-+
-+		sprintf(fname, "%s.ns_deps", mod->name);
-+		write_if_changed(&ns_deps_buf, fname);
-+	}
-+}
-+
- struct ext_sym_list {
- 	struct ext_sym_list *next;
- 	const char *file;
-@@ -2497,7 +2529,7 @@ int main(int argc, char **argv)
- 	struct ext_sym_list *extsym_iter;
- 	struct ext_sym_list *extsym_start = NULL;
- 
--	while ((opt = getopt(argc, argv, "i:I:e:mnsT:o:awE")) != -1) {
-+	while ((opt = getopt(argc, argv, "i:I:e:mnsT:o:awEd")) != -1) {
- 		switch (opt) {
- 		case 'i':
- 			kernel_read = optarg;
-@@ -2538,6 +2570,9 @@ int main(int argc, char **argv)
- 		case 'E':
- 			sec_mismatch_fatal = 1;
- 			break;
-+		case 'd':
-+			write_namespace_deps = 1;
-+			break;
- 		default:
- 			exit(1);
- 		}
-@@ -2572,6 +2607,9 @@ int main(int argc, char **argv)
- 
- 		err |= check_modname_len(mod);
- 		err |= check_exports(mod);
-+		if (write_namespace_deps)
-+			continue;
-+
- 		add_header(&buf, mod);
- 		add_intree_flag(&buf, !external_module);
- 		add_retpoline(&buf);
-@@ -2584,6 +2622,12 @@ int main(int argc, char **argv)
- 		sprintf(fname, "%s.mod.c", mod->name);
- 		write_if_changed(&buf, fname);
+-		pr_err("%s: module uses symbol (%s) from namespace %s, but does not import it.\n",
+-		       mod->name, kernel_symbol_name(sym), namespace);
++#ifdef CONFIG_MODULE_ALLOW_MISSING_NAMESPACE_IMPORTS
++		pr_warn(
++#else
++		pr_err(
++#endif
++			"%s: module uses symbol (%s) from namespace %s, but does not import it.\n",
++			mod->name, kernel_symbol_name(sym), namespace);
++#ifndef CONFIG_MODULE_ALLOW_MISSING_NAMESPACE_IMPORTS
+ 		return -EINVAL;
++#endif
  	}
-+
-+	if (write_namespace_deps) {
-+		write_namespace_deps_files();
-+		return 0;
-+	}
-+
- 	if (dump_write)
- 		write_dump(dump_write);
- 	if (sec_mismatch_count && sec_mismatch_fatal)
-diff --git a/scripts/mod/modpost.h b/scripts/mod/modpost.h
-index 9626bf3e7424..92a926d375d2 100644
---- a/scripts/mod/modpost.h
-+++ b/scripts/mod/modpost.h
-@@ -126,6 +126,8 @@ struct module {
- 	struct buffer dev_table_buf;
- 	char	     srcversion[25];
- 	int is_dot_o;
-+	// Required namespace dependencies
-+	struct namespace_list *required_namespaces;
- 	// Actual imported namespaces
- 	struct namespace_list *imported_namespaces;
- };
+ 	return 0;
+ }
 -- 
 2.23.0.rc1.153.gdeed80330f-goog
