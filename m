@@ -1,146 +1,39 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:59210 "EHLO mail.kernel.org"
+Received: from mail.kernel.org ([198.145.29.99]:36818 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726785AbfHUMTJ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 21 Aug 2019 08:19:09 -0400
-From: guoren@kernel.org
-Subject: [PATCH] csky: Fixup 610 vipt cache flush mechanism
-Date: Wed, 21 Aug 2019 20:18:16 +0800
-Message-ID: <1566389896-6972-1-git-send-email-guoren@kernel.org>
+        id S1726227AbfHUMhW (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 21 Aug 2019 08:37:22 -0400
+Date: Wed, 21 Aug 2019 05:37:20 -0700
+From: Greg KH <gregkh@linuxfoundation.org>
+Subject: Re: [PATCH v3 09/11] usb-storage: remove single-use define for
+ debugging
+Message-ID: <20190821123720.GA4059@kroah.com>
+References: <20190813121733.52480-1-maennich@google.com>
+ <20190821114955.12788-1-maennich@google.com>
+ <20190821114955.12788-10-maennich@google.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20190821114955.12788-10-maennich@google.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: arnd@arndb.de, hch@infradead.org
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-csky@vger.kernel.org, douzhk@nationalchip.com, Guo Ren <ren_guo@c-sky.com>
-Message-ID: <20190821121816.68kSqVCoW3s0kzbbbjTgkf1UvfSF2WPhn0xtJq5Pjj0@z>
+To: Matthias Maennich <maennich@google.com>
+Cc: linux-kernel@vger.kernel.org, kernel-team@android.com, arnd@arndb.de, geert@linux-m68k.org, hpa@zytor.com, jeyu@kernel.org, joel@joelfernandes.org, kstewart@linuxfoundation.org, linux-arch@vger.kernel.org, linux-kbuild@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-modules@vger.kernel.org, linux-scsi@vger.kernel.org, linux-usb@vger.kernel.org, lucas.de.marchi@gmail.com, maco@android.com, maco@google.com, michal.lkml@markovi.net, mingo@redhat.com, oneukum@suse.com, pombredanne@nexb.com, sam@ravnborg.org, sspatil@google.com, stern@rowland.harvard.edu, tglx@linutronix.de, usb-storage@lists.one-eyed-alien.net, x86@kernel.org, yamada.masahiro@socionext.com
+Message-ID: <20190821123720.ZIo6EwyB_OrTZy2uIYwHG830qi8gnOJS5NboDd_gm6M@z>
 
-From: Guo Ren <ren_guo@c-sky.com>
+On Wed, Aug 21, 2019 at 12:49:24PM +0100, Matthias Maennich wrote:
+> USB_STORAGE was defined as "usb-storage: " and used in a single location
+> as argument to printk. In order to be able to use the name
+> 'USB_STORAGE', drop the definition and use the string directly for the
+> printk call.
+> 
+> Signed-off-by: Matthias Maennich <maennich@google.com>
 
-610 has vipt aliasing issue, so we need to finish the cache flush
-apis mentioned in cachetlb.rst to avoid data corruption.
+As you know, this patch is already in the usb-next tree, and will be in
+the 5.4-rc1 merge.
 
-Here is the list of modified apis in the patch:
+But, as this series will end up going through a different tree than the
+usb tree, here's my reviewed-by so that it can be included with the rest
+of these patches:
 
- - flush_kernel_dcache_page      (new add)
- - flush_dcache_mmap_lock        (new add)
- - flush_dcache_mmap_unlock      (new add)
- - flush_kernel_vmap_range       (new add)
- - invalidate_kernel_vmap_range  (new add)
- - flush_anon_page               (new add)
- - flush_cache_range             (new add)
- - flush_cache_vmap              (flush all)
- - flush_cache_vunmap            (flush all)
- - flush_cache_mm                (only dcache flush)
- - flush_icache_page             (just nop)
- - copy_from_user_page           (remove no need flush)
- - copy_to_user_page             (remove no need flush)
-
-Signed-off-by: Guo Ren <ren_guo@c-sky.com>
-Cc: Arnd Bergmann <arnd@arndb.de>
-Cc: Christoph Hellwig <hch@infradead.org>
----
- arch/csky/abiv1/cacheflush.c         | 20 ++++++++++++++++++
- arch/csky/abiv1/inc/abi/cacheflush.h | 39 ++++++++++++++++++++++++++----------
- 2 files changed, 48 insertions(+), 11 deletions(-)
-
-diff --git a/arch/csky/abiv1/cacheflush.c b/arch/csky/abiv1/cacheflush.c
-index fee99fc..9f1fe80 100644
---- a/arch/csky/abiv1/cacheflush.c
-+++ b/arch/csky/abiv1/cacheflush.c
-@@ -54,3 +54,23 @@ void update_mmu_cache(struct vm_area_struct *vma, unsigned long addr,
- 			icache_inv_all();
- 	}
- }
-+
-+void flush_kernel_dcache_page(struct page *page)
-+{
-+	struct address_space *mapping;
-+
-+	mapping = page_mapping_file(page);
-+
-+	if (!mapping || mapping_mapped(mapping))
-+		dcache_wbinv_all();
-+}
-+EXPORT_SYMBOL(flush_kernel_dcache_page);
-+
-+void flush_cache_range(struct vm_area_struct *vma, unsigned long start,
-+	unsigned long end)
-+{
-+	dcache_wbinv_all();
-+
-+	if (vma->vm_flags & VM_EXEC)
-+		icache_inv_all();
-+}
-diff --git a/arch/csky/abiv1/inc/abi/cacheflush.h b/arch/csky/abiv1/inc/abi/cacheflush.h
-index fce5604..17eeebe 100644
---- a/arch/csky/abiv1/inc/abi/cacheflush.h
-+++ b/arch/csky/abiv1/inc/abi/cacheflush.h
-@@ -11,19 +11,42 @@
- #define ARCH_IMPLEMENTS_FLUSH_DCACHE_PAGE 1
- extern void flush_dcache_page(struct page *);
- 
--#define flush_cache_mm(mm)			cache_wbinv_all()
-+#define flush_cache_mm(mm)			dcache_wbinv_all()
- #define flush_cache_page(vma, page, pfn)	cache_wbinv_all()
- #define flush_cache_dup_mm(mm)			cache_wbinv_all()
- 
-+#define ARCH_HAS_FLUSH_KERNEL_DCACHE_PAGE
-+extern void flush_kernel_dcache_page(struct page *);
-+
-+#define flush_dcache_mmap_lock(mapping)   spin_lock_irq(&(mapping)->tree_lock)
-+#define flush_dcache_mmap_unlock(mapping) spin_unlock_irq(&(mapping)->tree_lock)
-+
-+static inline void flush_kernel_vmap_range(void *addr, int size)
-+{
-+	dcache_wbinv_all();
-+}
-+static inline void invalidate_kernel_vmap_range(void *addr, int size)
-+{
-+	dcache_wbinv_all();
-+}
-+
-+#define ARCH_HAS_FLUSH_ANON_PAGE
-+static inline void flush_anon_page(struct vm_area_struct *vma,
-+			 struct page *page, unsigned long vmaddr)
-+{
-+	if (PageAnon(page))
-+		cache_wbinv_all();
-+}
-+
- /*
-  * if (current_mm != vma->mm) cache_wbinv_range(start, end) will be broken.
-  * Use cache_wbinv_all() here and need to be improved in future.
-  */
--#define flush_cache_range(vma, start, end)	cache_wbinv_all()
--#define flush_cache_vmap(start, end)		cache_wbinv_range(start, end)
--#define flush_cache_vunmap(start, end)		cache_wbinv_range(start, end)
-+extern void flush_cache_range(struct vm_area_struct *vma, unsigned long start, unsigned long end);
-+#define flush_cache_vmap(start, end)		cache_wbinv_all()
-+#define flush_cache_vunmap(start, end)		cache_wbinv_all()
- 
--#define flush_icache_page(vma, page)		cache_wbinv_all()
-+#define flush_icache_page(vma, page)		do {} while (0);
- #define flush_icache_range(start, end)		cache_wbinv_range(start, end)
- 
- #define flush_icache_user_range(vma,page,addr,len) \
-@@ -31,19 +54,13 @@ extern void flush_dcache_page(struct page *);
- 
- #define copy_from_user_page(vma, page, vaddr, dst, src, len) \
- do { \
--	cache_wbinv_all(); \
- 	memcpy(dst, src, len); \
--	cache_wbinv_all(); \
- } while (0)
- 
- #define copy_to_user_page(vma, page, vaddr, dst, src, len) \
- do { \
--	cache_wbinv_all(); \
- 	memcpy(dst, src, len); \
- 	cache_wbinv_all(); \
- } while (0)
- 
--#define flush_dcache_mmap_lock(mapping)		do {} while (0)
--#define flush_dcache_mmap_unlock(mapping)	do {} while (0)
--
- #endif /* __ABI_CSKY_CACHEFLUSH_H */
--- 
-2.7.4
+Reviewed-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
