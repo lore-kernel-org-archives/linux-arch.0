@@ -1,230 +1,247 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qk1-f202.google.com ([209.85.222.202]:36838 "EHLO
-        mail-qk1-f202.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727791AbfHULyX (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 21 Aug 2019 07:54:23 -0400
-Received: by mail-qk1-f202.google.com with SMTP id q62so1861970qkd.3
-        for <linux-arch@vger.kernel.org>; Wed, 21 Aug 2019 04:54:22 -0700 (PDT)
-Date: Wed, 21 Aug 2019 12:49:19 +0100
+Received: from mail-ua1-f74.google.com ([209.85.222.74]:49866 "EHLO
+        mail-ua1-f74.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1728188AbfHULzD (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 21 Aug 2019 07:55:03 -0400
+Received: by mail-ua1-f74.google.com with SMTP id h37so115084uad.16
+        for <linux-arch@vger.kernel.org>; Wed, 21 Aug 2019 04:55:02 -0700 (PDT)
+Date: Wed, 21 Aug 2019 12:49:25 +0100
 In-Reply-To: <20190821114955.12788-1-maennich@google.com>
-Message-ID: <20190821114955.12788-5-maennich@google.com>
+Message-ID: <20190821114955.12788-11-maennich@google.com>
 Mime-Version: 1.0
 References: <20190813121733.52480-1-maennich@google.com> <20190821114955.12788-1-maennich@google.com>
-Subject: [PATCH v3 04/11] modpost: add support for symbol namespaces
+Subject: [PATCH v3 10/11] RFC: usb-storage: export symbols in USB_STORAGE namespace
 From: Matthias Maennich <maennich@google.com>
 Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
 Cc: kernel-team@android.com, maennich@google.com, arnd@arndb.de, geert@linux-m68k.org, gregkh@linuxfoundation.org, hpa@zytor.com, jeyu@kernel.org, joel@joelfernandes.org, kstewart@linuxfoundation.org, linux-arch@vger.kernel.org, linux-kbuild@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-modules@vger.kernel.org, linux-scsi@vger.kernel.org, linux-usb@vger.kernel.org, lucas.de.marchi@gmail.com, maco@android.com, maco@google.com, michal.lkml@markovi.net, mingo@redhat.com, oneukum@suse.com, pombredanne@nexb.com, sam@ravnborg.org, sspatil@google.com, stern@rowland.harvard.edu, tglx@linutronix.de, usb-storage@lists.one-eyed-alien.net, x86@kernel.org, yamada.masahiro@socionext.com
-Message-ID: <20190821114919._SRuFxhH2H4000AJi55p8dLzy133grpF9Hjv8Nrbrxc@z>
+Message-ID: <20190821114925.wFJsIKsV-WsTQ2ZhzlnXBvw98rg_S-9Iq82vMr5hyxM@z>
 
-Add support for symbols that are exported into namespaces. For that,
-extract any namespace suffix from the symbol name. In addition, emit a
-warning whenever a module refers to an exported symbol without
-explicitly importing the namespace that it is defined in. This patch
-consistently adds the namespace suffix to symbol names exported into
-Module.symvers.
+Modules using these symbols are required to explicitly import the
+namespace. This patch was generated with the following steps and serves
+as a reference to use the symbol namespace feature:
 
-Example warning emitted by modpost in case of the above violation:
+ 1) Define DEFAULT_SYMBOL_NAMESPACE in the corresponding Makefile
+ 2) make  (see warnings during modpost about missing imports)
+ 3) make nsdeps
 
- WARNING: module ums-usbat uses symbol usb_stor_resume from namespace
- USB_STORAGE, but does not import it.
+Instead of a DEFAULT_SYMBOL_NAMESPACE definition, the EXPORT_SYMBOL_NS
+variants can be used to explicitly specify the namespace. The advantage
+of the method used here is that newly added symbols are automatically
+exported and existing ones are exported without touching their
+respective EXPORT_SYMBOL macro expansion.
 
-Co-developed-by: Martijn Coenen <maco@android.com>
-Signed-off-by: Martijn Coenen <maco@android.com>
-Reviewed-by: Joel Fernandes (Google) <joel@joelfernandes.org>
-Reviewed-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
 Signed-off-by: Matthias Maennich <maennich@google.com>
 ---
- scripts/mod/modpost.c | 91 +++++++++++++++++++++++++++++++++++++------
- scripts/mod/modpost.h |  7 ++++
- 2 files changed, 87 insertions(+), 11 deletions(-)
+ drivers/usb/storage/Makefile        | 2 ++
+ drivers/usb/storage/alauda.c        | 1 +
+ drivers/usb/storage/cypress_atacb.c | 1 +
+ drivers/usb/storage/datafab.c       | 1 +
+ drivers/usb/storage/ene_ub6250.c    | 1 +
+ drivers/usb/storage/freecom.c       | 1 +
+ drivers/usb/storage/isd200.c        | 1 +
+ drivers/usb/storage/jumpshot.c      | 1 +
+ drivers/usb/storage/karma.c         | 1 +
+ drivers/usb/storage/onetouch.c      | 1 +
+ drivers/usb/storage/realtek_cr.c    | 1 +
+ drivers/usb/storage/sddr09.c        | 1 +
+ drivers/usb/storage/sddr55.c        | 1 +
+ drivers/usb/storage/shuttle_usbat.c | 1 +
+ drivers/usb/storage/uas.c           | 1 +
+ 15 files changed, 16 insertions(+)
 
-diff --git a/scripts/mod/modpost.c b/scripts/mod/modpost.c
-index f277e116e0eb..538bb24ffee3 100644
---- a/scripts/mod/modpost.c
-+++ b/scripts/mod/modpost.c
-@@ -164,6 +164,7 @@ struct symbol {
- 	struct module *module;
- 	unsigned int crc;
- 	int crc_valid;
-+	const char *namespace;
- 	unsigned int weak:1;
- 	unsigned int vmlinux:1;    /* 1 if symbol is defined in vmlinux */
- 	unsigned int kernel:1;     /* 1 if symbol is from kernel
-@@ -233,6 +234,37 @@ static struct symbol *find_symbol(const char *name)
- 	return NULL;
- }
- 
-+static bool contains_namespace(struct namespace_list *list,
-+			       const char *namespace)
-+{
-+	struct namespace_list *ns_entry;
+diff --git a/drivers/usb/storage/Makefile b/drivers/usb/storage/Makefile
+index a67ddcbb4e24..46635fa4a340 100644
+--- a/drivers/usb/storage/Makefile
++++ b/drivers/usb/storage/Makefile
+@@ -8,6 +8,8 @@
+=20
+ ccflags-y :=3D -I $(srctree)/drivers/scsi
+=20
++ccflags-y +=3D -DDEFAULT_SYMBOL_NAMESPACE=3DUSB_STORAGE
 +
-+	for (ns_entry = list; ns_entry != NULL; ns_entry = ns_entry->next)
-+		if (strcmp(ns_entry->namespace, namespace) == 0)
-+			return true;
-+
-+	return false;
-+}
-+
-+static void add_namespace(struct namespace_list **list, const char *namespace)
-+{
-+	struct namespace_list *ns_entry;
-+
-+	if (!contains_namespace(*list, namespace)) {
-+		ns_entry = NOFAIL(malloc(sizeof(struct namespace_list) +
-+					 strlen(namespace) + 1));
-+		strcpy(ns_entry->namespace, namespace);
-+		ns_entry->next = *list;
-+		*list = ns_entry;
-+	}
-+}
-+
-+static bool module_imports_namespace(struct module *module,
-+				     const char *namespace)
-+{
-+	return contains_namespace(module->imported_namespaces, namespace);
-+}
-+
- static const struct {
- 	const char *str;
- 	enum export export;
-@@ -312,6 +344,22 @@ static enum export export_from_sec(struct elf_info *elf, unsigned int sec)
- 		return export_unknown;
- }
- 
-+static const char *sym_extract_namespace(const char **symname)
-+{
-+	size_t n;
-+	char *dupsymname;
-+
-+	n = strcspn(*symname, ".");
-+	if (n < strlen(*symname) - 1) {
-+		dupsymname = NOFAIL(strdup(*symname));
-+		dupsymname[n] = '\0';
-+		*symname = dupsymname;
-+		return dupsymname + n + 1;
-+	}
-+
-+	return NULL;
-+}
-+
- /**
-  * Add an exported symbol - it may have already been added without a
-  * CRC, in this case just update the CRC
-@@ -319,16 +367,18 @@ static enum export export_from_sec(struct elf_info *elf, unsigned int sec)
- static struct symbol *sym_add_exported(const char *name, struct module *mod,
- 				       enum export export)
- {
--	struct symbol *s = find_symbol(name);
-+	const char *symbol_name = name;
-+	const char *namespace = sym_extract_namespace(&symbol_name);
-+	struct symbol *s = find_symbol(symbol_name);
- 
- 	if (!s) {
--		s = new_symbol(name, mod, export);
-+		s = new_symbol(symbol_name, mod, export);
-+		s->namespace = namespace;
- 	} else {
- 		if (!s->preloaded) {
--			warn("%s: '%s' exported twice. Previous export "
--			     "was in %s%s\n", mod->name, name,
--			     s->module->name,
--			     is_vmlinux(s->module->name) ?"":".ko");
-+			warn("%s: '%s' exported twice. Previous export was in %s%s\n",
-+			     mod->name, symbol_name, s->module->name,
-+			     is_vmlinux(s->module->name) ? "" : ".ko");
- 		} else {
- 			/* In case Module.symvers was out of date */
- 			s->module = mod;
-@@ -1943,6 +1993,7 @@ static void read_symbols(const char *modname)
- 	const char *symname;
- 	char *version;
- 	char *license;
-+	char *namespace;
- 	struct module *mod;
- 	struct elf_info info = { };
- 	Elf_Sym *sym;
-@@ -1974,6 +2025,12 @@ static void read_symbols(const char *modname)
- 		license = get_next_modinfo(&info, "license", license);
- 	}
- 
-+	namespace = get_modinfo(&info, "import_ns");
-+	while (namespace) {
-+		add_namespace(&mod->imported_namespaces, namespace);
-+		namespace = get_next_modinfo(&info, "import_ns", namespace);
-+	}
-+
- 	for (sym = info.symtab_start; sym < info.symtab_stop; sym++) {
- 		symname = remove_dot(info.strtab + sym->st_name);
- 
-@@ -2118,6 +2175,13 @@ static int check_exports(struct module *mod)
- 			basename++;
- 		else
- 			basename = mod->name;
-+
-+		if (exp->namespace &&
-+		    !module_imports_namespace(mod, exp->namespace)) {
-+			warn("module %s uses symbol %s from namespace %s, but does not import it.\n",
-+			     basename, exp->name, exp->namespace);
-+		}
-+
- 		if (!mod->gpl_compatible)
- 			check_for_gpl_usage(exp->export, basename, exp->name);
- 		check_for_unused(exp->export, basename, exp->name);
-@@ -2395,16 +2459,21 @@ static void write_dump(const char *fname)
- {
- 	struct buffer buf = { };
- 	struct symbol *symbol;
-+	const char *namespace;
- 	int n;
- 
- 	for (n = 0; n < SYMBOL_HASH_SIZE ; n++) {
- 		symbol = symbolhash[n];
- 		while (symbol) {
--			if (dump_sym(symbol))
--				buf_printf(&buf, "0x%08x\t%s\t%s\t%s\n",
--					symbol->crc, symbol->name,
--					symbol->module->name,
--					export_str(symbol->export));
-+			if (dump_sym(symbol)) {
-+				namespace = symbol->namespace;
-+				buf_printf(&buf, "0x%08x\t%s%s%s\t%s\t%s\n",
-+					   symbol->crc, symbol->name,
-+					   namespace ? "." : "",
-+					   namespace ? namespace : "",
-+					   symbol->module->name,
-+					   export_str(symbol->export));
-+			}
- 			symbol = symbol->next;
- 		}
- 	}
-diff --git a/scripts/mod/modpost.h b/scripts/mod/modpost.h
-index 8453d6ac2f77..9626bf3e7424 100644
---- a/scripts/mod/modpost.h
-+++ b/scripts/mod/modpost.h
-@@ -109,6 +109,11 @@ buf_printf(struct buffer *buf, const char *fmt, ...);
- void
- buf_write(struct buffer *buf, const char *s, int len);
- 
-+struct namespace_list {
-+	struct namespace_list *next;
-+	char namespace[0];
-+};
-+
- struct module {
- 	struct module *next;
- 	const char *name;
-@@ -121,6 +126,8 @@ struct module {
- 	struct buffer dev_table_buf;
- 	char	     srcversion[25];
- 	int is_dot_o;
-+	// Actual imported namespaces
-+	struct namespace_list *imported_namespaces;
- };
- 
- struct elf_info {
--- 
+ obj-$(CONFIG_USB_UAS)		+=3D uas.o
+ obj-$(CONFIG_USB_STORAGE)	+=3D usb-storage.o
+=20
+diff --git a/drivers/usb/storage/alauda.c b/drivers/usb/storage/alauda.c
+index 6b8edf6178df..ddab2cd3d2e7 100644
+--- a/drivers/usb/storage/alauda.c
++++ b/drivers/usb/storage/alauda.c
+@@ -36,6 +36,7 @@
+ MODULE_DESCRIPTION("Driver for Alauda-based card readers");
+ MODULE_AUTHOR("Daniel Drake <dsd@gentoo.org>");
+ MODULE_LICENSE("GPL");
++MODULE_IMPORT_NS(USB_STORAGE);
+=20
+ /*
+  * Status bytes
+diff --git a/drivers/usb/storage/cypress_atacb.c b/drivers/usb/storage/cypr=
+ess_atacb.c
+index 4825902377eb..a6f3267bbef6 100644
+--- a/drivers/usb/storage/cypress_atacb.c
++++ b/drivers/usb/storage/cypress_atacb.c
+@@ -22,6 +22,7 @@
+ MODULE_DESCRIPTION("SAT support for Cypress USB/ATA bridges with ATACB");
+ MODULE_AUTHOR("Matthieu Castet <castet.matthieu@free.fr>");
+ MODULE_LICENSE("GPL");
++MODULE_IMPORT_NS(USB_STORAGE);
+=20
+ /*
+  * The table of devices
+diff --git a/drivers/usb/storage/datafab.c b/drivers/usb/storage/datafab.c
+index 09353be199be..588818483f4b 100644
+--- a/drivers/usb/storage/datafab.c
++++ b/drivers/usb/storage/datafab.c
+@@ -54,6 +54,7 @@
+ MODULE_DESCRIPTION("Driver for Datafab USB Compact Flash reader");
+ MODULE_AUTHOR("Jimmie Mayfield <mayfield+datafab@sackheads.org>");
+ MODULE_LICENSE("GPL");
++MODULE_IMPORT_NS(USB_STORAGE);
+=20
+ struct datafab_info {
+ 	unsigned long   sectors;	/* total sector count */
+diff --git a/drivers/usb/storage/ene_ub6250.c b/drivers/usb/storage/ene_ub6=
+250.c
+index c26129d5b943..8b1b73065421 100644
+--- a/drivers/usb/storage/ene_ub6250.c
++++ b/drivers/usb/storage/ene_ub6250.c
+@@ -26,6 +26,7 @@
+=20
+ MODULE_DESCRIPTION("Driver for ENE UB6250 reader");
+ MODULE_LICENSE("GPL");
++MODULE_IMPORT_NS(USB_STORAGE);
+ MODULE_FIRMWARE(SD_INIT1_FIRMWARE);
+ MODULE_FIRMWARE(SD_INIT2_FIRMWARE);
+ MODULE_FIRMWARE(SD_RW_FIRMWARE);
+diff --git a/drivers/usb/storage/freecom.c b/drivers/usb/storage/freecom.c
+index 4f542df37a44..34e7eaff1174 100644
+--- a/drivers/usb/storage/freecom.c
++++ b/drivers/usb/storage/freecom.c
+@@ -29,6 +29,7 @@
+ MODULE_DESCRIPTION("Driver for Freecom USB/IDE adaptor");
+ MODULE_AUTHOR("David Brown <usb-storage@davidb.org>");
+ MODULE_LICENSE("GPL");
++MODULE_IMPORT_NS(USB_STORAGE);
+=20
+ #ifdef CONFIG_USB_STORAGE_DEBUG
+ static void pdump(struct us_data *us, void *ibuffer, int length);
+diff --git a/drivers/usb/storage/isd200.c b/drivers/usb/storage/isd200.c
+index 2b474d60b4db..c4da3fd6eff9 100644
+--- a/drivers/usb/storage/isd200.c
++++ b/drivers/usb/storage/isd200.c
+@@ -53,6 +53,7 @@
+ MODULE_DESCRIPTION("Driver for In-System Design, Inc. ISD200 ASIC");
+ MODULE_AUTHOR("Bj=C3=B6rn Stenberg <bjorn@haxx.se>");
+ MODULE_LICENSE("GPL");
++MODULE_IMPORT_NS(USB_STORAGE);
+=20
+ static int isd200_Initialization(struct us_data *us);
+=20
+diff --git a/drivers/usb/storage/jumpshot.c b/drivers/usb/storage/jumpshot.=
+c
+index 917f170c4124..229bf0c1afc9 100644
+--- a/drivers/usb/storage/jumpshot.c
++++ b/drivers/usb/storage/jumpshot.c
+@@ -51,6 +51,7 @@
+ MODULE_DESCRIPTION("Driver for Lexar \"Jumpshot\" Compact Flash reader");
+ MODULE_AUTHOR("Jimmie Mayfield <mayfield+usb@sackheads.org>");
+ MODULE_LICENSE("GPL");
++MODULE_IMPORT_NS(USB_STORAGE);
+=20
+ /*
+  * The table of devices
+diff --git a/drivers/usb/storage/karma.c b/drivers/usb/storage/karma.c
+index 395cf8fb5870..05cec81dcd3f 100644
+--- a/drivers/usb/storage/karma.c
++++ b/drivers/usb/storage/karma.c
+@@ -23,6 +23,7 @@
+ MODULE_DESCRIPTION("Driver for Rio Karma");
+ MODULE_AUTHOR("Bob Copeland <me@bobcopeland.com>, Keith Bennett <keith@mcs=
+.st-and.ac.uk>");
+ MODULE_LICENSE("GPL");
++MODULE_IMPORT_NS(USB_STORAGE);
+=20
+ #define RIO_PREFIX "RIOP\x00"
+ #define RIO_PREFIX_LEN 5
+diff --git a/drivers/usb/storage/onetouch.c b/drivers/usb/storage/onetouch.=
+c
+index 39a5009a41a6..a989fe930e21 100644
+--- a/drivers/usb/storage/onetouch.c
++++ b/drivers/usb/storage/onetouch.c
+@@ -25,6 +25,7 @@
+ MODULE_DESCRIPTION("Maxtor USB OneTouch hard drive button driver");
+ MODULE_AUTHOR("Nick Sillik <n.sillik@temple.edu>");
+ MODULE_LICENSE("GPL");
++MODULE_IMPORT_NS(USB_STORAGE);
+=20
+ #define ONETOUCH_PKT_LEN        0x02
+ #define ONETOUCH_BUTTON         KEY_PROG1
+diff --git a/drivers/usb/storage/realtek_cr.c b/drivers/usb/storage/realtek=
+_cr.c
+index cc794e25a0b6..edbe419053d6 100644
+--- a/drivers/usb/storage/realtek_cr.c
++++ b/drivers/usb/storage/realtek_cr.c
+@@ -35,6 +35,7 @@
+ MODULE_DESCRIPTION("Driver for Realtek USB Card Reader");
+ MODULE_AUTHOR("wwang <wei_wang@realsil.com.cn>");
+ MODULE_LICENSE("GPL");
++MODULE_IMPORT_NS(USB_STORAGE);
+=20
+ static int auto_delink_en =3D 1;
+ module_param(auto_delink_en, int, S_IRUGO | S_IWUSR);
+diff --git a/drivers/usb/storage/sddr09.c b/drivers/usb/storage/sddr09.c
+index bc9da736bdfc..51bcd4a43690 100644
+--- a/drivers/usb/storage/sddr09.c
++++ b/drivers/usb/storage/sddr09.c
+@@ -47,6 +47,7 @@
+ MODULE_DESCRIPTION("Driver for SanDisk SDDR-09 SmartMedia reader");
+ MODULE_AUTHOR("Andries Brouwer <aeb@cwi.nl>, Robert Baruch <autophile@star=
+band.net>");
+ MODULE_LICENSE("GPL");
++MODULE_IMPORT_NS(USB_STORAGE);
+=20
+ static int usb_stor_sddr09_dpcm_init(struct us_data *us);
+ static int sddr09_transport(struct scsi_cmnd *srb, struct us_data *us);
+diff --git a/drivers/usb/storage/sddr55.c b/drivers/usb/storage/sddr55.c
+index b8527c55335b..ba955d65eb0e 100644
+--- a/drivers/usb/storage/sddr55.c
++++ b/drivers/usb/storage/sddr55.c
+@@ -29,6 +29,7 @@
+ MODULE_DESCRIPTION("Driver for SanDisk SDDR-55 SmartMedia reader");
+ MODULE_AUTHOR("Simon Munton");
+ MODULE_LICENSE("GPL");
++MODULE_IMPORT_NS(USB_STORAGE);
+=20
+ /*
+  * The table of devices
+diff --git a/drivers/usb/storage/shuttle_usbat.c b/drivers/usb/storage/shut=
+tle_usbat.c
+index 854498e1012c..54aa1392c9ca 100644
+--- a/drivers/usb/storage/shuttle_usbat.c
++++ b/drivers/usb/storage/shuttle_usbat.c
+@@ -48,6 +48,7 @@
+ MODULE_DESCRIPTION("Driver for SCM Microsystems (a.k.a. Shuttle) USB-ATAPI=
+ cable");
+ MODULE_AUTHOR("Daniel Drake <dsd@gentoo.org>, Robert Baruch <autophile@sta=
+rband.net>");
+ MODULE_LICENSE("GPL");
++MODULE_IMPORT_NS(USB_STORAGE);
+=20
+ /* Supported device types */
+ #define USBAT_DEV_HP8200	0x01
+diff --git a/drivers/usb/storage/uas.c b/drivers/usb/storage/uas.c
+index 047c5922618f..bf80d6f81f58 100644
+--- a/drivers/usb/storage/uas.c
++++ b/drivers/usb/storage/uas.c
+@@ -1219,5 +1219,6 @@ static struct usb_driver uas_driver =3D {
+ module_usb_driver(uas_driver);
+=20
+ MODULE_LICENSE("GPL");
++MODULE_IMPORT_NS(USB_STORAGE);
+ MODULE_AUTHOR(
+ 	"Hans de Goede <hdegoede@redhat.com>, Matthew Wilcox and Sarah Sharp");
+--=20
 2.23.0.rc1.153.gdeed80330f-goog
