@@ -1,76 +1,146 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-vk1-f202.google.com ([209.85.221.202]:35978 "EHLO
-        mail-vk1-f202.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727926AbfHULyc (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 21 Aug 2019 07:54:32 -0400
-Received: by mail-vk1-f202.google.com with SMTP id o75so816421vke.3
-        for <linux-arch@vger.kernel.org>; Wed, 21 Aug 2019 04:54:31 -0700 (PDT)
-Date: Wed, 21 Aug 2019 12:49:21 +0100
-In-Reply-To: <20190821114955.12788-1-maennich@google.com>
-Message-ID: <20190821114955.12788-7-maennich@google.com>
-Mime-Version: 1.0
-References: <20190813121733.52480-1-maennich@google.com> <20190821114955.12788-1-maennich@google.com>
-Subject: [PATCH v3 06/11] export: allow definition default namespaces in
- Makefiles or sources
-From: Matthias Maennich <maennich@google.com>
-Content-Type: text/plain; charset="UTF-8"
+Received: from mail.kernel.org ([198.145.29.99]:59210 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726785AbfHUMTJ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 21 Aug 2019 08:19:09 -0400
+From: guoren@kernel.org
+Subject: [PATCH] csky: Fixup 610 vipt cache flush mechanism
+Date: Wed, 21 Aug 2019 20:18:16 +0800
+Message-ID: <1566389896-6972-1-git-send-email-guoren@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: kernel-team@android.com, maennich@google.com, arnd@arndb.de, geert@linux-m68k.org, gregkh@linuxfoundation.org, hpa@zytor.com, jeyu@kernel.org, joel@joelfernandes.org, kstewart@linuxfoundation.org, linux-arch@vger.kernel.org, linux-kbuild@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-modules@vger.kernel.org, linux-scsi@vger.kernel.org, linux-usb@vger.kernel.org, lucas.de.marchi@gmail.com, maco@android.com, maco@google.com, michal.lkml@markovi.net, mingo@redhat.com, oneukum@suse.com, pombredanne@nexb.com, sam@ravnborg.org, sspatil@google.com, stern@rowland.harvard.edu, tglx@linutronix.de, usb-storage@lists.one-eyed-alien.net, x86@kernel.org, yamada.masahiro@socionext.com, Michael Ellerman <mpe@ellerman.id.au>, Ingo Molnar <mingo@kernel.org>, Ard Biesheuvel <ard.biesheuvel@linaro.org>
-Message-ID: <20190821114921.sr8djlJGosYIbmlVXpeqQDYtHu3lLibsIlvt70w3jnY@z>
+To: arnd@arndb.de, hch@infradead.org
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-csky@vger.kernel.org, douzhk@nationalchip.com, Guo Ren <ren_guo@c-sky.com>
+Message-ID: <20190821121816.68kSqVCoW3s0kzbbbjTgkf1UvfSF2WPhn0xtJq5Pjj0@z>
 
-To avoid excessive usage of EXPORT_SYMBOL_NS(sym, MY_NAMESPACE), where
-MY_NAMESPACE will always be the namespace we are exporting to, allow
-exporting all definitions of EXPORT_SYMBOL() and friends by defining
-DEFAULT_SYMBOL_NAMESPACE.
+From: Guo Ren <ren_guo@c-sky.com>
 
-For example, to export all symbols defined in usb-common into the
-namespace USB_COMMON, add a line like this to drivers/usb/common/Makefile:
+610 has vipt aliasing issue, so we need to finish the cache flush
+apis mentioned in cachetlb.rst to avoid data corruption.
 
-  ccflags-y += -DDEFAULT_SYMBOL_NAMESPACE=USB_COMMON
+Here is the list of modified apis in the patch:
 
-That is equivalent to changing all EXPORT_SYMBOL(sym) definitions to
-EXPORT_SYMBOL_NS(sym, USB_COMMON). Subsequently all symbol namespaces
-functionality will apply.
+ - flush_kernel_dcache_page      (new add)
+ - flush_dcache_mmap_lock        (new add)
+ - flush_dcache_mmap_unlock      (new add)
+ - flush_kernel_vmap_range       (new add)
+ - invalidate_kernel_vmap_range  (new add)
+ - flush_anon_page               (new add)
+ - flush_cache_range             (new add)
+ - flush_cache_vmap              (flush all)
+ - flush_cache_vunmap            (flush all)
+ - flush_cache_mm                (only dcache flush)
+ - flush_icache_page             (just nop)
+ - copy_from_user_page           (remove no need flush)
+ - copy_to_user_page             (remove no need flush)
 
-Another way of making use of this feature is to define the namespace
-within source or header files similar to how TRACE_SYSTEM defines are
-used:
-  #undef DEFAULT_SYMBOL_NAMESPACE
-  #define DEFAULT_SYMBOL_NAMESPACE USB_COMMON
-
-Please note that, as opposed to TRACE_SYSTEM, DEFAULT_SYMBOL_NAMESPACE
-has to be defined before including include/linux/export.h.
-
-If DEFAULT_SYMBOL_NAMESPACE is defined, a symbol can still be exported
-to another namespace by using EXPORT_SYMBOL_NS() and friends with
-explicitly specifying the namespace.
-
-Suggested-by: Arnd Bergmann <arnd@arndb.de>
-Reviewed-by: Martijn Coenen <maco@android.com>
-Reviewed-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-Signed-off-by: Matthias Maennich <maennich@google.com>
+Signed-off-by: Guo Ren <ren_guo@c-sky.com>
+Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: Christoph Hellwig <hch@infradead.org>
 ---
- include/linux/export.h | 6 ++++++
- 1 file changed, 6 insertions(+)
+ arch/csky/abiv1/cacheflush.c         | 20 ++++++++++++++++++
+ arch/csky/abiv1/inc/abi/cacheflush.h | 39 ++++++++++++++++++++++++++----------
+ 2 files changed, 48 insertions(+), 11 deletions(-)
 
-diff --git a/include/linux/export.h b/include/linux/export.h
-index 8e12e05444d1..1fb243abdbc4 100644
---- a/include/linux/export.h
-+++ b/include/linux/export.h
-@@ -166,6 +166,12 @@ struct kernel_symbol {
- #define __EXPORT_SYMBOL ___EXPORT_SYMBOL
- #endif
- 
-+#ifdef DEFAULT_SYMBOL_NAMESPACE
-+#undef __EXPORT_SYMBOL
-+#define __EXPORT_SYMBOL(sym, sec)				\
-+	__EXPORT_SYMBOL_NS(sym, sec, DEFAULT_SYMBOL_NAMESPACE)
-+#endif
+diff --git a/arch/csky/abiv1/cacheflush.c b/arch/csky/abiv1/cacheflush.c
+index fee99fc..9f1fe80 100644
+--- a/arch/csky/abiv1/cacheflush.c
++++ b/arch/csky/abiv1/cacheflush.c
+@@ -54,3 +54,23 @@ void update_mmu_cache(struct vm_area_struct *vma, unsigned long addr,
+ 			icache_inv_all();
+ 	}
+ }
 +
- #define EXPORT_SYMBOL(sym) __EXPORT_SYMBOL(sym, "")
- #define EXPORT_SYMBOL_GPL(sym) __EXPORT_SYMBOL(sym, "_gpl")
- #define EXPORT_SYMBOL_GPL_FUTURE(sym) __EXPORT_SYMBOL(sym, "_gpl_future")
++void flush_kernel_dcache_page(struct page *page)
++{
++	struct address_space *mapping;
++
++	mapping = page_mapping_file(page);
++
++	if (!mapping || mapping_mapped(mapping))
++		dcache_wbinv_all();
++}
++EXPORT_SYMBOL(flush_kernel_dcache_page);
++
++void flush_cache_range(struct vm_area_struct *vma, unsigned long start,
++	unsigned long end)
++{
++	dcache_wbinv_all();
++
++	if (vma->vm_flags & VM_EXEC)
++		icache_inv_all();
++}
+diff --git a/arch/csky/abiv1/inc/abi/cacheflush.h b/arch/csky/abiv1/inc/abi/cacheflush.h
+index fce5604..17eeebe 100644
+--- a/arch/csky/abiv1/inc/abi/cacheflush.h
++++ b/arch/csky/abiv1/inc/abi/cacheflush.h
+@@ -11,19 +11,42 @@
+ #define ARCH_IMPLEMENTS_FLUSH_DCACHE_PAGE 1
+ extern void flush_dcache_page(struct page *);
+ 
+-#define flush_cache_mm(mm)			cache_wbinv_all()
++#define flush_cache_mm(mm)			dcache_wbinv_all()
+ #define flush_cache_page(vma, page, pfn)	cache_wbinv_all()
+ #define flush_cache_dup_mm(mm)			cache_wbinv_all()
+ 
++#define ARCH_HAS_FLUSH_KERNEL_DCACHE_PAGE
++extern void flush_kernel_dcache_page(struct page *);
++
++#define flush_dcache_mmap_lock(mapping)   spin_lock_irq(&(mapping)->tree_lock)
++#define flush_dcache_mmap_unlock(mapping) spin_unlock_irq(&(mapping)->tree_lock)
++
++static inline void flush_kernel_vmap_range(void *addr, int size)
++{
++	dcache_wbinv_all();
++}
++static inline void invalidate_kernel_vmap_range(void *addr, int size)
++{
++	dcache_wbinv_all();
++}
++
++#define ARCH_HAS_FLUSH_ANON_PAGE
++static inline void flush_anon_page(struct vm_area_struct *vma,
++			 struct page *page, unsigned long vmaddr)
++{
++	if (PageAnon(page))
++		cache_wbinv_all();
++}
++
+ /*
+  * if (current_mm != vma->mm) cache_wbinv_range(start, end) will be broken.
+  * Use cache_wbinv_all() here and need to be improved in future.
+  */
+-#define flush_cache_range(vma, start, end)	cache_wbinv_all()
+-#define flush_cache_vmap(start, end)		cache_wbinv_range(start, end)
+-#define flush_cache_vunmap(start, end)		cache_wbinv_range(start, end)
++extern void flush_cache_range(struct vm_area_struct *vma, unsigned long start, unsigned long end);
++#define flush_cache_vmap(start, end)		cache_wbinv_all()
++#define flush_cache_vunmap(start, end)		cache_wbinv_all()
+ 
+-#define flush_icache_page(vma, page)		cache_wbinv_all()
++#define flush_icache_page(vma, page)		do {} while (0);
+ #define flush_icache_range(start, end)		cache_wbinv_range(start, end)
+ 
+ #define flush_icache_user_range(vma,page,addr,len) \
+@@ -31,19 +54,13 @@ extern void flush_dcache_page(struct page *);
+ 
+ #define copy_from_user_page(vma, page, vaddr, dst, src, len) \
+ do { \
+-	cache_wbinv_all(); \
+ 	memcpy(dst, src, len); \
+-	cache_wbinv_all(); \
+ } while (0)
+ 
+ #define copy_to_user_page(vma, page, vaddr, dst, src, len) \
+ do { \
+-	cache_wbinv_all(); \
+ 	memcpy(dst, src, len); \
+ 	cache_wbinv_all(); \
+ } while (0)
+ 
+-#define flush_dcache_mmap_lock(mapping)		do {} while (0)
+-#define flush_dcache_mmap_unlock(mapping)	do {} while (0)
+-
+ #endif /* __ABI_CSKY_CACHEFLUSH_H */
 -- 
-2.23.0.rc1.153.gdeed80330f-goog
+2.7.4
