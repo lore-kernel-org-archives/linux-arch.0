@@ -1,50 +1,82 @@
-From: Markus Elfring <Markus.Elfring@web.de>
-Subject: Re: [v2 08/10] scripts: Coccinelle script for namespace dependencies
-Date: Thu, 22 Aug 2019 13:00:52 +0200
-Message-ID: <796bc082-7708-172e-df1e-13447ef6b577@web.de>
-References: <20190813121733.52480-9-maennich@google.com>
- <1c4420f4-361c-7358-49d9-87d8a51f7920@web.de>
- <20190822091858.GA60652@google.com>
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: Re: [PATCH v9 3/3] arm64: Relax
+ Documentation/arm64/tagged-pointers.rst
+Date: Thu, 22 Aug 2019 16:55:32 +0100
+Message-ID: <20190822155531.GB55798@arrakis.emea.arm.com>
+References: <20190821164730.47450-1-catalin.marinas@arm.com>
+ <20190821164730.47450-4-catalin.marinas@arm.com>
+ <20190821173352.yqfgaozi7nfhcofg@willie-the-truck>
+ <20190821184649.GD27757@arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: quoted-printable
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20190822091858.GA60652@google.com>
-Content-Language: en-GB
-Sender: linux-kernel-owner@vger.kernel.org
-To: Matthias Maennich <maennich@google.com>, cocci@systeme.lip6.fr, kernel-janitors@vger.kernel.org
-Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Julia Lawall <Julia.Lawall@lip6.fr>, Martijn Coenen <maco@android.com>, linux-arch@vger.kernel.org, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-modules@vger.kernel.org, linux-scsi@vger.kernel.org, linux-usb@vger.kernel.org, kernel-team@android.com, usb-storage@lists.one-eyed-alien.net, x86@kernel.org, Alan Stern <stern@rowland.harvard.edu>, Arnd Bergmann <arnd@arndb.de>, "David S. Miller" <davem@davemloft.net>, Geert Uytterhoeven <geert@linux-m68k.org>, Gilles Muller <Gilles.Muller@lip6.fr>, "H. Peter Anvin" <hpa@zytor.com>, Ingo Molnar <mingo@redhat.com>, Jessica Yu <jeyu@kernel.org>, Joel Fernandes <joel@joelfernandes.org>, Jonathan Cameron <Jonathan.Cameron@hua>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+Content-Disposition: inline
+In-Reply-To: <20190821184649.GD27757@arm.com>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+To: Dave Martin <Dave.Martin@arm.com>
+Cc: linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, Szabolcs Nagy <szabolcs.nagy@arm.com>, Andrey Konovalov <andreyknvl@google.com>, Kevin Brodsky <kevin.brodsky@arm.com>, Will Deacon <will.deacon@arm.com>, linux-mm@kvack.org, Dave Hansen <dave.hansen@intel.com>, Andrew Morton <akpm@linux-foundation.org>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Will Deacon <will@kernel.org>, linux-arm-kernel@lists.infradead.org
 List-Id: linux-arch.vger.kernel.org
 
-> $srctree is defined by kbuild in the toplevel Makefile.
+On Wed, Aug 21, 2019 at 07:46:51PM +0100, Dave P Martin wrote:
+> On Wed, Aug 21, 2019 at 06:33:53PM +0100, Will Deacon wrote:
+> > On Wed, Aug 21, 2019 at 05:47:30PM +0100, Catalin Marinas wrote:
+> > > @@ -59,6 +63,11 @@ be preserved.
+> > >  The architecture prevents the use of a tagged PC, so the upper byte will
+> > >  be set to a sign-extension of bit 55 on exception return.
+> > >  
+> > > +This behaviour is maintained when the AArch64 Tagged Address ABI is
+> > > +enabled. In addition, with the exceptions above, the kernel will
+> > > +preserve any non-zero tags passed by the user via syscalls and stored in
+> > > +kernel data structures (e.g. ``set_robust_list()``, ``sigaltstack()``).
+> 
+> sigaltstack() is interesting, since we don't support tagged stacks.
 
-How is this variable passed to the file =E2=80=9Cscripts/nsdeps=E2=80=9D?
+We should support tagged SP with the new ABI as they'll be required for
+MTE. sigaltstack() and clone() are the two syscalls that come to mind
+here.
 
+> Do we keep the ss_sp tag in the kernel, but squash it when delivering
+> a signal to the alternate stack?
 
->> * Would you like to support a separate build directory for desired adju=
-stments?
->
-> No, as the purpose of this script is to directly patch the kernel
-> sources where applicable.
+We don't seem to be doing any untagging, so we just just use whatever
+the caller asked for. We may need a small test to confirm.
 
-Will there occasionally be a need to provide a generated patch
-(without in-place file modification)?
+That said, on_sig_stack() probably needs some untagging as it does user
+pointer arithmetics with potentially different tags.
 
+> > Hmm. I can see the need to provide this guarantee for things like
+> > set_robust_list(), but the problem is that the statement above is too broad
+> > and isn't strictly true: for example, mmap() doesn't propagate the tag of
+> > its address parameter into the VMA.
+> > 
+> > So I think we need to nail this down a bit more, but I'm having a really
+> > hard time coming up with some wording :(
+> 
+> Time for some creative vagueness?
+> 
+> We can write a statement of our overall intent, along with examples of
+> a few cases where the tag should and should not be expected to emerge
+> intact.
+> 
+> There is no foolproof rule, unless we can rewrite history...
 
->> I suggest to assign the name for the temporary file to a variable
->> which should be used by subsequent commands.
->
-> I somehow don't agree that this is an improvement to the code as the
-> variable would likely be something like ${source_file_tmp}.
+I would expect the norm to be the preservation of tags with a few
+exceptions. The only ones I think where we won't preserve the tags are
+mmap, mremap, brk (apart from the signal stuff already mentioned in the
+current tagged-pointers.rst doc).
 
-Would you dare to choose a shorter variable name?
+So I can remove this paragraph altogether and add a note in part 3 of
+the tagged-address-abi.rst document that mmap/mremap/brk do not preserve
+the tag information.
 
-
-> ${source_file}.tmp does express the intent of a temporary file next to
-> the original source file and the reader of the code does not need to
-> reason about the value of ${source_file_tmp}.
-
-I would find a code variant with less suffix repetition nicer.
-
-Regards,
-Markus
+-- 
+Catalin
