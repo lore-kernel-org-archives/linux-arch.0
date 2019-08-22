@@ -1,157 +1,31 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:42092 "EHLO mail.kernel.org"
+Received: from mout.web.de ([212.227.15.14]:58157 "EHLO mout.web.de"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727874AbfHVDFd (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 21 Aug 2019 23:05:33 -0400
-From: guoren@kernel.org
-Subject: [PATCH V2] csky: Fixup 610 vipt cache flush mechanism
-Date: Thu, 22 Aug 2019 11:05:22 +0800
-Message-ID: <1566443122-17540-1-git-send-email-guoren@kernel.org>
+        id S1727476AbfHVGLO (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 22 Aug 2019 02:11:14 -0400
+References: <20190821114955.12788-9-maennich@google.com>
+Subject: Re: [v3 08/11] scripts: Coccinelle script for namespace dependencies
+From: Markus Elfring <Markus.Elfring@web.de>
+Message-ID: <81cc3995-ea95-8125-bbd2-2889cc623e23@web.de>
+Date: Thu, 22 Aug 2019 08:09:42 +0200
+MIME-Version: 1.0
+In-Reply-To: <20190821114955.12788-9-maennich@google.com>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: arnd@arndb.de, hch@infradead.org
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-csky@vger.kernel.org, douzhk@nationalchip.com, Guo Ren <ren_guo@c-sky.com>
-Message-ID: <20190822030522.ER5fGC8QxjnHnzEzRCT_3ezqRJ80D-ityrtEt-UtsfY@z>
+To: Matthias Maennich <maennich@google.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Julia Lawall <Julia.Lawall@lip6.fr>, Martijn Coenen <maco@android.com>, Himanshu Jha <himanshujha199640@gmail.com>, cocci@systeme.lip6.fr, kernel-janitors@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-modules@vger.kernel.org, linux-scsi@vger.kernel.org, linux-usb@vger.kernel.org, kernel-team@android.com, usb-storage@lists.one-eyed-alien.net, x86@kernel.org, Alan Stern <stern@rowland.harvard.edu>, Arnd Bergmann <arnd@arndb.de>, "David S. Miller" <davem@davemloft.net>, Geert Uytterhoeven <geert@linux-m68k.org>, Gilles Muller <Gilles.Muller@lip6.fr>, "H. Peter Anvin" <hpa@zytor.com>, Ingo Molnar <mingo@redhat.com>, Jessica Yu <jeyu@kernel.org>, Joel Fernandes <joel@joelfernandes.org>, Jonathan Cameron <Jonathan.Cameron@huawei.com>, Kate Stewart <kstewart@linuxfoundation.org>, Lucas De Marchi <lucas.de.marchi@gmail.com>, Martijn Coenen <maco@google.com>, Masahiro Yamada <yamada.masahiro@socionext.com>, Mauro Carvalho Chehab <mchehab+samsung@kernel.org>, Michal Marek <michal.lkml@markovi.net>, Nicolas Ferre <nicolas.ferre@microchip.com>, Nicolas Palix <nicolas.palix@imag.fr>, Oliver Neukum <oneukum@suse.com>, Philippe Ombredanne <pombredanne@nexb.com>, Sam Ravnborg <sam@ravnborg.org>, Sandeep Patil <sspatil@google.com>, Stephen Boyd <sboyd@kernel.org>, Thomas Gleixner <tglx@linutronix.de>
+Message-ID: <20190822060942.SpDuTSdldLY-0ans519xTMPCVHQIqDAokBkvyLDl3Ak@z>
 
-From: Guo Ren <ren_guo@c-sky.com>
+> +generate_deps_for_ns() {
+> +	$SPATCH --very-quiet --in-place --sp-file \
+> +		$srctree/scripts/coccinelle/misc/add_namespace.cocci -D ns=$1 $2
+> +}
 
-610 has vipt aliasing issue, so we need to finish the cache flush
-apis mentioned in cachetlb.rst to avoid data corruption.
+I would appreciate more constructive answers for specific software development concerns.
+https://lore.kernel.org/lkml/1c4420f4-361c-7358-49d9-87d8a51f7920@web.de/
+https://lkml.org/lkml/2019/8/15/515
 
-Here is the list of modified apis in the patch:
-
- - flush_kernel_dcache_page      (new add)
- - flush_dcache_mmap_lock        (new add)
- - flush_dcache_mmap_unlock      (new add)
- - flush_kernel_vmap_range       (new add)
- - invalidate_kernel_vmap_range  (new add)
- - flush_anon_page               (new add)
- - flush_cache_range             (new add)
- - flush_cache_vmap              (flush all)
- - flush_cache_vunmap            (flush all)
- - flush_cache_mm                (only dcache flush)
- - flush_icache_page             (just nop)
- - copy_from_user_page           (remove no need flush)
- - copy_to_user_page             (remove no need flush)
-
-Change to V2:
- - Fixup compile error with xa_lock*(&mapping->i_pages)
-
-Signed-off-by: Guo Ren <ren_guo@c-sky.com>
-Cc: Arnd Bergmann <arnd@arndb.de>
-Cc: Christoph Hellwig <hch@infradead.org>
----
- arch/csky/abiv1/cacheflush.c         | 20 ++++++++++++++++++
- arch/csky/abiv1/inc/abi/cacheflush.h | 41 +++++++++++++++++++++++++-----------
- 2 files changed, 49 insertions(+), 12 deletions(-)
-
-diff --git a/arch/csky/abiv1/cacheflush.c b/arch/csky/abiv1/cacheflush.c
-index fee99fc..9f1fe80 100644
---- a/arch/csky/abiv1/cacheflush.c
-+++ b/arch/csky/abiv1/cacheflush.c
-@@ -54,3 +54,23 @@ void update_mmu_cache(struct vm_area_struct *vma, unsigned long addr,
- 			icache_inv_all();
- 	}
- }
-+
-+void flush_kernel_dcache_page(struct page *page)
-+{
-+	struct address_space *mapping;
-+
-+	mapping = page_mapping_file(page);
-+
-+	if (!mapping || mapping_mapped(mapping))
-+		dcache_wbinv_all();
-+}
-+EXPORT_SYMBOL(flush_kernel_dcache_page);
-+
-+void flush_cache_range(struct vm_area_struct *vma, unsigned long start,
-+	unsigned long end)
-+{
-+	dcache_wbinv_all();
-+
-+	if (vma->vm_flags & VM_EXEC)
-+		icache_inv_all();
-+}
-diff --git a/arch/csky/abiv1/inc/abi/cacheflush.h b/arch/csky/abiv1/inc/abi/cacheflush.h
-index fce5604..79ef9e8 100644
---- a/arch/csky/abiv1/inc/abi/cacheflush.h
-+++ b/arch/csky/abiv1/inc/abi/cacheflush.h
-@@ -4,26 +4,49 @@
- #ifndef __ABI_CSKY_CACHEFLUSH_H
- #define __ABI_CSKY_CACHEFLUSH_H
- 
--#include <linux/compiler.h>
-+#include <linux/mm.h>
- #include <asm/string.h>
- #include <asm/cache.h>
- 
- #define ARCH_IMPLEMENTS_FLUSH_DCACHE_PAGE 1
- extern void flush_dcache_page(struct page *);
- 
--#define flush_cache_mm(mm)			cache_wbinv_all()
-+#define flush_cache_mm(mm)			dcache_wbinv_all()
- #define flush_cache_page(vma, page, pfn)	cache_wbinv_all()
- #define flush_cache_dup_mm(mm)			cache_wbinv_all()
- 
-+#define ARCH_HAS_FLUSH_KERNEL_DCACHE_PAGE
-+extern void flush_kernel_dcache_page(struct page *);
-+
-+#define flush_dcache_mmap_lock(mapping)		xa_lock_irq(&mapping->i_pages)
-+#define flush_dcache_mmap_unlock(mapping)	xa_unlock_irq(&mapping->i_pages)
-+
-+static inline void flush_kernel_vmap_range(void *addr, int size)
-+{
-+	dcache_wbinv_all();
-+}
-+static inline void invalidate_kernel_vmap_range(void *addr, int size)
-+{
-+	dcache_wbinv_all();
-+}
-+
-+#define ARCH_HAS_FLUSH_ANON_PAGE
-+static inline void flush_anon_page(struct vm_area_struct *vma,
-+			 struct page *page, unsigned long vmaddr)
-+{
-+	if (PageAnon(page))
-+		cache_wbinv_all();
-+}
-+
- /*
-  * if (current_mm != vma->mm) cache_wbinv_range(start, end) will be broken.
-  * Use cache_wbinv_all() here and need to be improved in future.
-  */
--#define flush_cache_range(vma, start, end)	cache_wbinv_all()
--#define flush_cache_vmap(start, end)		cache_wbinv_range(start, end)
--#define flush_cache_vunmap(start, end)		cache_wbinv_range(start, end)
-+extern void flush_cache_range(struct vm_area_struct *vma, unsigned long start, unsigned long end);
-+#define flush_cache_vmap(start, end)		cache_wbinv_all()
-+#define flush_cache_vunmap(start, end)		cache_wbinv_all()
- 
--#define flush_icache_page(vma, page)		cache_wbinv_all()
-+#define flush_icache_page(vma, page)		do {} while (0);
- #define flush_icache_range(start, end)		cache_wbinv_range(start, end)
- 
- #define flush_icache_user_range(vma,page,addr,len) \
-@@ -31,19 +54,13 @@ extern void flush_dcache_page(struct page *);
- 
- #define copy_from_user_page(vma, page, vaddr, dst, src, len) \
- do { \
--	cache_wbinv_all(); \
- 	memcpy(dst, src, len); \
--	cache_wbinv_all(); \
- } while (0)
- 
- #define copy_to_user_page(vma, page, vaddr, dst, src, len) \
- do { \
--	cache_wbinv_all(); \
- 	memcpy(dst, src, len); \
- 	cache_wbinv_all(); \
- } while (0)
- 
--#define flush_dcache_mmap_lock(mapping)		do {} while (0)
--#define flush_dcache_mmap_unlock(mapping)	do {} while (0)
--
- #endif /* __ABI_CSKY_CACHEFLUSH_H */
--- 
-2.7.4
+Regards,
+Markus
