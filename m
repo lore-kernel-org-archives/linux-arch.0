@@ -1,78 +1,65 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wr1-f66.google.com ([209.85.221.66]:38437 "EHLO
-        mail-wr1-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1731123AbfHVIcb (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 22 Aug 2019 04:32:31 -0400
-Received: by mail-wr1-f66.google.com with SMTP id g17so4556456wrr.5
-        for <linux-arch@vger.kernel.org>; Thu, 22 Aug 2019 01:32:30 -0700 (PDT)
-Date: Thu, 22 Aug 2019 09:32:23 +0100
+Received: from mail-wr1-f48.google.com ([209.85.221.48]:43543 "EHLO
+        mail-wr1-f48.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1733155AbfHVJTF (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 22 Aug 2019 05:19:05 -0400
+Received: by mail-wr1-f48.google.com with SMTP id y8so4668009wrn.10
+        for <linux-arch@vger.kernel.org>; Thu, 22 Aug 2019 02:19:04 -0700 (PDT)
+Date: Thu, 22 Aug 2019 10:18:58 +0100
 From: Matthias Maennich <maennich@google.com>
-Subject: Re: [PATCH v3 10/11] RFC: usb-storage: export symbols in USB_STORAGE
- namespace
-Message-ID: <20190822083223.GA15709@google.com>
-References: <20190813121733.52480-1-maennich@google.com>
- <20190821114955.12788-1-maennich@google.com>
- <20190821114955.12788-11-maennich@google.com>
- <20190821231329.GA369@infradead.org>
+Subject: Re: [v2 08/10] scripts: Coccinelle script for namespace dependencies
+Message-ID: <20190822091858.GA60652@google.com>
+References: <20190813121733.52480-9-maennich@google.com>
+ <1c4420f4-361c-7358-49d9-87d8a51f7920@web.de>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii; format=flowed
+Content-Type: text/plain; charset=utf-8; format=flowed
 Content-Disposition: inline
-In-Reply-To: <20190821231329.GA369@infradead.org>
+Content-Transfer-Encoding: 8bit
+In-Reply-To: <1c4420f4-361c-7358-49d9-87d8a51f7920@web.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Christoph Hellwig <hch@infradead.org>
-Cc: linux-kernel@vger.kernel.org, kernel-team@android.com, arnd@arndb.de, geert@linux-m68k.org, gregkh@linuxfoundation.org, hpa@zytor.com, jeyu@kernel.org, joel@joelfernandes.org, kstewart@linuxfoundation.org, linux-arch@vger.kernel.org, linux-kbuild@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-modules@vger.kernel.org, linux-scsi@vger.kernel.org, linux-usb@vger.kernel.org, lucas.de.marchi@gmail.com, maco@android.com, maco@google.com, michal.lkml@markovi.net, mingo@redhat.com, oneukum@suse.com, pombredanne@nexb.com, sam@ravnborg.org, sspatil@google.com, stern@rowland.harvard.edu, tglx@linutronix.de, usb-storage@lists.one-eyed-alien.net, x86@kernel.org, yamada.masahiro@socionext.com
-Message-ID: <20190822083223.R9szYbL0cvWsBo6tvOef5X4AtDGbei-jdCgMMisK5DY@z>
+To: Markus Elfring <Markus.Elfring@web.de>
+Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Julia Lawall <Julia.Lawall@lip6.fr>, Martijn Coenen <maco@android.com>, cocci@systeme.lip6.fr, kernel-janitors@vger.kernel.org, linux-arch@vger.kernel.org, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-modules@vger.kernel.org, linux-scsi@vger.kernel.org, linux-usb@vger.kernel.org, kernel-team@android.com, usb-storage@lists.one-eyed-alien.net, x86@kernel.org, Alan Stern <stern@rowland.harvard.edu>, Arnd Bergmann <arnd@arndb.de>, "David S. Miller" <davem@davemloft.net>, Geert Uytterhoeven <geert@linux-m68k.org>, Gilles Muller <Gilles.Muller@lip6.fr>, "H. Peter Anvin" <hpa@zytor.com>, Ingo Molnar <mingo@redhat.com>, Jessica Yu <jeyu@kernel.org>, Joel Fernandes <joel@joelfernandes.org>, Jonathan Cameron <Jonathan.Cameron@huawei.com>, Kate Stewart <kstewart@linuxfoundation.org>, Lucas De Marchi <lucas.de.marchi@gmail.com>, Martijn Coenen <maco@google.com>, Masahiro Yamada <yamada.masahiro@socionext.com>, Mauro Carvalho Chehab <mchehab+samsung@kernel.org>, Michal Marek <michal.lkml@markovi.net>, Nicolas Ferre <nicolas.ferre@microchip.com>, Nicolas Palix <nicolas.palix@imag.fr>, Oliver Neukum <oneukum@suse.com>, Philippe Ombredanne <pombredanne@nexb.com>, Sam Ravnborg <sam@ravnborg.org>, Sandeep Patil <sspatil@google.com>, Stephen Boyd <sboyd@kernel.org>, Thomas Gleixner <tglx@linutronix.de>
+Message-ID: <20190822091858.reFF7SEcaB06r_w4-ZBREZrIpG5bYxH-E0THJKseyYo@z>
 
-On Wed, Aug 21, 2019 at 04:13:29PM -0700, Christoph Hellwig wrote:
->On Wed, Aug 21, 2019 at 12:49:25PM +0100, Matthias Maennich wrote:
->> Modules using these symbols are required to explicitly import the
->> namespace. This patch was generated with the following steps and serves
->> as a reference to use the symbol namespace feature:
->>
->>  1) Define DEFAULT_SYMBOL_NAMESPACE in the corresponding Makefile
->>  2) make  (see warnings during modpost about missing imports)
->>  3) make nsdeps
->>
->> Instead of a DEFAULT_SYMBOL_NAMESPACE definition, the EXPORT_SYMBOL_NS
->> variants can be used to explicitly specify the namespace. The advantage
->> of the method used here is that newly added symbols are automatically
->> exported and existing ones are exported without touching their
->> respective EXPORT_SYMBOL macro expansion.
+On Thu, Aug 15, 2019 at 03:50:38PM +0200, Markus Elfring wrote:
+>> +generate_deps_for_ns() {
+>> +    $SPATCH --very-quiet --in-place --sp-file \
+>> +	    $srctree/scripts/coccinelle/misc/add_namespace.cocci -D ns=$1 $2
+>> +}
 >
->So what is USB_STORAGE here?  It isn't a C string, so where does it
->come from?  To me using a C string would seem like the nicer interface
->vs a random cpp symbol that gets injected somewhere.
+>* Where will the variable “srctree” be set for the file “scripts/nsdeps”?
+>
 
-To be honest, I would also prefer an interface that uses C strings or
-literals for the new EXPORT_SYMBOLS* macros:
+$srctree is defined by kbuild in the toplevel Makefile.
 
-  EXPORT_SYMBOL_NS(mysym, "USB_STORAGE");
+>* Would you like to support a separate build directory for desired adjustments?
+>
 
-  or
+No, as the purpose of this script is to directly patch the kernel
+sources where applicable.
 
-  const char USB_STORAGE_NS[] = "USB_STORAGE";
-  EXPORT_SYMBOL_NS(mysym, USB_STORAGE_NS);
+>* How do you think about to check error handling around such commands?
+>
+>
 
-The DEFAULT_SYMBOL_NAMESPACE define within Makefiles would get a bit
-more verbose in that case to express the literal:
-  ccflags-y += -DDEFAULT_SYMBOL_NAMESPACE="\"USB_STORAGE\""
+spatch emits a descriptive message on error. I will add a 'set
+-e' to the script so that it aborts on errors.
 
+>> +generate_deps() {
+>…
+>> +        for source_file in $mod_source_files; do
+>> +            sed '/MODULE_IMPORT_NS/Q' $source_file > ${source_file}.tmp
+>…
+>
+>I suggest to assign the name for the temporary file to a variable
+>which should be used by subsequent commands.
 
-The main reason against that, is, that in the expansion of
-EXPORT_SYMBOL_NS, we define the ksymtab entry, which name is
-constructed partly by the name of the namespace:
-
-   static const struct kernel_symbol __ksymtab_##sym##__##ns  ...
-                                                        ^^^^
-
-For that we depend on a cpp symbol to construct the name. I am not sure
-there is a reasonable way of getting rid of that without ending up
-constructing the ksymtab entries completely in asm as it is already done
-in case of PREL32_RELOCATIONS. But I am happy to be corrected.
-
-For reference that is done in patch 03/11 of this series:
-https://lore.kernel.org/lkml/20190821114955.12788-4-maennich@google.com/
+I somehow don't agree that this is an improvement to the code as the
+variable would likely be something like ${source_file_tmp}. Sticking to
+${source_file}.tmp does express the intent of a temporary file next to
+the original source file and the reader of the code does not need to
+reason about the value of ${source_file_tmp}.
 
 Cheers,
 Matthias
