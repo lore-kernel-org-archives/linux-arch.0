@@ -1,49 +1,63 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:32896 "EHLO mail.kernel.org"
+Received: from mail.kernel.org ([198.145.29.99]:36540 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S2389135AbfHVRLJ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 22 Aug 2019 13:11:09 -0400
-Date: Thu, 22 Aug 2019 10:11:08 -0700
-From: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-Subject: Re: next take at setting up a dma mask by default for platform
- devices v2
-Message-ID: <20190822171108.GA17471@kroah.com>
-References: <20190816062435.881-1-hch@lst.de>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20190816062435.881-1-hch@lst.de>
+        id S2390930AbfHVW4N (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 22 Aug 2019 18:56:13 -0400
+Date: Thu, 22 Aug 2019 15:56:11 -0700
+From: Andrew Morton <akpm@linux-foundation.org>
+Subject: Re: [PATCH v2 7/7] bug: Move WARN_ON() "cut here" into exception
+ handler
+Message-ID: <20190822155611.a1a6e26db99ba0876ba9c8bd@linux-foundation.org>
+In-Reply-To: <201908200943.601DD59DCE@keescook>
+References: <201908200943.601DD59DCE@keescook>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Christoph Hellwig <hch@lst.de>
-Cc: Maxime Chevallier <maxime.chevallier@bootlin.com>, Gavin Li <git@thegavinli.com>, Laurentiu Tudor <laurentiu.tudor@nxp.com>, Minas Harutyunyan <hminas@synopsys.com>, Alan Stern <stern@rowland.harvard.edu>, Geoff Levand <geoff@infradead.org>, Michal Simek <michal.simek@xilinx.com>, Shawn Guo <shawnguo@kernel.org>, Sascha Hauer <s.hauer@pengutronix.de>, Pengutronix Kernel Team <kernel@pengutronix.de>, Fabio Estevam <festevam@gmail.com>, NXP Linux Team <linux-imx@nxp.com>, Mathias Nyman <mathias.nyman@intel.com>, Bin Liu <b-liu@ti.com>, linux-arm-kernel@lists.infradead.org, linux-usb@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-m68k@lists.linux-m68k.org, iommu@lists.linux-foundation.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20190822171108.PMCXOyzJY9h6SycjHgodcpdWg6UgGbzmG-VbRWJyHak@z>
+To: 20190819234111.9019-8-keescook@chromium.org
+Cc: Christophe Leroy <christophe.leroy@c-s.fr>, Peter Zijlstra <peterz@infradead.org>, Drew Davenport <ddavenport@chromium.org>, Arnd Bergmann <arnd@arndb.de>, "Steven Rostedt (VMware)" <rostedt@goodmis.org>, Feng Tang <feng.tang@intel.com>, Petr Mladek <pmladek@suse.com>, Mauro Carvalho Chehab <mchehab+samsung@kernel.org>, Borislav Petkov <bp@suse.de>, YueHaibing <yuehaibing@huawei.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20190822225611.0Kb_8U6Flk_5ufasRfJzfMWExyygP8nr83WXRCu1p0o@z>
 
-On Fri, Aug 16, 2019 at 08:24:29AM +0200, Christoph Hellwig wrote:
-> Hi all,
+On Tue, 20 Aug 2019 09:47:55 -0700 Kees Cook <keescook@chromium.org> wrote:
+
+> Reply-To: 20190819234111.9019-8-keescook@chromium.org
+
+Really?
+
+> Subject: [PATCH v2 7/7] bug: Move WARN_ON() "cut here" into exception handler
+
+It's strange to receive a standalone [7/7] patch.
+
+> Date:   Tue, 20 Aug 2019 09:47:55 -0700
+> Sender: linux-kernel-owner@vger.kernel.org
 > 
-> this is another attempt to make sure the dma_mask pointer is always
-> initialized for platform devices.  Not doing so lead to lots of
-> boilerplate code, and makes platform devices different from all our
-> major busses like PCI where we always set up a dma_mask.  In the long
-> run this should also help to eventually make dma_mask a scalar value
-> instead of a pointer and remove even more cruft.
+> The original clean up of "cut here" missed the WARN_ON() case (that
+> does not have a printk message), which was fixed recently by adding
+> an explicit printk of "cut here". This had the downside of adding a
+> printk() to every WARN_ON() caller, which reduces the utility of using
+> an instruction exception to streamline the resulting code. By making
+> this a new BUGFLAG, all of these can be removed and "cut here" can be
+> handled by the exception handler.
 > 
-> The bigger blocker for this last time was the fact that the usb
-> subsystem uses the presence or lack of a dma_mask to check if the core
-> should do dma mapping for the driver, which is highly unusual.  So we
-> fix this first.  Note that this has some overlap with the pending
-> desire to use the proper dma_mmap_coherent helper for mapping usb
-> buffers.  The first two patches have already been queued up by Greg
-> and are only included for completeness.
+> This was very pronounced on PowerPC, but the effect can be seen on
+> x86 as well. The resulting text size of a defconfig build shows some
+> small savings from this patch:
+> 
+>    text    data     bss     dec     hex filename
+> 19691167        5134320 1646664 26472151        193eed7 vmlinux.before
+> 19676362        5134260 1663048 26473670        193f4c6 vmlinux.after
+> 
+> This change also opens the door for creating something like BUG_MSG(),
+> where a custom printk() before issuing BUG(), without confusing the "cut
+> here" line.
 
-Note to everyone.  The first two patches in this series is already in
-5.3-rc5.
+I can't get this to apply to anything, so I guess that [1/7]-[6/7]
+mattered ;)
 
-I've applied the rest of the series to my usb-next branch (with the 6th
-patch landing there later today.)  They are scheduled to be merge to
-Linus in 5.4-rc1.
+> Reported-by: Christophe Leroy <christophe.leroy@c-s.fr>
+> Fixes: Fixes: 6b15f678fb7d ("include/asm-generic/bug.h: fix "cut here" for WARN_ON for __WARN_TAINT architectures")
 
-Christoph, thanks so much for these cleanups.
+I'm seeing double.
 
-greg k-h
+> Signed-off-by: Kees Cook <keescook@chromium.org>
