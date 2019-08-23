@@ -1,182 +1,85 @@
-From: Mao Han <han_mao@c-sky.com>
-Subject: [PATCH V5 1/3] riscv: Add perf callchain support
-Date: Fri, 23 Aug 2019 14:15:58 +0800
-Message-ID: <820d80272fc5627b8d00e684663a614470217606.1566540652.git.han_mao@c-sky.com>
-References: <cover.1566540652.git.han_mao@c-sky.com>
+From: Greentime Hu <green.hu@gmail.com>
+Subject: Re: [PATCH V5 1/3] riscv: Add perf callchain support
+Date: Fri, 23 Aug 2019 16:56:04 +0800
+Message-ID: <CAEbi=3fbe9zbsLyfA=s9gHtAFJrp5Ox0jWoAqcZudQ_xODicgA@mail.gmail.com>
+References: <cover.1566540652.git.han_mao@c-sky.com> <820d80272fc5627b8d00e684663a614470217606.1566540652.git.han_mao@c-sky.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <cover.1566540652.git.han_mao@c-sky.com>
-In-Reply-To: <cover.1566540652.git.han_mao@c-sky.com>
-References: <cover.1566540652.git.han_mao@c-sky.com>
+In-Reply-To: <820d80272fc5627b8d00e684663a614470217606.1566540652.git.han_mao@c-sky.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: linux-riscv@lists.infradead.org
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Mao Han <han_mao@c-sky.com>, Paul Walmsley <paul.walmsley@sifive.com>, Greentime Hu <green.hu@gmail.com>, Palmer Dabbelt <palmer@sifive.com>, Christoph Hellwig <hch@lst.de>, Guo Ren <guoren@kernel.org>
+To: Mao Han <han_mao@c-sky.com>
+Cc: linux-riscv@lists.infradead.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Paul Walmsley <paul.walmsley@sifive.com>, Palmer Dabbelt <palmer@sifive.com>, Christoph Hellwig <hch@lst.de>, Guo Ren <guoren@kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-This patch add support for perf callchain sampling on riscv platform.
-The return address of leaf function is retrieved from pt_regs as
-it is not saved in the outmost frame.
+Hi Mao,
 
-Signed-off-by: Mao Han <han_mao@c-sky.com>
-Cc: Paul Walmsley <paul.walmsley@sifive.com>
-Cc: Greentime Hu <green.hu@gmail.com>
-Cc: Palmer Dabbelt <palmer@sifive.com>
-Cc: linux-riscv <linux-riscv@lists.infradead.org>
-Cc: Christoph Hellwig <hch@lst.de>
-Cc: Guo Ren <guoren@kernel.org>
----
- arch/riscv/Makefile                |   3 +
- arch/riscv/kernel/Makefile         |   3 +-
- arch/riscv/kernel/perf_callchain.c | 115 +++++++++++++++++++++++++++++++++++++
- 3 files changed, 120 insertions(+), 1 deletion(-)
- create mode 100644 arch/riscv/kernel/perf_callchain.c
+Mao Han <han_mao@c-sky.com> =E6=96=BC 2019=E5=B9=B48=E6=9C=8823=E6=97=A5 =
+=E9=80=B1=E4=BA=94 =E4=B8=8B=E5=8D=882:16=E5=AF=AB=E9=81=93=EF=BC=9A
 
-diff --git a/arch/riscv/Makefile b/arch/riscv/Makefile
-index 7a117be..946565b 100644
---- a/arch/riscv/Makefile
-+++ b/arch/riscv/Makefile
-@@ -54,6 +54,9 @@ endif
- ifeq ($(CONFIG_MODULE_SECTIONS),y)
- 	KBUILD_LDFLAGS_MODULE += -T $(srctree)/arch/riscv/kernel/module.lds
- endif
-+ifeq ($(CONFIG_PERF_EVENTS),y)
-+        KBUILD_CFLAGS += -fno-omit-frame-pointer
-+endif
- 
- KBUILD_CFLAGS_MODULE += $(call cc-option,-mno-relax)
- 
-diff --git a/arch/riscv/kernel/Makefile b/arch/riscv/kernel/Makefile
-index 2420d37..b1bea89 100644
---- a/arch/riscv/kernel/Makefile
-+++ b/arch/riscv/kernel/Makefile
-@@ -38,6 +38,7 @@ obj-$(CONFIG_MODULE_SECTIONS)	+= module-sections.o
- obj-$(CONFIG_FUNCTION_TRACER)	+= mcount.o ftrace.o
- obj-$(CONFIG_DYNAMIC_FTRACE)	+= mcount-dyn.o
- 
--obj-$(CONFIG_PERF_EVENTS)      += perf_event.o
-+obj-$(CONFIG_PERF_EVENTS)	+= perf_event.o
-+obj-$(CONFIG_PERF_EVENTS)	+= perf_callchain.o
- 
- clean:
-diff --git a/arch/riscv/kernel/perf_callchain.c b/arch/riscv/kernel/perf_callchain.c
-new file mode 100644
-index 0000000..d75d15c
---- /dev/null
-+++ b/arch/riscv/kernel/perf_callchain.c
-@@ -0,0 +1,115 @@
-+// SPDX-License-Identifier: GPL-2.0
-+/* Copyright (C) 2019 Hangzhou C-SKY Microsystems co.,ltd. */
-+
-+#include <linux/perf_event.h>
-+#include <linux/uaccess.h>
-+
-+/* Kernel callchain */
-+struct stackframe {
-+	unsigned long fp;
-+	unsigned long ra;
-+};
-+
-+static int unwind_frame_kernel(struct stackframe *frame)
-+{
-+	if (kstack_end((void *)frame->fp))
-+		return -EPERM;
-+	if (frame->fp & 0x3 || frame->fp < TASK_SIZE)
-+		return -EPERM;
-+	if (frame->fp < CONFIG_PAGE_OFFSET)
-+		return -EPERM;
-+
-+	*frame = *((struct stackframe *)frame->fp - 1);
-+	if (__kernel_text_address(frame->ra)) {
-+		int graph = 0;
-+
-+		frame->ra = ftrace_graph_ret_addr(NULL, &graph, frame->ra,
-+				NULL);
-+	}
-+	return 0;
-+}
-+
-+static void notrace walk_stackframe(struct stackframe *fr,
-+			struct perf_callchain_entry_ctx *entry)
-+{
-+	do {
-+		perf_callchain_store(entry, fr->ra);
-+	} while (unwind_frame_kernel(fr) >= 0);
-+}
-+
-+/*
-+ * Get the return address for a single stackframe and return a pointer to the
-+ * next frame tail.
-+ */
-+static unsigned long user_backtrace(struct perf_callchain_entry_ctx *entry,
-+			unsigned long fp, unsigned long reg_ra)
-+{
-+	struct stackframe buftail;
-+	unsigned long ra = 0;
-+	unsigned long *user_frame_tail =
-+			(unsigned long *)(fp - sizeof(struct stackframe));
-+
-+	/* Check accessibility of one struct frame_tail beyond */
-+	if (!access_ok(user_frame_tail, sizeof(buftail)))
-+		return 0;
-+	if (__copy_from_user_inatomic(&buftail, user_frame_tail,
-+				      sizeof(buftail)))
-+		return 0;
-+
-+	if (reg_ra != 0)
-+		ra = reg_ra;
-+	else
-+		ra = buftail.ra;
-+
-+	fp = buftail.fp;
-+	perf_callchain_store(entry, ra);
-+
-+	return fp;
-+}
-+
-+/*
-+ * This will be called when the target is in user mode
-+ * This function will only be called when we use
-+ * "PERF_SAMPLE_CALLCHAIN" in
-+ * kernel/events/core.c:perf_prepare_sample()
-+ *
-+ * How to trigger perf_callchain_[user/kernel] :
-+ * $ perf record -e cpu-clock --call-graph fp ./program
-+ * $ perf report --call-graph
-+ *
-+ * On RISC-V platform, the program being sampled and the C library
-+ * need to be compiled with -fno-omit-frame-pointer, otherwise
-+ * the user stack will not contain function frame.
-+ */
-+void perf_callchain_user(struct perf_callchain_entry_ctx *entry,
-+			 struct pt_regs *regs)
-+{
-+	unsigned long fp = 0;
-+
-+	/* RISC-V does not support virtualization. */
-+	if (perf_guest_cbs && perf_guest_cbs->is_in_guest())
-+		return;
-+
-+	fp = regs->s0;
-+	perf_callchain_store(entry, regs->sepc);
-+
-+	fp = user_backtrace(entry, fp, regs->ra);
-+	while (fp && !(fp & 0x3) && entry->nr < entry->max_stack)
-+		fp = user_backtrace(entry, fp, 0);
-+}
-+
-+void perf_callchain_kernel(struct perf_callchain_entry_ctx *entry,
-+			   struct pt_regs *regs)
-+{
-+	struct stackframe fr;
-+
-+	/* RISC-V does not support virtualization. */
-+	if (perf_guest_cbs && perf_guest_cbs->is_in_guest()) {
-+		pr_warn("RISC-V does not support perf in guest mode!");
-+		return;
-+	}
-+
-+	fr.fp = regs->s0;
-+	fr.ra = regs->ra;
-+	walk_stackframe(&fr, entry);
-+}
--- 
-2.7.4
+>
+> This patch add support for perf callchain sampling on riscv platform.
+> The return address of leaf function is retrieved from pt_regs as
+> it is not saved in the outmost frame.
+>
+> Signed-off-by: Mao Han <han_mao@c-sky.com>
+> Cc: Paul Walmsley <paul.walmsley@sifive.com>
+> Cc: Greentime Hu <green.hu@gmail.com>
+> Cc: Palmer Dabbelt <palmer@sifive.com>
+> Cc: linux-riscv <linux-riscv@lists.infradead.org>
+> Cc: Christoph Hellwig <hch@lst.de>
+> Cc: Guo Ren <guoren@kernel.org>
+> ---
+>  arch/riscv/Makefile                |   3 +
+>  arch/riscv/kernel/Makefile         |   3 +-
+>  arch/riscv/kernel/perf_callchain.c | 115 +++++++++++++++++++++++++++++++=
+++++++
+>  3 files changed, 120 insertions(+), 1 deletion(-)
+>  create mode 100644 arch/riscv/kernel/perf_callchain.c
+
+I just tested "./perf record -e cpu-clock --call-graph fp ls" on
+Unleashed board and I got this failure.
+I take a look at it. It seem failed in here. Do you have any idea?
+It seems fine in Qemu.
+
+1 *frame =3D *((struct stackframe *)frame->fp - 1);
+ffffffe0001a198c: 00863a83 ld s5,8(a2)
+ffffffe0001a1990: ff093903 ld s2,-16(s2)
+
+./perf record -e cpu-clock --call-graph fp ls
+[ 9619.423884] hrtimer: interrupt took 733000 ns
+[ 9619.977017] Unable to handle kernel paging request at virtual
+address ffffffffffffff94
+[ 9620.214736] Oops [#1]
+[ 9620.289893] Modules linked in:
+[ 9620.391378] CPU: 0 PID: 264 Comm: ls Not tainted
+5.3.0-rc5-00003-gb008f6bcd67c #4
+[ 9620.640176] sepc: ffffffe0001a198c ra : ffffffe0001a199a sp :
+ffffffe000093720
+[ 9620.880366] gp : ffffffe00097dad8 tp : ffffffe000082e40 t0 : 00000000000=
+46000
+[ 9621.120564] t1 : 0000000000000002 t2 : 0000000000000007 s0 : ffffffe0000=
+93760
+[ 9621.360768] s1 : ffffffe000093788 a0 : 0000000000000003 a1 : 00000000000=
+00000
+[ 9621.600991] a2 : ffffffffffffff8c a3 : 0000000000001fa0 a4 : 00000000000=
+00010
+[ 9621.841181] a5 : 0000000000000002 a6 : 0000000000000001 a7 : ffffffe079b=
+34e10
+[ 9622.081400] s2 : ffffffffffffff9c s3 : ffffffe000000000 s4 : 00000000000=
+01ff8
+[ 9622.321618] s5 : ffffffe000093da0 s6 : ffffffe00097d540 s7 : ffffffe07a1=
+517a0
+[ 9622.561811] s8 : 000008bf01c7ff60 s9 : ffffffe000235b2a s10: 00000002000=
+00120
+[ 9622.802015] s11: 0000000000000001 t3 : ffffffe079b34e00 t4 : 00000000000=
+00001
+[ 9623.042194] t5 : 0000000000000008 t6 : ffffffe0009208d0
+[ 9623.218785] sstatus: 0000000200000100 sbadaddr: ffffffffffffff94
+scause: 000000000000000d
+[ 9623.490850] ---[ end trace 49043f28e856d84d ]---
+[ 9623.644217] Kernel panic - not syncing: Fatal exception in interrupt
+[ 9623.855470] SMP: stopping secondary CPUs
+[ 9623.985955] ---[ end Kernel panic - not syncing: Fatal exception in
+interrupt ]---
