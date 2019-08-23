@@ -1,48 +1,84 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.133]:37764 "EHLO
-        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S2389723AbfHWOCx (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 23 Aug 2019 10:02:53 -0400
-Date: Fri, 23 Aug 2019 16:02:33 +0200
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH v8 11/27] x86/mm: Introduce _PAGE_DIRTY_SW
-Message-ID: <20190823140233.GC2332@hirez.programming.kicks-ass.net>
-References: <20190813205225.12032-1-yu-cheng.yu@intel.com>
- <20190813205225.12032-12-yu-cheng.yu@intel.com>
+Received: from pegase1.c-s.fr ([93.17.236.30]:16402 "EHLO pegase1.c-s.fr"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1730899AbfHWO1C (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 23 Aug 2019 10:27:02 -0400
+Subject: Re: [PATCH v2 7/7] bug: Move WARN_ON() "cut here" into exception
+ handler
+References: <201908200943.601DD59DCE@keescook>
+ <20190822155611.a1a6e26db99ba0876ba9c8bd@linux-foundation.org>
+From: Christophe Leroy <christophe.leroy@c-s.fr>
+Message-ID: <86003539-18ec-f2ff-a46f-764edb820dcd@c-s.fr>
+Date: Fri, 23 Aug 2019 16:26:59 +0200
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20190813205225.12032-12-yu-cheng.yu@intel.com>
+In-Reply-To: <20190822155611.a1a6e26db99ba0876ba9c8bd@linux-foundation.org>
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Language: fr
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Cc: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@amacapital.net>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>
-Message-ID: <20190823140233.V6UOtCHWC0w0HUN9L_XDs26bqzUUQB_PlzQhvwJ3Rqg@z>
+To: Andrew Morton <akpm@linux-foundation.org>, 20190819234111.9019-8-keescook@chromium.org
+Cc: Peter Zijlstra <peterz@infradead.org>, Drew Davenport <ddavenport@chromium.org>, Arnd Bergmann <arnd@arndb.de>, "Steven Rostedt (VMware)" <rostedt@goodmis.org>, Feng Tang <feng.tang@intel.com>, Petr Mladek <pmladek@suse.com>, Mauro Carvalho Chehab <mchehab+samsung@kernel.org>, Borislav Petkov <bp@suse.de>, YueHaibing <yuehaibing@huawei.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20190823142659.9F-KtwOXswPwSJU_LChgXXu8Cqh8BU91w2-8tgwWmLE@z>
 
-On Tue, Aug 13, 2019 at 01:52:09PM -0700, Yu-cheng Yu wrote:
 
-> +static inline pte_t pte_move_flags(pte_t pte, pteval_t from, pteval_t to)
-> +{
-> +	if (pte_flags(pte) & from)
-> +		pte = pte_set_flags(pte_clear_flags(pte, from), to);
-> +	return pte;
-> +}
 
-Aside of the whole conditional thing (I agree it would be better to have
-this unconditionally); the function doesn't really do as advertised.
+Le 23/08/2019 à 00:56, Andrew Morton a écrit :
+> On Tue, 20 Aug 2019 09:47:55 -0700 Kees Cook <keescook@chromium.org> wrote:
+> 
+>> Reply-To: 20190819234111.9019-8-keescook@chromium.org
+> 
+> Really?
 
-That is, if @from is clear, it doesn't endeavour to make sure @to is
-also clear.
+That seems correct, that's the "[PATCH 7/7] bug: Move WARN_ON() "cut 
+here" into exception handler" from the series at 
+https://lkml.org/lkml/2019/8/19/1155
 
-Now it might be sufficient, but in that case it really needs a comment
-and or different name.
 
-An implementation that actually moves the bit is something like:
+> 
+>> Subject: [PATCH v2 7/7] bug: Move WARN_ON() "cut here" into exception handler
+> 
+> It's strange to receive a standalone [7/7] patch.
 
-	pteval_t a,b;
+Iaw the Reply_To, I understand it as an update of the 7th patch of the 
+series.
 
-	a = native_pte_value(pte);
-	b = (a >> from_bit) & 1;
-	a &= ~((1ULL << from_bit) | (1ULL << to_bit));
-	a |= b << to_bit;
-	return make_native_pte(a);
+> 
+>> Date:   Tue, 20 Aug 2019 09:47:55 -0700
+>> Sender: linux-kernel-owner@vger.kernel.org
+>>
+>> The original clean up of "cut here" missed the WARN_ON() case (that
+>> does not have a printk message), which was fixed recently by adding
+>> an explicit printk of "cut here". This had the downside of adding a
+>> printk() to every WARN_ON() caller, which reduces the utility of using
+>> an instruction exception to streamline the resulting code. By making
+>> this a new BUGFLAG, all of these can be removed and "cut here" can be
+>> handled by the exception handler.
+>>
+>> This was very pronounced on PowerPC, but the effect can be seen on
+>> x86 as well. The resulting text size of a defconfig build shows some
+>> small savings from this patch:
+>>
+>>     text    data     bss     dec     hex filename
+>> 19691167        5134320 1646664 26472151        193eed7 vmlinux.before
+>> 19676362        5134260 1663048 26473670        193f4c6 vmlinux.after
+>>
+>> This change also opens the door for creating something like BUG_MSG(),
+>> where a custom printk() before issuing BUG(), without confusing the "cut
+>> here" line.
+> 
+> I can't get this to apply to anything, so I guess that [1/7]-[6/7]
+> mattered ;)
+
+On my side it applies cleanly on top of patch 1-6 of the series.
+
+Christophe
+
+
+> 
+>> Reported-by: Christophe Leroy <christophe.leroy@c-s.fr>
+>> Fixes: Fixes: 6b15f678fb7d ("include/asm-generic/bug.h: fix "cut here" for WARN_ON for __WARN_TAINT architectures")
+> 
+> I'm seeing double.
+> 
+>> Signed-off-by: Kees Cook <keescook@chromium.org>
