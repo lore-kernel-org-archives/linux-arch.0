@@ -1,50 +1,37 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from Galois.linutronix.de ([193.142.43.55]:35317 "EHLO
-        Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1725886AbfHWM1f (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 23 Aug 2019 08:27:35 -0400
-Date: Fri, 23 Aug 2019 14:27:26 +0200 (CEST)
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: Re: Regression in 5.3-rc1 and later
-In-Reply-To: <20190823105121.GA13294@shell.armlinux.org.uk>
-Message-ID: <alpine.DEB.2.21.1908231426080.1896@nanos.tec.linutronix.de>
-References: <faaa3843-09a6-1a21-3448-072eeed1ea00@googlemail.com> <20190823103654.GX13294@shell.armlinux.org.uk> <8ab59d01-348e-9ac1-2944-5e98acd9b1f8@arm.com> <20190823105121.GA13294@shell.armlinux.org.uk>
+Received: from mail-pg1-f194.google.com ([209.85.215.194]:41098 "EHLO
+        mail-pg1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S2405737AbfHWNzm (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 23 Aug 2019 09:55:42 -0400
+Date: Fri, 23 Aug 2019 22:55:39 +0900
+From: Stafford Horne <shorne@gmail.com>
+Subject: Re: [PATCH 05/26] openrisc: map as uncached in ioremap
+Message-ID: <20190823135539.GC24874@lianli.shorne-pla.net>
+References: <20190817073253.27819-1-hch@lst.de>
+ <20190817073253.27819-6-hch@lst.de>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20190817073253.27819-6-hch@lst.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Russell King - ARM Linux admin <linux@armlinux.org.uk>
-Cc: Vincenzo Frascino <vincenzo.frascino@arm.com>, Chris Clayton <chris2553@googlemail.com>, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, shuah@kernel.org, sthotton@marvell.com, andre.przywara@arm.com, arnd@arndb.de, salyzyn@android.com, huw@codeweavers.com, catalin.marinas@arm.com, daniel.lezcano@linaro.org, will.deacon@arm.com, linux-mips@vger.kernel.org, ralf@linux-mips.org, 0x7f454c46@gmail.com, paul.burton@mips.com, linux-kselftest@vger.kernel.org, linux@rasmusvillemoes.dk, pcc@google.com, linux-arm-kernel@lists.infradead.org
-Message-ID: <20190823122726._ny5A3ZgLXI-EYSMmzIFvos_O9VJ4Zvc0Sw_UrAzfWs@z>
+To: Christoph Hellwig <hch@lst.de>
+Cc: Arnd Bergmann <arnd@arndb.de>, Guo Ren <guoren@kernel.org>, Michal Simek <monstr@monstr.eu>, Greentime Hu <green.hu@gmail.com>, Vincent Chen <deanbo422@gmail.com>, Guan Xuetao <gxt@pku.edu.cn>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-snps-arc@lists.infradead.org, linux-arm-kernel@lists.infradead.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, nios2-dev@lists.rocketboards.org, openrisc@lists.librecores.org, linux-parisc@vger.kernel.org, linux-riscv@lists.infradead.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-mtd@lists.infradead.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20190823135539.HxM5w4B_b856LsdYtIXC8Wc8IvbIA_rkoZYg22Dd95E@z>
 
-On Fri, 23 Aug 2019, Russell King - ARM Linux admin wrote:
-
-> On Fri, Aug 23, 2019 at 11:43:32AM +0100, Vincenzo Frascino wrote:
-> > Hi Russell,
-> > 
-> > On 8/23/19 11:36 AM, Russell King - ARM Linux admin wrote:
-> > > Hi,
-> > > 
-> > > To everyone on the long Cc list...
-> > > 
-> > > What's happening with this?  I was about to merge the patches for 32-bit
-> > > ARM, which I don't want to do if doing so will cause this regression on
-> > > 32-bit ARM as well.
-> > > 
-> > 
-> > The regression is sorted as of yesterday, a new patch is going through tip:
-> > timers/urgent and will be part of the next -rc.
-> > 
-> > If you want to merge them there should be nothing blocking.
+On Sat, Aug 17, 2019 at 09:32:32AM +0200, Christoph Hellwig wrote:
+> Openrisc is the only architecture not mapping ioremap as uncached,
+> which has been the default since the Linux 2.6.x days.  Switch it
+> over to implement uncached semantics by default.
 > 
-> I don't have access to the tip tree.
+> Signed-off-by: Christoph Hellwig <hch@lst.de>
+> ---
+>  arch/openrisc/include/asm/io.h      | 20 +++-----------------
+>  arch/openrisc/include/asm/pgtable.h |  2 +-
+>  arch/openrisc/mm/ioremap.c          |  8 ++++----
+>  3 files changed, 8 insertions(+), 22 deletions(-)
 
-  git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip.git timers/urgent
- 
-> I'll wait a kernel release cycle instead.
-
-It's going to be part of -rc6. I'll send the pull request to Linus tomorrow.
+Acked-by: Stafford Horne <shorne@gmail.com>
 
 Thanks,
-
-	tglx
+ -Stafford 
