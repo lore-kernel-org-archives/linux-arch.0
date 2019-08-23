@@ -1,103 +1,47 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:33044 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S2394054AbfHWL6b (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 23 Aug 2019 07:58:31 -0400
-From: Cristian Marussi <cristian.marussi@arm.com>
-Subject: [RFC PATCH 4/7] smp: address races of starting CPUs while stopping
-Date: Fri, 23 Aug 2019 12:57:17 +0100
-Message-ID: <20190823115720.605-5-cristian.marussi@arm.com>
-In-Reply-To: <20190823115720.605-1-cristian.marussi@arm.com>
-References: <20190823115720.605-1-cristian.marussi@arm.com>
+Received: from Galois.linutronix.de ([193.142.43.55]:35290 "EHLO
+        Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726387AbfHWM0P (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 23 Aug 2019 08:26:15 -0400
+Date: Fri, 23 Aug 2019 14:25:58 +0200 (CEST)
+From: Thomas Gleixner <tglx@linutronix.de>
+Subject: Re: Regression in 5.3-rc1 and later
+In-Reply-To: <20190823111712.GB13294@shell.armlinux.org.uk>
+Message-ID: <alpine.DEB.2.21.1908231424230.1896@nanos.tec.linutronix.de>
+References: <faaa3843-09a6-1a21-3448-072eeed1ea00@googlemail.com> <20190823103654.GX13294@shell.armlinux.org.uk> <20190823104050.o6golaa4fmdd7np5@willie-the-truck> <20190823111712.GB13294@shell.armlinux.org.uk>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, dave.martin@arm.com, james.morse@arm.com, mark.rutland@arm.com, catalin.marinas@arm.com, will@kernel.org, tglx@linutronix.de, peterz@infradead.org, takahiro.akashi@linaro.org, hidehiro.kawai.ez@hitachi.com
-Message-ID: <20190823115717.cngDhJ3YCDNud2Eavpa6CpM1qlXfK7JOboxb2E8vsJ4@z>
+To: Russell King - ARM Linux admin <linux@armlinux.org.uk>
+Cc: Will Deacon <will@kernel.org>, Chris Clayton <chris2553@googlemail.com>, linux-arch@vger.kernel.org, vincenzo.frascino@arm.com, linux-mips@vger.kernel.org, linux-kselftest@vger.kernel.org, arnd@arndb.de, huw@codeweavers.com, andre.przywara@arm.com, daniel.lezcano@linaro.org, will.deacon@arm.com, LKML <linux-kernel@vger.kernel.org>, ralf@linux-mips.org, salyzyn@android.com, paul.burton@mips.com, linux@rasmusvillemoes.dk, 0x7f454c46@gmail.com, catalin.marinas@arm.com, pcc@google.com, sthotton@marvell.com, shuah@kernel.org, linux-arm-kernel@lists.infradead.org
+Message-ID: <20190823122558.He7VsHB5r87msFPliuiIZCU-dkWJNSC4EqhQGPUdZIs@z>
 
-Add to SMP stop common code a best-effort retry logic, re-issuing a stop
-request when any CPU is detected to be still online after the first
-stop request cycle has completed.
+On Fri, 23 Aug 2019, Russell King - ARM Linux admin wrote:
 
-Address the case in which some CPUs could be still starting up when the
-stop process is started, remaining so undetected and coming fully online
-only after the SMP stop procedure was already started: such officially
-still offline CPUs would be missed by an ongoing stop procedure.
-(not considering here the special case of stuck CPUs)
+> On Fri, Aug 23, 2019 at 11:40:50AM +0100, Will Deacon wrote:
+> > On Fri, Aug 23, 2019 at 11:36:54AM +0100, Russell King - ARM Linux admin wrote:
+> > > To everyone on the long Cc list...
+> > > 
+> > > What's happening with this?  I was about to merge the patches for 32-bit
+> > > ARM, which I don't want to do if doing so will cause this regression on
+> > > 32-bit ARM as well.
+> > 
+> > tglx fixed it:
+> > 
+> > https://lkml.kernel.org/r/alpine.DEB.2.21.1908221257580.1983@nanos.tec.linutronix.de
+> > 
+> > which I assume is getting routed as a fix via -tip.
+> 
+> Right, so Chris reported the issue to everyone involved.  Tglx's
+> reply severely trimmed the Cc list so folk like me had no idea what
+> was going on, removing even the mailing lists.  On the face of it,
+> it looks like an intentional attempt to cut people out of the loop
+> who really should've been kept in the loop.  Yea, that's just great.
 
-Using here a best effort approach, though, it is not anyway guaranteed
-to be able to stop any CPU that happened to finally come online after
-the whole SMP stop retry cycle has completed.
-(i.e. the race-window is reduced but not eliminated)
+Sorry that was no intentional attempt to cut anyone out of the
+loop. Trimmed it too agressively without applying much brain.
 
-Signed-off-by: Cristian Marussi <cristian.marussi@arm.com>
----
-A more deterministic approach has been also attempted in order to catch
-any concurrently starting CPUs at the very last moment and make them
-kill themselves by:
+Thanks,
 
-- adding a new set_cpus_stopping() in cpumask.h used to set a
-  __cpus_stopping atomic internal flag
-
-- modifying set_cpu_online() to check on __cpus_stopping only when
-  coming online, and force the offending CPU to kill itself in that case
-
-Anyway it has proved tricky and complex (beside faulty) to implement the
-above 'kill-myself' phase in a reliable way while remaining architecture
-agnostic and still distingushing properly regular stops from crash kexec.
-
-So given that the main idea underlying this patch series was instead of
-simplifying and unifying code and the residual races not caught by the
-best-effort logic seemed not very likely, this more deterministic approach
-has been dropped in favour of the best effort retry logic.
----
- kernel/smp.c | 11 ++++++++---
- 1 file changed, 8 insertions(+), 3 deletions(-)
-
-diff --git a/kernel/smp.c b/kernel/smp.c
-index ea8a1cc0ec3e..10d3120494f2 100644
---- a/kernel/smp.c
-+++ b/kernel/smp.c
-@@ -847,6 +847,8 @@ void __weak arch_smp_crash_call(cpumask_t *cpus)
- #define	REASON_STOP	1
- #define	REASON_CRASH	2
- 
-+#define	MAX_STOP_RETRIES	2
-+
- /*
-  * This centralizes the common logic to:
-  *
-@@ -860,7 +862,7 @@ void __weak arch_smp_crash_call(cpumask_t *cpus)
-  */
- static inline void __smp_send_stop_all(bool reason_crash)
- {
--	unsigned int this_cpu_id;
-+	unsigned int this_cpu_id, retries = MAX_STOP_RETRIES;
- 	cpumask_t mask;
- 	static atomic_t stopping;
- 	int was_reason;
-@@ -894,7 +896,7 @@ static inline void __smp_send_stop_all(bool reason_crash)
- 			arch_smp_cpu_park();
- 		}
- 	}
--	if (any_other_cpus_online(&mask, this_cpu_id)) {
-+	while (retries-- && any_other_cpus_online(&mask, this_cpu_id)) {
- 		unsigned long timeout;
- 		unsigned int this_cpu_online = cpu_online(this_cpu_id);
- 
-@@ -921,9 +923,12 @@ static inline void __smp_send_stop_all(bool reason_crash)
- 			udelay(1);
- 		/* ensure any stopping-CPUs memory access is made visible */
- 		smp_rmb();
--		if (num_online_cpus() > this_cpu_online)
-+		if (num_online_cpus() > this_cpu_online) {
- 			pr_warn("failed to stop secondary CPUs %*pbl\n",
- 				cpumask_pr_args(cpu_online_mask));
-+			if (retries)
-+				pr_warn("Retrying SMP stop call...\n");
-+		}
- 	}
- 	/* Perform final (possibly arch-specific) work on this CPU */
- 	arch_smp_cpus_stop_complete();
--- 
-2.17.1
+	tglx
