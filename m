@@ -1,48 +1,44 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from pandora.armlinux.org.uk ([78.32.30.218]:58378 "EHLO
+Received: from pandora.armlinux.org.uk ([78.32.30.218]:58722 "EHLO
         pandora.armlinux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1730991AbfHWKvb (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 23 Aug 2019 06:51:31 -0400
-Date: Fri, 23 Aug 2019 11:51:21 +0100
+        with ESMTP id S1726956AbfHWLRX (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 23 Aug 2019 07:17:23 -0400
+Date: Fri, 23 Aug 2019 12:17:13 +0100
 From: Russell King - ARM Linux admin <linux@armlinux.org.uk>
 Subject: Re: Regression in 5.3-rc1 and later
-Message-ID: <20190823105121.GA13294@shell.armlinux.org.uk>
+Message-ID: <20190823111712.GB13294@shell.armlinux.org.uk>
 References: <faaa3843-09a6-1a21-3448-072eeed1ea00@googlemail.com>
  <20190823103654.GX13294@shell.armlinux.org.uk>
- <8ab59d01-348e-9ac1-2944-5e98acd9b1f8@arm.com>
+ <20190823104050.o6golaa4fmdd7np5@willie-the-truck>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <8ab59d01-348e-9ac1-2944-5e98acd9b1f8@arm.com>
+In-Reply-To: <20190823104050.o6golaa4fmdd7np5@willie-the-truck>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Cc: Chris Clayton <chris2553@googlemail.com>, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, shuah@kernel.org, sthotton@marvell.com, andre.przywara@arm.com, arnd@arndb.de, salyzyn@android.com, huw@codeweavers.com, catalin.marinas@arm.com, daniel.lezcano@linaro.org, will.deacon@arm.com, linux-mips@vger.kernel.org, ralf@linux-mips.org, 0x7f454c46@gmail.com, paul.burton@mips.com, linux-kselftest@vger.kernel.org, linux@rasmusvillemoes.dk, tglx@linutronix.de, pcc@google.com, linux-arm-kernel@lists.infradead.org
-Message-ID: <20190823105121.6cPNSINvInT2InBBZNW0xuqif-I4JMGTDKgkB2VWDDE@z>
+To: Will Deacon <will@kernel.org>, tglx@linutronix.de
+Cc: Chris Clayton <chris2553@googlemail.com>, linux-arch@vger.kernel.org, vincenzo.frascino@arm.com, linux-mips@vger.kernel.org, linux-kselftest@vger.kernel.org, arnd@arndb.de, huw@codeweavers.com, andre.przywara@arm.com, daniel.lezcano@linaro.org, will.deacon@arm.com, LKML <linux-kernel@vger.kernel.org>, ralf@linux-mips.org, salyzyn@android.com, paul.burton@mips.com, linux@rasmusvillemoes.dk, 0x7f454c46@gmail.com, catalin.marinas@arm.com, pcc@google.com, sthotton@marvell.com, shuah@kernel.org, linux-arm-kernel@lists.infradead.org
+Message-ID: <20190823111713.POARTG2CX6D2yW9R__xg4HATzoPsVdamW8FDZzSxoh8@z>
 
-On Fri, Aug 23, 2019 at 11:43:32AM +0100, Vincenzo Frascino wrote:
-> Hi Russell,
-> 
-> On 8/23/19 11:36 AM, Russell King - ARM Linux admin wrote:
-> > Hi,
-> > 
+On Fri, Aug 23, 2019 at 11:40:50AM +0100, Will Deacon wrote:
+> On Fri, Aug 23, 2019 at 11:36:54AM +0100, Russell King - ARM Linux admin wrote:
 > > To everyone on the long Cc list...
 > > 
 > > What's happening with this?  I was about to merge the patches for 32-bit
 > > ARM, which I don't want to do if doing so will cause this regression on
 > > 32-bit ARM as well.
-> > 
 > 
-> The regression is sorted as of yesterday, a new patch is going through tip:
-> timers/urgent and will be part of the next -rc.
+> tglx fixed it:
 > 
-> If you want to merge them there should be nothing blocking.
+> https://lkml.kernel.org/r/alpine.DEB.2.21.1908221257580.1983@nanos.tec.linutronix.de
+> 
+> which I assume is getting routed as a fix via -tip.
 
-I don't have access to the tip tree.
-
-I'll wait a kernel release cycle instead.
-
-Thanks.
+Right, so Chris reported the issue to everyone involved.  Tglx's
+reply severely trimmed the Cc list so folk like me had no idea what
+was going on, removing even the mailing lists.  On the face of it,
+it looks like an intentional attempt to cut people out of the loop
+who really should've been kept in the loop.  Yea, that's just great.
 
 -- 
 RMK's Patch system: https://www.armlinux.org.uk/developer/patches/
