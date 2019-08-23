@@ -1,45 +1,43 @@
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: [PATCH v10 0/1] arm64 tagged address ABI
-Date: Fri, 23 Aug 2019 17:37:16 +0100
-Message-ID: <20190823163717.19569-1-catalin.marinas@arm.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
-To: linux-arm-kernel@lists.infradead.org, linux-mm@kvack.org
-Cc: linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, Szabolcs Nagy <szabolcs.nagy@arm.com>, Andrey Konovalov <andreyknvl@google.com>, Kevin Brodsky <kevin.brodsky@arm.com>, Dave Hansen <dave.hansen@intel.com>, Andrew Morton <akpm@linux-foundation.org>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Will Deacon <will@kernel.org>, Dave P Martin <Dave.Martin@arm.com>
+From: Dave Martin <Dave.Martin@arm.com>
+Subject: [RFC PATCH v2 0/2] ELF: Alternate program property parser
+Date: Fri, 23 Aug 2019 18:23:38 +0100
+Message-ID: <1566581020-9953-1-git-send-email-Dave.Martin@arm.com>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: linux-kernel@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, Kees Cook <keescook@chromium.org>, Thomas Gleixner <tglx@linutronix.de>, Jann Horn <jannh@google.com>, "H.J. Lu" <hjl.tools@gmail.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, Yu-cheng Yu <yu-cheng.yu@intel.com>, Peter Zijlstra <peterz@infradead.org>
 List-Id: linux-arch.vger.kernel.org
 
-Hi,
+This series is an experimental reimplementation of ELF property parsing
+(see NT_GNU_PROPERTY_TYPE_0, [1]) for the ELF loader.
 
-Minor update to the arm64 tagged address ABI documentation since v9,
-posted here:
+This is intended for comparison / merging with [2] (or could replace it,
+if people think this approach is better).
 
-http://lkml.kernel.org/r/20190821164730.47450-1-catalin.marinas@arm.com
+This supersedes RFC v1 [3].
 
-The mmap/mremap/... patch (1/3) has been queued in the -mm tree and
-removed from this series. The tagged-address-abi.rst patch (2/3) has
-been queued in the arm64 for-next/core tree. There is only one patch
-left in this series (keeping the cover letter for consistency).
+For changes see the individual patches.
 
-Changes in v10:
 
-- Remove the tag preservation paragraph since the new ABI does not
-  change the behaviour we already have. The only difference is that now
-  the kernel can access tagged addresses (e.g. delivering a signal on a
-  tagged alternate stack).
+[1] Linux Extensions to gABI
+https://github.com/hjl-tools/linux-abi/wiki/Linux-Extensions-to-gABI
 
-Vincenzo Frascino (1):
-  arm64: Relax Documentation/arm64/tagged-pointers.rst
+[2] [PATCH v8 22/27] binfmt_elf: Extract .note.gnu.property from an ELF file
+https://lore.kernel.org/lkml/20190813205225.12032-23-yu-cheng.yu@intel.com/
 
- Documentation/arm64/tagged-pointers.rst | 21 ++++++++++++++-------
- 1 file changed, 14 insertions(+), 7 deletions(-)
+[3] [RFC PATCH 0/2] ELF: Alternate program property parser
+https://lore.kernel.org/lkml/1566295063-7387-1-git-send-email-Dave.Martin@arm.com/
+
+Dave Martin (2):
+  ELF: UAPI and Kconfig additions for ELF program properties
+  ELF: Add ELF program property parsing support
+
+ fs/Kconfig.binfmt        |   3 ++
+ fs/binfmt_elf.c          | 124 +++++++++++++++++++++++++++++++++++++++++++++++
+ fs/compat_binfmt_elf.c   |   4 ++
+ include/linux/elf.h      |  27 +++++++++++
+ include/uapi/linux/elf.h |   5 ++
+ 5 files changed, 163 insertions(+)
+
+-- 
+2.1.4
