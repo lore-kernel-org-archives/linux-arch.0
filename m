@@ -1,32 +1,43 @@
-From: Stafford Horne <shorne@gmail.com>
-Subject: Re: [PATCH 05/26] openrisc: map as uncached in ioremap
-Date: Fri, 23 Aug 2019 22:55:39 +0900
-Message-ID: <20190823135539.GC24874@lianli.shorne-pla.net>
-References: <20190817073253.27819-1-hch@lst.de>
- <20190817073253.27819-6-hch@lst.de>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH v8 11/27] x86/mm: Introduce _PAGE_DIRTY_SW
+Date: Fri, 23 Aug 2019 16:02:33 +0200
+Message-ID: <20190823140233.GC2332@hirez.programming.kicks-ass.net>
+References: <20190813205225.12032-1-yu-cheng.yu@intel.com>
+ <20190813205225.12032-12-yu-cheng.yu@intel.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <20190817073253.27819-6-hch@lst.de>
+In-Reply-To: <20190813205225.12032-12-yu-cheng.yu@intel.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Christoph Hellwig <hch@lst.de>
-Cc: Arnd Bergmann <arnd@arndb.de>, Guo Ren <guoren@kernel.org>, Michal Simek <monstr@monstr.eu>, Greentime Hu <green.hu@gmail.com>, Vincent Chen <deanbo422@gmail.com>, Guan Xuetao <gxt@pku.edu.cn>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-snps-arc@lists.infradead.org, linux-arm-kernel@lists.infradead.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, nios2-dev@lists.rocketboards.org, openrisc@lists.librecores.org, linux-parisc@vger.kernel.org, linux-riscv@lists.infradead.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-mtd@lists.infradead.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+To: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Cc: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@amacapital.net>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Sat, Aug 17, 2019 at 09:32:32AM +0200, Christoph Hellwig wrote:
-> Openrisc is the only architecture not mapping ioremap as uncached,
-> which has been the default since the Linux 2.6.x days.  Switch it
-> over to implement uncached semantics by default.
-> 
-> Signed-off-by: Christoph Hellwig <hch@lst.de>
-> ---
->  arch/openrisc/include/asm/io.h      | 20 +++-----------------
->  arch/openrisc/include/asm/pgtable.h |  2 +-
->  arch/openrisc/mm/ioremap.c          |  8 ++++----
->  3 files changed, 8 insertions(+), 22 deletions(-)
+On Tue, Aug 13, 2019 at 01:52:09PM -0700, Yu-cheng Yu wrote:
 
-Acked-by: Stafford Horne <shorne@gmail.com>
+> +static inline pte_t pte_move_flags(pte_t pte, pteval_t from, pteval_t to)
+> +{
+> +	if (pte_flags(pte) & from)
+> +		pte = pte_set_flags(pte_clear_flags(pte, from), to);
+> +	return pte;
+> +}
 
-Thanks,
- -Stafford 
+Aside of the whole conditional thing (I agree it would be better to have
+this unconditionally); the function doesn't really do as advertised.
+
+That is, if @from is clear, it doesn't endeavour to make sure @to is
+also clear.
+
+Now it might be sufficient, but in that case it really needs a comment
+and or different name.
+
+An implementation that actually moves the bit is something like:
+
+	pteval_t a,b;
+
+	a = native_pte_value(pte);
+	b = (a >> from_bit) & 1;
+	a &= ~((1ULL << from_bit) | (1ULL << to_bit));
+	a |= b << to_bit;
+	return make_native_pte(a);
