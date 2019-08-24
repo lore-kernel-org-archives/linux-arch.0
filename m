@@ -1,88 +1,61 @@
-From: Guo Ren <guoren@kernel.org>
-Subject: Re: [PATCH V5 1/3] riscv: Add perf callchain support
-Date: Sat, 24 Aug 2019 08:54:20 +0800
-Message-ID: <CAJF2gTS80XU=4z-_=N=oGV6GH-+8KXCa74DyhVMcRxJRBq5g4A@mail.gmail.com>
-References: <cover.1566540652.git.han_mao@c-sky.com>
- <820d80272fc5627b8d00e684663a614470217606.1566540652.git.han_mao@c-sky.com>
- <CAEbi=3fbe9zbsLyfA=s9gHtAFJrp5Ox0jWoAqcZudQ_xODicgA@mail.gmail.com>
+From: Daniel Colascione <dancol@google.com>
+Subject: Re: [PATCH RESEND v11 7/8] open: openat2(2) syscall
+Date: Sat, 24 Aug 2019 13:17:33 -0700
+Message-ID: <CAKOZuesfxRBJe314rkTKXtjXdz6ki3uAUBYVbu5Q2rd3=ADphQ@mail.gmail.com>
+References: <20190820033406.29796-1-cyphar@cyphar.com> <20190820033406.29796-8-cyphar@cyphar.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
-Return-path: <linux-riscv-bounces+glpr-linux-riscv=m.gmane.org@lists.infradead.org>
-In-Reply-To: <CAEbi=3fbe9zbsLyfA=s9gHtAFJrp5Ox0jWoAqcZudQ_xODicgA@mail.gmail.com>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-riscv>,
- <mailto:linux-riscv-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-riscv/>
-List-Post: <mailto:linux-riscv@lists.infradead.org>
-List-Help: <mailto:linux-riscv-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-riscv>,
- <mailto:linux-riscv-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-riscv" <linux-riscv-bounces@lists.infradead.org>
-Errors-To: linux-riscv-bounces+glpr-linux-riscv=m.gmane.org@lists.infradead.org
-To: Greentime Hu <green.hu@gmail.com>
-Cc: linux-arch <linux-arch@vger.kernel.org>, Palmer Dabbelt <palmer@sifive.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Paul Walmsley <paul.walmsley@sifive.com>, linux-riscv@lists.infradead.org, Christoph Hellwig <hch@lst.de>, Mao Han <han_mao@c-sky.com>
+Content-Type: text/plain; charset="UTF-8"
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20190820033406.29796-8-cyphar@cyphar.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Aleksa Sarai <cyphar@cyphar.com>
+Cc: Al Viro <viro@zeniv.linux.org.uk>, Jeff Layton <jlayton@kernel.org>, "J. Bruce Fields" <bfields@fieldses.org>, Arnd Bergmann <arnd@arndb.de>, David Howells <dhowells@redhat.com>, Shuah Khan <shuah@kernel.org>, Shuah Khan <skhan@linuxfoundation.org>, Christian Brauner <christian@brauner.io>, Eric Biederman <ebiederm@xmission.com>, Andy Lutomirski <luto@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Alexei Starovoitov <ast@kernel.org>, Kees Cook <keescook@chromium.org>, Jann Horn <jannh@google.com>, Tycho Andersen <tycho@tycho.ws>, David Drysdale <drysdale@google.com>, Chanho Min <chanho.min@lge.com>, Oleg Nesterov <oleg@redhat.com>, Aleksa Sarai <asarai@suse.de>, Linus Torvalds <torvalds@linux-foundation.org>, containers@lists.linux-f
 List-Id: linux-arch.vger.kernel.org
 
-UGxlYXNlIGNoZWNrIENPTkZJR19GUkFNRV9QT0lOVEVSCgoxICpmcmFtZSA9ICooKHN0cnVjdCBz
-dGFja2ZyYW1lICopZnJhbWUtPmZwIC0gMSk7ClRoaXMgY29kZSBpcyBvcmlnaW9uYWxseSBmcm9t
-IHJpc2N2L2tlcm5lbC9zdGFja3RyYWNlLmM6IHdhbGtfc3RhY2tmcmFtZQoKSW4gbGludXgvTWFr
-ZWZpbGUgaXQnbGwgaW52b2x2ZSB0aGUgb3B0aW9ucyBmb3IgZ2NjIHRvIGRlZmluaXRlbHkKc3Rv
-cmUgcmEgJiBwcmV2X2ZwIGluIGZwIHBvaW50ZXIuCmlmZGVmIENPTkZJR19GUkFNRV9QT0lOVEVS
-CktCVUlMRF9DRkxBR1MgKz0gLWZuby1vbWl0LWZyYW1lLXBvaW50ZXIgLWZuby1vcHRpbWl6ZS1z
-aWJsaW5nLWNhbGxzCgpTbyAtLWNhbGwtZ3JhcGggZnAgbmVlZCBkZXBlbmRzIG9uIENPTkZJR19G
-UkFNRV9QT0lOVEVSLgoKT24gRnJpLCBBdWcgMjMsIDIwMTkgYXQgNDo1NiBQTSBHcmVlbnRpbWUg
-SHUgPGdyZWVuLmh1QGdtYWlsLmNvbT4gd3JvdGU6Cj4KPiBIaSBNYW8sCj4KPiBNYW8gSGFuIDxo
-YW5fbWFvQGMtc2t5LmNvbT4g5pa8IDIwMTnlubQ45pyIMjPml6Ug6YCx5LqUIOS4i+WNiDI6MTbl
-r6vpgZPvvJoKPgo+ID4KPiA+IFRoaXMgcGF0Y2ggYWRkIHN1cHBvcnQgZm9yIHBlcmYgY2FsbGNo
-YWluIHNhbXBsaW5nIG9uIHJpc2N2IHBsYXRmb3JtLgo+ID4gVGhlIHJldHVybiBhZGRyZXNzIG9m
-IGxlYWYgZnVuY3Rpb24gaXMgcmV0cmlldmVkIGZyb20gcHRfcmVncyBhcwo+ID4gaXQgaXMgbm90
-IHNhdmVkIGluIHRoZSBvdXRtb3N0IGZyYW1lLgo+ID4KPiA+IFNpZ25lZC1vZmYtYnk6IE1hbyBI
-YW4gPGhhbl9tYW9AYy1za3kuY29tPgo+ID4gQ2M6IFBhdWwgV2FsbXNsZXkgPHBhdWwud2FsbXNs
-ZXlAc2lmaXZlLmNvbT4KPiA+IENjOiBHcmVlbnRpbWUgSHUgPGdyZWVuLmh1QGdtYWlsLmNvbT4K
-PiA+IENjOiBQYWxtZXIgRGFiYmVsdCA8cGFsbWVyQHNpZml2ZS5jb20+Cj4gPiBDYzogbGludXgt
-cmlzY3YgPGxpbnV4LXJpc2N2QGxpc3RzLmluZnJhZGVhZC5vcmc+Cj4gPiBDYzogQ2hyaXN0b3Bo
-IEhlbGx3aWcgPGhjaEBsc3QuZGU+Cj4gPiBDYzogR3VvIFJlbiA8Z3VvcmVuQGtlcm5lbC5vcmc+
-Cj4gPiAtLS0KPiA+ICBhcmNoL3Jpc2N2L01ha2VmaWxlICAgICAgICAgICAgICAgIHwgICAzICsK
-PiA+ICBhcmNoL3Jpc2N2L2tlcm5lbC9NYWtlZmlsZSAgICAgICAgIHwgICAzICstCj4gPiAgYXJj
-aC9yaXNjdi9rZXJuZWwvcGVyZl9jYWxsY2hhaW4uYyB8IDExNSArKysrKysrKysrKysrKysrKysr
-KysrKysrKysrKysrKysrKysrCj4gPiAgMyBmaWxlcyBjaGFuZ2VkLCAxMjAgaW5zZXJ0aW9ucygr
-KSwgMSBkZWxldGlvbigtKQo+ID4gIGNyZWF0ZSBtb2RlIDEwMDY0NCBhcmNoL3Jpc2N2L2tlcm5l
-bC9wZXJmX2NhbGxjaGFpbi5jCj4KPiBJIGp1c3QgdGVzdGVkICIuL3BlcmYgcmVjb3JkIC1lIGNw
-dS1jbG9jayAtLWNhbGwtZ3JhcGggZnAgbHMiIG9uCj4gVW5sZWFzaGVkIGJvYXJkIGFuZCBJIGdv
-dCB0aGlzIGZhaWx1cmUuCj4gSSB0YWtlIGEgbG9vayBhdCBpdC4gSXQgc2VlbSBmYWlsZWQgaW4g
-aGVyZS4gRG8geW91IGhhdmUgYW55IGlkZWE/Cj4gSXQgc2VlbXMgZmluZSBpbiBRZW11Lgo+Cj4g
-MSAqZnJhbWUgPSAqKChzdHJ1Y3Qgc3RhY2tmcmFtZSAqKWZyYW1lLT5mcCAtIDEpOwo+IGZmZmZm
-ZmUwMDAxYTE5OGM6IDAwODYzYTgzIGxkIHM1LDgoYTIpCj4gZmZmZmZmZTAwMDFhMTk5MDogZmYw
-OTM5MDMgbGQgczIsLTE2KHMyKQo+Cj4gLi9wZXJmIHJlY29yZCAtZSBjcHUtY2xvY2sgLS1jYWxs
-LWdyYXBoIGZwIGxzCj4gWyA5NjE5LjQyMzg4NF0gaHJ0aW1lcjogaW50ZXJydXB0IHRvb2sgNzMz
-MDAwIG5zCj4gWyA5NjE5Ljk3NzAxN10gVW5hYmxlIHRvIGhhbmRsZSBrZXJuZWwgcGFnaW5nIHJl
-cXVlc3QgYXQgdmlydHVhbAo+IGFkZHJlc3MgZmZmZmZmZmZmZmZmZmY5NAo+IFsgOTYyMC4yMTQ3
-MzZdIE9vcHMgWyMxXQo+IFsgOTYyMC4yODk4OTNdIE1vZHVsZXMgbGlua2VkIGluOgo+IFsgOTYy
-MC4zOTEzNzhdIENQVTogMCBQSUQ6IDI2NCBDb21tOiBscyBOb3QgdGFpbnRlZAo+IDUuMy4wLXJj
-NS0wMDAwMy1nYjAwOGY2YmNkNjdjICM0Cj4gWyA5NjIwLjY0MDE3Nl0gc2VwYzogZmZmZmZmZTAw
-MDFhMTk4YyByYSA6IGZmZmZmZmUwMDAxYTE5OWEgc3AgOgo+IGZmZmZmZmUwMDAwOTM3MjAKPiBb
-IDk2MjAuODgwMzY2XSBncCA6IGZmZmZmZmUwMDA5N2RhZDggdHAgOiBmZmZmZmZlMDAwMDgyZTQw
-IHQwIDogMDAwMDAwMDAwMDA0NjAwMAo+IFsgOTYyMS4xMjA1NjRdIHQxIDogMDAwMDAwMDAwMDAw
-MDAwMiB0MiA6IDAwMDAwMDAwMDAwMDAwMDcgczAgOiBmZmZmZmZlMDAwMDkzNzYwCj4gWyA5NjIx
-LjM2MDc2OF0gczEgOiBmZmZmZmZlMDAwMDkzNzg4IGEwIDogMDAwMDAwMDAwMDAwMDAwMyBhMSA6
-IDAwMDAwMDAwMDAwMDAwMDAKPiBbIDk2MjEuNjAwOTkxXSBhMiA6IGZmZmZmZmZmZmZmZmZmOGMg
-YTMgOiAwMDAwMDAwMDAwMDAxZmEwIGE0IDogMDAwMDAwMDAwMDAwMDAxMAo+IFsgOTYyMS44NDEx
-ODFdIGE1IDogMDAwMDAwMDAwMDAwMDAwMiBhNiA6IDAwMDAwMDAwMDAwMDAwMDEgYTcgOiBmZmZm
-ZmZlMDc5YjM0ZTEwCj4gWyA5NjIyLjA4MTQwMF0gczIgOiBmZmZmZmZmZmZmZmZmZjljIHMzIDog
-ZmZmZmZmZTAwMDAwMDAwMCBzNCA6IDAwMDAwMDAwMDAwMDFmZjgKPiBbIDk2MjIuMzIxNjE4XSBz
-NSA6IGZmZmZmZmUwMDAwOTNkYTAgczYgOiBmZmZmZmZlMDAwOTdkNTQwIHM3IDogZmZmZmZmZTA3
-YTE1MTdhMAo+IFsgOTYyMi41NjE4MTFdIHM4IDogMDAwMDA4YmYwMWM3ZmY2MCBzOSA6IGZmZmZm
-ZmUwMDAyMzViMmEgczEwOiAwMDAwMDAwMjAwMDAwMTIwCj4gWyA5NjIyLjgwMjAxNV0gczExOiAw
-MDAwMDAwMDAwMDAwMDAxIHQzIDogZmZmZmZmZTA3OWIzNGUwMCB0NCA6IDAwMDAwMDAwMDAwMDAw
-MDEKPiBbIDk2MjMuMDQyMTk0XSB0NSA6IDAwMDAwMDAwMDAwMDAwMDggdDYgOiBmZmZmZmZlMDAw
-OTIwOGQwCj4gWyA5NjIzLjIxODc4NV0gc3N0YXR1czogMDAwMDAwMDIwMDAwMDEwMCBzYmFkYWRk
-cjogZmZmZmZmZmZmZmZmZmY5NAo+IHNjYXVzZTogMDAwMDAwMDAwMDAwMDAwZAo+IFsgOTYyMy40
-OTA4NTBdIC0tLVsgZW5kIHRyYWNlIDQ5MDQzZjI4ZTg1NmQ4NGQgXS0tLQo+IFsgOTYyMy42NDQy
-MTddIEtlcm5lbCBwYW5pYyAtIG5vdCBzeW5jaW5nOiBGYXRhbCBleGNlcHRpb24gaW4gaW50ZXJy
-dXB0Cj4gWyA5NjIzLjg1NTQ3MF0gU01QOiBzdG9wcGluZyBzZWNvbmRhcnkgQ1BVcwo+IFsgOTYy
-My45ODU5NTVdIC0tLVsgZW5kIEtlcm5lbCBwYW5pYyAtIG5vdCBzeW5jaW5nOiBGYXRhbCBleGNl
-cHRpb24gaW4KPiBpbnRlcnJ1cHQgXS0tLQoKCgotLSAKQmVzdCBSZWdhcmRzCiBHdW8gUmVuCgpN
-TDogaHR0cHM6Ly9sb3JlLmtlcm5lbC5vcmcvbGludXgtY3NreS8KCl9fX19fX19fX19fX19fX19f
-X19fX19fX19fX19fX19fX19fX19fX19fX19fX19fCmxpbnV4LXJpc2N2IG1haWxpbmcgbGlzdAps
-aW51eC1yaXNjdkBsaXN0cy5pbmZyYWRlYWQub3JnCmh0dHA6Ly9saXN0cy5pbmZyYWRlYWQub3Jn
-L21haWxtYW4vbGlzdGluZm8vbGludXgtcmlzY3YK
+On Mon, Aug 19, 2019 at 8:37 PM Aleksa Sarai <cyphar@cyphar.com> wrote:
+>
+> The most obvious syscall to add support for the new LOOKUP_* scoping
+> flags would be openat(2). However, there are a few reasons why this is
+> not the best course of action:
+>
+>  * The new LOOKUP_* flags are intended to be security features, and
+>    openat(2) will silently ignore all unknown flags. This means that
+>    users would need to avoid foot-gunning themselves constantly when
+>    using this interface if it were part of openat(2). This can be fixed
+>    by having userspace libraries handle this for users[1], but should be
+>    avoided if possible.
+>
+>  * Resolution scoping feels like a different operation to the existing
+>    O_* flags. And since openat(2) has limited flag space, it seems to be
+>    quite wasteful to clutter it with 5 flags that are all
+>    resolution-related. Arguably O_NOFOLLOW is also a resolution flag but
+>    its entire purpose is to error out if you encounter a trailing
+>    symlink -- not to scope resolution.
+>
+>  * Other systems would be able to reimplement this syscall allowing for
+>    cross-OS standardisation rather than being hidden amongst O_* flags
+>    which may result in it not being used by all the parties that might
+>    want to use it (file servers, web servers, container runtimes, etc).
+>
+>  * It gives us the opportunity to iterate on the O_PATH interface. In
+>    particular, the new @how->upgrade_mask field for fd re-opening is
+>    only possible because we have a clean slate without needing to re-use
+>    the ACC_MODE flag design nor the existing openat(2) @mode semantics.
+>
+> To this end, we introduce the openat2(2) syscall. It provides all of the
+> features of openat(2) through the @how->flags argument, but also
+> also provides a new @how->resolve argument which exposes RESOLVE_* flags
+> that map to our new LOOKUP_* flags. It also eliminates the long-standing
+> ugliness of variadic-open(2) by embedding it in a struct.
+>
+> In order to allow for userspace to lock down their usage of file
+> descriptor re-opening, openat2(2) has the ability for users to disallow
+> certain re-opening modes through @how->upgrade_mask. At the moment,
+> there is no UPGRADE_NOEXEC. The open_how struct is padded to 64 bytes
+> for future extensions (all of the reserved bits must be zeroed).
+
+Why pad the structure when new functionality (perhaps accommodated via
+a larger structure) could be signaled by passing a new flag? Adding
+reserved fields to a structure with a size embedded in the ABI makes a
+lot of sense --- e.g., pthread_mutex_t can't grow. But this structure
+can grow, so the reservation seems needless to me.
