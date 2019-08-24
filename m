@@ -1,113 +1,68 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:58822 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726063AbfHXAye (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 23 Aug 2019 20:54:34 -0400
+Received: from mail-ua1-f66.google.com ([209.85.222.66]:37840 "EHLO
+        mail-ua1-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727694AbfHXUSL (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 24 Aug 2019 16:18:11 -0400
+Received: by mail-ua1-f66.google.com with SMTP id f9so4456557uaj.4
+        for <linux-arch@vger.kernel.org>; Sat, 24 Aug 2019 13:18:10 -0700 (PDT)
 MIME-Version: 1.0
-References: <cover.1566540652.git.han_mao@c-sky.com> <820d80272fc5627b8d00e684663a614470217606.1566540652.git.han_mao@c-sky.com>
- <CAEbi=3fbe9zbsLyfA=s9gHtAFJrp5Ox0jWoAqcZudQ_xODicgA@mail.gmail.com>
-In-Reply-To: <CAEbi=3fbe9zbsLyfA=s9gHtAFJrp5Ox0jWoAqcZudQ_xODicgA@mail.gmail.com>
-From: Guo Ren <guoren@kernel.org>
-Date: Sat, 24 Aug 2019 08:54:20 +0800
-Message-ID: <CAJF2gTS80XU=4z-_=N=oGV6GH-+8KXCa74DyhVMcRxJRBq5g4A@mail.gmail.com>
-Subject: Re: [PATCH V5 1/3] riscv: Add perf callchain support
+References: <20190820033406.29796-1-cyphar@cyphar.com> <20190820033406.29796-8-cyphar@cyphar.com>
+In-Reply-To: <20190820033406.29796-8-cyphar@cyphar.com>
+From: Daniel Colascione <dancol@google.com>
+Date: Sat, 24 Aug 2019 13:17:33 -0700
+Message-ID: <CAKOZuesfxRBJe314rkTKXtjXdz6ki3uAUBYVbu5Q2rd3=ADphQ@mail.gmail.com>
+Subject: Re: [PATCH RESEND v11 7/8] open: openat2(2) syscall
 Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Greentime Hu <green.hu@gmail.com>
-Cc: Mao Han <han_mao@c-sky.com>, linux-riscv@lists.infradead.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Paul Walmsley <paul.walmsley@sifive.com>, Palmer Dabbelt <palmer@sifive.com>, Christoph Hellwig <hch@lst.de>
-Message-ID: <20190824005420.z_uDNPGOVwKkv8-ZD7ZZxc6rHWdJyHfDtlQgleW9ixg@z>
+To: Aleksa Sarai <cyphar@cyphar.com>
+Cc: Al Viro <viro@zeniv.linux.org.uk>, Jeff Layton <jlayton@kernel.org>, "J. Bruce Fields" <bfields@fieldses.org>, Arnd Bergmann <arnd@arndb.de>, David Howells <dhowells@redhat.com>, Shuah Khan <shuah@kernel.org>, Shuah Khan <skhan@linuxfoundation.org>, Christian Brauner <christian@brauner.io>, Eric Biederman <ebiederm@xmission.com>, Andy Lutomirski <luto@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Alexei Starovoitov <ast@kernel.org>, Kees Cook <keescook@chromium.org>, Jann Horn <jannh@google.com>, Tycho Andersen <tycho@tycho.ws>, David Drysdale <drysdale@google.com>, Chanho Min <chanho.min@lge.com>, Oleg Nesterov <oleg@redhat.com>, Aleksa Sarai <asarai@suse.de>, Linus Torvalds <torvalds@linux-foundation.org>, containers@lists.linux-foundation.org, linux-alpha@vger.kernel.org, Linux API <linux-api@vger.kernel.org>, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Linux FS Devel <linux-fsdevel@vger.kernel.org>, linux-ia64@vger.kernel.org, linux-kernel <linux-kernel@vger.kernel.org>, "open list:KERNEL SELFTEST FRAMEWORK" <linux-kselftest@vger.kernel.org>, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, linux-xtensa@linux-xtensa.org, sparclinux@vger.kernel.org
+Message-ID: <20190824201733.xrmhNxgwy0Wq1KL31j5jbpGrIVBUUxG5AhuLiZZReCc@z>
 
-Please check CONFIG_FRAME_POINTER
-
-1 *frame =3D *((struct stackframe *)frame->fp - 1);
-This code is origionally from riscv/kernel/stacktrace.c: walk_stackframe
-
-In linux/Makefile it'll involve the options for gcc to definitely
-store ra & prev_fp in fp pointer.
-ifdef CONFIG_FRAME_POINTER
-KBUILD_CFLAGS +=3D -fno-omit-frame-pointer -fno-optimize-sibling-calls
-
-So --call-graph fp need depends on CONFIG_FRAME_POINTER.
-
-On Fri, Aug 23, 2019 at 4:56 PM Greentime Hu <green.hu@gmail.com> wrote:
+On Mon, Aug 19, 2019 at 8:37 PM Aleksa Sarai <cyphar@cyphar.com> wrote:
 >
-> Hi Mao,
+> The most obvious syscall to add support for the new LOOKUP_* scoping
+> flags would be openat(2). However, there are a few reasons why this is
+> not the best course of action:
 >
-> Mao Han <han_mao@c-sky.com> =E6=96=BC 2019=E5=B9=B48=E6=9C=8823=E6=97=A5 =
-=E9=80=B1=E4=BA=94 =E4=B8=8B=E5=8D=882:16=E5=AF=AB=E9=81=93=EF=BC=9A
+>  * The new LOOKUP_* flags are intended to be security features, and
+>    openat(2) will silently ignore all unknown flags. This means that
+>    users would need to avoid foot-gunning themselves constantly when
+>    using this interface if it were part of openat(2). This can be fixed
+>    by having userspace libraries handle this for users[1], but should be
+>    avoided if possible.
 >
-> >
-> > This patch add support for perf callchain sampling on riscv platform.
-> > The return address of leaf function is retrieved from pt_regs as
-> > it is not saved in the outmost frame.
-> >
-> > Signed-off-by: Mao Han <han_mao@c-sky.com>
-> > Cc: Paul Walmsley <paul.walmsley@sifive.com>
-> > Cc: Greentime Hu <green.hu@gmail.com>
-> > Cc: Palmer Dabbelt <palmer@sifive.com>
-> > Cc: linux-riscv <linux-riscv@lists.infradead.org>
-> > Cc: Christoph Hellwig <hch@lst.de>
-> > Cc: Guo Ren <guoren@kernel.org>
-> > ---
-> >  arch/riscv/Makefile                |   3 +
-> >  arch/riscv/kernel/Makefile         |   3 +-
-> >  arch/riscv/kernel/perf_callchain.c | 115 +++++++++++++++++++++++++++++=
-++++++++
-> >  3 files changed, 120 insertions(+), 1 deletion(-)
-> >  create mode 100644 arch/riscv/kernel/perf_callchain.c
+>  * Resolution scoping feels like a different operation to the existing
+>    O_* flags. And since openat(2) has limited flag space, it seems to be
+>    quite wasteful to clutter it with 5 flags that are all
+>    resolution-related. Arguably O_NOFOLLOW is also a resolution flag but
+>    its entire purpose is to error out if you encounter a trailing
+>    symlink -- not to scope resolution.
 >
-> I just tested "./perf record -e cpu-clock --call-graph fp ls" on
-> Unleashed board and I got this failure.
-> I take a look at it. It seem failed in here. Do you have any idea?
-> It seems fine in Qemu.
+>  * Other systems would be able to reimplement this syscall allowing for
+>    cross-OS standardisation rather than being hidden amongst O_* flags
+>    which may result in it not being used by all the parties that might
+>    want to use it (file servers, web servers, container runtimes, etc).
 >
-> 1 *frame =3D *((struct stackframe *)frame->fp - 1);
-> ffffffe0001a198c: 00863a83 ld s5,8(a2)
-> ffffffe0001a1990: ff093903 ld s2,-16(s2)
+>  * It gives us the opportunity to iterate on the O_PATH interface. In
+>    particular, the new @how->upgrade_mask field for fd re-opening is
+>    only possible because we have a clean slate without needing to re-use
+>    the ACC_MODE flag design nor the existing openat(2) @mode semantics.
 >
-> ./perf record -e cpu-clock --call-graph fp ls
-> [ 9619.423884] hrtimer: interrupt took 733000 ns
-> [ 9619.977017] Unable to handle kernel paging request at virtual
-> address ffffffffffffff94
-> [ 9620.214736] Oops [#1]
-> [ 9620.289893] Modules linked in:
-> [ 9620.391378] CPU: 0 PID: 264 Comm: ls Not tainted
-> 5.3.0-rc5-00003-gb008f6bcd67c #4
-> [ 9620.640176] sepc: ffffffe0001a198c ra : ffffffe0001a199a sp :
-> ffffffe000093720
-> [ 9620.880366] gp : ffffffe00097dad8 tp : ffffffe000082e40 t0 : 000000000=
-0046000
-> [ 9621.120564] t1 : 0000000000000002 t2 : 0000000000000007 s0 : ffffffe00=
-0093760
-> [ 9621.360768] s1 : ffffffe000093788 a0 : 0000000000000003 a1 : 000000000=
-0000000
-> [ 9621.600991] a2 : ffffffffffffff8c a3 : 0000000000001fa0 a4 : 000000000=
-0000010
-> [ 9621.841181] a5 : 0000000000000002 a6 : 0000000000000001 a7 : ffffffe07=
-9b34e10
-> [ 9622.081400] s2 : ffffffffffffff9c s3 : ffffffe000000000 s4 : 000000000=
-0001ff8
-> [ 9622.321618] s5 : ffffffe000093da0 s6 : ffffffe00097d540 s7 : ffffffe07=
-a1517a0
-> [ 9622.561811] s8 : 000008bf01c7ff60 s9 : ffffffe000235b2a s10: 000000020=
-0000120
-> [ 9622.802015] s11: 0000000000000001 t3 : ffffffe079b34e00 t4 : 000000000=
-0000001
-> [ 9623.042194] t5 : 0000000000000008 t6 : ffffffe0009208d0
-> [ 9623.218785] sstatus: 0000000200000100 sbadaddr: ffffffffffffff94
-> scause: 000000000000000d
-> [ 9623.490850] ---[ end trace 49043f28e856d84d ]---
-> [ 9623.644217] Kernel panic - not syncing: Fatal exception in interrupt
-> [ 9623.855470] SMP: stopping secondary CPUs
-> [ 9623.985955] ---[ end Kernel panic - not syncing: Fatal exception in
-> interrupt ]---
+> To this end, we introduce the openat2(2) syscall. It provides all of the
+> features of openat(2) through the @how->flags argument, but also
+> also provides a new @how->resolve argument which exposes RESOLVE_* flags
+> that map to our new LOOKUP_* flags. It also eliminates the long-standing
+> ugliness of variadic-open(2) by embedding it in a struct.
+>
+> In order to allow for userspace to lock down their usage of file
+> descriptor re-opening, openat2(2) has the ability for users to disallow
+> certain re-opening modes through @how->upgrade_mask. At the moment,
+> there is no UPGRADE_NOEXEC. The open_how struct is padded to 64 bytes
+> for future extensions (all of the reserved bits must be zeroed).
 
-
-
---=20
-Best Regards
- Guo Ren
-
-ML: https://lore.kernel.org/linux-csky/
+Why pad the structure when new functionality (perhaps accommodated via
+a larger structure) could be signaled by passing a new flag? Adding
+reserved fields to a structure with a size embedded in the ABI makes a
+lot of sense --- e.g., pthread_mutex_t can't grow. But this structure
+can grow, so the reservation seems needless to me.
