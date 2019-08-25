@@ -1,68 +1,136 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ua1-f66.google.com ([209.85.222.66]:37840 "EHLO
-        mail-ua1-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727694AbfHXUSL (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sat, 24 Aug 2019 16:18:11 -0400
-Received: by mail-ua1-f66.google.com with SMTP id f9so4456557uaj.4
-        for <linux-arch@vger.kernel.org>; Sat, 24 Aug 2019 13:18:10 -0700 (PDT)
+Received: from mail-pf1-f196.google.com ([209.85.210.196]:36557 "EHLO
+        mail-pf1-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727132AbfHYNX4 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 25 Aug 2019 09:23:56 -0400
+From: Changbin Du <changbin.du@gmail.com>
+Subject: [PATCH 01/11] ftrace: move recordmcount tools to scripts/ftrace
+Date: Sun, 25 Aug 2019 21:23:20 +0800
+Message-ID: <20190825132330.5015-2-changbin.du@gmail.com>
+In-Reply-To: <20190825132330.5015-1-changbin.du@gmail.com>
+References: <20190825132330.5015-1-changbin.du@gmail.com>
 MIME-Version: 1.0
-References: <20190820033406.29796-1-cyphar@cyphar.com> <20190820033406.29796-8-cyphar@cyphar.com>
-In-Reply-To: <20190820033406.29796-8-cyphar@cyphar.com>
-From: Daniel Colascione <dancol@google.com>
-Date: Sat, 24 Aug 2019 13:17:33 -0700
-Message-ID: <CAKOZuesfxRBJe314rkTKXtjXdz6ki3uAUBYVbu5Q2rd3=ADphQ@mail.gmail.com>
-Subject: Re: [PATCH RESEND v11 7/8] open: openat2(2) syscall
-Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Aleksa Sarai <cyphar@cyphar.com>
-Cc: Al Viro <viro@zeniv.linux.org.uk>, Jeff Layton <jlayton@kernel.org>, "J. Bruce Fields" <bfields@fieldses.org>, Arnd Bergmann <arnd@arndb.de>, David Howells <dhowells@redhat.com>, Shuah Khan <shuah@kernel.org>, Shuah Khan <skhan@linuxfoundation.org>, Christian Brauner <christian@brauner.io>, Eric Biederman <ebiederm@xmission.com>, Andy Lutomirski <luto@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Alexei Starovoitov <ast@kernel.org>, Kees Cook <keescook@chromium.org>, Jann Horn <jannh@google.com>, Tycho Andersen <tycho@tycho.ws>, David Drysdale <drysdale@google.com>, Chanho Min <chanho.min@lge.com>, Oleg Nesterov <oleg@redhat.com>, Aleksa Sarai <asarai@suse.de>, Linus Torvalds <torvalds@linux-foundation.org>, containers@lists.linux-foundation.org, linux-alpha@vger.kernel.org, Linux API <linux-api@vger.kernel.org>, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Linux FS Devel <linux-fsdevel@vger.kernel.org>, linux-ia64@vger.kernel.org, linux-kernel <linux-kernel@vger.kernel.org>, "open list:KERNEL SELFTEST FRAMEWORK" <linux-kselftest@vger.kernel.org>, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, linux-xtensa@linux-xtensa.org, sparclinux@vger.kernel.org
-Message-ID: <20190824201733.xrmhNxgwy0Wq1KL31j5jbpGrIVBUUxG5AhuLiZZReCc@z>
+To: Steven Rostedt <rostedt@goodmis.org>, Ingo Molnar <mingo@redhat.com>
+Cc: Jonathan Corbet <corbet@lwn.net>, Jessica Yu <jeyu@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, x86@kernel.org, linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-mips@vger.kernel.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-riscv@lists.infradead.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org, linux-kbuild@vger.kernel.org, Changbin Du <changbin.du@gmail.com>, "John F . Reiser" <jreiser@BitWagon.com>
+Message-ID: <20190825132320.ICWiAEPi4kxMamaEfPWiAgx3Miuupg8BtdZ6wxd8L0s@z>
 
-On Mon, Aug 19, 2019 at 8:37 PM Aleksa Sarai <cyphar@cyphar.com> wrote:
->
-> The most obvious syscall to add support for the new LOOKUP_* scoping
-> flags would be openat(2). However, there are a few reasons why this is
-> not the best course of action:
->
->  * The new LOOKUP_* flags are intended to be security features, and
->    openat(2) will silently ignore all unknown flags. This means that
->    users would need to avoid foot-gunning themselves constantly when
->    using this interface if it were part of openat(2). This can be fixed
->    by having userspace libraries handle this for users[1], but should be
->    avoided if possible.
->
->  * Resolution scoping feels like a different operation to the existing
->    O_* flags. And since openat(2) has limited flag space, it seems to be
->    quite wasteful to clutter it with 5 flags that are all
->    resolution-related. Arguably O_NOFOLLOW is also a resolution flag but
->    its entire purpose is to error out if you encounter a trailing
->    symlink -- not to scope resolution.
->
->  * Other systems would be able to reimplement this syscall allowing for
->    cross-OS standardisation rather than being hidden amongst O_* flags
->    which may result in it not being used by all the parties that might
->    want to use it (file servers, web servers, container runtimes, etc).
->
->  * It gives us the opportunity to iterate on the O_PATH interface. In
->    particular, the new @how->upgrade_mask field for fd re-opening is
->    only possible because we have a clean slate without needing to re-use
->    the ACC_MODE flag design nor the existing openat(2) @mode semantics.
->
-> To this end, we introduce the openat2(2) syscall. It provides all of the
-> features of openat(2) through the @how->flags argument, but also
-> also provides a new @how->resolve argument which exposes RESOLVE_* flags
-> that map to our new LOOKUP_* flags. It also eliminates the long-standing
-> ugliness of variadic-open(2) by embedding it in a struct.
->
-> In order to allow for userspace to lock down their usage of file
-> descriptor re-opening, openat2(2) has the ability for users to disallow
-> certain re-opening modes through @how->upgrade_mask. At the moment,
-> there is no UPGRADE_NOEXEC. The open_how struct is padded to 64 bytes
-> for future extensions (all of the reserved bits must be zeroed).
+Move ftrace tools to its own directory. We will add another tool later.
 
-Why pad the structure when new functionality (perhaps accommodated via
-a larger structure) could be signaled by passing a new flag? Adding
-reserved fields to a structure with a size embedded in the ABI makes a
-lot of sense --- e.g., pthread_mutex_t can't grow. But this structure
-can grow, so the reservation seems needless to me.
+Cc: John F. Reiser <jreiser@BitWagon.com>
+Signed-off-by: Changbin Du <changbin.du@gmail.com>
+---
+ scripts/.gitignore                   |  1 -
+ scripts/Makefile                     |  2 +-
+ scripts/Makefile.build               | 10 +++++-----
+ scripts/ftrace/.gitignore            |  4 ++++
+ scripts/ftrace/Makefile              |  4 ++++
+ scripts/{ => ftrace}/recordmcount.c  |  0
+ scripts/{ => ftrace}/recordmcount.h  |  0
+ scripts/{ => ftrace}/recordmcount.pl |  0
+ 8 files changed, 14 insertions(+), 7 deletions(-)
+ create mode 100644 scripts/ftrace/.gitignore
+ create mode 100644 scripts/ftrace/Makefile
+ rename scripts/{ => ftrace}/recordmcount.c (100%)
+ rename scripts/{ => ftrace}/recordmcount.h (100%)
+ rename scripts/{ => ftrace}/recordmcount.pl (100%)
+ mode change 100755 => 100644
+
+diff --git a/scripts/.gitignore b/scripts/.gitignore
+index 17f8cef88fa8..1b5b5d595d80 100644
+--- a/scripts/.gitignore
++++ b/scripts/.gitignore
+@@ -6,7 +6,6 @@ conmakehash
+ kallsyms
+ pnmtologo
+ unifdef
+-recordmcount
+ sortextable
+ asn1_compiler
+ extract-cert
+diff --git a/scripts/Makefile b/scripts/Makefile
+index 16bcb8087899..d5992def49a8 100644
+--- a/scripts/Makefile
++++ b/scripts/Makefile
+@@ -14,7 +14,6 @@ hostprogs-$(CONFIG_BUILD_BIN2C)  += bin2c
+ hostprogs-$(CONFIG_KALLSYMS)     += kallsyms
+ hostprogs-$(CONFIG_LOGO)         += pnmtologo
+ hostprogs-$(CONFIG_VT)           += conmakehash
+-hostprogs-$(BUILD_C_RECORDMCOUNT) += recordmcount
+ hostprogs-$(CONFIG_BUILDTIME_EXTABLE_SORT) += sortextable
+ hostprogs-$(CONFIG_ASN1)	 += asn1_compiler
+ hostprogs-$(CONFIG_MODULE_SIG)	 += sign-file
+@@ -34,6 +33,7 @@ hostprogs-y += unifdef
+ subdir-$(CONFIG_GCC_PLUGINS) += gcc-plugins
+ subdir-$(CONFIG_MODVERSIONS) += genksyms
+ subdir-$(CONFIG_SECURITY_SELINUX) += selinux
++subdir-$(CONFIG_FTRACE) += ftrace
+ 
+ # Let clean descend into subdirs
+ subdir-	+= basic dtc gdb kconfig mod package
+diff --git a/scripts/Makefile.build b/scripts/Makefile.build
+index 2f66ed388d1c..67558983c518 100644
+--- a/scripts/Makefile.build
++++ b/scripts/Makefile.build
+@@ -188,18 +188,18 @@ endif
+ # files, including recordmcount.
+ sub_cmd_record_mcount =					\
+ 	if [ $(@) != "scripts/mod/empty.o" ]; then	\
+-		$(objtree)/scripts/recordmcount $(RECORDMCOUNT_FLAGS) "$(@)";	\
++		$(objtree)/scripts/ftrace/recordmcount $(RECORDMCOUNT_FLAGS) "$(@)"; \
+ 	fi;
+-recordmcount_source := $(srctree)/scripts/recordmcount.c \
+-		    $(srctree)/scripts/recordmcount.h
++recordmcount_source := $(srctree)/scripts/ftrace/recordmcount.c \
++		       $(srctree)/scripts/ftrace/recordmcount.h
+ else
+-sub_cmd_record_mcount = perl $(srctree)/scripts/recordmcount.pl "$(ARCH)" \
++sub_cmd_record_mcount = perl $(srctree)/scripts/ftrace/recordmcount.pl "$(ARCH)" \
+ 	"$(if $(CONFIG_CPU_BIG_ENDIAN),big,little)" \
+ 	"$(if $(CONFIG_64BIT),64,32)" \
+ 	"$(OBJDUMP)" "$(OBJCOPY)" "$(CC) $(KBUILD_CPPFLAGS) $(KBUILD_CFLAGS)" \
+ 	"$(LD) $(KBUILD_LDFLAGS)" "$(NM)" "$(RM)" "$(MV)" \
+ 	"$(if $(part-of-module),1,0)" "$(@)";
+-recordmcount_source := $(srctree)/scripts/recordmcount.pl
++recordmcount_source := $(srctree)/scripts/ftrace/recordmcount.pl
+ endif # BUILD_C_RECORDMCOUNT
+ cmd_record_mcount = $(if $(findstring $(strip $(CC_FLAGS_FTRACE)),$(_c_flags)),	\
+ 	$(sub_cmd_record_mcount))
+diff --git a/scripts/ftrace/.gitignore b/scripts/ftrace/.gitignore
+new file mode 100644
+index 000000000000..54d582c8faad
+--- /dev/null
++++ b/scripts/ftrace/.gitignore
+@@ -0,0 +1,4 @@
++#
++# Generated files
++#
++recordmcount
+diff --git a/scripts/ftrace/Makefile b/scripts/ftrace/Makefile
+new file mode 100644
+index 000000000000..6797e51473e5
+--- /dev/null
++++ b/scripts/ftrace/Makefile
+@@ -0,0 +1,4 @@
++# SPDX-License-Identifier: GPL-2.0
++
++hostprogs-$(BUILD_C_RECORDMCOUNT) += recordmcount
++always         := $(hostprogs-y)
+diff --git a/scripts/recordmcount.c b/scripts/ftrace/recordmcount.c
+similarity index 100%
+rename from scripts/recordmcount.c
+rename to scripts/ftrace/recordmcount.c
+diff --git a/scripts/recordmcount.h b/scripts/ftrace/recordmcount.h
+similarity index 100%
+rename from scripts/recordmcount.h
+rename to scripts/ftrace/recordmcount.h
+diff --git a/scripts/recordmcount.pl b/scripts/ftrace/recordmcount.pl
+old mode 100755
+new mode 100644
+similarity index 100%
+rename from scripts/recordmcount.pl
+rename to scripts/ftrace/recordmcount.pl
+-- 
+2.20.1
