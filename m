@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pg1-f193.google.com ([209.85.215.193]:33442 "EHLO
-        mail-pg1-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1725922AbfHYNZH (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sun, 25 Aug 2019 09:25:07 -0400
+Received: from mail-pg1-f196.google.com ([209.85.215.196]:41096 "EHLO
+        mail-pg1-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1728337AbfHYNYU (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 25 Aug 2019 09:24:20 -0400
 From: Changbin Du <changbin.du@gmail.com>
-Subject: [PATCH 10/11] ftrace: add doc for new option record-funcproto
-Date: Sun, 25 Aug 2019 21:23:29 +0800
-Message-ID: <20190825132330.5015-11-changbin.du@gmail.com>
+Subject: [PATCH 04/11] ftrace/hash: add private data field
+Date: Sun, 25 Aug 2019 21:23:23 +0800
+Message-ID: <20190825132330.5015-5-changbin.du@gmail.com>
 In-Reply-To: <20190825132330.5015-1-changbin.du@gmail.com>
 References: <20190825132330.5015-1-changbin.du@gmail.com>
 MIME-Version: 1.0
@@ -15,38 +15,104 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Steven Rostedt <rostedt@goodmis.org>, Ingo Molnar <mingo@redhat.com>
 Cc: Jonathan Corbet <corbet@lwn.net>, Jessica Yu <jeyu@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, x86@kernel.org, linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-mips@vger.kernel.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-riscv@lists.infradead.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org, linux-kbuild@vger.kernel.org, Changbin Du <changbin.du@gmail.com>
-Message-ID: <20190825132329.GwcheAaXWpyZtv5slmcHaVGQVnzWPFQfP7CxrpjVK1Y@z>
+Message-ID: <20190825132323.ynK9ihbYQha0XAluc8M6q1R_XdboGqfzTtm9ZmKVCqk@z>
 
-Just add the doc for our new feature.
+We will reuse ftrace_hash to lookup function prototype information. So
+we need an additional field to bind ftrace_func_entry to prototype
+information.
 
 Signed-off-by: Changbin Du <changbin.du@gmail.com>
 ---
- Documentation/trace/ftrace.rst | 6 ++++++
- 1 file changed, 6 insertions(+)
+ kernel/trace/ftrace.c | 17 +++++++----------
+ kernel/trace/trace.h  |  6 ++++++
+ 2 files changed, 13 insertions(+), 10 deletions(-)
 
-diff --git a/Documentation/trace/ftrace.rst b/Documentation/trace/ftrace.rst
-index f60079259669..c68fbbedb8bd 100644
---- a/Documentation/trace/ftrace.rst
-+++ b/Documentation/trace/ftrace.rst
-@@ -988,6 +988,7 @@ To see what is available, simply cat the file::
- 	nolatency-format
- 	record-cmd
- 	norecord-tgid
-+	norecord-funcproto
- 	overwrite
- 	nodisable_on_free
- 	irq-info
-@@ -1131,6 +1132,11 @@ Here are the available options:
- 	mapped Thread Group IDs (TGID) mapping to pids. See
- 	"saved_tgids".
+diff --git a/kernel/trace/ftrace.c b/kernel/trace/ftrace.c
+index eca34503f178..a314f0768b2c 100644
+--- a/kernel/trace/ftrace.c
++++ b/kernel/trace/ftrace.c
+@@ -1017,11 +1017,6 @@ static bool update_all_ops;
+ # error Dynamic ftrace depends on MCOUNT_RECORD
+ #endif
  
-+  record-funcproto
-+	Record function parameters and return value. This option
-+	is only supported by function_graph tracer on x86_64
-+	platform by now.
+-struct ftrace_func_entry {
+-	struct hlist_node hlist;
+-	unsigned long ip;
+-};
+-
+ struct ftrace_func_probe {
+ 	struct ftrace_probe_ops	*probe_ops;
+ 	struct ftrace_ops	ops;
+@@ -1169,7 +1164,8 @@ static void __add_hash_entry(struct ftrace_hash *hash,
+ 	hash->count++;
+ }
+ 
+-static int add_hash_entry(struct ftrace_hash *hash, unsigned long ip)
++static int add_hash_entry(struct ftrace_hash *hash, unsigned long ip,
++			  void *priv)
+ {
+ 	struct ftrace_func_entry *entry;
+ 
+@@ -1178,6 +1174,7 @@ static int add_hash_entry(struct ftrace_hash *hash, unsigned long ip)
+ 		return -ENOMEM;
+ 
+ 	entry->ip = ip;
++	entry->priv = priv;
+ 	__add_hash_entry(hash, entry);
+ 
+ 	return 0;
+@@ -1346,7 +1343,7 @@ alloc_and_copy_ftrace_hash(int size_bits, struct ftrace_hash *hash)
+ 	size = 1 << hash->size_bits;
+ 	for (i = 0; i < size; i++) {
+ 		hlist_for_each_entry(entry, &hash->buckets[i], hlist) {
+-			ret = add_hash_entry(new_hash, entry->ip);
++			ret = add_hash_entry(new_hash, entry->ip, NULL);
+ 			if (ret < 0)
+ 				goto free_hash;
+ 		}
+@@ -3694,7 +3691,7 @@ enter_record(struct ftrace_hash *hash, struct dyn_ftrace *rec, int clear_filter)
+ 		if (entry)
+ 			return 0;
+ 
+-		ret = add_hash_entry(hash, rec->ip);
++		ret = add_hash_entry(hash, rec->ip, NULL);
+ 	}
+ 	return ret;
+ }
+@@ -4700,7 +4697,7 @@ ftrace_match_addr(struct ftrace_hash *hash, unsigned long ip, int remove)
+ 		return 0;
+ 	}
+ 
+-	return add_hash_entry(hash, ip);
++	return add_hash_entry(hash, ip, NULL);
+ }
+ 
+ static int
+@@ -5380,7 +5377,7 @@ ftrace_graph_set_hash(struct ftrace_hash *hash, char *buffer)
+ 
+ 				if (entry)
+ 					continue;
+-				if (add_hash_entry(hash, rec->ip) < 0)
++				if (add_hash_entry(hash, rec->ip, NULL) < 0)
+ 					goto out;
+ 			} else {
+ 				if (entry) {
+diff --git a/kernel/trace/trace.h b/kernel/trace/trace.h
+index 005f08629b8b..ad619c73a505 100644
+--- a/kernel/trace/trace.h
++++ b/kernel/trace/trace.h
+@@ -882,6 +882,12 @@ struct ftrace_hash {
+ 	struct rcu_head		rcu;
+ };
+ 
++struct ftrace_func_entry {
++	struct hlist_node hlist;
++	unsigned long ip;
++	void *priv;
++};
 +
-   overwrite
- 	This controls what happens when the trace buffer is
- 	full. If "1" (default), the oldest events are
+ struct ftrace_func_entry *
+ ftrace_lookup_ip(struct ftrace_hash *hash, unsigned long ip);
+ 
 -- 
 2.20.1
