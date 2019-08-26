@@ -1,24 +1,34 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from verein.lst.de ([213.95.11.211]:46366 "EHLO verein.lst.de"
+Received: from verein.lst.de ([213.95.11.211]:46394 "EHLO verein.lst.de"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1729711AbfHZHHR (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 26 Aug 2019 03:07:17 -0400
-Date: Mon, 26 Aug 2019 09:07:14 +0200
+        id S1729625AbfHZHJo (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 26 Aug 2019 03:09:44 -0400
+Date: Mon, 26 Aug 2019 09:09:39 +0200
 From: Christoph Hellwig <hch@lst.de>
-Subject: Re: [PATCH v2 11/11] mm: refresh ZONE_DMA and ZONE_DMA32 comments
- in 'enum zone_type'
-Message-ID: <20190826070714.GC11331@lst.de>
-References: <20190820145821.27214-1-nsaenzjulienne@suse.de> <20190820145821.27214-12-nsaenzjulienne@suse.de>
+Subject: Re: [PATCH v2 01/11] asm-generic: add dma_zone_size
+Message-ID: <20190826070939.GD11331@lst.de>
+References: <20190820145821.27214-1-nsaenzjulienne@suse.de> <20190820145821.27214-2-nsaenzjulienne@suse.de>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20190820145821.27214-12-nsaenzjulienne@suse.de>
+In-Reply-To: <20190820145821.27214-2-nsaenzjulienne@suse.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Nicolas Saenz Julienne <nsaenzjulienne@suse.de>
-Cc: catalin.marinas@arm.com, hch@lst.de, wahrenst@gmx.net, marc.zyngier@arm.com, robh+dt@kernel.org, Robin Murphy <robin.murphy@arm.com>, linux-arm-kernel@lists.infradead.org, devicetree@vger.kernel.org, linux-arch@vger.kernel.org, iommu@lists.linux-foundation.org, linux-mm@kvack.org, linux-riscv@lists.infradead.org, Paul Walmsley <paul.walmsley@sifive.com>, Palmer Dabbelt <palmer@sifive.com>, Albert Ou <aou@eecs.berkeley.edu>, phill@raspberryi.org, f.fainelli@gmail.com, will@kernel.org, linux-kernel@vger.kernel.org, eric@anholt.net, mbrugger@suse.com, linux-rpi-kernel@lists.infradead.org, akpm@linux-foundation.org, frowand.list@gmail.com, m.szyprowski@samsung.com
-Message-ID: <20190826070714.wvBE4-xt4XMmn1u6jn1qrsiwHAnR8mis3anA-javQmg@z>
+Cc: catalin.marinas@arm.com, hch@lst.de, wahrenst@gmx.net, marc.zyngier@arm.com, robh+dt@kernel.org, Robin Murphy <robin.murphy@arm.com>, linux-arm-kernel@lists.infradead.org, devicetree@vger.kernel.org, linux-arch@vger.kernel.org, iommu@lists.linux-foundation.org, linux-mm@kvack.org, linux-riscv@lists.infradead.org, Arnd Bergmann <arnd@arndb.de>, phill@raspberryi.org, f.fainelli@gmail.com, will@kernel.org, linux-kernel@vger.kernel.org, eric@anholt.net, mbrugger@suse.com, linux-rpi-kernel@lists.infradead.org, akpm@linux-foundation.org, frowand.list@gmail.com, m.szyprowski@samsung.com
+Message-ID: <20190826070939.TdV48ANU_3qEKRoMnWARLNpJ6FfGLdD5-HqKmXRi4D0@z>
 
-Looks good:
+On Tue, Aug 20, 2019 at 04:58:09PM +0200, Nicolas Saenz Julienne wrote:
+> Some architectures have platform specific DMA addressing limitations.
+> This will allow for hardware description code to provide the constraints
+> in a generic manner, so as for arch code to properly setup it's memory
+> zones and DMA mask.
 
-Reviewed-by: Christoph Hellwig <hch@lst.de>
+I know this just spreads the arm code, but I still kinda hate it.
+
+MAX_DMA_ADDRESS is such an oddly defined concepts.  We have the mm
+code that uses it to start allocating after the dma zones, but
+I think that would better be done using a function returning
+1 << max(zone_dma_bits, 32) or so.  Then we have about a handful
+of drivers using it that all seem rather bogus, and one of which
+I think are usable on arm64.
