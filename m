@@ -1,71 +1,109 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:52422 "EHLO
-        merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728198AbfHZHpM (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 26 Aug 2019 03:45:12 -0400
-Date: Mon, 26 Aug 2019 09:44:37 +0200
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH 05/11] ftrace: create memcache for hash entries
-Message-ID: <20190826074437.GM2369@hirez.programming.kicks-ass.net>
-References: <20190825132330.5015-1-changbin.du@gmail.com>
- <20190825132330.5015-6-changbin.du@gmail.com>
+Received: from mail-qk1-f196.google.com ([209.85.222.196]:37813 "EHLO
+        mail-qk1-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726189AbfHZIDn (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 26 Aug 2019 04:03:43 -0400
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20190825132330.5015-6-changbin.du@gmail.com>
+References: <cover.1566540652.git.han_mao@c-sky.com> <820d80272fc5627b8d00e684663a614470217606.1566540652.git.han_mao@c-sky.com>
+ <CAEbi=3fbe9zbsLyfA=s9gHtAFJrp5Ox0jWoAqcZudQ_xODicgA@mail.gmail.com> <CAJF2gTS80XU=4z-_=N=oGV6GH-+8KXCa74DyhVMcRxJRBq5g4A@mail.gmail.com>
+In-Reply-To: <CAJF2gTS80XU=4z-_=N=oGV6GH-+8KXCa74DyhVMcRxJRBq5g4A@mail.gmail.com>
+From: Greentime Hu <green.hu@gmail.com>
+Date: Mon, 26 Aug 2019 16:03:07 +0800
+Message-ID: <CAEbi=3dtDy=CMRagVrj0ihtpYqS+4NkK7eYmn6Gn=2bV9khWVg@mail.gmail.com>
+Subject: Re: [PATCH V5 1/3] riscv: Add perf callchain support
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Changbin Du <changbin.du@gmail.com>
-Cc: Steven Rostedt <rostedt@goodmis.org>, Ingo Molnar <mingo@redhat.com>, Jonathan Corbet <corbet@lwn.net>, Jessica Yu <jeyu@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, x86@kernel.org, linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-mips@vger.kernel.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-riscv@lists.infradead.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org, linux-kbuild@vger.kernel.org
-Message-ID: <20190826074437.jaHa8cUMgE1JZWnQuuubiPqnmRBJubUUWOdvvUEH3Xg@z>
+To: Guo Ren <guoren@kernel.org>, greentime.hu@sifive.com
+Cc: Mao Han <han_mao@c-sky.com>, linux-riscv@lists.infradead.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Paul Walmsley <paul.walmsley@sifive.com>, Palmer Dabbelt <palmer@sifive.com>, Christoph Hellwig <hch@lst.de>
+Message-ID: <20190826080307.FvHsyACk-hbH0PwguCmoa3JEH15bA__g6CPVqqx6M4Q@z>
 
-On Sun, Aug 25, 2019 at 09:23:24PM +0800, Changbin Du wrote:
-> When CONFIG_FTRACE_FUNC_PROTOTYPE is enabled, thousands of
-> ftrace_func_entry instances are created. So create a dedicated
-> memcache to enhance performance.
-> 
-> Signed-off-by: Changbin Du <changbin.du@gmail.com>
-> ---
->  kernel/trace/ftrace.c | 17 ++++++++++++++++-
->  1 file changed, 16 insertions(+), 1 deletion(-)
-> 
-> diff --git a/kernel/trace/ftrace.c b/kernel/trace/ftrace.c
-> index a314f0768b2c..cfcb8dad93ea 100644
-> --- a/kernel/trace/ftrace.c
-> +++ b/kernel/trace/ftrace.c
-> @@ -94,6 +94,8 @@ struct ftrace_ops *function_trace_op __read_mostly = &ftrace_list_end;
->  /* What to set function_trace_op to */
->  static struct ftrace_ops *set_function_trace_op;
->  
-> +struct kmem_cache *hash_entry_cache;
-> +
->  static bool ftrace_pids_enabled(struct ftrace_ops *ops)
->  {
->  	struct trace_array *tr;
-> @@ -1169,7 +1171,7 @@ static int add_hash_entry(struct ftrace_hash *hash, unsigned long ip,
->  {
->  	struct ftrace_func_entry *entry;
->  
-> -	entry = kmalloc(sizeof(*entry), GFP_KERNEL);
-> +	entry = kmem_cache_alloc(hash_entry_cache, GFP_KERNEL);
->  	if (!entry)
->  		return -ENOMEM;
->  
-> @@ -6153,6 +6155,15 @@ void __init ftrace_init(void)
->  	if (ret)
->  		goto failed;
->  
-> +	hash_entry_cache = kmem_cache_create("ftrace-hash",
-> +					     sizeof(struct ftrace_func_entry),
-> +					     sizeof(struct ftrace_func_entry),
-> +					     0, NULL);
-> +	if (!hash_entry_cache) {
-> +		pr_err("failed to create ftrace hash entry cache\n");
-> +		goto failed;
-> +	}
+Hi Guo,
 
-Wait what; you already have then in the binary image, now you're
-allocating extra memory for each of them?
+Guo Ren <guoren@kernel.org> =E6=96=BC 2019=E5=B9=B48=E6=9C=8824=E6=97=A5 =
+=E9=80=B1=E5=85=AD =E4=B8=8A=E5=8D=888:54=E5=AF=AB=E9=81=93=EF=BC=9A
+>
+> Please check CONFIG_FRAME_POINTER
+>
+> 1 *frame =3D *((struct stackframe *)frame->fp - 1);
+> This code is origionally from riscv/kernel/stacktrace.c: walk_stackframe
+>
+> In linux/Makefile it'll involve the options for gcc to definitely
+> store ra & prev_fp in fp pointer.
+> ifdef CONFIG_FRAME_POINTER
+> KBUILD_CFLAGS +=3D -fno-omit-frame-pointer -fno-optimize-sibling-calls
+>
+> So --call-graph fp need depends on CONFIG_FRAME_POINTER.
+>
 
-Did you look at what ORC does? Is the binary search really not fast
-enough?
+I am pretty sure CONFIG_FRAME_POINTER is Y
+# zcat /proc/config.gz |grep CONFIG_FRAME_POINTER
+CONFIG_FRAME_POINTER=3Dy
+
+This is not going to go wrong every time, the probability of error is
+about one tenth or one quarter. randomly
+There may be some conditions that we have not considered.
+
+I add one more condition to check if it is a valid virtual address and
+it( ./perf record -e cpu-clock --call-graph fp ls) passes 1000 times
+without failure in Unleashed board based on 5.3-rc5.
+Here is my patch. Please have  a look at it. I am not sure if it is a
+good solution.
+
+diff --git a/arch/riscv/kernel/perf_callchain.c
+b/arch/riscv/kernel/perf_callchain.c
+index d75d15c13dc7..4717942435df 100644
+--- a/arch/riscv/kernel/perf_callchain.c
++++ b/arch/riscv/kernel/perf_callchain.c
+@@ -18,6 +18,8 @@ static int unwind_frame_kernel(struct stackframe *frame)
+                return -EPERM;
+        if (frame->fp < CONFIG_PAGE_OFFSET)
+                return -EPERM;
++       if (!virt_addr_valid(frame->fp))
++               return -EPERM;
+
+        *frame =3D *((struct stackframe *)frame->fp - 1);
+        if (__kernel_text_address(frame->ra)) {
+
+It could catch cases called in this way.
+
+[ 1381.936586] frame->fp=3D:ffffffff00547550
+[ 1382.038542] CPU: 1 PID: 135 Comm: ls Not tainted
+5.3.0-rc5-00003-gb008f6bcd67c-dirty #14
+[ 1382.307440] Call Trace:
+[ 1382.388947] [<ffffffe0002a2d8e>] walk_stackframe+0x0/0x9a
+[ 1382.568053] [<ffffffe0002a2f5a>] show_stack+0x2a/0x34
+[ 1382.735960] [<ffffffe00083dcd6>] dump_stack+0x62/0x7c
+[ 1382.903863] [<ffffffe0002a49e0>] perf_callchain_kernel+0xd8/0x102
+[ 1383.106558] [<ffffffe000340a6e>] get_perf_callchain+0x136/0x1f2
+[ 1383.303128] [<ffffffe00033d480>] perf_callchain+0x52/0x6e
+[ 1383.482553] [<ffffffe00033d50a>] perf_prepare_sample+0x6e/0x476
+[ 1383.679357] [<ffffffe00033d92e>] perf_event_output_forward+0x1c/0x50
+[ 1383.890633] [<ffffffe000338b4c>] __perf_event_overflow+0x6a/0xa4
+[ 1384.090279] [<ffffffe000338c40>] perf_swevent_hrtimer+0xba/0x106
+[ 1384.290094] [<ffffffe0002f307c>] __hrtimer_run_queues+0x84/0x108
+[ 1384.489694] [<ffffffe0002f36b8>] hrtimer_interrupt+0xca/0x1ce
+[ 1384.680974] [<ffffffe00072f572>] riscv_timer_interrupt+0x32/0x3a
+[ 1384.880449] [<ffffffe000854b34>] do_IRQ+0x64/0xbe
+[ 1385.036698] [<ffffffe0002a1c5c>] ret_from_exception+0x0/0xc
+
+[13915.697989] frame->fp=3D:fffffffffffff000
+[13915.799937] CPU: 2 PID: 663 Comm: ls Not tainted
+5.3.0-rc5-00003-gb008f6bcd67c-dirty #14
+[13916.068832] Call Trace:
+[13916.150380] [<ffffffe0002a2d8e>] walk_stackframe+0x0/0x9a
+[13916.329450] [<ffffffe0002a2f5a>] show_stack+0x2a/0x34
+[13916.497360] [<ffffffe00083dcd6>] dump_stack+0x62/0x7c
+[13916.665265] [<ffffffe0002a49e0>] perf_callchain_kernel+0xd8/0x102
+[13916.867949] [<ffffffe000340a6e>] get_perf_callchain+0x136/0x1f2
+[13917.064526] [<ffffffe00033d480>] perf_callchain+0x52/0x6e
+[13917.243950] [<ffffffe00033d50a>] perf_prepare_sample+0x6e/0x476
+[13917.440759] [<ffffffe00033d92e>] perf_event_output_forward+0x1c/0x50
+[13917.652021] [<ffffffe000338b4c>] __perf_event_overflow+0x6a/0xa4
+[13917.851683] [<ffffffe000338c40>] perf_swevent_hrtimer+0xba/0x106
+[13918.051494] [<ffffffe0002f307c>] __hrtimer_run_queues+0x84/0x108
+[13918.251094] [<ffffffe0002f36b8>] hrtimer_interrupt+0xca/0x1ce
+[13918.442379] [<ffffffe00072f572>] riscv_timer_interrupt+0x32/0x3a
+[13918.641840] [<ffffffe000854b34>] do_IRQ+0x64/0xbe
+[13918.798082] [<ffffffe0002a1c5c>] ret_from_exception+0x0/0xc
