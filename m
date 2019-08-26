@@ -1,68 +1,38 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pf1-f193.google.com ([209.85.210.193]:44629 "EHLO
-        mail-pf1-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726539AbfHZWZX (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 26 Aug 2019 18:25:23 -0400
-Date: Tue, 27 Aug 2019 06:25:12 +0800
-From: Changbin Du <changbin.du@gmail.com>
-Subject: Re: [PATCH 03/11] asm-generic: add generic dwarf definition
-Message-ID: <20190826222510.6m2k3puwflnr52b7@mail.google.com>
-References: <20190825132330.5015-1-changbin.du@gmail.com>
- <20190825132330.5015-4-changbin.du@gmail.com>
- <20190826074215.GL2369@hirez.programming.kicks-ass.net>
+Received: from Galois.linutronix.de ([193.142.43.55]:41378 "EHLO
+        Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726307AbfHZW0O (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 26 Aug 2019 18:26:14 -0400
+Date: Tue, 27 Aug 2019 00:26:05 +0200 (CEST)
+From: Thomas Gleixner <tglx@linutronix.de>
+Subject: Re: [RFC PATCH 5/7] arm64: smp: use generic SMP stop common code
+In-Reply-To: <c6a86709-6faf-bf84-08aa-c41dab61c58f@arm.com>
+Message-ID: <alpine.DEB.2.21.1908270025340.1939@nanos.tec.linutronix.de>
+References: <20190823115720.605-1-cristian.marussi@arm.com> <20190823115720.605-6-cristian.marussi@arm.com> <20190826153236.GA9591@infradead.org> <c6a86709-6faf-bf84-08aa-c41dab61c58f@arm.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20190826074215.GL2369@hirez.programming.kicks-ass.net>
+Content-Type: text/plain; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Changbin Du <changbin.du@gmail.com>, Steven Rostedt <rostedt@goodmis.org>, Ingo Molnar <mingo@redhat.com>, Jonathan Corbet <corbet@lwn.net>, Jessica Yu <jeyu@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, x86@kernel.org, linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-mips@vger.kernel.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-riscv@lists.infradead.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org, linux-kbuild@vger.kernel.org
-Message-ID: <20190826222512._vzSf_5YMTLD2bcPIul0YDi7tspTIyKNLlbyLDD5SV0@z>
+To: Cristian Marussi <cristian.marussi@arm.com>
+Cc: Christoph Hellwig <hch@infradead.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mark.rutland@arm.com, peterz@infradead.org, catalin.marinas@arm.com, takahiro.akashi@linaro.org, james.morse@arm.com, hidehiro.kawai.ez@hitachi.com, will@kernel.org, dave.martin@arm.com, linux-arm-kernel@lists.infradead.org
+Message-ID: <20190826222605.3vZ7uHC3g7ZfJpC62KjdXhucWXbQqJUuc_QdLTcSK3w@z>
 
-Hi, Peter,
-
-On Mon, Aug 26, 2019 at 09:42:15AM +0200, Peter Zijlstra wrote:
-> On Sun, Aug 25, 2019 at 09:23:22PM +0800, Changbin Du wrote:
-> > Add generic DWARF constant definitions. We will use it later.
+On Mon, 26 Aug 2019, Cristian Marussi wrote:
+> On 8/26/19 4:32 PM, Christoph Hellwig wrote:
+> > > +config ARCH_USE_COMMON_SMP_STOP
+> > > +	def_bool y if SMP
 > > 
-> > Signed-off-by: Changbin Du <changbin.du@gmail.com>
-> > ---
-> >  include/asm-generic/dwarf.h | 199 ++++++++++++++++++++++++++++++++++++
-> >  1 file changed, 199 insertions(+)
-> >  create mode 100644 include/asm-generic/dwarf.h
+> > The option belongs into common code and the arch code shoud only
+> > select it.
 > > 
-> > diff --git a/include/asm-generic/dwarf.h b/include/asm-generic/dwarf.h
-> > new file mode 100644
-> > index 000000000000..c705633c2a8f
-> > --- /dev/null
-> > +++ b/include/asm-generic/dwarf.h
-> > @@ -0,0 +1,199 @@
-> > +/* SPDX-License-Identifier: GPL-2.0
-> > + *
-> > + * Architecture independent definitions of DWARF.
-> > + *
-> > + * Copyright (C) 2019 Changbin Du <changbin.du@gmail.com>
 > 
-> You're claiming copyright on dwarf definitions? ;-)
+> In fact that was my first approach, but then I noticed that in kernel/ topdir
+> there was no generic Kconfig but only subsystem specific ones:
 > 
-> I'm thinking only Oracle was daft enough to think stuff like that was
-> copyrightable.
-> 
-ok, let me remove copyright line. I think SPDX claim is okay, right?
+> Kconfig.freezer  Kconfig.hz       Kconfig.locks    Kconfig.preempt
 
-> Also; I think it would be very good to not use/depend on DWARF for this.
->
-It only includes the DWARF expersion opcodes, not all of dwarf stuffs.
+arch/Kconfig
 
-> You really don't need all of DWARF; I'm thikning you only need a few
-> types; for location we already have regs_get_kernel_argument() which
-> has all the logic to find the n-th argument.
-> 
-regs_get_kernel_argument() can handle most cases, but if the size of one paramater
-exceeds 64bit (it is rare in kernel), we must recalculate the locations. So I think
-dwarf location descriptor is the most accurate one.
+Thanks,
 
--- 
-Cheers,
-Changbin Du
+	tglx
