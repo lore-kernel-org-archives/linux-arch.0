@@ -1,44 +1,25 @@
-From: Changbin Du <changbin.du@gmail.com>
-Subject: [PATCH 11/11] MAINTAINERS: make scripts/ftrace/ maintained
-Date: Sun, 25 Aug 2019 21:23:30 +0800
-Message-ID: <20190825132330.5015-12-changbin.du@gmail.com>
-References: <20190825132330.5015-1-changbin.du@gmail.com>
+From: Christoph Hellwig <hch@infradead.org>
+Subject: Re: [PATCH V2] csky: Fixup 610 vipt cache flush mechanism
+Date: Sun, 25 Aug 2019 23:38:18 -0700
+Message-ID: <20190826063818.GA29871@infradead.org>
+References: <1566443122-17540-1-git-send-email-guoren@kernel.org>
 Mime-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20190825132330.5015-1-changbin.du@gmail.com>
+Content-Disposition: inline
+In-Reply-To: <1566443122-17540-1-git-send-email-guoren@kernel.org>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Steven Rostedt <rostedt@goodmis.org>, Ingo Molnar <mingo@redhat.com>
-Cc: Jonathan Corbet <corbet@lwn.net>, Jessica Yu <jeyu@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, x86@kernel.org, linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-mips@vger.kernel.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-riscv@lists.infradead.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org, linux-kbuild@vger.kernel.org, Changbin Du <changbin.du@gmail.com>
+To: guoren@kernel.org
+Cc: arnd@arndb.de, hch@infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-csky@vger.kernel.org, douzhk@nationalchip.com, Guo Ren <ren_guo@c-sky.com>
 List-Id: linux-arch.vger.kernel.org
 
-Make scripts/ftrace/ maintained and I would like to help with reviewing
-related patches.
+On Thu, Aug 22, 2019 at 11:05:22AM +0800, guoren@kernel.org wrote:
+> From: Guo Ren <ren_guo@c-sky.com>
+> 
+> 610 has vipt aliasing issue, so we need to finish the cache flush
+> apis mentioned in cachetlb.rst to avoid data corruption.
+> 
+> Here is the list of modified apis in the patch:
 
-Signed-off-by: Changbin Du <changbin.du@gmail.com>
----
- MAINTAINERS | 2 ++
- 1 file changed, 2 insertions(+)
-
-diff --git a/MAINTAINERS b/MAINTAINERS
-index 9cbcf167bdd0..ca012ea260d7 100644
---- a/MAINTAINERS
-+++ b/MAINTAINERS
-@@ -16293,6 +16293,7 @@ F:	drivers/char/tpm/
- TRACING
- M:	Steven Rostedt <rostedt@goodmis.org>
- M:	Ingo Molnar <mingo@redhat.com>
-+R:	Changbin Du <changbin.du@gmail.com>
- T:	git git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip.git perf/core
- S:	Maintained
- F:	Documentation/trace/ftrace.rst
-@@ -16303,6 +16304,7 @@ F:	include/linux/trace*.h
- F:	include/trace/
- F:	kernel/trace/
- F:	tools/testing/selftests/ftrace/
-+F:	scripts/ftrace/
- 
- TRACING MMIO ACCESSES (MMIOTRACE)
- M:	Steven Rostedt <rostedt@goodmis.org>
--- 
-2.20.1
+Looks sensible to me, although I can't really verify the details.
+You might also want to Cc linux-mm.
