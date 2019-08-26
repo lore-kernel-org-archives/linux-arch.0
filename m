@@ -1,15 +1,15 @@
 From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH 03/11] asm-generic: add generic dwarf definition
-Date: Mon, 26 Aug 2019 09:42:15 +0200
-Message-ID: <20190826074215.GL2369@hirez.programming.kicks-ass.net>
+Subject: Re: [PATCH 05/11] ftrace: create memcache for hash entries
+Date: Mon, 26 Aug 2019 09:44:37 +0200
+Message-ID: <20190826074437.GM2369@hirez.programming.kicks-ass.net>
 References: <20190825132330.5015-1-changbin.du@gmail.com>
- <20190825132330.5015-4-changbin.du@gmail.com>
+ <20190825132330.5015-6-changbin.du@gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
 Content-Disposition: inline
-In-Reply-To: <20190825132330.5015-4-changbin.du@gmail.com>
+In-Reply-To: <20190825132330.5015-6-changbin.du@gmail.com>
 List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
  <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
 List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
@@ -23,34 +23,53 @@ To: Changbin Du <changbin.du@gmail.com>
 Cc: linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, linux-parisc@vger.kernel.org, Jonathan Corbet <corbet@lwn.net>, linux-sh@vger.kernel.org, x86@kernel.org, linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org, Steven Rostedt <rostedt@goodmis.org>, linux-mips@vger.kernel.org, Ingo Molnar <mingo@redhat.com>, Jessica Yu <jeyu@kernel.org>, sparclinux@vger.kernel.org, linux-kbuild@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>, linuxppc-dev@lists.ozlabs.org, linux-riscv@lists.infradead.org, linux-arm-kernel@lists.infradead.org
 List-Id: linux-arch.vger.kernel.org
 
-On Sun, Aug 25, 2019 at 09:23:22PM +0800, Changbin Du wrote:
-> Add generic DWARF constant definitions. We will use it later.
+On Sun, Aug 25, 2019 at 09:23:24PM +0800, Changbin Du wrote:
+> When CONFIG_FTRACE_FUNC_PROTOTYPE is enabled, thousands of
+> ftrace_func_entry instances are created. So create a dedicated
+> memcache to enhance performance.
 > 
 > Signed-off-by: Changbin Du <changbin.du@gmail.com>
 > ---
->  include/asm-generic/dwarf.h | 199 ++++++++++++++++++++++++++++++++++++
->  1 file changed, 199 insertions(+)
->  create mode 100644 include/asm-generic/dwarf.h
+>  kernel/trace/ftrace.c | 17 ++++++++++++++++-
+>  1 file changed, 16 insertions(+), 1 deletion(-)
 > 
-> diff --git a/include/asm-generic/dwarf.h b/include/asm-generic/dwarf.h
-> new file mode 100644
-> index 000000000000..c705633c2a8f
-> --- /dev/null
-> +++ b/include/asm-generic/dwarf.h
-> @@ -0,0 +1,199 @@
-> +/* SPDX-License-Identifier: GPL-2.0
-> + *
-> + * Architecture independent definitions of DWARF.
-> + *
-> + * Copyright (C) 2019 Changbin Du <changbin.du@gmail.com>
+> diff --git a/kernel/trace/ftrace.c b/kernel/trace/ftrace.c
+> index a314f0768b2c..cfcb8dad93ea 100644
+> --- a/kernel/trace/ftrace.c
+> +++ b/kernel/trace/ftrace.c
+> @@ -94,6 +94,8 @@ struct ftrace_ops *function_trace_op __read_mostly = &ftrace_list_end;
+>  /* What to set function_trace_op to */
+>  static struct ftrace_ops *set_function_trace_op;
+>  
+> +struct kmem_cache *hash_entry_cache;
+> +
+>  static bool ftrace_pids_enabled(struct ftrace_ops *ops)
+>  {
+>  	struct trace_array *tr;
+> @@ -1169,7 +1171,7 @@ static int add_hash_entry(struct ftrace_hash *hash, unsigned long ip,
+>  {
+>  	struct ftrace_func_entry *entry;
+>  
+> -	entry = kmalloc(sizeof(*entry), GFP_KERNEL);
+> +	entry = kmem_cache_alloc(hash_entry_cache, GFP_KERNEL);
+>  	if (!entry)
+>  		return -ENOMEM;
+>  
+> @@ -6153,6 +6155,15 @@ void __init ftrace_init(void)
+>  	if (ret)
+>  		goto failed;
+>  
+> +	hash_entry_cache = kmem_cache_create("ftrace-hash",
+> +					     sizeof(struct ftrace_func_entry),
+> +					     sizeof(struct ftrace_func_entry),
+> +					     0, NULL);
+> +	if (!hash_entry_cache) {
+> +		pr_err("failed to create ftrace hash entry cache\n");
+> +		goto failed;
+> +	}
 
-You're claiming copyright on dwarf definitions? ;-)
+Wait what; you already have then in the binary image, now you're
+allocating extra memory for each of them?
 
-I'm thinking only Oracle was daft enough to think stuff like that was
-copyrightable.
-
-Also; I think it would be very good to not use/depend on DWARF for this.
-
-You really don't need all of DWARF; I'm thikning you only need a few
-types; for location we already have regs_get_kernel_argument() which
-has all the logic to find the n-th argument.
+Did you look at what ORC does? Is the binary search really not fast
+enough?
