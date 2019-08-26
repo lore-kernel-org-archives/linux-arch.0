@@ -1,49 +1,63 @@
-From: sbaugh@catern.com
-Subject: Re: [PATCH RESEND v11 7/8] open: openat2(2) syscall
-Date: Mon, 26 Aug 2019 19:50:50 +0000
-Message-ID: <854l2366zp.fsf@catern.com>
-References: <20190820033406.29796-1-cyphar@cyphar.com>
- <20190820033406.29796-8-cyphar@cyphar.com>
+From: Changbin Du <changbin.du@gmail.com>
+Subject: Re: [PATCH 03/11] asm-generic: add generic dwarf definition
+Date: Tue, 27 Aug 2019 06:25:12 +0800
+Message-ID: <20190826222510.6m2k3puwflnr52b7@mail.google.com>
+References: <20190825132330.5015-1-changbin.du@gmail.com>
+ <20190825132330.5015-4-changbin.du@gmail.com>
+ <20190826074215.GL2369@hirez.programming.kicks-ass.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
-Cc: linux-arch@vger.kernel.org, sparclinux@vger.kernel.org, linux-ia64@vger.kernel.org, linux-parisc@vger.kernel.org, linux-sh@vger.kernel.org, linux-api@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org, linuxppc-dev@ozlabs.org, linux-alpha@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-arm-kernel@lists.infradead.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <20190826074215.GL2369@hirez.programming.kicks-ass.net>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Changbin Du <changbin.du@gmail.com>, Steven Rostedt <rostedt@goodmis.org>, Ingo Molnar <mingo@redhat.com>, Jonathan Corbet <corbet@lwn.net>, Jessica Yu <jeyu@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, x86@kernel.org, linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-mips@vger.kernel.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-riscv@lists.infradead.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org, linux-kbuild@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-Aleksa Sarai <cyphar@cyphar.com> writes:
-> To this end, we introduce the openat2(2) syscall. It provides all of the
-> features of openat(2) through the @how->flags argument, but also
-> also provides a new @how->resolve argument which exposes RESOLVE_* flags
-> that map to our new LOOKUP_* flags. It also eliminates the long-standing
-> ugliness of variadic-open(2) by embedding it in a struct.
+Hi, Peter,
 
-I don't like this usage of a structure in memory to pass arguments that
-would fit in registers. This would be quite inconvenient for me as a
-userspace developer.
+On Mon, Aug 26, 2019 at 09:42:15AM +0200, Peter Zijlstra wrote:
+> On Sun, Aug 25, 2019 at 09:23:22PM +0800, Changbin Du wrote:
+> > Add generic DWARF constant definitions. We will use it later.
+> > 
+> > Signed-off-by: Changbin Du <changbin.du@gmail.com>
+> > ---
+> >  include/asm-generic/dwarf.h | 199 ++++++++++++++++++++++++++++++++++++
+> >  1 file changed, 199 insertions(+)
+> >  create mode 100644 include/asm-generic/dwarf.h
+> > 
+> > diff --git a/include/asm-generic/dwarf.h b/include/asm-generic/dwarf.h
+> > new file mode 100644
+> > index 000000000000..c705633c2a8f
+> > --- /dev/null
+> > +++ b/include/asm-generic/dwarf.h
+> > @@ -0,0 +1,199 @@
+> > +/* SPDX-License-Identifier: GPL-2.0
+> > + *
+> > + * Architecture independent definitions of DWARF.
+> > + *
+> > + * Copyright (C) 2019 Changbin Du <changbin.du@gmail.com>
+> 
+> You're claiming copyright on dwarf definitions? ;-)
+> 
+> I'm thinking only Oracle was daft enough to think stuff like that was
+> copyrightable.
+> 
+ok, let me remove copyright line. I think SPDX claim is okay, right?
 
-Others have brought up issues with this: the issue of seccomp, and the
-issue of mismatch between the userspace interface and the kernel
-interface, are the most important for me. I want to add another,
-admittedly somewhat niche, concern.
+> Also; I think it would be very good to not use/depend on DWARF for this.
+>
+It only includes the DWARF expersion opcodes, not all of dwarf stuffs.
 
-This interfaces requires a program to allocate memory (even on the
-stack) just to pass arguments to the kernel which could be passed
-without allocating that memory. That makes it more difficult and less
-efficient to use this syscall in any case where memory is not so easily
-allocatable: such as early program startup or assembly, where the stack
-may be limited in size or not even available yet, or when injecting a
-syscall while ptracing.
+> You really don't need all of DWARF; I'm thikning you only need a few
+> types; for location we already have regs_get_kernel_argument() which
+> has all the logic to find the n-th argument.
+> 
+regs_get_kernel_argument() can handle most cases, but if the size of one paramater
+exceeds 64bit (it is rare in kernel), we must recalculate the locations. So I think
+dwarf location descriptor is the most accurate one.
 
-A struct-passing interface was needed for clone, since we ran out of
-registers; but we have not run out of registers yet for openat, so it
-would be nice to avoid this if we can. We can always expand later...
+-- 
+Cheers,
+Changbin Du
