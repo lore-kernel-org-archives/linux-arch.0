@@ -1,29 +1,56 @@
-From: Christoph Hellwig <hch@lst.de>
-Subject: Re: [PATCH v2 01/11] asm-generic: add dma_zone_size
-Date: Mon, 26 Aug 2019 09:09:39 +0200
-Message-ID: <20190826070939.GD11331@lst.de>
-References: <20190820145821.27214-1-nsaenzjulienne@suse.de> <20190820145821.27214-2-nsaenzjulienne@suse.de>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH 03/11] asm-generic: add generic dwarf definition
+Date: Mon, 26 Aug 2019 09:42:15 +0200
+Message-ID: <20190826074215.GL2369@hirez.programming.kicks-ass.net>
+References: <20190825132330.5015-1-changbin.du@gmail.com>
+ <20190825132330.5015-4-changbin.du@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
 Content-Disposition: inline
-In-Reply-To: <20190820145821.27214-2-nsaenzjulienne@suse.de>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Nicolas Saenz Julienne <nsaenzjulienne@suse.de>
-Cc: catalin.marinas@arm.com, hch@lst.de, wahrenst@gmx.net, marc.zyngier@arm.com, robh+dt@kernel.org, Robin Murphy <robin.murphy@arm.com>, linux-arm-kernel@lists.infradead.org, devicetree@vger.kernel.org, linux-arch@vger.kernel.org, iommu@lists.linux-foundation.org, linux-mm@kvack.org, linux-riscv@lists.infradead.org, Arnd Bergmann <arnd@arndb.de>, phill@raspberryi.org, f.fainelli@gmail.com, will@kernel.org, linux-kernel@vger.kernel.org, eric@anholt.net, mbrugger@suse.com, linux-rpi-kernel@lists.infradead.org, akpm@linux-foundation.org, frowand.list@gmail.com, m.szyprowski@samsung.com
+In-Reply-To: <20190825132330.5015-4-changbin.du@gmail.com>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+To: Changbin Du <changbin.du@gmail.com>
+Cc: linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, linux-parisc@vger.kernel.org, Jonathan Corbet <corbet@lwn.net>, linux-sh@vger.kernel.org, x86@kernel.org, linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org, Steven Rostedt <rostedt@goodmis.org>, linux-mips@vger.kernel.org, Ingo Molnar <mingo@redhat.com>, Jessica Yu <jeyu@kernel.org>, sparclinux@vger.kernel.org, linux-kbuild@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>, linuxppc-dev@lists.ozlabs.org, linux-riscv@lists.infradead.org, linux-arm-kernel@lists.infradead.org
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, Aug 20, 2019 at 04:58:09PM +0200, Nicolas Saenz Julienne wrote:
-> Some architectures have platform specific DMA addressing limitations.
-> This will allow for hardware description code to provide the constraints
-> in a generic manner, so as for arch code to properly setup it's memory
-> zones and DMA mask.
+On Sun, Aug 25, 2019 at 09:23:22PM +0800, Changbin Du wrote:
+> Add generic DWARF constant definitions. We will use it later.
+> 
+> Signed-off-by: Changbin Du <changbin.du@gmail.com>
+> ---
+>  include/asm-generic/dwarf.h | 199 ++++++++++++++++++++++++++++++++++++
+>  1 file changed, 199 insertions(+)
+>  create mode 100644 include/asm-generic/dwarf.h
+> 
+> diff --git a/include/asm-generic/dwarf.h b/include/asm-generic/dwarf.h
+> new file mode 100644
+> index 000000000000..c705633c2a8f
+> --- /dev/null
+> +++ b/include/asm-generic/dwarf.h
+> @@ -0,0 +1,199 @@
+> +/* SPDX-License-Identifier: GPL-2.0
+> + *
+> + * Architecture independent definitions of DWARF.
+> + *
+> + * Copyright (C) 2019 Changbin Du <changbin.du@gmail.com>
 
-I know this just spreads the arm code, but I still kinda hate it.
+You're claiming copyright on dwarf definitions? ;-)
 
-MAX_DMA_ADDRESS is such an oddly defined concepts.  We have the mm
-code that uses it to start allocating after the dma zones, but
-I think that would better be done using a function returning
-1 << max(zone_dma_bits, 32) or so.  Then we have about a handful
-of drivers using it that all seem rather bogus, and one of which
-I think are usable on arm64.
+I'm thinking only Oracle was daft enough to think stuff like that was
+copyrightable.
+
+Also; I think it would be very good to not use/depend on DWARF for this.
+
+You really don't need all of DWARF; I'm thikning you only need a few
+types; for location we already have regs_get_kernel_argument() which
+has all the logic to find the n-th argument.
