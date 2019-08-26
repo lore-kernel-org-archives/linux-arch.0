@@ -1,58 +1,49 @@
-From: Cristian Marussi <cristian.marussi@arm.com>
-Subject: Re: [RFC PATCH 5/7] arm64: smp: use generic SMP stop common code
-Date: Mon, 26 Aug 2019 20:58:01 +0100
-Message-ID: <c6a86709-6faf-bf84-08aa-c41dab61c58f@arm.com>
-References: <20190823115720.605-1-cristian.marussi@arm.com>
- <20190823115720.605-6-cristian.marussi@arm.com>
- <20190826153236.GA9591@infradead.org>
+From: sbaugh@catern.com
+Subject: Re: [PATCH RESEND v11 7/8] open: openat2(2) syscall
+Date: Mon, 26 Aug 2019 19:50:50 +0000
+Message-ID: <854l2366zp.fsf@catern.com>
+References: <20190820033406.29796-1-cyphar@cyphar.com>
+ <20190820033406.29796-8-cyphar@cyphar.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20190826153236.GA9591@infradead.org>
-Content-Language: en-US
-Sender: linux-kernel-owner@vger.kernel.org
-To: Christoph Hellwig <hch@infradead.org>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mark.rutland@arm.com, peterz@infradead.org, catalin.marinas@arm.com, takahiro.akashi@linaro.org, james.morse@arm.com, hidehiro.kawai.ez@hitachi.com, tglx@linutronix.de, will@kernel.org, dave.martin@arm.com, linux-arm-kernel@lists.infradead.org
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+Cc: linux-arch@vger.kernel.org, sparclinux@vger.kernel.org, linux-ia64@vger.kernel.org, linux-parisc@vger.kernel.org, linux-sh@vger.kernel.org, linux-api@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org, linuxppc-dev@ozlabs.org, linux-alpha@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-arm-kernel@lists.infradead.org
 List-Id: linux-arch.vger.kernel.org
 
-Hi
+Aleksa Sarai <cyphar@cyphar.com> writes:
+> To this end, we introduce the openat2(2) syscall. It provides all of the
+> features of openat(2) through the @how->flags argument, but also
+> also provides a new @how->resolve argument which exposes RESOLVE_* flags
+> that map to our new LOOKUP_* flags. It also eliminates the long-standing
+> ugliness of variadic-open(2) by embedding it in a struct.
 
-On 8/26/19 4:32 PM, Christoph Hellwig wrote:
->> +config ARCH_USE_COMMON_SMP_STOP
->> +	def_bool y if SMP
-> 
-> The option belongs into common code and the arch code shoud only
-> select it.
->
+I don't like this usage of a structure in memory to pass arguments that
+would fit in registers. This would be quite inconvenient for me as a
+userspace developer.
 
-In fact that was my first approach, but then I noticed that in kernel/ topdir
-there was no generic Kconfig but only subsystem specific ones:
+Others have brought up issues with this: the issue of seccomp, and the
+issue of mismatch between the userspace interface and the kernel
+interface, are the most important for me. I want to add another,
+admittedly somewhat niche, concern.
 
-Kconfig.freezer  Kconfig.hz       Kconfig.locks    Kconfig.preempt
+This interfaces requires a program to allocate memory (even on the
+stack) just to pass arguments to the kernel which could be passed
+without allocating that memory. That makes it more difficult and less
+efficient to use this syscall in any case where memory is not so easily
+allocatable: such as early program startup or assembly, where the stack
+may be limited in size or not even available yet, or when injecting a
+syscall while ptracing.
 
-while instead looking into archs top level Kconfig, beside the usual arch/Kconfig selects,
-I could find this similar sort of "reversed" approach in which the arch defined and
-selected a CONFIG which was indeed then used only in common code like in:
-
-20:37 $ egrep -R ARCH_HAS_CACHE_LINE_SIZE .
-./arch/arc/Kconfig:config ARCH_HAS_CACHE_LINE_SIZE
-./arch/x86/Kconfig:config ARCH_HAS_CACHE_LINE_SIZE
-./arch/arm64/Kconfig:config ARCH_HAS_CACHE_LINE_SIZE
-./include/linux/cache.h:#ifndef CONFIG_ARCH_HAS_CACHE_LINE_SIZE
-
-20:39 $ egrep -R ARCH_HAS_KEXEC_PURGATORY .
-./arch/powerpc/Kconfig:config ARCH_HAS_KEXEC_PURGATORY
-./arch/x86/Kconfig:config ARCH_HAS_KEXEC_PURGATORY
-./arch/s390/Kconfig:config ARCH_HAS_KEXEC_PURGATORY
-./arch/s390/purgatory/Makefile:obj-$(CONFIG_ARCH_HAS_KEXEC_PURGATORY) += kexec-purgatory.o
-./arch/s390/Kbuild:obj-$(CONFIG_ARCH_HAS_KEXEC_PURGATORY) += purgatory/
-./kernel/kexec_file.c:	if (!IS_ENABLED(CONFIG_ARCH_HAS_KEXEC_PURGATORY))
-
-so I thought it was an acceptable option and I went for it, not to introduce a new kernel/Kconfig.smp
-just for this new config option; but in fact I could have missed the real reason underlying these two
-different choices.
-
-Thanks
-
-Cristian
+A struct-passing interface was needed for clone, since we ran out of
+registers; but we have not run out of registers yet for openat, so it
+would be nice to avoid this if we can. We can always expand later...
