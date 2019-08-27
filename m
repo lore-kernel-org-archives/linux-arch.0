@@ -1,72 +1,46 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.suse.de ([195.135.220.15]:35694 "EHLO mx1.suse.de"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1725811AbfH0HDr (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 27 Aug 2019 03:03:47 -0400
-Date: Tue, 27 Aug 2019 09:03:41 +0200
-From: Petr Tesarik <ptesarik@suse.cz>
-Subject: Re: [PATCH v2 10/11] arm64: edit zone_dma_bits to fine tune
- dma-direct min mask
-Message-ID: <20190827090341.2bf6b336@ezekiel.suse.cz>
-In-Reply-To: <4d8d18af22d6dcd122bc9b4d9c2bd49e8443c746.camel@suse.de>
-References: <20190820145821.27214-1-nsaenzjulienne@suse.de>
-        <20190820145821.27214-11-nsaenzjulienne@suse.de>
-        <20190826070633.GB11331@lst.de>
-        <4d8d18af22d6dcd122bc9b4d9c2bd49e8443c746.camel@suse.de>
-MIME-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha256;
- boundary="Sig_/vmjhQR+jY/bQH=VqrrKvOyt"; protocol="application/pgp-signature"
+Received: from foss.arm.com ([217.140.110.172]:44422 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1730065AbfH0NSj (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 27 Aug 2019 09:18:39 -0400
+From: Will Deacon <will@kernel.org>
+Subject: [PATCH 2/6] arm64: tlb: Ensure we execute an ISB following walk cache invalidation
+Date: Tue, 27 Aug 2019 14:18:14 +0100
+Message-ID: <20190827131818.14724-3-will@kernel.org>
+In-Reply-To: <20190827131818.14724-1-will@kernel.org>
+References: <20190827131818.14724-1-will@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Nicolas Saenz Julienne <nsaenzjulienne@suse.de>
-Cc: Christoph Hellwig <hch@lst.de>, linux-arch@vger.kernel.org, devicetree@vger.kernel.org, linux-rpi-kernel@lists.infradead.org, f.fainelli@gmail.com, will@kernel.org, eric@anholt.net, marc.zyngier@arm.com, catalin.marinas@arm.com, frowand.list@gmail.com, linux-kernel@vger.kernel.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, robh+dt@kernel.org, wahrenst@gmx.net, mbrugger@suse.com, linux-riscv@lists.infradead.org, m.szyprowski@samsung.com, Robin Murphy <robin.murphy@arm.com>, akpm@linux-foundation.org, linux-arm-kernel@lists.infradead.org, phill@raspberryi.org
-Message-ID: <20190827070341.DGplxQl5vP6krEEhcmMwwwCjf3gvVlfEzbj-gs54cyk@z>
+To: linux-arm-kernel@lists.infradead.org
+Cc: linux-arch@vger.kernel.org, Will Deacon <will@kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Mark Rutland <mark.rutland@arm.com>, Marc Zyngier <maz@kernel.org>, Peter Zijlstra <peterz@infradead.org>, stable@vger.kernel.org
+Message-ID: <20190827131814.2g6rAVafkBKVEHMnzdZncfidfNiLzkh14BgfUmqHNPY@z>
 
---Sig_/vmjhQR+jY/bQH=VqrrKvOyt
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: quoted-printable
+05f2d2f83b5a ("arm64: tlbflush: Introduce __flush_tlb_kernel_pgtable")
+added a new TLB invalidation helper which is used when freeing
+intermediate levels of page table used for kernel mappings, but is
+missing the required ISB instruction after completion of the TLBI
+instruction.
 
-On Mon, 26 Aug 2019 13:08:50 +0200
-Nicolas Saenz Julienne <nsaenzjulienne@suse.de> wrote:
+Add the missing barrier.
 
-> On Mon, 2019-08-26 at 09:06 +0200, Christoph Hellwig wrote:
-> > On Tue, Aug 20, 2019 at 04:58:18PM +0200, Nicolas Saenz Julienne wrote:=
- =20
-> > > -	if (IS_ENABLED(CONFIG_ZONE_DMA))
-> > > +	if (IS_ENABLED(CONFIG_ZONE_DMA)) {
-> > >  		arm64_dma_phys_limit =3D max_zone_dma_phys();
-> > > +		zone_dma_bits =3D ilog2((arm64_dma_phys_limit - 1) &
-> > > GENMASK_ULL(31, 0)) + 1; =20
-> > =20
-> Hi Christoph,
-> thanks for the rewiews.
->=20
-> > This adds a way too long line. =20
->=20
-> I know, I couldn't find a way to split the operation without making it ev=
-en
-> harder to read. I'll find a solution.
+Cc: <stable@vger.kernel.org>
+Fixes: 05f2d2f83b5a ("arm64: tlbflush: Introduce __flush_tlb_kernel_pgtable")
+Signed-off-by: Will Deacon <will@kernel.org>
+---
+ arch/arm64/include/asm/tlbflush.h | 1 +
+ 1 file changed, 1 insertion(+)
 
-If all else fails, move the code to an inline function and call it e.g.
-phys_limit_to_dma_bits().
-
-Just my two cents,
-Petr T
-
---Sig_/vmjhQR+jY/bQH=VqrrKvOyt
-Content-Type: application/pgp-signature
-Content-Description: Digitální podpis OpenPGP
-
------BEGIN PGP SIGNATURE-----
-
-iQEzBAEBCAAdFiEEHl2YIZkIo5VO2MxYqlA7ya4PR6cFAl1k1c0ACgkQqlA7ya4P
-R6ffZggAphWovRbYbJElIMDB+201+43NCpSH8dbZwe3UrJ+1DHzEn4OEldBRpcAv
-CuA2/u6GyA8wgnGpCAKj9HNHWSx9VeFoCmf6kPVHFtoC0hnJyJtCCWS1O9B1nqXR
-3h1Dw+6F/4wh14vqUucVvfseO/T1VV1QtfsczxBy2xEvcTZGhBjo7LEKeABa2yRm
-CoPLGyNtTtNkAhXeSeVJUcuquOjdqrcU+RlCH5EIZZagAvXuNLryEsjjUfD4Lx35
-RBeRcO+KmGJvAYuelWr/lqtO5ZUnD4OXoFE6fV7AvvJCD6RIHngLS4EXDIkGAaqd
-kWlLtSieXZDEl0mMBdQBfSVcByyzKA==
-=RDo8
------END PGP SIGNATURE-----
-
---Sig_/vmjhQR+jY/bQH=VqrrKvOyt--
+diff --git a/arch/arm64/include/asm/tlbflush.h b/arch/arm64/include/asm/tlbflush.h
+index 8af7a85f76bd..bc3949064725 100644
+--- a/arch/arm64/include/asm/tlbflush.h
++++ b/arch/arm64/include/asm/tlbflush.h
+@@ -251,6 +251,7 @@ static inline void __flush_tlb_kernel_pgtable(unsigned long kaddr)
+ 	dsb(ishst);
+ 	__tlbi(vaae1is, addr);
+ 	dsb(ish);
++	isb();
+ }
+ #endif
+ 
+-- 
+2.11.0
