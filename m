@@ -1,47 +1,50 @@
-From: Will Deacon <will@kernel.org>
-Subject: [PATCH 6/6] arm64: kvm: Replace hardcoded '1' with SYS_PAR_EL1_F
-Date: Tue, 27 Aug 2019 14:18:18 +0100
-Message-ID: <20190827131818.14724-7-will@kernel.org>
-References: <20190827131818.14724-1-will@kernel.org>
+From: Cristian Marussi <cristian.marussi@arm.com>
+Subject: Re: [RFC PATCH 5/7] arm64: smp: use generic SMP stop common code
+Date: Tue, 27 Aug 2019 15:34:08 +0100
+Message-ID: <2f1b7e1f-5ba2-37b4-193b-133a93a3f6ea@arm.com>
+References: <20190823115720.605-1-cristian.marussi@arm.com>
+ <20190823115720.605-6-cristian.marussi@arm.com>
+ <20190826153236.GA9591@infradead.org>
+ <c6a86709-6faf-bf84-08aa-c41dab61c58f@arm.com>
+ <alpine.DEB.2.21.1908270025340.1939@nanos.tec.linutronix.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
+Content-Type: text/plain; charset=utf-8
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
-In-Reply-To: <20190827131818.14724-1-will@kernel.org>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
-To: linux-arm-kernel@lists.infradead.org
-Cc: linux-arch@vger.kernel.org, Mark Rutland <mark.rutland@arm.com>, Peter Zijlstra <peterz@infradead.org>, Catalin Marinas <catalin.marinas@arm.com>, Marc Zyngier <maz@kernel.org>, Will Deacon <will@kernel.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <alpine.DEB.2.21.1908270025340.1939@nanos.tec.linutronix.de>
+Content-Language: en-US
+Sender: linux-kernel-owner@vger.kernel.org
+To: Thomas Gleixner <tglx@linutronix.de>
+Cc: Christoph Hellwig <hch@infradead.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mark.rutland@arm.com, peterz@infradead.org, catalin.marinas@arm.com, takahiro.akashi@linaro.org, james.morse@arm.com, hidehiro.kawai.ez@hitachi.com, will@kernel.org, dave.martin@arm.com, linux-arm-kernel@lists.infradead.org
 List-Id: linux-arch.vger.kernel.org
 
-Now that we have a definition for the 'F' field of PAR_EL1, use that
-instead of coding the immediate directly.
+Hi
 
-Acked-by: Marc Zyngier <maz@kernel.org>
-Signed-off-by: Will Deacon <will@kernel.org>
----
- arch/arm64/kvm/hyp/switch.c | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+On 26/08/2019 23:26, Thomas Gleixner wrote:
+> On Mon, 26 Aug 2019, Cristian Marussi wrote:
+>> On 8/26/19 4:32 PM, Christoph Hellwig wrote:
+>>>> +config ARCH_USE_COMMON_SMP_STOP
+>>>> +	def_bool y if SMP
+>>>
+>>> The option belongs into common code and the arch code shoud only
+>>> select it.
+>>>
+>>
+>> In fact that was my first approach, but then I noticed that in kernel/ topdir
+>> there was no generic Kconfig but only subsystem specific ones:
+>>
+>> Kconfig.freezer  Kconfig.hz       Kconfig.locks    Kconfig.preempt
+> 
+> arch/Kconfig
+> 
 
-diff --git a/arch/arm64/kvm/hyp/switch.c b/arch/arm64/kvm/hyp/switch.c
-index adaf266d8de8..bd978ad71936 100644
---- a/arch/arm64/kvm/hyp/switch.c
-+++ b/arch/arm64/kvm/hyp/switch.c
-@@ -264,7 +264,7 @@ static bool __hyp_text __translate_far_to_hpfar(u64 far, u64 *hpfar)
- 	tmp = read_sysreg(par_el1);
- 	write_sysreg(par, par_el1);
- 
--	if (unlikely(tmp & 1))
-+	if (unlikely(tmp & SYS_PAR_EL1_F))
- 		return false; /* Translation failed, back to guest */
- 
- 	/* Convert PAR to HPFAR format */
--- 
-2.11.0
+Ok I'll move it there in v2.
+
+Thanks for the review.
+
+Cristian
+
+> Thanks,
+> 
+> 	tglx
+> 
