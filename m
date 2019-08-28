@@ -1,66 +1,44 @@
-From: Jiri Slaby <jslaby@suse.cz>
-Subject: Asm & local labels for functions [was: [PATCH v8 05/28] x86/asm:
+From: Borislav Petkov <bp@alien8.de>
+Subject: Re: Asm & local labels for functions [was: [PATCH v8 05/28] x86/asm:
  annotate local pseudo-functions]
-Date: Wed, 28 Aug 2019 13:47:23 +0200
-Message-ID: <c5e0f683-796c-f552-0c3b-8a1105446200@suse.cz>
+Date: Wed, 28 Aug 2019 14:24:17 +0200
+Message-ID: <20190828122417.GH4920@zn.tnic>
 References: <20190808103854.6192-1-jslaby@suse.cz>
- <20190808103854.6192-6-jslaby@suse.cz> <20190815160719.GI15313@zn.tnic>
+ <20190808103854.6192-6-jslaby@suse.cz>
+ <20190815160719.GI15313@zn.tnic>
+ <c5e0f683-796c-f552-0c3b-8a1105446200@suse.cz>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20190815160719.GI15313@zn.tnic>
-Content-Language: en-GB
+Content-Disposition: inline
+In-Reply-To: <c5e0f683-796c-f552-0c3b-8a1105446200@suse.cz>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Borislav Petkov <bp@alien8.de>
+To: Jiri Slaby <jslaby@suse.cz>
 Cc: tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On 15. 08. 19, 18:07, Borislav Petkov wrote:
-> --- a/arch/x86/kernel/head_64.S
-> +++ b/arch/x86/kernel/head_64.S
-> @@ -283,7 +283,7 @@ ENTRY(early_idt_handler_array)
->  		UNWIND_HINT_IRET_REGS offset=8
->  	.endif
->  	pushq $i		# 72(%rsp) Vector number
-> -	jmp early_idt_handler_common
-> +	jmp .Learly_idt_handler_common
->  	UNWIND_HINT_IRET_REGS
->  	i = i + 1
->  	.fill early_idt_handler_array + i*EARLY_IDT_HANDLER_SIZE - ., 1, 0xcc
-> @@ -291,7 +291,7 @@ ENTRY(early_idt_handler_array)
->  	UNWIND_HINT_IRET_REGS offset=16
->  END(early_idt_handler_array)
->  
-> -SYM_CODE_START_LOCAL(early_idt_handler_common)
-> +SYM_CODE_START_LOCAL(.Learly_idt_handler_common)
->  	/*
->  	 * The stack is the hardware frame, an error code or zero, and the
->  	 * vector number.
-> @@ -333,7 +333,7 @@ SYM_CODE_START_LOCAL(early_idt_handler_common)
->  20:
->  	decl early_recursion_flag(%rip)
->  	jmp restore_regs_and_return_to_kernel
-> -SYM_CODE_END(early_idt_handler_common)
-> +SYM_CODE_END(.Learly_idt_handler_common)
+On Wed, Aug 28, 2019 at 01:47:23PM +0200, Jiri Slaby wrote:
+> Let's start with this one: do you really want me to get rid of (local)
+> symbols like this? It would make backtraces completely misleading as the
+> unwinder would put a name of the previous function (or some garbage,
+> depending on unwinder) into the backtrace...
 
-...
+Yes, while looking at your patches, I was thinking about what
+would be a good rule to use with which to make symbols local. I
+guess those which are small and not really important for stack
+traces like "bad_gs" in entry_64., for example. Or "relocated" in
+arch/x86/boot/compressed/head_64.S, as another example. That last one
+you probably are never going to see in stack traces due to it being too
+early anyway.
 
-> All except this one can be local labels and be removed from vmlinux'
-> symtable:
-> 
-> $ readelf -a vmlinux | grep -E "(bad_(gs|(get|put)_user)|bogus_64_magic|early_idt_handler_common|verify_cpu)"
->     45: ffffffff810000e0   241 FUNC    LOCAL  DEFAULT    1 verify_cpu
-> $
+Or, if we think that those symbols are important for stack traces, then
+they should be called something more prominent, with a naming prefix or
+so, so that they can be assigned to the respective source easier.
 
-Thanks for all the review hints.
+Am I making some sense?
 
-Let's start with this one: do you really want me to get rid of (local)
-symbols like this? It would make backtraces completely misleading as the
-unwinder would put a name of the previous function (or some garbage,
-depending on unwinder) into the backtrace...
-
-thanks,
 -- 
-js
-suse labs
+Regards/Gruss,
+    Boris.
+
+Good mailing practices for 400: avoid top-posting and trim the reply.
