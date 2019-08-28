@@ -1,106 +1,86 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.suse.de ([195.135.220.15]:50450 "EHLO mx1.suse.de"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1726315AbfH1JoS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 28 Aug 2019 05:44:18 -0400
-Message-ID: <5271f3041cf16ec06a8266b0072f294384280f54.camel@suse.de>
-Subject: Re: [PATCH v2 01/11] asm-generic: add dma_zone_size
-From: Nicolas Saenz Julienne <nsaenzjulienne@suse.de>
-Date: Wed, 28 Aug 2019 11:44:12 +0200
-In-Reply-To: <027272c27398b950f207101a2c5dbc07a30a36bc.camel@suse.de>
-References: <20190820145821.27214-1-nsaenzjulienne@suse.de>
-         <20190820145821.27214-2-nsaenzjulienne@suse.de>
-         <20190826070939.GD11331@lst.de>
-         <027272c27398b950f207101a2c5dbc07a30a36bc.camel@suse.de>
-Content-Type: multipart/signed; micalg="pgp-sha256";
-        protocol="application/pgp-signature"; boundary="=-HuE7CYEmA0DlmwKJIinl"
+Received: from mail.kernel.org ([198.145.29.99]:55992 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726232AbfH1KuC (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 28 Aug 2019 06:50:02 -0400
+Date: Wed, 28 Aug 2019 12:49:51 +0200
+From: Jessica Yu <jeyu@kernel.org>
+Subject: Re: [PATCH v3 06/11] export: allow definition default namespaces in
+ Makefiles or sources
+Message-ID: <20190828104951.GC25048@linux-8ccs>
+References: <20190813121733.52480-1-maennich@google.com>
+ <20190821114955.12788-1-maennich@google.com>
+ <20190821114955.12788-7-maennich@google.com>
 MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii; format=flowed
+Content-Disposition: inline
+In-Reply-To: <20190821114955.12788-7-maennich@google.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Christoph Hellwig <hch@lst.de>
-Cc: catalin.marinas@arm.com, linux-mm@kvack.org, linux-riscv@lists.infradead.org, will@kernel.org, m.szyprowski@samsung.com, linux-arch@vger.kernel.org, f.fainelli@gmail.com, frowand.list@gmail.com, devicetree@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, marc.zyngier@arm.com, robh+dt@kernel.org, linux-rpi-kernel@lists.infradead.org, linux-arm-kernel@lists.infradead.org, phill@raspberryi.org, mbrugger@suse.com, eric@anholt.net, linux-kernel@vger.kernel.org, iommu@lists.linux-foundation.org, wahrenst@gmx.net, akpm@linux-foundation.org, Robin Murphy <robin.murphy@arm.com>
-Message-ID: <20190828094412._G6ezhI6NbUN3LYZUWBoB-eN7IS88hCB0tVP5QFvUM4@z>
+To: Matthias Maennich <maennich@google.com>
+Cc: linux-kernel@vger.kernel.org, kernel-team@android.com, arnd@arndb.de, geert@linux-m68k.org, gregkh@linuxfoundation.org, hpa@zytor.com, joel@joelfernandes.org, kstewart@linuxfoundation.org, linux-arch@vger.kernel.org, linux-kbuild@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-modules@vger.kernel.org, linux-scsi@vger.kernel.org, linux-usb@vger.kernel.org, lucas.de.marchi@gmail.com, maco@android.com, maco@google.com, michal.lkml@markovi.net, mingo@redhat.com, oneukum@suse.com, pombredanne@nexb.com, sam@ravnborg.org, sspatil@google.com, stern@rowland.harvard.edu, tglx@linutronix.de, usb-storage@lists.one-eyed-alien.net, x86@kernel.org, yamada.masahiro@socionext.com, Michael Ellerman <mpe@ellerman.id.au>, Ingo Molnar <mingo@kernel.org>, Ard Biesheuvel <ard.biesheuvel@linaro.org>
+Message-ID: <20190828104951.qLQJ6VeUSNy_1tuArUbcugaQNtFTN3L-cMaPS1_04pw@z>
 
++++ Matthias Maennich [21/08/19 12:49 +0100]:
+>To avoid excessive usage of EXPORT_SYMBOL_NS(sym, MY_NAMESPACE), where
+>MY_NAMESPACE will always be the namespace we are exporting to, allow
+>exporting all definitions of EXPORT_SYMBOL() and friends by defining
+>DEFAULT_SYMBOL_NAMESPACE.
+>
+>For example, to export all symbols defined in usb-common into the
+>namespace USB_COMMON, add a line like this to drivers/usb/common/Makefile:
+>
+>  ccflags-y += -DDEFAULT_SYMBOL_NAMESPACE=USB_COMMON
+>
+>That is equivalent to changing all EXPORT_SYMBOL(sym) definitions to
+>EXPORT_SYMBOL_NS(sym, USB_COMMON). Subsequently all symbol namespaces
+>functionality will apply.
+>
+>Another way of making use of this feature is to define the namespace
+>within source or header files similar to how TRACE_SYSTEM defines are
+>used:
+>  #undef DEFAULT_SYMBOL_NAMESPACE
+>  #define DEFAULT_SYMBOL_NAMESPACE USB_COMMON
+>
+>Please note that, as opposed to TRACE_SYSTEM, DEFAULT_SYMBOL_NAMESPACE
+>has to be defined before including include/linux/export.h.
+>
+>If DEFAULT_SYMBOL_NAMESPACE is defined, a symbol can still be exported
+>to another namespace by using EXPORT_SYMBOL_NS() and friends with
+>explicitly specifying the namespace.
 
---=-HuE7CYEmA0DlmwKJIinl
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
+This changelog provides a good summary of how to use
+DEFAULT_SYMBOL_NAMESPACE, I wonder if we should explicitly document
+its proper usage somewhere? (along with EXPORT_SYMBOL_NS*)
+The EXPORT_SYMBOL API is briefly documented in
+Documentation/kernel-hacking/hacking.rst - it might be slightly dated,
+but perhaps it'd fit there best?
 
-On Mon, 2019-08-26 at 15:46 +0200, Nicolas Saenz Julienne wrote:
-> On Mon, 2019-08-26 at 09:09 +0200, Christoph Hellwig wrote:
-> > On Tue, Aug 20, 2019 at 04:58:09PM +0200, Nicolas Saenz Julienne wrote:
-> > > Some architectures have platform specific DMA addressing limitations.
-> > > This will allow for hardware description code to provide the constrai=
-nts
-> > > in a generic manner, so as for arch code to properly setup it's memor=
-y
-> > > zones and DMA mask.
-> >=20
-> > I know this just spreads the arm code, but I still kinda hate it.
->=20
-> Rob's main concern was finding a way to pass the constraint from HW defin=
-ition
-> to arch without widening fdt's architecture specific function surface. I'=
-d say
-> it's fair to argue that having a generic mechanism makes sense as it'll n=
-ow
-> traverse multiple archs and subsystems.
->=20
-> I get adding globals like this is not very appealing, yet I went with it =
-as it
-> was the easier to integrate with arm's code. Any alternative suggestions?
->=20
-> > MAX_DMA_ADDRESS is such an oddly defined concepts.  We have the mm
-> > code that uses it to start allocating after the dma zones, but
-> > I think that would better be done using a function returning
-> > 1 << max(zone_dma_bits, 32) or so.  Then we have about a handful
-> > of drivers using it that all seem rather bogus, and one of which
-> > I think are usable on arm64.
->=20
-> Is it safe to assume DMA limitations will always be a power of 2? I ask a=
-s
-> RPi4
-> kinda isn't: ZONE_DMA is 0x3c000000 bytes big, I'm approximating the zone=
- mask
-> to 30 as [0x3c000000 0x3fffffff] isn't defined as memory so it's unlikely=
- that
-> we=C2=B4ll encounter buffers there. But I don't know how it could affect =
-mm
-> initialization code.
->=20
-> This also rules out 'zone_dma_bits' as a mechanism to pass ZONE_DMA's siz=
-e
-> from
-> HW definition code to arch's.
-
-Hi Christoph,
-I gave it a thought and think this whole MAX_DMA_ADDRESS topic falls out of=
- the
-scope of the series. I agree it's something that we should get rid of, but
-fixing it isn't going to affect the overall enhancement intended here.  I'd
-rather focus on how are we going to pass the DMA zone data into the arch co=
-de
-and fix MAX_DMA_ADDRESS on another series.
-
-Regards,
-Nicolas
-
-
---=-HuE7CYEmA0DlmwKJIinl
-Content-Type: application/pgp-signature; name="signature.asc"
-Content-Description: This is a digitally signed message part
-Content-Transfer-Encoding: 7bit
-
------BEGIN PGP SIGNATURE-----
-
-iQEzBAABCAAdFiEErOkkGDHCg2EbPcGjlfZmHno8x/4FAl1mTOwACgkQlfZmHno8
-x/5rEQf/a0hgCNBuEJW0dF6JOgmq1B1AUgrpu1lR5mCYvRYKaWrIH0GEWk7/DMYN
-5P/0pfK8WcmvSuTsH3kAL9FVcqCF1fm+KHxDUfHg0WM4TbfF/SNx8nzM0thhMSGg
-vcgA6AP1aXP4wkqXKPhjga2uBewFfdD02TKqIvsSKEXAUge69kAkVjSAy/Sz8Rj9
-NUwJ6GbY5Clul7ZkO6eRe39K/bnmICJytZCvmxas+x3YQN5eiml9ooPhHoCa48l1
-tzjKhxg5VSCVPYdvIdauSRDsuHKcYzezXiaX/mX8Rz6h2/4bWbX9/Lt9Y5UZyikO
-2DdZK0hdYuTCw2X0qHF5x4sS1s9Tew==
-=HHcK
------END PGP SIGNATURE-----
-
---=-HuE7CYEmA0DlmwKJIinl--
+>Suggested-by: Arnd Bergmann <arnd@arndb.de>
+>Reviewed-by: Martijn Coenen <maco@android.com>
+>Reviewed-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+>Signed-off-by: Matthias Maennich <maennich@google.com>
+>---
+> include/linux/export.h | 6 ++++++
+> 1 file changed, 6 insertions(+)
+>
+>diff --git a/include/linux/export.h b/include/linux/export.h
+>index 8e12e05444d1..1fb243abdbc4 100644
+>--- a/include/linux/export.h
+>+++ b/include/linux/export.h
+>@@ -166,6 +166,12 @@ struct kernel_symbol {
+> #define __EXPORT_SYMBOL ___EXPORT_SYMBOL
+> #endif
+>
+>+#ifdef DEFAULT_SYMBOL_NAMESPACE
+>+#undef __EXPORT_SYMBOL
+>+#define __EXPORT_SYMBOL(sym, sec)				\
+>+	__EXPORT_SYMBOL_NS(sym, sec, DEFAULT_SYMBOL_NAMESPACE)
+>+#endif
+>+
+> #define EXPORT_SYMBOL(sym) __EXPORT_SYMBOL(sym, "")
+> #define EXPORT_SYMBOL_GPL(sym) __EXPORT_SYMBOL(sym, "_gpl")
+> #define EXPORT_SYMBOL_GPL_FUTURE(sym) __EXPORT_SYMBOL(sym, "_gpl_future")
+>-- 
+>2.23.0.rc1.153.gdeed80330f-goog
+>
