@@ -1,49 +1,74 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.skyhub.de ([5.9.137.197]:43672 "EHLO mail.skyhub.de"
+Received: from mga02.intel.com ([134.134.136.20]:6091 "EHLO mga02.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726259AbfH1MYX (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 28 Aug 2019 08:24:23 -0400
-Date: Wed, 28 Aug 2019 14:24:17 +0200
-From: Borislav Petkov <bp@alien8.de>
-Subject: Re: Asm & local labels for functions [was: [PATCH v8 05/28] x86/asm:
- annotate local pseudo-functions]
-Message-ID: <20190828122417.GH4920@zn.tnic>
-References: <20190808103854.6192-1-jslaby@suse.cz>
- <20190808103854.6192-6-jslaby@suse.cz>
- <20190815160719.GI15313@zn.tnic>
- <c5e0f683-796c-f552-0c3b-8a1105446200@suse.cz>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-In-Reply-To: <c5e0f683-796c-f552-0c3b-8a1105446200@suse.cz>
+        id S1726440AbfH1PHB (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 28 Aug 2019 11:07:01 -0400
+Message-ID: <29e6afa9cd7a7b0069ec6b999a2830cbbbe50a56.camel@intel.com>
+Subject: Re: [PATCH v8 11/27] x86/mm: Introduce _PAGE_DIRTY_SW
+From: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Date: Wed, 28 Aug 2019 07:57:41 -0700
+In-Reply-To: <20190828070308.GJ2332@hirez.programming.kicks-ass.net>
+References: <20190813205225.12032-1-yu-cheng.yu@intel.com>
+         <20190813205225.12032-12-yu-cheng.yu@intel.com>
+         <20190823140233.GC2332@hirez.programming.kicks-ass.net>
+         <6c3dc33e16c8bbb6d45c0a6ec7c684de197fa065.camel@intel.com>
+         <20190828070308.GJ2332@hirez.programming.kicks-ass.net>
+Content-Type: text/plain; charset="UTF-8"
+Mime-Version: 1.0
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jiri Slaby <jslaby@suse.cz>
-Cc: tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20190828122417.dUHec7Tjs-sWzct568O3l2VTQQ21_woEKzdnEq1tdIA@z>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@amacapital.net>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>
+Message-ID: <20190828145741.PY5408U7x928OWt7ndM_iDAMEU6w8HqnabFlTSyrnUw@z>
 
-On Wed, Aug 28, 2019 at 01:47:23PM +0200, Jiri Slaby wrote:
-> Let's start with this one: do you really want me to get rid of (local)
-> symbols like this? It would make backtraces completely misleading as the
-> unwinder would put a name of the previous function (or some garbage,
-> depending on unwinder) into the backtrace...
+On Wed, 2019-08-28 at 09:03 +0200, Peter Zijlstra wrote:
+> On Tue, Aug 27, 2019 at 03:37:12PM -0700, Yu-cheng Yu wrote:
+> > On Fri, 2019-08-23 at 16:02 +0200, Peter Zijlstra wrote:
+> > > On Tue, Aug 13, 2019 at 01:52:09PM -0700, Yu-cheng Yu wrote:
+> > > 
+> > > > +static inline pte_t pte_move_flags(pte_t pte, pteval_t from, pteval_t
+> > > > to)
+> > > > +{
+> > > > +	if (pte_flags(pte) & from)
+> > > > +		pte = pte_set_flags(pte_clear_flags(pte, from), to);
+> > > > +	return pte;
+> > > > +}
+> > > 
+> > > Aside of the whole conditional thing (I agree it would be better to have
+> > > this unconditionally); the function doesn't really do as advertised.
+> > > 
+> > > That is, if @from is clear, it doesn't endeavour to make sure @to is
+> > > also clear.
+> > > 
+> > > Now it might be sufficient, but in that case it really needs a comment
+> > > and or different name.
+> > > 
+> > > An implementation that actually moves the bit is something like:
+> > > 
+> > > 	pteval_t a,b;
+> > > 
+> > > 	a = native_pte_value(pte);
+> > > 	b = (a >> from_bit) & 1;
+> > > 	a &= ~((1ULL << from_bit) | (1ULL << to_bit));
+> > > 	a |= b << to_bit;
+> > > 	return make_native_pte(a);
+> > 
+> > There can be places calling pte_wrprotect() on a PTE that is already RO +
+> > DIRTY_SW.  Then in pte_move_flags(pte, _PAGE_DIRTY_HW, _PAGE_DIRTY_SW) we do
+> > not
+> >  want to clear _PAGE_DIRTY_SW.  But, I will look into this and make it more
+> > obvious.
+> 
+> Well, then the name 'move' is just wrong, because that is not the
+> semantics you're looking for.
+> 
+> So the thing is; if you provide a generic function that 'munges' two
+> bits, then it's name had better be accurate. But AFAICT you only ever
+> used this for the DIRTY bits, so it might be better to have a function
+> specifically for that and with a comment that spells out the exact
+> semantics and reasons for them.
 
-Yes, while looking at your patches, I was thinking about what
-would be a good rule to use with which to make symbols local. I
-guess those which are small and not really important for stack
-traces like "bad_gs" in entry_64., for example. Or "relocated" in
-arch/x86/boot/compressed/head_64.S, as another example. That last one
-you probably are never going to see in stack traces due to it being too
-early anyway.
+Yes, I will work on that.
 
-Or, if we think that those symbols are important for stack traces, then
-they should be called something more prominent, with a naming prefix or
-so, so that they can be assigned to the respective source easier.
-
-Am I making some sense?
-
--- 
-Regards/Gruss,
-    Boris.
-
-Good mailing practices for 400: avoid top-posting and trim the reply.
+Yu-cheng
