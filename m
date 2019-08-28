@@ -1,93 +1,71 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wr1-f65.google.com ([209.85.221.65]:41003 "EHLO
-        mail-wr1-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726315AbfH1K4e (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 28 Aug 2019 06:56:34 -0400
-Received: by mail-wr1-f65.google.com with SMTP id j16so2005853wrr.8
-        for <linux-arch@vger.kernel.org>; Wed, 28 Aug 2019 03:56:32 -0700 (PDT)
-Date: Wed, 28 Aug 2019 11:56:27 +0100
-From: Matthias Maennich <maennich@google.com>
-Subject: Re: [PATCH v3 06/11] export: allow definition default namespaces in
- Makefiles or sources
-Message-ID: <20190828105627.GA41539@google.com>
-References: <20190813121733.52480-1-maennich@google.com>
- <20190821114955.12788-1-maennich@google.com>
- <20190821114955.12788-7-maennich@google.com>
- <20190828104951.GC25048@linux-8ccs>
+Received: from mail-wr1-f66.google.com ([209.85.221.66]:33691 "EHLO
+        mail-wr1-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726293AbfH1Lr3 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 28 Aug 2019 07:47:29 -0400
+Subject: Asm & local labels for functions [was: [PATCH v8 05/28] x86/asm:
+ annotate local pseudo-functions]
+References: <20190808103854.6192-1-jslaby@suse.cz>
+ <20190808103854.6192-6-jslaby@suse.cz> <20190815160719.GI15313@zn.tnic>
+From: Jiri Slaby <jslaby@suse.cz>
+Message-ID: <c5e0f683-796c-f552-0c3b-8a1105446200@suse.cz>
+Date: Wed, 28 Aug 2019 13:47:23 +0200
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii; format=flowed
-Content-Disposition: inline
-In-Reply-To: <20190828104951.GC25048@linux-8ccs>
+In-Reply-To: <20190815160719.GI15313@zn.tnic>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-GB
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jessica Yu <jeyu@kernel.org>
-Cc: linux-kernel@vger.kernel.org, kernel-team@android.com, arnd@arndb.de, geert@linux-m68k.org, gregkh@linuxfoundation.org, hpa@zytor.com, joel@joelfernandes.org, kstewart@linuxfoundation.org, linux-arch@vger.kernel.org, linux-kbuild@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-modules@vger.kernel.org, linux-scsi@vger.kernel.org, linux-usb@vger.kernel.org, lucas.de.marchi@gmail.com, maco@android.com, maco@google.com, michal.lkml@markovi.net, mingo@redhat.com, oneukum@suse.com, pombredanne@nexb.com, sam@ravnborg.org, sspatil@google.com, stern@rowland.harvard.edu, tglx@linutronix.de, usb-storage@lists.one-eyed-alien.net, x86@kernel.org, yamada.masahiro@socionext.com, Michael Ellerman <mpe@ellerman.id.au>, Ingo Molnar <mingo@kernel.org>, Ard Biesheuvel <ard.biesheuvel@linaro.org>
-Message-ID: <20190828105627.62qIxJi6GnKVmlgMqKmPXPcV-JRG5jN73eFNViGG1Os@z>
+To: Borislav Petkov <bp@alien8.de>
+Cc: tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20190828114723.j7rP14lh-mPkvAMD9DHH_c9XjB8ezM3oYuT4VxLTkH4@z>
 
-On Wed, Aug 28, 2019 at 12:49:51PM +0200, Jessica Yu wrote:
->+++ Matthias Maennich [21/08/19 12:49 +0100]:
->>To avoid excessive usage of EXPORT_SYMBOL_NS(sym, MY_NAMESPACE), where
->>MY_NAMESPACE will always be the namespace we are exporting to, allow
->>exporting all definitions of EXPORT_SYMBOL() and friends by defining
->>DEFAULT_SYMBOL_NAMESPACE.
->>
->>For example, to export all symbols defined in usb-common into the
->>namespace USB_COMMON, add a line like this to drivers/usb/common/Makefile:
->>
->> ccflags-y += -DDEFAULT_SYMBOL_NAMESPACE=USB_COMMON
->>
->>That is equivalent to changing all EXPORT_SYMBOL(sym) definitions to
->>EXPORT_SYMBOL_NS(sym, USB_COMMON). Subsequently all symbol namespaces
->>functionality will apply.
->>
->>Another way of making use of this feature is to define the namespace
->>within source or header files similar to how TRACE_SYSTEM defines are
->>used:
->> #undef DEFAULT_SYMBOL_NAMESPACE
->> #define DEFAULT_SYMBOL_NAMESPACE USB_COMMON
->>
->>Please note that, as opposed to TRACE_SYSTEM, DEFAULT_SYMBOL_NAMESPACE
->>has to be defined before including include/linux/export.h.
->>
->>If DEFAULT_SYMBOL_NAMESPACE is defined, a symbol can still be exported
->>to another namespace by using EXPORT_SYMBOL_NS() and friends with
->>explicitly specifying the namespace.
->
->This changelog provides a good summary of how to use
->DEFAULT_SYMBOL_NAMESPACE, I wonder if we should explicitly document
->its proper usage somewhere? (along with EXPORT_SYMBOL_NS*)
->The EXPORT_SYMBOL API is briefly documented in
->Documentation/kernel-hacking/hacking.rst - it might be slightly dated,
->but perhaps it'd fit there best?
+On 15. 08. 19, 18:07, Borislav Petkov wrote:
+> --- a/arch/x86/kernel/head_64.S
+> +++ b/arch/x86/kernel/head_64.S
+> @@ -283,7 +283,7 @@ ENTRY(early_idt_handler_array)
+>  		UNWIND_HINT_IRET_REGS offset=8
+>  	.endif
+>  	pushq $i		# 72(%rsp) Vector number
+> -	jmp early_idt_handler_common
+> +	jmp .Learly_idt_handler_common
+>  	UNWIND_HINT_IRET_REGS
+>  	i = i + 1
+>  	.fill early_idt_handler_array + i*EARLY_IDT_HANDLER_SIZE - ., 1, 0xcc
+> @@ -291,7 +291,7 @@ ENTRY(early_idt_handler_array)
+>  	UNWIND_HINT_IRET_REGS offset=16
+>  END(early_idt_handler_array)
+>  
+> -SYM_CODE_START_LOCAL(early_idt_handler_common)
+> +SYM_CODE_START_LOCAL(.Learly_idt_handler_common)
+>  	/*
+>  	 * The stack is the hardware frame, an error code or zero, and the
+>  	 * vector number.
+> @@ -333,7 +333,7 @@ SYM_CODE_START_LOCAL(early_idt_handler_common)
+>  20:
+>  	decl early_recursion_flag(%rip)
+>  	jmp restore_regs_and_return_to_kernel
+> -SYM_CODE_END(early_idt_handler_common)
+> +SYM_CODE_END(.Learly_idt_handler_common)
 
-I will add documentation along with the commits. Not only for the
-macros, but in general to describe the feature.
+...
 
->>Suggested-by: Arnd Bergmann <arnd@arndb.de>
->>Reviewed-by: Martijn Coenen <maco@android.com>
->>Reviewed-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
->>Signed-off-by: Matthias Maennich <maennich@google.com>
->>---
->>include/linux/export.h | 6 ++++++
->>1 file changed, 6 insertions(+)
->>
->>diff --git a/include/linux/export.h b/include/linux/export.h
->>index 8e12e05444d1..1fb243abdbc4 100644
->>--- a/include/linux/export.h
->>+++ b/include/linux/export.h
->>@@ -166,6 +166,12 @@ struct kernel_symbol {
->>#define __EXPORT_SYMBOL ___EXPORT_SYMBOL
->>#endif
->>
->>+#ifdef DEFAULT_SYMBOL_NAMESPACE
->>+#undef __EXPORT_SYMBOL
->>+#define __EXPORT_SYMBOL(sym, sec)				\
->>+	__EXPORT_SYMBOL_NS(sym, sec, DEFAULT_SYMBOL_NAMESPACE)
->>+#endif
->>+
->>#define EXPORT_SYMBOL(sym) __EXPORT_SYMBOL(sym, "")
->>#define EXPORT_SYMBOL_GPL(sym) __EXPORT_SYMBOL(sym, "_gpl")
->>#define EXPORT_SYMBOL_GPL_FUTURE(sym) __EXPORT_SYMBOL(sym, "_gpl_future")
->>-- 
->>2.23.0.rc1.153.gdeed80330f-goog
->>
+> All except this one can be local labels and be removed from vmlinux'
+> symtable:
+> 
+> $ readelf -a vmlinux | grep -E "(bad_(gs|(get|put)_user)|bogus_64_magic|early_idt_handler_common|verify_cpu)"
+>     45: ffffffff810000e0   241 FUNC    LOCAL  DEFAULT    1 verify_cpu
+> $
+
+Thanks for all the review hints.
+
+Let's start with this one: do you really want me to get rid of (local)
+symbols like this? It would make backtraces completely misleading as the
+unwinder would put a name of the previous function (or some garbage,
+depending on unwinder) into the backtrace...
+
+thanks,
+-- 
+js
+suse labs
