@@ -1,109 +1,66 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pl1-f193.google.com ([209.85.214.193]:42190 "EHLO
-        mail-pl1-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726096AbfH1AgS (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 27 Aug 2019 20:36:18 -0400
-Received: by mail-pl1-f193.google.com with SMTP id y1so341841plp.9
-        for <linux-arch@vger.kernel.org>; Tue, 27 Aug 2019 17:36:18 -0700 (PDT)
-Date: Wed, 28 Aug 2019 10:35:24 +1000
-From: Nicholas Piggin <npiggin@gmail.com>
-Subject: Re: [PATCH 0/6] Fix TLB invalidation on arm64
-References: <20190827131818.14724-1-will@kernel.org>
-In-Reply-To: <20190827131818.14724-1-will@kernel.org>
+Received: from bombadil.infradead.org ([198.137.202.133]:39024 "EHLO
+        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726169AbfH1HD7 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 28 Aug 2019 03:03:59 -0400
+Date: Wed, 28 Aug 2019 09:03:08 +0200
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH v8 11/27] x86/mm: Introduce _PAGE_DIRTY_SW
+Message-ID: <20190828070308.GJ2332@hirez.programming.kicks-ass.net>
+References: <20190813205225.12032-1-yu-cheng.yu@intel.com>
+ <20190813205225.12032-12-yu-cheng.yu@intel.com>
+ <20190823140233.GC2332@hirez.programming.kicks-ass.net>
+ <6c3dc33e16c8bbb6d45c0a6ec7c684de197fa065.camel@intel.com>
 MIME-Version: 1.0
-Message-ID: <1566947104.2uma6s0pl1.astroid@bobo.none>
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: quoted-printable
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <6c3dc33e16c8bbb6d45c0a6ec7c684de197fa065.camel@intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arm-kernel@lists.infradead.org, Will Deacon <will@kernel.org>
-Cc: Catalin Marinas <catalin.marinas@arm.com>, linux-arch@vger.kernel.org, Mark Rutland <mark.rutland@arm.com>, Marc Zyngier <maz@kernel.org>, Peter Zijlstra <peterz@infradead.org>
-Message-ID: <20190828003524.bMAt4oyqvCT8sao7KDr_vkGKFRnvRD56D_SgO51HIbA@z>
+To: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Cc: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@amacapital.net>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>
+Message-ID: <20190828070308.sEFp_JtaUHb6zwxWkf0Evk4PDsO9fHCpi14Mh_zlnFU@z>
 
-Will Deacon's on August 27, 2019 11:18 pm:
-> can actually raise a translation fault on the load instruction because th=
-e
-> translation can be performed speculatively before the page table update a=
-nd
-> then marked as "faulting" by the CPU. For user PTEs, this is ok because w=
-e
-> can handle the spurious fault, but for kernel PTEs and intermediate table
-> entries this results in a panic().
+On Tue, Aug 27, 2019 at 03:37:12PM -0700, Yu-cheng Yu wrote:
+> On Fri, 2019-08-23 at 16:02 +0200, Peter Zijlstra wrote:
+> > On Tue, Aug 13, 2019 at 01:52:09PM -0700, Yu-cheng Yu wrote:
+> > 
+> > > +static inline pte_t pte_move_flags(pte_t pte, pteval_t from, pteval_t to)
+> > > +{
+> > > +	if (pte_flags(pte) & from)
+> > > +		pte = pte_set_flags(pte_clear_flags(pte, from), to);
+> > > +	return pte;
+> > > +}
+> > 
+> > Aside of the whole conditional thing (I agree it would be better to have
+> > this unconditionally); the function doesn't really do as advertised.
+> > 
+> > That is, if @from is clear, it doesn't endeavour to make sure @to is
+> > also clear.
+> > 
+> > Now it might be sufficient, but in that case it really needs a comment
+> > and or different name.
+> > 
+> > An implementation that actually moves the bit is something like:
+> > 
+> > 	pteval_t a,b;
+> > 
+> > 	a = native_pte_value(pte);
+> > 	b = (a >> from_bit) & 1;
+> > 	a &= ~((1ULL << from_bit) | (1ULL << to_bit));
+> > 	a |= b << to_bit;
+> > 	return make_native_pte(a);
+> 
+> There can be places calling pte_wrprotect() on a PTE that is already RO +
+> DIRTY_SW.  Then in pte_move_flags(pte, _PAGE_DIRTY_HW, _PAGE_DIRTY_SW) we do not
+>  want to clear _PAGE_DIRTY_SW.  But, I will look into this and make it more
+> obvious.
 
-powerpc sounds like it has the same coherency issue with stores vs loads=20
-from the MMU's page table walker, and a barrier called ptesync to order=20
-them.
+Well, then the name 'move' is just wrong, because that is not the
+semantics you're looking for.
 
-> We can fix this by reverting 24fe1b0efad4fcdd, but the fun doesn't stop
-> there. If we consider the unmap case, then a similar constraint applies t=
-o
-> ordering subsequent memory accesses after the completion of the TLB
-> invalidation, so we also need to add an ISB instruction to
-> __flush_tlb_kernel_pgtable(). For user addresses, the exception return
-> provides the necessary context synchronisation.
->=20
-> This then raises an interesting question: if an ISB is required after a T=
-LBI
-> instruction to prevent speculative translation of subsequent instructions=
-,
-> how is this speculation prevented on concurrent CPUs that receive the
-> broadcast TLB invalidation message? Sending and completing a broadcast TL=
-B
-> invalidation message does not imply execution of an ISB on the remote CPU=
-,
-> however it /does/ require that the remote CPU will no longer make use of =
-any
-> old translations because otherwise we wouldn't be able to guarantee that =
-an
-> unmapped page could no longer be modified. In this regard, receiving a TL=
-B
-> invalidation is in some ways stronger than sending one (where you need th=
-e
-> ISB).
-
-Similar with powerpc's tlbie, sender requires extra barriers!
-
-> So far, so good, but the final piece of the puzzle isn't quite so rosy.
->=20
-> *** Other architecture maintainers -- start here! ***
->=20
-> In the case that one CPU maps a page and then sets a flag to tell another
-> CPU:
->=20
-> 	CPU 0
-> 	-----
->=20
-> 	MOV	X0, <valid pte>
-> 	STR	X0, [Xptep]	// Store new PTE to page table
-> 	DSB	ISHST
-> 	ISB
-> 	MOV	X1, #1
-> 	STR	X1, [Xflag]	// Set the flag
->=20
-> 	CPU 1
-> 	-----
->=20
-> loop:	LDAR	X0, [Xflag]	// Poll flag with Acquire semantics
-> 	CBZ	X0, loop
-> 	LDR	X1, [X2]	// Translates using the new PTE
->=20
-> then the final load on CPU 1 can raise a translation fault for the same
-> reasons as mentioned at the start of this description.
-
-powerpc's ptesync instruction is defined to order MMU memory accesses on
-all other CPUs. ptesync does not go out to the fabric though. How does
-it work then?
-
-Because the MMU coherency problem (at least we have) is not that the
-load will begin to "partially" execute ahead of the store, enough to
-kick off a table walk that goes ahead of the store, but not so much
-that it violates the regular CPU barriers. It's just that the loads
-from the MMU don't participate in the LSU pipeline, they don't snoop
-the store queues aren't inserted into load queues so the regular
-memory barrier instructions won't see stores from other threads cuasing
-ordering violations.
-
-In your first example, if powerpc just has a normal memory barrier
-there instead of a ptesync, it could all execute completely
-non-speculatively and in-order but still cause a fault, because the
-table walker's loads didn't see the store in the store queue.
+So the thing is; if you provide a generic function that 'munges' two
+bits, then it's name had better be accurate. But AFAICT you only ever
+used this for the DIRTY bits, so it might be better to have a function
+specifically for that and with a comment that spells out the exact
+semantics and reasons for them.
