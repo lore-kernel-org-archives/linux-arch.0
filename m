@@ -1,7 +1,7 @@
 From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Subject: [PATCH 7/7] x86: vdso: Remove unused VDSO_HAS_32BIT_FALLBACK
-Date: Thu, 29 Aug 2019 12:18:43 +0100
-Message-ID: <20190829111843.41003-8-vincenzo.frascino@arm.com>
+Subject: [PATCH 4/7] lib: vdso: Remove VDSO_HAS_32BIT_FALLBACK
+Date: Thu, 29 Aug 2019 12:18:40 +0100
+Message-ID: <20190829111843.41003-5-vincenzo.frascino@arm.com>
 References: <20190829111843.41003-1-vincenzo.frascino@arm.com>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
@@ -12,31 +12,57 @@ To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kern
 Cc: catalin.marinas@arm.com, will@kernel.org, paul.burton@mips.com, tglx@linutronix.de, salyzyn@android.com, 0x7f454c46@gmail.com, luto@kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-As a consequence of Commit 623fa33f7bd6 ("lib:vdso: Remove
-VDSO_HAS_32BIT_FALLBACK") VDSO_HAS_32BIT_FALLBACK define is not
-required anymore hence can be removed.
+VDSO_HAS_32BIT_FALLBACK was introduced to address a regression which
+caused seccomp to deny access to the applications to clock_gettime64()
+and clock_getres64() because they are not enabled in the existing
+filters.
 
-Remove unused VDSO_HAS_32BIT_FALLBACK from x86 vdso.
+The purpose of VDSO_HAS_32BIT_FALLBACK was to simplify the conditional
+implementation of __cvdso_clock_get*time32() variants.
+
+Now that all the architectures that support the generic vDSO library
+have been converted to support the 32 bit fallbacks the conditional
+can be removed.
 
 Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: Andy Lutomirski <luto@kernel.org>
+CC: Andy Lutomirski <luto@kernel.org>
+References: c60a32ea4f45 ("lib/vdso/32: Provide legacy syscall fallbacks")
 Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
 ---
- arch/x86/include/asm/vdso/gettimeofday.h | 2 --
- 1 file changed, 2 deletions(-)
+ lib/vdso/gettimeofday.c | 10 ----------
+ 1 file changed, 10 deletions(-)
 
-diff --git a/arch/x86/include/asm/vdso/gettimeofday.h b/arch/x86/include/asm/vdso/gettimeofday.h
-index e9ee139cf29e..52c3bcd672cf 100644
---- a/arch/x86/include/asm/vdso/gettimeofday.h
-+++ b/arch/x86/include/asm/vdso/gettimeofday.h
-@@ -96,8 +96,6 @@ long clock_getres_fallback(clockid_t _clkid, struct __kernel_timespec *_ts)
+diff --git a/lib/vdso/gettimeofday.c b/lib/vdso/gettimeofday.c
+index a86e89e6dedc..2c4b311c226d 100644
+--- a/lib/vdso/gettimeofday.c
++++ b/lib/vdso/gettimeofday.c
+@@ -126,13 +126,8 @@ __cvdso_clock_gettime32(clockid_t clock, struct old_timespec32 *res)
  
- #else
+ 	ret = __cvdso_clock_gettime_common(clock, &ts);
  
--#define VDSO_HAS_32BIT_FALLBACK	1
--
- static __always_inline
- long clock_gettime_fallback(clockid_t _clkid, struct __kernel_timespec *_ts)
- {
+-#ifdef VDSO_HAS_32BIT_FALLBACK
+ 	if (unlikely(ret))
+ 		return clock_gettime32_fallback(clock, res);
+-#else
+-	if (unlikely(ret))
+-		ret = clock_gettime_fallback(clock, &ts);
+-#endif
+ 
+ 	if (likely(!ret)) {
+ 		res->tv_sec = ts.tv_sec;
+@@ -240,13 +235,8 @@ __cvdso_clock_getres_time32(clockid_t clock, struct old_timespec32 *res)
+ 
+ 	ret = __cvdso_clock_getres_common(clock, &ts);
+ 
+-#ifdef VDSO_HAS_32BIT_FALLBACK
+ 	if (unlikely(ret))
+ 		return clock_getres32_fallback(clock, res);
+-#else
+-	if (unlikely(ret))
+-		ret = clock_getres_fallback(clock, &ts);
+-#endif
+ 
+ 	if (likely(!ret)) {
+ 		res->tv_sec = ts.tv_sec;
 -- 
 2.23.0
