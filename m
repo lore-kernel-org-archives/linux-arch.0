@@ -1,59 +1,84 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pg1-f194.google.com ([209.85.215.194]:33867 "EHLO
-        mail-pg1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727097AbfH1Xlu (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 28 Aug 2019 19:41:50 -0400
-Date: Wed, 28 Aug 2019 23:41:34 +0000
-From: Changbin Du <changbin.du@gmail.com>
-Subject: Re: [PATCH 01/11] ftrace: move recordmcount tools to scripts/ftrace
-Message-ID: <20190828234133.quir3ptl4kidnxud@mail.google.com>
-References: <20190825132330.5015-1-changbin.du@gmail.com>
- <20190825132330.5015-2-changbin.du@gmail.com>
- <20190826184444.09334ae9@gandalf.local.home>
+Received: from pegase1.c-s.fr ([93.17.236.30]:11823 "EHLO pegase1.c-s.fr"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1725821AbfH2E4C (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 29 Aug 2019 00:56:02 -0400
+Subject: Re: [PATCH v2 7/7] bug: Move WARN_ON() "cut here" into exception
+ handler
+References: <201908200943.601DD59DCE@keescook>
+ <20190822155611.a1a6e26db99ba0876ba9c8bd@linux-foundation.org>
+ <86003539-18ec-f2ff-a46f-764edb820dcd@c-s.fr> <201908241206.D223659@keescook>
+From: Christophe Leroy <christophe.leroy@c-s.fr>
+Message-ID: <4c1ed94a-4dd0-e5cb-0b87-397b512d465e@c-s.fr>
+Date: Thu, 29 Aug 2019 06:55:59 +0200
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20190826184444.09334ae9@gandalf.local.home>
+In-Reply-To: <201908241206.D223659@keescook>
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Language: fr
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Steven Rostedt <rostedt@goodmis.org>
-Cc: Changbin Du <changbin.du@gmail.com>, Ingo Molnar <mingo@redhat.com>, Jonathan Corbet <corbet@lwn.net>, Jessica Yu <jeyu@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, x86@kernel.org, linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-mips@vger.kernel.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-riscv@lists.infradead.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org, linux-kbuild@vger.kernel.org, "John F . Reiser" <jreiser@BitWagon.com>, Matt Helsley <mhelsley@vmware.com>
-Message-ID: <20190828234134.Y3BPc-Bxs56wZWftKDMhgy4H5BBjkhZGf6CTXosziFQ@z>
+To: Kees Cook <keescook@chromium.org>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Peter Zijlstra <peterz@infradead.org>, Drew Davenport <ddavenport@chromium.org>, Arnd Bergmann <arnd@arndb.de>, "Steven Rostedt (VMware)" <rostedt@goodmis.org>, Feng Tang <feng.tang@intel.com>, Petr Mladek <pmladek@suse.com>, Mauro Carvalho Chehab <mchehab+samsung@kernel.org>, Borislav Petkov <bp@suse.de>, YueHaibing <yuehaibing@huawei.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20190829045559.9fbqPMfZvenv6nCGcY6FoO4OSJwRoH7kpxqG1DjzbNQ@z>
 
-On Mon, Aug 26, 2019 at 06:44:44PM -0400, Steven Rostedt wrote:
-> On Sun, 25 Aug 2019 21:23:20 +0800
-> Changbin Du <changbin.du@gmail.com> wrote:
-> 
-> > Move ftrace tools to its own directory. We will add another tool later.
-> > 
-> > Cc: John F. Reiser <jreiser@BitWagon.com>
-> > Signed-off-by: Changbin Du <changbin.du@gmail.com>
-> > ---
-> >  scripts/.gitignore                   |  1 -
-> >  scripts/Makefile                     |  2 +-
-> >  scripts/Makefile.build               | 10 +++++-----
-> >  scripts/ftrace/.gitignore            |  4 ++++
-> >  scripts/ftrace/Makefile              |  4 ++++
-> >  scripts/{ => ftrace}/recordmcount.c  |  0
-> >  scripts/{ => ftrace}/recordmcount.h  |  0
-> >  scripts/{ => ftrace}/recordmcount.pl |  0
-> >  8 files changed, 14 insertions(+), 7 deletions(-)
-> >  create mode 100644 scripts/ftrace/.gitignore
-> >  create mode 100644 scripts/ftrace/Makefile
-> >  rename scripts/{ => ftrace}/recordmcount.c (100%)
-> >  rename scripts/{ => ftrace}/recordmcount.h (100%)
-> >  rename scripts/{ => ftrace}/recordmcount.pl (100%)
-> >  mode change 100755 => 100644
-> 
-> Note, we are in the process of merging recordmcount with objtool. It
-> would be better to continue from that work.
-> 
->  http://lkml.kernel.org/r/2767f55f4a5fbf30ba0635aed7a9c5ee92ac07dd.1563992889.git.mhelsley@vmware.com
-> 
-> -- Steve
-Thanks for reminding. Let me check if prototype tool can merge into
-objtool easily after above work.
 
--- 
-Cheers,
-Changbin Du
+Le 24/08/2019 à 21:08, Kees Cook a écrit :
+
+Euh ... only received this mail yesterday. Same for the other answer.
+
+
+> On Fri, Aug 23, 2019 at 04:26:59PM +0200, Christophe Leroy wrote:
+>>
+>>
+>> Le 23/08/2019 à 00:56, Andrew Morton a écrit :
+>>> On Tue, 20 Aug 2019 09:47:55 -0700 Kees Cook <keescook@chromium.org> wrote:
+>>>
+>>>> Reply-To: 20190819234111.9019-8-keescook@chromium.org
+>>>
+>>> Really?
+>>
+>> That seems correct, that's the "[PATCH 7/7] bug: Move WARN_ON() "cut here"
+>> into exception handler" from the series at
+>> https://lkml.org/lkml/2019/8/19/1155
+>>
+>>
+>>>
+>>>> Subject: [PATCH v2 7/7] bug: Move WARN_ON() "cut here" into exception handler
+>>>
+>>> It's strange to receive a standalone [7/7] patch.
+>>
+>> Iaw the Reply_To, I understand it as an update of the 7th patch of the
+>> series.
+> 
+> Was trying to avoid the churn of resending the identical 1-6 patches
+> (which are all just refactoring to make 7/7 not a mess).
+
+Yes but Reply-To: means the address we have to use to answer to this email.
+
+I think you wanted to use In-reply-to:
+
+> 
+> I can resend the whole series, if that's preferred.
+
+I guess not.
+
+> 
+>>>> Reported-by: Christophe Leroy <christophe.leroy@c-s.fr>
+>>>> Fixes: Fixes: 6b15f678fb7d ("include/asm-generic/bug.h: fix "cut here" for WARN_ON for __WARN_TAINT architectures")
+>>>
+>>> I'm seeing double.
+> 
+> Tracking down all these combinations has been tricky, which is why I did
+> the patch 1-6 refactoring: it makes the call hierarchy much easier to
+> examine (IMO).
+
+But still, Andrew is seing double ... And me as well :)
+
+Fixes: Fixes:
+
+Christophe
+
+> 
+> -Kees
+> 
