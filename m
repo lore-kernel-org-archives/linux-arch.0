@@ -1,7 +1,7 @@
 From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Subject: [PATCH 2/7] lib: vdso: Build 32 bit specific functions in the right context
-Date: Thu, 29 Aug 2019 12:18:38 +0100
-Message-ID: <20190829111843.41003-3-vincenzo.frascino@arm.com>
+Subject: [PATCH 6/7] mips: vdso: Remove unused VDSO_HAS_32BIT_FALLBACK
+Date: Thu, 29 Aug 2019 12:18:42 +0100
+Message-ID: <20190829111843.41003-7-vincenzo.frascino@arm.com>
 References: <20190829111843.41003-1-vincenzo.frascino@arm.com>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
@@ -12,51 +12,30 @@ To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kern
 Cc: catalin.marinas@arm.com, will@kernel.org, paul.burton@mips.com, tglx@linutronix.de, salyzyn@android.com, 0x7f454c46@gmail.com, luto@kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-clock_gettime32 and clock_getres_time32 should be compiled only with a
-32 bit vdso library.
+As a consequence of Commit 623fa33f7bd6 ("lib:vdso: Remove
+VDSO_HAS_32BIT_FALLBACK") VDSO_HAS_32BIT_FALLBACK define is not
+required anymore hence can be removed.
 
-Exclude these symbols when BUILD_VDSO32 is not defined.
+Remove unused VDSO_HAS_32BIT_FALLBACK from mips vdso.
 
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: Andy Lutomirski <luto@kernel.org>
+Cc: Paul Burton <paul.burton@mips.com>
 Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
 ---
- lib/vdso/gettimeofday.c | 4 ++++
- 1 file changed, 4 insertions(+)
+ arch/mips/include/asm/vdso/gettimeofday.h | 2 --
+ 1 file changed, 2 deletions(-)
 
-diff --git a/lib/vdso/gettimeofday.c b/lib/vdso/gettimeofday.c
-index e630e7ff57f1..a86e89e6dedc 100644
---- a/lib/vdso/gettimeofday.c
-+++ b/lib/vdso/gettimeofday.c
-@@ -117,6 +117,7 @@ __cvdso_clock_gettime(clockid_t clock, struct __kernel_timespec *ts)
- 	return 0;
- }
+diff --git a/arch/mips/include/asm/vdso/gettimeofday.h b/arch/mips/include/asm/vdso/gettimeofday.h
+index e78462e8ca2e..5ad2b086626d 100644
+--- a/arch/mips/include/asm/vdso/gettimeofday.h
++++ b/arch/mips/include/asm/vdso/gettimeofday.h
+@@ -107,8 +107,6 @@ static __always_inline int clock_getres_fallback(
  
-+#ifdef BUILD_VDSO32
- static __maybe_unused int
- __cvdso_clock_gettime32(clockid_t clock, struct old_timespec32 *res)
- {
-@@ -139,6 +140,7 @@ __cvdso_clock_gettime32(clockid_t clock, struct old_timespec32 *res)
- 	}
- 	return ret;
- }
-+#endif /* BUILD_VDSO32 */
+ #if _MIPS_SIM != _MIPS_SIM_ABI64
  
- static __maybe_unused int
- __cvdso_gettimeofday(struct __kernel_old_timeval *tv, struct timezone *tz)
-@@ -229,6 +231,7 @@ int __cvdso_clock_getres(clockid_t clock, struct __kernel_timespec *res)
- 	return 0;
- }
- 
-+#ifdef BUILD_VDSO32
- static __maybe_unused int
- __cvdso_clock_getres_time32(clockid_t clock, struct old_timespec32 *res)
- {
-@@ -251,4 +254,5 @@ __cvdso_clock_getres_time32(clockid_t clock, struct old_timespec32 *res)
- 	}
- 	return ret;
- }
-+#endif /* BUILD_VDSO32 */
- #endif /* VDSO_HAS_CLOCK_GETRES */
+-#define VDSO_HAS_32BIT_FALLBACK	1
+-
+ static __always_inline long clock_gettime32_fallback(
+ 					clockid_t _clkid,
+ 					struct old_timespec32 *_ts)
 -- 
 2.23.0
