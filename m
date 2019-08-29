@@ -1,7 +1,7 @@
 From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Subject: [PATCH 6/7] mips: vdso: Remove unused VDSO_HAS_32BIT_FALLBACK
-Date: Thu, 29 Aug 2019 12:18:42 +0100
-Message-ID: <20190829111843.41003-7-vincenzo.frascino@arm.com>
+Subject: [PATCH 5/7] arm64: compat: vdso: Remove unused VDSO_HAS_32BIT_FALLBACK
+Date: Thu, 29 Aug 2019 12:18:41 +0100
+Message-ID: <20190829111843.41003-6-vincenzo.frascino@arm.com>
 References: <20190829111843.41003-1-vincenzo.frascino@arm.com>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
@@ -16,26 +16,26 @@ As a consequence of Commit 623fa33f7bd6 ("lib:vdso: Remove
 VDSO_HAS_32BIT_FALLBACK") VDSO_HAS_32BIT_FALLBACK define is not
 required anymore hence can be removed.
 
-Remove unused VDSO_HAS_32BIT_FALLBACK from mips vdso.
+Remove unused VDSO_HAS_32BIT_FALLBACK from arm64 compat vdso.
 
-Cc: Paul Burton <paul.burton@mips.com>
+Cc: Catalin Marinas <catalin.marinas@arm.com>
+Cc: Will Deacon <will@kernel.org>
 Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
 ---
- arch/mips/include/asm/vdso/gettimeofday.h | 2 --
- 1 file changed, 2 deletions(-)
+ arch/arm64/include/asm/vdso/compat_gettimeofday.h | 1 -
+ 1 file changed, 1 deletion(-)
 
-diff --git a/arch/mips/include/asm/vdso/gettimeofday.h b/arch/mips/include/asm/vdso/gettimeofday.h
-index e78462e8ca2e..5ad2b086626d 100644
---- a/arch/mips/include/asm/vdso/gettimeofday.h
-+++ b/arch/mips/include/asm/vdso/gettimeofday.h
-@@ -107,8 +107,6 @@ static __always_inline int clock_getres_fallback(
+diff --git a/arch/arm64/include/asm/vdso/compat_gettimeofday.h b/arch/arm64/include/asm/vdso/compat_gettimeofday.h
+index fe7afe0f1a3d..537b1e695365 100644
+--- a/arch/arm64/include/asm/vdso/compat_gettimeofday.h
++++ b/arch/arm64/include/asm/vdso/compat_gettimeofday.h
+@@ -16,7 +16,6 @@
  
- #if _MIPS_SIM != _MIPS_SIM_ABI64
+ #define VDSO_HAS_CLOCK_GETRES		1
  
--#define VDSO_HAS_32BIT_FALLBACK	1
--
- static __always_inline long clock_gettime32_fallback(
- 					clockid_t _clkid,
- 					struct old_timespec32 *_ts)
+-#define VDSO_HAS_32BIT_FALLBACK		1
+ #define BUILD_VDSO32			1
+ 
+ static __always_inline
 -- 
 2.23.0
