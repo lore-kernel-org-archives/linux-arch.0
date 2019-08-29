@@ -1,133 +1,202 @@
-From: Aleksa Sarai <cyphar@cyphar.com>
-Subject: Re: [PATCH RESEND v11 7/8] open: openat2(2) syscall
-Date: Thu, 29 Aug 2019 23:19:04 +1000
-Message-ID: <20190829131904.bkbalbtqt6j3gwcp@yavin>
-References: <20190820033406.29796-1-cyphar@cyphar.com>
- <20190820033406.29796-8-cyphar@cyphar.com>
- <CAKOZuesfxRBJe314rkTKXtjXdz6ki3uAUBYVbu5Q2rd3=ADphQ@mail.gmail.com>
- <20190829121527.u2uvdyeatme5cgkb@yavin>
- <899401fa-ff0a-2ce9-8826-09904efab2d2@rasmusvillemoes.dk>
+From: Nicholas Piggin <npiggin@gmail.com>
+Subject: Re: [PATCH 0/6] Fix TLB invalidation on arm64
+Date: Fri, 30 Aug 2019 00:08:52 +1000
+Message-ID: <1567085427.12jzc6eq6j.astroid@bobo.none>
+References: <20190827131818.14724-1-will@kernel.org>
+ <1566947104.2uma6s0pl1.astroid@bobo.none>
+ <20190828161256.uevoohval4sko24m@willie-the-truck>
 Mime-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha256;
-        protocol="application/pgp-signature"; boundary="itirvnprc6jjrbl3"
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <899401fa-ff0a-2ce9-8826-09904efab2d2@rasmusvillemoes.dk>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Rasmus Villemoes <linux@rasmusvillemoes.dk>
-Cc: Daniel Colascione <dancol@google.com>, Al Viro <viro@zeniv.linux.org.uk>, Jeff Layton <jlayton@kernel.org>, "J. Bruce Fields" <bfields@fieldses.org>, Arnd Bergmann <arnd@arndb.de>, David Howells <dhowells@redhat.com>, Shuah Khan <shuah@kernel.org>, Shuah Khan <skhan@linuxfoundation.org>, Christian Brauner <christian@brauner.io>, Eric Biederman <ebiederm@xmission.com>, Andy Lutomirski <luto@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Alexei Starovoitov <ast@kernel.org>, Kees Cook <keescook@chromium.org>, Jann Horn <jannh@google.com>, Tycho Andersen <tycho@tycho.ws>, David Drysdale <drysdale@google.com>, Chanho Min <chanho.min@lge.com>, Oleg Nesterov <oleg@redhat.com>, Aleksa Sarai <asarai@suse.de>, Linus Torvalds <torvalds@linux-fo>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+In-Reply-To: <20190828161256.uevoohval4sko24m@willie-the-truck>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+To: Will Deacon <will@kernel.org>
+Cc: linux-arch@vger.kernel.org, Mark Rutland <mark.rutland@arm.com>, Peter Zijlstra <peterz@infradead.org>, Catalin Marinas <catalin.marinas@arm.com>, Marc Zyngier <maz@kernel.org>, linux-arm-kernel@lists.infradead.org
 List-Id: linux-arch.vger.kernel.org
 
+Will Deacon's on August 29, 2019 2:12 am:
+> Hi Nick,
+> 
+> On Wed, Aug 28, 2019 at 10:35:24AM +1000, Nicholas Piggin wrote:
+>> Will Deacon's on August 27, 2019 11:18 pm:
+>> > So far, so good, but the final piece of the puzzle isn't quite so rosy.
+>> > 
+>> > *** Other architecture maintainers -- start here! ***
+>> > 
+>> > In the case that one CPU maps a page and then sets a flag to tell another
+>> > CPU:
+>> > 
+>> > 	CPU 0
+>> > 	-----
+>> > 
+>> > 	MOV	X0, <valid pte>
+>> > 	STR	X0, [Xptep]	// Store new PTE to page table
+>> > 	DSB	ISHST
+>> > 	ISB
+>> > 	MOV	X1, #1
+>> > 	STR	X1, [Xflag]	// Set the flag
+>> > 
+>> > 	CPU 1
+>> > 	-----
+>> > 
+>> > loop:	LDAR	X0, [Xflag]	// Poll flag with Acquire semantics
+>> > 	CBZ	X0, loop
+>> > 	LDR	X1, [X2]	// Translates using the new PTE
+>> > 
+>> > then the final load on CPU 1 can raise a translation fault for the same
+>> > reasons as mentioned at the start of this description.
+>> 
+>> powerpc's ptesync instruction is defined to order MMU memory accesses on
+>> all other CPUs. ptesync does not go out to the fabric though. How does
+>> it work then?
+>> 
+>> Because the MMU coherency problem (at least we have) is not that the
+>> load will begin to "partially" execute ahead of the store, enough to
+>> kick off a table walk that goes ahead of the store, but not so much
+>> that it violates the regular CPU barriers. It's just that the loads
+>> from the MMU don't participate in the LSU pipeline, they don't snoop
+>> the store queues aren't inserted into load queues so the regular
+>> memory barrier instructions won't see stores from other threads cuasing
+>> ordering violations.
+>> 
+>> In your first example, if powerpc just has a normal memory barrier
+>> there instead of a ptesync, it could all execute completely
+>> non-speculatively and in-order but still cause a fault, because the
+>> table walker's loads didn't see the store in the store queue.
+> 
+> Ah, so I think this is where our DSB comes in, as opposed to our usual
+> DMB. DMB provides ordering guarantees and is generally the only barrier
+> instruction you need for shared memory communication. DSB, on the other
+> hand, has additional properties such as making page-table updates visible
+> to the table walker and completing pending TLB invalidation.
+> 
+> So in practice, DSB is likely to drain the store buffer to ensure that
+> pending page-table writes are visible at L1, which is coherent with all
+> CPUs (and their page-table walkers).
+> 
+>> From the other side of the fabric you have no such problem. The table
+>> walker is cache coherent apart from the local stores, so we don't need a 
+>> special barrier on the other side. That's why ptesync doesn't broadcast.
+> 
+> Curious: but do you need to do anything extra to take into account
+> instruction fetch on remote CPUs if you're mapping an executable page?
+> We added an IPI to flush_icache_range() in 3b8c9f1cdfc5 to handle this,
+> because our broadcast I-cache maintenance doesn't force a pipeline flush
+> for remote CPUs (and may even execute as a NOP on recent cores).
 
---itirvnprc6jjrbl3
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
+Ah, I think the tlbie does not force re-fetch indeed. We may need
+something like that as well.
 
-On 2019-08-29, Rasmus Villemoes <linux@rasmusvillemoes.dk> wrote:
-> On 29/08/2019 14.15, Aleksa Sarai wrote:
-> > On 2019-08-24, Daniel Colascione <dancol@google.com> wrote:
->=20
-> >> Why pad the structure when new functionality (perhaps accommodated via
-> >> a larger structure) could be signaled by passing a new flag? Adding
-> >> reserved fields to a structure with a size embedded in the ABI makes a
-> >> lot of sense --- e.g., pthread_mutex_t can't grow. But this structure
-> >> can grow, so the reservation seems needless to me.
-> >=20
-> > Quite a few folks have said that ->reserved is either unnecessary or
-> > too big. I will be changing this, though I am not clear what the best
-> > way of extending the structure is. If anyone has a strong opinion on
-> > this (or an alternative to the ones listed below), please chime in. I
-> > don't have any really strong attachment to this aspect of the API.
-> >=20
-> > There appear to be a few ways we can do it (that all have precedence
-> > with other syscalls):
-> >=20
-> >  1. Use O_* flags to indicate extensions.
-> >  2. A separate "version" field that is incremented when we change.
-> >  3. Add a size_t argument to openat2(2).
-> >  4. Reserve space (as in this patchset).
-> >=20
-> > (My personal preference would be (3), followed closely by (2).)
->=20
-> 3, definitely, and instead of having to invent a new scheme for every
-> new syscall, make that the default pattern by providing a helper
+What do you do on the user side? Require threads to ISB themselves?
 
-Sure (though hopefully I don't need to immediately go and refactor all
-the existing size_t syscalls). I will be presenting about this patchset
-at the containers microconference at LPC (in a few weeks), so I'll hold
-of on any API-related rewrites until after that.
+>> I would be surprised if ARM's issue is different, but interested to 
+>> hear if it is.
+> 
+> If you take the four scenarios of Map/Unmap for the UP/SMP cases:
+> 
+> 	Map+UP		// Some sort of fence instruction (DSB;ISB/ptesync)
+> 	Map+SMP		// Same as above
+> 	Unmap+UP	// Local TLB invalidation
+> 	Unmap+SMP	// Broadcast TLB invalidation
+> 
+> then the most interesting case is Map+SMP, where one CPU transitions a PTE
+> from invalid to valid and executes its DSB;ISB/PTESYNC sequence without
+> affecting the remote CPU. That's what I'm trying to get at in my example
+> below:
+> 
+>> > 	CPU 0				CPU 1
+>> > 	-----				-----
+>> > 	spin_lock(&lock);		spin_lock(&lock);
+>> > 	set_fixmap(0, paddr, prot);	if (mapped)
+>> > 	mapped = true;				foo = *fix_to_virt(0);
+>> > 	spin_unlock(&lock);		spin_unlock(&lock);
+>> > 
+>> > could fault.
+>> 
+>> This is kind of a different issue, or part of a wider one at least.
+>> Consider speculative execution more generally, any branch mispredict can 
+>> send us off to crazy town executing instructions using nonsense register
+>> values. CPU0 does not have to be in the picture, or any kernel page 
+>> table modification at all, CPU1 alone will be doing speculative loads 
+>> wildly all over the kernel address space and trying to access pages with
+>> no pte.
+>> 
+>> Yet we don't have to flush TLB when creating a new kernel mapping, and
+>> we don't get spurious kernel faults. The page table walker won't
+>> install negative entries, at least not "architectural" i.e., that cause
+>> faults and require flushing. My guess is ARM is similar, or you would 
+>> have seen bigger problems by now?
+> 
+> Right, we don't allow negative (invalid) entries to be cached in the TLB,
+> but CPUs can effectively cache the result of a translation for a load/store
+> instruction whilst that instruction flows down the pipe after its virtual
+> address is known. /That/ caching is not restricted to valid translations.
 
-> int __copy_abi_struct(void *kernel, size_t ksize, const void __user
-> *user, size_t usize)
-> {
-> 	size_t copy =3D min(ksize, usize);
->=20
-> 	if (copy_from_user(kernel, user, copy))
-> 		return -EFAULT;
->=20
-> 	if (usize > ksize) {
-> 		/* maybe a separate "return user_is_zero(user + ksize, usize -
-> ksize);" helper */
-> 		char c;
-> 		user +=3D ksize;
-> 		usize -=3D ksize;
-> 		while (usize--) {
-> 			if (get_user(c, user++))
-> 				return -EFAULT;
-> 			if (c)
-> 				return -EINVAL;
+Ah, I misunderstood you sorry. Yeah that is interesting, I don't think
+that is explicitly prohibited in the power ISA either. I believe CPU1
+would have to do a ptesync to avoid the fault there.
 
-This part would probably be better done with memchr_inv() and
-copy_from_user() (and probably should put an upper limit on usize), but
-I get what you mean.
+> For example, if we just take a simple message passing example where we have
+> two global variables: a 'mapped' flag (initialised to zero) and a pointer
+> (initialised to point at a page that is not yet mapped):
+> 
+> [please excuse the mess I've made of your assembly language]
+> 
+> 	CPU 0
+> 
+> 	// Set PTE which maps the page pointed to by pointer
+> 	stw	r5, 0(r4)
+> 	ptesync
+> 	lwsync
+> 
+> 	// Set 'mapped' flag to 1
+> 	li	r9, 1
+> 	stb	r9, 0(r3)
+> 
+> 
+> 	CPU 1
+> 
+> 	// Poll for 'mapped' flag to be set
+> loop:	lbz	r9, 0(r3)
+> 	lwsync
+> 	cmpdi	cr7, r0, 0
+> 	beq	cr7, loop
+> 
+> 	// Dereference pointer
+> 	lwz	r4, 0(r5)
+> 
+> 
+> So in this example, I think it's surprising that CPU 1's dereference of
+> 'pointer' can fault. The way this happens on arm64 is that CPU 1 can
+> translate the 'pointer' dereference before the load of the 'mapped' flag has
+> returned its data. The walker may come back with a fault, but then if the
+> flag data later comes back as 1, the fault will be taken when the lwz
+> commits. In other words, translation table walks can occur out-of-order
+> with respect to the accesses they are translating for, even in the presence
+> of memory barriers.
+> 
+> In practice, I think this kind of code sequence is unusual and triggering
+> the problem relies on CPU 1 knowing the virtual address it's going to
+> dereference before it's actually mapped. However, this could conceivably
+> happen with the fixmap and possibly also if the page-table itself was
+> being written concurrently using cmpxchg(), in which case you might use
+> the actual pte value in the same way as the 'mapped' flag above.
+> 
+> But yes, adding the spurious fault handler is belt and braces, which is
+> why I've kept a WARN_RATELIMIT() in there if it ever triggers.
 
-> 		}
-> 	} else if (ksize > usize) {
-> 		memset(kernel + usize, 0, ksize - usize);
-> 	}
-> 	return 0;
-> }
-> #define copy_abi_struct(kernel, user, usize)	\
-> 	__copy_abi_struct(kernel, sizeof(*kernel), user, usize)
->
-> > Both (1) and (2) have the problem that the "struct version" is inside
-> > the struct so we'd need to copy_from_user() twice. This isn't the end of
-> > the world, it just feels a bit less clean than is ideal. (3) fixes that
-> > problem, at the cost of making the API slightly more cumbersome to use
-> > directly (though again glibc could wrap that away).
->=20
-> I don't see how 3 is cumbersome to use directly. Userspace code does
-> struct openat_of_the_day args =3D {.field1 =3D x, .field3 =3D y} and pass=
-es
-> &args, sizeof(args). What does glibc need to do beyond its usual munging
-> of the userspace ABI registers to the syscall ABI registers?
+This could be a theoretical problem for powerpc too, I think. Maybe.
+I'll ask around, I might not be understanding the architecture or Linux
+code properly.
 
-I'd argue that
-
-    ret =3D openat2(AT_FDCWD, "foo", &how, sizeof(how)); // (3)
-
-is slightly less pretty than
-
-    ret =3D openat2(AT_FDCWD, "foo", &how); // (1), (2), (4)
-
-But it's not really that bad. Forget I said anything.
-
---=20
-Aleksa Sarai
-Senior Software Engineer (Containers)
-SUSE Linux GmbH
-<https://www.cyphar.com/>
-
---itirvnprc6jjrbl3
-Content-Type: application/pgp-signature; name="signature.asc"
-
------BEGIN PGP SIGNATURE-----
-
-iHUEABYIAB0WIQSxZm6dtfE8gxLLfYqdlLljIbnQEgUCXWfQxQAKCRCdlLljIbnQ
-EoMSAP9J0uy3xcD3flC3cANph5LKQ2g0JWnMb61ew5LWDORVogD/UGWciY+tdPiy
-YNHs2UcBt9SEH1MNpEIgf2GN6RoyaQI=
-=ne2z
------END PGP SIGNATURE-----
-
---itirvnprc6jjrbl3--
+Thanks,
+Nick
