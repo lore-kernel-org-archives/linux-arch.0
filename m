@@ -1,52 +1,55 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wr1-f67.google.com ([209.85.221.67]:34728 "EHLO
-        mail-wr1-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726416AbfH2Ksa (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 29 Aug 2019 06:48:30 -0400
-Subject: Re: [PATCH v8 01/28] linkage: new macros for assembler symbols
-References: <20190808103854.6192-1-jslaby@suse.cz>
- <20190808103854.6192-2-jslaby@suse.cz> <20190812170652.GJ23772@zn.tnic>
-From: Jiri Slaby <jslaby@suse.cz>
-Message-ID: <f077becf-8ea7-cb4b-d704-5e59a8d69c56@suse.cz>
-Date: Thu, 29 Aug 2019 12:48:24 +0200
+Received: from foss.arm.com ([217.140.110.172]:42722 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726232AbfH2LS6 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 29 Aug 2019 07:18:58 -0400
+From: Vincenzo Frascino <vincenzo.frascino@arm.com>
+Subject: [PATCH 0/7] vdso: Complete the conversion to 32bit syscalls
+Date: Thu, 29 Aug 2019 12:18:36 +0100
+Message-ID: <20190829111843.41003-1-vincenzo.frascino@arm.com>
 MIME-Version: 1.0
-In-Reply-To: <20190812170652.GJ23772@zn.tnic>
-Content-Type: text/plain; charset=utf-8
-Content-Language: en-GB
-Content-Transfer-Encoding: 7bit
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Borislav Petkov <bp@alien8.de>
-Cc: tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, Ingo Molnar <mingo@kernel.org>, jpoimboe@redhat.com, Juergen Gross <jgross@suse.com>, Len Brown <len.brown@intel.com>, Linus Torvalds <torvalds@linux-foundation.org>, linux-pm@vger.kernel.org, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <a.p.zijlstra@chello.nl>, "Rafael J. Wysocki" <rjw@rjwysocki.net>, xen-devel@lists.xenproject.org
-Message-ID: <20190829104824.fHphnVzE5P3KZyDPgEQVdeQ0TJh4PEajhjL2LLB0IT0@z>
+To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org
+Cc: catalin.marinas@arm.com, will@kernel.org, paul.burton@mips.com, tglx@linutronix.de, salyzyn@android.com, 0x7f454c46@gmail.com, luto@kernel.org
+Message-ID: <20190829111836.jGD3qk5SKnT8HheaSJij8sXSkZsC485UYuF0NQUA10Q@z>
 
-On 12. 08. 19, 19:06, Borislav Petkov wrote:
->> +  Again, every ``SYM_CODE_START*`` **shall** be coupled by ``SYM_CODE_END``.
-> 
-> Btw, this coupling: I haven't gone through the whole patchset but do we
-> have automatic checking which makes sure a starting macro is coupled
-> with the correct ending macro?
+This patch series is a follow up to "lib/vdso, x86/vdso: Fix fallout
+from generic VDSO conversion" [1].
 
-I do, but it's not part of this series. It's a pinch of link-time magic,
-but it works reliably (see e.g. 1cbec37b3f9c). I will post it if/after
-this gets merged. There were other approaches proposed in the past too
--- using objtool for that (not implemented).
+The main purpose is to complete the 32bit vDSOs conversion to use the
+legacy 32bit syscalls as a fallback. With the conversion of all the
+architectures present in -next complete, this patch series removes as
+well the conditional choice in between 32 and 64 bit for 32bit vDSOs.
 
->> +Overriding Macros
->> +~~~~~~~~~~~~~~~~~
->> +Architecture can also override any of the macros in their own
-> 
-> "Other architectures... "
+This series has been rebased on linux-next/master.
 
-Not only "other", x86 can override the types if need be too.
+[1] https://lkml.org/lkml/2019/7/28/86
 
->> +``asm/linkage.h``, including macros specifying the type of a symbol
->> +(``SYM_T_FUNC``, ``SYM_T_OBJECT``, and ``SYM_T_NONE``).  As every macro
->> +described in this file is surrounded by ``#ifdef`` + ``#endif``, it is enough
->> +to define the macros differently in the aforementioned architecture-dependent
->> +header.
+Cc: Catalin Marinas <catalin.marinas@arm.com>
+Cc: Will Deacon <will@kernel.org>
+Cc: Paul Burton <paul.burton@mips.com>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: Dmitry Safonov <0x7f454c46@gmail.com>
+Cc: Andy Lutomirski <luto@kernel.org>
+Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
 
-thanks,
+Vincenzo Frascino (7):
+  arm64: compat: vdso: Expose BUILD_VDSO32
+  lib: vdso: Build 32 bit specific functions in the right context
+  mips: compat: vdso: Use legacy syscalls as fallback
+  lib: vdso: Remove VDSO_HAS_32BIT_FALLBACK
+  arm64: compat: vdso: Remove unused VDSO_HAS_32BIT_FALLBACK
+  mips: vdso: Remove unused VDSO_HAS_32BIT_FALLBACK
+  x86: vdso: Remove unused VDSO_HAS_32BIT_FALLBACK
+
+ .../include/asm/vdso/compat_gettimeofday.h    |  2 +-
+ arch/mips/include/asm/vdso/gettimeofday.h     | 43 +++++++++++++++++++
+ arch/mips/vdso/config-n32-o32-env.c           |  1 +
+ arch/x86/include/asm/vdso/gettimeofday.h      |  2 -
+ lib/vdso/gettimeofday.c                       | 14 ++----
+ 5 files changed, 49 insertions(+), 13 deletions(-)
+
 -- 
-js
-suse labs
+2.23.0
