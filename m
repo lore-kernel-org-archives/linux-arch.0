@@ -1,44 +1,47 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:47270 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727022AbfH2Ps7 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 29 Aug 2019 11:48:59 -0400
-Subject: Re: [PATCH 2/7] lib: vdso: Build 32 bit specific functions in the
- right context
-References: <20190829111843.41003-1-vincenzo.frascino@arm.com>
- <20190829111843.41003-3-vincenzo.frascino@arm.com>
- <CALCETrWNbMhYwpsKtutCTW4M7rMmOF0YUy-k1QgGEpY-Gd1xQw@mail.gmail.com>
-From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Message-ID: <91cf55b4-63a1-9548-c7e0-c4dfa350b687@arm.com>
-Date: Thu, 29 Aug 2019 16:48:55 +0100
+Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:27320 "EHLO
+        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
+        by vger.kernel.org with ESMTP id S1727650AbfH2PvB (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 29 Aug 2019 11:51:01 -0400
+From: "Maxiwell S. Garcia" <maxiwell@linux.ibm.com>
+Subject: [PATCH v2 0/2] powerpc: Add PowerPC Capabilities ELF note
+Date: Thu, 29 Aug 2019 12:50:19 -0300
+Message-ID: <20190829155021.2915-1-maxiwell@linux.ibm.com>
 MIME-Version: 1.0
-In-Reply-To: <CALCETrWNbMhYwpsKtutCTW4M7rMmOF0YUy-k1QgGEpY-Gd1xQw@mail.gmail.com>
-Content-Type: text/plain; charset=utf-8
-Content-Language: en-US
-Content-Transfer-Encoding: 7bit
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andy Lutomirski <luto@kernel.org>
-Cc: linux-arch <linux-arch@vger.kernel.org>, linux-arm-kernel <linux-arm-kernel@lists.infradead.org>, LKML <linux-kernel@vger.kernel.org>, linux-mips@vger.kernel.org, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Paul Burton <paul.burton@mips.com>, Thomas Gleixner <tglx@linutronix.de>, Mark Salyzyn <salyzyn@android.com>, Dmitry Safonov <0x7f454c46@gmail.com>
-Message-ID: <20190829154855.BD3qhcEUVOVTtFDxQFMjf5M0J9PksGwtpeP4CsNCn0M@z>
+To: linuxppc-dev@ozlabs.org
+Cc: kvm-ppc@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, paulus@ozlabs.org, mpe@ellerman.id.au, andmike@linux.ibm.com, linuxram@us.ibm.com, bauerman@linux.ibm.com, cclaudio@linux.ibm.com, "Maxiwell S. Garcia" <maxiwell@linux.ibm.com>
+Message-ID: <20190829155019.IzeMoZK5FE7DBWgBRzCQyp7f0TVdG2DESf5XRnPQzDo@z>
 
-On 29/08/2019 16:23, Andy Lutomirski wrote:
-> On Thu, Aug 29, 2019 at 4:19 AM Vincenzo Frascino
-> <vincenzo.frascino@arm.com> wrote:
->>
->> clock_gettime32 and clock_getres_time32 should be compiled only with a
->> 32 bit vdso library.
->>
->> Exclude these symbols when BUILD_VDSO32 is not defined.
-> 
-> Reviewed-by: Andy Lutomirski <luto@kernel.org>
-> 
-> BTW, this is a great patch: it's either correct or it won't build.  I
-> like patches like that.
-> 
+The first patch adds the PowerPC name and the PPC_ELFNOTE_CAPABILITIES
+type in the kernel binary ELF note. This type is a bitmap that can be
+used to advertise kernel capabilities to userland.
 
-Thanks :)
+The second patch adds a new documentation file to detail the
+ELF Note PowerPC namespace and the PPC_ELFNOTE_CAPABILITIES type.
+
+V2:
+* Create the header arch/powerpc/include/asm/elfnote.h with the
+  new type PPC_ELFNOTE_CAPABILITIES
+* Add documentation file in powerpc dir
+
+Claudio Carvalho (1):
+  powerpc: Add PowerPC Capabilities ELF note
+
+Maxiwell S. Garcia (1):
+  docs: powerpc: Add ELF note documentation
+
+ Documentation/powerpc/elfnote.rst  | 42 ++++++++++++++++++++++++++++++
+ arch/powerpc/include/asm/elfnote.h | 24 +++++++++++++++++
+ arch/powerpc/kernel/Makefile       |  2 +-
+ arch/powerpc/kernel/note.S         | 40 ++++++++++++++++++++++++++++
+ 4 files changed, 107 insertions(+), 1 deletion(-)
+ create mode 100644 Documentation/powerpc/elfnote.rst
+ create mode 100644 arch/powerpc/include/asm/elfnote.h
+ create mode 100644 arch/powerpc/kernel/note.S
 
 -- 
-Regards,
-Vincenzo
+2.20.1
