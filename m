@@ -1,80 +1,78 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:17908 "EHLO
-        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1728605AbfH2PvK (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 29 Aug 2019 11:51:10 -0400
-From: "Maxiwell S. Garcia" <maxiwell@linux.ibm.com>
-Subject: [PATCH v2 2/2] docs: powerpc: Add ELF note documentation
-Date: Thu, 29 Aug 2019 12:50:21 -0300
-Message-ID: <20190829155021.2915-3-maxiwell@linux.ibm.com>
-In-Reply-To: <20190829155021.2915-1-maxiwell@linux.ibm.com>
-References: <20190829155021.2915-1-maxiwell@linux.ibm.com>
+Received: from foss.arm.com ([217.140.110.172]:47400 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1728145AbfH2Pvj (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 29 Aug 2019 11:51:39 -0400
+Subject: Re: [PATCH 4/7] lib: vdso: Remove VDSO_HAS_32BIT_FALLBACK
+References: <20190829111843.41003-1-vincenzo.frascino@arm.com>
+ <20190829111843.41003-5-vincenzo.frascino@arm.com>
+ <CALCETrVprrrR3TSVSAnHfLW4HDQG=gcVrdjmsk6ss6Z3+vKOBg@mail.gmail.com>
+From: Vincenzo Frascino <vincenzo.frascino@arm.com>
+Message-ID: <77d5c414-77c4-49e9-3541-772c74a4735d@arm.com>
+Date: Thu, 29 Aug 2019 16:51:34 +0100
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+In-Reply-To: <CALCETrVprrrR3TSVSAnHfLW4HDQG=gcVrdjmsk6ss6Z3+vKOBg@mail.gmail.com>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linuxppc-dev@ozlabs.org
-Cc: kvm-ppc@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, paulus@ozlabs.org, mpe@ellerman.id.au, andmike@linux.ibm.com, linuxram@us.ibm.com, bauerman@linux.ibm.com, cclaudio@linux.ibm.com, "Maxiwell S. Garcia" <maxiwell@linux.ibm.com>
-Message-ID: <20190829155021.SKMi-ApRyU3Kb41RLzd-fGTIGD1ja5kEAHtxD37STlY@z>
+To: Andy Lutomirski <luto@kernel.org>
+Cc: linux-arch <linux-arch@vger.kernel.org>, linux-arm-kernel <linux-arm-kernel@lists.infradead.org>, LKML <linux-kernel@vger.kernel.org>, linux-mips@vger.kernel.org, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Paul Burton <paul.burton@mips.com>, Thomas Gleixner <tglx@linutronix.de>, Mark Salyzyn <salyzyn@android.com>, Dmitry Safonov <0x7f454c46@gmail.com>
+Message-ID: <20190829155134.7mwNmXrxJpFbRBZbFS_3BGWtL-oAM-8DeE3MHRGNyMw@z>
 
-The ELF note documentation describes the types and descriptors to be
-used with the PowerPC namespace.
+On 29/08/2019 16:25, Andy Lutomirski wrote:
+> On Thu, Aug 29, 2019 at 4:19 AM Vincenzo Frascino
+> <vincenzo.frascino@arm.com> wrote:
+>>
+>> VDSO_HAS_32BIT_FALLBACK was introduced to address a regression which
+>> caused seccomp to deny access to the applications to clock_gettime64()
+>> and clock_getres64() because they are not enabled in the existing
+>> filters.
+>>
+>> The purpose of VDSO_HAS_32BIT_FALLBACK was to simplify the conditional
+>> implementation of __cvdso_clock_get*time32() variants.
+>>
+>> Now that all the architectures that support the generic vDSO library
+>> have been converted to support the 32 bit fallbacks the conditional
+>> can be removed.
+>>
+>> Cc: Thomas Gleixner <tglx@linutronix.de>
+>> CC: Andy Lutomirski <luto@kernel.org>
+>> References: c60a32ea4f45 ("lib/vdso/32: Provide legacy syscall fallbacks")
+>> Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
+>> ---
+>>  lib/vdso/gettimeofday.c | 10 ----------
+>>  1 file changed, 10 deletions(-)
+>>
+>> diff --git a/lib/vdso/gettimeofday.c b/lib/vdso/gettimeofday.c
+>> index a86e89e6dedc..2c4b311c226d 100644
+>> --- a/lib/vdso/gettimeofday.c
+>> +++ b/lib/vdso/gettimeofday.c
+>> @@ -126,13 +126,8 @@ __cvdso_clock_gettime32(clockid_t clock, struct old_timespec32 *res)
+>>
+>>         ret = __cvdso_clock_gettime_common(clock, &ts);
+>>
+>> -#ifdef VDSO_HAS_32BIT_FALLBACK
+>>         if (unlikely(ret))
+>>                 return clock_gettime32_fallback(clock, res);
+>> -#else
+>> -       if (unlikely(ret))
+>> -               ret = clock_gettime_fallback(clock, &ts);
+>> -#endif
+>>
+>>         if (likely(!ret)) {
+>>                 res->tv_sec = ts.tv_sec;
+> 
+> I think you could have a little follow-up patch to remove the if
+> statement -- by the time you get here, it's guaranteed that ret == 0.
+>
 
-Signed-off-by: Maxiwell S. Garcia <maxiwell@linux.ibm.com>
-Signed-off-by: Claudio Carvalho <cclaudio@linux.ibm.com>
----
- Documentation/powerpc/elfnote.rst | 42 +++++++++++++++++++++++++++++++
- 1 file changed, 42 insertions(+)
- create mode 100644 Documentation/powerpc/elfnote.rst
+Thanks, I will add a new patch that does that to v2 (with a comment).
 
-diff --git a/Documentation/powerpc/elfnote.rst b/Documentation/powerpc/elfnote.rst
-new file mode 100644
-index 000000000000..2a5c4beeb809
---- /dev/null
-+++ b/Documentation/powerpc/elfnote.rst
-@@ -0,0 +1,42 @@
-+==========================
-+ELF Note PowerPC Namespace
-+==========================
-+
-+The PowerPC namespace in an ELF Note of the kernel binary is used to store
-+capabilities and information which can be used by a bootloader or userland.
-+
-+Types and Descriptors
-+---------------------
-+
-+The types to be used with the "PowerPC" namesapce are defined in the
-+include/uapi/asm/elfnote.h
-+
-+	1) PPC_ELFNOTE_CAPABILITIES
-+
-+Define the capabilities supported/required by the kernel. This type uses a
-+bitmap as "descriptor" field. Each bit is described below:
-+
-+- Ultravisor-capable bit (PowerNV only).
-+
-+	#define PPCCAP_ULTRAVISOR_BIT (1 << 0)
-+
-+	Indicate that the powerpc kernel binary knows how to run in an
-+	ultravisor-enabled system.
-+
-+	In an ultravisor-enabled system, some machine resources are now controlled
-+	by the ultravisor. If the kernel is not ultravisor-capable, but it ends up
-+	being run on a machine with ultravisor, the kernel will probably crash
-+	trying to access ultravisor resources. For instance, it may crash in early
-+	boot trying to set the partition table entry 0.
-+
-+	In an ultravisor-enabled system, a bootloader could warn the user or prevent
-+   	the kernel from being run if the PowerPC ultravisor capability doesn't exist
-+	or the Ultravisor-capable bit is not set.
-+
-+References
-+----------
-+
-+arch/powerpc/include/asm/elfnote.h
-+arch/powerpc/kernel/note.S
-+
-+
+> --Andy
+> 
+
 -- 
-2.20.1
+Regards,
+Vincenzo
