@@ -1,83 +1,103 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga04.intel.com ([192.55.52.120]:14658 "EHLO mga04.intel.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727304AbfH3RMu (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 30 Aug 2019 13:12:50 -0400
-Message-ID: <5ddd0306f42c2b53ffbd8ee8c9b948c1d529cf98.camel@intel.com>
-Subject: Re: [RFC PATCH v2 2/2] ELF: Add ELF program property parsing support
-From: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Date: Fri, 30 Aug 2019 10:03:27 -0700
-In-Reply-To: <20190830083415.GI27757@arm.com>
-References: <1566581020-9953-1-git-send-email-Dave.Martin@arm.com>
-         <1566581020-9953-3-git-send-email-Dave.Martin@arm.com>
-         <201908292224.007EB4D5@keescook> <20190830083415.GI27757@arm.com>
-Content-Type: text/plain; charset="UTF-8"
-Mime-Version: 1.0
-Content-Transfer-Encoding: 7bit
+Received: from mx2.suse.de ([195.135.220.15]:35906 "EHLO mx1.suse.de"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1727791AbfH3RYa (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 30 Aug 2019 13:24:30 -0400
+Message-ID: <bdeda2206b751a1c6a8d2e0732186792282633c6.camel@suse.de>
+Subject: Re: [PATCH v2 01/11] asm-generic: add dma_zone_size
+From: Nicolas Saenz Julienne <nsaenzjulienne@suse.de>
+Date: Fri, 30 Aug 2019 19:24:25 +0200
+In-Reply-To: <20190830144536.GJ36992@arrakis.emea.arm.com>
+References: <20190820145821.27214-1-nsaenzjulienne@suse.de>
+         <20190820145821.27214-2-nsaenzjulienne@suse.de>
+         <20190826070939.GD11331@lst.de>
+         <027272c27398b950f207101a2c5dbc07a30a36bc.camel@suse.de>
+         <20190830144536.GJ36992@arrakis.emea.arm.com>
+Content-Type: multipart/signed; micalg="pgp-sha256";
+        protocol="application/pgp-signature"; boundary="=-VseoIlC7OSxnfDPpE7cN"
+MIME-Version: 1.0
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dave Martin <Dave.Martin@arm.com>, Kees Cook <keescook@chromium.org>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Jann Horn <jannh@google.com>, "H.J. Lu" <hjl.tools@gmail.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, Peter Zijlstra <peterz@infradead.org>
-Message-ID: <20190830170327.XAXAc6agpFRY4ppSgm_p0ER3fllyjT-ERi_olukJfqI@z>
-
-On Fri, 2019-08-30 at 09:34 +0100, Dave Martin wrote:
-> On Fri, Aug 30, 2019 at 06:37:45AM +0100, Kees Cook wrote:
-> > On Fri, Aug 23, 2019 at 06:23:40PM +0100, Dave Martin wrote:
-> > > ELF program properties will needed for detecting whether to enable
-> > > optional architecture or ABI features for a new ELF process.
-> > > 
-> > > For now, there are no generic properties that we care about, so do
-> > > nothing unless CONFIG_ARCH_USE_GNU_PROPERTY=y.
-> > > 
-> > > Otherwise, the presence of properties using the PT_PROGRAM_PROPERTY
-> > > phdrs entry (if any), and notify each property to the arch code.
-> > > 
-> > > For now, the added code is not used.
-> > > 
-> > > Signed-off-by: Dave Martin <Dave.Martin@arm.com>
-> > 
-> > Reviewed-by: Kees Cook <keescook@chromium.org>
-> 
-> Thanks for the review.
-> 
-> Do you have any thoughts on Yu-Cheng Yu's comments?  It would be nice to
-> early-terminate the scan if we can, but my feeling so far was that the
-> scan is cheap, the number of properties is unlikely to be more than a
-> smallish integer, and the code separation benefits of just calling the
-> arch code for every property probably likely outweigh the costs of
-> having to iterate over every property.  We could always optimise it
-> later if necessary.
-> 
-> I need to double-check that there's no way we can get stuck in an
-> infinite loop with the current code, though I've not seen it in my
-> testing.  I should throw some malformed notes at it though.
-
-Here is my arch_parse_elf_property() and objdump of the property.
-The parser works fine.
-
-Thanks,
-Yu-cheng
+To: Catalin Marinas <catalin.marinas@arm.com>, Christoph Hellwig <hch@lst.de>
+Cc: linux-mm@kvack.org, linux-riscv@lists.infradead.org, will@kernel.org, m.szyprowski@samsung.com, linux-arch@vger.kernel.org, f.fainelli@gmail.com, frowand.list@gmail.com, devicetree@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, marc.zyngier@arm.com, robh+dt@kernel.org, linux-rpi-kernel@lists.infradead.org, linux-arm-kernel@lists.infradead.org, phill@raspberryi.org, mbrugger@suse.com, eric@anholt.net, linux-kernel@vger.kernel.org, iommu@lists.linux-foundation.org, wahrenst@gmx.net, akpm@linux-foundation.org, Robin Murphy <robin.murphy@arm.com>
+Message-ID: <20190830172425.WD97f5T4rXYbx-nyAMceD-5B_wCJp_xmrgQ1yCi9pDI@z>
 
 
+--=-VseoIlC7OSxnfDPpE7cN
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
+
+On Fri, 2019-08-30 at 15:45 +0100, Catalin Marinas wrote:
+> On Mon, Aug 26, 2019 at 03:46:52PM +0200, Nicolas Saenz Julienne wrote:
+> > On Mon, 2019-08-26 at 09:09 +0200, Christoph Hellwig wrote:
+> > > On Tue, Aug 20, 2019 at 04:58:09PM +0200, Nicolas Saenz Julienne wrot=
+e:
+> > > > Some architectures have platform specific DMA addressing limitation=
+s.
+> > > > This will allow for hardware description code to provide the constr=
+aints
+> > > > in a generic manner, so as for arch code to properly setup it's mem=
+ory
+> > > > zones and DMA mask.
+> > >=20
+> > > I know this just spreads the arm code, but I still kinda hate it.
+> >=20
+> > Rob's main concern was finding a way to pass the constraint from HW
+> > definition
+> > to arch without widening fdt's architecture specific function surface. =
+I'd
+> > say
+> > it's fair to argue that having a generic mechanism makes sense as it'll=
+ now
+> > traverse multiple archs and subsystems.
+> >=20
+> > I get adding globals like this is not very appealing, yet I went with i=
+t as
+> > it
+> > was the easier to integrate with arm's code. Any alternative suggestion=
+s?
+>=20
+> In some discussion with Robin, since it's just RPi4 that we are aware of
+> having such requirement on arm64, he suggested that we have a permanent
+> ZONE_DMA on arm64 with a default size of 1GB. It should cover all arm64
+> SoCs we know of without breaking the single Image binary. The arch/arm
+> can use its current mach-* support.
+>=20
+> I may like this more than the proposed early_init_dt_get_dma_zone_size()
+> here which checks for specific SoCs (my preferred way was to build the
+> mask from all buses described in DT but I hadn't realised the
+> complications).
+
+Hi Catalin, thanks for giving it a thought.
+
+I'll be happy to implement it that way. I agree it's a good compromise.
+
+@Christoph, do you still want the patch where I create 'zone_dma_bits'? Wit=
+h a
+hardcoded ZONE_DMA it's not absolutely necessary. Though I remember you sai=
+d it
+was a first step towards being able to initialize dma-direct's min_mask in
+meminit.
+
+Regards,
+Nicolas
 
 
-int arch_parse_elf_property(u32 type, const void *data, size_t datasz,
-          
-                   bool compat, struct arch_elf_state *state)
-{
-        if (type
-!= GNU_PROPERTY_X86_FEATURE_1_AND)
-                return -ENOENT;
+--=-VseoIlC7OSxnfDPpE7cN
+Content-Type: application/pgp-signature; name="signature.asc"
+Content-Description: This is a digitally signed message part
+Content-Transfer-Encoding: 7bit
 
-        if (datasz < sizeof(unsigned int))
-                return -ENOEXEC;
+-----BEGIN PGP SIGNATURE-----
 
-        state->gnu_property = *(unsigned int *)data;
-        return 0;
-}
+iQEzBAABCAAdFiEErOkkGDHCg2EbPcGjlfZmHno8x/4FAl1pW8kACgkQlfZmHno8
+x/4ltggAgcfG1puKlA5IJJrCySlntixj950TwNq7qMwwKwzxVCTojg/6HtjhOmlp
+IRbqq36DEjcQ12ulD0rqU84gMIP6jryt4iVDDutg18liBPSH3eekj9Wf22J+Vq7f
+5yw3zuYyCkrTcgWufsIwn4kbH0GRXCCLV8kwfKFRtXE5dtcWTRbOeNPpmh4HxIJW
+z0SkTnBc03CvX0VamQYNZ45QvBFVntqKMCExrvinZyOBUs4+/nd68IXfBU+rj9qb
+IBbZaZspKLp1NdVxSo/Tmamv2NVTodxnue9KbFzQe8r3n1bak/9VJKO4z3u0R6AK
+6x6oAxLccyXIktLiudLXEMdXMar2vw==
+=LsVM
+-----END PGP SIGNATURE-----
 
-Contents of section .note.gnu.property:
- 400338 04000000 30000000 05000000 474e5500  ....0.......GNU.
- 400348 020000c0 04000000 03000000 00000000  ................
- 400358 000001c0 04000000 00000000 00000000  ................
- 400368 010001c0 04000000 01000000 00000000  ................
+--=-VseoIlC7OSxnfDPpE7cN--
