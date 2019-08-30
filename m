@@ -1,28 +1,32 @@
 From: Christoph Hellwig <hch@lst.de>
-Subject: Re: [PATCH 08/26] m68k: simplify ioremap_nocache
-Date: Fri, 30 Aug 2019 18:06:20 +0200
-Message-ID: <20190830160620.GD26887@lst.de>
-References: <20190817073253.27819-1-hch@lst.de> <20190817073253.27819-9-hch@lst.de> <CAMuHMdWyXGjokWi7tn9JHCTz9YMb_vHn6XKeE7KzH5n-54Sy0A@mail.gmail.com>
+Subject: Re: [PATCH 05/26] openrisc: map as uncached in ioremap
+Date: Fri, 30 Aug 2019 18:07:05 +0200
+Message-ID: <20190830160705.GF26887@lst.de>
+References: <20190817073253.27819-1-hch@lst.de> <20190817073253.27819-6-hch@lst.de> <20190823135539.GC24874@lianli.shorne-pla.net>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <CAMuHMdWyXGjokWi7tn9JHCTz9YMb_vHn6XKeE7KzH5n-54Sy0A@mail.gmail.com>
+In-Reply-To: <20190823135539.GC24874@lianli.shorne-pla.net>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: Christoph Hellwig <hch@lst.de>, Arnd Bergmann <arnd@arndb.de>, Guo Ren <guoren@kernel.org>, Michal Simek <monstr@monstr.eu>, Greentime Hu <green.hu@gmail.com>, Vincent Chen <deanbo422@gmail.com>, Guan Xuetao <gxt@pku.edu.cn>, the arch/x86 maintainers <x86@kernel.org>, alpha <linux-alpha@vger.kernel.org>, arcml <linux-snps-arc@lists.infradead.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, "open list:QUALCOMM HEXAGON..." <linux-hexagon@vger.kernel.org>, "linux-ia64@vger.kernel.org" <linux-ia64@vger.kernel.org>, linux-m68k <linux-m68k@lists.linux-m68k.org>, linux-mips@vger.kernel.org, nios2-dev@lists.rocketboards.org, Openrisc <openrisc@lists.librecores.org>, Parisc List <linux-parisc@vger.kernel.org>, linux-riscv@lists.infradead.orglinux-s390 <linux>
+To: Stafford Horne <shorne@gmail.com>
+Cc: Christoph Hellwig <hch@lst.de>, Arnd Bergmann <arnd@arndb.de>, Guo Ren <guoren@kernel.org>, Michal Simek <monstr@monstr.eu>, Greentime Hu <green.hu@gmail.com>, Vincent Chen <deanbo422@gmail.com>, Guan Xuetao <gxt@pku.edu.cn>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-snps-arc@lists.infradead.org, linux-arm-kernel@lists.infradead.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, nios2-dev@lists.rocketboards.org, openrisc@lists.librecores.org, linux-parisc@vger.kernel.org, linux-riscv@lists.infradead.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-mtd@lists.infradead.org, linux-arch@vger.kernel.org, linux-kernel@vger.k
 List-Id: linux-arch.vger.kernel.org
 
-On Mon, Aug 19, 2019 at 10:56:02AM +0200, Geert Uytterhoeven wrote:
-> Hi Christoph,
-> 
-> On Sat, Aug 17, 2019 at 9:48 AM Christoph Hellwig <hch@lst.de> wrote:
-> > Just define ioremap_nocache to ioremap instead of duplicating the
-> > inline.  Also defined ioremap_uc in terms of ioremap instead of
-> > the using a double indirection.
-> >
+On Fri, Aug 23, 2019 at 10:55:39PM +0900, Stafford Horne wrote:
+> On Sat, Aug 17, 2019 at 09:32:32AM +0200, Christoph Hellwig wrote:
+> > Openrisc is the only architecture not mapping ioremap as uncached,
+> > which has been the default since the Linux 2.6.x days.  Switch it
+> > over to implement uncached semantics by default.
+> > 
 > > Signed-off-by: Christoph Hellwig <hch@lst.de>
+> > ---
+> >  arch/openrisc/include/asm/io.h      | 20 +++-----------------
+> >  arch/openrisc/include/asm/pgtable.h |  2 +-
+> >  arch/openrisc/mm/ioremap.c          |  8 ++++----
+> >  3 files changed, 8 insertions(+), 22 deletions(-)
 > 
-> Acked-by: Geert Uytterhoeven <geert@linux-m68k.org>
+> Acked-by: Stafford Horne <shorne@gmail.com>
 
-Do you mind picking this up through the m68k tree?
+Can you send this one to Linus for 5.4?  That would help with the
+possibility to remove ioremap_nocache after that.
