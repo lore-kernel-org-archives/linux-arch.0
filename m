@@ -1,128 +1,28 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:55984 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1725780AbfH3IeW (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 30 Aug 2019 04:34:22 -0400
-Date: Fri, 30 Aug 2019 09:34:18 +0100
-From: Dave Martin <Dave.Martin@arm.com>
-Subject: Re: [RFC PATCH v2 2/2] ELF: Add ELF program property parsing support
-Message-ID: <20190830083415.GI27757@arm.com>
-References: <1566581020-9953-1-git-send-email-Dave.Martin@arm.com>
- <1566581020-9953-3-git-send-email-Dave.Martin@arm.com>
- <201908292224.007EB4D5@keescook>
+Received: from bombadil.infradead.org ([198.137.202.133]:55124 "EHLO
+        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727170AbfH3Lcf (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 30 Aug 2019 07:32:35 -0400
+Date: Fri, 30 Aug 2019 13:32:16 +0200
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH] tools: memory-model: add it to the Documentation body
+Message-ID: <20190830113216.GE2369@hirez.programming.kicks-ass.net>
+References: <Pine.LNX.4.44L0.1907310947340.1497-100000@iolanthe.rowland.org>
+ <cb9785b7-ed43-b91a-7392-e50216bd5771@gmail.com>
+ <20190731202517.GF5913@linux.ibm.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <201908292224.007EB4D5@keescook>
+In-Reply-To: <20190731202517.GF5913@linux.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Kees Cook <keescook@chromium.org>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Jann Horn <jannh@google.com>, "H.J. Lu" <hjl.tools@gmail.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, Yu-cheng Yu <yu-cheng.yu@intel.com>, Peter Zijlstra <peterz@infradead.org>
-Message-ID: <20190830083418.5pfH4DOtRi3dn3rZ10p1mALGaO_sfQKojNJLVb4ATOw@z>
+To: "Paul E. McKenney" <paulmck@linux.ibm.com>
+Cc: Akira Yokosawa <akiyks@gmail.com>, Alan Stern <stern@rowland.harvard.edu>, Mauro Carvalho Chehab <mchehab+samsung@kernel.org>, Joel Fernandes <joel@joelfernandes.org>, Linux Doc Mailing List <linux-doc@vger.kernel.org>, Mauro Carvalho Chehab <mchehab@infradead.org>, linux-kernel@vger.kernel.org, Jonathan Corbet <corbet@lwn.net>, Andrea Parri <andrea.parri@amarulasolutions.com>, Will Deacon <will@kernel.org>, Boqun Feng <boqun.feng@gmail.com>, Nicholas Piggin <npiggin@gmail.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, Daniel Lustig <dlustig@nvidia.com>, Ingo Molnar <mingo@kernel.org>, Jason Gunthorpe <jgg@ziepe.ca>, SeongJae Park <sj38.park@gmail.com>, linux-arch@vger.kernel.org
+Message-ID: <20190830113216.rBOIi9SP_NqC4GSXoL6gJskevfGo0lQTcgH-4yZaKos@z>
 
-On Fri, Aug 30, 2019 at 06:37:45AM +0100, Kees Cook wrote:
-> On Fri, Aug 23, 2019 at 06:23:40PM +0100, Dave Martin wrote:
-> > ELF program properties will needed for detecting whether to enable
-> > optional architecture or ABI features for a new ELF process.
-> > 
-> > For now, there are no generic properties that we care about, so do
-> > nothing unless CONFIG_ARCH_USE_GNU_PROPERTY=y.
-> > 
-> > Otherwise, the presence of properties using the PT_PROGRAM_PROPERTY
-> > phdrs entry (if any), and notify each property to the arch code.
-> > 
-> > For now, the added code is not used.
-> > 
-> > Signed-off-by: Dave Martin <Dave.Martin@arm.com>
-> 
-> Reviewed-by: Kees Cook <keescook@chromium.org>
+On Wed, Jul 31, 2019 at 01:25:17PM -0700, Paul E. McKenney wrote:
+> Looks like a pretty clear consensus thus far.  Any objections to keeping
+> these .txt for the time being?
 
-Thanks for the review.
-
-Do you have any thoughts on Yu-Cheng Yu's comments?  It would be nice to
-early-terminate the scan if we can, but my feeling so far was that the
-scan is cheap, the number of properties is unlikely to be more than a
-smallish integer, and the code separation benefits of just calling the
-arch code for every property probably likely outweigh the costs of
-having to iterate over every property.  We could always optimise it
-later if necessary.
-
-I need to double-check that there's no way we can get stuck in an
-infinite loop with the current code, though I've not seen it in my
-testing.  I should throw some malformed notes at it though.
-
-> Note below...
-> 
-> > [...]
-> > +static int parse_elf_property(const char *data, size_t *off, size_t datasz,
-> > +			      struct arch_elf_state *arch,
-> > +			      bool have_prev_type, u32 *prev_type)
-> > +{
-> > +	size_t size, step;
-> > +	const struct gnu_property *pr;
-> > +	int ret;
-> > +
-> > +	if (*off == datasz)
-> > +		return -ENOENT;
-> > +
-> > +	if (WARN_ON(*off > datasz || *off % elf_gnu_property_align))
-> > +		return -EIO;
-> > +
-> > +	size = datasz - *off;
-> > +	if (size < sizeof(*pr))
-> > +		return -EIO;
-> > +
-> > +	pr = (const struct gnu_property *)(data + *off);
-> > +	if (pr->pr_datasz > size - sizeof(*pr))
-> > +		return -EIO;
-> > +
-> > +	step = round_up(sizeof(*pr) + pr->pr_datasz, elf_gnu_property_align);
-> > +	if (step > size)
-> > +		return -EIO;
-> > +
-> > +	/* Properties are supposed to be unique and sorted on pr_type: */
-> > +	if (have_prev_type && pr->pr_type <= *prev_type)
-> > +		return -EIO;
-> > +	*prev_type = pr->pr_type;
-> > +
-> > +	ret = arch_parse_elf_property(pr->pr_type,
-> > +				      data + *off + sizeof(*pr),
-> > +				      pr->pr_datasz, ELF_COMPAT, arch);
-> 
-> I find it slightly hard to read the "cursor" motion in this parse. It
-> feels strange, for example, to refer twice to "data + *off" with the
-> second including consumed *pr size. Everything is fine AFAICT in the math,
-> though, and I haven't been able to construct a convincingly "cleaner"
-> version. Maybe:
-> 
-> 	data += *off;
-> 	pr = (const struct gnu_property *)data;
-> 	data += sizeof(*pr);
-> 	...
-> 	ret = arch_parse_elf_property(pr->pr_type, data,
-> 				      pr->pr_datasz, ELF_COMPAT, arch);
-
-Fair point.  The cursor is really *off, which I suppose I could update
-as we go through this function, or cache in a local variable and assign
-on the way out.
-
-> But that feels disjoint from the "step" calculation, so... I think what
-> you have is fine. :)
-
-It's good to be as clear as possible about exactly how far we have
-parsed, so I'll see if I can improve this when I repost.
-
-
-Do you have any objection to merging patch 1 with this one?  For
-upstreaming purposes, it seems overkill for that to be a separate patch.
-
-I may also convert elf_gnu_property_align to upper case, since unlike
-the other related definitions this one isn't trying to look like a
-struct tag.
-
-Do you have any opinion on the WARN_ON()s?  They should be un-hittable,
-so they're documenting assumptions rather than protecting against
-anything real.  Maybe I should replace them with comments.
-
-Cheers
----Dave
+Obviously I'm a huge proponent of abandoning RST and an advocate for
+normal .txt files ;-)
