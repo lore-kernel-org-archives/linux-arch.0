@@ -1,37 +1,59 @@
-From: Kees Cook <keescook@chromium.org>
-Subject: Re: [PATCH v2 7/7] bug: Move WARN_ON() "cut here" into exception
- handler
-Date: Thu, 29 Aug 2019 09:12:10 -0700
-Message-ID: <201908290910.BA3ED6BDEF@keescook>
-References: <201908200943.601DD59DCE@keescook>
- <20190822155611.a1a6e26db99ba0876ba9c8bd@linux-foundation.org>
- <86003539-18ec-f2ff-a46f-764edb820dcd@c-s.fr>
- <201908241206.D223659@keescook>
- <4c1ed94a-4dd0-e5cb-0b87-397b512d465e@c-s.fr>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+From: Masahiro Yamada <yamada.masahiro@socionext.com>
+Subject: [PATCH] compiler: enable CONFIG_OPTIMIZE_INLINING forcibly
+Date: Fri, 30 Aug 2019 12:43:04 +0900
+Message-ID: <20190830034304.24259-1-yamada.masahiro@socionext.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <4c1ed94a-4dd0-e5cb-0b87-397b512d465e@c-s.fr>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Christophe Leroy <christophe.leroy@c-s.fr>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Peter Zijlstra <peterz@infradead.org>, Drew Davenport <ddavenport@chromium.org>, Arnd Bergmann <arnd@arndb.de>, "Steven Rostedt (VMware)" <rostedt@goodmis.org>, Feng Tang <feng.tang@intel.com>, Petr Mladek <pmladek@suse.com>, Mauro Carvalho Chehab <mchehab+samsung@kernel.org>, Borislav Petkov <bp@suse.de>, YueHaibing <yuehaibing@huawei.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Linus Torvalds <torvalds@linux-foundation.org>, Nick Desaulniers <ndesaulniers@google.com>, Miguel Ojeda <miguel.ojeda.sandonis@gmail.com>, linux-arch <linux-arch@vger.kernel.org>, Masahiro Yamada <yamada.masahiro@socionext.com>, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, Aug 29, 2019 at 06:55:59AM +0200, Christophe Leroy wrote:
-> Euh ... only received this mail yesterday. Same for the other answer.
+Commit 9012d011660e ("compiler: allow all arches to enable
+CONFIG_OPTIMIZE_INLINING") allowed all architectures to enable
+this option. A couple of build errors were reported by randconfig,
+but all of them have been ironed out.
 
-Yeah, my outbound mail was busted. :(
+Towards the goal of removing CONFIG_OPTIMIZE_INLINING entirely
+(and it will simplify the 'inline' macro in compiler_types.h),
+this commit changes it to always-on option. Going forward, the
+compiler will always be allowed to not inline functions marked
+'inline'.
 
-> I think you wanted to use In-reply-to:
-> [...]
-> But still, Andrew is seing double ... And me as well :)
-> 
-> Fixes: Fixes:
+This is not a problem for x86 since it has been long used by
+arch/x86/configs/{x86_64,i386}_defconfig.
 
-I had a lot of failures in that email. :)
+I am keeping the config option just in case any problem crops up for
+other architectures.
 
-Thank you Andrew for cleaning this up.
+The code clean-up will be done after confirming this is solid.
 
+Signed-off-by: Masahiro Yamada <yamada.masahiro@socionext.com>
+---
+
+ lib/Kconfig.debug | 4 +---
+ 1 file changed, 1 insertion(+), 3 deletions(-)
+
+diff --git a/lib/Kconfig.debug b/lib/Kconfig.debug
+index 5960e2980a8a..e25493811df8 100644
+--- a/lib/Kconfig.debug
++++ b/lib/Kconfig.debug
+@@ -327,7 +327,7 @@ config HEADERS_CHECK
+ 	  relevant for userspace, say 'Y'.
+ 
+ config OPTIMIZE_INLINING
+-	bool "Allow compiler to uninline functions marked 'inline'"
++	def_bool y
+ 	help
+ 	  This option determines if the kernel forces gcc to inline the functions
+ 	  developers have marked 'inline'. Doing so takes away freedom from gcc to
+@@ -338,8 +338,6 @@ config OPTIMIZE_INLINING
+ 	  decision will become the default in the future. Until then this option
+ 	  is there to test gcc for this.
+ 
+-	  If unsure, say N.
+-
+ config DEBUG_SECTION_MISMATCH
+ 	bool "Enable full Section mismatch analysis"
+ 	help
 -- 
-Kees Cook
+2.17.1
