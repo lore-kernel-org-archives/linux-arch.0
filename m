@@ -1,45 +1,46 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:42614 "EHLO mail.kernel.org"
+Received: from foss.arm.com ([217.140.110.172]:60866 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727754AbfH3MkM (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 30 Aug 2019 08:40:12 -0400
-Date: Fri, 30 Aug 2019 13:40:07 +0100
-From: Will Deacon <will@kernel.org>
-Subject: Re: [PATCH 0/6] Fix TLB invalidation on arm64
-Message-ID: <20190830124007.z6f2qjujzluntrwb@willie-the-truck>
-References: <20190827131818.14724-1-will@kernel.org>
- <1566947104.2uma6s0pl1.astroid@bobo.none>
- <20190828161256.uevoohval4sko24m@willie-the-truck>
- <1567085427.12jzc6eq6j.astroid@bobo.none>
+        id S1728604AbfH3N71 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 30 Aug 2019 09:59:27 -0400
+From: Vincenzo Frascino <vincenzo.frascino@arm.com>
+Subject: [PATCH v2 7/8] mips: vdso: Remove unused VDSO_HAS_32BIT_FALLBACK
+Date: Fri, 30 Aug 2019 14:59:01 +0100
+Message-ID: <20190830135902.20861-8-vincenzo.frascino@arm.com>
+In-Reply-To: <20190830135902.20861-1-vincenzo.frascino@arm.com>
+References: <20190830135902.20861-1-vincenzo.frascino@arm.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1567085427.12jzc6eq6j.astroid@bobo.none>
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Nicholas Piggin <npiggin@gmail.com>
-Cc: Catalin Marinas <catalin.marinas@arm.com>, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Mark Rutland <mark.rutland@arm.com>, Marc Zyngier <maz@kernel.org>, Peter Zijlstra <peterz@infradead.org>
-Message-ID: <20190830124007.ZlB4wrn8CsvEzFxdr7wbbsPDJlycBsJ_9PHzv9LSD8U@z>
+To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org, linux-kselftest@vger.kernel.org
+Cc: catalin.marinas@arm.com, will@kernel.org, paul.burton@mips.com, tglx@linutronix.de, salyzyn@android.com, 0x7f454c46@gmail.com, luto@kernel.org
+Message-ID: <20190830135901.b6p7dW79xLc2g_TE36GHVvsTIWXZ0c2xw0HBQvd-qFw@z>
 
-On Fri, Aug 30, 2019 at 12:08:52AM +1000, Nicholas Piggin wrote:
-> Will Deacon's on August 29, 2019 2:12 am:
-> > On Wed, Aug 28, 2019 at 10:35:24AM +1000, Nicholas Piggin wrote:
-> >> From the other side of the fabric you have no such problem. The table
-> >> walker is cache coherent apart from the local stores, so we don't need a 
-> >> special barrier on the other side. That's why ptesync doesn't broadcast.
-> > 
-> > Curious: but do you need to do anything extra to take into account
-> > instruction fetch on remote CPUs if you're mapping an executable page?
-> > We added an IPI to flush_icache_range() in 3b8c9f1cdfc5 to handle this,
-> > because our broadcast I-cache maintenance doesn't force a pipeline flush
-> > for remote CPUs (and may even execute as a NOP on recent cores).
-> 
-> Ah, I think the tlbie does not force re-fetch indeed. We may need
-> something like that as well.
-> 
-> What do you do on the user side? Require threads to ISB themselves?
+VDSO_HAS_32BIT_FALLBACK has been removed from the core since
+the architectures that support the generic vDSO library have
+been converted to support the 32 bit fallbacks.
 
-I think they'd probably have to use sys_membarrier() with
-MEMBARRIER_CMD_PRIVATE_EXPEDITED_SYNC_CORE, yes.
+Remove unused VDSO_HAS_32BIT_FALLBACK from mips vdso.
 
-Will
+Cc: Paul Burton <paul.burton@mips.com>
+Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
+---
+ arch/mips/include/asm/vdso/gettimeofday.h | 2 --
+ 1 file changed, 2 deletions(-)
+
+diff --git a/arch/mips/include/asm/vdso/gettimeofday.h b/arch/mips/include/asm/vdso/gettimeofday.h
+index e78462e8ca2e..5ad2b086626d 100644
+--- a/arch/mips/include/asm/vdso/gettimeofday.h
++++ b/arch/mips/include/asm/vdso/gettimeofday.h
+@@ -107,8 +107,6 @@ static __always_inline int clock_getres_fallback(
+ 
+ #if _MIPS_SIM != _MIPS_SIM_ABI64
+ 
+-#define VDSO_HAS_32BIT_FALLBACK	1
+-
+ static __always_inline long clock_gettime32_fallback(
+ 					clockid_t _clkid,
+ 					struct old_timespec32 *_ts)
+-- 
+2.23.0
