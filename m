@@ -1,7 +1,7 @@
 From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Subject: [PATCH v2 8/8] x86: vdso: Remove unused VDSO_HAS_32BIT_FALLBACK
-Date: Fri, 30 Aug 2019 14:59:02 +0100
-Message-ID: <20190830135902.20861-9-vincenzo.frascino@arm.com>
+Subject: [PATCH v2 6/8] arm64: compat: vdso: Remove unused VDSO_HAS_32BIT_FALLBACK
+Date: Fri, 30 Aug 2019 14:59:00 +0100
+Message-ID: <20190830135902.20861-7-vincenzo.frascino@arm.com>
 References: <20190830135902.20861-1-vincenzo.frascino@arm.com>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
@@ -16,27 +16,27 @@ VDSO_HAS_32BIT_FALLBACK has been removed from the core since
 the architectures that support the generic vDSO library have
 been converted to support the 32 bit fallbacks.
 
-Remove unused VDSO_HAS_32BIT_FALLBACK from x86 vdso.
+Remove unused VDSO_HAS_32BIT_FALLBACK from arm64 compat vdso.
 
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: Andy Lutomirski <luto@kernel.org>
+Cc: Catalin Marinas <catalin.marinas@arm.com>
+Cc: Will Deacon <will@kernel.org>
 Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
+Acked-by: Catalin Marinas <catalin.marinas@arm.com>
 ---
- arch/x86/include/asm/vdso/gettimeofday.h | 2 --
- 1 file changed, 2 deletions(-)
+ arch/arm64/include/asm/vdso/compat_gettimeofday.h | 1 -
+ 1 file changed, 1 deletion(-)
 
-diff --git a/arch/x86/include/asm/vdso/gettimeofday.h b/arch/x86/include/asm/vdso/gettimeofday.h
-index ba71a63cdac4..6aa8e3eda31d 100644
---- a/arch/x86/include/asm/vdso/gettimeofday.h
-+++ b/arch/x86/include/asm/vdso/gettimeofday.h
-@@ -96,8 +96,6 @@ long clock_getres_fallback(clockid_t _clkid, struct __kernel_timespec *_ts)
+diff --git a/arch/arm64/include/asm/vdso/compat_gettimeofday.h b/arch/arm64/include/asm/vdso/compat_gettimeofday.h
+index fe7afe0f1a3d..537b1e695365 100644
+--- a/arch/arm64/include/asm/vdso/compat_gettimeofday.h
++++ b/arch/arm64/include/asm/vdso/compat_gettimeofday.h
+@@ -16,7 +16,6 @@
  
- #else
+ #define VDSO_HAS_CLOCK_GETRES		1
  
--#define VDSO_HAS_32BIT_FALLBACK	1
--
+-#define VDSO_HAS_32BIT_FALLBACK		1
+ #define BUILD_VDSO32			1
+ 
  static __always_inline
- long clock_gettime_fallback(clockid_t _clkid, struct __kernel_timespec *_ts)
- {
 -- 
 2.23.0
