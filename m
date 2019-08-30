@@ -1,69 +1,36 @@
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH] Revert "asm-generic: Remove unneeded
- __ARCH_WANT_SYS_LLSEEK macro"
-Date: Fri, 30 Aug 2019 21:54:43 +0200
-Message-ID: <CAK8P3a16=ktJm5B3c5-XS7SqVuHBY5+E2FwVUqbdOdWK-AUgSA@mail.gmail.com>
-References: <bb6d25c6baae315d05b571d8c508f0e8fa90027c.1567188299.git.msuchanek@suse.de>
- <20190830194651.31043-1-msuchanek@suse.de>
+Subject: Re: [PATCH] asm-generic: add unlikely to default BUG_ON(x)
+Date: Fri, 30 Aug 2019 22:08:49 +0200
+Message-ID: <CAK8P3a3T3r3b2uW977HiuMi0uYKs4V_d4e=PDnkWDpqs+wrLww@mail.gmail.com>
+References: <20190828210934.17711-1-efremov@linux.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
-In-Reply-To: <20190830194651.31043-1-msuchanek@suse.de>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
-To: Michal Suchanek <msuchanek@suse.de>
-Cc: Rich Felker <dalias@libc.org>, Linux-sh list <linux-sh@vger.kernel.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, linux-mips@vger.kernel.org, "James E.J. Bottomley" <James.Bottomley@hansenpartnership.com>, Max Filippov <jcmvbkbc@gmail.com>, Guo Ren <guoren@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, sparclinux <sparclinux@vger.kernel.org>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Will Deacon <will@kernel.org>, linux-arch <linux-arch@vger.kernel.org>, linux-s390 <linux-s390@vger.kernel.org>, Yoshinori Sato <ysato@users.sourceforge.jp>, Michael Ellerman <mpe@ellerman.id.au>, Helge Deller <deller@gmx.de>, the arch/x86 maintainers <x86@kernel.org>, Russell King <linux@armlinux.org.uk>, Christian Borntraeger <borntraeger@de.ibm.com>, Ingo Molnar <mingo@redhat.com>, Geert Uytterhoeven <geert@linux-m68k.org>Linu
+Content-Type: text/plain; charset="UTF-8"
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20190828210934.17711-1-efremov@linux.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Denis Efremov <efremov@linux.com>
+Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Kees Cook <keescook@chromium.org>, Andrew Morton <akpm@linux-foundation.org>, Stephen Rothwell <sfr@canb.auug.org.au>
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, Aug 30, 2019 at 9:46 PM Michal Suchanek <msuchanek@suse.de> wrote:
+On Wed, Aug 28, 2019 at 11:09 PM Denis Efremov <efremov@linux.com> wrote:
 >
-> This reverts commit caf6f9c8a326cffd1d4b3ff3f1cfba75d159d70b.
+> Add unlikely to default BUG_ON(x) in !CONFIG_BUG. It makes
+> the define consistent with BUG_ON(x) in CONFIG_BUG.
 >
-> Maybe it was needed after all.
->
-> When CONFIG_COMPAT is disabled on ppc64 the kernel does not build.
->
-> There is resistance to both removing the llseek syscall from the 64bit
-> syscall tables and building the llseek interface unconditionally.
->
-> Link: https://lore.kernel.org/lkml/20190828151552.GA16855@infradead.org/
-> Link: https://lore.kernel.org/lkml/20190829214319.498c7de2@naga/
->
-> Signed-off-by: Michal Suchanek <msuchanek@suse.de>
+> Signed-off-by: Denis Efremov <efremov@linux.com>
+> Cc: Arnd Bergmann <arnd@arndb.de>
+> Cc: <linux-arch@vger.kernel.org>
 
-This seems like the right idea in principle.
+This makes sense, I've applied it to the asm-generic tree for now.
 
-> index 5bbf587f5bc1..2f3c4bb138c4 100644
-> --- a/fs/read_write.c
-> +++ b/fs/read_write.c
-> @@ -331,7 +331,7 @@ COMPAT_SYSCALL_DEFINE3(lseek, unsigned int, fd, compat_off_t, offset, unsigned i
->  }
->  #endif
->
-> -#if !defined(CONFIG_64BIT) || defined(CONFIG_COMPAT)
-> +#ifdef __ARCH_WANT_SYS_LLSEEK
->  SYSCALL_DEFINE5(llseek, unsigned int, fd, unsigned long, offset_high,
->                 unsigned long, offset_low, loff_t __user *, result,
->                 unsigned int, whence)
+Two concerns though:
 
-However, only reverting the patch will now break all newly added
-32-bit architectures that don't define __ARCH_WANT_SYS_LLSEEK:
-at least nds32 and riscv32 come to mind, not sure if there is another.
+- adding unlikely() can cause new (usually false-postive) compile time
+  warnings to show up in random configurations, so we'll have to see what
+  the build bots think
 
-I think the easiest way however would be to combine the two checks
-above and make it
+- Kees Cook has recently sent a series for asm/bug.h that was merged by
+  Andrew Morton. If there are is a conflict with your patch, it may be better
+  to merge both through the same tree, either linux-mm or asm-generic.
 
-#if !defined(CONFIG_64BIT) || defined(CONFIG_COMPAT) ||
-defined(__ARCH_WANT_SYS_LLSEEK)
-
-and then only set __ARCH_WANT_SYS_LLSEEK for powerpc.
-
-     Arnd
+        Arnd
