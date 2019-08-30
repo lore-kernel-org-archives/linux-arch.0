@@ -1,7 +1,7 @@
 From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Subject: [PATCH v2 2/8] lib: vdso: Build 32 bit specific functions in the right context
-Date: Fri, 30 Aug 2019 14:58:56 +0100
-Message-ID: <20190830135902.20861-3-vincenzo.frascino@arm.com>
+Subject: [PATCH v2 5/8] lib: vdso: Remove checks on return value for 32 bit vDSO
+Date: Fri, 30 Aug 2019 14:58:59 +0100
+Message-ID: <20190830135902.20861-6-vincenzo.frascino@arm.com>
 References: <20190830135902.20861-1-vincenzo.frascino@arm.com>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
@@ -12,52 +12,54 @@ To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kern
 Cc: catalin.marinas@arm.com, will@kernel.org, paul.burton@mips.com, tglx@linutronix.de, salyzyn@android.com, 0x7f454c46@gmail.com, luto@kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-clock_gettime32 and clock_getres_time32 should be compiled only with a
-32 bit vdso library.
+Since all the architectures that support the generic vDSO library have
+been converted to support the 32 bit fallbacks it is not required
+anymore to check the return value of __cvdso_clock_get*time32_common()
+before updating the old_timespec fields.
 
-Exclude these symbols when BUILD_VDSO32 is not defined.
+Remove the related checks from the generic vdso library.
 
 Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: Andy Lutomirski <luto@kernel.org>
+CC: Andy Lutomirski <luto@kernel.org>
+References: c60a32ea4f45 ("lib/vdso/32: Provide legacy syscall fallbacks")
 Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Reviewed-by: Andy Lutomirski <luto@kernel.org>
 ---
- lib/vdso/gettimeofday.c | 4 ++++
- 1 file changed, 4 insertions(+)
+ lib/vdso/gettimeofday.c | 16 ++++++++--------
+ 1 file changed, 8 insertions(+), 8 deletions(-)
 
 diff --git a/lib/vdso/gettimeofday.c b/lib/vdso/gettimeofday.c
-index e630e7ff57f1..a86e89e6dedc 100644
+index 2c4b311c226d..d5bc16748f81 100644
 --- a/lib/vdso/gettimeofday.c
 +++ b/lib/vdso/gettimeofday.c
-@@ -117,6 +117,7 @@ __cvdso_clock_gettime(clockid_t clock, struct __kernel_timespec *ts)
- 	return 0;
- }
+@@ -129,10 +129,10 @@ __cvdso_clock_gettime32(clockid_t clock, struct old_timespec32 *res)
+ 	if (unlikely(ret))
+ 		return clock_gettime32_fallback(clock, res);
  
-+#ifdef BUILD_VDSO32
- static __maybe_unused int
- __cvdso_clock_gettime32(clockid_t clock, struct old_timespec32 *res)
- {
-@@ -139,6 +140,7 @@ __cvdso_clock_gettime32(clockid_t clock, struct old_timespec32 *res)
- 	}
+-	if (likely(!ret)) {
+-		res->tv_sec = ts.tv_sec;
+-		res->tv_nsec = ts.tv_nsec;
+-	}
++	/* For ret == 0 */
++	res->tv_sec = ts.tv_sec;
++	res->tv_nsec = ts.tv_nsec;
++
  	return ret;
  }
-+#endif /* BUILD_VDSO32 */
+ #endif /* BUILD_VDSO32 */
+@@ -238,10 +238,10 @@ __cvdso_clock_getres_time32(clockid_t clock, struct old_timespec32 *res)
+ 	if (unlikely(ret))
+ 		return clock_getres32_fallback(clock, res);
  
- static __maybe_unused int
- __cvdso_gettimeofday(struct __kernel_old_timeval *tv, struct timezone *tz)
-@@ -229,6 +231,7 @@ int __cvdso_clock_getres(clockid_t clock, struct __kernel_timespec *res)
- 	return 0;
- }
- 
-+#ifdef BUILD_VDSO32
- static __maybe_unused int
- __cvdso_clock_getres_time32(clockid_t clock, struct old_timespec32 *res)
- {
-@@ -251,4 +254,5 @@ __cvdso_clock_getres_time32(clockid_t clock, struct old_timespec32 *res)
- 	}
+-	if (likely(!ret)) {
+-		res->tv_sec = ts.tv_sec;
+-		res->tv_nsec = ts.tv_nsec;
+-	}
++	/* For ret == 0 */
++	res->tv_sec = ts.tv_sec;
++	res->tv_nsec = ts.tv_nsec;
++
  	return ret;
  }
-+#endif /* BUILD_VDSO32 */
- #endif /* VDSO_HAS_CLOCK_GETRES */
+ #endif /* BUILD_VDSO32 */
 -- 
 2.23.0
