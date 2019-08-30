@@ -1,44 +1,88 @@
-From: Will Deacon <will@kernel.org>
-Subject: Re: [PATCH 19/26] arm64: remove __iounmap
-Date: Sat, 31 Aug 2019 17:29:38 +0100
-Message-ID: <20190831162937.5ybulvaa4eq7mybs@willie-the-truck>
-References: <20190817073253.27819-1-hch@lst.de>
- <20190817073253.27819-20-hch@lst.de>
- <20190819073601.4yxjvmyjtpi7tk56@willie-the-truck>
- <20190830160515.GC26887@lst.de>
+From: Kees Cook <keescook@chromium.org>
+Subject: Re: [RFC PATCH v2 2/2] ELF: Add ELF program property parsing support
+Date: Thu, 29 Aug 2019 22:37:45 -0700
+Message-ID: <201908292224.007EB4D5@keescook>
+References: <1566581020-9953-1-git-send-email-Dave.Martin@arm.com>
+ <1566581020-9953-3-git-send-email-Dave.Martin@arm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <20190830160515.GC26887@lst.de>
+In-Reply-To: <1566581020-9953-3-git-send-email-Dave.Martin@arm.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Christoph Hellwig <hch@lst.de>
-Cc: Arnd Bergmann <arnd@arndb.de>, Guo Ren <guoren@kernel.org>, Michal Simek <monstr@monstr.eu>, Greentime Hu <green.hu@gmail.com>, Vincent Chen <deanbo422@gmail.com>, Guan Xuetao <gxt@pku.edu.cn>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-snps-arc@lists.infradead.org, linux-arm-kernel@lists.infradead.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, nios2-dev@lists.rocketboards.org, openrisc@lists.librecores.org, linux-parisc@vger.kernel.org, linux-riscv@lists.infradead.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-mtd@lists.infradead.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+To: Dave Martin <Dave.Martin@arm.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>, Jann Horn <jannh@google.com>, "H.J. Lu" <hjl.tools@gmail.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, Yu-cheng Yu <yu-cheng.yu@intel.com>, Peter Zijlstra <peterz@infradead.org>
 List-Id: linux-arch.vger.kernel.org
 
-Hi Christoph,
-
-On Fri, Aug 30, 2019 at 06:05:15PM +0200, Christoph Hellwig wrote:
-> On Mon, Aug 19, 2019 at 08:36:02AM +0100, Will Deacon wrote:
-> > On Sat, Aug 17, 2019 at 09:32:46AM +0200, Christoph Hellwig wrote:
-> > > No need to indirect iounmap for arm64.
-> > > 
-> > > Signed-off-by: Christoph Hellwig <hch@lst.de>
-> > > ---
-> > >  arch/arm64/include/asm/io.h | 3 +--
-> > >  arch/arm64/mm/ioremap.c     | 4 ++--
-> > >  2 files changed, 3 insertions(+), 4 deletions(-)
-> > 
-> > Not sure why we did it like this...
-> > 
-> > Acked-by: Will Deacon <will@kernel.org>
+On Fri, Aug 23, 2019 at 06:23:40PM +0100, Dave Martin wrote:
+> ELF program properties will needed for detecting whether to enable
+> optional architecture or ABI features for a new ELF process.
 > 
-> Can you just pick this one up through the arm64 tree for 5.4?
+> For now, there are no generic properties that we care about, so do
+> nothing unless CONFIG_ARCH_USE_GNU_PROPERTY=y.
+> 
+> Otherwise, the presence of properties using the PT_PROGRAM_PROPERTY
+> phdrs entry (if any), and notify each property to the arch code.
+> 
+> For now, the added code is not used.
+> 
+> Signed-off-by: Dave Martin <Dave.Martin@arm.com>
 
-Unfortunately, it doesn't apply because the tree you've based it on has
-removed ioremap_wt(). If you send a version based on mainline, I can
-queue it.
+Reviewed-by: Kees Cook <keescook@chromium.org>
 
-Cheers,
+Note below...
 
-Will
+> [...]
+> +static int parse_elf_property(const char *data, size_t *off, size_t datasz,
+> +			      struct arch_elf_state *arch,
+> +			      bool have_prev_type, u32 *prev_type)
+> +{
+> +	size_t size, step;
+> +	const struct gnu_property *pr;
+> +	int ret;
+> +
+> +	if (*off == datasz)
+> +		return -ENOENT;
+> +
+> +	if (WARN_ON(*off > datasz || *off % elf_gnu_property_align))
+> +		return -EIO;
+> +
+> +	size = datasz - *off;
+> +	if (size < sizeof(*pr))
+> +		return -EIO;
+> +
+> +	pr = (const struct gnu_property *)(data + *off);
+> +	if (pr->pr_datasz > size - sizeof(*pr))
+> +		return -EIO;
+> +
+> +	step = round_up(sizeof(*pr) + pr->pr_datasz, elf_gnu_property_align);
+> +	if (step > size)
+> +		return -EIO;
+> +
+> +	/* Properties are supposed to be unique and sorted on pr_type: */
+> +	if (have_prev_type && pr->pr_type <= *prev_type)
+> +		return -EIO;
+> +	*prev_type = pr->pr_type;
+> +
+> +	ret = arch_parse_elf_property(pr->pr_type,
+> +				      data + *off + sizeof(*pr),
+> +				      pr->pr_datasz, ELF_COMPAT, arch);
+
+I find it slightly hard to read the "cursor" motion in this parse. It
+feels strange, for example, to refer twice to "data + *off" with the
+second including consumed *pr size. Everything is fine AFAICT in the math,
+though, and I haven't been able to construct a convincingly "cleaner"
+version. Maybe:
+
+	data += *off;
+	pr = (const struct gnu_property *)data;
+	data += sizeof(*pr);
+	...
+	ret = arch_parse_elf_property(pr->pr_type, data,
+				      pr->pr_datasz, ELF_COMPAT, arch);
+
+But that feels disjoint from the "step" calculation, so... I think what
+you have is fine. :)
+
+-- 
+Kees Cook
