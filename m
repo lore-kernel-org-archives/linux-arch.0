@@ -1,7 +1,7 @@
 From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Subject: [PATCH v2 4/8] lib: vdso: Remove VDSO_HAS_32BIT_FALLBACK
-Date: Fri, 30 Aug 2019 14:58:58 +0100
-Message-ID: <20190830135902.20861-5-vincenzo.frascino@arm.com>
+Subject: [PATCH v2 3/8] mips: compat: vdso: Use legacy syscalls as fallback
+Date: Fri, 30 Aug 2019 14:58:57 +0100
+Message-ID: <20190830135902.20861-4-vincenzo.frascino@arm.com>
 References: <20190830135902.20861-1-vincenzo.frascino@arm.com>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
@@ -12,57 +12,91 @@ To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kern
 Cc: catalin.marinas@arm.com, will@kernel.org, paul.burton@mips.com, tglx@linutronix.de, salyzyn@android.com, 0x7f454c46@gmail.com, luto@kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-VDSO_HAS_32BIT_FALLBACK was introduced to address a regression which
-caused seccomp to deny access to the applications to clock_gettime64()
-and clock_getres64() because they are not enabled in the existing
-filters.
+The generic VDSO implementation uses the Y2038 safe clock_gettime64() and
+clock_getres_time64() syscalls as fallback for 32bit VDSO. This breaks
+seccomp setups because these syscalls might be not (yet) allowed.
 
-The purpose of VDSO_HAS_32BIT_FALLBACK was to simplify the conditional
-implementation of __cvdso_clock_get*time32() variants.
+Implement the 32bit variants which use the legacy syscalls and select the
+variant in the core library.
 
-Now that all the architectures that support the generic vDSO library
-have been converted to support the 32 bit fallbacks the conditional
-can be removed.
+The 64bit time variants are not removed because they are required for the
+time64 based vdso accessors.
 
-Cc: Thomas Gleixner <tglx@linutronix.de>
-CC: Andy Lutomirski <luto@kernel.org>
-References: c60a32ea4f45 ("lib/vdso/32: Provide legacy syscall fallbacks")
+Cc: Paul Burton <paul.burton@mips.com>
+Fixes: 00b26474c2f1 ("lib/vdso: Provide generic VDSO implementation")
 Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
 ---
- lib/vdso/gettimeofday.c | 10 ----------
- 1 file changed, 10 deletions(-)
+ arch/mips/include/asm/vdso/gettimeofday.h | 45 +++++++++++++++++++++++
+ arch/mips/vdso/config-n32-o32-env.c       |  1 +
+ 2 files changed, 46 insertions(+)
 
-diff --git a/lib/vdso/gettimeofday.c b/lib/vdso/gettimeofday.c
-index a86e89e6dedc..2c4b311c226d 100644
---- a/lib/vdso/gettimeofday.c
-+++ b/lib/vdso/gettimeofday.c
-@@ -126,13 +126,8 @@ __cvdso_clock_gettime32(clockid_t clock, struct old_timespec32 *res)
+diff --git a/arch/mips/include/asm/vdso/gettimeofday.h b/arch/mips/include/asm/vdso/gettimeofday.h
+index c59fe08b0347..e78462e8ca2e 100644
+--- a/arch/mips/include/asm/vdso/gettimeofday.h
++++ b/arch/mips/include/asm/vdso/gettimeofday.h
+@@ -105,6 +105,51 @@ static __always_inline int clock_getres_fallback(
+ 	return error ? -ret : ret;
+ }
  
- 	ret = __cvdso_clock_gettime_common(clock, &ts);
++#if _MIPS_SIM != _MIPS_SIM_ABI64
++
++#define VDSO_HAS_32BIT_FALLBACK	1
++
++static __always_inline long clock_gettime32_fallback(
++					clockid_t _clkid,
++					struct old_timespec32 *_ts)
++{
++	register struct old_timespec32 *ts asm("a1") = _ts;
++	register clockid_t clkid asm("a0") = _clkid;
++	register long ret asm("v0");
++	register long nr asm("v0") = __NR_clock_gettime;
++	register long error asm("a3");
++
++	asm volatile(
++	"       syscall\n"
++	: "=r" (ret), "=r" (error)
++	: "r" (clkid), "r" (ts), "r" (nr)
++	: "$1", "$3", "$8", "$9", "$10", "$11", "$12", "$13",
++	  "$14", "$15", "$24", "$25", "hi", "lo", "memory");
++
++	return error ? -ret : ret;
++}
++
++static __always_inline int clock_getres32_fallback(
++					clockid_t _clkid,
++					struct old_timespec32 *_ts)
++{
++	register struct old_timespec32 *ts asm("a1") = _ts;
++	register clockid_t clkid asm("a0") = _clkid;
++	register long ret asm("v0");
++	register long nr asm("v0") = __NR_clock_getres;
++	register long error asm("a3");
++
++	asm volatile(
++	"       syscall\n"
++	: "=r" (ret), "=r" (error)
++	: "r" (clkid), "r" (ts), "r" (nr)
++	: "$1", "$3", "$8", "$9", "$10", "$11", "$12", "$13",
++	  "$14", "$15", "$24", "$25", "hi", "lo", "memory");
++
++	return error ? -ret : ret;
++}
++#endif
++
+ #ifdef CONFIG_CSRC_R4K
  
--#ifdef VDSO_HAS_32BIT_FALLBACK
- 	if (unlikely(ret))
- 		return clock_gettime32_fallback(clock, res);
--#else
--	if (unlikely(ret))
--		ret = clock_gettime_fallback(clock, &ts);
--#endif
+ static __always_inline u64 read_r4k_count(void)
+diff --git a/arch/mips/vdso/config-n32-o32-env.c b/arch/mips/vdso/config-n32-o32-env.c
+index 7f8d957abd4a..0011a632aef2 100644
+--- a/arch/mips/vdso/config-n32-o32-env.c
++++ b/arch/mips/vdso/config-n32-o32-env.c
+@@ -10,6 +10,7 @@
+  */
+ #undef CONFIG_64BIT
  
- 	if (likely(!ret)) {
- 		res->tv_sec = ts.tv_sec;
-@@ -240,13 +235,8 @@ __cvdso_clock_getres_time32(clockid_t clock, struct old_timespec32 *res)
- 
- 	ret = __cvdso_clock_getres_common(clock, &ts);
- 
--#ifdef VDSO_HAS_32BIT_FALLBACK
- 	if (unlikely(ret))
- 		return clock_getres32_fallback(clock, res);
--#else
--	if (unlikely(ret))
--		ret = clock_getres_fallback(clock, &ts);
--#endif
- 
- 	if (likely(!ret)) {
- 		res->tv_sec = ts.tv_sec;
++#define BUILD_VDSO32
+ #define CONFIG_32BIT 1
+ #define CONFIG_GENERIC_ATOMIC64 1
+ #define BUILD_VDSO32_64
 -- 
 2.23.0
