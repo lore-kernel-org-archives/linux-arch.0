@@ -1,37 +1,78 @@
-From: Christoph Hellwig <hch@lst.de>
-Subject: Re: [PATCH 04/26] mips: remove ioremap_cachable
-Date: Fri, 30 Aug 2019 18:06:35 +0200
-Message-ID: <20190830160635.GE26887@lst.de>
-References: <20190817073253.27819-1-hch@lst.de>
- <20190817073253.27819-5-hch@lst.de>
- <20190819205722.4eir2edy6qgtgarl@pburton-laptop>
+From: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Subject: Re: [RFC PATCH v2 2/2] ELF: Add ELF program property parsing support
+Date: Fri, 30 Aug 2019 10:03:27 -0700
+Message-ID: <5ddd0306f42c2b53ffbd8ee8c9b948c1d529cf98.camel@intel.com>
+References: <1566581020-9953-1-git-send-email-Dave.Martin@arm.com>
+         <1566581020-9953-3-git-send-email-Dave.Martin@arm.com>
+         <201908292224.007EB4D5@keescook> <20190830083415.GI27757@arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
+Content-Type: text/plain; charset="UTF-8"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
-Content-Disposition: inline
-In-Reply-To: <20190819205722.4eir2edy6qgtgarl@pburton-laptop>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
-To: Paul Burton <paul.burton@mips.com>
-Cc: "linux-ia64@vger.kernel.org" <linux-ia64@vger.kernel.org>, "linux-sh@vger.kernel.org" <linux-sh@vger.kernel.org>, Guo Ren <guoren@kernel.org>, "sparclinux@vger.kernel.org" <sparclinux@vger.kernel.org>, "linux-riscv@lists.infradead.org" <linux-riscv@lists.infradead.org>, Vincent Chen <deanbo422@gmail.com>, Christoph Hellwig <hch@lst.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-s390@vger.kernel.org" <linux-s390@vger.kernel.org>, "linux-hexagon@vger.kernel.org" <linux-hexagon@vger.kernel.org>, "x86@kernel.org" <x86@kernel.org>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>, "linux-xtensa@linux-xtensa.org" <linux-xtensa@linux-xtensa.org>, Arnd Bergmann <arnd@arndb.de>, "linux-m68k@lists.linux-m68k.org" <linux-m68k@lists.linux-m68k.org>, "openrisc@lists.librecores.org" <openrisc@lists.librecores.org>, Greentime Hu <green>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20190830083415.GI27757@arm.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Dave Martin <Dave.Martin@arm.com>, Kees Cook <keescook@chromium.org>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Jann Horn <jannh@google.com>, "H.J. Lu" <hjl.tools@gmail.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, Peter Zijlstra <peterz@infradead.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Mon, Aug 19, 2019 at 08:57:30PM +0000, Paul Burton wrote:
-> Hi Christoph,
-> 
-> On Sat, Aug 17, 2019 at 09:32:31AM +0200, Christoph Hellwig wrote:
-> > Just define ioremap_cache directly.
+On Fri, 2019-08-30 at 09:34 +0100, Dave Martin wrote:
+> On Fri, Aug 30, 2019 at 06:37:45AM +0100, Kees Cook wrote:
+> > On Fri, Aug 23, 2019 at 06:23:40PM +0100, Dave Martin wrote:
+> > > ELF program properties will needed for detecting whether to enable
+> > > optional architecture or ABI features for a new ELF process.
+> > > 
+> > > For now, there are no generic properties that we care about, so do
+> > > nothing unless CONFIG_ARCH_USE_GNU_PROPERTY=y.
+> > > 
+> > > Otherwise, the presence of properties using the PT_PROGRAM_PROPERTY
+> > > phdrs entry (if any), and notify each property to the arch code.
+> > > 
+> > > For now, the added code is not used.
+> > > 
+> > > Signed-off-by: Dave Martin <Dave.Martin@arm.com>
 > > 
-> > Signed-off-by: Christoph Hellwig <hch@lst.de>
+> > Reviewed-by: Kees Cook <keescook@chromium.org>
 > 
-> Acked-by: Paul Burton <paul.burton@mips.com>
+> Thanks for the review.
+> 
+> Do you have any thoughts on Yu-Cheng Yu's comments?  It would be nice to
+> early-terminate the scan if we can, but my feeling so far was that the
+> scan is cheap, the number of properties is unlikely to be more than a
+> smallish integer, and the code separation benefits of just calling the
+> arch code for every property probably likely outweigh the costs of
+> having to iterate over every property.  We could always optimise it
+> later if necessary.
+> 
+> I need to double-check that there's no way we can get stuck in an
+> infinite loop with the current code, though I've not seen it in my
+> testing.  I should throw some malformed notes at it though.
 
-Can you pick this patch up through the mips tree?
+Here is my arch_parse_elf_property() and objdump of the property.
+The parser works fine.
+
+Thanks,
+Yu-cheng
+
+
+
+
+int arch_parse_elf_property(u32 type, const void *data, size_t datasz,
+          
+                   bool compat, struct arch_elf_state *state)
+{
+        if (type
+!= GNU_PROPERTY_X86_FEATURE_1_AND)
+                return -ENOENT;
+
+        if (datasz < sizeof(unsigned int))
+                return -ENOEXEC;
+
+        state->gnu_property = *(unsigned int *)data;
+        return 0;
+}
+
+Contents of section .note.gnu.property:
+ 400338 04000000 30000000 05000000 474e5500  ....0.......GNU.
+ 400348 020000c0 04000000 03000000 00000000  ................
+ 400358 000001c0 04000000 00000000 00000000  ................
+ 400368 010001c0 04000000 01000000 00000000  ................
