@@ -1,16 +1,17 @@
-From: Michal =?UTF-8?B?U3VjaMOhbmVr?= <msuchanek@suse.de>
+From: Arnd Bergmann <arnd@arndb.de>
 Subject: Re: [PATCH] Revert "asm-generic: Remove unneeded
  __ARCH_WANT_SYS_LLSEEK macro"
-Date: Fri, 30 Aug 2019 22:13:15 +0200
-Message-ID: <20190830221315.4b3b8a74@kitsune.suse.cz>
+Date: Fri, 30 Aug 2019 22:37:44 +0200
+Message-ID: <CAK8P3a1nGnB3GWEAso9MKW5HuxuB9ez46HZgS=GX-odtJuAMWQ@mail.gmail.com>
 References: <bb6d25c6baae315d05b571d8c508f0e8fa90027c.1567188299.git.msuchanek@suse.de>
  <20190830194651.31043-1-msuchanek@suse.de>
  <CAK8P3a16=ktJm5B3c5-XS7SqVuHBY5+E2FwVUqbdOdWK-AUgSA@mail.gmail.com>
+ <20190830221315.4b3b8a74@kitsune.suse.cz>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
 Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
-In-Reply-To: <CAK8P3a16=ktJm5B3c5-XS7SqVuHBY5+E2FwVUqbdOdWK-AUgSA@mail.gmail.com>
+In-Reply-To: <20190830221315.4b3b8a74@kitsune.suse.cz>
 List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
  <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
 List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
@@ -20,66 +21,30 @@ List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
  <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
 Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
 Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
-To: Arnd Bergmann <arnd@arndb.de>
+To: =?UTF-8?Q?Michal_Such=C3=A1nek?= <msuchanek@suse.de>
 Cc: Rich Felker <dalias@libc.org>, Linux-sh list <linux-sh@vger.kernel.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, linux-mips@vger.kernel.org, "James E.J. Bottomley" <James.Bottomley@hansenpartnership.com>, Max Filippov <jcmvbkbc@gmail.com>, Guo Ren <guoren@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, sparclinux <sparclinux@vger.kernel.org>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Will Deacon <will@kernel.org>, linux-arch <linux-arch@vger.kernel.org>, linux-s390 <linux-s390@vger.kernel.org>, Yoshinori Sato <ysato@users.sourceforge.jp>, Michael Ellerman <mpe@ellerman.id.au>, Helge Deller <deller@gmx.de>, the arch/x86 maintainers <x86@kernel.org>, Russell King <linux@armlinux.org.uk>, Christian Borntraeger <borntraeger@de.ibm.com>, Ingo Molnar <mingo@redhat.com>, Geert Uytterhoeven <geert@linux-m68k.org>Linu
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, 30 Aug 2019 21:54:43 +0200
-Arnd Bergmann <arnd@arndb.de> wrote:
-
-> On Fri, Aug 30, 2019 at 9:46 PM Michal Suchanek <msuchanek@suse.de> wrote:
-> >
-> > This reverts commit caf6f9c8a326cffd1d4b3ff3f1cfba75d159d70b.
-> >
-> > Maybe it was needed after all.
-> >
-> > When CONFIG_COMPAT is disabled on ppc64 the kernel does not build.
-> >
-> > There is resistance to both removing the llseek syscall from the 64bit
-> > syscall tables and building the llseek interface unconditionally.
-> >
-> > Link: https://lore.kernel.org/lkml/20190828151552.GA16855@infradead.org/
-> > Link: https://lore.kernel.org/lkml/20190829214319.498c7de2@naga/
-> >
-> > Signed-off-by: Michal Suchanek <msuchanek@suse.de>  
-> 
-> This seems like the right idea in principle.
-> 
-> > index 5bbf587f5bc1..2f3c4bb138c4 100644
-> > --- a/fs/read_write.c
-> > +++ b/fs/read_write.c
-> > @@ -331,7 +331,7 @@ COMPAT_SYSCALL_DEFINE3(lseek, unsigned int, fd, compat_off_t, offset, unsigned i
-> >  }
-> >  #endif
-> >
-> > -#if !defined(CONFIG_64BIT) || defined(CONFIG_COMPAT)
-> > +#ifdef __ARCH_WANT_SYS_LLSEEK
-> >  SYSCALL_DEFINE5(llseek, unsigned int, fd, unsigned long, offset_high,
-> >                 unsigned long, offset_low, loff_t __user *, result,
-> >                 unsigned int, whence)  
-> 
-> However, only reverting the patch will now break all newly added
-> 32-bit architectures that don't define __ARCH_WANT_SYS_LLSEEK:
-> at least nds32 and riscv32 come to mind, not sure if there is another.
-
-AFAICT nds32 never had the syscall. Its headers were added without
-__ARCH_WANT_SYS_LLSEEK before the define was removed.
-
-The new architecture csky should be handled.
-
-> 
-> I think the easiest way however would be to combine the two checks
-> above and make it
-> 
-> #if !defined(CONFIG_64BIT) || defined(CONFIG_COMPAT) ||
-> defined(__ARCH_WANT_SYS_LLSEEK)
-> 
-> and then only set __ARCH_WANT_SYS_LLSEEK for powerpc.
-
-Yes, that limits the use of __ARCH_WANT_SYS_LLSEEK, does not require
-resurrecting the old headers, and may fix some architectures like nds32
-that forgot to add it.
-
-Thanks
-
-Michal
+T24gRnJpLCBBdWcgMzAsIDIwMTkgYXQgMTA6MTMgUE0gTWljaGFsIFN1Y2jDoW5layA8bXN1Y2hh
+bmVrQHN1c2UuZGU+IHdyb3RlOgo+IE9uIEZyaSwgMzAgQXVnIDIwMTkgMjE6NTQ6NDMgKzAyMDAK
+PiBBcm5kIEJlcmdtYW5uIDxhcm5kQGFybmRiLmRlPiB3cm90ZToKPiA+ID4gaW5kZXggNWJiZjU4
+N2Y1YmMxLi4yZjNjNGJiMTM4YzQgMTAwNjQ0Cj4gPiA+IC0tLSBhL2ZzL3JlYWRfd3JpdGUuYwo+
+ID4gPiArKysgYi9mcy9yZWFkX3dyaXRlLmMKPiA+ID4gQEAgLTMzMSw3ICszMzEsNyBAQCBDT01Q
+QVRfU1lTQ0FMTF9ERUZJTkUzKGxzZWVrLCB1bnNpZ25lZCBpbnQsIGZkLCBjb21wYXRfb2ZmX3Qs
+IG9mZnNldCwgdW5zaWduZWQgaQo+ID4gPiAgfQo+ID4gPiAgI2VuZGlmCj4gPiA+Cj4gPiA+IC0j
+aWYgIWRlZmluZWQoQ09ORklHXzY0QklUKSB8fCBkZWZpbmVkKENPTkZJR19DT01QQVQpCj4gPiA+
+ICsjaWZkZWYgX19BUkNIX1dBTlRfU1lTX0xMU0VFSwo+ID4gPiAgU1lTQ0FMTF9ERUZJTkU1KGxs
+c2VlaywgdW5zaWduZWQgaW50LCBmZCwgdW5zaWduZWQgbG9uZywgb2Zmc2V0X2hpZ2gsCj4gPiA+
+ICAgICAgICAgICAgICAgICB1bnNpZ25lZCBsb25nLCBvZmZzZXRfbG93LCBsb2ZmX3QgX191c2Vy
+ICosIHJlc3VsdCwKPiA+ID4gICAgICAgICAgICAgICAgIHVuc2lnbmVkIGludCwgd2hlbmNlKQo+
+ID4KPiA+IEhvd2V2ZXIsIG9ubHkgcmV2ZXJ0aW5nIHRoZSBwYXRjaCB3aWxsIG5vdyBicmVhayBh
+bGwgbmV3bHkgYWRkZWQKPiA+IDMyLWJpdCBhcmNoaXRlY3R1cmVzIHRoYXQgZG9uJ3QgZGVmaW5l
+IF9fQVJDSF9XQU5UX1NZU19MTFNFRUs6Cj4gPiBhdCBsZWFzdCBuZHMzMiBhbmQgcmlzY3YzMiBj
+b21lIHRvIG1pbmQsIG5vdCBzdXJlIGlmIHRoZXJlIGlzIGFub3RoZXIuCj4KPiBBRkFJQ1QgbmRz
+MzIgbmV2ZXIgaGFkIHRoZSBzeXNjYWxsLiBJdHMgaGVhZGVycyB3ZXJlIGFkZGVkIHdpdGhvdXQK
+PiBfX0FSQ0hfV0FOVF9TWVNfTExTRUVLIGJlZm9yZSB0aGUgZGVmaW5lIHdhcyByZW1vdmVkLgoK
+bmRzMzIgZ290IGl0IGZyb20gaW5jbHVkZS9hc20tZ2VuZXJpYy91bmlzdGQuaAoKICAgICAgICBB
+cm5kCgpfX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fXwpsaW51
+eC1hcm0ta2VybmVsIG1haWxpbmcgbGlzdApsaW51eC1hcm0ta2VybmVsQGxpc3RzLmluZnJhZGVh
+ZC5vcmcKaHR0cDovL2xpc3RzLmluZnJhZGVhZC5vcmcvbWFpbG1hbi9saXN0aW5mby9saW51eC1h
+cm0ta2VybmVsCg==
