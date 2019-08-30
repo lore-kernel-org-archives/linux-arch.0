@@ -1,83 +1,54 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:32928 "EHLO foss.arm.com"
+Received: from foss.arm.com ([217.140.110.172]:33318 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727751AbfH3OQx (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 30 Aug 2019 10:16:53 -0400
-Subject: Re: [PATCH v2 5/8] lib: vdso: Remove checks on return value for 32
- bit vDSO
-From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-References: <20190830135902.20861-1-vincenzo.frascino@arm.com>
- <20190830135902.20861-6-vincenzo.frascino@arm.com>
-Message-ID: <ffbbd289-b282-53e6-03c2-14563bd8ebf3@arm.com>
-Date: Fri, 30 Aug 2019 15:16:47 +0100
+        id S1727135AbfH3Opm (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 30 Aug 2019 10:45:42 -0400
+Date: Fri, 30 Aug 2019 15:45:36 +0100
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: Re: [PATCH v2 01/11] asm-generic: add dma_zone_size
+Message-ID: <20190830144536.GJ36992@arrakis.emea.arm.com>
+References: <20190820145821.27214-1-nsaenzjulienne@suse.de>
+ <20190820145821.27214-2-nsaenzjulienne@suse.de>
+ <20190826070939.GD11331@lst.de>
+ <027272c27398b950f207101a2c5dbc07a30a36bc.camel@suse.de>
 MIME-Version: 1.0
-In-Reply-To: <20190830135902.20861-6-vincenzo.frascino@arm.com>
-Content-Type: text/plain; charset=utf-8
-Content-Language: en-US
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <027272c27398b950f207101a2c5dbc07a30a36bc.camel@suse.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org, linux-kselftest@vger.kernel.org
-Cc: catalin.marinas@arm.com, 0x7f454c46@gmail.com, salyzyn@android.com, paul.burton@mips.com, luto@kernel.org, tglx@linutronix.de, will@kernel.org
-Message-ID: <20190830141647.ZcUEQo0djoMfrTcsLc-dJClC5_1bPBZQKDGBiizkzQE@z>
+To: Nicolas Saenz Julienne <nsaenzjulienne@suse.de>
+Cc: Christoph Hellwig <hch@lst.de>, eric@anholt.net, linux-riscv@lists.infradead.org, frowand.list@gmail.com, m.szyprowski@samsung.com, linux-arch@vger.kernel.org, f.fainelli@gmail.com, will@kernel.org, devicetree@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, marc.zyngier@arm.com, robh+dt@kernel.org, linux-rpi-kernel@lists.infradead.org, linux-arm-kernel@lists.infradead.org, phill@raspberryi.org, mbrugger@suse.com, linux-mm@kvack.org, linux-kernel@vger.kernel.org, iommu@lists.linux-foundation.org, wahrenst@gmx.net, akpm@linux-foundation.org, Robin Murphy <robin.murphy@arm.com>
+Message-ID: <20190830144536.41dLfmOycuCYZxESLudezrcN8xP2aL7XZwG_nfQ-xUI@z>
 
-On 30/08/2019 14:58, Vincenzo Frascino wrote:
-> Since all the architectures that support the generic vDSO library have
-> been converted to support the 32 bit fallbacks it is not required
-> anymore to check the return value of __cvdso_clock_get*time32_common()
-> before updating the old_timespec fields.
+On Mon, Aug 26, 2019 at 03:46:52PM +0200, Nicolas Saenz Julienne wrote:
+> On Mon, 2019-08-26 at 09:09 +0200, Christoph Hellwig wrote:
+> > On Tue, Aug 20, 2019 at 04:58:09PM +0200, Nicolas Saenz Julienne wrote:
+> > > Some architectures have platform specific DMA addressing limitations.
+> > > This will allow for hardware description code to provide the constraints
+> > > in a generic manner, so as for arch code to properly setup it's memory
+> > > zones and DMA mask.
+> > 
+> > I know this just spreads the arm code, but I still kinda hate it.
 > 
-> Remove the related checks from the generic vdso library.
+> Rob's main concern was finding a way to pass the constraint from HW definition
+> to arch without widening fdt's architecture specific function surface. I'd say
+> it's fair to argue that having a generic mechanism makes sense as it'll now
+> traverse multiple archs and subsystems.
 > 
-> Cc: Thomas Gleixner <tglx@linutronix.de>
-> CC: Andy Lutomirski <luto@kernel.org>
+> I get adding globals like this is not very appealing, yet I went with it as it
+> was the easier to integrate with arm's code. Any alternative suggestions?
 
-Forgot to add to this patch:
+In some discussion with Robin, since it's just RPi4 that we are aware of
+having such requirement on arm64, he suggested that we have a permanent
+ZONE_DMA on arm64 with a default size of 1GB. It should cover all arm64
+SoCs we know of without breaking the single Image binary. The arch/arm
+can use its current mach-* support.
 
-Suggested-by: Andy Lutomirski <luto@kernel.org>
-
-> References: c60a32ea4f45 ("lib/vdso/32: Provide legacy syscall fallbacks")
-> Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
-> ---
->  lib/vdso/gettimeofday.c | 16 ++++++++--------
->  1 file changed, 8 insertions(+), 8 deletions(-)
-> 
-> diff --git a/lib/vdso/gettimeofday.c b/lib/vdso/gettimeofday.c
-> index 2c4b311c226d..d5bc16748f81 100644
-> --- a/lib/vdso/gettimeofday.c
-> +++ b/lib/vdso/gettimeofday.c
-> @@ -129,10 +129,10 @@ __cvdso_clock_gettime32(clockid_t clock, struct old_timespec32 *res)
->  	if (unlikely(ret))
->  		return clock_gettime32_fallback(clock, res);
->  
-> -	if (likely(!ret)) {
-> -		res->tv_sec = ts.tv_sec;
-> -		res->tv_nsec = ts.tv_nsec;
-> -	}
-> +	/* For ret == 0 */
-> +	res->tv_sec = ts.tv_sec;
-> +	res->tv_nsec = ts.tv_nsec;
-> +
->  	return ret;
->  }
->  #endif /* BUILD_VDSO32 */
-> @@ -238,10 +238,10 @@ __cvdso_clock_getres_time32(clockid_t clock, struct old_timespec32 *res)
->  	if (unlikely(ret))
->  		return clock_getres32_fallback(clock, res);
->  
-> -	if (likely(!ret)) {
-> -		res->tv_sec = ts.tv_sec;
-> -		res->tv_nsec = ts.tv_nsec;
-> -	}
-> +	/* For ret == 0 */
-> +	res->tv_sec = ts.tv_sec;
-> +	res->tv_nsec = ts.tv_nsec;
-> +
->  	return ret;
->  }
->  #endif /* BUILD_VDSO32 */
-> 
+I may like this more than the proposed early_init_dt_get_dma_zone_size()
+here which checks for specific SoCs (my preferred way was to build the
+mask from all buses described in DT but I hadn't realised the
+complications).
 
 -- 
-Regards,
-Vincenzo
+Catalin
