@@ -1,47 +1,116 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ot1-f66.google.com ([209.85.210.66]:33555 "EHLO
-        mail-ot1-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1729457AbfIBHxO (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 2 Sep 2019 03:53:14 -0400
+Received: from foss.arm.com ([217.140.110.172]:50902 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1729912AbfIBJ2X (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 2 Sep 2019 05:28:23 -0400
+Date: Mon, 2 Sep 2019 10:28:19 +0100
+From: Dave Martin <Dave.Martin@arm.com>
+Subject: Re: [RFC PATCH v2 2/2] ELF: Add ELF program property parsing support
+Message-ID: <20190902092816.GK27757@arm.com>
+References: <1566581020-9953-1-git-send-email-Dave.Martin@arm.com>
+ <1566581020-9953-3-git-send-email-Dave.Martin@arm.com>
+ <201908292224.007EB4D5@keescook>
+ <20190830083415.GI27757@arm.com>
+ <5ddd0306f42c2b53ffbd8ee8c9b948c1d529cf98.camel@intel.com>
 MIME-Version: 1.0
-References: <20190817073253.27819-1-hch@lst.de> <20190817073253.27819-9-hch@lst.de>
- <CAMuHMdWyXGjokWi7tn9JHCTz9YMb_vHn6XKeE7KzH5n-54Sy0A@mail.gmail.com> <20190830160620.GD26887@lst.de>
-In-Reply-To: <20190830160620.GD26887@lst.de>
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Date: Mon, 2 Sep 2019 09:53:01 +0200
-Message-ID: <CAMuHMdXB=DWyu=Y25gih5poeanVnhLEP2MXoozvxdEY6op32FA@mail.gmail.com>
-Subject: Re: [PATCH 08/26] m68k: simplify ioremap_nocache
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <5ddd0306f42c2b53ffbd8ee8c9b948c1d529cf98.camel@intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Christoph Hellwig <hch@lst.de>
-Cc: Arnd Bergmann <arnd@arndb.de>, Guo Ren <guoren@kernel.org>, Michal Simek <monstr@monstr.eu>, Greentime Hu <green.hu@gmail.com>, Vincent Chen <deanbo422@gmail.com>, Guan Xuetao <gxt@pku.edu.cn>, the arch/x86 maintainers <x86@kernel.org>, alpha <linux-alpha@vger.kernel.org>, arcml <linux-snps-arc@lists.infradead.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, "open list:QUALCOMM HEXAGON..." <linux-hexagon@vger.kernel.org>, "linux-ia64@vger.kernel.org" <linux-ia64@vger.kernel.org>, linux-m68k <linux-m68k@lists.linux-m68k.org>, linux-mips@vger.kernel.org, nios2-dev@lists.rocketboards.org, Openrisc <openrisc@lists.librecores.org>, Parisc List <linux-parisc@vger.kernel.org>, linux-riscv@lists.infradead.org, linux-s390 <linux-s390@vger.kernel.org>, Linux-sh list <linux-sh@vger.kernel.org>, sparclinux <sparclinux@vger.kernel.org>, linux-xtensa@linux-xtensa.org, MTD Maling List <linux-mtd@lists.infradead.org>, Linux-Arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
-Message-ID: <20190902075301.lzs-GOYffnPEqnnB7lk_kQp6KYtEA3fRZSOMbO2Uckc@z>
+To: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Cc: Kees Cook <keescook@chromium.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Jann Horn <jannh@google.com>, "H.J. Lu" <hjl.tools@gmail.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, Peter Zijlstra <peterz@infradead.org>
+Message-ID: <20190902092819.AKRVCVkLDKHqABY9PioOsxcXENaGgzhAB6-QDUPIooc@z>
 
-Hi Christoph,
+On Fri, Aug 30, 2019 at 06:03:27PM +0100, Yu-cheng Yu wrote:
+> On Fri, 2019-08-30 at 09:34 +0100, Dave Martin wrote:
+> > On Fri, Aug 30, 2019 at 06:37:45AM +0100, Kees Cook wrote:
+> > > On Fri, Aug 23, 2019 at 06:23:40PM +0100, Dave Martin wrote:
+> > > > ELF program properties will needed for detecting whether to enable
+> > > > optional architecture or ABI features for a new ELF process.
+> > > > 
+> > > > For now, there are no generic properties that we care about, so do
+> > > > nothing unless CONFIG_ARCH_USE_GNU_PROPERTY=y.
+> > > > 
+> > > > Otherwise, the presence of properties using the PT_PROGRAM_PROPERTY
+> > > > phdrs entry (if any), and notify each property to the arch code.
+> > > > 
+> > > > For now, the added code is not used.
+> > > > 
+> > > > Signed-off-by: Dave Martin <Dave.Martin@arm.com>
+> > > 
+> > > Reviewed-by: Kees Cook <keescook@chromium.org>
+> > 
+> > Thanks for the review.
+> > 
+> > Do you have any thoughts on Yu-Cheng Yu's comments?  It would be nice to
+> > early-terminate the scan if we can, but my feeling so far was that the
+> > scan is cheap, the number of properties is unlikely to be more than a
+> > smallish integer, and the code separation benefits of just calling the
+> > arch code for every property probably likely outweigh the costs of
+> > having to iterate over every property.  We could always optimise it
+> > later if necessary.
+> > 
+> > I need to double-check that there's no way we can get stuck in an
+> > infinite loop with the current code, though I've not seen it in my
+> > testing.  I should throw some malformed notes at it though.
+> 
+> Here is my arch_parse_elf_property() and objdump of the property.
+> The parser works fine.
 
-On Fri, Aug 30, 2019 at 6:06 PM Christoph Hellwig <hch@lst.de> wrote:
-> On Mon, Aug 19, 2019 at 10:56:02AM +0200, Geert Uytterhoeven wrote:
-> > On Sat, Aug 17, 2019 at 9:48 AM Christoph Hellwig <hch@lst.de> wrote:
-> > > Just define ioremap_nocache to ioremap instead of duplicating the
-> > > inline.  Also defined ioremap_uc in terms of ioremap instead of
-> > > the using a double indirection.
-> > >
-> > > Signed-off-by: Christoph Hellwig <hch@lst.de>
-> >
-> > Acked-by: Geert Uytterhoeven <geert@linux-m68k.org>
+[...]
+
+> int arch_parse_elf_property(u32 type, const void *data, size_t datasz,
+>           
+>                    bool compat, struct arch_elf_state *state)
+> {
+>         if (type
+> != GNU_PROPERTY_X86_FEATURE_1_AND)
+>                 return -ENOENT;
+
+For error returns, I was following this convention:
+
+	EIO: invalid ELF file
+
+	ENOEXEC: valid ELF file, but we can't (or won't) support it
+
+	0: OK, or don't care
+
+This function gets called for every property, including properties that
+the arch code may not be interested in, so for properties you don't care
+about here you should return 0.
+
+> 
+>         if (datasz < sizeof(unsigned int))
+>                 return -ENOEXEC;
+
+Should this be != ?
+
+According to the draft x86-64 psABI spec [1],
+X86_PROPERTY_FEATURE_1_AND (and all properties based on
+GNU_PROPERTY_X86_UINT32_AND_LO) has data consisting of a single 4-byte
+unsigned integer.
+
+>         state->gnu_property = *(unsigned int *)data;
+>         return 0;
+> }
 >
-> Do you mind picking this up through the m68k tree?
+> Contents of section .note.gnu.property:
+>  400338 04000000 30000000 05000000 474e5500  ....0.......GNU.
+>  400348 020000c0 04000000 03000000 00000000  ................
+>  400358 000001c0 04000000 00000000 00000000  ................
+>  400368 010001c0 04000000 01000000 00000000  ................
 
-Sure. Applied and queued for v5.4.
+Because you return ENOENT except for GNU_PROPERTY_X86_FEATURE_1_AND,
+wouldn't we fail on the second and third properties here?
+(GNU_PROPERTY_X86_ISA_1_USED, GNU_PROPERTY_X86_FEATURE_2_USED if I
+decoded them correctly...)
 
-Gr{oetje,eeting}s,
+If not, maybe my code is failing to iterate over all the properties for
+some reason.
 
-                        Geert
+Cheers
+---Dave
 
--- 
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+[1] https://github.com/hjl-tools/x86-psABI/wiki/X86-psABI
+https://github.com/hjl-tools/x86-psABI/wiki/x86-64-psABI-draft.pdf
