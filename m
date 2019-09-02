@@ -1,28 +1,149 @@
-From: Christoph Hellwig <hch@lst.de>
-Subject: Re: [PATCH v2 01/11] asm-generic: add dma_zone_size
-Date: Mon, 2 Sep 2019 15:01:01 +0200
-Message-ID: <20190902130101.GA2051@lst.de>
-References: <20190820145821.27214-1-nsaenzjulienne@suse.de> <20190820145821.27214-2-nsaenzjulienne@suse.de> <20190826070939.GD11331@lst.de> <027272c27398b950f207101a2c5dbc07a30a36bc.camel@suse.de> <20190830144536.GJ36992@arrakis.emea.arm.com> <bdeda2206b751a1c6a8d2e0732186792282633c6.camel@suse.de>
+From: Michal Simek <monstr@monstr.eu>
+Subject: Re: [PATCH 03/26] m68k, microblaze: remove ioremap_fullcache
+Date: Mon, 2 Sep 2019 16:16:52 +0200
+Message-ID: <9a11ddb0-0799-c64a-f5aa-0504c564998f@monstr.eu>
+References: <20190817073253.27819-1-hch@lst.de>
+ <20190817073253.27819-4-hch@lst.de>
+Reply-To: monstr@monstr.eu
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <bdeda2206b751a1c6a8d2e0732186792282633c6.camel@suse.de>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Nicolas Saenz Julienne <nsaenzjulienne@suse.de>
-Cc: Catalin Marinas <catalin.marinas@arm.com>, Christoph Hellwig <hch@lst.de>, linux-mm@kvack.org, linux-riscv@lists.infradead.org, will@kernel.org, m.szyprowski@samsung.com, linux-arch@vger.kernel.org, f.fainelli@gmail.com, frowand.list@gmail.com, devicetree@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, marc.zyngier@arm.com, robh+dt@kernel.org, linux-rpi-kernel@lists.infradead.org, linux-arm-kernel@lists.infradead.org, phill@raspberryi.org, mbrugger@suse.com, eric@anholt.net, linux-kernel@vger.kernel.org, iommu@lists.linux-foundation.org, wahrenst@gmx.net, akpm@linux-foundation.org, Robin Murphy <robin.murphy@arm.com>
+Content-Type: multipart/mixed; boundary="===============4753553538835135711=="
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+In-Reply-To: <20190817073253.27819-4-hch@lst.de>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+To: Christoph Hellwig <hch@lst.de>, Arnd Bergmann <arnd@arndb.de>, Guo Ren <guoren@kernel.org>, Greentime Hu <green.hu@gmail.com>, Vincent Chen <deanbo422@gmail.com>, Guan Xuetao <gxt@pku.edu.cn>, x86@kernel.org
+Cc: linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, linux-ia64@vger.kernel.org, linux-parisc@vger.kernel.org, linux-sh@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-mips@vger.kernel.org, linux-kernel@vger.kernel.org, linux-m68k@lists.linux-m68k.org, openrisc@lists.librecores.org, linux-mtd@lists.infradead.org, linux-alpha@vger.kernel.org, sparclinux@vger.kernel.org, nios2-dev@lists.rocketboards.org, linux-riscv@lists.infradead.org, linux-snps-arc@lists.infradead.org, linux-arm-kernel@lists.infradead.org
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, Aug 30, 2019 at 07:24:25PM +0200, Nicolas Saenz Julienne wrote:
-> I'll be happy to implement it that way. I agree it's a good compromise.
-> 
-> @Christoph, do you still want the patch where I create 'zone_dma_bits'? With a
-> hardcoded ZONE_DMA it's not absolutely necessary. Though I remember you said it
-> was a first step towards being able to initialize dma-direct's min_mask in
-> meminit.
+This is an OpenPGP/MIME signed message (RFC 4880 and 3156)
+--===============4753553538835135711==
+Content-Type: multipart/signed; micalg=pgp-sha1;
+ protocol="application/pgp-signature";
+ boundary="sxrD5DzuLHXmSTexCf4xoEovzaJstmsXm"
 
-I do like the variable better than the current #define.  I wonder if
-really want a mask or a max_zone_dma_address like variable.  So for this
-series feel free to drop the patch.   I'll see if I'll pick it up
-later or if we can find some way to automatically propagate that
-information from the zone initialization.
+This is an OpenPGP/MIME signed message (RFC 4880 and 3156)
+--sxrD5DzuLHXmSTexCf4xoEovzaJstmsXm
+Content-Type: multipart/mixed; boundary="Gv98DqTDPDXpgdAS8uye8pnF1A8XQfxBm";
+ protected-headers="v1"
+From: Michal Simek <monstr@monstr.eu>
+Reply-To: monstr@monstr.eu
+To: Christoph Hellwig <hch@lst.de>, Arnd Bergmann <arnd@arndb.de>,
+ Guo Ren <guoren@kernel.org>, Greentime Hu <green.hu@gmail.com>,
+ Vincent Chen <deanbo422@gmail.com>, Guan Xuetao <gxt@pku.edu.cn>,
+ x86@kernel.org
+Cc: linux-alpha@vger.kernel.org, linux-snps-arc@lists.infradead.org,
+ linux-arm-kernel@lists.infradead.org, linux-hexagon@vger.kernel.org,
+ linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org,
+ linux-mips@vger.kernel.org, nios2-dev@lists.rocketboards.org,
+ openrisc@lists.librecores.org, linux-parisc@vger.kernel.org,
+ linux-riscv@lists.infradead.org, linux-s390@vger.kernel.org,
+ linux-sh@vger.kernel.org, sparclinux@vger.kernel.org,
+ linux-xtensa@linux-xtensa.org, linux-mtd@lists.infradead.org,
+ linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <9a11ddb0-0799-c64a-f5aa-0504c564998f@monstr.eu>
+Subject: Re: [PATCH 03/26] m68k, microblaze: remove ioremap_fullcache
+References: <20190817073253.27819-1-hch@lst.de>
+ <20190817073253.27819-4-hch@lst.de>
+In-Reply-To: <20190817073253.27819-4-hch@lst.de>
+
+--Gv98DqTDPDXpgdAS8uye8pnF1A8XQfxBm
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
+Content-Transfer-Encoding: quoted-printable
+
+On 17. 08. 19 9:32, Christoph Hellwig wrote:
+> No callers of this function.
+>=20
+> Signed-off-by: Christoph Hellwig <hch@lst.de>
+> ---
+>  arch/m68k/include/asm/kmap.h     | 7 -------
+>  arch/microblaze/include/asm/io.h | 1 -
+>  2 files changed, 8 deletions(-)
+>=20
+> diff --git a/arch/m68k/include/asm/kmap.h b/arch/m68k/include/asm/kmap.=
+h
+> index aac7f045f7f0..03d904fe6087 100644
+> --- a/arch/m68k/include/asm/kmap.h
+> +++ b/arch/m68k/include/asm/kmap.h
+> @@ -43,13 +43,6 @@ static inline void __iomem *ioremap_wt(unsigned long=
+ physaddr,
+>  	return __ioremap(physaddr, size, IOMAP_WRITETHROUGH);
+>  }
+> =20
+> -#define ioremap_fullcache ioremap_fullcache
+> -static inline void __iomem *ioremap_fullcache(unsigned long physaddr,
+> -					      unsigned long size)
+> -{
+> -	return __ioremap(physaddr, size, IOMAP_FULL_CACHING);
+> -}
+> -
+>  #define memset_io memset_io
+>  static inline void memset_io(volatile void __iomem *addr, unsigned cha=
+r val,
+>  			     int count)
+> diff --git a/arch/microblaze/include/asm/io.h b/arch/microblaze/include=
+/asm/io.h
+> index c7968139486f..86c95b2a1ce1 100644
+> --- a/arch/microblaze/include/asm/io.h
+> +++ b/arch/microblaze/include/asm/io.h
+> @@ -40,7 +40,6 @@ extern void iounmap(volatile void __iomem *addr);
+> =20
+>  extern void __iomem *ioremap(phys_addr_t address, unsigned long size);=
+
+>  #define ioremap_nocache(addr, size)		ioremap((addr), (size))
+> -#define ioremap_fullcache(addr, size)		ioremap((addr), (size))
+>  #define ioremap_wc(addr, size)			ioremap((addr), (size))
+>  #define ioremap_wt(addr, size)			ioremap((addr), (size))
+> =20
+>=20
+
+Acked-by: Michal Simek <monstr@monstr.eu> (for Microblaze)
+
+Thanks,
+Michal
+
+--=20
+Michal Simek, Ing. (M.Eng), OpenPGP -> KeyID: FE3D1F91
+w: www.monstr.eu p: +42-0-721842854
+Maintainer of Linux kernel - Xilinx Microblaze
+Maintainer of Linux kernel - Xilinx Zynq ARM and ZynqMP ARM64 SoCs
+U-Boot custodian - Xilinx Microblaze/Zynq/ZynqMP/Versal SoCs
+
+
+
+--Gv98DqTDPDXpgdAS8uye8pnF1A8XQfxBm--
+
+--sxrD5DzuLHXmSTexCf4xoEovzaJstmsXm
+Content-Type: application/pgp-signature; name="signature.asc"
+Content-Description: OpenPGP digital signature
+Content-Disposition: attachment; filename="signature.asc"
+
+-----BEGIN PGP SIGNATURE-----
+
+iF0EARECAB0WIQQbPNTMvXmYlBPRwx7KSWXLKUoMIQUCXW0kVQAKCRDKSWXLKUoM
+IUCIAJ0dq35U3Gq44M2ocYgcj4SW3Em/1wCfajAs22UIYAGzwTZZyZTvB5OFi1I=
+=essT
+-----END PGP SIGNATURE-----
+
+--sxrD5DzuLHXmSTexCf4xoEovzaJstmsXm--
+
+
+--===============4753553538835135711==
+Content-Type: text/plain; charset="us-ascii"
+MIME-Version: 1.0
+Content-Transfer-Encoding: 7bit
+Content-Disposition: inline
+
+_______________________________________________
+linux-arm-kernel mailing list
+linux-arm-kernel@lists.infradead.org
+http://lists.infradead.org/mailman/listinfo/linux-arm-kernel
+
+--===============4753553538835135711==--
