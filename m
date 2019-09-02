@@ -1,30 +1,31 @@
-From: "Paul E. McKenney" <paulmck@kernel.org>
-Subject: Re: [PATCH] tools: memory-model: add it to the Documentation body
-Date: Sun, 1 Sep 2019 06:35:30 -0700
-Message-ID: <20190901133530.GL4125@linux.ibm.com>
-References: <Pine.LNX.4.44L0.1907310947340.1497-100000@iolanthe.rowland.org>
- <cb9785b7-ed43-b91a-7392-e50216bd5771@gmail.com>
- <20190731202517.GF5913@linux.ibm.com>
- <20190830113216.GE2369@hirez.programming.kicks-ass.net>
-Reply-To: paulmck@kernel.org
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+From: Michael Ellerman <patch-notifications@ellerman.id.au>
+Subject: Re: [PATCH v2 1/2] powerpc: Add PowerPC Capabilities ELF note
+Date: Mon,  2 Sep 2019 13:06:16 +1000 (AEST)
+Message-ID: <46MFN82G7vz9sDB@ozlabs.org>
+References: <20190829155021.2915-2-maxiwell@linux.ibm.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20190830113216.GE2369@hirez.programming.kicks-ass.net>
+In-Reply-To: <20190829155021.2915-2-maxiwell@linux.ibm.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Akira Yokosawa <akiyks@gmail.com>, Alan Stern <stern@rowland.harvard.edu>, Mauro Carvalho Chehab <mchehab+samsung@kernel.org>, Joel Fernandes <joel@joelfernandes.org>, Linux Doc Mailing List <linux-doc@vger.kernel.org>, Mauro Carvalho Chehab <mchehab@infradead.org>, linux-kernel@vger.kernel.org, Jonathan Corbet <corbet@lwn.net>, Andrea Parri <andrea.parri@amarulasolutions.com>, Will Deacon <will@kernel.org>, Boqun Feng <boqun.feng@gmail.com>, Nicholas Piggin <npiggin@gmail.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, Daniel Lustig <dlustig@nvidia.com>, Ingo Molnar <mingo@kernel.org>, Jason Gunthorpe <jgg@ziepe.ca>, SeongJae Park <sj38.park@gmail.com>, linux-arch@vger.kernel.org
+To: linuxppc-dev@ozlabs.org
+Cc: linux-arch@vger.kernel.org, andmike@linux.ibm.com, linuxram@us.ibm.com, linux-kernel@vger.kernel.org, kvm-ppc@vger.kernel.org, cclaudio@linux.ibm.com, "Maxiwell S . Garcia" <maxiwell@linux.ibm.com>, bauerman@linux.ibm.com
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, Aug 30, 2019 at 01:32:16PM +0200, Peter Zijlstra wrote:
-> On Wed, Jul 31, 2019 at 01:25:17PM -0700, Paul E. McKenney wrote:
-> > Looks like a pretty clear consensus thus far.  Any objections to keeping
-> > these .txt for the time being?
+On Thu, 2019-08-29 at 15:50:20 UTC, "Maxiwell S. Garcia" wrote:
+> From: Claudio Carvalho <cclaudio@linux.ibm.com>
 > 
-> Obviously I'm a huge proponent of abandoning RST and an advocate for
-> normal .txt files ;-)
+> Add the PowerPC name and the PPC_ELFNOTE_CAPABILITIES type in the
+> kernel binary ELF note. This type is a bitmap that can be used to
+> advertise kernel capabilities to userland.
+> 
+> This patch also defines PPCCAP_ULTRAVISOR_BIT as being the bit zero.
+> 
+> Suggested-by: Paul Mackerras <paulus@ozlabs.org>
+> Signed-off-by: Claudio Carvalho <cclaudio@linux.ibm.com>
+> [ maxiwell: Define the 'PowerPC' type in the elfnote.h ]
+> Signed-off-by: Maxiwell S. Garcia <maxiwell@linux.ibm.com>
 
-Oh?  I hadn't noticed.  ;-)
+Series applied to powerpc topic/ppc-kvm, thanks.
 
-							Thanx, Paul
+https://git.kernel.org/powerpc/c/70ed86f4de5bd74dd2d884dcd2f3275c4cfe665f
+
+cheers
