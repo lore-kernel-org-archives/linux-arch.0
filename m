@@ -1,137 +1,59 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:37846 "EHLO foss.arm.com"
+Received: from foss.arm.com ([217.140.110.172]:38208 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1725782AbfICOTL (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 3 Sep 2019 10:19:11 -0400
-Subject: Re: [PATCH v2 3/8] mips: compat: vdso: Use legacy syscalls as
- fallback
-References: <20190830135902.20861-1-vincenzo.frascino@arm.com>
- <20190830135902.20861-4-vincenzo.frascino@arm.com>
- <20190903134335.uxxf5kvp3afe7rfr@pburton-laptop>
+        id S1727667AbfICOeq (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 3 Sep 2019 10:34:46 -0400
+Subject: Re: [PATCH v2 1/8] arm64: compat: vdso: Expose BUILD_VDSO32
 From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Message-ID: <aef6a427-12af-a77e-994f-37c7a618377c@arm.com>
-Date: Tue, 3 Sep 2019 15:20:42 +0100
+References: <20190830135902.20861-1-vincenzo.frascino@arm.com>
+ <20190830135902.20861-2-vincenzo.frascino@arm.com>
+Message-ID: <c0b1673d-e37d-a526-0862-ad07f779f5bf@arm.com>
+Date: Tue, 3 Sep 2019 15:36:16 +0100
 MIME-Version: 1.0
-In-Reply-To: <20190903134335.uxxf5kvp3afe7rfr@pburton-laptop>
+In-Reply-To: <20190830135902.20861-2-vincenzo.frascino@arm.com>
 Content-Type: text/plain; charset=utf-8
 Content-Language: en-US
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Paul Burton <paul.burton@mips.com>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-mips@vger.kernel.org" <linux-mips@vger.kernel.org>, "linux-kselftest@vger.kernel.org" <linux-kselftest@vger.kernel.org>, "catalin.marinas@arm.com" <catalin.marinas@arm.com>, "will@kernel.org" <will@kernel.org>, "tglx@linutronix.de" <tglx@linutronix.de>, "salyzyn@android.com" <salyzyn@android.com>, "0x7f454c46@gmail.com" <0x7f454c46@gmail.com>, "luto@kernel.org" <luto@kernel.org>
-Message-ID: <20190903142042.7yTFIuyGItTShasmELYgqkegwKAs95K_fZyBWnDcZXA@z>
+To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org, linux-kselftest@vger.kernel.org
+Cc: catalin.marinas@arm.com, 0x7f454c46@gmail.com, salyzyn@android.com, paul.burton@mips.com, luto@kernel.org, tglx@linutronix.de, will@kernel.org
+Message-ID: <20190903143616.Y7CuM2A80lQUv07IzJQnKwNZXwr7pP0WHnNkoL0lAVU@z>
 
-Hi Paul,
+Hi Catalin and Will,
 
-thank you for your review.
-
-On 9/3/19 2:52 PM, Paul Burton wrote:
-> Hi Vincenzo,
+On 8/30/19 2:58 PM, Vincenzo Frascino wrote:
+> clock_gettime32 and clock_getres_time32 should be compiled only with the
+> 32 bit vdso library.
 > 
-> On Fri, Aug 30, 2019 at 02:58:57PM +0100, Vincenzo Frascino wrote:
->> The generic VDSO implementation uses the Y2038 safe clock_gettime64() and
->> clock_getres_time64() syscalls as fallback for 32bit VDSO. This breaks
->> seccomp setups because these syscalls might be not (yet) allowed.
->>
->> Implement the 32bit variants which use the legacy syscalls and select the
->> variant in the core library.
->>
->> The 64bit time variants are not removed because they are required for the
->> time64 based vdso accessors.
->>
->> Cc: Paul Burton <paul.burton@mips.com>
->> Fixes: 00b26474c2f1 ("lib/vdso: Provide generic VDSO implementation")
->> Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
+> Expose BUILD_VDSO32 when arm64 compat is compiled, to provide an
+> indication to the generic library to include these symbols.
 > 
-> How would you like this to be applied? I'd be happy to apply this one to
-> mips-next, where commit 24640f233b46 ("mips: Add support for generic
-> vDSO") added the file being modified here. Otherwise:
+> Cc: Catalin Marinas <catalin.marinas@arm.com>
+> Cc: Will Deacon <will@kernel.org>
+> Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
+> Acked-by: Catalin Marinas <catalin.marinas@arm.com>
+> ---
+>  arch/arm64/include/asm/vdso/compat_gettimeofday.h | 1 +
+>  1 file changed, 1 insertion(+)
 > 
->     Acked-by: Paul Burton <paul.burton@mips.com>
+> diff --git a/arch/arm64/include/asm/vdso/compat_gettimeofday.h b/arch/arm64/include/asm/vdso/compat_gettimeofday.h
+> index c50ee1b7d5cd..fe7afe0f1a3d 100644
+> --- a/arch/arm64/include/asm/vdso/compat_gettimeofday.h
+> +++ b/arch/arm64/include/asm/vdso/compat_gettimeofday.h
+> @@ -17,6 +17,7 @@
+>  #define VDSO_HAS_CLOCK_GETRES		1
+>  
+>  #define VDSO_HAS_32BIT_FALLBACK		1
+> +#define BUILD_VDSO32			1
+>  
+>  static __always_inline
+>  int gettimeofday_fallback(struct __kernel_old_timeval *_tv,
 > 
 
-Please feel free to apply this to mips-next.
+This patch is independent from the rest and touches only arch code. Can it go in
+via the arm64 tree?
 
-Thanks,
+-- 
+Regards,
 Vincenzo
-
-> Thanks,
->     Paul
-> 
->> ---
->>  arch/mips/include/asm/vdso/gettimeofday.h | 45 +++++++++++++++++++++++
->>  arch/mips/vdso/config-n32-o32-env.c       |  1 +
->>  2 files changed, 46 insertions(+)
->>
->> diff --git a/arch/mips/include/asm/vdso/gettimeofday.h b/arch/mips/include/asm/vdso/gettimeofday.h
->> index c59fe08b0347..e78462e8ca2e 100644
->> --- a/arch/mips/include/asm/vdso/gettimeofday.h
->> +++ b/arch/mips/include/asm/vdso/gettimeofday.h
->> @@ -105,6 +105,51 @@ static __always_inline int clock_getres_fallback(
->>  	return error ? -ret : ret;
->>  }
->>  
->> +#if _MIPS_SIM != _MIPS_SIM_ABI64
->> +
->> +#define VDSO_HAS_32BIT_FALLBACK	1
->> +
->> +static __always_inline long clock_gettime32_fallback(
->> +					clockid_t _clkid,
->> +					struct old_timespec32 *_ts)
->> +{
->> +	register struct old_timespec32 *ts asm("a1") = _ts;
->> +	register clockid_t clkid asm("a0") = _clkid;
->> +	register long ret asm("v0");
->> +	register long nr asm("v0") = __NR_clock_gettime;
->> +	register long error asm("a3");
->> +
->> +	asm volatile(
->> +	"       syscall\n"
->> +	: "=r" (ret), "=r" (error)
->> +	: "r" (clkid), "r" (ts), "r" (nr)
->> +	: "$1", "$3", "$8", "$9", "$10", "$11", "$12", "$13",
->> +	  "$14", "$15", "$24", "$25", "hi", "lo", "memory");
->> +
->> +	return error ? -ret : ret;
->> +}
->> +
->> +static __always_inline int clock_getres32_fallback(
->> +					clockid_t _clkid,
->> +					struct old_timespec32 *_ts)
->> +{
->> +	register struct old_timespec32 *ts asm("a1") = _ts;
->> +	register clockid_t clkid asm("a0") = _clkid;
->> +	register long ret asm("v0");
->> +	register long nr asm("v0") = __NR_clock_getres;
->> +	register long error asm("a3");
->> +
->> +	asm volatile(
->> +	"       syscall\n"
->> +	: "=r" (ret), "=r" (error)
->> +	: "r" (clkid), "r" (ts), "r" (nr)
->> +	: "$1", "$3", "$8", "$9", "$10", "$11", "$12", "$13",
->> +	  "$14", "$15", "$24", "$25", "hi", "lo", "memory");
->> +
->> +	return error ? -ret : ret;
->> +}
->> +#endif
->> +
->>  #ifdef CONFIG_CSRC_R4K
->>  
->>  static __always_inline u64 read_r4k_count(void)
->> diff --git a/arch/mips/vdso/config-n32-o32-env.c b/arch/mips/vdso/config-n32-o32-env.c
->> index 7f8d957abd4a..0011a632aef2 100644
->> --- a/arch/mips/vdso/config-n32-o32-env.c
->> +++ b/arch/mips/vdso/config-n32-o32-env.c
->> @@ -10,6 +10,7 @@
->>   */
->>  #undef CONFIG_64BIT
->>  
->> +#define BUILD_VDSO32
->>  #define CONFIG_32BIT 1
->>  #define CONFIG_GENERIC_ATOMIC64 1
->>  #define BUILD_VDSO32_64
->> -- 
->> 2.23.0
->>
