@@ -1,59 +1,65 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:35936 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1725782AbfICOiH (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 3 Sep 2019 10:38:07 -0400
-Date: Tue, 3 Sep 2019 15:38:01 +0100
-From: Will Deacon <will@kernel.org>
-Subject: Re: [PATCH v2 1/8] arm64: compat: vdso: Expose BUILD_VDSO32
-Message-ID: <20190903143800.k6r663abs2g2ddpg@willie-the-truck>
+Received: from mail-eopbgr810109.outbound.protection.outlook.com ([40.107.81.109]:14213
+        "EHLO NAM01-BY2-obe.outbound.protection.outlook.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1727624AbfICOqw (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 3 Sep 2019 10:46:52 -0400
+From: Paul Burton <paul.burton@mips.com>
+Subject: Re: [PATCH v2 7/8] mips: vdso: Remove unused VDSO_HAS_32BIT_FALLBACK
+Date: Tue, 3 Sep 2019 14:46:45 +0000
+Message-ID: <20190903143801.7upetfqe6upouzlh@pburton-laptop>
 References: <20190830135902.20861-1-vincenzo.frascino@arm.com>
- <20190830135902.20861-2-vincenzo.frascino@arm.com>
- <c0b1673d-e37d-a526-0862-ad07f779f5bf@arm.com>
+ <20190830135902.20861-8-vincenzo.frascino@arm.com>
+In-Reply-To: <20190830135902.20861-8-vincenzo.frascino@arm.com>
+Content-Language: en-US
+Content-Type: text/plain; charset="us-ascii"
+Content-ID: <AC316F9566DBF246B86E082AA7B4F9C9@namprd22.prod.outlook.com>
+Content-Transfer-Encoding: quoted-printable
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <c0b1673d-e37d-a526-0862-ad07f779f5bf@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Cc: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org, linux-kselftest@vger.kernel.org, catalin.marinas@arm.com, 0x7f454c46@gmail.com, salyzyn@android.com, paul.burton@mips.com, luto@kernel.org, tglx@linutronix.de
-Message-ID: <20190903143801.wEaBW5fz2mnALE8VXXQh_ybjUYsSYsM-ylfIdqQdNKo@z>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-mips@vger.kernel.org" <linux-mips@vger.kernel.org>, "linux-kselftest@vger.kernel.org" <linux-kselftest@vger.kernel.org>, "catalin.marinas@arm.com" <catalin.marinas@arm.com>, "will@kernel.org" <will@kernel.org>, "tglx@linutronix.de" <tglx@linutronix.de>, "salyzyn@android.com" <salyzyn@android.com>, "0x7f454c46@gmail.com" <0x7f454c46@gmail.com>, "luto@kernel.org" <luto@kernel.org>
+Message-ID: <20190903144645.lGid3xVGKW6fKlecTm5cWXFbJChD4PafNlFEfk1IgaE@z>
 
-On Tue, Sep 03, 2019 at 03:36:16PM +0100, Vincenzo Frascino wrote:
-> On 8/30/19 2:58 PM, Vincenzo Frascino wrote:
-> > clock_gettime32 and clock_getres_time32 should be compiled only with the
-> > 32 bit vdso library.
-> > 
-> > Expose BUILD_VDSO32 when arm64 compat is compiled, to provide an
-> > indication to the generic library to include these symbols.
-> > 
-> > Cc: Catalin Marinas <catalin.marinas@arm.com>
-> > Cc: Will Deacon <will@kernel.org>
-> > Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
-> > Acked-by: Catalin Marinas <catalin.marinas@arm.com>
-> > ---
-> >  arch/arm64/include/asm/vdso/compat_gettimeofday.h | 1 +
-> >  1 file changed, 1 insertion(+)
-> > 
-> > diff --git a/arch/arm64/include/asm/vdso/compat_gettimeofday.h b/arch/arm64/include/asm/vdso/compat_gettimeofday.h
-> > index c50ee1b7d5cd..fe7afe0f1a3d 100644
-> > --- a/arch/arm64/include/asm/vdso/compat_gettimeofday.h
-> > +++ b/arch/arm64/include/asm/vdso/compat_gettimeofday.h
-> > @@ -17,6 +17,7 @@
-> >  #define VDSO_HAS_CLOCK_GETRES		1
-> >  
-> >  #define VDSO_HAS_32BIT_FALLBACK		1
-> > +#define BUILD_VDSO32			1
-> >  
-> >  static __always_inline
-> >  int gettimeofday_fallback(struct __kernel_old_timeval *_tv,
-> > 
-> 
-> This patch is independent from the rest and touches only arch code. Can it go in
-> via the arm64 tree?
+Hi Vincenzo,
 
-Why not take it via -tip along with patch 6? Otherwise we'll get a silly
-conflict. I'd assumed this series was going in as one thing.
+On Fri, Aug 30, 2019 at 02:59:01PM +0100, Vincenzo Frascino wrote:
+> VDSO_HAS_32BIT_FALLBACK has been removed from the core since
+> the architectures that support the generic vDSO library have
+> been converted to support the 32 bit fallbacks.
+>=20
+> Remove unused VDSO_HAS_32BIT_FALLBACK from mips vdso.
+>=20
+> Cc: Paul Burton <paul.burton@mips.com>
+> Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
 
-Will
+Do you want this one in mips-next too, or applied somewhere else along
+with the rest of the series? If the latter:
+
+    Acked-by: Paul Burton <paul.burton@mips.com>
+
+Thanks,
+    Paul
+
+> ---
+>  arch/mips/include/asm/vdso/gettimeofday.h | 2 --
+>  1 file changed, 2 deletions(-)
+>=20
+> diff --git a/arch/mips/include/asm/vdso/gettimeofday.h b/arch/mips/includ=
+e/asm/vdso/gettimeofday.h
+> index e78462e8ca2e..5ad2b086626d 100644
+> --- a/arch/mips/include/asm/vdso/gettimeofday.h
+> +++ b/arch/mips/include/asm/vdso/gettimeofday.h
+> @@ -107,8 +107,6 @@ static __always_inline int clock_getres_fallback(
+> =20
+>  #if _MIPS_SIM !=3D _MIPS_SIM_ABI64
+> =20
+> -#define VDSO_HAS_32BIT_FALLBACK	1
+> -
+>  static __always_inline long clock_gettime32_fallback(
+>  					clockid_t _clkid,
+>  					struct old_timespec32 *_ts)
+> --=20
+> 2.23.0
+>=20
