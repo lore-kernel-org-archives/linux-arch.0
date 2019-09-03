@@ -1,67 +1,44 @@
-From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Subject: Re: [PATCH v2 7/8] mips: vdso: Remove unused VDSO_HAS_32BIT_FALLBACK
-Date: Tue, 3 Sep 2019 15:51:32 +0100
-Message-ID: <f783346b-3e33-1bce-f204-f9737ef493e0@arm.com>
-References: <20190830135902.20861-1-vincenzo.frascino@arm.com>
- <20190830135902.20861-8-vincenzo.frascino@arm.com>
- <20190903143801.7upetfqe6upouzlh@pburton-laptop>
+From: Paul Burton <paul.burton@mips.com>
+Subject: Re: [PATCH v2 3/8] mips: compat: vdso: Use legacy syscalls as
+ fallback
+Date: Tue, 3 Sep 2019 21:00:57 +0000
+Message-ID: <MWHPR2201MB1277ED2AD21C031201F749EAC1B90@MWHPR2201MB1277.namprd22.prod.outlook.com>
+References: <20190830135902.20861-4-vincenzo.frascino@arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset="iso-8859-1"
+Content-Transfer-Encoding: quoted-printable
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20190903143801.7upetfqe6upouzlh@pburton-laptop>
+In-Reply-To: <20190830135902.20861-4-vincenzo.frascino@arm.com>
 Content-Language: en-US
 Sender: linux-kernel-owner@vger.kernel.org
-To: Paul Burton <paul.burton@mips.com>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-mips@vger.kernel.org" <linux-mips@vger.kernel.org>, "linux-kselftest@vger.kernel.org" <linux-kselftest@vger.kernel.org>, "catalin.marinas@arm.com" <catalin.marinas@arm.com>, "will@kernel.org" <will@kernel.org>, "tglx@linutronix.de" <tglx@linutronix.de>, "salyzyn@android.com" <salyzyn@android.com>, "0x7f454c46@gmail.com" <0x7f454c46@gmail.com>, "luto@kernel.org" <luto@kernel.org>
+To: Vincenzo Frascino <vincenzo.frascino@arm.com>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-mips@vger.kernel.org" <linux-mips@vger.kernel.org>, "linux-kselftest@vger.kernel.org" <linux-kselftest@vger.kernel.org>, "catalin.marinas@arm.com" <catalin.marinas@arm.com>, "will@kernel.org" <will@kernel.org>, Paul Burton <pburton@wavecomp.com>, "tglx@linutronix.de" <tglx@linutronix.de>, "salyzyn@android.com" <salyzyn@android.com>, "0x7f454c46@gmail.com" <0x7f454c46@gmail.com>, "luto@kernel.org" <luto@kernel.org>"linux-mips@vger.kernel.org" <linux-mips@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-Hi Paul,
+Hello,
 
-On 9/3/19 3:46 PM, Paul Burton wrote:
-> Hi Vincenzo,
-> 
-> On Fri, Aug 30, 2019 at 02:59:01PM +0100, Vincenzo Frascino wrote:
->> VDSO_HAS_32BIT_FALLBACK has been removed from the core since
->> the architectures that support the generic vDSO library have
->> been converted to support the 32 bit fallbacks.
->>
->> Remove unused VDSO_HAS_32BIT_FALLBACK from mips vdso.
->>
->> Cc: Paul Burton <paul.burton@mips.com>
->> Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
-> 
-> Do you want this one in mips-next too, or applied somewhere else along
-> with the rest of the series? If the latter:
-> 
->     Acked-by: Paul Burton <paul.burton@mips.com>
-> 
+Vincenzo Frascino wrote:
+> The generic VDSO implementation uses the Y2038 safe clock_gettime64() and
+> clock_getres_time64() syscalls as fallback for 32bit VDSO. This breaks
+> seccomp setups because these syscalls might be not (yet) allowed.
+>=20
+> Implement the 32bit variants which use the legacy syscalls and select the
+> variant in the core library.
+>=20
+> The 64bit time variants are not removed because they are required for the
+> time64 based vdso accessors.
 
-This patch has a dependency on patch n5 hence can not be applied independently.
+Applied to mips-next.
+
+> commit 932bb934ed4d
+> https://git.kernel.org/mips/c/932bb934ed4d
+>=20
+> Fixes: 00b26474c2f1 ("lib/vdso: Provide generic VDSO implementation")
+> Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
+> Signed-off-by: Paul Burton <paul.burton@mips.com>
 
 Thanks,
-Vincenzo
+    Paul
 
-> Thanks,
->     Paul
-> 
->> ---
->>  arch/mips/include/asm/vdso/gettimeofday.h | 2 --
->>  1 file changed, 2 deletions(-)
->>
->> diff --git a/arch/mips/include/asm/vdso/gettimeofday.h b/arch/mips/include/asm/vdso/gettimeofday.h
->> index e78462e8ca2e..5ad2b086626d 100644
->> --- a/arch/mips/include/asm/vdso/gettimeofday.h
->> +++ b/arch/mips/include/asm/vdso/gettimeofday.h
->> @@ -107,8 +107,6 @@ static __always_inline int clock_getres_fallback(
->>  
->>  #if _MIPS_SIM != _MIPS_SIM_ABI64
->>  
->> -#define VDSO_HAS_32BIT_FALLBACK	1
->> -
->>  static __always_inline long clock_gettime32_fallback(
->>  					clockid_t _clkid,
->>  					struct old_timespec32 *_ts)
->> -- 
->> 2.23.0
->>
+[ This message was auto-generated; if you believe anything is incorrect
+  then please email paul.burton@mips.com to report it. ]
