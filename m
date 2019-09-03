@@ -1,50 +1,78 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-eopbgr800104.outbound.protection.outlook.com ([40.107.80.104]:7800
-        "EHLO NAM03-DM3-obe.outbound.protection.outlook.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1725953AbfICVBA (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 3 Sep 2019 17:01:00 -0400
-From: Paul Burton <paul.burton@mips.com>
-Subject: Re: [PATCH v2 3/8] mips: compat: vdso: Use legacy syscalls as
- fallback
-Date: Tue, 3 Sep 2019 21:00:57 +0000
-Message-ID: <MWHPR2201MB1277ED2AD21C031201F749EAC1B90@MWHPR2201MB1277.namprd22.prod.outlook.com>
-References: <20190830135902.20861-4-vincenzo.frascino@arm.com>
-In-Reply-To: <20190830135902.20861-4-vincenzo.frascino@arm.com>
-Content-Language: en-US
-Content-Type: text/plain; charset="iso-8859-1"
-Content-Transfer-Encoding: quoted-printable
-MIME-Version: 1.0
+Received: from mga04.intel.com ([192.55.52.120]:26578 "EHLO mga04.intel.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1725882AbfICWil (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 3 Sep 2019 18:38:41 -0400
+Message-ID: <59052137a61bab9e8d312d51644aade3953ba339.camel@intel.com>
+Subject: Re: [RFC PATCH v2 2/2] ELF: Add ELF program property parsing support
+From: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Date: Tue, 03 Sep 2019 15:29:10 -0700
+In-Reply-To: <20190902092816.GK27757@arm.com>
+References: <1566581020-9953-1-git-send-email-Dave.Martin@arm.com>
+         <1566581020-9953-3-git-send-email-Dave.Martin@arm.com>
+         <201908292224.007EB4D5@keescook> <20190830083415.GI27757@arm.com>
+         <5ddd0306f42c2b53ffbd8ee8c9b948c1d529cf98.camel@intel.com>
+         <20190902092816.GK27757@arm.com>
+Content-Type: text/plain; charset="UTF-8"
+Mime-Version: 1.0
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-mips@vger.kernel.org" <linux-mips@vger.kernel.org>, "linux-kselftest@vger.kernel.org" <linux-kselftest@vger.kernel.org>, "catalin.marinas@arm.com" <catalin.marinas@arm.com>, "will@kernel.org" <will@kernel.org>, Paul Burton <pburton@wavecomp.com>, "tglx@linutronix.de" <tglx@linutronix.de>, "salyzyn@android.com" <salyzyn@android.com>, "0x7f454c46@gmail.com" <0x7f454c46@gmail.com>, "luto@kernel.org" <luto@kernel.org>"linux-mips@vger.kernel.org" <linux-mips@vger.kernel.org>
-Message-ID: <20190903210057.NRU5fO-6EVjk-04w0zsepraEknCjcubFeuLH3EIohaI@z>
+To: Dave Martin <Dave.Martin@arm.com>
+Cc: Kees Cook <keescook@chromium.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Jann Horn <jannh@google.com>, "H.J. Lu" <hjl.tools@gmail.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, Peter Zijlstra <peterz@infradead.org>
+Message-ID: <20190903222910.ojl8g8kxo1fftImzwgDwh1aqY_-cUkCcT5EP-ndZyY0@z>
 
-Hello,
-
-Vincenzo Frascino wrote:
-> The generic VDSO implementation uses the Y2038 safe clock_gettime64() and
-> clock_getres_time64() syscalls as fallback for 32bit VDSO. This breaks
-> seccomp setups because these syscalls might be not (yet) allowed.
->=20
-> Implement the 32bit variants which use the legacy syscalls and select the
-> variant in the core library.
->=20
-> The 64bit time variants are not removed because they are required for the
-> time64 based vdso accessors.
-
-Applied to mips-next.
-
-> commit 932bb934ed4d
-> https://git.kernel.org/mips/c/932bb934ed4d
->=20
-> Fixes: 00b26474c2f1 ("lib/vdso: Provide generic VDSO implementation")
-> Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
-> Signed-off-by: Paul Burton <paul.burton@mips.com>
-
-Thanks,
-    Paul
-
-[ This message was auto-generated; if you believe anything is incorrect
-  then please email paul.burton@mips.com to report it. ]
+On Mon, 2019-09-02 at 10:28 +0100, Dave Martin wrote:
+> On Fri, Aug 30, 2019 at 06:03:27PM +0100, Yu-cheng Yu wrote:
+> > On Fri, 2019-08-30 at 09:34 +0100, Dave Martin wrote:
+> > > On Fri, Aug 30, 2019 at 06:37:45AM +0100, Kees Cook wrote:
+> > > > On Fri, Aug 23, 2019 at 06:23:40PM +0100, Dave Martin wrote:
+> > > > > ELF program properties will needed for detecting whether to enable
+> > > > > optional architecture or ABI features for a new ELF process.
+> > > > > 
+> > > > > For now, there are no generic properties that we care about, so do
+> > > > > nothing unless CONFIG_ARCH_USE_GNU_PROPERTY=y.
+> > > > > 
+> > > > > Otherwise, the presence of properties using the PT_PROGRAM_PROPERTY
+> > > > > phdrs entry (if any), and notify each property to the arch code.
+> > > > > 
+> > > > > For now, the added code is not used.
+> > > > > 
+> > > > > Signed-off-by: Dave Martin <Dave.Martin@arm.com>
+> > > > 
+> > > > Reviewed-by: Kees Cook <keescook@chromium.org>
+> > > 
+> > > Thanks for the review.
+> > > 
+> > > Do you have any thoughts on Yu-Cheng Yu's comments?  It would be nice to
+> > > early-terminate the scan if we can, but my feeling so far was that the
+> > > scan is cheap, the number of properties is unlikely to be more than a
+> > > smallish integer, and the code separation benefits of just calling the
+> > > arch code for every property probably likely outweigh the costs of
+> > > having to iterate over every property.  We could always optimise it
+> > > later if necessary.
+> > > 
+> > > I need to double-check that there's no way we can get stuck in an
+> > > infinite loop with the current code, though I've not seen it in my
+> > > testing.  I should throw some malformed notes at it though.
+> > 
+> > Here is my arch_parse_elf_property() and objdump of the property.
+> > The parser works fine.
+> 
+> [...]
+> 
+> > int arch_parse_elf_property(u32 type, const void *data, size_t datasz,
+> >           
+> >                    bool compat, struct arch_elf_state *state)
+> > {
+> >         if (type
+> > != GNU_PROPERTY_X86_FEATURE_1_AND)
+> >                 return -ENOENT;
+> 
+> For error returns, I was following this convention:
+> 
+> 	EIO: invalid ELF file
+> 
+> 	ENOEXEC: valid ELF file, but we can't (or won't) support it
+> 
+> 	0: OK, or don't care
