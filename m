@@ -1,23 +1,24 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-lf1-f66.google.com ([209.85.167.66]:45644 "EHLO
-        mail-lf1-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727387AbfIDVR4 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 4 Sep 2019 17:17:56 -0400
-Received: by mail-lf1-f66.google.com with SMTP id r134so140770lff.12
-        for <linux-arch@vger.kernel.org>; Wed, 04 Sep 2019 14:17:55 -0700 (PDT)
-Received: from mail-lj1-f173.google.com (mail-lj1-f173.google.com. [209.85.208.173])
-        by smtp.gmail.com with ESMTPSA id i65sm168059lji.16.2019.09.04.14.17.53
+Received: from mail-lj1-f193.google.com ([209.85.208.193]:42782 "EHLO
+        mail-lj1-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727125AbfIDVhN (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 4 Sep 2019 17:37:13 -0400
+Received: by mail-lj1-f193.google.com with SMTP id y23so202370lje.9
+        for <linux-arch@vger.kernel.org>; Wed, 04 Sep 2019 14:37:11 -0700 (PDT)
+Received: from mail-lf1-x136.google.com (mail-lf1-x136.google.com. [2a00:1450:4864:20::136])
+        by smtp.gmail.com with ESMTPSA id u11sm12113lfu.47.2019.09.04.14.37.10
         for <linux-arch@vger.kernel.org>
         (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
-        Wed, 04 Sep 2019 14:17:53 -0700 (PDT)
-Received: by mail-lj1-f173.google.com with SMTP id u14so147079ljj.11
-        for <linux-arch@vger.kernel.org>; Wed, 04 Sep 2019 14:17:53 -0700 (PDT)
+        Wed, 04 Sep 2019 14:37:10 -0700 (PDT)
+Received: by mail-lf1-x136.google.com with SMTP id q27so188029lfo.10
+        for <linux-arch@vger.kernel.org>; Wed, 04 Sep 2019 14:37:10 -0700 (PDT)
 MIME-Version: 1.0
 References: <20190904201933.10736-1-cyphar@cyphar.com> <20190904201933.10736-11-cyphar@cyphar.com>
-In-Reply-To: <20190904201933.10736-11-cyphar@cyphar.com>
+ <CAHk-=wiod1rQMU+6Zew=cLE8uX4tUdf42bM5eKngMnNVS2My7g@mail.gmail.com> <CAHk-=wiHRW3Z9xPRiExi9jLjB0cdGhM=3vaW+b80mjuRcbORyw@mail.gmail.com>
+In-Reply-To: <CAHk-=wiHRW3Z9xPRiExi9jLjB0cdGhM=3vaW+b80mjuRcbORyw@mail.gmail.com>
 From: Linus Torvalds <torvalds@linux-foundation.org>
-Date: Wed, 4 Sep 2019 14:09:48 -0700
-Message-ID: <CAHk-=wiod1rQMU+6Zew=cLE8uX4tUdf42bM5eKngMnNVS2My7g@mail.gmail.com>
+Date: Wed, 4 Sep 2019 14:36:48 -0700
+Message-ID: <CAHk-=wiExfaVhUTvKj7hR6DG4C2+oy6usz0Sa6QbPr5EgDH28w@mail.gmail.com>
 Subject: Re: [PATCH v12 10/12] namei: aggressively check for nd->root escape
  on ".." resolution
 Content-Type: text/plain; charset="UTF-8"
@@ -25,49 +26,30 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Aleksa Sarai <cyphar@cyphar.com>
 Cc: Al Viro <viro@zeniv.linux.org.uk>, Jeff Layton <jlayton@kernel.org>, "J. Bruce Fields" <bfields@fieldses.org>, Arnd Bergmann <arnd@arndb.de>, David Howells <dhowells@redhat.com>, Shuah Khan <shuah@kernel.org>, Shuah Khan <skhan@linuxfoundation.org>, Ingo Molnar <mingo@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Christian Brauner <christian@brauner.io>, Jann Horn <jannh@google.com>, Kees Cook <keescook@chromium.org>, Eric Biederman <ebiederm@xmission.com>, Andy Lutomirski <luto@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Alexei Starovoitov <ast@kernel.org>, Tycho Andersen <tycho@tycho.ws>, David Drysdale <drysdale@google.com>, Chanho Min <chanho.min@lge.com>, Oleg Nesterov <oleg@redhat.com>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Alexander Shishkin <alexander.shishkin@linux.intel.com>, Jiri Olsa <jolsa@redhat.com>, Namhyung Kim <namhyung@kernel.org>, Aleksa Sarai <asarai@suse.de>, Linux Containers <containers@lists.linux-foundation.org>, alpha <linux-alpha@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, linux-fsdevel <linux-fsdevel@vger.kernel.org>, linux-ia64@vger.kernel.org, Linux List Kernel Mailing <linux-kernel@vger.kernel.org>, "open list:KERNEL SELFTEST FRAMEWORK" <linux-kselftest@vger.kernel.org>, linux-m68k <linux-m68k@lists.linux-m68k.org>, linux-mips@vger.kernel.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390 <linux-s390@vger.kernel.org>, Linux-sh list <linux-sh@vger.kernel.org>, linux-xtensa@linux-xtensa.org, sparclinux@vger.kernel.org
-Message-ID: <20190904210948.QIqzy2EvSb0cu5FaI_tLF1ASCqP87sPBp3Q5U2Zx6uM@z>
+Message-ID: <20190904213648.iP885apxYVS3auL8fauvV_yNa3YJA5t1vNOmmfm6mSw@z>
 
-On Wed, Sep 4, 2019 at 1:23 PM Aleksa Sarai <cyphar@cyphar.com> wrote:
+On Wed, Sep 4, 2019 at 2:35 PM Linus Torvalds
+<torvalds@linux-foundation.org> wrote:
 >
-> This patch allows for LOOKUP_BENEATH and LOOKUP_IN_ROOT to safely permit
-> ".." resolution (in the case of LOOKUP_BENEATH the resolution will still
-> fail if ".." resolution would resolve a path outside of the root --
-> while LOOKUP_IN_ROOT will chroot(2)-style scope it). Magic-link jumps
-> are still disallowed entirely because now they could result in
-> inconsistent behaviour if resolution encounters a subsequent ".."[*].
+> On Wed, Sep 4, 2019 at 2:09 PM Linus Torvalds
+> <torvalds@linux-foundation.org> wrote:
+> >
+> > So you'd have three stages:
+> >
+> >  1) ".." always returns -EXDEV
+> >
+> >  2) ".." returns -EXDEV if there was a concurrent rename/mount
+> >
+> >  3) ".." returns -EXDEV if there was a concurrent rename/mount and we
+> > reset the sequence numbers and check if you escaped.
+>
+> In fact, I wonder if this should return -EAGAIN instead - to say that
+> "retrying may work".
 
-This is the only patch in the series that makes me go "umm".
+And here "this" was meant to be "case 2" - I was moving the quoted
+text around and didn't fix my wording, so now it is ambiguous or
+implies #3, which would be crazy.
 
-Why is it ok to re-initialize m_seq, which is used by other things
-too? I think it's because we're out of RCU lookup, but there's no
-comment about it, and it looks iffy to me. I'd rather have a separate
-sequence count that doesn't have two users with different lifetime
-rules.
+Sorry for the confusion,
 
-But even apart from that, I think from a "patch continuity" standpoint
-it would be better to introduce the sequence counts as just an error
-condition first - iow, not have the "path_is_under()" check, but just
-return -EXDEV if the sequence number doesn't match.
-
-So you'd have three stages:
-
- 1) ".." always returns -EXDEV
-
- 2) ".." returns -EXDEV if there was a concurrent rename/mount
-
- 3) ".." returns -EXDEV if there was a concurrent rename/mount and we
-reset the sequence numbers and check if you escaped.
-
-becasue the sequence number reset really does make me go "hmm", plus I
-get this nagging little feeling in the back of my head that you can
-cause nasty O(n^2) lookup cost behavior with deep paths, lots of "..",
-and repeated path_is_under() calls.
-
-So (1) sounds safe. (2) sounds simple. And (3) is where I think subtle
-things start happening.
-
-Also, I'm not 100% convinced that (3) is needed at all. I think the
-retry could be done in user space instead, which needs to have a
-fallback anyway. Yes? No?
-
-                 Linus
+            Linus
