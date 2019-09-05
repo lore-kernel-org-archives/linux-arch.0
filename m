@@ -1,99 +1,54 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from zeniv.linux.org.uk ([195.92.253.2]:43054 "EHLO
-        ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1732639AbfIEWc2 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 5 Sep 2019 18:32:28 -0400
-Date: Thu, 5 Sep 2019 23:31:48 +0100
-From: Al Viro <viro@zeniv.linux.org.uk>
-Subject: Re: [PATCH v12 01/12] lib: introduce copy_struct_{to,from}_user
- helpers
-Message-ID: <20190905223148.GS1131@ZenIV.linux.org.uk>
-References: <20190904201933.10736-1-cyphar@cyphar.com>
- <20190904201933.10736-2-cyphar@cyphar.com>
- <20190905180750.GQ1131@ZenIV.linux.org.uk>
- <20190905182303.7f6bxpa2enbgcegv@wittgenstein>
- <20190905182801.GR1131@ZenIV.linux.org.uk>
- <20190905195618.pwzgvuzadkfpznfz@yavin.dot.cyphar.com>
+Received: from mail-eopbgr720133.outbound.protection.outlook.com ([40.107.72.133]:29120
+        "EHLO NAM05-CO1-obe.outbound.protection.outlook.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1726073AbfIEWrI (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 5 Sep 2019 18:47:08 -0400
+From: Dexuan Cui <decui@microsoft.com>
+Subject: [PATCH v5 0/3] Enhance Hyper-V for hibernation
+Date: Thu, 5 Sep 2019 22:47:03 +0000
+Message-ID: <1567723581-29088-1-git-send-email-decui@microsoft.com>
+Reply-To: Dexuan Cui <decui@microsoft.com>
+Content-Language: en-US
+Content-Type: text/plain; charset="iso-8859-1"
+Content-Transfer-Encoding: quoted-printable
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20190905195618.pwzgvuzadkfpznfz@yavin.dot.cyphar.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Aleksa Sarai <cyphar@cyphar.com>
-Cc: Christian Brauner <christian.brauner@ubuntu.com>, Jeff Layton <jlayton@kernel.org>, "J. Bruce Fields" <bfields@fieldses.org>, Arnd Bergmann <arnd@arndb.de>, David Howells <dhowells@redhat.com>, Shuah Khan <shuah@kernel.org>, Shuah Khan <skhan@linuxfoundation.org>, Ingo Molnar <mingo@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Christian Brauner <christian@brauner.io>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Eric Biederman <ebiederm@xmission.com>, Andy Lutomirski <luto@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Alexei Starovoitov <ast@kernel.org>, Kees Cook <keescook@chromium.org>, Jann Horn <jannh@google.com>, Tycho Andersen <tycho@tycho.ws>, David Drysdale <drysdale@google.com>, Chanho Min <chanho.min@lge.com>, Oleg Nesterov <oleg@redhat.com>, Alexander Shishkin <alexander.shishkin@linux.intel.com>, Jiri Olsa <jolsa@redhat.com>, Namhyung Kim <namhyung@kernel.org>, Aleksa Sarai <asarai@suse.de>, Linus Torvalds <torvalds@linux-foundation.org>, containers@lists.linux-foundation.org, linux-alpha@vger.kernel.org, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-fsdevel@vger.kernel.org, linux-ia64@vger.kernel.org, linux-kernel@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, linux-xtensa@linux-xtensa.org, sparclinux@vger.kernel.org
-Message-ID: <20190905223148.Fhpyw6qdLqYOMG2yvPWTM2paI4gCj8aIbSB17Xic61Y@z>
+To: "arnd@arndb.de" <arnd@arndb.de>, "bp@alien8.de" <bp@alien8.de>, "daniel.lezcano@linaro.org" <daniel.lezcano@linaro.org>, Haiyang Zhang <haiyangz@microsoft.com>, "hpa@zytor.com" <hpa@zytor.com>, KY Srinivasan <kys@microsoft.com>, "linux-hyperv@vger.kernel.org" <linux-hyperv@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "mingo@redhat.com" <mingo@redhat.com>, "sashal@kernel.org" <sashal@kernel.org>, Stephen Hemminger <sthemmin@microsoft.com>, "tglx@linutronix.de" <tglx@linutronix.de>, "x86@kernel.org" <x86@kernel.org>, Michael Kelley <mikelley@microsoft.com>, Sasha Levin <Alexander.Levin@microsoft.com>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Dexuan Cui <decui@microsoft.com>
+Message-ID: <20190905224703.Tj9lsqZWBbhu62UGL6R6cB3RYeHcrghUdPty-pq2yyw@z>
 
-On Fri, Sep 06, 2019 at 05:56:18AM +1000, Aleksa Sarai wrote:
-> On 2019-09-05, Al Viro <viro@zeniv.linux.org.uk> wrote:
-> > On Thu, Sep 05, 2019 at 08:23:03PM +0200, Christian Brauner wrote:
-> > 
-> > > Because every caller of that function right now has that limit set
-> > > anyway iirc. So we can either remove it from here and place it back for
-> > > the individual callers or leave it in the helper.
-> > > Also, I'm really asking, why not? Is it unreasonable to have an upper
-> > > bound on the size (for a long time probably) or are you disagreeing with
-> > > PAGE_SIZE being used? PAGE_SIZE limit is currently used by sched, perf,
-> > > bpf, and clone3 and in a few other places.
-> > 
-> > For a primitive that can be safely used with any size (OK, any within
-> > the usual 2Gb limit)?  Why push the random policy into the place where
-> > it doesn't belong?
-> > 
-> > Seriously, what's the point?  If they want to have a large chunk of
-> > userland memory zeroed or checked for non-zeroes - why would that
-> > be a problem?
-> 
-> Thinking about it some more, there isn't really any r/w amplification --
-> so there isn't much to gain by passing giant structs. Though, if we are
-> going to permit 2GB buffers, isn't that also an argument to use
-> memchr_inv()? :P
+This patchset (consisting of 3 patches) was part of the v4 patchset (consis=
+ting
+of 12 patches):
+    https://lkml.org/lkml/2019/9/2/894
 
-I'm not sure I understand the last bit.  If you look at what copy_from_user()
-does on misaligned source/destination, especially on architectures that
-really, really do not like unaligned access...
+I realized these 3 patches must go through the tip.git tree, because I have
+to rebase 2 of the 3 patches due to recent changes from others in the tip
+tree.
 
-Case in point: alpha (and it's not unusual in that respect).  What it boils
-down to is
-	copy bytes until the destination is aligned
-	if source and destination are both aligned
-		copy word by word
-	else
-		read word by word, storing the mix of two adjacent words
-	copy the rest byte by byte
+All the 3 patches are now rebased to the tip tree's timers/core branch:
+https://git.kernel.org/pub/scm/linux/kernel/git/tip/tip.git/log/?h=3Dtimers=
+/core
+, and all the 3 patches have Michael Kelley's Signed-off-by's.
 
-The unpleasant case (to and from having different remainders modulo 8) is
-basically
+Please review.
 
-	if (count >= 8) {
-		u64 *aligned = (u64 *)(from & ~7);
-		u64 *dest = (u64 *)to;
-		int bitshift = (from & 7) * 8;
-		u64 prev, next;
+Thanks!
+Dexuan
 
-		prev = aligned[0];
-		do {   
-			next = aligned[1];
-			prev <<= bitshift;
-			prev |= next >> (64 - bitshift);
-			*dest++ = prev;
-			aligned++;  
-			prev = next;
-			from += 8;
-			to += 8;
-			count -= 8;
-		} while (count >= 8);
-	}
+Dexuan Cui (3):
+  x86/hyper-v: Suspend/resume the hypercall page for hibernation
+  x86/hyper-v: Implement hv_is_hibernation_supported()
+  clocksource/drivers: Suspend/resume Hyper-V clocksource for
+    hibernation
 
-Now, mix that with "... and do memchr_inv() on the copy to find if we'd
-copied any non-zeroes, nevermind where" and it starts looking really
-ridiculous.
+ arch/x86/hyperv/hv_init.c          | 40 ++++++++++++++++++++++++++++++++++=
+++++
+ drivers/clocksource/hyperv_timer.c | 25 ++++++++++++++++++++++++
+ include/asm-generic/mshyperv.h     |  2 ++
+ 3 files changed, 67 insertions(+)
 
-We should just read the fscking source, aligned down to word boundary
-and check each word being read.  The first and the last ones - masked.
-All there is to it.  On almost all architectures that'll work well
-enough; s390 might want something more elaborate (there even word-by-word
-copies are costly, but I'd suggest talking to them for details).
-
-Something like bool all_zeroes_user(const void __user *p, size_t count)
-would probably be a sane API...
+--=20
+1.8.3.1
