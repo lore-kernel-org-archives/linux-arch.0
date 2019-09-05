@@ -1,43 +1,90 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qt1-f195.google.com ([209.85.160.195]:44028 "EHLO
-        mail-qt1-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728302AbfD3NZk (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 30 Apr 2019 09:25:40 -0400
+Received: from mx2.mailbox.org ([80.241.60.215]:61604 "EHLO mx2.mailbox.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1733299AbfIERBk (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 5 Sep 2019 13:01:40 -0400
+Date: Fri, 6 Sep 2019 03:01:06 +1000
+From: Aleksa Sarai <cyphar@cyphar.com>
+Subject: Re: [PATCH v12 01/12] lib: introduce copy_struct_{to,from}_user
+ helpers
+Message-ID: <20190905170106.7j4nmgwnvkcwn6md@yavin.dot.cyphar.com>
+References: <20190904201933.10736-1-cyphar@cyphar.com>
+ <20190904201933.10736-2-cyphar@cyphar.com>
+ <20190905073205.GY2332@hirez.programming.kicks-ass.net>
+ <20190905092622.tlb6nn3uisssdfbu@yavin.dot.cyphar.com>
+ <20190905094305.GJ2349@hirez.programming.kicks-ass.net>
 MIME-Version: 1.0
-References: <20190402161256.11044-1-daniel.lezcano@linaro.org>
- <20190402161256.11044-3-daniel.lezcano@linaro.org> <1555922585.26198.19.camel@intel.com>
- <fb45157c-38c4-7940-3252-af459d446323@linaro.org> <1555999165.26198.39.camel@intel.com>
- <2c0bc40d-328a-fc96-73da-9d65fee253fb@linaro.org>
-In-Reply-To: <2c0bc40d-328a-fc96-73da-9d65fee253fb@linaro.org>
-From: Arnd Bergmann <arnd@arndb.de>
-Date: Tue, 30 Apr 2019 15:25:21 +0200
-Message-ID: <CAK8P3a2LAZnBKigo9v0qzaa-WAYkuoueF_jyJtaFrMeLXnDDow@mail.gmail.com>
-Subject: Re: [PATCH 3/7] thermal/drivers/core: Add init section table for self-encapsulation
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: multipart/signed; micalg=pgp-sha256;
+        protocol="application/pgp-signature"; boundary="kmvm5dxbzyhfjvqj"
+Content-Disposition: inline
+In-Reply-To: <20190905094305.GJ2349@hirez.programming.kicks-ass.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Daniel Lezcano <daniel.lezcano@linaro.org>
-Cc: Zhang Rui <rui.zhang@intel.com>, Eduardo Valentin <edubezval@gmail.com>, Linux PM list <linux-pm@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "open list:GENERIC INCLUDE/ASM HEADER FILES" <linux-arch@vger.kernel.org>
-Message-ID: <20190430132521.rwqAs-GUK9iT7RqCAEnxBzJGjwRqBs3YSXwIQP7xKyY@z>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Al Viro <viro@zeniv.linux.org.uk>, Jeff Layton <jlayton@kernel.org>, "J. Bruce Fields" <bfields@fieldses.org>, Arnd Bergmann <arnd@arndb.de>, David Howells <dhowells@redhat.com>, Shuah Khan <shuah@kernel.org>, Shuah Khan <skhan@linuxfoundation.org>, Ingo Molnar <mingo@redhat.com>, Christian Brauner <christian@brauner.io>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Eric Biederman <ebiederm@xmission.com>, Andy Lutomirski <luto@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Alexei Starovoitov <ast@kernel.org>, Kees Cook <keescook@chromium.org>, Jann Horn <jannh@google.com>, Tycho Andersen <tycho@tycho.ws>, David Drysdale <drysdale@google.com>, Chanho Min <chanho.min@lge.com>, Oleg Nesterov <oleg@redhat.com>, Alexander Shishkin <alexander.shishkin@linux.intel.com>, Jiri Olsa <jolsa@redhat.com>, Namhyung Kim <namhyung@kernel.org>, Aleksa Sarai <asarai@suse.de>, Linus Torvalds <torvalds@linux-foundation.org>, containers@lists.linux-foundation.org, linux-alpha@vger.kernel.org, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-fsdevel@vger.kernel.org, linux-ia64@vger.kernel.org, linux-kernel@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, linux-xtensa@linux-xtensa.org, sparclinux@vger.kernel.org
+Message-ID: <20190905170106.CNtVjd1r8blSWOWadrEmSpzlq9jCXzX3P4sOgDomf_8@z>
 
-On Mon, Apr 29, 2019 at 1:23 AM Daniel Lezcano
-<daniel.lezcano@linaro.org> wrote:
->
-> On 23/04/2019 07:59, Zhang Rui wrote:
-> > Hi, Daniel,
-> >
-> > thanks for clarifying.
-> > It is true that we need to make thermal framework ready as early as
-> > possible. And a static table works for me as long as vmlinux.lds.h is
-> > the proper place.
-> >
-> > Arnd,
-> > are you okay with this patch? if yes, I suppose I can take it through
-> > my tree, right?
->
-> Arnd?
 
-Sorry for missing this earlier. I have no objections to this, or to merging
-it through the thermal tree.
+--kmvm5dxbzyhfjvqj
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+Content-Transfer-Encoding: quoted-printable
 
-Acked-by: Arnd Bergmann <arnd@arndb.de>
+On 2019-09-05, Peter Zijlstra <peterz@infradead.org> wrote:
+> On Thu, Sep 05, 2019 at 07:26:22PM +1000, Aleksa Sarai wrote:
+> > On 2019-09-05, Peter Zijlstra <peterz@infradead.org> wrote:
+> > > On Thu, Sep 05, 2019 at 06:19:22AM +1000, Aleksa Sarai wrote:
+> > > > +
+> > > > +		while (rest > 0) {
+> > > > +			size_t bufsize =3D min(rest, sizeof(buffer));
+> > > > +
+> > > > +			if (__copy_from_user(buffer, addr, bufsize))
+> > > > +				return -EFAULT;
+> > > > +			if (memchr_inv(buffer, 0, bufsize))
+> > > > +				return -E2BIG;
+> > > > +
+> > > > +			addr +=3D bufsize;
+> > > > +			rest -=3D bufsize;
+> > > > +		}
+> > >=20
+> > > The perf implementation uses get_user(); but if that is too slow, sur=
+ely
+> > > we can do something with uaccess_try() here?
+> >=20
+> > Is there a non-x86-specific way to do that (unless I'm mistaken only x86
+> > has uaccess_try() or the other *_try() wrappers)? The main "performance
+> > improvement" (if you can even call it that) is that we use memchr_inv()
+> > which finds non-matching characters more efficiently than just doing a
+> > loop.
+>=20
+> Oh, you're right, that's x86 only :/
+
+Though, I just had an idea -- am I wrong to think that the following
+would work just as well (without the need for an intermediate buffer)?
+
+   if (memchr_inv((const char __force *) src + size, 0, rest))
+     return -E2BIG;
+
+Or is this type of thing very much frowned upon? What if it was a
+separate memchr_inv_user() instead -- I feel as though there's not a
+strong argument for needing to use a buffer when we're single-passing
+the __user buffer and doing a basic boolean check.
+
+--=20
+Aleksa Sarai
+Senior Software Engineer (Containers)
+SUSE Linux GmbH
+<https://www.cyphar.com/>
+
+--kmvm5dxbzyhfjvqj
+Content-Type: application/pgp-signature; name="signature.asc"
+
+-----BEGIN PGP SIGNATURE-----
+
+iHUEABYIAB0WIQSxZm6dtfE8gxLLfYqdlLljIbnQEgUCXXE/TgAKCRCdlLljIbnQ
+Eo4lAP4vz7qxi6aZbZTeed0ZbnEtPkuMnCkFo0v18rHfgnM6xgD/bV/SICkzrufH
+DwNHgRAu5z8daivqeybakfQqvQMhpA4=
+=SteT
+-----END PGP SIGNATURE-----
+
+--kmvm5dxbzyhfjvqj--
