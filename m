@@ -1,101 +1,183 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-eopbgr720114.outbound.protection.outlook.com ([40.107.72.114]:24931
-        "EHLO NAM05-CO1-obe.outbound.protection.outlook.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1726073AbfIEWrP (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 5 Sep 2019 18:47:15 -0400
-From: Dexuan Cui <decui@microsoft.com>
-Subject: [PATCH v5 1/3] x86/hyper-v: Suspend/resume the hypercall page for
- hibernation
-Date: Thu, 5 Sep 2019 22:47:12 +0000
-Message-ID: <1567723581-29088-2-git-send-email-decui@microsoft.com>
-References: <1567723581-29088-1-git-send-email-decui@microsoft.com>
-In-Reply-To: <1567723581-29088-1-git-send-email-decui@microsoft.com>
-Reply-To: Dexuan Cui <decui@microsoft.com>
-Content-Language: en-US
-Content-Type: text/plain; charset="iso-8859-1"
-Content-Transfer-Encoding: quoted-printable
+Received: from mx2.mailbox.org ([80.241.60.215]:63818 "EHLO mx2.mailbox.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726635AbfIEXAq (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 5 Sep 2019 19:00:46 -0400
+Date: Fri, 6 Sep 2019 09:00:03 +1000
+From: Aleksa Sarai <cyphar@cyphar.com>
+Subject: Re: [PATCH v12 01/12] lib: introduce copy_struct_{to,from}_user
+ helpers
+Message-ID: <20190905230003.bek7vqdvruzi4ybx@yavin.dot.cyphar.com>
+References: <20190904201933.10736-1-cyphar@cyphar.com>
+ <20190904201933.10736-2-cyphar@cyphar.com>
+ <20190905180750.GQ1131@ZenIV.linux.org.uk>
 MIME-Version: 1.0
+Content-Type: multipart/signed; micalg=pgp-sha256;
+        protocol="application/pgp-signature"; boundary="p5c7e3ucgw67wkfa"
+Content-Disposition: inline
+In-Reply-To: <20190905180750.GQ1131@ZenIV.linux.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "arnd@arndb.de" <arnd@arndb.de>, "bp@alien8.de" <bp@alien8.de>, "daniel.lezcano@linaro.org" <daniel.lezcano@linaro.org>, Haiyang Zhang <haiyangz@microsoft.com>, "hpa@zytor.com" <hpa@zytor.com>, KY Srinivasan <kys@microsoft.com>, "linux-hyperv@vger.kernel.org" <linux-hyperv@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "mingo@redhat.com" <mingo@redhat.com>, "sashal@kernel.org" <sashal@kernel.org>, Stephen Hemminger <sthemmin@microsoft.com>, "tglx@linutronix.de" <tglx@linutronix.de>, "x86@kernel.org" <x86@kernel.org>, Michael Kelley <mikelley@microsoft.com>, Sasha Levin <Alexander.Levin@microsoft.com>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Dexuan Cui <decui@microsoft.com>
-Message-ID: <20190905224712.2uVrdtoQx2-paSqE-v1l10cSlI3fnUDF_XkkNBZX2yc@z>
+To: Al Viro <viro@zeniv.linux.org.uk>
+Cc: Jeff Layton <jlayton@kernel.org>, "J. Bruce Fields" <bfields@fieldses.org>, Arnd Bergmann <arnd@arndb.de>, David Howells <dhowells@redhat.com>, Shuah Khan <shuah@kernel.org>, Shuah Khan <skhan@linuxfoundation.org>, Ingo Molnar <mingo@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Christian Brauner <christian@brauner.io>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Eric Biederman <ebiederm@xmission.com>, Andy Lutomirski <luto@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Alexei Starovoitov <ast@kernel.org>, Kees Cook <keescook@chromium.org>, Jann Horn <jannh@google.com>, Tycho Andersen <tycho@tycho.ws>, David Drysdale <drysdale@google.com>, Chanho Min <chanho.min@lge.com>, Oleg Nesterov <oleg@redhat.com>, Alexander Shishkin <alexander.shishkin@linux.intel.com>, Jiri Olsa <jolsa@redhat.com>, Namhyung Kim <namhyung@kernel.org>, Aleksa Sarai <asarai@suse.de>, Linus Torvalds <torvalds@linux-foundation.org>, containers@lists.linux-foundation.org, linux-alpha@vger.kernel.org, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-fsdevel@vger.kernel.org, linux-ia64@vger.kernel.org, linux-kernel@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, linux-xtensa@linux-xtensa.org, sparclinux@vger.kernel.org
+Message-ID: <20190905230003.syclx3xpqFK7M7I0kzOevq4eNPwge6PNeA_yRT8rY78@z>
 
-This is needed for hibernation, e.g. when we resume the old kernel, we need
-to disable the "current" kernel's hypercall page and then resume the old
-kernel's.
 
-Signed-off-by: Dexuan Cui <decui@microsoft.com>
-Reviewed-by: Michael Kelley <mikelley@microsoft.com>
----
- arch/x86/hyperv/hv_init.c | 33 +++++++++++++++++++++++++++++++++
- 1 file changed, 33 insertions(+)
+--p5c7e3ucgw67wkfa
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+Content-Transfer-Encoding: quoted-printable
 
-diff --git a/arch/x86/hyperv/hv_init.c b/arch/x86/hyperv/hv_init.c
-index 866dfb3..037b0f3 100644
---- a/arch/x86/hyperv/hv_init.c
-+++ b/arch/x86/hyperv/hv_init.c
-@@ -20,6 +20,7 @@
- #include <linux/hyperv.h>
- #include <linux/slab.h>
- #include <linux/cpuhotplug.h>
-+#include <linux/syscore_ops.h>
- #include <clocksource/hyperv_timer.h>
-=20
- void *hv_hypercall_pg;
-@@ -223,6 +224,34 @@ static int __init hv_pci_init(void)
- 	return 1;
- }
-=20
-+static int hv_suspend(void)
-+{
-+	union hv_x64_msr_hypercall_contents hypercall_msr;
-+
-+	/* Reset the hypercall page */
-+	rdmsrl(HV_X64_MSR_HYPERCALL, hypercall_msr.as_uint64);
-+	hypercall_msr.enable =3D 0;
-+	wrmsrl(HV_X64_MSR_HYPERCALL, hypercall_msr.as_uint64);
-+
-+	return 0;
-+}
-+
-+static void hv_resume(void)
-+{
-+	union hv_x64_msr_hypercall_contents hypercall_msr;
-+
-+	/* Re-enable the hypercall page */
-+	rdmsrl(HV_X64_MSR_HYPERCALL, hypercall_msr.as_uint64);
-+	hypercall_msr.enable =3D 1;
-+	hypercall_msr.guest_physical_address =3D vmalloc_to_pfn(hv_hypercall_pg);
-+	wrmsrl(HV_X64_MSR_HYPERCALL, hypercall_msr.as_uint64);
-+}
-+
-+static struct syscore_ops hv_syscore_ops =3D {
-+	.suspend =3D hv_suspend,
-+	.resume =3D hv_resume,
-+};
-+
- /*
-  * This function is to be invoked early in the boot sequence after the
-  * hypervisor has been detected.
-@@ -301,6 +330,8 @@ void __init hyperv_init(void)
-=20
- 	x86_init.pci.arch_init =3D hv_pci_init;
-=20
-+	register_syscore_ops(&hv_syscore_ops);
-+
- 	return;
-=20
- remove_cpuhp_state:
-@@ -320,6 +351,8 @@ void hyperv_cleanup(void)
- {
- 	union hv_x64_msr_hypercall_contents hypercall_msr;
-=20
-+	unregister_syscore_ops(&hv_syscore_ops);
-+
- 	/* Reset our OS id */
- 	wrmsrl(HV_X64_MSR_GUEST_OS_ID, 0);
-=20
+On 2019-09-05, Al Viro <viro@zeniv.linux.org.uk> wrote:
+> On Thu, Sep 05, 2019 at 06:19:22AM +1000, Aleksa Sarai wrote:
+> > +/*
+> > + * "memset(p, 0, size)" but for user space buffers. Caller must have a=
+lready
+> > + * checked access_ok(p, size).
+> > + */
+> > +static int __memzero_user(void __user *p, size_t s)
+> > +{
+> > +	const char zeros[BUFFER_SIZE] =3D {};
+> > +	while (s > 0) {
+> > +		size_t n =3D min(s, sizeof(zeros));
+> > +
+> > +		if (__copy_to_user(p, zeros, n))
+> > +			return -EFAULT;
+> > +
+> > +		p +=3D n;
+> > +		s -=3D n;
+> > +	}
+> > +	return 0;
+> > +}
+>=20
+> That's called clear_user().
+
+Already switched, I didn't know about clear_user() -- I assumed it
+would've been called bzero_user() or memzero_user() and didn't find it
+when looking.
+
+> > +int copy_struct_to_user(void __user *dst, size_t usize,
+> > +			const void *src, size_t ksize)
+> > +{
+> > +	size_t size =3D min(ksize, usize);
+> > +	size_t rest =3D abs(ksize - usize);
+> > +
+> > +	if (unlikely(usize > PAGE_SIZE))
+> > +		return -EFAULT;
+>=20
+> Why?
+>=20
+> > +	} else if (usize > ksize) {
+> > +		if (__memzero_user(dst + size, rest))
+> > +			return -EFAULT;
+> > +	}
+> > +	/* Copy the interoperable parts of the struct. */
+> > +	if (__copy_to_user(dst, src, size))
+> > +		return -EFAULT;
+>=20
+> Why not simply clear_user() and copy_to_user()?
+
+I'm not sure I understand what you mean -- are you asking why we need to
+do memchr_inv(src + size, 0, rest) earlier?
+
+>=20
+> > +int copy_struct_from_user(void *dst, size_t ksize,
+> > +			  const void __user *src, size_t usize)
+> > +{
+> > +	size_t size =3D min(ksize, usize);
+> > +	size_t rest =3D abs(ksize - usize);
+>=20
+> Cute, but... you would be just as well without that 'rest' thing.
+
+I would argue it's harder to mess up using "rest" compared to getting
+"ksize - usize" and "usize - ksize" mixed up (and it's a bit more
+readable).
+
+> > +
+> > +	if (unlikely(usize > PAGE_SIZE))
+> > +		return -EFAULT;
+>=20
+> Again, why?
+
+As discussed in a sister thread, I will leave this in the callers
+(though I would argue callers should always do some kind of sanity check
+like this).
+
+>=20
+> > +	if (unlikely(!access_ok(src, usize)))
+> > +		return -EFAULT;
+>=20
+> Why not simply copy_from_user() here?
+>=20
+> > +	/* Deal with trailing bytes. */
+> > +	if (usize < ksize)
+> > +		memset(dst + size, 0, rest);
+> > +	else if (usize > ksize) {
+> > +		const void __user *addr =3D src + size;
+> > +		char buffer[BUFFER_SIZE] =3D {};
+> > +
+> > +		while (rest > 0) {
+> > +			size_t bufsize =3D min(rest, sizeof(buffer));
+> > +
+> > +			if (__copy_from_user(buffer, addr, bufsize))
+> > +				return -EFAULT;
+> > +			if (memchr_inv(buffer, 0, bufsize))
+> > +				return -E2BIG;
+>=20
+> Frankly, that looks like a candidate for is_all_zeroes_user().
+> With the loop like above serving as a dumb default.  And on
+> badly alighed address it _will_ be dumb.  Probably too much
+> so - something like
+> 	if ((unsigned long)addr & 1) {
+> 		u8 v;
+> 		if (get_user(v, (__u8 __user *)addr))
+> 			return -EFAULT;
+> 		if (v)
+> 			return -E2BIG;
+> 		addr++;
+> 	}
+> 	if ((unsigned long)addr & 2) {
+> 		u16 v;
+> 		if (get_user(v, (__u16 __user *)addr))
+> 			return -EFAULT;
+> 		if (v)
+> 			return -E2BIG;
+> 		addr +=3D2;
+> 	}
+> 	if ((unsigned long)addr & 4) {
+> 		u32 v;
+> 		if (get_user(v, (__u32 __user *)addr))
+> 			return -EFAULT;
+> 		if (v)
+> 			return -E2BIG;
+> 	}
+> 	<read the rest like you currently do>
+> would be saner, and things like x86 could trivially add an
+> asm variant - it's not hard.  Incidentally, memchr_inv() is
+> an overkill in this case...
+
+Why is memchr_inv() overkill?
+
+But yes, breaking this out to an asm-generic is_all_zeroes_user()
+wouldn't hurt -- and I'll put a cleaned-up version of the alignment
+handling there too. Should I drop it in asm-generic/uaccess.h, or
+somewhere else?
+
 --=20
-1.8.3.1
+Aleksa Sarai
+Senior Software Engineer (Containers)
+SUSE Linux GmbH
+<https://www.cyphar.com/>
+
+--p5c7e3ucgw67wkfa
+Content-Type: application/pgp-signature; name="signature.asc"
+
+-----BEGIN PGP SIGNATURE-----
+
+iHUEABYIAB0WIQSxZm6dtfE8gxLLfYqdlLljIbnQEgUCXXGTcAAKCRCdlLljIbnQ
+ErrcAP4jP69XXagvV6A6fZ62FZE+PxzGL1xMstNZGHLRdqnO0wD9FZDD6+QiCq2T
+ReQjcKXuuyo3tBJtN7kYSwVg0ZE4dw8=
+=qRhr
+-----END PGP SIGNATURE-----
+
+--p5c7e3ucgw67wkfa--
