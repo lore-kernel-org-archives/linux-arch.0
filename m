@@ -1,72 +1,196 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mout.kundenserver.de ([212.227.126.187]:44019 "EHLO
+Received: from mout.kundenserver.de ([212.227.126.187]:33439 "EHLO
         mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1731609AbfIEPXo (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 5 Sep 2019 11:23:44 -0400
+        with ESMTP id S2388090AbfIEPYF (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 5 Sep 2019 11:24:05 -0400
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: [PATCH 1/2] ipc: fix semtimedop for generic 32-bit architectures
-Date: Thu,  5 Sep 2019 17:21:24 +0200
-Message-ID: <20190905152155.1392871-1-arnd@arndb.de>
+Subject: [PATCH 2/2] ipc: fix sparc64 ipc() wrapper
+Date: Thu,  5 Sep 2019 17:21:25 +0200
+Message-ID: <20190905152155.1392871-2-arnd@arndb.de>
+In-Reply-To: <20190905152155.1392871-1-arnd@arndb.de>
+References: <20190905152155.1392871-1-arnd@arndb.de>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>
-Cc: linux-arch@vger.kernel.org, y2038@lists.linaro.org, Manfred Spraul <manfred@colorfullife.com>, Davidlohr Bueso <dave@stgolabs.net>, Dominik Brodowski <linux@dominikbrodowski.net>, "Eric W . Biederman" <ebiederm@xmission.com>, Arnd Bergmann <arnd@arndb.de>, Vincent Chen <deanbo422@gmail.com>, stable@vger.kernel.org, Greentime Hu <green.hu@gmail.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Guan Xuetao <gxt@pku.edu.cn>, Stafford Horne <shorne@gmail.com>, Jonas Bonn <jonas@southpole.se>, Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>, Ley Foon Tan <lftan@altera.com>, Richard Kuo <rkuo@codeaurora.org>, Mark Salter <msalter@redhat.com>, Aurelien Jacquiot <jacquiot.aurelien@gmail.com>, Guo Ren <guoren@kernel.org>, Christian Brauner <christian@brauner.io>
-Message-ID: <20190905152124.DfG1V2oEcM4pVDY1Ppf3xFnglUW86_nd6mlF8u1hiKc@z>
+To: linux-kernel@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, "David S. Miller" <davem@davemloft.net>, Arnd Bergmann <arnd@arndb.de>, "Eric W. Biederman" <ebiederm@xmission.com>, Deepa Dinamani <deepa.kernel@gmail.com>, Christian Brauner <christian@brauner.io>, Manfred Spraul <manfred@colorfullife.com>, Davidlohr Bueso <dave@stgolabs.net>
+Cc: linux-arch@vger.kernel.org, y2038@lists.linaro.org, Dominik Brodowski <linux@dominikbrodowski.net>, Matt Turner <mattst88@gmail.com>, stable@vger.kernel.org, sparclinux@vger.kernel.org, linux-api@vger.kernel.org
+Message-ID: <20190905152125.G5yPdJFiWVF63r0w5MvW0NOV0igEPPw5dRYTcj6Yfb4@z>
 
-As Vincent noticed, the y2038 conversion of semtimedop in linux-5.1
-broke when commit 00bf25d693e7 ("y2038: use time32 syscall names on
-32-bit") changed all system calls on all architectures that take
-a 32-bit time_t to point to the _time32 implementation, but left out
-semtimedop in the asm-generic header.
+Matt bisected a sparc64 specific issue with semctl, shmctl and msgctl
+to a commit from my y2038 series in linux-5.1, as I missed the custom
+sys_ipc() wrapper that sparc64 uses in place of the generic version that
+I patched.
 
-This affects all 32-bit architectures using asm-generic/unistd.h:
-h8300, unicore32, openrisc, nios2, hexagon, c6x, arc, nds32 and csky.
+The problem is that the sys_{sem,shm,msg}ctl() functions in the kernel
+now do not allow being called with the IPC_64 flag any more, resulting
+in a -EINVAL error when they don't recognize the command.
 
-The notable exception is riscv32, which has dropped support for the
-time32 system calls entirely.
+Instead, the correct way to do this now is to call the internal
+ksys_old_{sem,shm,msg}ctl() functions to select the API version.
 
-Reported-by: Vincent Chen <deanbo422@gmail.com>
+As we generally move towards these functions anyway, change all of
+sparc_ipc() to consistently use those in place of the sys_*() versions,
+and move the required ksys_*() declarations into linux/syscalls.h
+
+Reported-by: Matt Turner <mattst88@gmail.com>
+Fixes: 275f22148e87 ("ipc: rename old-style shmctl/semctl/msgctl syscalls")
 Cc: stable@vger.kernel.org
-Cc: Vincent Chen <deanbo422@gmail.com>
-Cc: Greentime Hu <green.hu@gmail.com>
-Cc: Yoshinori Sato <ysato@users.sourceforge.jp>
-Cc: Guan Xuetao <gxt@pku.edu.cn>
-Cc: Stafford Horne <shorne@gmail.com>
-Cc: Jonas Bonn <jonas@southpole.se>
-Cc: Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>
-Cc: Ley Foon Tan <lftan@altera.com>
-Cc: Richard Kuo <rkuo@codeaurora.org>
-Cc: Mark Salter <msalter@redhat.com>
-Cc: Aurelien Jacquiot <jacquiot.aurelien@gmail.com>
-Cc: Guo Ren <guoren@kernel.org>
-Fixes: 00bf25d693e7 ("y2038: use time32 syscall names on 32-bit")
 Signed-off-by: Arnd Bergmann <arnd@arndb.de>
 ---
-Hi Vincent,
+Hi Matt,
 
-Sorry for the delay since your report. Does this address your
-problem?
-
-Anyone else, please note that this patch is required since
-5.1 to make sysvipc work on the listed architectures.
+Can you check that this solves your problem?
 ---
- include/uapi/asm-generic/unistd.h | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+ arch/sparc/kernel/sys_sparc_64.c | 30 +++++++++++++++---------------
+ include/linux/syscalls.h         | 19 +++++++++++++++++++
+ ipc/util.h                       | 25 ++-----------------------
+ 3 files changed, 36 insertions(+), 38 deletions(-)
 
-diff --git a/include/uapi/asm-generic/unistd.h b/include/uapi/asm-generic/unistd.h
-index 1be0e798e362..1fc8faa6e973 100644
---- a/include/uapi/asm-generic/unistd.h
-+++ b/include/uapi/asm-generic/unistd.h
-@@ -569,7 +569,7 @@ __SYSCALL(__NR_semget, sys_semget)
- __SC_COMP(__NR_semctl, sys_semctl, compat_sys_semctl)
- #if defined(__ARCH_WANT_TIME32_SYSCALLS) || __BITS_PER_LONG != 32
- #define __NR_semtimedop 192
--__SC_COMP(__NR_semtimedop, sys_semtimedop, sys_semtimedop_time32)
-+__SC_3264(__NR_semtimedop, sys_semtimedop_time32, sys_semtimedop)
+diff --git a/arch/sparc/kernel/sys_sparc_64.c b/arch/sparc/kernel/sys_sparc_64.c
+index ccc88926bc00..5ad0494df367 100644
+--- a/arch/sparc/kernel/sys_sparc_64.c
++++ b/arch/sparc/kernel/sys_sparc_64.c
+@@ -340,21 +340,21 @@ SYSCALL_DEFINE6(sparc_ipc, unsigned int, call, int, first, unsigned long, second
+ 	if (call <= SEMTIMEDOP) {
+ 		switch (call) {
+ 		case SEMOP:
+-			err = sys_semtimedop(first, ptr,
+-					     (unsigned int)second, NULL);
++			err = ksys_semtimedop(first, ptr,
++					      (unsigned int)second, NULL);
+ 			goto out;
+ 		case SEMTIMEDOP:
+-			err = sys_semtimedop(first, ptr, (unsigned int)second,
++			err = ksys_semtimedop(first, ptr, (unsigned int)second,
+ 				(const struct __kernel_timespec __user *)
+-					     (unsigned long) fifth);
++					      (unsigned long) fifth);
+ 			goto out;
+ 		case SEMGET:
+-			err = sys_semget(first, (int)second, (int)third);
++			err = ksys_semget(first, (int)second, (int)third);
+ 			goto out;
+ 		case SEMCTL: {
+-			err = sys_semctl(first, second,
+-					 (int)third | IPC_64,
+-					 (unsigned long) ptr);
++			err = ksys_old_semctl(first, second,
++					      (int)third | IPC_64,
++					      (unsigned long) ptr);
+ 			goto out;
+ 		}
+ 		default:
+@@ -365,18 +365,18 @@ SYSCALL_DEFINE6(sparc_ipc, unsigned int, call, int, first, unsigned long, second
+ 	if (call <= MSGCTL) {
+ 		switch (call) {
+ 		case MSGSND:
+-			err = sys_msgsnd(first, ptr, (size_t)second,
++			err = ksys_msgsnd(first, ptr, (size_t)second,
+ 					 (int)third);
+ 			goto out;
+ 		case MSGRCV:
+-			err = sys_msgrcv(first, ptr, (size_t)second, fifth,
++			err = ksys_msgrcv(first, ptr, (size_t)second, fifth,
+ 					 (int)third);
+ 			goto out;
+ 		case MSGGET:
+-			err = sys_msgget((key_t)first, (int)second);
++			err = ksys_msgget((key_t)first, (int)second);
+ 			goto out;
+ 		case MSGCTL:
+-			err = sys_msgctl(first, (int)second | IPC_64, ptr);
++			err = ksys_old_msgctl(first, (int)second | IPC_64, ptr);
+ 			goto out;
+ 		default:
+ 			err = -ENOSYS;
+@@ -396,13 +396,13 @@ SYSCALL_DEFINE6(sparc_ipc, unsigned int, call, int, first, unsigned long, second
+ 			goto out;
+ 		}
+ 		case SHMDT:
+-			err = sys_shmdt(ptr);
++			err = ksys_shmdt(ptr);
+ 			goto out;
+ 		case SHMGET:
+-			err = sys_shmget(first, (size_t)second, (int)third);
++			err = ksys_shmget(first, (size_t)second, (int)third);
+ 			goto out;
+ 		case SHMCTL:
+-			err = sys_shmctl(first, (int)second | IPC_64, ptr);
++			err = ksys_old_shmctl(first, (int)second | IPC_64, ptr);
+ 			goto out;
+ 		default:
+ 			err = -ENOSYS;
+diff --git a/include/linux/syscalls.h b/include/linux/syscalls.h
+index 88145da7d140..f7c561c4dcdd 100644
+--- a/include/linux/syscalls.h
++++ b/include/linux/syscalls.h
+@@ -1402,4 +1402,23 @@ static inline unsigned int ksys_personality(unsigned int personality)
+ 	return old;
+ }
+ 
++/* for __ARCH_WANT_SYS_IPC */
++long ksys_semtimedop(int semid, struct sembuf __user *tsops,
++		     unsigned int nsops,
++		     const struct __kernel_timespec __user *timeout);
++long ksys_semget(key_t key, int nsems, int semflg);
++long ksys_old_semctl(int semid, int semnum, int cmd, unsigned long arg);
++long ksys_msgget(key_t key, int msgflg);
++long ksys_old_msgctl(int msqid, int cmd, struct msqid_ds __user *buf);
++long ksys_msgrcv(int msqid, struct msgbuf __user *msgp, size_t msgsz,
++		 long msgtyp, int msgflg);
++long ksys_msgsnd(int msqid, struct msgbuf __user *msgp, size_t msgsz,
++		 int msgflg);
++long ksys_shmget(key_t key, size_t size, int shmflg);
++long ksys_shmdt(char __user *shmaddr);
++long ksys_old_shmctl(int shmid, int cmd, struct shmid_ds __user *buf);
++long compat_ksys_semtimedop(int semid, struct sembuf __user *tsems,
++			    unsigned int nsops,
++			    const struct old_timespec32 __user *timeout);
++
  #endif
- #define __NR_semop 193
- __SYSCALL(__NR_semop, sys_semop)
+diff --git a/ipc/util.h b/ipc/util.h
+index 0fcf8e719b76..5766c61aed0e 100644
+--- a/ipc/util.h
++++ b/ipc/util.h
+@@ -276,29 +276,7 @@ static inline int compat_ipc_parse_version(int *cmd)
+ 	*cmd &= ~IPC_64;
+ 	return version;
+ }
+-#endif
+ 
+-/* for __ARCH_WANT_SYS_IPC */
+-long ksys_semtimedop(int semid, struct sembuf __user *tsops,
+-		     unsigned int nsops,
+-		     const struct __kernel_timespec __user *timeout);
+-long ksys_semget(key_t key, int nsems, int semflg);
+-long ksys_old_semctl(int semid, int semnum, int cmd, unsigned long arg);
+-long ksys_msgget(key_t key, int msgflg);
+-long ksys_old_msgctl(int msqid, int cmd, struct msqid_ds __user *buf);
+-long ksys_msgrcv(int msqid, struct msgbuf __user *msgp, size_t msgsz,
+-		 long msgtyp, int msgflg);
+-long ksys_msgsnd(int msqid, struct msgbuf __user *msgp, size_t msgsz,
+-		 int msgflg);
+-long ksys_shmget(key_t key, size_t size, int shmflg);
+-long ksys_shmdt(char __user *shmaddr);
+-long ksys_old_shmctl(int shmid, int cmd, struct shmid_ds __user *buf);
+-
+-/* for CONFIG_ARCH_WANT_OLD_COMPAT_IPC */
+-long compat_ksys_semtimedop(int semid, struct sembuf __user *tsems,
+-			    unsigned int nsops,
+-			    const struct old_timespec32 __user *timeout);
+-#ifdef CONFIG_COMPAT
+ long compat_ksys_old_semctl(int semid, int semnum, int cmd, int arg);
+ long compat_ksys_old_msgctl(int msqid, int cmd, void __user *uptr);
+ long compat_ksys_msgrcv(int msqid, compat_uptr_t msgp, compat_ssize_t msgsz,
+@@ -306,6 +284,7 @@ long compat_ksys_msgrcv(int msqid, compat_uptr_t msgp, compat_ssize_t msgsz,
+ long compat_ksys_msgsnd(int msqid, compat_uptr_t msgp,
+ 		       compat_ssize_t msgsz, int msgflg);
+ long compat_ksys_old_shmctl(int shmid, int cmd, void __user *uptr);
+-#endif /* CONFIG_COMPAT */
++
++#endif
+ 
+ #endif
 -- 
 2.20.0
