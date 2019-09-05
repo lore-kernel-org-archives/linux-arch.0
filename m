@@ -1,195 +1,86 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.133]:60790 "EHLO
-        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726032AbfIEHch (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 5 Sep 2019 03:32:37 -0400
-Date: Thu, 5 Sep 2019 09:32:05 +0200
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH v12 01/12] lib: introduce copy_struct_{to,from}_user
- helpers
-Message-ID: <20190905073205.GY2332@hirez.programming.kicks-ass.net>
-References: <20190904201933.10736-1-cyphar@cyphar.com>
- <20190904201933.10736-2-cyphar@cyphar.com>
+Received: from foss.arm.com ([217.140.110.172]:38734 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726089AbfIEH5n (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 5 Sep 2019 03:57:43 -0400
+Date: Thu, 5 Sep 2019 08:57:38 +0100
+From: Dave Martin <Dave.Martin@arm.com>
+Subject: Re: [RFC PATCH v2 2/2] ELF: Add ELF program property parsing support
+Message-ID: <20190905075735.GC27757@arm.com>
+References: <1566581020-9953-1-git-send-email-Dave.Martin@arm.com>
+ <1566581020-9953-3-git-send-email-Dave.Martin@arm.com>
+ <201908292224.007EB4D5@keescook>
+ <20190830083415.GI27757@arm.com>
+ <201909040942.7BC809C5E@keescook>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20190904201933.10736-2-cyphar@cyphar.com>
+In-Reply-To: <201909040942.7BC809C5E@keescook>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Aleksa Sarai <cyphar@cyphar.com>
-Cc: Al Viro <viro@zeniv.linux.org.uk>, Jeff Layton <jlayton@kernel.org>, "J. Bruce Fields" <bfields@fieldses.org>, Arnd Bergmann <arnd@arndb.de>, David Howells <dhowells@redhat.com>, Shuah Khan <shuah@kernel.org>, Shuah Khan <skhan@linuxfoundation.org>, Ingo Molnar <mingo@redhat.com>, Christian Brauner <christian@brauner.io>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Eric Biederman <ebiederm@xmission.com>, Andy Lutomirski <luto@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Alexei Starovoitov <ast@kernel.org>, Kees Cook <keescook@chromium.org>, Jann Horn <jannh@google.com>, Tycho Andersen <tycho@tycho.ws>, David Drysdale <drysdale@google.com>, Chanho Min <chanho.min@lge.com>, Oleg Nesterov <oleg@redhat.com>, Alexander Shishkin <alexander.shishkin@linux.intel.com>, Jiri Olsa <jolsa@redhat.com>, Namhyung Kim <namhyung@kernel.org>, Aleksa Sarai <asarai@suse.de>, Linus Torvalds <torvalds@linux-foundation.org>, containers@lists.linux-foundation.org, linux-alpha@vger.kernel.org, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-fsdevel@vger.kernel.org, linux-ia64@vger.kernel.org, linux-kernel@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, linux-xtensa@linux-xtensa.org, sparclinux@vger.kernel.org
-Message-ID: <20190905073205.8t3ATsP57O618pZoB-J2A6rMLzmuNLxx8HgGsf5UGVM@z>
+To: Kees Cook <keescook@chromium.org>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Jann Horn <jannh@google.com>, "H.J. Lu" <hjl.tools@gmail.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, Yu-cheng Yu <yu-cheng.yu@intel.com>, Peter Zijlstra <peterz@infradead.org>
+Message-ID: <20190905075738.V6KVGrxtiJQyw9Izmh1x9urZcqKLrPrJ70XBRLH0Nho@z>
 
-On Thu, Sep 05, 2019 at 06:19:22AM +1000, Aleksa Sarai wrote:
-> +/**
-> + * copy_struct_to_user: copy a struct to user space
-> + * @dst:   Destination address, in user space.
-> + * @usize: Size of @dst struct.
-> + * @src:   Source address, in kernel space.
-> + * @ksize: Size of @src struct.
-> + *
-> + * Copies a struct from kernel space to user space, in a way that guarantees
-> + * backwards-compatibility for struct syscall arguments (as long as future
-> + * struct extensions are made such that all new fields are *appended* to the
-> + * old struct, and zeroed-out new fields have the same meaning as the old
-> + * struct).
-> + *
-> + * @ksize is just sizeof(*dst), and @usize should've been passed by user space.
-> + * The recommended usage is something like the following:
-> + *
-> + *   SYSCALL_DEFINE2(foobar, struct foo __user *, uarg, size_t, usize)
-> + *   {
-> + *      int err;
-> + *      struct foo karg = {};
-> + *
-> + *      // do something with karg
-> + *
-> + *      err = copy_struct_to_user(uarg, usize, &karg, sizeof(karg));
-> + *      if (err)
-> + *        return err;
-> + *
-> + *      // ...
-> + *   }
-> + *
-> + * There are three cases to consider:
-> + *  * If @usize == @ksize, then it's copied verbatim.
-> + *  * If @usize < @ksize, then kernel space is "returning" a newer struct to an
-> + *    older user space. In order to avoid user space getting incomplete
-> + *    information (new fields might be important), all trailing bytes in @src
-> + *    (@ksize - @usize) must be zerored
+On Wed, Sep 04, 2019 at 05:50:06PM +0100, Kees Cook wrote:
+> On Fri, Aug 30, 2019 at 09:34:18AM +0100, Dave Martin wrote:
+> > Do you have any thoughts on Yu-Cheng Yu's comments?  It would be nice to
+> > early-terminate the scan if we can, but my feeling so far was that the
+> > scan is cheap, the number of properties is unlikely to be more than a
+> > smallish integer, and the code separation benefits of just calling the
+> > arch code for every property probably likely outweigh the costs of
+> > having to iterate over every property.  We could always optimise it
+> > later if necessary.
+> 
+> I feel like there are already a lot of ways to burn CPU time with
+> mangled ELF files, so this potential inefficiently doesn't seem bad to
+> me. If we want to add limits here, perhaps cap the property scan depth
+> (right now, IIRC, the count is u32, which is big...)
 
-s/zerored/zero/, right?
+I was thinking more of valid ELF files where the number of properties is
+large.
 
->                                          , otherwise -EFBIG is returned.
+I feel that the GNU properties system will have become unfit for purpose
+if the number of defined properties gets large enough for this to be an
+issue though.
 
-'Funny' that, copy_struct_from_user() below seems to use E2BIG.
+I'll keep this code as-is for now.
 
-> + *  * If @usize > @ksize, then the kernel is "returning" an older struct to a
-> + *    newer user space. The trailing bytes in @dst (@usize - @ksize) will be
-> + *    zero-filled.
-> + *
-> + * Returns (in all cases, some data may have been copied):
-> + *  * -EFBIG:  (@usize < @ksize) and there are non-zero trailing bytes in @src.
-> + *  * -EFAULT: access to user space failed.
-> + */
-> +int copy_struct_to_user(void __user *dst, size_t usize,
-> +			const void *src, size_t ksize)
-> +{
-> +	size_t size = min(ksize, usize);
-> +	size_t rest = abs(ksize - usize);
-> +
-> +	if (unlikely(usize > PAGE_SIZE))
-> +		return -EFAULT;
+> > I need to double-check that there's no way we can get stuck in an
+> > infinite loop with the current code, though I've not seen it in my
+> > testing.  I should throw some malformed notes at it though.
+> 
+> I think the cursor only performs forward movement, yes? I didn't see a
+> loop, but maybe there's something with the program headers that I
+> missed.
 
-Not documented above. Implementation consistent with *from*, but see
-below.
+That's the principle: always step forward, always by a non-zero amount.
+So forward progress should be guaranteed...
 
-> +	if (unlikely(!access_ok(dst, usize)))
-> +		return -EFAULT;
-> +
-> +	/* Deal with trailing bytes. */
-> +	if (usize < ksize) {
-> +		if (memchr_inv(src + size, 0, rest))
-> +			return -EFBIG;
-> +	} else if (usize > ksize) {
-> +		if (__memzero_user(dst + size, rest))
-> +			return -EFAULT;
-> +	}
-> +	/* Copy the interoperable parts of the struct. */
-> +	if (__copy_to_user(dst, src, size))
-> +		return -EFAULT;
-> +	return 0;
-> +}
-> +EXPORT_SYMBOL(copy_struct_to_user);
-> +
-> +/**
-> + * copy_struct_from_user: copy a struct from user space
-> + * @dst:   Destination address, in kernel space. This buffer must be @ksize
-> + *         bytes long.
-> + * @ksize: Size of @dst struct.
-> + * @src:   Source address, in user space.
-> + * @usize: (Alleged) size of @src struct.
-> + *
-> + * Copies a struct from user space to kernel space, in a way that guarantees
-> + * backwards-compatibility for struct syscall arguments (as long as future
-> + * struct extensions are made such that all new fields are *appended* to the
-> + * old struct, and zeroed-out new fields have the same meaning as the old
-> + * struct).
-> + *
-> + * @ksize is just sizeof(*dst), and @usize should've been passed by user space.
-> + * The recommended usage is something like the following:
-> + *
-> + *   SYSCALL_DEFINE2(foobar, const struct foo __user *, uarg, size_t, usize)
-> + *   {
-> + *      int err;
-> + *      struct foo karg = {};
-> + *
-> + *      err = copy_struct_from_user(&karg, sizeof(karg), uarg, size);
-> + *      if (err)
-> + *        return err;
-> + *
-> + *      // ...
-> + *   }
-> + *
-> + * There are three cases to consider:
-> + *  * If @usize == @ksize, then it's copied verbatim.
-> + *  * If @usize < @ksize, then the user space has passed an old struct to a
-> + *    newer kernel. The rest of the trailing bytes in @dst (@ksize - @usize)
-> + *    are to be zero-filled.
-> + *  * If @usize > @ksize, then the user space has passed a new struct to an
-> + *    older kernel. The trailing bytes unknown to the kernel (@usize - @ksize)
-> + *    are checked to ensure they are zeroed, otherwise -E2BIG is returned.
-> + *
-> + * Returns (in all cases, some data may have been copied):
-> + *  * -E2BIG:  (@usize > @ksize) and there are non-zero trailing bytes in @src.
-> + *  * -E2BIG:  @usize is "too big" (at time of writing, >PAGE_SIZE).
-> + *  * -EFAULT: access to user space failed.
-> + */
-> +int copy_struct_from_user(void *dst, size_t ksize,
-> +			  const void __user *src, size_t usize)
-> +{
-> +	size_t size = min(ksize, usize);
-> +	size_t rest = abs(ksize - usize);
-> +
-> +	if (unlikely(usize > PAGE_SIZE))
-> +		return -EFAULT;
+> > Do you have any objection to merging patch 1 with this one?  For
+> > upstreaming purposes, it seems overkill for that to be a separate patch.
+> 
+> I don't _object_ to it, but I did like having it separate for review.
 
-Documented above as returning -E2BIG.
+I'm equally happy to leave them separate; I just wasn't sure how much
+they made sense as separate patches.  I'll have a think when I respin.
 
-> +	if (unlikely(!access_ok(src, usize)))
-> +		return -EFAULT;
-> +
-> +	/* Deal with trailing bytes. */
-> +	if (usize < ksize)
-> +		memset(dst + size, 0, rest);
-> +	else if (usize > ksize) {
-> +		const void __user *addr = src + size;
-> +		char buffer[BUFFER_SIZE] = {};
+> > Do you have any opinion on the WARN_ON()s?  They should be un-hittable,
+> > so they're documenting assumptions rather than protecting against
+> > anything real.  Maybe I should replace them with comments.
+> 
+> I think they're fine as self-documentation. My rule of thumb has been:
+> 
+> - don't use BUG*() unless you can defend it to Linus who wants 0 BUG()s.
+> - don't use WARN*() if userspace can reach it (and if you're not sure,
+>   use the WARN*ONCE() version)
+> - use pr_*_ratelimited() if unprivileged userspace can reach it.
 
-Isn't that too big for on-stack?
+OK, I'll probably keep them for now, then.
 
-> +
-> +		while (rest > 0) {
-> +			size_t bufsize = min(rest, sizeof(buffer));
-> +
-> +			if (__copy_from_user(buffer, addr, bufsize))
-> +				return -EFAULT;
-> +			if (memchr_inv(buffer, 0, bufsize))
-> +				return -E2BIG;
-> +
-> +			addr += bufsize;
-> +			rest -= bufsize;
-> +		}
+This isn't a super-hot path, and with multiple kernel_read() calls in
+the mix already it's hard to imagine the WARN_ON() calls being a
+significant part of the overall cost.
 
-The perf implementation uses get_user(); but if that is too slow, surely
-we can do something with uaccess_try() here?
-
-> +	}
-> +	/* Copy the interoperable parts of the struct. */
-> +	if (__copy_from_user(dst, src, size))
-> +		return -EFAULT;
-> +	return 0;
-> +}
-> +EXPORT_SYMBOL(copy_struct_from_user);
-
-And personally I'm not a big fan of EXPORT_SYMBOL().
+Cheers
+---Dave
