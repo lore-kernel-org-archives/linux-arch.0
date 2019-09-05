@@ -1,90 +1,72 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.mailbox.org ([80.241.60.215]:61604 "EHLO mx2.mailbox.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1733299AbfIERBk (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 5 Sep 2019 13:01:40 -0400
-Date: Fri, 6 Sep 2019 03:01:06 +1000
-From: Aleksa Sarai <cyphar@cyphar.com>
-Subject: Re: [PATCH v12 01/12] lib: introduce copy_struct_{to,from}_user
- helpers
-Message-ID: <20190905170106.7j4nmgwnvkcwn6md@yavin.dot.cyphar.com>
-References: <20190904201933.10736-1-cyphar@cyphar.com>
- <20190904201933.10736-2-cyphar@cyphar.com>
- <20190905073205.GY2332@hirez.programming.kicks-ass.net>
- <20190905092622.tlb6nn3uisssdfbu@yavin.dot.cyphar.com>
- <20190905094305.GJ2349@hirez.programming.kicks-ass.net>
+Received: from mout.kundenserver.de ([212.227.126.187]:44019 "EHLO
+        mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1731609AbfIEPXo (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 5 Sep 2019 11:23:44 -0400
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: [PATCH 1/2] ipc: fix semtimedop for generic 32-bit architectures
+Date: Thu,  5 Sep 2019 17:21:24 +0200
+Message-ID: <20190905152155.1392871-1-arnd@arndb.de>
 MIME-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha256;
-        protocol="application/pgp-signature"; boundary="kmvm5dxbzyhfjvqj"
-Content-Disposition: inline
-In-Reply-To: <20190905094305.GJ2349@hirez.programming.kicks-ass.net>
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Al Viro <viro@zeniv.linux.org.uk>, Jeff Layton <jlayton@kernel.org>, "J. Bruce Fields" <bfields@fieldses.org>, Arnd Bergmann <arnd@arndb.de>, David Howells <dhowells@redhat.com>, Shuah Khan <shuah@kernel.org>, Shuah Khan <skhan@linuxfoundation.org>, Ingo Molnar <mingo@redhat.com>, Christian Brauner <christian@brauner.io>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Eric Biederman <ebiederm@xmission.com>, Andy Lutomirski <luto@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Alexei Starovoitov <ast@kernel.org>, Kees Cook <keescook@chromium.org>, Jann Horn <jannh@google.com>, Tycho Andersen <tycho@tycho.ws>, David Drysdale <drysdale@google.com>, Chanho Min <chanho.min@lge.com>, Oleg Nesterov <oleg@redhat.com>, Alexander Shishkin <alexander.shishkin@linux.intel.com>, Jiri Olsa <jolsa@redhat.com>, Namhyung Kim <namhyung@kernel.org>, Aleksa Sarai <asarai@suse.de>, Linus Torvalds <torvalds@linux-foundation.org>, containers@lists.linux-foundation.org, linux-alpha@vger.kernel.org, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-fsdevel@vger.kernel.org, linux-ia64@vger.kernel.org, linux-kernel@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, linux-xtensa@linux-xtensa.org, sparclinux@vger.kernel.org
-Message-ID: <20190905170106.CNtVjd1r8blSWOWadrEmSpzlq9jCXzX3P4sOgDomf_8@z>
+To: linux-kernel@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>
+Cc: linux-arch@vger.kernel.org, y2038@lists.linaro.org, Manfred Spraul <manfred@colorfullife.com>, Davidlohr Bueso <dave@stgolabs.net>, Dominik Brodowski <linux@dominikbrodowski.net>, "Eric W . Biederman" <ebiederm@xmission.com>, Arnd Bergmann <arnd@arndb.de>, Vincent Chen <deanbo422@gmail.com>, stable@vger.kernel.org, Greentime Hu <green.hu@gmail.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Guan Xuetao <gxt@pku.edu.cn>, Stafford Horne <shorne@gmail.com>, Jonas Bonn <jonas@southpole.se>, Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>, Ley Foon Tan <lftan@altera.com>, Richard Kuo <rkuo@codeaurora.org>, Mark Salter <msalter@redhat.com>, Aurelien Jacquiot <jacquiot.aurelien@gmail.com>, Guo Ren <guoren@kernel.org>, Christian Brauner <christian@brauner.io>
+Message-ID: <20190905152124.DfG1V2oEcM4pVDY1Ppf3xFnglUW86_nd6mlF8u1hiKc@z>
 
+As Vincent noticed, the y2038 conversion of semtimedop in linux-5.1
+broke when commit 00bf25d693e7 ("y2038: use time32 syscall names on
+32-bit") changed all system calls on all architectures that take
+a 32-bit time_t to point to the _time32 implementation, but left out
+semtimedop in the asm-generic header.
 
---kmvm5dxbzyhfjvqj
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
+This affects all 32-bit architectures using asm-generic/unistd.h:
+h8300, unicore32, openrisc, nios2, hexagon, c6x, arc, nds32 and csky.
 
-On 2019-09-05, Peter Zijlstra <peterz@infradead.org> wrote:
-> On Thu, Sep 05, 2019 at 07:26:22PM +1000, Aleksa Sarai wrote:
-> > On 2019-09-05, Peter Zijlstra <peterz@infradead.org> wrote:
-> > > On Thu, Sep 05, 2019 at 06:19:22AM +1000, Aleksa Sarai wrote:
-> > > > +
-> > > > +		while (rest > 0) {
-> > > > +			size_t bufsize =3D min(rest, sizeof(buffer));
-> > > > +
-> > > > +			if (__copy_from_user(buffer, addr, bufsize))
-> > > > +				return -EFAULT;
-> > > > +			if (memchr_inv(buffer, 0, bufsize))
-> > > > +				return -E2BIG;
-> > > > +
-> > > > +			addr +=3D bufsize;
-> > > > +			rest -=3D bufsize;
-> > > > +		}
-> > >=20
-> > > The perf implementation uses get_user(); but if that is too slow, sur=
-ely
-> > > we can do something with uaccess_try() here?
-> >=20
-> > Is there a non-x86-specific way to do that (unless I'm mistaken only x86
-> > has uaccess_try() or the other *_try() wrappers)? The main "performance
-> > improvement" (if you can even call it that) is that we use memchr_inv()
-> > which finds non-matching characters more efficiently than just doing a
-> > loop.
->=20
-> Oh, you're right, that's x86 only :/
+The notable exception is riscv32, which has dropped support for the
+time32 system calls entirely.
 
-Though, I just had an idea -- am I wrong to think that the following
-would work just as well (without the need for an intermediate buffer)?
+Reported-by: Vincent Chen <deanbo422@gmail.com>
+Cc: stable@vger.kernel.org
+Cc: Vincent Chen <deanbo422@gmail.com>
+Cc: Greentime Hu <green.hu@gmail.com>
+Cc: Yoshinori Sato <ysato@users.sourceforge.jp>
+Cc: Guan Xuetao <gxt@pku.edu.cn>
+Cc: Stafford Horne <shorne@gmail.com>
+Cc: Jonas Bonn <jonas@southpole.se>
+Cc: Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>
+Cc: Ley Foon Tan <lftan@altera.com>
+Cc: Richard Kuo <rkuo@codeaurora.org>
+Cc: Mark Salter <msalter@redhat.com>
+Cc: Aurelien Jacquiot <jacquiot.aurelien@gmail.com>
+Cc: Guo Ren <guoren@kernel.org>
+Fixes: 00bf25d693e7 ("y2038: use time32 syscall names on 32-bit")
+Signed-off-by: Arnd Bergmann <arnd@arndb.de>
+---
+Hi Vincent,
 
-   if (memchr_inv((const char __force *) src + size, 0, rest))
-     return -E2BIG;
+Sorry for the delay since your report. Does this address your
+problem?
 
-Or is this type of thing very much frowned upon? What if it was a
-separate memchr_inv_user() instead -- I feel as though there's not a
-strong argument for needing to use a buffer when we're single-passing
-the __user buffer and doing a basic boolean check.
+Anyone else, please note that this patch is required since
+5.1 to make sysvipc work on the listed architectures.
+---
+ include/uapi/asm-generic/unistd.h | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
---=20
-Aleksa Sarai
-Senior Software Engineer (Containers)
-SUSE Linux GmbH
-<https://www.cyphar.com/>
-
---kmvm5dxbzyhfjvqj
-Content-Type: application/pgp-signature; name="signature.asc"
-
------BEGIN PGP SIGNATURE-----
-
-iHUEABYIAB0WIQSxZm6dtfE8gxLLfYqdlLljIbnQEgUCXXE/TgAKCRCdlLljIbnQ
-Eo4lAP4vz7qxi6aZbZTeed0ZbnEtPkuMnCkFo0v18rHfgnM6xgD/bV/SICkzrufH
-DwNHgRAu5z8daivqeybakfQqvQMhpA4=
-=SteT
------END PGP SIGNATURE-----
-
---kmvm5dxbzyhfjvqj--
+diff --git a/include/uapi/asm-generic/unistd.h b/include/uapi/asm-generic/unistd.h
+index 1be0e798e362..1fc8faa6e973 100644
+--- a/include/uapi/asm-generic/unistd.h
++++ b/include/uapi/asm-generic/unistd.h
+@@ -569,7 +569,7 @@ __SYSCALL(__NR_semget, sys_semget)
+ __SC_COMP(__NR_semctl, sys_semctl, compat_sys_semctl)
+ #if defined(__ARCH_WANT_TIME32_SYSCALLS) || __BITS_PER_LONG != 32
+ #define __NR_semtimedop 192
+-__SC_COMP(__NR_semtimedop, sys_semtimedop, sys_semtimedop_time32)
++__SC_3264(__NR_semtimedop, sys_semtimedop_time32, sys_semtimedop)
+ #endif
+ #define __NR_semop 193
+ __SYSCALL(__NR_semop, sys_semop)
+-- 
+2.20.0
