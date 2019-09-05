@@ -1,88 +1,130 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.mailbox.org ([80.241.60.215]:42942 "EHLO mx2.mailbox.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1725975AbfIENkv (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 5 Sep 2019 09:40:51 -0400
-Date: Thu, 5 Sep 2019 23:40:17 +1000
-From: Aleksa Sarai <cyphar@cyphar.com>
+Received: from zeniv.linux.org.uk ([195.92.253.2]:39314 "EHLO
+        ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726097AbfIESIY (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 5 Sep 2019 14:08:24 -0400
+Date: Thu, 5 Sep 2019 19:07:50 +0100
+From: Al Viro <viro@zeniv.linux.org.uk>
 Subject: Re: [PATCH v12 01/12] lib: introduce copy_struct_{to,from}_user
  helpers
-Message-ID: <20190905134017.rstiqa6v6roslzlu@yavin.dot.cyphar.com>
+Message-ID: <20190905180750.GQ1131@ZenIV.linux.org.uk>
 References: <20190904201933.10736-1-cyphar@cyphar.com>
  <20190904201933.10736-2-cyphar@cyphar.com>
- <20190905110544.d6c5t7rx25kvywmi@wittgenstein>
 MIME-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha256;
-        protocol="application/pgp-signature"; boundary="lfmn5rszd42a2efo"
-Content-Disposition: inline
-In-Reply-To: <20190905110544.d6c5t7rx25kvywmi@wittgenstein>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Christian Brauner <christian.brauner@ubuntu.com>
-Cc: Al Viro <viro@zeniv.linux.org.uk>, Jeff Layton <jlayton@kernel.org>, "J. Bruce Fields" <bfields@fieldses.org>, Arnd Bergmann <arnd@arndb.de>, David Howells <dhowells@redhat.com>, Shuah Khan <shuah@kernel.org>, Shuah Khan <skhan@linuxfoundation.org>, Ingo Molnar <mingo@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Christian Brauner <christian@brauner.io>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Eric Biederman <ebiederm@xmission.com>, Andy Lutomirski <luto@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Alexei Starovoitov <ast@kernel.org>, Kees Cook <keescook@chromium.org>, Jann Horn <jannh@google.com>, Tycho Andersen <tycho@tycho.ws>, David Drysdale <drysdale@google.com>, Chanho Min <chanho.min@lge.com>, Oleg Nesterov <oleg@redhat.com>, Alexander Shishkin <alexander.shishkin@linux.intel.com>, Jiri Olsa <jolsa@redhat.com>, Namhyung Kim <namhyung@kernel.org>, Aleksa Sarai <asarai@suse.de>, Linus Torvalds <torvalds@linux-foundation.org>, containers@lists.linux-foundation.org, linux-alpha@vger.kernel.org, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-fsdevel@vger.kernel.org, linux-ia64@vger.kernel.org, linux-kernel@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, linux-xtensa@linux-xtensa.org, sparclinux@vger.kernel.org
-Message-ID: <20190905134017.AqNC1aVy1Sr7kcfNJKAgXZG3wUrBPmEFchIY3XSAT0Q@z>
-
-
---lfmn5rszd42a2efo
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
+In-Reply-To: <20190904201933.10736-2-cyphar@cyphar.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Aleksa Sarai <cyphar@cyphar.com>
+Cc: Jeff Layton <jlayton@kernel.org>, "J. Bruce Fields" <bfields@fieldses.org>, Arnd Bergmann <arnd@arndb.de>, David Howells <dhowells@redhat.com>, Shuah Khan <shuah@kernel.org>, Shuah Khan <skhan@linuxfoundation.org>, Ingo Molnar <mingo@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Christian Brauner <christian@brauner.io>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Eric Biederman <ebiederm@xmission.com>, Andy Lutomirski <luto@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Alexei Starovoitov <ast@kernel.org>, Kees Cook <keescook@chromium.org>, Jann Horn <jannh@google.com>, Tycho Andersen <tycho@tycho.ws>, David Drysdale <drysdale@google.com>, Chanho Min <chanho.min@lge.com>, Oleg Nesterov <oleg@redhat.com>, Alexander Shishkin <alexander.shishkin@linux.intel.com>, Jiri Olsa <jolsa@redhat.com>, Namhyung Kim <namhyung@kernel.org>, Aleksa Sarai <asarai@suse.de>, Linus Torvalds <torvalds@linux-foundation.org>, containers@lists.linux-foundation.org, linux-alpha@vger.kernel.org, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-fsdevel@vger.kernel.org, linux-ia64@vger.kernel.org, linux-kernel@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, linux-xtensa@linux-xtensa.org, sparclinux@vger.kernel.org
+Message-ID: <20190905180750.fLo8wKHW7jO8u2lbwxDCK8LJp8AdiGFAYt32KVHrCzI@z>
 
-On 2019-09-05, Christian Brauner <christian.brauner@ubuntu.com> wrote:
-> On Thu, Sep 05, 2019 at 06:19:22AM +1000, Aleksa Sarai wrote:
-> > A common pattern for syscall extensions is increasing the size of a
-> > struct passed from userspace, such that the zero-value of the new fields
-> > result in the old kernel behaviour (allowing for a mix of userspace and
-> > kernel vintages to operate on one another in most cases). This is done
-> > in both directions -- hence two helpers -- though it's more common to
-> > have to copy user space structs into kernel space.
-> >=20
-> > Previously there was no common lib/ function that implemented
-> > the necessary extension-checking semantics (and different syscalls
-> > implemented them slightly differently or incompletely[1]). A future
-> > patch replaces all of the common uses of this pattern to use the new
-> > copy_struct_{to,from}_user() helpers.
-> >=20
-> > [1]: For instance {sched_setattr,perf_event_open,clone3}(2) all do do
-> >      similar checks to copy_struct_from_user() while rt_sigprocmask(2)
-> >      always rejects differently-sized struct arguments.
-> >=20
-> > Suggested-by: Rasmus Villemoes <linux@rasmusvillemoes.dk>
-> > Signed-off-by: Aleksa Sarai <cyphar@cyphar.com>
+On Thu, Sep 05, 2019 at 06:19:22AM +1000, Aleksa Sarai wrote:
+> +/*
+> + * "memset(p, 0, size)" but for user space buffers. Caller must have already
+> + * checked access_ok(p, size).
+> + */
+> +static int __memzero_user(void __user *p, size_t s)
+> +{
+> +	const char zeros[BUFFER_SIZE] = {};
+> +	while (s > 0) {
+> +		size_t n = min(s, sizeof(zeros));
+> +
+> +		if (__copy_to_user(p, zeros, n))
+> +			return -EFAULT;
+> +
+> +		p += n;
+> +		s -= n;
+> +	}
+> +	return 0;
+> +}
 
-[...]
+That's called clear_user().
 
-> > +	if (unlikely(!access_ok(src, usize)))
-> > +		return -EFAULT;
-> > +
-> > +	/* Deal with trailing bytes. */
-> > +	if (usize < ksize)
-> > +		memset(dst + size, 0, rest);
-[...]
-> That's a change in behavior for clone3() and sched at least, no? Unless
-> - which I guess you might have done - you have moved the "error out when
-> the struct is too small" part before the call to copy_struct_from_user()
-> for them.
+> +int copy_struct_to_user(void __user *dst, size_t usize,
+> +			const void *src, size_t ksize)
+> +{
+> +	size_t size = min(ksize, usize);
+> +	size_t rest = abs(ksize - usize);
+> +
+> +	if (unlikely(usize > PAGE_SIZE))
+> +		return -EFAULT;
 
-Yes, I've put the minimum size check to the callers in all of the
-cases (in the case of clone3() I've #define'd a CLONE_ARGS_SIZE_VER0 to
-match the others -- see patch 2 of the series).
+Why?
 
---=20
-Aleksa Sarai
-Senior Software Engineer (Containers)
-SUSE Linux GmbH
-<https://www.cyphar.com/>
+> +	} else if (usize > ksize) {
+> +		if (__memzero_user(dst + size, rest))
+> +			return -EFAULT;
+> +	}
+> +	/* Copy the interoperable parts of the struct. */
+> +	if (__copy_to_user(dst, src, size))
+> +		return -EFAULT;
 
---lfmn5rszd42a2efo
-Content-Type: application/pgp-signature; name="signature.asc"
+Why not simply clear_user() and copy_to_user()?
 
------BEGIN PGP SIGNATURE-----
+> +int copy_struct_from_user(void *dst, size_t ksize,
+> +			  const void __user *src, size_t usize)
+> +{
+> +	size_t size = min(ksize, usize);
+> +	size_t rest = abs(ksize - usize);
 
-iHUEABYIAB0WIQSxZm6dtfE8gxLLfYqdlLljIbnQEgUCXXEQPQAKCRCdlLljIbnQ
-EmI0AQDWLDq3CfEAPKhr2gyUgsbcgKNMnsXSA4qFj1Jjd61fzQEAqPhisgSoisGO
-mIYO56C9d94ktWhTGVP9Bs10TG3V/Ac=
-=1PLZ
------END PGP SIGNATURE-----
+Cute, but... you would be just as well without that 'rest' thing.
 
---lfmn5rszd42a2efo--
+> +
+> +	if (unlikely(usize > PAGE_SIZE))
+> +		return -EFAULT;
+
+Again, why?
+
+> +	if (unlikely(!access_ok(src, usize)))
+> +		return -EFAULT;
+
+Why not simply copy_from_user() here?
+
+> +	/* Deal with trailing bytes. */
+> +	if (usize < ksize)
+> +		memset(dst + size, 0, rest);
+> +	else if (usize > ksize) {
+> +		const void __user *addr = src + size;
+> +		char buffer[BUFFER_SIZE] = {};
+> +
+> +		while (rest > 0) {
+> +			size_t bufsize = min(rest, sizeof(buffer));
+> +
+> +			if (__copy_from_user(buffer, addr, bufsize))
+> +				return -EFAULT;
+> +			if (memchr_inv(buffer, 0, bufsize))
+> +				return -E2BIG;
+
+Frankly, that looks like a candidate for is_all_zeroes_user().
+With the loop like above serving as a dumb default.  And on
+badly alighed address it _will_ be dumb.  Probably too much
+so - something like
+	if ((unsigned long)addr & 1) {
+		u8 v;
+		if (get_user(v, (__u8 __user *)addr))
+			return -EFAULT;
+		if (v)
+			return -E2BIG;
+		addr++;
+	}
+	if ((unsigned long)addr & 2) {
+		u16 v;
+		if (get_user(v, (__u16 __user *)addr))
+			return -EFAULT;
+		if (v)
+			return -E2BIG;
+		addr +=2;
+	}
+	if ((unsigned long)addr & 4) {
+		u32 v;
+		if (get_user(v, (__u32 __user *)addr))
+			return -EFAULT;
+		if (v)
+			return -E2BIG;
+	}
+	<read the rest like you currently do>
+would be saner, and things like x86 could trivially add an
+asm variant - it's not hard.  Incidentally, memchr_inv() is
+an overkill in this case...
