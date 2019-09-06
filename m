@@ -1,19 +1,21 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qt1-f194.google.com ([209.85.160.194]:46174 "EHLO
-        mail-qt1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S2390981AbfIFUBR (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 6 Sep 2019 16:01:17 -0400
-Received: by mail-qt1-f194.google.com with SMTP id v11so8468580qto.13
-        for <linux-arch@vger.kernel.org>; Fri, 06 Sep 2019 13:01:16 -0700 (PDT)
+Received: from mail-qt1-f195.google.com ([209.85.160.195]:41046 "EHLO
+        mail-qt1-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1729017AbfIFXSH (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 6 Sep 2019 19:18:07 -0400
+Received: by mail-qt1-f195.google.com with SMTP id j10so9129721qtp.8
+        for <linux-arch@vger.kernel.org>; Fri, 06 Sep 2019 16:18:06 -0700 (PDT)
 From: Qian Cai <cai@lca.pw>
-Subject: [PATCH] powerpc/lockdep: fix a false positive warning
-Date: Fri,  6 Sep 2019 16:00:55 -0400
-Message-ID: <1567800055-30309-1-git-send-email-cai@lca.pw>
+Subject: [PATCH v2] powerpc/lockdep: fix a false positive warning
+Date: Fri,  6 Sep 2019 19:17:54 -0400
+Message-ID: <20190906231754.830-1-cai@lca.pw>
+MIME-Version: 1.0
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: peterz@infradead.org, mingo@kernel.org, mpe@ellerman.id.au
-Cc: bvanassche@acm.org, arnd@arndb.de, kvm-ppc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Qian Cai <cai@lca.pw>
-Message-ID: <20190906200055.U4ROKzHaZnxB-WC5XTb0MkB9h9VVk1C2Vc_Hp25vyos@z>
+To: mpe@ellerman.id.au
+Cc: peterz@infradead.org, mingo@kernel.org, bvanassche@acm.org, arnd@arndb.de, kvm-ppc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Qian Cai <cai@lca.pw>
+Message-ID: <20190906231754.NHy-ms_tL73sk8LHcAJDvjEVn19Wjt6DhEAUt5Zykuo@z>
 
 The commit 108c14858b9e ("locking/lockdep: Add support for dynamic
 keys") introduced a boot warning on powerpc below, because since the
@@ -62,17 +64,20 @@ Call Trace:
 Fixes: 108c14858b9e ("locking/lockdep: Add support for dynamic keys")
 Signed-off-by: Qian Cai <cai@lca.pw>
 ---
- arch/powerpc/include/asm/sections.h | 10 ++++++++++
+
+v2: No need to actually define arch_is_bss_hole() powerpc64 only.
+
+ arch/powerpc/include/asm/sections.h | 11 +++++++++++
  arch/powerpc/kernel/kvm.c           |  5 +++++
  include/asm-generic/sections.h      |  7 +++++++
  kernel/locking/lockdep.c            |  3 +++
- 4 files changed, 25 insertions(+)
+ 4 files changed, 26 insertions(+)
 
 diff --git a/arch/powerpc/include/asm/sections.h b/arch/powerpc/include/asm/sections.h
-index 4a1664a8658d..abd08b3cb3f3 100644
+index 4a1664a8658d..4f5d69c42017 100644
 --- a/arch/powerpc/include/asm/sections.h
 +++ b/arch/powerpc/include/asm/sections.h
-@@ -5,8 +5,12 @@
+@@ -5,8 +5,19 @@
  
  #include <linux/elf.h>
  #include <linux/uaccess.h>
@@ -82,22 +87,16 @@ index 4a1664a8658d..abd08b3cb3f3 100644
  #include <asm-generic/sections.h>
  
 +extern void *bss_hole_start, *bss_hole_end;
- extern char __head_end[];
- 
- #ifdef __powerpc64__
-@@ -24,6 +28,12 @@
- extern char end_virt_trampolines[];
- #endif
- 
++
 +static inline int arch_is_bss_hole(unsigned long addr)
 +{
 +	return addr >= (unsigned long)bss_hole_start &&
 +	       addr < (unsigned long)bss_hole_end;
 +}
 +
- static inline int in_kernel_text(unsigned long addr)
- {
- 	if (addr >= (unsigned long)_stext && addr < (unsigned long)__init_end)
+ extern char __head_end[];
+ 
+ #ifdef __powerpc64__
 diff --git a/arch/powerpc/kernel/kvm.c b/arch/powerpc/kernel/kvm.c
 index b7b3a5e4e224..89e0e522e125 100644
 --- a/arch/powerpc/kernel/kvm.c
@@ -154,4 +153,4 @@ index 4861cf8e274b..cd75b51f15ce 100644
  	 * static variable?
  	 */
 -- 
-1.8.3.1
+2.20.1 (Apple Git-117)
