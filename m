@@ -1,87 +1,91 @@
-From: Jiri Slaby <jslaby@suse.cz>
-Subject: Re: [PATCH v8 04/28] x86/asm/entry: annotate THUNKs
-Date: Fri, 6 Sep 2019 09:43:17 +0200
-Message-ID: <b339dc02-390d-b896-5b80-ebe5f08525e8@suse.cz>
-References: <20190808103854.6192-1-jslaby@suse.cz>
- <20190808103854.6192-5-jslaby@suse.cz> <20190815124328.GG15313@zn.tnic>
+From: Alex Kogan <alex.kogan@oracle.com>
+Subject: [PATCH v4 4/5] locking/qspinlock: Introduce starvation avoidance into CNA
+Date: Fri,  6 Sep 2019 10:25:40 -0400
+Message-ID: <20190906142541.34061-5-alex.kogan@oracle.com>
+References: <20190906142541.34061-1-alex.kogan@oracle.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
+Content-Transfer-Encoding: 8bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20190815124328.GG15313@zn.tnic>
-Content-Language: en-GB
+In-Reply-To: <20190906142541.34061-1-alex.kogan@oracle.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Borislav Petkov <bp@alien8.de>
-Cc: tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+To: linux@armlinux.org.uk, peterz@infradead.org, mingo@redhat.com, will.deacon@arm.com, arnd@arndb.de, longman@redhat.com, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, bp@alien8.de, hpa@zytor.com, x86@kernel.org, guohanjun@huawei.com, jglauber@marvell.com
+Cc: steven.sistare@oracle.com, daniel.m.jordan@oracle.com, alex.kogan@oracle.com, dave.dice@oracle.com, rahul.x.yadav@oracle.com
 List-Id: linux-arch.vger.kernel.org
 
-On 15. 08. 19, 14:43, Borislav Petkov wrote:
-> On Thu, Aug 08, 2019 at 12:38:30PM +0200, Jiri Slaby wrote:
->> Place SYM_*_START_NOALIGN and SYM_*_END around the THUNK macro body.
->> Preserve @function by FUNC (64bit) and CODE (32bit). Given it was not
->> marked as aligned, use NOALIGN.
->>
->> The common tail .L_restore is put inside SYM_CODE_START_LOCAL_NOALIGN
->> and SYM_CODE_END too.
-> 
-> What is that needed for? It is a local label...
-> 
->> The result:
->>  Value  Size Type    Bind   Vis      Ndx Name
->>   0000    28 FUNC    GLOBAL DEFAULT    1 trace_hardirqs_on_thunk
->>   001c    28 FUNC    GLOBAL DEFAULT    1 trace_hardirqs_off_thunk
->>   0038    24 FUNC    GLOBAL DEFAULT    1 lockdep_sys_exit_thunk
->>   0050    24 FUNC    GLOBAL DEFAULT    1 ___preempt_schedule
->>   0068    24 FUNC    GLOBAL DEFAULT    1 ___preempt_schedule_notra
-> 
-> No difference except alignment:
+Choose the next lock holder among spinning threads running on the same
+node with high probability rather than always. With small probability,
+hand the lock to the first thread in the secondary queue or, if that
+queue is empty, to the immediate successor of the current lock holder
+in the main queue.  Thus, assuming no failures while threads hold the
+lock, every thread would be able to acquire the lock after a bounded
+number of lock transitions, with high probability.
 
-Yeah, alignment is one and visual effect the other. One can immediately
-see where it starts and where it ends -- readability. There is no other
-functional meaning, so I don't mind not annotating it. It's your call. So?
+Signed-off-by: Alex Kogan <alex.kogan@oracle.com>
+Reviewed-by: Steve Sistare <steven.sistare@oracle.com>
+---
+ kernel/locking/qspinlock_cna.h | 35 +++++++++++++++++++++++++++++++++--
+ 1 file changed, 33 insertions(+), 2 deletions(-)
 
-before:
-
-#if defined(CONFIG_TRACE_IRQFLAGS) \
- || defined(CONFIG_DEBUG_LOCK_ALLOC) \
- || defined(CONFIG_PREEMPTION)
-.L_restore:
-        popq %r11
-        popq %r10
-        popq %r9
-        popq %r8
-        popq %rax
-        popq %rcx
-        popq %rdx
-        popq %rsi
-        popq %rdi
-        popq %rbp
-        ret
-        _ASM_NOKPROBE(.L_restore)
-#endif
-
-after:
-#if defined(CONFIG_TRACE_IRQFLAGS) \
- || defined(CONFIG_DEBUG_LOCK_ALLOC) \
- || defined(CONFIG_PREEMPTION)
-SYM_CODE_START_LOCAL_NOALIGN(.L_restore)
-        popq %r11
-        popq %r10
-        popq %r9
-        popq %r8
-        popq %rax
-        popq %rcx
-        popq %rdx
-        popq %rsi
-        popq %rdi
-        popq %rbp
-        ret
-        _ASM_NOKPROBE(.L_restore)
-SYM_CODE_END(.L_restore)
-#endif
-
-
-thanks,
+diff --git a/kernel/locking/qspinlock_cna.h b/kernel/locking/qspinlock_cna.h
+index f983debf20bb..e86182e6163b 100644
+--- a/kernel/locking/qspinlock_cna.h
++++ b/kernel/locking/qspinlock_cna.h
+@@ -4,6 +4,7 @@
+ #endif
+ 
+ #include <linux/topology.h>
++#include <linux/random.h>
+ 
+ /*
+  * Implement a NUMA-aware version of MCS (aka CNA, or compact NUMA-aware lock).
+@@ -50,6 +51,34 @@ struct cna_node {
+ 	struct	cna_node *tail;    /* points to the secondary queue tail */
+ };
+ 
++/* Per-CPU pseudo-random number seed */
++static DEFINE_PER_CPU(u32, seed);
++
++/*
++ * Controls the probability for intra-node lock hand-off. It can be
++ * tuned and depend, e.g., on the number of CPUs per node. For now,
++ * choose a value that provides reasonable long-term fairness without
++ * sacrificing performance compared to a version that does not have any
++ * fairness guarantees.
++ */
++#define INTRA_NODE_HANDOFF_PROB_ARG (16)
++
++/*
++ * Return false with probability 1 / 2^@num_bits.
++ * Intuitively, the larger @num_bits the less likely false is to be returned.
++ * @num_bits must be a number between 0 and 31.
++ */
++static bool probably(unsigned int num_bits)
++{
++	u32 s;
++
++	s = this_cpu_read(seed);
++	s = next_pseudo_random32(s);
++	this_cpu_write(seed, s);
++
++	return s & ((1 << num_bits) - 1);
++}
++
+ static void __init cna_init_nodes_per_cpu(unsigned int cpu)
+ {
+ 	struct mcs_spinlock *base = per_cpu_ptr(&qnodes[0].mcs, cpu);
+@@ -202,9 +231,11 @@ static inline void cna_pass_lock(struct mcs_spinlock *node,
+ 
+ 	/*
+ 	 * Try to find a successor running on the same NUMA node
+-	 * as the current lock holder.
++	 * as the current lock holder. For long-term fairness,
++	 * search for such a thread with high probability rather than always.
+ 	 */
+-	new_next = cna_try_find_next(node, next);
++	if (probably(INTRA_NODE_HANDOFF_PROB_ARG))
++		new_next = cna_try_find_next(node, next);
+ 
+ 	if (new_next) {		          /* if such successor is found */
+ 		next_holder = new_next;
 -- 
-js
-suse labs
+2.11.0 (Apple Git-81)
