@@ -1,11 +1,13 @@
 From: Qian Cai <cai@lca.pw>
-Subject: [PATCH] powerpc/lockdep: fix a false positive warning
-Date: Fri,  6 Sep 2019 16:00:55 -0400
-Message-ID: <1567800055-30309-1-git-send-email-cai@lca.pw>
+Subject: [PATCH v2] powerpc/lockdep: fix a false positive warning
+Date: Fri,  6 Sep 2019 19:17:54 -0400
+Message-ID: <20190906231754.830-1-cai@lca.pw>
+Mime-Version: 1.0
+Content-Transfer-Encoding: 8bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
 Sender: linux-kernel-owner@vger.kernel.org
-To: peterz@infradead.org, mingo@kernel.org, mpe@ellerman.id.au
-Cc: bvanassche@acm.org, arnd@arndb.de, kvm-ppc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Qian Cai <cai@lca.pw>
+To: mpe@ellerman.id.au
+Cc: peterz@infradead.org, mingo@kernel.org, bvanassche@acm.org, arnd@arndb.de, kvm-ppc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Qian Cai <cai@lca.pw>
 List-Id: linux-arch.vger.kernel.org
 
 The commit 108c14858b9e ("locking/lockdep: Add support for dynamic
@@ -55,17 +57,20 @@ Call Trace:
 Fixes: 108c14858b9e ("locking/lockdep: Add support for dynamic keys")
 Signed-off-by: Qian Cai <cai@lca.pw>
 ---
- arch/powerpc/include/asm/sections.h | 10 ++++++++++
+
+v2: No need to actually define arch_is_bss_hole() powerpc64 only.
+
+ arch/powerpc/include/asm/sections.h | 11 +++++++++++
  arch/powerpc/kernel/kvm.c           |  5 +++++
  include/asm-generic/sections.h      |  7 +++++++
  kernel/locking/lockdep.c            |  3 +++
- 4 files changed, 25 insertions(+)
+ 4 files changed, 26 insertions(+)
 
 diff --git a/arch/powerpc/include/asm/sections.h b/arch/powerpc/include/asm/sections.h
-index 4a1664a8658d..abd08b3cb3f3 100644
+index 4a1664a8658d..4f5d69c42017 100644
 --- a/arch/powerpc/include/asm/sections.h
 +++ b/arch/powerpc/include/asm/sections.h
-@@ -5,8 +5,12 @@
+@@ -5,8 +5,19 @@
  
  #include <linux/elf.h>
  #include <linux/uaccess.h>
@@ -75,22 +80,16 @@ index 4a1664a8658d..abd08b3cb3f3 100644
  #include <asm-generic/sections.h>
  
 +extern void *bss_hole_start, *bss_hole_end;
- extern char __head_end[];
- 
- #ifdef __powerpc64__
-@@ -24,6 +28,12 @@
- extern char end_virt_trampolines[];
- #endif
- 
++
 +static inline int arch_is_bss_hole(unsigned long addr)
 +{
 +	return addr >= (unsigned long)bss_hole_start &&
 +	       addr < (unsigned long)bss_hole_end;
 +}
 +
- static inline int in_kernel_text(unsigned long addr)
- {
- 	if (addr >= (unsigned long)_stext && addr < (unsigned long)__init_end)
+ extern char __head_end[];
+ 
+ #ifdef __powerpc64__
 diff --git a/arch/powerpc/kernel/kvm.c b/arch/powerpc/kernel/kvm.c
 index b7b3a5e4e224..89e0e522e125 100644
 --- a/arch/powerpc/kernel/kvm.c
@@ -147,4 +146,4 @@ index 4861cf8e274b..cd75b51f15ce 100644
  	 * static variable?
  	 */
 -- 
-1.8.3.1
+2.20.1 (Apple Git-117)
