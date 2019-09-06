@@ -1,482 +1,196 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from aserp2120.oracle.com ([141.146.126.78]:34214 "EHLO
+Received: from aserp2120.oracle.com ([141.146.126.78]:34582 "EHLO
         aserp2120.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S2405489AbfIFOeh (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 6 Sep 2019 10:34:37 -0400
+        with ESMTP id S1731943AbfIFOev (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 6 Sep 2019 10:34:51 -0400
 From: Alex Kogan <alex.kogan@oracle.com>
-Subject: [PATCH v4 3/5] locking/qspinlock: Introduce CNA into the slow path of qspinlock
-Date: Fri,  6 Sep 2019 10:25:39 -0400
-Message-ID: <20190906142541.34061-4-alex.kogan@oracle.com>
-In-Reply-To: <20190906142541.34061-1-alex.kogan@oracle.com>
-References: <20190906142541.34061-1-alex.kogan@oracle.com>
+Subject: [PATCH v4 0/5] Add NUMA-awareness to qspinlock
+Date: Fri,  6 Sep 2019 10:25:36 -0400
+Message-ID: <20190906142541.34061-1-alex.kogan@oracle.com>
 MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux@armlinux.org.uk, peterz@infradead.org, mingo@redhat.com, will.deacon@arm.com, arnd@arndb.de, longman@redhat.com, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, bp@alien8.de, hpa@zytor.com, x86@kernel.org, guohanjun@huawei.com, jglauber@marvell.com
 Cc: steven.sistare@oracle.com, daniel.m.jordan@oracle.com, alex.kogan@oracle.com, dave.dice@oracle.com, rahul.x.yadav@oracle.com
-Message-ID: <20190906142539.XAAp32fU5WuhQF0TFzmw8WvhatKzXHy9E1Fg1UVega4@z>
+Message-ID: <20190906142536.3TBihLSdWmytPMywrvYuZCvAZAJCVNcG_qr6R5z6pX4@z>
 
-In CNA, spinning threads are organized in two queues, a main queue for
-threads running on the same node as the current lock holder, and a
-secondary queue for threads running on other nodes. At the unlock time,
-the lock holder scans the main queue looking for a thread running on
-the same node. If found (call it thread T), all threads in the main queue
+Changes from v3:
+----------------
+
+- Store encoded pointer in @locked, as suggested by Longman.
+As a result, mcs_node size is now intact.
+
+- Add a new kernel boot command-line option "numa_spinlock=on/off/auto",
+which may override the selection of the NUMA-aware spinlock during boot,
+as requested by Longman.
+
+- Add a dependency on QUEUED_SPINLOCKS to NUMA_AWARE_SPINLOCKS and fix 
+the help text, as requested by Longman.
+
+- Init the cna_node state in early_initcall(), so we do it only once
+instead of every time the node is used, as suggested by Longman.
+
+- Rename macros & functions, refactor cna_try_find_next() (former 
+find_successor()), as suggested by Peter.
+
+- Add more commentary, including textual graphics to CNA, as suggested by
+Longman and Peter.
+
+- Change the argument in probably() to num_bits, as suggested by Peter.
+
+
+Summary
+-------
+
+Lock throughput can be increased by handing a lock to a waiter on the
+same NUMA node as the lock holder, provided care is taken to avoid
+starvation of waiters on other NUMA nodes. This patch introduces CNA
+(compact NUMA-aware lock) as the slow path for qspinlock. It is
+enabled through a configuration option (NUMA_AWARE_SPINLOCKS).
+
+CNA is a NUMA-aware version of the MCS spin-lock. Spinning threads are
+organized in two queues, a main queue for threads running on the same
+node as the current lock holder, and a secondary queue for threads
+running on other nodes. Threads store the ID of the node on which
+they are running in their queue nodes. At the unlock time, the lock
+holder scans the main queue looking for a thread running on the same
+node. If found (call it thread T), all threads in the main queue
 between the current lock holder and T are moved to the end of the
 secondary queue, and the lock is passed to T. If such T is not found, the
 lock is passed to the first node in the secondary queue. Finally, if the
 secondary queue is empty, the lock is passed to the next thread in the
-main queue. For more details, see https://arxiv.org/abs/1810.05600.
+main queue. To avoid starvation of threads in the secondary queue,
+those threads are moved back to the head of the main queue
+after a certain expected number of intra-node lock hand-offs.
 
-Note that this variant of CNA may introduce starvation by continuously
-passing the lock to threads running on the same node. This issue
-will be addressed later in the series.
+More details are available at https://arxiv.org/abs/1810.05600.
 
-Enabling CNA is controlled via a new configuration option
-(NUMA_AWARE_SPINLOCKS). By default, the CNA variant is patched in at the
-boot time only if we run on a multi-node machine in native environment and
-the new config is enabled. (For the time being, the patching requires
-CONFIG_PARAVIRT_SPINLOCKS to be enabled as well. However, this should be
-resolved once static_call() is available.) This default behavior can be
-overridden with the new kernel boot command-line option
-"numa_spinlock=on/off" (default is "auto").
+We have done some performance evaluation with the locktorture module
+as well as with several benchmarks from the will-it-scale repo.
+The following locktorture results are from an Oracle X5-4 server
+(four Intel Xeon E7-8895 v3 @ 2.60GHz sockets with 18 hyperthreaded
+cores each). Each number represents an average (over 25 runs) of the
+total number of ops (x10^7) reported at the end of each run. The 
+standard deviation is also reported in (), and in general is about 3%
+from the average. The 'stock' kernel is v5.3.0-rc2,
+commit 74e6314df6bc, compiled in the default configuration. 
+'patch-CNA' is the modified kernel with NUMA_AWARE_SPINLOCKS set; 
+the speedup is calculated dividing 'patch-CNA' by 'stock'.
 
-Signed-off-by: Alex Kogan <alex.kogan@oracle.com>
-Reviewed-by: Steve Sistare <steven.sistare@oracle.com>
----
- arch/x86/Kconfig                 |  19 ++++
- arch/x86/include/asm/qspinlock.h |   4 +
- arch/x86/kernel/alternative.c    |  41 +++++++
- kernel/locking/mcs_spinlock.h    |   2 +-
- kernel/locking/qspinlock.c       |  31 +++++-
- kernel/locking/qspinlock_cna.h   | 225 +++++++++++++++++++++++++++++++++++++++
- 6 files changed, 317 insertions(+), 5 deletions(-)
+#thr  	 stock        patch-CNA   speedup (patch-CNA/stock)
+  1  2.692 (0.094)  2.660 (0.100)  0.988
+  2  2.634 (0.122)  2.631 (0.136)  0.999
+  4  4.152 (0.090)  4.370 (0.152)  1.052
+  8  5.420 (0.112)  6.978 (0.237)  1.288
+ 16  6.593 (0.141)  8.597 (0.253)  1.304
+ 32  7.335 (0.168)  9.296 (0.223)  1.267
+ 36  7.505 (0.195)  9.329 (0.251)  1.243
+ 72  6.552 (0.180)  9.846 (0.256)  1.503
+108  6.194 (0.114)  9.901 (0.196)  1.599
+142  5.706 (0.093)  9.866 (0.193)  1.729
+
+The following tables contain throughput results (ops/us) from the same
+setup for will-it-scale/open1_threads: 
+
+#thr  	 stock        patch-CNA   speedup (patch-CNA/stock)
+  1  0.537 (0.001)  0.539 (0.001)  1.003
+  2  0.808 (0.021)  0.799 (0.022)  0.988
+  4  1.434 (0.031)  1.425 (0.024)  0.994
+  8  1.727 (0.102)  1.725 (0.115)  0.999
+ 16  1.714 (0.094)  1.739 (0.082)  1.015
+ 32  0.929 (0.070)  1.677 (0.081)  1.804
+ 36  0.935 (0.087)  1.694 (0.079)  1.812
+ 72  0.842 (0.040)  1.687 (0.069)  2.004
+108  0.842 (0.049)  1.737 (0.074)  2.063
+142  0.823 (0.049)  1.744 (0.085)  2.119
+
+and will-it-scale/lock2_threads:
+
+#thr  	 stock        patch-CNA   speedup (patch-CNA/stock)
+  1  1.601 (0.013)  1.615 (0.006)  1.009
+  2  2.719 (0.060)  2.741 (0.060)  1.008
+  4  5.269 (0.392)  5.336 (0.272)  1.013
+  8  4.061 (0.302)  4.210 (0.311)  1.037
+ 16  4.081 (0.113)  4.170 (0.133)  1.022
+ 32  2.503 (0.104)  4.029 (0.120)  1.610
+ 36  2.493 (0.104)  3.987 (0.111)  1.599
+ 72  1.966 (0.092)  3.968 (0.118)  2.019
+108  2.084 (0.116)  3.951 (0.121)  1.896
+142  1.925 (0.123)  3.877 (0.088)  2.014
+
+We also evaluated the patch on a single-node machine (Intel i7-4770 with 
+4 hyperthreaded cores) with will-it-scale, and observed no meaningful
+performance impact, as expected. For instance, below are results for 
+will-it-scale/open1_threads:
+
+#thr  	 stock        patch-CNA   speedup (patch-CNA/stock)
+  1  0.866 (0.003)  0.867 (0.001)  1.001
+  2  1.463 (0.014)  1.463 (0.019)  1.000
+  4  2.656 (0.052)  2.671 (0.052)  1.005
+  6  2.872 (0.054)  2.857 (0.045)  0.995
+
+Furthermore, we evaluated the patch in the paravirt setup, booting the 
+kernel with virtme (qemu) and $(nproc) cores on the same Oracle X5-4 server
+as above. We run will-it-scale benchmarks, and once again observed 
+no meaningful performance impact. For instance, below are results for
+will-it-scale/open1_threads:
+
+#thr  	 stock 	      patch-CNA   speedup (patch-CNA/stock)
+  1  0.743 (0.009)  0.747 (0.011)  1.005
+  2  0.615 (0.031)  0.611 (0.040)  0.993
+  4  0.629 (0.027)  0.619 (0.034)  0.984
+  8  0.580 (0.023)  0.574 (0.022)  0.991
+ 16  0.676 (0.019)  0.680 (0.019)  1.006
+ 32  0.566 (0.046)  0.562 (0.026)  0.992
+ 36  0.545 (0.047)  0.544 (0.025)  1.000
+ 72  0.358 (0.010)  0.361 (0.011)  1.009
+108  0.353 (0.013)  0.356 (0.012)  1.010
+142  0.350 (0.010)  0.355 (0.008)  1.013
+
+Our evaluation shows that CNA also improves performance of user 
+applications that have hot pthread mutexes. Those mutexes are 
+blocking, and waiting threads park and unpark via the futex 
+mechanism in the kernel. Given that kernel futex chains, which
+are hashed by the mutex address, are each protected by a 
+chain-specific spin lock, the contention on a user-mode mutex 
+translates into contention on a kernel level spinlock. 
+
+Here are the results for the leveldb ‘readrandom’ benchmark:
+
+#thr  	 stock        patch-CNA    speedup (patch-CNA/stock)
+  1  0.535 (0.010)  0.530 (0.020)  0.990
+  2  0.659 (0.023)  0.675 (0.030)  1.024
+  4  0.709 (0.017)  0.707 (0.028)  0.998
+  8  0.671 (0.026)  0.670 (0.024)  0.999
+ 16  0.716 (0.017)  0.717 (0.020)  1.002
+ 32  0.741 (0.036)  1.040 (0.090)  1.403
+ 36  0.727 (0.042)  1.152 (0.086)  1.585
+ 72  0.639 (0.028)  1.192 (0.023)  1.863
+108  0.621 (0.024)  1.181 (0.028)  1.902
+142  0.604 (0.015)  1.158 (0.028)  1.919
+
+Further comments are welcome and appreciated.
+
+Alex Kogan (5):
+  locking/qspinlock: Rename arch_mcs_spin_unlock_contended to
+    arch_mcs_pass_lock and make it more generic
+  locking/qspinlock: Refactor the qspinlock slow path
+  locking/qspinlock: Introduce CNA into the slow path of qspinlock
+  locking/qspinlock: Introduce starvation avoidance into CNA
+  locking/qspinlock: Introduce the shuffle reduction optimization into
+    CNA
+
+ arch/arm/include/asm/mcs_spinlock.h |   4 +-
+ arch/x86/Kconfig                    |  19 +++
+ arch/x86/include/asm/qspinlock.h    |   4 +
+ arch/x86/kernel/alternative.c       |  41 ++++++
+ kernel/locking/mcs_spinlock.h       |   8 +-
+ kernel/locking/qspinlock.c          |  69 ++++++++-
+ kernel/locking/qspinlock_cna.h      | 276 ++++++++++++++++++++++++++++++++++++
+ 7 files changed, 409 insertions(+), 12 deletions(-)
  create mode 100644 kernel/locking/qspinlock_cna.h
 
-diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
-index 222855cc0158..9d0d87edff62 100644
---- a/arch/x86/Kconfig
-+++ b/arch/x86/Kconfig
-@@ -1567,6 +1567,25 @@ config NUMA
- 
- 	  Otherwise, you should say N.
- 
-+config NUMA_AWARE_SPINLOCKS
-+	bool "Numa-aware spinlocks"
-+	depends on NUMA
-+	depends on QUEUED_SPINLOCKS
-+	# For now, we depend on PARAVIRT_SPINLOCKS to make the patching work.
-+	# This is awkward, but hopefully would be resolved once static_call()
-+	# is available.
-+	depends on PARAVIRT_SPINLOCKS
-+	default y
-+	help
-+	  Introduce NUMA (Non Uniform Memory Access) awareness into
-+	  the slow path of spinlocks.
-+
-+	  In this variant of qspinlock, the kernel will try to keep the lock
-+	  on the same node, thus reducing the number of remote cache misses,
-+	  while trading some of the short term fairness for better performance.
-+
-+	  Say N if you want absolute first come first serve fairness.
-+
- config AMD_NUMA
- 	def_bool y
- 	prompt "Old style AMD Opteron NUMA detection"
-diff --git a/arch/x86/include/asm/qspinlock.h b/arch/x86/include/asm/qspinlock.h
-index bd5ac6cc37db..d9b6c34d5eb4 100644
---- a/arch/x86/include/asm/qspinlock.h
-+++ b/arch/x86/include/asm/qspinlock.h
-@@ -27,6 +27,10 @@ static __always_inline u32 queued_fetch_set_pending_acquire(struct qspinlock *lo
- 	return val;
- }
- 
-+#ifdef CONFIG_NUMA_AWARE_SPINLOCKS
-+extern void __cna_queued_spin_lock_slowpath(struct qspinlock *lock, u32 val);
-+#endif
-+
- #ifdef CONFIG_PARAVIRT_SPINLOCKS
- extern void native_queued_spin_lock_slowpath(struct qspinlock *lock, u32 val);
- extern void __pv_init_lock_hash(void);
-diff --git a/arch/x86/kernel/alternative.c b/arch/x86/kernel/alternative.c
-index ccd32013c47a..d5194e342db9 100644
---- a/arch/x86/kernel/alternative.c
-+++ b/arch/x86/kernel/alternative.c
-@@ -698,6 +698,33 @@ static void __init int3_selftest(void)
- 	unregister_die_notifier(&int3_exception_nb);
- }
- 
-+#if defined(CONFIG_NUMA_AWARE_SPINLOCKS)
-+/*
-+ * Constant (boot-param configurable) flag selecting the NUMA-aware variant
-+ * of spinlock.  Possible values: -1 (off) / 0 (auto, default) / 1 (on).
-+ */
-+static int numa_spinlock_flag;
-+
-+static int __init numa_spinlock_setup(char *str)
-+{
-+	if (!strcmp(str, "auto")) {
-+		numa_spinlock_flag = 0;
-+		return 1;
-+	} else if (!strcmp(str, "on")) {
-+		numa_spinlock_flag = 1;
-+		return 1;
-+	} else if (!strcmp(str, "off")) {
-+		numa_spinlock_flag = -1;
-+		return 1;
-+	}
-+
-+	return 0;
-+}
-+
-+__setup("numa_spinlock=", numa_spinlock_setup);
-+
-+#endif
-+
- void __init alternative_instructions(void)
- {
- 	int3_selftest();
-@@ -738,6 +765,20 @@ void __init alternative_instructions(void)
- 	}
- #endif
- 
-+#if defined(CONFIG_NUMA_AWARE_SPINLOCKS)
-+	/*
-+	 * By default, switch to the NUMA-friendly slow path for
-+	 * spinlocks when we have multiple NUMA nodes in native environment.
-+	 */
-+	if ((numa_spinlock_flag == 1) ||
-+	    (numa_spinlock_flag == 0 && nr_node_ids > 1 &&
-+		    pv_ops.lock.queued_spin_lock_slowpath ==
-+			native_queued_spin_lock_slowpath)) {
-+		pv_ops.lock.queued_spin_lock_slowpath =
-+		    __cna_queued_spin_lock_slowpath;
-+	}
-+#endif
-+
- 	apply_paravirt(__parainstructions, __parainstructions_end);
- 
- 	restart_nmi();
-diff --git a/kernel/locking/mcs_spinlock.h b/kernel/locking/mcs_spinlock.h
-index 84327ca21650..bd127b21b70c 100644
---- a/kernel/locking/mcs_spinlock.h
-+++ b/kernel/locking/mcs_spinlock.h
-@@ -17,7 +17,7 @@
- 
- struct mcs_spinlock {
- 	struct mcs_spinlock *next;
--	int locked; /* 1 if lock acquired */
-+	unsigned int locked; /* 1 if lock acquired */
- 	int count;  /* nesting count, see qspinlock.c */
- };
- 
-diff --git a/kernel/locking/qspinlock.c b/kernel/locking/qspinlock.c
-index 070015156a10..e4e482685fc1 100644
---- a/kernel/locking/qspinlock.c
-+++ b/kernel/locking/qspinlock.c
-@@ -11,7 +11,7 @@
-  *          Peter Zijlstra <peterz@infradead.org>
-  */
- 
--#ifndef _GEN_PV_LOCK_SLOWPATH
-+#if !defined(_GEN_PV_LOCK_SLOWPATH) && !defined(_GEN_CNA_LOCK_SLOWPATH)
- 
- #include <linux/smp.h>
- #include <linux/bug.h>
-@@ -70,7 +70,8 @@
- /*
-  * On 64-bit architectures, the mcs_spinlock structure will be 16 bytes in
-  * size and four of them will fit nicely in one 64-byte cacheline. For
-- * pvqspinlock, however, we need more space for extra data. To accommodate
-+ * pvqspinlock, however, we need more space for extra data. The same also
-+ * applies for the NUMA-aware variant of spinlocks (CNA). To accommodate
-  * that, we insert two more long words to pad it up to 32 bytes. IOW, only
-  * two of them can fit in a cacheline in this case. That is OK as it is rare
-  * to have more than 2 levels of slowpath nesting in actual use. We don't
-@@ -79,7 +80,7 @@
-  */
- struct qnode {
- 	struct mcs_spinlock mcs;
--#ifdef CONFIG_PARAVIRT_SPINLOCKS
-+#if defined(CONFIG_PARAVIRT_SPINLOCKS) || defined(CONFIG_NUMA_AWARE_SPINLOCKS)
- 	long reserved[2];
- #endif
- };
-@@ -103,6 +104,8 @@ struct qnode {
-  * Exactly fits one 64-byte cacheline on a 64-bit architecture.
-  *
-  * PV doubles the storage and uses the second cacheline for PV state.
-+ * CNA also doubles the storage and uses the second cacheline for
-+ * CNA-specific state.
-  */
- static DEFINE_PER_CPU_ALIGNED(struct qnode, qnodes[MAX_NODES]);
- 
-@@ -316,7 +319,7 @@ static __always_inline void __mcs_pass_lock(struct mcs_spinlock *node,
- #define try_clear_tail	__try_clear_tail
- #define mcs_pass_lock		__mcs_pass_lock
- 
--#endif /* _GEN_PV_LOCK_SLOWPATH */
-+#endif /* _GEN_PV_LOCK_SLOWPATH && _GEN_CNA_LOCK_SLOWPATH */
- 
- /**
-  * queued_spin_lock_slowpath - acquire the queued spinlock
-@@ -589,6 +592,26 @@ void queued_spin_lock_slowpath(struct qspinlock *lock, u32 val)
- EXPORT_SYMBOL(queued_spin_lock_slowpath);
- 
- /*
-+ * Generate the code for NUMA-aware spinlocks
-+ */
-+#if !defined(_GEN_CNA_LOCK_SLOWPATH) && defined(CONFIG_NUMA_AWARE_SPINLOCKS)
-+#define _GEN_CNA_LOCK_SLOWPATH
-+
-+#undef try_clear_tail
-+#define try_clear_tail		cna_try_change_tail
-+
-+#undef mcs_pass_lock
-+#define mcs_pass_lock			cna_pass_lock
-+
-+#undef  queued_spin_lock_slowpath
-+#define queued_spin_lock_slowpath	__cna_queued_spin_lock_slowpath
-+
-+#include "qspinlock_cna.h"
-+#include "qspinlock.c"
-+
-+#endif
-+
-+/*
-  * Generate the paravirt code for queued_spin_unlock_slowpath().
-  */
- #if !defined(_GEN_PV_LOCK_SLOWPATH) && defined(CONFIG_PARAVIRT_SPINLOCKS)
-diff --git a/kernel/locking/qspinlock_cna.h b/kernel/locking/qspinlock_cna.h
-new file mode 100644
-index 000000000000..f983debf20bb
---- /dev/null
-+++ b/kernel/locking/qspinlock_cna.h
-@@ -0,0 +1,225 @@
-+/* SPDX-License-Identifier: GPL-2.0 */
-+#ifndef _GEN_CNA_LOCK_SLOWPATH
-+#error "do not include this file"
-+#endif
-+
-+#include <linux/topology.h>
-+
-+/*
-+ * Implement a NUMA-aware version of MCS (aka CNA, or compact NUMA-aware lock).
-+ *
-+ * In CNA, spinning threads are organized in two queues, a main queue for
-+ * threads running on the same NUMA node as the current lock holder, and a
-+ * secondary queue for threads running on other nodes. Schematically, it
-+ * looks like this:
-+ *
-+ *    cna_node
-+ *   +----------+    +--------+        +--------+
-+ *   |mcs:next  | -> |mcs:next| -> ... |mcs:next| -> NULL      [Main queue]
-+ *   |mcs:locked|    +--------+        +--------+
-+ *   +----------+
-+ *             |   +--------+         +--------+
-+ *             +-> |mcs:next| -> ...  |mcs:next| -> NULL  [Secondary queue]
-+ *                 |cna:tail| -+      +--------+
-+ *                 +--------+  |        ^
-+ *                              +-------+
-+ *
-+ * N.B. locked = 1 if secondary queue is absent.
-+ *
-+ * At the unlock time, the lock holder scans the main queue looking for a thread
-+ * running on the same node. If found (call it thread T), all threads in the
-+ * main queue between the current lock holder and T are moved to the end of the
-+ * secondary queue, and the lock is passed to T. If such T is not found, the
-+ * lock is passed to the first node in the secondary queue. Finally, if the
-+ * secondary queue is empty, the lock is passed to the next thread in the
-+ * main queue. To avoid starvation of threads in the secondary queue,
-+ * those threads are moved back to the head of the main queue after a certain
-+ * expected number of intra-node lock hand-offs.
-+ *
-+ *
-+ * For more details, see https://arxiv.org/abs/1810.05600.
-+ *
-+ * Authors: Alex Kogan <alex.kogan@oracle.com>
-+ *          Dave Dice <dave.dice@oracle.com>
-+ */
-+
-+struct cna_node {
-+	struct	mcs_spinlock mcs;
-+	int	numa_node;
-+	u32	encoded_tail;
-+	struct	cna_node *tail;    /* points to the secondary queue tail */
-+};
-+
-+static void __init cna_init_nodes_per_cpu(unsigned int cpu)
-+{
-+	struct mcs_spinlock *base = per_cpu_ptr(&qnodes[0].mcs, cpu);
-+	int numa_node = cpu_to_node(cpu);
-+	int i;
-+
-+	for (i = 0; i < MAX_NODES; i++) {
-+		struct cna_node *cn = (struct cna_node *)grab_mcs_node(base, i);
-+
-+		cn->numa_node = numa_node;
-+		cn->encoded_tail = encode_tail(cpu, i);
-+		/*
-+		 * @encoded_tail has to be larger than 1, so we do not confuse
-+		 * it with other valid values for @locked (0 or 1)
-+		 */
-+		WARN_ON(cn->encoded_tail <= 1);
-+	}
-+}
-+
-+static void __init cna_init_nodes(void)
-+{
-+	unsigned int cpu;
-+
-+	BUILD_BUG_ON(sizeof(struct cna_node) > sizeof(struct qnode));
-+	/* we store an ecoded tail word in the node's @locked field */
-+	BUILD_BUG_ON(sizeof(u32) > sizeof(unsigned int));
-+
-+	for_each_possible_cpu(cpu)
-+		cna_init_nodes_per_cpu(cpu);
-+}
-+early_initcall(cna_init_nodes);
-+
-+static inline bool cna_try_change_tail(struct qspinlock *lock, u32 val,
-+				       struct mcs_spinlock *node)
-+{
-+	struct cna_node *succ;
-+	u32 new;
-+
-+	/* If the secondary queue is empty, do what MCS does. */
-+	if (node->locked <= 1)
-+		return __try_clear_tail(lock, val, node);
-+
-+	/*
-+	 * Try to update the tail value to the last node in the secondary queue.
-+	 * If successful, pass the lock to the first thread in the secondary
-+	 * queue. Doing those two actions effectively moves all nodes from the
-+	 * secondary queue into the main one.
-+	 */
-+	succ = (struct cna_node *)decode_tail(node->locked);
-+	new = succ->tail->encoded_tail + _Q_LOCKED_VAL;
-+
-+	if (atomic_try_cmpxchg_relaxed(&lock->val, &val, new)) {
-+		arch_mcs_pass_lock(&succ->mcs.locked, 1);
-+		return true;
-+	}
-+
-+	return false;
-+}
-+
-+/*
-+ * cna_splice_tail -- splice nodes in the main queue between [first, last]
-+ * onto the secondary queue.
-+ */
-+static void cna_splice_tail(struct cna_node *cn, struct cna_node *first,
-+			    struct cna_node *last)
-+{
-+	/* remove [first,last] */
-+	cn->mcs.next = last->mcs.next;
-+	last->mcs.next = NULL;
-+
-+	/* stick [first,last] on the secondary queue tail */
-+	if (cn->mcs.locked <= 1) {	/* if secondary queue is empty */
-+		/* create secondary queue */
-+		first->tail = last;
-+		cn->mcs.locked = first->encoded_tail;
-+	} else {
-+		/* add to the tail of the secondary queue */
-+		struct cna_node *head_2nd =
-+			(struct cna_node *)decode_tail(cn->mcs.locked);
-+		head_2nd->tail->mcs.next = &first->mcs;
-+		head_2nd->tail = last;
-+	}
-+}
-+
-+/*
-+ * cna_try_find_next - scan the main waiting queue looking for the first
-+ * thread running on the same NUMA node as the lock holder. If found (call it
-+ * thread T), move all threads in the main queue between the lock holder and
-+ * T to the end of the secondary queue and return T; otherwise, return NULL.
-+ *
-+ * Schematically, this may look like the following (nn stands for numa_node and
-+ * et stands for encoded_tail).
-+ *
-+ *     when cna_try_find_next() is called (the secondary queue is empty):
-+ *
-+ *  A+------------+   B+--------+   C+--------+   T+--------+
-+ *   |mcs:next    | -> |mcs:next| -> |mcs:next| -> |mcs:next| -> NULL
-+ *   |mcs:locked=1|    |cna:nn=0|    |cna:nn=2|    |cna:nn=1|
-+ *   |cna:nn=1    |    +--------+    +--------+    +--------+
-+ *   +----------- +
-+ *
-+ *     when cna_try_find_next() returns (the secondary queue contains B and C):
-+ *
-+ *  A+----------------+    T+--------+
-+ *   |mcs:next        | ->  |mcs:next| -> NULL
-+ *   |mcs:locked=B.et | -+  |cna:nn=1|
-+ *   |cna:nn=1        |  |  +--------+
-+ *   +--------------- +  |
-+ *                       |
-+ *                       +->  B+--------+   C+--------+
-+ *                             |mcs:next| -> |mcs:next|
-+ *                             |cna:nn=0|    |cna:nn=2|
-+ *                             |cna:tail| -> +--------+
-+ *                             +--------+
-+ *
-+ * The worst case complexity of the scan is O(n), where n is the number
-+ * of current waiters. However, the fast path, which is expected to be the
-+ * common case, is O(1).
-+ */
-+static struct mcs_spinlock *cna_try_find_next(struct mcs_spinlock *node,
-+					      struct mcs_spinlock *next)
-+{
-+	struct cna_node *cn = (struct cna_node *)node;
-+	struct cna_node *cni = (struct cna_node *)next;
-+	struct cna_node *first, *last = NULL;
-+	int my_numa_node = cn->numa_node;
-+
-+	/* fast path: immediate successor is on the same NUMA node */
-+	if (cni->numa_node == my_numa_node)
-+		return next;
-+
-+	/* find any next waiter on 'our' NUMA node */
-+	for (first = cni;
-+	     cni && cni->numa_node != my_numa_node;
-+	     last = cni, cni = (struct cna_node *)READ_ONCE(cni->mcs.next))
-+		;
-+
-+	/* if found, splice any skipped waiters onto the secondary queue */
-+	if (cni && last)
-+		cna_splice_tail(cn, first, last);
-+
-+	return (struct mcs_spinlock *)cni;
-+}
-+
-+static inline void cna_pass_lock(struct mcs_spinlock *node,
-+				 struct mcs_spinlock *next)
-+{
-+	struct mcs_spinlock *next_holder = next, *new_next = NULL;
-+	u32 val = 1;
-+
-+	/*
-+	 * Try to find a successor running on the same NUMA node
-+	 * as the current lock holder.
-+	 */
-+	new_next = cna_try_find_next(node, next);
-+
-+	if (new_next) {		          /* if such successor is found */
-+		next_holder = new_next;
-+		/*
-+		 * Note that @locked here can be 0, 1 or an encoded pointer to
-+		 * the head of the secondary queue. We pass the lock by storing
-+		 * a non-zero value, so make sure @val gets 1 iff @locked is 0.
-+		 */
-+		val = node->locked + (node->locked == 0);
-+	} else if (node->locked > 1) {	  /* if secondary queue is not empty */
-+		/* next holder will be the first node in the secondary queue */
-+		next_holder = decode_tail(node->locked);
-+		/* splice the secondary queue onto the head of the main queue */
-+		((struct cna_node *)next_holder)->tail->mcs.next = next;
-+	}
-+
-+	arch_mcs_pass_lock(&next_holder->locked, val);
-+}
 -- 
 2.11.0 (Apple Git-81)
