@@ -1,69 +1,46 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pl1-f193.google.com ([209.85.214.193]:45708 "EHLO
-        mail-pl1-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S2393321AbfIGRm1 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sat, 7 Sep 2019 13:42:27 -0400
-Received: by mail-pl1-f193.google.com with SMTP id x3so4640342plr.12
-        for <linux-arch@vger.kernel.org>; Sat, 07 Sep 2019 10:42:27 -0700 (PDT)
-Content-Type: text/plain;
-        charset=utf-8
-Mime-Version: 1.0 (1.0)
+Received: from mail-lj1-f196.google.com ([209.85.208.196]:36499 "EHLO
+        mail-lj1-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726008AbfIGRvb (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 7 Sep 2019 13:51:31 -0400
+Received: by mail-lj1-f196.google.com with SMTP id l20so8924880ljj.3
+        for <linux-arch@vger.kernel.org>; Sat, 07 Sep 2019 10:51:29 -0700 (PDT)
+Received: from mail-lj1-f180.google.com (mail-lj1-f180.google.com. [209.85.208.180])
+        by smtp.gmail.com with ESMTPSA id y25sm933927lji.97.2019.09.07.10.51.28
+        for <linux-arch@vger.kernel.org>
+        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
+        Sat, 07 Sep 2019 10:51:28 -0700 (PDT)
+Received: by mail-lj1-f180.google.com with SMTP id a4so8902451ljk.8
+        for <linux-arch@vger.kernel.org>; Sat, 07 Sep 2019 10:51:28 -0700 (PDT)
+MIME-Version: 1.0
+References: <20190904201933.10736-1-cyphar@cyphar.com> <20190904201933.10736-12-cyphar@cyphar.com>
+ <7236f382d72130f2afbbe8940e72cc67e5c6dce0.camel@kernel.org>
+ <CAHk-=whZx97Nm-gUK0ppofj2RA2LLz2vmaDUTKSSV-+yYB9q_Q@mail.gmail.com> <C81D6D29-F6BF-48E6-A15E-3ABCB2C992E5@amacapital.net>
+In-Reply-To: <C81D6D29-F6BF-48E6-A15E-3ABCB2C992E5@amacapital.net>
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Date: Sat, 7 Sep 2019 10:45:33 -0700
+Message-ID: <CAHk-=whe90Ec_RRrMRLE0=bJOHNS9YmVwcytVxmrfK3oCuZF6A@mail.gmail.com>
 Subject: Re: [PATCH v12 11/12] open: openat2(2) syscall
-From: Andy Lutomirski <luto@amacapital.net>
-In-Reply-To: <CAHk-=whZx97Nm-gUK0ppofj2RA2LLz2vmaDUTKSSV-+yYB9q_Q@mail.gmail.com>
-Date: Sat, 7 Sep 2019 10:42:23 -0700
-Content-Transfer-Encoding: quoted-printable
-Message-ID: <C81D6D29-F6BF-48E6-A15E-3ABCB2C992E5@amacapital.net>
-References: <20190904201933.10736-1-cyphar@cyphar.com> <20190904201933.10736-12-cyphar@cyphar.com> <7236f382d72130f2afbbe8940e72cc67e5c6dce0.camel@kernel.org> <CAHk-=whZx97Nm-gUK0ppofj2RA2LLz2vmaDUTKSSV-+yYB9q_Q@mail.gmail.com>
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
+To: Andy Lutomirski <luto@amacapital.net>
 Cc: Jeff Layton <jlayton@kernel.org>, Aleksa Sarai <cyphar@cyphar.com>, Al Viro <viro@zeniv.linux.org.uk>, "J. Bruce Fields" <bfields@fieldses.org>, Arnd Bergmann <arnd@arndb.de>, David Howells <dhowells@redhat.com>, Shuah Khan <shuah@kernel.org>, Shuah Khan <skhan@linuxfoundation.org>, Ingo Molnar <mingo@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Christian Brauner <christian@brauner.io>, Eric Biederman <ebiederm@xmission.com>, Andy Lutomirski <luto@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Alexei Starovoitov <ast@kernel.org>, Kees Cook <keescook@chromium.org>, Jann Horn <jannh@google.com>, Tycho Andersen <tycho@tycho.ws>, David Drysdale <drysdale@google.com>, Chanho Min <chanho.min@lge.com>, Oleg Nesterov <oleg@redhat.com>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Alexander Shishkin <alexander.shishkin@linux.intel.com>, Jiri Olsa <jolsa@redhat.com>, Namhyung Kim <namhyung@kernel.org>, Aleksa Sarai <asarai@suse.de>, Linux Containers <containers@lists.linux-foundation.org>, alpha <linux-alpha@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, linux-fsdevel <linux-fsdevel@vger.kernel.org>, linux-ia64@vger.kernel.org, Linux List Kernel Mailing <linux-kernel@vger.kernel.org>, "open list:KERNEL SELFTEST FRAMEWORK" <linux-kselftest@vger.kernel.org>, linux-m68k <linux-m68k@lists.linux-m68k.org>, linux-mips@vger.kernel.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390 <linux-s390@vger.kernel.org>, Linux-sh list <linux-sh@vger.kernel.org>, linux-xtensa@linux-xtensa.org, sparclinux@vger.kernel.org
-Message-ID: <20190907174223.1GVXBJSPXjcGvL8HFzUlVR51JDyV7gNhmk19LcSxsXs@z>
+Message-ID: <20190907174533.OFjByFlYR9HYayWqofyVHshfhKbuXH12fjofV0b1BVk@z>
 
+On Sat, Sep 7, 2019 at 10:42 AM Andy Lutomirski <luto@amacapital.net> wrote:
+>
+> Linus, you rejected resolveat() because you wanted a *nice* API
 
+No. I rejected resoveat() because it was a completely broken garbage
+API that couldn't do even basic stuff right (like O_CREAT).
 
-> On Sep 7, 2019, at 9:58 AM, Linus Torvalds <torvalds@linux-foundation.org>=
- wrote:
->=20
->> On Sat, Sep 7, 2019 at 5:40 AM Jeff Layton <jlayton@kernel.org> wrote:
->>=20
->> After thinking about this a bit, I wonder if we might be better served
->> with a new set of OA2_* flags instead of repurposing the O_* flags?
->=20
-> I'd hate to have yet _another_ set of translation functions, and
-> another chance of people just getting it wrong either in user space or
-> the kernel.
->=20
-> So no. Let's not make another set of flags that has no sane way to
-> have type-safety to avoid more confusion.
->=20
-> The new flags that _only_ work with openat2() might be named with a
-> prefix/suffix to mark that, but I'm not sure it's a huge deal.
->=20
->           =20
+We have a ton of flag space in the new openat2() model, we might as
+well leave the old flags alone that people are (a) used to and (b) we
+have code to support _anyway_.
 
-I agree with the philosophy, but I think it doesn=E2=80=99t apply in this ca=
-se.  Here are the flags:
+Making up a new flag namespace is only going to cause us - and users -
+more work, and more confusion. For no actual advantage. It's not going
+to be "cleaner". It's just going to be worse.
 
-O_RDONLY, O_WRONLY, O_RDWR: not even a proper bitmask. The kernel already ha=
-s the FMODE_ bits to make this make sense. How about we make the openat2 per=
-mission bits consistent with the internal representation and let the O_ perm=
-ission bits remain as an awful translation.  The kernel already translates l=
-ike this, and it already sucks.
-
-O_CREAT, O_TMPFILE, O_NOCTTY, O_TRUNC: not modes on the fd at all.  These af=
-fect the meaning of open().  Heck, for openat2, NOCTTY should be this defaul=
-t.
-
-O_EXCL: hopelessly overloaded.
-
-O_APPEND, O_DIRECT, O_SYNC, O_DSYNC, O_LARGEFILE, O_NOATIME, O_PATH, O_NONBL=
-OCK: genuine mode bits
-
-O_CLOEXEC: special because it affects the fd, not the struct file.
-
-Linus, you rejected resolveat() because you wanted a *nice* API that people w=
-ould use and that might even be adopted by other OSes. Let=E2=80=99s please n=
-ot make openat2() be a giant pile of crap in the name of consistency with op=
-en().  open(), frankly, is horrible.
+                 Linus
