@@ -1,35 +1,74 @@
-From: Ingo Molnar <mingo@kernel.org>
-Subject: Re: [PATCH v2] powerpc/lockdep: fix a false positive warning
-Date: Sun, 8 Sep 2019 10:32:58 +0200
-Message-ID: <20190908083257.GA126088@gmail.com>
-References: <20190906231754.830-1-cai@lca.pw>
- <20190907070505.GA88784@gmail.com>
- <420D09F4-FC19-421C-AE46-4B2A9157FAE3@lca.pw>
+From: Aleksa Sarai <cyphar@cyphar.com>
+Subject: Re: [PATCH v12 11/12] open: openat2(2) syscall
+Date: Mon, 9 Sep 2019 02:24:19 +1000
+Message-ID: <20190908162419.yrzm2s7rflqgdxig@yavin>
+References: <20190904201933.10736-1-cyphar@cyphar.com>
+ <20190904201933.10736-12-cyphar@cyphar.com>
+ <7236f382d72130f2afbbe8940e72cc67e5c6dce0.camel@kernel.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 8bit
+Content-Type: multipart/signed; micalg=pgp-sha256;
+        protocol="application/pgp-signature"; boundary="gzznbyzuni6ynbc5"
 Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <420D09F4-FC19-421C-AE46-4B2A9157FAE3@lca.pw>
+In-Reply-To: <7236f382d72130f2afbbe8940e72cc67e5c6dce0.camel@kernel.org>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Qian Cai <cai@lca.pw>
-Cc: Michael Ellerman <mpe@ellerman.id.au>, Peter Zijlstra <peterz@infradead.org>, bvanassche@acm.org, arnd@arndb.de, kvm-ppc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>
+To: Jeff Layton <jlayton@kernel.org>
+Cc: Al Viro <viro@zeniv.linux.org.uk>, "J. Bruce Fields" <bfields@fieldses.org>, Arnd Bergmann <arnd@arndb.de>, David Howells <dhowells@redhat.com>, Shuah Khan <shuah@kernel.org>, Shuah Khan <skhan@linuxfoundation.org>, Ingo Molnar <mingo@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Christian Brauner <christian@brauner.io>, Eric Biederman <ebiederm@xmission.com>, Andy Lutomirski <luto@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Alexei Starovoitov <ast@kernel.org>, Kees Cook <keescook@chromium.org>, Jann Horn <jannh@google.com>, Tycho Andersen <tycho@tycho.ws>, David Drysdale <drysdale@google.com>, Chanho Min <chanho.min@lge.com>, Oleg Nesterov <oleg@redhat.com>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Alexander
 List-Id: linux-arch.vger.kernel.org
 
 
-* Qian Cai <cai@lca.pw> wrote:
+--gzznbyzuni6ynbc5
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+Content-Transfer-Encoding: quoted-printable
 
-> I thought about making it a bool in the first place, but since all 
-> other similar helpers (arch_is_kernel_initmem_freed(), 
-> arch_is_kernel_text(), arch_is_kernel_data() etc) could be bool too but 
-> are not, I kept arch_is_bss_hole() just to be “int” for consistent.
-> 
-> Although then there is is_kernel_rodata() which is bool. I suppose I’ll 
-> change arch_is_bss_hole() to bool, and then could have a follow-up 
-> patch to covert all similar helpers to return boo instead.
+On 2019-09-07, Jeff Layton <jlayton@kernel.org> wrote:
+> On Thu, 2019-09-05 at 06:19 +1000, Aleksa Sarai wrote:
+> > + * @flags: O_* flags.
+> > + * @mode: O_CREAT/O_TMPFILE file mode.
+> > + * @upgrade_mask: UPGRADE_* flags (to restrict O_PATH re-opening).
+> > + * @resolve: RESOLVE_* flags.
+> > + */
+> > +struct open_how {
+> > +	__u32 flags;
+> > +	union {
+> > +		__u16 mode;
+> > +		__u16 upgrade_mask;
+> > +	};
+> > +	__u16 resolve;
+> > +};
+> > +
+> > +#define OPEN_HOW_SIZE_VER0	8 /* sizeof first published struct */
+> > +
+>=20
+> Hmm, there is no version field. When you want to expand this in the
+> future, what is the plan? Add a new flag to indicate that it's some
+> length?
 
-Sounds good to me.
+The "version number" is the size of the struct. Any extensions we make
+are appended to the struct (openat2 now takes a size_t argument), and
+the new copy_struct_{to,from}_user() helpers handle all of the
+permutations of {old,new} kernel and {old,new} user space.
 
-Thanks,
+This is how clone3(), sched_[gs]etattr() and perf_event_open() all
+operate (all of the sigset syscalls operate similarly but don't
+gracefully handle different kernel vintages -- you just get -EINVAL).
 
-	Ingo
+--=20
+Aleksa Sarai
+Senior Software Engineer (Containers)
+SUSE Linux GmbH
+<https://www.cyphar.com/>
+
+--gzznbyzuni6ynbc5
+Content-Type: application/pgp-signature; name="signature.asc"
+
+-----BEGIN PGP SIGNATURE-----
+
+iHUEABYIAB0WIQSxZm6dtfE8gxLLfYqdlLljIbnQEgUCXXUrMAAKCRCdlLljIbnQ
+EgC+AQCVKXVqUiPLaSjLjt+ByWrSsopM/OM3NwCHHZ5oD+CB1gD/cSuQohVmXskg
+v8dQLpd9K1QW//8GG3Aa/FRHhqPAfAU=
+=G4Hw
+-----END PGP SIGNATURE-----
+
+--gzznbyzuni6ynbc5--
