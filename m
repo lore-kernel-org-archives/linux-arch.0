@@ -1,67 +1,35 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH 2/2] ipc: fix sparc64 ipc() wrapper
-Date: Sat, 7 Sep 2019 21:49:53 +0200
-Message-ID: <CAK8P3a3KkH3MeU4H0SJmrs-jQ9ZA5HksG2uGDfe-=NTXh1UeHQ@mail.gmail.com>
-References: <20190905152155.1392871-1-arnd@arndb.de>
- <20190905152155.1392871-2-arnd@arndb.de>
+From: Ingo Molnar <mingo@kernel.org>
+Subject: Re: [PATCH v2] powerpc/lockdep: fix a false positive warning
+Date: Sun, 8 Sep 2019 10:32:58 +0200
+Message-ID: <20190908083257.GA126088@gmail.com>
+References: <20190906231754.830-1-cai@lca.pw>
+ <20190907070505.GA88784@gmail.com>
+ <420D09F4-FC19-421C-AE46-4B2A9157FAE3@lca.pw>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
-Return-path: <y2038-bounces@lists.linaro.org>
-In-Reply-To: <20190905152155.1392871-2-arnd@arndb.de>
-List-Unsubscribe: <https://lists.linaro.org/mailman/options/y2038>,
- <mailto:y2038-request@lists.linaro.org?subject=unsubscribe>
-List-Archive: <http://lists.linaro.org/pipermail/y2038/>
-List-Post: <mailto:y2038@lists.linaro.org>
-List-Help: <mailto:y2038-request@lists.linaro.org?subject=help>
-List-Subscribe: <https://lists.linaro.org/mailman/listinfo/y2038>,
- <mailto:y2038-request@lists.linaro.org?subject=subscribe>
-Errors-To: y2038-bounces@lists.linaro.org
-Sender: "Y2038" <y2038-bounces@lists.linaro.org>
-To: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, "David S. Miller" <davem@davemloft.net>, Arnd Bergmann <arnd@arndb.de>, "Eric W. Biederman" <ebiederm@xmission.com>, Deepa Dinamani <deepa.kernel@gmail.com>, Christian Brauner <christian@brauner.io>, Manfred Spraul <manfred@colorfullife.com>, Davidlohr Bueso <dave@stgolabs.net>
-Cc: linux-arch <linux-arch@vger.kernel.org>, y2038 Mailman List <y2038@lists.linaro.org>, Linux API <linux-api@vger.kernel.org>, "# 3.4.x" <stable@vger.kernel.org>, Dominik Brodowski <linux@dominikbrodowski.net>, sparclinux <sparclinux@vger.kernel.org>, Matt Turner <mattst88@gmail.com>, Anatolij Gustschin <agust@denx.de>
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 8bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <420D09F4-FC19-421C-AE46-4B2A9157FAE3@lca.pw>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Qian Cai <cai@lca.pw>
+Cc: Michael Ellerman <mpe@ellerman.id.au>, Peter Zijlstra <peterz@infradead.org>, bvanassche@acm.org, arnd@arndb.de, kvm-ppc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>
 List-Id: linux-arch.vger.kernel.org
 
-T24gVGh1LCBTZXAgNSwgMjAxOSBhdCA1OjI0IFBNIEFybmQgQmVyZ21hbm4gPGFybmRAYXJuZGIu
-ZGU+IHdyb3RlOgoKPiBkaWZmIC0tZ2l0IGEvYXJjaC9zcGFyYy9rZXJuZWwvc3lzX3NwYXJjXzY0
-LmMgYi9hcmNoL3NwYXJjL2tlcm5lbC9zeXNfc3BhcmNfNjQuYwo+IGluZGV4IGNjYzg4OTI2YmMw
-MC4uNWFkMDQ5NGRmMzY3IDEwMDY0NAo+IC0tLSBhL2FyY2gvc3BhcmMva2VybmVsL3N5c19zcGFy
-Y182NC5jCj4gKysrIGIvYXJjaC9zcGFyYy9rZXJuZWwvc3lzX3NwYXJjXzY0LmMKPiBAQCAtMzQw
-LDIxICszNDAsMjEgQEAgU1lTQ0FMTF9ERUZJTkU2KHNwYXJjX2lwYywgdW5zaWduZWQgaW50LCBj
-YWxsLCBpbnQsIGZpcnN0LCB1bnNpZ25lZCBsb25nLCBzZWNvbmQKPiAgICAgICAgIGlmIChjYWxs
-IDw9IFNFTVRJTUVET1ApIHsKPiAgICAgICAgICAgICAgICAgc3dpdGNoIChjYWxsKSB7Cj4gICAg
-ICAgICAgICAgICAgIGNhc2UgU0VNT1A6Cj4gLSAgICAgICAgICAgICAgICAgICAgICAgZXJyID0g
-c3lzX3NlbXRpbWVkb3AoZmlyc3QsIHB0ciwKPiAtICAgICAgICAgICAgICAgICAgICAgICAgICAg
-ICAgICAgICAgICAgICAgICAodW5zaWduZWQgaW50KXNlY29uZCwgTlVMTCk7Cj4gKyAgICAgICAg
-ICAgICAgICAgICAgICAgZXJyID0ga3N5c19zZW10aW1lZG9wKGZpcnN0LCBwdHIsCj4gKyAgICAg
-ICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICh1bnNpZ25lZCBpbnQpc2Vj
-b25kLCBOVUxMKTsKPiAgICAgICAgICAgICAgICAgICAgICAgICBnb3RvIG91dDsKClRoZSB6ZXJv
-LWRheSBib3QgZm91bmQgYSBsaW5rIGVycm9yIGluIHNwYXJjNjQgYWxsbm9jb25maWc6CgogICBh
-cmNoL3NwYXJjL2tlcm5lbC9zeXNfc3BhcmNfNjQubzogSW4gZnVuY3Rpb24gYF9fc2Vfc3lzX3Nw
-YXJjX2lwYyc6Cj4+IHN5c19zcGFyY182NC5jOigudGV4dCsweDcyNCk6IHVuZGVmaW5lZCByZWZl
-cmVuY2UgdG8gYGtzeXNfc2VtdGltZWRvcCcKPj4gc3lzX3NwYXJjXzY0LmM6KC50ZXh0KzB4NzZj
-KTogdW5kZWZpbmVkIHJlZmVyZW5jZSB0byBga3N5c19vbGRfbXNnY3RsJwo+PiBzeXNfc3BhcmNf
-NjQuYzooLnRleHQrMHg3YTgpOiB1bmRlZmluZWQgcmVmZXJlbmNlIHRvIGBrc3lzX3NlbWdldCcK
-Pj4gc3lzX3NwYXJjXzY0LmM6KC50ZXh0KzB4N2M4KTogdW5kZWZpbmVkIHJlZmVyZW5jZSB0byBg
-a3N5c19vbGRfc2VtY3RsJwo+PiBzeXNfc3BhcmNfNjQuYzooLnRleHQrMHg3ZTQpOiB1bmRlZmlu
-ZWQgcmVmZXJlbmNlIHRvIGBrc3lzX21zZ3NuZCcKPj4gc3lzX3NwYXJjXzY0LmM6KC50ZXh0KzB4
-N2ZjKTogdW5kZWZpbmVkIHJlZmVyZW5jZSB0byBga3N5c19zaG1nZXQnCj4+IHN5c19zcGFyY182
-NC5jOigudGV4dCsweDgwOCk6IHVuZGVmaW5lZCByZWZlcmVuY2UgdG8gYGtzeXNfc2htZHQnCiAg
-IHN5c19zcGFyY182NC5jOigudGV4dCsweDgyOCk6IHVuZGVmaW5lZCByZWZlcmVuY2UgdG8gYGtz
-eXNfc2VtdGltZWRvcCcKPj4gc3lzX3NwYXJjXzY0LmM6KC50ZXh0KzB4ODQ0KTogdW5kZWZpbmVk
-IHJlZmVyZW5jZSB0byBga3N5c19vbGRfc2htY3RsJwo+PiBzeXNfc3BhcmNfNjQuYzooLnRleHQr
-MHg4NTgpOiB1bmRlZmluZWQgcmVmZXJlbmNlIHRvIGBrc3lzX21zZ2dldCcKPj4gc3lzX3NwYXJj
-XzY0LmM6KC50ZXh0KzB4ODZjKTogdW5kZWZpbmVkIHJlZmVyZW5jZSB0byBga3N5c19tc2dyY3Yn
-CgpJJ3ZlIGFkZGVkIHRoaXMgaHVuayB0byBteSBwYXRjaCBhbmQgcGxhbiB0byBzZW5kIGJvdGgg
-Zml4ZXMgdG8gTGludXMKaW4gdGhlIG5leHQgZmV3IGRheXMsIGFmdGVyIEkgZ2V0IGEgcG9zaXRp
-dmUgcmVwb3J0IGZyb20gdGhlIGJvdCBhcyB3ZWxsOgoKLS0tIGEvYXJjaC9zcGFyYy9rZXJuZWwv
-c3lzX3NwYXJjXzY0LmMKKysrIGIvYXJjaC9zcGFyYy9rZXJuZWwvc3lzX3NwYXJjXzY0LmMKQEAg
-LTMzNiw2ICszMzYsOSBAQCBTWVNDQUxMX0RFRklORTYoc3BhcmNfaXBjLCB1bnNpZ25lZCBpbnQs
-IGNhbGwsCmludCwgZmlyc3QsIHVuc2lnbmVkIGxvbmcsIHNlY29uZAogewogICAgICAgIGxvbmcg
-ZXJyOwoKKyAgICAgICBpZiAoIUlTX0VOQUJMRUQoQ09ORklHX1NZU1ZJUEMpKQorICAgICAgICAg
-ICAgICAgcmV0dXJuIC1FTk9TWVM7CisKICAgICAgICAvKiBObyBuZWVkIGZvciBiYWNrd2FyZCBj
-b21wYXRpYmlsaXR5LiBXZSBjYW4gc3RhcnQgZnJlc2guLi4gKi8KCiAgICAgICAgaWYgKGNhbGwg
-PD0gU0VNVElNRURPUCkgewogICAgICAgICAgICAgICAgc3dpdGNoIChjYWxsKSB7Cl9fX19fX19f
-X19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fClkyMDM4IG1haWxpbmcgbGlz
-dApZMjAzOEBsaXN0cy5saW5hcm8ub3JnCmh0dHBzOi8vbGlzdHMubGluYXJvLm9yZy9tYWlsbWFu
-L2xpc3RpbmZvL3kyMDM4Cg==
+
+* Qian Cai <cai@lca.pw> wrote:
+
+> I thought about making it a bool in the first place, but since all 
+> other similar helpers (arch_is_kernel_initmem_freed(), 
+> arch_is_kernel_text(), arch_is_kernel_data() etc) could be bool too but 
+> are not, I kept arch_is_bss_hole() just to be “int” for consistent.
+> 
+> Although then there is is_kernel_rodata() which is bool. I suppose I’ll 
+> change arch_is_bss_hole() to bool, and then could have a follow-up 
+> patch to covert all similar helpers to return boo instead.
+
+Sounds good to me.
+
+Thanks,
+
+	Ingo
