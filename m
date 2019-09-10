@@ -1,29 +1,42 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:39472 "EHLO mail.kernel.org"
+Received: from ozlabs.org ([203.11.71.1]:39241 "EHLO ozlabs.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726735AbfIJLzG (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 10 Sep 2019 07:55:06 -0400
-Subject: Re: [GIT PULL] ipc: fix regressions from y2038 patches
-From: pr-tracker-bot@kernel.org
-In-Reply-To: <CAK8P3a1Q0ec50n2ueWDKHirpem+SQvsv3sYXzw9EFRqXiUqxUg@mail.gmail.com>
-References: <CAK8P3a1Q0ec50n2ueWDKHirpem+SQvsv3sYXzw9EFRqXiUqxUg@mail.gmail.com>
-Message-ID: <156811650600.2184.136295943395140110.pr-tracker-bot@kernel.org>
-Date: Tue, 10 Sep 2019 11:55:06 +0000
+        id S2387967AbfIJOOd (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 10 Sep 2019 10:14:33 -0400
+From: Michael Ellerman <mpe@ellerman.id.au>
+Subject: Re: [PATCH v3] powerpc/lockdep: fix a false positive warning
+In-Reply-To: <1568039433-10176-1-git-send-email-cai@lca.pw>
+References: <1568039433-10176-1-git-send-email-cai@lca.pw>
+Date: Wed, 11 Sep 2019 00:14:34 +1000
+Message-ID: <87pnk8z19x.fsf@mpe.ellerman.id.au>
+MIME-Version: 1.0
+Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, y2038 Mailman List <y2038@lists.linaro.org>, linux-arch <linux-arch@vger.kernel.org>, David Miller <davem@davemloft.net>, sparclinux <sparclinux@vger.kernel.org>, Matt Turner <mattst88@gmail.com>, Anatoly Pugachev <matorola@gmail.com>, Vincent Chen <deanbo422@gmail.com>, Guo Ren <guoren@kernel.org>, Stafford Horne <shorne@gmail.com>, Davidlohr Bueso <dave@stgolabs.net>, Manfred Spraul <manfred@colorfullife.com>, Waiman Long <longman@redhat.com>, Thomas Gleixner <tglx@linutronix.de>
-Message-ID: <20190910115506.hnmRlfG3xu4vQH1XruK7WzwR3vksPn71tWNQyFmrJRg@z>
+To: Qian Cai <cai@lca.pw>
+Cc: benh@kernel.crashing.org, paulus@samba.org, mingo@kernel.org, peterz@infradead.org, bvanassche@acm.org, arnd@arndb.de, kvm-ppc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20190910141434.UXONFJKzldN9o7884ptMlSDL7hCvMibJ5cO42ZRUCNU@z>
 
-The pull request you sent on Tue, 10 Sep 2019 11:49:00 +0200:
+Hi Qian,
 
-> git://git.kernel.org/pub/scm/linux/kernel/git/arnd/asm-generic.git tags/ipc-fixes
+Sorry I haven't replied sooner, I've been travelling.
 
-has been merged into torvalds/linux.git:
-https://git.kernel.org/torvalds/c/3120b9a6a3f7487f96af7bd634ec49c87ef712ab
+Qian Cai <cai@lca.pw> writes:
+> The commit 108c14858b9e ("locking/lockdep: Add support for dynamic
+> keys") introduced a boot warning on powerpc below, because since the
+> commit 2d4f567103ff ("KVM: PPC: Introduce kvm_tmp framework") adds
+> kvm_tmp[] into the .bss section and then free the rest of unused spaces
+> back to the page allocator.
 
-Thank you!
+Thanks for debugging this, but I'd like to fix it differently.
 
--- 
-Deet-doot-dot, I am a bot.
-https://korg.wiki.kernel.org/userdoc/prtracker
+kvm_tmp has caused trouble before, with kmemleak, and it can also cause
+trouble with STRICT_KERNEL_RWX, so I'd like to change how it's done,
+rather than doing more hacks for it.
+
+It should just be a page in text that we use if needed, and don't free,
+which should avoid all these problems.
+
+I'll try and get that done and posted soon.
+
+cheers
