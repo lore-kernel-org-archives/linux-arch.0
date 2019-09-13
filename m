@@ -1,142 +1,253 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:47930 "EHLO foss.arm.com"
+Received: from foss.arm.com ([217.140.110.172]:47858 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S2389336AbfIMSU7 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 13 Sep 2019 14:20:59 -0400
+        id S2389336AbfIMSUv (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 13 Sep 2019 14:20:51 -0400
 From: Cristian Marussi <cristian.marussi@arm.com>
-Subject: [RFC PATCH v2 05/12] arm64: smp: use generic SMP stop common code
-Date: Fri, 13 Sep 2019 19:19:46 +0100
-Message-ID: <20190913181953.45748-6-cristian.marussi@arm.com>
+Subject: [RFC PATCH v2 02/12] smp: unify crash_ and smp_send_stop() logic
+Date: Fri, 13 Sep 2019 19:19:43 +0100
+Message-ID: <20190913181953.45748-3-cristian.marussi@arm.com>
 In-Reply-To: <20190913181953.45748-1-cristian.marussi@arm.com>
 References: <20190913181953.45748-1-cristian.marussi@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
 Cc: linux-arch@vger.kernel.org, mark.rutland@arm.com, peterz@infradead.org, catalin.marinas@arm.com, takahiro.akashi@linaro.org, james.morse@arm.com, hidehiro.kawai.ez@hitachi.com, tglx@linutronix.de, will@kernel.org, dave.martin@arm.com, linux-arm-kernel@lists.infradead.org, mingo@redhat.com, x86@kernel.org, dzickus@redhat.com, ehabkost@redhat.com, linux@armlinux.org.uk, davem@davemloft.net, sparclinux@vger.kernel.org, hch@infradead.org
-Message-ID: <20190913181946.bDzReRgUKE6T-HJGOdq6_7yLoL-HOwNaemvHEkwh978@z>
+Message-ID: <20190913181943.l5rrvVe1CbVE-uXZ2mPZWOkCsJjRKGiAZlUtQ3RMyKQ@z>
 
-Make arm64 use the generic SMP-stop logic provided by common code
-unified smp_send_stop() function.
+crash_smp_send_stop() logic was fairly similar to smp_send_stop():
+a lot of logic and code was duplicated between the two code paths and
+across a few different architectures.
 
-arm64 smp_send_stop() logic had a bug in it: it failed to consider the
-online status of the calling CPU when evaluating if any stop message
-needed to be sent to other CPus at all: this resulted, on a 2-CPUs
-system, in the failure to stop all cpus if one paniced while starting
-up, leaving such system in an unexpected lively state.
+Unify this underlying common logic into the existing SMP common stop
+code: use a common workhorse function for both paths to perform the
+common tasks while taking care to propagate to the underlying
+architecture code the intent of the stop operation: a simple stop or
+a crash dump stop.
 
-[root@arch ~]# echo 1 > /sys/devices/system/cpu/cpu1/online
-[root@arch ~]# [  152.583368] ------------[ cut here ]------------
-[  152.583872] kernel BUG at arch/arm64/kernel/cpufeature.c:852!
-[  152.584693] Internal error: Oops - BUG: 0 [#1] PREEMPT SMP
-[  152.585228] Modules linked in:
-[  152.586040] CPU: 1 PID: 0 Comm: swapper/1 Not tainted 5.3.0-rc5-00001-gcabd12118c4a-dirty #2
-[  152.586218] Hardware name: Foundation-v8A (DT)
-[  152.586478] pstate: 000001c5 (nzcv dAIF -PAN -UAO)
-[  152.587260] pc : has_cpuid_feature+0x35c/0x360
-[  152.587398] lr : verify_local_elf_hwcaps+0x6c/0xf0
-[  152.587520] sp : ffff0000118bbf60
-[  152.587605] x29: ffff0000118bbf60 x28: 0000000000000000
-[  152.587784] x27: 0000000000000000 x26: 0000000000000000
-[  152.587882] x25: ffff00001167a010 x24: ffff0000112f59f8
-[  152.587992] x23: 0000000000000000 x22: 0000000000000000
-[  152.588085] x21: ffff0000112ea018 x20: ffff000010fe5518
-[  152.588180] x19: ffff000010ba3f30 x18: 0000000000000036
-[  152.588285] x17: 0000000000000000 x16: 0000000000000000
-[  152.588380] x15: 0000000000000000 x14: ffff80087a821210
-[  152.588481] x13: 0000000000000000 x12: 0000000000000000
-[  152.588599] x11: 0000000000000080 x10: 00400032b5503510
-[  152.588709] x9 : 0000000000000000 x8 : ffff000010b93204
-[  152.588810] x7 : 00000000800001d8 x6 : 0000000000000005
-[  152.588910] x5 : 0000000000000000 x4 : 0000000000000000
-[  152.589021] x3 : 0000000000000000 x2 : 0000000000008000
-[  152.589121] x1 : 0000000000180480 x0 : 0000000000180480
-[  152.589379] Call trace:
-[  152.589646]  has_cpuid_feature+0x35c/0x360
-[  152.589763]  verify_local_elf_hwcaps+0x6c/0xf0
-[  152.589858]  check_local_cpu_capabilities+0x88/0x118
-[  152.589968]  secondary_start_kernel+0xc4/0x168
-[  152.590530] Code: d53801e0 17ffff58 d5380600 17ffff56 (d4210000)
-[  152.592215] ---[ end trace 80ea98416149c87e ]---
-[  152.592734] Kernel panic - not syncing: Attempted to kill the idle task!
-[  152.593173] Kernel Offset: disabled
-[  152.593501] CPU features: 0x0004,20c02008
-[  152.593678] Memory Limit: none
-[  152.594208] ---[ end Kernel panic - not syncing: Attempted to kill the idle
-task! ]---
-[root@arch ~]# bash: echo: write error: Input/output error
-[root@arch ~]#
-[root@arch ~]#
-[root@arch ~]# echo HELO
-HELO
+Relocate the __weak crash_smp_send_stop() function from panic.c to smp.c,
+since it is the crash dump entry point for the crash stop process and now
+calls into this new common logic (only if this latter is enabled by
+ARCH_USE_COMMON_SMP_STOP=y).
 
-Get rid of such bug, switching arm64 to use the common SMP stop code.
+Introduce a few more helpers so that the architectures willing to use
+the common code logic can provide their arch-specific bits to handle
+the differences between a stop and a crash stop; architectures can
+anyway decide to override as a whole the common logic providing their
+own custom solution in crash_smp_send_stop() (as it was before).
 
-Reported-by: Dave Martin <Dave.Martin@arm.com>
+Provide also a new common code method to inquiry on the outcome of an
+ongoing crash_stop procedure: smp_crash_stop_failed().
+
 Signed-off-by: Cristian Marussi <cristian.marussi@arm.com>
 ---
 v1 --> v2
-- now selecting arch/Kconfig ARCH_USE_COMMON_SMP_STOP
-- added attempt_num arch_smp_stop_call() helper
+- using new CONFIG_USE_COMMON_SMP_STOP
+- added arch_smp_cpus_crash_complete()
 ---
- arch/arm64/Kconfig      |  1 +
- arch/arm64/kernel/smp.c | 29 ++++++-----------------------
- 2 files changed, 7 insertions(+), 23 deletions(-)
+ include/linux/smp.h | 34 +++++++++++++++++++++++
+ kernel/panic.c      | 26 -----------------
+ kernel/smp.c        | 68 ++++++++++++++++++++++++++++++++++++++++++---
+ 3 files changed, 98 insertions(+), 30 deletions(-)
 
-diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
-index 3adcec05b1f6..33f88381702b 100644
---- a/arch/arm64/Kconfig
-+++ b/arch/arm64/Kconfig
-@@ -67,6 +67,7 @@ config ARM64
- 	select ARCH_USE_CMPXCHG_LOCKREF
- 	select ARCH_USE_QUEUED_RWLOCKS
- 	select ARCH_USE_QUEUED_SPINLOCKS
-+	select ARCH_USE_COMMON_SMP_STOP
- 	select ARCH_SUPPORTS_MEMORY_FAILURE
- 	select ARCH_SUPPORTS_ATOMIC_RMW
- 	select ARCH_SUPPORTS_INT128 if GCC_VERSION >= 50000 || CC_IS_CLANG
-diff --git a/arch/arm64/kernel/smp.c b/arch/arm64/kernel/smp.c
-index 018a33e01b0e..3e87fdbb9f74 100644
---- a/arch/arm64/kernel/smp.c
-+++ b/arch/arm64/kernel/smp.c
-@@ -953,33 +953,16 @@ void tick_broadcast(const struct cpumask *mask)
- }
+diff --git a/include/linux/smp.h b/include/linux/smp.h
+index 381a14bfcd96..0f95bbd2cb5c 100644
+--- a/include/linux/smp.h
++++ b/include/linux/smp.h
+@@ -130,8 +130,36 @@ extern void arch_smp_stop_call(cpumask_t *cpus);
+  * the local CPU once the other CPUs have been successfully stopped.
+  */
+ void arch_smp_cpus_stop_complete(void);
++
++/*
++ * An Architecture CAN also provide the arch_smp_cpus_crash_complete()
++ * dedicated helper, to perform any final arch-specific operation on
++ * the local CPU once the other CPUs have been successfully crash stopped.
++ * When not overridden by the user, this defaults to call straight away
++ * arch_smp_cpus_stop_complete()
++ */
++void arch_smp_cpus_crash_complete(void);
++
++/*
++ * An Architecture CAN additionally provide the arch_smp_crash_call()
++ * helper which implements the arch-specific crash dump related operations.
++ *
++ * If such arch wants to fully support crash dump, this MUST be provided;
++ * when not provided the crash dump procedure will fallback to behave like
++ * a normal stop. (no saved regs, no arch-specific features disabled)
++ */
++extern void arch_smp_crash_call(cpumask_t *cpus);
++
++/* Helper to query the outcome of an ongoing crash_stop operation */
++bool smp_crash_stop_failed(void);
  #endif
  
--void smp_send_stop(void)
-+void arch_smp_cpus_stop_complete(void)
- {
--	unsigned long timeout;
--
--	if (num_online_cpus() > 1) {
--		cpumask_t mask;
--
--		cpumask_copy(&mask, cpu_online_mask);
--		cpumask_clear_cpu(smp_processor_id(), &mask);
--
--		if (system_state <= SYSTEM_RUNNING)
--			pr_crit("SMP: stopping secondary CPUs\n");
--		smp_cross_call(&mask, IPI_CPU_STOP);
--	}
--
--	/* Wait up to one second for other CPUs to stop */
--	timeout = USEC_PER_SEC;
--	while (num_online_cpus() > 1 && timeout--)
--		udelay(1);
--
--	if (num_online_cpus() > 1)
--		pr_warning("SMP: failed to stop secondary CPUs %*pbl\n",
--			   cpumask_pr_args(cpu_online_mask));
--
- 	sdei_mask_local_cpu();
++/*
++ * stops all CPUs but the current one propagating to all other CPUs
++ * the information that a crash_kexec is ongoing:
++ */
++void crash_smp_send_stop(void);
++
+ /*
+  * sends a 'reschedule' event to another CPU:
+  */
+@@ -195,6 +223,12 @@ static inline int get_boot_cpu_id(void)
+ 
+ static inline void smp_send_stop(void) { }
+ 
++static inline void crash_smp_send_stop(void) { }
++
++#ifdef CONFIG_USE_COMMON_SMP_STOP
++static inline bool smp_crash_stop_failed(void) { }
++#endif
++
+ /*
+  *	These macros fold the SMP functionality into a single CPU system
+  */
+diff --git a/kernel/panic.c b/kernel/panic.c
+index 057540b6eee9..bc0dbf9c9b75 100644
+--- a/kernel/panic.c
++++ b/kernel/panic.c
+@@ -86,32 +86,6 @@ void __weak nmi_panic_self_stop(struct pt_regs *regs)
+ 	panic_smp_self_stop();
  }
  
-+void arch_smp_stop_call(cpumask_t *cpus, unsigned int __unused)
+-/*
+- * Stop other CPUs in panic.  Architecture dependent code may override this
+- * with more suitable version.  For example, if the architecture supports
+- * crash dump, it should save registers of each stopped CPU and disable
+- * per-CPU features such as virtualization extensions.
+- */
+-void __weak crash_smp_send_stop(void)
+-{
+-	static int cpus_stopped;
+-
+-	/*
+-	 * This function can be called twice in panic path, but obviously
+-	 * we execute this only once.
+-	 */
+-	if (cpus_stopped)
+-		return;
+-
+-	/*
+-	 * Note smp_send_stop is the usual smp shutdown function, which
+-	 * unfortunately means it may not be hardened to work in a panic
+-	 * situation.
+-	 */
+-	smp_send_stop();
+-	cpus_stopped = 1;
+-}
+-
+ atomic_t panic_cpu = ATOMIC_INIT(PANIC_CPU_INVALID);
+ 
+ /*
+diff --git a/kernel/smp.c b/kernel/smp.c
+index 72f99bf13fd0..b05d2648a168 100644
+--- a/kernel/smp.c
++++ b/kernel/smp.c
+@@ -820,8 +820,14 @@ int smp_call_on_cpu(unsigned int cpu, int (*func)(void *), void *par, bool phys)
+ EXPORT_SYMBOL_GPL(smp_call_on_cpu);
+ 
+ #ifdef CONFIG_USE_COMMON_SMP_STOP
++
+ void __weak arch_smp_cpus_stop_complete(void) { }
+ 
++void __weak arch_smp_cpus_crash_complete(void)
 +{
-+	smp_cross_call(cpus, IPI_CPU_STOP);
++	arch_smp_cpus_stop_complete();
 +}
 +
- #ifdef CONFIG_KEXEC_CORE
- void crash_smp_send_stop(void)
+ static inline bool any_other_cpus_online(cpumask_t *mask,
+ 					 unsigned int this_cpu_id)
  {
+@@ -831,6 +837,12 @@ static inline bool any_other_cpus_online(cpumask_t *mask,
+ 	return !cpumask_empty(mask);
+ }
+ 
++void __weak arch_smp_crash_call(cpumask_t *cpus)
++{
++	pr_debug("SMP: Using generic %s() as SMP crash call.\n", __func__);
++	arch_smp_stop_call(cpus);
++}
++
+ /*
+  * This centralizes the common logic to:
+  *
+@@ -842,7 +854,7 @@ static inline bool any_other_cpus_online(cpumask_t *mask,
+  *  - wait for the stop operation to be completed across all involved CPUs
+  *    monitoring the cpu_online_mask
+  */
+-void smp_send_stop(void)
++static inline void __smp_send_stop_all(bool reason_crash)
+ {
+ 	unsigned int this_cpu_id;
+ 	cpumask_t mask;
+@@ -855,8 +867,11 @@ void smp_send_stop(void)
+ 
+ 		if (system_state <= SYSTEM_RUNNING)
+ 			pr_crit("stopping secondary CPUs\n");
+-		arch_smp_stop_call(&mask);
+-
++		/* smp and crash arch-backends helpers are kept distinct */
++		if (!reason_crash)
++			arch_smp_stop_call(&mask);
++		else
++			arch_smp_crash_call(&mask);
+ 		/*
+ 		 * Defaults to wait up to one second for other CPUs to stop;
+ 		 * architectures can modify the default timeout or request
+@@ -881,6 +896,51 @@ void smp_send_stop(void)
+ 				cpumask_pr_args(cpu_online_mask));
+ 	}
+ 	/* Perform final (possibly arch-specific) work on this CPU */
+-	arch_smp_cpus_stop_complete();
++	if (!reason_crash)
++		arch_smp_cpus_stop_complete();
++	else
++		arch_smp_cpus_crash_complete();
++}
++
++void smp_send_stop(void)
++{
++	__smp_send_stop_all(false);
+ }
++
++bool __weak smp_crash_stop_failed(void)
++{
++	return (num_online_cpus() > cpu_online(smp_processor_id()));
++}
++#endif
++
++/*
++ * Stop other CPUs while passing down the additional information that a
++ * crash_kexec is ongoing: it's up to the architecture implementation
++ * decide what to do.
++ *
++ * For example, Architectures supporting crash dump should provide
++ * specialized support for saving registers and disabling per-CPU features
++ * like virtualization extensions.
++ *
++ * Behaviour in the CONFIG_USE_COMMON_SMP_STOP=n case is preserved
++ * as it was before.
++ */
++void __weak crash_smp_send_stop(void)
++{
++	static int cpus_stopped;
++
++	/*
++	 * This function can be called twice in panic path, but obviously
++	 * we execute this only once.
++	 */
++	if (cpus_stopped)
++		return;
++
++#ifdef CONFIG_USE_COMMON_SMP_STOP
++	__smp_send_stop_all(true);
++#else
++	smp_send_stop();
+ #endif
++
++	cpus_stopped = 1;
++}
 -- 
 2.17.1
