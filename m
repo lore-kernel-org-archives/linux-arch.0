@@ -1,89 +1,28 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:47808 "EHLO foss.arm.com"
+Received: from foss.arm.com ([217.140.110.172]:47930 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S2389336AbfIMSUq (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 13 Sep 2019 14:20:46 -0400
+        id S2389336AbfIMSU7 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 13 Sep 2019 14:20:59 -0400
 From: Cristian Marussi <cristian.marussi@arm.com>
-Subject: [RFC PATCH v2 00/12] Unify SMP stop generic logic to common code
-Date: Fri, 13 Sep 2019 19:19:41 +0100
-Message-ID: <20190913181953.45748-1-cristian.marussi@arm.com>
+Subject: [RFC PATCH v2 05/12] arm64: smp: use generic SMP stop common code
+Date: Fri, 13 Sep 2019 19:19:46 +0100
+Message-ID: <20190913181953.45748-6-cristian.marussi@arm.com>
+In-Reply-To: <20190913181953.45748-1-cristian.marussi@arm.com>
+References: <20190913181953.45748-1-cristian.marussi@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
 Cc: linux-arch@vger.kernel.org, mark.rutland@arm.com, peterz@infradead.org, catalin.marinas@arm.com, takahiro.akashi@linaro.org, james.morse@arm.com, hidehiro.kawai.ez@hitachi.com, tglx@linutronix.de, will@kernel.org, dave.martin@arm.com, linux-arm-kernel@lists.infradead.org, mingo@redhat.com, x86@kernel.org, dzickus@redhat.com, ehabkost@redhat.com, linux@armlinux.org.uk, davem@davemloft.net, sparclinux@vger.kernel.org, hch@infradead.org
-Message-ID: <20190913181941.08v2hluZnRM19558uSFYZ0AVMwpnbBp-zahb0kNub4A@z>
+Message-ID: <20190913181946.bDzReRgUKE6T-HJGOdq6_7yLoL-HOwNaemvHEkwh978@z>
 
-Hi all,
+Make arm64 use the generic SMP-stop logic provided by common code
+unified smp_send_stop() function.
 
-the logic underlying SMP stop and kexec crash procedures, beside containing
-some arch-specific bits, is mostly generic and common across all archs:
-despite this fact, such logic is now scattered across all architectures and
-on some of them is flawed, in such a way that, under some specific
-conditions, you can end up with a CPU left still running after a panic and
-possibly lost across a subsequent kexec crash reboot. [1]
-
-Beside the flaws on some archs, there is anyway lots of code duplication,
-so this patch series attempts to move into common code all the generic SMP
-stop and crash logic, fixing observed issues, and leaving only the arch
-specific bits inside properly provided arch-specific helpers.
-
-An architecture willing to rely on this SMP common logic has to define its
-own helpers and set CONFIG_ARCH_USE_COMMON_SMP_STOP=y.
-
-This series wire this up for arm64, x86, arm, sparc64.
-
-Behaviour is not changed for architectures not adopting this new common
-logic.
-
-In v2 the SMP common stop/crash code is generalized a bit more to address
-the needs of the newly ported architectures (x86, arm, sparc64).
-
-Tested as follows:
-
-- arm64:
- 1. boot/reboot/emergency reboot
- 2. panic on a starting CPU within a 2 CPUs system (freezing properly)
- 3. kexec reboot after a panic like 2. (not losing any CPU on reboot)
- 4. kexec reboot after a panic like 2. and a simultaneous reboot
-    (instrumenting code to delay the stop messages transmission
-     to have time to inject a reboot -f)
-
-- x86:
- 1. boot/reboot/emergency reboot/emergency reboot with VMX enabled
- 2. panic on a starting CPU within a 2 CPUs system
- 2. panic sysrq 4-CPus
- 3. kexec reboot after a panic
-
-- arm:
-1. boot
-
-- sparc64:
-1. build
-
-A couple more of still to be done potential enhancements have been noted
-on specific commits, and a lot more of testing remains surely to be done
-as of now, but, in the context of this RFC, any thoughts on this approach
-in general ?
-
-Thanks,
-
-Cristian
-
-
-Changes:
---------
-
-v1-->v2:
-- rebased on v5.3-rc8
-- moved common Kconfig bits to arch/Kconfig
-- extended SMP common stop/crash generic code to address new architectures
-  needs: custom wait/timeouts, max_retries, attempt numbers.
-- ported x86 to SMP common stop/crash code
-- ported arm to SMP common stop/crash code
-- ported sparc64 to SMP common stop code
-
-
-[1]
+arm64 smp_send_stop() logic had a bug in it: it failed to consider the
+online status of the calling CPU when evaluating if any stop message
+needed to be sent to other CPus at all: this resulted, on a 2-CPUs
+system, in the failure to stop all cpus if one paniced while starting
+up, leaving such system in an unexpected lively state.
 
 [root@arch ~]# echo 1 > /sys/devices/system/cpu/cpu1/online
 [root@arch ~]# [  152.583368] ------------[ cut here ]------------
@@ -122,47 +61,82 @@ v1-->v2:
 [  152.593173] Kernel Offset: disabled
 [  152.593501] CPU features: 0x0004,20c02008
 [  152.593678] Memory Limit: none
-[  152.594208] ---[ end Kernel panic - not syncing: Attempted to kill the idle task! ]---
+[  152.594208] ---[ end Kernel panic - not syncing: Attempted to kill the idle
+task! ]---
 [root@arch ~]# bash: echo: write error: Input/output error
 [root@arch ~]#
 [root@arch ~]#
 [root@arch ~]# echo HELO
 HELO
 
+Get rid of such bug, switching arm64 to use the common SMP stop code.
 
-Cristian Marussi (12):
-  smp: add generic SMP-stop support to common code
-  smp: unify crash_ and smp_send_stop() logic
-  smp: coordinate concurrent crash/smp stop calls
-  smp: address races of starting CPUs while stopping
-  arm64: smp: use generic SMP stop common code
-  arm64: smp: use SMP crash-stop common code
-  arm64: smp: add arch specific cpu parking helper
-  x86: smp: use generic SMP stop common code
-  x86: smp: use SMP crash-stop common code
-  arm: smp: use generic SMP stop common code
-  arm: smp: use SMP crash-stop common code
-  sparc64: smp: use generic SMP stop common code
+Reported-by: Dave Martin <Dave.Martin@arm.com>
+Signed-off-by: Cristian Marussi <cristian.marussi@arm.com>
+---
+v1 --> v2
+- now selecting arch/Kconfig ARCH_USE_COMMON_SMP_STOP
+- added attempt_num arch_smp_stop_call() helper
+---
+ arch/arm64/Kconfig      |  1 +
+ arch/arm64/kernel/smp.c | 29 ++++++-----------------------
+ 2 files changed, 7 insertions(+), 23 deletions(-)
 
- arch/Kconfig                    |   7 ++
- arch/arm/Kconfig                |   1 +
- arch/arm/kernel/machine_kexec.c |  27 ++---
- arch/arm/kernel/smp.c           |  18 +---
- arch/arm64/Kconfig              |   1 +
- arch/arm64/include/asm/smp.h    |   2 -
- arch/arm64/kernel/smp.c         | 127 +++++++-----------------
- arch/sparc/Kconfig              |   1 +
- arch/sparc/kernel/smp_64.c      |  15 +--
- arch/x86/Kconfig                |   1 +
- arch/x86/include/asm/reboot.h   |   2 +
- arch/x86/include/asm/smp.h      |   6 --
- arch/x86/kernel/crash.c         |  27 +----
- arch/x86/kernel/reboot.c        |  50 ++++++----
- arch/x86/kernel/smp.c           |  98 ++++++++----------
- include/linux/smp.h             | 109 ++++++++++++++++++++
- kernel/panic.c                  |  26 -----
- kernel/smp.c                    | 170 ++++++++++++++++++++++++++++++++
- 18 files changed, 418 insertions(+), 270 deletions(-)
-
+diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
+index 3adcec05b1f6..33f88381702b 100644
+--- a/arch/arm64/Kconfig
++++ b/arch/arm64/Kconfig
+@@ -67,6 +67,7 @@ config ARM64
+ 	select ARCH_USE_CMPXCHG_LOCKREF
+ 	select ARCH_USE_QUEUED_RWLOCKS
+ 	select ARCH_USE_QUEUED_SPINLOCKS
++	select ARCH_USE_COMMON_SMP_STOP
+ 	select ARCH_SUPPORTS_MEMORY_FAILURE
+ 	select ARCH_SUPPORTS_ATOMIC_RMW
+ 	select ARCH_SUPPORTS_INT128 if GCC_VERSION >= 50000 || CC_IS_CLANG
+diff --git a/arch/arm64/kernel/smp.c b/arch/arm64/kernel/smp.c
+index 018a33e01b0e..3e87fdbb9f74 100644
+--- a/arch/arm64/kernel/smp.c
++++ b/arch/arm64/kernel/smp.c
+@@ -953,33 +953,16 @@ void tick_broadcast(const struct cpumask *mask)
+ }
+ #endif
+ 
+-void smp_send_stop(void)
++void arch_smp_cpus_stop_complete(void)
+ {
+-	unsigned long timeout;
+-
+-	if (num_online_cpus() > 1) {
+-		cpumask_t mask;
+-
+-		cpumask_copy(&mask, cpu_online_mask);
+-		cpumask_clear_cpu(smp_processor_id(), &mask);
+-
+-		if (system_state <= SYSTEM_RUNNING)
+-			pr_crit("SMP: stopping secondary CPUs\n");
+-		smp_cross_call(&mask, IPI_CPU_STOP);
+-	}
+-
+-	/* Wait up to one second for other CPUs to stop */
+-	timeout = USEC_PER_SEC;
+-	while (num_online_cpus() > 1 && timeout--)
+-		udelay(1);
+-
+-	if (num_online_cpus() > 1)
+-		pr_warning("SMP: failed to stop secondary CPUs %*pbl\n",
+-			   cpumask_pr_args(cpu_online_mask));
+-
+ 	sdei_mask_local_cpu();
+ }
+ 
++void arch_smp_stop_call(cpumask_t *cpus, unsigned int __unused)
++{
++	smp_cross_call(cpus, IPI_CPU_STOP);
++}
++
+ #ifdef CONFIG_KEXEC_CORE
+ void crash_smp_send_stop(void)
+ {
 -- 
 2.17.1
