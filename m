@@ -1,81 +1,54 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:42482 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1725850AbfIPJiM (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 16 Sep 2019 05:38:12 -0400
-Subject: Re: [RFC PATCH v2 00/12] Unify SMP stop generic logic to common code
-References: <20190913181953.45748-1-cristian.marussi@arm.com>
- <20190913182713.GB13294@shell.armlinux.org.uk>
-From: Cristian Marussi <cristian.marussi@arm.com>
-Message-ID: <81e7e4da-93a3-c234-6ed6-0d709289776c@arm.com>
-Date: Mon, 16 Sep 2019 10:38:07 +0100
+Received: from mail-qk1-f194.google.com ([209.85.222.194]:32811 "EHLO
+        mail-qk1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1725912AbfIPTPV (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 16 Sep 2019 15:15:21 -0400
 MIME-Version: 1.0
-In-Reply-To: <20190913182713.GB13294@shell.armlinux.org.uk>
-Content-Type: text/plain; charset=utf-8
-Content-Language: en-US
-Content-Transfer-Encoding: 7bit
+From: Arnd Bergmann <arnd@arndb.de>
+Date: Mon, 16 Sep 2019 21:15:04 +0200
+Message-ID: <CAK8P3a0N9+-fmmg=oPVsKmoNb0vAYsASOneXUYBVAp8nyJEwdQ@mail.gmail.com>
+Subject: [GIT PULL] asm-generic changes for v5.4
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Russell King - ARM Linux admin <linux@armlinux.org.uk>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mark.rutland@arm.com, peterz@infradead.org, catalin.marinas@arm.com, takahiro.akashi@linaro.org, james.morse@arm.com, hidehiro.kawai.ez@hitachi.com, tglx@linutronix.de, will@kernel.org, dave.martin@arm.com, linux-arm-kernel@lists.infradead.org, mingo@redhat.com, x86@kernel.org, dzickus@redhat.com, ehabkost@redhat.com, davem@davemloft.net, sparclinux@vger.kernel.org, hch@infradead.org
-Message-ID: <20190916093807.WO14unIUXphPAOltbGyMruDRoraPjNIyzOUhVwkbYM4@z>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: linux-arch <linux-arch@vger.kernel.org>, Christoph Hellwig <hch@infradead.org>, Denis Efremov <efremov@linux.com>, Nicolas Pitre <nico@fluxnic.net>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
+Message-ID: <20190916191504.vKvu-TJ8f9c66OtdlYCa4Y6DMHR24tIZsv2QvYXxMhI@z>
 
-On 13/09/2019 19:27, Russell King - ARM Linux admin wrote:
-> On Fri, Sep 13, 2019 at 07:19:41PM +0100, Cristian Marussi wrote:
->> Tested as follows:
->>
->> - arm:
->> 1. boot
-> 
-> So this basically means the code paths you're touching are untested on
-> ARM... given that, and the variety of systems we have out there, why
-> should the patches touching ARM be taken?
-> 
+The following changes since commit a55aa89aab90fae7c815b0551b07be37db359d76:
 
-Yes, but sincerely it's an RFC, so I was not expecting any change to be picked up
-by anyone at this stage: the expectation was to have some feedback on the general
-approach used in the common code side of the series (patches 01-02-03-04):
+  Linux 5.3-rc6 (2019-08-25 12:01:23 -0700)
 
-is it worth ? is it over-engineered ? is it badly coded ? is it complete crap ?
+are available in the Git repository at:
 
-In fact in the cover letter I stated:
+  git://git.kernel.org/pub/scm/linux/kernel/git/arnd/asm-generic.git
+tags/asm-generic-5.4
 
-> A couple more of still to be done potential enhancements have been noted
-> on specific commits, and a lot more of testing remains surely to be done
-> as of now, but, in the context of this RFC, any thoughts on this approach
-> in general ?
+for you to fetch changes up to 9b87647c665dbf93173ca2f43986902b59dfbbba:
 
-I didn't want to port and test a lot of architectures before having some basic
-feedback: in fact I did port more than one arch just to verify if they could
-easily all fit into the new common code logic/layout I introduced, and, also,
-to show that it could be generally useful to more than on arch. (as asked in V1)
+  asm-generic: add unlikely to default BUG_ON(x) (2019-09-01 23:53:39 +0200)
 
-As you noticed, though, I did certainly test as of now a lot more on some of them:
+----------------------------------------------------------------
+asm-generic changes for v5.4
 
-- arm64: because is where the initial bug was observed, so I had to verify if all
-  of the above at least also fixed something at the end
+Here are three small cleanup patches for the include/asm-generic
+directory. Christoph removes the __ioremap as part of a cleanup,
+Nico improves the constant do_div() optimization, and Denis
+changes BUG_ON() to be consistent with other implementations.
 
-- x86: because the original x86 SMP stop code differs more than other archs and so
-  it was a good challenge to see if it could fit inside the new common SMP code logic
-  (and in fact I had to extend the common framework to fit also x86 SMP stop needs)
+Signed-off-by: Arnd Bergmann <arnd@arndb.de>
 
-Moreover within this series structure it is not mandatory for all archs to switch to the
-new common logic: if not deemed important they can simply stick to their old code, while
-other archs can switch to it.
+----------------------------------------------------------------
+Christoph Hellwig (1):
+      asm-generic: don't provide __ioremap
 
-So testing and porting to further archs is certainly work in progress at this time,
-but in this RFC stage, I could be wrong, but I considered the arch-patches in this series more
-as an example to showcase the usefulness (or not) of the series related to the common code
-changes: I did not extensively tested all archs to the their full extent, so more fixes
-could come in V3 (if ever) together with more testing and archs.
+Denis Efremov (1):
+      asm-generic: add unlikely to default BUG_ON(x)
 
-> Given that you're an ARM Ltd employee, I'm sure you can find 32-bit
-> systems to test - or have ARM Ltd got rid of everything that isn't
-> 64-bit? ;)
-> 
+Nicolas Pitre (1):
+      __div64_const32(): improve the generic C version
 
-well...worst case there's always Amazon anyway ... :D
-
-Cheers
-
-Cristian
+ include/asm-generic/bug.h   |  2 +-
+ include/asm-generic/div64.h | 16 ++++++++++------
+ include/asm-generic/io.h    |  9 ---------
+ 3 files changed, 11 insertions(+), 16 deletions(-)
