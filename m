@@ -1,76 +1,96 @@
-From: Cristian Marussi <cristian.marussi@arm.com>
-Subject: Re: [RFC PATCH v2 00/12] Unify SMP stop generic logic to common code
-Date: Mon, 16 Sep 2019 10:38:07 +0100
-Message-ID: <81e7e4da-93a3-c234-6ed6-0d709289776c@arm.com>
-References: <20190913181953.45748-1-cristian.marussi@arm.com>
- <20190913182713.GB13294@shell.armlinux.org.uk>
+From: Mike Rapoport <rppt@kernel.org>
+Subject: Re: [PATCH] arm64: use generic free_initrd_mem()
+Date: Mon, 16 Sep 2019 16:55:43 +0300
+Message-ID: <20190916135542.GC5196@rapoport-lnx>
+References: <1568618488-19055-1-git-send-email-rppt@kernel.org>
+ <0ba20aa4-d2dd-2263-6b5f-16a5c8a39f67@redhat.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20190913182713.GB13294@shell.armlinux.org.uk>
-Content-Language: en-US
+Content-Disposition: inline
+In-Reply-To: <0ba20aa4-d2dd-2263-6b5f-16a5c8a39f67@redhat.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Russell King - ARM Linux admin <linux@armlinux.org.uk>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mark.rutland@arm.com, peterz@infradead.org, catalin.marinas@arm.com, takahiro.akashi@linaro.org, james.morse@arm.com, hidehiro.kawai.ez@hitachi.com, tglx@linutronix.de, will@kernel.org, dave.martin@arm.com, linux-arm-kernel@lists.infradead.org, mingo@redhat.com, x86@kernel.org, dzickus@redhat.com, ehabkost@redhat.com, davem@davemloft.net, sparclinux@vger.kernel.org, hch@infradead.org
+To: Laura Abbott <labbott@redhat.com>
+Cc: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Mark Rutland <mark.rutland@arm.com>, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Mike Rapoport <rppt@linux.ibm.com>, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On 13/09/2019 19:27, Russell King - ARM Linux admin wrote:
-> On Fri, Sep 13, 2019 at 07:19:41PM +0100, Cristian Marussi wrote:
->> Tested as follows:
->>
->> - arm:
->> 1. boot
+(added linux-arch)
+
+On Mon, Sep 16, 2019 at 08:23:29AM -0400, Laura Abbott wrote:
+> On 9/16/19 8:21 AM, Mike Rapoport wrote:
+> >From: Mike Rapoport <rppt@linux.ibm.com>
+> >
+> >arm64 calls memblock_free() for the initrd area in its implementation of
+> >free_initrd_mem(), but this call has no actual effect that late in the boot
+> >process. By the time initrd is freed, all the reserved memory is managed by
+> >the page allocator and the memblock.reserved is unused, so there is no
+> >point to update it.
+> >
 > 
-> So this basically means the code paths you're touching are untested on
-> ARM... given that, and the variety of systems we have out there, why
-> should the patches touching ARM be taken?
+> People like to use memblock for keeping track of memory even if it has no
+> actual effect. We made this change explicitly (see 05c58752f9dc ("arm64: To remove
+> initrd reserved area entry from memblock") That said, moving to the generic
+> APIs would be nice. Maybe we can find another place to update the accounting?
+
+Any other place in arch/arm64 would make it messy because it would have to
+duplicate keepinitrd logic.
+
+We could put the memblock_free() in the generic free_initrd_mem() with
+something like:
+
+diff --git a/init/initramfs.c b/init/initramfs.c
+index c47dad0..403c6a0 100644
+--- a/init/initramfs.c
++++ b/init/initramfs.c
+@@ -531,6 +531,10 @@ void __weak free_initrd_mem(unsigned long start,
+unsigned long end)
+ {
+        free_reserved_area((void *)start, (void *)end, POISON_FREE_INITMEM,
+                        "initrd");
++
++#ifdef CONFIG_ARCH_KEEP_MEMBLOCK
++       memblock_free(__virt_to_phys(start), end - start);
++#endif
+ }
+ 
+ #ifdef CONFIG_KEXEC_CORE
+
+
+Then powerpc and s390 folks will also be able to track the initrd memory :)
+
+> >Without the memblock_free() call the only difference between arm64 and the
+> >generic versions of free_initrd_mem() is the memory poisoning. Switching
+> >arm64 to the generic version will enable the poisoning.
+> >
+> >Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
+> >---
+> >
+> >I've boot tested it on qemu and I've checked that kexec works.
+> >
+> >  arch/arm64/mm/init.c | 8 --------
+> >  1 file changed, 8 deletions(-)
+> >
+> >diff --git a/arch/arm64/mm/init.c b/arch/arm64/mm/init.c
+> >index f3c7952..8ad2934 100644
+> >--- a/arch/arm64/mm/init.c
+> >+++ b/arch/arm64/mm/init.c
+> >@@ -567,14 +567,6 @@ void free_initmem(void)
+> >  	unmap_kernel_range((u64)__init_begin, (u64)(__init_end - __init_begin));
+> >  }
+> >-#ifdef CONFIG_BLK_DEV_INITRD
+> >-void __init free_initrd_mem(unsigned long start, unsigned long end)
+> >-{
+> >-	free_reserved_area((void *)start, (void *)end, 0, "initrd");
+> >-	memblock_free(__virt_to_phys(start), end - start);
+> >-}
+> >-#endif
+> >-
+> >  /*
+> >   * Dump out memory limit information on panic.
+> >   */
+> >
 > 
 
-Yes, but sincerely it's an RFC, so I was not expecting any change to be picked up
-by anyone at this stage: the expectation was to have some feedback on the general
-approach used in the common code side of the series (patches 01-02-03-04):
-
-is it worth ? is it over-engineered ? is it badly coded ? is it complete crap ?
-
-In fact in the cover letter I stated:
-
-> A couple more of still to be done potential enhancements have been noted
-> on specific commits, and a lot more of testing remains surely to be done
-> as of now, but, in the context of this RFC, any thoughts on this approach
-> in general ?
-
-I didn't want to port and test a lot of architectures before having some basic
-feedback: in fact I did port more than one arch just to verify if they could
-easily all fit into the new common code logic/layout I introduced, and, also,
-to show that it could be generally useful to more than on arch. (as asked in V1)
-
-As you noticed, though, I did certainly test as of now a lot more on some of them:
-
-- arm64: because is where the initial bug was observed, so I had to verify if all
-  of the above at least also fixed something at the end
-
-- x86: because the original x86 SMP stop code differs more than other archs and so
-  it was a good challenge to see if it could fit inside the new common SMP code logic
-  (and in fact I had to extend the common framework to fit also x86 SMP stop needs)
-
-Moreover within this series structure it is not mandatory for all archs to switch to the
-new common logic: if not deemed important they can simply stick to their old code, while
-other archs can switch to it.
-
-So testing and porting to further archs is certainly work in progress at this time,
-but in this RFC stage, I could be wrong, but I considered the arch-patches in this series more
-as an example to showcase the usefulness (or not) of the series related to the common code
-changes: I did not extensively tested all archs to the their full extent, so more fixes
-could come in V3 (if ever) together with more testing and archs.
-
-> Given that you're an ARM Ltd employee, I'm sure you can find 32-bit
-> systems to test - or have ARM Ltd got rid of everything that isn't
-> 64-bit? ;)
-> 
-
-well...worst case there's always Amazon anyway ... :D
-
-Cheers
-
-Cristian
+-- 
+Sincerely yours,
+Mike.
