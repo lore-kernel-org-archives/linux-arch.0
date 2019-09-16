@@ -1,96 +1,49 @@
-From: Mike Rapoport <rppt@kernel.org>
-Subject: Re: [PATCH] arm64: use generic free_initrd_mem()
-Date: Mon, 16 Sep 2019 16:55:43 +0300
-Message-ID: <20190916135542.GC5196@rapoport-lnx>
-References: <1568618488-19055-1-git-send-email-rppt@kernel.org>
- <0ba20aa4-d2dd-2263-6b5f-16a5c8a39f67@redhat.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: [GIT PULL] asm-generic changes for v5.4
+Date: Mon, 16 Sep 2019 21:15:04 +0200
+Message-ID: <CAK8P3a0N9+-fmmg=oPVsKmoNb0vAYsASOneXUYBVAp8nyJEwdQ@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <0ba20aa4-d2dd-2263-6b5f-16a5c8a39f67@redhat.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Laura Abbott <labbott@redhat.com>
-Cc: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Mark Rutland <mark.rutland@arm.com>, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Mike Rapoport <rppt@linux.ibm.com>, linux-arch@vger.kernel.org
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: linux-arch <linux-arch@vger.kernel.org>, Christoph Hellwig <hch@infradead.org>, Denis Efremov <efremov@linux.com>, Nicolas Pitre <nico@fluxnic.net>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-(added linux-arch)
+The following changes since commit a55aa89aab90fae7c815b0551b07be37db359d76:
 
-On Mon, Sep 16, 2019 at 08:23:29AM -0400, Laura Abbott wrote:
-> On 9/16/19 8:21 AM, Mike Rapoport wrote:
-> >From: Mike Rapoport <rppt@linux.ibm.com>
-> >
-> >arm64 calls memblock_free() for the initrd area in its implementation of
-> >free_initrd_mem(), but this call has no actual effect that late in the boot
-> >process. By the time initrd is freed, all the reserved memory is managed by
-> >the page allocator and the memblock.reserved is unused, so there is no
-> >point to update it.
-> >
-> 
-> People like to use memblock for keeping track of memory even if it has no
-> actual effect. We made this change explicitly (see 05c58752f9dc ("arm64: To remove
-> initrd reserved area entry from memblock") That said, moving to the generic
-> APIs would be nice. Maybe we can find another place to update the accounting?
+  Linux 5.3-rc6 (2019-08-25 12:01:23 -0700)
 
-Any other place in arch/arm64 would make it messy because it would have to
-duplicate keepinitrd logic.
+are available in the Git repository at:
 
-We could put the memblock_free() in the generic free_initrd_mem() with
-something like:
+  git://git.kernel.org/pub/scm/linux/kernel/git/arnd/asm-generic.git
+tags/asm-generic-5.4
 
-diff --git a/init/initramfs.c b/init/initramfs.c
-index c47dad0..403c6a0 100644
---- a/init/initramfs.c
-+++ b/init/initramfs.c
-@@ -531,6 +531,10 @@ void __weak free_initrd_mem(unsigned long start,
-unsigned long end)
- {
-        free_reserved_area((void *)start, (void *)end, POISON_FREE_INITMEM,
-                        "initrd");
-+
-+#ifdef CONFIG_ARCH_KEEP_MEMBLOCK
-+       memblock_free(__virt_to_phys(start), end - start);
-+#endif
- }
- 
- #ifdef CONFIG_KEXEC_CORE
+for you to fetch changes up to 9b87647c665dbf93173ca2f43986902b59dfbbba:
 
+  asm-generic: add unlikely to default BUG_ON(x) (2019-09-01 23:53:39 +0200)
 
-Then powerpc and s390 folks will also be able to track the initrd memory :)
+----------------------------------------------------------------
+asm-generic changes for v5.4
 
-> >Without the memblock_free() call the only difference between arm64 and the
-> >generic versions of free_initrd_mem() is the memory poisoning. Switching
-> >arm64 to the generic version will enable the poisoning.
-> >
-> >Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
-> >---
-> >
-> >I've boot tested it on qemu and I've checked that kexec works.
-> >
-> >  arch/arm64/mm/init.c | 8 --------
-> >  1 file changed, 8 deletions(-)
-> >
-> >diff --git a/arch/arm64/mm/init.c b/arch/arm64/mm/init.c
-> >index f3c7952..8ad2934 100644
-> >--- a/arch/arm64/mm/init.c
-> >+++ b/arch/arm64/mm/init.c
-> >@@ -567,14 +567,6 @@ void free_initmem(void)
-> >  	unmap_kernel_range((u64)__init_begin, (u64)(__init_end - __init_begin));
-> >  }
-> >-#ifdef CONFIG_BLK_DEV_INITRD
-> >-void __init free_initrd_mem(unsigned long start, unsigned long end)
-> >-{
-> >-	free_reserved_area((void *)start, (void *)end, 0, "initrd");
-> >-	memblock_free(__virt_to_phys(start), end - start);
-> >-}
-> >-#endif
-> >-
-> >  /*
-> >   * Dump out memory limit information on panic.
-> >   */
-> >
-> 
+Here are three small cleanup patches for the include/asm-generic
+directory. Christoph removes the __ioremap as part of a cleanup,
+Nico improves the constant do_div() optimization, and Denis
+changes BUG_ON() to be consistent with other implementations.
 
--- 
-Sincerely yours,
-Mike.
+Signed-off-by: Arnd Bergmann <arnd@arndb.de>
+
+----------------------------------------------------------------
+Christoph Hellwig (1):
+      asm-generic: don't provide __ioremap
+
+Denis Efremov (1):
+      asm-generic: add unlikely to default BUG_ON(x)
+
+Nicolas Pitre (1):
+      __div64_const32(): improve the generic C version
+
+ include/asm-generic/bug.h   |  2 +-
+ include/asm-generic/div64.h | 16 ++++++++++------
+ include/asm-generic/io.h    |  9 ---------
+ 3 files changed, 11 insertions(+), 16 deletions(-)
