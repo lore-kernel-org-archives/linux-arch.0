@@ -1,81 +1,65 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from szxga04-in.huawei.com ([45.249.212.190]:2231 "EHLO huawei.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1727801AbfIQGZ5 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 17 Sep 2019 02:25:57 -0400
-Subject: Re: [PATCH v4 1/5] locking/qspinlock: Rename
- arch_mcs_spin_unlock_contended to arch_mcs_pass_lock and make it more generic
-References: <20190906142541.34061-1-alex.kogan@oracle.com>
- <20190906142541.34061-2-alex.kogan@oracle.com>
-From: Hanjun Guo <guohanjun@huawei.com>
-Message-ID: <22a45ca4-fcae-c805-596e-67f1809eb1dd@huawei.com>
-Date: Tue, 17 Sep 2019 14:25:45 +0800
+Received: from mail.kernel.org ([198.145.29.99]:56704 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726181AbfIQKpY (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 17 Sep 2019 06:45:24 -0400
+Date: Tue, 17 Sep 2019 11:45:19 +0100
+From: Will Deacon <will@kernel.org>
+Subject: Re: [breakage] panic() does not halt arm64 systems under certain
+ conditions
+Message-ID: <20190917104518.ovg6ivadyst7h76o@willie-the-truck>
+References: <BX1W47JXPMR8.58IYW53H6M5N@dragonstone>
 MIME-Version: 1.0
-In-Reply-To: <20190906142541.34061-2-alex.kogan@oracle.com>
-Content-Type: text/plain; charset="utf-8"
-Content-Language: en-US
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <BX1W47JXPMR8.58IYW53H6M5N@dragonstone>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Alex Kogan <alex.kogan@oracle.com>, linux@armlinux.org.uk, peterz@infradead.org, mingo@redhat.com, will.deacon@arm.com, arnd@arndb.de, longman@redhat.com, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, bp@alien8.de, hpa@zytor.com, x86@kernel.org, jglauber@marvell.com
-Cc: steven.sistare@oracle.com, daniel.m.jordan@oracle.com, dave.dice@oracle.com, rahul.x.yadav@oracle.com
-Message-ID: <20190917062545.S_hM_fDAR1f6Col7R0z7OBWVrtdZZWHCwui4yeqB_8Y@z>
+To: Xogium <contact@xogium.me>
+Cc: linux-arm-kernel@lists.infradead.org, tglx@linutronix.de, mingo@redhat.com, bp@alien8.de, gregkh@linuxfoundation.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux@armlinux.org.uk
+Message-ID: <20190917104519.qhPTdHSLxj7ocqvP2dsYRYkZ73LDqZ_ElC_UBGCXf4o@z>
 
-Hi Alex,
+Hi,
 
-On 2019/9/6 22:25, Alex Kogan wrote:
-> The new macro should accept the value to be stored into the lock argument
-> as another argument. This allows using the same macro in cases where the
-> value to be stored when passing the lock is different from 1.
-> 
-> Signed-off-by: Alex Kogan <alex.kogan@oracle.com>
-> Reviewed-by: Steve Sistare <steven.sistare@oracle.com>
-> ---
->  arch/arm/include/asm/mcs_spinlock.h | 4 ++--
->  kernel/locking/mcs_spinlock.h       | 6 +++---
->  kernel/locking/qspinlock.c          | 2 +-
->  3 files changed, 6 insertions(+), 6 deletions(-)
-> 
-> diff --git a/arch/arm/include/asm/mcs_spinlock.h b/arch/arm/include/asm/mcs_spinlock.h
-> index 529d2cf4d06f..f3f9efdcd2ca 100644
-> --- a/arch/arm/include/asm/mcs_spinlock.h
-> +++ b/arch/arm/include/asm/mcs_spinlock.h
-> @@ -14,9 +14,9 @@ do {									\
->  		wfe();							\
->  } while (0)								\
->  
-> -#define arch_mcs_spin_unlock_contended(lock)				\
-> +#define arch_mcs_pass_lock(lock, val)					\
+[Expanding CC list; original message is here:
+ https://lore.kernel.org/linux-arm-kernel/BX1W47JXPMR8.58IYW53H6M5N@dragonstone/]
 
-arch_mcs_spin_unlock_contended() has a matching function arch_mcs_spin_lock_contended(),
-please see include/asm-generic/mcs_spinlock.h, so if we update this function name,
-should we update the matching one as well? and update the relevant comments as well?
+On Mon, Sep 16, 2019 at 09:35:36PM -0400, Xogium wrote:
+> On arm64 in some situations userspace will continue running even after a
+> panic. This means any userspace watchdog daemon will continue pinging,
+> that service managers will keep running and displaying messages in certain
+> cases, and that it is possible to enter via ssh in the now unstable system
+> and to do almost anything except reboot/power off and etc. If
+> CONFIG_PREEMPT=n is set in the kernel's configuration, the issue is fixed.
+> I have reproduced the very same behavior with linux 4.19, 5.2 and 5.3. On
+> x86/x86_64 the issue does not seem to be present at all.
 
->  do {									\
-> -	smp_store_release(lock, 1);					\
-> +	smp_store_release((lock), (val));				\
->  	dsb_sev();							\
->  } while (0)
->  
-> diff --git a/kernel/locking/mcs_spinlock.h b/kernel/locking/mcs_spinlock.h
-> index 5e10153b4d3c..84327ca21650 100644
-> --- a/kernel/locking/mcs_spinlock.h
-> +++ b/kernel/locking/mcs_spinlock.h
-> @@ -41,8 +41,8 @@ do {									\
->   * operations in the critical section has been completed before
->   * unlocking.
->   */
-> -#define arch_mcs_spin_unlock_contended(l)				\
+I've managed to reproduce this under both 32-bit and 64-bit ARM kernels.
+The issue is that the infinite loop at the end of panic() can run with
+preemption enabled (particularly when invoking by echoing 'c' to
+/proc/sysrq-trigger), so we end up rescheduling user tasks. On x86, this
+doesn't happen because smp_send_stop() disables the local APIC in
+native_stop_other_cpus() and so interrupts are effectively masked while
+spinning.
 
-Before this line of the code, there is:
+A straightforward fix is to disable preemption explicitly on the panic()
+path (diff below), but I've expanded the cc list to see both what others
+think, but also in case smp_send_stop() is supposed to have the side-effect
+of disabling interrupt delivery for the local CPU.
 
-#ifndef arch_mcs_spin_lock_contended
+Will
 
-...
+--->8
 
-#define arch_mcs_spin_lock_contended(l)                 \
-
-So #ifndef should be updated too.
-
-Thanks
-Hanjun
+diff --git a/kernel/panic.c b/kernel/panic.c
+index 057540b6eee9..02d0de31c42d 100644
+--- a/kernel/panic.c
++++ b/kernel/panic.c
+@@ -179,6 +179,7 @@ void panic(const char *fmt, ...)
+	 * after setting panic_cpu) from invoking panic() again.
+	 */
+	local_irq_disable();
++	preempt_disable_notrace();
+ 
+	/*
+	 * It's possible to come here directly from a panic-assertion and
