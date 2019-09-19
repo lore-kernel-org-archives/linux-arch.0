@@ -1,76 +1,112 @@
 From: Paolo Bonzini <pbonzini@redhat.com>
-Subject: Re: [RFC patch 15/15] x86/kvm: Use GENERIC_EXIT_WORKPENDING
-Date: Thu, 19 Sep 2019 17:40:51 +0200
-Message-ID: <ef1145d8-01af-57d2-1065-cf12db16e422@redhat.com>
+Subject: Re: [RFC patch 14/15] workpending: Provide infrastructure for work
+ before entering a guest
+Date: Thu, 19 Sep 2019 17:40:01 +0200
+Message-ID: <0cc964dc-4d00-05ec-1ed1-f6cee7370d7b@redhat.com>
 References: <20190919150314.054351477@linutronix.de>
- <20190919150809.964620570@linutronix.de>
+ <20190919150809.860645841@linutronix.de>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: quoted-printable
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20190919150809.964620570@linutronix.de>
+In-Reply-To: <20190919150809.860645841@linutronix.de>
 Content-Language: en-US
 Sender: linux-kernel-owner@vger.kernel.org
 To: Thomas Gleixner <tglx@linutronix.de>, LKML <linux-kernel@vger.kernel.org>
 Cc: x86@kernel.org, Peter Zijlstra <peterz@infradead.org>, Andy Lutomirski <luto@kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Mark Rutland <mark.rutland@arm.com>, Marc Zyngier <maz@kernel.org>, kvm@vger.kernel.org, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On 19/09/19 17:03, Thomas Gleixner wrote:
-> Use the generic infrastructure to check for and handle pending work befor=
-e
-> entering into guest mode.
->=20
-> Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
+Quick API review before I dive into the implementation.
 
-Subject should be "x86/kvm: use exit_to_guestmode".
+On 19/09/19 17:03, Thomas Gleixner wrote:
+> +=09/*
+> +=09 * Before returning to guest mode handle all pending work
+> +=09 */
+> +=09if (ti_work & _TIF_SIGPENDING) {
+> +=09=09vcpu->run->exit_reason =3D KVM_EXIT_INTR;
+> +=09=09vcpu->stat.signal_exits++;
+> +=09=09return -EINTR;
+> +=09}
+> +
+> +=09if (ti_work & _TIF_NEED_RESCHED) {
+> +=09=09srcu_read_unlock(&kvm->srcu, vcpu->srcu_idx);
+> +=09=09schedule();
+> +=09=09vcpu->srcu_idx =3D srcu_read_lock(&kvm->srcu);
+> +=09}
+> +
+> +=09if (ti_work & _TIF_PATCH_PENDING) {
+> +=09=09srcu_read_unlock(&kvm->srcu, vcpu->srcu_idx);
+> +=09=09klp_update_patch_state(current);
+> +=09=09vcpu->srcu_idx =3D srcu_read_lock(&kvm->srcu);
+> +=09}
+> +
+> +=09if (ti_work & _TIF_NOTIFY_RESUME) {
+> +=09=09srcu_read_unlock(&kvm->srcu, vcpu->srcu_idx);
+> +=09=09clear_thread_flag(TIF_NOTIFY_RESUME);
+> +=09=09tracehook_notify_resume(NULL);
+> +=09=09vcpu->srcu_idx =3D srcu_read_lock(&kvm->srcu);
+> +=09}
+> +
+> +=09/* Any extra architecture specific work */
+> +=09return arch_exit_to_guestmode_work(kvm, vcpu, ti_work);
+> +}
+
+Perhaps, in virt/kvm/kvm_main.c:
+
+int kvm_exit_to_guestmode_work(struct kvm *kvm, struct kvm_vcpu *vcpu,
+=09=09=09=09unsigned long ti_work)
+{
+=09int r;
+
+=09/*
+=09 * Before returning to guest mode handle all pending work
+=09 */
+=09if (ti_work & _TIF_SIGPENDING) {
+=09=09vcpu->run->exit_reason =3D KVM_EXIT_INTR;
+=09=09vcpu->stat.signal_exits++;
+=09=09return -EINTR;
+=09}
+
+=09srcu_read_unlock(&kvm->srcu, vcpu->srcu_idx);
+=09core_exit_to_guestmode_work(ti_work);
+=09vcpu->srcu_idx =3D srcu_read_lock(&kvm->srcu);
+
+=09return r;
+}
+
+and in kernel/entry/common.c:
+
+int core_exit_to_guestmode_work(unsigned long ti_work)
+{
+=09/*
+=09 * Before returning to guest mode handle all pending work
+=09 */
+=09if (ti_work & _TIF_NEED_RESCHED)
+=09=09schedule();
+
+=09if (ti_work & _TIF_PATCH_PENDING)
+=09=09klp_update_patch_state(current);
+
+=09if (ti_work & _TIF_NOTIFY_RESUME) {
+=09=09clear_thread_flag(TIF_NOTIFY_RESUME);
+=09=09tracehook_notify_resume(NULL);
+=09}
+=09return arch_exit_to_guestmode_work(ti_work);
+}
+
+so that kernel/entry/ is not polluted with KVM structs and APIs.
+
+Perhaps even extract the body of core_exit_to_usermode_work's while loop
+to a separate function, and call it as
+
+=09core_exit_to_usermode_work_once(NULL,
+=09=09=09=09ti_work & EXIT_TO_GUESTMODE_WORK);
+
+from core_exit_to_guestmode_work.
+
+In general I don't mind having these exit_to_guestmode functions in
+kvm_host.h, and only having entry-common.h export EXIT_TO_GUESTMODE_WORK
+and ARCH_EXIT_TO_GUESTMODE_WORK.  Unless you had good reasons to do the
+opposite...
 
 Paolo
-
-> ---
->  arch/x86/kvm/x86.c |   17 +++++------------
->  1 file changed, 5 insertions(+), 12 deletions(-)
->=20
-> --- a/arch/x86/kvm/x86.c
-> +++ b/arch/x86/kvm/x86.c
-> @@ -52,6 +52,7 @@
->  #include <linux/irqbypass.h>
->  #include <linux/sched/stat.h>
->  #include <linux/sched/isolation.h>
-> +#include <linux/entry-common.h>
->  #include <linux/mem_encrypt.h>
-> =20
->  #include <trace/events/kvm.h>
-> @@ -7984,8 +7985,8 @@ static int vcpu_enter_guest(struct kvm_v
->  =09if (kvm_lapic_enabled(vcpu) && vcpu->arch.apicv_active)
->  =09=09kvm_x86_ops->sync_pir_to_irr(vcpu);
-> =20
-> -=09if (vcpu->mode =3D=3D EXITING_GUEST_MODE || kvm_request_pending(vcpu)
-> -=09    || need_resched() || signal_pending(current)) {
-> +=09if (vcpu->mode =3D=3D EXITING_GUEST_MODE || kvm_request_pending(vcpu)=
- ||
-> +=09    exit_to_guestmode_work_pending()) {
->  =09=09vcpu->mode =3D OUTSIDE_GUEST_MODE;
->  =09=09smp_wmb();
->  =09=09local_irq_enable();
-> @@ -8178,17 +8179,9 @@ static int vcpu_run(struct kvm_vcpu *vcp
-> =20
->  =09=09kvm_check_async_pf_completion(vcpu);
-> =20
-> -=09=09if (signal_pending(current)) {
-> -=09=09=09r =3D -EINTR;
-> -=09=09=09vcpu->run->exit_reason =3D KVM_EXIT_INTR;
-> -=09=09=09++vcpu->stat.signal_exits;
-> +=09=09r =3D exit_to_guestmode(kvm, vcpu);
-> +=09=09if (r)
->  =09=09=09break;
-> -=09=09}
-> -=09=09if (need_resched()) {
-> -=09=09=09srcu_read_unlock(&kvm->srcu, vcpu->srcu_idx);
-> -=09=09=09cond_resched();
-> -=09=09=09vcpu->srcu_idx =3D srcu_read_lock(&kvm->srcu);
-> -=09=09}
->  =09}
-> =20
->  =09srcu_read_unlock(&kvm->srcu, vcpu->srcu_idx);
->=20
->=20
