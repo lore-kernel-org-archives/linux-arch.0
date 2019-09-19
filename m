@@ -1,57 +1,76 @@
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: [RFC patch 00/15] entry: Provide generic implementation for host and
- guest entry/exit work
-Date: Thu, 19 Sep 2019 17:03:14 +0200
-Message-ID: <20190919150314.054351477@linutronix.de>
+From: Paolo Bonzini <pbonzini@redhat.com>
+Subject: Re: [RFC patch 15/15] x86/kvm: Use GENERIC_EXIT_WORKPENDING
+Date: Thu, 19 Sep 2019 17:40:51 +0200
+Message-ID: <ef1145d8-01af-57d2-1065-cf12db16e422@redhat.com>
+References: <20190919150314.054351477@linutronix.de>
+ <20190919150809.964620570@linutronix.de>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: quoted-printable
 Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20190919150809.964620570@linutronix.de>
+Content-Language: en-US
 Sender: linux-kernel-owner@vger.kernel.org
-To: LKML <linux-kernel@vger.kernel.org>
-Cc: x86@kernel.org, Peter Zijlstra <peterz@infradead.org>, Andy Lutomirski <luto@kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Mark Rutland <mark.rutland@arm.com>, Marc Zyngier <maz@kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, kvm@vger.kernel.org, linux-arch@vger.kernel.org
+To: Thomas Gleixner <tglx@linutronix.de>, LKML <linux-kernel@vger.kernel.org>
+Cc: x86@kernel.org, Peter Zijlstra <peterz@infradead.org>, Andy Lutomirski <luto@kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Mark Rutland <mark.rutland@arm.com>, Marc Zyngier <maz@kernel.org>, kvm@vger.kernel.org, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-When working on a way to move out the posix cpu timer expiry out of the
-timer interrupt context, I noticed that KVM is not handling pending task
-work before entering a guest. A quick hack was to add that to the x86 KVM
-handling loop. The discussion ended with a request to make this a generic
-infrastructure possible with also moving the per arch implementations of
-the enter from and return to user space handling generic.
+On 19/09/19 17:03, Thomas Gleixner wrote:
+> Use the generic infrastructure to check for and handle pending work befor=
+e
+> entering into guest mode.
+>=20
+> Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
 
-  https://lore.kernel.org/r/89E42BCC-47A8-458B-B06A-D6A20D20512C@amacapital.net
+Subject should be "x86/kvm: use exit_to_guestmode".
 
-You asked for it, so don't complain that you have to review it :)
+Paolo
 
-The series implements the syscall enter/exit and the general exit to
-userspace work handling along with the pre guest enter functionality.
-
-The series converts x86 and ARM64. x86 is fully tested including selftests
-etc. ARM64 is only compile tested for now as my only ARM64 testbox is not
-available right now.
-
-Thanks,
-
-	tglx
-
----
- /Makefile                               |    3 
- arch/Kconfig                            |    3 
- arch/arm64/Kconfig                      |    1 
- arch/arm64/include/asm/kvm_host.h       |    1 
- arch/arm64/kernel/entry.S               |   18 -
- arch/arm64/kernel/ptrace.c              |   65 ------
- arch/arm64/kernel/signal.c              |   45 ----
- arch/arm64/kernel/syscall.c             |   49 ----
- arch/x86/Kconfig                        |    1 
- arch/x86/entry/common.c                 |  265 +-------------------------
- arch/x86/entry/entry_32.S               |   13 -
- arch/x86/entry/entry_64.S               |   12 -
- arch/x86/entry/entry_64_compat.S        |   21 --
- arch/x86/include/asm/signal.h           |    1 
- arch/x86/include/asm/thread_info.h      |    9 
- arch/x86/kernel/signal.c                |    2 
- arch/x86/kvm/x86.c                      |   17 -
- b/arch/arm64/include/asm/entry-common.h |   76 +++++++
- b/arch/x86/include/asm/entry-common.h   |  104 ++++++++++
- b/include/linux/entry-common.h          |  324 ++++++++++++++++++++++++++++++++
- b/kernel/entry/common.c                 |  220 +++++++++++++++++++++
- kernel/Makefile                         |    1 
- 22 files changed, 776 insertions(+), 475 deletions(-)
+> ---
+>  arch/x86/kvm/x86.c |   17 +++++------------
+>  1 file changed, 5 insertions(+), 12 deletions(-)
+>=20
+> --- a/arch/x86/kvm/x86.c
+> +++ b/arch/x86/kvm/x86.c
+> @@ -52,6 +52,7 @@
+>  #include <linux/irqbypass.h>
+>  #include <linux/sched/stat.h>
+>  #include <linux/sched/isolation.h>
+> +#include <linux/entry-common.h>
+>  #include <linux/mem_encrypt.h>
+> =20
+>  #include <trace/events/kvm.h>
+> @@ -7984,8 +7985,8 @@ static int vcpu_enter_guest(struct kvm_v
+>  =09if (kvm_lapic_enabled(vcpu) && vcpu->arch.apicv_active)
+>  =09=09kvm_x86_ops->sync_pir_to_irr(vcpu);
+> =20
+> -=09if (vcpu->mode =3D=3D EXITING_GUEST_MODE || kvm_request_pending(vcpu)
+> -=09    || need_resched() || signal_pending(current)) {
+> +=09if (vcpu->mode =3D=3D EXITING_GUEST_MODE || kvm_request_pending(vcpu)=
+ ||
+> +=09    exit_to_guestmode_work_pending()) {
+>  =09=09vcpu->mode =3D OUTSIDE_GUEST_MODE;
+>  =09=09smp_wmb();
+>  =09=09local_irq_enable();
+> @@ -8178,17 +8179,9 @@ static int vcpu_run(struct kvm_vcpu *vcp
+> =20
+>  =09=09kvm_check_async_pf_completion(vcpu);
+> =20
+> -=09=09if (signal_pending(current)) {
+> -=09=09=09r =3D -EINTR;
+> -=09=09=09vcpu->run->exit_reason =3D KVM_EXIT_INTR;
+> -=09=09=09++vcpu->stat.signal_exits;
+> +=09=09r =3D exit_to_guestmode(kvm, vcpu);
+> +=09=09if (r)
+>  =09=09=09break;
+> -=09=09}
+> -=09=09if (need_resched()) {
+> -=09=09=09srcu_read_unlock(&kvm->srcu, vcpu->srcu_idx);
+> -=09=09=09cond_resched();
+> -=09=09=09vcpu->srcu_idx =3D srcu_read_lock(&kvm->srcu);
+> -=09=09}
+>  =09}
+> =20
+>  =09srcu_read_unlock(&kvm->srcu, vcpu->srcu_idx);
+>=20
+>=20
