@@ -1,8 +1,8 @@
 From: Thomas Gleixner <tglx@linutronix.de>
-Subject: [RFC patch 14/15] workpending: Provide infrastructure for work before
- entering a guest
-Date: Thu, 19 Sep 2019 17:03:28 +0200
-Message-ID: <20190919150809.860645841@linutronix.de>
+Subject: [RFC patch 13/15] arm64/entry: Move FPU restore out of
+ exit_to_usermode() loop
+Date: Thu, 19 Sep 2019 17:03:27 +0200
+Message-ID: <20190919150809.754111224@linutronix.de>
 References: <20190919150314.054351477@linutronix.de>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
@@ -12,153 +12,41 @@ To: LKML <linux-kernel@vger.kernel.org>
 Cc: x86@kernel.org, Peter Zijlstra <peterz@infradead.org>, Andy Lutomirski <luto@kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Mark Rutland <mark.rutland@arm.com>, Marc Zyngier <maz@kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, kvm@vger.kernel.org, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-Entering a guest is similar to exiting to user space. Pending work like
-handling signals, rescheduling, task work etc. needs to be handled before
-that.
-
-Provide generic infrastructure to avoid duplication of the same handling code
-all over the place.
-
-Update ARM64 struct kvm_vcpu_stat with a signal_exit member so the generic
-code compiles.
+Restoring the FPU is not required to be insided the loop. The final point
+to do that is before returning to user space. Move it there.
 
 Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
 ---
- arch/arm64/include/asm/kvm_host.h |    1 
- include/linux/entry-common.h      |   66 ++++++++++++++++++++++++++++++++++++++
- kernel/entry/common.c             |   44 +++++++++++++++++++++++++
- 3 files changed, 111 insertions(+)
+ arch/arm64/include/asm/entry-common.h |    9 +++------
+ 1 file changed, 3 insertions(+), 6 deletions(-)
 
---- a/arch/arm64/include/asm/kvm_host.h
-+++ b/arch/arm64/include/asm/kvm_host.h
-@@ -409,6 +409,7 @@ struct kvm_vcpu_stat {
- 	u64 wfi_exit_stat;
- 	u64 mmio_exit_user;
- 	u64 mmio_exit_kernel;
-+	u64 signal_exits;
- 	u64 exits;
- };
+--- a/arch/arm64/include/asm/entry-common.h
++++ b/arch/arm64/include/asm/entry-common.h
+@@ -7,8 +7,6 @@
  
---- a/include/linux/entry-common.h
-+++ b/include/linux/entry-common.h
-@@ -255,4 +255,70 @@ static inline void arch_syscall_exit_tra
- /* Common syscall exit function */
- void syscall_exit_to_usermode(struct pt_regs *regs, long syscall, long retval);
+ #include <asm/daifflags.h>
  
-+#if IS_ENABLED(CONFIG_KVM)
-+
-+#include <linux/kvm_host.h>
-+
-+#ifndef ARCH_EXIT_TO_GUESTMODE_WORK
-+# define ARCH_EXIT_TO_GUESTMODE_WORK	(0)
-+#endif
-+
-+#define EXIT_TO_GUESTMODE_WORK						\
-+	(_TIF_NEED_RESCHED | _TIF_SIGPENDING | _TIF_NOTIFY_RESUME |	\
-+	 ARCH_EXIT_TO_GUESTMODE_WORK)
-+
-+int core_exit_to_guestmode_work(struct kvm *kvm, struct kvm_vcpu *vcpu,
-+				unsigned long ti_work);
-+
-+/**
-+ * arch_exit_to_guestmode - Architecture specific exit to guest mode function
-+ * @kvm:	Pointer to the guest instance
-+ * @vcpu:	Pointer to current's VCPU data
-+ * @ti_work:	Cached TIF flags gathered in exit_to_guestmode()
-+ *
-+ * Invoked from core_exit_to_guestmode_work(). Can be replaced by
-+ * architecture specific code.
-+ */
-+static inline int arch_exit_to_guestmode(struct kvm *kvm, struct kvm_vcpu *vcpu,
-+					 unsigned long ti_work);
-+
-+#ifndef arch_exit_to_guestmode
-+static inline int arch_exit_to_guestmode(struct kvm *kvm, struct kvm_vcpu *vcpu,
-+					 unsigned long ti_work)
-+{
-+	return 0;
-+}
-+#endif
-+
-+/**
-+ * exit_to_guestmode - Check and handle pending work which needs to be
-+ *		       handled before returning to guest mode
-+ * @kvm:	Pointer to the guest instance
-+ * @vcpu:	Pointer to current's VCPU data
-+ *
-+ * Returns: 0 or an error code
-+ */
-+static inline int exit_to_guestmode(struct kvm *kvm, struct kvm_vcpu *vcpu)
-+{
-+	unsigned long ti_work = READ_ONCE(current_thread_info()->flags);
-+
-+	if (unlikely(ti_work & EXIT_TO_GUESTMODE_WORK))
-+		return core_exit_to_guestmode_work(kvm, vcpu, ti_work);
-+	return 0;
-+}
-+
-+
-+/**
-+ * _exit_to_guestmode_work_pending - Check if work is pending which needs to be
-+ *				     handled before returning to guest mode
-+ */
-+static inline bool exit_to_guestmode_work_pending(void)
-+{
-+	unsigned long ti_work = READ_ONCE(current_thread_info()->flags);
-+
-+	return !!(ti_work & EXIT_TO_GUESTMODE_WORK);
-+
-+}
-+#endif /* CONFIG_KVM */
-+
- #endif
---- a/kernel/entry/common.c
-+++ b/kernel/entry/common.c
-@@ -174,3 +174,47 @@ void syscall_exit_to_usermode(struct pt_
- 	do_exit_to_usermode(regs);
- #endif
+-#define ARCH_EXIT_TO_USERMODE_WORK	(_TIF_FOREIGN_FPSTATE)
+-
+ static inline void local_irq_enable_exit_to_user(unsigned long ti_work)
+ {
+ 	if (ti_work & _TIF_NEED_RESCHED)
+@@ -24,15 +22,14 @@ static inline void local_irq_disable_exi
  }
-+
-+#if IS_ENABLED(CONFIG_KVM)
-+int __weak arch_exit_to_guestmode_work(struct kvm *kvm, struct kvm_vcpu *vcpu,
-+				       unsigned long ti_work)
-+{
-+	return 0;
-+}
-+
-+int core_exit_to_guestmode_work(struct kvm *kvm, struct kvm_vcpu *vcpu,
-+				unsigned long ti_work)
-+{
-+	/*
-+	 * Before returning to guest mode handle all pending work
-+	 */
-+	if (ti_work & _TIF_SIGPENDING) {
-+		vcpu->run->exit_reason = KVM_EXIT_INTR;
-+		vcpu->stat.signal_exits++;
-+		return -EINTR;
-+	}
-+
-+	if (ti_work & _TIF_NEED_RESCHED) {
-+		srcu_read_unlock(&kvm->srcu, vcpu->srcu_idx);
-+		schedule();
-+		vcpu->srcu_idx = srcu_read_lock(&kvm->srcu);
-+	}
-+
-+	if (ti_work & _TIF_PATCH_PENDING) {
-+		srcu_read_unlock(&kvm->srcu, vcpu->srcu_idx);
-+		klp_update_patch_state(current);
-+		vcpu->srcu_idx = srcu_read_lock(&kvm->srcu);
-+	}
-+
-+	if (ti_work & _TIF_NOTIFY_RESUME) {
-+		srcu_read_unlock(&kvm->srcu, vcpu->srcu_idx);
-+		clear_thread_flag(TIF_NOTIFY_RESUME);
-+		tracehook_notify_resume(NULL);
-+		vcpu->srcu_idx = srcu_read_lock(&kvm->srcu);
-+	}
-+
-+	/* Any extra architecture specific work */
-+	return arch_exit_to_guestmode_work(kvm, vcpu, ti_work);
-+}
-+EXPORT_SYMBOL_GPL(core_exit_to_guestmode_work);
-+#endif
+ #define local_irq_disable_exit_to_user local_irq_disable_exit_to_user
+ 
+-static inline void arch_exit_to_usermode_work(struct pt_regs *regs,
+-					      unsigned long ti_work)
++static inline void arch_exit_to_usermode(struct pt_regs *regs,
++					 unsigned long ti_work)
+ {
+-	/* Must this be inside the work loop ? */
+ 	if (ti_work & _TIF_FOREIGN_FPSTATE)
+ 		fpsimd_restore_current_state();
+ 
+ }
+-#define arch_exit_to_usermode_work arch_exit_to_usermode_work
++#define arch_exit_to_usermode arch_exit_to_usermode
+ 
+ enum ptrace_syscall_dir {
+ 	PTRACE_SYSCALL_ENTER = 0,
