@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from Galois.linutronix.de ([193.142.43.55]:50065 "EHLO
+Received: from Galois.linutronix.de ([193.142.43.55]:50056 "EHLO
         Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S2390941AbfISPJw (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 19 Sep 2019 11:09:52 -0400
-Message-ID: <20190919150809.041298671@linutronix.de>
-Date: Thu, 19 Sep 2019 17:03:20 +0200
+        with ESMTP id S1732034AbfISPJv (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 19 Sep 2019 11:09:51 -0400
+Message-ID: <20190919150808.521907403@linutronix.de>
+Date: Thu, 19 Sep 2019 17:03:15 +0200
 From: Thomas Gleixner <tglx@linutronix.de>
-Subject: [RFC patch 06/15] x86/entry: Use generic syscall exit functionality
+Subject: [RFC patch 01/15] entry: Provide generic syscall entry functionality
 References: <20190919150314.054351477@linutronix.de>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
@@ -14,83 +14,208 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: LKML <linux-kernel@vger.kernel.org>
 Cc: x86@kernel.org, Peter Zijlstra <peterz@infradead.org>, Andy Lutomirski <luto@kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Mark Rutland <mark.rutland@arm.com>, Marc Zyngier <maz@kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, kvm@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20190919150320.0qs6c0110-_7Ck9YbKPFZjxKtVkELih8Pb2zklOuWH0@z>
+Message-ID: <20190919150315.6_LrXWtCxHvJPM9IqKA6LVxuE5Gd4njnJmS7TrMrzZQ@z>
 
-Replace the x86 variant with the generic version.
+On syscall entry certain work needs to be done conditionally like tracing,
+seccomp etc. This code is duplicated in all architectures.
+
+Provide a generic version.
 
 Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
 ---
- arch/x86/entry/common.c             |   44 ------------------------------------
- arch/x86/include/asm/entry-common.h |    2 +
- 2 files changed, 3 insertions(+), 43 deletions(-)
+ arch/Kconfig                 |    3 +
+ include/linux/entry-common.h |  122 +++++++++++++++++++++++++++++++++++++++++++
+ kernel/Makefile              |    1 
+ kernel/entry/Makefile        |    3 +
+ kernel/entry/common.c        |   33 +++++++++++
+ 5 files changed, 162 insertions(+)
 
---- a/arch/x86/entry/common.c
-+++ b/arch/x86/entry/common.c
-@@ -139,55 +139,13 @@ static void exit_to_usermode_loop(struct
- 	mds_user_clear_cpu_buffers();
- }
+--- a/arch/Kconfig
++++ b/arch/Kconfig
+@@ -27,6 +27,9 @@ config HAVE_IMA_KEXEC
+ config HOTPLUG_SMT
+ 	bool
  
--#define SYSCALL_EXIT_WORK_FLAGS				\
--	(_TIF_SYSCALL_TRACE | _TIF_SYSCALL_AUDIT |	\
--	 _TIF_SINGLESTEP | _TIF_SYSCALL_TRACEPOINT)
--
--static void syscall_slow_exit_work(struct pt_regs *regs, u32 cached_flags)
--{
--	bool step;
--
--	audit_syscall_exit(regs);
--
--	if (cached_flags & _TIF_SYSCALL_TRACEPOINT)
--		trace_sys_exit(regs, regs->ax);
--
--	/*
--	 * If TIF_SYSCALL_EMU is set, we only get here because of
--	 * TIF_SINGLESTEP (i.e. this is PTRACE_SYSEMU_SINGLESTEP).
--	 * We already reported this syscall instruction in
--	 * syscall_trace_enter().
--	 */
--	step = unlikely(
--		(cached_flags & (_TIF_SINGLESTEP | _TIF_SYSCALL_EMU))
--		== _TIF_SINGLESTEP);
--	if (step || cached_flags & _TIF_SYSCALL_TRACE)
--		tracehook_report_syscall_exit(regs, step);
--}
--
- /*
-  * Called with IRQs on and fully valid regs.  Returns with IRQs off in a
-  * state such that we can immediately switch to user mode.
-  */
- __visible inline void syscall_return_slowpath(struct pt_regs *regs)
- {
--	struct thread_info *ti = current_thread_info();
--	u32 cached_flags = READ_ONCE(ti->flags);
--
--	CT_WARN_ON(ct_state() != CONTEXT_KERNEL);
--
--	if (IS_ENABLED(CONFIG_PROVE_LOCKING) &&
--	    WARN(irqs_disabled(), "syscall %ld left IRQs disabled", regs->orig_ax))
--		local_irq_enable();
--
--	rseq_syscall(regs);
--
--	/*
--	 * First do one-time work.  If these work items are enabled, we
--	 * want to run them exactly once per syscall exit with IRQs on.
--	 */
--	if (unlikely(cached_flags & SYSCALL_EXIT_WORK_FLAGS))
--		syscall_slow_exit_work(regs, cached_flags);
-+	syscall_exit_to_usermode(regs, regs->orig_ax, regs->ax);
- 
- 	local_irq_disable();
- 	prepare_exit_to_usermode(regs);
---- a/arch/x86/include/asm/entry-common.h
-+++ b/arch/x86/include/asm/entry-common.h
-@@ -5,6 +5,8 @@
- #include <linux/seccomp.h>
- #include <linux/audit.h>
- 
-+#define ARCH_SYSCALL_EXIT_WORK		(_TIF_SINGLESTEP)
++config GENERIC_ENTRY
++       bool
 +
- static inline long arch_syscall_enter_seccomp(struct pt_regs *regs)
- {
- #ifdef CONFIG_SECCOMP
+ config OPROFILE
+ 	tristate "OProfile system profiling"
+ 	depends on PROFILING
+--- /dev/null
++++ b/include/linux/entry-common.h
+@@ -0,0 +1,122 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++#ifndef __LINUX_ENTRYCOMMON_H
++#define __LINUX_ENTRYCOMMON_H
++
++#include <linux/tracehook.h>
++#include <linux/syscalls.h>
++#include <linux/seccomp.h>
++#include <linux/sched.h>
++#include <linux/audit.h>
++
++#include <asm/entry-common.h>
++
++/*
++ * Define dummy _TIF work flags if not defined by the architecture or for
++ * disabled functionality.
++ */
++#ifndef _TIF_SYSCALL_TRACE
++# define _TIF_SYSCALL_TRACE		(0)
++#endif
++
++#ifndef _TIF_SYSCALL_EMU
++# define _TIF_SYSCALL_EMU		(0)
++#endif
++
++#ifndef _TIF_SYSCALL_TRACEPOINT
++# define _TIF_SYSCALL_TRACEPOINT	(0)
++#endif
++
++#ifndef _TIF_SECCOMP
++# define _TIF_SECCOMP			(0)
++#endif
++
++#ifndef _TIF_AUDIT
++# define _TIF_AUDIT			(0)
++#endif
++
++/*
++ * TIF flags handled in syscall_enter_from_usermode()
++ */
++#ifndef ARCH_SYSCALL_ENTER_WORK
++# define ARCH_SYSCALL_ENTER_WORK	(0)
++#endif
++
++#define SYSCALL_ENTER_WORK						\
++	(_TIF_SYSCALL_TRACE | _TIF_SYSCALL_AUDIT | TIF_SECCOMP |	\
++	 _TIF_SYSCALL_TRACEPOINT | _TIF_SYSCALL_EMU |			\
++	 ARCH_SYSCALL_ENTER_WORK)
++
++/**
++ * arch_syscall_enter_tracehook - Wrapper around tracehook_report_syscall_entry()
++ *
++ * Defaults to tracehook_report_syscall_entry(). Can be replaced by
++ * architecture specific code.
++ *
++ * Invoked from syscall_enter_from_usermode()
++ */
++static inline __must_check int arch_syscall_enter_tracehook(struct pt_regs *regs);
++
++#ifndef arch_syscall_enter_tracehook
++static inline __must_check int arch_syscall_enter_tracehook(struct pt_regs *regs)
++{
++	return tracehook_report_syscall_entry(regs);
++}
++#endif
++
++/**
++ * arch_syscall_enter_seccomp - Architecture specific seccomp invocation
++ * @regs:	Pointer to currents pt_regs
++ *
++ * Invoked from syscall_enter_from_usermode(). Can be replaced by
++ * architecture specific code.
++ */
++static inline long arch_syscall_enter_seccomp(struct pt_regs *regs);
++
++#ifndef arch_syscall_enter_seccomp
++static inline long arch_syscall_enter_seccomp(struct pt_regs *regs)
++{
++	return secure_computing(NULL);
++}
++#endif
++
++/**
++ * arch_syscall_enter_audit - Architecture specific audit invocation
++ * @regs:	Pointer to currents pt_regs
++ *
++ * Invoked from syscall_enter_from_usermode(). Must be replaced by
++ * architecture specific code if the architecture supports audit.
++ */
++static inline void arch_syscall_enter_audit(struct pt_regs *regs);
++
++#ifndef arch_syscall_enter_audit
++static inline void arch_syscall_enter_audit(struct pt_regs *regs) { }
++#endif
++
++/* Common syscall enter function */
++long core_syscall_enter_from_usermode(struct pt_regs *regs, long syscall);
++
++/**
++ * syscall_enter_from_usermode - Check and handle work before invoking
++ *				 a syscall
++ * @regs:	Pointer to currents pt_regs
++ * @syscall:	The syscall number
++ *
++ * Invoked from architecture specific syscall entry code with interrupts
++ * enabled.
++ *
++ * Returns: The original or a modified syscall number
++ */
++static inline long syscall_enter_from_usermode(struct pt_regs *regs,
++					       long syscall)
++{
++	unsigned long ti_work = READ_ONCE(current_thread_info()->flags);
++
++	if (IS_ENABLED(CONFIG_DEBUG_ENTRY))
++		BUG_ON(regs != task_pt_regs(current));
++
++	if (ti_work & SYSCALL_ENTER_WORK)
++		syscall = core_syscall_enter_from_usermode(regs, syscall);
++	return syscall;
++}
++
++#endif
+--- a/kernel/Makefile
++++ b/kernel/Makefile
+@@ -43,6 +43,7 @@ obj-y += irq/
+ obj-y += rcu/
+ obj-y += livepatch/
+ obj-y += dma/
++obj-y += entry/
+ 
+ obj-$(CONFIG_CHECKPOINT_RESTORE) += kcmp.o
+ obj-$(CONFIG_FREEZER) += freezer.o
+--- /dev/null
++++ b/kernel/entry/Makefile
+@@ -0,0 +1,3 @@
++# SPDX-License-Identifier: GPL-2.0
++
++obj-$(CONFIG_GENERIC_ENTRY) += common.o
+--- /dev/null
++++ b/kernel/entry/common.c
+@@ -0,0 +1,33 @@
++// SPDX-License-Identifier: GPL-2.0
++
++#include <linux/context_tracking.h>
++#include <linux/entry-common.h>
++
++#define CREATE_TRACE_POINTS
++#include <trace/events/syscalls.h>
++
++long core_syscall_enter_from_usermode(struct pt_regs *regs, long syscall)
++{
++	unsigned long ti_work = READ_ONCE(current_thread_info()->flags);
++	unsigned long ret = 0;
++
++	if (ti_work & (_TIF_SYSCALL_TRACE | _TIF_SYSCALL_EMU)) {
++		ret = arch_syscall_enter_tracehook(regs);
++		if (ret || (ti_work & _TIF_SYSCALL_EMU))
++			return -1L;
++	}
++
++	/* Do seccomp after ptrace, to catch any tracer changes. */
++	if (ti_work & _TIF_SECCOMP) {
++		ret = arch_syscall_enter_seccomp(regs);
++		if (ret == -1L)
++			return ret;
++	}
++
++	if (unlikely(test_thread_flag(TIF_SYSCALL_TRACEPOINT)))
++		trace_sys_enter(regs, syscall);
++
++	arch_syscall_enter_audit(regs);
++
++	return ret ? : syscall;
++}
