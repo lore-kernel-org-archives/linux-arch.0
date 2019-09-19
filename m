@@ -1,62 +1,184 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from Galois.linutronix.de ([193.142.43.55]:50049 "EHLO
+Received: from Galois.linutronix.de ([193.142.43.55]:50051 "EHLO
         Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728720AbfISPJu (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 19 Sep 2019 11:09:50 -0400
-Message-ID: <20190919150314.054351477@linutronix.de>
-Date: Thu, 19 Sep 2019 17:03:14 +0200
+        with ESMTP id S1732001AbfISPJv (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 19 Sep 2019 11:09:51 -0400
+Message-ID: <20190919150808.830764150@linutronix.de>
+Date: Thu, 19 Sep 2019 17:03:18 +0200
 From: Thomas Gleixner <tglx@linutronix.de>
-Subject: [RFC patch 00/15] entry: Provide generic implementation for host and
- guest entry/exit work
+Subject: [RFC patch 04/15] arm64/entry: Use generic syscall entry function
+References: <20190919150314.054351477@linutronix.de>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: LKML <linux-kernel@vger.kernel.org>
 Cc: x86@kernel.org, Peter Zijlstra <peterz@infradead.org>, Andy Lutomirski <luto@kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Mark Rutland <mark.rutland@arm.com>, Marc Zyngier <maz@kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, kvm@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20190919150314.7js5a_LDlJSPtZoaa7Vmoi7SvUUMs2yR04aOlTbM0lg@z>
+Message-ID: <20190919150318.GgI4VrEp5SGEioxiXsGDKNQ-WiCVZN5tTxR_ZYJFwUo@z>
 
-When working on a way to move out the posix cpu timer expiry out of the
-timer interrupt context, I noticed that KVM is not handling pending task
-work before entering a guest. A quick hack was to add that to the x86 KVM
-handling loop. The discussion ended with a request to make this a generic
-infrastructure possible with also moving the per arch implementations of
-the enter from and return to user space handling generic.
+Replace the syscall entry work handling with the generic version, Provide
+the necessary helper inlines to handle the real architecture specific
+parts, e.g. audit and seccomp invocations.
 
-  https://lore.kernel.org/r/89E42BCC-47A8-458B-B06A-D6A20D20512C@amacapital.net
-
-You asked for it, so don't complain that you have to review it :)
-
-The series implements the syscall enter/exit and the general exit to
-userspace work handling along with the pre guest enter functionality.
-
-The series converts x86 and ARM64. x86 is fully tested including selftests
-etc. ARM64 is only compile tested for now as my only ARM64 testbox is not
-available right now.
-
-Thanks,
-
-	tglx
-
+Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
 ---
- /Makefile                               |    3 
- arch/Kconfig                            |    3 
- arch/arm64/Kconfig                      |    1 
- arch/arm64/include/asm/kvm_host.h       |    1 
- arch/arm64/kernel/entry.S               |   18 -
- arch/arm64/kernel/ptrace.c              |   65 ------
- arch/arm64/kernel/signal.c              |   45 ----
- arch/arm64/kernel/syscall.c             |   49 ----
- arch/x86/Kconfig                        |    1 
- arch/x86/entry/common.c                 |  265 +-------------------------
- arch/x86/entry/entry_32.S               |   13 -
- arch/x86/entry/entry_64.S               |   12 -
- arch/x86/entry/entry_64_compat.S        |   21 --
- arch/x86/include/asm/signal.h           |    1 
- arch/x86/include/asm/thread_info.h      |    9 
- arch/x86/kernel/signal.c                |    2 
- arch/x86/kvm/x86.c                      |   17 -
- b/arch/arm64/include/asm/entry-common.h |   76 +++++++
- b/arch/x86/include/asm/entry-common.h   |  104 ++++++++++
- b/include/linux/entry-common.h          |  324 ++++++++++++++++++++++++++++++++
- b/kernel/entry/common.c                 |  220 +++++++++++++++++++++
- kernel/Makefile                         |    1 
- 22 files changed, 776 insertions(+), 475 deletions(-)
+ arch/arm64/Kconfig                    |    1 
+ arch/arm64/include/asm/entry-common.h |   39 ++++++++++++++++++++++++++++++++++
+ arch/arm64/kernel/ptrace.c            |   29 -------------------------
+ arch/arm64/kernel/syscall.c           |   15 +++++--------
+ 4 files changed, 47 insertions(+), 37 deletions(-)
+
+--- a/arch/arm64/Kconfig
++++ b/arch/arm64/Kconfig
+@@ -99,6 +99,7 @@ config ARM64
+ 	select GENERIC_CPU_AUTOPROBE
+ 	select GENERIC_CPU_VULNERABILITIES
+ 	select GENERIC_EARLY_IOREMAP
++	select GENERIC_ENTRY
+ 	select GENERIC_IDLE_POLL_SETUP
+ 	select GENERIC_IRQ_MULTI_HANDLER
+ 	select GENERIC_IRQ_PROBE
+--- /dev/null
++++ b/arch/arm64/include/asm/entry-common.h
+@@ -0,0 +1,39 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++/*
++ * Copyright (C) 2017 ARM Ltd.
++ */
++#ifndef __ASM_ENTRY_COMMON_H
++#define __ASM_ENTRY_COMMON_H
++
++enum ptrace_syscall_dir {
++	PTRACE_SYSCALL_ENTER = 0,
++	PTRACE_SYSCALL_EXIT,
++};
++
++/*
++ * A scratch register (ip(r12) on AArch32, x7 on AArch64) is
++ * used to denote syscall entry/exit for the tracehooks
++ */
++static inline __must_check int arch_syscall_enter_tracehook(struct pt_regs *regs)
++{
++	int regno = (is_compat_task() ? 12 : 7);
++	unsigned long reg = regs->regs[regno];
++	long ret;
++
++	regs->regs[regno] = PTRACE_SYSCALL_ENTER;
++	ret = tracehook_report_syscall_entry(regs);
++	if (ret)
++		forget_syscall(regs);
++	regs->regs[regno] = reg;
++	return ret;
++}
++#define arch_syscall_enter_tracehook arch_syscall_enter_tracehook
++
++static inline void arch_syscall_enter_audit(struct pt_regs *regs)
++{
++	audit_syscall_entry(regs->syscallno, regs->orig_x0, regs->regs[1],
++			    regs->regs[2], regs->regs[3]);
++}
++#define arch_syscall_enter_audit arch_syscall_enter_audit
++
++#endif
+--- a/arch/arm64/kernel/ptrace.c
++++ b/arch/arm64/kernel/ptrace.c
+@@ -13,6 +13,7 @@
+ #include <linux/kernel.h>
+ #include <linux/sched/signal.h>
+ #include <linux/sched/task_stack.h>
++#include <linux/entry-common.h>
+ #include <linux/mm.h>
+ #include <linux/nospec.h>
+ #include <linux/smp.h>
+@@ -41,7 +42,6 @@
+ #include <asm/traps.h>
+ #include <asm/system_misc.h>
+ 
+-#define CREATE_TRACE_POINTS
+ #include <trace/events/syscalls.h>
+ 
+ struct pt_regs_offset {
+@@ -1779,11 +1779,6 @@ long arch_ptrace(struct task_struct *chi
+ 	return ptrace_request(child, request, addr, data);
+ }
+ 
+-enum ptrace_syscall_dir {
+-	PTRACE_SYSCALL_ENTER = 0,
+-	PTRACE_SYSCALL_EXIT,
+-};
+-
+ static void tracehook_report_syscall(struct pt_regs *regs,
+ 				     enum ptrace_syscall_dir dir)
+ {
+@@ -1806,28 +1801,6 @@ static void tracehook_report_syscall(str
+ 	regs->regs[regno] = saved_reg;
+ }
+ 
+-int syscall_trace_enter(struct pt_regs *regs)
+-{
+-	if (test_thread_flag(TIF_SYSCALL_TRACE) ||
+-		test_thread_flag(TIF_SYSCALL_EMU)) {
+-		tracehook_report_syscall(regs, PTRACE_SYSCALL_ENTER);
+-		if (!in_syscall(regs) || test_thread_flag(TIF_SYSCALL_EMU))
+-			return -1;
+-	}
+-
+-	/* Do the secure computing after ptrace; failures should be fast. */
+-	if (secure_computing(NULL) == -1)
+-		return -1;
+-
+-	if (test_thread_flag(TIF_SYSCALL_TRACEPOINT))
+-		trace_sys_enter(regs, regs->syscallno);
+-
+-	audit_syscall_entry(regs->syscallno, regs->orig_x0, regs->regs[1],
+-			    regs->regs[2], regs->regs[3]);
+-
+-	return regs->syscallno;
+-}
+-
+ void syscall_trace_exit(struct pt_regs *regs)
+ {
+ 	audit_syscall_exit(regs);
+--- a/arch/arm64/kernel/syscall.c
++++ b/arch/arm64/kernel/syscall.c
+@@ -1,6 +1,7 @@
+ // SPDX-License-Identifier: GPL-2.0
+ 
+ #include <linux/compiler.h>
++#include <linux/entry-common.h>
+ #include <linux/context_tracking.h>
+ #include <linux/errno.h>
+ #include <linux/nospec.h>
+@@ -58,7 +59,6 @@ static inline bool has_syscall_work(unsi
+ 	return unlikely(flags & _TIF_SYSCALL_WORK);
+ }
+ 
+-int syscall_trace_enter(struct pt_regs *regs);
+ void syscall_trace_exit(struct pt_regs *regs);
+ 
+ #ifdef CONFIG_ARM64_ERRATUM_1463225
+@@ -97,19 +97,16 @@ static void el0_svc_common(struct pt_reg
+ 
+ 	regs->orig_x0 = regs->regs[0];
+ 	regs->syscallno = scno;
++	/* Set default error number */
++	regs->regs[0] = -ENOSYS;
+ 
+ 	cortex_a76_erratum_1463225_svc_handler();
+ 	local_daif_restore(DAIF_PROCCTX);
+ 	user_exit();
+ 
+-	if (has_syscall_work(flags)) {
+-		/* set default errno for user-issued syscall(-1) */
+-		if (scno == NO_SYSCALL)
+-			regs->regs[0] = -ENOSYS;
+-		scno = syscall_trace_enter(regs);
+-		if (scno == NO_SYSCALL)
+-			goto trace_exit;
+-	}
++	scno = syscall_enter_from_usermode(regs, scno);
++	if (scno == NO_SYSCALL)
++		goto trace_exit;
+ 
+ 	invoke_syscall(regs, scno, sc_nr, syscall_table);
+ 
