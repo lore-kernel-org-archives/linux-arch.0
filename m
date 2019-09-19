@@ -1,112 +1,102 @@
-From: Paolo Bonzini <pbonzini@redhat.com>
-Subject: Re: [RFC patch 14/15] workpending: Provide infrastructure for work
- before entering a guest
-Date: Thu, 19 Sep 2019 17:40:01 +0200
-Message-ID: <0cc964dc-4d00-05ec-1ed1-f6cee7370d7b@redhat.com>
-References: <20190919150314.054351477@linutronix.de>
- <20190919150809.860645841@linutronix.de>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: quoted-printable
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20190919150809.860645841@linutronix.de>
-Content-Language: en-US
-Sender: linux-kernel-owner@vger.kernel.org
-To: Thomas Gleixner <tglx@linutronix.de>, LKML <linux-kernel@vger.kernel.org>
-Cc: x86@kernel.org, Peter Zijlstra <peterz@infradead.org>, Andy Lutomirski <luto@kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Mark Rutland <mark.rutland@arm.com>, Marc Zyngier <maz@kernel.org>, kvm@vger.kernel.org, linux-arch@vger.kernel.org
+From: Alex Kogan <alex.kogan@oracle.com>
+Subject: Re: [PATCH v4 3/5] locking/qspinlock: Introduce CNA into the slow
+ path of qspinlock
+Date: Thu, 19 Sep 2019 11:55:21 -0400
+Message-ID: <87B87982-670F-4F12-9EE0-DC89A059FAEC@oracle.com>
+References: <20190906142541.34061-1-alex.kogan@oracle.com>
+ <20190906142541.34061-4-alex.kogan@oracle.com>
+ <3ae2b6a2-ffe6-2ca1-e5bf-2292db50e26f@redhat.com>
+Mime-Version: 1.0 (Mac OS X Mail 10.2 \(3259\))
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+In-Reply-To: <3ae2b6a2-ffe6-2ca1-e5bf-2292db50e26f@redhat.com>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+To: Waiman Long <longman@redhat.com>
+Cc: linux-arch@vger.kernel.org, guohanjun@huawei.com, arnd@arndb.de, peterz@infradead.org, dave.dice@oracle.com, jglauber@marvell.com, x86@kernel.org, will.deacon@arm.com, linux@armlinux.org.uk, linux-kernel@vger.kernel.org, rahul.x.yadav@oracle.com, mingo@redhat.com, bp@alien8.de, hpa@zytor.com, steven.sistare@oracle.com, tglx@linutronix.de, daniel.m.jordan@oracle.com, linux-arm-kernel@lists.infradead.org
 List-Id: linux-arch.vger.kernel.org
 
-Quick API review before I dive into the implementation.
-
-On 19/09/19 17:03, Thomas Gleixner wrote:
-> +=09/*
-> +=09 * Before returning to guest mode handle all pending work
-> +=09 */
-> +=09if (ti_work & _TIF_SIGPENDING) {
-> +=09=09vcpu->run->exit_reason =3D KVM_EXIT_INTR;
-> +=09=09vcpu->stat.signal_exits++;
-> +=09=09return -EINTR;
-> +=09}
-> +
-> +=09if (ti_work & _TIF_NEED_RESCHED) {
-> +=09=09srcu_read_unlock(&kvm->srcu, vcpu->srcu_idx);
-> +=09=09schedule();
-> +=09=09vcpu->srcu_idx =3D srcu_read_lock(&kvm->srcu);
-> +=09}
-> +
-> +=09if (ti_work & _TIF_PATCH_PENDING) {
-> +=09=09srcu_read_unlock(&kvm->srcu, vcpu->srcu_idx);
-> +=09=09klp_update_patch_state(current);
-> +=09=09vcpu->srcu_idx =3D srcu_read_lock(&kvm->srcu);
-> +=09}
-> +
-> +=09if (ti_work & _TIF_NOTIFY_RESUME) {
-> +=09=09srcu_read_unlock(&kvm->srcu, vcpu->srcu_idx);
-> +=09=09clear_thread_flag(TIF_NOTIFY_RESUME);
-> +=09=09tracehook_notify_resume(NULL);
-> +=09=09vcpu->srcu_idx =3D srcu_read_lock(&kvm->srcu);
-> +=09}
-> +
-> +=09/* Any extra architecture specific work */
-> +=09return arch_exit_to_guestmode_work(kvm, vcpu, ti_work);
-> +}
-
-Perhaps, in virt/kvm/kvm_main.c:
-
-int kvm_exit_to_guestmode_work(struct kvm *kvm, struct kvm_vcpu *vcpu,
-=09=09=09=09unsigned long ti_work)
-{
-=09int r;
-
-=09/*
-=09 * Before returning to guest mode handle all pending work
-=09 */
-=09if (ti_work & _TIF_SIGPENDING) {
-=09=09vcpu->run->exit_reason =3D KVM_EXIT_INTR;
-=09=09vcpu->stat.signal_exits++;
-=09=09return -EINTR;
-=09}
-
-=09srcu_read_unlock(&kvm->srcu, vcpu->srcu_idx);
-=09core_exit_to_guestmode_work(ti_work);
-=09vcpu->srcu_idx =3D srcu_read_lock(&kvm->srcu);
-
-=09return r;
-}
-
-and in kernel/entry/common.c:
-
-int core_exit_to_guestmode_work(unsigned long ti_work)
-{
-=09/*
-=09 * Before returning to guest mode handle all pending work
-=09 */
-=09if (ti_work & _TIF_NEED_RESCHED)
-=09=09schedule();
-
-=09if (ti_work & _TIF_PATCH_PENDING)
-=09=09klp_update_patch_state(current);
-
-=09if (ti_work & _TIF_NOTIFY_RESUME) {
-=09=09clear_thread_flag(TIF_NOTIFY_RESUME);
-=09=09tracehook_notify_resume(NULL);
-=09}
-=09return arch_exit_to_guestmode_work(ti_work);
-}
-
-so that kernel/entry/ is not polluted with KVM structs and APIs.
-
-Perhaps even extract the body of core_exit_to_usermode_work's while loop
-to a separate function, and call it as
-
-=09core_exit_to_usermode_work_once(NULL,
-=09=09=09=09ti_work & EXIT_TO_GUESTMODE_WORK);
-
-from core_exit_to_guestmode_work.
-
-In general I don't mind having these exit_to_guestmode functions in
-kvm_host.h, and only having entry-common.h export EXIT_TO_GUESTMODE_WORK
-and ARCH_EXIT_TO_GUESTMODE_WORK.  Unless you had good reasons to do the
-opposite...
-
-Paolo
+Pj4gKy8qCj4+ICsgKiBjbmFfdHJ5X2ZpbmRfbmV4dCAtIHNjYW4gdGhlIG1haW4gd2FpdGluZyBx
+dWV1ZSBsb29raW5nIGZvciB0aGUgZmlyc3QKPj4gKyAqIHRocmVhZCBydW5uaW5nIG9uIHRoZSBz
+YW1lIE5VTUEgbm9kZSBhcyB0aGUgbG9jayBob2xkZXIuIElmIGZvdW5kIChjYWxsIGl0Cj4+ICsg
+KiB0aHJlYWQgVCksIG1vdmUgYWxsIHRocmVhZHMgaW4gdGhlIG1haW4gcXVldWUgYmV0d2VlbiB0
+aGUgbG9jayBob2xkZXIgYW5kCj4+ICsgKiBUIHRvIHRoZSBlbmQgb2YgdGhlIHNlY29uZGFyeSBx
+dWV1ZSBhbmQgcmV0dXJuIFQ7IG90aGVyd2lzZSwgcmV0dXJuIE5VTEwuCj4+ICsgKgo+PiArICog
+U2NoZW1hdGljYWxseSwgdGhpcyBtYXkgbG9vayBsaWtlIHRoZSBmb2xsb3dpbmcgKG5uIHN0YW5k
+cyBmb3IgbnVtYV9ub2RlIGFuZAo+PiArICogZXQgc3RhbmRzIGZvciBlbmNvZGVkX3RhaWwpLgo+
+PiArICoKPj4gKyAqICAgICB3aGVuIGNuYV90cnlfZmluZF9uZXh0KCkgaXMgY2FsbGVkICh0aGUg
+c2Vjb25kYXJ5IHF1ZXVlIGlzIGVtcHR5KToKPj4gKyAqCj4+ICsgKiAgQSstLS0tLS0tLS0tLS0r
+ICAgQistLS0tLS0tLSsgICBDKy0tLS0tLS0tKyAgIFQrLS0tLS0tLS0rCj4+ICsgKiAgIHxtY3M6
+bmV4dCAgICB8IC0+IHxtY3M6bmV4dHwgLT4gfG1jczpuZXh0fCAtPiB8bWNzOm5leHR8IC0+IE5V
+TEwKPj4gKyAqICAgfG1jczpsb2NrZWQ9MXwgICAgfGNuYTpubj0wfCAgICB8Y25hOm5uPTJ8ICAg
+IHxjbmE6bm49MXwKPj4gKyAqICAgfGNuYTpubj0xICAgIHwgICAgKy0tLS0tLS0tKyAgICArLS0t
+LS0tLS0rICAgICstLS0tLS0tLSsKPj4gKyAqICAgKy0tLS0tLS0tLS0tICsKPj4gKyAqCj4+ICsg
+KiAgICAgd2hlbiBjbmFfdHJ5X2ZpbmRfbmV4dCgpIHJldHVybnMgKHRoZSBzZWNvbmRhcnkgcXVl
+dWUgY29udGFpbnMgQiBhbmQgQyk6Cj4+ICsgKgo+PiArICogIEErLS0tLS0tLS0tLS0tLS0tLSsg
+ICAgVCstLS0tLS0tLSsKPj4gKyAqICAgfG1jczpuZXh0ICAgICAgICB8IC0+ICB8bWNzOm5leHR8
+IC0+IE5VTEwKPj4gKyAqICAgfG1jczpsb2NrZWQ9Qi5ldCB8IC0rICB8Y25hOm5uPTF8Cj4+ICsg
+KiAgIHxjbmE6bm49MSAgICAgICAgfCAgfCAgKy0tLS0tLS0tKwo+PiArICogICArLS0tLS0tLS0t
+LS0tLS0tICsgIHwKPj4gKyAqICAgICAgICAgICAgICAgICAgICAgICB8Cj4+ICsgKiAgICAgICAg
+ICAgICAgICAgICAgICAgKy0+ICBCKy0tLS0tLS0tKyAgIEMrLS0tLS0tLS0rCj4+ICsgKiAgICAg
+ICAgICAgICAgICAgICAgICAgICAgICAgfG1jczpuZXh0fCAtPiB8bWNzOm5leHR8Cj4+ICsgKiAg
+ICAgICAgICAgICAgICAgICAgICAgICAgICAgfGNuYTpubj0wfCAgICB8Y25hOm5uPTJ8Cj4+ICsg
+KiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgfGNuYTp0YWlsfCAtPiArLS0tLS0tLS0rCj4+
+ICsgKiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgKy0tLS0tLS0tKwo+PiArICoKPj4gKyAq
+IFRoZSB3b3JzdCBjYXNlIGNvbXBsZXhpdHkgb2YgdGhlIHNjYW4gaXMgTyhuKSwgd2hlcmUgbiBp
+cyB0aGUgbnVtYmVyCj4+ICsgKiBvZiBjdXJyZW50IHdhaXRlcnMuIEhvd2V2ZXIsIHRoZSBmYXN0
+IHBhdGgsIHdoaWNoIGlzIGV4cGVjdGVkIHRvIGJlIHRoZQo+PiArICogY29tbW9uIGNhc2UsIGlz
+IE8oMSkuCj4+ICsgKi8KPj4gK3N0YXRpYyBzdHJ1Y3QgbWNzX3NwaW5sb2NrICpjbmFfdHJ5X2Zp
+bmRfbmV4dChzdHJ1Y3QgbWNzX3NwaW5sb2NrICpub2RlLAo+PiArCQkJCQkgICAgICBzdHJ1Y3Qg
+bWNzX3NwaW5sb2NrICpuZXh0KQo+PiArewo+PiArCXN0cnVjdCBjbmFfbm9kZSAqY24gPSAoc3Ry
+dWN0IGNuYV9ub2RlICopbm9kZTsKPj4gKwlzdHJ1Y3QgY25hX25vZGUgKmNuaSA9IChzdHJ1Y3Qg
+Y25hX25vZGUgKiluZXh0Owo+PiArCXN0cnVjdCBjbmFfbm9kZSAqZmlyc3QsICpsYXN0ID0gTlVM
+TDsKPj4gKwlpbnQgbXlfbnVtYV9ub2RlID0gY24tPm51bWFfbm9kZTsKPj4gKwo+PiArCS8qIGZh
+c3QgcGF0aDogaW1tZWRpYXRlIHN1Y2Nlc3NvciBpcyBvbiB0aGUgc2FtZSBOVU1BIG5vZGUgKi8K
+Pj4gKwlpZiAoY25pLT5udW1hX25vZGUgPT0gbXlfbnVtYV9ub2RlKQo+PiArCQlyZXR1cm4gbmV4
+dDsKPj4gKwo+PiArCS8qIGZpbmQgYW55IG5leHQgd2FpdGVyIG9uICdvdXInIE5VTUEgbm9kZSAq
+Lwo+PiArCWZvciAoZmlyc3QgPSBjbmk7Cj4+ICsJICAgICBjbmkgJiYgY25pLT5udW1hX25vZGUg
+IT0gbXlfbnVtYV9ub2RlOwo+PiArCSAgICAgbGFzdCA9IGNuaSwgY25pID0gKHN0cnVjdCBjbmFf
+bm9kZSAqKVJFQURfT05DRShjbmktPm1jcy5uZXh0KSkKPj4gKwkJOwo+PiArCj4+ICsJLyogaWYg
+Zm91bmQsIHNwbGljZSBhbnkgc2tpcHBlZCB3YWl0ZXJzIG9udG8gdGhlIHNlY29uZGFyeSBxdWV1
+ZSAqLwo+PiArCWlmIChjbmkgJiYgbGFzdCkKPj4gKwkJY25hX3NwbGljZV90YWlsKGNuLCBmaXJz
+dCwgbGFzdCk7Cj4+ICsKPj4gKwlyZXR1cm4gKHN0cnVjdCBtY3Nfc3BpbmxvY2sgKiljbmk7Cj4+
+ICt9Cj4gCj4gQXQgdGhlIExpbnV4IFBsdW1iZXJzIENvbmZlcmVuY2UgbGFzdCB3ZWVrLCBXaWxs
+IGhhcyByYWlzZWQgdGhlIGNvbmNlcm4KPiBhYm91dCB0aGUgbGF0ZW5jeSBvZiB0aGUgTygxKSBj
+bmFfdHJ5X2ZpbmRfbmV4dCgpIG9wZXJhdGlvbiB0aGF0IHdpbGwKPiBhZGQgdG8gdGhlIGxvY2sg
+aG9sZCB0aW1lLgpXaGlsZSB0aGUgd29yc3QgY2FzZSBjb21wbGV4aXR5IG9mIHRoZSBzY2FuIGlz
+IE8obiksIEkgX3RoaW5rIGl0IGNhbiBiZSBwcm92ZW4KdGhhdCB0aGUgYW1vcnRpemVkIGNvbXBs
+ZXhpdHkgaXMgTygxKS4gRm9yIGludHVpdGlvbiwgY29uc2lkZXIgYSB0d28tbm9kZSAKc3lzdGVt
+IHdpdGggTiB0aHJlYWRzIHRvdGFsLiBJbiB0aGUgd29yc3QgY2FzZSBzY2VuYXJpbywgdGhlIHNj
+YW4gd2lsbCBnbyAKb3ZlciBOLzIgdGhyZWFkcyBydW5uaW5nIG9uIGEgZGlmZmVyZW50IG5vZGUu
+IElmIHRoZSBzY2FuIHVsdGltYXRlbHkg4oCcZmFpbHPigJ0KKG5vIHRocmVhZCBmcm9tIHRoZSBs
+b2NrIGhvbGRlcuKAmXMgbm9kZSBpcyBmb3VuZCksIHRoZSBsb2NrIHdpbGwgYmUgcGFzc2VkCnRv
+IHRoZSBmaXJzdCB0aHJlYWQgZnJvbSBhIGRpZmZlcmVudCBub2RlIGFuZCB0aGVuIGJldHdlZW4g
+YWxsIHRob3NlIE4vMiB0aHJlYWRzLAp3aXRoIGEgc2NhbiBvZiBqdXN0IG9uZSBub2RlIGZvciB0
+aGUgbmV4dCBOLzIgLSAxIHBhc3Nlcy4gT3RoZXJ3aXNlLCB0aG9zZSAKTi8yIHRocmVhZHMgd2ls
+bCBiZSBtb3ZlZCB0byB0aGUgc2Vjb25kYXJ5IHF1ZXVlLiBPbiB0aGUgbmV4dCBsb2NrIGhhbmRv
+dmVyLCAKd2UgcGFzcyB0aGUgbG9jayBlaXRoZXIgdG8gdGhlIG5leHQgdGhyZWFkIGluIHRoZSBt
+YWluIHF1ZXVlIChhcyBpdCBoYXMgdG8gYmUgCmZyb20gb3VyIG5vZGUpIG9yIHRvIHRoZSBmaXJz
+dCBub2RlIGluIHRoZSBzZWNvbmRhcnkgcXVldWUuIEluIGJvdGggY2FzZXMsIHdlIApzY2FuIGp1
+c3Qgb25lIG5vZGUsIGFuZCBpbiB0aGUgbGF0dGVyIGNhc2UsIHdlIGhhdmUgYWdhaW4gTi8yIC0g
+MSBwYXNzZXMgd2l0aCAKYSBzY2FuIG9mIGp1c3Qgb25lIG5vZGUgZWFjaC4KCj4gT25lIHdheSB0
+byBoaWRlIHNvbWUgb2YgdGhlIGxhdGVuY3kgaXMgdG8gZG8KPiBhIHByZS1zY2FuIGJlZm9yZSBh
+Y3F1aXJpbmcgdGhlIGxvY2suIFRoZSBDTkEgY29kZSBjb3VsZCBvdmVycmlkZSB0aGUKPiBwdl93
+YWl0X2hlYWRfb3JfbG9jaygpIGZ1bmN0aW9uIHRvIGNhbGwgY25hX3RyeV9maW5kX25leHQoKSBh
+cyBhCj4gcHJlLXNjYW4gYW5kIHJldHVybiAwLiBXaGF0IGRvIHlvdSB0aGluaz8KVGhpcyBpcyBj
+ZXJ0YWlubHkgcG9zc2libGUsIGJ1dCBJIGRvIG5vdCB0aGluayBpdCB3b3VsZCBjb21wbGV0ZWx5
+IGVsaW1pbmF0ZSAKdGhlIHdvcnN0IGNhc2Ugc2NlbmFyaW8uIEl0IHdpbGwgcHJvYmFibHkgbWFr
+ZSBpdCBldmVuIGxlc3MgbGlrZWx5LCBidXQgYXQgCnRoZSBzYW1lIHRpbWUsIHdlIHdpbGwgcmVk
+dWNlIHRoZSBjaGFuY2Ugb2YgYWN0dWFsbHkgZmluZGluZyBhIHRocmVhZCBmcm9tIHRoZQpzYW1l
+IG5vZGUgKHRoYXQgbWF5IGVudGVyIHRoZSBtYWluIHF1ZXVlIHdoaWxlIHdlIHdhaXQgZm9yIHRo
+ZSBvd25lciAmIHBlbmRpbmcgCnRvIGdvIGF3YXkpLgoKUmVnYXJkcywK4oCUIEFsZXgKX19fX19f
+X19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX18KbGludXgtYXJtLWtlcm5l
+bCBtYWlsaW5nIGxpc3QKbGludXgtYXJtLWtlcm5lbEBsaXN0cy5pbmZyYWRlYWQub3JnCmh0dHA6
+Ly9saXN0cy5pbmZyYWRlYWQub3JnL21haWxtYW4vbGlzdGluZm8vbGludXgtYXJtLWtlcm5lbAo=
