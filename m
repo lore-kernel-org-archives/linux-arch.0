@@ -1,102 +1,124 @@
-From: Alex Kogan <alex.kogan@oracle.com>
+From: Waiman Long <longman@redhat.com>
 Subject: Re: [PATCH v4 3/5] locking/qspinlock: Introduce CNA into the slow
  path of qspinlock
-Date: Thu, 19 Sep 2019 11:55:21 -0400
-Message-ID: <87B87982-670F-4F12-9EE0-DC89A059FAEC@oracle.com>
+Date: Thu, 19 Sep 2019 16:54:13 -0400
+Message-ID: <6c08767a-f60c-077d-4e94-66ea189db6f1@redhat.com>
 References: <20190906142541.34061-1-alex.kogan@oracle.com>
  <20190906142541.34061-4-alex.kogan@oracle.com>
  <3ae2b6a2-ffe6-2ca1-e5bf-2292db50e26f@redhat.com>
-Mime-Version: 1.0 (Mac OS X Mail 10.2 \(3259\))
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
-In-Reply-To: <3ae2b6a2-ffe6-2ca1-e5bf-2292db50e26f@redhat.com>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
-To: Waiman Long <longman@redhat.com>
-Cc: linux-arch@vger.kernel.org, guohanjun@huawei.com, arnd@arndb.de, peterz@infradead.org, dave.dice@oracle.com, jglauber@marvell.com, x86@kernel.org, will.deacon@arm.com, linux@armlinux.org.uk, linux-kernel@vger.kernel.org, rahul.x.yadav@oracle.com, mingo@redhat.com, bp@alien8.de, hpa@zytor.com, steven.sistare@oracle.com, tglx@linutronix.de, daniel.m.jordan@oracle.com, linux-arm-kernel@lists.infradead.org
+ <87B87982-670F-4F12-9EE0-DC89A059FAEC@oracle.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 8bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <87B87982-670F-4F12-9EE0-DC89A059FAEC@oracle.com>
+Content-Language: en-US
+Sender: linux-kernel-owner@vger.kernel.org
+To: Alex Kogan <alex.kogan@oracle.com>
+Cc: linux@armlinux.org.uk, peterz@infradead.org, mingo@redhat.com, will.deacon@arm.com, arnd@arndb.de, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, bp@alien8.de, hpa@zytor.com, x86@kernel.org, guohanjun@huawei.com, jglauber@marvell.com, steven.sistare@oracle.com, daniel.m.jordan@oracle.com, dave.dice@oracle.com, rahul.x.yadav@oracle.com
 List-Id: linux-arch.vger.kernel.org
 
-Pj4gKy8qCj4+ICsgKiBjbmFfdHJ5X2ZpbmRfbmV4dCAtIHNjYW4gdGhlIG1haW4gd2FpdGluZyBx
-dWV1ZSBsb29raW5nIGZvciB0aGUgZmlyc3QKPj4gKyAqIHRocmVhZCBydW5uaW5nIG9uIHRoZSBz
-YW1lIE5VTUEgbm9kZSBhcyB0aGUgbG9jayBob2xkZXIuIElmIGZvdW5kIChjYWxsIGl0Cj4+ICsg
-KiB0aHJlYWQgVCksIG1vdmUgYWxsIHRocmVhZHMgaW4gdGhlIG1haW4gcXVldWUgYmV0d2VlbiB0
-aGUgbG9jayBob2xkZXIgYW5kCj4+ICsgKiBUIHRvIHRoZSBlbmQgb2YgdGhlIHNlY29uZGFyeSBx
-dWV1ZSBhbmQgcmV0dXJuIFQ7IG90aGVyd2lzZSwgcmV0dXJuIE5VTEwuCj4+ICsgKgo+PiArICog
-U2NoZW1hdGljYWxseSwgdGhpcyBtYXkgbG9vayBsaWtlIHRoZSBmb2xsb3dpbmcgKG5uIHN0YW5k
-cyBmb3IgbnVtYV9ub2RlIGFuZAo+PiArICogZXQgc3RhbmRzIGZvciBlbmNvZGVkX3RhaWwpLgo+
-PiArICoKPj4gKyAqICAgICB3aGVuIGNuYV90cnlfZmluZF9uZXh0KCkgaXMgY2FsbGVkICh0aGUg
-c2Vjb25kYXJ5IHF1ZXVlIGlzIGVtcHR5KToKPj4gKyAqCj4+ICsgKiAgQSstLS0tLS0tLS0tLS0r
-ICAgQistLS0tLS0tLSsgICBDKy0tLS0tLS0tKyAgIFQrLS0tLS0tLS0rCj4+ICsgKiAgIHxtY3M6
-bmV4dCAgICB8IC0+IHxtY3M6bmV4dHwgLT4gfG1jczpuZXh0fCAtPiB8bWNzOm5leHR8IC0+IE5V
-TEwKPj4gKyAqICAgfG1jczpsb2NrZWQ9MXwgICAgfGNuYTpubj0wfCAgICB8Y25hOm5uPTJ8ICAg
-IHxjbmE6bm49MXwKPj4gKyAqICAgfGNuYTpubj0xICAgIHwgICAgKy0tLS0tLS0tKyAgICArLS0t
-LS0tLS0rICAgICstLS0tLS0tLSsKPj4gKyAqICAgKy0tLS0tLS0tLS0tICsKPj4gKyAqCj4+ICsg
-KiAgICAgd2hlbiBjbmFfdHJ5X2ZpbmRfbmV4dCgpIHJldHVybnMgKHRoZSBzZWNvbmRhcnkgcXVl
-dWUgY29udGFpbnMgQiBhbmQgQyk6Cj4+ICsgKgo+PiArICogIEErLS0tLS0tLS0tLS0tLS0tLSsg
-ICAgVCstLS0tLS0tLSsKPj4gKyAqICAgfG1jczpuZXh0ICAgICAgICB8IC0+ICB8bWNzOm5leHR8
-IC0+IE5VTEwKPj4gKyAqICAgfG1jczpsb2NrZWQ9Qi5ldCB8IC0rICB8Y25hOm5uPTF8Cj4+ICsg
-KiAgIHxjbmE6bm49MSAgICAgICAgfCAgfCAgKy0tLS0tLS0tKwo+PiArICogICArLS0tLS0tLS0t
-LS0tLS0tICsgIHwKPj4gKyAqICAgICAgICAgICAgICAgICAgICAgICB8Cj4+ICsgKiAgICAgICAg
-ICAgICAgICAgICAgICAgKy0+ICBCKy0tLS0tLS0tKyAgIEMrLS0tLS0tLS0rCj4+ICsgKiAgICAg
-ICAgICAgICAgICAgICAgICAgICAgICAgfG1jczpuZXh0fCAtPiB8bWNzOm5leHR8Cj4+ICsgKiAg
-ICAgICAgICAgICAgICAgICAgICAgICAgICAgfGNuYTpubj0wfCAgICB8Y25hOm5uPTJ8Cj4+ICsg
-KiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgfGNuYTp0YWlsfCAtPiArLS0tLS0tLS0rCj4+
-ICsgKiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgKy0tLS0tLS0tKwo+PiArICoKPj4gKyAq
-IFRoZSB3b3JzdCBjYXNlIGNvbXBsZXhpdHkgb2YgdGhlIHNjYW4gaXMgTyhuKSwgd2hlcmUgbiBp
-cyB0aGUgbnVtYmVyCj4+ICsgKiBvZiBjdXJyZW50IHdhaXRlcnMuIEhvd2V2ZXIsIHRoZSBmYXN0
-IHBhdGgsIHdoaWNoIGlzIGV4cGVjdGVkIHRvIGJlIHRoZQo+PiArICogY29tbW9uIGNhc2UsIGlz
-IE8oMSkuCj4+ICsgKi8KPj4gK3N0YXRpYyBzdHJ1Y3QgbWNzX3NwaW5sb2NrICpjbmFfdHJ5X2Zp
-bmRfbmV4dChzdHJ1Y3QgbWNzX3NwaW5sb2NrICpub2RlLAo+PiArCQkJCQkgICAgICBzdHJ1Y3Qg
-bWNzX3NwaW5sb2NrICpuZXh0KQo+PiArewo+PiArCXN0cnVjdCBjbmFfbm9kZSAqY24gPSAoc3Ry
-dWN0IGNuYV9ub2RlICopbm9kZTsKPj4gKwlzdHJ1Y3QgY25hX25vZGUgKmNuaSA9IChzdHJ1Y3Qg
-Y25hX25vZGUgKiluZXh0Owo+PiArCXN0cnVjdCBjbmFfbm9kZSAqZmlyc3QsICpsYXN0ID0gTlVM
-TDsKPj4gKwlpbnQgbXlfbnVtYV9ub2RlID0gY24tPm51bWFfbm9kZTsKPj4gKwo+PiArCS8qIGZh
-c3QgcGF0aDogaW1tZWRpYXRlIHN1Y2Nlc3NvciBpcyBvbiB0aGUgc2FtZSBOVU1BIG5vZGUgKi8K
-Pj4gKwlpZiAoY25pLT5udW1hX25vZGUgPT0gbXlfbnVtYV9ub2RlKQo+PiArCQlyZXR1cm4gbmV4
-dDsKPj4gKwo+PiArCS8qIGZpbmQgYW55IG5leHQgd2FpdGVyIG9uICdvdXInIE5VTUEgbm9kZSAq
-Lwo+PiArCWZvciAoZmlyc3QgPSBjbmk7Cj4+ICsJICAgICBjbmkgJiYgY25pLT5udW1hX25vZGUg
-IT0gbXlfbnVtYV9ub2RlOwo+PiArCSAgICAgbGFzdCA9IGNuaSwgY25pID0gKHN0cnVjdCBjbmFf
-bm9kZSAqKVJFQURfT05DRShjbmktPm1jcy5uZXh0KSkKPj4gKwkJOwo+PiArCj4+ICsJLyogaWYg
-Zm91bmQsIHNwbGljZSBhbnkgc2tpcHBlZCB3YWl0ZXJzIG9udG8gdGhlIHNlY29uZGFyeSBxdWV1
-ZSAqLwo+PiArCWlmIChjbmkgJiYgbGFzdCkKPj4gKwkJY25hX3NwbGljZV90YWlsKGNuLCBmaXJz
-dCwgbGFzdCk7Cj4+ICsKPj4gKwlyZXR1cm4gKHN0cnVjdCBtY3Nfc3BpbmxvY2sgKiljbmk7Cj4+
-ICt9Cj4gCj4gQXQgdGhlIExpbnV4IFBsdW1iZXJzIENvbmZlcmVuY2UgbGFzdCB3ZWVrLCBXaWxs
-IGhhcyByYWlzZWQgdGhlIGNvbmNlcm4KPiBhYm91dCB0aGUgbGF0ZW5jeSBvZiB0aGUgTygxKSBj
-bmFfdHJ5X2ZpbmRfbmV4dCgpIG9wZXJhdGlvbiB0aGF0IHdpbGwKPiBhZGQgdG8gdGhlIGxvY2sg
-aG9sZCB0aW1lLgpXaGlsZSB0aGUgd29yc3QgY2FzZSBjb21wbGV4aXR5IG9mIHRoZSBzY2FuIGlz
-IE8obiksIEkgX3RoaW5rIGl0IGNhbiBiZSBwcm92ZW4KdGhhdCB0aGUgYW1vcnRpemVkIGNvbXBs
-ZXhpdHkgaXMgTygxKS4gRm9yIGludHVpdGlvbiwgY29uc2lkZXIgYSB0d28tbm9kZSAKc3lzdGVt
-IHdpdGggTiB0aHJlYWRzIHRvdGFsLiBJbiB0aGUgd29yc3QgY2FzZSBzY2VuYXJpbywgdGhlIHNj
-YW4gd2lsbCBnbyAKb3ZlciBOLzIgdGhyZWFkcyBydW5uaW5nIG9uIGEgZGlmZmVyZW50IG5vZGUu
-IElmIHRoZSBzY2FuIHVsdGltYXRlbHkg4oCcZmFpbHPigJ0KKG5vIHRocmVhZCBmcm9tIHRoZSBs
-b2NrIGhvbGRlcuKAmXMgbm9kZSBpcyBmb3VuZCksIHRoZSBsb2NrIHdpbGwgYmUgcGFzc2VkCnRv
-IHRoZSBmaXJzdCB0aHJlYWQgZnJvbSBhIGRpZmZlcmVudCBub2RlIGFuZCB0aGVuIGJldHdlZW4g
-YWxsIHRob3NlIE4vMiB0aHJlYWRzLAp3aXRoIGEgc2NhbiBvZiBqdXN0IG9uZSBub2RlIGZvciB0
-aGUgbmV4dCBOLzIgLSAxIHBhc3Nlcy4gT3RoZXJ3aXNlLCB0aG9zZSAKTi8yIHRocmVhZHMgd2ls
-bCBiZSBtb3ZlZCB0byB0aGUgc2Vjb25kYXJ5IHF1ZXVlLiBPbiB0aGUgbmV4dCBsb2NrIGhhbmRv
-dmVyLCAKd2UgcGFzcyB0aGUgbG9jayBlaXRoZXIgdG8gdGhlIG5leHQgdGhyZWFkIGluIHRoZSBt
-YWluIHF1ZXVlIChhcyBpdCBoYXMgdG8gYmUgCmZyb20gb3VyIG5vZGUpIG9yIHRvIHRoZSBmaXJz
-dCBub2RlIGluIHRoZSBzZWNvbmRhcnkgcXVldWUuIEluIGJvdGggY2FzZXMsIHdlIApzY2FuIGp1
-c3Qgb25lIG5vZGUsIGFuZCBpbiB0aGUgbGF0dGVyIGNhc2UsIHdlIGhhdmUgYWdhaW4gTi8yIC0g
-MSBwYXNzZXMgd2l0aCAKYSBzY2FuIG9mIGp1c3Qgb25lIG5vZGUgZWFjaC4KCj4gT25lIHdheSB0
-byBoaWRlIHNvbWUgb2YgdGhlIGxhdGVuY3kgaXMgdG8gZG8KPiBhIHByZS1zY2FuIGJlZm9yZSBh
-Y3F1aXJpbmcgdGhlIGxvY2suIFRoZSBDTkEgY29kZSBjb3VsZCBvdmVycmlkZSB0aGUKPiBwdl93
-YWl0X2hlYWRfb3JfbG9jaygpIGZ1bmN0aW9uIHRvIGNhbGwgY25hX3RyeV9maW5kX25leHQoKSBh
-cyBhCj4gcHJlLXNjYW4gYW5kIHJldHVybiAwLiBXaGF0IGRvIHlvdSB0aGluaz8KVGhpcyBpcyBj
-ZXJ0YWlubHkgcG9zc2libGUsIGJ1dCBJIGRvIG5vdCB0aGluayBpdCB3b3VsZCBjb21wbGV0ZWx5
-IGVsaW1pbmF0ZSAKdGhlIHdvcnN0IGNhc2Ugc2NlbmFyaW8uIEl0IHdpbGwgcHJvYmFibHkgbWFr
-ZSBpdCBldmVuIGxlc3MgbGlrZWx5LCBidXQgYXQgCnRoZSBzYW1lIHRpbWUsIHdlIHdpbGwgcmVk
-dWNlIHRoZSBjaGFuY2Ugb2YgYWN0dWFsbHkgZmluZGluZyBhIHRocmVhZCBmcm9tIHRoZQpzYW1l
-IG5vZGUgKHRoYXQgbWF5IGVudGVyIHRoZSBtYWluIHF1ZXVlIHdoaWxlIHdlIHdhaXQgZm9yIHRo
-ZSBvd25lciAmIHBlbmRpbmcgCnRvIGdvIGF3YXkpLgoKUmVnYXJkcywK4oCUIEFsZXgKX19fX19f
-X19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX18KbGludXgtYXJtLWtlcm5l
-bCBtYWlsaW5nIGxpc3QKbGludXgtYXJtLWtlcm5lbEBsaXN0cy5pbmZyYWRlYWQub3JnCmh0dHA6
-Ly9saXN0cy5pbmZyYWRlYWQub3JnL21haWxtYW4vbGlzdGluZm8vbGludXgtYXJtLWtlcm5lbAo=
+On 9/19/19 11:55 AM, Alex Kogan wrote:
+>>> +/*
+>>> + * cna_try_find_next - scan the main waiting queue looking for the first
+>>> + * thread running on the same NUMA node as the lock holder. If found (call it
+>>> + * thread T), move all threads in the main queue between the lock holder and
+>>> + * T to the end of the secondary queue and return T; otherwise, return NULL.
+>>> + *
+>>> + * Schematically, this may look like the following (nn stands for numa_node and
+>>> + * et stands for encoded_tail).
+>>> + *
+>>> + *     when cna_try_find_next() is called (the secondary queue is empty):
+>>> + *
+>>> + *  A+------------+   B+--------+   C+--------+   T+--------+
+>>> + *   |mcs:next    | -> |mcs:next| -> |mcs:next| -> |mcs:next| -> NULL
+>>> + *   |mcs:locked=1|    |cna:nn=0|    |cna:nn=2|    |cna:nn=1|
+>>> + *   |cna:nn=1    |    +--------+    +--------+    +--------+
+>>> + *   +----------- +
+>>> + *
+>>> + *     when cna_try_find_next() returns (the secondary queue contains B and C):
+>>> + *
+>>> + *  A+----------------+    T+--------+
+>>> + *   |mcs:next        | ->  |mcs:next| -> NULL
+>>> + *   |mcs:locked=B.et | -+  |cna:nn=1|
+>>> + *   |cna:nn=1        |  |  +--------+
+>>> + *   +--------------- +  |
+>>> + *                       |
+>>> + *                       +->  B+--------+   C+--------+
+>>> + *                             |mcs:next| -> |mcs:next|
+>>> + *                             |cna:nn=0|    |cna:nn=2|
+>>> + *                             |cna:tail| -> +--------+
+>>> + *                             +--------+
+>>> + *
+>>> + * The worst case complexity of the scan is O(n), where n is the number
+>>> + * of current waiters. However, the fast path, which is expected to be the
+>>> + * common case, is O(1).
+>>> + */
+>>> +static struct mcs_spinlock *cna_try_find_next(struct mcs_spinlock *node,
+>>> +					      struct mcs_spinlock *next)
+>>> +{
+>>> +	struct cna_node *cn = (struct cna_node *)node;
+>>> +	struct cna_node *cni = (struct cna_node *)next;
+>>> +	struct cna_node *first, *last = NULL;
+>>> +	int my_numa_node = cn->numa_node;
+>>> +
+>>> +	/* fast path: immediate successor is on the same NUMA node */
+>>> +	if (cni->numa_node == my_numa_node)
+>>> +		return next;
+>>> +
+>>> +	/* find any next waiter on 'our' NUMA node */
+>>> +	for (first = cni;
+>>> +	     cni && cni->numa_node != my_numa_node;
+>>> +	     last = cni, cni = (struct cna_node *)READ_ONCE(cni->mcs.next))
+>>> +		;
+>>> +
+>>> +	/* if found, splice any skipped waiters onto the secondary queue */
+>>> +	if (cni && last)
+>>> +		cna_splice_tail(cn, first, last);
+>>> +
+>>> +	return (struct mcs_spinlock *)cni;
+>>> +}
+>> At the Linux Plumbers Conference last week, Will has raised the concern
+>> about the latency of the O(1) cna_try_find_next() operation that will
+>> add to the lock hold time.
+> While the worst case complexity of the scan is O(n), I _think it can be proven
+> that the amortized complexity is O(1). For intuition, consider a two-node 
+> system with N threads total. In the worst case scenario, the scan will go 
+> over N/2 threads running on a different node. If the scan ultimately “fails”
+> (no thread from the lock holder’s node is found), the lock will be passed
+> to the first thread from a different node and then between all those N/2 threads,
+> with a scan of just one node for the next N/2 - 1 passes. Otherwise, those 
+> N/2 threads will be moved to the secondary queue. On the next lock handover, 
+> we pass the lock either to the next thread in the main queue (as it has to be 
+> from our node) or to the first node in the secondary queue. In both cases, we 
+> scan just one node, and in the latter case, we have again N/2 - 1 passes with 
+> a scan of just one node each.
+I agree that it should not be a problem for a 2-socket. For larger SMP
+systems with 8, 16 or even 32 sockets, it can be an issue as those
+systems are also more likely to have more lock contention and hence
+longer wait queues.
+>> One way to hide some of the latency is to do
+>> a pre-scan before acquiring the lock. The CNA code could override the
+>> pv_wait_head_or_lock() function to call cna_try_find_next() as a
+>> pre-scan and return 0. What do you think?
+> This is certainly possible, but I do not think it would completely eliminate 
+> the worst case scenario. It will probably make it even less likely, but at 
+> the same time, we will reduce the chance of actually finding a thread from the
+> same node (that may enter the main queue while we wait for the owner & pending 
+> to go away).
+
+When I said prescan, I mean to move the front queue entries that are
+from non-local nodes to the secondary queue before acquiring the lock.
+After acquiring the lock, you can repeat the scan in case the prescan
+didn't find any local node queue entry. Yes, we will need to do the
+similar operation twice.
+
+Yes, it does not eliminate the worst case scenario, but it should help
+in reducing the average lock hold time.
+
+Of course, the probabilistic (or deterministic) check to go to the next
+local node entry or to the secondary queue should be done before
+pre-scan so that we won't waste the effort.
+
+Cheers,
+Longman
