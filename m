@@ -1,140 +1,129 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from aserp2120.oracle.com ([141.146.126.78]:55194 "EHLO
-        aserp2120.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S2391497AbfISP4m (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 19 Sep 2019 11:56:42 -0400
-Content-Type: text/plain; charset=utf-8
-Mime-Version: 1.0 (Mac OS X Mail 10.2 \(3259\))
+Received: from mx1.redhat.com ([209.132.183.28]:5781 "EHLO mx1.redhat.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1730064AbfISUy1 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 19 Sep 2019 16:54:27 -0400
 Subject: Re: [PATCH v4 3/5] locking/qspinlock: Introduce CNA into the slow
  path of qspinlock
-From: Alex Kogan <alex.kogan@oracle.com>
-In-Reply-To: <3ae2b6a2-ffe6-2ca1-e5bf-2292db50e26f@redhat.com>
-Date: Thu, 19 Sep 2019 11:55:21 -0400
-Content-Transfer-Encoding: quoted-printable
-Message-ID: <87B87982-670F-4F12-9EE0-DC89A059FAEC@oracle.com>
 References: <20190906142541.34061-1-alex.kogan@oracle.com>
  <20190906142541.34061-4-alex.kogan@oracle.com>
  <3ae2b6a2-ffe6-2ca1-e5bf-2292db50e26f@redhat.com>
+ <87B87982-670F-4F12-9EE0-DC89A059FAEC@oracle.com>
+From: Waiman Long <longman@redhat.com>
+Message-ID: <6c08767a-f60c-077d-4e94-66ea189db6f1@redhat.com>
+Date: Thu, 19 Sep 2019 16:54:13 -0400
+MIME-Version: 1.0
+In-Reply-To: <87B87982-670F-4F12-9EE0-DC89A059FAEC@oracle.com>
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 8bit
+Content-Language: en-US
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Waiman Long <longman@redhat.com>
+To: Alex Kogan <alex.kogan@oracle.com>
 Cc: linux@armlinux.org.uk, peterz@infradead.org, mingo@redhat.com, will.deacon@arm.com, arnd@arndb.de, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, bp@alien8.de, hpa@zytor.com, x86@kernel.org, guohanjun@huawei.com, jglauber@marvell.com, steven.sistare@oracle.com, daniel.m.jordan@oracle.com, dave.dice@oracle.com, rahul.x.yadav@oracle.com
-Message-ID: <20190919155521.2Rpv1p6DhU_TGKkEc4cXBV6ILWDbhWBOvwNjpaGk01Y@z>
+Message-ID: <20190919205413.j7VKkiOk-EM6p0t9mT8bfol0bgNOPkb_qRsbVW5gAMo@z>
 
->> +/*
->> + * cna_try_find_next - scan the main waiting queue looking for the =
-first
->> + * thread running on the same NUMA node as the lock holder. If found =
-(call it
->> + * thread T), move all threads in the main queue between the lock =
-holder and
->> + * T to the end of the secondary queue and return T; otherwise, =
-return NULL.
->> + *
->> + * Schematically, this may look like the following (nn stands for =
-numa_node and
->> + * et stands for encoded_tail).
->> + *
->> + *     when cna_try_find_next() is called (the secondary queue is =
-empty):
->> + *
->> + *  A+------------+   B+--------+   C+--------+   T+--------+
->> + *   |mcs:next    | -> |mcs:next| -> |mcs:next| -> |mcs:next| -> =
-NULL
->> + *   |mcs:locked=3D1|    |cna:nn=3D0|    |cna:nn=3D2|    |cna:nn=3D1|
->> + *   |cna:nn=3D1    |    +--------+    +--------+    +--------+
->> + *   +----------- +
->> + *
->> + *     when cna_try_find_next() returns (the secondary queue =
-contains B and C):
->> + *
->> + *  A+----------------+    T+--------+
->> + *   |mcs:next        | ->  |mcs:next| -> NULL
->> + *   |mcs:locked=3DB.et | -+  |cna:nn=3D1|
->> + *   |cna:nn=3D1        |  |  +--------+
->> + *   +--------------- +  |
->> + *                       |
->> + *                       +->  B+--------+   C+--------+
->> + *                             |mcs:next| -> |mcs:next|
->> + *                             |cna:nn=3D0|    |cna:nn=3D2|
->> + *                             |cna:tail| -> +--------+
->> + *                             +--------+
->> + *
->> + * The worst case complexity of the scan is O(n), where n is the =
-number
->> + * of current waiters. However, the fast path, which is expected to =
-be the
->> + * common case, is O(1).
->> + */
->> +static struct mcs_spinlock *cna_try_find_next(struct mcs_spinlock =
-*node,
->> +					      struct mcs_spinlock *next)
->> +{
->> +	struct cna_node *cn =3D (struct cna_node *)node;
->> +	struct cna_node *cni =3D (struct cna_node *)next;
->> +	struct cna_node *first, *last =3D NULL;
->> +	int my_numa_node =3D cn->numa_node;
->> +
->> +	/* fast path: immediate successor is on the same NUMA node */
->> +	if (cni->numa_node =3D=3D my_numa_node)
->> +		return next;
->> +
->> +	/* find any next waiter on 'our' NUMA node */
->> +	for (first =3D cni;
->> +	     cni && cni->numa_node !=3D my_numa_node;
->> +	     last =3D cni, cni =3D (struct cna_node =
-*)READ_ONCE(cni->mcs.next))
->> +		;
->> +
->> +	/* if found, splice any skipped waiters onto the secondary queue =
-*/
->> +	if (cni && last)
->> +		cna_splice_tail(cn, first, last);
->> +
->> +	return (struct mcs_spinlock *)cni;
->> +}
->=20
-> At the Linux Plumbers Conference last week, Will has raised the =
-concern
-> about the latency of the O(1) cna_try_find_next() operation that will
-> add to the lock hold time.
-While the worst case complexity of the scan is O(n), I _think it can be =
-proven
-that the amortized complexity is O(1). For intuition, consider a =
-two-node=20
-system with N threads total. In the worst case scenario, the scan will =
-go=20
-over N/2 threads running on a different node. If the scan ultimately =
-=E2=80=9Cfails=E2=80=9D
-(no thread from the lock holder=E2=80=99s node is found), the lock will =
-be passed
-to the first thread from a different node and then between all those N/2 =
-threads,
-with a scan of just one node for the next N/2 - 1 passes. Otherwise, =
-those=20
-N/2 threads will be moved to the secondary queue. On the next lock =
-handover,=20
-we pass the lock either to the next thread in the main queue (as it has =
-to be=20
-from our node) or to the first node in the secondary queue. In both =
-cases, we=20
-scan just one node, and in the latter case, we have again N/2 - 1 passes =
-with=20
-a scan of just one node each.
+On 9/19/19 11:55 AM, Alex Kogan wrote:
+>>> +/*
+>>> + * cna_try_find_next - scan the main waiting queue looking for the first
+>>> + * thread running on the same NUMA node as the lock holder. If found (call it
+>>> + * thread T), move all threads in the main queue between the lock holder and
+>>> + * T to the end of the secondary queue and return T; otherwise, return NULL.
+>>> + *
+>>> + * Schematically, this may look like the following (nn stands for numa_node and
+>>> + * et stands for encoded_tail).
+>>> + *
+>>> + *     when cna_try_find_next() is called (the secondary queue is empty):
+>>> + *
+>>> + *  A+------------+   B+--------+   C+--------+   T+--------+
+>>> + *   |mcs:next    | -> |mcs:next| -> |mcs:next| -> |mcs:next| -> NULL
+>>> + *   |mcs:locked=1|    |cna:nn=0|    |cna:nn=2|    |cna:nn=1|
+>>> + *   |cna:nn=1    |    +--------+    +--------+    +--------+
+>>> + *   +----------- +
+>>> + *
+>>> + *     when cna_try_find_next() returns (the secondary queue contains B and C):
+>>> + *
+>>> + *  A+----------------+    T+--------+
+>>> + *   |mcs:next        | ->  |mcs:next| -> NULL
+>>> + *   |mcs:locked=B.et | -+  |cna:nn=1|
+>>> + *   |cna:nn=1        |  |  +--------+
+>>> + *   +--------------- +  |
+>>> + *                       |
+>>> + *                       +->  B+--------+   C+--------+
+>>> + *                             |mcs:next| -> |mcs:next|
+>>> + *                             |cna:nn=0|    |cna:nn=2|
+>>> + *                             |cna:tail| -> +--------+
+>>> + *                             +--------+
+>>> + *
+>>> + * The worst case complexity of the scan is O(n), where n is the number
+>>> + * of current waiters. However, the fast path, which is expected to be the
+>>> + * common case, is O(1).
+>>> + */
+>>> +static struct mcs_spinlock *cna_try_find_next(struct mcs_spinlock *node,
+>>> +					      struct mcs_spinlock *next)
+>>> +{
+>>> +	struct cna_node *cn = (struct cna_node *)node;
+>>> +	struct cna_node *cni = (struct cna_node *)next;
+>>> +	struct cna_node *first, *last = NULL;
+>>> +	int my_numa_node = cn->numa_node;
+>>> +
+>>> +	/* fast path: immediate successor is on the same NUMA node */
+>>> +	if (cni->numa_node == my_numa_node)
+>>> +		return next;
+>>> +
+>>> +	/* find any next waiter on 'our' NUMA node */
+>>> +	for (first = cni;
+>>> +	     cni && cni->numa_node != my_numa_node;
+>>> +	     last = cni, cni = (struct cna_node *)READ_ONCE(cni->mcs.next))
+>>> +		;
+>>> +
+>>> +	/* if found, splice any skipped waiters onto the secondary queue */
+>>> +	if (cni && last)
+>>> +		cna_splice_tail(cn, first, last);
+>>> +
+>>> +	return (struct mcs_spinlock *)cni;
+>>> +}
+>> At the Linux Plumbers Conference last week, Will has raised the concern
+>> about the latency of the O(1) cna_try_find_next() operation that will
+>> add to the lock hold time.
+> While the worst case complexity of the scan is O(n), I _think it can be proven
+> that the amortized complexity is O(1). For intuition, consider a two-node 
+> system with N threads total. In the worst case scenario, the scan will go 
+> over N/2 threads running on a different node. If the scan ultimately “fails”
+> (no thread from the lock holder’s node is found), the lock will be passed
+> to the first thread from a different node and then between all those N/2 threads,
+> with a scan of just one node for the next N/2 - 1 passes. Otherwise, those 
+> N/2 threads will be moved to the secondary queue. On the next lock handover, 
+> we pass the lock either to the next thread in the main queue (as it has to be 
+> from our node) or to the first node in the secondary queue. In both cases, we 
+> scan just one node, and in the latter case, we have again N/2 - 1 passes with 
+> a scan of just one node each.
+I agree that it should not be a problem for a 2-socket. For larger SMP
+systems with 8, 16 or even 32 sockets, it can be an issue as those
+systems are also more likely to have more lock contention and hence
+longer wait queues.
+>> One way to hide some of the latency is to do
+>> a pre-scan before acquiring the lock. The CNA code could override the
+>> pv_wait_head_or_lock() function to call cna_try_find_next() as a
+>> pre-scan and return 0. What do you think?
+> This is certainly possible, but I do not think it would completely eliminate 
+> the worst case scenario. It will probably make it even less likely, but at 
+> the same time, we will reduce the chance of actually finding a thread from the
+> same node (that may enter the main queue while we wait for the owner & pending 
+> to go away).
 
-> One way to hide some of the latency is to do
-> a pre-scan before acquiring the lock. The CNA code could override the
-> pv_wait_head_or_lock() function to call cna_try_find_next() as a
-> pre-scan and return 0. What do you think?
-This is certainly possible, but I do not think it would completely =
-eliminate=20
-the worst case scenario. It will probably make it even less likely, but =
-at=20
-the same time, we will reduce the chance of actually finding a thread =
-from the
-same node (that may enter the main queue while we wait for the owner & =
-pending=20
-to go away).
+When I said prescan, I mean to move the front queue entries that are
+from non-local nodes to the secondary queue before acquiring the lock.
+After acquiring the lock, you can repeat the scan in case the prescan
+didn't find any local node queue entry. Yes, we will need to do the
+similar operation twice.
 
-Regards,
-=E2=80=94 Alex=
+Yes, it does not eliminate the worst case scenario, but it should help
+in reducing the average lock hold time.
+
+Of course, the probabilistic (or deterministic) check to go to the next
+local node entry or to the secondary queue should be done before
+pre-scan so that we won't waste the effort.
+
+Cheers,
+Longman
