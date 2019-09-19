@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from Galois.linutronix.de ([193.142.43.55]:50069 "EHLO
+Received: from Galois.linutronix.de ([193.142.43.55]:50065 "EHLO
         Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S2390943AbfISPJw (ORCPT
+        with ESMTP id S2390941AbfISPJw (ORCPT
         <rfc822;linux-arch@vger.kernel.org>); Thu, 19 Sep 2019 11:09:52 -0400
-Message-ID: <20190919150809.145400160@linutronix.de>
-Date: Thu, 19 Sep 2019 17:03:21 +0200
+Message-ID: <20190919150809.041298671@linutronix.de>
+Date: Thu, 19 Sep 2019 17:03:20 +0200
 From: Thomas Gleixner <tglx@linutronix.de>
-Subject: [RFC patch 07/15] arm64/syscall: Remove obscure flag check
+Subject: [RFC patch 06/15] x86/entry: Use generic syscall exit functionality
 References: <20190919150314.054351477@linutronix.de>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
@@ -14,70 +14,83 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: LKML <linux-kernel@vger.kernel.org>
 Cc: x86@kernel.org, Peter Zijlstra <peterz@infradead.org>, Andy Lutomirski <luto@kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Mark Rutland <mark.rutland@arm.com>, Marc Zyngier <maz@kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, kvm@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20190919150321.R3TaFeAdC4Ft8iMVW5b5JWFiNbu53SlbWUVcF2JhZ8Q@z>
+Message-ID: <20190919150320.0qs6c0110-_7Ck9YbKPFZjxKtVkELih8Pb2zklOuWH0@z>
 
-The syscall handling code has an obscure check of pending work which does a
-shortcut before returning to user space. It calls into the exit work code
-when the flags at entry time required an entry into the slowpath. That does
-not make sense because the underlying work functionality will reevaluate
-the flags anyway and not do anything.
-
-Replace that by a straight forward test for work flags. Preparatory change
-for switching to the generic syscall exit work handling code.
+Replace the x86 variant with the generic version.
 
 Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
 ---
- arch/arm64/kernel/syscall.c |   32 ++++++--------------------------
- 1 file changed, 6 insertions(+), 26 deletions(-)
+ arch/x86/entry/common.c             |   44 ------------------------------------
+ arch/x86/include/asm/entry-common.h |    2 +
+ 2 files changed, 3 insertions(+), 43 deletions(-)
 
---- a/arch/arm64/kernel/syscall.c
-+++ b/arch/arm64/kernel/syscall.c
-@@ -93,8 +93,6 @@ static void cortex_a76_erratum_1463225_s
- static void el0_svc_common(struct pt_regs *regs, int scno, int sc_nr,
- 			   const syscall_fn_t syscall_table[])
- {
--	unsigned long flags = current_thread_info()->flags;
--
- 	regs->orig_x0 = regs->regs[0];
- 	regs->syscallno = scno;
- 	/* Set default error number */
-@@ -105,33 +103,15 @@ static void el0_svc_common(struct pt_reg
- 	user_exit();
- 
- 	scno = syscall_enter_from_usermode(regs, scno);
--	if (scno == NO_SYSCALL)
--		goto trace_exit;
--
--	invoke_syscall(regs, scno, sc_nr, syscall_table);
-+	if (scno != NO_SYSCALL)
-+		invoke_syscall(regs, scno, sc_nr, syscall_table);
- 
--	/*
--	 * The tracing status may have changed under our feet, so we have to
--	 * check again. However, if we were tracing entry, then we always trace
--	 * exit regardless, as the old entry assembly did.
--	 */
--	if (!has_syscall_work(flags) && !IS_ENABLED(CONFIG_DEBUG_RSEQ)) {
--		local_daif_mask();
--		flags = current_thread_info()->flags;
--		if (!has_syscall_work(flags)) {
--			/*
--			 * We're off to userspace, where interrupts are
--			 * always enabled after we restore the flags from
--			 * the SPSR.
--			 */
--			trace_hardirqs_on();
--			return;
--		}
-+	local_daif_mask();
-+	if (has_syscall_work(current_thread_info()->flags) ||
-+	    IS_ENABLED(CONFIG_DEBUG_RSEQ)) {
- 		local_daif_restore(DAIF_PROCCTX);
-+		syscall_trace_exit(regs);
- 	}
--
--trace_exit:
--	syscall_trace_exit(regs);
+--- a/arch/x86/entry/common.c
++++ b/arch/x86/entry/common.c
+@@ -139,55 +139,13 @@ static void exit_to_usermode_loop(struct
+ 	mds_user_clear_cpu_buffers();
  }
  
- static inline void sve_user_discard(void)
+-#define SYSCALL_EXIT_WORK_FLAGS				\
+-	(_TIF_SYSCALL_TRACE | _TIF_SYSCALL_AUDIT |	\
+-	 _TIF_SINGLESTEP | _TIF_SYSCALL_TRACEPOINT)
+-
+-static void syscall_slow_exit_work(struct pt_regs *regs, u32 cached_flags)
+-{
+-	bool step;
+-
+-	audit_syscall_exit(regs);
+-
+-	if (cached_flags & _TIF_SYSCALL_TRACEPOINT)
+-		trace_sys_exit(regs, regs->ax);
+-
+-	/*
+-	 * If TIF_SYSCALL_EMU is set, we only get here because of
+-	 * TIF_SINGLESTEP (i.e. this is PTRACE_SYSEMU_SINGLESTEP).
+-	 * We already reported this syscall instruction in
+-	 * syscall_trace_enter().
+-	 */
+-	step = unlikely(
+-		(cached_flags & (_TIF_SINGLESTEP | _TIF_SYSCALL_EMU))
+-		== _TIF_SINGLESTEP);
+-	if (step || cached_flags & _TIF_SYSCALL_TRACE)
+-		tracehook_report_syscall_exit(regs, step);
+-}
+-
+ /*
+  * Called with IRQs on and fully valid regs.  Returns with IRQs off in a
+  * state such that we can immediately switch to user mode.
+  */
+ __visible inline void syscall_return_slowpath(struct pt_regs *regs)
+ {
+-	struct thread_info *ti = current_thread_info();
+-	u32 cached_flags = READ_ONCE(ti->flags);
+-
+-	CT_WARN_ON(ct_state() != CONTEXT_KERNEL);
+-
+-	if (IS_ENABLED(CONFIG_PROVE_LOCKING) &&
+-	    WARN(irqs_disabled(), "syscall %ld left IRQs disabled", regs->orig_ax))
+-		local_irq_enable();
+-
+-	rseq_syscall(regs);
+-
+-	/*
+-	 * First do one-time work.  If these work items are enabled, we
+-	 * want to run them exactly once per syscall exit with IRQs on.
+-	 */
+-	if (unlikely(cached_flags & SYSCALL_EXIT_WORK_FLAGS))
+-		syscall_slow_exit_work(regs, cached_flags);
++	syscall_exit_to_usermode(regs, regs->orig_ax, regs->ax);
+ 
+ 	local_irq_disable();
+ 	prepare_exit_to_usermode(regs);
+--- a/arch/x86/include/asm/entry-common.h
++++ b/arch/x86/include/asm/entry-common.h
+@@ -5,6 +5,8 @@
+ #include <linux/seccomp.h>
+ #include <linux/audit.h>
+ 
++#define ARCH_SYSCALL_EXIT_WORK		(_TIF_SINGLESTEP)
++
+ static inline long arch_syscall_enter_seccomp(struct pt_regs *regs)
+ {
+ #ifdef CONFIG_SECCOMP
