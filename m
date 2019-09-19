@@ -1,53 +1,62 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from Galois.linutronix.de ([193.142.43.55]:50047 "EHLO
+Received: from Galois.linutronix.de ([193.142.43.55]:50049 "EHLO
         Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726007AbfISPJt (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 19 Sep 2019 11:09:49 -0400
-Message-ID: <20190919150808.617944343@linutronix.de>
-Date: Thu, 19 Sep 2019 17:03:16 +0200
+        with ESMTP id S1728720AbfISPJu (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 19 Sep 2019 11:09:50 -0400
+Message-ID: <20190919150314.054351477@linutronix.de>
+Date: Thu, 19 Sep 2019 17:03:14 +0200
 From: Thomas Gleixner <tglx@linutronix.de>
-Subject: [RFC patch 02/15] x86/entry: Remove _TIF_NOHZ from
- _TIF_WORK_SYSCALL_ENTRY
-References: <20190919150314.054351477@linutronix.de>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Subject: [RFC patch 00/15] entry: Provide generic implementation for host and
+ guest entry/exit work
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: LKML <linux-kernel@vger.kernel.org>
 Cc: x86@kernel.org, Peter Zijlstra <peterz@infradead.org>, Andy Lutomirski <luto@kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Mark Rutland <mark.rutland@arm.com>, Marc Zyngier <maz@kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, kvm@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20190919150316.fzZRIclLnDuhwNbO9pul-DSKE-VqbGZI-NnvJnI-5-8@z>
+Message-ID: <20190919150314.7js5a_LDlJSPtZoaa7Vmoi7SvUUMs2yR04aOlTbM0lg@z>
 
-Evaluating _TIF_NOHZ to decide whether to use the slow syscall entry path
-is not only pointless, it's actually counterproductive:
+When working on a way to move out the posix cpu timer expiry out of the
+timer interrupt context, I noticed that KVM is not handling pending task
+work before entering a guest. A quick hack was to add that to the x86 KVM
+handling loop. The discussion ended with a request to make this a generic
+infrastructure possible with also moving the per arch implementations of
+the enter from and return to user space handling generic.
 
- 1) Context tracking code is invoked unconditionally before that flag is
-    evaluated.
+  https://lore.kernel.org/r/89E42BCC-47A8-458B-B06A-D6A20D20512C@amacapital.net
 
- 2) If the flag is set the slow path is invoked for nothing due to #1
+You asked for it, so don't complain that you have to review it :)
 
-Remove it.  
+The series implements the syscall enter/exit and the general exit to
+userspace work handling along with the pre guest enter functionality.
 
-Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
+The series converts x86 and ARM64. x86 is fully tested including selftests
+etc. ARM64 is only compile tested for now as my only ARM64 testbox is not
+available right now.
+
+Thanks,
+
+	tglx
+
 ---
- arch/x86/include/asm/thread_info.h |    8 ++------
- 1 file changed, 2 insertions(+), 6 deletions(-)
-
---- a/arch/x86/include/asm/thread_info.h
-+++ b/arch/x86/include/asm/thread_info.h
-@@ -133,14 +133,10 @@ struct thread_info {
- #define _TIF_X32		(1 << TIF_X32)
- #define _TIF_FSCHECK		(1 << TIF_FSCHECK)
- 
--/*
-- * work to do in syscall_trace_enter().  Also includes TIF_NOHZ for
-- * enter_from_user_mode()
-- */
-+/* Work to do before invoking the actual syscall. */
- #define _TIF_WORK_SYSCALL_ENTRY	\
- 	(_TIF_SYSCALL_TRACE | _TIF_SYSCALL_EMU | _TIF_SYSCALL_AUDIT |	\
--	 _TIF_SECCOMP | _TIF_SYSCALL_TRACEPOINT |	\
--	 _TIF_NOHZ)
-+	 _TIF_SECCOMP | _TIF_SYSCALL_TRACEPOINT)
- 
- /* flags to check in __switch_to() */
- #define _TIF_WORK_CTXSW_BASE						\
+ /Makefile                               |    3 
+ arch/Kconfig                            |    3 
+ arch/arm64/Kconfig                      |    1 
+ arch/arm64/include/asm/kvm_host.h       |    1 
+ arch/arm64/kernel/entry.S               |   18 -
+ arch/arm64/kernel/ptrace.c              |   65 ------
+ arch/arm64/kernel/signal.c              |   45 ----
+ arch/arm64/kernel/syscall.c             |   49 ----
+ arch/x86/Kconfig                        |    1 
+ arch/x86/entry/common.c                 |  265 +-------------------------
+ arch/x86/entry/entry_32.S               |   13 -
+ arch/x86/entry/entry_64.S               |   12 -
+ arch/x86/entry/entry_64_compat.S        |   21 --
+ arch/x86/include/asm/signal.h           |    1 
+ arch/x86/include/asm/thread_info.h      |    9 
+ arch/x86/kernel/signal.c                |    2 
+ arch/x86/kvm/x86.c                      |   17 -
+ b/arch/arm64/include/asm/entry-common.h |   76 +++++++
+ b/arch/x86/include/asm/entry-common.h   |  104 ++++++++++
+ b/include/linux/entry-common.h          |  324 ++++++++++++++++++++++++++++++++
+ b/kernel/entry/common.c                 |  220 +++++++++++++++++++++
+ kernel/Makefile                         |    1 
+ 22 files changed, 776 insertions(+), 475 deletions(-)
