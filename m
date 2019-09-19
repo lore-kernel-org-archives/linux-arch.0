@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from Galois.linutronix.de ([193.142.43.55]:50062 "EHLO
+Received: from Galois.linutronix.de ([193.142.43.55]:50069 "EHLO
         Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S2390934AbfISPJw (ORCPT
+        with ESMTP id S2390943AbfISPJw (ORCPT
         <rfc822;linux-arch@vger.kernel.org>); Thu, 19 Sep 2019 11:09:52 -0400
-Message-ID: <20190919150808.936484726@linutronix.de>
-Date: Thu, 19 Sep 2019 17:03:19 +0200
+Message-ID: <20190919150809.145400160@linutronix.de>
+Date: Thu, 19 Sep 2019 17:03:21 +0200
 From: Thomas Gleixner <tglx@linutronix.de>
-Subject: [RFC patch 05/15] entry: Provide generic syscall exit function
+Subject: [RFC patch 07/15] arm64/syscall: Remove obscure flag check
 References: <20190919150314.054351477@linutronix.de>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
@@ -14,123 +14,70 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: LKML <linux-kernel@vger.kernel.org>
 Cc: x86@kernel.org, Peter Zijlstra <peterz@infradead.org>, Andy Lutomirski <luto@kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Mark Rutland <mark.rutland@arm.com>, Marc Zyngier <maz@kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, kvm@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20190919150319.XGwM9HjZVdqDqsP-BVcv6eQx2P7sns7F_0h28UKK1Yw@z>
+Message-ID: <20190919150321.R3TaFeAdC4Ft8iMVW5b5JWFiNbu53SlbWUVcF2JhZ8Q@z>
 
-Similar to syscall entry all architectures have similar and pointlessly
-different code to handle pending work before returning from a syscall to
-user space.
+The syscall handling code has an obscure check of pending work which does a
+shortcut before returning to user space. It calls into the exit work code
+when the flags at entry time required an entry into the slowpath. That does
+not make sense because the underlying work functionality will reevaluate
+the flags anyway and not do anything.
 
-Provide a generic version.
+Replace that by a straight forward test for work flags. Preparatory change
+for switching to the generic syscall exit work handling code.
 
 Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
 ---
- include/linux/entry-common.h |   31 ++++++++++++++++++++++++
- kernel/entry/common.c        |   55 +++++++++++++++++++++++++++++++++++++++++++
- 2 files changed, 86 insertions(+)
+ arch/arm64/kernel/syscall.c |   32 ++++++--------------------------
+ 1 file changed, 6 insertions(+), 26 deletions(-)
 
---- a/include/linux/entry-common.h
-+++ b/include/linux/entry-common.h
-@@ -45,6 +45,17 @@
- 	 _TIF_SYSCALL_TRACEPOINT | _TIF_SYSCALL_EMU |			\
- 	 ARCH_SYSCALL_ENTER_WORK)
+--- a/arch/arm64/kernel/syscall.c
++++ b/arch/arm64/kernel/syscall.c
+@@ -93,8 +93,6 @@ static void cortex_a76_erratum_1463225_s
+ static void el0_svc_common(struct pt_regs *regs, int scno, int sc_nr,
+ 			   const syscall_fn_t syscall_table[])
+ {
+-	unsigned long flags = current_thread_info()->flags;
+-
+ 	regs->orig_x0 = regs->regs[0];
+ 	regs->syscallno = scno;
+ 	/* Set default error number */
+@@ -105,33 +103,15 @@ static void el0_svc_common(struct pt_reg
+ 	user_exit();
  
-+/*
-+ * TIF flags handled in syscall_exit_to_usermode()
-+ */
-+#ifndef ARCH_SYSCALL_EXIT_WORK
-+# define ARCH_SYSCALL_EXIT_WORK		(0)
-+#endif
-+
-+#define SYSCALL_EXIT_WORK						\
-+	(_TIF_SYSCALL_TRACE | _TIF_SYSCALL_AUDIT |			\
-+	 _TIF_SYSCALL_TRACEPOINT | ARCH_SYSCALL_EXIT_WORK)
-+
- /**
-  * arch_syscall_enter_tracehook - Wrapper around tracehook_report_syscall_entry()
-  *
-@@ -118,4 +129,24 @@ static inline long syscall_enter_from_us
- 	return syscall;
+ 	scno = syscall_enter_from_usermode(regs, scno);
+-	if (scno == NO_SYSCALL)
+-		goto trace_exit;
+-
+-	invoke_syscall(regs, scno, sc_nr, syscall_table);
++	if (scno != NO_SYSCALL)
++		invoke_syscall(regs, scno, sc_nr, syscall_table);
+ 
+-	/*
+-	 * The tracing status may have changed under our feet, so we have to
+-	 * check again. However, if we were tracing entry, then we always trace
+-	 * exit regardless, as the old entry assembly did.
+-	 */
+-	if (!has_syscall_work(flags) && !IS_ENABLED(CONFIG_DEBUG_RSEQ)) {
+-		local_daif_mask();
+-		flags = current_thread_info()->flags;
+-		if (!has_syscall_work(flags)) {
+-			/*
+-			 * We're off to userspace, where interrupts are
+-			 * always enabled after we restore the flags from
+-			 * the SPSR.
+-			 */
+-			trace_hardirqs_on();
+-			return;
+-		}
++	local_daif_mask();
++	if (has_syscall_work(current_thread_info()->flags) ||
++	    IS_ENABLED(CONFIG_DEBUG_RSEQ)) {
+ 		local_daif_restore(DAIF_PROCCTX);
++		syscall_trace_exit(regs);
+ 	}
+-
+-trace_exit:
+-	syscall_trace_exit(regs);
  }
  
-+/**
-+ * arch_syscall_exit_tracehook - Wrapper around tracehook_report_syscall_exit()
-+ *
-+ * Defaults to tracehook_report_syscall_exit(). Can be replaced by
-+ * architecture specific code.
-+ *
-+ * Invoked from syscall_exit_to_usermode()
-+ */
-+static inline void arch_syscall_exit_tracehook(struct pt_regs *regs, bool step);
-+
-+#ifndef arch_syscall_exit_tracehook
-+static inline void arch_syscall_exit_tracehook(struct pt_regs *regs, bool step)
-+{
-+	tracehook_report_syscall_exit(regs, step);
-+}
-+#endif
-+
-+/* Common syscall exit function */
-+void syscall_exit_to_usermode(struct pt_regs *regs, long syscall, long retval);
-+
- #endif
---- a/kernel/entry/common.c
-+++ b/kernel/entry/common.c
-@@ -31,3 +31,58 @@ long core_syscall_enter_from_usermode(st
- 
- 	return ret ? : syscall;
- }
-+
-+#ifndef _TIF_SINGLESTEP
-+static inline bool report_single_step(unsigned long ti_work)
-+{
-+	return false;
-+}
-+#else
-+/*
-+ * If TIF_SYSCALL_EMU is set, then the only reason to report is when
-+ * TIF_SINGLESTEP is set (i.e. PTRACE_SYSEMU_SINGLESTEP).  This syscall
-+ * instruction has been already reported in syscall_enter_from_usermode().
-+ */
-+#define SYSEMU_STEP	(_TIF_SINGLESTEP | _TIF_SYSCALL_EMU)
-+
-+static inline bool report_single_step(unsigned long ti_work)
-+{
-+	return (ti_work & SYSEMU_STEP) == _TIF_SINGLESTEP;
-+}
-+#endif
-+
-+static void syscall_exit_work(struct pt_regs *regs, long retval,
-+			      unsigned long ti_work)
-+{
-+	bool step;
-+
-+	audit_syscall_exit(regs);
-+
-+	if (ti_work & _TIF_SYSCALL_TRACEPOINT)
-+		trace_sys_exit(regs, retval);
-+
-+	step = report_single_step(ti_work);
-+	if (step || ti_work & _TIF_SYSCALL_TRACE)
-+		arch_syscall_exit_tracehook(regs, step);
-+}
-+
-+void syscall_exit_to_usermode(struct pt_regs *regs, long syscall, long retval)
-+{
-+	unsigned long ti_work;
-+
-+	CT_WARN_ON(ct_state() != CONTEXT_KERNEL);
-+
-+	if (IS_ENABLED(CONFIG_PROVE_LOCKING) &&
-+	    WARN(irqs_disabled(), "syscall %ld left IRQs disabled", syscall))
-+		local_irq_enable();
-+
-+	rseq_syscall(regs);
-+
-+	/*
-+	 * Handle work which needs to run exactly once per syscall exit
-+	 * with interrupts enabled.
-+	 */
-+	ti_work = READ_ONCE(current_thread_info()->flags);
-+	if (unlikely(ti_work & SYSCALL_EXIT_WORK))
-+		syscall_exit_work(regs, retval, ti_work);
-+}
+ static inline void sve_user_discard(void)
