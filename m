@@ -1,8 +1,7 @@
 From: Thomas Gleixner <tglx@linutronix.de>
-Subject: [RFC patch 08/15] arm64/syscall: Use generic syscall exit
- functionality
-Date: Thu, 19 Sep 2019 17:03:22 +0200
-Message-ID: <20190919150809.235562522@linutronix.de>
+Subject: [RFC patch 06/15] x86/entry: Use generic syscall exit functionality
+Date: Thu, 19 Sep 2019 17:03:20 +0200
+Message-ID: <20190919150809.041298671@linutronix.de>
 References: <20190919150314.054351477@linutronix.de>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
@@ -12,132 +11,81 @@ To: LKML <linux-kernel@vger.kernel.org>
 Cc: x86@kernel.org, Peter Zijlstra <peterz@infradead.org>, Andy Lutomirski <luto@kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Mark Rutland <mark.rutland@arm.com>, Marc Zyngier <maz@kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, kvm@vger.kernel.org, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-Replace the syscall exit handling code with the generic version. That gets
-rid of the interrupts disabled check for work flags. That's a non-issue
-because the flags are checked with READ_ONCE() in the core and not
-reevaluated. That's perfectly fine because the interrupts disabled check is
-also just a snapshot.
+Replace the x86 variant with the generic version.
 
 Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
 ---
- arch/arm64/include/asm/entry-common.h |   11 +++++++++
- arch/arm64/kernel/ptrace.c            |   38 ----------------------------------
- arch/arm64/kernel/syscall.c           |   14 ------------
- 3 files changed, 12 insertions(+), 51 deletions(-)
+ arch/x86/entry/common.c             |   44 ------------------------------------
+ arch/x86/include/asm/entry-common.h |    2 +
+ 2 files changed, 3 insertions(+), 43 deletions(-)
 
---- a/arch/arm64/include/asm/entry-common.h
-+++ b/arch/arm64/include/asm/entry-common.h
-@@ -29,6 +29,17 @@ static inline __must_check int arch_sysc
- }
- #define arch_syscall_enter_tracehook arch_syscall_enter_tracehook
- 
-+static inline void arch_syscall_exit_tracehook(struct pt_regs *regs, bool step)
-+{
-+	int regno = (is_compat_task() ? 12 : 7);
-+	unsigned long reg = regs->regs[regno];
-+
-+	regs->regs[regno] = PTRACE_SYSCALL_EXIT;
-+	tracehook_report_syscall_exit(regs, step);
-+	regs->regs[regno] = reg;
-+}
-+#define arch_syscall_exit_tracehook arch_syscall_exit_tracehook
-+
- static inline void arch_syscall_enter_audit(struct pt_regs *regs)
- {
- 	audit_syscall_entry(regs->syscallno, regs->orig_x0, regs->regs[1],
---- a/arch/arm64/kernel/ptrace.c
-+++ b/arch/arm64/kernel/ptrace.c
-@@ -13,13 +13,11 @@
- #include <linux/kernel.h>
- #include <linux/sched/signal.h>
- #include <linux/sched/task_stack.h>
--#include <linux/entry-common.h>
- #include <linux/mm.h>
- #include <linux/nospec.h>
- #include <linux/smp.h>
- #include <linux/ptrace.h>
- #include <linux/user.h>
--#include <linux/seccomp.h>
- #include <linux/security.h>
- #include <linux/init.h>
- #include <linux/signal.h>
-@@ -28,7 +26,6 @@
- #include <linux/perf_event.h>
- #include <linux/hw_breakpoint.h>
- #include <linux/regset.h>
--#include <linux/tracehook.h>
- #include <linux/elf.h>
- 
- #include <asm/compat.h>
-@@ -1779,41 +1776,6 @@ long arch_ptrace(struct task_struct *chi
- 	return ptrace_request(child, request, addr, data);
+--- a/arch/x86/entry/common.c
++++ b/arch/x86/entry/common.c
+@@ -139,55 +139,13 @@ static void exit_to_usermode_loop(struct
+ 	mds_user_clear_cpu_buffers();
  }
  
--static void tracehook_report_syscall(struct pt_regs *regs,
--				     enum ptrace_syscall_dir dir)
+-#define SYSCALL_EXIT_WORK_FLAGS				\
+-	(_TIF_SYSCALL_TRACE | _TIF_SYSCALL_AUDIT |	\
+-	 _TIF_SINGLESTEP | _TIF_SYSCALL_TRACEPOINT)
+-
+-static void syscall_slow_exit_work(struct pt_regs *regs, u32 cached_flags)
 -{
--	int regno;
--	unsigned long saved_reg;
+-	bool step;
 -
--	/*
--	 * A scratch register (ip(r12) on AArch32, x7 on AArch64) is
--	 * used to denote syscall entry/exit:
--	 */
--	regno = (is_compat_task() ? 12 : 7);
--	saved_reg = regs->regs[regno];
--	regs->regs[regno] = dir;
--
--	if (dir == PTRACE_SYSCALL_EXIT)
--		tracehook_report_syscall_exit(regs, 0);
--	else if (tracehook_report_syscall_entry(regs))
--		forget_syscall(regs);
--
--	regs->regs[regno] = saved_reg;
--}
--
--void syscall_trace_exit(struct pt_regs *regs)
--{
 -	audit_syscall_exit(regs);
 -
--	if (test_thread_flag(TIF_SYSCALL_TRACEPOINT))
--		trace_sys_exit(regs, regs_return_value(regs));
+-	if (cached_flags & _TIF_SYSCALL_TRACEPOINT)
+-		trace_sys_exit(regs, regs->ax);
 -
--	if (test_thread_flag(TIF_SYSCALL_TRACE))
--		tracehook_report_syscall(regs, PTRACE_SYSCALL_EXIT);
--
--	rseq_syscall(regs);
+-	/*
+-	 * If TIF_SYSCALL_EMU is set, we only get here because of
+-	 * TIF_SINGLESTEP (i.e. this is PTRACE_SYSEMU_SINGLESTEP).
+-	 * We already reported this syscall instruction in
+-	 * syscall_trace_enter().
+-	 */
+-	step = unlikely(
+-		(cached_flags & (_TIF_SINGLESTEP | _TIF_SYSCALL_EMU))
+-		== _TIF_SINGLESTEP);
+-	if (step || cached_flags & _TIF_SYSCALL_TRACE)
+-		tracehook_report_syscall_exit(regs, step);
 -}
 -
  /*
-  * SPSR_ELx bits which are always architecturally RES0 per ARM DDI 0487D.a.
-  * We permit userspace to set SSBS (AArch64 bit 12, AArch32 bit 23) which is
---- a/arch/arm64/kernel/syscall.c
-+++ b/arch/arm64/kernel/syscall.c
-@@ -54,13 +54,6 @@ static void invoke_syscall(struct pt_reg
- 	regs->regs[0] = ret;
- }
- 
--static inline bool has_syscall_work(unsigned long flags)
--{
--	return unlikely(flags & _TIF_SYSCALL_WORK);
--}
+  * Called with IRQs on and fully valid regs.  Returns with IRQs off in a
+  * state such that we can immediately switch to user mode.
+  */
+ __visible inline void syscall_return_slowpath(struct pt_regs *regs)
+ {
+-	struct thread_info *ti = current_thread_info();
+-	u32 cached_flags = READ_ONCE(ti->flags);
 -
--void syscall_trace_exit(struct pt_regs *regs);
+-	CT_WARN_ON(ct_state() != CONTEXT_KERNEL);
 -
- #ifdef CONFIG_ARM64_ERRATUM_1463225
- DECLARE_PER_CPU(int, __in_cortex_a76_erratum_1463225_wa);
+-	if (IS_ENABLED(CONFIG_PROVE_LOCKING) &&
+-	    WARN(irqs_disabled(), "syscall %ld left IRQs disabled", regs->orig_ax))
+-		local_irq_enable();
+-
+-	rseq_syscall(regs);
+-
+-	/*
+-	 * First do one-time work.  If these work items are enabled, we
+-	 * want to run them exactly once per syscall exit with IRQs on.
+-	 */
+-	if (unlikely(cached_flags & SYSCALL_EXIT_WORK_FLAGS))
+-		syscall_slow_exit_work(regs, cached_flags);
++	syscall_exit_to_usermode(regs, regs->orig_ax, regs->ax);
  
-@@ -106,12 +99,7 @@ static void el0_svc_common(struct pt_reg
- 	if (scno != NO_SYSCALL)
- 		invoke_syscall(regs, scno, sc_nr, syscall_table);
+ 	local_irq_disable();
+ 	prepare_exit_to_usermode(regs);
+--- a/arch/x86/include/asm/entry-common.h
++++ b/arch/x86/include/asm/entry-common.h
+@@ -5,6 +5,8 @@
+ #include <linux/seccomp.h>
+ #include <linux/audit.h>
  
--	local_daif_mask();
--	if (has_syscall_work(current_thread_info()->flags) ||
--	    IS_ENABLED(CONFIG_DEBUG_RSEQ)) {
--		local_daif_restore(DAIF_PROCCTX);
--		syscall_trace_exit(regs);
--	}
-+	syscall_exit_to_usermode(regs, scno, regs_return_value(regs));
- }
- 
- static inline void sve_user_discard(void)
++#define ARCH_SYSCALL_EXIT_WORK		(_TIF_SINGLESTEP)
++
+ static inline long arch_syscall_enter_seccomp(struct pt_regs *regs)
+ {
+ #ifdef CONFIG_SECCOMP
