@@ -1,184 +1,120 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from Galois.linutronix.de ([193.142.43.55]:50051 "EHLO
-        Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1732001AbfISPJv (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 19 Sep 2019 11:09:51 -0400
-Message-ID: <20190919150808.830764150@linutronix.de>
-Date: Thu, 19 Sep 2019 17:03:18 +0200
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: [RFC patch 04/15] arm64/entry: Use generic syscall entry function
+Received: from us-smtp-2.mimecast.com ([205.139.110.61]:22421 "EHLO
+        us-smtp-delivery-1.mimecast.com" rhost-flags-OK-OK-OK-FAIL)
+        by vger.kernel.org with ESMTP id S2389893AbfISPk1 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 19 Sep 2019 11:40:27 -0400
+Received: by mail-wr1-f70.google.com with SMTP id h6so1238787wrh.6
+        for <linux-arch@vger.kernel.org>; Thu, 19 Sep 2019 08:40:05 -0700 (PDT)
+Subject: Re: [RFC patch 14/15] workpending: Provide infrastructure for work
+ before entering a guest
 References: <20190919150314.054351477@linutronix.de>
+ <20190919150809.860645841@linutronix.de>
+From: Paolo Bonzini <pbonzini@redhat.com>
+Message-ID: <0cc964dc-4d00-05ec-1ed1-f6cee7370d7b@redhat.com>
+Date: Thu, 19 Sep 2019 17:40:01 +0200
 MIME-Version: 1.0
+In-Reply-To: <20190919150809.860645841@linutronix.de>
+Content-Language: en-US
 Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: quoted-printable
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: LKML <linux-kernel@vger.kernel.org>
-Cc: x86@kernel.org, Peter Zijlstra <peterz@infradead.org>, Andy Lutomirski <luto@kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Mark Rutland <mark.rutland@arm.com>, Marc Zyngier <maz@kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, kvm@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20190919150318.GgI4VrEp5SGEioxiXsGDKNQ-WiCVZN5tTxR_ZYJFwUo@z>
+To: Thomas Gleixner <tglx@linutronix.de>, LKML <linux-kernel@vger.kernel.org>
+Cc: x86@kernel.org, Peter Zijlstra <peterz@infradead.org>, Andy Lutomirski <luto@kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Mark Rutland <mark.rutland@arm.com>, Marc Zyngier <maz@kernel.org>, kvm@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20190919154001.feZK_m8gGAvgHH-ZO2spQOLjxDkb7Y606NEeLon_CdY@z>
 
-Replace the syscall entry work handling with the generic version, Provide
-the necessary helper inlines to handle the real architecture specific
-parts, e.g. audit and seccomp invocations.
+Quick API review before I dive into the implementation.
 
-Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
----
- arch/arm64/Kconfig                    |    1 
- arch/arm64/include/asm/entry-common.h |   39 ++++++++++++++++++++++++++++++++++
- arch/arm64/kernel/ptrace.c            |   29 -------------------------
- arch/arm64/kernel/syscall.c           |   15 +++++--------
- 4 files changed, 47 insertions(+), 37 deletions(-)
+On 19/09/19 17:03, Thomas Gleixner wrote:
+> +=09/*
+> +=09 * Before returning to guest mode handle all pending work
+> +=09 */
+> +=09if (ti_work & _TIF_SIGPENDING) {
+> +=09=09vcpu->run->exit_reason =3D KVM_EXIT_INTR;
+> +=09=09vcpu->stat.signal_exits++;
+> +=09=09return -EINTR;
+> +=09}
+> +
+> +=09if (ti_work & _TIF_NEED_RESCHED) {
+> +=09=09srcu_read_unlock(&kvm->srcu, vcpu->srcu_idx);
+> +=09=09schedule();
+> +=09=09vcpu->srcu_idx =3D srcu_read_lock(&kvm->srcu);
+> +=09}
+> +
+> +=09if (ti_work & _TIF_PATCH_PENDING) {
+> +=09=09srcu_read_unlock(&kvm->srcu, vcpu->srcu_idx);
+> +=09=09klp_update_patch_state(current);
+> +=09=09vcpu->srcu_idx =3D srcu_read_lock(&kvm->srcu);
+> +=09}
+> +
+> +=09if (ti_work & _TIF_NOTIFY_RESUME) {
+> +=09=09srcu_read_unlock(&kvm->srcu, vcpu->srcu_idx);
+> +=09=09clear_thread_flag(TIF_NOTIFY_RESUME);
+> +=09=09tracehook_notify_resume(NULL);
+> +=09=09vcpu->srcu_idx =3D srcu_read_lock(&kvm->srcu);
+> +=09}
+> +
+> +=09/* Any extra architecture specific work */
+> +=09return arch_exit_to_guestmode_work(kvm, vcpu, ti_work);
+> +}
 
---- a/arch/arm64/Kconfig
-+++ b/arch/arm64/Kconfig
-@@ -99,6 +99,7 @@ config ARM64
- 	select GENERIC_CPU_AUTOPROBE
- 	select GENERIC_CPU_VULNERABILITIES
- 	select GENERIC_EARLY_IOREMAP
-+	select GENERIC_ENTRY
- 	select GENERIC_IDLE_POLL_SETUP
- 	select GENERIC_IRQ_MULTI_HANDLER
- 	select GENERIC_IRQ_PROBE
---- /dev/null
-+++ b/arch/arm64/include/asm/entry-common.h
-@@ -0,0 +1,39 @@
-+/* SPDX-License-Identifier: GPL-2.0-only */
-+/*
-+ * Copyright (C) 2017 ARM Ltd.
-+ */
-+#ifndef __ASM_ENTRY_COMMON_H
-+#define __ASM_ENTRY_COMMON_H
-+
-+enum ptrace_syscall_dir {
-+	PTRACE_SYSCALL_ENTER = 0,
-+	PTRACE_SYSCALL_EXIT,
-+};
-+
-+/*
-+ * A scratch register (ip(r12) on AArch32, x7 on AArch64) is
-+ * used to denote syscall entry/exit for the tracehooks
-+ */
-+static inline __must_check int arch_syscall_enter_tracehook(struct pt_regs *regs)
-+{
-+	int regno = (is_compat_task() ? 12 : 7);
-+	unsigned long reg = regs->regs[regno];
-+	long ret;
-+
-+	regs->regs[regno] = PTRACE_SYSCALL_ENTER;
-+	ret = tracehook_report_syscall_entry(regs);
-+	if (ret)
-+		forget_syscall(regs);
-+	regs->regs[regno] = reg;
-+	return ret;
-+}
-+#define arch_syscall_enter_tracehook arch_syscall_enter_tracehook
-+
-+static inline void arch_syscall_enter_audit(struct pt_regs *regs)
-+{
-+	audit_syscall_entry(regs->syscallno, regs->orig_x0, regs->regs[1],
-+			    regs->regs[2], regs->regs[3]);
-+}
-+#define arch_syscall_enter_audit arch_syscall_enter_audit
-+
-+#endif
---- a/arch/arm64/kernel/ptrace.c
-+++ b/arch/arm64/kernel/ptrace.c
-@@ -13,6 +13,7 @@
- #include <linux/kernel.h>
- #include <linux/sched/signal.h>
- #include <linux/sched/task_stack.h>
-+#include <linux/entry-common.h>
- #include <linux/mm.h>
- #include <linux/nospec.h>
- #include <linux/smp.h>
-@@ -41,7 +42,6 @@
- #include <asm/traps.h>
- #include <asm/system_misc.h>
- 
--#define CREATE_TRACE_POINTS
- #include <trace/events/syscalls.h>
- 
- struct pt_regs_offset {
-@@ -1779,11 +1779,6 @@ long arch_ptrace(struct task_struct *chi
- 	return ptrace_request(child, request, addr, data);
- }
- 
--enum ptrace_syscall_dir {
--	PTRACE_SYSCALL_ENTER = 0,
--	PTRACE_SYSCALL_EXIT,
--};
--
- static void tracehook_report_syscall(struct pt_regs *regs,
- 				     enum ptrace_syscall_dir dir)
- {
-@@ -1806,28 +1801,6 @@ static void tracehook_report_syscall(str
- 	regs->regs[regno] = saved_reg;
- }
- 
--int syscall_trace_enter(struct pt_regs *regs)
--{
--	if (test_thread_flag(TIF_SYSCALL_TRACE) ||
--		test_thread_flag(TIF_SYSCALL_EMU)) {
--		tracehook_report_syscall(regs, PTRACE_SYSCALL_ENTER);
--		if (!in_syscall(regs) || test_thread_flag(TIF_SYSCALL_EMU))
--			return -1;
--	}
--
--	/* Do the secure computing after ptrace; failures should be fast. */
--	if (secure_computing(NULL) == -1)
--		return -1;
--
--	if (test_thread_flag(TIF_SYSCALL_TRACEPOINT))
--		trace_sys_enter(regs, regs->syscallno);
--
--	audit_syscall_entry(regs->syscallno, regs->orig_x0, regs->regs[1],
--			    regs->regs[2], regs->regs[3]);
--
--	return regs->syscallno;
--}
--
- void syscall_trace_exit(struct pt_regs *regs)
- {
- 	audit_syscall_exit(regs);
---- a/arch/arm64/kernel/syscall.c
-+++ b/arch/arm64/kernel/syscall.c
-@@ -1,6 +1,7 @@
- // SPDX-License-Identifier: GPL-2.0
- 
- #include <linux/compiler.h>
-+#include <linux/entry-common.h>
- #include <linux/context_tracking.h>
- #include <linux/errno.h>
- #include <linux/nospec.h>
-@@ -58,7 +59,6 @@ static inline bool has_syscall_work(unsi
- 	return unlikely(flags & _TIF_SYSCALL_WORK);
- }
- 
--int syscall_trace_enter(struct pt_regs *regs);
- void syscall_trace_exit(struct pt_regs *regs);
- 
- #ifdef CONFIG_ARM64_ERRATUM_1463225
-@@ -97,19 +97,16 @@ static void el0_svc_common(struct pt_reg
- 
- 	regs->orig_x0 = regs->regs[0];
- 	regs->syscallno = scno;
-+	/* Set default error number */
-+	regs->regs[0] = -ENOSYS;
- 
- 	cortex_a76_erratum_1463225_svc_handler();
- 	local_daif_restore(DAIF_PROCCTX);
- 	user_exit();
- 
--	if (has_syscall_work(flags)) {
--		/* set default errno for user-issued syscall(-1) */
--		if (scno == NO_SYSCALL)
--			regs->regs[0] = -ENOSYS;
--		scno = syscall_trace_enter(regs);
--		if (scno == NO_SYSCALL)
--			goto trace_exit;
--	}
-+	scno = syscall_enter_from_usermode(regs, scno);
-+	if (scno == NO_SYSCALL)
-+		goto trace_exit;
- 
- 	invoke_syscall(regs, scno, sc_nr, syscall_table);
- 
+Perhaps, in virt/kvm/kvm_main.c:
+
+int kvm_exit_to_guestmode_work(struct kvm *kvm, struct kvm_vcpu *vcpu,
+=09=09=09=09unsigned long ti_work)
+{
+=09int r;
+
+=09/*
+=09 * Before returning to guest mode handle all pending work
+=09 */
+=09if (ti_work & _TIF_SIGPENDING) {
+=09=09vcpu->run->exit_reason =3D KVM_EXIT_INTR;
+=09=09vcpu->stat.signal_exits++;
+=09=09return -EINTR;
+=09}
+
+=09srcu_read_unlock(&kvm->srcu, vcpu->srcu_idx);
+=09core_exit_to_guestmode_work(ti_work);
+=09vcpu->srcu_idx =3D srcu_read_lock(&kvm->srcu);
+
+=09return r;
+}
+
+and in kernel/entry/common.c:
+
+int core_exit_to_guestmode_work(unsigned long ti_work)
+{
+=09/*
+=09 * Before returning to guest mode handle all pending work
+=09 */
+=09if (ti_work & _TIF_NEED_RESCHED)
+=09=09schedule();
+
+=09if (ti_work & _TIF_PATCH_PENDING)
+=09=09klp_update_patch_state(current);
+
+=09if (ti_work & _TIF_NOTIFY_RESUME) {
+=09=09clear_thread_flag(TIF_NOTIFY_RESUME);
+=09=09tracehook_notify_resume(NULL);
+=09}
+=09return arch_exit_to_guestmode_work(ti_work);
+}
+
+so that kernel/entry/ is not polluted with KVM structs and APIs.
+
+Perhaps even extract the body of core_exit_to_usermode_work's while loop
+to a separate function, and call it as
+
+=09core_exit_to_usermode_work_once(NULL,
+=09=09=09=09ti_work & EXIT_TO_GUESTMODE_WORK);
+
+from core_exit_to_guestmode_work.
+
+In general I don't mind having these exit_to_guestmode functions in
+kvm_host.h, and only having entry-common.h export EXIT_TO_GUESTMODE_WORK
+and ARCH_EXIT_TO_GUESTMODE_WORK.  Unless you had good reasons to do the
+opposite...
+
+Paolo
