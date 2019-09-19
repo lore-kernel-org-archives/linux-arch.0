@@ -1,7 +1,7 @@
 From: Thomas Gleixner <tglx@linutronix.de>
-Subject: [RFC patch 10/15] x86/entry: Move irq tracing to C code
-Date: Thu, 19 Sep 2019 17:03:24 +0200
-Message-ID: <20190919150809.446771597@linutronix.de>
+Subject: [RFC patch 04/15] arm64/entry: Use generic syscall entry function
+Date: Thu, 19 Sep 2019 17:03:18 +0200
+Message-ID: <20190919150808.830764150@linutronix.de>
 References: <20190919150314.054351477@linutronix.de>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
@@ -11,219 +11,169 @@ To: LKML <linux-kernel@vger.kernel.org>
 Cc: x86@kernel.org, Peter Zijlstra <peterz@infradead.org>, Andy Lutomirski <luto@kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Mark Rutland <mark.rutland@arm.com>, Marc Zyngier <maz@kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, kvm@vger.kernel.org, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-To prepare for converting the exit to usermode code to the generic version,
-move the irqflags tracing into C code.
+Replace the syscall entry work handling with the generic version, Provide
+the necessary helper inlines to handle the real architecture specific
+parts, e.g. audit and seccomp invocations.
 
 Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
 ---
- arch/x86/entry/common.c          |   10 ++++++++++
- arch/x86/entry/entry_32.S        |   11 +----------
- arch/x86/entry/entry_64.S        |   10 ++--------
- arch/x86/entry/entry_64_compat.S |   21 ---------------------
- 4 files changed, 13 insertions(+), 39 deletions(-)
+ arch/arm64/Kconfig                    |    1 
+ arch/arm64/include/asm/entry-common.h |   39 ++++++++++++++++++++++++++++++++++
+ arch/arm64/kernel/ptrace.c            |   29 -------------------------
+ arch/arm64/kernel/syscall.c           |   15 +++++--------
+ 4 files changed, 47 insertions(+), 37 deletions(-)
 
---- a/arch/x86/entry/common.c
-+++ b/arch/x86/entry/common.c
-@@ -102,6 +102,8 @@ static void exit_to_usermode_loop(struct
- 	struct thread_info *ti = current_thread_info();
- 	u32 cached_flags;
- 
-+	trace_hardirqs_off();
+--- a/arch/arm64/Kconfig
++++ b/arch/arm64/Kconfig
+@@ -99,6 +99,7 @@ config ARM64
+ 	select GENERIC_CPU_AUTOPROBE
+ 	select GENERIC_CPU_VULNERABILITIES
+ 	select GENERIC_EARLY_IOREMAP
++	select GENERIC_ENTRY
+ 	select GENERIC_IDLE_POLL_SETUP
+ 	select GENERIC_IRQ_MULTI_HANDLER
+ 	select GENERIC_IRQ_PROBE
+--- /dev/null
++++ b/arch/arm64/include/asm/entry-common.h
+@@ -0,0 +1,39 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++/*
++ * Copyright (C) 2017 ARM Ltd.
++ */
++#ifndef __ASM_ENTRY_COMMON_H
++#define __ASM_ENTRY_COMMON_H
 +
- 	addr_limit_user_check();
- 
- 	lockdep_assert_irqs_disabled();
-@@ -137,6 +139,8 @@ static void exit_to_usermode_loop(struct
- 	user_enter_irqoff();
- 
- 	mds_user_clear_cpu_buffers();
++enum ptrace_syscall_dir {
++	PTRACE_SYSCALL_ENTER = 0,
++	PTRACE_SYSCALL_EXIT,
++};
 +
-+	trace_hardirqs_on();
++/*
++ * A scratch register (ip(r12) on AArch32, x7 on AArch64) is
++ * used to denote syscall entry/exit for the tracehooks
++ */
++static inline __must_check int arch_syscall_enter_tracehook(struct pt_regs *regs)
++{
++	int regno = (is_compat_task() ? 12 : 7);
++	unsigned long reg = regs->regs[regno];
++	long ret;
++
++	regs->regs[regno] = PTRACE_SYSCALL_ENTER;
++	ret = tracehook_report_syscall_entry(regs);
++	if (ret)
++		forget_syscall(regs);
++	regs->regs[regno] = reg;
++	return ret;
++}
++#define arch_syscall_enter_tracehook arch_syscall_enter_tracehook
++
++static inline void arch_syscall_enter_audit(struct pt_regs *regs)
++{
++	audit_syscall_entry(regs->syscallno, regs->orig_x0, regs->regs[1],
++			    regs->regs[2], regs->regs[3]);
++}
++#define arch_syscall_enter_audit arch_syscall_enter_audit
++
++#endif
+--- a/arch/arm64/kernel/ptrace.c
++++ b/arch/arm64/kernel/ptrace.c
+@@ -13,6 +13,7 @@
+ #include <linux/kernel.h>
+ #include <linux/sched/signal.h>
+ #include <linux/sched/task_stack.h>
++#include <linux/entry-common.h>
+ #include <linux/mm.h>
+ #include <linux/nospec.h>
+ #include <linux/smp.h>
+@@ -41,7 +42,6 @@
+ #include <asm/traps.h>
+ #include <asm/system_misc.h>
+ 
+-#define CREATE_TRACE_POINTS
+ #include <trace/events/syscalls.h>
+ 
+ struct pt_regs_offset {
+@@ -1779,11 +1779,6 @@ long arch_ptrace(struct task_struct *chi
+ 	return ptrace_request(child, request, addr, data);
  }
  
- /*
-@@ -154,6 +158,8 @@ static void exit_to_usermode_loop(struct
- #ifdef CONFIG_X86_64
- __visible void do_syscall_64(unsigned long nr, struct pt_regs *regs)
+-enum ptrace_syscall_dir {
+-	PTRACE_SYSCALL_ENTER = 0,
+-	PTRACE_SYSCALL_EXIT,
+-};
+-
+ static void tracehook_report_syscall(struct pt_regs *regs,
+ 				     enum ptrace_syscall_dir dir)
  {
-+	/* User to kernel transition disabled interrupts. */
-+	trace_hardirqs_off();
- 	enter_from_user_mode();
- 	local_irq_enable();
+@@ -1806,28 +1801,6 @@ static void tracehook_report_syscall(str
+ 	regs->regs[regno] = saved_reg;
+ }
  
-@@ -221,6 +227,7 @@ static __always_inline void do_syscall_3
- /* Handles int $0x80 */
- __visible void do_int80_syscall_32(struct pt_regs *regs)
+-int syscall_trace_enter(struct pt_regs *regs)
+-{
+-	if (test_thread_flag(TIF_SYSCALL_TRACE) ||
+-		test_thread_flag(TIF_SYSCALL_EMU)) {
+-		tracehook_report_syscall(regs, PTRACE_SYSCALL_ENTER);
+-		if (!in_syscall(regs) || test_thread_flag(TIF_SYSCALL_EMU))
+-			return -1;
+-	}
+-
+-	/* Do the secure computing after ptrace; failures should be fast. */
+-	if (secure_computing(NULL) == -1)
+-		return -1;
+-
+-	if (test_thread_flag(TIF_SYSCALL_TRACEPOINT))
+-		trace_sys_enter(regs, regs->syscallno);
+-
+-	audit_syscall_entry(regs->syscallno, regs->orig_x0, regs->regs[1],
+-			    regs->regs[2], regs->regs[3]);
+-
+-	return regs->syscallno;
+-}
+-
+ void syscall_trace_exit(struct pt_regs *regs)
  {
-+	trace_hardirqs_off();
- 	enter_from_user_mode();
- 	local_irq_enable();
- 	do_syscall_32_irqs_on(regs);
-@@ -237,6 +244,9 @@ static __always_inline void do_syscall_3
- 	unsigned long landing_pad = (unsigned long)current->mm->context.vdso +
- 		vdso_image_32.sym_int80_landing_pad;
+ 	audit_syscall_exit(regs);
+--- a/arch/arm64/kernel/syscall.c
++++ b/arch/arm64/kernel/syscall.c
+@@ -1,6 +1,7 @@
+ // SPDX-License-Identifier: GPL-2.0
  
-+	/* User to kernel transition disabled interrupts. */
-+	trace_hardirqs_off();
-+
- 	/*
- 	 * SYSENTER loses EIP, and even SYSCALL32 needs us to skip forward
- 	 * so that 'regs->ip -= 2' lands back on an int $0x80 instruction.
---- a/arch/x86/entry/entry_32.S
-+++ b/arch/x86/entry/entry_32.S
-@@ -827,7 +827,6 @@ END(ret_from_fork)
+ #include <linux/compiler.h>
++#include <linux/entry-common.h>
+ #include <linux/context_tracking.h>
+ #include <linux/errno.h>
+ #include <linux/nospec.h>
+@@ -58,7 +59,6 @@ static inline bool has_syscall_work(unsi
+ 	return unlikely(flags & _TIF_SYSCALL_WORK);
+ }
  
- ENTRY(resume_userspace)
- 	DISABLE_INTERRUPTS(CLBR_ANY)
--	TRACE_IRQS_OFF
- 	movl	%esp, %eax
- 	call	prepare_exit_to_usermode
- 	jmp	restore_all
-@@ -1049,12 +1048,6 @@ ENTRY(entry_INT80_32)
+-int syscall_trace_enter(struct pt_regs *regs);
+ void syscall_trace_exit(struct pt_regs *regs);
  
- 	SAVE_ALL pt_regs_ax=$-ENOSYS switch_stacks=1	/* save rest */
+ #ifdef CONFIG_ARM64_ERRATUM_1463225
+@@ -97,19 +97,16 @@ static void el0_svc_common(struct pt_reg
  
--	/*
--	 * User mode is traced as though IRQs are on, and the interrupt gate
--	 * turned them off.
--	 */
--	TRACE_IRQS_OFF
--
- 	movl	%esp, %eax
- 	call	do_int80_syscall_32
- .Lsyscall_32_done:
-@@ -1062,11 +1055,8 @@ ENTRY(entry_INT80_32)
- 	STACKLEAK_ERASE
+ 	regs->orig_x0 = regs->regs[0];
+ 	regs->syscallno = scno;
++	/* Set default error number */
++	regs->regs[0] = -ENOSYS;
  
- restore_all:
--	TRACE_IRQS_IRET
- 	SWITCH_TO_ENTRY_STACK
--.Lrestore_all_notrace:
- 	CHECK_AND_APPLY_ESPFIX
--.Lrestore_nocheck:
- 	/* Switch back to user CR3 */
- 	SWITCH_TO_USER_CR3 scratch_reg=%eax
+ 	cortex_a76_erratum_1463225_svc_handler();
+ 	local_daif_restore(DAIF_PROCCTX);
+ 	user_exit();
  
-@@ -1086,6 +1076,7 @@ ENTRY(entry_INT80_32)
- restore_all_kernel:
- #ifdef CONFIG_PREEMPTION
- 	DISABLE_INTERRUPTS(CLBR_ANY)
-+	TRACE_IRQS_OFF
- 	cmpl	$0, PER_CPU_VAR(__preempt_count)
- 	jnz	.Lno_preempt
- 	testl	$X86_EFLAGS_IF, PT_EFLAGS(%esp)	# interrupts off (exception path) ?
---- a/arch/x86/entry/entry_64.S
-+++ b/arch/x86/entry/entry_64.S
-@@ -167,15 +167,11 @@ GLOBAL(entry_SYSCALL_64_after_hwframe)
+-	if (has_syscall_work(flags)) {
+-		/* set default errno for user-issued syscall(-1) */
+-		if (scno == NO_SYSCALL)
+-			regs->regs[0] = -ENOSYS;
+-		scno = syscall_trace_enter(regs);
+-		if (scno == NO_SYSCALL)
+-			goto trace_exit;
+-	}
++	scno = syscall_enter_from_usermode(regs, scno);
++	if (scno == NO_SYSCALL)
++		goto trace_exit;
  
- 	PUSH_AND_CLEAR_REGS rax=$-ENOSYS
+ 	invoke_syscall(regs, scno, sc_nr, syscall_table);
  
--	TRACE_IRQS_OFF
--
- 	/* IRQs are off. */
- 	movq	%rax, %rdi
- 	movq	%rsp, %rsi
- 	call	do_syscall_64		/* returns with IRQs disabled */
- 
--	TRACE_IRQS_IRETQ		/* we're about to change IF */
--
- 	/*
- 	 * Try to use SYSRET instead of IRET if we're returning to
- 	 * a completely clean 64-bit userspace context.  If we're not,
-@@ -342,7 +338,6 @@ ENTRY(ret_from_fork)
- 	UNWIND_HINT_REGS
- 	movq	%rsp, %rdi
- 	call	syscall_return_slowpath	/* returns with IRQs disabled */
--	TRACE_IRQS_ON			/* user mode is traced as IRQS on */
- 	jmp	swapgs_restore_regs_and_return_to_usermode
- 
- 1:
-@@ -608,7 +603,6 @@ END(common_spurious)
- 	/* 0(%rsp): old RSP */
- ret_from_intr:
- 	DISABLE_INTERRUPTS(CLBR_ANY)
--	TRACE_IRQS_OFF
- 
- 	LEAVE_IRQ_STACK
- 
-@@ -619,7 +613,6 @@ END(common_spurious)
- GLOBAL(retint_user)
- 	mov	%rsp,%rdi
- 	call	prepare_exit_to_usermode
--	TRACE_IRQS_IRETQ
- 
- GLOBAL(swapgs_restore_regs_and_return_to_usermode)
- #ifdef CONFIG_DEBUG_ENTRY
-@@ -666,6 +659,7 @@ GLOBAL(swapgs_restore_regs_and_return_to
- retint_kernel:
- #ifdef CONFIG_PREEMPTION
- 	/* Interrupts are off */
-+	TRACE_IRQS_OFF
- 	/* Check if we need preemption */
- 	btl	$9, EFLAGS(%rsp)		/* were interrupts off? */
- 	jnc	1f
-@@ -1367,9 +1361,9 @@ ENTRY(error_entry)
- END(error_entry)
- 
- ENTRY(error_exit)
--	UNWIND_HINT_REGS
- 	DISABLE_INTERRUPTS(CLBR_ANY)
- 	TRACE_IRQS_OFF
-+	UNWIND_HINT_REGS
- 	testb	$3, CS(%rsp)
- 	jz	retint_kernel
- 	jmp	retint_user
---- a/arch/x86/entry/entry_64_compat.S
-+++ b/arch/x86/entry/entry_64_compat.S
-@@ -129,12 +129,6 @@ ENTRY(entry_SYSENTER_compat)
- 	jnz	.Lsysenter_fix_flags
- .Lsysenter_flags_fixed:
- 
--	/*
--	 * User mode is traced as though IRQs are on, and SYSENTER
--	 * turned them off.
--	 */
--	TRACE_IRQS_OFF
--
- 	movq	%rsp, %rdi
- 	call	do_fast_syscall_32
- 	/* XEN PV guests always use IRET path */
-@@ -247,12 +241,6 @@ GLOBAL(entry_SYSCALL_compat_after_hwfram
- 	pushq   $0			/* pt_regs->r15 = 0 */
- 	xorl	%r15d, %r15d		/* nospec   r15 */
- 
--	/*
--	 * User mode is traced as though IRQs are on, and SYSENTER
--	 * turned them off.
--	 */
--	TRACE_IRQS_OFF
--
- 	movq	%rsp, %rdi
- 	call	do_fast_syscall_32
- 	/* XEN PV guests always use IRET path */
-@@ -266,7 +254,6 @@ GLOBAL(entry_SYSCALL_compat_after_hwfram
- 	 * stack. So let's erase the thread stack right now.
- 	 */
- 	STACKLEAK_ERASE
--	TRACE_IRQS_ON			/* User mode traces as IRQs on. */
- 	movq	RBX(%rsp), %rbx		/* pt_regs->rbx */
- 	movq	RBP(%rsp), %rbp		/* pt_regs->rbp */
- 	movq	EFLAGS(%rsp), %r11	/* pt_regs->flags (in r11) */
-@@ -403,17 +390,9 @@ ENTRY(entry_INT80_compat)
- 	xorl	%r15d, %r15d		/* nospec   r15 */
- 	cld
- 
--	/*
--	 * User mode is traced as though IRQs are on, and the interrupt
--	 * gate turned them off.
--	 */
--	TRACE_IRQS_OFF
--
- 	movq	%rsp, %rdi
- 	call	do_int80_syscall_32
- .Lsyscall_32_done:
- 
--	/* Go back to user mode. */
--	TRACE_IRQS_ON
- 	jmp	swapgs_restore_regs_and_return_to_usermode
- END(entry_INT80_compat)
