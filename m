@@ -1,12 +1,13 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from Galois.linutronix.de ([193.142.43.55]:50056 "EHLO
+Received: from Galois.linutronix.de ([193.142.43.55]:50078 "EHLO
         Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1732034AbfISPJv (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 19 Sep 2019 11:09:51 -0400
-Message-ID: <20190919150808.521907403@linutronix.de>
-Date: Thu, 19 Sep 2019 17:03:15 +0200
+        with ESMTP id S2390955AbfISPJy (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 19 Sep 2019 11:09:54 -0400
+Message-ID: <20190919150809.235562522@linutronix.de>
+Date: Thu, 19 Sep 2019 17:03:22 +0200
 From: Thomas Gleixner <tglx@linutronix.de>
-Subject: [RFC patch 01/15] entry: Provide generic syscall entry functionality
+Subject: [RFC patch 08/15] arm64/syscall: Use generic syscall exit
+ functionality
 References: <20190919150314.054351477@linutronix.de>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
@@ -14,208 +15,134 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: LKML <linux-kernel@vger.kernel.org>
 Cc: x86@kernel.org, Peter Zijlstra <peterz@infradead.org>, Andy Lutomirski <luto@kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Mark Rutland <mark.rutland@arm.com>, Marc Zyngier <maz@kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, kvm@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20190919150315.6_LrXWtCxHvJPM9IqKA6LVxuE5Gd4njnJmS7TrMrzZQ@z>
+Message-ID: <20190919150322.mYiIeDOtoCid4UK43118KPPn-pwvmyZRavRjaUKuAW8@z>
 
-On syscall entry certain work needs to be done conditionally like tracing,
-seccomp etc. This code is duplicated in all architectures.
-
-Provide a generic version.
+Replace the syscall exit handling code with the generic version. That gets
+rid of the interrupts disabled check for work flags. That's a non-issue
+because the flags are checked with READ_ONCE() in the core and not
+reevaluated. That's perfectly fine because the interrupts disabled check is
+also just a snapshot.
 
 Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
 ---
- arch/Kconfig                 |    3 +
- include/linux/entry-common.h |  122 +++++++++++++++++++++++++++++++++++++++++++
- kernel/Makefile              |    1 
- kernel/entry/Makefile        |    3 +
- kernel/entry/common.c        |   33 +++++++++++
- 5 files changed, 162 insertions(+)
+ arch/arm64/include/asm/entry-common.h |   11 +++++++++
+ arch/arm64/kernel/ptrace.c            |   38 ----------------------------------
+ arch/arm64/kernel/syscall.c           |   14 ------------
+ 3 files changed, 12 insertions(+), 51 deletions(-)
 
---- a/arch/Kconfig
-+++ b/arch/Kconfig
-@@ -27,6 +27,9 @@ config HAVE_IMA_KEXEC
- config HOTPLUG_SMT
- 	bool
+--- a/arch/arm64/include/asm/entry-common.h
++++ b/arch/arm64/include/asm/entry-common.h
+@@ -29,6 +29,17 @@ static inline __must_check int arch_sysc
+ }
+ #define arch_syscall_enter_tracehook arch_syscall_enter_tracehook
  
-+config GENERIC_ENTRY
-+       bool
-+
- config OPROFILE
- 	tristate "OProfile system profiling"
- 	depends on PROFILING
---- /dev/null
-+++ b/include/linux/entry-common.h
-@@ -0,0 +1,122 @@
-+/* SPDX-License-Identifier: GPL-2.0 */
-+#ifndef __LINUX_ENTRYCOMMON_H
-+#define __LINUX_ENTRYCOMMON_H
-+
-+#include <linux/tracehook.h>
-+#include <linux/syscalls.h>
-+#include <linux/seccomp.h>
-+#include <linux/sched.h>
-+#include <linux/audit.h>
-+
-+#include <asm/entry-common.h>
-+
-+/*
-+ * Define dummy _TIF work flags if not defined by the architecture or for
-+ * disabled functionality.
-+ */
-+#ifndef _TIF_SYSCALL_TRACE
-+# define _TIF_SYSCALL_TRACE		(0)
-+#endif
-+
-+#ifndef _TIF_SYSCALL_EMU
-+# define _TIF_SYSCALL_EMU		(0)
-+#endif
-+
-+#ifndef _TIF_SYSCALL_TRACEPOINT
-+# define _TIF_SYSCALL_TRACEPOINT	(0)
-+#endif
-+
-+#ifndef _TIF_SECCOMP
-+# define _TIF_SECCOMP			(0)
-+#endif
-+
-+#ifndef _TIF_AUDIT
-+# define _TIF_AUDIT			(0)
-+#endif
-+
-+/*
-+ * TIF flags handled in syscall_enter_from_usermode()
-+ */
-+#ifndef ARCH_SYSCALL_ENTER_WORK
-+# define ARCH_SYSCALL_ENTER_WORK	(0)
-+#endif
-+
-+#define SYSCALL_ENTER_WORK						\
-+	(_TIF_SYSCALL_TRACE | _TIF_SYSCALL_AUDIT | TIF_SECCOMP |	\
-+	 _TIF_SYSCALL_TRACEPOINT | _TIF_SYSCALL_EMU |			\
-+	 ARCH_SYSCALL_ENTER_WORK)
-+
-+/**
-+ * arch_syscall_enter_tracehook - Wrapper around tracehook_report_syscall_entry()
-+ *
-+ * Defaults to tracehook_report_syscall_entry(). Can be replaced by
-+ * architecture specific code.
-+ *
-+ * Invoked from syscall_enter_from_usermode()
-+ */
-+static inline __must_check int arch_syscall_enter_tracehook(struct pt_regs *regs);
-+
-+#ifndef arch_syscall_enter_tracehook
-+static inline __must_check int arch_syscall_enter_tracehook(struct pt_regs *regs)
++static inline void arch_syscall_exit_tracehook(struct pt_regs *regs, bool step)
 +{
-+	return tracehook_report_syscall_entry(regs);
++	int regno = (is_compat_task() ? 12 : 7);
++	unsigned long reg = regs->regs[regno];
++
++	regs->regs[regno] = PTRACE_SYSCALL_EXIT;
++	tracehook_report_syscall_exit(regs, step);
++	regs->regs[regno] = reg;
 +}
-+#endif
++#define arch_syscall_exit_tracehook arch_syscall_exit_tracehook
 +
-+/**
-+ * arch_syscall_enter_seccomp - Architecture specific seccomp invocation
-+ * @regs:	Pointer to currents pt_regs
-+ *
-+ * Invoked from syscall_enter_from_usermode(). Can be replaced by
-+ * architecture specific code.
-+ */
-+static inline long arch_syscall_enter_seccomp(struct pt_regs *regs);
-+
-+#ifndef arch_syscall_enter_seccomp
-+static inline long arch_syscall_enter_seccomp(struct pt_regs *regs)
-+{
-+	return secure_computing(NULL);
-+}
-+#endif
-+
-+/**
-+ * arch_syscall_enter_audit - Architecture specific audit invocation
-+ * @regs:	Pointer to currents pt_regs
-+ *
-+ * Invoked from syscall_enter_from_usermode(). Must be replaced by
-+ * architecture specific code if the architecture supports audit.
-+ */
-+static inline void arch_syscall_enter_audit(struct pt_regs *regs);
-+
-+#ifndef arch_syscall_enter_audit
-+static inline void arch_syscall_enter_audit(struct pt_regs *regs) { }
-+#endif
-+
-+/* Common syscall enter function */
-+long core_syscall_enter_from_usermode(struct pt_regs *regs, long syscall);
-+
-+/**
-+ * syscall_enter_from_usermode - Check and handle work before invoking
-+ *				 a syscall
-+ * @regs:	Pointer to currents pt_regs
-+ * @syscall:	The syscall number
-+ *
-+ * Invoked from architecture specific syscall entry code with interrupts
-+ * enabled.
-+ *
-+ * Returns: The original or a modified syscall number
-+ */
-+static inline long syscall_enter_from_usermode(struct pt_regs *regs,
-+					       long syscall)
-+{
-+	unsigned long ti_work = READ_ONCE(current_thread_info()->flags);
-+
-+	if (IS_ENABLED(CONFIG_DEBUG_ENTRY))
-+		BUG_ON(regs != task_pt_regs(current));
-+
-+	if (ti_work & SYSCALL_ENTER_WORK)
-+		syscall = core_syscall_enter_from_usermode(regs, syscall);
-+	return syscall;
-+}
-+
-+#endif
---- a/kernel/Makefile
-+++ b/kernel/Makefile
-@@ -43,6 +43,7 @@ obj-y += irq/
- obj-y += rcu/
- obj-y += livepatch/
- obj-y += dma/
-+obj-y += entry/
+ static inline void arch_syscall_enter_audit(struct pt_regs *regs)
+ {
+ 	audit_syscall_entry(regs->syscallno, regs->orig_x0, regs->regs[1],
+--- a/arch/arm64/kernel/ptrace.c
++++ b/arch/arm64/kernel/ptrace.c
+@@ -13,13 +13,11 @@
+ #include <linux/kernel.h>
+ #include <linux/sched/signal.h>
+ #include <linux/sched/task_stack.h>
+-#include <linux/entry-common.h>
+ #include <linux/mm.h>
+ #include <linux/nospec.h>
+ #include <linux/smp.h>
+ #include <linux/ptrace.h>
+ #include <linux/user.h>
+-#include <linux/seccomp.h>
+ #include <linux/security.h>
+ #include <linux/init.h>
+ #include <linux/signal.h>
+@@ -28,7 +26,6 @@
+ #include <linux/perf_event.h>
+ #include <linux/hw_breakpoint.h>
+ #include <linux/regset.h>
+-#include <linux/tracehook.h>
+ #include <linux/elf.h>
  
- obj-$(CONFIG_CHECKPOINT_RESTORE) += kcmp.o
- obj-$(CONFIG_FREEZER) += freezer.o
---- /dev/null
-+++ b/kernel/entry/Makefile
-@@ -0,0 +1,3 @@
-+# SPDX-License-Identifier: GPL-2.0
-+
-+obj-$(CONFIG_GENERIC_ENTRY) += common.o
---- /dev/null
-+++ b/kernel/entry/common.c
-@@ -0,0 +1,33 @@
-+// SPDX-License-Identifier: GPL-2.0
-+
-+#include <linux/context_tracking.h>
-+#include <linux/entry-common.h>
-+
-+#define CREATE_TRACE_POINTS
-+#include <trace/events/syscalls.h>
-+
-+long core_syscall_enter_from_usermode(struct pt_regs *regs, long syscall)
-+{
-+	unsigned long ti_work = READ_ONCE(current_thread_info()->flags);
-+	unsigned long ret = 0;
-+
-+	if (ti_work & (_TIF_SYSCALL_TRACE | _TIF_SYSCALL_EMU)) {
-+		ret = arch_syscall_enter_tracehook(regs);
-+		if (ret || (ti_work & _TIF_SYSCALL_EMU))
-+			return -1L;
-+	}
-+
-+	/* Do seccomp after ptrace, to catch any tracer changes. */
-+	if (ti_work & _TIF_SECCOMP) {
-+		ret = arch_syscall_enter_seccomp(regs);
-+		if (ret == -1L)
-+			return ret;
-+	}
-+
-+	if (unlikely(test_thread_flag(TIF_SYSCALL_TRACEPOINT)))
-+		trace_sys_enter(regs, syscall);
-+
-+	arch_syscall_enter_audit(regs);
-+
-+	return ret ? : syscall;
-+}
+ #include <asm/compat.h>
+@@ -1779,41 +1776,6 @@ long arch_ptrace(struct task_struct *chi
+ 	return ptrace_request(child, request, addr, data);
+ }
+ 
+-static void tracehook_report_syscall(struct pt_regs *regs,
+-				     enum ptrace_syscall_dir dir)
+-{
+-	int regno;
+-	unsigned long saved_reg;
+-
+-	/*
+-	 * A scratch register (ip(r12) on AArch32, x7 on AArch64) is
+-	 * used to denote syscall entry/exit:
+-	 */
+-	regno = (is_compat_task() ? 12 : 7);
+-	saved_reg = regs->regs[regno];
+-	regs->regs[regno] = dir;
+-
+-	if (dir == PTRACE_SYSCALL_EXIT)
+-		tracehook_report_syscall_exit(regs, 0);
+-	else if (tracehook_report_syscall_entry(regs))
+-		forget_syscall(regs);
+-
+-	regs->regs[regno] = saved_reg;
+-}
+-
+-void syscall_trace_exit(struct pt_regs *regs)
+-{
+-	audit_syscall_exit(regs);
+-
+-	if (test_thread_flag(TIF_SYSCALL_TRACEPOINT))
+-		trace_sys_exit(regs, regs_return_value(regs));
+-
+-	if (test_thread_flag(TIF_SYSCALL_TRACE))
+-		tracehook_report_syscall(regs, PTRACE_SYSCALL_EXIT);
+-
+-	rseq_syscall(regs);
+-}
+-
+ /*
+  * SPSR_ELx bits which are always architecturally RES0 per ARM DDI 0487D.a.
+  * We permit userspace to set SSBS (AArch64 bit 12, AArch32 bit 23) which is
+--- a/arch/arm64/kernel/syscall.c
++++ b/arch/arm64/kernel/syscall.c
+@@ -54,13 +54,6 @@ static void invoke_syscall(struct pt_reg
+ 	regs->regs[0] = ret;
+ }
+ 
+-static inline bool has_syscall_work(unsigned long flags)
+-{
+-	return unlikely(flags & _TIF_SYSCALL_WORK);
+-}
+-
+-void syscall_trace_exit(struct pt_regs *regs);
+-
+ #ifdef CONFIG_ARM64_ERRATUM_1463225
+ DECLARE_PER_CPU(int, __in_cortex_a76_erratum_1463225_wa);
+ 
+@@ -106,12 +99,7 @@ static void el0_svc_common(struct pt_reg
+ 	if (scno != NO_SYSCALL)
+ 		invoke_syscall(regs, scno, sc_nr, syscall_table);
+ 
+-	local_daif_mask();
+-	if (has_syscall_work(current_thread_info()->flags) ||
+-	    IS_ENABLED(CONFIG_DEBUG_RSEQ)) {
+-		local_daif_restore(DAIF_PROCCTX);
+-		syscall_trace_exit(regs);
+-	}
++	syscall_exit_to_usermode(regs, scno, regs_return_value(regs));
+ }
+ 
+ static inline void sve_user_discard(void)
