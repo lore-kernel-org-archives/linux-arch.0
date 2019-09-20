@@ -1,64 +1,58 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from Galois.linutronix.de ([193.142.43.55]:52081 "EHLO
-        Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S2438265AbfITLsT (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 20 Sep 2019 07:48:19 -0400
-Date: Fri, 20 Sep 2019 13:48:05 +0200 (CEST)
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: Re: [RFC patch 14/15] workpending: Provide infrastructure for work
- before entering a guest
-In-Reply-To: <0cc964dc-4d00-05ec-1ed1-f6cee7370d7b@redhat.com>
-Message-ID: <alpine.DEB.2.21.1909201345380.1858@nanos.tec.linutronix.de>
-References: <20190919150314.054351477@linutronix.de> <20190919150809.860645841@linutronix.de> <0cc964dc-4d00-05ec-1ed1-f6cee7370d7b@redhat.com>
+Received: from foss.arm.com ([217.140.110.172]:44126 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S2406276AbfITMVV (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 20 Sep 2019 08:21:21 -0400
+Date: Fri, 20 Sep 2019 13:21:17 +0100
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: Re: [RFC patch 04/15] arm64/entry: Use generic syscall entry function
+Message-ID: <20190920122116.GA21231@arrakis.emea.arm.com>
+References: <20190919150314.054351477@linutronix.de>
+ <20190919150808.830764150@linutronix.de>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20190919150808.830764150@linutronix.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Paolo Bonzini <pbonzini@redhat.com>
-Cc: LKML <linux-kernel@vger.kernel.org>, x86@kernel.org, Peter Zijlstra <peterz@infradead.org>, Andy Lutomirski <luto@kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Mark Rutland <mark.rutland@arm.com>, Marc Zyngier <maz@kernel.org>, kvm@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20190920114805.-Ze8ihhWy92FXCKbW2Ozb67lQ3O2Hnf1QqqMcA9WT1o@z>
+To: Thomas Gleixner <tglx@linutronix.de>
+Cc: LKML <linux-kernel@vger.kernel.org>, x86@kernel.org, Peter Zijlstra <peterz@infradead.org>, Andy Lutomirski <luto@kernel.org>, Will Deacon <will@kernel.org>, Mark Rutland <mark.rutland@arm.com>, Marc Zyngier <maz@kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, kvm@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20190920122117.T6YXGSj_4bLNRWsZRBCJtHYzQ0lNY_ODjO7AGxygdRU@z>
 
-On Thu, 19 Sep 2019, Paolo Bonzini wrote:
-> > +	/* Any extra architecture specific work */
-> > +	return arch_exit_to_guestmode_work(kvm, vcpu, ti_work);
-> > +}
-> 
-> Perhaps, in virt/kvm/kvm_main.c:
-> 
-> int kvm_exit_to_guestmode_work(struct kvm *kvm, struct kvm_vcpu *vcpu,
-> 				unsigned long ti_work)
-> {
-...
-> }
-> 
-> and in kernel/entry/common.c:
-> 
-> int core_exit_to_guestmode_work(unsigned long ti_work)
-> {
-...
-> }
+On Thu, Sep 19, 2019 at 05:03:18PM +0200, Thomas Gleixner wrote:
+>  #ifdef CONFIG_ARM64_ERRATUM_1463225
+> @@ -97,19 +97,16 @@ static void el0_svc_common(struct pt_reg
+>  
+>  	regs->orig_x0 = regs->regs[0];
+>  	regs->syscallno = scno;
+> +	/* Set default error number */
+> +	regs->regs[0] = -ENOSYS;
 
-Makes sense.
- 
-> so that kernel/entry/ is not polluted with KVM structs and APIs.
-> 
-> Perhaps even extract the body of core_exit_to_usermode_work's while loop
-> to a separate function, and call it as
-> 
-> 	core_exit_to_usermode_work_once(NULL,
-> 				ti_work & EXIT_TO_GUESTMODE_WORK);
+I think this corrupts the first argument of all valid syscalls.
+SC_ARM64_REGS_TO_ARGS uses regs[0] instead of orig_x0. ptrace should be
+fine since it calls syscall_get_arguments() which uses orig_x0.
 
-Doh, its too obvious now that you mention it :)
+We could change the SC_ARM64_REGS_TO_ARGS macro though (in theory there
+shouldn't be any performance hit as it's already cached).
 
-> from core_exit_to_guestmode_work.
-> 
-> In general I don't mind having these exit_to_guestmode functions in
-> kvm_host.h, and only having entry-common.h export EXIT_TO_GUESTMODE_WORK
-> and ARCH_EXIT_TO_GUESTMODE_WORK.  Unless you had good reasons to do the
-> opposite...
+>  
+>  	cortex_a76_erratum_1463225_svc_handler();
+>  	local_daif_restore(DAIF_PROCCTX);
+>  	user_exit();
+>  
+> -	if (has_syscall_work(flags)) {
+> -		/* set default errno for user-issued syscall(-1) */
+> -		if (scno == NO_SYSCALL)
+> -			regs->regs[0] = -ENOSYS;
+> -		scno = syscall_trace_enter(regs);
+> -		if (scno == NO_SYSCALL)
+> -			goto trace_exit;
+> -	}
+> +	scno = syscall_enter_from_usermode(regs, scno);
+> +	if (scno == NO_SYSCALL)
+> +		goto trace_exit;
+>  
+>  	invoke_syscall(regs, scno, sc_nr, syscall_table);
 
-That was an arbitrary choice and it does not matter much where it lives.
-
-Thanks,
-
-	tglx
+-- 
+Catalin
