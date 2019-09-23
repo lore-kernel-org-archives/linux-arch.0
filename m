@@ -1,104 +1,54 @@
-From: Anshuman Khandual <anshuman.khandual@arm.com>
-Subject: Re: [PATCH] arm64: use generic free_initrd_mem()
-Date: Mon, 23 Sep 2019 15:41:46 +0530
-Message-ID: <e1ffc4f9-91cc-a4e1-b549-c28a392bdc71@arm.com>
-References: <1568618488-19055-1-git-send-email-rppt@kernel.org>
- <0ba20aa4-d2dd-2263-6b5f-16a5c8a39f67@redhat.com>
- <20190916135542.GC5196@rapoport-lnx>
+From: Thomas Gleixner <tglx@linutronix.de>
+Subject: Re: [RFC patch 10/15] x86/entry: Move irq tracing to C code
+Date: Mon, 23 Sep 2019 12:27:47 +0200 (CEST)
+Message-ID: <alpine.DEB.2.21.1909231227050.2003@nanos.tec.linutronix.de>
+References: <20190919150314.054351477@linutronix.de> <20190919150809.446771597@linutronix.de> <20190923084718.GG2349@hirez.programming.kicks-ass.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=US-ASCII
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20190916135542.GC5196@rapoport-lnx>
-Content-Language: en-US
+In-Reply-To: <20190923084718.GG2349@hirez.programming.kicks-ass.net>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Mike Rapoport <rppt@kernel.org>, Laura Abbott <labbott@redhat.com>
-Cc: Mark Rutland <mark.rutland@arm.com>, linux-arch@vger.kernel.org, Catalin Marinas <catalin.marinas@arm.com>, linux-kernel@vger.kernel.org, Mike Rapoport <rppt@linux.ibm.com>, Will Deacon <will@kernel.org>, linux-arm-kernel@lists.infradead.org
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: LKML <linux-kernel@vger.kernel.org>, x86@kernel.org, Andy Lutomirski <luto@kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Mark Rutland <mark.rutland@arm.com>, Marc Zyngier <maz@kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, kvm@vger.kernel.org, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
+On Mon, 23 Sep 2019, Peter Zijlstra wrote:
 
+> On Thu, Sep 19, 2019 at 05:03:24PM +0200, Thomas Gleixner wrote:
+> > To prepare for converting the exit to usermode code to the generic version,
+> > move the irqflags tracing into C code.
+> > 
+> > Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
+> > ---
+> >  arch/x86/entry/common.c          |   10 ++++++++++
+> >  arch/x86/entry/entry_32.S        |   11 +----------
+> >  arch/x86/entry/entry_64.S        |   10 ++--------
+> >  arch/x86/entry/entry_64_compat.S |   21 ---------------------
+> >  4 files changed, 13 insertions(+), 39 deletions(-)
+> > 
+> > --- a/arch/x86/entry/common.c
+> > +++ b/arch/x86/entry/common.c
+> > @@ -102,6 +102,8 @@ static void exit_to_usermode_loop(struct
+> >  	struct thread_info *ti = current_thread_info();
+> >  	u32 cached_flags;
+> >  
+> > +	trace_hardirqs_off();
+> 
+> Bah.. so this gets called from:
+> 
+>  - C code, with IRQs disabled
+>  - entry_64.S:error_exit
+>  - entry_32.S:resume_userspace
+> 
+> The first obviously doesn't need this annotation, but this patch doesn't
+> remove the TRACE_IRQS_OFF from entry_64.S and only the 32bit case is
+> changed.
+> 
+> Is that entry_64.S case an oversight, or do we need an extensive comment
+> on this one?
 
-On 09/16/2019 07:25 PM, Mike Rapoport wrote:
-> (added linux-arch)
-> 
-> On Mon, Sep 16, 2019 at 08:23:29AM -0400, Laura Abbott wrote:
->> On 9/16/19 8:21 AM, Mike Rapoport wrote:
->>> From: Mike Rapoport <rppt@linux.ibm.com>
->>>
->>> arm64 calls memblock_free() for the initrd area in its implementation of
->>> free_initrd_mem(), but this call has no actual effect that late in the boot
->>> process. By the time initrd is freed, all the reserved memory is managed by
->>> the page allocator and the memblock.reserved is unused, so there is no
->>> point to update it.
->>>
->>
->> People like to use memblock for keeping track of memory even if it has no
->> actual effect. We made this change explicitly (see 05c58752f9dc ("arm64: To remove
->> initrd reserved area entry from memblock") That said, moving to the generic
->> APIs would be nice. Maybe we can find another place to update the accounting?
-> 
-> Any other place in arch/arm64 would make it messy because it would have to
-> duplicate keepinitrd logic.
-> 
-> We could put the memblock_free() in the generic free_initrd_mem() with
-> something like:
-> 
-> diff --git a/init/initramfs.c b/init/initramfs.c
-> index c47dad0..403c6a0 100644
-> --- a/init/initramfs.c
-> +++ b/init/initramfs.c
-> @@ -531,6 +531,10 @@ void __weak free_initrd_mem(unsigned long start,
-> unsigned long end)
->  {
->         free_reserved_area((void *)start, (void *)end, POISON_FREE_INITMEM,
->                         "initrd");
-> +
-> +#ifdef CONFIG_ARCH_KEEP_MEMBLOCK
-> +       memblock_free(__virt_to_phys(start), end - start);
-> +#endif
->  }
+Lemme stare at that again. At some point I probably lost track in that maze.
 
-This makes sense.
+Thanks,
 
->  
->  #ifdef CONFIG_KEXEC_CORE
-> 
-> 
-> Then powerpc and s390 folks will also be able to track the initrd memory :)
-
-Sure.
-
-> 
->>> Without the memblock_free() call the only difference between arm64 and the
->>> generic versions of free_initrd_mem() is the memory poisoning. Switching
->>> arm64 to the generic version will enable the poisoning.
->>>
->>> Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
->>> ---
->>>
->>> I've boot tested it on qemu and I've checked that kexec works.
->>>
->>>  arch/arm64/mm/init.c | 8 --------
->>>  1 file changed, 8 deletions(-)
->>>
->>> diff --git a/arch/arm64/mm/init.c b/arch/arm64/mm/init.c
->>> index f3c7952..8ad2934 100644
->>> --- a/arch/arm64/mm/init.c
->>> +++ b/arch/arm64/mm/init.c
->>> @@ -567,14 +567,6 @@ void free_initmem(void)
->>>  	unmap_kernel_range((u64)__init_begin, (u64)(__init_end - __init_begin));
->>>  }
->>> -#ifdef CONFIG_BLK_DEV_INITRD
->>> -void __init free_initrd_mem(unsigned long start, unsigned long end)
->>> -{
->>> -	free_reserved_area((void *)start, (void *)end, 0, "initrd");
->>> -	memblock_free(__virt_to_phys(start), end - start);
->>> -}
->>> -#endif
->>> -
->>>  /*
->>>   * Dump out memory limit information on panic.
->>>   */
->>>
->>
-> 
+	tglx
