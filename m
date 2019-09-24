@@ -1,13 +1,13 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:7202 "EHLO
-        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S2441445AbfIXVZ6 (ORCPT
+Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:34978 "EHLO
+        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
+        by vger.kernel.org with ESMTP id S2633532AbfIXV0I (ORCPT
         <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 24 Sep 2019 17:25:58 -0400
+        Tue, 24 Sep 2019 17:26:08 -0400
 From: Leonardo Bras <leonardo@linux.ibm.com>
-Subject: [PATCH v3 06/11] powerpc/mm/book3s64/hash: Applies counting method to monitor lockless pgtbl walks
-Date: Tue, 24 Sep 2019 18:24:23 -0300
-Message-ID: <20190924212427.7734-7-leonardo@linux.ibm.com>
+Subject: [PATCH v3 08/11] powerpc/kvm/book3s_hv: Applies counting method to monitor lockless pgtbl walks
+Date: Tue, 24 Sep 2019 18:24:25 -0300
+Message-ID: <20190924212427.7734-9-leonardo@linux.ibm.com>
 In-Reply-To: <20190924212427.7734-1-leonardo@linux.ibm.com>
 References: <20190924212427.7734-1-leonardo@linux.ibm.com>
 MIME-Version: 1.0
@@ -16,91 +16,116 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, kvm-ppc@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
 Cc: Leonardo Bras <leonardo@linux.ibm.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Arnd Bergmann <arnd@arndb.de>, "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>, Christophe Leroy <christophe.leroy@c-s.fr>, Andrew Morton <akpm@linux-foundation.org>, Dan Williams <dan.j.williams@intel.com>, Nicholas Piggin <npiggin@gmail.com>, Mahesh Salgaonkar <mahesh@linux.vnet.ibm.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Thomas Gleixner <tglx@linutronix.de>, Ganesh Goudar <ganeshgr@linux.ibm.com>, Allison Randal <allison@lohutok.net>, Mike Rapoport <rppt@linux.ibm.com>, YueHaibing <yuehaibing@huawei.com>, Ira Weiny <ira.weiny@intel.com>, Jason Gunthorpe <jgg@ziepe.ca>, John Hubbard <jhubbard@nvidia.com>, Keith Busch <keith.busch@intel.com>
-Message-ID: <20190924212423.TVXPNNi3mNVao6PKeaaPEj2AnLmPeGNuPtItT9JB9Ts@z>
+Message-ID: <20190924212425.2Y_Xf33RpTiiCGPn62KxqZJJzS6IpOunJhX3Cx32TPc@z>
 
-Applies the counting-based method for monitoring all hash-related functions
-that do lockless pagetable walks.
+Applies the counting-based method for monitoring all book3s_hv related
+functions that do lockless pagetable walks.
 
 Signed-off-by: Leonardo Bras <leonardo@linux.ibm.com>
 ---
- arch/powerpc/mm/book3s64/hash_tlb.c   | 2 ++
- arch/powerpc/mm/book3s64/hash_utils.c | 7 +++++++
- 2 files changed, 9 insertions(+)
+ arch/powerpc/kvm/book3s_hv_nested.c | 8 ++++++++
+ arch/powerpc/kvm/book3s_hv_rm_mmu.c | 9 ++++++++-
+ 2 files changed, 16 insertions(+), 1 deletion(-)
 
-diff --git a/arch/powerpc/mm/book3s64/hash_tlb.c b/arch/powerpc/mm/book3s64/hash_tlb.c
-index 4a70d8dd39cd..5e5213c3f7c4 100644
---- a/arch/powerpc/mm/book3s64/hash_tlb.c
-+++ b/arch/powerpc/mm/book3s64/hash_tlb.c
-@@ -209,6 +209,7 @@ void __flush_hash_table_range(struct mm_struct *mm, unsigned long start,
- 	 * to being hashed). This is not the most performance oriented
- 	 * way to do things but is fine for our needs here.
- 	 */
-+	start_lockless_pgtbl_walk(mm);
- 	local_irq_save(flags);
- 	arch_enter_lazy_mmu_mode();
- 	for (; start < end; start += PAGE_SIZE) {
-@@ -230,6 +231,7 @@ void __flush_hash_table_range(struct mm_struct *mm, unsigned long start,
- 	}
- 	arch_leave_lazy_mmu_mode();
- 	local_irq_restore(flags);
-+	end_lockless_pgtbl_walk(mm);
- }
- 
- void flush_tlb_pmd_range(struct mm_struct *mm, pmd_t *pmd, unsigned long addr)
-diff --git a/arch/powerpc/mm/book3s64/hash_utils.c b/arch/powerpc/mm/book3s64/hash_utils.c
-index b8ad14bb1170..299946cedc3a 100644
---- a/arch/powerpc/mm/book3s64/hash_utils.c
-+++ b/arch/powerpc/mm/book3s64/hash_utils.c
-@@ -1322,6 +1322,7 @@ int hash_page_mm(struct mm_struct *mm, unsigned long ea,
- #endif /* CONFIG_PPC_64K_PAGES */
- 
- 	/* Get PTE and page size from page tables */
-+	start_lockless_pgtbl_walk(mm);
- 	ptep = find_linux_pte(pgdir, ea, &is_thp, &hugeshift);
- 	if (ptep == NULL || !pte_present(*ptep)) {
- 		DBG_LOW(" no PTE !\n");
-@@ -1438,6 +1439,7 @@ int hash_page_mm(struct mm_struct *mm, unsigned long ea,
- 	DBG_LOW(" -> rc=%d\n", rc);
- 
- bail:
-+	end_lockless_pgtbl_walk(mm);
- 	exception_exit(prev_state);
- 	return rc;
- }
-@@ -1547,10 +1549,12 @@ void hash_preload(struct mm_struct *mm, unsigned long ea,
- 	vsid = get_user_vsid(&mm->context, ea, ssize);
- 	if (!vsid)
+diff --git a/arch/powerpc/kvm/book3s_hv_nested.c b/arch/powerpc/kvm/book3s_hv_nested.c
+index 735e0ac6f5b2..ed68e57af3a3 100644
+--- a/arch/powerpc/kvm/book3s_hv_nested.c
++++ b/arch/powerpc/kvm/book3s_hv_nested.c
+@@ -804,6 +804,7 @@ static void kvmhv_update_nest_rmap_rc(struct kvm *kvm, u64 n_rmap,
  		return;
-+
+ 
+ 	/* Find the pte */
++	start_lockless_pgtbl_walk(kvm->mm);
+ 	ptep = __find_linux_pte(gp->shadow_pgtable, gpa, NULL, &shift);
  	/*
- 	 * Hash doesn't like irqs. Walking linux page table with irq disabled
- 	 * saves us from holding multiple locks.
+ 	 * If the pte is present and the pfn is still the same, update the pte.
+@@ -815,6 +816,7 @@ static void kvmhv_update_nest_rmap_rc(struct kvm *kvm, u64 n_rmap,
+ 		__radix_pte_update(ptep, clr, set);
+ 		kvmppc_radix_tlbie_page(kvm, gpa, shift, lpid);
+ 	}
++	end_lockless_pgtbl_walk(kvm->mm);
+ }
+ 
+ /*
+@@ -854,10 +856,12 @@ static void kvmhv_remove_nest_rmap(struct kvm *kvm, u64 n_rmap,
+ 		return;
+ 
+ 	/* Find and invalidate the pte */
++	start_lockless_pgtbl_walk(kvm->mm);
+ 	ptep = __find_linux_pte(gp->shadow_pgtable, gpa, NULL, &shift);
+ 	/* Don't spuriously invalidate ptes if the pfn has changed */
+ 	if (ptep && pte_present(*ptep) && ((pte_val(*ptep) & mask) == hpa))
+ 		kvmppc_unmap_pte(kvm, ptep, gpa, shift, NULL, gp->shadow_lpid);
++	end_lockless_pgtbl_walk(kvm->mm);
+ }
+ 
+ static void kvmhv_remove_nest_rmap_list(struct kvm *kvm, unsigned long *rmapp,
+@@ -921,6 +925,7 @@ static bool kvmhv_invalidate_shadow_pte(struct kvm_vcpu *vcpu,
+ 	int shift;
+ 
+ 	spin_lock(&kvm->mmu_lock);
++	start_lockless_pgtbl_walk(kvm->mm);
+ 	ptep = __find_linux_pte(gp->shadow_pgtable, gpa, NULL, &shift);
+ 	if (!shift)
+ 		shift = PAGE_SHIFT;
+@@ -928,6 +933,7 @@ static bool kvmhv_invalidate_shadow_pte(struct kvm_vcpu *vcpu,
+ 		kvmppc_unmap_pte(kvm, ptep, gpa, shift, NULL, gp->shadow_lpid);
+ 		ret = true;
+ 	}
++	end_lockless_pgtbl_walk(kvm->mm);
+ 	spin_unlock(&kvm->mmu_lock);
+ 
+ 	if (shift_ret)
+@@ -1362,11 +1368,13 @@ static long int __kvmhv_nested_page_fault(struct kvm_run *run,
+ 	/* See if can find translation in our partition scoped tables for L1 */
+ 	pte = __pte(0);
+ 	spin_lock(&kvm->mmu_lock);
++	start_lockless_pgtbl_walk(kvm->mm);
+ 	pte_p = __find_linux_pte(kvm->arch.pgtable, gpa, NULL, &shift);
+ 	if (!shift)
+ 		shift = PAGE_SHIFT;
+ 	if (pte_p)
+ 		pte = *pte_p;
++	end_lockless_pgtbl_walk(kvm->mm);
+ 	spin_unlock(&kvm->mmu_lock);
+ 
+ 	if (!pte_present(pte) || (writing && !(pte_val(pte) & _PAGE_WRITE))) {
+diff --git a/arch/powerpc/kvm/book3s_hv_rm_mmu.c b/arch/powerpc/kvm/book3s_hv_rm_mmu.c
+index 63e0ce91e29d..53ca67492211 100644
+--- a/arch/powerpc/kvm/book3s_hv_rm_mmu.c
++++ b/arch/powerpc/kvm/book3s_hv_rm_mmu.c
+@@ -258,6 +258,7 @@ long kvmppc_do_h_enter(struct kvm *kvm, unsigned long flags,
+ 	 * If called in real mode we have MSR_EE = 0. Otherwise
+ 	 * we disable irq above.
  	 */
-+	start_lockless_pgtbl_walk(mm);
- 	local_irq_save(flags);
++	start_lockless_pgtbl_walk(kvm->mm);
+ 	ptep = __find_linux_pte(pgdir, hva, NULL, &hpage_shift);
+ 	if (ptep) {
+ 		pte_t pte;
+@@ -311,6 +312,7 @@ long kvmppc_do_h_enter(struct kvm *kvm, unsigned long flags,
+ 		ptel &= ~(HPTE_R_W|HPTE_R_I|HPTE_R_G);
+ 		ptel |= HPTE_R_M;
+ 	}
++	end_lockless_pgtbl_walk(kvm->mm);
  
- 	/*
-@@ -1597,6 +1601,7 @@ void hash_preload(struct mm_struct *mm, unsigned long ea,
- 				   pte_val(*ptep));
- out_exit:
- 	local_irq_restore(flags);
-+	end_lockless_pgtbl_walk(mm);
- }
+ 	/* Find and lock the HPTEG slot to use */
+  do_insert:
+@@ -886,10 +888,15 @@ static int kvmppc_get_hpa(struct kvm_vcpu *vcpu, unsigned long gpa,
+ 	hva = __gfn_to_hva_memslot(memslot, gfn);
  
- #ifdef CONFIG_PPC_MEM_KEYS
-@@ -1613,11 +1618,13 @@ u16 get_mm_addr_key(struct mm_struct *mm, unsigned long address)
- 	if (!mm || !mm->pgd)
- 		return 0;
+ 	/* Try to find the host pte for that virtual address */
++	start_lockless_pgtbl_walk(kvm->mm);
+ 	ptep = __find_linux_pte(vcpu->arch.pgdir, hva, NULL, &shift);
+-	if (!ptep)
++	if (!ptep) {
++		end_lockless_pgtbl_walk(kvm->mm);
+ 		return H_TOO_HARD;
++	}
+ 	pte = kvmppc_read_update_linux_pte(ptep, writing);
++	end_lockless_pgtbl_walk(kvm->mm);
++
+ 	if (!pte_present(pte))
+ 		return H_TOO_HARD;
  
-+	start_lockless_pgtbl_walk(mm);
- 	local_irq_save(flags);
- 	ptep = find_linux_pte(mm->pgd, address, NULL, NULL);
- 	if (ptep)
- 		pkey = pte_to_pkey_bits(pte_val(READ_ONCE(*ptep)));
- 	local_irq_restore(flags);
-+	end_lockless_pgtbl_walk(mm);
- 
- 	return pkey;
- }
 -- 
 2.20.1
