@@ -1,70 +1,111 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:59454 "EHLO
+Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:33788 "EHLO
         mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1727332AbfIXGua (ORCPT
+        by vger.kernel.org with ESMTP id S1728386AbfIXVZZ (ORCPT
         <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 24 Sep 2019 02:50:30 -0400
-Received: from pps.filterd (m0098396.ppops.net [127.0.0.1])
-        by mx0a-001b2d01.pphosted.com (8.16.0.27/8.16.0.27) with SMTP id x8O6lwLK078655
-        for <linux-arch@vger.kernel.org>; Tue, 24 Sep 2019 02:50:29 -0400
-Received: from e06smtp03.uk.ibm.com (e06smtp03.uk.ibm.com [195.75.94.99])
-        by mx0a-001b2d01.pphosted.com with ESMTP id 2v7cn7tth2-1
-        (version=TLSv1.2 cipher=AES256-GCM-SHA384 bits=256 verify=NOT)
-        for <linux-arch@vger.kernel.org>; Tue, 24 Sep 2019 02:50:28 -0400
-Received: from localhost
-        by e06smtp03.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-        for <linux-arch@vger.kernel.org> from <borntraeger@de.ibm.com>;
-        Tue, 24 Sep 2019 07:50:26 +0100
-Subject: Re: [RFC patch 00/15] entry: Provide generic implementation for host
- and guest entry/exit work
-References: <20190919150314.054351477@linutronix.de>
-From: Christian Borntraeger <borntraeger@de.ibm.com>
-Date: Tue, 24 Sep 2019 08:50:20 +0200
+        Tue, 24 Sep 2019 17:25:25 -0400
+From: Leonardo Bras <leonardo@linux.ibm.com>
+Subject: [PATCH v3 00/11] Introduces new count-based method for monitoring lockless pagetable walks
+Date: Tue, 24 Sep 2019 18:24:17 -0300
+Message-ID: <20190924212427.7734-1-leonardo@linux.ibm.com>
 MIME-Version: 1.0
-In-Reply-To: <20190919150314.054351477@linutronix.de>
-Content-Type: text/plain; charset=utf-8
-Content-Language: en-US
 Content-Transfer-Encoding: 8bit
-Message-ID: <ae5c6329-4ddf-2243-3a86-fbfdfd029918@de.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Thomas Gleixner <tglx@linutronix.de>, LKML <linux-kernel@vger.kernel.org>
-Cc: x86@kernel.org, Peter Zijlstra <peterz@infradead.org>, Andy Lutomirski <luto@kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Mark Rutland <mark.rutland@arm.com>, Marc Zyngier <maz@kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, kvm@vger.kernel.org, linux-arch@vger.kernel.org, linux-s390 <linux-s390@vger.kernel.org>
-Message-ID: <20190924065020.RlwK2y1gNOEv2LrSeM-NlTnqbizO-X-wbF5B0h7NNqg@z>
+To: linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, kvm-ppc@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
+Cc: Leonardo Bras <leonardo@linux.ibm.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Arnd Bergmann <arnd@arndb.de>, "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>, Christophe Leroy <christophe.leroy@c-s.fr>, Andrew Morton <akpm@linux-foundation.org>, Dan Williams <dan.j.williams@intel.com>, Nicholas Piggin <npiggin@gmail.com>, Mahesh Salgaonkar <mahesh@linux.vnet.ibm.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Thomas Gleixner <tglx@linutronix.de>, Ganesh Goudar <ganeshgr@linux.ibm.com>, Allison Randal <allison@lohutok.net>, Mike Rapoport <rppt@linux.ibm.com>, YueHaibing <yuehaibing@huawei.com>, Ira Weiny <ira.weiny@intel.com>, Jason Gunthorpe <jgg@ziepe.ca>, John Hubbard <jhubbard@nvidia.com>, Keith Busch <keith.busch@intel.com>
+Message-ID: <20190924212417.SP8F0h9OYL0SH6g09EXsD5iEmBokPtTkc8UYs8xcqqc@z>
 
+If a process (qemu) with a lot of CPUs (128) try to munmap() a large
+chunk of memory (496GB) mapped with THP, it takes an average of 275
+seconds, which can cause a lot of problems to the load (in qemu case,
+the guest will lock for this time).
 
+Trying to find the source of this bug, I found out most of this time is
+spent on serialize_against_pte_lookup(). This function will take a lot
+of time in smp_call_function_many() if there is more than a couple CPUs
+running the user process. Since it has to happen to all THP mapped, it
+will take a very long time for large amounts of memory.
 
-On 19.09.19 17:03, Thomas Gleixner wrote:
-> When working on a way to move out the posix cpu timer expiry out of the
-> timer interrupt context, I noticed that KVM is not handling pending task
-> work before entering a guest. A quick hack was to add that to the x86 KVM
-> handling loop. The discussion ended with a request to make this a generic
-> infrastructure possible with also moving the per arch implementations of
-> the enter from and return to user space handling generic.
-> 
->   https://lore.kernel.org/r/89E42BCC-47A8-458B-B06A-D6A20D20512C@amacapital.net
-> 
-> You asked for it, so don't complain that you have to review it :)
-> 
-> The series implements the syscall enter/exit and the general exit to
-> userspace work handling along with the pre guest enter functionality.
-> 
-> The series converts x86 and ARM64. x86 is fully tested including selftests
-> etc. ARM64 is only compile tested for now as my only ARM64 testbox is not
-> available right now.
+By the docs, serialize_against_pte_lookup() is needed in order to avoid
+pmd_t to pte_t casting inside find_current_mm_pte(), or any lockless
+pagetable walk, to happen concurrently with THP splitting/collapsing.
 
-It seems that s390x would also need to look into TIF_NOTIFY_PENDING before
-entering a KVM guest. Given that the s390x entry path is still in assembler
-this might not be something to do quickly.
+It does so by calling a do_nothing() on each CPU in mm->cpu_bitmap[],
+after interrupts are re-enabled.
+Since, interrupts are (usually) disabled during lockless pagetable
+walk, and serialize_against_pte_lookup will only return after
+interrupts are enabled, it is protected.
 
-Would it make sense to actually start with a minimal solution (e.g. one that
-provides notify_resume_pending like your original patch) as a fix. That would
-also be simple to backport. And then we can do the proper rework on top.
+So, by what I could understand, if there is no lockless pagetable walk
+running, there is no need to call serialize_against_pte_lookup().
 
-Or do we consider anything that depends on TIF_NOTIFY_PENDING before entering
-a guest as not important enough for stable?
-After all the vcpu_run ioctl almost never returns to userspace and nothing 
-was obviously broken.
+So, to avoid the cost of running serialize_against_pte_lookup(), I
+propose a counter that keeps track of how many find_current_mm_pte()
+are currently running, and if there is none, just skip
+smp_call_function_many().
 
-Another question: Are there callbacks due to TIF_NOTIFY_PENDING that should
-NOT happen as long as we stay in the vpcu loop?
+The related functions are:
+start_lockless_pgtbl_walk(mm)
+	Insert before starting any lockless pgtable walk
+end_lockless_pgtbl_walk(mm)
+	Insert after the end of any lockless pgtable walk
+	(Mostly after the ptep is last used)
+running_lockless_pgtbl_walk(mm)
+	Returns the number of lockless pgtable walks running
+
+On my workload (qemu), I could see munmap's time reduction from 275
+seconds to 418ms.
+
+Changes since v2:
+ Rebased to v5.3
+ Adds support on __get_user_pages_fast
+ Adds usage decription to *_lockless_pgtbl_walk()
+ Better style to dummy functions
+ Link: http://patchwork.ozlabs.org/project/linuxppc-dev/list/?series=131839
+ 
+Changes since v1:
+ Isolated atomic operations in functions *_lockless_pgtbl_walk()
+ Fixed behavior of decrementing before last ptep was used
+ Link: http://patchwork.ozlabs.org/patch/1163093/
+ 
+Leonardo Bras (11):
+  powerpc/mm: Adds counting method to monitor lockless pgtable walks
+  asm-generic/pgtable: Adds dummy functions to monitor lockless pgtable
+    walks
+  mm/gup: Applies counting method to monitor gup_pgd_range
+  powerpc/mce_power: Applies counting method to monitor lockless pgtbl
+    walks
+  powerpc/perf: Applies counting method to monitor lockless pgtbl walks
+  powerpc/mm/book3s64/hash: Applies counting method to monitor lockless
+    pgtbl walks
+  powerpc/kvm/e500: Applies counting method to monitor lockless pgtbl
+    walks
+  powerpc/kvm/book3s_hv: Applies counting method to monitor lockless
+    pgtbl walks
+  powerpc/kvm/book3s_64: Applies counting method to monitor lockless
+    pgtbl walks
+  powerpc/book3s_64: Enables counting method to monitor lockless pgtbl
+    walk
+  powerpc/mm/book3s64/pgtable: Uses counting method to skip serializing
+
+ arch/powerpc/include/asm/book3s/64/mmu.h     |  3 ++
+ arch/powerpc/include/asm/book3s/64/pgtable.h |  5 +++
+ arch/powerpc/kernel/mce_power.c              | 13 +++++--
+ arch/powerpc/kvm/book3s_64_mmu_hv.c          |  2 +
+ arch/powerpc/kvm/book3s_64_mmu_radix.c       | 20 +++++++++-
+ arch/powerpc/kvm/book3s_64_vio_hv.c          |  4 ++
+ arch/powerpc/kvm/book3s_hv_nested.c          |  8 ++++
+ arch/powerpc/kvm/book3s_hv_rm_mmu.c          |  9 ++++-
+ arch/powerpc/kvm/e500_mmu_host.c             |  4 ++
+ arch/powerpc/mm/book3s64/hash_tlb.c          |  2 +
+ arch/powerpc/mm/book3s64/hash_utils.c        |  7 ++++
+ arch/powerpc/mm/book3s64/mmu_context.c       |  1 +
+ arch/powerpc/mm/book3s64/pgtable.c           | 40 +++++++++++++++++++-
+ arch/powerpc/perf/callchain.c                |  5 ++-
+ include/asm-generic/pgtable.h                | 15 ++++++++
+ mm/gup.c                                     |  8 ++++
+ 16 files changed, 138 insertions(+), 8 deletions(-)
+
+-- 
+2.20.1
