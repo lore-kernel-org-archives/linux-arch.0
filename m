@@ -1,7 +1,7 @@
 From: Leonardo Bras <leonardo@linux.ibm.com>
-Subject: [PATCH v3 07/11] powerpc/kvm/e500: Applies counting method to monitor lockless pgtbl walks
-Date: Tue, 24 Sep 2019 18:24:24 -0300
-Message-ID: <20190924212427.7734-8-leonardo@linux.ibm.com>
+Subject: [PATCH v3 05/11] powerpc/perf: Applies counting method to monitor lockless pgtbl walks
+Date: Tue, 24 Sep 2019 18:24:22 -0300
+Message-ID: <20190924212427.7734-6-leonardo@linux.ibm.com>
 References: <20190924212427.7734-1-leonardo@linux.ibm.com>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
@@ -13,40 +13,44 @@ Cc: Leonardo Bras <leonardo@linux.ibm.com>, Benjamin Herrenschmidt <benh@kernel.
 List-Id: linux-arch.vger.kernel.org
 
 Applies the counting-based method for monitoring lockless pgtable walks on
-kvmppc_e500_shadow_map().
+read_user_stack_slow.
 
 Signed-off-by: Leonardo Bras <leonardo@linux.ibm.com>
 ---
- arch/powerpc/kvm/e500_mmu_host.c | 4 ++++
- 1 file changed, 4 insertions(+)
+ arch/powerpc/perf/callchain.c | 5 ++++-
+ 1 file changed, 4 insertions(+), 1 deletion(-)
 
-diff --git a/arch/powerpc/kvm/e500_mmu_host.c b/arch/powerpc/kvm/e500_mmu_host.c
-index 321db0fdb9db..a1b8bfe20bc8 100644
---- a/arch/powerpc/kvm/e500_mmu_host.c
-+++ b/arch/powerpc/kvm/e500_mmu_host.c
-@@ -473,6 +473,7 @@ static inline int kvmppc_e500_shadow_map(struct kvmppc_vcpu_e500 *vcpu_e500,
- 	 * We are holding kvm->mmu_lock so a notifier invalidate
- 	 * can't run hence pfn won't change.
- 	 */
-+	start_lockless_pgtbl_walk(kvm->mm);
- 	local_irq_save(flags);
- 	ptep = find_linux_pte(pgdir, hva, NULL, NULL);
- 	if (ptep) {
-@@ -484,12 +485,15 @@ static inline int kvmppc_e500_shadow_map(struct kvmppc_vcpu_e500 *vcpu_e500,
- 			local_irq_restore(flags);
- 		} else {
- 			local_irq_restore(flags);
-+			end_lockless_pgtbl_walk(kvm->mm);
- 			pr_err_ratelimited("%s: pte not present: gfn %lx,pfn %lx\n",
- 					   __func__, (long)gfn, pfn);
- 			ret = -EINVAL;
- 			goto out;
- 		}
- 	}
-+	end_lockless_pgtbl_walk(kvm->mm);
-+
- 	kvmppc_e500_ref_setup(ref, gtlbe, pfn, wimg);
+diff --git a/arch/powerpc/perf/callchain.c b/arch/powerpc/perf/callchain.c
+index c84bbd4298a0..9d76194a2a8f 100644
+--- a/arch/powerpc/perf/callchain.c
++++ b/arch/powerpc/perf/callchain.c
+@@ -113,16 +113,18 @@ static int read_user_stack_slow(void __user *ptr, void *buf, int nb)
+ 	int ret = -EFAULT;
+ 	pgd_t *pgdir;
+ 	pte_t *ptep, pte;
++	struct mm_struct *mm = current->mm;
+ 	unsigned shift;
+ 	unsigned long addr = (unsigned long) ptr;
+ 	unsigned long offset;
+ 	unsigned long pfn, flags;
+ 	void *kaddr;
  
- 	kvmppc_e500_setup_stlbe(&vcpu_e500->vcpu, gtlbe, tsize,
+-	pgdir = current->mm->pgd;
++	pgdir = mm->pgd;
+ 	if (!pgdir)
+ 		return -EFAULT;
+ 
++	start_lockless_pgtbl_walk(mm);
+ 	local_irq_save(flags);
+ 	ptep = find_current_mm_pte(pgdir, addr, NULL, &shift);
+ 	if (!ptep)
+@@ -146,6 +148,7 @@ static int read_user_stack_slow(void __user *ptr, void *buf, int nb)
+ 	ret = 0;
+ err_out:
+ 	local_irq_restore(flags);
++	end_lockless_pgtbl_walk(mm);
+ 	return ret;
+ }
+ 
 -- 
 2.20.1
