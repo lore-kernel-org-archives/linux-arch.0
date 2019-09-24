@@ -1,7 +1,7 @@
 From: Leonardo Bras <leonardo@linux.ibm.com>
-Subject: [PATCH v3 06/11] powerpc/mm/book3s64/hash: Applies counting method to monitor lockless pgtbl walks
-Date: Tue, 24 Sep 2019 18:24:23 -0300
-Message-ID: <20190924212427.7734-7-leonardo@linux.ibm.com>
+Subject: [PATCH v3 03/11] mm/gup: Applies counting method to monitor gup_pgd_range
+Date: Tue, 24 Sep 2019 18:24:20 -0300
+Message-ID: <20190924212427.7734-4-leonardo@linux.ibm.com>
 References: <20190924212427.7734-1-leonardo@linux.ibm.com>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
@@ -12,89 +12,63 @@ To: linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, kvm-ppc@vger.ke
 Cc: Leonardo Bras <leonardo@linux.ibm.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Arnd Bergmann <arnd@arndb.de>, "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>, Christophe Leroy <christophe.leroy@c-s.fr>, Andrew Morton <akpm@linux-foundation.org>, Dan Williams <dan.j.williams@intel.com>, Nicholas Piggin <npiggin@gmail.com>, Mahesh Salgaonkar <mahesh@linux.vnet.ibm.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Thomas Gleixner <tglx@linutronix.de>, Ganesh Goudar <ganeshgr@linux.ibm.com>, Allison Randal <allison@lohutok.net>, Mike Rapoport <rppt@linux.ibm.com>, YueHaibing <yuehaibing@huawei.com>, Ira Weiny <ira.weiny@intel.com>, Jason Gunthorpe <jgg@ziep>
 List-Id: linux-arch.vger.kernel.org
 
-Applies the counting-based method for monitoring all hash-related functions
-that do lockless pagetable walks.
+As decribed, gup_pgd_range is a lockless pagetable walk. So, in order to
+monitor against THP split/collapse with the couting method, it's necessary
+to bound it with {start,end}_lockless_pgtbl_walk.
+
+There are dummy functions, so it is not going to add any overhead on archs
+that don't use this method.
 
 Signed-off-by: Leonardo Bras <leonardo@linux.ibm.com>
 ---
- arch/powerpc/mm/book3s64/hash_tlb.c   | 2 ++
- arch/powerpc/mm/book3s64/hash_utils.c | 7 +++++++
- 2 files changed, 9 insertions(+)
+ mm/gup.c | 8 ++++++++
+ 1 file changed, 8 insertions(+)
 
-diff --git a/arch/powerpc/mm/book3s64/hash_tlb.c b/arch/powerpc/mm/book3s64/hash_tlb.c
-index 4a70d8dd39cd..5e5213c3f7c4 100644
---- a/arch/powerpc/mm/book3s64/hash_tlb.c
-+++ b/arch/powerpc/mm/book3s64/hash_tlb.c
-@@ -209,6 +209,7 @@ void __flush_hash_table_range(struct mm_struct *mm, unsigned long start,
- 	 * to being hashed). This is not the most performance oriented
- 	 * way to do things but is fine for our needs here.
- 	 */
-+	start_lockless_pgtbl_walk(mm);
- 	local_irq_save(flags);
- 	arch_enter_lazy_mmu_mode();
- 	for (; start < end; start += PAGE_SIZE) {
-@@ -230,6 +231,7 @@ void __flush_hash_table_range(struct mm_struct *mm, unsigned long start,
+diff --git a/mm/gup.c b/mm/gup.c
+index 98f13ab37bac..eabd6fd15cf8 100644
+--- a/mm/gup.c
++++ b/mm/gup.c
+@@ -2325,6 +2325,7 @@ static bool gup_fast_permitted(unsigned long start, unsigned long end)
+ int __get_user_pages_fast(unsigned long start, int nr_pages, int write,
+ 			  struct page **pages)
+ {
++	struct mm_struct mm;
+ 	unsigned long len, end;
+ 	unsigned long flags;
+ 	int nr = 0;
+@@ -2352,9 +2353,12 @@ int __get_user_pages_fast(unsigned long start, int nr_pages, int write,
+ 
+ 	if (IS_ENABLED(CONFIG_HAVE_FAST_GUP) &&
+ 	    gup_fast_permitted(start, end)) {
++		mm = current->mm;
++		start_lockless_pgtbl_walk(mm);
+ 		local_irq_save(flags);
+ 		gup_pgd_range(start, end, write ? FOLL_WRITE : 0, pages, &nr);
+ 		local_irq_restore(flags);
++		end_lockless_pgtbl_walk(mm);
  	}
- 	arch_leave_lazy_mmu_mode();
- 	local_irq_restore(flags);
-+	end_lockless_pgtbl_walk(mm);
- }
  
- void flush_tlb_pmd_range(struct mm_struct *mm, pmd_t *pmd, unsigned long addr)
-diff --git a/arch/powerpc/mm/book3s64/hash_utils.c b/arch/powerpc/mm/book3s64/hash_utils.c
-index b8ad14bb1170..299946cedc3a 100644
---- a/arch/powerpc/mm/book3s64/hash_utils.c
-+++ b/arch/powerpc/mm/book3s64/hash_utils.c
-@@ -1322,6 +1322,7 @@ int hash_page_mm(struct mm_struct *mm, unsigned long ea,
- #endif /* CONFIG_PPC_64K_PAGES */
+ 	return nr;
+@@ -2404,6 +2408,7 @@ int get_user_pages_fast(unsigned long start, int nr_pages,
+ 			unsigned int gup_flags, struct page **pages)
+ {
+ 	unsigned long addr, len, end;
++	struct mm_struct *mm;
+ 	int nr = 0, ret = 0;
  
- 	/* Get PTE and page size from page tables */
-+	start_lockless_pgtbl_walk(mm);
- 	ptep = find_linux_pte(pgdir, ea, &is_thp, &hugeshift);
- 	if (ptep == NULL || !pte_present(*ptep)) {
- 		DBG_LOW(" no PTE !\n");
-@@ -1438,6 +1439,7 @@ int hash_page_mm(struct mm_struct *mm, unsigned long ea,
- 	DBG_LOW(" -> rc=%d\n", rc);
+ 	if (WARN_ON_ONCE(gup_flags & ~(FOLL_WRITE | FOLL_LONGTERM)))
+@@ -2421,9 +2426,12 @@ int get_user_pages_fast(unsigned long start, int nr_pages,
  
- bail:
-+	end_lockless_pgtbl_walk(mm);
- 	exception_exit(prev_state);
- 	return rc;
- }
-@@ -1547,10 +1549,12 @@ void hash_preload(struct mm_struct *mm, unsigned long ea,
- 	vsid = get_user_vsid(&mm->context, ea, ssize);
- 	if (!vsid)
- 		return;
-+
- 	/*
- 	 * Hash doesn't like irqs. Walking linux page table with irq disabled
- 	 * saves us from holding multiple locks.
- 	 */
-+	start_lockless_pgtbl_walk(mm);
- 	local_irq_save(flags);
+ 	if (IS_ENABLED(CONFIG_HAVE_FAST_GUP) &&
+ 	    gup_fast_permitted(start, end)) {
++		mm = current->mm;
++		start_lockless_pgtbl_walk(mm);
+ 		local_irq_disable();
+ 		gup_pgd_range(addr, end, gup_flags, pages, &nr);
+ 		local_irq_enable();
++		end_lockless_pgtbl_walk(mm);
+ 		ret = nr;
+ 	}
  
- 	/*
-@@ -1597,6 +1601,7 @@ void hash_preload(struct mm_struct *mm, unsigned long ea,
- 				   pte_val(*ptep));
- out_exit:
- 	local_irq_restore(flags);
-+	end_lockless_pgtbl_walk(mm);
- }
- 
- #ifdef CONFIG_PPC_MEM_KEYS
-@@ -1613,11 +1618,13 @@ u16 get_mm_addr_key(struct mm_struct *mm, unsigned long address)
- 	if (!mm || !mm->pgd)
- 		return 0;
- 
-+	start_lockless_pgtbl_walk(mm);
- 	local_irq_save(flags);
- 	ptep = find_linux_pte(mm->pgd, address, NULL, NULL);
- 	if (ptep)
- 		pkey = pte_to_pkey_bits(pte_val(READ_ONCE(*ptep)));
- 	local_irq_restore(flags);
-+	end_lockless_pgtbl_walk(mm);
- 
- 	return pkey;
- }
 -- 
 2.20.1
