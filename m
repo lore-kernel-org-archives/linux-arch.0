@@ -1,53 +1,117 @@
-From: Christian Borntraeger <borntraeger@de.ibm.com>
-Subject: Re: [RFC patch 00/15] entry: Provide generic implementation for host
- and guest entry/exit work
-Date: Tue, 24 Sep 2019 08:50:20 +0200
-Message-ID: <ae5c6329-4ddf-2243-3a86-fbfdfd029918@de.ibm.com>
-References: <20190919150314.054351477@linutronix.de>
+From: Leonardo Bras <leonardo@linux.ibm.com>
+Subject: [PATCH v3 01/11] powerpc/mm: Adds counting method to monitor lockless pgtable walks
+Date: Tue, 24 Sep 2019 18:24:18 -0300
+Message-ID: <20190924212427.7734-2-leonardo@linux.ibm.com>
+References: <20190924212427.7734-1-leonardo@linux.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
 Content-Transfer-Encoding: 8bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20190919150314.054351477@linutronix.de>
-Content-Language: en-US
+In-Reply-To: <20190924212427.7734-1-leonardo@linux.ibm.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Thomas Gleixner <tglx@linutronix.de>, LKML <linux-kernel@vger.kernel.org>
-Cc: x86@kernel.org, Peter Zijlstra <peterz@infradead.org>, Andy Lutomirski <luto@kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Mark Rutland <mark.rutland@arm.com>, Marc Zyngier <maz@kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, kvm@vger.kernel.org, linux-arch@vger.kernel.org, linux-s390 <linux-s390@vger.kernel.org>
+To: linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, kvm-ppc@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
+Cc: Leonardo Bras <leonardo@linux.ibm.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Arnd Bergmann <arnd@arndb.de>, "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>, Christophe Leroy <christophe.leroy@c-s.fr>, Andrew Morton <akpm@linux-foundation.org>, Dan Williams <dan.j.williams@intel.com>, Nicholas Piggin <npiggin@gmail.com>, Mahesh Salgaonkar <mahesh@linux.vnet.ibm.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Thomas Gleixner <tglx@linutronix.de>, Ganesh Goudar <ganeshgr@linux.ibm.com>, Allison Randal <allison@lohutok.net>, Mike Rapoport <rppt@linux.ibm.com>, YueHaibing <yuehaibing@huawei.com>, Ira Weiny <ira.weiny@intel.com>, Jason Gunthorpe <jgg@ziep>
 List-Id: linux-arch.vger.kernel.org
 
+It's necessary to monitor lockless pagetable walks, in order to avoid doing
+THP splitting/collapsing during them.
 
+Some methods rely on local_irq_{save,restore}, but that can be slow on
+cases with a lot of cpus are used for the process.
 
-On 19.09.19 17:03, Thomas Gleixner wrote:
-> When working on a way to move out the posix cpu timer expiry out of the
-> timer interrupt context, I noticed that KVM is not handling pending task
-> work before entering a guest. A quick hack was to add that to the x86 KVM
-> handling loop. The discussion ended with a request to make this a generic
-> infrastructure possible with also moving the per arch implementations of
-> the enter from and return to user space handling generic.
-> 
->   https://lore.kernel.org/r/89E42BCC-47A8-458B-B06A-D6A20D20512C@amacapital.net
-> 
-> You asked for it, so don't complain that you have to review it :)
-> 
-> The series implements the syscall enter/exit and the general exit to
-> userspace work handling along with the pre guest enter functionality.
-> 
-> The series converts x86 and ARM64. x86 is fully tested including selftests
-> etc. ARM64 is only compile tested for now as my only ARM64 testbox is not
-> available right now.
+In order to speedup some cases, I propose a refcount-based approach, that
+counts the number of lockless pagetable	walks happening on the process.
 
-It seems that s390x would also need to look into TIF_NOTIFY_PENDING before
-entering a KVM guest. Given that the s390x entry path is still in assembler
-this might not be something to do quickly.
+This method does not exclude the current irq-oriented method. It works as a
+complement to skip unnecessary waiting.
 
-Would it make sense to actually start with a minimal solution (e.g. one that
-provides notify_resume_pending like your original patch) as a fix. That would
-also be simple to backport. And then we can do the proper rework on top.
+start_lockless_pgtbl_walk(mm)
+	Insert before starting any lockless pgtable walk
+end_lockless_pgtbl_walk(mm)
+	Insert after the end of any lockless pgtable walk
+	(Mostly after the ptep is last used)
+running_lockless_pgtbl_walk(mm)
+	Returns the number of lockless pgtable walks running
 
-Or do we consider anything that depends on TIF_NOTIFY_PENDING before entering
-a guest as not important enough for stable?
-After all the vcpu_run ioctl almost never returns to userspace and nothing 
-was obviously broken.
+Signed-off-by: Leonardo Bras <leonardo@linux.ibm.com>
+---
+ arch/powerpc/include/asm/book3s/64/mmu.h |  3 ++
+ arch/powerpc/mm/book3s64/mmu_context.c   |  1 +
+ arch/powerpc/mm/book3s64/pgtable.c       | 37 ++++++++++++++++++++++++
+ 3 files changed, 41 insertions(+)
 
-Another question: Are there callbacks due to TIF_NOTIFY_PENDING that should
-NOT happen as long as we stay in the vpcu loop?
+diff --git a/arch/powerpc/include/asm/book3s/64/mmu.h b/arch/powerpc/include/asm/book3s/64/mmu.h
+index 23b83d3593e2..13b006e7dde4 100644
+--- a/arch/powerpc/include/asm/book3s/64/mmu.h
++++ b/arch/powerpc/include/asm/book3s/64/mmu.h
+@@ -116,6 +116,9 @@ typedef struct {
+ 	/* Number of users of the external (Nest) MMU */
+ 	atomic_t copros;
+ 
++	/* Number of running instances of lockless pagetable walk*/
++	atomic_t lockless_pgtbl_walk_count;
++
+ 	struct hash_mm_context *hash_context;
+ 
+ 	unsigned long vdso_base;
+diff --git a/arch/powerpc/mm/book3s64/mmu_context.c b/arch/powerpc/mm/book3s64/mmu_context.c
+index 2d0cb5ba9a47..3dd01c0ca5be 100644
+--- a/arch/powerpc/mm/book3s64/mmu_context.c
++++ b/arch/powerpc/mm/book3s64/mmu_context.c
+@@ -200,6 +200,7 @@ int init_new_context(struct task_struct *tsk, struct mm_struct *mm)
+ #endif
+ 	atomic_set(&mm->context.active_cpus, 0);
+ 	atomic_set(&mm->context.copros, 0);
++	atomic_set(&mm->context.lockless_pgtbl_walk_count, 0);
+ 
+ 	return 0;
+ }
+diff --git a/arch/powerpc/mm/book3s64/pgtable.c b/arch/powerpc/mm/book3s64/pgtable.c
+index 7d0e0d0d22c4..0b86884a8097 100644
+--- a/arch/powerpc/mm/book3s64/pgtable.c
++++ b/arch/powerpc/mm/book3s64/pgtable.c
+@@ -98,6 +98,43 @@ void serialize_against_pte_lookup(struct mm_struct *mm)
+ 	smp_call_function_many(mm_cpumask(mm), do_nothing, NULL, 1);
+ }
+ 
++/*
++ * Counting method to monitor lockless pagetable walks:
++ * Uses start_lockless_pgtbl_walk and end_lockless_pgtbl_walk to track the
++ * number of lockless pgtable walks happening, and
++ * running_lockless_pgtbl_walk to return this value.
++ */
++
++/* start_lockless_pgtbl_walk: Must be inserted before a function call that does
++ *   lockless pagetable walks, such as __find_linux_pte()
++ */
++void start_lockless_pgtbl_walk(struct mm_struct *mm)
++{
++	atomic_inc(&mm->context.lockless_pgtbl_walk_count);
++}
++EXPORT_SYMBOL(start_lockless_pgtbl_walk);
++
++/*
++ * end_lockless_pgtbl_walk: Must be inserted after the last use of a pointer
++ *   returned by a lockless pagetable walk, such as __find_linux_pte()
++*/
++void end_lockless_pgtbl_walk(struct mm_struct *mm)
++{
++	atomic_dec(&mm->context.lockless_pgtbl_walk_count);
++}
++EXPORT_SYMBOL(end_lockless_pgtbl_walk);
++
++/*
++ * running_lockless_pgtbl_walk: Returns the number of lockless pagetable walks
++ *   currently running. If it returns 0, there is no running pagetable walk, and
++ *   THP split/collapse can be safely done. This can be used to avoid more
++ *   expensive approaches like serialize_against_pte_lookup()
++ */
++int running_lockless_pgtbl_walk(struct mm_struct *mm)
++{
++	return atomic_read(&mm->context.lockless_pgtbl_walk_count);
++}
++
+ /*
+  * We use this to invalidate a pmdp entry before switching from a
+  * hugepte to regular pmd entry.
+-- 
+2.20.1
