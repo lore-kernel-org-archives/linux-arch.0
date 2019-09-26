@@ -1,80 +1,70 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.suse.de ([195.135.220.15]:45870 "EHLO mx1.suse.de"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1725955AbfIZLf3 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 26 Sep 2019 07:35:29 -0400
-Date: Thu, 26 Sep 2019 13:35:04 +0200 (CEST)
-From: Miroslav Benes <mbenes@suse.cz>
-Subject: Re: [RFC patch 14/15] workpending: Provide infrastructure for work
- before entering a guest
-In-Reply-To: <20190919150809.860645841@linutronix.de>
-Message-ID: <alpine.LSU.2.21.1909261324580.3740@pobox.suse.cz>
-References: <20190919150314.054351477@linutronix.de> <20190919150809.860645841@linutronix.de>
+Received: from mail-pf1-f193.google.com ([209.85.210.193]:42434 "EHLO
+        mail-pf1-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726332AbfIZNQr (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 26 Sep 2019 09:16:47 -0400
+Received: by mail-pf1-f193.google.com with SMTP id q12so1821477pff.9
+        for <linux-arch@vger.kernel.org>; Thu, 26 Sep 2019 06:16:47 -0700 (PDT)
+Subject: Re: [PATCH v5 3/3] clocksource/drivers: Suspend/resume Hyper-V
+ clocksource for hibernation
+References: <1567723581-29088-1-git-send-email-decui@microsoft.com>
+ <1567723581-29088-4-git-send-email-decui@microsoft.com>
+ <8ba5e2fd-6a9f-b61b-685e-23a69cabe3a2@linaro.org>
+ <PU1P153MB0169A28B05A7CDE04A57AA58BF870@PU1P153MB0169.APCP153.PROD.OUTLOOK.COM>
+From: Daniel Lezcano <daniel.lezcano@linaro.org>
+Message-ID: <17e5a535-8597-4780-7cd0-e8c4d2aa8f0f@linaro.org>
+Date: Thu, 26 Sep 2019 15:16:43 +0200
 MIME-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
+In-Reply-To: <PU1P153MB0169A28B05A7CDE04A57AA58BF870@PU1P153MB0169.APCP153.PROD.OUTLOOK.COM>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Thomas Gleixner <tglx@linutronix.de>
-Cc: LKML <linux-kernel@vger.kernel.org>, x86@kernel.org, Peter Zijlstra <peterz@infradead.org>, Andy Lutomirski <luto@kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Mark Rutland <mark.rutland@arm.com>, Marc Zyngier <maz@kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, kvm@vger.kernel.org, linux-arch@vger.kernel.org, live-patching@vger.kernel.org
-Message-ID: <20190926113504.ROy_q0yQb-X27-fxfEHIP9HaxA6vkD-i9lEW_BmVTdw@z>
+To: Dexuan Cui <decui@microsoft.com>, "tglx@linutronix.de" <tglx@linutronix.de>, "arnd@arndb.de" <arnd@arndb.de>, "bp@alien8.de" <bp@alien8.de>, Haiyang Zhang <haiyangz@microsoft.com>, "hpa@zytor.com" <hpa@zytor.com>, KY Srinivasan <kys@microsoft.com>, "linux-hyperv@vger.kernel.org" <linux-hyperv@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "mingo@redhat.com" <mingo@redhat.com>, "sashal@kernel.org" <sashal@kernel.org>, Stephen Hemminger <sthemmin@microsoft.com>, "x86@kernel.org" <x86@kernel.org>, Michael Kelley <mikelley@microsoft.com>, Sasha Levin <Alexander.Levin@microsoft.com>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+Message-ID: <20190926131643.-EQpEUYAAlHo30Y6DX9GH4LG3pEfF8IyayoSt1PRHS0@z>
 
-> --- a/include/linux/entry-common.h
-> +++ b/include/linux/entry-common.h
+On 26/09/2019 01:35, Dexuan Cui wrote:
+>> From: Daniel Lezcano <daniel.lezcano@linaro.org>
+>> Sent: Wednesday, September 25, 2019 4:21 PM
+>> To: Dexuan Cui <decui@microsoft.com>; arnd@arndb.de; bp@alien8.de;
+>> Haiyang Zhang <haiyangz@microsoft.com>; hpa@zytor.com; KY Srinivasan
+>> <kys@microsoft.com>; linux-hyperv@vger.kernel.org;
+>> linux-kernel@vger.kernel.org; mingo@redhat.com; sashal@kernel.org; Stephen
+>> Hemminger <sthemmin@microsoft.com>; tglx@linutronix.de; x86@kernel.org;
+>> Michael Kelley <mikelley@microsoft.com>; Sasha Levin
+>> <Alexander.Levin@microsoft.com>
+>> Cc: linux-arch@vger.kernel.org
+>> Subject: Re: [PATCH v5 3/3] clocksource/drivers: Suspend/resume Hyper-V
+>> clocksource for hibernation
+>>
+>> On 06/09/2019 00:47, Dexuan Cui wrote:
+>>> This is needed for hibernation, e.g. when we resume the old kernel, we need
+>>> to disable the "current" kernel's TSC page and then resume the old kernel's.
+>>>
+>>> Signed-off-by: Dexuan Cui <decui@microsoft.com>
+>>> Reviewed-by: Michael Kelley <mikelley@microsoft.com>
+>>
+>> I can take this patch if needed.
+> 
+> Thanks, Daniel! Usually tglx takes care of the patches, but it looks recently he
+> may be too busy to handle the 3 patches. 
+> 
+> I guess you can take the patch, if tglx has no objection. :-)
+> If you take the patch, please take all the 3 patches.
 
-[...]
+I maintain drivers/clocksource for the tip/timers/core branch. I don't
+want to proxy another tip branch as it is out of my jurisdiction.
 
-> +#define EXIT_TO_GUESTMODE_WORK						\
-> +	(_TIF_NEED_RESCHED | _TIF_SIGPENDING | _TIF_NOTIFY_RESUME |	\
-> +	 ARCH_EXIT_TO_GUESTMODE_WORK)
+So I can take patch 3/3 but will let the other 2 patches to be picked by
+the right person. It is your call.
 
-[...]
 
-> --- a/kernel/entry/common.c
-> +++ b/kernel/entry/common.c
->
-> +int core_exit_to_guestmode_work(struct kvm *kvm, struct kvm_vcpu *vcpu,
-> +				unsigned long ti_work)
-> +{
-> +	/*
-> +	 * Before returning to guest mode handle all pending work
-> +	 */
-> +	if (ti_work & _TIF_SIGPENDING) {
-> +		vcpu->run->exit_reason = KVM_EXIT_INTR;
-> +		vcpu->stat.signal_exits++;
-> +		return -EINTR;
-> +	}
-> +
-> +	if (ti_work & _TIF_NEED_RESCHED) {
-> +		srcu_read_unlock(&kvm->srcu, vcpu->srcu_idx);
-> +		schedule();
-> +		vcpu->srcu_idx = srcu_read_lock(&kvm->srcu);
-> +	}
-> +
-> +	if (ti_work & _TIF_PATCH_PENDING) {
-> +		srcu_read_unlock(&kvm->srcu, vcpu->srcu_idx);
-> +		klp_update_patch_state(current);
-> +		vcpu->srcu_idx = srcu_read_lock(&kvm->srcu);
-> +	}
 
-If I am reading the code correctly, _TIF_PATCH_PENDING is not a part of 
-EXIT_TO_GUESTMODE_WORK, so the handling code here would not be called on 
-any arch as of now.
+-- 
+ <http://www.linaro.org/> Linaro.org │ Open source software for ARM SoCs
 
-I also think that _TIF_PATCH_PENDING must not be handled here generally. 
-It could break consistency guarantees when live patching KVM (and we do 
-that from time to time).
-
-Adding live-patching ML to CC.
-
-Miroslav
-
-> +	if (ti_work & _TIF_NOTIFY_RESUME) {
-> +		srcu_read_unlock(&kvm->srcu, vcpu->srcu_idx);
-> +		clear_thread_flag(TIF_NOTIFY_RESUME);
-> +		tracehook_notify_resume(NULL);
-> +		vcpu->srcu_idx = srcu_read_lock(&kvm->srcu);
-> +	}
-> +
-> +	/* Any extra architecture specific work */
-> +	return arch_exit_to_guestmode_work(kvm, vcpu, ti_work);
-> +}
+Follow Linaro:  <http://www.facebook.com/pages/Linaro> Facebook |
+<http://twitter.com/#!/linaroorg> Twitter |
+<http://www.linaro.org/linaro-blog/> Blog
