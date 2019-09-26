@@ -1,48 +1,128 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pf1-f196.google.com ([209.85.210.196]:32831 "EHLO
-        mail-pf1-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728177AbfIZR4d (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 26 Sep 2019 13:56:33 -0400
-Received: by mail-pf1-f196.google.com with SMTP id q10so2285418pfl.0
-        for <linux-arch@vger.kernel.org>; Thu, 26 Sep 2019 10:56:33 -0700 (PDT)
+Received: from mail-pg1-f196.google.com ([209.85.215.196]:32903 "EHLO
+        mail-pg1-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1728146AbfIZSFZ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 26 Sep 2019 14:05:25 -0400
+Received: by mail-pg1-f196.google.com with SMTP id i30so2001161pgl.0
+        for <linux-arch@vger.kernel.org>; Thu, 26 Sep 2019 11:05:24 -0700 (PDT)
 From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH 24/29] powerpc: Move EXCEPTION_TABLE to RO_DATA segment
-Date: Thu, 26 Sep 2019 10:55:57 -0700
-Message-ID: <20190926175602.33098-25-keescook@chromium.org>
+Subject: [PATCH 11/29] vmlinux.lds.h: Replace RODATA with RO_DATA
+Date: Thu, 26 Sep 2019 10:55:44 -0700
+Message-ID: <20190926175602.33098-12-keescook@chromium.org>
 In-Reply-To: <20190926175602.33098-1-keescook@chromium.org>
 References: <20190926175602.33098-1-keescook@chromium.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Thomas Gleixner <tglx@linutronix.de>
 Cc: Kees Cook <keescook@chromium.org>, Rick Edgecombe <rick.p.edgecombe@intel.com>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, Dave Hansen <dave.hansen@linux.intel.com>, Andy Lutomirski <luto@kernel.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-s390@vger.kernel.org, linux-c6x-dev@linux-c6x.org, Yoshinori Sato <ysato@users.sourceforge.jp>, Michal Simek <monstr@monstr.eu>, linux-parisc@vger.kernel.org, linux-xtensa@linux-xtensa.org, x86@kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20190926175557.CqbV2agFxiPS7dnadCKpdIIihV5dP1u2Q9g9PUgZUHQ@z>
+Message-ID: <20190926175544.9i6SgK9kJUbveRQMnnP8tlGBzQfJqXpFIC00krebb8I@z>
 
-The EXCEPTION_TABLE is read-only, so collapse it into RO_DATA.
+There's no reason to keep the RODATA macro: just replace the callers
+with the expected RO_DATA macro.
 
 Signed-off-by: Kees Cook <keescook@chromium.org>
 ---
- arch/powerpc/kernel/vmlinux.lds.S | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+ arch/alpha/kernel/vmlinux.lds.S      | 2 +-
+ arch/ia64/kernel/vmlinux.lds.S       | 2 +-
+ arch/microblaze/kernel/vmlinux.lds.S | 2 +-
+ arch/mips/kernel/vmlinux.lds.S       | 2 +-
+ arch/um/include/asm/common.lds.S     | 2 +-
+ arch/xtensa/kernel/vmlinux.lds.S     | 2 +-
+ include/asm-generic/vmlinux.lds.h    | 4 +---
+ 7 files changed, 7 insertions(+), 9 deletions(-)
 
-diff --git a/arch/powerpc/kernel/vmlinux.lds.S b/arch/powerpc/kernel/vmlinux.lds.S
-index 4e7cec088c8b..2ed44e5824d5 100644
---- a/arch/powerpc/kernel/vmlinux.lds.S
-+++ b/arch/powerpc/kernel/vmlinux.lds.S
-@@ -7,6 +7,7 @@
+diff --git a/arch/alpha/kernel/vmlinux.lds.S b/arch/alpha/kernel/vmlinux.lds.S
+index bf28043485f6..af411817dd7d 100644
+--- a/arch/alpha/kernel/vmlinux.lds.S
++++ b/arch/alpha/kernel/vmlinux.lds.S
+@@ -34,7 +34,7 @@ SECTIONS
+ 	swapper_pg_dir = SWAPPER_PGD;
+ 	_etext = .;	/* End of text section */
  
- #define BSS_FIRST_SECTIONS *(.bss.prominit)
- #define EMITS_PT_NOTE
-+#define RO_DATA_EXCEPTION_TABLE_ALIGN	0
+-	RODATA
++	RO_DATA(4096)
+ 	EXCEPTION_TABLE(16)
  
- #include <asm/page.h>
- #include <asm-generic/vmlinux.lds.h>
-@@ -162,7 +163,6 @@ SECTIONS
- 		__stop__btb_flush_fixup = .;
+ 	/* Will be freed after init */
+diff --git a/arch/ia64/kernel/vmlinux.lds.S b/arch/ia64/kernel/vmlinux.lds.S
+index ad3578924589..0d86fc8e88d5 100644
+--- a/arch/ia64/kernel/vmlinux.lds.S
++++ b/arch/ia64/kernel/vmlinux.lds.S
+@@ -104,7 +104,7 @@ SECTIONS {
+ 	code_continues2 : {
+ 	} :text
+ 
+-	RODATA
++	RO_DATA(4096)
+ 
+ 	.opd : AT(ADDR(.opd) - LOAD_OFFSET) {
+ 		__start_opd = .;
+diff --git a/arch/microblaze/kernel/vmlinux.lds.S b/arch/microblaze/kernel/vmlinux.lds.S
+index d008e50bb212..2299694748ea 100644
+--- a/arch/microblaze/kernel/vmlinux.lds.S
++++ b/arch/microblaze/kernel/vmlinux.lds.S
+@@ -51,7 +51,7 @@ SECTIONS {
  	}
- #endif
--	EXCEPTION_TABLE(0)
+ 
+ 	. = ALIGN(16);
+-	RODATA
++	RO_DATA(4096)
+ 	EXCEPTION_TABLE(16)
+ 
+ 	/*
+diff --git a/arch/mips/kernel/vmlinux.lds.S b/arch/mips/kernel/vmlinux.lds.S
+index 91e566defc16..a5f00ec73ea6 100644
+--- a/arch/mips/kernel/vmlinux.lds.S
++++ b/arch/mips/kernel/vmlinux.lds.S
+@@ -82,7 +82,7 @@ SECTIONS
+ 	}
+ 
+ 	_sdata = .;			/* Start of data section */
+-	RODATA
++	RO_DATA(4096)
+ 
+ 	/* writeable */
+ 	.data : {	/* Data */
+diff --git a/arch/um/include/asm/common.lds.S b/arch/um/include/asm/common.lds.S
+index a24b284f5135..eca6c452a41b 100644
+--- a/arch/um/include/asm/common.lds.S
++++ b/arch/um/include/asm/common.lds.S
+@@ -9,7 +9,7 @@
+   _sdata = .;
+   PROVIDE (sdata = .);
+ 
+-  RODATA
++  RO_DATA(4096)
+ 
+   .unprotected : { *(.unprotected) }
+   . = ALIGN(4096);
+diff --git a/arch/xtensa/kernel/vmlinux.lds.S b/arch/xtensa/kernel/vmlinux.lds.S
+index a0a843745695..b97e5798b9cf 100644
+--- a/arch/xtensa/kernel/vmlinux.lds.S
++++ b/arch/xtensa/kernel/vmlinux.lds.S
+@@ -124,7 +124,7 @@ SECTIONS
+ 
+   . = ALIGN(16);
+ 
+-  RODATA
++  RO_DATA(4096)
+ 
+   /*  Relocation table */
+ 
+diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
+index 3a4c1cb971da..9520dede6c7a 100644
+--- a/include/asm-generic/vmlinux.lds.h
++++ b/include/asm-generic/vmlinux.lds.h
+@@ -513,9 +513,7 @@
+ 	. = ALIGN((align));						\
+ 	__end_rodata = .;
+ 
+-/* RODATA & RO_DATA provided for backward compatibility.
+- * All archs are supposed to use RO_DATA() */
+-#define RODATA          RO_DATA_SECTION(4096)
++/* All archs are supposed to use RO_DATA() */
+ #define RO_DATA(align)  RO_DATA_SECTION(align)
  
  /*
-  * Init sections discarded at runtime
 -- 
 2.17.1
