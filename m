@@ -1,21 +1,21 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pl1-f193.google.com ([209.85.214.193]:35610 "EHLO
-        mail-pl1-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727994AbfIZR4V (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 26 Sep 2019 13:56:21 -0400
-Received: by mail-pl1-f193.google.com with SMTP id y10so1631818plp.2
-        for <linux-arch@vger.kernel.org>; Thu, 26 Sep 2019 10:56:20 -0700 (PDT)
+Received: from mail-pf1-f194.google.com ([209.85.210.194]:39524 "EHLO
+        mail-pf1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727827AbfIZR4T (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 26 Sep 2019 13:56:19 -0400
+Received: by mail-pf1-f194.google.com with SMTP id v4so2257352pff.6
+        for <linux-arch@vger.kernel.org>; Thu, 26 Sep 2019 10:56:19 -0700 (PDT)
 From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH 04/29] alpha: Rename PT_LOAD identifier "kernel" to "text"
-Date: Thu, 26 Sep 2019 10:55:37 -0700
-Message-ID: <20190926175602.33098-5-keescook@chromium.org>
+Subject: [PATCH 03/29] powerpc: Rename PT_LOAD identifier "kernel" to "text"
+Date: Thu, 26 Sep 2019 10:55:36 -0700
+Message-ID: <20190926175602.33098-4-keescook@chromium.org>
 In-Reply-To: <20190926175602.33098-1-keescook@chromium.org>
 References: <20190926175602.33098-1-keescook@chromium.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Thomas Gleixner <tglx@linutronix.de>
 Cc: Kees Cook <keescook@chromium.org>, Rick Edgecombe <rick.p.edgecombe@intel.com>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, Dave Hansen <dave.hansen@linux.intel.com>, Andy Lutomirski <luto@kernel.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-s390@vger.kernel.org, linux-c6x-dev@linux-c6x.org, Yoshinori Sato <ysato@users.sourceforge.jp>, Michal Simek <monstr@monstr.eu>, linux-parisc@vger.kernel.org, linux-xtensa@linux-xtensa.org, x86@kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20190926175537.yLKF-fCK9lxKMjtA770EXmIDwk_hZJeDoZ7HfQFBxfY@z>
+Message-ID: <20190926175536.OymMooalNl-KjrTN0DvBm-FNDhnsZcFNTaLfOJH9sWE@z>
 
 In preparation for moving NOTES into RO_DATA, this renames the linker
 script internal identifier for the PT_LOAD Program Header from "kernel"
@@ -23,39 +23,60 @@ to "text" to match other architectures.
 
 Signed-off-by: Kees Cook <keescook@chromium.org>
 ---
- arch/alpha/kernel/vmlinux.lds.S | 8 ++++----
- 1 file changed, 4 insertions(+), 4 deletions(-)
+ arch/powerpc/kernel/vmlinux.lds.S | 12 ++++++------
+ 1 file changed, 6 insertions(+), 6 deletions(-)
 
-diff --git a/arch/alpha/kernel/vmlinux.lds.S b/arch/alpha/kernel/vmlinux.lds.S
-index c4b5ceceab52..781090cacc96 100644
---- a/arch/alpha/kernel/vmlinux.lds.S
-+++ b/arch/alpha/kernel/vmlinux.lds.S
-@@ -8,7 +8,7 @@
- OUTPUT_FORMAT("elf64-alpha")
- OUTPUT_ARCH(alpha)
- ENTRY(__start)
--PHDRS { kernel PT_LOAD; note PT_NOTE; }
-+PHDRS { text PT_LOAD; note PT_NOTE; }
- jiffies = jiffies_64;
- SECTIONS
- {
-@@ -27,14 +27,14 @@ SECTIONS
- 		LOCK_TEXT
- 		*(.fixup)
- 		*(.gnu.warning)
+diff --git a/arch/powerpc/kernel/vmlinux.lds.S b/arch/powerpc/kernel/vmlinux.lds.S
+index a3c8492b2b19..e184a63aa5b0 100644
+--- a/arch/powerpc/kernel/vmlinux.lds.S
++++ b/arch/powerpc/kernel/vmlinux.lds.S
+@@ -18,7 +18,7 @@
+ ENTRY(_stext)
+ 
+ PHDRS {
+-	kernel PT_LOAD FLAGS(7); /* RWX */
++	text PT_LOAD FLAGS(7); /* RWX */
+ 	note PT_NOTE FLAGS(0);
+ }
+ 
+@@ -63,7 +63,7 @@ SECTIONS
+ #else /* !CONFIG_PPC64 */
+ 		HEAD_TEXT
+ #endif
 -	} :kernel
 +	} :text
- 	swapper_pg_dir = SWAPPER_PGD;
- 	_etext = .;	/* End of text section */
+ 
+ 	__head_end = .;
+ 
+@@ -112,7 +112,7 @@ SECTIONS
+ 		__got2_end = .;
+ #endif /* CONFIG_PPC32 */
+ 
+-	} :kernel
++	} :text
+ 
+ 	. = ALIGN(ETEXT_ALIGN_SIZE);
+ 	_etext = .;
+@@ -163,9 +163,9 @@ SECTIONS
+ #endif
+ 	EXCEPTION_TABLE(0)
  
 -	NOTES :kernel :note
 +	NOTES :text :note
- 	.dummy : {
- 		*(.dummy)
+ 	/* Restore program header away from PT_NOTE. */
+-	.dummy : { *(.dummy) } :kernel
++	.dummy : { *(.dummy) } :text
+ 
+ /*
+  * Init sections discarded at runtime
+@@ -180,7 +180,7 @@ SECTIONS
+ #ifdef CONFIG_PPC64
+ 		*(.tramp.ftrace.init);
+ #endif
 -	} :kernel
 +	} :text
  
- 	RODATA
- 	EXCEPTION_TABLE(16)
+ 	/* .exit.text is discarded at runtime, not link time,
+ 	 * to deal with references from __bug_table
 -- 
 2.17.1
