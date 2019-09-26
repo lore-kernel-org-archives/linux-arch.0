@@ -1,63 +1,54 @@
-From: Daniel Lezcano <daniel.lezcano@linaro.org>
-Subject: Re: [PATCH v5 3/3] clocksource/drivers: Suspend/resume Hyper-V
- clocksource for hibernation
-Date: Thu, 26 Sep 2019 15:16:43 +0200
-Message-ID: <17e5a535-8597-4780-7cd0-e8c4d2aa8f0f@linaro.org>
-References: <1567723581-29088-1-git-send-email-decui@microsoft.com>
- <1567723581-29088-4-git-send-email-decui@microsoft.com>
- <8ba5e2fd-6a9f-b61b-685e-23a69cabe3a2@linaro.org>
- <PU1P153MB0169A28B05A7CDE04A57AA58BF870@PU1P153MB0169.APCP153.PROD.OUTLOOK.COM>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 8bit
+From: Kees Cook <keescook@chromium.org>
+Subject: [PATCH 04/29] alpha: Rename PT_LOAD identifier "kernel" to "text"
+Date: Thu, 26 Sep 2019 10:55:37 -0700
+Message-ID: <20190926175602.33098-5-keescook@chromium.org>
+References: <20190926175602.33098-1-keescook@chromium.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <PU1P153MB0169A28B05A7CDE04A57AA58BF870@PU1P153MB0169.APCP153.PROD.OUTLOOK.COM>
-Content-Language: en-US
+In-Reply-To: <20190926175602.33098-1-keescook@chromium.org>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Dexuan Cui <decui@microsoft.com>, "tglx@linutronix.de" <tglx@linutronix.de>, "arnd@arndb.de" <arnd@arndb.de>, "bp@alien8.de" <bp@alien8.de>, Haiyang Zhang <haiyangz@microsoft.com>, "hpa@zytor.com" <hpa@zytor.com>, KY Srinivasan <kys@microsoft.com>, "linux-hyperv@vger.kernel.org" <linux-hyperv@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "mingo@redhat.com" <mingo@redhat.com>, "sashal@kernel.org" <sashal@kernel.org>, Stephen Hemminger <sthemmin@microsoft.com>, "x86@kernel.org" <x86@kernel.org>, Michael Kelley <mikelley@microsoft.com>, Sasha Levin <Alexander.Levin@microsoft.com>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+To: Thomas Gleixner <tglx@linutronix.de>
+Cc: Kees Cook <keescook@chromium.org>, Rick Edgecombe <rick.p.edgecombe@intel.com>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, Dave Hansen <dave.hansen@linux.intel.com>, Andy Lutomirski <luto@kernel.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-s390@vger.kernel.org, linux-c6x-dev@linux-c6x.org, Yoshinori Sato <ysato@users.sourceforge.jp>, Michal Simek <monstr@monstr.eu>, linux-parisc@vger.kernel.org, linux-xtensa@linux-xtensa.org, x86@kernel.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On 26/09/2019 01:35, Dexuan Cui wrote:
->> From: Daniel Lezcano <daniel.lezcano@linaro.org>
->> Sent: Wednesday, September 25, 2019 4:21 PM
->> To: Dexuan Cui <decui@microsoft.com>; arnd@arndb.de; bp@alien8.de;
->> Haiyang Zhang <haiyangz@microsoft.com>; hpa@zytor.com; KY Srinivasan
->> <kys@microsoft.com>; linux-hyperv@vger.kernel.org;
->> linux-kernel@vger.kernel.org; mingo@redhat.com; sashal@kernel.org; Stephen
->> Hemminger <sthemmin@microsoft.com>; tglx@linutronix.de; x86@kernel.org;
->> Michael Kelley <mikelley@microsoft.com>; Sasha Levin
->> <Alexander.Levin@microsoft.com>
->> Cc: linux-arch@vger.kernel.org
->> Subject: Re: [PATCH v5 3/3] clocksource/drivers: Suspend/resume Hyper-V
->> clocksource for hibernation
->>
->> On 06/09/2019 00:47, Dexuan Cui wrote:
->>> This is needed for hibernation, e.g. when we resume the old kernel, we need
->>> to disable the "current" kernel's TSC page and then resume the old kernel's.
->>>
->>> Signed-off-by: Dexuan Cui <decui@microsoft.com>
->>> Reviewed-by: Michael Kelley <mikelley@microsoft.com>
->>
->> I can take this patch if needed.
-> 
-> Thanks, Daniel! Usually tglx takes care of the patches, but it looks recently he
-> may be too busy to handle the 3 patches. 
-> 
-> I guess you can take the patch, if tglx has no objection. :-)
-> If you take the patch, please take all the 3 patches.
+In preparation for moving NOTES into RO_DATA, this renames the linker
+script internal identifier for the PT_LOAD Program Header from "kernel"
+to "text" to match other architectures.
 
-I maintain drivers/clocksource for the tip/timers/core branch. I don't
-want to proxy another tip branch as it is out of my jurisdiction.
+Signed-off-by: Kees Cook <keescook@chromium.org>
+---
+ arch/alpha/kernel/vmlinux.lds.S | 8 ++++----
+ 1 file changed, 4 insertions(+), 4 deletions(-)
 
-So I can take patch 3/3 but will let the other 2 patches to be picked by
-the right person. It is your call.
-
-
-
+diff --git a/arch/alpha/kernel/vmlinux.lds.S b/arch/alpha/kernel/vmlinux.lds.S
+index c4b5ceceab52..781090cacc96 100644
+--- a/arch/alpha/kernel/vmlinux.lds.S
++++ b/arch/alpha/kernel/vmlinux.lds.S
+@@ -8,7 +8,7 @@
+ OUTPUT_FORMAT("elf64-alpha")
+ OUTPUT_ARCH(alpha)
+ ENTRY(__start)
+-PHDRS { kernel PT_LOAD; note PT_NOTE; }
++PHDRS { text PT_LOAD; note PT_NOTE; }
+ jiffies = jiffies_64;
+ SECTIONS
+ {
+@@ -27,14 +27,14 @@ SECTIONS
+ 		LOCK_TEXT
+ 		*(.fixup)
+ 		*(.gnu.warning)
+-	} :kernel
++	} :text
+ 	swapper_pg_dir = SWAPPER_PGD;
+ 	_etext = .;	/* End of text section */
+ 
+-	NOTES :kernel :note
++	NOTES :text :note
+ 	.dummy : {
+ 		*(.dummy)
+-	} :kernel
++	} :text
+ 
+ 	RODATA
+ 	EXCEPTION_TABLE(16)
 -- 
- <http://www.linaro.org/> Linaro.org │ Open source software for ARM SoCs
-
-Follow Linaro:  <http://www.facebook.com/pages/Linaro> Facebook |
-<http://twitter.com/#!/linaroorg> Twitter |
-<http://www.linaro.org/linaro-blog/> Blog
+2.17.1
