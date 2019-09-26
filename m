@@ -1,83 +1,107 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pg1-f196.google.com ([209.85.215.196]:37900 "EHLO
+Received: from mail-pg1-f196.google.com ([209.85.215.196]:41943 "EHLO
         mail-pg1-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728208AbfIZR4f (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 26 Sep 2019 13:56:35 -0400
-Received: by mail-pg1-f196.google.com with SMTP id x10so1964203pgi.5
-        for <linux-arch@vger.kernel.org>; Thu, 26 Sep 2019 10:56:35 -0700 (PDT)
+        with ESMTP id S1728197AbfIZR4e (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 26 Sep 2019 13:56:34 -0400
+Received: by mail-pg1-f196.google.com with SMTP id s1so1953531pgv.8
+        for <linux-arch@vger.kernel.org>; Thu, 26 Sep 2019 10:56:34 -0700 (PDT)
 From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH 28/29] x86/mm: Report actual image regions in /proc/iomem
-Date: Thu, 26 Sep 2019 10:56:01 -0700
-Message-ID: <20190926175602.33098-29-keescook@chromium.org>
+Subject: [PATCH 27/29] x86/mm: Report which part of kernel image is freed
+Date: Thu, 26 Sep 2019 10:56:00 -0700
+Message-ID: <20190926175602.33098-28-keescook@chromium.org>
 In-Reply-To: <20190926175602.33098-1-keescook@chromium.org>
 References: <20190926175602.33098-1-keescook@chromium.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Thomas Gleixner <tglx@linutronix.de>
 Cc: Kees Cook <keescook@chromium.org>, Rick Edgecombe <rick.p.edgecombe@intel.com>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, Dave Hansen <dave.hansen@linux.intel.com>, Andy Lutomirski <luto@kernel.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-s390@vger.kernel.org, linux-c6x-dev@linux-c6x.org, Yoshinori Sato <ysato@users.sourceforge.jp>, Michal Simek <monstr@monstr.eu>, linux-parisc@vger.kernel.org, linux-xtensa@linux-xtensa.org, x86@kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20190926175601.NjVAd6isjGIoPKpYxEzcRWOeNG_ASH-Wf-EBwAsq4Ns@z>
+Message-ID: <20190926175600.bvZ9cSCWVTDESJy1Pm5vYy5oC2aZeX2MY2NS4Fet6iM@z>
 
-The resource reservations in made for the kernel image did not reflect
-the gaps between text, rodata, and data. This adds the rodata resource
-and updates the start/end calculations to match the respective calls to
-free_kernel_image_pages().
+The memory freeing report wasn't very useful for figuring out which
+parts of the kernel image were being freed. This adds the details for
+clearer reporting.
 
-Before (booted with "nokaslr" for easier comparison):
+Before:
 
-00100000-bffd9fff : System RAM
-  01000000-01e011d0 : Kernel code
-  01e011d1-025619bf : Kernel data
-  02a95000-035fffff : Kernel bss
+[    2.150450] Freeing unused kernel image memory: 1348K
+[    2.154574] Write protecting the kernel read-only data: 20480k
+[    2.157641] Freeing unused kernel image memory: 2040K
+[    2.158827] Freeing unused kernel image memory: 172K
 
 After:
 
-00100000-bffd9fff : System RAM
-  01000000-01e011d0 : Kernel code
-  02000000-023d4fff : Kernel rodata
-  02400000-025619ff : Kernel data
-  02a95000-035fffff : Kernel bss
+[    2.329678] Freeing unused kernel image (initmem) memory: 1348K
+[    2.331953] Write protecting the kernel read-only data: 20480k
+[    2.335361] Freeing unused kernel image (text/rodata gap) memory: 2040K
+[    2.336927] Freeing unused kernel image (rodata/data gap) memory: 172K
 
 Signed-off-by: Kees Cook <keescook@chromium.org>
 ---
- arch/x86/kernel/setup.c | 12 +++++++++++-
- 1 file changed, 11 insertions(+), 1 deletion(-)
+ arch/x86/include/asm/processor.h | 2 +-
+ arch/x86/mm/init.c               | 8 ++++----
+ arch/x86/mm/init_64.c            | 6 ++++--
+ 3 files changed, 9 insertions(+), 7 deletions(-)
 
-diff --git a/arch/x86/kernel/setup.c b/arch/x86/kernel/setup.c
-index bbe35bf879f5..0bc71ee3a9c3 100644
---- a/arch/x86/kernel/setup.c
-+++ b/arch/x86/kernel/setup.c
-@@ -143,6 +143,13 @@ struct boot_params boot_params;
- /*
-  * Machine setup..
+diff --git a/arch/x86/include/asm/processor.h b/arch/x86/include/asm/processor.h
+index 6e0a3b43d027..790f250d39a8 100644
+--- a/arch/x86/include/asm/processor.h
++++ b/arch/x86/include/asm/processor.h
+@@ -958,7 +958,7 @@ static inline uint32_t hypervisor_cpuid_base(const char *sig, uint32_t leaves)
+ 
+ extern unsigned long arch_align_stack(unsigned long sp);
+ void free_init_pages(const char *what, unsigned long begin, unsigned long end);
+-extern void free_kernel_image_pages(void *begin, void *end);
++extern void free_kernel_image_pages(const char *what, void *begin, void *end);
+ 
+ void default_idle(void);
+ #ifdef	CONFIG_XEN
+diff --git a/arch/x86/mm/init.c b/arch/x86/mm/init.c
+index fd10d91a6115..e7bb483557c9 100644
+--- a/arch/x86/mm/init.c
++++ b/arch/x86/mm/init.c
+@@ -829,14 +829,13 @@ void free_init_pages(const char *what, unsigned long begin, unsigned long end)
+  * used for the kernel image only.  free_init_pages() will do the
+  * right thing for either kind of address.
   */
-+static struct resource rodata_resource = {
-+	.name	= "Kernel rodata",
-+	.start	= 0,
-+	.end	= 0,
-+	.flags	= IORESOURCE_BUSY | IORESOURCE_SYSTEM_RAM
-+};
-+
- static struct resource data_resource = {
- 	.name	= "Kernel data",
- 	.start	= 0,
-@@ -951,7 +958,9 @@ void __init setup_arch(char **cmdline_p)
+-void free_kernel_image_pages(void *begin, void *end)
++void free_kernel_image_pages(const char *what, void *begin, void *end)
+ {
+ 	unsigned long begin_ul = (unsigned long)begin;
+ 	unsigned long end_ul = (unsigned long)end;
+ 	unsigned long len_pages = (end_ul - begin_ul) >> PAGE_SHIFT;
  
- 	code_resource.start = __pa_symbol(_text);
- 	code_resource.end = __pa_symbol(_etext)-1;
--	data_resource.start = __pa_symbol(_etext);
-+	rodata_resource.start = __pa_symbol(__start_rodata);
-+	rodata_resource.end = __pa_symbol(__end_rodata)-1;
-+	data_resource.start = __pa_symbol(_sdata);
- 	data_resource.end = __pa_symbol(_edata)-1;
- 	bss_resource.start = __pa_symbol(__bss_start);
- 	bss_resource.end = __pa_symbol(__bss_stop)-1;
-@@ -1040,6 +1049,7 @@ void __init setup_arch(char **cmdline_p)
+-
+-	free_init_pages("unused kernel image", begin_ul, end_ul);
++	free_init_pages(what, begin_ul, end_ul);
  
- 	/* after parse_early_param, so could debug it */
- 	insert_resource(&iomem_resource, &code_resource);
-+	insert_resource(&iomem_resource, &rodata_resource);
- 	insert_resource(&iomem_resource, &data_resource);
- 	insert_resource(&iomem_resource, &bss_resource);
+ 	/*
+ 	 * PTI maps some of the kernel into userspace.  For performance,
+@@ -865,7 +864,8 @@ void __ref free_initmem(void)
  
+ 	mem_encrypt_free_decrypted_mem();
+ 
+-	free_kernel_image_pages(&__init_begin, &__init_end);
++	free_kernel_image_pages("unused kernel image (initmem)",
++				&__init_begin, &__init_end);
+ }
+ 
+ #ifdef CONFIG_BLK_DEV_INITRD
+diff --git a/arch/x86/mm/init_64.c b/arch/x86/mm/init_64.c
+index e67ddca8b7a8..dcb9bc961b39 100644
+--- a/arch/x86/mm/init_64.c
++++ b/arch/x86/mm/init_64.c
+@@ -1334,8 +1334,10 @@ void mark_rodata_ro(void)
+ 	set_memory_ro(start, (end-start) >> PAGE_SHIFT);
+ #endif
+ 
+-	free_kernel_image_pages((void *)text_end, (void *)rodata_start);
+-	free_kernel_image_pages((void *)rodata_end, (void *)_sdata);
++	free_kernel_image_pages("unused kernel image (text/rodata gap)",
++				(void *)text_end, (void *)rodata_start);
++	free_kernel_image_pages("unused kernel image (rodata/data gap)",
++				(void *)rodata_end, (void *)_sdata);
+ 
+ 	debug_checkwx();
+ }
 -- 
 2.17.1
