@@ -1,85 +1,48 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pf1-f194.google.com ([209.85.210.194]:39536 "EHLO
-        mail-pf1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728049AbfIZR4Z (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 26 Sep 2019 13:56:25 -0400
-Received: by mail-pf1-f194.google.com with SMTP id v4so2257517pff.6
-        for <linux-arch@vger.kernel.org>; Thu, 26 Sep 2019 10:56:25 -0700 (PDT)
+Received: from mail-pf1-f196.google.com ([209.85.210.196]:32831 "EHLO
+        mail-pf1-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1728177AbfIZR4d (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 26 Sep 2019 13:56:33 -0400
+Received: by mail-pf1-f196.google.com with SMTP id q10so2285418pfl.0
+        for <linux-arch@vger.kernel.org>; Thu, 26 Sep 2019 10:56:33 -0700 (PDT)
 From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH 05/29] ia64: Rename PT_LOAD identifier "code" to "text"
-Date: Thu, 26 Sep 2019 10:55:38 -0700
-Message-ID: <20190926175602.33098-6-keescook@chromium.org>
+Subject: [PATCH 24/29] powerpc: Move EXCEPTION_TABLE to RO_DATA segment
+Date: Thu, 26 Sep 2019 10:55:57 -0700
+Message-ID: <20190926175602.33098-25-keescook@chromium.org>
 In-Reply-To: <20190926175602.33098-1-keescook@chromium.org>
 References: <20190926175602.33098-1-keescook@chromium.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Thomas Gleixner <tglx@linutronix.de>
 Cc: Kees Cook <keescook@chromium.org>, Rick Edgecombe <rick.p.edgecombe@intel.com>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, Dave Hansen <dave.hansen@linux.intel.com>, Andy Lutomirski <luto@kernel.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-s390@vger.kernel.org, linux-c6x-dev@linux-c6x.org, Yoshinori Sato <ysato@users.sourceforge.jp>, Michal Simek <monstr@monstr.eu>, linux-parisc@vger.kernel.org, linux-xtensa@linux-xtensa.org, x86@kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20190926175538.cUJCm42ZRDBrR2WHZIT6N1thoEuEEUDJHBxyaLX4YQA@z>
+Message-ID: <20190926175557.CqbV2agFxiPS7dnadCKpdIIihV5dP1u2Q9g9PUgZUHQ@z>
 
-In preparation for moving NOTES into RO_DATA, this renames the linker
-script internal identifier for the PT_LOAD Program Header from "code"
-to "text" to match other architectures.
+The EXCEPTION_TABLE is read-only, so collapse it into RO_DATA.
 
 Signed-off-by: Kees Cook <keescook@chromium.org>
 ---
- arch/ia64/kernel/vmlinux.lds.S | 14 +++++++-------
- 1 file changed, 7 insertions(+), 7 deletions(-)
+ arch/powerpc/kernel/vmlinux.lds.S | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/arch/ia64/kernel/vmlinux.lds.S b/arch/ia64/kernel/vmlinux.lds.S
-index 0da58cf8e213..c1067992fcd1 100644
---- a/arch/ia64/kernel/vmlinux.lds.S
-+++ b/arch/ia64/kernel/vmlinux.lds.S
-@@ -13,7 +13,7 @@ ENTRY(phys_start)
- jiffies = jiffies_64;
+diff --git a/arch/powerpc/kernel/vmlinux.lds.S b/arch/powerpc/kernel/vmlinux.lds.S
+index 4e7cec088c8b..2ed44e5824d5 100644
+--- a/arch/powerpc/kernel/vmlinux.lds.S
++++ b/arch/powerpc/kernel/vmlinux.lds.S
+@@ -7,6 +7,7 @@
  
- PHDRS {
--	code   PT_LOAD;
-+	text   PT_LOAD;
- 	percpu PT_LOAD;
- 	data   PT_LOAD;
- 	note   PT_NOTE;
-@@ -36,7 +36,7 @@ SECTIONS {
- 	phys_start = _start - LOAD_OFFSET;
+ #define BSS_FIRST_SECTIONS *(.bss.prominit)
+ #define EMITS_PT_NOTE
++#define RO_DATA_EXCEPTION_TABLE_ALIGN	0
  
- 	code : {
--	} :code
-+	} :text
- 	. = KERNEL_START;
+ #include <asm/page.h>
+ #include <asm-generic/vmlinux.lds.h>
+@@ -162,7 +163,6 @@ SECTIONS
+ 		__stop__btb_flush_fixup = .;
+ 	}
+ #endif
+-	EXCEPTION_TABLE(0)
  
- 	_text = .;
-@@ -68,9 +68,9 @@ SECTIONS {
- 	/*
- 	 * Read-only data
- 	 */
--	NOTES :code :note       /* put .notes in text and mark in PT_NOTE  */
-+	NOTES :text :note       /* put .notes in text and mark in PT_NOTE  */
- 	code_continues : {
--	} : code               /* switch back to regular program...  */
-+	} :text                /* switch back to regular program...  */
- 
- 	EXCEPTION_TABLE(16)
- 
-@@ -102,9 +102,9 @@ SECTIONS {
- 		__start_unwind = .;
- 		*(.IA_64.unwind*)
- 		__end_unwind = .;
--	} :code :unwind
-+	} :text :unwind
- 	code_continues2 : {
--	} : code
-+	} :text
- 
- 	RODATA
- 
-@@ -224,7 +224,7 @@ SECTIONS {
- 	_end = .;
- 
- 	code : {
--	} :code
-+	} :text
- 
- 	STABS_DEBUG
- 	DWARF_DEBUG
+ /*
+  * Init sections discarded at runtime
 -- 
 2.17.1
