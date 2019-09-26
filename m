@@ -1,7 +1,7 @@
 From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH 25/29] xtensa: Move EXCEPTION_TABLE to RO_DATA segment
-Date: Thu, 26 Sep 2019 10:55:58 -0700
-Message-ID: <20190926175602.33098-26-keescook@chromium.org>
+Subject: [PATCH 17/29] alpha: Move EXCEPTION_TABLE to RO_DATA segment
+Date: Thu, 26 Sep 2019 10:55:50 -0700
+Message-ID: <20190926175602.33098-18-keescook@chromium.org>
 References: <20190926175602.33098-1-keescook@chromium.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20190926175602.33098-1-keescook@chromium.org>
@@ -14,29 +14,28 @@ The EXCEPTION_TABLE is read-only, so collapse it into RO_DATA.
 
 Signed-off-by: Kees Cook <keescook@chromium.org>
 ---
- arch/xtensa/kernel/vmlinux.lds.S | 3 ++-
- 1 file changed, 2 insertions(+), 1 deletion(-)
+ arch/alpha/kernel/vmlinux.lds.S | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/arch/xtensa/kernel/vmlinux.lds.S b/arch/xtensa/kernel/vmlinux.lds.S
-index bdbd7c4056c1..7341964722ae 100644
---- a/arch/xtensa/kernel/vmlinux.lds.S
-+++ b/arch/xtensa/kernel/vmlinux.lds.S
-@@ -14,6 +14,8 @@
-  * Joe Taylor <joe@tensilica.com, joetylr@yahoo.com>
-  */
+diff --git a/arch/alpha/kernel/vmlinux.lds.S b/arch/alpha/kernel/vmlinux.lds.S
+index edc45f45523b..72303827bcb4 100644
+--- a/arch/alpha/kernel/vmlinux.lds.S
++++ b/arch/alpha/kernel/vmlinux.lds.S
+@@ -1,6 +1,7 @@
+ /* SPDX-License-Identifier: GPL-2.0 */
  
+ #define EMITS_PT_NOTE
 +#define RO_DATA_EXCEPTION_TABLE_ALIGN	16
-+
+ 
  #include <asm-generic/vmlinux.lds.h>
- #include <asm/page.h>
  #include <asm/thread_info.h>
-@@ -130,7 +132,6 @@ SECTIONS
+@@ -35,7 +36,6 @@ SECTIONS
+ 	_etext = .;	/* End of text section */
  
-   .fixup   : { *(.fixup) }
+ 	RO_DATA(4096)
+-	EXCEPTION_TABLE(16)
  
--  EXCEPTION_TABLE(16)
-   /* Data section */
- 
-   _sdata = .;
+ 	/* Will be freed after init */
+ 	__init_begin = ALIGN(PAGE_SIZE);
 -- 
 2.17.1
