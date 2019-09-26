@@ -1,73 +1,49 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pf1-f194.google.com ([209.85.210.194]:35913 "EHLO
-        mail-pf1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728186AbfIZR4e (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 26 Sep 2019 13:56:34 -0400
-Received: by mail-pf1-f194.google.com with SMTP id y22so2273287pfr.3
-        for <linux-arch@vger.kernel.org>; Thu, 26 Sep 2019 10:56:33 -0700 (PDT)
+Received: from mail-pf1-f196.google.com ([209.85.210.196]:34130 "EHLO
+        mail-pf1-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1728149AbfIZR4b (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 26 Sep 2019 13:56:31 -0400
+Received: by mail-pf1-f196.google.com with SMTP id b128so2280610pfa.1
+        for <linux-arch@vger.kernel.org>; Thu, 26 Sep 2019 10:56:31 -0700 (PDT)
 From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH 29/29] x86: Use INT3 instead of NOP for linker fill bytes
-Date: Thu, 26 Sep 2019 10:56:02 -0700
-Message-ID: <20190926175602.33098-30-keescook@chromium.org>
+Subject: [PATCH 25/29] xtensa: Move EXCEPTION_TABLE to RO_DATA segment
+Date: Thu, 26 Sep 2019 10:55:58 -0700
+Message-ID: <20190926175602.33098-26-keescook@chromium.org>
 In-Reply-To: <20190926175602.33098-1-keescook@chromium.org>
 References: <20190926175602.33098-1-keescook@chromium.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Thomas Gleixner <tglx@linutronix.de>
 Cc: Kees Cook <keescook@chromium.org>, Rick Edgecombe <rick.p.edgecombe@intel.com>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, Dave Hansen <dave.hansen@linux.intel.com>, Andy Lutomirski <luto@kernel.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-s390@vger.kernel.org, linux-c6x-dev@linux-c6x.org, Yoshinori Sato <ysato@users.sourceforge.jp>, Michal Simek <monstr@monstr.eu>, linux-parisc@vger.kernel.org, linux-xtensa@linux-xtensa.org, x86@kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20190926175602.5FsrqrA0TExNBbXTdzMQfNb6-vb6ky0bdzoM3liSB70@z>
+Message-ID: <20190926175558.hgzZuVi6shl6yJWeZjy8mNRSEis-YP-AeyUF2Ri2yns@z>
 
-Instead of using 0x90 (NOP) to fill bytes between functions, which makes
-it easier to sloppily target functions in function pointer overwrite
-attacks, fill with 0xCC (INT3) to force a trap. Also drops the space
-between "=" and the value to better match the binutils documentation
-https://sourceware.org/binutils/docs/ld/Output-Section-Fill.html#Output-Section-Fill
-
-Example "objdump -d" before:
-
-...
-ffffffff810001e0 <start_cpu0>:
-ffffffff810001e0:       48 8b 25 e1 b1 51 01    mov 0x151b1e1(%rip),%rsp        # ffffffff8251b3c8 <initial_stack>
-ffffffff810001e7:       e9 d5 fe ff ff          jmpq   ffffffff810000c1 <secondary_startup_64+0x91>
-ffffffff810001ec:       90                      nop
-ffffffff810001ed:       90                      nop
-ffffffff810001ee:       90                      nop
-ffffffff810001ef:       90                      nop
-
-ffffffff810001f0 <__startup_64>:
-...
-
-After:
-
-...
-ffffffff810001e0 <start_cpu0>:
-ffffffff810001e0:       48 8b 25 41 79 53 01    mov 0x1537941(%rip),%rsp        # ffffffff82537b28 <initial_stack>
-ffffffff810001e7:       e9 d5 fe ff ff          jmpq   ffffffff810000c1 <secondary_startup_64+0x91>
-ffffffff810001ec:       cc                      int3
-ffffffff810001ed:       cc                      int3
-ffffffff810001ee:       cc                      int3
-ffffffff810001ef:       cc                      int3
-
-ffffffff810001f0 <__startup_64>:
-...
+The EXCEPTION_TABLE is read-only, so collapse it into RO_DATA.
 
 Signed-off-by: Kees Cook <keescook@chromium.org>
 ---
- arch/x86/kernel/vmlinux.lds.S | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+ arch/xtensa/kernel/vmlinux.lds.S | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
 
-diff --git a/arch/x86/kernel/vmlinux.lds.S b/arch/x86/kernel/vmlinux.lds.S
-index a5c8571e4967..a37817fafb22 100644
---- a/arch/x86/kernel/vmlinux.lds.S
-+++ b/arch/x86/kernel/vmlinux.lds.S
-@@ -144,7 +144,7 @@ SECTIONS
- 		*(.text.__x86.indirect_thunk)
- 		__indirect_thunk_end = .;
- #endif
--	} :text = 0x9090
-+	} :text =0xcccc
+diff --git a/arch/xtensa/kernel/vmlinux.lds.S b/arch/xtensa/kernel/vmlinux.lds.S
+index bdbd7c4056c1..7341964722ae 100644
+--- a/arch/xtensa/kernel/vmlinux.lds.S
++++ b/arch/xtensa/kernel/vmlinux.lds.S
+@@ -14,6 +14,8 @@
+  * Joe Taylor <joe@tensilica.com, joetylr@yahoo.com>
+  */
  
- 	/* End of text section, which should occupy whole number of pages */
- 	_etext = .;
++#define RO_DATA_EXCEPTION_TABLE_ALIGN	16
++
+ #include <asm-generic/vmlinux.lds.h>
+ #include <asm/page.h>
+ #include <asm/thread_info.h>
+@@ -130,7 +132,6 @@ SECTIONS
+ 
+   .fixup   : { *(.fixup) }
+ 
+-  EXCEPTION_TABLE(16)
+   /* Data section */
+ 
+   _sdata = .;
 -- 
 2.17.1
