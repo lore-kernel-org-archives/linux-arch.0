@@ -1,7 +1,7 @@
 From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH 11/29] vmlinux.lds.h: Replace RODATA with RO_DATA
-Date: Thu, 26 Sep 2019 10:55:44 -0700
-Message-ID: <20190926175602.33098-12-keescook@chromium.org>
+Subject: [PATCH 16/29] x86: Move EXCEPTION_TABLE to RO_DATA segment
+Date: Thu, 26 Sep 2019 10:55:49 -0700
+Message-ID: <20190926175602.33098-17-keescook@chromium.org>
 References: <20190926175602.33098-1-keescook@chromium.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20190926175602.33098-1-keescook@chromium.org>
@@ -10,112 +10,36 @@ To: Thomas Gleixner <tglx@linutronix.de>
 Cc: Kees Cook <keescook@chromium.org>, Rick Edgecombe <rick.p.edgecombe@intel.com>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, Dave Hansen <dave.hansen@linux.intel.com>, Andy Lutomirski <luto@kernel.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-s390@vger.kernel.org, linux-c6x-dev@linux-c6x.org, Yoshinori Sato <ysato@users.sourceforge.jp>, Michal Simek <monstr@monstr.eu>, linux-parisc@vger.kernel.org, linux-xtensa@linux-xtensa.org, x86@kernel.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-There's no reason to keep the RODATA macro: just replace the callers
-with the expected RO_DATA macro.
+The exception table was needlessly marked executable. In preparation
+for execute-only memory, this moves the table into the RO_DATA segment
+via a new macro that can be used by any architectures that want to make
+a similar consolidation.
 
 Signed-off-by: Kees Cook <keescook@chromium.org>
 ---
- arch/alpha/kernel/vmlinux.lds.S      | 2 +-
- arch/ia64/kernel/vmlinux.lds.S       | 2 +-
- arch/microblaze/kernel/vmlinux.lds.S | 2 +-
- arch/mips/kernel/vmlinux.lds.S       | 2 +-
- arch/um/include/asm/common.lds.S     | 2 +-
- arch/xtensa/kernel/vmlinux.lds.S     | 2 +-
- include/asm-generic/vmlinux.lds.h    | 4 +---
- 7 files changed, 7 insertions(+), 9 deletions(-)
+ arch/x86/kernel/vmlinux.lds.S | 3 +--
+ 1 file changed, 1 insertion(+), 2 deletions(-)
 
-diff --git a/arch/alpha/kernel/vmlinux.lds.S b/arch/alpha/kernel/vmlinux.lds.S
-index bf28043485f6..af411817dd7d 100644
---- a/arch/alpha/kernel/vmlinux.lds.S
-+++ b/arch/alpha/kernel/vmlinux.lds.S
-@@ -34,7 +34,7 @@ SECTIONS
- 	swapper_pg_dir = SWAPPER_PGD;
- 	_etext = .;	/* End of text section */
+diff --git a/arch/x86/kernel/vmlinux.lds.S b/arch/x86/kernel/vmlinux.lds.S
+index a1a758e25b2b..a5c8571e4967 100644
+--- a/arch/x86/kernel/vmlinux.lds.S
++++ b/arch/x86/kernel/vmlinux.lds.S
+@@ -22,6 +22,7 @@
+ #endif
  
--	RODATA
-+	RO_DATA(4096)
- 	EXCEPTION_TABLE(16)
+ #define EMITS_PT_NOTE
++#define RO_DATA_EXCEPTION_TABLE_ALIGN	16
  
- 	/* Will be freed after init */
-diff --git a/arch/ia64/kernel/vmlinux.lds.S b/arch/ia64/kernel/vmlinux.lds.S
-index ad3578924589..0d86fc8e88d5 100644
---- a/arch/ia64/kernel/vmlinux.lds.S
-+++ b/arch/ia64/kernel/vmlinux.lds.S
-@@ -104,7 +104,7 @@ SECTIONS {
- 	code_continues2 : {
- 	} :text
+ #include <asm-generic/vmlinux.lds.h>
+ #include <asm/asm-offsets.h>
+@@ -145,8 +146,6 @@ SECTIONS
+ #endif
+ 	} :text = 0x9090
  
--	RODATA
-+	RO_DATA(4096)
- 
- 	.opd : AT(ADDR(.opd) - LOAD_OFFSET) {
- 		__start_opd = .;
-diff --git a/arch/microblaze/kernel/vmlinux.lds.S b/arch/microblaze/kernel/vmlinux.lds.S
-index d008e50bb212..2299694748ea 100644
---- a/arch/microblaze/kernel/vmlinux.lds.S
-+++ b/arch/microblaze/kernel/vmlinux.lds.S
-@@ -51,7 +51,7 @@ SECTIONS {
- 	}
- 
- 	. = ALIGN(16);
--	RODATA
-+	RO_DATA(4096)
- 	EXCEPTION_TABLE(16)
- 
- 	/*
-diff --git a/arch/mips/kernel/vmlinux.lds.S b/arch/mips/kernel/vmlinux.lds.S
-index 91e566defc16..a5f00ec73ea6 100644
---- a/arch/mips/kernel/vmlinux.lds.S
-+++ b/arch/mips/kernel/vmlinux.lds.S
-@@ -82,7 +82,7 @@ SECTIONS
- 	}
- 
- 	_sdata = .;			/* Start of data section */
--	RODATA
-+	RO_DATA(4096)
- 
- 	/* writeable */
- 	.data : {	/* Data */
-diff --git a/arch/um/include/asm/common.lds.S b/arch/um/include/asm/common.lds.S
-index a24b284f5135..eca6c452a41b 100644
---- a/arch/um/include/asm/common.lds.S
-+++ b/arch/um/include/asm/common.lds.S
-@@ -9,7 +9,7 @@
-   _sdata = .;
-   PROVIDE (sdata = .);
- 
--  RODATA
-+  RO_DATA(4096)
- 
-   .unprotected : { *(.unprotected) }
-   . = ALIGN(4096);
-diff --git a/arch/xtensa/kernel/vmlinux.lds.S b/arch/xtensa/kernel/vmlinux.lds.S
-index a0a843745695..b97e5798b9cf 100644
---- a/arch/xtensa/kernel/vmlinux.lds.S
-+++ b/arch/xtensa/kernel/vmlinux.lds.S
-@@ -124,7 +124,7 @@ SECTIONS
- 
-   . = ALIGN(16);
- 
--  RODATA
-+  RO_DATA(4096)
- 
-   /*  Relocation table */
- 
-diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
-index 3a4c1cb971da..9520dede6c7a 100644
---- a/include/asm-generic/vmlinux.lds.h
-+++ b/include/asm-generic/vmlinux.lds.h
-@@ -513,9 +513,7 @@
- 	. = ALIGN((align));						\
- 	__end_rodata = .;
- 
--/* RODATA & RO_DATA provided for backward compatibility.
-- * All archs are supposed to use RO_DATA() */
--#define RODATA          RO_DATA_SECTION(4096)
-+/* All archs are supposed to use RO_DATA() */
- #define RO_DATA(align)  RO_DATA_SECTION(align)
- 
- /*
+-	EXCEPTION_TABLE(16)
+-
+ 	/* End of text section, which should occupy whole number of pages */
+ 	_etext = .;
+ 	. = ALIGN(PAGE_SIZE);
 -- 
 2.17.1
