@@ -1,11 +1,11 @@
 From: Nicolas Saenz Julienne <nsaenzjulienne@suse.de>
 Subject: Re: [PATCH] compiler: enable CONFIG_OPTIMIZE_INLINING forcibly
-Date: Fri, 27 Sep 2019 12:43:33 +0200
-Message-ID: <f5c221f5749e5768c9f0d909175a14910d349456.camel@suse.de>
+Date: Fri, 27 Sep 2019 12:58:39 +0200
+Message-ID: <dc80461e8b9d2e715976ed0b02f41b84922d06f1.camel@suse.de>
 References: <20190830034304.24259-1-yamada.masahiro@socionext.com>
 Mime-Version: 1.0
 Content-Type: multipart/signed; micalg="pgp-sha256";
-        protocol="application/pgp-signature"; boundary="=-TTn77CsG6HpjG9UNDv8f"
+        protocol="application/pgp-signature"; boundary="=-JZ6pLibdn1iko2ZTM9LG"
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20190830034304.24259-1-yamada.masahiro@socionext.com>
 Sender: linux-kernel-owner@vger.kernel.org
@@ -14,7 +14,7 @@ Cc: Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Linus Torval
 List-Id: linux-arch.vger.kernel.org
 
 
---=-TTn77CsG6HpjG9UNDv8f
+--=-JZ6pLibdn1iko2ZTM9LG
 Content-Type: text/plain; charset="UTF-8"
 Content-Transfer-Encoding: quoted-printable
 
@@ -39,6 +39,9 @@ On Fri, 2019-08-30 at 12:43 +0900, Masahiro Yamada wrote:
 > The code clean-up will be done after confirming this is solid.
 >=20
 > Signed-off-by: Masahiro Yamada <yamada.masahiro@socionext.com>
+
+[ Resending as the mail delivery system failed to resolve some the hosts,
+namely Masahiro's ]
 
 [ Adding some ARM people as they might be able to help ]
 
@@ -69,21 +72,22 @@ Regards,
 Nicolas
 
 
---=-TTn77CsG6HpjG9UNDv8f
+
+--=-JZ6pLibdn1iko2ZTM9LG
 Content-Type: application/pgp-signature; name="signature.asc"
 Content-Description: This is a digitally signed message part
 Content-Transfer-Encoding: 7bit
 
 -----BEGIN PGP SIGNATURE-----
 
-iQEzBAABCAAdFiEErOkkGDHCg2EbPcGjlfZmHno8x/4FAl2N59UACgkQlfZmHno8
-x/4Z6Af/YYUR7sSrY9UKKrQHLe/gNtaid1RF/GLam6IO+PNRXjDCXklGqHNArz0u
-DiHhodmi3k93pPeSduHZCvR6IqLWr6zkWsZdRmFb/IvdJedaO3R3xls8ciJDcqDX
-PqASlawX+MV78w4Oa8WTW4Ny+BBpzuuvsLZlLa3A1KaSkGk9TCiDlGp/FdUbbYAP
-XeKFVV229oiagfQraVRydyq+9iDGlWanMADV2QuzkusZFtz29/kmEP0aiKEme8Q2
-cBpx/PVWnl1S+pLXUVk0VYUDXN2NevrCZgvbonXAUP/ctmZlYQvgthi6jMT9Z4jC
-JeInmX+aSPbCZ7SIjMGeJmsJl3KFkQ==
-=E3mP
+iQEzBAABCAAdFiEErOkkGDHCg2EbPcGjlfZmHno8x/4FAl2N618ACgkQlfZmHno8
+x/6+HggAhZEzBiG9BUNoaWjD8le/0hiblE7XfJOVHfaBiti3ehz5R3wnt0UQMSAe
+fwCdZdPkL96AsL23XDqrr3enTTe5nCKB5nM7qG2dJtDAiWsYVH/1Dcvn4pFQNT7m
+jKHagHOkcs3By4FkWQ2doBtKcbTkMlddljmbWAxbg3hXTAdNdlMvFzGWO88LWGoX
+R9zaedt2oDgF8BX+ctJ2ExNyueAqhJUiyBAQIaMgaHjtXVDL7czb+Qu90Tedp1Mn
+mVYwg+o9rda9frK7ZI8TRfYTMJPuUMVlOWIhHb23jQ4VCJJ0oP3Yl2AYuYMqhDSn
+Cte1dV9SuV0sE0F87cVbsc9COKvvHQ==
+=cwjV
 -----END PGP SIGNATURE-----
 
---=-TTn77CsG6HpjG9UNDv8f--
+--=-JZ6pLibdn1iko2ZTM9LG--
