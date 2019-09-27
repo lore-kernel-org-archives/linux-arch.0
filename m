@@ -1,76 +1,128 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0a-001ae601.pphosted.com ([67.231.149.25]:51144 "EHLO
-        mx0b-001ae601.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
-        by vger.kernel.org with ESMTP id S1725882AbfI0LAZ (ORCPT
+Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:18808 "EHLO
+        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S1727079AbfI0OrS (ORCPT
         <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 27 Sep 2019 07:00:25 -0400
-Date: Fri, 27 Sep 2019 10:59:42 +0000
-From: Charles Keepax <ckeepax@opensource.cirrus.com>
-Subject: Re: [PATCH] compiler: enable CONFIG_OPTIMIZE_INLINING forcibly
-Message-ID: <20190927105942.GS10204@ediswmail.ad.cirrus.com>
-References: <20190830034304.24259-1-yamada.masahiro@socionext.com>
- <f5c221f5749e5768c9f0d909175a14910d349456.camel@suse.de>
+        Fri, 27 Sep 2019 10:47:18 -0400
+Message-ID: <8fe1ee1abf52719e75902dc7d5cd1e91751eaba7.camel@linux.ibm.com>
+Subject: Re: [PATCH v3 00/11] Introduces new count-based method for
+ monitoring lockless pagetable walks
+From: Leonardo Bras <leonardo@linux.ibm.com>
+Date: Fri, 27 Sep 2019 11:46:04 -0300
+Content-Type: multipart/signed; micalg="pgp-sha256";
+        protocol="application/pgp-signature"; boundary="=-0SqJjAld2WmMrSAcbuQn"
 MIME-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Disposition: inline
-In-Reply-To: <f5c221f5749e5768c9f0d909175a14910d349456.camel@suse.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Nicolas Saenz Julienne <nsaenzjulienne@suse.de>
-Cc: Masahiro Yamada <yamada.masahiro@socionext.com>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Linus Torvalds <torvalds@linux-foundation.org>, Nick Desaulniers <ndesaulniers@google.com>, Miguel Ojeda <miguel.ojeda.sandonis@gmail.com>, linux-arch <linux-arch@vger.kernel.org>, linux-kernel@vger.kernel.org, Catalin Marinas <catalin.marinas@arm.com>, rmk+kernel@arm.linux.org.uk, Will Deacon <will@kernel.org>, Stefan Wahren <wahrenst@gmx.net>
-Message-ID: <20190927105942.hx8gii9tp3X7Ada1mJXY7EWC7Wr0zA6z0fN60yHou3s@z>
+To: jhubbard@nvidia.com, linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, kvm-ppc@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
+Cc: benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, arnd@arndb.de, aneesh.kumar@linux.ibm.com, christophe.leroy@c-s.fr, akpm@linux-foundation.org, dan.j.williams@intel.com, npiggin@gmail.com, mahesh@linux.vnet.ibm.com, gregkh@linuxfoundation.org, tglx@linutronix.de, ganeshgr@linux.ibm.com, allison@lohutok.net, rppt@linux.ibm.com, yuehaibing@huawei.com, ira.weiny@intel.com, jgg@ziepe.ca, keith.busch@intel.com
+Message-ID: <20190927144604.rEAtplPBlm-CiZ6HyFslgGz9lW4qiUzb99OAuvsOWn4@z>
 
-On Fri, Sep 27, 2019 at 12:43:33PM +0200, Nicolas Saenz Julienne wrote:
-> On Fri, 2019-08-30 at 12:43 +0900, Masahiro Yamada wrote:
-> > Commit 9012d011660e ("compiler: allow all arches to enable
-> > CONFIG_OPTIMIZE_INLINING") allowed all architectures to enable
-> > this option. A couple of build errors were reported by randconfig,
-> > but all of them have been ironed out.
-> > 
-> > Towards the goal of removing CONFIG_OPTIMIZE_INLINING entirely
-> > (and it will simplify the 'inline' macro in compiler_types.h),
-> > this commit changes it to always-on option. Going forward, the
-> > compiler will always be allowed to not inline functions marked
-> > 'inline'.
-> > 
-> > This is not a problem for x86 since it has been long used by
-> > arch/x86/configs/{x86_64,i386}_defconfig.
-> > 
-> > I am keeping the config option just in case any problem crops up for
-> > other architectures.
-> > 
-> > The code clean-up will be done after confirming this is solid.
-> > 
-> > Signed-off-by: Masahiro Yamada <yamada.masahiro@socionext.com>
-> 
-> [ Adding some ARM people as they might be able to help ]
-> 
-> This was found to cause a regression on a Raspberry Pi 2 B built with
-> bcm2835_defconfig which among other things has no SMP support.
-> 
-> The relevant logs (edited to remove the noise) are:
-> 
-> [    5.827333] Run /init as init process
-> Loading, please wait...
-> Failed to set SO_PASSCRED: Bad address
-> Failed to bind netlink socket: Bad address
-> Failed to create manager: Bad address
-> Failed to set SO_PASSCRED: Bad address
-> [    9.021623] systemd[1]: SO_PASSCRED failed: Bad address
-> [!!!!!!] Failed to start up manager.
-> [    9.079148] systemd[1]: Freezing execution.
-> 
-> I looked into it, it turns out that the call to get_user() in sock_setsockopt()
-> is returning -EFAULT. Down the assembly rabbit hole that get_user() is I
-> found-out that it's the macro 'check_uaccess' who's triggering the error.
-> 
-> I'm clueless at this point, so I hope you can give me some hints on what's
-> going bad here.
-> 
 
-Not sure I can add much in terms of a solution, but I can at
-least confirm I am seeing exactly the same issue, on my Zynq
-based ARM system.
+--=-0SqJjAld2WmMrSAcbuQn
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
 
-Thanks,
-Charles
+John Hubbard <jhubbard@nvidia.com> writes:
+
+> Hi Leonardo,
+>
+> Thanks for adding linux-mm to CC for this next round of reviews. For the =
+benefit
+> of any new reviewers, I'd like to add that there are some issues that wer=
+e discovered
+> while reviewing the v2 patchset, that are not (yet) addressed in this v3 =
+series.
+
+> Since those issues are not listed in the cover letter above, I'll list th=
+em here
+
+Thanks for bringing that.
+The cover letter is a great place to put this info, I will keep that in
+mind for future patchsets.
+
+>
+> 1. The locking model requires a combination of disabling interrupts and
+> atomic counting and memory barriers, but
+>
+> 	a) some memory barriers are missing
+> 	(start/end_lockless_pgtbl_walk), and
+
+It seems that it works fine today because of the amount of intructions
+executed between the irq_disable / start_lockless_pgtbl_walk and where
+the THP collapse/split can happen. (It's very unlikely that it reorders
+that much).
+
+But I don't think it would be so bad to put a memory barrier after
+irq_disable just in case.
+
+> 	b) some cases (patch #8) fail to disable interrupts
+
+I have done some looking into that, and it seems that some uses of
+{start,end}_lockless_pgtbl_walk are unneeded, because they operate in
+(nested) guest pgd and I was told it's safe against THP split/collapse.
+
+In other uses, there is no interrupt disable because the function is
+called in real mode, with MSR_EE=3D0, and there we have instructions
+disabled, so there is no need to disable them again.
+
+>
+> ...so the synchronization appears to be inadequate. (And if it *is* adequ=
+ate, then
+> definitely we need the next item, to explain it.)
+
+
+>
+> 2. Documentation of the synchronization/locking model needs to exist, onc=
+e we
+> figure out the exact details of (1).
+
+I will add the missing doc in the code, so it may be easier to
+understand in the future.
+
+>
+> 3. Related to (1), I've asked to change things so that interrupt controls=
+ and=20
+> atomic inc/dec are in the same start/end calls--assuming, of course, that=
+ the
+> caller can tolerate that.=20
+
+I am not sure if it would be ok to use irq_{save,restore} in real mode,
+I will do some more reading of the docs before addressing this.=20
+>
+> 4. Please see the v2 series for any other details I've missed.
+>
+> thanks,
+> --=20
+> John Hubbard
+> NVIDIA
+>
+
+Thank you for helping, John!
+
+Best regards,
+Leonardo Bras
+
+--=-0SqJjAld2WmMrSAcbuQn
+Content-Type: application/pgp-signature; name="signature.asc"
+Content-Description: This is a digitally signed message part
+Content-Transfer-Encoding: 7bit
+
+-----BEGIN PGP SIGNATURE-----
+
+iQIzBAABCAAdFiEEMdeUgIzgjf6YmUyOlQYWtz9SttQFAl2OIKwACgkQlQYWtz9S
+ttRybRAArvljWum/p1QDUJofop8oyMMy8mFrtADkUcj7l033ze/c1UL4xVoFGvwQ
+JjAv7Cz+5anu8KJ3OQy0RUpdKihQh603Mt5fp7Okt8/D3AnBcMgp3hnGvwBDs8l4
+OqU3pEjzAFhQRpi0vFzuDLzY6yZBlHhb7keU8FpY9AOVk1M7nVxAYgY5pWiPUTJB
+6bxcElXieVV811efuDvuP2i4HG8tjs0uO4i8l4Z7EhoLRSYo030UJ2lRuO83/eYG
+1GXxjhkYulE4V5uHJ3PaWmtzre5wvSMHFniZK7XF777UZ5gDDgbo/FjtmYZQmQPx
+vbOAxfZq3yVakztdgQxYi2YN9Lh2rWJzfeISnWhpLzGS+dvFnDqurLCUieyKk4A8
+whBV3OCBpfksUToZuStK6cv2FK/TyArYGBTgPTmLRHn8n4AKgh1DzN2M9YxQ28jd
+rsAsmal05v6GTWJu8w9fHhwtHUO0HWaygdJGVm483FqVHSCigIShnhqT6QfoZY9q
+t4DvkFU6htn7vTEVIsLZaOYdyMFsWIZqoItq3kE+FZdcdCBMuLDjP47IK4g0IFtg
+Yo04gfVicc35HAvJpHCluEwIkEH45KWfRwlcN9rArUYDSMHMYeKIu53d4Q5+eit5
+AtqqUn9C4uk9TWoz3ksrfi5waujwmUtAvDaiaMH78SaiQ9IhncY=
+=tj28
+-----END PGP SIGNATURE-----
+
+--=-0SqJjAld2WmMrSAcbuQn--
