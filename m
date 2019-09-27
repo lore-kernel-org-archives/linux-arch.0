@@ -1,58 +1,55 @@
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Subject: Re: [PATCH] compiler: enable CONFIG_OPTIMIZE_INLINING forcibly
-Date: Fri, 27 Sep 2019 15:38:44 -0700
-Message-ID: <CAHk-=wiTy7hrA=LkmApBE9PQtri8qYsSOrf2zbms_crfjgR=Hw@mail.gmail.com>
-References: <20190830034304.24259-1-yamada.masahiro@socionext.com>
- <f5c221f5749e5768c9f0d909175a14910d349456.camel@suse.de> <CAKwvOdk=tr5nqq1CdZnUvRskaVqsUCP0SEciSGonzY5ayXsMXw@mail.gmail.com>
+From: Leonardo Bras <leonardo@linux.ibm.com>
+Subject: Re: [PATCH v3 00/11] Introduces new count-based method for
+ monitoring lockless pagetable walks
+Date: Fri, 27 Sep 2019 20:25:15 -0300
+Message-ID: <ed1a954a67de3b1fa66e921883153622f3446813.camel@linux.ibm.com>
+References: <8fe1ee1abf52719e75902dc7d5cd1e91751eaba7.camel@linux.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: multipart/signed; micalg="pgp-sha256";
+        protocol="application/pgp-signature"; boundary="=-MbHwrL3A6S40tAt0oPvi"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <CAKwvOdk=tr5nqq1CdZnUvRskaVqsUCP0SEciSGonzY5ayXsMXw@mail.gmail.com>
+In-Reply-To: <8fe1ee1abf52719e75902dc7d5cd1e91751eaba7.camel@linux.ibm.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Nick Desaulniers <ndesaulniers@google.com>
-Cc: Nicolas Saenz Julienne <nsaenzjulienne@suse.de>, Masahiro Yamada <yamada.masahiro@socionext.com>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Miguel Ojeda <miguel.ojeda.sandonis@gmail.com>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Russell King <rmk+kernel@arm.linux.org.uk>, Will Deacon <will@kernel.org>, Stefan Wahren <wahrenst@gmx.net>, Kees Cook <keescook@google.com>
+To: jhubbard@nvidia.com, linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, kvm-ppc@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
+Cc: benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, arnd@arndb.de, aneesh.kumar@linux.ibm.com, christophe.leroy@c-s.fr, akpm@linux-foundation.org, dan.j.williams@intel.com, npiggin@gmail.com, mahesh@linux.vnet.ibm.com, gregkh@linuxfoundation.org, tglx@linutronix.de, ganeshgr@linux.ibm.com, allison@lohutok.net, rppt@linux.ibm.com, yuehaibing@huawei.com, ira.weiny@intel.com, jgg@ziepe.ca, keith.busch@intel.com
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, Sep 27, 2019 at 3:08 PM Nick Desaulniers
-<ndesaulniers@google.com> wrote:
->
-> So get_user() was passed a bad value/pointer from userspace? Do you
-> know which of the tree calls to get_user() from sock_setsockopt() is
-> failing?  (It's not immediately clear to me how this patch is at
-> fault, vs there just being a bug in the source somewhere).
 
-Based on the error messages, the SO_PASSCRED ones are almost certainly
-from the get_user() in net/core/sock.c: sock_setsockopt(), which just
-does
+--=-MbHwrL3A6S40tAt0oPvi
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
 
-        if (optlen < sizeof(int))
-                return -EINVAL;
+On Fri, 2019-09-27 at 11:46 -0300, Leonardo Bras wrote:
+> I am not sure if it would be ok to use irq_{save,restore} in real mode,
+> I will do some more reading of the docs before addressing this.=20
 
-        if (get_user(val, (int __user *)optval))
-                return -EFAULT;
+It looks like it's unsafe to merge irq_{save,restore} in
+{start,end}_lockless_pgtbl_walk(), due to a possible access of code
+that is not accessible in real mode.
 
-        valbool = val ? 1 : 0;
+I am sending a v4 for the changes so far.
+I will look forward for your feedback.
 
-but it's the other messages imply that a lot of other cases are
-failing too (ie the "Failed to bind netlink socket" is, according to
-google, a bind() that fails with the same EFAULT error).
+--=-MbHwrL3A6S40tAt0oPvi
+Content-Type: application/pgp-signature; name="signature.asc"
+Content-Description: This is a digitally signed message part
+Content-Transfer-Encoding: 7bit
 
-There are probably even more failures that happen elsewhere and just
-don't even syslog the fact. I'd guess that all get_user() calls just
-fail, and those are the ones that happen to get printed out.
+-----BEGIN PGP SIGNATURE-----
 
-Now, _why_ it would fail, I have ni idea. There are several inlines in
-the arm uaccess.h file, and it depends on other headers like
-<asm/domain.h> with more inlines still - eg get/set_domain() etc.
+iQIzBAABCAAdFiEEMdeUgIzgjf6YmUyOlQYWtz9SttQFAl2OmlsACgkQlQYWtz9S
+ttQSdxAAxb2vcaIJh6GyRJa4P3h6d85JpvByKZBBiNvOp5Lol0AgvQ0skrphW2hM
+0COavBu2j4C8+n6NhwOH1gbCZpup8sGrXc7bpMg7+WZ5uE4NyyeIlvUVgerTxrAI
+MmHKILew1y5IqmcIGzea+AynytNb20c98joR2EbZ/7S3lruP93C5WLTgb586eHGi
+oAtukVuDfOeeM4QzQh8OuT7pJLASLfUE+wBh4ZF25jlIx22TBKiP2k7yAIxOHCSM
+bCUxHPinYhxA7IMKgJM98MWd4RsXRH8sQ5j0fajUwrWXqY3DzDu12OYd6KbgiBjG
+J+L/UztjLHU0qrlvVwYYzz+y5e8ZbLro1hNlnbT9wsAhKmty0VkOlY1Ml6VH909g
+2MTmldoUju1SAE61pMtCBnhGBhdXAU6H4M+H8Ry4Tj5C6TwtJlZ/WgVklxRqrdnN
+6B4VsI3DumYzbwsX/Nra6rKLWPpFhK2QJ2KUMi303M9AfPEwjH2mu5fNxBauAOry
+Frt17kk6bGWBZcehbkpx9jNxrxBisohc13LHz7o75zd8U5wvoYXLeRmTFXGPCY7M
+fxo4s8pNXyEYyfFZ8i7HPXRML6RVQ6I8QqZjV/hhRxoVkipnVScFxgCuEUGdhTei
+YnKQbPBBOI/lHVy16zst1+eW/fDo5CkAV003jZc4sIuAzvHjR24=
+=RxjC
+-----END PGP SIGNATURE-----
 
-Soem of that code is pretty subtle. They have fixed register usage
-(but the asm macros actually check them). And the inline asms clobber
-the link register, but they do seem to clearly _state_ that they
-clobber it, so who knows.
-
-Just based on the EFAULT, I'd _guess_ that it's some interaction with
-the domain access control register (so that get/set_domain() thing).
-But I'm not even sure that code is enabled for the Rpi2, so who
-knows..
-
-               Linus
+--=-MbHwrL3A6S40tAt0oPvi--
