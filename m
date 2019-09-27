@@ -1,13 +1,13 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:12776 "EHLO
+Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:15216 "EHLO
         mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1728712AbfI0Xlj (ORCPT
+        by vger.kernel.org with ESMTP id S1728487AbfI0XlN (ORCPT
         <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 27 Sep 2019 19:41:39 -0400
+        Fri, 27 Sep 2019 19:41:13 -0400
 From: Leonardo Bras <leonardo@linux.ibm.com>
-Subject: [PATCH v4 10/11] powerpc/book3s_64: Enables counting method to monitor lockless pgtbl walk
-Date: Fri, 27 Sep 2019 20:40:07 -0300
-Message-ID: <20190927234008.11513-11-leonardo@linux.ibm.com>
+Subject: [PATCH v4 02/11] asm-generic/pgtable: Adds dummy functions to monitor lockless pgtable walks
+Date: Fri, 27 Sep 2019 20:39:59 -0300
+Message-ID: <20190927234008.11513-3-leonardo@linux.ibm.com>
 In-Reply-To: <20190927234008.11513-1-leonardo@linux.ibm.com>
 References: <20190927234008.11513-1-leonardo@linux.ibm.com>
 MIME-Version: 1.0
@@ -16,32 +16,50 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, kvm-ppc@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
 Cc: Leonardo Bras <leonardo@linux.ibm.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Arnd Bergmann <arnd@arndb.de>, "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>, Christophe Leroy <christophe.leroy@c-s.fr>, Andrew Morton <akpm@linux-foundation.org>, Dan Williams <dan.j.williams@intel.com>, Nicholas Piggin <npiggin@gmail.com>, Mahesh Salgaonkar <mahesh@linux.vnet.ibm.com>, Allison Randal <allison@lohutok.net>, Thomas Gleixner <tglx@linutronix.de>, Ganesh Goudar <ganeshgr@linux.ibm.com>, Mike Rapoport <rppt@linux.ibm.com>, YueHaibing <yuehaibing@huawei.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Ira Weiny <ira.weiny@intel.com>, Jason Gunthorpe <jgg@ziepe.ca>, John Hubbard <jhubbard@nvidia.com>, Keith Busch <keith.busch@intel.com>
-Message-ID: <20190927234007.BcTpzRQtVM1ryid_NI64PP7igYReFiQFP4d0Shg53vc@z>
+Message-ID: <20190927233959.F0WaWQ1xvYUEXfX_m-OMuT-zh5_VegyyjsYfuafjII8@z>
 
-Enables count-based monitoring method for lockless pagetable walks on
-PowerPC book3s_64.
+There is a need to monitor lockless pagetable walks, in order to avoid
+doing THP splitting/collapsing during them.
 
-Other architectures/platforms fallback to using generic dummy functions.
+Some methods rely on local_irq_{save,restore}, but that can be slow on
+cases with a lot of cpus are used for the process.
+
+In order to speedup these cases, I propose a refcount-based approach, that
+counts the number of lockless pagetable	walks happening on the process.
+
+Given that there are lockless pagetable walks on generic code, it's
+necessary to create dummy functions for archs that won't use the approach.
 
 Signed-off-by: Leonardo Bras <leonardo@linux.ibm.com>
 ---
- arch/powerpc/include/asm/book3s/64/pgtable.h | 5 +++++
- 1 file changed, 5 insertions(+)
+ include/asm-generic/pgtable.h | 15 +++++++++++++++
+ 1 file changed, 15 insertions(+)
 
-diff --git a/arch/powerpc/include/asm/book3s/64/pgtable.h b/arch/powerpc/include/asm/book3s/64/pgtable.h
-index 8308f32e9782..eb9b26a4a483 100644
---- a/arch/powerpc/include/asm/book3s/64/pgtable.h
-+++ b/arch/powerpc/include/asm/book3s/64/pgtable.h
-@@ -1370,5 +1370,10 @@ static inline bool pgd_is_leaf(pgd_t pgd)
- 	return !!(pgd_raw(pgd) & cpu_to_be64(_PAGE_PTE));
- }
+diff --git a/include/asm-generic/pgtable.h b/include/asm-generic/pgtable.h
+index 75d9d68a6de7..0831475e72d3 100644
+--- a/include/asm-generic/pgtable.h
++++ b/include/asm-generic/pgtable.h
+@@ -1172,6 +1172,21 @@ static inline bool arch_has_pfn_modify_check(void)
+ #endif
+ #endif
  
-+#define __HAVE_ARCH_LOCKLESS_PGTBL_WALK_COUNTER
-+void start_lockless_pgtbl_walk(struct mm_struct *mm);
-+void end_lockless_pgtbl_walk(struct mm_struct *mm);
-+int running_lockless_pgtbl_walk(struct mm_struct *mm);
++#ifndef __HAVE_ARCH_LOCKLESS_PGTBL_WALK_COUNTER
++static inline void start_lockless_pgtbl_walk(struct mm_struct *mm)
++{
++}
 +
- #endif /* __ASSEMBLY__ */
- #endif /* _ASM_POWERPC_BOOK3S_64_PGTABLE_H_ */
++static inline void end_lockless_pgtbl_walk(struct mm_struct *mm)
++{
++}
++
++static inline int running_lockless_pgtbl_walk(struct mm_struct *mm)
++{
++	return 0;
++}
++#endif
++
+ /*
+  * On some architectures it depends on the mm if the p4d/pud or pmd
+  * layer of the page table hierarchy is folded or not.
 -- 
 2.20.1
