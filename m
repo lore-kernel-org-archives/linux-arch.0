@@ -1,124 +1,131 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:10134 "EHLO
+Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:52010 "EHLO
         mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1725990AbfI0XlJ (ORCPT
+        by vger.kernel.org with ESMTP id S1725990AbfI0XlK (ORCPT
         <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 27 Sep 2019 19:41:09 -0400
+        Fri, 27 Sep 2019 19:41:10 -0400
 From: Leonardo Bras <leonardo@linux.ibm.com>
-Subject: [PATCH v4 00/11] Introduces new count-based method for monitoring lockless pagetable walks
-Date: Fri, 27 Sep 2019 20:39:57 -0300
-Message-ID: <20190927234008.11513-1-leonardo@linux.ibm.com>
+Subject: [PATCH v4 01/11] powerpc/mm: Adds counting method to monitor lockless pgtable walks
+Date: Fri, 27 Sep 2019 20:39:58 -0300
+Message-ID: <20190927234008.11513-2-leonardo@linux.ibm.com>
+In-Reply-To: <20190927234008.11513-1-leonardo@linux.ibm.com>
+References: <20190927234008.11513-1-leonardo@linux.ibm.com>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, kvm-ppc@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
 Cc: Leonardo Bras <leonardo@linux.ibm.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Arnd Bergmann <arnd@arndb.de>, "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>, Christophe Leroy <christophe.leroy@c-s.fr>, Andrew Morton <akpm@linux-foundation.org>, Dan Williams <dan.j.williams@intel.com>, Nicholas Piggin <npiggin@gmail.com>, Mahesh Salgaonkar <mahesh@linux.vnet.ibm.com>, Allison Randal <allison@lohutok.net>, Thomas Gleixner <tglx@linutronix.de>, Ganesh Goudar <ganeshgr@linux.ibm.com>, Mike Rapoport <rppt@linux.ibm.com>, YueHaibing <yuehaibing@huawei.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Ira Weiny <ira.weiny@intel.com>, Jason Gunthorpe <jgg@ziepe.ca>, John Hubbard <jhubbard@nvidia.com>, Keith Busch <keith.busch@intel.com>
-Message-ID: <20190927233957.0Qab3wYotuJet1noGH-4Hi3EYsRXEHDWRM7Sb816HUo@z>
+Message-ID: <20190927233958.OYo9nODETdKQGWzHDTC0rMiEulYtFldebGNiZD64avY@z>
 
-If a process (qemu) with a lot of CPUs (128) try to munmap() a large
-chunk of memory (496GB) mapped with THP, it takes an average of 275
-seconds, which can cause a lot of problems to the load (in qemu case,
-the guest will lock for this time).
+It's necessary to monitor lockless pagetable walks, in order to avoid doing
+THP splitting/collapsing during them.
 
-Trying to find the source of this bug, I found out most of this time is
-spent on serialize_against_pte_lookup(). This function will take a lot
-of time in smp_call_function_many() if there is more than a couple CPUs
-running the user process. Since it has to happen to all THP mapped, it
-will take a very long time for large amounts of memory.
+Some methods rely on local_irq_{save,restore}, but that can be slow on
+cases with a lot of cpus are used for the process.
 
-By the docs, serialize_against_pte_lookup() is needed in order to avoid
-pmd_t to pte_t casting inside find_current_mm_pte(), or any lockless
-pagetable walk, to happen concurrently with THP splitting/collapsing.
+In order to speedup some cases, I propose a refcount-based approach, that
+counts the number of lockless pagetable	walks happening on the process.
 
-It does so by calling a do_nothing() on each CPU in mm->cpu_bitmap[],
-after interrupts are re-enabled.
-Since, interrupts are (usually) disabled during lockless pagetable
-walk, and serialize_against_pte_lookup will only return after
-interrupts are enabled, it is protected.
+This method does not exclude the current irq-oriented method. It works as a
+complement to skip unnecessary waiting.
 
-So, by what I could understand, if there is no lockless pagetable walk
-running, there is no need to call serialize_against_pte_lookup().
-
-So, to avoid the cost of running serialize_against_pte_lookup(), I
-propose a counter that keeps track of how many find_current_mm_pte()
-are currently running, and if there is none, just skip
-smp_call_function_many().
-
-The related functions are:
 start_lockless_pgtbl_walk(mm)
-        Insert before starting any lockless pgtable walk
+	Insert before starting any lockless pgtable walk
 end_lockless_pgtbl_walk(mm)
-        Insert after the end of any lockless pgtable walk
-        (Mostly after the ptep is last used)
+	Insert after the end of any lockless pgtable walk
+	(Mostly after the ptep is last used)
 running_lockless_pgtbl_walk(mm)
-        Returns the number of lockless pgtable walks running
+	Returns the number of lockless pgtable walks running
 
-On my workload (qemu), I could see munmap's time reduction from 275
-seconds to 418ms.
+Signed-off-by: Leonardo Bras <leonardo@linux.ibm.com>
+---
+ arch/powerpc/include/asm/book3s/64/mmu.h |  3 ++
+ arch/powerpc/mm/book3s64/mmu_context.c   |  1 +
+ arch/powerpc/mm/book3s64/pgtable.c       | 45 ++++++++++++++++++++++++
+ 3 files changed, 49 insertions(+)
 
-Also, I documented some lockless pagetable walks in which it's not
-necessary to keep track, given they work on init_mm or guest pgd.
-
-Changes since v3:
- Adds memory barrier to {start,end}_lockless_pgtbl_walk()
- Explain (comments) why some lockless pgtbl walks don't need
-	local_irq_disable (real mode + MSR_EE=0)
- Explain (comments) places where counting method is not needed (guest pgd,
-	which is not touched by THP)
- Fixes some misplaced local_irq_restore()
- Link: http://patchwork.ozlabs.org/project/linuxppc-dev/list/?series=132417
-
-Changes since v2:
- Rebased to v5.3
- Adds support on __get_user_pages_fast
- Adds usage decription to *_lockless_pgtbl_walk()
- Better style to dummy functions
- Link: http://patchwork.ozlabs.org/project/linuxppc-dev/list/?series=131839
-
-Changes since v1:
- Isolated atomic operations in functions *_lockless_pgtbl_walk()
- Fixed behavior of decrementing before last ptep was used
- Link: http://patchwork.ozlabs.org/patch/1163093/
-
-
-Leonardo Bras (11):
-  powerpc/mm: Adds counting method to monitor lockless pgtable walks
-  asm-generic/pgtable: Adds dummy functions to monitor lockless pgtable
-    walks
-  mm/gup: Applies counting method to monitor gup_pgd_range
-  powerpc/mce_power: Applies counting method to monitor lockless pgtbl
-    walks
-  powerpc/perf: Applies counting method to monitor lockless pgtbl walks
-  powerpc/mm/book3s64/hash: Applies counting method to monitor lockless
-    pgtbl walks
-  powerpc/kvm/e500: Applies counting method to monitor lockless pgtbl
-    walks
-  powerpc/kvm/book3s_hv: Applies counting method to monitor lockless
-    pgtbl walks
-  powerpc/kvm/book3s_64: Applies counting method to monitor lockless
-    pgtbl walks
-  powerpc/book3s_64: Enables counting method to monitor lockless pgtbl
-    walk
-  powerpc/mm/book3s64/pgtable: Uses counting method to skip serializing
-
- arch/powerpc/include/asm/book3s/64/mmu.h     |  3 ++
- arch/powerpc/include/asm/book3s/64/pgtable.h |  5 ++
- arch/powerpc/kernel/mce_power.c              | 13 ++++--
- arch/powerpc/kvm/book3s_64_mmu_hv.c          |  2 +
- arch/powerpc/kvm/book3s_64_mmu_radix.c       | 30 ++++++++++++
- arch/powerpc/kvm/book3s_64_vio_hv.c          |  3 ++
- arch/powerpc/kvm/book3s_hv_nested.c          | 22 ++++++++-
- arch/powerpc/kvm/book3s_hv_rm_mmu.c          | 18 ++++++--
- arch/powerpc/kvm/e500_mmu_host.c             |  6 ++-
- arch/powerpc/mm/book3s64/hash_tlb.c          |  2 +
- arch/powerpc/mm/book3s64/hash_utils.c        | 12 ++++-
- arch/powerpc/mm/book3s64/mmu_context.c       |  1 +
- arch/powerpc/mm/book3s64/pgtable.c           | 48 +++++++++++++++++++-
- arch/powerpc/perf/callchain.c                |  5 +-
- include/asm-generic/pgtable.h                | 15 ++++++
- mm/gup.c                                     |  8 ++++
- 16 files changed, 180 insertions(+), 13 deletions(-)
-
+diff --git a/arch/powerpc/include/asm/book3s/64/mmu.h b/arch/powerpc/include/asm/book3s/64/mmu.h
+index 23b83d3593e2..13b006e7dde4 100644
+--- a/arch/powerpc/include/asm/book3s/64/mmu.h
++++ b/arch/powerpc/include/asm/book3s/64/mmu.h
+@@ -116,6 +116,9 @@ typedef struct {
+ 	/* Number of users of the external (Nest) MMU */
+ 	atomic_t copros;
+ 
++	/* Number of running instances of lockless pagetable walk*/
++	atomic_t lockless_pgtbl_walk_count;
++
+ 	struct hash_mm_context *hash_context;
+ 
+ 	unsigned long vdso_base;
+diff --git a/arch/powerpc/mm/book3s64/mmu_context.c b/arch/powerpc/mm/book3s64/mmu_context.c
+index 2d0cb5ba9a47..3dd01c0ca5be 100644
+--- a/arch/powerpc/mm/book3s64/mmu_context.c
++++ b/arch/powerpc/mm/book3s64/mmu_context.c
+@@ -200,6 +200,7 @@ int init_new_context(struct task_struct *tsk, struct mm_struct *mm)
+ #endif
+ 	atomic_set(&mm->context.active_cpus, 0);
+ 	atomic_set(&mm->context.copros, 0);
++	atomic_set(&mm->context.lockless_pgtbl_walk_count, 0);
+ 
+ 	return 0;
+ }
+diff --git a/arch/powerpc/mm/book3s64/pgtable.c b/arch/powerpc/mm/book3s64/pgtable.c
+index 7d0e0d0d22c4..6ba6195bff1b 100644
+--- a/arch/powerpc/mm/book3s64/pgtable.c
++++ b/arch/powerpc/mm/book3s64/pgtable.c
+@@ -98,6 +98,51 @@ void serialize_against_pte_lookup(struct mm_struct *mm)
+ 	smp_call_function_many(mm_cpumask(mm), do_nothing, NULL, 1);
+ }
+ 
++/*
++ * Counting method to monitor lockless pagetable walks:
++ * Uses start_lockless_pgtbl_walk and end_lockless_pgtbl_walk to track the
++ * number of lockless pgtable walks happening, and
++ * running_lockless_pgtbl_walk to return this value.
++ */
++
++/* start_lockless_pgtbl_walk: Must be inserted before a function call that does
++ *   lockless pagetable walks, such as __find_linux_pte()
++ */
++void start_lockless_pgtbl_walk(struct mm_struct *mm)
++{
++	atomic_inc(&mm->context.lockless_pgtbl_walk_count);
++	/* Avoid reorder to garantee that the increment will happen before any
++	 * part of the walkless pagetable walk after it.
++	 */
++	smp_mb();
++}
++EXPORT_SYMBOL(start_lockless_pgtbl_walk);
++
++/*
++ * end_lockless_pgtbl_walk: Must be inserted after the last use of a pointer
++ *   returned by a lockless pagetable walk, such as __find_linux_pte()
++*/
++void end_lockless_pgtbl_walk(struct mm_struct *mm)
++{
++	/* Avoid reorder to garantee that it will only decrement after the last
++	 * use of the returned ptep from the lockless pagetable walk.
++	 */
++	smp_mb();
++	atomic_dec(&mm->context.lockless_pgtbl_walk_count);
++}
++EXPORT_SYMBOL(end_lockless_pgtbl_walk);
++
++/*
++ * running_lockless_pgtbl_walk: Returns the number of lockless pagetable walks
++ *   currently running. If it returns 0, there is no running pagetable walk, and
++ *   THP split/collapse can be safely done. This can be used to avoid more
++ *   expensive approaches like serialize_against_pte_lookup()
++ */
++int running_lockless_pgtbl_walk(struct mm_struct *mm)
++{
++	return atomic_read(&mm->context.lockless_pgtbl_walk_count);
++}
++
+ /*
+  * We use this to invalidate a pmdp entry before switching from a
+  * hugepte to regular pmd entry.
 -- 
 2.20.1
