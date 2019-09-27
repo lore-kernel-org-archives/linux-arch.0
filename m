@@ -1,7 +1,7 @@
 From: Leonardo Bras <leonardo@linux.ibm.com>
-Subject: [PATCH v4 06/11] powerpc/mm/book3s64/hash: Applies counting method to monitor lockless pgtbl walks
-Date: Fri, 27 Sep 2019 20:40:03 -0300
-Message-ID: <20190927234008.11513-7-leonardo@linux.ibm.com>
+Subject: [PATCH v4 08/11] powerpc/kvm/book3s_hv: Applies counting method to monitor lockless pgtbl walks
+Date: Fri, 27 Sep 2019 20:40:05 -0300
+Message-ID: <20190927234008.11513-9-leonardo@linux.ibm.com>
 References: <20190927234008.11513-1-leonardo@linux.ibm.com>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
@@ -12,98 +12,128 @@ To: linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, kvm-ppc@vger.ke
 Cc: Leonardo Bras <leonardo@linux.ibm.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Arnd Bergmann <arnd@arndb.de>, "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>, Christophe Leroy <christophe.leroy@c-s.fr>, Andrew Morton <akpm@linux-foundation.org>, Dan Williams <dan.j.williams@intel.com>, Nicholas Piggin <npiggin@gmail.com>, Mahesh Salgaonkar <mahesh@linux.vnet.ibm.com>, Allison Randal <allison@lohutok.net>, Thomas Gleixner <tglx@linutronix.de>, Ganesh Goudar <ganeshgr@linux.ibm.com>, Mike Rapoport <rppt@linux.ibm.com>, YueHaibing <yuehaibing@huawei.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Ira Weiny <ira.weiny@intel.com>, Jason Gunthorpe <jgg@ziep>
 List-Id: linux-arch.vger.kernel.org
 
-Applies the counting-based method for monitoring all hash-related functions
-that do lockless pagetable walks.
+Applies the counting-based method for monitoring all book3s_hv related
+functions that do lockless pagetable walks.
 
-hash_page_mm: Adds comment that explain that there is no need to
-local_int_disable/save given that it is only called from DataAccess
-interrupt, so interrupts are already disabled.
+Adds comments explaining that some lockless pagetable walks don't need
+protection due to guest pgd not being a target of THP collapse/split, or
+due to being called from Realmode + MSR_EE = 0
+
+kvmppc_do_h_enter: Fixes where local_irq_restore() must be placed (after
+the last usage of ptep).
 
 Signed-off-by: Leonardo Bras <leonardo@linux.ibm.com>
 ---
- arch/powerpc/mm/book3s64/hash_tlb.c   |  2 ++
- arch/powerpc/mm/book3s64/hash_utils.c | 12 +++++++++++-
- 2 files changed, 13 insertions(+), 1 deletion(-)
+ arch/powerpc/kvm/book3s_hv_nested.c | 22 ++++++++++++++++++++--
+ arch/powerpc/kvm/book3s_hv_rm_mmu.c | 18 ++++++++++++++----
+ 2 files changed, 34 insertions(+), 6 deletions(-)
 
-diff --git a/arch/powerpc/mm/book3s64/hash_tlb.c b/arch/powerpc/mm/book3s64/hash_tlb.c
-index 4a70d8dd39cd..5e5213c3f7c4 100644
---- a/arch/powerpc/mm/book3s64/hash_tlb.c
-+++ b/arch/powerpc/mm/book3s64/hash_tlb.c
-@@ -209,6 +209,7 @@ void __flush_hash_table_range(struct mm_struct *mm, unsigned long start,
- 	 * to being hashed). This is not the most performance oriented
- 	 * way to do things but is fine for our needs here.
- 	 */
-+	start_lockless_pgtbl_walk(mm);
- 	local_irq_save(flags);
- 	arch_enter_lazy_mmu_mode();
- 	for (; start < end; start += PAGE_SIZE) {
-@@ -230,6 +231,7 @@ void __flush_hash_table_range(struct mm_struct *mm, unsigned long start,
- 	}
- 	arch_leave_lazy_mmu_mode();
- 	local_irq_restore(flags);
-+	end_lockless_pgtbl_walk(mm);
- }
- 
- void flush_tlb_pmd_range(struct mm_struct *mm, pmd_t *pmd, unsigned long addr)
-diff --git a/arch/powerpc/mm/book3s64/hash_utils.c b/arch/powerpc/mm/book3s64/hash_utils.c
-index b8ad14bb1170..8615fab87c43 100644
---- a/arch/powerpc/mm/book3s64/hash_utils.c
-+++ b/arch/powerpc/mm/book3s64/hash_utils.c
-@@ -1321,7 +1321,11 @@ int hash_page_mm(struct mm_struct *mm, unsigned long ea,
- 		ea &= ~((1ul << mmu_psize_defs[psize].shift) - 1);
- #endif /* CONFIG_PPC_64K_PAGES */
- 
--	/* Get PTE and page size from page tables */
-+	/* Get PTE and page size from page tables :
-+	 * Called in from DataAccess interrupt (data_access_common: 0x300),
-+	 * interrupts are disabled here.
-+	 */
-+	start_lockless_pgtbl_walk(mm);
- 	ptep = find_linux_pte(pgdir, ea, &is_thp, &hugeshift);
- 	if (ptep == NULL || !pte_present(*ptep)) {
- 		DBG_LOW(" no PTE !\n");
-@@ -1438,6 +1442,7 @@ int hash_page_mm(struct mm_struct *mm, unsigned long ea,
- 	DBG_LOW(" -> rc=%d\n", rc);
- 
- bail:
-+	end_lockless_pgtbl_walk(mm);
- 	exception_exit(prev_state);
- 	return rc;
- }
-@@ -1547,10 +1552,12 @@ void hash_preload(struct mm_struct *mm, unsigned long ea,
- 	vsid = get_user_vsid(&mm->context, ea, ssize);
- 	if (!vsid)
+diff --git a/arch/powerpc/kvm/book3s_hv_nested.c b/arch/powerpc/kvm/book3s_hv_nested.c
+index 735e0ac6f5b2..5a641b559de7 100644
+--- a/arch/powerpc/kvm/book3s_hv_nested.c
++++ b/arch/powerpc/kvm/book3s_hv_nested.c
+@@ -803,7 +803,11 @@ static void kvmhv_update_nest_rmap_rc(struct kvm *kvm, u64 n_rmap,
+ 	if (!gp)
  		return;
-+
+ 
+-	/* Find the pte */
++	/* Find the pte:
++	 * We are walking the nested guest (partition-scoped) page table here.
++	 * We can do this without disabling irq because the Linux MM
++	 * subsystem doesn't do THP splits and collapses on this tree.
++	 */
+ 	ptep = __find_linux_pte(gp->shadow_pgtable, gpa, NULL, &shift);
  	/*
- 	 * Hash doesn't like irqs. Walking linux page table with irq disabled
- 	 * saves us from holding multiple locks.
+ 	 * If the pte is present and the pfn is still the same, update the pte.
+@@ -853,7 +857,11 @@ static void kvmhv_remove_nest_rmap(struct kvm *kvm, u64 n_rmap,
+ 	if (!gp)
+ 		return;
+ 
+-	/* Find and invalidate the pte */
++	/* Find and invalidate the pte:
++	 * We are walking the nested guest (partition-scoped) page table here.
++	 * We can do this without disabling irq because the Linux MM
++	 * subsystem doesn't do THP splits and collapses on this tree.
++	 */
+ 	ptep = __find_linux_pte(gp->shadow_pgtable, gpa, NULL, &shift);
+ 	/* Don't spuriously invalidate ptes if the pfn has changed */
+ 	if (ptep && pte_present(*ptep) && ((pte_val(*ptep) & mask) == hpa))
+@@ -921,6 +929,11 @@ static bool kvmhv_invalidate_shadow_pte(struct kvm_vcpu *vcpu,
+ 	int shift;
+ 
+ 	spin_lock(&kvm->mmu_lock);
++	/*
++	 * We are walking the nested guest (partition-scoped) page table here.
++	 * We can do this without disabling irq because the Linux MM
++	 * subsystem doesn't do THP splits and collapses on this tree.
++	 */
+ 	ptep = __find_linux_pte(gp->shadow_pgtable, gpa, NULL, &shift);
+ 	if (!shift)
+ 		shift = PAGE_SHIFT;
+@@ -1362,6 +1375,11 @@ static long int __kvmhv_nested_page_fault(struct kvm_run *run,
+ 	/* See if can find translation in our partition scoped tables for L1 */
+ 	pte = __pte(0);
+ 	spin_lock(&kvm->mmu_lock);
++	/*
++	 * We are walking the secondary (partition-scoped) page table here.
++	 * We can do this without disabling irq because the Linux MM
++	 * subsystem doesn't do THP splits and collapses on this tree.
++	 */
+ 	pte_p = __find_linux_pte(kvm->arch.pgtable, gpa, NULL, &shift);
+ 	if (!shift)
+ 		shift = PAGE_SHIFT;
+diff --git a/arch/powerpc/kvm/book3s_hv_rm_mmu.c b/arch/powerpc/kvm/book3s_hv_rm_mmu.c
+index 63e0ce91e29d..2076a7ac230a 100644
+--- a/arch/powerpc/kvm/book3s_hv_rm_mmu.c
++++ b/arch/powerpc/kvm/book3s_hv_rm_mmu.c
+@@ -252,6 +252,7 @@ long kvmppc_do_h_enter(struct kvm *kvm, unsigned long flags,
+ 	 * If we had a page table table change after lookup, we would
+ 	 * retry via mmu_notifier_retry.
  	 */
-+	start_lockless_pgtbl_walk(mm);
- 	local_irq_save(flags);
- 
++	start_lockless_pgtbl_walk(kvm->mm);
+ 	if (!realmode)
+ 		local_irq_save(irq_flags);
  	/*
-@@ -1597,6 +1604,7 @@ void hash_preload(struct mm_struct *mm, unsigned long ea,
- 				   pte_val(*ptep));
- out_exit:
- 	local_irq_restore(flags);
-+	end_lockless_pgtbl_walk(mm);
- }
+@@ -287,8 +288,6 @@ long kvmppc_do_h_enter(struct kvm *kvm, unsigned long flags,
+ 			pa |= gpa & ~PAGE_MASK;
+ 		}
+ 	}
+-	if (!realmode)
+-		local_irq_restore(irq_flags);
  
- #ifdef CONFIG_PPC_MEM_KEYS
-@@ -1613,11 +1621,13 @@ u16 get_mm_addr_key(struct mm_struct *mm, unsigned long address)
- 	if (!mm || !mm->pgd)
- 		return 0;
+ 	ptel &= HPTE_R_KEY | HPTE_R_PP0 | (psize-1);
+ 	ptel |= pa;
+@@ -311,6 +310,9 @@ long kvmppc_do_h_enter(struct kvm *kvm, unsigned long flags,
+ 		ptel &= ~(HPTE_R_W|HPTE_R_I|HPTE_R_G);
+ 		ptel |= HPTE_R_M;
+ 	}
++	if (!realmode)
++		local_irq_restore(irq_flags);
++	end_lockless_pgtbl_walk(kvm->mm);
  
-+	start_lockless_pgtbl_walk(mm);
- 	local_irq_save(flags);
- 	ptep = find_linux_pte(mm->pgd, address, NULL, NULL);
- 	if (ptep)
- 		pkey = pte_to_pkey_bits(pte_val(READ_ONCE(*ptep)));
- 	local_irq_restore(flags);
-+	end_lockless_pgtbl_walk(mm);
+ 	/* Find and lock the HPTEG slot to use */
+  do_insert:
+@@ -885,11 +887,19 @@ static int kvmppc_get_hpa(struct kvm_vcpu *vcpu, unsigned long gpa,
+ 	/* Translate to host virtual address */
+ 	hva = __gfn_to_hva_memslot(memslot, gfn);
  
- 	return pkey;
- }
+-	/* Try to find the host pte for that virtual address */
++	/* Try to find the host pte for that virtual address :
++	 * Called by hcall_real_table (real mode + MSR_EE=0)
++	 * Interrupts are disabled here.
++	 */
++	start_lockless_pgtbl_walk(kvm->mm);
+ 	ptep = __find_linux_pte(vcpu->arch.pgdir, hva, NULL, &shift);
+-	if (!ptep)
++	if (!ptep) {
++		end_lockless_pgtbl_walk(kvm->mm);
+ 		return H_TOO_HARD;
++	}
+ 	pte = kvmppc_read_update_linux_pte(ptep, writing);
++	end_lockless_pgtbl_walk(kvm->mm);
++
+ 	if (!pte_present(pte))
+ 		return H_TOO_HARD;
+ 
 -- 
 2.20.1
