@@ -1,93 +1,70 @@
-From: Nicolas Saenz Julienne <nsaenzjulienne@suse.de>
+From: Charles Keepax <ckeepax@opensource.cirrus.com>
 Subject: Re: [PATCH] compiler: enable CONFIG_OPTIMIZE_INLINING forcibly
-Date: Fri, 27 Sep 2019 12:58:39 +0200
-Message-ID: <dc80461e8b9d2e715976ed0b02f41b84922d06f1.camel@suse.de>
+Date: Fri, 27 Sep 2019 10:59:42 +0000
+Message-ID: <20190927105942.GS10204@ediswmail.ad.cirrus.com>
 References: <20190830034304.24259-1-yamada.masahiro@socionext.com>
+ <f5c221f5749e5768c9f0d909175a14910d349456.camel@suse.de>
 Mime-Version: 1.0
-Content-Type: multipart/signed; micalg="pgp-sha256";
-        protocol="application/pgp-signature"; boundary="=-JZ6pLibdn1iko2ZTM9LG"
+Content-Type: text/plain; charset="us-ascii"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20190830034304.24259-1-yamada.masahiro@socionext.com>
+Content-Disposition: inline
+In-Reply-To: <f5c221f5749e5768c9f0d909175a14910d349456.camel@suse.de>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Masahiro Yamada <yamada.masahiro@socionext.com>, Andrew Morton <akpm@linux-foundation.org>
-Cc: Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Linus Torvalds <torvalds@linux-foundation.org>, Nick Desaulniers <ndesaulniers@google.com>, Miguel Ojeda <miguel.ojeda.sandonis@gmail.com>, linux-arch <linux-arch@vger.kernel.org>, linux-kernel@vger.kernel.org, Catalin Marinas <catalin.marinas@arm.com>, rmk+kernel@arm.linux.org.uk, Will Deacon <will@kernel.org>, Stefan Wahren <wahrenst@gmx.net>
+To: Nicolas Saenz Julienne <nsaenzjulienne@suse.de>
+Cc: Masahiro Yamada <yamada.masahiro@socionext.com>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Linus Torvalds <torvalds@linux-foundation.org>, Nick Desaulniers <ndesaulniers@google.com>, Miguel Ojeda <miguel.ojeda.sandonis@gmail.com>, linux-arch <linux-arch@vger.kernel.org>, linux-kernel@vger.kernel.org, Catalin Marinas <catalin.marinas@arm.com>, rmk+kernel@arm.linux.org.uk, Will Deacon <will@kernel.org>, Stefan Wahren <wahrenst@gmx.net>
 List-Id: linux-arch.vger.kernel.org
 
+On Fri, Sep 27, 2019 at 12:43:33PM +0200, Nicolas Saenz Julienne wrote:
+> On Fri, 2019-08-30 at 12:43 +0900, Masahiro Yamada wrote:
+> > Commit 9012d011660e ("compiler: allow all arches to enable
+> > CONFIG_OPTIMIZE_INLINING") allowed all architectures to enable
+> > this option. A couple of build errors were reported by randconfig,
+> > but all of them have been ironed out.
+> > 
+> > Towards the goal of removing CONFIG_OPTIMIZE_INLINING entirely
+> > (and it will simplify the 'inline' macro in compiler_types.h),
+> > this commit changes it to always-on option. Going forward, the
+> > compiler will always be allowed to not inline functions marked
+> > 'inline'.
+> > 
+> > This is not a problem for x86 since it has been long used by
+> > arch/x86/configs/{x86_64,i386}_defconfig.
+> > 
+> > I am keeping the config option just in case any problem crops up for
+> > other architectures.
+> > 
+> > The code clean-up will be done after confirming this is solid.
+> > 
+> > Signed-off-by: Masahiro Yamada <yamada.masahiro@socionext.com>
+> 
+> [ Adding some ARM people as they might be able to help ]
+> 
+> This was found to cause a regression on a Raspberry Pi 2 B built with
+> bcm2835_defconfig which among other things has no SMP support.
+> 
+> The relevant logs (edited to remove the noise) are:
+> 
+> [    5.827333] Run /init as init process
+> Loading, please wait...
+> Failed to set SO_PASSCRED: Bad address
+> Failed to bind netlink socket: Bad address
+> Failed to create manager: Bad address
+> Failed to set SO_PASSCRED: Bad address
+> [    9.021623] systemd[1]: SO_PASSCRED failed: Bad address
+> [!!!!!!] Failed to start up manager.
+> [    9.079148] systemd[1]: Freezing execution.
+> 
+> I looked into it, it turns out that the call to get_user() in sock_setsockopt()
+> is returning -EFAULT. Down the assembly rabbit hole that get_user() is I
+> found-out that it's the macro 'check_uaccess' who's triggering the error.
+> 
+> I'm clueless at this point, so I hope you can give me some hints on what's
+> going bad here.
+> 
 
---=-JZ6pLibdn1iko2ZTM9LG
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
+Not sure I can add much in terms of a solution, but I can at
+least confirm I am seeing exactly the same issue, on my Zynq
+based ARM system.
 
-On Fri, 2019-08-30 at 12:43 +0900, Masahiro Yamada wrote:
-> Commit 9012d011660e ("compiler: allow all arches to enable
-> CONFIG_OPTIMIZE_INLINING") allowed all architectures to enable
-> this option. A couple of build errors were reported by randconfig,
-> but all of them have been ironed out.
->=20
-> Towards the goal of removing CONFIG_OPTIMIZE_INLINING entirely
-> (and it will simplify the 'inline' macro in compiler_types.h),
-> this commit changes it to always-on option. Going forward, the
-> compiler will always be allowed to not inline functions marked
-> 'inline'.
->=20
-> This is not a problem for x86 since it has been long used by
-> arch/x86/configs/{x86_64,i386}_defconfig.
->=20
-> I am keeping the config option just in case any problem crops up for
-> other architectures.
->=20
-> The code clean-up will be done after confirming this is solid.
->=20
-> Signed-off-by: Masahiro Yamada <yamada.masahiro@socionext.com>
-
-[ Resending as the mail delivery system failed to resolve some the hosts,
-namely Masahiro's ]
-
-[ Adding some ARM people as they might be able to help ]
-
-This was found to cause a regression on a Raspberry Pi 2 B built with
-bcm2835_defconfig which among other things has no SMP support.
-
-The relevant logs (edited to remove the noise) are:
-
-[    5.827333] Run /init as init process
-Loading, please wait...
-Failed to set SO_PASSCRED: Bad address
-Failed to bind netlink socket: Bad address
-Failed to create manager: Bad address
-Failed to set SO_PASSCRED: Bad address
-[    9.021623] systemd[1]: SO_PASSCRED failed: Bad address
-[!!!!!!] Failed to start up manager.
-[    9.079148] systemd[1]: Freezing execution.
-
-I looked into it, it turns out that the call to get_user() in sock_setsocko=
-pt()
-is returning -EFAULT. Down the assembly rabbit hole that get_user() is I
-found-out that it's the macro 'check_uaccess' who's triggering the error.
-
-I'm clueless at this point, so I hope you can give me some hints on what's
-going bad here.
-
-Regards,
-Nicolas
-
-
-
---=-JZ6pLibdn1iko2ZTM9LG
-Content-Type: application/pgp-signature; name="signature.asc"
-Content-Description: This is a digitally signed message part
-Content-Transfer-Encoding: 7bit
-
------BEGIN PGP SIGNATURE-----
-
-iQEzBAABCAAdFiEErOkkGDHCg2EbPcGjlfZmHno8x/4FAl2N618ACgkQlfZmHno8
-x/6+HggAhZEzBiG9BUNoaWjD8le/0hiblE7XfJOVHfaBiti3ehz5R3wnt0UQMSAe
-fwCdZdPkL96AsL23XDqrr3enTTe5nCKB5nM7qG2dJtDAiWsYVH/1Dcvn4pFQNT7m
-jKHagHOkcs3By4FkWQ2doBtKcbTkMlddljmbWAxbg3hXTAdNdlMvFzGWO88LWGoX
-R9zaedt2oDgF8BX+ctJ2ExNyueAqhJUiyBAQIaMgaHjtXVDL7czb+Qu90Tedp1Mn
-mVYwg+o9rda9frK7ZI8TRfYTMJPuUMVlOWIhHb23jQ4VCJJ0oP3Yl2AYuYMqhDSn
-Cte1dV9SuV0sE0F87cVbsc9COKvvHQ==
-=cwjV
------END PGP SIGNATURE-----
-
---=-JZ6pLibdn1iko2ZTM9LG--
+Thanks,
+Charles
