@@ -1,7 +1,7 @@
 From: guoren@kernel.org
-Subject: [GIT PULL] csky changes for v5.3-rc1
-Date: Mon, 30 Sep 2019 18:31:24 +0800
-Message-ID: <1569839484-28170-1-git-send-email-guoren@kernel.org>
+Subject: [GIT PULL] csky changes for v5.4-rc1
+Date: Mon, 30 Sep 2019 18:33:48 +0800
+Message-ID: <1569839628-29030-1-git-send-email-guoren@kernel.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 Sender: linux-kernel-owner@vger.kernel.org
 To: torvalds@linux-foundation.org
