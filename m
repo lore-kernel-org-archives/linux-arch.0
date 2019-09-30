@@ -1,102 +1,58 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:29744 "EHLO
-        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
-        by vger.kernel.org with ESMTP id S1727885AbfI3Ugp (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 30 Sep 2019 16:36:45 -0400
-Message-ID: <673bcb94b7752e086cc4133fb6cceb24394c02c0.camel@linux.ibm.com>
-Subject: Re: [PATCH v4 01/11] powerpc/mm: Adds counting method to monitor
- lockless pgtable walks
-From: Leonardo Bras <leonardo@linux.ibm.com>
-Date: Mon, 30 Sep 2019 15:42:42 -0300
-In-Reply-To: <48bf32ca-5d3e-5d69-4cd1-6720364a0d81@nvidia.com>
-References: <20190927234008.11513-1-leonardo@linux.ibm.com>
-         <20190927234008.11513-2-leonardo@linux.ibm.com>
-         <4ff1e8e8-929b-9cfc-9bf8-ee88e34de888@nvidia.com>
-         <2533a13f226a6e1fab387669b6cced2aa8d2e129.camel@linux.ibm.com>
-         <48bf32ca-5d3e-5d69-4cd1-6720364a0d81@nvidia.com>
-Content-Type: multipart/signed; micalg="pgp-sha256";
-        protocol="application/pgp-signature"; boundary="=-9k3sG6ksgKhuBdahGQJu"
+Received: from mail-eopbgr1300137.outbound.protection.outlook.com ([40.107.130.137]:5032
+        "EHLO APC01-HK2-obe.outbound.protection.outlook.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1729158AbfI3UoQ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 30 Sep 2019 16:44:16 -0400
+From: Dexuan Cui <decui@microsoft.com>
+Subject: RE: [PATCH v5 1/3] x86/hyper-v: Suspend/resume the hypercall page for
+ hibernation
+Date: Mon, 30 Sep 2019 18:49:33 +0000
+Message-ID: <PU1P153MB0169804D32B95E0A145CD0B9BF820@PU1P153MB0169.APCP153.PROD.OUTLOOK.COM>
+References: <1567723581-29088-1-git-send-email-decui@microsoft.com>
+ <1567723581-29088-2-git-send-email-decui@microsoft.com>
+ <87ef0372wv.fsf@vitty.brq.redhat.com>
+ <PU1P153MB01695A159E9843B4E1EC13AEBF810@PU1P153MB0169.APCP153.PROD.OUTLOOK.COM>
+ <877e5u6re3.fsf@vitty.brq.redhat.com>
+In-Reply-To: <877e5u6re3.fsf@vitty.brq.redhat.com>
+Content-Language: en-US
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: quoted-printable
 MIME-Version: 1.0
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: John Hubbard <jhubbard@nvidia.com>, linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, kvm-ppc@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
-Cc: Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, YueHaibing <yuehaibing@huawei.com>, Nicholas Piggin <npiggin@gmail.com>, Mike Rapoport <rppt@linux.ibm.com>, Keith Busch <keith.busch@intel.com>, Jason Gunthorpe <jgg@ziepe.ca>, Paul Mackerras <paulus@samba.org>, "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>, Allison Randal <allison@lohutok.net>, Mahesh Salgaonkar <mahesh@linux.vnet.ibm.com>, Ganesh Goudar <ganeshgr@linux.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, Ira Weiny <ira.weiny@intel.com>, Andrew Morton <akpm@linux-foundation.org>, Dan Williams <dan.j.williams@intel.com>
-Message-ID: <20190930184242.kAlgBLrHKfSqlY1_Va4r0nQWcUs7__KGRTUh6yZEHp0@z>
+To: vkuznets <vkuznets@redhat.com>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "arnd@arndb.de" <arnd@arndb.de>, "bp@alien8.de" <bp@alien8.de>, "daniel.lezcano@linaro.org" <daniel.lezcano@linaro.org>, Haiyang Zhang <haiyangz@microsoft.com>, "hpa@zytor.com" <hpa@zytor.com>, KY Srinivasan <kys@microsoft.com>, "linux-hyperv@vger.kernel.org" <linux-hyperv@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "mingo@redhat.com" <mingo@redhat.com>, "sashal@kernel.org" <sashal@kernel.org>, Stephen Hemminger <sthemmin@microsoft.com>, "tglx@linutronix.de" <tglx@linutronix.de>, "x86@kernel.org" <x86@kernel.org>, Michael Kelley <mikelley@microsoft.com>, Sasha Levin <Alexander.Levin@microsoft.com>
+Message-ID: <20190930184933.CzRh33AjLXfSgfvzvMfux1vGETgSwutYW0b2YQQ0usg@z>
 
-
---=-9k3sG6ksgKhuBdahGQJu
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
-
-On Mon, 2019-09-30 at 10:57 -0700, John Hubbard wrote:
-> > As I told before, there are cases where this function is called from
-> > 'real mode' in powerpc, which doesn't disable irqs and may have a
-> > tricky behavior if we do. So, encapsulate the irq disable in this
-> > function can be a bad choice.
+> From: Vitaly Kuznetsov <vkuznets@redhat.com>
+> Sent: Friday, September 27, 2019 2:05 AM
+> To: Dexuan Cui <decui@microsoft.com>
 >=20
-> You still haven't explained how this works in that case. So far, the
-> synchronization we've discussed has depended upon interrupt disabling
-> as part of the solution, in order to hold off page splitting and page
-> table freeing.
-
-The irqs are already disabled by another mechanism (hw): MSR_EE=3D0.
-So, serialize will work as expected.
-
-> Simply skipping that means that an additional mechanism is required...whi=
-ch
-> btw might involve a new, ppc-specific routine, so maybe this is going to =
-end
-> up pretty close to what I pasted in after all...
-> > Of course, if we really need that, we can add a bool parameter to the
-> > function to choose about disabling/enabling irqs.
-> > > * This is really a core mm function, so don't hide it away in arch la=
-yers.
-> > >     (If you're changing mm/ files, that's a big hint.)
-> >=20
-> > My idea here is to let the arch decide on how this 'register' is going
-> > to work, as archs may have different needs (in powerpc for example, we
-> > can't always disable irqs, since we may be in realmode).
-> >=20
-> > Maybe we can create a generic function instead of a dummy, and let it
-> > be replaced in case the arch needs to do so.
+> Dexuan Cui <decui@microsoft.com> writes:
+> ...
+> > So, I'm pretty sure no IPI can happen between hv_suspend() and
+> hv_resume().
+> > self-IPI is not supposed to happen either, since interrupts are disable=
+d.
+> >
+> > IMO TLB flush should not be an issue either, unless the kernel changes =
+page
+> > tables between hv_suspend() and hv_resume(), which is not the case as I
+> > checked the related code, but it looks in theory that might happen, say=
+, in
+> > the future, so if you insist we should save the variable "hv_hypercall_=
+pg"
+> > to a temporary variable and set the "hv_hypercall_pg" to NULL before we
+> > disable the hypercall page
 >=20
-> Yes, that might be what we need, if it turns out that ppc can't use this
-> approach (although let's see about that).
->=20
+> Let's do it as a future proof so we can keep relying on !hv_hypercall_pg
+> everywhere we need. No need to change this patch IMO, a follow-up would
+> do.
+> Vitaly
 
-I initially used the dummy approach because I did not see anything like
-serialize in other archs.=20
+Now I think it would be better to do it in this patch. :-)
+I'll post a v6 to follow your suggestion.
 
-I mean, even if I put some generic function here, if there is no
-function to use the 'lockless_pgtbl_walk_count', it becomes only a
-overhead.
-
->=20
-> thanks,
-
-Thank you!
-
---=-9k3sG6ksgKhuBdahGQJu
-Content-Type: application/pgp-signature; name="signature.asc"
-Content-Description: This is a digitally signed message part
-Content-Transfer-Encoding: 7bit
-
------BEGIN PGP SIGNATURE-----
-
-iQIzBAABCAAdFiEEMdeUgIzgjf6YmUyOlQYWtz9SttQFAl2STKIACgkQlQYWtz9S
-ttSxFg//Uqx1dqwNpWXo7xp/0GswLDO2WKQanbx0Qg4JKCL09MHD8khl2E9vx4IF
-Icd6eXFRwYdzgdFfGKCCUpE9dEBMkT9zPeDS7tk8jhbZ57yJtXC3X3Pcx7j82bEO
-n1x5ZL2jrTEqoWL4oYegJmVi7zzdHiGJi0O31QDIp9YGFdxUn2lPUCNMaypuLs/u
-vejkf6DcmVUXCigXaxmT5NN85fDDUJxbph79+UXyEm6jy9Zuk+PSi3AgfmkCKftk
-RdyU8pmX875qMJQGvoOAIaX/GBavIFVvujG9x7HBeL26G0pdttO0b/1nt5A3thWi
-nx2y4jlfzoDvLhAfw4wsZ+zHQjzIIZlpdM1SaDseb5mNyR1+fpTPoqhsAtqcex6N
-+LdR2q+osgMfKpklWyAhSgJVIqvvtViBEqmA5Itg4JOzQD0xJwg27DJjTd0mBv1E
-za5iWYaUxBs4qw8W98gwSbw2lKgIRfKieKynDUwdSmq8GwjCSj7H9Iuvr/aQwGnm
-E8o41KiK7frirDuS6jxdBYPvA3mtUqqVCN3pXZKktEc3CrZSd9C/J7AR5b+UZJOi
-Umdeci9BnKsx2kFvCsrdcl6DEkmKELiVjJ+aDtZBbunKnwKtupCRE2UC4X2UE02y
-Z9Mdw6OCS6VH+s+ArHVohA6MNm8+5OzhJdZV4oHv/EO5esStUTM=
-=VegT
------END PGP SIGNATURE-----
-
---=-9k3sG6ksgKhuBdahGQJu--
+Thanks,
+-- Dexuan
