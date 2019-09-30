@@ -1,115 +1,88 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:57510 "EHLO
-        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1728558AbfI0Xlb (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 27 Sep 2019 19:41:31 -0400
-From: Leonardo Bras <leonardo@linux.ibm.com>
-Subject: [PATCH v4 06/11] powerpc/mm/book3s64/hash: Applies counting method to monitor lockless pgtbl walks
-Date: Fri, 27 Sep 2019 20:40:03 -0300
-Message-ID: <20190927234008.11513-7-leonardo@linux.ibm.com>
-In-Reply-To: <20190927234008.11513-1-leonardo@linux.ibm.com>
-References: <20190927234008.11513-1-leonardo@linux.ibm.com>
+Received: from conssluserg-02.nifty.com ([210.131.2.81]:20323 "EHLO
+        conssluserg-02.nifty.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1725767AbfI3GFD (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 30 Sep 2019 02:05:03 -0400
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+References: <20190830034304.24259-1-yamada.masahiro@socionext.com> <dc80461e8b9d2e715976ed0b02f41b84922d06f1.camel@suse.de>
+In-Reply-To: <dc80461e8b9d2e715976ed0b02f41b84922d06f1.camel@suse.de>
+From: Masahiro Yamada <yamada.masahiro@socionext.com>
+Date: Mon, 30 Sep 2019 15:04:18 +0900
+Message-ID: <CAK7LNASsmRVDHeCyFTnWhQ1isTrWZ5LRpdf463yaqj6ycZiGQw@mail.gmail.com>
+Subject: Re: [PATCH] compiler: enable CONFIG_OPTIMIZE_INLINING forcibly
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, kvm-ppc@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
-Cc: Leonardo Bras <leonardo@linux.ibm.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Arnd Bergmann <arnd@arndb.de>, "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>, Christophe Leroy <christophe.leroy@c-s.fr>, Andrew Morton <akpm@linux-foundation.org>, Dan Williams <dan.j.williams@intel.com>, Nicholas Piggin <npiggin@gmail.com>, Mahesh Salgaonkar <mahesh@linux.vnet.ibm.com>, Allison Randal <allison@lohutok.net>, Thomas Gleixner <tglx@linutronix.de>, Ganesh Goudar <ganeshgr@linux.ibm.com>, Mike Rapoport <rppt@linux.ibm.com>, YueHaibing <yuehaibing@huawei.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Ira Weiny <ira.weiny@intel.com>, Jason Gunthorpe <jgg@ziepe.ca>, John Hubbard <jhubbard@nvidia.com>, Keith Busch <keith.busch@intel.com>
-Message-ID: <20190927234003.P1Eabmo8NZ8xb-hGIHi1rqJll_Q3OUNLBsurzUCvkjA@z>
+To: Nicolas Saenz Julienne <nsaenzjulienne@suse.de>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Linus Torvalds <torvalds@linux-foundation.org>, Nick Desaulniers <ndesaulniers@google.com>, Miguel Ojeda <miguel.ojeda.sandonis@gmail.com>, linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Russell King <rmk+kernel@arm.linux.org.uk>, Will Deacon <will@kernel.org>, Stefan Wahren <wahrenst@gmx.net>
+Message-ID: <20190930060418.-63Hrrc4OaaGNfQQA31zrKnbXH9_GcJDBD8z49aypi8@z>
 
-Applies the counting-based method for monitoring all hash-related functions
-that do lockless pagetable walks.
+Hi.
 
-hash_page_mm: Adds comment that explain that there is no need to
-local_int_disable/save given that it is only called from DataAccess
-interrupt, so interrupts are already disabled.
+On Fri, Sep 27, 2019 at 7:58 PM Nicolas Saenz Julienne
+<nsaenzjulienne@suse.de> wrote:
+>
+> On Fri, 2019-08-30 at 12:43 +0900, Masahiro Yamada wrote:
+> > Commit 9012d011660e ("compiler: allow all arches to enable
+> > CONFIG_OPTIMIZE_INLINING") allowed all architectures to enable
+> > this option. A couple of build errors were reported by randconfig,
+> > but all of them have been ironed out.
+> >
+> > Towards the goal of removing CONFIG_OPTIMIZE_INLINING entirely
+> > (and it will simplify the 'inline' macro in compiler_types.h),
+> > this commit changes it to always-on option. Going forward, the
+> > compiler will always be allowed to not inline functions marked
+> > 'inline'.
+> >
+> > This is not a problem for x86 since it has been long used by
+> > arch/x86/configs/{x86_64,i386}_defconfig.
+> >
+> > I am keeping the config option just in case any problem crops up for
+> > other architectures.
+> >
+> > The code clean-up will be done after confirming this is solid.
+> >
+> > Signed-off-by: Masahiro Yamada <yamada.masahiro@socionext.com>
+>
+> [ Resending as the mail delivery system failed to resolve some the hosts,
+> namely Masahiro's ]
+>
+> [ Adding some ARM people as they might be able to help ]
+>
+> This was found to cause a regression on a Raspberry Pi 2 B built with
+> bcm2835_defconfig which among other things has no SMP support.
+>
+> The relevant logs (edited to remove the noise) are:
+>
+> [    5.827333] Run /init as init process
+> Loading, please wait...
+> Failed to set SO_PASSCRED: Bad address
+> Failed to bind netlink socket: Bad address
+> Failed to create manager: Bad address
+> Failed to set SO_PASSCRED: Bad address
+> [    9.021623] systemd[1]: SO_PASSCRED failed: Bad address
+> [!!!!!!] Failed to start up manager.
+> [    9.079148] systemd[1]: Freezing execution.
+>
+> I looked into it, it turns out that the call to get_user() in sock_setsockopt()
+> is returning -EFAULT. Down the assembly rabbit hole that get_user() is I
+> found-out that it's the macro 'check_uaccess' who's triggering the error.
+>
+> I'm clueless at this point, so I hope you can give me some hints on what's
+> going bad here.
+>
+> Regards,
+> Nicolas
+>
+>
 
-Signed-off-by: Leonardo Bras <leonardo@linux.ibm.com>
----
- arch/powerpc/mm/book3s64/hash_tlb.c   |  2 ++
- arch/powerpc/mm/book3s64/hash_utils.c | 12 +++++++++++-
- 2 files changed, 13 insertions(+), 1 deletion(-)
+I posted a fix:
+https://lore.kernel.org/patchwork/patch/1132459/
 
-diff --git a/arch/powerpc/mm/book3s64/hash_tlb.c b/arch/powerpc/mm/book3s64/hash_tlb.c
-index 4a70d8dd39cd..5e5213c3f7c4 100644
---- a/arch/powerpc/mm/book3s64/hash_tlb.c
-+++ b/arch/powerpc/mm/book3s64/hash_tlb.c
-@@ -209,6 +209,7 @@ void __flush_hash_table_range(struct mm_struct *mm, unsigned long start,
- 	 * to being hashed). This is not the most performance oriented
- 	 * way to do things but is fine for our needs here.
- 	 */
-+	start_lockless_pgtbl_walk(mm);
- 	local_irq_save(flags);
- 	arch_enter_lazy_mmu_mode();
- 	for (; start < end; start += PAGE_SIZE) {
-@@ -230,6 +231,7 @@ void __flush_hash_table_range(struct mm_struct *mm, unsigned long start,
- 	}
- 	arch_leave_lazy_mmu_mode();
- 	local_irq_restore(flags);
-+	end_lockless_pgtbl_walk(mm);
- }
- 
- void flush_tlb_pmd_range(struct mm_struct *mm, pmd_t *pmd, unsigned long addr)
-diff --git a/arch/powerpc/mm/book3s64/hash_utils.c b/arch/powerpc/mm/book3s64/hash_utils.c
-index b8ad14bb1170..8615fab87c43 100644
---- a/arch/powerpc/mm/book3s64/hash_utils.c
-+++ b/arch/powerpc/mm/book3s64/hash_utils.c
-@@ -1321,7 +1321,11 @@ int hash_page_mm(struct mm_struct *mm, unsigned long ea,
- 		ea &= ~((1ul << mmu_psize_defs[psize].shift) - 1);
- #endif /* CONFIG_PPC_64K_PAGES */
- 
--	/* Get PTE and page size from page tables */
-+	/* Get PTE and page size from page tables :
-+	 * Called in from DataAccess interrupt (data_access_common: 0x300),
-+	 * interrupts are disabled here.
-+	 */
-+	start_lockless_pgtbl_walk(mm);
- 	ptep = find_linux_pte(pgdir, ea, &is_thp, &hugeshift);
- 	if (ptep == NULL || !pte_present(*ptep)) {
- 		DBG_LOW(" no PTE !\n");
-@@ -1438,6 +1442,7 @@ int hash_page_mm(struct mm_struct *mm, unsigned long ea,
- 	DBG_LOW(" -> rc=%d\n", rc);
- 
- bail:
-+	end_lockless_pgtbl_walk(mm);
- 	exception_exit(prev_state);
- 	return rc;
- }
-@@ -1547,10 +1552,12 @@ void hash_preload(struct mm_struct *mm, unsigned long ea,
- 	vsid = get_user_vsid(&mm->context, ea, ssize);
- 	if (!vsid)
- 		return;
-+
- 	/*
- 	 * Hash doesn't like irqs. Walking linux page table with irq disabled
- 	 * saves us from holding multiple locks.
- 	 */
-+	start_lockless_pgtbl_walk(mm);
- 	local_irq_save(flags);
- 
- 	/*
-@@ -1597,6 +1604,7 @@ void hash_preload(struct mm_struct *mm, unsigned long ea,
- 				   pte_val(*ptep));
- out_exit:
- 	local_irq_restore(flags);
-+	end_lockless_pgtbl_walk(mm);
- }
- 
- #ifdef CONFIG_PPC_MEM_KEYS
-@@ -1613,11 +1621,13 @@ u16 get_mm_addr_key(struct mm_struct *mm, unsigned long address)
- 	if (!mm || !mm->pgd)
- 		return 0;
- 
-+	start_lockless_pgtbl_walk(mm);
- 	local_irq_save(flags);
- 	ptep = find_linux_pte(mm->pgd, address, NULL, NULL);
- 	if (ptep)
- 		pkey = pte_to_pkey_bits(pte_val(READ_ONCE(*ptep)));
- 	local_irq_restore(flags);
-+	end_lockless_pgtbl_walk(mm);
- 
- 	return pkey;
- }
+Thanks.
+
+
+
 -- 
-2.20.1
+Best Regards
+Masahiro Yamada
