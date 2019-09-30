@@ -1,67 +1,60 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:41306 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1730378AbfI3NxM (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 30 Sep 2019 09:53:12 -0400
-Date: Mon, 30 Sep 2019 14:53:07 +0100
-From: Will Deacon <will@kernel.org>
-Subject: Re: [breakage] panic() does not halt arm64 systems under certain
- conditions
-Message-ID: <20190930135306.p5r4sy2bbmq5zxgm@willie-the-truck>
-References: <BX1W47JXPMR8.58IYW53H6M5N@dragonstone>
- <20190917104518.ovg6ivadyst7h76o@willie-the-truck>
- <20190920042501.GA5516@novena-choice-citizen-recovery.gateway>
+Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:45396 "EHLO
+        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
+        by vger.kernel.org with ESMTP id S1731686AbfI3O3P (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 30 Sep 2019 10:29:15 -0400
+Message-ID: <5d3ad682f5ef3a7f16fdda9bcd30fbf53194b393.camel@linux.ibm.com>
+Subject: Re: [PATCH v4 03/11] mm/gup: Applies counting method to monitor
+ gup_pgd_range
+From: Leonardo Bras <leonardo@linux.ibm.com>
+Date: Mon, 30 Sep 2019 11:27:10 -0300
+In-Reply-To: <20190930110927.nanq2wynvfmq7dhc@box>
+References: <20190927234008.11513-1-leonardo@linux.ibm.com>
+         <20190927234008.11513-4-leonardo@linux.ibm.com>
+         <20190930110927.nanq2wynvfmq7dhc@box>
+Content-Type: multipart/signed; micalg="pgp-sha256";
+        protocol="application/pgp-signature"; boundary="=-5QWWSZPLD+oFKjYyk88w"
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20190920042501.GA5516@novena-choice-citizen-recovery.gateway>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jookia <166291@gmail.com>
-Cc: Xogium <contact@xogium.me>, linux-arch@vger.kernel.org, gregkh@linuxfoundation.org, linux-kernel@vger.kernel.org, linux@armlinux.org.uk, mingo@redhat.com, bp@alien8.de, tglx@linutronix.de, linux-arm-kernel@lists.infradead.org
-Message-ID: <20190930135307.RYBk5jV1kGxbQ4uUpGEC-bCvRXxSen5JSQGznamAq3k@z>
+To: "Kirill A. Shutemov" <kirill@shutemov.name>
+Cc: linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, kvm-ppc@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Arnd Bergmann <arnd@arndb.de>, "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>, Christophe Leroy <christophe.leroy@c-s.fr>, Andrew Morton <akpm@linux-foundation.org>, Dan Williams <dan.j.williams@intel.com>, Nicholas Piggin <npiggin@gmail.com>, Mahesh Salgaonkar <mahesh@linux.vnet.ibm.com>, Allison Randal <allison@lohutok.net>, Thomas Gleixner <tglx@linutronix.de>, Ganesh Goudar <ganeshgr@linux.ibm.com>, Mike Rapoport <rppt@linux.ibm.com>, YueHaibing <yuehaibing@huawei.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Ira Weiny <ira.weiny@intel.com>, Jason Gunthorpe <jgg@ziepe.ca>, John Hubbard <jhubbard@nvidia.com>, Keith Busch <keith.busch@intel.com>
+Message-ID: <20190930142710.T4R5Z6rxSULClmuUhgDF2O1YegLu_lzrh5olWuoMK_Q@z>
 
-On Fri, Sep 20, 2019 at 02:25:01PM +1000, Jookia wrote:
-> On Tue, Sep 17, 2019 at 11:45:19AM +0100, Will Deacon wrote:
-> > A straightforward fix is to disable preemption explicitly on the panic()
-> > path (diff below), but I've expanded the cc list to see both what others
-> > think, but also in case smp_send_stop() is supposed to have the side-effect
-> > of disabling interrupt delivery for the local CPU.
-> > 
-> > diff --git a/kernel/panic.c b/kernel/panic.c
-> > index 057540b6eee9..02d0de31c42d 100644
-> > --- a/kernel/panic.c
-> > +++ b/kernel/panic.c
-> > @@ -179,6 +179,7 @@ void panic(const char *fmt, ...)
-> > 	 * after setting panic_cpu) from invoking panic() again.
-> > 	 */
-> > 	local_irq_disable();
-> > +	preempt_disable_notrace();
-> >  
-> > 	/*
-> > 	 * It's possible to come here directly from a panic-assertion and
-> > 
-> When you run with panic=... it will send you to a loop earlier in the
-> panic code before local_irq_disable() is hit, working around the bug.
-> A patch like this would make the behaviour the same:
-> 
-> diff --git a/kernel/panic.c b/kernel/panic.c
-> index 4d9f55bf7d38..92abbb5f8d38 100644
-> --- a/kernel/panic.c
-> +++ b/kernel/panic.c
-> @@ -331,7 +331,6 @@ void panic(const char *fmt, ...)
-> 
->         /* Do not scroll important messages printed above */
->         suppress_printk = 1;
-> -       local_irq_enable();
->         for (i = 0; ; i += PANIC_TIMER_STEP) {
->                 touch_softlockup_watchdog();
->                 if (i >= i_next) {
 
-The reason I kept irqs enabled is because I figured they might be useful
-for magic sysrq keyboard interrupts (e.g. if you wanted to reboot the box).
+--=-5QWWSZPLD+oFKjYyk88w
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
 
-With 'panic=', the reboot happens automatically, so there's no issue there
-afaict.
+On Mon, 2019-09-30 at 14:09 +0300, Kirill A. Shutemov wrote:
+> On Fri, Sep 27, 2019 at 08:40:00PM -0300, Leonardo Bras wrote:
+> > As decribed, gup_pgd_range is a lockless pagetable walk. So, in order t=
+o
+>      ^ typo
+>=20
+Fixed, thanks!
 
-Will
+--=-5QWWSZPLD+oFKjYyk88w
+Content-Type: application/pgp-signature; name="signature.asc"
+Content-Description: This is a digitally signed message part
+Content-Transfer-Encoding: 7bit
+
+-----BEGIN PGP SIGNATURE-----
+
+iQIzBAABCAAdFiEEMdeUgIzgjf6YmUyOlQYWtz9SttQFAl2SEL4ACgkQlQYWtz9S
+ttRgkRAAlYimCAeVA9cvc5HGNEVbfibfjFEgDVu7fY/HjI44ZGaauFSEvLDnnTcz
+M4WLEbD8cZ/LBPDP06Q8FuNtSZi1Ov1xVCXB404DodiPDkJG/TyVfO5/E5MsT7tf
+1qvSg8n53RfUxpN2WHNKg2eXLStcVwKmoS0otMxkIOPxTRGFk9PchNJ3F3QEQLYE
+3JwfwBa8q1d79DY19qiJ2VyqQm5nAAojm1i5JcHEUdMcA/INJgamhRpa5R6vx6Ge
+LZHOthO7x+H28Ip32KAmw5ISf8Q0AKEb0rLmIwkCUD0ecO0bp5D7F9KM/J5oBjKO
+pkVyqy61ZSdeArRc1M5HoOdI+evIGKSNtDJglyKckC3/KiUfkALvrjNe/USc9j3s
+DxvgKE2FNP+I6n2z0C2weHITU9EjKdqPSpVRzRBowUE8rw2o1d+oCurRiGI+Tgm8
+z3NEGoIdJFEkmNIvmbDPrRsz6E9viESfOGju8U9Um2Cxr14FJ6xGjGCeGylfgDED
+/L7nMZ12gv4DZoJp9UaLlau8hItsneS9ZVgvIEivPDWW+MmB3nN0SNhWjeP7VlMU
+jfa8kXlgp+gtsUn+jdwqgSrWDmAN4K4QSrtl0QmWN5GjNSQMEWkm5Jdb3Dk2etmx
+JgYiX4UH8m9pdwN6ILWOPT7RnqL1IuV39OvC5Uay30/nlL5roTM=
+=65+f
+-----END PGP SIGNATURE-----
+
+--=-5QWWSZPLD+oFKjYyk88w--
