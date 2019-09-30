@@ -1,64 +1,83 @@
-From: John Hubbard <jhubbard@nvidia.com>
-Subject: Re: [PATCH v4 01/11] powerpc/mm: Adds counting method to monitor
- lockless pgtable walks
-Date: Sun, 29 Sep 2019 16:17:20 -0700
-Message-ID: <f8fca251-e31a-1d50-49e9-e69a893d9059@nvidia.com>
-References: <20190927234008.11513-1-leonardo@linux.ibm.com>
- <20190927234008.11513-2-leonardo@linux.ibm.com>
- <4ff1e8e8-929b-9cfc-9bf8-ee88e34de888@nvidia.com>
+From: Masahiro Yamada <yamada.masahiro@socionext.com>
+Subject: Re: [PATCH] compiler: enable CONFIG_OPTIMIZE_INLINING forcibly
+Date: Mon, 30 Sep 2019 15:04:18 +0900
+Message-ID: <CAK7LNASsmRVDHeCyFTnWhQ1isTrWZ5LRpdf463yaqj6ycZiGQw@mail.gmail.com>
+References: <20190830034304.24259-1-yamada.masahiro@socionext.com> <dc80461e8b9d2e715976ed0b02f41b84922d06f1.camel@suse.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"; format=flowed
-Content-Transfer-Encoding: quoted-printable
-Return-path: <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
-In-Reply-To: <4ff1e8e8-929b-9cfc-9bf8-ee88e34de888@nvidia.com>
-Content-Language: en-US
-List-Unsubscribe: <https://lists.ozlabs.org/options/linuxppc-dev>,
- <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=unsubscribe>
-List-Archive: <http://lists.ozlabs.org/pipermail/linuxppc-dev/>
-List-Post: <mailto:linuxppc-dev@lists.ozlabs.org>
-List-Help: <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=help>
-List-Subscribe: <https://lists.ozlabs.org/listinfo/linuxppc-dev>,
- <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=subscribe>
-Errors-To: linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org
-Sender: "Linuxppc-dev"
- <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
-To: Leonardo Bras <leonardo@linux.ibm.com>, linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, kvm-ppc@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
-Cc: Keith Busch <keith.busch@intel.com>, Thomas Gleixner <tglx@linutronix.de>, Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, YueHaibing <yuehaibing@huawei.com>, Nicholas Piggin <npiggin@gmail.com>, Mike Rapoport <rppt@linux.ibm.com>, Mahesh Salgaonkar <mahesh@linux.vnet.ibm.com>, Jason Gunthorpe <jgg@ziepe.ca>, Paul Mackerras <paulus@samba.org>, "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>, Ganesh Goudar <ganeshgr@linux.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, Ira Weiny <ira.weiny@intel.com>, Dan Williams <dan.j.williams@intel.com>, Allison Randal <allison@lohutok.net>
+Content-Type: text/plain; charset="UTF-8"
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <dc80461e8b9d2e715976ed0b02f41b84922d06f1.camel@suse.de>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Nicolas Saenz Julienne <nsaenzjulienne@suse.de>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Linus Torvalds <torvalds@linux-foundation.org>, Nick Desaulniers <ndesaulniers@google.com>, Miguel Ojeda <miguel.ojeda.sandonis@gmail.com>, linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Russell King <rmk+kernel@arm.linux.org.uk>, Will Deacon <will@kernel.org>, Stefan Wahren <wahrenst@gmx.net>
 List-Id: linux-arch.vger.kernel.org
 
-On 9/29/19 3:40 PM, John Hubbard wrote:
-> On 9/27/19 4:39 PM, Leonardo Bras wrote:
-...
-> +config LOCKLESS_PAGE_TABLE_WALK_TRACKING
-> +=C2=A0=C2=A0=C2=A0 bool "Tracking (and optimization) of lockless page ta=
-ble walkers"
-> +=C2=A0=C2=A0=C2=A0 default n
-> +
-> +=C2=A0=C2=A0=C2=A0 help
-> +=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0 Maintain a reference count of active lock=
-less page table
-> +=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0 walkers. This adds 4 bytes to struct mm s=
-ize, and two atomic
-> +=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0 operations to calls such as get_user_page=
-s_fast(). Some
-> +=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0 architectures can optimize page table ope=
-rations if this
-> +=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0 is enabled.
-> +
->  =C2=A0endmenu
+Hi.
 
-Actually, the above should be an internal-only config option (PPC arch can
-auto-select it), so just:
+On Fri, Sep 27, 2019 at 7:58 PM Nicolas Saenz Julienne
+<nsaenzjulienne@suse.de> wrote:
+>
+> On Fri, 2019-08-30 at 12:43 +0900, Masahiro Yamada wrote:
+> > Commit 9012d011660e ("compiler: allow all arches to enable
+> > CONFIG_OPTIMIZE_INLINING") allowed all architectures to enable
+> > this option. A couple of build errors were reported by randconfig,
+> > but all of them have been ironed out.
+> >
+> > Towards the goal of removing CONFIG_OPTIMIZE_INLINING entirely
+> > (and it will simplify the 'inline' macro in compiler_types.h),
+> > this commit changes it to always-on option. Going forward, the
+> > compiler will always be allowed to not inline functions marked
+> > 'inline'.
+> >
+> > This is not a problem for x86 since it has been long used by
+> > arch/x86/configs/{x86_64,i386}_defconfig.
+> >
+> > I am keeping the config option just in case any problem crops up for
+> > other architectures.
+> >
+> > The code clean-up will be done after confirming this is solid.
+> >
+> > Signed-off-by: Masahiro Yamada <yamada.masahiro@socionext.com>
+>
+> [ Resending as the mail delivery system failed to resolve some the hosts,
+> namely Masahiro's ]
+>
+> [ Adding some ARM people as they might be able to help ]
+>
+> This was found to cause a regression on a Raspberry Pi 2 B built with
+> bcm2835_defconfig which among other things has no SMP support.
+>
+> The relevant logs (edited to remove the noise) are:
+>
+> [    5.827333] Run /init as init process
+> Loading, please wait...
+> Failed to set SO_PASSCRED: Bad address
+> Failed to bind netlink socket: Bad address
+> Failed to create manager: Bad address
+> Failed to set SO_PASSCRED: Bad address
+> [    9.021623] systemd[1]: SO_PASSCRED failed: Bad address
+> [!!!!!!] Failed to start up manager.
+> [    9.079148] systemd[1]: Freezing execution.
+>
+> I looked into it, it turns out that the call to get_user() in sock_setsockopt()
+> is returning -EFAULT. Down the assembly rabbit hole that get_user() is I
+> found-out that it's the macro 'check_uaccess' who's triggering the error.
+>
+> I'm clueless at this point, so I hope you can give me some hints on what's
+> going bad here.
+>
+> Regards,
+> Nicolas
+>
+>
 
-+config LOCKLESS_PAGE_TABLE_WALK_TRACKING
-+	bool
+I posted a fix:
+https://lore.kernel.org/patchwork/patch/1132459/
 
-...because it's entirely up to other code (as opposed to other people)
-as to whether this should be selected.
+Thanks.
 
-I got carried away. :)
 
-thanks,
---=20
-John Hubbard
-NVIDIA
+
+-- 
+Best Regards
+Masahiro Yamada
