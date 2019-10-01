@@ -1,114 +1,55 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from pandora.armlinux.org.uk ([78.32.30.218]:44712 "EHLO
-        pandora.armlinux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726392AbfJAV6t (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 1 Oct 2019 17:58:49 -0400
-Date: Tue, 1 Oct 2019 22:58:27 +0100
-From: Russell King - ARM Linux admin <linux@armlinux.org.uk>
-Subject: Re: [PATCH] compiler: enable CONFIG_OPTIMIZE_INLINING forcibly
-Message-ID: <20191001215827.GP25745@shell.armlinux.org.uk>
-References: <CAKwvOdk0h2A6=fb7Yepf+oKbZfq_tqwpGq8EBmHVu1j4mo-a-A@mail.gmail.com>
- <20191001170142.x66orounxuln7zs3@willie-the-truck>
- <CAKwvOdnFJqipp+G5xLDRBcOrQRcvMQmn+n8fufWyzyt2QL_QkA@mail.gmail.com>
- <20191001175512.GK25745@shell.armlinux.org.uk>
- <CAKwvOdmw_xmTGZLeK8-+Q4nUpjs-UypJjHWks-3jHA670Dxa1A@mail.gmail.com>
- <20191001181438.GL25745@shell.armlinux.org.uk>
- <CAKwvOdmBnBVU7F-a6DqPU6QM-BRc8LNn6YRmhTsuGLauCWKUOg@mail.gmail.com>
- <20191001205938.GM25745@shell.armlinux.org.uk>
- <20191001212608.GN25745@shell.armlinux.org.uk>
- <CAKwvOdmkmdM14BNurK3WwyG3Qc5wOFeajMtQ1D+na9mLfkim+w@mail.gmail.com>
+Received: from out01.mta.xmission.com ([166.70.13.231]:35958 "EHLO
+        out01.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726050AbfJAWyV (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 1 Oct 2019 18:54:21 -0400
+From: ebiederm@xmission.com (Eric W. Biederman)
+References: <8736gcjosv.fsf@x220.int.ebiederm.org>
+        <201910011140.EA0181F13@keescook>
+Date: Tue, 01 Oct 2019 17:53:27 -0500
+In-Reply-To: <201910011140.EA0181F13@keescook> (Kees Cook's message of "Tue, 1
+        Oct 2019 11:46:45 -0700")
+Message-ID: <87imp8hyc8.fsf@x220.int.ebiederm.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-1
-Content-Disposition: inline
-Content-Transfer-Encoding: 8bit
-In-Reply-To: <CAKwvOdmkmdM14BNurK3WwyG3Qc5wOFeajMtQ1D+na9mLfkim+w@mail.gmail.com>
+Content-Type: text/plain
+Subject: Re: [RFC][PATCH] sysctl: Remove the sysctl system call
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Nick Desaulniers <ndesaulniers@google.com>
-Cc: Will Deacon <will@kernel.org>, Masahiro Yamada <yamada.masahiro@socionext.com>, Linus Torvalds <torvalds@linux-foundation.org>, Nicolas Saenz Julienne <nsaenzjulienne@suse.de>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Miguel Ojeda <miguel.ojeda.sandonis@gmail.com>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Stefan Wahren <wahrenst@gmx.net>, Kees Cook <keescook@google.com>, Arnd Bergmann <arnd@arndb.de>, clang-built-linux <clang-built-linux@googlegroups.com>
-Message-ID: <20191001215827.dDRHeCYPQBPmDUjrItIxetflzrqOrDtHmpn_WZUBD38@z>
+To: Kees Cook <keescook@chromium.org>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andi Kleen <andi@firstfloor.org>, Andi Kleen <ak@linux.intel.com>, Cong Wang <xiyou.wangcong@gmail.com>, Luis Chamberlain <mcgrof@kernel.org>, Apelete Seketeli <apelete@seketeli.net>, Arnd Bergmann <arnd@arndb.de>, Chee Nouk Phoon <cnphoon@altera.com>, Chris Zankel <chris@zankel.net>, Christian Ruppert <christian.ruppert@abilis.com>, Greg Ungerer <gerg@uclinux.org>, Helge Deller <deller@gmx.de>, Hongliang Tao <taohl@lemote.com>, Huacai Chen <chenhc@lemote.com>, Jonas Jensen <jonas.jensen@gmail.com>, Josh Boyer <jwboyer@gmail.com>, Jun Nie <jun.nie@linaro.org>, Lars-Peter Clausen <lars@metafoo.de>, Ley Foon Tan <lftan@altera.com>, Linus Walleij <linus.walleij@linaro.org>, Max Filippov <jcmvbkbc@gmail.com>, Olof Johansson <olof@lixom.net>, Paul Burton <paul.burton@mips.com>, Phil Edworthy <phil.edworthy@renesas.com>, Pierrick Hascoet <pierrick.hascoet@abilis.com>, Ralf Baechle <ralf@linux-mips.org>, Roland Stigge <stigge@antcom.de>, Vineet Gupta <vgupta@synopsys.com>
+Message-ID: <20191001225327.nfEicgj9iILSics1USIEN4NBLdaMskhbaOWEarWxboY@z>
 
-On Tue, Oct 01, 2019 at 02:32:54PM -0700, Nick Desaulniers wrote:
-> On Tue, Oct 1, 2019 at 2:26 PM Russell King - ARM Linux admin
-> <linux@armlinux.org.uk> wrote:
-> >
-> > On Tue, Oct 01, 2019 at 09:59:38PM +0100, Russell King - ARM Linux admin wrote:
-> > > On Tue, Oct 01, 2019 at 01:21:44PM -0700, Nick Desaulniers wrote:
-> > > > On Tue, Oct 1, 2019 at 11:14 AM Russell King - ARM Linux admin
-> > > > <linux@armlinux.org.uk> wrote:
-> > > > >
-> > > > > The whole "let's make inline not really mean inline" is nothing more
-> > > > > than a band-aid to the overuse (and abuse) of "inline".
-> > > >
-> > > > Let's triple check the ISO C11 draft spec just to be sure:
-> > > > § 6.7.4.6: A function declared with an inline function specifier is an
-> > > > inline function. Making a
-> > > > function an inline function suggests that calls to the function be as
-> > > > fast as possible.
-> > > > The extent to which such suggestions are effective is
-> > > > implementation-defined. 139)
-> > > > 139) For example, an implementation might never perform inline
-> > > > substitution, or might only perform inline
-> > > > substitutions to calls in the scope of an inline declaration.
-> > > > § J.3.8 [Undefined Behavior] Hints: The extent to which suggestions
-> > > > made by using the inline function specifier are effective (6.7.4).
-> > > >
-> > > > My translation:
-> > > > "Please don't assume inline means anything."
-> > > >
-> > > > For the unspecified GNU C extension __attribute__((always_inline)), it
-> > > > seems to me like it's meant more for performing inlining (an
-> > > > optimization) at -O0.  Whether the compiler warns or not seems like a
-> > > > nice side effect, but provides no strong guarantee otherwise.
-> > > >
-> > > > I'm sorry that so much code may have been written with that
-> > > > assumption, and I'm sorry to be the bearer of bad news, but this isn't
-> > > > a recent change.  If code was written under false assumptions, it
-> > > > should be rewritten. Sorry.
-> > >
-> > > You may quote C11, but that is not relevent.  The kernel is coded to
-> > > gnu89 standard - see the -std=gnu89 flag.
-> >
-> > There's more to this and why C11 is entirely irrelevant.  The "inline"
-> > you see in our headers is not the compiler keyword that you find in
-> > various C standards, it is a macro that gets expanded to either:
-> >
-> > #define inline inline __attribute__((__always_inline__)) __gnu_inline \
-> >         __maybe_unused notrace
-> >
-> > or
-> >
-> > #define inline inline                                    __gnu_inline \
-> >         __maybe_unused notrace
-> >
-> > __gnu_inline is defined as:
-> >
-> > #define __gnu_inline                    __attribute__((__gnu_inline__))
-> >
-> > So this attaches the gnu_inline attribute to the function:
-> >
-> > `gnu_inline'
-> >      This attribute should be used with a function that is also declared
-> >      with the `inline' keyword.  It directs GCC to treat the function
-> >      as if it were defined in gnu90 mode even when compiling in C99 or
-> >      gnu99 mode.
-> > ...
-> >      Since ISO C99 specifies a different semantics for `inline', this
-> >      function attribute is provided as a transition measure and as a
-> >      useful feature in its own right.  This attribute is available in
-> >      GCC 4.1.3 and later.  It is available if either of the
-> >      preprocessor macros `__GNUC_GNU_INLINE__' or
-> >      `__GNUC_STDC_INLINE__' are defined.  *Note An Inline Function is
-> >      As Fast As a Macro: Inline.
-> >
-> > which is quite clear that C99 semantics do not apply to _this_ inline.
-> > The manual goes on to explain:
-> >
-> >  GCC implements three different semantics of declaring a function
-> > inline.  One is available with `-std=gnu89' or `-fgnu89-inline' or when
-> > `gnu_inline' attribute is present on all inline declarations, another
-> > when `-std=c99', `-std=c11', `-std=gnu99' or `-std=gnu11' (without
-> > `-fgnu89-inline'), and the third is used when compiling C++.
-> 
-> (I wrote the kernel patch for gnu_inline; it only comes into play when
-> `inline` appears on a function *also defined as `extern`*).
+Kees Cook <keescook@chromium.org> writes:
+
+> On Tue, Oct 01, 2019 at 01:36:32PM -0500, Eric W. Biederman wrote:
+>> 
+>> This system call has been deprecated almost since it was introduced, and
+>> in a survey of the linux distributions I can no longer find any of them
+>> that enable CONFIG_SYSCTL_SYSCALL.  The only indication that I can find
+>> that anyone might care is that a few of the defconfigs in the kernel
+>> enable CONFIG_SYSCTL_SYSCALL.  However this appears in only 31 of 414
+>> defconfigs in the kernel, so I suspect this symbols presence is simply
+>> because it is harmless to include rather than because it is necessary.
+>> 
+>> As there appear to be no users of the sysctl system call, remove the
+>> code.  As this removes one of the few uses of the internal kernel mount
+>> of proc I hope this allows for even more simplifications of the proc
+>> filesystem.
+>
+> I'm for it. :) I tripped over this being deprecated over a decade ago. :P
+>
+> I think you can actually take this further and remove (or at least
+> empty) the uapi/linux/sysctl.h file too.
+
+I copied everyone who had put this into a defconfig and I will wait a
+little more to see if anyone screams.  I think it is a safe guess that
+several of the affected configurations are dead (or at least
+unmaintained) as I received 17 bounces when copying everyone.
+
+I would make it a followup that removes uapi/linux/sysctl.h.  I don't
+see anything in it that isn't about the sysctl system call.  I will keep
+it a separate patch as I can imagine something silly that needs the
+header file to compile.  A separate patch would make a revert easier
+if we find something like that.
+
+Eric
