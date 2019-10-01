@@ -1,146 +1,141 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:14380 "EHLO
-        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
-        by vger.kernel.org with ESMTP id S1725844AbfJATmJ (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 1 Oct 2019 15:42:09 -0400
-Message-ID: <1f5f2f689385ceeb1240b4cc66ef3f4b66638ab0.camel@linux.ibm.com>
-Subject: Re: [PATCH v4 03/11] mm/gup: Applies counting method to monitor
- gup_pgd_range
-From: Leonardo Bras <leonardo@linux.ibm.com>
-Date: Tue, 01 Oct 2019 16:40:59 -0300
-In-Reply-To: <a5e86058-7950-b832-b042-8cc864de761d@nvidia.com>
-References: <20190927234008.11513-1-leonardo@linux.ibm.com>
-         <20190927234008.11513-4-leonardo@linux.ibm.com>
-         <ce0a4110-9f83-36db-dc85-6a727d30d030@nvidia.com>
-         <2cebe169221ae9270963d4bc4fd8e43066745f98.camel@linux.ibm.com>
-         <a5e86058-7950-b832-b042-8cc864de761d@nvidia.com>
-Content-Type: multipart/signed; micalg="pgp-sha256";
-        protocol="application/pgp-signature"; boundary="=-4Fh/TZDFlMRM8Gq0A1+I"
+Received: from mail-pf1-f194.google.com ([209.85.210.194]:36754 "EHLO
+        mail-pf1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727142AbfJAUV6 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 1 Oct 2019 16:21:58 -0400
+Received: by mail-pf1-f194.google.com with SMTP id y22so8893351pfr.3
+        for <linux-arch@vger.kernel.org>; Tue, 01 Oct 2019 13:21:57 -0700 (PDT)
 MIME-Version: 1.0
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: John Hubbard <jhubbard@nvidia.com>, linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, kvm-ppc@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
-Cc: Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, YueHaibing <yuehaibing@huawei.com>, Nicholas Piggin <npiggin@gmail.com>, Mike Rapoport <rppt@linux.ibm.com>, Keith Busch <keith.busch@intel.com>, Jason Gunthorpe <jgg@ziepe.ca>, Paul Mackerras <paulus@samba.org>, "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>, Allison Randal <allison@lohutok.net>, Mahesh Salgaonkar <mahesh@linux.vnet.ibm.com>, Ganesh Goudar <ganeshgr@linux.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, Ira Weiny <ira.weiny@intel.com>, Andrew Morton <akpm@linux-foundation.org>, Dan Williams <dan.j.williams@intel.com>
-Message-ID: <20191001194059.gglF30YvKG72q5_QKz1prrLtq_Yi_bG27Ol94h4I4Oc@z>
-
-
---=-4Fh/TZDFlMRM8Gq0A1+I
+References: <20190930112636.vx2qxo4hdysvxibl@willie-the-truck>
+ <CAK7LNASQZ82KSOrQW7+Wq1vFDCg2__maBEAPMLqUDqZMLuj1rA@mail.gmail.com>
+ <20190930121803.n34i63scet2ec7ll@willie-the-truck> <CAKwvOdnqn=0LndrX+mUrtSAQqoT1JWRMOJCA5t3e=S=T7zkcCQ@mail.gmail.com>
+ <20191001092823.z4zhlbwvtwnlotwc@willie-the-truck> <CAKwvOdk0h2A6=fb7Yepf+oKbZfq_tqwpGq8EBmHVu1j4mo-a-A@mail.gmail.com>
+ <20191001170142.x66orounxuln7zs3@willie-the-truck> <CAKwvOdnFJqipp+G5xLDRBcOrQRcvMQmn+n8fufWyzyt2QL_QkA@mail.gmail.com>
+ <20191001175512.GK25745@shell.armlinux.org.uk> <CAKwvOdmw_xmTGZLeK8-+Q4nUpjs-UypJjHWks-3jHA670Dxa1A@mail.gmail.com>
+ <20191001181438.GL25745@shell.armlinux.org.uk>
+In-Reply-To: <20191001181438.GL25745@shell.armlinux.org.uk>
+From: Nick Desaulniers <ndesaulniers@google.com>
+Date: Tue, 1 Oct 2019 13:21:44 -0700
+Message-ID: <CAKwvOdmBnBVU7F-a6DqPU6QM-BRc8LNn6YRmhTsuGLauCWKUOg@mail.gmail.com>
+Subject: Re: [PATCH] compiler: enable CONFIG_OPTIMIZE_INLINING forcibly
 Content-Type: text/plain; charset="UTF-8"
 Content-Transfer-Encoding: quoted-printable
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Russell King - ARM Linux admin <linux@armlinux.org.uk>
+Cc: Will Deacon <will@kernel.org>, Masahiro Yamada <yamada.masahiro@socionext.com>, Linus Torvalds <torvalds@linux-foundation.org>, Nicolas Saenz Julienne <nsaenzjulienne@suse.de>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Miguel Ojeda <miguel.ojeda.sandonis@gmail.com>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Stefan Wahren <wahrenst@gmx.net>, Kees Cook <keescook@google.com>, Arnd Bergmann <arnd@arndb.de>, clang-built-linux <clang-built-linux@googlegroups.com>
+Message-ID: <20191001202144.b5Ezd9vHhicSAqwm8VXq3Gn0i9z293AxzlJRh9kgA6k@z>
 
-On Tue, 2019-10-01 at 12:04 -0700, John Hubbard wrote:
-> On 10/1/19 10:56 AM, Leonardo Bras wrote:
-> > On Mon, 2019-09-30 at 14:51 -0700, John Hubbard wrote:
-> > > On 9/27/19 4:40 PM, Leonardo Bras wrote:
-> ...
-> > > > diff --git a/mm/gup.c b/mm/gup.c
-> > > > index 98f13ab37bac..7105c829cf44 100644
-> > > > --- a/mm/gup.c
-> > > > +++ b/mm/gup.c
-> > > > @@ -2325,6 +2325,7 @@ static bool gup_fast_permitted(unsigned long =
-start, unsigned long end)
-> > > >  int __get_user_pages_fast(unsigned long start, int nr_pages, int w=
-rite,
-> > > >  			  struct page **pages)
-> > > >  {
-> > > > +	struct mm_struct *mm;
-> > >=20
-> > > I don't think that this local variable adds any value, so let's not u=
-se it.
-> > > Similar point in a few other patches too.
-> >=20
-> > It avoids 1 deference of current->mm, it's a little performance gain.
-> >=20
->=20
-> No, it isn't. :)=20
->=20
-> Longer answer: at this level (by which I mean, "wrote the C code, haven't=
- looked
-> at the generated asm yet, and haven't done a direct perf test yet"), none=
- of us
-> C programmers are entitled to imagine that we can second guess both the c=
-ompiler=20
-> and the CPU well enough to claim that  declaring a local pointer variable=
- on the
-> stack will even *affect* performance, much less know which way it will go=
-!
->=20
+On Tue, Oct 1, 2019 at 11:14 AM Russell King - ARM Linux admin
+<linux@armlinux.org.uk> wrote:
+>
+> On Tue, Oct 01, 2019 at 11:00:11AM -0700, Nick Desaulniers wrote:
+> > On Tue, Oct 1, 2019 at 10:55 AM Russell King - ARM Linux admin
+> > <linux@armlinux.org.uk> wrote:
+> > >
+> > > On Tue, Oct 01, 2019 at 10:44:43AM -0700, Nick Desaulniers wrote:
+> > > > I apologize; I don't mean to be difficult.  I would just like to av=
+oid
+> > > > surprises when code written with the assumption that it will be
+> > > > inlined is not.  It sounds like we found one issue in arm32 and one=
+ in
+> > > > arm64 related to outlining.  If we fix those two cases, I think we'=
+re
+> > > > close to proceeding with Masahiro's cleanup, which I view as a good
+> > > > thing for the health of the Linux kernel codebase.
+> > >
+> > > Except, using the C preprocessor for this turns the arm32 code into
+> > > yuck:
+> > >
+> > > 1. We'd need to turn get_domain() and set_domain() into multi-line
+> > >    preprocessor macro definitions, using the GCC ({ }) extension
+> > >    so that get_domain() can return a value.
+> > >
+> > > 2. uaccess_save_and_enable() and uaccess_restore() also need to
+> > >    become preprocessor macro definitions too.
+> > >
+> > > So, we end up with multiple levels of nested preprocessor macros.
+> > > When something goes wrong, the compiler warning/error message is
+> > > going to be utterly _horrid_.
+> >
+> > That's why I preferred V1 of Masahiro's patch, that fixed the inline
+> > asm not to make use of caller saved registers before calling a
+> > function that might not be inlined.
+>
+> ... which I objected to based on the fact that this uaccess stuff is
+> supposed to add protection against the kernel being fooled into
+> accessing userspace when it shouldn't.  The whole intention there is
+> that [sg]et_domain(), and uaccess_*() are _always_ inlined as close
+> as possible to the call site of the accessor touching userspace.
 
-I did this based on how costly can be 'current', and I could notice
-reduction in assembly size most of the time. (powerpc)
-But I get what you mean, maybe the (possible) performance gain don't
-worth the extra work.
+Then use the C preprocessor to force the inlining.  I'm sorry it's not
+as pretty as static inline functions.
 
-> The compiler at -O2 will *absolutely* optimize away any local variables t=
-hat
-> it doesn't need.
->=20
-> And that leads to how kernel programmers routinely decide about that kind=
- of=20
-> variable: "does the variable's added clarity compensate for the extra vis=
-ual=20
-> noise and for the need to manage the variable?"
+>
+> Moving it before the assignments mean that the compiler is then free
+> to issue memory loads/stores to load up those registers, which is
+> exactly what we want to avoid.
+>
+>
+> In any case, I violently disagree with the idea that stuff we have
+> in header files should be permitted not to be inlined because we
+> have soo much that is marked inline.
 
-That's a good way to decide it. :)
+So there's a very important subtly here.  There's:
+1. code that adds `inline` cause "oh maybe it would be nice to inline
+this, but if it isn't no big deal"
+2. code that if not inlined is somehow not correct.
+3. avoid ODR violations via `static inline`
 
->=20
-> Here, and in most (all?) other points in the patchset where you've added =
-an
-> mm local variable, the answer is no.
->=20
+I'll posit that "we have soo much that is marked inline [is
+predominantly case 1 or 3, not case 2]."  Case 2 is a code smell, and
+requires extra scrutiny.
 
-Well, IMHO it's cleaner that way. But I get that other people may
-disagree.=20
+> Having it moved out of line,
+> and essentially the same function code appearing in multiple C files
+> is really not an improvement over the current situation with excessive
+> use of inlining.  Anyone who has looked at the code resulting from
+> dma_map_single() will know exactly what I'm talking about, which is
+> way in excess of the few instructions we have for the uaccess_* stuff
+> here.
+>
+> The right approach is to move stuff out of line - and by that, I
+> mean _actually_ move the damn code, so that different compilation
+> units can use the same instructions, and thereby gain from the
+> whole point of an instruction cache.
 
->=20
-> ...	start_lockless_pgtbl_walk(mm);
-> > > Minor: I'd like to rename this register_lockless_pgtable_walker().
-> > >=20
-> > > >  		local_irq_disable();
-> > > >  		gup_pgd_range(addr, end, gup_flags, pages, &nr);
-> > > >  		local_irq_enable();
-> > > > +		end_lockless_pgtbl_walk(mm);
-> > >=20
-> > > ...and deregister_lockless_pgtable_walker().
-> > >=20
-> >=20
-> > I have no problem changing the name, but I don't register/deregister
-> > are good terms for this.=20
-> >=20
-> > I would rather use start/finish, begin/end, and so on. Register sounds
-> > like something more complicated than what we are trying to achieve
-> > here.=20
-> >=20
->=20
-> OK, well, I don't want to bikeshed on naming more than I usually do, and=
-=20
-> what you have is reasonable, so I'll leave that alone. :)
->=20
-> thanks,
+And be marked __attribute__((noinline)), otherwise might be inlined via LTO=
+.
 
-Thank for the feedback,
+>
+> The whole "let's make inline not really mean inline" is nothing more
+> than a band-aid to the overuse (and abuse) of "inline".
 
+Let's triple check the ISO C11 draft spec just to be sure:
+=C2=A7 6.7.4.6: A function declared with an inline function specifier is an
+inline function. Making a
+function an inline function suggests that calls to the function be as
+fast as possible.
+The extent to which such suggestions are effective is
+implementation-defined. 139)
+139) For example, an implementation might never perform inline
+substitution, or might only perform inline
+substitutions to calls in the scope of an inline declaration.
+=C2=A7 J.3.8 [Undefined Behavior] Hints: The extent to which suggestions
+made by using the inline function specifier are effective (6.7.4).
 
---=-4Fh/TZDFlMRM8Gq0A1+I
-Content-Type: application/pgp-signature; name="signature.asc"
-Content-Description: This is a digitally signed message part
-Content-Transfer-Encoding: 7bit
+My translation:
+"Please don't assume inline means anything."
 
------BEGIN PGP SIGNATURE-----
+For the unspecified GNU C extension __attribute__((always_inline)), it
+seems to me like it's meant more for performing inlining (an
+optimization) at -O0.  Whether the compiler warns or not seems like a
+nice side effect, but provides no strong guarantee otherwise.
 
-iQIzBAABCAAdFiEEMdeUgIzgjf6YmUyOlQYWtz9SttQFAl2Tq8sACgkQlQYWtz9S
-ttT8qxAAne6RW5q0WKv5peF0RKabbsIJL1OCaP6zH9hop0gMkhg22WNHTZvFgjXl
-OEtQ351gFTykOpobpF/1R7xkVELLy7utygCckNBGlSNa16DtHdpp9HWXMb94oNYx
-NrMrKA1+keF3gli3I2b2pVDgpRMp2qt5BNOm6D3kvmH64WWG43BnSq+okS6Cg8KS
-vkQzJKJ0kmoqPWy/uvV0SWGIGj4xWL5TII1ZiS0cnTSYFRyb0YJKmlL6BnT5kmLC
-qcFaZTfck+d6xSqAuoXeXLTKXsAH0enh/E0ignLxqOcaHULOeQ+jN7jg0vWFpMl6
-Udb8pD4mH9Ff9nXadz7+w9aGxwJSSzMXMCIyemP1ny9Msl+5r/9yObv+cQ65fOiw
-q6+PQOx6DgHakjDNXa/RQiBOu0YyIKpP5RWRu/i1BBPkFipzjMnnvqvrNiZMhABT
-Isfod8XDatUBtXqXqzHsgTjnjuRwixriQ0EQbqaLOlIwoBq6aZcZ4QPGU6Vta1wj
-kFJZdzq9puwo14lZeMMsfGP+s+FT+9+zrrN05Ij1rYPDIdmmVFe3w7F7lDnP5alg
-RuXvFvBmhE1Xl2UqzB1VVcBWiphAjoE5vVlD21smjVYr5Y6+h9usTzp2BTQHeLVA
-VG39+Wsr6CYPVLw1Yab3YSJIFmCFxihM9Oui1yOh4vcBKrxa4ew=
-=37MB
------END PGP SIGNATURE-----
-
---=-4Fh/TZDFlMRM8Gq0A1+I--
+I'm sorry that so much code may have been written with that
+assumption, and I'm sorry to be the bearer of bad news, but this isn't
+a recent change.  If code was written under false assumptions, it
+should be rewritten. Sorry.
+--=20
+Thanks,
+~Nick Desaulniers
