@@ -1,92 +1,202 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from pandora.armlinux.org.uk ([78.32.30.218]:42066 "EHLO
-        pandora.armlinux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727012AbfJASOv (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 1 Oct 2019 14:14:51 -0400
-Date: Tue, 1 Oct 2019 19:14:38 +0100
-From: Russell King - ARM Linux admin <linux@armlinux.org.uk>
-Subject: Re: [PATCH] compiler: enable CONFIG_OPTIMIZE_INLINING forcibly
-Message-ID: <20191001181438.GL25745@shell.armlinux.org.uk>
-References: <20190930112636.vx2qxo4hdysvxibl@willie-the-truck>
- <CAK7LNASQZ82KSOrQW7+Wq1vFDCg2__maBEAPMLqUDqZMLuj1rA@mail.gmail.com>
- <20190930121803.n34i63scet2ec7ll@willie-the-truck>
- <CAKwvOdnqn=0LndrX+mUrtSAQqoT1JWRMOJCA5t3e=S=T7zkcCQ@mail.gmail.com>
- <20191001092823.z4zhlbwvtwnlotwc@willie-the-truck>
- <CAKwvOdk0h2A6=fb7Yepf+oKbZfq_tqwpGq8EBmHVu1j4mo-a-A@mail.gmail.com>
- <20191001170142.x66orounxuln7zs3@willie-the-truck>
- <CAKwvOdnFJqipp+G5xLDRBcOrQRcvMQmn+n8fufWyzyt2QL_QkA@mail.gmail.com>
- <20191001175512.GK25745@shell.armlinux.org.uk>
- <CAKwvOdmw_xmTGZLeK8-+Q4nUpjs-UypJjHWks-3jHA670Dxa1A@mail.gmail.com>
+Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:23714 "EHLO
+        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S1726240AbfJASkn (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 1 Oct 2019 14:40:43 -0400
+Message-ID: <9cd8e83334047b9144133781be9abd25a5678f3d.camel@linux.ibm.com>
+Subject: Re: [PATCH v4 01/11] powerpc/mm: Adds counting method to monitor
+ lockless pgtable walks
+From: Leonardo Bras <leonardo@linux.ibm.com>
+Date: Tue, 01 Oct 2019 15:39:59 -0300
+In-Reply-To: <8534727b-72ed-b974-219e-02155bcd17a8@nvidia.com>
+References: <20190927234008.11513-1-leonardo@linux.ibm.com>
+         <20190927234008.11513-2-leonardo@linux.ibm.com>
+         <4ff1e8e8-929b-9cfc-9bf8-ee88e34de888@nvidia.com>
+         <2533a13f226a6e1fab387669b6cced2aa8d2e129.camel@linux.ibm.com>
+         <48bf32ca-5d3e-5d69-4cd1-6720364a0d81@nvidia.com>
+         <673bcb94b7752e086cc4133fb6cceb24394c02c0.camel@linux.ibm.com>
+         <8534727b-72ed-b974-219e-02155bcd17a8@nvidia.com>
+Content-Type: multipart/signed; micalg="pgp-sha256";
+        protocol="application/pgp-signature"; boundary="=-UnsfXxKPo94uksuiKXvu"
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <CAKwvOdmw_xmTGZLeK8-+Q4nUpjs-UypJjHWks-3jHA670Dxa1A@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Nick Desaulniers <ndesaulniers@google.com>
-Cc: Will Deacon <will@kernel.org>, Masahiro Yamada <yamada.masahiro@socionext.com>, Linus Torvalds <torvalds@linux-foundation.org>, Nicolas Saenz Julienne <nsaenzjulienne@suse.de>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Miguel Ojeda <miguel.ojeda.sandonis@gmail.com>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Stefan Wahren <wahrenst@gmx.net>, Kees Cook <keescook@google.com>
-Message-ID: <20191001181438.PMZwFqIJhcwlGDw1vzQHffTHMEatP-CKEM6UgMUX5YM@z>
-
-On Tue, Oct 01, 2019 at 11:00:11AM -0700, Nick Desaulniers wrote:
-> On Tue, Oct 1, 2019 at 10:55 AM Russell King - ARM Linux admin
-> <linux@armlinux.org.uk> wrote:
-> >
-> > On Tue, Oct 01, 2019 at 10:44:43AM -0700, Nick Desaulniers wrote:
-> > > I apologize; I don't mean to be difficult.  I would just like to avoid
-> > > surprises when code written with the assumption that it will be
-> > > inlined is not.  It sounds like we found one issue in arm32 and one in
-> > > arm64 related to outlining.  If we fix those two cases, I think we're
-> > > close to proceeding with Masahiro's cleanup, which I view as a good
-> > > thing for the health of the Linux kernel codebase.
-> >
-> > Except, using the C preprocessor for this turns the arm32 code into
-> > yuck:
-> >
-> > 1. We'd need to turn get_domain() and set_domain() into multi-line
-> >    preprocessor macro definitions, using the GCC ({ }) extension
-> >    so that get_domain() can return a value.
-> >
-> > 2. uaccess_save_and_enable() and uaccess_restore() also need to
-> >    become preprocessor macro definitions too.
-> >
-> > So, we end up with multiple levels of nested preprocessor macros.
-> > When something goes wrong, the compiler warning/error message is
-> > going to be utterly _horrid_.
-> 
-> That's why I preferred V1 of Masahiro's patch, that fixed the inline
-> asm not to make use of caller saved registers before calling a
-> function that might not be inlined.
-
-... which I objected to based on the fact that this uaccess stuff is
-supposed to add protection against the kernel being fooled into
-accessing userspace when it shouldn't.  The whole intention there is
-that [sg]et_domain(), and uaccess_*() are _always_ inlined as close
-as possible to the call site of the accessor touching userspace.
-
-Moving it before the assignments mean that the compiler is then free
-to issue memory loads/stores to load up those registers, which is
-exactly what we want to avoid.
+To: John Hubbard <jhubbard@nvidia.com>, linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, kvm-ppc@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
+Cc: Dan Williams <dan.j.williams@intel.com>, Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Mahesh Salgaonkar <mahesh@linux.vnet.ibm.com>, YueHaibing <yuehaibing@huawei.com>, Nicholas Piggin <npiggin@gmail.com>, Mike Rapoport <rppt@linux.ibm.com>, Keith Busch <keith.busch@intel.com>, Jason Gunthorpe <jgg@ziepe.ca>, Paul Mackerras <paulus@samba.org>, "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>, Ganesh Goudar <ganeshgr@linux.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, Ira Weiny <ira.weiny@intel.com>, Andrew Morton <akpm@linux-foundation.org>, Allison Randal <allison@lohutok.net>
+Message-ID: <20191001183959.M0OyfqO-hgAFwobfyWKmww80UVCFOLF7HRGPMKRKuqc@z>
 
 
-In any case, I violently disagree with the idea that stuff we have
-in header files should be permitted not to be inlined because we
-have soo much that is marked inline.  Having it moved out of line,
-and essentially the same function code appearing in multiple C files
-is really not an improvement over the current situation with excessive
-use of inlining.  Anyone who has looked at the code resulting from
-dma_map_single() will know exactly what I'm talking about, which is
-way in excess of the few instructions we have for the uaccess_* stuff
-here.
+--=-UnsfXxKPo94uksuiKXvu
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
 
-The right approach is to move stuff out of line - and by that, I
-mean _actually_ move the damn code, so that different compilation
-units can use the same instructions, and thereby gain from the
-whole point of an instruction cache.
+On Mon, 2019-09-30 at 14:47 -0700, John Hubbard wrote:
+> On 9/30/19 11:42 AM, Leonardo Bras wrote:
+> > On Mon, 2019-09-30 at 10:57 -0700, John Hubbard wrote:
+> > > > As I told before, there are cases where this function is called fro=
+m
+> > > > 'real mode' in powerpc, which doesn't disable irqs and may have a
+> > > > tricky behavior if we do. So, encapsulate the irq disable in this
+> > > > function can be a bad choice.
+> > >=20
+> > > You still haven't explained how this works in that case. So far, the
+> > > synchronization we've discussed has depended upon interrupt disabling
+> > > as part of the solution, in order to hold off page splitting and page
+> > > table freeing.
+> >=20
+> > The irqs are already disabled by another mechanism (hw): MSR_EE=3D0.
+> > So, serialize will work as expected.
+>=20
+> I get that they're disabled. But will this interlock with the code that
+> issues IPIs?? Because it's not just disabling interrupts that matters, bu=
+t
+> rather, synchronizing with the code (TLB flushing) that *happens* to=20
+> require issuing IPIs, which in turn interact with disabling interrupts.
+>=20
+> So I'm still not seeing how that could work here, unless there is somethi=
+ng
+> interesting about the smp_call_function_many() on ppc with MSR_EE=3D0 mod=
+e...?
+>=20
 
-The whole "let's make inline not really mean inline" is nothing more
-than a band-aid to the overuse (and abuse) of "inline".
+I am failing to understand the issue.
+I mean, smp_call_function_many() will issue a IPI to each CPU in
+CPUmask and wait it to run before returning.=20
+If interrupts are disabled (either by MSR_EE=3D0 or local_irq_disable),
+the IPI will not run on that CPU, and the wait part will make sure to
+lock the thread until the interrupts are enabled again.=20
 
--- 
-RMK's Patch system: https://www.armlinux.org.uk/developer/patches/
-FTTC broadband for 0.8mile line in suburbia: sync at 12.1Mbps down 622kbps up
-According to speedtest.net: 11.9Mbps down 500kbps up
+Could you please point the issue there?
+
+> > > Simply skipping that means that an additional mechanism is required..=
+.which
+> > > btw might involve a new, ppc-specific routine, so maybe this is going=
+ to end
+> > > up pretty close to what I pasted in after all...
+> > > > Of course, if we really need that, we can add a bool parameter to t=
+he
+> > > > function to choose about disabling/enabling irqs.
+> > > > > * This is really a core mm function, so don't hide it away in arc=
+h layers.
+> > > > >     (If you're changing mm/ files, that's a big hint.)
+> > > >=20
+> > > > My idea here is to let the arch decide on how this 'register' is go=
+ing
+> > > > to work, as archs may have different needs (in powerpc for example,=
+ we
+> > > > can't always disable irqs, since we may be in realmode).
+>=20
+> Yes, the tension there is that a) some things are per-arch, and b) it's e=
+asy=20
+> to get it wrong. The commit below (d9101bfa6adc) is IMHO a perfect exampl=
+e of
+> that.
+>=20
+> So, I would like core mm/ functions that guide the way, but the interrupt
+> behavior complicates it. I think your original passing of just struct_mm
+> is probably the right balance, assuming that I'm wrong about interrupts.
+>=20
+
+I think, for the generic function, that including {en,dis}abling the
+interrupt is fine. I mean, if disabling the interrupt is the generic
+behavior, it's ok.=20
+I will just make sure to explain that the interrupt {en,dis}abling is
+part of the sync process. If an arch don't like it, it can write a
+specific function that does the sync in a better way. (and defining
+__HAVE_ARCH_LOCKLESS_PGTBL_WALK_COUNTER to ignore the generic function)
+
+In this case, the generic function would also include the ifdef'ed
+atomic inc and the memory barrier.=20
+
+>=20
+> > > > Maybe we can create a generic function instead of a dummy, and let =
+it
+> > > > be replaced in case the arch needs to do so.
+> > >=20
+> > > Yes, that might be what we need, if it turns out that ppc can't use t=
+his
+> > > approach (although let's see about that).
+> > >=20
+> >=20
+> > I initially used the dummy approach because I did not see anything like
+> > serialize in other archs.=20
+> >=20
+> > I mean, even if I put some generic function here, if there is no
+> > function to use the 'lockless_pgtbl_walk_count', it becomes only a
+> > overhead.
+> >=20
+>=20
+> Not really: the memory barrier is required in all cases, and this code
+> would be good I think:
+>=20
+> +void register_lockless_pgtable_walker(struct mm_struct *mm)
+> +{
+> +#ifdef LOCKLESS_PAGE_TABLE_WALK_TRACKING
+> +       atomic_inc(&mm->lockless_pgtbl_nr_walkers);
+> +#endif
+> +       /*
+> +        * This memory barrier pairs with any code that is either trying =
+to
+> +        * delete page tables, or split huge pages.
+> +        */
+> +       smp_mb();
+> +}
+> +EXPORT_SYMBOL_GPL(gup_fast_lock_acquire);
+>=20
+> And this is the same as your original patch, with just a minor name chang=
+e:
+>=20
+> @@ -2341,9 +2395,11 @@ int __get_user_pages_fast(unsigned long start, int=
+ nr_pages, int write,
+> =20
+>         if (IS_ENABLED(CONFIG_HAVE_FAST_GUP) &&
+>             gup_fast_permitted(start, end)) {
+> +               register_lockless_pgtable_walker(current->mm);
+>                 local_irq_save(flags);
+>                 gup_pgd_range(start, end, write ? FOLL_WRITE : 0, pages, =
+&nr);
+>                 local_irq_restore(flags);
+> +               deregister_lockless_pgtable_walker(current->mm);
+>=20
+>=20
+> Btw, hopefully minor note: it also looks like there's a number of changes=
+ in the same=20
+> area that conflict, for example:
+>=20
+>     commit d9101bfa6adc ("powerpc/mm/mce: Keep irqs disabled during lockl=
+ess=20
+>          page table walk") <Aneesh Kumar K.V> (Thu, 19 Sep 2019)
+>=20
+> ...so it would be good to rebase this onto 5.4-rc1, now that that's here.
+>=20
+
+Yeap, agree. Already rebased on top of v5.4-rc1.
+
+>=20
+> thanks,
+
+Thank you!
+
+--=-UnsfXxKPo94uksuiKXvu
+Content-Type: application/pgp-signature; name="signature.asc"
+Content-Description: This is a digitally signed message part
+Content-Transfer-Encoding: 7bit
+
+-----BEGIN PGP SIGNATURE-----
+
+iQIzBAABCAAdFiEEMdeUgIzgjf6YmUyOlQYWtz9SttQFAl2TnX8ACgkQlQYWtz9S
+ttRifhAAmPtPB1RIc4lme5/Hg5KtBhs6AMuOvwhLnDNb1F/9ArPOgle8lH/3vgzr
+kkB5zwbTMbPTqO863MHUfmGe3ySVthmBVWUmFVyPbJ9tLxVYirYc4kXHP6b+Bt+L
+eP2uAZzyTiyEgZFqVArmyoTCnjKi/0EpDzKz3HLcNCMf1BrWFShR83zHt2WaGhcg
+CSbTAdNSmzHTjzJcp8i68Mm6YXh9EABeAuZBNzkcAiOW6BQR8IETNFXQnI2lGgio
+jgGFHC4NhS3FiwX50U7Ks107G64sB78YY79Qws732lNjiBB+wGsOnBnIyAHlQPKL
+ZaPDkzuhiXLmS+WbjDc6VwTqSjsvUbpRvPDsFC/fXmv7RZbMliP/OSozsi62O0p8
+UnF8mA3+ihr8wYxoZi0qcTfiZRvopxGNCSCdIFeSAa7XBRm8+5bI4CWFsozrLqXC
+FK0zBunozKpubMMvgum2ZwBhGx/HL9QgATaDXRdBKRSdjxXfCzFL/CfyB0trmVZA
+ioAKjOPBHcAI1DrO5B61rntDk59qlGsapxwMhI+c4TWkx9IMbcp2frRb1MSDDZRY
+lxmog/vD/mX2SxCSMnrvg14pKHBjq+6N+p0t/gwPdeKlfx8qW/Zw4Xgbb9hP5VZD
+93eqb6MPe1+MKpx7cNAyWQmE6RzoZ0HIX7GQnoCw384Kz2bPmCM=
+=ol9F
+-----END PGP SIGNATURE-----
+
+--=-UnsfXxKPo94uksuiKXvu--
