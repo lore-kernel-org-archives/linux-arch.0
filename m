@@ -1,37 +1,67 @@
-Return-Path: <tglx@linutronix.de>
-Message-ID: <20191023123117.779277679@linutronix.de>
-Date: Wed, 23 Oct 2019 14:27:07 +0200
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: [patch V2 02/17] x86/entry/64: Remove pointless jump in paranoid_exit
-References: <20191023122705.198339581@linutronix.de>
+Return-Path: <linux-arch-owner@vger.kernel.org>
+Received: from mail.kernel.org ([198.145.29.99]:41952 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1733273AbfJAJED (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 1 Oct 2019 05:04:03 -0400
+Date: Tue, 1 Oct 2019 10:03:56 +0100
+From: Will Deacon <will@kernel.org>
+Subject: Re: [PATCH 18/29] arm64: Move EXCEPTION_TABLE to RO_DATA segment
+Message-ID: <20191001090355.blnaqlf4rfzucpb2@willie-the-truck>
+References: <20190926175602.33098-1-keescook@chromium.org>
+ <20190926175602.33098-19-keescook@chromium.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-To: LKML <linux-kernel@vger.kernel.org>
-Cc: x86@kernel.org, Peter Zijlstra <peterz@infradead.org>, Andy Lutomirski <luto@kernel.org>, Will Deacon <will@kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, kvm@vger.kernel.org, linux-arch@vger.kernel.org, Mike Rapoport <rppt@linux.ibm.com>, Josh Poimboeuf <jpoimboe@redhat.com>, Miroslav Benes <mbenes@suse.cz>
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20190926175602.33098-19-keescook@chromium.org>
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20191023122707.5axZKyS1fPOQmS8utKkequ8L-JFlzHqeKGK-SnBdOlI@z>
+To: Kees Cook <keescook@chromium.org>
+Cc: Thomas Gleixner <tglx@linutronix.de>, Rick Edgecombe <rick.p.edgecombe@intel.com>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, Dave Hansen <dave.hansen@linux.intel.com>, Andy Lutomirski <luto@kernel.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-s390@vger.kernel.org, linux-c6x-dev@linux-c6x.org, Yoshinori Sato <ysato@users.sourceforge.jp>, Michal Simek <monstr@monstr.eu>, linux-parisc@vger.kernel.org, linux-xtensa@linux-xtensa.org, x86@kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20191001090356.UBh_GgSqtkI0Agl-CK6MJGv3sPFzmOo57jWfzSWuMJA@z>
 
-Jump directly to restore_regs_and_return_to_kernel instead of making
-a pointless extra jump through .Lparanoid_exit_restore
+Hi Kees,
 
-Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
----
- arch/x86/entry/entry_64.S |    3 +--
- 1 file changed, 1 insertion(+), 2 deletions(-)
+On Thu, Sep 26, 2019 at 10:55:51AM -0700, Kees Cook wrote:
+> The EXCEPTION_TABLE is read-only, so collapse it into RO_DATA.
+> 
+> Signed-off-by: Kees Cook <keescook@chromium.org>
+> ---
+>  arch/arm64/kernel/vmlinux.lds.S | 6 ++++--
+>  1 file changed, 4 insertions(+), 2 deletions(-)
+> 
+> diff --git a/arch/arm64/kernel/vmlinux.lds.S b/arch/arm64/kernel/vmlinux.lds.S
+> index 81d94e371c95..c6ba2eee0ee8 100644
+> --- a/arch/arm64/kernel/vmlinux.lds.S
+> +++ b/arch/arm64/kernel/vmlinux.lds.S
+> @@ -5,6 +5,8 @@
+>   * Written by Martin Mares <mj@atrey.karlin.mff.cuni.cz>
+>   */
+>  
+> +#define RO_DATA_EXCEPTION_TABLE_ALIGN	8
+> +
+>  #include <asm-generic/vmlinux.lds.h>
+>  #include <asm/cache.h>
+>  #include <asm/kernel-pgtable.h>
+> @@ -135,8 +137,8 @@ SECTIONS
+>  	. = ALIGN(SEGMENT_ALIGN);
+>  	_etext = .;			/* End of text section */
+>  
+> -	RO_DATA(PAGE_SIZE)		/* everything from this point to     */
+> -	EXCEPTION_TABLE(8)		/* __init_begin will be marked RO NX */
+> +	/* everything from this point to __init_begin will be marked RO NX */
+> +	RO_DATA(PAGE_SIZE)
+>  
+>  	. = ALIGN(PAGE_SIZE);
 
---- a/arch/x86/entry/entry_64.S
-+++ b/arch/x86/entry/entry_64.S
-@@ -1272,12 +1272,11 @@ ENTRY(paranoid_exit)
- 	/* Always restore stashed CR3 value (see paranoid_entry) */
- 	RESTORE_CR3	scratch_reg=%rbx save_reg=%r14
- 	SWAPGS_UNSAFE_STACK
--	jmp	.Lparanoid_exit_restore
-+	jmp	restore_regs_and_return_to_kernel
- .Lparanoid_exit_no_swapgs:
- 	TRACE_IRQS_IRETQ_DEBUG
- 	/* Always restore stashed CR3 value (see paranoid_entry) */
- 	RESTORE_CR3	scratch_reg=%rbx save_reg=%r14
--.Lparanoid_exit_restore:
- 	jmp restore_regs_and_return_to_kernel
- END(paranoid_exit)
- 
+Do you reckon it would be worth merging this last ALIGN directive into the
+RO_DATA definition too? Given that we want to map the thing read-only, it
+really has to be aligned either side.
+
+Anyway, that's only a nit, so:
+
+Acked-by: Will Deacon <will@kernel.org>
+
+Will
+
+P.S. Please CC the arm64 maintainers on arm64 patches -- I nearly missed
+this one!
