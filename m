@@ -1,114 +1,127 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:52424 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727326AbfJAJ2a (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 1 Oct 2019 05:28:30 -0400
-Date: Tue, 1 Oct 2019 10:28:24 +0100
-From: Will Deacon <will@kernel.org>
-Subject: Re: [PATCH] compiler: enable CONFIG_OPTIMIZE_INLINING forcibly
-Message-ID: <20191001092823.z4zhlbwvtwnlotwc@willie-the-truck>
-References: <20190830034304.24259-1-yamada.masahiro@socionext.com>
- <f5c221f5749e5768c9f0d909175a14910d349456.camel@suse.de>
- <CAKwvOdk=tr5nqq1CdZnUvRskaVqsUCP0SEciSGonzY5ayXsMXw@mail.gmail.com>
- <CAHk-=wiTy7hrA=LkmApBE9PQtri8qYsSOrf2zbms_crfjgR=Hw@mail.gmail.com>
- <20190930112636.vx2qxo4hdysvxibl@willie-the-truck>
- <CAK7LNASQZ82KSOrQW7+Wq1vFDCg2__maBEAPMLqUDqZMLuj1rA@mail.gmail.com>
- <20190930121803.n34i63scet2ec7ll@willie-the-truck>
- <CAKwvOdnqn=0LndrX+mUrtSAQqoT1JWRMOJCA5t3e=S=T7zkcCQ@mail.gmail.com>
+Received: from conssluserg-05.nifty.com ([210.131.2.90]:16399 "EHLO
+        conssluserg-05.nifty.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726697AbfJAJkX (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 1 Oct 2019 05:40:23 -0400
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <CAKwvOdnqn=0LndrX+mUrtSAQqoT1JWRMOJCA5t3e=S=T7zkcCQ@mail.gmail.com>
+References: <20190830034304.24259-1-yamada.masahiro@socionext.com>
+ <f5c221f5749e5768c9f0d909175a14910d349456.camel@suse.de> <CAKwvOdk=tr5nqq1CdZnUvRskaVqsUCP0SEciSGonzY5ayXsMXw@mail.gmail.com>
+ <CAHk-=wiTy7hrA=LkmApBE9PQtri8qYsSOrf2zbms_crfjgR=Hw@mail.gmail.com>
+ <20190930112636.vx2qxo4hdysvxibl@willie-the-truck> <CAK7LNASQZ82KSOrQW7+Wq1vFDCg2__maBEAPMLqUDqZMLuj1rA@mail.gmail.com>
+ <20190930121803.n34i63scet2ec7ll@willie-the-truck>
+In-Reply-To: <20190930121803.n34i63scet2ec7ll@willie-the-truck>
+From: Masahiro Yamada <yamada.masahiro@socionext.com>
+Date: Tue, 1 Oct 2019 18:39:34 +0900
+Message-ID: <CAK7LNAT8vx=vEwaj2=JYHzCYa_J68-TSmjN+sHZeaQYyWV95yw@mail.gmail.com>
+Subject: Re: [PATCH] compiler: enable CONFIG_OPTIMIZE_INLINING forcibly
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Nick Desaulniers <ndesaulniers@google.com>
-Cc: Masahiro Yamada <yamada.masahiro@socionext.com>, Linus Torvalds <torvalds@linux-foundation.org>, Nicolas Saenz Julienne <nsaenzjulienne@suse.de>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Miguel Ojeda <miguel.ojeda.sandonis@gmail.com>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Russell King <rmk+kernel@arm.linux.org.uk>, Stefan Wahren <wahrenst@gmx.net>, Kees Cook <keescook@google.com>
-Message-ID: <20191001092824.8gZKKjWxTe1n6HC1cLYv5hOGG3ebse3cLkumCUjhj9Y@z>
+To: Will Deacon <will@kernel.org>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Nick Desaulniers <ndesaulniers@google.com>, Nicolas Saenz Julienne <nsaenzjulienne@suse.de>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Miguel Ojeda <miguel.ojeda.sandonis@gmail.com>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Russell King <rmk+kernel@arm.linux.org.uk>, Stefan Wahren <wahrenst@gmx.net>, Kees Cook <keescook@google.com>
+Message-ID: <20191001093934.um06dQ9byF4nELtlIl-CWNOde1ozr-H5eIsOKVdFTxQ@z>
 
-Hi Nick,
+Hi Will,
 
-On Mon, Sep 30, 2019 at 02:50:10PM -0700, Nick Desaulniers wrote:
-> On Mon, Sep 30, 2019 at 5:18 AM Will Deacon <will@kernel.org> wrote:
-> > On Mon, Sep 30, 2019 at 09:05:11PM +0900, Masahiro Yamada wrote:
-> > > On Mon, Sep 30, 2019 at 8:26 PM Will Deacon <will@kernel.org> wrote:
-> > > > FWIW, we've run into issues with CONFIG_OPTIMIZE_INLINING and local
-> > > > variables marked as 'register' where GCC would do crazy things and end
-> > > > up corrupting data, so I suspect the use of fixed registers in the arm
-> > > > uaccess functions is hitting something similar:
+On Mon, Sep 30, 2019 at 9:18 PM Will Deacon <will@kernel.org> wrote:
+>
+> On Mon, Sep 30, 2019 at 09:05:11PM +0900, Masahiro Yamada wrote:
+> > On Mon, Sep 30, 2019 at 8:26 PM Will Deacon <will@kernel.org> wrote:
+> > > On Fri, Sep 27, 2019 at 03:38:44PM -0700, Linus Torvalds wrote:
+> > > > Soem of that code is pretty subtle. They have fixed register usage
+> > > > (but the asm macros actually check them). And the inline asms clobber
+> > > > the link register, but they do seem to clearly _state_ that they
+> > > > clobber it, so who knows.
 > > > >
-> > > > https://gcc.gnu.org/bugzilla/show_bug.cgi?id=91111
+> > > > Just based on the EFAULT, I'd _guess_ that it's some interaction with
+> > > > the domain access control register (so that get/set_domain() thing).
+> > > > But I'm not even sure that code is enabled for the Rpi2, so who
+> > > > knows..
 > > >
-> > > No. Not similar at all.
+> > > FWIW, we've run into issues with CONFIG_OPTIMIZE_INLINING and local
+> > > variables marked as 'register' where GCC would do crazy things and end
+> > > up corrupting data, so I suspect the use of fixed registers in the arm
+> > > uaccess functions is hitting something similar:
+> > >
+> > > https://gcc.gnu.org/bugzilla/show_bug.cgi?id=91111
 > >
-> > They're similar in that enabling CONFIG_OPTIMIZE_INLINING causes register
-> > variables to go wrong. I agree that the ARM code looks dodgy with
-> > that call to uaccess_save_and_enable(), but there are __asmeq macros
-> > in there to try to catch that, so it's still very fishy.
+> > No. Not similar at all.
+>
+> They're similar in that enabling CONFIG_OPTIMIZE_INLINING causes register
+> variables to go wrong.
+
+You are just looking at the result, not the cause.
+
+
+> I agree that the ARM code looks dodgy with
+> that call to uaccess_save_and_enable(), but there are __asmeq macros
+> in there to try to catch that, so it's still very fishy.
+
+I am totally fine with double-checking
+the output from the compiler.
+
+
+>
+> > I fixed it already. See
+> > https://lore.kernel.org/patchwork/patch/1132459/
+>
+> You fixed the specific case above for 32-bit ARM, but the arm64 case
+> is due to a compiler bug. As it happens, we've reworked our atomics
+> in 5.4 so that particular issue no longer triggers, but the fact remains
+> that GCC has been shown to screw up explicit register allocation for
+> perfectly legitimate code when giving the flexibility to move code out
+> of line.
+>
+> > The problems are fixable by writing correct code.
+>
+> Right, in the compiler ;)
+
+Not always.
+
+You showed a compiler bug case for arm64.
+The 32bit ARM is not the case.
+
+
+>
+> > I think we discussed this already.
+>
+> We did?
+
+
+https://www.spinics.net/lists/arm-kernel/msg754567.html
+
+This is a bug in the kernel code.
+
+
+
+> > - There is nothing arch-specific in CONFIG_OPTIMIZE_INLINING
+>
+> Apart from the bugs... and even then, that's just based on reports.
+>
+> > - 'inline' is just a hint. It does not guarantee function inlining.
+> >   This is standard.
 > >
-> > > I fixed it already. See
-> > > https://lore.kernel.org/patchwork/patch/1132459/
-> >
-> > You fixed the specific case above for 32-bit ARM, but the arm64 case
-> > is due to a compiler bug. As it happens, we've reworked our atomics
-> > in 5.4 so that particular issue no longer triggers, but the fact remains
-> > that GCC has been shown to screw up explicit register allocation for
-> > perfectly legitimate code when giving the flexibility to move code out
-> > of line.
-> 
-> So __attribute__((always_inline)) doesn't guarantee that code will be
-> inlined.  For instance in LLVM's inliner, it asks/answers "should I
-> inline" and "can I inline."  "Should" has to do with a cost model, and
-> is very heuristic-y.  "Can" has more to do with the transforms, and
-> whether they're all implemented and safe.  If you if you say
-> __attribute__((always_inline)), the answer to "can I inline this" can
-> still be *no*.  The only way to guarantee inlining is via the C
-> preprocessor.  The only way to prevent inlining is via
-> __attribute__((no_inline)).  inline and __attribute__((always_inline))
-> are a heuristic laden mess and should not be relied upon.  I would
-> also look closely at code that *requires* inlining or the lack there
-> of to be correct.  That the kernel no longer compiles at -O0 is not a
-> good thing IMO, and hurts developers that want a short
-> compile/execute/debug cycle.
-> 
-> In this case, if there's a known codegen bug in a particular compiler
-> or certain versions of it, I recommend the use of either the C
-> preprocessor or __attribute__((no_inline)) to get the desired behavior
-> localized to the function in question, and for us to proceed with
-> Masahiro's cleanup.
+> > - The kernel macrofies 'inline' to add __attribute__((__always_inline__))
+> >   This terrible hack must end.
+>
+> I'm all for getting rid of hacks, but not at the cost of correctness.
+>
+> > -  __attribute__((__always_inline__)) takes aways compiler's freedom,
+> >    and prevents it from optimizing the code for -O2, -Os, or whatever.
+>
+> s/whatever/miscompiling the code/
+>
+> If it helps, here is more information about the arm64 failure which
+> triggered the GCC bugzilla:
+>
+> https://www.spinics.net/lists/arm-kernel/msg730329.html
+>
+> Will
 
-Hmm, I don't see how that would help. The problem occurs when things
-are moved out of line by the compiler (see below).
+You put multiple references here and there,
+but they are all about arch_atomic64_dec_if_positive().
 
-> The comment above the use of CONFIG_OPTIMIZE_INLINING in
-> include/linux/compiler_types.h says:
->   * Force always-inline if the user requests it so via the .config.
-> Which makes me grimace (__attribute__((always_inline)) doesn't *force*
-> anything as per above), and the idea that forcing things marked inline
-> to also be __attribute__((always_inline)) is an "optimization" (re:
-> the name of the config; CONFIG_OPTIMIZE_INLINING) is also highly
-> suspect.  Aggressive inlining leads to image size bloat, instruction
-> cache and register pressure; it is not exclusively an optimization.
 
-Agreed on all of this, but the fact remains that GCC has been shown to
-*miscompile* the arm64 kernel with CONFIG_OPTIMIZE_INLINING=y. Please,
-look at this thread:
-
-	https://www.spinics.net/lists/arm-kernel/msg730329.html
-	https://www.spinics.net/lists/arm-kernel/msg730512.html
-
-GCC decides to pull an atomic operation out-of-line and, in doing so,
-gets the register allocations subtly wrong when passing a 'register'
-variable into an inline asm. I would like to avoid this sort of thing
-happening, since it can result in really nasty bugs that manifest at
-runtime and are extremely difficult to debug, which is why I would much
-prefer not to have this option on by default for arm64. I sent a patch
-already:
-
-	https://lkml.kernel.org/r/20190930114540.27498-1-will@kernel.org
-
-and I'm happy to spin a v2 which depends on !CC_IS_CLANG as well.
-
-Reducing the instruction cache footprint is great, but not if the
-resulting code is broken!
-
-Will
+--
+Best Regards
+Masahiro Yamada
