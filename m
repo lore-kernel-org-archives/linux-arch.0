@@ -1,84 +1,107 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pf1-f195.google.com ([209.85.210.195]:45841 "EHLO
-        mail-pf1-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S2389468AbfJAPsP (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 1 Oct 2019 11:48:15 -0400
-Received: by mail-pf1-f195.google.com with SMTP id y72so8269928pfb.12
-        for <linux-arch@vger.kernel.org>; Tue, 01 Oct 2019 08:48:13 -0700 (PDT)
-Date: Tue, 1 Oct 2019 08:48:11 -0700
-From: Kees Cook <keescook@chromium.org>
-Subject: Re: [PATCH 18/29] arm64: Move EXCEPTION_TABLE to RO_DATA segment
-Message-ID: <201910010846.D0712C1@keescook>
-References: <20190926175602.33098-1-keescook@chromium.org>
- <20190926175602.33098-19-keescook@chromium.org>
- <20191001090355.blnaqlf4rfzucpb2@willie-the-truck>
+Received: from mail-pf1-f196.google.com ([209.85.210.196]:45900 "EHLO
+        mail-pf1-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726233AbfJAQci (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 1 Oct 2019 12:32:38 -0400
+Received: by mail-pf1-f196.google.com with SMTP id y72so8363367pfb.12
+        for <linux-arch@vger.kernel.org>; Tue, 01 Oct 2019 09:32:37 -0700 (PDT)
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20191001090355.blnaqlf4rfzucpb2@willie-the-truck>
+References: <20190830034304.24259-1-yamada.masahiro@socionext.com>
+ <f5c221f5749e5768c9f0d909175a14910d349456.camel@suse.de> <CAKwvOdk=tr5nqq1CdZnUvRskaVqsUCP0SEciSGonzY5ayXsMXw@mail.gmail.com>
+ <CAHk-=wiTy7hrA=LkmApBE9PQtri8qYsSOrf2zbms_crfjgR=Hw@mail.gmail.com>
+ <20190930112636.vx2qxo4hdysvxibl@willie-the-truck> <CAK7LNASQZ82KSOrQW7+Wq1vFDCg2__maBEAPMLqUDqZMLuj1rA@mail.gmail.com>
+ <20190930121803.n34i63scet2ec7ll@willie-the-truck> <CAKwvOdnqn=0LndrX+mUrtSAQqoT1JWRMOJCA5t3e=S=T7zkcCQ@mail.gmail.com>
+ <20191001092823.z4zhlbwvtwnlotwc@willie-the-truck>
+In-Reply-To: <20191001092823.z4zhlbwvtwnlotwc@willie-the-truck>
+From: Nick Desaulniers <ndesaulniers@google.com>
+Date: Tue, 1 Oct 2019 09:32:25 -0700
+Message-ID: <CAKwvOdk0h2A6=fb7Yepf+oKbZfq_tqwpGq8EBmHVu1j4mo-a-A@mail.gmail.com>
+Subject: Re: [PATCH] compiler: enable CONFIG_OPTIMIZE_INLINING forcibly
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Will Deacon <will@kernel.org>
-Cc: Thomas Gleixner <tglx@linutronix.de>, Rick Edgecombe <rick.p.edgecombe@intel.com>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, Dave Hansen <dave.hansen@linux.intel.com>, Andy Lutomirski <luto@kernel.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-s390@vger.kernel.org, linux-c6x-dev@linux-c6x.org, Yoshinori Sato <ysato@users.sourceforge.jp>, Michal Simek <monstr@monstr.eu>, linux-parisc@vger.kernel.org, linux-xtensa@linux-xtensa.org, x86@kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20191001154811.VlXmzCf_dpNMLarXGAmLbU7qMOgIxOlk9SeEryGxwIg@z>
+Cc: Masahiro Yamada <yamada.masahiro@socionext.com>, Linus Torvalds <torvalds@linux-foundation.org>, Nicolas Saenz Julienne <nsaenzjulienne@suse.de>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Miguel Ojeda <miguel.ojeda.sandonis@gmail.com>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Russell King <rmk+kernel@arm.linux.org.uk>, Stefan Wahren <wahrenst@gmx.net>, Kees Cook <keescook@google.com>
+Message-ID: <20191001163225.j6H8XbDTm24aVoILhugnd8ByGkflFMdRblGoEMmHuwY@z>
 
-On Tue, Oct 01, 2019 at 10:03:56AM +0100, Will Deacon wrote:
-> Hi Kees,
-> 
-> On Thu, Sep 26, 2019 at 10:55:51AM -0700, Kees Cook wrote:
-> > The EXCEPTION_TABLE is read-only, so collapse it into RO_DATA.
-> > 
-> > Signed-off-by: Kees Cook <keescook@chromium.org>
-> > ---
-> >  arch/arm64/kernel/vmlinux.lds.S | 6 ++++--
-> >  1 file changed, 4 insertions(+), 2 deletions(-)
-> > 
-> > diff --git a/arch/arm64/kernel/vmlinux.lds.S b/arch/arm64/kernel/vmlinux.lds.S
-> > index 81d94e371c95..c6ba2eee0ee8 100644
-> > --- a/arch/arm64/kernel/vmlinux.lds.S
-> > +++ b/arch/arm64/kernel/vmlinux.lds.S
-> > @@ -5,6 +5,8 @@
-> >   * Written by Martin Mares <mj@atrey.karlin.mff.cuni.cz>
-> >   */
-> >  
-> > +#define RO_DATA_EXCEPTION_TABLE_ALIGN	8
-> > +
-> >  #include <asm-generic/vmlinux.lds.h>
-> >  #include <asm/cache.h>
-> >  #include <asm/kernel-pgtable.h>
-> > @@ -135,8 +137,8 @@ SECTIONS
-> >  	. = ALIGN(SEGMENT_ALIGN);
-> >  	_etext = .;			/* End of text section */
-> >  
-> > -	RO_DATA(PAGE_SIZE)		/* everything from this point to     */
-> > -	EXCEPTION_TABLE(8)		/* __init_begin will be marked RO NX */
-> > +	/* everything from this point to __init_begin will be marked RO NX */
-> > +	RO_DATA(PAGE_SIZE)
-> >  
-> >  	. = ALIGN(PAGE_SIZE);
-> 
-> Do you reckon it would be worth merging this last ALIGN directive into the
-> RO_DATA definition too? Given that we want to map the thing read-only, it
-> really has to be aligned either side.
+On Tue, Oct 1, 2019 at 2:28 AM Will Deacon <will@kernel.org> wrote:
+>
+> Hi Nick,
+>
+> On Mon, Sep 30, 2019 at 02:50:10PM -0700, Nick Desaulniers wrote:
+> > So __attribute__((always_inline)) doesn't guarantee that code will be
+> > inlined.  For instance in LLVM's inliner, it asks/answers "should I
+> > inline" and "can I inline."  "Should" has to do with a cost model, and
+> > is very heuristic-y.  "Can" has more to do with the transforms, and
+> > whether they're all implemented and safe.  If you if you say
+> > __attribute__((always_inline)), the answer to "can I inline this" can
+> > still be *no*.  The only way to guarantee inlining is via the C
+> > preprocessor.  The only way to prevent inlining is via
+> > __attribute__((no_inline)).  inline and __attribute__((always_inline))
+> > are a heuristic laden mess and should not be relied upon.  I would
+> > also look closely at code that *requires* inlining or the lack there
+> > of to be correct.  That the kernel no longer compiles at -O0 is not a
+> > good thing IMO, and hurts developers that want a short
+> > compile/execute/debug cycle.
+> >
+> > In this case, if there's a known codegen bug in a particular compiler
+> > or certain versions of it, I recommend the use of either the C
+> > preprocessor or __attribute__((no_inline)) to get the desired behavior
+> > localized to the function in question, and for us to proceed with
+> > Masahiro's cleanup.
+>
+> Hmm, I don't see how that would help. The problem occurs when things
+> are moved out of line by the compiler (see below).
 
-Actually, taking a closer look, this appears to be redundant: RO_DATA()
-ends with:
+It's being moved out of line because __attribute__((always_inline)) or
+just inline provide no guarantees that outlining does not occur.  It
+would help to make functions that need to be inlined macros, because
+the C preprocessor doesn't have that issue.
 
-	. = ALIGN(align)
+>
+> > The comment above the use of CONFIG_OPTIMIZE_INLINING in
+> > include/linux/compiler_types.h says:
+> >   * Force always-inline if the user requests it so via the .config.
+> > Which makes me grimace (__attribute__((always_inline)) doesn't *force*
+> > anything as per above), and the idea that forcing things marked inline
+> > to also be __attribute__((always_inline)) is an "optimization" (re:
+> > the name of the config; CONFIG_OPTIMIZE_INLINING) is also highly
+> > suspect.  Aggressive inlining leads to image size bloat, instruction
+> > cache and register pressure; it is not exclusively an optimization.
+>
+> Agreed on all of this, but the fact remains that GCC has been shown to
+> *miscompile* the arm64 kernel with CONFIG_OPTIMIZE_INLINING=y. Please,
+> look at this thread:
+>
+>         https://www.spinics.net/lists/arm-kernel/msg730329.html
+>         https://www.spinics.net/lists/arm-kernel/msg730512.html
+>
+> GCC decides to pull an atomic operation out-of-line and, in doing so,
 
-(where "align" is the "PAGE_SIZE" argument to RO_DATA())
+If the function is incorrect unless inlined, use a macro.
 
-> Anyway, that's only a nit, so:
-> 
-> Acked-by: Will Deacon <will@kernel.org>
+> gets the register allocations subtly wrong when passing a 'register'
+> variable into an inline asm. I would like to avoid this sort of thing
+> happening, since it can result in really nasty bugs that manifest at
+> runtime and are extremely difficult to debug, which is why I would much
+> prefer not to have this option on by default for arm64. I sent a patch
+> already:
+>
+>         https://lkml.kernel.org/r/20190930114540.27498-1-will@kernel.org
+>
+> and I'm happy to spin a v2 which depends on !CC_IS_CLANG as well.
 
-Thanks!
+For small things like whether we mark a function always_inline or not,
+I think it's simpler to just keep the code consistent between
+compilers, even if it's to work around a bug in one compiler.  A
+comment in the code would be sufficient.
 
-> P.S. Please CC the arm64 maintainers on arm64 patches -- I nearly missed
-> this one!
+>
+> Reducing the instruction cache footprint is great, but not if the
+> resulting code is broken!
 
-Okay, I can re-expand my list. I originally had done this but it was
-getting to be a rather large set of people. :)
-
+You don't have to convince compiler folks about correctness. ;)
+Correctness trumps all, especially performance.
 -- 
-Kees Cook
+Thanks,
+~Nick Desaulniers
