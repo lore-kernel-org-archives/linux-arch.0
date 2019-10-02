@@ -1,17 +1,17 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from out01.mta.xmission.com ([166.70.13.231]:53200 "EHLO
+Received: from out01.mta.xmission.com ([166.70.13.231]:54494 "EHLO
         out01.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728316AbfJBOlt (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 2 Oct 2019 10:41:49 -0400
+        with ESMTP id S1726411AbfJBOua (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 2 Oct 2019 10:50:30 -0400
 From: ebiederm@xmission.com (Eric W. Biederman)
 References: <8736gcjosv.fsf@x220.int.ebiederm.org>
         <201910011140.EA0181F13@keescook>
         <87imp8hyc8.fsf@x220.int.ebiederm.org>
         <CAK8P3a1zLATC7rzYxSpAK-z=NJ1rw7-3ZgHqCOJUUf6b9HwK1A@mail.gmail.com>
-Date: Wed, 02 Oct 2019 09:41:00 -0500
+Date: Wed, 02 Oct 2019 09:49:48 -0500
 In-Reply-To: <CAK8P3a1zLATC7rzYxSpAK-z=NJ1rw7-3ZgHqCOJUUf6b9HwK1A@mail.gmail.com>
         (Arnd Bergmann's message of "Wed, 2 Oct 2019 09:31:01 +0200")
-Message-ID: <87a7aji51f.fsf@x220.int.ebiederm.org>
+Message-ID: <87v9t7gq2b.fsf@x220.int.ebiederm.org>
 MIME-Version: 1.0
 Content-Type: text/plain
 Subject: Re: [RFC][PATCH] sysctl: Remove the sysctl system call
@@ -19,52 +19,22 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Arnd Bergmann <arnd@arndb.de>
 Cc: Kees Cook <keescook@chromium.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Andi Kleen <andi@firstfloor.org>, Andi Kleen <ak@linux.intel.com>, Cong Wang <xiyou.wangcong@gmail.com>, Luis Chamberlain <mcgrof@kernel.org>, Apelete Seketeli <apelete@seketeli.net>, Chee Nouk Phoon <cnphoon@altera.com>, Chris Zankel <chris@zankel.net>, Christian Ruppert <christian.ruppert@abilis.com>, Greg Ungerer <gerg@uclinux.org>, Helge Deller <deller@gmx.de>, Hongliang Tao <taohl@lemote.com>, Huacai Chen <chenhc@lemote.com>, Jonas Jensen <jonas.jensen@gmail.com>, Josh Boyer <jwboyer@gmail.com>, Jun Nie <jun.nie@linaro.org>, Lars-Peter Clausen <lars@metafoo.de>, Ley Foon Tan <lftan@altera.com>, Linus Walleij <linus.walleij@linaro.org>, Max Filippov <jcmvbkbc@gmail.com>, Olof Johansson <olof@lixom.net>, Paul Burton <paul.burton@mips.com>, Phil Edworthy <phil.edworthy@renesas.com>, Pierrick Hascoet <pierrick.hascoet@abilis.com>, Ralf Baechle <ralf@linux-mips.org>, Roland Stigge <stigge@antcom.de>, Vineet Gupta <vgupta@synopsys.com>
-Message-ID: <20191002144100.LnfdMcLqwsoff5i7EgJkizB1u2zMEpcQoSLfgZtk-t8@z>
+Message-ID: <20191002144948.P8gQjPwP4idKiV_jj9tySmyEVK1HM4YANl57FqFvmNM@z>
 
 Arnd Bergmann <arnd@arndb.de> writes:
 
 > On Wed, Oct 2, 2019 at 12:54 AM Eric W. Biederman <ebiederm@xmission.com> wrote:
->> Kees Cook <keescook@chromium.org> writes:
->> > On Tue, Oct 01, 2019 at 01:36:32PM -0500, Eric W. Biederman wrote:
->> >
->> > I think you can actually take this further and remove (or at least
->> > empty) the uapi/linux/sysctl.h file too.
->>
->> I copied everyone who had put this into a defconfig and I will wait a
->> little more to see if anyone screams.  I think it is a safe guess that
->> several of the affected configurations are dead (or at least
->> unmaintained) as I received 17 bounces when copying everyone.
->
-> Looking at the arm defconfigs:
->
->> arch/arm/configs/axm55xx_defconfig:CONFIG_SYSCTL_SYSCALL=y
->
-> No notable work on this platform since it got sold to Intel in 2014.
-> I think they still use it but not with mainline kernels that lack support
-> for most drivers and the later chips.
->
->> arch/arm/configs/keystone_defconfig:CONFIG_SYSCTL_SYSCALL=y
->
-> Not that old either, but this hardware is mostly obsoleted by newer variants
-> that we support with the arm64 defconfig.
->
+
 >> arch/arm/configs/lpc32xx_defconfig:CONFIG_SYSCTL_SYSCALL=y
 >> arch/arm/configs/moxart_defconfig:CONFIG_SYSCTL_SYSCALL=y
 >
 > Ancient hardware, but still in active use. These tend to have very little
 > RAM, but they both enable CONFIG_PROC_FS.
->
->> arch/arm/configs/qcom_defconfig:CONFIG_SYSCTL_SYSCALL=y
->> arch/arm/configs/zx_defconfig:CONFIG_SYSCTL_SYSCALL=y
->
-> These are for older Qualcomm and LG chips that tend to be used
-> with Android rather than the defconfig here. Maybe double-check
-> if the official android-common tree enables SYSCTL_SYSCALL.
 
-I just looked quickly at:
-https://android.googlesource.com/kernel/configs/
+You actually have to enable CONFIG_PROC_FS to enable
+CONFIG_SYSCTL_SYSCALL at this point.  CONFIG_SYSCTL_SYSCALL is just an
+emulation of the old interface built on top of /proc.
 
-I don't see the string SYSCTL mentioned anywhere.  Much less
-SYSCTL_SYSCALL.
+Thank you for the feedback.
 
 Eric
