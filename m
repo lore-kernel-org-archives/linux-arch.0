@@ -1,35 +1,74 @@
-From: ebiederm@xmission.com (Eric W. Biederman)
-Subject: Re: [RFC][PATCH] sysctl: Remove the sysctl system call
-Date: Wed, 02 Oct 2019 09:49:48 -0500
-Message-ID: <87v9t7gq2b.fsf@x220.int.ebiederm.org>
-References: <8736gcjosv.fsf@x220.int.ebiederm.org>
-        <201910011140.EA0181F13@keescook>
-        <87imp8hyc8.fsf@x220.int.ebiederm.org>
-        <CAK8P3a1zLATC7rzYxSpAK-z=NJ1rw7-3ZgHqCOJUUf6b9HwK1A@mail.gmail.com>
+From: Will Deacon <will@kernel.org>
+Subject: Re: [PATCH] compiler: enable CONFIG_OPTIMIZE_INLINING forcibly
+Date: Wed, 2 Oct 2019 19:51:33 +0100
+Message-ID: <20191002185133.n6pldb4exyjfesfh@willie-the-truck>
+References: <CAKwvOdnqn=0LndrX+mUrtSAQqoT1JWRMOJCA5t3e=S=T7zkcCQ@mail.gmail.com>
+ <20191001092823.z4zhlbwvtwnlotwc@willie-the-truck>
+ <CAKwvOdk0h2A6=fb7Yepf+oKbZfq_tqwpGq8EBmHVu1j4mo-a-A@mail.gmail.com>
+ <20191001170142.x66orounxuln7zs3@willie-the-truck>
+ <CAKwvOdnFJqipp+G5xLDRBcOrQRcvMQmn+n8fufWyzyt2QL_QkA@mail.gmail.com>
+ <20191001175512.GK25745@shell.armlinux.org.uk>
+ <CAKwvOdmw_xmTGZLeK8-+Q4nUpjs-UypJjHWks-3jHA670Dxa1A@mail.gmail.com>
+ <20191001181438.GL25745@shell.armlinux.org.uk>
+ <CAKwvOdmBnBVU7F-a6DqPU6QM-BRc8LNn6YRmhTsuGLauCWKUOg@mail.gmail.com>
+ <CAMuHMdWPhE1nNkmL1nj3vpQhB7fP3uDs2i_ZVi0Gf9qij4W2CA@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <CAK8P3a1zLATC7rzYxSpAK-z=NJ1rw7-3ZgHqCOJUUf6b9HwK1A@mail.gmail.com>
-        (Arnd Bergmann's message of "Wed, 2 Oct 2019 09:31:01 +0200")
+Content-Disposition: inline
+In-Reply-To: <CAMuHMdWPhE1nNkmL1nj3vpQhB7fP3uDs2i_ZVi0Gf9qij4W2CA@mail.gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Kees Cook <keescook@chromium.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Andi Kleen <andi@firstfloor.org>, Andi Kleen <ak@linux.intel.com>, Cong Wang <xiyou.wangcong@gmail.com>, Luis Chamberlain <mcgrof@kernel.org>, Apelete Seketeli <apelete@seketeli.net>, Chee Nouk Phoon <cnphoon@altera.com>, Chris Zankel <chris@zankel.net>, Christian Ruppert <christian.ruppert@abilis.com>, Greg Ungerer <gerg@uclinux.org>, Helge Deller <deller@gmx.de>, Hongliang Tao <taohl@lemote.com>, Huacai Chen <chenhc@lemote.com>, Jonas Jensen <jonas.jensen@gmail.com>, Josh Boyer <jwboyer@gmail.com>, Jun Nie <jun.nie@linaro.org>
+To: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: Nick Desaulniers <ndesaulniers@google.com>, Russell King - ARM Linux admin <linux@armlinux.org.uk>, Masahiro Yamada <yamada.masahiro@socionext.com>, Linus Torvalds <torvalds@linux-foundation.org>, Nicolas Saenz Julienne <nsaenzjulienne@suse.de>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Miguel Ojeda <miguel.ojeda.sandonis@gmail.com>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Stefan Wahren <wahrenst@gmx.net>, Kees Cook <keescook@google.com>, Arnd Bergmann <arnd@arndb.de>, clang-built-linux <clang-built-linux@googlegroups.com>
 List-Id: linux-arch.vger.kernel.org
 
-Arnd Bergmann <arnd@arndb.de> writes:
+On Wed, Oct 02, 2019 at 02:55:50PM +0200, Geert Uytterhoeven wrote:
+> On Wed, Oct 2, 2019 at 6:33 AM Nick Desaulniers <ndesaulniers@google.com> wrote:
+> > On Tue, Oct 1, 2019 at 11:14 AM Russell King - ARM Linux admin
+> > <linux@armlinux.org.uk> wrote:
+> > > On Tue, Oct 01, 2019 at 11:00:11AM -0700, Nick Desaulniers wrote:
+> > > > On Tue, Oct 1, 2019 at 10:55 AM Russell King - ARM Linux admin
+> > > > <linux@armlinux.org.uk> wrote:
+> > > > > On Tue, Oct 01, 2019 at 10:44:43AM -0700, Nick Desaulniers wrote:
+> > > > > > I apologize; I don't mean to be difficult.  I would just like to avoid
+> > > > > > surprises when code written with the assumption that it will be
+> > > > > > inlined is not.  It sounds like we found one issue in arm32 and one in
+> > > > > > arm64 related to outlining.  If we fix those two cases, I think we're
+> > > > > > close to proceeding with Masahiro's cleanup, which I view as a good
+> > > > > > thing for the health of the Linux kernel codebase.
+> > > > >
+> > > > > Except, using the C preprocessor for this turns the arm32 code into
+> > > > > yuck:
+> > > > >
+> > > > > 1. We'd need to turn get_domain() and set_domain() into multi-line
+> > > > >    preprocessor macro definitions, using the GCC ({ }) extension
+> > > > >    so that get_domain() can return a value.
+> > > > >
+> > > > > 2. uaccess_save_and_enable() and uaccess_restore() also need to
+> > > > >    become preprocessor macro definitions too.
+> > > > >
+> > > > > So, we end up with multiple levels of nested preprocessor macros.
+> > > > > When something goes wrong, the compiler warning/error message is
+> > > > > going to be utterly _horrid_.
+> > > >
+> > > > That's why I preferred V1 of Masahiro's patch, that fixed the inline
+> > > > asm not to make use of caller saved registers before calling a
+> > > > function that might not be inlined.
+> > >
+> > > ... which I objected to based on the fact that this uaccess stuff is
+> > > supposed to add protection against the kernel being fooled into
+> > > accessing userspace when it shouldn't.  The whole intention there is
+> > > that [sg]et_domain(), and uaccess_*() are _always_ inlined as close
+> > > as possible to the call site of the accessor touching userspace.
+> >
+> > Then use the C preprocessor to force the inlining.  I'm sorry it's not
+> > as pretty as static inline functions.
+> 
+> Which makes us lose the baby^H^H^H^Htype checking performed
+> on function parameters, requiring to add more ugly checks.
 
-> On Wed, Oct 2, 2019 at 12:54 AM Eric W. Biederman <ebiederm@xmission.com> wrote:
+Indeed, and the resulting mess is (at least in my opinion) considerably
+worse than where we were in 5.3 and earlier kernels with 'inline' defined
+as '__always_inline'.
 
->> arch/arm/configs/lpc32xx_defconfig:CONFIG_SYSCTL_SYSCALL=y
->> arch/arm/configs/moxart_defconfig:CONFIG_SYSCTL_SYSCALL=y
->
-> Ancient hardware, but still in active use. These tend to have very little
-> RAM, but they both enable CONFIG_PROC_FS.
-
-You actually have to enable CONFIG_PROC_FS to enable
-CONFIG_SYSCTL_SYSCALL at this point.  CONFIG_SYSCTL_SYSCALL is just an
-emulation of the old interface built on top of /proc.
-
-Thank you for the feedback.
-
-Eric
+Will
