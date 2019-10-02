@@ -1,79 +1,38 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:59688 "EHLO mail.kernel.org"
+Received: from mout.gmx.net ([212.227.17.20]:33339 "EHLO mout.gmx.net"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726708AbfJBSvl (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 2 Oct 2019 14:51:41 -0400
-Date: Wed, 2 Oct 2019 19:51:33 +0100
-From: Will Deacon <will@kernel.org>
-Subject: Re: [PATCH] compiler: enable CONFIG_OPTIMIZE_INLINING forcibly
-Message-ID: <20191002185133.n6pldb4exyjfesfh@willie-the-truck>
-References: <CAKwvOdnqn=0LndrX+mUrtSAQqoT1JWRMOJCA5t3e=S=T7zkcCQ@mail.gmail.com>
- <20191001092823.z4zhlbwvtwnlotwc@willie-the-truck>
- <CAKwvOdk0h2A6=fb7Yepf+oKbZfq_tqwpGq8EBmHVu1j4mo-a-A@mail.gmail.com>
- <20191001170142.x66orounxuln7zs3@willie-the-truck>
- <CAKwvOdnFJqipp+G5xLDRBcOrQRcvMQmn+n8fufWyzyt2QL_QkA@mail.gmail.com>
- <20191001175512.GK25745@shell.armlinux.org.uk>
- <CAKwvOdmw_xmTGZLeK8-+Q4nUpjs-UypJjHWks-3jHA670Dxa1A@mail.gmail.com>
- <20191001181438.GL25745@shell.armlinux.org.uk>
- <CAKwvOdmBnBVU7F-a6DqPU6QM-BRc8LNn6YRmhTsuGLauCWKUOg@mail.gmail.com>
- <CAMuHMdWPhE1nNkmL1nj3vpQhB7fP3uDs2i_ZVi0Gf9qij4W2CA@mail.gmail.com>
+        id S1727624AbfJBSxx (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 2 Oct 2019 14:53:53 -0400
+Subject: Re: [RFC][PATCH] sysctl: Remove the sysctl system call
+References: <8736gcjosv.fsf@x220.int.ebiederm.org>
+ <201910011140.EA0181F13@keescook> <87imp8hyc8.fsf@x220.int.ebiederm.org>
+From: Helge Deller <deller@gmx.de>
+Message-ID: <1dc9f6c4-d1ff-8add-4d42-1c2d1ae685f6@gmx.de>
+Date: Wed, 2 Oct 2019 20:52:22 +0200
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <CAMuHMdWPhE1nNkmL1nj3vpQhB7fP3uDs2i_ZVi0Gf9qij4W2CA@mail.gmail.com>
+In-Reply-To: <87imp8hyc8.fsf@x220.int.ebiederm.org>
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Language: en-US
+Content-Transfer-Encoding: quoted-printable
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: Nick Desaulniers <ndesaulniers@google.com>, Russell King - ARM Linux admin <linux@armlinux.org.uk>, Masahiro Yamada <yamada.masahiro@socionext.com>, Linus Torvalds <torvalds@linux-foundation.org>, Nicolas Saenz Julienne <nsaenzjulienne@suse.de>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Miguel Ojeda <miguel.ojeda.sandonis@gmail.com>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Stefan Wahren <wahrenst@gmx.net>, Kees Cook <keescook@google.com>, Arnd Bergmann <arnd@arndb.de>, clang-built-linux <clang-built-linux@googlegroups.com>
-Message-ID: <20191002185133.4NzZr1-3pXriG8gwKeiVQrcXXqPT_9hNeHOAjdZPaUY@z>
+To: "Eric W. Biederman" <ebiederm@xmission.com>, Kees Cook <keescook@chromium.org>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andi Kleen <andi@firstfloor.org>, Andi Kleen <ak@linux.intel.com>, Cong Wang <xiyou.wangcong@gmail.com>, Luis Chamberlain <mcgrof@kernel.org>, Apelete Seketeli <apelete@seketeli.net>, Arnd Bergmann <arnd@arndb.de>, Chee Nouk Phoon <cnphoon@altera.com>, Chris Zankel <chris@zankel.net>, Christian Ruppert <christian.ruppert@abilis.com>, Greg Ungerer <gerg@uclinux.org>, Hongliang Tao <taohl@lemote.com>, Huacai Chen <chenhc@lemote.com>, Jonas Jensen <jonas.jensen@gmail.com>, Josh Boyer <jwboyer@gmail.com>, Jun Nie <jun.nie@linaro.org>, Lars-Peter Clausen <lars@metafoo.de>, Ley Foon Tan <lftan@altera.com>, Linus Walleij <linus.walleij@linaro.org>, Max Filippov <jcmvbkbc@gmail.com>, Olof Johansson <olof@lixom.net>, Paul Burton <paul.burton@mips.com>, Phil Edworthy <phil.edworthy@renesas.com>, Pierrick Hascoet <pierrick.hascoet@abilis.com>, Ralf Baechle <ralf@linux-mips.org>, Roland Stigge <stigge@antcom.de>, Vineet Gupta <vgupta@synopsys.com>
+Message-ID: <20191002185222.IaE09SEJnF7JEw7v5TRyR80eqMOdOdtZZAulnUpj9tc@z>
 
-On Wed, Oct 02, 2019 at 02:55:50PM +0200, Geert Uytterhoeven wrote:
-> On Wed, Oct 2, 2019 at 6:33 AM Nick Desaulniers <ndesaulniers@google.com> wrote:
-> > On Tue, Oct 1, 2019 at 11:14 AM Russell King - ARM Linux admin
-> > <linux@armlinux.org.uk> wrote:
-> > > On Tue, Oct 01, 2019 at 11:00:11AM -0700, Nick Desaulniers wrote:
-> > > > On Tue, Oct 1, 2019 at 10:55 AM Russell King - ARM Linux admin
-> > > > <linux@armlinux.org.uk> wrote:
-> > > > > On Tue, Oct 01, 2019 at 10:44:43AM -0700, Nick Desaulniers wrote:
-> > > > > > I apologize; I don't mean to be difficult.  I would just like to avoid
-> > > > > > surprises when code written with the assumption that it will be
-> > > > > > inlined is not.  It sounds like we found one issue in arm32 and one in
-> > > > > > arm64 related to outlining.  If we fix those two cases, I think we're
-> > > > > > close to proceeding with Masahiro's cleanup, which I view as a good
-> > > > > > thing for the health of the Linux kernel codebase.
-> > > > >
-> > > > > Except, using the C preprocessor for this turns the arm32 code into
-> > > > > yuck:
-> > > > >
-> > > > > 1. We'd need to turn get_domain() and set_domain() into multi-line
-> > > > >    preprocessor macro definitions, using the GCC ({ }) extension
-> > > > >    so that get_domain() can return a value.
-> > > > >
-> > > > > 2. uaccess_save_and_enable() and uaccess_restore() also need to
-> > > > >    become preprocessor macro definitions too.
-> > > > >
-> > > > > So, we end up with multiple levels of nested preprocessor macros.
-> > > > > When something goes wrong, the compiler warning/error message is
-> > > > > going to be utterly _horrid_.
-> > > >
-> > > > That's why I preferred V1 of Masahiro's patch, that fixed the inline
-> > > > asm not to make use of caller saved registers before calling a
-> > > > function that might not be inlined.
-> > >
-> > > ... which I objected to based on the fact that this uaccess stuff is
-> > > supposed to add protection against the kernel being fooled into
-> > > accessing userspace when it shouldn't.  The whole intention there is
-> > > that [sg]et_domain(), and uaccess_*() are _always_ inlined as close
-> > > as possible to the call site of the accessor touching userspace.
-> >
-> > Then use the C preprocessor to force the inlining.  I'm sorry it's not
-> > as pretty as static inline functions.
-> 
-> Which makes us lose the baby^H^H^H^Htype checking performed
-> on function parameters, requiring to add more ugly checks.
+On 02.10.19 00:53, Eric W. Biederman wrote:
+> Kees Cook <keescook@chromium.org> writes:
+>>> As there appear to be no users of the sysctl system call, remove the
+>>> code....>...
+> I copied everyone who had put this into a defconfig and I will wait a
+> little more to see if anyone screams.  I think it is a safe guess that
+> several of the affected configurations are dead (or at least
+> unmaintained) as I received 17 bounces when copying everyone.
 
-Indeed, and the resulting mess is (at least in my opinion) considerably
-worse than where we were in 5.3 and earlier kernels with 'inline' defined
-as '__always_inline'.
+  arch/parisc/configs/c8000_defconfig         |    1 -
+  arch/parisc/configs/generic-32bit_defconfig |    1 -
 
-Will
+I'm not aware that we require the sysctl syscall somewhere on parisc,
+so I think it's safe to remove the code.
+
+Helge
