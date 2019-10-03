@@ -1,7 +1,7 @@
 From: paulmck@kernel.org
-Subject: [PATCH tip/core/rcu 13/32] tools/memory-model: Fix checkalllitmus.sh comment
-Date: Wed,  2 Oct 2019 17:26:31 -0700
-Message-ID: <20191003002650.11249-13-paulmck@kernel.org>
+Subject: [PATCH tip/core/rcu 05/32] tools/memory-model: Make judgelitmus.sh note timeouts
+Date: Wed,  2 Oct 2019 17:26:23 -0700
+Message-ID: <20191003002650.11249-5-paulmck@kernel.org>
 References: <20191003001039.GA8027@paulmck-ThinkPad-P72>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20191003001039.GA8027@paulmck-ThinkPad-P72>
@@ -12,29 +12,35 @@ List-Id: linux-arch.vger.kernel.org
 
 From: "Paul E. McKenney" <paulmck@linux.ibm.com>
 
-The checkalllitmus.sh runs litmus tests in the litmus-tests directory,
-not those in the github archive, so this commit updates the comment to
-reflect this reality.
+Currently, judgelitmus.sh treats timeouts (as in the "--timeout" argument)
+as "!!! Verification error".  This can be misleading because it is quite
+possible that running the test longer would have produced a verification.
+This commit therefore changes judgelitmus.sh to check for timeouts and
+to report them with "!!! Timeout".
 
 Signed-off-by: Paul E. McKenney <paulmck@linux.ibm.com>
 ---
- tools/memory-model/scripts/checkalllitmus.sh | 4 ++--
- 1 file changed, 2 insertions(+), 2 deletions(-)
+ tools/memory-model/scripts/judgelitmus.sh | 8 ++++++++
+ 1 file changed, 8 insertions(+)
 
-diff --git a/tools/memory-model/scripts/checkalllitmus.sh b/tools/memory-model/scripts/checkalllitmus.sh
-index 10e14d9..54d8da8 100755
---- a/tools/memory-model/scripts/checkalllitmus.sh
-+++ b/tools/memory-model/scripts/checkalllitmus.sh
-@@ -30,8 +30,8 @@ else
- 	exit 255
- fi
- 
--# Create any new directories that have appeared in the github litmus
--# repo since the last run.
-+# Create any new directories that have appeared in the litmus-tests
-+# directory since the last run.
- if test "$LKMM_DESTDIR" != "."
+diff --git a/tools/memory-model/scripts/judgelitmus.sh b/tools/memory-model/scripts/judgelitmus.sh
+index 0cc6387..d3c313b 100755
+--- a/tools/memory-model/scripts/judgelitmus.sh
++++ b/tools/memory-model/scripts/judgelitmus.sh
+@@ -42,6 +42,14 @@ grep '^Observation' $LKMM_DESTDIR/$litmus.out
+ if grep -q '^Observation' $LKMM_DESTDIR/$litmus.out
  then
- 	find $litmusdir -type d -print |
+ 	:
++elif grep '^Command exited with non-zero status 124' $LKMM_DESTDIR/$litmus.out
++then
++	echo ' !!! Timeout' $litmus
++	if ! grep -q '!!!' $LKMM_DESTDIR/$litmus.out
++	then
++		echo ' !!! Timeout' >> $LKMM_DESTDIR/$litmus.out 2>&1
++	fi
++	exit 124
+ else
+ 	echo ' !!! Verification error' $litmus
+ 	if ! grep -q '!!!' $LKMM_DESTDIR/$litmus.out
 -- 
 2.9.5
