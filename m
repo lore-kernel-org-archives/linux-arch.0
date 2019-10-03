@@ -1,7 +1,7 @@
 From: paulmck@kernel.org
-Subject: [PATCH tip/core/rcu 10/32] tools/memory-model: Update parseargs.sh for hardware verification
-Date: Wed,  2 Oct 2019 17:26:28 -0700
-Message-ID: <20191003002650.11249-10-paulmck@kernel.org>
+Subject: [PATCH tip/core/rcu 06/32] tools/memory-model: Make cmplitmushist.sh note timeouts
+Date: Wed,  2 Oct 2019 17:26:24 -0700
+Message-ID: <20191003002650.11249-6-paulmck@kernel.org>
 References: <20191003001039.GA8027@paulmck-ThinkPad-P72>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20191003001039.GA8027@paulmck-ThinkPad-P72>
@@ -12,54 +12,62 @@ List-Id: linux-arch.vger.kernel.org
 
 From: "Paul E. McKenney" <paulmck@linux.ibm.com>
 
-This commit adds a --hw argument to parseargs.sh to specify the CPU
-family for a hardware verification.  For example, "--hw AArch64" will
-specify that a C-language litmus test is to be translated to ARMv8 and
-the result verified.  This will set the LKMM_HW_MAP_FILE environment
-variable accordingly.  If there is no --hw argument, this environment
-variable will be set to the empty string.
+Currently, cmplitmushist.sh treats timeouts (as in the "--timeout"
+argument) as "Missing Observation line".  This can be misleading because
+it is quite possible that running the test longer would have produced
+a verification.  This commit therefore changes cmplitmushist.sh to check
+for timeouts and to report them with "Timed out".
 
 Signed-off-by: Paul E. McKenney <paulmck@linux.ibm.com>
 ---
- tools/memory-model/scripts/parseargs.sh | 9 ++++++++-
- 1 file changed, 8 insertions(+), 1 deletion(-)
+ tools/memory-model/scripts/cmplitmushist.sh | 22 ++++++++++++++++++++++
+ 1 file changed, 22 insertions(+)
 
-diff --git a/tools/memory-model/scripts/parseargs.sh b/tools/memory-model/scripts/parseargs.sh
-index afe7bd2..5f016fc 100755
---- a/tools/memory-model/scripts/parseargs.sh
-+++ b/tools/memory-model/scripts/parseargs.sh
-@@ -27,6 +27,7 @@ initparam () {
+diff --git a/tools/memory-model/scripts/cmplitmushist.sh b/tools/memory-model/scripts/cmplitmushist.sh
+index 0f498ae..b9c174d 100755
+--- a/tools/memory-model/scripts/cmplitmushist.sh
++++ b/tools/memory-model/scripts/cmplitmushist.sh
+@@ -12,12 +12,30 @@ trap 'rm -rf $T' 0
+ mkdir $T
  
- initparam LKMM_DESTDIR "."
- initparam LKMM_HERD_OPTIONS "-conf linux-kernel.cfg"
-+initparam LKMM_HW_MAP_FILE ""
- initparam LKMM_JOBS `getconf _NPROCESSORS_ONLN`
- initparam LKMM_PROCS "3"
- initparam LKMM_TIMEOUT "1m"
-@@ -37,10 +38,11 @@ usagehelp () {
- 	echo "Usage $scriptname [ arguments ]"
- 	echo "      --destdir path (place for .litmus.out, default by .litmus)"
- 	echo "      --herdopts -conf linux-kernel.cfg ..."
-+	echo "      --hw AArch64"
- 	echo "      --jobs N (number of jobs, default one per CPU)"
- 	echo "      --procs N (litmus tests with at most this many processes)"
- 	echo "      --timeout N (herd7 timeout (e.g., 10s, 1m, 2hr, 1d, '')"
--	echo "Defaults: --destdir '$LKMM_DESTDIR_DEF' --herdopts '$LKMM_HERD_OPTIONS_DEF' --jobs '$LKMM_JOBS_DEF' --procs '$LKMM_PROCS_DEF' --timeout '$LKMM_TIMEOUT_DEF'"
-+	echo "Defaults: --destdir '$LKMM_DESTDIR_DEF' --herdopts '$LKMM_HERD_OPTIONS_DEF' --hw '$LKMM_HW_MAP_FILE' --jobs '$LKMM_JOBS_DEF' --procs '$LKMM_PROCS_DEF' --timeout '$LKMM_TIMEOUT_DEF'"
- 	exit 1
- }
- 
-@@ -95,6 +97,11 @@ do
- 		LKMM_HERD_OPTIONS="$2"
- 		shift
- 		;;
-+	--hw)
-+		checkarg --hw "(.map file architecture name)" "$#" "$2" '^[A-Za-z0-9_-]\+' '^--'
-+		LKMM_HW_MAP_FILE="$2"
-+		shift
-+		;;
- 	-j[1-9]*)
- 		njobs="`echo $1 | sed -e 's/^-j//'`"
- 		trailchars="`echo $njobs | sed -e 's/[0-9]\+\(.*\)$/\1/'`"
+ # comparetest oldpath newpath
++timedout=0
+ perfect=0
+ obsline=0
+ noobsline=0
+ obsresult=0
+ badcompare=0
+ comparetest () {
++	if grep -q '^Command exited with non-zero status 124' $1 ||
++	   grep -q '^Command exited with non-zero status 124' $2
++	then
++		if grep -q '^Command exited with non-zero status 124' $1 &&
++		   grep -q '^Command exited with non-zero status 124' $2
++		then
++			echo Both runs timed out: $2
++		elif grep -q '^Command exited with non-zero status 124' $1
++		then
++			echo Old run timed out: $2
++		elif grep -q '^Command exited with non-zero status 124' $2
++		then
++			echo New run timed out: $2
++		fi
++		timedout=`expr "$timedout" + 1`
++		return 0
++	fi
+ 	grep -v 'maxresident)k\|minor)pagefaults\|^Time' $1 > $T/oldout
+ 	grep -v 'maxresident)k\|minor)pagefaults\|^Time' $2 > $T/newout
+ 	if cmp -s $T/oldout $T/newout && grep -q '^Observation' $1
+@@ -78,6 +96,10 @@ if test "$obsresult" -ne 0
+ then
+ 	echo Matching Observation Always/Sometimes/Never result: $obsresult 1>&2
+ fi
++if test "$timedout" -ne 0
++then
++	echo "!!!" Timed out: $timedout 1>&2
++fi
+ if test "$badcompare" -ne 0
+ then
+ 	echo "!!!" Result changed: $badcompare 1>&2
 -- 
 2.9.5
