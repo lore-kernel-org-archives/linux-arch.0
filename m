@@ -1,8 +1,8 @@
 From: Leonardo Bras <leonardo@linux.ibm.com>
-Subject: [PATCH v5 05/11] powerpc/perf: Applies counting method to monitor
- lockless pgtbl walks
-Date: Wed,  2 Oct 2019 22:33:19 -0300
-Message-ID: <20191003013325.2614-6-leonardo@linux.ibm.com>
+Subject: [PATCH v5 10/11] mm/Kconfig: Adds config option to track lockless
+ pagetable walks
+Date: Wed,  2 Oct 2019 22:33:24 -0300
+Message-ID: <20191003013325.2614-11-leonardo@linux.ibm.com>
 References: <20191003013325.2614-1-leonardo@linux.ibm.com>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
@@ -22,49 +22,33 @@ To: linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, kvm-ppc@vger.ke
 Cc: Song Liu <songliubraving@fb.com>, Michal Hocko <mhocko@suse.com>, "Peter Zijlstra (Intel)" <peterz@infradead.org>, "Dmitry V. Levin" <ldv@altlinux.org>, Keith Busch <keith.busch@intel.com>, Paul Mackerras <paulus@samba.org>, Christoph Lameter <cl@linux.com>, Ira Weiny <ira.weiny@intel.com>, Thomas Gleixner <tglx@linutronix.de>, Elena Reshetova <elena.reshetova@intel.com>, Andrea Arcangeli <aarcange@redhat.com>, Santosh Sivaraj <santosh@fossix.org>, Davidlohr Bueso <dave@stgolabs.net>, "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>, Bartlomiej Zolnierkiewicz <b.zolnierkie@samsung.com>, Mike Rapoport <rppt@linux.ibm.com>, Jason Gunthorpe <jgg@ziepe.ca>, Allison Randal <allison@lohutok.net>, Mahesh Salgaonkar <mahesh@linux.vnet.ibm.com>, Leonardo Bras <leonardo@linux.ibm.com>, Alexey Dobriyan <adobriyan@gmail.com>, Ingo Molnar <mingo@kernel.org>, Ralph Campbell <rcampbe>
 List-Id: linux-arch.vger.kernel.org
 
-Applies the counting-based method for monitoring lockless pgtable walks on
-read_user_stack_slow.
-
-local_irq_{save,restore} is already inside {begin,end}_lockless_pgtbl_walk,
-so there is no need to repeat it here.
-
-Variable that saves the irq mask was renamed from flags to irq_mask so it
-doesn't lose meaning now it's not directly passed to local_irq_* functions.
+Adds config option LOCKLESS_PAGE_TABLE_WALK_TRACKING to make possible
+enabling tracking lockless pagetable walks directly from kernel config.
 
 Signed-off-by: Leonardo Bras <leonardo@linux.ibm.com>
 ---
- arch/powerpc/perf/callchain.c | 6 +++---
- 1 file changed, 3 insertions(+), 3 deletions(-)
+ mm/Kconfig | 11 +++++++++++
+ 1 file changed, 11 insertions(+)
 
-diff --git a/arch/powerpc/perf/callchain.c b/arch/powerpc/perf/callchain.c
-index c84bbd4298a0..43e49d8be344 100644
---- a/arch/powerpc/perf/callchain.c
-+++ b/arch/powerpc/perf/callchain.c
-@@ -116,14 +116,14 @@ static int read_user_stack_slow(void __user *ptr, void *buf, int nb)
- 	unsigned shift;
- 	unsigned long addr = (unsigned long) ptr;
- 	unsigned long offset;
--	unsigned long pfn, flags;
-+	unsigned long pfn, irq_mask;
- 	void *kaddr;
+diff --git a/mm/Kconfig b/mm/Kconfig
+index a5dae9a7eb51..00f487a0122f 100644
+--- a/mm/Kconfig
++++ b/mm/Kconfig
+@@ -736,4 +736,15 @@ config ARCH_HAS_PTE_SPECIAL
+ config ARCH_HAS_HUGEPD
+ 	bool
  
- 	pgdir = current->mm->pgd;
- 	if (!pgdir)
- 		return -EFAULT;
- 
--	local_irq_save(flags);
-+	irq_mask = begin_lockless_pgtbl_walk(current->mm);
- 	ptep = find_current_mm_pte(pgdir, addr, NULL, &shift);
- 	if (!ptep)
- 		goto err_out;
-@@ -145,7 +145,7 @@ static int read_user_stack_slow(void __user *ptr, void *buf, int nb)
- 	memcpy(buf, kaddr + offset, nb);
- 	ret = 0;
- err_out:
--	local_irq_restore(flags);
-+	end_lockless_pgtbl_walk(current->mm, irq_mask);
- 	return ret;
- }
- 
++config LOCKLESS_PAGE_TABLE_WALK_TRACKING
++	bool "Track (and optimize) lockless page table walks"
++	default n
++
++	help
++	  Maintain a reference count of active lockless page table
++	  walkers. This adds 4 bytes to struct mm size, and two atomic
++	  operations to calls such as get_user_pages_fast(). Some
++	  architectures can optimize lockless page table operations if
++	  this is enabled.
++
+ endmenu
 -- 
 2.20.1
