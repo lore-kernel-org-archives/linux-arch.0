@@ -1,7 +1,7 @@
 From: paulmck@kernel.org
-Subject: [PATCH tip/core/rcu 25/32] tools/memory-model: Make checkghlitmus.sh use mselect7
-Date: Wed,  2 Oct 2019 17:26:43 -0700
-Message-ID: <20191003002650.11249-25-paulmck@kernel.org>
+Subject: [PATCH tip/core/rcu 22/32] tools/memory-model: Add -v flag to jingle7 runs
+Date: Wed,  2 Oct 2019 17:26:40 -0700
+Message-ID: <20191003002650.11249-22-paulmck@kernel.org>
 References: <20191003001039.GA8027@paulmck-ThinkPad-P72>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20191003001039.GA8027@paulmck-ThinkPad-P72>
@@ -12,30 +12,33 @@ List-Id: linux-arch.vger.kernel.org
 
 From: "Paul E. McKenney" <paulmck@linux.ibm.com>
 
-The checkghlitmus.sh script currently uses grep to ignore non-C-language
-litmus tests, which is a bit fragile.  This commit therefore enlists the
-aid of "mselect7 -arch C", given Luc Maraget's recent modifications that
-allow mselect7 to operate in filter mode.
+Adding the -v flag to jingle7 invocations gives much useful information
+on why jingle7 didn't like a given litmus test.  This commit therefore
+adds this flag and saves off any such information into a .err file.
 
-This change requires herdtools 7.52-32-g1da3e0e50977 or later.
-
+Suggested-by: Luc Maranget <luc.maranget@inria.fr>
 Signed-off-by: Paul E. McKenney <paulmck@linux.ibm.com>
 ---
- tools/memory-model/scripts/checkghlitmus.sh | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+ tools/memory-model/scripts/runlitmus.sh | 5 +++--
+ 1 file changed, 3 insertions(+), 2 deletions(-)
 
-diff --git a/tools/memory-model/scripts/checkghlitmus.sh b/tools/memory-model/scripts/checkghlitmus.sh
-index 2ea220d..cedd029 100755
---- a/tools/memory-model/scripts/checkghlitmus.sh
-+++ b/tools/memory-model/scripts/checkghlitmus.sh
-@@ -41,7 +41,7 @@ fi
+diff --git a/tools/memory-model/scripts/runlitmus.sh b/tools/memory-model/scripts/runlitmus.sh
+index 5f2d29b..dfdb1f0 100755
+--- a/tools/memory-model/scripts/runlitmus.sh
++++ b/tools/memory-model/scripts/runlitmus.sh
+@@ -68,10 +68,11 @@ fi
  
- # Create a list of C-language litmus tests with "Result:" commands and
- # no more than the specified number of processes.
--find litmus -name '*.litmus' -exec grep -l -m 1 "^C " {} \; > $T/list-C
-+find litmus -name '*.litmus' -print | mselect7 -arch C > $T/list-C
- xargs < $T/list-C -r egrep -l '^ \* Result: (Never|Sometimes|Always|DEADLOCK)' > $T/list-C-result
- xargs < $T/list-C-result -r grep -L "^P${LKMM_PROCS}" > $T/list-C-result-short
- 
+ # Generate the assembly code and run herd7 on it.
+ gen_theme7 -n 10 -map $mapfile -call Linux.call > $themefile
+-jingle7 -theme $themefile $litmus > $LKMM_DESTDIR/$hwlitmus 2> $T/$hwlitmusfile.jingle7.out
++jingle7 -v -theme $themefile $litmus > $LKMM_DESTDIR/$hwlitmus 2> $T/$hwlitmusfile.jingle7.out
+ if grep -q "Generated 0 tests" $T/$hwlitmusfile.jingle7.out
+ then
+-	echo ' !!! ' jingle7 failed, no $hwlitmus generated
++	echo ' !!! ' jingle7 failed, errors in $hwlitmus.err
++	cp $T/$hwlitmusfile.jingle7.out $LKMM_DESTDIR/$hwlitmus.err
+ 	exit 253
+ fi
+ /usr/bin/time $LKMM_TIMEOUT_CMD herd7 $LKMM_DESTDIR/$hwlitmus > $LKMM_DESTDIR/$hwlitmus.out 2>&1
 -- 
 2.9.5
