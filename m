@@ -1,7 +1,7 @@
-From: Masahiro Yamada <yamada.masahiro@socionext.com>
+From: Linus Torvalds <torvalds@linux-foundation.org>
 Subject: Re: [PATCH] compiler: enable CONFIG_OPTIMIZE_INLINING forcibly
-Date: Fri, 4 Oct 2019 02:23:36 +0900
-Message-ID: <CAK7LNATSoOD0g=Aarui6Y26E_YB035NsaPpHxqtBNyw0K0UXVw@mail.gmail.com>
+Date: Thu, 3 Oct 2019 10:29:21 -0700
+Message-ID: <CAHk-=wj9Dbom1x7qDfrXgNbjdFa_84bAUMdGigs4sELQQW28wg@mail.gmail.com>
 References: <20190930112636.vx2qxo4hdysvxibl@willie-the-truck>
  <CAK7LNASQZ82KSOrQW7+Wq1vFDCg2__maBEAPMLqUDqZMLuj1rA@mail.gmail.com>
  <20190930121803.n34i63scet2ec7ll@willie-the-truck> <CAKwvOdnqn=0LndrX+mUrtSAQqoT1JWRMOJCA5t3e=S=T7zkcCQ@mail.gmail.com>
@@ -11,71 +11,34 @@ References: <20190930112636.vx2qxo4hdysvxibl@willie-the-truck>
  <20191001181438.GL25745@shell.armlinux.org.uk> <CAKwvOdmBnBVU7F-a6DqPU6QM-BRc8LNn6YRmhTsuGLauCWKUOg@mail.gmail.com>
  <CAMuHMdWPhE1nNkmL1nj3vpQhB7fP3uDs2i_ZVi0Gf9qij4W2CA@mail.gmail.com>
  <CAHk-=wgFODvdFBHzgVf3JjoBz0z6LZhOm8xvMntsvOr66ASmZQ@mail.gmail.com>
- <CAK7LNARM2jVSdgCDJWDbvVxYLiUR_CFgTPg0nxzbCszSKcx+pg@mail.gmail.com> <CAHk-=wiMm3rN15WmiAqMHjC-pakL_b8qgWsPPri0+YLFORT-ZA@mail.gmail.com>
+ <CAK7LNARM2jVSdgCDJWDbvVxYLiUR_CFgTPg0nxzbCszSKcx+pg@mail.gmail.com>
+ <CAHk-=wiMm3rN15WmiAqMHjC-pakL_b8qgWsPPri0+YLFORT-ZA@mail.gmail.com> <CAK7LNATSoOD0g=Aarui6Y26E_YB035NsaPpHxqtBNyw0K0UXVw@mail.gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <CAHk-=wiMm3rN15WmiAqMHjC-pakL_b8qgWsPPri0+YLFORT-ZA@mail.gmail.com>
+In-Reply-To: <CAK7LNATSoOD0g=Aarui6Y26E_YB035NsaPpHxqtBNyw0K0UXVw@mail.gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Linus Torvalds <torvalds@linux-foundation.org>
+To: Masahiro Yamada <yamada.masahiro@socionext.com>
 Cc: Geert Uytterhoeven <geert@linux-m68k.org>, Nick Desaulniers <ndesaulniers@google.com>, Russell King - ARM Linux admin <linux@armlinux.org.uk>, Will Deacon <will@kernel.org>, Nicolas Saenz Julienne <nsaenzjulienne@suse.de>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Miguel Ojeda <miguel.ojeda.sandonis@gmail.com>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Stefan Wahren <wahrenst@gmx.net>, Kees Cook <keescook@google.com>, Arnd Bergmann <arnd@arndb.de>, clang-built-linux <clang-built-linux@googlegroups.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, Oct 4, 2019 at 2:02 AM Linus Torvalds
-<torvalds@linux-foundation.org> wrote:
+On Thu, Oct 3, 2019 at 10:24 AM Masahiro Yamada
+<yamada.masahiro@socionext.com> wrote:
 >
-> On Wed, Oct 2, 2019 at 7:11 PM Masahiro Yamada
-> <yamada.masahiro@socionext.com> wrote:
-> >
-> > Macrofying the 'inline' is a horrid mistake that makes incorrect code work.
-> > It would eternally prevent people from writing portable, correct code.
-> > Please do not encourage to hide problems.
->
-> Honestly, if the alternative to hiding problems is "use a macro", then
-> I'd rather hide the problems and just make "inline" means "inline".
->
-> If "inline" means "it's just a hint, use macros", then inline is useless.
+> I just want to annotate __always_inline for the case
+> "2. code that if not inlined is somehow not correct."
 
-For clarification,
-I am not saying "use macros" at all.
+Oh, I support that entirely - if only for documentation.
 
+But I do *not* support the dismissal of the architecture maintainers
+concerns about "does it work?" and apparently known compiler bugs.
 
-I just want to annotate __always_inline for the case
-"2. code that if not inlined is somehow not correct."
+> Again, not saying "use a macro".
 
+Other people did, though.
 
+And there seemed to be little balancing of the pain vs the gain. The
+gain really isn't that obvious. If the code shrinks by a couple of kB,
+is that good or bad? Maybe it is smaller, but is it _better_?
 
-> If "inline" means "using this means that there are known compiler
-> bugs, but we don't know where they trigger", then inline is _worse_
-> than useless.
->
-> I do not see the big advantage of letting the compiler say "yeah, I'm
-> not going to do that, Dave".
->
-> And I see a *huge* disadvantage when people are ignoring compiler
-> bugs, and are saying "use a macro". Seriously.
-
-
-Again, not saying "use a macro".
-
-
-
->
-> Right now we see the obvious compiler bugs that cause build breakages.
-> How many non-obvious compiler bugs do we have? And how sure are you
-> that our code is "correct" after fixing a couple of obvious cases?
->
-> As to "portable", nobody cares. We're a kernel. We aren't portable,
-> and never were.
->
-> If this is purely about the fact that x86 is different from other
-> architectures, then let's remove the "compiler can do stupid things"
-> option on x86 too. It was never clear that it was a huge advantage.
->
->                Linus
-
-
-
--- 
-Best Regards
-Masahiro Yamada
+            Linus
