@@ -1,109 +1,56 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH v5 01/11] asm-generic/pgtable: Adds generic functions to
- monitor lockless pgtable walks
-Date: Thu, 3 Oct 2019 13:51:41 +0200
-Message-ID: <20191003115141.GJ4581@hirez.programming.kicks-ass.net>
-References: <20191003013325.2614-1-leonardo@linux.ibm.com>
- <20191003013325.2614-2-leonardo@linux.ibm.com>
- <20191003071145.GM4536@hirez.programming.kicks-ass.net>
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Subject: Re: [PATCH] compiler: enable CONFIG_OPTIMIZE_INLINING forcibly
+Date: Thu, 3 Oct 2019 10:01:52 -0700
+Message-ID: <CAHk-=wiMm3rN15WmiAqMHjC-pakL_b8qgWsPPri0+YLFORT-ZA@mail.gmail.com>
+References: <20190930112636.vx2qxo4hdysvxibl@willie-the-truck>
+ <CAK7LNASQZ82KSOrQW7+Wq1vFDCg2__maBEAPMLqUDqZMLuj1rA@mail.gmail.com>
+ <20190930121803.n34i63scet2ec7ll@willie-the-truck> <CAKwvOdnqn=0LndrX+mUrtSAQqoT1JWRMOJCA5t3e=S=T7zkcCQ@mail.gmail.com>
+ <20191001092823.z4zhlbwvtwnlotwc@willie-the-truck> <CAKwvOdk0h2A6=fb7Yepf+oKbZfq_tqwpGq8EBmHVu1j4mo-a-A@mail.gmail.com>
+ <20191001170142.x66orounxuln7zs3@willie-the-truck> <CAKwvOdnFJqipp+G5xLDRBcOrQRcvMQmn+n8fufWyzyt2QL_QkA@mail.gmail.com>
+ <20191001175512.GK25745@shell.armlinux.org.uk> <CAKwvOdmw_xmTGZLeK8-+Q4nUpjs-UypJjHWks-3jHA670Dxa1A@mail.gmail.com>
+ <20191001181438.GL25745@shell.armlinux.org.uk> <CAKwvOdmBnBVU7F-a6DqPU6QM-BRc8LNn6YRmhTsuGLauCWKUOg@mail.gmail.com>
+ <CAMuHMdWPhE1nNkmL1nj3vpQhB7fP3uDs2i_ZVi0Gf9qij4W2CA@mail.gmail.com>
+ <CAHk-=wgFODvdFBHzgVf3JjoBz0z6LZhOm8xvMntsvOr66ASmZQ@mail.gmail.com> <CAK7LNARM2jVSdgCDJWDbvVxYLiUR_CFgTPg0nxzbCszSKcx+pg@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
-Content-Disposition: inline
-In-Reply-To: <20191003071145.GM4536@hirez.programming.kicks-ass.net>
-List-Unsubscribe: <https://lists.ozlabs.org/options/linuxppc-dev>,
- <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=unsubscribe>
-List-Archive: <http://lists.ozlabs.org/pipermail/linuxppc-dev/>
-List-Post: <mailto:linuxppc-dev@lists.ozlabs.org>
-List-Help: <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=help>
-List-Subscribe: <https://lists.ozlabs.org/listinfo/linuxppc-dev>,
- <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=subscribe>
-Errors-To: linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org
-Sender: "Linuxppc-dev"
- <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
-To: Leonardo Bras <leonardo@linux.ibm.com>
-Cc: Song Liu <songliubraving@fb.com>, Michal Hocko <mhocko@suse.com>, "Dmitry V. Levin" <ldv@altlinux.org>, Keith Busch <keith.busch@intel.com>, linux-mm@kvack.org, Paul Mackerras <paulus@samba.org>, Christoph Lameter <cl@linux.com>, Ira Weiny <ira.weiny@intel.com>, Dan Williams <dan.j.williams@intel.com>, Elena Reshetova <elena.reshetova@intel.com>, linux-arch@vger.kernel.org, Santosh Sivaraj <santosh@fossix.org>, Davidlohr Bueso <dave@stgolabs.net>, "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>, Bartlomiej Zolnierkiewicz <b.zolnierkie@samsung.com>, Mike Rapoport <rppt@linux.ibm.com>, Jason Gunthorpe <jgg@ziepe.ca>, Vlastimil Babka <vbabka@suse.cz>, Mahesh Salgaonkar <mahesh@linux.vnet.ibm.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexey Dobriyan <adobriyan@gmail.com>, Ingo Molnar <mingo@kernel.org>, Andrea Arcangeli <aarcange@redhat.com>, Ralph Campbell <rcampbel>
+Content-Type: text/plain; charset="UTF-8"
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <CAK7LNARM2jVSdgCDJWDbvVxYLiUR_CFgTPg0nxzbCszSKcx+pg@mail.gmail.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Masahiro Yamada <yamada.masahiro@socionext.com>
+Cc: Geert Uytterhoeven <geert@linux-m68k.org>, Nick Desaulniers <ndesaulniers@google.com>, Russell King - ARM Linux admin <linux@armlinux.org.uk>, Will Deacon <will@kernel.org>, Nicolas Saenz Julienne <nsaenzjulienne@suse.de>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Miguel Ojeda <miguel.ojeda.sandonis@gmail.com>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Stefan Wahren <wahrenst@gmx.net>, Kees Cook <keescook@google.com>, Arnd Bergmann <arnd@arndb.de>, clang-built-linux <clang-built-linux@googlegroups.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, Oct 03, 2019 at 09:11:45AM +0200, Peter Zijlstra wrote:
-> On Wed, Oct 02, 2019 at 10:33:15PM -0300, Leonardo Bras wrote:
-> > diff --git a/include/asm-generic/pgtable.h b/include/asm-generic/pgtable.h
-> > index 818691846c90..3043ea9812d5 100644
-> > --- a/include/asm-generic/pgtable.h
-> > +++ b/include/asm-generic/pgtable.h
-> > @@ -1171,6 +1171,64 @@ static inline bool arch_has_pfn_modify_check(void)
-> >  #endif
-> >  #endif
-> >  
-> > +#ifndef __HAVE_ARCH_LOCKLESS_PGTBL_WALK_CONTROL
-> > +static inline unsigned long begin_lockless_pgtbl_walk(struct mm_struct *mm)
-> > +{
-> > +	unsigned long irq_mask;
-> > +
-> > +	if (IS_ENABLED(CONFIG_LOCKLESS_PAGE_TABLE_WALK_TRACKING))
-> > +		atomic_inc(&mm->lockless_pgtbl_walkers);
-> 
-> This will not work for file backed THP. Also, this is a fairly serious
-> contention point all on its own.
+On Wed, Oct 2, 2019 at 7:11 PM Masahiro Yamada
+<yamada.masahiro@socionext.com> wrote:
+>
+> Macrofying the 'inline' is a horrid mistake that makes incorrect code work.
+> It would eternally prevent people from writing portable, correct code.
+> Please do not encourage to hide problems.
 
-Kiryl says we have tmpfs-thp, this would be broken vs that, as would
-your (PowerPC) use of mm_cpumask() for that IPI.
+Honestly, if the alternative to hiding problems is "use a macro", then
+I'd rather hide the problems and just make "inline" means "inline".
 
-> > +	/*
-> > +	 * Interrupts must be disabled during the lockless page table walk.
-> > +	 * That's because the deleting or splitting involves flushing TLBs,
-> > +	 * which in turn issues interrupts, that will block when disabled.
-> > +	 */
-> > +	local_irq_save(irq_mask);
-> > +
-> > +	/*
-> > +	 * This memory barrier pairs with any code that is either trying to
-> > +	 * delete page tables, or split huge pages. Without this barrier,
-> > +	 * the page tables could be read speculatively outside of interrupt
-> > +	 * disabling.
-> > +	 */
-> > +	smp_mb();
-> 
-> I don't think this is something smp_mb() can guarantee. smp_mb() is
-> defined to order memory accesses, in this case the store of the old
-> flags vs whatever comes after this.
-> 
-> It cannot (in generic) order against completion of prior instructions,
-> like clearing the interrupt enabled flags.
-> 
-> Possibly you want barrier_nospec().
+If "inline" means "it's just a hint, use macros", then inline is useless.
 
-I'm still really confused about this barrier. It just doesn't make
-sense.
+If "inline" means "using this means that there are known compiler
+bugs, but we don't know where they trigger", then inline is _worse_
+than useless.
 
-If an interrupt happens before the local_irq_disable()/save(), then it
-will discard any and all speculation that would be in progress to handle
-the exception.
+I do not see the big advantage of letting the compiler say "yeah, I'm
+not going to do that, Dave".
 
-If there isn't an interrupt (or it happens after disable) it is
-irrelevant.
+And I see a *huge* disadvantage when people are ignoring compiler
+bugs, and are saying "use a macro". Seriously.
 
-Specifically, that serialize-IPI thing wants to ensure in-progress
-lookups are complete, and I can't find a scenario where
-local_irq_disable/enable() needs additional help vs IPIs. The moment an
-interrupt lands it kills speculation and forces things into
-program-order.
+Right now we see the obvious compiler bugs that cause build breakages.
+How many non-obvious compiler bugs do we have? And how sure are you
+that our code is "correct" after fixing a couple of obvious cases?
 
-Did you perhaps want something like:
+As to "portable", nobody cares. We're a kernel. We aren't portable,
+and never were.
 
-	if (IS_ENABLED(CONFIG_LOCKLESS_PAGE_TABLE_WALK_TRACKING)) {
-		atomic_inc(&foo);
-		smp_mb__after_atomic();
-	}
+If this is purely about the fact that x86 is different from other
+architectures, then let's remove the "compiler can do stupid things"
+option on x86 too. It was never clear that it was a huge advantage.
 
-	...
-
-	if (IS_ENABLED(CONFIG_LOCKLESS_PAGE_TABLE_WALK_TRACKING)) {
-		smp_mb__before_atomic();
-		atomic_dec(&foo);
-	}
-
-To ensure everything happens inside of the increment?
-
-And I still think all that wrong, you really shouldn't need to wait on
-munmap().
+               Linus
