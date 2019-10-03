@@ -1,71 +1,129 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
 Received: from mail.kernel.org ([198.145.29.99]:56100 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1729623AbfJCA04 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 2 Oct 2019 20:26:56 -0400
+        id S1729590AbfJCA0z (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 2 Oct 2019 20:26:55 -0400
 From: paulmck@kernel.org
-Subject: [PATCH tip/core/rcu 12/32] tools/memory-model: Add simpletest.sh to check locking, RCU, and SRCU
-Date: Wed,  2 Oct 2019 17:26:30 -0700
-Message-ID: <20191003002650.11249-12-paulmck@kernel.org>
+Subject: [PATCH tip/core/rcu 07/32] tools/memory-model: Make judgelitmus.sh identify bad macros
+Date: Wed,  2 Oct 2019 17:26:25 -0700
+Message-ID: <20191003002650.11249-7-paulmck@kernel.org>
 In-Reply-To: <20191003001039.GA8027@paulmck-ThinkPad-P72>
 References: <20191003001039.GA8027@paulmck-ThinkPad-P72>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org
 Cc: stern@rowland.harvard.edu, parri.andrea@gmail.com, will@kernel.org, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, "Paul E. McKenney" <paulmck@linux.ibm.com>
-Message-ID: <20191003002630.mOJnBcvBId_mqk46RgAj2uTGXziAb3mC9MZgLFiVBOw@z>
+Message-ID: <20191003002625.G9aDvw-zb988T50kXmxTwtW-jatC3fPwux5YZ9EaTXs@z>
 
 From: "Paul E. McKenney" <paulmck@linux.ibm.com>
 
-This commit abstracts out common function to check a given litmus test
-for locking, RCU, and SRCU in order to avoid duplicating code.
+Currently, judgelitmus.sh treats use of unknown primitives (such as
+srcu_read_lock() prior to SRCU support) as "!!! Verification error".
+This can be misleading because it fails to call out typos and running
+a version LKMM on a litmus test requiring a feature not provided by
+that version.  This commit therefore changes judgelitmus.sh to check
+for unknown primitives and to report them, for example, with:
+
+	'!!! Current LKMM version does not know "rcu_write_lock"'.
 
 Signed-off-by: Paul E. McKenney <paulmck@linux.ibm.com>
 ---
- tools/memory-model/scripts/simpletest.sh | 35 ++++++++++++++++++++++++++++++++
- 1 file changed, 35 insertions(+)
- create mode 100755 tools/memory-model/scripts/simpletest.sh
+ tools/memory-model/scripts/cmplitmushist.sh | 31 +++++++++++++++++++++++++----
+ tools/memory-model/scripts/judgelitmus.sh   | 12 +++++++++++
+ 2 files changed, 39 insertions(+), 4 deletions(-)
 
-diff --git a/tools/memory-model/scripts/simpletest.sh b/tools/memory-model/scripts/simpletest.sh
-new file mode 100755
-index 0000000..7edc5d3
---- /dev/null
-+++ b/tools/memory-model/scripts/simpletest.sh
-@@ -0,0 +1,35 @@
-+#!/bin/sh
-+# SPDX-License-Identifier: GPL-2.0+
-+#
-+# Give zero status if this is a simple test and non-zero otherwise.
-+# Simple tests do not contain locking, RCU, or SRCU.
-+#
-+# Usage:
-+#	simpletest.sh file.litmus
-+#
-+# Copyright IBM Corporation, 2019
-+#
-+# Author: Paul E. McKenney <paulmck@linux.ibm.com>
-+
-+
-+litmus=$1
-+
-+if test -f "$litmus" -a -r "$litmus"
+diff --git a/tools/memory-model/scripts/cmplitmushist.sh b/tools/memory-model/scripts/cmplitmushist.sh
+index b9c174d..ca1ac8b 100755
+--- a/tools/memory-model/scripts/cmplitmushist.sh
++++ b/tools/memory-model/scripts/cmplitmushist.sh
+@@ -12,6 +12,7 @@ trap 'rm -rf $T' 0
+ mkdir $T
+ 
+ # comparetest oldpath newpath
++badmacnam=0
+ timedout=0
+ perfect=0
+ obsline=0
+@@ -19,8 +20,26 @@ noobsline=0
+ obsresult=0
+ badcompare=0
+ comparetest () {
+-	if grep -q '^Command exited with non-zero status 124' $1 ||
+-	   grep -q '^Command exited with non-zero status 124' $2
++	if grep -q ': Unknown macro ' $1 || grep -q ': Unknown macro ' $2
++	then
++		if grep -q ': Unknown macro ' $1
++		then
++			badname=`grep ': Unknown macro ' $1 |
++				sed -e 's/^.*: Unknown macro //' |
++				sed -e 's/ (User error).*$//'`
++			echo 'Current LKMM version does not know "'$badname'"' $1
++		fi
++		if grep -q ': Unknown macro ' $2
++		then
++			badname=`grep ': Unknown macro ' $2 |
++				sed -e 's/^.*: Unknown macro //' |
++				sed -e 's/ (User error).*$//'`
++			echo 'Current LKMM version does not know "'$badname'"' $2
++		fi
++		badmacnam=`expr "$badmacnam" + 1`
++		return 0
++	elif grep -q '^Command exited with non-zero status 124' $1 ||
++	     grep -q '^Command exited with non-zero status 124' $2
+ 	then
+ 		if grep -q '^Command exited with non-zero status 124' $1 &&
+ 		   grep -q '^Command exited with non-zero status 124' $2
+@@ -56,7 +75,7 @@ comparetest () {
+ 			return 0
+ 		fi
+ 	else
+-		echo Missing Observation line "(e.g., herd7 timeout)": $2
++		echo Missing Observation line "(e.g., syntax error)": $2
+ 		noobsline=`expr "$noobsline" + 1`
+ 		return 0
+ 	fi
+@@ -90,7 +109,7 @@ then
+ fi
+ if test "$noobsline" -ne 0
+ then
+-	echo Missing Observation line "(e.g., herd7 timeout)": $noobsline 1>&2
++	echo Missing Observation line "(e.g., syntax error)": $noobsline 1>&2
+ fi
+ if test "$obsresult" -ne 0
+ then
+@@ -100,6 +119,10 @@ if test "$timedout" -ne 0
+ then
+ 	echo "!!!" Timed out: $timedout 1>&2
+ fi
++if test "$badmacnam" -ne 0
 +then
-+	:
-+else
-+	echo ' --- ' error: \"$litmus\" is not a readable file
-+	exit 255
++	echo "!!!" Unknown primitive: $badmacnam 1>&2
 +fi
-+exclude="^[[:space:]]*\("
-+exclude="${exclude}spin_lock(\|spin_unlock(\|spin_trylock(\|spin_is_locked("
-+exclude="${exclude}\|rcu_read_lock(\|rcu_read_unlock("
-+exclude="${exclude}\|synchronize_rcu(\|synchronize_rcu_expedited("
-+exclude="${exclude}\|srcu_read_lock(\|srcu_read_unlock("
-+exclude="${exclude}\|synchronize_srcu(\|synchronize_srcu_expedited("
-+exclude="${exclude}\)"
-+if grep -q $exclude $litmus
+ if test "$badcompare" -ne 0
+ then
+ 	echo "!!!" Result changed: $badcompare 1>&2
+diff --git a/tools/memory-model/scripts/judgelitmus.sh b/tools/memory-model/scripts/judgelitmus.sh
+index d3c313b..d40439c 100755
+--- a/tools/memory-model/scripts/judgelitmus.sh
++++ b/tools/memory-model/scripts/judgelitmus.sh
+@@ -42,6 +42,18 @@ grep '^Observation' $LKMM_DESTDIR/$litmus.out
+ if grep -q '^Observation' $LKMM_DESTDIR/$litmus.out
+ then
+ 	:
++elif grep ': Unknown macro ' $LKMM_DESTDIR/$litmus.out
 +then
-+	exit 255
-+fi
-+exit 0
++	badname=`grep ': Unknown macro ' $LKMM_DESTDIR/$litmus.out |
++		sed -e 's/^.*: Unknown macro //' |
++		sed -e 's/ (User error).*$//'`
++	badmsg=' !!! Current LKMM version does not know "'$badname'"'" $litmus"
++	echo $badmsg
++	if ! grep -q '!!!' $LKMM_DESTDIR/$litmus.out
++	then
++		echo ' !!! '$badmsg >> $LKMM_DESTDIR/$litmus.out 2>&1
++	fi
++	exit 254
+ elif grep '^Command exited with non-zero status 124' $LKMM_DESTDIR/$litmus.out
+ then
+ 	echo ' !!! Timeout' $litmus
 -- 
 2.9.5
