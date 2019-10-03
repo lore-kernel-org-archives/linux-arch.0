@@ -1,7 +1,7 @@
 From: paulmck@kernel.org
-Subject: [PATCH tip/core/rcu 28/32] tools/memory-model: Repair parseargs.sh header comment
-Date: Wed,  2 Oct 2019 17:26:46 -0700
-Message-ID: <20191003002650.11249-28-paulmck@kernel.org>
+Subject: [PATCH tip/core/rcu 27/32] tools/memory-model:  Add "--" to parseargs.sh for additional arguments
+Date: Wed,  2 Oct 2019 17:26:45 -0700
+Message-ID: <20191003002650.11249-27-paulmck@kernel.org>
 References: <20191003001039.GA8027@paulmck-ThinkPad-P72>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20191003001039.GA8027@paulmck-ThinkPad-P72>
@@ -12,23 +12,40 @@ List-Id: linux-arch.vger.kernel.org
 
 From: "Paul E. McKenney" <paulmck@linux.ibm.com>
 
+Currently, parseargs.sh expects to consume all the command-line arguments,
+which prevents the calling script from having any of its own arguments.
+This commit therefore causes parseargs.sh to stop consuming arguments
+when it encounters a "--" argument, leaving any remaining arguments for
+the calling script.
+
 Signed-off-by: Paul E. McKenney <paulmck@linux.ibm.com>
 ---
- tools/memory-model/scripts/parseargs.sh | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+ tools/memory-model/scripts/parseargs.sh | 6 +++++-
+ 1 file changed, 5 insertions(+), 1 deletion(-)
 
 diff --git a/tools/memory-model/scripts/parseargs.sh b/tools/memory-model/scripts/parseargs.sh
-index 7aa5875..08ded59 100755
+index 25a81ac..7aa5875 100755
 --- a/tools/memory-model/scripts/parseargs.sh
 +++ b/tools/memory-model/scripts/parseargs.sh
-@@ -1,7 +1,7 @@
- #!/bin/sh
- # SPDX-License-Identifier: GPL-2.0+
- #
--# the corresponding .litmus.out file, and does not judge the result.
-+# Parse arguments common to the various scripts.
- #
- # . scripts/parseargs.sh
- #
+@@ -83,7 +83,7 @@ do
+ 			echo "Cannot create directory --destdir '$LKMM_DESTDIR'"
+ 			usage
+ 		fi
+-		if test -d "$LKMM_DESTDIR" -a -w "$LKMM_DESTDIR" -a -x "$LKMM_DESTDIR"
++		if test -d "$LKMM_DESTDIR" -a -x "$LKMM_DESTDIR"
+ 		then
+ 			:
+ 		else
+@@ -127,6 +127,10 @@ do
+ 		LKMM_TIMEOUT="$2"
+ 		shift
+ 		;;
++	--)
++		shift
++		break
++		;;
+ 	*)
+ 		echo Unknown argument $1
+ 		usage
 -- 
 2.9.5
