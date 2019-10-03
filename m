@@ -1,164 +1,107 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:56100 "EHLO mail.kernel.org"
+Received: from mail.kernel.org ([198.145.29.99]:56118 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1729677AbfJCA07 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 2 Oct 2019 20:26:59 -0400
+        id S1729709AbfJCA1B (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 2 Oct 2019 20:27:01 -0400
 From: paulmck@kernel.org
-Subject: [PATCH tip/core/rcu 23/32] tools/memory-model: Implement --hw support for checkghlitmus.sh
-Date: Wed,  2 Oct 2019 17:26:41 -0700
-Message-ID: <20191003002650.11249-23-paulmck@kernel.org>
+Subject: [PATCH tip/core/rcu 30/32] tools/memory-model: Add data-race capabilities to judgelitmus.sh
+Date: Wed,  2 Oct 2019 17:26:48 -0700
+Message-ID: <20191003002650.11249-30-paulmck@kernel.org>
 In-Reply-To: <20191003001039.GA8027@paulmck-ThinkPad-P72>
 References: <20191003001039.GA8027@paulmck-ThinkPad-P72>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org
 Cc: stern@rowland.harvard.edu, parri.andrea@gmail.com, will@kernel.org, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, "Paul E. McKenney" <paulmck@linux.ibm.com>
-Message-ID: <20191003002641.ReN48jIIp2UMbKoa0IC70_04x6sZDcbnB-6WnGlVAxM@z>
+Message-ID: <20191003002648.2sy0sBCK2s8nePV-ZjdLcgPE_hc5ngjK3yhkhlPfXsc@z>
 
 From: "Paul E. McKenney" <paulmck@linux.ibm.com>
 
-This commits enables the "--hw" argument for the checkghlitmus.sh script,
-causing it to convert any applicable C-language litmus tests to the
-specified flavor of assembly language, to verify these assembly-language
-litmus tests, and checking compatibility of the outcomes.
+This commit adds functionality to judgelitmus.sh to allow it to handle
+both the "DATARACE" markers in the "Result:" comments in litmus tests
+and the "Flag data-race" markers in LKMM output.  For C-language tests,
+if either marker is present, the other must also be as well, at least for
+litmus tests having a "Result:" comment.  If the LKMM output indicates
+a data race, then failures of the Always/Sometimes/Never portion of the
+"Result:" prediction are forgiven.
 
-Note that the conversion does not yet handle locking, RCU, SRCU, plain
-C-language memory accesses, or casts.
+The reason for forgiving "Result:" mispredictions is that data races can
+result in "interesting" compiler optimizations, so that all bets are off
+in the data-race case.
 
+[ paulmck: Apply Akira Yokosawa feedback. ]
 Signed-off-by: Paul E. McKenney <paulmck@linux.ibm.com>
 ---
- tools/memory-model/scripts/checkghlitmus.sh |  9 +++++----
- tools/memory-model/scripts/hwfnseg.sh       | 20 ++++++++++++++++++++
- tools/memory-model/scripts/runlitmushist.sh | 27 +++++++++++++++++----------
- 3 files changed, 42 insertions(+), 14 deletions(-)
- create mode 100755 tools/memory-model/scripts/hwfnseg.sh
+ tools/memory-model/scripts/judgelitmus.sh | 40 ++++++++++++++++++++++++-------
+ 1 file changed, 32 insertions(+), 8 deletions(-)
 
-diff --git a/tools/memory-model/scripts/checkghlitmus.sh b/tools/memory-model/scripts/checkghlitmus.sh
-index 6589fbb..2ea220d 100755
---- a/tools/memory-model/scripts/checkghlitmus.sh
-+++ b/tools/memory-model/scripts/checkghlitmus.sh
-@@ -10,6 +10,7 @@
- # parseargs.sh scripts for arguments.
- 
- . scripts/parseargs.sh
-+. scripts/hwfnseg.sh
- 
- T=/tmp/checkghlitmus.sh.$$
- trap 'rm -rf $T' 0
-@@ -32,9 +33,9 @@ then
- 	( cd "$LKMM_DESTDIR"; sed -e 's/^/mkdir -p /' | sh )
- fi
- 
--# Create a list of the C-language litmus tests previously run.
--( cd $LKMM_DESTDIR; find litmus -name '*.litmus.out' -print ) |
--	sed -e 's/\.out$//' |
-+# Create a list of the specified litmus tests previously run.
-+( cd $LKMM_DESTDIR; find litmus -name "*.litmus${hwfnseg}.out" -print ) |
-+	sed -e "s/${hwfnseg}"'\.out$//' |
- 	xargs -r egrep -l '^ \* Result: (Never|Sometimes|Always|DEADLOCK)' |
- 	xargs -r grep -L "^P${LKMM_PROCS}"> $T/list-C-already
- 
-@@ -44,7 +45,7 @@ find litmus -name '*.litmus' -exec grep -l -m 1 "^C " {} \; > $T/list-C
- xargs < $T/list-C -r egrep -l '^ \* Result: (Never|Sometimes|Always|DEADLOCK)' > $T/list-C-result
- xargs < $T/list-C-result -r grep -L "^P${LKMM_PROCS}" > $T/list-C-result-short
- 
--# Form list of tests without corresponding .litmus.out files
-+# Form list of tests without corresponding .out files
- sort $T/list-C-already $T/list-C-result-short | uniq -u > $T/list-C-needed
- 
- # Run any needed tests.
-diff --git a/tools/memory-model/scripts/hwfnseg.sh b/tools/memory-model/scripts/hwfnseg.sh
-new file mode 100755
-index 0000000..580c328
---- /dev/null
-+++ b/tools/memory-model/scripts/hwfnseg.sh
-@@ -0,0 +1,20 @@
-+#!/bin/sh
-+# SPDX-License-Identifier: GPL-2.0+
+diff --git a/tools/memory-model/scripts/judgelitmus.sh b/tools/memory-model/scripts/judgelitmus.sh
+index 9abda72..2700481 100755
+--- a/tools/memory-model/scripts/judgelitmus.sh
++++ b/tools/memory-model/scripts/judgelitmus.sh
+@@ -4,13 +4,19 @@
+ # Given a .litmus test and the corresponding litmus output file, check
+ # the .litmus.out file against the "Result:" comment to judge whether the
+ # test ran correctly.  If the --hw argument is omitted, check against the
+-# LKMM output, which is assumed to be in file.litmus.out.  If this argument
+-# is provided, this is assumed to be a hardware test, and the output is
+-# assumed to be in file.litmus.HW.out, where "HW" is the --hw argument.
+-# In addition, non-Sometimes verification results will be noted, but
+-# forgiven.  Furthermore, if there is no "Result:" comment but there is
+-# an LKMM .litmus.out file, the observation in that file will be used
+-# to judge the assembly-language verification.
++# LKMM output, which is assumed to be in file.litmus.out. If either a
++# "DATARACE" marker in the "Result:" comment or a "Flag data-race" marker
++# in the LKMM output is present, the other must also be as well, at least
++# for litmus tests having a "Result:" comment. In this case, a failure of
++# the Always/Sometimes/Never portion of the "Result:" prediction will be
++# noted, but forgiven.
 +#
-+# Generate the hardware extension to the litmus-test filename, or the
-+# empty string if this is an LKMM run.  The extension is placed in
-+# the shell variable hwfnseg.
-+#
-+# Usage:
-+#	. hwfnseg.sh
-+#
-+# Copyright IBM Corporation, 2019
-+#
-+# Author: Paul E. McKenney <paulmck@linux.ibm.com>
-+
-+if test -z "$LKMM_HW_MAP_FILE"
-+then
-+	hwfnseg=
-+else
-+	hwfnseg=".$LKMM_HW_MAP_FILE"
-+fi
-diff --git a/tools/memory-model/scripts/runlitmushist.sh b/tools/memory-model/scripts/runlitmushist.sh
-index 852786f..c6c2bdc 100755
---- a/tools/memory-model/scripts/runlitmushist.sh
-+++ b/tools/memory-model/scripts/runlitmushist.sh
-@@ -15,6 +15,8 @@
++# If the --hw argument is provided, this is assumed to be a hardware
++# test, and the output is assumed to be in file.litmus.HW.out, where
++# "HW" is the --hw argument. In addition, non-Sometimes verification
++# results will be noted, but forgiven.  Furthermore, if there is no
++# "Result:" comment but there is an LKMM .litmus.out file, the observation
++# in that file will be used to judge the assembly-language verification.
  #
- # Author: Paul E. McKenney <paulmck@linux.ibm.com>
- 
-+. scripts/hwfnseg.sh
-+
- T=/tmp/runlitmushist.sh.$$
- trap 'rm -rf $T' 0
- mkdir $T
-@@ -30,15 +32,12 @@ fi
- # Prefixes for per-CPU scripts
- for ((i=0;i<$LKMM_JOBS;i++))
- do
--	echo dir="$LKMM_DESTDIR" > $T/$i.sh
- 	echo T=$T >> $T/$i.sh
--	echo herdoptions=\"$LKMM_HERD_OPTIONS\" >> $T/$i.sh
- 	cat << '___EOF___' >> $T/$i.sh
- 	runtest () {
--		echo ' ... ' /usr/bin/time $LKMM_TIMEOUT_CMD herd7 $herdoptions $1 '>' $dir/$1.out '2>&1'
--		if /usr/bin/time $LKMM_TIMEOUT_CMD herd7 $herdoptions $1 > $dir/$1.out 2>&1
-+		if scripts/runlitmus.sh $1
- 		then
--			if ! grep -q '^Observation ' $dir/$1.out
-+			if ! grep -q '^Observation ' $LKMM_DESTDIR/$1$2.out
- 			then
- 				echo ' !!! Herd failed, no Observation:' $1
- 			fi
-@@ -47,10 +46,16 @@ do
- 			if test "$exitcode" -eq 124
- 			then
- 				exitmsg="timed out"
-+			elif test "$exitcode" -eq 253
-+			then
-+				exitmsg=
- 			else
- 				exitmsg="failed, exit code $exitcode"
- 			fi
--			echo ' !!! Herd' ${exitmsg}: $1
-+			if test -n "$exitmsg"
-+			then
-+				echo ' !!! Herd' ${exitmsg}: $1
-+			fi
- 		fi
- 	}
- ___EOF___
-@@ -59,11 +64,13 @@ done
- awk -v q="'" -v b='\\' '
- {
- 	print "echo `grep " q "^P[0-9]" b "+(" q " " $0 " | tail -1 | sed -e " q "s/^P" b "([0-9]" b "+" b ")(.*$/" b "1/" q "` " $0
--}' | bash |
--sort -k1n |
--awk -v ncpu=$LKMM_JOBS -v t=$T '
-+}' | sh | sort -k1n |
-+awk -v dq='"' -v hwfnseg="$hwfnseg" -v ncpu="$LKMM_JOBS" -v t="$T" '
- {
--	print "runtest " $2 >> t "/" NR % ncpu ".sh";
-+	print "if test -z " dq hwfnseg dq " || scripts/simpletest.sh " dq $2 dq
-+	print "then"
-+	print "\techo runtest " dq $2 dq " " hwfnseg " >> " t "/" NR % ncpu ".sh";
-+	print "fi"
- }
- 
- END {
+ # Usage:
+ #	judgelitmus.sh file.litmus
+@@ -47,9 +53,27 @@ else
+ 	echo ' --- ' error: \"$LKMM_DESTDIR/$litmusout is not a readable file
+ 	exit 255
+ fi
++if grep -q '^Flag data-race$' "$LKMM_DESTDIR/$litmusout"
++then
++	datarace_modeled=1
++fi
+ if grep -q '^ \* Result: ' $litmus
+ then
+ 	outcome=`grep -m 1 '^ \* Result: ' $litmus | awk '{ print $3 }'`
++	if grep -m1 '^ \* Result: .* DATARACE' $litmus
++	then
++		datarace_predicted=1
++	fi
++	if test -n "$datarace_predicted" -a -z "$datarace_modeled" -a -z "$LKMM_HW_MAP_FILE"
++	then
++		echo '!!! Predicted data race not modeled' $litmus
++		exit 252
++	elif test -z "$datarace_predicted" -a -n "$datarace_modeled"
++	then
++		# Note that hardware models currently don't model data races
++		echo '!!! Unexpected data race modeled' $litmus
++		exit 253
++	fi
+ elif test -n "$LKMM_HW_MAP_FILE" && grep -q '^Observation' $LKMM_DESTDIR/$lkmmout > /dev/null 2>&1
+ then
+ 	outcome=`grep -m 1 '^Observation ' $LKMM_DESTDIR/$lkmmout | awk '{ print $3 }'`
+@@ -114,7 +138,7 @@ elif grep '^Observation' $LKMM_DESTDIR/$litmusout | grep -q $outcome || test "$o
+ then
+ 	ret=0
+ else
+-	if test -n "$LKMM_HW_MAP_FILE" -a "$outcome" = Sometimes
++	if test \( -n "$LKMM_HW_MAP_FILE" -a "$outcome" = Sometimes \) -o -n "$datarace_modeled"
+ 	then
+ 		flag="--- Forgiven"
+ 		ret=0
 -- 
 2.9.5
