@@ -1,7 +1,7 @@
 From: paulmck@kernel.org
-Subject: [PATCH tip/core/rcu 19/32] tools/memory-model: Keep assembly-language litmus tests
-Date: Wed,  2 Oct 2019 17:26:37 -0700
-Message-ID: <20191003002650.11249-19-paulmck@kernel.org>
+Subject: [PATCH tip/core/rcu 18/32] tools/memory-model: Move from .AArch64.litmus.out to .litmus.AArch.out
+Date: Wed,  2 Oct 2019 17:26:36 -0700
+Message-ID: <20191003002650.11249-18-paulmck@kernel.org>
 References: <20191003001039.GA8027@paulmck-ThinkPad-P72>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20191003001039.GA8027@paulmck-ThinkPad-P72>
@@ -12,41 +12,64 @@ List-Id: linux-arch.vger.kernel.org
 
 From: "Paul E. McKenney" <paulmck@linux.ibm.com>
 
-This commit retains the assembly-language litmus tests generated from
-the C-language litmus tests, appending the hardware tag to the original
-C-language litmus test's filename.  Thus, S+poonceonces.litmus.AArch64
-contains the Armv8 assembly language corresponding to the C-language
-S+poonceonces.litmus test.
+When the github scripts see ".litmus.out", they assume that there must be
+a corresponding C-language ".litmus" file.  Won't they be disappointed
+when they instead see nothing, or, worse yet, the corresponding
+assembly-language litmus test?  This commit therefore swaps the hardware
+tag with the "litmus" to avoid this sort of disappointment.
 
-This commit also updates the .gitignore to avoid committing these
-automatically generated assembly-language litmus tests.
+This commit also adjusts the .gitignore file so as to avoid adding these
+new ".out" files to git.
 
+[ paulmck: Apply Akira Yokosawa feedback. ]
 Signed-off-by: Paul E. McKenney <paulmck@linux.ibm.com>
 ---
  tools/memory-model/litmus-tests/.gitignore | 2 +-
- tools/memory-model/scripts/runlitmus.sh    | 4 ++--
- 2 files changed, 3 insertions(+), 3 deletions(-)
+ tools/memory-model/scripts/judgelitmus.sh  | 4 ++--
+ tools/memory-model/scripts/runlitmus.sh    | 2 +-
+ 3 files changed, 4 insertions(+), 4 deletions(-)
 
 diff --git a/tools/memory-model/litmus-tests/.gitignore b/tools/memory-model/litmus-tests/.gitignore
-index f47cb20..848e62d 100644
+index 6e2ddc54..f47cb20 100644
 --- a/tools/memory-model/litmus-tests/.gitignore
 +++ b/tools/memory-model/litmus-tests/.gitignore
 @@ -1 +1 @@
--*.out
-+*.litmus.*
+-*.litmus.out
++*.out
+diff --git a/tools/memory-model/scripts/judgelitmus.sh b/tools/memory-model/scripts/judgelitmus.sh
+index fe9131f..9abda72 100755
+--- a/tools/memory-model/scripts/judgelitmus.sh
++++ b/tools/memory-model/scripts/judgelitmus.sh
+@@ -6,7 +6,7 @@
+ # test ran correctly.  If the --hw argument is omitted, check against the
+ # LKMM output, which is assumed to be in file.litmus.out.  If this argument
+ # is provided, this is assumed to be a hardware test, and the output is
+-# assumed to be in file.HW.litmus.out, where "HW" is the --hw argument.
++# assumed to be in file.litmus.HW.out, where "HW" is the --hw argument.
+ # In addition, non-Sometimes verification results will be noted, but
+ # forgiven.  Furthermore, if there is no "Result:" comment but there is
+ # an LKMM .litmus.out file, the observation in that file will be used
+@@ -37,7 +37,7 @@ then
+ 	lkmmout=
+ else
+ 	litmusout="`echo $litmus |
+-		sed -e 's/\.litmus$/.'${LKMM_HW_MAP_FILE}'.litmus/'`.out"
++		sed -e 's/\.litmus$/.litmus.'${LKMM_HW_MAP_FILE}'/'`.out"
+ 	lkmmout=$litmus.out
+ fi
+ if test -f "$LKMM_DESTDIR/$litmusout" -a -r "$LKMM_DESTDIR/$litmusout"
 diff --git a/tools/memory-model/scripts/runlitmus.sh b/tools/memory-model/scripts/runlitmus.sh
-index c84124b..62b47c7 100755
+index 2865a96..c84124b 100755
 --- a/tools/memory-model/scripts/runlitmus.sh
 +++ b/tools/memory-model/scripts/runlitmus.sh
-@@ -69,7 +69,7 @@ fi
+@@ -57,7 +57,7 @@ catfile="`echo $LKMM_HW_MAP_FILE | tr '[A-Z]' '[a-z]'`.cat"
+ mapfile="Linux2${LKMM_HW_MAP_FILE}.map"
+ themefile="$T/${LKMM_HW_MAP_FILE}.theme"
+ herdoptions="-model $LKMM_HW_CAT_FILE"
+-hwlitmus=`echo $litmus | sed -e 's/\.litmus$/.'${LKMM_HW_MAP_FILE}'.litmus/'`
++hwlitmus=`echo $litmus | sed -e 's/\.litmus$/.litmus.'${LKMM_HW_MAP_FILE}'/'`
+ hwlitmusfile=`echo $hwlitmus | sed -e 's,^.*/,,'`
  
- # Generate the assembly code and run herd7 on it.
- gen_theme7 -n 10 -map $mapfile -call Linux.call > $themefile
--jingle7 -theme $themefile $litmus > $T/$hwlitmusfile 2> $T/$hwlitmusfile.jingle7.out
--/usr/bin/time $LKMM_TIMEOUT_CMD herd7 -model $catfile $T/$hwlitmusfile > $LKMM_DESTDIR/$hwlitmus.out 2>&1
-+jingle7 -theme $themefile $litmus > $LKMM_DESTDIR/$hwlitmus 2> $T/$hwlitmusfile.jingle7.out
-+/usr/bin/time $LKMM_TIMEOUT_CMD herd7 -model $catfile $LKMM_DESTDIR/$hwlitmus > $LKMM_DESTDIR/$hwlitmus.out 2>&1
- 
- exit $?
+ # Don't run on litmus tests with complex synchronization
 -- 
 2.9.5
