@@ -1,137 +1,73 @@
-From: Leonardo Bras <leonardo@linux.ibm.com>
-Subject: Re: [PATCH v5 00/11] Introduces new count-based method for tracking
- lockless pagetable walks
-Date: Thu, 03 Oct 2019 17:36:31 -0300
-Message-ID: <c46d6c7301314a2d998cffc47d69b404f2c26ad3.camel@linux.ibm.com>
+From: John Hubbard <jhubbard@nvidia.com>
+Subject: Re: [PATCH v5 01/11] asm-generic/pgtable: Adds generic functions to
+ monitor lockless pgtable walks
+Date: Thu, 3 Oct 2019 13:40:38 -0700
+Message-ID: <c127ee98-094b-d5c0-0a42-6d01c16a72d9@nvidia.com>
 References: <20191003013325.2614-1-leonardo@linux.ibm.com>
-         <20191003072952.GN4536@hirez.programming.kicks-ass.net>
+ <20191003013325.2614-2-leonardo@linux.ibm.com>
+ <20191003071145.GM4536@hirez.programming.kicks-ass.net>
+ <20191003115141.GJ4581@hirez.programming.kicks-ass.net>
 Mime-Version: 1.0
-Content-Type: multipart/signed; micalg="pgp-sha256";
-        protocol="application/pgp-signature"; boundary="=-MwGy14uV6sOBKPSXi/z8"
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20191003072952.GN4536@hirez.programming.kicks-ass.net>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Song Liu <songliubraving@fb.com>, Michal Hocko <mhocko@suse.com>, "Dmitry V. Levin" <ldv@altlinux.org>, Keith Busch <keith.busch@intel.com>, linux-mm@kvack.org, Paul Mackerras <paulus@samba.org>, Christoph Lameter <cl@linux.com>, Ira Weiny <ira.weiny@intel.com>, Dan Williams <dan.j.williams@intel.com>, Elena Reshetova <elena.reshetova@intel.com>, linux-arch@vger.kernel.org, Santosh Sivaraj <santosh@fossix.org>, Davidlohr Bueso <dave@stgolabs.net>, "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>, Bartlomiej Zolnierkiewicz <b.zolnierkie@samsung.com>, Mike Rapoport <rppt@linux.ibm.com>, Jason Gunthorpe <jgg@ziepe.ca>, Vlastimil Babka <vbabka@suse.cz>, Mahesh Salgaonkar <mahesh@linux.vnet.ibm.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexey
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+Return-path: <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
+In-Reply-To: <20191003115141.GJ4581@hirez.programming.kicks-ass.net>
+Content-Language: en-US
+List-Unsubscribe: <https://lists.ozlabs.org/options/linuxppc-dev>,
+ <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=unsubscribe>
+List-Archive: <http://lists.ozlabs.org/pipermail/linuxppc-dev/>
+List-Post: <mailto:linuxppc-dev@lists.ozlabs.org>
+List-Help: <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=help>
+List-Subscribe: <https://lists.ozlabs.org/listinfo/linuxppc-dev>,
+ <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=subscribe>
+Errors-To: linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org
+Sender: "Linuxppc-dev"
+ <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
+To: Peter Zijlstra <peterz@infradead.org>, Leonardo Bras <leonardo@linux.ibm.com>
+Cc: Song Liu <songliubraving@fb.com>, Michal Hocko <mhocko@suse.com>, "Dmitry V. Levin" <ldv@altlinux.org>, Keith Busch <keith.busch@intel.com>, linux-mm@kvack.org, Paul Mackerras <paulus@samba.org>, Christoph Lameter <cl@linux.com>, Ira Weiny <ira.weiny@intel.com>, Dan Williams <dan.j.williams@intel.com>, Elena Reshetova <elena.reshetova@intel.com>, linux-arch@vger.kernel.org, Santosh Sivaraj <santosh@fossix.org>, Davidlohr Bueso <dave@stgolabs.net>, "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>, Bartlomiej Zolnierkiewicz <b.zolnierkie@samsung.com>, Mike Rapoport <rppt@linux.ibm.com>, Jason Gunthorpe <jgg@ziepe.ca>, Vlastimil Babka <vbabka@suse.cz>, Mahesh Salgaonkar <mahesh@linux.vnet.ibm.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexey Dobriyan <adobriyan@gmail.com>, Ingo Molnar <mingo@kernel.org>, Andrea Arcangeli <aarcange@redhat.com>, Ralph Campbell <rcampbel>
 List-Id: linux-arch.vger.kernel.org
 
+On 10/3/19 4:51 AM, Peter Zijlstra wrote:
+> On Thu, Oct 03, 2019 at 09:11:45AM +0200, Peter Zijlstra wrote:
+>> On Wed, Oct 02, 2019 at 10:33:15PM -0300, Leonardo Bras wrote:
+...
+> 
+> I'm still really confused about this barrier. It just doesn't make
+> sense.
+> 
+> If an interrupt happens before the local_irq_disable()/save(), then it
+> will discard any and all speculation that would be in progress to handle
+> the exception.
+> 
 
---=-MwGy14uV6sOBKPSXi/z8
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
+Hi Peter,
 
-Hello Peter, thanks for the feedback!
+So, would that imply that it's correct to apply approximately the following
+patch:
 
-On Thu, 2019-10-03 at 09:29 +0200, Peter Zijlstra wrote:
-> On Wed, Oct 02, 2019 at 10:33:14PM -0300, Leonardo Bras wrote:
-> > If a process (qemu) with a lot of CPUs (128) try to munmap() a large
-> > chunk of memory (496GB) mapped with THP, it takes an average of 275
-> > seconds, which can cause a lot of problems to the load (in qemu case,
-> > the guest will lock for this time).
-> >=20
-> > Trying to find the source of this bug, I found out most of this time is
-> > spent on serialize_against_pte_lookup(). This function will take a lot
-> > of time in smp_call_function_many() if there is more than a couple CPUs
-> > running the user process. Since it has to happen to all THP mapped, it
-> > will take a very long time for large amounts of memory.
-> >=20
-> > By the docs, serialize_against_pte_lookup() is needed in order to avoid
-> > pmd_t to pte_t casting inside find_current_mm_pte(), or any lockless
-> > pagetable walk, to happen concurrently with THP splitting/collapsing.
-> >=20
-> > It does so by calling a do_nothing() on each CPU in mm->cpu_bitmap[],
-> > after interrupts are re-enabled.
-> > Since, interrupts are (usually) disabled during lockless pagetable
-> > walk, and serialize_against_pte_lookup will only return after
-> > interrupts are enabled, it is protected.
->=20
-> This is something entirely specific to Power, you shouldn't be touching
-> generic code at all.
+diff --git a/Documentation/memory-barriers.txt b/Documentation/memory-barriers.txt
+index 1adbb8a371c7..cf41eff37e24 100644
+--- a/Documentation/memory-barriers.txt
++++ b/Documentation/memory-barriers.txt
+@@ -2099,9 +2099,9 @@ INTERRUPT DISABLING FUNCTIONS
+ -----------------------------
+ 
+ Functions that disable interrupts (ACQUIRE equivalent) and enable interrupts
+-(RELEASE equivalent) will act as compiler barriers only.  So if memory or I/O
+-barriers are required in such a situation, they must be provided from some
+-other means.
++(RELEASE equivalent) will act as full memory barriers. This is because, for
++all supported CPU architectures, interrupt arrival causes all speculative
++memory accesses to be discarded.
+ 
+?
 
-Up to v4, I was declaring dummy functions so it would not mess up with
-other archs: http://patchwork.ozlabs.org/patch/1168779/
+We're also discussing this over in [1] ("mm: don't expose non-hugetlb page to
+fast gup prematurely"), so I'm adding Paul to this thread here as well.
 
-But I was recommended to create a generic function that could guide the
-way to archs: http://patchwork.ozlabs.org/patch/1168775/
+[1] https://lore.kernel.org/r/20191002092447.GC9320@quack2.suse.cz
 
-The idea was to concentrate all routines of beginning/ending lockless
-pagetable walks on these functions, and call them instead of
-irq_disable/irq_enable.
-Then it was easy to place the refcount-based tracking in these
-functions. It should only be enabled in case the config chooses to do
-so.=20
-
->=20
-> Also, I'm not sure I understand things properly.
->=20
-> So serialize_against_pte_lookup() wants to wait for all currently
-> out-standing __find_linux_pte() instances (which are very similar to
-> gup_fast).
->=20
-> It seems to want to do this before flushing the THP TLB for some reason;
-> why? Should not THP observe the normal page table freeing rules which
-> includes a RCU-like grace period like this already.
->=20
-> Why is THP special here? This doesn't seem adequately explained.
-
-"It's necessary to monitor lockless pagetable walks, in order to avoid
-doing THP splitting/collapsing during them."
-
-If a there is a THP split/collapse during the lockless pagetable walk,
-the returned ptep can be a pointing to an invalid pte.=20
-
-To avoid that, the pmd is updated, then serialize_against_pte_lookup is
-ran. Serialize runs a do_nothing in all cpu in cpu_mask.=20
-
-So, after all cpus finish running do_nothing(), there is a guarantee
-that if there is any 'lockless pagetable walk' it is running on top of
-a updated version of this pmd, and so, collapsing/splitting THP is
-safe.
-
->=20
-> Also, specifically to munmap(), this seems entirely superfluous,
-> munmap() uses the normal page-table freeing code and should be entirely
-> fine without additional waiting.
-
-To be honest, I remember it being needed in munmap case, but I really
-don't remember the details. I will take a deeper look and come back
-with this answer.=20
-
-> Furthermore, Power never accurately tracks mm_cpumask(), so using that
-> makes the whole thing more expensive than it needs to be. Also, I
-> suppose that is buggered vs file backed THP.
-
-That accuracy of mm_cpumask is above my knowledge right now. =3D)
-
-I agree that it's to expensive to do that. That's why I suggested this
-method, that can check if there is any 'lockless pagetable walk'
-running before trying to serialize. It reduced the waiting time a lot
-for large amounts of memory. (more details on cover letter)
-
-Best regards,
-
-Leonardo Br=C3=A1s
-
---=-MwGy14uV6sOBKPSXi/z8
-Content-Type: application/pgp-signature; name="signature.asc"
-Content-Description: This is a digitally signed message part
-Content-Transfer-Encoding: 7bit
-
------BEGIN PGP SIGNATURE-----
-
-iQIzBAABCAAdFiEEMdeUgIzgjf6YmUyOlQYWtz9SttQFAl2WW88ACgkQlQYWtz9S
-ttR2SA/8CaspKJYeFlhYLpBdeWuazYm5DTWTEEOUml0igLgqAtk4ehAw/DJN2Yqg
-uIcYMOoIaKVQaE20fFeapyXSj7aNe1VIDIkehEGCTKCr7PZ0qEpWecCgJJaus012
-FDvFYmJQgtBQpf6dDEaDnINRq72SF4Bek5kuLRdePO3bla4FY7HlA0ZwvtTq4ji7
-cEDkJiGZpyDTz35DGcwfEXvJAWJRyVEdIs1DV1vNkgO7+TQNlj1ErQf9OcdS5DN2
-zJyfx5Rb+3ijNcjB/l/duXXAKfdWxBSY7jWvNT02Z82qc7PoZZ88OazB07PcaJF3
-2z8E7Xm0apy9xbv0W/6vzeJpyBMUKNwven7s9oLlg4TITPJLHLsD5iIL0banmzzT
-J3PNGuz5DJXal+WE08ZAvURcLSw1yAkN2XRx7aSuwvxSiwzUd/yI3hRakOYGO1Ii
-oaXujHvDycEG8L1xRWr+f0/OKnukanV7XLJWyPslgIu5RaKMGLwruXC/BsbX+4Tm
-naenYMazQHF3LrwBcY05M+708wFO/4HYtGmnuRzFHi6Eh4YQe3XYMhwuBVfUcyYX
-pQDsFaunwzQLlKolRolDL7sx+bcdIKxpuzoYPGoxrbvPmZVUqEmIKzx+KiYUr7vY
-QNAP2bHeVI2RrZvSWsYGmsyNALWVixCM+hxbfBQS4EI3AtQa40E=
-=f84a
------END PGP SIGNATURE-----
-
---=-MwGy14uV6sOBKPSXi/z8--
+thanks,
+-- 
+John Hubbard
+NVIDIA
