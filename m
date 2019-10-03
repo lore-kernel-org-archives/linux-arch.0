@@ -1,15 +1,16 @@
 From: Leonardo Bras <leonardo@linux.ibm.com>
 Subject: Re: [PATCH v5 10/11] mm/Kconfig: Adds config option to track
  lockless pagetable walks
-Date: Thu, 03 Oct 2019 16:04:02 -0300
-Message-ID: <08c43176fcf46c768d474f7d3620e07f3f71b140.camel@linux.ibm.com>
+Date: Thu, 03 Oct 2019 16:08:45 -0300
+Message-ID: <43648fe1bb12a7627a14a49405ec18289f3dbbe8.camel@linux.ibm.com>
 References: <20191003013325.2614-11-leonardo@linux.ibm.com>
  <88228CE0-81B2-4F2F-8C1D-F3376DB25A16@lca.pw>
+ <08c43176fcf46c768d474f7d3620e07f3f71b140.camel@linux.ibm.com>
 Mime-Version: 1.0
 Content-Type: multipart/signed; micalg="pgp-sha256";
- protocol="application/pgp-signature"; boundary="=-6JwD3nS1I5bp6jdQjZJI"
+ protocol="application/pgp-signature"; boundary="=-VybRhkfSRVywgfzTr45C"
 Return-path: <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
-In-Reply-To: <88228CE0-81B2-4F2F-8C1D-F3376DB25A16@lca.pw>
+In-Reply-To: <08c43176fcf46c768d474f7d3620e07f3f71b140.camel@linux.ibm.com>
 List-Unsubscribe: <https://lists.ozlabs.org/options/linuxppc-dev>,
  <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=unsubscribe>
 List-Archive: <http://lists.ozlabs.org/pipermail/linuxppc-dev/>
@@ -26,43 +27,45 @@ Cc: Song Liu <songliubraving@fb.com>, Michal Hocko <mhocko@suse.com>, "Peter Zij
 List-Id: linux-arch.vger.kernel.org
 
 
---=-6JwD3nS1I5bp6jdQjZJI
+--=-VybRhkfSRVywgfzTr45C
 Content-Type: text/plain; charset="UTF-8"
 Content-Transfer-Encoding: quoted-printable
 
-On Wed, 2019-10-02 at 22:08 -0400, Qian Cai wrote:
-> Can=E2=80=99t this name and all those new *lockless* function names be sh=
-orter?=20
-> There are many functions name with *_locked, so how about dropping=20
-> lockless at all, i.e., PAGE_TABLE_WALK_TRACKING blah blah?
+On Thu, 2019-10-03 at 16:04 -0300, Leonardo Bras wrote:
+> On Wed, 2019-10-02 at 22:08 -0400, Qian Cai wrote:
+> > Can=E2=80=99t this name and all those new *lockless* function names be =
+shorter?=20
+> > There are many functions name with *_locked, so how about dropping=20
+> > lockless at all, i.e., PAGE_TABLE_WALK_TRACKING blah blah?
+>=20
+> Thanks for the feedback!
+>=20
+> Well, in this case it only tracks the 'lockless pagetable walks'. In
+> this approach, the 'locked pagetable walks' don't need to be tracked.
 
-Thanks for the feedback!
+So, using PAGE_TABLE_WALK_TRACKING would not be very accurate (as said
+before, there are the locked ones).
 
-Well, in this case it only tracks the 'lockless pagetable walks'. In
-this approach, the 'locked pagetable walks' don't need to be tracked.
-
-
-
---=-6JwD3nS1I5bp6jdQjZJI
+--=-VybRhkfSRVywgfzTr45C
 Content-Type: application/pgp-signature; name="signature.asc"
 Content-Description: This is a digitally signed message part
 Content-Transfer-Encoding: 7bit
 
 -----BEGIN PGP SIGNATURE-----
 
-iQIzBAABCAAdFiEEMdeUgIzgjf6YmUyOlQYWtz9SttQFAl2WRiIACgkQlQYWtz9S
-ttTLPQ/5AadIHB7M8l0r2DhjP46ynmXH5IxgHEY7CjSTQZzcRJIAM9AMhlH9Ps+z
-fjqBvZ0ZSOJAJQPbMP4nRi3kTdAdg7tyLtJj78BgcKpM+2Y3iKlq3O2HgqvqCZdH
-zkuVaWtPdlYICGLA12Y39UaiYxnNEAwvm+W7vb9nk/fL6T8aTTZFZAZOT1SVQZty
-a6YhEcj/10usw6lATrcmS3j4z8RV0aLP5L4gFQeexekfPZQu08Jaq8B3tWmC9nTc
-eimFeMtGUaAybx9HJb//9GYYkSGGGGi8AkE1EpiIbQkoK88n0nPenGCcaBvJfD+V
-w2hHUAmtfEOCYgDO4pHiQRCxl0sI5fuVJNPpAFJc317szxCW/MGhg+CxxrPjfDtA
-S0Y0Iu9DZdXrHbBP7sfLuXv05bhL4yR7vS3/T6J+5CdzBSjnfMpYvL61Qj8vXb1R
-g703mw25Ukm4FXbxTNoVvalohYjPM80J6IOiFpMr+MWjuZSzBpS8ooH8SKO3hoMd
-wMwRtiJZD0vwLlj859memG7yhiufyG/TU6/lzAVydl9JZdb7xjhlSExGyutxCFCo
-2Bnsd5rOYsT2pQNPnWuHm0r+MvPW7wYnm3qy7GoYhNsxB1hAhvNkFy+EXCzmcDKE
-tTVoRqlRZXwvVjtmTVbmV7NzchhZicDLcJRPS38dfIm2PezXsno=
-=6lYM
+iQIyBAABCAAdFiEEMdeUgIzgjf6YmUyOlQYWtz9SttQFAl2WRz0ACgkQlQYWtz9S
+ttT+TA/1FSJfZVTq1e5fFW17J/V8Y4SiHa0K5xFAs/GWhR8M24yCyXUhMXz/liQT
+IDOViKxoVkc1e1NwSBePEDZkaEvl0XtMPPsGMbZ5Jb1XIJglqGKhr5mBSFXzd8nt
+XjImtXNN8JGR/Tx/2C9ThYfdcqmbDmntDsmSBZyIZXqOJUiICJmrpZHx6/ZPmCPb
+k0fdWqC8GE8H8DbvbW72a5iOh176EogGVduOryjx/N+vD9+xYhxj28lIWimRs/+A
+pesIWhFCE0ZuRDz6/Ud/WSun2aqad1x/fLgW0xMuSTA9/pies0PdZtAMS/89yrRY
+b4YPZM3iL6y/stdTfRc7Eu3S+gdCnp4avKWE+84MlwnM1Zq0p8+MTClRyX+tJbc2
+s1QcmkOW8T70VkqnsBqGKkSa3RqNDDUySpuCJZKe9nr3ZRqyXEuXRwJkFmESAR9a
+xmsGrPIG0vSKCijHdPsANOc4iXPN63YfxZBR0iszJvBadcBqVgMBQ/w4HnXQo8pX
+h1jZSPaxosfSTWo/UHP3fQAhYMFZpRlx/EK0/LyS1EbO0acl+ZLUkJ0Hcg3fm2BM
+VEhDNmphdCspj/+XWFscz3iSnZAaofFRHvxN3GDtz6VW0gahUaEUjpDuCk2C4fhL
+9qPLuxKZoGWQG5F2t4QGqxz17CsUEP4YCWsvt4DjW46qMhreVQ==
+=8m6H
 -----END PGP SIGNATURE-----
 
---=-6JwD3nS1I5bp6jdQjZJI--
+--=-VybRhkfSRVywgfzTr45C--
