@@ -1,11 +1,13 @@
 From: Leonardo Bras <leonardo@linux.ibm.com>
-Subject: [PATCH v5 00/11] Introduces new count-based method for tracking
- lockless pagetable walks
-Date: Wed,  2 Oct 2019 22:33:14 -0300
-Message-ID: <20191003013325.2614-1-leonardo@linux.ibm.com>
+Subject: [PATCH v5 01/11] asm-generic/pgtable: Adds generic functions to
+ monitor lockless pgtable walks
+Date: Wed,  2 Oct 2019 22:33:15 -0300
+Message-ID: <20191003013325.2614-2-leonardo@linux.ibm.com>
+References: <20191003013325.2614-1-leonardo@linux.ibm.com>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Return-path: <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
+In-Reply-To: <20191003013325.2614-1-leonardo@linux.ibm.com>
 List-Unsubscribe: <https://lists.ozlabs.org/options/linuxppc-dev>,
  <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=unsubscribe>
 List-Archive: <http://lists.ozlabs.org/pipermail/linuxppc-dev/>
@@ -20,123 +22,148 @@ To: linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, kvm-ppc@vger.ke
 Cc: Song Liu <songliubraving@fb.com>, Michal Hocko <mhocko@suse.com>, "Peter Zijlstra (Intel)" <peterz@infradead.org>, "Dmitry V. Levin" <ldv@altlinux.org>, Keith Busch <keith.busch@intel.com>, Paul Mackerras <paulus@samba.org>, Christoph Lameter <cl@linux.com>, Ira Weiny <ira.weiny@intel.com>, Thomas Gleixner <tglx@linutronix.de>, Elena Reshetova <elena.reshetova@intel.com>, Andrea Arcangeli <aarcange@redhat.com>, Santosh Sivaraj <santosh@fossix.org>, Davidlohr Bueso <dave@stgolabs.net>, "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>, Bartlomiej Zolnierkiewicz <b.zolnierkie@samsung.com>, Mike Rapoport <rppt@linux.ibm.com>, Jason Gunthorpe <jgg@ziepe.ca>, Allison Randal <allison@lohutok.net>, Mahesh Salgaonkar <mahesh@linux.vnet.ibm.com>, Leonardo Bras <leonardo@linux.ibm.com>, Alexey Dobriyan <adobriyan@gmail.com>, Ingo Molnar <mingo@kernel.org>, Ralph Campbell <rcampbe>
 List-Id: linux-arch.vger.kernel.org
 
-If a process (qemu) with a lot of CPUs (128) try to munmap() a large
-chunk of memory (496GB) mapped with THP, it takes an average of 275
-seconds, which can cause a lot of problems to the load (in qemu case,
-the guest will lock for this time).
+It's necessary to monitor lockless pagetable walks, in order to avoid doing
+THP splitting/collapsing during them.
 
-Trying to find the source of this bug, I found out most of this time is
-spent on serialize_against_pte_lookup(). This function will take a lot
-of time in smp_call_function_many() if there is more than a couple CPUs
-running the user process. Since it has to happen to all THP mapped, it
-will take a very long time for large amounts of memory.
+Some methods rely on irq enable/disable, but that can be slow on
+cases with a lot of cpus are used for the process, given all these cpus
+have to run a IPI.
 
-By the docs, serialize_against_pte_lookup() is needed in order to avoid
-pmd_t to pte_t casting inside find_current_mm_pte(), or any lockless
-pagetable walk, to happen concurrently with THP splitting/collapsing.
+In order to speedup some cases, I propose a refcount-based approach,
+that counts the number of lockless pagetable walks happening on the
+process. If this count is zero, it skips the irq-oriented method.
 
-It does so by calling a do_nothing() on each CPU in mm->cpu_bitmap[],
-after interrupts are re-enabled.
-Since, interrupts are (usually) disabled during lockless pagetable
-walk, and serialize_against_pte_lookup will only return after
-interrupts are enabled, it is protected.
+Given that there are lockless pagetable walks on generic code, it's
+necessary to create documented generic functions that may be enough for
+most archs and but let open to arch-specific implemenations.
 
-So, by what I could understand, if there is no lockless pagetable walk
-running, there is no need to call serialize_against_pte_lookup().
+This method does not exclude the current irq-oriented method. It works as a
+complement to skip unnecessary waiting.
 
-So, to avoid the cost of running serialize_against_pte_lookup(), I
-propose a counter that keeps track of how many find_current_mm_pte()
-are currently running, and if there is none, just skip
-smp_call_function_many().
-
-The related functions are:
-begin_lockless_pgtbl_walk()
+begin_lockless_pgtbl_walk(mm)
         Insert before starting any lockless pgtable walk
-end_lockless_pgtbl_walk()
+end_lockless_pgtbl_walk(mm)
         Insert after the end of any lockless pgtable walk
         (Mostly after the ptep is last used)
-running_lockless_pgtbl_walk()
+running_lockless_pgtbl_walk(mm)
         Returns the number of lockless pgtable walks running
 
-On my workload (qemu), I could see munmap's time reduction from 275
-seconds to 418ms.
+While there is no config option, the method is disabled and these functions
+are only doing what was already needed to lockless pagetable walks
+(disabling interrupt). A memory barrier was also added just to make sure
+there is no speculative read outside the interrupt disabled area.
 
-Also, I documented some lockless pagetable walks in which it's not
-necessary to keep track, given they work on init_mm or guest pgd.
+Signed-off-by: Leonardo Bras <leonardo@linux.ibm.com>
+---
+ include/asm-generic/pgtable.h | 58 +++++++++++++++++++++++++++++++++++
+ include/linux/mm_types.h      | 11 +++++++
+ kernel/fork.c                 |  3 ++
+ 3 files changed, 72 insertions(+)
 
-The patchset works by focusing all steps needed to begin/end lockless
-pagetable walks on the above functions, and then adding the config option
-to enable the tracking of these functions using the counting method.
-
-Changes since v4:
- Rebased on top of v5.4-rc1
- Declared real generic functions instead of dummies
- start_lockless_pgtbl_walk renamed to begin_lockless_pgtbl_walk
- Interrupt {dis,en}able is now inside of {begin,end}_lockless_pgtbl_walk
- Power implementation has option to not {dis,en}able interrupt
- More documentation inside the funtions.
- Some irq maks variables renamed
- Removed some proxy mm_structs
- Few typos fixed
-
-Changes since v3:
- Explain (comments) why some lockless pgtbl walks don't need
-	local_irq_disable (real mode + MSR_EE=0)
- Explain (comments) places where counting method is not needed (guest pgd,
-	which is not touched by THP)
- Fixes some misplaced local_irq_restore()
- Link: http://patchwork.ozlabs.org/project/linuxppc-dev/list/?series=132417
-
-Changes since v2:
- Rebased to v5.3
- Adds support on __get_user_pages_fast
- Adds usage decription to *_lockless_pgtbl_walk()
- Better style to dummy functions
- Link: http://patchwork.ozlabs.org/project/linuxppc-dev/list/?series=131839
-
-Changes since v1:
- Isolated atomic operations in functions *_lockless_pgtbl_walk()
- Fixed behavior of decrementing before last ptep was used
- Link: http://patchwork.ozlabs.org/patch/1163093/
-
-
-Leonardo Bras (11):
-  asm-generic/pgtable: Adds generic functions to monitor lockless
-    pgtable walks
-  powerpc/mm: Adds counting method to monitor lockless pgtable walks
-  mm/gup: Applies counting method to monitor gup_pgd_range
-  powerpc/mce_power: Applies counting method to monitor lockless pgtbl
-    walks
-  powerpc/perf: Applies counting method to monitor lockless pgtbl walks
-  powerpc/mm/book3s64/hash: Applies counting method to monitor lockless
-    pgtbl walks
-  powerpc/kvm/e500: Applies counting method to monitor lockless pgtbl
-    walks
-  powerpc/kvm/book3s_hv: Applies counting method to monitor lockless
-    pgtbl walks
-  powerpc/kvm/book3s_64: Applies counting method to monitor lockless
-    pgtbl walks
-  mm/Kconfig: Adds config option to track lockless pagetable walks
-  powerpc/mm/book3s64/pgtable: Uses counting method to skip serializing
-
- arch/powerpc/include/asm/book3s/64/pgtable.h |   9 ++
- arch/powerpc/kernel/mce_power.c              |   6 +-
- arch/powerpc/kvm/book3s_64_mmu_hv.c          |   6 +-
- arch/powerpc/kvm/book3s_64_mmu_radix.c       |  34 +++++-
- arch/powerpc/kvm/book3s_64_vio_hv.c          |   7 +-
- arch/powerpc/kvm/book3s_hv_nested.c          |  22 +++-
- arch/powerpc/kvm/book3s_hv_rm_mmu.c          |  32 ++---
- arch/powerpc/kvm/e500_mmu_host.c             |   9 +-
- arch/powerpc/mm/book3s64/hash_tlb.c          |   6 +-
- arch/powerpc/mm/book3s64/hash_utils.c        |  27 +++--
- arch/powerpc/mm/book3s64/pgtable.c           | 120 ++++++++++++++++++-
- arch/powerpc/perf/callchain.c                |   6 +-
- include/asm-generic/pgtable.h                |  58 +++++++++
- include/linux/mm_types.h                     |  11 ++
- kernel/fork.c                                |   3 +
- mm/Kconfig                                   |  11 ++
- mm/gup.c                                     |  10 +-
- 17 files changed, 325 insertions(+), 52 deletions(-)
-
+diff --git a/include/asm-generic/pgtable.h b/include/asm-generic/pgtable.h
+index 818691846c90..3043ea9812d5 100644
+--- a/include/asm-generic/pgtable.h
++++ b/include/asm-generic/pgtable.h
+@@ -1171,6 +1171,64 @@ static inline bool arch_has_pfn_modify_check(void)
+ #endif
+ #endif
+ 
++#ifndef __HAVE_ARCH_LOCKLESS_PGTBL_WALK_CONTROL
++static inline unsigned long begin_lockless_pgtbl_walk(struct mm_struct *mm)
++{
++	unsigned long irq_mask;
++
++	if (IS_ENABLED(CONFIG_LOCKLESS_PAGE_TABLE_WALK_TRACKING))
++		atomic_inc(&mm->lockless_pgtbl_walkers);
++
++	/*
++	 * Interrupts must be disabled during the lockless page table walk.
++	 * That's because the deleting or splitting involves flushing TLBs,
++	 * which in turn issues interrupts, that will block when disabled.
++	 */
++	local_irq_save(irq_mask);
++
++	/*
++	 * This memory barrier pairs with any code that is either trying to
++	 * delete page tables, or split huge pages. Without this barrier,
++	 * the page tables could be read speculatively outside of interrupt
++	 * disabling.
++	 */
++	smp_mb();
++
++	return irq_mask;
++}
++
++static inline void end_lockless_pgtbl_walk(struct mm_struct *mm,
++					   unsigned long irq_mask)
++{
++	/*
++	 * This memory barrier pairs with any code that is either trying to
++	 * delete page tables, or split huge pages. Without this barrier,
++	 * the page tables could be read speculatively outside of interrupt
++	 * disabling.
++	 */
++	smp_mb();
++
++	/*
++	 * Interrupts must be disabled during the lockless page table walk.
++	 * That's because the deleting or splitting involves flushing TLBs,
++	 * which in turn issues interrupts, that will block when disabled.
++	 */
++	local_irq_restore(irq_mask);
++
++	if (IS_ENABLED(CONFIG_LOCKLESS_PAGE_TABLE_WALK_TRACKING))
++		atomic_dec(&mm->lockless_pgtbl_walkers);
++}
++
++static inline int running_lockless_pgtbl_walk(struct mm_struct *mm)
++{
++	if (IS_ENABLED(CONFIG_LOCKLESS_PAGE_TABLE_WALK_TRACKING))
++		return atomic_read(&mm->lockless_pgtbl_walkers);
++
++	/* If disabled, must return > 0, so it falls back to sync method */
++	return 1;
++}
++#endif
++
+ /*
+  * On some architectures it depends on the mm if the p4d/pud or pmd
+  * layer of the page table hierarchy is folded or not.
+diff --git a/include/linux/mm_types.h b/include/linux/mm_types.h
+index 2222fa795284..277462f0b4fd 100644
+--- a/include/linux/mm_types.h
++++ b/include/linux/mm_types.h
+@@ -521,6 +521,17 @@ struct mm_struct {
+ 		struct work_struct async_put_work;
+ 	} __randomize_layout;
+ 
++#ifdef CONFIG_LOCKLESS_PAGE_TABLE_WALK_TRACKING
++	/*
++	 * Number of callers who are doing a lockless walk of the
++	 * page tables. Typically arches might enable this in order to
++	 * help optimize performance, by possibly avoiding expensive
++	 * IPIs at the wrong times.
++	 */
++	atomic_t lockless_pgtbl_walkers;
++
++#endif
++
+ 	/*
+ 	 * The mm_cpumask needs to be at the end of mm_struct, because it
+ 	 * is dynamically sized based on nr_cpu_ids.
+diff --git a/kernel/fork.c b/kernel/fork.c
+index f9572f416126..2cbca867f5a5 100644
+--- a/kernel/fork.c
++++ b/kernel/fork.c
+@@ -1029,6 +1029,9 @@ static struct mm_struct *mm_init(struct mm_struct *mm, struct task_struct *p,
+ #endif
+ 	mm_init_uprobes_state(mm);
+ 
++#ifdef CONFIG_LOCKLESS_PAGE_TABLE_WALK_TRACKING
++	atomic_set(&mm->lockless_pgtbl_walkers, 0);
++#endif
+ 	if (current->mm) {
+ 		mm->flags = current->mm->flags & MMF_INIT_MASK;
+ 		mm->def_flags = current->mm->def_flags & VM_INIT_DEF_MASK;
 -- 
 2.20.1
