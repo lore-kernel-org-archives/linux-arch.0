@@ -1,56 +1,64 @@
-From: Linus Torvalds <torvalds@linux-foundation.org>
+From: Will Deacon <will@kernel.org>
 Subject: Re: [PATCH] compiler: enable CONFIG_OPTIMIZE_INLINING forcibly
-Date: Thu, 3 Oct 2019 10:01:52 -0700
-Message-ID: <CAHk-=wiMm3rN15WmiAqMHjC-pakL_b8qgWsPPri0+YLFORT-ZA@mail.gmail.com>
-References: <20190930112636.vx2qxo4hdysvxibl@willie-the-truck>
- <CAK7LNASQZ82KSOrQW7+Wq1vFDCg2__maBEAPMLqUDqZMLuj1rA@mail.gmail.com>
- <20190930121803.n34i63scet2ec7ll@willie-the-truck> <CAKwvOdnqn=0LndrX+mUrtSAQqoT1JWRMOJCA5t3e=S=T7zkcCQ@mail.gmail.com>
- <20191001092823.z4zhlbwvtwnlotwc@willie-the-truck> <CAKwvOdk0h2A6=fb7Yepf+oKbZfq_tqwpGq8EBmHVu1j4mo-a-A@mail.gmail.com>
- <20191001170142.x66orounxuln7zs3@willie-the-truck> <CAKwvOdnFJqipp+G5xLDRBcOrQRcvMQmn+n8fufWyzyt2QL_QkA@mail.gmail.com>
- <20191001175512.GK25745@shell.armlinux.org.uk> <CAKwvOdmw_xmTGZLeK8-+Q4nUpjs-UypJjHWks-3jHA670Dxa1A@mail.gmail.com>
- <20191001181438.GL25745@shell.armlinux.org.uk> <CAKwvOdmBnBVU7F-a6DqPU6QM-BRc8LNn6YRmhTsuGLauCWKUOg@mail.gmail.com>
+Date: Thu, 3 Oct 2019 17:36:08 +0100
+Message-ID: <20191003163606.iqzcxvghaw7hdqb5@willie-the-truck>
+References: <20191001092823.z4zhlbwvtwnlotwc@willie-the-truck>
+ <CAKwvOdk0h2A6=fb7Yepf+oKbZfq_tqwpGq8EBmHVu1j4mo-a-A@mail.gmail.com>
+ <20191001170142.x66orounxuln7zs3@willie-the-truck>
+ <CAKwvOdnFJqipp+G5xLDRBcOrQRcvMQmn+n8fufWyzyt2QL_QkA@mail.gmail.com>
+ <20191001175512.GK25745@shell.armlinux.org.uk>
+ <CAKwvOdmw_xmTGZLeK8-+Q4nUpjs-UypJjHWks-3jHA670Dxa1A@mail.gmail.com>
+ <20191001181438.GL25745@shell.armlinux.org.uk>
+ <CAKwvOdmBnBVU7F-a6DqPU6QM-BRc8LNn6YRmhTsuGLauCWKUOg@mail.gmail.com>
  <CAMuHMdWPhE1nNkmL1nj3vpQhB7fP3uDs2i_ZVi0Gf9qij4W2CA@mail.gmail.com>
- <CAHk-=wgFODvdFBHzgVf3JjoBz0z6LZhOm8xvMntsvOr66ASmZQ@mail.gmail.com> <CAK7LNARM2jVSdgCDJWDbvVxYLiUR_CFgTPg0nxzbCszSKcx+pg@mail.gmail.com>
+ <CAHk-=wgFODvdFBHzgVf3JjoBz0z6LZhOm8xvMntsvOr66ASmZQ@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <CAK7LNARM2jVSdgCDJWDbvVxYLiUR_CFgTPg0nxzbCszSKcx+pg@mail.gmail.com>
+Content-Disposition: inline
+In-Reply-To: <CAHk-=wgFODvdFBHzgVf3JjoBz0z6LZhOm8xvMntsvOr66ASmZQ@mail.gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Masahiro Yamada <yamada.masahiro@socionext.com>
-Cc: Geert Uytterhoeven <geert@linux-m68k.org>, Nick Desaulniers <ndesaulniers@google.com>, Russell King - ARM Linux admin <linux@armlinux.org.uk>, Will Deacon <will@kernel.org>, Nicolas Saenz Julienne <nsaenzjulienne@suse.de>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Miguel Ojeda <miguel.ojeda.sandonis@gmail.com>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Stefan Wahren <wahrenst@gmx.net>, Kees Cook <keescook@google.com>, Arnd Bergmann <arnd@arndb.de>, clang-built-linux <clang-built-linux@googlegroups.com>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Geert Uytterhoeven <geert@linux-m68k.org>, Nick Desaulniers <ndesaulniers@google.com>, Russell King - ARM Linux admin <linux@armlinux.org.uk>, Masahiro Yamada <yamada.masahiro@socionext.com>, Nicolas Saenz Julienne <nsaenzjulienne@suse.de>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Miguel Ojeda <miguel.ojeda.sandonis@gmail.com>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Stefan Wahren <wahrenst@gmx.net>, Kees Cook <keescook@google.com>, Arnd Bergmann <arnd@arndb.de>, clang-built-linux <clang-built-linux@googlegroups.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Oct 2, 2019 at 7:11 PM Masahiro Yamada
-<yamada.masahiro@socionext.com> wrote:
->
-> Macrofying the 'inline' is a horrid mistake that makes incorrect code work.
-> It would eternally prevent people from writing portable, correct code.
-> Please do not encourage to hide problems.
+On Wed, Oct 02, 2019 at 01:39:40PM -0700, Linus Torvalds wrote:
+> On Wed, Oct 2, 2019 at 5:56 AM Geert Uytterhoeven <geert@linux-m68k.org> wrote:
+> >
+> > >
+> > > Then use the C preprocessor to force the inlining.  I'm sorry it's not
+> > > as pretty as static inline functions.
+> >
+> > Which makes us lose the baby^H^H^H^Htype checking performed
+> > on function parameters, requiring to add more ugly checks.
+> 
+> I'm 100% agreed on this.
+> 
+> If the inline change is being pushed by people who say "you should
+> have used macros instead if you wanted inlining", then I will just
+> revert that stupid commit that is causing problems.
+> 
+> No, the preprocessor is not the answer.
+> 
+> That said, code that relies on inlining for _correctness_ should use
+> "__always_inline" and possibly even have a comment about why.
+> 
+> But I am considering just undoing commit 9012d011660e ("compiler:
+> allow all arches to enable CONFIG_OPTIMIZE_INLINING") entirely. The
+> advantages are questionable, and when the advantages are balanced
+> against actual regressions and the arguments are "use macros", that
+> just shows how badly thought out this was.
 
-Honestly, if the alternative to hiding problems is "use a macro", then
-I'd rather hide the problems and just make "inline" means "inline".
+It's clear that opinions are divided on this issue, but you can add
+an enthusiastic:
 
-If "inline" means "it's just a hint, use macros", then inline is useless.
+Acked-by: Will Deacon <will@kernel.org>
 
-If "inline" means "using this means that there are known compiler
-bugs, but we don't know where they trigger", then inline is _worse_
-than useless.
+if you go ahead with the revert. I'm all for allowing the compiler to
+make its own inlining decisions, but not when the potential for
+miscompilation isn't fully understood and the proposed alternatives turn
+the source into an unreadable mess. Perhaps we can do something different
+for 5.5 (arch opt-in? clang only? invert the logic? work to move functions
+over to __always_inline /before/ flipping the CONFIG option? ...?)
 
-I do not see the big advantage of letting the compiler say "yeah, I'm
-not going to do that, Dave".
-
-And I see a *huge* disadvantage when people are ignoring compiler
-bugs, and are saying "use a macro". Seriously.
-
-Right now we see the obvious compiler bugs that cause build breakages.
-How many non-obvious compiler bugs do we have? And how sure are you
-that our code is "correct" after fixing a couple of obvious cases?
-
-As to "portable", nobody cares. We're a kernel. We aren't portable,
-and never were.
-
-If this is purely about the fact that x86 is different from other
-architectures, then let's remove the "compiler can do stupid things"
-option on x86 too. It was never clear that it was a huge advantage.
-
-               Linus
+Will
