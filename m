@@ -1,70 +1,80 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:56246 "EHLO mail.kernel.org"
+Received: from mail.kernel.org ([198.145.29.99]:56028 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1729614AbfJCA0z (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 2 Oct 2019 20:26:55 -0400
+        id S1727664AbfJCA0x (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 2 Oct 2019 20:26:53 -0400
 From: paulmck@kernel.org
-Subject: [PATCH tip/core/rcu 10/32] tools/memory-model: Update parseargs.sh for hardware verification
-Date: Wed,  2 Oct 2019 17:26:28 -0700
-Message-ID: <20191003002650.11249-10-paulmck@kernel.org>
+Subject: [PATCH tip/core/rcu 02/32] tools/memory-model/Documentation: Fix typos in explanation.txt
+Date: Wed,  2 Oct 2019 17:26:20 -0700
+Message-ID: <20191003002650.11249-2-paulmck@kernel.org>
 In-Reply-To: <20191003001039.GA8027@paulmck-ThinkPad-P72>
 References: <20191003001039.GA8027@paulmck-ThinkPad-P72>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org
-Cc: stern@rowland.harvard.edu, parri.andrea@gmail.com, will@kernel.org, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, "Paul E. McKenney" <paulmck@linux.ibm.com>
-Message-ID: <20191003002628.31irUHoACEGiqqJMvZQCeSghJSDcxdyw0cphFCEKdy0@z>
+Cc: stern@rowland.harvard.edu, parri.andrea@gmail.com, will@kernel.org, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, "Paul E . McKenney" <paulmck@kernel.org>
+Message-ID: <20191003002620.y6hfa7wfFAt1qVcuBBMoIGb2NWLfd2lE-2d8gBgnRw4@z>
 
-From: "Paul E. McKenney" <paulmck@linux.ibm.com>
+From: Alan Stern <stern@rowland.harvard.edu>
 
-This commit adds a --hw argument to parseargs.sh to specify the CPU
-family for a hardware verification.  For example, "--hw AArch64" will
-specify that a C-language litmus test is to be translated to ARMv8 and
-the result verified.  This will set the LKMM_HW_MAP_FILE environment
-variable accordingly.  If there is no --hw argument, this environment
-variable will be set to the empty string.
+This patch fixes a few minor typos and improves word usage in a few
+places in the Linux Kernel Memory Model's explanation.txt file.
 
-Signed-off-by: Paul E. McKenney <paulmck@linux.ibm.com>
+Signed-off-by: Alan Stern <stern@rowland.harvard.edu>
+Reviewed-by: Joel Fernandes (Google) <joel@joelfernandes.org>
+Signed-off-by: Paul E. McKenney <paulmck@kernel.org>
 ---
- tools/memory-model/scripts/parseargs.sh | 9 ++++++++-
- 1 file changed, 8 insertions(+), 1 deletion(-)
+ tools/memory-model/Documentation/explanation.txt | 10 +++++-----
+ 1 file changed, 5 insertions(+), 5 deletions(-)
 
-diff --git a/tools/memory-model/scripts/parseargs.sh b/tools/memory-model/scripts/parseargs.sh
-index afe7bd2..5f016fc 100755
---- a/tools/memory-model/scripts/parseargs.sh
-+++ b/tools/memory-model/scripts/parseargs.sh
-@@ -27,6 +27,7 @@ initparam () {
+diff --git a/tools/memory-model/Documentation/explanation.txt b/tools/memory-model/Documentation/explanation.txt
+index 488f11f..1b52645 100644
+--- a/tools/memory-model/Documentation/explanation.txt
++++ b/tools/memory-model/Documentation/explanation.txt
+@@ -206,7 +206,7 @@ goes like this:
+ 	P0 stores 1 to buf before storing 1 to flag, since it executes
+ 	its instructions in order.
  
- initparam LKMM_DESTDIR "."
- initparam LKMM_HERD_OPTIONS "-conf linux-kernel.cfg"
-+initparam LKMM_HW_MAP_FILE ""
- initparam LKMM_JOBS `getconf _NPROCESSORS_ONLN`
- initparam LKMM_PROCS "3"
- initparam LKMM_TIMEOUT "1m"
-@@ -37,10 +38,11 @@ usagehelp () {
- 	echo "Usage $scriptname [ arguments ]"
- 	echo "      --destdir path (place for .litmus.out, default by .litmus)"
- 	echo "      --herdopts -conf linux-kernel.cfg ..."
-+	echo "      --hw AArch64"
- 	echo "      --jobs N (number of jobs, default one per CPU)"
- 	echo "      --procs N (litmus tests with at most this many processes)"
- 	echo "      --timeout N (herd7 timeout (e.g., 10s, 1m, 2hr, 1d, '')"
--	echo "Defaults: --destdir '$LKMM_DESTDIR_DEF' --herdopts '$LKMM_HERD_OPTIONS_DEF' --jobs '$LKMM_JOBS_DEF' --procs '$LKMM_PROCS_DEF' --timeout '$LKMM_TIMEOUT_DEF'"
-+	echo "Defaults: --destdir '$LKMM_DESTDIR_DEF' --herdopts '$LKMM_HERD_OPTIONS_DEF' --hw '$LKMM_HW_MAP_FILE' --jobs '$LKMM_JOBS_DEF' --procs '$LKMM_PROCS_DEF' --timeout '$LKMM_TIMEOUT_DEF'"
- 	exit 1
- }
+-	Since an instruction (in this case, P1's store to flag) cannot
++	Since an instruction (in this case, P0's store to flag) cannot
+ 	execute before itself, the specified outcome is impossible.
  
-@@ -95,6 +97,11 @@ do
- 		LKMM_HERD_OPTIONS="$2"
- 		shift
- 		;;
-+	--hw)
-+		checkarg --hw "(.map file architecture name)" "$#" "$2" '^[A-Za-z0-9_-]\+' '^--'
-+		LKMM_HW_MAP_FILE="$2"
-+		shift
-+		;;
- 	-j[1-9]*)
- 		njobs="`echo $1 | sed -e 's/^-j//'`"
- 		trailchars="`echo $njobs | sed -e 's/[0-9]\+\(.*\)$/\1/'`"
+ However, real computer hardware almost never follows the Sequential
+@@ -419,7 +419,7 @@ example:
+ 
+ The object code might call f(5) either before or after g(6); the
+ memory model cannot assume there is a fixed program order relation
+-between them.  (In fact, if the functions are inlined then the
++between them.  (In fact, if the function calls are inlined then the
+ compiler might even interleave their object code.)
+ 
+ 
+@@ -499,7 +499,7 @@ different CPUs (external reads-from, or rfe).
+ 
+ For our purposes, a memory location's initial value is treated as
+ though it had been written there by an imaginary initial store that
+-executes on a separate CPU before the program runs.
++executes on a separate CPU before the main program runs.
+ 
+ Usage of the rf relation implicitly assumes that loads will always
+ read from a single store.  It doesn't apply properly in the presence
+@@ -955,7 +955,7 @@ atomic update.  This is what the LKMM's "atomic" axiom says.
+ THE PRESERVED PROGRAM ORDER RELATION: ppo
+ -----------------------------------------
+ 
+-There are many situations where a CPU is obligated to execute two
++There are many situations where a CPU is obliged to execute two
+ instructions in program order.  We amalgamate them into the ppo (for
+ "preserved program order") relation, which links the po-earlier
+ instruction to the po-later instruction and is thus a sub-relation of
+@@ -1572,7 +1572,7 @@ and there are events X, Y and a read-side critical section C such that:
+ 
+ 	2. X comes "before" Y in some sense (including rfe, co and fr);
+ 
+-	2. Y is po-before Z;
++	3. Y is po-before Z;
+ 
+ 	4. Z is the rcu_read_unlock() event marking the end of C;
+ 
 -- 
 2.9.5
