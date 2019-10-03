@@ -1,15 +1,14 @@
 From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH v5 01/11] asm-generic/pgtable: Adds generic functions to
- monitor lockless pgtable walks
-Date: Thu, 3 Oct 2019 09:11:45 +0200
-Message-ID: <20191003071145.GM4536@hirez.programming.kicks-ass.net>
+Subject: Re: [PATCH v5 00/11] Introduces new count-based method for tracking
+ lockless pagetable walks
+Date: Thu, 3 Oct 2019 09:29:52 +0200
+Message-ID: <20191003072952.GN4536@hirez.programming.kicks-ass.net>
 References: <20191003013325.2614-1-leonardo@linux.ibm.com>
- <20191003013325.2614-2-leonardo@linux.ibm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
 Content-Disposition: inline
-In-Reply-To: <20191003013325.2614-2-leonardo@linux.ibm.com>
+In-Reply-To: <20191003013325.2614-1-leonardo@linux.ibm.com>
 List-Unsubscribe: <https://lists.ozlabs.org/options/linuxppc-dev>,
  <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=unsubscribe>
 List-Archive: <http://lists.ozlabs.org/pipermail/linuxppc-dev/>
@@ -24,50 +23,47 @@ To: Leonardo Bras <leonardo@linux.ibm.com>
 Cc: Song Liu <songliubraving@fb.com>, Michal Hocko <mhocko@suse.com>, "Dmitry V. Levin" <ldv@altlinux.org>, Keith Busch <keith.busch@intel.com>, linux-mm@kvack.org, Paul Mackerras <paulus@samba.org>, Christoph Lameter <cl@linux.com>, Ira Weiny <ira.weiny@intel.com>, Dan Williams <dan.j.williams@intel.com>, Elena Reshetova <elena.reshetova@intel.com>, linux-arch@vger.kernel.org, Santosh Sivaraj <santosh@fossix.org>, Davidlohr Bueso <dave@stgolabs.net>, "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>, Bartlomiej Zolnierkiewicz <b.zolnierkie@samsung.com>, Mike Rapoport <rppt@linux.ibm.com>, Jason Gunthorpe <jgg@ziepe.ca>, Vlastimil Babka <vbabka@suse.cz>, Mahesh Salgaonkar <mahesh@linux.vnet.ibm.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexey Dobriyan <adobriyan@gmail.com>, Ingo Molnar <mingo@kernel.org>, Andrea Arcangeli <aarcange@redhat.com>, Ralph Campbell <rcampbel>
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Oct 02, 2019 at 10:33:15PM -0300, Leonardo Bras wrote:
-> diff --git a/include/asm-generic/pgtable.h b/include/asm-generic/pgtable.h
-> index 818691846c90..3043ea9812d5 100644
-> --- a/include/asm-generic/pgtable.h
-> +++ b/include/asm-generic/pgtable.h
-> @@ -1171,6 +1171,64 @@ static inline bool arch_has_pfn_modify_check(void)
->  #endif
->  #endif
->  
-> +#ifndef __HAVE_ARCH_LOCKLESS_PGTBL_WALK_CONTROL
-> +static inline unsigned long begin_lockless_pgtbl_walk(struct mm_struct *mm)
-> +{
-> +	unsigned long irq_mask;
-> +
-> +	if (IS_ENABLED(CONFIG_LOCKLESS_PAGE_TABLE_WALK_TRACKING))
-> +		atomic_inc(&mm->lockless_pgtbl_walkers);
+On Wed, Oct 02, 2019 at 10:33:14PM -0300, Leonardo Bras wrote:
+> If a process (qemu) with a lot of CPUs (128) try to munmap() a large
+> chunk of memory (496GB) mapped with THP, it takes an average of 275
+> seconds, which can cause a lot of problems to the load (in qemu case,
+> the guest will lock for this time).
+> 
+> Trying to find the source of this bug, I found out most of this time is
+> spent on serialize_against_pte_lookup(). This function will take a lot
+> of time in smp_call_function_many() if there is more than a couple CPUs
+> running the user process. Since it has to happen to all THP mapped, it
+> will take a very long time for large amounts of memory.
+> 
+> By the docs, serialize_against_pte_lookup() is needed in order to avoid
+> pmd_t to pte_t casting inside find_current_mm_pte(), or any lockless
+> pagetable walk, to happen concurrently with THP splitting/collapsing.
+> 
+> It does so by calling a do_nothing() on each CPU in mm->cpu_bitmap[],
+> after interrupts are re-enabled.
+> Since, interrupts are (usually) disabled during lockless pagetable
+> walk, and serialize_against_pte_lookup will only return after
+> interrupts are enabled, it is protected.
 
-This will not work for file backed THP. Also, this is a fairly serious
-contention point all on its own.
+This is something entirely specific to Power, you shouldn't be touching
+generic code at all.
 
-> +	/*
-> +	 * Interrupts must be disabled during the lockless page table walk.
-> +	 * That's because the deleting or splitting involves flushing TLBs,
-> +	 * which in turn issues interrupts, that will block when disabled.
-> +	 */
-> +	local_irq_save(irq_mask);
-> +
-> +	/*
-> +	 * This memory barrier pairs with any code that is either trying to
-> +	 * delete page tables, or split huge pages. Without this barrier,
-> +	 * the page tables could be read speculatively outside of interrupt
-> +	 * disabling.
-> +	 */
-> +	smp_mb();
+Also, I'm not sure I understand things properly.
 
-I don't think this is something smp_mb() can guarantee. smp_mb() is
-defined to order memory accesses, in this case the store of the old
-flags vs whatever comes after this.
+So serialize_against_pte_lookup() wants to wait for all currently
+out-standing __find_linux_pte() instances (which are very similar to
+gup_fast).
 
-It cannot (in generic) order against completion of prior instructions,
-like clearing the interrupt enabled flags.
+It seems to want to do this before flushing the THP TLB for some reason;
+why? Should not THP observe the normal page table freeing rules which
+includes a RCU-like grace period like this already.
 
-Possibly you want barrier_nospec().
+Why is THP special here? This doesn't seem adequately explained.
 
-> +
-> +	return irq_mask;
-> +}
+Also, specifically to munmap(), this seems entirely superfluous,
+munmap() uses the normal page-table freeing code and should be entirely
+fine without additional waiting.
+
+Furthermore, Power never accurately tracks mm_cpumask(), so using that
+makes the whole thing more expensive than it needs to be. Also, I
+suppose that is buggered vs file backed THP.
