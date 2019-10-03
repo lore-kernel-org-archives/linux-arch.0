@@ -1,53 +1,56 @@
-From: Leonardo Bras <leonardo@linux.ibm.com>
-Subject: Re: [PATCH v5 10/11] mm/Kconfig: Adds config option to track
+From: John Hubbard <jhubbard@nvidia.com>
+Subject: Re: [PATCH v5 00/11] Introduces new count-based method for tracking
  lockless pagetable walks
-Date: Thu, 03 Oct 2019 17:40:11 -0300
-Message-ID: <3598584cc4b829e9c290b6dab89fb148528e4f72.camel@linux.ibm.com>
+Date: Thu, 3 Oct 2019 13:49:57 -0700
+Message-ID: <99754d82-33c5-a54f-8607-b6bf151069d4@nvidia.com>
 References: <20191003013325.2614-1-leonardo@linux.ibm.com>
-         <20191003013325.2614-11-leonardo@linux.ibm.com>
-         <20191003074432.GO4536@hirez.programming.kicks-ass.net>
+ <20191003072952.GN4536@hirez.programming.kicks-ass.net>
+ <c46d6c7301314a2d998cffc47d69b404f2c26ad3.camel@linux.ibm.com>
 Mime-Version: 1.0
-Content-Type: multipart/signed; micalg="pgp-sha256";
-        protocol="application/pgp-signature"; boundary="=-cFtUj1Ho01ANPCDPn5bA"
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20191003074432.GO4536@hirez.programming.kicks-ass.net>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Song Liu <songliubraving@fb.com>, Michal Hocko <mhocko@suse.com>, "Dmitry V. Levin" <ldv@altlinux.org>, Keith Busch <keith.busch@intel.com>, linux-mm@kvack.org, Paul Mackerras <paulus@samba.org>, Christoph Lameter <cl@linux.com>, Ira Weiny <ira.weiny@intel.com>, Dan Williams <dan.j.williams@intel.com>, Elena Reshetova <elena.reshetova@intel.com>, linux-arch@vger.kernel.org, Santosh Sivaraj <santosh@fossix.org>, Davidlohr Bueso <dave@stgolabs.net>, "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>, Bartlomiej Zolnierkiewicz <b.zolnierkie@samsung.com>, Mike Rapoport <rppt@linux.ibm.com>, Jason Gunthorpe <jgg@ziepe.ca>, Vlastimil Babka <vbabka@suse.cz>, Mahesh Salgaonkar <mahesh@linux.vnet.ibm.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexey
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+Return-path: <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
+In-Reply-To: <c46d6c7301314a2d998cffc47d69b404f2c26ad3.camel@linux.ibm.com>
+Content-Language: en-US
+List-Unsubscribe: <https://lists.ozlabs.org/options/linuxppc-dev>,
+ <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=unsubscribe>
+List-Archive: <http://lists.ozlabs.org/pipermail/linuxppc-dev/>
+List-Post: <mailto:linuxppc-dev@lists.ozlabs.org>
+List-Help: <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=help>
+List-Subscribe: <https://lists.ozlabs.org/listinfo/linuxppc-dev>,
+ <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=subscribe>
+Errors-To: linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org
+Sender: "Linuxppc-dev"
+ <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
+To: Leonardo Bras <leonardo@linux.ibm.com>, Peter Zijlstra <peterz@infradead.org>
+Cc: Song Liu <songliubraving@fb.com>, Michal Hocko <mhocko@suse.com>, Mahesh Salgaonkar <mahesh@linux.vnet.ibm.com>, "Dmitry
+ V. Levin" <ldv@altlinux.org>, Keith Busch <keith.busch@intel.com>, linux-mm@kvack.org, Paul Mackerras <paulus@samba.org>, Christoph Lameter <cl@linux.com>, Ira Weiny <ira.weiny@intel.com>, Ingo Molnar <mingo@kernel.org>, Elena Reshetova <elena.reshetova@intel.com>, linux-arch@vger.kernel.org, Santosh Sivaraj <santosh@fossix.org>, Davidlohr Bueso <dave@stgolabs.net>, "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>, Jann Horn <jannh@google.com>, Mike Rapoport <rppt@linux.ibm.com>, Jason Gunthorpe <jgg@ziepe.ca>, Allison Randal <allison@lohutok.net>, Jesper Dangaard Brouer <brouer@redhat.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexey Dobriyan <adobriyan@gmail.com>, Andrea Arcangeli <aarcange@redhat.com>, Ralph Campbell <rcampbell@nvidia.com>Ar
 List-Id: linux-arch.vger.kernel.org
 
+On 10/3/19 1:36 PM, Leonardo Bras wrote:
+> On Thu, 2019-10-03 at 09:29 +0200, Peter Zijlstra wrote:
+>> On Wed, Oct 02, 2019 at 10:33:14PM -0300, Leonardo Bras wrote:
+...
+>> This is something entirely specific to Power, you shouldn't be touching
+>> generic code at all.
+> 
+> Up to v4, I was declaring dummy functions so it would not mess up with
+> other archs: http://patchwork.ozlabs.org/patch/1168779/
+> 
+> But I was recommended to create a generic function that could guide the
+> way to archs: http://patchwork.ozlabs.org/patch/1168775/
 
---=-cFtUj1Ho01ANPCDPn5bA
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
+Yes. And to clarify, I was assuming that the changes to mm/gup.c were 
+required in order to accomplish your goals. Given that assumption, I 
+wanted the generic code to be "proper", and that's what that feedback
+is about.
 
-On Thu, 2019-10-03 at 09:44 +0200, Peter Zijlstra wrote:
-> This shouldn't be a user visible option at all. Either the arch needs
-> it and selects it or not.
+If you can somehow do it entirely as an arch-specific thing, then probably
+that's even better. Although the other questions about file-backed THP
+make it sound like some rethinking across the board is required now.
 
-You are right. I will do that on v6.
-Thanks for the feedback!
 
---=-cFtUj1Ho01ANPCDPn5bA
-Content-Type: application/pgp-signature; name="signature.asc"
-Content-Description: This is a digitally signed message part
-Content-Transfer-Encoding: 7bit
-
------BEGIN PGP SIGNATURE-----
-
-iQIzBAABCAAdFiEEMdeUgIzgjf6YmUyOlQYWtz9SttQFAl2WXKsACgkQlQYWtz9S
-ttT0Rw/+O9ro3F+kPIMVu+zxDUbz2AsZH3nFxKIz+44t5QRLd0SVCWEZoL8sXxBl
-szuekeDyKqOVi4Uxq0kFBYP79d+/4XthFa9AwDozRXNre5Q0DiNv0j0z9DT0Ng02
-nSLeaiuIt8SlD/TRrFOrlt0yFmE0485uR2jQYklJ056mh+629wFa8XJ3NOuOlU3C
-wst6saBjYMZXlDg2acZTrI6VY1tpXAzkD1q1yQoEFUoMaLuBNhvLff0kxjxKTm2A
-WnfAyv+BNeD/BlUzi8ifmvz/V6tWyhJ3LGwOOPloAKVy+SyJkxhzQoNn0uToodx6
-GqeglOW+cnrPkmn3vZpinpSVOoQDzyy1MrurMbpXtV1iiVBxGXflyK7GAa9bpI4l
-E45jXUJHTnFB3LOon16oBweT/fM3jVa4RVzPzO7JFfdLQUhnNdWROxdglOVvQxH7
-2ZSy6maWC/mwRerDZk23R+usHwJ3kRItE/XT6mfzWcgf16Ph0A0xuZTLYvKJgOX4
-8mFMwRkitAKKI/AYeKZ5w1AsVzO6XcG95Fxv78yIHxau479a0LB8FQVbCUySWjlR
-6hZvWhqKJpy28cRX9ojp9MEzhABgb3bp8/3N7IKSxC2Gxsf7tVFs6ioEGFyBk/mK
-unZ51OqsQ9LvoN4l67gzt238uunxFlb/uQIH4AWX/eO/9iYv5lY=
-=uZ4G
------END PGP SIGNATURE-----
-
---=-cFtUj1Ho01ANPCDPn5bA--
+thanks,
+-- 
+John Hubbard
+NVIDIA
