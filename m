@@ -1,51 +1,100 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:56184 "EHLO mail.kernel.org"
+Received: from mail.kernel.org ([198.145.29.99]:56068 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1729713AbfJCA1B (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        id S1729702AbfJCA1B (ORCPT <rfc822;linux-arch@vger.kernel.org>);
         Wed, 2 Oct 2019 20:27:01 -0400
 From: paulmck@kernel.org
-Subject: [PATCH tip/core/rcu 31/32] tools/memory-model: Make judgelitmus.sh handle scripted Result: tag
-Date: Wed,  2 Oct 2019 17:26:49 -0700
-Message-ID: <20191003002650.11249-31-paulmck@kernel.org>
+Subject: [PATCH tip/core/rcu 29/32] tools/memory-model: Add checktheselitmus.sh to run specified litmus tests
+Date: Wed,  2 Oct 2019 17:26:47 -0700
+Message-ID: <20191003002650.11249-29-paulmck@kernel.org>
 In-Reply-To: <20191003001039.GA8027@paulmck-ThinkPad-P72>
 References: <20191003001039.GA8027@paulmck-ThinkPad-P72>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org
 Cc: stern@rowland.harvard.edu, parri.andrea@gmail.com, will@kernel.org, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, "Paul E. McKenney" <paulmck@linux.ibm.com>
-Message-ID: <20191003002649.iKpGjAelQiEMtcExxI5NHgR7H9xaL3JWUzaU9wZj418@z>
+Message-ID: <20191003002647.4o_3YDfYOPGAcpAPQTBZHUkNcUxEE24pWI8pZmMdRHs@z>
 
 From: "Paul E. McKenney" <paulmck@linux.ibm.com>
 
-The scripts that generate the litmus tests in the "auto" directory of
-the https://github.com/paulmckrcu/litmus archive place the "Result:"
-tag into a single-line ocaml comment, which judgelitmus.sh currently
-does not recognize.  This commit therefore makes judgelitmus.sh
-recognize both the multiline comment format that it currently does
-and the automatically generated single-line format.
+This commit adds a checktheselitmus.sh script that runs the litmus tests
+specified on the command line.  This is useful for verifying fixes to
+specific litmus tests.
 
 Signed-off-by: Paul E. McKenney <paulmck@linux.ibm.com>
 ---
- tools/memory-model/scripts/judgelitmus.sh | 6 +++---
- 1 file changed, 3 insertions(+), 3 deletions(-)
+ tools/memory-model/scripts/README              |  8 +++++
+ tools/memory-model/scripts/checktheselitmus.sh | 43 ++++++++++++++++++++++++++
+ 2 files changed, 51 insertions(+)
+ create mode 100755 tools/memory-model/scripts/checktheselitmus.sh
 
-diff --git a/tools/memory-model/scripts/judgelitmus.sh b/tools/memory-model/scripts/judgelitmus.sh
-index 2700481..1ec5d89 100755
---- a/tools/memory-model/scripts/judgelitmus.sh
-+++ b/tools/memory-model/scripts/judgelitmus.sh
-@@ -57,10 +57,10 @@ if grep -q '^Flag data-race$' "$LKMM_DESTDIR/$litmusout"
- then
- 	datarace_modeled=1
- fi
--if grep -q '^ \* Result: ' $litmus
-+if grep -q '^[( ]\* Result: ' $litmus
- then
--	outcome=`grep -m 1 '^ \* Result: ' $litmus | awk '{ print $3 }'`
--	if grep -m1 '^ \* Result: .* DATARACE' $litmus
-+	outcome=`grep -m 1 '^[( ]\* Result: ' $litmus | awk '{ print $3 }'`
-+	if grep -m1 '^[( ]\* Result: .* DATARACE' $litmus
- 	then
- 		datarace_predicted=1
- 	fi
+diff --git a/tools/memory-model/scripts/README b/tools/memory-model/scripts/README
+index 0e29a52..cc2c4e5 100644
+--- a/tools/memory-model/scripts/README
++++ b/tools/memory-model/scripts/README
+@@ -27,6 +27,14 @@ checklitmushist.sh
+ checklitmus.sh
+ 
+ 	Check a single litmus test against its "Result:" expected result.
++	Not intended to for manual use.
++
++checktheselitmus.sh
++
++	Check the specified list of litmus tests against their "Result:"
++	expected results.  This takes optional parseargs.sh arguments,
++	followed by "--" followed by pathnames starting from the current
++	directory.
+ 
+ cmplitmushist.sh
+ 
+diff --git a/tools/memory-model/scripts/checktheselitmus.sh b/tools/memory-model/scripts/checktheselitmus.sh
+new file mode 100755
+index 0000000..10eeb5ec
+--- /dev/null
++++ b/tools/memory-model/scripts/checktheselitmus.sh
+@@ -0,0 +1,43 @@
++#!/bin/sh
++# SPDX-License-Identifier: GPL-2.0+
++#
++# Invokes checklitmus.sh on its arguments to run the specified litmus
++# test and pass judgment on the results.
++#
++# Usage:
++#	checktheselitmus.sh -- [ file1.litmus [ file2.litmus ... ] ]
++#
++# Run this in the directory containing the memory model, specifying the
++# pathname of the litmus test to check.  The usual parseargs.sh arguments
++# can be specified prior to the "--".
++#
++# This script is intended for use with pathnames that start from the
++# tools/memory-model directory.  If some of the pathnames instead start at
++# the root directory, they all must do so and the "--destdir /" parseargs.sh
++# argument must be specified prior to the "--".  Alternatively, some other
++# "--destdir" argument can be supplied as long as the needed subdirectories
++# are populated.
++#
++# Copyright IBM Corporation, 2018
++#
++# Author: Paul E. McKenney <paulmck@linux.ibm.com>
++
++. scripts/parseargs.sh
++
++ret=0
++for i in "$@"
++do
++	if scripts/checklitmus.sh $i
++	then
++		:
++	else
++		ret=1
++	fi
++done
++if test "$ret" -ne 0
++then
++	echo " ^^^ VERIFICATION MISMATCHES" 1>&2
++else
++	echo All litmus tests verified as was expected. 1>&2
++fi
++exit $ret
 -- 
 2.9.5
