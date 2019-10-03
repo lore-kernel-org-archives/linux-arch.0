@@ -1,7 +1,7 @@
 From: paulmck@kernel.org
-Subject: [PATCH tip/core/rcu 05/32] tools/memory-model: Make judgelitmus.sh note timeouts
-Date: Wed,  2 Oct 2019 17:26:23 -0700
-Message-ID: <20191003002650.11249-5-paulmck@kernel.org>
+Subject: [PATCH tip/core/rcu 12/32] tools/memory-model: Add simpletest.sh to check locking, RCU, and SRCU
+Date: Wed,  2 Oct 2019 17:26:30 -0700
+Message-ID: <20191003002650.11249-12-paulmck@kernel.org>
 References: <20191003001039.GA8027@paulmck-ThinkPad-P72>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20191003001039.GA8027@paulmck-ThinkPad-P72>
@@ -12,35 +12,55 @@ List-Id: linux-arch.vger.kernel.org
 
 From: "Paul E. McKenney" <paulmck@linux.ibm.com>
 
-Currently, judgelitmus.sh treats timeouts (as in the "--timeout" argument)
-as "!!! Verification error".  This can be misleading because it is quite
-possible that running the test longer would have produced a verification.
-This commit therefore changes judgelitmus.sh to check for timeouts and
-to report them with "!!! Timeout".
+This commit abstracts out common function to check a given litmus test
+for locking, RCU, and SRCU in order to avoid duplicating code.
 
 Signed-off-by: Paul E. McKenney <paulmck@linux.ibm.com>
 ---
- tools/memory-model/scripts/judgelitmus.sh | 8 ++++++++
- 1 file changed, 8 insertions(+)
+ tools/memory-model/scripts/simpletest.sh | 35 ++++++++++++++++++++++++++++++++
+ 1 file changed, 35 insertions(+)
+ create mode 100755 tools/memory-model/scripts/simpletest.sh
 
-diff --git a/tools/memory-model/scripts/judgelitmus.sh b/tools/memory-model/scripts/judgelitmus.sh
-index 0cc6387..d3c313b 100755
---- a/tools/memory-model/scripts/judgelitmus.sh
-+++ b/tools/memory-model/scripts/judgelitmus.sh
-@@ -42,6 +42,14 @@ grep '^Observation' $LKMM_DESTDIR/$litmus.out
- if grep -q '^Observation' $LKMM_DESTDIR/$litmus.out
- then
- 	:
-+elif grep '^Command exited with non-zero status 124' $LKMM_DESTDIR/$litmus.out
+diff --git a/tools/memory-model/scripts/simpletest.sh b/tools/memory-model/scripts/simpletest.sh
+new file mode 100755
+index 0000000..7edc5d3
+--- /dev/null
++++ b/tools/memory-model/scripts/simpletest.sh
+@@ -0,0 +1,35 @@
++#!/bin/sh
++# SPDX-License-Identifier: GPL-2.0+
++#
++# Give zero status if this is a simple test and non-zero otherwise.
++# Simple tests do not contain locking, RCU, or SRCU.
++#
++# Usage:
++#	simpletest.sh file.litmus
++#
++# Copyright IBM Corporation, 2019
++#
++# Author: Paul E. McKenney <paulmck@linux.ibm.com>
++
++
++litmus=$1
++
++if test -f "$litmus" -a -r "$litmus"
 +then
-+	echo ' !!! Timeout' $litmus
-+	if ! grep -q '!!!' $LKMM_DESTDIR/$litmus.out
-+	then
-+		echo ' !!! Timeout' >> $LKMM_DESTDIR/$litmus.out 2>&1
-+	fi
-+	exit 124
- else
- 	echo ' !!! Verification error' $litmus
- 	if ! grep -q '!!!' $LKMM_DESTDIR/$litmus.out
++	:
++else
++	echo ' --- ' error: \"$litmus\" is not a readable file
++	exit 255
++fi
++exclude="^[[:space:]]*\("
++exclude="${exclude}spin_lock(\|spin_unlock(\|spin_trylock(\|spin_is_locked("
++exclude="${exclude}\|rcu_read_lock(\|rcu_read_unlock("
++exclude="${exclude}\|synchronize_rcu(\|synchronize_rcu_expedited("
++exclude="${exclude}\|srcu_read_lock(\|srcu_read_unlock("
++exclude="${exclude}\|synchronize_srcu(\|synchronize_srcu_expedited("
++exclude="${exclude}\)"
++if grep -q $exclude $litmus
++then
++	exit 255
++fi
++exit 0
 -- 
 2.9.5
