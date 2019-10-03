@@ -1,53 +1,97 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:51776 "EHLO mail.kernel.org"
+Received: from mail.kernel.org ([198.145.29.99]:56006 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1725893AbfJCAKl (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 2 Oct 2019 20:10:41 -0400
-Date: Wed, 2 Oct 2019 17:10:39 -0700
-From: "Paul E. McKenney" <paulmck@kernel.org>
-Subject: [PATCH memory-model 0/32] Memory-model updates
-Message-ID: <20191003001039.GA8027@paulmck-ThinkPad-P72>
-Reply-To: paulmck@kernel.org
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
+        id S1726354AbfJCA0x (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 2 Oct 2019 20:26:53 -0400
+From: paulmck@kernel.org
+Subject: [PATCH tip/core/rcu 01/32] tools/memory-model: Fix data race detection for unordered store and load
+Date: Wed,  2 Oct 2019 17:26:19 -0700
+Message-ID: <20191003002650.11249-1-paulmck@kernel.org>
+In-Reply-To: <20191003001039.GA8027@paulmck-ThinkPad-P72>
+References: <20191003001039.GA8027@paulmck-ThinkPad-P72>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org
-Cc: stern@rowland.harvard.edu, parri.andrea@gmail.com, will@kernel.org, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com
-Message-ID: <20191003001039.raacB9WD6G4orERzQh8MydpclnggP8g-yXvXaIkS7fo@z>
+Cc: stern@rowland.harvard.edu, parri.andrea@gmail.com, will@kernel.org, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, "Paul E . McKenney" <paulmck@linux.ibm.com>
+Message-ID: <20191003002619.jx-QSZ3cNLr1qkPu-Qqclks6C6yaSIYDwiuxQkLkKAk@z>
 
-Hello!
+From: Alan Stern <stern@rowland.harvard.edu>
 
-This series contains updates for the Linux-kernel memory model:
+Currently the Linux Kernel Memory Model gives an incorrect response
+for the following litmus test:
 
-1.	Fix data race detection for unordered store and load,
-	courtesy of Alan Stern.
+C plain-WWC
 
-2-4.	Documentation update for plain accesses.
+{}
 
-5-32.	Work-in-progress test-script updates.
+P0(int *x)
+{
+	WRITE_ONCE(*x, 2);
+}
 
-							Thanx, Paul
+P1(int *x, int *y)
+{
+	int r1;
+	int r2;
+	int r3;
 
-------------------------------------------------------------------------
+	r1 = READ_ONCE(*x);
+	if (r1 == 2) {
+		smp_rmb();
+		r2 = *x;
+	}
+	smp_rmb();
+	r3 = READ_ONCE(*x);
+	WRITE_ONCE(*y, r3 - 1);
+}
 
- Documentation/explanation.txt |  602 ++++++++++++++++++++++++++++++++++++++++--
- linux-kernel.cat              |    2 
- litmus-tests/.gitignore       |    4 
- scripts/README                |   16 -
- scripts/checkalllitmus.sh     |   29 --
- scripts/checkghlitmus.sh      |   11 
- scripts/checklitmus.sh        |  101 +++----
- scripts/checklitmushist.sh    |    2 
- scripts/checktheselitmus.sh   |   43 +++
- scripts/cmplitmushist.sh      |   53 +++
- scripts/hwfnseg.sh            |   20 +
- scripts/initlitmushist.sh     |    2 
- scripts/judgelitmus.sh        |  164 ++++++++---
- scripts/newlitmushist.sh      |    4 
- scripts/parseargs.sh          |   21 +
- scripts/runlitmus.sh          |  144 +++++++---
- scripts/runlitmushist.sh      |   29 +-
- scripts/simpletest.sh         |   35 ++
- 18 files changed, 1071 insertions(+), 211 deletions(-)
+P2(int *x, int *y)
+{
+	int r4;
+
+	r4 = READ_ONCE(*y);
+	if (r4 > 0)
+		WRITE_ONCE(*x, 1);
+}
+
+exists (x=2 /\ 1:r2=2 /\ 2:r4=1)
+
+The memory model says that the plain read of *x in P1 races with the
+WRITE_ONCE(*x) in P2.
+
+The problem is that we have a write W and a read R related by neither
+fre or rfe, but rather W ->coe W' ->rfe R, where W' is an intermediate
+write (the WRITE_ONCE() in P0).  In this situation there is no
+particular ordering between W and R, so either a wr-vis link from W to
+R or an rw-xbstar link from R to W would prove that the accesses
+aren't concurrent.
+
+But the LKMM only looks for a wr-vis link, which is equivalent to
+assuming that W must execute before R.  This is not necessarily true
+on non-multicopy-atomic systems, as the WWC pattern demonstrates.
+
+This patch changes the LKMM to accept either a wr-vis or a reverse
+rw-xbstar link as a proof of non-concurrency.
+
+Signed-off-by: Alan Stern <stern@rowland.harvard.edu>
+Acked-by: Andrea Parri <parri.andrea@gmail.com>
+Signed-off-by: Paul E. McKenney <paulmck@linux.ibm.com>
+---
+ tools/memory-model/linux-kernel.cat | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/tools/memory-model/linux-kernel.cat b/tools/memory-model/linux-kernel.cat
+index ea2ff4b..2a9b4fe 100644
+--- a/tools/memory-model/linux-kernel.cat
++++ b/tools/memory-model/linux-kernel.cat
+@@ -197,7 +197,7 @@ empty (wr-incoh | rw-incoh | ww-incoh) as plain-coherence
+ (* Actual races *)
+ let ww-nonrace = ww-vis & ((Marked * W) | rw-xbstar) & ((W * Marked) | wr-vis)
+ let ww-race = (pre-race & co) \ ww-nonrace
+-let wr-race = (pre-race & (co? ; rf)) \ wr-vis
++let wr-race = (pre-race & (co? ; rf)) \ wr-vis \ rw-xbstar^-1
+ let rw-race = (pre-race & fr) \ rw-xbstar
+ 
+ flag ~empty (ww-race | wr-race | rw-race) as data-race
+-- 
+2.9.5
