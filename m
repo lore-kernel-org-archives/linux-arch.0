@@ -1,73 +1,53 @@
-From: John Hubbard <jhubbard@nvidia.com>
-Subject: Re: [PATCH v5 01/11] asm-generic/pgtable: Adds generic functions to
- monitor lockless pgtable walks
-Date: Thu, 3 Oct 2019 13:40:38 -0700
-Message-ID: <c127ee98-094b-d5c0-0a42-6d01c16a72d9@nvidia.com>
+From: Leonardo Bras <leonardo@linux.ibm.com>
+Subject: Re: [PATCH v5 10/11] mm/Kconfig: Adds config option to track
+ lockless pagetable walks
+Date: Thu, 03 Oct 2019 17:40:11 -0300
+Message-ID: <3598584cc4b829e9c290b6dab89fb148528e4f72.camel@linux.ibm.com>
 References: <20191003013325.2614-1-leonardo@linux.ibm.com>
- <20191003013325.2614-2-leonardo@linux.ibm.com>
- <20191003071145.GM4536@hirez.programming.kicks-ass.net>
- <20191003115141.GJ4581@hirez.programming.kicks-ass.net>
+         <20191003013325.2614-11-leonardo@linux.ibm.com>
+         <20191003074432.GO4536@hirez.programming.kicks-ass.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: 7bit
-Return-path: <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
-In-Reply-To: <20191003115141.GJ4581@hirez.programming.kicks-ass.net>
-Content-Language: en-US
-List-Unsubscribe: <https://lists.ozlabs.org/options/linuxppc-dev>,
- <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=unsubscribe>
-List-Archive: <http://lists.ozlabs.org/pipermail/linuxppc-dev/>
-List-Post: <mailto:linuxppc-dev@lists.ozlabs.org>
-List-Help: <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=help>
-List-Subscribe: <https://lists.ozlabs.org/listinfo/linuxppc-dev>,
- <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=subscribe>
-Errors-To: linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org
-Sender: "Linuxppc-dev"
- <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
-To: Peter Zijlstra <peterz@infradead.org>, Leonardo Bras <leonardo@linux.ibm.com>
-Cc: Song Liu <songliubraving@fb.com>, Michal Hocko <mhocko@suse.com>, "Dmitry V. Levin" <ldv@altlinux.org>, Keith Busch <keith.busch@intel.com>, linux-mm@kvack.org, Paul Mackerras <paulus@samba.org>, Christoph Lameter <cl@linux.com>, Ira Weiny <ira.weiny@intel.com>, Dan Williams <dan.j.williams@intel.com>, Elena Reshetova <elena.reshetova@intel.com>, linux-arch@vger.kernel.org, Santosh Sivaraj <santosh@fossix.org>, Davidlohr Bueso <dave@stgolabs.net>, "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>, Bartlomiej Zolnierkiewicz <b.zolnierkie@samsung.com>, Mike Rapoport <rppt@linux.ibm.com>, Jason Gunthorpe <jgg@ziepe.ca>, Vlastimil Babka <vbabka@suse.cz>, Mahesh Salgaonkar <mahesh@linux.vnet.ibm.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexey Dobriyan <adobriyan@gmail.com>, Ingo Molnar <mingo@kernel.org>, Andrea Arcangeli <aarcange@redhat.com>, Ralph Campbell <rcampbel>
+Content-Type: multipart/signed; micalg="pgp-sha256";
+        protocol="application/pgp-signature"; boundary="=-cFtUj1Ho01ANPCDPn5bA"
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20191003074432.GO4536@hirez.programming.kicks-ass.net>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Song Liu <songliubraving@fb.com>, Michal Hocko <mhocko@suse.com>, "Dmitry V. Levin" <ldv@altlinux.org>, Keith Busch <keith.busch@intel.com>, linux-mm@kvack.org, Paul Mackerras <paulus@samba.org>, Christoph Lameter <cl@linux.com>, Ira Weiny <ira.weiny@intel.com>, Dan Williams <dan.j.williams@intel.com>, Elena Reshetova <elena.reshetova@intel.com>, linux-arch@vger.kernel.org, Santosh Sivaraj <santosh@fossix.org>, Davidlohr Bueso <dave@stgolabs.net>, "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>, Bartlomiej Zolnierkiewicz <b.zolnierkie@samsung.com>, Mike Rapoport <rppt@linux.ibm.com>, Jason Gunthorpe <jgg@ziepe.ca>, Vlastimil Babka <vbabka@suse.cz>, Mahesh Salgaonkar <mahesh@linux.vnet.ibm.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexey
 List-Id: linux-arch.vger.kernel.org
 
-On 10/3/19 4:51 AM, Peter Zijlstra wrote:
-> On Thu, Oct 03, 2019 at 09:11:45AM +0200, Peter Zijlstra wrote:
->> On Wed, Oct 02, 2019 at 10:33:15PM -0300, Leonardo Bras wrote:
-...
-> 
-> I'm still really confused about this barrier. It just doesn't make
-> sense.
-> 
-> If an interrupt happens before the local_irq_disable()/save(), then it
-> will discard any and all speculation that would be in progress to handle
-> the exception.
-> 
 
-Hi Peter,
+--=-cFtUj1Ho01ANPCDPn5bA
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
 
-So, would that imply that it's correct to apply approximately the following
-patch:
+On Thu, 2019-10-03 at 09:44 +0200, Peter Zijlstra wrote:
+> This shouldn't be a user visible option at all. Either the arch needs
+> it and selects it or not.
 
-diff --git a/Documentation/memory-barriers.txt b/Documentation/memory-barriers.txt
-index 1adbb8a371c7..cf41eff37e24 100644
---- a/Documentation/memory-barriers.txt
-+++ b/Documentation/memory-barriers.txt
-@@ -2099,9 +2099,9 @@ INTERRUPT DISABLING FUNCTIONS
- -----------------------------
- 
- Functions that disable interrupts (ACQUIRE equivalent) and enable interrupts
--(RELEASE equivalent) will act as compiler barriers only.  So if memory or I/O
--barriers are required in such a situation, they must be provided from some
--other means.
-+(RELEASE equivalent) will act as full memory barriers. This is because, for
-+all supported CPU architectures, interrupt arrival causes all speculative
-+memory accesses to be discarded.
- 
-?
+You are right. I will do that on v6.
+Thanks for the feedback!
 
-We're also discussing this over in [1] ("mm: don't expose non-hugetlb page to
-fast gup prematurely"), so I'm adding Paul to this thread here as well.
+--=-cFtUj1Ho01ANPCDPn5bA
+Content-Type: application/pgp-signature; name="signature.asc"
+Content-Description: This is a digitally signed message part
+Content-Transfer-Encoding: 7bit
 
-[1] https://lore.kernel.org/r/20191002092447.GC9320@quack2.suse.cz
+-----BEGIN PGP SIGNATURE-----
 
-thanks,
--- 
-John Hubbard
-NVIDIA
+iQIzBAABCAAdFiEEMdeUgIzgjf6YmUyOlQYWtz9SttQFAl2WXKsACgkQlQYWtz9S
+ttT0Rw/+O9ro3F+kPIMVu+zxDUbz2AsZH3nFxKIz+44t5QRLd0SVCWEZoL8sXxBl
+szuekeDyKqOVi4Uxq0kFBYP79d+/4XthFa9AwDozRXNre5Q0DiNv0j0z9DT0Ng02
+nSLeaiuIt8SlD/TRrFOrlt0yFmE0485uR2jQYklJ056mh+629wFa8XJ3NOuOlU3C
+wst6saBjYMZXlDg2acZTrI6VY1tpXAzkD1q1yQoEFUoMaLuBNhvLff0kxjxKTm2A
+WnfAyv+BNeD/BlUzi8ifmvz/V6tWyhJ3LGwOOPloAKVy+SyJkxhzQoNn0uToodx6
+GqeglOW+cnrPkmn3vZpinpSVOoQDzyy1MrurMbpXtV1iiVBxGXflyK7GAa9bpI4l
+E45jXUJHTnFB3LOon16oBweT/fM3jVa4RVzPzO7JFfdLQUhnNdWROxdglOVvQxH7
+2ZSy6maWC/mwRerDZk23R+usHwJ3kRItE/XT6mfzWcgf16Ph0A0xuZTLYvKJgOX4
+8mFMwRkitAKKI/AYeKZ5w1AsVzO6XcG95Fxv78yIHxau479a0LB8FQVbCUySWjlR
+6hZvWhqKJpy28cRX9ojp9MEzhABgb3bp8/3N7IKSxC2Gxsf7tVFs6ioEGFyBk/mK
+unZ51OqsQ9LvoN4l67gzt238uunxFlb/uQIH4AWX/eO/9iYv5lY=
+=uZ4G
+-----END PGP SIGNATURE-----
+
+--=-cFtUj1Ho01ANPCDPn5bA--
