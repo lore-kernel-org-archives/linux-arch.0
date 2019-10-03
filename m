@@ -1,17 +1,8 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-lf1-f67.google.com ([209.85.167.67]:38979 "EHLO
-        mail-lf1-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S2393432AbfJCRIa (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 3 Oct 2019 13:08:30 -0400
-Received: by mail-lf1-f67.google.com with SMTP id 72so2425264lfh.6
-        for <linux-arch@vger.kernel.org>; Thu, 03 Oct 2019 10:08:29 -0700 (PDT)
-Received: from mail-lj1-f178.google.com (mail-lj1-f178.google.com. [209.85.208.178])
-        by smtp.gmail.com with ESMTPSA id t10sm665197ljt.68.2019.10.03.10.08.26
-        for <linux-arch@vger.kernel.org>
-        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
-        Thu, 03 Oct 2019 10:08:26 -0700 (PDT)
-Received: by mail-lj1-f178.google.com with SMTP id f5so3597048ljg.8
-        for <linux-arch@vger.kernel.org>; Thu, 03 Oct 2019 10:08:26 -0700 (PDT)
+Received: from condef-03.nifty.com ([202.248.20.68]:31723 "EHLO
+        condef-03.nifty.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1729199AbfJCR1z (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 3 Oct 2019 13:27:55 -0400
 MIME-Version: 1.0
 References: <20190930112636.vx2qxo4hdysvxibl@willie-the-truck>
  <CAK7LNASQZ82KSOrQW7+Wq1vFDCg2__maBEAPMLqUDqZMLuj1rA@mail.gmail.com>
@@ -24,41 +15,72 @@ References: <20190930112636.vx2qxo4hdysvxibl@willie-the-truck>
  <CAHk-=wgFODvdFBHzgVf3JjoBz0z6LZhOm8xvMntsvOr66ASmZQ@mail.gmail.com>
  <CAK7LNARM2jVSdgCDJWDbvVxYLiUR_CFgTPg0nxzbCszSKcx+pg@mail.gmail.com> <CAHk-=wiMm3rN15WmiAqMHjC-pakL_b8qgWsPPri0+YLFORT-ZA@mail.gmail.com>
 In-Reply-To: <CAHk-=wiMm3rN15WmiAqMHjC-pakL_b8qgWsPPri0+YLFORT-ZA@mail.gmail.com>
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Date: Thu, 3 Oct 2019 10:08:09 -0700
-Message-ID: <CAHk-=whkB+g0R0JqLB+Y4piUZf9A8P1ugi5T92LjFLNY+epBeg@mail.gmail.com>
+From: Masahiro Yamada <yamada.masahiro@socionext.com>
+Date: Fri, 4 Oct 2019 02:23:36 +0900
+Message-ID: <CAK7LNATSoOD0g=Aarui6Y26E_YB035NsaPpHxqtBNyw0K0UXVw@mail.gmail.com>
 Subject: Re: [PATCH] compiler: enable CONFIG_OPTIMIZE_INLINING forcibly
 Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Masahiro Yamada <yamada.masahiro@socionext.com>
+To: Linus Torvalds <torvalds@linux-foundation.org>
 Cc: Geert Uytterhoeven <geert@linux-m68k.org>, Nick Desaulniers <ndesaulniers@google.com>, Russell King - ARM Linux admin <linux@armlinux.org.uk>, Will Deacon <will@kernel.org>, Nicolas Saenz Julienne <nsaenzjulienne@suse.de>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Miguel Ojeda <miguel.ojeda.sandonis@gmail.com>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Stefan Wahren <wahrenst@gmx.net>, Kees Cook <keescook@google.com>, Arnd Bergmann <arnd@arndb.de>, clang-built-linux <clang-built-linux@googlegroups.com>
-Message-ID: <20191003170809.k83JRWf5159SeEBUq1tEJLIvon69DdDpsNjNkk53_wg@z>
+Message-ID: <20191003172336.4WvdB6qiqLvnz1Dli5yt4yfiE8_x_VNl8BJuW7NX828@z>
 
-On Thu, Oct 3, 2019 at 10:01 AM Linus Torvalds
+On Fri, Oct 4, 2019 at 2:02 AM Linus Torvalds
 <torvalds@linux-foundation.org> wrote:
+>
+> On Wed, Oct 2, 2019 at 7:11 PM Masahiro Yamada
+> <yamada.masahiro@socionext.com> wrote:
+> >
+> > Macrofying the 'inline' is a horrid mistake that makes incorrect code work.
+> > It would eternally prevent people from writing portable, correct code.
+> > Please do not encourage to hide problems.
+>
+> Honestly, if the alternative to hiding problems is "use a macro", then
+> I'd rather hide the problems and just make "inline" means "inline".
+>
+> If "inline" means "it's just a hint, use macros", then inline is useless.
+
+For clarification,
+I am not saying "use macros" at all.
+
+
+I just want to annotate __always_inline for the case
+"2. code that if not inlined is somehow not correct."
+
+
+
+> If "inline" means "using this means that there are known compiler
+> bugs, but we don't know where they trigger", then inline is _worse_
+> than useless.
+>
+> I do not see the big advantage of letting the compiler say "yeah, I'm
+> not going to do that, Dave".
+>
+> And I see a *huge* disadvantage when people are ignoring compiler
+> bugs, and are saying "use a macro". Seriously.
+
+
+Again, not saying "use a macro".
+
+
+
+>
+> Right now we see the obvious compiler bugs that cause build breakages.
+> How many non-obvious compiler bugs do we have? And how sure are you
+> that our code is "correct" after fixing a couple of obvious cases?
+>
+> As to "portable", nobody cares. We're a kernel. We aren't portable,
+> and never were.
 >
 > If this is purely about the fact that x86 is different from other
 > architectures, then let's remove the "compiler can do stupid things"
 > option on x86 too. It was never clear that it was a huge advantage.
+>
+>                Linus
 
-Side note: what might be an actual advantage would be to have a mode
-where you see when the compiler would choose to not inline things.
 
-Maybe we have things that are marked "inline" that simply shouldn't
-be. We do tend to have this history of adding small helper functions
-to header files, and then they grow and grow and grow. And now they
-shouldn't be in a header file any more, but they still are.
 
-So having a "compiler doesn't want to inline this" flag might be
-useful for finding those, but it might also be useful for people
-looking for what triggers bugs.
-
-But honestly, the last time I saw somebody argue for "I don't want
-inlining", it was the broken "I want to compiler the kernel with no
-optimizations so that it's easier to look at the resulting code". That
-was just a _bad_ bad patch. And if it is concerns like that that are
-driving this "compiler doesn't have to inline", then we should stop it
-immediately.
-
-             Linus
+-- 
+Best Regards
+Masahiro Yamada
