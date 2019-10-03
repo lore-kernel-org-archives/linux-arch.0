@@ -1,150 +1,207 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:56246 "EHLO mail.kernel.org"
+Received: from mail.kernel.org ([198.145.29.99]:56262 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1729638AbfJCA05 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 2 Oct 2019 20:26:57 -0400
+        id S1729617AbfJCA04 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 2 Oct 2019 20:26:56 -0400
 From: paulmck@kernel.org
-Subject: [PATCH tip/core/rcu 14/32] tools/memory-model: Hardware checking for check{,all}litmus.sh
-Date: Wed,  2 Oct 2019 17:26:32 -0700
-Message-ID: <20191003002650.11249-14-paulmck@kernel.org>
+Subject: [PATCH tip/core/rcu 11/32] tools/memory-model: Make judgelitmus.sh handle hardware verifications
+Date: Wed,  2 Oct 2019 17:26:29 -0700
+Message-ID: <20191003002650.11249-11-paulmck@kernel.org>
 In-Reply-To: <20191003001039.GA8027@paulmck-ThinkPad-P72>
 References: <20191003001039.GA8027@paulmck-ThinkPad-P72>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org
 Cc: stern@rowland.harvard.edu, parri.andrea@gmail.com, will@kernel.org, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, "Paul E. McKenney" <paulmck@linux.ibm.com>
-Message-ID: <20191003002632.HR3cYFV7ajB84egrzFQBSSH1EO2UQ_joXfgWyR2ILAA@z>
+Message-ID: <20191003002629.tXw56pNnf6udQ26RU2K_G9H6EWW3x00tUL2Od6u44BI@z>
 
 From: "Paul E. McKenney" <paulmck@linux.ibm.com>
 
-This commit makes checklitmus.sh and checkalllitmus.sh check to see
-if a hardware verification was specified (via the --hw command-line
-argument, which sets the LKMM_HW_MAP_FILE environment variable).
-If so, the C-language litmus test is converted to the specified type
-of assembly-language litmus test and herd is run on it.  Hardware is
-permitted to be stronger than LKMM requires, so "Always" and "Never"
-verifications of "Sometimes" C-language litmus tests are forgiven.
+This commit makes the judgelitmus.sh script check the --hw argument
+(AKA the LKMM_HW_MAP_FILE environment variable) and to adjust its
+judgment for a run where a C-language litmus test has been translated to
+assembly and the assembly version verified.  In this case, the assembly
+verification output is checked against the C-language script's "Result:"
+comment.  However, because hardware can be stronger than LKMM requires,
+the judgelitmus.sh script forgives verification mismatches featuring
+a "Sometimes" in the C-language script and an "Always" or "Never"
+assembly-language verification.
+
+Note that deadlock is not forgiven, however, this should not normally be
+an issue given that C-language tests containing locking, RCU, or SRCU
+cannot be translated to assembly.  However, this issue can crop up in
+litmus tests that mimic deadlock by using the "filter" clause to ignore
+all executions.  It can also crop up when certain herd arguments are
+used to autofilter everything that does not match the "exists" clause
+in cases where the "exists" clause cannot be satisfied.
 
 Signed-off-by: Paul E. McKenney <paulmck@linux.ibm.com>
 ---
- tools/memory-model/scripts/checkalllitmus.sh | 23 ++++++++-------
- tools/memory-model/scripts/checklitmus.sh    | 42 +++++++++++++++++++++++++---
- 2 files changed, 49 insertions(+), 16 deletions(-)
+ tools/memory-model/scripts/README         |  8 ++--
+ tools/memory-model/scripts/judgelitmus.sh | 75 +++++++++++++++++++------------
+ 2 files changed, 51 insertions(+), 32 deletions(-)
 
-diff --git a/tools/memory-model/scripts/checkalllitmus.sh b/tools/memory-model/scripts/checkalllitmus.sh
-index 54d8da8..2d3ee85 100755
---- a/tools/memory-model/scripts/checkalllitmus.sh
-+++ b/tools/memory-model/scripts/checkalllitmus.sh
-@@ -1,4 +1,4 @@
--#!/bin/sh
-+#!/bin/bash
+diff --git a/tools/memory-model/scripts/README b/tools/memory-model/scripts/README
+index 095c7eb..0e29a52 100644
+--- a/tools/memory-model/scripts/README
++++ b/tools/memory-model/scripts/README
+@@ -43,10 +43,10 @@ initlitmushist.sh
+ 
+ judgelitmus.sh
+ 
+-	Given a .litmus file and its .litmus.out herd7 output, check the
+-	.litmus.out file against the .litmus file's "Result:" comment to
+-	judge whether the test ran correctly.  Not normally run manually,
+-	provided instead for use by other scripts.
++	Given a .litmus file and its herd7 output, check the output file
++	against the .litmus file's "Result:" comment to judge whether
++	the test ran correctly.  Not normally run manually, provided
++	instead for use by other scripts.
+ 
+ newlitmushist.sh
+ 
+diff --git a/tools/memory-model/scripts/judgelitmus.sh b/tools/memory-model/scripts/judgelitmus.sh
+index d82133e..6f3c600 100755
+--- a/tools/memory-model/scripts/judgelitmus.sh
++++ b/tools/memory-model/scripts/judgelitmus.sh
+@@ -1,9 +1,14 @@
+ #!/bin/sh
  # SPDX-License-Identifier: GPL-2.0+
  #
- # Run herd7 tests on all .litmus files in the litmus-tests directory
-@@ -8,6 +8,11 @@
- # "^^^".  It also outputs verification results to a file whose name is
- # that of the specified litmus test, but with ".out" appended.
+-# Given a .litmus test and the corresponding .litmus.out file, check
+-# the .litmus.out file against the "Result:" comment to judge whether
+-# the test ran correctly.
++# Given a .litmus test and the corresponding litmus output file, check
++# the .litmus.out file against the "Result:" comment to judge whether the
++# test ran correctly.  If the --hw argument is omitted, check against the
++# LKMM output, which is assumed to be in file.litmus.out.  If this argument
++# is provided, this is assumed to be a hardware test, and the output is
++# assumed to be in file.HW.litmus.out, where "HW" is the --hw argument.
++# In addition, non-Sometimes verification results will be noted, but
++# forgiven.
  #
-+# If the --hw argument is specified, this script translates the .litmus
-+# C-language file to the specified type of assembly and verifies that.
-+# But in this case, litmus tests using complex synchronization (such as
-+# locking, RCU, and SRCU) are cheerfully ignored.
-+#
  # Usage:
- #	checkalllitmus.sh
- #
-@@ -38,21 +43,15 @@ then
- 	( cd "$LKMM_DESTDIR"; sed -e 's/^/mkdir -p /' | sh )
- fi
- 
--# Find the checklitmus script.  If it is not where we expect it, then
--# assume that the caller has the PATH environment variable set
--# appropriately.
--if test -x scripts/checklitmus.sh
--then
--	clscript=scripts/checklitmus.sh
--else
--	clscript=checklitmus.sh
--fi
--
- # Run the script on all the litmus tests in the specified directory
- ret=0
- for i in $litmusdir/*.litmus
- do
--	if ! $clscript $i
-+	if test -n "$LKMM_HW_MAP_FILE" && ! scripts/simpletest.sh $i
-+	then
-+		continue
-+	fi
-+	if ! scripts/checklitmus.sh $i
- 	then
- 		ret=1
- 	fi
-diff --git a/tools/memory-model/scripts/checklitmus.sh b/tools/memory-model/scripts/checklitmus.sh
-index 638b8c6..42ff118 100755
---- a/tools/memory-model/scripts/checklitmus.sh
-+++ b/tools/memory-model/scripts/checklitmus.sh
-@@ -6,6 +6,11 @@
- # results to a file whose name is that of the specified litmus test, but
- # with ".out" appended.
- #
-+# If the --hw argument is specified, this script translates the .litmus
-+# C-language file to the specified type of assembly and verifies that.
-+# But in this case, litmus tests using complex synchronization (such as
-+# locking, RCU, and SRCU) are cheerfully ignored.
-+#
- # Usage:
- #	checklitmus.sh file.litmus
- #
-@@ -18,8 +23,6 @@
- # Author: Paul E. McKenney <paulmck@linux.ibm.com>
- 
- litmus=$1
--herdoptions=${LKMM_HERD_OPTIONS--conf linux-kernel.cfg}
--
- if test -f "$litmus" -a -r "$litmus"
- then
- 	:
-@@ -28,7 +31,38 @@ else
+ #	judgelitmus.sh file.litmus
+@@ -24,11 +29,18 @@ else
+ 	echo ' --- ' error: \"$litmus\" is not a readable file
  	exit 255
  fi
- 
--echo Herd options: $herdoptions > $LKMM_DESTDIR/$litmus.out
--/usr/bin/time $LKMM_TIMEOUT_CMD herd7 $herdoptions $litmus >> $LKMM_DESTDIR/$litmus.out 2>&1
+-if test -f "$LKMM_DESTDIR/$litmus".out -a -r "$LKMM_DESTDIR/$litmus".out
 +if test -z "$LKMM_HW_MAP_FILE"
 +then
-+	# LKMM run
-+	herdoptions=${LKMM_HERD_OPTIONS--conf linux-kernel.cfg}
-+	echo Herd options: $herdoptions > $LKMM_DESTDIR/$litmus.out
-+	/usr/bin/time $LKMM_TIMEOUT_CMD herd7 $herdoptions $litmus >> $LKMM_DESTDIR/$litmus.out 2>&1
++	litmusout=$litmus.out
 +else
-+	# Hardware run
-+
-+	T=/tmp/checklitmushw.sh.$$
-+	trap 'rm -rf $T' 0 2
-+	mkdir $T
-+
-+	# Generate filenames
-+	catfile="`echo $LKMM_HW_MAP_FILE | tr '[A-Z]' '[a-z]'`.cat"
-+	mapfile="Linux2${LKMM_HW_MAP_FILE}.map"
-+	themefile="$T/${LKMM_HW_MAP_FILE}.theme"
-+	herdoptions="-model $LKMM_HW_CAT_FILE"
-+	hwlitmus=`echo $litmus | sed -e 's/\.litmus$/.'${LKMM_HW_MAP_FILE}'.litmus/'`
-+	hwlitmusfile=`echo $hwlitmus | sed -e 's,^.*/,,'`
-+
-+	# Don't run on litmus tests with complex synchronization
-+	if ! scripts/simpletest.sh $litmus
-+	then
-+		echo ' --- ' error: \"$litmus\" contains locking, RCU, or SRCU
-+		exit 254
-+	fi
-+
-+	# Generate the assembly code and run herd7 on it.
-+	gen_theme7 -n 10 -map $mapfile -call Linux.call > $themefile
-+	jingle7 -theme $themefile $litmus > $T/$hwlitmusfile 2> $T/$hwlitmusfile.jingle7.out
-+	/usr/bin/time $LKMM_TIMEOUT_CMD herd7 -model $catfile $T/$hwlitmusfile > $LKMM_DESTDIR/$hwlitmus.out 2>&1
++	litmusout="`echo $litmus |
++		sed -e 's/\.litmus$/.'${LKMM_HW_MAP_FILE}'.litmus/'`.out"
 +fi
++if test -f "$LKMM_DESTDIR/$litmusout" -a -r "$LKMM_DESTDIR/$litmusout"
+ then
+ 	:
+ else
+-	echo ' --- ' error: \"$LKMM_DESTDIR/$litmus\".out is not a readable file
++	echo ' --- ' error: \"$LKMM_DESTDIR/$litmusout is not a readable file
+ 	exit 255
+ fi
+ if grep -q '^ \* Result: ' $litmus
+@@ -38,69 +50,76 @@ else
+ 	outcome=specified
+ fi
  
- scripts/judgelitmus.sh $litmus
+-grep '^Observation' $LKMM_DESTDIR/$litmus.out
+-if grep -q '^Observation' $LKMM_DESTDIR/$litmus.out
++grep '^Observation' $LKMM_DESTDIR/$litmusout
++if grep -q '^Observation' $LKMM_DESTDIR/$litmusout
+ then
+ 	:
+-elif grep ': Unknown macro ' $LKMM_DESTDIR/$litmus.out
++elif grep ': Unknown macro ' $LKMM_DESTDIR/$litmusout
+ then
+-	badname=`grep ': Unknown macro ' $LKMM_DESTDIR/$litmus.out |
++	badname=`grep ': Unknown macro ' $LKMM_DESTDIR/$litmusout |
+ 		sed -e 's/^.*: Unknown macro //' |
+ 		sed -e 's/ (User error).*$//'`
+ 	badmsg=' !!! Current LKMM version does not know "'$badname'"'" $litmus"
+ 	echo $badmsg
+-	if ! grep -q '!!!' $LKMM_DESTDIR/$litmus.out
++	if ! grep -q '!!!' $LKMM_DESTDIR/$litmusout
+ 	then
+-		echo ' !!! '$badmsg >> $LKMM_DESTDIR/$litmus.out 2>&1
++		echo ' !!! '$badmsg >> $LKMM_DESTDIR/$litmusout 2>&1
+ 	fi
+ 	exit 254
+-elif grep '^Command exited with non-zero status 124' $LKMM_DESTDIR/$litmus.out
++elif grep '^Command exited with non-zero status 124' $LKMM_DESTDIR/$litmusout
+ then
+ 	echo ' !!! Timeout' $litmus
+-	if ! grep -q '!!!' $LKMM_DESTDIR/$litmus.out
++	if ! grep -q '!!!' $LKMM_DESTDIR/$litmusout
+ 	then
+-		echo ' !!! Timeout' >> $LKMM_DESTDIR/$litmus.out 2>&1
++		echo ' !!! Timeout' >> $LKMM_DESTDIR/$litmusout 2>&1
+ 	fi
+ 	exit 124
+ else
+ 	echo ' !!! Verification error' $litmus
+-	if ! grep -q '!!!' $LKMM_DESTDIR/$litmus.out
++	if ! grep -q '!!!' $LKMM_DESTDIR/$litmusout
+ 	then
+-		echo ' !!! Verification error' >> $LKMM_DESTDIR/$litmus.out 2>&1
++		echo ' !!! Verification error' >> $LKMM_DESTDIR/$litmusout 2>&1
+ 	fi
+ 	exit 255
+ fi
+ if test "$outcome" = DEADLOCK
+ then
+-	if grep '^Observation' $LKMM_DESTDIR/$litmus.out | grep -q 'Never 0 0$'
++	if grep '^Observation' $LKMM_DESTDIR/$litmusout | grep -q 'Never 0 0$'
+ 	then
+ 		ret=0
+ 	else
+ 		echo " !!! Unexpected non-$outcome verification" $litmus
+-		if ! grep -q '!!!' $LKMM_DESTDIR/$litmus.out
++		if ! grep -q '!!!' $LKMM_DESTDIR/$litmusout
+ 		then
+-			echo " !!! Unexpected non-$outcome verification" >> $LKMM_DESTDIR/$litmus.out 2>&1
++			echo " !!! Unexpected non-$outcome verification" >> $LKMM_DESTDIR/$litmusout 2>&1
+ 		fi
+ 		ret=1
+ 	fi
+-elif grep '^Observation' $LKMM_DESTDIR/$litmus.out | grep -q 'Never 0 0$'
++elif grep '^Observation' $LKMM_DESTDIR/$litmusout | grep -q 'Never 0 0$'
+ then
+ 	echo " !!! Unexpected non-$outcome deadlock" $litmus
+-	if ! grep -q '!!!' $LKMM_DESTDIR/$litmus.out
++	if ! grep -q '!!!' $LKMM_DESTDIR/$litmusout
+ 	then
+-		echo " !!! Unexpected non-$outcome deadlock" $litmus >> $LKMM_DESTDIR/$litmus.out 2>&1
++		echo " !!! Unexpected non-$outcome deadlock" $litmus >> $LKMM_DESTDIR/$litmusout 2>&1
+ 	fi
+ 	ret=1
+-elif grep '^Observation' $LKMM_DESTDIR/$litmus.out | grep -q $outcome || test "$outcome" = Maybe
++elif grep '^Observation' $LKMM_DESTDIR/$litmusout | grep -q $outcome || test "$outcome" = Maybe
+ then
+ 	ret=0
+ else
+-	echo " !!! Unexpected non-$outcome verification" $litmus
+-	if ! grep -q '!!!' $LKMM_DESTDIR/$litmus.out
++	if test -n "$LKMM_HW_MAP_FILE" -a "$outcome" = Sometimes
+ 	then
+-		echo " !!! Unexpected non-$outcome verification" >> $LKMM_DESTDIR/$litmus.out 2>&1
++		flag="--- Forgiven"
++		ret=0
++	else
++		flag="!!! Unexpected"
++		ret=1
++	fi
++	echo " $flag non-$outcome verification" $litmus
++	if ! grep -qe "$flag" $LKMM_DESTDIR/$litmusout
++	then
++		echo " $flag non-$outcome verification" >> $LKMM_DESTDIR/$litmusout 2>&1
+ 	fi
+-	ret=1
+ fi
+-tail -2 $LKMM_DESTDIR/$litmus.out | head -1
++tail -2 $LKMM_DESTDIR/$litmusout | head -1
+ exit $ret
 -- 
 2.9.5
