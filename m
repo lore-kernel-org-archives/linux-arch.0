@@ -1,92 +1,66 @@
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: Re: [PATCH] compiler: enable CONFIG_OPTIMIZE_INLINING forcibly
-Date: Fri, 4 Oct 2019 09:37:59 +0200
-Message-ID: <CAMuHMdWbv34O6=kR_3UOxvZ4WBmzaPmbGpux+gZCaQo+XLs58A@mail.gmail.com>
-References: <20190930112636.vx2qxo4hdysvxibl@willie-the-truck>
- <CAK7LNASQZ82KSOrQW7+Wq1vFDCg2__maBEAPMLqUDqZMLuj1rA@mail.gmail.com>
- <20190930121803.n34i63scet2ec7ll@willie-the-truck> <CAKwvOdnqn=0LndrX+mUrtSAQqoT1JWRMOJCA5t3e=S=T7zkcCQ@mail.gmail.com>
- <20191001092823.z4zhlbwvtwnlotwc@willie-the-truck> <CAKwvOdk0h2A6=fb7Yepf+oKbZfq_tqwpGq8EBmHVu1j4mo-a-A@mail.gmail.com>
- <20191001170142.x66orounxuln7zs3@willie-the-truck> <CAKwvOdnFJqipp+G5xLDRBcOrQRcvMQmn+n8fufWyzyt2QL_QkA@mail.gmail.com>
- <20191001175512.GK25745@shell.armlinux.org.uk> <CAKwvOdmw_xmTGZLeK8-+Q4nUpjs-UypJjHWks-3jHA670Dxa1A@mail.gmail.com>
- <20191001181438.GL25745@shell.armlinux.org.uk> <CAKwvOdmBnBVU7F-a6DqPU6QM-BRc8LNn6YRmhTsuGLauCWKUOg@mail.gmail.com>
- <CAMuHMdWPhE1nNkmL1nj3vpQhB7fP3uDs2i_ZVi0Gf9qij4W2CA@mail.gmail.com>
- <CAHk-=wgFODvdFBHzgVf3JjoBz0z6LZhOm8xvMntsvOr66ASmZQ@mail.gmail.com>
- <CAK7LNARM2jVSdgCDJWDbvVxYLiUR_CFgTPg0nxzbCszSKcx+pg@mail.gmail.com>
- <CAHk-=wiMm3rN15WmiAqMHjC-pakL_b8qgWsPPri0+YLFORT-ZA@mail.gmail.com>
- <CAK7LNATSoOD0g=Aarui6Y26E_YB035NsaPpHxqtBNyw0K0UXVw@mail.gmail.com>
- <CAHk-=wj9Dbom1x7qDfrXgNbjdFa_84bAUMdGigs4sELQQW28wg@mail.gmail.com> <CANiq72k39jKJVDkQVk=OP8zdYEAiLMadnSxDYLFY1gwpKmuo_Q@mail.gmail.com>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH v5 01/11] asm-generic/pgtable: Adds generic functions to
+ monitor lockless pgtable walks
+Date: Fri, 4 Oct 2019 13:24:21 +0200
+Message-ID: <20191004112421.GB19463@hirez.programming.kicks-ass.net>
+References: <20191003013325.2614-1-leonardo@linux.ibm.com>
+ <20191003013325.2614-2-leonardo@linux.ibm.com>
+ <20191003071145.GM4536@hirez.programming.kicks-ass.net>
+ <20191003115141.GJ4581@hirez.programming.kicks-ass.net>
+ <c127ee98-094b-d5c0-0a42-6d01c16a72d9@nvidia.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <CANiq72k39jKJVDkQVk=OP8zdYEAiLMadnSxDYLFY1gwpKmuo_Q@mail.gmail.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Miguel Ojeda <miguel.ojeda.sandonis@gmail.com>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Masahiro Yamada <yamada.masahiro@socionext.com>, Nick Desaulniers <ndesaulniers@google.com>, Russell King - ARM Linux admin <linux@armlinux.org.uk>, Will Deacon <will@kernel.org>, Nicolas Saenz Julienne <nsaenzjulienne@suse.de>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Stefan Wahren <wahrenst@gmx.net>, Kees Cook <keescook@google.com>, Arnd Bergmann <arnd@arndb.de>, clang-built-linux <clang-built-linux@googlegroups.com>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
+Content-Disposition: inline
+In-Reply-To: <c127ee98-094b-d5c0-0a42-6d01c16a72d9@nvidia.com>
+List-Unsubscribe: <https://lists.ozlabs.org/options/linuxppc-dev>,
+ <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=unsubscribe>
+List-Archive: <http://lists.ozlabs.org/pipermail/linuxppc-dev/>
+List-Post: <mailto:linuxppc-dev@lists.ozlabs.org>
+List-Help: <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=help>
+List-Subscribe: <https://lists.ozlabs.org/listinfo/linuxppc-dev>,
+ <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=subscribe>
+Errors-To: linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org
+Sender: "Linuxppc-dev"
+ <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
+To: John Hubbard <jhubbard@nvidia.com>
+Cc: Song Liu <songliubraving@fb.com>, Michal Hocko <mhocko@suse.com>, "Dmitry V. Levin" <ldv@altlinux.org>, Keith Busch <keith.busch@intel.com>, linux-mm@kvack.org, Paul Mackerras <paulus@samba.org>, Christoph Lameter <cl@linux.com>, Ira Weiny <ira.weiny@intel.com>, Dan Williams <dan.j.williams@intel.com>, Elena Reshetova <elena.reshetova@intel.com>, linux-arch@vger.kernel.org, Santosh Sivaraj <santosh@fossix.org>, Davidlohr Bueso <dave@stgolabs.net>, "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>, Bartlomiej Zolnierkiewicz <b.zolnierkie@samsung.com>, Mike Rapoport <rppt@linux.ibm.com>, Jason Gunthorpe <jgg@ziepe.ca>, Vlastimil Babka <vbabka@suse.cz>, Mahesh Salgaonkar <mahesh@linux.vnet.ibm.com>, Leonardo Bras <leonardo@linux.ibm.com>, Alexey Dobriyan <adobriyan@gmail.com>, Ingo Molnar <mingo@kernel.org>, Andrea Arcangeli <aarcange@redhat.com>, Ralph Campbell <rcampbell@n>
 List-Id: linux-arch.vger.kernel.org
 
-Hi Miguel,
+On Thu, Oct 03, 2019 at 01:40:38PM -0700, John Hubbard wrote:
+> On 10/3/19 4:51 AM, Peter Zijlstra wrote:
+> > On Thu, Oct 03, 2019 at 09:11:45AM +0200, Peter Zijlstra wrote:
+> >> On Wed, Oct 02, 2019 at 10:33:15PM -0300, Leonardo Bras wrote:
+> ...
+> > 
+> > I'm still really confused about this barrier. It just doesn't make
+> > sense.
+> > 
+> > If an interrupt happens before the local_irq_disable()/save(), then it
+> > will discard any and all speculation that would be in progress to handle
+> > the exception.
+> > 
+> 
+> Hi Peter,
+> 
+> So, would that imply that it's correct to apply approximately the following
+> patch:
+> 
+> diff --git a/Documentation/memory-barriers.txt b/Documentation/memory-barriers.txt
+> index 1adbb8a371c7..cf41eff37e24 100644
+> --- a/Documentation/memory-barriers.txt
+> +++ b/Documentation/memory-barriers.txt
+> @@ -2099,9 +2099,9 @@ INTERRUPT DISABLING FUNCTIONS
+>  -----------------------------
+>  
+>  Functions that disable interrupts (ACQUIRE equivalent) and enable interrupts
+> -(RELEASE equivalent) will act as compiler barriers only.  So if memory or I/O
+> -barriers are required in such a situation, they must be provided from some
+> -other means.
+> +(RELEASE equivalent) will act as full memory barriers. This is because, for
+> +all supported CPU architectures, interrupt arrival causes all speculative
+> +memory accesses to be discarded.
+>  
+> ?
 
-On Thu, Oct 3, 2019 at 10:21 PM Miguel Ojeda
-<miguel.ojeda.sandonis@gmail.com> wrote:
-> On Thu, Oct 3, 2019 at 7:29 PM Linus Torvalds
-> <torvalds@linux-foundation.org> wrote:
-> > On Thu, Oct 3, 2019 at 10:24 AM Masahiro Yamada
-> > <yamada.masahiro@socionext.com> wrote:
-> > >
-> > > I just want to annotate __always_inline for the case
-> > > "2. code that if not inlined is somehow not correct."
-> >
-> > Oh, I support that entirely - if only for documentation.
-> >
-> > But I do *not* support the dismissal of the architecture maintainers
-> > concerns about "does it work?" and apparently known compiler bugs.
-> >
-> > > Again, not saying "use a macro".
-> >
-> > Other people did, though.
-> >
-> > And there seemed to be little balancing of the pain vs the gain. The
-> > gain really isn't that obvious. If the code shrinks by a couple of kB,
-> > is that good or bad? Maybe it is smaller, but is it _better_?
->
-> I think both positions that people have shown are important to take
-> into account.
->
-> We should minimize our usage of macros wherever possible and certainly
-> not write new ones when another solution is available. But we should
-> *also* minimize our dependence on code that "must-be-inlined" to work
-> as much as possible.
->
-> In particular, I think we should allow to use __always_inline only if
-> it doesn't work otherwise, as an alternative before trying the next
-> worst solution (macros). And avoid using only "inline" when we
-> actually require inlining, of course.
->
-> And the reasoning for each usage of __always_inline should have a
-> comment (be it "bad codegen", "performance tanks without it",
-> "compiler X <= 4.2 refuses to compile"...). Which is also useful for
-> compiler folks to grep for cases to improve/fix in their compiler!
-
-First, we had "inline" and normal functions, where "inline" was used to
-make sure a function was inlined (e.g. because it contained code paths
-that were intended to be optimized away[*]).
-Then, the compiler started not honoring the "inline" keyword, so we got
-"always_inline", "inline", and normal functions.  With a hack to #define
-"inline" to "always_inline" for some compiler versions.
-
-What's next? There should be a way for the programmer to indicate a
-function must be inlined.
-
-[*] Some unused  code paths may contain references to symbols that may
-    not exist for the current configuration, or not exist at all.
-
-Gr{oetje,eeting}s,
-
-                        Geert
-
--- 
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+No, you're misunderstanding. They imply nothing of the sort.
