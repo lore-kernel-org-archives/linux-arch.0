@@ -1,75 +1,50 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:48228 "EHLO
-        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S2389234AbfJCVkF (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 3 Oct 2019 17:40:05 -0400
-Message-ID: <4e9e864856fc165b5dea8119eade871bc0e6f019.camel@linux.ibm.com>
-Subject: Re: [PATCH v5 00/11] Introduces new count-based method for tracking
- lockless pagetable walks
-From: Leonardo Bras <leonardo@linux.ibm.com>
-Date: Thu, 03 Oct 2019 18:38:40 -0300
-In-Reply-To: <99754d82-33c5-a54f-8607-b6bf151069d4@nvidia.com>
-References: <20191003013325.2614-1-leonardo@linux.ibm.com>
-         <20191003072952.GN4536@hirez.programming.kicks-ass.net>
-         <c46d6c7301314a2d998cffc47d69b404f2c26ad3.camel@linux.ibm.com>
-         <99754d82-33c5-a54f-8607-b6bf151069d4@nvidia.com>
-Content-Type: multipart/signed; micalg="pgp-sha256";
-        protocol="application/pgp-signature"; boundary="=-+T6TWqK4ZitmnubF89r5"
+Received: from albireo.enyo.de ([37.24.231.21]:55344 "EHLO albireo.enyo.de"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726393AbfJDHbl (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 4 Oct 2019 03:31:41 -0400
+From: Florian Weimer <fw@deneb.enyo.de>
+Subject: vger mail woes? (was: Re: [RFC][PATCH] sysctl: Remove the sysctl system call)
+References: <8736gcjosv.fsf@x220.int.ebiederm.org>
+        <201910011140.EA0181F13@keescook> <87y2y271ws.fsf@mid.deneb.enyo.de>
+        <20191003210814.gh7rbbv6bpxlhz3w@wittgenstein>
+Date: Fri, 04 Oct 2019 09:31:27 +0200
+In-Reply-To: <20191003210814.gh7rbbv6bpxlhz3w@wittgenstein> (Christian
+        Brauner's message of "Thu, 3 Oct 2019 23:08:14 +0200")
+Message-ID: <87bluxge5s.fsf_-_@mid.deneb.enyo.de>
 MIME-Version: 1.0
+Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: John Hubbard <jhubbard@nvidia.com>, Peter Zijlstra <peterz@infradead.org>
-Cc: Song Liu <songliubraving@fb.com>, Michal Hocko <mhocko@suse.com>, "Dmitry V. Levin" <ldv@altlinux.org>, Keith Busch <keith.busch@intel.com>, linux-mm@kvack.org, Paul Mackerras <paulus@samba.org>, Christoph Lameter <cl@linux.com>, Ira Weiny <ira.weiny@intel.com>, Dan Williams <dan.j.williams@intel.com>, Elena Reshetova <elena.reshetova@intel.com>, linux-arch@vger.kernel.org, Santosh Sivaraj <santosh@fossix.org>, Davidlohr Bueso <dave@stgolabs.net>, "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>, Bartlomiej Zolnierkiewicz <b.zolnierkie@samsung.com>, Mike Rapoport <rppt@linux.ibm.com>, Jason Gunthorpe <jgg@ziepe.ca>, Vlastimil Babka <vbabka@suse.cz>, Mahesh Salgaonkar <mahesh@linux.vnet.ibm.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexey Dobriyan <adobriyan@gmail.com>, Ingo Molnar <mingo@kernel.org>, Andrea Arcangeli <aarcange@redhat.com>, Ralph Campbell <rcampbell@nvidia.com>, Arnd Bergmann <arnd@arndb.de>, Jann Horn <jannh@google.com>, Jesper Dangaard Brouer <brouer@redhat.com>, Nicholas Piggin <npiggin@gmail.com>, =?ISO-8859-1?Q?J=E9r=F4me?= Glisse <jglisse@redhat.com>, Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, kvm-ppc@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>, Reza Arbab <arbab@linux.ibm.com>, Allison Randal <allison@lohutok.net>, Christian Brauner <christian.brauner@ubuntu.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, linux-kernel@vger.kernel.org, Logan Gunthorpe <logang@deltatee.com>, Souptick Joarder <jrdr.linux@gmail.com>, Andrew Morton <akpm@linux-foundation.org>, linuxppc-dev@lists.ozlabs.org, Roman Gushchin <guro@fb.com>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Al Viro <viro@zeniv.linux.org.uk>
-Message-ID: <20191003213840.aBsdsrL8btoP_nWq-Qgd__layyDxy0zEO8q2j_06gMU@z>
+To: Christian Brauner <christian.brauner@ubuntu.com>
+Cc: Kees Cook <keescook@chromium.org>, "Eric W. Biederman" <ebiederm@xmission.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Jann Horn <jannh@google.com>, Arnd Bergmann <arnd@arndb.de>, Helge Deller <deller@gmx.de>, postmaster@vger.kernel.org, David Miller <davem@davemloft.net>
+Message-ID: <20191004073127.zJ-6faOZ5dfzM1yxISo3id_LfkXHNlPSR-x8IEXzSRM@z>
 
+* Christian Brauner:
 
---=-+T6TWqK4ZitmnubF89r5
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
+> On Thu, Oct 03, 2019 at 08:56:19AM +0200, Florian Weimer wrote:
+>> Is anyone else getting a very incomplete set of messages in this
+>> thread?
+>> 
+>> These changes likely matter to glibc, and I've yet to see the actual
+>> patch.  Would someone please forward it to me?
+>> 
+>> The original message didn't make it into the lore.kernel.org archives
+>> (the cross-post to linux-kernel should have taken care of that).
+>
+> Yeah, I didn't get it either and the repost too weirdly enough.
 
-On Thu, 2019-10-03 at 13:49 -0700, John Hubbard wrote:
-> Yes. And to clarify, I was assuming that the changes to mm/gup.c were=20
-> required in order to accomplish your goals. Given that assumption, I=20
-> wanted the generic code to be "proper", and that's what that feedback
-> is about.
+I got curious and tried to repost the repost to vger.kernel.org (in
+the hope to bypass any SMTP callout verifications that may still be
+failing for Eric), and got this:
 
-You assumed right. On my counting approach it's necessary count all
-'lockless pagetable walks', including the ones in generic code.
+2019-10-04 07:09:29 1iGHiT-00007b-Na <= fw@deneb.enyo.de H=(deneb.enyo.de) [172.17.203.2] P=esmtps X=TLS1.2:ECDHE_RSA_AES_256_GCM_SHA384:256 CV=no S=72580 id=87h84pgf6h.fsf@mid.deneb.enyo.de
+2019-10-04 07:09:37 1iGHiT-00007b-Na => linux-api@vger.kernel.org R=dnslookup T=remote_smtp_ext H=vger.kernel.org [209.132.180.67] C="250 2.7.1 Looks like Linux source DIFF email.. BF:<S 1>; S1728766AbfJDHJg"
+2019-10-04 07:09:37 1iGHiT-00007b-Na -> linux-arch@vger.kernel.org R=dnslookup T=remote_smtp_ext H=vger.kernel.org [209.132.180.67] C="250 2.7.1 Looks like Linux source DIFF email.. BF:<S 1>; S1728766AbfJDHJg"
+2019-10-04 07:09:37 1iGHiT-00007b-Na -> linux-kernel@vger.kernel.org R=dnslookup T=remote_smtp_ext H=vger.kernel.org [209.132.180.67] C="250 2.7.1 Looks like Linux source DIFF email.. BF:<S 1>; S1728766AbfJDHJg"
+2019-10-04 07:09:37 1iGHiT-00007b-Na Completed
 
-And, I think even without the counting approach, it was a good way
-focus this 'lockless pagetable walk' routine in a single place.
+But nothing came back.  Timestamps are UTC.
 
->=20
-> Although the other questions about file-backed THP
-> make it sound like some rethinking across the board is required now.
-
-Yeap, I need to better understand how the file-backed THP problem
-works.
-
-Thanks,
-
-Leonardo Br=C3=A1s
-
---=-+T6TWqK4ZitmnubF89r5
-Content-Type: application/pgp-signature; name="signature.asc"
-Content-Description: This is a digitally signed message part
-Content-Transfer-Encoding: 7bit
-
------BEGIN PGP SIGNATURE-----
-
-iQIzBAABCAAdFiEEMdeUgIzgjf6YmUyOlQYWtz9SttQFAl2WamAACgkQlQYWtz9S
-ttT+5A//d6Der3cfKkY0anP/E6uyI6e77Kt+RWmN9+RuhxKKyMvN3vR0lOiAxvuE
-mr0LmRnING4Jsvhz54FB9xPIJzEH+5tPXrX9TkHYOFqQfkyvDtx8LaCHf+gN+xQx
-l2ukNHr6gqjA6Sb8eQEm0RKeiidLX6NPo03/OwiAWs44z+XofzyFuUa13VmE2+YE
-oe27ZXb/UsLlrO8rB7cG+DyGuRBTlivjCpDp+JEDkdRH8tePICRaAtV0nR+YxeA7
-4NiBcgM9ONQeJOKViKmWdqhC/2K2gVeSFE7WpidAUOrRUJR9FyFisZ7x8MKrW06f
-GRSRrSisMdvHlgbZHcT+n0tqNPcRzmGmTnkZ/nlnoM7w5qKgsMGIBOBYH5CW2FPg
-19xIRhUMX+ShhSPc8H8TIeaHxRmJrJYmnfib+MY4IZhrZmAUEqYDSnjzvypUSvFF
-HUly+f6MpQlOv+RHgi4BV/zdyO8ucaaSCMh2yGREJ5FEuDAEKm5AHz6RwtRMtoY0
-v8Y+7IEPVKPdV4sL8z5vfInKDeRU3FP0CPlKCKg6FcRvGNMGCEkP9ZtuzHxVb/Xs
-JNa3VDiiijvnu/tDsdNS/6aHLtANNlLvaNGAuESrxAJRFzziLN92i+RXMLBaQCZo
-/pZH9phCxN/HZly4uA7Ek1TbRKsNstB/CvsXTJBF91f6L7m0Awc=
-=4hRX
------END PGP SIGNATURE-----
-
---=-+T6TWqK4ZitmnubF89r5--
+Dave, could please have a look, assuming that you are still involved
+with vger operations?
