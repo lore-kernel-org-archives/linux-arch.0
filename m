@@ -1,7 +1,7 @@
 From: William Breathitt Gray <vilhelm.gray@gmail.com>
-Subject: [PATCH v15 11/14] thermal: intel: intel_soc_dts_iosf: Utilize for_each_set_clump8 macro
-Date: Sat,  5 Oct 2019 14:37:05 -0400
-Message-ID: <5df8e872dfed0f3c0beda4ffbed0008b017cad36.1570299719.git.vilhelm.gray@gmail.com>
+Subject: [PATCH v15 07/14] gpio: pci-idio-16: Utilize for_each_set_clump8 macro
+Date: Sat,  5 Oct 2019 14:37:01 -0400
+Message-ID: <7948ce563ea58902608e7dabe9f5f4ea64c690f2.1570299719.git.vilhelm.gray@gmail.com>
 References: <cover.1570299719.git.vilhelm.gray@gmail.com>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
@@ -12,125 +12,122 @@ To: linus.walleij@linaro.org, bgolaszewski@baylibre.com
 Cc: akpm@linux-foundation.org, linux-gpio@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, andriy.shevchenko@linux.intel.com, linux@rasmusvillemoes.dk, yamada.masahiro@socionext.com, linux-arm-kernel@lists.infradead.org, linux-pm@vger.kernel.org, geert@linux-m68k.org, preid@electromag.com.au, lukas@wunner.de, sean.nyekjaer@prevas.dk, morten.tiljeset@prevas.dk, William Breathitt Gray <vilhelm.gray@gmail.com>
 List-Id: linux-arch.vger.kernel.org
 
-Utilize for_each_set_clump8 macro, and the bitmap_set_value8 and
-bitmap_get_value8 functions, where appropriate. In addition, remove the
-now unnecessary temp_mask and temp_shift members of the
-intel_soc_dts_sensor_entry structure.
+Replace verbose implementation in get_multiple/set_multiple callbacks
+with for_each_set_clump8 macro to simplify code and improve clarity.
 
-Suggested-by: Andy Shevchenko <andriy.shevchenko@linux.intel.com>
-Tested-by: Andy Shevchenko <andriy.shevchenko@linux.intel.com>
+Reviewed-by: Linus Walleij <linus.walleij@linaro.org>
 Signed-off-by: William Breathitt Gray <vilhelm.gray@gmail.com>
 ---
- drivers/thermal/intel/intel_soc_dts_iosf.c | 29 +++++++++++++---------
- drivers/thermal/intel/intel_soc_dts_iosf.h |  2 --
- 2 files changed, 17 insertions(+), 14 deletions(-)
+ drivers/gpio/gpio-pci-idio-16.c | 75 ++++++++++++---------------------
+ 1 file changed, 27 insertions(+), 48 deletions(-)
 
-diff --git a/drivers/thermal/intel/intel_soc_dts_iosf.c b/drivers/thermal/intel/intel_soc_dts_iosf.c
-index 5716b62e0f73..901f64bb5b9c 100644
---- a/drivers/thermal/intel/intel_soc_dts_iosf.c
-+++ b/drivers/thermal/intel/intel_soc_dts_iosf.c
-@@ -6,6 +6,7 @@
- 
- #define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
- 
-+#include <linux/bitops.h>
- #include <linux/module.h>
- #include <linux/slab.h>
- #include <linux/interrupt.h>
-@@ -102,6 +103,7 @@ static int update_trip_temp(struct intel_soc_dts_sensor_entry *dts,
+diff --git a/drivers/gpio/gpio-pci-idio-16.c b/drivers/gpio/gpio-pci-idio-16.c
+index 5aa136a6a3e0..6c117e57078c 100644
+--- a/drivers/gpio/gpio-pci-idio-16.c
++++ b/drivers/gpio/gpio-pci-idio-16.c
+@@ -100,45 +100,23 @@ static int idio_16_gpio_get_multiple(struct gpio_chip *chip,
+ 	unsigned long *mask, unsigned long *bits)
  {
- 	int status;
- 	u32 temp_out;
-+	unsigned long update_ptps;
- 	u32 out;
- 	u32 store_ptps;
- 	u32 store_ptmc;
-@@ -120,8 +122,9 @@ static int update_trip_temp(struct intel_soc_dts_sensor_entry *dts,
- 	if (status)
- 		return status;
+ 	struct idio_16_gpio *const idio16gpio = gpiochip_get_data(chip);
+-	size_t i;
+-	const unsigned int gpio_reg_size = 8;
+-	unsigned int bits_offset;
+-	size_t word_index;
+-	unsigned int word_offset;
+-	unsigned long word_mask;
+-	const unsigned long port_mask = GENMASK(gpio_reg_size - 1, 0);
+-	unsigned long port_state;
++	unsigned long offset;
++	unsigned long gpio_mask;
+ 	void __iomem *ports[] = {
+ 		&idio16gpio->reg->out0_7, &idio16gpio->reg->out8_15,
+ 		&idio16gpio->reg->in0_7, &idio16gpio->reg->in8_15,
+ 	};
++	void __iomem *port_addr;
++	unsigned long port_state;
  
--	out = (store_ptps & ~(0xFF << (thres_index * 8)));
--	out |= (temp_out & 0xFF) << (thres_index * 8);
-+	update_ptps = store_ptps;
-+	bitmap_set_value8(&update_ptps, temp_out & 0xFF, thres_index * 8);
-+	out = update_ptps;
- 	status = iosf_mbi_write(BT_MBI_UNIT_PMC, MBI_REG_WRITE,
- 				SOC_DTS_OFFSET_PTPS, out);
- 	if (status)
-@@ -223,6 +226,7 @@ static int sys_get_curr_temp(struct thermal_zone_device *tzd,
- 	u32 out;
- 	struct intel_soc_dts_sensor_entry *dts;
- 	struct intel_soc_dts_sensors *sensors;
-+	unsigned long temp_raw;
+ 	/* clear bits array to a clean slate */
+ 	bitmap_zero(bits, chip->ngpio);
  
- 	dts = tzd->devdata;
- 	sensors = dts->sensors;
-@@ -231,7 +235,8 @@ static int sys_get_curr_temp(struct thermal_zone_device *tzd,
- 	if (status)
- 		return status;
- 
--	out = (out & dts->temp_mask) >> dts->temp_shift;
-+	temp_raw = out;
-+	out = bitmap_get_value8(&temp_raw, dts->id * 8);
- 	out -= SOC_DTS_TJMAX_ENCODING;
- 	*temp = sensors->tj_max - out * 1000;
- 
-@@ -281,10 +286,13 @@ static int add_dts_thermal_zone(int id, struct intel_soc_dts_sensor_entry *dts,
- {
- 	char name[10];
- 	int trip_count = 0;
-+	int writable_trip_count = 0;
- 	int trip_mask = 0;
- 	u32 store_ptps;
- 	int ret;
--	int i;
-+	unsigned long i;
-+	unsigned long trip;
-+	unsigned long ptps;
- 
- 	/* Store status to restor on exit */
- 	ret = iosf_mbi_read(BT_MBI_UNIT_PMC, MBI_REG_READ,
-@@ -293,11 +301,10 @@ static int add_dts_thermal_zone(int id, struct intel_soc_dts_sensor_entry *dts,
- 		goto err_ret;
- 
- 	dts->id = id;
--	dts->temp_mask = 0x00FF << (id * 8);
--	dts->temp_shift = id * 8;
- 	if (notification_support) {
- 		trip_count = min(SOC_MAX_DTS_TRIPS, trip_cnt);
--		trip_mask = BIT(trip_count - read_only_trip_cnt) - 1;
-+		writable_trip_count = trip_count - read_only_trip_cnt;
-+		trip_mask = GENMASK(writable_trip_count - 1, 0);
- 	}
- 
- 	/* Check if the writable trip we provide is not used by BIOS */
-@@ -306,11 +313,9 @@ static int add_dts_thermal_zone(int id, struct intel_soc_dts_sensor_entry *dts,
- 	if (ret)
- 		trip_mask = 0;
- 	else {
--		for (i = 0; i < trip_count; ++i) {
--			if (trip_mask & BIT(i))
--				if (store_ptps & (0xff << (i * 8)))
--					trip_mask &= ~BIT(i);
+-	/* get bits are evaluated a gpio port register at a time */
+-	for (i = 0; i < ARRAY_SIZE(ports); i++) {
+-		/* gpio offset in bits array */
+-		bits_offset = i * gpio_reg_size;
+-
+-		/* word index for bits array */
+-		word_index = BIT_WORD(bits_offset);
+-
+-		/* gpio offset within current word of bits array */
+-		word_offset = bits_offset % BITS_PER_LONG;
+-
+-		/* mask of get bits for current gpio within current word */
+-		word_mask = mask[word_index] & (port_mask << word_offset);
+-		if (!word_mask) {
+-			/* no get bits in this port so skip to next one */
+-			continue;
 -		}
-+		ptps = store_ptps;
-+		for_each_set_clump8(i, trip, &ptps, writable_trip_count * 8)
-+			trip_mask &= ~BIT(i / 8);
- 	}
- 	dts->trip_mask = trip_mask;
- 	dts->trip_count = trip_count;
-diff --git a/drivers/thermal/intel/intel_soc_dts_iosf.h b/drivers/thermal/intel/intel_soc_dts_iosf.h
-index adfb09af33fc..c54945748200 100644
---- a/drivers/thermal/intel/intel_soc_dts_iosf.h
-+++ b/drivers/thermal/intel/intel_soc_dts_iosf.h
-@@ -24,8 +24,6 @@ struct intel_soc_dts_sensors;
++	for_each_set_clump8(offset, gpio_mask, mask, ARRAY_SIZE(ports) * 8) {
++		port_addr = ports[offset / 8];
++		port_state = ioread8(port_addr) & gpio_mask;
  
- struct intel_soc_dts_sensor_entry {
- 	int id;
--	u32 temp_mask;
--	u32 temp_shift;
- 	u32 store_status;
- 	u32 trip_mask;
- 	u32 trip_count;
+-		/* read bits from current gpio port */
+-		port_state = ioread8(ports[i]);
+-
+-		/* store acquired bits at respective bits array offset */
+-		bits[word_index] |= (port_state << word_offset) & word_mask;
++		bitmap_set_value8(bits, port_state, offset);
+ 	}
+ 
+ 	return 0;
+@@ -178,30 +156,31 @@ static void idio_16_gpio_set_multiple(struct gpio_chip *chip,
+ 	unsigned long *mask, unsigned long *bits)
+ {
+ 	struct idio_16_gpio *const idio16gpio = gpiochip_get_data(chip);
++	unsigned long offset;
++	unsigned long gpio_mask;
++	void __iomem *ports[] = {
++		&idio16gpio->reg->out0_7, &idio16gpio->reg->out8_15,
++	};
++	size_t index;
++	void __iomem *port_addr;
++	unsigned long bitmask;
+ 	unsigned long flags;
+-	unsigned int out_state;
++	unsigned long out_state;
+ 
+-	raw_spin_lock_irqsave(&idio16gpio->lock, flags);
++	for_each_set_clump8(offset, gpio_mask, mask, ARRAY_SIZE(ports) * 8) {
++		index = offset / 8;
++		port_addr = ports[index];
+ 
+-	/* process output lines 0-7 */
+-	if (*mask & 0xFF) {
+-		out_state = ioread8(&idio16gpio->reg->out0_7) & ~*mask;
+-		out_state |= *mask & *bits;
+-		iowrite8(out_state, &idio16gpio->reg->out0_7);
+-	}
++		bitmask = bitmap_get_value8(bits, offset) & gpio_mask;
++
++		raw_spin_lock_irqsave(&idio16gpio->lock, flags);
+ 
+-	/* shift to next output line word */
+-	*mask >>= 8;
++		out_state = ioread8(port_addr) & ~gpio_mask;
++		out_state |= bitmask;
++		iowrite8(out_state, port_addr);
+ 
+-	/* process output lines 8-15 */
+-	if (*mask & 0xFF) {
+-		*bits >>= 8;
+-		out_state = ioread8(&idio16gpio->reg->out8_15) & ~*mask;
+-		out_state |= *mask & *bits;
+-		iowrite8(out_state, &idio16gpio->reg->out8_15);
++		raw_spin_unlock_irqrestore(&idio16gpio->lock, flags);
+ 	}
+-
+-	raw_spin_unlock_irqrestore(&idio16gpio->lock, flags);
+ }
+ 
+ static void idio_16_irq_ack(struct irq_data *data)
 -- 
 2.23.0
