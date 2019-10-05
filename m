@@ -1,80 +1,105 @@
-From: "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>
-Subject: Re: [PATCH v5 01/11] asm-generic/pgtable: Adds generic functions to
- monitor lockless pgtable walks
-Date: Sat, 5 Oct 2019 14:05:29 +0530
-Message-ID: <651856af-30de-15ad-2312-158f3ad5292e@linux.ibm.com>
-References: <20191003013325.2614-1-leonardo@linux.ibm.com>
- <20191003013325.2614-2-leonardo@linux.ibm.com>
- <20191003071145.GM4536@hirez.programming.kicks-ass.net>
- <20191003115141.GJ4581@hirez.programming.kicks-ass.net>
+From: William Breathitt Gray <vilhelm.gray@gmail.com>
+Subject: [PATCH v15 00/14] Introduce the for_each_set_clump8 macro
+Date: Sat,  5 Oct 2019 14:36:54 -0400
+Message-ID: <cover.1570299719.git.vilhelm.gray@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Transfer-Encoding: 7bit
-Return-path: <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
-In-Reply-To: <20191003115141.GJ4581@hirez.programming.kicks-ass.net>
-Content-Language: en-US
-List-Unsubscribe: <https://lists.ozlabs.org/options/linuxppc-dev>,
- <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=unsubscribe>
-List-Archive: <http://lists.ozlabs.org/pipermail/linuxppc-dev/>
-List-Post: <mailto:linuxppc-dev@lists.ozlabs.org>
-List-Help: <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=help>
-List-Subscribe: <https://lists.ozlabs.org/listinfo/linuxppc-dev>,
- <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=subscribe>
-Errors-To: linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org
-Sender: "Linuxppc-dev"
- <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
-To: Peter Zijlstra <peterz@infradead.org>, Leonardo Bras <leonardo@linux.ibm.com>
-Cc: Song Liu <songliubraving@fb.com>, Michal Hocko <mhocko@suse.com>, "Dmitry V. Levin" <ldv@altlinux.org>, Keith Busch <keith.busch@intel.com>, linux-mm@kvack.org, Paul Mackerras <paulus@samba.org>, Christoph Lameter <cl@linux.com>, Ira Weiny <ira.weiny@intel.com>, Thomas Gleixner <tglx@linutronix.de>, Elena Reshetova <elena.reshetova@intel.com>, linux-arch@vger.kernel.org, Santosh Sivaraj <santosh@fossix.org>, Davidlohr Bueso <dave@stgolabs.net>, Bartlomiej Zolnierkiewicz <b.zolnierkie@samsung.com>, Mike Rapoport <rppt@linux.ibm.com>, Jason Gunthorpe <jgg@ziepe.ca>, Vlastimil Babka <vbabka@suse.cz>, Mahesh Salgaonkar <mahesh@linux.vnet.ibm.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexey Dobriyan <adobriyan@gmail.com>, Ingo Molnar <mingo@kernel.org>, Andrea Arcangeli <aarcange@redhat.com>, Ralph Campbell <rcampbell@nvidia.com>, Arnd Bergmann <arnd@arndb.de>, Jann
+Content-Transfer-Encoding: 8bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: linus.walleij@linaro.org, bgolaszewski@baylibre.com
+Cc: akpm@linux-foundation.org, linux-gpio@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, andriy.shevchenko@linux.intel.com, linux@rasmusvillemoes.dk, yamada.masahiro@socionext.com, linux-arm-kernel@lists.infradead.org, linux-pm@vger.kernel.org, geert@linux-m68k.org, preid@electromag.com.au, lukas@wunner.de, sean.nyekjaer@prevas.dk, morten.tiljeset@prevas.dk, William Breathitt Gray <vilhelm.gray@gmail.com>
 List-Id: linux-arch.vger.kernel.org
 
-On 10/3/19 5:21 PM, Peter Zijlstra wrote:
-> On Thu, Oct 03, 2019 at 09:11:45AM +0200, Peter Zijlstra wrote:
->> On Wed, Oct 02, 2019 at 10:33:15PM -0300, Leonardo Bras wrote:
+Changes in v15:
+  - Move find_next_clump8 to lib/find_bit.c since it requires round_down
+    (I want this to be static inline like the others, but I need help)
+  - Utilize for_each_set_clump8 in pisosr, max3191x, and pca953x
 
+While adding GPIO get_multiple/set_multiple callback support for various
+drivers, I noticed a pattern of looping manifesting that would be useful
+standardized as a macro.
 
-....
+This patchset introduces the for_each_set_clump8 macro and utilizes it
+in several GPIO drivers. The for_each_set_clump macro8 facilitates a
+for-loop syntax that iterates over a memory region entire groups of set
+bits at a time.
 
+For example, suppose you would like to iterate over a 32-bit integer 8
+bits at a time, skipping over 8-bit groups with no set bit, where
+XXXXXXXX represents the current 8-bit group:
 
-> 
-> And I still think all that wrong, you really shouldn't need to wait on
-> munmap().
-> 
+    Example:        10111110 00000000 11111111 00110011
+    First loop:     10111110 00000000 11111111 XXXXXXXX
+    Second loop:    10111110 00000000 XXXXXXXX 00110011
+    Third loop:     XXXXXXXX 00000000 11111111 00110011
 
-I do have a patch that does something like that.
+Each iteration of the loop returns the next 8-bit group that has at
+least one set bit.
 
+The for_each_set_clump8 macro has four parameters:
 
-+#define __HAVE_ARCH_PMDP_HUGE_GET_AND_CLEAR_FULL
-+static inline pmd_t pmdp_huge_get_and_clear_full(struct mm_struct *mm,
-+						 unsigned long address, pmd_t *pmdp,
-+						 int full)
-+{
-+	bool serialize = true;
-+	/*
-+	 * We don't need to serialze against a lockless page table walk if
-+	 * we are clearing the pmd due to task exit. For regular mnumap, we
-+	 * still need to serialize due the possibility of MADV_DONTNEED running
-+	 * parallel to a page fault which can convert a THP pte entry to a
-+	 * pointer to level 4 table.
-+	 * Here MADV_DONTNEED is removing the THP entry and the fault is filling
-+	 * a level 4 pte.
-+	 */
-+	if (full == 1)
-+		serialize = false;
-+	return __pmdp_huge_get_and_clear(mm, address, pmdp, serialize);
-  }
+    * start: set to the bit offset of the current clump
+    * clump: set to the current clump value
+    * bits: bitmap to search within
+    * size: bitmap size in number of bits
 
+In this version of the patchset, the for_each_set_clump macro has been
+reimplemented and simplified based on the suggestions provided by Rasmus
+Villemoes and Andy Shevchenko in the version 4 submission.
 
-if it is a fullmm flush we can skip that serialize, But for everything 
-else we need to serialize. MADV_DONTNEED is another case. I haven't sent 
-this yet, because I was trying to look at what it takes to switch that 
-MADV variant to take mmap_sem in write mode.
+In particular, the function of the for_each_set_clump macro has been
+restricted to handle only 8-bit clumps; the drivers that use the
+for_each_set_clump macro only handle 8-bit ports so a generic
+for_each_set_clump implementation is not necessary. Thus, a solution for
+large clumps (i.e. those larger than the width of a bitmap word) can be
+postponed until a driver appears that actually requires such a generic
+for_each_set_clump implementation.
 
-MADV_DONTNEED has caused us multiple issues due to the fact that it can 
-run in parallel to page fault. I am not sure whether we have a 
-known/noticeable performance gain in allowing that with mmap_sem held in 
-read mode.
+For what it's worth, a semi-generic for_each_set_clump (i.e. for clumps
+smaller than the width of a bitmap word) can be implemented by simply
+replacing the hardcoded '8' and '0xFF' instances with respective
+variables. I have not yet had a need for such an implementation, and
+since it falls short of a true generic for_each_set_clump function, I
+have decided to forgo such an implementation for now.
 
+In addition, the bitmap_get_value8 and bitmap_set_value8 functions are
+introduced to get and set 8-bit values respectively. Their use is based
+on the behavior suggested in the patchset version 4 review.
 
+William Breathitt Gray (14):
+  bitops: Introduce the for_each_set_clump8 macro
+  lib/test_bitmap.c: Add for_each_set_clump8 test cases
+  gpio: 104-dio-48e: Utilize for_each_set_clump8 macro
+  gpio: 104-idi-48: Utilize for_each_set_clump8 macro
+  gpio: gpio-mm: Utilize for_each_set_clump8 macro
+  gpio: ws16c48: Utilize for_each_set_clump8 macro
+  gpio: pci-idio-16: Utilize for_each_set_clump8 macro
+  gpio: pcie-idio-24: Utilize for_each_set_clump8 macro
+  gpio: uniphier: Utilize for_each_set_clump8 macro
+  gpio: 74x164: Utilize the for_each_set_clump8 macro
+  thermal: intel: intel_soc_dts_iosf: Utilize for_each_set_clump8 macro
+  gpio: pisosr: Utilize the for_each_set_clump8 macro
+  gpio: max3191x: Utilize the for_each_set_clump8 macro
+  gpio: pca953x: Utilize the for_each_set_clump8 macro
 
+ drivers/gpio/gpio-104-dio-48e.c            |  73 ++++----------
+ drivers/gpio/gpio-104-idi-48.c             |  36 ++-----
+ drivers/gpio/gpio-74x164.c                 |  19 ++--
+ drivers/gpio/gpio-gpio-mm.c                |  73 ++++----------
+ drivers/gpio/gpio-max3191x.c               |  19 ++--
+ drivers/gpio/gpio-pca953x.c                |  17 ++--
+ drivers/gpio/gpio-pci-idio-16.c            |  75 +++++---------
+ drivers/gpio/gpio-pcie-idio-24.c           | 109 ++++++++-------------
+ drivers/gpio/gpio-pisosr.c                 |  12 +--
+ drivers/gpio/gpio-uniphier.c               |  16 ++-
+ drivers/gpio/gpio-ws16c48.c                |  73 ++++----------
+ drivers/thermal/intel/intel_soc_dts_iosf.c |  29 +++---
+ drivers/thermal/intel/intel_soc_dts_iosf.h |   2 -
+ include/asm-generic/bitops/find.h          |  50 ++++++++++
+ include/linux/bitops.h                     |   5 +
+ lib/find_bit.c                             |  14 +++
+ lib/test_bitmap.c                          |  65 ++++++++++++
+ 17 files changed, 325 insertions(+), 362 deletions(-)
 
--aneesh
+-- 
+2.23.0
