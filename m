@@ -1,30 +1,82 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:37018 "EHLO
-        merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S2387616AbfJDM7F (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 4 Oct 2019 08:59:05 -0400
-Date: Fri, 4 Oct 2019 14:57:56 +0200
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH v5 00/11] Introduces new count-based method for tracking
- lockless pagetable walks
-Message-ID: <20191004125756.GA32620@hirez.programming.kicks-ass.net>
-References: <20191003013325.2614-1-leonardo@linux.ibm.com>
- <20191003072952.GN4536@hirez.programming.kicks-ass.net>
- <c46d6c7301314a2d998cffc47d69b404f2c26ad3.camel@linux.ibm.com>
- <20191004114236.GD19463@hirez.programming.kicks-ass.net>
+Received: from mail-yw1-f65.google.com ([209.85.161.65]:39816 "EHLO
+        mail-yw1-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S2388502AbfJEShp (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 5 Oct 2019 14:37:45 -0400
+From: William Breathitt Gray <vilhelm.gray@gmail.com>
+Subject: [PATCH v15 13/14] gpio: max3191x: Utilize the for_each_set_clump8 macro
+Date: Sat,  5 Oct 2019 14:37:07 -0400
+Message-ID: <f07b6bb5619ea1365cc58266254a7b5be65a9082.1570299719.git.vilhelm.gray@gmail.com>
+In-Reply-To: <cover.1570299719.git.vilhelm.gray@gmail.com>
+References: <cover.1570299719.git.vilhelm.gray@gmail.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20191004114236.GD19463@hirez.programming.kicks-ass.net>
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Leonardo Bras <leonardo@linux.ibm.com>
-Cc: Song Liu <songliubraving@fb.com>, Michal Hocko <mhocko@suse.com>, "Dmitry V. Levin" <ldv@altlinux.org>, Keith Busch <keith.busch@intel.com>, linux-mm@kvack.org, Paul Mackerras <paulus@samba.org>, Christoph Lameter <cl@linux.com>, Ira Weiny <ira.weiny@intel.com>, Dan Williams <dan.j.williams@intel.com>, Elena Reshetova <elena.reshetova@intel.com>, linux-arch@vger.kernel.org, Santosh Sivaraj <santosh@fossix.org>, Davidlohr Bueso <dave@stgolabs.net>, "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>, Bartlomiej Zolnierkiewicz <b.zolnierkie@samsung.com>, Mike Rapoport <rppt@linux.ibm.com>, Jason Gunthorpe <jgg@ziepe.ca>, Vlastimil Babka <vbabka@suse.cz>, Mahesh Salgaonkar <mahesh@linux.vnet.ibm.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexey Dobriyan <adobriyan@gmail.com>, Ingo Molnar <mingo@kernel.org>, Andrea Arcangeli <aarcange@redhat.com>, Ralph Campbell <rcampbell@nvidia.com>, Arnd Bergmann <arnd@arndb.de>, Jann Horn <jannh@google.com>, John Hubbard <jhubbard@nvidia.com>, Jesper Dangaard Brouer <brouer@redhat.com>, Nicholas Piggin <npiggin@gmail.com>, =?iso-8859-1?B?Suly9G1l?= Glisse <jglisse@redhat.com>, Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, kvm-ppc@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>, Reza Arbab <arbab@linux.ibm.com>, Allison Randal <allison@lohutok.net>, Christian Brauner <christian.brauner@ubuntu.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, linux-kernel@vger.kernel.org, Logan Gunthorpe <logang@deltatee.com>, Souptick Joarder <jrdr.linux@gmail.com>, Andrew Morton <akpm@linux-foundation.org>, linuxppc-dev@lists.ozlabs.org, Roman Gushchin <guro@fb.com>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Al Viro <viro@zeniv.linux.org.uk>
-Message-ID: <20191004125756.c4A4MDfZxNBOOPpjkbND_PeS2CRg3tCxVTMXM2wEQR0@z>
+To: linus.walleij@linaro.org, bgolaszewski@baylibre.com
+Cc: akpm@linux-foundation.org, linux-gpio@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, andriy.shevchenko@linux.intel.com, linux@rasmusvillemoes.dk, yamada.masahiro@socionext.com, linux-arm-kernel@lists.infradead.org, linux-pm@vger.kernel.org, geert@linux-m68k.org, preid@electromag.com.au, lukas@wunner.de, sean.nyekjaer@prevas.dk, morten.tiljeset@prevas.dk, William Breathitt Gray <vilhelm.gray@gmail.com>, Mathias Duckeck <m.duckeck@kunbus.de>
+Message-ID: <20191005183707.c9AXF9HZAjyH97_YDroz5aLzfpz4XEX6yA5jj40lrfs@z>
 
-On Fri, Oct 04, 2019 at 01:42:36PM +0200, Peter Zijlstra wrote:
-> If you can find anything there that isn't right, please explain that in
-> detail and we'll need to look hard at fixing _that_.
+Replace verbose implementation in get_multiple callback with
+for_each_set_clump8 macro to simplify code and improve clarity.
 
-Also, I can't imagine Nick is happy with 128 CPUs banging on that atomic
-counter, esp. since atomics are horrifically slow on Power.
+Cc: Mathias Duckeck <m.duckeck@kunbus.de>
+Cc: Lukas Wunner <lukas@wunner.de>
+Signed-off-by: William Breathitt Gray <vilhelm.gray@gmail.com>
+---
+ drivers/gpio/gpio-max3191x.c | 19 ++++++++++---------
+ 1 file changed, 10 insertions(+), 9 deletions(-)
+
+diff --git a/drivers/gpio/gpio-max3191x.c b/drivers/gpio/gpio-max3191x.c
+index 4b4b2ceb82fc..9a98ecf625ac 100644
+--- a/drivers/gpio/gpio-max3191x.c
++++ b/drivers/gpio/gpio-max3191x.c
+@@ -31,6 +31,7 @@
+  */
+ 
+ #include <linux/bitmap.h>
++#include <linux/bitops.h>
+ #include <linux/crc8.h>
+ #include <linux/gpio/consumer.h>
+ #include <linux/gpio/driver.h>
+@@ -232,16 +233,20 @@ static int max3191x_get_multiple(struct gpio_chip *gpio, unsigned long *mask,
+ 				 unsigned long *bits)
+ {
+ 	struct max3191x_chip *max3191x = gpiochip_get_data(gpio);
+-	int ret, bit = 0, wordlen = max3191x_wordlen(max3191x);
++	const unsigned int wordlen = max3191x_wordlen(max3191x);
++	int ret;
++	unsigned long bit;
++	unsigned long gpio_mask;
++	unsigned long in;
+ 
+ 	mutex_lock(&max3191x->lock);
+ 	ret = max3191x_readout_locked(max3191x);
+ 	if (ret)
+ 		goto out_unlock;
+ 
+-	while ((bit = find_next_bit(mask, gpio->ngpio, bit)) != gpio->ngpio) {
++	bitmap_zero(bits, gpio->ngpio);
++	for_each_set_clump8(bit, gpio_mask, mask, gpio->ngpio) {
+ 		unsigned int chipnum = bit / MAX3191X_NGPIO;
+-		unsigned long in, shift, index;
+ 
+ 		if (max3191x_chip_is_faulting(max3191x, chipnum)) {
+ 			ret = -EIO;
+@@ -249,12 +254,8 @@ static int max3191x_get_multiple(struct gpio_chip *gpio, unsigned long *mask,
+ 		}
+ 
+ 		in = ((u8 *)max3191x->xfer.rx_buf)[chipnum * wordlen];
+-		shift = round_down(bit % BITS_PER_LONG, MAX3191X_NGPIO);
+-		index = bit / BITS_PER_LONG;
+-		bits[index] &= ~(mask[index] & (0xff << shift));
+-		bits[index] |= mask[index] & (in << shift); /* copy bits */
+-
+-		bit = (chipnum + 1) * MAX3191X_NGPIO; /* go to next chip */
++		in &= gpio_mask;
++		bitmap_set_value8(bits, in, offset);
+ 	}
+ 
+ out_unlock:
+-- 
+2.23.0
