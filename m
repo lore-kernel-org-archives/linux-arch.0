@@ -1,105 +1,135 @@
 From: William Breathitt Gray <vilhelm.gray@gmail.com>
-Subject: [PATCH v15 00/14] Introduce the for_each_set_clump8 macro
-Date: Sat,  5 Oct 2019 14:36:54 -0400
-Message-ID: <cover.1570299719.git.vilhelm.gray@gmail.com>
+Subject: [PATCH v15 03/14] gpio: 104-dio-48e: Utilize for_each_set_clump8 macro
+Date: Sat,  5 Oct 2019 14:36:57 -0400
+Message-ID: <28cde3570901d8bf89732482647ce71423723d92.1570299719.git.vilhelm.gray@gmail.com>
+References: <cover.1570299719.git.vilhelm.gray@gmail.com>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <cover.1570299719.git.vilhelm.gray@gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linus.walleij@linaro.org, bgolaszewski@baylibre.com
 Cc: akpm@linux-foundation.org, linux-gpio@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, andriy.shevchenko@linux.intel.com, linux@rasmusvillemoes.dk, yamada.masahiro@socionext.com, linux-arm-kernel@lists.infradead.org, linux-pm@vger.kernel.org, geert@linux-m68k.org, preid@electromag.com.au, lukas@wunner.de, sean.nyekjaer@prevas.dk, morten.tiljeset@prevas.dk, William Breathitt Gray <vilhelm.gray@gmail.com>
 List-Id: linux-arch.vger.kernel.org
 
-Changes in v15:
-  - Move find_next_clump8 to lib/find_bit.c since it requires round_down
-    (I want this to be static inline like the others, but I need help)
-  - Utilize for_each_set_clump8 in pisosr, max3191x, and pca953x
+Replace verbose implementation in get_multiple/set_multiple callbacks
+with for_each_set_clump8 macro to simplify code and improve clarity.
 
-While adding GPIO get_multiple/set_multiple callback support for various
-drivers, I noticed a pattern of looping manifesting that would be useful
-standardized as a macro.
+Reviewed-by: Linus Walleij <linus.walleij@linaro.org>
+Signed-off-by: William Breathitt Gray <vilhelm.gray@gmail.com>
+---
+ drivers/gpio/gpio-104-dio-48e.c | 73 ++++++++++-----------------------
+ 1 file changed, 21 insertions(+), 52 deletions(-)
 
-This patchset introduces the for_each_set_clump8 macro and utilizes it
-in several GPIO drivers. The for_each_set_clump macro8 facilitates a
-for-loop syntax that iterates over a memory region entire groups of set
-bits at a time.
-
-For example, suppose you would like to iterate over a 32-bit integer 8
-bits at a time, skipping over 8-bit groups with no set bit, where
-XXXXXXXX represents the current 8-bit group:
-
-    Example:        10111110 00000000 11111111 00110011
-    First loop:     10111110 00000000 11111111 XXXXXXXX
-    Second loop:    10111110 00000000 XXXXXXXX 00110011
-    Third loop:     XXXXXXXX 00000000 11111111 00110011
-
-Each iteration of the loop returns the next 8-bit group that has at
-least one set bit.
-
-The for_each_set_clump8 macro has four parameters:
-
-    * start: set to the bit offset of the current clump
-    * clump: set to the current clump value
-    * bits: bitmap to search within
-    * size: bitmap size in number of bits
-
-In this version of the patchset, the for_each_set_clump macro has been
-reimplemented and simplified based on the suggestions provided by Rasmus
-Villemoes and Andy Shevchenko in the version 4 submission.
-
-In particular, the function of the for_each_set_clump macro has been
-restricted to handle only 8-bit clumps; the drivers that use the
-for_each_set_clump macro only handle 8-bit ports so a generic
-for_each_set_clump implementation is not necessary. Thus, a solution for
-large clumps (i.e. those larger than the width of a bitmap word) can be
-postponed until a driver appears that actually requires such a generic
-for_each_set_clump implementation.
-
-For what it's worth, a semi-generic for_each_set_clump (i.e. for clumps
-smaller than the width of a bitmap word) can be implemented by simply
-replacing the hardcoded '8' and '0xFF' instances with respective
-variables. I have not yet had a need for such an implementation, and
-since it falls short of a true generic for_each_set_clump function, I
-have decided to forgo such an implementation for now.
-
-In addition, the bitmap_get_value8 and bitmap_set_value8 functions are
-introduced to get and set 8-bit values respectively. Their use is based
-on the behavior suggested in the patchset version 4 review.
-
-William Breathitt Gray (14):
-  bitops: Introduce the for_each_set_clump8 macro
-  lib/test_bitmap.c: Add for_each_set_clump8 test cases
-  gpio: 104-dio-48e: Utilize for_each_set_clump8 macro
-  gpio: 104-idi-48: Utilize for_each_set_clump8 macro
-  gpio: gpio-mm: Utilize for_each_set_clump8 macro
-  gpio: ws16c48: Utilize for_each_set_clump8 macro
-  gpio: pci-idio-16: Utilize for_each_set_clump8 macro
-  gpio: pcie-idio-24: Utilize for_each_set_clump8 macro
-  gpio: uniphier: Utilize for_each_set_clump8 macro
-  gpio: 74x164: Utilize the for_each_set_clump8 macro
-  thermal: intel: intel_soc_dts_iosf: Utilize for_each_set_clump8 macro
-  gpio: pisosr: Utilize the for_each_set_clump8 macro
-  gpio: max3191x: Utilize the for_each_set_clump8 macro
-  gpio: pca953x: Utilize the for_each_set_clump8 macro
-
- drivers/gpio/gpio-104-dio-48e.c            |  73 ++++----------
- drivers/gpio/gpio-104-idi-48.c             |  36 ++-----
- drivers/gpio/gpio-74x164.c                 |  19 ++--
- drivers/gpio/gpio-gpio-mm.c                |  73 ++++----------
- drivers/gpio/gpio-max3191x.c               |  19 ++--
- drivers/gpio/gpio-pca953x.c                |  17 ++--
- drivers/gpio/gpio-pci-idio-16.c            |  75 +++++---------
- drivers/gpio/gpio-pcie-idio-24.c           | 109 ++++++++-------------
- drivers/gpio/gpio-pisosr.c                 |  12 +--
- drivers/gpio/gpio-uniphier.c               |  16 ++-
- drivers/gpio/gpio-ws16c48.c                |  73 ++++----------
- drivers/thermal/intel/intel_soc_dts_iosf.c |  29 +++---
- drivers/thermal/intel/intel_soc_dts_iosf.h |   2 -
- include/asm-generic/bitops/find.h          |  50 ++++++++++
- include/linux/bitops.h                     |   5 +
- lib/find_bit.c                             |  14 +++
- lib/test_bitmap.c                          |  65 ++++++++++++
- 17 files changed, 325 insertions(+), 362 deletions(-)
-
+diff --git a/drivers/gpio/gpio-104-dio-48e.c b/drivers/gpio/gpio-104-dio-48e.c
+index a44fa8af5b0d..977f0f6eb1ba 100644
+--- a/drivers/gpio/gpio-104-dio-48e.c
++++ b/drivers/gpio/gpio-104-dio-48e.c
+@@ -175,46 +175,25 @@ static int dio48e_gpio_get(struct gpio_chip *chip, unsigned offset)
+ 	return !!(port_state & mask);
+ }
+ 
++static const size_t ports[] = { 0, 1, 2, 4, 5, 6 };
++
+ static int dio48e_gpio_get_multiple(struct gpio_chip *chip, unsigned long *mask,
+ 	unsigned long *bits)
+ {
+ 	struct dio48e_gpio *const dio48egpio = gpiochip_get_data(chip);
+-	size_t i;
+-	static const size_t ports[] = { 0, 1, 2, 4, 5, 6 };
+-	const unsigned int gpio_reg_size = 8;
+-	unsigned int bits_offset;
+-	size_t word_index;
+-	unsigned int word_offset;
+-	unsigned long word_mask;
+-	const unsigned long port_mask = GENMASK(gpio_reg_size - 1, 0);
++	unsigned long offset;
++	unsigned long gpio_mask;
++	unsigned int port_addr;
+ 	unsigned long port_state;
+ 
+ 	/* clear bits array to a clean slate */
+ 	bitmap_zero(bits, chip->ngpio);
+ 
+-	/* get bits are evaluated a gpio port register at a time */
+-	for (i = 0; i < ARRAY_SIZE(ports); i++) {
+-		/* gpio offset in bits array */
+-		bits_offset = i * gpio_reg_size;
+-
+-		/* word index for bits array */
+-		word_index = BIT_WORD(bits_offset);
+-
+-		/* gpio offset within current word of bits array */
+-		word_offset = bits_offset % BITS_PER_LONG;
+-
+-		/* mask of get bits for current gpio within current word */
+-		word_mask = mask[word_index] & (port_mask << word_offset);
+-		if (!word_mask) {
+-			/* no get bits in this port so skip to next one */
+-			continue;
+-		}
+-
+-		/* read bits from current gpio port */
+-		port_state = inb(dio48egpio->base + ports[i]);
++	for_each_set_clump8(offset, gpio_mask, mask, ARRAY_SIZE(ports) * 8) {
++		port_addr = dio48egpio->base + ports[offset / 8];
++		port_state = inb(port_addr) & gpio_mask;
+ 
+-		/* store acquired bits at respective bits array offset */
+-		bits[word_index] |= (port_state << word_offset) & word_mask;
++		bitmap_set_value8(bits, port_state, offset);
+ 	}
+ 
+ 	return 0;
+@@ -244,37 +223,27 @@ static void dio48e_gpio_set_multiple(struct gpio_chip *chip,
+ 	unsigned long *mask, unsigned long *bits)
+ {
+ 	struct dio48e_gpio *const dio48egpio = gpiochip_get_data(chip);
+-	unsigned int i;
+-	const unsigned int gpio_reg_size = 8;
+-	unsigned int port;
+-	unsigned int out_port;
+-	unsigned int bitmask;
++	unsigned long offset;
++	unsigned long gpio_mask;
++	size_t index;
++	unsigned int port_addr;
++	unsigned long bitmask;
+ 	unsigned long flags;
+ 
+-	/* set bits are evaluated a gpio register size at a time */
+-	for (i = 0; i < chip->ngpio; i += gpio_reg_size) {
+-		/* no more set bits in this mask word; skip to the next word */
+-		if (!mask[BIT_WORD(i)]) {
+-			i = (BIT_WORD(i) + 1) * BITS_PER_LONG - gpio_reg_size;
+-			continue;
+-		}
++	for_each_set_clump8(offset, gpio_mask, mask, ARRAY_SIZE(ports) * 8) {
++		index = offset / 8;
++		port_addr = dio48egpio->base + ports[index];
+ 
+-		port = i / gpio_reg_size;
+-		out_port = (port > 2) ? port + 1 : port;
+-		bitmask = mask[BIT_WORD(i)] & bits[BIT_WORD(i)];
++		bitmask = bitmap_get_value8(bits, offset) & gpio_mask;
+ 
+ 		raw_spin_lock_irqsave(&dio48egpio->lock, flags);
+ 
+ 		/* update output state data and set device gpio register */
+-		dio48egpio->out_state[port] &= ~mask[BIT_WORD(i)];
+-		dio48egpio->out_state[port] |= bitmask;
+-		outb(dio48egpio->out_state[port], dio48egpio->base + out_port);
++		dio48egpio->out_state[index] &= ~gpio_mask;
++		dio48egpio->out_state[index] |= bitmask;
++		outb(dio48egpio->out_state[index], port_addr);
+ 
+ 		raw_spin_unlock_irqrestore(&dio48egpio->lock, flags);
+-
+-		/* prepare for next gpio register set */
+-		mask[BIT_WORD(i)] >>= gpio_reg_size;
+-		bits[BIT_WORD(i)] >>= gpio_reg_size;
+ 	}
+ }
+ 
 -- 
 2.23.0
