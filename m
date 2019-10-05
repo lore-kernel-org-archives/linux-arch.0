@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-yw1-f68.google.com ([209.85.161.68]:45732 "EHLO
-        mail-yw1-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S2388168AbfJEShf (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sat, 5 Oct 2019 14:37:35 -0400
+Received: from mail-yw1-f67.google.com ([209.85.161.67]:43245 "EHLO
+        mail-yw1-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S2388005AbfJESha (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 5 Oct 2019 14:37:30 -0400
 From: William Breathitt Gray <vilhelm.gray@gmail.com>
-Subject: [PATCH v15 05/14] gpio: gpio-mm: Utilize for_each_set_clump8 macro
-Date: Sat,  5 Oct 2019 14:36:59 -0400
-Message-ID: <a81daf717adef2586fe43174b107304b346992a6.1570299719.git.vilhelm.gray@gmail.com>
+Subject: [PATCH v15 02/14] lib/test_bitmap.c: Add for_each_set_clump8 test cases
+Date: Sat,  5 Oct 2019 14:36:56 -0400
+Message-ID: <d82bcf8848aef2aa3f0b1acfb58a4c44a76d001c.1570299719.git.vilhelm.gray@gmail.com>
 In-Reply-To: <cover.1570299719.git.vilhelm.gray@gmail.com>
 References: <cover.1570299719.git.vilhelm.gray@gmail.com>
 MIME-Version: 1.0
@@ -14,127 +14,119 @@ Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linus.walleij@linaro.org, bgolaszewski@baylibre.com
-Cc: akpm@linux-foundation.org, linux-gpio@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, andriy.shevchenko@linux.intel.com, linux@rasmusvillemoes.dk, yamada.masahiro@socionext.com, linux-arm-kernel@lists.infradead.org, linux-pm@vger.kernel.org, geert@linux-m68k.org, preid@electromag.com.au, lukas@wunner.de, sean.nyekjaer@prevas.dk, morten.tiljeset@prevas.dk, William Breathitt Gray <vilhelm.gray@gmail.com>
-Message-ID: <20191005183659.7ZT_4Ia1LM9MeuriQyPlUmhVMSZdBsSxtxPJFJ4e4fg@z>
+Cc: akpm@linux-foundation.org, linux-gpio@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, andriy.shevchenko@linux.intel.com, linux@rasmusvillemoes.dk, yamada.masahiro@socionext.com, linux-arm-kernel@lists.infradead.org, linux-pm@vger.kernel.org, geert@linux-m68k.org, preid@electromag.com.au, lukas@wunner.de, sean.nyekjaer@prevas.dk, morten.tiljeset@prevas.dk, William Breathitt Gray <vilhelm.gray@gmail.com>, Andy Shevchenko <andy.shevchenko@gmail.com>
+Message-ID: <20191005183656.PjCZszjwgOk-E3PBqBYyJeCUqomhZwMcqfS2jMgkG_c@z>
 
-Replace verbose implementation in get_multiple/set_multiple callbacks
-with for_each_set_clump8 macro to simplify code and improve clarity.
+The introduction of the for_each_set_clump8 macro warrants test cases to
+verify the implementation. This patch adds test case checks for whether
+an out-of-bounds clump index is returned, a zero clump is returned, or
+the returned clump value differs from the expected clump value.
 
+Cc: Rasmus Villemoes <linux@rasmusvillemoes.dk>
+Acked-by: Andrew Morton <akpm@linux-foundation.org>
+Reviewed-by: Andy Shevchenko <andy.shevchenko@gmail.com>
 Reviewed-by: Linus Walleij <linus.walleij@linaro.org>
 Signed-off-by: William Breathitt Gray <vilhelm.gray@gmail.com>
 ---
- drivers/gpio/gpio-gpio-mm.c | 73 +++++++++++--------------------------
- 1 file changed, 21 insertions(+), 52 deletions(-)
+ lib/test_bitmap.c | 65 +++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 65 insertions(+)
 
-diff --git a/drivers/gpio/gpio-gpio-mm.c b/drivers/gpio/gpio-gpio-mm.c
-index 78a1db24e931..72196ea36358 100644
---- a/drivers/gpio/gpio-gpio-mm.c
-+++ b/drivers/gpio/gpio-gpio-mm.c
-@@ -164,46 +164,25 @@ static int gpiomm_gpio_get(struct gpio_chip *chip, unsigned int offset)
- 	return !!(port_state & mask);
+diff --git a/lib/test_bitmap.c b/lib/test_bitmap.c
+index 51a98f7ee79e..dc167c13eb39 100644
+--- a/lib/test_bitmap.c
++++ b/lib/test_bitmap.c
+@@ -92,6 +92,36 @@ __check_eq_u32_array(const char *srcfile, unsigned int line,
+ 	return true;
  }
  
-+static const size_t ports[] = { 0, 1, 2, 4, 5, 6 };
++static bool __init __check_eq_clump8(const char *srcfile, unsigned int line,
++				    const unsigned int offset,
++				    const unsigned int size,
++				    const unsigned char *const clump_exp,
++				    const unsigned long *const clump)
++{
++	unsigned long exp;
 +
- static int gpiomm_gpio_get_multiple(struct gpio_chip *chip, unsigned long *mask,
- 	unsigned long *bits)
++	if (offset >= size) {
++		pr_warn("[%s:%u] bit offset for clump out-of-bounds: expected less than %u, got %u\n",
++			srcfile, line, size, offset);
++		return false;
++	}
++
++	exp = clump_exp[offset / 8];
++	if (!exp) {
++		pr_warn("[%s:%u] bit offset for zero clump: expected nonzero clump, got bit offset %u with clump value 0",
++			srcfile, line, offset);
++		return false;
++	}
++
++	if (*clump != exp) {
++		pr_warn("[%s:%u] expected clump value of 0x%lX, got clump value of 0x%lX",
++			srcfile, line, exp, *clump);
++		return false;
++	}
++
++	return true;
++}
++
+ #define __expect_eq(suffix, ...)					\
+ 	({								\
+ 		int result = 0;						\
+@@ -108,6 +138,7 @@ __check_eq_u32_array(const char *srcfile, unsigned int line,
+ #define expect_eq_bitmap(...)		__expect_eq(bitmap, ##__VA_ARGS__)
+ #define expect_eq_pbl(...)		__expect_eq(pbl, ##__VA_ARGS__)
+ #define expect_eq_u32_array(...)	__expect_eq(u32_array, ##__VA_ARGS__)
++#define expect_eq_clump8(...)		__expect_eq(clump8, ##__VA_ARGS__)
+ 
+ static void __init test_zero_clear(void)
  {
- 	struct gpiomm_gpio *const gpiommgpio = gpiochip_get_data(chip);
--	size_t i;
--	static const size_t ports[] = { 0, 1, 2, 4, 5, 6 };
--	const unsigned int gpio_reg_size = 8;
--	unsigned int bits_offset;
--	size_t word_index;
--	unsigned int word_offset;
--	unsigned long word_mask;
--	const unsigned long port_mask = GENMASK(gpio_reg_size - 1, 0);
-+	unsigned long offset;
-+	unsigned long gpio_mask;
-+	unsigned int port_addr;
- 	unsigned long port_state;
- 
- 	/* clear bits array to a clean slate */
- 	bitmap_zero(bits, chip->ngpio);
- 
--	/* get bits are evaluated a gpio port register at a time */
--	for (i = 0; i < ARRAY_SIZE(ports); i++) {
--		/* gpio offset in bits array */
--		bits_offset = i * gpio_reg_size;
--
--		/* word index for bits array */
--		word_index = BIT_WORD(bits_offset);
--
--		/* gpio offset within current word of bits array */
--		word_offset = bits_offset % BITS_PER_LONG;
--
--		/* mask of get bits for current gpio within current word */
--		word_mask = mask[word_index] & (port_mask << word_offset);
--		if (!word_mask) {
--			/* no get bits in this port so skip to next one */
--			continue;
--		}
--
--		/* read bits from current gpio port */
--		port_state = inb(gpiommgpio->base + ports[i]);
-+	for_each_set_clump8(offset, gpio_mask, mask, ARRAY_SIZE(ports) * 8) {
-+		port_addr = gpiommgpio->base + ports[offset / 8];
-+		port_state = inb(port_addr) & gpio_mask;
- 
--		/* store acquired bits at respective bits array offset */
--		bits[word_index] |= (port_state << word_offset) & word_mask;
-+		bitmap_set_value8(bits, port_state, offset);
- 	}
- 
- 	return 0;
-@@ -234,37 +213,27 @@ static void gpiomm_gpio_set_multiple(struct gpio_chip *chip,
- 	unsigned long *mask, unsigned long *bits)
- {
- 	struct gpiomm_gpio *const gpiommgpio = gpiochip_get_data(chip);
--	unsigned int i;
--	const unsigned int gpio_reg_size = 8;
--	unsigned int port;
--	unsigned int out_port;
--	unsigned int bitmask;
-+	unsigned long offset;
-+	unsigned long gpio_mask;
-+	size_t index;
-+	unsigned int port_addr;
-+	unsigned long bitmask;
- 	unsigned long flags;
- 
--	/* set bits are evaluated a gpio register size at a time */
--	for (i = 0; i < chip->ngpio; i += gpio_reg_size) {
--		/* no more set bits in this mask word; skip to the next word */
--		if (!mask[BIT_WORD(i)]) {
--			i = (BIT_WORD(i) + 1) * BITS_PER_LONG - gpio_reg_size;
--			continue;
--		}
-+	for_each_set_clump8(offset, gpio_mask, mask, ARRAY_SIZE(ports) * 8) {
-+		index = offset / 8;
-+		port_addr = gpiommgpio->base + ports[index];
- 
--		port = i / gpio_reg_size;
--		out_port = (port > 2) ? port + 1 : port;
--		bitmask = mask[BIT_WORD(i)] & bits[BIT_WORD(i)];
-+		bitmask = bitmap_get_value8(bits, offset) & gpio_mask;
- 
- 		spin_lock_irqsave(&gpiommgpio->lock, flags);
- 
- 		/* update output state data and set device gpio register */
--		gpiommgpio->out_state[port] &= ~mask[BIT_WORD(i)];
--		gpiommgpio->out_state[port] |= bitmask;
--		outb(gpiommgpio->out_state[port], gpiommgpio->base + out_port);
-+		gpiommgpio->out_state[index] &= ~gpio_mask;
-+		gpiommgpio->out_state[index] |= bitmask;
-+		outb(gpiommgpio->out_state[index], port_addr);
- 
- 		spin_unlock_irqrestore(&gpiommgpio->lock, flags);
--
--		/* prepare for next gpio register set */
--		mask[BIT_WORD(i)] >>= gpio_reg_size;
--		bits[BIT_WORD(i)] >>= gpio_reg_size;
+@@ -404,6 +435,39 @@ static void noinline __init test_mem_optimisations(void)
  	}
  }
  
++static const unsigned char clump_exp[] __initconst = {
++	0x01,	/* 1 bit set */
++	0x02,	/* non-edge 1 bit set */
++	0x00,	/* zero bits set */
++	0x38,	/* 3 bits set across 4-bit boundary */
++	0x38,	/* Repeated clump */
++	0x0F,	/* 4 bits set */
++	0xFF,	/* all bits set */
++	0x05,	/* non-adjacent 2 bits set */
++};
++
++static void __init test_for_each_set_clump8(void)
++{
++#define CLUMP_EXP_NUMBITS 64
++	DECLARE_BITMAP(bits, CLUMP_EXP_NUMBITS);
++	unsigned int start;
++	unsigned long clump;
++
++	/* set bitmap to test case */
++	bitmap_zero(bits, CLUMP_EXP_NUMBITS);
++	bitmap_set(bits, 0, 1);		/* 0x01 */
++	bitmap_set(bits, 9, 1);		/* 0x02 */
++	bitmap_set(bits, 27, 3);	/* 0x28 */
++	bitmap_set(bits, 35, 3);	/* 0x28 */
++	bitmap_set(bits, 40, 4);	/* 0x0F */
++	bitmap_set(bits, 48, 8);	/* 0xFF */
++	bitmap_set(bits, 56, 1);	/* 0x05 - part 1 */
++	bitmap_set(bits, 58, 1);	/* 0x05 - part 2 */
++
++	for_each_set_clump8(start, clump, bits, CLUMP_EXP_NUMBITS)
++		expect_eq_clump8(start, CLUMP_EXP_NUMBITS, clump_exp, &clump);
++}
++
+ static void __init selftest(void)
+ {
+ 	test_zero_clear();
+@@ -413,6 +477,7 @@ static void __init selftest(void)
+ 	test_bitmap_parselist();
+ 	test_bitmap_parselist_user();
+ 	test_mem_optimisations();
++	test_for_each_set_clump8();
+ }
+ 
+ KSTM_MODULE_LOADERS(test_bitmap);
 -- 
 2.23.0
