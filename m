@@ -1,7 +1,7 @@
 From: William Breathitt Gray <vilhelm.gray@gmail.com>
-Subject: [PATCH v15 10/14] gpio: 74x164: Utilize the for_each_set_clump8 macro
-Date: Sat,  5 Oct 2019 14:37:04 -0400
-Message-ID: <c22abead64720532d5fb93575fd9e5dfeb573a21.1570299719.git.vilhelm.gray@gmail.com>
+Subject: [PATCH v15 13/14] gpio: max3191x: Utilize the for_each_set_clump8 macro
+Date: Sat,  5 Oct 2019 14:37:07 -0400
+Message-ID: <f07b6bb5619ea1365cc58266254a7b5be65a9082.1570299719.git.vilhelm.gray@gmail.com>
 References: <cover.1570299719.git.vilhelm.gray@gmail.com>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
@@ -9,60 +9,69 @@ Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <cover.1570299719.git.vilhelm.gray@gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linus.walleij@linaro.org, bgolaszewski@baylibre.com
-Cc: akpm@linux-foundation.org, linux-gpio@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, andriy.shevchenko@linux.intel.com, linux@rasmusvillemoes.dk, yamada.masahiro@socionext.com, linux-arm-kernel@lists.infradead.org, linux-pm@vger.kernel.org, geert@linux-m68k.org, preid@electromag.com.au, lukas@wunner.de, sean.nyekjaer@prevas.dk, morten.tiljeset@prevas.dk, William Breathitt Gray <vilhelm.gray@gmail.com>, Geert Uytterhoeven <geert+renesas@glider.be>
+Cc: akpm@linux-foundation.org, linux-gpio@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, andriy.shevchenko@linux.intel.com, linux@rasmusvillemoes.dk, yamada.masahiro@socionext.com, linux-arm-kernel@lists.infradead.org, linux-pm@vger.kernel.org, geert@linux-m68k.org, preid@electromag.com.au, lukas@wunner.de, sean.nyekjaer@prevas.dk, morten.tiljeset@prevas.dk, William Breathitt Gray <vilhelm.gray@gmail.com>, Mathias Duckeck <m.duckeck@kunbus.de>
 List-Id: linux-arch.vger.kernel.org
 
-Replace verbose implementation in set_multiple callback with
+Replace verbose implementation in get_multiple callback with
 for_each_set_clump8 macro to simplify code and improve clarity.
 
-Suggested-by: Andy Shevchenko <andriy.shevchenko@linux.intel.com>
-Cc: Geert Uytterhoeven <geert+renesas@glider.be>
-Cc: Phil Reid <preid@electromag.com.au>
+Cc: Mathias Duckeck <m.duckeck@kunbus.de>
+Cc: Lukas Wunner <lukas@wunner.de>
 Signed-off-by: William Breathitt Gray <vilhelm.gray@gmail.com>
 ---
- drivers/gpio/gpio-74x164.c | 19 +++++++++----------
- 1 file changed, 9 insertions(+), 10 deletions(-)
+ drivers/gpio/gpio-max3191x.c | 19 ++++++++++---------
+ 1 file changed, 10 insertions(+), 9 deletions(-)
 
-diff --git a/drivers/gpio/gpio-74x164.c b/drivers/gpio/gpio-74x164.c
-index e81307f9754e..05637d585152 100644
---- a/drivers/gpio/gpio-74x164.c
-+++ b/drivers/gpio/gpio-74x164.c
-@@ -6,6 +6,7 @@
-  *  Copyright (C) 2010 Miguel Gaio <miguel.gaio@efixo.com>
+diff --git a/drivers/gpio/gpio-max3191x.c b/drivers/gpio/gpio-max3191x.c
+index 4b4b2ceb82fc..9a98ecf625ac 100644
+--- a/drivers/gpio/gpio-max3191x.c
++++ b/drivers/gpio/gpio-max3191x.c
+@@ -31,6 +31,7 @@
   */
  
+ #include <linux/bitmap.h>
 +#include <linux/bitops.h>
+ #include <linux/crc8.h>
  #include <linux/gpio/consumer.h>
  #include <linux/gpio/driver.h>
- #include <linux/module.h>
-@@ -72,20 +73,18 @@ static void gen_74x164_set_multiple(struct gpio_chip *gc, unsigned long *mask,
- 				    unsigned long *bits)
+@@ -232,16 +233,20 @@ static int max3191x_get_multiple(struct gpio_chip *gpio, unsigned long *mask,
+ 				 unsigned long *bits)
  {
- 	struct gen_74x164_chip *chip = gpiochip_get_data(gc);
--	unsigned int i, idx, shift;
--	u8 bank, bankmask;
-+	unsigned long offset;
-+	unsigned long bankmask;
-+	size_t bank;
-+	unsigned long bitmask;
+ 	struct max3191x_chip *max3191x = gpiochip_get_data(gpio);
+-	int ret, bit = 0, wordlen = max3191x_wordlen(max3191x);
++	const unsigned int wordlen = max3191x_wordlen(max3191x);
++	int ret;
++	unsigned long bit;
++	unsigned long gpio_mask;
++	unsigned long in;
  
- 	mutex_lock(&chip->lock);
--	for (i = 0, bank = chip->registers - 1; i < chip->registers;
--	     i++, bank--) {
--		idx = i / sizeof(*mask);
--		shift = i % sizeof(*mask) * BITS_PER_BYTE;
--		bankmask = mask[idx] >> shift;
--		if (!bankmask)
--			continue;
-+	for_each_set_clump8(offset, bankmask, mask, chip->registers * 8) {
-+		bank = chip->registers - 1 - offset / 8;
-+		bitmask = bitmap_get_value8(bits, offset) & bankmask;
+ 	mutex_lock(&max3191x->lock);
+ 	ret = max3191x_readout_locked(max3191x);
+ 	if (ret)
+ 		goto out_unlock;
  
- 		chip->buffer[bank] &= ~bankmask;
--		chip->buffer[bank] |= bankmask & (bits[idx] >> shift);
-+		chip->buffer[bank] |= bitmask;
+-	while ((bit = find_next_bit(mask, gpio->ngpio, bit)) != gpio->ngpio) {
++	bitmap_zero(bits, gpio->ngpio);
++	for_each_set_clump8(bit, gpio_mask, mask, gpio->ngpio) {
+ 		unsigned int chipnum = bit / MAX3191X_NGPIO;
+-		unsigned long in, shift, index;
+ 
+ 		if (max3191x_chip_is_faulting(max3191x, chipnum)) {
+ 			ret = -EIO;
+@@ -249,12 +254,8 @@ static int max3191x_get_multiple(struct gpio_chip *gpio, unsigned long *mask,
+ 		}
+ 
+ 		in = ((u8 *)max3191x->xfer.rx_buf)[chipnum * wordlen];
+-		shift = round_down(bit % BITS_PER_LONG, MAX3191X_NGPIO);
+-		index = bit / BITS_PER_LONG;
+-		bits[index] &= ~(mask[index] & (0xff << shift));
+-		bits[index] |= mask[index] & (in << shift); /* copy bits */
+-
+-		bit = (chipnum + 1) * MAX3191X_NGPIO; /* go to next chip */
++		in &= gpio_mask;
++		bitmap_set_value8(bits, in, offset);
  	}
- 	__gen_74x164_write_config(chip);
- 	mutex_unlock(&chip->lock);
+ 
+ out_unlock:
 -- 
 2.23.0
