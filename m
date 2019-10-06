@@ -1,105 +1,127 @@
 From: William Breathitt Gray <vilhelm.gray@gmail.com>
-Subject: [PATCH v16 00/14] Introduce the for_each_set_clump8 macro
-Date: Sun,  6 Oct 2019 11:10:57 -0400
-Message-ID: <cover.1570374078.git.vilhelm.gray@gmail.com>
+Subject: [PATCH v16 02/14] lib/test_bitmap.c: Add for_each_set_clump8 test cases
+Date: Sun,  6 Oct 2019 11:10:59 -0400
+Message-ID: <68a64acf894cda2ccdacabbb808d23486613a095.1570374078.git.vilhelm.gray@gmail.com>
+References: <cover.1570374078.git.vilhelm.gray@gmail.com>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <cover.1570374078.git.vilhelm.gray@gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linus.walleij@linaro.org, bgolaszewski@baylibre.com
-Cc: akpm@linux-foundation.org, linux-gpio@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, andriy.shevchenko@linux.intel.com, linux@rasmusvillemoes.dk, yamada.masahiro@socionext.com, linux-arm-kernel@lists.infradead.org, linux-pm@vger.kernel.org, geert@linux-m68k.org, preid@electromag.com.au, lukas@wunner.de, sean.nyekjaer@prevas.dk, morten.tiljeset@prevas.dk, William Breathitt Gray <vilhelm.gray@gmail.com>
+Cc: akpm@linux-foundation.org, linux-gpio@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, andriy.shevchenko@linux.intel.com, linux@rasmusvillemoes.dk, yamada.masahiro@socionext.com, linux-arm-kernel@lists.infradead.org, linux-pm@vger.kernel.org, geert@linux-m68k.org, preid@electromag.com.au, lukas@wunner.de, sean.nyekjaer@prevas.dk, morten.tiljeset@prevas.dk, William Breathitt Gray <vilhelm.gray@gmail.com>, Andy Shevchenko <andy.shevchenko@gmail.com>
 List-Id: linux-arch.vger.kernel.org
 
-Changes in v16:
-  - Fix typo in max3191x patch ('offset' to 'bit' in bitmap_set_value8)
+The introduction of the for_each_set_clump8 macro warrants test cases to
+verify the implementation. This patch adds test case checks for whether
+an out-of-bounds clump index is returned, a zero clump is returned, or
+the returned clump value differs from the expected clump value.
 
-While adding GPIO get_multiple/set_multiple callback support for various
-drivers, I noticed a pattern of looping manifesting that would be useful
-standardized as a macro.
+Cc: Rasmus Villemoes <linux@rasmusvillemoes.dk>
+Acked-by: Andrew Morton <akpm@linux-foundation.org>
+Reviewed-by: Andy Shevchenko <andy.shevchenko@gmail.com>
+Reviewed-by: Linus Walleij <linus.walleij@linaro.org>
+Signed-off-by: William Breathitt Gray <vilhelm.gray@gmail.com>
+---
+ lib/test_bitmap.c | 65 +++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 65 insertions(+)
 
-This patchset introduces the for_each_set_clump8 macro and utilizes it
-in several GPIO drivers. The for_each_set_clump macro8 facilitates a
-for-loop syntax that iterates over a memory region entire groups of set
-bits at a time.
-
-For example, suppose you would like to iterate over a 32-bit integer 8
-bits at a time, skipping over 8-bit groups with no set bit, where
-XXXXXXXX represents the current 8-bit group:
-
-    Example:        10111110 00000000 11111111 00110011
-    First loop:     10111110 00000000 11111111 XXXXXXXX
-    Second loop:    10111110 00000000 XXXXXXXX 00110011
-    Third loop:     XXXXXXXX 00000000 11111111 00110011
-
-Each iteration of the loop returns the next 8-bit group that has at
-least one set bit.
-
-The for_each_set_clump8 macro has four parameters:
-
-    * start: set to the bit offset of the current clump
-    * clump: set to the current clump value
-    * bits: bitmap to search within
-    * size: bitmap size in number of bits
-
-In this version of the patchset, the for_each_set_clump macro has been
-reimplemented and simplified based on the suggestions provided by Rasmus
-Villemoes and Andy Shevchenko in the version 4 submission.
-
-In particular, the function of the for_each_set_clump macro has been
-restricted to handle only 8-bit clumps; the drivers that use the
-for_each_set_clump macro only handle 8-bit ports so a generic
-for_each_set_clump implementation is not necessary. Thus, a solution for
-large clumps (i.e. those larger than the width of a bitmap word) can be
-postponed until a driver appears that actually requires such a generic
-for_each_set_clump implementation.
-
-For what it's worth, a semi-generic for_each_set_clump (i.e. for clumps
-smaller than the width of a bitmap word) can be implemented by simply
-replacing the hardcoded '8' and '0xFF' instances with respective
-variables. I have not yet had a need for such an implementation, and
-since it falls short of a true generic for_each_set_clump function, I
-have decided to forgo such an implementation for now.
-
-In addition, the bitmap_get_value8 and bitmap_set_value8 functions are
-introduced to get and set 8-bit values respectively. Their use is based
-on the behavior suggested in the patchset version 4 review.
-
-William Breathitt Gray (14):
-  bitops: Introduce the for_each_set_clump8 macro
-  lib/test_bitmap.c: Add for_each_set_clump8 test cases
-  gpio: 104-dio-48e: Utilize for_each_set_clump8 macro
-  gpio: 104-idi-48: Utilize for_each_set_clump8 macro
-  gpio: gpio-mm: Utilize for_each_set_clump8 macro
-  gpio: ws16c48: Utilize for_each_set_clump8 macro
-  gpio: pci-idio-16: Utilize for_each_set_clump8 macro
-  gpio: pcie-idio-24: Utilize for_each_set_clump8 macro
-  gpio: uniphier: Utilize for_each_set_clump8 macro
-  gpio: 74x164: Utilize the for_each_set_clump8 macro
-  thermal: intel: intel_soc_dts_iosf: Utilize for_each_set_clump8 macro
-  gpio: pisosr: Utilize the for_each_set_clump8 macro
-  gpio: max3191x: Utilize the for_each_set_clump8 macro
-  gpio: pca953x: Utilize the for_each_set_clump8 macro
-
- drivers/gpio/gpio-104-dio-48e.c            |  73 ++++----------
- drivers/gpio/gpio-104-idi-48.c             |  36 ++-----
- drivers/gpio/gpio-74x164.c                 |  19 ++--
- drivers/gpio/gpio-gpio-mm.c                |  73 ++++----------
- drivers/gpio/gpio-max3191x.c               |  19 ++--
- drivers/gpio/gpio-pca953x.c                |  17 ++--
- drivers/gpio/gpio-pci-idio-16.c            |  75 +++++---------
- drivers/gpio/gpio-pcie-idio-24.c           | 109 ++++++++-------------
- drivers/gpio/gpio-pisosr.c                 |  12 +--
- drivers/gpio/gpio-uniphier.c               |  16 ++-
- drivers/gpio/gpio-ws16c48.c                |  73 ++++----------
- drivers/thermal/intel/intel_soc_dts_iosf.c |  29 +++---
- drivers/thermal/intel/intel_soc_dts_iosf.h |   2 -
- include/asm-generic/bitops/find.h          |  50 ++++++++++
- include/linux/bitops.h                     |   5 +
- lib/find_bit.c                             |  14 +++
- lib/test_bitmap.c                          |  65 ++++++++++++
- 17 files changed, 325 insertions(+), 362 deletions(-)
-
-
-base-commit: 8c550e94b8835170593169a45b5ba30d3fc72a70
+diff --git a/lib/test_bitmap.c b/lib/test_bitmap.c
+index 51a98f7ee79e..dc167c13eb39 100644
+--- a/lib/test_bitmap.c
++++ b/lib/test_bitmap.c
+@@ -92,6 +92,36 @@ __check_eq_u32_array(const char *srcfile, unsigned int line,
+ 	return true;
+ }
+ 
++static bool __init __check_eq_clump8(const char *srcfile, unsigned int line,
++				    const unsigned int offset,
++				    const unsigned int size,
++				    const unsigned char *const clump_exp,
++				    const unsigned long *const clump)
++{
++	unsigned long exp;
++
++	if (offset >= size) {
++		pr_warn("[%s:%u] bit offset for clump out-of-bounds: expected less than %u, got %u\n",
++			srcfile, line, size, offset);
++		return false;
++	}
++
++	exp = clump_exp[offset / 8];
++	if (!exp) {
++		pr_warn("[%s:%u] bit offset for zero clump: expected nonzero clump, got bit offset %u with clump value 0",
++			srcfile, line, offset);
++		return false;
++	}
++
++	if (*clump != exp) {
++		pr_warn("[%s:%u] expected clump value of 0x%lX, got clump value of 0x%lX",
++			srcfile, line, exp, *clump);
++		return false;
++	}
++
++	return true;
++}
++
+ #define __expect_eq(suffix, ...)					\
+ 	({								\
+ 		int result = 0;						\
+@@ -108,6 +138,7 @@ __check_eq_u32_array(const char *srcfile, unsigned int line,
+ #define expect_eq_bitmap(...)		__expect_eq(bitmap, ##__VA_ARGS__)
+ #define expect_eq_pbl(...)		__expect_eq(pbl, ##__VA_ARGS__)
+ #define expect_eq_u32_array(...)	__expect_eq(u32_array, ##__VA_ARGS__)
++#define expect_eq_clump8(...)		__expect_eq(clump8, ##__VA_ARGS__)
+ 
+ static void __init test_zero_clear(void)
+ {
+@@ -404,6 +435,39 @@ static void noinline __init test_mem_optimisations(void)
+ 	}
+ }
+ 
++static const unsigned char clump_exp[] __initconst = {
++	0x01,	/* 1 bit set */
++	0x02,	/* non-edge 1 bit set */
++	0x00,	/* zero bits set */
++	0x38,	/* 3 bits set across 4-bit boundary */
++	0x38,	/* Repeated clump */
++	0x0F,	/* 4 bits set */
++	0xFF,	/* all bits set */
++	0x05,	/* non-adjacent 2 bits set */
++};
++
++static void __init test_for_each_set_clump8(void)
++{
++#define CLUMP_EXP_NUMBITS 64
++	DECLARE_BITMAP(bits, CLUMP_EXP_NUMBITS);
++	unsigned int start;
++	unsigned long clump;
++
++	/* set bitmap to test case */
++	bitmap_zero(bits, CLUMP_EXP_NUMBITS);
++	bitmap_set(bits, 0, 1);		/* 0x01 */
++	bitmap_set(bits, 9, 1);		/* 0x02 */
++	bitmap_set(bits, 27, 3);	/* 0x28 */
++	bitmap_set(bits, 35, 3);	/* 0x28 */
++	bitmap_set(bits, 40, 4);	/* 0x0F */
++	bitmap_set(bits, 48, 8);	/* 0xFF */
++	bitmap_set(bits, 56, 1);	/* 0x05 - part 1 */
++	bitmap_set(bits, 58, 1);	/* 0x05 - part 2 */
++
++	for_each_set_clump8(start, clump, bits, CLUMP_EXP_NUMBITS)
++		expect_eq_clump8(start, CLUMP_EXP_NUMBITS, clump_exp, &clump);
++}
++
+ static void __init selftest(void)
+ {
+ 	test_zero_clear();
+@@ -413,6 +477,7 @@ static void __init selftest(void)
+ 	test_bitmap_parselist();
+ 	test_bitmap_parselist_user();
+ 	test_mem_optimisations();
++	test_for_each_set_clump8();
+ }
+ 
+ KSTM_MODULE_LOADERS(test_bitmap);
 -- 
 2.23.0
