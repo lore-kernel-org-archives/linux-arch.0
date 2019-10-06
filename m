@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-yw1-f67.google.com ([209.85.161.67]:45780 "EHLO
-        mail-yw1-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726586AbfJFPLp (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sun, 6 Oct 2019 11:11:45 -0400
+Received: from mail-yb1-f194.google.com ([209.85.219.194]:38276 "EHLO
+        mail-yb1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726586AbfJFPLh (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 6 Oct 2019 11:11:37 -0400
 From: William Breathitt Gray <vilhelm.gray@gmail.com>
-Subject: [PATCH v16 07/14] gpio: pci-idio-16: Utilize for_each_set_clump8 macro
-Date: Sun,  6 Oct 2019 11:11:04 -0400
-Message-ID: <85a40d273f92c686fd651505efcd6df9093faa43.1570374078.git.vilhelm.gray@gmail.com>
+Subject: [PATCH v16 02/14] lib/test_bitmap.c: Add for_each_set_clump8 test cases
+Date: Sun,  6 Oct 2019 11:10:59 -0400
+Message-ID: <68a64acf894cda2ccdacabbb808d23486613a095.1570374078.git.vilhelm.gray@gmail.com>
 In-Reply-To: <cover.1570374078.git.vilhelm.gray@gmail.com>
 References: <cover.1570374078.git.vilhelm.gray@gmail.com>
 MIME-Version: 1.0
@@ -14,125 +14,119 @@ Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linus.walleij@linaro.org, bgolaszewski@baylibre.com
-Cc: akpm@linux-foundation.org, linux-gpio@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, andriy.shevchenko@linux.intel.com, linux@rasmusvillemoes.dk, yamada.masahiro@socionext.com, linux-arm-kernel@lists.infradead.org, linux-pm@vger.kernel.org, geert@linux-m68k.org, preid@electromag.com.au, lukas@wunner.de, sean.nyekjaer@prevas.dk, morten.tiljeset@prevas.dk, William Breathitt Gray <vilhelm.gray@gmail.com>
-Message-ID: <20191006151104._fcbFY4_00S1WaS-b-Q5kx4tF2deNcdypzJKuITY-SI@z>
+Cc: akpm@linux-foundation.org, linux-gpio@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, andriy.shevchenko@linux.intel.com, linux@rasmusvillemoes.dk, yamada.masahiro@socionext.com, linux-arm-kernel@lists.infradead.org, linux-pm@vger.kernel.org, geert@linux-m68k.org, preid@electromag.com.au, lukas@wunner.de, sean.nyekjaer@prevas.dk, morten.tiljeset@prevas.dk, William Breathitt Gray <vilhelm.gray@gmail.com>, Andy Shevchenko <andy.shevchenko@gmail.com>
+Message-ID: <20191006151059.dJJliV5t2Jts7Rx_Gnsjm4DxwOiXpWxt0WG_s3UPKjc@z>
 
-Replace verbose implementation in get_multiple/set_multiple callbacks
-with for_each_set_clump8 macro to simplify code and improve clarity.
+The introduction of the for_each_set_clump8 macro warrants test cases to
+verify the implementation. This patch adds test case checks for whether
+an out-of-bounds clump index is returned, a zero clump is returned, or
+the returned clump value differs from the expected clump value.
 
+Cc: Rasmus Villemoes <linux@rasmusvillemoes.dk>
+Acked-by: Andrew Morton <akpm@linux-foundation.org>
+Reviewed-by: Andy Shevchenko <andy.shevchenko@gmail.com>
 Reviewed-by: Linus Walleij <linus.walleij@linaro.org>
 Signed-off-by: William Breathitt Gray <vilhelm.gray@gmail.com>
 ---
- drivers/gpio/gpio-pci-idio-16.c | 75 ++++++++++++---------------------
- 1 file changed, 27 insertions(+), 48 deletions(-)
+ lib/test_bitmap.c | 65 +++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 65 insertions(+)
 
-diff --git a/drivers/gpio/gpio-pci-idio-16.c b/drivers/gpio/gpio-pci-idio-16.c
-index 5aa136a6a3e0..6c117e57078c 100644
---- a/drivers/gpio/gpio-pci-idio-16.c
-+++ b/drivers/gpio/gpio-pci-idio-16.c
-@@ -100,45 +100,23 @@ static int idio_16_gpio_get_multiple(struct gpio_chip *chip,
- 	unsigned long *mask, unsigned long *bits)
- {
- 	struct idio_16_gpio *const idio16gpio = gpiochip_get_data(chip);
--	size_t i;
--	const unsigned int gpio_reg_size = 8;
--	unsigned int bits_offset;
--	size_t word_index;
--	unsigned int word_offset;
--	unsigned long word_mask;
--	const unsigned long port_mask = GENMASK(gpio_reg_size - 1, 0);
--	unsigned long port_state;
-+	unsigned long offset;
-+	unsigned long gpio_mask;
- 	void __iomem *ports[] = {
- 		&idio16gpio->reg->out0_7, &idio16gpio->reg->out8_15,
- 		&idio16gpio->reg->in0_7, &idio16gpio->reg->in8_15,
- 	};
-+	void __iomem *port_addr;
-+	unsigned long port_state;
- 
- 	/* clear bits array to a clean slate */
- 	bitmap_zero(bits, chip->ngpio);
- 
--	/* get bits are evaluated a gpio port register at a time */
--	for (i = 0; i < ARRAY_SIZE(ports); i++) {
--		/* gpio offset in bits array */
--		bits_offset = i * gpio_reg_size;
--
--		/* word index for bits array */
--		word_index = BIT_WORD(bits_offset);
--
--		/* gpio offset within current word of bits array */
--		word_offset = bits_offset % BITS_PER_LONG;
--
--		/* mask of get bits for current gpio within current word */
--		word_mask = mask[word_index] & (port_mask << word_offset);
--		if (!word_mask) {
--			/* no get bits in this port so skip to next one */
--			continue;
--		}
-+	for_each_set_clump8(offset, gpio_mask, mask, ARRAY_SIZE(ports) * 8) {
-+		port_addr = ports[offset / 8];
-+		port_state = ioread8(port_addr) & gpio_mask;
- 
--		/* read bits from current gpio port */
--		port_state = ioread8(ports[i]);
--
--		/* store acquired bits at respective bits array offset */
--		bits[word_index] |= (port_state << word_offset) & word_mask;
-+		bitmap_set_value8(bits, port_state, offset);
- 	}
- 
- 	return 0;
-@@ -178,30 +156,31 @@ static void idio_16_gpio_set_multiple(struct gpio_chip *chip,
- 	unsigned long *mask, unsigned long *bits)
- {
- 	struct idio_16_gpio *const idio16gpio = gpiochip_get_data(chip);
-+	unsigned long offset;
-+	unsigned long gpio_mask;
-+	void __iomem *ports[] = {
-+		&idio16gpio->reg->out0_7, &idio16gpio->reg->out8_15,
-+	};
-+	size_t index;
-+	void __iomem *port_addr;
-+	unsigned long bitmask;
- 	unsigned long flags;
--	unsigned int out_state;
-+	unsigned long out_state;
- 
--	raw_spin_lock_irqsave(&idio16gpio->lock, flags);
-+	for_each_set_clump8(offset, gpio_mask, mask, ARRAY_SIZE(ports) * 8) {
-+		index = offset / 8;
-+		port_addr = ports[index];
- 
--	/* process output lines 0-7 */
--	if (*mask & 0xFF) {
--		out_state = ioread8(&idio16gpio->reg->out0_7) & ~*mask;
--		out_state |= *mask & *bits;
--		iowrite8(out_state, &idio16gpio->reg->out0_7);
--	}
-+		bitmask = bitmap_get_value8(bits, offset) & gpio_mask;
-+
-+		raw_spin_lock_irqsave(&idio16gpio->lock, flags);
- 
--	/* shift to next output line word */
--	*mask >>= 8;
-+		out_state = ioread8(port_addr) & ~gpio_mask;
-+		out_state |= bitmask;
-+		iowrite8(out_state, port_addr);
- 
--	/* process output lines 8-15 */
--	if (*mask & 0xFF) {
--		*bits >>= 8;
--		out_state = ioread8(&idio16gpio->reg->out8_15) & ~*mask;
--		out_state |= *mask & *bits;
--		iowrite8(out_state, &idio16gpio->reg->out8_15);
-+		raw_spin_unlock_irqrestore(&idio16gpio->lock, flags);
- 	}
--
--	raw_spin_unlock_irqrestore(&idio16gpio->lock, flags);
+diff --git a/lib/test_bitmap.c b/lib/test_bitmap.c
+index 51a98f7ee79e..dc167c13eb39 100644
+--- a/lib/test_bitmap.c
++++ b/lib/test_bitmap.c
+@@ -92,6 +92,36 @@ __check_eq_u32_array(const char *srcfile, unsigned int line,
+ 	return true;
  }
  
- static void idio_16_irq_ack(struct irq_data *data)
++static bool __init __check_eq_clump8(const char *srcfile, unsigned int line,
++				    const unsigned int offset,
++				    const unsigned int size,
++				    const unsigned char *const clump_exp,
++				    const unsigned long *const clump)
++{
++	unsigned long exp;
++
++	if (offset >= size) {
++		pr_warn("[%s:%u] bit offset for clump out-of-bounds: expected less than %u, got %u\n",
++			srcfile, line, size, offset);
++		return false;
++	}
++
++	exp = clump_exp[offset / 8];
++	if (!exp) {
++		pr_warn("[%s:%u] bit offset for zero clump: expected nonzero clump, got bit offset %u with clump value 0",
++			srcfile, line, offset);
++		return false;
++	}
++
++	if (*clump != exp) {
++		pr_warn("[%s:%u] expected clump value of 0x%lX, got clump value of 0x%lX",
++			srcfile, line, exp, *clump);
++		return false;
++	}
++
++	return true;
++}
++
+ #define __expect_eq(suffix, ...)					\
+ 	({								\
+ 		int result = 0;						\
+@@ -108,6 +138,7 @@ __check_eq_u32_array(const char *srcfile, unsigned int line,
+ #define expect_eq_bitmap(...)		__expect_eq(bitmap, ##__VA_ARGS__)
+ #define expect_eq_pbl(...)		__expect_eq(pbl, ##__VA_ARGS__)
+ #define expect_eq_u32_array(...)	__expect_eq(u32_array, ##__VA_ARGS__)
++#define expect_eq_clump8(...)		__expect_eq(clump8, ##__VA_ARGS__)
+ 
+ static void __init test_zero_clear(void)
+ {
+@@ -404,6 +435,39 @@ static void noinline __init test_mem_optimisations(void)
+ 	}
+ }
+ 
++static const unsigned char clump_exp[] __initconst = {
++	0x01,	/* 1 bit set */
++	0x02,	/* non-edge 1 bit set */
++	0x00,	/* zero bits set */
++	0x38,	/* 3 bits set across 4-bit boundary */
++	0x38,	/* Repeated clump */
++	0x0F,	/* 4 bits set */
++	0xFF,	/* all bits set */
++	0x05,	/* non-adjacent 2 bits set */
++};
++
++static void __init test_for_each_set_clump8(void)
++{
++#define CLUMP_EXP_NUMBITS 64
++	DECLARE_BITMAP(bits, CLUMP_EXP_NUMBITS);
++	unsigned int start;
++	unsigned long clump;
++
++	/* set bitmap to test case */
++	bitmap_zero(bits, CLUMP_EXP_NUMBITS);
++	bitmap_set(bits, 0, 1);		/* 0x01 */
++	bitmap_set(bits, 9, 1);		/* 0x02 */
++	bitmap_set(bits, 27, 3);	/* 0x28 */
++	bitmap_set(bits, 35, 3);	/* 0x28 */
++	bitmap_set(bits, 40, 4);	/* 0x0F */
++	bitmap_set(bits, 48, 8);	/* 0xFF */
++	bitmap_set(bits, 56, 1);	/* 0x05 - part 1 */
++	bitmap_set(bits, 58, 1);	/* 0x05 - part 2 */
++
++	for_each_set_clump8(start, clump, bits, CLUMP_EXP_NUMBITS)
++		expect_eq_clump8(start, CLUMP_EXP_NUMBITS, clump_exp, &clump);
++}
++
+ static void __init selftest(void)
+ {
+ 	test_zero_clear();
+@@ -413,6 +477,7 @@ static void __init selftest(void)
+ 	test_bitmap_parselist();
+ 	test_bitmap_parselist_user();
+ 	test_mem_optimisations();
++	test_for_each_set_clump8();
+ }
+ 
+ KSTM_MODULE_LOADERS(test_bitmap);
 -- 
 2.23.0
