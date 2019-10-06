@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-yw1-f68.google.com ([209.85.161.68]:39756 "EHLO
+Received: from mail-yw1-f68.google.com ([209.85.161.68]:40898 "EHLO
         mail-yw1-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726702AbfJFPLm (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sun, 6 Oct 2019 11:11:42 -0400
+        with ESMTP id S1726620AbfJFPLi (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 6 Oct 2019 11:11:38 -0400
 From: William Breathitt Gray <vilhelm.gray@gmail.com>
-Subject: [PATCH v16 05/14] gpio: gpio-mm: Utilize for_each_set_clump8 macro
-Date: Sun,  6 Oct 2019 11:11:02 -0400
-Message-ID: <00816d2f5b6be3187ef3181736c5e0dc3ca60a5a.1570374078.git.vilhelm.gray@gmail.com>
+Subject: [PATCH v16 03/14] gpio: 104-dio-48e: Utilize for_each_set_clump8 macro
+Date: Sun,  6 Oct 2019 11:11:00 -0400
+Message-ID: <c8d8f2bdfb3d0adaf791e5049970fb3048b4558a.1570374078.git.vilhelm.gray@gmail.com>
 In-Reply-To: <cover.1570374078.git.vilhelm.gray@gmail.com>
 References: <cover.1570374078.git.vilhelm.gray@gmail.com>
 MIME-Version: 1.0
@@ -15,7 +15,7 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linus.walleij@linaro.org, bgolaszewski@baylibre.com
 Cc: akpm@linux-foundation.org, linux-gpio@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, andriy.shevchenko@linux.intel.com, linux@rasmusvillemoes.dk, yamada.masahiro@socionext.com, linux-arm-kernel@lists.infradead.org, linux-pm@vger.kernel.org, geert@linux-m68k.org, preid@electromag.com.au, lukas@wunner.de, sean.nyekjaer@prevas.dk, morten.tiljeset@prevas.dk, William Breathitt Gray <vilhelm.gray@gmail.com>
-Message-ID: <20191006151102.u8keskARB3Ba1xg6rSxQ3gsFkf--KNGy4zIy2xzuxgg@z>
+Message-ID: <20191006151100.fal3ih2QvgtOCCoixiNXyy9BylaGu8WIL5D4QrieVu0@z>
 
 Replace verbose implementation in get_multiple/set_multiple callbacks
 with for_each_set_clump8 macro to simplify code and improve clarity.
@@ -23,23 +23,23 @@ with for_each_set_clump8 macro to simplify code and improve clarity.
 Reviewed-by: Linus Walleij <linus.walleij@linaro.org>
 Signed-off-by: William Breathitt Gray <vilhelm.gray@gmail.com>
 ---
- drivers/gpio/gpio-gpio-mm.c | 73 +++++++++++--------------------------
+ drivers/gpio/gpio-104-dio-48e.c | 73 ++++++++++-----------------------
  1 file changed, 21 insertions(+), 52 deletions(-)
 
-diff --git a/drivers/gpio/gpio-gpio-mm.c b/drivers/gpio/gpio-gpio-mm.c
-index 78a1db24e931..72196ea36358 100644
---- a/drivers/gpio/gpio-gpio-mm.c
-+++ b/drivers/gpio/gpio-gpio-mm.c
-@@ -164,46 +164,25 @@ static int gpiomm_gpio_get(struct gpio_chip *chip, unsigned int offset)
+diff --git a/drivers/gpio/gpio-104-dio-48e.c b/drivers/gpio/gpio-104-dio-48e.c
+index a44fa8af5b0d..977f0f6eb1ba 100644
+--- a/drivers/gpio/gpio-104-dio-48e.c
++++ b/drivers/gpio/gpio-104-dio-48e.c
+@@ -175,46 +175,25 @@ static int dio48e_gpio_get(struct gpio_chip *chip, unsigned offset)
  	return !!(port_state & mask);
  }
  
 +static const size_t ports[] = { 0, 1, 2, 4, 5, 6 };
 +
- static int gpiomm_gpio_get_multiple(struct gpio_chip *chip, unsigned long *mask,
+ static int dio48e_gpio_get_multiple(struct gpio_chip *chip, unsigned long *mask,
  	unsigned long *bits)
  {
- 	struct gpiomm_gpio *const gpiommgpio = gpiochip_get_data(chip);
+ 	struct dio48e_gpio *const dio48egpio = gpiochip_get_data(chip);
 -	size_t i;
 -	static const size_t ports[] = { 0, 1, 2, 4, 5, 6 };
 -	const unsigned int gpio_reg_size = 8;
@@ -75,9 +75,9 @@ index 78a1db24e931..72196ea36358 100644
 -		}
 -
 -		/* read bits from current gpio port */
--		port_state = inb(gpiommgpio->base + ports[i]);
+-		port_state = inb(dio48egpio->base + ports[i]);
 +	for_each_set_clump8(offset, gpio_mask, mask, ARRAY_SIZE(ports) * 8) {
-+		port_addr = gpiommgpio->base + ports[offset / 8];
++		port_addr = dio48egpio->base + ports[offset / 8];
 +		port_state = inb(port_addr) & gpio_mask;
  
 -		/* store acquired bits at respective bits array offset */
@@ -86,10 +86,10 @@ index 78a1db24e931..72196ea36358 100644
  	}
  
  	return 0;
-@@ -234,37 +213,27 @@ static void gpiomm_gpio_set_multiple(struct gpio_chip *chip,
+@@ -244,37 +223,27 @@ static void dio48e_gpio_set_multiple(struct gpio_chip *chip,
  	unsigned long *mask, unsigned long *bits)
  {
- 	struct gpiomm_gpio *const gpiommgpio = gpiochip_get_data(chip);
+ 	struct dio48e_gpio *const dio48egpio = gpiochip_get_data(chip);
 -	unsigned int i;
 -	const unsigned int gpio_reg_size = 8;
 -	unsigned int port;
@@ -111,24 +111,24 @@ index 78a1db24e931..72196ea36358 100644
 -		}
 +	for_each_set_clump8(offset, gpio_mask, mask, ARRAY_SIZE(ports) * 8) {
 +		index = offset / 8;
-+		port_addr = gpiommgpio->base + ports[index];
++		port_addr = dio48egpio->base + ports[index];
  
 -		port = i / gpio_reg_size;
 -		out_port = (port > 2) ? port + 1 : port;
 -		bitmask = mask[BIT_WORD(i)] & bits[BIT_WORD(i)];
 +		bitmask = bitmap_get_value8(bits, offset) & gpio_mask;
  
- 		spin_lock_irqsave(&gpiommgpio->lock, flags);
+ 		raw_spin_lock_irqsave(&dio48egpio->lock, flags);
  
  		/* update output state data and set device gpio register */
--		gpiommgpio->out_state[port] &= ~mask[BIT_WORD(i)];
--		gpiommgpio->out_state[port] |= bitmask;
--		outb(gpiommgpio->out_state[port], gpiommgpio->base + out_port);
-+		gpiommgpio->out_state[index] &= ~gpio_mask;
-+		gpiommgpio->out_state[index] |= bitmask;
-+		outb(gpiommgpio->out_state[index], port_addr);
+-		dio48egpio->out_state[port] &= ~mask[BIT_WORD(i)];
+-		dio48egpio->out_state[port] |= bitmask;
+-		outb(dio48egpio->out_state[port], dio48egpio->base + out_port);
++		dio48egpio->out_state[index] &= ~gpio_mask;
++		dio48egpio->out_state[index] |= bitmask;
++		outb(dio48egpio->out_state[index], port_addr);
  
- 		spin_unlock_irqrestore(&gpiommgpio->lock, flags);
+ 		raw_spin_unlock_irqrestore(&dio48egpio->lock, flags);
 -
 -		/* prepare for next gpio register set */
 -		mask[BIT_WORD(i)] >>= gpio_reg_size;
