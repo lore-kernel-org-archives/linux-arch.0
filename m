@@ -1,7 +1,7 @@
 From: William Breathitt Gray <vilhelm.gray@gmail.com>
-Subject: [PATCH v16 14/14] gpio: pca953x: Utilize the for_each_set_clump8 macro
-Date: Sun,  6 Oct 2019 11:11:11 -0400
-Message-ID: <e72393325e58778b7ba59c80c6b79c1f93b81d8d.1570374078.git.vilhelm.gray@gmail.com>
+Subject: [PATCH v16 12/14] gpio: pisosr: Utilize the for_each_set_clump8 macro
+Date: Sun,  6 Oct 2019 11:11:09 -0400
+Message-ID: <19e98b4a648026055d0642d238dbf5ed5a4b4117.1570374078.git.vilhelm.gray@gmail.com>
 References: <cover.1570374078.git.vilhelm.gray@gmail.com>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
@@ -12,56 +12,42 @@ To: linus.walleij@linaro.org, bgolaszewski@baylibre.com
 Cc: akpm@linux-foundation.org, linux-gpio@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, andriy.shevchenko@linux.intel.com, linux@rasmusvillemoes.dk, yamada.masahiro@socionext.com, linux-arm-kernel@lists.infradead.org, linux-pm@vger.kernel.org, geert@linux-m68k.org, preid@electromag.com.au, lukas@wunner.de, sean.nyekjaer@prevas.dk, morten.tiljeset@prevas.dk, William Breathitt Gray <vilhelm.gray@gmail.com>
 List-Id: linux-arch.vger.kernel.org
 
-Replace verbose implementation in set_multiple callback with
+Replace verbose implementation in get_multiple callback with
 for_each_set_clump8 macro to simplify code and improve clarity.
 
-Cc: Phil Reid <preid@electromag.com.au>
+Cc: Morten Hein Tiljeset <morten.tiljeset@prevas.dk>
+Cc: Sean Nyekjaer <sean.nyekjaer@prevas.dk>
 Signed-off-by: William Breathitt Gray <vilhelm.gray@gmail.com>
 ---
- drivers/gpio/gpio-pca953x.c | 17 +++++++----------
- 1 file changed, 7 insertions(+), 10 deletions(-)
+ drivers/gpio/gpio-pisosr.c | 12 ++++++------
+ 1 file changed, 6 insertions(+), 6 deletions(-)
 
-diff --git a/drivers/gpio/gpio-pca953x.c b/drivers/gpio/gpio-pca953x.c
-index de5d1383f28d..10b669b8f27d 100644
---- a/drivers/gpio/gpio-pca953x.c
-+++ b/drivers/gpio/gpio-pca953x.c
-@@ -10,6 +10,7 @@
- 
- #include <linux/acpi.h>
- #include <linux/bits.h>
-+#include <linux/bitops.h>
- #include <linux/gpio/driver.h>
- #include <linux/gpio/consumer.h>
- #include <linux/i2c.h>
-@@ -456,7 +457,8 @@ static void pca953x_gpio_set_multiple(struct gpio_chip *gc,
- 				      unsigned long *mask, unsigned long *bits)
+diff --git a/drivers/gpio/gpio-pisosr.c b/drivers/gpio/gpio-pisosr.c
+index f809a5a8e9eb..9ab2c044ef52 100644
+--- a/drivers/gpio/gpio-pisosr.c
++++ b/drivers/gpio/gpio-pisosr.c
+@@ -96,16 +96,16 @@ static int pisosr_gpio_get_multiple(struct gpio_chip *chip,
+ 				    unsigned long *mask, unsigned long *bits)
  {
- 	struct pca953x_chip *chip = gpiochip_get_data(gc);
--	unsigned int bank_mask, bank_val;
+ 	struct pisosr_gpio *gpio = gpiochip_get_data(chip);
+-	unsigned int nbytes = DIV_ROUND_UP(chip->ngpio, 8);
+-	unsigned int i, j;
 +	unsigned long offset;
-+	unsigned long bank_mask;
- 	int bank;
- 	u8 reg_val[MAX_BANK];
- 	int ret;
-@@ -466,15 +468,10 @@ static void pca953x_gpio_set_multiple(struct gpio_chip *gc,
- 	if (ret)
- 		goto exit;
++	unsigned long gpio_mask;
++	unsigned long buffer_state;
  
--	for (bank = 0; bank < NBANK(chip); bank++) {
--		bank_mask = mask[bank / sizeof(*mask)] >>
--			   ((bank % sizeof(*mask)) * 8);
--		if (bank_mask) {
--			bank_val = bits[bank / sizeof(*bits)] >>
--				  ((bank % sizeof(*bits)) * 8);
--			bank_val &= bank_mask;
--			reg_val[bank] = (reg_val[bank] & ~bank_mask) | bank_val;
--		}
-+	for_each_set_clump8(offset, bank_mask, mask, gc->ngpio) {
-+		bank = offset / 8;
-+		reg_val[bank] &= ~bank_mask;
-+		reg_val[bank] |= bitmap_get_value8(bits, offset) & bank_mask;
+ 	pisosr_gpio_refresh(gpio);
+ 
+ 	bitmap_zero(bits, chip->ngpio);
+-	for (i = 0; i < nbytes; i++) {
+-		j = i / sizeof(unsigned long);
+-		bits[j] |= ((unsigned long) gpio->buffer[i])
+-			   << (8 * (i % sizeof(unsigned long)));
++	for_each_set_clump8(offset, gpio_mask, mask, chip->ngpio) {
++		buffer_state = gpio->buffer[offset / 8] & gpio_mask;
++		bitmap_set_value8(bits, buffer_state, offset);
  	}
  
- 	pca953x_write_regs(chip, chip->regs->output, reg_val);
+ 	return 0;
 -- 
 2.23.0
