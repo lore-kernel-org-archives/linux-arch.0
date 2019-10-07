@@ -1,105 +1,79 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp-4.orcon.net.nz ([60.234.4.59]:52097 "EHLO
-        smtp-4.orcon.net.nz" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726889AbfJGIFc (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 7 Oct 2019 04:05:32 -0400
-Date: Mon, 7 Oct 2019 20:47:52 +1300
-From: Michael Cree <mcree@orcon.net.nz>
-Subject: Re: Unaligned user pointer issues..
-Message-ID: <20191007074752.GA3441@tower>
-References: <CAHk-=wiGqnJc6obUGSAsP8YCFEb_ZhD2Zfz-aWxdS_E_R_1xVw@mail.gmail.com>
+Received: from mga07.intel.com ([134.134.136.100]:26049 "EHLO mga07.intel.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1727028AbfJGIWD (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 7 Oct 2019 04:22:03 -0400
+Date: Mon, 7 Oct 2019 11:21:56 +0300
+From: Andy Shevchenko <andriy.shevchenko@linux.intel.com>
+Subject: Re: [PATCH v16 01/14] bitops: Introduce the for_each_set_clump8 macro
+Message-ID: <20191007082156.GL32742@smile.fi.intel.com>
+References: <cover.1570374078.git.vilhelm.gray@gmail.com>
+ <c0830858f19c852f6d124395a32410bc645ecd15.1570374078.git.vilhelm.gray@gmail.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <CAHk-=wiGqnJc6obUGSAsP8YCFEb_ZhD2Zfz-aWxdS_E_R_1xVw@mail.gmail.com>
+In-Reply-To: <c0830858f19c852f6d124395a32410bc645ecd15.1570374078.git.vilhelm.gray@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: linux-arch <linux-arch@vger.kernel.org>, linux-alpha@vger.kernel.org
+To: William Breathitt Gray <vilhelm.gray@gmail.com>
+Cc: linus.walleij@linaro.org, bgolaszewski@baylibre.com, akpm@linux-foundation.org, linux-gpio@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux@rasmusvillemoes.dk, yamada.masahiro@socionext.com, linux-arm-kernel@lists.infradead.org, linux-pm@vger.kernel.org, geert@linux-m68k.org, preid@electromag.com.au, lukas@wunner.de, sean.nyekjaer@prevas.dk, morten.tiljeset@prevas.dk, Arnd Bergmann <arnd@arndb.de>
+Message-ID: <20191007082156.KmfzIgVv_VLYQszp7Iof-IV4X1FK2Fr7TvrQpU4fVDg@z>
 
-On Sun, Oct 06, 2019 at 08:25:05PM -0700, Linus Torvalds wrote:
-> So Guenther Roeck reported that my fancy readdir() user access
-> optimization broke alpha and sparc64 boot for him.
-> 
-> (It really improves things on x86 - I swear! The cost of telling the
-> CPU over and over again to "please allow user space accesses" is
-> horrendously high, so doing the whole "user_access_begin()/end() just
-> _once_ per dirent is a big deal).
-> 
-> It turns out that it's broken on at least alpha because it does that
-> filename copy to user space by hand, and the "linux_filldir64"
-> structure is set up so that the name part is basically never aligned.
-> So when it does the word copies, it does them as unaligned
-> "put_user()" invocations.
-> 
-> I'll fix it, never fear, since it's clearly a horrible performance
-> pessimization on architectures that don't deal unaligned accesses
-> well.
-> 
-> However, at least on alpha, it's not just that unaligned user accesses
-> were slow, they didn't actually _work_.
-> 
-> And that's a problem.
-> 
-> Because they are easy to trigger from user space even without any new
-> readdir code.
-> 
-> This trivial program causes a kernel oops on alpha:
-> 
->   #define _GNU_SOURCE
->   #include <unistd.h>
->   #include <sys/mman.h>
-> 
->   int main(int argc, char **argv)
->   {
->         void *mymap;
->         uid_t *bad_ptr = (void *) 0x01;
-> 
->         /* Create unpopulated memory area */
->         mymap = mmap(NULL, 16384,
->                 PROT_READ | PROT_WRITE,
->                 MAP_PRIVATE | MAP_ANONYMOUS,
->                 -1, 0);
-> 
->         /* Unaligned uidpointer in that memory area */
->         bad_ptr = mymap+1;
-> 
->         /* Make the kernel do put_user() on it */
->         return getresuid(bad_ptr, bad_ptr+1, bad_ptr+2);
->   }
-> 
-> because getresuid() does "put_user()" on that unaligned pointer, and
-> it looks like something goes badly sideways when it first takes the
-> unaligned trap, and then the unaligned trap handler gets an exception
-> on the emulation code.
-> 
-> I'm not sure what the alpha bug is (I looked at the code just long
-> enough to see that it _tries_ to do the exception handling), but the
-> fact that apparently I broke at least sparc64 too makes me suspect
-> that other architectures have this issue too.
-> 
-> So hey, can I ask architecture maintainers to try the above trivial
-> program and see how it works (or doesn't)?
-> 
-> On alpha, when Guenther tried my silly test-program, he reported:
-> 
->   # ./mmtest
->   Unable to handle kernel paging request at virtual address 0000000000000004
->   mmtest(75): Oops -1
->   pc = [<0000000000000004>]  ra = [<fffffc0000311584>]  ps = 0000    Not tainted
->   pc is at 0x4
->   ra is at entSys+0xa4/0xc0
->   v0 = fffffffffffffff2  t0 = 0000000000000000  t1 = 0000000000000000
->   ...
-> 
-> which is not what is supposed to happen ;)
+On Sun, Oct 06, 2019 at 11:10:58AM -0400, William Breathitt Gray wrote:
+> This macro iterates for each 8-bit group of bits (clump) with set bits,
+> within a bitmap memory region. For each iteration, "start" is set to the
+> bit offset of the found clump, while the respective clump value is
+> stored to the location pointed by "clump". Additionally, the
+> bitmap_get_value8 and bitmap_set_value8 functions are introduced to
+> respectively get and set an 8-bit value in a bitmap memory region.
 
-Testing the above on an XP1000 running 5.4.0-rc2 built for Alpha
-DP264 reveals no problems.  No Oops reported.  Unaligned access
-count goes up by three in /proc/cpuinfo as expected.  But
-interestingly the kernel unaligned access count is quite high
-(14000 or so) on this kernel after boot whereas with the 5.2.y
-kernel I was recently running it was zero.
+Very much thank you for an update!
+I have comments below.
 
-Cheers,
-Michael.
+> +/**
+> + * bitmap_get_value8 - get an 8-bit value within a memory region
+
+Since it's in find.h I would not collide with bitmap namespace.
+How about
+
+	find_and_get_value8()
+
+> + * @addr: address to the bitmap memory region
+> + * @start: bit offset of the 8-bit value; must be a multiple of 8
+> + *
+> + * Returns the 8-bit value located at the @start bit offset within the @addr
+> + * memory region.
+> + */
+> +static inline unsigned long bitmap_get_value8(const unsigned long *addr,
+> +					      unsigned long start)
+> +{
+> +	const size_t index = BIT_WORD(start);
+> +	const unsigned long offset = start % BITS_PER_LONG;
+> +
+> +	return (addr[index] >> offset) & 0xFF;
+> +}
+> +
+> +/**
+> + * bitmap_set_value8 - set an 8-bit value within a memory region
+
+	find_and_set_value8()
+
+?
+
+> + * @addr: address to the bitmap memory region
+> + * @value: the 8-bit value; values wider than 8 bits may clobber bitmap
+> + * @start: bit offset of the 8-bit value; must be a multiple of 8
+> + */
+> +static inline void bitmap_set_value8(unsigned long *addr, unsigned long value,
+> +				     unsigned long start)
+> +{
+> +	const size_t index = BIT_WORD(start);
+> +	const unsigned long offset = start % BITS_PER_LONG;
+> +
+> +	addr[index] &= ~(0xFF << offset);
+> +	addr[index] |= value << offset;
+> +}
+
+-- 
+With Best Regards,
+Andy Shevchenko
