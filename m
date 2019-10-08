@@ -1,39 +1,55 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:58194 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1729693AbfJHGpp (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 8 Oct 2019 02:45:45 -0400
-From: guoren@kernel.org
-Subject: [PATCH] MAINTAINERS: csky: Add mailing list for csky
-Date: Tue,  8 Oct 2019 14:45:08 +0800
-Message-ID: <1570517108-29147-1-git-send-email-guoren@kernel.org>
+Received: from mail-wr1-f66.google.com ([209.85.221.66]:45668 "EHLO
+        mail-wr1-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1729790AbfJHKam (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 8 Oct 2019 06:30:42 -0400
+Subject: Re: [REPOST][RFC][PATCH] sysctl: Remove the sysctl system call
+References: <8736gcjosv.fsf@x220.int.ebiederm.org>
+ <201910011140.EA0181F13@keescook> <87y2y271ws.fsf@mid.deneb.enyo.de>
+ <87tv8pftjj.fsf_-_@x220.int.ebiederm.org> <201910031404.C30A0F16@keescook>
+From: "Michael Kerrisk (man-pages)" <mtk.manpages@gmail.com>
+Message-ID: <4c3e4883-706e-fd1b-4f4f-0653eabeb027@gmail.com>
+Date: Tue, 8 Oct 2019 12:30:35 +0200
+MIME-Version: 1.0
+In-Reply-To: <201910031404.C30A0F16@keescook>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-csky@vger.kernel.org
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, gregkh@linuxfoundation.org, robh@kernel.org, Guo Ren <ren_guo@c-sky.com>
-Message-ID: <20191008064508.VyUAIkHc3pQyoc880bwKuiuhSvhxzFqqbOA_ul7Dxjc@z>
+To: Kees Cook <keescook@chromium.org>, "Eric W. Biederman" <ebiederm@xmission.com>
+Cc: mtk.manpages@gmail.com, Florian Weimer <fw@deneb.enyo.de>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Jann Horn <jannh@google.com>, Arnd Bergmann <arnd@arndb.de>, Helge Deller <deller@gmx.de>
+Message-ID: <20191008103035.MeY6ieEa4GrbKxyvNO_B2wRbmoeQWUbOeSIKvaQVvI4@z>
 
-From: Guo Ren <ren_guo@c-sky.com>
+On 10/3/19 11:05 PM, Kees Cook wrote:
+> On Thu, Oct 03, 2019 at 03:44:32PM -0500, Eric W. Biederman wrote:
+>>
+>> This system call has been deprecated almost since it was introduced, and none
+>> of the common distributions enable it.  The only indication that I can find that
+>> anyone might care is that a few of the defconfigs in the kernel enable it.  However
+>> that is a small fractions of the defconfigs so I suspect it just a lack of care
+>> rather than a reflection of software using the the sysctl system call.
+>>
+>> As there appear to be no users of the sysctl system call, remove the
+>> code so that the proc filesystem can be simplified.
+> 
+> nitpick: line lengths near 80 characters
+> 
+>> Signed-off-by: "Eric W. Biederman" <ebiederm@xmission.com>
+> 
+> But, yes, I would love to see this gone. :)
+> 
+> Reviewed-by: Kees Cook <keescook@chromium.org>
 
-Add mailing list and it's convenient for maintain C-SKY
-subsystem.
+And for the record, the manual page has since 2007 documented that 
+this system call is likely to go away in the future.
 
-Signed-off-by: Guo Ren <ren_guo@c-sky.com>
----
- MAINTAINERS | 1 +
- 1 file changed, 1 insertion(+)
+Cheers,
 
-diff --git a/MAINTAINERS b/MAINTAINERS
-index 55199ef..d8fc16d 100644
---- a/MAINTAINERS
-+++ b/MAINTAINERS
-@@ -3556,6 +3556,7 @@ F:	sound/pci/oxygen/
- 
- C-SKY ARCHITECTURE
- M:	Guo Ren <guoren@kernel.org>
-+L:	linux-csky@vger.kernel.org
- T:	git https://github.com/c-sky/csky-linux.git
- S:	Supported
- F:	arch/csky/
+Michael
+
+
 -- 
-2.7.4
+Michael Kerrisk
+Linux man-pages maintainer; http://www.kernel.org/doc/man-pages/
+Linux/UNIX System Programming Training: http://man7.org/training/
