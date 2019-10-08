@@ -1,35 +1,34 @@
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: Re: [PATCH] Convert filldir[64]() from __put_user() to unsafe_put_user()
-Date: Tue, 8 Oct 2019 08:28:23 +0200
-Message-ID: <CAMuHMdXN5hL+BvnJDG86RnH4nv0yz+nxJ+Uc7-2V8jQ+dJ5tkA@mail.gmail.com>
-References: <20191006222046.GA18027@roeck-us.net> <CAHk-=wgvz6k88hxY_G3=itbQ-iVz7Hc9fbF3kZ_nePA7XgvDTg@mail.gmail.com>
- <fa7c91aa-ed82-acd4-8835-d2580ee8232c@roeck-us.net>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+From: guoren@kernel.org
+Subject: [PATCH] MAINTAINERS: csky: Add mailing list for csky
+Date: Tue,  8 Oct 2019 14:45:08 +0800
+Message-ID: <1570517108-29147-1-git-send-email-guoren@kernel.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <fa7c91aa-ed82-acd4-8835-d2580ee8232c@roeck-us.net>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Guenter Roeck <linux@roeck-us.net>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Michael Cree <mcree@orcon.net.nz>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Alexander Viro <viro@zeniv.linux.org.uk>, linux-fsdevel <linux-fsdevel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Bartlomiej Zolnierkiewicz <b.zolnierkie@samsung.com>
+To: linux-csky@vger.kernel.org
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, gregkh@linuxfoundation.org, robh@kernel.org, Guo Ren <ren_guo@c-sky.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, Oct 8, 2019 at 1:30 AM Guenter Roeck <linux@roeck-us.net> wrote:
-> m68k:
->
-> c2p_iplan2.c:(.text+0x98): undefined reference to `c2p_unsupported'
->
-> I don't know the status.
+From: Guo Ren <ren_guo@c-sky.com>
 
-Fall-out from the (non)inline optimization.  Patch available:
-https://lore.kernel.org/lkml/20190927094708.11563-1-geert@linux-m68k.org/
+Add mailing list and it's convenient for maintain C-SKY
+subsystem.
 
-Gr{oetje,eeting}s,
+Signed-off-by: Guo Ren <ren_guo@c-sky.com>
+---
+ MAINTAINERS | 1 +
+ 1 file changed, 1 insertion(+)
 
-                        Geert
-
+diff --git a/MAINTAINERS b/MAINTAINERS
+index 55199ef..d8fc16d 100644
+--- a/MAINTAINERS
++++ b/MAINTAINERS
+@@ -3556,6 +3556,7 @@ F:	sound/pci/oxygen/
+ 
+ C-SKY ARCHITECTURE
+ M:	Guo Ren <guoren@kernel.org>
++L:	linux-csky@vger.kernel.org
+ T:	git https://github.com/c-sky/csky-linux.git
+ S:	Supported
+ F:	arch/csky/
 -- 
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+2.7.4
