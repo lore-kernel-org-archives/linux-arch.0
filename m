@@ -1,100 +1,35 @@
-From: guoren@kernel.org
-Subject: [PATCH] csky: Add setup_initrd check code
-Date: Tue,  8 Oct 2019 14:25:13 +0800
-Message-ID: <1570515913-26251-1-git-send-email-guoren@kernel.org>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Subject: Re: [PATCH] Convert filldir[64]() from __put_user() to unsafe_put_user()
+Date: Tue, 8 Oct 2019 08:28:23 +0200
+Message-ID: <CAMuHMdXN5hL+BvnJDG86RnH4nv0yz+nxJ+Uc7-2V8jQ+dJ5tkA@mail.gmail.com>
+References: <20191006222046.GA18027@roeck-us.net> <CAHk-=wgvz6k88hxY_G3=itbQ-iVz7Hc9fbF3kZ_nePA7XgvDTg@mail.gmail.com>
+ <fa7c91aa-ed82-acd4-8835-d2580ee8232c@roeck-us.net>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <fa7c91aa-ed82-acd4-8835-d2580ee8232c@roeck-us.net>
 Sender: linux-kernel-owner@vger.kernel.org
-To: linux-csky@vger.kernel.org
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, akpm@linux-foundation.org, mhocko@suse.com, rppt@linux.vnet.ibm.com, arunks@codeaurora.org, Guo Ren <ren_guo@c-sky.com>
+To: Guenter Roeck <linux@roeck-us.net>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Michael Cree <mcree@orcon.net.nz>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Alexander Viro <viro@zeniv.linux.org.uk>, linux-fsdevel <linux-fsdevel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Bartlomiej Zolnierkiewicz <b.zolnierkie@samsung.com>
 List-Id: linux-arch.vger.kernel.org
 
-From: Guo Ren <ren_guo@c-sky.com>
+On Tue, Oct 8, 2019 at 1:30 AM Guenter Roeck <linux@roeck-us.net> wrote:
+> m68k:
+>
+> c2p_iplan2.c:(.text+0x98): undefined reference to `c2p_unsupported'
+>
+> I don't know the status.
 
-We should give some necessary check for initrd just like other
-architectures and it seems that setup_initrd() could be a common
-code for all architectures.
+Fall-out from the (non)inline optimization.  Patch available:
+https://lore.kernel.org/lkml/20190927094708.11563-1-geert@linux-m68k.org/
 
-Signed-off-by: Guo Ren <ren_guo@c-sky.com>
----
- arch/csky/kernel/setup.c |  3 ---
- arch/csky/mm/init.c      | 44 ++++++++++++++++++++++++++++++++++++++++++++
- 2 files changed, 44 insertions(+), 3 deletions(-)
+Gr{oetje,eeting}s,
 
-diff --git a/arch/csky/kernel/setup.c b/arch/csky/kernel/setup.c
-index 23ee604..a00f8a0 100644
---- a/arch/csky/kernel/setup.c
-+++ b/arch/csky/kernel/setup.c
-@@ -47,9 +47,6 @@ static void __init csky_memblock_init(void)
- 	signed long size;
- 
- 	memblock_reserve(__pa(_stext), _end - _stext);
--#ifdef CONFIG_BLK_DEV_INITRD
--	memblock_reserve(__pa(initrd_start), initrd_end - initrd_start);
--#endif
- 
- 	early_init_fdt_reserve_self();
- 	early_init_fdt_scan_reserved_mem();
-diff --git a/arch/csky/mm/init.c b/arch/csky/mm/init.c
-index d4c2292..48f791d 100644
---- a/arch/csky/mm/init.c
-+++ b/arch/csky/mm/init.c
-@@ -35,6 +35,45 @@ unsigned long empty_zero_page[PAGE_SIZE / sizeof(unsigned long)]
- 						__page_aligned_bss;
- EXPORT_SYMBOL(empty_zero_page);
- 
-+#ifdef CONFIG_BLK_DEV_INITRD
-+static void __init setup_initrd(void)
-+{
-+	unsigned long size;
-+
-+	if (initrd_start >= initrd_end) {
-+		pr_err("initrd not found or empty");
-+		goto disable;
-+	}
-+
-+	if (__pa(initrd_end) > PFN_PHYS(max_low_pfn)) {
-+		pr_err("initrd extends beyond end of memory");
-+		goto disable;
-+	}
-+
-+	size = initrd_end - initrd_start;
-+
-+	if (memblock_is_region_reserved(__pa(initrd_start), size)) {
-+		pr_err("INITRD: 0x%08lx+0x%08lx overlaps in-use memory region",
-+		       __pa(initrd_start), size);
-+		goto disable;
-+	}
-+
-+	memblock_reserve(__pa(initrd_start), size);
-+
-+	pr_info("Initial ramdisk at: 0x%p (%lu bytes)\n",
-+		(void *)(initrd_start), size);
-+
-+	initrd_below_start_ok = 1;
-+
-+	return;
-+
-+disable:
-+	initrd_start = initrd_end = 0;
-+
-+	pr_err(" - disabling initrd\n");
-+}
-+#endif
-+
- void __init mem_init(void)
- {
- #ifdef CONFIG_HIGHMEM
-@@ -57,6 +96,11 @@ void __init mem_init(void)
- 			free_highmem_page(page);
- 	}
- #endif
-+
-+#ifdef CONFIG_BLK_DEV_INITRD
-+	setup_initrd();
-+#endif
-+
- 	mem_init_print_info(NULL);
- }
- 
+                        Geert
+
 -- 
-2.7.4
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
