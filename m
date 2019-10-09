@@ -1,7 +1,7 @@
 From: William Breathitt Gray <vilhelm.gray@gmail.com>
-Subject: [PATCH v17 09/14] gpio: uniphier: Utilize for_each_set_clump8 macro
-Date: Wed,  9 Oct 2019 11:27:07 -0400
-Message-ID: <271a7735b02b6a8b1f54c018e38ea932d1fd299e.1570633189.git.vilhelm.gray@gmail.com>
+Subject: [PATCH v17 14/14] gpio: pca953x: Utilize the for_each_set_clump8 macro
+Date: Wed,  9 Oct 2019 11:27:12 -0400
+Message-ID: <ec3264f6b21c61d3a04e929cc0f84be485decdaa.1570633189.git.vilhelm.gray@gmail.com>
 References: <cover.1570633189.git.vilhelm.gray@gmail.com>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
@@ -13,51 +13,55 @@ Cc: linux-gpio@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.ke
 List-Id: linux-arch.vger.kernel.org
 
 Replace verbose implementation in set_multiple callback with
-for_each_set_clump8 macro to simplify code and improve clarity. An
-improvement in this case is that banks that are not masked will now be
-skipped.
+for_each_set_clump8 macro to simplify code and improve clarity.
 
-Cc: Masahiro Yamada <yamada.masahiro@socionext.com>
+Cc: Phil Reid <preid@electromag.com.au>
 Signed-off-by: William Breathitt Gray <vilhelm.gray@gmail.com>
 ---
- drivers/gpio/gpio-uniphier.c | 16 ++++++----------
- 1 file changed, 6 insertions(+), 10 deletions(-)
+ drivers/gpio/gpio-pca953x.c | 17 +++++++----------
+ 1 file changed, 7 insertions(+), 10 deletions(-)
 
-diff --git a/drivers/gpio/gpio-uniphier.c b/drivers/gpio/gpio-uniphier.c
-index 93cdcc41e9fb..3e4b15d0231e 100644
---- a/drivers/gpio/gpio-uniphier.c
-+++ b/drivers/gpio/gpio-uniphier.c
-@@ -15,9 +15,6 @@
- #include <linux/spinlock.h>
- #include <dt-bindings/gpio/uniphier-gpio.h>
+diff --git a/drivers/gpio/gpio-pca953x.c b/drivers/gpio/gpio-pca953x.c
+index de5d1383f28d..10b669b8f27d 100644
+--- a/drivers/gpio/gpio-pca953x.c
++++ b/drivers/gpio/gpio-pca953x.c
+@@ -10,6 +10,7 @@
  
--#define UNIPHIER_GPIO_BANK_MASK		\
--				GENMASK((UNIPHIER_GPIO_LINES_PER_BANK) - 1, 0)
--
- #define UNIPHIER_GPIO_IRQ_MAX_NUM	24
- 
- #define UNIPHIER_GPIO_PORT_DATA		0x0	/* data */
-@@ -147,15 +144,14 @@ static void uniphier_gpio_set(struct gpio_chip *chip,
- static void uniphier_gpio_set_multiple(struct gpio_chip *chip,
- 				       unsigned long *mask, unsigned long *bits)
+ #include <linux/acpi.h>
+ #include <linux/bits.h>
++#include <linux/bitops.h>
+ #include <linux/gpio/driver.h>
+ #include <linux/gpio/consumer.h>
+ #include <linux/i2c.h>
+@@ -456,7 +457,8 @@ static void pca953x_gpio_set_multiple(struct gpio_chip *gc,
+ 				      unsigned long *mask, unsigned long *bits)
  {
--	unsigned int bank, shift, bank_mask, bank_bits;
--	int i;
-+	unsigned long i;
+ 	struct pca953x_chip *chip = gpiochip_get_data(gc);
+-	unsigned int bank_mask, bank_val;
++	unsigned long offset;
 +	unsigned long bank_mask;
-+	unsigned long bank;
-+	unsigned long bank_bits;
+ 	int bank;
+ 	u8 reg_val[MAX_BANK];
+ 	int ret;
+@@ -466,15 +468,10 @@ static void pca953x_gpio_set_multiple(struct gpio_chip *gc,
+ 	if (ret)
+ 		goto exit;
  
--	for (i = 0; i < chip->ngpio; i += UNIPHIER_GPIO_LINES_PER_BANK) {
-+	for_each_set_clump8(i, bank_mask, mask, chip->ngpio) {
- 		bank = i / UNIPHIER_GPIO_LINES_PER_BANK;
--		shift = i % BITS_PER_LONG;
--		bank_mask = (mask[BIT_WORD(i)] >> shift) &
--						UNIPHIER_GPIO_BANK_MASK;
--		bank_bits = bits[BIT_WORD(i)] >> shift;
-+		bank_bits = bitmap_get_value8(bits, i);
+-	for (bank = 0; bank < NBANK(chip); bank++) {
+-		bank_mask = mask[bank / sizeof(*mask)] >>
+-			   ((bank % sizeof(*mask)) * 8);
+-		if (bank_mask) {
+-			bank_val = bits[bank / sizeof(*bits)] >>
+-				  ((bank % sizeof(*bits)) * 8);
+-			bank_val &= bank_mask;
+-			reg_val[bank] = (reg_val[bank] & ~bank_mask) | bank_val;
+-		}
++	for_each_set_clump8(offset, bank_mask, mask, gc->ngpio) {
++		bank = offset / 8;
++		reg_val[bank] &= ~bank_mask;
++		reg_val[bank] |= bitmap_get_value8(bits, offset) & bank_mask;
+ 	}
  
- 		uniphier_gpio_bank_write(chip, bank, UNIPHIER_GPIO_PORT_DATA,
- 					 bank_mask, bank_bits);
+ 	pca953x_write_regs(chip, chip->regs->output, reg_val);
 -- 
 2.23.0
