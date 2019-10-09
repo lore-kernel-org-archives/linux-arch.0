@@ -1,137 +1,182 @@
 From: William Breathitt Gray <vilhelm.gray@gmail.com>
-Subject: [PATCH v17 02/14] lib/test_bitmap.c: Add for_each_set_clump8 test
- cases
-Date: Wed,  9 Oct 2019 11:27:00 -0400
-Message-ID: <febc0fb8151e3e3fdd61c34da9193d1c4d7e6c12.1570633189.git.vilhelm.gray@gmail.com>
+Subject: [PATCH v17 08/14] gpio: pcie-idio-24: Utilize for_each_set_clump8 macro
+Date: Wed,  9 Oct 2019 11:27:06 -0400
+Message-ID: <d5d22fa9809dcf8330f4381dbe7e7ca37990e79f.1570633189.git.vilhelm.gray@gmail.com>
 References: <cover.1570633189.git.vilhelm.gray@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+Content-Transfer-Encoding: 8bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <cover.1570633189.git.vilhelm.gray@gmail.com>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+Sender: linux-kernel-owner@vger.kernel.org
 To: linus.walleij@linaro.org, bgolaszewski@baylibre.com, akpm@linux-foundation.org
-Cc: linux-arch@vger.kernel.org, preid@electromag.com.au, yamada.masahiro@socionext.com, linux-pm@vger.kernel.org, linux@rasmusvillemoes.dk, linux-kernel@vger.kernel.org, morten.tiljeset@prevas.dk, sean.nyekjaer@prevas.dk, linux-gpio@vger.kernel.org, Andy Shevchenko <andy.shevchenko@gmail.com>, lukas@wunner.de, geert@linux-m68k.org, William Breathitt Gray <vilhelm.gray@gmail.com>, andriy.shevchenko@linux.intel.com, linux-arm-kernel@lists.infradead.org
+Cc: linux-gpio@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, andriy.shevchenko@linux.intel.com, linux@rasmusvillemoes.dk, yamada.masahiro@socionext.com, linux-arm-kernel@lists.infradead.org, linux-pm@vger.kernel.org, geert@linux-m68k.org, preid@electromag.com.au, lukas@wunner.de, sean.nyekjaer@prevas.dk, morten.tiljeset@prevas.dk, William Breathitt Gray <vilhelm.gray@gmail.com>
 List-Id: linux-arch.vger.kernel.org
 
-The introduction of the for_each_set_clump8 macro warrants test cases to
-verify the implementation. This patch adds test case checks for whether
-an out-of-bounds clump index is returned, a zero clump is returned, or
-the returned clump value differs from the expected clump value.
+Replace verbose implementation in get_multiple/set_multiple callbacks
+with for_each_set_clump8 macro to simplify code and improve clarity.
 
-Cc: Rasmus Villemoes <linux@rasmusvillemoes.dk>
-Acked-by: Andrew Morton <akpm@linux-foundation.org>
-Reviewed-by: Andy Shevchenko <andy.shevchenko@gmail.com>
 Reviewed-by: Linus Walleij <linus.walleij@linaro.org>
 Signed-off-by: William Breathitt Gray <vilhelm.gray@gmail.com>
 ---
- lib/test_bitmap.c | 65 +++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 65 insertions(+)
+ drivers/gpio/gpio-pcie-idio-24.c | 109 ++++++++++++-------------------
+ 1 file changed, 40 insertions(+), 69 deletions(-)
 
-diff --git a/lib/test_bitmap.c b/lib/test_bitmap.c
-index 51a98f7ee79e..dc167c13eb39 100644
---- a/lib/test_bitmap.c
-+++ b/lib/test_bitmap.c
-@@ -92,6 +92,36 @@ __check_eq_u32_array(const char *srcfile, unsigned int line,
- 	return true;
- }
- 
-+static bool __init __check_eq_clump8(const char *srcfile, unsigned int line,
-+				    const unsigned int offset,
-+				    const unsigned int size,
-+				    const unsigned char *const clump_exp,
-+				    const unsigned long *const clump)
-+{
-+	unsigned long exp;
-+
-+	if (offset >= size) {
-+		pr_warn("[%s:%u] bit offset for clump out-of-bounds: expected less than %u, got %u\n",
-+			srcfile, line, size, offset);
-+		return false;
-+	}
-+
-+	exp = clump_exp[offset / 8];
-+	if (!exp) {
-+		pr_warn("[%s:%u] bit offset for zero clump: expected nonzero clump, got bit offset %u with clump value 0",
-+			srcfile, line, offset);
-+		return false;
-+	}
-+
-+	if (*clump != exp) {
-+		pr_warn("[%s:%u] expected clump value of 0x%lX, got clump value of 0x%lX",
-+			srcfile, line, exp, *clump);
-+		return false;
-+	}
-+
-+	return true;
-+}
-+
- #define __expect_eq(suffix, ...)					\
- 	({								\
- 		int result = 0;						\
-@@ -108,6 +138,7 @@ __check_eq_u32_array(const char *srcfile, unsigned int line,
- #define expect_eq_bitmap(...)		__expect_eq(bitmap, ##__VA_ARGS__)
- #define expect_eq_pbl(...)		__expect_eq(pbl, ##__VA_ARGS__)
- #define expect_eq_u32_array(...)	__expect_eq(u32_array, ##__VA_ARGS__)
-+#define expect_eq_clump8(...)		__expect_eq(clump8, ##__VA_ARGS__)
- 
- static void __init test_zero_clear(void)
+diff --git a/drivers/gpio/gpio-pcie-idio-24.c b/drivers/gpio/gpio-pcie-idio-24.c
+index 52f1647a46fd..924ec916b358 100644
+--- a/drivers/gpio/gpio-pcie-idio-24.c
++++ b/drivers/gpio/gpio-pcie-idio-24.c
+@@ -198,52 +198,34 @@ static int idio_24_gpio_get_multiple(struct gpio_chip *chip,
+ 	unsigned long *mask, unsigned long *bits)
  {
-@@ -404,6 +435,39 @@ static void noinline __init test_mem_optimisations(void)
+ 	struct idio_24_gpio *const idio24gpio = gpiochip_get_data(chip);
+-	size_t i;
+-	const unsigned int gpio_reg_size = 8;
+-	unsigned int bits_offset;
+-	size_t word_index;
+-	unsigned int word_offset;
+-	unsigned long word_mask;
+-	const unsigned long port_mask = GENMASK(gpio_reg_size - 1, 0);
+-	unsigned long port_state;
++	unsigned long offset;
++	unsigned long gpio_mask;
+ 	void __iomem *ports[] = {
+ 		&idio24gpio->reg->out0_7, &idio24gpio->reg->out8_15,
+ 		&idio24gpio->reg->out16_23, &idio24gpio->reg->in0_7,
+ 		&idio24gpio->reg->in8_15, &idio24gpio->reg->in16_23,
+ 	};
++	size_t index;
++	unsigned long port_state;
+ 	const unsigned long out_mode_mask = BIT(1);
+ 
+ 	/* clear bits array to a clean slate */
+ 	bitmap_zero(bits, chip->ngpio);
+ 
+-	/* get bits are evaluated a gpio port register at a time */
+-	for (i = 0; i < ARRAY_SIZE(ports) + 1; i++) {
+-		/* gpio offset in bits array */
+-		bits_offset = i * gpio_reg_size;
+-
+-		/* word index for bits array */
+-		word_index = BIT_WORD(bits_offset);
+-
+-		/* gpio offset within current word of bits array */
+-		word_offset = bits_offset % BITS_PER_LONG;
+-
+-		/* mask of get bits for current gpio within current word */
+-		word_mask = mask[word_index] & (port_mask << word_offset);
+-		if (!word_mask) {
+-			/* no get bits in this port so skip to next one */
+-			continue;
+-		}
++	for_each_set_clump8(offset, gpio_mask, mask, ARRAY_SIZE(ports) * 8) {
++		index = offset / 8;
+ 
+ 		/* read bits from current gpio port (port 6 is TTL GPIO) */
+-		if (i < 6)
+-			port_state = ioread8(ports[i]);
++		if (index < 6)
++			port_state = ioread8(ports[index]);
+ 		else if (ioread8(&idio24gpio->reg->ctl) & out_mode_mask)
+ 			port_state = ioread8(&idio24gpio->reg->ttl_out0_7);
+ 		else
+ 			port_state = ioread8(&idio24gpio->reg->ttl_in0_7);
+ 
+-		/* store acquired bits at respective bits array offset */
+-		bits[word_index] |= (port_state << word_offset) & word_mask;
++		port_state &= gpio_mask;
++
++		bitmap_set_value8(bits, port_state, offset);
  	}
- }
  
-+static const unsigned char clump_exp[] __initconst = {
-+	0x01,	/* 1 bit set */
-+	0x02,	/* non-edge 1 bit set */
-+	0x00,	/* zero bits set */
-+	0x38,	/* 3 bits set across 4-bit boundary */
-+	0x38,	/* Repeated clump */
-+	0x0F,	/* 4 bits set */
-+	0xFF,	/* all bits set */
-+	0x05,	/* non-adjacent 2 bits set */
-+};
-+
-+static void __init test_for_each_set_clump8(void)
-+{
-+#define CLUMP_EXP_NUMBITS 64
-+	DECLARE_BITMAP(bits, CLUMP_EXP_NUMBITS);
-+	unsigned int start;
-+	unsigned long clump;
-+
-+	/* set bitmap to test case */
-+	bitmap_zero(bits, CLUMP_EXP_NUMBITS);
-+	bitmap_set(bits, 0, 1);		/* 0x01 */
-+	bitmap_set(bits, 9, 1);		/* 0x02 */
-+	bitmap_set(bits, 27, 3);	/* 0x28 */
-+	bitmap_set(bits, 35, 3);	/* 0x28 */
-+	bitmap_set(bits, 40, 4);	/* 0x0F */
-+	bitmap_set(bits, 48, 8);	/* 0xFF */
-+	bitmap_set(bits, 56, 1);	/* 0x05 - part 1 */
-+	bitmap_set(bits, 58, 1);	/* 0x05 - part 2 */
-+
-+	for_each_set_clump8(start, clump, bits, CLUMP_EXP_NUMBITS)
-+		expect_eq_clump8(start, CLUMP_EXP_NUMBITS, clump_exp, &clump);
-+}
-+
- static void __init selftest(void)
+ 	return 0;
+@@ -294,59 +276,48 @@ static void idio_24_gpio_set_multiple(struct gpio_chip *chip,
+ 	unsigned long *mask, unsigned long *bits)
  {
- 	test_zero_clear();
-@@ -413,6 +477,7 @@ static void __init selftest(void)
- 	test_bitmap_parselist();
- 	test_bitmap_parselist_user();
- 	test_mem_optimisations();
-+	test_for_each_set_clump8();
+ 	struct idio_24_gpio *const idio24gpio = gpiochip_get_data(chip);
+-	size_t i;
+-	unsigned long bits_offset;
++	unsigned long offset;
+ 	unsigned long gpio_mask;
+-	const unsigned int gpio_reg_size = 8;
+-	const unsigned long port_mask = GENMASK(gpio_reg_size, 0);
+-	unsigned long flags;
+-	unsigned int out_state;
+ 	void __iomem *ports[] = {
+ 		&idio24gpio->reg->out0_7, &idio24gpio->reg->out8_15,
+ 		&idio24gpio->reg->out16_23
+ 	};
++	size_t index;
++	unsigned long bitmask;
++	unsigned long flags;
++	unsigned long out_state;
+ 	const unsigned long out_mode_mask = BIT(1);
+-	const unsigned int ttl_offset = 48;
+-	const size_t ttl_i = BIT_WORD(ttl_offset);
+-	const unsigned int word_offset = ttl_offset % BITS_PER_LONG;
+-	const unsigned long ttl_mask = (mask[ttl_i] >> word_offset) & port_mask;
+-	const unsigned long ttl_bits = (bits[ttl_i] >> word_offset) & ttl_mask;
+-
+-	/* set bits are processed a gpio port register at a time */
+-	for (i = 0; i < ARRAY_SIZE(ports); i++) {
+-		/* gpio offset in bits array */
+-		bits_offset = i * gpio_reg_size;
+-
+-		/* check if any set bits for current port */
+-		gpio_mask = (*mask >> bits_offset) & port_mask;
+-		if (!gpio_mask) {
+-			/* no set bits for this port so move on to next port */
+-			continue;
+-		}
+ 
+-		raw_spin_lock_irqsave(&idio24gpio->lock, flags);
++	for_each_set_clump8(offset, gpio_mask, mask, ARRAY_SIZE(ports) * 8) {
++		index = offset / 8;
+ 
+-		/* process output lines */
+-		out_state = ioread8(ports[i]) & ~gpio_mask;
+-		out_state |= (*bits >> bits_offset) & gpio_mask;
+-		iowrite8(out_state, ports[i]);
++		bitmask = bitmap_get_value8(bits, offset) & gpio_mask;
+ 
+-		raw_spin_unlock_irqrestore(&idio24gpio->lock, flags);
+-	}
++		raw_spin_lock_irqsave(&idio24gpio->lock, flags);
+ 
+-	/* check if setting TTL lines and if they are in output mode */
+-	if (!ttl_mask || !(ioread8(&idio24gpio->reg->ctl) & out_mode_mask))
+-		return;
++		/* read bits from current gpio port (port 6 is TTL GPIO) */
++		if (index < 6) {
++			out_state = ioread8(ports[index]);
++		} else if (ioread8(&idio24gpio->reg->ctl) & out_mode_mask) {
++			out_state = ioread8(&idio24gpio->reg->ttl_out0_7);
++		} else {
++			/* skip TTL GPIO if set for input */
++			raw_spin_unlock_irqrestore(&idio24gpio->lock, flags);
++			continue;
++		}
+ 
+-	/* handle TTL output */
+-	raw_spin_lock_irqsave(&idio24gpio->lock, flags);
++		/* set requested bit states */
++		out_state &= ~gpio_mask;
++		out_state |= bitmask;
+ 
+-	/* process output lines */
+-	out_state = ioread8(&idio24gpio->reg->ttl_out0_7) & ~ttl_mask;
+-	out_state |= ttl_bits;
+-	iowrite8(out_state, &idio24gpio->reg->ttl_out0_7);
++		/* write bits for current gpio port (port 6 is TTL GPIO) */
++		if (index < 6)
++			iowrite8(out_state, ports[index]);
++		else
++			iowrite8(out_state, &idio24gpio->reg->ttl_out0_7);
+ 
+-	raw_spin_unlock_irqrestore(&idio24gpio->lock, flags);
++		raw_spin_unlock_irqrestore(&idio24gpio->lock, flags);
++	}
  }
  
- KSTM_MODULE_LOADERS(test_bitmap);
+ static void idio_24_irq_ack(struct irq_data *data)
 -- 
 2.23.0
