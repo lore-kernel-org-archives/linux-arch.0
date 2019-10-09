@@ -1,7 +1,7 @@
 From: William Breathitt Gray <vilhelm.gray@gmail.com>
-Subject: [PATCH v18 12/14] gpio: pisosr: Utilize the for_each_set_clump8 macro
-Date: Wed,  9 Oct 2019 13:14:48 -0400
-Message-ID: <8a39ee772247d4b7d752b32dbacc06c1cdcb60b5.1570641097.git.vilhelm.gray@gmail.com>
+Subject: [PATCH v18 10/14] gpio: 74x164: Utilize the for_each_set_clump8 macro
+Date: Wed,  9 Oct 2019 13:14:46 -0400
+Message-ID: <7ea2df7182a50a1136ca36edc46dffcb2446fd27.1570641097.git.vilhelm.gray@gmail.com>
 References: <cover.1570641097.git.vilhelm.gray@gmail.com>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
@@ -9,45 +9,60 @@ Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <cover.1570641097.git.vilhelm.gray@gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linus.walleij@linaro.org, bgolaszewski@baylibre.com, akpm@linux-foundation.org
-Cc: linux-gpio@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, andriy.shevchenko@linux.intel.com, linux@rasmusvillemoes.dk, yamada.masahiro@socionext.com, linux-arm-kernel@lists.infradead.org, linux-pm@vger.kernel.org, geert@linux-m68k.org, preid@electromag.com.au, lukas@wunner.de, William Breathitt Gray <vilhelm.gray@gmail.com>, Morten Hein Tiljeset <morten.tiljeset@prevas.dk>, Sean Nyekjaer <sean.nyekjaer@prevas.dk>
+Cc: linux-gpio@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, andriy.shevchenko@linux.intel.com, linux@rasmusvillemoes.dk, yamada.masahiro@socionext.com, linux-arm-kernel@lists.infradead.org, linux-pm@vger.kernel.org, geert@linux-m68k.org, preid@electromag.com.au, lukas@wunner.de, William Breathitt Gray <vilhelm.gray@gmail.com>, Geert Uytterhoeven <geert+renesas@glider.be>
 List-Id: linux-arch.vger.kernel.org
 
-Replace verbose implementation in get_multiple callback with
+Replace verbose implementation in set_multiple callback with
 for_each_set_clump8 macro to simplify code and improve clarity.
 
-Cc: Morten Hein Tiljeset <morten.tiljeset@prevas.dk>
-Cc: Sean Nyekjaer <sean.nyekjaer@prevas.dk>
+Suggested-by: Andy Shevchenko <andriy.shevchenko@linux.intel.com>
+Cc: Geert Uytterhoeven <geert+renesas@glider.be>
+Cc: Phil Reid <preid@electromag.com.au>
 Signed-off-by: William Breathitt Gray <vilhelm.gray@gmail.com>
 ---
- drivers/gpio/gpio-pisosr.c | 12 ++++++------
- 1 file changed, 6 insertions(+), 6 deletions(-)
+ drivers/gpio/gpio-74x164.c | 19 +++++++++----------
+ 1 file changed, 9 insertions(+), 10 deletions(-)
 
-diff --git a/drivers/gpio/gpio-pisosr.c b/drivers/gpio/gpio-pisosr.c
-index f809a5a8e9eb..9ab2c044ef52 100644
---- a/drivers/gpio/gpio-pisosr.c
-+++ b/drivers/gpio/gpio-pisosr.c
-@@ -96,16 +96,16 @@ static int pisosr_gpio_get_multiple(struct gpio_chip *chip,
- 				    unsigned long *mask, unsigned long *bits)
+diff --git a/drivers/gpio/gpio-74x164.c b/drivers/gpio/gpio-74x164.c
+index e81307f9754e..05637d585152 100644
+--- a/drivers/gpio/gpio-74x164.c
++++ b/drivers/gpio/gpio-74x164.c
+@@ -6,6 +6,7 @@
+  *  Copyright (C) 2010 Miguel Gaio <miguel.gaio@efixo.com>
+  */
+ 
++#include <linux/bitops.h>
+ #include <linux/gpio/consumer.h>
+ #include <linux/gpio/driver.h>
+ #include <linux/module.h>
+@@ -72,20 +73,18 @@ static void gen_74x164_set_multiple(struct gpio_chip *gc, unsigned long *mask,
+ 				    unsigned long *bits)
  {
- 	struct pisosr_gpio *gpio = gpiochip_get_data(chip);
--	unsigned int nbytes = DIV_ROUND_UP(chip->ngpio, 8);
--	unsigned int i, j;
+ 	struct gen_74x164_chip *chip = gpiochip_get_data(gc);
+-	unsigned int i, idx, shift;
+-	u8 bank, bankmask;
 +	unsigned long offset;
-+	unsigned long gpio_mask;
-+	unsigned long buffer_state;
++	unsigned long bankmask;
++	size_t bank;
++	unsigned long bitmask;
  
- 	pisosr_gpio_refresh(gpio);
+ 	mutex_lock(&chip->lock);
+-	for (i = 0, bank = chip->registers - 1; i < chip->registers;
+-	     i++, bank--) {
+-		idx = i / sizeof(*mask);
+-		shift = i % sizeof(*mask) * BITS_PER_BYTE;
+-		bankmask = mask[idx] >> shift;
+-		if (!bankmask)
+-			continue;
++	for_each_set_clump8(offset, bankmask, mask, chip->registers * 8) {
++		bank = chip->registers - 1 - offset / 8;
++		bitmask = bitmap_get_value8(bits, offset) & bankmask;
  
- 	bitmap_zero(bits, chip->ngpio);
--	for (i = 0; i < nbytes; i++) {
--		j = i / sizeof(unsigned long);
--		bits[j] |= ((unsigned long) gpio->buffer[i])
--			   << (8 * (i % sizeof(unsigned long)));
-+	for_each_set_clump8(offset, gpio_mask, mask, chip->ngpio) {
-+		buffer_state = gpio->buffer[offset / 8] & gpio_mask;
-+		bitmap_set_value8(bits, buffer_state, offset);
+ 		chip->buffer[bank] &= ~bankmask;
+-		chip->buffer[bank] |= bankmask & (bits[idx] >> shift);
++		chip->buffer[bank] |= bitmask;
  	}
- 
- 	return 0;
+ 	__gen_74x164_write_config(chip);
+ 	mutex_unlock(&chip->lock);
 -- 
 2.23.0
