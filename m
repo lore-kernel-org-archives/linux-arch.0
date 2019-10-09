@@ -1,191 +1,86 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from conssluserg-02.nifty.com ([210.131.2.81]:53370 "EHLO
-        conssluserg-02.nifty.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1729644AbfJIQ2x (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 9 Oct 2019 12:28:53 -0400
+Received: from conssluserg-06.nifty.com ([210.131.2.91]:28439 "EHLO
+        conssluserg-06.nifty.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1731612AbfJIQeG (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 9 Oct 2019 12:34:06 -0400
 MIME-Version: 1.0
-References: <cover.1570633189.git.vilhelm.gray@gmail.com> <893c3b4f03266c9496137cc98ac2b1bd27f92c73.1570633189.git.vilhelm.gray@gmail.com>
-In-Reply-To: <893c3b4f03266c9496137cc98ac2b1bd27f92c73.1570633189.git.vilhelm.gray@gmail.com>
+References: <cover.1570633189.git.vilhelm.gray@gmail.com> <271a7735b02b6a8b1f54c018e38ea932d1fd299e.1570633189.git.vilhelm.gray@gmail.com>
+In-Reply-To: <271a7735b02b6a8b1f54c018e38ea932d1fd299e.1570633189.git.vilhelm.gray@gmail.com>
 From: Masahiro Yamada <yamada.masahiro@socionext.com>
-Date: Thu, 10 Oct 2019 01:28:08 +0900
-Message-ID: <CAK7LNATgW7bXUmqV=3QAaJ0Qu73Kox-TgDCQJb=s0=mwewSCUg@mail.gmail.com>
-Subject: Re: [PATCH v17 01/14] bitops: Introduce the for_each_set_clump8 macro
+Date: Thu, 10 Oct 2019 01:33:06 +0900
+Message-ID: <CAK7LNAQStJsZ4cYTJyAPvjyngWkKs+5y=yzJb6vz3-cco+2-ug@mail.gmail.com>
+Subject: Re: [PATCH v17 09/14] gpio: uniphier: Utilize for_each_set_clump8 macro
 Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: William Breathitt Gray <vilhelm.gray@gmail.com>
-Cc: Linus Walleij <linus.walleij@linaro.org>, Bartosz Golaszewski <bgolaszewski@baylibre.com>, Andrew Morton <akpm@linux-foundation.org>, "open list:GPIO SUBSYSTEM" <linux-gpio@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Andy Shevchenko <andriy.shevchenko@linux.intel.com>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, linux-arm-kernel <linux-arm-kernel@lists.infradead.org>, Linux PM mailing list <linux-pm@vger.kernel.org>, Geert Uytterhoeven <geert@linux-m68k.org>, preid@electromag.com.au, Lukas Wunner <lukas@wunner.de>, sean.nyekjaer@prevas.dk, morten.tiljeset@prevas.dk, Andy Shevchenko <andy.shevchenko@gmail.com>, Arnd Bergmann <arnd@arndb.de>
-Message-ID: <20191009162808.4MuOVn9VSJm_t4GdYoF6YOZ6AWL8U6JG2xvItyibmqA@z>
+Cc: Linus Walleij <linus.walleij@linaro.org>, Bartosz Golaszewski <bgolaszewski@baylibre.com>, Andrew Morton <akpm@linux-foundation.org>, "open list:GPIO SUBSYSTEM" <linux-gpio@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Andy Shevchenko <andriy.shevchenko@linux.intel.com>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, linux-arm-kernel <linux-arm-kernel@lists.infradead.org>, Linux PM mailing list <linux-pm@vger.kernel.org>, Geert Uytterhoeven <geert@linux-m68k.org>, preid@electromag.com.au, Lukas Wunner <lukas@wunner.de>, sean.nyekjaer@prevas.dk, morten.tiljeset@prevas.dk
+Message-ID: <20191009163306.dQscq7x0BqUkAtkkWevipsNe5QrVHm8GCw1SSb6tbf8@z>
 
 On Thu, Oct 10, 2019 at 12:27 AM William Breathitt Gray
 <vilhelm.gray@gmail.com> wrote:
 >
-> This macro iterates for each 8-bit group of bits (clump) with set bits,
-> within a bitmap memory region. For each iteration, "start" is set to the
-> bit offset of the found clump, while the respective clump value is
-> stored to the location pointed by "clump". Additionally, the
-> bitmap_get_value8 and bitmap_set_value8 functions are introduced to
-> respectively get and set an 8-bit value in a bitmap memory region.
+> Replace verbose implementation in set_multiple callback with
+> for_each_set_clump8 macro to simplify code and improve clarity. An
+> improvement in this case is that banks that are not masked will now be
+> skipped.
 >
-> Suggested-by: Andy Shevchenko <andy.shevchenko@gmail.com>
-> Suggested-by: Rasmus Villemoes <linux@rasmusvillemoes.dk>
-> Suggested-by: Lukas Wunner <lukas@wunner.de>
-> Cc: Arnd Bergmann <arnd@arndb.de>
-> Cc: Andrew Morton <akpm@linux-foundation.org>
-> Cc: Andy Shevchenko <andy.shevchenko@gmail.com>
-> Cc: Linus Walleij <linus.walleij@linaro.org>
+> Cc: Masahiro Yamada <yamada.masahiro@socionext.com>
 > Signed-off-by: William Breathitt Gray <vilhelm.gray@gmail.com>
 > ---
->  include/asm-generic/bitops/find.h | 17 +++++++++++++++
->  include/linux/bitmap.h            | 35 +++++++++++++++++++++++++++++++
->  include/linux/bitops.h            |  5 +++++
->  lib/find_bit.c                    | 14 +++++++++++++
->  4 files changed, 71 insertions(+)
+>  drivers/gpio/gpio-uniphier.c | 16 ++++++----------
+>  1 file changed, 6 insertions(+), 10 deletions(-)
 >
-> diff --git a/include/asm-generic/bitops/find.h b/include/asm-generic/bitops/find.h
-> index 8a1ee10014de..9fdf21302fdf 100644
-> --- a/include/asm-generic/bitops/find.h
-> +++ b/include/asm-generic/bitops/find.h
-> @@ -80,4 +80,21 @@ extern unsigned long find_first_zero_bit(const unsigned long *addr,
+> diff --git a/drivers/gpio/gpio-uniphier.c b/drivers/gpio/gpio-uniphier.c
+> index 93cdcc41e9fb..3e4b15d0231e 100644
+> --- a/drivers/gpio/gpio-uniphier.c
+> +++ b/drivers/gpio/gpio-uniphier.c
+> @@ -15,9 +15,6 @@
+>  #include <linux/spinlock.h>
+>  #include <dt-bindings/gpio/uniphier-gpio.h>
 >
->  #endif /* CONFIG_GENERIC_FIND_FIRST_BIT */
+> -#define UNIPHIER_GPIO_BANK_MASK                \
+> -                               GENMASK((UNIPHIER_GPIO_LINES_PER_BANK) - 1, 0)
+> -
+>  #define UNIPHIER_GPIO_IRQ_MAX_NUM      24
 >
-> +/**
-> + * find_next_clump8 - find next 8-bit clump with set bits in a memory region
-> + * @clump: location to store copy of found clump
-> + * @addr: address to base the search on
-> + * @size: bitmap size in number of bits
-> + * @offset: bit offset at which to start searching
-> + *
-> + * Returns the bit offset for the next set clump; the found clump value is
-> + * copied to the location pointed by @clump. If no bits are set, returns @size.
-> + */
-> +extern unsigned long find_next_clump8(unsigned long *clump,
-> +                                     const unsigned long *addr,
-> +                                     unsigned long size, unsigned long offset);
-> +
-> +#define find_first_clump8(clump, bits, size) \
-> +       find_next_clump8((clump), (bits), (size), 0)
-> +
->  #endif /*_ASM_GENERIC_BITOPS_FIND_H_ */
-> diff --git a/include/linux/bitmap.h b/include/linux/bitmap.h
-> index 90528f12bdfa..761fab5b60a7 100644
-> --- a/include/linux/bitmap.h
-> +++ b/include/linux/bitmap.h
-> @@ -66,6 +66,8 @@
->   *  bitmap_allocate_region(bitmap, pos, order)  Allocate specified bit region
->   *  bitmap_from_arr32(dst, buf, nbits)          Copy nbits from u32[] buf to dst
->   *  bitmap_to_arr32(buf, src, nbits)            Copy nbits from buf to u32[] dst
-> + *  bitmap_get_value8(map, start)               Get 8bit value from map at start
-> + *  bitmap_set_value8(map, value, start)        Set 8bit value to map at start
->   *
->   * Note, bitmap_zero() and bitmap_fill() operate over the region of
->   * unsigned longs, that is, bits behind bitmap till the unsigned long
-> @@ -488,6 +490,39 @@ static inline void bitmap_from_u64(unsigned long *dst, u64 mask)
->                 dst[1] = mask >> 32;
->  }
->
-> +/**
-> + * bitmap_get_value8 - get an 8-bit value within a memory region
-> + * @map: address to the bitmap memory region
-> + * @start: bit offset of the 8-bit value; must be a multiple of 8
-> + *
-> + * Returns the 8-bit value located at the @start bit offset within the @src
-> + * memory region.
-> + */
-> +static inline unsigned long bitmap_get_value8(const unsigned long *map,
-> +                                             unsigned long start)
-
-Why is the return type "unsigned long" where you know
-it return the 8-bit value ?
-
-u8?
-
-
-
-> +{
-> +       const size_t index = BIT_WORD(start);
-> +       const unsigned long offset = start % BITS_PER_LONG;
-> +
-> +       return (map[index] >> offset) & 0xFF;
-> +}
-> +
-> +/**
-> + * bitmap_set_value8 - set an 8-bit value within a memory region
-> + * @map: address to the bitmap memory region
-> + * @value: the 8-bit value; values wider than 8 bits may clobber bitmap
-> + * @start: bit offset of the 8-bit value; must be a multiple of 8
-> + */
-> +static inline void bitmap_set_value8(unsigned long *map, unsigned long value,
-
-
-Same here,   "u8 value"
-
-
-
-> +                                    unsigned long start)
-> +{
-> +       const size_t index = BIT_WORD(start);
-> +       const unsigned long offset = start % BITS_PER_LONG;
-> +
-> +       map[index] &= ~(0xFF << offset);
-> +       map[index] |= value << offset;
-> +}
-> +
->  #endif /* __ASSEMBLY__ */
->
->  #endif /* __LINUX_BITMAP_H */
-> diff --git a/include/linux/bitops.h b/include/linux/bitops.h
-> index cf074bce3eb3..fb94a10f7853 100644
-> --- a/include/linux/bitops.h
-> +++ b/include/linux/bitops.h
-> @@ -40,6 +40,11 @@ extern unsigned long __sw_hweight64(__u64 w);
->              (bit) < (size);                                    \
->              (bit) = find_next_zero_bit((addr), (size), (bit) + 1))
->
-> +#define for_each_set_clump8(start, clump, bits, size) \
-> +       for ((start) = find_first_clump8(&(clump), (bits), (size)); \
-> +            (start) < (size); \
-> +            (start) = find_next_clump8(&(clump), (bits), (size), (start) + 8))
-> +
->  static inline int get_bitmask_order(unsigned int count)
+>  #define UNIPHIER_GPIO_PORT_DATA                0x0     /* data */
+> @@ -147,15 +144,14 @@ static void uniphier_gpio_set(struct gpio_chip *chip,
+>  static void uniphier_gpio_set_multiple(struct gpio_chip *chip,
+>                                        unsigned long *mask, unsigned long *bits)
 >  {
->         int order;
-> diff --git a/lib/find_bit.c b/lib/find_bit.c
-> index 5c51eb45178a..e35a76b291e6 100644
-> --- a/lib/find_bit.c
-> +++ b/lib/find_bit.c
-> @@ -214,3 +214,17 @@ EXPORT_SYMBOL(find_next_bit_le);
->  #endif
+> -       unsigned int bank, shift, bank_mask, bank_bits;
+> -       int i;
+> +       unsigned long i;
+> +       unsigned long bank_mask;
+> +       unsigned long bank;
+> +       unsigned long bank_bits;
+
+
+Please do not split it into multiple lines
+unless you need to do so.
+
+Thanks.
+
+
+
+
+> -       for (i = 0; i < chip->ngpio; i += UNIPHIER_GPIO_LINES_PER_BANK) {
+> +       for_each_set_clump8(i, bank_mask, mask, chip->ngpio) {
+>                 bank = i / UNIPHIER_GPIO_LINES_PER_BANK;
+> -               shift = i % BITS_PER_LONG;
+> -               bank_mask = (mask[BIT_WORD(i)] >> shift) &
+> -                                               UNIPHIER_GPIO_BANK_MASK;
+> -               bank_bits = bits[BIT_WORD(i)] >> shift;
+> +               bank_bits = bitmap_get_value8(bits, i);
 >
->  #endif /* __BIG_ENDIAN */
-> +
-> +unsigned long find_next_clump8(unsigned long *clump, const unsigned long *addr,
-
-
-Ditto.   "u8 *clump"
-
-
-
-
-> +                              unsigned long size, unsigned long offset)
-> +{
-> +       offset = find_next_bit(addr, size, offset);
-> +       if (offset == size)
-> +               return size;
-> +
-> +       offset = round_down(offset, 8);
-> +       *clump = bitmap_get_value8(addr, offset);
-> +
-> +       return offset;
-> +}
-> +EXPORT_SYMBOL(find_next_clump8);
+>                 uniphier_gpio_bank_write(chip, bank, UNIPHIER_GPIO_PORT_DATA,
+>                                          bank_mask, bank_bits);
 > --
 > 2.23.0
 >
 
 
---
+-- 
 Best Regards
-
 Masahiro Yamada
