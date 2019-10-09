@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-yw1-f65.google.com ([209.85.161.65]:44499 "EHLO
-        mail-yw1-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1731978AbfJIRPd (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 9 Oct 2019 13:15:33 -0400
+Received: from mail-yb1-f196.google.com ([209.85.219.196]:37641 "EHLO
+        mail-yb1-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1731956AbfJIRPa (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 9 Oct 2019 13:15:30 -0400
 From: William Breathitt Gray <vilhelm.gray@gmail.com>
-Subject: [PATCH v18 13/14] gpio: max3191x: Utilize the for_each_set_clump8 macro
-Date: Wed,  9 Oct 2019 13:14:49 -0400
-Message-ID: <c2b1ed62caf6fce6e5681809a50c05ce6acdf2a6.1570641097.git.vilhelm.gray@gmail.com>
+Subject: [PATCH v18 11/14] thermal: intel: intel_soc_dts_iosf: Utilize for_each_set_clump8 macro
+Date: Wed,  9 Oct 2019 13:14:47 -0400
+Message-ID: <2d3c74e9a00a52954f31d19e04623a7f4bc85520.1570641097.git.vilhelm.gray@gmail.com>
 In-Reply-To: <cover.1570641097.git.vilhelm.gray@gmail.com>
 References: <cover.1570641097.git.vilhelm.gray@gmail.com>
 MIME-Version: 1.0
@@ -14,69 +14,131 @@ Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linus.walleij@linaro.org, bgolaszewski@baylibre.com, akpm@linux-foundation.org
-Cc: linux-gpio@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, andriy.shevchenko@linux.intel.com, linux@rasmusvillemoes.dk, yamada.masahiro@socionext.com, linux-arm-kernel@lists.infradead.org, linux-pm@vger.kernel.org, geert@linux-m68k.org, preid@electromag.com.au, lukas@wunner.de, William Breathitt Gray <vilhelm.gray@gmail.com>, Mathias Duckeck <m.duckeck@kunbus.de>
-Message-ID: <20191009171449.2Kq1DKvNiaKqluR8SJeHGY6ioXBSHtw9oO1AKw30XQo@z>
+Cc: linux-gpio@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, andriy.shevchenko@linux.intel.com, linux@rasmusvillemoes.dk, yamada.masahiro@socionext.com, linux-arm-kernel@lists.infradead.org, linux-pm@vger.kernel.org, geert@linux-m68k.org, preid@electromag.com.au, lukas@wunner.de, William Breathitt Gray <vilhelm.gray@gmail.com>
+Message-ID: <20191009171447.F8cOBAGJwcNNDRmHR8OCjQwQIwOPcoKLw4azzyApe-8@z>
 
-Replace verbose implementation in get_multiple callback with
-for_each_set_clump8 macro to simplify code and improve clarity.
+Utilize for_each_set_clump8 macro, and the bitmap_set_value8 and
+bitmap_get_value8 functions, where appropriate. In addition, remove the
+now unnecessary temp_mask and temp_shift members of the
+intel_soc_dts_sensor_entry structure.
 
-Cc: Mathias Duckeck <m.duckeck@kunbus.de>
-Cc: Lukas Wunner <lukas@wunner.de>
+Suggested-by: Andy Shevchenko <andriy.shevchenko@linux.intel.com>
+Cc: Andy Shevchenko <andriy.shevchenko@linux.intel.com>
 Signed-off-by: William Breathitt Gray <vilhelm.gray@gmail.com>
 ---
- drivers/gpio/gpio-max3191x.c | 19 ++++++++++---------
- 1 file changed, 10 insertions(+), 9 deletions(-)
+ drivers/thermal/intel/intel_soc_dts_iosf.c | 31 +++++++++++++---------
+ drivers/thermal/intel/intel_soc_dts_iosf.h |  2 --
+ 2 files changed, 18 insertions(+), 15 deletions(-)
 
-diff --git a/drivers/gpio/gpio-max3191x.c b/drivers/gpio/gpio-max3191x.c
-index 4b4b2ceb82fc..0242c6187bf5 100644
---- a/drivers/gpio/gpio-max3191x.c
-+++ b/drivers/gpio/gpio-max3191x.c
-@@ -31,6 +31,7 @@
-  */
+diff --git a/drivers/thermal/intel/intel_soc_dts_iosf.c b/drivers/thermal/intel/intel_soc_dts_iosf.c
+index 5716b62e0f73..f75271b669c6 100644
+--- a/drivers/thermal/intel/intel_soc_dts_iosf.c
++++ b/drivers/thermal/intel/intel_soc_dts_iosf.c
+@@ -6,6 +6,7 @@
  
- #include <linux/bitmap.h>
+ #define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
+ 
 +#include <linux/bitops.h>
- #include <linux/crc8.h>
- #include <linux/gpio/consumer.h>
- #include <linux/gpio/driver.h>
-@@ -232,16 +233,20 @@ static int max3191x_get_multiple(struct gpio_chip *gpio, unsigned long *mask,
- 				 unsigned long *bits)
+ #include <linux/module.h>
+ #include <linux/slab.h>
+ #include <linux/interrupt.h>
+@@ -103,6 +104,7 @@ static int update_trip_temp(struct intel_soc_dts_sensor_entry *dts,
+ 	int status;
+ 	u32 temp_out;
+ 	u32 out;
++	unsigned long update_ptps;
+ 	u32 store_ptps;
+ 	u32 store_ptmc;
+ 	u32 store_te_out;
+@@ -120,8 +122,10 @@ static int update_trip_temp(struct intel_soc_dts_sensor_entry *dts,
+ 	if (status)
+ 		return status;
+ 
+-	out = (store_ptps & ~(0xFF << (thres_index * 8)));
+-	out |= (temp_out & 0xFF) << (thres_index * 8);
++	update_ptps = store_ptps;
++	bitmap_set_value8(&update_ptps, temp_out & 0xFF, thres_index * 8);
++	out = update_ptps;
++
+ 	status = iosf_mbi_write(BT_MBI_UNIT_PMC, MBI_REG_WRITE,
+ 				SOC_DTS_OFFSET_PTPS, out);
+ 	if (status)
+@@ -223,6 +227,7 @@ static int sys_get_curr_temp(struct thermal_zone_device *tzd,
+ 	u32 out;
+ 	struct intel_soc_dts_sensor_entry *dts;
+ 	struct intel_soc_dts_sensors *sensors;
++	unsigned long raw;
+ 
+ 	dts = tzd->devdata;
+ 	sensors = dts->sensors;
+@@ -231,8 +236,8 @@ static int sys_get_curr_temp(struct thermal_zone_device *tzd,
+ 	if (status)
+ 		return status;
+ 
+-	out = (out & dts->temp_mask) >> dts->temp_shift;
+-	out -= SOC_DTS_TJMAX_ENCODING;
++	raw = out;
++	out = bitmap_get_value8(&raw, dts->id * 8) - SOC_DTS_TJMAX_ENCODING;
+ 	*temp = sensors->tj_max - out * 1000;
+ 
+ 	return 0;
+@@ -280,11 +285,14 @@ static int add_dts_thermal_zone(int id, struct intel_soc_dts_sensor_entry *dts,
+ 				int read_only_trip_cnt)
  {
- 	struct max3191x_chip *max3191x = gpiochip_get_data(gpio);
--	int ret, bit = 0, wordlen = max3191x_wordlen(max3191x);
-+	const unsigned int wordlen = max3191x_wordlen(max3191x);
-+	int ret;
-+	unsigned long bit;
-+	unsigned long gpio_mask;
-+	unsigned long in;
+ 	char name[10];
++	unsigned long trip;
+ 	int trip_count = 0;
+ 	int trip_mask = 0;
++	int writable_trip_cnt = 0;
++	unsigned long ptps;
+ 	u32 store_ptps;
++	unsigned long i;
+ 	int ret;
+-	int i;
  
- 	mutex_lock(&max3191x->lock);
- 	ret = max3191x_readout_locked(max3191x);
- 	if (ret)
- 		goto out_unlock;
+ 	/* Store status to restor on exit */
+ 	ret = iosf_mbi_read(BT_MBI_UNIT_PMC, MBI_REG_READ,
+@@ -293,11 +301,10 @@ static int add_dts_thermal_zone(int id, struct intel_soc_dts_sensor_entry *dts,
+ 		goto err_ret;
  
--	while ((bit = find_next_bit(mask, gpio->ngpio, bit)) != gpio->ngpio) {
-+	bitmap_zero(bits, gpio->ngpio);
-+	for_each_set_clump8(bit, gpio_mask, mask, gpio->ngpio) {
- 		unsigned int chipnum = bit / MAX3191X_NGPIO;
--		unsigned long in, shift, index;
- 
- 		if (max3191x_chip_is_faulting(max3191x, chipnum)) {
- 			ret = -EIO;
-@@ -249,12 +254,8 @@ static int max3191x_get_multiple(struct gpio_chip *gpio, unsigned long *mask,
- 		}
- 
- 		in = ((u8 *)max3191x->xfer.rx_buf)[chipnum * wordlen];
--		shift = round_down(bit % BITS_PER_LONG, MAX3191X_NGPIO);
--		index = bit / BITS_PER_LONG;
--		bits[index] &= ~(mask[index] & (0xff << shift));
--		bits[index] |= mask[index] & (in << shift); /* copy bits */
--
--		bit = (chipnum + 1) * MAX3191X_NGPIO; /* go to next chip */
-+		in &= gpio_mask;
-+		bitmap_set_value8(bits, in, bit);
+ 	dts->id = id;
+-	dts->temp_mask = 0x00FF << (id * 8);
+-	dts->temp_shift = id * 8;
+ 	if (notification_support) {
+ 		trip_count = min(SOC_MAX_DTS_TRIPS, trip_cnt);
+-		trip_mask = BIT(trip_count - read_only_trip_cnt) - 1;
++		writable_trip_cnt = trip_count - read_only_trip_cnt;
++		trip_mask = GENMASK(writable_trip_cnt - 1, 0);
  	}
  
- out_unlock:
+ 	/* Check if the writable trip we provide is not used by BIOS */
+@@ -306,11 +313,9 @@ static int add_dts_thermal_zone(int id, struct intel_soc_dts_sensor_entry *dts,
+ 	if (ret)
+ 		trip_mask = 0;
+ 	else {
+-		for (i = 0; i < trip_count; ++i) {
+-			if (trip_mask & BIT(i))
+-				if (store_ptps & (0xff << (i * 8)))
+-					trip_mask &= ~BIT(i);
+-		}
++		ptps = store_ptps;
++		for_each_set_clump8(i, trip, &ptps, writable_trip_cnt * 8)
++			trip_mask &= ~BIT(i / 8);
+ 	}
+ 	dts->trip_mask = trip_mask;
+ 	dts->trip_count = trip_count;
+diff --git a/drivers/thermal/intel/intel_soc_dts_iosf.h b/drivers/thermal/intel/intel_soc_dts_iosf.h
+index adfb09af33fc..c54945748200 100644
+--- a/drivers/thermal/intel/intel_soc_dts_iosf.h
++++ b/drivers/thermal/intel/intel_soc_dts_iosf.h
+@@ -24,8 +24,6 @@ struct intel_soc_dts_sensors;
+ 
+ struct intel_soc_dts_sensor_entry {
+ 	int id;
+-	u32 temp_mask;
+-	u32 temp_shift;
+ 	u32 store_status;
+ 	u32 trip_mask;
+ 	u32 trip_count;
 -- 
 2.23.0
