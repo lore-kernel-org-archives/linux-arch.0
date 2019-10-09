@@ -1,7 +1,7 @@
 From: "William Breathitt Gray" <vilhelm.gray@gmail.com>
-Subject: [PATCH v17 04/14] gpio: 104-idi-48: Utilize for_each_set_clump8 macro
-Date: Wed,  9 Oct 2019 11:27:02 -0400
-Message-ID: <7293.39832193858$1570938051@news.gmane.org>
+Subject: [PATCH v17 09/14] gpio: uniphier: Utilize for_each_set_clump8 macro
+Date: Wed,  9 Oct 2019 11:27:07 -0400
+Message-ID: <9162.60354440368$1570938803@news.gmane.org>
 References: <cover.1570633189.git.vilhelm.gray@gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -21,68 +21,52 @@ To: "linus.walleij@linaro.org" <linus.walleij@linaro.org>, "bgolaszewski@baylibr
 Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "preid@electromag.com.au" <preid@electromag.com.au>, "yamada.masahiro@socionext.com" <yamada.masahiro@socionext.com>, "linux-pm@vger.kernel.org" <linux-pm@vger.kernel.org>, "linux@rasmusvillemoes.dk" <linux@rasmusvillemoes.dk>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "morten.tiljeset@prevas.dk" <morten.tiljeset@prevas.dk>, "sean.nyekjaer@prevas.dk" <sean.nyekjaer@prevas.dk>, "linux-gpio@vger.kernel.org" <linux-gpio@vger.kernel.org>, "lukas@wunner.de" <lukas@wunner.de>, "geert@linux-m68k.org" <geert@linux-m68k.org>, William Breathitt Gray <vilhelm.gray@gmail.com>, "andriy.shevchenko@linux.intel.com" <andriy.shevchenko@linux.intel.com>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
 List-Id: linux-arch.vger.kernel.org
 
-Replace verbose implementation in get_multiple/set_multiple callbacks
-with for_each_set_clump8 macro to simplify code and improve clarity.
+Replace verbose implementation in set_multiple callback with
+for_each_set_clump8 macro to simplify code and improve clarity. An
+improvement in this case is that banks that are not masked will now be
+skipped.
 
-Reviewed-by: Linus Walleij <linus.walleij@linaro.org>
+Cc: Masahiro Yamada <yamada.masahiro@socionext.com>
 Signed-off-by: William Breathitt Gray <vilhelm.gray@gmail.com>
 ---
- drivers/gpio/gpio-104-idi-48.c | 36 +++++++---------------------------
- 1 file changed, 7 insertions(+), 29 deletions(-)
+ drivers/gpio/gpio-uniphier.c | 16 ++++++----------
+ 1 file changed, 6 insertions(+), 10 deletions(-)
 
-diff --git a/drivers/gpio/gpio-104-idi-48.c b/drivers/gpio/gpio-104-idi-48.c
-index ff53887bdaa8..bf67040cbbbb 100644
---- a/drivers/gpio/gpio-104-idi-48.c
-+++ b/drivers/gpio/gpio-104-idi-48.c
-@@ -85,42 +85,20 @@ static int idi_48_gpio_get_multiple(struct gpio_chip *chip, unsigned long *mask,
- 	unsigned long *bits)
+diff --git a/drivers/gpio/gpio-uniphier.c b/drivers/gpio/gpio-uniphier.c
+index 93cdcc41e9fb..3e4b15d0231e 100644
+--- a/drivers/gpio/gpio-uniphier.c
++++ b/drivers/gpio/gpio-uniphier.c
+@@ -15,9 +15,6 @@
+ #include <linux/spinlock.h>
+ #include <dt-bindings/gpio/uniphier-gpio.h>
+ 
+-#define UNIPHIER_GPIO_BANK_MASK		\
+-				GENMASK((UNIPHIER_GPIO_LINES_PER_BANK) - 1, 0)
+-
+ #define UNIPHIER_GPIO_IRQ_MAX_NUM	24
+ 
+ #define UNIPHIER_GPIO_PORT_DATA		0x0	/* data */
+@@ -147,15 +144,14 @@ static void uniphier_gpio_set(struct gpio_chip *chip,
+ static void uniphier_gpio_set_multiple(struct gpio_chip *chip,
+ 				       unsigned long *mask, unsigned long *bits)
  {
- 	struct idi_48_gpio *const idi48gpio = gpiochip_get_data(chip);
--	size_t i;
-+	unsigned long offset;
-+	unsigned long gpio_mask;
- 	static const size_t ports[] = { 0, 1, 2, 4, 5, 6 };
--	const unsigned int gpio_reg_size = 8;
--	unsigned int bits_offset;
--	size_t word_index;
--	unsigned int word_offset;
--	unsigned long word_mask;
--	const unsigned long port_mask = GENMASK(gpio_reg_size - 1, 0);
-+	unsigned int port_addr;
- 	unsigned long port_state;
+-	unsigned int bank, shift, bank_mask, bank_bits;
+-	int i;
++	unsigned long i;
++	unsigned long bank_mask;
++	unsigned long bank;
++	unsigned long bank_bits;
  
- 	/* clear bits array to a clean slate */
- 	bitmap_zero(bits, chip->ngpio);
+-	for (i = 0; i < chip->ngpio; i += UNIPHIER_GPIO_LINES_PER_BANK) {
++	for_each_set_clump8(i, bank_mask, mask, chip->ngpio) {
+ 		bank = i / UNIPHIER_GPIO_LINES_PER_BANK;
+-		shift = i % BITS_PER_LONG;
+-		bank_mask = (mask[BIT_WORD(i)] >> shift) &
+-						UNIPHIER_GPIO_BANK_MASK;
+-		bank_bits = bits[BIT_WORD(i)] >> shift;
++		bank_bits = bitmap_get_value8(bits, i);
  
--	/* get bits are evaluated a gpio port register at a time */
--	for (i = 0; i < ARRAY_SIZE(ports); i++) {
--		/* gpio offset in bits array */
--		bits_offset = i * gpio_reg_size;
-+	for_each_set_clump8(offset, gpio_mask, mask, ARRAY_SIZE(ports) * 8) {
-+		port_addr = idi48gpio->base + ports[offset / 8];
-+		port_state = inb(port_addr) & gpio_mask;
- 
--		/* word index for bits array */
--		word_index = BIT_WORD(bits_offset);
--
--		/* gpio offset within current word of bits array */
--		word_offset = bits_offset % BITS_PER_LONG;
--
--		/* mask of get bits for current gpio within current word */
--		word_mask = mask[word_index] & (port_mask << word_offset);
--		if (!word_mask) {
--			/* no get bits in this port so skip to next one */
--			continue;
--		}
--
--		/* read bits from current gpio port */
--		port_state = inb(idi48gpio->base + ports[i]);
--
--		/* store acquired bits at respective bits array offset */
--		bits[word_index] |= (port_state << word_offset) & word_mask;
-+		bitmap_set_value8(bits, port_state, offset);
- 	}
- 
- 	return 0;
+ 		uniphier_gpio_bank_write(chip, bank, UNIPHIER_GPIO_PORT_DATA,
+ 					 bank_mask, bank_bits);
 -- 
 2.23.0
