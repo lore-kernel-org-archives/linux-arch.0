@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-yw1-f68.google.com ([209.85.161.68]:43139 "EHLO
-        mail-yw1-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1731767AbfJIP1t (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 9 Oct 2019 11:27:49 -0400
+Received: from mail-yw1-f67.google.com ([209.85.161.67]:46885 "EHLO
+        mail-yw1-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1731626AbfJIP1x (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 9 Oct 2019 11:27:53 -0400
 From: William Breathitt Gray <vilhelm.gray@gmail.com>
-Subject: [PATCH v17 09/14] gpio: uniphier: Utilize for_each_set_clump8 macro
-Date: Wed,  9 Oct 2019 11:27:07 -0400
-Message-ID: <271a7735b02b6a8b1f54c018e38ea932d1fd299e.1570633189.git.vilhelm.gray@gmail.com>
+Subject: [PATCH v17 11/14] thermal: intel: intel_soc_dts_iosf: Utilize for_each_set_clump8 macro
+Date: Wed,  9 Oct 2019 11:27:09 -0400
+Message-ID: <335f1ce6411902dbe492a6b2a51fe479dd0f48a5.1570633189.git.vilhelm.gray@gmail.com>
 In-Reply-To: <cover.1570633189.git.vilhelm.gray@gmail.com>
 References: <cover.1570633189.git.vilhelm.gray@gmail.com>
 MIME-Version: 1.0
@@ -15,54 +15,130 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linus.walleij@linaro.org, bgolaszewski@baylibre.com, akpm@linux-foundation.org
 Cc: linux-gpio@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, andriy.shevchenko@linux.intel.com, linux@rasmusvillemoes.dk, yamada.masahiro@socionext.com, linux-arm-kernel@lists.infradead.org, linux-pm@vger.kernel.org, geert@linux-m68k.org, preid@electromag.com.au, lukas@wunner.de, sean.nyekjaer@prevas.dk, morten.tiljeset@prevas.dk, William Breathitt Gray <vilhelm.gray@gmail.com>
-Message-ID: <20191009152707.3J95y-OXye7rSS9EFfYUcKh68qll0m6Gc7Uh9KlOSbk@z>
+Message-ID: <20191009152709.eW7upM7F3TaOjb9g7BW3HjXWAnOJOpU-Ml86nUEmAfs@z>
 
-Replace verbose implementation in set_multiple callback with
-for_each_set_clump8 macro to simplify code and improve clarity. An
-improvement in this case is that banks that are not masked will now be
-skipped.
+Utilize for_each_set_clump8 macro, and the bitmap_set_value8 and
+bitmap_get_value8 functions, where appropriate. In addition, remove the
+now unnecessary temp_mask and temp_shift members of the
+intel_soc_dts_sensor_entry structure.
 
-Cc: Masahiro Yamada <yamada.masahiro@socionext.com>
+Suggested-by: Andy Shevchenko <andriy.shevchenko@linux.intel.com>
+Cc: Andy Shevchenko <andriy.shevchenko@linux.intel.com>
 Signed-off-by: William Breathitt Gray <vilhelm.gray@gmail.com>
 ---
- drivers/gpio/gpio-uniphier.c | 16 ++++++----------
- 1 file changed, 6 insertions(+), 10 deletions(-)
+ drivers/thermal/intel/intel_soc_dts_iosf.c | 31 +++++++++++++---------
+ drivers/thermal/intel/intel_soc_dts_iosf.h |  2 --
+ 2 files changed, 18 insertions(+), 15 deletions(-)
 
-diff --git a/drivers/gpio/gpio-uniphier.c b/drivers/gpio/gpio-uniphier.c
-index 93cdcc41e9fb..3e4b15d0231e 100644
---- a/drivers/gpio/gpio-uniphier.c
-+++ b/drivers/gpio/gpio-uniphier.c
-@@ -15,9 +15,6 @@
- #include <linux/spinlock.h>
- #include <dt-bindings/gpio/uniphier-gpio.h>
+diff --git a/drivers/thermal/intel/intel_soc_dts_iosf.c b/drivers/thermal/intel/intel_soc_dts_iosf.c
+index 5716b62e0f73..f75271b669c6 100644
+--- a/drivers/thermal/intel/intel_soc_dts_iosf.c
++++ b/drivers/thermal/intel/intel_soc_dts_iosf.c
+@@ -6,6 +6,7 @@
  
--#define UNIPHIER_GPIO_BANK_MASK		\
--				GENMASK((UNIPHIER_GPIO_LINES_PER_BANK) - 1, 0)
--
- #define UNIPHIER_GPIO_IRQ_MAX_NUM	24
+ #define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
  
- #define UNIPHIER_GPIO_PORT_DATA		0x0	/* data */
-@@ -147,15 +144,14 @@ static void uniphier_gpio_set(struct gpio_chip *chip,
- static void uniphier_gpio_set_multiple(struct gpio_chip *chip,
- 				       unsigned long *mask, unsigned long *bits)
++#include <linux/bitops.h>
+ #include <linux/module.h>
+ #include <linux/slab.h>
+ #include <linux/interrupt.h>
+@@ -103,6 +104,7 @@ static int update_trip_temp(struct intel_soc_dts_sensor_entry *dts,
+ 	int status;
+ 	u32 temp_out;
+ 	u32 out;
++	unsigned long update_ptps;
+ 	u32 store_ptps;
+ 	u32 store_ptmc;
+ 	u32 store_te_out;
+@@ -120,8 +122,10 @@ static int update_trip_temp(struct intel_soc_dts_sensor_entry *dts,
+ 	if (status)
+ 		return status;
+ 
+-	out = (store_ptps & ~(0xFF << (thres_index * 8)));
+-	out |= (temp_out & 0xFF) << (thres_index * 8);
++	update_ptps = store_ptps;
++	bitmap_set_value8(&update_ptps, temp_out & 0xFF, thres_index * 8);
++	out = update_ptps;
++
+ 	status = iosf_mbi_write(BT_MBI_UNIT_PMC, MBI_REG_WRITE,
+ 				SOC_DTS_OFFSET_PTPS, out);
+ 	if (status)
+@@ -223,6 +227,7 @@ static int sys_get_curr_temp(struct thermal_zone_device *tzd,
+ 	u32 out;
+ 	struct intel_soc_dts_sensor_entry *dts;
+ 	struct intel_soc_dts_sensors *sensors;
++	unsigned long raw;
+ 
+ 	dts = tzd->devdata;
+ 	sensors = dts->sensors;
+@@ -231,8 +236,8 @@ static int sys_get_curr_temp(struct thermal_zone_device *tzd,
+ 	if (status)
+ 		return status;
+ 
+-	out = (out & dts->temp_mask) >> dts->temp_shift;
+-	out -= SOC_DTS_TJMAX_ENCODING;
++	raw = out;
++	out = bitmap_get_value8(&raw, dts->id * 8) - SOC_DTS_TJMAX_ENCODING;
+ 	*temp = sensors->tj_max - out * 1000;
+ 
+ 	return 0;
+@@ -280,11 +285,14 @@ static int add_dts_thermal_zone(int id, struct intel_soc_dts_sensor_entry *dts,
+ 				int read_only_trip_cnt)
  {
--	unsigned int bank, shift, bank_mask, bank_bits;
--	int i;
+ 	char name[10];
++	unsigned long trip;
+ 	int trip_count = 0;
+ 	int trip_mask = 0;
++	int writable_trip_cnt = 0;
++	unsigned long ptps;
+ 	u32 store_ptps;
 +	unsigned long i;
-+	unsigned long bank_mask;
-+	unsigned long bank;
-+	unsigned long bank_bits;
+ 	int ret;
+-	int i;
  
--	for (i = 0; i < chip->ngpio; i += UNIPHIER_GPIO_LINES_PER_BANK) {
-+	for_each_set_clump8(i, bank_mask, mask, chip->ngpio) {
- 		bank = i / UNIPHIER_GPIO_LINES_PER_BANK;
--		shift = i % BITS_PER_LONG;
--		bank_mask = (mask[BIT_WORD(i)] >> shift) &
--						UNIPHIER_GPIO_BANK_MASK;
--		bank_bits = bits[BIT_WORD(i)] >> shift;
-+		bank_bits = bitmap_get_value8(bits, i);
+ 	/* Store status to restor on exit */
+ 	ret = iosf_mbi_read(BT_MBI_UNIT_PMC, MBI_REG_READ,
+@@ -293,11 +301,10 @@ static int add_dts_thermal_zone(int id, struct intel_soc_dts_sensor_entry *dts,
+ 		goto err_ret;
  
- 		uniphier_gpio_bank_write(chip, bank, UNIPHIER_GPIO_PORT_DATA,
- 					 bank_mask, bank_bits);
+ 	dts->id = id;
+-	dts->temp_mask = 0x00FF << (id * 8);
+-	dts->temp_shift = id * 8;
+ 	if (notification_support) {
+ 		trip_count = min(SOC_MAX_DTS_TRIPS, trip_cnt);
+-		trip_mask = BIT(trip_count - read_only_trip_cnt) - 1;
++		writable_trip_cnt = trip_count - read_only_trip_cnt;
++		trip_mask = GENMASK(writable_trip_cnt - 1, 0);
+ 	}
+ 
+ 	/* Check if the writable trip we provide is not used by BIOS */
+@@ -306,11 +313,9 @@ static int add_dts_thermal_zone(int id, struct intel_soc_dts_sensor_entry *dts,
+ 	if (ret)
+ 		trip_mask = 0;
+ 	else {
+-		for (i = 0; i < trip_count; ++i) {
+-			if (trip_mask & BIT(i))
+-				if (store_ptps & (0xff << (i * 8)))
+-					trip_mask &= ~BIT(i);
+-		}
++		ptps = store_ptps;
++		for_each_set_clump8(i, trip, &ptps, writable_trip_cnt * 8)
++			trip_mask &= ~BIT(i / 8);
+ 	}
+ 	dts->trip_mask = trip_mask;
+ 	dts->trip_count = trip_count;
+diff --git a/drivers/thermal/intel/intel_soc_dts_iosf.h b/drivers/thermal/intel/intel_soc_dts_iosf.h
+index adfb09af33fc..c54945748200 100644
+--- a/drivers/thermal/intel/intel_soc_dts_iosf.h
++++ b/drivers/thermal/intel/intel_soc_dts_iosf.h
+@@ -24,8 +24,6 @@ struct intel_soc_dts_sensors;
+ 
+ struct intel_soc_dts_sensor_entry {
+ 	int id;
+-	u32 temp_mask;
+-	u32 temp_shift;
+ 	u32 store_status;
+ 	u32 trip_mask;
+ 	u32 trip_count;
 -- 
 2.23.0
