@@ -1,8 +1,8 @@
 From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: [PATCH 3/3] asm-generic/mm: stub out p{4,
- d}d_clear_bad() if __PAGETABLE_P{4, u}D_FOLDED
-Date: Wed,  9 Oct 2019 15:26:58 -0700
-Message-ID: <20191009222658.961-4-vgupta@synopsys.com>
+Subject: [PATCH 1/3] asm-generic/tlb: stub out pud_free_tlb() if
+ __PAGETABLE_PUD_FOLDED ...
+Date: Wed,  9 Oct 2019 15:26:56 -0700
+Message-ID: <20191009222658.961-2-vgupta@synopsys.com>
 References: <20191009222658.961-1-vgupta@synopsys.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -22,70 +22,57 @@ To: linux-mm@kvack.org
 Cc: linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Peter Zijlstra <peterz@infradead.org>, "Aneesh Kumar K . V" <aneesh.kumar@linux.ibm.com>, Vineet Gupta <Vineet.Gupta1@synopsys.com>, linux-kernel@vger.kernel.org, Nick Piggin <npiggin@gmail.com>, Andrew Morton <akpm@linux-foundation.org>, linux-snps-arc@lists.infradead.org, Will Deacon <will@kernel.org>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>
 List-Id: linux-arch.vger.kernel.org
 
-This removes the code for 2 level paging as seen on ARC
+... independent of __ARCH_HAS_4LEVEL_HACK
 
-| bloat-o-meter2 vmlinux-D-elide-p4d_free_tlb vmlinux-E-elide-p?d_clear_bad
-| add/remove: 0/2 grow/shrink: 0/0 up/down: 0/-22 (-22)
+This came up when removing __ARCH_HAS_5LEVEL_HACK for ARC as code bloat
+from pud_free_tlb() despite pud being folded (with 2 levels on ARC)
+
+| bloat-o-meter2 vmlinux-B-elide-ARCH_USE_5LEVEL_HACK vmlinux-C-elide-pud_free_tlb
+| add/remove: 0/0 grow/shrink: 0/1 up/down: 0/-104 (-104)
 | function                                     old     new   delta
-| pud_clear_bad                                 20       -     -20
-| p4d_clear_bad                                 20       -     -20
-| Total: Before=4137104, After=4137082, chg -1.000000%
+| free_pgd_range                               656     552    -104
+| Total: Before=4137276, After=4137172, chg -1.000000%
 
 Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
 ---
- include/asm-generic/pgtable.h | 11 +++++++++++
- mm/pgtable-generic.c          |  4 ++++
- 2 files changed, 15 insertions(+)
+ include/asm-generic/4level-fixup.h | 2 --
+ include/asm-generic/tlb.h          | 4 +++-
+ 2 files changed, 3 insertions(+), 3 deletions(-)
 
-diff --git a/include/asm-generic/pgtable.h b/include/asm-generic/pgtable.h
-index 818691846c90..9cdcbc7c0b7b 100644
---- a/include/asm-generic/pgtable.h
-+++ b/include/asm-generic/pgtable.h
-@@ -558,8 +558,19 @@ static inline pgprot_t pgprot_modify(pgprot_t oldprot, pgprot_t newprot)
-  * Do the tests inline, but report and clear the bad entry in mm/memory.c.
-  */
- void pgd_clear_bad(pgd_t *);
-+
-+#ifndef __PAGETABLE_P4D_FOLDED
- void p4d_clear_bad(p4d_t *);
-+#else
-+#define p4d_clear_bad(p4d)        do { } while (0)
-+#endif
-+
+diff --git a/include/asm-generic/4level-fixup.h b/include/asm-generic/4level-fixup.h
+index e3667c9a33a5..d7c5ba1968d3 100644
+--- a/include/asm-generic/4level-fixup.h
++++ b/include/asm-generic/4level-fixup.h
+@@ -27,8 +27,6 @@
+ #define pud_page(pud)			pgd_page(pud)
+ #define pud_page_vaddr(pud)		pgd_page_vaddr(pud)
+ 
+-#undef pud_free_tlb
+-#define pud_free_tlb(tlb, x, addr)	do { } while (0)
+ #define pud_free(mm, x)			do { } while (0)
+ #define __pud_free_tlb(tlb, x, addr)	do { } while (0)
+ 
+diff --git a/include/asm-generic/tlb.h b/include/asm-generic/tlb.h
+index 04c0644006fd..1f83188cb331 100644
+--- a/include/asm-generic/tlb.h
++++ b/include/asm-generic/tlb.h
+@@ -584,7 +584,7 @@ static inline void tlb_end_vma(struct mmu_gather *tlb, struct vm_area_struct *vm
+ 	} while (0)
+ #endif
+ 
+-#ifndef __ARCH_HAS_4LEVEL_HACK
 +#ifndef __PAGETABLE_PUD_FOLDED
- void pud_clear_bad(pud_t *);
+ #ifndef pud_free_tlb
+ #define pud_free_tlb(tlb, pudp, address)			\
+ 	do {							\
+@@ -594,6 +594,8 @@ static inline void tlb_end_vma(struct mmu_gather *tlb, struct vm_area_struct *vm
+ 		__pud_free_tlb(tlb, pudp, address);		\
+ 	} while (0)
+ #endif
 +#else
-+#define pud_clear_bad(p4d)        do { } while (0)
-+#endif
-+
- void pmd_clear_bad(pmd_t *);
++#define pud_free_tlb(tlb, pudp, address)	do { } while (0)
+ #endif
  
- static inline int pgd_none_or_clear_bad(pgd_t *pgd)
-diff --git a/mm/pgtable-generic.c b/mm/pgtable-generic.c
-index 532c29276fce..856dc3bb77e6 100644
---- a/mm/pgtable-generic.c
-+++ b/mm/pgtable-generic.c
-@@ -24,17 +24,21 @@ void pgd_clear_bad(pgd_t *pgd)
- 	pgd_clear(pgd);
- }
- 
-+#ifndef __PAGETABLE_P4D_FOLDED
- void p4d_clear_bad(p4d_t *p4d)
- {
- 	p4d_ERROR(*p4d);
- 	p4d_clear(p4d);
- }
-+#endif
- 
-+#ifndef __PAGETABLE_PUD_FOLDED
- void pud_clear_bad(pud_t *pud)
- {
- 	pud_ERROR(*pud);
- 	pud_clear(pud);
- }
-+#endif
- 
- void pmd_clear_bad(pmd_t *pmd)
- {
+ #ifndef __ARCH_HAS_5LEVEL_HACK
 -- 
 2.20.1
