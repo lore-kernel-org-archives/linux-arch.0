@@ -1,55 +1,46 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wr1-f66.google.com ([209.85.221.66]:45668 "EHLO
-        mail-wr1-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1729790AbfJHKam (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 8 Oct 2019 06:30:42 -0400
-Subject: Re: [REPOST][RFC][PATCH] sysctl: Remove the sysctl system call
-References: <8736gcjosv.fsf@x220.int.ebiederm.org>
- <201910011140.EA0181F13@keescook> <87y2y271ws.fsf@mid.deneb.enyo.de>
- <87tv8pftjj.fsf_-_@x220.int.ebiederm.org> <201910031404.C30A0F16@keescook>
-From: "Michael Kerrisk (man-pages)" <mtk.manpages@gmail.com>
-Message-ID: <4c3e4883-706e-fd1b-4f4f-0653eabeb027@gmail.com>
-Date: Tue, 8 Oct 2019 12:30:35 +0200
+Received: from mail-lf1-f67.google.com ([209.85.167.67]:36506 "EHLO
+        mail-lf1-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1730363AbfJIJ0N (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 9 Oct 2019 05:26:13 -0400
+Received: by mail-lf1-f67.google.com with SMTP id x80so1107961lff.3
+        for <linux-arch@vger.kernel.org>; Wed, 09 Oct 2019 02:26:11 -0700 (PDT)
 MIME-Version: 1.0
-In-Reply-To: <201910031404.C30A0F16@keescook>
-Content-Type: text/plain; charset=utf-8
-Content-Language: en-US
-Content-Transfer-Encoding: 7bit
+References: <cover.1570299719.git.vilhelm.gray@gmail.com> <be63fa49f036b9168f223152648307a63056f4ee.1570299719.git.vilhelm.gray@gmail.com>
+In-Reply-To: <be63fa49f036b9168f223152648307a63056f4ee.1570299719.git.vilhelm.gray@gmail.com>
+From: Linus Walleij <linus.walleij@linaro.org>
+Date: Wed, 9 Oct 2019 11:25:59 +0200
+Message-ID: <CACRpkdbEszHr3zzVBTinVFQXU+sjOu9YbWC-554+7PYgupYJBA@mail.gmail.com>
+Subject: Re: [PATCH v15 01/14] bitops: Introduce the for_each_set_clump8 macro
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Kees Cook <keescook@chromium.org>, "Eric W. Biederman" <ebiederm@xmission.com>
-Cc: mtk.manpages@gmail.com, Florian Weimer <fw@deneb.enyo.de>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Jann Horn <jannh@google.com>, Arnd Bergmann <arnd@arndb.de>, Helge Deller <deller@gmx.de>
-Message-ID: <20191008103035.MeY6ieEa4GrbKxyvNO_B2wRbmoeQWUbOeSIKvaQVvI4@z>
+To: William Breathitt Gray <vilhelm.gray@gmail.com>
+Cc: Bartosz Golaszewski <bgolaszewski@baylibre.com>, Andrew Morton <akpm@linux-foundation.org>, "open list:GPIO SUBSYSTEM" <linux-gpio@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Andy Shevchenko <andriy.shevchenko@linux.intel.com>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Masahiro Yamada <yamada.masahiro@socionext.com>, Linux ARM <linux-arm-kernel@lists.infradead.org>, Linux PM list <linux-pm@vger.kernel.org>, Geert Uytterhoeven <geert@linux-m68k.org>, Phil Reid <preid@electromag.com.au>, Lukas Wunner <lukas@wunner.de>, Sean Nyekjaer <sean.nyekjaer@prevas.dk>, morten.tiljeset@prevas.dk, Andy Shevchenko <andy.shevchenko@gmail.com>, Arnd Bergmann <arnd@arndb.de>
+Message-ID: <20191009092559.scVurDOFd_f9nNrY9JhNtao4jM0shVPcCQiVrXnDkVA@z>
 
-On 10/3/19 11:05 PM, Kees Cook wrote:
-> On Thu, Oct 03, 2019 at 03:44:32PM -0500, Eric W. Biederman wrote:
->>
->> This system call has been deprecated almost since it was introduced, and none
->> of the common distributions enable it.  The only indication that I can find that
->> anyone might care is that a few of the defconfigs in the kernel enable it.  However
->> that is a small fractions of the defconfigs so I suspect it just a lack of care
->> rather than a reflection of software using the the sysctl system call.
->>
->> As there appear to be no users of the sysctl system call, remove the
->> code so that the proc filesystem can be simplified.
-> 
-> nitpick: line lengths near 80 characters
-> 
->> Signed-off-by: "Eric W. Biederman" <ebiederm@xmission.com>
-> 
-> But, yes, I would love to see this gone. :)
-> 
-> Reviewed-by: Kees Cook <keescook@chromium.org>
+On Sat, Oct 5, 2019 at 8:37 PM William Breathitt Gray
+<vilhelm.gray@gmail.com> wrote:
 
-And for the record, the manual page has since 2007 documented that 
-this system call is likely to go away in the future.
+> This macro iterates for each 8-bit group of bits (clump) with set bits,
+> within a bitmap memory region. For each iteration, "start" is set to the
+> bit offset of the found clump, while the respective clump value is
+> stored to the location pointed by "clump". Additionally, the
+> bitmap_get_value8 and bitmap_set_value8 functions are introduced to
+> respectively get and set an 8-bit value in a bitmap memory region.
+>
+> Suggested-by: Andy Shevchenko <andy.shevchenko@gmail.com>
+> Suggested-by: Rasmus Villemoes <linux@rasmusvillemoes.dk>
+> Suggested-by: Lukas Wunner <lukas@wunner.de>
+> Cc: Arnd Bergmann <arnd@arndb.de>
+> Cc: Andrew Morton <akpm@linux-foundation.org>
+> Cc: Andy Shevchenko <andy.shevchenko@gmail.com>
+> Cc: Linus Walleij <linus.walleij@linaro.org>
+> Signed-off-by: William Breathitt Gray <vilhelm.gray@gmail.com>
 
-Cheers,
+As usual I am happy to merge all this but I would need
+Andrew Morton's ACK, as I don't feel like a maintainer for
+the bitops.
 
-Michael
-
-
--- 
-Michael Kerrisk
-Linux man-pages maintainer; http://www.kernel.org/doc/man-pages/
-Linux/UNIX System Programming Training: http://man7.org/training/
+Yours,
+Linus Walleij
