@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-yw1-f65.google.com ([209.85.161.65]:34387 "EHLO
-        mail-yw1-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1731328AbfJIP1g (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 9 Oct 2019 11:27:36 -0400
+Received: from mail-yw1-f68.google.com ([209.85.161.68]:43139 "EHLO
+        mail-yw1-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1731767AbfJIP1t (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 9 Oct 2019 11:27:49 -0400
 From: William Breathitt Gray <vilhelm.gray@gmail.com>
-Subject: [PATCH v17 02/14] lib/test_bitmap.c: Add for_each_set_clump8 test cases
-Date: Wed,  9 Oct 2019 11:27:00 -0400
-Message-ID: <febc0fb8151e3e3fdd61c34da9193d1c4d7e6c12.1570633189.git.vilhelm.gray@gmail.com>
+Subject: [PATCH v17 09/14] gpio: uniphier: Utilize for_each_set_clump8 macro
+Date: Wed,  9 Oct 2019 11:27:07 -0400
+Message-ID: <271a7735b02b6a8b1f54c018e38ea932d1fd299e.1570633189.git.vilhelm.gray@gmail.com>
 In-Reply-To: <cover.1570633189.git.vilhelm.gray@gmail.com>
 References: <cover.1570633189.git.vilhelm.gray@gmail.com>
 MIME-Version: 1.0
@@ -14,119 +14,55 @@ Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linus.walleij@linaro.org, bgolaszewski@baylibre.com, akpm@linux-foundation.org
-Cc: linux-gpio@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, andriy.shevchenko@linux.intel.com, linux@rasmusvillemoes.dk, yamada.masahiro@socionext.com, linux-arm-kernel@lists.infradead.org, linux-pm@vger.kernel.org, geert@linux-m68k.org, preid@electromag.com.au, lukas@wunner.de, sean.nyekjaer@prevas.dk, morten.tiljeset@prevas.dk, William Breathitt Gray <vilhelm.gray@gmail.com>, Andy Shevchenko <andy.shevchenko@gmail.com>
-Message-ID: <20191009152700.4LLpPNWPPPWLYocdB_oPk35TmmOX7cF12R8MExnS_G4@z>
+Cc: linux-gpio@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, andriy.shevchenko@linux.intel.com, linux@rasmusvillemoes.dk, yamada.masahiro@socionext.com, linux-arm-kernel@lists.infradead.org, linux-pm@vger.kernel.org, geert@linux-m68k.org, preid@electromag.com.au, lukas@wunner.de, sean.nyekjaer@prevas.dk, morten.tiljeset@prevas.dk, William Breathitt Gray <vilhelm.gray@gmail.com>
+Message-ID: <20191009152707.3J95y-OXye7rSS9EFfYUcKh68qll0m6Gc7Uh9KlOSbk@z>
 
-The introduction of the for_each_set_clump8 macro warrants test cases to
-verify the implementation. This patch adds test case checks for whether
-an out-of-bounds clump index is returned, a zero clump is returned, or
-the returned clump value differs from the expected clump value.
+Replace verbose implementation in set_multiple callback with
+for_each_set_clump8 macro to simplify code and improve clarity. An
+improvement in this case is that banks that are not masked will now be
+skipped.
 
-Cc: Rasmus Villemoes <linux@rasmusvillemoes.dk>
-Acked-by: Andrew Morton <akpm@linux-foundation.org>
-Reviewed-by: Andy Shevchenko <andy.shevchenko@gmail.com>
-Reviewed-by: Linus Walleij <linus.walleij@linaro.org>
+Cc: Masahiro Yamada <yamada.masahiro@socionext.com>
 Signed-off-by: William Breathitt Gray <vilhelm.gray@gmail.com>
 ---
- lib/test_bitmap.c | 65 +++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 65 insertions(+)
+ drivers/gpio/gpio-uniphier.c | 16 ++++++----------
+ 1 file changed, 6 insertions(+), 10 deletions(-)
 
-diff --git a/lib/test_bitmap.c b/lib/test_bitmap.c
-index 51a98f7ee79e..dc167c13eb39 100644
---- a/lib/test_bitmap.c
-+++ b/lib/test_bitmap.c
-@@ -92,6 +92,36 @@ __check_eq_u32_array(const char *srcfile, unsigned int line,
- 	return true;
- }
+diff --git a/drivers/gpio/gpio-uniphier.c b/drivers/gpio/gpio-uniphier.c
+index 93cdcc41e9fb..3e4b15d0231e 100644
+--- a/drivers/gpio/gpio-uniphier.c
++++ b/drivers/gpio/gpio-uniphier.c
+@@ -15,9 +15,6 @@
+ #include <linux/spinlock.h>
+ #include <dt-bindings/gpio/uniphier-gpio.h>
  
-+static bool __init __check_eq_clump8(const char *srcfile, unsigned int line,
-+				    const unsigned int offset,
-+				    const unsigned int size,
-+				    const unsigned char *const clump_exp,
-+				    const unsigned long *const clump)
-+{
-+	unsigned long exp;
-+
-+	if (offset >= size) {
-+		pr_warn("[%s:%u] bit offset for clump out-of-bounds: expected less than %u, got %u\n",
-+			srcfile, line, size, offset);
-+		return false;
-+	}
-+
-+	exp = clump_exp[offset / 8];
-+	if (!exp) {
-+		pr_warn("[%s:%u] bit offset for zero clump: expected nonzero clump, got bit offset %u with clump value 0",
-+			srcfile, line, offset);
-+		return false;
-+	}
-+
-+	if (*clump != exp) {
-+		pr_warn("[%s:%u] expected clump value of 0x%lX, got clump value of 0x%lX",
-+			srcfile, line, exp, *clump);
-+		return false;
-+	}
-+
-+	return true;
-+}
-+
- #define __expect_eq(suffix, ...)					\
- 	({								\
- 		int result = 0;						\
-@@ -108,6 +138,7 @@ __check_eq_u32_array(const char *srcfile, unsigned int line,
- #define expect_eq_bitmap(...)		__expect_eq(bitmap, ##__VA_ARGS__)
- #define expect_eq_pbl(...)		__expect_eq(pbl, ##__VA_ARGS__)
- #define expect_eq_u32_array(...)	__expect_eq(u32_array, ##__VA_ARGS__)
-+#define expect_eq_clump8(...)		__expect_eq(clump8, ##__VA_ARGS__)
+-#define UNIPHIER_GPIO_BANK_MASK		\
+-				GENMASK((UNIPHIER_GPIO_LINES_PER_BANK) - 1, 0)
+-
+ #define UNIPHIER_GPIO_IRQ_MAX_NUM	24
  
- static void __init test_zero_clear(void)
+ #define UNIPHIER_GPIO_PORT_DATA		0x0	/* data */
+@@ -147,15 +144,14 @@ static void uniphier_gpio_set(struct gpio_chip *chip,
+ static void uniphier_gpio_set_multiple(struct gpio_chip *chip,
+ 				       unsigned long *mask, unsigned long *bits)
  {
-@@ -404,6 +435,39 @@ static void noinline __init test_mem_optimisations(void)
- 	}
- }
+-	unsigned int bank, shift, bank_mask, bank_bits;
+-	int i;
++	unsigned long i;
++	unsigned long bank_mask;
++	unsigned long bank;
++	unsigned long bank_bits;
  
-+static const unsigned char clump_exp[] __initconst = {
-+	0x01,	/* 1 bit set */
-+	0x02,	/* non-edge 1 bit set */
-+	0x00,	/* zero bits set */
-+	0x38,	/* 3 bits set across 4-bit boundary */
-+	0x38,	/* Repeated clump */
-+	0x0F,	/* 4 bits set */
-+	0xFF,	/* all bits set */
-+	0x05,	/* non-adjacent 2 bits set */
-+};
-+
-+static void __init test_for_each_set_clump8(void)
-+{
-+#define CLUMP_EXP_NUMBITS 64
-+	DECLARE_BITMAP(bits, CLUMP_EXP_NUMBITS);
-+	unsigned int start;
-+	unsigned long clump;
-+
-+	/* set bitmap to test case */
-+	bitmap_zero(bits, CLUMP_EXP_NUMBITS);
-+	bitmap_set(bits, 0, 1);		/* 0x01 */
-+	bitmap_set(bits, 9, 1);		/* 0x02 */
-+	bitmap_set(bits, 27, 3);	/* 0x28 */
-+	bitmap_set(bits, 35, 3);	/* 0x28 */
-+	bitmap_set(bits, 40, 4);	/* 0x0F */
-+	bitmap_set(bits, 48, 8);	/* 0xFF */
-+	bitmap_set(bits, 56, 1);	/* 0x05 - part 1 */
-+	bitmap_set(bits, 58, 1);	/* 0x05 - part 2 */
-+
-+	for_each_set_clump8(start, clump, bits, CLUMP_EXP_NUMBITS)
-+		expect_eq_clump8(start, CLUMP_EXP_NUMBITS, clump_exp, &clump);
-+}
-+
- static void __init selftest(void)
- {
- 	test_zero_clear();
-@@ -413,6 +477,7 @@ static void __init selftest(void)
- 	test_bitmap_parselist();
- 	test_bitmap_parselist_user();
- 	test_mem_optimisations();
-+	test_for_each_set_clump8();
- }
+-	for (i = 0; i < chip->ngpio; i += UNIPHIER_GPIO_LINES_PER_BANK) {
++	for_each_set_clump8(i, bank_mask, mask, chip->ngpio) {
+ 		bank = i / UNIPHIER_GPIO_LINES_PER_BANK;
+-		shift = i % BITS_PER_LONG;
+-		bank_mask = (mask[BIT_WORD(i)] >> shift) &
+-						UNIPHIER_GPIO_BANK_MASK;
+-		bank_bits = bits[BIT_WORD(i)] >> shift;
++		bank_bits = bitmap_get_value8(bits, i);
  
- KSTM_MODULE_LOADERS(test_bitmap);
+ 		uniphier_gpio_bank_write(chip, bank, UNIPHIER_GPIO_PORT_DATA,
+ 					 bank_mask, bank_bits);
 -- 
 2.23.0
