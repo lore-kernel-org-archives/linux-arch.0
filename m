@@ -1,138 +1,137 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:33838 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1730490AbfJIM7S (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 9 Oct 2019 08:59:18 -0400
-Date: Wed, 9 Oct 2019 13:59:13 +0100
-From: Dave Martin <Dave.Martin@arm.com>
-Subject: Re: [RFC PATCH v2 2/2] ELF: Add ELF program property parsing support
-Message-ID: <20191009125913.GE27757@arm.com>
-References: <1566581020-9953-1-git-send-email-Dave.Martin@arm.com>
- <1566581020-9953-3-git-send-email-Dave.Martin@arm.com>
- <201908292224.007EB4D5@keescook>
- <20190830083415.GI27757@arm.com>
+Received: from mail-yw1-f66.google.com ([209.85.161.66]:42377 "EHLO
+        mail-yw1-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1731742AbfJIP1n (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 9 Oct 2019 11:27:43 -0400
+From: William Breathitt Gray <vilhelm.gray@gmail.com>
+Subject: [PATCH v17 06/14] gpio: ws16c48: Utilize for_each_set_clump8 macro
+Date: Wed,  9 Oct 2019 11:27:04 -0400
+Message-ID: <7a0d2c964e7f2d289b16c63ff6b06fc1f4c50d4d.1570633189.git.vilhelm.gray@gmail.com>
+In-Reply-To: <cover.1570633189.git.vilhelm.gray@gmail.com>
+References: <cover.1570633189.git.vilhelm.gray@gmail.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20190830083415.GI27757@arm.com>
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Kees Cook <keescook@chromium.org>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Jann Horn <jannh@google.com>, "H.J. Lu" <hjl.tools@gmail.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, Yu-cheng Yu <yu-cheng.yu@intel.com>, Peter Zijlstra <peterz@infradead.org>, Mark Brown <mark.brown@arm.com>
-Message-ID: <20191009125913.RX9CM4jhUDYIVRtK7sXNJRiLhzSGeVFH2jDkJl2N5OI@z>
+To: linus.walleij@linaro.org, bgolaszewski@baylibre.com, akpm@linux-foundation.org
+Cc: linux-gpio@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, andriy.shevchenko@linux.intel.com, linux@rasmusvillemoes.dk, yamada.masahiro@socionext.com, linux-arm-kernel@lists.infradead.org, linux-pm@vger.kernel.org, geert@linux-m68k.org, preid@electromag.com.au, lukas@wunner.de, sean.nyekjaer@prevas.dk, morten.tiljeset@prevas.dk, William Breathitt Gray <vilhelm.gray@gmail.com>
+Message-ID: <20191009152704.zHewE5ZUdxZK8y211Vem8XLfAzESwsVCryBl8EbZyl8@z>
 
-On Fri, Aug 30, 2019 at 09:34:17AM +0100, Dave Martin wrote:
-> On Fri, Aug 30, 2019 at 06:37:45AM +0100, Kees Cook wrote:
-> > On Fri, Aug 23, 2019 at 06:23:40PM +0100, Dave Martin wrote:
-> > > ELF program properties will needed for detecting whether to enable
-> > > optional architecture or ABI features for a new ELF process.
-> > > 
-> > > For now, there are no generic properties that we care about, so do
-> > > nothing unless CONFIG_ARCH_USE_GNU_PROPERTY=y.
-> > > 
-> > > Otherwise, the presence of properties using the PT_PROGRAM_PROPERTY
-> > > phdrs entry (if any), and notify each property to the arch code.
-> > > 
-> > > For now, the added code is not used.
-> > > 
-> > > Signed-off-by: Dave Martin <Dave.Martin@arm.com>
-> > 
-> > Reviewed-by: Kees Cook <keescook@chromium.org>
-> 
-> Thanks for the review.
-> 
-> Do you have any thoughts on Yu-Cheng Yu's comments?  It would be nice to
-> early-terminate the scan if we can, but my feeling so far was that the
-> scan is cheap, the number of properties is unlikely to be more than a
-> smallish integer, and the code separation benefits of just calling the
-> arch code for every property probably likely outweigh the costs of
-> having to iterate over every property.  We could always optimise it
-> later if necessary.
-> 
-> I need to double-check that there's no way we can get stuck in an
-> infinite loop with the current code, though I've not seen it in my
-> testing.  I should throw some malformed notes at it though.
-> 
-> > Note below...
-> > 
-> > > [...]
-> > > +static int parse_elf_property(const char *data, size_t *off, size_t datasz,
-> > > +			      struct arch_elf_state *arch,
-> > > +			      bool have_prev_type, u32 *prev_type)
-> > > +{
-> > > +	size_t size, step;
-> > > +	const struct gnu_property *pr;
-> > > +	int ret;
-> > > +
-> > > +	if (*off == datasz)
-> > > +		return -ENOENT;
-> > > +
-> > > +	if (WARN_ON(*off > datasz || *off % elf_gnu_property_align))
-> > > +		return -EIO;
-> > > +
-> > > +	size = datasz - *off;
-> > > +	if (size < sizeof(*pr))
-> > > +		return -EIO;
-> > > +
-> > > +	pr = (const struct gnu_property *)(data + *off);
-> > > +	if (pr->pr_datasz > size - sizeof(*pr))
-> > > +		return -EIO;
-> > > +
-> > > +	step = round_up(sizeof(*pr) + pr->pr_datasz, elf_gnu_property_align);
-> > > +	if (step > size)
-> > > +		return -EIO;
-> > > +
-> > > +	/* Properties are supposed to be unique and sorted on pr_type: */
-> > > +	if (have_prev_type && pr->pr_type <= *prev_type)
-> > > +		return -EIO;
-> > > +	*prev_type = pr->pr_type;
-> > > +
-> > > +	ret = arch_parse_elf_property(pr->pr_type,
-> > > +				      data + *off + sizeof(*pr),
-> > > +				      pr->pr_datasz, ELF_COMPAT, arch);
-> > 
-> > I find it slightly hard to read the "cursor" motion in this parse. It
-> > feels strange, for example, to refer twice to "data + *off" with the
-> > second including consumed *pr size. Everything is fine AFAICT in the math,
-> > though, and I haven't been able to construct a convincingly "cleaner"
-> > version. Maybe:
-> > 
-> > 	data += *off;
-> > 	pr = (const struct gnu_property *)data;
-> > 	data += sizeof(*pr);
-> > 	...
-> > 	ret = arch_parse_elf_property(pr->pr_type, data,
-> > 				      pr->pr_datasz, ELF_COMPAT, arch);
-> 
-> Fair point.  The cursor is really *off, which I suppose I could update
-> as we go through this function, or cache in a local variable and assign
-> on the way out.
-> 
-> > But that feels disjoint from the "step" calculation, so... I think what
-> > you have is fine. :)
-> 
-> It's good to be as clear as possible about exactly how far we have
-> parsed, so I'll see if I can improve this when I repost.
-> 
-> 
-> Do you have any objection to merging patch 1 with this one?  For
-> upstreaming purposes, it seems overkill for that to be a separate patch.
-> 
-> I may also convert elf_gnu_property_align to upper case, since unlike
-> the other related definitions this one isn't trying to look like a
-> struct tag.
-> 
-> Do you have any opinion on the WARN_ON()s?  They should be un-hittable,
-> so they're documenting assumptions rather than protecting against
-> anything real.  Maybe I should replace them with comments.
+Replace verbose implementation in get_multiple/set_multiple callbacks
+with for_each_set_clump8 macro to simplify code and improve clarity.
 
-FYI, I'm going to be inactive for a while, so I'm not going to be able
-to push this patch further.
+Reviewed-by: Linus Walleij <linus.walleij@linaro.org>
+Signed-off-by: William Breathitt Gray <vilhelm.gray@gmail.com>
+---
+ drivers/gpio/gpio-ws16c48.c | 73 ++++++++++---------------------------
+ 1 file changed, 20 insertions(+), 53 deletions(-)
 
-Mark Brown will be picking up the arm64 BTI series, so it will probably
-make sense if he pulls it into that series.
-
-Any thoughts?
-
-Cheers
----Dave
+diff --git a/drivers/gpio/gpio-ws16c48.c b/drivers/gpio/gpio-ws16c48.c
+index e0ef66b6a237..51aaa5c17fce 100644
+--- a/drivers/gpio/gpio-ws16c48.c
++++ b/drivers/gpio/gpio-ws16c48.c
+@@ -126,42 +126,19 @@ static int ws16c48_gpio_get_multiple(struct gpio_chip *chip,
+ 	unsigned long *mask, unsigned long *bits)
+ {
+ 	struct ws16c48_gpio *const ws16c48gpio = gpiochip_get_data(chip);
+-	const unsigned int gpio_reg_size = 8;
+-	size_t i;
+-	const size_t num_ports = chip->ngpio / gpio_reg_size;
+-	unsigned int bits_offset;
+-	size_t word_index;
+-	unsigned int word_offset;
+-	unsigned long word_mask;
+-	const unsigned long port_mask = GENMASK(gpio_reg_size - 1, 0);
++	unsigned long offset;
++	unsigned long gpio_mask;
++	unsigned int port_addr;
+ 	unsigned long port_state;
+ 
+ 	/* clear bits array to a clean slate */
+ 	bitmap_zero(bits, chip->ngpio);
+ 
+-	/* get bits are evaluated a gpio port register at a time */
+-	for (i = 0; i < num_ports; i++) {
+-		/* gpio offset in bits array */
+-		bits_offset = i * gpio_reg_size;
++	for_each_set_clump8(offset, gpio_mask, mask, chip->ngpio) {
++		port_addr = ws16c48gpio->base + offset / 8;
++		port_state = inb(port_addr) & gpio_mask;
+ 
+-		/* word index for bits array */
+-		word_index = BIT_WORD(bits_offset);
+-
+-		/* gpio offset within current word of bits array */
+-		word_offset = bits_offset % BITS_PER_LONG;
+-
+-		/* mask of get bits for current gpio within current word */
+-		word_mask = mask[word_index] & (port_mask << word_offset);
+-		if (!word_mask) {
+-			/* no get bits in this port so skip to next one */
+-			continue;
+-		}
+-
+-		/* read bits from current gpio port */
+-		port_state = inb(ws16c48gpio->base + i);
+-
+-		/* store acquired bits at respective bits array offset */
+-		bits[word_index] |= (port_state << word_offset) & word_mask;
++		bitmap_set_value8(bits, port_state, offset);
+ 	}
+ 
+ 	return 0;
+@@ -195,39 +172,29 @@ static void ws16c48_gpio_set_multiple(struct gpio_chip *chip,
+ 	unsigned long *mask, unsigned long *bits)
+ {
+ 	struct ws16c48_gpio *const ws16c48gpio = gpiochip_get_data(chip);
+-	unsigned int i;
+-	const unsigned int gpio_reg_size = 8;
+-	unsigned int port;
+-	unsigned int iomask;
+-	unsigned int bitmask;
++	unsigned long offset;
++	unsigned long gpio_mask;
++	size_t index;
++	unsigned int port_addr;
++	unsigned long bitmask;
+ 	unsigned long flags;
+ 
+-	/* set bits are evaluated a gpio register size at a time */
+-	for (i = 0; i < chip->ngpio; i += gpio_reg_size) {
+-		/* no more set bits in this mask word; skip to the next word */
+-		if (!mask[BIT_WORD(i)]) {
+-			i = (BIT_WORD(i) + 1) * BITS_PER_LONG - gpio_reg_size;
+-			continue;
+-		}
+-
+-		port = i / gpio_reg_size;
++	for_each_set_clump8(offset, gpio_mask, mask, chip->ngpio) {
++		index = offset / 8;
++		port_addr = ws16c48gpio->base + index;
+ 
+ 		/* mask out GPIO configured for input */
+-		iomask = mask[BIT_WORD(i)] & ~ws16c48gpio->io_state[port];
+-		bitmask = iomask & bits[BIT_WORD(i)];
++		gpio_mask &= ~ws16c48gpio->io_state[index];
++		bitmask = bitmap_get_value8(bits, offset) & gpio_mask;
+ 
+ 		raw_spin_lock_irqsave(&ws16c48gpio->lock, flags);
+ 
+ 		/* update output state data and set device gpio register */
+-		ws16c48gpio->out_state[port] &= ~iomask;
+-		ws16c48gpio->out_state[port] |= bitmask;
+-		outb(ws16c48gpio->out_state[port], ws16c48gpio->base + port);
++		ws16c48gpio->out_state[index] &= ~gpio_mask;
++		ws16c48gpio->out_state[index] |= bitmask;
++		outb(ws16c48gpio->out_state[index], port_addr);
+ 
+ 		raw_spin_unlock_irqrestore(&ws16c48gpio->lock, flags);
+-
+-		/* prepare for next gpio register set */
+-		mask[BIT_WORD(i)] >>= gpio_reg_size;
+-		bits[BIT_WORD(i)] >>= gpio_reg_size;
+ 	}
+ }
+ 
+-- 
+2.23.0
