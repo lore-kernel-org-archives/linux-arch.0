@@ -1,44 +1,68 @@
 From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: [PATCH 0/3] eldie generated code for folded p4d/pud
-Date: Wed,  9 Oct 2019 15:26:55 -0700
-Message-ID: <20191009222658.961-1-vgupta@synopsys.com>
+Subject: [PATCH 2/3] asm-generic/tlb: stub out p4d_free_tlb() if __PAGETABLE_P4D_FOLDED ...
+Date: Wed,  9 Oct 2019 15:26:57 -0700
+Message-ID: <20191009222658.961-3-vgupta@synopsys.com>
+References: <20191009222658.961-1-vgupta@synopsys.com>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20191009222658.961-1-vgupta@synopsys.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-mm@kvack.org
 Cc: linux-snps-arc@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Will Deacon <will@kernel.org>, "Aneesh Kumar K . V" <aneesh.kumar@linux.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, Nick Piggin <npiggin@gmail.com>, Peter Zijlstra <peterz@infradead.org>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, Vineet Gupta <Vineet.Gupta1@synopsys.com>
 List-Id: linux-arch.vger.kernel.org
 
-Hi,
+... independent of __ARCH_HAS_5LEVEL_HACK
 
-This series elides extraneous generate code for folded p4d/pud.
-This came up when trying to remove __ARCH_USE_5LEVEL_HACK from ARC port.
-The code saving are not a while lot, but still worthwhile IMHO.
+This came up when removing __ARCH_HAS_5LEVEL_HACK for ARC as code bloat
+from p4d_free_tlb() despite pud being folded (with 2 levels on ARC)
 
-bloat-o-meter2 vmlinux-A-baseline vmlinux-E-elide-p?d_clear_bad
-add/remove: 0/2 grow/shrink: 0/1 up/down: 0/-146 (-146)
-function                                     old     new   delta
-p4d_clear_bad                                  2       -      -2
-pud_clear_bad                                 20       -     -20
-free_pgd_range                               546     422    -124
-Total: Before=4137148, After=4137002, chg -1.000000%
+| bloat-o-meter2 vmlinux-C-elide-pud_free_tlb vmlinux-D-elide-p4d_free_tlb
+| add/remove: 0/0 grow/shrink: 0/1 up/down: 0/-104 (-104)
+| function                                     old     new   delta
+| free_pgd_range                               552     422    -130
+| Total: Before=4137172, After=4137042, chg -1.000000%
 
-Thx,
--Vineet
+Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
+---
+ include/asm-generic/5level-fixup.h | 2 --
+ include/asm-generic/tlb.h          | 4 +++-
+ 2 files changed, 3 insertions(+), 3 deletions(-)
 
-Vineet Gupta (3):
-  asm-generic/tlb: stub out pud_free_tlb() if __PAGETABLE_PUD_FOLDED ...
-  asm-generic/tlb: stub out p4d_free_tlb() if __PAGETABLE_P4D_FOLDED ...
-  asm-generic/mm: stub out p{4,d}d_clear_bad() if
-    __PAGETABLE_P{4,u}D_FOLDED
-
- include/asm-generic/4level-fixup.h |  2 --
- include/asm-generic/5level-fixup.h |  2 --
- include/asm-generic/pgtable.h      | 11 +++++++++++
- include/asm-generic/tlb.h          |  8 ++++++--
- mm/pgtable-generic.c               |  4 ++++
- 5 files changed, 21 insertions(+), 6 deletions(-)
-
+diff --git a/include/asm-generic/5level-fixup.h b/include/asm-generic/5level-fixup.h
+index f6947da70d71..c855b5cf4425 100644
+--- a/include/asm-generic/5level-fixup.h
++++ b/include/asm-generic/5level-fixup.h
+@@ -48,8 +48,6 @@ static inline int p4d_present(p4d_t p4d)
+ #define __p4d(x)			__pgd(x)
+ #define set_p4d(p4dp, p4d)		set_pgd(p4dp, p4d)
+ 
+-#undef p4d_free_tlb
+-#define p4d_free_tlb(tlb, x, addr)	do { } while (0)
+ #define p4d_free(mm, x)			do { } while (0)
+ #define __p4d_free_tlb(tlb, x, addr)	do { } while (0)
+ 
+diff --git a/include/asm-generic/tlb.h b/include/asm-generic/tlb.h
+index 1f83188cb331..f3dad87f4ecc 100644
+--- a/include/asm-generic/tlb.h
++++ b/include/asm-generic/tlb.h
+@@ -598,7 +598,7 @@ static inline void tlb_end_vma(struct mmu_gather *tlb, struct vm_area_struct *vm
+ #define pud_free_tlb(tlb, pudp, address)	do { } while (0)
+ #endif
+ 
+-#ifndef __ARCH_HAS_5LEVEL_HACK
++#ifndef __PAGETABLE_P4D_FOLDED
+ #ifndef p4d_free_tlb
+ #define p4d_free_tlb(tlb, pudp, address)			\
+ 	do {							\
+@@ -607,6 +607,8 @@ static inline void tlb_end_vma(struct mmu_gather *tlb, struct vm_area_struct *vm
+ 		__p4d_free_tlb(tlb, pudp, address);		\
+ 	} while (0)
+ #endif
++#else
++#define p4d_free_tlb(tlb, pudp, address)	do { } while (0)
+ #endif
+ 
+ #endif /* CONFIG_MMU */
 -- 
 2.20.1
