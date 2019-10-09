@@ -1,41 +1,49 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:42472 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1729535AbfJIVS6 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 9 Oct 2019 17:18:58 -0400
-Date: Wed, 9 Oct 2019 14:18:55 -0700
-From: Andrew Morton <akpm@linux-foundation.org>
-Subject: Re: [PATCH v18 01/14] bitops: Introduce the for_each_set_clump8
- macro
-Message-ID: <20191009141855.310f1fa8bde58df0df27b8f0@linux-foundation.org>
-In-Reply-To: <893c3b4f03266c9496137cc98ac2b1bd27f92c73.1570641097.git.vilhelm.gray@gmail.com>
-References: <cover.1570641097.git.vilhelm.gray@gmail.com>
-        <893c3b4f03266c9496137cc98ac2b1bd27f92c73.1570641097.git.vilhelm.gray@gmail.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Received: from smtprelay-out1.synopsys.com ([198.182.61.142]:55028 "EHLO
+        smtprelay-out1.synopsys.com" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S1731589AbfJIW1I (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 9 Oct 2019 18:27:08 -0400
+From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Subject: [PATCH 0/3] eldie generated code for folded p4d/pud
+Date: Wed,  9 Oct 2019 15:26:55 -0700
+Message-ID: <20191009222658.961-1-vgupta@synopsys.com>
+MIME-Version: 1.0
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: William Breathitt Gray <vilhelm.gray@gmail.com>
-Cc: linus.walleij@linaro.org, bgolaszewski@baylibre.com, linux-gpio@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, andriy.shevchenko@linux.intel.com, linux@rasmusvillemoes.dk, yamada.masahiro@socionext.com, linux-arm-kernel@lists.infradead.org, linux-pm@vger.kernel.org, geert@linux-m68k.org, preid@electromag.com.au, lukas@wunner.de, Andy Shevchenko <andy.shevchenko@gmail.com>, Arnd Bergmann <arnd@arndb.de>
-Message-ID: <20191009211855.619qx8WbAfg6VtkDTVZGtuEXJwdrzoikRB91f1_m-UI@z>
+To: linux-mm@kvack.org
+Cc: linux-snps-arc@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Will Deacon <will@kernel.org>, "Aneesh Kumar K . V" <aneesh.kumar@linux.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, Nick Piggin <npiggin@gmail.com>, Peter Zijlstra <peterz@infradead.org>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Message-ID: <20191009222655.EnRSZHl1QsDsgPxOfKnnonxeKd8toIgfwMDMSEYUrDs@z>
 
-On Wed,  9 Oct 2019 13:14:37 -0400 William Breathitt Gray <vilhelm.gray@gmail.com> wrote:
+Hi,
 
-> This macro iterates for each 8-bit group of bits (clump) with set bits,
-> within a bitmap memory region. For each iteration, "start" is set to the
-> bit offset of the found clump, while the respective clump value is
-> stored to the location pointed by "clump". Additionally, the
-> bitmap_get_value8 and bitmap_set_value8 functions are introduced to
-> respectively get and set an 8-bit value in a bitmap memory region.
-> 
-> ...
->  
-> +#define for_each_set_clump8(start, clump, bits, size) \
-> +	for ((start) = find_first_clump8(&(clump), (bits), (size)); \
-> +	     (start) < (size); \
-> +	     (start) = find_next_clump8(&(clump), (bits), (size), (start) + 8))
-> +
+This series elides extraneous generate code for folded p4d/pud.
+This came up when trying to remove __ARCH_USE_5LEVEL_HACK from ARC port.
+The code saving are not a while lot, but still worthwhile IMHO.
 
-It wouldn't hurt to give this some documentation.  In kerneldoc form, I
-guess.
+bloat-o-meter2 vmlinux-A-baseline vmlinux-E-elide-p?d_clear_bad
+add/remove: 0/2 grow/shrink: 0/1 up/down: 0/-146 (-146)
+function                                     old     new   delta
+p4d_clear_bad                                  2       -      -2
+pud_clear_bad                                 20       -     -20
+free_pgd_range                               546     422    -124
+Total: Before=4137148, After=4137002, chg -1.000000%
+
+Thx,
+-Vineet
+
+Vineet Gupta (3):
+  asm-generic/tlb: stub out pud_free_tlb() if __PAGETABLE_PUD_FOLDED ...
+  asm-generic/tlb: stub out p4d_free_tlb() if __PAGETABLE_P4D_FOLDED ...
+  asm-generic/mm: stub out p{4,d}d_clear_bad() if
+    __PAGETABLE_P{4,u}D_FOLDED
+
+ include/asm-generic/4level-fixup.h |  2 --
+ include/asm-generic/5level-fixup.h |  2 --
+ include/asm-generic/pgtable.h      | 11 +++++++++++
+ include/asm-generic/tlb.h          |  8 ++++++--
+ mm/pgtable-generic.c               |  4 ++++
+ 5 files changed, 21 insertions(+), 6 deletions(-)
+
+-- 
+2.20.1
