@@ -1,44 +1,73 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:38338 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726424AbfJJSpj (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 10 Oct 2019 14:45:39 -0400
-From: Dave Martin <Dave.Martin@arm.com>
-Subject: [PATCH v2 03/12] mm: Reserve asm-generic prot flag 0x10 for arch use
-Date: Thu, 10 Oct 2019 19:44:31 +0100
-Message-ID: <1570733080-21015-4-git-send-email-Dave.Martin@arm.com>
-In-Reply-To: <1570733080-21015-1-git-send-email-Dave.Martin@arm.com>
-References: <1570733080-21015-1-git-send-email-Dave.Martin@arm.com>
+Received: from mail-pg1-f196.google.com ([209.85.215.196]:41804 "EHLO
+        mail-pg1-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1725867AbfJJUGB (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 10 Oct 2019 16:06:01 -0400
+Subject: Re: [PATCH 0/3] eldie generated code for folded p4d/pud
+References: <20191009222658.961-1-vgupta@synopsys.com>
+ <20191010085609.xgwkrbzea253wmfg@black.fi.intel.com>
+From: Vineet Gupta <vineetg76@gmail.com>
+Message-ID: <8ba067a6-8b6a-2414-0f04-b251cd6bb47c@gmail.com>
+Date: Thu, 10 Oct 2019 13:05:56 -0700
+MIME-Version: 1.0
+In-Reply-To: <20191010085609.xgwkrbzea253wmfg@black.fi.intel.com>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: Andrew Jones <drjones@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Catalin Marinas <catalin.marinas@arm.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Kees Cook <keescook@chromium.org>, =?UTF-8?q?Kristina=20Mart=C5=A1enko?= <kristina.martsenko@arm.com>, Mark Brown <broonie@kernel.org>, Paul Elliott <paul.elliott@arm.com>, Peter Zijlstra <peterz@infradead.org>, Richard Henderson <richard.henderson@linaro.org>, Sudakshina Das <sudi.das@arm.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Will Deacon <will.deacon@arm.com>, Yu-cheng Yu <yu-cheng.yu@intel.com>, Amit Kachhap <amit.kachhap@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org
-Message-ID: <20191010184431.u2bOM53DQqAH1HJrSUHWZlew3D9_9Ant1PoB08-BirI@z>
+To: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Cc: linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Peter Zijlstra <peterz@infradead.org>, "Aneesh Kumar K . V" <aneesh.kumar@linux.ibm.com>, linux-kernel@vger.kernel.org, Nick Piggin <npiggin@gmail.com>, linux-mm@kvack.org, Andrew Morton <akpm@linux-foundation.org>, linux-snps-arc@lists.infradead.org, Will Deacon <will@kernel.org>
+Message-ID: <20191010200556.5lRTpVmQNlj9K0z8OcbAtau2lie9pJjfqp8LyVj9_-Q@z>
 
-The asm-generic mman definitions are used by a few architectures
-that also define an arch-specific PROT flag with value 0x10.  This
-currently applies to sparc and powerpc, and arm64 will soon join
-in.
 
-To help future maintainers, document the use of this flag in the
-asm-generic header too.
+Hi Kirill,
 
-Signed-off-by: Dave Martin <Dave.Martin@arm.com>
----
- include/uapi/asm-generic/mman-common.h | 1 +
- 1 file changed, 1 insertion(+)
+On 10/10/19 1:56 AM, Kirill A. Shutemov wrote:
+> On Wed, Oct 09, 2019 at 10:26:55PM +0000, Vineet Gupta wrote:
+>>
+>> This series elides extraneous generate code for folded p4d/pud.
+>> This came up when trying to remove __ARCH_USE_5LEVEL_HACK from ARC port.
+>> The code saving are not a while lot, but still worthwhile IMHO.
+> 
+> Agreed.
 
-diff --git a/include/uapi/asm-generic/mman-common.h b/include/uapi/asm-generic/mman-common.h
-index c160a53..81442d2 100644
---- a/include/uapi/asm-generic/mman-common.h
-+++ b/include/uapi/asm-generic/mman-common.h
-@@ -11,6 +11,7 @@
- #define PROT_WRITE	0x2		/* page can be written */
- #define PROT_EXEC	0x4		/* page can be executed */
- #define PROT_SEM	0x8		/* page may be used for atomic ops */
-+ /*			0x10		   reserved for arch-specific use */
- #define PROT_NONE	0x0		/* page can not be accessed */
- #define PROT_GROWSDOWN	0x01000000	/* mprotect flag: extend change to start of growsdown vma */
- #define PROT_GROWSUP	0x02000000	/* mprotect flag: extend change to end of growsup vma */
--- 
-2.1.4
+Thx.
+
+So given we are folding pmd too, it seemed we could do the following as well.
+
++#ifndef __PAGETABLE_PMD_FOLDED
+ void pmd_clear_bad(pmd_t *);
++#else
++#define pmd_clear_bad(pmd)        do { } while (0)
++#endif
+
++#ifndef __PAGETABLE_PMD_FOLDED
+ void pmd_clear_bad(pmd_t *pmd)
+ {
+        pmd_ERROR(*pmd);
+        pmd_clear(pmd);
+ }
++#endif
+
+I stared at generated code and it seems a bit wrong.
+free_pgd_range() -> pgd_none_or_clear_bad() is no longer checking for unmapped pgd
+entries as pgd_none/pgd_bad are all stubs returning 0.
+
+This whole pmd folding is a bit confusing considering I only revisit it every few
+years :-) Abstraction wise, __PAGETABLE_PMD_FOLDED only has pgd, pte but even in
+this regime bunch of pmd macros are still valid
+
+    pmd_set(pmdp, ptep) {
+        *pmdp.pud.p4d.pgd = (unsigned long)ptep
+    }
+
+Is there a better way to make a mental model of this code folding.
+
+In an ideal world pmd folded would have meant pmd_* routines just vanish - poof.
+So in that sense I like your implementation under #[45]LEVEL_HACK where the level
+simply vanishes by code like #define p4d_t pgd_t. Perhaps there is lot of historic
+baggage, proliferated into arch code so hard to untangle.
+
+Thx,
+-Vineet
