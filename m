@@ -1,99 +1,64 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtprelay0058.hostedemail.com ([216.40.44.58]:36546 "EHLO
-        smtprelay.hostedemail.com" rhost-flags-OK-OK-OK-FAIL)
-        by vger.kernel.org with ESMTP id S1725951AbfJJX4k (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 10 Oct 2019 19:56:40 -0400
-Message-ID: <2231d5f0a82f880e6706e2d0f070328a029c9b21.camel@perches.com>
-Subject: Re: [PATCH v2 3/4] treewide: Use sizeof_member() macro
-From: Joe Perches <joe@perches.com>
-Date: Thu, 10 Oct 2019 16:50:27 -0700
-In-Reply-To: <20191010232345.26594-4-keescook@chromium.org>
-References: <20191010232345.26594-1-keescook@chromium.org>
-         <20191010232345.26594-4-keescook@chromium.org>
-Content-Type: text/plain; charset="ISO-8859-1"
+Received: from mail-pg1-f193.google.com ([209.85.215.193]:40239 "EHLO
+        mail-pg1-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726474AbfJJX5k (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 10 Oct 2019 19:57:40 -0400
+Received: by mail-pg1-f193.google.com with SMTP id d26so4678655pgl.7
+        for <linux-arch@vger.kernel.org>; Thu, 10 Oct 2019 16:57:38 -0700 (PDT)
+Date: Thu, 10 Oct 2019 16:57:36 -0700
+From: Kees Cook <keescook@chromium.org>
+Subject: Re: [PATCH 00/29] vmlinux.lds.h: Refactor EXCEPTION_TABLE and NOTES
+Message-ID: <201910101657.234CB71E53@keescook>
+References: <20190926175602.33098-1-keescook@chromium.org>
+ <20191010180331.GI7658@zn.tnic>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20191010180331.GI7658@zn.tnic>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Kees Cook <keescook@chromium.org>, linux-kernel@vger.kernel.org
-Cc: Pankaj Bharadiya <pankaj.laxminarayan.bharadiya@intel.com>, Alexey Dobriyan <adobriyan@gmail.com>, Linus Torvalds <torvalds@linux-foundation.org>, "David S. Miller" <davem@davemloft.net>, Randy Dunlap <rdunlap@infradead.org>, Andrew Morton <akpm@linux-foundation.org>, netdev@vger.kernel.org, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org
-Message-ID: <20191010235027.xI1ws02O8vo8k9ZbLByod5m4yCkQugI1cmNQNVeXdMw@z>
+To: Borislav Petkov <bp@alien8.de>
+Cc: Thomas Gleixner <tglx@linutronix.de>, Rick Edgecombe <rick.p.edgecombe@intel.com>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Dave Hansen <dave.hansen@linux.intel.com>, Andy Lutomirski <luto@kernel.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-s390@vger.kernel.org, linux-c6x-dev@linux-c6x.org, Yoshinori Sato <ysato@users.sourceforge.jp>, Michal Simek <monstr@monstr.eu>, linux-parisc@vger.kernel.org, linux-xtensa@linux-xtensa.org, x86@kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20191010235736.fWMwtbhL5eGi6l3w7e0ZGPYExJKo1Dw_Y0ylO32RIjw@z>
 
-On Thu, 2019-10-10 at 16:23 -0700, Kees Cook wrote:
-> From: Pankaj Bharadiya <pankaj.laxminarayan.bharadiya@intel.com>
+On Thu, Oct 10, 2019 at 08:03:31PM +0200, Borislav Petkov wrote:
+> On Thu, Sep 26, 2019 at 10:55:33AM -0700, Kees Cook wrote:
+> > This series works to move the linker sections for NOTES and
+> > EXCEPTION_TABLE into the RO_DATA area, where they belong on most
+> > (all?) architectures. The problem being addressed was the discovery
+> > by Rick Edgecombe that the exception table was accidentally marked
+> > executable while he was developing his execute-only-memory series. When
+> > permissions were flipped from readable-and-executable to only-executable,
+> > the exception table became unreadable, causing things to explode rather
+> > badly. :)
+> > 
+> > Roughly speaking, the steps are:
+> > 
+> > - regularize the linker names for PT_NOTE and PT_LOAD program headers
+> >   (to "note" and "text" respectively)
+> > - regularize restoration of linker section to program header assignment
+> >   (when PT_NOTE exists)
+> > - move NOTES into RO_DATA
+> > - finish macro naming conversions for RO_DATA and RW_DATA
+> > - move EXCEPTION_TABLE into RO_DATA on architectures where this is clear
+> > - clean up some x86-specific reporting of kernel memory resources
+> > - switch x86 linker fill byte from x90 (NOP) to 0xcc (INT3), just because
+> >   I finally realized what that trailing ": 0x9090" meant -- and we should
+> >   trap, not slide, if execution lands in section padding
 > 
-> Replace all the occurrences of FIELD_SIZEOF() and sizeof_field() with
-> sizeof_member() except at places where these are defined. Later patches
-> will remove the unused definitions.
+> Yap, nice patchset overall.
+
+Thanks!
+
+> > Since these changes are treewide, I'd love to get architecture-maintainer
+> > Acks and either have this live in x86 -tip or in my own tree, however
+> > people think it should go.
 > 
-> This patch is generated using following script:
-> 
-> EXCLUDE_FILES="include/linux/stddef.h|include/linux/kernel.h"
-> 
-> git grep -l -e "\bFIELD_SIZEOF\b" -e "\bsizeof_field\b" | while read file;
-> do
-> 
-> 	if [[ "$file" =~ $EXCLUDE_FILES ]]; then
-> 		continue
-> 	fi
-> 	sed -i  -e 's/\bFIELD_SIZEOF\b/sizeof_member/g' \
-> 		-e 's/\bsizeof_field\b/sizeof_member/g' \
-> 		$file;
-> done
+> Sure, I don't mind taking v2 through tip once I get ACKs from the
+> respective arch maintainers.
 
-While the sed works, a cocci script would perhaps
-be better as multi line argument realignment would
-also occur.
+Okay, excellent. I've only had acks from arm64, but I'll call it out
+again in v2. Thanks for the review!
 
-$ cat sizeof_member.cocci
-@@
-@@
-
--	FIELD_SIZEOF
-+	sizeof_member
-
-@@
-@@
-
--	sizeof_field
-+	sizeof_member
-$
-
-For instance, this sed produces:
-
-diff --git a/crypto/adiantum.c b/crypto/adiantum.c
-@@ -435,10 +435,10 @@ static int adiantum_init_tfm(struct crypto_skcipher *tfm)
- 
- 	BUILD_BUG_ON(offsetofend(struct adiantum_request_ctx, u) !=
- 		     sizeof(struct adiantum_request_ctx));
--	subreq_size = max(FIELD_SIZEOF(struct adiantum_request_ctx,
-+	subreq_size = max(sizeof_member(struct adiantum_request_ctx,
- 				       u.hash_desc) +
- 			  crypto_shash_descsize(hash),
--			  FIELD_SIZEOF(struct adiantum_request_ctx,
-+			  sizeof_member(struct adiantum_request_ctx,
- 				       u.streamcipher_req) +
- 			  crypto_skcipher_reqsize(streamcipher));
- 
-
-where the cocci script produces:
-
---- crypto/adiantum.c
-+++ /tmp/cocci-output-22881-d8186c-adiantum.c
-@@ -435,11 +435,11 @@ static int adiantum_init_tfm(struct cryp
- 
- 	BUILD_BUG_ON(offsetofend(struct adiantum_request_ctx, u) !=
- 		     sizeof(struct adiantum_request_ctx));
--	subreq_size = max(FIELD_SIZEOF(struct adiantum_request_ctx,
--				       u.hash_desc) +
-+	subreq_size = max(sizeof_member(struct adiantum_request_ctx,
-+					u.hash_desc) +
- 			  crypto_shash_descsize(hash),
--			  FIELD_SIZEOF(struct adiantum_request_ctx,
--				       u.streamcipher_req) +
-+			  sizeof_member(struct adiantum_request_ctx,
-+					u.streamcipher_req) +
- 			  crypto_skcipher_reqsize(streamcipher));
- 
- 	crypto_skcipher_set_reqsize(tfm,
+-- 
+Kees Cook
