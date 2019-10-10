@@ -1,68 +1,76 @@
-From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: [PATCH 2/3] asm-generic/tlb: stub out p4d_free_tlb() if __PAGETABLE_P4D_FOLDED ...
-Date: Wed,  9 Oct 2019 15:26:57 -0700
-Message-ID: <20191009222658.961-3-vgupta@synopsys.com>
-References: <20191009222658.961-1-vgupta@synopsys.com>
+From: Masahiro Yamada <yamada.masahiro@socionext.com>
+Subject: Re: [PATCH v17 01/14] bitops: Introduce the for_each_set_clump8 macro
+Date: Thu, 10 Oct 2019 11:28:50 +0900
+Message-ID: <CAK7LNASVdqU_6+_iinWStb9ALqLw494pnZKr46fLW+WJ9nUo6A@mail.gmail.com>
+References: <cover.1570633189.git.vilhelm.gray@gmail.com> <893c3b4f03266c9496137cc98ac2b1bd27f92c73.1570633189.git.vilhelm.gray@gmail.com>
+ <CAK7LNATgW7bXUmqV=3QAaJ0Qu73Kox-TgDCQJb=s0=mwewSCUg@mail.gmail.com>
+ <20191009170917.GG32742@smile.fi.intel.com> <CAMuHMdXyyrL4ibKvjMV6r8TuxpmK73=JxsWNEfcRk1NjwsnOjA@mail.gmail.com>
 Mime-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20191009222658.961-1-vgupta@synopsys.com>
+In-Reply-To: <CAMuHMdXyyrL4ibKvjMV6r8TuxpmK73=JxsWNEfcRk1NjwsnOjA@mail.gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: linux-mm@kvack.org
-Cc: linux-snps-arc@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Will Deacon <will@kernel.org>, "Aneesh Kumar K . V" <aneesh.kumar@linux.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, Nick Piggin <npiggin@gmail.com>, Peter Zijlstra <peterz@infradead.org>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, Vineet Gupta <Vineet.Gupta1@synopsys.com>
+To: Geert Uytterhoeven <geert@linux-m68k.org>, Andy Shevchenko <andriy.shevchenko@linux.intel.com>, William Breathitt Gray <vilhelm.gray@gmail.com>
+Cc: Linus Walleij <linus.walleij@linaro.org>, Bartosz Golaszewski <bgolaszewski@baylibre.com>, Andrew Morton <akpm@linux-foundation.org>, "open list:GPIO SUBSYSTEM" <linux-gpio@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, linux-arm-kernel <linux-arm-kernel@lists.infradead.org>, Linux PM mailing list <linux-pm@vger.kernel.org>, Phil Reid <preid@electromag.com.au>, Lukas Wunner <lukas@wunner.de>, sean.nyekjaer@prevas.dk, morten.tiljeset@prevas.dk, Arnd Bergmann <arnd@arndb.de>
 List-Id: linux-arch.vger.kernel.org
 
-... independent of __ARCH_HAS_5LEVEL_HACK
+On Thu, Oct 10, 2019 at 3:54 AM Geert Uytterhoeven <geert@linux-m68k.org> wrote:
+>
+> Hi Andy,
+>
+> On Wed, Oct 9, 2019 at 7:09 PM Andy Shevchenko
+> <andriy.shevchenko@linux.intel.com> wrote:
+> > On Thu, Oct 10, 2019 at 01:28:08AM +0900, Masahiro Yamada wrote:
+> > > On Thu, Oct 10, 2019 at 12:27 AM William Breathitt Gray
+> > > <vilhelm.gray@gmail.com> wrote:
+> > > >
+> > > > This macro iterates for each 8-bit group of bits (clump) with set bits,
+> > > > within a bitmap memory region. For each iteration, "start" is set to the
+> > > > bit offset of the found clump, while the respective clump value is
+> > > > stored to the location pointed by "clump". Additionally, the
+> > > > bitmap_get_value8 and bitmap_set_value8 functions are introduced to
+> > > > respectively get and set an 8-bit value in a bitmap memory region.
+> >
+> > > Why is the return type "unsigned long" where you know
+> > > it return the 8-bit value ?
+> >
+> > Because bitmap API operates on unsigned long type. This is not only
+> > consistency, but for sake of flexibility in case we would like to introduce
+> > more calls like clump16 or so.
+>
+> TBH, that doesn't convince me: those functions explicitly take/return an
+> 8-bit value, and have "8" in their name.  The 8-bit value is never
+> really related to, retrieved from, or stored in a full "unsigned long"
+> element of a bitmap, only to/from/in a part (byte) of it.
+>
+> Following your rationale, all of iowrite{8,16,32,64}*() should take an
+> "unsigned long" value, too.
+>
 
-This came up when removing __ARCH_HAS_5LEVEL_HACK for ARC as code bloat
-from p4d_free_tlb() despite pud being folded (with 2 levels on ARC)
++1
 
-| bloat-o-meter2 vmlinux-C-elide-pud_free_tlb vmlinux-D-elide-p4d_free_tlb
-| add/remove: 0/0 grow/shrink: 0/1 up/down: 0/-104 (-104)
-| function                                     old     new   delta
-| free_pgd_range                               552     422    -130
-| Total: Before=4137172, After=4137042, chg -1.000000%
+Using u8/u16/u32/u64 looks more consistent with other bitmap helpers.
 
-Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
----
- include/asm-generic/5level-fixup.h | 2 --
- include/asm-generic/tlb.h          | 4 +++-
- 2 files changed, 3 insertions(+), 3 deletions(-)
+void bitmap_from_arr32(unsigned long *bitmap, const u32 *buf, unsigned
+int nbits);
+void bitmap_to_arr32(u32 *buf, const unsigned long *bitmap, unsigned int nbits);
+static inline void bitmap_from_u64(unsigned long *dst, u64 mask);
 
-diff --git a/include/asm-generic/5level-fixup.h b/include/asm-generic/5level-fixup.h
-index f6947da70d71..c855b5cf4425 100644
---- a/include/asm-generic/5level-fixup.h
-+++ b/include/asm-generic/5level-fixup.h
-@@ -48,8 +48,6 @@ static inline int p4d_present(p4d_t p4d)
- #define __p4d(x)			__pgd(x)
- #define set_p4d(p4dp, p4d)		set_pgd(p4dp, p4d)
- 
--#undef p4d_free_tlb
--#define p4d_free_tlb(tlb, x, addr)	do { } while (0)
- #define p4d_free(mm, x)			do { } while (0)
- #define __p4d_free_tlb(tlb, x, addr)	do { } while (0)
- 
-diff --git a/include/asm-generic/tlb.h b/include/asm-generic/tlb.h
-index 1f83188cb331..f3dad87f4ecc 100644
---- a/include/asm-generic/tlb.h
-+++ b/include/asm-generic/tlb.h
-@@ -598,7 +598,7 @@ static inline void tlb_end_vma(struct mmu_gather *tlb, struct vm_area_struct *vm
- #define pud_free_tlb(tlb, pudp, address)	do { } while (0)
- #endif
- 
--#ifndef __ARCH_HAS_5LEVEL_HACK
-+#ifndef __PAGETABLE_P4D_FOLDED
- #ifndef p4d_free_tlb
- #define p4d_free_tlb(tlb, pudp, address)			\
- 	do {							\
-@@ -607,6 +607,8 @@ static inline void tlb_end_vma(struct mmu_gather *tlb, struct vm_area_struct *vm
- 		__p4d_free_tlb(tlb, pudp, address);		\
- 	} while (0)
- #endif
-+#else
-+#define p4d_free_tlb(tlb, pudp, address)	do { } while (0)
- #endif
- 
- #endif /* CONFIG_MMU */
+
+
+If you want to see more examples from other parts,
+
+
+int of_property_read_u8(const struct device_node *np,
+                        const char *propname,
+                        u8 *out_value)
+
+
+int of_property_read_u16(const struct device_node *np,
+                         const char *propname,
+                         u16 *out_value)
+
+
 -- 
-2.20.1
+Best Regards
+Masahiro Yamada
