@@ -1,37 +1,63 @@
-From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Subject: Re: [PATCH 0/3] eldie generated code for folded p4d/pud
-Date: Thu, 10 Oct 2019 11:56:09 +0300
-Message-ID: <20191010085609.xgwkrbzea253wmfg@black.fi.intel.com>
-References: <20191009222658.961-1-vgupta@synopsys.com>
+From: Borislav Petkov <bp@alien8.de>
+Subject: Re: [PATCH 07/29] x86: Restore "text" Program Header with dummy
+ section
+Date: Thu, 10 Oct 2019 12:33:05 +0200
+Message-ID: <20191010103305.GD7658@zn.tnic>
+References: <20190926175602.33098-1-keescook@chromium.org>
+ <20190926175602.33098-8-keescook@chromium.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-snps-arc-bounces+gla-linux-snps-arc=m.gmane.org@lists.infradead.org>
+Content-Type: text/plain; charset=utf-8
+Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <20191009222658.961-1-vgupta@synopsys.com>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-snps-arc>,
- <mailto:linux-snps-arc-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-snps-arc/>
-List-Post: <mailto:linux-snps-arc@lists.infradead.org>
-List-Help: <mailto:linux-snps-arc-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-snps-arc>,
- <mailto:linux-snps-arc-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-snps-arc" <linux-snps-arc-bounces@lists.infradead.org>
-Errors-To: linux-snps-arc-bounces+gla-linux-snps-arc=m.gmane.org@lists.infradead.org
-To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Cc: linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Peter Zijlstra <peterz@infradead.org>, "Aneesh Kumar K . V" <aneesh.kumar@linux.ibm.com>, linux-kernel@vger.kernel.org, Nick Piggin <npiggin@gmail.com>, linux-mm@kvack.org, Andrew Morton <akpm@linux-foundation.org>, linux-snps-arc@lists.infradead.org, Will Deacon <will@kernel.org>
+In-Reply-To: <20190926175602.33098-8-keescook@chromium.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Kees Cook <keescook@chromium.org>
+Cc: Thomas Gleixner <tglx@linutronix.de>, Rick Edgecombe <rick.p.edgecombe@intel.com>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Dave Hansen <dave.hansen@linux.intel.com>, Andy Lutomirski <luto@kernel.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-s390@vger.kernel.org, linux-c6x-dev@linux-c6x.org, Yoshinori Sato <ysato@users.sourceforge.jp>, Michal Simek <monstr@monstr.eu>, linux-parisc@vger.kernel.org, linux-xtensa@linux-xtensa.org, x86@kernel.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Oct 09, 2019 at 10:26:55PM +0000, Vineet Gupta wrote:
-> Hi,
+On Thu, Sep 26, 2019 at 10:55:40AM -0700, Kees Cook wrote:
+> Instead of depending on markings in the section following NOTES to
+> restore the associated Program Header, use a dummy section, as done
+> in other architectures.
+
+This is very laconic and after some staring at ld.info, I think you mean
+this:
+
+"   If you place a section in one or more segments using ':PHDR', then
+the linker will place all subsequent allocatable sections which do not
+specify ':PHDR' in the same segments."
+
+but I could be way off. Yes, no?
+
+IOW, please write in the commit messages first what the problem is
+you're addressing.
+
+> This is preparation for moving NOTES into the
+> RO_DATA macro.
 > 
-> This series elides extraneous generate code for folded p4d/pud.
-> This came up when trying to remove __ARCH_USE_5LEVEL_HACK from ARC port.
-> The code saving are not a while lot, but still worthwhile IMHO.
+> Signed-off-by: Kees Cook <keescook@chromium.org>
+> ---
+>  arch/x86/kernel/vmlinux.lds.S | 3 ++-
+>  1 file changed, 2 insertions(+), 1 deletion(-)
+> 
+> diff --git a/arch/x86/kernel/vmlinux.lds.S b/arch/x86/kernel/vmlinux.lds.S
+> index e2feacf921a0..788e78978030 100644
+> --- a/arch/x86/kernel/vmlinux.lds.S
+> +++ b/arch/x86/kernel/vmlinux.lds.S
+> @@ -147,8 +147,9 @@ SECTIONS
+>  	} :text = 0x9090
+>  
+>  	NOTES :text :note
+> +	.dummy : { *(.dummy) } :text
+>  
+> -	EXCEPTION_TABLE(16) :text = 0x9090
+> +	EXCEPTION_TABLE(16)
 
-Agreed.
-
-Acked-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
+This is killing the filler byte but I have a suspicion that'll change
+eventually to INT3... :)
 
 -- 
- Kirill A. Shutemov
+Regards/Gruss,
+    Boris.
+
+https://people.kernel.org/tglx/notes-about-netiquette
