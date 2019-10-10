@@ -1,73 +1,149 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pg1-f196.google.com ([209.85.215.196]:41804 "EHLO
-        mail-pg1-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1725867AbfJJUGB (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 10 Oct 2019 16:06:01 -0400
-Subject: Re: [PATCH 0/3] eldie generated code for folded p4d/pud
-References: <20191009222658.961-1-vgupta@synopsys.com>
- <20191010085609.xgwkrbzea253wmfg@black.fi.intel.com>
-From: Vineet Gupta <vineetg76@gmail.com>
-Message-ID: <8ba067a6-8b6a-2414-0f04-b251cd6bb47c@gmail.com>
-Date: Thu, 10 Oct 2019 13:05:56 -0700
+Received: from mail-pl1-f193.google.com ([209.85.214.193]:35983 "EHLO
+        mail-pl1-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726632AbfJJVA5 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 10 Oct 2019 17:00:57 -0400
+Received: by mail-pl1-f193.google.com with SMTP id j11so3385607plk.3
+        for <linux-arch@vger.kernel.org>; Thu, 10 Oct 2019 14:00:56 -0700 (PDT)
+Date: Thu, 10 Oct 2019 14:00:54 -0700
+From: Kees Cook <keescook@chromium.org>
+Subject: Re: [RFC PATCH v2 2/2] ELF: Add ELF program property parsing support
+Message-ID: <201910101359.9B3B84B@keescook>
+References: <1566581020-9953-1-git-send-email-Dave.Martin@arm.com>
+ <1566581020-9953-3-git-send-email-Dave.Martin@arm.com>
+ <201908292224.007EB4D5@keescook>
+ <20190830083415.GI27757@arm.com>
+ <20191009125913.GE27757@arm.com>
 MIME-Version: 1.0
-In-Reply-To: <20191010085609.xgwkrbzea253wmfg@black.fi.intel.com>
-Content-Type: text/plain; charset=utf-8
-Content-Language: en-US
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20191009125913.GE27757@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Cc: linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Peter Zijlstra <peterz@infradead.org>, "Aneesh Kumar K . V" <aneesh.kumar@linux.ibm.com>, linux-kernel@vger.kernel.org, Nick Piggin <npiggin@gmail.com>, linux-mm@kvack.org, Andrew Morton <akpm@linux-foundation.org>, linux-snps-arc@lists.infradead.org, Will Deacon <will@kernel.org>
-Message-ID: <20191010200556.5lRTpVmQNlj9K0z8OcbAtau2lie9pJjfqp8LyVj9_-Q@z>
+To: Dave Martin <Dave.Martin@arm.com>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Jann Horn <jannh@google.com>, "H.J. Lu" <hjl.tools@gmail.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, Yu-cheng Yu <yu-cheng.yu@intel.com>, Peter Zijlstra <peterz@infradead.org>, Mark Brown <mark.brown@arm.com>
+Message-ID: <20191010210054.LutKa6F6wvr7qCGRri-zw9wkFfH6nqBMhCNMAWL6a2I@z>
 
-
-Hi Kirill,
-
-On 10/10/19 1:56 AM, Kirill A. Shutemov wrote:
-> On Wed, Oct 09, 2019 at 10:26:55PM +0000, Vineet Gupta wrote:
->>
->> This series elides extraneous generate code for folded p4d/pud.
->> This came up when trying to remove __ARCH_USE_5LEVEL_HACK from ARC port.
->> The code saving are not a while lot, but still worthwhile IMHO.
+On Wed, Oct 09, 2019 at 01:59:13PM +0100, Dave Martin wrote:
+> On Fri, Aug 30, 2019 at 09:34:17AM +0100, Dave Martin wrote:
+> > On Fri, Aug 30, 2019 at 06:37:45AM +0100, Kees Cook wrote:
+> > > On Fri, Aug 23, 2019 at 06:23:40PM +0100, Dave Martin wrote:
+> > > > ELF program properties will needed for detecting whether to enable
+> > > > optional architecture or ABI features for a new ELF process.
+> > > > 
+> > > > For now, there are no generic properties that we care about, so do
+> > > > nothing unless CONFIG_ARCH_USE_GNU_PROPERTY=y.
+> > > > 
+> > > > Otherwise, the presence of properties using the PT_PROGRAM_PROPERTY
+> > > > phdrs entry (if any), and notify each property to the arch code.
+> > > > 
+> > > > For now, the added code is not used.
+> > > > 
+> > > > Signed-off-by: Dave Martin <Dave.Martin@arm.com>
+> > > 
+> > > Reviewed-by: Kees Cook <keescook@chromium.org>
+> > 
+> > Thanks for the review.
+> > 
+> > Do you have any thoughts on Yu-Cheng Yu's comments?  It would be nice to
+> > early-terminate the scan if we can, but my feeling so far was that the
+> > scan is cheap, the number of properties is unlikely to be more than a
+> > smallish integer, and the code separation benefits of just calling the
+> > arch code for every property probably likely outweigh the costs of
+> > having to iterate over every property.  We could always optimise it
+> > later if necessary.
+> > 
+> > I need to double-check that there's no way we can get stuck in an
+> > infinite loop with the current code, though I've not seen it in my
+> > testing.  I should throw some malformed notes at it though.
+> > 
+> > > Note below...
+> > > 
+> > > > [...]
+> > > > +static int parse_elf_property(const char *data, size_t *off, size_t datasz,
+> > > > +			      struct arch_elf_state *arch,
+> > > > +			      bool have_prev_type, u32 *prev_type)
+> > > > +{
+> > > > +	size_t size, step;
+> > > > +	const struct gnu_property *pr;
+> > > > +	int ret;
+> > > > +
+> > > > +	if (*off == datasz)
+> > > > +		return -ENOENT;
+> > > > +
+> > > > +	if (WARN_ON(*off > datasz || *off % elf_gnu_property_align))
+> > > > +		return -EIO;
+> > > > +
+> > > > +	size = datasz - *off;
+> > > > +	if (size < sizeof(*pr))
+> > > > +		return -EIO;
+> > > > +
+> > > > +	pr = (const struct gnu_property *)(data + *off);
+> > > > +	if (pr->pr_datasz > size - sizeof(*pr))
+> > > > +		return -EIO;
+> > > > +
+> > > > +	step = round_up(sizeof(*pr) + pr->pr_datasz, elf_gnu_property_align);
+> > > > +	if (step > size)
+> > > > +		return -EIO;
+> > > > +
+> > > > +	/* Properties are supposed to be unique and sorted on pr_type: */
+> > > > +	if (have_prev_type && pr->pr_type <= *prev_type)
+> > > > +		return -EIO;
+> > > > +	*prev_type = pr->pr_type;
+> > > > +
+> > > > +	ret = arch_parse_elf_property(pr->pr_type,
+> > > > +				      data + *off + sizeof(*pr),
+> > > > +				      pr->pr_datasz, ELF_COMPAT, arch);
+> > > 
+> > > I find it slightly hard to read the "cursor" motion in this parse. It
+> > > feels strange, for example, to refer twice to "data + *off" with the
+> > > second including consumed *pr size. Everything is fine AFAICT in the math,
+> > > though, and I haven't been able to construct a convincingly "cleaner"
+> > > version. Maybe:
+> > > 
+> > > 	data += *off;
+> > > 	pr = (const struct gnu_property *)data;
+> > > 	data += sizeof(*pr);
+> > > 	...
+> > > 	ret = arch_parse_elf_property(pr->pr_type, data,
+> > > 				      pr->pr_datasz, ELF_COMPAT, arch);
+> > 
+> > Fair point.  The cursor is really *off, which I suppose I could update
+> > as we go through this function, or cache in a local variable and assign
+> > on the way out.
+> > 
+> > > But that feels disjoint from the "step" calculation, so... I think what
+> > > you have is fine. :)
+> > 
+> > It's good to be as clear as possible about exactly how far we have
+> > parsed, so I'll see if I can improve this when I repost.
+> > 
+> > 
+> > Do you have any objection to merging patch 1 with this one?  For
+> > upstreaming purposes, it seems overkill for that to be a separate patch.
+> > 
+> > I may also convert elf_gnu_property_align to upper case, since unlike
+> > the other related definitions this one isn't trying to look like a
+> > struct tag.
+> > 
+> > Do you have any opinion on the WARN_ON()s?  They should be un-hittable,
+> > so they're documenting assumptions rather than protecting against
+> > anything real.  Maybe I should replace them with comments.
 > 
-> Agreed.
+> FYI, I'm going to be inactive for a while, so I'm not going to be able
+> to push this patch further.
+> 
+> Mark Brown will be picking up the arm64 BTI series, so it will probably
+> make sense if he pulls it into that series.
+> 
+> Any thoughts?
 
-Thx.
+Okay, sounds good. Mark, I think these patches are in good shape. Can
+you include me on CC where you pick these up?
 
-So given we are folding pmd too, it seemed we could do the following as well.
+Thanks!
 
-+#ifndef __PAGETABLE_PMD_FOLDED
- void pmd_clear_bad(pmd_t *);
-+#else
-+#define pmd_clear_bad(pmd)        do { } while (0)
-+#endif
+-Kees
 
-+#ifndef __PAGETABLE_PMD_FOLDED
- void pmd_clear_bad(pmd_t *pmd)
- {
-        pmd_ERROR(*pmd);
-        pmd_clear(pmd);
- }
-+#endif
-
-I stared at generated code and it seems a bit wrong.
-free_pgd_range() -> pgd_none_or_clear_bad() is no longer checking for unmapped pgd
-entries as pgd_none/pgd_bad are all stubs returning 0.
-
-This whole pmd folding is a bit confusing considering I only revisit it every few
-years :-) Abstraction wise, __PAGETABLE_PMD_FOLDED only has pgd, pte but even in
-this regime bunch of pmd macros are still valid
-
-    pmd_set(pmdp, ptep) {
-        *pmdp.pud.p4d.pgd = (unsigned long)ptep
-    }
-
-Is there a better way to make a mental model of this code folding.
-
-In an ideal world pmd folded would have meant pmd_* routines just vanish - poof.
-So in that sense I like your implementation under #[45]LEVEL_HACK where the level
-simply vanishes by code like #define p4d_t pgd_t. Perhaps there is lot of historic
-baggage, proliferated into arch code so hard to untangle.
-
-Thx,
--Vineet
+-- 
+Kees Cook
