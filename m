@@ -1,57 +1,78 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga04.intel.com ([192.55.52.120]:2738 "EHLO mga04.intel.com"
+Received: from mail.skyhub.de ([5.9.137.197]:33680 "EHLO mail.skyhub.de"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S2387664AbfJJNSs (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 10 Oct 2019 09:18:48 -0400
-Date: Thu, 10 Oct 2019 16:18:42 +0300
-From: Andy Shevchenko <andriy.shevchenko@linux.intel.com>
-Subject: Re: [PATCH v18 01/14] bitops: Introduce the for_each_set_clump8 macro
-Message-ID: <20191010131842.GT32742@smile.fi.intel.com>
-References: <cover.1570641097.git.vilhelm.gray@gmail.com>
- <893c3b4f03266c9496137cc98ac2b1bd27f92c73.1570641097.git.vilhelm.gray@gmail.com>
- <20191009141855.310f1fa8bde58df0df27b8f0@linux-foundation.org>
+        id S1725909AbfJJPZZ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 10 Oct 2019 11:25:25 -0400
+Date: Thu, 10 Oct 2019 17:25:16 +0200
+From: Borislav Petkov <bp@alien8.de>
+Subject: Re: [PATCH 14/29] vmlinux.lds.h: Allow EXCEPTION_TABLE to live in
+ RO_DATA
+Message-ID: <20191010152516.GG7658@zn.tnic>
+References: <20190926175602.33098-1-keescook@chromium.org>
+ <20190926175602.33098-15-keescook@chromium.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=utf-8
 Content-Disposition: inline
-In-Reply-To: <20191009141855.310f1fa8bde58df0df27b8f0@linux-foundation.org>
+In-Reply-To: <20190926175602.33098-15-keescook@chromium.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: William Breathitt Gray <vilhelm.gray@gmail.com>, linus.walleij@linaro.org, bgolaszewski@baylibre.com, linux-gpio@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux@rasmusvillemoes.dk, yamada.masahiro@socionext.com, linux-arm-kernel@lists.infradead.org, linux-pm@vger.kernel.org, geert@linux-m68k.org, preid@electromag.com.au, lukas@wunner.de, Arnd Bergmann <arnd@arndb.de>
-Message-ID: <20191010131842.xiYQ8kws27uDT9yCVv-l8PCm9sMKut9Mh3ThfJegDH0@z>
+To: Kees Cook <keescook@chromium.org>
+Cc: Thomas Gleixner <tglx@linutronix.de>, Rick Edgecombe <rick.p.edgecombe@intel.com>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Dave Hansen <dave.hansen@linux.intel.com>, Andy Lutomirski <luto@kernel.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-s390@vger.kernel.org, linux-c6x-dev@linux-c6x.org, Yoshinori Sato <ysato@users.sourceforge.jp>, Michal Simek <monstr@monstr.eu>, linux-parisc@vger.kernel.org, linux-xtensa@linux-xtensa.org, x86@kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20191010152516.qUOBsookud8IwbIxlTgw0aJQVxRFpNbGLgX3StmItas@z>
 
-On Wed, Oct 09, 2019 at 02:18:55PM -0700, Andrew Morton wrote:
-> On Wed,  9 Oct 2019 13:14:37 -0400 William Breathitt Gray <vilhelm.gray@gmail.com> wrote:
+On Thu, Sep 26, 2019 at 10:55:47AM -0700, Kees Cook wrote:
+> Many architectures have an EXCEPTION_TABLE that needs only to be
+> read-only. As such, it should live in RO_DATA. This creates a macro to
+> identify this case for the architectures that can move EXCEPTION_TABLE
+> into RO_DATA.
 > 
-> > This macro iterates for each 8-bit group of bits (clump) with set bits,
-> > within a bitmap memory region. For each iteration, "start" is set to the
-> > bit offset of the found clump, while the respective clump value is
-> > stored to the location pointed by "clump". Additionally, the
-> > bitmap_get_value8 and bitmap_set_value8 functions are introduced to
-> > respectively get and set an 8-bit value in a bitmap memory region.
-> > 
-> > ...
-> >  
-> > +#define for_each_set_clump8(start, clump, bits, size) \
-> > +	for ((start) = find_first_clump8(&(clump), (bits), (size)); \
-> > +	     (start) < (size); \
-> > +	     (start) = find_next_clump8(&(clump), (bits), (size), (start) + 8))
-> > +
+> Signed-off-by: Kees Cook <keescook@chromium.org>
+> ---
+>  include/asm-generic/vmlinux.lds.h | 12 ++++++++++++
+>  1 file changed, 12 insertions(+)
 > 
-> It wouldn't hurt to give this some documentation.  In kerneldoc form, I
-> guess.
+> diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
+> index d57a28786bb8..35a6cba39d9f 100644
+> --- a/include/asm-generic/vmlinux.lds.h
+> +++ b/include/asm-generic/vmlinux.lds.h
+> @@ -69,6 +69,17 @@
+>  #define NOTES_HEADERS_RESTORE
+>  #endif
+>  
+> +/*
+> + * Some architectures have non-executable read-only exception tables.
+> + * They can be added to the RO_DATA segment by specifying their desired
+> + * alignment.
+> + */
+> +#ifdef RO_DATA_EXCEPTION_TABLE_ALIGN
+> +#define RO_DATA_EXCEPTION_TABLE	EXCEPTION_TABLE(RO_DATA_EXCEPTION_TABLE_ALIGN)
+> +#else
+> +#define RO_DATA_EXCEPTION_TABLE
+> +#endif
+> +
+>  /* Align . to a 8 byte boundary equals to maximum function alignment. */
+>  #define ALIGN_FUNCTION()  . = ALIGN(8)
+>  
+> @@ -508,6 +519,7 @@
+>  		__stop___modver = .;					\
+>  	}								\
+>  									\
+> +	RO_DATA_EXCEPTION_TABLE						\
+>  	NOTES								\
+>  									\
+>  	. = ALIGN((align));						\
+> -- 
 
-Good idea!
+I think you can drop the "DATA" from the names as it is kinda clear
+where the exception table lands:
 
-William, I have just tested your series with a complex hardware setup,
-everything works to me.
+RO_EXCEPTION_TABLE_ALIGN
+RO_EXCEPTION_TABLE
 
-I think I may give
-
-Tested-by: Andy Shevchenko <andriy.shevchenko@linux.intel.com>
-
-for this patch as well.
+The "read-only" part is the important one.
 
 -- 
-With Best Regards,
-Andy Shevchenko
+Regards/Gruss,
+    Boris.
+
+https://people.kernel.org/tglx/notes-about-netiquette
