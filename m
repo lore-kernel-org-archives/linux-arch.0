@@ -1,149 +1,63 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pl1-f193.google.com ([209.85.214.193]:35983 "EHLO
-        mail-pl1-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726632AbfJJVA5 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 10 Oct 2019 17:00:57 -0400
-Received: by mail-pl1-f193.google.com with SMTP id j11so3385607plk.3
-        for <linux-arch@vger.kernel.org>; Thu, 10 Oct 2019 14:00:56 -0700 (PDT)
-Date: Thu, 10 Oct 2019 14:00:54 -0700
+Received: from mail-pg1-f194.google.com ([209.85.215.194]:36964 "EHLO
+        mail-pg1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726907AbfJJXX7 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 10 Oct 2019 19:23:59 -0400
+Received: by mail-pg1-f194.google.com with SMTP id p1so4639480pgi.4
+        for <linux-arch@vger.kernel.org>; Thu, 10 Oct 2019 16:23:59 -0700 (PDT)
 From: Kees Cook <keescook@chromium.org>
-Subject: Re: [RFC PATCH v2 2/2] ELF: Add ELF program property parsing support
-Message-ID: <201910101359.9B3B84B@keescook>
-References: <1566581020-9953-1-git-send-email-Dave.Martin@arm.com>
- <1566581020-9953-3-git-send-email-Dave.Martin@arm.com>
- <201908292224.007EB4D5@keescook>
- <20190830083415.GI27757@arm.com>
- <20191009125913.GE27757@arm.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20191009125913.GE27757@arm.com>
+Subject: [PATCH v2 1/4] MIPS: OCTEON: Replace SIZEOF_FIELD() macro
+Date: Thu, 10 Oct 2019 16:23:42 -0700
+Message-ID: <20191010232345.26594-2-keescook@chromium.org>
+In-Reply-To: <20191010232345.26594-1-keescook@chromium.org>
+References: <20191010232345.26594-1-keescook@chromium.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dave Martin <Dave.Martin@arm.com>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Jann Horn <jannh@google.com>, "H.J. Lu" <hjl.tools@gmail.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, Yu-cheng Yu <yu-cheng.yu@intel.com>, Peter Zijlstra <peterz@infradead.org>, Mark Brown <mark.brown@arm.com>
-Message-ID: <20191010210054.LutKa6F6wvr7qCGRri-zw9wkFfH6nqBMhCNMAWL6a2I@z>
+To: linux-kernel@vger.kernel.org
+Cc: Kees Cook <keescook@chromium.org>, Pankaj Bharadiya <pankaj.laxminarayan.bharadiya@intel.com>, Alexey Dobriyan <adobriyan@gmail.com>, Linus Torvalds <torvalds@linux-foundation.org>, "David S. Miller" <davem@davemloft.net>, Randy Dunlap <rdunlap@infradead.org>, Andrew Morton <akpm@linux-foundation.org>, netdev@vger.kernel.org, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org
+Message-ID: <20191010232342.UmKXevkElFHw_C3ewIcjimrJotHxQcGpdWVg6oj53fI@z>
 
-On Wed, Oct 09, 2019 at 01:59:13PM +0100, Dave Martin wrote:
-> On Fri, Aug 30, 2019 at 09:34:17AM +0100, Dave Martin wrote:
-> > On Fri, Aug 30, 2019 at 06:37:45AM +0100, Kees Cook wrote:
-> > > On Fri, Aug 23, 2019 at 06:23:40PM +0100, Dave Martin wrote:
-> > > > ELF program properties will needed for detecting whether to enable
-> > > > optional architecture or ABI features for a new ELF process.
-> > > > 
-> > > > For now, there are no generic properties that we care about, so do
-> > > > nothing unless CONFIG_ARCH_USE_GNU_PROPERTY=y.
-> > > > 
-> > > > Otherwise, the presence of properties using the PT_PROGRAM_PROPERTY
-> > > > phdrs entry (if any), and notify each property to the arch code.
-> > > > 
-> > > > For now, the added code is not used.
-> > > > 
-> > > > Signed-off-by: Dave Martin <Dave.Martin@arm.com>
-> > > 
-> > > Reviewed-by: Kees Cook <keescook@chromium.org>
-> > 
-> > Thanks for the review.
-> > 
-> > Do you have any thoughts on Yu-Cheng Yu's comments?  It would be nice to
-> > early-terminate the scan if we can, but my feeling so far was that the
-> > scan is cheap, the number of properties is unlikely to be more than a
-> > smallish integer, and the code separation benefits of just calling the
-> > arch code for every property probably likely outweigh the costs of
-> > having to iterate over every property.  We could always optimise it
-> > later if necessary.
-> > 
-> > I need to double-check that there's no way we can get stuck in an
-> > infinite loop with the current code, though I've not seen it in my
-> > testing.  I should throw some malformed notes at it though.
-> > 
-> > > Note below...
-> > > 
-> > > > [...]
-> > > > +static int parse_elf_property(const char *data, size_t *off, size_t datasz,
-> > > > +			      struct arch_elf_state *arch,
-> > > > +			      bool have_prev_type, u32 *prev_type)
-> > > > +{
-> > > > +	size_t size, step;
-> > > > +	const struct gnu_property *pr;
-> > > > +	int ret;
-> > > > +
-> > > > +	if (*off == datasz)
-> > > > +		return -ENOENT;
-> > > > +
-> > > > +	if (WARN_ON(*off > datasz || *off % elf_gnu_property_align))
-> > > > +		return -EIO;
-> > > > +
-> > > > +	size = datasz - *off;
-> > > > +	if (size < sizeof(*pr))
-> > > > +		return -EIO;
-> > > > +
-> > > > +	pr = (const struct gnu_property *)(data + *off);
-> > > > +	if (pr->pr_datasz > size - sizeof(*pr))
-> > > > +		return -EIO;
-> > > > +
-> > > > +	step = round_up(sizeof(*pr) + pr->pr_datasz, elf_gnu_property_align);
-> > > > +	if (step > size)
-> > > > +		return -EIO;
-> > > > +
-> > > > +	/* Properties are supposed to be unique and sorted on pr_type: */
-> > > > +	if (have_prev_type && pr->pr_type <= *prev_type)
-> > > > +		return -EIO;
-> > > > +	*prev_type = pr->pr_type;
-> > > > +
-> > > > +	ret = arch_parse_elf_property(pr->pr_type,
-> > > > +				      data + *off + sizeof(*pr),
-> > > > +				      pr->pr_datasz, ELF_COMPAT, arch);
-> > > 
-> > > I find it slightly hard to read the "cursor" motion in this parse. It
-> > > feels strange, for example, to refer twice to "data + *off" with the
-> > > second including consumed *pr size. Everything is fine AFAICT in the math,
-> > > though, and I haven't been able to construct a convincingly "cleaner"
-> > > version. Maybe:
-> > > 
-> > > 	data += *off;
-> > > 	pr = (const struct gnu_property *)data;
-> > > 	data += sizeof(*pr);
-> > > 	...
-> > > 	ret = arch_parse_elf_property(pr->pr_type, data,
-> > > 				      pr->pr_datasz, ELF_COMPAT, arch);
-> > 
-> > Fair point.  The cursor is really *off, which I suppose I could update
-> > as we go through this function, or cache in a local variable and assign
-> > on the way out.
-> > 
-> > > But that feels disjoint from the "step" calculation, so... I think what
-> > > you have is fine. :)
-> > 
-> > It's good to be as clear as possible about exactly how far we have
-> > parsed, so I'll see if I can improve this when I repost.
-> > 
-> > 
-> > Do you have any objection to merging patch 1 with this one?  For
-> > upstreaming purposes, it seems overkill for that to be a separate patch.
-> > 
-> > I may also convert elf_gnu_property_align to upper case, since unlike
-> > the other related definitions this one isn't trying to look like a
-> > struct tag.
-> > 
-> > Do you have any opinion on the WARN_ON()s?  They should be un-hittable,
-> > so they're documenting assumptions rather than protecting against
-> > anything real.  Maybe I should replace them with comments.
-> 
-> FYI, I'm going to be inactive for a while, so I'm not going to be able
-> to push this patch further.
-> 
-> Mark Brown will be picking up the arm64 BTI series, so it will probably
-> make sense if he pulls it into that series.
-> 
-> Any thoughts?
+From: Pankaj Bharadiya <pankaj.laxminarayan.bharadiya@intel.com>
 
-Okay, sounds good. Mark, I think these patches are in good shape. Can
-you include me on CC where you pick these up?
+In preparation for switching to a standard sizeof_member() macro to find the
+size of a member of a struct, remove the custom SIZEOF_FIELD() macro and use
+the more common FIELD_SIZEOF() instead. Later patches will globally replace
+FIELD_SIZEOF() and sizeof_field() with the more accurate sizeof_member().
 
-Thanks!
+Signed-off-by: Pankaj Bharadiya <pankaj.laxminarayan.bharadiya@intel.com>
+Link: https://lore.kernel.org/r/20190924105839.110713-4-pankaj.laxminarayan.bharadiya@intel.com
+Co-developed-by: Kees Cook <keescook@chromium.org>
+Signed-off-by: Kees Cook <keescook@chromium.org>
+---
+ arch/mips/cavium-octeon/executive/cvmx-bootmem.c | 9 +--------
+ 1 file changed, 1 insertion(+), 8 deletions(-)
 
--Kees
-
+diff --git a/arch/mips/cavium-octeon/executive/cvmx-bootmem.c b/arch/mips/cavium-octeon/executive/cvmx-bootmem.c
+index ba8f82a29a81..44b506a14666 100644
+--- a/arch/mips/cavium-octeon/executive/cvmx-bootmem.c
++++ b/arch/mips/cavium-octeon/executive/cvmx-bootmem.c
+@@ -44,13 +44,6 @@ static struct cvmx_bootmem_desc *cvmx_bootmem_desc;
+ 
+ /* See header file for descriptions of functions */
+ 
+-/**
+- * This macro returns the size of a member of a structure.
+- * Logically it is the same as "sizeof(s::field)" in C++, but
+- * C lacks the "::" operator.
+- */
+-#define SIZEOF_FIELD(s, field) sizeof(((s *)NULL)->field)
+-
+ /**
+  * This macro returns a member of the
+  * cvmx_bootmem_named_block_desc_t structure. These members can't
+@@ -65,7 +58,7 @@ static struct cvmx_bootmem_desc *cvmx_bootmem_desc;
+ #define CVMX_BOOTMEM_NAMED_GET_FIELD(addr, field)			\
+ 	__cvmx_bootmem_desc_get(addr,					\
+ 		offsetof(struct cvmx_bootmem_named_block_desc, field),	\
+-		SIZEOF_FIELD(struct cvmx_bootmem_named_block_desc, field))
++		FIELD_SIZEOF(struct cvmx_bootmem_named_block_desc, field))
+ 
+ /**
+  * This function is the implementation of the get macros defined
 -- 
-Kees Cook
+2.17.1
