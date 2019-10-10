@@ -1,74 +1,99 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pl1-f194.google.com ([209.85.214.194]:39112 "EHLO
-        mail-pl1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726912AbfJJXYA (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 10 Oct 2019 19:24:00 -0400
-Received: by mail-pl1-f194.google.com with SMTP id s17so3540954plp.6
-        for <linux-arch@vger.kernel.org>; Thu, 10 Oct 2019 16:23:59 -0700 (PDT)
-From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH v2 4/4] include: Remove FIELD_SIZEOF() and sizeof_field() macros
-Date: Thu, 10 Oct 2019 16:23:45 -0700
-Message-ID: <20191010232345.26594-5-keescook@chromium.org>
-In-Reply-To: <20191010232345.26594-1-keescook@chromium.org>
+Received: from smtprelay0058.hostedemail.com ([216.40.44.58]:36546 "EHLO
+        smtprelay.hostedemail.com" rhost-flags-OK-OK-OK-FAIL)
+        by vger.kernel.org with ESMTP id S1725951AbfJJX4k (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 10 Oct 2019 19:56:40 -0400
+Message-ID: <2231d5f0a82f880e6706e2d0f070328a029c9b21.camel@perches.com>
+Subject: Re: [PATCH v2 3/4] treewide: Use sizeof_member() macro
+From: Joe Perches <joe@perches.com>
+Date: Thu, 10 Oct 2019 16:50:27 -0700
+In-Reply-To: <20191010232345.26594-4-keescook@chromium.org>
 References: <20191010232345.26594-1-keescook@chromium.org>
+         <20191010232345.26594-4-keescook@chromium.org>
+Content-Type: text/plain; charset="ISO-8859-1"
+MIME-Version: 1.0
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: Kees Cook <keescook@chromium.org>, Pankaj Bharadiya <pankaj.laxminarayan.bharadiya@intel.com>, Alexey Dobriyan <adobriyan@gmail.com>, Linus Torvalds <torvalds@linux-foundation.org>, "David S. Miller" <davem@davemloft.net>, Randy Dunlap <rdunlap@infradead.org>, Andrew Morton <akpm@linux-foundation.org>, netdev@vger.kernel.org, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org
-Message-ID: <20191010232345.OkvTji5J7iZ9Zcf8D_UJ9Jy5c4x5qt39LyKb2ZV4lw0@z>
+To: Kees Cook <keescook@chromium.org>, linux-kernel@vger.kernel.org
+Cc: Pankaj Bharadiya <pankaj.laxminarayan.bharadiya@intel.com>, Alexey Dobriyan <adobriyan@gmail.com>, Linus Torvalds <torvalds@linux-foundation.org>, "David S. Miller" <davem@davemloft.net>, Randy Dunlap <rdunlap@infradead.org>, Andrew Morton <akpm@linux-foundation.org>, netdev@vger.kernel.org, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org
+Message-ID: <20191010235027.xI1ws02O8vo8k9ZbLByod5m4yCkQugI1cmNQNVeXdMw@z>
 
-From: Pankaj Bharadiya <pankaj.laxminarayan.bharadiya@intel.com>
+On Thu, 2019-10-10 at 16:23 -0700, Kees Cook wrote:
+> From: Pankaj Bharadiya <pankaj.laxminarayan.bharadiya@intel.com>
+> 
+> Replace all the occurrences of FIELD_SIZEOF() and sizeof_field() with
+> sizeof_member() except at places where these are defined. Later patches
+> will remove the unused definitions.
+> 
+> This patch is generated using following script:
+> 
+> EXCLUDE_FILES="include/linux/stddef.h|include/linux/kernel.h"
+> 
+> git grep -l -e "\bFIELD_SIZEOF\b" -e "\bsizeof_field\b" | while read file;
+> do
+> 
+> 	if [[ "$file" =~ $EXCLUDE_FILES ]]; then
+> 		continue
+> 	fi
+> 	sed -i  -e 's/\bFIELD_SIZEOF\b/sizeof_member/g' \
+> 		-e 's/\bsizeof_field\b/sizeof_member/g' \
+> 		$file;
+> done
 
-The common function used to find struct member size is sizeof_member().
-Remove the now unused FIELD_SIZEOF() and sizeof_field() macros.
+While the sed works, a cocci script would perhaps
+be better as multi line argument realignment would
+also occur.
 
-Signed-off-by: Pankaj Bharadiya <pankaj.laxminarayan.bharadiya@intel.com>
-Link: https://lore.kernel.org/r/20190924105839.110713-5-pankaj.laxminarayan.bharadiya@intel.com
-Co-developed-by: Kees Cook <keescook@chromium.org>
-Signed-off-by: Kees Cook <keescook@chromium.org>
----
- include/linux/kernel.h | 9 ---------
- include/linux/stddef.h | 8 --------
- 2 files changed, 17 deletions(-)
+$ cat sizeof_member.cocci
+@@
+@@
 
-diff --git a/include/linux/kernel.h b/include/linux/kernel.h
-index d83d403dac2e..d67020250d75 100644
---- a/include/linux/kernel.h
-+++ b/include/linux/kernel.h
-@@ -79,15 +79,6 @@
-  */
- #define round_down(x, y) ((x) & ~__round_mask(x, y))
+-	FIELD_SIZEOF
++	sizeof_member
+
+@@
+@@
+
+-	sizeof_field
++	sizeof_member
+$
+
+For instance, this sed produces:
+
+diff --git a/crypto/adiantum.c b/crypto/adiantum.c
+@@ -435,10 +435,10 @@ static int adiantum_init_tfm(struct crypto_skcipher *tfm)
  
--/**
-- * FIELD_SIZEOF - get the size of a struct's field
-- * @t: the target struct
-- * @f: the target struct's field
-- * Return: the size of @f in the struct definition without having a
-- * declared instance of @t.
-- */
--#define FIELD_SIZEOF(t, f) (sizeof(((t*)0)->f))
--
- #define typeof_member(T, m)	typeof(((T*)0)->m)
+ 	BUILD_BUG_ON(offsetofend(struct adiantum_request_ctx, u) !=
+ 		     sizeof(struct adiantum_request_ctx));
+-	subreq_size = max(FIELD_SIZEOF(struct adiantum_request_ctx,
++	subreq_size = max(sizeof_member(struct adiantum_request_ctx,
+ 				       u.hash_desc) +
+ 			  crypto_shash_descsize(hash),
+-			  FIELD_SIZEOF(struct adiantum_request_ctx,
++			  sizeof_member(struct adiantum_request_ctx,
+ 				       u.streamcipher_req) +
+ 			  crypto_skcipher_reqsize(streamcipher));
  
- #define DIV_ROUND_UP __KERNEL_DIV_ROUND_UP
-diff --git a/include/linux/stddef.h b/include/linux/stddef.h
-index ecadb736c853..74b5e644d50a 100644
---- a/include/linux/stddef.h
-+++ b/include/linux/stddef.h
-@@ -19,14 +19,6 @@ enum {
- #define offsetof(TYPE, MEMBER)	((size_t)&((TYPE *)0)->MEMBER)
- #endif
+
+where the cocci script produces:
+
+--- crypto/adiantum.c
++++ /tmp/cocci-output-22881-d8186c-adiantum.c
+@@ -435,11 +435,11 @@ static int adiantum_init_tfm(struct cryp
  
--/**
-- * sizeof_field(TYPE, MEMBER)
-- *
-- * @TYPE: The structure containing the field of interest
-- * @MEMBER: The field to return the size of
-- */
--#define sizeof_field(TYPE, MEMBER) sizeof((((TYPE *)0)->MEMBER))
--
- /**
-  * sizeof_member(TYPE, MEMBER) - get the size of a struct's member
-  *
--- 
-2.17.1
+ 	BUILD_BUG_ON(offsetofend(struct adiantum_request_ctx, u) !=
+ 		     sizeof(struct adiantum_request_ctx));
+-	subreq_size = max(FIELD_SIZEOF(struct adiantum_request_ctx,
+-				       u.hash_desc) +
++	subreq_size = max(sizeof_member(struct adiantum_request_ctx,
++					u.hash_desc) +
+ 			  crypto_shash_descsize(hash),
+-			  FIELD_SIZEOF(struct adiantum_request_ctx,
+-				       u.streamcipher_req) +
++			  sizeof_member(struct adiantum_request_ctx,
++					u.streamcipher_req) +
+ 			  crypto_skcipher_reqsize(streamcipher));
+ 
+ 	crypto_skcipher_set_reqsize(tfm,
