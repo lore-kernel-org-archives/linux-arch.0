@@ -1,60 +1,77 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:36002 "EHLO foss.arm.com"
+Received: from foss.arm.com ([217.140.110.172]:36196 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727682AbfJKPdw (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 11 Oct 2019 11:33:52 -0400
-Date: Fri, 11 Oct 2019 16:33:46 +0100
-From: Dave Martin <Dave.Martin@arm.com>
-Subject: Re: [PATCH v2 08/12] arm64: BTI: Decode BYTPE bits when printing
- PSTATE
-Message-ID: <20191011153346.GM27757@arm.com>
+        id S1726328AbfJKPkt (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 11 Oct 2019 11:40:49 -0400
+Date: Fri, 11 Oct 2019 16:40:43 +0100
+From: Mark Rutland <mark.rutland@arm.com>
+Subject: Re: [PATCH v2 05/12] arm64: Basic Branch Target Identification
+ support
+Message-ID: <20191011154043.GG33537@lakrids.cambridge.arm.com>
 References: <1570733080-21015-1-git-send-email-Dave.Martin@arm.com>
- <1570733080-21015-9-git-send-email-Dave.Martin@arm.com>
- <18c9318c-d122-b534-b526-318935d9e2cc@linaro.org>
+ <1570733080-21015-6-git-send-email-Dave.Martin@arm.com>
+ <20191011151028.GE33537@lakrids.cambridge.arm.com>
+ <4e09ca54-f353-9448-64ed-4ba1e38c6ebc@linaro.org>
+ <20191011153225.GL27757@arm.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <18c9318c-d122-b534-b526-318935d9e2cc@linaro.org>
+In-Reply-To: <20191011153225.GL27757@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Richard Henderson <richard.henderson@linaro.org>
-Cc: linux-kernel@vger.kernel.org, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Andrew Jones <drjones@redhat.com>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Jann Horn <jannh@google.com>, Peter Zijlstra <peterz@infradead.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Eugene Syromiatnikov <esyr@redhat.com>, Kristina =?utf-8?Q?Mart=C5=A1enko?= <kristina.martsenko@arm.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Mark Brown <broonie@kernel.org>, linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, Amit Kachhap <amit.kachhap@arm.com>, Paul Elliott <paul.elliott@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Sudakshina Das <sudi.das@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Yu-cheng Yu <yu-cheng.yu@intel.com>
-Message-ID: <20191011153346.nXVwhBlqLFEJXXGu5UWpaOoJDjJjUIuPtkwzHgmvfPw@z>
+To: Dave Martin <Dave.Martin@arm.com>
+Cc: Richard Henderson <richard.henderson@linaro.org>, Paul Elliott <paul.elliott@arm.com>, Peter Zijlstra <peterz@infradead.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Yu-cheng Yu <yu-cheng.yu@intel.com>, Amit Kachhap <amit.kachhap@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, linux-arch@vger.kernel.org, Eugene Syromiatnikov <esyr@redhat.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, "H.J. Lu" <hjl.tools@gmail.com>, Andrew Jones <drjones@redhat.com>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Jann Horn <jannh@google.com>, Kristina =?utf-8?Q?Mart=C5=A1enko?= <kristina.martsenko@arm.com>, Mark Brown <broonie@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, linux-arm-kernel@lists.infradead.org, Florian Weimer <fweimer@redhat.com>, linux-kernel@vger.kernel.org, Sudakshina Das <sudi.das@arm.com>
+Message-ID: <20191011154043.cBobybXcTyzbudw8I3HIXLF-n48PVVGxq9eX7kmQwN0@z>
 
-On Fri, Oct 11, 2019 at 11:31:02AM -0400, Richard Henderson wrote:
-> On 10/10/19 2:44 PM, Dave Martin wrote:
-> >  #define PSR_IL_BIT		(1 << 20)
-> > -#define PSR_BTYPE_CALL		(2 << PSR_BTYPE_SHIFT)
-> > +
-> > +/* Convenience names for the values of PSTATE.BTYPE */
-> > +#define PSR_BTYPE_NONE		(0b00 << PSR_BTYPE_SHIFT)
-> > +#define PSR_BTYPE_JC		(0b01 << PSR_BTYPE_SHIFT)
-> > +#define PSR_BTYPE_C		(0b10 << PSR_BTYPE_SHIFT)
-> > +#define PSR_BTYPE_J		(0b11 << PSR_BTYPE_SHIFT)
+On Fri, Oct 11, 2019 at 04:32:26PM +0100, Dave Martin wrote:
+> On Fri, Oct 11, 2019 at 11:25:33AM -0400, Richard Henderson wrote:
+> > On 10/11/19 11:10 AM, Mark Rutland wrote:
+> > > On Thu, Oct 10, 2019 at 07:44:33PM +0100, Dave Martin wrote:
+> > >> @@ -730,6 +730,11 @@ static void setup_return
+> > >>  	regs->regs[29] = (unsigned long)&user->next_frame->fp;
+> > >>  	regs->pc = (unsigned long)ka->sa.sa_handler;
+> > >>  
+> > >> +	if (system_supports_bti()) {
+> > >> +		regs->pstate &= ~PSR_BTYPE_MASK;
+> > >> +		regs->pstate |= PSR_BTYPE_CALL;
+> > >> +	}
+> > >> +
+> > > 
+> > > I think we might need a comment as to what we're trying to ensure here.
+> > > 
+> > > I was under the (perhaps mistaken) impression that we'd generate a
+> > > pristine pstate for a signal handler, and it's not clear to me that we
+> > > must ensure the first instruction is a target instruction.
+> > 
+> > I think it makes sense to treat entry into a signal handler as a call.  Code
+> > that has been compiled for BTI, and whose page has been marked with PROT_BTI,
+> > will already have the pauth/bti markup at the beginning of the signal handler
+> > function; we might as well verify that.
+> > 
+> > Otherwise sigaction becomes a hole by which an attacker can force execution to
+> > start at any arbitrary address.
 > 
-> It'd be nice to sort this patch earlier, so that ...
-> 
-> > diff --git a/arch/arm64/kernel/signal.c b/arch/arm64/kernel/signal.c
-> > index 4a3bd32..452ac5b 100644
-> > --- a/arch/arm64/kernel/signal.c
-> > +++ b/arch/arm64/kernel/signal.c
-> > @@ -732,7 +732,7 @@ static void setup_return(struct pt_regs *regs, struct k_sigaction *ka,
-> >  
-> >  	if (system_supports_bti()) {
-> >  		regs->pstate &= ~PSR_BTYPE_MASK;
-> > -		regs->pstate |= PSR_BTYPE_CALL;
-> > +		regs->pstate |= PSR_BTYPE_C;
-> >  	}
-> >  
-> >  	if (ka->sa.sa_flags & SA_RESTORER)
-> 
-> ... setup_return does not need to be adjusted a second time.
-> 
-> I don't see any other conflicts vs patch 5.
+> Ack, that's the intended rationale -- I also outlined this in the commit
+> message.
 
-Ack, looks like I mis-split this during rebase.
+Ah, sorry. I evidently did not read that thoroughly enough.
 
-Will fix.
+> Does this sound reasonable?
+> 
+> 
+> Either way, I feel we should do this: any function in a PROT_BTI page
+> should have a suitable landing pad.  There's no reason I can see why
+> a protection given to any other callback function should be omitted
+> for a signal handler.
+> 
+> Note, if the signal handler isn't in a PROT_BTI page then overriding
+> BTYPE here will not trigger a Branch Target exception.
+> 
+> I'm happy to drop a brief comment into the code also, once we're
+> agreed on what the code should be doing.
 
-Cheers
----Dave
+So long as there's a comment as to why, I have no strong feelings here.
+:)
+
+Thanks,
+Mark.
