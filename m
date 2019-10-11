@@ -1,95 +1,32 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:34842 "EHLO foss.arm.com"
+Received: from foss.arm.com ([217.140.110.172]:35166 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726174AbfJKOvz (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 11 Oct 2019 10:51:55 -0400
-Date: Fri, 11 Oct 2019 15:51:49 +0100
+        id S1726332AbfJKPGg (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 11 Oct 2019 11:06:36 -0400
 From: Dave Martin <Dave.Martin@arm.com>
-Subject: Re: [PATCH v2 04/12] arm64: docs: cpu-feature-registers: Document
- ID_AA64PFR1_EL1
-Message-ID: <20191011145148.GK27757@arm.com>
-References: <1570733080-21015-1-git-send-email-Dave.Martin@arm.com>
- <1570733080-21015-5-git-send-email-Dave.Martin@arm.com>
- <87zhi7l8qz.fsf@linaro.org>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-1
-Content-Disposition: inline
-Content-Transfer-Encoding: 8bit
-In-Reply-To: <87zhi7l8qz.fsf@linaro.org>
+Subject: [FIXUP 0/2] Fixups to patch 5
+Date: Fri, 11 Oct 2019 16:06:27 +0100
+Message-ID: <1570806389-16014-1-git-send-email-Dave.Martin@arm.com>
+In-Reply-To: <1570733080-21015-6-git-send-email-Dave.Martin@arm.com>
+References: <1570733080-21015-6-git-send-email-Dave.Martin@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Alex =?iso-8859-1?Q?Benn=E9e?= <alex.bennee@linaro.org>
-Cc: Paul Elliott <paul.elliott@arm.com>, Peter Zijlstra <peterz@infradead.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Yu-cheng Yu <yu-cheng.yu@intel.com>, Amit Kachhap <amit.kachhap@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, linux-arch@vger.kernel.org, Eugene Syromiatnikov <esyr@redhat.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, "H.J. Lu" <hjl.tools@gmail.com>, Andrew Jones <drjones@redhat.com>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Jann Horn <jannh@google.com>, Richard Henderson <richard.henderson@linaro.org>, Kristina =?utf-8?Q?Mart=C5=A1enko?= <kristina.martsenko@arm.com>, Mark Brown <broonie@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, linux-arm-kernel@lists.infradead.org, Florian Weimer <fweimer@redhat.com>, linux-kernel@vger.kernel.org, Sudakshina Das <sudi.das@arm.com>, Suzuki Poulose <suzuki.poulose@arm.com>
-Message-ID: <20191011145149.JgHvvQsCE-mDC0aXXip7c9yfFqSqYd1fKgBaof0tj8A@z>
+To: linux-kernel@vger.kernel.org
+Cc: Amit Kachhap <amit.kachhap@arm.com>, Andrew Jones <drjones@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Catalin Marinas <catalin.marinas@arm.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Kees Cook <keescook@chromium.org>, =?UTF-8?q?Kristina=20Mart=C5=A1enko?= <kristina.martsenko@arm.com>, Marc Zyngier <maz@kernel.org>, Mark Brown <broonie@kernel.org>, Paul Elliott <paul.elliott@arm.com>, Peter Zijlstra <peterz@infradead.org>, Richard Henderson <richard.henderson@linaro.org>, Sudakshina Das <sudi.das@arm.com>, Suzuki Poulose <suzuki.poulose@arm.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Will Deacon <will@kernel.org>, Yu-cheng Yu <yu-cheng.yu@intel.com>, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org
+Message-ID: <20191011150627.UuMxZyjFh8RkN9NsCoISetGh0S5bbR0HtJatZmFuXOQ@z>
 
-On Fri, Oct 11, 2019 at 02:19:48PM +0100, Alex Bennée wrote:
-> 
-> Dave Martin <Dave.Martin@arm.com> writes:
-> 
-> > Commit d71be2b6c0e1 ("arm64: cpufeature: Detect SSBS and advertise
-> > to userspace") exposes ID_AA64PFR1_EL1 to userspace, but didn't
-> > update the documentation to match.
-> >
-> > Add it.
-> >
-> > Signed-off-by: Dave Martin <Dave.Martin@arm.com>
-> >
-> > ---
-> >
-> > Note to maintainers:
-> >
-> >  * This patch has been racing with various other attempts to fix
-> >    the same documentation in the meantime.
-> >
-> >    Since this patch only fixes the documenting for pre-existing
-> >    features, it can safely be dropped if appropriate.
-> >
-> >    The _new_ documentation relating to BTI feature reporting
-> >    is in a subsequent patch, and needs to be retained.
-> > ---
-> >  Documentation/arm64/cpu-feature-registers.rst | 15 +++++++++++----
-> >  1 file changed, 11 insertions(+), 4 deletions(-)
-> >
-> > diff --git a/Documentation/arm64/cpu-feature-registers.rst b/Documentation/arm64/cpu-feature-registers.rst
-> > index 2955287..b86828f 100644
-> > --- a/Documentation/arm64/cpu-feature-registers.rst
-> > +++ b/Documentation/arm64/cpu-feature-registers.rst
-> > @@ -168,8 +168,15 @@ infrastructure:
-> >       +------------------------------+---------+---------+
-> >
-> >
-> > -  3) MIDR_EL1 - Main ID Register
-> > +  3) ID_AA64PFR1_EL1 - Processor Feature Register 1
-> > +     +------------------------------+---------+---------+
-> > +     | Name                         |  bits   | visible |
-> > +     +------------------------------+---------+---------+
-> > +     | SSBS                         | [7-4]   |    y    |
-> > +     +------------------------------+---------+---------+
-> > +
-> >
-> > +  4) MIDR_EL1 - Main ID Register
-> >       +------------------------------+---------+---------+
-> >       | Name                         |  bits   | visible |
-> >       +------------------------------+---------+---------+
-> > @@ -188,7 +195,7 @@ infrastructure:
-> >     as available on the CPU where it is fetched and is not a system
-> >     wide safe value.
-> >
-> > -  4) ID_AA64ISAR1_EL1 - Instruction set attribute register 1
-> > +  5) ID_AA64ISAR1_EL1 - Instruction set attribute register 1
-> 
-> If I'm not mistaken .rst has support for auto-enumeration if the #
-> character is used. That might reduce the pain of re-numbering in future.
+Here are a couple of late-breaking fixups, which may be integrated in
+the next posting.
 
-Ack, though it would be good to go one better and generate this document
-from the cpufeature.c tables (or from some common source).  The numbers
-are relatively easy to maintain -- remembering to update the document
-at all seems the bigger maintenance headache right now.
+The first is trivial; the second needs discussion.
 
-I think this particular patch is superseded by similar fixes from other
-people, just not in torvalds/master yet.
 
-[...]
+Dave Martin (2):
+  squash! arm64: Basic Branch Target Identification support
+  squash! arm64: Basic Branch Target Identification support
 
-Cheers
----Dave
+ arch/arm64/Kconfig | 11 ++++++++---
+ 1 file changed, 8 insertions(+), 3 deletions(-)
+
+-- 
+2.1.4
