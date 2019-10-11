@@ -1,96 +1,198 @@
 From: Jiri Slaby <jslaby@suse.cz>
-Subject: [PATCH v9 09/28] x86/asm: Annotate aliases
-Date: Fri, 11 Oct 2019 13:50:49 +0200
-Message-ID: <20191011115108.12392-10-jslaby@suse.cz>
+Subject: [PATCH v9 17/28] x86/asm: Use SYM_INNER_LABEL instead of GLOBAL
+Date: Fri, 11 Oct 2019 13:50:57 +0200
+Message-ID: <20191011115108.12392-18-jslaby@suse.cz>
 References: <20191011115108.12392-1-jslaby@suse.cz>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
-Return-path: <xen-devel-bounces@lists.xenproject.org>
+Content-Transfer-Encoding: 8bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20191011115108.12392-1-jslaby@suse.cz>
-List-Unsubscribe: <https://lists.xenproject.org/mailman/options/xen-devel>,
- <mailto:xen-devel-request@lists.xenproject.org?subject=unsubscribe>
-List-Post: <mailto:xen-devel@lists.xenproject.org>
-List-Help: <mailto:xen-devel-request@lists.xenproject.org?subject=help>
-List-Subscribe: <https://lists.xenproject.org/mailman/listinfo/xen-devel>,
- <mailto:xen-devel-request@lists.xenproject.org?subject=subscribe>
-Errors-To: xen-devel-bounces@lists.xenproject.org
-Sender: "Xen-devel" <xen-devel-bounces@lists.xenproject.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: bp@alien8.de
-Cc: linux-arch@vger.kernel.org, Juergen Gross <jgross@suse.com>, Herbert Xu <herbert@gondor.apana.org.au>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, x86@kernel.org, linux-kernel@vger.kernel.org, mingo@redhat.com, linux-crypto@vger.kernel.org, hpa@zytor.com, xen-devel@lists.xenproject.org, tglx@linutronix.de, Jiri Slaby <jslaby@suse.cz>, "David S. Miller" <davem@davemloft.net>
+Cc: tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Jiri Slaby <jslaby@suse.cz>, Andy Lutomirski <luto@amacapital.net>
 List-Id: linux-arch.vger.kernel.org
 
-X2tleV9leHBhbnNpb25fMTI4IGlzIGFuIGFsaWFzIHRvIF9rZXlfZXhwYW5zaW9uXzI1NmEsIF9f
-bWVtY3B5IHRvCm1lbWNweSwgeGVuX3N5c2NhbGwzMl90YXJnZXQgdG8geGVuX3N5c2VudGVyX3Rh
-cmdldCwgYW5kIHNvIG9uLiBBbm5vdGF0ZQp0aGVtIGFsbCB1c2luZyB0aGUgbmV3IFNZTV9GVU5D
-X1NUQVJUX0FMSUFTLCBTWU1fRlVOQ19TVEFSVF9MT0NBTF9BTElBUywKYW5kIFNZTV9GVU5DX0VO
-RF9BTElBUy4gVGhpcyB3aWxsIG1ha2UgdGhlIHRvb2xzIGdlbmVyYXRpbmcgdGhlCmRlYnVnaW5m
-byBoYXBweSBhcyBpdCBhdm9pZCBuZXN0aW5nIGFuZCBkb3VibGUgc3ltYm9scy4KClNpZ25lZC1v
-ZmYtYnk6IEppcmkgU2xhYnkgPGpzbGFieUBzdXNlLmN6PgpDYzogSGVyYmVydCBYdSA8aGVyYmVy
-dEBnb25kb3IuYXBhbmEub3JnLmF1PgpDYzogIkRhdmlkIFMuIE1pbGxlciIgPGRhdmVtQGRhdmVt
-bG9mdC5uZXQ+CkNjOiBCb3Jpc2xhdiBQZXRrb3YgPGJwQGFsaWVuOC5kZT4KQ2M6IFRob21hcyBH
-bGVpeG5lciA8dGdseEBsaW51dHJvbml4LmRlPgpDYzogSW5nbyBNb2xuYXIgPG1pbmdvQHJlZGhh
-dC5jb20+CkNjOiAiSC4gUGV0ZXIgQW52aW4iIDxocGFAenl0b3IuY29tPgpDYzogPHg4NkBrZXJu
-ZWwub3JnPgpDYzogQm9yaXMgT3N0cm92c2t5IDxib3Jpcy5vc3Ryb3Zza3lAb3JhY2xlLmNvbT4K
-UmV2aWV3ZWQtYnk6IEp1ZXJnZW4gR3Jvc3MgPGpncm9zc0BzdXNlLmNvbT4gW3hlbiBwYXJ0c10K
-Q2M6IDxsaW51eC1jcnlwdG9Admdlci5rZXJuZWwub3JnPgpDYzogPHhlbi1kZXZlbEBsaXN0cy54
-ZW5wcm9qZWN0Lm9yZz4KLS0tCiBhcmNoL3g4Ni9jcnlwdG8vYWVzbmktaW50ZWxfYXNtLlMgfCA1
-ICsrLS0tCiBhcmNoL3g4Ni9saWIvbWVtY3B5XzY0LlMgICAgICAgICAgfCA0ICsrLS0KIGFyY2gv
-eDg2L2xpYi9tZW1tb3ZlXzY0LlMgICAgICAgICB8IDQgKystLQogYXJjaC94ODYvbGliL21lbXNl
-dF82NC5TICAgICAgICAgIHwgNCArKy0tCiBhcmNoL3g4Ni94ZW4veGVuLWFzbV82NC5TICAgICAg
-ICAgfCA0ICsrLS0KIDUgZmlsZXMgY2hhbmdlZCwgMTAgaW5zZXJ0aW9ucygrKSwgMTEgZGVsZXRp
-b25zKC0pCgpkaWZmIC0tZ2l0IGEvYXJjaC94ODYvY3J5cHRvL2Flc25pLWludGVsX2FzbS5TIGIv
-YXJjaC94ODYvY3J5cHRvL2Flc25pLWludGVsX2FzbS5TCmluZGV4IGUwYTVmYjQ2MmEwYS4uOWQ4
-ZDVmMjI5NmUxIDEwMDY0NAotLS0gYS9hcmNoL3g4Ni9jcnlwdG8vYWVzbmktaW50ZWxfYXNtLlMK
-KysrIGIvYXJjaC94ODYvY3J5cHRvL2Flc25pLWludGVsX2FzbS5TCkBAIC0xNzU3LDggKzE3NTcs
-NyBAQCBFTkRQUk9DKGFlc25pX2djbV9maW5hbGl6ZSkKICNlbmRpZgogCiAKLS5hbGlnbiA0Ci1f
-a2V5X2V4cGFuc2lvbl8xMjg6CitTWU1fRlVOQ19TVEFSVF9MT0NBTF9BTElBUyhfa2V5X2V4cGFu
-c2lvbl8xMjgpCiBTWU1fRlVOQ19TVEFSVF9MT0NBTChfa2V5X2V4cGFuc2lvbl8yNTZhKQogCXBz
-aHVmZCAkMGIxMTExMTExMSwgJXhtbTEsICV4bW0xCiAJc2h1ZnBzICQwYjAwMDEwMDAwLCAleG1t
-MCwgJXhtbTQKQEAgLTE3NjksOCArMTc2OCw4IEBAIFNZTV9GVU5DX1NUQVJUX0xPQ0FMKF9rZXlf
-ZXhwYW5zaW9uXzI1NmEpCiAJbW92YXBzICV4bW0wLCAoVEtFWVApCiAJYWRkICQweDEwLCBUS0VZ
-UAogCXJldAotRU5EUFJPQyhfa2V5X2V4cGFuc2lvbl8xMjgpCiBTWU1fRlVOQ19FTkQoX2tleV9l
-eHBhbnNpb25fMjU2YSkKK1NZTV9GVU5DX0VORF9BTElBUyhfa2V5X2V4cGFuc2lvbl8xMjgpCiAK
-IFNZTV9GVU5DX1NUQVJUX0xPQ0FMKF9rZXlfZXhwYW5zaW9uXzE5MmEpCiAJcHNodWZkICQwYjAx
-MDEwMTAxLCAleG1tMSwgJXhtbTEKZGlmZiAtLWdpdCBhL2FyY2gveDg2L2xpYi9tZW1jcHlfNjQu
-UyBiL2FyY2gveDg2L2xpYi9tZW1jcHlfNjQuUwppbmRleCA5Mjc0ODY2MGJhNTEuLjU3YTY0MjY2
-YmE2OSAxMDA2NDQKLS0tIGEvYXJjaC94ODYvbGliL21lbWNweV82NC5TCisrKyBiL2FyY2gveDg2
-L2xpYi9tZW1jcHlfNjQuUwpAQCAtMjgsNyArMjgsNyBAQAogICogT3V0cHV0OgogICogcmF4IG9y
-aWdpbmFsIGRlc3RpbmF0aW9uCiAgKi8KLUVOVFJZKF9fbWVtY3B5KQorU1lNX0ZVTkNfU1RBUlRf
-QUxJQVMoX19tZW1jcHkpCiBFTlRSWShtZW1jcHkpCiAJQUxURVJOQVRJVkVfMiAiam1wIG1lbWNw
-eV9vcmlnIiwgIiIsIFg4Nl9GRUFUVVJFX1JFUF9HT09ELCBcCiAJCSAgICAgICJqbXAgbWVtY3B5
-X2VybXMiLCBYODZfRkVBVFVSRV9FUk1TCkBAIC00Miw3ICs0Miw3IEBAIEVOVFJZKG1lbWNweSkK
-IAlyZXAgbW92c2IKIAlyZXQKIEVORFBST0MobWVtY3B5KQotRU5EUFJPQyhfX21lbWNweSkKK1NZ
-TV9GVU5DX0VORF9BTElBUyhfX21lbWNweSkKIEVYUE9SVF9TWU1CT0wobWVtY3B5KQogRVhQT1JU
-X1NZTUJPTChfX21lbWNweSkKIApkaWZmIC0tZ2l0IGEvYXJjaC94ODYvbGliL21lbW1vdmVfNjQu
-UyBiL2FyY2gveDg2L2xpYi9tZW1tb3ZlXzY0LlMKaW5kZXggYmJlYzY5ZDgyMjNiLi41MGMxNjQ4
-MzExYjMgMTAwNjQ0Ci0tLSBhL2FyY2gveDg2L2xpYi9tZW1tb3ZlXzY0LlMKKysrIGIvYXJjaC94
-ODYvbGliL21lbW1vdmVfNjQuUwpAQCAtMjYsNyArMjYsNyBAQAogICovCiAud2VhayBtZW1tb3Zl
-CiAKLUVOVFJZKG1lbW1vdmUpCitTWU1fRlVOQ19TVEFSVF9BTElBUyhtZW1tb3ZlKQogRU5UUlko
-X19tZW1tb3ZlKQogCiAJLyogSGFuZGxlIG1vcmUgMzIgYnl0ZXMgaW4gbG9vcCAqLwpAQCAtMjA4
-LDYgKzIwOCw2IEBAIEVOVFJZKF9fbWVtbW92ZSkKIDEzOgogCXJldHEKIEVORFBST0MoX19tZW1t
-b3ZlKQotRU5EUFJPQyhtZW1tb3ZlKQorU1lNX0ZVTkNfRU5EX0FMSUFTKG1lbW1vdmUpCiBFWFBP
-UlRfU1lNQk9MKF9fbWVtbW92ZSkKIEVYUE9SVF9TWU1CT0wobWVtbW92ZSkKZGlmZiAtLWdpdCBh
-L2FyY2gveDg2L2xpYi9tZW1zZXRfNjQuUyBiL2FyY2gveDg2L2xpYi9tZW1zZXRfNjQuUwppbmRl
-eCA5YmM4NjFjNzFlNzUuLjkyN2FjNDRkMzRhYSAxMDA2NDQKLS0tIGEvYXJjaC94ODYvbGliL21l
-bXNldF82NC5TCisrKyBiL2FyY2gveDg2L2xpYi9tZW1zZXRfNjQuUwpAQCAtMTksNyArMTksNyBA
-QAogICoKICAqIHJheCAgIG9yaWdpbmFsIGRlc3RpbmF0aW9uCiAgKi8KLUVOVFJZKG1lbXNldCkK
-K1NZTV9GVU5DX1NUQVJUX0FMSUFTKG1lbXNldCkKIEVOVFJZKF9fbWVtc2V0KQogCS8qCiAJICog
-U29tZSBDUFVzIHN1cHBvcnQgZW5oYW5jZWQgUkVQIE1PVlNCL1NUT1NCIGZlYXR1cmUuIEl0IGlz
-IHJlY29tbWVuZGVkCkBAIC00Myw4ICs0Myw4IEBAIEVOVFJZKF9fbWVtc2V0KQogCXJlcCBzdG9z
-YgogCW1vdnEgJXI5LCVyYXgKIAlyZXQKLUVORFBST0MobWVtc2V0KQogRU5EUFJPQyhfX21lbXNl
-dCkKK1NZTV9GVU5DX0VORF9BTElBUyhtZW1zZXQpCiBFWFBPUlRfU1lNQk9MKG1lbXNldCkKIEVY
-UE9SVF9TWU1CT0woX19tZW1zZXQpCiAKZGlmZiAtLWdpdCBhL2FyY2gveDg2L3hlbi94ZW4tYXNt
-XzY0LlMgYi9hcmNoL3g4Ni94ZW4veGVuLWFzbV82NC5TCmluZGV4IGViZjYxMGI0OWMwNi4uNDVj
-MTI0OWYzNzBkIDEwMDY0NAotLS0gYS9hcmNoL3g4Ni94ZW4veGVuLWFzbV82NC5TCisrKyBiL2Fy
-Y2gveDg2L3hlbi94ZW4tYXNtXzY0LlMKQEAgLTE2NywxMyArMTY3LDEzIEBAIEVORFBST0MoeGVu
-X3N5c2VudGVyX3RhcmdldCkKIAogI2Vsc2UgLyogIUNPTkZJR19JQTMyX0VNVUxBVElPTiAqLwog
-Ci1FTlRSWSh4ZW5fc3lzY2FsbDMyX3RhcmdldCkKK1NZTV9GVU5DX1NUQVJUX0FMSUFTKHhlbl9z
-eXNjYWxsMzJfdGFyZ2V0KQogRU5UUlkoeGVuX3N5c2VudGVyX3RhcmdldCkKIAlsZWEgMTYoJXJz
-cCksICVyc3AJLyogc3RyaXAgJXJjeCwgJXIxMSAqLwogCW1vdiAkLUVOT1NZUywgJXJheAogCXB1
-c2hxICQwCiAJam1wIGh5cGVyY2FsbF9pcmV0Ci1FTkRQUk9DKHhlbl9zeXNjYWxsMzJfdGFyZ2V0
-KQogRU5EUFJPQyh4ZW5fc3lzZW50ZXJfdGFyZ2V0KQorU1lNX0ZVTkNfRU5EX0FMSUFTKHhlbl9z
-eXNjYWxsMzJfdGFyZ2V0KQogCiAjZW5kaWYJLyogQ09ORklHX0lBMzJfRU1VTEFUSU9OICovCi0t
-IAoyLjIzLjAKCgpfX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19f
-XwpYZW4tZGV2ZWwgbWFpbGluZyBsaXN0Clhlbi1kZXZlbEBsaXN0cy54ZW5wcm9qZWN0Lm9yZwpo
-dHRwczovL2xpc3RzLnhlbnByb2plY3Qub3JnL21haWxtYW4vbGlzdGluZm8veGVuLWRldmVs
+The GLOBAL macro had several meanings and is going away. In this patch,
+convert all the inner function labels marked with GLOBAL to use
+SYM_INNER_LABEL instead.
+
+Signed-off-by: Jiri Slaby <jslaby@suse.cz>
+Cc: Borislav Petkov <bp@alien8.de>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: Ingo Molnar <mingo@redhat.com>
+Cc: "H. Peter Anvin" <hpa@zytor.com>
+Cc: x86@kernel.org
+Cc: Andy Lutomirski <luto@amacapital.net>
+---
+ arch/x86/entry/entry_64.S                |  6 +++---
+ arch/x86/entry/entry_64_compat.S         |  4 ++--
+ arch/x86/entry/vdso/vdso32/system_call.S |  2 +-
+ arch/x86/kernel/ftrace_32.S              |  2 +-
+ arch/x86/kernel/ftrace_64.S              | 16 ++++++++--------
+ arch/x86/realmode/rm/reboot.S            |  2 +-
+ 6 files changed, 16 insertions(+), 16 deletions(-)
+
+diff --git a/arch/x86/entry/entry_64.S b/arch/x86/entry/entry_64.S
+index 607e25f54ff4..57d246048ac6 100644
+--- a/arch/x86/entry/entry_64.S
++++ b/arch/x86/entry/entry_64.S
+@@ -162,7 +162,7 @@ ENTRY(entry_SYSCALL_64)
+ 	pushq	%r11					/* pt_regs->flags */
+ 	pushq	$__USER_CS				/* pt_regs->cs */
+ 	pushq	%rcx					/* pt_regs->ip */
+-GLOBAL(entry_SYSCALL_64_after_hwframe)
++SYM_INNER_LABEL(entry_SYSCALL_64_after_hwframe, SYM_L_GLOBAL)
+ 	pushq	%rax					/* pt_regs->orig_ax */
+ 
+ 	PUSH_AND_CLEAR_REGS rax=$-ENOSYS
+@@ -621,7 +621,7 @@ ret_from_intr:
+ 	call	prepare_exit_to_usermode
+ 	TRACE_IRQS_IRETQ
+ 
+-GLOBAL(swapgs_restore_regs_and_return_to_usermode)
++SYM_INNER_LABEL(swapgs_restore_regs_and_return_to_usermode, SYM_L_GLOBAL)
+ #ifdef CONFIG_DEBUG_ENTRY
+ 	/* Assert that pt_regs indicates user mode. */
+ 	testb	$3, CS(%rsp)
+@@ -679,7 +679,7 @@ retint_kernel:
+ 	 */
+ 	TRACE_IRQS_IRETQ
+ 
+-GLOBAL(restore_regs_and_return_to_kernel)
++SYM_INNER_LABEL(restore_regs_and_return_to_kernel, SYM_L_GLOBAL)
+ #ifdef CONFIG_DEBUG_ENTRY
+ 	/* Assert that pt_regs indicates kernel mode. */
+ 	testb	$3, CS(%rsp)
+diff --git a/arch/x86/entry/entry_64_compat.S b/arch/x86/entry/entry_64_compat.S
+index 39913770a44d..5c7e71669239 100644
+--- a/arch/x86/entry/entry_64_compat.S
++++ b/arch/x86/entry/entry_64_compat.S
+@@ -146,7 +146,7 @@ ENTRY(entry_SYSENTER_compat)
+ 	pushq	$X86_EFLAGS_FIXED
+ 	popfq
+ 	jmp	.Lsysenter_flags_fixed
+-GLOBAL(__end_entry_SYSENTER_compat)
++SYM_INNER_LABEL(__end_entry_SYSENTER_compat, SYM_L_GLOBAL)
+ ENDPROC(entry_SYSENTER_compat)
+ 
+ /*
+@@ -215,7 +215,7 @@ ENTRY(entry_SYSCALL_compat)
+ 	pushq	%r11			/* pt_regs->flags */
+ 	pushq	$__USER32_CS		/* pt_regs->cs */
+ 	pushq	%rcx			/* pt_regs->ip */
+-GLOBAL(entry_SYSCALL_compat_after_hwframe)
++SYM_INNER_LABEL(entry_SYSCALL_compat_after_hwframe, SYM_L_GLOBAL)
+ 	movl	%eax, %eax		/* discard orig_ax high bits */
+ 	pushq	%rax			/* pt_regs->orig_ax */
+ 	pushq	%rdi			/* pt_regs->di */
+diff --git a/arch/x86/entry/vdso/vdso32/system_call.S b/arch/x86/entry/vdso/vdso32/system_call.S
+index 263d7433dea8..de1fff7188aa 100644
+--- a/arch/x86/entry/vdso/vdso32/system_call.S
++++ b/arch/x86/entry/vdso/vdso32/system_call.S
+@@ -62,7 +62,7 @@ __kernel_vsyscall:
+ 
+ 	/* Enter using int $0x80 */
+ 	int	$0x80
+-GLOBAL(int80_landing_pad)
++SYM_INNER_LABEL(int80_landing_pad, SYM_L_GLOBAL)
+ 
+ 	/*
+ 	 * Restore EDX and ECX in case they were clobbered.  EBP is not
+diff --git a/arch/x86/kernel/ftrace_32.S b/arch/x86/kernel/ftrace_32.S
+index 073aab525d80..e0061dc976e1 100644
+--- a/arch/x86/kernel/ftrace_32.S
++++ b/arch/x86/kernel/ftrace_32.S
+@@ -138,7 +138,7 @@ ENTRY(ftrace_regs_caller)
+ 	movl	function_trace_op, %ecx	# 3rd argument: ftrace_pos
+ 	pushl	%esp			# 4th argument: pt_regs
+ 
+-GLOBAL(ftrace_regs_call)
++SYM_INNER_LABEL(ftrace_regs_call, SYM_L_GLOBAL)
+ 	call	ftrace_stub
+ 
+ 	addl	$4, %esp		# skip 4th argument
+diff --git a/arch/x86/kernel/ftrace_64.S b/arch/x86/kernel/ftrace_64.S
+index 809d54397dba..3afaaf555637 100644
+--- a/arch/x86/kernel/ftrace_64.S
++++ b/arch/x86/kernel/ftrace_64.S
+@@ -140,14 +140,14 @@ ENTRY(ftrace_caller)
+ 	/* save_mcount_regs fills in first two parameters */
+ 	save_mcount_regs
+ 
+-GLOBAL(ftrace_caller_op_ptr)
++SYM_INNER_LABEL(ftrace_caller_op_ptr, SYM_L_GLOBAL)
+ 	/* Load the ftrace_ops into the 3rd parameter */
+ 	movq function_trace_op(%rip), %rdx
+ 
+ 	/* regs go into 4th parameter (but make it NULL) */
+ 	movq $0, %rcx
+ 
+-GLOBAL(ftrace_call)
++SYM_INNER_LABEL(ftrace_call, SYM_L_GLOBAL)
+ 	call ftrace_stub
+ 
+ 	restore_mcount_regs
+@@ -157,10 +157,10 @@ GLOBAL(ftrace_call)
+ 	 * think twice before adding any new code or changing the
+ 	 * layout here.
+ 	 */
+-GLOBAL(ftrace_epilogue)
++SYM_INNER_LABEL(ftrace_epilogue, SYM_L_GLOBAL)
+ 
+ #ifdef CONFIG_FUNCTION_GRAPH_TRACER
+-GLOBAL(ftrace_graph_call)
++SYM_INNER_LABEL(ftrace_graph_call, SYM_L_GLOBAL)
+ 	jmp ftrace_stub
+ #endif
+ 
+@@ -180,7 +180,7 @@ ENTRY(ftrace_regs_caller)
+ 	save_mcount_regs 8
+ 	/* save_mcount_regs fills in first two parameters */
+ 
+-GLOBAL(ftrace_regs_caller_op_ptr)
++SYM_INNER_LABEL(ftrace_regs_caller_op_ptr, SYM_L_GLOBAL)
+ 	/* Load the ftrace_ops into the 3rd parameter */
+ 	movq function_trace_op(%rip), %rdx
+ 
+@@ -209,7 +209,7 @@ GLOBAL(ftrace_regs_caller_op_ptr)
+ 	/* regs go into 4th parameter */
+ 	leaq (%rsp), %rcx
+ 
+-GLOBAL(ftrace_regs_call)
++SYM_INNER_LABEL(ftrace_regs_call, SYM_L_GLOBAL)
+ 	call ftrace_stub
+ 
+ 	/* Copy flags back to SS, to restore them */
+@@ -239,7 +239,7 @@ GLOBAL(ftrace_regs_call)
+ 	 * The trampoline will add the code to jump
+ 	 * to the return.
+ 	 */
+-GLOBAL(ftrace_regs_caller_end)
++SYM_INNER_LABEL(ftrace_regs_caller_end, SYM_L_GLOBAL)
+ 
+ 	jmp ftrace_epilogue
+ 
+@@ -261,7 +261,7 @@ fgraph_trace:
+ 	jnz ftrace_graph_caller
+ #endif
+ 
+-GLOBAL(ftrace_stub)
++SYM_INNER_LABEL(ftrace_stub, SYM_L_GLOBAL)
+ 	retq
+ 
+ trace:
+diff --git a/arch/x86/realmode/rm/reboot.S b/arch/x86/realmode/rm/reboot.S
+index cd2f97b9623b..f91425a01f8f 100644
+--- a/arch/x86/realmode/rm/reboot.S
++++ b/arch/x86/realmode/rm/reboot.S
+@@ -33,7 +33,7 @@ ENTRY(machine_real_restart_asm)
+ 	movl	%eax, %cr0
+ 	ljmpl	$__KERNEL32_CS, $pa_machine_real_restart_paging_off
+ 
+-GLOBAL(machine_real_restart_paging_off)
++SYM_INNER_LABEL(machine_real_restart_paging_off, SYM_L_GLOBAL)
+ 	xorl	%eax, %eax
+ 	xorl	%edx, %edx
+ 	movl	$MSR_EFER, %ecx
+-- 
+2.23.0
