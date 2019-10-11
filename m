@@ -1,86 +1,108 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-lj1-f193.google.com ([209.85.208.193]:42354 "EHLO
-        mail-lj1-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727243AbfJKMTy (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 11 Oct 2019 08:19:54 -0400
-Received: by mail-lj1-f193.google.com with SMTP id y23so9582838lje.9
-        for <linux-arch@vger.kernel.org>; Fri, 11 Oct 2019 05:19:53 -0700 (PDT)
-Date: Fri, 11 Oct 2019 15:19:51 +0300
-From: "Kirill A. Shutemov" <kirill@shutemov.name>
-Subject: Re: [PATCH 0/3] eldie generated code for folded p4d/pud
-Message-ID: <20191011121951.nxna6hruuskvdxod@box>
-References: <20191009222658.961-1-vgupta@synopsys.com>
- <20191010085609.xgwkrbzea253wmfg@black.fi.intel.com>
- <8ba067a6-8b6a-2414-0f04-b251cd6bb47c@gmail.com>
+Received: from mail-wm1-f65.google.com ([209.85.128.65]:40186 "EHLO
+        mail-wm1-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727950AbfJKNTx (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 11 Oct 2019 09:19:53 -0400
+Received: by mail-wm1-f65.google.com with SMTP id b24so10197274wmj.5
+        for <linux-arch@vger.kernel.org>; Fri, 11 Oct 2019 06:19:51 -0700 (PDT)
+References: <1570733080-21015-1-git-send-email-Dave.Martin@arm.com>
+ <1570733080-21015-5-git-send-email-Dave.Martin@arm.com>
+From: Alex =?utf-8?Q?Benn=C3=A9e?= <alex.bennee@linaro.org>
+Subject: Re: [PATCH v2 04/12] arm64: docs: cpu-feature-registers: Document
+ ID_AA64PFR1_EL1
+In-reply-to: <1570733080-21015-5-git-send-email-Dave.Martin@arm.com>
+Date: Fri, 11 Oct 2019 14:19:48 +0100
+Message-ID: <87zhi7l8qz.fsf@linaro.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <8ba067a6-8b6a-2414-0f04-b251cd6bb47c@gmail.com>
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: quoted-printable
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Vineet Gupta <vineetg76@gmail.com>
-Cc: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Vineet Gupta <Vineet.Gupta1@synopsys.com>, linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Peter Zijlstra <peterz@infradead.org>, "Aneesh Kumar K . V" <aneesh.kumar@linux.ibm.com>, linux-kernel@vger.kernel.org, Nick Piggin <npiggin@gmail.com>, linux-mm@kvack.org, Andrew Morton <akpm@linux-foundation.org>, linux-snps-arc@lists.infradead.org, Will Deacon <will@kernel.org>
-Message-ID: <20191011121951.qCcpC8QGNWqX4xkAZIvYfRV-smRFiuHFPytUxwM0GSs@z>
+To: Dave Martin <Dave.Martin@arm.com>
+Cc: linux-kernel@vger.kernel.org, Andrew Jones <drjones@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Catalin Marinas <catalin.marinas@arm.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Kees Cook <keescook@chromium.org>, Kristina =?utf-8?Q?Mart=C5=A1enko?= <kristina.martsenko@arm.com>, Mark Brown <broonie@kernel.org>, Paul Elliott <paul.elliott@arm.com>, Peter Zijlstra <peterz@infradead.org>, Richard Henderson <richard.henderson@linaro.org>, Sudakshina Das <sudi.das@arm.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Will Deacon <will.deacon@arm.com>, Yu-cheng Yu <yu-cheng.yu@intel.com>, Amit Kachhap <amit.kachhap@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org
+Message-ID: <20191011131948.v4L8K-yJoN4R1QMNYGF9c2KVpp4t2vdKoDd_uKCpFqM@z>
 
-On Thu, Oct 10, 2019 at 01:05:56PM -0700, Vineet Gupta wrote:
-> 
-> Hi Kirill,
-> 
-> On 10/10/19 1:56 AM, Kirill A. Shutemov wrote:
-> > On Wed, Oct 09, 2019 at 10:26:55PM +0000, Vineet Gupta wrote:
-> >>
-> >> This series elides extraneous generate code for folded p4d/pud.
-> >> This came up when trying to remove __ARCH_USE_5LEVEL_HACK from ARC port.
-> >> The code saving are not a while lot, but still worthwhile IMHO.
-> > 
-> > Agreed.
-> 
-> Thx.
-> 
-> So given we are folding pmd too, it seemed we could do the following as well.
-> 
-> +#ifndef __PAGETABLE_PMD_FOLDED
->  void pmd_clear_bad(pmd_t *);
-> +#else
-> +#define pmd_clear_bad(pmd)        do { } while (0)
-> +#endif
-> 
-> +#ifndef __PAGETABLE_PMD_FOLDED
->  void pmd_clear_bad(pmd_t *pmd)
->  {
->         pmd_ERROR(*pmd);
->         pmd_clear(pmd);
->  }
-> +#endif
-> 
-> I stared at generated code and it seems a bit wrong.
-> free_pgd_range() -> pgd_none_or_clear_bad() is no longer checking for unmapped pgd
-> entries as pgd_none/pgd_bad are all stubs returning 0.
-> 
-> This whole pmd folding is a bit confusing considering I only revisit it every few
-> years :-) Abstraction wise, __PAGETABLE_PMD_FOLDED only has pgd, pte but even in
-> this regime bunch of pmd macros are still valid
-> 
->     pmd_set(pmdp, ptep) {
->         *pmdp.pud.p4d.pgd = (unsigned long)ptep
->     }
-> 
-> Is there a better way to make a mental model of this code folding.
 
-I don't have any. PMD folding predates me and have never looked at it
-closely. Quick look brings more confusion than clarity. :P
+Dave Martin <Dave.Martin@arm.com> writes:
 
-> In an ideal world pmd folded would have meant pmd_* routines just vanish - poof.
-> So in that sense I like your implementation under #[45]LEVEL_HACK where the level
-> simply vanishes by code like #define p4d_t pgd_t. Perhaps there is lot of historic
-> baggage, proliferated into arch code so hard to untangle.
+> Commit d71be2b6c0e1 ("arm64: cpufeature: Detect SSBS and advertise
+> to userspace") exposes ID_AA64PFR1_EL1 to userspace, but didn't
+> update the documentation to match.
+>
+> Add it.
+>
+> Signed-off-by: Dave Martin <Dave.Martin@arm.com>
+>
+> ---
+>
+> Note to maintainers:
+>
+>  * This patch has been racing with various other attempts to fix
+>    the same documentation in the meantime.
+>
+>    Since this patch only fixes the documenting for pre-existing
+>    features, it can safely be dropped if appropriate.
+>
+>    The _new_ documentation relating to BTI feature reporting
+>    is in a subsequent patch, and needs to be retained.
+> ---
+>  Documentation/arm64/cpu-feature-registers.rst | 15 +++++++++++----
+>  1 file changed, 11 insertions(+), 4 deletions(-)
+>
+> diff --git a/Documentation/arm64/cpu-feature-registers.rst b/Documentatio=
+n/arm64/cpu-feature-registers.rst
+> index 2955287..b86828f 100644
+> --- a/Documentation/arm64/cpu-feature-registers.rst
+> +++ b/Documentation/arm64/cpu-feature-registers.rst
+> @@ -168,8 +168,15 @@ infrastructure:
+>       +------------------------------+---------+---------+
+>
+>
+> -  3) MIDR_EL1 - Main ID Register
+> +  3) ID_AA64PFR1_EL1 - Processor Feature Register 1
+> +     +------------------------------+---------+---------+
+> +     | Name                         |  bits   | visible |
+> +     +------------------------------+---------+---------+
+> +     | SSBS                         | [7-4]   |    y    |
+> +     +------------------------------+---------+---------+
+> +
+>
+> +  4) MIDR_EL1 - Main ID Register
+>       +------------------------------+---------+---------+
+>       | Name                         |  bits   | visible |
+>       +------------------------------+---------+---------+
+> @@ -188,7 +195,7 @@ infrastructure:
+>     as available on the CPU where it is fetched and is not a system
+>     wide safe value.
+>
+> -  4) ID_AA64ISAR1_EL1 - Instruction set attribute register 1
+> +  5) ID_AA64ISAR1_EL1 - Instruction set attribute register 1
 
-In ideal world all these pgd/p4d/pud/pmd/pte should die and we have
-something more flexible to begin with.
+If I'm not mistaken .rst has support for auto-enumeration if the #
+character is used. That might reduce the pain of re-numbering in future.
 
-I played with this before:
+>
+>       +------------------------------+---------+---------+
+>       | Name                         |  bits   | visible |
+> @@ -210,7 +217,7 @@ infrastructure:
+>       | DPB                          | [3-0]   |    y    |
+>       +------------------------------+---------+---------+
+>
+> -  5) ID_AA64MMFR2_EL1 - Memory model feature register 2
+> +  6) ID_AA64MMFR2_EL1 - Memory model feature register 2
+>
+>       +------------------------------+---------+---------+
+>       | Name                         |  bits   | visible |
+> @@ -218,7 +225,7 @@ infrastructure:
+>       | AT                           | [35-32] |    y    |
+>       +------------------------------+---------+---------+
+>
+> -  6) ID_AA64ZFR0_EL1 - SVE feature ID register 0
+> +  7) ID_AA64ZFR0_EL1 - SVE feature ID register 0
+>
+>       +------------------------------+---------+---------+
+>       | Name                         |  bits   | visible |
 
-https://lore.kernel.org/lkml/20180424154355.mfjgkf47kdp2by4e@black.fi.intel.com/
 
--- 
- Kirill A. Shutemov
+--
+Alex Benn=C3=A9e
