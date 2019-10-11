@@ -1,334 +1,96 @@
 From: Jiri Slaby <jslaby@suse.cz>
-Subject: [PATCH v9 20/28] x86/asm: Make some functions local
-Date: Fri, 11 Oct 2019 13:51:00 +0200
-Message-ID: <20191011115108.12392-21-jslaby@suse.cz>
+Subject: [PATCH v9 09/28] x86/asm: Annotate aliases
+Date: Fri, 11 Oct 2019 13:50:49 +0200
+Message-ID: <20191011115108.12392-10-jslaby@suse.cz>
 References: <20191011115108.12392-1-jslaby@suse.cz>
 Mime-Version: 1.0
-Content-Transfer-Encoding: 8bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
+Return-path: <xen-devel-bounces@lists.xenproject.org>
 In-Reply-To: <20191011115108.12392-1-jslaby@suse.cz>
-Sender: linux-kernel-owner@vger.kernel.org
+List-Unsubscribe: <https://lists.xenproject.org/mailman/options/xen-devel>,
+ <mailto:xen-devel-request@lists.xenproject.org?subject=unsubscribe>
+List-Post: <mailto:xen-devel@lists.xenproject.org>
+List-Help: <mailto:xen-devel-request@lists.xenproject.org?subject=help>
+List-Subscribe: <https://lists.xenproject.org/mailman/listinfo/xen-devel>,
+ <mailto:xen-devel-request@lists.xenproject.org?subject=subscribe>
+Errors-To: xen-devel-bounces@lists.xenproject.org
+Sender: "Xen-devel" <xen-devel-bounces@lists.xenproject.org>
 To: bp@alien8.de
-Cc: tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Jiri Slaby <jslaby@suse.cz>, Matt Fleming <matt@codeblueprint.co.uk>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, linux-efi@vger.kernel.org, xen-devel@lists.xenproject.org
+Cc: linux-arch@vger.kernel.org, Juergen Gross <jgross@suse.com>, Herbert Xu <herbert@gondor.apana.org.au>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, x86@kernel.org, linux-kernel@vger.kernel.org, mingo@redhat.com, linux-crypto@vger.kernel.org, hpa@zytor.com, xen-devel@lists.xenproject.org, tglx@linutronix.de, Jiri Slaby <jslaby@suse.cz>, "David S. Miller" <davem@davemloft.net>
 List-Id: linux-arch.vger.kernel.org
 
-There is a couple of assembly functions, which are invoked only locally
-in the file they are defined. In C, they are marked "static". In
-assembly, annotate them using SYM_{FUNC,CODE}_START_LOCAL (and switch
-their ENDPROC to SYM_{FUNC,CODE}_END too). Whether FUNC or CODE is used,
-depends on whether ENDPROC or END was used for a particular function
-before.
-
-Signed-off-by: Jiri Slaby <jslaby@suse.cz>
-Cc: Borislav Petkov <bp@alien8.de>
-Cc: "H. Peter Anvin" <hpa@zytor.com>
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: Ingo Molnar <mingo@redhat.com>
-Cc: x86@kernel.org
-Cc: Matt Fleming <matt@codeblueprint.co.uk>
-Cc: Ard Biesheuvel <ard.biesheuvel@linaro.org>
-Cc: linux-efi@vger.kernel.org
-Cc: xen-devel@lists.xenproject.org
----
- arch/x86/boot/compressed/efi_thunk_64.S |  8 ++++----
- arch/x86/entry/entry_64.S               | 21 +++++++++++----------
- arch/x86/lib/copy_page_64.S             |  4 ++--
- arch/x86/lib/memcpy_64.S                | 12 ++++++------
- arch/x86/lib/memset_64.S                |  8 ++++----
- arch/x86/platform/efi/efi_thunk_64.S    | 12 ++++++------
- arch/x86/platform/pvh/head.S            |  4 ++--
- 7 files changed, 35 insertions(+), 34 deletions(-)
-
-diff --git a/arch/x86/boot/compressed/efi_thunk_64.S b/arch/x86/boot/compressed/efi_thunk_64.S
-index d66000d23921..31312070db22 100644
---- a/arch/x86/boot/compressed/efi_thunk_64.S
-+++ b/arch/x86/boot/compressed/efi_thunk_64.S
-@@ -99,12 +99,12 @@ ENTRY(efi64_thunk)
- 	ret
- ENDPROC(efi64_thunk)
- 
--ENTRY(efi_exit32)
-+SYM_FUNC_START_LOCAL(efi_exit32)
- 	movq	func_rt_ptr(%rip), %rax
- 	push	%rax
- 	mov	%rdi, %rax
- 	ret
--ENDPROC(efi_exit32)
-+SYM_FUNC_END(efi_exit32)
- 
- 	.code32
- /*
-@@ -112,7 +112,7 @@ ENDPROC(efi_exit32)
-  *
-  * The stack should represent the 32-bit calling convention.
-  */
--ENTRY(efi_enter32)
-+SYM_FUNC_START_LOCAL(efi_enter32)
- 	movl	$__KERNEL_DS, %eax
- 	movl	%eax, %ds
- 	movl	%eax, %es
-@@ -172,7 +172,7 @@ ENTRY(efi_enter32)
- 	btsl	$X86_CR0_PG_BIT, %eax
- 	movl	%eax, %cr0
- 	lret
--ENDPROC(efi_enter32)
-+SYM_FUNC_END(efi_enter32)
- 
- 	.data
- 	.balign	8
-diff --git a/arch/x86/entry/entry_64.S b/arch/x86/entry/entry_64.S
-index 57d246048ac6..1568da63bf16 100644
---- a/arch/x86/entry/entry_64.S
-+++ b/arch/x86/entry/entry_64.S
-@@ -1101,7 +1101,8 @@ idtentry hypervisor_callback xen_do_hypervisor_callback has_error_code=0
-  * existing activation in its critical region -- if so, we pop the current
-  * activation and restart the handler using the previous one.
-  */
--ENTRY(xen_do_hypervisor_callback)		/* do_hypervisor_callback(struct *pt_regs) */
-+/* do_hypervisor_callback(struct *pt_regs) */
-+SYM_CODE_START_LOCAL(xen_do_hypervisor_callback)
- 
- /*
-  * Since we don't modify %rdi, evtchn_do_upall(struct *pt_regs) will
-@@ -1119,7 +1120,7 @@ ENTRY(xen_do_hypervisor_callback)		/* do_hypervisor_callback(struct *pt_regs) */
- 	call	xen_maybe_preempt_hcall
- #endif
- 	jmp	error_exit
--END(xen_do_hypervisor_callback)
-+SYM_CODE_END(xen_do_hypervisor_callback)
- 
- /*
-  * Hypervisor uses this for application faults while it executes.
-@@ -1214,7 +1215,7 @@ idtentry machine_check		do_mce			has_error_code=0	paranoid=1
-  * Use slow, but surefire "are we in kernel?" check.
-  * Return: ebx=0: need swapgs on exit, ebx=1: otherwise
-  */
--ENTRY(paranoid_entry)
-+SYM_CODE_START_LOCAL(paranoid_entry)
- 	UNWIND_HINT_FUNC
- 	cld
- 	PUSH_AND_CLEAR_REGS save_ret=1
-@@ -1248,7 +1249,7 @@ ENTRY(paranoid_entry)
- 	FENCE_SWAPGS_KERNEL_ENTRY
- 
- 	ret
--END(paranoid_entry)
-+SYM_CODE_END(paranoid_entry)
- 
- /*
-  * "Paranoid" exit path from exception stack.  This is invoked
-@@ -1262,7 +1263,7 @@ END(paranoid_entry)
-  *
-  * On entry, ebx is "no swapgs" flag (1: don't need swapgs, 0: need it)
-  */
--ENTRY(paranoid_exit)
-+SYM_CODE_START_LOCAL(paranoid_exit)
- 	UNWIND_HINT_REGS
- 	DISABLE_INTERRUPTS(CLBR_ANY)
- 	TRACE_IRQS_OFF_DEBUG
-@@ -1279,12 +1280,12 @@ ENTRY(paranoid_exit)
- 	RESTORE_CR3	scratch_reg=%rbx save_reg=%r14
- .Lparanoid_exit_restore:
- 	jmp restore_regs_and_return_to_kernel
--END(paranoid_exit)
-+SYM_CODE_END(paranoid_exit)
- 
- /*
-  * Save all registers in pt_regs, and switch GS if needed.
-  */
--ENTRY(error_entry)
-+SYM_CODE_START_LOCAL(error_entry)
- 	UNWIND_HINT_FUNC
- 	cld
- 	PUSH_AND_CLEAR_REGS save_ret=1
-@@ -1364,16 +1365,16 @@ ENTRY(error_entry)
- 	call	fixup_bad_iret
- 	mov	%rax, %rsp
- 	jmp	.Lerror_entry_from_usermode_after_swapgs
--END(error_entry)
-+SYM_CODE_END(error_entry)
- 
--ENTRY(error_exit)
-+SYM_CODE_START_LOCAL(error_exit)
- 	UNWIND_HINT_REGS
- 	DISABLE_INTERRUPTS(CLBR_ANY)
- 	TRACE_IRQS_OFF
- 	testb	$3, CS(%rsp)
- 	jz	retint_kernel
- 	jmp	.Lretint_user
--END(error_exit)
-+SYM_CODE_END(error_exit)
- 
- /*
-  * Runs on exception stack.  Xen PV does not go through this path at all,
-diff --git a/arch/x86/lib/copy_page_64.S b/arch/x86/lib/copy_page_64.S
-index fd2d09afa097..f505870bd93b 100644
---- a/arch/x86/lib/copy_page_64.S
-+++ b/arch/x86/lib/copy_page_64.S
-@@ -21,7 +21,7 @@ ENTRY(copy_page)
- ENDPROC(copy_page)
- EXPORT_SYMBOL(copy_page)
- 
--ENTRY(copy_page_regs)
-+SYM_FUNC_START_LOCAL(copy_page_regs)
- 	subq	$2*8,	%rsp
- 	movq	%rbx,	(%rsp)
- 	movq	%r12,	1*8(%rsp)
-@@ -86,4 +86,4 @@ ENTRY(copy_page_regs)
- 	movq	1*8(%rsp), %r12
- 	addq	$2*8, %rsp
- 	ret
--ENDPROC(copy_page_regs)
-+SYM_FUNC_END(copy_page_regs)
-diff --git a/arch/x86/lib/memcpy_64.S b/arch/x86/lib/memcpy_64.S
-index 57a64266ba69..3265b21e86c0 100644
---- a/arch/x86/lib/memcpy_64.S
-+++ b/arch/x86/lib/memcpy_64.S
-@@ -29,7 +29,7 @@
-  * rax original destination
-  */
- SYM_FUNC_START_ALIAS(__memcpy)
--ENTRY(memcpy)
-+SYM_FUNC_START_LOCAL(memcpy)
- 	ALTERNATIVE_2 "jmp memcpy_orig", "", X86_FEATURE_REP_GOOD, \
- 		      "jmp memcpy_erms", X86_FEATURE_ERMS
- 
-@@ -41,7 +41,7 @@ ENTRY(memcpy)
- 	movl %edx, %ecx
- 	rep movsb
- 	ret
--ENDPROC(memcpy)
-+SYM_FUNC_END(memcpy)
- SYM_FUNC_END_ALIAS(__memcpy)
- EXPORT_SYMBOL(memcpy)
- EXPORT_SYMBOL(__memcpy)
-@@ -50,14 +50,14 @@ EXPORT_SYMBOL(__memcpy)
-  * memcpy_erms() - enhanced fast string memcpy. This is faster and
-  * simpler than memcpy. Use memcpy_erms when possible.
-  */
--ENTRY(memcpy_erms)
-+SYM_FUNC_START_LOCAL(memcpy_erms)
- 	movq %rdi, %rax
- 	movq %rdx, %rcx
- 	rep movsb
- 	ret
--ENDPROC(memcpy_erms)
-+SYM_FUNC_END(memcpy_erms)
- 
--ENTRY(memcpy_orig)
-+SYM_FUNC_START_LOCAL(memcpy_orig)
- 	movq %rdi, %rax
- 
- 	cmpq $0x20, %rdx
-@@ -182,7 +182,7 @@ ENTRY(memcpy_orig)
- 
- .Lend:
- 	retq
--ENDPROC(memcpy_orig)
-+SYM_FUNC_END(memcpy_orig)
- 
- #ifndef CONFIG_UML
- 
-diff --git a/arch/x86/lib/memset_64.S b/arch/x86/lib/memset_64.S
-index 927ac44d34aa..564abf9ecedb 100644
---- a/arch/x86/lib/memset_64.S
-+++ b/arch/x86/lib/memset_64.S
-@@ -59,16 +59,16 @@ EXPORT_SYMBOL(__memset)
-  *
-  * rax   original destination
-  */
--ENTRY(memset_erms)
-+SYM_FUNC_START_LOCAL(memset_erms)
- 	movq %rdi,%r9
- 	movb %sil,%al
- 	movq %rdx,%rcx
- 	rep stosb
- 	movq %r9,%rax
- 	ret
--ENDPROC(memset_erms)
-+SYM_FUNC_END(memset_erms)
- 
--ENTRY(memset_orig)
-+SYM_FUNC_START_LOCAL(memset_orig)
- 	movq %rdi,%r10
- 
- 	/* expand byte value  */
-@@ -139,4 +139,4 @@ ENTRY(memset_orig)
- 	subq %r8,%rdx
- 	jmp .Lafter_bad_alignment
- .Lfinal:
--ENDPROC(memset_orig)
-+SYM_FUNC_END(memset_orig)
-diff --git a/arch/x86/platform/efi/efi_thunk_64.S b/arch/x86/platform/efi/efi_thunk_64.S
-index 46c58b08739c..d677a7eb2d0a 100644
---- a/arch/x86/platform/efi/efi_thunk_64.S
-+++ b/arch/x86/platform/efi/efi_thunk_64.S
-@@ -67,7 +67,7 @@ ENDPROC(efi64_thunk)
-  *
-  * This function must be invoked with a 1:1 mapped stack.
-  */
--ENTRY(__efi64_thunk)
-+SYM_FUNC_START_LOCAL(__efi64_thunk)
- 	movl	%ds, %eax
- 	push	%rax
- 	movl	%es, %eax
-@@ -114,14 +114,14 @@ ENTRY(__efi64_thunk)
- 	or	%rcx, %rax
- 1:
- 	ret
--ENDPROC(__efi64_thunk)
-+SYM_FUNC_END(__efi64_thunk)
- 
--ENTRY(efi_exit32)
-+SYM_FUNC_START_LOCAL(efi_exit32)
- 	movq	func_rt_ptr(%rip), %rax
- 	push	%rax
- 	mov	%rdi, %rax
- 	ret
--ENDPROC(efi_exit32)
-+SYM_FUNC_END(efi_exit32)
- 
- 	.code32
- /*
-@@ -129,7 +129,7 @@ ENDPROC(efi_exit32)
-  *
-  * The stack should represent the 32-bit calling convention.
-  */
--ENTRY(efi_enter32)
-+SYM_FUNC_START_LOCAL(efi_enter32)
- 	movl	$__KERNEL_DS, %eax
- 	movl	%eax, %ds
- 	movl	%eax, %es
-@@ -145,7 +145,7 @@ ENTRY(efi_enter32)
- 	pushl	%eax
- 
- 	lret
--ENDPROC(efi_enter32)
-+SYM_FUNC_END(efi_enter32)
- 
- 	.data
- 	.balign	8
-diff --git a/arch/x86/platform/pvh/head.S b/arch/x86/platform/pvh/head.S
-index 4e63480bb223..43b4d864817e 100644
---- a/arch/x86/platform/pvh/head.S
-+++ b/arch/x86/platform/pvh/head.S
-@@ -50,7 +50,7 @@
- #define PVH_DS_SEL		(PVH_GDT_ENTRY_DS * 8)
- #define PVH_CANARY_SEL		(PVH_GDT_ENTRY_CANARY * 8)
- 
--ENTRY(pvh_start_xen)
-+SYM_CODE_START_LOCAL(pvh_start_xen)
- 	cld
- 
- 	lgdt (_pa(gdt))
-@@ -146,7 +146,7 @@ ENTRY(pvh_start_xen)
- 
- 	ljmp $PVH_CS_SEL, $_pa(startup_32)
- #endif
--END(pvh_start_xen)
-+SYM_CODE_END(pvh_start_xen)
- 
- 	.section ".init.data","aw"
- 	.balign 8
--- 
-2.23.0
+X2tleV9leHBhbnNpb25fMTI4IGlzIGFuIGFsaWFzIHRvIF9rZXlfZXhwYW5zaW9uXzI1NmEsIF9f
+bWVtY3B5IHRvCm1lbWNweSwgeGVuX3N5c2NhbGwzMl90YXJnZXQgdG8geGVuX3N5c2VudGVyX3Rh
+cmdldCwgYW5kIHNvIG9uLiBBbm5vdGF0ZQp0aGVtIGFsbCB1c2luZyB0aGUgbmV3IFNZTV9GVU5D
+X1NUQVJUX0FMSUFTLCBTWU1fRlVOQ19TVEFSVF9MT0NBTF9BTElBUywKYW5kIFNZTV9GVU5DX0VO
+RF9BTElBUy4gVGhpcyB3aWxsIG1ha2UgdGhlIHRvb2xzIGdlbmVyYXRpbmcgdGhlCmRlYnVnaW5m
+byBoYXBweSBhcyBpdCBhdm9pZCBuZXN0aW5nIGFuZCBkb3VibGUgc3ltYm9scy4KClNpZ25lZC1v
+ZmYtYnk6IEppcmkgU2xhYnkgPGpzbGFieUBzdXNlLmN6PgpDYzogSGVyYmVydCBYdSA8aGVyYmVy
+dEBnb25kb3IuYXBhbmEub3JnLmF1PgpDYzogIkRhdmlkIFMuIE1pbGxlciIgPGRhdmVtQGRhdmVt
+bG9mdC5uZXQ+CkNjOiBCb3Jpc2xhdiBQZXRrb3YgPGJwQGFsaWVuOC5kZT4KQ2M6IFRob21hcyBH
+bGVpeG5lciA8dGdseEBsaW51dHJvbml4LmRlPgpDYzogSW5nbyBNb2xuYXIgPG1pbmdvQHJlZGhh
+dC5jb20+CkNjOiAiSC4gUGV0ZXIgQW52aW4iIDxocGFAenl0b3IuY29tPgpDYzogPHg4NkBrZXJu
+ZWwub3JnPgpDYzogQm9yaXMgT3N0cm92c2t5IDxib3Jpcy5vc3Ryb3Zza3lAb3JhY2xlLmNvbT4K
+UmV2aWV3ZWQtYnk6IEp1ZXJnZW4gR3Jvc3MgPGpncm9zc0BzdXNlLmNvbT4gW3hlbiBwYXJ0c10K
+Q2M6IDxsaW51eC1jcnlwdG9Admdlci5rZXJuZWwub3JnPgpDYzogPHhlbi1kZXZlbEBsaXN0cy54
+ZW5wcm9qZWN0Lm9yZz4KLS0tCiBhcmNoL3g4Ni9jcnlwdG8vYWVzbmktaW50ZWxfYXNtLlMgfCA1
+ICsrLS0tCiBhcmNoL3g4Ni9saWIvbWVtY3B5XzY0LlMgICAgICAgICAgfCA0ICsrLS0KIGFyY2gv
+eDg2L2xpYi9tZW1tb3ZlXzY0LlMgICAgICAgICB8IDQgKystLQogYXJjaC94ODYvbGliL21lbXNl
+dF82NC5TICAgICAgICAgIHwgNCArKy0tCiBhcmNoL3g4Ni94ZW4veGVuLWFzbV82NC5TICAgICAg
+ICAgfCA0ICsrLS0KIDUgZmlsZXMgY2hhbmdlZCwgMTAgaW5zZXJ0aW9ucygrKSwgMTEgZGVsZXRp
+b25zKC0pCgpkaWZmIC0tZ2l0IGEvYXJjaC94ODYvY3J5cHRvL2Flc25pLWludGVsX2FzbS5TIGIv
+YXJjaC94ODYvY3J5cHRvL2Flc25pLWludGVsX2FzbS5TCmluZGV4IGUwYTVmYjQ2MmEwYS4uOWQ4
+ZDVmMjI5NmUxIDEwMDY0NAotLS0gYS9hcmNoL3g4Ni9jcnlwdG8vYWVzbmktaW50ZWxfYXNtLlMK
+KysrIGIvYXJjaC94ODYvY3J5cHRvL2Flc25pLWludGVsX2FzbS5TCkBAIC0xNzU3LDggKzE3NTcs
+NyBAQCBFTkRQUk9DKGFlc25pX2djbV9maW5hbGl6ZSkKICNlbmRpZgogCiAKLS5hbGlnbiA0Ci1f
+a2V5X2V4cGFuc2lvbl8xMjg6CitTWU1fRlVOQ19TVEFSVF9MT0NBTF9BTElBUyhfa2V5X2V4cGFu
+c2lvbl8xMjgpCiBTWU1fRlVOQ19TVEFSVF9MT0NBTChfa2V5X2V4cGFuc2lvbl8yNTZhKQogCXBz
+aHVmZCAkMGIxMTExMTExMSwgJXhtbTEsICV4bW0xCiAJc2h1ZnBzICQwYjAwMDEwMDAwLCAleG1t
+MCwgJXhtbTQKQEAgLTE3NjksOCArMTc2OCw4IEBAIFNZTV9GVU5DX1NUQVJUX0xPQ0FMKF9rZXlf
+ZXhwYW5zaW9uXzI1NmEpCiAJbW92YXBzICV4bW0wLCAoVEtFWVApCiAJYWRkICQweDEwLCBUS0VZ
+UAogCXJldAotRU5EUFJPQyhfa2V5X2V4cGFuc2lvbl8xMjgpCiBTWU1fRlVOQ19FTkQoX2tleV9l
+eHBhbnNpb25fMjU2YSkKK1NZTV9GVU5DX0VORF9BTElBUyhfa2V5X2V4cGFuc2lvbl8xMjgpCiAK
+IFNZTV9GVU5DX1NUQVJUX0xPQ0FMKF9rZXlfZXhwYW5zaW9uXzE5MmEpCiAJcHNodWZkICQwYjAx
+MDEwMTAxLCAleG1tMSwgJXhtbTEKZGlmZiAtLWdpdCBhL2FyY2gveDg2L2xpYi9tZW1jcHlfNjQu
+UyBiL2FyY2gveDg2L2xpYi9tZW1jcHlfNjQuUwppbmRleCA5Mjc0ODY2MGJhNTEuLjU3YTY0MjY2
+YmE2OSAxMDA2NDQKLS0tIGEvYXJjaC94ODYvbGliL21lbWNweV82NC5TCisrKyBiL2FyY2gveDg2
+L2xpYi9tZW1jcHlfNjQuUwpAQCAtMjgsNyArMjgsNyBAQAogICogT3V0cHV0OgogICogcmF4IG9y
+aWdpbmFsIGRlc3RpbmF0aW9uCiAgKi8KLUVOVFJZKF9fbWVtY3B5KQorU1lNX0ZVTkNfU1RBUlRf
+QUxJQVMoX19tZW1jcHkpCiBFTlRSWShtZW1jcHkpCiAJQUxURVJOQVRJVkVfMiAiam1wIG1lbWNw
+eV9vcmlnIiwgIiIsIFg4Nl9GRUFUVVJFX1JFUF9HT09ELCBcCiAJCSAgICAgICJqbXAgbWVtY3B5
+X2VybXMiLCBYODZfRkVBVFVSRV9FUk1TCkBAIC00Miw3ICs0Miw3IEBAIEVOVFJZKG1lbWNweSkK
+IAlyZXAgbW92c2IKIAlyZXQKIEVORFBST0MobWVtY3B5KQotRU5EUFJPQyhfX21lbWNweSkKK1NZ
+TV9GVU5DX0VORF9BTElBUyhfX21lbWNweSkKIEVYUE9SVF9TWU1CT0wobWVtY3B5KQogRVhQT1JU
+X1NZTUJPTChfX21lbWNweSkKIApkaWZmIC0tZ2l0IGEvYXJjaC94ODYvbGliL21lbW1vdmVfNjQu
+UyBiL2FyY2gveDg2L2xpYi9tZW1tb3ZlXzY0LlMKaW5kZXggYmJlYzY5ZDgyMjNiLi41MGMxNjQ4
+MzExYjMgMTAwNjQ0Ci0tLSBhL2FyY2gveDg2L2xpYi9tZW1tb3ZlXzY0LlMKKysrIGIvYXJjaC94
+ODYvbGliL21lbW1vdmVfNjQuUwpAQCAtMjYsNyArMjYsNyBAQAogICovCiAud2VhayBtZW1tb3Zl
+CiAKLUVOVFJZKG1lbW1vdmUpCitTWU1fRlVOQ19TVEFSVF9BTElBUyhtZW1tb3ZlKQogRU5UUlko
+X19tZW1tb3ZlKQogCiAJLyogSGFuZGxlIG1vcmUgMzIgYnl0ZXMgaW4gbG9vcCAqLwpAQCAtMjA4
+LDYgKzIwOCw2IEBAIEVOVFJZKF9fbWVtbW92ZSkKIDEzOgogCXJldHEKIEVORFBST0MoX19tZW1t
+b3ZlKQotRU5EUFJPQyhtZW1tb3ZlKQorU1lNX0ZVTkNfRU5EX0FMSUFTKG1lbW1vdmUpCiBFWFBP
+UlRfU1lNQk9MKF9fbWVtbW92ZSkKIEVYUE9SVF9TWU1CT0wobWVtbW92ZSkKZGlmZiAtLWdpdCBh
+L2FyY2gveDg2L2xpYi9tZW1zZXRfNjQuUyBiL2FyY2gveDg2L2xpYi9tZW1zZXRfNjQuUwppbmRl
+eCA5YmM4NjFjNzFlNzUuLjkyN2FjNDRkMzRhYSAxMDA2NDQKLS0tIGEvYXJjaC94ODYvbGliL21l
+bXNldF82NC5TCisrKyBiL2FyY2gveDg2L2xpYi9tZW1zZXRfNjQuUwpAQCAtMTksNyArMTksNyBA
+QAogICoKICAqIHJheCAgIG9yaWdpbmFsIGRlc3RpbmF0aW9uCiAgKi8KLUVOVFJZKG1lbXNldCkK
+K1NZTV9GVU5DX1NUQVJUX0FMSUFTKG1lbXNldCkKIEVOVFJZKF9fbWVtc2V0KQogCS8qCiAJICog
+U29tZSBDUFVzIHN1cHBvcnQgZW5oYW5jZWQgUkVQIE1PVlNCL1NUT1NCIGZlYXR1cmUuIEl0IGlz
+IHJlY29tbWVuZGVkCkBAIC00Myw4ICs0Myw4IEBAIEVOVFJZKF9fbWVtc2V0KQogCXJlcCBzdG9z
+YgogCW1vdnEgJXI5LCVyYXgKIAlyZXQKLUVORFBST0MobWVtc2V0KQogRU5EUFJPQyhfX21lbXNl
+dCkKK1NZTV9GVU5DX0VORF9BTElBUyhtZW1zZXQpCiBFWFBPUlRfU1lNQk9MKG1lbXNldCkKIEVY
+UE9SVF9TWU1CT0woX19tZW1zZXQpCiAKZGlmZiAtLWdpdCBhL2FyY2gveDg2L3hlbi94ZW4tYXNt
+XzY0LlMgYi9hcmNoL3g4Ni94ZW4veGVuLWFzbV82NC5TCmluZGV4IGViZjYxMGI0OWMwNi4uNDVj
+MTI0OWYzNzBkIDEwMDY0NAotLS0gYS9hcmNoL3g4Ni94ZW4veGVuLWFzbV82NC5TCisrKyBiL2Fy
+Y2gveDg2L3hlbi94ZW4tYXNtXzY0LlMKQEAgLTE2NywxMyArMTY3LDEzIEBAIEVORFBST0MoeGVu
+X3N5c2VudGVyX3RhcmdldCkKIAogI2Vsc2UgLyogIUNPTkZJR19JQTMyX0VNVUxBVElPTiAqLwog
+Ci1FTlRSWSh4ZW5fc3lzY2FsbDMyX3RhcmdldCkKK1NZTV9GVU5DX1NUQVJUX0FMSUFTKHhlbl9z
+eXNjYWxsMzJfdGFyZ2V0KQogRU5UUlkoeGVuX3N5c2VudGVyX3RhcmdldCkKIAlsZWEgMTYoJXJz
+cCksICVyc3AJLyogc3RyaXAgJXJjeCwgJXIxMSAqLwogCW1vdiAkLUVOT1NZUywgJXJheAogCXB1
+c2hxICQwCiAJam1wIGh5cGVyY2FsbF9pcmV0Ci1FTkRQUk9DKHhlbl9zeXNjYWxsMzJfdGFyZ2V0
+KQogRU5EUFJPQyh4ZW5fc3lzZW50ZXJfdGFyZ2V0KQorU1lNX0ZVTkNfRU5EX0FMSUFTKHhlbl9z
+eXNjYWxsMzJfdGFyZ2V0KQogCiAjZW5kaWYJLyogQ09ORklHX0lBMzJfRU1VTEFUSU9OICovCi0t
+IAoyLjIzLjAKCgpfX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19f
+XwpYZW4tZGV2ZWwgbWFpbGluZyBsaXN0Clhlbi1kZXZlbEBsaXN0cy54ZW5wcm9qZWN0Lm9yZwpo
+dHRwczovL2xpc3RzLnhlbnByb2plY3Qub3JnL21haWxtYW4vbGlzdGluZm8veGVuLWRldmVs
