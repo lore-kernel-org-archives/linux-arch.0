@@ -1,61 +1,41 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pf1-f194.google.com ([209.85.210.194]:47080 "EHLO
-        mail-pf1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726692AbfJKQJ0 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 11 Oct 2019 12:09:26 -0400
-Received: by mail-pf1-f194.google.com with SMTP id q5so6336468pfg.13
-        for <linux-arch@vger.kernel.org>; Fri, 11 Oct 2019 09:09:26 -0700 (PDT)
-Date: Fri, 11 Oct 2019 09:09:22 -0700
+Received: from mail-pl1-f196.google.com ([209.85.214.196]:41321 "EHLO
+        mail-pl1-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1728154AbfJKQLs (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 11 Oct 2019 12:11:48 -0400
+Received: by mail-pl1-f196.google.com with SMTP id t10so4678108plr.8
+        for <linux-arch@vger.kernel.org>; Fri, 11 Oct 2019 09:11:46 -0700 (PDT)
+Date: Fri, 11 Oct 2019 09:11:43 -0700
 From: Kees Cook <keescook@chromium.org>
-Subject: Re: [PATCH v2 02/29] powerpc: Remove PT_NOTE workaround
-Message-ID: <201910110908.040009F27@keescook>
+Subject: Re: [PATCH v2 01/29] powerpc: Rename "notes" PT_NOTE to "note"
+Message-ID: <201910110910.48270FC97@keescook>
 References: <20191011000609.29728-1-keescook@chromium.org>
- <20191011000609.29728-3-keescook@chromium.org>
- <878sprx1br.fsf@mpe.ellerman.id.au>
+ <20191011000609.29728-2-keescook@chromium.org>
+ <20191011082519.GI9749@gate.crashing.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <878sprx1br.fsf@mpe.ellerman.id.au>
+In-Reply-To: <20191011082519.GI9749@gate.crashing.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Michael Ellerman <mpe@ellerman.id.au>
-Cc: Borislav Petkov <bp@alien8.de>, Rick Edgecombe <rick.p.edgecombe@intel.com>, Dave Hansen <dave.hansen@linux.intel.com>, Andy Lutomirski <luto@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Heiko Carstens <heiko.carstens@de.ibm.com>, Will Deacon <will@kernel.org>, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linuxppc-dev@lists.ozlabs.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-s390@vger.kernel.org, linux-c6x-dev@linux-c6x.org, Yoshinori Sato <ysato@users.sourceforge.jp>, Michal Simek <monstr@monstr.eu>, linux-parisc@vger.kernel.org, linux-xtensa@linux-xtensa.org, x86@kernel.org, linux-kernel@vger.kernel.org, Joel Stanley <joel@jms.id.au>, Segher Boessenkool <segher@kernel.crashing.org>
-Message-ID: <20191011160922.k_Mf6wNjjflQlvSq0Y1B9vR7hD34MWXky_t-SjHEbSY@z>
+To: Segher Boessenkool <segher@kernel.crashing.org>
+Cc: Borislav Petkov <bp@alien8.de>, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, Michal Simek <monstr@monstr.eu>, x86@kernel.org, linux-ia64@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, linux-xtensa@linux-xtensa.org, Dave Hansen <dave.hansen@linux.intel.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, linuxppc-dev@lists.ozlabs.org, Yoshinori Sato <ysato@users.sourceforge.jp>, linux-parisc@vger.kernel.org, Andy Lutomirski <luto@kernel.org>, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, Rick Edgecombe <rick.p.edgecombe@intel.com>, Will Deacon <will@kernel.org>, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org
+Message-ID: <20191011161143.NDQjouSPWBBII0i3azoejIIgIlVw2Vqa8LY01AVRkOo@z>
 
-On Fri, Oct 11, 2019 at 05:07:04PM +1100, Michael Ellerman wrote:
-> Kees Cook <keescook@chromium.org> writes:
-> > In preparation for moving NOTES into RO_DATA, remove the PT_NOTE
-> > workaround since the kernel requires at least gcc 4.6 now.
-> >
-> > Signed-off-by: Kees Cook <keescook@chromium.org>
-> > ---
-> >  arch/powerpc/kernel/vmlinux.lds.S | 24 ++----------------------
-> >  1 file changed, 2 insertions(+), 22 deletions(-)
+On Fri, Oct 11, 2019 at 03:25:19AM -0500, Segher Boessenkool wrote:
+> On Thu, Oct 10, 2019 at 05:05:41PM -0700, Kees Cook wrote:
+> > The Program Header identifiers are internal to the linker scripts. In
+> > preparation for moving the NOTES segment declaration into RO_DATA,
+> > standardize the identifier for the PT_NOTE entry to "note" as used by
+> > all other architectures that emit PT_NOTE.
 > 
-> Acked-by: Michael Ellerman <mpe@ellerman.id.au>
+> All other archs are wrong, and "notes" is a much better name.  This
+> segment does not contain a single "note", but multiple "notes".
 
-Thanks!
-
-> For the archives, Joel tried a similar patch a while back which caused
-> some problems, see:
-> 
->   https://lore.kernel.org/linuxppc-dev/20190321003253.22100-1-joel@jms.id.au/
-> 
-> and a v2:
-> 
->   https://lore.kernel.org/linuxppc-dev/20190329064453.12761-1-joel@jms.id.au/
-> 
-> This is similar to his v2. The only outstanding comment on his v2 was
-> from Segher:
->   (And I do not know if there are any tools that expect the notes in a phdr,
->   or even specifically the second phdr).
-> 
-> But this patch solves that by not changing the note.
-
-Ah yes. Agreed: I'm retaining the note and dropping the workarounds.
-FWIW, this builds happily for me in my tests.
-
--Kees
+True, but the naming appears to be based off the Program Header name of
+"PT_NOTE". Regardless, it is an entirely internal-to-the-linker-script
+identifier, so I am just consolidating on a common name with the least
+number of collateral changes.
 
 -- 
 Kees Cook
