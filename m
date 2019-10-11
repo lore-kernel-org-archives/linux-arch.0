@@ -1,158 +1,83 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pl1-f194.google.com ([209.85.214.194]:37462 "EHLO
-        mail-pl1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727589AbfJKAGb (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 10 Oct 2019 20:06:31 -0400
-Received: by mail-pl1-f194.google.com with SMTP id u20so3589189plq.4
-        for <linux-arch@vger.kernel.org>; Thu, 10 Oct 2019 17:06:30 -0700 (PDT)
+Received: from mail-pf1-f193.google.com ([209.85.210.193]:45452 "EHLO
+        mail-pf1-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727484AbfJKAGi (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 10 Oct 2019 20:06:38 -0400
+Received: by mail-pf1-f193.google.com with SMTP id y72so4924013pfb.12
+        for <linux-arch@vger.kernel.org>; Thu, 10 Oct 2019 17:06:38 -0700 (PDT)
 From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH v2 09/29] vmlinux.lds.h: Move Program Header restoration into NOTES macro
-Date: Thu, 10 Oct 2019 17:05:49 -0700
-Message-ID: <20191011000609.29728-10-keescook@chromium.org>
+Subject: [PATCH v2 28/29] x86/mm: Report actual image regions in /proc/iomem
+Date: Thu, 10 Oct 2019 17:06:08 -0700
+Message-ID: <20191011000609.29728-29-keescook@chromium.org>
 In-Reply-To: <20191011000609.29728-1-keescook@chromium.org>
 References: <20191011000609.29728-1-keescook@chromium.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Borislav Petkov <bp@alien8.de>
 Cc: Kees Cook <keescook@chromium.org>, Rick Edgecombe <rick.p.edgecombe@intel.com>, Dave Hansen <dave.hansen@linux.intel.com>, Andy Lutomirski <luto@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Michael Ellerman <mpe@ellerman.id.au>, Heiko Carstens <heiko.carstens@de.ibm.com>, Will Deacon <will@kernel.org>, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linuxppc-dev@lists.ozlabs.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-s390@vger.kernel.org, linux-c6x-dev@linux-c6x.org, Yoshinori Sato <ysato@users.sourceforge.jp>, Michal Simek <monstr@monstr.eu>, linux-parisc@vger.kernel.org, linux-xtensa@linux-xtensa.org, x86@kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20191011000549.zyLymhWVeeSNg0VFYE_znyKL6X6XIsfjFBhnhoTH0qY@z>
+Message-ID: <20191011000608.oXywBeKshUv-s3A2B-RhG8qT9_N_k9sHCo8Ru4G0Piw@z>
 
-In preparation for moving NOTES into RO_DATA, make the Program Header
-assignment restoration be part of the NOTES macro itself.
+The resource reservations in /proc/iomem made for the kernel image did
+not reflect the gaps between text, rodata, and data. Add the "rodata"
+resource and update the start/end calculations to match the respective
+calls to free_kernel_image_pages().
+
+Before (booted with "nokaslr" for easier comparison):
+
+00100000-bffd9fff : System RAM
+  01000000-01e011d0 : Kernel code
+  01e011d1-025619bf : Kernel data
+  02a95000-035fffff : Kernel bss
+
+After:
+
+00100000-bffd9fff : System RAM
+  01000000-01e011d0 : Kernel code
+  02000000-023d4fff : Kernel rodata
+  02400000-025619ff : Kernel data
+  02a95000-035fffff : Kernel bss
 
 Signed-off-by: Kees Cook <keescook@chromium.org>
 ---
- arch/alpha/kernel/vmlinux.lds.S   |  5 +----
- arch/ia64/kernel/vmlinux.lds.S    |  4 +---
- arch/mips/kernel/vmlinux.lds.S    |  3 +--
- arch/powerpc/kernel/vmlinux.lds.S |  4 +---
- arch/s390/kernel/vmlinux.lds.S    |  4 +---
- arch/x86/kernel/vmlinux.lds.S     |  3 +--
- include/asm-generic/vmlinux.lds.h | 13 +++++++++++--
- 7 files changed, 17 insertions(+), 19 deletions(-)
+ arch/x86/kernel/setup.c | 12 +++++++++++-
+ 1 file changed, 11 insertions(+), 1 deletion(-)
 
-diff --git a/arch/alpha/kernel/vmlinux.lds.S b/arch/alpha/kernel/vmlinux.lds.S
-index 363a60ba7c31..cdfdc91ce64c 100644
---- a/arch/alpha/kernel/vmlinux.lds.S
-+++ b/arch/alpha/kernel/vmlinux.lds.S
-@@ -34,10 +34,7 @@ SECTIONS
- 	swapper_pg_dir = SWAPPER_PGD;
- 	_etext = .;	/* End of text section */
- 
--	NOTES :text :note
--	.dummy : {
--		*(.dummy)
--	} :text
-+	NOTES
- 
- 	RODATA
- 	EXCEPTION_TABLE(16)
-diff --git a/arch/ia64/kernel/vmlinux.lds.S b/arch/ia64/kernel/vmlinux.lds.S
-index 7cf4958b732d..bfc937ec168c 100644
---- a/arch/ia64/kernel/vmlinux.lds.S
-+++ b/arch/ia64/kernel/vmlinux.lds.S
-@@ -70,9 +70,7 @@ SECTIONS {
- 	/*
- 	 * Read-only data
- 	 */
--	NOTES :text :note       /* put .notes in text and mark in PT_NOTE  */
--	code_continues : {
--	} :text                /* switch back to regular program...  */
-+	NOTES
- 
- 	EXCEPTION_TABLE(16)
- 
-diff --git a/arch/mips/kernel/vmlinux.lds.S b/arch/mips/kernel/vmlinux.lds.S
-index 1c95612eb800..6a22f531d815 100644
---- a/arch/mips/kernel/vmlinux.lds.S
-+++ b/arch/mips/kernel/vmlinux.lds.S
-@@ -81,8 +81,7 @@ SECTIONS
- 		__stop___dbe_table = .;
- 	}
- 
--	NOTES NOTES_HEADERS
--	.dummy : { *(.dummy) } :text
-+	NOTES
- 
- 	_sdata = .;			/* Start of data section */
- 	RODATA
-diff --git a/arch/powerpc/kernel/vmlinux.lds.S b/arch/powerpc/kernel/vmlinux.lds.S
-index 7e26e20c8324..4f19d814d592 100644
---- a/arch/powerpc/kernel/vmlinux.lds.S
-+++ b/arch/powerpc/kernel/vmlinux.lds.S
-@@ -164,9 +164,7 @@ SECTIONS
- #endif
- 	EXCEPTION_TABLE(0)
- 
--	NOTES :text :note
--	/* Restore program header away from PT_NOTE. */
--	.dummy : { *(.dummy) } :text
-+	NOTES
- 
+diff --git a/arch/x86/kernel/setup.c b/arch/x86/kernel/setup.c
+index 77ea96b794bd..591e885a852e 100644
+--- a/arch/x86/kernel/setup.c
++++ b/arch/x86/kernel/setup.c
+@@ -143,6 +143,13 @@ struct boot_params boot_params;
  /*
-  * Init sections discarded at runtime
-diff --git a/arch/s390/kernel/vmlinux.lds.S b/arch/s390/kernel/vmlinux.lds.S
-index 646d939346df..f88eedeb915a 100644
---- a/arch/s390/kernel/vmlinux.lds.S
-+++ b/arch/s390/kernel/vmlinux.lds.S
-@@ -52,9 +52,7 @@ SECTIONS
- 		_etext = .;		/* End of text section */
- 	} :text = 0x0700
- 
--	NOTES :text :note
--
--	.dummy : { *(.dummy) } :text
-+	NOTES
- 
- 	RO_DATA_SECTION(PAGE_SIZE)
- 
-diff --git a/arch/x86/kernel/vmlinux.lds.S b/arch/x86/kernel/vmlinux.lds.S
-index 2e18bf5c1aed..8be25b09c2b7 100644
---- a/arch/x86/kernel/vmlinux.lds.S
-+++ b/arch/x86/kernel/vmlinux.lds.S
-@@ -148,8 +148,7 @@ SECTIONS
- 		_etext = .;
- 	} :text = 0x9090
- 
--	NOTES :text :note
--	.dummy : { *(.dummy) } :text
-+	NOTES
- 
- 	EXCEPTION_TABLE(16)
- 
-diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
-index f5dd45ce73f1..97d4299f14dc 100644
---- a/include/asm-generic/vmlinux.lds.h
-+++ b/include/asm-generic/vmlinux.lds.h
-@@ -56,10 +56,18 @@
- 
- /*
-  * Only some architectures want to have the .notes segment visible in
-- * a separate PT_NOTE ELF Program Header.
-+ * a separate PT_NOTE ELF Program Header. When this happens, it needs
-+ * to be visible in both the kernel text's PT_LOAD and the PT_NOTE
-+ * Program Headers. In this case, though, the PT_LOAD needs to be made
-+ * the default again so that all the following sections don't also end
-+ * up in the PT_NOTE Program Header.
+  * Machine setup..
   */
- #ifdef EMITS_PT_NOTE
- #define NOTES_HEADERS		:text :note
-+#define NOTES_HEADERS_RESTORE	__restore_ph : { *(.__restore_ph) } :text
-+#else
-+#define NOTES_HEADERS
-+#define NOTES_HEADERS_RESTORE
- #endif
++static struct resource rodata_resource = {
++	.name	= "Kernel rodata",
++	.start	= 0,
++	.end	= 0,
++	.flags	= IORESOURCE_BUSY | IORESOURCE_SYSTEM_RAM
++};
++
+ static struct resource data_resource = {
+ 	.name	= "Kernel data",
+ 	.start	= 0,
+@@ -951,7 +958,9 @@ void __init setup_arch(char **cmdline_p)
  
- /* Align . to a 8 byte boundary equals to maximum function alignment. */
-@@ -798,7 +806,8 @@
- 		__start_notes = .;					\
- 		KEEP(*(.note.*))					\
- 		__stop_notes = .;					\
--	}
-+	} NOTES_HEADERS							\
-+	NOTES_HEADERS_RESTORE
+ 	code_resource.start = __pa_symbol(_text);
+ 	code_resource.end = __pa_symbol(_etext)-1;
+-	data_resource.start = __pa_symbol(_etext);
++	rodata_resource.start = __pa_symbol(__start_rodata);
++	rodata_resource.end = __pa_symbol(__end_rodata)-1;
++	data_resource.start = __pa_symbol(_sdata);
+ 	data_resource.end = __pa_symbol(_edata)-1;
+ 	bss_resource.start = __pa_symbol(__bss_start);
+ 	bss_resource.end = __pa_symbol(__bss_stop)-1;
+@@ -1040,6 +1049,7 @@ void __init setup_arch(char **cmdline_p)
  
- #define INIT_SETUP(initsetup_align)					\
- 		. = ALIGN(initsetup_align);				\
+ 	/* after parse_early_param, so could debug it */
+ 	insert_resource(&iomem_resource, &code_resource);
++	insert_resource(&iomem_resource, &rodata_resource);
+ 	insert_resource(&iomem_resource, &data_resource);
+ 	insert_resource(&iomem_resource, &bss_resource);
+ 
 -- 
 2.17.1
