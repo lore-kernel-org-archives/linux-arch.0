@@ -1,57 +1,62 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pf1-f193.google.com ([209.85.210.193]:44082 "EHLO
-        mail-pf1-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727664AbfJKANA (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 10 Oct 2019 20:13:00 -0400
-Received: by mail-pf1-f193.google.com with SMTP id q21so4931404pfn.11
-        for <linux-arch@vger.kernel.org>; Thu, 10 Oct 2019 17:13:00 -0700 (PDT)
+Received: from mail-pg1-f195.google.com ([209.85.215.195]:45258 "EHLO
+        mail-pg1-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727569AbfJKAM4 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 10 Oct 2019 20:12:56 -0400
+Received: by mail-pg1-f195.google.com with SMTP id r1so3505640pgj.12
+        for <linux-arch@vger.kernel.org>; Thu, 10 Oct 2019 17:12:55 -0700 (PDT)
 From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH v2 18/29] arm64: Move EXCEPTION_TABLE to RO_DATA segment
-Date: Thu, 10 Oct 2019 17:05:58 -0700
-Message-ID: <20191011000609.29728-19-keescook@chromium.org>
+Subject: [PATCH v2 14/29] vmlinux.lds.h: Allow EXCEPTION_TABLE to live in RO_DATA
+Date: Thu, 10 Oct 2019 17:05:54 -0700
+Message-ID: <20191011000609.29728-15-keescook@chromium.org>
 In-Reply-To: <20191011000609.29728-1-keescook@chromium.org>
 References: <20191011000609.29728-1-keescook@chromium.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Borislav Petkov <bp@alien8.de>
 Cc: Kees Cook <keescook@chromium.org>, Rick Edgecombe <rick.p.edgecombe@intel.com>, Dave Hansen <dave.hansen@linux.intel.com>, Andy Lutomirski <luto@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Michael Ellerman <mpe@ellerman.id.au>, Heiko Carstens <heiko.carstens@de.ibm.com>, Will Deacon <will@kernel.org>, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linuxppc-dev@lists.ozlabs.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-s390@vger.kernel.org, linux-c6x-dev@linux-c6x.org, Yoshinori Sato <ysato@users.sourceforge.jp>, Michal Simek <monstr@monstr.eu>, linux-parisc@vger.kernel.org, linux-xtensa@linux-xtensa.org, x86@kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20191011000558.ZfxJnLxS1MckbzsfRk2Rl6q1UQsdvvCWF4t1QzhLAyo@z>
+Message-ID: <20191011000554.p_Qg_fzkR_KIgsq-6mdFY6jmmeUH_KgbYLX4WoOksTA@z>
 
-Since the EXCEPTION_TABLE is read-only, collapse it into RO_DATA. Also
-removes the redundant ALIGN, which is already present at the end of the
-RO_DATA macro.
+Many architectures have an EXCEPTION_TABLE that only needs to
+be readable. As such, it should live in RO_DATA. Create a macro to
+identify this case for the architectures that can move EXCEPTION_TABLE
+into RO_DATA.
 
 Signed-off-by: Kees Cook <keescook@chromium.org>
 Acked-by: Will Deacon <will@kernel.org>
 ---
- arch/arm64/kernel/vmlinux.lds.S | 7 ++++---
- 1 file changed, 4 insertions(+), 3 deletions(-)
+ include/asm-generic/vmlinux.lds.h | 12 ++++++++++++
+ 1 file changed, 12 insertions(+)
 
-diff --git a/arch/arm64/kernel/vmlinux.lds.S b/arch/arm64/kernel/vmlinux.lds.S
-index a4b3e6c0680c..9128a26eb45b 100644
---- a/arch/arm64/kernel/vmlinux.lds.S
-+++ b/arch/arm64/kernel/vmlinux.lds.S
-@@ -5,6 +5,8 @@
-  * Written by Martin Mares <mj@atrey.karlin.mff.cuni.cz>
-  */
+diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
+index 356078e50a5c..9867d8e41eed 100644
+--- a/include/asm-generic/vmlinux.lds.h
++++ b/include/asm-generic/vmlinux.lds.h
+@@ -69,6 +69,17 @@
+ #define NOTES_HEADERS_RESTORE
+ #endif
  
-+#define RO_EXCEPTION_TABLE_ALIGN	8
++/*
++ * Some architectures have non-executable read-only exception tables.
++ * They can be added to the RO_DATA segment by specifying their desired
++ * alignment.
++ */
++#ifdef RO_EXCEPTION_TABLE_ALIGN
++#define RO_EXCEPTION_TABLE	EXCEPTION_TABLE(RO_EXCEPTION_TABLE_ALIGN)
++#else
++#define RO_EXCEPTION_TABLE
++#endif
 +
- #include <asm-generic/vmlinux.lds.h>
- #include <asm/cache.h>
- #include <asm/kernel-pgtable.h>
-@@ -135,10 +137,9 @@ SECTIONS
- 	. = ALIGN(SEGMENT_ALIGN);
- 	_etext = .;			/* End of text section */
+ /* Align . to a 8 byte boundary equals to maximum function alignment. */
+ #define ALIGN_FUNCTION()  . = ALIGN(8)
  
--	RO_DATA(PAGE_SIZE)		/* everything from this point to     */
--	EXCEPTION_TABLE(8)		/* __init_begin will be marked RO NX */
-+	/* everything from this point to __init_begin will be marked RO NX */
-+	RO_DATA(PAGE_SIZE)
- 
--	. = ALIGN(PAGE_SIZE);
- 	idmap_pg_dir = .;
- 	. += IDMAP_DIR_SIZE;
- 
+@@ -513,6 +524,7 @@
+ 		__stop___modver = .;					\
+ 	}								\
+ 									\
++	RO_EXCEPTION_TABLE						\
+ 	NOTES								\
+ 									\
+ 	. = ALIGN((align));						\
 -- 
 2.17.1
