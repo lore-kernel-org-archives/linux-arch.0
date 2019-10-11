@@ -1,65 +1,46 @@
 From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH v2 04/29] alpha: Rename PT_LOAD identifier "kernel" to "text"
-Date: Thu, 10 Oct 2019 17:05:44 -0700
-Message-ID: <20191011000609.29728-5-keescook@chromium.org>
+Subject: [PATCH v2 01/29] powerpc: Rename "notes" PT_NOTE to "note"
+Date: Thu, 10 Oct 2019 17:05:41 -0700
+Message-ID: <20191011000609.29728-2-keescook@chromium.org>
 References: <20191011000609.29728-1-keescook@chromium.org>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20191011000609.29728-1-keescook@chromium.org>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+Sender: linux-kernel-owner@vger.kernel.org
 To: Borislav Petkov <bp@alien8.de>
-Cc: linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, Michal Simek <monstr@monstr.eu>, x86@kernel.org, linux-ia64@vger.kernel.org, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, linux-xtensa@linux-xtensa.org, Michael Ellerman <mpe@ellerman.id.au>, Dave Hansen <dave.hansen@linux.intel.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, linuxppc-dev@lists.ozlabs.org, Yoshinori Sato <ysato@users.sourceforge.jp>, linux-parisc@vger.kernel.org, Andy Lutomirski <luto@kernel.org>, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, Rick Edgecombe <rick.p.edgecombe@intel.com>, Will Deacon <will@kernel.org>, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org
+Cc: Kees Cook <keescook@chromium.org>, Rick Edgecombe <rick.p.edgecombe@intel.com>, Dave Hansen <dave.hansen@linux.intel.com>, Andy Lutomirski <luto@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Michael Ellerman <mpe@ellerman.id.au>, Heiko Carstens <heiko.carstens@de.ibm.com>, Will Deacon <will@kernel.org>, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linuxppc-dev@lists.ozlabs.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-s390@vger.kernel.org, linux-c6x-dev@linux-c6x.org, Yoshinori Sato <ysato@users.sourceforge.jp>, Michal Simek <monstr@monstr.eu>, linux-parisc@vger.kernel.org, linux-xtensa@linux-xtensa.org, x86@kernel.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-In preparation for moving NOTES into RO_DATA, rename the linker script
-internal identifier for the PT_LOAD Program Header from "kernel" to
-"text" to match other architectures.
+The Program Header identifiers are internal to the linker scripts. In
+preparation for moving the NOTES segment declaration into RO_DATA,
+standardize the identifier for the PT_NOTE entry to "note" as used by
+all other architectures that emit PT_NOTE.
 
 Signed-off-by: Kees Cook <keescook@chromium.org>
 ---
- arch/alpha/kernel/vmlinux.lds.S | 8 ++++----
- 1 file changed, 4 insertions(+), 4 deletions(-)
+ arch/powerpc/kernel/vmlinux.lds.S | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
 
-diff --git a/arch/alpha/kernel/vmlinux.lds.S b/arch/alpha/kernel/vmlinux.lds.S
-index c4b5ceceab52..781090cacc96 100644
---- a/arch/alpha/kernel/vmlinux.lds.S
-+++ b/arch/alpha/kernel/vmlinux.lds.S
-@@ -8,7 +8,7 @@
- OUTPUT_FORMAT("elf64-alpha")
- OUTPUT_ARCH(alpha)
- ENTRY(__start)
--PHDRS { kernel PT_LOAD; note PT_NOTE; }
-+PHDRS { text PT_LOAD; note PT_NOTE; }
- jiffies = jiffies_64;
- SECTIONS
- {
-@@ -27,14 +27,14 @@ SECTIONS
- 		LOCK_TEXT
- 		*(.fixup)
- 		*(.gnu.warning)
--	} :kernel
-+	} :text
- 	swapper_pg_dir = SWAPPER_PGD;
- 	_etext = .;	/* End of text section */
+diff --git a/arch/powerpc/kernel/vmlinux.lds.S b/arch/powerpc/kernel/vmlinux.lds.S
+index 060a1acd7c6d..81e672654789 100644
+--- a/arch/powerpc/kernel/vmlinux.lds.S
++++ b/arch/powerpc/kernel/vmlinux.lds.S
+@@ -19,7 +19,7 @@ ENTRY(_stext)
  
--	NOTES :kernel :note
-+	NOTES :text :note
- 	.dummy : {
- 		*(.dummy)
--	} :kernel
-+	} :text
+ PHDRS {
+ 	kernel PT_LOAD FLAGS(7); /* RWX */
+-	notes PT_NOTE FLAGS(0);
++	note PT_NOTE FLAGS(0);
+ 	dummy PT_NOTE FLAGS(0);
  
- 	RODATA
- 	EXCEPTION_TABLE(16)
+ 	/* binutils < 2.18 has a bug that makes it misbehave when taking an
+@@ -177,7 +177,7 @@ SECTIONS
+ #endif
+ 	EXCEPTION_TABLE(0)
+ 
+-	NOTES :kernel :notes
++	NOTES :kernel :note
+ 
+ 	/* The dummy segment contents for the bug workaround mentioned above
+ 	   near PHDRS.  */
 -- 
 2.17.1
