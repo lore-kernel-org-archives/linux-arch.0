@@ -1,77 +1,58 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([198.137.202.136]:40955 "EHLO
-        mail.zytor.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727532AbfJKBj3 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 10 Oct 2019 21:39:29 -0400
-Date: Thu, 10 Oct 2019 18:38:03 -0700
-In-Reply-To: <201910101657.234CB71E53@keescook>
-References: <20190926175602.33098-1-keescook@chromium.org> <20191010180331.GI7658@zn.tnic> <201910101657.234CB71E53@keescook>
+Received: from bilbo.ozlabs.org ([203.11.71.1]:49499 "EHLO ozlabs.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726174AbfJKGBJ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 11 Oct 2019 02:01:09 -0400
+From: Michael Ellerman <mpe@ellerman.id.au>
+Subject: Re: [PATCH v2 01/29] powerpc: Rename "notes" PT_NOTE to "note"
+In-Reply-To: <20191011000609.29728-2-keescook@chromium.org>
+References: <20191011000609.29728-1-keescook@chromium.org> <20191011000609.29728-2-keescook@chromium.org>
+Date: Fri, 11 Oct 2019 17:00:59 +1100
+Message-ID: <87blunx1lw.fsf@mpe.ellerman.id.au>
 MIME-Version: 1.0
-Content-Type: text/plain;
- charset=utf-8
-Content-Transfer-Encoding: quoted-printable
-Subject: Re: [PATCH 00/29] vmlinux.lds.h: Refactor EXCEPTION_TABLE and NOTES
-From: hpa@zytor.com
-Message-ID: <A020A6D1-C7DB-480B-826E-AE18308CD3E5@zytor.com>
+Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Kees Cook <keescook@chromium.org>, Borislav Petkov <bp@alien8.de>
-Cc: Thomas Gleixner <tglx@linutronix.de>, Rick Edgecombe <rick.p.edgecombe@intel.com>, Ingo Molnar <mingo@redhat.com>, Dave Hansen <dave.hansen@linux.intel.com>, Andy Lutomirski <luto@kernel.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-s390@vger.kernel.org, linux-c6x-dev@linux-c6x.org, Yoshinori Sato <ysato@users.sourceforge.jp>, Michal Simek <monstr@monstr.eu>, linux-parisc@vger.kernel.org, linux-xtensa@linux-xtensa.org, x86@kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20191011013803.aUIX7o3RsK0shgYpwhbYEny-FucDGduBMV9b18-IboI@z>
+Cc: Rick Edgecombe <rick.p.edgecombe@intel.com>, Dave Hansen <dave.hansen@linux.intel.com>, Andy Lutomirski <luto@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Heiko Carstens <heiko.carstens@de.ibm.com>, Will Deacon <will@kernel.org>, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linuxppc-dev@lists.ozlabs.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-s390@vger.kernel.org, linux-c6x-dev@linux-c6x.org, Yoshinori Sato <ysato@users.sourceforge.jp>, Michal Simek <monstr@monstr.eu>, linux-parisc@vger.kernel.org, linux-xtensa@linux-xtensa.org, x86@kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20191011060059.ZYx8drkNIHABvPd-uZ4iDxHHX74xGopy6_SfTfVwX-U@z>
 
-On October 10, 2019 4:57:36 PM PDT, Kees Cook <keescook@chromium=2Eorg> wro=
-te:
->On Thu, Oct 10, 2019 at 08:03:31PM +0200, Borislav Petkov wrote:
->> On Thu, Sep 26, 2019 at 10:55:33AM -0700, Kees Cook wrote:
->> > This series works to move the linker sections for NOTES and
->> > EXCEPTION_TABLE into the RO_DATA area, where they belong on most
->> > (all?) architectures=2E The problem being addressed was the discovery
->> > by Rick Edgecombe that the exception table was accidentally marked
->> > executable while he was developing his execute-only-memory series=2E
->When
->> > permissions were flipped from readable-and-executable to
->only-executable,
->> > the exception table became unreadable, causing things to explode
->rather
->> > badly=2E :)
->> >=20
->> > Roughly speaking, the steps are:
->> >=20
->> > - regularize the linker names for PT_NOTE and PT_LOAD program
->headers
->> >   (to "note" and "text" respectively)
->> > - regularize restoration of linker section to program header
->assignment
->> >   (when PT_NOTE exists)
->> > - move NOTES into RO_DATA
->> > - finish macro naming conversions for RO_DATA and RW_DATA
->> > - move EXCEPTION_TABLE into RO_DATA on architectures where this is
->clear
->> > - clean up some x86-specific reporting of kernel memory resources
->> > - switch x86 linker fill byte from x90 (NOP) to 0xcc (INT3), just
->because
->> >   I finally realized what that trailing ": 0x9090" meant -- and we
->should
->> >   trap, not slide, if execution lands in section padding
->>=20
->> Yap, nice patchset overall=2E
+Kees Cook <keescook@chromium.org> writes:
+> The Program Header identifiers are internal to the linker scripts. In
+> preparation for moving the NOTES segment declaration into RO_DATA,
+> standardize the identifier for the PT_NOTE entry to "note" as used by
+> all other architectures that emit PT_NOTE.
 >
->Thanks!
->
->> > Since these changes are treewide, I'd love to get
->architecture-maintainer
->> > Acks and either have this live in x86 -tip or in my own tree,
->however
->> > people think it should go=2E
->>=20
->> Sure, I don't mind taking v2 through tip once I get ACKs from the
->> respective arch maintainers=2E
->
->Okay, excellent=2E I've only had acks from arm64, but I'll call it out
->again in v2=2E Thanks for the review!
+> Signed-off-by: Kees Cook <keescook@chromium.org>
+> ---
+>  arch/powerpc/kernel/vmlinux.lds.S | 4 ++--
+>  1 file changed, 2 insertions(+), 2 deletions(-)
 
-I would like to once again advocate for the generalized link table mechani=
-sm=2E It is nuts that each individual table should need vmlinux=2Elds hacki=
-ng across architectures=2E
---=20
-Sent from my Android device with K-9 Mail=2E Please excuse my brevity=2E
+Acked-by: Michael Ellerman <mpe@ellerman.id.au>
+
+cheers
+
+> diff --git a/arch/powerpc/kernel/vmlinux.lds.S b/arch/powerpc/kernel/vmlinux.lds.S
+> index 060a1acd7c6d..81e672654789 100644
+> --- a/arch/powerpc/kernel/vmlinux.lds.S
+> +++ b/arch/powerpc/kernel/vmlinux.lds.S
+> @@ -19,7 +19,7 @@ ENTRY(_stext)
+>  
+>  PHDRS {
+>  	kernel PT_LOAD FLAGS(7); /* RWX */
+> -	notes PT_NOTE FLAGS(0);
+> +	note PT_NOTE FLAGS(0);
+>  	dummy PT_NOTE FLAGS(0);
+>  
+>  	/* binutils < 2.18 has a bug that makes it misbehave when taking an
+> @@ -177,7 +177,7 @@ SECTIONS
+>  #endif
+>  	EXCEPTION_TABLE(0)
+>  
+> -	NOTES :kernel :notes
+> +	NOTES :kernel :note
+>  
+>  	/* The dummy segment contents for the bug workaround mentioned above
+>  	   near PHDRS.  */
+> -- 
+> 2.17.1
