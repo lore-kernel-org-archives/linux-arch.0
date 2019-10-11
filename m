@@ -1,7 +1,7 @@
 From: Jiri Slaby <jslaby@suse.cz>
-Subject: [PATCH v9 15/28] x86/asm/purgatory: Start using annotations
-Date: Fri, 11 Oct 2019 13:50:55 +0200
-Message-ID: <20191011115108.12392-16-jslaby@suse.cz>
+Subject: [PATCH v9 22/28] x86_64/asm: Add ENDs to some functions and relabel with SYM_CODE_*
+Date: Fri, 11 Oct 2019 13:51:02 +0200
+Message-ID: <20191011115108.12392-23-jslaby@suse.cz>
 References: <20191011115108.12392-1-jslaby@suse.cz>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
@@ -9,157 +9,240 @@ Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20191011115108.12392-1-jslaby@suse.cz>
 Sender: linux-kernel-owner@vger.kernel.org
 To: bp@alien8.de
-Cc: tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Jiri Slaby <jslaby@suse.cz>
+Cc: tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Jiri Slaby <jslaby@suse.cz>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, Juergen Gross <jgross@suse.com>, xen-devel@lists.xenproject.org
 List-Id: linux-arch.vger.kernel.org
 
-Purgatory used no annotations at all. So include linux/linkage.h and
-annotate everything:
-* code by SYM_CODE_*
-* data by SYM_DATA_*
+All these are functions which are invoked from elsewhere, but they are
+not typical C functions. So they are annotated using the new
+SYM_CODE_START. All these were not balanced with any END, so mark their
+ends by SYM_CODE_END appropriately too.
 
 Signed-off-by: Jiri Slaby <jslaby@suse.cz>
+Reviewed-by: Boris Ostrovsky <boris.ostrovsky@oracle.com> [xen bits]
 Cc: Borislav Petkov <bp@alien8.de>
+Cc: Boris Ostrovsky <boris.ostrovsky@oracle.com>
+Cc: Juergen Gross <jgross@suse.com>
 Cc: Thomas Gleixner <tglx@linutronix.de>
 Cc: Ingo Molnar <mingo@redhat.com>
 Cc: "H. Peter Anvin" <hpa@zytor.com>
 Cc: x86@kernel.org
+Cc: xen-devel@lists.xenproject.org
 ---
- arch/x86/purgatory/entry64.S      | 21 ++++++++++++---------
- arch/x86/purgatory/setup-x86_64.S | 14 ++++++++------
- arch/x86/purgatory/stack.S        |  7 ++++---
- 3 files changed, 24 insertions(+), 18 deletions(-)
+ arch/x86/boot/compressed/head_64.S   |  6 ++++--
+ arch/x86/platform/olpc/xo1-wakeup.S  |  3 ++-
+ arch/x86/power/hibernate_asm_64.S    |  6 ++++--
+ arch/x86/realmode/rm/reboot.S        |  3 ++-
+ arch/x86/realmode/rm/trampoline_64.S | 10 +++++++---
+ arch/x86/realmode/rm/wakeup_asm.S    |  3 ++-
+ arch/x86/xen/xen-asm_64.S            |  6 ++++--
+ 7 files changed, 25 insertions(+), 12 deletions(-)
 
-diff --git a/arch/x86/purgatory/entry64.S b/arch/x86/purgatory/entry64.S
-index 275a646d1048..9d73d3648aa6 100644
---- a/arch/x86/purgatory/entry64.S
-+++ b/arch/x86/purgatory/entry64.S
-@@ -8,13 +8,13 @@
-  * This code has been taken from kexec-tools.
-  */
+diff --git a/arch/x86/boot/compressed/head_64.S b/arch/x86/boot/compressed/head_64.S
+index ca762ea6a681..55800467ce5c 100644
+--- a/arch/x86/boot/compressed/head_64.S
++++ b/arch/x86/boot/compressed/head_64.S
+@@ -250,7 +250,7 @@ ENDPROC(efi32_stub_entry)
  
-+#include <linux/linkage.h>
-+
- 	.text
- 	.balign 16
  	.code64
--	.globl entry64, entry64_regs
--
+ 	.org 0x200
+-ENTRY(startup_64)
++SYM_CODE_START(startup_64)
+ 	/*
+ 	 * 64bit entry is 0x200 and it is ABI so immutable!
+ 	 * We come here either from startup_32 or directly from a
+@@ -442,6 +442,7 @@ trampoline_return:
+  */
+ 	leaq	.Lrelocated(%rbx), %rax
+ 	jmp	*%rax
++SYM_CODE_END(startup_64)
  
--entry64:
-+SYM_CODE_START(entry64)
- 	/* Setup a gdt that should be preserved */
- 	lgdt gdt(%rip)
+ #ifdef CONFIG_EFI_STUB
  
-@@ -54,10 +54,11 @@ new_cs_exit:
+@@ -571,7 +572,7 @@ SYM_FUNC_END(.Lrelocated)
+  * ECX contains the base address of the trampoline memory.
+  * Non zero RDX means trampoline needs to enable 5-level paging.
+  */
+-ENTRY(trampoline_32bit_src)
++SYM_CODE_START(trampoline_32bit_src)
+ 	/* Set up data and stack segments */
+ 	movl	$__KERNEL_DS, %eax
+ 	movl	%eax, %ds
+@@ -634,6 +635,7 @@ ENTRY(trampoline_32bit_src)
+ 	movl	%eax, %cr0
  
- 	/* Jump to the new code... */
- 	jmpq	*rip(%rip)
-+SYM_CODE_END(entry64)
+ 	lret
++SYM_CODE_END(trampoline_32bit_src)
  
- 	.section ".rodata"
+ 	.code64
+ SYM_FUNC_START_LOCAL_NOALIGN(.Lpaging_enabled)
+diff --git a/arch/x86/platform/olpc/xo1-wakeup.S b/arch/x86/platform/olpc/xo1-wakeup.S
+index 5fee3a2c2fd4..75f4faff8468 100644
+--- a/arch/x86/platform/olpc/xo1-wakeup.S
++++ b/arch/x86/platform/olpc/xo1-wakeup.S
+@@ -90,7 +90,7 @@ restore_registers:
+ 
+ 	ret
+ 
+-ENTRY(do_olpc_suspend_lowlevel)
++SYM_CODE_START(do_olpc_suspend_lowlevel)
+ 	call	save_processor_state
+ 	call	save_registers
+ 
+@@ -110,6 +110,7 @@ ret_point:
+ 	call	restore_registers
+ 	call	restore_processor_state
+ 	ret
++SYM_CODE_END(do_olpc_suspend_lowlevel)
+ 
+ .data
+ saved_gdt:             .long   0,0
+diff --git a/arch/x86/power/hibernate_asm_64.S b/arch/x86/power/hibernate_asm_64.S
+index a4d5eb0a7ece..4057cd5af7e2 100644
+--- a/arch/x86/power/hibernate_asm_64.S
++++ b/arch/x86/power/hibernate_asm_64.S
+@@ -52,7 +52,7 @@ ENTRY(swsusp_arch_suspend)
+ 	ret
+ ENDPROC(swsusp_arch_suspend)
+ 
+-ENTRY(restore_image)
++SYM_CODE_START(restore_image)
+ 	/* prepare to jump to the image kernel */
+ 	movq	restore_jump_address(%rip), %r8
+ 	movq	restore_cr3(%rip), %r9
+@@ -67,9 +67,10 @@ ENTRY(restore_image)
+ 	/* jump to relocated restore code */
+ 	movq	relocated_restore_code(%rip), %rcx
+ 	jmpq	*%rcx
++SYM_CODE_END(restore_image)
+ 
+ 	/* code below has been relocated to a safe page */
+-ENTRY(core_restore_code)
++SYM_CODE_START(core_restore_code)
+ 	/* switch to temporary page tables */
+ 	movq	%rax, %cr3
+ 	/* flush TLB */
+@@ -97,6 +98,7 @@ ENTRY(core_restore_code)
+ .Ldone:
+ 	/* jump to the restore_registers address from the image header */
+ 	jmpq	*%r8
++SYM_CODE_END(core_restore_code)
+ 
+ 	 /* code below belongs to the image kernel */
+ 	.align PAGE_SIZE
+diff --git a/arch/x86/realmode/rm/reboot.S b/arch/x86/realmode/rm/reboot.S
+index 424826afb501..f10515b10e0a 100644
+--- a/arch/x86/realmode/rm/reboot.S
++++ b/arch/x86/realmode/rm/reboot.S
+@@ -19,7 +19,7 @@
+  */
+ 	.section ".text32", "ax"
+ 	.code32
+-ENTRY(machine_real_restart_asm)
++SYM_CODE_START(machine_real_restart_asm)
+ 
+ #ifdef CONFIG_X86_64
+ 	/* Switch to trampoline GDT as it is guaranteed < 4 GiB */
+@@ -63,6 +63,7 @@ SYM_INNER_LABEL(machine_real_restart_paging_off, SYM_L_GLOBAL)
+ 	movl	%ecx, %gs
+ 	movl	%ecx, %ss
+ 	ljmpw	$8, $1f
++SYM_CODE_END(machine_real_restart_asm)
+ 
+ /*
+  * This is 16-bit protected mode code to disable paging and the cache,
+diff --git a/arch/x86/realmode/rm/trampoline_64.S b/arch/x86/realmode/rm/trampoline_64.S
+index c1aeab1dae25..251758ed7443 100644
+--- a/arch/x86/realmode/rm/trampoline_64.S
++++ b/arch/x86/realmode/rm/trampoline_64.S
+@@ -38,7 +38,7 @@
+ 	.code16
+ 
+ 	.balign	PAGE_SIZE
+-ENTRY(trampoline_start)
++SYM_CODE_START(trampoline_start)
+ 	cli			# We should be safe anyway
+ 	wbinvd
+ 
+@@ -78,12 +78,14 @@ ENTRY(trampoline_start)
+ no_longmode:
+ 	hlt
+ 	jmp no_longmode
++SYM_CODE_END(trampoline_start)
++
+ #include "../kernel/verify_cpu.S"
+ 
+ 	.section ".text32","ax"
+ 	.code32
  	.balign 4
--entry64_regs:
-+SYM_DATA_START(entry64_regs)
- rax:	.quad 0x0
- rcx:	.quad 0x0
- rdx:	.quad 0x0
-@@ -75,12 +76,12 @@ r13:	.quad 0x0
- r14:	.quad 0x0
- r15:	.quad 0x0
- rip:	.quad 0x0
--	.size entry64_regs, . - entry64_regs
-+SYM_DATA_END(entry64_regs)
+-ENTRY(startup_32)
++SYM_CODE_START(startup_32)
+ 	movl	%edx, %ss
+ 	addl	$pa_real_mode_base, %esp
+ 	movl	%edx, %ds
+@@ -137,13 +139,15 @@ ENTRY(startup_32)
+ 	 * the new gdt/idt that has __KERNEL_CS with CS.L = 1.
+ 	 */
+ 	ljmpl	$__KERNEL_CS, $pa_startup_64
++SYM_CODE_END(startup_32)
  
- 	/* GDT */
- 	.section ".rodata"
- 	.balign 16
--gdt:
-+SYM_DATA_START_LOCAL(gdt)
- 	/* 0x00 unusable segment
- 	 * 0x08 unused
- 	 * so use them as gdt ptr
-@@ -94,6 +95,8 @@ gdt:
- 
- 	/* 0x18 4GB flat data segment */
- 	.word 0xFFFF, 0x0000, 0x9200, 0x00CF
--gdt_end:
--stack:	.quad   0, 0
--stack_init:
-+SYM_DATA_END_LABEL(gdt, SYM_L_LOCAL, gdt_end)
-+
-+SYM_DATA_START_LOCAL(stack)
-+	.quad   0, 0
-+SYM_DATA_END_LABEL(stack, SYM_L_LOCAL, stack_init)
-diff --git a/arch/x86/purgatory/setup-x86_64.S b/arch/x86/purgatory/setup-x86_64.S
-index 321146be741d..89d9e9e53fcd 100644
---- a/arch/x86/purgatory/setup-x86_64.S
-+++ b/arch/x86/purgatory/setup-x86_64.S
-@@ -7,14 +7,14 @@
-  *
-  * This code has been taken from kexec-tools.
-  */
-+#include <linux/linkage.h>
- #include <asm/purgatory.h>
- 
- 	.text
--	.globl purgatory_start
- 	.balign 16
--purgatory_start:
+ 	.section ".text64","ax"
  	.code64
+ 	.balign 4
+-ENTRY(startup_64)
++SYM_CODE_START(startup_64)
+ 	# Now jump into the kernel using virtual addresses
+ 	jmpq	*tr_start(%rip)
++SYM_CODE_END(startup_64)
  
-+SYM_CODE_START(purgatory_start)
- 	/* Load a gdt so I know what the segment registers are */
- 	lgdt	gdt(%rip)
+ 	.section ".rodata","a"
+ 	# Duplicate the global descriptor table
+diff --git a/arch/x86/realmode/rm/wakeup_asm.S b/arch/x86/realmode/rm/wakeup_asm.S
+index 01092d665bc2..02d0ba16ae33 100644
+--- a/arch/x86/realmode/rm/wakeup_asm.S
++++ b/arch/x86/realmode/rm/wakeup_asm.S
+@@ -37,7 +37,7 @@ SYM_DATA_END(wakeup_header)
+ 	.code16
  
-@@ -32,10 +32,12 @@ purgatory_start:
- 	/* Call the C code */
- 	call purgatory
- 	jmp	entry64
-+SYM_CODE_END(purgatory_start)
+ 	.balign	16
+-ENTRY(wakeup_start)
++SYM_CODE_START(wakeup_start)
+ 	cli
+ 	cld
  
- 	.section ".rodata"
- 	.balign 16
--gdt:	/* 0x00 unusable segment
-+SYM_DATA_START_LOCAL(gdt)
-+	/* 0x00 unusable segment
- 	 * 0x08 unused
- 	 * so use them as the gdt ptr
- 	 */
-@@ -48,10 +50,10 @@ gdt:	/* 0x00 unusable segment
+@@ -135,6 +135,7 @@ ENTRY(wakeup_start)
+ #else
+ 	jmp	trampoline_start
+ #endif
++SYM_CODE_END(wakeup_start)
  
- 	/* 0x18 4GB flat data segment */
- 	.word	0xFFFF, 0x0000, 0x9200, 0x00CF
--gdt_end:
-+SYM_DATA_END_LABEL(gdt, SYM_L_LOCAL, gdt_end)
- 
- 	.bss
- 	.balign 4096
--lstack:
-+SYM_DATA_START_LOCAL(lstack)
- 	.skip 4096
--lstack_end:
-+SYM_DATA_END_LABEL(lstack, SYM_L_LOCAL, lstack_end)
-diff --git a/arch/x86/purgatory/stack.S b/arch/x86/purgatory/stack.S
-index 8b1427422dfc..1ef507ca50a5 100644
---- a/arch/x86/purgatory/stack.S
-+++ b/arch/x86/purgatory/stack.S
-@@ -5,13 +5,14 @@
-  * Copyright (C) 2014 Red Hat Inc.
+ bogus_real_magic:
+ 1:
+diff --git a/arch/x86/xen/xen-asm_64.S b/arch/x86/xen/xen-asm_64.S
+index 45c1249f370d..c209c70fc5e4 100644
+--- a/arch/x86/xen/xen-asm_64.S
++++ b/arch/x86/xen/xen-asm_64.S
+@@ -85,11 +85,12 @@ hypercall_iret = hypercall_page + __HYPERVISOR_iret * 32
+  *	r11		}<-- pushed by hypercall page
+  * rsp->rax		}
   */
+-ENTRY(xen_iret)
++SYM_CODE_START(xen_iret)
+ 	pushq $0
+ 	jmp hypercall_iret
++SYM_CODE_END(xen_iret)
  
-+#include <linux/linkage.h>
-+
- 	/* A stack for the loaded kernel.
- 	 * Separate and in the data section so it can be prepopulated.
- 	 */
- 	.data
- 	.balign 4096
--	.globl stack, stack_end
+-ENTRY(xen_sysret64)
++SYM_CODE_START(xen_sysret64)
+ 	/*
+ 	 * We're already on the usermode stack at this point, but
+ 	 * still with the kernel gs, so we can easily switch back.
+@@ -107,6 +108,7 @@ ENTRY(xen_sysret64)
  
--stack:
-+SYM_DATA_START(stack)
- 	.skip 4096
--stack_end:
-+SYM_DATA_END_LABEL(stack, SYM_L_GLOBAL, stack_end)
+ 	pushq $VGCF_in_syscall
+ 	jmp hypercall_iret
++SYM_CODE_END(xen_sysret64)
+ 
+ /*
+  * Xen handles syscall callbacks much like ordinary exceptions, which
 -- 
 2.23.0
