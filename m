@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.suse.de ([195.135.220.15]:33304 "EHLO mx1.suse.de"
+Received: from mx2.suse.de ([195.135.220.15]:33364 "EHLO mx1.suse.de"
         rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1727896AbfJKLvR (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        id S1727919AbfJKLvR (ORCPT <rfc822;linux-arch@vger.kernel.org>);
         Fri, 11 Oct 2019 07:51:17 -0400
 From: Jiri Slaby <jslaby@suse.cz>
-Subject: [PATCH v9 03/28] x86/asm: Annotate relocate_kernel_{32,64}.c
-Date: Fri, 11 Oct 2019 13:50:43 +0200
-Message-ID: <20191011115108.12392-4-jslaby@suse.cz>
+Subject: [PATCH v9 05/28] x86/asm: Annotate local pseudo-functions
+Date: Fri, 11 Oct 2019 13:50:45 +0200
+Message-ID: <20191011115108.12392-6-jslaby@suse.cz>
 In-Reply-To: <20191011115108.12392-1-jslaby@suse.cz>
 References: <20191011115108.12392-1-jslaby@suse.cz>
 MIME-Version: 1.0
@@ -14,148 +14,188 @@ Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: bp@alien8.de
-Cc: tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Jiri Slaby <jslaby@suse.cz>
-Message-ID: <20191011115043.N1ItmbhK6KsJDgQp_eu81uInUPzfN-d6KDsXdHeGOwU@z>
+Cc: tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Jiri Slaby <jslaby@suse.cz>, Andy Lutomirski <luto@kernel.org>
+Message-ID: <20191011115045.II_tg9PZprrrJQCunVAdA1H7jb2XZ57zJwp1B3Nx8E4@z>
 
-There are functions in relocate_kernel_{32,64}.c which are not
-annotated. This makes automatic works on them rather hard. So annotate
-all the functions now.
+Use the newly added SYM_CODE_START_LOCAL* to annotate starts of all
+pseudo-functions (those ending END until now) which do not have ".globl"
+annotation. This is needed to balance END for tools that generate
+debuginfo. Note that ENDs are switched to SYM_CODE_END too so that
+everybody can see the pairing.
 
-Note that these are not C-like functions, so FUNC is not used. Instead
-CODE markers are used. Also the functions are not aligned, so the
-NOALIGN versions are used:
-- SYM_CODE_START_NOALIGN
-- SYM_CODE_START_LOCAL_NOALIGN
-- SYM_CODE_END
+C-like functions (which handle frame ptr etc.) are not annotated here,
+hence SYM_CODE_* macros are used here, not SYM_FUNC_*.  Note that 32bit
+early_idt_handler_common already had ENDPROC -- switch that to
+SYM_CODE_END for the same reason as above (and to be the same as 64bit).
 
-In return, we get:
-  0000   108 NOTYPE  GLOBAL DEFAULT    1 relocate_kernel
-  006c   165 NOTYPE  LOCAL  DEFAULT    1 identity_mapped
-  0146   127 NOTYPE  LOCAL  DEFAULT    1 swap_pages
-  0111    53 NOTYPE  LOCAL  DEFAULT    1 virtual_mapped
+While early_idt_handler_common is LOCAL, it is not named starting ".L"
+as it happens to appear in call traces.
+
+bad_get_user*, and bad_put_user are now aligned, as they are separate
+functions. They do not mind to be aligned -- no need to be compact
+there.
+
+early_idt_handler_common is aligned now too, as it is after
+early_idt_handler_array, so as well no need to be compact there.
+
+verify_cpu is self-standing and included in other .S files, so align it
+too.
+
+The others have alignment preserved to what it used to be (using the
+_NOALIGN variant of macros).
 
 Signed-off-by: Jiri Slaby <jslaby@suse.cz>
 Cc: Thomas Gleixner <tglx@linutronix.de>
 Cc: Ingo Molnar <mingo@redhat.com>
 Cc: Borislav Petkov <bp@alien8.de>
 Cc: "H. Peter Anvin" <hpa@zytor.com>
-Cc: x86@kernel.org
+Cc: Andy Lutomirski <luto@kernel.org>
+Cc: <x86@kernel.org>
 ---
- arch/x86/kernel/relocate_kernel_32.S | 13 ++++++++-----
- arch/x86/kernel/relocate_kernel_64.S | 13 ++++++++-----
- 2 files changed, 16 insertions(+), 10 deletions(-)
 
-diff --git a/arch/x86/kernel/relocate_kernel_32.S b/arch/x86/kernel/relocate_kernel_32.S
-index ee26df08002e..94b33885f8d2 100644
---- a/arch/x86/kernel/relocate_kernel_32.S
-+++ b/arch/x86/kernel/relocate_kernel_32.S
-@@ -35,8 +35,7 @@
- #define CP_PA_BACKUP_PAGES_MAP	DATA(0x1c)
+Notes:
+    [v3] annotate more functions
+    [v4] describe the alignments changes
+
+ arch/x86/entry/entry_64.S    | 3 ++-
+ arch/x86/kernel/head_32.S    | 4 ++--
+ arch/x86/kernel/head_64.S    | 4 ++--
+ arch/x86/kernel/verify_cpu.S | 4 ++--
+ arch/x86/lib/getuser.S       | 6 ++++--
+ arch/x86/lib/putuser.S       | 3 ++-
+ 6 files changed, 14 insertions(+), 10 deletions(-)
+
+diff --git a/arch/x86/entry/entry_64.S b/arch/x86/entry/entry_64.S
+index 86cbb22208c8..db43526cecfa 100644
+--- a/arch/x86/entry/entry_64.S
++++ b/arch/x86/entry/entry_64.S
+@@ -1061,7 +1061,7 @@ EXPORT_SYMBOL(native_load_gs_index)
+ 	_ASM_EXTABLE(.Lgs_change, .Lbad_gs)
+ 	.section .fixup, "ax"
+ 	/* running with kernelgs */
+-.Lbad_gs:
++SYM_CODE_START_LOCAL_NOALIGN(.Lbad_gs)
+ 	SWAPGS					/* switch back to user gs */
+ .macro ZAP_GS
+ 	/* This can't be a string because the preprocessor needs to see it. */
+@@ -1072,6 +1072,7 @@ EXPORT_SYMBOL(native_load_gs_index)
+ 	xorl	%eax, %eax
+ 	movl	%eax, %gs
+ 	jmp	2b
++SYM_CODE_END(.Lbad_gs)
+ 	.previous
  
- 	.text
--	.globl relocate_kernel
--relocate_kernel:
-+SYM_CODE_START_NOALIGN(relocate_kernel)
- 	/* Save the CPU context, used for jumping back */
- 
- 	pushl	%ebx
-@@ -93,8 +92,9 @@ relocate_kernel:
- 	addl    $(identity_mapped - relocate_kernel), %eax
- 	pushl   %eax
- 	ret
-+SYM_CODE_END(relocate_kernel)
- 
--identity_mapped:
-+SYM_CODE_START_LOCAL_NOALIGN(identity_mapped)
- 	/* set return address to 0 if not preserving context */
- 	pushl	$0
- 	/* store the start address on the stack */
-@@ -191,8 +191,9 @@ identity_mapped:
- 	addl	$(virtual_mapped - relocate_kernel), %eax
- 	pushl	%eax
- 	ret
-+SYM_CODE_END(identity_mapped)
- 
--virtual_mapped:
-+SYM_CODE_START_LOCAL_NOALIGN(virtual_mapped)
- 	movl	CR4(%edi), %eax
- 	movl	%eax, %cr4
- 	movl	CR3(%edi), %eax
-@@ -208,9 +209,10 @@ virtual_mapped:
- 	popl	%esi
- 	popl	%ebx
- 	ret
-+SYM_CODE_END(virtual_mapped)
- 
- 	/* Do the copies */
--swap_pages:
-+SYM_CODE_START_LOCAL_NOALIGN(swap_pages)
- 	movl	8(%esp), %edx
- 	movl	4(%esp), %ecx
- 	pushl	%ebp
-@@ -270,6 +272,7 @@ swap_pages:
- 	popl	%ebx
- 	popl	%ebp
- 	ret
-+SYM_CODE_END(swap_pages)
- 
- 	.globl kexec_control_code_size
- .set kexec_control_code_size, . - relocate_kernel
-diff --git a/arch/x86/kernel/relocate_kernel_64.S b/arch/x86/kernel/relocate_kernel_64.S
-index c51ccff5cd01..ef3ba99068d3 100644
---- a/arch/x86/kernel/relocate_kernel_64.S
-+++ b/arch/x86/kernel/relocate_kernel_64.S
-@@ -38,8 +38,7 @@
- 	.text
- 	.align PAGE_SIZE
- 	.code64
--	.globl relocate_kernel
--relocate_kernel:
-+SYM_CODE_START_NOALIGN(relocate_kernel)
+ /* Call softirq on interrupt stack. Interrupts are off. */
+diff --git a/arch/x86/kernel/head_32.S b/arch/x86/kernel/head_32.S
+index 7feb953e10d2..aec1fdb80221 100644
+--- a/arch/x86/kernel/head_32.S
++++ b/arch/x86/kernel/head_32.S
+@@ -409,7 +409,7 @@ ENTRY(early_idt_handler_array)
+ 	.endr
+ ENDPROC(early_idt_handler_array)
+ 	
+-early_idt_handler_common:
++SYM_CODE_START_LOCAL(early_idt_handler_common)
  	/*
- 	 * %rdi indirection_page
- 	 * %rsi page_list
-@@ -103,8 +102,9 @@ relocate_kernel:
- 	addq	$(identity_mapped - relocate_kernel), %r8
- 	pushq	%r8
- 	ret
-+SYM_CODE_END(relocate_kernel)
+ 	 * The stack is the hardware frame, an error code or zero, and the
+ 	 * vector number.
+@@ -460,7 +460,7 @@ early_idt_handler_common:
+ 	decl	%ss:early_recursion_flag
+ 	addl	$4, %esp	/* pop pt_regs->orig_ax */
+ 	iret
+-ENDPROC(early_idt_handler_common)
++SYM_CODE_END(early_idt_handler_common)
  
--identity_mapped:
-+SYM_CODE_START_LOCAL_NOALIGN(identity_mapped)
- 	/* set return address to 0 if not preserving context */
- 	pushq	$0
- 	/* store the start address on the stack */
-@@ -209,8 +209,9 @@ identity_mapped:
- 	movq	$virtual_mapped, %rax
- 	pushq	%rax
- 	ret
-+SYM_CODE_END(identity_mapped)
+ /* This is the default interrupt "handler" :-) */
+ ENTRY(early_ignore_irq)
+diff --git a/arch/x86/kernel/head_64.S b/arch/x86/kernel/head_64.S
+index f00d7c0c1c86..5b42552d929f 100644
+--- a/arch/x86/kernel/head_64.S
++++ b/arch/x86/kernel/head_64.S
+@@ -291,7 +291,7 @@ ENTRY(early_idt_handler_array)
+ 	UNWIND_HINT_IRET_REGS offset=16
+ END(early_idt_handler_array)
  
--virtual_mapped:
-+SYM_CODE_START_LOCAL_NOALIGN(virtual_mapped)
- 	movq	RSP(%r8), %rsp
- 	movq	CR4(%r8), %rax
- 	movq	%rax, %cr4
-@@ -228,9 +229,10 @@ virtual_mapped:
- 	popq	%rbp
- 	popq	%rbx
- 	ret
-+SYM_CODE_END(virtual_mapped)
+-early_idt_handler_common:
++SYM_CODE_START_LOCAL(early_idt_handler_common)
+ 	/*
+ 	 * The stack is the hardware frame, an error code or zero, and the
+ 	 * vector number.
+@@ -333,7 +333,7 @@ early_idt_handler_common:
+ 20:
+ 	decl early_recursion_flag(%rip)
+ 	jmp restore_regs_and_return_to_kernel
+-END(early_idt_handler_common)
++SYM_CODE_END(early_idt_handler_common)
  
- 	/* Do the copies */
--swap_pages:
-+SYM_CODE_START_LOCAL_NOALIGN(swap_pages)
- 	movq	%rdi, %rcx 	/* Put the page_list in %rcx */
- 	xorl	%edi, %edi
- 	xorl	%esi, %esi
-@@ -283,6 +285,7 @@ swap_pages:
- 	jmp	0b
- 3:
- 	ret
-+SYM_CODE_END(swap_pages)
+ #define NEXT_PAGE(name) \
+ 	.balign	PAGE_SIZE; \
+diff --git a/arch/x86/kernel/verify_cpu.S b/arch/x86/kernel/verify_cpu.S
+index a024c4f7ba56..641f0fe1e5b4 100644
+--- a/arch/x86/kernel/verify_cpu.S
++++ b/arch/x86/kernel/verify_cpu.S
+@@ -31,7 +31,7 @@
+ #include <asm/cpufeatures.h>
+ #include <asm/msr-index.h>
  
- 	.globl kexec_control_code_size
- .set kexec_control_code_size, . - relocate_kernel
+-ENTRY(verify_cpu)
++SYM_FUNC_START_LOCAL(verify_cpu)
+ 	pushf				# Save caller passed flags
+ 	push	$0			# Kill any dangerous flags
+ 	popf
+@@ -137,4 +137,4 @@ ENTRY(verify_cpu)
+ 	popf				# Restore caller passed flags
+ 	xorl %eax, %eax
+ 	ret
+-ENDPROC(verify_cpu)
++SYM_FUNC_END(verify_cpu)
+diff --git a/arch/x86/lib/getuser.S b/arch/x86/lib/getuser.S
+index 9578eb88fc87..f9f59eb85635 100644
+--- a/arch/x86/lib/getuser.S
++++ b/arch/x86/lib/getuser.S
+@@ -115,21 +115,23 @@ ENDPROC(__get_user_8)
+ EXPORT_SYMBOL(__get_user_8)
+ 
+ 
+-.Lbad_get_user_clac:
++SYM_CODE_START_LOCAL(.Lbad_get_user_clac)
+ 	ASM_CLAC
+ bad_get_user:
+ 	xor %edx,%edx
+ 	mov $(-EFAULT),%_ASM_AX
+ 	ret
++SYM_CODE_END(.Lbad_get_user_clac)
+ 
+ #ifdef CONFIG_X86_32
+-.Lbad_get_user_8_clac:
++SYM_CODE_START_LOCAL(.Lbad_get_user_8_clac)
+ 	ASM_CLAC
+ bad_get_user_8:
+ 	xor %edx,%edx
+ 	xor %ecx,%ecx
+ 	mov $(-EFAULT),%_ASM_AX
+ 	ret
++SYM_CODE_END(.Lbad_get_user_8_clac)
+ #endif
+ 
+ 	_ASM_EXTABLE_UA(1b, .Lbad_get_user_clac)
+diff --git a/arch/x86/lib/putuser.S b/arch/x86/lib/putuser.S
+index 126dd6a9ec9b..a9391d772c81 100644
+--- a/arch/x86/lib/putuser.S
++++ b/arch/x86/lib/putuser.S
+@@ -91,11 +91,12 @@ ENTRY(__put_user_8)
+ ENDPROC(__put_user_8)
+ EXPORT_SYMBOL(__put_user_8)
+ 
+-.Lbad_put_user_clac:
++SYM_CODE_START_LOCAL(.Lbad_put_user_clac)
+ 	ASM_CLAC
+ .Lbad_put_user:
+ 	movl $-EFAULT,%eax
+ 	RET
++SYM_CODE_END(.Lbad_put_user_clac)
+ 
+ 	_ASM_EXTABLE_UA(1b, .Lbad_put_user_clac)
+ 	_ASM_EXTABLE_UA(2b, .Lbad_put_user_clac)
 -- 
 2.23.0
