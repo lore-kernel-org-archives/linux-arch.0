@@ -1,32 +1,45 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:35166 "EHLO foss.arm.com"
+Received: from foss.arm.com ([217.140.110.172]:35212 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726332AbfJKPGg (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 11 Oct 2019 11:06:36 -0400
+        id S1726332AbfJKPHU (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 11 Oct 2019 11:07:20 -0400
 From: Dave Martin <Dave.Martin@arm.com>
-Subject: [FIXUP 0/2] Fixups to patch 5
-Date: Fri, 11 Oct 2019 16:06:27 +0100
-Message-ID: <1570806389-16014-1-git-send-email-Dave.Martin@arm.com>
-In-Reply-To: <1570733080-21015-6-git-send-email-Dave.Martin@arm.com>
+Subject: [FIXUP 1/2] squash! arm64: Basic Branch Target Identification support
+Date: Fri, 11 Oct 2019 16:06:28 +0100
+Message-ID: <1570806389-16014-2-git-send-email-Dave.Martin@arm.com>
+In-Reply-To: <1570806389-16014-1-git-send-email-Dave.Martin@arm.com>
 References: <1570733080-21015-6-git-send-email-Dave.Martin@arm.com>
+ <1570806389-16014-1-git-send-email-Dave.Martin@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
 Cc: Amit Kachhap <amit.kachhap@arm.com>, Andrew Jones <drjones@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Catalin Marinas <catalin.marinas@arm.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Kees Cook <keescook@chromium.org>, =?UTF-8?q?Kristina=20Mart=C5=A1enko?= <kristina.martsenko@arm.com>, Marc Zyngier <maz@kernel.org>, Mark Brown <broonie@kernel.org>, Paul Elliott <paul.elliott@arm.com>, Peter Zijlstra <peterz@infradead.org>, Richard Henderson <richard.henderson@linaro.org>, Sudakshina Das <sudi.das@arm.com>, Suzuki Poulose <suzuki.poulose@arm.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Will Deacon <will@kernel.org>, Yu-cheng Yu <yu-cheng.yu@intel.com>, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org
-Message-ID: <20191011150627.UuMxZyjFh8RkN9NsCoISetGh0S5bbR0HtJatZmFuXOQ@z>
+Message-ID: <20191011150628.50dX09EVL1ENFEWcChM9RGwE2WrN9mljjJqSijlj-vw@z>
 
-Here are a couple of late-breaking fixups, which may be integrated in
-the next posting.
+Signed-off-by: Dave Martin <Dave.Martin@arm.com>
 
-The first is trivial; the second needs discussion.
+---
 
+Changes since v2:
 
-Dave Martin (2):
-  squash! arm64: Basic Branch Target Identification support
-  squash! arm64: Basic Branch Target Identification support
+ * Fix Kconfig typo that claimed that Pointer authentication is part of
+   ARMv8.2.  It's v8.3.
+---
+ arch/arm64/Kconfig | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
- arch/arm64/Kconfig | 11 ++++++++---
- 1 file changed, 8 insertions(+), 3 deletions(-)
-
+diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
+index 563dec5..6e26b72 100644
+--- a/arch/arm64/Kconfig
++++ b/arch/arm64/Kconfig
+@@ -1425,7 +1425,7 @@ config ARM64_BTI
+ 
+ 	  This is intended to provide complementary protection to other control
+ 	  flow integrity protection mechanisms, such as the Pointer
+-	  authentication mechanism provided as part of the ARMv8.2 Extensions.
++	  authentication mechanism provided as part of the ARMv8.3 Extensions.
+ 
+ 	  To make use of BTI on CPUs that support it, say Y.
+ 
 -- 
 2.1.4
