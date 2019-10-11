@@ -1,64 +1,82 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pg1-f193.google.com ([209.85.215.193]:40239 "EHLO
-        mail-pg1-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726474AbfJJX5k (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 10 Oct 2019 19:57:40 -0400
-Received: by mail-pg1-f193.google.com with SMTP id d26so4678655pgl.7
-        for <linux-arch@vger.kernel.org>; Thu, 10 Oct 2019 16:57:38 -0700 (PDT)
-Date: Thu, 10 Oct 2019 16:57:36 -0700
+Received: from mail-pf1-f196.google.com ([209.85.210.196]:33114 "EHLO
+        mail-pf1-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726721AbfJKAG0 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 10 Oct 2019 20:06:26 -0400
+Received: by mail-pf1-f196.google.com with SMTP id q10so4959064pfl.0
+        for <linux-arch@vger.kernel.org>; Thu, 10 Oct 2019 17:06:24 -0700 (PDT)
 From: Kees Cook <keescook@chromium.org>
-Subject: Re: [PATCH 00/29] vmlinux.lds.h: Refactor EXCEPTION_TABLE and NOTES
-Message-ID: <201910101657.234CB71E53@keescook>
-References: <20190926175602.33098-1-keescook@chromium.org>
- <20191010180331.GI7658@zn.tnic>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20191010180331.GI7658@zn.tnic>
+Subject: [PATCH v2 03/29] powerpc: Rename PT_LOAD identifier "kernel" to "text"
+Date: Thu, 10 Oct 2019 17:05:43 -0700
+Message-ID: <20191011000609.29728-4-keescook@chromium.org>
+In-Reply-To: <20191011000609.29728-1-keescook@chromium.org>
+References: <20191011000609.29728-1-keescook@chromium.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Borislav Petkov <bp@alien8.de>
-Cc: Thomas Gleixner <tglx@linutronix.de>, Rick Edgecombe <rick.p.edgecombe@intel.com>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Dave Hansen <dave.hansen@linux.intel.com>, Andy Lutomirski <luto@kernel.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-s390@vger.kernel.org, linux-c6x-dev@linux-c6x.org, Yoshinori Sato <ysato@users.sourceforge.jp>, Michal Simek <monstr@monstr.eu>, linux-parisc@vger.kernel.org, linux-xtensa@linux-xtensa.org, x86@kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20191010235736.fWMwtbhL5eGi6l3w7e0ZGPYExJKo1Dw_Y0ylO32RIjw@z>
+Cc: Kees Cook <keescook@chromium.org>, Rick Edgecombe <rick.p.edgecombe@intel.com>, Dave Hansen <dave.hansen@linux.intel.com>, Andy Lutomirski <luto@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Michael Ellerman <mpe@ellerman.id.au>, Heiko Carstens <heiko.carstens@de.ibm.com>, Will Deacon <will@kernel.org>, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linuxppc-dev@lists.ozlabs.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-s390@vger.kernel.org, linux-c6x-dev@linux-c6x.org, Yoshinori Sato <ysato@users.sourceforge.jp>, Michal Simek <monstr@monstr.eu>, linux-parisc@vger.kernel.org, linux-xtensa@linux-xtensa.org, x86@kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20191011000543.8EriY2QmVynsc63SraihHHDj9NfXrL14vG6DTpYuYcE@z>
 
-On Thu, Oct 10, 2019 at 08:03:31PM +0200, Borislav Petkov wrote:
-> On Thu, Sep 26, 2019 at 10:55:33AM -0700, Kees Cook wrote:
-> > This series works to move the linker sections for NOTES and
-> > EXCEPTION_TABLE into the RO_DATA area, where they belong on most
-> > (all?) architectures. The problem being addressed was the discovery
-> > by Rick Edgecombe that the exception table was accidentally marked
-> > executable while he was developing his execute-only-memory series. When
-> > permissions were flipped from readable-and-executable to only-executable,
-> > the exception table became unreadable, causing things to explode rather
-> > badly. :)
-> > 
-> > Roughly speaking, the steps are:
-> > 
-> > - regularize the linker names for PT_NOTE and PT_LOAD program headers
-> >   (to "note" and "text" respectively)
-> > - regularize restoration of linker section to program header assignment
-> >   (when PT_NOTE exists)
-> > - move NOTES into RO_DATA
-> > - finish macro naming conversions for RO_DATA and RW_DATA
-> > - move EXCEPTION_TABLE into RO_DATA on architectures where this is clear
-> > - clean up some x86-specific reporting of kernel memory resources
-> > - switch x86 linker fill byte from x90 (NOP) to 0xcc (INT3), just because
-> >   I finally realized what that trailing ": 0x9090" meant -- and we should
-> >   trap, not slide, if execution lands in section padding
-> 
-> Yap, nice patchset overall.
+In preparation for moving NOTES into RO_DATA, rename the linker script
+internal identifier for the PT_LOAD Program Header from "kernel" to
+"text" to match other architectures.
 
-Thanks!
+Signed-off-by: Kees Cook <keescook@chromium.org>
+---
+ arch/powerpc/kernel/vmlinux.lds.S | 12 ++++++------
+ 1 file changed, 6 insertions(+), 6 deletions(-)
 
-> > Since these changes are treewide, I'd love to get architecture-maintainer
-> > Acks and either have this live in x86 -tip or in my own tree, however
-> > people think it should go.
-> 
-> Sure, I don't mind taking v2 through tip once I get ACKs from the
-> respective arch maintainers.
-
-Okay, excellent. I've only had acks from arm64, but I'll call it out
-again in v2. Thanks for the review!
-
+diff --git a/arch/powerpc/kernel/vmlinux.lds.S b/arch/powerpc/kernel/vmlinux.lds.S
+index a3c8492b2b19..e184a63aa5b0 100644
+--- a/arch/powerpc/kernel/vmlinux.lds.S
++++ b/arch/powerpc/kernel/vmlinux.lds.S
+@@ -18,7 +18,7 @@
+ ENTRY(_stext)
+ 
+ PHDRS {
+-	kernel PT_LOAD FLAGS(7); /* RWX */
++	text PT_LOAD FLAGS(7); /* RWX */
+ 	note PT_NOTE FLAGS(0);
+ }
+ 
+@@ -63,7 +63,7 @@ SECTIONS
+ #else /* !CONFIG_PPC64 */
+ 		HEAD_TEXT
+ #endif
+-	} :kernel
++	} :text
+ 
+ 	__head_end = .;
+ 
+@@ -112,7 +112,7 @@ SECTIONS
+ 		__got2_end = .;
+ #endif /* CONFIG_PPC32 */
+ 
+-	} :kernel
++	} :text
+ 
+ 	. = ALIGN(ETEXT_ALIGN_SIZE);
+ 	_etext = .;
+@@ -163,9 +163,9 @@ SECTIONS
+ #endif
+ 	EXCEPTION_TABLE(0)
+ 
+-	NOTES :kernel :note
++	NOTES :text :note
+ 	/* Restore program header away from PT_NOTE. */
+-	.dummy : { *(.dummy) } :kernel
++	.dummy : { *(.dummy) } :text
+ 
+ /*
+  * Init sections discarded at runtime
+@@ -180,7 +180,7 @@ SECTIONS
+ #ifdef CONFIG_PPC64
+ 		*(.tramp.ftrace.init);
+ #endif
+-	} :kernel
++	} :text
+ 
+ 	/* .exit.text is discarded at runtime, not link time,
+ 	 * to deal with references from __bug_table
 -- 
-Kees Cook
+2.17.1
