@@ -1,7 +1,7 @@
 From: Jiri Slaby <jslaby@suse.cz>
-Subject: [PATCH v9 08/28] x86/uaccess: Annotate local function
-Date: Fri, 11 Oct 2019 13:50:48 +0200
-Message-ID: <20191011115108.12392-9-jslaby@suse.cz>
+Subject: [PATCH v9 14/28] xen/pvh: Annotate data appropriately
+Date: Fri, 11 Oct 2019 13:50:54 +0200
+Message-ID: <20191011115108.12392-15-jslaby@suse.cz>
 References: <20191011115108.12392-1-jslaby@suse.cz>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
@@ -9,46 +9,68 @@ Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20191011115108.12392-1-jslaby@suse.cz>
 Sender: linux-kernel-owner@vger.kernel.org
 To: bp@alien8.de
-Cc: tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Jiri Slaby <jslaby@suse.cz>
+Cc: tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Jiri Slaby <jslaby@suse.cz>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, Juergen Gross <jgross@suse.com>, xen-devel@lists.xenproject.org
 List-Id: linux-arch.vger.kernel.org
 
-.Lcopy_user_handle_tail is a self-standing local function, annotate it
-as such using SYM_CODE_START_LOCAL.
-
-Again, no functional change, just documentation.
+Use the new SYM_DATA_START_LOCAL, and SYM_DATA_END* macros to have:
+  0000     8 OBJECT  LOCAL  DEFAULT    6 gdt
+  0008    32 OBJECT  LOCAL  DEFAULT    6 gdt_start
+  0028     0 OBJECT  LOCAL  DEFAULT    6 gdt_end
+  0028   256 OBJECT  LOCAL  DEFAULT    6 early_stack
+  0128     0 OBJECT  LOCAL  DEFAULT    6 early_stack
 
 Signed-off-by: Jiri Slaby <jslaby@suse.cz>
-Cc: "H. Peter Anvin" <hpa@zytor.com>
-Cc: Thomas Gleixner <tglx@linutronix.de>
+Reviewed-by: Boris Ostrovsky <boris.ostrovsky@oracle.com>
+Cc: Boris Ostrovsky <boris.ostrovsky@oracle.com>
+Cc: Juergen Gross <jgross@suse.com>
 Cc: Borislav Petkov <bp@alien8.de>
+Cc: Thomas Gleixner <tglx@linutronix.de>
 Cc: Ingo Molnar <mingo@redhat.com>
+Cc: "H. Peter Anvin" <hpa@zytor.com>
 Cc: x86@kernel.org
+Cc: xen-devel@lists.xenproject.org
 ---
- arch/x86/lib/copy_user_64.S | 5 ++---
- 1 file changed, 2 insertions(+), 3 deletions(-)
+ arch/x86/platform/pvh/head.S | 14 +++++++-------
+ 1 file changed, 7 insertions(+), 7 deletions(-)
 
-diff --git a/arch/x86/lib/copy_user_64.S b/arch/x86/lib/copy_user_64.S
-index 86976b55ae74..4a12b3c120bf 100644
---- a/arch/x86/lib/copy_user_64.S
-+++ b/arch/x86/lib/copy_user_64.S
-@@ -230,8 +230,7 @@ EXPORT_SYMBOL(copy_user_enhanced_fast_string)
-  * Output:
-  * eax uncopied bytes or 0 if successful.
-  */
--ALIGN;
--.Lcopy_user_handle_tail:
-+SYM_CODE_START_LOCAL(.Lcopy_user_handle_tail)
- 	movl %edx,%ecx
- 1:	rep movsb
- 2:	mov %ecx,%eax
-@@ -239,7 +238,7 @@ ALIGN;
- 	ret
+diff --git a/arch/x86/platform/pvh/head.S b/arch/x86/platform/pvh/head.S
+index 1f8825bbaffb..4e63480bb223 100644
+--- a/arch/x86/platform/pvh/head.S
++++ b/arch/x86/platform/pvh/head.S
+@@ -150,11 +150,12 @@ END(pvh_start_xen)
  
- 	_ASM_EXTABLE_UA(1b, 2b)
--END(.Lcopy_user_handle_tail)
-+SYM_CODE_END(.Lcopy_user_handle_tail)
+ 	.section ".init.data","aw"
+ 	.balign 8
+-gdt:
++SYM_DATA_START_LOCAL(gdt)
+ 	.word gdt_end - gdt_start
+ 	.long _pa(gdt_start)
+ 	.word 0
+-gdt_start:
++SYM_DATA_END(gdt)
++SYM_DATA_START_LOCAL(gdt_start)
+ 	.quad 0x0000000000000000            /* NULL descriptor */
+ #ifdef CONFIG_X86_64
+ 	.quad GDT_ENTRY(0xa09a, 0, 0xfffff) /* PVH_CS_SEL */
+@@ -163,15 +164,14 @@ gdt_start:
+ #endif
+ 	.quad GDT_ENTRY(0xc092, 0, 0xfffff) /* PVH_DS_SEL */
+ 	.quad GDT_ENTRY(0x4090, 0, 0x18)    /* PVH_CANARY_SEL */
+-gdt_end:
++SYM_DATA_END_LABEL(gdt_start, SYM_L_LOCAL, gdt_end)
  
- /*
-  * copy_user_nocache - Uncached memory copy with exception handling
+ 	.balign 16
+-canary:
+-	.fill 48, 1, 0
++SYM_DATA_LOCAL(canary, .fill 48, 1, 0)
+ 
+-early_stack:
++SYM_DATA_START_LOCAL(early_stack)
+ 	.fill BOOT_STACK_SIZE, 1, 0
+-early_stack_end:
++SYM_DATA_END_LABEL(early_stack, SYM_L_LOCAL, early_stack_end)
+ 
+ 	ELFNOTE(Xen, XEN_ELFNOTE_PHYS32_ENTRY,
+ 	             _ASM_PTR (pvh_start_xen - __START_KERNEL_map))
 -- 
 2.23.0
