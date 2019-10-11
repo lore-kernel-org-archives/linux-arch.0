@@ -1,196 +1,88 @@
-From: Jiri Slaby <jslaby@suse.cz>
-Subject: [PATCH v9 05/28] x86/asm: Annotate local pseudo-functions
-Date: Fri, 11 Oct 2019 13:50:45 +0200
-Message-ID: <20191011115108.12392-6-jslaby@suse.cz>
-References: <20191011115108.12392-1-jslaby@suse.cz>
+From: "Kirill A. Shutemov" <kirill@shutemov.name>
+Subject: Re: [PATCH 0/3] eldie generated code for folded p4d/pud
+Date: Fri, 11 Oct 2019 15:19:51 +0300
+Message-ID: <20191011121951.nxna6hruuskvdxod@box>
+References: <20191009222658.961-1-vgupta@synopsys.com>
+ <20191010085609.xgwkrbzea253wmfg@black.fi.intel.com>
+ <8ba067a6-8b6a-2414-0f04-b251cd6bb47c@gmail.com>
 Mime-Version: 1.0
-Content-Transfer-Encoding: 8bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20191011115108.12392-1-jslaby@suse.cz>
-Sender: linux-kernel-owner@vger.kernel.org
-To: bp@alien8.de
-Cc: tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Jiri Slaby <jslaby@suse.cz>, Andy Lutomirski <luto@kernel.org>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-snps-arc-bounces+gla-linux-snps-arc=m.gmane.org@lists.infradead.org>
+Content-Disposition: inline
+In-Reply-To: <8ba067a6-8b6a-2414-0f04-b251cd6bb47c@gmail.com>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-snps-arc>,
+ <mailto:linux-snps-arc-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-snps-arc/>
+List-Post: <mailto:linux-snps-arc@lists.infradead.org>
+List-Help: <mailto:linux-snps-arc-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-snps-arc>,
+ <mailto:linux-snps-arc-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-snps-arc" <linux-snps-arc-bounces@lists.infradead.org>
+Errors-To: linux-snps-arc-bounces+gla-linux-snps-arc=m.gmane.org@lists.infradead.org
+To: Vineet Gupta <vineetg76@gmail.com>
+Cc: linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Peter Zijlstra <peterz@infradead.org>, "Aneesh Kumar K . V" <aneesh.kumar@linux.ibm.com>, Vineet Gupta <Vineet.Gupta1@synopsys.com>, linux-kernel@vger.kernel.org, Nick Piggin <npiggin@gmail.com>, linux-mm@kvack.org, Andrew Morton <akpm@linux-foundation.org>, linux-snps-arc@lists.infradead.org, Will Deacon <will@kernel.org>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
 List-Id: linux-arch.vger.kernel.org
 
-Use the newly added SYM_CODE_START_LOCAL* to annotate starts of all
-pseudo-functions (those ending END until now) which do not have ".globl"
-annotation. This is needed to balance END for tools that generate
-debuginfo. Note that ENDs are switched to SYM_CODE_END too so that
-everybody can see the pairing.
+On Thu, Oct 10, 2019 at 01:05:56PM -0700, Vineet Gupta wrote:
+> 
+> Hi Kirill,
+> 
+> On 10/10/19 1:56 AM, Kirill A. Shutemov wrote:
+> > On Wed, Oct 09, 2019 at 10:26:55PM +0000, Vineet Gupta wrote:
+> >>
+> >> This series elides extraneous generate code for folded p4d/pud.
+> >> This came up when trying to remove __ARCH_USE_5LEVEL_HACK from ARC port.
+> >> The code saving are not a while lot, but still worthwhile IMHO.
+> > 
+> > Agreed.
+> 
+> Thx.
+> 
+> So given we are folding pmd too, it seemed we could do the following as well.
+> 
+> +#ifndef __PAGETABLE_PMD_FOLDED
+>  void pmd_clear_bad(pmd_t *);
+> +#else
+> +#define pmd_clear_bad(pmd)        do { } while (0)
+> +#endif
+> 
+> +#ifndef __PAGETABLE_PMD_FOLDED
+>  void pmd_clear_bad(pmd_t *pmd)
+>  {
+>         pmd_ERROR(*pmd);
+>         pmd_clear(pmd);
+>  }
+> +#endif
+> 
+> I stared at generated code and it seems a bit wrong.
+> free_pgd_range() -> pgd_none_or_clear_bad() is no longer checking for unmapped pgd
+> entries as pgd_none/pgd_bad are all stubs returning 0.
+> 
+> This whole pmd folding is a bit confusing considering I only revisit it every few
+> years :-) Abstraction wise, __PAGETABLE_PMD_FOLDED only has pgd, pte but even in
+> this regime bunch of pmd macros are still valid
+> 
+>     pmd_set(pmdp, ptep) {
+>         *pmdp.pud.p4d.pgd = (unsigned long)ptep
+>     }
+> 
+> Is there a better way to make a mental model of this code folding.
 
-C-like functions (which handle frame ptr etc.) are not annotated here,
-hence SYM_CODE_* macros are used here, not SYM_FUNC_*.  Note that 32bit
-early_idt_handler_common already had ENDPROC -- switch that to
-SYM_CODE_END for the same reason as above (and to be the same as 64bit).
+I don't have any. PMD folding predates me and have never looked at it
+closely. Quick look brings more confusion than clarity. :P
 
-While early_idt_handler_common is LOCAL, it is not named starting ".L"
-as it happens to appear in call traces.
+> In an ideal world pmd folded would have meant pmd_* routines just vanish - poof.
+> So in that sense I like your implementation under #[45]LEVEL_HACK where the level
+> simply vanishes by code like #define p4d_t pgd_t. Perhaps there is lot of historic
+> baggage, proliferated into arch code so hard to untangle.
 
-bad_get_user*, and bad_put_user are now aligned, as they are separate
-functions. They do not mind to be aligned -- no need to be compact
-there.
+In ideal world all these pgd/p4d/pud/pmd/pte should die and we have
+something more flexible to begin with.
 
-early_idt_handler_common is aligned now too, as it is after
-early_idt_handler_array, so as well no need to be compact there.
+I played with this before:
 
-verify_cpu is self-standing and included in other .S files, so align it
-too.
+https://lore.kernel.org/lkml/20180424154355.mfjgkf47kdp2by4e@black.fi.intel.com/
 
-The others have alignment preserved to what it used to be (using the
-_NOALIGN variant of macros).
-
-Signed-off-by: Jiri Slaby <jslaby@suse.cz>
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: Ingo Molnar <mingo@redhat.com>
-Cc: Borislav Petkov <bp@alien8.de>
-Cc: "H. Peter Anvin" <hpa@zytor.com>
-Cc: Andy Lutomirski <luto@kernel.org>
-Cc: <x86@kernel.org>
----
-
-Notes:
-    [v3] annotate more functions
-    [v4] describe the alignments changes
-
- arch/x86/entry/entry_64.S    | 3 ++-
- arch/x86/kernel/head_32.S    | 4 ++--
- arch/x86/kernel/head_64.S    | 4 ++--
- arch/x86/kernel/verify_cpu.S | 4 ++--
- arch/x86/lib/getuser.S       | 6 ++++--
- arch/x86/lib/putuser.S       | 3 ++-
- 6 files changed, 14 insertions(+), 10 deletions(-)
-
-diff --git a/arch/x86/entry/entry_64.S b/arch/x86/entry/entry_64.S
-index 86cbb22208c8..db43526cecfa 100644
---- a/arch/x86/entry/entry_64.S
-+++ b/arch/x86/entry/entry_64.S
-@@ -1061,7 +1061,7 @@ EXPORT_SYMBOL(native_load_gs_index)
- 	_ASM_EXTABLE(.Lgs_change, .Lbad_gs)
- 	.section .fixup, "ax"
- 	/* running with kernelgs */
--.Lbad_gs:
-+SYM_CODE_START_LOCAL_NOALIGN(.Lbad_gs)
- 	SWAPGS					/* switch back to user gs */
- .macro ZAP_GS
- 	/* This can't be a string because the preprocessor needs to see it. */
-@@ -1072,6 +1072,7 @@ EXPORT_SYMBOL(native_load_gs_index)
- 	xorl	%eax, %eax
- 	movl	%eax, %gs
- 	jmp	2b
-+SYM_CODE_END(.Lbad_gs)
- 	.previous
- 
- /* Call softirq on interrupt stack. Interrupts are off. */
-diff --git a/arch/x86/kernel/head_32.S b/arch/x86/kernel/head_32.S
-index 7feb953e10d2..aec1fdb80221 100644
---- a/arch/x86/kernel/head_32.S
-+++ b/arch/x86/kernel/head_32.S
-@@ -409,7 +409,7 @@ ENTRY(early_idt_handler_array)
- 	.endr
- ENDPROC(early_idt_handler_array)
- 	
--early_idt_handler_common:
-+SYM_CODE_START_LOCAL(early_idt_handler_common)
- 	/*
- 	 * The stack is the hardware frame, an error code or zero, and the
- 	 * vector number.
-@@ -460,7 +460,7 @@ early_idt_handler_common:
- 	decl	%ss:early_recursion_flag
- 	addl	$4, %esp	/* pop pt_regs->orig_ax */
- 	iret
--ENDPROC(early_idt_handler_common)
-+SYM_CODE_END(early_idt_handler_common)
- 
- /* This is the default interrupt "handler" :-) */
- ENTRY(early_ignore_irq)
-diff --git a/arch/x86/kernel/head_64.S b/arch/x86/kernel/head_64.S
-index f00d7c0c1c86..5b42552d929f 100644
---- a/arch/x86/kernel/head_64.S
-+++ b/arch/x86/kernel/head_64.S
-@@ -291,7 +291,7 @@ ENTRY(early_idt_handler_array)
- 	UNWIND_HINT_IRET_REGS offset=16
- END(early_idt_handler_array)
- 
--early_idt_handler_common:
-+SYM_CODE_START_LOCAL(early_idt_handler_common)
- 	/*
- 	 * The stack is the hardware frame, an error code or zero, and the
- 	 * vector number.
-@@ -333,7 +333,7 @@ early_idt_handler_common:
- 20:
- 	decl early_recursion_flag(%rip)
- 	jmp restore_regs_and_return_to_kernel
--END(early_idt_handler_common)
-+SYM_CODE_END(early_idt_handler_common)
- 
- #define NEXT_PAGE(name) \
- 	.balign	PAGE_SIZE; \
-diff --git a/arch/x86/kernel/verify_cpu.S b/arch/x86/kernel/verify_cpu.S
-index a024c4f7ba56..641f0fe1e5b4 100644
---- a/arch/x86/kernel/verify_cpu.S
-+++ b/arch/x86/kernel/verify_cpu.S
-@@ -31,7 +31,7 @@
- #include <asm/cpufeatures.h>
- #include <asm/msr-index.h>
- 
--ENTRY(verify_cpu)
-+SYM_FUNC_START_LOCAL(verify_cpu)
- 	pushf				# Save caller passed flags
- 	push	$0			# Kill any dangerous flags
- 	popf
-@@ -137,4 +137,4 @@ ENTRY(verify_cpu)
- 	popf				# Restore caller passed flags
- 	xorl %eax, %eax
- 	ret
--ENDPROC(verify_cpu)
-+SYM_FUNC_END(verify_cpu)
-diff --git a/arch/x86/lib/getuser.S b/arch/x86/lib/getuser.S
-index 9578eb88fc87..f9f59eb85635 100644
---- a/arch/x86/lib/getuser.S
-+++ b/arch/x86/lib/getuser.S
-@@ -115,21 +115,23 @@ ENDPROC(__get_user_8)
- EXPORT_SYMBOL(__get_user_8)
- 
- 
--.Lbad_get_user_clac:
-+SYM_CODE_START_LOCAL(.Lbad_get_user_clac)
- 	ASM_CLAC
- bad_get_user:
- 	xor %edx,%edx
- 	mov $(-EFAULT),%_ASM_AX
- 	ret
-+SYM_CODE_END(.Lbad_get_user_clac)
- 
- #ifdef CONFIG_X86_32
--.Lbad_get_user_8_clac:
-+SYM_CODE_START_LOCAL(.Lbad_get_user_8_clac)
- 	ASM_CLAC
- bad_get_user_8:
- 	xor %edx,%edx
- 	xor %ecx,%ecx
- 	mov $(-EFAULT),%_ASM_AX
- 	ret
-+SYM_CODE_END(.Lbad_get_user_8_clac)
- #endif
- 
- 	_ASM_EXTABLE_UA(1b, .Lbad_get_user_clac)
-diff --git a/arch/x86/lib/putuser.S b/arch/x86/lib/putuser.S
-index 126dd6a9ec9b..a9391d772c81 100644
---- a/arch/x86/lib/putuser.S
-+++ b/arch/x86/lib/putuser.S
-@@ -91,11 +91,12 @@ ENTRY(__put_user_8)
- ENDPROC(__put_user_8)
- EXPORT_SYMBOL(__put_user_8)
- 
--.Lbad_put_user_clac:
-+SYM_CODE_START_LOCAL(.Lbad_put_user_clac)
- 	ASM_CLAC
- .Lbad_put_user:
- 	movl $-EFAULT,%eax
- 	RET
-+SYM_CODE_END(.Lbad_put_user_clac)
- 
- 	_ASM_EXTABLE_UA(1b, .Lbad_put_user_clac)
- 	_ASM_EXTABLE_UA(2b, .Lbad_put_user_clac)
 -- 
-2.23.0
+ Kirill A. Shutemov
