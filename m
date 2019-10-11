@@ -1,207 +1,400 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.suse.de ([195.135.220.15]:33030 "EHLO mx1.suse.de"
+Received: from mx2.suse.de ([195.135.220.15]:33182 "EHLO mx1.suse.de"
         rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1727198AbfJKLvN (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 11 Oct 2019 07:51:13 -0400
+        id S1728134AbfJKLva (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 11 Oct 2019 07:51:30 -0400
 From: Jiri Slaby <jslaby@suse.cz>
-Subject: [PATCH v9 00/28] New macros for assembler symbols
-Date: Fri, 11 Oct 2019 13:50:40 +0200
-Message-ID: <20191011115108.12392-1-jslaby@suse.cz>
+Subject: [PATCH v9 26/28] x86_32/asm: Change all ENTRY+END to SYM_CODE_*
+Date: Fri, 11 Oct 2019 13:51:06 +0200
+Message-ID: <20191011115108.12392-27-jslaby@suse.cz>
+In-Reply-To: <20191011115108.12392-1-jslaby@suse.cz>
+References: <20191011115108.12392-1-jslaby@suse.cz>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: bp@alien8.de
 Cc: tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Jiri Slaby <jslaby@suse.cz>
-Message-ID: <20191011115040.bBnPy0Sap60JS9MenEH8PmNfvPBFUKYT0X-QZOPSHAk@z>
+Message-ID: <20191011115106.ClW0bNVFCVUbFTGM_zjNIcocVVhVtbrxQiDGtxRsiDI@z>
 
-So this is an updated version (v9) of the series based on comments
-provided mostly by Boris and rebased on the top of current tree (quite a
-few conflicting changes in assembly happened lately). See respective
-patches for changes done in them since the last submission.  Now the
-summary:
+Here, all assembly code which is marked using END (and not ENDPROC) is
+changed. All these are changed to appropriate new markings
+SYM_CODE_START and SYM_CODE_END.
 
-This series introduces new macros for assembly as was discussed [1]. The
-rationale is that now we use several undocumented random macros
-collected over time. There are even some defined for different
-architectures differently.  In many cases, developers do not know the
-difference in semantics between two basic macros END and ENDPROC. But in
-this very case, the difference is crucial especially for objtool when
-generating e.g. debuginfo for assembly. For this reason, we define a set
-of macros with documented meanings and hopefully intuitive names. These
-macros greatly support automatic tools working on the generated code
-from assembly or on the assembly proper.
+And since the last user of END on X86 was removed, make sure, that END
+is not defined there.
 
-The macros are introduced in the first patch of the series. The rest
-of patches start using these new macros in x86, converting *all* uses
-of the old macros to the new ones throughout the last patch. With
-every last user of some old macro, the macro is immediately made
-forbidden for x86.
+Signed-off-by: Jiri Slaby <jslaby@suse.cz>
+Cc: Borislav Petkov <bp@alien8.de>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: Ingo Molnar <mingo@redhat.com>
+Cc: "H. Peter Anvin" <hpa@zytor.com>
+Cc: x86@kernel.org
+---
+ arch/x86/entry/entry_32.S   | 104 ++++++++++++++++++------------------
+ arch/x86/kernel/ftrace_32.S |   8 +--
+ include/linux/linkage.h     |   2 +
+ 3 files changed, 58 insertions(+), 56 deletions(-)
 
-When this settles down, conversion of other architectures can be done
-too.
-
-For introduction, documentation, use and examples, please see
-Documentation/asm-annotations.rst from the first patch of the series.
-
-[1] https://lkml.kernel.org/r/<20170301093855.GA27152@gmail.com>
-
-Jiri Slaby (28):
-  linkage: Introduce new macros for assembler symbols
-  x86/asm/suspend: Use SYM_DATA for data
-  x86/asm: Annotate relocate_kernel_{32,64}.c
-  x86/asm/entry: Annotate THUNKs
-  x86/asm: Annotate local pseudo-functions
-  x86/asm/crypto: Annotate local functions
-  x86/boot: Annotate local functions
-  x86/uaccess: Annotate local function
-  x86/asm: Annotate aliases
-  x86/asm/entry: Annotate interrupt symbols properly
-  x86/asm/head: Annotate data appropriately
-  x86/boot: Annotate data appropriately
-  um: Annotate data appropriately
-  xen/pvh: Annotate data appropriately
-  x86/asm/purgatory: Start using annotations
-  x86/asm: Do not annotate functions by GLOBAL
-  x86/asm: Use SYM_INNER_LABEL instead of GLOBAL
-  x86/asm/realmode: Use SYM_DATA_* instead of GLOBAL
-  x86/asm: Kill the last GLOBAL user and remove the macro
-  x86/asm: Make some functions local
-  x86/asm/ftrace: Mark function_hook as function
-  x86_64/asm: Add ENDs to some functions and relabel with SYM_CODE_*
-  x86_64/asm: Change all ENTRY+END to SYM_CODE_*
-  x86_64/asm: Change all ENTRY+ENDPROC to SYM_FUNC_*
-  x86_32/asm: Add ENDs to some functions and relabel with SYM_CODE_*
-  x86_32/asm: Change all ENTRY+END to SYM_CODE_*
-  x86_32/asm: Change all ENTRY+ENDPROC to SYM_FUNC_*
-  x86/asm: Replace WEAK uses by SYM_INNER_LABEL_ALIGN
-
- Documentation/asm-annotations.rst            | 216 ++++++++++++++++
- Documentation/index.rst                      |   8 +
- arch/x86/boot/compressed/efi_stub_32.S       |   4 +-
- arch/x86/boot/compressed/efi_thunk_64.S      |  33 +--
- arch/x86/boot/compressed/head_32.S           |  15 +-
- arch/x86/boot/compressed/head_64.S           |  63 ++---
- arch/x86/boot/compressed/mem_encrypt.S       |  11 +-
- arch/x86/boot/copy.S                         |  16 +-
- arch/x86/boot/pmjump.S                       |   8 +-
- arch/x86/crypto/aegis128-aesni-asm.S         |  36 +--
- arch/x86/crypto/aes_ctrby8_avx-x86_64.S      |  12 +-
- arch/x86/crypto/aesni-intel_asm.S            | 114 ++++-----
- arch/x86/crypto/aesni-intel_avx-x86_64.S     |  32 +--
- arch/x86/crypto/blowfish-x86_64-asm_64.S     |  16 +-
- arch/x86/crypto/camellia-aesni-avx-asm_64.S  |  44 ++--
- arch/x86/crypto/camellia-aesni-avx2-asm_64.S |  44 ++--
- arch/x86/crypto/camellia-x86_64-asm_64.S     |  16 +-
- arch/x86/crypto/cast5-avx-x86_64-asm_64.S    |  24 +-
- arch/x86/crypto/cast6-avx-x86_64-asm_64.S    |  32 +--
- arch/x86/crypto/chacha-avx2-x86_64.S         |  12 +-
- arch/x86/crypto/chacha-avx512vl-x86_64.S     |  12 +-
- arch/x86/crypto/chacha-ssse3-x86_64.S        |  16 +-
- arch/x86/crypto/crc32-pclmul_asm.S           |   4 +-
- arch/x86/crypto/crc32c-pcl-intel-asm_64.S    |   4 +-
- arch/x86/crypto/crct10dif-pcl-asm_64.S       |   4 +-
- arch/x86/crypto/des3_ede-asm_64.S            |   8 +-
- arch/x86/crypto/ghash-clmulni-intel_asm.S    |  12 +-
- arch/x86/crypto/nh-avx2-x86_64.S             |   4 +-
- arch/x86/crypto/nh-sse2-x86_64.S             |   4 +-
- arch/x86/crypto/poly1305-avx2-x86_64.S       |   4 +-
- arch/x86/crypto/poly1305-sse2-x86_64.S       |   8 +-
- arch/x86/crypto/serpent-avx-x86_64-asm_64.S  |  32 +--
- arch/x86/crypto/serpent-avx2-asm_64.S        |  32 +--
- arch/x86/crypto/serpent-sse2-i586-asm_32.S   |   8 +-
- arch/x86/crypto/serpent-sse2-x86_64-asm_64.S |   8 +-
- arch/x86/crypto/sha1_avx2_x86_64_asm.S       |   4 +-
- arch/x86/crypto/sha1_ni_asm.S                |   4 +-
- arch/x86/crypto/sha1_ssse3_asm.S             |   4 +-
- arch/x86/crypto/sha256-avx-asm.S             |   4 +-
- arch/x86/crypto/sha256-avx2-asm.S            |   4 +-
- arch/x86/crypto/sha256-ssse3-asm.S           |   4 +-
- arch/x86/crypto/sha256_ni_asm.S              |   4 +-
- arch/x86/crypto/sha512-avx-asm.S             |   4 +-
- arch/x86/crypto/sha512-avx2-asm.S            |   4 +-
- arch/x86/crypto/sha512-ssse3-asm.S           |   4 +-
- arch/x86/crypto/twofish-avx-x86_64-asm_64.S  |  32 +--
- arch/x86/crypto/twofish-i586-asm_32.S        |   8 +-
- arch/x86/crypto/twofish-x86_64-asm_64-3way.S |   8 +-
- arch/x86/crypto/twofish-x86_64-asm_64.S      |   8 +-
- arch/x86/entry/entry_32.S                    | 163 ++++++------
- arch/x86/entry/entry_64.S                    | 105 ++++----
- arch/x86/entry/entry_64_compat.S             |  16 +-
- arch/x86/entry/thunk_32.S                    |   4 +-
- arch/x86/entry/thunk_64.S                    |   7 +-
- arch/x86/entry/vdso/vdso32/system_call.S     |   2 +-
- arch/x86/include/asm/linkage.h               |   4 -
- arch/x86/kernel/acpi/wakeup_32.S             |   9 +-
- arch/x86/kernel/acpi/wakeup_64.S             |  10 +-
- arch/x86/kernel/ftrace_32.S                  |  19 +-
- arch/x86/kernel/ftrace_64.S                  |  42 ++--
- arch/x86/kernel/head_32.S                    |  60 ++---
- arch/x86/kernel/head_64.S                    | 108 ++++----
- arch/x86/kernel/irqflags.S                   |   8 +-
- arch/x86/kernel/relocate_kernel_32.S         |  13 +-
- arch/x86/kernel/relocate_kernel_64.S         |  13 +-
- arch/x86/kernel/verify_cpu.S                 |   4 +-
- arch/x86/kvm/vmx/vmenter.S                   |  12 +-
- arch/x86/lib/atomic64_386_32.S               |   4 +-
- arch/x86/lib/atomic64_cx8_32.S               |  32 +--
- arch/x86/lib/checksum_32.S                   |  16 +-
- arch/x86/lib/clear_page_64.S                 |  12 +-
- arch/x86/lib/cmpxchg16b_emu.S                |   4 +-
- arch/x86/lib/cmpxchg8b_emu.S                 |   4 +-
- arch/x86/lib/copy_page_64.S                  |   8 +-
- arch/x86/lib/copy_user_64.S                  |  21 +-
- arch/x86/lib/csum-copy_64.S                  |   4 +-
- arch/x86/lib/getuser.S                       |  22 +-
- arch/x86/lib/hweight.S                       |   8 +-
- arch/x86/lib/iomap_copy_64.S                 |   4 +-
- arch/x86/lib/memcpy_64.S                     |  20 +-
- arch/x86/lib/memmove_64.S                    |   8 +-
- arch/x86/lib/memset_64.S                     |  16 +-
- arch/x86/lib/msr-reg.S                       |   8 +-
- arch/x86/lib/putuser.S                       |  19 +-
- arch/x86/lib/retpoline.S                     |   4 +-
- arch/x86/math-emu/div_Xsig.S                 |   4 +-
- arch/x86/math-emu/div_small.S                |   4 +-
- arch/x86/math-emu/mul_Xsig.S                 |  12 +-
- arch/x86/math-emu/polynom_Xsig.S             |   4 +-
- arch/x86/math-emu/reg_norm.S                 |   8 +-
- arch/x86/math-emu/reg_round.S                |   4 +-
- arch/x86/math-emu/reg_u_add.S                |   4 +-
- arch/x86/math-emu/reg_u_div.S                |   4 +-
- arch/x86/math-emu/reg_u_mul.S                |   4 +-
- arch/x86/math-emu/reg_u_sub.S                |   4 +-
- arch/x86/math-emu/round_Xsig.S               |   8 +-
- arch/x86/math-emu/shr_Xsig.S                 |   4 +-
- arch/x86/math-emu/wm_shrx.S                  |   8 +-
- arch/x86/math-emu/wm_sqrt.S                  |   4 +-
- arch/x86/mm/mem_encrypt_boot.S               |   8 +-
- arch/x86/platform/efi/efi_stub_32.S          |   4 +-
- arch/x86/platform/efi/efi_stub_64.S          |   4 +-
- arch/x86/platform/efi/efi_thunk_64.S         |  16 +-
- arch/x86/platform/olpc/xo1-wakeup.S          |   3 +-
- arch/x86/platform/pvh/head.S                 |  18 +-
- arch/x86/power/hibernate_asm_32.S            |  14 +-
- arch/x86/power/hibernate_asm_64.S            |  14 +-
- arch/x86/purgatory/entry64.S                 |  21 +-
- arch/x86/purgatory/setup-x86_64.S            |  14 +-
- arch/x86/purgatory/stack.S                   |   7 +-
- arch/x86/realmode/rm/header.S                |   8 +-
- arch/x86/realmode/rm/reboot.S                |  13 +-
- arch/x86/realmode/rm/stack.S                 |  14 +-
- arch/x86/realmode/rm/trampoline_32.S         |  16 +-
- arch/x86/realmode/rm/trampoline_64.S         |  29 ++-
- arch/x86/realmode/rm/trampoline_common.S     |   2 +-
- arch/x86/realmode/rm/wakeup_asm.S            |  15 +-
- arch/x86/realmode/rmpiggy.S                  |  10 +-
- arch/x86/um/vdso/vdso.S                      |   6 +-
- arch/x86/xen/xen-asm.S                       |  28 +--
- arch/x86/xen/xen-asm_32.S                    |   7 +-
- arch/x86/xen/xen-asm_64.S                    |  34 +--
- arch/x86/xen/xen-head.S                      |   8 +-
- include/linux/linkage.h                      | 249 ++++++++++++++++++-
- 124 files changed, 1475 insertions(+), 988 deletions(-)
- create mode 100644 Documentation/asm-annotations.rst
-
+diff --git a/arch/x86/entry/entry_32.S b/arch/x86/entry/entry_32.S
+index 64fe7aa50ad2..0ecc12fcfc05 100644
+--- a/arch/x86/entry/entry_32.S
++++ b/arch/x86/entry/entry_32.S
+@@ -709,7 +709,7 @@
+  * %eax: prev task
+  * %edx: next task
+  */
+-ENTRY(__switch_to_asm)
++SYM_CODE_START(__switch_to_asm)
+ 	/*
+ 	 * Save callee-saved registers
+ 	 * This must match the order in struct inactive_task_frame
+@@ -748,7 +748,7 @@ ENTRY(__switch_to_asm)
+ 	popl	%ebp
+ 
+ 	jmp	__switch_to
+-END(__switch_to_asm)
++SYM_CODE_END(__switch_to_asm)
+ 
+ /*
+  * The unwinder expects the last frame on the stack to always be at the same
+@@ -774,7 +774,7 @@ ENDPROC(schedule_tail_wrapper)
+  * ebx: kernel thread func (NULL for user thread)
+  * edi: kernel thread arg
+  */
+-ENTRY(ret_from_fork)
++SYM_CODE_START(ret_from_fork)
+ 	call	schedule_tail_wrapper
+ 
+ 	testl	%ebx, %ebx
+@@ -797,7 +797,7 @@ ENTRY(ret_from_fork)
+ 	 */
+ 	movl	$0, PT_EAX(%esp)
+ 	jmp	2b
+-END(ret_from_fork)
++SYM_CODE_END(ret_from_fork)
+ 
+ /*
+  * Return to user mode is not as complex as all this looks,
+@@ -1161,7 +1161,7 @@ ENDPROC(entry_INT80_32)
+  * We pack 1 stub into every 8-byte block.
+  */
+ 	.align 8
+-ENTRY(irq_entries_start)
++SYM_CODE_START(irq_entries_start)
+     vector=FIRST_EXTERNAL_VECTOR
+     .rept (FIRST_SYSTEM_VECTOR - FIRST_EXTERNAL_VECTOR)
+ 	pushl	$(~vector+0x80)			/* Note: always in signed byte range */
+@@ -1169,11 +1169,11 @@ ENTRY(irq_entries_start)
+ 	jmp	common_interrupt
+ 	.align	8
+     .endr
+-END(irq_entries_start)
++SYM_CODE_END(irq_entries_start)
+ 
+ #ifdef CONFIG_X86_LOCAL_APIC
+ 	.align 8
+-ENTRY(spurious_entries_start)
++SYM_CODE_START(spurious_entries_start)
+     vector=FIRST_SYSTEM_VECTOR
+     .rept (NR_VECTORS - FIRST_SYSTEM_VECTOR)
+ 	pushl	$(~vector+0x80)			/* Note: always in signed byte range */
+@@ -1181,7 +1181,7 @@ ENTRY(spurious_entries_start)
+ 	jmp	common_spurious
+ 	.align	8
+     .endr
+-END(spurious_entries_start)
++SYM_CODE_END(spurious_entries_start)
+ 
+ SYM_CODE_START_LOCAL(common_spurious)
+ 	ASM_CLAC
+@@ -1230,14 +1230,14 @@ ENDPROC(name)
+ /* The include is where all of the SMP etc. interrupts come from */
+ #include <asm/entry_arch.h>
+ 
+-ENTRY(coprocessor_error)
++SYM_CODE_START(coprocessor_error)
+ 	ASM_CLAC
+ 	pushl	$0
+ 	pushl	$do_coprocessor_error
+ 	jmp	common_exception
+-END(coprocessor_error)
++SYM_CODE_END(coprocessor_error)
+ 
+-ENTRY(simd_coprocessor_error)
++SYM_CODE_START(simd_coprocessor_error)
+ 	ASM_CLAC
+ 	pushl	$0
+ #ifdef CONFIG_X86_INVD_BUG
+@@ -1249,96 +1249,96 @@ ENTRY(simd_coprocessor_error)
+ 	pushl	$do_simd_coprocessor_error
+ #endif
+ 	jmp	common_exception
+-END(simd_coprocessor_error)
++SYM_CODE_END(simd_coprocessor_error)
+ 
+-ENTRY(device_not_available)
++SYM_CODE_START(device_not_available)
+ 	ASM_CLAC
+ 	pushl	$-1				# mark this as an int
+ 	pushl	$do_device_not_available
+ 	jmp	common_exception
+-END(device_not_available)
++SYM_CODE_END(device_not_available)
+ 
+ #ifdef CONFIG_PARAVIRT
+-ENTRY(native_iret)
++SYM_CODE_START(native_iret)
+ 	iret
+ 	_ASM_EXTABLE(native_iret, iret_exc)
+-END(native_iret)
++SYM_CODE_END(native_iret)
+ #endif
+ 
+-ENTRY(overflow)
++SYM_CODE_START(overflow)
+ 	ASM_CLAC
+ 	pushl	$0
+ 	pushl	$do_overflow
+ 	jmp	common_exception
+-END(overflow)
++SYM_CODE_END(overflow)
+ 
+-ENTRY(bounds)
++SYM_CODE_START(bounds)
+ 	ASM_CLAC
+ 	pushl	$0
+ 	pushl	$do_bounds
+ 	jmp	common_exception
+-END(bounds)
++SYM_CODE_END(bounds)
+ 
+-ENTRY(invalid_op)
++SYM_CODE_START(invalid_op)
+ 	ASM_CLAC
+ 	pushl	$0
+ 	pushl	$do_invalid_op
+ 	jmp	common_exception
+-END(invalid_op)
++SYM_CODE_END(invalid_op)
+ 
+-ENTRY(coprocessor_segment_overrun)
++SYM_CODE_START(coprocessor_segment_overrun)
+ 	ASM_CLAC
+ 	pushl	$0
+ 	pushl	$do_coprocessor_segment_overrun
+ 	jmp	common_exception
+-END(coprocessor_segment_overrun)
++SYM_CODE_END(coprocessor_segment_overrun)
+ 
+-ENTRY(invalid_TSS)
++SYM_CODE_START(invalid_TSS)
+ 	ASM_CLAC
+ 	pushl	$do_invalid_TSS
+ 	jmp	common_exception
+-END(invalid_TSS)
++SYM_CODE_END(invalid_TSS)
+ 
+-ENTRY(segment_not_present)
++SYM_CODE_START(segment_not_present)
+ 	ASM_CLAC
+ 	pushl	$do_segment_not_present
+ 	jmp	common_exception
+-END(segment_not_present)
++SYM_CODE_END(segment_not_present)
+ 
+-ENTRY(stack_segment)
++SYM_CODE_START(stack_segment)
+ 	ASM_CLAC
+ 	pushl	$do_stack_segment
+ 	jmp	common_exception
+-END(stack_segment)
++SYM_CODE_END(stack_segment)
+ 
+-ENTRY(alignment_check)
++SYM_CODE_START(alignment_check)
+ 	ASM_CLAC
+ 	pushl	$do_alignment_check
+ 	jmp	common_exception
+-END(alignment_check)
++SYM_CODE_END(alignment_check)
+ 
+-ENTRY(divide_error)
++SYM_CODE_START(divide_error)
+ 	ASM_CLAC
+ 	pushl	$0				# no error code
+ 	pushl	$do_divide_error
+ 	jmp	common_exception
+-END(divide_error)
++SYM_CODE_END(divide_error)
+ 
+ #ifdef CONFIG_X86_MCE
+-ENTRY(machine_check)
++SYM_CODE_START(machine_check)
+ 	ASM_CLAC
+ 	pushl	$0
+ 	pushl	machine_check_vector
+ 	jmp	common_exception
+-END(machine_check)
++SYM_CODE_END(machine_check)
+ #endif
+ 
+-ENTRY(spurious_interrupt_bug)
++SYM_CODE_START(spurious_interrupt_bug)
+ 	ASM_CLAC
+ 	pushl	$0
+ 	pushl	$do_spurious_interrupt_bug
+ 	jmp	common_exception
+-END(spurious_interrupt_bug)
++SYM_CODE_END(spurious_interrupt_bug)
+ 
+ #ifdef CONFIG_XEN_PV
+ ENTRY(xen_hypervisor_callback)
+@@ -1442,11 +1442,11 @@ BUILD_INTERRUPT3(hv_stimer0_callback_vector, HYPERV_STIMER0_VECTOR,
+ 
+ #endif /* CONFIG_HYPERV */
+ 
+-ENTRY(page_fault)
++SYM_CODE_START(page_fault)
+ 	ASM_CLAC
+ 	pushl	$do_page_fault
+ 	jmp	common_exception_read_cr2
+-END(page_fault)
++SYM_CODE_END(page_fault)
+ 
+ SYM_CODE_START_LOCAL_NOALIGN(common_exception_read_cr2)
+ 	/* the function address is in %gs's slot on the stack */
+@@ -1495,7 +1495,7 @@ SYM_CODE_START_LOCAL_NOALIGN(common_exception)
+ 	jmp	ret_from_exception
+ SYM_CODE_END(common_exception)
+ 
+-ENTRY(debug)
++SYM_CODE_START(debug)
+ 	/*
+ 	 * Entry from sysenter is now handled in common_exception
+ 	 */
+@@ -1503,7 +1503,7 @@ ENTRY(debug)
+ 	pushl	$-1				# mark this as an int
+ 	pushl	$do_debug
+ 	jmp	common_exception
+-END(debug)
++SYM_CODE_END(debug)
+ 
+ /*
+  * NMI is doubly nasty.  It can happen on the first instruction of
+@@ -1512,7 +1512,7 @@ END(debug)
+  * switched stacks.  We handle both conditions by simply checking whether we
+  * interrupted kernel code running on the SYSENTER stack.
+  */
+-ENTRY(nmi)
++SYM_CODE_START(nmi)
+ 	ASM_CLAC
+ 
+ #ifdef CONFIG_X86_ESPFIX32
+@@ -1577,9 +1577,9 @@ ENTRY(nmi)
+ 	lss	12+4(%esp), %esp		# back to espfix stack
+ 	jmp	.Lirq_return
+ #endif
+-END(nmi)
++SYM_CODE_END(nmi)
+ 
+-ENTRY(int3)
++SYM_CODE_START(int3)
+ 	ASM_CLAC
+ 	pushl	$-1				# mark this as an int
+ 
+@@ -1590,22 +1590,22 @@ ENTRY(int3)
+ 	movl	%esp, %eax			# pt_regs pointer
+ 	call	do_int3
+ 	jmp	ret_from_exception
+-END(int3)
++SYM_CODE_END(int3)
+ 
+-ENTRY(general_protection)
++SYM_CODE_START(general_protection)
+ 	pushl	$do_general_protection
+ 	jmp	common_exception
+-END(general_protection)
++SYM_CODE_END(general_protection)
+ 
+ #ifdef CONFIG_KVM_GUEST
+-ENTRY(async_page_fault)
++SYM_CODE_START(async_page_fault)
+ 	ASM_CLAC
+ 	pushl	$do_async_page_fault
+ 	jmp	common_exception_read_cr2
+-END(async_page_fault)
++SYM_CODE_END(async_page_fault)
+ #endif
+ 
+-ENTRY(rewind_stack_do_exit)
++SYM_CODE_START(rewind_stack_do_exit)
+ 	/* Prevent any naive code from trying to unwind to our caller. */
+ 	xorl	%ebp, %ebp
+ 
+@@ -1614,4 +1614,4 @@ ENTRY(rewind_stack_do_exit)
+ 
+ 	call	do_exit
+ 1:	jmp 1b
+-END(rewind_stack_do_exit)
++SYM_CODE_END(rewind_stack_do_exit)
+diff --git a/arch/x86/kernel/ftrace_32.S b/arch/x86/kernel/ftrace_32.S
+index a43ed4c0402d..b4f495bbd5a1 100644
+--- a/arch/x86/kernel/ftrace_32.S
++++ b/arch/x86/kernel/ftrace_32.S
+@@ -25,7 +25,7 @@ SYM_FUNC_START(function_hook)
+ 	ret
+ SYM_FUNC_END(function_hook)
+ 
+-ENTRY(ftrace_caller)
++SYM_CODE_START(ftrace_caller)
+ 
+ #ifdef CONFIG_FRAME_POINTER
+ 	/*
+@@ -87,7 +87,7 @@ ftrace_graph_call:
+ /* This is weak to keep gas from relaxing the jumps */
+ WEAK(ftrace_stub)
+ 	ret
+-END(ftrace_caller)
++SYM_CODE_END(ftrace_caller)
+ 
+ SYM_CODE_START(ftrace_regs_caller)
+ 	/*
+@@ -166,7 +166,7 @@ SYM_INNER_LABEL(ftrace_regs_call, SYM_L_GLOBAL)
+ SYM_CODE_END(ftrace_regs_caller)
+ 
+ #ifdef CONFIG_FUNCTION_GRAPH_TRACER
+-ENTRY(ftrace_graph_caller)
++SYM_CODE_START(ftrace_graph_caller)
+ 	pushl	%eax
+ 	pushl	%ecx
+ 	pushl	%edx
+@@ -180,7 +180,7 @@ ENTRY(ftrace_graph_caller)
+ 	popl	%ecx
+ 	popl	%eax
+ 	ret
+-END(ftrace_graph_caller)
++SYM_CODE_END(ftrace_graph_caller)
+ 
+ .globl return_to_handler
+ return_to_handler:
+diff --git a/include/linux/linkage.h b/include/linux/linkage.h
+index 19f3d796ab5b..5ffcf72c8f87 100644
+--- a/include/linux/linkage.h
++++ b/include/linux/linkage.h
+@@ -129,11 +129,13 @@
+ 	SYM_FUNC_START_WEAK(name)
+ #endif
+ 
++#ifndef CONFIG_X86
+ #ifndef END
+ /* deprecated, use SYM_FUNC_END, SYM_DATA_END, or SYM_END */
+ #define END(name) \
+ 	.size name, .-name
+ #endif
++#endif /* CONFIG_X86 */
+ 
+ #ifndef CONFIG_X86_64
+ /* If symbol 'name' is treated as a subroutine (gets called, and returns)
 -- 
 2.23.0
