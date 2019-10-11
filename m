@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.suse.de ([195.135.220.15]:33348 "EHLO mx1.suse.de"
+Received: from mx2.suse.de ([195.135.220.15]:33364 "EHLO mx1.suse.de"
         rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1728128AbfJKLv3 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 11 Oct 2019 07:51:29 -0400
+        id S1728068AbfJKLvZ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 11 Oct 2019 07:51:25 -0400
 From: Jiri Slaby <jslaby@suse.cz>
-Subject: [PATCH v9 25/28] x86_32/asm: Add ENDs to some functions and relabel with SYM_CODE_*
-Date: Fri, 11 Oct 2019 13:51:05 +0200
-Message-ID: <20191011115108.12392-26-jslaby@suse.cz>
+Subject: [PATCH v9 18/28] x86/asm/realmode: Use SYM_DATA_* instead of GLOBAL
+Date: Fri, 11 Oct 2019 13:50:58 +0200
+Message-ID: <20191011115108.12392-19-jslaby@suse.cz>
 In-Reply-To: <20191011115108.12392-1-jslaby@suse.cz>
 References: <20191011115108.12392-1-jslaby@suse.cz>
 MIME-Version: 1.0
@@ -14,232 +14,242 @@ Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: bp@alien8.de
-Cc: tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Jiri Slaby <jslaby@suse.cz>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, "Rafael J . Wysocki" <rafael.j.wysocki@intel.com>, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Len Brown <len.brown@intel.com>, Pavel Machek <pavel@ucw.cz>, Juergen Gross <jgross@suse.com>, linux-pm@vger.kernel.org, xen-devel@lists.xenproject.org
-Message-ID: <20191011115105.ca3ogRSklSrYBvP5OnYheenzF6zQA8pylUiljrvaY8A@z>
+Cc: tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Jiri Slaby <jslaby@suse.cz>
+Message-ID: <20191011115058.-8Ye_awSgt81L2YqrCkXdtja_OiCF_PXMxxsSdEQVyg@z>
 
-All these are functions which are invoked from elsewhere, but they are
-not typical C functions. So they are annotated using the new
-SYM_CODE_START. All these were not balanced with any END, so mark their
-ends by SYM_CODE_END, appropriately.
+GLOBAL had several meanings and is going away. In this patch, convert
+all the data marked using GLOBAL to use SYM_DATA_START or SYM_DATA
+instead.
+
+Note that SYM_DATA_END_LABEL is used to generate tr_gdt_end too.
 
 Signed-off-by: Jiri Slaby <jslaby@suse.cz>
-Reviewed-by: Boris Ostrovsky <boris.ostrovsky@oracle.com> [xen bits]
-Reviewed-by: Rafael J. Wysocki <rafael.j.wysocki@intel.com> [hibernate]
 Cc: Borislav Petkov <bp@alien8.de>
 Cc: Thomas Gleixner <tglx@linutronix.de>
 Cc: Ingo Molnar <mingo@redhat.com>
 Cc: "H. Peter Anvin" <hpa@zytor.com>
 Cc: x86@kernel.org
-Cc: "Rafael J. Wysocki" <rjw@rjwysocki.net>
-Cc: Len Brown <len.brown@intel.com>
-Cc: Pavel Machek <pavel@ucw.cz>
-Cc: Boris Ostrovsky <boris.ostrovsky@oracle.com>
-Cc: Juergen Gross <jgross@suse.com>
-Cc: linux-pm@vger.kernel.org
-Cc: xen-devel@lists.xenproject.org
 ---
- arch/x86/entry/entry_32.S            | 3 ++-
- arch/x86/kernel/acpi/wakeup_32.S     | 7 ++++---
- arch/x86/kernel/ftrace_32.S          | 3 ++-
- arch/x86/kernel/head_32.S            | 3 ++-
- arch/x86/power/hibernate_asm_32.S    | 6 ++++--
- arch/x86/realmode/rm/trampoline_32.S | 6 ++++--
- arch/x86/xen/xen-asm_32.S            | 7 ++++---
- 7 files changed, 22 insertions(+), 13 deletions(-)
+ arch/x86/realmode/rm/header.S            |  8 +++-----
+ arch/x86/realmode/rm/reboot.S            |  8 ++++----
+ arch/x86/realmode/rm/stack.S             | 14 ++++++--------
+ arch/x86/realmode/rm/trampoline_32.S     | 10 +++++-----
+ arch/x86/realmode/rm/trampoline_64.S     | 19 +++++++++----------
+ arch/x86/realmode/rm/trampoline_common.S |  2 +-
+ arch/x86/realmode/rm/wakeup_asm.S        |  8 ++++----
+ arch/x86/realmode/rmpiggy.S              | 10 ++++------
+ 8 files changed, 36 insertions(+), 43 deletions(-)
 
-diff --git a/arch/x86/entry/entry_32.S b/arch/x86/entry/entry_32.S
-index 4900a6a5e125..64fe7aa50ad2 100644
---- a/arch/x86/entry/entry_32.S
-+++ b/arch/x86/entry/entry_32.S
-@@ -847,9 +847,10 @@ SYM_ENTRY(__begin_SYSENTER_singlestep_region, SYM_L_GLOBAL, SYM_A_NONE)
-  * Xen doesn't set %esp to be precisely what the normal SYSENTER
-  * entry point expects, so fix it up before using the normal path.
-  */
--ENTRY(xen_sysenter_target)
-+SYM_CODE_START(xen_sysenter_target)
- 	addl	$5*4, %esp			/* remove xen-provided frame */
- 	jmp	.Lsysenter_past_esp
-+SYM_CODE_END(xen_sysenter_target)
+diff --git a/arch/x86/realmode/rm/header.S b/arch/x86/realmode/rm/header.S
+index 6363761cc74c..af04512c02d9 100644
+--- a/arch/x86/realmode/rm/header.S
++++ b/arch/x86/realmode/rm/header.S
+@@ -14,7 +14,7 @@
+ 	.section ".header", "a"
+ 
+ 	.balign	16
+-GLOBAL(real_mode_header)
++SYM_DATA_START(real_mode_header)
+ 	.long	pa_text_start
+ 	.long	pa_ro_end
+ 	/* SMP trampoline */
+@@ -33,11 +33,9 @@ GLOBAL(real_mode_header)
+ #ifdef CONFIG_X86_64
+ 	.long	__KERNEL32_CS
  #endif
+-END(real_mode_header)
++SYM_DATA_END(real_mode_header)
  
- /*
-diff --git a/arch/x86/kernel/acpi/wakeup_32.S b/arch/x86/kernel/acpi/wakeup_32.S
-index 427249292aef..daf88f8143c5 100644
---- a/arch/x86/kernel/acpi/wakeup_32.S
-+++ b/arch/x86/kernel/acpi/wakeup_32.S
-@@ -9,8 +9,7 @@
- 	.code32
- 	ALIGN
+ 	/* End signature, used to verify integrity */
+ 	.section ".signature","a"
+ 	.balign 4
+-GLOBAL(end_signature)
+-	.long	REALMODE_END_SIGNATURE
+-END(end_signature)
++SYM_DATA(end_signature, .long REALMODE_END_SIGNATURE)
+diff --git a/arch/x86/realmode/rm/reboot.S b/arch/x86/realmode/rm/reboot.S
+index f91425a01f8f..424826afb501 100644
+--- a/arch/x86/realmode/rm/reboot.S
++++ b/arch/x86/realmode/rm/reboot.S
+@@ -127,13 +127,13 @@ bios:
+ 	.section ".rodata", "a"
  
--ENTRY(wakeup_pmode_return)
--wakeup_pmode_return:
-+SYM_CODE_START(wakeup_pmode_return)
- 	movw	$__KERNEL_DS, %ax
- 	movw	%ax, %ss
- 	movw	%ax, %fs
-@@ -39,6 +38,7 @@ wakeup_pmode_return:
- 	# jump to place where we left off
- 	movl	saved_eip, %eax
- 	jmp	*%eax
-+SYM_CODE_END(wakeup_pmode_return)
+ 	.balign	16
+-GLOBAL(machine_real_restart_idt)
++SYM_DATA_START(machine_real_restart_idt)
+ 	.word	0xffff		/* Length - real mode default value */
+ 	.long	0		/* Base - real mode default value */
+-END(machine_real_restart_idt)
++SYM_DATA_END(machine_real_restart_idt)
  
- bogus_magic:
- 	jmp	bogus_magic
-@@ -72,7 +72,7 @@ restore_registers:
- 	popfl
- 	ret
+ 	.balign	16
+-GLOBAL(machine_real_restart_gdt)
++SYM_DATA_START(machine_real_restart_gdt)
+ 	/* Self-pointer */
+ 	.word	0xffff		/* Length - real mode default value */
+ 	.long	pa_machine_real_restart_gdt
+@@ -153,4 +153,4 @@ GLOBAL(machine_real_restart_gdt)
+ 	 * semantics we don't have to reload the segments once CR0.PE = 0.
+ 	 */
+ 	.quad	GDT_ENTRY(0x0093, 0x100, 0xffff)
+-END(machine_real_restart_gdt)
++SYM_DATA_END(machine_real_restart_gdt)
+diff --git a/arch/x86/realmode/rm/stack.S b/arch/x86/realmode/rm/stack.S
+index 8d4cb64799ea..0fca64061ad2 100644
+--- a/arch/x86/realmode/rm/stack.S
++++ b/arch/x86/realmode/rm/stack.S
+@@ -6,15 +6,13 @@
+ #include <linux/linkage.h>
  
--ENTRY(do_suspend_lowlevel)
-+SYM_CODE_START(do_suspend_lowlevel)
- 	call	save_processor_state
- 	call	save_registers
- 	pushl	$3
-@@ -87,6 +87,7 @@ ret_point:
- 	call	restore_registers
- 	call	restore_processor_state
- 	ret
-+SYM_CODE_END(do_suspend_lowlevel)
+ 	.data
+-GLOBAL(HEAP)
+-	.long	rm_heap
+-GLOBAL(heap_end)
+-	.long	rm_stack
++SYM_DATA(HEAP,		.long rm_heap)
++SYM_DATA(heap_end,	.long rm_stack)
  
- .data
- ALIGN
-diff --git a/arch/x86/kernel/ftrace_32.S b/arch/x86/kernel/ftrace_32.S
-index 219be1309c37..a43ed4c0402d 100644
---- a/arch/x86/kernel/ftrace_32.S
-+++ b/arch/x86/kernel/ftrace_32.S
-@@ -89,7 +89,7 @@ WEAK(ftrace_stub)
- 	ret
- END(ftrace_caller)
- 
--ENTRY(ftrace_regs_caller)
-+SYM_CODE_START(ftrace_regs_caller)
- 	/*
- 	 * We're here from an mcount/fentry CALL, and the stack frame looks like:
- 	 *
-@@ -163,6 +163,7 @@ SYM_INNER_LABEL(ftrace_regs_call, SYM_L_GLOBAL)
- 	popl	%eax
- 
- 	jmp	.Lftrace_ret
-+SYM_CODE_END(ftrace_regs_caller)
- 
- #ifdef CONFIG_FUNCTION_GRAPH_TRACER
- ENTRY(ftrace_graph_caller)
-diff --git a/arch/x86/kernel/head_32.S b/arch/x86/kernel/head_32.S
-index e2b3e6cf86ca..7029bbaccc41 100644
---- a/arch/x86/kernel/head_32.S
-+++ b/arch/x86/kernel/head_32.S
-@@ -64,7 +64,7 @@ RESERVE_BRK(pagetables, INIT_MAP_SIZE)
-  * can.
-  */
- __HEAD
--ENTRY(startup_32)
-+SYM_CODE_START(startup_32)
- 	movl pa(initial_stack),%ecx
- 	
- 	/* test KEEP_SEGMENTS flag to see if the bootloader is asking
-@@ -172,6 +172,7 @@ num_subarch_entries = (. - subarch_entries) / 4
- #else
- 	jmp .Ldefault_entry
- #endif /* CONFIG_PARAVIRT */
-+SYM_CODE_END(startup_32)
- 
- #ifdef CONFIG_HOTPLUG_CPU
- /*
-diff --git a/arch/x86/power/hibernate_asm_32.S b/arch/x86/power/hibernate_asm_32.S
-index 6fe383002125..a19ed3d23185 100644
---- a/arch/x86/power/hibernate_asm_32.S
-+++ b/arch/x86/power/hibernate_asm_32.S
-@@ -35,7 +35,7 @@ ENTRY(swsusp_arch_suspend)
- 	ret
- ENDPROC(swsusp_arch_suspend)
- 
--ENTRY(restore_image)
-+SYM_CODE_START(restore_image)
- 	/* prepare to jump to the image kernel */
- 	movl	restore_jump_address, %ebx
- 	movl	restore_cr3, %ebp
-@@ -45,9 +45,10 @@ ENTRY(restore_image)
- 	/* jump to relocated restore code */
- 	movl	relocated_restore_code, %eax
- 	jmpl	*%eax
-+SYM_CODE_END(restore_image)
- 
- /* code below has been relocated to a safe page */
--ENTRY(core_restore_code)
-+SYM_CODE_START(core_restore_code)
- 	movl	temp_pgt, %eax
- 	movl	%eax, %cr3
- 
-@@ -77,6 +78,7 @@ copy_loop:
- 
- done:
- 	jmpl	*%ebx
-+SYM_CODE_END(core_restore_code)
- 
- 	/* code below belongs to the image kernel */
- 	.align PAGE_SIZE
+ 	.bss
+ 	.balign	16
+-GLOBAL(rm_heap)
+-	.space	2048
+-GLOBAL(rm_stack)
++SYM_DATA(rm_heap,	.space 2048)
++
++SYM_DATA_START(rm_stack)
+ 	.space	2048
+-GLOBAL(rm_stack_end)
++SYM_DATA_END_LABEL(rm_stack, SYM_L_GLOBAL, rm_stack_end)
 diff --git a/arch/x86/realmode/rm/trampoline_32.S b/arch/x86/realmode/rm/trampoline_32.S
-index ff00594a2ed0..3fad907a179f 100644
+index 1868b158480d..ff00594a2ed0 100644
 --- a/arch/x86/realmode/rm/trampoline_32.S
 +++ b/arch/x86/realmode/rm/trampoline_32.S
-@@ -29,7 +29,7 @@
- 	.code16
- 
- 	.balign	PAGE_SIZE
--ENTRY(trampoline_start)
-+SYM_CODE_START(trampoline_start)
- 	wbinvd			# Needed for NUMA-Q should be harmless for others
- 
- 	LJMPW_RM(1f)
-@@ -54,11 +54,13 @@ ENTRY(trampoline_start)
- 	lmsw	%dx			# into protected mode
- 
- 	ljmpl	$__BOOT_CS, $pa_startup_32
-+SYM_CODE_END(trampoline_start)
- 
- 	.section ".text32","ax"
- 	.code32
--ENTRY(startup_32)			# note: also used from wakeup_asm.S
-+SYM_CODE_START(startup_32)			# note: also used from wakeup_asm.S
- 	jmp	*%eax
-+SYM_CODE_END(startup_32)
+@@ -62,10 +62,10 @@ ENTRY(startup_32)			# note: also used from wakeup_asm.S
  
  	.bss
  	.balign 8
-diff --git a/arch/x86/xen/xen-asm_32.S b/arch/x86/xen/xen-asm_32.S
-index c15db060a242..8b8f8355b938 100644
---- a/arch/x86/xen/xen-asm_32.S
-+++ b/arch/x86/xen/xen-asm_32.S
-@@ -56,7 +56,7 @@
- 	_ASM_EXTABLE(1b,2b)
- .endm
+-GLOBAL(trampoline_header)
+-	tr_start:		.space	4
+-	tr_gdt_pad:		.space	2
+-	tr_gdt:			.space	6
+-END(trampoline_header)
++SYM_DATA_START(trampoline_header)
++	SYM_DATA_LOCAL(tr_start,	.space 4)
++	SYM_DATA_LOCAL(tr_gdt_pad,	.space 2)
++	SYM_DATA_LOCAL(tr_gdt,		.space 6)
++SYM_DATA_END(trampoline_header)
+ 	
+ #include "trampoline_common.S"
+diff --git a/arch/x86/realmode/rm/trampoline_64.S b/arch/x86/realmode/rm/trampoline_64.S
+index aee2b45d83b8..c1aeab1dae25 100644
+--- a/arch/x86/realmode/rm/trampoline_64.S
++++ b/arch/x86/realmode/rm/trampoline_64.S
+@@ -149,26 +149,25 @@ ENTRY(startup_64)
+ 	# Duplicate the global descriptor table
+ 	# so the kernel can live anywhere
+ 	.balign	16
+-	.globl tr_gdt
+-tr_gdt:
++SYM_DATA_START(tr_gdt)
+ 	.short	tr_gdt_end - tr_gdt - 1	# gdt limit
+ 	.long	pa_tr_gdt
+ 	.short	0
+ 	.quad	0x00cf9b000000ffff	# __KERNEL32_CS
+ 	.quad	0x00af9b000000ffff	# __KERNEL_CS
+ 	.quad	0x00cf93000000ffff	# __KERNEL_DS
+-tr_gdt_end:
++SYM_DATA_END_LABEL(tr_gdt, SYM_L_LOCAL, tr_gdt_end)
  
--ENTRY(xen_iret)
-+SYM_CODE_START(xen_iret)
- 	/* test eflags for special cases */
- 	testl $(X86_EFLAGS_VM | XEN_EFLAGS_NMI), 8(%esp)
- 	jnz hyper_iret
-@@ -122,6 +122,7 @@ xen_iret_end_crit:
- hyper_iret:
- 	/* put this out of line since its very rarely used */
- 	jmp hypercall_page + __HYPERVISOR_iret * 32
-+SYM_CODE_END(xen_iret)
+ 	.bss
+ 	.balign	PAGE_SIZE
+-GLOBAL(trampoline_pgd)		.space	PAGE_SIZE
++SYM_DATA(trampoline_pgd, .space PAGE_SIZE)
  
- 	.globl xen_iret_start_crit, xen_iret_end_crit
+ 	.balign	8
+-GLOBAL(trampoline_header)
+-	tr_start:		.space	8
+-	GLOBAL(tr_efer)		.space	8
+-	GLOBAL(tr_cr4)		.space	4
+-	GLOBAL(tr_flags)	.space	4
+-END(trampoline_header)
++SYM_DATA_START(trampoline_header)
++	SYM_DATA_LOCAL(tr_start,	.space 8)
++	SYM_DATA(tr_efer,		.space 8)
++	SYM_DATA(tr_cr4,		.space 4)
++	SYM_DATA(tr_flags,		.space 4)
++SYM_DATA_END(trampoline_header)
  
-@@ -165,7 +166,7 @@ hyper_iret:
-  * SAVE_ALL state before going on, since it's usermode state which we
-  * eventually need to restore.
-  */
--ENTRY(xen_iret_crit_fixup)
-+SYM_CODE_START(xen_iret_crit_fixup)
- 	/*
- 	 * Paranoia: Make sure we're really coming from kernel space.
- 	 * One could imagine a case where userspace jumps into the
-@@ -204,4 +205,4 @@ ENTRY(xen_iret_crit_fixup)
+ #include "trampoline_common.S"
+diff --git a/arch/x86/realmode/rm/trampoline_common.S b/arch/x86/realmode/rm/trampoline_common.S
+index 8d8208dcca24..5033e640f957 100644
+--- a/arch/x86/realmode/rm/trampoline_common.S
++++ b/arch/x86/realmode/rm/trampoline_common.S
+@@ -1,4 +1,4 @@
+ /* SPDX-License-Identifier: GPL-2.0 */
+ 	.section ".rodata","a"
+ 	.balign	16
+-tr_idt: .fill 1, 6, 0
++SYM_DATA_LOCAL(tr_idt, .fill 1, 6, 0)
+diff --git a/arch/x86/realmode/rm/wakeup_asm.S b/arch/x86/realmode/rm/wakeup_asm.S
+index 08438ee539bc..01092d665bc2 100644
+--- a/arch/x86/realmode/rm/wakeup_asm.S
++++ b/arch/x86/realmode/rm/wakeup_asm.S
+@@ -17,7 +17,7 @@
+ 	.section ".data", "aw"
  
- 	lea 4(%edi), %esp		/* point esp to new frame */
- 2:	jmp xen_do_upcall
+ 	.balign	16
+-GLOBAL(wakeup_header)
++SYM_DATA_START(wakeup_header)
+ 	video_mode:	.short	0	/* Video mode number */
+ 	pmode_entry:	.long	0
+ 	pmode_cs:	.short	__KERNEL_CS
+@@ -31,7 +31,7 @@ GLOBAL(wakeup_header)
+ 	realmode_flags:	.long	0
+ 	real_magic:	.long	0
+ 	signature:	.long	WAKEUP_HEADER_SIGNATURE
+-END(wakeup_header)
++SYM_DATA_END(wakeup_header)
+ 
+ 	.text
+ 	.code16
+@@ -152,7 +152,7 @@ bogus_real_magic:
+ 	 */
+ 
+ 	.balign	16
+-GLOBAL(wakeup_gdt)
++SYM_DATA_START(wakeup_gdt)
+ 	.word	3*8-1		/* Self-descriptor */
+ 	.long	pa_wakeup_gdt
+ 	.word	0
+@@ -164,7 +164,7 @@ GLOBAL(wakeup_gdt)
+ 	.word	0xffff		/* 16-bit data segment @ real_mode_base */
+ 	.long	0x93000000 + pa_real_mode_base
+ 	.word	0x008f		/* big real mode */
+-END(wakeup_gdt)
++SYM_DATA_END(wakeup_gdt)
+ 
+ 	.section ".rodata","a"
+ 	.balign	8
+diff --git a/arch/x86/realmode/rmpiggy.S b/arch/x86/realmode/rmpiggy.S
+index c078dba40cef..c8fef76743f6 100644
+--- a/arch/x86/realmode/rmpiggy.S
++++ b/arch/x86/realmode/rmpiggy.S
+@@ -10,12 +10,10 @@
+ 
+ 	.balign PAGE_SIZE
+ 
+-GLOBAL(real_mode_blob)
++SYM_DATA_START(real_mode_blob)
+ 	.incbin	"arch/x86/realmode/rm/realmode.bin"
+-END(real_mode_blob)
++SYM_DATA_END_LABEL(real_mode_blob, SYM_L_GLOBAL, real_mode_blob_end)
+ 
+-GLOBAL(real_mode_blob_end);
 -
-+SYM_CODE_END(xen_iret_crit_fixup)
+-GLOBAL(real_mode_relocs)
++SYM_DATA_START(real_mode_relocs)
+ 	.incbin	"arch/x86/realmode/rm/realmode.relocs"
+-END(real_mode_relocs)
++SYM_DATA_END(real_mode_relocs)
 -- 
 2.23.0
