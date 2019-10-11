@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.suse.de ([195.135.220.15]:33182 "EHLO mx1.suse.de"
+Received: from mx2.suse.de ([195.135.220.15]:33348 "EHLO mx1.suse.de"
         rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1727226AbfJKLvR (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        id S1727905AbfJKLvR (ORCPT <rfc822;linux-arch@vger.kernel.org>);
         Fri, 11 Oct 2019 07:51:17 -0400
 From: Jiri Slaby <jslaby@suse.cz>
-Subject: [PATCH v9 07/28] x86/boot: Annotate local functions
-Date: Fri, 11 Oct 2019 13:50:47 +0200
-Message-ID: <20191011115108.12392-8-jslaby@suse.cz>
+Subject: [PATCH v9 04/28] x86/asm/entry: Annotate THUNKs
+Date: Fri, 11 Oct 2019 13:50:44 +0200
+Message-ID: <20191011115108.12392-5-jslaby@suse.cz>
 In-Reply-To: <20191011115108.12392-1-jslaby@suse.cz>
 References: <20191011115108.12392-1-jslaby@suse.cz>
 MIME-Version: 1.0
@@ -14,117 +14,95 @@ Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: bp@alien8.de
-Cc: tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Jiri Slaby <jslaby@suse.cz>
-Message-ID: <20191011115047.JIbRfzBLvV5DXqXjbbcVN8JzgZ_DyiSuqSRtKI6Y528@z>
+Cc: tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Jiri Slaby <jslaby@suse.cz>, Andy Lutomirski <luto@kernel.org>
+Message-ID: <20191011115044.EAx6oa25A_sWxJV9hy6AD2eJGSZKjy1aa_Y4MG-503E@z>
 
-.Lrelocated, .Lpaging_enabled, .Lno_longmode, and .Lin_pm32 are
-self-standing local functions, annotate them as such and preserve "no
-alignment".
+Place SYM_*_START_NOALIGN and SYM_*_END around the THUNK macro body.
+Preserve @function by FUNC (64bit) and CODE (32bit). Given it was not
+marked as aligned, use NOALIGN.
 
-The annotations do not generate anything yet.
+The result:
+ Value  Size Type    Bind   Vis      Ndx Name
+  0000    28 FUNC    GLOBAL DEFAULT    1 trace_hardirqs_on_thunk
+  001c    28 FUNC    GLOBAL DEFAULT    1 trace_hardirqs_off_thunk
+  0038    24 FUNC    GLOBAL DEFAULT    1 lockdep_sys_exit_thunk
+  0050    24 FUNC    GLOBAL DEFAULT    1 ___preempt_schedule
+  0068    24 FUNC    GLOBAL DEFAULT    1 ___preempt_schedule_notra
+
+The annotation of .L_restore does not generate anything to the code (at
+the moment). Here, it just serves documentation purposes (as opening and
+closing brackets of functions).
 
 Signed-off-by: Jiri Slaby <jslaby@suse.cz>
 Cc: Thomas Gleixner <tglx@linutronix.de>
 Cc: Ingo Molnar <mingo@redhat.com>
 Cc: Borislav Petkov <bp@alien8.de>
 Cc: "H. Peter Anvin" <hpa@zytor.com>
-Cc: x86@kernel.org
+Cc: Andy Lutomirski <luto@kernel.org>
+Cc: <x86@kernel.org>
 ---
+ arch/x86/entry/thunk_32.S | 4 ++--
+ arch/x86/entry/thunk_64.S | 7 ++++---
+ 2 files changed, 6 insertions(+), 5 deletions(-)
 
-Notes:
-    [v9] preserve alignments
-
- arch/x86/boot/compressed/head_32.S | 3 ++-
- arch/x86/boot/compressed/head_64.S | 9 ++++++---
- arch/x86/boot/pmjump.S             | 4 ++--
- 3 files changed, 10 insertions(+), 6 deletions(-)
-
-diff --git a/arch/x86/boot/compressed/head_32.S b/arch/x86/boot/compressed/head_32.S
-index 5e30eaaf8576..f9e2a80bd699 100644
---- a/arch/x86/boot/compressed/head_32.S
-+++ b/arch/x86/boot/compressed/head_32.S
-@@ -209,7 +209,7 @@ ENDPROC(efi32_stub_entry)
+diff --git a/arch/x86/entry/thunk_32.S b/arch/x86/entry/thunk_32.S
+index 2713490611a3..e010d4ae11f1 100644
+--- a/arch/x86/entry/thunk_32.S
++++ b/arch/x86/entry/thunk_32.S
+@@ -10,8 +10,7 @@
+ 
+ 	/* put return address in eax (arg1) */
+ 	.macro THUNK name, func, put_ret_addr_in_eax=0
+-	.globl \name
+-\name:
++SYM_CODE_START_NOALIGN(\name)
+ 	pushl %eax
+ 	pushl %ecx
+ 	pushl %edx
+@@ -27,6 +26,7 @@
+ 	popl %eax
+ 	ret
+ 	_ASM_NOKPROBE(\name)
++SYM_CODE_END(\name)
+ 	.endm
+ 
+ #ifdef CONFIG_TRACE_IRQFLAGS
+diff --git a/arch/x86/entry/thunk_64.S b/arch/x86/entry/thunk_64.S
+index ea5c4167086c..c5c3b6e86e62 100644
+--- a/arch/x86/entry/thunk_64.S
++++ b/arch/x86/entry/thunk_64.S
+@@ -12,7 +12,7 @@
+ 
+ 	/* rdi:	arg1 ... normal C conventions. rax is saved/restored. */
+ 	.macro THUNK name, func, put_ret_addr_in_rdi=0
+-	ENTRY(\name)
++SYM_FUNC_START_NOALIGN(\name)
+ 	pushq %rbp
+ 	movq %rsp, %rbp
+ 
+@@ -33,7 +33,7 @@
+ 
+ 	call \func
+ 	jmp  .L_restore
+-	ENDPROC(\name)
++SYM_FUNC_END(\name)
+ 	_ASM_NOKPROBE(\name)
+ 	.endm
+ 
+@@ -56,7 +56,7 @@
+ #if defined(CONFIG_TRACE_IRQFLAGS) \
+  || defined(CONFIG_DEBUG_LOCK_ALLOC) \
+  || defined(CONFIG_PREEMPTION)
+-.L_restore:
++SYM_CODE_START_LOCAL_NOALIGN(.L_restore)
+ 	popq %r11
+ 	popq %r10
+ 	popq %r9
+@@ -69,4 +69,5 @@
+ 	popq %rbp
+ 	ret
+ 	_ASM_NOKPROBE(.L_restore)
++SYM_CODE_END(.L_restore)
  #endif
- 
- 	.text
--.Lrelocated:
-+SYM_FUNC_START_LOCAL_NOALIGN(.Lrelocated)
- 
- /*
-  * Clear BSS (stack is currently empty)
-@@ -260,6 +260,7 @@ ENDPROC(efi32_stub_entry)
-  */
- 	xorl	%ebx, %ebx
- 	jmp	*%eax
-+SYM_FUNC_END(.Lrelocated)
- 
- #ifdef CONFIG_EFI_STUB
- 	.data
-diff --git a/arch/x86/boot/compressed/head_64.S b/arch/x86/boot/compressed/head_64.S
-index d98cd483377e..7afe6e067066 100644
---- a/arch/x86/boot/compressed/head_64.S
-+++ b/arch/x86/boot/compressed/head_64.S
-@@ -511,7 +511,7 @@ ENDPROC(efi64_stub_entry)
- #endif
- 
- 	.text
--.Lrelocated:
-+SYM_FUNC_START_LOCAL_NOALIGN(.Lrelocated)
- 
- /*
-  * Clear BSS (stack is currently empty)
-@@ -540,6 +540,7 @@ ENDPROC(efi64_stub_entry)
-  * Jump to the decompressed kernel.
-  */
- 	jmp	*%rax
-+SYM_FUNC_END(.Lrelocated)
- 
- /*
-  * Adjust the global offset table
-@@ -635,9 +636,10 @@ ENTRY(trampoline_32bit_src)
- 	lret
- 
- 	.code64
--.Lpaging_enabled:
-+SYM_FUNC_START_LOCAL_NOALIGN(.Lpaging_enabled)
- 	/* Return from the trampoline */
- 	jmp	*%rdi
-+SYM_FUNC_END(.Lpaging_enabled)
- 
- 	/*
-          * The trampoline code has a size limit.
-@@ -647,11 +649,12 @@ ENTRY(trampoline_32bit_src)
- 	.org	trampoline_32bit_src + TRAMPOLINE_32BIT_CODE_SIZE
- 
- 	.code32
--.Lno_longmode:
-+SYM_FUNC_START_LOCAL_NOALIGN(.Lno_longmode)
- 	/* This isn't an x86-64 CPU, so hang intentionally, we cannot continue */
- 1:
- 	hlt
- 	jmp     1b
-+SYM_FUNC_END(.Lno_longmode)
- 
- #include "../../kernel/verify_cpu.S"
- 
-diff --git a/arch/x86/boot/pmjump.S b/arch/x86/boot/pmjump.S
-index ea88d52eeac7..81658fe35380 100644
---- a/arch/x86/boot/pmjump.S
-+++ b/arch/x86/boot/pmjump.S
-@@ -46,7 +46,7 @@ ENDPROC(protected_mode_jump)
- 
- 	.code32
- 	.section ".text32","ax"
--.Lin_pm32:
-+SYM_FUNC_START_LOCAL_NOALIGN(.Lin_pm32)
- 	# Set up data segments for flat 32-bit mode
- 	movl	%ecx, %ds
- 	movl	%ecx, %es
-@@ -72,4 +72,4 @@ ENDPROC(protected_mode_jump)
- 	lldt	%cx
- 
- 	jmpl	*%eax			# Jump to the 32-bit entrypoint
--ENDPROC(.Lin_pm32)
-+SYM_FUNC_END(.Lin_pm32)
 -- 
 2.23.0
