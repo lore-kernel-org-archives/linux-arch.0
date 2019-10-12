@@ -1,60 +1,77 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mout.gmx.net ([212.227.15.19]:59821 "EHLO mout.gmx.net"
+Received: from mout.gmx.net ([212.227.17.22]:50579 "EHLO mout.gmx.net"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727115AbfJLJvC (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Sat, 12 Oct 2019 05:51:02 -0400
-Subject: Re: [PATCH v2 23/29] parisc: Move EXCEPTION_TABLE to RO_DATA segment
-References: <20191011000609.29728-1-keescook@chromium.org>
- <20191011000609.29728-24-keescook@chromium.org>
-From: Helge Deller <deller@gmx.de>
-Message-ID: <8b3c27ec-9880-5957-a802-ca740d9ad6c5@gmx.de>
-Date: Sat, 12 Oct 2019 11:50:09 +0200
+        id S1726555AbfJLKVM (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Sat, 12 Oct 2019 06:21:12 -0400
+Subject: Re: [PATCH] compiler: enable CONFIG_OPTIMIZE_INLINING forcibly
+References: <20191001092823.z4zhlbwvtwnlotwc@willie-the-truck>
+ <CAKwvOdk0h2A6=fb7Yepf+oKbZfq_tqwpGq8EBmHVu1j4mo-a-A@mail.gmail.com>
+ <20191001170142.x66orounxuln7zs3@willie-the-truck>
+ <CAKwvOdnFJqipp+G5xLDRBcOrQRcvMQmn+n8fufWyzyt2QL_QkA@mail.gmail.com>
+ <20191001175512.GK25745@shell.armlinux.org.uk>
+ <CAKwvOdmw_xmTGZLeK8-+Q4nUpjs-UypJjHWks-3jHA670Dxa1A@mail.gmail.com>
+ <20191001181438.GL25745@shell.armlinux.org.uk>
+ <CAKwvOdmBnBVU7F-a6DqPU6QM-BRc8LNn6YRmhTsuGLauCWKUOg@mail.gmail.com>
+ <CAMuHMdWPhE1nNkmL1nj3vpQhB7fP3uDs2i_ZVi0Gf9qij4W2CA@mail.gmail.com>
+ <CAHk-=wgFODvdFBHzgVf3JjoBz0z6LZhOm8xvMntsvOr66ASmZQ@mail.gmail.com>
+ <20191003163606.iqzcxvghaw7hdqb5@willie-the-truck>
+From: Stefan Wahren <wahrenst@gmx.net>
+Message-ID: <35643c7e-94e9-e410-543b-a7de17b59a32@gmx.net>
+Date: Sat, 12 Oct 2019 12:15:42 +0200
 MIME-Version: 1.0
-In-Reply-To: <20191011000609.29728-24-keescook@chromium.org>
-Content-Type: text/plain; charset=utf-8; format=flowed
+In-Reply-To: <20191003163606.iqzcxvghaw7hdqb5@willie-the-truck>
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
 Content-Language: en-US
-Content-Transfer-Encoding: quoted-printable
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Kees Cook <keescook@chromium.org>, Borislav Petkov <bp@alien8.de>
-Cc: Rick Edgecombe <rick.p.edgecombe@intel.com>, Dave Hansen <dave.hansen@linux.intel.com>, Andy Lutomirski <luto@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Michael Ellerman <mpe@ellerman.id.au>, Heiko Carstens <heiko.carstens@de.ibm.com>, Will Deacon <will@kernel.org>, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linuxppc-dev@lists.ozlabs.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-s390@vger.kernel.org, linux-c6x-dev@linux-c6x.org, Yoshinori Sato <ysato@users.sourceforge.jp>, Michal Simek <monstr@monstr.eu>, linux-parisc@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20191012095009.j-z9p5wRBD44dauVsGEOBKgkiDlFJVU3MTPEx8u4jeo@z>
+To: Will Deacon <will@kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Geert Uytterhoeven <geert@linux-m68k.org>, Nick Desaulniers <ndesaulniers@google.com>, Russell King - ARM Linux admin <linux@armlinux.org.uk>, Masahiro Yamada <yamada.masahiro@socionext.com>, Nicolas Saenz Julienne <nsaenzjulienne@suse.de>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Miguel Ojeda <miguel.ojeda.sandonis@gmail.com>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Kees Cook <keescook@google.com>, Arnd Bergmann <arnd@arndb.de>, clang-built-linux <clang-built-linux@googlegroups.com>
+Message-ID: <20191012101542.F6nqZC_FublrKtOVFJG5t8Kt8DDHDanszxN9RYIi5SM@z>
 
-On 11.10.19 02:06, Kees Cook wrote:
-> Since the EXCEPTION_TABLE is read-only, collapse it into RO_DATA.
->
-> Signed-off-by: Kees Cook <keescook@chromium.org>
-> ---
->   arch/parisc/kernel/vmlinux.lds.S | 4 +---
->   1 file changed, 1 insertion(+), 3 deletions(-)
+Hi,
 
+Am 03.10.19 um 18:36 schrieb Will Deacon:
+> On Wed, Oct 02, 2019 at 01:39:40PM -0700, Linus Torvalds wrote:
+>> On Wed, Oct 2, 2019 at 5:56 AM Geert Uytterhoeven <geert@linux-m68k.org> wrote:
+>>>> Then use the C preprocessor to force the inlining.  I'm sorry it's not
+>>>> as pretty as static inline functions.
+>>> Which makes us lose the baby^H^H^H^Htype checking performed
+>>> on function parameters, requiring to add more ugly checks.
+>> I'm 100% agreed on this.
+>>
+>> If the inline change is being pushed by people who say "you should
+>> have used macros instead if you wanted inlining", then I will just
+>> revert that stupid commit that is causing problems.
+>>
+>> No, the preprocessor is not the answer.
+>>
+>> That said, code that relies on inlining for _correctness_ should use
+>> "__always_inline" and possibly even have a comment about why.
+>>
+>> But I am considering just undoing commit 9012d011660e ("compiler:
+>> allow all arches to enable CONFIG_OPTIMIZE_INLINING") entirely. The
+>> advantages are questionable, and when the advantages are balanced
+>> against actual regressions and the arguments are "use macros", that
+>> just shows how badly thought out this was.
+> It's clear that opinions are divided on this issue, but you can add
+> an enthusiastic:
+>
+> Acked-by: Will Deacon <will@kernel.org>
+>
+> if you go ahead with the revert. I'm all for allowing the compiler to
+> make its own inlining decisions, but not when the potential for
+> miscompilation isn't fully understood and the proposed alternatives turn
+> the source into an unreadable mess. Perhaps we can do something different
+> for 5.5 (arch opt-in? clang only? invert the logic? work to move functions
+> over to __always_inline /before/ flipping the CONFIG option? ...?)
 
-Acked-by: Helge Deller <deller@gmx.de>  # parisc
+what's the status on this?
 
-Helge
+In need to prepare my pull requests for 5.5 and all recent kernelci
+targets (including linux-next) with bcm2835_defconfig are still broken.
+
+Stefan
 
 >
-> diff --git a/arch/parisc/kernel/vmlinux.lds.S b/arch/parisc/kernel/vmlin=
-ux.lds.S
-> index 12b3d7d5e9e4..53e29d88f99c 100644
-> --- a/arch/parisc/kernel/vmlinux.lds.S
-> +++ b/arch/parisc/kernel/vmlinux.lds.S
-> @@ -19,6 +19,7 @@
->   				*(.data..vm0.pte)
->
->   #define CC_USING_PATCHABLE_FUNCTION_ENTRY
-> +#define RO_EXCEPTION_TABLE_ALIGN	8
->
->   #include <asm-generic/vmlinux.lds.h>
->
-> @@ -129,9 +130,6 @@ SECTIONS
->
->   	RO_DATA(8)
->
-> -	/* RO because of BUILDTIME_EXTABLE_SORT */
-> -	EXCEPTION_TABLE(8)
-> -
->   	/* unwind info */
->   	.PARISC.unwind : {
->   		__start___unwind =3D .;
->
+> Will
