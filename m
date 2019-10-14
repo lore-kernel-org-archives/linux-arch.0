@@ -1,151 +1,166 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pf1-f193.google.com ([209.85.210.193]:35131 "EHLO
-        mail-pf1-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728005AbfJNTIH (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 14 Oct 2019 15:08:07 -0400
-Subject: Re: [RFC] asm-generic/tlb: stub out pmd_free_tlb() if
- __PAGETABLE_PMD_FOLDED
-References: <20191011121951.nxna6hruuskvdxod@box>
- <20191011223818.7238-1-vgupta@synopsys.com>
- <CAHk-=whLs=TrRzmB9KRLxcPERq0QXPUUkbD8vzKzaDszBcUspg@mail.gmail.com>
- <c0979d98-7236-b7c8-bd40-173ee2e87385@gmail.com>
- <CAHk-=wi3WXpKJkcpgHkUMgLiX9UdXnXhSFzBd8vTWkKgFpz0+Q@mail.gmail.com>
-From: Vineet Gupta <vineetg76@gmail.com>
-Message-ID: <8bfd023b-5c00-8355-fd0f-3b4377951e6c@gmail.com>
-Date: Mon, 14 Oct 2019 12:08:03 -0700
+Received: from mail-lf1-f66.google.com ([209.85.167.66]:35006 "EHLO
+        mail-lf1-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1730700AbfJNUi4 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 14 Oct 2019 16:38:56 -0400
+Received: by mail-lf1-f66.google.com with SMTP id w6so12743348lfl.2
+        for <linux-arch@vger.kernel.org>; Mon, 14 Oct 2019 13:38:54 -0700 (PDT)
+Received: from mail-lj1-f170.google.com (mail-lj1-f170.google.com. [209.85.208.170])
+        by smtp.gmail.com with ESMTPSA id 77sm4461022ljj.84.2019.10.14.13.38.51
+        for <linux-arch@vger.kernel.org>
+        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
+        Mon, 14 Oct 2019 13:38:51 -0700 (PDT)
+Received: by mail-lj1-f170.google.com with SMTP id y3so17942060ljj.6
+        for <linux-arch@vger.kernel.org>; Mon, 14 Oct 2019 13:38:51 -0700 (PDT)
 MIME-Version: 1.0
-In-Reply-To: <CAHk-=wi3WXpKJkcpgHkUMgLiX9UdXnXhSFzBd8vTWkKgFpz0+Q@mail.gmail.com>
-Content-Type: text/plain; charset=utf-8
-Content-Language: en-US
-Content-Transfer-Encoding: 7bit
+References: <20191011121951.nxna6hruuskvdxod@box> <20191011223818.7238-1-vgupta@synopsys.com>
+ <CAHk-=whLs=TrRzmB9KRLxcPERq0QXPUUkbD8vzKzaDszBcUspg@mail.gmail.com>
+ <c0979d98-7236-b7c8-bd40-173ee2e87385@gmail.com> <CAHk-=wi3WXpKJkcpgHkUMgLiX9UdXnXhSFzBd8vTWkKgFpz0+Q@mail.gmail.com>
+ <8bfd023b-5c00-8355-fd0f-3b4377951e6c@gmail.com>
+In-Reply-To: <8bfd023b-5c00-8355-fd0f-3b4377951e6c@gmail.com>
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Date: Mon, 14 Oct 2019 13:38:34 -0700
+Message-ID: <CAHk-=wgUxgA-s4ZvxpcKDFfyoEmvcDr9Ydgo5W4s2hvrLHhP+g@mail.gmail.com>
+Subject: Re: [RFC] asm-generic/tlb: stub out pmd_free_tlb() if __PAGETABLE_PMD_FOLDED
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
+To: Vineet Gupta <vineetg76@gmail.com>
 Cc: linux-arch <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Peter Zijlstra <peterz@infradead.org>, "Aneesh Kumar K . V" <aneesh.kumar@linux.ibm.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Nick Piggin <npiggin@gmail.com>, Linux-MM <linux-mm@kvack.org>, Andrew Morton <akpm@linux-foundation.org>, linux-snps-arc@lists.infradead.org, Will Deacon <will@kernel.org>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>
-Message-ID: <20191014190803.LOnhv2PkBiD8uCY5Hcnbag09p9RkgCEN6Ebyc96-Fcg@z>
+Message-ID: <20191014203834.RlH_ZWLimEhWB5UZpRMXCN9IXymgXXJkxLgScxr9b20@z>
 
-On 10/14/19 11:25 AM, Linus Torvalds wrote:
-> On Mon, Oct 14, 2019 at 11:02 AM Vineet Gupta <vineetg76@gmail.com> wrote:
->>
->> I suppose we could but
->>
->> (a) It would be asymmetric with the __p{u,4}d_free_tlb() changes in [1] and [2].
-> 
-> Your patch is already assymmetric wrt those anyway - you had to add that
-> 
->   +#else
->   +#define pmd_free_tlb(tlb, pmdp, address)        do { } while (0)
->   +#endif
-> 
-> that the other cases don't currently have, so then you point to
-> another patch that makes the code uglier instead.
-> 
->> Do you  prefer [1] and [2] be repun along the same lines as you propose above ?
-> 
-> In general, I absolutely detest how we have random
-> 
->    #ifndef ARCH_HAS_ONE_DEFINE
->    #define another_define_entirely()
->    ...
-> 
-> which makes no sense and is ugly, and also wreaks havoc on simple
-> things like "git grep another_define_entirely"
-> 
-> I've long tried to convince people to just do
-> 
->   #ifndef special_define
->   #define special_define(xyz) ..
->   #endif
-> 
-> instead, which doesn't mix up two completely unrelated names, and when
-> you grep for that function name, you _see_ all the context.
+On Mon, Oct 14, 2019 at 12:08 PM Vineet Gupta <vineetg76@gmail.com> wrote:
+>
+> > And yes, pmd_clear_bad() should just go away. We have
+> >
+> >   static inline int pmd_none_or_clear_bad(pmd_t *pmd)
+> >   {
+> >         if (pmd_none(*pmd))
+> >                 return 1;
+> >         if (unlikely(pmd_bad(*pmd))) {
+> >                 pmd_clear_bad(pmd);
+> >                 return 1;
+> >         }
+> >         return 0;
+> >   }
 
-Ok fair enough, I'd just add extra comments to non stubbed p?d_free_tlb that they
-are stubbed out for corresponding case.
+That was a particularly bad example.
 
-> 
->> Also would you care to shed light on my other question about not being able to
->> fold away pmd_clear_bad() despite PMD_FOLDED given the pmd macros actually
->> checking for pgd. Of all the people you are likely to have most insight on how the
->> pmd folding actually evolved and works :-)
-> 
-> I think some of it is just ugly and historical, and confused.
-> 
-> In general, it should always be the "higher" level that folds away. So
-> I think the best example of this is
-> 
->   include/asm-generic/pgtable-nop4d.h
-> 
-> where basically all the "pgd" functions become no-ops, and can never
-> not exist or be bad, because they are always just containers for the
-> lower level and don't have any data in them themselves:
-> 
->   static inline int pgd_none(pgd_t pgd)           { return 0; }
->   static inline int pgd_bad(pgd_t pgd)            { return 0; }
->   static inline int pgd_present(pgd_t pgd)        { return 1; }
->   static inline void pgd_clear(pgd_t *pgd)        { }
-> 
-> and walking from pgd to p4d is that nice folded op:
-> 
->   static inline p4d_t *p4d_offset(pgd_t *pgd, unsigned long address)
->   { return (p4d_t *)pgd; }
-> 
-> and this is how it should always work.See "nopud" and "nopmd"(which
-> are 3rd/2nd level respectively) doing the same thing exactly.
+The pmd always exists, even in a 2-level setup.
 
-Right, my naive mental model was assuming nopmd would somehow stub out pmd_*
-macros (or call into upper level function somehow etc), wheres here
-(1) we stub out the prior level and
-(2) the function of stubbed level operate on the data type of higher level.
+It's the pgd/p4d/pud that end up containing a lower level, but
+pmd_none() is never one of the fixed "doesn't exist" cases.
 
+> > Exactly what part isn't working for you?
+>
+> I haven't tested that patch but I suspect even if it was broken, it would not
+> necessarily show right away with a trivial test.
+>
+> Anyhow my worry/confusions starts at free_pgd_range() where
+> pgd_none_or_clear_bad(pgd) is no-op given pgd_none()/pgd_bad() are stubs for nopmd
+> case.
 
-> And yes, pmd_clear_bad() should just go away. We have
-> 
->   static inline int pmd_none_or_clear_bad(pmd_t *pmd)
->   {
->         if (pmd_none(*pmd))
->                 return 1;
->         if (unlikely(pmd_bad(*pmd))) {
->                 pmd_clear_bad(pmd);
->                 return 1;
->         }
->         return 0;
->   }
-> 
-> and if the pmd doesn't exist, then both pmd_none() and pmd_bad()
-> should just be zero (see above), and the pmd_none_or_clear_bad()
-> should just become "return 0";
-> 
-> Exactly what part isn't working for you?
+Right. If you have a two-level setup, then p[g4u]d_none_or_clear_bad()
+should end up being no-ops.
 
-I haven't tested that patch but I suspect even if it was broken, it would not
-necessarily show right away with a trivial test.
+Buit then:
 
-Anyhow my worry/confusions starts at free_pgd_range() where
-pgd_none_or_clear_bad(pgd) is no-op given pgd_none()/pgd_bad() are stubs for nopmd
-case.
+> And the validation of pgd entry actually happens in pmd_none_or_clear_bad(pmd)
+> since there pmd actually ends up referencing pgd entry. Hence the ensuing
+> pmd_clear_bad() doesn't seem like if it could be stubbed out.
 
-  free_pgd_range
-	pgd = pgd_offset(tlb->mm, addr);
-	do {
-		next = pgd_addr_end(addr, end);
-		if (pgd_none_or_clear_bad(pgd))
-			continue;
-		free_p4e_range(tlb, pgd, addr);
-	} while (pgd++, addr = next, addr != end);
-   ...
+Yes, you're correct, I was just "off by one" in my levels.
 
-And the validation of pgd entry actually happens in pmd_none_or_clear_bad(pmd)
-since there pmd actually ends up referencing pgd entry. Hence the ensuing
-pmd_clear_bad() doesn't seem like if it could be stubbed out.
+Yeah, the folding is damn confusing. And it doesn't help that I think
+some of the code talks about the lower level being folded into the
+higher level for historical reasons, so we have those PMD_FOLDED
+macros etc, which are really about pud() just going away because pmd
+is folded inside the pud.
 
-  free_pmd_range
-	pmd = pmd_offset(pud, addr);
-	do {
-		next = pmd_addr_end(addr, end);
-		if (pmd_none_or_clear_bad(pmd)) <--- pmd_bad()/pmd_clear_bad()
-			continue;
-		free_pte_range(tlb, pmd, addr);
-	} while (pmd++, addr = next, addr != end);
+So when the pud level is compiled away, we talk about the pmd level
+being folded into it, and then we get confusion (like mine above)
+where you end up being off by one level, because depending on how it's
+being talked about, you talk about one or the other.
 
-I'm sure I'm missing something, but don't understand what !
+And it shows in the header files too. We have "pgtable-nopmd.h", which
+then defines the page table accessors not for the pmd level, but for
+the pud level.
+
+Which is why I then spout nonsense like the above about pmd_none() -
+because I was thinking of the nopmd case, but that makes the
+p*u*d_none() be always 0, not p*m*d_none().
+
+So we have this whole "off-by-one" error in our naming and thus our
+thinking, and it's really easy to just get really confused about it.
+
+We should probably get rid of the whole "PMD_FOLDED" logic, and
+instead talk about "no PUD level".
+
+It actually shows in our types too. We do this:
+
+   typedef struct { pud_t pud; } pmd_t;
+   #define PTRS_PER_PMD    1
+
+because some of the code thinks of the pmd as containing the pud.
+
+But it would probably be better to do it the other way around, and
+just consistently think of it as "pud level doesn't exist, the pud
+level just contains a pmd" instead.
+
+So we have these really odd "somethimes we think of pmd as part of a
+pud entry" vs "sometimes we think of pud as just containing a single
+pmd".
+
+And I think that latter model is the better mental model, but then we
+should have
+
+   typedef struct { pmd_t pud; } pud_t;
+   #define PTRS_PER_PUD    1
+
+instead, and we'd get
+
+   static inline pmd_t * pmd_offset(pud_t * pud, unsigned long address)
+   { return &pud->pmd; }
+
+and that would make more sense, wouldn't it?
+
+But trying to fix our odd "we seem to think about it wrong" model
+would likely be too painful to be realistic., It would involve
+renaming
+
+  nop4d.h -> nopgd.h
+  nopud.h -> nop4d.h
+  nopmd.h -> nopud.h
+
+and turning those types around (so we'd have those
+
+   typedef struct { p4d_t p4d; } pgd_t;
+   typedef struct { pud_t pud; | p4d_t;
+   typedef struct { pmd_t pmd; } pud_t;
+
+for no-pgd/no-p4d/no-pud respectively.
+
+So then a 2-level machine would only define the pmd and pte levels,
+and be done with it, because the upper levels would be defined in
+terms of those.
+
+But that's not what we do, and we mix up levels in odd and confusing ways.
+
+And now I've said pgd/pud/p4d/pmd so many times that I've confused
+myself and think I'm wrong again, and I think that historically -
+originally - we always had a pgd, and then the pmd didn't exist
+because it was folded into it. That makes sense from a x86 naming
+standpoint. Then x86 _did_ get a pmd, and then we added more levels in
+between, and other architectures did things differently.
+
+So I think the confusion is historical, and is because we've switched
+between thinking that the the lower level that doesn't exist, but is
+embedded in the upper level, and slowly converted to "it's the upper
+level that doesn't exist, and just contains the lower level"
+
+The point stands: it's confusing, and we should probably pick one
+model, and the model we pick should likely be "this level doesn't
+exist, and just wraps the lower level", so it *should* be "no pgd"/"no
+p4d"/"no pud".
+
+            Linus
