@@ -1,14 +1,14 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH 1/6] sh: Move cmpxchg-xchg.h to asm-generic
-Date: Mon, 14 Oct 2019 09:25:46 +0200
-Message-ID: <CAK8P3a0q+03=uNcnnHrGqHGOcAO3-mytxSmoBWLtHY+5StMNOQ@mail.gmail.com>
-References: <20191013221310.30748-1-sebastian@breakpoint.cc>
- <20191013221310.30748-2-sebastian@breakpoint.cc>
+From: Max Filippov <jcmvbkbc@gmail.com>
+Subject: Re: [PATCH v2 25/29] xtensa: Move EXCEPTION_TABLE to RO_DATA segment
+Date: Mon, 14 Oct 2019 00:41:06 -0700
+Message-ID: <CAMo8BfKexMmMusB3XOeaMOZHdU4ccz+PMGA=Jy+KQhgD8H_8UQ@mail.gmail.com>
+References: <20191011000609.29728-1-keescook@chromium.org>
+ <20191011000609.29728-26-keescook@chromium.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
-In-Reply-To: <20191013221310.30748-2-sebastian@breakpoint.cc>
+In-Reply-To: <20191011000609.29728-26-keescook@chromium.org>
 List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
  <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
 List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
@@ -18,25 +18,21 @@ List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
  <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
 Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
 Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
-To: Sebastian Andrzej Siewior <sebastian@breakpoint.cc>
-Cc: linux-arch <linux-arch@vger.kernel.org>, Rich Felker <dalias@libc.org>, Yoshinori Sato <ysato@users.sourceforge.jp>, Linux-sh list <linux-sh@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, Russell King <linux@armlinux.org.uk>, Ingo Molnar <mingo@redhat.com>, Waiman Long <longman@redhat.com>, Will Deacon <will@kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>
+To: Kees Cook <keescook@chromium.org>
+Cc: Linux-Arch <linux-arch@vger.kernel.org>, linux-s390 <linux-s390@vger.kernel.org>, Michal Simek <monstr@monstr.eu>, "maintainer:X86 ARCHITECTURE..." <x86@kernel.org>, "open list:IA64 (Itanium) PL..." <linux-ia64@vger.kernel.org>, linux-c6x-dev@linux-c6x.org, Arnd Bergmann <arnd@arndb.de>, "open list:TENSILICA XTENSA PORT (xtensa)" <linux-xtensa@linux-xtensa.org>, Michael Ellerman <mpe@ellerman.id.au>, Dave Hansen <dave.hansen@linux.intel.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, linuxppc-dev@lists.ozlabs.org, Yoshinori Sato <ysato@users.sourceforge.jp>, Borislav Petkov <bp@alien8.de>, "open list:PARISC ARCHITECTURE" <linux-parisc@vger.kernel.org>, Andy Lutomirski <luto@kernel.org>, "open list:ALPHA PORT" <linux-alpha@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Rick Edgecombe <rick.p.edgecombe@intel.com>, Will Deacon <will@kernel.org>, linux-arm-ke
 List-Id: linux-arch.vger.kernel.org
 
-On Mon, Oct 14, 2019 at 12:13 AM Sebastian Andrzej Siewior
-<sebastian@breakpoint.cc> wrote:
+On Thu, Oct 10, 2019 at 5:16 PM Kees Cook <keescook@chromium.org> wrote:
 >
-> The header file is very generic and could be reused by other
-> architectures as long as they provide __cmpxchg_u32().
+> Since the EXCEPTION_TABLE is read-only, collapse it into RO_DATA.
 >
-> Move sh's cmpxchg-xchg.h to asm-generic.
->
-> Cc: Yoshinori Sato <ysato@users.sourceforge.jp>
-> Cc: Rich Felker <dalias@libc.org>
-> Cc: Arnd Bergmann <arnd@arndb.de>
+> Signed-off-by: Kees Cook <keescook@chromium.org>
+> ---
+>  arch/xtensa/kernel/vmlinux.lds.S | 3 ++-
+>  1 file changed, 2 insertions(+), 1 deletion(-)
 
-Acked-by: Arnd Bergmann <arnd@arndb.de>
+Acked-by: Max Filippov <jcmvbkbc@gmail.com>
 
-Maybe change the "#ifndef __ASM_SH_CMPXCHG_XCHG_H"
-to __ASM_GENERIC_*.
-
-        Arnd
+-- 
+Thanks.
+-- Max
