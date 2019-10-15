@@ -1,88 +1,85 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-lj1-f195.google.com ([209.85.208.195]:46060 "EHLO
-        mail-lj1-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1729128AbfJOTAz (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 15 Oct 2019 15:00:55 -0400
-Received: by mail-lj1-f195.google.com with SMTP id q64so21363114ljb.12
-        for <linux-arch@vger.kernel.org>; Tue, 15 Oct 2019 12:00:54 -0700 (PDT)
-Received: from mail-lj1-f178.google.com (mail-lj1-f178.google.com. [209.85.208.178])
-        by smtp.gmail.com with ESMTPSA id j26sm5029638lja.25.2019.10.15.12.00.51
-        for <linux-arch@vger.kernel.org>
-        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
-        Tue, 15 Oct 2019 12:00:51 -0700 (PDT)
-Received: by mail-lj1-f178.google.com with SMTP id n14so21354106ljj.10
-        for <linux-arch@vger.kernel.org>; Tue, 15 Oct 2019 12:00:51 -0700 (PDT)
+Received: from dc8-smtprelay2.synopsys.com ([198.182.47.102]:39750 "EHLO
+        smtprelay-out1.synopsys.com" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S2389572AbfJOTTb (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 15 Oct 2019 15:19:31 -0400
+From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Subject: [PATCH v2 3/5] asm-generic/tlb: stub out p4d_free_tlb() if nop4d ...
+Date: Tue, 15 Oct 2019 12:19:24 -0700
+Message-ID: <20191015191926.9281-4-vgupta@synopsys.com>
+In-Reply-To: <20191015191926.9281-1-vgupta@synopsys.com>
+References: <20191015191926.9281-1-vgupta@synopsys.com>
 MIME-Version: 1.0
-References: <CAHk-=wgOWxqwqCFuP_Bw=Hxxf9njeHJs0OLNGNc63peNd=kRqw@mail.gmail.com>
- <20191010195504.GI26530@ZenIV.linux.org.uk> <CAHk-=wgWRQo0m7TUCK4T_J-3Vqte+p-FWzvT3CB1jJHgX-KctA@mail.gmail.com>
- <20191011001104.GJ26530@ZenIV.linux.org.uk> <CAHk-=wgg3jzkk-jObm1FLVYGS8JCTiKppEnA00_QX7Wsm5ieLQ@mail.gmail.com>
- <20191013181333.GK26530@ZenIV.linux.org.uk> <CAHk-=wgrWGyACBM8N8KP7Pu_2VopuzM4A12yQz6Eo=X2Jpwzcw@mail.gmail.com>
- <20191013191050.GL26530@ZenIV.linux.org.uk> <CAHk-=wjJNE9hOKuatqh6SFf4nd65LG4ZR3gQSgg+rjSpVxe89w@mail.gmail.com>
- <20191013195949.GM26530@ZenIV.linux.org.uk> <20191015180846.GA31707@ZenIV.linux.org.uk>
-In-Reply-To: <20191015180846.GA31707@ZenIV.linux.org.uk>
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Date: Tue, 15 Oct 2019 12:00:34 -0700
-Message-ID: <CAHk-=wjyiiYhAbzVDUW1F3j9CAcu8+ugSvGYwUivdBfKoeU6yA@mail.gmail.com>
-Subject: Re: [PATCH] Convert filldir[64]() from __put_user() to unsafe_put_user()
-Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Al Viro <viro@zeniv.linux.org.uk>
-Cc: Guenter Roeck <linux@roeck-us.net>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-fsdevel <linux-fsdevel@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Darren Hart <dvhart@infradead.org>, linux-arch <linux-arch@vger.kernel.org>
-Message-ID: <20191015190034.jr0Sl4FMsvKVP-GSOGirzTac-bo0ppWEgwGQ6oNYjM4@z>
+To: Arnd Bergmann <arnd@arndb.de>, Will Deacon <will@kernel.org>, "Aneesh Kumar K . V" <aneesh.kumar@linux.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, Nick Piggin <npiggin@gmail.com>, Peter Zijlstra <peterz@infradead.org>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, Linus Torvalds <torvalds@linux-foundation.org>
+Cc: linux-mm@kvack.org, linux-snps-arc@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Message-ID: <20191015191924.emTHjXl4bqSPE1opHoPg9DFahQA9ryn_LERjUZNdj-c@z>
 
-On Tue, Oct 15, 2019 at 11:08 AM Al Viro <viro@zeniv.linux.org.uk> wrote:
->
-> Another question: right now we have
->         if (!access_ok(uaddr, sizeof(u32)))
->                 return -EFAULT;
->
->         ret = arch_futex_atomic_op_inuser(op, oparg, &oldval, uaddr);
->         if (ret)
->                 return ret;
-> in kernel/futex.c.  Would there be any objections to moving access_ok()
-> inside the instances and moving pagefault_disable()/pagefault_enable() outside?
+... independent of __ARCH_HAS_5LEVEL_HACK
 
-I think we should remove all the "atomic" versions, and just make the
-rule be that if you want atomic, you surround it with
-pagefault_disable()/pagefault_enable().
+This came up when removing __ARCH_HAS_5LEVEL_HACK for ARC as code bloat
+from this routine not required in a 2-level paging setup
 
-That covers not just the futex ops (where "atomic" is actually
-somewhat ambiguous - the ops themselves are atomic too, so the naming
-might stay, although arguably the "futex" part makes that pointless
-too), but also copy_to_user_inatomic() and the powerpc version of
-__get_user_inatomic().
+| bloat-o-meter2 vmlinux-C-elide-pud_free_tlb vmlinux-D-elide-p4d_free_tlb
+| add/remove: 0/0 grow/shrink: 0/1 up/down: 0/-104 (-104)
+| function                                     old     new   delta
+| free_pgd_range                               552     422    -130
+| Total: Before=4137172, After=4137042, chg -1.000000%
 
-So we'd aim to get rid of all the "inatomic" ones entirely.
+Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
+---
+ include/asm-generic/5level-fixup.h  | 1 -
+ include/asm-generic/pgtable-nop4d.h | 2 +-
+ include/asm-generic/tlb.h           | 2 --
+ 3 files changed, 1 insertion(+), 4 deletions(-)
 
-Same ultimately probably goes for the NMI versions. We should just
-make it be a rule that we can use all of the user access functions
-with pagefault_{dis,en}able() around them, and they'll be "safe" to
-use in atomic context.
-
-One issue with the NMI versions is that they actually want to avoid
-the current value of set_fs().  So copy_from_user_nmi() (at least on
-x86) is special in that it does
-
-        if (__range_not_ok(from, n, TASK_SIZE))
-                return n;
-
-instead of access_ok() because of that issue.
-
-NMI also has some other issues (nmi_uaccess_okay() on x86, at least),
-but those *probably* could be handled at page fault time instead.
-
-Anyway, NMI is so special that I'd suggest leaving it for later, but
-the non-NMI atomic accesses I would suggest you clean up at the same
-time.
-
-I think the *only* reason we have the "inatomic()" versions is that
-the regular ones do that "might_fault()" testing unconditionally, and
-might_fault() _used_ to be just a might_sleep() - so it's not about
-functionality per se, it's about "we have this sanity check that we
-need to undo".
-
-We've already made "might_fault()" look at pagefault_disabled(), so I
-think a lot of the reasons for inatomic are entirely historical.
-
-                Linus
+diff --git a/include/asm-generic/5level-fixup.h b/include/asm-generic/5level-fixup.h
+index f6947da70d71..4c74b1c1d13b 100644
+--- a/include/asm-generic/5level-fixup.h
++++ b/include/asm-generic/5level-fixup.h
+@@ -51,7 +51,6 @@ static inline int p4d_present(p4d_t p4d)
+ #undef p4d_free_tlb
+ #define p4d_free_tlb(tlb, x, addr)	do { } while (0)
+ #define p4d_free(mm, x)			do { } while (0)
+-#define __p4d_free_tlb(tlb, x, addr)	do { } while (0)
+ 
+ #undef  p4d_addr_end
+ #define p4d_addr_end(addr, end)		(end)
+diff --git a/include/asm-generic/pgtable-nop4d.h b/include/asm-generic/pgtable-nop4d.h
+index aebab905e6cd..ce2cbb3c380f 100644
+--- a/include/asm-generic/pgtable-nop4d.h
++++ b/include/asm-generic/pgtable-nop4d.h
+@@ -50,7 +50,7 @@ static inline p4d_t *p4d_offset(pgd_t *pgd, unsigned long address)
+  */
+ #define p4d_alloc_one(mm, address)		NULL
+ #define p4d_free(mm, x)				do { } while (0)
+-#define __p4d_free_tlb(tlb, x, a)		do { } while (0)
++#define p4d_free_tlb(tlb, x, a)			do { } while (0)
+ 
+ #undef  p4d_addr_end
+ #define p4d_addr_end(addr, end)			(end)
+diff --git a/include/asm-generic/tlb.h b/include/asm-generic/tlb.h
+index 5e0c2d01e656..05dddc17522b 100644
+--- a/include/asm-generic/tlb.h
++++ b/include/asm-generic/tlb.h
+@@ -594,7 +594,6 @@ static inline void tlb_end_vma(struct mmu_gather *tlb, struct vm_area_struct *vm
+ 	} while (0)
+ #endif
+ 
+-#ifndef __ARCH_HAS_5LEVEL_HACK
+ #ifndef p4d_free_tlb
+ #define p4d_free_tlb(tlb, pudp, address)			\
+ 	do {							\
+@@ -603,7 +602,6 @@ static inline void tlb_end_vma(struct mmu_gather *tlb, struct vm_area_struct *vm
+ 		__p4d_free_tlb(tlb, pudp, address);		\
+ 	} while (0)
+ #endif
+-#endif
+ 
+ #endif /* CONFIG_MMU */
+ 
+-- 
+2.20.1
