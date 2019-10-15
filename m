@@ -1,95 +1,43 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.skyhub.de ([5.9.137.197]:34076 "EHLO mail.skyhub.de"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727096AbfJORbf (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 15 Oct 2019 13:31:35 -0400
-Date: Tue, 15 Oct 2019 19:31:25 +0200
-From: Borislav Petkov <bp@alien8.de>
-Subject: Re: [PATCH v9 17/28] x86/asm: Use SYM_INNER_LABEL instead of GLOBAL
-Message-ID: <20191015173124.GF596@zn.tnic>
-References: <20191011115108.12392-1-jslaby@suse.cz>
- <20191011115108.12392-18-jslaby@suse.cz>
+Received: from mail-pf1-f193.google.com ([209.85.210.193]:46362 "EHLO
+        mail-pf1-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S2388831AbfJORg0 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 15 Oct 2019 13:36:26 -0400
+Received: by mail-pf1-f193.google.com with SMTP id q5so12899103pfg.13
+        for <linux-arch@vger.kernel.org>; Tue, 15 Oct 2019 10:36:24 -0700 (PDT)
+Date: Tue, 15 Oct 2019 10:36:21 -0700
+From: Kees Cook <keescook@chromium.org>
+Subject: Re: [PATCH v2 01/29] powerpc: Rename "notes" PT_NOTE to "note"
+Message-ID: <201910151034.A21FDCA32@keescook>
+References: <20191011000609.29728-1-keescook@chromium.org>
+ <20191011000609.29728-2-keescook@chromium.org>
+ <20191011082519.GI9749@gate.crashing.org>
+ <201910110910.48270FC97@keescook>
+ <20191011162552.GK9749@gate.crashing.org>
+ <20191015165412.GD596@zn.tnic>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
+Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20191011115108.12392-18-jslaby@suse.cz>
+In-Reply-To: <20191015165412.GD596@zn.tnic>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jiri Slaby <jslaby@suse.cz>
-Cc: tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Andy Lutomirski <luto@amacapital.net>
-Message-ID: <20191015173125.cY4gFJnbq44k4jRLFhLU5GNtOLf-Ics9NIj2ayXP7FA@z>
+To: Borislav Petkov <bp@alien8.de>
+Cc: Segher Boessenkool <segher@kernel.crashing.org>, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, Michal Simek <monstr@monstr.eu>, x86@kernel.org, linux-ia64@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, linux-xtensa@linux-xtensa.org, Dave Hansen <dave.hansen@linux.intel.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, linuxppc-dev@lists.ozlabs.org, Yoshinori Sato <ysato@users.sourceforge.jp>, linux-parisc@vger.kernel.org, Andy Lutomirski <luto@kernel.org>, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, Rick Edgecombe <rick.p.edgecombe@intel.com>, Will Deacon <will@kernel.org>, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org
+Message-ID: <20191015173621.UfzYz2GNItlyzdXj3ZslgWE5VbR-8BeOQjTcKmuUzQc@z>
 
-On Fri, Oct 11, 2019 at 01:50:57PM +0200, Jiri Slaby wrote:
-> The GLOBAL macro had several meanings and is going away. In this patch,
-> convert all the inner function labels marked with GLOBAL to use
-> SYM_INNER_LABEL instead.
+On Tue, Oct 15, 2019 at 06:54:13PM +0200, Borislav Petkov wrote:
+> On Fri, Oct 11, 2019 at 11:25:52AM -0500, Segher Boessenkool wrote:
+> > Names *matter*, internal names doubly so.  So why replace a good name with
+> > a worse name?  Because it is slightly less work for you?
 > 
-> Signed-off-by: Jiri Slaby <jslaby@suse.cz>
-> Cc: Borislav Petkov <bp@alien8.de>
-> Cc: Thomas Gleixner <tglx@linutronix.de>
-> Cc: Ingo Molnar <mingo@redhat.com>
-> Cc: "H. Peter Anvin" <hpa@zytor.com>
-> Cc: x86@kernel.org
-> Cc: Andy Lutomirski <luto@amacapital.net>
-> ---
->  arch/x86/entry/entry_64.S                |  6 +++---
->  arch/x86/entry/entry_64_compat.S         |  4 ++--
->  arch/x86/entry/vdso/vdso32/system_call.S |  2 +-
->  arch/x86/kernel/ftrace_32.S              |  2 +-
->  arch/x86/kernel/ftrace_64.S              | 16 ++++++++--------
->  arch/x86/realmode/rm/reboot.S            |  2 +-
->  6 files changed, 16 insertions(+), 16 deletions(-)
-> 
-> diff --git a/arch/x86/entry/entry_64.S b/arch/x86/entry/entry_64.S
-> index 607e25f54ff4..57d246048ac6 100644
-> --- a/arch/x86/entry/entry_64.S
-> +++ b/arch/x86/entry/entry_64.S
-> @@ -162,7 +162,7 @@ ENTRY(entry_SYSCALL_64)
->  	pushq	%r11					/* pt_regs->flags */
->  	pushq	$__USER_CS				/* pt_regs->cs */
->  	pushq	%rcx					/* pt_regs->ip */
-> -GLOBAL(entry_SYSCALL_64_after_hwframe)
-> +SYM_INNER_LABEL(entry_SYSCALL_64_after_hwframe, SYM_L_GLOBAL)
->  	pushq	%rax					/* pt_regs->orig_ax */
->  
->  	PUSH_AND_CLEAR_REGS rax=$-ENOSYS
-> @@ -621,7 +621,7 @@ ret_from_intr:
->  	call	prepare_exit_to_usermode
->  	TRACE_IRQS_IRETQ
->  
-> -GLOBAL(swapgs_restore_regs_and_return_to_usermode)
-> +SYM_INNER_LABEL(swapgs_restore_regs_and_return_to_usermode, SYM_L_GLOBAL)
->  #ifdef CONFIG_DEBUG_ENTRY
->  	/* Assert that pt_regs indicates user mode. */
->  	testb	$3, CS(%rsp)
-> @@ -679,7 +679,7 @@ retint_kernel:
->  	 */
->  	TRACE_IRQS_IRETQ
->  
-> -GLOBAL(restore_regs_and_return_to_kernel)
-> +SYM_INNER_LABEL(restore_regs_and_return_to_kernel, SYM_L_GLOBAL)
->  #ifdef CONFIG_DEBUG_ENTRY
->  	/* Assert that pt_regs indicates kernel mode. */
->  	testb	$3, CS(%rsp)
+> So if we agree on the name "notes" and we decide to rename the other
+> arches, this should all be done in a separate patchset anyway, and ontop
+> of this one. And I believe Kees wouldn't mind doing it ontop since he's
+> gotten his hands dirty already. :-P
 
-Do this too, while at it?
-
-diff --git a/arch/x86/entry/entry_64.S b/arch/x86/entry/entry_64.S
-index 57d246048ac6..e73369858556 100644
---- a/arch/x86/entry/entry_64.S
-+++ b/arch/x86/entry/entry_64.S
-@@ -247,7 +247,7 @@ SYM_INNER_LABEL(entry_SYSCALL_64_after_hwframe, SYM_L_GLOBAL)
- 	 * We win! This label is here just for ease of understanding
- 	 * perf profiles. Nothing jumps here.
- 	 */
--syscall_return_via_sysret:
-+SYM_INNER_LABEL(syscall_return_via_sysret, SYM_L_GLOBAL)
- 	/* rcx and r11 are already restored (see code above) */
- 	UNWIND_HINT_EMPTY
- 	POP_REGS pop_rdi=0 skip_r11rcx=1
+Yeah, I'm fine with that. I would prefer to do it as a separate step,
+just to minimize the logical steps each patch takes. Shall I spin a v3
+with the Acks added and a final rename for this?
 
 -- 
-Regards/Gruss,
-    Boris.
-
-https://people.kernel.org/tglx/notes-about-netiquette
+Kees Cook
