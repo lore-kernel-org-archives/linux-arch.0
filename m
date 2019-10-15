@@ -1,79 +1,97 @@
-From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: [PATCH v2 3/5] asm-generic/tlb: stub out p4d_free_tlb() if nop4d ...
-Date: Tue, 15 Oct 2019 12:19:24 -0700
-Message-ID: <20191015191926.9281-4-vgupta@synopsys.com>
-References: <20191015191926.9281-1-vgupta@synopsys.com>
+From: Al Viro <viro@zeniv.linux.org.uk>
+Subject: Re: [PATCH] Convert filldir[64]() from __put_user() to
+ unsafe_put_user()
+Date: Tue, 15 Oct 2019 20:40:12 +0100
+Message-ID: <20191015194012.GO26530@ZenIV.linux.org.uk>
+References: <CAHk-=wgWRQo0m7TUCK4T_J-3Vqte+p-FWzvT3CB1jJHgX-KctA@mail.gmail.com>
+ <20191011001104.GJ26530@ZenIV.linux.org.uk>
+ <CAHk-=wgg3jzkk-jObm1FLVYGS8JCTiKppEnA00_QX7Wsm5ieLQ@mail.gmail.com>
+ <20191013181333.GK26530@ZenIV.linux.org.uk>
+ <CAHk-=wgrWGyACBM8N8KP7Pu_2VopuzM4A12yQz6Eo=X2Jpwzcw@mail.gmail.com>
+ <20191013191050.GL26530@ZenIV.linux.org.uk>
+ <CAHk-=wjJNE9hOKuatqh6SFf4nd65LG4ZR3gQSgg+rjSpVxe89w@mail.gmail.com>
+ <20191013195949.GM26530@ZenIV.linux.org.uk>
+ <20191015180846.GA31707@ZenIV.linux.org.uk>
+ <CAHk-=wjyiiYhAbzVDUW1F3j9CAcu8+ugSvGYwUivdBfKoeU6yA@mail.gmail.com>
 Mime-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20191015191926.9281-1-vgupta@synopsys.com>
+Content-Disposition: inline
+In-Reply-To: <CAHk-=wjyiiYhAbzVDUW1F3j9CAcu8+ugSvGYwUivdBfKoeU6yA@mail.gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Arnd Bergmann <arnd@arndb.de>, Will Deacon <will@kernel.org>, "Aneesh Kumar K . V" <aneesh.kumar@linux.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, Nick Piggin <npiggin@gmail.com>, Peter Zijlstra <peterz@infradead.org>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, Linus Torvalds <torvalds@linux-foundation.org>
-Cc: linux-mm@kvack.org, linux-snps-arc@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Vineet Gupta <Vineet.Gupta1@synopsys.com>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Guenter Roeck <linux@roeck-us.net>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-fsdevel <linux-fsdevel@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Darren Hart <dvhart@infradead.org>, linux-arch <linux-arch@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-... independent of __ARCH_HAS_5LEVEL_HACK
+On Tue, Oct 15, 2019 at 12:00:34PM -0700, Linus Torvalds wrote:
+> On Tue, Oct 15, 2019 at 11:08 AM Al Viro <viro@zeniv.linux.org.uk> wrote:
+> >
+> > Another question: right now we have
+> >         if (!access_ok(uaddr, sizeof(u32)))
+> >                 return -EFAULT;
+> >
+> >         ret = arch_futex_atomic_op_inuser(op, oparg, &oldval, uaddr);
+> >         if (ret)
+> >                 return ret;
+> > in kernel/futex.c.  Would there be any objections to moving access_ok()
+> > inside the instances and moving pagefault_disable()/pagefault_enable() outside?
+> 
+> I think we should remove all the "atomic" versions, and just make the
+> rule be that if you want atomic, you surround it with
+> pagefault_disable()/pagefault_enable().
 
-This came up when removing __ARCH_HAS_5LEVEL_HACK for ARC as code bloat
-from this routine not required in a 2-level paging setup
+Umm...  I thought about that, but ended up with "it documents the intent" -
+pagefault_disable() might be implicit (e.g. done by kmap_atomic()) or
+several levels up the call chain.  Not sure.
 
-| bloat-o-meter2 vmlinux-C-elide-pud_free_tlb vmlinux-D-elide-p4d_free_tlb
-| add/remove: 0/0 grow/shrink: 0/1 up/down: 0/-104 (-104)
-| function                                     old     new   delta
-| free_pgd_range                               552     422    -130
-| Total: Before=4137172, After=4137042, chg -1.000000%
+> That covers not just the futex ops (where "atomic" is actually
+> somewhat ambiguous - the ops themselves are atomic too, so the naming
+> might stay, although arguably the "futex" part makes that pointless
+> too), but also copy_to_user_inatomic() and the powerpc version of
+> __get_user_inatomic().
 
-Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
----
- include/asm-generic/5level-fixup.h  | 1 -
- include/asm-generic/pgtable-nop4d.h | 2 +-
- include/asm-generic/tlb.h           | 2 --
- 3 files changed, 1 insertion(+), 4 deletions(-)
+Eh?  copy_to_user_inatomic() doesn't exist; __copy_to_user_inatomic()
+does, but...
 
-diff --git a/include/asm-generic/5level-fixup.h b/include/asm-generic/5level-fixup.h
-index f6947da70d71..4c74b1c1d13b 100644
---- a/include/asm-generic/5level-fixup.h
-+++ b/include/asm-generic/5level-fixup.h
-@@ -51,7 +51,6 @@ static inline int p4d_present(p4d_t p4d)
- #undef p4d_free_tlb
- #define p4d_free_tlb(tlb, x, addr)	do { } while (0)
- #define p4d_free(mm, x)			do { } while (0)
--#define __p4d_free_tlb(tlb, x, addr)	do { } while (0)
- 
- #undef  p4d_addr_end
- #define p4d_addr_end(addr, end)		(end)
-diff --git a/include/asm-generic/pgtable-nop4d.h b/include/asm-generic/pgtable-nop4d.h
-index aebab905e6cd..ce2cbb3c380f 100644
---- a/include/asm-generic/pgtable-nop4d.h
-+++ b/include/asm-generic/pgtable-nop4d.h
-@@ -50,7 +50,7 @@ static inline p4d_t *p4d_offset(pgd_t *pgd, unsigned long address)
-  */
- #define p4d_alloc_one(mm, address)		NULL
- #define p4d_free(mm, x)				do { } while (0)
--#define __p4d_free_tlb(tlb, x, a)		do { } while (0)
-+#define p4d_free_tlb(tlb, x, a)			do { } while (0)
- 
- #undef  p4d_addr_end
- #define p4d_addr_end(addr, end)			(end)
-diff --git a/include/asm-generic/tlb.h b/include/asm-generic/tlb.h
-index 5e0c2d01e656..05dddc17522b 100644
---- a/include/asm-generic/tlb.h
-+++ b/include/asm-generic/tlb.h
-@@ -594,7 +594,6 @@ static inline void tlb_end_vma(struct mmu_gather *tlb, struct vm_area_struct *vm
- 	} while (0)
- #endif
- 
--#ifndef __ARCH_HAS_5LEVEL_HACK
- #ifndef p4d_free_tlb
- #define p4d_free_tlb(tlb, pudp, address)			\
- 	do {							\
-@@ -603,7 +602,6 @@ static inline void tlb_end_vma(struct mmu_gather *tlb, struct vm_area_struct *vm
- 		__p4d_free_tlb(tlb, pudp, address);		\
- 	} while (0)
- #endif
--#endif
- 
- #endif /* CONFIG_MMU */
- 
--- 
-2.20.1
+arch/mips/kernel/unaligned.c:1307:                      res = __copy_to_user_inatomic(addr, fpr, sizeof(*fpr));
+drivers/gpu/drm/i915/i915_gem.c:313:    unwritten = __copy_to_user_inatomic(user_data,
+lib/test_kasan.c:510:   unused = __copy_to_user_inatomic(usermem, kmem, size + 1);
+mm/maccess.c:98:        ret = __copy_to_user_inatomic((__force void __user *)dst, src, size);
+
+these are all callers it has left anywhere and I'm certainly going to kill it.
+Now, __copy_from_user_inatomic() has a lot more callers left...  Frankly,
+the messier part of API is the nocache side of things.  Consider e.g. this:
+/* platform specific: cacheless copy */
+static void cacheless_memcpy(void *dst, void *src, size_t n)
+{
+        /* 
+         * Use the only available X64 cacheless copy.  Add a __user cast
+         * to quiet sparse.  The src agument is already in the kernel so
+         * there are no security issues.  The extra fault recovery machinery
+         * is not invoked.
+         */
+        __copy_user_nocache(dst, (void __user *)src, n, 0);
+}
+or this
+static void ntb_memcpy_tx(struct ntb_queue_entry *entry, void __iomem *offset)
+{
+#ifdef ARCH_HAS_NOCACHE_UACCESS
+        /*
+         * Using non-temporal mov to improve performance on non-cached
+         * writes, even though we aren't actually copying from user space.
+         */
+        __copy_from_user_inatomic_nocache(offset, entry->buf, entry->len);
+#else   
+        memcpy_toio(offset, entry->buf, entry->len);
+#endif
+
+        /* Ensure that the data is fully copied out before setting the flags */
+        wmb();
+
+        ntb_tx_copy_callback(entry, NULL);
+}
+"user" part is bollocks in both cases; moreover, I really wonder about that
+ifdef in ntb one - ARCH_HAS_NOCACHE_UACCESS is x86-only *at* *the* *moment*
+and it just so happens that ..._toio() doesn't require anything special on
+x86.  Have e.g. arm grow nocache stuff and the things will suddenly break,
+won't they?
