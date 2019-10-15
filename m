@@ -1,74 +1,96 @@
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Subject: Re: [PATCH] Convert filldir[64]() from __put_user() to unsafe_put_user()
-Date: Tue, 15 Oct 2019 12:00:34 -0700
-Message-ID: <CAHk-=wjyiiYhAbzVDUW1F3j9CAcu8+ugSvGYwUivdBfKoeU6yA@mail.gmail.com>
-References: <CAHk-=wgOWxqwqCFuP_Bw=Hxxf9njeHJs0OLNGNc63peNd=kRqw@mail.gmail.com>
- <20191010195504.GI26530@ZenIV.linux.org.uk> <CAHk-=wgWRQo0m7TUCK4T_J-3Vqte+p-FWzvT3CB1jJHgX-KctA@mail.gmail.com>
- <20191011001104.GJ26530@ZenIV.linux.org.uk> <CAHk-=wgg3jzkk-jObm1FLVYGS8JCTiKppEnA00_QX7Wsm5ieLQ@mail.gmail.com>
- <20191013181333.GK26530@ZenIV.linux.org.uk> <CAHk-=wgrWGyACBM8N8KP7Pu_2VopuzM4A12yQz6Eo=X2Jpwzcw@mail.gmail.com>
- <20191013191050.GL26530@ZenIV.linux.org.uk> <CAHk-=wjJNE9hOKuatqh6SFf4nd65LG4ZR3gQSgg+rjSpVxe89w@mail.gmail.com>
- <20191013195949.GM26530@ZenIV.linux.org.uk> <20191015180846.GA31707@ZenIV.linux.org.uk>
+From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Subject: [PATCH v2 5/5] asm-generic/mm: stub out p{4,
+ d}d_clear_bad() if __PAGETABLE_P{4, u}D_FOLDED
+Date: Tue, 15 Oct 2019 12:19:26 -0700
+Message-ID: <20191015191926.9281-6-vgupta@synopsys.com>
+References: <20191015191926.9281-1-vgupta@synopsys.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20191015180846.GA31707@ZenIV.linux.org.uk>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Al Viro <viro@zeniv.linux.org.uk>
-Cc: Guenter Roeck <linux@roeck-us.net>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-fsdevel <linux-fsdevel@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Darren Hart <dvhart@infradead.org>, linux-arch <linux-arch@vger.kernel.org>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-snps-arc-bounces+gla-linux-snps-arc=m.gmane.org@lists.infradead.org>
+In-Reply-To: <20191015191926.9281-1-vgupta@synopsys.com>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-snps-arc>,
+ <mailto:linux-snps-arc-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-snps-arc/>
+List-Post: <mailto:linux-snps-arc@lists.infradead.org>
+List-Help: <mailto:linux-snps-arc-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-snps-arc>,
+ <mailto:linux-snps-arc-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-snps-arc" <linux-snps-arc-bounces@lists.infradead.org>
+Errors-To: linux-snps-arc-bounces+gla-linux-snps-arc=m.gmane.org@lists.infradead.org
+To: Arnd Bergmann <arnd@arndb.de>, Will Deacon <will@kernel.org>, "Aneesh Kumar K . V" <aneesh.kumar@linux.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, Nick Piggin <npiggin@gmail.com>, Peter Zijlstra <peterz@infradead.org>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, Linus Torvalds <torvalds@linux-foundation.org>
+Cc: linux-arch@vger.kernel.org, linux-mm@kvack.org, Vineet Gupta <Vineet.Gupta1@synopsys.com>, linux-snps-arc@lists.infradead.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, Oct 15, 2019 at 11:08 AM Al Viro <viro@zeniv.linux.org.uk> wrote:
->
-> Another question: right now we have
->         if (!access_ok(uaddr, sizeof(u32)))
->                 return -EFAULT;
->
->         ret = arch_futex_atomic_op_inuser(op, oparg, &oldval, uaddr);
->         if (ret)
->                 return ret;
-> in kernel/futex.c.  Would there be any objections to moving access_ok()
-> inside the instances and moving pagefault_disable()/pagefault_enable() outside?
+This removes the code for 2 level paging as seen on ARC
 
-I think we should remove all the "atomic" versions, and just make the
-rule be that if you want atomic, you surround it with
-pagefault_disable()/pagefault_enable().
+| bloat-o-meter2 vmlinux-D-elide-p4d_free_tlb vmlinux-E-elide-p?d_clear_bad
+| add/remove: 0/2 grow/shrink: 0/0 up/down: 0/-40 (-40)
+| function                                     old     new   delta
+| pud_clear_bad                                 20       -     -20
+| p4d_clear_bad                                 20       -     -20
+| Total: Before=4136930, After=4136890, chg -1.000000%
 
-That covers not just the futex ops (where "atomic" is actually
-somewhat ambiguous - the ops themselves are atomic too, so the naming
-might stay, although arguably the "futex" part makes that pointless
-too), but also copy_to_user_inatomic() and the powerpc version of
-__get_user_inatomic().
+Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
+---
+ include/asm-generic/pgtable.h | 11 +++++++++++
+ mm/pgtable-generic.c          |  8 ++++++++
+ 2 files changed, 19 insertions(+)
 
-So we'd aim to get rid of all the "inatomic" ones entirely.
-
-Same ultimately probably goes for the NMI versions. We should just
-make it be a rule that we can use all of the user access functions
-with pagefault_{dis,en}able() around them, and they'll be "safe" to
-use in atomic context.
-
-One issue with the NMI versions is that they actually want to avoid
-the current value of set_fs().  So copy_from_user_nmi() (at least on
-x86) is special in that it does
-
-        if (__range_not_ok(from, n, TASK_SIZE))
-                return n;
-
-instead of access_ok() because of that issue.
-
-NMI also has some other issues (nmi_uaccess_okay() on x86, at least),
-but those *probably* could be handled at page fault time instead.
-
-Anyway, NMI is so special that I'd suggest leaving it for later, but
-the non-NMI atomic accesses I would suggest you clean up at the same
-time.
-
-I think the *only* reason we have the "inatomic()" versions is that
-the regular ones do that "might_fault()" testing unconditionally, and
-might_fault() _used_ to be just a might_sleep() - so it's not about
-functionality per se, it's about "we have this sanity check that we
-need to undo".
-
-We've already made "might_fault()" look at pagefault_disabled(), so I
-think a lot of the reasons for inatomic are entirely historical.
-
-                Linus
+diff --git a/include/asm-generic/pgtable.h b/include/asm-generic/pgtable.h
+index 818691846c90..9cdcbc7c0b7b 100644
+--- a/include/asm-generic/pgtable.h
++++ b/include/asm-generic/pgtable.h
+@@ -558,8 +558,19 @@ static inline pgprot_t pgprot_modify(pgprot_t oldprot, pgprot_t newprot)
+  * Do the tests inline, but report and clear the bad entry in mm/memory.c.
+  */
+ void pgd_clear_bad(pgd_t *);
++
++#ifndef __PAGETABLE_P4D_FOLDED
+ void p4d_clear_bad(p4d_t *);
++#else
++#define p4d_clear_bad(p4d)        do { } while (0)
++#endif
++
++#ifndef __PAGETABLE_PUD_FOLDED
+ void pud_clear_bad(pud_t *);
++#else
++#define pud_clear_bad(p4d)        do { } while (0)
++#endif
++
+ void pmd_clear_bad(pmd_t *);
+ 
+ static inline int pgd_none_or_clear_bad(pgd_t *pgd)
+diff --git a/mm/pgtable-generic.c b/mm/pgtable-generic.c
+index 532c29276fce..a5edddc3846a 100644
+--- a/mm/pgtable-generic.c
++++ b/mm/pgtable-generic.c
+@@ -24,18 +24,26 @@ void pgd_clear_bad(pgd_t *pgd)
+ 	pgd_clear(pgd);
+ }
+ 
++#ifndef __PAGETABLE_P4D_FOLDED
+ void p4d_clear_bad(p4d_t *p4d)
+ {
+ 	p4d_ERROR(*p4d);
+ 	p4d_clear(p4d);
+ }
++#endif
+ 
++#ifndef __PAGETABLE_PUD_FOLDED
+ void pud_clear_bad(pud_t *pud)
+ {
+ 	pud_ERROR(*pud);
+ 	pud_clear(pud);
+ }
++#endif
+ 
++/*
++ * Note that below can't be stubed out for nopmd case:
++ * pmd folding is special and typically pmd_* macros refet to upper level
++ */
+ void pmd_clear_bad(pmd_t *pmd)
+ {
+ 	pmd_ERROR(*pmd);
+-- 
+2.20.1
