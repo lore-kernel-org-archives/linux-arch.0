@@ -1,33 +1,54 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga07.intel.com ([134.134.136.100]:11485 "EHLO mga07.intel.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1728343AbfJPQOU (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 16 Oct 2019 12:14:20 -0400
-Subject: Re: [PATCH 8/8] x86, kcsan: Enable KCSAN for x86
-References: <20191016083959.186860-1-elver@google.com>
- <20191016083959.186860-9-elver@google.com>
-From: Dave Hansen <dave.hansen@intel.com>
-Message-ID: <ce0d1658-c000-be20-c997-34ca488e4406@intel.com>
-Date: Wed, 16 Oct 2019 09:14:18 -0700
+Received: from smtprelay-out1.synopsys.com ([149.117.87.133]:58520 "EHLO
+        smtprelay-out1.synopsys.com" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S1732453AbfJPQYH (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 16 Oct 2019 12:24:07 -0400
+From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Subject: [PATCH v3 4/5] asm-generic/tlb: stub out pmd_free_tlb() if nopmd
+Date: Wed, 16 Oct 2019 09:23:59 -0700
+Message-ID: <20191016162400.14796-5-vgupta@synopsys.com>
+In-Reply-To: <20191016162400.14796-1-vgupta@synopsys.com>
+References: <20191016162400.14796-1-vgupta@synopsys.com>
 MIME-Version: 1.0
-In-Reply-To: <20191016083959.186860-9-elver@google.com>
-Content-Type: text/plain; charset=utf-8
-Content-Language: en-US
 Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Marco Elver <elver@google.com>
-Cc: akiyks@gmail.com, stern@rowland.harvard.edu, glider@google.com, parri.andrea@gmail.com, andreyknvl@google.com, luto@kernel.org, ard.biesheuvel@linaro.org, arnd@arndb.de, boqun.feng@gmail.com, bp@alien8.de, dja@axtens.net, dlustig@nvidia.com, dave.hansen@linux.intel.com, dhowells@redhat.com, dvyukov@google.com, hpa@zytor.com, mingo@redhat.com, j.alglave@ucl.ac.uk, joel@joelfernandes.org, corbet@lwn.net, jpoimboe@redhat.com, luc.maranget@inria.fr, mark.rutland@arm.com, npiggin@gmail.com, paulmck@linux.ibm.com, peterz@infradead.org, tglx@linutronix.de, will@kernel.org, kasan-dev@googlegroups.com, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, linux-efi@vger.kernel.org, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, x86@kernel.org
-Message-ID: <20191016161418.JJQzKe4P9p2qw_H-hlx5PZX2bycPAGZeZwkl-Vv7bF4@z>
+To: linux-mm@kvack.org
+Cc: linux-snps-arc@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Will Deacon <will@kernel.org>, "Aneesh Kumar K . V" <aneesh.kumar@linux.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, Nick Piggin <npiggin@gmail.com>, Peter Zijlstra <peterz@infradead.org>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, Linus Torvalds <torvalds@linux-foundation.org>, Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Message-ID: <20191016162359.uGelfF3tpQZRMwCszsW2u6i_eGPIouMXlzhucXSNXZc@z>
 
-On 10/16/19 1:39 AM, Marco Elver wrote:
-> This patch enables KCSAN for x86, with updates to build rules to not use
-> KCSAN for several incompatible compilation units.
+This came up when removing __ARCH_HAS_5LEVEL_HACK for ARC as code bloat.
+With this patch we see the following code reduction.
 
-First of all KCSAN looks really interesting!
+| bloat-o-meter2 vmlinux-E-elide-p?d_clear_bad vmlinux-F-elide-pmd_free_tlb
+| add/remove: 0/0 grow/shrink: 0/1 up/down: 0/-112 (-112)
+| function                                     old     new   delta
+| free_pgd_range                               422     310    -112
+| Total: Before=4137042, After=4136930, chg -1.000000%
 
-For the x86 code, though, I'd really appreciate some specific notes on
-why individual compilation units are incompatible.  There might be some
-that were missed, and we have to figure out what we do for any future
-work.  Knowing the logic used on these would be really helpful in the
-future.
+Note that pmd folding can be tricky: In 2-level setup (where pmd is
+conceptually folded) most pmd routines are valid and refer to upper levels.
+In this patch we can, but see next patch for example where we can't
+
+Acked-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
+Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
+---
+ include/asm-generic/pgtable-nopmd.h | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/include/asm-generic/pgtable-nopmd.h b/include/asm-generic/pgtable-nopmd.h
+index b85b8271a73d..0d9b28cba16d 100644
+--- a/include/asm-generic/pgtable-nopmd.h
++++ b/include/asm-generic/pgtable-nopmd.h
+@@ -60,7 +60,7 @@ static inline pmd_t * pmd_offset(pud_t * pud, unsigned long address)
+ static inline void pmd_free(struct mm_struct *mm, pmd_t *pmd)
+ {
+ }
+-#define __pmd_free_tlb(tlb, x, a)		do { } while (0)
++#define pmd_free_tlb(tlb, x, a)		do { } while (0)
+ 
+ #undef  pmd_addr_end
+ #define pmd_addr_end(addr, end)			(end)
+-- 
+2.20.1
