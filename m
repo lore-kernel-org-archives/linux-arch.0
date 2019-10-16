@@ -1,11 +1,13 @@
 From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: [PATCH v3 0/5] elide extraneous generated code for folded p4d/pud/pmd
-Date: Wed, 16 Oct 2019 09:23:55 -0700
-Message-ID: <20191016162400.14796-1-vgupta@synopsys.com>
+Subject: [PATCH v3 2/5] asm-generic/tlb: stub out pud_free_tlb() if nopud ...
+Date: Wed, 16 Oct 2019 09:23:57 -0700
+Message-ID: <20191016162400.14796-3-vgupta@synopsys.com>
+References: <20191016162400.14796-1-vgupta@synopsys.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-snps-arc-bounces+gla-linux-snps-arc=m.gmane.org@lists.infradead.org>
+In-Reply-To: <20191016162400.14796-1-vgupta@synopsys.com>
 List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-snps-arc>,
  <mailto:linux-snps-arc-request@lists.infradead.org?subject=unsubscribe>
 List-Archive: <http://lists.infradead.org/pipermail/linux-snps-arc/>
@@ -19,72 +21,74 @@ To: linux-mm@kvack.org
 Cc: linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Peter Zijlstra <peterz@infradead.org>, "Aneesh Kumar K . V" <aneesh.kumar@linux.ibm.com>, Vineet Gupta <Vineet.Gupta1@synopsys.com>, linux-kernel@vger.kernel.org, Nick Piggin <npiggin@gmail.com>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, linux-snps-arc@lists.infradead.org, Will Deacon <will@kernel.org>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>
 List-Id: linux-arch.vger.kernel.org
 
-Hi,
+... independent of __ARCH_HAS_4LEVEL_HACK
 
-This series came out of seemingly benign excursion into understanding/removing
-__ARCH_USE_5LEVEL_HACK from ARC port showing some extraneous code being
-generated despite folded p4d/pud/pmd
+This came up when removing __ARCH_HAS_5LEVEL_HACK for ARC as code bloat.
+With this patch we see the following code reduction
 
-| bloat-o-meter2 vmlinux-[AB]*
-| add/remove: 0/0 grow/shrink: 3/0 up/down: 130/0 (130)
+| bloat-o-meter2 vmlinux-B-elide-ARCH_USE_5LEVEL_HACK vmlinux-C-elide-pud_free_tlb
+| add/remove: 0/0 grow/shrink: 0/1 up/down: 0/-104 (-104)
 | function                                     old     new   delta
-| free_pgd_range                               548     660    +112
-| p4d_clear_bad                                  2      20     +18
+| free_pgd_range                               656     552    -104
+| Total: Before=4137276, After=4137172, chg -1.000000%
 
-The patches here address that
+Note: The primary change is alternate defintion for pud_free_tlb() but
+while there also removed empty stubs for __pud_free_tlb, which is anyhow
+called only from pud_free_tlb()
 
-| bloat-o-meter2 vmlinux-[BF]*
-| add/remove: 0/2 grow/shrink: 0/1 up/down: 0/-386 (-386)
-| function                                     old     new   delta
-| pud_clear_bad                                 20       -     -20
-| p4d_clear_bad                                 20       -     -20
-| free_pgd_range                               660     314    -346
-
-The code savings are not a whole lot, but still worthwhile IMHO.
-
-Please review, test and apply. It seems to survive my usual battery of
-multibench, hakcbench etc.
-
-Thx,
--Vineet
-
+Acked-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
+Acked-by: Linus Torvalds <torvalds@linux-foundation.org>
+Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
 ---
-Changes since v2 [3]
- - No code changes: Fixed the silly typos and collected ACKs
+ include/asm-generic/4level-fixup.h  | 1 -
+ include/asm-generic/pgtable-nopud.h | 2 +-
+ include/asm-generic/tlb.h           | 2 --
+ 3 files changed, 1 insertion(+), 4 deletions(-)
 
-Changes since v1 [1]
- - Per Linus Sugestion remvoed the extra ifdey'ery (hence not
-   accumulating Kirill's ACks)
- - Added the RFC patch for pmd_free_tlb() after discussions [2]
- - Also throwing in the ARC patch which started this all (so we get the
-   full context of patchset) - I'm ok if this goes via mm tree, should
-   be non contentious and can drop this too if Andrew thinks otherwise
-
-[1] http://lists.infradead.org/pipermail/linux-snps-arc/2019-October/006263.html
-[2] http://lists.infradead.org/pipermail/linux-snps-arc/2019-October/006277.html
-[3] http://lists.infradead.org/pipermail/linux-snps-arc/2019-October/006307.html
----
-
-Vineet Gupta (5):
-  ARC: mm: remove __ARCH_USE_5LEVEL_HACK
-  asm-generic/tlb: stub out pud_free_tlb() if nopud ...
-  asm-generic/tlb: stub out p4d_free_tlb() if nop4d ...
-  asm-generic/tlb: stub out pmd_free_tlb() if nopmd
-  asm-generic/mm: stub out p{4,u}d_clear_bad() if
-    __PAGETABLE_P{4,u}D_FOLDED
-
- arch/arc/include/asm/pgtable.h      |  1 -
- arch/arc/mm/fault.c                 | 10 ++++++++--
- arch/arc/mm/highmem.c               |  4 +++-
- include/asm-generic/4level-fixup.h  |  1 -
- include/asm-generic/5level-fixup.h  |  1 -
- include/asm-generic/pgtable-nop4d.h |  2 +-
- include/asm-generic/pgtable-nopmd.h |  2 +-
- include/asm-generic/pgtable-nopud.h |  2 +-
- include/asm-generic/pgtable.h       | 11 +++++++++++
- include/asm-generic/tlb.h           |  4 ----
- mm/pgtable-generic.c                |  9 +++++++++
- 11 files changed, 34 insertions(+), 13 deletions(-)
-
+diff --git a/include/asm-generic/4level-fixup.h b/include/asm-generic/4level-fixup.h
+index e3667c9a33a5..c86cf7cb4bba 100644
+--- a/include/asm-generic/4level-fixup.h
++++ b/include/asm-generic/4level-fixup.h
+@@ -30,7 +30,6 @@
+ #undef pud_free_tlb
+ #define pud_free_tlb(tlb, x, addr)	do { } while (0)
+ #define pud_free(mm, x)			do { } while (0)
+-#define __pud_free_tlb(tlb, x, addr)	do { } while (0)
+ 
+ #undef  pud_addr_end
+ #define pud_addr_end(addr, end)		(end)
+diff --git a/include/asm-generic/pgtable-nopud.h b/include/asm-generic/pgtable-nopud.h
+index c77a1d301155..d3776cb494c0 100644
+--- a/include/asm-generic/pgtable-nopud.h
++++ b/include/asm-generic/pgtable-nopud.h
+@@ -59,7 +59,7 @@ static inline pud_t *pud_offset(p4d_t *p4d, unsigned long address)
+  */
+ #define pud_alloc_one(mm, address)		NULL
+ #define pud_free(mm, x)				do { } while (0)
+-#define __pud_free_tlb(tlb, x, a)		do { } while (0)
++#define pud_free_tlb(tlb, x, a)		        do { } while (0)
+ 
+ #undef  pud_addr_end
+ #define pud_addr_end(addr, end)			(end)
+diff --git a/include/asm-generic/tlb.h b/include/asm-generic/tlb.h
+index 04c0644006fd..5e0c2d01e656 100644
+--- a/include/asm-generic/tlb.h
++++ b/include/asm-generic/tlb.h
+@@ -584,7 +584,6 @@ static inline void tlb_end_vma(struct mmu_gather *tlb, struct vm_area_struct *vm
+ 	} while (0)
+ #endif
+ 
+-#ifndef __ARCH_HAS_4LEVEL_HACK
+ #ifndef pud_free_tlb
+ #define pud_free_tlb(tlb, pudp, address)			\
+ 	do {							\
+@@ -594,7 +593,6 @@ static inline void tlb_end_vma(struct mmu_gather *tlb, struct vm_area_struct *vm
+ 		__pud_free_tlb(tlb, pudp, address);		\
+ 	} while (0)
+ #endif
+-#endif
+ 
+ #ifndef __ARCH_HAS_5LEVEL_HACK
+ #ifndef p4d_free_tlb
 -- 
 2.20.1
