@@ -1,16 +1,14 @@
-From: Sebastian Andrzej Siewior <sebastian@breakpoint.cc>
-Subject: [PATCH 1/6 v2] sh: Move cmpxchg-xchg.h to asm-generic
-Date: Wed, 16 Oct 2019 00:31:55 +0200
-Message-ID: <20191015223154.7wcsc7x5edrpasfc@flow>
-References: <20191013221310.30748-1-sebastian@breakpoint.cc>
- <20191013221310.30748-2-sebastian@breakpoint.cc>
- <CAK8P3a0q+03=uNcnnHrGqHGOcAO3-mytxSmoBWLtHY+5StMNOQ@mail.gmail.com>
+From: Alex Kogan <alex.kogan@oracle.com>
+Subject: [PATCH v5 5/5] locking/qspinlock: Introduce the shuffle reduction
+ optimization into CNA
+Date: Wed, 16 Oct 2019 00:29:03 -0400
+Message-ID: <20191016042903.61081-6-alex.kogan@oracle.com>
+References: <20191016042903.61081-1-alex.kogan@oracle.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
-Content-Disposition: inline
-In-Reply-To: <CAK8P3a0q+03=uNcnnHrGqHGOcAO3-mytxSmoBWLtHY+5StMNOQ@mail.gmail.com>
+In-Reply-To: <20191016042903.61081-1-alex.kogan@oracle.com>
 List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
  <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
 List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
@@ -20,44 +18,74 @@ List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
  <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
 Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
 Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: linux-arch <linux-arch@vger.kernel.org>, Rich Felker <dalias@libc.org>, Yoshinori Sato <ysato@users.sourceforge.jp>, Linux-sh list <linux-sh@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, Russell King <linux@armlinux.org.uk>, Ingo Molnar <mingo@redhat.com>, Waiman Long <longman@redhat.com>, Will Deacon <will@kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>
+To: linux@armlinux.org.uk, peterz@infradead.org, mingo@redhat.com, will.deacon@arm.com, arnd@arndb.de, longman@redhat.com, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, bp@alien8.de, hpa@zytor.com, x86@kernel.org, guohanjun@huawei.com, jglauber@marvell.com
+Cc: alex.kogan@oracle.com, dave.dice@oracle.com, rahul.x.yadav@oracle.com, steven.sistare@oracle.com, daniel.m.jordan@oracle.com
 List-Id: linux-arch.vger.kernel.org
 
-VGhlIGhlYWRlciBmaWxlIGlzIHZlcnkgZ2VuZXJpYyBhbmQgY291bGQgYmUgcmV1c2VkIGJ5IG90
-aGVyCmFyY2hpdGVjdHVyZXMgYXMgbG9uZyBhcyB0aGV5IHByb3ZpZGUgX19jbXB4Y2hnX3UzMigp
-LgoKTW92ZSBzaCdzIGNtcHhjaGcteGNoZy5oIHRvIGFzbS1nZW5lcmljLgoKQ2M6IFlvc2hpbm9y
-aSBTYXRvIDx5c2F0b0B1c2Vycy5zb3VyY2Vmb3JnZS5qcD4KQ2M6IFJpY2ggRmVsa2VyIDxkYWxp
-YXNAbGliYy5vcmc+CkNjOiBBcm5kIEJlcmdtYW5uIDxhcm5kQGFybmRiLmRlPgpDYzogbGludXgt
-c2hAdmdlci5rZXJuZWwub3JnCkNjOiBsaW51eC1hcmNoQHZnZXIua2VybmVsLm9yZwpBY2tlZC1i
-eTogQXJuZCBCZXJnbWFubiA8YXJuZEBhcm5kYi5kZT4KU2lnbmVkLW9mZi1ieTogU2ViYXN0aWFu
-IEFuZHJ6ZWogU2lld2lvciA8c2ViYXN0aWFuQGJyZWFrcG9pbnQuY2M+Ci0tLQp2MeKApnYyOiBz
-QF9fQVNNX1NIX0NNUFhDSEdfWENIR19IQF9fQVNNX0dFTkVSSUNfQ01QWENIR19YQ0hHX0hACgog
-YXJjaC9zaC9pbmNsdWRlL2FzbS9LYnVpbGQgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAg
-ICAgfCAxICsKIHthcmNoL3NoL2luY2x1ZGUvYXNtID0+IGluY2x1ZGUvYXNtLWdlbmVyaWN9L2Nt
-cHhjaGcteGNoZy5oIHwgNiArKystLS0KIDIgZmlsZXMgY2hhbmdlZCwgNCBpbnNlcnRpb25zKCsp
-LCAzIGRlbGV0aW9ucygtKQogcmVuYW1lIHthcmNoL3NoL2luY2x1ZGUvYXNtID0+IGluY2x1ZGUv
-YXNtLWdlbmVyaWN9L2NtcHhjaGcteGNoZy5oICg5MSUpCgpkaWZmIC0tZ2l0IGEvYXJjaC9zaC9p
-bmNsdWRlL2FzbS9LYnVpbGQgYi9hcmNoL3NoL2luY2x1ZGUvYXNtL0tidWlsZAppbmRleCA1MWE1
-NGRmMjJjMTEwLi4wOGMxZDk2Mjg2ZDlkIDEwMDY0NAotLS0gYS9hcmNoL3NoL2luY2x1ZGUvYXNt
-L0tidWlsZAorKysgYi9hcmNoL3NoL2luY2x1ZGUvYXNtL0tidWlsZApAQCAtMSw1ICsxLDYgQEAK
-ICMgU1BEWC1MaWNlbnNlLUlkZW50aWZpZXI6IEdQTC0yLjAKIGdlbmVyYXRlZC15ICs9IHN5c2Nh
-bGxfdGFibGUuaAorZ2VuZXJpYy15ICs9IGNtcHhjaGcteGNoZy5oCiBnZW5lcmljLXkgKz0gY29t
-cGF0LmgKIGdlbmVyaWMteSArPSBjdXJyZW50LmgKIGdlbmVyaWMteSArPSBkZWxheS5oCmRpZmYg
-LS1naXQgYS9hcmNoL3NoL2luY2x1ZGUvYXNtL2NtcHhjaGcteGNoZy5oIGIvaW5jbHVkZS9hc20t
-Z2VuZXJpYy9jbXB4Y2hnLXhjaGcuaApzaW1pbGFyaXR5IGluZGV4IDkxJQpyZW5hbWUgZnJvbSBh
-cmNoL3NoL2luY2x1ZGUvYXNtL2NtcHhjaGcteGNoZy5oCnJlbmFtZSB0byBpbmNsdWRlL2FzbS1n
-ZW5lcmljL2NtcHhjaGcteGNoZy5oCmluZGV4IGMzNzNmMjFlZmU0ZDkuLmM5YWNkNmZmODc0MWQg
-MTAwNjQ0Ci0tLSBhL2FyY2gvc2gvaW5jbHVkZS9hc20vY21weGNoZy14Y2hnLmgKKysrIGIvaW5j
-bHVkZS9hc20tZ2VuZXJpYy9jbXB4Y2hnLXhjaGcuaApAQCAtMSw2ICsxLDYgQEAKIC8qIFNQRFgt
-TGljZW5zZS1JZGVudGlmaWVyOiBHUEwtMi4wICovCi0jaWZuZGVmIF9fQVNNX1NIX0NNUFhDSEdf
-WENIR19ICi0jZGVmaW5lIF9fQVNNX1NIX0NNUFhDSEdfWENIR19ICisjaWZuZGVmIF9fQVNNX0dF
-TkVSSUNfQ01QWENIR19YQ0hHX0gKKyNkZWZpbmUgX19BU01fR0VORVJJQ19DTVBYQ0hHX1hDSEdf
-SAogCiAvKgogICogQ29weXJpZ2h0IChDKSAyMDE2IFJlZCBIYXQsIEluYy4KQEAgLTQ3LDQgKzQ3
-LDQgQEAgc3RhdGljIGlubGluZSB1bnNpZ25lZCBsb25nIHhjaGdfdTgodm9sYXRpbGUgdTggKm0s
-IHVuc2lnbmVkIGxvbmcgdmFsKQogCXJldHVybiBfX3hjaGdfY21weGNoZyhtLCB2YWwsIHNpemVv
-ZiAqbSk7CiB9CiAKLSNlbmRpZiAvKiBfX0FTTV9TSF9DTVBYQ0hHX1hDSEdfSCAqLworI2VuZGlm
-IC8qIF9fQVNNX0dFTkVSSUNfQ01QWENIR19YQ0hHX0ggKi8KLS0gCjIuMjMuMAoKCl9fX19fX19f
-X19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fCmxpbnV4LWFybS1rZXJuZWwg
-bWFpbGluZyBsaXN0CmxpbnV4LWFybS1rZXJuZWxAbGlzdHMuaW5mcmFkZWFkLm9yZwpodHRwOi8v
-bGlzdHMuaW5mcmFkZWFkLm9yZy9tYWlsbWFuL2xpc3RpbmZvL2xpbnV4LWFybS1rZXJuZWwK
+This optimization reduces the probability threads will be shuffled between
+the main and secondary queues when the secondary queue is empty.
+It is helpful when the lock is only lightly contended.
+
+Signed-off-by: Alex Kogan <alex.kogan@oracle.com>
+Reviewed-by: Steve Sistare <steven.sistare@oracle.com>
+---
+ kernel/locking/qspinlock_cna.h | 30 ++++++++++++++++++++++++++++++
+ 1 file changed, 30 insertions(+)
+
+diff --git a/kernel/locking/qspinlock_cna.h b/kernel/locking/qspinlock_cna.h
+index b92a6f9a19db..6a66850be1e6 100644
+--- a/kernel/locking/qspinlock_cna.h
++++ b/kernel/locking/qspinlock_cna.h
+@@ -4,6 +4,7 @@
+ #endif
+ 
+ #include <linux/topology.h>
++#include <linux/random.h>
+ 
+ /*
+  * Implement a NUMA-aware version of MCS (aka CNA, or compact NUMA-aware lock).
+@@ -63,6 +64,34 @@ struct cna_node {
+  */
+ #define INTRA_NODE_HANDOFF_THRESHOLD (1 << 16)
+ 
++/*
++ * Controls the probability for enabling the scan of the main queue when
++ * the secondary queue is empty. The chosen value reduces the amount of
++ * unnecessary shuffling of threads between the two waiting queues when
++ * the contention is low, while responding fast enough and enabling
++ * the shuffling when the contention is high.
++ */
++#define SHUFFLE_REDUCTION_PROB_ARG  (7)
++
++/* Per-CPU pseudo-random number seed */
++static DEFINE_PER_CPU(u32, seed);
++
++/*
++ * Return false with probability 1 / 2^@num_bits.
++ * Intuitively, the larger @num_bits the less likely false is to be returned.
++ * @num_bits must be a number between 0 and 31.
++ */
++static bool probably(unsigned int num_bits)
++{
++	u32 s;
++
++	s = this_cpu_read(seed);
++	s = next_pseudo_random32(s);
++	this_cpu_write(seed, s);
++
++	return s & ((1 << num_bits) - 1);
++}
++
+ static void __init cna_init_nodes_per_cpu(unsigned int cpu)
+ {
+ 	struct mcs_spinlock *base = per_cpu_ptr(&qnodes[0].mcs, cpu);
+@@ -235,6 +264,7 @@ __always_inline u32 cna_pre_scan(struct qspinlock *lock,
+ 	 * should be made in cna_pass_lock()
+ 	 */
+ 	cn->pre_scan_result =
++		(node->locked <= 1 && probably(SHUFFLE_REDUCTION_PROB_ARG)) ||
+ 		cn->intra_count == INTRA_NODE_HANDOFF_THRESHOLD ?
+ 			1 : cna_scan_main_queue(node, node);
+ 
+-- 
+2.11.0 (Apple Git-81)
