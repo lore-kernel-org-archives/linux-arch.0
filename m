@@ -1,68 +1,54 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:22268 "EHLO
+Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:34430 "EHLO
         mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S2391580AbfJPIZa (ORCPT
+        by vger.kernel.org with ESMTP id S2391631AbfJPI2o (ORCPT
         <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 16 Oct 2019 04:25:30 -0400
-Received: from pps.filterd (m0098394.ppops.net [127.0.0.1])
-        by mx0a-001b2d01.pphosted.com (8.16.0.27/8.16.0.27) with SMTP id x9G87rZL047296
-        for <linux-arch@vger.kernel.org>; Wed, 16 Oct 2019 04:25:29 -0400
+        Wed, 16 Oct 2019 04:28:44 -0400
+Received: from pps.filterd (m0098399.ppops.net [127.0.0.1])
+        by mx0a-001b2d01.pphosted.com (8.16.0.27/8.16.0.27) with SMTP id x9G8RLQ5126410
+        for <linux-arch@vger.kernel.org>; Wed, 16 Oct 2019 04:28:43 -0400
 Received: from e06smtp04.uk.ibm.com (e06smtp04.uk.ibm.com [195.75.94.100])
-        by mx0a-001b2d01.pphosted.com with ESMTP id 2vnx1u3p9t-1
+        by mx0a-001b2d01.pphosted.com with ESMTP id 2vnyevgprs-1
         (version=TLSv1.2 cipher=AES256-GCM-SHA384 bits=256 verify=NOT)
-        for <linux-arch@vger.kernel.org>; Wed, 16 Oct 2019 04:25:28 -0400
+        for <linux-arch@vger.kernel.org>; Wed, 16 Oct 2019 04:28:43 -0400
 Received: from localhost
         by e06smtp04.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
         for <linux-arch@vger.kernel.org> from <heiko.carstens@de.ibm.com>;
-        Wed, 16 Oct 2019 09:25:26 +0100
-Date: Wed, 16 Oct 2019 10:25:16 +0200
+        Wed, 16 Oct 2019 09:28:40 +0100
+Date: Wed, 16 Oct 2019 10:28:30 +0200
 From: Heiko Carstens <heiko.carstens@de.ibm.com>
-Subject: Re: [PATCH v2 06/29] s390: Move RO_DATA into "text" PT_LOAD Program
- Header
+Subject: Re: [PATCH v2 00/29] vmlinux.lds.h: Refactor EXCEPTION_TABLE and
+ NOTES
 References: <20191011000609.29728-1-keescook@chromium.org>
- <20191011000609.29728-7-keescook@chromium.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20191011000609.29728-7-keescook@chromium.org>
-Message-ID: <20191016082516.GB4267@osiris>
+In-Reply-To: <20191011000609.29728-1-keescook@chromium.org>
+Message-ID: <20191016082830.GC4267@osiris>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Kees Cook <keescook@chromium.org>
 Cc: Borislav Petkov <bp@alien8.de>, Rick Edgecombe <rick.p.edgecombe@intel.com>, Dave Hansen <dave.hansen@linux.intel.com>, Andy Lutomirski <luto@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Michael Ellerman <mpe@ellerman.id.au>, Will Deacon <will@kernel.org>, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linuxppc-dev@lists.ozlabs.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-s390@vger.kernel.org, linux-c6x-dev@linux-c6x.org, Yoshinori Sato <ysato@users.sourceforge.jp>, Michal Simek <monstr@monstr.eu>, linux-parisc@vger.kernel.org, linux-xtensa@linux-xtensa.org, x86@kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20191016082516.E21OrxiEtMjbJDsLJlJRV7X5sKkaoFFJ9OjKQ0zXkb8@z>
+Message-ID: <20191016082830.DIFS6se62uhOscaFlDxuWif4CRZOlPzNvHF6M1WZSoU@z>
 
-On Thu, Oct 10, 2019 at 05:05:46PM -0700, Kees Cook wrote:
-> In preparation for moving NOTES into RO_DATA, move RO_DATA back into the
-> "text" PT_LOAD Program Header, as done with other architectures. The
-> "data" PT_LOAD now starts with the writable data section.
+On Thu, Oct 10, 2019 at 05:05:40PM -0700, Kees Cook wrote:
+> Arch maintainers: please send Acks (if you haven't already) for your
+> respective linker script changes; the intention is for this series to
+> land via -tip.
 > 
-> Signed-off-by: Kees Cook <keescook@chromium.org>
-> ---
->  arch/s390/kernel/vmlinux.lds.S | 4 ++--
->  1 file changed, 2 insertions(+), 2 deletions(-)
+> v1: https://lore.kernel.org/lkml/20190926175602.33098-1-keescook@chromium.org
+> v2: clean up commit messages, rename RO_EXCEPTION_TABLE (bp)
 > 
-> diff --git a/arch/s390/kernel/vmlinux.lds.S b/arch/s390/kernel/vmlinux.lds.S
-> index 7e0eb4020917..13294fef473e 100644
-> --- a/arch/s390/kernel/vmlinux.lds.S
-> +++ b/arch/s390/kernel/vmlinux.lds.S
-> @@ -52,7 +52,7 @@ SECTIONS
 > 
->  	NOTES :text :note
-> 
-> -	.dummy : { *(.dummy) } :data
-> +	.dummy : { *(.dummy) } :text
-> 
->  	RO_DATA_SECTION(PAGE_SIZE)
-> 
-> @@ -64,7 +64,7 @@ SECTIONS
->  	.data..ro_after_init : {
->  		 *(.data..ro_after_init)
->  		JUMP_TABLE_DATA
-> -	}
-> +	} :data
->  	EXCEPTION_TABLE(16)
->  	. = ALIGN(PAGE_SIZE);
->  	__end_ro_after_init = .;
+> This series works to move the linker sections for NOTES and
+> EXCEPTION_TABLE into the RO_DATA area, where they belong on most
+> (all?) architectures. The problem being addressed was the discovery
+> by Rick Edgecombe that the exception table was accidentally marked
+> executable while he was developing his execute-only-memory series. When
+> permissions were flipped from readable-and-executable to only-executable,
+> the exception table became unreadable, causing things to explode rather
+> badly. :)
 
+Feel free to add
 Acked-by: Heiko Carstens <heiko.carstens@de.ibm.com>
+to every patch in this series which touches s390.
