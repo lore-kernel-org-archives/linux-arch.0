@@ -1,7 +1,7 @@
 From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: [PATCH v3 3/5] asm-generic/tlb: stub out p4d_free_tlb() if nop4d ...
-Date: Wed, 16 Oct 2019 09:23:58 -0700
-Message-ID: <20191016162400.14796-4-vgupta@synopsys.com>
+Subject: [PATCH v3 4/5] asm-generic/tlb: stub out pmd_free_tlb() if nopmd
+Date: Wed, 16 Oct 2019 09:23:59 -0700
+Message-ID: <20191016162400.14796-5-vgupta@synopsys.com>
 References: <20191016162400.14796-1-vgupta@synopsys.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -21,70 +21,37 @@ To: linux-mm@kvack.org
 Cc: linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Peter Zijlstra <peterz@infradead.org>, "Aneesh Kumar K . V" <aneesh.kumar@linux.ibm.com>, Vineet Gupta <Vineet.Gupta1@synopsys.com>, linux-kernel@vger.kernel.org, Nick Piggin <npiggin@gmail.com>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, linux-snps-arc@lists.infradead.org, Will Deacon <will@kernel.org>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>
 List-Id: linux-arch.vger.kernel.org
 
-... independent of __ARCH_HAS_5LEVEL_HACK
-
 This came up when removing __ARCH_HAS_5LEVEL_HACK for ARC as code bloat.
-With this patch we see the following code reduction
+With this patch we see the following code reduction.
 
-| bloat-o-meter2 vmlinux-C-elide-pud_free_tlb vmlinux-D-elide-p4d_free_tlb
-| add/remove: 0/0 grow/shrink: 0/1 up/down: 0/-104 (-104)
+| bloat-o-meter2 vmlinux-E-elide-p?d_clear_bad vmlinux-F-elide-pmd_free_tlb
+| add/remove: 0/0 grow/shrink: 0/1 up/down: 0/-112 (-112)
 | function                                     old     new   delta
-| free_pgd_range                               552     422    -130
-| Total: Before=4137172, After=4137042, chg -1.000000%
+| free_pgd_range                               422     310    -112
+| Total: Before=4137042, After=4136930, chg -1.000000%
+
+Note that pmd folding can be tricky: In 2-level setup (where pmd is
+conceptually folded) most pmd routines are valid and refer to upper levels.
+In this patch we can, but see next patch for example where we can't
 
 Acked-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
-Acked-by: Linus Torvalds <torvalds@linux-foundation.org>
 Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
 ---
- include/asm-generic/5level-fixup.h  | 1 -
- include/asm-generic/pgtable-nop4d.h | 2 +-
- include/asm-generic/tlb.h           | 2 --
- 3 files changed, 1 insertion(+), 4 deletions(-)
+ include/asm-generic/pgtable-nopmd.h | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/include/asm-generic/5level-fixup.h b/include/asm-generic/5level-fixup.h
-index f6947da70d71..4c74b1c1d13b 100644
---- a/include/asm-generic/5level-fixup.h
-+++ b/include/asm-generic/5level-fixup.h
-@@ -51,7 +51,6 @@ static inline int p4d_present(p4d_t p4d)
- #undef p4d_free_tlb
- #define p4d_free_tlb(tlb, x, addr)	do { } while (0)
- #define p4d_free(mm, x)			do { } while (0)
--#define __p4d_free_tlb(tlb, x, addr)	do { } while (0)
+diff --git a/include/asm-generic/pgtable-nopmd.h b/include/asm-generic/pgtable-nopmd.h
+index b85b8271a73d..0d9b28cba16d 100644
+--- a/include/asm-generic/pgtable-nopmd.h
++++ b/include/asm-generic/pgtable-nopmd.h
+@@ -60,7 +60,7 @@ static inline pmd_t * pmd_offset(pud_t * pud, unsigned long address)
+ static inline void pmd_free(struct mm_struct *mm, pmd_t *pmd)
+ {
+ }
+-#define __pmd_free_tlb(tlb, x, a)		do { } while (0)
++#define pmd_free_tlb(tlb, x, a)		do { } while (0)
  
- #undef  p4d_addr_end
- #define p4d_addr_end(addr, end)		(end)
-diff --git a/include/asm-generic/pgtable-nop4d.h b/include/asm-generic/pgtable-nop4d.h
-index aebab905e6cd..ce2cbb3c380f 100644
---- a/include/asm-generic/pgtable-nop4d.h
-+++ b/include/asm-generic/pgtable-nop4d.h
-@@ -50,7 +50,7 @@ static inline p4d_t *p4d_offset(pgd_t *pgd, unsigned long address)
-  */
- #define p4d_alloc_one(mm, address)		NULL
- #define p4d_free(mm, x)				do { } while (0)
--#define __p4d_free_tlb(tlb, x, a)		do { } while (0)
-+#define p4d_free_tlb(tlb, x, a)			do { } while (0)
- 
- #undef  p4d_addr_end
- #define p4d_addr_end(addr, end)			(end)
-diff --git a/include/asm-generic/tlb.h b/include/asm-generic/tlb.h
-index 5e0c2d01e656..05dddc17522b 100644
---- a/include/asm-generic/tlb.h
-+++ b/include/asm-generic/tlb.h
-@@ -594,7 +594,6 @@ static inline void tlb_end_vma(struct mmu_gather *tlb, struct vm_area_struct *vm
- 	} while (0)
- #endif
- 
--#ifndef __ARCH_HAS_5LEVEL_HACK
- #ifndef p4d_free_tlb
- #define p4d_free_tlb(tlb, pudp, address)			\
- 	do {							\
-@@ -603,7 +602,6 @@ static inline void tlb_end_vma(struct mmu_gather *tlb, struct vm_area_struct *vm
- 		__p4d_free_tlb(tlb, pudp, address);		\
- 	} while (0)
- #endif
--#endif
- 
- #endif /* CONFIG_MMU */
- 
+ #undef  pmd_addr_end
+ #define pmd_addr_end(addr, end)			(end)
 -- 
 2.20.1
