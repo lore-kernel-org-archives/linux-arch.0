@@ -1,14 +1,11 @@
 From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: [PATCH v3 5/5] asm-generic/mm: stub out p{4,
- u}d_clear_bad() if __PAGETABLE_P{4, U}D_FOLDED
-Date: Wed, 16 Oct 2019 09:24:00 -0700
-Message-ID: <20191016162400.14796-6-vgupta@synopsys.com>
-References: <20191016162400.14796-1-vgupta@synopsys.com>
+Subject: [PATCH v3 0/5] elide extraneous generated code for folded p4d/pud/pmd
+Date: Wed, 16 Oct 2019 09:23:55 -0700
+Message-ID: <20191016162400.14796-1-vgupta@synopsys.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-snps-arc-bounces+gla-linux-snps-arc=m.gmane.org@lists.infradead.org>
-In-Reply-To: <20191016162400.14796-1-vgupta@synopsys.com>
 List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-snps-arc>,
  <mailto:linux-snps-arc-request@lists.infradead.org?subject=unsubscribe>
 List-Archive: <http://lists.infradead.org/pipermail/linux-snps-arc/>
@@ -22,78 +19,72 @@ To: linux-mm@kvack.org
 Cc: linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Peter Zijlstra <peterz@infradead.org>, "Aneesh Kumar K . V" <aneesh.kumar@linux.ibm.com>, Vineet Gupta <Vineet.Gupta1@synopsys.com>, linux-kernel@vger.kernel.org, Nick Piggin <npiggin@gmail.com>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, linux-snps-arc@lists.infradead.org, Will Deacon <will@kernel.org>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>
 List-Id: linux-arch.vger.kernel.org
 
-This came up when removing __ARCH_HAS_5LEVEL_HACK for ARC as code bloat.
-With this patch we see the following code reduction.
+Hi,
 
-| bloat-o-meter2 vmlinux-D-elide-p4d_free_tlb vmlinux-E-elide-p?d_clear_bad
-| add/remove: 0/2 grow/shrink: 0/0 up/down: 0/-40 (-40)
+This series came out of seemingly benign excursion into understanding/removing
+__ARCH_USE_5LEVEL_HACK from ARC port showing some extraneous code being
+generated despite folded p4d/pud/pmd
+
+| bloat-o-meter2 vmlinux-[AB]*
+| add/remove: 0/0 grow/shrink: 3/0 up/down: 130/0 (130)
+| function                                     old     new   delta
+| free_pgd_range                               548     660    +112
+| p4d_clear_bad                                  2      20     +18
+
+The patches here address that
+
+| bloat-o-meter2 vmlinux-[BF]*
+| add/remove: 0/2 grow/shrink: 0/1 up/down: 0/-386 (-386)
 | function                                     old     new   delta
 | pud_clear_bad                                 20       -     -20
 | p4d_clear_bad                                 20       -     -20
-| Total: Before=4136930, After=4136890, chg -1.000000%
+| free_pgd_range                               660     314    -346
 
-Acked-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
-Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
+The code savings are not a whole lot, but still worthwhile IMHO.
+
+Please review, test and apply. It seems to survive my usual battery of
+multibench, hakcbench etc.
+
+Thx,
+-Vineet
+
 ---
- include/asm-generic/pgtable.h | 11 +++++++++++
- mm/pgtable-generic.c          |  9 +++++++++
- 2 files changed, 20 insertions(+)
+Changes since v2 [3]
+ - No code changes: Fixed the silly typos and collected ACKs
 
-diff --git a/include/asm-generic/pgtable.h b/include/asm-generic/pgtable.h
-index 818691846c90..9cdcbc7c0b7b 100644
---- a/include/asm-generic/pgtable.h
-+++ b/include/asm-generic/pgtable.h
-@@ -558,8 +558,19 @@ static inline pgprot_t pgprot_modify(pgprot_t oldprot, pgprot_t newprot)
-  * Do the tests inline, but report and clear the bad entry in mm/memory.c.
-  */
- void pgd_clear_bad(pgd_t *);
-+
-+#ifndef __PAGETABLE_P4D_FOLDED
- void p4d_clear_bad(p4d_t *);
-+#else
-+#define p4d_clear_bad(p4d)        do { } while (0)
-+#endif
-+
-+#ifndef __PAGETABLE_PUD_FOLDED
- void pud_clear_bad(pud_t *);
-+#else
-+#define pud_clear_bad(p4d)        do { } while (0)
-+#endif
-+
- void pmd_clear_bad(pmd_t *);
- 
- static inline int pgd_none_or_clear_bad(pgd_t *pgd)
-diff --git a/mm/pgtable-generic.c b/mm/pgtable-generic.c
-index 532c29276fce..3d7c01e76efc 100644
---- a/mm/pgtable-generic.c
-+++ b/mm/pgtable-generic.c
-@@ -24,18 +24,27 @@ void pgd_clear_bad(pgd_t *pgd)
- 	pgd_clear(pgd);
- }
- 
-+#ifndef __PAGETABLE_P4D_FOLDED
- void p4d_clear_bad(p4d_t *p4d)
- {
- 	p4d_ERROR(*p4d);
- 	p4d_clear(p4d);
- }
-+#endif
- 
-+#ifndef __PAGETABLE_PUD_FOLDED
- void pud_clear_bad(pud_t *pud)
- {
- 	pud_ERROR(*pud);
- 	pud_clear(pud);
- }
-+#endif
- 
-+/*
-+ * Note that the pmd variant below can't be stub'ed out just as for p4d/pud
-+ * above. pmd folding is special and typically pmd_* macros refer to upper
-+ * level even when folded
-+ */
- void pmd_clear_bad(pmd_t *pmd)
- {
- 	pmd_ERROR(*pmd);
+Changes since v1 [1]
+ - Per Linus Sugestion remvoed the extra ifdey'ery (hence not
+   accumulating Kirill's ACks)
+ - Added the RFC patch for pmd_free_tlb() after discussions [2]
+ - Also throwing in the ARC patch which started this all (so we get the
+   full context of patchset) - I'm ok if this goes via mm tree, should
+   be non contentious and can drop this too if Andrew thinks otherwise
+
+[1] http://lists.infradead.org/pipermail/linux-snps-arc/2019-October/006263.html
+[2] http://lists.infradead.org/pipermail/linux-snps-arc/2019-October/006277.html
+[3] http://lists.infradead.org/pipermail/linux-snps-arc/2019-October/006307.html
+---
+
+Vineet Gupta (5):
+  ARC: mm: remove __ARCH_USE_5LEVEL_HACK
+  asm-generic/tlb: stub out pud_free_tlb() if nopud ...
+  asm-generic/tlb: stub out p4d_free_tlb() if nop4d ...
+  asm-generic/tlb: stub out pmd_free_tlb() if nopmd
+  asm-generic/mm: stub out p{4,u}d_clear_bad() if
+    __PAGETABLE_P{4,u}D_FOLDED
+
+ arch/arc/include/asm/pgtable.h      |  1 -
+ arch/arc/mm/fault.c                 | 10 ++++++++--
+ arch/arc/mm/highmem.c               |  4 +++-
+ include/asm-generic/4level-fixup.h  |  1 -
+ include/asm-generic/5level-fixup.h  |  1 -
+ include/asm-generic/pgtable-nop4d.h |  2 +-
+ include/asm-generic/pgtable-nopmd.h |  2 +-
+ include/asm-generic/pgtable-nopud.h |  2 +-
+ include/asm-generic/pgtable.h       | 11 +++++++++++
+ include/asm-generic/tlb.h           |  4 ----
+ mm/pgtable-generic.c                |  9 +++++++++
+ 11 files changed, 34 insertions(+), 13 deletions(-)
+
 -- 
 2.20.1
