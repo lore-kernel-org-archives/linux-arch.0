@@ -1,215 +1,144 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm1-f74.google.com ([209.85.128.74]:52392 "EHLO
-        mail-wm1-f74.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S2391760AbfJPIlj (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 16 Oct 2019 04:41:39 -0400
-Received: by mail-wm1-f74.google.com with SMTP id m6so670641wmf.2
-        for <linux-arch@vger.kernel.org>; Wed, 16 Oct 2019 01:41:35 -0700 (PDT)
-Date: Wed, 16 Oct 2019 10:39:59 +0200
-In-Reply-To: <20191016083959.186860-1-elver@google.com>
-Message-ID: <20191016083959.186860-9-elver@google.com>
-Mime-Version: 1.0
+Received: from mail-qt1-f194.google.com ([209.85.160.194]:42024 "EHLO
+        mail-qt1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726689AbfJPJmr (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 16 Oct 2019 05:42:47 -0400
+Date: Wed, 16 Oct 2019 17:42:34 +0800
+From: Boqun Feng <boqun.feng@gmail.com>
+Subject: Re: [PATCH 1/8] kcsan: Add Kernel Concurrency Sanitizer
+ infrastructure
+Message-ID: <20191016094234.GB2701514@tardis>
 References: <20191016083959.186860-1-elver@google.com>
-Subject: [PATCH 8/8] x86, kcsan: Enable KCSAN for x86
-From: Marco Elver <elver@google.com>
-Content-Type: text/plain; charset="UTF-8"
+ <20191016083959.186860-2-elver@google.com>
+MIME-Version: 1.0
+Content-Type: multipart/signed; micalg=pgp-sha256;
+        protocol="application/pgp-signature"; boundary="yrj/dFKFPuw6o+aM"
+Content-Disposition: inline
+In-Reply-To: <20191016083959.186860-2-elver@google.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: elver@google.com
-Cc: akiyks@gmail.com, stern@rowland.harvard.edu, glider@google.com, parri.andrea@gmail.com, andreyknvl@google.com, luto@kernel.org, ard.biesheuvel@linaro.org, arnd@arndb.de, boqun.feng@gmail.com, bp@alien8.de, dja@axtens.net, dlustig@nvidia.com, dave.hansen@linux.intel.com, dhowells@redhat.com, dvyukov@google.com, hpa@zytor.com, mingo@redhat.com, j.alglave@ucl.ac.uk, joel@joelfernandes.org, corbet@lwn.net, jpoimboe@redhat.com, luc.maranget@inria.fr, mark.rutland@arm.com, npiggin@gmail.com, paulmck@linux.ibm.com, peterz@infradead.org, tglx@linutronix.de, will@kernel.org, kasan-dev@googlegroups.com, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, linux-efi@vger.kernel.org, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, x86@kernel.org
-Message-ID: <20191016083959.copHiICnQvpW5urEbLp9X4jYWvqZeN7JqEwXjrC9n3o@z>
+To: Marco Elver <elver@google.com>
+Cc: akiyks@gmail.com, stern@rowland.harvard.edu, glider@google.com, parri.andrea@gmail.com, andreyknvl@google.com, luto@kernel.org, ard.biesheuvel@linaro.org, arnd@arndb.de, bp@alien8.de, dja@axtens.net, dlustig@nvidia.com, dave.hansen@linux.intel.com, dhowells@redhat.com, dvyukov@google.com, hpa@zytor.com, mingo@redhat.com, j.alglave@ucl.ac.uk, joel@joelfernandes.org, corbet@lwn.net, jpoimboe@redhat.com, luc.maranget@inria.fr, mark.rutland@arm.com, npiggin@gmail.com, paulmck@linux.ibm.com, peterz@infradead.org, tglx@linutronix.de, will@kernel.org, kasan-dev@googlegroups.com, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, linux-efi@vger.kernel.org, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, x86@kernel.org
+Message-ID: <20191016094234.Z_IwTn7w2E0dYTwauif7LnTlvTYyGqpVbVHSnfR3Fls@z>
 
-This patch enables KCSAN for x86, with updates to build rules to not use
-KCSAN for several incompatible compilation units.
 
-Signed-off-by: Marco Elver <elver@google.com>
----
- arch/x86/Kconfig                      | 1 +
- arch/x86/boot/Makefile                | 1 +
- arch/x86/boot/compressed/Makefile     | 1 +
- arch/x86/entry/vdso/Makefile          | 1 +
- arch/x86/include/asm/bitops.h         | 2 +-
- arch/x86/kernel/Makefile              | 6 ++++++
- arch/x86/kernel/cpu/Makefile          | 3 +++
- arch/x86/lib/Makefile                 | 2 ++
- arch/x86/mm/Makefile                  | 3 +++
- arch/x86/purgatory/Makefile           | 1 +
- arch/x86/realmode/Makefile            | 1 +
- arch/x86/realmode/rm/Makefile         | 1 +
- drivers/firmware/efi/libstub/Makefile | 1 +
- 13 files changed, 23 insertions(+), 1 deletion(-)
+--yrj/dFKFPuw6o+aM
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
 
-diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
-index d6e1faa28c58..81859be4a005 100644
---- a/arch/x86/Kconfig
-+++ b/arch/x86/Kconfig
-@@ -226,6 +226,7 @@ config X86
- 	select VIRT_TO_BUS
- 	select X86_FEATURE_NAMES		if PROC_FS
- 	select PROC_PID_ARCH_STATUS		if PROC_FS
-+	select HAVE_ARCH_KCSAN if X86_64
- 
- config INSTRUCTION_DECODER
- 	def_bool y
-diff --git a/arch/x86/boot/Makefile b/arch/x86/boot/Makefile
-index e2839b5c246c..2f9e928acae6 100644
---- a/arch/x86/boot/Makefile
-+++ b/arch/x86/boot/Makefile
-@@ -10,6 +10,7 @@
- #
- 
- KASAN_SANITIZE			:= n
-+KCSAN_SANITIZE			:= n
- OBJECT_FILES_NON_STANDARD	:= y
- 
- # Kernel does not boot with kcov instrumentation here.
-diff --git a/arch/x86/boot/compressed/Makefile b/arch/x86/boot/compressed/Makefile
-index 6b84afdd7538..0921689f7c70 100644
---- a/arch/x86/boot/compressed/Makefile
-+++ b/arch/x86/boot/compressed/Makefile
-@@ -18,6 +18,7 @@
- #	compressed vmlinux.bin.all + u32 size of vmlinux.bin.all
- 
- KASAN_SANITIZE			:= n
-+KCSAN_SANITIZE			:= n
- OBJECT_FILES_NON_STANDARD	:= y
- 
- # Prevents link failures: __sanitizer_cov_trace_pc() is not linked in.
-diff --git a/arch/x86/entry/vdso/Makefile b/arch/x86/entry/vdso/Makefile
-index 0f2154106d01..d2cd34d2ac4e 100644
---- a/arch/x86/entry/vdso/Makefile
-+++ b/arch/x86/entry/vdso/Makefile
-@@ -12,6 +12,7 @@ include $(srctree)/lib/vdso/Makefile
- KBUILD_CFLAGS += $(DISABLE_LTO)
- KASAN_SANITIZE			:= n
- UBSAN_SANITIZE			:= n
-+KCSAN_SANITIZE			:= n
- OBJECT_FILES_NON_STANDARD	:= y
- 
- # Prevents link failures: __sanitizer_cov_trace_pc() is not linked in.
-diff --git a/arch/x86/include/asm/bitops.h b/arch/x86/include/asm/bitops.h
-index 7d1f6a49bfae..a36d900960e4 100644
---- a/arch/x86/include/asm/bitops.h
-+++ b/arch/x86/include/asm/bitops.h
-@@ -201,7 +201,7 @@ arch_test_and_change_bit(long nr, volatile unsigned long *addr)
- 	return GEN_BINARY_RMWcc(LOCK_PREFIX __ASM_SIZE(btc), *addr, c, "Ir", nr);
- }
- 
--static __always_inline bool constant_test_bit(long nr, const volatile unsigned long *addr)
-+static __no_kcsan_or_inline bool constant_test_bit(long nr, const volatile unsigned long *addr)
- {
- 	return ((1UL << (nr & (BITS_PER_LONG-1))) &
- 		(addr[nr >> _BITOPS_LONG_SHIFT])) != 0;
-diff --git a/arch/x86/kernel/Makefile b/arch/x86/kernel/Makefile
-index 3578ad248bc9..adccbbfa47e4 100644
---- a/arch/x86/kernel/Makefile
-+++ b/arch/x86/kernel/Makefile
-@@ -28,6 +28,12 @@ KASAN_SANITIZE_dumpstack_$(BITS).o			:= n
- KASAN_SANITIZE_stacktrace.o				:= n
- KASAN_SANITIZE_paravirt.o				:= n
- 
-+KCSAN_SANITIZE_head$(BITS).o				:= n
-+KCSAN_SANITIZE_dumpstack.o				:= n
-+KCSAN_SANITIZE_dumpstack_$(BITS).o			:= n
-+KCSAN_SANITIZE_stacktrace.o				:= n
-+KCSAN_SANITIZE_paravirt.o				:= n
-+
- OBJECT_FILES_NON_STANDARD_relocate_kernel_$(BITS).o	:= y
- OBJECT_FILES_NON_STANDARD_test_nx.o			:= y
- OBJECT_FILES_NON_STANDARD_paravirt_patch.o		:= y
-diff --git a/arch/x86/kernel/cpu/Makefile b/arch/x86/kernel/cpu/Makefile
-index d7a1e5a9331c..7651c4f37e5e 100644
---- a/arch/x86/kernel/cpu/Makefile
-+++ b/arch/x86/kernel/cpu/Makefile
-@@ -3,6 +3,9 @@
- # Makefile for x86-compatible CPU details, features and quirks
- #
- 
-+KCSAN_SANITIZE_common.o = n
-+KCSAN_SANITIZE_perf_event.o = n
-+
- # Don't trace early stages of a secondary CPU boot
- ifdef CONFIG_FUNCTION_TRACER
- CFLAGS_REMOVE_common.o = -pg
-diff --git a/arch/x86/lib/Makefile b/arch/x86/lib/Makefile
-index 5246db42de45..4e4b74f525f2 100644
---- a/arch/x86/lib/Makefile
-+++ b/arch/x86/lib/Makefile
-@@ -5,11 +5,13 @@
- 
- # Produces uninteresting flaky coverage.
- KCOV_INSTRUMENT_delay.o	:= n
-+KCSAN_SANITIZE_delay.o := n
- 
- # Early boot use of cmdline; don't instrument it
- ifdef CONFIG_AMD_MEM_ENCRYPT
- KCOV_INSTRUMENT_cmdline.o := n
- KASAN_SANITIZE_cmdline.o  := n
-+KCSAN_SANITIZE_cmdline.o  := n
- 
- ifdef CONFIG_FUNCTION_TRACER
- CFLAGS_REMOVE_cmdline.o = -pg
-diff --git a/arch/x86/mm/Makefile b/arch/x86/mm/Makefile
-index 84373dc9b341..ee871602f96a 100644
---- a/arch/x86/mm/Makefile
-+++ b/arch/x86/mm/Makefile
-@@ -7,6 +7,9 @@ KCOV_INSTRUMENT_mem_encrypt_identity.o	:= n
- KASAN_SANITIZE_mem_encrypt.o		:= n
- KASAN_SANITIZE_mem_encrypt_identity.o	:= n
- 
-+KCSAN_SANITIZE_mem_encrypt.o		:= n
-+KCSAN_SANITIZE_mem_encrypt_identity.o	:= n
-+
- ifdef CONFIG_FUNCTION_TRACER
- CFLAGS_REMOVE_mem_encrypt.o		= -pg
- CFLAGS_REMOVE_mem_encrypt_identity.o	= -pg
-diff --git a/arch/x86/purgatory/Makefile b/arch/x86/purgatory/Makefile
-index fb4ee5444379..72060744f34f 100644
---- a/arch/x86/purgatory/Makefile
-+++ b/arch/x86/purgatory/Makefile
-@@ -18,6 +18,7 @@ LDFLAGS_purgatory.ro := -e purgatory_start -r --no-undefined -nostdlib -z nodefa
- targets += purgatory.ro
- 
- KASAN_SANITIZE	:= n
-+KCSAN_SANITIZE	:= n
- KCOV_INSTRUMENT := n
- 
- # These are adjustments to the compiler flags used for objects that
-diff --git a/arch/x86/realmode/Makefile b/arch/x86/realmode/Makefile
-index 682c895753d9..4fc7ce2534dd 100644
---- a/arch/x86/realmode/Makefile
-+++ b/arch/x86/realmode/Makefile
-@@ -7,6 +7,7 @@
- #
- #
- KASAN_SANITIZE			:= n
-+KCSAN_SANITIZE			:= n
- OBJECT_FILES_NON_STANDARD	:= y
- 
- subdir- := rm
-diff --git a/arch/x86/realmode/rm/Makefile b/arch/x86/realmode/rm/Makefile
-index f60501a384f9..6f7fbe9dfda6 100644
---- a/arch/x86/realmode/rm/Makefile
-+++ b/arch/x86/realmode/rm/Makefile
-@@ -7,6 +7,7 @@
- #
- #
- KASAN_SANITIZE			:= n
-+KCSAN_SANITIZE			:= n
- OBJECT_FILES_NON_STANDARD	:= y
- 
- # Prevents link failures: __sanitizer_cov_trace_pc() is not linked in.
-diff --git a/drivers/firmware/efi/libstub/Makefile b/drivers/firmware/efi/libstub/Makefile
-index 0460c7581220..a56981286623 100644
---- a/drivers/firmware/efi/libstub/Makefile
-+++ b/drivers/firmware/efi/libstub/Makefile
-@@ -32,6 +32,7 @@ KBUILD_CFLAGS			:= $(cflags-y) -DDISABLE_BRANCH_PROFILING \
- 
- GCOV_PROFILE			:= n
- KASAN_SANITIZE			:= n
-+KCSAN_SANITIZE			:= n
- UBSAN_SANITIZE			:= n
- OBJECT_FILES_NON_STANDARD	:= y
- 
--- 
-2.23.0.700.g56cf767bdb-goog
+Hi Marco,
+
+On Wed, Oct 16, 2019 at 10:39:52AM +0200, Marco Elver wrote:
+[...]
+> --- /dev/null
+> +++ b/kernel/kcsan/kcsan.c
+> @@ -0,0 +1,81 @@
+> +// SPDX-License-Identifier: GPL-2.0
+> +
+> +/*
+> + * The Kernel Concurrency Sanitizer (KCSAN) infrastructure. For more info please
+> + * see Documentation/dev-tools/kcsan.rst.
+> + */
+> +
+> +#include <linux/export.h>
+> +
+> +#include "kcsan.h"
+> +
+> +/*
+> + * Concurrency Sanitizer uses the same instrumentation as Thread Sanitizer.
+
+Is there any documentation on the instrumentation? Like a complete list
+for all instrumentation functions plus a description of where the
+compiler will use those functions. Yes, the names of the below functions
+are straightforward, but an accurate doc on the instrumentation will
+cerntainly help people review KCSAN.
+
+Regards,
+Boqun
+
+> + */
+> +
+> +#define DEFINE_TSAN_READ_WRITE(size)                                           \
+> +	void __tsan_read##size(void *ptr)                                      \
+> +	{                                                                      \
+> +		__kcsan_check_access(ptr, size, false);                        \
+> +	}                                                                      \
+> +	EXPORT_SYMBOL(__tsan_read##size);                                      \
+> +	void __tsan_write##size(void *ptr)                                     \
+> +	{                                                                      \
+> +		__kcsan_check_access(ptr, size, true);                         \
+> +	}                                                                      \
+> +	EXPORT_SYMBOL(__tsan_write##size)
+> +
+> +DEFINE_TSAN_READ_WRITE(1);
+> +DEFINE_TSAN_READ_WRITE(2);
+> +DEFINE_TSAN_READ_WRITE(4);
+> +DEFINE_TSAN_READ_WRITE(8);
+> +DEFINE_TSAN_READ_WRITE(16);
+> +
+> +/*
+> + * Not all supported compiler versions distinguish aligned/unaligned accesses,
+> + * but e.g. recent versions of Clang do.
+> + */
+> +#define DEFINE_TSAN_UNALIGNED_READ_WRITE(size)                                 \
+> +	void __tsan_unaligned_read##size(void *ptr)                            \
+> +	{                                                                      \
+> +		__kcsan_check_access(ptr, size, false);                        \
+> +	}                                                                      \
+> +	EXPORT_SYMBOL(__tsan_unaligned_read##size);                            \
+> +	void __tsan_unaligned_write##size(void *ptr)                           \
+> +	{                                                                      \
+> +		__kcsan_check_access(ptr, size, true);                         \
+> +	}                                                                      \
+> +	EXPORT_SYMBOL(__tsan_unaligned_write##size)
+> +
+> +DEFINE_TSAN_UNALIGNED_READ_WRITE(2);
+> +DEFINE_TSAN_UNALIGNED_READ_WRITE(4);
+> +DEFINE_TSAN_UNALIGNED_READ_WRITE(8);
+> +DEFINE_TSAN_UNALIGNED_READ_WRITE(16);
+> +
+> +void __tsan_read_range(void *ptr, size_t size)
+> +{
+> +	__kcsan_check_access(ptr, size, false);
+> +}
+> +EXPORT_SYMBOL(__tsan_read_range);
+> +
+> +void __tsan_write_range(void *ptr, size_t size)
+> +{
+> +	__kcsan_check_access(ptr, size, true);
+> +}
+> +EXPORT_SYMBOL(__tsan_write_range);
+> +
+> +/*
+> + * The below are not required KCSAN, but can still be emitted by the compiler.
+> + */
+> +void __tsan_func_entry(void *call_pc)
+> +{
+> +}
+> +EXPORT_SYMBOL(__tsan_func_entry);
+> +void __tsan_func_exit(void)
+> +{
+> +}
+> +EXPORT_SYMBOL(__tsan_func_exit);
+> +void __tsan_init(void)
+> +{
+> +}
+> +EXPORT_SYMBOL(__tsan_init);
+[...]
+
+--yrj/dFKFPuw6o+aM
+Content-Type: application/pgp-signature; name="signature.asc"
+
+-----BEGIN PGP SIGNATURE-----
+
+iQEzBAABCAAdFiEEj5IosQTPz8XU1wRHSXnow7UH+rgFAl2m5gMACgkQSXnow7UH
++rjJegf/Rrq3dKwfP4Vyd25nX8MIlEeiMrDXyxhCS2tQFw7EfcgilRD8INFnob38
+H/FZ9xR3ndkcpXmoq64gGCN+dEULY78jI7Zg1fpnvUcoVI+q7Hc43PWERvU3otLo
+c65FZXO36WKdEg0PJ//SWfSgwQBDfUdjmJ+17YBUd/78SleSsDk9PQNm+A6yb+u5
+5jsmrV1uo7vDA+B7/n8Pn06Zu8Uwi0qZn9aWQzoGwmAFrwaF7KRbvWX86p2SMr6k
+Tqi7Rpp0uoJDTBFyZg3Dmnizqh81BsHEEQtI3Yjh6bKUpGdre0tyMNUVRYHpQaYX
+oVHK6bV3bKlerxpvUT/SE2yOUOBGtw==
+=zQTb
+-----END PGP SIGNATURE-----
+
+--yrj/dFKFPuw6o+aM--
