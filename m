@@ -1,79 +1,169 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from Chamillionaire.breakpoint.cc ([193.142.43.52]:46416 "EHLO
-        Chamillionaire.breakpoint.cc" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1731944AbfJOWcK (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 15 Oct 2019 18:32:10 -0400
-Date: Wed, 16 Oct 2019 00:31:55 +0200
-From: Sebastian Andrzej Siewior <sebastian@breakpoint.cc>
-Subject: [PATCH 1/6 v2] sh: Move cmpxchg-xchg.h to asm-generic
-Message-ID: <20191015223154.7wcsc7x5edrpasfc@flow>
-References: <20191013221310.30748-1-sebastian@breakpoint.cc>
- <20191013221310.30748-2-sebastian@breakpoint.cc>
- <CAK8P3a0q+03=uNcnnHrGqHGOcAO3-mytxSmoBWLtHY+5StMNOQ@mail.gmail.com>
+Received: from userp2130.oracle.com ([156.151.31.86]:34108 "EHLO
+        userp2130.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726078AbfJPEch (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 16 Oct 2019 00:32:37 -0400
+From: Alex Kogan <alex.kogan@oracle.com>
+Subject: [PATCH v5 1/5] locking/qspinlock: Rename mcs lock/unlock macros and make them more generic
+Date: Wed, 16 Oct 2019 00:28:59 -0400
+Message-ID: <20191016042903.61081-2-alex.kogan@oracle.com>
+In-Reply-To: <20191016042903.61081-1-alex.kogan@oracle.com>
+References: <20191016042903.61081-1-alex.kogan@oracle.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-Content-Transfer-Encoding: 8BIT
-In-Reply-To: <CAK8P3a0q+03=uNcnnHrGqHGOcAO3-mytxSmoBWLtHY+5StMNOQ@mail.gmail.com>
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Linux ARM <linux-arm-kernel@lists.infradead.org>, Peter Zijlstra <peterz@infradead.org>, Russell King <linux@armlinux.org.uk>, Ingo Molnar <mingo@redhat.com>, Waiman Long <longman@redhat.com>, Will Deacon <will@kernel.org>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, Linux-sh list <linux-sh@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>
-Message-ID: <20191015223155.nVfa_bxLrVXzTEDj0pS0tc2IVPw8roje5tHlhN0NNMY@z>
+To: linux@armlinux.org.uk, peterz@infradead.org, mingo@redhat.com, will.deacon@arm.com, arnd@arndb.de, longman@redhat.com, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, bp@alien8.de, hpa@zytor.com, x86@kernel.org, guohanjun@huawei.com, jglauber@marvell.com
+Cc: steven.sistare@oracle.com, daniel.m.jordan@oracle.com, alex.kogan@oracle.com, dave.dice@oracle.com, rahul.x.yadav@oracle.com
+Message-ID: <20191016042859.JSr6t5tMaL9F-9DbmQ-qNBZZLiOxGnYJV7hwrWX1COw@z>
 
-The header file is very generic and could be reused by other
-architectures as long as they provide __cmpxchg_u32().
+The mcs unlock macro (arch_mcs_pass_lock) should accept the value to be
+stored into the lock argument as another argument. This allows using the
+same macro in cases where the value to be stored when passing the lock is
+different from 1.
 
-Move sh's cmpxchg-xchg.h to asm-generic.
-
-Cc: Yoshinori Sato <ysato@users.sourceforge.jp>
-Cc: Rich Felker <dalias@libc.org>
-Cc: Arnd Bergmann <arnd@arndb.de>
-Cc: linux-sh@vger.kernel.org
-Cc: linux-arch@vger.kernel.org
-Acked-by: Arnd Bergmann <arnd@arndb.de>
-Signed-off-by: Sebastian Andrzej Siewior <sebastian@breakpoint.cc>
+Signed-off-by: Alex Kogan <alex.kogan@oracle.com>
+Reviewed-by: Steve Sistare <steven.sistare@oracle.com>
 ---
-v1…v2: s@__ASM_SH_CMPXCHG_XCHG_H@__ASM_GENERIC_CMPXCHG_XCHG_H@
+ arch/arm/include/asm/mcs_spinlock.h |  6 +++---
+ include/asm-generic/mcs_spinlock.h  |  4 ++--
+ kernel/locking/mcs_spinlock.h       | 18 +++++++++---------
+ kernel/locking/qspinlock.c          |  4 ++--
+ kernel/locking/qspinlock_paravirt.h |  2 +-
+ 5 files changed, 17 insertions(+), 17 deletions(-)
 
- arch/sh/include/asm/Kbuild                                  | 1 +
- {arch/sh/include/asm => include/asm-generic}/cmpxchg-xchg.h | 6 +++---
- 2 files changed, 4 insertions(+), 3 deletions(-)
- rename {arch/sh/include/asm => include/asm-generic}/cmpxchg-xchg.h (91%)
-
-diff --git a/arch/sh/include/asm/Kbuild b/arch/sh/include/asm/Kbuild
-index 51a54df22c110..08c1d96286d9d 100644
---- a/arch/sh/include/asm/Kbuild
-+++ b/arch/sh/include/asm/Kbuild
-@@ -1,5 +1,6 @@
- # SPDX-License-Identifier: GPL-2.0
- generated-y += syscall_table.h
-+generic-y += cmpxchg-xchg.h
- generic-y += compat.h
- generic-y += current.h
- generic-y += delay.h
-diff --git a/arch/sh/include/asm/cmpxchg-xchg.h b/include/asm-generic/cmpxchg-xchg.h
-similarity index 91%
-rename from arch/sh/include/asm/cmpxchg-xchg.h
-rename to include/asm-generic/cmpxchg-xchg.h
-index c373f21efe4d9..c9acd6ff8741d 100644
---- a/arch/sh/include/asm/cmpxchg-xchg.h
-+++ b/include/asm-generic/cmpxchg-xchg.h
-@@ -1,6 +1,6 @@
- /* SPDX-License-Identifier: GPL-2.0 */
--#ifndef __ASM_SH_CMPXCHG_XCHG_H
--#define __ASM_SH_CMPXCHG_XCHG_H
-+#ifndef __ASM_GENERIC_CMPXCHG_XCHG_H
-+#define __ASM_GENERIC_CMPXCHG_XCHG_H
+diff --git a/arch/arm/include/asm/mcs_spinlock.h b/arch/arm/include/asm/mcs_spinlock.h
+index 529d2cf4d06f..693fe6ce3c43 100644
+--- a/arch/arm/include/asm/mcs_spinlock.h
++++ b/arch/arm/include/asm/mcs_spinlock.h
+@@ -6,7 +6,7 @@
+ #include <asm/spinlock.h>
+ 
+ /* MCS spin-locking. */
+-#define arch_mcs_spin_lock_contended(lock)				\
++#define arch_mcs_spin_lock(lock)				\
+ do {									\
+ 	/* Ensure prior stores are observed before we enter wfe. */	\
+ 	smp_mb();							\
+@@ -14,9 +14,9 @@ do {									\
+ 		wfe();							\
+ } while (0)								\
+ 
+-#define arch_mcs_spin_unlock_contended(lock)				\
++#define arch_mcs_pass_lock(lock, val)					\
+ do {									\
+-	smp_store_release(lock, 1);					\
++	smp_store_release((lock), (val));				\
+ 	dsb_sev();							\
+ } while (0)
+ 
+diff --git a/include/asm-generic/mcs_spinlock.h b/include/asm-generic/mcs_spinlock.h
+index 10cd4ffc6ba2..868da43dba7c 100644
+--- a/include/asm-generic/mcs_spinlock.h
++++ b/include/asm-generic/mcs_spinlock.h
+@@ -4,8 +4,8 @@
+ /*
+  * Architectures can define their own:
+  *
+- *   arch_mcs_spin_lock_contended(l)
+- *   arch_mcs_spin_unlock_contended(l)
++ *   arch_mcs_spin_lock(l)
++ *   arch_mcs_pass_lock(l, val)
+  *
+  * See kernel/locking/mcs_spinlock.c.
+  */
+diff --git a/kernel/locking/mcs_spinlock.h b/kernel/locking/mcs_spinlock.h
+index 5e10153b4d3c..52d06ec6f525 100644
+--- a/kernel/locking/mcs_spinlock.h
++++ b/kernel/locking/mcs_spinlock.h
+@@ -21,7 +21,7 @@ struct mcs_spinlock {
+ 	int count;  /* nesting count, see qspinlock.c */
+ };
+ 
+-#ifndef arch_mcs_spin_lock_contended
++#ifndef arch_mcs_spin_lock
+ /*
+  * Using smp_cond_load_acquire() provides the acquire semantics
+  * required so that subsequent operations happen after the
+@@ -29,20 +29,20 @@ struct mcs_spinlock {
+  * ARM64 would like to do spin-waiting instead of purely
+  * spinning, and smp_cond_load_acquire() provides that behavior.
+  */
+-#define arch_mcs_spin_lock_contended(l)					\
+-do {									\
+-	smp_cond_load_acquire(l, VAL);					\
++#define arch_mcs_spin_lock(l)					\
++do {								\
++	smp_cond_load_acquire(l, VAL);				\
+ } while (0)
+ #endif
+ 
+-#ifndef arch_mcs_spin_unlock_contended
++#ifndef arch_mcs_spin_unlock
+ /*
+  * smp_store_release() provides a memory barrier to ensure all
+  * operations in the critical section has been completed before
+  * unlocking.
+  */
+-#define arch_mcs_spin_unlock_contended(l)				\
+-	smp_store_release((l), 1)
++#define arch_mcs_pass_lock(l, val)				\
++	smp_store_release((l), (val))
+ #endif
  
  /*
-  * Copyright (C) 2016 Red Hat, Inc.
-@@ -47,4 +47,4 @@ static inline unsigned long xchg_u8(volatile u8 *m, unsigned long val)
- 	return __xchg_cmpxchg(m, val, sizeof *m);
+@@ -91,7 +91,7 @@ void mcs_spin_lock(struct mcs_spinlock **lock, struct mcs_spinlock *node)
+ 	WRITE_ONCE(prev->next, node);
+ 
+ 	/* Wait until the lock holder passes the lock down. */
+-	arch_mcs_spin_lock_contended(&node->locked);
++	arch_mcs_spin_lock(&node->locked);
  }
  
--#endif /* __ASM_SH_CMPXCHG_XCHG_H */
-+#endif /* __ASM_GENERIC_CMPXCHG_XCHG_H */
+ /*
+@@ -115,7 +115,7 @@ void mcs_spin_unlock(struct mcs_spinlock **lock, struct mcs_spinlock *node)
+ 	}
+ 
+ 	/* Pass lock to next waiter. */
+-	arch_mcs_spin_unlock_contended(&next->locked);
++	arch_mcs_pass_lock(&next->locked, 1);
+ }
+ 
+ #endif /* __LINUX_MCS_SPINLOCK_H */
+diff --git a/kernel/locking/qspinlock.c b/kernel/locking/qspinlock.c
+index 2473f10c6956..804c0fbd6328 100644
+--- a/kernel/locking/qspinlock.c
++++ b/kernel/locking/qspinlock.c
+@@ -470,7 +470,7 @@ void queued_spin_lock_slowpath(struct qspinlock *lock, u32 val)
+ 		WRITE_ONCE(prev->next, node);
+ 
+ 		pv_wait_node(node, prev);
+-		arch_mcs_spin_lock_contended(&node->locked);
++		arch_mcs_spin_lock(&node->locked);
+ 
+ 		/*
+ 		 * While waiting for the MCS lock, the next pointer may have
+@@ -549,7 +549,7 @@ void queued_spin_lock_slowpath(struct qspinlock *lock, u32 val)
+ 	if (!next)
+ 		next = smp_cond_load_relaxed(&node->next, (VAL));
+ 
+-	arch_mcs_spin_unlock_contended(&next->locked);
++	arch_mcs_pass_lock(&next->locked, 1);
+ 	pv_kick_node(lock, next);
+ 
+ release:
+diff --git a/kernel/locking/qspinlock_paravirt.h b/kernel/locking/qspinlock_paravirt.h
+index e84d21aa0722..e98079414671 100644
+--- a/kernel/locking/qspinlock_paravirt.h
++++ b/kernel/locking/qspinlock_paravirt.h
+@@ -368,7 +368,7 @@ static void pv_kick_node(struct qspinlock *lock, struct mcs_spinlock *node)
+ 	 *
+ 	 * Matches with smp_store_mb() and cmpxchg() in pv_wait_node()
+ 	 *
+-	 * The write to next->locked in arch_mcs_spin_unlock_contended()
++	 * The write to next->locked in arch_mcs_pass_lock()
+ 	 * must be ordered before the read of pn->state in the cmpxchg()
+ 	 * below for the code to work correctly. To guarantee full ordering
+ 	 * irrespective of the success or failure of the cmpxchg(),
 -- 
-2.23.0
+2.11.0 (Apple Git-81)
