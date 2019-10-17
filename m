@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.133]:54616 "EHLO
+Received: from bombadil.infradead.org ([198.137.202.133]:56110 "EHLO
         bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S2437222AbfJQRqi (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 17 Oct 2019 13:46:38 -0400
+        with ESMTP id S2440984AbfJQRrC (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 17 Oct 2019 13:47:02 -0400
 From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 07/21] parisc: remove __ioremap
-Date: Thu, 17 Oct 2019 19:45:40 +0200
-Message-ID: <20191017174554.29840-8-hch@lst.de>
+Subject: [PATCH 16/21] sh: remove __iounmap
+Date: Thu, 17 Oct 2019 19:45:49 +0200
+Message-ID: <20191017174554.29840-17-hch@lst.de>
 In-Reply-To: <20191017174554.29840-1-hch@lst.de>
 References: <20191017174554.29840-1-hch@lst.de>
 MIME-Version: 1.0
@@ -15,82 +15,68 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Arnd Bergmann <arnd@arndb.de>, Guo Ren <guoren@kernel.org>, Michal Simek <monstr@monstr.eu>, Greentime Hu <green.hu@gmail.com>, Vincent Chen <deanbo422@gmail.com>, Guan Xuetao <gxt@pku.edu.cn>, x86@kernel.org
 Cc: linux-alpha@vger.kernel.org, linux-snps-arc@lists.infradead.org, linux-arm-kernel@lists.infradead.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, nios2-dev@lists.rocketboards.org, openrisc@lists.librecores.org, linux-parisc@vger.kernel.org, linux-riscv@lists.infradead.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-mtd@lists.infradead.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20191017174540.KugwIUWUUK1_yt-JItHhCXbhONOevA2zutBUe5AkFBs@z>
+Message-ID: <20191017174549.EVNyVKBAqV_T8PHAp7uzhJepJNBajqZOEv3iswRTozE@z>
 
-__ioremap is always called with the _PAGE_NO_CACHE, so fold the whole
-thing and rename it to ioremap.  This allows allows to remove the
-special EISA quirk to force _PAGE_NO_CACHE.
+No need to indirect iounmap for sh.
 
 Signed-off-by: Christoph Hellwig <hch@lst.de>
 ---
- arch/parisc/include/asm/io.h | 11 +----------
- arch/parisc/mm/ioremap.c     | 10 ++++------
- 2 files changed, 5 insertions(+), 16 deletions(-)
+ arch/sh/include/asm/io.h | 9 ++-------
+ arch/sh/mm/ioremap.c     | 4 ++--
+ 2 files changed, 4 insertions(+), 9 deletions(-)
 
-diff --git a/arch/parisc/include/asm/io.h b/arch/parisc/include/asm/io.h
-index 93d37010b375..46212b52c23e 100644
---- a/arch/parisc/include/asm/io.h
-+++ b/arch/parisc/include/asm/io.h
-@@ -127,16 +127,7 @@ static inline void gsc_writeq(unsigned long long val, unsigned long addr)
- /*
-  * The standard PCI ioremap interfaces
-  */
--
--extern void __iomem * __ioremap(unsigned long offset, unsigned long size, unsigned long flags);
--
--/* Most machines react poorly to I/O-space being cacheable... Instead let's
-- * define ioremap() in terms of ioremap_nocache().
-- */
--static inline void __iomem * ioremap(unsigned long offset, unsigned long size)
+diff --git a/arch/sh/include/asm/io.h b/arch/sh/include/asm/io.h
+index ac0561960c52..1495489225ac 100644
+--- a/arch/sh/include/asm/io.h
++++ b/arch/sh/include/asm/io.h
+@@ -267,7 +267,7 @@ unsigned long long poke_real_address_q(unsigned long long addr,
+ #ifdef CONFIG_MMU
+ void __iomem *__ioremap_caller(phys_addr_t offset, unsigned long size,
+ 			       pgprot_t prot, void *caller);
+-void __iounmap(void __iomem *addr);
++void iounmap(void __iomem *addr);
+ 
+ static inline void __iomem *
+ __ioremap(phys_addr_t offset, unsigned long size, pgprot_t prot)
+@@ -328,7 +328,7 @@ __ioremap_mode(phys_addr_t offset, unsigned long size, pgprot_t prot)
+ #else
+ #define __ioremap(offset, size, prot)		((void __iomem *)(offset))
+ #define __ioremap_mode(offset, size, prot)	((void __iomem *)(offset))
+-#define __iounmap(addr)				do { } while (0)
++#define iounmap(addr)				do { } while (0)
+ #endif /* CONFIG_MMU */
+ 
+ static inline void __iomem *ioremap(phys_addr_t offset, unsigned long size)
+@@ -370,11 +370,6 @@ static inline int iounmap_fixed(void __iomem *addr) { return -EINVAL; }
+ #define ioremap_nocache	ioremap
+ #define ioremap_uc	ioremap
+ 
+-static inline void iounmap(void __iomem *addr)
 -{
--	return __ioremap(offset, size, _PAGE_NO_CACHE);
+-	__iounmap(addr);
 -}
-+void __iomem *ioremap(unsigned long offset, unsigned long size);
- #define ioremap_nocache(off, sz)	ioremap((off), (sz))
- #define ioremap_wc			ioremap_nocache
- #define ioremap_uc			ioremap_nocache
-diff --git a/arch/parisc/mm/ioremap.c b/arch/parisc/mm/ioremap.c
-index f29f682352f0..6e7c005aa09b 100644
---- a/arch/parisc/mm/ioremap.c
-+++ b/arch/parisc/mm/ioremap.c
-@@ -25,7 +25,7 @@
-  * have to convert them into an offset in a page-aligned mapping, but the
-  * caller shouldn't need to know that small detail.
-  */
--void __iomem * __ioremap(unsigned long phys_addr, unsigned long size, unsigned long flags)
-+void __iomem *ioremap(unsigned long phys_addr, unsigned long size)
- {
- 	void __iomem *addr;
- 	struct vm_struct *area;
-@@ -36,10 +36,8 @@ void __iomem * __ioremap(unsigned long phys_addr, unsigned long size, unsigned l
- 	unsigned long end = phys_addr + size - 1;
- 	/* Support EISA addresses */
- 	if ((phys_addr >= 0x00080000 && end < 0x000fffff) ||
--	    (phys_addr >= 0x00500000 && end < 0x03bfffff)) {
-+	    (phys_addr >= 0x00500000 && end < 0x03bfffff))
- 		phys_addr |= F_EXTEND(0xfc000000);
--		flags |= _PAGE_NO_CACHE;
--	}
- #endif
- 
- 	/* Don't allow wraparound or zero size */
-@@ -65,7 +63,7 @@ void __iomem * __ioremap(unsigned long phys_addr, unsigned long size, unsigned l
- 	}
- 
- 	pgprot = __pgprot(_PAGE_PRESENT | _PAGE_RW | _PAGE_DIRTY |
--			  _PAGE_ACCESSED | flags);
-+			  _PAGE_ACCESSED | _PAGE_NO_CACHE);
- 
- 	/*
- 	 * Mappings have to be page-aligned
-@@ -90,7 +88,7 @@ void __iomem * __ioremap(unsigned long phys_addr, unsigned long size, unsigned l
- 
- 	return (void __iomem *) (offset + (char __iomem *)addr);
+-
+ /*
+  * Convert a physical pointer to a virtual kernel pointer for /dev/mem
+  * access
+diff --git a/arch/sh/mm/ioremap.c b/arch/sh/mm/ioremap.c
+index d09ddfe58fd8..f6d02246d665 100644
+--- a/arch/sh/mm/ioremap.c
++++ b/arch/sh/mm/ioremap.c
+@@ -103,7 +103,7 @@ static inline int iomapping_nontranslatable(unsigned long offset)
+ 	return 0;
  }
--EXPORT_SYMBOL(__ioremap);
-+EXPORT_SYMBOL(ioremap);
  
- void iounmap(const volatile void __iomem *io_addr)
+-void __iounmap(void __iomem *addr)
++void iounmap(void __iomem *addr)
  {
+ 	unsigned long vaddr = (unsigned long __force)addr;
+ 	struct vm_struct *p;
+@@ -134,4 +134,4 @@ void __iounmap(void __iomem *addr)
+ 
+ 	kfree(p);
+ }
+-EXPORT_SYMBOL(__iounmap);
++EXPORT_SYMBOL(iounmap);
 -- 
 2.20.1
