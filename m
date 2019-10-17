@@ -1,135 +1,174 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qk1-f201.google.com ([209.85.222.201]:55623 "EHLO
-        mail-qk1-f201.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727429AbfJQON3 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 17 Oct 2019 10:13:29 -0400
-Received: by mail-qk1-f201.google.com with SMTP id q80so2185816qke.22
-        for <linux-arch@vger.kernel.org>; Thu, 17 Oct 2019 07:13:26 -0700 (PDT)
-Date: Thu, 17 Oct 2019 16:12:57 +0200
-Message-ID: <20191017141305.146193-1-elver@google.com>
+Received: from mail-qt1-f202.google.com ([209.85.160.202]:33191 "EHLO
+        mail-qt1-f202.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S2439887AbfJQONk (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 17 Oct 2019 10:13:40 -0400
+Received: by mail-qt1-f202.google.com with SMTP id k53so2446573qtk.0
+        for <linux-arch@vger.kernel.org>; Thu, 17 Oct 2019 07:13:39 -0700 (PDT)
+Date: Thu, 17 Oct 2019 16:13:01 +0200
+In-Reply-To: <20191017141305.146193-1-elver@google.com>
+Message-ID: <20191017141305.146193-5-elver@google.com>
 Mime-Version: 1.0
-Subject: [PATCH v2 0/8] Add Kernel Concurrency Sanitizer (KCSAN)
+References: <20191017141305.146193-1-elver@google.com>
+Subject: [PATCH v2 4/8] seqlock, kcsan: Add annotations for KCSAN
 From: Marco Elver <elver@google.com>
 Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: elver@google.com
 Cc: akiyks@gmail.com, stern@rowland.harvard.edu, glider@google.com, parri.andrea@gmail.com, andreyknvl@google.com, luto@kernel.org, ard.biesheuvel@linaro.org, arnd@arndb.de, boqun.feng@gmail.com, bp@alien8.de, dja@axtens.net, dlustig@nvidia.com, dave.hansen@linux.intel.com, dhowells@redhat.com, dvyukov@google.com, hpa@zytor.com, mingo@redhat.com, j.alglave@ucl.ac.uk, joel@joelfernandes.org, corbet@lwn.net, jpoimboe@redhat.com, luc.maranget@inria.fr, mark.rutland@arm.com, npiggin@gmail.com, paulmck@linux.ibm.com, peterz@infradead.org, tglx@linutronix.de, will@kernel.org, kasan-dev@googlegroups.com, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, linux-efi@vger.kernel.org, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, x86@kernel.org
-Message-ID: <20191017141257.kELPEgW8fPGeV4KO4MxZ_ALaj83I7IcEeb49fJg_iKo@z>
+Message-ID: <20191017141301.wsLAcmMOl5v0iCii-Kn08U2ZuSLUsKxRhX0iTFvwdio@z>
 
-This is the patch-series for the Kernel Concurrency Sanitizer (KCSAN).
-KCSAN is a sampling watchpoint-based data-race detector. More details
-are included in Documentation/dev-tools/kcsan.rst. This patch-series
-only enables KCSAN for x86, but we expect adding support for other
-architectures is relatively straightforward (we are aware of
-experimental ARM64 and POWER support).
+Since seqlocks in the Linux kernel do not require the use of marked
+atomic accesses in critical sections, we teach KCSAN to assume such
+accesses are atomic. KCSAN currently also pretends that writes to
+`sequence` are atomic, although currently plain writes are used (their
+corresponding reads are READ_ONCE).
 
-To gather early feedback, we announced KCSAN back in September, and
-have integrated the feedback where possible:
-http://lkml.kernel.org/r/CANpmjNPJ_bHjfLZCAPV23AXFfiPiyXXqqu72n6TgWzb2Gnu1eA@mail.gmail.com
+Further, to avoid false positives in the absence of clear ending of a
+seqlock reader critical section (only when using the raw interface),
+KCSAN assumes a fixed number of accesses after start of a seqlock
+critical section are atomic.
 
-We want to point out and acknowledge the work surrounding the LKMM,
-including several articles that motivate why data-races are dangerous
-[1, 2], justifying a data-race detector such as KCSAN.
-[1] https://lwn.net/Articles/793253/
-[2] https://lwn.net/Articles/799218/
+Signed-off-by: Marco Elver <elver@google.com>
+---
+ include/linux/seqlock.h | 44 +++++++++++++++++++++++++++++++++++++----
+ 1 file changed, 40 insertions(+), 4 deletions(-)
 
-The current list of known upstream fixes for data-races found by KCSAN
-can be found here:
-https://github.com/google/ktsan/wiki/KCSAN#upstream-fixes-of-data-races-found-by-kcsan
-
-Changelog
----------
-v2:
-* Elaborate comment about instrumentation calls emitted by compilers.
-* Replace kcsan_check_access(.., {true, false}) with
-  kcsan_check_{read,write} for improved readability.
-* Introduce __atomic_check_{read,write} in atomic-instrumented.h [Suggested by
-  Mark Rutland].
-* Change bug title of race of unknown origin to just say "data-race in".
-* Refine "Key Properties" in kcsan.rst, and mention observed slow-down.
-* Add comment about safety of find_watchpoint without user_access_save.
-* Remove unnecessary preempt_disable/enable and elaborate on comment why
-  we want to disable interrupts and preemptions.
-* Use common struct kcsan_ctx in task_struct and for per-CPU interrupt
-  contexts [Suggested by Mark Rutland].
-* Document x86 build exceptions where no previous above comment
-  explained why we cannot instrument.
-
-v1: http://lkml.kernel.org/r/20191016083959.186860-1-elver@google.com
-
-
-Marco Elver (8):
-  kcsan: Add Kernel Concurrency Sanitizer infrastructure
-  objtool, kcsan: Add KCSAN runtime functions to whitelist
-  build, kcsan: Add KCSAN build exceptions
-  seqlock, kcsan: Add annotations for KCSAN
-  seqlock: Require WRITE_ONCE surrounding raw_seqcount_barrier
-  asm-generic, kcsan: Add KCSAN instrumentation for bitops
-  locking/atomics, kcsan: Add KCSAN instrumentation
-  x86, kcsan: Enable KCSAN for x86
-
- Documentation/dev-tools/kcsan.rst         | 203 ++++++++++
- MAINTAINERS                               |  11 +
- Makefile                                  |   3 +-
- arch/x86/Kconfig                          |   1 +
- arch/x86/boot/Makefile                    |   2 +
- arch/x86/boot/compressed/Makefile         |   2 +
- arch/x86/entry/vdso/Makefile              |   3 +
- arch/x86/include/asm/bitops.h             |   6 +-
- arch/x86/kernel/Makefile                  |   7 +
- arch/x86/kernel/cpu/Makefile              |   3 +
- arch/x86/lib/Makefile                     |   4 +
- arch/x86/mm/Makefile                      |   3 +
- arch/x86/purgatory/Makefile               |   2 +
- arch/x86/realmode/Makefile                |   3 +
- arch/x86/realmode/rm/Makefile             |   3 +
- drivers/firmware/efi/libstub/Makefile     |   2 +
- include/asm-generic/atomic-instrumented.h | 393 ++++++++++----------
- include/asm-generic/bitops-instrumented.h |  18 +
- include/linux/compiler-clang.h            |   9 +
- include/linux/compiler-gcc.h              |   7 +
- include/linux/compiler.h                  |  35 +-
- include/linux/kcsan-checks.h              | 147 ++++++++
- include/linux/kcsan.h                     | 108 ++++++
- include/linux/sched.h                     |   4 +
- include/linux/seqlock.h                   |  51 ++-
- init/init_task.c                          |   8 +
- init/main.c                               |   2 +
- kernel/Makefile                           |   6 +
- kernel/kcsan/Makefile                     |  14 +
- kernel/kcsan/atomic.c                     |  21 ++
- kernel/kcsan/core.c                       | 428 ++++++++++++++++++++++
- kernel/kcsan/debugfs.c                    | 225 ++++++++++++
- kernel/kcsan/encoding.h                   |  94 +++++
- kernel/kcsan/kcsan.c                      |  86 +++++
- kernel/kcsan/kcsan.h                      | 140 +++++++
- kernel/kcsan/report.c                     | 306 ++++++++++++++++
- kernel/kcsan/test.c                       | 117 ++++++
- kernel/sched/Makefile                     |   6 +
- lib/Kconfig.debug                         |   2 +
- lib/Kconfig.kcsan                         |  88 +++++
- lib/Makefile                              |   3 +
- mm/Makefile                               |   8 +
- scripts/Makefile.kcsan                    |   6 +
- scripts/Makefile.lib                      |  10 +
- scripts/atomic/gen-atomic-instrumented.sh |  17 +-
- tools/objtool/check.c                     |  17 +
- 46 files changed, 2428 insertions(+), 206 deletions(-)
- create mode 100644 Documentation/dev-tools/kcsan.rst
- create mode 100644 include/linux/kcsan-checks.h
- create mode 100644 include/linux/kcsan.h
- create mode 100644 kernel/kcsan/Makefile
- create mode 100644 kernel/kcsan/atomic.c
- create mode 100644 kernel/kcsan/core.c
- create mode 100644 kernel/kcsan/debugfs.c
- create mode 100644 kernel/kcsan/encoding.h
- create mode 100644 kernel/kcsan/kcsan.c
- create mode 100644 kernel/kcsan/kcsan.h
- create mode 100644 kernel/kcsan/report.c
- create mode 100644 kernel/kcsan/test.c
- create mode 100644 lib/Kconfig.kcsan
- create mode 100644 scripts/Makefile.kcsan
-
+diff --git a/include/linux/seqlock.h b/include/linux/seqlock.h
+index bcf4cf26b8c8..1e425831a7ed 100644
+--- a/include/linux/seqlock.h
++++ b/include/linux/seqlock.h
+@@ -37,8 +37,24 @@
+ #include <linux/preempt.h>
+ #include <linux/lockdep.h>
+ #include <linux/compiler.h>
++#include <linux/kcsan.h>
+ #include <asm/processor.h>
+ 
++/*
++ * The seqlock interface does not prescribe a precise sequence of read
++ * begin/retry/end. For readers, typically there is a call to
++ * read_seqcount_begin() and read_seqcount_retry(), however, there are more
++ * esoteric cases which do not follow this pattern.
++ *
++ * As a consequence, we take the following best-effort approach for *raw* usage
++ * of seqlocks under KCSAN: upon beginning a seq-reader critical section,
++ * pessimistically mark then next KCSAN_SEQLOCK_REGION_MAX memory accesses as
++ * atomics; if there is a matching read_seqcount_retry() call, no following
++ * memory operations are considered atomic. Non-raw usage of seqlocks is not
++ * affected.
++ */
++#define KCSAN_SEQLOCK_REGION_MAX 1000
++
+ /*
+  * Version using sequence counter only.
+  * This can be used when code has its own mutex protecting the
+@@ -115,6 +131,7 @@ static inline unsigned __read_seqcount_begin(const seqcount_t *s)
+ 		cpu_relax();
+ 		goto repeat;
+ 	}
++	kcsan_atomic_next(KCSAN_SEQLOCK_REGION_MAX);
+ 	return ret;
+ }
+ 
+@@ -131,6 +148,7 @@ static inline unsigned raw_read_seqcount(const seqcount_t *s)
+ {
+ 	unsigned ret = READ_ONCE(s->sequence);
+ 	smp_rmb();
++	kcsan_atomic_next(KCSAN_SEQLOCK_REGION_MAX);
+ 	return ret;
+ }
+ 
+@@ -183,6 +201,7 @@ static inline unsigned raw_seqcount_begin(const seqcount_t *s)
+ {
+ 	unsigned ret = READ_ONCE(s->sequence);
+ 	smp_rmb();
++	kcsan_atomic_next(KCSAN_SEQLOCK_REGION_MAX);
+ 	return ret & ~1;
+ }
+ 
+@@ -202,7 +221,8 @@ static inline unsigned raw_seqcount_begin(const seqcount_t *s)
+  */
+ static inline int __read_seqcount_retry(const seqcount_t *s, unsigned start)
+ {
+-	return unlikely(s->sequence != start);
++	kcsan_atomic_next(0);
++	return unlikely(READ_ONCE(s->sequence) != start);
+ }
+ 
+ /**
+@@ -225,6 +245,7 @@ static inline int read_seqcount_retry(const seqcount_t *s, unsigned start)
+ 
+ static inline void raw_write_seqcount_begin(seqcount_t *s)
+ {
++	kcsan_begin_atomic(true);
+ 	s->sequence++;
+ 	smp_wmb();
+ }
+@@ -233,6 +254,7 @@ static inline void raw_write_seqcount_end(seqcount_t *s)
+ {
+ 	smp_wmb();
+ 	s->sequence++;
++	kcsan_end_atomic(true);
+ }
+ 
+ /**
+@@ -262,18 +284,20 @@ static inline void raw_write_seqcount_end(seqcount_t *s)
+  *
+  *      void write(void)
+  *      {
+- *              Y = true;
++ *              WRITE_ONCE(Y, true);
+  *
+  *              raw_write_seqcount_barrier(seq);
+  *
+- *              X = false;
++ *              WRITE_ONCE(X, false);
+  *      }
+  */
+ static inline void raw_write_seqcount_barrier(seqcount_t *s)
+ {
++	kcsan_begin_atomic(true);
+ 	s->sequence++;
+ 	smp_wmb();
+ 	s->sequence++;
++	kcsan_end_atomic(true);
+ }
+ 
+ static inline int raw_read_seqcount_latch(seqcount_t *s)
+@@ -398,7 +422,9 @@ static inline void write_seqcount_end(seqcount_t *s)
+ static inline void write_seqcount_invalidate(seqcount_t *s)
+ {
+ 	smp_wmb();
++	kcsan_begin_atomic(true);
+ 	s->sequence+=2;
++	kcsan_end_atomic(true);
+ }
+ 
+ typedef struct {
+@@ -430,11 +456,21 @@ typedef struct {
+  */
+ static inline unsigned read_seqbegin(const seqlock_t *sl)
+ {
+-	return read_seqcount_begin(&sl->seqcount);
++	unsigned ret = read_seqcount_begin(&sl->seqcount);
++
++	kcsan_atomic_next(0);  /* non-raw usage, assume closing read_seqretry */
++	kcsan_begin_atomic(false);
++	return ret;
+ }
+ 
+ static inline unsigned read_seqretry(const seqlock_t *sl, unsigned start)
+ {
++	/*
++	 * Assume not nested: read_seqretry may be called multiple times when
++	 * completing read critical section.
++	 */
++	kcsan_end_atomic(false);
++
+ 	return read_seqcount_retry(&sl->seqcount, start);
+ }
+ 
 -- 
 2.23.0.866.gb869b98d4c-goog
