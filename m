@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.133]:56676 "EHLO
+Received: from bombadil.infradead.org ([198.137.202.133]:56162 "EHLO
         bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S2441057AbfJQRrK (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 17 Oct 2019 13:47:10 -0400
+        with ESMTP id S2441029AbfJQRrC (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 17 Oct 2019 13:47:02 -0400
 From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 19/21] nds32: use generic ioremap
-Date: Thu, 17 Oct 2019 19:45:52 +0200
-Message-ID: <20191017174554.29840-20-hch@lst.de>
+Subject: [PATCH 17/21] lib: provide a simple generic ioremap implementation
+Date: Thu, 17 Oct 2019 19:45:50 +0200
+Message-ID: <20191017174554.29840-18-hch@lst.de>
 In-Reply-To: <20191017174554.29840-1-hch@lst.de>
 References: <20191017174554.29840-1-hch@lst.de>
 MIME-Version: 1.0
@@ -15,158 +15,118 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Arnd Bergmann <arnd@arndb.de>, Guo Ren <guoren@kernel.org>, Michal Simek <monstr@monstr.eu>, Greentime Hu <green.hu@gmail.com>, Vincent Chen <deanbo422@gmail.com>, Guan Xuetao <gxt@pku.edu.cn>, x86@kernel.org
 Cc: linux-alpha@vger.kernel.org, linux-snps-arc@lists.infradead.org, linux-arm-kernel@lists.infradead.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, nios2-dev@lists.rocketboards.org, openrisc@lists.librecores.org, linux-parisc@vger.kernel.org, linux-riscv@lists.infradead.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-mtd@lists.infradead.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20191017174552.yEQ6DXCYMVhkFdrUSZAqOygCUK1KLfrSFD0SZqJchvQ@z>
+Message-ID: <20191017174550.lSD1hdaGtkwKVV8-sfS6nNFwvKoS6HC57V17NraT6qs@z>
 
-Use the generic ioremap_prot and iounmap helpers.
-
-Note that the io.h include in pgtable.h had to be removed to not create
-an include loop.  As far as I can tell there was no need for it to
-start with.
+A lot of architectures reuse the same simple ioremap implementation, so
+start lifting the most simple variant to lib/ioremap.c.  It provides
+ioremap_prot and iounmap, plus a default ioremap that uses prot_noncached,
+although that can be overridden by asm/io.h.
 
 Signed-off-by: Christoph Hellwig <hch@lst.de>
 ---
- arch/nds32/Kconfig               |  1 +
- arch/nds32/include/asm/io.h      |  3 +-
- arch/nds32/include/asm/pgtable.h |  4 ++-
- arch/nds32/mm/Makefile           |  3 +-
- arch/nds32/mm/ioremap.c          | 62 --------------------------------
- 5 files changed, 6 insertions(+), 67 deletions(-)
- delete mode 100644 arch/nds32/mm/ioremap.c
+ include/asm-generic/io.h | 20 ++++++++++++++++----
+ lib/Kconfig              |  3 +++
+ lib/ioremap.c            | 39 +++++++++++++++++++++++++++++++++++++++
+ 3 files changed, 58 insertions(+), 4 deletions(-)
 
-diff --git a/arch/nds32/Kconfig b/arch/nds32/Kconfig
-index fbd68329737f..12c06a833b7c 100644
---- a/arch/nds32/Kconfig
-+++ b/arch/nds32/Kconfig
-@@ -20,6 +20,7 @@ config NDS32
- 	select GENERIC_CLOCKEVENTS
- 	select GENERIC_IRQ_CHIP
- 	select GENERIC_IRQ_SHOW
-+	select GENERIC_IOREMAP
- 	select GENERIC_LIB_ASHLDI3
- 	select GENERIC_LIB_ASHRDI3
- 	select GENERIC_LIB_CMPDI2
-diff --git a/arch/nds32/include/asm/io.h b/arch/nds32/include/asm/io.h
-index fb0e8a24c7af..e57378d04006 100644
---- a/arch/nds32/include/asm/io.h
-+++ b/arch/nds32/include/asm/io.h
-@@ -6,8 +6,6 @@
- 
- #include <linux/types.h>
- 
--void __iomem *ioremap(phys_addr_t phys_addr, size_t size);
--extern void iounmap(volatile void __iomem *addr);
- #define __raw_writeb __raw_writeb
- static inline void __raw_writeb(u8 val, volatile void __iomem *addr)
+diff --git a/include/asm-generic/io.h b/include/asm-generic/io.h
+index 4e45e1cb6560..4a661fdd1937 100644
+--- a/include/asm-generic/io.h
++++ b/include/asm-generic/io.h
+@@ -923,9 +923,10 @@ static inline void *phys_to_virt(unsigned long address)
+  * DOC: ioremap() and ioremap_*() variants
+  *
+  * Architectures with an MMU are expected to provide ioremap() and iounmap()
+- * themselves.  For NOMMU architectures we provide a default nop-op
+- * implementation that expect that the physical address used for MMIO are
+- * already marked as uncached, and can be used as kernel virtual addresses.
++ * themselves or rely on GENERIC_IOREMAP.  For NOMMU architectures we provide
++ * a default nop-op implementation that expect that the physical address used
++ * for MMIO are already marked as uncached, and can be used as kernel virtual
++ * addresses.
+  *
+  * ioremap_wc() and ioremap_wt() can provide more relaxed caching attributes
+  * for specific drivers if the architecture choses to implement them.  If they
+@@ -946,7 +947,18 @@ static inline void iounmap(void __iomem *addr)
  {
-@@ -80,6 +78,7 @@ static inline u32 __raw_readl(const volatile void __iomem *addr)
- #define writeb(v,c)	({ __iowmb(); writeb_relaxed((v),(c)); })
- #define writew(v,c)	({ __iowmb(); writew_relaxed((v),(c)); })
- #define writel(v,c)	({ __iowmb(); writel_relaxed((v),(c)); })
-+
- #include <asm-generic/io.h>
- 
- #endif /* __ASM_NDS32_IO_H */
-diff --git a/arch/nds32/include/asm/pgtable.h b/arch/nds32/include/asm/pgtable.h
-index 0588ec99725c..6fbf251cfc26 100644
---- a/arch/nds32/include/asm/pgtable.h
-+++ b/arch/nds32/include/asm/pgtable.h
-@@ -12,7 +12,6 @@
- #include <asm/nds32.h>
- #ifndef __ASSEMBLY__
- #include <asm/fixmap.h>
--#include <asm/io.h>
- #include <nds32_intrinsic.h>
+ }
  #endif
- 
-@@ -130,6 +129,9 @@ extern void __pgd_error(const char *file, int line, unsigned long val);
- #define _PAGE_CACHE		_PAGE_C_MEM_WB
- #endif
- 
-+#define _PAGE_IOREMAP \
-+	(_PAGE_V | _PAGE_M_KRW | _PAGE_D | _PAGE_G | _PAGE_C_DEV)
+-#endif /* CONFIG_MMU */
++#elif defined(CONFIG_GENERIC_IOREMAP)
++#include <asm/pgtable.h>
 +
- /*
-  * + Level 1 descriptor (PMD)
-  */
-diff --git a/arch/nds32/mm/Makefile b/arch/nds32/mm/Makefile
-index bd360e4583b5..897ecaf5cf54 100644
---- a/arch/nds32/mm/Makefile
-+++ b/arch/nds32/mm/Makefile
-@@ -1,6 +1,5 @@
- # SPDX-License-Identifier: GPL-2.0-only
--obj-y				:= extable.o tlb.o \
--				   fault.o init.o ioremap.o mmap.o \
-+obj-y				:= extable.o tlb.o fault.o init.o mmap.o \
-                                    mm-nds32.o cacheflush.o proc.o
++void __iomem *ioremap_prot(phys_addr_t addr, size_t size, unsigned long prot);
++void iounmap(volatile void __iomem *addr);
++
++static inline void __iomem *ioremap(phys_addr_t addr, size_t size)
++{
++	/* _PAGE_IOREMAP needs to be supplied by the architecture */
++	return ioremap_prot(addr, size, _PAGE_IOREMAP);
++}
++#endif /* !CONFIG_MMU || CONFIG_GENERIC_IOREMAP */
  
- obj-$(CONFIG_ALIGNMENT_TRAP)	+= alignment.o
-diff --git a/arch/nds32/mm/ioremap.c b/arch/nds32/mm/ioremap.c
-deleted file mode 100644
-index 690140bb23a2..000000000000
---- a/arch/nds32/mm/ioremap.c
-+++ /dev/null
-@@ -1,62 +0,0 @@
--// SPDX-License-Identifier: GPL-2.0
--// Copyright (C) 2005-2017 Andes Technology Corporation
--
--#include <linux/vmalloc.h>
--#include <linux/io.h>
--#include <linux/mm.h>
--#include <asm/pgtable.h>
--
--void __iomem *ioremap(phys_addr_t phys_addr, size_t size);
--
--static void __iomem *__ioremap_caller(phys_addr_t phys_addr, size_t size,
--				      void *caller)
--{
--	struct vm_struct *area;
--	unsigned long addr, offset, last_addr;
--	pgprot_t prot;
--
--	/* Don't allow wraparound or zero size */
--	last_addr = phys_addr + size - 1;
--	if (!size || last_addr < phys_addr)
--		return NULL;
--
--	/*
--	 * Mappings have to be page-aligned
--	 */
--	offset = phys_addr & ~PAGE_MASK;
--	phys_addr &= PAGE_MASK;
--	size = PAGE_ALIGN(last_addr + 1) - phys_addr;
--
--	/*
--	 * Ok, go for it..
--	 */
--	area = get_vm_area_caller(size, VM_IOREMAP, caller);
--	if (!area)
--		return NULL;
--
--	area->phys_addr = phys_addr;
--	addr = (unsigned long)area->addr;
--	prot = __pgprot(_PAGE_V | _PAGE_M_KRW | _PAGE_D |
--			_PAGE_G | _PAGE_C_DEV);
--	if (ioremap_page_range(addr, addr + size, phys_addr, prot)) {
--		vunmap((void *)addr);
--		return NULL;
--	}
--	return (__force void __iomem *)(offset + (char *)addr);
--
--}
--
--void __iomem *ioremap(phys_addr_t phys_addr, size_t size)
--{
--	return __ioremap_caller(phys_addr, size,
--				__builtin_return_address(0));
--}
--
--EXPORT_SYMBOL(ioremap);
--
--void iounmap(volatile void __iomem * addr)
--{
--	vunmap((void *)(PAGE_MASK & (unsigned long)addr));
--}
--
--EXPORT_SYMBOL(iounmap);
+ #ifndef ioremap_nocache
+ #define ioremap_nocache ioremap
+diff --git a/lib/Kconfig b/lib/Kconfig
+index 183f92a297ca..afc78aaf2b25 100644
+--- a/lib/Kconfig
++++ b/lib/Kconfig
+@@ -638,6 +638,9 @@ config STRING_SELFTEST
+ 
+ endmenu
+ 
++config GENERIC_IOREMAP
++	bool
++
+ config GENERIC_LIB_ASHLDI3
+ 	bool
+ 
+diff --git a/lib/ioremap.c b/lib/ioremap.c
+index 0a2ffadc6d71..3f0e18543de8 100644
+--- a/lib/ioremap.c
++++ b/lib/ioremap.c
+@@ -231,3 +231,42 @@ int ioremap_page_range(unsigned long addr,
+ 
+ 	return err;
+ }
++
++#ifdef CONFIG_GENERIC_IOREMAP
++void __iomem *ioremap_prot(phys_addr_t addr, size_t size, unsigned long prot)
++{
++	unsigned long offset, vaddr;
++	phys_addr_t last_addr;
++	struct vm_struct *area;
++
++	/* Disallow wrap-around or zero size */
++	last_addr = addr + size - 1;
++	if (!size || last_addr < addr)
++		return NULL;
++
++	/* Page-align mappings */
++	offset = addr & (~PAGE_MASK);
++	addr -= offset;
++	size = PAGE_ALIGN(size + offset);
++
++	area = get_vm_area_caller(size, VM_IOREMAP,
++			__builtin_return_address(0));
++	if (!area)
++		return NULL;
++	vaddr = (unsigned long)area->addr;
++
++	if (ioremap_page_range(vaddr, vaddr + size, addr, __pgprot(prot))) {
++		free_vm_area(area);
++		return NULL;
++	}
++
++	return (void __iomem *)(vaddr + offset);
++}
++EXPORT_SYMBOL(ioremap_prot);
++
++void iounmap(volatile void __iomem *addr)
++{
++	vunmap((void *)((unsigned long)addr & PAGE_MASK));
++}
++EXPORT_SYMBOL(iounmap);
++#endif /* CONFIG_GENERIC_IOREMAP */
 -- 
 2.20.1
