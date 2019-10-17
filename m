@@ -1,7 +1,7 @@
 From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 05/21] alpha: remove the unused __ioremap wrapper
-Date: Thu, 17 Oct 2019 19:45:38 +0200
-Message-ID: <20191017174554.29840-6-hch@lst.de>
+Subject: [PATCH 06/21] nios2: remove __ioremap
+Date: Thu, 17 Oct 2019 19:45:39 +0200
+Message-ID: <20191017174554.29840-7-hch@lst.de>
 References: <20191017174554.29840-1-hch@lst.de>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
@@ -12,29 +12,99 @@ To: Arnd Bergmann <arnd@arndb.de>, Guo Ren <guoren@kernel.org>, Michal Simek <mo
 Cc: linux-alpha@vger.kernel.org, linux-snps-arc@lists.infradead.org, linux-arm-kernel@lists.infradead.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, nios2-dev@lists.rocketboards.org, openrisc@lists.librecores.org, linux-parisc@vger.kernel.org, linux-riscv@lists.infradead.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-mtd@lists.infradead.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-No need for the additional namespace pollution.
+The cacheflag argument to __ioremap is always 0, so just implement
+ioremap directly.
 
 Signed-off-by: Christoph Hellwig <hch@lst.de>
 ---
- arch/alpha/include/asm/io.h | 6 ------
- 1 file changed, 6 deletions(-)
+ arch/nios2/include/asm/io.h | 20 ++++----------------
+ arch/nios2/mm/ioremap.c     | 17 +++--------------
+ 2 files changed, 7 insertions(+), 30 deletions(-)
 
-diff --git a/arch/alpha/include/asm/io.h b/arch/alpha/include/asm/io.h
-index af2c0063dc75..1989b946a28d 100644
---- a/arch/alpha/include/asm/io.h
-+++ b/arch/alpha/include/asm/io.h
-@@ -283,12 +283,6 @@ static inline void __iomem *ioremap(unsigned long port, unsigned long size)
- 	return IO_CONCAT(__IO_PREFIX,ioremap) (port, size);
- }
+diff --git a/arch/nios2/include/asm/io.h b/arch/nios2/include/asm/io.h
+index 9010243077ab..74ab34aa6731 100644
+--- a/arch/nios2/include/asm/io.h
++++ b/arch/nios2/include/asm/io.h
+@@ -25,29 +25,17 @@
+ #define writew_relaxed(x, addr)	writew(x, addr)
+ #define writel_relaxed(x, addr)	writel(x, addr)
  
--static inline void __iomem *__ioremap(unsigned long port, unsigned long size,
--				      unsigned long flags)
+-extern void __iomem *__ioremap(unsigned long physaddr, unsigned long size,
+-			unsigned long cacheflag);
++void __iomem *ioremap(unsigned long physaddr, unsigned long size);
+ extern void __iounmap(void __iomem *addr);
+ 
+-static inline void __iomem *ioremap(unsigned long physaddr, unsigned long size)
 -{
--	return ioremap(port, size);
+-	return __ioremap(physaddr, size, 0);
 -}
 -
- static inline void __iomem * ioremap_nocache(unsigned long offset,
- 					     unsigned long size)
+-static inline void __iomem *ioremap_nocache(unsigned long physaddr,
+-						unsigned long size)
+-{
+-	return __ioremap(physaddr, size, 0);
+-}
+-
+ static inline void iounmap(void __iomem *addr)
  {
+ 	__iounmap(addr);
+ }
+ 
+-#define ioremap_nocache ioremap_nocache
+-#define ioremap_wc ioremap_nocache
+-#define ioremap_wt ioremap_nocache
++#define ioremap_nocache ioremap
++#define ioremap_wc ioremap
++#define ioremap_wt ioremap
+ 
+ /* Pages to physical address... */
+ #define page_to_phys(page)	virt_to_phys(page_to_virt(page))
+diff --git a/arch/nios2/mm/ioremap.c b/arch/nios2/mm/ioremap.c
+index 3a28177a01eb..7a1a27f3daa3 100644
+--- a/arch/nios2/mm/ioremap.c
++++ b/arch/nios2/mm/ioremap.c
+@@ -112,8 +112,7 @@ static int remap_area_pages(unsigned long address, unsigned long phys_addr,
+ /*
+  * Map some physical address range into the kernel address space.
+  */
+-void __iomem *__ioremap(unsigned long phys_addr, unsigned long size,
+-			unsigned long cacheflag)
++void __iomem *ioremap(unsigned long phys_addr, unsigned long size)
+ {
+ 	struct vm_struct *area;
+ 	unsigned long offset;
+@@ -139,15 +138,6 @@ void __iomem *__ioremap(unsigned long phys_addr, unsigned long size,
+ 				return NULL;
+ 	}
+ 
+-	/*
+-	 * Map uncached objects in the low part of address space to
+-	 * CONFIG_NIOS2_IO_REGION_BASE
+-	 */
+-	if (IS_MAPPABLE_UNCACHEABLE(phys_addr) &&
+-	    IS_MAPPABLE_UNCACHEABLE(last_addr) &&
+-	    !(cacheflag & _PAGE_CACHED))
+-		return (void __iomem *)(CONFIG_NIOS2_IO_REGION_BASE + phys_addr);
+-
+ 	/* Mappings have to be page-aligned */
+ 	offset = phys_addr & ~PAGE_MASK;
+ 	phys_addr &= PAGE_MASK;
+@@ -158,14 +148,13 @@ void __iomem *__ioremap(unsigned long phys_addr, unsigned long size,
+ 	if (!area)
+ 		return NULL;
+ 	addr = area->addr;
+-	if (remap_area_pages((unsigned long) addr, phys_addr, size,
+-		cacheflag)) {
++	if (remap_area_pages((unsigned long) addr, phys_addr, size, 0)) {
+ 		vunmap(addr);
+ 		return NULL;
+ 	}
+ 	return (void __iomem *) (offset + (char *)addr);
+ }
+-EXPORT_SYMBOL(__ioremap);
++EXPORT_SYMBOL(ioremap);
+ 
+ /*
+  * __iounmap unmaps nearly everything, so be careful
 -- 
 2.20.1
