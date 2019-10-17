@@ -1,81 +1,39 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.133]:53554 "EHLO
+Received: from bombadil.infradead.org ([198.137.202.133]:52462 "EHLO
         bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S2440771AbfJQRqQ (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 17 Oct 2019 13:46:16 -0400
+        with ESMTP id S2389827AbfJQRqD (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 17 Oct 2019 13:46:03 -0400
 From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 03/21] ia64: rename ioremap_nocache to ioremap_uc
-Date: Thu, 17 Oct 2019 19:45:36 +0200
-Message-ID: <20191017174554.29840-4-hch@lst.de>
-In-Reply-To: <20191017174554.29840-1-hch@lst.de>
-References: <20191017174554.29840-1-hch@lst.de>
+Subject: generic ioremap (and lots of cleanups) v2
+Date: Thu, 17 Oct 2019 19:45:33 +0200
+Message-ID: <20191017174554.29840-1-hch@lst.de>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Arnd Bergmann <arnd@arndb.de>, Guo Ren <guoren@kernel.org>, Michal Simek <monstr@monstr.eu>, Greentime Hu <green.hu@gmail.com>, Vincent Chen <deanbo422@gmail.com>, Guan Xuetao <gxt@pku.edu.cn>, x86@kernel.org
 Cc: linux-alpha@vger.kernel.org, linux-snps-arc@lists.infradead.org, linux-arm-kernel@lists.infradead.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, nios2-dev@lists.rocketboards.org, openrisc@lists.librecores.org, linux-parisc@vger.kernel.org, linux-riscv@lists.infradead.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-mtd@lists.infradead.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20191017174536.wKhljSQ7PD8-QDne9Q52ZzIylnGnm1xGjMlnOy6qpNg@z>
+Message-ID: <20191017174533.F5Pqz3-KEvccDe_P7zWjWRv7AxrhO6uj307ZNG8pFRA@z>
 
-On ia64 ioremap_nocache fails if attributs don't match.  Not other
-architectures does this, and we plan to get rid of ioremap_nocache.
-So get rid of the special semantics and define ioremap_nocache in
-terms of ioremap as no portable driver could rely on the behavior
-anyway.
+Hi all,
 
-However x86 implements ioremap_uc with a in a similar way as the ia64
-version of ioremap_nocache, so implement that instead.
+the last patches in this series add a generic ioremap implementation,
+and switch our 3 most recent and thus most tidy architeture ports over
+to use it.  With a little work and an additional arch hook or two the
+implementation should be able to eventually cover more than half of
+our ports.
 
-Signed-off-by: Christoph Hellwig <hch@lst.de>
----
- arch/ia64/include/asm/io.h | 6 +++---
- arch/ia64/mm/ioremap.c     | 4 ++--
- 2 files changed, 5 insertions(+), 5 deletions(-)
+The patches before that clean up various lose ends in the ioremap
+and iounmap implementations.
 
-diff --git a/arch/ia64/include/asm/io.h b/arch/ia64/include/asm/io.h
-index 54e70c21352a..fec9df9609ed 100644
---- a/arch/ia64/include/asm/io.h
-+++ b/arch/ia64/include/asm/io.h
-@@ -256,16 +256,16 @@ static inline void outsl(unsigned long port, const void *src,
- # ifdef __KERNEL__
- 
- extern void __iomem * ioremap(unsigned long offset, unsigned long size);
--extern void __iomem * ioremap_nocache (unsigned long offset, unsigned long size);
-+extern void __iomem * ioremap_uc(unsigned long offset, unsigned long size);
- extern void iounmap (volatile void __iomem *addr);
- static inline void __iomem * ioremap_cache (unsigned long phys_addr, unsigned long size)
- {
- 	return ioremap(phys_addr, size);
- }
- #define ioremap ioremap
--#define ioremap_nocache ioremap_nocache
-+#define ioremap_nocache ioremap
- #define ioremap_cache ioremap_cache
--#define ioremap_uc ioremap_nocache
-+#define ioremap_uc ioremap_uc
- #define iounmap iounmap
- 
- /*
-diff --git a/arch/ia64/mm/ioremap.c b/arch/ia64/mm/ioremap.c
-index 0c0de2c4ec69..a09cfa064536 100644
---- a/arch/ia64/mm/ioremap.c
-+++ b/arch/ia64/mm/ioremap.c
-@@ -99,14 +99,14 @@ ioremap (unsigned long phys_addr, unsigned long size)
- EXPORT_SYMBOL(ioremap);
- 
- void __iomem *
--ioremap_nocache (unsigned long phys_addr, unsigned long size)
-+ioremap_uc(unsigned long phys_addr, unsigned long size)
- {
- 	if (kern_mem_attribute(phys_addr, size) & EFI_MEMORY_WB)
- 		return NULL;
- 
- 	return __ioremap_uc(phys_addr);
- }
--EXPORT_SYMBOL(ioremap_nocache);
-+EXPORT_SYMBOL(ioremap_uc);
- 
- void
- early_iounmap (volatile void __iomem *addr, unsigned long size)
--- 
-2.20.1
+A git tree is also available here:
+
+    git://git.infradead.org/users/hch/misc.git generic-ioremap
+
+Gitweb:
+
+    http://git.infradead.org/users/hch/misc.git/shortlog/refs/heads/generic-ioremap
+
+Changes since v1:
+ - dropped various patches already merged
+ - keep the parts of the parisc EISA hack that are still needed
