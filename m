@@ -1,39 +1,66 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.133]:52462 "EHLO
+Received: from bombadil.infradead.org ([198.137.202.133]:56770 "EHLO
         bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S2389827AbfJQRqD (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 17 Oct 2019 13:46:03 -0400
+        with ESMTP id S2503052AbfJQRrK (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 17 Oct 2019 13:47:10 -0400
 From: Christoph Hellwig <hch@lst.de>
-Subject: generic ioremap (and lots of cleanups) v2
-Date: Thu, 17 Oct 2019 19:45:33 +0200
-Message-ID: <20191017174554.29840-1-hch@lst.de>
+Subject: [PATCH 20/21] csky: remove ioremap_cache
+Date: Thu, 17 Oct 2019 19:45:53 +0200
+Message-ID: <20191017174554.29840-21-hch@lst.de>
+In-Reply-To: <20191017174554.29840-1-hch@lst.de>
+References: <20191017174554.29840-1-hch@lst.de>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Arnd Bergmann <arnd@arndb.de>, Guo Ren <guoren@kernel.org>, Michal Simek <monstr@monstr.eu>, Greentime Hu <green.hu@gmail.com>, Vincent Chen <deanbo422@gmail.com>, Guan Xuetao <gxt@pku.edu.cn>, x86@kernel.org
 Cc: linux-alpha@vger.kernel.org, linux-snps-arc@lists.infradead.org, linux-arm-kernel@lists.infradead.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, nios2-dev@lists.rocketboards.org, openrisc@lists.librecores.org, linux-parisc@vger.kernel.org, linux-riscv@lists.infradead.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-mtd@lists.infradead.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20191017174533.F5Pqz3-KEvccDe_P7zWjWRv7AxrhO6uj307ZNG8pFRA@z>
+Message-ID: <20191017174553.KLIKYOOhHZDajvcnDogJu0WNx2DU5DbV-NU3oFNWDW4@z>
 
-Hi all,
+No driver that can be used on csky uses ioremap_cache, and this
+interface has been deprecated in favor of memremap.
 
-the last patches in this series add a generic ioremap implementation,
-and switch our 3 most recent and thus most tidy architeture ports over
-to use it.  With a little work and an additional arch hook or two the
-implementation should be able to eventually cover more than half of
-our ports.
+Signed-off-by: Christoph Hellwig <hch@lst.de>
+---
+ arch/csky/include/asm/io.h | 2 --
+ arch/csky/mm/ioremap.c     | 7 -------
+ 2 files changed, 9 deletions(-)
 
-The patches before that clean up various lose ends in the ioremap
-and iounmap implementations.
-
-A git tree is also available here:
-
-    git://git.infradead.org/users/hch/misc.git generic-ioremap
-
-Gitweb:
-
-    http://git.infradead.org/users/hch/misc.git/shortlog/refs/heads/generic-ioremap
-
-Changes since v1:
- - dropped various patches already merged
- - keep the parts of the parisc EISA hack that are still needed
+diff --git a/arch/csky/include/asm/io.h b/arch/csky/include/asm/io.h
+index a4b9fb616faa..f572605d5ad5 100644
+--- a/arch/csky/include/asm/io.h
++++ b/arch/csky/include/asm/io.h
+@@ -36,13 +36,11 @@
+ /*
+  * I/O memory mapping functions.
+  */
+-extern void __iomem *ioremap_cache(phys_addr_t addr, size_t size);
+ extern void __iomem *__ioremap(phys_addr_t addr, size_t size, pgprot_t prot);
+ extern void iounmap(void *addr);
+ 
+ #define ioremap(addr, size)		__ioremap((addr), (size), pgprot_noncached(PAGE_KERNEL))
+ #define ioremap_wc(addr, size)		__ioremap((addr), (size), pgprot_writecombine(PAGE_KERNEL))
+-#define ioremap_cache			ioremap_cache
+ 
+ #include <asm-generic/io.h>
+ 
+diff --git a/arch/csky/mm/ioremap.c b/arch/csky/mm/ioremap.c
+index e13cd3497628..ae78256a56fd 100644
+--- a/arch/csky/mm/ioremap.c
++++ b/arch/csky/mm/ioremap.c
+@@ -44,13 +44,6 @@ void __iomem *__ioremap(phys_addr_t phys_addr, size_t size, pgprot_t prot)
+ }
+ EXPORT_SYMBOL(__ioremap);
+ 
+-void __iomem *ioremap_cache(phys_addr_t phys_addr, size_t size)
+-{
+-	return __ioremap_caller(phys_addr, size, PAGE_KERNEL,
+-				__builtin_return_address(0));
+-}
+-EXPORT_SYMBOL(ioremap_cache);
+-
+ void iounmap(void __iomem *addr)
+ {
+ 	vunmap((void *)((unsigned long)addr & PAGE_MASK));
+-- 
+2.20.1
