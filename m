@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.133]:56944 "EHLO
+Received: from bombadil.infradead.org ([198.137.202.133]:54616 "EHLO
         bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S2441071AbfJQRrM (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 17 Oct 2019 13:47:12 -0400
+        with ESMTP id S2437222AbfJQRqi (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 17 Oct 2019 13:46:38 -0400
 From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 21/21] csky: use generic ioremap
-Date: Thu, 17 Oct 2019 19:45:54 +0200
-Message-ID: <20191017174554.29840-22-hch@lst.de>
+Subject: [PATCH 07/21] parisc: remove __ioremap
+Date: Thu, 17 Oct 2019 19:45:40 +0200
+Message-ID: <20191017174554.29840-8-hch@lst.de>
 In-Reply-To: <20191017174554.29840-1-hch@lst.de>
 References: <20191017174554.29840-1-hch@lst.de>
 MIME-Version: 1.0
@@ -15,121 +15,82 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Arnd Bergmann <arnd@arndb.de>, Guo Ren <guoren@kernel.org>, Michal Simek <monstr@monstr.eu>, Greentime Hu <green.hu@gmail.com>, Vincent Chen <deanbo422@gmail.com>, Guan Xuetao <gxt@pku.edu.cn>, x86@kernel.org
 Cc: linux-alpha@vger.kernel.org, linux-snps-arc@lists.infradead.org, linux-arm-kernel@lists.infradead.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, nios2-dev@lists.rocketboards.org, openrisc@lists.librecores.org, linux-parisc@vger.kernel.org, linux-riscv@lists.infradead.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-mtd@lists.infradead.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20191017174554.7sn7Gpzw7mJQ6ZWR1Vnf0Qa7OOiCVy34l-OZE_xRm5c@z>
+Message-ID: <20191017174540.KugwIUWUUK1_yt-JItHhCXbhONOevA2zutBUe5AkFBs@z>
 
-Use the generic ioremap_prot and iounmap helpers.
+__ioremap is always called with the _PAGE_NO_CACHE, so fold the whole
+thing and rename it to ioremap.  This allows allows to remove the
+special EISA quirk to force _PAGE_NO_CACHE.
 
 Signed-off-by: Christoph Hellwig <hch@lst.de>
 ---
- arch/csky/Kconfig               |  1 +
- arch/csky/include/asm/io.h      |  8 +++---
- arch/csky/include/asm/pgtable.h |  4 +++
- arch/csky/mm/ioremap.c          | 45 ---------------------------------
- 4 files changed, 8 insertions(+), 50 deletions(-)
+ arch/parisc/include/asm/io.h | 11 +----------
+ arch/parisc/mm/ioremap.c     | 10 ++++------
+ 2 files changed, 5 insertions(+), 16 deletions(-)
 
-diff --git a/arch/csky/Kconfig b/arch/csky/Kconfig
-index 3973847b5f42..da09c884cc30 100644
---- a/arch/csky/Kconfig
-+++ b/arch/csky/Kconfig
-@@ -17,6 +17,7 @@ config CSKY
- 	select IRQ_DOMAIN
- 	select HANDLE_DOMAIN_IRQ
- 	select DW_APB_TIMER_OF
-+	select GENERIC_IOREMAP
- 	select GENERIC_LIB_ASHLDI3
- 	select GENERIC_LIB_ASHRDI3
- 	select GENERIC_LIB_LSHRDI3
-diff --git a/arch/csky/include/asm/io.h b/arch/csky/include/asm/io.h
-index f572605d5ad5..332f51bc68fb 100644
---- a/arch/csky/include/asm/io.h
-+++ b/arch/csky/include/asm/io.h
-@@ -36,11 +36,9 @@
+diff --git a/arch/parisc/include/asm/io.h b/arch/parisc/include/asm/io.h
+index 93d37010b375..46212b52c23e 100644
+--- a/arch/parisc/include/asm/io.h
++++ b/arch/parisc/include/asm/io.h
+@@ -127,16 +127,7 @@ static inline void gsc_writeq(unsigned long long val, unsigned long addr)
  /*
-  * I/O memory mapping functions.
+  * The standard PCI ioremap interfaces
   */
--extern void __iomem *__ioremap(phys_addr_t addr, size_t size, pgprot_t prot);
--extern void iounmap(void *addr);
 -
--#define ioremap(addr, size)		__ioremap((addr), (size), pgprot_noncached(PAGE_KERNEL))
--#define ioremap_wc(addr, size)		__ioremap((addr), (size), pgprot_writecombine(PAGE_KERNEL))
-+#define ioremap_wc(addr, size) \
-+	ioremap_prot((addr), (size), \
-+		(_PAGE_IOREMAP & ~_CACHE_MASK) | _CACHE_UNCACHED)
- 
- #include <asm-generic/io.h>
- 
-diff --git a/arch/csky/include/asm/pgtable.h b/arch/csky/include/asm/pgtable.h
-index 7c21985c60dc..4b2a41e15f2e 100644
---- a/arch/csky/include/asm/pgtable.h
-+++ b/arch/csky/include/asm/pgtable.h
-@@ -86,6 +86,10 @@
- #define PAGE_USERIO	__pgprot(_PAGE_PRESENT | _PAGE_READ | _PAGE_WRITE | \
- 				_CACHE_CACHED)
- 
-+#define _PAGE_IOREMAP \
-+	(_PAGE_PRESENT | __READABLE | __WRITEABLE | _PAGE_GLOBAL | \
-+	 _CACHE_UNCACHED | _PAGE_SO)
-+
- #define __P000	PAGE_NONE
- #define __P001	PAGE_READONLY
- #define __P010	PAGE_COPY
-diff --git a/arch/csky/mm/ioremap.c b/arch/csky/mm/ioremap.c
-index ae78256a56fd..70c8268d3b2b 100644
---- a/arch/csky/mm/ioremap.c
-+++ b/arch/csky/mm/ioremap.c
-@@ -3,53 +3,8 @@
- 
- #include <linux/export.h>
- #include <linux/mm.h>
--#include <linux/vmalloc.h>
- #include <linux/io.h>
- 
--#include <asm/pgtable.h>
+-extern void __iomem * __ioremap(unsigned long offset, unsigned long size, unsigned long flags);
 -
--static void __iomem *__ioremap_caller(phys_addr_t addr, size_t size,
--				      pgprot_t prot, void *caller)
+-/* Most machines react poorly to I/O-space being cacheable... Instead let's
+- * define ioremap() in terms of ioremap_nocache().
+- */
+-static inline void __iomem * ioremap(unsigned long offset, unsigned long size)
 -{
--	phys_addr_t last_addr;
--	unsigned long offset, vaddr;
--	struct vm_struct *area;
--
--	last_addr = addr + size - 1;
--	if (!size || last_addr < addr)
--		return NULL;
--
--	offset = addr & (~PAGE_MASK);
--	addr &= PAGE_MASK;
--	size = PAGE_ALIGN(size + offset);
--
--	area = get_vm_area_caller(size, VM_IOREMAP, caller);
--	if (!area)
--		return NULL;
--
--	vaddr = (unsigned long)area->addr;
--
--	if (ioremap_page_range(vaddr, vaddr + size, addr, prot)) {
--		free_vm_area(area);
--		return NULL;
+-	return __ioremap(offset, size, _PAGE_NO_CACHE);
+-}
++void __iomem *ioremap(unsigned long offset, unsigned long size);
+ #define ioremap_nocache(off, sz)	ioremap((off), (sz))
+ #define ioremap_wc			ioremap_nocache
+ #define ioremap_uc			ioremap_nocache
+diff --git a/arch/parisc/mm/ioremap.c b/arch/parisc/mm/ioremap.c
+index f29f682352f0..6e7c005aa09b 100644
+--- a/arch/parisc/mm/ioremap.c
++++ b/arch/parisc/mm/ioremap.c
+@@ -25,7 +25,7 @@
+  * have to convert them into an offset in a page-aligned mapping, but the
+  * caller shouldn't need to know that small detail.
+  */
+-void __iomem * __ioremap(unsigned long phys_addr, unsigned long size, unsigned long flags)
++void __iomem *ioremap(unsigned long phys_addr, unsigned long size)
+ {
+ 	void __iomem *addr;
+ 	struct vm_struct *area;
+@@ -36,10 +36,8 @@ void __iomem * __ioremap(unsigned long phys_addr, unsigned long size, unsigned l
+ 	unsigned long end = phys_addr + size - 1;
+ 	/* Support EISA addresses */
+ 	if ((phys_addr >= 0x00080000 && end < 0x000fffff) ||
+-	    (phys_addr >= 0x00500000 && end < 0x03bfffff)) {
++	    (phys_addr >= 0x00500000 && end < 0x03bfffff))
+ 		phys_addr |= F_EXTEND(0xfc000000);
+-		flags |= _PAGE_NO_CACHE;
 -	}
--
--	return (void __iomem *)(vaddr + offset);
--}
--
--void __iomem *__ioremap(phys_addr_t phys_addr, size_t size, pgprot_t prot)
--{
--	return __ioremap_caller(phys_addr, size, prot,
--				__builtin_return_address(0));
--}
+ #endif
+ 
+ 	/* Don't allow wraparound or zero size */
+@@ -65,7 +63,7 @@ void __iomem * __ioremap(unsigned long phys_addr, unsigned long size, unsigned l
+ 	}
+ 
+ 	pgprot = __pgprot(_PAGE_PRESENT | _PAGE_RW | _PAGE_DIRTY |
+-			  _PAGE_ACCESSED | flags);
++			  _PAGE_ACCESSED | _PAGE_NO_CACHE);
+ 
+ 	/*
+ 	 * Mappings have to be page-aligned
+@@ -90,7 +88,7 @@ void __iomem * __ioremap(unsigned long phys_addr, unsigned long size, unsigned l
+ 
+ 	return (void __iomem *) (offset + (char __iomem *)addr);
+ }
 -EXPORT_SYMBOL(__ioremap);
--
--void iounmap(void __iomem *addr)
--{
--	vunmap((void *)((unsigned long)addr & PAGE_MASK));
--}
--EXPORT_SYMBOL(iounmap);
--
- pgprot_t phys_mem_access_prot(struct file *file, unsigned long pfn,
- 			      unsigned long size, pgprot_t vma_prot)
++EXPORT_SYMBOL(ioremap);
+ 
+ void iounmap(const volatile void __iomem *io_addr)
  {
 -- 
 2.20.1
