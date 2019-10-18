@@ -1,258 +1,164 @@
 From: "tip-bot2 for Jiri Slaby" <tip-bot2@linutronix.de>
-Subject: [tip: x86/asm] x86/asm/32: Add ENDs to some functions and relabel
- with SYM_CODE_*
-Date: Fri, 18 Oct 2019 16:30:26 -0000
-Message-ID: <157141622620.29376.2511020268312198257.tip-bot2@tip-bot2>
-References: <20191011115108.12392-26-jslaby@suse.cz>
+Subject: [tip: x86/asm] x86/asm/64: Add ENDs to some functions
+ and relabel with SYM_CODE_*
+Date: Fri, 18 Oct 2019 16:30:27 -0000
+Message-ID: <157141622755.29376.5490878094731204617.tip-bot2@tip-bot2>
+References: <20191011115108.12392-23-jslaby@suse.cz>
 Reply-To: linux-kernel@vger.kernel.org
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20191011115108.12392-26-jslaby@suse.cz>
-Sender: linux-kernel-owner@vger.kernel.org
+Content-Transfer-Encoding: base64
+Return-path: <xen-devel-bounces@lists.xenproject.org>
+In-Reply-To: <20191011115108.12392-23-jslaby@suse.cz>
+List-Unsubscribe: <https://lists.xenproject.org/mailman/options/xen-devel>,
+ <mailto:xen-devel-request@lists.xenproject.org?subject=unsubscribe>
+List-Post: <mailto:xen-devel@lists.xenproject.org>
+List-Help: <mailto:xen-devel-request@lists.xenproject.org?subject=help>
+List-Subscribe: <https://lists.xenproject.org/mailman/listinfo/xen-devel>,
+ <mailto:xen-devel-request@lists.xenproject.org?subject=subscribe>
+Errors-To: xen-devel-bounces@lists.xenproject.org
+Sender: "Xen-devel" <xen-devel-bounces@lists.xenproject.org>
 To: linux-tip-commits@vger.kernel.org
-Cc: Jiri Slaby <jslaby@suse.cz>, Borislav Petkov <bp@suse.de>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, "Rafael J. Wysocki" <rafael.j.wysocki@intel.com>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Ingo Molnar <mingo@redhat.com>, Josh Poimboeuf <jpoimboe@redhat.com>, Juergen Gross <jgross@suse.com>, Len Brown <len.brown@intel.com>, linux-arch@vger.kernel.org, linux-pm@vger.kernel.org, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Pingfan Liu <kernelfans@gmail.com>, Stefano Stabellini <sstabellini@kernel.org>, "Steven Rostedt (VMware)" <rostedt@goodmis.org>, Thomas Gleixner <tglx@linutronix.de>, x86-ml <x86@kernel.org>, xen-devel@lists.xenproject.org, Ingo Molnar <mingo@kernel.org>, Borislav Petkov <bp@alien8.de>
+Cc: x86-ml <x86@kernel.org>, Pingfan Liu <kernelfans@gmail.com>, platform-driver-x86@vger.kernel.org, Pavel Machek <pavel@ucw.cz>, "H. Peter Anvin" <hpa@zytor.com>, Jiri Slaby <jslaby@suse.cz>, Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org, Stefano Stabellini <sstabellini@kernel.org>, "Rafael J. Wysocki" <rafael.j.wysocki@intel.com>, Ingo Molnar <mingo@kernel.org>, Ingo Molnar <mingo@redhat.com>, xen-devel@lists.xenproject.org, Borislav Petkov <bp@suse.de>, Wei Huang <wei@redhat.com>, linux-pm@vger.kernel.org, Cao jin <caoj.fnst@cn.fujitsu.com>, Borislav Petkov <bp@alien8.de>, Darren Hart <dvhart@infradead.org>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, Juergen Gross <jgross@suse.com>, Xiaoyao Li <xiaoyao.li@linux.intel.com>, "Rafael J. Wysocki" <rjw@rjwysocki.net>, linux-kernel@vger.kernel.org, Andy Shevchenko <andy@infradead.org>, Kirill A. Shutem
 List-Id: linux-arch.vger.kernel.org
 
-The following commit has been merged into the x86/asm branch of tip:
-
-Commit-ID:     78762b0e79bc1dd01347be061abdf505202152c9
-Gitweb:        https://git.kernel.org/tip/78762b0e79bc1dd01347be061abdf505202152c9
-Author:        Jiri Slaby <jslaby@suse.cz>
-AuthorDate:    Fri, 11 Oct 2019 13:51:05 +02:00
-Committer:     Borislav Petkov <bp@suse.de>
-CommitterDate: Fri, 18 Oct 2019 11:58:33 +02:00
-
-x86/asm/32: Add ENDs to some functions and relabel with SYM_CODE_*
-
-All these are functions which are invoked from elsewhere but they are
-not typical C functions. So annotate them using the new SYM_CODE_START.
-All these were not balanced with any END, so mark their ends by
-SYM_CODE_END, appropriately.
-
-Signed-off-by: Jiri Slaby <jslaby@suse.cz>
-Signed-off-by: Borislav Petkov <bp@suse.de>
-Reviewed-by: Boris Ostrovsky <boris.ostrovsky@oracle.com> [xen bits]
-Reviewed-by: Rafael J. Wysocki <rafael.j.wysocki@intel.com> [hibernate]
-Cc: Andy Lutomirski <luto@kernel.org>
-Cc: "H. Peter Anvin" <hpa@zytor.com>
-Cc: Ingo Molnar <mingo@redhat.com>
-Cc: Josh Poimboeuf <jpoimboe@redhat.com>
-Cc: Juergen Gross <jgross@suse.com>
-Cc: Len Brown <len.brown@intel.com>
-Cc: linux-arch@vger.kernel.org
-Cc: linux-pm@vger.kernel.org
-Cc: Pavel Machek <pavel@ucw.cz>
-Cc: Peter Zijlstra <peterz@infradead.org>
-Cc: Pingfan Liu <kernelfans@gmail.com>
-Cc: Stefano Stabellini <sstabellini@kernel.org>
-Cc: "Steven Rostedt (VMware)" <rostedt@goodmis.org>
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: x86-ml <x86@kernel.org>
-Cc: xen-devel@lists.xenproject.org
-Link: https://lkml.kernel.org/r/20191011115108.12392-26-jslaby@suse.cz
----
- arch/x86/entry/entry_32.S            | 3 ++-
- arch/x86/kernel/acpi/wakeup_32.S     | 7 ++++---
- arch/x86/kernel/ftrace_32.S          | 3 ++-
- arch/x86/kernel/head_32.S            | 3 ++-
- arch/x86/power/hibernate_asm_32.S    | 6 ++++--
- arch/x86/realmode/rm/trampoline_32.S | 6 ++++--
- arch/x86/xen/xen-asm_32.S            | 7 ++++---
- 7 files changed, 22 insertions(+), 13 deletions(-)
-
-diff --git a/arch/x86/entry/entry_32.S b/arch/x86/entry/entry_32.S
-index 4900a6a..64fe7aa 100644
---- a/arch/x86/entry/entry_32.S
-+++ b/arch/x86/entry/entry_32.S
-@@ -847,9 +847,10 @@ SYM_ENTRY(__begin_SYSENTER_singlestep_region, SYM_L_GLOBAL, SYM_A_NONE)
-  * Xen doesn't set %esp to be precisely what the normal SYSENTER
-  * entry point expects, so fix it up before using the normal path.
-  */
--ENTRY(xen_sysenter_target)
-+SYM_CODE_START(xen_sysenter_target)
- 	addl	$5*4, %esp			/* remove xen-provided frame */
- 	jmp	.Lsysenter_past_esp
-+SYM_CODE_END(xen_sysenter_target)
- #endif
- 
- /*
-diff --git a/arch/x86/kernel/acpi/wakeup_32.S b/arch/x86/kernel/acpi/wakeup_32.S
-index 4272492..daf88f8 100644
---- a/arch/x86/kernel/acpi/wakeup_32.S
-+++ b/arch/x86/kernel/acpi/wakeup_32.S
-@@ -9,8 +9,7 @@
- 	.code32
- 	ALIGN
- 
--ENTRY(wakeup_pmode_return)
--wakeup_pmode_return:
-+SYM_CODE_START(wakeup_pmode_return)
- 	movw	$__KERNEL_DS, %ax
- 	movw	%ax, %ss
- 	movw	%ax, %fs
-@@ -39,6 +38,7 @@ wakeup_pmode_return:
- 	# jump to place where we left off
- 	movl	saved_eip, %eax
- 	jmp	*%eax
-+SYM_CODE_END(wakeup_pmode_return)
- 
- bogus_magic:
- 	jmp	bogus_magic
-@@ -72,7 +72,7 @@ restore_registers:
- 	popfl
- 	ret
- 
--ENTRY(do_suspend_lowlevel)
-+SYM_CODE_START(do_suspend_lowlevel)
- 	call	save_processor_state
- 	call	save_registers
- 	pushl	$3
-@@ -87,6 +87,7 @@ ret_point:
- 	call	restore_registers
- 	call	restore_processor_state
- 	ret
-+SYM_CODE_END(do_suspend_lowlevel)
- 
- .data
- ALIGN
-diff --git a/arch/x86/kernel/ftrace_32.S b/arch/x86/kernel/ftrace_32.S
-index 219be13..a43ed4c 100644
---- a/arch/x86/kernel/ftrace_32.S
-+++ b/arch/x86/kernel/ftrace_32.S
-@@ -89,7 +89,7 @@ WEAK(ftrace_stub)
- 	ret
- END(ftrace_caller)
- 
--ENTRY(ftrace_regs_caller)
-+SYM_CODE_START(ftrace_regs_caller)
- 	/*
- 	 * We're here from an mcount/fentry CALL, and the stack frame looks like:
- 	 *
-@@ -163,6 +163,7 @@ SYM_INNER_LABEL(ftrace_regs_call, SYM_L_GLOBAL)
- 	popl	%eax
- 
- 	jmp	.Lftrace_ret
-+SYM_CODE_END(ftrace_regs_caller)
- 
- #ifdef CONFIG_FUNCTION_GRAPH_TRACER
- ENTRY(ftrace_graph_caller)
-diff --git a/arch/x86/kernel/head_32.S b/arch/x86/kernel/head_32.S
-index e2b3e6c..7029bba 100644
---- a/arch/x86/kernel/head_32.S
-+++ b/arch/x86/kernel/head_32.S
-@@ -64,7 +64,7 @@ RESERVE_BRK(pagetables, INIT_MAP_SIZE)
-  * can.
-  */
- __HEAD
--ENTRY(startup_32)
-+SYM_CODE_START(startup_32)
- 	movl pa(initial_stack),%ecx
- 	
- 	/* test KEEP_SEGMENTS flag to see if the bootloader is asking
-@@ -172,6 +172,7 @@ num_subarch_entries = (. - subarch_entries) / 4
- #else
- 	jmp .Ldefault_entry
- #endif /* CONFIG_PARAVIRT */
-+SYM_CODE_END(startup_32)
- 
- #ifdef CONFIG_HOTPLUG_CPU
- /*
-diff --git a/arch/x86/power/hibernate_asm_32.S b/arch/x86/power/hibernate_asm_32.S
-index 6fe3830..a19ed3d 100644
---- a/arch/x86/power/hibernate_asm_32.S
-+++ b/arch/x86/power/hibernate_asm_32.S
-@@ -35,7 +35,7 @@ ENTRY(swsusp_arch_suspend)
- 	ret
- ENDPROC(swsusp_arch_suspend)
- 
--ENTRY(restore_image)
-+SYM_CODE_START(restore_image)
- 	/* prepare to jump to the image kernel */
- 	movl	restore_jump_address, %ebx
- 	movl	restore_cr3, %ebp
-@@ -45,9 +45,10 @@ ENTRY(restore_image)
- 	/* jump to relocated restore code */
- 	movl	relocated_restore_code, %eax
- 	jmpl	*%eax
-+SYM_CODE_END(restore_image)
- 
- /* code below has been relocated to a safe page */
--ENTRY(core_restore_code)
-+SYM_CODE_START(core_restore_code)
- 	movl	temp_pgt, %eax
- 	movl	%eax, %cr3
- 
-@@ -77,6 +78,7 @@ copy_loop:
- 
- done:
- 	jmpl	*%ebx
-+SYM_CODE_END(core_restore_code)
- 
- 	/* code below belongs to the image kernel */
- 	.align PAGE_SIZE
-diff --git a/arch/x86/realmode/rm/trampoline_32.S b/arch/x86/realmode/rm/trampoline_32.S
-index ff00594..3fad907 100644
---- a/arch/x86/realmode/rm/trampoline_32.S
-+++ b/arch/x86/realmode/rm/trampoline_32.S
-@@ -29,7 +29,7 @@
- 	.code16
- 
- 	.balign	PAGE_SIZE
--ENTRY(trampoline_start)
-+SYM_CODE_START(trampoline_start)
- 	wbinvd			# Needed for NUMA-Q should be harmless for others
- 
- 	LJMPW_RM(1f)
-@@ -54,11 +54,13 @@ ENTRY(trampoline_start)
- 	lmsw	%dx			# into protected mode
- 
- 	ljmpl	$__BOOT_CS, $pa_startup_32
-+SYM_CODE_END(trampoline_start)
- 
- 	.section ".text32","ax"
- 	.code32
--ENTRY(startup_32)			# note: also used from wakeup_asm.S
-+SYM_CODE_START(startup_32)			# note: also used from wakeup_asm.S
- 	jmp	*%eax
-+SYM_CODE_END(startup_32)
- 
- 	.bss
- 	.balign 8
-diff --git a/arch/x86/xen/xen-asm_32.S b/arch/x86/xen/xen-asm_32.S
-index c15db06..8b8f835 100644
---- a/arch/x86/xen/xen-asm_32.S
-+++ b/arch/x86/xen/xen-asm_32.S
-@@ -56,7 +56,7 @@
- 	_ASM_EXTABLE(1b,2b)
- .endm
- 
--ENTRY(xen_iret)
-+SYM_CODE_START(xen_iret)
- 	/* test eflags for special cases */
- 	testl $(X86_EFLAGS_VM | XEN_EFLAGS_NMI), 8(%esp)
- 	jnz hyper_iret
-@@ -122,6 +122,7 @@ xen_iret_end_crit:
- hyper_iret:
- 	/* put this out of line since its very rarely used */
- 	jmp hypercall_page + __HYPERVISOR_iret * 32
-+SYM_CODE_END(xen_iret)
- 
- 	.globl xen_iret_start_crit, xen_iret_end_crit
- 
-@@ -165,7 +166,7 @@ hyper_iret:
-  * SAVE_ALL state before going on, since it's usermode state which we
-  * eventually need to restore.
-  */
--ENTRY(xen_iret_crit_fixup)
-+SYM_CODE_START(xen_iret_crit_fixup)
- 	/*
- 	 * Paranoia: Make sure we're really coming from kernel space.
- 	 * One could imagine a case where userspace jumps into the
-@@ -204,4 +205,4 @@ ENTRY(xen_iret_crit_fixup)
- 
- 	lea 4(%edi), %esp		/* point esp to new frame */
- 2:	jmp xen_do_upcall
--
-+SYM_CODE_END(xen_iret_crit_fixup)
+VGhlIGZvbGxvd2luZyBjb21taXQgaGFzIGJlZW4gbWVyZ2VkIGludG8gdGhlIHg4Ni9hc20gYnJh
+bmNoIG9mIHRpcDoKCkNvbW1pdC1JRDogICAgIDRhZWMyMTZiOTNkZDhlMzU5NzEyNGY0MTM2OWVj
+ODM1ZmYxOGRiZDAKR2l0d2ViOiAgICAgICAgaHR0cHM6Ly9naXQua2VybmVsLm9yZy90aXAvNGFl
+YzIxNmI5M2RkOGUzNTk3MTI0ZjQxMzY5ZWM4MzVmZjE4ZGJkMApBdXRob3I6ICAgICAgICBKaXJp
+IFNsYWJ5IDxqc2xhYnlAc3VzZS5jej4KQXV0aG9yRGF0ZTogICAgRnJpLCAxMSBPY3QgMjAxOSAx
+Mzo1MTowMiArMDI6MDAKQ29tbWl0dGVyOiAgICAgQm9yaXNsYXYgUGV0a292IDxicEBzdXNlLmRl
+PgpDb21taXR0ZXJEYXRlOiBGcmksIDE4IE9jdCAyMDE5IDExOjU4OjE2ICswMjowMAoKeDg2L2Fz
+bS82NDogQWRkIEVORHMgdG8gc29tZSBmdW5jdGlvbnMgYW5kIHJlbGFiZWwgd2l0aCBTWU1fQ09E
+RV8qCgpBbGwgdGhlc2UgYXJlIGZ1bmN0aW9ucyB3aGljaCBhcmUgaW52b2tlZCBmcm9tIGVsc2V3
+aGVyZSBidXQgdGhleSBhcmUKbm90IHR5cGljYWwgQyBmdW5jdGlvbnMuIFNvIGFubm90YXRlIHRo
+ZW0gdXNpbmcgdGhlIG5ldyBTWU1fQ09ERV9TVEFSVC4KQWxsIHRoZXNlIHdlcmUgbm90IGJhbGFu
+Y2VkIHdpdGggYW55IEVORCwgc28gbWFyayB0aGVpciBlbmRzIGJ5ClNZTV9DT0RFX0VORCBhcHBy
+b3ByaWF0ZWx5IHRvby4KClNpZ25lZC1vZmYtYnk6IEppcmkgU2xhYnkgPGpzbGFieUBzdXNlLmN6
+PgpTaWduZWQtb2ZmLWJ5OiBCb3Jpc2xhdiBQZXRrb3YgPGJwQHN1c2UuZGU+ClJldmlld2VkLWJ5
+OiBCb3JpcyBPc3Ryb3Zza3kgPGJvcmlzLm9zdHJvdnNreUBvcmFjbGUuY29tPiBbeGVuIGJpdHNd
+CkFja2VkLWJ5OiBSYWZhZWwgSi4gV3lzb2NraSA8cmFmYWVsLmoud3lzb2NraUBpbnRlbC5jb20+
+IFtwb3dlciBtZ210XQpDYzogQW5keSBTaGV2Y2hlbmtvIDxhbmR5QGluZnJhZGVhZC5vcmc+CkNj
+OiBDYW8gamluIDxjYW9qLmZuc3RAY24uZnVqaXRzdS5jb20+CkNjOiBEYXJyZW4gSGFydCA8ZHZo
+YXJ0QGluZnJhZGVhZC5vcmc+CkNjOiAiSC4gUGV0ZXIgQW52aW4iIDxocGFAenl0b3IuY29tPgpD
+YzogSW5nbyBNb2xuYXIgPG1pbmdvQHJlZGhhdC5jb20+CkNjOiBKdWVyZ2VuIEdyb3NzIDxqZ3Jv
+c3NAc3VzZS5jb20+CkNjOiAiS2lyaWxsIEEuIFNodXRlbW92IiA8a2lyaWxsLnNodXRlbW92QGxp
+bnV4LmludGVsLmNvbT4KQ2M6IGxpbnV4LWFyY2hAdmdlci5rZXJuZWwub3JnCkNjOiBsaW51eC1w
+bUB2Z2VyLmtlcm5lbC5vcmcKQ2M6IFBhdmVsIE1hY2hlayA8cGF2ZWxAdWN3LmN6PgpDYzogUGlu
+Z2ZhbiBMaXUgPGtlcm5lbGZhbnNAZ21haWwuY29tPgpDYzogcGxhdGZvcm0tZHJpdmVyLXg4NkB2
+Z2VyLmtlcm5lbC5vcmcKQ2M6ICJSYWZhZWwgSi4gV3lzb2NraSIgPHJqd0Byand5c29ja2kubmV0
+PgpDYzogU3RlZmFubyBTdGFiZWxsaW5pIDxzc3RhYmVsbGluaUBrZXJuZWwub3JnPgpDYzogVGhv
+bWFzIEdsZWl4bmVyIDx0Z2x4QGxpbnV0cm9uaXguZGU+CkNjOiBXZWkgSHVhbmcgPHdlaUByZWRo
+YXQuY29tPgpDYzogeDg2LW1sIDx4ODZAa2VybmVsLm9yZz4KQ2M6IHhlbi1kZXZlbEBsaXN0cy54
+ZW5wcm9qZWN0Lm9yZwpDYzogWGlhb3lhbyBMaSA8eGlhb3lhby5saUBsaW51eC5pbnRlbC5jb20+
+Ckxpbms6IGh0dHBzOi8vbGttbC5rZXJuZWwub3JnL3IvMjAxOTEwMTExMTUxMDguMTIzOTItMjMt
+anNsYWJ5QHN1c2UuY3oKLS0tCiBhcmNoL3g4Ni9ib290L2NvbXByZXNzZWQvaGVhZF82NC5TICAg
+fCAgNiArKysrLS0KIGFyY2gveDg2L3BsYXRmb3JtL29scGMveG8xLXdha2V1cC5TICB8ICAzICsr
+LQogYXJjaC94ODYvcG93ZXIvaGliZXJuYXRlX2FzbV82NC5TICAgIHwgIDYgKysrKy0tCiBhcmNo
+L3g4Ni9yZWFsbW9kZS9ybS9yZWJvb3QuUyAgICAgICAgfCAgMyArKy0KIGFyY2gveDg2L3JlYWxt
+b2RlL3JtL3RyYW1wb2xpbmVfNjQuUyB8IDEwICsrKysrKystLS0KIGFyY2gveDg2L3JlYWxtb2Rl
+L3JtL3dha2V1cF9hc20uUyAgICB8ICAzICsrLQogYXJjaC94ODYveGVuL3hlbi1hc21fNjQuUyAg
+ICAgICAgICAgIHwgIDYgKysrKy0tCiA3IGZpbGVzIGNoYW5nZWQsIDI1IGluc2VydGlvbnMoKyks
+IDEyIGRlbGV0aW9ucygtKQoKZGlmZiAtLWdpdCBhL2FyY2gveDg2L2Jvb3QvY29tcHJlc3NlZC9o
+ZWFkXzY0LlMgYi9hcmNoL3g4Ni9ib290L2NvbXByZXNzZWQvaGVhZF82NC5TCmluZGV4IGNhNzYy
+ZWEuLjU1ODAwNDYgMTAwNjQ0Ci0tLSBhL2FyY2gveDg2L2Jvb3QvY29tcHJlc3NlZC9oZWFkXzY0
+LlMKKysrIGIvYXJjaC94ODYvYm9vdC9jb21wcmVzc2VkL2hlYWRfNjQuUwpAQCAtMjUwLDcgKzI1
+MCw3IEBAIEVORFBST0MoZWZpMzJfc3R1Yl9lbnRyeSkKIAogCS5jb2RlNjQKIAkub3JnIDB4MjAw
+Ci1FTlRSWShzdGFydHVwXzY0KQorU1lNX0NPREVfU1RBUlQoc3RhcnR1cF82NCkKIAkvKgogCSAq
+IDY0Yml0IGVudHJ5IGlzIDB4MjAwIGFuZCBpdCBpcyBBQkkgc28gaW1tdXRhYmxlIQogCSAqIFdl
+IGNvbWUgaGVyZSBlaXRoZXIgZnJvbSBzdGFydHVwXzMyIG9yIGRpcmVjdGx5IGZyb20gYQpAQCAt
+NDQyLDYgKzQ0Miw3IEBAIHRyYW1wb2xpbmVfcmV0dXJuOgogICovCiAJbGVhcQkuTHJlbG9jYXRl
+ZCglcmJ4KSwgJXJheAogCWptcAkqJXJheAorU1lNX0NPREVfRU5EKHN0YXJ0dXBfNjQpCiAKICNp
+ZmRlZiBDT05GSUdfRUZJX1NUVUIKIApAQCAtNTcxLDcgKzU3Miw3IEBAIFNZTV9GVU5DX0VORCgu
+THJlbG9jYXRlZCkKICAqIEVDWCBjb250YWlucyB0aGUgYmFzZSBhZGRyZXNzIG9mIHRoZSB0cmFt
+cG9saW5lIG1lbW9yeS4KICAqIE5vbiB6ZXJvIFJEWCBtZWFucyB0cmFtcG9saW5lIG5lZWRzIHRv
+IGVuYWJsZSA1LWxldmVsIHBhZ2luZy4KICAqLwotRU5UUlkodHJhbXBvbGluZV8zMmJpdF9zcmMp
+CitTWU1fQ09ERV9TVEFSVCh0cmFtcG9saW5lXzMyYml0X3NyYykKIAkvKiBTZXQgdXAgZGF0YSBh
+bmQgc3RhY2sgc2VnbWVudHMgKi8KIAltb3ZsCSRfX0tFUk5FTF9EUywgJWVheAogCW1vdmwJJWVh
+eCwgJWRzCkBAIC02MzQsNiArNjM1LDcgQEAgRU5UUlkodHJhbXBvbGluZV8zMmJpdF9zcmMpCiAJ
+bW92bAklZWF4LCAlY3IwCiAKIAlscmV0CitTWU1fQ09ERV9FTkQodHJhbXBvbGluZV8zMmJpdF9z
+cmMpCiAKIAkuY29kZTY0CiBTWU1fRlVOQ19TVEFSVF9MT0NBTF9OT0FMSUdOKC5McGFnaW5nX2Vu
+YWJsZWQpCmRpZmYgLS1naXQgYS9hcmNoL3g4Ni9wbGF0Zm9ybS9vbHBjL3hvMS13YWtldXAuUyBi
+L2FyY2gveDg2L3BsYXRmb3JtL29scGMveG8xLXdha2V1cC5TCmluZGV4IDVmZWUzYTIuLjc1ZjRm
+YWYgMTAwNjQ0Ci0tLSBhL2FyY2gveDg2L3BsYXRmb3JtL29scGMveG8xLXdha2V1cC5TCisrKyBi
+L2FyY2gveDg2L3BsYXRmb3JtL29scGMveG8xLXdha2V1cC5TCkBAIC05MCw3ICs5MCw3IEBAIHJl
+c3RvcmVfcmVnaXN0ZXJzOgogCiAJcmV0CiAKLUVOVFJZKGRvX29scGNfc3VzcGVuZF9sb3dsZXZl
+bCkKK1NZTV9DT0RFX1NUQVJUKGRvX29scGNfc3VzcGVuZF9sb3dsZXZlbCkKIAljYWxsCXNhdmVf
+cHJvY2Vzc29yX3N0YXRlCiAJY2FsbAlzYXZlX3JlZ2lzdGVycwogCkBAIC0xMTAsNiArMTEwLDcg
+QEAgcmV0X3BvaW50OgogCWNhbGwJcmVzdG9yZV9yZWdpc3RlcnMKIAljYWxsCXJlc3RvcmVfcHJv
+Y2Vzc29yX3N0YXRlCiAJcmV0CitTWU1fQ09ERV9FTkQoZG9fb2xwY19zdXNwZW5kX2xvd2xldmVs
+KQogCiAuZGF0YQogc2F2ZWRfZ2R0OiAgICAgICAgICAgICAubG9uZyAgIDAsMApkaWZmIC0tZ2l0
+IGEvYXJjaC94ODYvcG93ZXIvaGliZXJuYXRlX2FzbV82NC5TIGIvYXJjaC94ODYvcG93ZXIvaGli
+ZXJuYXRlX2FzbV82NC5TCmluZGV4IGE0ZDVlYjAuLjQwNTdjZDUgMTAwNjQ0Ci0tLSBhL2FyY2gv
+eDg2L3Bvd2VyL2hpYmVybmF0ZV9hc21fNjQuUworKysgYi9hcmNoL3g4Ni9wb3dlci9oaWJlcm5h
+dGVfYXNtXzY0LlMKQEAgLTUyLDcgKzUyLDcgQEAgRU5UUlkoc3dzdXNwX2FyY2hfc3VzcGVuZCkK
+IAlyZXQKIEVORFBST0Moc3dzdXNwX2FyY2hfc3VzcGVuZCkKIAotRU5UUlkocmVzdG9yZV9pbWFn
+ZSkKK1NZTV9DT0RFX1NUQVJUKHJlc3RvcmVfaW1hZ2UpCiAJLyogcHJlcGFyZSB0byBqdW1wIHRv
+IHRoZSBpbWFnZSBrZXJuZWwgKi8KIAltb3ZxCXJlc3RvcmVfanVtcF9hZGRyZXNzKCVyaXApLCAl
+cjgKIAltb3ZxCXJlc3RvcmVfY3IzKCVyaXApLCAlcjkKQEAgLTY3LDkgKzY3LDEwIEBAIEVOVFJZ
+KHJlc3RvcmVfaW1hZ2UpCiAJLyoganVtcCB0byByZWxvY2F0ZWQgcmVzdG9yZSBjb2RlICovCiAJ
+bW92cQlyZWxvY2F0ZWRfcmVzdG9yZV9jb2RlKCVyaXApLCAlcmN4CiAJam1wcQkqJXJjeAorU1lN
+X0NPREVfRU5EKHJlc3RvcmVfaW1hZ2UpCiAKIAkvKiBjb2RlIGJlbG93IGhhcyBiZWVuIHJlbG9j
+YXRlZCB0byBhIHNhZmUgcGFnZSAqLwotRU5UUlkoY29yZV9yZXN0b3JlX2NvZGUpCitTWU1fQ09E
+RV9TVEFSVChjb3JlX3Jlc3RvcmVfY29kZSkKIAkvKiBzd2l0Y2ggdG8gdGVtcG9yYXJ5IHBhZ2Ug
+dGFibGVzICovCiAJbW92cQklcmF4LCAlY3IzCiAJLyogZmx1c2ggVExCICovCkBAIC05Nyw2ICs5
+OCw3IEBAIEVOVFJZKGNvcmVfcmVzdG9yZV9jb2RlKQogLkxkb25lOgogCS8qIGp1bXAgdG8gdGhl
+IHJlc3RvcmVfcmVnaXN0ZXJzIGFkZHJlc3MgZnJvbSB0aGUgaW1hZ2UgaGVhZGVyICovCiAJam1w
+cQkqJXI4CitTWU1fQ09ERV9FTkQoY29yZV9yZXN0b3JlX2NvZGUpCiAKIAkgLyogY29kZSBiZWxv
+dyBiZWxvbmdzIHRvIHRoZSBpbWFnZSBrZXJuZWwgKi8KIAkuYWxpZ24gUEFHRV9TSVpFCmRpZmYg
+LS1naXQgYS9hcmNoL3g4Ni9yZWFsbW9kZS9ybS9yZWJvb3QuUyBiL2FyY2gveDg2L3JlYWxtb2Rl
+L3JtL3JlYm9vdC5TCmluZGV4IDQyNDgyNmEuLmYxMDUxNWIgMTAwNjQ0Ci0tLSBhL2FyY2gveDg2
+L3JlYWxtb2RlL3JtL3JlYm9vdC5TCisrKyBiL2FyY2gveDg2L3JlYWxtb2RlL3JtL3JlYm9vdC5T
+CkBAIC0xOSw3ICsxOSw3IEBACiAgKi8KIAkuc2VjdGlvbiAiLnRleHQzMiIsICJheCIKIAkuY29k
+ZTMyCi1FTlRSWShtYWNoaW5lX3JlYWxfcmVzdGFydF9hc20pCitTWU1fQ09ERV9TVEFSVChtYWNo
+aW5lX3JlYWxfcmVzdGFydF9hc20pCiAKICNpZmRlZiBDT05GSUdfWDg2XzY0CiAJLyogU3dpdGNo
+IHRvIHRyYW1wb2xpbmUgR0RUIGFzIGl0IGlzIGd1YXJhbnRlZWQgPCA0IEdpQiAqLwpAQCAtNjMs
+NiArNjMsNyBAQCBTWU1fSU5ORVJfTEFCRUwobWFjaGluZV9yZWFsX3Jlc3RhcnRfcGFnaW5nX29m
+ZiwgU1lNX0xfR0xPQkFMKQogCW1vdmwJJWVjeCwgJWdzCiAJbW92bAklZWN4LCAlc3MKIAlsam1w
+dwkkOCwgJDFmCitTWU1fQ09ERV9FTkQobWFjaGluZV9yZWFsX3Jlc3RhcnRfYXNtKQogCiAvKgog
+ICogVGhpcyBpcyAxNi1iaXQgcHJvdGVjdGVkIG1vZGUgY29kZSB0byBkaXNhYmxlIHBhZ2luZyBh
+bmQgdGhlIGNhY2hlLApkaWZmIC0tZ2l0IGEvYXJjaC94ODYvcmVhbG1vZGUvcm0vdHJhbXBvbGlu
+ZV82NC5TIGIvYXJjaC94ODYvcmVhbG1vZGUvcm0vdHJhbXBvbGluZV82NC5TCmluZGV4IGMxYWVh
+YjEuLjI1MTc1OGUgMTAwNjQ0Ci0tLSBhL2FyY2gveDg2L3JlYWxtb2RlL3JtL3RyYW1wb2xpbmVf
+NjQuUworKysgYi9hcmNoL3g4Ni9yZWFsbW9kZS9ybS90cmFtcG9saW5lXzY0LlMKQEAgLTM4LDcg
+KzM4LDcgQEAKIAkuY29kZTE2CiAKIAkuYmFsaWduCVBBR0VfU0laRQotRU5UUlkodHJhbXBvbGlu
+ZV9zdGFydCkKK1NZTV9DT0RFX1NUQVJUKHRyYW1wb2xpbmVfc3RhcnQpCiAJY2xpCQkJIyBXZSBz
+aG91bGQgYmUgc2FmZSBhbnl3YXkKIAl3YmludmQKIApAQCAtNzgsMTIgKzc4LDE0IEBAIEVOVFJZ
+KHRyYW1wb2xpbmVfc3RhcnQpCiBub19sb25nbW9kZToKIAlobHQKIAlqbXAgbm9fbG9uZ21vZGUK
+K1NZTV9DT0RFX0VORCh0cmFtcG9saW5lX3N0YXJ0KQorCiAjaW5jbHVkZSAiLi4va2VybmVsL3Zl
+cmlmeV9jcHUuUyIKIAogCS5zZWN0aW9uICIudGV4dDMyIiwiYXgiCiAJLmNvZGUzMgogCS5iYWxp
+Z24gNAotRU5UUlkoc3RhcnR1cF8zMikKK1NZTV9DT0RFX1NUQVJUKHN0YXJ0dXBfMzIpCiAJbW92
+bAklZWR4LCAlc3MKIAlhZGRsCSRwYV9yZWFsX21vZGVfYmFzZSwgJWVzcAogCW1vdmwJJWVkeCwg
+JWRzCkBAIC0xMzcsMTMgKzEzOSwxNSBAQCBFTlRSWShzdGFydHVwXzMyKQogCSAqIHRoZSBuZXcg
+Z2R0L2lkdCB0aGF0IGhhcyBfX0tFUk5FTF9DUyB3aXRoIENTLkwgPSAxLgogCSAqLwogCWxqbXBs
+CSRfX0tFUk5FTF9DUywgJHBhX3N0YXJ0dXBfNjQKK1NZTV9DT0RFX0VORChzdGFydHVwXzMyKQog
+CiAJLnNlY3Rpb24gIi50ZXh0NjQiLCJheCIKIAkuY29kZTY0CiAJLmJhbGlnbiA0Ci1FTlRSWShz
+dGFydHVwXzY0KQorU1lNX0NPREVfU1RBUlQoc3RhcnR1cF82NCkKIAkjIE5vdyBqdW1wIGludG8g
+dGhlIGtlcm5lbCB1c2luZyB2aXJ0dWFsIGFkZHJlc3NlcwogCWptcHEJKnRyX3N0YXJ0KCVyaXAp
+CitTWU1fQ09ERV9FTkQoc3RhcnR1cF82NCkKIAogCS5zZWN0aW9uICIucm9kYXRhIiwiYSIKIAkj
+IER1cGxpY2F0ZSB0aGUgZ2xvYmFsIGRlc2NyaXB0b3IgdGFibGUKZGlmZiAtLWdpdCBhL2FyY2gv
+eDg2L3JlYWxtb2RlL3JtL3dha2V1cF9hc20uUyBiL2FyY2gveDg2L3JlYWxtb2RlL3JtL3dha2V1
+cF9hc20uUwppbmRleCAwMTA5MmQ2Li4wMmQwYmExIDEwMDY0NAotLS0gYS9hcmNoL3g4Ni9yZWFs
+bW9kZS9ybS93YWtldXBfYXNtLlMKKysrIGIvYXJjaC94ODYvcmVhbG1vZGUvcm0vd2FrZXVwX2Fz
+bS5TCkBAIC0zNyw3ICszNyw3IEBAIFNZTV9EQVRBX0VORCh3YWtldXBfaGVhZGVyKQogCS5jb2Rl
+MTYKIAogCS5iYWxpZ24JMTYKLUVOVFJZKHdha2V1cF9zdGFydCkKK1NZTV9DT0RFX1NUQVJUKHdh
+a2V1cF9zdGFydCkKIAljbGkKIAljbGQKIApAQCAtMTM1LDYgKzEzNSw3IEBAIEVOVFJZKHdha2V1
+cF9zdGFydCkKICNlbHNlCiAJam1wCXRyYW1wb2xpbmVfc3RhcnQKICNlbmRpZgorU1lNX0NPREVf
+RU5EKHdha2V1cF9zdGFydCkKIAogYm9ndXNfcmVhbF9tYWdpYzoKIDE6CmRpZmYgLS1naXQgYS9h
+cmNoL3g4Ni94ZW4veGVuLWFzbV82NC5TIGIvYXJjaC94ODYveGVuL3hlbi1hc21fNjQuUwppbmRl
+eCA0NWMxMjQ5Li5jMjA5YzcwIDEwMDY0NAotLS0gYS9hcmNoL3g4Ni94ZW4veGVuLWFzbV82NC5T
+CisrKyBiL2FyY2gveDg2L3hlbi94ZW4tYXNtXzY0LlMKQEAgLTg1LDExICs4NSwxMiBAQCBoeXBl
+cmNhbGxfaXJldCA9IGh5cGVyY2FsbF9wYWdlICsgX19IWVBFUlZJU09SX2lyZXQgKiAzMgogICoJ
+cjExCQl9PC0tIHB1c2hlZCBieSBoeXBlcmNhbGwgcGFnZQogICogcnNwLT5yYXgJCX0KICAqLwot
+RU5UUlkoeGVuX2lyZXQpCitTWU1fQ09ERV9TVEFSVCh4ZW5faXJldCkKIAlwdXNocSAkMAogCWpt
+cCBoeXBlcmNhbGxfaXJldAorU1lNX0NPREVfRU5EKHhlbl9pcmV0KQogCi1FTlRSWSh4ZW5fc3lz
+cmV0NjQpCitTWU1fQ09ERV9TVEFSVCh4ZW5fc3lzcmV0NjQpCiAJLyoKIAkgKiBXZSdyZSBhbHJl
+YWR5IG9uIHRoZSB1c2VybW9kZSBzdGFjayBhdCB0aGlzIHBvaW50LCBidXQKIAkgKiBzdGlsbCB3
+aXRoIHRoZSBrZXJuZWwgZ3MsIHNvIHdlIGNhbiBlYXNpbHkgc3dpdGNoIGJhY2suCkBAIC0xMDcs
+NiArMTA4LDcgQEAgRU5UUlkoeGVuX3N5c3JldDY0KQogCiAJcHVzaHEgJFZHQ0ZfaW5fc3lzY2Fs
+bAogCWptcCBoeXBlcmNhbGxfaXJldAorU1lNX0NPREVfRU5EKHhlbl9zeXNyZXQ2NCkKIAogLyoK
+ICAqIFhlbiBoYW5kbGVzIHN5c2NhbGwgY2FsbGJhY2tzIG11Y2ggbGlrZSBvcmRpbmFyeSBleGNl
+cHRpb25zLCB3aGljaAoKX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19f
+X19fX18KWGVuLWRldmVsIG1haWxpbmcgbGlzdApYZW4tZGV2ZWxAbGlzdHMueGVucHJvamVjdC5v
+cmcKaHR0cHM6Ly9saXN0cy54ZW5wcm9qZWN0Lm9yZy9tYWlsbWFuL2xpc3RpbmZvL3hlbi1kZXZl
+bA==
