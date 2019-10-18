@@ -1,15 +1,16 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:46084 "EHLO mail.kernel.org"
+Received: from mail.kernel.org ([198.145.29.99]:46880 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1728368AbfJRQsE (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 18 Oct 2019 12:48:04 -0400
-Date: Fri, 18 Oct 2019 12:48:00 -0400
+        id S2634360AbfJRQuA (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 18 Oct 2019 12:50:00 -0400
+Date: Fri, 18 Oct 2019 12:49:56 -0400
 From: Steven Rostedt <rostedt@goodmis.org>
 Subject: Re: [tip: x86/asm] x86/asm/ftrace: Mark function_hook as function
-Message-ID: <20191018124800.0a7006bb@gandalf.local.home>
-In-Reply-To: <157141622788.29376.4016565749507481510.tip-bot2@tip-bot2>
+Message-ID: <20191018124956.764ac42e@gandalf.local.home>
+In-Reply-To: <20191018124800.0a7006bb@gandalf.local.home>
 References: <20191011115108.12392-22-jslaby@suse.cz>
         <157141622788.29376.4016565749507481510.tip-bot2@tip-bot2>
+        <20191018124800.0a7006bb@gandalf.local.home>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
@@ -17,66 +18,18 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: tip-bot2 for Jiri Slaby <tip-bot2@linutronix.de>
 Cc: linux-kernel@vger.kernel.org, linux-tip-commits@vger.kernel.org, Jiri Slaby <jslaby@suse.cz>, Borislav Petkov <bp@suse.de>, "H. Peter Anvin" <hpa@zytor.com>, Ingo Molnar <mingo@redhat.com>, Josh Poimboeuf <jpoimboe@redhat.com>, linux-arch@vger.kernel.org, Masami Hiramatsu <mhiramat@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, x86-ml <x86@kernel.org>, Ingo Molnar <mingo@kernel.org>, Borislav Petkov <bp@alien8.de>
-Message-ID: <20191018164800.c-WuJ1X7r1HShqX_xwBPqq3-XNsJVAVzpwnMhKCpLR4@z>
+Message-ID: <20191018164956.S46MtmL1M6efXp1s2UYZ1kCZgZN_H_T4hvp_Fq0ex9A@z>
 
-On Fri, 18 Oct 2019 16:30:27 -0000
-"tip-bot2 for Jiri Slaby" <tip-bot2@linutronix.de> wrote:
+On Fri, 18 Oct 2019 12:48:00 -0400
+Steven Rostedt <rostedt@goodmis.org> wrote:
 
-> The following commit has been merged into the x86/asm branch of tip:
+> > Relabel function_hook to be marked really as a function. It is called
+> > from C and has the same expectations towards the stack etc.  
 > 
-> Commit-ID:     f13ad88a984e8090226a8f62d75e87b770eefdf4
-> Gitweb:        https://git.kernel.org/tip/f13ad88a984e8090226a8f62d75e87b770eefdf4
-> Author:        Jiri Slaby <jslaby@suse.cz>
-> AuthorDate:    Fri, 11 Oct 2019 13:51:01 +02:00
-> Committer:     Borislav Petkov <bp@suse.de>
-> CommitterDate: Fri, 18 Oct 2019 11:35:41 +02:00
 
-I just noticed this (sorry missed the original patch).
+And to go even further, it *does not* have the same expectations
+towards the stack.
 
-> 
-> x86/asm/ftrace: Mark function_hook as function
-> 
-> Relabel function_hook to be marked really as a function. It is called
-> from C and has the same expectations towards the stack etc.
-
-This is wrong, function_hook is never called from C. It's called via
-fentry (use to be mcount), and does not have the same semantics as a C
-function. In fact, that's why it exists in assembly. Because it has to
-save and restore registers to make it possible to call a C function!
+I think this patch should not be applied.
 
 -- Steve
-
-
-> 
-> Signed-off-by: Jiri Slaby <jslaby@suse.cz>
-> Signed-off-by: Borislav Petkov <bp@suse.de>
-> Cc: "H. Peter Anvin" <hpa@zytor.com>
-> Cc: Ingo Molnar <mingo@redhat.com>
-> Cc: Josh Poimboeuf <jpoimboe@redhat.com>
-> Cc: linux-arch@vger.kernel.org
-> Cc: Masami Hiramatsu <mhiramat@kernel.org>
-> Cc: Peter Zijlstra <peterz@infradead.org>
-> Cc: "Steven Rostedt (VMware)" <rostedt@goodmis.org>
-> Cc: Thomas Gleixner <tglx@linutronix.de>
-> Cc: x86-ml <x86@kernel.org>
-> Link: https://lkml.kernel.org/r/20191011115108.12392-22-jslaby@suse.cz
-> ---
->  arch/x86/kernel/ftrace_32.S | 4 ++--
->  1 file changed, 2 insertions(+), 2 deletions(-)
-> 
-> diff --git a/arch/x86/kernel/ftrace_32.S b/arch/x86/kernel/ftrace_32.S
-> index e0061dc..219be13 100644
-> --- a/arch/x86/kernel/ftrace_32.S
-> +++ b/arch/x86/kernel/ftrace_32.S
-> @@ -21,9 +21,9 @@ EXPORT_SYMBOL(__fentry__)
->  # define MCOUNT_FRAME			0	/* using frame = false */
->  #endif
->  
-> -ENTRY(function_hook)
-> +SYM_FUNC_START(function_hook)
->  	ret
-> -END(function_hook)
-> +SYM_FUNC_END(function_hook)
->  
->  ENTRY(ftrace_caller)
->  
