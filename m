@@ -1,45 +1,46 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from condef-05.nifty.com ([202.248.20.70]:41036 "EHLO
-        condef-05.nifty.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S2391456AbfJRFDM (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 18 Oct 2019 01:03:12 -0400
-From: Masahiro Yamada <yamada.masahiro@socionext.com>
-Subject: [PATCH 1/2] asm-generic/export.h: make __ksymtab_* local symbols
-Date: Fri, 18 Oct 2019 13:31:47 +0900
-Message-ID: <20191018043148.6285-1-yamada.masahiro@socionext.com>
+Received: from mail-il1-f193.google.com ([209.85.166.193]:41989 "EHLO
+        mail-il1-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726533AbfJRFWK (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 18 Oct 2019 01:22:10 -0400
+Received: by mail-il1-f193.google.com with SMTP id o18so4376322ilo.9
+        for <linux-arch@vger.kernel.org>; Thu, 17 Oct 2019 22:22:10 -0700 (PDT)
+Date: Thu, 17 Oct 2019 20:42:14 -0700 (PDT)
+From: Paul Walmsley <paul.walmsley@sifive.com>
+Subject: Re: [PATCH 18/21] riscv: use the generic ioremap code
+In-Reply-To: <20191017174554.29840-19-hch@lst.de>
+Message-ID: <alpine.DEB.2.21.9999.1910172038040.3156@viisi.sifive.com>
+References: <20191017174554.29840-1-hch@lst.de> <20191017174554.29840-19-hch@lst.de>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org, Jessica Yu <jeyu@kernel.org>
-Cc: Nicholas Piggin <npiggin@gmail.com>, Al Viro <viro@zeniv.linux.org.uk>, Masahiro Yamada <yamada.masahiro@socionext.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org
-Message-ID: <20191018043147.PS3gV5eyhy9BHGtOlfA70skRmTbaLRGIlnjh_WcZ2D0@z>
+To: Christoph Hellwig <hch@lst.de>
+Cc: Arnd Bergmann <arnd@arndb.de>, Guo Ren <guoren@kernel.org>, Michal Simek <monstr@monstr.eu>, Greentime Hu <green.hu@gmail.com>, Vincent Chen <deanbo422@gmail.com>, Guan Xuetao <gxt@pku.edu.cn>, x86@kernel.org, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, linux-ia64@vger.kernel.org, linux-parisc@vger.kernel.org, linux-sh@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-mips@vger.kernel.org, linux-kernel@vger.kernel.org, linux-m68k@lists.linux-m68k.org, openrisc@lists.librecores.org, linux-mtd@lists.infradead.org, linux-alpha@vger.kernel.org, sparclinux@vger.kernel.org, nios2-dev@lists.rocketboards.org, linux-riscv@lists.infradead.org, linux-snps-arc@lists.infradead.org, linux-arm-kernel@lists.infradead.org
+Message-ID: <20191018034214.rwJr5AHcibEwvaeSUquse2OiqzFjIK-Lmk-IhT0WkY8@z>
 
-For EXPORT_SYMBOL from C files, <linux/export.h> defines __ksymtab_*
-as local symbols.
+On Thu, 17 Oct 2019, Christoph Hellwig wrote:
 
-For EXPORT_SYMBOL from assembly, in contrast, <asm-generic/export.h>
-produces globally-visible __ksymtab_* symbols due to this .globl
-directive.
+> Use the generic ioremap code instead of providing a local version.
+> Note that this relies on the asm-generic no-op definition of
+> pgprot_noncached.
+> 
+> Signed-off-by: Christoph Hellwig <hch@lst.de>
 
-I do not understand why this must be global.  It still works without
-this .globl directive.
+According to the series introduction E-mail:
 
-Signed-off-by: Masahiro Yamada <yamada.masahiro@socionext.com>
----
+https://lore.kernel.org/linux-riscv/20191017174554.29840-1-hch@lst.de/T/#m9ac4010fd725c8c84179fa99aa391a6f701a32de
 
- include/asm-generic/export.h | 1 -
- 1 file changed, 1 deletion(-)
+nothing substantive related to RISC-V or the common code has changed since 
+the first version of this series, and this RISC-V-specific patch appears 
+to be quite close (if not identical) to the first version of the patch:
 
-diff --git a/include/asm-generic/export.h b/include/asm-generic/export.h
-index fa577978fbbd..80ef2dc0c8be 100644
---- a/include/asm-generic/export.h
-+++ b/include/asm-generic/export.h
-@@ -31,7 +31,6 @@
-  */
- .macro ___EXPORT_SYMBOL name,val,sec
- #ifdef CONFIG_MODULES
--	.globl __ksymtab_\name
- 	.section ___ksymtab\sec+\name,"a"
- 	.balign KSYM_ALIGN
- __ksymtab_\name:
--- 
-2.17.1
+https://lore.kernel.org/linux-riscv/alpine.DEB.2.21.9999.1908171421560.4130@viisi.sifive.com/
+
+Thus the Tested-by, Reviewed-by, and Acked-by for RISC-V should all still 
+apply:
+
+https://lore.kernel.org/linux-riscv/alpine.DEB.2.21.9999.1908171421560.4130@viisi.sifive.com/
+
+
+- Paul
