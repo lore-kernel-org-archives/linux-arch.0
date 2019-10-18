@@ -1,46 +1,87 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-il1-f193.google.com ([209.85.166.193]:41989 "EHLO
-        mail-il1-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726533AbfJRFWK (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 18 Oct 2019 01:22:10 -0400
-Received: by mail-il1-f193.google.com with SMTP id o18so4376322ilo.9
-        for <linux-arch@vger.kernel.org>; Thu, 17 Oct 2019 22:22:10 -0700 (PDT)
-Date: Thu, 17 Oct 2019 20:42:14 -0700 (PDT)
-From: Paul Walmsley <paul.walmsley@sifive.com>
-Subject: Re: [PATCH 18/21] riscv: use the generic ioremap code
-In-Reply-To: <20191017174554.29840-19-hch@lst.de>
-Message-ID: <alpine.DEB.2.21.9999.1910172038040.3156@viisi.sifive.com>
-References: <20191017174554.29840-1-hch@lst.de> <20191017174554.29840-19-hch@lst.de>
+Received: from mail-ot1-f66.google.com ([209.85.210.66]:36638 "EHLO
+        mail-ot1-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S2394031AbfJRHbI (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 18 Oct 2019 03:31:08 -0400
 MIME-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
+References: <20191017174554.29840-1-hch@lst.de> <20191017174554.29840-14-hch@lst.de>
+In-Reply-To: <20191017174554.29840-14-hch@lst.de>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Date: Fri, 18 Oct 2019 09:30:54 +0200
+Message-ID: <CAMuHMdWaQ15j7fQ9-8XKgrSwgf96nT=yY+FCPWPxoPC9LGqvbQ@mail.gmail.com>
+Subject: Re: [PATCH 13/21] m68k: rename __iounmap and mark it static
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Christoph Hellwig <hch@lst.de>
-Cc: Arnd Bergmann <arnd@arndb.de>, Guo Ren <guoren@kernel.org>, Michal Simek <monstr@monstr.eu>, Greentime Hu <green.hu@gmail.com>, Vincent Chen <deanbo422@gmail.com>, Guan Xuetao <gxt@pku.edu.cn>, x86@kernel.org, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, linux-ia64@vger.kernel.org, linux-parisc@vger.kernel.org, linux-sh@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-mips@vger.kernel.org, linux-kernel@vger.kernel.org, linux-m68k@lists.linux-m68k.org, openrisc@lists.librecores.org, linux-mtd@lists.infradead.org, linux-alpha@vger.kernel.org, sparclinux@vger.kernel.org, nios2-dev@lists.rocketboards.org, linux-riscv@lists.infradead.org, linux-snps-arc@lists.infradead.org, linux-arm-kernel@lists.infradead.org
-Message-ID: <20191018034214.rwJr5AHcibEwvaeSUquse2OiqzFjIK-Lmk-IhT0WkY8@z>
+Cc: Arnd Bergmann <arnd@arndb.de>, Guo Ren <guoren@kernel.org>, Michal Simek <monstr@monstr.eu>, Greentime Hu <green.hu@gmail.com>, Vincent Chen <deanbo422@gmail.com>, Guan Xuetao <gxt@pku.edu.cn>, the arch/x86 maintainers <x86@kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, linux-s390 <linux-s390@vger.kernel.org>, "linux-ia64@vger.kernel.org" <linux-ia64@vger.kernel.org>, Parisc List <linux-parisc@vger.kernel.org>, Linux-sh list <linux-sh@vger.kernel.org>, "open list:QUALCOMM HEXAGON..." <linux-hexagon@vger.kernel.org>, linux-xtensa@linux-xtensa.org, linux-mips@vger.kernel.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-m68k <linux-m68k@lists.linux-m68k.org>, Openrisc <openrisc@lists.librecores.org>, MTD Maling List <linux-mtd@lists.infradead.org>, alpha <linux-alpha@vger.kernel.org>, sparclinux <sparclinux@vger.kernel.org>, nios2-dev@lists.rocketboards.org, linux-riscv@lists.infradead.org, arcml <linux-snps-arc@lists.infradead.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>
+Message-ID: <20191018073054.Z1kep6kkLljkXa2WO1nZAQAOdV7UyBG3CQoyz_lR2io@z>
 
-On Thu, 17 Oct 2019, Christoph Hellwig wrote:
+Hi Christoph,
 
-> Use the generic ioremap code instead of providing a local version.
-> Note that this relies on the asm-generic no-op definition of
-> pgprot_noncached.
-> 
+On Thu, Oct 17, 2019 at 7:53 PM Christoph Hellwig <hch@lst.de> wrote:
+> m68k uses __iounmap as the name for an internal helper that is only
+> used for some CPU types.  Mark it static and give it a better name.
+>
 > Signed-off-by: Christoph Hellwig <hch@lst.de>
 
-According to the series introduction E-mail:
+Thanks for your patch!
 
-https://lore.kernel.org/linux-riscv/20191017174554.29840-1-hch@lst.de/T/#m9ac4010fd725c8c84179fa99aa391a6f701a32de
+> --- a/arch/m68k/mm/kmap.c
+> +++ b/arch/m68k/mm/kmap.c
+> @@ -52,6 +52,7 @@ static inline void free_io_area(void *addr)
+>
+>  #define IO_SIZE                (256*1024)
+>
+> +static void __free_io_area(void *addr, unsigned long size);
+>  static struct vm_struct *iolist;
+>
+>  static struct vm_struct *get_io_area(unsigned long size)
+> @@ -90,7 +91,7 @@ static inline void free_io_area(void *addr)
+>                 if (tmp->addr == addr) {
+>                         *p = tmp->next;
+>                         /* remove gap added in get_io_area() */
+> -                       __iounmap(tmp->addr, tmp->size - IO_SIZE);
+> +                       __free_io_area(tmp->addr, tmp->size - IO_SIZE);
+>                         kfree(tmp);
+>                         return;
+>                 }
+> @@ -249,12 +250,13 @@ void iounmap(void __iomem *addr)
+>  }
+>  EXPORT_SYMBOL(iounmap);
+>
+> +#ifndef CPU_M68040_OR_M68060_ONLY
 
-nothing substantive related to RISC-V or the common code has changed since 
-the first version of this series, and this RISC-V-specific patch appears 
-to be quite close (if not identical) to the first version of the patch:
+Can you please move this block up, instead of adding more #ifdef cluttery?
+That would also remove the need for a forward declaration.
 
-https://lore.kernel.org/linux-riscv/alpine.DEB.2.21.9999.1908171421560.4130@viisi.sifive.com/
+>  /*
+> - * __iounmap unmaps nearly everything, so be careful
+> + * __free_io_area unmaps nearly everything, so be careful
+>   * Currently it doesn't free pointer/page tables anymore but this
+>   * wasn't used anyway and might be added later.
+>   */
+> -void __iounmap(void *addr, unsigned long size)
+> +static void __free_io_area(void *addr, unsigned long size)
+>  {
+>         unsigned long virtaddr = (unsigned long)addr;
+>         pgd_t *pgd_dir;
+> @@ -297,6 +299,7 @@ void __iounmap(void *addr, unsigned long size)
+>
+>         flush_tlb_all();
+>  }
+> +#endif /* CPU_M68040_OR_M68060_ONLY */
+>
+>  /*
+>   * Set new cache mode for some kernel address space.
 
-Thus the Tested-by, Reviewed-by, and Acked-by for RISC-V should all still 
-apply:
+Gr{oetje,eeting}s,
 
-https://lore.kernel.org/linux-riscv/alpine.DEB.2.21.9999.1908171421560.4130@viisi.sifive.com/
+                        Geert
 
+-- 
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
 
-- Paul
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
