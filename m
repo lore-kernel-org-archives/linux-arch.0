@@ -1,72 +1,258 @@
 From: "tip-bot2 for Jiri Slaby" <tip-bot2@linutronix.de>
-Subject: [tip: x86/asm] xen/pvh: Annotate data appropriately
-Date: Fri, 18 Oct 2019 16:30:30 -0000
-Message-ID: <157141623045.29376.2755641744903920106.tip-bot2@tip-bot2>
-References: <20191011115108.12392-15-jslaby@suse.cz>
+Subject: [tip: x86/asm] x86/asm/32: Add ENDs to some functions and relabel
+ with SYM_CODE_*
+Date: Fri, 18 Oct 2019 16:30:26 -0000
+Message-ID: <157141622620.29376.2511020268312198257.tip-bot2@tip-bot2>
+References: <20191011115108.12392-26-jslaby@suse.cz>
 Reply-To: linux-kernel@vger.kernel.org
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
-Return-path: <xen-devel-bounces@lists.xenproject.org>
-In-Reply-To: <20191011115108.12392-15-jslaby@suse.cz>
-List-Unsubscribe: <https://lists.xenproject.org/mailman/options/xen-devel>,
- <mailto:xen-devel-request@lists.xenproject.org?subject=unsubscribe>
-List-Post: <mailto:xen-devel@lists.xenproject.org>
-List-Help: <mailto:xen-devel-request@lists.xenproject.org?subject=help>
-List-Subscribe: <https://lists.xenproject.org/mailman/listinfo/xen-devel>,
- <mailto:xen-devel-request@lists.xenproject.org?subject=subscribe>
-Errors-To: xen-devel-bounces@lists.xenproject.org
-Sender: "Xen-devel" <xen-devel-bounces@lists.xenproject.org>
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20191011115108.12392-26-jslaby@suse.cz>
+Sender: linux-kernel-owner@vger.kernel.org
 To: linux-tip-commits@vger.kernel.org
-Cc: Juergen Gross <jgross@suse.com>, linux-arch@vger.kernel.org, Stefano Stabellini <sstabellini@kernel.org>, xen-devel@lists.xenproject.org, Ingo Molnar <mingo@kernel.org>, x86-ml <x86@kernel.org>, linux-kernel@vger.kernel.org, platform-driver-x86@vger.kernel.org, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, Darren Hart <dvhart@infradead.org>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, Borislav Petkov <bp@suse.de>, Jiri Slaby <jslaby@suse.cz>, Thomas Gleixner <tglx@linutronix.de>, Andy Shevchenko <andy@infradead.org>
+Cc: Jiri Slaby <jslaby@suse.cz>, Borislav Petkov <bp@suse.de>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, "Rafael J. Wysocki" <rafael.j.wysocki@intel.com>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Ingo Molnar <mingo@redhat.com>, Josh Poimboeuf <jpoimboe@redhat.com>, Juergen Gross <jgross@suse.com>, Len Brown <len.brown@intel.com>, linux-arch@vger.kernel.org, linux-pm@vger.kernel.org, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Pingfan Liu <kernelfans@gmail.com>, Stefano Stabellini <sstabellini@kernel.org>, "Steven Rostedt (VMware)" <rostedt@goodmis.org>, Thomas Gleixner <tglx@linutronix.de>, x86-ml <x86@kernel.org>, xen-devel@lists.xenproject.org, Ingo Molnar <mingo@kernel.org>, Borislav Petkov <bp@alien8.de>
 List-Id: linux-arch.vger.kernel.org
 
-VGhlIGZvbGxvd2luZyBjb21taXQgaGFzIGJlZW4gbWVyZ2VkIGludG8gdGhlIHg4Ni9hc20gYnJh
-bmNoIG9mIHRpcDoKCkNvbW1pdC1JRDogICAgIDFkZTViZGNlMGMzZjgyOTRkMGFhYmM0OGZiNTQ5
-NzgxNDU4OTQyMmYKR2l0d2ViOiAgICAgICAgaHR0cHM6Ly9naXQua2VybmVsLm9yZy90aXAvMWRl
-NWJkY2UwYzNmODI5NGQwYWFiYzQ4ZmI1NDk3ODE0NTg5NDIyZgpBdXRob3I6ICAgICAgICBKaXJp
-IFNsYWJ5IDxqc2xhYnlAc3VzZS5jej4KQXV0aG9yRGF0ZTogICAgRnJpLCAxMSBPY3QgMjAxOSAx
-Mzo1MDo1NCArMDI6MDAKQ29tbWl0dGVyOiAgICAgQm9yaXNsYXYgUGV0a292IDxicEBzdXNlLmRl
-PgpDb21taXR0ZXJEYXRlOiBGcmksIDE4IE9jdCAyMDE5IDEwOjQ2OjA2ICswMjowMAoKeGVuL3B2
-aDogQW5ub3RhdGUgZGF0YSBhcHByb3ByaWF0ZWx5CgpVc2UgdGhlIG5ldyBTWU1fREFUQV9TVEFS
-VF9MT0NBTCwgYW5kIFNZTV9EQVRBX0VORCogbWFjcm9zIHRvIGdldDoKCiAgMDAwMCAgICAgOCBP
-QkpFQ1QgIExPQ0FMICBERUZBVUxUICAgIDYgZ2R0CiAgMDAwOCAgICAzMiBPQkpFQ1QgIExPQ0FM
-ICBERUZBVUxUICAgIDYgZ2R0X3N0YXJ0CiAgMDAyOCAgICAgMCBPQkpFQ1QgIExPQ0FMICBERUZB
-VUxUICAgIDYgZ2R0X2VuZAogIDAwMjggICAyNTYgT0JKRUNUICBMT0NBTCAgREVGQVVMVCAgICA2
-IGVhcmx5X3N0YWNrCiAgMDEyOCAgICAgMCBPQkpFQ1QgIExPQ0FMICBERUZBVUxUICAgIDYgZWFy
-bHlfc3RhY2sKClNpZ25lZC1vZmYtYnk6IEppcmkgU2xhYnkgPGpzbGFieUBzdXNlLmN6PgpTaWdu
-ZWQtb2ZmLWJ5OiBCb3Jpc2xhdiBQZXRrb3YgPGJwQHN1c2UuZGU+ClJldmlld2VkLWJ5OiBCb3Jp
-cyBPc3Ryb3Zza3kgPGJvcmlzLm9zdHJvdnNreUBvcmFjbGUuY29tPgpDYzogQW5keSBTaGV2Y2hl
-bmtvIDxhbmR5QGluZnJhZGVhZC5vcmc+CkNjOiBEYXJyZW4gSGFydCA8ZHZoYXJ0QGluZnJhZGVh
-ZC5vcmc+CkNjOiAiSC4gUGV0ZXIgQW52aW4iIDxocGFAenl0b3IuY29tPgpDYzogSW5nbyBNb2xu
-YXIgPG1pbmdvQHJlZGhhdC5jb20+CkNjOiBKdWVyZ2VuIEdyb3NzIDxqZ3Jvc3NAc3VzZS5jb20+
-CkNjOiBsaW51eC1hcmNoQHZnZXIua2VybmVsLm9yZwpDYzogcGxhdGZvcm0tZHJpdmVyLXg4NkB2
-Z2VyLmtlcm5lbC5vcmcKQ2M6IFN0ZWZhbm8gU3RhYmVsbGluaSA8c3N0YWJlbGxpbmlAa2VybmVs
-Lm9yZz4KQ2M6IFRob21hcyBHbGVpeG5lciA8dGdseEBsaW51dHJvbml4LmRlPgpDYzogeDg2LW1s
-IDx4ODZAa2VybmVsLm9yZz4KQ2M6IHhlbi1kZXZlbEBsaXN0cy54ZW5wcm9qZWN0Lm9yZwpMaW5r
-OiBodHRwczovL2xrbWwua2VybmVsLm9yZy9yLzIwMTkxMDExMTE1MTA4LjEyMzkyLTE1LWpzbGFi
-eUBzdXNlLmN6Ci0tLQogYXJjaC94ODYvcGxhdGZvcm0vcHZoL2hlYWQuUyB8IDE0ICsrKysrKyst
-LS0tLS0tCiAxIGZpbGUgY2hhbmdlZCwgNyBpbnNlcnRpb25zKCspLCA3IGRlbGV0aW9ucygtKQoK
-ZGlmZiAtLWdpdCBhL2FyY2gveDg2L3BsYXRmb3JtL3B2aC9oZWFkLlMgYi9hcmNoL3g4Ni9wbGF0
-Zm9ybS9wdmgvaGVhZC5TCmluZGV4IDFmODgyNWIuLjRlNjM0ODAgMTAwNjQ0Ci0tLSBhL2FyY2gv
-eDg2L3BsYXRmb3JtL3B2aC9oZWFkLlMKKysrIGIvYXJjaC94ODYvcGxhdGZvcm0vcHZoL2hlYWQu
-UwpAQCAtMTUwLDExICsxNTAsMTIgQEAgRU5EKHB2aF9zdGFydF94ZW4pCiAKIAkuc2VjdGlvbiAi
-LmluaXQuZGF0YSIsImF3IgogCS5iYWxpZ24gOAotZ2R0OgorU1lNX0RBVEFfU1RBUlRfTE9DQUwo
-Z2R0KQogCS53b3JkIGdkdF9lbmQgLSBnZHRfc3RhcnQKIAkubG9uZyBfcGEoZ2R0X3N0YXJ0KQog
-CS53b3JkIDAKLWdkdF9zdGFydDoKK1NZTV9EQVRBX0VORChnZHQpCitTWU1fREFUQV9TVEFSVF9M
-T0NBTChnZHRfc3RhcnQpCiAJLnF1YWQgMHgwMDAwMDAwMDAwMDAwMDAwICAgICAgICAgICAgLyog
-TlVMTCBkZXNjcmlwdG9yICovCiAjaWZkZWYgQ09ORklHX1g4Nl82NAogCS5xdWFkIEdEVF9FTlRS
-WSgweGEwOWEsIDAsIDB4ZmZmZmYpIC8qIFBWSF9DU19TRUwgKi8KQEAgLTE2MywxNSArMTY0LDE0
-IEBAIGdkdF9zdGFydDoKICNlbmRpZgogCS5xdWFkIEdEVF9FTlRSWSgweGMwOTIsIDAsIDB4ZmZm
-ZmYpIC8qIFBWSF9EU19TRUwgKi8KIAkucXVhZCBHRFRfRU5UUlkoMHg0MDkwLCAwLCAweDE4KSAg
-ICAvKiBQVkhfQ0FOQVJZX1NFTCAqLwotZ2R0X2VuZDoKK1NZTV9EQVRBX0VORF9MQUJFTChnZHRf
-c3RhcnQsIFNZTV9MX0xPQ0FMLCBnZHRfZW5kKQogCiAJLmJhbGlnbiAxNgotY2FuYXJ5OgotCS5m
-aWxsIDQ4LCAxLCAwCitTWU1fREFUQV9MT0NBTChjYW5hcnksIC5maWxsIDQ4LCAxLCAwKQogCi1l
-YXJseV9zdGFjazoKK1NZTV9EQVRBX1NUQVJUX0xPQ0FMKGVhcmx5X3N0YWNrKQogCS5maWxsIEJP
-T1RfU1RBQ0tfU0laRSwgMSwgMAotZWFybHlfc3RhY2tfZW5kOgorU1lNX0RBVEFfRU5EX0xBQkVM
-KGVhcmx5X3N0YWNrLCBTWU1fTF9MT0NBTCwgZWFybHlfc3RhY2tfZW5kKQogCiAJRUxGTk9URShY
-ZW4sIFhFTl9FTEZOT1RFX1BIWVMzMl9FTlRSWSwKIAkgICAgICAgICAgICAgX0FTTV9QVFIgKHB2
-aF9zdGFydF94ZW4gLSBfX1NUQVJUX0tFUk5FTF9tYXApKQoKX19fX19fX19fX19fX19fX19fX19f
-X19fX19fX19fX19fX19fX19fX19fX19fX18KWGVuLWRldmVsIG1haWxpbmcgbGlzdApYZW4tZGV2
-ZWxAbGlzdHMueGVucHJvamVjdC5vcmcKaHR0cHM6Ly9saXN0cy54ZW5wcm9qZWN0Lm9yZy9tYWls
-bWFuL2xpc3RpbmZvL3hlbi1kZXZlbA==
+The following commit has been merged into the x86/asm branch of tip:
+
+Commit-ID:     78762b0e79bc1dd01347be061abdf505202152c9
+Gitweb:        https://git.kernel.org/tip/78762b0e79bc1dd01347be061abdf505202152c9
+Author:        Jiri Slaby <jslaby@suse.cz>
+AuthorDate:    Fri, 11 Oct 2019 13:51:05 +02:00
+Committer:     Borislav Petkov <bp@suse.de>
+CommitterDate: Fri, 18 Oct 2019 11:58:33 +02:00
+
+x86/asm/32: Add ENDs to some functions and relabel with SYM_CODE_*
+
+All these are functions which are invoked from elsewhere but they are
+not typical C functions. So annotate them using the new SYM_CODE_START.
+All these were not balanced with any END, so mark their ends by
+SYM_CODE_END, appropriately.
+
+Signed-off-by: Jiri Slaby <jslaby@suse.cz>
+Signed-off-by: Borislav Petkov <bp@suse.de>
+Reviewed-by: Boris Ostrovsky <boris.ostrovsky@oracle.com> [xen bits]
+Reviewed-by: Rafael J. Wysocki <rafael.j.wysocki@intel.com> [hibernate]
+Cc: Andy Lutomirski <luto@kernel.org>
+Cc: "H. Peter Anvin" <hpa@zytor.com>
+Cc: Ingo Molnar <mingo@redhat.com>
+Cc: Josh Poimboeuf <jpoimboe@redhat.com>
+Cc: Juergen Gross <jgross@suse.com>
+Cc: Len Brown <len.brown@intel.com>
+Cc: linux-arch@vger.kernel.org
+Cc: linux-pm@vger.kernel.org
+Cc: Pavel Machek <pavel@ucw.cz>
+Cc: Peter Zijlstra <peterz@infradead.org>
+Cc: Pingfan Liu <kernelfans@gmail.com>
+Cc: Stefano Stabellini <sstabellini@kernel.org>
+Cc: "Steven Rostedt (VMware)" <rostedt@goodmis.org>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: x86-ml <x86@kernel.org>
+Cc: xen-devel@lists.xenproject.org
+Link: https://lkml.kernel.org/r/20191011115108.12392-26-jslaby@suse.cz
+---
+ arch/x86/entry/entry_32.S            | 3 ++-
+ arch/x86/kernel/acpi/wakeup_32.S     | 7 ++++---
+ arch/x86/kernel/ftrace_32.S          | 3 ++-
+ arch/x86/kernel/head_32.S            | 3 ++-
+ arch/x86/power/hibernate_asm_32.S    | 6 ++++--
+ arch/x86/realmode/rm/trampoline_32.S | 6 ++++--
+ arch/x86/xen/xen-asm_32.S            | 7 ++++---
+ 7 files changed, 22 insertions(+), 13 deletions(-)
+
+diff --git a/arch/x86/entry/entry_32.S b/arch/x86/entry/entry_32.S
+index 4900a6a..64fe7aa 100644
+--- a/arch/x86/entry/entry_32.S
++++ b/arch/x86/entry/entry_32.S
+@@ -847,9 +847,10 @@ SYM_ENTRY(__begin_SYSENTER_singlestep_region, SYM_L_GLOBAL, SYM_A_NONE)
+  * Xen doesn't set %esp to be precisely what the normal SYSENTER
+  * entry point expects, so fix it up before using the normal path.
+  */
+-ENTRY(xen_sysenter_target)
++SYM_CODE_START(xen_sysenter_target)
+ 	addl	$5*4, %esp			/* remove xen-provided frame */
+ 	jmp	.Lsysenter_past_esp
++SYM_CODE_END(xen_sysenter_target)
+ #endif
+ 
+ /*
+diff --git a/arch/x86/kernel/acpi/wakeup_32.S b/arch/x86/kernel/acpi/wakeup_32.S
+index 4272492..daf88f8 100644
+--- a/arch/x86/kernel/acpi/wakeup_32.S
++++ b/arch/x86/kernel/acpi/wakeup_32.S
+@@ -9,8 +9,7 @@
+ 	.code32
+ 	ALIGN
+ 
+-ENTRY(wakeup_pmode_return)
+-wakeup_pmode_return:
++SYM_CODE_START(wakeup_pmode_return)
+ 	movw	$__KERNEL_DS, %ax
+ 	movw	%ax, %ss
+ 	movw	%ax, %fs
+@@ -39,6 +38,7 @@ wakeup_pmode_return:
+ 	# jump to place where we left off
+ 	movl	saved_eip, %eax
+ 	jmp	*%eax
++SYM_CODE_END(wakeup_pmode_return)
+ 
+ bogus_magic:
+ 	jmp	bogus_magic
+@@ -72,7 +72,7 @@ restore_registers:
+ 	popfl
+ 	ret
+ 
+-ENTRY(do_suspend_lowlevel)
++SYM_CODE_START(do_suspend_lowlevel)
+ 	call	save_processor_state
+ 	call	save_registers
+ 	pushl	$3
+@@ -87,6 +87,7 @@ ret_point:
+ 	call	restore_registers
+ 	call	restore_processor_state
+ 	ret
++SYM_CODE_END(do_suspend_lowlevel)
+ 
+ .data
+ ALIGN
+diff --git a/arch/x86/kernel/ftrace_32.S b/arch/x86/kernel/ftrace_32.S
+index 219be13..a43ed4c 100644
+--- a/arch/x86/kernel/ftrace_32.S
++++ b/arch/x86/kernel/ftrace_32.S
+@@ -89,7 +89,7 @@ WEAK(ftrace_stub)
+ 	ret
+ END(ftrace_caller)
+ 
+-ENTRY(ftrace_regs_caller)
++SYM_CODE_START(ftrace_regs_caller)
+ 	/*
+ 	 * We're here from an mcount/fentry CALL, and the stack frame looks like:
+ 	 *
+@@ -163,6 +163,7 @@ SYM_INNER_LABEL(ftrace_regs_call, SYM_L_GLOBAL)
+ 	popl	%eax
+ 
+ 	jmp	.Lftrace_ret
++SYM_CODE_END(ftrace_regs_caller)
+ 
+ #ifdef CONFIG_FUNCTION_GRAPH_TRACER
+ ENTRY(ftrace_graph_caller)
+diff --git a/arch/x86/kernel/head_32.S b/arch/x86/kernel/head_32.S
+index e2b3e6c..7029bba 100644
+--- a/arch/x86/kernel/head_32.S
++++ b/arch/x86/kernel/head_32.S
+@@ -64,7 +64,7 @@ RESERVE_BRK(pagetables, INIT_MAP_SIZE)
+  * can.
+  */
+ __HEAD
+-ENTRY(startup_32)
++SYM_CODE_START(startup_32)
+ 	movl pa(initial_stack),%ecx
+ 	
+ 	/* test KEEP_SEGMENTS flag to see if the bootloader is asking
+@@ -172,6 +172,7 @@ num_subarch_entries = (. - subarch_entries) / 4
+ #else
+ 	jmp .Ldefault_entry
+ #endif /* CONFIG_PARAVIRT */
++SYM_CODE_END(startup_32)
+ 
+ #ifdef CONFIG_HOTPLUG_CPU
+ /*
+diff --git a/arch/x86/power/hibernate_asm_32.S b/arch/x86/power/hibernate_asm_32.S
+index 6fe3830..a19ed3d 100644
+--- a/arch/x86/power/hibernate_asm_32.S
++++ b/arch/x86/power/hibernate_asm_32.S
+@@ -35,7 +35,7 @@ ENTRY(swsusp_arch_suspend)
+ 	ret
+ ENDPROC(swsusp_arch_suspend)
+ 
+-ENTRY(restore_image)
++SYM_CODE_START(restore_image)
+ 	/* prepare to jump to the image kernel */
+ 	movl	restore_jump_address, %ebx
+ 	movl	restore_cr3, %ebp
+@@ -45,9 +45,10 @@ ENTRY(restore_image)
+ 	/* jump to relocated restore code */
+ 	movl	relocated_restore_code, %eax
+ 	jmpl	*%eax
++SYM_CODE_END(restore_image)
+ 
+ /* code below has been relocated to a safe page */
+-ENTRY(core_restore_code)
++SYM_CODE_START(core_restore_code)
+ 	movl	temp_pgt, %eax
+ 	movl	%eax, %cr3
+ 
+@@ -77,6 +78,7 @@ copy_loop:
+ 
+ done:
+ 	jmpl	*%ebx
++SYM_CODE_END(core_restore_code)
+ 
+ 	/* code below belongs to the image kernel */
+ 	.align PAGE_SIZE
+diff --git a/arch/x86/realmode/rm/trampoline_32.S b/arch/x86/realmode/rm/trampoline_32.S
+index ff00594..3fad907 100644
+--- a/arch/x86/realmode/rm/trampoline_32.S
++++ b/arch/x86/realmode/rm/trampoline_32.S
+@@ -29,7 +29,7 @@
+ 	.code16
+ 
+ 	.balign	PAGE_SIZE
+-ENTRY(trampoline_start)
++SYM_CODE_START(trampoline_start)
+ 	wbinvd			# Needed for NUMA-Q should be harmless for others
+ 
+ 	LJMPW_RM(1f)
+@@ -54,11 +54,13 @@ ENTRY(trampoline_start)
+ 	lmsw	%dx			# into protected mode
+ 
+ 	ljmpl	$__BOOT_CS, $pa_startup_32
++SYM_CODE_END(trampoline_start)
+ 
+ 	.section ".text32","ax"
+ 	.code32
+-ENTRY(startup_32)			# note: also used from wakeup_asm.S
++SYM_CODE_START(startup_32)			# note: also used from wakeup_asm.S
+ 	jmp	*%eax
++SYM_CODE_END(startup_32)
+ 
+ 	.bss
+ 	.balign 8
+diff --git a/arch/x86/xen/xen-asm_32.S b/arch/x86/xen/xen-asm_32.S
+index c15db06..8b8f835 100644
+--- a/arch/x86/xen/xen-asm_32.S
++++ b/arch/x86/xen/xen-asm_32.S
+@@ -56,7 +56,7 @@
+ 	_ASM_EXTABLE(1b,2b)
+ .endm
+ 
+-ENTRY(xen_iret)
++SYM_CODE_START(xen_iret)
+ 	/* test eflags for special cases */
+ 	testl $(X86_EFLAGS_VM | XEN_EFLAGS_NMI), 8(%esp)
+ 	jnz hyper_iret
+@@ -122,6 +122,7 @@ xen_iret_end_crit:
+ hyper_iret:
+ 	/* put this out of line since its very rarely used */
+ 	jmp hypercall_page + __HYPERVISOR_iret * 32
++SYM_CODE_END(xen_iret)
+ 
+ 	.globl xen_iret_start_crit, xen_iret_end_crit
+ 
+@@ -165,7 +166,7 @@ hyper_iret:
+  * SAVE_ALL state before going on, since it's usermode state which we
+  * eventually need to restore.
+  */
+-ENTRY(xen_iret_crit_fixup)
++SYM_CODE_START(xen_iret_crit_fixup)
+ 	/*
+ 	 * Paranoia: Make sure we're really coming from kernel space.
+ 	 * One could imagine a case where userspace jumps into the
+@@ -204,4 +205,4 @@ ENTRY(xen_iret_crit_fixup)
+ 
+ 	lea 4(%edi), %esp		/* point esp to new frame */
+ 2:	jmp xen_do_upcall
+-
++SYM_CODE_END(xen_iret_crit_fixup)
