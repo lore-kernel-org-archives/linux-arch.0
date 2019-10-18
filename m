@@ -1,80 +1,94 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from [217.140.110.172] ([217.140.110.172]:39580 "EHLO foss.arm.com"
+Received: from [217.140.110.172] ([217.140.110.172]:39666 "EHLO foss.arm.com"
         rhost-flags-FAIL-FAIL-OK-OK) by vger.kernel.org with ESMTP
-        id S2408565AbfJRNiJ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 18 Oct 2019 09:38:09 -0400
-Date: Fri, 18 Oct 2019 14:37:40 +0100
+        id S1728150AbfJRNkv (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 18 Oct 2019 09:40:51 -0400
+Date: Fri, 18 Oct 2019 14:40:25 +0100
 From: Dave Martin <Dave.Martin@arm.com>
 Subject: Re: [PATCH v2 05/12] arm64: Basic Branch Target Identification
  support
-Message-ID: <20191018133739.GD27757@arm.com>
+Message-ID: <20191018134024.GE27757@arm.com>
 References: <1570733080-21015-1-git-send-email-Dave.Martin@arm.com>
  <1570733080-21015-6-git-send-email-Dave.Martin@arm.com>
  <20191011151028.GE33537@lakrids.cambridge.arm.com>
  <20191011172013.GQ27757@arm.com>
- <20191018111003.GC27759@lakrids.cambridge.arm.com>
+ <20191018111603.GD27759@lakrids.cambridge.arm.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20191018111003.GC27759@lakrids.cambridge.arm.com>
+In-Reply-To: <20191018111603.GD27759@lakrids.cambridge.arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Mark Rutland <mark.rutland@arm.com>
-Cc: Paul Elliott <paul.elliott@arm.com>, Peter Zijlstra <peterz@infradead.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Andrew Jones <drjones@redhat.com>, Amit Kachhap <amit.kachhap@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, linux-arch@vger.kernel.org, Eugene Syromiatnikov <esyr@redhat.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, "H.J. Lu" <hjl.tools@gmail.com>, Yu-cheng Yu <yu-cheng.yu@intel.com>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Jann Horn <jannh@google.com>, Richard Henderson <richard.henderson@linaro.org>, Kristina =?utf-8?Q?Mart=C5=A1enko?= <kristina.martsenko@arm.com>, Mark Brown <broonie@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, linux-arm-kernel@lists.infradead.org, Florian Weimer <fweimer@redhat.com>, linux-kernel@vger.kernel.org, Sudakshina Das <sudi.das@arm.com>
-Message-ID: <20191018133740.ze8cCrieWx3VftXffNovlpQGTeOW_iCXLPmCcF5lpDI@z>
+Cc: Dave Kleikamp <shaggy@linux.vnet.ibm.com>, Paul Elliott <paul.elliott@arm.com>, Peter Zijlstra <peterz@infradead.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Andrew Jones <drjones@redhat.com>, Amit Kachhap <amit.kachhap@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, linux-arch@vger.kernel.org, Eugene Syromiatnikov <esyr@redhat.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, "H.J. Lu" <hjl.tools@gmail.com>, Yu-cheng Yu <yu-cheng.yu@intel.com>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Jann Horn <jannh@google.com>, Richard Henderson <richard.henderson@linaro.org>, Kristina =?utf-8?Q?Mart=C5=A1enko?= <kristina.martsenko@arm.com>, Mark Brown <broonie@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, linux-arm-kernel@lists.infradead.org, Florian Weimer <fweimer@redhat.com>, linux-kernel@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Sudakshina Das <sudi.das@arm.com>
+Message-ID: <20191018134025.CDz0XIGSP4GmOF0WPnVdZUEMEhTEbiKNebfaVjHaTDg@z>
 
-On Fri, Oct 18, 2019 at 12:10:03PM +0100, Mark Rutland wrote:
+On Fri, Oct 18, 2019 at 12:16:03PM +0100, Mark Rutland wrote:
+> [adding mm folk]
+> 
 > On Fri, Oct 11, 2019 at 06:20:15PM +0100, Dave Martin wrote:
 > > On Fri, Oct 11, 2019 at 04:10:29PM +0100, Mark Rutland wrote:
 > > > On Thu, Oct 10, 2019 at 07:44:33PM +0100, Dave Martin wrote:
-> > > > +#define arch_calc_vm_prot_bits(prot, pkey) arm64_calc_vm_prot_bits(prot)
-> > > > +static inline unsigned long arm64_calc_vm_prot_bits(unsigned long prot)
-> > > > +{
-> > > > +	if (system_supports_bti() && (prot & PROT_BTI))
-> > > > +		return VM_ARM64_BTI;
-> > > > +
-> > > > +	return 0;
-> > > > +}
-> > > 
-> > > Can we call this arch_calc_vm_prot_bits() directly, with all the
-> > > arguments:
-> > > 
-> > > static inline unsigned long arch_calc_vm_prot_bits(unsigned long prot,
-> > > 						   unsigned long pkey)
-> > > {
-> > > 	...
-> > > }
-> > > #define arch_calc_vm_prot_bits arch_calc_vm_prot_bits
-> > > 
-> > > ... as that makes it a bit easier to match definition with use, and just
-> > > definign the name makes it a bit clearer that that's probably for the
-> > > benefit of some ifdeffery.
-> > > 
-> > > Likewise for the other functions here.
-> > > 
-> > > > +#define arch_vm_get_page_prot(vm_flags) arm64_vm_get_page_prot(vm_flags)
-> > > > +static inline pgprot_t arm64_vm_get_page_prot(unsigned long vm_flags)
-> > > > +{
-> > > > +	return (vm_flags & VM_ARM64_BTI) ? __pgprot(PTE_GP) : __pgprot(0);
-> > > > +}
-> > > > +
 > > > > +#define arch_validate_prot(prot, addr) arm64_validate_prot(prot, addr)
 > > > > +static inline int arm64_validate_prot(unsigned long prot, unsigned long addr)
+> > > > +{
+> > > > +	unsigned long supported = PROT_READ | PROT_WRITE | PROT_EXEC | PROT_SEM;
+> > > > +
+> > > > +	if (system_supports_bti())
+> > > > +		supported |= PROT_BTI;
+> > > > +
+> > > > +	return (prot & ~supported) == 0;
+> > > > +}
+> > > 
+> > > If we have this check, can we ever get into arm64_calc_vm_prot_bits()
+> > > with PROT_BIT but !system_supports_bti()?
+> > > 
+> > > ... or can that become:
+> > > 
+> > > 	return (prot & PROT_BTI) ? VM_ARM64_BTI : 0;
 > > 
-> > Can do, though it looks like a used sparc as a template, and that has a
-> > sparc_ prefix.
+> > We can reach this via mmap() and friends IIUC.
 > > 
-> > powerpc uses the generic name, as does x86 ... in its UAPI headers.
-> > Odd.
+> > Since this function only gets called once-ish per vma I have a weak
+> > preference for keeping the check here to avoid code fragility.
 > > 
-> > I can change the names here, though I'm not sure it adds a lot of value.
 > > 
-> > If you feel strongly I can do it.
+> > It does feel like arch_validate_prot() is supposed to be a generic gate
+> > for prot flags coming into the kernel via any route though, but only the
+> > mprotect() path actually uses it.
+> > 
+> > This function originally landed in v2.6.27 as part of the powerpc strong
+> > access ordering support (PROT_SAO):
+> > 
+> > b845f313d78e ("mm: Allow architectures to define additional protection bits")
+> > ef3d3246a0d0 ("powerpc/mm: Add Strong Access Ordering support")
+> > 
+> > where the mmap() path uses arch_calc_vm_prot_bits() without
+> > arch_validate_prot(), just as in the current code.  powerpc's original
+> > arch_calc_vm_prot_bits() does no obvious policing.
+> > 
+> > This might be a bug.  I can draft a patch to add it for the mmap() path
+> > for people to comment on ... I can't figure out yet whether or not the
+> > difference is intentional or there's some subtlety that I'm missed.
 > 
-> I'd really prefer it because it minimizes surprises, and makes it much
-> easier to hop around the codebase and find the thing you're looking for.
+> From reading those two commit messages, it looks like this was an
+> oversight. I'd expect that we should apply this check for any
+> user-provided prot (i.e. it should apply to both mprotect and mmap).
+> 
+> Ben, Andrew, does that make sense to you?
+> 
+> ... or was there some reason to only do this for mprotect?
+> 
+> Thanks,
+> Mark.
 
-OK, I've no objection in that case.  I'll make the change.
+For now, I'll drop a comment under the tearoff noting this outstanding
+question.
+
+The resulting behaviour is slightly odd, but doesn't seem unsafe, and
+we can of course tidy it up later.  I think the risk of userspace
+becoming dependent on randomly passing PROT_BTI to mprotect() even
+when unsupported is low.
 
 [...]
 
