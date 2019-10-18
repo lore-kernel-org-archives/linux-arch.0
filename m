@@ -1,214 +1,70 @@
 From: "tip-bot2 for Jiri Slaby" <tip-bot2@linutronix.de>
-Subject: [tip: x86/asm] x86/asm: Annotate local pseudo-functions
-Date: Fri, 18 Oct 2019 16:30:33 -0000
-Message-ID: <157141623321.29376.16783773687549572689.tip-bot2@tip-bot2>
-References: <20191011115108.12392-6-jslaby@suse.cz>
+Subject: [tip: x86/asm] x86/um: Annotate data appropriately
+Date: Fri, 18 Oct 2019 16:30:30 -0000
+Message-ID: <157141623074.29376.16125324643950283172.tip-bot2@tip-bot2>
+References: <20191011115108.12392-14-jslaby@suse.cz>
 Reply-To: linux-kernel@vger.kernel.org
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20191011115108.12392-6-jslaby@suse.cz>
+In-Reply-To: <20191011115108.12392-14-jslaby@suse.cz>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-tip-commits@vger.kernel.org
-Cc: Jiri Slaby <jslaby@suse.cz>, Borislav Petkov <bp@suse.de>, Alexios Zavras <alexios.zavras@intel.com>, Allison Randal <allison@lohutok.net>, Andy Lutomirski <luto@kernel.org>, Cao jin <caoj.fnst@cn.fujitsu.com>, Enrico Weigelt <info@metux.net>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, "H. Peter Anvin" <hpa@zytor.com>, Ingo Molnar <mingo@redhat.com>, Josh Poimboeuf <jpoimboe@redhat.com>, Juergen Gross <jgross@suse.com>, linux-arch@vger.kernel.org, Maran Wilson <maran.wilson@oracle.com>, Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, x86-ml <x86@kernel.org>, Ingo Molnar <mingo@kernel.org>, Borislav Petkov <bp@alien8.de>, linux-kernel@vger.kernel.org
+Cc: Jiri Slaby <jslaby@suse.cz>, Borislav Petkov <bp@suse.de>, Richard Weinberger <richard@nod.at>, Anton Ivanov <anton.ivanov@cambridgegreys.com>, "H. Peter Anvin" <hpa@zytor.com>, Ingo Molnar <mingo@redhat.com>, Jeff Dike <jdike@addtoit.com>, linux-arch@vger.kernel.org, linux-um@lists.infradead.org, Thomas Gleixner <tglx@linutronix.de>, user-mode-linux-devel@lists.sourceforge.net, user-mode-linux-user@lists.sourceforge.net, x86-ml <x86@kernel.org>, Ingo Molnar <mingo@kernel.org>, Borislav Petkov <bp@alien8.de>, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
 The following commit has been merged into the x86/asm branch of tip:
 
-Commit-ID:     ef77e6880be8fa3033544109e29417c8710fd3f2
-Gitweb:        https://git.kernel.org/tip/ef77e6880be8fa3033544109e29417c8710fd3f2
+Commit-ID:     773a37b182259f5e0cdb928112431b119a6e4500
+Gitweb:        https://git.kernel.org/tip/773a37b182259f5e0cdb928112431b119a6e4500
 Author:        Jiri Slaby <jslaby@suse.cz>
-AuthorDate:    Fri, 11 Oct 2019 13:50:45 +02:00
+AuthorDate:    Fri, 11 Oct 2019 13:50:53 +02:00
 Committer:     Borislav Petkov <bp@suse.de>
-CommitterDate: Fri, 18 Oct 2019 10:04:04 +02:00
+CommitterDate: Fri, 18 Oct 2019 10:45:03 +02:00
 
-x86/asm: Annotate local pseudo-functions
+x86/um: Annotate data appropriately
 
-Use the newly added SYM_CODE_START_LOCAL* to annotate beginnings of
-all pseudo-functions (those ending with END until now) which do not
-have ".globl" annotation. This is needed to balance END for tools that
-generate debuginfo. Note that ENDs are switched to SYM_CODE_END too so
-that everybody can see the pairing.
+Use the new SYM_DATA_START and SYM_DATA_END_LABEL macros for vdso_start.
 
-C-like functions (which handle frame ptr etc.) are not annotated here,
-hence SYM_CODE_* macros are used here, not SYM_FUNC_*. Note that the
-32bit version of early_idt_handler_common already had ENDPROC -- switch
-that to SYM_CODE_END for the same reason as above (and to be the same as
-64bit).
-
-While early_idt_handler_common is LOCAL, it's name is not prepended with
-".L" as it happens to appear in call traces.
-
-bad_get_user*, and bad_put_user are now aligned, as they are separate
-functions. They do not mind to be aligned -- no need to be compact
-there.
-
-early_idt_handler_common is aligned now too, as it is after
-early_idt_handler_array, so as well no need to be compact there.
-
-verify_cpu is self-standing and included in other .S files, so align it
-too.
-
-The others have alignment preserved to what it used to be (using the
-_NOALIGN variant of macros).
+Result is:
+  0000  2376 OBJECT  GLOBAL DEFAULT    4 vdso_start
+  0948     0 OBJECT  GLOBAL DEFAULT    4 vdso_end
 
 Signed-off-by: Jiri Slaby <jslaby@suse.cz>
 Signed-off-by: Borislav Petkov <bp@suse.de>
-Cc: Alexios Zavras <alexios.zavras@intel.com>
-Cc: Allison Randal <allison@lohutok.net>
-Cc: Andy Lutomirski <luto@kernel.org>
-Cc: Cao jin <caoj.fnst@cn.fujitsu.com>
-Cc: Enrico Weigelt <info@metux.net>
-Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+Acked-by: Richard Weinberger <richard@nod.at>
+Cc: Anton Ivanov <anton.ivanov@cambridgegreys.com>
 Cc: "H. Peter Anvin" <hpa@zytor.com>
 Cc: Ingo Molnar <mingo@redhat.com>
-Cc: Josh Poimboeuf <jpoimboe@redhat.com>
-Cc: Juergen Gross <jgross@suse.com>
+Cc: Jeff Dike <jdike@addtoit.com>
 Cc: linux-arch@vger.kernel.org
-Cc: Maran Wilson <maran.wilson@oracle.com>
-Cc: Peter Zijlstra <peterz@infradead.org>
+Cc: linux-um@lists.infradead.org
 Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: user-mode-linux-devel@lists.sourceforge.net
+Cc: user-mode-linux-user@lists.sourceforge.net
 Cc: x86-ml <x86@kernel.org>
-Link: https://lkml.kernel.org/r/20191011115108.12392-6-jslaby@suse.cz
+Link: https://lkml.kernel.org/r/20191011115108.12392-14-jslaby@suse.cz
 ---
- arch/x86/entry/entry_64.S    | 3 ++-
- arch/x86/kernel/head_32.S    | 4 ++--
- arch/x86/kernel/head_64.S    | 4 ++--
- arch/x86/kernel/verify_cpu.S | 4 ++--
- arch/x86/lib/getuser.S       | 6 ++++--
- arch/x86/lib/putuser.S       | 3 ++-
- 6 files changed, 14 insertions(+), 10 deletions(-)
+ arch/x86/um/vdso/vdso.S | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
 
-diff --git a/arch/x86/entry/entry_64.S b/arch/x86/entry/entry_64.S
-index 86cbb22..db43526 100644
---- a/arch/x86/entry/entry_64.S
-+++ b/arch/x86/entry/entry_64.S
-@@ -1061,7 +1061,7 @@ EXPORT_SYMBOL(native_load_gs_index)
- 	_ASM_EXTABLE(.Lgs_change, .Lbad_gs)
- 	.section .fixup, "ax"
- 	/* running with kernelgs */
--.Lbad_gs:
-+SYM_CODE_START_LOCAL_NOALIGN(.Lbad_gs)
- 	SWAPGS					/* switch back to user gs */
- .macro ZAP_GS
- 	/* This can't be a string because the preprocessor needs to see it. */
-@@ -1072,6 +1072,7 @@ EXPORT_SYMBOL(native_load_gs_index)
- 	xorl	%eax, %eax
- 	movl	%eax, %gs
- 	jmp	2b
-+SYM_CODE_END(.Lbad_gs)
- 	.previous
+diff --git a/arch/x86/um/vdso/vdso.S b/arch/x86/um/vdso/vdso.S
+index a4a3870..a6eaf29 100644
+--- a/arch/x86/um/vdso/vdso.S
++++ b/arch/x86/um/vdso/vdso.S
+@@ -1,11 +1,11 @@
+ /* SPDX-License-Identifier: GPL-2.0 */
+ #include <linux/init.h>
++#include <linux/linkage.h>
  
- /* Call softirq on interrupt stack. Interrupts are off. */
-diff --git a/arch/x86/kernel/head_32.S b/arch/x86/kernel/head_32.S
-index 7feb953..aec1fdb 100644
---- a/arch/x86/kernel/head_32.S
-+++ b/arch/x86/kernel/head_32.S
-@@ -409,7 +409,7 @@ ENTRY(early_idt_handler_array)
- 	.endr
- ENDPROC(early_idt_handler_array)
- 	
--early_idt_handler_common:
-+SYM_CODE_START_LOCAL(early_idt_handler_common)
- 	/*
- 	 * The stack is the hardware frame, an error code or zero, and the
- 	 * vector number.
-@@ -460,7 +460,7 @@ early_idt_handler_common:
- 	decl	%ss:early_recursion_flag
- 	addl	$4, %esp	/* pop pt_regs->orig_ax */
- 	iret
--ENDPROC(early_idt_handler_common)
-+SYM_CODE_END(early_idt_handler_common)
+ __INITDATA
  
- /* This is the default interrupt "handler" :-) */
- ENTRY(early_ignore_irq)
-diff --git a/arch/x86/kernel/head_64.S b/arch/x86/kernel/head_64.S
-index f00d7c0..5b42552 100644
---- a/arch/x86/kernel/head_64.S
-+++ b/arch/x86/kernel/head_64.S
-@@ -291,7 +291,7 @@ ENTRY(early_idt_handler_array)
- 	UNWIND_HINT_IRET_REGS offset=16
- END(early_idt_handler_array)
+-	.globl vdso_start, vdso_end
+-vdso_start:
++SYM_DATA_START(vdso_start)
+ 	.incbin "arch/x86/um/vdso/vdso.so"
+-vdso_end:
++SYM_DATA_END_LABEL(vdso_start, SYM_L_GLOBAL, vdso_end)
  
--early_idt_handler_common:
-+SYM_CODE_START_LOCAL(early_idt_handler_common)
- 	/*
- 	 * The stack is the hardware frame, an error code or zero, and the
- 	 * vector number.
-@@ -333,7 +333,7 @@ early_idt_handler_common:
- 20:
- 	decl early_recursion_flag(%rip)
- 	jmp restore_regs_and_return_to_kernel
--END(early_idt_handler_common)
-+SYM_CODE_END(early_idt_handler_common)
- 
- #define NEXT_PAGE(name) \
- 	.balign	PAGE_SIZE; \
-diff --git a/arch/x86/kernel/verify_cpu.S b/arch/x86/kernel/verify_cpu.S
-index a024c4f..641f0fe 100644
---- a/arch/x86/kernel/verify_cpu.S
-+++ b/arch/x86/kernel/verify_cpu.S
-@@ -31,7 +31,7 @@
- #include <asm/cpufeatures.h>
- #include <asm/msr-index.h>
- 
--ENTRY(verify_cpu)
-+SYM_FUNC_START_LOCAL(verify_cpu)
- 	pushf				# Save caller passed flags
- 	push	$0			# Kill any dangerous flags
- 	popf
-@@ -137,4 +137,4 @@ ENTRY(verify_cpu)
- 	popf				# Restore caller passed flags
- 	xorl %eax, %eax
- 	ret
--ENDPROC(verify_cpu)
-+SYM_FUNC_END(verify_cpu)
-diff --git a/arch/x86/lib/getuser.S b/arch/x86/lib/getuser.S
-index 9578eb8..f9f59eb 100644
---- a/arch/x86/lib/getuser.S
-+++ b/arch/x86/lib/getuser.S
-@@ -115,21 +115,23 @@ ENDPROC(__get_user_8)
- EXPORT_SYMBOL(__get_user_8)
- 
- 
--.Lbad_get_user_clac:
-+SYM_CODE_START_LOCAL(.Lbad_get_user_clac)
- 	ASM_CLAC
- bad_get_user:
- 	xor %edx,%edx
- 	mov $(-EFAULT),%_ASM_AX
- 	ret
-+SYM_CODE_END(.Lbad_get_user_clac)
- 
- #ifdef CONFIG_X86_32
--.Lbad_get_user_8_clac:
-+SYM_CODE_START_LOCAL(.Lbad_get_user_8_clac)
- 	ASM_CLAC
- bad_get_user_8:
- 	xor %edx,%edx
- 	xor %ecx,%ecx
- 	mov $(-EFAULT),%_ASM_AX
- 	ret
-+SYM_CODE_END(.Lbad_get_user_8_clac)
- #endif
- 
- 	_ASM_EXTABLE_UA(1b, .Lbad_get_user_clac)
-diff --git a/arch/x86/lib/putuser.S b/arch/x86/lib/putuser.S
-index 126dd6a..a9391d7 100644
---- a/arch/x86/lib/putuser.S
-+++ b/arch/x86/lib/putuser.S
-@@ -91,11 +91,12 @@ ENTRY(__put_user_8)
- ENDPROC(__put_user_8)
- EXPORT_SYMBOL(__put_user_8)
- 
--.Lbad_put_user_clac:
-+SYM_CODE_START_LOCAL(.Lbad_put_user_clac)
- 	ASM_CLAC
- .Lbad_put_user:
- 	movl $-EFAULT,%eax
- 	RET
-+SYM_CODE_END(.Lbad_put_user_clac)
- 
- 	_ASM_EXTABLE_UA(1b, .Lbad_put_user_clac)
- 	_ASM_EXTABLE_UA(2b, .Lbad_put_user_clac)
+ __FINIT
