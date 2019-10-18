@@ -1,223 +1,80 @@
 From: "tip-bot2 for Jiri Slaby" <tip-bot2@linutronix.de>
-Subject: [tip: x86/asm] x86/asm/entry: Annotate interrupt symbols properly
-Date: Fri, 18 Oct 2019 16:30:31 -0000
-Message-ID: <157141623168.29376.17128924745763941780.tip-bot2@tip-bot2>
-References: <20191011115108.12392-11-jslaby@suse.cz>
+Subject: [tip: x86/asm] x86/asm/suspend: Use SYM_DATA for data
+Date: Fri, 18 Oct 2019 16:30:34 -0000
+Message-ID: <157141623420.29376.9224656338909570146.tip-bot2@tip-bot2>
+References: <20191011115108.12392-3-jslaby@suse.cz>
 Reply-To: linux-kernel@vger.kernel.org
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20191011115108.12392-11-jslaby@suse.cz>
+In-Reply-To: <20191011115108.12392-3-jslaby@suse.cz>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-tip-commits@vger.kernel.org
-Cc: Jiri Slaby <jslaby@suse.cz>, Borislav Petkov <bp@suse.de>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Ingo Molnar <mingo@redhat.com>, linux-arch@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>, x86-ml <x86@kernel.org>, Ingo Molnar <mingo@kernel.org>, Borislav Petkov <bp@alien8.de>, linux-kernel@vger.kernel.org
+Cc: Jiri Slaby <jslaby@suse.cz>, Borislav Petkov <bp@suse.de>, "Rafael J. Wysocki" <rafael.j.wysocki@intel.com>, Pavel Machek <pavel@ucw.cz>, "H. Peter Anvin" <hpa@zytor.com>, Ingo Molnar <mingo@redhat.com>, Len Brown <len.brown@intel.com>, linux-arch@vger.kernel.org, linux-pm@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>, x86-ml <x86@kernel.org>, Ingo Molnar <mingo@kernel.org>, Borislav Petkov <bp@alien8.de>, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
 The following commit has been merged into the x86/asm branch of tip:
 
-Commit-ID:     cc66936e504a5b91dda52fda90203e174a7a71aa
-Gitweb:        https://git.kernel.org/tip/cc66936e504a5b91dda52fda90203e174a7a71aa
+Commit-ID:     37503f734e9de314c4e9a1eba33e9e7d8ec80839
+Gitweb:        https://git.kernel.org/tip/37503f734e9de314c4e9a1eba33e9e7d8ec80839
 Author:        Jiri Slaby <jslaby@suse.cz>
-AuthorDate:    Fri, 11 Oct 2019 13:50:50 +02:00
+AuthorDate:    Fri, 11 Oct 2019 13:50:42 +02:00
 Committer:     Borislav Petkov <bp@suse.de>
-CommitterDate: Fri, 18 Oct 2019 10:40:11 +02:00
+CommitterDate: Fri, 18 Oct 2019 09:50:25 +02:00
 
-x86/asm/entry: Annotate interrupt symbols properly
+x86/asm/suspend: Use SYM_DATA for data
 
-* annotate functions properly by SYM_CODE_START, SYM_CODE_START_LOCAL*
-  and SYM_CODE_END -- these are not C-like functions, so they have to
-  be annotated using CODE.
-* use SYM_INNER_LABEL* for labels being in the middle of other functions
-  This prevents nested labels annotations.
+Some global data in the suspend code were marked as `ENTRY'. ENTRY was
+intended for functions and shall be paired with ENDPROC. ENTRY also
+aligns symbols to 16 bytes which creates unnecessary holes.
+
+Note that:
+
+* saved_magic (long) in wakeup_32 is still prepended by section's ALIGN
+* saved_magic (quad) in wakeup_64 follows a bunch of quads which are
+  aligned (but need not be aligned to 16)
+
+Since historical markings are being dropped, make proper use of newly
+added SYM_DATA in this code.
 
 Signed-off-by: Jiri Slaby <jslaby@suse.cz>
 Signed-off-by: Borislav Petkov <bp@suse.de>
-Cc: Andy Lutomirski <luto@kernel.org>
+Acked-by: Rafael J. Wysocki <rafael.j.wysocki@intel.com>
+Acked-by: Pavel Machek <pavel@ucw.cz>
 Cc: "H. Peter Anvin" <hpa@zytor.com>
 Cc: Ingo Molnar <mingo@redhat.com>
+Cc: Len Brown <len.brown@intel.com>
 Cc: linux-arch@vger.kernel.org
+Cc: linux-pm@vger.kernel.org
 Cc: Thomas Gleixner <tglx@linutronix.de>
 Cc: x86-ml <x86@kernel.org>
-Link: https://lkml.kernel.org/r/20191011115108.12392-11-jslaby@suse.cz
+Link: https://lkml.kernel.org/r/20191011115108.12392-3-jslaby@suse.cz
 ---
- arch/x86/entry/entry_32.S | 28 ++++++++++++++--------------
- arch/x86/entry/entry_64.S | 13 ++++++-------
- 2 files changed, 20 insertions(+), 21 deletions(-)
+ arch/x86/kernel/acpi/wakeup_32.S | 2 +-
+ arch/x86/kernel/acpi/wakeup_64.S | 2 +-
+ 2 files changed, 2 insertions(+), 2 deletions(-)
 
-diff --git a/arch/x86/entry/entry_32.S b/arch/x86/entry/entry_32.S
-index f83ca5a..f37ff58 100644
---- a/arch/x86/entry/entry_32.S
-+++ b/arch/x86/entry/entry_32.S
-@@ -807,8 +807,7 @@ END(ret_from_fork)
-  */
+diff --git a/arch/x86/kernel/acpi/wakeup_32.S b/arch/x86/kernel/acpi/wakeup_32.S
+index e95e959..4272492 100644
+--- a/arch/x86/kernel/acpi/wakeup_32.S
++++ b/arch/x86/kernel/acpi/wakeup_32.S
+@@ -90,7 +90,7 @@ ret_point:
  
- 	# userspace resumption stub bypassing syscall exit tracing
--	ALIGN
--ret_from_exception:
-+SYM_CODE_START_LOCAL(ret_from_exception)
- 	preempt_stop(CLBR_ANY)
- ret_from_intr:
- #ifdef CONFIG_VM86
-@@ -825,13 +824,13 @@ ret_from_intr:
- 	cmpl	$USER_RPL, %eax
- 	jb	restore_all_kernel		# not returning to v8086 or userspace
+ .data
+ ALIGN
+-ENTRY(saved_magic)	.long	0
++SYM_DATA(saved_magic,	.long 0)
+ saved_eip:		.long 0
  
--ENTRY(resume_userspace)
-+SYM_INNER_LABEL_ALIGN(resume_userspace, SYM_L_LOCAL)
- 	DISABLE_INTERRUPTS(CLBR_ANY)
- 	TRACE_IRQS_OFF
- 	movl	%esp, %eax
- 	call	prepare_exit_to_usermode
- 	jmp	restore_all
--END(ret_from_exception)
-+SYM_CODE_END(ret_from_exception)
+ # saved registers
+diff --git a/arch/x86/kernel/acpi/wakeup_64.S b/arch/x86/kernel/acpi/wakeup_64.S
+index 7f9ade1..462a20f 100644
+--- a/arch/x86/kernel/acpi/wakeup_64.S
++++ b/arch/x86/kernel/acpi/wakeup_64.S
+@@ -136,4 +136,4 @@ saved_rbx:		.quad	0
+ saved_rip:		.quad	0
+ saved_rsp:		.quad	0
  
- GLOBAL(__begin_SYSENTER_singlestep_region)
- /*
-@@ -1100,7 +1099,7 @@ restore_all_kernel:
- 	jmp	.Lirq_return
- 
- .section .fixup, "ax"
--ENTRY(iret_exc	)
-+SYM_CODE_START(iret_exc)
- 	pushl	$0				# no error code
- 	pushl	$do_iret_error
- 
-@@ -1117,6 +1116,7 @@ ENTRY(iret_exc	)
- #endif
- 
- 	jmp	common_exception
-+SYM_CODE_END(iret_exc)
- .previous
- 	_ASM_EXTABLE(.Lirq_return, iret_exc)
- ENDPROC(entry_INT80_32)
-@@ -1182,7 +1182,7 @@ ENTRY(spurious_entries_start)
-     .endr
- END(spurious_entries_start)
- 
--common_spurious:
-+SYM_CODE_START_LOCAL(common_spurious)
- 	ASM_CLAC
- 	addl	$-0x80, (%esp)			/* Adjust vector into the [-256, -1] range */
- 	SAVE_ALL switch_stacks=1
-@@ -1191,7 +1191,7 @@ common_spurious:
- 	movl	%esp, %eax
- 	call	smp_spurious_interrupt
- 	jmp	ret_from_intr
--ENDPROC(common_spurious)
-+SYM_CODE_END(common_spurious)
- #endif
- 
- /*
-@@ -1199,7 +1199,7 @@ ENDPROC(common_spurious)
-  * so IRQ-flags tracing has to follow that:
-  */
- 	.p2align CONFIG_X86_L1_CACHE_SHIFT
--common_interrupt:
-+SYM_CODE_START_LOCAL(common_interrupt)
- 	ASM_CLAC
- 	addl	$-0x80, (%esp)			/* Adjust vector into the [-256, -1] range */
- 
-@@ -1209,7 +1209,7 @@ common_interrupt:
- 	movl	%esp, %eax
- 	call	do_IRQ
- 	jmp	ret_from_intr
--ENDPROC(common_interrupt)
-+SYM_CODE_END(common_interrupt)
- 
- #define BUILD_INTERRUPT3(name, nr, fn)			\
- ENTRY(name)						\
-@@ -1361,7 +1361,7 @@ ENTRY(xen_hypervisor_callback)
- 
- 	jmp	xen_iret_crit_fixup
- 
--ENTRY(xen_do_upcall)
-+SYM_INNER_LABEL_ALIGN(xen_do_upcall, SYM_L_GLOBAL)
- 1:	mov	%esp, %eax
- 	call	xen_evtchn_do_upcall
- #ifndef CONFIG_PREEMPTION
-@@ -1447,7 +1447,7 @@ ENTRY(page_fault)
- 	jmp	common_exception_read_cr2
- END(page_fault)
- 
--common_exception_read_cr2:
-+SYM_CODE_START_LOCAL_NOALIGN(common_exception_read_cr2)
- 	/* the function address is in %gs's slot on the stack */
- 	SAVE_ALL switch_stacks=1 skip_gs=1
- 
-@@ -1470,9 +1470,9 @@ common_exception_read_cr2:
- 	movl	%esp, %eax			# pt_regs pointer
- 	CALL_NOSPEC %edi
- 	jmp	ret_from_exception
--END(common_exception_read_cr2)
-+SYM_CODE_END(common_exception_read_cr2)
- 
--common_exception:
-+SYM_CODE_START_LOCAL_NOALIGN(common_exception)
- 	/* the function address is in %gs's slot on the stack */
- 	SAVE_ALL switch_stacks=1 skip_gs=1
- 	ENCODE_FRAME_POINTER
-@@ -1492,7 +1492,7 @@ common_exception:
- 	movl	%esp, %eax			# pt_regs pointer
- 	CALL_NOSPEC %edi
- 	jmp	ret_from_exception
--END(common_exception)
-+SYM_CODE_END(common_exception)
- 
- ENTRY(debug)
- 	/*
-diff --git a/arch/x86/entry/entry_64.S b/arch/x86/entry/entry_64.S
-index db43526..607e25f 100644
---- a/arch/x86/entry/entry_64.S
-+++ b/arch/x86/entry/entry_64.S
-@@ -589,18 +589,18 @@ _ASM_NOKPROBE(interrupt_entry)
-  * The interrupt stubs push (~vector+0x80) onto the stack and
-  * then jump to common_spurious/interrupt.
-  */
--common_spurious:
-+SYM_CODE_START_LOCAL(common_spurious)
- 	addq	$-0x80, (%rsp)			/* Adjust vector to [-256, -1] range */
- 	call	interrupt_entry
- 	UNWIND_HINT_REGS indirect=1
- 	call	smp_spurious_interrupt		/* rdi points to pt_regs */
- 	jmp	ret_from_intr
--END(common_spurious)
-+SYM_CODE_END(common_spurious)
- _ASM_NOKPROBE(common_spurious)
- 
- /* common_interrupt is a hotpath. Align it */
- 	.p2align CONFIG_X86_L1_CACHE_SHIFT
--common_interrupt:
-+SYM_CODE_START_LOCAL(common_interrupt)
- 	addq	$-0x80, (%rsp)			/* Adjust vector to [-256, -1] range */
- 	call	interrupt_entry
- 	UNWIND_HINT_REGS indirect=1
-@@ -695,7 +695,7 @@ GLOBAL(restore_regs_and_return_to_kernel)
- 	 */
- 	INTERRUPT_RETURN
- 
--ENTRY(native_iret)
-+SYM_INNER_LABEL_ALIGN(native_iret, SYM_L_GLOBAL)
- 	UNWIND_HINT_IRET_REGS
- 	/*
- 	 * Are we returning to a stack segment from the LDT?  Note: in
-@@ -706,8 +706,7 @@ ENTRY(native_iret)
- 	jnz	native_irq_return_ldt
- #endif
- 
--.global native_irq_return_iret
--native_irq_return_iret:
-+SYM_INNER_LABEL(native_irq_return_iret, SYM_L_GLOBAL)
- 	/*
- 	 * This may fault.  Non-paranoid faults on return to userspace are
- 	 * handled by fixup_bad_iret.  These include #SS, #GP, and #NP.
-@@ -789,7 +788,7 @@ native_irq_return_ldt:
- 	 */
- 	jmp	native_irq_return_iret
- #endif
--END(common_interrupt)
-+SYM_CODE_END(common_interrupt)
- _ASM_NOKPROBE(common_interrupt)
- 
- /*
+-ENTRY(saved_magic)	.quad	0
++SYM_DATA(saved_magic,	.quad	0)
