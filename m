@@ -1,46 +1,67 @@
-From: Steven Rostedt <rostedt@goodmis.org>
-Subject: Re: [tip: x86/asm] x86/asm/ftrace: Mark function_hook as function
-Date: Fri, 18 Oct 2019 16:31:25 -0400
-Message-ID: <20191018163125.346e078d@gandalf.local.home>
-References: <20191011115108.12392-22-jslaby@suse.cz>
-        <157141622788.29376.4016565749507481510.tip-bot2@tip-bot2>
-        <20191018124800.0a7006bb@gandalf.local.home>
-        <20191018124956.764ac42e@gandalf.local.home>
-        <20191018171354.GB20368@zn.tnic>
-        <20191018133735.77e90e36@gandalf.local.home>
-        <20191018194856.GC20368@zn.tnic>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20191018194856.GC20368@zn.tnic>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Borislav Petkov <bp@suse.de>
-Cc: tip-bot2 for Jiri Slaby <tip-bot2@linutronix.de>, linux-kernel@vger.kernel.org, linux-tip-commits@vger.kernel.org, Jiri Slaby <jslaby@suse.cz>, "H. Peter Anvin" <hpa@zytor.com>, Ingo Molnar <mingo@redhat.com>, Josh Poimboeuf <jpoimboe@redhat.com>, linux-arch@vger.kernel.org, Masami Hiramatsu <mhiramat@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, x86-ml <x86@kernel.org>, Ingo Molnar <mingo@kernel.org>, Borislav Petkov <bp@alien8.de>
+From: Alex Kogan <alex.kogan@oracle.com>
+Subject: Re: [PATCH v5 3/5] locking/qspinlock: Introduce CNA into the slow
+ path of qspinlock
+Date: Fri, 18 Oct 2019 17:37:51 -0400
+Message-ID: <1B59E517-D418-46DF-BC58-174BAFC5EC23@oracle.com>
+References: <20191016042903.61081-1-alex.kogan@oracle.com>
+ <20191016042903.61081-4-alex.kogan@oracle.com>
+ <6ce50aeb-6b87-5d1c-9011-4329e8dadfec@redhat.com>
+Mime-Version: 1.0 (Mac OS X Mail 10.2 \(3259\))
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+In-Reply-To: <6ce50aeb-6b87-5d1c-9011-4329e8dadfec@redhat.com>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+To: Waiman Long <longman@redhat.com>
+Cc: linux-arch@vger.kernel.org, Hanjun Guo <guohanjun@huawei.com>, Arnd Bergmann <arnd@arndb.de>, Peter Zijlstra <peterz@infradead.org>, dave.dice@oracle.com, Jan Glauber <jglauber@marvell.com>, x86@kernel.org, Will Deacon <will.deacon@arm.com>, linux@armlinux.org.uk, linux-kernel@vger.kernel.org, Rahul Yadav <rahul.x.yadav@oracle.com>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, hpa@zytor.com, Steven Sistare <steven.sistare@oracle.com>, Thomas Gleixner <tglx@linutronix.de>, Daniel Jordan <daniel.m.jordan@oracle.com>, linux-arm-kernel <linux-arm-kernel@lists.infradead.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, 18 Oct 2019 21:48:56 +0200
-Borislav Petkov <bp@suse.de> wrote:
-
-> > The #define was because we use to support mcount or __fentry__, now we
-> > just support __fentry__, and function_hook describes it better ;-)  
-> 
-> Well sorry but gcc documentation talks about __fentry__. I'd keep the
-> same name to avoid confusion and explain above it what it is. Much
-> better.
-
-Still looks ugly ;-)
-
-> 
-> > Heh, I guess we could, which would probably be quite a long comment as
-> > it's the key behind ftrace itself.  
-> 
-> Well, you can explain with a couple of sentences what it is and
-> then point at the bigger document explaining ftrace. Provided, Mr.
-> Rostedt, you'll stop doing talks and finally sit down and write that
-> documentation!
-
-I do the talks hoping someone else will finally sit down and write the
-documentation!
-
--- Steve
+Cj4gT24gT2N0IDE4LCAyMDE5LCBhdCAxMjowMyBQTSwgV2FpbWFuIExvbmcgPGxvbmdtYW5AcmVk
+aGF0LmNvbT4gd3JvdGU6Cj4gCj4gT24gMTAvMTYvMTkgMTI6MjkgQU0sIEFsZXggS29nYW4gd3Jv
+dGU6Cj4+ICtzdGF0aWMgaW5saW5lIHZvaWQgY25hX3Bhc3NfbG9jayhzdHJ1Y3QgbWNzX3NwaW5s
+b2NrICpub2RlLAo+PiArCQkJCSBzdHJ1Y3QgbWNzX3NwaW5sb2NrICpuZXh0KQo+PiArewo+PiAr
+CXN0cnVjdCBjbmFfbm9kZSAqY24gPSAoc3RydWN0IGNuYV9ub2RlICopbm9kZTsKPj4gKwlzdHJ1
+Y3QgbWNzX3NwaW5sb2NrICpuZXh0X2hvbGRlciA9IG5leHQsICp0YWlsXzJuZDsKPj4gKwl1MzIg
+dmFsID0gMTsKPj4gKwo+PiArCXUzMiBzY2FuID0gY24tPnByZV9zY2FuX3Jlc3VsdDsKPj4gKwo+
+PiArCS8qCj4+ICsJICogY2hlY2sgaWYgYSBzdWNjZXNzb3IgZnJvbSB0aGUgc2FtZSBudW1hIG5v
+ZGUgaGFzIG5vdCBiZWVuIGZvdW5kIGluCj4+ICsJICogcHJlLXNjYW4sIGFuZCBpZiBzbywgdHJ5
+IHRvIGZpbmQgaXQgaW4gcG9zdC1zY2FuIHN0YXJ0aW5nIGZyb20gdGhlCj4+ICsJICogbm9kZSB3
+aGVyZSBwcmUtc2NhbiBzdG9wcGVkIChzdG9yZWQgaW4gQHByZV9zY2FuX3Jlc3VsdCkKPj4gKwkg
+Ki8KPj4gKwlpZiAoc2NhbiA+IDApCj4+ICsJCXNjYW4gPSBjbmFfc2Nhbl9tYWluX3F1ZXVlKG5v
+ZGUsIGRlY29kZV90YWlsKHNjYW4pKTsKPj4gKwo+PiArCWlmICghc2NhbikgeyAvKiBpZiBmb3Vu
+ZCBhIHN1Y2Nlc3NvciBmcm9tIHRoZSBzYW1lIG51bWEgbm9kZSAqLwo+PiArCQluZXh0X2hvbGRl
+ciA9IG5vZGUtPm5leHQ7Cj4+ICsJCS8qCj4+ICsJCSAqIG1ha2Ugc3VyZSBAdmFsIGdldHMgMSBp
+ZiBjdXJyZW50IGhvbGRlcidzIEBsb2NrZWQgaXMgMCBhcwo+PiArCQkgKiB3ZSBoYXZlIHRvIHN0
+b3JlIGEgbm9uLXplcm8gdmFsdWUgaW4gc3VjY2Vzc29yJ3MgQGxvY2tlZAo+PiArCQkgKiB0byBw
+YXNzIHRoZSBsb2NrCj4+ICsJCSAqLwo+PiArCQl2YWwgPSBub2RlLT5sb2NrZWQgKyAobm9kZS0+
+bG9ja2VkID09IDApOwo+IAo+IG5vZGUtPmxvY2tlZCBjYW4gYmUgMCB3aGVuIHRoZSBjcHUgZW50
+ZXJzIGludG8gYW4gZW1wdHkgTUNTIHF1ZXVlLiBXZQo+IGNvdWxkIHVuY29uZGl0aW9uYWxseSBz
+ZXQgbm9kZS0+bG9ja2VkIHRvIDEgZm9yIHRoaXMgY2FzZSBpbiBxc3BpbmxvY2suYwo+IG9yIHdp
+dGggeW91ciBhYm92ZSBjb2RlLgoKUmlnaHQsIEkgd2FzIGRvaW5nIHRoYXQgaW4gdGhlIGZpcnN0
+IHR3byB2ZXJzaW9ucyBvZiB0aGUgc2VyaWVzLiBJdCBhZGRzIAp1bm5lY2Vzc2FyeSBzdG9yZSBp
+bnRvIEBsb2NrZWQgZm9yIG5vbi1DTkEgdmFyaWFudHMsIGFuZCBldmVuIGlmIGl0IGRvZXMgbm90
+CmhhdmUgYW55IHJlYWwgcGVyZm9ybWFuY2UgaW1wbGljYXRpb25zLCBJIHRoaW5rIFBldGVyIGRp
+ZCBub3QgbGlrZSB0aGF0IChvciwgCmF0IGxlYXN0LCB0aGUgY29tbWVudCBJIGhhZCB0byBleHBs
+YWluIHdoeSB3ZSBuZWVkZWQgdGhhdCBzdG9yZSkuCgo+IFBlcmhhcHMsIGEgY29tbWVudCBhYm91
+dCB3aGVuIG5vZGUtPmxvY2tlZCB3aWxsCj4gYmUgMC4KWWVhaCwgSSB3YXMgdGlua2VyaW5nIHdp
+dGggdGhpcyBjb21tZW50LiBIZXJlIGlzIGhvdyBpdCByZWFkIGluIHYzOgovKgogKiBXZSB1bmxv
+Y2sgYSBzdWNjZXNzb3IgYnkgcGFzc2luZyBhIG5vbi16ZXJvIHZhbHVlLAogKiBzbyBzZXQgQHZh
+bCB0byAxIGlmZiBAbG9ja2VkIGlzIDAsIHdoaWNoIHdpbGwgaGFwcGVuCiAqIGlmIHdlIGFjcXVp
+cmVkIHRoZSBNQ1MgbG9jayB3aGVuIGl0cyBxdWV1ZSB3YXMgZW1wdHkKICovCgpJIGNhbiBjaGFu
+Z2UgYmFjayB0byBzb21ldGhpbmcgbGlrZSB0aGF0IGlmIGl0IGlzIGJldHRlci4KCj4gCj4gSXQg
+bWF5IGJlIGVhc2llciB0byB1bmRlcnN0YW5kIGlmIHlvdSBqdXN0IGRvCj4gCj4gICAgIHZhbCA9
+IG5vZGUtPmxvY2tlZCA/IG5vZGUtPmxvY2tlZCA6IDE7CllvdeKAmXJlIHJpZ2h0LCB0aGF04oCZ
+cyBhbm90aGVyIHBvc3NpYmlsaXR5LgpIb3dldmVyLCBpdCBhZGRzIHlldCBhbm90aGVyIGlmLXN0
+YXRlbWVudCBvbiB0aGUgY3JpdGljYWwgcGF0aCwgd2hpY2ggSSB3YXMKdHJ5aW5nIHRvIGF2b2lk
+IHRoYXQuCgpCZXN0IHJlZ2FyZHMsCuKAlCBBbGV4CgoKX19fX19fX19fX19fX19fX19fX19fX19f
+X19fX19fX19fX19fX19fX19fX19fX18KbGludXgtYXJtLWtlcm5lbCBtYWlsaW5nIGxpc3QKbGlu
+dXgtYXJtLWtlcm5lbEBsaXN0cy5pbmZyYWRlYWQub3JnCmh0dHA6Ly9saXN0cy5pbmZyYWRlYWQu
+b3JnL21haWxtYW4vbGlzdGluZm8vbGludXgtYXJtLWtlcm5lbAo=
