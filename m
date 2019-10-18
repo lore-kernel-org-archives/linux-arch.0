@@ -1,14 +1,14 @@
 From: "tip-bot2 for Jiri Slaby" <tip-bot2@linutronix.de>
-Subject: [tip: x86/asm] x86/asm/entry: Annotate THUNKs
-Date: Fri, 18 Oct 2019 16:30:33 -0000
-Message-ID: <157141623350.29376.4620423796822788941.tip-bot2@tip-bot2>
-References: <20191011115108.12392-5-jslaby@suse.cz>
+Subject: [tip: x86/asm] x86/asm/entry: Annotate interrupt symbols properly
+Date: Fri, 18 Oct 2019 16:30:31 -0000
+Message-ID: <157141623168.29376.17128924745763941780.tip-bot2@tip-bot2>
+References: <20191011115108.12392-11-jslaby@suse.cz>
 Reply-To: linux-kernel@vger.kernel.org
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20191011115108.12392-5-jslaby@suse.cz>
+In-Reply-To: <20191011115108.12392-11-jslaby@suse.cz>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-tip-commits@vger.kernel.org
 Cc: Jiri Slaby <jslaby@suse.cz>, Borislav Petkov <bp@suse.de>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Ingo Molnar <mingo@redhat.com>, linux-arch@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>, x86-ml <x86@kernel.org>, Ingo Molnar <mingo@kernel.org>, Borislav Petkov <bp@alien8.de>, linux-kernel@vger.kernel.org
@@ -16,30 +16,20 @@ List-Id: linux-arch.vger.kernel.org
 
 The following commit has been merged into the x86/asm branch of tip:
 
-Commit-ID:     76dc6d600166de2c0482db95318534e6dc284212
-Gitweb:        https://git.kernel.org/tip/76dc6d600166de2c0482db95318534e6dc284212
+Commit-ID:     cc66936e504a5b91dda52fda90203e174a7a71aa
+Gitweb:        https://git.kernel.org/tip/cc66936e504a5b91dda52fda90203e174a7a71aa
 Author:        Jiri Slaby <jslaby@suse.cz>
-AuthorDate:    Fri, 11 Oct 2019 13:50:44 +02:00
+AuthorDate:    Fri, 11 Oct 2019 13:50:50 +02:00
 Committer:     Borislav Petkov <bp@suse.de>
-CommitterDate: Fri, 18 Oct 2019 09:58:59 +02:00
+CommitterDate: Fri, 18 Oct 2019 10:40:11 +02:00
 
-x86/asm/entry: Annotate THUNKs
+x86/asm/entry: Annotate interrupt symbols properly
 
-Place SYM_*_START_NOALIGN and SYM_*_END around the THUNK macro body.
-Preserve @function by FUNC (64bit) and CODE (32bit). Given it was not
-marked as aligned, use NOALIGN.
-
-The result:
- Value  Size Type    Bind   Vis      Ndx Name
-  0000    28 FUNC    GLOBAL DEFAULT    1 trace_hardirqs_on_thunk
-  001c    28 FUNC    GLOBAL DEFAULT    1 trace_hardirqs_off_thunk
-  0038    24 FUNC    GLOBAL DEFAULT    1 lockdep_sys_exit_thunk
-  0050    24 FUNC    GLOBAL DEFAULT    1 ___preempt_schedule
-  0068    24 FUNC    GLOBAL DEFAULT    1 ___preempt_schedule_notra
-
-The annotation of .L_restore does not generate anything (at the moment).
-Here, it just serves documentation purposes (as opening and closing
-brackets of functions).
+* annotate functions properly by SYM_CODE_START, SYM_CODE_START_LOCAL*
+  and SYM_CODE_END -- these are not C-like functions, so they have to
+  be annotated using CODE.
+* use SYM_INNER_LABEL* for labels being in the middle of other functions
+  This prevents nested labels annotations.
 
 Signed-off-by: Jiri Slaby <jslaby@suse.cz>
 Signed-off-by: Borislav Petkov <bp@suse.de>
@@ -49,68 +39,185 @@ Cc: Ingo Molnar <mingo@redhat.com>
 Cc: linux-arch@vger.kernel.org
 Cc: Thomas Gleixner <tglx@linutronix.de>
 Cc: x86-ml <x86@kernel.org>
-Link: https://lkml.kernel.org/r/20191011115108.12392-5-jslaby@suse.cz
+Link: https://lkml.kernel.org/r/20191011115108.12392-11-jslaby@suse.cz
 ---
- arch/x86/entry/thunk_32.S | 4 ++--
- arch/x86/entry/thunk_64.S | 7 ++++---
- 2 files changed, 6 insertions(+), 5 deletions(-)
+ arch/x86/entry/entry_32.S | 28 ++++++++++++++--------------
+ arch/x86/entry/entry_64.S | 13 ++++++-------
+ 2 files changed, 20 insertions(+), 21 deletions(-)
 
-diff --git a/arch/x86/entry/thunk_32.S b/arch/x86/entry/thunk_32.S
-index 2713490..e010d4a 100644
---- a/arch/x86/entry/thunk_32.S
-+++ b/arch/x86/entry/thunk_32.S
-@@ -10,8 +10,7 @@
+diff --git a/arch/x86/entry/entry_32.S b/arch/x86/entry/entry_32.S
+index f83ca5a..f37ff58 100644
+--- a/arch/x86/entry/entry_32.S
++++ b/arch/x86/entry/entry_32.S
+@@ -807,8 +807,7 @@ END(ret_from_fork)
+  */
  
- 	/* put return address in eax (arg1) */
- 	.macro THUNK name, func, put_ret_addr_in_eax=0
--	.globl \name
--\name:
-+SYM_CODE_START_NOALIGN(\name)
- 	pushl %eax
- 	pushl %ecx
- 	pushl %edx
-@@ -27,6 +26,7 @@
- 	popl %eax
- 	ret
- 	_ASM_NOKPROBE(\name)
-+SYM_CODE_END(\name)
- 	.endm
+ 	# userspace resumption stub bypassing syscall exit tracing
+-	ALIGN
+-ret_from_exception:
++SYM_CODE_START_LOCAL(ret_from_exception)
+ 	preempt_stop(CLBR_ANY)
+ ret_from_intr:
+ #ifdef CONFIG_VM86
+@@ -825,13 +824,13 @@ ret_from_intr:
+ 	cmpl	$USER_RPL, %eax
+ 	jb	restore_all_kernel		# not returning to v8086 or userspace
  
- #ifdef CONFIG_TRACE_IRQFLAGS
-diff --git a/arch/x86/entry/thunk_64.S b/arch/x86/entry/thunk_64.S
-index ea5c416..c5c3b6e 100644
---- a/arch/x86/entry/thunk_64.S
-+++ b/arch/x86/entry/thunk_64.S
-@@ -12,7 +12,7 @@
+-ENTRY(resume_userspace)
++SYM_INNER_LABEL_ALIGN(resume_userspace, SYM_L_LOCAL)
+ 	DISABLE_INTERRUPTS(CLBR_ANY)
+ 	TRACE_IRQS_OFF
+ 	movl	%esp, %eax
+ 	call	prepare_exit_to_usermode
+ 	jmp	restore_all
+-END(ret_from_exception)
++SYM_CODE_END(ret_from_exception)
  
- 	/* rdi:	arg1 ... normal C conventions. rax is saved/restored. */
- 	.macro THUNK name, func, put_ret_addr_in_rdi=0
--	ENTRY(\name)
-+SYM_FUNC_START_NOALIGN(\name)
- 	pushq %rbp
- 	movq %rsp, %rbp
+ GLOBAL(__begin_SYSENTER_singlestep_region)
+ /*
+@@ -1100,7 +1099,7 @@ restore_all_kernel:
+ 	jmp	.Lirq_return
  
-@@ -33,7 +33,7 @@
+ .section .fixup, "ax"
+-ENTRY(iret_exc	)
++SYM_CODE_START(iret_exc)
+ 	pushl	$0				# no error code
+ 	pushl	$do_iret_error
  
- 	call \func
- 	jmp  .L_restore
--	ENDPROC(\name)
-+SYM_FUNC_END(\name)
- 	_ASM_NOKPROBE(\name)
- 	.endm
- 
-@@ -56,7 +56,7 @@
- #if defined(CONFIG_TRACE_IRQFLAGS) \
-  || defined(CONFIG_DEBUG_LOCK_ALLOC) \
-  || defined(CONFIG_PREEMPTION)
--.L_restore:
-+SYM_CODE_START_LOCAL_NOALIGN(.L_restore)
- 	popq %r11
- 	popq %r10
- 	popq %r9
-@@ -69,4 +69,5 @@
- 	popq %rbp
- 	ret
- 	_ASM_NOKPROBE(.L_restore)
-+SYM_CODE_END(.L_restore)
+@@ -1117,6 +1116,7 @@ ENTRY(iret_exc	)
  #endif
+ 
+ 	jmp	common_exception
++SYM_CODE_END(iret_exc)
+ .previous
+ 	_ASM_EXTABLE(.Lirq_return, iret_exc)
+ ENDPROC(entry_INT80_32)
+@@ -1182,7 +1182,7 @@ ENTRY(spurious_entries_start)
+     .endr
+ END(spurious_entries_start)
+ 
+-common_spurious:
++SYM_CODE_START_LOCAL(common_spurious)
+ 	ASM_CLAC
+ 	addl	$-0x80, (%esp)			/* Adjust vector into the [-256, -1] range */
+ 	SAVE_ALL switch_stacks=1
+@@ -1191,7 +1191,7 @@ common_spurious:
+ 	movl	%esp, %eax
+ 	call	smp_spurious_interrupt
+ 	jmp	ret_from_intr
+-ENDPROC(common_spurious)
++SYM_CODE_END(common_spurious)
+ #endif
+ 
+ /*
+@@ -1199,7 +1199,7 @@ ENDPROC(common_spurious)
+  * so IRQ-flags tracing has to follow that:
+  */
+ 	.p2align CONFIG_X86_L1_CACHE_SHIFT
+-common_interrupt:
++SYM_CODE_START_LOCAL(common_interrupt)
+ 	ASM_CLAC
+ 	addl	$-0x80, (%esp)			/* Adjust vector into the [-256, -1] range */
+ 
+@@ -1209,7 +1209,7 @@ common_interrupt:
+ 	movl	%esp, %eax
+ 	call	do_IRQ
+ 	jmp	ret_from_intr
+-ENDPROC(common_interrupt)
++SYM_CODE_END(common_interrupt)
+ 
+ #define BUILD_INTERRUPT3(name, nr, fn)			\
+ ENTRY(name)						\
+@@ -1361,7 +1361,7 @@ ENTRY(xen_hypervisor_callback)
+ 
+ 	jmp	xen_iret_crit_fixup
+ 
+-ENTRY(xen_do_upcall)
++SYM_INNER_LABEL_ALIGN(xen_do_upcall, SYM_L_GLOBAL)
+ 1:	mov	%esp, %eax
+ 	call	xen_evtchn_do_upcall
+ #ifndef CONFIG_PREEMPTION
+@@ -1447,7 +1447,7 @@ ENTRY(page_fault)
+ 	jmp	common_exception_read_cr2
+ END(page_fault)
+ 
+-common_exception_read_cr2:
++SYM_CODE_START_LOCAL_NOALIGN(common_exception_read_cr2)
+ 	/* the function address is in %gs's slot on the stack */
+ 	SAVE_ALL switch_stacks=1 skip_gs=1
+ 
+@@ -1470,9 +1470,9 @@ common_exception_read_cr2:
+ 	movl	%esp, %eax			# pt_regs pointer
+ 	CALL_NOSPEC %edi
+ 	jmp	ret_from_exception
+-END(common_exception_read_cr2)
++SYM_CODE_END(common_exception_read_cr2)
+ 
+-common_exception:
++SYM_CODE_START_LOCAL_NOALIGN(common_exception)
+ 	/* the function address is in %gs's slot on the stack */
+ 	SAVE_ALL switch_stacks=1 skip_gs=1
+ 	ENCODE_FRAME_POINTER
+@@ -1492,7 +1492,7 @@ common_exception:
+ 	movl	%esp, %eax			# pt_regs pointer
+ 	CALL_NOSPEC %edi
+ 	jmp	ret_from_exception
+-END(common_exception)
++SYM_CODE_END(common_exception)
+ 
+ ENTRY(debug)
+ 	/*
+diff --git a/arch/x86/entry/entry_64.S b/arch/x86/entry/entry_64.S
+index db43526..607e25f 100644
+--- a/arch/x86/entry/entry_64.S
++++ b/arch/x86/entry/entry_64.S
+@@ -589,18 +589,18 @@ _ASM_NOKPROBE(interrupt_entry)
+  * The interrupt stubs push (~vector+0x80) onto the stack and
+  * then jump to common_spurious/interrupt.
+  */
+-common_spurious:
++SYM_CODE_START_LOCAL(common_spurious)
+ 	addq	$-0x80, (%rsp)			/* Adjust vector to [-256, -1] range */
+ 	call	interrupt_entry
+ 	UNWIND_HINT_REGS indirect=1
+ 	call	smp_spurious_interrupt		/* rdi points to pt_regs */
+ 	jmp	ret_from_intr
+-END(common_spurious)
++SYM_CODE_END(common_spurious)
+ _ASM_NOKPROBE(common_spurious)
+ 
+ /* common_interrupt is a hotpath. Align it */
+ 	.p2align CONFIG_X86_L1_CACHE_SHIFT
+-common_interrupt:
++SYM_CODE_START_LOCAL(common_interrupt)
+ 	addq	$-0x80, (%rsp)			/* Adjust vector to [-256, -1] range */
+ 	call	interrupt_entry
+ 	UNWIND_HINT_REGS indirect=1
+@@ -695,7 +695,7 @@ GLOBAL(restore_regs_and_return_to_kernel)
+ 	 */
+ 	INTERRUPT_RETURN
+ 
+-ENTRY(native_iret)
++SYM_INNER_LABEL_ALIGN(native_iret, SYM_L_GLOBAL)
+ 	UNWIND_HINT_IRET_REGS
+ 	/*
+ 	 * Are we returning to a stack segment from the LDT?  Note: in
+@@ -706,8 +706,7 @@ ENTRY(native_iret)
+ 	jnz	native_irq_return_ldt
+ #endif
+ 
+-.global native_irq_return_iret
+-native_irq_return_iret:
++SYM_INNER_LABEL(native_irq_return_iret, SYM_L_GLOBAL)
+ 	/*
+ 	 * This may fault.  Non-paranoid faults on return to userspace are
+ 	 * handled by fixup_bad_iret.  These include #SS, #GP, and #NP.
+@@ -789,7 +788,7 @@ native_irq_return_ldt:
+ 	 */
+ 	jmp	native_irq_return_iret
+ #endif
+-END(common_interrupt)
++SYM_CODE_END(common_interrupt)
+ _ASM_NOKPROBE(common_interrupt)
+ 
+ /*
