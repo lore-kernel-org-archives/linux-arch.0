@@ -1,219 +1,173 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from Galois.linutronix.de ([193.142.43.55]:57786 "EHLO
+Received: from Galois.linutronix.de ([193.142.43.55]:57774 "EHLO
         Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S2440024AbfJRQbA (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 18 Oct 2019 12:31:00 -0400
-Date: Fri, 18 Oct 2019 16:30:31 -0000
+        with ESMTP id S2439985AbfJRQa6 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 18 Oct 2019 12:30:58 -0400
+Date: Fri, 18 Oct 2019 16:30:32 -0000
 From: "tip-bot2 for Jiri Slaby" <tip-bot2@linutronix.de>
 Reply-to: linux-kernel@vger.kernel.org
-Subject: [tip: x86/asm] x86/boot: Annotate data appropriately
-In-Reply-To: <20191011115108.12392-13-jslaby@suse.cz>
-References: <20191011115108.12392-13-jslaby@suse.cz>
+Subject: [tip: x86/asm] x86/asm: Annotate aliases
+In-Reply-To: <20191011115108.12392-10-jslaby@suse.cz>
+References: <20191011115108.12392-10-jslaby@suse.cz>
 MIME-Version: 1.0
-Message-ID: <157141623101.29376.314591768009826189.tip-bot2@tip-bot2>
+Message-ID: <157141623204.29376.8488182129639228430.tip-bot2@tip-bot2>
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-tip-commits@vger.kernel.org
-Cc: Jiri Slaby <jslaby@suse.cz>, Borislav Petkov <bp@suse.de>, Allison Randal <allison@lohutok.net>, Cao jin <caoj.fnst@cn.fujitsu.com>, Enrico Weigelt <info@metux.net>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, "H. Peter Anvin" <hpa@zytor.com>, Ingo Molnar <mingo@redhat.com>, Kate Stewart <kstewart@linuxfoundation.org>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, linux-arch@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>, Wei Huang <wei@redhat.com>, x86-ml <x86@kernel.org>, Xiaoyao Li <xiaoyao.li@linux.intel.com>, Ingo Molnar <mingo@kernel.org>, Borislav Petkov <bp@alien8.de>, linux-kernel@vger.kernel.org
-Message-ID: <20191018163031.Opz2X4ysblfZnV-Y7wG_Xu8f0L9VDlpm37Idksc9p2w@z>
+Cc: Jiri Slaby <jslaby@suse.cz>, Borislav Petkov <bp@suse.de>, Juergen Gross <jgross@suse.com>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, "David S. Miller" <davem@davemloft.net>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Herbert Xu <herbert@gondor.apana.org.au>, "H. Peter Anvin" <hpa@zytor.com>, Ingo Molnar <mingo@redhat.com>, linux-arch@vger.kernel.org, linux-crypto@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Stefano Stabellini <sstabellini@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, x86-ml <x86@kernel.org>, xen-devel@lists.xenproject.org, Ingo Molnar <mingo@kernel.org>, Borislav Petkov <bp@alien8.de>, linux-kernel@vger.kernel.org
+Message-ID: <20191018163032.825P38k8Qr6Sa-rj1V0KKdYoppM6C9q2_1cSoScjd8I@z>
 
 The following commit has been merged into the x86/asm branch of tip:
 
-Commit-ID:     b8c3f9b554e8bd0edb434a54d0dc48e3d9eb6edd
-Gitweb:        https://git.kernel.org/tip/b8c3f9b554e8bd0edb434a54d0dc48e3d9eb6edd
+Commit-ID:     e9b9d020c4873d5e90d9986cfd137afbafbc5bfa
+Gitweb:        https://git.kernel.org/tip/e9b9d020c4873d5e90d9986cfd137afbafbc5bfa
 Author:        Jiri Slaby <jslaby@suse.cz>
-AuthorDate:    Fri, 11 Oct 2019 13:50:52 +02:00
+AuthorDate:    Fri, 11 Oct 2019 13:50:49 +02:00
 Committer:     Borislav Petkov <bp@suse.de>
-CommitterDate: Fri, 18 Oct 2019 10:43:26 +02:00
+CommitterDate: Fri, 18 Oct 2019 10:38:23 +02:00
 
-x86/boot: Annotate data appropriately
+x86/asm: Annotate aliases
 
-Use the new SYM_DATA, SYM_DATA_START, and SYM_DATA_END* macros for data,
-so that the data in the object file look sane:
-
-  Value   Size Type    Bind   Vis      Ndx Name
-    0000    10 OBJECT  GLOBAL DEFAULT    3 efi32_boot_gdt
-    000a    10 OBJECT  LOCAL  DEFAULT    3 save_gdt
-    0014     8 OBJECT  LOCAL  DEFAULT    3 func_rt_ptr
-    001c    48 OBJECT  GLOBAL DEFAULT    3 efi_gdt64
-    004c     0 OBJECT  LOCAL  DEFAULT    3 efi_gdt64_end
-
-    0000    48 OBJECT  LOCAL  DEFAULT    3 gdt
-    0030     0 OBJECT  LOCAL  DEFAULT    3 gdt_end
-    0030     8 OBJECT  LOCAL  DEFAULT    3 efi_config
-    0038    49 OBJECT  GLOBAL DEFAULT    3 efi32_config
-    0069    49 OBJECT  GLOBAL DEFAULT    3 efi64_config
-
-All have correct size and type now.
+_key_expansion_128 is an alias to _key_expansion_256a, __memcpy to
+memcpy, xen_syscall32_target to xen_sysenter_target, and so on. Annotate
+them all using the new SYM_FUNC_START_ALIAS, SYM_FUNC_START_LOCAL_ALIAS,
+and SYM_FUNC_END_ALIAS. This will make the tools generating the
+debuginfo happy as it avoids nesting and double symbols.
 
 Signed-off-by: Jiri Slaby <jslaby@suse.cz>
 Signed-off-by: Borislav Petkov <bp@suse.de>
-Cc: Allison Randal <allison@lohutok.net>
-Cc: Cao jin <caoj.fnst@cn.fujitsu.com>
-Cc: Enrico Weigelt <info@metux.net>
+Reviewed-by: Juergen Gross <jgross@suse.com> [xen parts]
+Cc: Boris Ostrovsky <boris.ostrovsky@oracle.com>
+Cc: "David S. Miller" <davem@davemloft.net>
 Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+Cc: Herbert Xu <herbert@gondor.apana.org.au>
 Cc: "H. Peter Anvin" <hpa@zytor.com>
 Cc: Ingo Molnar <mingo@redhat.com>
-Cc: Kate Stewart <kstewart@linuxfoundation.org>
-Cc: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
 Cc: linux-arch@vger.kernel.org
+Cc: linux-crypto@vger.kernel.org
+Cc: Peter Zijlstra <peterz@infradead.org>
+Cc: Stefano Stabellini <sstabellini@kernel.org>
 Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: Wei Huang <wei@redhat.com>
 Cc: x86-ml <x86@kernel.org>
-Cc: Xiaoyao Li <xiaoyao.li@linux.intel.com>
-Link: https://lkml.kernel.org/r/20191011115108.12392-13-jslaby@suse.cz
+Cc: xen-devel@lists.xenproject.org
+Link: https://lkml.kernel.org/r/20191011115108.12392-10-jslaby@suse.cz
 ---
- arch/x86/boot/compressed/efi_thunk_64.S | 21 +++++++++-------
- arch/x86/boot/compressed/head_64.S      | 32 +++++++++++-------------
- arch/x86/boot/compressed/mem_encrypt.S  |  3 +--
- arch/x86/realmode/rm/wakeup_asm.S       |  4 +--
- 4 files changed, 30 insertions(+), 30 deletions(-)
+ arch/x86/crypto/aesni-intel_asm.S | 5 ++---
+ arch/x86/lib/memcpy_64.S          | 4 ++--
+ arch/x86/lib/memmove_64.S         | 4 ++--
+ arch/x86/lib/memset_64.S          | 4 ++--
+ arch/x86/xen/xen-asm_64.S         | 4 ++--
+ 5 files changed, 10 insertions(+), 11 deletions(-)
 
-diff --git a/arch/x86/boot/compressed/efi_thunk_64.S b/arch/x86/boot/compressed/efi_thunk_64.S
-index bff9ab7..d66000d 100644
---- a/arch/x86/boot/compressed/efi_thunk_64.S
-+++ b/arch/x86/boot/compressed/efi_thunk_64.S
-@@ -176,16 +176,19 @@ ENDPROC(efi_enter32)
- 
- 	.data
- 	.balign	8
--	.global	efi32_boot_gdt
--efi32_boot_gdt:	.word	0
--		.quad	0
-+SYM_DATA_START(efi32_boot_gdt)
-+	.word	0
-+	.quad	0
-+SYM_DATA_END(efi32_boot_gdt)
-+
-+SYM_DATA_START_LOCAL(save_gdt)
-+	.word	0
-+	.quad	0
-+SYM_DATA_END(save_gdt)
- 
--save_gdt:	.word	0
--		.quad	0
--func_rt_ptr:	.quad	0
-+SYM_DATA_LOCAL(func_rt_ptr, .quad 0)
- 
--	.global efi_gdt64
--efi_gdt64:
-+SYM_DATA_START(efi_gdt64)
- 	.word	efi_gdt64_end - efi_gdt64
- 	.long	0			/* Filled out by user */
- 	.word	0
-@@ -194,4 +197,4 @@ efi_gdt64:
- 	.quad	0x00cf92000000ffff	/* __KERNEL_DS */
- 	.quad	0x0080890000000000	/* TS descriptor */
- 	.quad   0x0000000000000000	/* TS continued */
--efi_gdt64_end:
-+SYM_DATA_END_LABEL(efi_gdt64, SYM_L_LOCAL, efi_gdt64_end)
-diff --git a/arch/x86/boot/compressed/head_64.S b/arch/x86/boot/compressed/head_64.S
-index 7afe6e0..ca762ea 100644
---- a/arch/x86/boot/compressed/head_64.S
-+++ b/arch/x86/boot/compressed/head_64.S
-@@ -659,11 +659,12 @@ SYM_FUNC_END(.Lno_longmode)
- #include "../../kernel/verify_cpu.S"
- 
- 	.data
--gdt64:
-+SYM_DATA_START_LOCAL(gdt64)
- 	.word	gdt_end - gdt
- 	.quad   0
-+SYM_DATA_END(gdt64)
- 	.balign	8
--gdt:
-+SYM_DATA_START_LOCAL(gdt)
- 	.word	gdt_end - gdt
- 	.long	gdt
- 	.word	0
-@@ -672,25 +673,24 @@ gdt:
- 	.quad	0x00cf92000000ffff	/* __KERNEL_DS */
- 	.quad	0x0080890000000000	/* TS descriptor */
- 	.quad   0x0000000000000000	/* TS continued */
--gdt_end:
-+SYM_DATA_END_LABEL(gdt, SYM_L_LOCAL, gdt_end)
- 
- #ifdef CONFIG_EFI_STUB
--efi_config:
--	.quad	0
-+SYM_DATA_LOCAL(efi_config, .quad 0)
- 
- #ifdef CONFIG_EFI_MIXED
--	.global efi32_config
--efi32_config:
-+SYM_DATA_START(efi32_config)
- 	.fill	5,8,0
- 	.quad	efi64_thunk
- 	.byte	0
-+SYM_DATA_END(efi32_config)
+diff --git a/arch/x86/crypto/aesni-intel_asm.S b/arch/x86/crypto/aesni-intel_asm.S
+index e0a5fb4..9d8d5f2 100644
+--- a/arch/x86/crypto/aesni-intel_asm.S
++++ b/arch/x86/crypto/aesni-intel_asm.S
+@@ -1757,8 +1757,7 @@ ENDPROC(aesni_gcm_finalize)
  #endif
  
--	.global efi64_config
--efi64_config:
-+SYM_DATA_START(efi64_config)
- 	.fill	5,8,0
- 	.quad	efi_call
- 	.byte	1
-+SYM_DATA_END(efi64_config)
- #endif /* CONFIG_EFI_STUB */
  
- /*
-@@ -698,23 +698,21 @@ efi64_config:
+-.align 4
+-_key_expansion_128:
++SYM_FUNC_START_LOCAL_ALIAS(_key_expansion_128)
+ SYM_FUNC_START_LOCAL(_key_expansion_256a)
+ 	pshufd $0b11111111, %xmm1, %xmm1
+ 	shufps $0b00010000, %xmm0, %xmm4
+@@ -1769,8 +1768,8 @@ SYM_FUNC_START_LOCAL(_key_expansion_256a)
+ 	movaps %xmm0, (TKEYP)
+ 	add $0x10, TKEYP
+ 	ret
+-ENDPROC(_key_expansion_128)
+ SYM_FUNC_END(_key_expansion_256a)
++SYM_FUNC_END_ALIAS(_key_expansion_128)
+ 
+ SYM_FUNC_START_LOCAL(_key_expansion_192a)
+ 	pshufd $0b01010101, %xmm1, %xmm1
+diff --git a/arch/x86/lib/memcpy_64.S b/arch/x86/lib/memcpy_64.S
+index 9274866..57a6426 100644
+--- a/arch/x86/lib/memcpy_64.S
++++ b/arch/x86/lib/memcpy_64.S
+@@ -28,7 +28,7 @@
+  * Output:
+  * rax original destination
   */
- 	.bss
- 	.balign 4
--boot_heap:
--	.fill BOOT_HEAP_SIZE, 1, 0
--boot_stack:
-+SYM_DATA_LOCAL(boot_heap,	.fill BOOT_HEAP_SIZE, 1, 0)
-+
-+SYM_DATA_START_LOCAL(boot_stack)
- 	.fill BOOT_STACK_SIZE, 1, 0
--boot_stack_end:
-+SYM_DATA_END_LABEL(boot_stack, SYM_L_LOCAL, boot_stack_end)
+-ENTRY(__memcpy)
++SYM_FUNC_START_ALIAS(__memcpy)
+ ENTRY(memcpy)
+ 	ALTERNATIVE_2 "jmp memcpy_orig", "", X86_FEATURE_REP_GOOD, \
+ 		      "jmp memcpy_erms", X86_FEATURE_ERMS
+@@ -42,7 +42,7 @@ ENTRY(memcpy)
+ 	rep movsb
+ 	ret
+ ENDPROC(memcpy)
+-ENDPROC(__memcpy)
++SYM_FUNC_END_ALIAS(__memcpy)
+ EXPORT_SYMBOL(memcpy)
+ EXPORT_SYMBOL(__memcpy)
  
- /*
-  * Space for page tables (not in .bss so not zeroed)
+diff --git a/arch/x86/lib/memmove_64.S b/arch/x86/lib/memmove_64.S
+index bbec69d..50c1648 100644
+--- a/arch/x86/lib/memmove_64.S
++++ b/arch/x86/lib/memmove_64.S
+@@ -26,7 +26,7 @@
   */
- 	.section ".pgtable","a",@nobits
- 	.balign 4096
--pgtable:
--	.fill BOOT_PGT_SIZE, 1, 0
-+SYM_DATA_LOCAL(pgtable,		.fill BOOT_PGT_SIZE, 1, 0)
+ .weak memmove
  
- /*
-  * The page table is going to be used instead of page table in the trampoline
-  * memory.
+-ENTRY(memmove)
++SYM_FUNC_START_ALIAS(memmove)
+ ENTRY(__memmove)
+ 
+ 	/* Handle more 32 bytes in loop */
+@@ -208,6 +208,6 @@ ENTRY(__memmove)
+ 13:
+ 	retq
+ ENDPROC(__memmove)
+-ENDPROC(memmove)
++SYM_FUNC_END_ALIAS(memmove)
+ EXPORT_SYMBOL(__memmove)
+ EXPORT_SYMBOL(memmove)
+diff --git a/arch/x86/lib/memset_64.S b/arch/x86/lib/memset_64.S
+index 9bc861c..927ac44 100644
+--- a/arch/x86/lib/memset_64.S
++++ b/arch/x86/lib/memset_64.S
+@@ -19,7 +19,7 @@
+  *
+  * rax   original destination
   */
--top_pgtable:
--	.fill PAGE_SIZE, 1, 0
-+SYM_DATA_LOCAL(top_pgtable,	.fill PAGE_SIZE, 1, 0)
-diff --git a/arch/x86/boot/compressed/mem_encrypt.S b/arch/x86/boot/compressed/mem_encrypt.S
-index 6afb713..28d703c 100644
---- a/arch/x86/boot/compressed/mem_encrypt.S
-+++ b/arch/x86/boot/compressed/mem_encrypt.S
-@@ -96,6 +96,5 @@ ENDPROC(set_sev_encryption_mask)
+-ENTRY(memset)
++SYM_FUNC_START_ALIAS(memset)
+ ENTRY(__memset)
+ 	/*
+ 	 * Some CPUs support enhanced REP MOVSB/STOSB feature. It is recommended
+@@ -43,8 +43,8 @@ ENTRY(__memset)
+ 	rep stosb
+ 	movq %r9,%rax
+ 	ret
+-ENDPROC(memset)
+ ENDPROC(__memset)
++SYM_FUNC_END_ALIAS(memset)
+ EXPORT_SYMBOL(memset)
+ EXPORT_SYMBOL(__memset)
  
- #ifdef CONFIG_AMD_MEM_ENCRYPT
- 	.balign	8
--GLOBAL(sme_me_mask)
--	.quad	0
-+SYM_DATA(sme_me_mask, .quad 0)
- #endif
-diff --git a/arch/x86/realmode/rm/wakeup_asm.S b/arch/x86/realmode/rm/wakeup_asm.S
-index dad6198..08438ee 100644
---- a/arch/x86/realmode/rm/wakeup_asm.S
-+++ b/arch/x86/realmode/rm/wakeup_asm.S
-@@ -171,8 +171,8 @@ END(wakeup_gdt)
+diff --git a/arch/x86/xen/xen-asm_64.S b/arch/x86/xen/xen-asm_64.S
+index ebf610b..45c1249 100644
+--- a/arch/x86/xen/xen-asm_64.S
++++ b/arch/x86/xen/xen-asm_64.S
+@@ -167,13 +167,13 @@ ENDPROC(xen_sysenter_target)
  
- 	/* This is the standard real-mode IDT */
- 	.balign	16
--.Lwakeup_idt:
-+SYM_DATA_START_LOCAL(.Lwakeup_idt)
- 	.word	0xffff		/* limit */
- 	.long	0		/* address */
- 	.word	0
--END(.Lwakeup_idt)
-+SYM_DATA_END(.Lwakeup_idt)
+ #else /* !CONFIG_IA32_EMULATION */
+ 
+-ENTRY(xen_syscall32_target)
++SYM_FUNC_START_ALIAS(xen_syscall32_target)
+ ENTRY(xen_sysenter_target)
+ 	lea 16(%rsp), %rsp	/* strip %rcx, %r11 */
+ 	mov $-ENOSYS, %rax
+ 	pushq $0
+ 	jmp hypercall_iret
+-ENDPROC(xen_syscall32_target)
+ ENDPROC(xen_sysenter_target)
++SYM_FUNC_END_ALIAS(xen_syscall32_target)
+ 
+ #endif	/* CONFIG_IA32_EMULATION */
