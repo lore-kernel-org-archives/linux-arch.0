@@ -1,263 +1,164 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from Galois.linutronix.de ([193.142.43.55]:57821 "EHLO
+Received: from Galois.linutronix.de ([193.142.43.55]:57827 "EHLO
         Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S2442947AbfJRQbK (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 18 Oct 2019 12:31:10 -0400
-Date: Fri, 18 Oct 2019 16:30:26 -0000
+        with ESMTP id S2442967AbfJRQbJ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 18 Oct 2019 12:31:09 -0400
+Date: Fri, 18 Oct 2019 16:30:29 -0000
 From: "tip-bot2 for Jiri Slaby" <tip-bot2@linutronix.de>
 Reply-to: linux-kernel@vger.kernel.org
-Subject: [tip: x86/asm] x86/asm/32: Add ENDs to some functions and relabel
- with SYM_CODE_*
-In-Reply-To: <20191011115108.12392-26-jslaby@suse.cz>
-References: <20191011115108.12392-26-jslaby@suse.cz>
+Subject: [tip: x86/asm] x86/asm: Do not annotate functions with GLOBAL
+In-Reply-To: <20191011115108.12392-17-jslaby@suse.cz>
+References: <20191011115108.12392-17-jslaby@suse.cz>
 MIME-Version: 1.0
-Message-ID: <157141622620.29376.2511020268312198257.tip-bot2@tip-bot2>
+Message-ID: <157141622974.29376.15985794958697236265.tip-bot2@tip-bot2>
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-tip-commits@vger.kernel.org
-Cc: Jiri Slaby <jslaby@suse.cz>, Borislav Petkov <bp@suse.de>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, "Rafael J. Wysocki" <rafael.j.wysocki@intel.com>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Ingo Molnar <mingo@redhat.com>, Josh Poimboeuf <jpoimboe@redhat.com>, Juergen Gross <jgross@suse.com>, Len Brown <len.brown@intel.com>, linux-arch@vger.kernel.org, linux-pm@vger.kernel.org, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Pingfan Liu <kernelfans@gmail.com>, Stefano Stabellini <sstabellini@kernel.org>, "Steven Rostedt (VMware)" <rostedt@goodmis.org>, Thomas Gleixner <tglx@linutronix.de>, x86-ml <x86@kernel.org>, xen-devel@lists.xenproject.org, Ingo Molnar <mingo@kernel.org>, Borislav Petkov <bp@alien8.de>, linux-kernel@vger.kernel.org
-Message-ID: <20191018163026.5yDTSE9x4pMler09gO5NYDCXv4VqtdbTnFNZNOCdnpw@z>
+Cc: Jiri Slaby <jslaby@suse.cz>, Borislav Petkov <bp@suse.de>, Allison Randal <allison@lohutok.net>, Andy Lutomirski <luto@kernel.org>, Cao jin <caoj.fnst@cn.fujitsu.com>, Enrico Weigelt <info@metux.net>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, "H. Peter Anvin" <hpa@zytor.com>, Ingo Molnar <mingo@redhat.com>, Juergen Gross <jgross@suse.com>, Kate Stewart <kstewart@linuxfoundation.org>, linux-arch@vger.kernel.org, Maran Wilson <maran.wilson@oracle.com>, Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, x86-ml <x86@kernel.org>, Ingo Molnar <mingo@kernel.org>, Borislav Petkov <bp@alien8.de>, linux-kernel@vger.kernel.org
+Message-ID: <20191018163029.x2pqFTPqbsOmuhwI5ajKKSDFixJ9bFlKsjdD2Yacclg@z>
 
 The following commit has been merged into the x86/asm branch of tip:
 
-Commit-ID:     78762b0e79bc1dd01347be061abdf505202152c9
-Gitweb:        https://git.kernel.org/tip/78762b0e79bc1dd01347be061abdf505202152c9
+Commit-ID:     37818afd15fe720571955e2f51555a9ffc84363a
+Gitweb:        https://git.kernel.org/tip/37818afd15fe720571955e2f51555a9ffc84363a
 Author:        Jiri Slaby <jslaby@suse.cz>
-AuthorDate:    Fri, 11 Oct 2019 13:51:05 +02:00
+AuthorDate:    Fri, 11 Oct 2019 13:50:56 +02:00
 Committer:     Borislav Petkov <bp@suse.de>
-CommitterDate: Fri, 18 Oct 2019 11:58:33 +02:00
+CommitterDate: Fri, 18 Oct 2019 11:25:58 +02:00
 
-x86/asm/32: Add ENDs to some functions and relabel with SYM_CODE_*
+x86/asm: Do not annotate functions with GLOBAL
 
-All these are functions which are invoked from elsewhere but they are
-not typical C functions. So annotate them using the new SYM_CODE_START.
-All these were not balanced with any END, so mark their ends by
-SYM_CODE_END, appropriately.
+GLOBAL is an x86's custom macro and is going to die very soon. It was
+meant for global symbols, but here, it was used for functions. Instead,
+use the new macros SYM_FUNC_START* and SYM_CODE_START* (depending on the
+type of the function) which are dedicated to global functions. And since
+they both require a closing by SYM_*_END, do that here too.
+
+startup_64, which does not use GLOBAL but uses .globl explicitly, is
+converted too.
+
+"No alignments" are preserved.
 
 Signed-off-by: Jiri Slaby <jslaby@suse.cz>
 Signed-off-by: Borislav Petkov <bp@suse.de>
-Reviewed-by: Boris Ostrovsky <boris.ostrovsky@oracle.com> [xen bits]
-Reviewed-by: Rafael J. Wysocki <rafael.j.wysocki@intel.com> [hibernate]
+Cc: Allison Randal <allison@lohutok.net>
 Cc: Andy Lutomirski <luto@kernel.org>
+Cc: Cao jin <caoj.fnst@cn.fujitsu.com>
+Cc: Enrico Weigelt <info@metux.net>
+Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
 Cc: "H. Peter Anvin" <hpa@zytor.com>
 Cc: Ingo Molnar <mingo@redhat.com>
-Cc: Josh Poimboeuf <jpoimboe@redhat.com>
 Cc: Juergen Gross <jgross@suse.com>
-Cc: Len Brown <len.brown@intel.com>
+Cc: Kate Stewart <kstewart@linuxfoundation.org>
 Cc: linux-arch@vger.kernel.org
-Cc: linux-pm@vger.kernel.org
-Cc: Pavel Machek <pavel@ucw.cz>
+Cc: Maran Wilson <maran.wilson@oracle.com>
 Cc: Peter Zijlstra <peterz@infradead.org>
-Cc: Pingfan Liu <kernelfans@gmail.com>
-Cc: Stefano Stabellini <sstabellini@kernel.org>
-Cc: "Steven Rostedt (VMware)" <rostedt@goodmis.org>
 Cc: Thomas Gleixner <tglx@linutronix.de>
 Cc: x86-ml <x86@kernel.org>
-Cc: xen-devel@lists.xenproject.org
-Link: https://lkml.kernel.org/r/20191011115108.12392-26-jslaby@suse.cz
+Link: https://lkml.kernel.org/r/20191011115108.12392-17-jslaby@suse.cz
 ---
- arch/x86/entry/entry_32.S            | 3 ++-
- arch/x86/kernel/acpi/wakeup_32.S     | 7 ++++---
- arch/x86/kernel/ftrace_32.S          | 3 ++-
- arch/x86/kernel/head_32.S            | 3 ++-
- arch/x86/power/hibernate_asm_32.S    | 6 ++++--
- arch/x86/realmode/rm/trampoline_32.S | 6 ++++--
- arch/x86/xen/xen-asm_32.S            | 7 ++++---
- 7 files changed, 22 insertions(+), 13 deletions(-)
+ arch/x86/boot/copy.S      | 16 ++++++++--------
+ arch/x86/boot/pmjump.S    |  4 ++--
+ arch/x86/kernel/head_64.S |  5 +++--
+ 3 files changed, 13 insertions(+), 12 deletions(-)
 
-diff --git a/arch/x86/entry/entry_32.S b/arch/x86/entry/entry_32.S
-index 4900a6a..64fe7aa 100644
---- a/arch/x86/entry/entry_32.S
-+++ b/arch/x86/entry/entry_32.S
-@@ -847,9 +847,10 @@ SYM_ENTRY(__begin_SYSENTER_singlestep_region, SYM_L_GLOBAL, SYM_A_NONE)
-  * Xen doesn't set %esp to be precisely what the normal SYSENTER
-  * entry point expects, so fix it up before using the normal path.
-  */
--ENTRY(xen_sysenter_target)
-+SYM_CODE_START(xen_sysenter_target)
- 	addl	$5*4, %esp			/* remove xen-provided frame */
- 	jmp	.Lsysenter_past_esp
-+SYM_CODE_END(xen_sysenter_target)
- #endif
- 
- /*
-diff --git a/arch/x86/kernel/acpi/wakeup_32.S b/arch/x86/kernel/acpi/wakeup_32.S
-index 4272492..daf88f8 100644
---- a/arch/x86/kernel/acpi/wakeup_32.S
-+++ b/arch/x86/kernel/acpi/wakeup_32.S
-@@ -9,8 +9,7 @@
- 	.code32
- 	ALIGN
- 
--ENTRY(wakeup_pmode_return)
--wakeup_pmode_return:
-+SYM_CODE_START(wakeup_pmode_return)
- 	movw	$__KERNEL_DS, %ax
- 	movw	%ax, %ss
- 	movw	%ax, %fs
-@@ -39,6 +38,7 @@ wakeup_pmode_return:
- 	# jump to place where we left off
- 	movl	saved_eip, %eax
- 	jmp	*%eax
-+SYM_CODE_END(wakeup_pmode_return)
- 
- bogus_magic:
- 	jmp	bogus_magic
-@@ -72,7 +72,7 @@ restore_registers:
- 	popfl
- 	ret
- 
--ENTRY(do_suspend_lowlevel)
-+SYM_CODE_START(do_suspend_lowlevel)
- 	call	save_processor_state
- 	call	save_registers
- 	pushl	$3
-@@ -87,6 +87,7 @@ ret_point:
- 	call	restore_registers
- 	call	restore_processor_state
- 	ret
-+SYM_CODE_END(do_suspend_lowlevel)
- 
- .data
- ALIGN
-diff --git a/arch/x86/kernel/ftrace_32.S b/arch/x86/kernel/ftrace_32.S
-index 219be13..a43ed4c 100644
---- a/arch/x86/kernel/ftrace_32.S
-+++ b/arch/x86/kernel/ftrace_32.S
-@@ -89,7 +89,7 @@ WEAK(ftrace_stub)
- 	ret
- END(ftrace_caller)
- 
--ENTRY(ftrace_regs_caller)
-+SYM_CODE_START(ftrace_regs_caller)
- 	/*
- 	 * We're here from an mcount/fentry CALL, and the stack frame looks like:
- 	 *
-@@ -163,6 +163,7 @@ SYM_INNER_LABEL(ftrace_regs_call, SYM_L_GLOBAL)
- 	popl	%eax
- 
- 	jmp	.Lftrace_ret
-+SYM_CODE_END(ftrace_regs_caller)
- 
- #ifdef CONFIG_FUNCTION_GRAPH_TRACER
- ENTRY(ftrace_graph_caller)
-diff --git a/arch/x86/kernel/head_32.S b/arch/x86/kernel/head_32.S
-index e2b3e6c..7029bba 100644
---- a/arch/x86/kernel/head_32.S
-+++ b/arch/x86/kernel/head_32.S
-@@ -64,7 +64,7 @@ RESERVE_BRK(pagetables, INIT_MAP_SIZE)
-  * can.
-  */
- __HEAD
--ENTRY(startup_32)
-+SYM_CODE_START(startup_32)
- 	movl pa(initial_stack),%ecx
- 	
- 	/* test KEEP_SEGMENTS flag to see if the bootloader is asking
-@@ -172,6 +172,7 @@ num_subarch_entries = (. - subarch_entries) / 4
- #else
- 	jmp .Ldefault_entry
- #endif /* CONFIG_PARAVIRT */
-+SYM_CODE_END(startup_32)
- 
- #ifdef CONFIG_HOTPLUG_CPU
- /*
-diff --git a/arch/x86/power/hibernate_asm_32.S b/arch/x86/power/hibernate_asm_32.S
-index 6fe3830..a19ed3d 100644
---- a/arch/x86/power/hibernate_asm_32.S
-+++ b/arch/x86/power/hibernate_asm_32.S
-@@ -35,7 +35,7 @@ ENTRY(swsusp_arch_suspend)
- 	ret
- ENDPROC(swsusp_arch_suspend)
- 
--ENTRY(restore_image)
-+SYM_CODE_START(restore_image)
- 	/* prepare to jump to the image kernel */
- 	movl	restore_jump_address, %ebx
- 	movl	restore_cr3, %ebp
-@@ -45,9 +45,10 @@ ENTRY(restore_image)
- 	/* jump to relocated restore code */
- 	movl	relocated_restore_code, %eax
- 	jmpl	*%eax
-+SYM_CODE_END(restore_image)
- 
- /* code below has been relocated to a safe page */
--ENTRY(core_restore_code)
-+SYM_CODE_START(core_restore_code)
- 	movl	temp_pgt, %eax
- 	movl	%eax, %cr3
- 
-@@ -77,6 +78,7 @@ copy_loop:
- 
- done:
- 	jmpl	*%ebx
-+SYM_CODE_END(core_restore_code)
- 
- 	/* code below belongs to the image kernel */
- 	.align PAGE_SIZE
-diff --git a/arch/x86/realmode/rm/trampoline_32.S b/arch/x86/realmode/rm/trampoline_32.S
-index ff00594..3fad907 100644
---- a/arch/x86/realmode/rm/trampoline_32.S
-+++ b/arch/x86/realmode/rm/trampoline_32.S
-@@ -29,7 +29,7 @@
+diff --git a/arch/x86/boot/copy.S b/arch/x86/boot/copy.S
+index 4c5f4f4..6afd05e 100644
+--- a/arch/x86/boot/copy.S
++++ b/arch/x86/boot/copy.S
+@@ -15,7 +15,7 @@
  	.code16
+ 	.text
  
- 	.balign	PAGE_SIZE
--ENTRY(trampoline_start)
-+SYM_CODE_START(trampoline_start)
- 	wbinvd			# Needed for NUMA-Q should be harmless for others
+-GLOBAL(memcpy)
++SYM_FUNC_START_NOALIGN(memcpy)
+ 	pushw	%si
+ 	pushw	%di
+ 	movw	%ax, %di
+@@ -29,9 +29,9 @@ GLOBAL(memcpy)
+ 	popw	%di
+ 	popw	%si
+ 	retl
+-ENDPROC(memcpy)
++SYM_FUNC_END(memcpy)
  
- 	LJMPW_RM(1f)
-@@ -54,11 +54,13 @@ ENTRY(trampoline_start)
- 	lmsw	%dx			# into protected mode
+-GLOBAL(memset)
++SYM_FUNC_START_NOALIGN(memset)
+ 	pushw	%di
+ 	movw	%ax, %di
+ 	movzbl	%dl, %eax
+@@ -44,22 +44,22 @@ GLOBAL(memset)
+ 	rep; stosb
+ 	popw	%di
+ 	retl
+-ENDPROC(memset)
++SYM_FUNC_END(memset)
  
- 	ljmpl	$__BOOT_CS, $pa_startup_32
-+SYM_CODE_END(trampoline_start)
+-GLOBAL(copy_from_fs)
++SYM_FUNC_START_NOALIGN(copy_from_fs)
+ 	pushw	%ds
+ 	pushw	%fs
+ 	popw	%ds
+ 	calll	memcpy
+ 	popw	%ds
+ 	retl
+-ENDPROC(copy_from_fs)
++SYM_FUNC_END(copy_from_fs)
  
- 	.section ".text32","ax"
- 	.code32
--ENTRY(startup_32)			# note: also used from wakeup_asm.S
-+SYM_CODE_START(startup_32)			# note: also used from wakeup_asm.S
- 	jmp	*%eax
-+SYM_CODE_END(startup_32)
- 
- 	.bss
- 	.balign 8
-diff --git a/arch/x86/xen/xen-asm_32.S b/arch/x86/xen/xen-asm_32.S
-index c15db06..8b8f835 100644
---- a/arch/x86/xen/xen-asm_32.S
-+++ b/arch/x86/xen/xen-asm_32.S
-@@ -56,7 +56,7 @@
- 	_ASM_EXTABLE(1b,2b)
- .endm
- 
--ENTRY(xen_iret)
-+SYM_CODE_START(xen_iret)
- 	/* test eflags for special cases */
- 	testl $(X86_EFLAGS_VM | XEN_EFLAGS_NMI), 8(%esp)
- 	jnz hyper_iret
-@@ -122,6 +122,7 @@ xen_iret_end_crit:
- hyper_iret:
- 	/* put this out of line since its very rarely used */
- 	jmp hypercall_page + __HYPERVISOR_iret * 32
-+SYM_CODE_END(xen_iret)
- 
- 	.globl xen_iret_start_crit, xen_iret_end_crit
- 
-@@ -165,7 +166,7 @@ hyper_iret:
-  * SAVE_ALL state before going on, since it's usermode state which we
-  * eventually need to restore.
+-GLOBAL(copy_to_fs)
++SYM_FUNC_START_NOALIGN(copy_to_fs)
+ 	pushw	%es
+ 	pushw	%fs
+ 	popw	%es
+ 	calll	memcpy
+ 	popw	%es
+ 	retl
+-ENDPROC(copy_to_fs)
++SYM_FUNC_END(copy_to_fs)
+diff --git a/arch/x86/boot/pmjump.S b/arch/x86/boot/pmjump.S
+index 81658fe..cbec8bd 100644
+--- a/arch/x86/boot/pmjump.S
++++ b/arch/x86/boot/pmjump.S
+@@ -21,7 +21,7 @@
+ /*
+  * void protected_mode_jump(u32 entrypoint, u32 bootparams);
   */
--ENTRY(xen_iret_crit_fixup)
-+SYM_CODE_START(xen_iret_crit_fixup)
- 	/*
- 	 * Paranoia: Make sure we're really coming from kernel space.
- 	 * One could imagine a case where userspace jumps into the
-@@ -204,4 +205,4 @@ ENTRY(xen_iret_crit_fixup)
+-GLOBAL(protected_mode_jump)
++SYM_FUNC_START_NOALIGN(protected_mode_jump)
+ 	movl	%edx, %esi		# Pointer to boot_params table
  
- 	lea 4(%edi), %esp		/* point esp to new frame */
- 2:	jmp xen_do_upcall
--
-+SYM_CODE_END(xen_iret_crit_fixup)
+ 	xorl	%ebx, %ebx
+@@ -42,7 +42,7 @@ GLOBAL(protected_mode_jump)
+ 	.byte	0x66, 0xea		# ljmpl opcode
+ 2:	.long	.Lin_pm32		# offset
+ 	.word	__BOOT_CS		# segment
+-ENDPROC(protected_mode_jump)
++SYM_FUNC_END(protected_mode_jump)
+ 
+ 	.code32
+ 	.section ".text32","ax"
+diff --git a/arch/x86/kernel/head_64.S b/arch/x86/kernel/head_64.S
+index 8b0926a..10f306e 100644
+--- a/arch/x86/kernel/head_64.S
++++ b/arch/x86/kernel/head_64.S
+@@ -49,8 +49,7 @@ L3_START_KERNEL = pud_index(__START_KERNEL_map)
+ 	.text
+ 	__HEAD
+ 	.code64
+-	.globl startup_64
+-startup_64:
++SYM_CODE_START_NOALIGN(startup_64)
+ 	UNWIND_HINT_EMPTY
+ 	/*
+ 	 * At this point the CPU runs in 64bit mode CS.L = 1 CS.D = 0,
+@@ -90,6 +89,8 @@ startup_64:
+ 	/* Form the CR3 value being sure to include the CR3 modifier */
+ 	addq	$(early_top_pgt - __START_KERNEL_map), %rax
+ 	jmp 1f
++SYM_CODE_END(startup_64)
++
+ ENTRY(secondary_startup_64)
+ 	UNWIND_HINT_EMPTY
+ 	/*
