@@ -1,107 +1,65 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from helcar.hmeau.com ([216.24.177.18]:37236 "EHLO fornost.hmeau.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1728302AbfJRHhk (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 18 Oct 2019 03:37:40 -0400
-Date: Fri, 18 Oct 2019 17:56:23 +1100
-From: Herbert Xu <herbert@gondor.apana.org.au>
-Subject: Re: [PATCH v9 24/28] x86_64/asm: Change all ENTRY+ENDPROC to
- SYM_FUNC_*
-Message-ID: <20191018065623.GA15199@gondor.apana.org.au>
-References: <20191011115108.12392-1-jslaby@suse.cz>
- <20191011115108.12392-25-jslaby@suse.cz>
- <20191016071230.GD1138@zn.tnic>
+Received: from mail-qt1-f195.google.com ([209.85.160.195]:41379 "EHLO
+        mail-qt1-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1728064AbfJRH4V (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 18 Oct 2019 03:56:21 -0400
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20191016071230.GD1138@zn.tnic>
+References: <CAK8P3a3uiTSaruN7x5iMaDowYziqMFxKWjDyS1c8pYFJgPJ5Dg@mail.gmail.com>
+ <20191017125637.1041949-1-arnd@arndb.de> <CAHk-=wiH7Ej9x3RqJkUEW4hDCisgWdi6wai6E0tvo4omF_FbeQ@mail.gmail.com>
+ <20191017153755.jh6iherf2ywmwbss@box> <CAK8P3a1TrOippPUh6Fc_McHcp2LOerdD6ifmcieuy0bAFPvs8g@mail.gmail.com>
+ <CAHk-=wh8MsquobFL5TC0yUkG-9yFUZZnikMPA8QHLc7fcyND6w@mail.gmail.com> <20191017161617.zj7u6p642mytpzts@box>
+In-Reply-To: <20191017161617.zj7u6p642mytpzts@box>
+From: Arnd Bergmann <arnd@arndb.de>
+Date: Fri, 18 Oct 2019 09:56:01 +0200
+Message-ID: <CAK8P3a0YLeqm71TNzTwJ0FwQKW4Ji0etA+6U=08Exk7fibyBQw@mail.gmail.com>
+Subject: Re: [PATCH] [RFC, EXPERIMENTAL] allow building with --std=gnu99
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Borislav Petkov <bp@alien8.de>
-Cc: "David S. Miller" <davem@davemloft.net>, Jiri Slaby <jslaby@suse.cz>, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, "Rafael J . Wysocki" <rafael.j.wysocki@intel.com>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Len Brown <len.brown@intel.com>, Pavel Machek <pavel@ucw.cz>, Matt Fleming <matt@codeblueprint.co.uk>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Juergen Gross <jgross@suse.com>, linux-crypto@vger.kernel.org, linux-pm@vger.kernel.org, linux-efi@vger.kernel.org, xen-devel@lists.xenproject.org
-Message-ID: <20191018065623.JuWvuycLCSkYr_ghG6F3Y7PBKbwUMwtFNYRPWmyLEX4@z>
+To: "Kirill A. Shutemov" <kirill@shutemov.name>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Andrew Pinski <apinski@cavium.com>, Masahiro Yamada <yamada.masahiro@socionext.com>, Michal Marek <michal.lkml@markovi.net>, mm-commits@vger.kernel.org, Alexander Potapenko <glider@google.com>, Dmitry Vyukov <dvyukov@google.com>, Eric Dumazet <edumazet@google.com>, Kostya Serebryany <kcc@google.com>, Ingo Molnar <mingo@elte.hu>, linux-arch <linux-arch@vger.kernel.org>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>
 
-On Wed, Oct 16, 2019 at 09:12:30AM +0200, Borislav Petkov wrote:
-> Hi,
-> 
-> On Fri, Oct 11, 2019 at 01:51:04PM +0200, Jiri Slaby wrote:
-> > These are all functions which are invoked from elsewhere, so annotate
-> > them as global using the new SYM_FUNC_START. And their ENDPROC's by
-> > SYM_FUNC_END.
-> > 
-> > And make sure ENTRY/ENDPROC is not defined on X86_64, given these were
-> > the last users.
-> > 
-> > Signed-off-by: Jiri Slaby <jslaby@suse.cz>
-> > Reviewed-by: Rafael J. Wysocki <rafael.j.wysocki@intel.com> [hibernate]
-> > Reviewed-by: Boris Ostrovsky <boris.ostrovsky@oracle.com> [xen bits]
-> > Cc: "H. Peter Anvin" <hpa@zytor.com>
-> > Cc: Borislav Petkov <bp@alien8.de>
-> > Cc: Thomas Gleixner <tglx@linutronix.de>
-> > Cc: Ingo Molnar <mingo@redhat.com>
-> > Cc: x86@kernel.org
-> > Cc: Herbert Xu <herbert@gondor.apana.org.au>
-> > Cc: "David S. Miller" <davem@davemloft.net>
-> > Cc: "Rafael J. Wysocki" <rjw@rjwysocki.net>
-> > Cc: Len Brown <len.brown@intel.com>
-> > Cc: Pavel Machek <pavel@ucw.cz>
-> > Cc: Matt Fleming <matt@codeblueprint.co.uk>
-> > Cc: Ard Biesheuvel <ard.biesheuvel@linaro.org>
-> > Cc: Boris Ostrovsky <boris.ostrovsky@oracle.com>
-> > Cc: Juergen Gross <jgross@suse.com>
-> > Cc: linux-crypto@vger.kernel.org
-> > Cc: linux-pm@vger.kernel.org
-> > Cc: linux-efi@vger.kernel.org
-> > Cc: xen-devel@lists.xenproject.org
-> > ---
-> >  arch/x86/boot/compressed/efi_thunk_64.S      |  4 +-
-> >  arch/x86/boot/compressed/head_64.S           | 16 +++---
-> >  arch/x86/boot/compressed/mem_encrypt.S       |  8 +--
-> >  arch/x86/crypto/aegis128-aesni-asm.S         | 28 ++++-----
-> >  arch/x86/crypto/aes_ctrby8_avx-x86_64.S      | 12 ++--
-> >  arch/x86/crypto/aesni-intel_asm.S            | 60 ++++++++++----------
-> >  arch/x86/crypto/aesni-intel_avx-x86_64.S     | 32 +++++------
-> >  arch/x86/crypto/blowfish-x86_64-asm_64.S     | 16 +++---
-> >  arch/x86/crypto/camellia-aesni-avx-asm_64.S  | 24 ++++----
-> >  arch/x86/crypto/camellia-aesni-avx2-asm_64.S | 24 ++++----
-> >  arch/x86/crypto/camellia-x86_64-asm_64.S     | 16 +++---
-> >  arch/x86/crypto/cast5-avx-x86_64-asm_64.S    | 16 +++---
-> >  arch/x86/crypto/cast6-avx-x86_64-asm_64.S    | 24 ++++----
-> >  arch/x86/crypto/chacha-avx2-x86_64.S         | 12 ++--
-> >  arch/x86/crypto/chacha-avx512vl-x86_64.S     | 12 ++--
-> >  arch/x86/crypto/chacha-ssse3-x86_64.S        | 12 ++--
-> >  arch/x86/crypto/crc32-pclmul_asm.S           |  4 +-
-> >  arch/x86/crypto/crc32c-pcl-intel-asm_64.S    |  4 +-
-> >  arch/x86/crypto/crct10dif-pcl-asm_64.S       |  4 +-
-> >  arch/x86/crypto/des3_ede-asm_64.S            |  8 +--
-> >  arch/x86/crypto/ghash-clmulni-intel_asm.S    |  8 +--
-> >  arch/x86/crypto/nh-avx2-x86_64.S             |  4 +-
-> >  arch/x86/crypto/nh-sse2-x86_64.S             |  4 +-
-> >  arch/x86/crypto/poly1305-avx2-x86_64.S       |  4 +-
-> >  arch/x86/crypto/poly1305-sse2-x86_64.S       |  8 +--
-> >  arch/x86/crypto/serpent-avx-x86_64-asm_64.S  | 24 ++++----
-> >  arch/x86/crypto/serpent-avx2-asm_64.S        | 24 ++++----
-> >  arch/x86/crypto/serpent-sse2-x86_64-asm_64.S |  8 +--
-> >  arch/x86/crypto/sha1_avx2_x86_64_asm.S       |  4 +-
-> >  arch/x86/crypto/sha1_ni_asm.S                |  4 +-
-> >  arch/x86/crypto/sha1_ssse3_asm.S             |  4 +-
-> >  arch/x86/crypto/sha256-avx-asm.S             |  4 +-
-> >  arch/x86/crypto/sha256-avx2-asm.S            |  4 +-
-> >  arch/x86/crypto/sha256-ssse3-asm.S           |  4 +-
-> >  arch/x86/crypto/sha256_ni_asm.S              |  4 +-
-> >  arch/x86/crypto/sha512-avx-asm.S             |  4 +-
-> >  arch/x86/crypto/sha512-avx2-asm.S            |  4 +-
-> >  arch/x86/crypto/sha512-ssse3-asm.S           |  4 +-
-> >  arch/x86/crypto/twofish-avx-x86_64-asm_64.S  | 24 ++++----
-> >  arch/x86/crypto/twofish-x86_64-asm_64-3way.S |  8 +--
-> >  arch/x86/crypto/twofish-x86_64-asm_64.S      |  8 +--
-> 
-> I could use an ACK for the crypto bits...
+On Thu, Oct 17, 2019 at 6:16 PM Kirill A. Shutemov <kirill@shutemov.name> wrote:
+> On Thu, Oct 17, 2019 at 08:56:50AM -0700, Linus Torvalds wrote:
+> > Yeah, that's certainly less than wonderful.
+> >
+> > That said, there's no way in hell we'll support gcc-4 for another 7
+> > years (eg Suse 12-sp4), so at _some_ point the EOL dates aren't even
+> > relevant any more.
+> >
+> > But it does look like we can't just say "gcc-5.1 is ok". Darn.
+>
+> I don't read the picture the same way. All distributions have at least one
+> major release with GCC >= 5.
+>
+> The first release with gcc >= 5:
+>
+> - Debian 9 stretch has 6.3.0, released 2017-06-18;
+>
+> - Ubuntu 15.10 wily has 5.2.1, released 2015-10-22;
+>
+> - Fedora 24 has 6.1.1, released 2016-06-21;
+>
+> - OpenSUSE 15 has 7.4.1, released 2018-05-25;
+>
+> - RHEL 8.0 has 8.2.1, released 2019-05-06;
+>
+> - SUSE 15 has 7.3.1, released 2018-06-25;
+>
+> - Oracle 7.6.4 has 7.6.4, release 2019-07-18;
+               ^^^ Oracle 8
+>
+> - Slackware 14.2 has 5.3.0, released 2016-07-01;
 
-Acked-by: Herbert Xu <herbert@gondor.apana.org.au>
+For /most/ of these I see no problem, but RHEL 7 / Centos 7 /
+Oracle 7 and (to a lesser degree) SUSE 12 must have users
+that want to build new kernels for some reason without a trivial
+way to install new compilers.
 
-Cheers,
--- 
-Email: Herbert Xu <herbert@gondor.apana.org.au>
-Home Page: http://gondor.apana.org.au/~herbert/
-PGP Key: http://gondor.apana.org.au/~herbert/pubkey.txt
+OTOH, I agree that requiring a much more recent compiler has
+some advantages that may outweigh these troubles. glibc has
+moved to requiring a 3 (!) year old compiler or newer, which gives
+them a reasonable time frame to make changes to gcc and then
+build on requiring these changes.
+
+      Arnd
