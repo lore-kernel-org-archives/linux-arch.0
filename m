@@ -1,80 +1,188 @@
 From: "tip-bot2 for Jiri Slaby" <tip-bot2@linutronix.de>
-Subject: [tip: x86/asm] x86/asm/suspend: Use SYM_DATA for data
-Date: Fri, 18 Oct 2019 16:30:34 -0000
-Message-ID: <157141623420.29376.9224656338909570146.tip-bot2@tip-bot2>
-References: <20191011115108.12392-3-jslaby@suse.cz>
+Subject: [tip: x86/asm] x86/asm/purgatory: Start using annotations
+Date: Fri, 18 Oct 2019 16:30:30 -0000
+Message-ID: <157141623011.29376.15374755752054973720.tip-bot2@tip-bot2>
+References: <20191011115108.12392-16-jslaby@suse.cz>
 Reply-To: linux-kernel@vger.kernel.org
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20191011115108.12392-3-jslaby@suse.cz>
+In-Reply-To: <20191011115108.12392-16-jslaby@suse.cz>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-tip-commits@vger.kernel.org
-Cc: Jiri Slaby <jslaby@suse.cz>, Borislav Petkov <bp@suse.de>, "Rafael J. Wysocki" <rafael.j.wysocki@intel.com>, Pavel Machek <pavel@ucw.cz>, "H. Peter Anvin" <hpa@zytor.com>, Ingo Molnar <mingo@redhat.com>, Len Brown <len.brown@intel.com>, linux-arch@vger.kernel.org, linux-pm@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>, x86-ml <x86@kernel.org>, Ingo Molnar <mingo@kernel.org>, Borislav Petkov <bp@alien8.de>, linux-kernel@vger.kernel.org
+Cc: Jiri Slaby <jslaby@suse.cz>, Borislav Petkov <bp@suse.de>, Alexios Zavras <alexios.zavras@intel.com>, Allison Randal <allison@lohutok.net>, Enrico Weigelt <info@metux.net>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, "H. Peter Anvin" <hpa@zytor.com>, Ingo Molnar <mingo@redhat.com>, linux-arch@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>, x86-ml <x86@kernel.org>, Ingo Molnar <mingo@kernel.org>, Borislav Petkov <bp@alien8.de>, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
 The following commit has been merged into the x86/asm branch of tip:
 
-Commit-ID:     37503f734e9de314c4e9a1eba33e9e7d8ec80839
-Gitweb:        https://git.kernel.org/tip/37503f734e9de314c4e9a1eba33e9e7d8ec80839
+Commit-ID:     b16fed65a7938248c8b37d5d0a8020defa6fd926
+Gitweb:        https://git.kernel.org/tip/b16fed65a7938248c8b37d5d0a8020defa6fd926
 Author:        Jiri Slaby <jslaby@suse.cz>
-AuthorDate:    Fri, 11 Oct 2019 13:50:42 +02:00
+AuthorDate:    Fri, 11 Oct 2019 13:50:55 +02:00
 Committer:     Borislav Petkov <bp@suse.de>
-CommitterDate: Fri, 18 Oct 2019 09:50:25 +02:00
+CommitterDate: Fri, 18 Oct 2019 10:48:43 +02:00
 
-x86/asm/suspend: Use SYM_DATA for data
+x86/asm/purgatory: Start using annotations
 
-Some global data in the suspend code were marked as `ENTRY'. ENTRY was
-intended for functions and shall be paired with ENDPROC. ENTRY also
-aligns symbols to 16 bytes which creates unnecessary holes.
+Purgatory used no annotations at all. So include linux/linkage.h and
+annotate everything:
 
-Note that:
+* code by SYM_CODE_*
+* data by SYM_DATA_*
 
-* saved_magic (long) in wakeup_32 is still prepended by section's ALIGN
-* saved_magic (quad) in wakeup_64 follows a bunch of quads which are
-  aligned (but need not be aligned to 16)
-
-Since historical markings are being dropped, make proper use of newly
-added SYM_DATA in this code.
+ [ bp: Fixup comment in gdt: ]
 
 Signed-off-by: Jiri Slaby <jslaby@suse.cz>
 Signed-off-by: Borislav Petkov <bp@suse.de>
-Acked-by: Rafael J. Wysocki <rafael.j.wysocki@intel.com>
-Acked-by: Pavel Machek <pavel@ucw.cz>
+Cc: Alexios Zavras <alexios.zavras@intel.com>
+Cc: Allison Randal <allison@lohutok.net>
+Cc: Enrico Weigelt <info@metux.net>
+Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
 Cc: "H. Peter Anvin" <hpa@zytor.com>
 Cc: Ingo Molnar <mingo@redhat.com>
-Cc: Len Brown <len.brown@intel.com>
 Cc: linux-arch@vger.kernel.org
-Cc: linux-pm@vger.kernel.org
 Cc: Thomas Gleixner <tglx@linutronix.de>
 Cc: x86-ml <x86@kernel.org>
-Link: https://lkml.kernel.org/r/20191011115108.12392-3-jslaby@suse.cz
+Link: https://lkml.kernel.org/r/20191011115108.12392-16-jslaby@suse.cz
 ---
- arch/x86/kernel/acpi/wakeup_32.S | 2 +-
- arch/x86/kernel/acpi/wakeup_64.S | 2 +-
- 2 files changed, 2 insertions(+), 2 deletions(-)
+ arch/x86/purgatory/entry64.S      | 24 ++++++++++++++----------
+ arch/x86/purgatory/setup-x86_64.S | 14 ++++++++------
+ arch/x86/purgatory/stack.S        |  7 ++++---
+ 3 files changed, 26 insertions(+), 19 deletions(-)
 
-diff --git a/arch/x86/kernel/acpi/wakeup_32.S b/arch/x86/kernel/acpi/wakeup_32.S
-index e95e959..4272492 100644
---- a/arch/x86/kernel/acpi/wakeup_32.S
-+++ b/arch/x86/kernel/acpi/wakeup_32.S
-@@ -90,7 +90,7 @@ ret_point:
+diff --git a/arch/x86/purgatory/entry64.S b/arch/x86/purgatory/entry64.S
+index 275a646..0b4390c 100644
+--- a/arch/x86/purgatory/entry64.S
++++ b/arch/x86/purgatory/entry64.S
+@@ -8,13 +8,13 @@
+  * This code has been taken from kexec-tools.
+  */
  
- .data
- ALIGN
--ENTRY(saved_magic)	.long	0
-+SYM_DATA(saved_magic,	.long 0)
- saved_eip:		.long 0
++#include <linux/linkage.h>
++
+ 	.text
+ 	.balign 16
+ 	.code64
+-	.globl entry64, entry64_regs
+-
  
- # saved registers
-diff --git a/arch/x86/kernel/acpi/wakeup_64.S b/arch/x86/kernel/acpi/wakeup_64.S
-index 7f9ade1..462a20f 100644
---- a/arch/x86/kernel/acpi/wakeup_64.S
-+++ b/arch/x86/kernel/acpi/wakeup_64.S
-@@ -136,4 +136,4 @@ saved_rbx:		.quad	0
- saved_rip:		.quad	0
- saved_rsp:		.quad	0
+-entry64:
++SYM_CODE_START(entry64)
+ 	/* Setup a gdt that should be preserved */
+ 	lgdt gdt(%rip)
  
--ENTRY(saved_magic)	.quad	0
-+SYM_DATA(saved_magic,	.quad	0)
+@@ -54,10 +54,11 @@ new_cs_exit:
+ 
+ 	/* Jump to the new code... */
+ 	jmpq	*rip(%rip)
++SYM_CODE_END(entry64)
+ 
+ 	.section ".rodata"
+ 	.balign 4
+-entry64_regs:
++SYM_DATA_START(entry64_regs)
+ rax:	.quad 0x0
+ rcx:	.quad 0x0
+ rdx:	.quad 0x0
+@@ -75,13 +76,14 @@ r13:	.quad 0x0
+ r14:	.quad 0x0
+ r15:	.quad 0x0
+ rip:	.quad 0x0
+-	.size entry64_regs, . - entry64_regs
++SYM_DATA_END(entry64_regs)
+ 
+ 	/* GDT */
+ 	.section ".rodata"
+ 	.balign 16
+-gdt:
+-	/* 0x00 unusable segment
++SYM_DATA_START_LOCAL(gdt)
++	/*
++	 * 0x00 unusable segment
+ 	 * 0x08 unused
+ 	 * so use them as gdt ptr
+ 	 */
+@@ -94,6 +96,8 @@ gdt:
+ 
+ 	/* 0x18 4GB flat data segment */
+ 	.word 0xFFFF, 0x0000, 0x9200, 0x00CF
+-gdt_end:
+-stack:	.quad   0, 0
+-stack_init:
++SYM_DATA_END_LABEL(gdt, SYM_L_LOCAL, gdt_end)
++
++SYM_DATA_START_LOCAL(stack)
++	.quad   0, 0
++SYM_DATA_END_LABEL(stack, SYM_L_LOCAL, stack_init)
+diff --git a/arch/x86/purgatory/setup-x86_64.S b/arch/x86/purgatory/setup-x86_64.S
+index 321146b..89d9e9e 100644
+--- a/arch/x86/purgatory/setup-x86_64.S
++++ b/arch/x86/purgatory/setup-x86_64.S
+@@ -7,14 +7,14 @@
+  *
+  * This code has been taken from kexec-tools.
+  */
++#include <linux/linkage.h>
+ #include <asm/purgatory.h>
+ 
+ 	.text
+-	.globl purgatory_start
+ 	.balign 16
+-purgatory_start:
+ 	.code64
+ 
++SYM_CODE_START(purgatory_start)
+ 	/* Load a gdt so I know what the segment registers are */
+ 	lgdt	gdt(%rip)
+ 
+@@ -32,10 +32,12 @@ purgatory_start:
+ 	/* Call the C code */
+ 	call purgatory
+ 	jmp	entry64
++SYM_CODE_END(purgatory_start)
+ 
+ 	.section ".rodata"
+ 	.balign 16
+-gdt:	/* 0x00 unusable segment
++SYM_DATA_START_LOCAL(gdt)
++	/* 0x00 unusable segment
+ 	 * 0x08 unused
+ 	 * so use them as the gdt ptr
+ 	 */
+@@ -48,10 +50,10 @@ gdt:	/* 0x00 unusable segment
+ 
+ 	/* 0x18 4GB flat data segment */
+ 	.word	0xFFFF, 0x0000, 0x9200, 0x00CF
+-gdt_end:
++SYM_DATA_END_LABEL(gdt, SYM_L_LOCAL, gdt_end)
+ 
+ 	.bss
+ 	.balign 4096
+-lstack:
++SYM_DATA_START_LOCAL(lstack)
+ 	.skip 4096
+-lstack_end:
++SYM_DATA_END_LABEL(lstack, SYM_L_LOCAL, lstack_end)
+diff --git a/arch/x86/purgatory/stack.S b/arch/x86/purgatory/stack.S
+index 8b14274..1ef507c 100644
+--- a/arch/x86/purgatory/stack.S
++++ b/arch/x86/purgatory/stack.S
+@@ -5,13 +5,14 @@
+  * Copyright (C) 2014 Red Hat Inc.
+  */
+ 
++#include <linux/linkage.h>
++
+ 	/* A stack for the loaded kernel.
+ 	 * Separate and in the data section so it can be prepopulated.
+ 	 */
+ 	.data
+ 	.balign 4096
+-	.globl stack, stack_end
+ 
+-stack:
++SYM_DATA_START(stack)
+ 	.skip 4096
+-stack_end:
++SYM_DATA_END_LABEL(stack, SYM_L_GLOBAL, stack_end)
