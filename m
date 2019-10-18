@@ -1,67 +1,82 @@
-From: Alex Kogan <alex.kogan@oracle.com>
+From: Waiman Long <longman@redhat.com>
 Subject: Re: [PATCH v5 3/5] locking/qspinlock: Introduce CNA into the slow
  path of qspinlock
-Date: Fri, 18 Oct 2019 17:37:51 -0400
-Message-ID: <1B59E517-D418-46DF-BC58-174BAFC5EC23@oracle.com>
+Date: Fri, 18 Oct 2019 17:55:01 -0400
+Message-ID: <3b8afb53-18e8-bd1d-9def-e1e7bdc73087@redhat.com>
 References: <20191016042903.61081-1-alex.kogan@oracle.com>
  <20191016042903.61081-4-alex.kogan@oracle.com>
  <6ce50aeb-6b87-5d1c-9011-4329e8dadfec@redhat.com>
-Mime-Version: 1.0 (Mac OS X Mail 10.2 \(3259\))
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
-In-Reply-To: <6ce50aeb-6b87-5d1c-9011-4329e8dadfec@redhat.com>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
-To: Waiman Long <longman@redhat.com>
-Cc: linux-arch@vger.kernel.org, Hanjun Guo <guohanjun@huawei.com>, Arnd Bergmann <arnd@arndb.de>, Peter Zijlstra <peterz@infradead.org>, dave.dice@oracle.com, Jan Glauber <jglauber@marvell.com>, x86@kernel.org, Will Deacon <will.deacon@arm.com>, linux@armlinux.org.uk, linux-kernel@vger.kernel.org, Rahul Yadav <rahul.x.yadav@oracle.com>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, hpa@zytor.com, Steven Sistare <steven.sistare@oracle.com>, Thomas Gleixner <tglx@linutronix.de>, Daniel Jordan <daniel.m.jordan@oracle.com>, linux-arm-kernel <linux-arm-kernel@lists.infradead.org>
+ <1B59E517-D418-46DF-BC58-174BAFC5EC23@oracle.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 8bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1B59E517-D418-46DF-BC58-174BAFC5EC23@oracle.com>
+Content-Language: en-US
+Sender: linux-kernel-owner@vger.kernel.org
+To: Alex Kogan <alex.kogan@oracle.com>
+Cc: linux@armlinux.org.uk, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-arm-kernel <linux-arm-kernel@lists.infradead.org>, linux-kernel@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>, Borislav Petkov <bp@alien8.de>, hpa@zytor.com, x86@kernel.org, Hanjun Guo <guohanjun@huawei.com>, Jan Glauber <jglauber@marvell.com>, Steven Sistare <steven.sistare@oracle.com>, Daniel Jordan <daniel.m.jordan@oracle.com>, dave.dice@oracle.com, Rahul Yadav <rahul.x.yadav@oracle.com>
 List-Id: linux-arch.vger.kernel.org
 
-Cj4gT24gT2N0IDE4LCAyMDE5LCBhdCAxMjowMyBQTSwgV2FpbWFuIExvbmcgPGxvbmdtYW5AcmVk
-aGF0LmNvbT4gd3JvdGU6Cj4gCj4gT24gMTAvMTYvMTkgMTI6MjkgQU0sIEFsZXggS29nYW4gd3Jv
-dGU6Cj4+ICtzdGF0aWMgaW5saW5lIHZvaWQgY25hX3Bhc3NfbG9jayhzdHJ1Y3QgbWNzX3NwaW5s
-b2NrICpub2RlLAo+PiArCQkJCSBzdHJ1Y3QgbWNzX3NwaW5sb2NrICpuZXh0KQo+PiArewo+PiAr
-CXN0cnVjdCBjbmFfbm9kZSAqY24gPSAoc3RydWN0IGNuYV9ub2RlICopbm9kZTsKPj4gKwlzdHJ1
-Y3QgbWNzX3NwaW5sb2NrICpuZXh0X2hvbGRlciA9IG5leHQsICp0YWlsXzJuZDsKPj4gKwl1MzIg
-dmFsID0gMTsKPj4gKwo+PiArCXUzMiBzY2FuID0gY24tPnByZV9zY2FuX3Jlc3VsdDsKPj4gKwo+
-PiArCS8qCj4+ICsJICogY2hlY2sgaWYgYSBzdWNjZXNzb3IgZnJvbSB0aGUgc2FtZSBudW1hIG5v
-ZGUgaGFzIG5vdCBiZWVuIGZvdW5kIGluCj4+ICsJICogcHJlLXNjYW4sIGFuZCBpZiBzbywgdHJ5
-IHRvIGZpbmQgaXQgaW4gcG9zdC1zY2FuIHN0YXJ0aW5nIGZyb20gdGhlCj4+ICsJICogbm9kZSB3
-aGVyZSBwcmUtc2NhbiBzdG9wcGVkIChzdG9yZWQgaW4gQHByZV9zY2FuX3Jlc3VsdCkKPj4gKwkg
-Ki8KPj4gKwlpZiAoc2NhbiA+IDApCj4+ICsJCXNjYW4gPSBjbmFfc2Nhbl9tYWluX3F1ZXVlKG5v
-ZGUsIGRlY29kZV90YWlsKHNjYW4pKTsKPj4gKwo+PiArCWlmICghc2NhbikgeyAvKiBpZiBmb3Vu
-ZCBhIHN1Y2Nlc3NvciBmcm9tIHRoZSBzYW1lIG51bWEgbm9kZSAqLwo+PiArCQluZXh0X2hvbGRl
-ciA9IG5vZGUtPm5leHQ7Cj4+ICsJCS8qCj4+ICsJCSAqIG1ha2Ugc3VyZSBAdmFsIGdldHMgMSBp
-ZiBjdXJyZW50IGhvbGRlcidzIEBsb2NrZWQgaXMgMCBhcwo+PiArCQkgKiB3ZSBoYXZlIHRvIHN0
-b3JlIGEgbm9uLXplcm8gdmFsdWUgaW4gc3VjY2Vzc29yJ3MgQGxvY2tlZAo+PiArCQkgKiB0byBw
-YXNzIHRoZSBsb2NrCj4+ICsJCSAqLwo+PiArCQl2YWwgPSBub2RlLT5sb2NrZWQgKyAobm9kZS0+
-bG9ja2VkID09IDApOwo+IAo+IG5vZGUtPmxvY2tlZCBjYW4gYmUgMCB3aGVuIHRoZSBjcHUgZW50
-ZXJzIGludG8gYW4gZW1wdHkgTUNTIHF1ZXVlLiBXZQo+IGNvdWxkIHVuY29uZGl0aW9uYWxseSBz
-ZXQgbm9kZS0+bG9ja2VkIHRvIDEgZm9yIHRoaXMgY2FzZSBpbiBxc3BpbmxvY2suYwo+IG9yIHdp
-dGggeW91ciBhYm92ZSBjb2RlLgoKUmlnaHQsIEkgd2FzIGRvaW5nIHRoYXQgaW4gdGhlIGZpcnN0
-IHR3byB2ZXJzaW9ucyBvZiB0aGUgc2VyaWVzLiBJdCBhZGRzIAp1bm5lY2Vzc2FyeSBzdG9yZSBp
-bnRvIEBsb2NrZWQgZm9yIG5vbi1DTkEgdmFyaWFudHMsIGFuZCBldmVuIGlmIGl0IGRvZXMgbm90
-CmhhdmUgYW55IHJlYWwgcGVyZm9ybWFuY2UgaW1wbGljYXRpb25zLCBJIHRoaW5rIFBldGVyIGRp
-ZCBub3QgbGlrZSB0aGF0IChvciwgCmF0IGxlYXN0LCB0aGUgY29tbWVudCBJIGhhZCB0byBleHBs
-YWluIHdoeSB3ZSBuZWVkZWQgdGhhdCBzdG9yZSkuCgo+IFBlcmhhcHMsIGEgY29tbWVudCBhYm91
-dCB3aGVuIG5vZGUtPmxvY2tlZCB3aWxsCj4gYmUgMC4KWWVhaCwgSSB3YXMgdGlua2VyaW5nIHdp
-dGggdGhpcyBjb21tZW50LiBIZXJlIGlzIGhvdyBpdCByZWFkIGluIHYzOgovKgogKiBXZSB1bmxv
-Y2sgYSBzdWNjZXNzb3IgYnkgcGFzc2luZyBhIG5vbi16ZXJvIHZhbHVlLAogKiBzbyBzZXQgQHZh
-bCB0byAxIGlmZiBAbG9ja2VkIGlzIDAsIHdoaWNoIHdpbGwgaGFwcGVuCiAqIGlmIHdlIGFjcXVp
-cmVkIHRoZSBNQ1MgbG9jayB3aGVuIGl0cyBxdWV1ZSB3YXMgZW1wdHkKICovCgpJIGNhbiBjaGFu
-Z2UgYmFjayB0byBzb21ldGhpbmcgbGlrZSB0aGF0IGlmIGl0IGlzIGJldHRlci4KCj4gCj4gSXQg
-bWF5IGJlIGVhc2llciB0byB1bmRlcnN0YW5kIGlmIHlvdSBqdXN0IGRvCj4gCj4gICAgIHZhbCA9
-IG5vZGUtPmxvY2tlZCA/IG5vZGUtPmxvY2tlZCA6IDE7CllvdeKAmXJlIHJpZ2h0LCB0aGF04oCZ
-cyBhbm90aGVyIHBvc3NpYmlsaXR5LgpIb3dldmVyLCBpdCBhZGRzIHlldCBhbm90aGVyIGlmLXN0
-YXRlbWVudCBvbiB0aGUgY3JpdGljYWwgcGF0aCwgd2hpY2ggSSB3YXMKdHJ5aW5nIHRvIGF2b2lk
-IHRoYXQuCgpCZXN0IHJlZ2FyZHMsCuKAlCBBbGV4CgoKX19fX19fX19fX19fX19fX19fX19fX19f
-X19fX19fX19fX19fX19fX19fX19fX18KbGludXgtYXJtLWtlcm5lbCBtYWlsaW5nIGxpc3QKbGlu
-dXgtYXJtLWtlcm5lbEBsaXN0cy5pbmZyYWRlYWQub3JnCmh0dHA6Ly9saXN0cy5pbmZyYWRlYWQu
-b3JnL21haWxtYW4vbGlzdGluZm8vbGludXgtYXJtLWtlcm5lbAo=
+On 10/18/19 5:37 PM, Alex Kogan wrote:
+>> On Oct 18, 2019, at 12:03 PM, Waiman Long <longman@redhat.com> wrote:
+>>
+>> On 10/16/19 12:29 AM, Alex Kogan wrote:
+>>> +static inline void cna_pass_lock(struct mcs_spinlock *node,
+>>> +				 struct mcs_spinlock *next)
+>>> +{
+>>> +	struct cna_node *cn = (struct cna_node *)node;
+>>> +	struct mcs_spinlock *next_holder = next, *tail_2nd;
+>>> +	u32 val = 1;
+>>> +
+>>> +	u32 scan = cn->pre_scan_result;
+>>> +
+>>> +	/*
+>>> +	 * check if a successor from the same numa node has not been found in
+>>> +	 * pre-scan, and if so, try to find it in post-scan starting from the
+>>> +	 * node where pre-scan stopped (stored in @pre_scan_result)
+>>> +	 */
+>>> +	if (scan > 0)
+>>> +		scan = cna_scan_main_queue(node, decode_tail(scan));
+>>> +
+>>> +	if (!scan) { /* if found a successor from the same numa node */
+>>> +		next_holder = node->next;
+>>> +		/*
+>>> +		 * make sure @val gets 1 if current holder's @locked is 0 as
+>>> +		 * we have to store a non-zero value in successor's @locked
+>>> +		 * to pass the lock
+>>> +		 */
+>>> +		val = node->locked + (node->locked == 0);
+>> node->locked can be 0 when the cpu enters into an empty MCS queue. We
+>> could unconditionally set node->locked to 1 for this case in qspinlock.c
+>> or with your above code.
+> Right, I was doing that in the first two versions of the series. It adds 
+> unnecessary store into @locked for non-CNA variants, and even if it does not
+> have any real performance implications, I think Peter did not like that (or, 
+> at least, the comment I had to explain why we needed that store).
+>
+>> Perhaps, a comment about when node->locked will
+>> be 0.
+> Yeah, I was tinkering with this comment. Here is how it read in v3:
+> /*
+>  * We unlock a successor by passing a non-zero value,
+>  * so set @val to 1 iff @locked is 0, which will happen
+>  * if we acquired the MCS lock when its queue was empty
+>  */
+>
+> I can change back to something like that if it is better.
+That looks OK.
+>> It may be easier to understand if you just do
+>>
+>>     val = node->locked ? node->locked : 1;
+> You’re right, that’s another possibility.
+> However, it adds yet another if-statement on the critical path, which I was
+> trying to avoid that.
+
+Have you compared the generated assembly code if one is better than the
+other? I am OK with whatever one generates a better code, but often time
+cmove is used for ?: statements. If the same code is generated, I will
+prefer an easier to understand statement.
+
+Cheers,
+Longman
