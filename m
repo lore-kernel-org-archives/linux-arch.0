@@ -1,174 +1,214 @@
 From: "tip-bot2 for Jiri Slaby" <tip-bot2@linutronix.de>
-Subject: [tip: x86/asm] x86/asm: Annotate relocate_kernel_{32,64}.c
-Date: Fri, 18 Oct 2019 16:30:33 -0000
-Message-ID: <157141623386.29376.15307122503000886721.tip-bot2@tip-bot2>
-References: <20191011115108.12392-4-jslaby@suse.cz>
+Subject: [tip: x86/asm] x86/boot: Annotate data appropriately
+Date: Fri, 18 Oct 2019 16:30:31 -0000
+Message-ID: <157141623101.29376.314591768009826189.tip-bot2@tip-bot2>
+References: <20191011115108.12392-13-jslaby@suse.cz>
 Reply-To: linux-kernel@vger.kernel.org
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20191011115108.12392-4-jslaby@suse.cz>
+In-Reply-To: <20191011115108.12392-13-jslaby@suse.cz>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-tip-commits@vger.kernel.org
-Cc: Jiri Slaby <jslaby@suse.cz>, Borislav Petkov <bp@suse.de>, Alexios Zavras <alexios.zavras@intel.com>, Allison Randal <allison@lohutok.net>, Enrico Weigelt <info@metux.net>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, "H. Peter Anvin" <hpa@zytor.com>, Ingo Molnar <mingo@redhat.com>, linux-arch@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>, x86-ml <x86@kernel.org>, Ingo Molnar <mingo@kernel.org>, Borislav Petkov <bp@alien8.de>, linux-kernel@vger.kernel.org
+Cc: Jiri Slaby <jslaby@suse.cz>, Borislav Petkov <bp@suse.de>, Allison Randal <allison@lohutok.net>, Cao jin <caoj.fnst@cn.fujitsu.com>, Enrico Weigelt <info@metux.net>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, "H. Peter Anvin" <hpa@zytor.com>, Ingo Molnar <mingo@redhat.com>, Kate Stewart <kstewart@linuxfoundation.org>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, linux-arch@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>, Wei Huang <wei@redhat.com>, x86-ml <x86@kernel.org>, Xiaoyao Li <xiaoyao.li@linux.intel.com>, Ingo Molnar <mingo@kernel.org>, Borislav Petkov <bp@alien8.de>, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
 The following commit has been merged into the x86/asm branch of tip:
 
-Commit-ID:     6ec2a968247e51535e08dbbbfc8f53c95a48cde0
-Gitweb:        https://git.kernel.org/tip/6ec2a968247e51535e08dbbbfc8f53c95a48cde0
+Commit-ID:     b8c3f9b554e8bd0edb434a54d0dc48e3d9eb6edd
+Gitweb:        https://git.kernel.org/tip/b8c3f9b554e8bd0edb434a54d0dc48e3d9eb6edd
 Author:        Jiri Slaby <jslaby@suse.cz>
-AuthorDate:    Fri, 11 Oct 2019 13:50:43 +02:00
+AuthorDate:    Fri, 11 Oct 2019 13:50:52 +02:00
 Committer:     Borislav Petkov <bp@suse.de>
-CommitterDate: Fri, 18 Oct 2019 09:53:19 +02:00
+CommitterDate: Fri, 18 Oct 2019 10:43:26 +02:00
 
-x86/asm: Annotate relocate_kernel_{32,64}.c
+x86/boot: Annotate data appropriately
 
-There are functions in relocate_kernel_{32,64}.c which are not
-annotated. This makes automatic annotations on them rather hard. So
-annotate all the functions now.
+Use the new SYM_DATA, SYM_DATA_START, and SYM_DATA_END* macros for data,
+so that the data in the object file look sane:
 
-Note that these are not C-like functions, so FUNC is not used. Instead
-CODE markers are used. Also the functions are not aligned, so the
-NOALIGN versions are used:
+  Value   Size Type    Bind   Vis      Ndx Name
+    0000    10 OBJECT  GLOBAL DEFAULT    3 efi32_boot_gdt
+    000a    10 OBJECT  LOCAL  DEFAULT    3 save_gdt
+    0014     8 OBJECT  LOCAL  DEFAULT    3 func_rt_ptr
+    001c    48 OBJECT  GLOBAL DEFAULT    3 efi_gdt64
+    004c     0 OBJECT  LOCAL  DEFAULT    3 efi_gdt64_end
 
-- SYM_CODE_START_NOALIGN
-- SYM_CODE_START_LOCAL_NOALIGN
-- SYM_CODE_END
+    0000    48 OBJECT  LOCAL  DEFAULT    3 gdt
+    0030     0 OBJECT  LOCAL  DEFAULT    3 gdt_end
+    0030     8 OBJECT  LOCAL  DEFAULT    3 efi_config
+    0038    49 OBJECT  GLOBAL DEFAULT    3 efi32_config
+    0069    49 OBJECT  GLOBAL DEFAULT    3 efi64_config
 
-The result is:
-  0000   108 NOTYPE  GLOBAL DEFAULT    1 relocate_kernel
-  006c   165 NOTYPE  LOCAL  DEFAULT    1 identity_mapped
-  0146   127 NOTYPE  LOCAL  DEFAULT    1 swap_pages
-  0111    53 NOTYPE  LOCAL  DEFAULT    1 virtual_mapped
+All have correct size and type now.
 
 Signed-off-by: Jiri Slaby <jslaby@suse.cz>
 Signed-off-by: Borislav Petkov <bp@suse.de>
-Cc: Alexios Zavras <alexios.zavras@intel.com>
 Cc: Allison Randal <allison@lohutok.net>
+Cc: Cao jin <caoj.fnst@cn.fujitsu.com>
 Cc: Enrico Weigelt <info@metux.net>
 Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
 Cc: "H. Peter Anvin" <hpa@zytor.com>
 Cc: Ingo Molnar <mingo@redhat.com>
+Cc: Kate Stewart <kstewart@linuxfoundation.org>
+Cc: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
 Cc: linux-arch@vger.kernel.org
 Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: Wei Huang <wei@redhat.com>
 Cc: x86-ml <x86@kernel.org>
-Link: https://lkml.kernel.org/r/20191011115108.12392-4-jslaby@suse.cz
+Cc: Xiaoyao Li <xiaoyao.li@linux.intel.com>
+Link: https://lkml.kernel.org/r/20191011115108.12392-13-jslaby@suse.cz
 ---
- arch/x86/kernel/relocate_kernel_32.S | 13 ++++++++-----
- arch/x86/kernel/relocate_kernel_64.S | 13 ++++++++-----
- 2 files changed, 16 insertions(+), 10 deletions(-)
+ arch/x86/boot/compressed/efi_thunk_64.S | 21 +++++++++-------
+ arch/x86/boot/compressed/head_64.S      | 32 +++++++++++-------------
+ arch/x86/boot/compressed/mem_encrypt.S  |  3 +--
+ arch/x86/realmode/rm/wakeup_asm.S       |  4 +--
+ 4 files changed, 30 insertions(+), 30 deletions(-)
 
-diff --git a/arch/x86/kernel/relocate_kernel_32.S b/arch/x86/kernel/relocate_kernel_32.S
-index ee26df0..94b3388 100644
---- a/arch/x86/kernel/relocate_kernel_32.S
-+++ b/arch/x86/kernel/relocate_kernel_32.S
-@@ -35,8 +35,7 @@
- #define CP_PA_BACKUP_PAGES_MAP	DATA(0x1c)
+diff --git a/arch/x86/boot/compressed/efi_thunk_64.S b/arch/x86/boot/compressed/efi_thunk_64.S
+index bff9ab7..d66000d 100644
+--- a/arch/x86/boot/compressed/efi_thunk_64.S
++++ b/arch/x86/boot/compressed/efi_thunk_64.S
+@@ -176,16 +176,19 @@ ENDPROC(efi_enter32)
  
- 	.text
--	.globl relocate_kernel
--relocate_kernel:
-+SYM_CODE_START_NOALIGN(relocate_kernel)
- 	/* Save the CPU context, used for jumping back */
+ 	.data
+ 	.balign	8
+-	.global	efi32_boot_gdt
+-efi32_boot_gdt:	.word	0
+-		.quad	0
++SYM_DATA_START(efi32_boot_gdt)
++	.word	0
++	.quad	0
++SYM_DATA_END(efi32_boot_gdt)
++
++SYM_DATA_START_LOCAL(save_gdt)
++	.word	0
++	.quad	0
++SYM_DATA_END(save_gdt)
  
- 	pushl	%ebx
-@@ -93,8 +92,9 @@ relocate_kernel:
- 	addl    $(identity_mapped - relocate_kernel), %eax
- 	pushl   %eax
- 	ret
-+SYM_CODE_END(relocate_kernel)
+-save_gdt:	.word	0
+-		.quad	0
+-func_rt_ptr:	.quad	0
++SYM_DATA_LOCAL(func_rt_ptr, .quad 0)
  
--identity_mapped:
-+SYM_CODE_START_LOCAL_NOALIGN(identity_mapped)
- 	/* set return address to 0 if not preserving context */
- 	pushl	$0
- 	/* store the start address on the stack */
-@@ -191,8 +191,9 @@ identity_mapped:
- 	addl	$(virtual_mapped - relocate_kernel), %eax
- 	pushl	%eax
- 	ret
-+SYM_CODE_END(identity_mapped)
+-	.global efi_gdt64
+-efi_gdt64:
++SYM_DATA_START(efi_gdt64)
+ 	.word	efi_gdt64_end - efi_gdt64
+ 	.long	0			/* Filled out by user */
+ 	.word	0
+@@ -194,4 +197,4 @@ efi_gdt64:
+ 	.quad	0x00cf92000000ffff	/* __KERNEL_DS */
+ 	.quad	0x0080890000000000	/* TS descriptor */
+ 	.quad   0x0000000000000000	/* TS continued */
+-efi_gdt64_end:
++SYM_DATA_END_LABEL(efi_gdt64, SYM_L_LOCAL, efi_gdt64_end)
+diff --git a/arch/x86/boot/compressed/head_64.S b/arch/x86/boot/compressed/head_64.S
+index 7afe6e0..ca762ea 100644
+--- a/arch/x86/boot/compressed/head_64.S
++++ b/arch/x86/boot/compressed/head_64.S
+@@ -659,11 +659,12 @@ SYM_FUNC_END(.Lno_longmode)
+ #include "../../kernel/verify_cpu.S"
  
--virtual_mapped:
-+SYM_CODE_START_LOCAL_NOALIGN(virtual_mapped)
- 	movl	CR4(%edi), %eax
- 	movl	%eax, %cr4
- 	movl	CR3(%edi), %eax
-@@ -208,9 +209,10 @@ virtual_mapped:
- 	popl	%esi
- 	popl	%ebx
- 	ret
-+SYM_CODE_END(virtual_mapped)
+ 	.data
+-gdt64:
++SYM_DATA_START_LOCAL(gdt64)
+ 	.word	gdt_end - gdt
+ 	.quad   0
++SYM_DATA_END(gdt64)
+ 	.balign	8
+-gdt:
++SYM_DATA_START_LOCAL(gdt)
+ 	.word	gdt_end - gdt
+ 	.long	gdt
+ 	.word	0
+@@ -672,25 +673,24 @@ gdt:
+ 	.quad	0x00cf92000000ffff	/* __KERNEL_DS */
+ 	.quad	0x0080890000000000	/* TS descriptor */
+ 	.quad   0x0000000000000000	/* TS continued */
+-gdt_end:
++SYM_DATA_END_LABEL(gdt, SYM_L_LOCAL, gdt_end)
  
- 	/* Do the copies */
--swap_pages:
-+SYM_CODE_START_LOCAL_NOALIGN(swap_pages)
- 	movl	8(%esp), %edx
- 	movl	4(%esp), %ecx
- 	pushl	%ebp
-@@ -270,6 +272,7 @@ swap_pages:
- 	popl	%ebx
- 	popl	%ebp
- 	ret
-+SYM_CODE_END(swap_pages)
+ #ifdef CONFIG_EFI_STUB
+-efi_config:
+-	.quad	0
++SYM_DATA_LOCAL(efi_config, .quad 0)
  
- 	.globl kexec_control_code_size
- .set kexec_control_code_size, . - relocate_kernel
-diff --git a/arch/x86/kernel/relocate_kernel_64.S b/arch/x86/kernel/relocate_kernel_64.S
-index c51ccff..ef3ba99 100644
---- a/arch/x86/kernel/relocate_kernel_64.S
-+++ b/arch/x86/kernel/relocate_kernel_64.S
-@@ -38,8 +38,7 @@
- 	.text
- 	.align PAGE_SIZE
- 	.code64
--	.globl relocate_kernel
--relocate_kernel:
-+SYM_CODE_START_NOALIGN(relocate_kernel)
- 	/*
- 	 * %rdi indirection_page
- 	 * %rsi page_list
-@@ -103,8 +102,9 @@ relocate_kernel:
- 	addq	$(identity_mapped - relocate_kernel), %r8
- 	pushq	%r8
- 	ret
-+SYM_CODE_END(relocate_kernel)
+ #ifdef CONFIG_EFI_MIXED
+-	.global efi32_config
+-efi32_config:
++SYM_DATA_START(efi32_config)
+ 	.fill	5,8,0
+ 	.quad	efi64_thunk
+ 	.byte	0
++SYM_DATA_END(efi32_config)
+ #endif
  
--identity_mapped:
-+SYM_CODE_START_LOCAL_NOALIGN(identity_mapped)
- 	/* set return address to 0 if not preserving context */
- 	pushq	$0
- 	/* store the start address on the stack */
-@@ -209,8 +209,9 @@ identity_mapped:
- 	movq	$virtual_mapped, %rax
- 	pushq	%rax
- 	ret
-+SYM_CODE_END(identity_mapped)
+-	.global efi64_config
+-efi64_config:
++SYM_DATA_START(efi64_config)
+ 	.fill	5,8,0
+ 	.quad	efi_call
+ 	.byte	1
++SYM_DATA_END(efi64_config)
+ #endif /* CONFIG_EFI_STUB */
  
--virtual_mapped:
-+SYM_CODE_START_LOCAL_NOALIGN(virtual_mapped)
- 	movq	RSP(%r8), %rsp
- 	movq	CR4(%r8), %rax
- 	movq	%rax, %cr4
-@@ -228,9 +229,10 @@ virtual_mapped:
- 	popq	%rbp
- 	popq	%rbx
- 	ret
-+SYM_CODE_END(virtual_mapped)
+ /*
+@@ -698,23 +698,21 @@ efi64_config:
+  */
+ 	.bss
+ 	.balign 4
+-boot_heap:
+-	.fill BOOT_HEAP_SIZE, 1, 0
+-boot_stack:
++SYM_DATA_LOCAL(boot_heap,	.fill BOOT_HEAP_SIZE, 1, 0)
++
++SYM_DATA_START_LOCAL(boot_stack)
+ 	.fill BOOT_STACK_SIZE, 1, 0
+-boot_stack_end:
++SYM_DATA_END_LABEL(boot_stack, SYM_L_LOCAL, boot_stack_end)
  
- 	/* Do the copies */
--swap_pages:
-+SYM_CODE_START_LOCAL_NOALIGN(swap_pages)
- 	movq	%rdi, %rcx 	/* Put the page_list in %rcx */
- 	xorl	%edi, %edi
- 	xorl	%esi, %esi
-@@ -283,6 +285,7 @@ swap_pages:
- 	jmp	0b
- 3:
- 	ret
-+SYM_CODE_END(swap_pages)
+ /*
+  * Space for page tables (not in .bss so not zeroed)
+  */
+ 	.section ".pgtable","a",@nobits
+ 	.balign 4096
+-pgtable:
+-	.fill BOOT_PGT_SIZE, 1, 0
++SYM_DATA_LOCAL(pgtable,		.fill BOOT_PGT_SIZE, 1, 0)
  
- 	.globl kexec_control_code_size
- .set kexec_control_code_size, . - relocate_kernel
+ /*
+  * The page table is going to be used instead of page table in the trampoline
+  * memory.
+  */
+-top_pgtable:
+-	.fill PAGE_SIZE, 1, 0
++SYM_DATA_LOCAL(top_pgtable,	.fill PAGE_SIZE, 1, 0)
+diff --git a/arch/x86/boot/compressed/mem_encrypt.S b/arch/x86/boot/compressed/mem_encrypt.S
+index 6afb713..28d703c 100644
+--- a/arch/x86/boot/compressed/mem_encrypt.S
++++ b/arch/x86/boot/compressed/mem_encrypt.S
+@@ -96,6 +96,5 @@ ENDPROC(set_sev_encryption_mask)
+ 
+ #ifdef CONFIG_AMD_MEM_ENCRYPT
+ 	.balign	8
+-GLOBAL(sme_me_mask)
+-	.quad	0
++SYM_DATA(sme_me_mask, .quad 0)
+ #endif
+diff --git a/arch/x86/realmode/rm/wakeup_asm.S b/arch/x86/realmode/rm/wakeup_asm.S
+index dad6198..08438ee 100644
+--- a/arch/x86/realmode/rm/wakeup_asm.S
++++ b/arch/x86/realmode/rm/wakeup_asm.S
+@@ -171,8 +171,8 @@ END(wakeup_gdt)
+ 
+ 	/* This is the standard real-mode IDT */
+ 	.balign	16
+-.Lwakeup_idt:
++SYM_DATA_START_LOCAL(.Lwakeup_idt)
+ 	.word	0xffff		/* limit */
+ 	.long	0		/* address */
+ 	.word	0
+-END(.Lwakeup_idt)
++SYM_DATA_END(.Lwakeup_idt)
