@@ -1,43 +1,42 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.sf-mail.de ([116.202.16.50]:44293 "EHLO mail.sf-mail.de"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S2441514AbfJQVmm (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 17 Oct 2019 17:42:42 -0400
-From: Rolf Eike Beer <eike-kernel@sf-tec.de>
-Subject: Re: [PATCH 07/21] parisc: remove __ioremap
-Date: Thu, 17 Oct 2019 23:35:42 +0200
-Message-ID: <1650819.dOKmve5HLd@daneel.sf-tec.de>
-In-Reply-To: <20191017174554.29840-8-hch@lst.de>
-References: <20191017174554.29840-1-hch@lst.de> <20191017174554.29840-8-hch@lst.de>
-MIME-Version: 1.0
-Content-Type: multipart/signed; boundary="nextPart3002460.JnYtLPdinj"; micalg="pgp-sha1"; protocol="application/pgp-signature"
+Received: from condef-04.nifty.com ([202.248.20.69]:50603 "EHLO
+        condef-04.nifty.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S2389158AbfJRE4k (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 18 Oct 2019 00:56:40 -0400
+From: Masahiro Yamada <yamada.masahiro@socionext.com>
+Subject: [PATCH 2/2] asm-generic/export.h: remove unneeded __kcrctab_* symbols
+Date: Fri, 18 Oct 2019 13:31:48 +0900
+Message-ID: <20191018043148.6285-2-yamada.masahiro@socionext.com>
+In-Reply-To: <20191018043148.6285-1-yamada.masahiro@socionext.com>
+References: <20191018043148.6285-1-yamada.masahiro@socionext.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Christoph Hellwig <hch@lst.de>
-Cc: Arnd Bergmann <arnd@arndb.de>, Guo Ren <guoren@kernel.org>, Michal Simek <monstr@monstr.eu>, Greentime Hu <green.hu@gmail.com>, Vincent Chen <deanbo422@gmail.com>, Guan Xuetao <gxt@pku.edu.cn>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-snps-arc@lists.infradead.org, linux-arm-kernel@lists.infradead.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, nios2-dev@lists.rocketboards.org, openrisc@lists.librecores.org, linux-parisc@vger.kernel.org, linux-riscv@lists.infradead.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-mtd@lists.infradead.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20191017213542.RGeDFqFGaIItA4ZUdu2i8ZtokWO90IRm5-92Q7d194U@z>
+To: linux-kernel@vger.kernel.org, Jessica Yu <jeyu@kernel.org>
+Cc: Nicholas Piggin <npiggin@gmail.com>, Al Viro <viro@zeniv.linux.org.uk>, Masahiro Yamada <yamada.masahiro@socionext.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org
+Message-ID: <20191018043148.eKxFV6ZcfLkt9hGBHcJCiWYKllqJT1cS5wvfzWvolO8@z>
 
---nextPart3002460.JnYtLPdinj
-Content-Transfer-Encoding: 7Bit
-Content-Type: text/plain; charset="us-ascii"
+EXPORT_SYMBOL from assembly code produces an unused symbol __kcrctab_*.
 
-Christoph Hellwig wrote:
-> __ioremap is always called with the _PAGE_NO_CACHE, so fold the whole
-> thing and rename it to ioremap.  This allows allows to remove the
-                                        ^^^^^^^^^^^^^
-> special EISA quirk to force _PAGE_NO_CACHE.
+kcrctab is used as a section name (prefixed with three underscores),
+but never used as a symbol.
 
-Eike
---nextPart3002460.JnYtLPdinj
-Content-Type: application/pgp-signature; name="signature.asc"
-Content-Description: This is a digitally signed message part.
-Content-Transfer-Encoding: 7Bit
+Signed-off-by: Masahiro Yamada <yamada.masahiro@socionext.com>
+---
 
------BEGIN PGP SIGNATURE-----
+ include/asm-generic/export.h | 1 -
+ 1 file changed, 1 deletion(-)
 
-iF0EABECAB0WIQSaYVDeqwKa3fTXNeNcpIk+abn8TgUCXajergAKCRBcpIk+abn8
-TkOlAJ46117xxLoFzZCiYYebEyVSrw/31gCeMRBoULeYp+iYijM534mn8tCGYHM=
-=d3J8
------END PGP SIGNATURE-----
-
---nextPart3002460.JnYtLPdinj--
+diff --git a/include/asm-generic/export.h b/include/asm-generic/export.h
+index 80ef2dc0c8be..a3983e2ce0fd 100644
+--- a/include/asm-generic/export.h
++++ b/include/asm-generic/export.h
+@@ -43,7 +43,6 @@ __kstrtab_\name:
+ #ifdef CONFIG_MODVERSIONS
+ 	.section ___kcrctab\sec+\name,"a"
+ 	.balign KCRC_ALIGN
+-__kcrctab_\name:
+ #if defined(CONFIG_MODULE_REL_CRCS)
+ 	.long __crc_\name - .
+ #else
+-- 
+2.17.1
