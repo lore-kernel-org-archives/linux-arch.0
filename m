@@ -1,7 +1,7 @@
 From: Dave Martin <Dave.Martin@arm.com>
-Subject: [PATCH v3 12/12] KVM: arm64: BTI: Reset BTYPE when skipping emulated instructions
-Date: Fri, 18 Oct 2019 18:25:45 +0100
-Message-ID: <1571419545-20401-13-git-send-email-Dave.Martin@arm.com>
+Subject: [PATCH v3 11/12] arm64: BTI: Reset BTYPE when skipping emulated instructions
+Date: Fri, 18 Oct 2019 18:25:44 +0100
+Message-ID: <1571419545-20401-12-git-send-email-Dave.Martin@arm.com>
 References: <1571419545-20401-1-git-send-email-Dave.Martin@arm.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1571419545-20401-1-git-send-email-Dave.Martin@arm.com>
@@ -27,32 +27,23 @@ Changes since v2:
    arm64_skip_faulting_instruction().
 
    PSTATE may grow, but we should address this more generally rather
-   than with point hacks.
-
- * Add { } around if () clause that was unbalanced by the previous
-   patch.
+   than with point hacks in this series.
 ---
- arch/arm64/include/asm/kvm_emulate.h | 6 ++++--
- 1 file changed, 4 insertions(+), 2 deletions(-)
+ arch/arm64/kernel/traps.c | 2 ++
+ 1 file changed, 2 insertions(+)
 
-diff --git a/arch/arm64/include/asm/kvm_emulate.h b/arch/arm64/include/asm/kvm_emulate.h
-index d69c1ef..f41bfdee 100644
---- a/arch/arm64/include/asm/kvm_emulate.h
-+++ b/arch/arm64/include/asm/kvm_emulate.h
-@@ -450,10 +450,12 @@ static inline unsigned long vcpu_data_host_to_guest(struct kvm_vcpu *vcpu,
+diff --git a/arch/arm64/kernel/traps.c b/arch/arm64/kernel/traps.c
+index 3af2768..5c46a7b 100644
+--- a/arch/arm64/kernel/traps.c
++++ b/arch/arm64/kernel/traps.c
+@@ -331,6 +331,8 @@ void arm64_skip_faulting_instruction(struct pt_regs *regs, unsigned long size)
  
- static inline void kvm_skip_instr(struct kvm_vcpu *vcpu, bool is_wide_instr)
- {
--	if (vcpu_mode_is_32bit(vcpu))
-+	if (vcpu_mode_is_32bit(vcpu)) {
- 		kvm_skip_instr32(vcpu, is_wide_instr);
--	else
-+	} else {
- 		*vcpu_pc(vcpu) += 4;
-+		*vcpu_cpsr(vcpu) &= ~PSR_BTYPE_MASK;
-+	}
+ 	if (regs->pstate & PSR_MODE32_BIT)
+ 		advance_itstate(regs);
++	else
++		regs->pstate &= ~PSR_BTYPE_MASK;
+ }
  
- 	/* advance the singlestep state machine */
- 	*vcpu_cpsr(vcpu) &= ~DBG_SPSR_SS;
+ static LIST_HEAD(undef_hook);
 -- 
 2.1.4
