@@ -1,87 +1,107 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ot1-f66.google.com ([209.85.210.66]:36638 "EHLO
-        mail-ot1-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S2394031AbfJRHbI (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 18 Oct 2019 03:31:08 -0400
+Received: from helcar.hmeau.com ([216.24.177.18]:37236 "EHLO fornost.hmeau.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1728302AbfJRHhk (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 18 Oct 2019 03:37:40 -0400
+Date: Fri, 18 Oct 2019 17:56:23 +1100
+From: Herbert Xu <herbert@gondor.apana.org.au>
+Subject: Re: [PATCH v9 24/28] x86_64/asm: Change all ENTRY+ENDPROC to
+ SYM_FUNC_*
+Message-ID: <20191018065623.GA15199@gondor.apana.org.au>
+References: <20191011115108.12392-1-jslaby@suse.cz>
+ <20191011115108.12392-25-jslaby@suse.cz>
+ <20191016071230.GD1138@zn.tnic>
 MIME-Version: 1.0
-References: <20191017174554.29840-1-hch@lst.de> <20191017174554.29840-14-hch@lst.de>
-In-Reply-To: <20191017174554.29840-14-hch@lst.de>
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Date: Fri, 18 Oct 2019 09:30:54 +0200
-Message-ID: <CAMuHMdWaQ15j7fQ9-8XKgrSwgf96nT=yY+FCPWPxoPC9LGqvbQ@mail.gmail.com>
-Subject: Re: [PATCH 13/21] m68k: rename __iounmap and mark it static
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20191016071230.GD1138@zn.tnic>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Christoph Hellwig <hch@lst.de>
-Cc: Arnd Bergmann <arnd@arndb.de>, Guo Ren <guoren@kernel.org>, Michal Simek <monstr@monstr.eu>, Greentime Hu <green.hu@gmail.com>, Vincent Chen <deanbo422@gmail.com>, Guan Xuetao <gxt@pku.edu.cn>, the arch/x86 maintainers <x86@kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, linux-s390 <linux-s390@vger.kernel.org>, "linux-ia64@vger.kernel.org" <linux-ia64@vger.kernel.org>, Parisc List <linux-parisc@vger.kernel.org>, Linux-sh list <linux-sh@vger.kernel.org>, "open list:QUALCOMM HEXAGON..." <linux-hexagon@vger.kernel.org>, linux-xtensa@linux-xtensa.org, linux-mips@vger.kernel.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-m68k <linux-m68k@lists.linux-m68k.org>, Openrisc <openrisc@lists.librecores.org>, MTD Maling List <linux-mtd@lists.infradead.org>, alpha <linux-alpha@vger.kernel.org>, sparclinux <sparclinux@vger.kernel.org>, nios2-dev@lists.rocketboards.org, linux-riscv@lists.infradead.org, arcml <linux-snps-arc@lists.infradead.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>
-Message-ID: <20191018073054.Z1kep6kkLljkXa2WO1nZAQAOdV7UyBG3CQoyz_lR2io@z>
+To: Borislav Petkov <bp@alien8.de>
+Cc: "David S. Miller" <davem@davemloft.net>, Jiri Slaby <jslaby@suse.cz>, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, "Rafael J . Wysocki" <rafael.j.wysocki@intel.com>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Len Brown <len.brown@intel.com>, Pavel Machek <pavel@ucw.cz>, Matt Fleming <matt@codeblueprint.co.uk>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Juergen Gross <jgross@suse.com>, linux-crypto@vger.kernel.org, linux-pm@vger.kernel.org, linux-efi@vger.kernel.org, xen-devel@lists.xenproject.org
+Message-ID: <20191018065623.JuWvuycLCSkYr_ghG6F3Y7PBKbwUMwtFNYRPWmyLEX4@z>
 
-Hi Christoph,
+On Wed, Oct 16, 2019 at 09:12:30AM +0200, Borislav Petkov wrote:
+> Hi,
+> 
+> On Fri, Oct 11, 2019 at 01:51:04PM +0200, Jiri Slaby wrote:
+> > These are all functions which are invoked from elsewhere, so annotate
+> > them as global using the new SYM_FUNC_START. And their ENDPROC's by
+> > SYM_FUNC_END.
+> > 
+> > And make sure ENTRY/ENDPROC is not defined on X86_64, given these were
+> > the last users.
+> > 
+> > Signed-off-by: Jiri Slaby <jslaby@suse.cz>
+> > Reviewed-by: Rafael J. Wysocki <rafael.j.wysocki@intel.com> [hibernate]
+> > Reviewed-by: Boris Ostrovsky <boris.ostrovsky@oracle.com> [xen bits]
+> > Cc: "H. Peter Anvin" <hpa@zytor.com>
+> > Cc: Borislav Petkov <bp@alien8.de>
+> > Cc: Thomas Gleixner <tglx@linutronix.de>
+> > Cc: Ingo Molnar <mingo@redhat.com>
+> > Cc: x86@kernel.org
+> > Cc: Herbert Xu <herbert@gondor.apana.org.au>
+> > Cc: "David S. Miller" <davem@davemloft.net>
+> > Cc: "Rafael J. Wysocki" <rjw@rjwysocki.net>
+> > Cc: Len Brown <len.brown@intel.com>
+> > Cc: Pavel Machek <pavel@ucw.cz>
+> > Cc: Matt Fleming <matt@codeblueprint.co.uk>
+> > Cc: Ard Biesheuvel <ard.biesheuvel@linaro.org>
+> > Cc: Boris Ostrovsky <boris.ostrovsky@oracle.com>
+> > Cc: Juergen Gross <jgross@suse.com>
+> > Cc: linux-crypto@vger.kernel.org
+> > Cc: linux-pm@vger.kernel.org
+> > Cc: linux-efi@vger.kernel.org
+> > Cc: xen-devel@lists.xenproject.org
+> > ---
+> >  arch/x86/boot/compressed/efi_thunk_64.S      |  4 +-
+> >  arch/x86/boot/compressed/head_64.S           | 16 +++---
+> >  arch/x86/boot/compressed/mem_encrypt.S       |  8 +--
+> >  arch/x86/crypto/aegis128-aesni-asm.S         | 28 ++++-----
+> >  arch/x86/crypto/aes_ctrby8_avx-x86_64.S      | 12 ++--
+> >  arch/x86/crypto/aesni-intel_asm.S            | 60 ++++++++++----------
+> >  arch/x86/crypto/aesni-intel_avx-x86_64.S     | 32 +++++------
+> >  arch/x86/crypto/blowfish-x86_64-asm_64.S     | 16 +++---
+> >  arch/x86/crypto/camellia-aesni-avx-asm_64.S  | 24 ++++----
+> >  arch/x86/crypto/camellia-aesni-avx2-asm_64.S | 24 ++++----
+> >  arch/x86/crypto/camellia-x86_64-asm_64.S     | 16 +++---
+> >  arch/x86/crypto/cast5-avx-x86_64-asm_64.S    | 16 +++---
+> >  arch/x86/crypto/cast6-avx-x86_64-asm_64.S    | 24 ++++----
+> >  arch/x86/crypto/chacha-avx2-x86_64.S         | 12 ++--
+> >  arch/x86/crypto/chacha-avx512vl-x86_64.S     | 12 ++--
+> >  arch/x86/crypto/chacha-ssse3-x86_64.S        | 12 ++--
+> >  arch/x86/crypto/crc32-pclmul_asm.S           |  4 +-
+> >  arch/x86/crypto/crc32c-pcl-intel-asm_64.S    |  4 +-
+> >  arch/x86/crypto/crct10dif-pcl-asm_64.S       |  4 +-
+> >  arch/x86/crypto/des3_ede-asm_64.S            |  8 +--
+> >  arch/x86/crypto/ghash-clmulni-intel_asm.S    |  8 +--
+> >  arch/x86/crypto/nh-avx2-x86_64.S             |  4 +-
+> >  arch/x86/crypto/nh-sse2-x86_64.S             |  4 +-
+> >  arch/x86/crypto/poly1305-avx2-x86_64.S       |  4 +-
+> >  arch/x86/crypto/poly1305-sse2-x86_64.S       |  8 +--
+> >  arch/x86/crypto/serpent-avx-x86_64-asm_64.S  | 24 ++++----
+> >  arch/x86/crypto/serpent-avx2-asm_64.S        | 24 ++++----
+> >  arch/x86/crypto/serpent-sse2-x86_64-asm_64.S |  8 +--
+> >  arch/x86/crypto/sha1_avx2_x86_64_asm.S       |  4 +-
+> >  arch/x86/crypto/sha1_ni_asm.S                |  4 +-
+> >  arch/x86/crypto/sha1_ssse3_asm.S             |  4 +-
+> >  arch/x86/crypto/sha256-avx-asm.S             |  4 +-
+> >  arch/x86/crypto/sha256-avx2-asm.S            |  4 +-
+> >  arch/x86/crypto/sha256-ssse3-asm.S           |  4 +-
+> >  arch/x86/crypto/sha256_ni_asm.S              |  4 +-
+> >  arch/x86/crypto/sha512-avx-asm.S             |  4 +-
+> >  arch/x86/crypto/sha512-avx2-asm.S            |  4 +-
+> >  arch/x86/crypto/sha512-ssse3-asm.S           |  4 +-
+> >  arch/x86/crypto/twofish-avx-x86_64-asm_64.S  | 24 ++++----
+> >  arch/x86/crypto/twofish-x86_64-asm_64-3way.S |  8 +--
+> >  arch/x86/crypto/twofish-x86_64-asm_64.S      |  8 +--
+> 
+> I could use an ACK for the crypto bits...
 
-On Thu, Oct 17, 2019 at 7:53 PM Christoph Hellwig <hch@lst.de> wrote:
-> m68k uses __iounmap as the name for an internal helper that is only
-> used for some CPU types.  Mark it static and give it a better name.
->
-> Signed-off-by: Christoph Hellwig <hch@lst.de>
+Acked-by: Herbert Xu <herbert@gondor.apana.org.au>
 
-Thanks for your patch!
-
-> --- a/arch/m68k/mm/kmap.c
-> +++ b/arch/m68k/mm/kmap.c
-> @@ -52,6 +52,7 @@ static inline void free_io_area(void *addr)
->
->  #define IO_SIZE                (256*1024)
->
-> +static void __free_io_area(void *addr, unsigned long size);
->  static struct vm_struct *iolist;
->
->  static struct vm_struct *get_io_area(unsigned long size)
-> @@ -90,7 +91,7 @@ static inline void free_io_area(void *addr)
->                 if (tmp->addr == addr) {
->                         *p = tmp->next;
->                         /* remove gap added in get_io_area() */
-> -                       __iounmap(tmp->addr, tmp->size - IO_SIZE);
-> +                       __free_io_area(tmp->addr, tmp->size - IO_SIZE);
->                         kfree(tmp);
->                         return;
->                 }
-> @@ -249,12 +250,13 @@ void iounmap(void __iomem *addr)
->  }
->  EXPORT_SYMBOL(iounmap);
->
-> +#ifndef CPU_M68040_OR_M68060_ONLY
-
-Can you please move this block up, instead of adding more #ifdef cluttery?
-That would also remove the need for a forward declaration.
-
->  /*
-> - * __iounmap unmaps nearly everything, so be careful
-> + * __free_io_area unmaps nearly everything, so be careful
->   * Currently it doesn't free pointer/page tables anymore but this
->   * wasn't used anyway and might be added later.
->   */
-> -void __iounmap(void *addr, unsigned long size)
-> +static void __free_io_area(void *addr, unsigned long size)
->  {
->         unsigned long virtaddr = (unsigned long)addr;
->         pgd_t *pgd_dir;
-> @@ -297,6 +299,7 @@ void __iounmap(void *addr, unsigned long size)
->
->         flush_tlb_all();
->  }
-> +#endif /* CPU_M68040_OR_M68060_ONLY */
->
->  /*
->   * Set new cache mode for some kernel address space.
-
-Gr{oetje,eeting}s,
-
-                        Geert
-
+Cheers,
 -- 
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+Email: Herbert Xu <herbert@gondor.apana.org.au>
+Home Page: http://gondor.apana.org.au/~herbert/
+PGP Key: http://gondor.apana.org.au/~herbert/pubkey.txt
