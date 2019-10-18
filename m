@@ -1,14 +1,14 @@
 From: "tip-bot2 for Jiri Slaby" <tip-bot2@linutronix.de>
-Subject: [tip: x86/asm] x86/asm/purgatory: Start using annotations
-Date: Fri, 18 Oct 2019 16:30:30 -0000
-Message-ID: <157141623011.29376.15374755752054973720.tip-bot2@tip-bot2>
-References: <20191011115108.12392-16-jslaby@suse.cz>
+Subject: [tip: x86/asm] x86/asm: Annotate relocate_kernel_{32,64}.c
+Date: Fri, 18 Oct 2019 16:30:33 -0000
+Message-ID: <157141623386.29376.15307122503000886721.tip-bot2@tip-bot2>
+References: <20191011115108.12392-4-jslaby@suse.cz>
 Reply-To: linux-kernel@vger.kernel.org
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20191011115108.12392-16-jslaby@suse.cz>
+In-Reply-To: <20191011115108.12392-4-jslaby@suse.cz>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-tip-commits@vger.kernel.org
 Cc: Jiri Slaby <jslaby@suse.cz>, Borislav Petkov <bp@suse.de>, Alexios Zavras <alexios.zavras@intel.com>, Allison Randal <allison@lohutok.net>, Enrico Weigelt <info@metux.net>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, "H. Peter Anvin" <hpa@zytor.com>, Ingo Molnar <mingo@redhat.com>, linux-arch@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>, x86-ml <x86@kernel.org>, Ingo Molnar <mingo@kernel.org>, Borislav Petkov <bp@alien8.de>, linux-kernel@vger.kernel.org
@@ -16,22 +16,32 @@ List-Id: linux-arch.vger.kernel.org
 
 The following commit has been merged into the x86/asm branch of tip:
 
-Commit-ID:     b16fed65a7938248c8b37d5d0a8020defa6fd926
-Gitweb:        https://git.kernel.org/tip/b16fed65a7938248c8b37d5d0a8020defa6fd926
+Commit-ID:     6ec2a968247e51535e08dbbbfc8f53c95a48cde0
+Gitweb:        https://git.kernel.org/tip/6ec2a968247e51535e08dbbbfc8f53c95a48cde0
 Author:        Jiri Slaby <jslaby@suse.cz>
-AuthorDate:    Fri, 11 Oct 2019 13:50:55 +02:00
+AuthorDate:    Fri, 11 Oct 2019 13:50:43 +02:00
 Committer:     Borislav Petkov <bp@suse.de>
-CommitterDate: Fri, 18 Oct 2019 10:48:43 +02:00
+CommitterDate: Fri, 18 Oct 2019 09:53:19 +02:00
 
-x86/asm/purgatory: Start using annotations
+x86/asm: Annotate relocate_kernel_{32,64}.c
 
-Purgatory used no annotations at all. So include linux/linkage.h and
-annotate everything:
+There are functions in relocate_kernel_{32,64}.c which are not
+annotated. This makes automatic annotations on them rather hard. So
+annotate all the functions now.
 
-* code by SYM_CODE_*
-* data by SYM_DATA_*
+Note that these are not C-like functions, so FUNC is not used. Instead
+CODE markers are used. Also the functions are not aligned, so the
+NOALIGN versions are used:
 
- [ bp: Fixup comment in gdt: ]
+- SYM_CODE_START_NOALIGN
+- SYM_CODE_START_LOCAL_NOALIGN
+- SYM_CODE_END
+
+The result is:
+  0000   108 NOTYPE  GLOBAL DEFAULT    1 relocate_kernel
+  006c   165 NOTYPE  LOCAL  DEFAULT    1 identity_mapped
+  0146   127 NOTYPE  LOCAL  DEFAULT    1 swap_pages
+  0111    53 NOTYPE  LOCAL  DEFAULT    1 virtual_mapped
 
 Signed-off-by: Jiri Slaby <jslaby@suse.cz>
 Signed-off-by: Borislav Petkov <bp@suse.de>
@@ -44,145 +54,121 @@ Cc: Ingo Molnar <mingo@redhat.com>
 Cc: linux-arch@vger.kernel.org
 Cc: Thomas Gleixner <tglx@linutronix.de>
 Cc: x86-ml <x86@kernel.org>
-Link: https://lkml.kernel.org/r/20191011115108.12392-16-jslaby@suse.cz
+Link: https://lkml.kernel.org/r/20191011115108.12392-4-jslaby@suse.cz
 ---
- arch/x86/purgatory/entry64.S      | 24 ++++++++++++++----------
- arch/x86/purgatory/setup-x86_64.S | 14 ++++++++------
- arch/x86/purgatory/stack.S        |  7 ++++---
- 3 files changed, 26 insertions(+), 19 deletions(-)
+ arch/x86/kernel/relocate_kernel_32.S | 13 ++++++++-----
+ arch/x86/kernel/relocate_kernel_64.S | 13 ++++++++-----
+ 2 files changed, 16 insertions(+), 10 deletions(-)
 
-diff --git a/arch/x86/purgatory/entry64.S b/arch/x86/purgatory/entry64.S
-index 275a646..0b4390c 100644
---- a/arch/x86/purgatory/entry64.S
-+++ b/arch/x86/purgatory/entry64.S
-@@ -8,13 +8,13 @@
-  * This code has been taken from kexec-tools.
-  */
- 
-+#include <linux/linkage.h>
-+
- 	.text
- 	.balign 16
- 	.code64
--	.globl entry64, entry64_regs
--
- 
--entry64:
-+SYM_CODE_START(entry64)
- 	/* Setup a gdt that should be preserved */
- 	lgdt gdt(%rip)
- 
-@@ -54,10 +54,11 @@ new_cs_exit:
- 
- 	/* Jump to the new code... */
- 	jmpq	*rip(%rip)
-+SYM_CODE_END(entry64)
- 
- 	.section ".rodata"
- 	.balign 4
--entry64_regs:
-+SYM_DATA_START(entry64_regs)
- rax:	.quad 0x0
- rcx:	.quad 0x0
- rdx:	.quad 0x0
-@@ -75,13 +76,14 @@ r13:	.quad 0x0
- r14:	.quad 0x0
- r15:	.quad 0x0
- rip:	.quad 0x0
--	.size entry64_regs, . - entry64_regs
-+SYM_DATA_END(entry64_regs)
- 
- 	/* GDT */
- 	.section ".rodata"
- 	.balign 16
--gdt:
--	/* 0x00 unusable segment
-+SYM_DATA_START_LOCAL(gdt)
-+	/*
-+	 * 0x00 unusable segment
- 	 * 0x08 unused
- 	 * so use them as gdt ptr
- 	 */
-@@ -94,6 +96,8 @@ gdt:
- 
- 	/* 0x18 4GB flat data segment */
- 	.word 0xFFFF, 0x0000, 0x9200, 0x00CF
--gdt_end:
--stack:	.quad   0, 0
--stack_init:
-+SYM_DATA_END_LABEL(gdt, SYM_L_LOCAL, gdt_end)
-+
-+SYM_DATA_START_LOCAL(stack)
-+	.quad   0, 0
-+SYM_DATA_END_LABEL(stack, SYM_L_LOCAL, stack_init)
-diff --git a/arch/x86/purgatory/setup-x86_64.S b/arch/x86/purgatory/setup-x86_64.S
-index 321146b..89d9e9e 100644
---- a/arch/x86/purgatory/setup-x86_64.S
-+++ b/arch/x86/purgatory/setup-x86_64.S
-@@ -7,14 +7,14 @@
-  *
-  * This code has been taken from kexec-tools.
-  */
-+#include <linux/linkage.h>
- #include <asm/purgatory.h>
+diff --git a/arch/x86/kernel/relocate_kernel_32.S b/arch/x86/kernel/relocate_kernel_32.S
+index ee26df0..94b3388 100644
+--- a/arch/x86/kernel/relocate_kernel_32.S
++++ b/arch/x86/kernel/relocate_kernel_32.S
+@@ -35,8 +35,7 @@
+ #define CP_PA_BACKUP_PAGES_MAP	DATA(0x1c)
  
  	.text
--	.globl purgatory_start
- 	.balign 16
--purgatory_start:
+-	.globl relocate_kernel
+-relocate_kernel:
++SYM_CODE_START_NOALIGN(relocate_kernel)
+ 	/* Save the CPU context, used for jumping back */
+ 
+ 	pushl	%ebx
+@@ -93,8 +92,9 @@ relocate_kernel:
+ 	addl    $(identity_mapped - relocate_kernel), %eax
+ 	pushl   %eax
+ 	ret
++SYM_CODE_END(relocate_kernel)
+ 
+-identity_mapped:
++SYM_CODE_START_LOCAL_NOALIGN(identity_mapped)
+ 	/* set return address to 0 if not preserving context */
+ 	pushl	$0
+ 	/* store the start address on the stack */
+@@ -191,8 +191,9 @@ identity_mapped:
+ 	addl	$(virtual_mapped - relocate_kernel), %eax
+ 	pushl	%eax
+ 	ret
++SYM_CODE_END(identity_mapped)
+ 
+-virtual_mapped:
++SYM_CODE_START_LOCAL_NOALIGN(virtual_mapped)
+ 	movl	CR4(%edi), %eax
+ 	movl	%eax, %cr4
+ 	movl	CR3(%edi), %eax
+@@ -208,9 +209,10 @@ virtual_mapped:
+ 	popl	%esi
+ 	popl	%ebx
+ 	ret
++SYM_CODE_END(virtual_mapped)
+ 
+ 	/* Do the copies */
+-swap_pages:
++SYM_CODE_START_LOCAL_NOALIGN(swap_pages)
+ 	movl	8(%esp), %edx
+ 	movl	4(%esp), %ecx
+ 	pushl	%ebp
+@@ -270,6 +272,7 @@ swap_pages:
+ 	popl	%ebx
+ 	popl	%ebp
+ 	ret
++SYM_CODE_END(swap_pages)
+ 
+ 	.globl kexec_control_code_size
+ .set kexec_control_code_size, . - relocate_kernel
+diff --git a/arch/x86/kernel/relocate_kernel_64.S b/arch/x86/kernel/relocate_kernel_64.S
+index c51ccff..ef3ba99 100644
+--- a/arch/x86/kernel/relocate_kernel_64.S
++++ b/arch/x86/kernel/relocate_kernel_64.S
+@@ -38,8 +38,7 @@
+ 	.text
+ 	.align PAGE_SIZE
  	.code64
+-	.globl relocate_kernel
+-relocate_kernel:
++SYM_CODE_START_NOALIGN(relocate_kernel)
+ 	/*
+ 	 * %rdi indirection_page
+ 	 * %rsi page_list
+@@ -103,8 +102,9 @@ relocate_kernel:
+ 	addq	$(identity_mapped - relocate_kernel), %r8
+ 	pushq	%r8
+ 	ret
++SYM_CODE_END(relocate_kernel)
  
-+SYM_CODE_START(purgatory_start)
- 	/* Load a gdt so I know what the segment registers are */
- 	lgdt	gdt(%rip)
+-identity_mapped:
++SYM_CODE_START_LOCAL_NOALIGN(identity_mapped)
+ 	/* set return address to 0 if not preserving context */
+ 	pushq	$0
+ 	/* store the start address on the stack */
+@@ -209,8 +209,9 @@ identity_mapped:
+ 	movq	$virtual_mapped, %rax
+ 	pushq	%rax
+ 	ret
++SYM_CODE_END(identity_mapped)
  
-@@ -32,10 +32,12 @@ purgatory_start:
- 	/* Call the C code */
- 	call purgatory
- 	jmp	entry64
-+SYM_CODE_END(purgatory_start)
+-virtual_mapped:
++SYM_CODE_START_LOCAL_NOALIGN(virtual_mapped)
+ 	movq	RSP(%r8), %rsp
+ 	movq	CR4(%r8), %rax
+ 	movq	%rax, %cr4
+@@ -228,9 +229,10 @@ virtual_mapped:
+ 	popq	%rbp
+ 	popq	%rbx
+ 	ret
++SYM_CODE_END(virtual_mapped)
  
- 	.section ".rodata"
- 	.balign 16
--gdt:	/* 0x00 unusable segment
-+SYM_DATA_START_LOCAL(gdt)
-+	/* 0x00 unusable segment
- 	 * 0x08 unused
- 	 * so use them as the gdt ptr
- 	 */
-@@ -48,10 +50,10 @@ gdt:	/* 0x00 unusable segment
+ 	/* Do the copies */
+-swap_pages:
++SYM_CODE_START_LOCAL_NOALIGN(swap_pages)
+ 	movq	%rdi, %rcx 	/* Put the page_list in %rcx */
+ 	xorl	%edi, %edi
+ 	xorl	%esi, %esi
+@@ -283,6 +285,7 @@ swap_pages:
+ 	jmp	0b
+ 3:
+ 	ret
++SYM_CODE_END(swap_pages)
  
- 	/* 0x18 4GB flat data segment */
- 	.word	0xFFFF, 0x0000, 0x9200, 0x00CF
--gdt_end:
-+SYM_DATA_END_LABEL(gdt, SYM_L_LOCAL, gdt_end)
- 
- 	.bss
- 	.balign 4096
--lstack:
-+SYM_DATA_START_LOCAL(lstack)
- 	.skip 4096
--lstack_end:
-+SYM_DATA_END_LABEL(lstack, SYM_L_LOCAL, lstack_end)
-diff --git a/arch/x86/purgatory/stack.S b/arch/x86/purgatory/stack.S
-index 8b14274..1ef507c 100644
---- a/arch/x86/purgatory/stack.S
-+++ b/arch/x86/purgatory/stack.S
-@@ -5,13 +5,14 @@
-  * Copyright (C) 2014 Red Hat Inc.
-  */
- 
-+#include <linux/linkage.h>
-+
- 	/* A stack for the loaded kernel.
- 	 * Separate and in the data section so it can be prepopulated.
- 	 */
- 	.data
- 	.balign 4096
--	.globl stack, stack_end
- 
--stack:
-+SYM_DATA_START(stack)
- 	.skip 4096
--stack_end:
-+SYM_DATA_END_LABEL(stack, SYM_L_GLOBAL, stack_end)
+ 	.globl kexec_control_code_size
+ .set kexec_control_code_size, . - relocate_kernel
