@@ -1,7 +1,7 @@
 From: Dave Martin <Dave.Martin@arm.com>
-Subject: [PATCH v3 08/12] arm64: BTI: Decode BYTPE bits when printing PSTATE
-Date: Fri, 18 Oct 2019 18:25:41 +0100
-Message-ID: <1571419545-20401-9-git-send-email-Dave.Martin@arm.com>
+Subject: [PATCH v3 10/12] arm64: traps: Shuffle code to eliminate forward declarations
+Date: Fri, 18 Oct 2019 18:25:43 +0100
+Message-ID: <1571419545-20401-11-git-send-email-Dave.Martin@arm.com>
 References: <1571419545-20401-1-git-send-email-Dave.Martin@arm.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1571419545-20401-1-git-send-email-Dave.Martin@arm.com>
@@ -10,74 +10,141 @@ To: linux-kernel@vger.kernel.org
 Cc: Andrew Jones <drjones@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Catalin Marinas <catalin.marinas@arm.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Kees Cook <keescook@chromium.org>, =?UTF-8?q?Kristina=20Mart=C5=A1enko?= <kristina.martsenko@arm.com>, Marc Zyngier <maz@kernel.org>, Mark Brown <broonie@kernel.org>, Paul Elliott <paul.elliott@arm.com>, Peter Zijlstra <peterz@infradead.org>, Richard Henderson <richard.henderson@linaro.org>, Sudakshina Das <sudi.das@arm.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Will Deacon <will@kernel.org>, Yu-cheng Yu <yu-cheng.yu@intel.com>, Amit Kachhap <amit.kachhap@arm.com>, V
 List-Id: linux-arch.vger.kernel.org
 
-The current code to print PSTATE symbolically when generating
-backtraces etc., does not include the BYTPE field used by Branch
-Target Identification.
+Hoist the IT state handling code earlier in traps.c, to avoid
+accumulating forward declarations.
 
-So, decode BYTPE and print it too.
-
-In the interests of human-readability, print the classes of BTI
-matched.  The symbolic notation, BYTPE (PSTATE[11:10]) and
-permitted classes of subsequent instruction are:
-
-    -- (BTYPE=0b00): any insn
-    jc (BTYPE=0b01): BTI jc, BTI j, BTI c, PACIxSP
-    -c (BYTPE=0b10): BTI jc, BTI c, PACIxSP
-    j- (BTYPE=0b11): BTI jc, BTI j
+No functional change.
 
 Signed-off-by: Dave Martin <Dave.Martin@arm.com>
-
 ---
+ arch/arm64/kernel/traps.c | 101 ++++++++++++++++++++++------------------------
+ 1 file changed, 49 insertions(+), 52 deletions(-)
 
-Changes since v2:
-
- * Split out the PSR_BYTPE_* definitions that for merging into
-   "arm64: Basic Branch Target Identification support".
----
- arch/arm64/kernel/process.c | 17 +++++++++++++++--
- 1 file changed, 15 insertions(+), 2 deletions(-)
-
-diff --git a/arch/arm64/kernel/process.c b/arch/arm64/kernel/process.c
-index 4c78937..a2b555a 100644
---- a/arch/arm64/kernel/process.c
-+++ b/arch/arm64/kernel/process.c
-@@ -209,6 +209,15 @@ void machine_restart(char *cmd)
- 	while (1);
- }
- 
-+#define bstr(suffix, str) [PSR_BTYPE_ ## suffix >> PSR_BTYPE_SHIFT] = str
-+static const char *const btypes[] = {
-+	bstr(NONE, "--"),
-+	bstr(  JC, "jc"),
-+	bstr(   C, "-c"),
-+	bstr(  J , "j-")
-+};
-+#undef bstr
-+
- static void print_pstate(struct pt_regs *regs)
- {
- 	u64 pstate = regs->pstate;
-@@ -227,7 +236,10 @@ static void print_pstate(struct pt_regs *regs)
- 			pstate & PSR_AA32_I_BIT ? 'I' : 'i',
- 			pstate & PSR_AA32_F_BIT ? 'F' : 'f');
- 	} else {
--		printk("pstate: %08llx (%c%c%c%c %c%c%c%c %cPAN %cUAO)\n",
-+		const char *btype_str = btypes[(pstate & PSR_BTYPE_MASK) >>
-+					       PSR_BTYPE_SHIFT];
-+
-+		printk("pstate: %08llx (%c%c%c%c %c%c%c%c %cPAN %cUAO BTYPE=%s)\n",
- 			pstate,
- 			pstate & PSR_N_BIT ? 'N' : 'n',
- 			pstate & PSR_Z_BIT ? 'Z' : 'z',
-@@ -238,7 +250,8 @@ static void print_pstate(struct pt_regs *regs)
- 			pstate & PSR_I_BIT ? 'I' : 'i',
- 			pstate & PSR_F_BIT ? 'F' : 'f',
- 			pstate & PSR_PAN_BIT ? '+' : '-',
--			pstate & PSR_UAO_BIT ? '+' : '-');
-+			pstate & PSR_UAO_BIT ? '+' : '-',
-+			btype_str);
+diff --git a/arch/arm64/kernel/traps.c b/arch/arm64/kernel/traps.c
+index 44c91d4..3af2768 100644
+--- a/arch/arm64/kernel/traps.c
++++ b/arch/arm64/kernel/traps.c
+@@ -268,7 +268,55 @@ void arm64_notify_die(const char *str, struct pt_regs *regs,
  	}
  }
  
+-static void advance_itstate(struct pt_regs *regs);
++#ifdef CONFIG_COMPAT
++#define PSTATE_IT_1_0_SHIFT	25
++#define PSTATE_IT_1_0_MASK	(0x3 << PSTATE_IT_1_0_SHIFT)
++#define PSTATE_IT_7_2_SHIFT	10
++#define PSTATE_IT_7_2_MASK	(0x3f << PSTATE_IT_7_2_SHIFT)
++
++static u32 compat_get_it_state(struct pt_regs *regs)
++{
++	u32 it, pstate = regs->pstate;
++
++	it  = (pstate & PSTATE_IT_1_0_MASK) >> PSTATE_IT_1_0_SHIFT;
++	it |= ((pstate & PSTATE_IT_7_2_MASK) >> PSTATE_IT_7_2_SHIFT) << 2;
++
++	return it;
++}
++
++static void compat_set_it_state(struct pt_regs *regs, u32 it)
++{
++	u32 pstate_it;
++
++	pstate_it  = (it << PSTATE_IT_1_0_SHIFT) & PSTATE_IT_1_0_MASK;
++	pstate_it |= ((it >> 2) << PSTATE_IT_7_2_SHIFT) & PSTATE_IT_7_2_MASK;
++
++	regs->pstate &= ~PSR_AA32_IT_MASK;
++	regs->pstate |= pstate_it;
++}
++
++static void advance_itstate(struct pt_regs *regs)
++{
++	u32 it;
++
++	/* ARM mode */
++	if (!(regs->pstate & PSR_AA32_T_BIT) ||
++	    !(regs->pstate & PSR_AA32_IT_MASK))
++		return;
++
++	it  = compat_get_it_state(regs);
++
++	/*
++	 * If this is the last instruction of the block, wipe the IT
++	 * state. Otherwise advance it.
++	 */
++	if (!(it & 7))
++		it = 0;
++	else
++		it = (it & 0xe0) | ((it << 1) & 0x1f);
++
++	compat_set_it_state(regs, it);
++}
+ 
+ void arm64_skip_faulting_instruction(struct pt_regs *regs, unsigned long size)
+ {
+@@ -563,34 +611,6 @@ static const struct sys64_hook sys64_hooks[] = {
+ 	{},
+ };
+ 
+-
+-#ifdef CONFIG_COMPAT
+-#define PSTATE_IT_1_0_SHIFT	25
+-#define PSTATE_IT_1_0_MASK	(0x3 << PSTATE_IT_1_0_SHIFT)
+-#define PSTATE_IT_7_2_SHIFT	10
+-#define PSTATE_IT_7_2_MASK	(0x3f << PSTATE_IT_7_2_SHIFT)
+-
+-static u32 compat_get_it_state(struct pt_regs *regs)
+-{
+-	u32 it, pstate = regs->pstate;
+-
+-	it  = (pstate & PSTATE_IT_1_0_MASK) >> PSTATE_IT_1_0_SHIFT;
+-	it |= ((pstate & PSTATE_IT_7_2_MASK) >> PSTATE_IT_7_2_SHIFT) << 2;
+-
+-	return it;
+-}
+-
+-static void compat_set_it_state(struct pt_regs *regs, u32 it)
+-{
+-	u32 pstate_it;
+-
+-	pstate_it  = (it << PSTATE_IT_1_0_SHIFT) & PSTATE_IT_1_0_MASK;
+-	pstate_it |= ((it >> 2) << PSTATE_IT_7_2_SHIFT) & PSTATE_IT_7_2_MASK;
+-
+-	regs->pstate &= ~PSR_AA32_IT_MASK;
+-	regs->pstate |= pstate_it;
+-}
+-
+ static bool cp15_cond_valid(unsigned int esr, struct pt_regs *regs)
+ {
+ 	int cond;
+@@ -611,29 +631,6 @@ static bool cp15_cond_valid(unsigned int esr, struct pt_regs *regs)
+ 	return aarch32_opcode_cond_checks[cond](regs->pstate);
+ }
+ 
+-static void advance_itstate(struct pt_regs *regs)
+-{
+-	u32 it;
+-
+-	/* ARM mode */
+-	if (!(regs->pstate & PSR_AA32_T_BIT) ||
+-	    !(regs->pstate & PSR_AA32_IT_MASK))
+-		return;
+-
+-	it  = compat_get_it_state(regs);
+-
+-	/*
+-	 * If this is the last instruction of the block, wipe the IT
+-	 * state. Otherwise advance it.
+-	 */
+-	if (!(it & 7))
+-		it = 0;
+-	else
+-		it = (it & 0xe0) | ((it << 1) & 0x1f);
+-
+-	compat_set_it_state(regs, it);
+-}
+-
+ static void compat_cntfrq_read_handler(unsigned int esr, struct pt_regs *regs)
+ {
+ 	int reg = (esr & ESR_ELx_CP15_32_ISS_RT_MASK) >> ESR_ELx_CP15_32_ISS_RT_SHIFT;
 -- 
 2.1.4
