@@ -1,140 +1,54 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.suse.de ([195.135.220.15]:47598 "EHLO mx1.suse.de"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1726672AbfJSHeg (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Sat, 19 Oct 2019 03:34:36 -0400
-Date: Sat, 19 Oct 2019 09:34:24 +0200
-From: Borislav Petkov <bp@suse.de>
-Subject: Re: [tip: x86/asm] x86/asm/ftrace: Mark function_hook as function
-Message-ID: <20191019073424.GA27353@zn.tnic>
-References: <20191011115108.12392-22-jslaby@suse.cz>
- <157141622788.29376.4016565749507481510.tip-bot2@tip-bot2>
- <20191018124800.0a7006bb@gandalf.local.home>
- <20191018124956.764ac42e@gandalf.local.home>
- <20191018171354.GB20368@zn.tnic>
- <20191018133735.77e90e36@gandalf.local.home>
- <20191018194856.GC20368@zn.tnic>
- <20191018163125.346e078d@gandalf.local.home>
+Received: from Galois.linutronix.de ([193.142.43.55]:60264 "EHLO
+        Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726282AbfJTLtR (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 20 Oct 2019 07:49:17 -0400
+Date: Sun, 20 Oct 2019 13:49:10 +0200 (CEST)
+From: Thomas Gleixner <tglx@linutronix.de>
+Subject: Re: [RFC patch 01/15] entry: Provide generic syscall entry
+ functionality
+In-Reply-To: <CALCETrXB92rZqHMyhSULWVY3Q5=t9q4N9aZFCTn4k0DMNPJfMQ@mail.gmail.com>
+Message-ID: <alpine.DEB.2.21.1910201347460.2090@nanos.tec.linutronix.de>
+References: <20190919150314.054351477@linutronix.de> <20190919150808.521907403@linutronix.de> <CALCETrXB92rZqHMyhSULWVY3Q5=t9q4N9aZFCTn4k0DMNPJfMQ@mail.gmail.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-Content-Transfer-Encoding: 8bit
-In-Reply-To: <20191018163125.346e078d@gandalf.local.home>
+Content-Type: text/plain; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Steven Rostedt <rostedt@goodmis.org>
-Cc: tip-bot2 for Jiri Slaby <tip-bot2@linutronix.de>, linux-kernel@vger.kernel.org, linux-tip-commits@vger.kernel.org, Jiri Slaby <jslaby@suse.cz>, "H. Peter Anvin" <hpa@zytor.com>, Ingo Molnar <mingo@redhat.com>, Josh Poimboeuf <jpoimboe@redhat.com>, linux-arch@vger.kernel.org, Masami Hiramatsu <mhiramat@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, x86-ml <x86@kernel.org>, Ingo Molnar <mingo@kernel.org>, Borislav Petkov <bp@alien8.de>
-Message-ID: <20191019073424.uONbOmAaVnK4YXgZdHZDrsBxPGBYcQU9PKPCf7qU0Wk@z>
+To: Andy Lutomirski <luto@kernel.org>
+Cc: LKML <linux-kernel@vger.kernel.org>, X86 ML <x86@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Mark Rutland <mark.rutland@arm.com>, Marc Zyngier <maz@kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, kvm list <kvm@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>
+Message-ID: <20191020114910.XWjXOB4XWfKCvJonByls-XEwuf1kP1cBZGde0M2hVFk@z>
 
-On Fri, Oct 18, 2019 at 04:31:25PM -0400, Steven Rostedt wrote:
-> Still looks ugly ;-)
+On Fri, 20 Sep 2019, Andy Lutomirski wrote:
+> On Thu, Sep 19, 2019 at 8:09 AM Thomas Gleixner <tglx@linutronix.de> wrote:
+> > +#ifndef _TIF_AUDIT
+> > +# define _TIF_AUDIT                    (0)
+> > +#endif
+> 
+> I'm wondering if these should be __TIF (double-underscore) or
+> MAYBE_TIF_ or something to avoid errors where people do flags |=
+> TIF_WHATEVER and get surprised.
 
-See below. I think it's not so bad. It is only built-tested on 64-bit and
-objtool complains about something again:
+That's what exists today already. See arch/*/include/asm/threadinfo.h
+ 
+> > +/**
+> > + * syscall_enter_from_usermode - Check and handle work before invoking
+> > + *                              a syscall
+> > + * @regs:      Pointer to currents pt_regs
+> > + * @syscall:   The syscall number
+> > + *
+> > + * Invoked from architecture specific syscall entry code with interrupts
+> > + * enabled.
+> > + *
+> > + * Returns: The original or a modified syscall number
+> > + */
+> 
+> Maybe document that it can return -1 to skip the syscall and that, if
+> this happens, it may use syscall_set_error() or
+> syscall_set_return_value() first.  If neither of those is called and
+> -1 is returned, then the syscall will fail with ENOSYS.
 
-arch/x86/kernel/ftrace_64.o: warning: objtool: .entry.text+0x0: unreachable instruction
+Sure.
 
-but I think it is the better thing to do.
+Thanks,
 
-> I do the talks hoping someone else will finally sit down and write the
-> documentation!
-
-Well, you can put down the outline of the doc and flesh out section by
-section gradually. Besides, you have all the text in your slides so it
-is actually more or less a copy+paste.
-
----
-diff --git a/Documentation/asm-annotations.rst b/Documentation/asm-annotations.rst
-index 29ccd6e61fe5..f55c2bb74d00 100644
---- a/Documentation/asm-annotations.rst
-+++ b/Documentation/asm-annotations.rst
-@@ -117,9 +117,9 @@ This section covers ``SYM_FUNC_*`` and ``SYM_CODE_*`` enumerated above.
-   So in most cases, developers should write something like in the following
-   example, having some asm instructions in between the macros, of course::
- 
--    SYM_FUNC_START(function_hook)
-+    SYM_FUNC_START(memset)
-         ... asm insns ...
--    SYM_FUNC_END(function_hook)
-+    SYM_FUNC_END(memset)
- 
-   In fact, this kind of annotation corresponds to the now deprecated ``ENTRY``
-   and ``ENDPROC`` macros.
-diff --git a/arch/x86/kernel/ftrace_32.S b/arch/x86/kernel/ftrace_32.S
-index 8ed1f5d371f0..77be7e7e5e59 100644
---- a/arch/x86/kernel/ftrace_32.S
-+++ b/arch/x86/kernel/ftrace_32.S
-@@ -12,18 +12,16 @@
- #include <asm/frame.h>
- #include <asm/asm-offsets.h>
- 
--# define function_hook	__fentry__
--EXPORT_SYMBOL(__fentry__)
--
- #ifdef CONFIG_FRAME_POINTER
- # define MCOUNT_FRAME			1	/* using frame = true  */
- #else
- # define MCOUNT_FRAME			0	/* using frame = false */
- #endif
- 
--SYM_FUNC_START(function_hook)
-+SYM_CODE_START(__fentry__)
- 	ret
--SYM_FUNC_END(function_hook)
-+SYM_CODE_END(__fentry__)
-+EXPORT_SYMBOL(__fentry__)
- 
- SYM_CODE_START(ftrace_caller)
- 
-diff --git a/arch/x86/kernel/ftrace_64.S b/arch/x86/kernel/ftrace_64.S
-index 69c8d1b9119e..3029fe4f8547 100644
---- a/arch/x86/kernel/ftrace_64.S
-+++ b/arch/x86/kernel/ftrace_64.S
-@@ -14,9 +14,6 @@
- 	.code64
- 	.section .entry.text, "ax"
- 
--# define function_hook	__fentry__
--EXPORT_SYMBOL(__fentry__)
--
- #ifdef CONFIG_FRAME_POINTER
- /* Save parent and function stack frames (rip and rbp) */
- #  define MCOUNT_FRAME_SIZE	(8+16*2)
-@@ -132,9 +129,10 @@ EXPORT_SYMBOL(__fentry__)
- 
- #ifdef CONFIG_DYNAMIC_FTRACE
- 
--SYM_FUNC_START(function_hook)
-+SYM_CODE_START(__fentry__)
- 	retq
--SYM_FUNC_END(function_hook)
-+SYM_CODE_END(__fentry__)
-+EXPORT_SYMBOL(__fentry__)
- 
- SYM_FUNC_START(ftrace_caller)
- 	/* save_mcount_regs fills in first two parameters */
-@@ -248,7 +246,7 @@ SYM_FUNC_END(ftrace_regs_caller)
- 
- #else /* ! CONFIG_DYNAMIC_FTRACE */
- 
--SYM_FUNC_START(function_hook)
-+SYM_CODE_START(__fentry__)
- 	cmpq $ftrace_stub, ftrace_trace_function
- 	jnz trace
- 
-@@ -279,7 +277,8 @@ trace:
- 	restore_mcount_regs
- 
- 	jmp fgraph_trace
--SYM_FUNC_END(function_hook)
-+SYM_CODE_END(__fentry__)
-+EXPORT_SYMBOL(__fentry__)
- #endif /* CONFIG_DYNAMIC_FTRACE */
- 
- #ifdef CONFIG_FUNCTION_GRAPH_TRACER
-
--- 
-Regards/Gruss,
-    Boris.
-
-SUSE Software Solutions Germany GmbH, GF: Felix Imendörffer, HRB 36809, AG Nürnberg
+	tglx
