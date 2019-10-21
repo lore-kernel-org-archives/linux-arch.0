@@ -1,157 +1,88 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.skyhub.de ([5.9.137.197]:34312 "EHLO mail.skyhub.de"
+Received: from mail.kernel.org ([198.145.29.99]:60824 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1728096AbfJUOLT (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 21 Oct 2019 10:11:19 -0400
-Date: Mon, 21 Oct 2019 16:10:38 +0200
-From: Borislav Petkov <bp@alien8.de>
-Subject: [PATCH] x86/ftrace: Get rid of function_hook
-Message-ID: <20191021141038.GC7014@zn.tnic>
+        id S1727140AbfJUOdh (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 21 Oct 2019 10:33:37 -0400
+Date: Mon, 21 Oct 2019 10:33:33 -0400
+From: Steven Rostedt <rostedt@goodmis.org>
+Subject: Re: [PATCH] x86/ftrace: Get rid of function_hook
+Message-ID: <20191021103333.066d152c@gandalf.local.home>
+In-Reply-To: <20191021141038.GC7014@zn.tnic>
 References: <20191011115108.12392-22-jslaby@suse.cz>
- <157141622788.29376.4016565749507481510.tip-bot2@tip-bot2>
- <20191018124800.0a7006bb@gandalf.local.home>
- <20191018124956.764ac42e@gandalf.local.home>
- <20191018171354.GB20368@zn.tnic>
- <20191018133735.77e90e36@gandalf.local.home>
- <20191018194856.GC20368@zn.tnic>
- <20191018163125.346e078d@gandalf.local.home>
- <20191019073424.GA27353@zn.tnic>
+        <157141622788.29376.4016565749507481510.tip-bot2@tip-bot2>
+        <20191018124800.0a7006bb@gandalf.local.home>
+        <20191018124956.764ac42e@gandalf.local.home>
+        <20191018171354.GB20368@zn.tnic>
+        <20191018133735.77e90e36@gandalf.local.home>
+        <20191018194856.GC20368@zn.tnic>
+        <20191018163125.346e078d@gandalf.local.home>
+        <20191019073424.GA27353@zn.tnic>
+        <20191021141038.GC7014@zn.tnic>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-In-Reply-To: <20191019073424.GA27353@zn.tnic>
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Steven Rostedt <rostedt@goodmis.org>
+To: Borislav Petkov <bp@alien8.de>
 Cc: tip-bot2 for Jiri Slaby <tip-bot2@linutronix.de>, linux-kernel@vger.kernel.org, linux-tip-commits@vger.kernel.org, Jiri Slaby <jslaby@suse.cz>, "H. Peter Anvin" <hpa@zytor.com>, Ingo Molnar <mingo@redhat.com>, Josh Poimboeuf <jpoimboe@redhat.com>, linux-arch@vger.kernel.org, Masami Hiramatsu <mhiramat@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, x86-ml <x86@kernel.org>, Ingo Molnar <mingo@kernel.org>
-Message-ID: <20191021141038.Dqa4CSOhgZOhhXvpzgBHjFO-bewgWPWhMHU0-VbeNjU@z>
+Message-ID: <20191021143333.W91XxDzz9aenRo7eIBkEVrDADdNAfRQ_HpQxb2nM_Uo@z>
 
-From: Borislav Petkov <bp@suse.de>
+On Mon, 21 Oct 2019 16:10:38 +0200
+Borislav Petkov <bp@alien8.de> wrote:
 
-function_hook is used as a better name than the default __fentry__
-which is the profiling counter which gcc adds before every function's
-prologue. Thus, it is not called from C and cannot have the same
-semantics as a pure C function - it saves/restores regs so that a C
-function can be called.
+> From: Borislav Petkov <bp@suse.de>
+> 
+> function_hook is used as a better name than the default __fentry__
+> which is the profiling counter which gcc adds before every function's
+> prologue. Thus, it is not called from C and cannot have the same
+> semantics as a pure C function - it saves/restores regs so that a C
+> function can be called.
+> 
+> Drop the function_hook symbol and use __fentry__ directly for better
+> alignment with gcc's documentation.
+> 
+> Switch the marking to SYM_CODE_START/_END which is reserved for
+> non-standard, special functions.
 
-Drop the function_hook symbol and use __fentry__ directly for better
-alignment with gcc's documentation.
+I would break this into two patches. One that removes the function_hook
+name, and the other to convert to the SYM_CODE_START/END.
 
-Switch the marking to SYM_CODE_START/_END which is reserved for
-non-standard, special functions.
+For the removal of the function_hook patch, be sure to state some of
+the history for why the function_hook was created in the first place.
+Which would be something like this:
 
-Signed-off-by: Borislav Petkov <bp@suse.de>
-Cc: "H. Peter Anvin" <hpa@zytor.com>
-Cc: Ingo Molnar <mingo@redhat.com>
-Cc: Jiri Slaby <jslaby@suse.cz>
-Cc: Jonathan Corbet <corbet@lwn.net>
-Cc: Josh Poimboeuf <jpoimboe@redhat.com>
-Cc: linux-doc@vger.kernel.org
-Cc: linux-kernel@vger.kernel.org
-Cc: Peter Zijlstra <peterz@infradead.org>
-Cc: "Steven Rostedt (VMware)" <rostedt@goodmis.org>
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: x86@kernel.org
----
- Documentation/asm-annotations.rst |  4 ++--
- arch/x86/kernel/ftrace_32.S       |  8 +++-----
- arch/x86/kernel/ftrace_64.S       | 13 ++++++-------
- 3 files changed, 11 insertions(+), 14 deletions(-)
+"When ftrace first was introduced to the kernel, it used gcc's
+mcount profiling mechanism. The mcount mechanism would add a call to
+"mcount" at the start of every function but after the stack frame was
+set up. Later, in gcc 4.6, gcc introduced -mfentry, that would create a
+call to "__fentry__" instead of "mcount", before the stack frame was
+set up. In order to handle both cases, ftrace defined a macro
+"function_hook" that would be either "mcount" or "__fentry__" depending
+on which one was being used.
 
-diff --git a/Documentation/asm-annotations.rst b/Documentation/asm-annotations.rst
-index 29ccd6e61fe5..f55c2bb74d00 100644
---- a/Documentation/asm-annotations.rst
-+++ b/Documentation/asm-annotations.rst
-@@ -117,9 +117,9 @@ This section covers ``SYM_FUNC_*`` and ``SYM_CODE_*`` enumerated above.
-   So in most cases, developers should write something like in the following
-   example, having some asm instructions in between the macros, of course::
- 
--    SYM_FUNC_START(function_hook)
-+    SYM_FUNC_START(memset)
-         ... asm insns ...
--    SYM_FUNC_END(function_hook)
-+    SYM_FUNC_END(memset)
- 
-   In fact, this kind of annotation corresponds to the now deprecated ``ENTRY``
-   and ``ENDPROC`` macros.
-diff --git a/arch/x86/kernel/ftrace_32.S b/arch/x86/kernel/ftrace_32.S
-index 8ed1f5d371f0..77be7e7e5e59 100644
---- a/arch/x86/kernel/ftrace_32.S
-+++ b/arch/x86/kernel/ftrace_32.S
-@@ -12,18 +12,16 @@
- #include <asm/frame.h>
- #include <asm/asm-offsets.h>
- 
--# define function_hook	__fentry__
--EXPORT_SYMBOL(__fentry__)
--
- #ifdef CONFIG_FRAME_POINTER
- # define MCOUNT_FRAME			1	/* using frame = true  */
- #else
- # define MCOUNT_FRAME			0	/* using frame = false */
- #endif
- 
--SYM_FUNC_START(function_hook)
-+SYM_CODE_START(__fentry__)
- 	ret
--SYM_FUNC_END(function_hook)
-+SYM_CODE_END(__fentry__)
-+EXPORT_SYMBOL(__fentry__)
- 
- SYM_CODE_START(ftrace_caller)
- 
-diff --git a/arch/x86/kernel/ftrace_64.S b/arch/x86/kernel/ftrace_64.S
-index 69c8d1b9119e..3029fe4f8547 100644
---- a/arch/x86/kernel/ftrace_64.S
-+++ b/arch/x86/kernel/ftrace_64.S
-@@ -14,9 +14,6 @@
- 	.code64
- 	.section .entry.text, "ax"
- 
--# define function_hook	__fentry__
--EXPORT_SYMBOL(__fentry__)
--
- #ifdef CONFIG_FRAME_POINTER
- /* Save parent and function stack frames (rip and rbp) */
- #  define MCOUNT_FRAME_SIZE	(8+16*2)
-@@ -132,9 +129,10 @@ EXPORT_SYMBOL(__fentry__)
- 
- #ifdef CONFIG_DYNAMIC_FTRACE
- 
--SYM_FUNC_START(function_hook)
-+SYM_CODE_START(__fentry__)
- 	retq
--SYM_FUNC_END(function_hook)
-+SYM_CODE_END(__fentry__)
-+EXPORT_SYMBOL(__fentry__)
- 
- SYM_FUNC_START(ftrace_caller)
- 	/* save_mcount_regs fills in first two parameters */
-@@ -248,7 +246,7 @@ SYM_FUNC_END(ftrace_regs_caller)
- 
- #else /* ! CONFIG_DYNAMIC_FTRACE */
- 
--SYM_FUNC_START(function_hook)
-+SYM_CODE_START(__fentry__)
- 	cmpq $ftrace_stub, ftrace_trace_function
- 	jnz trace
- 
-@@ -279,7 +277,8 @@ trace:
- 	restore_mcount_regs
- 
- 	jmp fgraph_trace
--SYM_FUNC_END(function_hook)
-+SYM_CODE_END(__fentry__)
-+EXPORT_SYMBOL(__fentry__)
- #endif /* CONFIG_DYNAMIC_FTRACE */
- 
- #ifdef CONFIG_FUNCTION_GRAPH_TRACER
--- 
-2.21.0
+The Linux kernel no longer supports the "mcount" method, thus there's
+no reason to keep the "function_hook" define around. Simply use
+"__fentry__", as there is no ambiguity to the name anymore."
+
+-- Steve
 
 
--- 
-Regards/Gruss,
-    Boris.
-
-https://people.kernel.org/tglx/notes-about-netiquette
+> 
+> Signed-off-by: Borislav Petkov <bp@suse.de>
+> Cc: "H. Peter Anvin" <hpa@zytor.com>
+> Cc: Ingo Molnar <mingo@redhat.com>
+> Cc: Jiri Slaby <jslaby@suse.cz>
+> Cc: Jonathan Corbet <corbet@lwn.net>
+> Cc: Josh Poimboeuf <jpoimboe@redhat.com>
+> Cc: linux-doc@vger.kernel.org
+> Cc: linux-kernel@vger.kernel.org
+> Cc: Peter Zijlstra <peterz@infradead.org>
+> Cc: "Steven Rostedt (VMware)" <rostedt@goodmis.org>
+> Cc: Thomas Gleixner <tglx@linutronix.de>
+> Cc: x86@kernel.org
+> ---
+>  Documentation/asm-annotations.rst |  4 ++--
+>  arch/x86/kernel/ftrace_32.S       |  8 +++-----
+>  arch/x86/kernel/ftrace_64.S       | 13 ++++++-------
+>  3 files changed, 11 insertions(+), 14 deletions(-)
+> 
