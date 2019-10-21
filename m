@@ -1,88 +1,67 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:60824 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727140AbfJUOdh (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 21 Oct 2019 10:33:37 -0400
-Date: Mon, 21 Oct 2019 10:33:33 -0400
-From: Steven Rostedt <rostedt@goodmis.org>
-Subject: Re: [PATCH] x86/ftrace: Get rid of function_hook
-Message-ID: <20191021103333.066d152c@gandalf.local.home>
-In-Reply-To: <20191021141038.GC7014@zn.tnic>
-References: <20191011115108.12392-22-jslaby@suse.cz>
-        <157141622788.29376.4016565749507481510.tip-bot2@tip-bot2>
-        <20191018124800.0a7006bb@gandalf.local.home>
-        <20191018124956.764ac42e@gandalf.local.home>
-        <20191018171354.GB20368@zn.tnic>
-        <20191018133735.77e90e36@gandalf.local.home>
-        <20191018194856.GC20368@zn.tnic>
-        <20191018163125.346e078d@gandalf.local.home>
-        <20191019073424.GA27353@zn.tnic>
-        <20191021141038.GC7014@zn.tnic>
+Received: from mail-qt1-f195.google.com ([209.85.160.195]:38560 "EHLO
+        mail-qt1-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727945AbfJUPPa (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 21 Oct 2019 11:15:30 -0400
+Received: by mail-qt1-f195.google.com with SMTP id o25so8152609qtr.5
+        for <linux-arch@vger.kernel.org>; Mon, 21 Oct 2019 08:15:30 -0700 (PDT)
 MIME-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+References: <20191017141305.146193-1-elver@google.com> <20191017141305.146193-3-elver@google.com>
+In-Reply-To: <20191017141305.146193-3-elver@google.com>
+From: Dmitry Vyukov <dvyukov@google.com>
+Date: Mon, 21 Oct 2019 17:15:18 +0200
+Message-ID: <CACT4Y+b9VYz0wji085hvg3ZMMv6FR_WGc_NcEZETSOvME6hYOQ@mail.gmail.com>
+Subject: Re: [PATCH v2 2/8] objtool, kcsan: Add KCSAN runtime functions to whitelist
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Borislav Petkov <bp@alien8.de>
-Cc: tip-bot2 for Jiri Slaby <tip-bot2@linutronix.de>, linux-kernel@vger.kernel.org, linux-tip-commits@vger.kernel.org, Jiri Slaby <jslaby@suse.cz>, "H. Peter Anvin" <hpa@zytor.com>, Ingo Molnar <mingo@redhat.com>, Josh Poimboeuf <jpoimboe@redhat.com>, linux-arch@vger.kernel.org, Masami Hiramatsu <mhiramat@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, x86-ml <x86@kernel.org>, Ingo Molnar <mingo@kernel.org>
-Message-ID: <20191021143333.W91XxDzz9aenRo7eIBkEVrDADdNAfRQ_HpQxb2nM_Uo@z>
+To: Marco Elver <elver@google.com>
+Cc: LKMM Maintainers -- Akira Yokosawa <akiyks@gmail.com>, Alan Stern <stern@rowland.harvard.edu>, Alexander Potapenko <glider@google.com>, Andrea Parri <parri.andrea@gmail.com>, Andrey Konovalov <andreyknvl@google.com>, Andy Lutomirski <luto@kernel.org>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Arnd Bergmann <arnd@arndb.de>, Boqun Feng <boqun.feng@gmail.com>, Borislav Petkov <bp@alien8.de>, Daniel Axtens <dja@axtens.net>, Daniel Lustig <dlustig@nvidia.com>, Dave Hansen <dave.hansen@linux.intel.com>, David Howells <dhowells@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Ingo Molnar <mingo@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Joel Fernandes <joel@joelfernandes.org>, Jonathan Corbet <corbet@lwn.net>, Josh Poimboeuf <jpoimboe@redhat.com>, Luc Maranget <luc.maranget@inria.fr>, Mark Rutland <mark.rutland@arm.com>, Nicholas Piggin <npiggin@gmail.com>, "Paul E. McKenney" <paulmck@linux.ibm.com>, Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, Will Deacon <will@kernel.org>, kasan-dev <kasan-dev@googlegroups.com>, linux-arch <linux-arch@vger.kernel.org>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>, linux-efi@vger.kernel.org, "open list:KERNEL BUILD + fi..." <linux-kbuild@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Linux-MM <linux-mm@kvack.org>, the arch/x86 maintainers <x86@kernel.org>
+Message-ID: <20191021151518.ZnAMrpaMfU8rBI8yaWWeHuVf4hpndux6EH_CqF2E5eg@z>
 
-On Mon, 21 Oct 2019 16:10:38 +0200
-Borislav Petkov <bp@alien8.de> wrote:
-
-> From: Borislav Petkov <bp@suse.de>
-> 
-> function_hook is used as a better name than the default __fentry__
-> which is the profiling counter which gcc adds before every function's
-> prologue. Thus, it is not called from C and cannot have the same
-> semantics as a pure C function - it saves/restores regs so that a C
-> function can be called.
-> 
-> Drop the function_hook symbol and use __fentry__ directly for better
-> alignment with gcc's documentation.
-> 
-> Switch the marking to SYM_CODE_START/_END which is reserved for
-> non-standard, special functions.
-
-I would break this into two patches. One that removes the function_hook
-name, and the other to convert to the SYM_CODE_START/END.
-
-For the removal of the function_hook patch, be sure to state some of
-the history for why the function_hook was created in the first place.
-Which would be something like this:
-
-"When ftrace first was introduced to the kernel, it used gcc's
-mcount profiling mechanism. The mcount mechanism would add a call to
-"mcount" at the start of every function but after the stack frame was
-set up. Later, in gcc 4.6, gcc introduced -mfentry, that would create a
-call to "__fentry__" instead of "mcount", before the stack frame was
-set up. In order to handle both cases, ftrace defined a macro
-"function_hook" that would be either "mcount" or "__fentry__" depending
-on which one was being used.
-
-The Linux kernel no longer supports the "mcount" method, thus there's
-no reason to keep the "function_hook" define around. Simply use
-"__fentry__", as there is no ambiguity to the name anymore."
-
--- Steve
-
-
-> 
-> Signed-off-by: Borislav Petkov <bp@suse.de>
-> Cc: "H. Peter Anvin" <hpa@zytor.com>
-> Cc: Ingo Molnar <mingo@redhat.com>
-> Cc: Jiri Slaby <jslaby@suse.cz>
-> Cc: Jonathan Corbet <corbet@lwn.net>
-> Cc: Josh Poimboeuf <jpoimboe@redhat.com>
-> Cc: linux-doc@vger.kernel.org
-> Cc: linux-kernel@vger.kernel.org
-> Cc: Peter Zijlstra <peterz@infradead.org>
-> Cc: "Steven Rostedt (VMware)" <rostedt@goodmis.org>
-> Cc: Thomas Gleixner <tglx@linutronix.de>
-> Cc: x86@kernel.org
+On Thu, Oct 17, 2019 at 4:13 PM Marco Elver <elver@google.com> wrote:
+>
+> This patch adds KCSAN runtime functions to the objtool whitelist.
+>
+> Signed-off-by: Marco Elver <elver@google.com>
 > ---
->  Documentation/asm-annotations.rst |  4 ++--
->  arch/x86/kernel/ftrace_32.S       |  8 +++-----
->  arch/x86/kernel/ftrace_64.S       | 13 ++++++-------
->  3 files changed, 11 insertions(+), 14 deletions(-)
-> 
+>  tools/objtool/check.c | 17 +++++++++++++++++
+>  1 file changed, 17 insertions(+)
+>
+> diff --git a/tools/objtool/check.c b/tools/objtool/check.c
+> index 044c9a3cb247..d1acc867b43c 100644
+> --- a/tools/objtool/check.c
+> +++ b/tools/objtool/check.c
+> @@ -466,6 +466,23 @@ static const char *uaccess_safe_builtin[] = {
+>         "__asan_report_store4_noabort",
+>         "__asan_report_store8_noabort",
+>         "__asan_report_store16_noabort",
+> +       /* KCSAN */
+> +       "__kcsan_check_watchpoint",
+> +       "__kcsan_setup_watchpoint",
+> +       /* KCSAN/TSAN out-of-line */
+
+There is no TSAN in-line instrumentation.
+
+> +       "__tsan_func_entry",
+> +       "__tsan_func_exit",
+> +       "__tsan_read_range",
+
+There is also __tsan_write_range(), right? Isn't it safer to add it right away?
+
+> +       "__tsan_read1",
+> +       "__tsan_read2",
+> +       "__tsan_read4",
+> +       "__tsan_read8",
+> +       "__tsan_read16",
+> +       "__tsan_write1",
+> +       "__tsan_write2",
+> +       "__tsan_write4",
+> +       "__tsan_write8",
+> +       "__tsan_write16",
+>         /* KCOV */
+>         "write_comp_data",
+>         "__sanitizer_cov_trace_pc",
+> --
+> 2.23.0.866.gb869b98d4c-goog
+>
