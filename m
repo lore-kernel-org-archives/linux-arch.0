@@ -1,87 +1,50 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from [217.140.110.172] ([217.140.110.172]:51226 "EHLO foss.arm.com"
-        rhost-flags-FAIL-FAIL-OK-OK) by vger.kernel.org with ESMTP
-        id S2388512AbfJVMd6 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 22 Oct 2019 08:33:58 -0400
-Date: Tue, 22 Oct 2019 13:33:30 +0100
-From: Mark Rutland <mark.rutland@arm.com>
-Subject: Re: [PATCH v2 7/8] locking/atomics, kcsan: Add KCSAN instrumentation
-Message-ID: <20191022123329.GC11583@lakrids.cambridge.arm.com>
-References: <20191017141305.146193-1-elver@google.com>
- <20191017141305.146193-8-elver@google.com>
+Received: from mail.skyhub.de ([5.9.137.197]:34370 "EHLO mail.skyhub.de"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S2388090AbfJVM4X (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 22 Oct 2019 08:56:23 -0400
+Date: Tue, 22 Oct 2019 14:56:15 +0200
+From: Borislav Petkov <bp@alien8.de>
+Subject: Re: [PATCH] x86/ftrace: Get rid of function_hook
+Message-ID: <20191022125615.GE31700@zn.tnic>
+References: <157141622788.29376.4016565749507481510.tip-bot2@tip-bot2>
+ <20191018124800.0a7006bb@gandalf.local.home>
+ <20191018124956.764ac42e@gandalf.local.home>
+ <20191018171354.GB20368@zn.tnic>
+ <20191018133735.77e90e36@gandalf.local.home>
+ <20191018194856.GC20368@zn.tnic>
+ <20191018163125.346e078d@gandalf.local.home>
+ <20191019073424.GA27353@zn.tnic>
+ <20191021141038.GC7014@zn.tnic>
+ <f8dcb3dd-a8a6-5326-ea4a-bea2eb1c4651@suse.cz>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=utf-8
 Content-Disposition: inline
-In-Reply-To: <20191017141305.146193-8-elver@google.com>
+In-Reply-To: <f8dcb3dd-a8a6-5326-ea4a-bea2eb1c4651@suse.cz>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Marco Elver <elver@google.com>
-Cc: akiyks@gmail.com, stern@rowland.harvard.edu, glider@google.com, parri.andrea@gmail.com, andreyknvl@google.com, luto@kernel.org, ard.biesheuvel@linaro.org, arnd@arndb.de, boqun.feng@gmail.com, bp@alien8.de, dja@axtens.net, dlustig@nvidia.com, dave.hansen@linux.intel.com, dhowells@redhat.com, dvyukov@google.com, hpa@zytor.com, mingo@redhat.com, j.alglave@ucl.ac.uk, joel@joelfernandes.org, corbet@lwn.net, jpoimboe@redhat.com, luc.maranget@inria.fr, npiggin@gmail.com, paulmck@linux.ibm.com, peterz@infradead.org, tglx@linutronix.de, will@kernel.org, kasan-dev@googlegroups.com, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, linux-efi@vger.kernel.org, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, x86@kernel.org
-Message-ID: <20191022123330.kuOkxQkFjOkEkkvXp88VDe2W-q0o991inx5wd3Tyolc@z>
+To: Jiri Slaby <jslaby@suse.cz>
+Cc: Steven Rostedt <rostedt@goodmis.org>, tip-bot2 for Jiri Slaby <tip-bot2@linutronix.de>, linux-kernel@vger.kernel.org, linux-tip-commits@vger.kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Ingo Molnar <mingo@redhat.com>, Josh Poimboeuf <jpoimboe@redhat.com>, linux-arch@vger.kernel.org, Masami Hiramatsu <mhiramat@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, x86-ml <x86@kernel.org>, Ingo Molnar <mingo@kernel.org>
+Message-ID: <20191022125615.9uhdYX1cIK3Y7pBRL8GRuIZ4RjWwVcYXN3GrDzP-CeI@z>
 
-On Thu, Oct 17, 2019 at 04:13:04PM +0200, Marco Elver wrote:
-> This adds KCSAN instrumentation to atomic-instrumented.h.
+On Tue, Oct 22, 2019 at 01:38:42PM +0200, Jiri Slaby wrote:
+> On the top of Steven's comment:
+> Acked-by: Jiri Slaby <jslaby@suse.cz>
 > 
-> Signed-off-by: Marco Elver <elver@google.com>
-> ---
-> v2:
-> * Use kcsan_check{,_atomic}_{read,write} instead of
->   kcsan_check_{access,atomic}.
-> * Introduce __atomic_check_{read,write} [Suggested by Mark Rutland].
-> ---
->  include/asm-generic/atomic-instrumented.h | 393 +++++++++++-----------
->  scripts/atomic/gen-atomic-instrumented.sh |  17 +-
->  2 files changed, 218 insertions(+), 192 deletions(-)
+> Thanks for taking care of this while my tooth was causing me pain.
 
-The script changes and generated code look fine to me, so FWIW:
+Sure, np. Toothache is yuck.
 
-Reviewed-by: Mark Rutland <mark.rutland@arm.com>
+Ok, so after some back'n'forth yesterday on IRC, I think we agree on
+only renaming function_hook but keeping its SYM_FUNC* annotation so
+that ORC can unwind into it because we're fancy and we do all kinds of
+unwinding from interrupts in ftrace handlers and all that other fun. So
+it needs to know that that thing is a function.
 
-Thanks,
-Mark.
+So here it is as a proper patch as a reply to this message.
 
-> diff --git a/scripts/atomic/gen-atomic-instrumented.sh b/scripts/atomic/gen-atomic-instrumented.sh
-> index e09812372b17..8b8b2a6f8d68 100755
-> --- a/scripts/atomic/gen-atomic-instrumented.sh
-> +++ b/scripts/atomic/gen-atomic-instrumented.sh
-> @@ -20,7 +20,7 @@ gen_param_check()
->  	# We don't write to constant parameters
->  	[ ${type#c} != ${type} ] && rw="read"
->  
-> -	printf "\tkasan_check_${rw}(${name}, sizeof(*${name}));\n"
-> +	printf "\t__atomic_check_${rw}(${name}, sizeof(*${name}));\n"
->  }
->  
->  #gen_param_check(arg...)
-> @@ -107,7 +107,7 @@ cat <<EOF
->  #define ${xchg}(ptr, ...)						\\
->  ({									\\
->  	typeof(ptr) __ai_ptr = (ptr);					\\
-> -	kasan_check_write(__ai_ptr, ${mult}sizeof(*__ai_ptr));		\\
-> +	__atomic_check_write(__ai_ptr, ${mult}sizeof(*__ai_ptr));		\\
->  	arch_${xchg}(__ai_ptr, __VA_ARGS__);				\\
->  })
->  EOF
-> @@ -148,6 +148,19 @@ cat << EOF
->  
->  #include <linux/build_bug.h>
->  #include <linux/kasan-checks.h>
-> +#include <linux/kcsan-checks.h>
-> +
-> +static inline void __atomic_check_read(const volatile void *v, size_t size)
-> +{
-> +	kasan_check_read(v, size);
-> +	kcsan_check_atomic_read(v, size);
-> +}
-> +
-> +static inline void __atomic_check_write(const volatile void *v, size_t size)
-> +{
-> +	kasan_check_write(v, size);
-> +	kcsan_check_atomic_write(v, size);
-> +}
->  
->  EOF
->  
-> -- 
-> 2.23.0.866.gb869b98d4c-goog
-> 
+-- 
+Regards/Gruss,
+    Boris.
+
+https://people.kernel.org/tglx/notes-about-netiquette
