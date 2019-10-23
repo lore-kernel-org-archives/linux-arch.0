@@ -1,231 +1,55 @@
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: [patch V2 10/17] entry: Provide generic syscall entry functionality
-Date: Wed, 23 Oct 2019 14:27:15 +0200
-Message-ID: <20191023123118.596517860@linutronix.de>
-References: <20191023122705.198339581@linutronix.de>
+From: Dmitry Vyukov <dvyukov@google.com>
+Subject: Re: [PATCH v2 1/8] kcsan: Add Kernel Concurrency Sanitizer infrastructure
+Date: Wed, 23 Oct 2019 14:32:20 +0200
+Message-ID: <CACT4Y+bfVpu4017p64rc-BBAevs2Ok2otxUYpbwJGYkCbUNYVA@mail.gmail.com>
+References: <20191017141305.146193-1-elver@google.com> <20191017141305.146193-2-elver@google.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20191017141305.146193-2-elver@google.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: LKML <linux-kernel@vger.kernel.org>
-Cc: x86@kernel.org, Peter Zijlstra <peterz@infradead.org>, Andy Lutomirski <luto@kernel.org>, Will Deacon <will@kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, kvm@vger.kernel.org, linux-arch@vger.kernel.org, Mike Rapoport <rppt@linux.ibm.com>, Josh Poimboeuf <jpoimboe@redhat.com>, Miroslav Benes <mbenes@suse.cz>
+To: Marco Elver <elver@google.com>
+Cc: LKMM Maintainers -- Akira Yokosawa <akiyks@gmail.com>, Alan Stern <stern@rowland.harvard.edu>, Alexander Potapenko <glider@google.com>, Andrea Parri <parri.andrea@gmail.com>, Andrey Konovalov <andreyknvl@google.com>, Andy Lutomirski <luto@kernel.org>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Arnd Bergmann <arnd@arndb.de>, Boqun Feng <boqun.feng@gmail.com>, Borislav Petkov <bp@alien8.de>, Daniel Axtens <dja@axtens.net>, Daniel Lustig <dlustig@nvidia.com>, Dave Hansen <dave.hansen@linux.intel.com>, David Howells <dhowells@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Ingo Molnar <mingo@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Joel Fernandes <joel@joelfernandes.org>, Jonathan Corbet <corbet@lwn.net>, Josh Poimboeuf <jpoimboe@redhat.com>
 List-Id: linux-arch.vger.kernel.org
 
-From: Thomas Gleixner <tglx@linutronix.de>
+On Thu, Oct 17, 2019 at 4:13 PM Marco Elver <elver@google.com> wrote:
+>
+> Kernel Concurrency Sanitizer (KCSAN) is a dynamic data-race detector for
+> kernel space. KCSAN is a sampling watchpoint-based data-race detector.
+> See the included Documentation/dev-tools/kcsan.rst for more details.
 
-On syscall entry certain work needs to be done conditionally like tracing,
-seccomp etc. This code is duplicated in all architectures.
+I think there is some significant potential for improving performance.
+Currently we have __tsan_read8 do 2 function calls, push/pop, the
+second call is on unpredicted slow path.
+Then __kcsan_check_watchpoint and __kcsan_setup_watchpoint do full
+load of spills and lots of loads and checks that are not strictly
+necessary or can be avoided. Additionally __kcsan_setup_watchpoint
+calls non-inlined kcsan_is_atomic.
+I think we need to try to structure it around the fast path as follows:
+__tsan_read8 does no function calls and no spills on fast path for
+both checking existing watchpoints and checking if a new watchpoint
+need to be setup. If it discovers a race with existing watchpoint or
+needs to setup a new one, that should be non-inlined tail calls to the
+corresponding slow paths.
+In particular, global enable/disable can be replaced with
+occupying/freeing all watchpoints.
+Per cpu disabled check should be removed from fast path somehow, it's
+only used around debugging checks or during reporting. There should be
+a way to check it on a slower path.
+user_access_save should be removed from fast path, we needed it only
+if we setup a watchpoint. But I am not sure why we need it at all, we
+should not be reading any user addresses.
+should_watch should be restructured to decrement kcsan_skip first, if
+it hits zero (with unlikely hint), we go to slow path. The slow path
+resets kcsan_skip to something random. The comment mentions
+prandom_u32 is too expensive, do I understand it correctly that you
+tried to call it on the fast path? I would expect it is fine for slow
+path and will give us better randomness.
+At this point we should return from __tsan_read8.
 
-Provide a generic version.
-
-Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
----
-V2: Fix function documentation (Mike)
-    Add comment about return value (Andy)
----
- arch/Kconfig                 |    3 
- include/linux/entry-common.h |  132 +++++++++++++++++++++++++++++++++++++++++++
- kernel/Makefile              |    1 
- kernel/entry/Makefile        |    3 
- kernel/entry/common.c        |   33 ++++++++++
- 5 files changed, 172 insertions(+)
-
---- a/arch/Kconfig
-+++ b/arch/Kconfig
-@@ -27,6 +27,9 @@ config HAVE_IMA_KEXEC
- config HOTPLUG_SMT
- 	bool
- 
-+config GENERIC_ENTRY
-+       bool
-+
- config OPROFILE
- 	tristate "OProfile system profiling"
- 	depends on PROFILING
---- /dev/null
-+++ b/include/linux/entry-common.h
-@@ -0,0 +1,132 @@
-+/* SPDX-License-Identifier: GPL-2.0 */
-+#ifndef __LINUX_ENTRYCOMMON_H
-+#define __LINUX_ENTRYCOMMON_H
-+
-+#include <linux/tracehook.h>
-+#include <linux/syscalls.h>
-+#include <linux/seccomp.h>
-+#include <linux/sched.h>
-+#include <linux/audit.h>
-+
-+#include <asm/entry-common.h>
-+
-+/*
-+ * Define dummy _TIF work flags if not defined by the architecture or for
-+ * disabled functionality.
-+ */
-+#ifndef _TIF_SYSCALL_TRACE
-+# define _TIF_SYSCALL_TRACE		(0)
-+#endif
-+
-+#ifndef _TIF_SYSCALL_EMU
-+# define _TIF_SYSCALL_EMU		(0)
-+#endif
-+
-+#ifndef _TIF_SYSCALL_TRACEPOINT
-+# define _TIF_SYSCALL_TRACEPOINT	(0)
-+#endif
-+
-+#ifndef _TIF_SECCOMP
-+# define _TIF_SECCOMP			(0)
-+#endif
-+
-+#ifndef _TIF_AUDIT
-+# define _TIF_AUDIT			(0)
-+#endif
-+
-+/*
-+ * TIF flags handled in syscall_enter_from_usermode()
-+ */
-+#ifndef ARCH_SYSCALL_ENTER_WORK
-+# define ARCH_SYSCALL_ENTER_WORK	(0)
-+#endif
-+
-+#define SYSCALL_ENTER_WORK						\
-+	(_TIF_SYSCALL_TRACE | _TIF_SYSCALL_AUDIT | TIF_SECCOMP |	\
-+	 _TIF_SYSCALL_TRACEPOINT | _TIF_SYSCALL_EMU |			\
-+	 ARCH_SYSCALL_ENTER_WORK)
-+
-+/**
-+ * arch_syscall_enter_tracehook - Wrapper around tracehook_report_syscall_entry()
-+ * @regs:	Pointer to currents pt_regs
-+ *
-+ * Returns: 0 on success or an error code to skip the syscall.
-+ *
-+ * Defaults to tracehook_report_syscall_entry(). Can be replaced by
-+ * architecture specific code.
-+ *
-+ * Invoked from syscall_enter_from_usermode()
-+ */
-+static inline __must_check int arch_syscall_enter_tracehook(struct pt_regs *regs);
-+
-+#ifndef arch_syscall_enter_tracehook
-+static inline __must_check int arch_syscall_enter_tracehook(struct pt_regs *regs)
-+{
-+	return tracehook_report_syscall_entry(regs);
-+}
-+#endif
-+
-+/**
-+ * arch_syscall_enter_seccomp - Architecture specific seccomp invocation
-+ * @regs:	Pointer to currents pt_regs
-+ *
-+ * Returns: The original or a modified syscall number
-+ *
-+ * Invoked from syscall_enter_from_usermode(). Can be replaced by
-+ * architecture specific code.
-+ */
-+static inline long arch_syscall_enter_seccomp(struct pt_regs *regs);
-+
-+#ifndef arch_syscall_enter_seccomp
-+static inline long arch_syscall_enter_seccomp(struct pt_regs *regs)
-+{
-+	return secure_computing(NULL);
-+}
-+#endif
-+
-+/**
-+ * arch_syscall_enter_audit - Architecture specific audit invocation
-+ * @regs:	Pointer to currents pt_regs
-+ *
-+ * Invoked from syscall_enter_from_usermode(). Must be replaced by
-+ * architecture specific code if the architecture supports audit.
-+ */
-+static inline void arch_syscall_enter_audit(struct pt_regs *regs);
-+
-+#ifndef arch_syscall_enter_audit
-+static inline void arch_syscall_enter_audit(struct pt_regs *regs) { }
-+#endif
-+
-+/* Common syscall enter function */
-+long core_syscall_enter_from_usermode(struct pt_regs *regs, long syscall);
-+
-+/**
-+ * syscall_enter_from_usermode - Check and handle work before invoking
-+ *				 a syscall
-+ * @regs:	Pointer to currents pt_regs
-+ * @syscall:	The syscall number
-+ *
-+ * Invoked from architecture specific syscall entry code with interrupts
-+ * enabled.
-+ *
-+ * Returns: The original or a modified syscall number
-+ *
-+ * If the returned syscall number is -1 then the syscall should be
-+ * skipped. In this case the caller may invoke syscall_set_error() or
-+ * syscall_set_return_value() first.  If neither of those is called and -1
-+ * is returned, then the syscall will fail with ENOSYS.
-+ */
-+static inline long syscall_enter_from_usermode(struct pt_regs *regs,
-+					       long syscall)
-+{
-+	unsigned long ti_work = READ_ONCE(current_thread_info()->flags);
-+
-+	if (IS_ENABLED(CONFIG_DEBUG_ENTRY))
-+		BUG_ON(regs != task_pt_regs(current));
-+
-+	if (ti_work & SYSCALL_ENTER_WORK)
-+		syscall = core_syscall_enter_from_usermode(regs, syscall);
-+	return syscall;
-+}
-+
-+#endif
---- a/kernel/Makefile
-+++ b/kernel/Makefile
-@@ -43,6 +43,7 @@ obj-y += irq/
- obj-y += rcu/
- obj-y += livepatch/
- obj-y += dma/
-+obj-y += entry/
- 
- obj-$(CONFIG_CHECKPOINT_RESTORE) += kcmp.o
- obj-$(CONFIG_FREEZER) += freezer.o
---- /dev/null
-+++ b/kernel/entry/Makefile
-@@ -0,0 +1,3 @@
-+# SPDX-License-Identifier: GPL-2.0
-+
-+obj-$(CONFIG_GENERIC_ENTRY) += common.o
---- /dev/null
-+++ b/kernel/entry/common.c
-@@ -0,0 +1,33 @@
-+// SPDX-License-Identifier: GPL-2.0
-+
-+#include <linux/context_tracking.h>
-+#include <linux/entry-common.h>
-+
-+#define CREATE_TRACE_POINTS
-+#include <trace/events/syscalls.h>
-+
-+long core_syscall_enter_from_usermode(struct pt_regs *regs, long syscall)
-+{
-+	unsigned long ti_work = READ_ONCE(current_thread_info()->flags);
-+	unsigned long ret = 0;
-+
-+	if (ti_work & (_TIF_SYSCALL_TRACE | _TIF_SYSCALL_EMU)) {
-+		ret = arch_syscall_enter_tracehook(regs);
-+		if (ret || (ti_work & _TIF_SYSCALL_EMU))
-+			return -1L;
-+	}
-+
-+	/* Do seccomp after ptrace, to catch any tracer changes. */
-+	if (ti_work & _TIF_SECCOMP) {
-+		ret = arch_syscall_enter_seccomp(regs);
-+		if (ret == -1L)
-+			return ret;
-+	}
-+
-+	if (unlikely(test_thread_flag(TIF_SYSCALL_TRACEPOINT)))
-+		trace_sys_enter(regs, syscall);
-+
-+	arch_syscall_enter_audit(regs);
-+
-+	return ret ? : syscall;
-+}
+To measure performance we could either do some synthetic in-kernel
+benchmarks (e.g. writing something to the debugfs file, which will do
+a number of memory accesses in a loop). Or you may try these
+user-space benchmarks:
+https://github.com/google/sanitizers/blob/master/address-sanitizer/kernel_buildbot/slave/bench_readv.c
+https://github.com/google/sanitizers/blob/master/address-sanitizer/kernel_buildbot/slave/bench_pipes.c
