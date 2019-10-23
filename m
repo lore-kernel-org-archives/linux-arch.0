@@ -1,45 +1,26 @@
-From: Rolf Eike Beer <eike-kernel@sf-tec.de>
-Subject: Re: [PATCH 08/12] parisc: use pgtable-nopXd instead of 4level-fixup
-Date: Wed, 23 Oct 2019 12:20:29 +0200
-Message-ID: <70339cfc547e2fa0f6b98fefb1b1a9fa@sf-tec.de>
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Subject: Re: [PATCH 00/12] mm: remove __ARCH_HAS_4LEVEL_HACK
+Date: Wed, 23 Oct 2019 06:25:48 -0400
+Message-ID: <CAHk-=whd6wNfx2bq7BmN4ouZgt=NQ5pw+3uqPOTbvz_Qb3itFg@mail.gmail.com>
 References: <1571822941-29776-1-git-send-email-rppt@kernel.org>
- <1571822941-29776-9-git-send-email-rppt@kernel.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII;
- format=flowed
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1571822941-29776-9-git-send-email-rppt@kernel.org>
+In-Reply-To: <1571822941-29776-1-git-send-email-rppt@kernel.org>
 Sender: linux-kernel-owner@vger.kernel.org
 To: Mike Rapoport <rppt@kernel.org>
-Cc: linux-mm@kvack.org, Andrew Morton <akpm@linux-foundation.org>, Anton Ivanov <anton.ivanov@cambridgegreys.com>, Arnd Bergmann <arnd@arndb.de>, "David S. Miller" <davem@davemloft.net>, Geert Uytterhoeven <geert@linux-m68k.org>, Greentime Hu <green.hu@gmail.com>, Greg Ungerer <gerg@linux-m68k.org>, Helge Deller <deller@gmx.de>, "James E.J. Bottomley" <James.Bottomley@hansenpartnership.com>, Jeff Dike <jdike@addtoit.com>, "Kirill A. Shutemov" <kirill@shutemov.name>, Linus Torvalds <torvalds@linux-foundation.org>, Mark Salter <msalter@redhat.com>, Matt Turner <mattst88@gmail.com>, Michal Simek <monstr@monstr.eu>, Richard Weinberger <richard@nod.at>, Russell King <linux@armlinux.org.uk>, Sam Creasey <sammy@sammy.net>, Vincent Chen <deanbo422@gmail.>
+Cc: Linux-MM <linux-mm@kvack.org>, Andrew Morton <akpm@linux-foundation.org>, Anton Ivanov <anton.ivanov@cambridgegreys.com>, Arnd Bergmann <arnd@arndb.de>, "David S. Miller" <davem@davemloft.net>, Geert Uytterhoeven <geert@linux-m68k.org>, Greentime Hu <green.hu@gmail.com>, Greg Ungerer <gerg@linux-m68k.org>, Helge Deller <deller@gmx.de>, "James E.J. Bottomley" <James.Bottomley@hansenpartnership.com>, Jeff Dike <jdike@addtoit.com>, "Kirill A. Shutemov" <kirill@shutemov.name>, Mark Salter <msalter@redhat.com>, Matt Turner <mattst88@gmail.com>, Michal Simek <monstr@monstr.eu>, Richard Weinberger <richard@nod.at>, Russell King <linux@armlinux.org.uk>, Sam Creasey <sammy@sammy.net>, Vincent Chen <deanbo422@gmail.com>, Vineet Gupta <Vineet.Gu>
 List-Id: linux-arch.vger.kernel.org
 
-> diff --git a/arch/parisc/include/asm/page.h 
-> b/arch/parisc/include/asm/page.h
-> index 93caf17..1d339ee 100644
-> --- a/arch/parisc/include/asm/page.h
-> +++ b/arch/parisc/include/asm/page.h
-> @@ -42,48 +42,54 @@ typedef struct { unsigned long pte; } pte_t; /*
-> either 32 or 64bit */
-> 
->  /* NOTE: even on 64 bits, these entries are __u32 because we allocate
->   * the pmd and pgd in ZONE_DMA (i.e. under 4GB) */
-> -typedef struct { __u32 pmd; } pmd_t;
->  typedef struct { __u32 pgd; } pgd_t;
->  typedef struct { unsigned long pgprot; } pgprot_t;
-> 
-> -#define pte_val(x)	((x).pte)
-> -/* These do not work lvalues, so make sure we don't use them as such. 
-> */
-> +#if CONFIG_PGTABLE_LEVELS == 3
-> +typedef struct { __u32 pmd; } pmd_t;
-> +#define __pmd(x)	((pmd_t) { (x) } )
-> +/* pXd_val() do not work lvalues, so make sure we don't use them as 
-> such. */
+On Wed, Oct 23, 2019 at 5:29 AM Mike Rapoport <rppt@kernel.org> wrote:
+>
+> These patches convert several architectures to use page table folding and
+> remove __ARCH_HAS_4LEVEL_HACK along with include/asm-generic/4level-fixup.h.
 
-For me it sounds like there is something missing, maybe an "as" before 
-lvalues?
-And it was "These", so plural, and now it is singular, so do -> does?
+Thanks for doing this.
 
-Eike
+The patches look sane from a quick scan, and it's definitely the right
+thing to do. So ack on my part, but obviously testing the different
+architectures would be a really good thing...
+
+                Linus
