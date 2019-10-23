@@ -1,87 +1,56 @@
-From: Sean Christopherson <sean.j.christopherson@intel.com>
-Subject: Re: [patch V2 16/17] kvm/workpending: Provide infrastructure for
- work before entering a guest
-Date: Wed, 23 Oct 2019 07:55:41 -0700
-Message-ID: <20191023145541.GI329@linux.intel.com>
-References: <20191023122705.198339581@linutronix.de>
- <20191023123119.173422855@linutronix.de>
+From: Oleg Nesterov <oleg@redhat.com>
+Subject: Re: [PATCH v2 1/8] kcsan: Add Kernel Concurrency Sanitizer
+ infrastructure
+Date: Wed, 23 Oct 2019 18:24:32 +0200
+Message-ID: <20191023162432.GC14327@redhat.com>
+References: <20191017141305.146193-1-elver@google.com>
+ <20191017141305.146193-2-elver@google.com>
+ <20191022154858.GA13700@redhat.com>
+ <CANpmjNPUT2B3rWaa=5Ee2Xs3HHDaUiBGpG09Q4h9Gemhsp9KFw@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=WINDOWS-1252
+Content-Transfer-Encoding: quoted-printable
 Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <CANpmjNPUT2B3rWaa=5Ee2Xs3HHDaUiBGpG09Q4h9Gemhsp9KFw@mail.gmail.com>
 Content-Disposition: inline
-In-Reply-To: <20191023123119.173422855@linutronix.de>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Thomas Gleixner <tglx@linutronix.de>
-Cc: LKML <linux-kernel@vger.kernel.org>, x86@kernel.org, Peter Zijlstra <peterz@infradead.org>, Andy Lutomirski <luto@kernel.org>, Will Deacon <will@kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, kvm@vger.kernel.org, linux-arch@vger.kernel.org, Mike Rapoport <rppt@linux.ibm.com>, Josh Poimboeuf <jpoimboe@redhat.com>, Miroslav Benes <mbenes@suse.cz>
+To: Marco Elver <elver@google.com>
+Cc: LKMM Maintainers -- Akira Yokosawa <akiyks@gmail.com>, Alan Stern <stern@rowland.harvard.edu>, Alexander Potapenko <glider@google.com>, Andrea Parri <parri.andrea@gmail.com>, Andrey Konovalov <andreyknvl@google.com>, Andy Lutomirski <luto@kernel.org>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Arnd Bergmann <arnd@arndb.de>, Boqun Feng <boqun.feng@gmail.com>, Borislav Petkov <bp@alien8.de>, Daniel Axtens <dja@axtens.net>, Daniel Lustig <dlustig@nvidia.com>, Dave Hansen <dave.hansen@linux.intel.com>, David Howells <dhowells@redhat.com>, Dmitry Vyukov <dvyukov@google.com>, "H. Peter Anvin" <hpa@zytor.com>, Ingo Molnar <mingo@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Joel Fernandes <joel@joelfernandes.org>, Jonathan Corbet <corbet@lwn.net>
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Oct 23, 2019 at 02:27:21PM +0200, Thomas Gleixner wrote:
-> Entering a guest is similar to exiting to user space. Pending work like
-> handling signals, rescheduling, task work etc. needs to be handled before
-> that.
-> 
-> Provide generic infrastructure to avoid duplication of the same handling code
-> all over the place.
-> 
-> The kvm_exit code is split up into a KVM specific part and a generic
-> builtin core part to avoid multiple exports for the actual work
-> functions. The exit to guest mode handling is slightly different from the
-> exit to usermode handling, e.g. vs. rseq, so a separate function is used.
-> 
-> Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
-> ---
-> --- a/include/linux/kvm_host.h
-> +++ b/include/linux/kvm_host.h
-> +/**
-> + * exit_to_guestmode - Check and handle pending work which needs to be
-> + *		       handled before returning to guest mode
+On 10/22, Marco Elver wrote:
+>
+> On Tue, 22 Oct 2019 at 17:49, Oleg Nesterov <oleg@redhat.com> wrote:
+> >
+> > Just for example. Suppose that task->state =3D TASK_UNINTERRUPTIBLE, th=
+is task
+> > does __set_current_state(TASK_RUNNING), another CPU does wake_up_proces=
+s(task)
+> > which does the same UNINTERRUPTIBLE -> RUNNING transition.
+> >
+> > Looks like, this is the "data race" according to kcsan?
+>
+> Yes, they are "data races". They are probably not "race conditions" thoug=
+h.
+>
+> This is a fair distinction to make, and we never claimed to find "race
+> conditions" only
 
-Nit: I'd prefer "transferring" or "transitioning" over "returning".  KVM
-could bail out of the very first run of a guest in order to handle work,
-in which case the kernel isn't technically returning to guest mode as it's
-never been there.  The comment might trip up VMX folks that understand the
-difference between VMLAUNCH and VMRESUME, but not the purpose of this code.
+I see, thanks, just wanted to be sure...
 
-> + * @kvm:	Pointer to the guest instance
-> + * @vcpu:	Pointer to current's VCPU data
-> + *
-> + * Returns: 0 or an error code
-> + */
-> +static inline int exit_to_guestmode(struct kvm *kvm, struct kvm_vcpu *vcpu)
-> +{
-> +	unsigned long ti_work = READ_ONCE(current_thread_info()->flags);
-> +	int r = 0;
-> +
-> +	if (unlikely(ti_work & EXIT_TO_GUESTMODE_WORK)) {
-> +		if (ti_work & _TIF_SIGPENDING) {
-> +			vcpu->run->exit_reason = KVM_EXIT_INTR;
-> +			vcpu->stat.signal_exits++;
-> +			return -EINTR;
-> +		}
-> +		core_exit_to_guestmode_work(ti_work);
-> +		r = arch_exit_to_guestmode_work(kvm, vcpu, ti_work);
-> +	}
-> +	return r;
-> +}
-> +
-> +/**
-> + * _exit_to_guestmode_work_pending - Check if work is pending which needs to be
-> + *				     handled before returning to guest mode
+> KCSAN's goal is to find *data races* according to the LKMM.  Some data
+> races are race conditions (usually the more interesting bugs) -- but
+> not *all* data races are race conditions. Those are what are usually
+> referred to as "benign", but they can still become bugs on the wrong
+> arch/compiler combination. Hence, the need to annotate these accesses
+> with READ_ONCE, WRITE_ONCE or use atomic_t:
 
-Same pedantic comment on "returning".
+Well, if I see READ_ONCE() in the code I want to understand why it was
+used. Is it really needed for correctness or we want to shut up kcsan?
+Say, why should wait_event(wq, *ptr) use READ_ONCE()? Nevermind, please
+forget.
 
-> + *
-> + * Returns: True if work pending, False otherwise.
-> + */
-> +static inline bool exit_to_guestmode_work_pending(void)
-> +{
-> +	unsigned long ti_work = READ_ONCE(current_thread_info()->flags);
-> +
-> +	lockdep_assert_irqs_disabled();
-> +
-> +	return !!(ti_work & EXIT_TO_GUESTMODE_WORK);
-> +
-> +}
-> +#endif /* CONFIG_KVM_EXIT_TO_GUEST_WORK */
-> +
->  #endif
+Btw, why __kcsan_check_watchpoint() does user_access_save() before
+try_consume_watchpoint() ?
+
+Oleg.
