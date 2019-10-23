@@ -1,74 +1,56 @@
 From: Thomas Gleixner <tglx@linutronix.de>
-Subject: [patch V2 00/17] entry: Provide generic implementation for host and
- guest entry/exit work
-Date: Wed, 23 Oct 2019 14:27:05 +0200
-Message-ID: <20191023122705.198339581@linutronix.de>
+Subject: [patch V2 07/17] x86/entry/64: Remove redundant interrupt disable
+Date: Wed, 23 Oct 2019 14:27:12 +0200
+Message-ID: <20191023123118.296135499@linutronix.de>
+References: <20191023122705.198339581@linutronix.de>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
 Return-path: <linux-kernel-owner@vger.kernel.org>
 Sender: linux-kernel-owner@vger.kernel.org
 To: LKML <linux-kernel@vger.kernel.org>
 Cc: x86@kernel.org, Peter Zijlstra <peterz@infradead.org>, Andy Lutomirski <luto@kernel.org>, Will Deacon <will@kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, kvm@vger.kernel.org, linux-arch@vger.kernel.org, Mike Rapoport <rppt@linux.ibm.com>, Josh Poimboeuf <jpoimboe@redhat.com>, Miroslav Benes <mbenes@suse.cz>
 List-Id: linux-arch.vger.kernel.org
 
-When working on a way to move out the posix cpu timer expiry out of the
-timer interrupt context, I noticed that KVM is not handling pending task
-work before entering a guest. A quick hack was to add that to the x86 KVM
-handling loop. The discussion ended with a request to make this a generic
-infrastructure possible with also moving the per arch implementations of
-the enter from and return to user space handling generic.
+Now that the trap handlers return with interrupts disabled, the
+unconditional disabling of interrupts in the low level entry code can be
+removed along with the trace calls.
 
-  https://lore.kernel.org/r/89E42BCC-47A8-458B-B06A-D6A20D20512C@amacapital.net
+Add debug checks where appropriate.
 
-The series implements the syscall enter/exit and the general exit to
-userspace work handling along with the pre guest enter functionality.
-
-Changes vs. RFC version:
-
-  - Dropped ARM64 conversion as requested by ARM64 folks
-
-  - Addressed various review comments (Peter, Andy, Mike, Paolo, Josh,
-    Miroslav)
-
-  - Picked up, fixed and completed Peter's patch which makes interrupt
-    enable/disable symmetric in trap handlers
-
-  - Completed the removal of irq disabling / irq tracing from low level
-    ASM code
-
-  - Moved KVM specific parts of the enter guest mode handling to KVM
-    (Paolo)
-
-The series is also available from git:
-
-   git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip.git WIP/core.entry
-
-Thanks,
-
-        tglx
-
-RFC version: https://lore.kernel.org/r/20190919150314.054351477@linutronix.de
-
+Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
 ---
- /Makefile                             |    3 
- arch/Kconfig                          |    3 
- arch/x86/Kconfig                      |    1 
- arch/x86/entry/calling.h              |   12 +
- arch/x86/entry/common.c               |  264 ++------------------------------
- arch/x86/entry/entry_32.S             |   41 ----
- arch/x86/entry/entry_64.S             |   32 ---
- arch/x86/entry/entry_64_compat.S      |   30 ---
- arch/x86/include/asm/irqflags.h       |    8 
- arch/x86/include/asm/paravirt.h       |    9 -
- arch/x86/include/asm/signal.h         |    1 
- arch/x86/include/asm/thread_info.h    |    9 -
- arch/x86/kernel/signal.c              |    2 
- arch/x86/kernel/traps.c               |   33 ++--
- arch/x86/kvm/x86.c                    |   17 --
- arch/x86/mm/fault.c                   |    7 
- b/arch/x86/include/asm/entry-common.h |  104 ++++++++++++
- b/arch/x86/kvm/Kconfig                |    1 
- b/include/linux/entry-common.h        |  280 ++++++++++++++++++++++++++++++++++
- b/kernel/entry/common.c               |  184 ++++++++++++++++++++++
- include/linux/kvm_host.h              |   64 +++++++
- kernel/Makefile                       |    1 
- virt/kvm/Kconfig                      |    3 
- 23 files changed, 735 insertions(+), 374 deletions(-)
+ arch/x86/entry/entry_64.S |    9 +++------
+ 1 file changed, 3 insertions(+), 6 deletions(-)
+
+--- a/arch/x86/entry/entry_64.S
++++ b/arch/x86/entry/entry_64.S
+@@ -595,8 +595,7 @@ END(common_spurious)
+ 	call	do_IRQ	/* rdi points to pt_regs */
+ 	/* 0(%rsp): old RSP */
+ ret_from_intr:
+-	DISABLE_INTERRUPTS(CLBR_ANY)
+-	TRACE_IRQS_OFF
++	DEBUG_ENTRY_ASSERT_IRQS_OFF
+ 
+ 	LEAVE_IRQ_STACK
+ 
+@@ -1252,8 +1251,7 @@ END(paranoid_entry)
+  */
+ ENTRY(paranoid_exit)
+ 	UNWIND_HINT_REGS
+-	DISABLE_INTERRUPTS(CLBR_ANY)
+-	TRACE_IRQS_OFF_DEBUG
++	DEBUG_ENTRY_ASSERT_IRQS_OFF
+ 	testl	%ebx, %ebx			/* swapgs needed? */
+ 	jnz	.Lparanoid_exit_no_swapgs
+ 	TRACE_IRQS_IRETQ
+@@ -1356,8 +1354,7 @@ END(error_entry)
+ 
+ ENTRY(error_exit)
+ 	UNWIND_HINT_REGS
+-	DISABLE_INTERRUPTS(CLBR_ANY)
+-	TRACE_IRQS_OFF
++	DEBUG_ENTRY_ASSERT_IRQS_OFF
+ 	testb	$3, CS(%rsp)
+ 	jz	retint_kernel
+ 	jmp	retint_user
