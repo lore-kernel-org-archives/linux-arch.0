@@ -1,25 +1,25 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qk1-f194.google.com ([209.85.222.194]:35506 "EHLO
-        mail-qk1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S2391006AbfJWLU0 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 23 Oct 2019 07:20:26 -0400
-Received: by mail-qk1-f194.google.com with SMTP id w2so19365069qkf.2
-        for <linux-arch@vger.kernel.org>; Wed, 23 Oct 2019 04:20:24 -0700 (PDT)
+Received: from mail-qt1-f195.google.com ([209.85.160.195]:37857 "EHLO
+        mail-qt1-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1732349AbfJWMF0 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 23 Oct 2019 08:05:26 -0400
+Received: by mail-qt1-f195.google.com with SMTP id g50so17705462qtb.4
+        for <linux-arch@vger.kernel.org>; Wed, 23 Oct 2019 05:05:24 -0700 (PDT)
 MIME-Version: 1.0
 References: <20191017141305.146193-1-elver@google.com> <20191017141305.146193-2-elver@google.com>
 In-Reply-To: <20191017141305.146193-2-elver@google.com>
 From: Dmitry Vyukov <dvyukov@google.com>
-Date: Wed, 23 Oct 2019 13:20:10 +0200
-Message-ID: <CACT4Y+bBMF2BtCD_+V87Le9Tpxt7eGeAjav3djL7QAjgSy_Uew@mail.gmail.com>
+Date: Wed, 23 Oct 2019 14:05:09 +0200
+Message-ID: <CACT4Y+aM1TagxwBioLJx7UPJ7n3g4mb+do0h5NuVAZ9bmjQ5+w@mail.gmail.com>
 Subject: Re: [PATCH v2 1/8] kcsan: Add Kernel Concurrency Sanitizer infrastructure
 Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Marco Elver <elver@google.com>
 Cc: LKMM Maintainers -- Akira Yokosawa <akiyks@gmail.com>, Alan Stern <stern@rowland.harvard.edu>, Alexander Potapenko <glider@google.com>, Andrea Parri <parri.andrea@gmail.com>, Andrey Konovalov <andreyknvl@google.com>, Andy Lutomirski <luto@kernel.org>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Arnd Bergmann <arnd@arndb.de>, Boqun Feng <boqun.feng@gmail.com>, Borislav Petkov <bp@alien8.de>, Daniel Axtens <dja@axtens.net>, Daniel Lustig <dlustig@nvidia.com>, Dave Hansen <dave.hansen@linux.intel.com>, David Howells <dhowells@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Ingo Molnar <mingo@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Joel Fernandes <joel@joelfernandes.org>, Jonathan Corbet <corbet@lwn.net>, Josh Poimboeuf <jpoimboe@redhat.com>, Luc Maranget <luc.maranget@inria.fr>, Mark Rutland <mark.rutland@arm.com>, Nicholas Piggin <npiggin@gmail.com>, "Paul E. McKenney" <paulmck@linux.ibm.com>, Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, Will Deacon <will@kernel.org>, kasan-dev <kasan-dev@googlegroups.com>, linux-arch <linux-arch@vger.kernel.org>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>, linux-efi@vger.kernel.org, "open list:KERNEL BUILD + fi..." <linux-kbuild@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Linux-MM <linux-mm@kvack.org>, the arch/x86 maintainers <x86@kernel.org>
-Message-ID: <20191023112010.ewAaUJb-cZMWhgJ9ituQdEzq-kaxV9xC-D7pAj-kPaA@z>
+Message-ID: <20191023120509.fGBEr-TzHGa5jR7-o_s03Weqcxym6wYtsRIwBSmK_6w@z>
 
-)On Thu, Oct 17, 2019 at 4:13 PM Marco Elver <elver@google.com> wrote:
+On Thu, Oct 17, 2019 at 4:13 PM Marco Elver <elver@google.com> wrote:
 >
 > Kernel Concurrency Sanitizer (KCSAN) is a dynamic data-race detector for
 > kernel space. KCSAN is a sampling watchpoint-based data-race detector.
@@ -1104,6 +1104,9 @@ Message-ID: <20191023112010.ewAaUJb-cZMWhgJ9ituQdEzq-kaxV9xC-D7pAj-kPaA@z>
 > +               return true;
 > +
 > +       flags = user_access_save();
+
+Why do we need user_access_save?
+
 > +       if (!try_consume_watchpoint(watchpoint, encoded_watchpoint)) {
 > +               /*
 > +                * The other thread may not print any diagnostics, as it has
@@ -1137,6 +1140,9 @@ Message-ID: <20191023112010.ewAaUJb-cZMWhgJ9ituQdEzq-kaxV9xC-D7pAj-kPaA@z>
 > +       } expect_value;
 > +       bool is_expected = true;
 > +       unsigned long ua_flags = user_access_save();
+
+Why do we need user_access_save?
+
 > +       unsigned long irq_flags;
 > +
 > +       if (!should_watch(ptr))
@@ -1623,11 +1629,6 @@ Message-ID: <20191023112010.ewAaUJb-cZMWhgJ9ituQdEzq-kaxV9xC-D7pAj-kPaA@z>
 > +       {                                                                      \
 > +               __kcsan_check_read(ptr, size);                                 \
 > +       }                                                                      \
-
-I think here we need to define the unaligned version as __alias of this one.
-Will both make code shorter, reduce icache pressure and eliminate the
-need to whitelist them in objtool (currently they are not).
-
 > +       EXPORT_SYMBOL(__tsan_read##size);                                      \
 > +       void __tsan_write##size(void *ptr)                                     \
 > +       {                                                                      \
