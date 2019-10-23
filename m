@@ -1,105 +1,45 @@
-Return-Path: <tglx@linutronix.de>
-Message-ID: <20191023123118.191230255@linutronix.de>
-Date: Wed, 23 Oct 2019 14:27:11 +0200
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: [patch V2 06/17] x86/entry/32: Remove redundant interrupt disable
+Return-Path: <peterz@infradead.org>
+Date: Wed, 23 Oct 2019 16:37:34 +0200
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [patch V2 00/17] entry: Provide generic implementation for host
+ and guest entry/exit work
+Message-ID: <20191023143734.GJ1800@hirez.programming.kicks-ass.net>
 References: <20191023122705.198339581@linutronix.de>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-To: LKML <linux-kernel@vger.kernel.org>
-Cc: x86@kernel.org, Peter Zijlstra <peterz@infradead.org>, Andy Lutomirski <luto@kernel.org>, Will Deacon <will@kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, kvm@vger.kernel.org, linux-arch@vger.kernel.org, Mike Rapoport <rppt@linux.ibm.com>, Josh Poimboeuf <jpoimboe@redhat.com>, Miroslav Benes <mbenes@suse.cz>
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20191023122705.198339581@linutronix.de>
+To: Thomas Gleixner <tglx@linutronix.de>
+Cc: LKML <linux-kernel@vger.kernel.org>, x86@kernel.org, Andy Lutomirski <luto@kernel.org>, Will Deacon <will@kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, kvm@vger.kernel.org, linux-arch@vger.kernel.org, Mike Rapoport <rppt@linux.ibm.com>, Josh Poimboeuf <jpoimboe@redhat.com>, Miroslav Benes <mbenes@suse.cz>
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20191023122711.P-FDB0NEwhjL6OavCvNPIPHNR-X8MzsBoO22g4PdQ8E@z>
+Message-ID: <20191023143734.8hvma0RqqbFfh6enfkXdjq0-n-a5yimAy88SGwgZ1bY@z>
 
-Now that the trap handlers return with interrupts disabled, the
-unconditional disabling of interrupts in the low level entry code can be
-removed along with the trace calls and the misnomed preempt_stop macro.
-As a consequence ret_from_exception and ret_from_intr collapse.
+On Wed, Oct 23, 2019 at 02:27:05PM +0200, Thomas Gleixner wrote:
+>  /Makefile                             |    3 
+>  arch/Kconfig                          |    3 
+>  arch/x86/Kconfig                      |    1 
+>  arch/x86/entry/calling.h              |   12 +
+>  arch/x86/entry/common.c               |  264 ++------------------------------
+>  arch/x86/entry/entry_32.S             |   41 ----
+>  arch/x86/entry/entry_64.S             |   32 ---
+>  arch/x86/entry/entry_64_compat.S      |   30 ---
+>  arch/x86/include/asm/irqflags.h       |    8 
+>  arch/x86/include/asm/paravirt.h       |    9 -
+>  arch/x86/include/asm/signal.h         |    1 
+>  arch/x86/include/asm/thread_info.h    |    9 -
+>  arch/x86/kernel/signal.c              |    2 
+>  arch/x86/kernel/traps.c               |   33 ++--
+>  arch/x86/kvm/x86.c                    |   17 --
+>  arch/x86/mm/fault.c                   |    7 
+>  b/arch/x86/include/asm/entry-common.h |  104 ++++++++++++
+>  b/arch/x86/kvm/Kconfig                |    1 
+>  b/include/linux/entry-common.h        |  280 ++++++++++++++++++++++++++++++++++
+>  b/kernel/entry/common.c               |  184 ++++++++++++++++++++++
+>  include/linux/kvm_host.h              |   64 +++++++
+>  kernel/Makefile                       |    1 
+>  virt/kvm/Kconfig                      |    3 
+>  23 files changed, 735 insertions(+), 374 deletions(-)
 
-Add a debug check to verify that interrupts are disabled depending on
-CONFIG_DEBUG_ENTRY.
+This looks really nice; esp. the cleaned up interrupt state.
 
-Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
----
- arch/x86/entry/entry_32.S |   21 ++++++---------------
- 1 file changed, 6 insertions(+), 15 deletions(-)
-
---- a/arch/x86/entry/entry_32.S
-+++ b/arch/x86/entry/entry_32.S
-@@ -63,12 +63,6 @@
-  * enough to patch inline, increasing performance.
-  */
- 
--#ifdef CONFIG_PREEMPTION
--# define preempt_stop(clobbers)	DISABLE_INTERRUPTS(clobbers); TRACE_IRQS_OFF
--#else
--# define preempt_stop(clobbers)
--#endif
--
- .macro TRACE_IRQS_IRET
- #ifdef CONFIG_TRACE_IRQFLAGS
- 	testl	$X86_EFLAGS_IF, PT_EFLAGS(%esp)     # interrupts off?
-@@ -809,8 +803,7 @@ END(ret_from_fork)
- 	# userspace resumption stub bypassing syscall exit tracing
- 	ALIGN
- ret_from_exception:
--	preempt_stop(CLBR_ANY)
--ret_from_intr:
-+	DEBUG_ENTRY_ASSERT_IRQS_OFF
- #ifdef CONFIG_VM86
- 	movl	PT_EFLAGS(%esp), %eax		# mix EFLAGS and CS
- 	movb	PT_CS(%esp), %al
-@@ -825,8 +818,6 @@ END(ret_from_fork)
- 	cmpl	$USER_RPL, %eax
- 	jb	restore_all_kernel		# not returning to v8086 or userspace
- 
--	DISABLE_INTERRUPTS(CLBR_ANY)
--	TRACE_IRQS_OFF
- 	movl	%esp, %eax
- 	call	prepare_exit_to_usermode
- 	jmp	restore_all
-@@ -1084,7 +1075,7 @@ ENTRY(entry_INT80_32)
- 
- restore_all_kernel:
- #ifdef CONFIG_PREEMPTION
--	DISABLE_INTERRUPTS(CLBR_ANY)
-+	/* Interrupts are disabled and debug-checked */
- 	cmpl	$0, PER_CPU_VAR(__preempt_count)
- 	jnz	.Lno_preempt
- 	testl	$X86_EFLAGS_IF, PT_EFLAGS(%esp)	# interrupts off (exception path) ?
-@@ -1189,7 +1180,7 @@ END(spurious_entries_start)
- 	TRACE_IRQS_OFF
- 	movl	%esp, %eax
- 	call	smp_spurious_interrupt
--	jmp	ret_from_intr
-+	jmp	ret_from_exception
- ENDPROC(common_spurious)
- #endif
- 
-@@ -1207,7 +1198,7 @@ ENDPROC(common_spurious)
- 	TRACE_IRQS_OFF
- 	movl	%esp, %eax
- 	call	do_IRQ
--	jmp	ret_from_intr
-+	jmp	ret_from_exception
- ENDPROC(common_interrupt)
- 
- #define BUILD_INTERRUPT3(name, nr, fn)			\
-@@ -1219,7 +1210,7 @@ ENTRY(name)						\
- 	TRACE_IRQS_OFF					\
- 	movl	%esp, %eax;				\
- 	call	fn;					\
--	jmp	ret_from_intr;				\
-+	jmp	ret_from_exception;				\
- ENDPROC(name)
- 
- #define BUILD_INTERRUPT(name, nr)		\
-@@ -1366,7 +1357,7 @@ ENTRY(xen_do_upcall)
- #ifndef CONFIG_PREEMPTION
- 	call	xen_maybe_preempt_hcall
- #endif
--	jmp	ret_from_intr
-+	jmp	ret_from_exception
- ENDPROC(xen_hypervisor_callback)
- 
- /*
+Acked-by: Peter Zijlstra (Intel) <peterz@infradead.org>
