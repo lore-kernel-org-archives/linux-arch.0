@@ -1,40 +1,64 @@
-Return-Path: <jpoimboe@redhat.com>
-Date: Wed, 23 Oct 2019 17:01:09 -0500
-From: Josh Poimboeuf <jpoimboe@redhat.com>
-Subject: Re: [patch V2 05/17] x86/traps: Make interrupt enable/disable
- symmetric in C code
-Message-ID: <20191023220109.jmbrluyjxenblcij@treble>
-References: <20191023122705.198339581@linutronix.de>
- <20191023123118.084086112@linutronix.de>
-MIME-Version: 1.0
-In-Reply-To: <20191023123118.084086112@linutronix.de>
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: quoted-printable
-Content-Disposition: inline
-To: Thomas Gleixner <tglx@linutronix.de>
-Cc: LKML <linux-kernel@vger.kernel.org>, x86@kernel.org, Peter Zijlstra <peterz@infradead.org>, Andy Lutomirski <luto@kernel.org>, Will Deacon <will@kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, kvm@vger.kernel.org, linux-arch@vger.kernel.org, Mike Rapoport <rppt@linux.ibm.com>, Miroslav Benes <mbenes@suse.cz>
+Return-Path: <rppt@kernel.org>
+From: Mike Rapoport <rppt@kernel.org>
+Subject: [PATCH 10/12] um: remove unused pxx_offset_proc() and addr_pte() functions
+Date: Wed, 23 Oct 2019 12:28:59 +0300
+Message-ID: <1571822941-29776-11-git-send-email-rppt@kernel.org>
+In-Reply-To: <1571822941-29776-1-git-send-email-rppt@kernel.org>
+References: <1571822941-29776-1-git-send-email-rppt@kernel.org>
+To: linux-mm@kvack.org
+Cc: Andrew Morton <akpm@linux-foundation.org>, Anton Ivanov <anton.ivanov@cambridgegreys.com>, Arnd Bergmann <arnd@arndb.de>, "David S. Miller" <davem@davemloft.net>, Geert Uytterhoeven <geert@linux-m68k.org>, Greentime Hu <green.hu@gmail.com>, Greg Ungerer <gerg@linux-m68k.org>, Helge Deller <deller@gmx.de>, "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>, Jeff Dike <jdike@addtoit.com>, "Kirill A. Shutemov" <kirill@shutemov.name>, Linus Torvalds <torvalds@linux-foundation.org>, Mark Salter <msalter@redhat.com>, Matt Turner <mattst88@gmail.com>, Michal Simek <monstr@monstr.eu>, Richard Weinberger <richard@nod.at>, Russell King <linux@armlinux.org.uk>, Sam Creasey <sammy@sammy.net>, Vincent Chen <deanbo422@gmail.com>, Vineet Gupta <Vineet.Gupta1@synopsys.com>, Mike Rapoport <rppt@kernel.org>, linux-alpha@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, linux-kernel@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-parisc@vger.kernel.org, linux-um@lists.infradead.org, sparclinux@vger.kernel.org, Mike Rapoport <rppt@linux.ibm.com>
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20191023220109.mIAQe5g1-ZbD84icxQi4-uTjcSYJkhkOpsxKKPf0XKc@z>
+Message-ID: <20191023092859.NuZt73KcBFhijwCJoPAJr601mo-RR6Tp1TVbZNRtO8U@z>
 
-On Wed, Oct 23, 2019 at 02:27:10PM +0200, Thomas Gleixner wrote:
-> --- a/arch/x86/mm/fault.c
-> +++ b/arch/x86/mm/fault.c
-> @@ -1500,10 +1500,13 @@ static noinline void
->  =09=09return;
-> =20
->  =09/* Was the fault on kernel-controlled part of the address space? */
-> -=09if (unlikely(fault_in_kernel_space(address)))
-> +=09if (unlikely(fault_in_kernel_space(address))) {
->  =09=09do_kern_addr_fault(regs, hw_error_code, address);
-> -=09else
-> +=09} else {
->  =09=09do_user_addr_fault(regs, hw_error_code, address);
-> +=09=09if (regs->flags & X86_EFLAGS_IF)
-> +=09=09=09local_irq_disable();
-> +=09}
+From: Mike Rapoport <rppt@linux.ibm.com>
 
-The corresponding irq enable is in do_user_addr_fault(), why not do the
-disable there?
+The pxx_offset_proc() and addr_pte() functions are never used.
+Remove them.
 
---=20
-Josh
+Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
+---
+ arch/um/kernel/tlb.c | 29 -----------------------------
+ 1 file changed, 29 deletions(-)
+
+diff --git a/arch/um/kernel/tlb.c b/arch/um/kernel/tlb.c
+index b7eaf65..8425a22 100644
+--- a/arch/um/kernel/tlb.c
++++ b/arch/um/kernel/tlb.c
+@@ -490,35 +490,6 @@ void flush_tlb_page(struct vm_area_struct *vma, unsigned long address)
+ 	force_sig(SIGKILL);
+ }
+ 
+-pgd_t *pgd_offset_proc(struct mm_struct *mm, unsigned long address)
+-{
+-	return pgd_offset(mm, address);
+-}
+-
+-pud_t *pud_offset_proc(pgd_t *pgd, unsigned long address)
+-{
+-	return pud_offset(pgd, address);
+-}
+-
+-pmd_t *pmd_offset_proc(pud_t *pud, unsigned long address)
+-{
+-	return pmd_offset(pud, address);
+-}
+-
+-pte_t *pte_offset_proc(pmd_t *pmd, unsigned long address)
+-{
+-	return pte_offset_kernel(pmd, address);
+-}
+-
+-pte_t *addr_pte(struct task_struct *task, unsigned long addr)
+-{
+-	pgd_t *pgd = pgd_offset(task->mm, addr);
+-	pud_t *pud = pud_offset(pgd, addr);
+-	pmd_t *pmd = pmd_offset(pud, addr);
+-
+-	return pte_offset_map(pmd, addr);
+-}
+-
+ void flush_tlb_all(void)
+ {
+ 	/*
+-- 
+2.7.4
