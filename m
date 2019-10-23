@@ -1,85 +1,112 @@
-From: Marco Elver <elver@google.com>
-Subject: Re: [PATCH v2 7/8] locking/atomics, kcsan: Add KCSAN instrumentation
-Date: Tue, 22 Oct 2019 20:17:43 +0200
-Message-ID: <CANpmjNOhoyDMFMUz6by3hLtX7aBFk4pXTmzjmWYiq2+z+R5fAQ@mail.gmail.com>
-References: <20191017141305.146193-1-elver@google.com> <20191017141305.146193-8-elver@google.com>
- <20191022123329.GC11583@lakrids.cambridge.arm.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+From: Mike Rapoport <rppt@kernel.org>
+Subject: [PATCH 00/12] mm: remove __ARCH_HAS_4LEVEL_HACK
+Date: Wed, 23 Oct 2019 12:28:49 +0300
+Message-ID: <1571822941-29776-1-git-send-email-rppt@kernel.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20191022123329.GC11583@lakrids.cambridge.arm.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Mark Rutland <mark.rutland@arm.com>
-Cc: LKMM Maintainers -- Akira Yokosawa <akiyks@gmail.com>, Alan Stern <stern@rowland.harvard.edu>, Alexander Potapenko <glider@google.com>, Andrea Parri <parri.andrea@gmail.com>, Andrey Konovalov <andreyknvl@google.com>, Andy Lutomirski <luto@kernel.org>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Arnd Bergmann <arnd@arndb.de>, Boqun Feng <boqun.feng@gmail.com>, Borislav Petkov <bp@alien8.de>, Daniel Axtens <dja@axtens.net>, Daniel Lustig <dlustig@nvidia.com>, Dave Hansen <dave.hansen@linux.intel.com>, David Howells <dhowells@redhat.com>, Dmitry Vyukov <dvyukov@google.com>, "H. Peter Anvin" <hpa@zytor.com>, Ingo Molnar <mingo@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Joel Fernandes <joel@joelfernandes.org>, Jonathan Corbet <corbet@lwn.net>
+To: linux-mm@kvack.org
+Cc: Andrew Morton <akpm@linux-foundation.org>, Anton Ivanov <anton.ivanov@cambridgegreys.com>, Arnd Bergmann <arnd@arndb.de>, "David S. Miller" <davem@davemloft.net>, Geert Uytterhoeven <geert@linux-m68k.org>, Greentime Hu <green.hu@gmail.com>, Greg Ungerer <gerg@linux-m68k.org>, Helge Deller <deller@gmx.de>, "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>, Jeff Dike <jdike@addtoit.com>, "Kirill A. Shutemov" <kirill@shutemov.name>, Linus Torvalds <torvalds@linux-foundation.org>, Mark Salter <msalter@redhat.com>, Matt Turner <mattst88@gmail.com>, Michal Simek <monstr@monstr.eu>, Richard Weinberger <richard@nod.at>, Russell King <linux@armlinux.org.uk>, Sam Creasey <sammy@sammy.net>, Vincent Chen <deanbo422@gmail.com>, Vineet
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, 22 Oct 2019 at 14:33, Mark Rutland <mark.rutland@arm.com> wrote:
->
-> On Thu, Oct 17, 2019 at 04:13:04PM +0200, Marco Elver wrote:
-> > This adds KCSAN instrumentation to atomic-instrumented.h.
-> >
-> > Signed-off-by: Marco Elver <elver@google.com>
-> > ---
-> > v2:
-> > * Use kcsan_check{,_atomic}_{read,write} instead of
-> >   kcsan_check_{access,atomic}.
-> > * Introduce __atomic_check_{read,write} [Suggested by Mark Rutland].
-> > ---
-> >  include/asm-generic/atomic-instrumented.h | 393 +++++++++++-----------
-> >  scripts/atomic/gen-atomic-instrumented.sh |  17 +-
-> >  2 files changed, 218 insertions(+), 192 deletions(-)
->
-> The script changes and generated code look fine to me, so FWIW:
->
-> Reviewed-by: Mark Rutland <mark.rutland@arm.com>
+From: Mike Rapoport <rppt@linux.ibm.com>
 
-Great, thank you Mark!
+Hi,
 
-> Thanks,
-> Mark.
->
-> > diff --git a/scripts/atomic/gen-atomic-instrumented.sh b/scripts/atomic/gen-atomic-instrumented.sh
-> > index e09812372b17..8b8b2a6f8d68 100755
-> > --- a/scripts/atomic/gen-atomic-instrumented.sh
-> > +++ b/scripts/atomic/gen-atomic-instrumented.sh
-> > @@ -20,7 +20,7 @@ gen_param_check()
-> >       # We don't write to constant parameters
-> >       [ ${type#c} != ${type} ] && rw="read"
-> >
-> > -     printf "\tkasan_check_${rw}(${name}, sizeof(*${name}));\n"
-> > +     printf "\t__atomic_check_${rw}(${name}, sizeof(*${name}));\n"
-> >  }
-> >
-> >  #gen_param_check(arg...)
-> > @@ -107,7 +107,7 @@ cat <<EOF
-> >  #define ${xchg}(ptr, ...)                                            \\
-> >  ({                                                                   \\
-> >       typeof(ptr) __ai_ptr = (ptr);                                   \\
-> > -     kasan_check_write(__ai_ptr, ${mult}sizeof(*__ai_ptr));          \\
-> > +     __atomic_check_write(__ai_ptr, ${mult}sizeof(*__ai_ptr));               \\
-> >       arch_${xchg}(__ai_ptr, __VA_ARGS__);                            \\
-> >  })
-> >  EOF
-> > @@ -148,6 +148,19 @@ cat << EOF
-> >
-> >  #include <linux/build_bug.h>
-> >  #include <linux/kasan-checks.h>
-> > +#include <linux/kcsan-checks.h>
-> > +
-> > +static inline void __atomic_check_read(const volatile void *v, size_t size)
-> > +{
-> > +     kasan_check_read(v, size);
-> > +     kcsan_check_atomic_read(v, size);
-> > +}
-> > +
-> > +static inline void __atomic_check_write(const volatile void *v, size_t size)
-> > +{
-> > +     kasan_check_write(v, size);
-> > +     kcsan_check_atomic_write(v, size);
-> > +}
-> >
-> >  EOF
-> >
-> > --
-> > 2.23.0.866.gb869b98d4c-goog
-> >
+These patches convert several architectures to use page table folding and
+remove __ARCH_HAS_4LEVEL_HACK along with include/asm-generic/4level-fixup.h.
+
+For the nommu configurations the folding is already implemented by the
+generic code so the only change was to use the appropriate header file.
+
+As for the rest, the changes are mostly about mechanical replacement of
+pgd accessors with pud/pmd ones and the addition of higher levels to page
+table traversals.
+
+With Vineet's patches from "elide extraneous generated code for folded
+p4d/pud/pmd" series [1] there is a small shrink of the kernel size of about
+-0.01% for the defconfig build. 
+
+The set is boot-tested on UML, qemu-{alpha,sparc} and aranym.
+
+[1] https://lore.kernel.org/lkml/20191016162400.14796-1-vgupta@synopsys.com
+
+Mike Rapoport (12):
+  alpha: use pgtable-nop4d instead of 4level-fixup
+  arm: nommu: use pgtable-nopud instead of 4level-fixup
+  c6x: use pgtable-nopud instead of 4level-fixup
+  m68k: nommu: use pgtable-nopud instead of 4level-fixup
+  m68k: mm: use pgtable-nopXd instead of 4level-fixup
+  microblaze: use pgtable-nopmd instead of 4level-fixup
+  nds32: use pgtable-nopmd instead of 4level-fixup
+  parisc: use pgtable-nopXd instead of 4level-fixup
+  sparc32: use pgtable-nopud instead of 4level-fixup
+  um: remove unused pxx_offset_proc() and addr_pte() functions
+  um: add support for folded p4d page tables
+  mm: remove __ARCH_HAS_4LEVEL_HACK and include/asm-generic/4level-fixup.h
+
+ arch/alpha/include/asm/pgalloc.h         |  4 +-
+ arch/alpha/include/asm/pgtable.h         | 24 ++++-----
+ arch/alpha/mm/init.c                     | 12 +++--
+ arch/arm/include/asm/pgtable.h           |  2 +-
+ arch/c6x/include/asm/pgtable.h           |  2 +-
+ arch/m68k/include/asm/mcf_pgalloc.h      |  7 ---
+ arch/m68k/include/asm/mcf_pgtable.h      | 28 ++++-------
+ arch/m68k/include/asm/mmu_context.h      | 12 ++++-
+ arch/m68k/include/asm/motorola_pgalloc.h |  4 +-
+ arch/m68k/include/asm/motorola_pgtable.h | 32 +++++++-----
+ arch/m68k/include/asm/page.h             |  9 ++--
+ arch/m68k/include/asm/pgtable_mm.h       | 11 +++--
+ arch/m68k/include/asm/pgtable_no.h       |  2 +-
+ arch/m68k/include/asm/sun3_pgalloc.h     |  5 --
+ arch/m68k/include/asm/sun3_pgtable.h     | 18 -------
+ arch/m68k/kernel/sys_m68k.c              | 10 +++-
+ arch/m68k/mm/init.c                      |  6 ++-
+ arch/m68k/mm/kmap.c                      | 36 ++++++++++----
+ arch/m68k/mm/mcfmmu.c                    | 16 +++++-
+ arch/m68k/mm/motorola.c                  | 17 ++++---
+ arch/microblaze/include/asm/page.h       |  3 --
+ arch/microblaze/include/asm/pgalloc.h    | 16 ------
+ arch/microblaze/include/asm/pgtable.h    | 32 +-----------
+ arch/microblaze/kernel/signal.c          | 10 ++--
+ arch/microblaze/mm/init.c                |  7 ++-
+ arch/microblaze/mm/pgtable.c             | 13 ++++-
+ arch/nds32/include/asm/page.h            |  3 --
+ arch/nds32/include/asm/pgalloc.h         |  3 --
+ arch/nds32/include/asm/pgtable.h         | 12 +----
+ arch/nds32/include/asm/tlb.h             |  1 -
+ arch/nds32/kernel/pm.c                   |  4 +-
+ arch/nds32/mm/fault.c                    | 16 ++++--
+ arch/nds32/mm/init.c                     | 11 +++--
+ arch/nds32/mm/mm-nds32.c                 |  6 ++-
+ arch/nds32/mm/proc.c                     | 26 ++++++----
+ arch/parisc/include/asm/page.h           | 30 ++++++-----
+ arch/parisc/include/asm/pgalloc.h        | 41 ++++++---------
+ arch/parisc/include/asm/pgtable.h        | 52 ++++++++++---------
+ arch/parisc/include/asm/tlb.h            |  2 +
+ arch/parisc/kernel/cache.c               | 13 +++--
+ arch/parisc/kernel/pci-dma.c             |  9 +++-
+ arch/parisc/mm/fixmap.c                  | 10 ++--
+ arch/sparc/include/asm/pgalloc_32.h      |  6 +--
+ arch/sparc/include/asm/pgtable_32.h      | 28 +++++------
+ arch/sparc/mm/fault_32.c                 | 11 ++++-
+ arch/sparc/mm/highmem.c                  |  6 ++-
+ arch/sparc/mm/io-unit.c                  |  6 ++-
+ arch/sparc/mm/iommu.c                    |  6 ++-
+ arch/sparc/mm/srmmu.c                    | 51 ++++++++++++++-----
+ arch/um/include/asm/pgtable-2level.h     |  1 -
+ arch/um/include/asm/pgtable-3level.h     |  1 -
+ arch/um/include/asm/pgtable.h            |  3 ++
+ arch/um/kernel/mem.c                     | 25 +++++++++-
+ arch/um/kernel/skas/mmu.c                | 12 ++++-
+ arch/um/kernel/skas/uaccess.c            |  7 ++-
+ arch/um/kernel/tlb.c                     | 85 +++++++++++++++++++-------------
+ arch/um/kernel/trap.c                    |  4 +-
+ include/asm-generic/4level-fixup.h       | 40 ---------------
+ include/asm-generic/tlb.h                |  2 -
+ include/linux/mm.h                       | 10 ++--
+ mm/memory.c                              |  8 ---
+ 61 files changed, 481 insertions(+), 408 deletions(-)
+ delete mode 100644 include/asm-generic/4level-fixup.h
+
+-- 
+2.7.4
