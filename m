@@ -1,40 +1,41 @@
 From: Thomas Gleixner <tglx@linutronix.de>
-Subject: Re: [patch V2 14/17] entry: Provide generic exit to usermode
- functionality
-Date: Thu, 24 Oct 2019 01:20:50 +0200 (CEST)
-Message-ID: <alpine.DEB.2.21.1910240119090.1852@nanos.tec.linutronix.de>
-References: <20191023122705.198339581@linutronix.de> <20191023123118.978254388@linutronix.de> <CALCETrVArVWH2-ew4+WVxhX-3kzrspv2x8yw3RH3PyVGeAMudA@mail.gmail.com>
+Subject: Re: [patch V2 05/17] x86/traps: Make interrupt enable/disable
+ symmetric in C code
+Date: Thu, 24 Oct 2019 01:23:59 +0200 (CEST)
+Message-ID: <alpine.DEB.2.21.1910240121460.1852@nanos.tec.linutronix.de>
+References: <20191023122705.198339581@linutronix.de> <20191023123118.084086112@linutronix.de> <20191023220109.jmbrluyjxenblcij@treble>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=US-ASCII
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <CALCETrVArVWH2-ew4+WVxhX-3kzrspv2x8yw3RH3PyVGeAMudA@mail.gmail.com>
+In-Reply-To: <20191023220109.jmbrluyjxenblcij@treble>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Andy Lutomirski <luto@kernel.org>
-Cc: LKML <linux-kernel@vger.kernel.org>, X86 ML <x86@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Will Deacon <will@kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, kvm list <kvm@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Mike Rapoport <rppt@linux.ibm.com>, Josh Poimboeuf <jpoimboe@redhat.com>, Miroslav Benes <mbenes@suse.cz>
+To: Josh Poimboeuf <jpoimboe@redhat.com>
+Cc: LKML <linux-kernel@vger.kernel.org>, x86@kernel.org, Peter Zijlstra <peterz@infradead.org>, Andy Lutomirski <luto@kernel.org>, Will Deacon <will@kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, kvm@vger.kernel.org, linux-arch@vger.kernel.org, Mike Rapoport <rppt@linux.ibm.com>, Miroslav Benes <mbenes@suse.cz>
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, 23 Oct 2019, Andy Lutomirski wrote:
+On Wed, 23 Oct 2019, Josh Poimboeuf wrote:
+> On Wed, Oct 23, 2019 at 02:27:10PM +0200, Thomas Gleixner wrote:
+> > --- a/arch/x86/mm/fault.c
+> > +++ b/arch/x86/mm/fault.c
+> > @@ -1500,10 +1500,13 @@ static noinline void
+> >  		return;
+> >  
+> >  	/* Was the fault on kernel-controlled part of the address space? */
+> > -	if (unlikely(fault_in_kernel_space(address)))
+> > +	if (unlikely(fault_in_kernel_space(address))) {
+> >  		do_kern_addr_fault(regs, hw_error_code, address);
+> > -	else
+> > +	} else {
+> >  		do_user_addr_fault(regs, hw_error_code, address);
+> > +		if (regs->flags & X86_EFLAGS_IF)
+> > +			local_irq_disable();
+> > +	}
+> 
+> The corresponding irq enable is in do_user_addr_fault(), why not do the
+> disable there?
 
-> On Wed, Oct 23, 2019 at 5:31 AM Thomas Gleixner <tglx@linutronix.de> wrote:
-> >
-> > From: Thomas Gleixner <tglx@linutronix.de>
-> >
-> > Provide a generic facility to handle the exit to usermode work. That's
-> > aimed to replace the pointlessly different copies in each architecture.
-> 
-> 
-> >  /**
-> > + * local_irq_enable_exit_to_user - Exit to user variant of local_irq_enable()
-> > + * @ti_work:   Cached TIF flags gathered with interrupts disabled
-> > + *
-> > + * Defaults to local_irq_enable(). Can be supplied by architecture specific
-> > + * code.
-> 
-> What did you have in mind here?
-
-Look at the previous version which had the ARM64 conversion. ARM64 does
-magic different stuff vs. local_irq_enable() in the exit path. It's not
-using the regular one. I'm happy to ditch that :)
+Yeah, will do. Was just as lazy as Peter and did not want to touch the
+gazillion of returns. :)
 
 Thanks,
 
