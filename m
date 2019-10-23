@@ -1,69 +1,91 @@
-Return-Path: <sean.j.christopherson@intel.com>
-Date: Wed, 23 Oct 2019 07:17:59 -0700
-From: Sean Christopherson <sean.j.christopherson@intel.com>
-Subject: Re: [patch V2 06/17] x86/entry/32: Remove redundant interrupt disable
-Message-ID: <20191023141759.GF329@linux.intel.com>
+Return-Path: <tglx@linutronix.de>
+Message-ID: <20191023123118.871105130@linutronix.de>
+Date: Wed, 23 Oct 2019 14:27:18 +0200
+From: Thomas Gleixner <tglx@linutronix.de>
+Subject: [patch V2 13/17] x86/entry: Use generic syscall exit functionality
 References: <20191023122705.198339581@linutronix.de>
- <20191023123118.191230255@linutronix.de>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20191023123118.191230255@linutronix.de>
-To: Thomas Gleixner <tglx@linutronix.de>
-Cc: LKML <linux-kernel@vger.kernel.org>, x86@kernel.org, Peter Zijlstra <peterz@infradead.org>, Andy Lutomirski <luto@kernel.org>, Will Deacon <will@kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, kvm@vger.kernel.org, linux-arch@vger.kernel.org, Mike Rapoport <rppt@linux.ibm.com>, Josh Poimboeuf <jpoimboe@redhat.com>, Miroslav Benes <mbenes@suse.cz>
+Content-Type: text/plain; charset=UTF-8
+To: LKML <linux-kernel@vger.kernel.org>
+Cc: x86@kernel.org, Peter Zijlstra <peterz@infradead.org>, Andy Lutomirski <luto@kernel.org>, Will Deacon <will@kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, kvm@vger.kernel.org, linux-arch@vger.kernel.org, Mike Rapoport <rppt@linux.ibm.com>, Josh Poimboeuf <jpoimboe@redhat.com>, Miroslav Benes <mbenes@suse.cz>
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20191023141759.dwiwRAhRorMWrFvPiqejN_irX95NJlFHU3l3kiG5Cq8@z>
+Message-ID: <20191023122718.6gXDN2TB4RBxBZsxMB6BomXH6vlkTF_AI7Ok7a-Shy8@z>
 
-On Wed, Oct 23, 2019 at 02:27:11PM +0200, Thomas Gleixner wrote:
-> Now that the trap handlers return with interrupts disabled, the
-> unconditional disabling of interrupts in the low level entry code can be
-> removed along with the trace calls and the misnomed preempt_stop macro.
-> As a consequence ret_from_exception and ret_from_intr collapse.
-> 
-> Add a debug check to verify that interrupts are disabled depending on
-> CONFIG_DEBUG_ENTRY.
-> 
-> Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
-> ---
+Replace the x86 variant with the generic version.
 
-One nit below.
+Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
+---
+ arch/x86/entry/common.c             |   44 ------------------------------------
+ arch/x86/include/asm/entry-common.h |    2 +
+ 2 files changed, 3 insertions(+), 43 deletions(-)
 
-Reviewed-by: Sean Christopherson <sean.j.christopherson@intel.com>
-
->  arch/x86/entry/entry_32.S |   21 ++++++---------------
->  1 file changed, 6 insertions(+), 15 deletions(-)
-> 
-> --- a/arch/x86/entry/entry_32.S
-> +++ b/arch/x86/entry/entry_32.S
-> @@ -1207,7 +1198,7 @@ ENDPROC(common_spurious)
->  	TRACE_IRQS_OFF
->  	movl	%esp, %eax
->  	call	do_IRQ
-> -	jmp	ret_from_intr
-> +	jmp	ret_from_exception
->  ENDPROC(common_interrupt)
->  
->  #define BUILD_INTERRUPT3(name, nr, fn)			\
-> @@ -1219,7 +1210,7 @@ ENTRY(name)						\
->  	TRACE_IRQS_OFF					\
->  	movl	%esp, %eax;				\
->  	call	fn;					\
-> -	jmp	ret_from_intr;				\
-> +	jmp	ret_from_exception;				\
-
-This backslash is now unaligned.
-
->  ENDPROC(name)
->  
->  #define BUILD_INTERRUPT(name, nr)		\
-> @@ -1366,7 +1357,7 @@ ENTRY(xen_do_upcall)
->  #ifndef CONFIG_PREEMPTION
->  	call	xen_maybe_preempt_hcall
->  #endif
-> -	jmp	ret_from_intr
-> +	jmp	ret_from_exception
->  ENDPROC(xen_hypervisor_callback)
->  
->  /*
-> 
-> 
+--- a/arch/x86/entry/common.c
++++ b/arch/x86/entry/common.c
+@@ -142,55 +142,13 @@ static void exit_to_usermode_loop(struct
+ 	trace_hardirqs_on();
+ }
+ 
+-#define SYSCALL_EXIT_WORK_FLAGS				\
+-	(_TIF_SYSCALL_TRACE | _TIF_SYSCALL_AUDIT |	\
+-	 _TIF_SINGLESTEP | _TIF_SYSCALL_TRACEPOINT)
+-
+-static void syscall_slow_exit_work(struct pt_regs *regs, u32 cached_flags)
+-{
+-	bool step;
+-
+-	audit_syscall_exit(regs);
+-
+-	if (cached_flags & _TIF_SYSCALL_TRACEPOINT)
+-		trace_sys_exit(regs, regs->ax);
+-
+-	/*
+-	 * If TIF_SYSCALL_EMU is set, we only get here because of
+-	 * TIF_SINGLESTEP (i.e. this is PTRACE_SYSEMU_SINGLESTEP).
+-	 * We already reported this syscall instruction in
+-	 * syscall_trace_enter().
+-	 */
+-	step = unlikely(
+-		(cached_flags & (_TIF_SINGLESTEP | _TIF_SYSCALL_EMU))
+-		== _TIF_SINGLESTEP);
+-	if (step || cached_flags & _TIF_SYSCALL_TRACE)
+-		tracehook_report_syscall_exit(regs, step);
+-}
+-
+ /*
+  * Called with IRQs on and fully valid regs.  Returns with IRQs off in a
+  * state such that we can immediately switch to user mode.
+  */
+ __visible inline void syscall_return_slowpath(struct pt_regs *regs)
+ {
+-	struct thread_info *ti = current_thread_info();
+-	u32 cached_flags = READ_ONCE(ti->flags);
+-
+-	CT_WARN_ON(ct_state() != CONTEXT_KERNEL);
+-
+-	if (IS_ENABLED(CONFIG_PROVE_LOCKING) &&
+-	    WARN(irqs_disabled(), "syscall %ld left IRQs disabled", regs->orig_ax))
+-		local_irq_enable();
+-
+-	rseq_syscall(regs);
+-
+-	/*
+-	 * First do one-time work.  If these work items are enabled, we
+-	 * want to run them exactly once per syscall exit with IRQs on.
+-	 */
+-	if (unlikely(cached_flags & SYSCALL_EXIT_WORK_FLAGS))
+-		syscall_slow_exit_work(regs, cached_flags);
++	syscall_exit_to_usermode(regs, regs->orig_ax, regs->ax);
+ 
+ 	local_irq_disable();
+ 	prepare_exit_to_usermode(regs);
+--- a/arch/x86/include/asm/entry-common.h
++++ b/arch/x86/include/asm/entry-common.h
+@@ -5,6 +5,8 @@
+ #include <linux/seccomp.h>
+ #include <linux/audit.h>
+ 
++#define ARCH_SYSCALL_EXIT_WORK		(_TIF_SINGLESTEP)
++
+ static inline long arch_syscall_enter_seccomp(struct pt_regs *regs)
+ {
+ #ifdef CONFIG_SECCOMP
