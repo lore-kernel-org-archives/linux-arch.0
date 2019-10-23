@@ -1,60 +1,41 @@
-Return-Path: <peterz@infradead.org>
-Date: Thu, 24 Oct 2019 23:21:05 +0200
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [patch V2 07/17] x86/entry/64: Remove redundant interrupt disable
-Message-ID: <20191024212105.GY4114@hirez.programming.kicks-ass.net>
-References: <20191023122705.198339581@linutronix.de>
- <20191023123118.296135499@linutronix.de>
- <20191023220618.qsmog2k5oaagj27v@treble>
- <alpine.DEB.2.21.1910240146200.1852@nanos.tec.linutronix.de>
- <CALCETrX+N_cR-HAmQyHxqUo0LPCk4GmqbzizXk-gq9qp00-RdA@mail.gmail.com>
- <alpine.DEB.2.21.1910242032080.1783@nanos.tec.linutronix.de>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <alpine.DEB.2.21.1910242032080.1783@nanos.tec.linutronix.de>
-To: Thomas Gleixner <tglx@linutronix.de>
-Cc: Andy Lutomirski <luto@kernel.org>, Josh Poimboeuf <jpoimboe@redhat.com>, LKML <linux-kernel@vger.kernel.org>, X86 ML <x86@kernel.org>, Will Deacon <will@kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, kvm list <kvm@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Mike Rapoport <rppt@linux.ibm.com>, Miroslav Benes <mbenes@suse.cz>
+Return-Path: <rppt@kernel.org>
+From: Mike Rapoport <rppt@kernel.org>
+Subject: [PATCH 03/12] c6x: use pgtable-nopud instead of 4level-fixup
+Date: Wed, 23 Oct 2019 12:28:52 +0300
+Message-ID: <1571822941-29776-4-git-send-email-rppt@kernel.org>
+In-Reply-To: <1571822941-29776-1-git-send-email-rppt@kernel.org>
+References: <1571822941-29776-1-git-send-email-rppt@kernel.org>
+To: linux-mm@kvack.org
+Cc: Andrew Morton <akpm@linux-foundation.org>, Anton Ivanov <anton.ivanov@cambridgegreys.com>, Arnd Bergmann <arnd@arndb.de>, "David S. Miller" <davem@davemloft.net>, Geert Uytterhoeven <geert@linux-m68k.org>, Greentime Hu <green.hu@gmail.com>, Greg Ungerer <gerg@linux-m68k.org>, Helge Deller <deller@gmx.de>, "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>, Jeff Dike <jdike@addtoit.com>, "Kirill A. Shutemov" <kirill@shutemov.name>, Linus Torvalds <torvalds@linux-foundation.org>, Mark Salter <msalter@redhat.com>, Matt Turner <mattst88@gmail.com>, Michal Simek <monstr@monstr.eu>, Richard Weinberger <richard@nod.at>, Russell King <linux@armlinux.org.uk>, Sam Creasey <sammy@sammy.net>, Vincent Chen <deanbo422@gmail.com>, Vineet Gupta <Vineet.Gupta1@synopsys.com>, Mike Rapoport <rppt@kernel.org>, linux-alpha@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, linux-kernel@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-parisc@vger.kernel.org, linux-um@lists.infradead.org, sparclinux@vger.kernel.org, Mike Rapoport <rppt@linux.ibm.com>
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20191024212105.etdWtButgH77SisEyk9WUWUWqxOSozZFkNnNphLz7o4@z>
+Message-ID: <20191023092852.MBz9obgMJgCjWxg-O9scsZkbmLzUFChhmJmyXNFL_nw@z>
 
-On Thu, Oct 24, 2019 at 10:52:59PM +0200, Thomas Gleixner wrote:
-> is just undefined behaviour and I personally consider it to be a plain bug.
+From: Mike Rapoport <rppt@linux.ibm.com>
 
-I concur.
+c6x is a nommu architecture and does not require fixup for upper layers of
+the page tables because it is already handled by the generic nommu
+implementation.
 
-> Just for the record: This results in running a resulting or even completely
-> unrelated signal handler with interrupts disabled as well.
-> 
-> Whatever we decide it is, leaving it completely inconsistent is not a
-> solution at all. The options are:
-> 
->   1)  Always do conditional tracing depending on the user_regs->eflags.IF
->       state.
-> 
->   2)  #1 + warn once when syscalls and exceptions (except NMI/MCE) happen
->       and user_regs->eflags.IF is cleared.
-> 
->   3a) #2 + enforce signal handling to run with interrupts enabled.
-> 
->   3b) #2 + set regs->eflags.IF. So the state is always correct from the
->       kernel POV. Of course that changes existing behaviour, but its
->       changing undefined and inconsistent behaviour.
->   
->   4) Let iopl(level) return -EPERM if level == 3.
-> 
->      Yeah, I know it's not possible due to regressions (DPKD uses iopl(3)),
->      but TBH that'd be the sanest option of all.
-> 
->      Of course the infinite wisdom of hardware designers tied IN, INS, OUT,
->      OUTS and CLI/STI together on IOPL so we cannot even distangle them in
->      any way.
-> 
->      The only way out would be to actually use a full 8K sized I/O bitmap,
->      but that's a massive pain as it has to be copied on every context
->      switch. 
-> 
-> Really pretty options to chose from ...
+Replace usage of include/asm-generic/4level-fixup.h with
+include/asm-generic/pgtable-nopud.h
 
-If 4 is out (and I'm afraid it might be), then I'm on record for liking
-3b.
+Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
+---
+ arch/c6x/include/asm/pgtable.h | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/arch/c6x/include/asm/pgtable.h b/arch/c6x/include/asm/pgtable.h
+index 0b6919c..197c473 100644
+--- a/arch/c6x/include/asm/pgtable.h
++++ b/arch/c6x/include/asm/pgtable.h
+@@ -8,7 +8,7 @@
+ #ifndef _ASM_C6X_PGTABLE_H
+ #define _ASM_C6X_PGTABLE_H
+ 
+-#include <asm-generic/4level-fixup.h>
++#include <asm-generic/pgtable-nopud.h>
+ 
+ #include <asm/setup.h>
+ #include <asm/page.h>
+-- 
+2.7.4
