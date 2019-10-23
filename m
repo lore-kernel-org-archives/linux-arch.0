@@ -1,148 +1,318 @@
-From: Mike Rapoport <rppt@kernel.org>
-Subject: [PATCH 12/12] mm: remove __ARCH_HAS_4LEVEL_HACK and include/asm-generic/4level-fixup.h
-Date: Wed, 23 Oct 2019 12:29:01 +0300
-Message-ID: <1571822941-29776-13-git-send-email-rppt@kernel.org>
-References: <1571822941-29776-1-git-send-email-rppt@kernel.org>
+From: Dmitry Vyukov <dvyukov@google.com>
+Subject: Re: [PATCH v2 1/8] kcsan: Add Kernel Concurrency Sanitizer infrastructure
+Date: Wed, 23 Oct 2019 11:41:06 +0200
+Message-ID: <CACT4Y+Z0SNqx1FyK8rHYX6HeUfLSfifNRiQ5LXf3iParNYvCpw@mail.gmail.com>
+References: <20191017141305.146193-1-elver@google.com> <20191017141305.146193-2-elver@google.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1571822941-29776-1-git-send-email-rppt@kernel.org>
+In-Reply-To: <20191017141305.146193-2-elver@google.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: linux-mm@kvack.org
-Cc: Andrew Morton <akpm@linux-foundation.org>, Anton Ivanov <anton.ivanov@cambridgegreys.com>, Arnd Bergmann <arnd@arndb.de>, "David S. Miller" <davem@davemloft.net>, Geert Uytterhoeven <geert@linux-m68k.org>, Greentime Hu <green.hu@gmail.com>, Greg Ungerer <gerg@linux-m68k.org>, Helge Deller <deller@gmx.de>, "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>, Jeff Dike <jdike@addtoit.com>, "Kirill A. Shutemov" <kirill@shutemov.name>, Linus Torvalds <torvalds@linux-foundation.org>, Mark Salter <msalter@redhat.com>, Matt Turner <mattst88@gmail.com>, Michal Simek <monstr@monstr.eu>, Richard Weinberger <richard@nod.at>, Russell King <linux@armlinux.org.uk>, Sam Creasey <sammy@sammy.net>, Vincent Chen <deanbo422@gmail.com>, Vineet
+To: Marco Elver <elver@google.com>
+Cc: LKMM Maintainers -- Akira Yokosawa <akiyks@gmail.com>, Alan Stern <stern@rowland.harvard.edu>, Alexander Potapenko <glider@google.com>, Andrea Parri <parri.andrea@gmail.com>, Andrey Konovalov <andreyknvl@google.com>, Andy Lutomirski <luto@kernel.org>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Arnd Bergmann <arnd@arndb.de>, Boqun Feng <boqun.feng@gmail.com>, Borislav Petkov <bp@alien8.de>, Daniel Axtens <dja@axtens.net>, Daniel Lustig <dlustig@nvidia.com>, Dave Hansen <dave.hansen@linux.intel.com>, David Howells <dhowells@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Ingo Molnar <mingo@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Joel Fernandes <joel@joelfernandes.org>, Jonathan Corbet <corbet@lwn.net>, Josh Poimboeuf <jpoimboe@redhat.com>
 List-Id: linux-arch.vger.kernel.org
 
-From: Mike Rapoport <rppt@linux.ibm.com>
+" "On Thu, Oct 17, 2019 at 4:13 PM Marco Elver <elver@google.com> wrote:
+>
+> Kernel Concurrency Sanitizer (KCSAN) is a dynamic data-race detector for
+> kernel space. KCSAN is a sampling watchpoint-based data-race detector.
+> See the included Documentation/dev-tools/kcsan.rst for more details.
+>
+> This patch adds basic infrastructure, but does not yet enable KCSAN for
+> any architecture.
+>
+> Signed-off-by: Marco Elver <elver@google.com>
+> ---
+> v2:
+> * Elaborate comment about instrumentation calls emitted by compilers.
+> * Replace kcsan_check_access(.., {true, false}) with
+>   kcsan_check_{read,write} for improved readability.
+> * Change bug title of race of unknown origin to just say "data-race in".
+> * Refine "Key Properties" in kcsan.rst, and mention observed slow-down.
+> * Add comment about safety of find_watchpoint without user_access_save.
+> * Remove unnecessary preempt_disable/enable and elaborate on comment why
+>   we want to disable interrupts and preemptions.
+> * Use common struct kcsan_ctx in task_struct and for per-CPU interrupt
+>   contexts [Suggested by Mark Rutland].
+> ---
+>  Documentation/dev-tools/kcsan.rst | 203 ++++++++++++++
+>  MAINTAINERS                       |  11 +
+>  Makefile                          |   3 +-
+>  include/linux/compiler-clang.h    |   9 +
+>  include/linux/compiler-gcc.h      |   7 +
+>  include/linux/compiler.h          |  35 ++-
+>  include/linux/kcsan-checks.h      | 147 ++++++++++
+>  include/linux/kcsan.h             | 108 ++++++++
+>  include/linux/sched.h             |   4 +
+>  init/init_task.c                  |   8 +
+>  init/main.c                       |   2 +
+>  kernel/Makefile                   |   1 +
+>  kernel/kcsan/Makefile             |  14 +
+>  kernel/kcsan/atomic.c             |  21 ++
+>  kernel/kcsan/core.c               | 428 ++++++++++++++++++++++++++++++
+>  kernel/kcsan/debugfs.c            | 225 ++++++++++++++++
+>  kernel/kcsan/encoding.h           |  94 +++++++
+>  kernel/kcsan/kcsan.c              |  86 ++++++
+>  kernel/kcsan/kcsan.h              | 140 ++++++++++
+>  kernel/kcsan/report.c             | 306 +++++++++++++++++++++
+>  kernel/kcsan/test.c               | 117 ++++++++
+>  lib/Kconfig.debug                 |   2 +
+>  lib/Kconfig.kcsan                 |  88 ++++++
+>  lib/Makefile                      |   3 +
+>  scripts/Makefile.kcsan            |   6 +
+>  scripts/Makefile.lib              |  10 +
+>  26 files changed, 2069 insertions(+), 9 deletions(-)
+>  create mode 100644 Documentation/dev-tools/kcsan.rst
+>  create mode 100644 include/linux/kcsan-checks.h
+>  create mode 100644 include/linux/kcsan.h
+>  create mode 100644 kernel/kcsan/Makefile
+>  create mode 100644 kernel/kcsan/atomic.c
+>  create mode 100644 kernel/kcsan/core.c
+>  create mode 100644 kernel/kcsan/debugfs.c
+>  create mode 100644 kernel/kcsan/encoding.h
+>  create mode 100644 kernel/kcsan/kcsan.c
+>  create mode 100644 kernel/kcsan/kcsan.h
+>  create mode 100644 kernel/kcsan/report.c
+>  create mode 100644 kernel/kcsan/test.c
+>  create mode 100644 lib/Kconfig.kcsan
+>  create mode 100644 scripts/Makefile.kcsan
+>
+> diff --git a/Documentation/dev-tools/kcsan.rst b/Documentation/dev-tools/kcsan.rst
+> new file mode 100644
+> index 000000000000..497b09e5cc96
+> --- /dev/null
+> +++ b/Documentation/dev-tools/kcsan.rst
+> @@ -0,0 +1,203 @@
+> +The Kernel Concurrency Sanitizer (KCSAN)
+> +========================================
+> +
+> +Overview
+> +--------
+> +
+> +*Kernel Concurrency Sanitizer (KCSAN)* is a dynamic data-race detector for
+> +kernel space. KCSAN is a sampling watchpoint-based data-race detector -- this
+> +is unlike Kernel Thread Sanitizer (KTSAN), which is a happens-before data-race
+> +detector. Key priorities in KCSAN's design are lack of false positives,
+> +scalability, and simplicity. More details can be found in `Implementation
+> +Details`_.
+> +
+> +KCSAN uses compile-time instrumentation to instrument memory accesses. KCSAN is
+> +supported in both GCC and Clang. With GCC it requires version 7.3.0 or later.
+> +With Clang it requires version 7.0.0 or later.
+> +
+> +Usage
+> +-----
+> +
+> +To enable KCSAN configure kernel with::
+> +
+> +    CONFIG_KCSAN = y
+> +
+> +KCSAN provides several other configuration options to customize behaviour (see
+> +their respective help text for more info).
+> +
+> +debugfs
+> +~~~~~~~
+> +
+> +* The file ``/sys/kernel/debug/kcsan`` can be read to get stats.
+> +
+> +* KCSAN can be turned on or off by writing ``on`` or ``off`` to
+> +  ``/sys/kernel/debug/kcsan``.
+> +
+> +* Writing ``!some_func_name`` to ``/sys/kernel/debug/kcsan`` adds
+> +  ``some_func_name`` to the report filter list, which (by default) blacklists
+> +  reporting data-races where either one of the top stackframes are a function
+> +  in the list.
+> +
+> +* Writing either ``blacklist`` or ``whitelist`` to ``/sys/kernel/debug/kcsan``
+> +  changes the report filtering behaviour. For example, the blacklist feature
+> +  can be used to silence frequently occurring data-races; the whitelist feature
+> +  can help with reproduction and testing of fixes.
+> +
+> +Error reports
+> +~~~~~~~~~~~~~
+> +
+> +A typical data-race report looks like this::
+> +
+> +    ==================================================================
+> +    BUG: KCSAN: data-race in generic_permission / kernfs_refresh_inode
+> +
+> +    write to 0xffff8fee4c40700c of 4 bytes by task 175 on cpu 4:
+> +     kernfs_refresh_inode+0x70/0x170
+> +     kernfs_iop_permission+0x4f/0x90
+> +     inode_permission+0x190/0x200
+> +     link_path_walk.part.0+0x503/0x8e0
+> +     path_lookupat.isra.0+0x69/0x4d0
+> +     filename_lookup+0x136/0x280
+> +     user_path_at_empty+0x47/0x60
+> +     vfs_statx+0x9b/0x130
+> +     __do_sys_newlstat+0x50/0xb0
+> +     __x64_sys_newlstat+0x37/0x50
+> +     do_syscall_64+0x85/0x260
+> +     entry_SYSCALL_64_after_hwframe+0x44/0xa9
+> +
+> +    read to 0xffff8fee4c40700c of 4 bytes by task 166 on cpu 6:
+> +     generic_permission+0x5b/0x2a0
+> +     kernfs_iop_permission+0x66/0x90
+> +     inode_permission+0x190/0x200
+> +     link_path_walk.part.0+0x503/0x8e0
+> +     path_lookupat.isra.0+0x69/0x4d0
+> +     filename_lookup+0x136/0x280
+> +     user_path_at_empty+0x47/0x60
+> +     do_faccessat+0x11a/0x390
+> +     __x64_sys_access+0x3c/0x50
+> +     do_syscall_64+0x85/0x260
+> +     entry_SYSCALL_64_after_hwframe+0x44/0xa9
+> +
+> +    Reported by Kernel Concurrency Sanitizer on:
+> +    CPU: 6 PID: 166 Comm: systemd-journal Not tainted 5.3.0-rc7+ #1
+> +    Hardware name: QEMU Standard PC (i440FX + PIIX, 1996), BIOS 1.12.0-1 04/01/2014
+> +    ==================================================================
+> +
+> +The header of the report provides a short summary of the functions involved in
+> +the race. It is followed by the access types and stack traces of the 2 threads
+> +involved in the data-race.
+> +
+> +The other less common type of data-race report looks like this::
+> +
+> +    ==================================================================
+> +    BUG: KCSAN: data-race in e1000_clean_rx_irq+0x551/0xb10
+> +
+> +    race at unknown origin, with read to 0xffff933db8a2ae6c of 1 bytes by interrupt on cpu 0:
+> +     e1000_clean_rx_irq+0x551/0xb10
+> +     e1000_clean+0x533/0xda0
+> +     net_rx_action+0x329/0x900
+> +     __do_softirq+0xdb/0x2db
+> +     irq_exit+0x9b/0xa0
+> +     do_IRQ+0x9c/0xf0
+> +     ret_from_intr+0x0/0x18
+> +     default_idle+0x3f/0x220
+> +     arch_cpu_idle+0x21/0x30
+> +     do_idle+0x1df/0x230
+> +     cpu_startup_entry+0x14/0x20
+> +     rest_init+0xc5/0xcb
+> +     arch_call_rest_init+0x13/0x2b
+> +     start_kernel+0x6db/0x700
+> +
+> +    Reported by Kernel Concurrency Sanitizer on:
+> +    CPU: 0 PID: 0 Comm: swapper/0 Not tainted 5.3.0-rc7+ #2
+> +    Hardware name: QEMU Standard PC (i440FX + PIIX, 1996), BIOS 1.12.0-1 04/01/2014
+> +    ==================================================================
+> +
+> +This report is generated where it was not possible to determine the other
+> +racing thread, but a race was inferred due to the data-value of the watched
+> +memory location having changed. These can occur either due to missing
+> +instrumentation or e.g. DMA accesses.
+> +
+> +Data-Races
+> +----------
+> +
+> +Informally, two operations *conflict* if they access the same memory location,
+> +and at least one of them is a write operation. In an execution, two memory
+> +operations from different threads form a **data-race** if they *conflict*, at
+> +least one of them is a *plain access* (non-atomic), and they are *unordered* in
+> +the "happens-before" order according to the `LKMM
+> +<../../tools/memory-model/Documentation/explanation.txt>`_.
+> +
+> +Relationship with the Linux Kernel Memory Model (LKMM)
+> +~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+> +
+> +The LKMM defines the propagation and ordering rules of various memory
+> +operations, which gives developers the ability to reason about concurrent code.
+> +Ultimately this allows to determine the possible executions of concurrent code,
+> +and if that code is free from data-races.
+> +
+> +KCSAN is aware of *atomic* accesses (``READ_ONCE``, ``WRITE_ONCE``,
+> +``atomic_*``, etc.), but is oblivious of any ordering guarantees. In other
+> +words, KCSAN assumes that as long as a plain access is not observed to race
+> +with another conflicting access, memory operations are correctly ordered.
+> +
+> +This means that KCSAN will not report *potential* data-races due to missing
+> +memory ordering. If, however, missing memory ordering (that is observable with
+> +a particular compiler and architecture) leads to an observable data-race (e.g.
+> +entering a critical section erroneously), KCSAN would report the resulting
+> +data-race.
+> +
+> +Implementation Details
+> +----------------------
+> +
+> +The general approach is inspired by `DataCollider
+> +<http://usenix.org/legacy/events/osdi10/tech/full_papers/Erickson.pdf>`_.
+> +Unlike DataCollider, KCSAN does not use hardware watchpoints, but instead
+> +relies on compiler instrumentation. Watchpoints are implemented using an
+> +efficient encoding that stores access type, size, and address in a long; the
+> +benefits of using "soft watchpoints" are portability and greater flexibility in
+> +limiting which accesses trigger a watchpoint.
+> +
+> +More specifically, KCSAN requires instrumenting plain (unmarked, non-atomic)
+> +memory operations; for each instrumented plain access:
+> +
+> +1. Check if a matching watchpoint exists; if yes, and at least one access is a
+> +   write, then we encountered a racing access.
+> +
+> +2. Periodically, if no matching watchpoint exists, set up a watchpoint and
+> +   stall some delay.
 
-There are no architectures that use include/asm-generic/4level-fixup.h
-therefore it can be removed along with __ARCH_HAS_4LEVEL_HACK define.
+Is it grammatically correct "to stall a delay"? Shouldn't stall be
+used with "for"?
 
-Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
----
- include/asm-generic/4level-fixup.h | 40 --------------------------------------
- include/asm-generic/tlb.h          |  2 --
- include/linux/mm.h                 | 10 +++++-----
- mm/memory.c                        |  8 --------
- 4 files changed, 5 insertions(+), 55 deletions(-)
- delete mode 100644 include/asm-generic/4level-fixup.h
 
-diff --git a/include/asm-generic/4level-fixup.h b/include/asm-generic/4level-fixup.h
-deleted file mode 100644
-index e3667c9..0000000
---- a/include/asm-generic/4level-fixup.h
-+++ /dev/null
-@@ -1,40 +0,0 @@
--/* SPDX-License-Identifier: GPL-2.0 */
--#ifndef _4LEVEL_FIXUP_H
--#define _4LEVEL_FIXUP_H
--
--#define __ARCH_HAS_4LEVEL_HACK
--#define __PAGETABLE_PUD_FOLDED 1
--
--#define PUD_SHIFT			PGDIR_SHIFT
--#define PUD_SIZE			PGDIR_SIZE
--#define PUD_MASK			PGDIR_MASK
--#define PTRS_PER_PUD			1
--
--#define pud_t				pgd_t
--
--#define pmd_alloc(mm, pud, address) \
--	((unlikely(pgd_none(*(pud))) && __pmd_alloc(mm, pud, address))? \
-- 		NULL: pmd_offset(pud, address))
--
--#define pud_offset(pgd, start)		(pgd)
--#define pud_none(pud)			0
--#define pud_bad(pud)			0
--#define pud_present(pud)		1
--#define pud_ERROR(pud)			do { } while (0)
--#define pud_clear(pud)			pgd_clear(pud)
--#define pud_val(pud)			pgd_val(pud)
--#define pud_populate(mm, pud, pmd)	pgd_populate(mm, pud, pmd)
--#define pud_page(pud)			pgd_page(pud)
--#define pud_page_vaddr(pud)		pgd_page_vaddr(pud)
--
--#undef pud_free_tlb
--#define pud_free_tlb(tlb, x, addr)	do { } while (0)
--#define pud_free(mm, x)			do { } while (0)
--#define __pud_free_tlb(tlb, x, addr)	do { } while (0)
--
--#undef  pud_addr_end
--#define pud_addr_end(addr, end)		(end)
--
--#include <asm-generic/5level-fixup.h>
--
--#endif
-diff --git a/include/asm-generic/tlb.h b/include/asm-generic/tlb.h
-index 04c0644..5e0c2d0 100644
---- a/include/asm-generic/tlb.h
-+++ b/include/asm-generic/tlb.h
-@@ -584,7 +584,6 @@ static inline void tlb_end_vma(struct mmu_gather *tlb, struct vm_area_struct *vm
- 	} while (0)
- #endif
- 
--#ifndef __ARCH_HAS_4LEVEL_HACK
- #ifndef pud_free_tlb
- #define pud_free_tlb(tlb, pudp, address)			\
- 	do {							\
-@@ -594,7 +593,6 @@ static inline void tlb_end_vma(struct mmu_gather *tlb, struct vm_area_struct *vm
- 		__pud_free_tlb(tlb, pudp, address);		\
- 	} while (0)
- #endif
--#endif
- 
- #ifndef __ARCH_HAS_5LEVEL_HACK
- #ifndef p4d_free_tlb
-diff --git a/include/linux/mm.h b/include/linux/mm.h
-index cc29227..477b52a 100644
---- a/include/linux/mm.h
-+++ b/include/linux/mm.h
-@@ -1850,12 +1850,12 @@ static inline void mm_dec_nr_ptes(struct mm_struct *mm) {}
- int __pte_alloc(struct mm_struct *mm, pmd_t *pmd);
- int __pte_alloc_kernel(pmd_t *pmd);
- 
-+#if defined(CONFIG_MMU)
-+
- /*
-- * The following ifdef needed to get the 4level-fixup.h header to work.
-- * Remove it when 4level-fixup.h has been removed.
-+ * The following ifdef needed to get the 5level-fixup.h header to work.
-+ * Remove it when 5level-fixup.h has been removed.
-  */
--#if defined(CONFIG_MMU) && !defined(__ARCH_HAS_4LEVEL_HACK)
--
- #ifndef __ARCH_HAS_5LEVEL_HACK
- static inline p4d_t *p4d_alloc(struct mm_struct *mm, pgd_t *pgd,
- 		unsigned long address)
-@@ -1877,7 +1877,7 @@ static inline pmd_t *pmd_alloc(struct mm_struct *mm, pud_t *pud, unsigned long a
- 	return (unlikely(pud_none(*pud)) && __pmd_alloc(mm, pud, address))?
- 		NULL: pmd_offset(pud, address);
- }
--#endif /* CONFIG_MMU && !__ARCH_HAS_4LEVEL_HACK */
-+#endif /* CONFIG_MMU */
- 
- #if USE_SPLIT_PTE_PTLOCKS
- #if ALLOC_SPLIT_PTLOCKS
-diff --git a/mm/memory.c b/mm/memory.c
-index b1ca51a..50300f0 100644
---- a/mm/memory.c
-+++ b/mm/memory.c
-@@ -4095,19 +4095,11 @@ int __pmd_alloc(struct mm_struct *mm, pud_t *pud, unsigned long address)
- 	smp_wmb(); /* See comment in __pte_alloc */
- 
- 	ptl = pud_lock(mm, pud);
--#ifndef __ARCH_HAS_4LEVEL_HACK
- 	if (!pud_present(*pud)) {
- 		mm_inc_nr_pmds(mm);
- 		pud_populate(mm, pud, new);
- 	} else	/* Another has populated it */
- 		pmd_free(mm, new);
--#else
--	if (!pgd_present(*pud)) {
--		mm_inc_nr_pmds(mm);
--		pgd_populate(mm, pud, new);
--	} else /* Another has populated it */
--		pmd_free(mm, new);
--#endif /* __ARCH_HAS_4LEVEL_HACK */
- 	spin_unlock(ptl);
- 	return 0;
- }
--- 
-2.7.4
+> +
+> +3. Also check the data value before the delay, and re-check the data value
+> +   after delay; if the values mismatch, we infer a race of unknown origin.
+> +
+> +To detect data-races between plain and atomic memory operations, KCSAN also
+> +annotates atomic accesses, but only to check if a watchpoint exists
+> +(``kcsan_check_atomic_*``); i.e.  KCSAN never sets up a watchpoint on atomic
+> +accesses.
+> +
+> +Key Properties
+> +~~~~~~~~~~~~~~
+> +
+> +1. **Memory Overhead:** No shadow memory is required. The current
+> +   implementation uses a small array of longs to encode watchpoint information,
+> +   which is negligible.
+> +
+> +2. **Performance Overhead:** KCSAN's runtime aims to be minimal, using an
+> +   efficient watchpoint encoding that does not require acquiring any shared
+> +   locks in the fast-path. For kernel boot with a default config on a system
+> +   where nproc=8 we measure a slow-down of 10-15x.
+
+Is it a correct number? 10-15x does not look particularly fast. TSAN
+is much faster.
+If it's a correct number, perhaps we need to tune the defaults to get
+it to a reasonable leve.
+Also, what's the minimal level of overhead with infinitely large
+sampling? That may be a useful number to provide as well.
+
+> +3. **Memory Ordering:** KCSAN is *not* aware of the LKMM's ordering rules. This
+> +   may result in missed data-races (false negatives), compared to a
+> +   happens-before data-race detector.
+
+Well, it definitely aware of some of them, e.g. program order :)
+It's just not aware of some of the finer details.
+
+> +
+> +4. **Accuracy:** Imprecise, since it uses a sampling strategy.
+
+A common term I've seen for this is completeness/incompleteness.
+Do we want to mention Soundness? That's more important for any dynamic tool.
+
+
+> +5. **Annotation Overheads:** Minimal annotation is required outside the KCSAN
+> +   runtime. With a happens-before data-race detector, any omission leads to
+> +   false positives, which is especially important in the context of the kernel
+> +   which includes numerous custom synchronization mechanisms. With KCSAN, as a
+> +   result, maintenance overheads are minimal as the kernel evolves.
+
+The whole doc is sprinkled with explicit and implicit comparisons with
+and diffs on top of a happens-before-based detector (starting from the
+very first sentences, KCSAN is effectively defined as being
+"not-KTSAN"). This is reasonable for us at this particular point in
+time, but it's not so reasonable for most users of this doc and for
+future. No happens-before race detector officially exists for kernel.
+I would consider adding a separate section for alternative approaches,
+rationale and comparison with a happens-before-based detector. Such
+section would be a good place to talk about our previous experience
+and e.g. shadow memory. Currently the first thing you say about memory
+overhead is "No shadow memory is required", and I am like "why are you
+even mentioning this? and what is even shadow memory?".
