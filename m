@@ -1,50 +1,33 @@
 Return-Path: <tglx@linutronix.de>
-Message-ID: <20191023123118.491328859@linutronix.de>
-Date: Wed, 23 Oct 2019 14:27:14 +0200
+Message-ID: <20191023123117.686514045@linutronix.de>
+Date: Wed, 23 Oct 2019 14:27:06 +0200
 From: Thomas Gleixner <tglx@linutronix.de>
-Subject: [patch V2 09/17] x86/entry: Remove _TIF_NOHZ from
- _TIF_WORK_SYSCALL_ENTRY
+Subject: [patch V2 01/17] x86/entry/32: Remove unused resume_userspace label
 References: <20191023122705.198339581@linutronix.de>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 To: LKML <linux-kernel@vger.kernel.org>
 Cc: x86@kernel.org, Peter Zijlstra <peterz@infradead.org>, Andy Lutomirski <luto@kernel.org>, Will Deacon <will@kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, kvm@vger.kernel.org, linux-arch@vger.kernel.org, Mike Rapoport <rppt@linux.ibm.com>, Josh Poimboeuf <jpoimboe@redhat.com>, Miroslav Benes <mbenes@suse.cz>
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20191023122714.xBOwMtgIwHRw0mLu1wVpW5qTIONLOwYuobUj0KGuFv8@z>
+Message-ID: <20191023122706.9oUF4yVABYh83ysDVKjGe_K--2pC0wwsREOw_r0JocQ@z>
 
-From: Thomas Gleixner <tglx@linutronix.de>
+The C reimplementation of SYSENTER left that unused ENTRY() label
+around. Remove it.
 
-Evaluating _TIF_NOHZ to decide whether to use the slow syscall entry path
-is not only pointless, it's actually counterproductive:
-
- 1) Context tracking code is invoked unconditionally before that flag is
-    evaluated.
-
- 2) If the flag is set the slow path is invoked for nothing due to #1
-
-Remove it.
-
+Fixes: 5f310f739b4c ("x86/entry/32: Re-implement SYSENTER using the new C path")
+Originally-by: Peter Zijlstra <peterz@infradead.org>
 Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
 ---
- arch/x86/include/asm/thread_info.h |    8 ++------
- 1 file changed, 2 insertions(+), 6 deletions(-)
+ arch/x86/entry/entry_32.S |    1 -
+ 1 file changed, 1 deletion(-)
 
---- a/arch/x86/include/asm/thread_info.h
-+++ b/arch/x86/include/asm/thread_info.h
-@@ -133,14 +133,10 @@ struct thread_info {
- #define _TIF_X32		(1 << TIF_X32)
- #define _TIF_FSCHECK		(1 << TIF_FSCHECK)
+--- a/arch/x86/entry/entry_32.S
++++ b/arch/x86/entry/entry_32.S
+@@ -825,7 +825,6 @@ END(ret_from_fork)
+ 	cmpl	$USER_RPL, %eax
+ 	jb	restore_all_kernel		# not returning to v8086 or userspace
  
--/*
-- * work to do in syscall_trace_enter().  Also includes TIF_NOHZ for
-- * enter_from_user_mode()
-- */
-+/* Work to do before invoking the actual syscall. */
- #define _TIF_WORK_SYSCALL_ENTRY	\
- 	(_TIF_SYSCALL_TRACE | _TIF_SYSCALL_EMU | _TIF_SYSCALL_AUDIT |	\
--	 _TIF_SECCOMP | _TIF_SYSCALL_TRACEPOINT |	\
--	 _TIF_NOHZ)
-+	 _TIF_SECCOMP | _TIF_SYSCALL_TRACEPOINT)
- 
- /* flags to check in __switch_to() */
- #define _TIF_WORK_CTXSW_BASE						\
+-ENTRY(resume_userspace)
+ 	DISABLE_INTERRUPTS(CLBR_ANY)
+ 	TRACE_IRQS_OFF
+ 	movl	%esp, %eax
