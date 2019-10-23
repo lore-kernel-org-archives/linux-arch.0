@@ -1,23 +1,23 @@
 From: Sean Christopherson <sean.j.christopherson@intel.com>
-Subject: Re: [patch V2 02/17] x86/entry/64: Remove pointless jump in
- paranoid_exit
-Date: Wed, 23 Oct 2019 06:45:06 -0700
-Message-ID: <20191023134505.GB329@linux.intel.com>
+Subject: Re: [patch V2 03/17] x86/traps: Remove pointless irq enable from
+ do_spurious_interrupt_bug()
+Date: Wed, 23 Oct 2019 06:52:52 -0700
+Message-ID: <20191023135252.GC329@linux.intel.com>
 References: <20191023122705.198339581@linutronix.de>
- <20191023123117.779277679@linutronix.de>
+ <20191023123117.871608831@linutronix.de>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <20191023123117.779277679@linutronix.de>
+In-Reply-To: <20191023123117.871608831@linutronix.de>
 Sender: linux-kernel-owner@vger.kernel.org
 To: Thomas Gleixner <tglx@linutronix.de>
 Cc: LKML <linux-kernel@vger.kernel.org>, x86@kernel.org, Peter Zijlstra <peterz@infradead.org>, Andy Lutomirski <luto@kernel.org>, Will Deacon <will@kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, kvm@vger.kernel.org, linux-arch@vger.kernel.org, Mike Rapoport <rppt@linux.ibm.com>, Josh Poimboeuf <jpoimboe@redhat.com>, Miroslav Benes <mbenes@suse.cz>
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Oct 23, 2019 at 02:27:07PM +0200, Thomas Gleixner wrote:
-> Jump directly to restore_regs_and_return_to_kernel instead of making
-> a pointless extra jump through .Lparanoid_exit_restore
+On Wed, Oct 23, 2019 at 02:27:08PM +0200, Thomas Gleixner wrote:
+> That function returns immediately after conditionally reenabling interrupts which
+> is more than pointless and requires the ASM code to disable interrupts again.
 > 
 > Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
 > ---
