@@ -1,25 +1,25 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qk1-f194.google.com ([209.85.222.194]:33112 "EHLO
-        mail-qk1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S2390944AbfJWKJb (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 23 Oct 2019 06:09:31 -0400
-Received: by mail-qk1-f194.google.com with SMTP id 71so15339348qkl.0
-        for <linux-arch@vger.kernel.org>; Wed, 23 Oct 2019 03:09:28 -0700 (PDT)
+Received: from mail-qt1-f194.google.com ([209.85.160.194]:38719 "EHLO
+        mail-qt1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S2390975AbfJWK3O (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 23 Oct 2019 06:29:14 -0400
+Received: by mail-qt1-f194.google.com with SMTP id o25so18103869qtr.5
+        for <linux-arch@vger.kernel.org>; Wed, 23 Oct 2019 03:29:12 -0700 (PDT)
 MIME-Version: 1.0
 References: <20191017141305.146193-1-elver@google.com> <20191017141305.146193-2-elver@google.com>
 In-Reply-To: <20191017141305.146193-2-elver@google.com>
 From: Dmitry Vyukov <dvyukov@google.com>
-Date: Wed, 23 Oct 2019 12:09:12 +0200
-Message-ID: <CACT4Y+akk3QRKM+P_KB3AHPOc2RDB-iVqQS2BbBkXv6ufo8VpA@mail.gmail.com>
+Date: Wed, 23 Oct 2019 12:28:57 +0200
+Message-ID: <CACT4Y+b=y0qbW=6=Q1ZZtTr=CYLyZqRYBFYz6LiczPUifBdaBQ@mail.gmail.com>
 Subject: Re: [PATCH v2 1/8] kcsan: Add Kernel Concurrency Sanitizer infrastructure
 Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Marco Elver <elver@google.com>
 Cc: LKMM Maintainers -- Akira Yokosawa <akiyks@gmail.com>, Alan Stern <stern@rowland.harvard.edu>, Alexander Potapenko <glider@google.com>, Andrea Parri <parri.andrea@gmail.com>, Andrey Konovalov <andreyknvl@google.com>, Andy Lutomirski <luto@kernel.org>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Arnd Bergmann <arnd@arndb.de>, Boqun Feng <boqun.feng@gmail.com>, Borislav Petkov <bp@alien8.de>, Daniel Axtens <dja@axtens.net>, Daniel Lustig <dlustig@nvidia.com>, Dave Hansen <dave.hansen@linux.intel.com>, David Howells <dhowells@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Ingo Molnar <mingo@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Joel Fernandes <joel@joelfernandes.org>, Jonathan Corbet <corbet@lwn.net>, Josh Poimboeuf <jpoimboe@redhat.com>, Luc Maranget <luc.maranget@inria.fr>, Mark Rutland <mark.rutland@arm.com>, Nicholas Piggin <npiggin@gmail.com>, "Paul E. McKenney" <paulmck@linux.ibm.com>, Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, Will Deacon <will@kernel.org>, kasan-dev <kasan-dev@googlegroups.com>, linux-arch <linux-arch@vger.kernel.org>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>, linux-efi@vger.kernel.org, "open list:KERNEL BUILD + fi..." <linux-kbuild@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Linux-MM <linux-mm@kvack.org>, the arch/x86 maintainers <x86@kernel.org>
-Message-ID: <20191023100912.KUXZ4ondgZLxTVV8esKZNMZajkJHKF4ZlkddpwwE92c@z>
+Message-ID: <20191023102857.eXG8Gr6yuz4ubl9SeTzeFl3JIVp_y7bW3NWdyKEtKkI@z>
 
-/On Thu, Oct 17, 2019 at 4:13 PM Marco Elver <elver@google.com> wrote:
+"))On Thu, Oct 17, 2019 at 4:13 PM Marco Elver <elver@google.com> wrote:
 >
 > Kernel Concurrency Sanitizer (KCSAN) is a dynamic data-race detector for
 > kernel space. KCSAN is a sampling watchpoint-based data-race detector.
@@ -740,6 +740,9 @@ Message-ID: <20191023100912.KUXZ4ondgZLxTVV8esKZNMZajkJHKF4ZlkddpwwE92c@z>
 > +#ifdef CONFIG_KCSAN
 > +       .kcsan_ctx = {
 > +               .disable                = 1,
+
+What will happen if we don't disable it?
+
 > +               .atomic_next            = 0,
 > +               .atomic_region          = 0,
 > +               .atomic_region_flat     = 0,
@@ -1026,6 +1029,11 @@ Message-ID: <20191023100912.KUXZ4ondgZLxTVV8esKZNMZajkJHKF4ZlkddpwwE92c@z>
 > +       kcsan_debugfs_init();
 > +       kcsan_enable_current();
 > +#ifdef CONFIG_KCSAN_EARLY_ENABLE
+
+if (CONFIG_ENABLED(CONFIG_KCSAN_EARLY_ENABLE))
+
+
+
 > +       /*
 > +        * We are in the init task, and no other tasks should be running.
 > +        */
@@ -1612,6 +1620,11 @@ Message-ID: <20191023100912.KUXZ4ondgZLxTVV8esKZNMZajkJHKF4ZlkddpwwE92c@z>
 > +/*
 > + * KCSAN uses the same instrumentation that is emitted by supported compilers
 > + * for Thread Sanitizer (TSAN).
+
+Strictly saying, ThreadSanitizer is never spelled with a space (here
+and in one other place).
+
+
 > + *
 > + * When enabled, the compiler emits instrumentation calls (the functions
 > + * prefixed with "__tsan" below) for all loads and stores that it generated;
@@ -1793,6 +1806,10 @@ Message-ID: <20191023100912.KUXZ4ondgZLxTVV8esKZNMZajkJHKF4ZlkddpwwE92c@z>
 > +
 > +/*
 > + * Returns true if data-races in the function symbol that maps to addr (offsets
+
+"maps to func_addr"
+
+
 > + * are ignored) should *not* be reported.
 > + */
 > +bool kcsan_skip_report(unsigned long func_addr);
@@ -2408,10 +2425,6 @@ Message-ID: <20191023100912.KUXZ4ondgZLxTVV8esKZNMZajkJHKF4ZlkddpwwE92c@z>
 >
 > +#
 > +# Enable ConcurrencySanitizer flags for kernel except some files or directories
-
-s/ConcurrencySanitizer/KCSAN/
-This is the only mention of "ConcurrencySanitizer" in the whole patch.
-
 > +# we don't want to check (depends on variables KCSAN_SANITIZE_obj.o, KCSAN_SANITIZE)
 > +#
 > +ifeq ($(CONFIG_KCSAN),y)
