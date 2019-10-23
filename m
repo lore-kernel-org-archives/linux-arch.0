@@ -1,7 +1,7 @@
 From: Dmitry Vyukov <dvyukov@google.com>
 Subject: Re: [PATCH v2 1/8] kcsan: Add Kernel Concurrency Sanitizer infrastructure
-Date: Wed, 23 Oct 2019 13:20:10 +0200
-Message-ID: <CACT4Y+bBMF2BtCD_+V87Le9Tpxt7eGeAjav3djL7QAjgSy_Uew@mail.gmail.com>
+Date: Wed, 23 Oct 2019 14:05:09 +0200
+Message-ID: <CACT4Y+aM1TagxwBioLJx7UPJ7n3g4mb+do0h5NuVAZ9bmjQ5+w@mail.gmail.com>
 References: <20191017141305.146193-1-elver@google.com> <20191017141305.146193-2-elver@google.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
@@ -12,7 +12,7 @@ To: Marco Elver <elver@google.com>
 Cc: LKMM Maintainers -- Akira Yokosawa <akiyks@gmail.com>, Alan Stern <stern@rowland.harvard.edu>, Alexander Potapenko <glider@google.com>, Andrea Parri <parri.andrea@gmail.com>, Andrey Konovalov <andreyknvl@google.com>, Andy Lutomirski <luto@kernel.org>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Arnd Bergmann <arnd@arndb.de>, Boqun Feng <boqun.feng@gmail.com>, Borislav Petkov <bp@alien8.de>, Daniel Axtens <dja@axtens.net>, Daniel Lustig <dlustig@nvidia.com>, Dave Hansen <dave.hansen@linux.intel.com>, David Howells <dhowells@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Ingo Molnar <mingo@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Joel Fernandes <joel@joelfernandes.org>, Jonathan Corbet <corbet@lwn.net>, Josh Poimboeuf <jpoimboe@redhat.com>
 List-Id: linux-arch.vger.kernel.org
 
-)On Thu, Oct 17, 2019 at 4:13 PM Marco Elver <elver@google.com> wrote:
+On Thu, Oct 17, 2019 at 4:13 PM Marco Elver <elver@google.com> wrote:
 >
 > Kernel Concurrency Sanitizer (KCSAN) is a dynamic data-race detector for
 > kernel space. KCSAN is a sampling watchpoint-based data-race detector.
@@ -1097,6 +1097,9 @@ List-Id: linux-arch.vger.kernel.org
 > +               return true;
 > +
 > +       flags = user_access_save();
+
+Why do we need user_access_save?
+
 > +       if (!try_consume_watchpoint(watchpoint, encoded_watchpoint)) {
 > +               /*
 > +                * The other thread may not print any diagnostics, as it has
@@ -1130,6 +1133,9 @@ List-Id: linux-arch.vger.kernel.org
 > +       } expect_value;
 > +       bool is_expected = true;
 > +       unsigned long ua_flags = user_access_save();
+
+Why do we need user_access_save?
+
 > +       unsigned long irq_flags;
 > +
 > +       if (!should_watch(ptr))
@@ -1616,11 +1622,6 @@ List-Id: linux-arch.vger.kernel.org
 > +       {                                                                      \
 > +               __kcsan_check_read(ptr, size);                                 \
 > +       }                                                                      \
-
-I think here we need to define the unaligned version as __alias of this one.
-Will both make code shorter, reduce icache pressure and eliminate the
-need to whitelist them in objtool (currently they are not).
-
 > +       EXPORT_SYMBOL(__tsan_read##size);                                      \
 > +       void __tsan_write##size(void *ptr)                                     \
 > +       {                                                                      \
