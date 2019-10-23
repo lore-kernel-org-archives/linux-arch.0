@@ -1,30 +1,50 @@
 From: Andy Lutomirski <luto@kernel.org>
-Subject: Re: [patch V2 14/17] entry: Provide generic exit to usermode functionality
-Date: Wed, 23 Oct 2019 14:34:12 -0700
-Message-ID: <CALCETrVArVWH2-ew4+WVxhX-3kzrspv2x8yw3RH3PyVGeAMudA@mail.gmail.com>
-References: <20191023122705.198339581@linutronix.de> <20191023123118.978254388@linutronix.de>
+Subject: Re: [patch V2 08/17] x86/entry: Move syscall irq tracing to C code
+Date: Wed, 23 Oct 2019 14:35:20 -0700
+Message-ID: <CALCETrWvnge064VUY3FQKens2Nx8BPNDhUZAXCvF6bD7VJy93A@mail.gmail.com>
+References: <20191023122705.198339581@linutronix.de> <20191023123118.386844979@linutronix.de>
+ <CALCETrWLk9LKV4+_mrOKDc3GUvXbCjqA5R6cdpqq02xoRCBOHw@mail.gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20191023123118.978254388@linutronix.de>
+In-Reply-To: <CALCETrWLk9LKV4+_mrOKDc3GUvXbCjqA5R6cdpqq02xoRCBOHw@mail.gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Thomas Gleixner <tglx@linutronix.de>
-Cc: LKML <linux-kernel@vger.kernel.org>, X86 ML <x86@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Andy Lutomirski <luto@kernel.org>, Will Deacon <will@kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, kvm list <kvm@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Mike Rapoport <rppt@linux.ibm.com>, Josh Poimboeuf <jpoimboe@redhat.com>, Miroslav Benes <mbenes@suse.cz>
+To: Andy Lutomirski <luto@kernel.org>
+Cc: Thomas Gleixner <tglx@linutronix.de>, LKML <linux-kernel@vger.kernel.org>, X86 ML <x86@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Will Deacon <will@kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, kvm list <kvm@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Mike Rapoport <rppt@linux.ibm.com>, Josh Poimboeuf <jpoimboe@redhat.com>, Miroslav Benes <mbenes@suse.cz>
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Oct 23, 2019 at 5:31 AM Thomas Gleixner <tglx@linutronix.de> wrote:
+On Wed, Oct 23, 2019 at 2:30 PM Andy Lutomirski <luto@kernel.org> wrote:
 >
-> From: Thomas Gleixner <tglx@linutronix.de>
+> On Wed, Oct 23, 2019 at 5:31 AM Thomas Gleixner <tglx@linutronix.de> wrote:
+> >
+> > Interrupt state tracing can be safely done in C code. The few stack
+> > operations in assembly do not need to be covered.
+> >
+> > Remove the now pointless indirection via .Lsyscall_32_done and jump to
+> > swapgs_restore_regs_and_return_to_usermode directly.
 >
-> Provide a generic facility to handle the exit to usermode work. That's
-> aimed to replace the pointlessly different copies in each architecture.
+> This doesn't look right.
+>
+> >  #define SYSCALL_EXIT_WORK_FLAGS                                \
+> > @@ -279,6 +282,9 @@ static void syscall_slow_exit_work(struc
+> >  {
+> >         struct thread_info *ti;
+> >
+> > +       /* User to kernel transition disabled interrupts. */
+> > +       trace_hardirqs_off();
+> > +
+>
+> So you just traced IRQs off, but...
+>
+> >         enter_from_user_mode();
+> >         local_irq_enable();
+>
+> Now they're on and traced on again?
+>
+> I also don't see how your patch handles the fastpath case.
+>
+> How about the attached patch instead?
 
-
->  /**
-> + * local_irq_enable_exit_to_user - Exit to user variant of local_irq_enable()
-> + * @ti_work:   Cached TIF flags gathered with interrupts disabled
-> + *
-> + * Defaults to local_irq_enable(). Can be supplied by architecture specific
-> + * code.
-
-What did you have in mind here?
+Ignore the attached patch.  You have this in your
+do_exit_to_usermode() later in the series.  But I'm still quite
+confused by this patch.
