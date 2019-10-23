@@ -1,8 +1,7 @@
 From: Thomas Gleixner <tglx@linutronix.de>
-Subject: [patch V2 09/17] x86/entry: Remove _TIF_NOHZ from
- _TIF_WORK_SYSCALL_ENTRY
-Date: Wed, 23 Oct 2019 14:27:14 +0200
-Message-ID: <20191023123118.491328859@linutronix.de>
+Subject: [patch V2 17/17] x86/kvm: Use generic exit to guest work function
+Date: Wed, 23 Oct 2019 14:27:22 +0200
+Message-ID: <20191023123119.271229148@linutronix.de>
 References: <20191023122705.198339581@linutronix.de>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
@@ -12,39 +11,63 @@ To: LKML <linux-kernel@vger.kernel.org>
 Cc: x86@kernel.org, Peter Zijlstra <peterz@infradead.org>, Andy Lutomirski <luto@kernel.org>, Will Deacon <will@kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, kvm@vger.kernel.org, linux-arch@vger.kernel.org, Mike Rapoport <rppt@linux.ibm.com>, Josh Poimboeuf <jpoimboe@redhat.com>, Miroslav Benes <mbenes@suse.cz>
 List-Id: linux-arch.vger.kernel.org
 
-From: Thomas Gleixner <tglx@linutronix.de>
-
-Evaluating _TIF_NOHZ to decide whether to use the slow syscall entry path
-is not only pointless, it's actually counterproductive:
-
- 1) Context tracking code is invoked unconditionally before that flag is
-    evaluated.
-
- 2) If the flag is set the slow path is invoked for nothing due to #1
-
-Remove it.
+Use the generic infrastructure to check for and handle pending work before
+entering into guest mode.
 
 Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
 ---
- arch/x86/include/asm/thread_info.h |    8 ++------
- 1 file changed, 2 insertions(+), 6 deletions(-)
+ arch/x86/kvm/Kconfig |    1 +
+ arch/x86/kvm/x86.c   |   17 +++++------------
+ 2 files changed, 6 insertions(+), 12 deletions(-)
 
---- a/arch/x86/include/asm/thread_info.h
-+++ b/arch/x86/include/asm/thread_info.h
-@@ -133,14 +133,10 @@ struct thread_info {
- #define _TIF_X32		(1 << TIF_X32)
- #define _TIF_FSCHECK		(1 << TIF_FSCHECK)
+--- a/arch/x86/kvm/Kconfig
++++ b/arch/x86/kvm/Kconfig
+@@ -42,6 +42,7 @@ config KVM
+ 	select HAVE_KVM_MSI
+ 	select HAVE_KVM_CPU_RELAX_INTERCEPT
+ 	select HAVE_KVM_NO_POLL
++	select KVM_EXIT_TO_GUEST_WORK
+ 	select KVM_GENERIC_DIRTYLOG_READ_PROTECT
+ 	select KVM_VFIO
+ 	select SRCU
+--- a/arch/x86/kvm/x86.c
++++ b/arch/x86/kvm/x86.c
+@@ -52,6 +52,7 @@
+ #include <linux/irqbypass.h>
+ #include <linux/sched/stat.h>
+ #include <linux/sched/isolation.h>
++#include <linux/entry-common.h>
+ #include <linux/mem_encrypt.h>
  
--/*
-- * work to do in syscall_trace_enter().  Also includes TIF_NOHZ for
-- * enter_from_user_mode()
-- */
-+/* Work to do before invoking the actual syscall. */
- #define _TIF_WORK_SYSCALL_ENTRY	\
- 	(_TIF_SYSCALL_TRACE | _TIF_SYSCALL_EMU | _TIF_SYSCALL_AUDIT |	\
--	 _TIF_SECCOMP | _TIF_SYSCALL_TRACEPOINT |	\
--	 _TIF_NOHZ)
-+	 _TIF_SECCOMP | _TIF_SYSCALL_TRACEPOINT)
+ #include <trace/events/kvm.h>
+@@ -8115,8 +8116,8 @@ static int vcpu_enter_guest(struct kvm_v
+ 	if (kvm_lapic_enabled(vcpu) && vcpu->arch.apicv_active)
+ 		kvm_x86_ops->sync_pir_to_irr(vcpu);
  
- /* flags to check in __switch_to() */
- #define _TIF_WORK_CTXSW_BASE						\
+-	if (vcpu->mode == EXITING_GUEST_MODE || kvm_request_pending(vcpu)
+-	    || need_resched() || signal_pending(current)) {
++	if (vcpu->mode == EXITING_GUEST_MODE || kvm_request_pending(vcpu) ||
++	    exit_to_guestmode_work_pending()) {
+ 		vcpu->mode = OUTSIDE_GUEST_MODE;
+ 		smp_wmb();
+ 		local_irq_enable();
+@@ -8309,17 +8310,9 @@ static int vcpu_run(struct kvm_vcpu *vcp
+ 
+ 		kvm_check_async_pf_completion(vcpu);
+ 
+-		if (signal_pending(current)) {
+-			r = -EINTR;
+-			vcpu->run->exit_reason = KVM_EXIT_INTR;
+-			++vcpu->stat.signal_exits;
++		r = exit_to_guestmode(kvm, vcpu);
++		if (r)
+ 			break;
+-		}
+-		if (need_resched()) {
+-			srcu_read_unlock(&kvm->srcu, vcpu->srcu_idx);
+-			cond_resched();
+-			vcpu->srcu_idx = srcu_read_lock(&kvm->srcu);
+-		}
+ 	}
+ 
+ 	srcu_read_unlock(&kvm->srcu, vcpu->srcu_idx);
