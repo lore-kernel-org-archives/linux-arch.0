@@ -1,333 +1,102 @@
-Return-Path: <rppt@kernel.org>
-From: Mike Rapoport <rppt@kernel.org>
-Subject: [PATCH 11/12] um: add support for folded p4d page tables
-Date: Wed, 23 Oct 2019 12:29:00 +0300
-Message-ID: <1571822941-29776-12-git-send-email-rppt@kernel.org>
-In-Reply-To: <1571822941-29776-1-git-send-email-rppt@kernel.org>
-References: <1571822941-29776-1-git-send-email-rppt@kernel.org>
-To: linux-mm@kvack.org
-Cc: Andrew Morton <akpm@linux-foundation.org>, Anton Ivanov <anton.ivanov@cambridgegreys.com>, Arnd Bergmann <arnd@arndb.de>, "David S. Miller" <davem@davemloft.net>, Geert Uytterhoeven <geert@linux-m68k.org>, Greentime Hu <green.hu@gmail.com>, Greg Ungerer <gerg@linux-m68k.org>, Helge Deller <deller@gmx.de>, "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>, Jeff Dike <jdike@addtoit.com>, "Kirill A. Shutemov" <kirill@shutemov.name>, Linus Torvalds <torvalds@linux-foundation.org>, Mark Salter <msalter@redhat.com>, Matt Turner <mattst88@gmail.com>, Michal Simek <monstr@monstr.eu>, Richard Weinberger <richard@nod.at>, Russell King <linux@armlinux.org.uk>, Sam Creasey <sammy@sammy.net>, Vincent Chen <deanbo422@gmail.com>, Vineet Gupta <Vineet.Gupta1@synopsys.com>, Mike Rapoport <rppt@kernel.org>, linux-alpha@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, linux-kernel@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-parisc@vger.kernel.org, linux-um@lists.infradead.org, sparclinux@vger.kernel.org, Mike Rapoport <rppt@linux.ibm.com>
+Return-Path: <luto@kernel.org>
+MIME-Version: 1.0
+References: <20191023122705.198339581@linutronix.de> <20191023123118.386844979@linutronix.de>
+In-Reply-To: <20191023123118.386844979@linutronix.de>
+From: Andy Lutomirski <luto@kernel.org>
+Date: Wed, 23 Oct 2019 14:30:51 -0700
+Message-ID: <CALCETrWLk9LKV4+_mrOKDc3GUvXbCjqA5R6cdpqq02xoRCBOHw@mail.gmail.com>
+Subject: Re: [patch V2 08/17] x86/entry: Move syscall irq tracing to C code
+Content-Type: multipart/mixed; boundary="00000000000038b2b005959aa2c3"
+To: Thomas Gleixner <tglx@linutronix.de>
+Cc: LKML <linux-kernel@vger.kernel.org>, X86 ML <x86@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Andy Lutomirski <luto@kernel.org>, Will Deacon <will@kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, kvm list <kvm@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Mike Rapoport <rppt@linux.ibm.com>, Josh Poimboeuf <jpoimboe@redhat.com>, Miroslav Benes <mbenes@suse.cz>
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20191023092900.n9PTh9FXwF8IMDYCfVb0l-5bpaYfGzkzGJxD7gEgM-k@z>
+Message-ID: <20191023213051.soCGIDcn2Z7W72co0SoXeprHo5Vp8TtThb3fMOWSuDw@z>
 
-From: Mike Rapoport <rppt@linux.ibm.com>
+--00000000000038b2b005959aa2c3
+Content-Type: text/plain; charset="UTF-8"
 
-The UML port uses 4 and 5 level fixups to support higher level page table
-directories in the generic VM code.
+On Wed, Oct 23, 2019 at 5:31 AM Thomas Gleixner <tglx@linutronix.de> wrote:
+>
+> Interrupt state tracing can be safely done in C code. The few stack
+> operations in assembly do not need to be covered.
+>
+> Remove the now pointless indirection via .Lsyscall_32_done and jump to
+> swapgs_restore_regs_and_return_to_usermode directly.
 
-Implement primitives necessary for the 4th level folding and add walks of
-p4d level where appropriate.
+This doesn't look right.
 
-Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
----
- arch/um/include/asm/pgtable-2level.h |  1 -
- arch/um/include/asm/pgtable-3level.h |  1 -
- arch/um/include/asm/pgtable.h        |  3 ++
- arch/um/kernel/mem.c                 | 25 ++++++++++++++--
- arch/um/kernel/skas/mmu.c            | 12 ++++++--
- arch/um/kernel/skas/uaccess.c        |  7 ++++-
- arch/um/kernel/tlb.c                 | 56 ++++++++++++++++++++++++++++++++----
- arch/um/kernel/trap.c                |  4 ++-
- 8 files changed, 95 insertions(+), 14 deletions(-)
+>  #define SYSCALL_EXIT_WORK_FLAGS                                \
+> @@ -279,6 +282,9 @@ static void syscall_slow_exit_work(struc
+>  {
+>         struct thread_info *ti;
+>
+> +       /* User to kernel transition disabled interrupts. */
+> +       trace_hardirqs_off();
+> +
 
-diff --git a/arch/um/include/asm/pgtable-2level.h b/arch/um/include/asm/pgtable-2level.h
-index 32b3d26..32106d3 100644
---- a/arch/um/include/asm/pgtable-2level.h
-+++ b/arch/um/include/asm/pgtable-2level.h
-@@ -8,7 +8,6 @@
- #ifndef __UM_PGTABLE_2LEVEL_H
- #define __UM_PGTABLE_2LEVEL_H
- 
--#define __ARCH_USE_5LEVEL_HACK
- #include <asm-generic/pgtable-nopmd.h>
- 
- /* PGDIR_SHIFT determines what a third-level page table entry can map */
-diff --git a/arch/um/include/asm/pgtable-3level.h b/arch/um/include/asm/pgtable-3level.h
-index 9812269..8a3b689 100644
---- a/arch/um/include/asm/pgtable-3level.h
-+++ b/arch/um/include/asm/pgtable-3level.h
-@@ -7,7 +7,6 @@
- #ifndef __UM_PGTABLE_3LEVEL_H
- #define __UM_PGTABLE_3LEVEL_H
- 
--#define __ARCH_USE_5LEVEL_HACK
- #include <asm-generic/pgtable-nopud.h>
- 
- /* PGDIR_SHIFT determines what a third-level page table entry can map */
-diff --git a/arch/um/include/asm/pgtable.h b/arch/um/include/asm/pgtable.h
-index 36a44d5..2daa58d 100644
---- a/arch/um/include/asm/pgtable.h
-+++ b/arch/um/include/asm/pgtable.h
-@@ -106,6 +106,9 @@ extern unsigned long end_iomem;
- #define pud_newpage(x)  (pud_val(x) & _PAGE_NEWPAGE)
- #define pud_mkuptodate(x) (pud_val(x) &= ~_PAGE_NEWPAGE)
- 
-+#define p4d_newpage(x)  (p4d_val(x) & _PAGE_NEWPAGE)
-+#define p4d_mkuptodate(x) (p4d_val(x) &= ~_PAGE_NEWPAGE)
-+
- #define pmd_page(pmd) phys_to_page(pmd_val(pmd) & PAGE_MASK)
- 
- #define pte_page(x) pfn_to_page(pte_pfn(x))
-diff --git a/arch/um/kernel/mem.c b/arch/um/kernel/mem.c
-index 417ff64..6fd17bc 100644
---- a/arch/um/kernel/mem.c
-+++ b/arch/um/kernel/mem.c
-@@ -92,10 +92,26 @@ static void __init one_md_table_init(pud_t *pud)
- #endif
- }
- 
-+static void __init one_pud_table_init(p4d_t *p4d)
-+{
-+#if CONFIG_PGTABLE_LEVELS > 3
-+	pud_t *pud_table = (pud_t *) memblock_alloc_low(PAGE_SIZE, PAGE_SIZE);
-+
-+	if (!pud_table)
-+		panic("%s: Failed to allocate %lu bytes align=%lx\n",
-+		      __func__, PAGE_SIZE, PAGE_SIZE);
-+
-+	set_p4d(p4d, __p4d(_KERNPG_TABLE + (unsigned long) __pa(pud_table)));
-+	if (pud_table != pud_offset(p4d, 0))
-+		BUG();
-+#endif
-+}
-+
- static void __init fixrange_init(unsigned long start, unsigned long end,
- 				 pgd_t *pgd_base)
- {
- 	pgd_t *pgd;
-+	p4d_t *p4d;
- 	pud_t *pud;
- 	pmd_t *pmd;
- 	int i, j;
-@@ -107,7 +123,10 @@ static void __init fixrange_init(unsigned long start, unsigned long end,
- 	pgd = pgd_base + i;
- 
- 	for ( ; (i < PTRS_PER_PGD) && (vaddr < end); pgd++, i++) {
--		pud = pud_offset(pgd, vaddr);
-+		p4d = p4d_offset(pgd, vaddr);
-+		if (p4d_none(*p4d))
-+			one_pud_table_init(p4d);
-+		pud = pud_offset(p4d, vaddr);
- 		if (pud_none(*pud))
- 			one_md_table_init(pud);
- 		pmd = pmd_offset(pud, vaddr);
-@@ -124,6 +143,7 @@ static void __init fixaddr_user_init( void)
- #ifdef CONFIG_ARCH_REUSE_HOST_VSYSCALL_AREA
- 	long size = FIXADDR_USER_END - FIXADDR_USER_START;
- 	pgd_t *pgd;
-+	p4d_t *p4d;
- 	pud_t *pud;
- 	pmd_t *pmd;
- 	pte_t *pte;
-@@ -144,7 +164,8 @@ static void __init fixaddr_user_init( void)
- 	for ( ; size > 0; size -= PAGE_SIZE, vaddr += PAGE_SIZE,
- 		      p += PAGE_SIZE) {
- 		pgd = swapper_pg_dir + pgd_index(vaddr);
--		pud = pud_offset(pgd, vaddr);
-+		p4d = p4d_offset(pgd, vaddr);
-+		pud = pud_offset(p4d, vaddr);
- 		pmd = pmd_offset(pud, vaddr);
- 		pte = pte_offset_kernel(pmd, vaddr);
- 		pte_set_val(*pte, p, PAGE_READONLY);
-diff --git a/arch/um/kernel/skas/mmu.c b/arch/um/kernel/skas/mmu.c
-index b5e3d91..3f0d9a5 100644
---- a/arch/um/kernel/skas/mmu.c
-+++ b/arch/um/kernel/skas/mmu.c
-@@ -19,15 +19,21 @@ static int init_stub_pte(struct mm_struct *mm, unsigned long proc,
- 			 unsigned long kernel)
- {
- 	pgd_t *pgd;
-+	p4d_t *p4d;
- 	pud_t *pud;
- 	pmd_t *pmd;
- 	pte_t *pte;
- 
- 	pgd = pgd_offset(mm, proc);
--	pud = pud_alloc(mm, pgd, proc);
--	if (!pud)
-+
-+	p4d = p4d_alloc(mm, pgd, proc);
-+	if (!p4d)
- 		goto out;
- 
-+	pud = pud_alloc(mm, p4d, proc);
-+	if (!pud)
-+		goto out_pud;
-+
- 	pmd = pmd_alloc(mm, pud, proc);
- 	if (!pmd)
- 		goto out_pmd;
-@@ -44,6 +50,8 @@ static int init_stub_pte(struct mm_struct *mm, unsigned long proc,
- 	pmd_free(mm, pmd);
-  out_pmd:
- 	pud_free(mm, pud);
-+ out_pud:
-+	p4d_free(mm, p4d);
-  out:
- 	return -ENOMEM;
- }
-diff --git a/arch/um/kernel/skas/uaccess.c b/arch/um/kernel/skas/uaccess.c
-index 3236052..d617f8d 100644
---- a/arch/um/kernel/skas/uaccess.c
-+++ b/arch/um/kernel/skas/uaccess.c
-@@ -17,6 +17,7 @@
- pte_t *virt_to_pte(struct mm_struct *mm, unsigned long addr)
- {
- 	pgd_t *pgd;
-+	p4d_t *p4d;
- 	pud_t *pud;
- 	pmd_t *pmd;
- 
-@@ -27,7 +28,11 @@ pte_t *virt_to_pte(struct mm_struct *mm, unsigned long addr)
- 	if (!pgd_present(*pgd))
- 		return NULL;
- 
--	pud = pud_offset(pgd, addr);
-+	p4d = p4d_offset(pgd, addr);
-+	if (!p4d_present(*p4d))
-+		return NULL;
-+
-+	pud = pud_offset(p4d, addr);
- 	if (!pud_present(*pud))
- 		return NULL;
- 
-diff --git a/arch/um/kernel/tlb.c b/arch/um/kernel/tlb.c
-index 8425a22..80a358c 100644
---- a/arch/um/kernel/tlb.c
-+++ b/arch/um/kernel/tlb.c
-@@ -277,7 +277,7 @@ static inline int update_pmd_range(pud_t *pud, unsigned long addr,
- 	return ret;
- }
- 
--static inline int update_pud_range(pgd_t *pgd, unsigned long addr,
-+static inline int update_pud_range(p4d_t *p4d, unsigned long addr,
- 				   unsigned long end,
- 				   struct host_vm_change *hvc)
- {
-@@ -285,7 +285,7 @@ static inline int update_pud_range(pgd_t *pgd, unsigned long addr,
- 	unsigned long next;
- 	int ret = 0;
- 
--	pud = pud_offset(pgd, addr);
-+	pud = pud_offset(p4d, addr);
- 	do {
- 		next = pud_addr_end(addr, end);
- 		if (!pud_present(*pud)) {
-@@ -299,6 +299,28 @@ static inline int update_pud_range(pgd_t *pgd, unsigned long addr,
- 	return ret;
- }
- 
-+static inline int update_p4d_range(pgd_t *pgd, unsigned long addr,
-+				   unsigned long end,
-+				   struct host_vm_change *hvc)
-+{
-+	p4d_t *p4d;
-+	unsigned long next;
-+	int ret = 0;
-+
-+	p4d = p4d_offset(pgd, addr);
-+	do {
-+		next = p4d_addr_end(addr, end);
-+		if (!p4d_present(*p4d)) {
-+			if (hvc->force || p4d_newpage(*p4d)) {
-+				ret = add_munmap(addr, next - addr, hvc);
-+				p4d_mkuptodate(*p4d);
-+			}
-+		} else
-+			ret = update_pud_range(p4d, addr, next, hvc);
-+	} while (p4d++, addr = next, ((addr < end) && !ret));
-+	return ret;
-+}
-+
- void fix_range_common(struct mm_struct *mm, unsigned long start_addr,
- 		      unsigned long end_addr, int force)
- {
-@@ -316,8 +338,8 @@ void fix_range_common(struct mm_struct *mm, unsigned long start_addr,
- 				ret = add_munmap(addr, next - addr, &hvc);
- 				pgd_mkuptodate(*pgd);
- 			}
--		}
--		else ret = update_pud_range(pgd, addr, next, &hvc);
-+		} else
-+			ret = update_p4d_range(pgd, addr, next, &hvc);
- 	} while (pgd++, addr = next, ((addr < end_addr) && !ret));
- 
- 	if (!ret)
-@@ -338,6 +360,7 @@ static int flush_tlb_kernel_range_common(unsigned long start, unsigned long end)
- {
- 	struct mm_struct *mm;
- 	pgd_t *pgd;
-+	p4d_t *p4d;
- 	pud_t *pud;
- 	pmd_t *pmd;
- 	pte_t *pte;
-@@ -364,7 +387,23 @@ static int flush_tlb_kernel_range_common(unsigned long start, unsigned long end)
- 			continue;
- 		}
- 
--		pud = pud_offset(pgd, addr);
-+		p4d = p4d_offset(pgd, addr);
-+		if (!p4d_present(*p4d)) {
-+			last = ADD_ROUND(addr, P4D_SIZE);
-+			if (last > end)
-+				last = end;
-+			if (p4d_newpage(*p4d)) {
-+				updated = 1;
-+				err = add_munmap(addr, last - addr, &hvc);
-+				if (err < 0)
-+					panic("munmap failed, errno = %d\n",
-+					      -err);
-+			}
-+			addr = last;
-+			continue;
-+		}
-+
-+		pud = pud_offset(p4d, addr);
- 		if (!pud_present(*pud)) {
- 			last = ADD_ROUND(addr, PUD_SIZE);
- 			if (last > end)
-@@ -424,6 +463,7 @@ static int flush_tlb_kernel_range_common(unsigned long start, unsigned long end)
- void flush_tlb_page(struct vm_area_struct *vma, unsigned long address)
- {
- 	pgd_t *pgd;
-+	p4d_t *p4d;
- 	pud_t *pud;
- 	pmd_t *pmd;
- 	pte_t *pte;
-@@ -437,7 +477,11 @@ void flush_tlb_page(struct vm_area_struct *vma, unsigned long address)
- 	if (!pgd_present(*pgd))
- 		goto kill;
- 
--	pud = pud_offset(pgd, address);
-+	p4d = p4d_offset(pgd, address);
-+	if (!p4d_present(*p4d))
-+		goto kill;
-+
-+	pud = pud_offset(p4d, address);
- 	if (!pud_present(*pud))
- 		goto kill;
- 
-diff --git a/arch/um/kernel/trap.c b/arch/um/kernel/trap.c
-index e62296c..8185530 100644
---- a/arch/um/kernel/trap.c
-+++ b/arch/um/kernel/trap.c
-@@ -28,6 +28,7 @@ int handle_page_fault(unsigned long address, unsigned long ip,
- 	struct mm_struct *mm = current->mm;
- 	struct vm_area_struct *vma;
- 	pgd_t *pgd;
-+	p4d_t *p4d;
- 	pud_t *pud;
- 	pmd_t *pmd;
- 	pte_t *pte;
-@@ -104,7 +105,8 @@ int handle_page_fault(unsigned long address, unsigned long ip,
- 		}
- 
- 		pgd = pgd_offset(mm, address);
--		pud = pud_offset(pgd, address);
-+		p4d = p4d_offset(pgd, address);
-+		pud = pud_offset(p4d, address);
- 		pmd = pmd_offset(pud, address);
- 		pte = pte_offset_kernel(pmd, address);
- 	} while (!pte_present(*pte));
--- 
-2.7.4
+So you just traced IRQs off, but...
+
+>         enter_from_user_mode();
+>         local_irq_enable();
+
+Now they're on and traced on again?
+
+I also don't see how your patch handles the fastpath case.
+
+How about the attached patch instead?
+
+--00000000000038b2b005959aa2c3
+Content-Type: text/x-patch; charset="US-ASCII"; name="irqtrace.patch"
+Content-Disposition: attachment; filename="irqtrace.patch"
+Content-Transfer-Encoding: base64
+Content-ID: <f_k23sk6dd0>
+X-Attachment-Id: f_k23sk6dd0
+
+Y29tbWl0IGUxNTRhZjBkN2ZmMmQ2MDVmMTU1ZjVhY2EwNTllM2U4MzVlNDI2ZDQKQXV0aG9yOiBB
+bmR5IEx1dG9taXJza2kgPGx1dG9Aa2VybmVsLm9yZz4KRGF0ZTogICBGcmkgQXVnIDIgMTA6MzA6
+NDQgMjAxOSAtMDcwMAoKICAgIHg4Ni9lbnRyeTogTW92ZSBleGl0LXRvLXVzZXJtb2RlIGlycWZs
+YWcgdHJhY2luZyB0byBwcmVwYXJlX2V4aXRfdG9fdXNlcm1vZGUoKQogICAgCiAgICBwcmVwYXJl
+X2V4aXRfdG9fdXNlcm1vZGUoKSBjYW4gZWFzaWx5IGhhbmRsZSBpcnFmbGFnIHRyYWNpbmcuICBN
+b3ZlCiAgICB0aGUgbG9naWMgdGhlcmUgYW5kIHJlbW92ZSBpdCBmcm9tIHRoZSBlbnRyeSBhc20u
+CiAgICAKICAgIFNpZ25lZC1vZmYtYnk6IEFuZHkgTHV0b21pcnNraSA8bHV0b0BrZXJuZWwub3Jn
+PgoKZGlmZiAtLWdpdCBhL2FyY2gveDg2L2VudHJ5L2NvbW1vbi5jIGIvYXJjaC94ODYvZW50cnkv
+Y29tbW9uLmMKaW5kZXggY2M0OTM4MGVmOGFiLi5mNGNlMGNmMmZiNzQgMTAwNjQ0Ci0tLSBhL2Fy
+Y2gveDg2L2VudHJ5L2NvbW1vbi5jCisrKyBiL2FyY2gveDg2L2VudHJ5L2NvbW1vbi5jCkBAIC0y
+MTcsNiArMjE3LDEzIEBAIF9fdmlzaWJsZSBpbmxpbmUgdm9pZCBwcmVwYXJlX2V4aXRfdG9fdXNl
+cm1vZGUoc3RydWN0IHB0X3JlZ3MgKnJlZ3MpCiAKIAl1c2VyX2VudGVyX2lycW9mZigpOwogCisJ
+LyoKKwkgKiBUaGUgYWN0dWFsIHJldHVybiB0byB1c2VybW9kZSB3aWxsIGFsbW9zdCBjZXJ0YWlu
+bHkgdHVybiBJUlFzIG9uLgorCSAqIFRyYWNlIGl0IGhlcmUgdG8gc2ltcGxpZnkgdGhlIGFzbSBj
+b2RlLgorCSAqLworCWlmIChsaWtlbHkocmVncy0+ZmxhZ3MgJiBYODZfRUZMQUdTX0lGKSkKKwkJ
+dHJhY2VfaGFyZGlycXNfb24oKTsKKwogCW1kc191c2VyX2NsZWFyX2NwdV9idWZmZXJzKCk7CiB9
+CiAKZGlmZiAtLWdpdCBhL2FyY2gveDg2L2VudHJ5L2VudHJ5XzMyLlMgYi9hcmNoL3g4Ni9lbnRy
+eS9lbnRyeV8zMi5TCmluZGV4IGY4M2NhNWFhOGI3Ny4uYzcwM2MyOWJlYmIxIDEwMDY0NAotLS0g
+YS9hcmNoL3g4Ni9lbnRyeS9lbnRyeV8zMi5TCisrKyBiL2FyY2gveDg2L2VudHJ5L2VudHJ5XzMy
+LlMKQEAgLTEwNjIsNyArMTA2Miw2IEBAIEVOVFJZKGVudHJ5X0lOVDgwXzMyKQogCVNUQUNLTEVB
+S19FUkFTRQogCiByZXN0b3JlX2FsbDoKLQlUUkFDRV9JUlFTX0lSRVQKIAlTV0lUQ0hfVE9fRU5U
+UllfU1RBQ0sKIC5McmVzdG9yZV9hbGxfbm90cmFjZToKIAlDSEVDS19BTkRfQVBQTFlfRVNQRklY
+CmRpZmYgLS1naXQgYS9hcmNoL3g4Ni9lbnRyeS9lbnRyeV82NC5TIGIvYXJjaC94ODYvZW50cnkv
+ZW50cnlfNjQuUwppbmRleCAzYWJhZTgwZDQ5MDIuLjA1NjQxOWEwZTc2ZiAxMDA2NDQKLS0tIGEv
+YXJjaC94ODYvZW50cnkvZW50cnlfNjQuUworKysgYi9hcmNoL3g4Ni9lbnRyeS9lbnRyeV82NC5T
+CkBAIC0xNzIsOCArMTcyLDYgQEAgR0xPQkFMKGVudHJ5X1NZU0NBTExfNjRfYWZ0ZXJfaHdmcmFt
+ZSkKIAltb3ZxCSVyc3AsICVyc2kKIAljYWxsCWRvX3N5c2NhbGxfNjQJCS8qIHJldHVybnMgd2l0
+aCBJUlFzIGRpc2FibGVkICovCiAKLQlUUkFDRV9JUlFTX0lSRVRRCQkvKiB3ZSdyZSBhYm91dCB0
+byBjaGFuZ2UgSUYgKi8KLQogCS8qCiAJICogVHJ5IHRvIHVzZSBTWVNSRVQgaW5zdGVhZCBvZiBJ
+UkVUIGlmIHdlJ3JlIHJldHVybmluZyB0bwogCSAqIGEgY29tcGxldGVseSBjbGVhbiA2NC1iaXQg
+dXNlcnNwYWNlIGNvbnRleHQuICBJZiB3ZSdyZSBub3QsCkBAIC02MTcsNyArNjE1LDYgQEAgcmV0
+X2Zyb21faW50cjoKIC5McmV0aW50X3VzZXI6CiAJbW92CSVyc3AsJXJkaQogCWNhbGwJcHJlcGFy
+ZV9leGl0X3RvX3VzZXJtb2RlCi0JVFJBQ0VfSVJRU19JUkVUUQogCiBHTE9CQUwoc3dhcGdzX3Jl
+c3RvcmVfcmVnc19hbmRfcmV0dXJuX3RvX3VzZXJtb2RlKQogI2lmZGVmIENPTkZJR19ERUJVR19F
+TlRSWQpkaWZmIC0tZ2l0IGEvYXJjaC94ODYvZW50cnkvZW50cnlfNjRfY29tcGF0LlMgYi9hcmNo
+L3g4Ni9lbnRyeS9lbnRyeV82NF9jb21wYXQuUwppbmRleCA0MzVkZjYzN2YzOTIuLjM1MDJmMzhi
+ZGUwMSAxMDA2NDQKLS0tIGEvYXJjaC94ODYvZW50cnkvZW50cnlfNjRfY29tcGF0LlMKKysrIGIv
+YXJjaC94ODYvZW50cnkvZW50cnlfNjRfY29tcGF0LlMKQEAgLTI1NCw3ICsyNTQsNiBAQCBzeXNy
+ZXQzMl9mcm9tX3N5c3RlbV9jYWxsOgogCSAqIHN0YWNrLiBTbyBsZXQncyBlcmFzZSB0aGUgdGhy
+ZWFkIHN0YWNrIHJpZ2h0IG5vdy4KIAkgKi8KIAlTVEFDS0xFQUtfRVJBU0UKLQlUUkFDRV9JUlFT
+X09OCQkJLyogVXNlciBtb2RlIHRyYWNlcyBhcyBJUlFzIG9uLiAqLwogCW1vdnEJUkJYKCVyc3Ap
+LCAlcmJ4CQkvKiBwdF9yZWdzLT5yYnggKi8KIAltb3ZxCVJCUCglcnNwKSwgJXJicAkJLyogcHRf
+cmVncy0+cmJwICovCiAJbW92cQlFRkxBR1MoJXJzcCksICVyMTEJLyogcHRfcmVncy0+ZmxhZ3Mg
+KGluIHIxMSkgKi8KQEAgLTM5Niw2ICszOTUsNSBAQCBFTlRSWShlbnRyeV9JTlQ4MF9jb21wYXQp
+CiAuTHN5c2NhbGxfMzJfZG9uZToKIAogCS8qIEdvIGJhY2sgdG8gdXNlciBtb2RlLiAqLwotCVRS
+QUNFX0lSUVNfT04KIAlqbXAJc3dhcGdzX3Jlc3RvcmVfcmVnc19hbmRfcmV0dXJuX3RvX3VzZXJt
+b2RlCiBFTkQoZW50cnlfSU5UODBfY29tcGF0KQo=
+--00000000000038b2b005959aa2c3--
