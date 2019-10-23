@@ -1,44 +1,59 @@
-Return-Path: <peterz@infradead.org>
-Date: Thu, 24 Oct 2019 19:40:44 +0200
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [patch V2 08/17] x86/entry: Move syscall irq tracing to C code
-Message-ID: <20191024174044.GJ4114@hirez.programming.kicks-ass.net>
-References: <20191023122705.198339581@linutronix.de>
- <20191023123118.386844979@linutronix.de>
- <CALCETrWLk9LKV4+_mrOKDc3GUvXbCjqA5R6cdpqq02xoRCBOHw@mail.gmail.com>
- <CALCETrV79pw7-nisp4VdEkQ4=fr2nfJFOMCtyKmWZR6PG3=oWg@mail.gmail.com>
+Return-Path: <linux+rppt=linux.ibm.com@armlinux.org.uk>
+Date: Wed, 23 Oct 2019 10:40:25 +0100
+From: Russell King - ARM Linux admin <linux@armlinux.org.uk>
+Subject: Re: [PATCH 02/12] arm: nommu: use pgtable-nopud instead of
+ 4level-fixup
+Message-ID: <20191023094025.GY25745@shell.armlinux.org.uk>
+References: <1571822941-29776-1-git-send-email-rppt@kernel.org>
+ <1571822941-29776-3-git-send-email-rppt@kernel.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <CALCETrV79pw7-nisp4VdEkQ4=fr2nfJFOMCtyKmWZR6PG3=oWg@mail.gmail.com>
-To: Andy Lutomirski <luto@kernel.org>
-Cc: Thomas Gleixner <tglx@linutronix.de>, LKML <linux-kernel@vger.kernel.org>, X86 ML <x86@kernel.org>, Will Deacon <will@kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, kvm list <kvm@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Mike Rapoport <rppt@linux.ibm.com>, Josh Poimboeuf <jpoimboe@redhat.com>, Miroslav Benes <mbenes@suse.cz>
+In-Reply-To: <1571822941-29776-3-git-send-email-rppt@kernel.org>
+Sender: Russell King - ARM Linux admin <linux@armlinux.org.uk>
+To: Mike Rapoport <rppt@kernel.org>
+Cc: linux-mm@kvack.org, Andrew Morton <akpm@linux-foundation.org>, Anton Ivanov <anton.ivanov@cambridgegreys.com>, Arnd Bergmann <arnd@arndb.de>, "David S. Miller" <davem@davemloft.net>, Geert Uytterhoeven <geert@linux-m68k.org>, Greentime Hu <green.hu@gmail.com>, Greg Ungerer <gerg@linux-m68k.org>, Helge Deller <deller@gmx.de>, "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>, Jeff Dike <jdike@addtoit.com>, "Kirill A. Shutemov" <kirill@shutemov.name>, Linus Torvalds <torvalds@linux-foundation.org>, Mark Salter <msalter@redhat.com>, Matt Turner <mattst88@gmail.com>, Michal Simek <monstr@monstr.eu>, Richard Weinberger <richard@nod.at>, Sam Creasey <sammy@sammy.net>, Vincent Chen <deanbo422@gmail.com>, Vineet Gupta <Vineet.Gupta1@synopsys.com>, linux-alpha@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, linux-kernel@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-parisc@vger.kernel.org, linux-um@lists.infradead.org, sparclinux@vger.kernel.org, Mike Rapoport <rppt@linux.ibm.com>
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20191024174044.QS6o6sLSAwIOX0gVTEhEgLOfAJm1gED3GyKAkMVoIAo@z>
+Message-ID: <20191023094025.54g6rhhB_AaCvCtSSBM6mqA2b8-I4QoFO5p34HxE7Eo@z>
 
-On Thu, Oct 24, 2019 at 09:24:13AM -0700, Andy Lutomirski wrote:
-> On Wed, Oct 23, 2019 at 2:30 PM Andy Lutomirski <luto@kernel.org> wrote:
-> >
-> > On Wed, Oct 23, 2019 at 5:31 AM Thomas Gleixner <tglx@linutronix.de> wrote:
-> > >
-> > > Interrupt state tracing can be safely done in C code. The few stack
-> > > operations in assembly do not need to be covered.
-> > >
-> > > Remove the now pointless indirection via .Lsyscall_32_done and jump to
-> > > swapgs_restore_regs_and_return_to_usermode directly.
-> >
-> > This doesn't look right.
+On Wed, Oct 23, 2019 at 12:28:51PM +0300, Mike Rapoport wrote:
+> From: Mike Rapoport <rppt@linux.ibm.com>
 > 
-> Well, I feel a bit silly.  I read this:
+> The generic nommu implementation of page table manipulation takes care of
+> folding of the upper levels and does not require fixups.
 > 
-> >
-> > >  #define SYSCALL_EXIT_WORK_FLAGS                                \
-> > > @@ -279,6 +282,9 @@ static void syscall_slow_exit_work(struc
+> Simply replace of include/asm-generic/4level-fixup.h with
+> include/asm-generic/pgtable-nopud.h.
 > 
-> ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-> 
-> and I applied the diff in my head to the wrong function, and I didn't
-> notice that it didn't really apply there.  Oddly, gitweb gets this
+> Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
 
-I had the same when reviewing these patches; I was almost going to ask
-tglx about it on IRC when the penny dropped.
+Acked-by: Russell King <rmk+kernel@armlinux.org.uk>
+
+Thanks.
+
+> ---
+>  arch/arm/include/asm/pgtable.h | 2 +-
+>  1 file changed, 1 insertion(+), 1 deletion(-)
+> 
+> diff --git a/arch/arm/include/asm/pgtable.h b/arch/arm/include/asm/pgtable.h
+> index 3ae120c..eabcb48 100644
+> --- a/arch/arm/include/asm/pgtable.h
+> +++ b/arch/arm/include/asm/pgtable.h
+> @@ -12,7 +12,7 @@
+>  
+>  #ifndef CONFIG_MMU
+>  
+> -#include <asm-generic/4level-fixup.h>
+> +#include <asm-generic/pgtable-nopud.h>
+>  #include <asm/pgtable-nommu.h>
+>  
+>  #else
+> -- 
+> 2.7.4
+> 
+> 
+
+-- 
+RMK's Patch system: https://www.armlinux.org.uk/developer/patches/
+FTTC broadband for 0.8mile line in suburbia: sync at 12.1Mbps down 622kbps up
+According to speedtest.net: 11.9Mbps down 500kbps up
