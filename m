@@ -1,27 +1,26 @@
-Return-Path: <sean.j.christopherson@intel.com>
-Date: Wed, 23 Oct 2019 06:43:45 -0700
-From: Sean Christopherson <sean.j.christopherson@intel.com>
-Subject: Re: [patch V2 01/17] x86/entry/32: Remove unused resume_userspace
- label
-Message-ID: <20191023134345.GA329@linux.intel.com>
-References: <20191023122705.198339581@linutronix.de>
- <20191023123117.686514045@linutronix.de>
+Return-Path: <torvalds@linuxfoundation.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20191023123117.686514045@linutronix.de>
-To: Thomas Gleixner <tglx@linutronix.de>
-Cc: LKML <linux-kernel@vger.kernel.org>, x86@kernel.org, Peter Zijlstra <peterz@infradead.org>, Andy Lutomirski <luto@kernel.org>, Will Deacon <will@kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, kvm@vger.kernel.org, linux-arch@vger.kernel.org, Mike Rapoport <rppt@linux.ibm.com>, Josh Poimboeuf <jpoimboe@redhat.com>, Miroslav Benes <mbenes@suse.cz>
+References: <1571822941-29776-1-git-send-email-rppt@kernel.org>
+In-Reply-To: <1571822941-29776-1-git-send-email-rppt@kernel.org>
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Date: Wed, 23 Oct 2019 06:25:48 -0400
+Message-ID: <CAHk-=whd6wNfx2bq7BmN4ouZgt=NQ5pw+3uqPOTbvz_Qb3itFg@mail.gmail.com>
+Subject: Re: [PATCH 00/12] mm: remove __ARCH_HAS_4LEVEL_HACK
+Content-Type: text/plain; charset="UTF-8"
+To: Mike Rapoport <rppt@kernel.org>
+Cc: Linux-MM <linux-mm@kvack.org>, Andrew Morton <akpm@linux-foundation.org>, Anton Ivanov <anton.ivanov@cambridgegreys.com>, Arnd Bergmann <arnd@arndb.de>, "David S. Miller" <davem@davemloft.net>, Geert Uytterhoeven <geert@linux-m68k.org>, Greentime Hu <green.hu@gmail.com>, Greg Ungerer <gerg@linux-m68k.org>, Helge Deller <deller@gmx.de>, "James E.J. Bottomley" <James.Bottomley@hansenpartnership.com>, Jeff Dike <jdike@addtoit.com>, "Kirill A. Shutemov" <kirill@shutemov.name>, Mark Salter <msalter@redhat.com>, Matt Turner <mattst88@gmail.com>, Michal Simek <monstr@monstr.eu>, Richard Weinberger <richard@nod.at>, Russell King <linux@armlinux.org.uk>, Sam Creasey <sammy@sammy.net>, Vincent Chen <deanbo422@gmail.com>, Vineet Gupta <Vineet.Gupta1@synopsys.com>, alpha <linux-alpha@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, linux-c6x-dev@linux-c6x.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-m68k <linux-m68k@lists.linux-m68k.org>, linux-parisc@vger.kernel.org, linux-um@lists.infradead.org, sparclinux@vger.kernel.org, Mike Rapoport <rppt@linux.ibm.com>
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20191023134345.EG2CbtCEne4gsi7BSvldzAeOqBZSV-jUM0nMJbjazO0@z>
+Message-ID: <20191023102548.fUy-aCQ2wtHuerfNnooy4eb1S4rXIsDrFC_bPxyOejU@z>
 
-On Wed, Oct 23, 2019 at 02:27:06PM +0200, Thomas Gleixner wrote:
-> The C reimplementation of SYSENTER left that unused ENTRY() label
-> around. Remove it.
-> 
-> Fixes: 5f310f739b4c ("x86/entry/32: Re-implement SYSENTER using the new C path")
-> Originally-by: Peter Zijlstra <peterz@infradead.org>
-> Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
-> ---
+On Wed, Oct 23, 2019 at 5:29 AM Mike Rapoport <rppt@kernel.org> wrote:
+>
+> These patches convert several architectures to use page table folding and
+> remove __ARCH_HAS_4LEVEL_HACK along with include/asm-generic/4level-fixup.h.
 
-Reviewed-by: Sean Christopherson <sean.j.christopherson@intel.com>
+Thanks for doing this.
+
+The patches look sane from a quick scan, and it's definitely the right
+thing to do. So ack on my part, but obviously testing the different
+architectures would be a really good thing...
+
+                Linus
