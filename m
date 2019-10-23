@@ -1,43 +1,30 @@
-From: Josh Poimboeuf <jpoimboe@redhat.com>
-Subject: Re: [patch V2 03/17] x86/traps: Remove pointless irq enable from
- do_spurious_interrupt_bug()
-Date: Wed, 23 Oct 2019 16:31:07 -0500
-Message-ID: <20191023213107.m7ishskghswktspp@treble>
-References: <20191023122705.198339581@linutronix.de>
- <20191023123117.871608831@linutronix.de>
+From: Andy Lutomirski <luto@kernel.org>
+Subject: Re: [patch V2 14/17] entry: Provide generic exit to usermode functionality
+Date: Wed, 23 Oct 2019 14:34:12 -0700
+Message-ID: <CALCETrVArVWH2-ew4+WVxhX-3kzrspv2x8yw3RH3PyVGeAMudA@mail.gmail.com>
+References: <20191023122705.198339581@linutronix.de> <20191023123118.978254388@linutronix.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: quoted-printable
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20191023123117.871608831@linutronix.de>
-Content-Disposition: inline
+In-Reply-To: <20191023123118.978254388@linutronix.de>
 Sender: linux-kernel-owner@vger.kernel.org
 To: Thomas Gleixner <tglx@linutronix.de>
-Cc: LKML <linux-kernel@vger.kernel.org>, x86@kernel.org, Peter Zijlstra <peterz@infradead.org>, Andy Lutomirski <luto@kernel.org>, Will Deacon <will@kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, kvm@vger.kernel.org, linux-arch@vger.kernel.org, Mike Rapoport <rppt@linux.ibm.com>, Miroslav Benes <mbenes@suse.cz>
+Cc: LKML <linux-kernel@vger.kernel.org>, X86 ML <x86@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Andy Lutomirski <luto@kernel.org>, Will Deacon <will@kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, kvm list <kvm@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Mike Rapoport <rppt@linux.ibm.com>, Josh Poimboeuf <jpoimboe@redhat.com>, Miroslav Benes <mbenes@suse.cz>
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Oct 23, 2019 at 02:27:08PM +0200, Thomas Gleixner wrote:
-> That function returns immediately after conditionally reenabling interrup=
-ts which
-> is more than pointless and requires the ASM code to disable interrupts ag=
-ain.
->=20
-> Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
-> ---
->  arch/x86/kernel/traps.c |    1 -
->  1 file changed, 1 deletion(-)
->=20
-> --- a/arch/x86/kernel/traps.c
-> +++ b/arch/x86/kernel/traps.c
-> @@ -871,7 +871,6 @@ do_simd_coprocessor_error(struct pt_regs
->  dotraplinkage void
->  do_spurious_interrupt_bug(struct pt_regs *regs, long error_code)
->  {
-> -=09cond_local_irq_enable(regs);
->  }
+On Wed, Oct 23, 2019 at 5:31 AM Thomas Gleixner <tglx@linutronix.de> wrote:
+>
+> From: Thomas Gleixner <tglx@linutronix.de>
+>
+> Provide a generic facility to handle the exit to usermode work. That's
+> aimed to replace the pointlessly different copies in each architecture.
 
-I think we can just remove this handler altogether.  The Intel and AMD
-manuals say vector 15 (X86_TRAP_SPURIOUS) is reserved.
 
---=20
-Josh
+>  /**
+> + * local_irq_enable_exit_to_user - Exit to user variant of local_irq_enable()
+> + * @ti_work:   Cached TIF flags gathered with interrupts disabled
+> + *
+> + * Defaults to local_irq_enable(). Can be supplied by architecture specific
+> + * code.
+
+What did you have in mind here?
