@@ -1,173 +1,274 @@
 Return-Path: <tglx@linutronix.de>
-Date: Fri, 25 Oct 2019 00:33:52 +0200 (CEST)
+Message-ID: <20191023123118.687475813@linutronix.de>
+Date: Wed, 23 Oct 2019 14:27:16 +0200
 From: Thomas Gleixner <tglx@linutronix.de>
-Subject: Re: [patch V2 07/17] x86/entry/64: Remove redundant interrupt
- disable
-In-Reply-To: <CALCETrXyhnMwwOyWQ-FtsNFAsrcG41-pPrAp8Wj2vc0N9JzP-Q@mail.gmail.com>
-Message-ID: <alpine.DEB.2.21.1910242353330.1783@nanos.tec.linutronix.de>
-References: <20191023122705.198339581@linutronix.de> <20191023123118.296135499@linutronix.de> <20191023220618.qsmog2k5oaagj27v@treble> <alpine.DEB.2.21.1910240146200.1852@nanos.tec.linutronix.de> <CALCETrX+N_cR-HAmQyHxqUo0LPCk4GmqbzizXk-gq9qp00-RdA@mail.gmail.com>
- <alpine.DEB.2.21.1910242032080.1783@nanos.tec.linutronix.de> <CALCETrXyhnMwwOyWQ-FtsNFAsrcG41-pPrAp8Wj2vc0N9JzP-Q@mail.gmail.com>
+Subject: [patch V2 11/17] x86/entry: Use generic syscall entry function
+References: <20191023122705.198339581@linutronix.de>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-To: Andy Lutomirski <luto@kernel.org>
-Cc: Josh Poimboeuf <jpoimboe@redhat.com>, LKML <linux-kernel@vger.kernel.org>, X86 ML <x86@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Will Deacon <will@kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, kvm list <kvm@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Mike Rapoport <rppt@linux.ibm.com>, Miroslav Benes <mbenes@suse.cz>
+Content-Type: text/plain; charset=UTF-8
+To: LKML <linux-kernel@vger.kernel.org>
+Cc: x86@kernel.org, Peter Zijlstra <peterz@infradead.org>, Andy Lutomirski <luto@kernel.org>, Will Deacon <will@kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, kvm@vger.kernel.org, linux-arch@vger.kernel.org, Mike Rapoport <rppt@linux.ibm.com>, Josh Poimboeuf <jpoimboe@redhat.com>, Miroslav Benes <mbenes@suse.cz>
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20191024223352.5tzEPnYfHTkgjE9Phmx38NBy6unqylxQ8OBBFBbeN5k@z>
+Message-ID: <20191023122716.io_qFw1oT2PaGSD4Bwr3t-Ug1fJzxqIbawnB7Wt82lg@z>
 
-On Thu, 24 Oct 2019, Andy Lutomirski wrote:
-> On Thu, Oct 24, 2019 at 1:53 PM Thomas Gleixner <tglx@linutronix.de> wrote:
-> > I spent quite some time digging deeper into this. Finding all corner cases
-> > which eventually enable interrupts from an exception handler is not as
-> > trivial as it looked in the first place. Especially the fault handler is a
-> > nightmare. Also PeterZ's approach of doing
-> >
-> >            if (regs->eflags & IF)
-> >                 local_irq_disable();
-> >
-> > is doomed due to sys_iopl(). See below.
-> 
-> I missed something in the discussion.  What breaks?
+From: Thomas Gleixner <tglx@linutronix.de>
 
-Assume user space has issued CLI then the above check is giving the wrong
-answer because it assumes that all faults in user mode have IF set.
+Replace the syscall entry work handling with the generic version, Provide
+the necessary helper inlines to handle the real architecture specific
+parts, e.g. audit and seccomp invocations.
 
-> Can you check user_mode(regs) too?
+Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
+---
+ arch/x86/Kconfig                    |    1 
+ arch/x86/entry/common.c             |  108 +++---------------------------------
+ arch/x86/include/asm/entry-common.h |   59 +++++++++++++++++++
+ arch/x86/include/asm/thread_info.h  |    5 -
+ 4 files changed, 70 insertions(+), 103 deletions(-)
 
-Yes, but I still hate it with a passion :)
-
-> > What's your plan with cr2? Stash it in pt_regs or something else?
-> 
-> Just read it from CR2.  I added a new idtentry macro arg called
-> "entry_work", and setting it to 0 causes the enter_from_user_mode to
-> be skipped.  Then C code calls enter_from_user_mode() after reading
-> CR2 (and DR7).  WIP code is here:
-> 
-> https://git.kernel.org/pub/scm/linux/kernel/git/luto/linux.git/log/?h=x86/idtentry
-> 
-> The idea is that, if everything is converted, then we get rid of the
-> entry_work=1 case, which is easier if there's a macro.
-> 
-> So my suggestion is to use a macro for the 2-arg version and open-code
-> all the 3-arg cases.  Then, when the dust settles, we get rid of the
-> third arg and they can use the macro.
-
-I'll have a look tomorrow with brain awake.
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -111,6 +111,7 @@ config X86
+ 	select GENERIC_CPU_AUTOPROBE
+ 	select GENERIC_CPU_VULNERABILITIES
+ 	select GENERIC_EARLY_IOREMAP
++	select GENERIC_ENTRY
+ 	select GENERIC_FIND_FIRST_BIT
+ 	select GENERIC_IOMAP
+ 	select GENERIC_IRQ_EFFECTIVE_AFF_MASK	if SMP
+--- a/arch/x86/entry/common.c
++++ b/arch/x86/entry/common.c
+@@ -10,13 +10,13 @@
+ #include <linux/kernel.h>
+ #include <linux/sched.h>
+ #include <linux/sched/task_stack.h>
++#include <linux/entry-common.h>
+ #include <linux/mm.h>
+ #include <linux/smp.h>
+ #include <linux/errno.h>
+ #include <linux/ptrace.h>
+ #include <linux/tracehook.h>
+ #include <linux/audit.h>
+-#include <linux/seccomp.h>
+ #include <linux/signal.h>
+ #include <linux/export.h>
+ #include <linux/context_tracking.h>
+@@ -34,7 +34,6 @@
+ #include <asm/fpu/api.h>
+ #include <asm/nospec-branch.h>
  
-> > The interesting bells and whistels result from sys_iopl(). If user space
-> > has been granted iopl(level = 3) it gains cli/sti priviledges. When the
-> > application has interrupts disabled in userspace:
-> >
-> >   - invocation of a syscall
-> >
-> >   - any exception (aside of NMI/MCE) which conditionally enables interrupts
-> >     depending on user_mode(regs) and therefor can be preempted and
-> >     schedule
-> >
-> > is just undefined behaviour and I personally consider it to be a plain bug.
-> >
-> > Just for the record: This results in running a resulting or even completely
-> > unrelated signal handler with interrupts disabled as well.
-> 
-> I am seriously tempted to say that the solution is to remove iopl(),
-> at least on 64-bit kernels.  Doing STI in user mode is BS :)
-
-STI would be halfways sane. CLI is the problem. And yes I agree it's BS :)
-
-> Otherwise we need to give it semantics, no?  I personally have no
-> actual problem with the fact that an NMI can cause scheduling to
-> happen.  Big fscking deal.
-
-Right, I don't care either. I do neither care that any exception/syscall
-which hits a user space CLI region might schedule. It's been that way
-forever.
-
-But giving this semantics is insanely hard at least if you want sensible,
-useful, consistent and understandable semantics. I know that's overrated.
-
-> > Whatever we decide it is, leaving it completely inconsistent is not a
-> > solution at all. The options are:
-> >
-> >   1)  Always do conditional tracing depending on the user_regs->eflags.IF
-> >       state.
-> 
-> I'm okay with always tracing like user mode means IRQs on or doing it
-> "correctly".  I consider the former to be simpler and therefore quite
-> possibly better.
-> 
-> >
-> >   2)  #1 + warn once when syscalls and exceptions (except NMI/MCE) happen
-> >       and user_regs->eflags.IF is cleared.
-> >
-> >   3a) #2 + enforce signal handling to run with interrupts enabled.
-> >
-> >   3b) #2 + set regs->eflags.IF. So the state is always correct from the
-> >       kernel POV. Of course that changes existing behaviour, but its
-> >       changing undefined and inconsistent behaviour.
-> >
-> >   4) Let iopl(level) return -EPERM if level == 3.
-> >
-> >      Yeah, I know it's not possible due to regressions (DPKD uses iopl(3)),
-> >      but TBH that'd be the sanest option of all.
-> >
-> >      Of course the infinite wisdom of hardware designers tied IN, INS, OUT,
-> >      OUTS and CLI/STI together on IOPL so we cannot even distangle them in
-> >      any way.
-> 
-> >
-> >      The only way out would be to actually use a full 8K sized I/O bitmap,
-> >      but that's a massive pain as it has to be copied on every context
-> >      switch.
-> 
-> Hmm.  This actually doesn't seem that bad.  We already have a TIF_
-> flag to optimize this.  So basically iopl() would effectively become
-> ioperm(everything on).
-
-Yes, and the insane user space would:
-
-     1) Pay the latency price for copying 8K bitmap on every context switch
-     	IN
-
-     2) Inflict latency on the next task due to requiring memset of 8K
-     	bitmap on every context switch OUT
-
-     3) #GP when issuing CLI/STI
-
-I personally have no problem with that. #1 and #3 are sane and as iopl()
-requires CAP_RAW_IO it's not available to Joe User, so the sysadmin is
-responsible for eventual issues resulting from #2.
-
-Though the no-regression hammer might pound on #3 as it breaks random
-engineering trainwrecks from hell.
-
-#1/#2 could be easily mitigated though.
-
-      struct tss_struct {
-      	struct x86_hw_tss       x86_tss;
-	unsigned long           io_bitmap[IO_BITMAP_LONGS + 1];
-      };
-
-and x86_tss has
-
-    u16	io_bitmap_base;
-
-which is either set to
-
-  INVALID_IO_BITMAP_OFFSET ( 0x8000 )
-
-or
-
-  IO_BITMAP_OFFSET
-    (offsetof(struct tss_struct, io_bitmap) - offsetof(struct tss_struct, x86_tss))
-
-So we could add
-
-	unsigned long           io_bitmap_all[IO_BITMAP_LONGS + 1];
-
-and just set the base to this one.
-
-But that involves also upping __KERNEL_TSS_LIMIT. Too tired to think about
-the implications of that right now.
-
-Thanks,
-
-	tglx
+-#define CREATE_TRACE_POINTS
+ #include <trace/events/syscalls.h>
+ 
+ #ifdef CONFIG_CONTEXT_TRACKING
+@@ -48,86 +47,6 @@
+ static inline void enter_from_user_mode(void) {}
+ #endif
+ 
+-static void do_audit_syscall_entry(struct pt_regs *regs, u32 arch)
+-{
+-#ifdef CONFIG_X86_64
+-	if (arch == AUDIT_ARCH_X86_64) {
+-		audit_syscall_entry(regs->orig_ax, regs->di,
+-				    regs->si, regs->dx, regs->r10);
+-	} else
+-#endif
+-	{
+-		audit_syscall_entry(regs->orig_ax, regs->bx,
+-				    regs->cx, regs->dx, regs->si);
+-	}
+-}
+-
+-/*
+- * Returns the syscall nr to run (which should match regs->orig_ax) or -1
+- * to skip the syscall.
+- */
+-static long syscall_trace_enter(struct pt_regs *regs)
+-{
+-	u32 arch = in_ia32_syscall() ? AUDIT_ARCH_I386 : AUDIT_ARCH_X86_64;
+-
+-	struct thread_info *ti = current_thread_info();
+-	unsigned long ret = 0;
+-	u32 work;
+-
+-	if (IS_ENABLED(CONFIG_DEBUG_ENTRY))
+-		BUG_ON(regs != task_pt_regs(current));
+-
+-	work = READ_ONCE(ti->flags);
+-
+-	if (work & (_TIF_SYSCALL_TRACE | _TIF_SYSCALL_EMU)) {
+-		ret = tracehook_report_syscall_entry(regs);
+-		if (ret || (work & _TIF_SYSCALL_EMU))
+-			return -1L;
+-	}
+-
+-#ifdef CONFIG_SECCOMP
+-	/*
+-	 * Do seccomp after ptrace, to catch any tracer changes.
+-	 */
+-	if (work & _TIF_SECCOMP) {
+-		struct seccomp_data sd;
+-
+-		sd.arch = arch;
+-		sd.nr = regs->orig_ax;
+-		sd.instruction_pointer = regs->ip;
+-#ifdef CONFIG_X86_64
+-		if (arch == AUDIT_ARCH_X86_64) {
+-			sd.args[0] = regs->di;
+-			sd.args[1] = regs->si;
+-			sd.args[2] = regs->dx;
+-			sd.args[3] = regs->r10;
+-			sd.args[4] = regs->r8;
+-			sd.args[5] = regs->r9;
+-		} else
+-#endif
+-		{
+-			sd.args[0] = regs->bx;
+-			sd.args[1] = regs->cx;
+-			sd.args[2] = regs->dx;
+-			sd.args[3] = regs->si;
+-			sd.args[4] = regs->di;
+-			sd.args[5] = regs->bp;
+-		}
+-
+-		ret = __secure_computing(&sd);
+-		if (ret == -1)
+-			return ret;
+-	}
+-#endif
+-
+-	if (unlikely(test_thread_flag(TIF_SYSCALL_TRACEPOINT)))
+-		trace_sys_enter(regs, regs->orig_ax);
+-
+-	do_audit_syscall_entry(regs, arch);
+-
+-	return ret ?: regs->orig_ax;
+-}
+-
+ #define EXIT_TO_USERMODE_LOOP_FLAGS				\
+ 	(_TIF_SIGPENDING | _TIF_NOTIFY_RESUME | _TIF_UPROBE |	\
+ 	 _TIF_NEED_RESCHED | _TIF_USER_RETURN_NOTIFY | _TIF_PATCH_PENDING)
+@@ -280,16 +199,13 @@ static void syscall_slow_exit_work(struc
+ #ifdef CONFIG_X86_64
+ __visible void do_syscall_64(unsigned long nr, struct pt_regs *regs)
+ {
+-	struct thread_info *ti;
+-
+ 	/* User to kernel transition disabled interrupts. */
+ 	trace_hardirqs_off();
+ 
+ 	enter_from_user_mode();
+ 	local_irq_enable();
+-	ti = current_thread_info();
+-	if (READ_ONCE(ti->flags) & _TIF_WORK_SYSCALL_ENTRY)
+-		nr = syscall_trace_enter(regs);
++
++	nr = syscall_enter_from_usermode(regs, nr);
+ 
+ 	if (likely(nr < NR_syscalls)) {
+ 		nr = array_index_nospec(nr, NR_syscalls);
+@@ -316,22 +232,18 @@ static void syscall_slow_exit_work(struc
+  */
+ static __always_inline void do_syscall_32_irqs_on(struct pt_regs *regs)
+ {
+-	struct thread_info *ti = current_thread_info();
+ 	unsigned int nr = (unsigned int)regs->orig_ax;
+ 
+ #ifdef CONFIG_IA32_EMULATION
+-	ti->status |= TS_COMPAT;
++	current_thread_info()->status |= TS_COMPAT;
+ #endif
+ 
+-	if (READ_ONCE(ti->flags) & _TIF_WORK_SYSCALL_ENTRY) {
+-		/*
+-		 * Subtlety here: if ptrace pokes something larger than
+-		 * 2^32-1 into orig_ax, this truncates it.  This may or
+-		 * may not be necessary, but it matches the old asm
+-		 * behavior.
+-		 */
+-		nr = syscall_trace_enter(regs);
+-	}
++	/*
++	 * Subtlety here: if ptrace pokes something larger than 2^32-1 into
++	 * orig_ax, this truncates it.  This may or may not be necessary,
++	 * but it matches the old asm behavior.
++	 */
++	nr = syscall_enter_from_usermode(regs, nr);
+ 
+ 	if (likely(nr < IA32_NR_syscalls)) {
+ 		nr = array_index_nospec(nr, IA32_NR_syscalls);
+--- /dev/null
++++ b/arch/x86/include/asm/entry-common.h
+@@ -0,0 +1,59 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++#ifndef _ASM_X86_ENTRY_COMMON_H
++#define _ASM_X86_ENTRY_COMMON_H
++
++#include <linux/seccomp.h>
++#include <linux/audit.h>
++
++static inline long arch_syscall_enter_seccomp(struct pt_regs *regs)
++{
++#ifdef CONFIG_SECCOMP
++	u32 arch = in_ia32_syscall() ? AUDIT_ARCH_I386 : AUDIT_ARCH_X86_64;
++	struct seccomp_data sd;
++
++	sd.arch = arch;
++	sd.nr = regs->orig_ax;
++	sd.instruction_pointer = regs->ip;
++
++#ifdef CONFIG_X86_64
++	if (arch == AUDIT_ARCH_X86_64) {
++		sd.args[0] = regs->di;
++		sd.args[1] = regs->si;
++		sd.args[2] = regs->dx;
++		sd.args[3] = regs->r10;
++		sd.args[4] = regs->r8;
++		sd.args[5] = regs->r9;
++	} else
++#endif
++	{
++		sd.args[0] = regs->bx;
++		sd.args[1] = regs->cx;
++		sd.args[2] = regs->dx;
++		sd.args[3] = regs->si;
++		sd.args[4] = regs->di;
++		sd.args[5] = regs->bp;
++	}
++
++	return __secure_computing(&sd);
++#else
++	return 0;
++#endif
++}
++#define arch_syscall_enter_seccomp arch_syscall_enter_seccomp
++
++static inline void arch_syscall_enter_audit(struct pt_regs *regs)
++{
++#ifdef CONFIG_X86_64
++	if (in_ia32_syscall()) {
++		audit_syscall_entry(regs->orig_ax, regs->di,
++				    regs->si, regs->dx, regs->r10);
++	} else
++#endif
++	{
++		audit_syscall_entry(regs->orig_ax, regs->bx,
++				    regs->cx, regs->dx, regs->si);
++	}
++}
++#define arch_syscall_enter_audit arch_syscall_enter_audit
++
++#endif
+--- a/arch/x86/include/asm/thread_info.h
++++ b/arch/x86/include/asm/thread_info.h
+@@ -133,11 +133,6 @@ struct thread_info {
+ #define _TIF_X32		(1 << TIF_X32)
+ #define _TIF_FSCHECK		(1 << TIF_FSCHECK)
+ 
+-/* Work to do before invoking the actual syscall. */
+-#define _TIF_WORK_SYSCALL_ENTRY	\
+-	(_TIF_SYSCALL_TRACE | _TIF_SYSCALL_EMU | _TIF_SYSCALL_AUDIT |	\
+-	 _TIF_SECCOMP | _TIF_SYSCALL_TRACEPOINT)
+-
+ /* flags to check in __switch_to() */
+ #define _TIF_WORK_CTXSW_BASE						\
+ 	(_TIF_IO_BITMAP|_TIF_NOCPUID|_TIF_NOTSC|_TIF_BLOCKSTEP|		\
