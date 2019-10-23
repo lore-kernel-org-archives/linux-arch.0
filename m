@@ -1,87 +1,231 @@
-Return-Path: <sean.j.christopherson@intel.com>
-Date: Wed, 23 Oct 2019 07:55:41 -0700
-From: Sean Christopherson <sean.j.christopherson@intel.com>
-Subject: Re: [patch V2 16/17] kvm/workpending: Provide infrastructure for
- work before entering a guest
-Message-ID: <20191023145541.GI329@linux.intel.com>
+Return-Path: <tglx@linutronix.de>
+Message-ID: <20191023123118.596517860@linutronix.de>
+Date: Wed, 23 Oct 2019 14:27:15 +0200
+From: Thomas Gleixner <tglx@linutronix.de>
+Subject: [patch V2 10/17] entry: Provide generic syscall entry functionality
 References: <20191023122705.198339581@linutronix.de>
- <20191023123119.173422855@linutronix.de>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20191023123119.173422855@linutronix.de>
-To: Thomas Gleixner <tglx@linutronix.de>
-Cc: LKML <linux-kernel@vger.kernel.org>, x86@kernel.org, Peter Zijlstra <peterz@infradead.org>, Andy Lutomirski <luto@kernel.org>, Will Deacon <will@kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, kvm@vger.kernel.org, linux-arch@vger.kernel.org, Mike Rapoport <rppt@linux.ibm.com>, Josh Poimboeuf <jpoimboe@redhat.com>, Miroslav Benes <mbenes@suse.cz>
+Content-Type: text/plain; charset=UTF-8
+To: LKML <linux-kernel@vger.kernel.org>
+Cc: x86@kernel.org, Peter Zijlstra <peterz@infradead.org>, Andy Lutomirski <luto@kernel.org>, Will Deacon <will@kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, kvm@vger.kernel.org, linux-arch@vger.kernel.org, Mike Rapoport <rppt@linux.ibm.com>, Josh Poimboeuf <jpoimboe@redhat.com>, Miroslav Benes <mbenes@suse.cz>
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20191023145541._xgPh9R9UxuZmCtvecYgepcpSwxIuQuE-8OaAPuP7tY@z>
+Message-ID: <20191023122715.Z9XtF54RAMD9O1ZMYkHT2ZKpkMGVqe7Ue6KasBXwikw@z>
 
-On Wed, Oct 23, 2019 at 02:27:21PM +0200, Thomas Gleixner wrote:
-> Entering a guest is similar to exiting to user space. Pending work like
-> handling signals, rescheduling, task work etc. needs to be handled before
-> that.
-> 
-> Provide generic infrastructure to avoid duplication of the same handling code
-> all over the place.
-> 
-> The kvm_exit code is split up into a KVM specific part and a generic
-> builtin core part to avoid multiple exports for the actual work
-> functions. The exit to guest mode handling is slightly different from the
-> exit to usermode handling, e.g. vs. rseq, so a separate function is used.
-> 
-> Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
-> ---
-> --- a/include/linux/kvm_host.h
-> +++ b/include/linux/kvm_host.h
-> +/**
-> + * exit_to_guestmode - Check and handle pending work which needs to be
-> + *		       handled before returning to guest mode
+From: Thomas Gleixner <tglx@linutronix.de>
 
-Nit: I'd prefer "transferring" or "transitioning" over "returning".  KVM
-could bail out of the very first run of a guest in order to handle work,
-in which case the kernel isn't technically returning to guest mode as it's
-never been there.  The comment might trip up VMX folks that understand the
-difference between VMLAUNCH and VMRESUME, but not the purpose of this code.
+On syscall entry certain work needs to be done conditionally like tracing,
+seccomp etc. This code is duplicated in all architectures.
 
-> + * @kvm:	Pointer to the guest instance
-> + * @vcpu:	Pointer to current's VCPU data
-> + *
-> + * Returns: 0 or an error code
-> + */
-> +static inline int exit_to_guestmode(struct kvm *kvm, struct kvm_vcpu *vcpu)
-> +{
-> +	unsigned long ti_work = READ_ONCE(current_thread_info()->flags);
-> +	int r = 0;
-> +
-> +	if (unlikely(ti_work & EXIT_TO_GUESTMODE_WORK)) {
-> +		if (ti_work & _TIF_SIGPENDING) {
-> +			vcpu->run->exit_reason = KVM_EXIT_INTR;
-> +			vcpu->stat.signal_exits++;
-> +			return -EINTR;
-> +		}
-> +		core_exit_to_guestmode_work(ti_work);
-> +		r = arch_exit_to_guestmode_work(kvm, vcpu, ti_work);
-> +	}
-> +	return r;
-> +}
-> +
-> +/**
-> + * _exit_to_guestmode_work_pending - Check if work is pending which needs to be
-> + *				     handled before returning to guest mode
+Provide a generic version.
 
-Same pedantic comment on "returning".
+Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
+---
+V2: Fix function documentation (Mike)
+    Add comment about return value (Andy)
+---
+ arch/Kconfig                 |    3 
+ include/linux/entry-common.h |  132 +++++++++++++++++++++++++++++++++++++++++++
+ kernel/Makefile              |    1 
+ kernel/entry/Makefile        |    3 
+ kernel/entry/common.c        |   33 ++++++++++
+ 5 files changed, 172 insertions(+)
 
-> + *
-> + * Returns: True if work pending, False otherwise.
-> + */
-> +static inline bool exit_to_guestmode_work_pending(void)
-> +{
-> +	unsigned long ti_work = READ_ONCE(current_thread_info()->flags);
-> +
-> +	lockdep_assert_irqs_disabled();
-> +
-> +	return !!(ti_work & EXIT_TO_GUESTMODE_WORK);
-> +
-> +}
-> +#endif /* CONFIG_KVM_EXIT_TO_GUEST_WORK */
-> +
->  #endif
+--- a/arch/Kconfig
++++ b/arch/Kconfig
+@@ -27,6 +27,9 @@ config HAVE_IMA_KEXEC
+ config HOTPLUG_SMT
+ 	bool
+ 
++config GENERIC_ENTRY
++       bool
++
+ config OPROFILE
+ 	tristate "OProfile system profiling"
+ 	depends on PROFILING
+--- /dev/null
++++ b/include/linux/entry-common.h
+@@ -0,0 +1,132 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++#ifndef __LINUX_ENTRYCOMMON_H
++#define __LINUX_ENTRYCOMMON_H
++
++#include <linux/tracehook.h>
++#include <linux/syscalls.h>
++#include <linux/seccomp.h>
++#include <linux/sched.h>
++#include <linux/audit.h>
++
++#include <asm/entry-common.h>
++
++/*
++ * Define dummy _TIF work flags if not defined by the architecture or for
++ * disabled functionality.
++ */
++#ifndef _TIF_SYSCALL_TRACE
++# define _TIF_SYSCALL_TRACE		(0)
++#endif
++
++#ifndef _TIF_SYSCALL_EMU
++# define _TIF_SYSCALL_EMU		(0)
++#endif
++
++#ifndef _TIF_SYSCALL_TRACEPOINT
++# define _TIF_SYSCALL_TRACEPOINT	(0)
++#endif
++
++#ifndef _TIF_SECCOMP
++# define _TIF_SECCOMP			(0)
++#endif
++
++#ifndef _TIF_AUDIT
++# define _TIF_AUDIT			(0)
++#endif
++
++/*
++ * TIF flags handled in syscall_enter_from_usermode()
++ */
++#ifndef ARCH_SYSCALL_ENTER_WORK
++# define ARCH_SYSCALL_ENTER_WORK	(0)
++#endif
++
++#define SYSCALL_ENTER_WORK						\
++	(_TIF_SYSCALL_TRACE | _TIF_SYSCALL_AUDIT | TIF_SECCOMP |	\
++	 _TIF_SYSCALL_TRACEPOINT | _TIF_SYSCALL_EMU |			\
++	 ARCH_SYSCALL_ENTER_WORK)
++
++/**
++ * arch_syscall_enter_tracehook - Wrapper around tracehook_report_syscall_entry()
++ * @regs:	Pointer to currents pt_regs
++ *
++ * Returns: 0 on success or an error code to skip the syscall.
++ *
++ * Defaults to tracehook_report_syscall_entry(). Can be replaced by
++ * architecture specific code.
++ *
++ * Invoked from syscall_enter_from_usermode()
++ */
++static inline __must_check int arch_syscall_enter_tracehook(struct pt_regs *regs);
++
++#ifndef arch_syscall_enter_tracehook
++static inline __must_check int arch_syscall_enter_tracehook(struct pt_regs *regs)
++{
++	return tracehook_report_syscall_entry(regs);
++}
++#endif
++
++/**
++ * arch_syscall_enter_seccomp - Architecture specific seccomp invocation
++ * @regs:	Pointer to currents pt_regs
++ *
++ * Returns: The original or a modified syscall number
++ *
++ * Invoked from syscall_enter_from_usermode(). Can be replaced by
++ * architecture specific code.
++ */
++static inline long arch_syscall_enter_seccomp(struct pt_regs *regs);
++
++#ifndef arch_syscall_enter_seccomp
++static inline long arch_syscall_enter_seccomp(struct pt_regs *regs)
++{
++	return secure_computing(NULL);
++}
++#endif
++
++/**
++ * arch_syscall_enter_audit - Architecture specific audit invocation
++ * @regs:	Pointer to currents pt_regs
++ *
++ * Invoked from syscall_enter_from_usermode(). Must be replaced by
++ * architecture specific code if the architecture supports audit.
++ */
++static inline void arch_syscall_enter_audit(struct pt_regs *regs);
++
++#ifndef arch_syscall_enter_audit
++static inline void arch_syscall_enter_audit(struct pt_regs *regs) { }
++#endif
++
++/* Common syscall enter function */
++long core_syscall_enter_from_usermode(struct pt_regs *regs, long syscall);
++
++/**
++ * syscall_enter_from_usermode - Check and handle work before invoking
++ *				 a syscall
++ * @regs:	Pointer to currents pt_regs
++ * @syscall:	The syscall number
++ *
++ * Invoked from architecture specific syscall entry code with interrupts
++ * enabled.
++ *
++ * Returns: The original or a modified syscall number
++ *
++ * If the returned syscall number is -1 then the syscall should be
++ * skipped. In this case the caller may invoke syscall_set_error() or
++ * syscall_set_return_value() first.  If neither of those is called and -1
++ * is returned, then the syscall will fail with ENOSYS.
++ */
++static inline long syscall_enter_from_usermode(struct pt_regs *regs,
++					       long syscall)
++{
++	unsigned long ti_work = READ_ONCE(current_thread_info()->flags);
++
++	if (IS_ENABLED(CONFIG_DEBUG_ENTRY))
++		BUG_ON(regs != task_pt_regs(current));
++
++	if (ti_work & SYSCALL_ENTER_WORK)
++		syscall = core_syscall_enter_from_usermode(regs, syscall);
++	return syscall;
++}
++
++#endif
+--- a/kernel/Makefile
++++ b/kernel/Makefile
+@@ -43,6 +43,7 @@ obj-y += irq/
+ obj-y += rcu/
+ obj-y += livepatch/
+ obj-y += dma/
++obj-y += entry/
+ 
+ obj-$(CONFIG_CHECKPOINT_RESTORE) += kcmp.o
+ obj-$(CONFIG_FREEZER) += freezer.o
+--- /dev/null
++++ b/kernel/entry/Makefile
+@@ -0,0 +1,3 @@
++# SPDX-License-Identifier: GPL-2.0
++
++obj-$(CONFIG_GENERIC_ENTRY) += common.o
+--- /dev/null
++++ b/kernel/entry/common.c
+@@ -0,0 +1,33 @@
++// SPDX-License-Identifier: GPL-2.0
++
++#include <linux/context_tracking.h>
++#include <linux/entry-common.h>
++
++#define CREATE_TRACE_POINTS
++#include <trace/events/syscalls.h>
++
++long core_syscall_enter_from_usermode(struct pt_regs *regs, long syscall)
++{
++	unsigned long ti_work = READ_ONCE(current_thread_info()->flags);
++	unsigned long ret = 0;
++
++	if (ti_work & (_TIF_SYSCALL_TRACE | _TIF_SYSCALL_EMU)) {
++		ret = arch_syscall_enter_tracehook(regs);
++		if (ret || (ti_work & _TIF_SYSCALL_EMU))
++			return -1L;
++	}
++
++	/* Do seccomp after ptrace, to catch any tracer changes. */
++	if (ti_work & _TIF_SECCOMP) {
++		ret = arch_syscall_enter_seccomp(regs);
++		if (ret == -1L)
++			return ret;
++	}
++
++	if (unlikely(test_thread_flag(TIF_SYSCALL_TRACEPOINT)))
++		trace_sys_enter(regs, syscall);
++
++	arch_syscall_enter_audit(regs);
++
++	return ret ? : syscall;
++}
