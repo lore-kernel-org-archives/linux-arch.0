@@ -1,27 +1,45 @@
-Return-Path: <sean.j.christopherson@intel.com>
-Date: Wed, 23 Oct 2019 07:20:52 -0700
-From: Sean Christopherson <sean.j.christopherson@intel.com>
-Subject: Re: [patch V2 07/17] x86/entry/64: Remove redundant interrupt disable
-Message-ID: <20191023142052.GG329@linux.intel.com>
-References: <20191023122705.198339581@linutronix.de>
- <20191023123118.296135499@linutronix.de>
+Return-Path: <eike-kernel@sf-tec.de>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20191023123118.296135499@linutronix.de>
-To: Thomas Gleixner <tglx@linutronix.de>
-Cc: LKML <linux-kernel@vger.kernel.org>, x86@kernel.org, Peter Zijlstra <peterz@infradead.org>, Andy Lutomirski <luto@kernel.org>, Will Deacon <will@kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, kvm@vger.kernel.org, linux-arch@vger.kernel.org, Mike Rapoport <rppt@linux.ibm.com>, Josh Poimboeuf <jpoimboe@redhat.com>, Miroslav Benes <mbenes@suse.cz>
+Content-Type: text/plain; charset=US-ASCII;
+ format=flowed
+Content-Transfer-Encoding: 7bit
+Date: Wed, 23 Oct 2019 12:20:29 +0200
+From: Rolf Eike Beer <eike-kernel@sf-tec.de>
+Subject: Re: [PATCH 08/12] parisc: use pgtable-nopXd instead of 4level-fixup
+In-Reply-To: <1571822941-29776-9-git-send-email-rppt@kernel.org>
+References: <1571822941-29776-1-git-send-email-rppt@kernel.org>
+ <1571822941-29776-9-git-send-email-rppt@kernel.org>
+Message-ID: <70339cfc547e2fa0f6b98fefb1b1a9fa@sf-tec.de>
+To: Mike Rapoport <rppt@kernel.org>
+Cc: linux-mm@kvack.org, Andrew Morton <akpm@linux-foundation.org>, Anton Ivanov <anton.ivanov@cambridgegreys.com>, Arnd Bergmann <arnd@arndb.de>, "David S. Miller" <davem@davemloft.net>, Geert Uytterhoeven <geert@linux-m68k.org>, Greentime Hu <green.hu@gmail.com>, Greg Ungerer <gerg@linux-m68k.org>, Helge Deller <deller@gmx.de>, "James E.J. Bottomley" <James.Bottomley@hansenpartnership.com>, Jeff Dike <jdike@addtoit.com>, "Kirill A. Shutemov" <kirill@shutemov.name>, Linus Torvalds <torvalds@linux-foundation.org>, Mark Salter <msalter@redhat.com>, Matt Turner <mattst88@gmail.com>, Michal Simek <monstr@monstr.eu>, Richard Weinberger <richard@nod.at>, Russell King <linux@armlinux.org.uk>, Sam Creasey <sammy@sammy.net>, Vincent Chen <deanbo422@gmail.com>, Vineet Gupta <Vineet.Gupta1@synopsys.com>, linux-alpha@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, linux-kernel@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-parisc@vger.kernel.org, linux-um@lists.infradead.org, sparclinux@vger.kernel.org, Mike Rapoport <rppt@linux.ibm.com>, linux-parisc-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20191023142052.H3Tsb21aqbffxi5VSft8tjtEaISVQQyCMvImSdRZWMY@z>
+Message-ID: <20191023102029.-s70rn9x3PYVpaLosAxtCwN2SREF5DUTSkazXyzSJMk@z>
 
-On Wed, Oct 23, 2019 at 02:27:12PM +0200, Thomas Gleixner wrote:
-> Now that the trap handlers return with interrupts disabled, the
-> unconditional disabling of interrupts in the low level entry code can be
-> removed along with the trace calls.
+> diff --git a/arch/parisc/include/asm/page.h 
+> b/arch/parisc/include/asm/page.h
+> index 93caf17..1d339ee 100644
+> --- a/arch/parisc/include/asm/page.h
+> +++ b/arch/parisc/include/asm/page.h
+> @@ -42,48 +42,54 @@ typedef struct { unsigned long pte; } pte_t; /*
+> either 32 or 64bit */
 > 
-> Add debug checks where appropriate.
+>  /* NOTE: even on 64 bits, these entries are __u32 because we allocate
+>   * the pmd and pgd in ZONE_DMA (i.e. under 4GB) */
+> -typedef struct { __u32 pmd; } pmd_t;
+>  typedef struct { __u32 pgd; } pgd_t;
+>  typedef struct { unsigned long pgprot; } pgprot_t;
 > 
-> Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
-> ---
+> -#define pte_val(x)	((x).pte)
+> -/* These do not work lvalues, so make sure we don't use them as such. 
+> */
+> +#if CONFIG_PGTABLE_LEVELS == 3
+> +typedef struct { __u32 pmd; } pmd_t;
+> +#define __pmd(x)	((pmd_t) { (x) } )
+> +/* pXd_val() do not work lvalues, so make sure we don't use them as 
+> such. */
 
-Reviewed-by: Sean Christopherson <sean.j.christopherson@intel.com>
+For me it sounds like there is something missing, maybe an "as" before 
+lvalues?
+And it was "These", so plural, and now it is singular, so do -> does?
+
+Eike
