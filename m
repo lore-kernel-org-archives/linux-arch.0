@@ -1,32 +1,27 @@
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: [patch V2 03/17] x86/traps: Remove pointless irq enable from
- do_spurious_interrupt_bug()
-Date: Wed, 23 Oct 2019 14:27:08 +0200
-Message-ID: <20191023123117.871608831@linutronix.de>
+From: Sean Christopherson <sean.j.christopherson@intel.com>
+Subject: Re: [patch V2 01/17] x86/entry/32: Remove unused resume_userspace
+ label
+Date: Wed, 23 Oct 2019 06:43:45 -0700
+Message-ID: <20191023134345.GA329@linux.intel.com>
 References: <20191023122705.198339581@linutronix.de>
+ <20191023123117.686514045@linutronix.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <20191023123117.686514045@linutronix.de>
 Sender: linux-kernel-owner@vger.kernel.org
-To: LKML <linux-kernel@vger.kernel.org>
-Cc: x86@kernel.org, Peter Zijlstra <peterz@infradead.org>, Andy Lutomirski <luto@kernel.org>, Will Deacon <will@kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, kvm@vger.kernel.org, linux-arch@vger.kernel.org, Mike Rapoport <rppt@linux.ibm.com>, Josh Poimboeuf <jpoimboe@redhat.com>, Miroslav Benes <mbenes@suse.cz>
+To: Thomas Gleixner <tglx@linutronix.de>
+Cc: LKML <linux-kernel@vger.kernel.org>, x86@kernel.org, Peter Zijlstra <peterz@infradead.org>, Andy Lutomirski <luto@kernel.org>, Will Deacon <will@kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, kvm@vger.kernel.org, linux-arch@vger.kernel.org, Mike Rapoport <rppt@linux.ibm.com>, Josh Poimboeuf <jpoimboe@redhat.com>, Miroslav Benes <mbenes@suse.cz>
 List-Id: linux-arch.vger.kernel.org
 
-That function returns immediately after conditionally reenabling interrupts which
-is more than pointless and requires the ASM code to disable interrupts again.
+On Wed, Oct 23, 2019 at 02:27:06PM +0200, Thomas Gleixner wrote:
+> The C reimplementation of SYSENTER left that unused ENTRY() label
+> around. Remove it.
+> 
+> Fixes: 5f310f739b4c ("x86/entry/32: Re-implement SYSENTER using the new C path")
+> Originally-by: Peter Zijlstra <peterz@infradead.org>
+> Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
+> ---
 
-Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
----
- arch/x86/kernel/traps.c |    1 -
- 1 file changed, 1 deletion(-)
-
---- a/arch/x86/kernel/traps.c
-+++ b/arch/x86/kernel/traps.c
-@@ -871,7 +871,6 @@ do_simd_coprocessor_error(struct pt_regs
- dotraplinkage void
- do_spurious_interrupt_bug(struct pt_regs *regs, long error_code)
- {
--	cond_local_irq_enable(regs);
- }
- 
- dotraplinkage void
+Reviewed-by: Sean Christopherson <sean.j.christopherson@intel.com>
