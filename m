@@ -1,41 +1,109 @@
 Return-Path: <tglx@linutronix.de>
-Date: Thu, 24 Oct 2019 01:20:50 +0200 (CEST)
+Message-ID: <20191023123117.976831752@linutronix.de>
+Date: Wed, 23 Oct 2019 14:27:09 +0200
 From: Thomas Gleixner <tglx@linutronix.de>
-Subject: Re: [patch V2 14/17] entry: Provide generic exit to usermode
- functionality
-In-Reply-To: <CALCETrVArVWH2-ew4+WVxhX-3kzrspv2x8yw3RH3PyVGeAMudA@mail.gmail.com>
-Message-ID: <alpine.DEB.2.21.1910240119090.1852@nanos.tec.linutronix.de>
-References: <20191023122705.198339581@linutronix.de> <20191023123118.978254388@linutronix.de> <CALCETrVArVWH2-ew4+WVxhX-3kzrspv2x8yw3RH3PyVGeAMudA@mail.gmail.com>
+Subject: [patch V2 04/17] x86/entry: Make DEBUG_ENTRY_ASSERT_IRQS_OFF
+ available for 32bit
+References: <20191023122705.198339581@linutronix.de>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-To: Andy Lutomirski <luto@kernel.org>
-Cc: LKML <linux-kernel@vger.kernel.org>, X86 ML <x86@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Will Deacon <will@kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, kvm list <kvm@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Mike Rapoport <rppt@linux.ibm.com>, Josh Poimboeuf <jpoimboe@redhat.com>, Miroslav Benes <mbenes@suse.cz>
+Content-Type: text/plain; charset=UTF-8
+To: LKML <linux-kernel@vger.kernel.org>
+Cc: x86@kernel.org, Peter Zijlstra <peterz@infradead.org>, Andy Lutomirski <luto@kernel.org>, Will Deacon <will@kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, kvm@vger.kernel.org, linux-arch@vger.kernel.org, Mike Rapoport <rppt@linux.ibm.com>, Josh Poimboeuf <jpoimboe@redhat.com>, Miroslav Benes <mbenes@suse.cz>
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20191023232050.SVEsNEc8bDYynVfWQog5r75dBjBdVrqqmT_ABxl2Ai4@z>
+Message-ID: <20191023122709.sQ5NxdstI2dafstQzrySHAqz4AFl5HvHWFRvTbNNmeg@z>
 
-On Wed, 23 Oct 2019, Andy Lutomirski wrote:
+Move the interrupt state verification debug macro to common code and fixup
+the irqflags and paravirt components so it can be used in 32bit code later.
 
-> On Wed, Oct 23, 2019 at 5:31 AM Thomas Gleixner <tglx@linutronix.de> wrote:
-> >
-> > From: Thomas Gleixner <tglx@linutronix.de>
-> >
-> > Provide a generic facility to handle the exit to usermode work. That's
-> > aimed to replace the pointlessly different copies in each architecture.
-> 
-> 
-> >  /**
-> > + * local_irq_enable_exit_to_user - Exit to user variant of local_irq_enable()
-> > + * @ti_work:   Cached TIF flags gathered with interrupts disabled
-> > + *
-> > + * Defaults to local_irq_enable(). Can be supplied by architecture specific
-> > + * code.
-> 
-> What did you have in mind here?
+Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
+---
+ arch/x86/entry/calling.h        |   12 ++++++++++++
+ arch/x86/entry/entry_64.S       |   12 ------------
+ arch/x86/include/asm/irqflags.h |    8 ++++++--
+ arch/x86/include/asm/paravirt.h |    9 +++++----
+ 4 files changed, 23 insertions(+), 18 deletions(-)
 
-Look at the previous version which had the ARM64 conversion. ARM64 does
-magic different stuff vs. local_irq_enable() in the exit path. It's not
-using the regular one. I'm happy to ditch that :)
-
-Thanks,
-
-	tglx
+--- a/arch/x86/entry/calling.h
++++ b/arch/x86/entry/calling.h
+@@ -366,3 +366,15 @@ For 32-bit we have the following convent
+ #else
+ #define GET_CR2_INTO(reg) _ASM_MOV %cr2, reg
+ #endif
++
++.macro DEBUG_ENTRY_ASSERT_IRQS_OFF
++#ifdef CONFIG_DEBUG_ENTRY
++	push %_ASM_AX
++	SAVE_FLAGS(CLBR_EAX)
++	test $X86_EFLAGS_IF, %_ASM_AX
++	jz .Lokay_\@
++	ud2
++.Lokay_\@:
++	pop %_ASM_AX
++#endif
++.endm
+--- a/arch/x86/entry/entry_64.S
++++ b/arch/x86/entry/entry_64.S
+@@ -387,18 +387,6 @@ ENTRY(spurious_entries_start)
+     .endr
+ END(spurious_entries_start)
+ 
+-.macro DEBUG_ENTRY_ASSERT_IRQS_OFF
+-#ifdef CONFIG_DEBUG_ENTRY
+-	pushq %rax
+-	SAVE_FLAGS(CLBR_RAX)
+-	testl $X86_EFLAGS_IF, %eax
+-	jz .Lokay_\@
+-	ud2
+-.Lokay_\@:
+-	popq %rax
+-#endif
+-.endm
+-
+ /*
+  * Enters the IRQ stack if we're not already using it.  NMI-safe.  Clobbers
+  * flags and puts old RSP into old_rsp, and leaves all other GPRs alone.
+--- a/arch/x86/include/asm/irqflags.h
++++ b/arch/x86/include/asm/irqflags.h
+@@ -126,11 +126,15 @@ static inline notrace unsigned long arch
+ #define ENABLE_INTERRUPTS(x)	sti
+ #define DISABLE_INTERRUPTS(x)	cli
+ 
+-#ifdef CONFIG_X86_64
+ #ifdef CONFIG_DEBUG_ENTRY
+-#define SAVE_FLAGS(x)		pushfq; popq %rax
++# ifdef CONFIG_X86_64
++#  define SAVE_FLAGS(x)		pushfq; popq %rax
++# else
++#  define SAVE_FLAGS(x)		pushfl; popl %eax
++# endif
+ #endif
+ 
++#ifdef CONFIG_X86_64
+ #define SWAPGS	swapgs
+ /*
+  * Currently paravirt can't handle swapgs nicely when we
+--- a/arch/x86/include/asm/paravirt.h
++++ b/arch/x86/include/asm/paravirt.h
+@@ -904,6 +904,11 @@ extern void default_banner(void);
+ 		  ANNOTATE_RETPOLINE_SAFE;				\
+ 		  jmp PARA_INDIRECT(pv_ops+PV_CPU_usergs_sysret64);)
+ 
++#endif /* CONFIG_PARAVIRT_XXL */
++#endif	/* CONFIG_X86_64 */
++
++#ifdef CONFIG_PARAVIRT_XXL
++
+ #ifdef CONFIG_DEBUG_ENTRY
+ #define SAVE_FLAGS(clobbers)                                        \
+ 	PARA_SITE(PARA_PATCH(PV_IRQ_save_fl),			    \
+@@ -912,10 +917,6 @@ extern void default_banner(void);
+ 		  call PARA_INDIRECT(pv_ops+PV_IRQ_save_fl);	    \
+ 		  PV_RESTORE_REGS(clobbers | CLBR_CALLEE_SAVE);)
+ #endif
+-#endif /* CONFIG_PARAVIRT_XXL */
+-#endif	/* CONFIG_X86_64 */
+-
+-#ifdef CONFIG_PARAVIRT_XXL
+ 
+ #define GET_CR2_INTO_AX							\
+ 	PARA_SITE(PARA_PATCH(PV_MMU_read_cr2),				\
