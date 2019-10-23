@@ -1,7 +1,7 @@
 From: Dmitry Vyukov <dvyukov@google.com>
 Subject: Re: [PATCH v2 1/8] kcsan: Add Kernel Concurrency Sanitizer infrastructure
-Date: Wed, 23 Oct 2019 13:08:49 +0200
-Message-ID: <CACT4Y+bsTHAOtMKj_kWps1UdORWM1C8C7AN+ogPvw1gg1ugY7A@mail.gmail.com>
+Date: Wed, 23 Oct 2019 13:20:10 +0200
+Message-ID: <CACT4Y+bBMF2BtCD_+V87Le9Tpxt7eGeAjav3djL7QAjgSy_Uew@mail.gmail.com>
 References: <20191017141305.146193-1-elver@google.com> <20191017141305.146193-2-elver@google.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
@@ -12,9 +12,7 @@ To: Marco Elver <elver@google.com>
 Cc: LKMM Maintainers -- Akira Yokosawa <akiyks@gmail.com>, Alan Stern <stern@rowland.harvard.edu>, Alexander Potapenko <glider@google.com>, Andrea Parri <parri.andrea@gmail.com>, Andrey Konovalov <andreyknvl@google.com>, Andy Lutomirski <luto@kernel.org>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Arnd Bergmann <arnd@arndb.de>, Boqun Feng <boqun.feng@gmail.com>, Borislav Petkov <bp@alien8.de>, Daniel Axtens <dja@axtens.net>, Daniel Lustig <dlustig@nvidia.com>, Dave Hansen <dave.hansen@linux.intel.com>, David Howells <dhowells@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Ingo Molnar <mingo@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Joel Fernandes <joel@joelfernandes.org>, Jonathan Corbet <corbet@lwn.net>, Josh Poimboeuf <jpoimboe@redhat.com>
 List-Id: linux-arch.vger.kernel.org
 
- w?
-
- On Thu, Oct 17, 2019 at 4:13 PM Marco Elver <elver@google.com> wrote:
+)On Thu, Oct 17, 2019 at 4:13 PM Marco Elver <elver@google.com> wrote:
 >
 > Kernel Concurrency Sanitizer (KCSAN) is a dynamic data-race detector for
 > kernel space. KCSAN is a sampling watchpoint-based data-race detector.
@@ -792,18 +790,7 @@ List-Id: linux-arch.vger.kernel.org
 > +CFLAGS_kcsan.o = $(call cc-option, -fno-conserve-stack -fno-stack-protector)
 > +CFLAGS_core.o = $(call cc-option, -fno-conserve-stack -fno-stack-protector)
 > +CFLAGS_atomic.o = $(call cc-option, -fno-conserve-stack -fno-stack-protector)
-
-Building with clang 10, I still see:
-
-  CC      kernel/kcsan/core.o
-kernel/kcsan/core.o: warning: objtool:
-__kcsan_check_watchpoint()+0x228: call to __stack_chk_fail() with
-UACCESS enabled
-kernel/kcsan/core.o: warning: objtool:
-__kcsan_setup_watchpoint()+0x3be: call to __stack_chk_fail() with
-UACCESS enabled
-
-
+> +
 > +obj-y := kcsan.o core.o atomic.o debugfs.o report.o
 > +obj-$(CONFIG_KCSAN_SELFTEST) += test.o
 > diff --git a/kernel/kcsan/atomic.c b/kernel/kcsan/atomic.c
@@ -1063,9 +1050,6 @@ UACCESS enabled
 > +       if (nest)
 > +               ++get_ctx()->atomic_region;
 > +       else
-
-If it's flat, shoudn't we do WARN_ON(get_ctx()->atomic_region_flat)?
-
 > +               get_ctx()->atomic_region_flat = true;
 > +}
 > +EXPORT_SYMBOL(kcsan_begin_atomic);
@@ -1080,9 +1064,6 @@ If it's flat, shoudn't we do WARN_ON(get_ctx()->atomic_region_flat)?
 > +                       kcsan_enable_current();
 > +               }
 > +       } else {
-
-WARN_ON(!get_ctx()->atomic_region_flat)?
-
 > +               get_ctx()->atomic_region_flat = false;
 > +       }
 > +}
@@ -1410,9 +1391,6 @@ WARN_ON(!get_ctx()->atomic_region_flat)?
 > +       if (!addr) {
 > +               pr_err("KCSAN: could not find function: '%s'\n", func);
 > +               return;
-
-Would be reasonable to return ENOENT to user.
-
 > +       }
 > +
 > +       spin_lock_irqsave(&report_filterlist_lock, flags);
@@ -1421,9 +1399,6 @@ Would be reasonable to return ENOENT to user.
 > +               report_filterlist.addrs = /* initial allocation */
 > +                       kvmalloc_array(report_filterlist.size,
 > +                                      sizeof(unsigned long), GFP_KERNEL);
-
-This can fail.
-
 > +       else if (report_filterlist.used == report_filterlist.size) {
 > +               /* resize filterlist */
 > +               unsigned long *new_addrs;
@@ -1431,11 +1406,6 @@ This can fail.
 > +               report_filterlist.size *= 2;
 > +               new_addrs = kvmalloc_array(report_filterlist.size,
 > +                                          sizeof(unsigned long), GFP_KERNEL);
-
-This can fail.
-Would it be easier to use krealloc? It's usefule to have a cap on list
-size anyway.
-
 > +               memcpy(new_addrs, report_filterlist.addrs,
 > +                      report_filterlist.used * sizeof(unsigned long));
 > +               kvfree(report_filterlist.addrs);
@@ -1487,18 +1457,10 @@ size anyway.
 > +
 > +       if (copy_from_user(kbuf, buf, read_len))
 > +               return -EINVAL;
-
-EFAULT
-
 > +       kbuf[read_len] = '\0';
 > +       arg = strstrip(kbuf);
 > +
 > +       if (!strncmp(arg, "on", sizeof("on") - 1))
-
-I would be cleaner to use strcmp (trim trailing newline first).
-Otherwise we accept anything starting with "on".
-
-
 > +               WRITE_ONCE(kcsan_enabled, true);
 > +       else if (!strncmp(arg, "off", sizeof("off") - 1))
 > +               WRITE_ONCE(kcsan_enabled, false);
@@ -1654,6 +1616,11 @@ Otherwise we accept anything starting with "on".
 > +       {                                                                      \
 > +               __kcsan_check_read(ptr, size);                                 \
 > +       }                                                                      \
+
+I think here we need to define the unaligned version as __alias of this one.
+Will both make code shorter, reduce icache pressure and eliminate the
+need to whitelist them in objtool (currently they are not).
+
 > +       EXPORT_SYMBOL(__tsan_read##size);                                      \
 > +       void __tsan_write##size(void *ptr)                                     \
 > +       {                                                                      \
@@ -1702,9 +1669,6 @@ Otherwise we accept anything starting with "on".
 > +
 > +/*
 > + * The below are not required KCSAN, but can still be emitted by the compiler.
-
-Is "for" missed before KCSAN?
-
 > + */
 > +void __tsan_func_entry(void *call_pc)
 > +{
@@ -1886,9 +1850,6 @@ Is "for" missed before KCSAN?
 > + * Max. number of stack entries to show in the report.
 > + */
 > +#define NUM_STACK_ENTRIES 16
-
-Increase it to 64 at least. No reason to truncate potentailly useful info.
-
 > +
 > +/*
 > + * Other thread info: communicated from other racing thread to thread that set
@@ -2037,12 +1998,6 @@ Increase it to 64 at least. No reason to truncate potentailly useful info.
 > +               return buf;
 > +       }
 > +       return in_nmi() ? "NMI" : "interrupt";
-
-in_nmi() will return a wrong thing for the other thread. We either
-need to memorize it with the pid, or I would simply always print
-"interrupt" b/c nmi/non-nmi is inferrable from the stack if necessary.
-
-
 > +}
 > +
 > +/* Helper to skip KCSAN-related functions in stack-trace. */
