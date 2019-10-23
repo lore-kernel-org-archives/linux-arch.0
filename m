@@ -1,45 +1,41 @@
-Return-Path: <peterz@infradead.org>
-Date: Wed, 23 Oct 2019 16:37:34 +0200
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [patch V2 00/17] entry: Provide generic implementation for host
- and guest entry/exit work
-Message-ID: <20191023143734.GJ1800@hirez.programming.kicks-ass.net>
-References: <20191023122705.198339581@linutronix.de>
+Return-Path: <tglx@linutronix.de>
+Date: Thu, 24 Oct 2019 01:20:50 +0200 (CEST)
+From: Thomas Gleixner <tglx@linutronix.de>
+Subject: Re: [patch V2 14/17] entry: Provide generic exit to usermode
+ functionality
+In-Reply-To: <CALCETrVArVWH2-ew4+WVxhX-3kzrspv2x8yw3RH3PyVGeAMudA@mail.gmail.com>
+Message-ID: <alpine.DEB.2.21.1910240119090.1852@nanos.tec.linutronix.de>
+References: <20191023122705.198339581@linutronix.de> <20191023123118.978254388@linutronix.de> <CALCETrVArVWH2-ew4+WVxhX-3kzrspv2x8yw3RH3PyVGeAMudA@mail.gmail.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20191023122705.198339581@linutronix.de>
-To: Thomas Gleixner <tglx@linutronix.de>
-Cc: LKML <linux-kernel@vger.kernel.org>, x86@kernel.org, Andy Lutomirski <luto@kernel.org>, Will Deacon <will@kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, kvm@vger.kernel.org, linux-arch@vger.kernel.org, Mike Rapoport <rppt@linux.ibm.com>, Josh Poimboeuf <jpoimboe@redhat.com>, Miroslav Benes <mbenes@suse.cz>
+Content-Type: text/plain; charset=US-ASCII
+To: Andy Lutomirski <luto@kernel.org>
+Cc: LKML <linux-kernel@vger.kernel.org>, X86 ML <x86@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Will Deacon <will@kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, kvm list <kvm@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Mike Rapoport <rppt@linux.ibm.com>, Josh Poimboeuf <jpoimboe@redhat.com>, Miroslav Benes <mbenes@suse.cz>
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20191023143734.8hvma0RqqbFfh6enfkXdjq0-n-a5yimAy88SGwgZ1bY@z>
+Message-ID: <20191023232050.SVEsNEc8bDYynVfWQog5r75dBjBdVrqqmT_ABxl2Ai4@z>
 
-On Wed, Oct 23, 2019 at 02:27:05PM +0200, Thomas Gleixner wrote:
->  /Makefile                             |    3 
->  arch/Kconfig                          |    3 
->  arch/x86/Kconfig                      |    1 
->  arch/x86/entry/calling.h              |   12 +
->  arch/x86/entry/common.c               |  264 ++------------------------------
->  arch/x86/entry/entry_32.S             |   41 ----
->  arch/x86/entry/entry_64.S             |   32 ---
->  arch/x86/entry/entry_64_compat.S      |   30 ---
->  arch/x86/include/asm/irqflags.h       |    8 
->  arch/x86/include/asm/paravirt.h       |    9 -
->  arch/x86/include/asm/signal.h         |    1 
->  arch/x86/include/asm/thread_info.h    |    9 -
->  arch/x86/kernel/signal.c              |    2 
->  arch/x86/kernel/traps.c               |   33 ++--
->  arch/x86/kvm/x86.c                    |   17 --
->  arch/x86/mm/fault.c                   |    7 
->  b/arch/x86/include/asm/entry-common.h |  104 ++++++++++++
->  b/arch/x86/kvm/Kconfig                |    1 
->  b/include/linux/entry-common.h        |  280 ++++++++++++++++++++++++++++++++++
->  b/kernel/entry/common.c               |  184 ++++++++++++++++++++++
->  include/linux/kvm_host.h              |   64 +++++++
->  kernel/Makefile                       |    1 
->  virt/kvm/Kconfig                      |    3 
->  23 files changed, 735 insertions(+), 374 deletions(-)
+On Wed, 23 Oct 2019, Andy Lutomirski wrote:
 
-This looks really nice; esp. the cleaned up interrupt state.
+> On Wed, Oct 23, 2019 at 5:31 AM Thomas Gleixner <tglx@linutronix.de> wrote:
+> >
+> > From: Thomas Gleixner <tglx@linutronix.de>
+> >
+> > Provide a generic facility to handle the exit to usermode work. That's
+> > aimed to replace the pointlessly different copies in each architecture.
+> 
+> 
+> >  /**
+> > + * local_irq_enable_exit_to_user - Exit to user variant of local_irq_enable()
+> > + * @ti_work:   Cached TIF flags gathered with interrupts disabled
+> > + *
+> > + * Defaults to local_irq_enable(). Can be supplied by architecture specific
+> > + * code.
+> 
+> What did you have in mind here?
 
-Acked-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+Look at the previous version which had the ARM64 conversion. ARM64 does
+magic different stuff vs. local_irq_enable() in the exit path. It's not
+using the regular one. I'm happy to ditch that :)
+
+Thanks,
+
+	tglx
