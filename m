@@ -1,40 +1,32 @@
-Return-Path: <rppt@kernel.org>
-From: Mike Rapoport <rppt@kernel.org>
-Subject: [PATCH 02/12] arm: nommu: use pgtable-nopud instead of 4level-fixup
-Date: Wed, 23 Oct 2019 12:28:51 +0300
-Message-ID: <1571822941-29776-3-git-send-email-rppt@kernel.org>
-In-Reply-To: <1571822941-29776-1-git-send-email-rppt@kernel.org>
-References: <1571822941-29776-1-git-send-email-rppt@kernel.org>
-To: linux-mm@kvack.org
-Cc: Andrew Morton <akpm@linux-foundation.org>, Anton Ivanov <anton.ivanov@cambridgegreys.com>, Arnd Bergmann <arnd@arndb.de>, "David S. Miller" <davem@davemloft.net>, Geert Uytterhoeven <geert@linux-m68k.org>, Greentime Hu <green.hu@gmail.com>, Greg Ungerer <gerg@linux-m68k.org>, Helge Deller <deller@gmx.de>, "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>, Jeff Dike <jdike@addtoit.com>, "Kirill A. Shutemov" <kirill@shutemov.name>, Linus Torvalds <torvalds@linux-foundation.org>, Mark Salter <msalter@redhat.com>, Matt Turner <mattst88@gmail.com>, Michal Simek <monstr@monstr.eu>, Richard Weinberger <richard@nod.at>, Russell King <linux@armlinux.org.uk>, Sam Creasey <sammy@sammy.net>, Vincent Chen <deanbo422@gmail.com>, Vineet Gupta <Vineet.Gupta1@synopsys.com>, Mike Rapoport <rppt@kernel.org>, linux-alpha@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, linux-kernel@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-parisc@vger.kernel.org, linux-um@lists.infradead.org, sparclinux@vger.kernel.org, Mike Rapoport <rppt@linux.ibm.com>
+Return-Path: <tglx@linutronix.de>
+Message-ID: <20191023123117.871608831@linutronix.de>
+Date: Wed, 23 Oct 2019 14:27:08 +0200
+From: Thomas Gleixner <tglx@linutronix.de>
+Subject: [patch V2 03/17] x86/traps: Remove pointless irq enable from
+ do_spurious_interrupt_bug()
+References: <20191023122705.198339581@linutronix.de>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+To: LKML <linux-kernel@vger.kernel.org>
+Cc: x86@kernel.org, Peter Zijlstra <peterz@infradead.org>, Andy Lutomirski <luto@kernel.org>, Will Deacon <will@kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, kvm@vger.kernel.org, linux-arch@vger.kernel.org, Mike Rapoport <rppt@linux.ibm.com>, Josh Poimboeuf <jpoimboe@redhat.com>, Miroslav Benes <mbenes@suse.cz>
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20191023092851.bLqvCWhIwNzW2u0Sxo5l9ocZVQmq9deX5-Bn_D8dnGI@z>
+Message-ID: <20191023122708.-_6Uh_2lR47oqwzeyvxKZ20yLL9Hum2dnYAHLWxw1SA@z>
 
-From: Mike Rapoport <rppt@linux.ibm.com>
+That function returns immediately after conditionally reenabling interrupts which
+is more than pointless and requires the ASM code to disable interrupts again.
 
-The generic nommu implementation of page table manipulation takes care of
-folding of the upper levels and does not require fixups.
-
-Simply replace of include/asm-generic/4level-fixup.h with
-include/asm-generic/pgtable-nopud.h.
-
-Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
+Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
 ---
- arch/arm/include/asm/pgtable.h | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+ arch/x86/kernel/traps.c |    1 -
+ 1 file changed, 1 deletion(-)
 
-diff --git a/arch/arm/include/asm/pgtable.h b/arch/arm/include/asm/pgtable.h
-index 3ae120c..eabcb48 100644
---- a/arch/arm/include/asm/pgtable.h
-+++ b/arch/arm/include/asm/pgtable.h
-@@ -12,7 +12,7 @@
+--- a/arch/x86/kernel/traps.c
++++ b/arch/x86/kernel/traps.c
+@@ -871,7 +871,6 @@ do_simd_coprocessor_error(struct pt_regs
+ dotraplinkage void
+ do_spurious_interrupt_bug(struct pt_regs *regs, long error_code)
+ {
+-	cond_local_irq_enable(regs);
+ }
  
- #ifndef CONFIG_MMU
- 
--#include <asm-generic/4level-fixup.h>
-+#include <asm-generic/pgtable-nopud.h>
- #include <asm/pgtable-nommu.h>
- 
- #else
--- 
-2.7.4
+ dotraplinkage void
