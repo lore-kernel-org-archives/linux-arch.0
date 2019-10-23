@@ -1,29 +1,30 @@
-Return-Path: <peda@axentia.se>
-From: Peter Rosin <peda@axentia.se>
-Subject: Re: [PATCH 08/12] parisc: use pgtable-nopXd instead of 4level-fixup
-Date: Thu, 24 Oct 2019 09:35:12 +0000
-Message-ID: <20191024093451.15161-1-peda@axentia.se>
-References: <1571822941-29776-9-git-send-email-rppt@kernel.org>
-In-Reply-To: <1571822941-29776-9-git-send-email-rppt@kernel.org>
-Content-Language: en-US
-Content-Type: text/plain; charset="iso-8859-1"
-Content-Transfer-Encoding: quoted-printable
+Return-Path: <jpoimboe@redhat.com>
+Date: Wed, 23 Oct 2019 17:06:18 -0500
+From: Josh Poimboeuf <jpoimboe@redhat.com>
+Subject: Re: [patch V2 07/17] x86/entry/64: Remove redundant interrupt disable
+Message-ID: <20191023220618.qsmog2k5oaagj27v@treble>
+References: <20191023122705.198339581@linutronix.de>
+ <20191023123118.296135499@linutronix.de>
 MIME-Version: 1.0
-To: "rppt@kernel.org" <rppt@kernel.org>
-Cc: "James.Bottomley@HansenPartnership.com" <James.Bottomley@HansenPartnership.com>, "Vineet.Gupta1@synopsys.com" <Vineet.Gupta1@synopsys.com>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "anton.ivanov@cambridgegreys.com" <anton.ivanov@cambridgegreys.com>, "arnd@arndb.de" <arnd@arndb.de>, "davem@davemloft.net" <davem@davemloft.net>, "deanbo422@gmail.com" <deanbo422@gmail.com>, "deller@gmx.de" <deller@gmx.de>, "geert@linux-m68k.org" <geert@linux-m68k.org>, "gerg@linux-m68k.org" <gerg@linux-m68k.org>, "green.hu@gmail.com" <green.hu@gmail.com>, "jdike@addtoit.com" <jdike@addtoit.com>, "kirill@shutemov.name" <kirill@shutemov.name>, "linux-alpha@vger.kernel.org" <linux-alpha@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-c6x-dev@linux-c6x.org" <linux-c6x-dev@linux-c6x.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-m68k@lists.linux-m68k.org" <linux-m68k@lists.linux-m68k.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "linux-parisc@vger.kernel.org" <linux-parisc@vger.kernel.org>, "linux-um@lists.infradead.org" <linux-um@lists.infradead.org>, "linux@armlinux.org.uk" <linux@armlinux.org.uk>, "mattst88@gmail.com" <mattst88@gmail.com>, "monstr@monstr.eu" <monstr@monstr.eu>, "msalter@redhat.com" <msalter@redhat.com>, "richard@nod.at" <richard@nod.at>, "rppt@linux.ibm.com" <rppt@linux.ibm.com>, "sammy@sammy.net" <sammy@sammy.net>, "sparclinux@vger.kernel.org" <sparclinux@vger.kernel.org>, "torvalds@linux-foundation.org" <torvalds@linux-foundation.org>, Peter Rosin <peda@axentia.se>
+In-Reply-To: <20191023123118.296135499@linutronix.de>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: quoted-printable
+Content-Disposition: inline
+To: Thomas Gleixner <tglx@linutronix.de>
+Cc: LKML <linux-kernel@vger.kernel.org>, x86@kernel.org, Peter Zijlstra <peterz@infradead.org>, Andy Lutomirski <luto@kernel.org>, Will Deacon <will@kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, kvm@vger.kernel.org, linux-arch@vger.kernel.org, Mike Rapoport <rppt@linux.ibm.com>, Miroslav Benes <mbenes@suse.cz>
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20191024093512.Fb9SyK-aU0q69z_EUyRK7koYbJsmnA_fzee-QIMsFfY@z>
+Message-ID: <20191023220618.S8Yc86tvJ7dEt_OW9MG7CBJ2449Qq7KHFF9TRG3Uc3M@z>
 
-On 2019-10-23 12:28, Mike Rapoport <rppt@kernel.org> wrote:
-> parisc has two or three levels of page tables and can use appropriate
-> pgtable-nopXd and folding of the upper layers.
->
-> Replace usage of include/asm-generic/4level-fixup.h and explicit
-> definitions of __PAGETABLE_PxD_FOLDED in parisc with
-> include/asm-generic/pgtable-nopmd.h for two-level configurations and with
-> include/asm-generic/pgtable-nopmd.h for three-lelve configurations and
+On Wed, Oct 23, 2019 at 02:27:12PM +0200, Thomas Gleixner wrote:
+> Now that the trap handlers return with interrupts disabled, the
+> unconditional disabling of interrupts in the low level entry code can be
+> removed along with the trace calls.
+>=20
+> Add debug checks where appropriate.
 
-I think you mean .../pgtable-nopud.h in the latter case.
+This seems a little scary.  Does anybody other than Andy actually run
+with CONFIG_DEBUG_ENTRY?  What happens if somebody accidentally leaves
+irqs enabled?  How do we know you found all the leaks?
 
-Cheers,
-Peter
+--=20
+Josh
