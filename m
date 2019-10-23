@@ -1,73 +1,188 @@
-Return-Path: <rppt@kernel.org>
-Date: Fri, 25 Oct 2019 23:33:19 +0300
-From: Mike Rapoport <rppt@kernel.org>
-Subject: Re: [PATCH 06/12] microblaze: use pgtable-nopmd instead of
- 4level-fixup
-Message-ID: <20191025203318.GA8413@rapoport-lnx>
-References: <1571822941-29776-1-git-send-email-rppt@kernel.org>
- <1571822941-29776-7-git-send-email-rppt@kernel.org>
- <aa7df5a1-5022-bc82-8816-74c956e2fd90@monstr.eu>
+Return-Path: <tglx@linutronix.de>
+Message-ID: <20191023123118.084086112@linutronix.de>
+Date: Wed, 23 Oct 2019 14:27:10 +0200
+From: Thomas Gleixner <tglx@linutronix.de>
+Subject: [patch V2 05/17] x86/traps: Make interrupt enable/disable symmetric
+ in C code
+References: <20191023122705.198339581@linutronix.de>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <aa7df5a1-5022-bc82-8816-74c956e2fd90@monstr.eu>
-To: Michal Simek <monstr@monstr.eu>
-Cc: linux-mm@kvack.org, Andrew Morton <akpm@linux-foundation.org>, Anton Ivanov <anton.ivanov@cambridgegreys.com>, Arnd Bergmann <arnd@arndb.de>, "David S. Miller" <davem@davemloft.net>, Geert Uytterhoeven <geert@linux-m68k.org>, Greentime Hu <green.hu@gmail.com>, Greg Ungerer <gerg@linux-m68k.org>, Helge Deller <deller@gmx.de>, "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>, Jeff Dike <jdike@addtoit.com>, "Kirill A. Shutemov" <kirill@shutemov.name>, Linus Torvalds <torvalds@linux-foundation.org>, Mark Salter <msalter@redhat.com>, Matt Turner <mattst88@gmail.com>, Richard Weinberger <richard@nod.at>, Russell King <linux@armlinux.org.uk>, Sam Creasey <sammy@sammy.net>, Vincent Chen <deanbo422@gmail.com>, Vineet Gupta <Vineet.Gupta1@synopsys.com>, linux-alpha@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, linux-kernel@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-parisc@vger.kernel.org, linux-um@lists.infradead.org, sparclinux@vger.kernel.org, Mike Rapoport <rppt@linux.ibm.com>
+Content-Type: text/plain; charset=UTF-8
+To: LKML <linux-kernel@vger.kernel.org>
+Cc: x86@kernel.org, Peter Zijlstra <peterz@infradead.org>, Andy Lutomirski <luto@kernel.org>, Will Deacon <will@kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, kvm@vger.kernel.org, linux-arch@vger.kernel.org, Mike Rapoport <rppt@linux.ibm.com>, Josh Poimboeuf <jpoimboe@redhat.com>, Miroslav Benes <mbenes@suse.cz>
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20191025203319.dmozVRHAKUpu2mSIHJ7eiIyo3hDIiN_S_IlxZuVlcQ8@z>
+Message-ID: <20191023122710.AoMpGVlokWRkyMqDqW4wy4Yil9Y9D-F3QJUFVoZNnEA@z>
 
-On Fri, Oct 25, 2019 at 10:24:30AM +0200, Michal Simek wrote:
-> Hi Mike,
-> 
-> On 23. 10. 19 11:28, Mike Rapoport wrote:
-> > From: Mike Rapoport <rppt@linux.ibm.com>
-> > 
-> > microblaze has only two-level page tables and can use pgtable-nopmd and
-> > folding of the upper layers.
-> > 
-> > Replace usage of include/asm-generic/4level-fixup.h and explicit definition
-> > of __PAGETABLE_PMD_FOLDED in microblaze with
-> > include/asm-generic/pgtable-nopmd.h and adjust page table manipulation
-> > macros and functions accordingly.
-> > 
-> > Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
-> > ---
-> >  arch/microblaze/include/asm/page.h    |  3 ---
-> >  arch/microblaze/include/asm/pgalloc.h | 16 ----------------
-> >  arch/microblaze/include/asm/pgtable.h | 32 ++------------------------------
-> >  arch/microblaze/kernel/signal.c       | 10 +++++++---
-> >  arch/microblaze/mm/init.c             |  7 +++++--
-> >  arch/microblaze/mm/pgtable.c          | 13 +++++++++++--
-> >  6 files changed, 25 insertions(+), 56 deletions(-)
-> 
-> I have take a look at this and when this is applied on the top of
-> 5.4-rc2 there is not a problem.
-> But as was reported by 0-day there is compilation issue on the top of
-> mmotm/master tree and I am able to replicate it.
-> It means there are other changes in Andrew's tree which are causing it.
+Traps enable interrupts conditionally but rely on the ASM return code to
+disable them again. That results in redundant interrupt disable and trace
+calls.
 
-0day is still using an old tree for mmotm:
+Make the trap handlers disable interrupts before returning to avoid that,
+which allows simplification of the ASM entry code.
 
-> url:    https://github.com/0day-ci/linux/commits/Mike-Rapoport/mm-remove-__ARCH_HAS_4LEVEL_HACK/20191025-063009
-> base:   git://git.cmpxchg.org/linux-mmotm.git master
-> config: microblaze-mmu_defconfig (attached as .config)
+Originally-by: Peter Zijlstra <peterz@infradead.org>
+Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
+---
+ arch/x86/kernel/traps.c |   32 +++++++++++++++++++++-----------
+ arch/x86/mm/fault.c     |    7 +++++--
+ 2 files changed, 26 insertions(+), 13 deletions(-)
 
-A while ago Johannes moved the mmotm to github and the last commit in
-git.cmpxchg.org/linux-mmotm.git was in the end of August.
-
-[1] https://lore.kernel.org/linux-mm/20190916134327.GC29985@cmpxchg.org
+--- a/arch/x86/kernel/traps.c
++++ b/arch/x86/kernel/traps.c
+@@ -276,6 +276,7 @@ static void do_error_trap(struct pt_regs
+ 			NOTIFY_STOP) {
+ 		cond_local_irq_enable(regs);
+ 		do_trap(trapnr, signr, str, regs, error_code, sicode, addr);
++		cond_local_irq_disable(regs);
+ 	}
+ }
  
-> Thanks,
-> Michal
-> 
-> -- 
-> Michal Simek, Ing. (M.Eng), OpenPGP -> KeyID: FE3D1F91
-> w: www.monstr.eu p: +42-0-721842854
-> Maintainer of Linux kernel - Xilinx Microblaze
-> Maintainer of Linux kernel - Xilinx Zynq ARM and ZynqMP ARM64 SoCs
-> U-Boot custodian - Xilinx Microblaze/Zynq/ZynqMP/Versal SoCs
-> 
-
--- 
-Sincerely yours,
-Mike.
+@@ -501,6 +502,7 @@ dotraplinkage void do_bounds(struct pt_r
+ 		die("bounds", regs, error_code);
+ 	}
+ 
++	cond_local_irq_disable(regs);
+ 	return;
+ 
+ exit_trap:
+@@ -512,6 +514,7 @@ dotraplinkage void do_bounds(struct pt_r
+ 	 * time..
+ 	 */
+ 	do_trap(X86_TRAP_BR, SIGSEGV, "bounds", regs, error_code, 0, NULL);
++	cond_local_irq_disable(regs);
+ }
+ 
+ dotraplinkage void
+@@ -525,19 +528,19 @@ do_general_protection(struct pt_regs *re
+ 
+ 	if (static_cpu_has(X86_FEATURE_UMIP)) {
+ 		if (user_mode(regs) && fixup_umip_exception(regs))
+-			return;
++			goto exit_trap;
+ 	}
+ 
+ 	if (v8086_mode(regs)) {
+ 		local_irq_enable();
+ 		handle_vm86_fault((struct kernel_vm86_regs *) regs, error_code);
+-		return;
++		goto exit_trap;
+ 	}
+ 
+ 	tsk = current;
+ 	if (!user_mode(regs)) {
+ 		if (fixup_exception(regs, X86_TRAP_GP, error_code, 0))
+-			return;
++			goto exit_trap;
+ 
+ 		tsk->thread.error_code = error_code;
+ 		tsk->thread.trap_nr = X86_TRAP_GP;
+@@ -549,12 +552,12 @@ do_general_protection(struct pt_regs *re
+ 		 */
+ 		if (!preemptible() && kprobe_running() &&
+ 		    kprobe_fault_handler(regs, X86_TRAP_GP))
+-			return;
++			goto exit_trap;
+ 
+ 		if (notify_die(DIE_GPF, desc, regs, error_code,
+ 			       X86_TRAP_GP, SIGSEGV) != NOTIFY_STOP)
+ 			die(desc, regs, error_code);
+-		return;
++		goto exit_trap;
+ 	}
+ 
+ 	tsk->thread.error_code = error_code;
+@@ -563,6 +566,8 @@ do_general_protection(struct pt_regs *re
+ 	show_signal(tsk, SIGSEGV, "", desc, regs, error_code);
+ 
+ 	force_sig(SIGSEGV);
++exit_trap:
++	cond_local_irq_disable(regs);
+ }
+ NOKPROBE_SYMBOL(do_general_protection);
+ 
+@@ -783,9 +788,7 @@ dotraplinkage void do_debug(struct pt_re
+ 	if (v8086_mode(regs)) {
+ 		handle_vm86_trap((struct kernel_vm86_regs *) regs, error_code,
+ 					X86_TRAP_DB);
+-		cond_local_irq_disable(regs);
+-		debug_stack_usage_dec();
+-		goto exit;
++		goto exit_irq;
+ 	}
+ 
+ 	if (WARN_ON_ONCE((dr6 & DR_STEP) && !user_mode(regs))) {
+@@ -802,6 +805,8 @@ dotraplinkage void do_debug(struct pt_re
+ 	si_code = get_si_code(tsk->thread.debugreg6);
+ 	if (tsk->thread.debugreg6 & (DR_STEP | DR_TRAP_BITS) || user_icebp)
+ 		send_sigtrap(regs, error_code, si_code);
++
++exit_irq:
+ 	cond_local_irq_disable(regs);
+ 	debug_stack_usage_dec();
+ 
+@@ -827,7 +832,7 @@ static void math_error(struct pt_regs *r
+ 
+ 	if (!user_mode(regs)) {
+ 		if (fixup_exception(regs, trapnr, error_code, 0))
+-			return;
++			goto exit_trap;
+ 
+ 		task->thread.error_code = error_code;
+ 		task->thread.trap_nr = trapnr;
+@@ -835,7 +840,7 @@ static void math_error(struct pt_regs *r
+ 		if (notify_die(DIE_TRAP, str, regs, error_code,
+ 					trapnr, SIGFPE) != NOTIFY_STOP)
+ 			die(str, regs, error_code);
+-		return;
++		goto exit_trap;
+ 	}
+ 
+ 	/*
+@@ -849,10 +854,12 @@ static void math_error(struct pt_regs *r
+ 	si_code = fpu__exception_code(fpu, trapnr);
+ 	/* Retry when we get spurious exceptions: */
+ 	if (!si_code)
+-		return;
++		goto exit_trap;
+ 
+ 	force_sig_fault(SIGFPE, si_code,
+ 			(void __user *)uprobe_get_trap_addr(regs));
++exit_trap:
++	cond_local_irq_disable(regs);
+ }
+ 
+ dotraplinkage void do_coprocessor_error(struct pt_regs *regs, long error_code)
+@@ -888,6 +895,8 @@ do_device_not_available(struct pt_regs *
+ 
+ 		info.regs = regs;
+ 		math_emulate(&info);
++
++		cond_local_irq_disable(regs);
+ 		return;
+ 	}
+ #endif
+@@ -918,6 +927,7 @@ dotraplinkage void do_iret_error(struct
+ 		do_trap(X86_TRAP_IRET, SIGILL, "iret exception", regs, error_code,
+ 			ILL_BADSTK, (void __user *)NULL);
+ 	}
++	local_irq_disable();
+ }
+ #endif
+ 
+--- a/arch/x86/mm/fault.c
++++ b/arch/x86/mm/fault.c
+@@ -1500,10 +1500,13 @@ static noinline void
+ 		return;
+ 
+ 	/* Was the fault on kernel-controlled part of the address space? */
+-	if (unlikely(fault_in_kernel_space(address)))
++	if (unlikely(fault_in_kernel_space(address))) {
+ 		do_kern_addr_fault(regs, hw_error_code, address);
+-	else
++	} else {
+ 		do_user_addr_fault(regs, hw_error_code, address);
++		if (regs->flags & X86_EFLAGS_IF)
++			local_irq_disable();
++	}
+ }
+ NOKPROBE_SYMBOL(__do_page_fault);
+ 
