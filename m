@@ -1,60 +1,67 @@
-From: Paul Walmsley <paul.walmsley@sifive.com>
-Subject: Re: [PATCH 1/2] asm-generic: Make msi.h a mandatory include/asm
- header
-Date: Thu, 24 Oct 2019 08:17:59 -0700 (PDT)
-Message-ID: <alpine.DEB.2.21.9999.1910240810420.20010@viisi.sifive.com>
-References: <cover.1571911976.git.michal.simek@xilinx.com> <a021f232968cfffe3f2d838da47214c6bbdeeedb.1571911976.git.michal.simek@xilinx.com>
+From: Andy Lutomirski <luto@kernel.org>
+Subject: Re: [patch V2 07/17] x86/entry/64: Remove redundant interrupt disable
+Date: Thu, 24 Oct 2019 09:18:26 -0700
+Message-ID: <CALCETrX+N_cR-HAmQyHxqUo0LPCk4GmqbzizXk-gq9qp00-RdA@mail.gmail.com>
+References: <20191023122705.198339581@linutronix.de> <20191023123118.296135499@linutronix.de>
+ <20191023220618.qsmog2k5oaagj27v@treble> <alpine.DEB.2.21.1910240146200.1852@nanos.tec.linutronix.de>
 Mime-Version: 1.0
-Content-Type: multipart/mixed; boundary="8323329-165076562-1571930279=:20010"
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <a021f232968cfffe3f2d838da47214c6bbdeeedb.1571911976.git.michal.simek@xilinx.com>
+In-Reply-To: <alpine.DEB.2.21.1910240146200.1852@nanos.tec.linutronix.de>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Michal Simek <michal.simek@xilinx.com>
-Cc: linux-kernel@vger.kernel.org, monstr@monstr.eu, git@xilinx.com, palmer@sifive.com, hch@infradead.org, longman@redhat.com, helgaas@kernel.org, Paolo Bonzini <pbonzini@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Jackie Liu <liuyun01@kylinos.cn>, Wesley Terpstra <wesley@sifive.com>, Firoz Khan <firoz.khan@linaro.org>, sparclinux@vger.kernel.org, Ingo Molnar <mingo@kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, linux-riscv@lists.infradead.org, linux-arch@vger.kernel.org, James Hogan <jhogan@kernel.org>, Vineet Gupta <vgupta@synopsys.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Ralf Baechle <ralf@linux-mips.org>, "Peter Zijlstra (Intel)" <peterz@infradead.org>, Will Deacon <will@kernel.org>B
+To: Thomas Gleixner <tglx@linutronix.de>
+Cc: Josh Poimboeuf <jpoimboe@redhat.com>, LKML <linux-kernel@vger.kernel.org>, X86 ML <x86@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Andy Lutomirski <luto@kernel.org>, Will Deacon <will@kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, kvm list <kvm@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Mike Rapoport <rppt@linux.ibm.com>, Miroslav Benes <mbenes@suse.cz>
 List-Id: linux-arch.vger.kernel.org
 
-  This message is in MIME format.  The first part should be readable text,
-  while the remaining parts are likely unreadable without MIME-aware tools.
+On Wed, Oct 23, 2019 at 4:52 PM Thomas Gleixner <tglx@linutronix.de> wrote:
+>
+> On Wed, 23 Oct 2019, Josh Poimboeuf wrote:
+>
+> > On Wed, Oct 23, 2019 at 02:27:12PM +0200, Thomas Gleixner wrote:
+> > > Now that the trap handlers return with interrupts disabled, the
+> > > unconditional disabling of interrupts in the low level entry code can be
+> > > removed along with the trace calls.
+> > >
+> > > Add debug checks where appropriate.
+> >
+> > This seems a little scary.  Does anybody other than Andy actually run
+> > with CONFIG_DEBUG_ENTRY?
+>
+> I do.
+>
+> > What happens if somebody accidentally leaves irqs enabled?  How do we
+> > know you found all the leaks?
+>
+> For the DO_ERROR() ones that's trivial:
+>
+>  #define DO_ERROR(trapnr, signr, sicode, addr, str, name)                  \
+>  dotraplinkage void do_##name(struct pt_regs *regs, long error_code)       \
+>  {                                                                         \
+>         do_error_trap(regs, error_code, str, trapnr, signr, sicode, addr); \
+> +       lockdep_assert_irqs_disabled();                                    \
+>  }
+>
+>  DO_ERROR(X86_TRAP_DE,     SIGFPE,  FPE_INTDIV,   IP, "divide error",        divide_error)
+>
+> Now for the rest we surely could do:
+>
+> dotraplinkage void do_bounds(struct pt_regs *regs, long error_code)
+> {
+>         __do_bounds(regs, error_code);
+>         lockdep_assert_irqs_disabled();
+> }
+>
+> and move the existing body into a static function so independent of any
+> (future) return path there the lockdep assert will be invoked.
+>
 
---8323329-165076562-1571930279=:20010
-Content-Type: text/plain; charset=ISO-8859-2
-Content-Transfer-Encoding: QUOTED-PRINTABLE
+If we do this, can we macro-ize it:
 
-On Thu, 24 Oct 2019, Michal Simek wrote:
+DEFINE_IDTENTRY_HANDLER(do_bounds)
+{
+ ...
+}
 
-> msi.h is generic for all architectures expect of x86 which has own versio=
-n.
-> Enabling MSI by including msi.h to architecture Kbuild is just additional
-> step which doesn't need to be done.
-> The patch was created based on request to enable MSI for Microblaze.
->=20
-> Suggested-by: Christoph Hellwig <hch@infradead.org>
-> Signed-off-by: Michal Simek <michal.simek@xilinx.com>
-> ---
->=20
-> https://lore.kernel.org/linux-riscv/20191008154604.GA7903@infradead.org/
-
-[ ... ]
-
-> diff --git a/arch/riscv/include/asm/Kbuild b/arch/riscv/include/asm/Kbuil=
-d
-> index 16970f246860..1efaeddf1e4b 100644
-> --- a/arch/riscv/include/asm/Kbuild
-> +++ b/arch/riscv/include/asm/Kbuild
-> @@ -22,7 +22,6 @@ generic-y +=3D kvm_para.h
->  generic-y +=3D local.h
->  generic-y +=3D local64.h
->  generic-y +=3D mm-arch-hooks.h
-> -generic-y +=3D msi.h
->  generic-y +=3D percpu.h
->  generic-y +=3D preempt.h
->  generic-y +=3D sections.h
-
-Acked-by: Paul Walmsley <paul.walmsley@sifive.com> # arch/riscv
-Tested-by: Paul Walmsley <paul.walmsley@sifive.com> # build only, rv32/rv64
-
-Thanks Micha=B3,
-
-
-- Paul
---8323329-165076562-1571930279=:20010--
+If you do this, please don't worry about the weird ones that take cr2
+as a third argument.  Once your series lands, I will send a follow-up
+to get rid of it.  It's 2/3 written already.
