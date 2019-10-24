@@ -1,182 +1,44 @@
-Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga17.intel.com ([192.55.52.151]:16783 "EHLO mga17.intel.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1725535AbfJAFHG (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 1 Oct 2019 01:07:06 -0400
-Date: Tue, 1 Oct 2019 13:06:23 +0800
-From: kbuild test robot <lkp@intel.com>
-Subject: Re: [PATCH v13 7/9] open: openat2(2) syscall
-Message-ID: <201910011326.iTYOtJYo%lkp@intel.com>
-References: <20190930183316.10190-8-cyphar@cyphar.com>
+Return-Path: <peterz@infradead.org>
+Date: Thu, 24 Oct 2019 19:40:44 +0200
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [patch V2 08/17] x86/entry: Move syscall irq tracing to C code
+Message-ID: <20191024174044.GJ4114@hirez.programming.kicks-ass.net>
+References: <20191023122705.198339581@linutronix.de>
+ <20191023123118.386844979@linutronix.de>
+ <CALCETrWLk9LKV4+_mrOKDc3GUvXbCjqA5R6cdpqq02xoRCBOHw@mail.gmail.com>
+ <CALCETrV79pw7-nisp4VdEkQ4=fr2nfJFOMCtyKmWZR6PG3=oWg@mail.gmail.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20190930183316.10190-8-cyphar@cyphar.com>
-Sender: linux-arch-owner@vger.kernel.org
+In-Reply-To: <CALCETrV79pw7-nisp4VdEkQ4=fr2nfJFOMCtyKmWZR6PG3=oWg@mail.gmail.com>
+To: Andy Lutomirski <luto@kernel.org>
+Cc: Thomas Gleixner <tglx@linutronix.de>, LKML <linux-kernel@vger.kernel.org>, X86 ML <x86@kernel.org>, Will Deacon <will@kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, kvm list <kvm@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Mike Rapoport <rppt@linux.ibm.com>, Josh Poimboeuf <jpoimboe@redhat.com>, Miroslav Benes <mbenes@suse.cz>
 List-ID: <linux-arch.vger.kernel.org>
-To: Aleksa Sarai <cyphar@cyphar.com>
-Cc: kbuild-all@01.org, Al Viro <viro@zeniv.linux.org.uk>, Jeff Layton <jlayton@kernel.org>, "J. Bruce Fields" <bfields@fieldses.org>, Arnd Bergmann <arnd@arndb.de>, David Howells <dhowells@redhat.com>, Shuah Khan <shuah@kernel.org>, Shuah Khan <skhan@linuxfoundation.org>, Ingo Molnar <mingo@redhat.com>, Peter Zijlstra <peterz@infradead.org>, linux-ia64@vger.kernel.org, linux-sh@vger.kernel.org, Alexander Shishkin <alexander.shishkin@linux.intel.com>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Alexei Starovoitov <ast@kernel.org>, linux-kernel@vger.kernel.org, linux-kselftest@vger.kernel.org, sparclinux@vger.kernel.org, Jiri Olsa <jolsa@redhat.com>, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, Tycho Andersen <tycho@tycho.ws>, Aleksa Sarai <asarai@suse.de>, linux-arm-kernel@lists.infradead.org, linux-mips@vger.kernel.org, linux-xtensa@linux-xtensa.org, Kees Cook <keescook@chromium.org>, Jann Horn <jannh@google.com>, linuxppc-dev@lists.ozlabs.org, Andy Lutomirski <luto@kernel.org>, Namhyung Kim <namhyung@kernel.org>, David Drysdale <drysdale@google.com>, Christian Brauner <christian@brauner.io>, libc-alpha@sourceware.org, linux-parisc@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-api@vger.kernel.org, Chanho Min <chanho.min@lge.com>, Oleg Nesterov <oleg@redhat.com>, Eric Biederman <ebiederm@xmission.com>, linux-alpha@vger.kernel.org, linux-fsdevel@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, containers@lists.linux-foundation.org
-Message-ID: <20191001050623.9QMmmav8bctECyHARfCDlY1m0BalhPqdyE0gte1kfjQ@z>
+Message-ID: <20191024174044.QS6o6sLSAwIOX0gVTEhEgLOfAJm1gED3GyKAkMVoIAo@z>
 
-Hi Aleksa,
+On Thu, Oct 24, 2019 at 09:24:13AM -0700, Andy Lutomirski wrote:
+> On Wed, Oct 23, 2019 at 2:30 PM Andy Lutomirski <luto@kernel.org> wrote:
+> >
+> > On Wed, Oct 23, 2019 at 5:31 AM Thomas Gleixner <tglx@linutronix.de> wrote:
+> > >
+> > > Interrupt state tracing can be safely done in C code. The few stack
+> > > operations in assembly do not need to be covered.
+> > >
+> > > Remove the now pointless indirection via .Lsyscall_32_done and jump to
+> > > swapgs_restore_regs_and_return_to_usermode directly.
+> >
+> > This doesn't look right.
+> 
+> Well, I feel a bit silly.  I read this:
+> 
+> >
+> > >  #define SYSCALL_EXIT_WORK_FLAGS                                \
+> > > @@ -279,6 +282,9 @@ static void syscall_slow_exit_work(struc
+> 
+> ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 
+> and I applied the diff in my head to the wrong function, and I didn't
+> notice that it didn't really apply there.  Oddly, gitweb gets this
 
-Thank you for the patch! Perhaps something to improve:
-
-[auto build test WARNING on linus/master]
-[cannot apply to v5.4-rc1 next-20191001]
-[if your patch is applied to the wrong git tree, please drop us a note to help
-improve the system. BTW, we also suggest to use '--base' option to specify the
-base tree in git format-patch, please see https://stackoverflow.com/a/37406982]
-
-url:    https://github.com/0day-ci/linux/commits/Aleksa-Sarai/namei-openat2-2-path-resolution-restrictions/20191001-025628
-reproduce:
-        # apt-get install sparse
-        # sparse version: v0.6.1-rc1-37-gd466a02-dirty
-        make ARCH=x86_64 allmodconfig
-        make C=1 CF='-fdiagnostic-prefix -D__CHECK_ENDIAN__'
-
-If you fix the issue, kindly add following tag
-Reported-by: kbuild test robot <lkp@intel.com>
-
-
-sparse warnings: (new ones prefixed by >>)
-
-   fs/open.c:757:13: sparse: sparse: restricted fmode_t degrades to integer
-   fs/open.c:983:18: sparse: sparse: restricted fmode_t degrades to integer
->> fs/open.c:1011:36: sparse: sparse: invalid assignment: |=
->> fs/open.c:1011:36: sparse:    left side has type int
->> fs/open.c:1011:36: sparse:    right side has type restricted fmode_t
-   fs/open.c:1013:36: sparse: sparse: invalid assignment: |=
-   fs/open.c:1013:36: sparse:    left side has type int
-   fs/open.c:1013:36: sparse:    right side has type restricted fmode_t
->> fs/open.c:1029:24: sparse: sparse: incorrect type in assignment (different base types) @@    expected restricted fmode_t [usertype] opath_mask @@    got pe] opath_mask @@
->> fs/open.c:1029:24: sparse:    expected restricted fmode_t [usertype] opath_mask
->> fs/open.c:1029:24: sparse:    got int opath_mask
->> fs/open.c:1011:36: sparse: sparse: invalid assignment: |=
->> fs/open.c:1011:36: sparse:    left side has type int
->> fs/open.c:1011:36: sparse:    right side has type restricted fmode_t
-   fs/open.c:1013:36: sparse: sparse: invalid assignment: |=
-   fs/open.c:1013:36: sparse:    left side has type int
-   fs/open.c:1013:36: sparse:    right side has type restricted fmode_t
->> fs/open.c:1029:24: sparse: sparse: incorrect type in assignment (different base types) @@    expected restricted fmode_t [usertype] opath_mask @@    got pe] opath_mask @@
->> fs/open.c:1029:24: sparse:    expected restricted fmode_t [usertype] opath_mask
->> fs/open.c:1029:24: sparse:    got int opath_mask
->> fs/open.c:1011:36: sparse: sparse: invalid assignment: |=
->> fs/open.c:1011:36: sparse:    left side has type int
->> fs/open.c:1011:36: sparse:    right side has type restricted fmode_t
-   fs/open.c:1013:36: sparse: sparse: invalid assignment: |=
-   fs/open.c:1013:36: sparse:    left side has type int
-   fs/open.c:1013:36: sparse:    right side has type restricted fmode_t
->> fs/open.c:1029:24: sparse: sparse: incorrect type in assignment (different base types) @@    expected restricted fmode_t [usertype] opath_mask @@    got pe] opath_mask @@
->> fs/open.c:1029:24: sparse:    expected restricted fmode_t [usertype] opath_mask
->> fs/open.c:1029:24: sparse:    got int opath_mask
-   fs/open.c:1173:15: sparse: sparse: undefined identifier 'copy_struct_from_user'
-
-vim +1011 fs/open.c
-
-   957	
-   958	static inline int build_open_flags(const struct open_how *how,
-   959					   struct open_flags *op)
-   960	{
-   961		int flags = how->flags;
-   962		int lookup_flags = 0;
-   963		int opath_mask = 0;
-   964		int acc_mode = ACC_MODE(flags);
-   965	
-   966		/*
-   967		 * Older syscalls still clear these bits before calling
-   968		 * build_open_flags(), but openat2(2) checks all its arguments.
-   969		 */
-   970		if (flags & ~VALID_OPEN_FLAGS)
-   971			return -EINVAL;
-   972		if (how->resolve & ~VALID_RESOLVE_FLAGS)
-   973			return -EINVAL;
-   974		if (!(how->flags & (O_PATH | O_CREAT | __O_TMPFILE)) && how->mode != 0)
-   975			return -EINVAL;
-   976	
-   977		if (flags & (O_CREAT | __O_TMPFILE))
-   978			op->mode = (how->mode & S_IALLUGO) | S_IFREG;
-   979		else
-   980			op->mode = 0;
-   981	
-   982		/* Must never be set by userspace */
- > 983		flags &= ~FMODE_NONOTIFY & ~O_CLOEXEC;
-   984	
-   985		/*
-   986		 * O_SYNC is implemented as __O_SYNC|O_DSYNC.  As many places only
-   987		 * check for O_DSYNC if the need any syncing at all we enforce it's
-   988		 * always set instead of having to deal with possibly weird behaviour
-   989		 * for malicious applications setting only __O_SYNC.
-   990		 */
-   991		if (flags & __O_SYNC)
-   992			flags |= O_DSYNC;
-   993	
-   994		if (flags & __O_TMPFILE) {
-   995			if ((flags & O_TMPFILE_MASK) != O_TMPFILE)
-   996				return -EINVAL;
-   997			if (!(acc_mode & MAY_WRITE))
-   998				return -EINVAL;
-   999		} else if (flags & O_PATH) {
-  1000			/*
-  1001			 * If we have O_PATH in the open flag. Then we
-  1002			 * cannot have anything other than the below set of flags
-  1003			 */
-  1004			flags &= O_DIRECTORY | O_NOFOLLOW | O_PATH;
-  1005			acc_mode = 0;
-  1006	
-  1007			/* Allow userspace to restrict the re-opening of O_PATH fds. */
-  1008			if (how->upgrade_mask & ~VALID_UPGRADE_FLAGS)
-  1009				return -EINVAL;
-  1010			if (!(how->upgrade_mask & UPGRADE_NOREAD))
-> 1011				opath_mask |= FMODE_PATH_READ;
-  1012			if (!(how->upgrade_mask & UPGRADE_NOWRITE))
-  1013				opath_mask |= FMODE_PATH_WRITE;
-  1014		}
-  1015	
-  1016		op->open_flag = flags;
-  1017	
-  1018		/* O_TRUNC implies we need access checks for write permissions */
-  1019		if (flags & O_TRUNC)
-  1020			acc_mode |= MAY_WRITE;
-  1021	
-  1022		/* Allow the LSM permission hook to distinguish append
-  1023		   access from general write access. */
-  1024		if (flags & O_APPEND)
-  1025			acc_mode |= MAY_APPEND;
-  1026	
-  1027		op->acc_mode = acc_mode;
-  1028		op->intent = flags & O_PATH ? 0 : LOOKUP_OPEN;
-> 1029		op->opath_mask = opath_mask;
-  1030	
-  1031		if (flags & O_CREAT) {
-  1032			op->intent |= LOOKUP_CREATE;
-  1033			if (flags & O_EXCL)
-  1034				op->intent |= LOOKUP_EXCL;
-  1035		}
-  1036	
-  1037		if (flags & O_DIRECTORY)
-  1038			lookup_flags |= LOOKUP_DIRECTORY;
-  1039		if (!(flags & O_NOFOLLOW))
-  1040			lookup_flags |= LOOKUP_FOLLOW;
-  1041		if (flags & O_EMPTYPATH)
-  1042			lookup_flags |= LOOKUP_EMPTY;
-  1043	
-  1044		if (how->resolve & RESOLVE_NO_XDEV)
-  1045			lookup_flags |= LOOKUP_NO_XDEV;
-  1046		if (how->resolve & RESOLVE_NO_MAGICLINKS)
-  1047			lookup_flags |= LOOKUP_NO_MAGICLINKS;
-  1048		if (how->resolve & RESOLVE_NO_SYMLINKS)
-  1049			lookup_flags |= LOOKUP_NO_SYMLINKS;
-  1050		if (how->resolve & RESOLVE_BENEATH)
-  1051			lookup_flags |= LOOKUP_BENEATH;
-  1052		if (how->resolve & RESOLVE_IN_ROOT)
-  1053			lookup_flags |= LOOKUP_IN_ROOT;
-  1054	
-  1055		op->lookup_flags = lookup_flags;
-  1056		return 0;
-  1057	}
-  1058	
-
----
-0-DAY kernel test infrastructure                Open Source Technology Center
-https://lists.01.org/pipermail/kbuild-all                   Intel Corporation
+I had the same when reviewing these patches; I was almost going to ask
+tglx about it on IRC when the penny dropped.
