@@ -1,62 +1,154 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from us-smtp-2.mimecast.com ([207.211.31.81]:42090 "EHLO
-        us-smtp-delivery-1.mimecast.com" rhost-flags-OK-OK-OK-FAIL)
-        by vger.kernel.org with ESMTP id S2404804AbfJWQYr (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 23 Oct 2019 12:24:47 -0400
-Date: Wed, 23 Oct 2019 18:24:32 +0200
-From: Oleg Nesterov <oleg@redhat.com>
-Subject: Re: [PATCH v2 1/8] kcsan: Add Kernel Concurrency Sanitizer
- infrastructure
-Message-ID: <20191023162432.GC14327@redhat.com>
-References: <20191017141305.146193-1-elver@google.com>
- <20191017141305.146193-2-elver@google.com>
- <20191022154858.GA13700@redhat.com>
- <CANpmjNPUT2B3rWaa=5Ee2Xs3HHDaUiBGpG09Q4h9Gemhsp9KFw@mail.gmail.com>
+Received: from mout-p-102.mailbox.org ([80.241.56.152]:11570 "EHLO
+        mout-p-102.mailbox.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S2437940AbfJXHPh (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 24 Oct 2019 03:15:37 -0400
+Date: Thu, 24 Oct 2019 18:06:04 +1100
+From: Aleksa Sarai <cyphar@cyphar.com>
+Subject: Re: [PATCH v14 2/6] namei: LOOKUP_IN_ROOT: chroot-like path
+ resolution
+Message-ID: <20191024070604.howuh6x6qrzd5jsm@yavin.dot.cyphar.com>
+References: <20191010054140.8483-1-cyphar@cyphar.com>
+ <20191010054140.8483-3-cyphar@cyphar.com>
+ <CAHk-=wh8L50f31vW8BwRUXhLiq3eoCQ3tg8ER4Yp2dzuU1w5rQ@mail.gmail.com>
+ <20191012040815.gnc43cfmo5mnv67u@yavin.dot.cyphar.com>
+ <20191012041541.milbmfbjpj5bcl5a@yavin.dot.cyphar.com>
 MIME-Version: 1.0
-In-Reply-To: <CANpmjNPUT2B3rWaa=5Ee2Xs3HHDaUiBGpG09Q4h9Gemhsp9KFw@mail.gmail.com>
-Content-Type: text/plain; charset=WINDOWS-1252
-Content-Transfer-Encoding: quoted-printable
+Content-Type: multipart/signed; micalg=pgp-sha256;
+        protocol="application/pgp-signature"; boundary="i56sxfhksaspu3tw"
 Content-Disposition: inline
+In-Reply-To: <20191012041541.milbmfbjpj5bcl5a@yavin.dot.cyphar.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Marco Elver <elver@google.com>
-Cc: LKMM Maintainers -- Akira Yokosawa <akiyks@gmail.com>, Alan Stern <stern@rowland.harvard.edu>, Alexander Potapenko <glider@google.com>, Andrea Parri <parri.andrea@gmail.com>, Andrey Konovalov <andreyknvl@google.com>, Andy Lutomirski <luto@kernel.org>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Arnd Bergmann <arnd@arndb.de>, Boqun Feng <boqun.feng@gmail.com>, Borislav Petkov <bp@alien8.de>, Daniel Axtens <dja@axtens.net>, Daniel Lustig <dlustig@nvidia.com>, Dave Hansen <dave.hansen@linux.intel.com>, David Howells <dhowells@redhat.com>, Dmitry Vyukov <dvyukov@google.com>, "H. Peter Anvin" <hpa@zytor.com>, Ingo Molnar <mingo@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Joel Fernandes <joel@joelfernandes.org>, Jonathan Corbet <corbet@lwn.net>, Josh Poimboeuf <jpoimboe@redhat.com>, Luc Maranget <luc.maranget@inria.fr>, Mark Rutland <mark.rutland@arm.com>, Nicholas Piggin <npiggin@gmail.com>, "Paul E. McKenney" <paulmck@linux.ibm.com>, Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, Will Deacon <will@kernel.org>, kasan-dev <kasan-dev@googlegroups.com>, linux-arch <linux-arch@vger.kernel.org>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>, linux-efi@vger.kernel.org, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Linux Memory Management List <linux-mm@kvack.org>, the arch/x86 maintainers <x86@kernel.org>
-Message-ID: <20191023162432.YlH3xXwvxI6cxTVv8a11mkgiBodlXQ6Wo5L_da1np38@z>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Al Viro <viro@zeniv.linux.org.uk>, Jeff Layton <jlayton@kernel.org>, "J. Bruce Fields" <bfields@fieldses.org>, Arnd Bergmann <arnd@arndb.de>, David Howells <dhowells@redhat.com>, Shuah Khan <shuah@kernel.org>, Shuah Khan <skhan@linuxfoundation.org>, Ingo Molnar <mingo@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Eric Biederman <ebiederm@xmission.com>, Andy Lutomirski <luto@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Alexei Starovoitov <ast@kernel.org>, Kees Cook <keescook@chromium.org>, Jann Horn <jannh@google.com>, Tycho Andersen <tycho@tycho.ws>, David Drysdale <drysdale@google.com>, Chanho Min <chanho.min@lge.com>, Oleg Nesterov <oleg@redhat.com>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Alexander Shishkin <alexander.shishkin@linux.intel.com>, Jiri Olsa <jolsa@redhat.com>, Namhyung Kim <namhyung@kernel.org>, Christian Brauner <christian@brauner.io>, Aleksa Sarai <asarai@suse.de>, Linux Containers <containers@lists.linux-foundation.org>, alpha <linux-alpha@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, GNU C Library <libc-alpha@sourceware.org>, linux-arch <linux-arch@vger.kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, linux-fsdevel <linux-fsdevel@vger.kernel.org>, linux-ia64@vger.kernel.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "open list:KERNEL SELFTEST FRAMEWORK" <linux-kselftest@vger.kernel.org>, linux-m68k <linux-m68k@lists.linux-m68k.org>, linux-mips@vger.kernel.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390 <linux-s390@vger.kernel.org>, Linux-sh list <linux-sh@vger.kernel.org>, linux-xtensa@linux-xtensa.org, sparclinux@vger.kernel.org
+Message-ID: <20191024070604.j9msQy5OcM7qEyeW-_36o7pCP25PNJhies-xIWe2Nm0@z>
 
-On 10/22, Marco Elver wrote:
->
-> On Tue, 22 Oct 2019 at 17:49, Oleg Nesterov <oleg@redhat.com> wrote:
-> >
-> > Just for example. Suppose that task->state =3D TASK_UNINTERRUPTIBLE, th=
-is task
-> > does __set_current_state(TASK_RUNNING), another CPU does wake_up_proces=
-s(task)
-> > which does the same UNINTERRUPTIBLE -> RUNNING transition.
-> >
-> > Looks like, this is the "data race" according to kcsan?
->
-> Yes, they are "data races". They are probably not "race conditions" thoug=
-h.
->
-> This is a fair distinction to make, and we never claimed to find "race
-> conditions" only
 
-I see, thanks, just wanted to be sure...
+--i56sxfhksaspu3tw
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+Content-Transfer-Encoding: quoted-printable
 
-> KCSAN's goal is to find *data races* according to the LKMM.  Some data
-> races are race conditions (usually the more interesting bugs) -- but
-> not *all* data races are race conditions. Those are what are usually
-> referred to as "benign", but they can still become bugs on the wrong
-> arch/compiler combination. Hence, the need to annotate these accesses
-> with READ_ONCE, WRITE_ONCE or use atomic_t:
+On 2019-10-12, Aleksa Sarai <cyphar@cyphar.com> wrote:
+> On 2019-10-12, Aleksa Sarai <cyphar@cyphar.com> wrote:
+> > On 2019-10-10, Linus Torvalds <torvalds@linux-foundation.org> wrote:
+> > > On Wed, Oct 9, 2019 at 10:42 PM Aleksa Sarai <cyphar@cyphar.com> wrot=
+e:
+> > > >
+> > > > --- a/fs/namei.c
+> > > > +++ b/fs/namei.c
+> > > > @@ -2277,6 +2277,11 @@ static const char *path_init(struct nameidat=
+a *nd, unsigned flags)
+> > > >
+> > > >         nd->m_seq =3D read_seqbegin(&mount_lock);
+> > > >
+> > > > +       /* LOOKUP_IN_ROOT treats absolute paths as being relative-t=
+o-dirfd. */
+> > > > +       if (flags & LOOKUP_IN_ROOT)
+> > > > +               while (*s =3D=3D '/')
+> > > > +                       s++;
+> > > > +
+> > > >         /* Figure out the starting path and root (if needed). */
+> > > >         if (*s =3D=3D '/') {
+> > > >                 error =3D nd_jump_root(nd);
+> > >=20
+> > > Hmm. Wouldn't this make more sense all inside the if (*s =3D- '/') te=
+st?
+> > > That way if would be where we check for "should we start at the root",
+> > > which seems to make more sense conceptually.
+> >=20
+> > I don't really agree (though I do think that both options are pretty
+> > ugly). Doing it before the block makes it clear that absolute paths are
+> > just treated relative-to-dirfd -- doing it inside the block makes it
+> > look more like "/" is a special-case for nd_jump_root(). And while that
+>=20
+> Sorry, I meant "special-case for LOOKUP_IN_ROOT".
+>=20
+> > is somewhat true, this is just a side-effect of making the code more
+> > clean -- my earlier versions reworked the dirfd handling to always grab
+> > nd->root first if LOOKUP_IS_SCOPED. I switched to this method based on
+> > Al's review.
+> >=20
+> > In fairness, I do agree that the lonely while loop looks ugly.
+>=20
+> And with the old way I did it (where we grabbed nd->root first) the
+> semantics were slightly more clear -- stripping leading "/"s doesn't
+> really look as "clearly obvious" as grabbing nd->root beforehand and
+> treating "/"s normally. But the code was also needlessly more complex.
+>=20
+> > > That test for '/' currently has a "} else if (..)", but that's
+> > > pointless since it ends with a "return" anyway. So the "else" logic is
+> > > just noise.
+> >=20
+> > This depends on the fact that LOOKUP_BENEATH always triggers -EXDEV for
+> > nd_jump_root() -- if we ever add another "scoped lookup" flag then the
+> > logic will have to be further reworked.
+> >=20
+> > (It should be noted that the new version doesn't always end with a
+> > "return", but you could change it to act that way given the above
+> > assumption.)
+> >=20
+> > > And if you get rid of the unnecessary else, moving the LOOKUP_IN_ROOT
+> > > inside the if-statement works fine.
+> > >=20
+> > > So this could be something like
+> > >=20
+> > >     --- a/fs/namei.c
+> > >     +++ b/fs/namei.c
+> > >     @@ -2194,11 +2196,19 @@ static const char *path_init(struct
+> > > nameidata *nd, unsigned flags)
+> > >=20
+> > >         nd->m_seq =3D read_seqbegin(&mount_lock);
+> > >         if (*s =3D=3D '/') {
+> > >     -           set_root(nd);
+> > >     -           if (likely(!nd_jump_root(nd)))
+> > >     -                   return s;
+> > >     -           return ERR_PTR(-ECHILD);
+> > >     -   } else if (nd->dfd =3D=3D AT_FDCWD) {
+> > >     +           /* LOOKUP_IN_ROOT treats absolute paths as being
+> > > relative-to-dirfd. */
+> > >     +           if (!(flags & LOOKUP_IN_ROOT)) {
+> > >     +                   set_root(nd);
+> > >     +                   if (likely(!nd_jump_root(nd)))
+> > >     +                           return s;
+> > >     +                   return ERR_PTR(-ECHILD);
+> > >     +           }
+> > >     +
+> > >     +           /* Skip initial '/' for LOOKUP_IN_ROOT */
+> > >     +           do { s++; } while (*s =3D=3D '/');
+> > >     +   }
+> > >     +
+> > >     +   if (nd->dfd =3D=3D AT_FDCWD) {
+> > >                 if (flags & LOOKUP_RCU) {
+> > >                         struct fs_struct *fs =3D current->fs;
+> > >                         unsigned seq;
+> > >=20
+> > > instead. The patch ends up slightly bigger (due to the re-indentation)
+> > > but now it handles all the "start at root" in the same place. Doesn't
+> > > that make sense?
+> >=20
+> > It is correct (though I'd need to clean it up a bit to handle
+> > nd_jump_root() correctly), and if you really would like me to change it
+> > I will -- but I just don't agree that it's cleaner.
 
-Well, if I see READ_ONCE() in the code I want to understand why it was
-used. Is it really needed for correctness or we want to shut up kcsan?
-Say, why should wait_event(wq, *ptr) use READ_ONCE()? Nevermind, please
-forget.
+Linus, did you still want me to make your proposed change?
 
-Btw, why __kcsan_check_watchpoint() does user_access_save() before
-try_consume_watchpoint() ?
+--=20
+Aleksa Sarai
+Senior Software Engineer (Containers)
+SUSE Linux GmbH
+<https://www.cyphar.com/>
 
-Oleg.
+--i56sxfhksaspu3tw
+Content-Type: application/pgp-signature; name="signature.asc"
+
+-----BEGIN PGP SIGNATURE-----
+
+iHUEABYIAB0WIQSxZm6dtfE8gxLLfYqdlLljIbnQEgUCXbFNWQAKCRCdlLljIbnQ
+Ert5AP0aC5CrGCVvHOpelKBjUDOS5duq76VaVyiiUWcy3eeeFwD/aQEQPqkGREqr
+5Lo0df+nvE9H+89b7vJGbcaEZNxkTQc=
+=rtfF
+-----END PGP SIGNATURE-----
+
+--i56sxfhksaspu3tw--
