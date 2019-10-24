@@ -1,30 +1,29 @@
-Return-Path: <luto@kernel.org>
+Return-Path: <peda@axentia.se>
+From: Peter Rosin <peda@axentia.se>
+Subject: Re: [PATCH 08/12] parisc: use pgtable-nopXd instead of 4level-fixup
+Date: Thu, 24 Oct 2019 09:35:12 +0000
+Message-ID: <20191024093451.15161-1-peda@axentia.se>
+References: <1571822941-29776-9-git-send-email-rppt@kernel.org>
+In-Reply-To: <1571822941-29776-9-git-send-email-rppt@kernel.org>
+Content-Language: en-US
+Content-Type: text/plain; charset="iso-8859-1"
+Content-Transfer-Encoding: quoted-printable
 MIME-Version: 1.0
-References: <20191023122705.198339581@linutronix.de> <20191023123118.978254388@linutronix.de>
-In-Reply-To: <20191023123118.978254388@linutronix.de>
-From: Andy Lutomirski <luto@kernel.org>
-Date: Wed, 23 Oct 2019 14:34:12 -0700
-Message-ID: <CALCETrVArVWH2-ew4+WVxhX-3kzrspv2x8yw3RH3PyVGeAMudA@mail.gmail.com>
-Subject: Re: [patch V2 14/17] entry: Provide generic exit to usermode functionality
-Content-Type: text/plain; charset="UTF-8"
-To: Thomas Gleixner <tglx@linutronix.de>
-Cc: LKML <linux-kernel@vger.kernel.org>, X86 ML <x86@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Andy Lutomirski <luto@kernel.org>, Will Deacon <will@kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, kvm list <kvm@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Mike Rapoport <rppt@linux.ibm.com>, Josh Poimboeuf <jpoimboe@redhat.com>, Miroslav Benes <mbenes@suse.cz>
+To: "rppt@kernel.org" <rppt@kernel.org>
+Cc: "James.Bottomley@HansenPartnership.com" <James.Bottomley@HansenPartnership.com>, "Vineet.Gupta1@synopsys.com" <Vineet.Gupta1@synopsys.com>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "anton.ivanov@cambridgegreys.com" <anton.ivanov@cambridgegreys.com>, "arnd@arndb.de" <arnd@arndb.de>, "davem@davemloft.net" <davem@davemloft.net>, "deanbo422@gmail.com" <deanbo422@gmail.com>, "deller@gmx.de" <deller@gmx.de>, "geert@linux-m68k.org" <geert@linux-m68k.org>, "gerg@linux-m68k.org" <gerg@linux-m68k.org>, "green.hu@gmail.com" <green.hu@gmail.com>, "jdike@addtoit.com" <jdike@addtoit.com>, "kirill@shutemov.name" <kirill@shutemov.name>, "linux-alpha@vger.kernel.org" <linux-alpha@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-c6x-dev@linux-c6x.org" <linux-c6x-dev@linux-c6x.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-m68k@lists.linux-m68k.org" <linux-m68k@lists.linux-m68k.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "linux-parisc@vger.kernel.org" <linux-parisc@vger.kernel.org>, "linux-um@lists.infradead.org" <linux-um@lists.infradead.org>, "linux@armlinux.org.uk" <linux@armlinux.org.uk>, "mattst88@gmail.com" <mattst88@gmail.com>, "monstr@monstr.eu" <monstr@monstr.eu>, "msalter@redhat.com" <msalter@redhat.com>, "richard@nod.at" <richard@nod.at>, "rppt@linux.ibm.com" <rppt@linux.ibm.com>, "sammy@sammy.net" <sammy@sammy.net>, "sparclinux@vger.kernel.org" <sparclinux@vger.kernel.org>, "torvalds@linux-foundation.org" <torvalds@linux-foundation.org>, Peter Rosin <peda@axentia.se>
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20191023213412.s5tDkuguzxnZEXiCmairhJzzprqOfNFY7QSruVMz9Pg@z>
+Message-ID: <20191024093512.Fb9SyK-aU0q69z_EUyRK7koYbJsmnA_fzee-QIMsFfY@z>
 
-On Wed, Oct 23, 2019 at 5:31 AM Thomas Gleixner <tglx@linutronix.de> wrote:
+On 2019-10-23 12:28, Mike Rapoport <rppt@kernel.org> wrote:
+> parisc has two or three levels of page tables and can use appropriate
+> pgtable-nopXd and folding of the upper layers.
 >
-> From: Thomas Gleixner <tglx@linutronix.de>
->
-> Provide a generic facility to handle the exit to usermode work. That's
-> aimed to replace the pointlessly different copies in each architecture.
+> Replace usage of include/asm-generic/4level-fixup.h and explicit
+> definitions of __PAGETABLE_PxD_FOLDED in parisc with
+> include/asm-generic/pgtable-nopmd.h for two-level configurations and with
+> include/asm-generic/pgtable-nopmd.h for three-lelve configurations and
 
+I think you mean .../pgtable-nopud.h in the latter case.
 
->  /**
-> + * local_irq_enable_exit_to_user - Exit to user variant of local_irq_enable()
-> + * @ti_work:   Cached TIF flags gathered with interrupts disabled
-> + *
-> + * Defaults to local_irq_enable(). Can be supplied by architecture specific
-> + * code.
-
-What did you have in mind here?
+Cheers,
+Peter
