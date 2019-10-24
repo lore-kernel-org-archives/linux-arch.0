@@ -1,149 +1,194 @@
-Return-Path: <rppt@kernel.org>
-From: Mike Rapoport <rppt@kernel.org>
-Subject: [PATCH 01/12] alpha: use pgtable-nop4d instead of 4level-fixup
-Date: Wed, 23 Oct 2019 12:28:50 +0300
-Message-ID: <1571822941-29776-2-git-send-email-rppt@kernel.org>
-In-Reply-To: <1571822941-29776-1-git-send-email-rppt@kernel.org>
-References: <1571822941-29776-1-git-send-email-rppt@kernel.org>
-To: linux-mm@kvack.org
-Cc: Andrew Morton <akpm@linux-foundation.org>, Anton Ivanov <anton.ivanov@cambridgegreys.com>, Arnd Bergmann <arnd@arndb.de>, "David S. Miller" <davem@davemloft.net>, Geert Uytterhoeven <geert@linux-m68k.org>, Greentime Hu <green.hu@gmail.com>, Greg Ungerer <gerg@linux-m68k.org>, Helge Deller <deller@gmx.de>, "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>, Jeff Dike <jdike@addtoit.com>, "Kirill A. Shutemov" <kirill@shutemov.name>, Linus Torvalds <torvalds@linux-foundation.org>, Mark Salter <msalter@redhat.com>, Matt Turner <mattst88@gmail.com>, Michal Simek <monstr@monstr.eu>, Richard Weinberger <richard@nod.at>, Russell King <linux@armlinux.org.uk>, Sam Creasey <sammy@sammy.net>, Vincent Chen <deanbo422@gmail.com>, Vineet Gupta <Vineet.Gupta1@synopsys.com>, Mike Rapoport <rppt@kernel.org>, linux-alpha@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, linux-kernel@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-parisc@vger.kernel.org, linux-um@lists.infradead.org, sparclinux@vger.kernel.org, Mike Rapoport <rppt@linux.ibm.com>
+Return-Path: <luto@kernel.org>
+MIME-Version: 1.0
+References: <20191023122705.198339581@linutronix.de> <20191023123118.296135499@linutronix.de>
+ <20191023220618.qsmog2k5oaagj27v@treble> <alpine.DEB.2.21.1910240146200.1852@nanos.tec.linutronix.de>
+ <CALCETrX+N_cR-HAmQyHxqUo0LPCk4GmqbzizXk-gq9qp00-RdA@mail.gmail.com> <alpine.DEB.2.21.1910242032080.1783@nanos.tec.linutronix.de>
+In-Reply-To: <alpine.DEB.2.21.1910242032080.1783@nanos.tec.linutronix.de>
+From: Andy Lutomirski <luto@kernel.org>
+Date: Thu, 24 Oct 2019 14:24:06 -0700
+Message-ID: <CALCETrXyhnMwwOyWQ-FtsNFAsrcG41-pPrAp8Wj2vc0N9JzP-Q@mail.gmail.com>
+Subject: Re: [patch V2 07/17] x86/entry/64: Remove redundant interrupt disable
+Content-Type: text/plain; charset="UTF-8"
+To: Thomas Gleixner <tglx@linutronix.de>
+Cc: Andy Lutomirski <luto@kernel.org>, Josh Poimboeuf <jpoimboe@redhat.com>, LKML <linux-kernel@vger.kernel.org>, X86 ML <x86@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Will Deacon <will@kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, kvm list <kvm@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Mike Rapoport <rppt@linux.ibm.com>, Miroslav Benes <mbenes@suse.cz>
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20191023092850.TgZuuYWKvMVDwQKl0-Cgh9_GpS_HVSpy2nOfo1ediGY@z>
+Message-ID: <20191024212406.SrTX8YP-dtbjSume_PWt4xqCMGQkyNoKgTum4psk5JM@z>
 
-From: Mike Rapoport <rppt@linux.ibm.com>
+On Thu, Oct 24, 2019 at 1:53 PM Thomas Gleixner <tglx@linutronix.de> wrote:
+>
+> On Thu, 24 Oct 2019, Andy Lutomirski wrote:
+> > On Wed, Oct 23, 2019 at 4:52 PM Thomas Gleixner <tglx@linutronix.de> wrote:
+> > > On Wed, 23 Oct 2019, Josh Poimboeuf wrote:
+> > > > What happens if somebody accidentally leaves irqs enabled?  How do we
+> > > > know you found all the leaks?
+> > >
+> > > For the DO_ERROR() ones that's trivial:
+> > >
+> > >  #define DO_ERROR(trapnr, signr, sicode, addr, str, name)                  \
+> > >  dotraplinkage void do_##name(struct pt_regs *regs, long error_code)       \
+> > >  {                                                                         \
+> > >         do_error_trap(regs, error_code, str, trapnr, signr, sicode, addr); \
+> > > +       lockdep_assert_irqs_disabled();                                    \
+> > >  }
+> > >
+> > >  DO_ERROR(X86_TRAP_DE,     SIGFPE,  FPE_INTDIV,   IP, "divide error",        divide_error)
+> > >
+> > > Now for the rest we surely could do:
+> > >
+> > > dotraplinkage void do_bounds(struct pt_regs *regs, long error_code)
+> > > {
+> > >         __do_bounds(regs, error_code);
+> > >         lockdep_assert_irqs_disabled();
+> > > }
+> > >
+> > > and move the existing body into a static function so independent of any
+> > > (future) return path there the lockdep assert will be invoked.
+> > >
+> >
+> > If we do this, can we macro-ize it:
+> >
+> > DEFINE_IDTENTRY_HANDLER(do_bounds)
+> > {
+> >  ...
+> > }
+> >
+> > If you do this, please don't worry about the weird ones that take cr2
+> > as a third argument.  Once your series lands, I will send a follow-up
+> > to get rid of it.  It's 2/3 written already.
+>
+> I spent quite some time digging deeper into this. Finding all corner cases
+> which eventually enable interrupts from an exception handler is not as
+> trivial as it looked in the first place. Especially the fault handler is a
+> nightmare. Also PeterZ's approach of doing
+>
+>            if (regs->eflags & IF)
+>                 local_irq_disable();
+>
+> is doomed due to sys_iopl(). See below.
 
-It is not likely alpha will have 5-level page tables.
+I missed something in the discussion.  What breaks?  Can you check
+user_mode(regs) too?
 
-Replace usage of include/asm-generic/4level-fixup.h and implied
-__ARCH_HAS_4LEVEL_HACK with include/asm-generic/pgtable-nop4d.h and adjust
-page table manipulation macros and functions accordingly.
+>
+> I'm tempted to do pretty much the same thing as the syscall rework did
+> as a first step:
+>
+>   - Move the actual handler invocation to C
+>
+>   - Do the irq tracing on entry in C
+>
+>   - Move irq disable before return to ASM
+>
+> Peter gave me some half finished patches which pretty much do that by
+> copying half of the linux/syscalls.h macro maze into the entry code. That's
+> one possible solution, but TBH it sucks big times.
+>
+> We have the following variants:
+>
+> do_divide_error(struct pt_regs *regs, long error_code);
+> do_debug(struct pt_regs *regs, long error_code);
+> do_nmi(struct pt_regs *regs, long error_code);
+> do_int3(struct pt_regs *regs, long error_code);
+> do_overflow(struct pt_regs *regs, long error_code);
+> do_bounds(struct pt_regs *regs, long error_code);
+> do_invalid_op(struct pt_regs *regs, long error_code);
+> do_device_not_available(struct pt_regs *regs, long error_code);
+> do_coprocessor_segment_overrun(struct pt_regs *regs, long error_code);
+> do_invalid_TSS(struct pt_regs *regs, long error_code);
+> do_segment_not_present(struct pt_regs *regs, long error_code);
+> do_stack_segment(struct pt_regs *regs, long error_code);
+> do_general_protection(struct pt_regs *regs, long error_code);
+> do_spurious_interrupt_bug(struct pt_regs *regs, long error_code);
+> do_coprocessor_error(struct pt_regs *regs, long error_code);
+> do_alignment_check(struct pt_regs *regs, long error_code);
+> do_machine_check(struct pt_regs *regs, long error_code);
+> do_simd_coprocessor_error(struct pt_regs *regs, long error_code);
+> do_iret_error(struct pt_regs *regs, long error_code);
+> do_mce(struct pt_regs *regs, long error_code);
+>
+> do_async_page_fault(struct pt_regs *regs, unsigned long error_code, unsigned long address);
+> do_double_fault(struct pt_regs *regs, long error_code, unsigned long address);
+> do_page_fault(struct pt_regs *regs, unsigned long error_code, unsigned long address);
+>
+> So if we can remove the third argument then we can spare most of the macro
+> maze and just have one common function without bells and whistels. The
+> other option would be to extend all handlers to have three arguments,
+> i.e. add 'long unused', which is not pretty either.
+>
+> What's your plan with cr2? Stash it in pt_regs or something else?
 
-Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
----
- arch/alpha/include/asm/pgalloc.h |  4 ++--
- arch/alpha/include/asm/pgtable.h | 24 ++++++++++++------------
- arch/alpha/mm/init.c             | 12 ++++++++----
- 3 files changed, 22 insertions(+), 18 deletions(-)
+Just read it from CR2.  I added a new idtentry macro arg called
+"entry_work", and setting it to 0 causes the enter_from_user_mode to
+be skipped.  Then C code calls enter_from_user_mode() after reading
+CR2 (and DR7).  WIP code is here:
 
-diff --git a/arch/alpha/include/asm/pgalloc.h b/arch/alpha/include/asm/pgalloc.h
-index eb91f1e..a1a29f6 100644
---- a/arch/alpha/include/asm/pgalloc.h
-+++ b/arch/alpha/include/asm/pgalloc.h
-@@ -27,9 +27,9 @@ pmd_populate_kernel(struct mm_struct *mm, pmd_t *pmd, pte_t *pte)
- }
- 
- static inline void
--pgd_populate(struct mm_struct *mm, pgd_t *pgd, pmd_t *pmd)
-+pud_populate(struct mm_struct *mm, pud_t *pud, pmd_t *pmd)
- {
--	pgd_set(pgd, pmd);
-+	pud_set(pud, pmd);
- }
- 
- extern pgd_t *pgd_alloc(struct mm_struct *mm);
-diff --git a/arch/alpha/include/asm/pgtable.h b/arch/alpha/include/asm/pgtable.h
-index 065b57f..299791c 100644
---- a/arch/alpha/include/asm/pgtable.h
-+++ b/arch/alpha/include/asm/pgtable.h
-@@ -2,7 +2,7 @@
- #ifndef _ALPHA_PGTABLE_H
- #define _ALPHA_PGTABLE_H
- 
--#include <asm-generic/4level-fixup.h>
-+#include <asm-generic/pgtable-nopud.h>
- 
- /*
-  * This file contains the functions and defines necessary to modify and use
-@@ -226,8 +226,8 @@ extern inline pte_t pte_modify(pte_t pte, pgprot_t newprot)
- extern inline void pmd_set(pmd_t * pmdp, pte_t * ptep)
- { pmd_val(*pmdp) = _PAGE_TABLE | ((((unsigned long) ptep) - PAGE_OFFSET) << (32-PAGE_SHIFT)); }
- 
--extern inline void pgd_set(pgd_t * pgdp, pmd_t * pmdp)
--{ pgd_val(*pgdp) = _PAGE_TABLE | ((((unsigned long) pmdp) - PAGE_OFFSET) << (32-PAGE_SHIFT)); }
-+extern inline void pud_set(pud_t * pudp, pmd_t * pmdp)
-+{ pud_val(*pudp) = _PAGE_TABLE | ((((unsigned long) pmdp) - PAGE_OFFSET) << (32-PAGE_SHIFT)); }
- 
- 
- extern inline unsigned long
-@@ -238,11 +238,11 @@ pmd_page_vaddr(pmd_t pmd)
- 
- #ifndef CONFIG_DISCONTIGMEM
- #define pmd_page(pmd)	(mem_map + ((pmd_val(pmd) & _PFN_MASK) >> 32))
--#define pgd_page(pgd)	(mem_map + ((pgd_val(pgd) & _PFN_MASK) >> 32))
-+#define pud_page(pud)	(mem_map + ((pud_val(pud) & _PFN_MASK) >> 32))
- #endif
- 
--extern inline unsigned long pgd_page_vaddr(pgd_t pgd)
--{ return PAGE_OFFSET + ((pgd_val(pgd) & _PFN_MASK) >> (32-PAGE_SHIFT)); }
-+extern inline unsigned long pud_page_vaddr(pud_t pgd)
-+{ return PAGE_OFFSET + ((pud_val(pgd) & _PFN_MASK) >> (32-PAGE_SHIFT)); }
- 
- extern inline int pte_none(pte_t pte)		{ return !pte_val(pte); }
- extern inline int pte_present(pte_t pte)	{ return pte_val(pte) & _PAGE_VALID; }
-@@ -256,10 +256,10 @@ extern inline int pmd_bad(pmd_t pmd)		{ return (pmd_val(pmd) & ~_PFN_MASK) != _P
- extern inline int pmd_present(pmd_t pmd)	{ return pmd_val(pmd) & _PAGE_VALID; }
- extern inline void pmd_clear(pmd_t * pmdp)	{ pmd_val(*pmdp) = 0; }
- 
--extern inline int pgd_none(pgd_t pgd)		{ return !pgd_val(pgd); }
--extern inline int pgd_bad(pgd_t pgd)		{ return (pgd_val(pgd) & ~_PFN_MASK) != _PAGE_TABLE; }
--extern inline int pgd_present(pgd_t pgd)	{ return pgd_val(pgd) & _PAGE_VALID; }
--extern inline void pgd_clear(pgd_t * pgdp)	{ pgd_val(*pgdp) = 0; }
-+extern inline int pud_none(pud_t pud)		{ return !pud_val(pud); }
-+extern inline int pud_bad(pud_t pud)		{ return (pud_val(pud) & ~_PFN_MASK) != _PAGE_TABLE; }
-+extern inline int pud_present(pud_t pud)	{ return pud_val(pud) & _PAGE_VALID; }
-+extern inline void pud_clear(pud_t * pudp)	{ pud_val(*pudp) = 0; }
- 
- /*
-  * The following only work if pte_present() is true.
-@@ -301,9 +301,9 @@ extern inline pte_t pte_mkspecial(pte_t pte)	{ return pte; }
-  */
- 
- /* Find an entry in the second-level page table.. */
--extern inline pmd_t * pmd_offset(pgd_t * dir, unsigned long address)
-+extern inline pmd_t * pmd_offset(pud_t * dir, unsigned long address)
- {
--	pmd_t *ret = (pmd_t *) pgd_page_vaddr(*dir) + ((address >> PMD_SHIFT) & (PTRS_PER_PAGE - 1));
-+	pmd_t *ret = (pmd_t *) pud_page_vaddr(*dir) + ((address >> PMD_SHIFT) & (PTRS_PER_PAGE - 1));
- 	smp_read_barrier_depends(); /* see above */
- 	return ret;
- }
-diff --git a/arch/alpha/mm/init.c b/arch/alpha/mm/init.c
-index e2cbec3..12e218d 100644
---- a/arch/alpha/mm/init.c
-+++ b/arch/alpha/mm/init.c
-@@ -146,6 +146,8 @@ callback_init(void * kernel_end)
- {
- 	struct crb_struct * crb;
- 	pgd_t *pgd;
-+	p4d_t *p4d;
-+	pud_t *pud;
- 	pmd_t *pmd;
- 	void *two_pages;
- 
-@@ -184,8 +186,10 @@ callback_init(void * kernel_end)
- 	memset(two_pages, 0, 2*PAGE_SIZE);
- 
- 	pgd = pgd_offset_k(VMALLOC_START);
--	pgd_set(pgd, (pmd_t *)two_pages);
--	pmd = pmd_offset(pgd, VMALLOC_START);
-+	p4d = p4d_offset(pgd, VMALLOC_START);
-+	pud = pud_offset(p4d, VMALLOC_START);
-+	pud_set(pud, (pmd_t *)two_pages);
-+	pmd = pmd_offset(pud, VMALLOC_START);
- 	pmd_set(pmd, (pte_t *)(two_pages + PAGE_SIZE));
- 
- 	if (alpha_using_srm) {
-@@ -214,9 +218,9 @@ callback_init(void * kernel_end)
- 				/* Newer consoles (especially on larger
- 				   systems) may require more pages of
- 				   PTEs. Grab additional pages as needed. */
--				if (pmd != pmd_offset(pgd, vaddr)) {
-+				if (pmd != pmd_offset(pud, vaddr)) {
- 					memset(kernel_end, 0, PAGE_SIZE);
--					pmd = pmd_offset(pgd, vaddr);
-+					pmd = pmd_offset(pud, vaddr);
- 					pmd_set(pmd, (pte_t *)kernel_end);
- 					kernel_end += PAGE_SIZE;
- 				}
--- 
-2.7.4
+https://git.kernel.org/pub/scm/linux/kernel/git/luto/linux.git/log/?h=x86/idtentry
+
+The idea is that, if everything is converted, then we get rid of the
+entry_work=1 case, which is easier if there's a macro.
+
+So my suggestion is to use a macro for the 2-arg version and open-code
+all the 3-arg cases.  Then, when the dust settles, we get rid of the
+third arg and they can use the macro.
+
+>
+> The interesting bells and whistels result from sys_iopl(). If user space
+> has been granted iopl(level = 3) it gains cli/sti priviledges. When the
+> application has interrupts disabled in userspace:
+>
+>   - invocation of a syscall
+>
+>   - any exception (aside of NMI/MCE) which conditionally enables interrupts
+>     depending on user_mode(regs) and therefor can be preempted and
+>     schedule
+>
+> is just undefined behaviour and I personally consider it to be a plain bug.
+>
+> Just for the record: This results in running a resulting or even completely
+> unrelated signal handler with interrupts disabled as well.
+
+I am seriously tempted to say that the solution is to remove iopl(),
+at least on 64-bit kernels.  Doing STI in user mode is BS :)
+
+Otherwise we need to give it semantics, no?  I personally have no
+actual problem with the fact that an NMI can cause scheduling to
+happen.  Big fscking deal.
+
+>
+> Whatever we decide it is, leaving it completely inconsistent is not a
+> solution at all. The options are:
+>
+>   1)  Always do conditional tracing depending on the user_regs->eflags.IF
+>       state.
+
+I'm okay with always tracing like user mode means IRQs on or doing it
+"correctly".  I consider the former to be simpler and therefore quite
+possibly better.
+
+>
+>   2)  #1 + warn once when syscalls and exceptions (except NMI/MCE) happen
+>       and user_regs->eflags.IF is cleared.
+>
+>   3a) #2 + enforce signal handling to run with interrupts enabled.
+>
+>   3b) #2 + set regs->eflags.IF. So the state is always correct from the
+>       kernel POV. Of course that changes existing behaviour, but its
+>       changing undefined and inconsistent behaviour.
+>
+>   4) Let iopl(level) return -EPERM if level == 3.
+>
+>      Yeah, I know it's not possible due to regressions (DPKD uses iopl(3)),
+>      but TBH that'd be the sanest option of all.
+>
+>      Of course the infinite wisdom of hardware designers tied IN, INS, OUT,
+>      OUTS and CLI/STI together on IOPL so we cannot even distangle them in
+>      any way.
+
+>
+>      The only way out would be to actually use a full 8K sized I/O bitmap,
+>      but that's a massive pain as it has to be copied on every context
+>      switch.
+
+Hmm.  This actually doesn't seem that bad.  We already have a TIF_
+flag to optimize this.  So basically iopl() would effectively become
+ioperm(everything on).
