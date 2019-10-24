@@ -1,31 +1,34 @@
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: Re: [patch V2 07/17] x86/entry/64: Remove redundant interrupt
- disable
-Date: Thu, 24 Oct 2019 22:59:56 +0200 (CEST)
-Message-ID: <alpine.DEB.2.21.1910242257310.1783@nanos.tec.linutronix.de>
-References: <20191023122705.198339581@linutronix.de> <20191023123118.296135499@linutronix.de> <20191023220618.qsmog2k5oaagj27v@treble> <alpine.DEB.2.21.1910240146200.1852@nanos.tec.linutronix.de> <CALCETrX+N_cR-HAmQyHxqUo0LPCk4GmqbzizXk-gq9qp00-RdA@mail.gmail.com>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [patch V2 07/17] x86/entry/64: Remove redundant interrupt disable
+Date: Thu, 24 Oct 2019 23:21:05 +0200
+Message-ID: <20191024212105.GY4114@hirez.programming.kicks-ass.net>
+References: <20191023122705.198339581@linutronix.de>
+ <20191023123118.296135499@linutronix.de>
+ <20191023220618.qsmog2k5oaagj27v@treble>
+ <alpine.DEB.2.21.1910240146200.1852@nanos.tec.linutronix.de>
+ <CALCETrX+N_cR-HAmQyHxqUo0LPCk4GmqbzizXk-gq9qp00-RdA@mail.gmail.com>
  <alpine.DEB.2.21.1910242032080.1783@nanos.tec.linutronix.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
 In-Reply-To: <alpine.DEB.2.21.1910242032080.1783@nanos.tec.linutronix.de>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Andy Lutomirski <luto@kernel.org>
-Cc: Josh Poimboeuf <jpoimboe@redhat.com>, LKML <linux-kernel@vger.kernel.org>, X86 ML <x86@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Will Deacon <will@kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, kvm list <kvm@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Mike Rapoport <rppt@linux.ibm.com>, Miroslav Benes <mbenes@suse.cz>
+To: Thomas Gleixner <tglx@linutronix.de>
+Cc: Andy Lutomirski <luto@kernel.org>, Josh Poimboeuf <jpoimboe@redhat.com>, LKML <linux-kernel@vger.kernel.org>, X86 ML <x86@kernel.org>, Will Deacon <will@kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, kvm list <kvm@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Mike Rapoport <rppt@linux.ibm.com>, Miroslav Benes <mbenes@suse.cz>
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, 24 Oct 2019, Thomas Gleixner wrote:
+On Thu, Oct 24, 2019 at 10:52:59PM +0200, Thomas Gleixner wrote:
+> is just undefined behaviour and I personally consider it to be a plain bug.
+
+I concur.
+
+> Just for the record: This results in running a resulting or even completely
+> unrelated signal handler with interrupts disabled as well.
+> 
 > Whatever we decide it is, leaving it completely inconsistent is not a
 > solution at all. The options are:
-
-Actually there is also:
-
-    0) Always do unconditional trace_irqs_on().
-
-       But that does not allow to actually trace the real return flags
-       state which might be useful to diagnose crap which results from user
-       space CLI.
- 
+> 
 >   1)  Always do conditional tracing depending on the user_regs->eflags.IF
 >       state.
 > 
@@ -52,8 +55,6 @@ Actually there is also:
 >      switch. 
 > 
 > Really pretty options to chose from ...
-> 
-> Thanks,
-> 
-> 	tglx
-> 
+
+If 4 is out (and I'm afraid it might be), then I'm on record for liking
+3b.
