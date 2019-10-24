@@ -1,188 +1,173 @@
 Return-Path: <tglx@linutronix.de>
-Message-ID: <20191023123118.084086112@linutronix.de>
-Date: Wed, 23 Oct 2019 14:27:10 +0200
+Date: Fri, 25 Oct 2019 00:33:52 +0200 (CEST)
 From: Thomas Gleixner <tglx@linutronix.de>
-Subject: [patch V2 05/17] x86/traps: Make interrupt enable/disable symmetric
- in C code
-References: <20191023122705.198339581@linutronix.de>
+Subject: Re: [patch V2 07/17] x86/entry/64: Remove redundant interrupt
+ disable
+In-Reply-To: <CALCETrXyhnMwwOyWQ-FtsNFAsrcG41-pPrAp8Wj2vc0N9JzP-Q@mail.gmail.com>
+Message-ID: <alpine.DEB.2.21.1910242353330.1783@nanos.tec.linutronix.de>
+References: <20191023122705.198339581@linutronix.de> <20191023123118.296135499@linutronix.de> <20191023220618.qsmog2k5oaagj27v@treble> <alpine.DEB.2.21.1910240146200.1852@nanos.tec.linutronix.de> <CALCETrX+N_cR-HAmQyHxqUo0LPCk4GmqbzizXk-gq9qp00-RdA@mail.gmail.com>
+ <alpine.DEB.2.21.1910242032080.1783@nanos.tec.linutronix.de> <CALCETrXyhnMwwOyWQ-FtsNFAsrcG41-pPrAp8Wj2vc0N9JzP-Q@mail.gmail.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-To: LKML <linux-kernel@vger.kernel.org>
-Cc: x86@kernel.org, Peter Zijlstra <peterz@infradead.org>, Andy Lutomirski <luto@kernel.org>, Will Deacon <will@kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, kvm@vger.kernel.org, linux-arch@vger.kernel.org, Mike Rapoport <rppt@linux.ibm.com>, Josh Poimboeuf <jpoimboe@redhat.com>, Miroslav Benes <mbenes@suse.cz>
+Content-Type: text/plain; charset=US-ASCII
+To: Andy Lutomirski <luto@kernel.org>
+Cc: Josh Poimboeuf <jpoimboe@redhat.com>, LKML <linux-kernel@vger.kernel.org>, X86 ML <x86@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Will Deacon <will@kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, kvm list <kvm@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Mike Rapoport <rppt@linux.ibm.com>, Miroslav Benes <mbenes@suse.cz>
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20191023122710.AoMpGVlokWRkyMqDqW4wy4Yil9Y9D-F3QJUFVoZNnEA@z>
+Message-ID: <20191024223352.5tzEPnYfHTkgjE9Phmx38NBy6unqylxQ8OBBFBbeN5k@z>
 
-Traps enable interrupts conditionally but rely on the ASM return code to
-disable them again. That results in redundant interrupt disable and trace
-calls.
+On Thu, 24 Oct 2019, Andy Lutomirski wrote:
+> On Thu, Oct 24, 2019 at 1:53 PM Thomas Gleixner <tglx@linutronix.de> wrote:
+> > I spent quite some time digging deeper into this. Finding all corner cases
+> > which eventually enable interrupts from an exception handler is not as
+> > trivial as it looked in the first place. Especially the fault handler is a
+> > nightmare. Also PeterZ's approach of doing
+> >
+> >            if (regs->eflags & IF)
+> >                 local_irq_disable();
+> >
+> > is doomed due to sys_iopl(). See below.
+> 
+> I missed something in the discussion.  What breaks?
 
-Make the trap handlers disable interrupts before returning to avoid that,
-which allows simplification of the ASM entry code.
+Assume user space has issued CLI then the above check is giving the wrong
+answer because it assumes that all faults in user mode have IF set.
 
-Originally-by: Peter Zijlstra <peterz@infradead.org>
-Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
----
- arch/x86/kernel/traps.c |   32 +++++++++++++++++++++-----------
- arch/x86/mm/fault.c     |    7 +++++--
- 2 files changed, 26 insertions(+), 13 deletions(-)
+> Can you check user_mode(regs) too?
 
---- a/arch/x86/kernel/traps.c
-+++ b/arch/x86/kernel/traps.c
-@@ -276,6 +276,7 @@ static void do_error_trap(struct pt_regs
- 			NOTIFY_STOP) {
- 		cond_local_irq_enable(regs);
- 		do_trap(trapnr, signr, str, regs, error_code, sicode, addr);
-+		cond_local_irq_disable(regs);
- 	}
- }
+Yes, but I still hate it with a passion :)
+
+> > What's your plan with cr2? Stash it in pt_regs or something else?
+> 
+> Just read it from CR2.  I added a new idtentry macro arg called
+> "entry_work", and setting it to 0 causes the enter_from_user_mode to
+> be skipped.  Then C code calls enter_from_user_mode() after reading
+> CR2 (and DR7).  WIP code is here:
+> 
+> https://git.kernel.org/pub/scm/linux/kernel/git/luto/linux.git/log/?h=x86/idtentry
+> 
+> The idea is that, if everything is converted, then we get rid of the
+> entry_work=1 case, which is easier if there's a macro.
+> 
+> So my suggestion is to use a macro for the 2-arg version and open-code
+> all the 3-arg cases.  Then, when the dust settles, we get rid of the
+> third arg and they can use the macro.
+
+I'll have a look tomorrow with brain awake.
  
-@@ -501,6 +502,7 @@ dotraplinkage void do_bounds(struct pt_r
- 		die("bounds", regs, error_code);
- 	}
- 
-+	cond_local_irq_disable(regs);
- 	return;
- 
- exit_trap:
-@@ -512,6 +514,7 @@ dotraplinkage void do_bounds(struct pt_r
- 	 * time..
- 	 */
- 	do_trap(X86_TRAP_BR, SIGSEGV, "bounds", regs, error_code, 0, NULL);
-+	cond_local_irq_disable(regs);
- }
- 
- dotraplinkage void
-@@ -525,19 +528,19 @@ do_general_protection(struct pt_regs *re
- 
- 	if (static_cpu_has(X86_FEATURE_UMIP)) {
- 		if (user_mode(regs) && fixup_umip_exception(regs))
--			return;
-+			goto exit_trap;
- 	}
- 
- 	if (v8086_mode(regs)) {
- 		local_irq_enable();
- 		handle_vm86_fault((struct kernel_vm86_regs *) regs, error_code);
--		return;
-+		goto exit_trap;
- 	}
- 
- 	tsk = current;
- 	if (!user_mode(regs)) {
- 		if (fixup_exception(regs, X86_TRAP_GP, error_code, 0))
--			return;
-+			goto exit_trap;
- 
- 		tsk->thread.error_code = error_code;
- 		tsk->thread.trap_nr = X86_TRAP_GP;
-@@ -549,12 +552,12 @@ do_general_protection(struct pt_regs *re
- 		 */
- 		if (!preemptible() && kprobe_running() &&
- 		    kprobe_fault_handler(regs, X86_TRAP_GP))
--			return;
-+			goto exit_trap;
- 
- 		if (notify_die(DIE_GPF, desc, regs, error_code,
- 			       X86_TRAP_GP, SIGSEGV) != NOTIFY_STOP)
- 			die(desc, regs, error_code);
--		return;
-+		goto exit_trap;
- 	}
- 
- 	tsk->thread.error_code = error_code;
-@@ -563,6 +566,8 @@ do_general_protection(struct pt_regs *re
- 	show_signal(tsk, SIGSEGV, "", desc, regs, error_code);
- 
- 	force_sig(SIGSEGV);
-+exit_trap:
-+	cond_local_irq_disable(regs);
- }
- NOKPROBE_SYMBOL(do_general_protection);
- 
-@@ -783,9 +788,7 @@ dotraplinkage void do_debug(struct pt_re
- 	if (v8086_mode(regs)) {
- 		handle_vm86_trap((struct kernel_vm86_regs *) regs, error_code,
- 					X86_TRAP_DB);
--		cond_local_irq_disable(regs);
--		debug_stack_usage_dec();
--		goto exit;
-+		goto exit_irq;
- 	}
- 
- 	if (WARN_ON_ONCE((dr6 & DR_STEP) && !user_mode(regs))) {
-@@ -802,6 +805,8 @@ dotraplinkage void do_debug(struct pt_re
- 	si_code = get_si_code(tsk->thread.debugreg6);
- 	if (tsk->thread.debugreg6 & (DR_STEP | DR_TRAP_BITS) || user_icebp)
- 		send_sigtrap(regs, error_code, si_code);
-+
-+exit_irq:
- 	cond_local_irq_disable(regs);
- 	debug_stack_usage_dec();
- 
-@@ -827,7 +832,7 @@ static void math_error(struct pt_regs *r
- 
- 	if (!user_mode(regs)) {
- 		if (fixup_exception(regs, trapnr, error_code, 0))
--			return;
-+			goto exit_trap;
- 
- 		task->thread.error_code = error_code;
- 		task->thread.trap_nr = trapnr;
-@@ -835,7 +840,7 @@ static void math_error(struct pt_regs *r
- 		if (notify_die(DIE_TRAP, str, regs, error_code,
- 					trapnr, SIGFPE) != NOTIFY_STOP)
- 			die(str, regs, error_code);
--		return;
-+		goto exit_trap;
- 	}
- 
- 	/*
-@@ -849,10 +854,12 @@ static void math_error(struct pt_regs *r
- 	si_code = fpu__exception_code(fpu, trapnr);
- 	/* Retry when we get spurious exceptions: */
- 	if (!si_code)
--		return;
-+		goto exit_trap;
- 
- 	force_sig_fault(SIGFPE, si_code,
- 			(void __user *)uprobe_get_trap_addr(regs));
-+exit_trap:
-+	cond_local_irq_disable(regs);
- }
- 
- dotraplinkage void do_coprocessor_error(struct pt_regs *regs, long error_code)
-@@ -888,6 +895,8 @@ do_device_not_available(struct pt_regs *
- 
- 		info.regs = regs;
- 		math_emulate(&info);
-+
-+		cond_local_irq_disable(regs);
- 		return;
- 	}
- #endif
-@@ -918,6 +927,7 @@ dotraplinkage void do_iret_error(struct
- 		do_trap(X86_TRAP_IRET, SIGILL, "iret exception", regs, error_code,
- 			ILL_BADSTK, (void __user *)NULL);
- 	}
-+	local_irq_disable();
- }
- #endif
- 
---- a/arch/x86/mm/fault.c
-+++ b/arch/x86/mm/fault.c
-@@ -1500,10 +1500,13 @@ static noinline void
- 		return;
- 
- 	/* Was the fault on kernel-controlled part of the address space? */
--	if (unlikely(fault_in_kernel_space(address)))
-+	if (unlikely(fault_in_kernel_space(address))) {
- 		do_kern_addr_fault(regs, hw_error_code, address);
--	else
-+	} else {
- 		do_user_addr_fault(regs, hw_error_code, address);
-+		if (regs->flags & X86_EFLAGS_IF)
-+			local_irq_disable();
-+	}
- }
- NOKPROBE_SYMBOL(__do_page_fault);
- 
+> > The interesting bells and whistels result from sys_iopl(). If user space
+> > has been granted iopl(level = 3) it gains cli/sti priviledges. When the
+> > application has interrupts disabled in userspace:
+> >
+> >   - invocation of a syscall
+> >
+> >   - any exception (aside of NMI/MCE) which conditionally enables interrupts
+> >     depending on user_mode(regs) and therefor can be preempted and
+> >     schedule
+> >
+> > is just undefined behaviour and I personally consider it to be a plain bug.
+> >
+> > Just for the record: This results in running a resulting or even completely
+> > unrelated signal handler with interrupts disabled as well.
+> 
+> I am seriously tempted to say that the solution is to remove iopl(),
+> at least on 64-bit kernels.  Doing STI in user mode is BS :)
+
+STI would be halfways sane. CLI is the problem. And yes I agree it's BS :)
+
+> Otherwise we need to give it semantics, no?  I personally have no
+> actual problem with the fact that an NMI can cause scheduling to
+> happen.  Big fscking deal.
+
+Right, I don't care either. I do neither care that any exception/syscall
+which hits a user space CLI region might schedule. It's been that way
+forever.
+
+But giving this semantics is insanely hard at least if you want sensible,
+useful, consistent and understandable semantics. I know that's overrated.
+
+> > Whatever we decide it is, leaving it completely inconsistent is not a
+> > solution at all. The options are:
+> >
+> >   1)  Always do conditional tracing depending on the user_regs->eflags.IF
+> >       state.
+> 
+> I'm okay with always tracing like user mode means IRQs on or doing it
+> "correctly".  I consider the former to be simpler and therefore quite
+> possibly better.
+> 
+> >
+> >   2)  #1 + warn once when syscalls and exceptions (except NMI/MCE) happen
+> >       and user_regs->eflags.IF is cleared.
+> >
+> >   3a) #2 + enforce signal handling to run with interrupts enabled.
+> >
+> >   3b) #2 + set regs->eflags.IF. So the state is always correct from the
+> >       kernel POV. Of course that changes existing behaviour, but its
+> >       changing undefined and inconsistent behaviour.
+> >
+> >   4) Let iopl(level) return -EPERM if level == 3.
+> >
+> >      Yeah, I know it's not possible due to regressions (DPKD uses iopl(3)),
+> >      but TBH that'd be the sanest option of all.
+> >
+> >      Of course the infinite wisdom of hardware designers tied IN, INS, OUT,
+> >      OUTS and CLI/STI together on IOPL so we cannot even distangle them in
+> >      any way.
+> 
+> >
+> >      The only way out would be to actually use a full 8K sized I/O bitmap,
+> >      but that's a massive pain as it has to be copied on every context
+> >      switch.
+> 
+> Hmm.  This actually doesn't seem that bad.  We already have a TIF_
+> flag to optimize this.  So basically iopl() would effectively become
+> ioperm(everything on).
+
+Yes, and the insane user space would:
+
+     1) Pay the latency price for copying 8K bitmap on every context switch
+     	IN
+
+     2) Inflict latency on the next task due to requiring memset of 8K
+     	bitmap on every context switch OUT
+
+     3) #GP when issuing CLI/STI
+
+I personally have no problem with that. #1 and #3 are sane and as iopl()
+requires CAP_RAW_IO it's not available to Joe User, so the sysadmin is
+responsible for eventual issues resulting from #2.
+
+Though the no-regression hammer might pound on #3 as it breaks random
+engineering trainwrecks from hell.
+
+#1/#2 could be easily mitigated though.
+
+      struct tss_struct {
+      	struct x86_hw_tss       x86_tss;
+	unsigned long           io_bitmap[IO_BITMAP_LONGS + 1];
+      };
+
+and x86_tss has
+
+    u16	io_bitmap_base;
+
+which is either set to
+
+  INVALID_IO_BITMAP_OFFSET ( 0x8000 )
+
+or
+
+  IO_BITMAP_OFFSET
+    (offsetof(struct tss_struct, io_bitmap) - offsetof(struct tss_struct, x86_tss))
+
+So we could add
+
+	unsigned long           io_bitmap_all[IO_BITMAP_LONGS + 1];
+
+and just set the base to this one.
+
+But that involves also upping __KERNEL_TSS_LIMIT. Too tired to think about
+the implications of that right now.
+
+Thanks,
+
+	tglx
