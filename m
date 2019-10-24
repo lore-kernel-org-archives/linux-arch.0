@@ -1,36 +1,43 @@
-From: Mike Rapoport <rppt@kernel.org>
-Subject: Re: [PATCH 08/12] parisc: use pgtable-nopXd instead of 4level-fixup
-Date: Thu, 24 Oct 2019 12:50:54 +0300
-Message-ID: <20191024095053.GC12281@rapoport-lnx>
-References: <1571822941-29776-9-git-send-email-rppt@kernel.org>
- <20191024093451.15161-1-peda@axentia.se>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+From: Michal Simek <michal.simek@xilinx.com>
+Subject: [PATCH 0/2] Enabling MSI for Microblaze
+Date: Thu, 24 Oct 2019 12:13:10 +0200
+Message-ID: <cover.1571911976.git.michal.simek@xilinx.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20191024093451.15161-1-peda@axentia.se>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Peter Rosin <peda@axentia.se>
-Cc: "James.Bottomley@HansenPartnership.com" <James.Bottomley@HansenPartnership.com>, "Vineet.Gupta1@synopsys.com" <Vineet.Gupta1@synopsys.com>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "anton.ivanov@cambridgegreys.com" <anton.ivanov@cambridgegreys.com>, "arnd@arndb.de" <arnd@arndb.de>, "davem@davemloft.net" <davem@davemloft.net>, "deanbo422@gmail.com" <deanbo422@gmail.com>, "deller@gmx.de" <deller@gmx.de>, "geert@linux-m68k.org" <geert@linux-m68k.org>, "gerg@linux-m68k.org" <gerg@linux-m68k.org>, "green.hu@gmail.com" <green.hu@gmail.com>, "jdike@addtoit.com" <jdike@addtoit.com>, "kirill@shutemov.name" <kirill@shutemov.name>, "linux-alpha@vger.kernel.org" <linux-alpha@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>l
+To: linux-kernel@vger.kernel.org, monstr@monstr.eu, michal.simek@xilinx.com, git@xilinx.com, palmer@sifive.com, hch@infradead.org, longman@redhat.com, helgaas@kernel.org
+Cc: Paolo Bonzini <pbonzini@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Jackie Liu <liuyun01@kylinos.cn>, Wesley Terpstra <wesley@sifive.com>, Firoz Khan <firoz.khan@linaro.org>, sparclinux@vger.kernel.org, Ingo Molnar <mingo@kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, linux-riscv@lists.infradead.org, linux-arch@vger.kernel.org, James Hogan <jhogan@kernel.org>, Vineet Gupta <vgupta@synopsys.com>, Bjorn Helgaas <bhelgaas@google.com>, linux-pci@vger.kernel.org, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Ralf Baechle <ralf@linux-mips.org>, Paul Walmsley <paul.walmsley@sifive.com>, "Peter Zijlstra (Intel)" <peterz@infradead.org>, Will Deacon <will@kernel.org>, Benjamin Herrenschmidt <benh@kernel.crashing.>
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, Oct 24, 2019 at 09:35:12AM +0000, Peter Rosin wrote:
-> On 2019-10-23 12:28, Mike Rapoport <rppt@kernel.org> wrote:
-> > parisc has two or three levels of page tables and can use appropriate
-> > pgtable-nopXd and folding of the upper layers.
-> >
-> > Replace usage of include/asm-generic/4level-fixup.h and explicit
-> > definitions of __PAGETABLE_PxD_FOLDED in parisc with
-> > include/asm-generic/pgtable-nopmd.h for two-level configurations and with
-> > include/asm-generic/pgtable-nopmd.h for three-lelve configurations and
-> 
-> I think you mean .../pgtable-nopud.h in the latter case.
+Hi,
 
-Right, thanks!
- 
-> Cheers,
-> Peter
+these two patches come from discussion with Christoph, Bjorn, Palmer and
+Waiman. The first patch was suggestion by Christoph here
+https://lore.kernel.org/linux-riscv/20191008154604.GA7903@infradead.org/
+The second part was discussed
+https://lore.kernel.org/linux-pci/mhng-5d9bcb53-225e-441f-86cc-b335624b3e7c@palmer-si-x1e/
+and
+https://lore.kernel.org/linux-pci/20191017181937.7004-1-palmer@sifive.com/
+
+Thanks,
+Michal
+
+
+Michal Simek (1):
+  asm-generic: Make msi.h a mandatory include/asm header
+
+Palmer Dabbelt (1):
+  pci: Default to PCI_MSI_IRQ_DOMAIN
+
+ arch/arc/include/asm/Kbuild     | 1 -
+ arch/arm/include/asm/Kbuild     | 1 -
+ arch/arm64/include/asm/Kbuild   | 1 -
+ arch/mips/include/asm/Kbuild    | 1 -
+ arch/powerpc/include/asm/Kbuild | 1 -
+ arch/riscv/include/asm/Kbuild   | 1 -
+ arch/sparc/include/asm/Kbuild   | 1 -
+ drivers/pci/Kconfig             | 2 +-
+ include/asm-generic/Kbuild      | 1 +
+ 9 files changed, 2 insertions(+), 8 deletions(-)
 
 -- 
-Sincerely yours,
-Mike.
+2.17.1
