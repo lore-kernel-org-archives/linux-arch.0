@@ -1,99 +1,154 @@
-From: Greg Ungerer <gerg@linux-m68k.org>
-Subject: Re: [PATCH 04/12] m68k: nommu: use pgtable-nopud instead of
- 4level-fixup
-Date: Thu, 24 Oct 2019 16:23:04 +1000
-Message-ID: <24454c38-184a-b5fe-e534-aad3713c157e@linux-m68k.org>
-References: <1571822941-29776-1-git-send-email-rppt@kernel.org>
- <1571822941-29776-5-git-send-email-rppt@kernel.org>
- <de03a882-fb1a-455c-7c60-84ab0c4f9674@linux-m68k.org>
- <20191024053533.GA12281@rapoport-lnx>
+From: Aleksa Sarai <cyphar@cyphar.com>
+Subject: Re: [PATCH v14 2/6] namei: LOOKUP_IN_ROOT: chroot-like path
+ resolution
+Date: Thu, 24 Oct 2019 18:06:04 +1100
+Message-ID: <20191024070604.howuh6x6qrzd5jsm@yavin.dot.cyphar.com>
+References: <20191010054140.8483-1-cyphar@cyphar.com>
+ <20191010054140.8483-3-cyphar@cyphar.com>
+ <CAHk-=wh8L50f31vW8BwRUXhLiq3eoCQ3tg8ER4Yp2dzuU1w5rQ@mail.gmail.com>
+ <20191012040815.gnc43cfmo5mnv67u@yavin.dot.cyphar.com>
+ <20191012041541.milbmfbjpj5bcl5a@yavin.dot.cyphar.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Transfer-Encoding: 8bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20191024053533.GA12281@rapoport-lnx>
-Content-Language: en-US
-Sender: linux-kernel-owner@vger.kernel.org
-To: Mike Rapoport <rppt@kernel.org>
-Cc: linux-mm@kvack.org, Andrew Morton <akpm@linux-foundation.org>, Anton Ivanov <anton.ivanov@cambridgegreys.com>, Arnd Bergmann <arnd@arndb.de>, "David S. Miller" <davem@davemloft.net>, Geert Uytterhoeven <geert@linux-m68k.org>, Greentime Hu <green.hu@gmail.com>, Helge Deller <deller@gmx.de>, "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>, Jeff Dike <jdike@addtoit.com>, "Kirill A. Shutemov" <kirill@shutemov.name>, Linus Torvalds <torvalds@linux-foundation.org>, Mark Salter <msalter@redhat.com>, Matt Turner <mattst88@gmail.com>, Michal Simek <monstr@monstr.eu>, Richard Weinberger <richard@nod.at>, Russell King <linux@armlinux.org.uk>, Sam Creasey <sammy@sammy.net>, Vincent Chen <deanbo422@gmail.com>, Vineet Gupta <Vineet.Gupta1@sy>
+Content-Type: multipart/signed; micalg=pgp-sha256;
+	protocol="application/pgp-signature"; boundary="i56sxfhksaspu3tw"
+Return-path: <libc-alpha-return-106234-glibc-alpha=m.gmane.org@sourceware.org>
+List-Unsubscribe: <mailto:libc-alpha-unsubscribe-glibc-alpha=m.gmane.org@sourceware.org>
+List-Subscribe: <mailto:libc-alpha-subscribe@sourceware.org>
+List-Archive: <http://sourceware.org/ml/libc-alpha/>
+List-Post: <mailto:libc-alpha@sourceware.org>
+List-Help: <mailto:libc-alpha-help@sourceware.org>, <http://sourceware.org/ml/#faqs>
+Sender: libc-alpha-owner@sourceware.org
+Content-Disposition: inline
+In-Reply-To: <20191012041541.milbmfbjpj5bcl5a@yavin.dot.cyphar.com>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Al Viro <viro@zeniv.linux.org.uk>, Jeff Layton <jlayton@kernel.org>, "J. Bruce Fields" <bfields@fieldses.org>, Arnd Bergmann <arnd@arndb.de>, David Howells <dhowells@redhat.com>, Shuah Khan <shuah@kernel.org>, Shuah Khan <skhan@linuxfoundation.org>, Ingo Molnar <mingo@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Eric Biederman <ebiederm@xmission.com>, Andy Lutomirski <luto@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Alexei Starovoitov <ast@kernel.org>, Kees Cook <keescook@chromium.org>, Jann Horn <jannh@google.com>, Tycho Andersen <tycho@tycho.ws>, David Drysdale <drysdale@google.com>, Chanho Min <chanho.min@lge.com>, Oleg Nesterov <oleg@redhat.com>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Alexander Shishkin <alexander.shishkin@linux.intel.com>, Jiri Olsa <jolsa@redhat.com>, Namhyung Kim <namhyung@kernel.org>, Christian Brauner <christian@bra>
 List-Id: linux-arch.vger.kernel.org
 
-Hi Mike,
 
-On 24/10/19 3:35 pm, Mike Rapoport wrote:
-> Hi Greg,
-> 
-> On Thu, Oct 24, 2019 at 02:09:01PM +1000, Greg Ungerer wrote:
->> Hi Mike,
->>
->> On 23/10/19 7:28 pm, Mike Rapoport wrote:
->>> From: Mike Rapoport <rppt@linux.ibm.com>
->>>
->>> The generic nommu implementation of page table manipulation takes care of
->>> folding of the upper levels and does not require fixups.
->>>
->>> Simply replace of include/asm-generic/4level-fixup.h with
->>> include/asm-generic/pgtable-nopud.h.
->>>
->>> Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
->>> ---
->>>   arch/m68k/include/asm/pgtable_no.h | 2 +-
->>>   1 file changed, 1 insertion(+), 1 deletion(-)
->>>
->>> diff --git a/arch/m68k/include/asm/pgtable_no.h b/arch/m68k/include/asm/pgtable_no.h
->>> index c18165b..ccc4568 100644
->>> --- a/arch/m68k/include/asm/pgtable_no.h
->>> +++ b/arch/m68k/include/asm/pgtable_no.h
->>> @@ -2,7 +2,7 @@
->>>   #ifndef _M68KNOMMU_PGTABLE_H
->>>   #define _M68KNOMMU_PGTABLE_H
->>> -#include <asm-generic/4level-fixup.h>
->>> +#include <asm-generic/pgtable-nopud.h>
->>>   /*
->>>    * (C) Copyright 2000-2002, Greg Ungerer <gerg@snapgear.com>
->>
->> This fails to compile for me (targeting m5208evb_defconfig):
->>
->>    CC      init/main.o
->> In file included from ./arch/m68k/include/asm/pgtable_no.h:56:0,
->>                   from ./arch/m68k/include/asm/pgtable.h:3,
->>                   from ./include/linux/mm.h:99,
->>                   from ./include/linux/ring_buffer.h:5,
->>                   from ./include/linux/trace_events.h:6,
->>                   from ./include/trace/syscall.h:7,
->>                   from ./include/linux/syscalls.h:85,
->>                   from init/main.c:21:
->> ./include/asm-generic/pgtable.h:738:34: error: unknown type name ‘pmd_t’
->>   static inline int pmd_soft_dirty(pmd_t pmd)
->>                                    ^
-> 
-> ...
-> 
->> scripts/Makefile.build:265: recipe for target 'init/main.o' failed
->> make[1]: *** [init/main.o] Error 1
->> Makefile:1649: recipe for target 'init' failed
->> make: *** [init] Error 2
-> 
-> The hunk below fixes the build.
-> 
-> diff --git a/arch/m68k/include/asm/page.h b/arch/m68k/include/asm/page.h
-> index c00b67a..05e1e1e 100644
-> --- a/arch/m68k/include/asm/page.h
-> +++ b/arch/m68k/include/asm/page.h
-> @@ -21,7 +21,7 @@
->   /*
->    * These are used to make use of C type-checking..
->    */
-> -#if CONFIG_PGTABLE_LEVELS == 3
-> +#if !defined(CONFIG_MMU) || CONFIG_PGTABLE_LEVELS == 3
->   typedef struct { unsigned long pmd[16]; } pmd_t;
->   #define pmd_val(x)	((&x)->pmd[0])
->   #define __pmd(x)	((pmd_t) { { (x) }, })
+--i56sxfhksaspu3tw
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+Content-Transfer-Encoding: quoted-printable
 
-That looks better. Thanks.
-Tested and working on m68knommu. For the combined patches:
+On 2019-10-12, Aleksa Sarai <cyphar@cyphar.com> wrote:
+> On 2019-10-12, Aleksa Sarai <cyphar@cyphar.com> wrote:
+> > On 2019-10-10, Linus Torvalds <torvalds@linux-foundation.org> wrote:
+> > > On Wed, Oct 9, 2019 at 10:42 PM Aleksa Sarai <cyphar@cyphar.com> wrot=
+e:
+> > > >
+> > > > --- a/fs/namei.c
+> > > > +++ b/fs/namei.c
+> > > > @@ -2277,6 +2277,11 @@ static const char *path_init(struct nameidat=
+a *nd, unsigned flags)
+> > > >
+> > > >         nd->m_seq =3D read_seqbegin(&mount_lock);
+> > > >
+> > > > +       /* LOOKUP_IN_ROOT treats absolute paths as being relative-t=
+o-dirfd. */
+> > > > +       if (flags & LOOKUP_IN_ROOT)
+> > > > +               while (*s =3D=3D '/')
+> > > > +                       s++;
+> > > > +
+> > > >         /* Figure out the starting path and root (if needed). */
+> > > >         if (*s =3D=3D '/') {
+> > > >                 error =3D nd_jump_root(nd);
+> > >=20
+> > > Hmm. Wouldn't this make more sense all inside the if (*s =3D- '/') te=
+st?
+> > > That way if would be where we check for "should we start at the root",
+> > > which seems to make more sense conceptually.
+> >=20
+> > I don't really agree (though I do think that both options are pretty
+> > ugly). Doing it before the block makes it clear that absolute paths are
+> > just treated relative-to-dirfd -- doing it inside the block makes it
+> > look more like "/" is a special-case for nd_jump_root(). And while that
+>=20
+> Sorry, I meant "special-case for LOOKUP_IN_ROOT".
+>=20
+> > is somewhat true, this is just a side-effect of making the code more
+> > clean -- my earlier versions reworked the dirfd handling to always grab
+> > nd->root first if LOOKUP_IS_SCOPED. I switched to this method based on
+> > Al's review.
+> >=20
+> > In fairness, I do agree that the lonely while loop looks ugly.
+>=20
+> And with the old way I did it (where we grabbed nd->root first) the
+> semantics were slightly more clear -- stripping leading "/"s doesn't
+> really look as "clearly obvious" as grabbing nd->root beforehand and
+> treating "/"s normally. But the code was also needlessly more complex.
+>=20
+> > > That test for '/' currently has a "} else if (..)", but that's
+> > > pointless since it ends with a "return" anyway. So the "else" logic is
+> > > just noise.
+> >=20
+> > This depends on the fact that LOOKUP_BENEATH always triggers -EXDEV for
+> > nd_jump_root() -- if we ever add another "scoped lookup" flag then the
+> > logic will have to be further reworked.
+> >=20
+> > (It should be noted that the new version doesn't always end with a
+> > "return", but you could change it to act that way given the above
+> > assumption.)
+> >=20
+> > > And if you get rid of the unnecessary else, moving the LOOKUP_IN_ROOT
+> > > inside the if-statement works fine.
+> > >=20
+> > > So this could be something like
+> > >=20
+> > >     --- a/fs/namei.c
+> > >     +++ b/fs/namei.c
+> > >     @@ -2194,11 +2196,19 @@ static const char *path_init(struct
+> > > nameidata *nd, unsigned flags)
+> > >=20
+> > >         nd->m_seq =3D read_seqbegin(&mount_lock);
+> > >         if (*s =3D=3D '/') {
+> > >     -           set_root(nd);
+> > >     -           if (likely(!nd_jump_root(nd)))
+> > >     -                   return s;
+> > >     -           return ERR_PTR(-ECHILD);
+> > >     -   } else if (nd->dfd =3D=3D AT_FDCWD) {
+> > >     +           /* LOOKUP_IN_ROOT treats absolute paths as being
+> > > relative-to-dirfd. */
+> > >     +           if (!(flags & LOOKUP_IN_ROOT)) {
+> > >     +                   set_root(nd);
+> > >     +                   if (likely(!nd_jump_root(nd)))
+> > >     +                           return s;
+> > >     +                   return ERR_PTR(-ECHILD);
+> > >     +           }
+> > >     +
+> > >     +           /* Skip initial '/' for LOOKUP_IN_ROOT */
+> > >     +           do { s++; } while (*s =3D=3D '/');
+> > >     +   }
+> > >     +
+> > >     +   if (nd->dfd =3D=3D AT_FDCWD) {
+> > >                 if (flags & LOOKUP_RCU) {
+> > >                         struct fs_struct *fs =3D current->fs;
+> > >                         unsigned seq;
+> > >=20
+> > > instead. The patch ends up slightly bigger (due to the re-indentation)
+> > > but now it handles all the "start at root" in the same place. Doesn't
+> > > that make sense?
+> >=20
+> > It is correct (though I'd need to clean it up a bit to handle
+> > nd_jump_root() correctly), and if you really would like me to change it
+> > I will -- but I just don't agree that it's cleaner.
 
-Acked-by: Greg Ungerer <gerg@linux-m68k.org>
+Linus, did you still want me to make your proposed change?
 
-Regards
-Greg
+--=20
+Aleksa Sarai
+Senior Software Engineer (Containers)
+SUSE Linux GmbH
+<https://www.cyphar.com/>
+
+--i56sxfhksaspu3tw
+Content-Type: application/pgp-signature; name="signature.asc"
+
+-----BEGIN PGP SIGNATURE-----
+
+iHUEABYIAB0WIQSxZm6dtfE8gxLLfYqdlLljIbnQEgUCXbFNWQAKCRCdlLljIbnQ
+Ert5AP0aC5CrGCVvHOpelKBjUDOS5duq76VaVyiiUWcy3eeeFwD/aQEQPqkGREqr
+5Lo0df+nvE9H+89b7vJGbcaEZNxkTQc=
+=rtfF
+-----END PGP SIGNATURE-----
+
+--i56sxfhksaspu3tw--
