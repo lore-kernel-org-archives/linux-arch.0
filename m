@@ -1,67 +1,52 @@
 From: Andy Lutomirski <luto@kernel.org>
-Subject: Re: [patch V2 07/17] x86/entry/64: Remove redundant interrupt disable
-Date: Thu, 24 Oct 2019 09:18:26 -0700
-Message-ID: <CALCETrX+N_cR-HAmQyHxqUo0LPCk4GmqbzizXk-gq9qp00-RdA@mail.gmail.com>
-References: <20191023122705.198339581@linutronix.de> <20191023123118.296135499@linutronix.de>
- <20191023220618.qsmog2k5oaagj27v@treble> <alpine.DEB.2.21.1910240146200.1852@nanos.tec.linutronix.de>
+Subject: Re: [patch V2 08/17] x86/entry: Move syscall irq tracing to C code
+Date: Thu, 24 Oct 2019 09:24:13 -0700
+Message-ID: <CALCETrV79pw7-nisp4VdEkQ4=fr2nfJFOMCtyKmWZR6PG3=oWg@mail.gmail.com>
+References: <20191023122705.198339581@linutronix.de> <20191023123118.386844979@linutronix.de>
+ <CALCETrWLk9LKV4+_mrOKDc3GUvXbCjqA5R6cdpqq02xoRCBOHw@mail.gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <alpine.DEB.2.21.1910240146200.1852@nanos.tec.linutronix.de>
+In-Reply-To: <CALCETrWLk9LKV4+_mrOKDc3GUvXbCjqA5R6cdpqq02xoRCBOHw@mail.gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Thomas Gleixner <tglx@linutronix.de>
-Cc: Josh Poimboeuf <jpoimboe@redhat.com>, LKML <linux-kernel@vger.kernel.org>, X86 ML <x86@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Andy Lutomirski <luto@kernel.org>, Will Deacon <will@kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, kvm list <kvm@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Mike Rapoport <rppt@linux.ibm.com>, Miroslav Benes <mbenes@suse.cz>
+To: Andy Lutomirski <luto@kernel.org>
+Cc: Thomas Gleixner <tglx@linutronix.de>, LKML <linux-kernel@vger.kernel.org>, X86 ML <x86@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Will Deacon <will@kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, kvm list <kvm@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Mike Rapoport <rppt@linux.ibm.com>, Josh Poimboeuf <jpoimboe@redhat.com>, Miroslav Benes <mbenes@suse.cz>
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Oct 23, 2019 at 4:52 PM Thomas Gleixner <tglx@linutronix.de> wrote:
+On Wed, Oct 23, 2019 at 2:30 PM Andy Lutomirski <luto@kernel.org> wrote:
 >
-> On Wed, 23 Oct 2019, Josh Poimboeuf wrote:
->
-> > On Wed, Oct 23, 2019 at 02:27:12PM +0200, Thomas Gleixner wrote:
-> > > Now that the trap handlers return with interrupts disabled, the
-> > > unconditional disabling of interrupts in the low level entry code can be
-> > > removed along with the trace calls.
-> > >
-> > > Add debug checks where appropriate.
+> On Wed, Oct 23, 2019 at 5:31 AM Thomas Gleixner <tglx@linutronix.de> wrote:
 > >
-> > This seems a little scary.  Does anybody other than Andy actually run
-> > with CONFIG_DEBUG_ENTRY?
+> > Interrupt state tracing can be safely done in C code. The few stack
+> > operations in assembly do not need to be covered.
+> >
+> > Remove the now pointless indirection via .Lsyscall_32_done and jump to
+> > swapgs_restore_regs_and_return_to_usermode directly.
 >
-> I do.
->
-> > What happens if somebody accidentally leaves irqs enabled?  How do we
-> > know you found all the leaks?
->
-> For the DO_ERROR() ones that's trivial:
->
->  #define DO_ERROR(trapnr, signr, sicode, addr, str, name)                  \
->  dotraplinkage void do_##name(struct pt_regs *regs, long error_code)       \
->  {                                                                         \
->         do_error_trap(regs, error_code, str, trapnr, signr, sicode, addr); \
-> +       lockdep_assert_irqs_disabled();                                    \
->  }
->
->  DO_ERROR(X86_TRAP_DE,     SIGFPE,  FPE_INTDIV,   IP, "divide error",        divide_error)
->
-> Now for the rest we surely could do:
->
-> dotraplinkage void do_bounds(struct pt_regs *regs, long error_code)
-> {
->         __do_bounds(regs, error_code);
->         lockdep_assert_irqs_disabled();
-> }
->
-> and move the existing body into a static function so independent of any
-> (future) return path there the lockdep assert will be invoked.
->
+> This doesn't look right.
 
-If we do this, can we macro-ize it:
+Well, I feel a bit silly.  I read this:
 
-DEFINE_IDTENTRY_HANDLER(do_bounds)
-{
- ...
-}
+>
+> >  #define SYSCALL_EXIT_WORK_FLAGS                                \
+> > @@ -279,6 +282,9 @@ static void syscall_slow_exit_work(struc
 
-If you do this, please don't worry about the weird ones that take cr2
-as a third argument.  Once your series lands, I will send a follow-up
-to get rid of it.  It's 2/3 written already.
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+and I applied the diff in my head to the wrong function, and I didn't
+notice that it didn't really apply there.  Oddly, gitweb gets this
+right:
+
+https://git.kernel.org/pub/scm/linux/kernel/git/tip/tip.git/commit/?h=WIP.core/entry&id=e3158f93138ded84eb44fa97606197f6adcf9366
+
+Looking at the actual code:
+
+Acked-by: Andy Lutomirski <luto@kernel.org>
+
+with one minor caveat: you are making a subtle and mostly irrelevant
+semantic change: with your patch, user mode will be traced as IRQs on
+even if a nasty user has used iopl() to turn off interrupts.  This is
+probably a good thing, but I think you should mention it in the
+changelog.
+
+FWIW, the rest of the series looks pretty good, too.
