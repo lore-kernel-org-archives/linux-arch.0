@@ -1,25 +1,59 @@
-Return-Path: <sean.j.christopherson@intel.com>
-Date: Wed, 23 Oct 2019 07:16:04 -0700
-From: Sean Christopherson <sean.j.christopherson@intel.com>
-Subject: Re: [patch V2 04/17] x86/entry: Make DEBUG_ENTRY_ASSERT_IRQS_OFF
- available for 32bit
-Message-ID: <20191023141603.GD329@linux.intel.com>
-References: <20191023122705.198339581@linutronix.de>
- <20191023123117.976831752@linutronix.de>
+Return-Path: <tglx@linutronix.de>
+Date: Thu, 24 Oct 2019 22:59:56 +0200 (CEST)
+From: Thomas Gleixner <tglx@linutronix.de>
+Subject: Re: [patch V2 07/17] x86/entry/64: Remove redundant interrupt
+ disable
+In-Reply-To: <alpine.DEB.2.21.1910242032080.1783@nanos.tec.linutronix.de>
+Message-ID: <alpine.DEB.2.21.1910242257310.1783@nanos.tec.linutronix.de>
+References: <20191023122705.198339581@linutronix.de> <20191023123118.296135499@linutronix.de> <20191023220618.qsmog2k5oaagj27v@treble> <alpine.DEB.2.21.1910240146200.1852@nanos.tec.linutronix.de> <CALCETrX+N_cR-HAmQyHxqUo0LPCk4GmqbzizXk-gq9qp00-RdA@mail.gmail.com>
+ <alpine.DEB.2.21.1910242032080.1783@nanos.tec.linutronix.de>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20191023123117.976831752@linutronix.de>
-To: Thomas Gleixner <tglx@linutronix.de>
-Cc: LKML <linux-kernel@vger.kernel.org>, x86@kernel.org, Peter Zijlstra <peterz@infradead.org>, Andy Lutomirski <luto@kernel.org>, Will Deacon <will@kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, kvm@vger.kernel.org, linux-arch@vger.kernel.org, Mike Rapoport <rppt@linux.ibm.com>, Josh Poimboeuf <jpoimboe@redhat.com>, Miroslav Benes <mbenes@suse.cz>
+Content-Type: text/plain; charset=US-ASCII
+To: Andy Lutomirski <luto@kernel.org>
+Cc: Josh Poimboeuf <jpoimboe@redhat.com>, LKML <linux-kernel@vger.kernel.org>, X86 ML <x86@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Will Deacon <will@kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, kvm list <kvm@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Mike Rapoport <rppt@linux.ibm.com>, Miroslav Benes <mbenes@suse.cz>
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20191023141604.A6ATMEgsm-_CapbWSyf8JT6ROmKYzE7VXUfrcZjfUWY@z>
+Message-ID: <20191024205956.j63TM79LDqbDT9wHURoP7SXGOGq8Ui5r0j2aWQVwj3k@z>
 
-On Wed, Oct 23, 2019 at 02:27:09PM +0200, Thomas Gleixner wrote:
-> Move the interrupt state verification debug macro to common code and fixup
-> the irqflags and paravirt components so it can be used in 32bit code later.
+On Thu, 24 Oct 2019, Thomas Gleixner wrote:
+> Whatever we decide it is, leaving it completely inconsistent is not a
+> solution at all. The options are:
+
+Actually there is also:
+
+    0) Always do unconditional trace_irqs_on().
+
+       But that does not allow to actually trace the real return flags
+       state which might be useful to diagnose crap which results from user
+       space CLI.
+ 
+>   1)  Always do conditional tracing depending on the user_regs->eflags.IF
+>       state.
 > 
-> Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
-> ---
-
-Reviewed-by: Sean Christopherson <sean.j.christopherson@intel.com>
+>   2)  #1 + warn once when syscalls and exceptions (except NMI/MCE) happen
+>       and user_regs->eflags.IF is cleared.
+> 
+>   3a) #2 + enforce signal handling to run with interrupts enabled.
+> 
+>   3b) #2 + set regs->eflags.IF. So the state is always correct from the
+>       kernel POV. Of course that changes existing behaviour, but its
+>       changing undefined and inconsistent behaviour.
+>   
+>   4) Let iopl(level) return -EPERM if level == 3.
+> 
+>      Yeah, I know it's not possible due to regressions (DPKD uses iopl(3)),
+>      but TBH that'd be the sanest option of all.
+> 
+>      Of course the infinite wisdom of hardware designers tied IN, INS, OUT,
+>      OUTS and CLI/STI together on IOPL so we cannot even distangle them in
+>      any way.
+> 
+>      The only way out would be to actually use a full 8K sized I/O bitmap,
+>      but that's a massive pain as it has to be copied on every context
+>      switch. 
+> 
+> Really pretty options to chose from ...
+> 
+> Thanks,
+> 
+> 	tglx
+> 
