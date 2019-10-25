@@ -1,56 +1,55 @@
-From: Michal Simek <monstr@monstr.eu>
-Subject: Re: [PATCH 06/12] microblaze: use pgtable-nopmd instead of
- 4level-fixup
-Date: Fri, 25 Oct 2019 10:24:30 +0200
-Message-ID: <aa7df5a1-5022-bc82-8816-74c956e2fd90@monstr.eu>
-References: <1571822941-29776-1-git-send-email-rppt@kernel.org>
- <1571822941-29776-7-git-send-email-rppt@kernel.org>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Subject: Re: [PATCH v7 00/25] Unify vDSOs across more architectures
+Date: Fri, 25 Oct 2019 13:42:14 +0200
+Message-ID: <CAMuHMdX_KzP9n=H4vL4J9ijT=2GYy9X1BBpAdomkchoxnCcjfA@mail.gmail.com>
+References: <20190621095252.32307-1-vincenzo.frascino@arm.com>
+ <alpine.DEB.2.21.1906240142000.32342@nanos.tec.linutronix.de>
+ <alpine.DEB.2.21.1906241613280.32342@nanos.tec.linutronix.de>
+ <20190624142346.pxljv3m4npatdiyk@shell.armlinux.org.uk> <20190624144924.GE29120@arrakis.emea.arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1571822941-29776-7-git-send-email-rppt@kernel.org>
-Content-Language: en-US
+In-Reply-To: <20190624144924.GE29120@arrakis.emea.arm.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Mike Rapoport <rppt@kernel.org>, linux-mm@kvack.org
-Cc: Andrew Morton <akpm@linux-foundation.org>, Anton Ivanov <anton.ivanov@cambridgegreys.com>, Arnd Bergmann <arnd@arndb.de>, "David S. Miller" <davem@davemloft.net>, Geert Uytterhoeven <geert@linux-m68k.org>, Greentime Hu <green.hu@gmail.com>, Greg Ungerer <gerg@linux-m68k.org>, Helge Deller <deller@gmx.de>, "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>, Jeff Dike <jdike@addtoit.com>, "Kirill A. Shutemov" <kirill@shutemov.name>, Linus Torvalds <torvalds@linux-foundation.org>, Mark Salter <msalter@redhat.com>, Matt Turner <mattst88@gmail.com>, Richard Weinberger <richard@nod.at>, Russell King <linux@armlinux.org.uk>, Sam Creasey <sammy@sammy.net>, Vincent Chen <deanbo422@gmail.com>, Vineet Gupta <Vineet.Gupta1@synopsys.com>
+To: Catalin Marinas <catalin.marinas@arm.com>
+Cc: Russell King - ARM Linux admin <linux@armlinux.org.uk>, Thomas Gleixner <tglx@linutronix.de>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Andy Lutomirski <luto@kernel.org>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Will Deacon <will.deacon@arm.com>, linux-mips@vger.kernel.org, "open list:KERNEL SELFTEST FRAMEWORK" <linux-kselftest@vger.kernel.org>, Shuah Khan <shuah@kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Dmitry Safonov <dima@arista.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, Sasha Levin <sashal@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Andre Przywara <andre.przywara@arm.com>, Dmitry Safonov <0x7f454c46@gmail.com>, Michael Kelley <mikelley@microsoft.com>, Peter Collingbourne <pcc@google.com>, LAK <linux-arm-kernel@lists.infradead>
 List-Id: linux-arch.vger.kernel.org
 
-Hi Mike,
+Hi Catalin,
 
-On 23. 10. 19 11:28, Mike Rapoport wrote:
-> From: Mike Rapoport <rppt@linux.ibm.com>
-> 
-> microblaze has only two-level page tables and can use pgtable-nopmd and
-> folding of the upper layers.
-> 
-> Replace usage of include/asm-generic/4level-fixup.h and explicit definition
-> of __PAGETABLE_PMD_FOLDED in microblaze with
-> include/asm-generic/pgtable-nopmd.h and adjust page table manipulation
-> macros and functions accordingly.
-> 
-> Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
-> ---
->  arch/microblaze/include/asm/page.h    |  3 ---
->  arch/microblaze/include/asm/pgalloc.h | 16 ----------------
->  arch/microblaze/include/asm/pgtable.h | 32 ++------------------------------
->  arch/microblaze/kernel/signal.c       | 10 +++++++---
->  arch/microblaze/mm/init.c             |  7 +++++--
->  arch/microblaze/mm/pgtable.c          | 13 +++++++++++--
->  6 files changed, 25 insertions(+), 56 deletions(-)
+On Mon, Jun 24, 2019 at 4:51 PM Catalin Marinas <catalin.marinas@arm.com> wrote:
+> On Mon, Jun 24, 2019 at 03:23:46PM +0100, Russell King wrote:
+> > On Mon, Jun 24, 2019 at 04:18:28PM +0200, Thomas Gleixner wrote:
+> > > I talked to Russell King and he suggested to file the ARM parts into his
+> > > patch system and he'll pick them up after 5.3-rc1.
+> > >
+> > >    https://www.arm.linux.org.uk/developer/patches/
+> > >
+> > > I paged out how to deal with it, but you'll surely manage :)
+> >
+> > Easy way: ask git to add the "KernelVersion" tag as a header to the
+> > email using --add-header to e.g. git format-patch, and just mail them
+> > to patches@armlinux.org.uk
+>
+> Although I haven't send patches to Russell in a while, I still have a
+> git alias in my .gitconfig (only works with one patch at a time IIRC,
+> sending multiple patches may arrive in a different order):
+>
+> [alias]
+>         send-rmk-email = !git send-email --add-header=\"KernelVersion: $(git describe --abbrev=0)\" --no-thread --suppress-cc=all --to="patches@arm.linux.org.uk"
 
-I have take a look at this and when this is applied on the top of
-5.4-rc2 there is not a problem.
-But as was reported by 0-day there is compilation issue on the top of
-mmotm/master tree and I am able to replicate it.
-It means there are other changes in Andrew's tree which are causing it.
+Doesn't seem to work: no header was added, and my patch was rejected.
+There does seem to be a "--add-header" option for git-format-patch, but
+it adds the header at the top, just below the "Subject:"-header, instead
+of below the "---", so that needs manual editing, too.
 
-Thanks,
-Michal
+Gr{oetje,eeting}s,
+
+                        Geert
 
 -- 
-Michal Simek, Ing. (M.Eng), OpenPGP -> KeyID: FE3D1F91
-w: www.monstr.eu p: +42-0-721842854
-Maintainer of Linux kernel - Xilinx Microblaze
-Maintainer of Linux kernel - Xilinx Zynq ARM and ZynqMP ARM64 SoCs
-U-Boot custodian - Xilinx Microblaze/Zynq/ZynqMP/Versal SoCs
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
