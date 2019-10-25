@@ -1,132 +1,73 @@
-Return-Path: <tglx@linutronix.de>
-Message-ID: <20191023123118.778776715@linutronix.de>
-Date: Wed, 23 Oct 2019 14:27:17 +0200
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: [patch V2 12/17] entry: Provide generic syscall exit function
-References: <20191023122705.198339581@linutronix.de>
+Return-Path: <rppt@kernel.org>
+Date: Fri, 25 Oct 2019 23:33:19 +0300
+From: Mike Rapoport <rppt@kernel.org>
+Subject: Re: [PATCH 06/12] microblaze: use pgtable-nopmd instead of
+ 4level-fixup
+Message-ID: <20191025203318.GA8413@rapoport-lnx>
+References: <1571822941-29776-1-git-send-email-rppt@kernel.org>
+ <1571822941-29776-7-git-send-email-rppt@kernel.org>
+ <aa7df5a1-5022-bc82-8816-74c956e2fd90@monstr.eu>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-To: LKML <linux-kernel@vger.kernel.org>
-Cc: x86@kernel.org, Peter Zijlstra <peterz@infradead.org>, Andy Lutomirski <luto@kernel.org>, Will Deacon <will@kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, kvm@vger.kernel.org, linux-arch@vger.kernel.org, Mike Rapoport <rppt@linux.ibm.com>, Josh Poimboeuf <jpoimboe@redhat.com>, Miroslav Benes <mbenes@suse.cz>
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <aa7df5a1-5022-bc82-8816-74c956e2fd90@monstr.eu>
+To: Michal Simek <monstr@monstr.eu>
+Cc: linux-mm@kvack.org, Andrew Morton <akpm@linux-foundation.org>, Anton Ivanov <anton.ivanov@cambridgegreys.com>, Arnd Bergmann <arnd@arndb.de>, "David S. Miller" <davem@davemloft.net>, Geert Uytterhoeven <geert@linux-m68k.org>, Greentime Hu <green.hu@gmail.com>, Greg Ungerer <gerg@linux-m68k.org>, Helge Deller <deller@gmx.de>, "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>, Jeff Dike <jdike@addtoit.com>, "Kirill A. Shutemov" <kirill@shutemov.name>, Linus Torvalds <torvalds@linux-foundation.org>, Mark Salter <msalter@redhat.com>, Matt Turner <mattst88@gmail.com>, Richard Weinberger <richard@nod.at>, Russell King <linux@armlinux.org.uk>, Sam Creasey <sammy@sammy.net>, Vincent Chen <deanbo422@gmail.com>, Vineet Gupta <Vineet.Gupta1@synopsys.com>, linux-alpha@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, linux-kernel@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-parisc@vger.kernel.org, linux-um@lists.infradead.org, sparclinux@vger.kernel.org, Mike Rapoport <rppt@linux.ibm.com>
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20191023122717.a-FYekrZq22AzU5JCeJtEJRUC7dl9HgptrN3YoXIKG0@z>
+Message-ID: <20191025203319.dmozVRHAKUpu2mSIHJ7eiIyo3hDIiN_S_IlxZuVlcQ8@z>
 
-From: Thomas Gleixner <tglx@linutronix.de>
+On Fri, Oct 25, 2019 at 10:24:30AM +0200, Michal Simek wrote:
+> Hi Mike,
+> 
+> On 23. 10. 19 11:28, Mike Rapoport wrote:
+> > From: Mike Rapoport <rppt@linux.ibm.com>
+> > 
+> > microblaze has only two-level page tables and can use pgtable-nopmd and
+> > folding of the upper layers.
+> > 
+> > Replace usage of include/asm-generic/4level-fixup.h and explicit definition
+> > of __PAGETABLE_PMD_FOLDED in microblaze with
+> > include/asm-generic/pgtable-nopmd.h and adjust page table manipulation
+> > macros and functions accordingly.
+> > 
+> > Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
+> > ---
+> >  arch/microblaze/include/asm/page.h    |  3 ---
+> >  arch/microblaze/include/asm/pgalloc.h | 16 ----------------
+> >  arch/microblaze/include/asm/pgtable.h | 32 ++------------------------------
+> >  arch/microblaze/kernel/signal.c       | 10 +++++++---
+> >  arch/microblaze/mm/init.c             |  7 +++++--
+> >  arch/microblaze/mm/pgtable.c          | 13 +++++++++++--
+> >  6 files changed, 25 insertions(+), 56 deletions(-)
+> 
+> I have take a look at this and when this is applied on the top of
+> 5.4-rc2 there is not a problem.
+> But as was reported by 0-day there is compilation issue on the top of
+> mmotm/master tree and I am able to replicate it.
+> It means there are other changes in Andrew's tree which are causing it.
 
-Like syscall entry all architectures have similar and pointlessly different
-code to handle pending work before returning from a syscall to user space.
+0day is still using an old tree for mmotm:
 
-Provide a generic version.
+> url:    https://github.com/0day-ci/linux/commits/Mike-Rapoport/mm-remove-__ARCH_HAS_4LEVEL_HACK/20191025-063009
+> base:   git://git.cmpxchg.org/linux-mmotm.git master
+> config: microblaze-mmu_defconfig (attached as .config)
 
-Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
----
- include/linux/entry-common.h |   31 ++++++++++++++++++++++++
- kernel/entry/common.c        |   55 +++++++++++++++++++++++++++++++++++++++++++
- 2 files changed, 86 insertions(+)
+A while ago Johannes moved the mmotm to github and the last commit in
+git.cmpxchg.org/linux-mmotm.git was in the end of August.
 
---- a/include/linux/entry-common.h
-+++ b/include/linux/entry-common.h
-@@ -46,6 +46,17 @@
- 	 _TIF_SYSCALL_TRACEPOINT | _TIF_SYSCALL_EMU |			\
- 	 ARCH_SYSCALL_ENTER_WORK)
+[1] https://lore.kernel.org/linux-mm/20190916134327.GC29985@cmpxchg.org
  
-+/*
-+ * TIF flags handled in syscall_exit_to_usermode()
-+ */
-+#ifndef ARCH_SYSCALL_EXIT_WORK
-+# define ARCH_SYSCALL_EXIT_WORK		(0)
-+#endif
-+
-+#define SYSCALL_EXIT_WORK						\
-+	(_TIF_SYSCALL_TRACE | _TIF_SYSCALL_AUDIT |			\
-+	 _TIF_SYSCALL_TRACEPOINT | ARCH_SYSCALL_EXIT_WORK)
-+
- /**
-  * arch_syscall_enter_tracehook - Wrapper around tracehook_report_syscall_entry()
-  * @regs:	Pointer to currents pt_regs
-@@ -129,4 +140,24 @@ static inline long syscall_enter_from_us
- 	return syscall;
- }
- 
-+/**
-+ * arch_syscall_exit_tracehook - Wrapper around tracehook_report_syscall_exit()
-+ *
-+ * Defaults to tracehook_report_syscall_exit(). Can be replaced by
-+ * architecture specific code.
-+ *
-+ * Invoked from syscall_exit_to_usermode()
-+ */
-+static inline void arch_syscall_exit_tracehook(struct pt_regs *regs, bool step);
-+
-+#ifndef arch_syscall_exit_tracehook
-+static inline void arch_syscall_exit_tracehook(struct pt_regs *regs, bool step)
-+{
-+	tracehook_report_syscall_exit(regs, step);
-+}
-+#endif
-+
-+/* Common syscall exit function */
-+void syscall_exit_to_usermode(struct pt_regs *regs, long syscall, long retval);
-+
- #endif
---- a/kernel/entry/common.c
-+++ b/kernel/entry/common.c
-@@ -31,3 +31,58 @@ long core_syscall_enter_from_usermode(st
- 
- 	return ret ? : syscall;
- }
-+
-+#ifndef _TIF_SINGLESTEP
-+static inline bool report_single_step(unsigned long ti_work)
-+{
-+	return false;
-+}
-+#else
-+/*
-+ * If TIF_SYSCALL_EMU is set, then the only reason to report is when
-+ * TIF_SINGLESTEP is set (i.e. PTRACE_SYSEMU_SINGLESTEP).  This syscall
-+ * instruction has been already reported in syscall_enter_from_usermode().
-+ */
-+#define SYSEMU_STEP	(_TIF_SINGLESTEP | _TIF_SYSCALL_EMU)
-+
-+static inline bool report_single_step(unsigned long ti_work)
-+{
-+	return (ti_work & SYSEMU_STEP) == _TIF_SINGLESTEP;
-+}
-+#endif
-+
-+static void syscall_exit_work(struct pt_regs *regs, long retval,
-+			      unsigned long ti_work)
-+{
-+	bool step;
-+
-+	audit_syscall_exit(regs);
-+
-+	if (ti_work & _TIF_SYSCALL_TRACEPOINT)
-+		trace_sys_exit(regs, retval);
-+
-+	step = report_single_step(ti_work);
-+	if (step || ti_work & _TIF_SYSCALL_TRACE)
-+		arch_syscall_exit_tracehook(regs, step);
-+}
-+
-+void syscall_exit_to_usermode(struct pt_regs *regs, long syscall, long retval)
-+{
-+	unsigned long ti_work;
-+
-+	CT_WARN_ON(ct_state() != CONTEXT_KERNEL);
-+
-+	if (IS_ENABLED(CONFIG_PROVE_LOCKING) &&
-+	    WARN(irqs_disabled(), "syscall %ld left IRQs disabled", syscall))
-+		local_irq_enable();
-+
-+	rseq_syscall(regs);
-+
-+	/*
-+	 * Handle work which needs to run exactly once per syscall exit
-+	 * with interrupts enabled.
-+	 */
-+	ti_work = READ_ONCE(current_thread_info()->flags);
-+	if (unlikely(ti_work & SYSCALL_EXIT_WORK))
-+		syscall_exit_work(regs, retval, ti_work);
-+}
+> Thanks,
+> Michal
+> 
+> -- 
+> Michal Simek, Ing. (M.Eng), OpenPGP -> KeyID: FE3D1F91
+> w: www.monstr.eu p: +42-0-721842854
+> Maintainer of Linux kernel - Xilinx Microblaze
+> Maintainer of Linux kernel - Xilinx Zynq ARM and ZynqMP ARM64 SoCs
+> U-Boot custodian - Xilinx Microblaze/Zynq/ZynqMP/Versal SoCs
+> 
+
+-- 
+Sincerely yours,
+Mike.
