@@ -1,46 +1,56 @@
-From: Michal Simek <michal.simek@xilinx.com>
-Subject: Re: [PATCH 1/2] asm-generic: Make msi.h a mandatory include/asm header
-Date: Fri, 25 Oct 2019 08:12:14 +0200
-Message-ID: <33e46e4b-cfe4-db2f-02e1-0164327bcecc@xilinx.com>
-References: <cover.1571911976.git.michal.simek@xilinx.com>
- <a021f232968cfffe3f2d838da47214c6bbdeeedb.1571911976.git.michal.simek@xilinx.com>
- <CAK7LNAQvZr48zXkyhii6E-wckYfakhh9gVD=DoBOt++TtPFEaw@mail.gmail.com>
+From: Michal Simek <monstr@monstr.eu>
+Subject: Re: [PATCH 06/12] microblaze: use pgtable-nopmd instead of
+ 4level-fixup
+Date: Fri, 25 Oct 2019 10:24:30 +0200
+Message-ID: <aa7df5a1-5022-bc82-8816-74c956e2fd90@monstr.eu>
+References: <1571822941-29776-1-git-send-email-rppt@kernel.org>
+ <1571822941-29776-7-git-send-email-rppt@kernel.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
+Content-Type: text/plain; charset=utf-8
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-riscv-bounces+glpr-linux-riscv=m.gmane.org@lists.infradead.org>
-In-Reply-To: <CAK7LNAQvZr48zXkyhii6E-wckYfakhh9gVD=DoBOt++TtPFEaw@mail.gmail.com>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1571822941-29776-7-git-send-email-rppt@kernel.org>
 Content-Language: en-US
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-riscv>,
- <mailto:linux-riscv-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-riscv/>
-List-Post: <mailto:linux-riscv@lists.infradead.org>
-List-Help: <mailto:linux-riscv-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-riscv>,
- <mailto:linux-riscv-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-riscv" <linux-riscv-bounces@lists.infradead.org>
-Errors-To: linux-riscv-bounces+glpr-linux-riscv=m.gmane.org@lists.infradead.org
-To: Masahiro Yamada <yamada.masahiro@socionext.com>, Michal Simek <michal.simek@xilinx.com>
-Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Eric Biggers <ebiggers@google.com>, "Peter Zijlstra (Intel)" <peterz@infradead.org>, Catalin Marinas <catalin.marinas@arm.com>, Palmer Dabbelt <palmer@sifive.com>, linux-mips@vger.kernel.org, Paul Mackerras <paulus@samba.org>, longman@redhat.com, sparclinux <sparclinux@vger.kernel.org>, linux-riscv@lists.infradead.org, Will Deacon <will@kernel.org>, Ingo Molnar <mingo@kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Herbert Xu <herbert@gondor.apana.org.au>, Michael Ellerman <mpe@ellerman.id.au>, Jackie Liu <liuyun01@kylinos.cn>, Russell King <linux@armlinux.org.uk>, Christoph Hellwig <hch@infradead.org>, Firoz Khan <firoz.khan@linaro.org>, Wesley Terpstra <wesley@sifive.com>, James Hogan <jhogan@kernel.org>, Bjorn Helgaas <helgaas@kernel.org>, arcml <linux-snps-arc@lists.infradead.org>, Albert Ou <aou@eecs.berkele>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Mike Rapoport <rppt@kernel.org>, linux-mm@kvack.org
+Cc: Andrew Morton <akpm@linux-foundation.org>, Anton Ivanov <anton.ivanov@cambridgegreys.com>, Arnd Bergmann <arnd@arndb.de>, "David S. Miller" <davem@davemloft.net>, Geert Uytterhoeven <geert@linux-m68k.org>, Greentime Hu <green.hu@gmail.com>, Greg Ungerer <gerg@linux-m68k.org>, Helge Deller <deller@gmx.de>, "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>, Jeff Dike <jdike@addtoit.com>, "Kirill A. Shutemov" <kirill@shutemov.name>, Linus Torvalds <torvalds@linux-foundation.org>, Mark Salter <msalter@redhat.com>, Matt Turner <mattst88@gmail.com>, Richard Weinberger <richard@nod.at>, Russell King <linux@armlinux.org.uk>, Sam Creasey <sammy@sammy.net>, Vincent Chen <deanbo422@gmail.com>, Vineet Gupta <Vineet.Gupta1@synopsys.com>
 List-Id: linux-arch.vger.kernel.org
 
-On 24. 10. 19 16:44, Masahiro Yamada wrote:
-> On Thu, Oct 24, 2019 at 7:13 PM Michal Simek <michal.simek@xilinx.com> wrote:
->>
->> msi.h is generic for all architectures expect of x86 which has own version.
-> 
-> Maybe a typo?  "except"
+Hi Mike,
 
-unfortunately yes.
+On 23. 10. 19 11:28, Mike Rapoport wrote:
+> From: Mike Rapoport <rppt@linux.ibm.com>
+> 
+> microblaze has only two-level page tables and can use pgtable-nopmd and
+> folding of the upper layers.
+> 
+> Replace usage of include/asm-generic/4level-fixup.h and explicit definition
+> of __PAGETABLE_PMD_FOLDED in microblaze with
+> include/asm-generic/pgtable-nopmd.h and adjust page table manipulation
+> macros and functions accordingly.
+> 
+> Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
+> ---
+>  arch/microblaze/include/asm/page.h    |  3 ---
+>  arch/microblaze/include/asm/pgalloc.h | 16 ----------------
+>  arch/microblaze/include/asm/pgtable.h | 32 ++------------------------------
+>  arch/microblaze/kernel/signal.c       | 10 +++++++---
+>  arch/microblaze/mm/init.c             |  7 +++++--
+>  arch/microblaze/mm/pgtable.c          | 13 +++++++++++--
+>  6 files changed, 25 insertions(+), 56 deletions(-)
 
-> 
-> 
-> Anyway, the code looks good to me.
-> 
-> Reviewed-by: Masahiro Yamada <yamada.masahiro@socionext.com>
-
-I have sent v2.
-Who should be taking these patches?
+I have take a look at this and when this is applied on the top of
+5.4-rc2 there is not a problem.
+But as was reported by 0-day there is compilation issue on the top of
+mmotm/master tree and I am able to replicate it.
+It means there are other changes in Andrew's tree which are causing it.
 
 Thanks,
 Michal
+
+-- 
+Michal Simek, Ing. (M.Eng), OpenPGP -> KeyID: FE3D1F91
+w: www.monstr.eu p: +42-0-721842854
+Maintainer of Linux kernel - Xilinx Microblaze
+Maintainer of Linux kernel - Xilinx Zynq ARM and ZynqMP ARM64 SoCs
+U-Boot custodian - Xilinx Microblaze/Zynq/ZynqMP/Versal SoCs
