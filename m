@@ -1,33 +1,56 @@
-Return-Path: <tglx@linutronix.de>
-Message-ID: <20191023123117.686514045@linutronix.de>
-Date: Wed, 23 Oct 2019 14:27:06 +0200
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: [patch V2 01/17] x86/entry/32: Remove unused resume_userspace label
-References: <20191023122705.198339581@linutronix.de>
+Return-Path: <monstr@monstr.eu>
+Subject: Re: [PATCH 06/12] microblaze: use pgtable-nopmd instead of
+ 4level-fixup
+References: <1571822941-29776-1-git-send-email-rppt@kernel.org>
+ <1571822941-29776-7-git-send-email-rppt@kernel.org>
+From: Michal Simek <monstr@monstr.eu>
+Message-ID: <aa7df5a1-5022-bc82-8816-74c956e2fd90@monstr.eu>
+Date: Fri, 25 Oct 2019 10:24:30 +0200
 MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-To: LKML <linux-kernel@vger.kernel.org>
-Cc: x86@kernel.org, Peter Zijlstra <peterz@infradead.org>, Andy Lutomirski <luto@kernel.org>, Will Deacon <will@kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, kvm@vger.kernel.org, linux-arch@vger.kernel.org, Mike Rapoport <rppt@linux.ibm.com>, Josh Poimboeuf <jpoimboe@redhat.com>, Miroslav Benes <mbenes@suse.cz>
+In-Reply-To: <1571822941-29776-7-git-send-email-rppt@kernel.org>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
+To: Mike Rapoport <rppt@kernel.org>, linux-mm@kvack.org
+Cc: Andrew Morton <akpm@linux-foundation.org>, Anton Ivanov <anton.ivanov@cambridgegreys.com>, Arnd Bergmann <arnd@arndb.de>, "David S. Miller" <davem@davemloft.net>, Geert Uytterhoeven <geert@linux-m68k.org>, Greentime Hu <green.hu@gmail.com>, Greg Ungerer <gerg@linux-m68k.org>, Helge Deller <deller@gmx.de>, "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>, Jeff Dike <jdike@addtoit.com>, "Kirill A. Shutemov" <kirill@shutemov.name>, Linus Torvalds <torvalds@linux-foundation.org>, Mark Salter <msalter@redhat.com>, Matt Turner <mattst88@gmail.com>, Richard Weinberger <richard@nod.at>, Russell King <linux@armlinux.org.uk>, Sam Creasey <sammy@sammy.net>, Vincent Chen <deanbo422@gmail.com>, Vineet Gupta <Vineet.Gupta1@synopsys.com>, linux-alpha@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, linux-kernel@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-parisc@vger.kernel.org, linux-um@lists.infradead.org, sparclinux@vger.kernel.org, Mike Rapoport <rppt@linux.ibm.com>
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20191023122706.9oUF4yVABYh83ysDVKjGe_K--2pC0wwsREOw_r0JocQ@z>
+Message-ID: <20191025082430.CmEBicinAJW_KnkiLelBYnz0w4te1219P2znoTJu1p4@z>
 
-The C reimplementation of SYSENTER left that unused ENTRY() label
-around. Remove it.
+Hi Mike,
 
-Fixes: 5f310f739b4c ("x86/entry/32: Re-implement SYSENTER using the new C path")
-Originally-by: Peter Zijlstra <peterz@infradead.org>
-Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
----
- arch/x86/entry/entry_32.S |    1 -
- 1 file changed, 1 deletion(-)
+On 23. 10. 19 11:28, Mike Rapoport wrote:
+> From: Mike Rapoport <rppt@linux.ibm.com>
+> 
+> microblaze has only two-level page tables and can use pgtable-nopmd and
+> folding of the upper layers.
+> 
+> Replace usage of include/asm-generic/4level-fixup.h and explicit definition
+> of __PAGETABLE_PMD_FOLDED in microblaze with
+> include/asm-generic/pgtable-nopmd.h and adjust page table manipulation
+> macros and functions accordingly.
+> 
+> Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
+> ---
+>  arch/microblaze/include/asm/page.h    |  3 ---
+>  arch/microblaze/include/asm/pgalloc.h | 16 ----------------
+>  arch/microblaze/include/asm/pgtable.h | 32 ++------------------------------
+>  arch/microblaze/kernel/signal.c       | 10 +++++++---
+>  arch/microblaze/mm/init.c             |  7 +++++--
+>  arch/microblaze/mm/pgtable.c          | 13 +++++++++++--
+>  6 files changed, 25 insertions(+), 56 deletions(-)
 
---- a/arch/x86/entry/entry_32.S
-+++ b/arch/x86/entry/entry_32.S
-@@ -825,7 +825,6 @@ END(ret_from_fork)
- 	cmpl	$USER_RPL, %eax
- 	jb	restore_all_kernel		# not returning to v8086 or userspace
- 
--ENTRY(resume_userspace)
- 	DISABLE_INTERRUPTS(CLBR_ANY)
- 	TRACE_IRQS_OFF
- 	movl	%esp, %eax
+I have take a look at this and when this is applied on the top of
+5.4-rc2 there is not a problem.
+But as was reported by 0-day there is compilation issue on the top of
+mmotm/master tree and I am able to replicate it.
+It means there are other changes in Andrew's tree which are causing it.
+
+Thanks,
+Michal
+
+-- 
+Michal Simek, Ing. (M.Eng), OpenPGP -> KeyID: FE3D1F91
+w: www.monstr.eu p: +42-0-721842854
+Maintainer of Linux kernel - Xilinx Microblaze
+Maintainer of Linux kernel - Xilinx Zynq ARM and ZynqMP ARM64 SoCs
+U-Boot custodian - Xilinx Microblaze/Zynq/ZynqMP/Versal SoCs
