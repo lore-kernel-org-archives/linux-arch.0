@@ -1,73 +1,50 @@
-From: Mike Rapoport <rppt@kernel.org>
-Subject: Re: [PATCH 06/12] microblaze: use pgtable-nopmd instead of
- 4level-fixup
-Date: Fri, 25 Oct 2019 23:33:19 +0300
-Message-ID: <20191025203318.GA8413@rapoport-lnx>
-References: <1571822941-29776-1-git-send-email-rppt@kernel.org>
- <1571822941-29776-7-git-send-email-rppt@kernel.org>
- <aa7df5a1-5022-bc82-8816-74c956e2fd90@monstr.eu>
+From: Bjorn Helgaas <helgaas@kernel.org>
+Subject: Re: [PATCH v2 0/2] Enabling MSI for Microblaze
+Date: Fri, 25 Oct 2019 15:45:02 -0500
+Message-ID: <20191025204502.GA170580@google.com>
+References: <cover.1571983829.git.michal.simek@xilinx.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <aa7df5a1-5022-bc82-8816-74c956e2fd90@monstr.eu>
+In-Reply-To: <cover.1571983829.git.michal.simek@xilinx.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Michal Simek <monstr@monstr.eu>
-Cc: linux-mm@kvack.org, Andrew Morton <akpm@linux-foundation.org>, Anton Ivanov <anton.ivanov@cambridgegreys.com>, Arnd Bergmann <arnd@arndb.de>, "David S. Miller" <davem@davemloft.net>, Geert Uytterhoeven <geert@linux-m68k.org>, Greentime Hu <green.hu@gmail.com>, Greg Ungerer <gerg@linux-m68k.org>, Helge Deller <deller@gmx.de>, "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>, Jeff Dike <jdike@addtoit.com>, "Kirill A. Shutemov" <kirill@shutemov.name>, Linus Torvalds <torvalds@linux-foundation.org>, Mark Salter <msalter@redhat.com>, Matt Turner <mattst88@gmail.com>, Richard Weinberger <richard@nod.at>, Russell King <linux@armlinux.org.uk>, Sam Creasey <sammy@sammy.net>, Vincent Chen <deanbo422@gmail.com>, Vineet Gupta <Vineet.Gupta1>
+To: Michal Simek <michal.simek@xilinx.com>
+Cc: linux-kernel@vger.kernel.org, monstr@monstr.eu, git@xilinx.com, palmer@sifive.com, hch@infradead.org, longman@redhat.com, Arnd Bergmann <arnd@arndb.de>, Jackie Liu <liuyun01@kylinos.cn>, Wesley Terpstra <wesley@sifive.com>, Firoz Khan <firoz.khan@linaro.org>, sparclinux@vger.kernel.org, Ingo Molnar <mingo@kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, linux-riscv@lists.infradead.org, linux-arch@vger.kernel.org, James Hogan <jhogan@kernel.org>, Vineet Gupta <vgupta@synopsys.com>, linux-pci@vger.kernel.org, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Ralf Baechle <ralf@linux-mips.org>, Paul Walmsley <paul.walmsley@sifive.com>, "Peter Zijlstra (Intel)" <peterz@infradead.org>, Will Deacon <will@kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, Oct 25, 2019 at 10:24:30AM +0200, Michal Simek wrote:
-> Hi Mike,
+On Fri, Oct 25, 2019 at 08:10:36AM +0200, Michal Simek wrote:
+> Hi,
 > 
-> On 23. 10. 19 11:28, Mike Rapoport wrote:
-> > From: Mike Rapoport <rppt@linux.ibm.com>
-> > 
-> > microblaze has only two-level page tables and can use pgtable-nopmd and
-> > folding of the upper layers.
-> > 
-> > Replace usage of include/asm-generic/4level-fixup.h and explicit definition
-> > of __PAGETABLE_PMD_FOLDED in microblaze with
-> > include/asm-generic/pgtable-nopmd.h and adjust page table manipulation
-> > macros and functions accordingly.
-> > 
-> > Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
-> > ---
-> >  arch/microblaze/include/asm/page.h    |  3 ---
-> >  arch/microblaze/include/asm/pgalloc.h | 16 ----------------
-> >  arch/microblaze/include/asm/pgtable.h | 32 ++------------------------------
-> >  arch/microblaze/kernel/signal.c       | 10 +++++++---
-> >  arch/microblaze/mm/init.c             |  7 +++++--
-> >  arch/microblaze/mm/pgtable.c          | 13 +++++++++++--
-> >  6 files changed, 25 insertions(+), 56 deletions(-)
+> these two patches come from discussion with Christoph, Bjorn, Palmer and
+> Waiman. The first patch was suggestion by Christoph here
+> https://lore.kernel.org/linux-riscv/20191008154604.GA7903@infradead.org/
+> The second part was discussed
+> https://lore.kernel.org/linux-pci/mhng-5d9bcb53-225e-441f-86cc-b335624b3e7c@palmer-si-x1e/
+> and
+> https://lore.kernel.org/linux-pci/20191017181937.7004-1-palmer@sifive.com/
 > 
-> I have take a look at this and when this is applied on the top of
-> 5.4-rc2 there is not a problem.
-> But as was reported by 0-day there is compilation issue on the top of
-> mmotm/master tree and I am able to replicate it.
-> It means there are other changes in Andrew's tree which are causing it.
-
-0day is still using an old tree for mmotm:
-
-> url:    https://github.com/0day-ci/linux/commits/Mike-Rapoport/mm-remove-__ARCH_HAS_4LEVEL_HACK/20191025-063009
-> base:   git://git.cmpxchg.org/linux-mmotm.git master
-> config: microblaze-mmu_defconfig (attached as .config)
-
-A while ago Johannes moved the mmotm to github and the last commit in
-git.cmpxchg.org/linux-mmotm.git was in the end of August.
-
-[1] https://lore.kernel.org/linux-mm/20190916134327.GC29985@cmpxchg.org
- 
 > Thanks,
 > Michal
 > 
-> -- 
-> Michal Simek, Ing. (M.Eng), OpenPGP -> KeyID: FE3D1F91
-> w: www.monstr.eu p: +42-0-721842854
-> Maintainer of Linux kernel - Xilinx Microblaze
-> Maintainer of Linux kernel - Xilinx Zynq ARM and ZynqMP ARM64 SoCs
-> U-Boot custodian - Xilinx Microblaze/Zynq/ZynqMP/Versal SoCs
+> Changes in v2:
+> - Fix typo in commit message s/expect/except/ - Reported-by: Masahiro
 > 
+> Michal Simek (1):
+>   asm-generic: Make msi.h a mandatory include/asm header
+> 
+> Palmer Dabbelt (1):
+>   pci: Default to PCI_MSI_IRQ_DOMAIN
+> 
+>  arch/arc/include/asm/Kbuild     | 1 -
+>  arch/arm/include/asm/Kbuild     | 1 -
+>  arch/arm64/include/asm/Kbuild   | 1 -
+>  arch/mips/include/asm/Kbuild    | 1 -
+>  arch/powerpc/include/asm/Kbuild | 1 -
+>  arch/riscv/include/asm/Kbuild   | 1 -
+>  arch/sparc/include/asm/Kbuild   | 1 -
+>  drivers/pci/Kconfig             | 2 +-
+>  include/asm-generic/Kbuild      | 1 +
+>  9 files changed, 2 insertions(+), 8 deletions(-)
 
--- 
-Sincerely yours,
-Mike.
+I applied these to pci/msi for v5.5, thanks!
