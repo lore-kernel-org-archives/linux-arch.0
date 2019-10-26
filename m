@@ -1,78 +1,119 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm1-f68.google.com ([209.85.128.68]:36394 "EHLO
-        mail-wm1-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726137AbfJYVfP (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 25 Oct 2019 17:35:15 -0400
-Received: by mail-wm1-f68.google.com with SMTP id c22so3440718wmd.1
-        for <linux-arch@vger.kernel.org>; Fri, 25 Oct 2019 14:35:12 -0700 (PDT)
+Received: from pegase1.c-s.fr ([93.17.236.30]:21036 "EHLO pegase1.c-s.fr"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726237AbfJZLUK (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Sat, 26 Oct 2019 07:20:10 -0400
+Subject: Re: loop nesting in alignment exception and machine check
+References: <D44062DC474617438D5181ADFE2B2C21016DE42A@dggemi529-mbs.china.huawei.com>
+From: Christophe Leroy <christophe.leroy@c-s.fr>
+Message-ID: <8215aeb3-57dd-223a-29d3-45ca22b0543c@c-s.fr>
+Date: Sat, 26 Oct 2019 13:20:06 +0200
 MIME-Version: 1.0
-References: <cover.1571798507.git.thehajime@gmail.com>
-In-Reply-To: <cover.1571798507.git.thehajime@gmail.com>
-From: Richard Weinberger <richard.weinberger@gmail.com>
-Date: Fri, 25 Oct 2019 23:34:59 +0200
-Message-ID: <CAFLxGvyshYxocTNrzWV0mLQ-_qZzMG7u64=ySMbjrsu8j4cwTQ@mail.gmail.com>
-Subject: Re: [RFC PATCH 00/47] Unifying LKL into UML
-Content-Type: text/plain; charset="UTF-8"
+In-Reply-To: <D44062DC474617438D5181ADFE2B2C21016DE42A@dggemi529-mbs.china.huawei.com>
+Content-Type: text/plain; charset=windows-1252; format=flowed
+Content-Language: fr
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Hajime Tazaki <thehajime@gmail.com>
-Cc: linux-um@lists.infradead.org, Octavian Purdila <tavi.purdila@gmail.com>, Akira Moroo <retrage01@gmail.com>, Linux-Arch <linux-arch@vger.kernel.org>
+To: "Wangshaobo (bobo)" <bobo.shaobowang@huawei.com>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "alistair@popple.id.au" <alistair@popple.id.au>, "chengjian (D)" <cj.chengjian@huawei.com>, Xiexiuqi <xiexiuqi@huawei.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "oss@buserror.net" <oss@buserror.net>, "paulus@samba.org" <paulus@samba.org>, "Libin (Huawei)" <huawei.libin@huawei.com>, "agust@denx.de" <agust@denx.de>, "linuxppc-dev@lists.ozlabs.org" <linuxppc-dev@lists.ozlabs.org>
+Message-ID: <20191026112006.nAtlj8ll-mv8xVxHw6aNRJsvM0EK5R4QqRPUqlKzg7Q@z>
 
-On Wed, Oct 23, 2019 at 6:39 AM Hajime Tazaki <thehajime@gmail.com> wrote:
->
-> This RFC patchset is to ask opinions from UML people, whether LKL codes is
-> good to integrate into UML code base.  We wish to have any kind of feedback
-> from your kind reviews.  There are numbers of commits which should be asked
-> for reviews to other mailing lists; we will do it later once we got
-> discussed in this mailing list.
+Hi,
 
-Thanks a lot for doing this, this effort is much appreciated! :-)
+Le 26/10/2019 à 09:23, Wangshaobo (bobo) a écrit :
+> Hi,
+> 
+> I encountered a problem about a loop nesting occurred in manufacturing 
+> the alignment exception in machine check, trigger background is :
+> 
+> problem:
+> 
+> machine checkout or critical interrupt ->…->kbox_write[for recording 
+> last words] -> memcpy(irremap_addr, src,size):_GLOBAL(memcpy)…
+> 
+> when we enter memcpy,a command ‘dcbz r11,r6’ will cause a alignment 
+> exception, in this situation,r11 loads the ioremap address,which leads 
+> to the alignment exception,
 
-> # sorry for the long list of patches: we can make it smaller by only
->   including basic set of LKL (e.g., removing foreign OS support, etc) if
->   you wish.
+You can't use memcpy() on something else than memory.
 
-Let use see how the review goes. First I'll give it a high level review to make
-sure we all talk about the same things.
+For an ioremapped area, you have to use memcpy_toio()
 
-Please CC linux-arch@vger.kernel.org for the next patch round.
-Integrating LKL (into arch/um/) is something which needs more audience and
-feedback from Arnd Bergmann, our global arch maintainer.
+Christophe
 
-
->
->
-> LKL (Linux Kernel Library) is aiming to allow reusing the Linux kernel code
-> as extensively as possible with minimal effort and reduced maintenance
-> overhead.
->
-> Examples of how LKL can be used are: creating userspace applications
-> (running on Linux and other operating systems) that can read or write Linux
-> filesystems or can use the Linux networking stack, creating kernel drivers
-> for other operating systems that can read Linux filesystems, bootloaders
-> support for reading/writing Linux filesystems, etc.
->
-> With LKL, the kernel code is compiled into an object file that can be
-> directly linked by applications. The API offered by LKL is based on the
-> Linux system call interface.
->
-> LKL is originally implemented as an architecture port in arch/lkl, but this
-> series of commits tries to integrate this into arch/um as one of the mode
-> of UML.  This was discussed during RFC email of LKL (*1).
->
-> The latest LKL version can be found at https://github.com/lkl/linux
->
-> Milestone
-> =========
-> This patches is just a first step toward upstreaming *library mode* of
-> Linux kernel, but we think we need to have several steps toward our goal,
-> describing in the below.
->
-> 1. Put LKL code under arch/um (arch/um/lkl), and build it in a
-> separate way from UML.
-
-Makes sense.
-
-> 2. Share common parts of implementation between UML and LKL.
-
-Since both UML and LKL are usermode ports there is a lot of potential.
+> 
+> then the command can not be process successfully,as we still in machine 
+> check.at the end ,it triggers a new irq machine check in irq handler 
+> function,a loop nesting begins.
+> 
+> analysis:
+> 
+> We have analysed a lot,but it still can not come to a reasonable 
+> description,in common,the alignment triggered in machine check context 
+> can still be collected into the Kbox
+> 
+> after alignment exception be handled by handler function, but how does 
+> the machine checkout can be triggered in the handler fucntion for any 
+> causes? We print relevant registers
+> 
+> as follow when first enter machine check and alignment exception handler 
+> function:
+> 
+>           MSR:0x2      MSR:0x0
+> 
+>           SRR1:0x2      SRR1:0x21002
+> 
+>           But the manual says SRR1 should be set to MSR(0x2),why that 
+> happened ?
+> 
+>           Then a branch in handler function copy the SRR1 to MSR,this 
+> enble MSR[ME] and MSR[CE],system collapses.
+> 
+> Conclusion:
+> 
+>           1)  why the alignment exception can not be handled in machine 
+> check ?
+> 
+>           2)  besides memcpy,any other function can cause the alignment 
+> exception ?
+> 
+> We still recurrent it, the line as follows:
+> 
+>           Cpu dead lock->watch log->trigger 
+> fiq->kbox_write->memcpy->alignment exception->print last words.
+> 
+>           but for those problems as below,what the kbox printed is empty.
+> 
+> ------------------kbox restart:[   10.147594]----------------
+> 
+> kbox verify fs magic fail
+> 
+> kbox mem mabye destroyed, format it
+> 
+> kbox: load OK
+> 
+> lock-task: major[249] minor[0]
+> 
+> -----start show_destroyed_kbox_mem_head----
+> 
+> 00000000: 00000000 00000000 00000000 00000000  ................
+> 
+> 00000010: 00000000 00000000 00000000 00000000  ................
+> 
+> 00000020: 00000000 00000000 00000000 00000000  ................
+> 
+> 00000030: 00000000 00000000 00000000 00000000  ................
+> 
+> 00000040: 00000000 00000000 00000000 00000000  ................
+> 
+> 00000050: 00000000 00000000 00000000 00000000  ................
+> 
+> 00000060: 00000000 00000000 00000000 00000000  ................
+> 
+> 00000070: 00000000 00000000 00000000 00000000  ................
+> 
+> 00000080: 00000000 00000000 00000000 00000000  ................
+> 
+> 00000090: 00000000 00000000 00000000 00000000  ................
+> 
