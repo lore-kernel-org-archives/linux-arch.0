@@ -1,15 +1,16 @@
 From: Richard Henderson <richard.henderson@linaro.org>
 Subject: Re: [PATCH 1/1] arm64: Implement archrandom.h for ARMv8.5-RNG
-Date: Sun, 27 Oct 2019 13:14:15 +0100
-Message-ID: <bdadd4bf-1848-bef1-89c3-2d594cf3be16@linaro.org>
+Date: Sun, 27 Oct 2019 13:38:38 +0100
+Message-ID: <6e75d7b9-1c30-adab-bb74-1aaaa4e98ad4@linaro.org>
 References: <20191019022048.28065-1-richard.henderson@linaro.org>
  <20191019022048.28065-2-richard.henderson@linaro.org>
  <20191024113239.GC4300@lakrids.cambridge.arm.com>
+ <CAKv+Gu9uoJk8iqGASP3KvZK+4GMo=5ckD5DSzdOAmCJuOQNiUA@mail.gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
-In-Reply-To: <20191024113239.GC4300@lakrids.cambridge.arm.com>
+In-Reply-To: <CAKv+Gu9uoJk8iqGASP3KvZK+4GMo=5ckD5DSzdOAmCJuOQNiUA@mail.gmail.com>
 Content-Language: en-US
 List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
  <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
@@ -20,133 +21,153 @@ List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
  <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
 Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
 Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
-To: Mark Rutland <mark.rutland@arm.com>
-Cc: linux-arch@vger.kernel.org, ard.biesheuvel@linaro.org, catalin.marinas@arm.com, will@kernel.org, Dave.Martin@arm.com, linux-arm-kernel@lists.infradead.org
+To: Ard Biesheuvel <ard.biesheuvel@linaro.org>, Mark Rutland <mark.rutland@arm.com>
+Cc: linux-arch <linux-arch@vger.kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Dave Martin <Dave.Martin@arm.com>, linux-arm-kernel <linux-arm-kernel@lists.infradead.org>
 List-Id: linux-arch.vger.kernel.org
 
-On 10/24/19 1:32 PM, Mark Rutland wrote:
-> Please give this a menmoic in <asm/sysreg.h>, i.e.
+On 10/24/19 1:57 PM, Ard Biesheuvel wrote:
+>>> +
+>>> +#ifdef CONFIG_ARCH_RANDOM
+>>> +
+>>> +/*
+>>> + * Note that these two interfaces, random and random_seed, are strongly
+>>> + * tied to the Intel instructions RDRAND and RDSEED.  RDSEED is the
+>>> + * "enhanced" version and has stronger guarantees.  The ARMv8.5-RNG
+>>> + * instruction RNDR corresponds to RDSEED, thus we put our implementation
+>>> + * into the random_seed set of functions.
+>>> + *
 > 
-> #define SYS_RNDR	sys_reg(3, 3, 2, 4, 0)
+> Is that accurate? The ARM ARM says that RNDR is backed by a DRBG which
 > 
-> ... and make this function:
+> ""
+> ...is reseeded after an IMPLEMENTATION DEFINED number of random
+> numbers has been generated and read
+> using the RNDR register.
+> """
 > 
-> static inline bool read_rndr(unsigned long *v)
-> {
-> 	unsigned long pass;
+> which means that you cannot rely on this reseeding to take place at all.
 > 
-> 	/*
-> 	 * Reads of RNDR set PSTATE.NZCV to 0b0000 upon success, and set
-> 	 * PSTATE.NZCV to 0b0100 otherwise.
-> 	 */
-> 	asm volatile(
-> 		__mrs_s("%0", SYS_RNDR) "\n"
-> 	"	cset %1, ne\n"
-> 	: "=r" (*v), "=r" (pass);
-> 	:
-> 	: "cc");
-> 
-> 	return pass;
-> }
+> So the way I read this, RNDR ~= RDRAND and RNDRRS ~= RDSEED, and we
+> should wire up the functions below accordingly.
 
-Done.
+No, that reading is not correct, and is exactly what I was trying to explain in
+that paragraph.
 
-> #define SYS_RNDRRS	sys_reg(3, 3, 2, 4, 1)
-> 
-> ...and here have:
-> 
-> static inline bool read_rndrrs(unsigned long *v)
-> {
-> 	unsigned long pass;
-> 
-> 	/*
-> 	 * Reads of RNDRRS set PSTATE.NZCV to 0b0000 upon success, and
-> 	 * set PSTATE.NZCV to 0b0100 otherwise.
-> 	 */
-> 	asm volatile (
-> 		__mrs_s("%0", SYS_RNDRRS) "\n"
-> 	"	cset %w1, ne\n"
-> 	: "=r" (*v), "=r" (pass)
-> 	:
-> 	: "cc");
-> 
-> 	return pass;
-> }
+RNDR ~= RDSEED.
 
-Done.
+It's a matter of standards conformance:
 
->> +static inline bool arch_get_random_seed_long(unsigned long *v)
->> +{
->> +	/* If RNDR fails, attempt to re-seed with RNDRRS.  */
->> +	return arch_has_random_seed() && (arm_rndr(v) || arm_rndrrs(v));
->> +}
-> 
-> Here we clobber the value at v even if the reads of RNDR and RNDRRS
-> failed. Is that ok?
+RDRAND: NIST SP800-90A.
 
-The x86 inline asm does, so I should think it is ok.
+RDSEED: NIST SP800-90B,
+        NIST SP800-90C.
 
->> +#ifdef CONFIG_ARCH_RANDOM
->> +static bool can_use_rng(const struct arm64_cpu_capabilities *entry, int scope)
->> +{
->> +	unsigned long tmp;
->> +	int i;
->> +
->> +	if (!has_cpuid_feature(entry, scope))
->> +		return false;
->> +
->> +	/*
->> +	 * Re-seed from the true random number source.
->> +	 * If this fails, disable the feature.
->> +	 */
->> +	for (i = 0; i < 10; ++i) {
->> +		if (arm_rndrrs(&tmp))
->> +			return true;
->> +	}
-> 
-> The ARM ARM (ARM DDI 0487E.a) says:
-> 
-> | Reseeded Random Number. Returns a 64-bit random number which is
-> | reseeded from the True Random Number source at an IMPLEMENTATION
-> | DEFINED rate.
-> 
-> ... and:
-> 
-> | If the instruction cannot return a genuine random number in a
-> | reasonable period of time, PSTATE.NZCV is set to 0b0100 and the data
-> | value returned in UNKNOWN.
-> 
-> ... so it's not clear to me if the retry logic makes sense. Naively I'd
-> expect "reasonable period of time" to include 10 attempts.
-> 
-> Given we'll have to handle failure elsewhere, I suspect that it might be
-> best to assume that this works until we encounter evidence to the
-> contrary.
-
-Compare arch/x86/kernel/cpu/rdrand.c (x86_init_rdrand) and
-arch/powerpc/platforms/powernv/rng.c (initialize_darn).
-
-Both existing implementations have a small loop testing to see of the hardware
-passes its own self-check at startup.  Perhaps it's simply paranoia, but it
-didn't seem untoward to check.
+RNDR:   NIST SP800-90A Rev 1,
+        NIST SP800-90B,
+        NIST SP800-22,
+        FIPS 140-2,
+        BSI AIS-31,
+        NIST SP800-90C.
 
 
->> +#ifdef CONFIG_ARCH_RANDOM
->> +	{
->> +		.desc = "Random Number Generator",
->> +		.capability = ARM64_HAS_RNG,
->> +		.type = ARM64_CPUCAP_STRICT_BOOT_CPU_FEATURE,
-> 
-> I strongly suspect we're going to encounter systems where this feature
-> is mismatched, such that this can't be a boto CPU feature.
-> 
-> If we need entropy early in boot, we could detect if the boot CPU had
-> the feature, and seed the pool using it, then later make use of a
-> system-wide capability.
+>>> + * Note as well that Intel does not have an instruction that corresponds
+>>> + * to the RNDRRS instruction, so there's no generic interface for that.
+>>> + */
 
-In the meantime, what do you suggest I place here and in
-arch_has_random_seed(), so that it's at least detected early enough for the
-boot cpu, but does not require support from all cpus?
+...
+
+>>> +static inline bool arch_has_random(void)
+>>> +{
+>>> +     return false;
+>>> +}
+>>> +
+>>> +static inline bool arch_get_random_long(unsigned long *v)
+>>> +{
+>>> +     return false;
+>>> +}
+>>> +
+>>> +static inline bool arch_get_random_int(unsigned int *v)
+>>> +{
+>>> +     return false;
+>>> +}
+>>> +
+>>> +static inline bool arch_has_random_seed(void)
+>>> +{
+>>> +     return cpus_have_const_cap(ARM64_HAS_RNG);
+>>> +}
+>>> +
+>>> +static inline bool arch_get_random_seed_long(unsigned long *v)
+>>> +{
+>>> +     /* If RNDR fails, attempt to re-seed with RNDRRS.  */
+>>> +     return arch_has_random_seed() && (arm_rndr(v) || arm_rndrrs(v));
+>>> +}
+>>
+>> Here we clobber the value at v even if the reads of RNDR and RNDRRS
+>> failed. Is that ok?
+>>
+>> Maybe we want the accessors to only assign to v upon success.
+>>
+> 
+> I'd be more comfortable with this if arch_get_random_*() were
+> annotated as __must_check, and the assignment only done conditionally.
+
+We should probably make that change generically rather than make it arm64 specific.
+
+>>> +static bool can_use_rng(const struct arm64_cpu_capabilities *entry, int scope)
+>>> +{
+>>> +     unsigned long tmp;
+>>> +     int i;
+>>> +
+>>> +     if (!has_cpuid_feature(entry, scope))
+>>> +             return false;
+>>> +
+>>> +     /*
+>>> +      * Re-seed from the true random number source.
+>>> +      * If this fails, disable the feature.
+>>> +      */
+>>> +     for (i = 0; i < 10; ++i) {
+>>> +             if (arm_rndrrs(&tmp))
+>>> +                     return true;
+>>> +     }
+>>
+>> The ARM ARM (ARM DDI 0487E.a) says:
+>>
+>> | Reseeded Random Number. Returns a 64-bit random number which is
+>> | reseeded from the True Random Number source at an IMPLEMENTATION
+>> | DEFINED rate.
+>>
+>> ... and:
+>>
+>> | If the instruction cannot return a genuine random number in a
+>> | reasonable period of time, PSTATE.NZCV is set to 0b0100 and the data
+>> | value returned in UNKNOWN.
+>>
+>> ... so it's not clear to me if the retry logic makes sense. Naively I'd
+>> expect "reasonable period of time" to include 10 attempts.
+>>
+>> Given we'll have to handle failure elsewhere, I suspect that it might be
+>> best to assume that this works until we encounter evidence to the
+>> contrary.
+>>
+> 
+> The architecture isn't very clear about what a reasonable period of
+> time is, but the fact that it can fail transiently suggests that
+> trying it only once doesn't make a lot of sense. However, I'm not sure
+> whether having a go at probe time is helpful in deciding whether we
+> can use it at all, and I'd be inclined to drop this test altogether.
+> This is especially true since we cannot stop EL0 or VMs at EL1 using
+> the instruction.
+
+As mentioned in reply to Mark specifically, the other two architectures do the
+same thing.  From the comment for x86, I read this as "if something goes wrong,
+it's likely completely broken and won't work the first time we check".
+
+Yes, we can't prevent EL0 or VMs from using the insn, but we can avoid having
+the kernel itself attempt to use it if the hardware self-check fails.
+
+OTOH, given that every user of arch_get_random() checks the result, and has a
+fallback for failure, I suppose we don't need to do anything special.  Just use
+the insn and let Z=1 use the fallback failure path.
 
 
 r~
