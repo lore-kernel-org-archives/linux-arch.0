@@ -1,7 +1,7 @@
 From: Richard Henderson <richard.henderson@linaro.org>
-Subject: [PATCH 4/6] powerpc: Use bool in archrandom.h
-Date: Mon, 28 Oct 2019 22:05:57 +0100
-Message-ID: <20191028210559.8289-5-rth@twiddle.net>
+Subject: [PATCH 6/6] s390x: Mark archrandom.h functions __must_check
+Date: Mon, 28 Oct 2019 22:05:59 +0100
+Message-ID: <20191028210559.8289-7-rth@twiddle.net>
 References: <20191028210559.8289-1-rth@twiddle.net>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -18,80 +18,54 @@ List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
 Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
 Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
 To: linux-arch@vger.kernel.org
-Cc: linux-s390@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, x86@kernel.org, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, linuxppc-dev@lists.ozlabs.org, linux-arm-kernel@lists.infradead.org
+Cc: linux-s390@vger.kernel.org, Vasily Gorbik <gor@linux.ibm.com>, x86@kernel.org, Heiko Carstens <heiko.carstens@de.ibm.com>, Christian Borntraeger <borntraeger@de.ibm.com>, linuxppc-dev@lists.ozlabs.org, linux-arm-kernel@lists.infradead.org
 List-Id: linux-arch.vger.kernel.org
 
-The generic interface uses bool not int; match that.
+We cannot use the pointer output without validating the
+success of the random read.
 
 Signed-off-by: Richard Henderson <rth@twiddle.net>
 ---
-Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc: Paul Mackerras <paulus@samba.org>
-Cc: Michael Ellerman <mpe@ellerman.id.au>
+Cc: Heiko Carstens <heiko.carstens@de.ibm.com>
+Cc: Vasily Gorbik <gor@linux.ibm.com>
+Cc: Christian Borntraeger <borntraeger@de.ibm.com>
 ---
- arch/powerpc/include/asm/archrandom.h | 24 +++++++++++++-----------
- 1 file changed, 13 insertions(+), 11 deletions(-)
+ arch/s390/include/asm/archrandom.h | 8 ++++----
+ 1 file changed, 4 insertions(+), 4 deletions(-)
 
-diff --git a/arch/powerpc/include/asm/archrandom.h b/arch/powerpc/include/asm/archrandom.h
-index 9c63b596e6ce..f8a887c8b7f8 100644
---- a/arch/powerpc/include/asm/archrandom.h
-+++ b/arch/powerpc/include/asm/archrandom.h
-@@ -6,27 +6,28 @@
- 
- #include <asm/machdep.h>
- 
--static inline int arch_get_random_long(unsigned long *v)
-+static inline bool arch_get_random_long(unsigned long *v)
- {
--	return 0;
-+	return false;
+diff --git a/arch/s390/include/asm/archrandom.h b/arch/s390/include/asm/archrandom.h
+index c67b82dfa558..f3f1ee0a8c38 100644
+--- a/arch/s390/include/asm/archrandom.h
++++ b/arch/s390/include/asm/archrandom.h
+@@ -33,17 +33,17 @@ static inline bool arch_has_random_seed(void)
+ 	return false;
  }
  
--static inline int arch_get_random_int(unsigned int *v)
-+static inline bool arch_get_random_int(unsigned int *v)
+-static inline bool arch_get_random_long(unsigned long *v)
++static inline bool __must_check arch_get_random_long(unsigned long *v)
  {
--	return 0;
-+	return false;
+ 	return false;
  }
  
--static inline int arch_get_random_seed_long(unsigned long *v)
-+static inline bool arch_get_random_seed_long(unsigned long *v)
+-static inline bool arch_get_random_int(unsigned int *v)
++static inline bool __must_check arch_get_random_int(unsigned int *v)
  {
- 	if (ppc_md.get_random_seed)
- 		return ppc_md.get_random_seed(v);
- 
--	return 0;
-+	return false;
- }
--static inline int arch_get_random_seed_int(unsigned int *v)
-+
-+static inline bool arch_get_random_seed_int(unsigned int *v)
- {
- 	unsigned long val;
--	int rc;
-+	bool rc;
- 
- 	rc = arch_get_random_long(&val);
- 	if (rc)
-@@ -35,15 +36,16 @@ static inline int arch_get_random_seed_int(unsigned int *v)
- 	return rc;
+ 	return false;
  }
  
--static inline int arch_has_random(void)
-+static inline bool arch_has_random(void)
+-static inline bool arch_get_random_seed_long(unsigned long *v)
++static inline bool __must_check arch_get_random_seed_long(unsigned long *v)
  {
--	return 0;
-+	return false;
+ 	if (static_branch_likely(&s390_arch_random_available)) {
+ 		return s390_arch_random_generate((u8 *)v, sizeof(*v));
+@@ -51,7 +51,7 @@ static inline bool arch_get_random_seed_long(unsigned long *v)
+ 	return false;
  }
  
--static inline int arch_has_random_seed(void)
-+static inline bool arch_has_random_seed(void)
+-static inline bool arch_get_random_seed_int(unsigned int *v)
++static inline bool __must_check arch_get_random_seed_int(unsigned int *v)
  {
- 	return !!ppc_md.get_random_seed;
- }
-+
- #endif /* CONFIG_ARCH_RANDOM */
- 
- #ifdef CONFIG_PPC_POWERNV
+ 	if (static_branch_likely(&s390_arch_random_available)) {
+ 		return s390_arch_random_generate((u8 *)v, sizeof(*v));
 -- 
 2.17.1
