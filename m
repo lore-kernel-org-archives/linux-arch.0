@@ -1,41 +1,41 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wr1-f65.google.com ([209.85.221.65]:40749 "EHLO
-        mail-wr1-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S2389632AbfJ1VGL (ORCPT
+Received: from mail-wm1-f68.google.com ([209.85.128.68]:35855 "EHLO
+        mail-wm1-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S2389634AbfJ1VGL (ORCPT
         <rfc822;linux-arch@vger.kernel.org>); Mon, 28 Oct 2019 17:06:11 -0400
-Received: by mail-wr1-f65.google.com with SMTP id o28so11380039wro.7
-        for <linux-arch@vger.kernel.org>; Mon, 28 Oct 2019 14:06:10 -0700 (PDT)
+Received: by mail-wm1-f68.google.com with SMTP id c22so378540wmd.1
+        for <linux-arch@vger.kernel.org>; Mon, 28 Oct 2019 14:06:08 -0700 (PDT)
 From: Richard Henderson <richard.henderson@linaro.org>
-Subject: [PATCH 6/6] s390x: Mark archrandom.h functions __must_check
-Date: Mon, 28 Oct 2019 22:05:59 +0100
-Message-ID: <20191028210559.8289-7-rth@twiddle.net>
+Subject: [PATCH 5/6] powerpc: Mark archrandom.h functions __must_check
+Date: Mon, 28 Oct 2019 22:05:58 +0100
+Message-ID: <20191028210559.8289-6-rth@twiddle.net>
 In-Reply-To: <20191028210559.8289-1-rth@twiddle.net>
 References: <20191028210559.8289-1-rth@twiddle.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org
-Cc: x86@kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Heiko Carstens <heiko.carstens@de.ibm.com>, Vasily Gorbik <gor@linux.ibm.com>, Christian Borntraeger <borntraeger@de.ibm.com>
-Message-ID: <20191028210559.PxWDN3IRER01mC_P3b4cRZ63JjHOMiDzn9OxtoFHaao@z>
+Cc: x86@kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>
+Message-ID: <20191028210558.9L8HLn8K2wm1bB3wqzQLOW_V5Xgtk_t3Cf2RtCKafaU@z>
 
 We cannot use the pointer output without validating the
 success of the random read.
 
 Signed-off-by: Richard Henderson <rth@twiddle.net>
 ---
-Cc: Heiko Carstens <heiko.carstens@de.ibm.com>
-Cc: Vasily Gorbik <gor@linux.ibm.com>
-Cc: Christian Borntraeger <borntraeger@de.ibm.com>
+Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: Paul Mackerras <paulus@samba.org>
+Cc: Michael Ellerman <mpe@ellerman.id.au>
 ---
- arch/s390/include/asm/archrandom.h | 8 ++++----
+ arch/powerpc/include/asm/archrandom.h | 8 ++++----
  1 file changed, 4 insertions(+), 4 deletions(-)
 
-diff --git a/arch/s390/include/asm/archrandom.h b/arch/s390/include/asm/archrandom.h
-index c67b82dfa558..f3f1ee0a8c38 100644
---- a/arch/s390/include/asm/archrandom.h
-+++ b/arch/s390/include/asm/archrandom.h
-@@ -33,17 +33,17 @@ static inline bool arch_has_random_seed(void)
- 	return false;
- }
+diff --git a/arch/powerpc/include/asm/archrandom.h b/arch/powerpc/include/asm/archrandom.h
+index f8a887c8b7f8..ee214b153a71 100644
+--- a/arch/powerpc/include/asm/archrandom.h
++++ b/arch/powerpc/include/asm/archrandom.h
+@@ -6,17 +6,17 @@
+ 
+ #include <asm/machdep.h>
  
 -static inline bool arch_get_random_long(unsigned long *v)
 +static inline bool __must_check arch_get_random_long(unsigned long *v)
@@ -52,16 +52,16 @@ index c67b82dfa558..f3f1ee0a8c38 100644
 -static inline bool arch_get_random_seed_long(unsigned long *v)
 +static inline bool __must_check arch_get_random_seed_long(unsigned long *v)
  {
- 	if (static_branch_likely(&s390_arch_random_available)) {
- 		return s390_arch_random_generate((u8 *)v, sizeof(*v));
-@@ -51,7 +51,7 @@ static inline bool arch_get_random_seed_long(unsigned long *v)
+ 	if (ppc_md.get_random_seed)
+ 		return ppc_md.get_random_seed(v);
+@@ -24,7 +24,7 @@ static inline bool arch_get_random_seed_long(unsigned long *v)
  	return false;
  }
  
 -static inline bool arch_get_random_seed_int(unsigned int *v)
 +static inline bool __must_check arch_get_random_seed_int(unsigned int *v)
  {
- 	if (static_branch_likely(&s390_arch_random_available)) {
- 		return s390_arch_random_generate((u8 *)v, sizeof(*v));
+ 	unsigned long val;
+ 	bool rc;
 -- 
 2.17.1
