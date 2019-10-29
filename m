@@ -1,63 +1,72 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pl1-f194.google.com ([209.85.214.194]:41852 "EHLO
-        mail-pl1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1725840AbfJ2VOC (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 29 Oct 2019 17:14:02 -0400
-Received: by mail-pl1-f194.google.com with SMTP id t10so8299857plr.8
-        for <linux-arch@vger.kernel.org>; Tue, 29 Oct 2019 14:14:02 -0700 (PDT)
+Received: from mail-pg1-f196.google.com ([209.85.215.196]:44298 "EHLO
+        mail-pg1-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1729072AbfJ2VOH (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 29 Oct 2019 17:14:07 -0400
+Received: by mail-pg1-f196.google.com with SMTP id e10so10481803pgd.11
+        for <linux-arch@vger.kernel.org>; Tue, 29 Oct 2019 14:14:05 -0700 (PDT)
 From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH v3 01/29] powerpc: Rename "notes" PT_NOTE to "note"
-Date: Tue, 29 Oct 2019 14:13:23 -0700
-Message-ID: <20191029211351.13243-2-keescook@chromium.org>
+Subject: [PATCH v3 02/29] powerpc: Remove PT_NOTE workaround
+Date: Tue, 29 Oct 2019 14:13:24 -0700
+Message-ID: <20191029211351.13243-3-keescook@chromium.org>
 In-Reply-To: <20191029211351.13243-1-keescook@chromium.org>
 References: <20191029211351.13243-1-keescook@chromium.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Borislav Petkov <bp@alien8.de>
 Cc: Kees Cook <keescook@chromium.org>, Rick Edgecombe <rick.p.edgecombe@intel.com>, Segher Boessenkool <segher@kernel.crashing.org>, Dave Hansen <dave.hansen@linux.intel.com>, Andy Lutomirski <luto@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Michael Ellerman <mpe@ellerman.id.au>, Heiko Carstens <heiko.carstens@de.ibm.com>, Will Deacon <will@kernel.org>, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linuxppc-dev@lists.ozlabs.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-s390@vger.kernel.org, linux-c6x-dev@linux-c6x.org, Yoshinori Sato <ysato@users.sourceforge.jp>, Michal Simek <monstr@monstr.eu>
-Message-ID: <20191029211323.aKz98XxZ7eNa5UhIAXKt9xC_P89m10qAJkM5S3Ahgww@z>
+Message-ID: <20191029211324.I8XR4yOrUfSK4KZabZ8VXH3qvgJ530U2LeMCqAFPXHQ@z>
 
-The Program Header identifiers are internal to the linker scripts. In
-preparation for moving the NOTES segment declaration into RO_DATA,
-standardize the identifier for the PT_NOTE entry to "note" as used by
-all other architectures that emit PT_NOTE.
-
-Note that there was discussion about changing all architectures to use
-"notes" instead, but I prefer to avoid that at this time. Changing only
-powerpc is the smallest change to standardize the entire kernel. And
-while this standardization does use singular "note" for a section that
-has more than one note in it, this is just an internal identifier. It
-matches the ELF "PT_NOTE", and is 4 characters (like "text", and "data")
-for pretty alignment. The more exposed macro, "NOTES", use the more
-sensible plural wording.
+In preparation for moving NOTES into RO_DATA, remove the PT_NOTE
+workaround since the kernel requires at least gcc 4.6 now.
 
 Signed-off-by: Kees Cook <keescook@chromium.org>
 Acked-by: Michael Ellerman <mpe@ellerman.id.au>
 ---
- arch/powerpc/kernel/vmlinux.lds.S | 4 ++--
- 1 file changed, 2 insertions(+), 2 deletions(-)
+ arch/powerpc/kernel/vmlinux.lds.S | 24 ++----------------------
+ 1 file changed, 2 insertions(+), 22 deletions(-)
 
 diff --git a/arch/powerpc/kernel/vmlinux.lds.S b/arch/powerpc/kernel/vmlinux.lds.S
-index 060a1acd7c6d..81e672654789 100644
+index 81e672654789..a3c8492b2b19 100644
 --- a/arch/powerpc/kernel/vmlinux.lds.S
 +++ b/arch/powerpc/kernel/vmlinux.lds.S
-@@ -19,7 +19,7 @@ ENTRY(_stext)
- 
+@@ -20,20 +20,6 @@ ENTRY(_stext)
  PHDRS {
  	kernel PT_LOAD FLAGS(7); /* RWX */
--	notes PT_NOTE FLAGS(0);
-+	note PT_NOTE FLAGS(0);
- 	dummy PT_NOTE FLAGS(0);
+ 	note PT_NOTE FLAGS(0);
+-	dummy PT_NOTE FLAGS(0);
+-
+-	/* binutils < 2.18 has a bug that makes it misbehave when taking an
+-	   ELF file with all segments at load address 0 as input.  This
+-	   happens when running "strip" on vmlinux, because of the AT() magic
+-	   in this linker script.  People using GCC >= 4.2 won't run into
+-	   this problem, because the "build-id" support will put some data
+-	   into the "notes" segment (at a non-zero load address).
+-
+-	   To work around this, we force some data into both the "dummy"
+-	   segment and the kernel segment, so the dummy segment will get a
+-	   non-zero load address.  It's not enough to always create the
+-	   "notes" segment, since if nothing gets assigned to it, its load
+-	   address will be zero.  */
+ }
  
- 	/* binutils < 2.18 has a bug that makes it misbehave when taking an
-@@ -177,7 +177,7 @@ SECTIONS
- #endif
+ #ifdef CONFIG_PPC64
+@@ -178,14 +164,8 @@ SECTIONS
  	EXCEPTION_TABLE(0)
  
--	NOTES :kernel :notes
-+	NOTES :kernel :note
+ 	NOTES :kernel :note
+-
+-	/* The dummy segment contents for the bug workaround mentioned above
+-	   near PHDRS.  */
+-	.dummy : AT(ADDR(.dummy) - LOAD_OFFSET) {
+-		LONG(0)
+-		LONG(0)
+-		LONG(0)
+-	} :kernel :dummy
++	/* Restore program header away from PT_NOTE. */
++	.dummy : { *(.dummy) } :kernel
  
- 	/* The dummy segment contents for the bug workaround mentioned above
- 	   near PHDRS.  */
+ /*
+  * Init sections discarded at runtime
 -- 
 2.17.1
