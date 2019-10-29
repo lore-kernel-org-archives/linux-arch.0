@@ -1,11 +1,13 @@
 From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH v3 00/29] vmlinux.lds.h: Refactor EXCEPTION_TABLE and NOTES
-Date: Tue, 29 Oct 2019 14:13:22 -0700
-Message-ID: <20191029211351.13243-1-keescook@chromium.org>
+Subject: [PATCH v3 02/29] powerpc: Remove PT_NOTE workaround
+Date: Tue, 29 Oct 2019 14:13:24 -0700
+Message-ID: <20191029211351.13243-3-keescook@chromium.org>
+References: <20191029211351.13243-1-keescook@chromium.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+In-Reply-To: <20191029211351.13243-1-keescook@chromium.org>
 List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
  <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
 List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
@@ -19,112 +21,56 @@ To: Borislav Petkov <bp@alien8.de>
 Cc: linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, Michal Simek <monstr@monstr.eu>, linux-ia64@vger.kernel.org, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Michael Ellerman <mpe@ellerman.id.au>, Dave Hansen <dave.hansen@linux.intel.com>, Segher Boessenkool <segher@kernel.crashing.org>, linuxppc-dev@lists.ozlabs.org, Heiko Carstens <heiko.carstens@de.ibm.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Andy Lutomirski <luto@kernel.org>, linux-alpha@vger.kernel.org, Rick Edgecombe <rick.p.edgecombe@intel.com>, Will Deacon <will@kernel.org>, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org
 List-Id: linux-arch.vger.kernel.org
 
-Arch maintainers: please send Acks (if you haven't already) for your
-respective linker script changes; the intention is for this series to land
-via -tip. See patch #1 for an extended rationale for the "note" vs "notes"
-naming. If "notes" is strongly desired, we can perform that change on
-top of this series. For now, I prefer to leave things as they were in v2.
+In preparation for moving NOTES into RO_DATA, remove the PT_NOTE
+workaround since the kernel requires at least gcc 4.6 now.
 
-v3: Add new Acks, clarify "note" vs "notes" renaming
-v2: https://lore.kernel.org/lkml/20191011000609.29728-1-keescook@chromium.org
-v1: https://lore.kernel.org/lkml/20190926175602.33098-1-keescook@chromium.org
+Signed-off-by: Kees Cook <keescook@chromium.org>
+Acked-by: Michael Ellerman <mpe@ellerman.id.au>
+---
+ arch/powerpc/kernel/vmlinux.lds.S | 24 ++----------------------
+ 1 file changed, 2 insertions(+), 22 deletions(-)
 
-
-This series works to move the linker sections for NOTES and
-EXCEPTION_TABLE into the RO_DATA area, where they belong on most
-(all?) architectures. The problem being addressed was the discovery
-by Rick Edgecombe that the exception table was accidentally marked
-executable while he was developing his execute-only-memory series. When
-permissions were flipped from readable-and-executable to only-executable,
-the exception table became unreadable, causing things to explode rather
-badly. :)
-
-Roughly speaking, the steps are:
-
-- regularize the linker names for PT_NOTE and PT_LOAD program headers
-  (to "note" and "text" respectively)
-- regularize restoration of linker section to program header assignment
-  (when PT_NOTE exists)
-- move NOTES into RO_DATA
-- finish macro naming conversions for RO_DATA and RW_DATA
-- move EXCEPTION_TABLE into RO_DATA on architectures where this is clear
-- clean up some x86-specific reporting of kernel memory resources
-- switch x86 linker fill byte from x90 (NOP) to 0xcc (INT3), just because
-  I finally realized what that trailing ": 0x9090" meant -- and we should
-  trap, not slide, if execution lands in section padding
-
-Thanks!
-
--Kees
-
-
-Kees Cook (29):
-  powerpc: Rename "notes" PT_NOTE to "note"
-  powerpc: Remove PT_NOTE workaround
-  powerpc: Rename PT_LOAD identifier "kernel" to "text"
-  alpha: Rename PT_LOAD identifier "kernel" to "text"
-  ia64: Rename PT_LOAD identifier "code" to "text"
-  s390: Move RO_DATA into "text" PT_LOAD Program Header
-  x86: Restore "text" Program Header with dummy section
-  vmlinux.lds.h: Provide EMIT_PT_NOTE to indicate export of .notes
-  vmlinux.lds.h: Move Program Header restoration into NOTES macro
-  vmlinux.lds.h: Move NOTES into RO_DATA
-  vmlinux.lds.h: Replace RODATA with RO_DATA
-  vmlinux.lds.h: Replace RO_DATA_SECTION with RO_DATA
-  vmlinux.lds.h: Replace RW_DATA_SECTION with RW_DATA
-  vmlinux.lds.h: Allow EXCEPTION_TABLE to live in RO_DATA
-  x86: Actually use _etext for end of text segment
-  x86: Move EXCEPTION_TABLE to RO_DATA segment
-  alpha: Move EXCEPTION_TABLE to RO_DATA segment
-  arm64: Move EXCEPTION_TABLE to RO_DATA segment
-  c6x: Move EXCEPTION_TABLE to RO_DATA segment
-  h8300: Move EXCEPTION_TABLE to RO_DATA segment
-  ia64: Move EXCEPTION_TABLE to RO_DATA segment
-  microblaze: Move EXCEPTION_TABLE to RO_DATA segment
-  parisc: Move EXCEPTION_TABLE to RO_DATA segment
-  powerpc: Move EXCEPTION_TABLE to RO_DATA segment
-  xtensa: Move EXCEPTION_TABLE to RO_DATA segment
-  x86/mm: Remove redundant &s on addresses
-  x86/mm: Report which part of kernel image is freed
-  x86/mm: Report actual image regions in /proc/iomem
-  x86: Use INT3 instead of NOP for linker fill bytes
-
- arch/alpha/kernel/vmlinux.lds.S      | 18 +++++-----
- arch/arc/kernel/vmlinux.lds.S        |  6 ++--
- arch/arm/kernel/vmlinux-xip.lds.S    |  4 +--
- arch/arm/kernel/vmlinux.lds.S        |  4 +--
- arch/arm64/kernel/vmlinux.lds.S      | 10 +++---
- arch/c6x/kernel/vmlinux.lds.S        |  8 ++---
- arch/csky/kernel/vmlinux.lds.S       |  5 ++-
- arch/h8300/kernel/vmlinux.lds.S      |  9 ++---
- arch/hexagon/kernel/vmlinux.lds.S    |  5 ++-
- arch/ia64/kernel/vmlinux.lds.S       | 20 +++++------
- arch/m68k/kernel/vmlinux-nommu.lds   |  4 +--
- arch/m68k/kernel/vmlinux-std.lds     |  2 +-
- arch/m68k/kernel/vmlinux-sun3.lds    |  2 +-
- arch/microblaze/kernel/vmlinux.lds.S |  8 ++---
- arch/mips/kernel/vmlinux.lds.S       | 15 ++++----
- arch/nds32/kernel/vmlinux.lds.S      |  5 ++-
- arch/nios2/kernel/vmlinux.lds.S      |  5 ++-
- arch/openrisc/kernel/vmlinux.lds.S   |  7 ++--
- arch/parisc/kernel/vmlinux.lds.S     | 11 +++---
- arch/powerpc/kernel/vmlinux.lds.S    | 37 ++++---------------
- arch/riscv/kernel/vmlinux.lds.S      |  5 ++-
- arch/s390/kernel/vmlinux.lds.S       | 12 +++----
- arch/sh/kernel/vmlinux.lds.S         |  3 +-
- arch/sparc/kernel/vmlinux.lds.S      |  3 +-
- arch/um/include/asm/common.lds.S     |  3 +-
- arch/unicore32/kernel/vmlinux.lds.S  |  5 ++-
- arch/x86/include/asm/processor.h     |  2 +-
- arch/x86/include/asm/sections.h      |  1 -
- arch/x86/kernel/setup.c              | 12 ++++++-
- arch/x86/kernel/vmlinux.lds.S        | 16 ++++-----
- arch/x86/mm/init.c                   |  8 ++---
- arch/x86/mm/init_64.c                | 16 +++++----
- arch/x86/mm/pti.c                    |  2 +-
- arch/xtensa/kernel/vmlinux.lds.S     |  8 ++---
- include/asm-generic/vmlinux.lds.h    | 53 ++++++++++++++++++++--------
- 35 files changed, 159 insertions(+), 175 deletions(-)
-
+diff --git a/arch/powerpc/kernel/vmlinux.lds.S b/arch/powerpc/kernel/vmlinux.lds.S
+index 81e672654789..a3c8492b2b19 100644
+--- a/arch/powerpc/kernel/vmlinux.lds.S
++++ b/arch/powerpc/kernel/vmlinux.lds.S
+@@ -20,20 +20,6 @@ ENTRY(_stext)
+ PHDRS {
+ 	kernel PT_LOAD FLAGS(7); /* RWX */
+ 	note PT_NOTE FLAGS(0);
+-	dummy PT_NOTE FLAGS(0);
+-
+-	/* binutils < 2.18 has a bug that makes it misbehave when taking an
+-	   ELF file with all segments at load address 0 as input.  This
+-	   happens when running "strip" on vmlinux, because of the AT() magic
+-	   in this linker script.  People using GCC >= 4.2 won't run into
+-	   this problem, because the "build-id" support will put some data
+-	   into the "notes" segment (at a non-zero load address).
+-
+-	   To work around this, we force some data into both the "dummy"
+-	   segment and the kernel segment, so the dummy segment will get a
+-	   non-zero load address.  It's not enough to always create the
+-	   "notes" segment, since if nothing gets assigned to it, its load
+-	   address will be zero.  */
+ }
+ 
+ #ifdef CONFIG_PPC64
+@@ -178,14 +164,8 @@ SECTIONS
+ 	EXCEPTION_TABLE(0)
+ 
+ 	NOTES :kernel :note
+-
+-	/* The dummy segment contents for the bug workaround mentioned above
+-	   near PHDRS.  */
+-	.dummy : AT(ADDR(.dummy) - LOAD_OFFSET) {
+-		LONG(0)
+-		LONG(0)
+-		LONG(0)
+-	} :kernel :dummy
++	/* Restore program header away from PT_NOTE. */
++	.dummy : { *(.dummy) } :kernel
+ 
+ /*
+  * Init sections discarded at runtime
 -- 
 2.17.1
