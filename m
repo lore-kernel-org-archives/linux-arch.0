@@ -1,8 +1,7 @@
 From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH v3 14/29] vmlinux.lds.h: Allow EXCEPTION_TABLE to live in
- RO_DATA
-Date: Tue, 29 Oct 2019 14:13:36 -0700
-Message-ID: <20191029211351.13243-15-keescook@chromium.org>
+Subject: [PATCH v3 19/29] c6x: Move EXCEPTION_TABLE to RO_DATA segment
+Date: Tue, 29 Oct 2019 14:13:41 -0700
+Message-ID: <20191029211351.13243-20-keescook@chromium.org>
 References: <20191029211351.13243-1-keescook@chromium.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -22,46 +21,35 @@ To: Borislav Petkov <bp@alien8.de>
 Cc: linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, Michal Simek <monstr@monstr.eu>, linux-ia64@vger.kernel.org, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Michael Ellerman <mpe@ellerman.id.au>, Dave Hansen <dave.hansen@linux.intel.com>, Segher Boessenkool <segher@kernel.crashing.org>, linuxppc-dev@lists.ozlabs.org, Heiko Carstens <heiko.carstens@de.ibm.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Andy Lutomirski <luto@kernel.org>, linux-alpha@vger.kernel.org, Rick Edgecombe <rick.p.edgecombe@intel.com>, Will Deacon <will@kernel.org>, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org
 List-Id: linux-arch.vger.kernel.org
 
-Many architectures have an EXCEPTION_TABLE that only needs to
-be readable. As such, it should live in RO_DATA. Create a macro to
-identify this case for the architectures that can move EXCEPTION_TABLE
-into RO_DATA.
+Since the EXCEPTION_TABLE is read-only, collapse it into RO_DATA.
 
 Signed-off-by: Kees Cook <keescook@chromium.org>
-Acked-by: Will Deacon <will@kernel.org>
 ---
- include/asm-generic/vmlinux.lds.h | 12 ++++++++++++
- 1 file changed, 12 insertions(+)
+ arch/c6x/kernel/vmlinux.lds.S | 5 +++--
+ 1 file changed, 3 insertions(+), 2 deletions(-)
 
-diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
-index 356078e50a5c..9867d8e41eed 100644
---- a/include/asm-generic/vmlinux.lds.h
-+++ b/include/asm-generic/vmlinux.lds.h
-@@ -69,6 +69,17 @@
- #define NOTES_HEADERS_RESTORE
- #endif
- 
-+/*
-+ * Some architectures have non-executable read-only exception tables.
-+ * They can be added to the RO_DATA segment by specifying their desired
-+ * alignment.
-+ */
-+#ifdef RO_EXCEPTION_TABLE_ALIGN
-+#define RO_EXCEPTION_TABLE	EXCEPTION_TABLE(RO_EXCEPTION_TABLE_ALIGN)
-+#else
-+#define RO_EXCEPTION_TABLE
-+#endif
+diff --git a/arch/c6x/kernel/vmlinux.lds.S b/arch/c6x/kernel/vmlinux.lds.S
+index a3547f9d415b..ac99ba0864bf 100644
+--- a/arch/c6x/kernel/vmlinux.lds.S
++++ b/arch/c6x/kernel/vmlinux.lds.S
+@@ -5,6 +5,9 @@
+  *  Copyright (C) 2010, 2011 Texas Instruments Incorporated
+  *  Mark Salter <msalter@redhat.com>
+  */
 +
- /* Align . to a 8 byte boundary equals to maximum function alignment. */
- #define ALIGN_FUNCTION()  . = ALIGN(8)
++#define RO_EXCEPTION_TABLE_ALIGN	16
++
+ #include <asm-generic/vmlinux.lds.h>
+ #include <asm/thread_info.h>
+ #include <asm/page.h>
+@@ -80,8 +83,6 @@ SECTIONS
+ 		*(.gnu.warning)
+ 	}
  
-@@ -513,6 +524,7 @@
- 		__stop___modver = .;					\
- 	}								\
- 									\
-+	RO_EXCEPTION_TABLE						\
- 	NOTES								\
- 									\
- 	. = ALIGN((align));						\
+-	EXCEPTION_TABLE(16)
+-
+ 	RO_DATA(PAGE_SIZE)
+ 	.const :
+ 	{
 -- 
 2.17.1
