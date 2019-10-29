@@ -1,7 +1,7 @@
 From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH v3 23/29] parisc: Move EXCEPTION_TABLE to RO_DATA segment
-Date: Tue, 29 Oct 2019 14:13:45 -0700
-Message-ID: <20191029211351.13243-24-keescook@chromium.org>
+Subject: [PATCH v3 25/29] xtensa: Move EXCEPTION_TABLE to RO_DATA segment
+Date: Tue, 29 Oct 2019 14:13:47 -0700
+Message-ID: <20191029211351.13243-26-keescook@chromium.org>
 References: <20191029211351.13243-1-keescook@chromium.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -24,32 +24,31 @@ List-Id: linux-arch.vger.kernel.org
 Since the EXCEPTION_TABLE is read-only, collapse it into RO_DATA.
 
 Signed-off-by: Kees Cook <keescook@chromium.org>
-Acked-by: Helge Deller <deller@gmx.de>
+Acked-by: Max Filippov <jcmvbkbc@gmail.com>
 ---
- arch/parisc/kernel/vmlinux.lds.S | 4 +---
- 1 file changed, 1 insertion(+), 3 deletions(-)
+ arch/xtensa/kernel/vmlinux.lds.S | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
 
-diff --git a/arch/parisc/kernel/vmlinux.lds.S b/arch/parisc/kernel/vmlinux.lds.S
-index 12b3d7d5e9e4..53e29d88f99c 100644
---- a/arch/parisc/kernel/vmlinux.lds.S
-+++ b/arch/parisc/kernel/vmlinux.lds.S
-@@ -19,6 +19,7 @@
- 				*(.data..vm0.pte)
+diff --git a/arch/xtensa/kernel/vmlinux.lds.S b/arch/xtensa/kernel/vmlinux.lds.S
+index bdbd7c4056c1..0043d5858f14 100644
+--- a/arch/xtensa/kernel/vmlinux.lds.S
++++ b/arch/xtensa/kernel/vmlinux.lds.S
+@@ -14,6 +14,8 @@
+  * Joe Taylor <joe@tensilica.com, joetylr@yahoo.com>
+  */
  
- #define CC_USING_PATCHABLE_FUNCTION_ENTRY
-+#define RO_EXCEPTION_TABLE_ALIGN	8
- 
++#define RO_EXCEPTION_TABLE_ALIGN	16
++
  #include <asm-generic/vmlinux.lds.h>
+ #include <asm/page.h>
+ #include <asm/thread_info.h>
+@@ -130,7 +132,6 @@ SECTIONS
  
-@@ -129,9 +130,6 @@ SECTIONS
+   .fixup   : { *(.fixup) }
  
- 	RO_DATA(8)
+-  EXCEPTION_TABLE(16)
+   /* Data section */
  
--	/* RO because of BUILDTIME_EXTABLE_SORT */
--	EXCEPTION_TABLE(8)
--
- 	/* unwind info */
- 	.PARISC.unwind : {
- 		__start___unwind = .;
+   _sdata = .;
 -- 
 2.17.1
