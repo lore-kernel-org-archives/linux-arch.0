@@ -1,37 +1,65 @@
-From: Rasmus Villemoes <linux@rasmusvillemoes.dk>
-Subject: Re: [PATCH 04/16] dyndbg: rename __verbose section to __dyndbg
-Date: Tue, 29 Oct 2019 21:37:12 +0100
-Message-ID: <e9835376-1efe-1d1b-4a99-8bb920e04a08@rasmusvillemoes.dk>
-References: <20191029200026.9790-1-jim.cromie@gmail.com>
+From: Kees Cook <keescook@chromium.org>
+Subject: [PATCH v3 04/29] alpha: Rename PT_LOAD identifier "kernel" to "text"
+Date: Tue, 29 Oct 2019 14:13:26 -0700
+Message-ID: <20191029211351.13243-5-keescook@chromium.org>
+References: <20191029211351.13243-1-keescook@chromium.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=windows-1252
+Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20191029200026.9790-1-jim.cromie@gmail.com>
-Content-Language: en-US
-Sender: linux-kernel-owner@vger.kernel.org
-To: Jim Cromie <jim.cromie@gmail.com>, jbaron@akamai.com, linux-kernel@vger.kernel.org
-Cc: greg@kroah.com, Arnd Bergmann <arnd@arndb.de>, Jessica Yu <jeyu@kernel.org>, linux-arch@vger.kernel.org
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+In-Reply-To: <20191029211351.13243-1-keescook@chromium.org>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+To: Borislav Petkov <bp@alien8.de>
+Cc: linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, Michal Simek <monstr@monstr.eu>, linux-ia64@vger.kernel.org, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Michael Ellerman <mpe@ellerman.id.au>, Dave Hansen <dave.hansen@linux.intel.com>, Segher Boessenkool <segher@kernel.crashing.org>, linuxppc-dev@lists.ozlabs.org, Heiko Carstens <heiko.carstens@de.ibm.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Andy Lutomirski <luto@kernel.org>, linux-alpha@vger.kernel.org, Rick Edgecombe <rick.p.edgecombe@intel.com>, Will Deacon <will@kernel.org>, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org
 List-Id: linux-arch.vger.kernel.org
 
-On 29/10/2019 21.00, Jim Cromie wrote:
-> dyndbg populates its callsite info into __verbose section, change that
-> to a more specific and descriptive name, __dyndbg.
+In preparation for moving NOTES into RO_DATA, rename the linker script
+internal identifier for the PT_LOAD Program Header from "kernel" to
+"text" to match other architectures.
 
-Yeah, that has always bugged me. Ack to that part.
+Signed-off-by: Kees Cook <keescook@chromium.org>
+---
+ arch/alpha/kernel/vmlinux.lds.S | 8 ++++----
+ 1 file changed, 4 insertions(+), 4 deletions(-)
 
-> Also, per checkpatch:
->   move extern struct _ddebug __(start|stop)__dyndbg[] to header file
-
-Hm, why? checkpatch should often be ignored. Since we only refer to
-those symbols in the .c file, there's no reason to pollute every other
-translation unit with those declarations. Having declarations in a
-header makes sense when the actual entity gets defined in some .c file
-(which hopefully also includes the header). But these are defined by the
-linker, so there's no type safety to be had.
-
->   simplify __attribute(..) to __section(__dyndbg) declaration.
-
-Makes sense, since you're munching the thing anyway.
-
-Rasmus
+diff --git a/arch/alpha/kernel/vmlinux.lds.S b/arch/alpha/kernel/vmlinux.lds.S
+index c4b5ceceab52..781090cacc96 100644
+--- a/arch/alpha/kernel/vmlinux.lds.S
++++ b/arch/alpha/kernel/vmlinux.lds.S
+@@ -8,7 +8,7 @@
+ OUTPUT_FORMAT("elf64-alpha")
+ OUTPUT_ARCH(alpha)
+ ENTRY(__start)
+-PHDRS { kernel PT_LOAD; note PT_NOTE; }
++PHDRS { text PT_LOAD; note PT_NOTE; }
+ jiffies = jiffies_64;
+ SECTIONS
+ {
+@@ -27,14 +27,14 @@ SECTIONS
+ 		LOCK_TEXT
+ 		*(.fixup)
+ 		*(.gnu.warning)
+-	} :kernel
++	} :text
+ 	swapper_pg_dir = SWAPPER_PGD;
+ 	_etext = .;	/* End of text section */
+ 
+-	NOTES :kernel :note
++	NOTES :text :note
+ 	.dummy : {
+ 		*(.dummy)
+-	} :kernel
++	} :text
+ 
+ 	RODATA
+ 	EXCEPTION_TABLE(16)
+-- 
+2.17.1
