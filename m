@@ -1,7 +1,7 @@
 From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH v3 1/3] MIPS: OCTEON: Replace SIZEOF_FIELD() macro
-Date: Tue, 29 Oct 2019 15:47:54 -0700
-Message-ID: <20191029224756.28618-2-keescook@chromium.org>
+Subject: [PATCH v3 2/3] linux/stddef.h: Add sizeof_member() macro
+Date: Tue, 29 Oct 2019 15:47:55 -0700
+Message-ID: <20191029224756.28618-3-keescook@chromium.org>
 References: <20191029224756.28618-1-keescook@chromium.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20191029224756.28618-1-keescook@chromium.org>
@@ -12,45 +12,77 @@ List-Id: linux-arch.vger.kernel.org
 
 From: Pankaj Bharadiya <pankaj.laxminarayan.bharadiya@intel.com>
 
-In preparation for switching to a standard sizeof_member() macro to find the
-size of a member of a struct, remove the custom SIZEOF_FIELD() macro and use
-the more common FIELD_SIZEOF() instead. Later patches will globally replace
-FIELD_SIZEOF() and sizeof_field() with the more accurate sizeof_member().
+At present we have 2 different macros to calculate the size of a member
+of a struct: FIELD_SIZEOF() and sizeof_field(). As a prerequisite to
+bringing uniformity to the entire kernel source tree, add sizeof_member()
+macro as it is both more pleasant (not upper case) and more correct
+(sizeof()-family cannot operate on bit fields; this is meant to operate
+on struct members), as discussed[1].
+
+Future patches will replace all occurrences of above macros with
+sizeof_member().
+
+[1] https://www.openwall.com/lists/kernel-hardening/2019/07/02/2
 
 Signed-off-by: Pankaj Bharadiya <pankaj.laxminarayan.bharadiya@intel.com>
-Link: https://lore.kernel.org/r/20190924105839.110713-4-pankaj.laxminarayan.bharadiya@intel.com
+Link: https://lore.kernel.org/r/20190924105839.110713-2-pankaj.laxminarayan.bharadiya@intel.com
 Co-developed-by: Kees Cook <keescook@chromium.org>
 Signed-off-by: Kees Cook <keescook@chromium.org>
 ---
- arch/mips/cavium-octeon/executive/cvmx-bootmem.c | 9 +--------
- 1 file changed, 1 insertion(+), 8 deletions(-)
+ include/linux/stddef.h                 | 13 ++++++++++++-
+ tools/testing/selftests/bpf/bpf_util.h |  6 +++---
+ 2 files changed, 15 insertions(+), 4 deletions(-)
 
-diff --git a/arch/mips/cavium-octeon/executive/cvmx-bootmem.c b/arch/mips/cavium-octeon/executive/cvmx-bootmem.c
-index ba8f82a29a81..44b506a14666 100644
---- a/arch/mips/cavium-octeon/executive/cvmx-bootmem.c
-+++ b/arch/mips/cavium-octeon/executive/cvmx-bootmem.c
-@@ -44,13 +44,6 @@ static struct cvmx_bootmem_desc *cvmx_bootmem_desc;
+diff --git a/include/linux/stddef.h b/include/linux/stddef.h
+index 998a4ba28eba..ecadb736c853 100644
+--- a/include/linux/stddef.h
++++ b/include/linux/stddef.h
+@@ -27,6 +27,17 @@ enum {
+  */
+ #define sizeof_field(TYPE, MEMBER) sizeof((((TYPE *)0)->MEMBER))
  
- /* See header file for descriptions of functions */
- 
--/**
-- * This macro returns the size of a member of a structure.
-- * Logically it is the same as "sizeof(s::field)" in C++, but
-- * C lacks the "::" operator.
-- */
--#define SIZEOF_FIELD(s, field) sizeof(((s *)NULL)->field)
--
++/**
++ * sizeof_member(TYPE, MEMBER) - get the size of a struct's member
++ *
++ * @TYPE: the target struct
++ * @MEMBER: the target struct's member
++ *
++ * Return: the size of @MEMBER in the struct definition without having a
++ * declared instance of @TYPE.
++ */
++#define sizeof_member(TYPE, MEMBER)	(sizeof(((TYPE *)0)->MEMBER))
++
  /**
-  * This macro returns a member of the
-  * cvmx_bootmem_named_block_desc_t structure. These members can't
-@@ -65,7 +58,7 @@ static struct cvmx_bootmem_desc *cvmx_bootmem_desc;
- #define CVMX_BOOTMEM_NAMED_GET_FIELD(addr, field)			\
- 	__cvmx_bootmem_desc_get(addr,					\
- 		offsetof(struct cvmx_bootmem_named_block_desc, field),	\
--		SIZEOF_FIELD(struct cvmx_bootmem_named_block_desc, field))
-+		FIELD_SIZEOF(struct cvmx_bootmem_named_block_desc, field))
+  * offsetofend(TYPE, MEMBER)
+  *
+@@ -34,6 +45,6 @@ enum {
+  * @MEMBER: The member within the structure to get the end offset of
+  */
+ #define offsetofend(TYPE, MEMBER) \
+-	(offsetof(TYPE, MEMBER)	+ sizeof_field(TYPE, MEMBER))
++	(offsetof(TYPE, MEMBER)	+ sizeof_member(TYPE, MEMBER))
  
- /**
-  * This function is the implementation of the get macros defined
+ #endif
+diff --git a/tools/testing/selftests/bpf/bpf_util.h b/tools/testing/selftests/bpf/bpf_util.h
+index ec219f84e041..6b4b3e24ba9f 100644
+--- a/tools/testing/selftests/bpf/bpf_util.h
++++ b/tools/testing/selftests/bpf/bpf_util.h
+@@ -31,13 +31,13 @@ static inline unsigned int bpf_num_possible_cpus(void)
+ # define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]))
+ #endif
+ 
+-#ifndef sizeof_field
+-#define sizeof_field(TYPE, MEMBER) sizeof((((TYPE *)0)->MEMBER))
++#ifndef sizeof_member
++#define sizeof_member(TYPE, MEMBER) sizeof((((TYPE *)0)->MEMBER))
+ #endif
+ 
+ #ifndef offsetofend
+ #define offsetofend(TYPE, MEMBER) \
+-	(offsetof(TYPE, MEMBER)	+ sizeof_field(TYPE, MEMBER))
++	(offsetof(TYPE, MEMBER)	+ sizeof_member(TYPE, MEMBER))
+ #endif
+ 
+ #endif /* __BPF_UTIL__ */
 -- 
 2.17.1
