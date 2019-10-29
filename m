@@ -1,49 +1,53 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pf1-f194.google.com ([209.85.210.194]:41636 "EHLO
-        mail-pf1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728679AbfJ2VUn (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 29 Oct 2019 17:20:43 -0400
-Received: by mail-pf1-f194.google.com with SMTP id p26so6408321pfq.8
-        for <linux-arch@vger.kernel.org>; Tue, 29 Oct 2019 14:20:42 -0700 (PDT)
-From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH v3 22/29] microblaze: Move EXCEPTION_TABLE to RO_DATA segment
-Date: Tue, 29 Oct 2019 14:13:44 -0700
-Message-ID: <20191029211351.13243-23-keescook@chromium.org>
-In-Reply-To: <20191029211351.13243-1-keescook@chromium.org>
-References: <20191029211351.13243-1-keescook@chromium.org>
+Received: from mail-lj1-f196.google.com ([209.85.208.196]:43482 "EHLO
+        mail-lj1-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1725840AbfJ2V0C (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 29 Oct 2019 17:26:02 -0400
+MIME-Version: 1.0
+References: <20191029200026.9790-1-jim.cromie@gmail.com> <e9835376-1efe-1d1b-4a99-8bb920e04a08@rasmusvillemoes.dk>
+In-Reply-To: <e9835376-1efe-1d1b-4a99-8bb920e04a08@rasmusvillemoes.dk>
+From: jim.cromie@gmail.com
+Date: Tue, 29 Oct 2019 15:25:33 -0600
+Message-ID: <CAJfuBxyEjhxkO5jv_qy17-EwrMyPfh6b_1EBCVyxyymH9qQVhg@mail.gmail.com>
+Subject: Re: [PATCH 04/16] dyndbg: rename __verbose section to __dyndbg
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Borislav Petkov <bp@alien8.de>
-Cc: Kees Cook <keescook@chromium.org>, Rick Edgecombe <rick.p.edgecombe@intel.com>, Segher Boessenkool <segher@kernel.crashing.org>, Dave Hansen <dave.hansen@linux.intel.com>, Andy Lutomirski <luto@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Michael Ellerman <mpe@ellerman.id.au>, Heiko Carstens <heiko.carstens@de.ibm.com>, Will Deacon <will@kernel.org>, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linuxppc-dev@lists.ozlabs.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-s390@vger.kernel.org, linux-c6x-dev@linux-c6x.org, Yoshinori Sato <ysato@users.sourceforge.jp>, Michal Simek <monstr@monstr.eu>
-Message-ID: <20191029211344.HhO38rhAjchOm9cYXi4M3XZEuWK-AikHyZeKn7QppV0@z>
+To: Rasmus Villemoes <linux@rasmusvillemoes.dk>
+Cc: Jason Baron <jbaron@akamai.com>, LKML <linux-kernel@vger.kernel.org>, Greg KH <greg@kroah.com>, Arnd Bergmann <arnd@arndb.de>, Jessica Yu <jeyu@kernel.org>, linux-arch@vger.kernel.org
+Message-ID: <20191029212533.Os1E06iVu_xRlS3Y8lZvcpp7l8T_cy4T761BoN34uio@z>
 
-Since the EXCEPTION_TABLE is read-only, collapse it into RO_DATA.
+On Tue, Oct 29, 2019 at 2:37 PM Rasmus Villemoes
+<linux@rasmusvillemoes.dk> wrote:
+>
+> On 29/10/2019 21.00, Jim Cromie wrote:
+> > dyndbg populates its callsite info into __verbose section, change that
+> > to a more specific and descriptive name, __dyndbg.
+>
+> Yeah, that has always bugged me. Ack to that part.
+>
+> > Also, per checkpatch:
+> >   move extern struct _ddebug __(start|stop)__dyndbg[] to header file
+>
+> Hm, why? checkpatch should often be ignored. Since we only refer to
+> those symbols in the .c file, there's no reason to pollute every other
+> translation unit with those declarations. Having declarations in a
+> header makes sense when the actual entity gets defined in some .c file
+> (which hopefully also includes the header). But these are defined by the
+> linker, so there's no type safety to be had.
+>
 
-Signed-off-by: Kees Cook <keescook@chromium.org>
----
- arch/microblaze/kernel/vmlinux.lds.S | 3 ++-
- 1 file changed, 2 insertions(+), 1 deletion(-)
+checkpatch wasnt in a mood to explain itself,
+but the other simplification seemed good, credit by association
 
-diff --git a/arch/microblaze/kernel/vmlinux.lds.S b/arch/microblaze/kernel/vmlinux.lds.S
-index b8efb08204a1..760cac41cbfe 100644
---- a/arch/microblaze/kernel/vmlinux.lds.S
-+++ b/arch/microblaze/kernel/vmlinux.lds.S
-@@ -11,6 +11,8 @@
- OUTPUT_ARCH(microblaze)
- ENTRY(microblaze_start)
- 
-+#define RO_EXCEPTION_TABLE_ALIGN	16
-+
- #include <asm/page.h>
- #include <asm-generic/vmlinux.lds.h>
- #include <asm/thread_info.h>
-@@ -52,7 +54,6 @@ SECTIONS {
- 
- 	. = ALIGN(16);
- 	RO_DATA(4096)
--	EXCEPTION_TABLE(16)
- 
- 	/*
- 	 * sdata2 section can go anywhere, but must be word aligned
--- 
-2.17.1
+I guess the action-at-a-distance feel to the linker magic
+and the extern qualifier, swung me toward heeding the advice.
+OTOH, as you note, only dyndbg should be mucking with the symbols.
+
+
+
+> >   simplify __attribute(..) to __section(__dyndbg) declaration.
+>
+> Makes sense, since you're munching the thing anyway.
+>
+> Rasmus
