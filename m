@@ -1,46 +1,48 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pf1-f193.google.com ([209.85.210.193]:41932 "EHLO
-        mail-pf1-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1729299AbfJ2VOX (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 29 Oct 2019 17:14:23 -0400
-Received: by mail-pf1-f193.google.com with SMTP id p26so6395256pfq.8
-        for <linux-arch@vger.kernel.org>; Tue, 29 Oct 2019 14:14:22 -0700 (PDT)
+Received: from mail-pg1-f194.google.com ([209.85.215.194]:35159 "EHLO
+        mail-pg1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1729885AbfJ2VUh (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 29 Oct 2019 17:20:37 -0400
+Received: by mail-pg1-f194.google.com with SMTP id c8so10530735pgb.2
+        for <linux-arch@vger.kernel.org>; Tue, 29 Oct 2019 14:20:36 -0700 (PDT)
 From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH v3 26/29] x86/mm: Remove redundant &s on addresses
-Date: Tue, 29 Oct 2019 14:13:48 -0700
-Message-ID: <20191029211351.13243-27-keescook@chromium.org>
+Subject: [PATCH v3 21/29] ia64: Move EXCEPTION_TABLE to RO_DATA segment
+Date: Tue, 29 Oct 2019 14:13:43 -0700
+Message-ID: <20191029211351.13243-22-keescook@chromium.org>
 In-Reply-To: <20191029211351.13243-1-keescook@chromium.org>
 References: <20191029211351.13243-1-keescook@chromium.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Borislav Petkov <bp@alien8.de>
 Cc: Kees Cook <keescook@chromium.org>, Rick Edgecombe <rick.p.edgecombe@intel.com>, Segher Boessenkool <segher@kernel.crashing.org>, Dave Hansen <dave.hansen@linux.intel.com>, Andy Lutomirski <luto@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Michael Ellerman <mpe@ellerman.id.au>, Heiko Carstens <heiko.carstens@de.ibm.com>, Will Deacon <will@kernel.org>, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linuxppc-dev@lists.ozlabs.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-s390@vger.kernel.org, linux-c6x-dev@linux-c6x.org, Yoshinori Sato <ysato@users.sourceforge.jp>, Michal Simek <monstr@monstr.eu>
-Message-ID: <20191029211348.5jC_Jb4FwUySXu1Zd9V4-sRZPb7jE2g00qHL1peVyUI@z>
+Message-ID: <20191029211343.logwzjiMmIKTVkHESBqi5H2T-0ddEKJkaTBYwHOc9To@z>
 
-The &s on addresses are redundant. Remove them to match all the other
-similar functions.
+Since the EXCEPTION_TABLE is read-only, collapse it into RO_DATA.
 
 Signed-off-by: Kees Cook <keescook@chromium.org>
 ---
- arch/x86/mm/init_64.c | 6 +++---
- 1 file changed, 3 insertions(+), 3 deletions(-)
+ arch/ia64/kernel/vmlinux.lds.S | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/arch/x86/mm/init_64.c b/arch/x86/mm/init_64.c
-index 26299e9ce6da..e67ddca8b7a8 100644
---- a/arch/x86/mm/init_64.c
-+++ b/arch/x86/mm/init_64.c
-@@ -1300,9 +1300,9 @@ void mark_rodata_ro(void)
- {
- 	unsigned long start = PFN_ALIGN(_text);
- 	unsigned long rodata_start = PFN_ALIGN(__start_rodata);
--	unsigned long end = (unsigned long) &__end_rodata_hpage_align;
--	unsigned long text_end = PFN_ALIGN(&_etext);
--	unsigned long rodata_end = PFN_ALIGN(&__end_rodata);
-+	unsigned long end = (unsigned long)__end_rodata_hpage_align;
-+	unsigned long text_end = PFN_ALIGN(_etext);
-+	unsigned long rodata_end = PFN_ALIGN(__end_rodata);
- 	unsigned long all_end;
+diff --git a/arch/ia64/kernel/vmlinux.lds.S b/arch/ia64/kernel/vmlinux.lds.S
+index 11d5115bc44d..1ec6b703c5b4 100644
+--- a/arch/ia64/kernel/vmlinux.lds.S
++++ b/arch/ia64/kernel/vmlinux.lds.S
+@@ -6,6 +6,7 @@
+ #include <asm/thread_info.h>
  
- 	printk(KERN_INFO "Write protecting the kernel read-only data: %luk\n",
+ #define EMITS_PT_NOTE
++#define RO_EXCEPTION_TABLE_ALIGN	16
+ 
+ #include <asm-generic/vmlinux.lds.h>
+ 
+@@ -70,7 +71,6 @@ SECTIONS {
+ 	/*
+ 	 * Read-only data
+ 	 */
+-	EXCEPTION_TABLE(16)
+ 
+ 	/* MCA table */
+ 	. = ALIGN(16);
 -- 
 2.17.1
