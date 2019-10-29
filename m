@@ -1,63 +1,98 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pf1-f194.google.com ([209.85.210.194]:42158 "EHLO
-        mail-pf1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726403AbfJ2WsH (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 29 Oct 2019 18:48:07 -0400
-Received: by mail-pf1-f194.google.com with SMTP id 21so122160pfj.9
-        for <linux-arch@vger.kernel.org>; Tue, 29 Oct 2019 15:48:07 -0700 (PDT)
+Received: from mail-pg1-f194.google.com ([209.85.215.194]:46941 "EHLO
+        mail-pg1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726025AbfJ2XH7 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 29 Oct 2019 19:07:59 -0400
+Received: by mail-pg1-f194.google.com with SMTP id f19so108598pgn.13
+        for <linux-arch@vger.kernel.org>; Tue, 29 Oct 2019 16:07:59 -0700 (PDT)
+Date: Tue, 29 Oct 2019 16:07:57 -0700
 From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH v3 1/3] MIPS: OCTEON: Replace SIZEOF_FIELD() macro
-Date: Tue, 29 Oct 2019 15:47:54 -0700
-Message-ID: <20191029224756.28618-2-keescook@chromium.org>
-In-Reply-To: <20191029224756.28618-1-keescook@chromium.org>
-References: <20191029224756.28618-1-keescook@chromium.org>
+Subject: Re: [PATCH v3 01/12] ELF: UAPI and Kconfig additions for ELF program
+ properties
+Message-ID: <201910291607.F5DA2EE@keescook>
+References: <1571419545-20401-1-git-send-email-Dave.Martin@arm.com>
+ <1571419545-20401-2-git-send-email-Dave.Martin@arm.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <1571419545-20401-2-git-send-email-Dave.Martin@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Kees Cook <keescook@chromium.org>, Pankaj Bharadiya <pankaj.laxminarayan.bharadiya@intel.com>, Alexey Dobriyan <adobriyan@gmail.com>, "David S. Miller" <davem@davemloft.net>, Randy Dunlap <rdunlap@infradead.org>, Andrew Morton <akpm@linux-foundation.org>, netdev@vger.kernel.org, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20191029224754.z2-3mY_0c41jOJ3j8gU0AT7W6vL-SlvzWGU4YeY_1I4@z>
+To: Dave Martin <Dave.Martin@arm.com>
+Cc: linux-kernel@vger.kernel.org, Andrew Jones <drjones@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Catalin Marinas <catalin.marinas@arm.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Kristina =?utf-8?Q?Mart=C5=A1enko?= <kristina.martsenko@arm.com>, Marc Zyngier <maz@kernel.org>, Mark Brown <broonie@kernel.org>, Paul Elliott <paul.elliott@arm.com>, Peter Zijlstra <peterz@infradead.org>, Richard Henderson <richard.henderson@linaro.org>, Sudakshina Das <sudi.das@arm.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Will Deacon <will@kernel.org>, Yu-cheng Yu <yu-cheng.yu@intel.com>, Amit Kachhap <amit.kachhap@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org
+Message-ID: <20191029230757.gkXsaMMldD8FYFMewdepxh92EjYdrjkjcwelH0QDioE@z>
 
-From: Pankaj Bharadiya <pankaj.laxminarayan.bharadiya@intel.com>
+On Fri, Oct 18, 2019 at 06:25:34PM +0100, Dave Martin wrote:
+> Pull the basic ELF definitions relating to the
+> NT_GNU_PROPERTY_TYPE_0 note from Yu-Cheng Yu's earlier x86 shstk
+> series.
+> 
+> Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
 
-In preparation for switching to a standard sizeof_member() macro to find the
-size of a member of a struct, remove the custom SIZEOF_FIELD() macro and use
-the more common FIELD_SIZEOF() instead. Later patches will globally replace
-FIELD_SIZEOF() and sizeof_field() with the more accurate sizeof_member().
+Reviewed-by: Kees Cook <keescook@chromium.org>
 
-Signed-off-by: Pankaj Bharadiya <pankaj.laxminarayan.bharadiya@intel.com>
-Link: https://lore.kernel.org/r/20190924105839.110713-4-pankaj.laxminarayan.bharadiya@intel.com
-Co-developed-by: Kees Cook <keescook@chromium.org>
-Signed-off-by: Kees Cook <keescook@chromium.org>
----
- arch/mips/cavium-octeon/executive/cvmx-bootmem.c | 9 +--------
- 1 file changed, 1 insertion(+), 8 deletions(-)
+-Kees
 
-diff --git a/arch/mips/cavium-octeon/executive/cvmx-bootmem.c b/arch/mips/cavium-octeon/executive/cvmx-bootmem.c
-index ba8f82a29a81..44b506a14666 100644
---- a/arch/mips/cavium-octeon/executive/cvmx-bootmem.c
-+++ b/arch/mips/cavium-octeon/executive/cvmx-bootmem.c
-@@ -44,13 +44,6 @@ static struct cvmx_bootmem_desc *cvmx_bootmem_desc;
- 
- /* See header file for descriptions of functions */
- 
--/**
-- * This macro returns the size of a member of a structure.
-- * Logically it is the same as "sizeof(s::field)" in C++, but
-- * C lacks the "::" operator.
-- */
--#define SIZEOF_FIELD(s, field) sizeof(((s *)NULL)->field)
--
- /**
-  * This macro returns a member of the
-  * cvmx_bootmem_named_block_desc_t structure. These members can't
-@@ -65,7 +58,7 @@ static struct cvmx_bootmem_desc *cvmx_bootmem_desc;
- #define CVMX_BOOTMEM_NAMED_GET_FIELD(addr, field)			\
- 	__cvmx_bootmem_desc_get(addr,					\
- 		offsetof(struct cvmx_bootmem_named_block_desc, field),	\
--		SIZEOF_FIELD(struct cvmx_bootmem_named_block_desc, field))
-+		FIELD_SIZEOF(struct cvmx_bootmem_named_block_desc, field))
- 
- /**
-  * This function is the implementation of the get macros defined
+> Signed-off-by: Dave Martin <Dave.Martin@arm.com>
+> ---
+>  fs/Kconfig.binfmt        | 3 +++
+>  include/linux/elf.h      | 8 ++++++++
+>  include/uapi/linux/elf.h | 1 +
+>  3 files changed, 12 insertions(+)
+> 
+> diff --git a/fs/Kconfig.binfmt b/fs/Kconfig.binfmt
+> index 62dc4f5..d2cfe07 100644
+> --- a/fs/Kconfig.binfmt
+> +++ b/fs/Kconfig.binfmt
+> @@ -36,6 +36,9 @@ config COMPAT_BINFMT_ELF
+>  config ARCH_BINFMT_ELF_STATE
+>  	bool
+>  
+> +config ARCH_USE_GNU_PROPERTY
+> +	bool
+> +
+>  config BINFMT_ELF_FDPIC
+>  	bool "Kernel support for FDPIC ELF binaries"
+>  	default y if !BINFMT_ELF
+> diff --git a/include/linux/elf.h b/include/linux/elf.h
+> index e3649b3..459cddc 100644
+> --- a/include/linux/elf.h
+> +++ b/include/linux/elf.h
+> @@ -2,6 +2,7 @@
+>  #ifndef _LINUX_ELF_H
+>  #define _LINUX_ELF_H
+>  
+> +#include <linux/types.h>
+>  #include <asm/elf.h>
+>  #include <uapi/linux/elf.h>
+>  
+> @@ -56,4 +57,11 @@ static inline int elf_coredump_extra_notes_write(struct coredump_params *cprm) {
+>  extern int elf_coredump_extra_notes_size(void);
+>  extern int elf_coredump_extra_notes_write(struct coredump_params *cprm);
+>  #endif
+> +
+> +/* NT_GNU_PROPERTY_TYPE_0 header */
+> +struct gnu_property {
+> +	u32 pr_type;
+> +	u32 pr_datasz;
+> +};
+> +
+>  #endif /* _LINUX_ELF_H */
+> diff --git a/include/uapi/linux/elf.h b/include/uapi/linux/elf.h
+> index 34c02e4..c377314 100644
+> --- a/include/uapi/linux/elf.h
+> +++ b/include/uapi/linux/elf.h
+> @@ -36,6 +36,7 @@ typedef __s64	Elf64_Sxword;
+>  #define PT_LOPROC  0x70000000
+>  #define PT_HIPROC  0x7fffffff
+>  #define PT_GNU_EH_FRAME		0x6474e550
+> +#define PT_GNU_PROPERTY		0x6474e553
+>  
+>  #define PT_GNU_STACK	(PT_LOOS + 0x474e551)
+>  
+> -- 
+> 2.1.4
+> 
+
 -- 
-2.17.1
+Kees Cook
