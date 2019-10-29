@@ -1,7 +1,7 @@
 From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 16/21] sh: remove __iounmap
-Date: Tue, 29 Oct 2019 07:48:29 +0100
-Message-ID: <20191029064834.23438-17-hch@lst.de>
+Subject: [PATCH 19/21] nds32: use generic ioremap
+Date: Tue, 29 Oct 2019 07:48:32 +0100
+Message-ID: <20191029064834.23438-20-hch@lst.de>
 References: <20191029064834.23438-1-hch@lst.de>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
@@ -12,66 +12,156 @@ To: Arnd Bergmann <arnd@arndb.de>, Guo Ren <guoren@kernel.org>, Michal Simek <mo
 Cc: linux-alpha@vger.kernel.org, linux-snps-arc@lists.infradead.org, linux-arm-kernel@lists.infradead.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, nios2-dev@lists.rocketboards.org, openrisc@lists.librecores.org, linux-parisc@vger.kernel.org, linux-riscv@lists.infradead.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-mtd@lists.infradead.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-No need to indirect iounmap for sh.
+Use the generic ioremap_prot and iounmap helpers.
+
+Note that the io.h include in pgtable.h had to be removed to not create
+an include loop.  As far as I can tell there was no need for it to
+start with.
 
 Signed-off-by: Christoph Hellwig <hch@lst.de>
 ---
- arch/sh/include/asm/io.h | 9 ++-------
- arch/sh/mm/ioremap.c     | 4 ++--
- 2 files changed, 4 insertions(+), 9 deletions(-)
+ arch/nds32/Kconfig               |  1 +
+ arch/nds32/include/asm/io.h      |  3 +-
+ arch/nds32/include/asm/pgtable.h |  4 ++-
+ arch/nds32/mm/Makefile           |  3 +-
+ arch/nds32/mm/ioremap.c          | 62 --------------------------------
+ 5 files changed, 6 insertions(+), 67 deletions(-)
+ delete mode 100644 arch/nds32/mm/ioremap.c
 
-diff --git a/arch/sh/include/asm/io.h b/arch/sh/include/asm/io.h
-index ac0561960c52..1495489225ac 100644
---- a/arch/sh/include/asm/io.h
-+++ b/arch/sh/include/asm/io.h
-@@ -267,7 +267,7 @@ unsigned long long poke_real_address_q(unsigned long long addr,
- #ifdef CONFIG_MMU
- void __iomem *__ioremap_caller(phys_addr_t offset, unsigned long size,
- 			       pgprot_t prot, void *caller);
--void __iounmap(void __iomem *addr);
-+void iounmap(void __iomem *addr);
+diff --git a/arch/nds32/Kconfig b/arch/nds32/Kconfig
+index fbd68329737f..12c06a833b7c 100644
+--- a/arch/nds32/Kconfig
++++ b/arch/nds32/Kconfig
+@@ -20,6 +20,7 @@ config NDS32
+ 	select GENERIC_CLOCKEVENTS
+ 	select GENERIC_IRQ_CHIP
+ 	select GENERIC_IRQ_SHOW
++	select GENERIC_IOREMAP
+ 	select GENERIC_LIB_ASHLDI3
+ 	select GENERIC_LIB_ASHRDI3
+ 	select GENERIC_LIB_CMPDI2
+diff --git a/arch/nds32/include/asm/io.h b/arch/nds32/include/asm/io.h
+index fb0e8a24c7af..e57378d04006 100644
+--- a/arch/nds32/include/asm/io.h
++++ b/arch/nds32/include/asm/io.h
+@@ -6,8 +6,6 @@
  
- static inline void __iomem *
- __ioremap(phys_addr_t offset, unsigned long size, pgprot_t prot)
-@@ -328,7 +328,7 @@ __ioremap_mode(phys_addr_t offset, unsigned long size, pgprot_t prot)
- #else
- #define __ioremap(offset, size, prot)		((void __iomem *)(offset))
- #define __ioremap_mode(offset, size, prot)	((void __iomem *)(offset))
--#define __iounmap(addr)				do { } while (0)
-+#define iounmap(addr)				do { } while (0)
- #endif /* CONFIG_MMU */
+ #include <linux/types.h>
  
- static inline void __iomem *ioremap(phys_addr_t offset, unsigned long size)
-@@ -370,11 +370,6 @@ static inline int iounmap_fixed(void __iomem *addr) { return -EINVAL; }
- #define ioremap_nocache	ioremap
- #define ioremap_uc	ioremap
+-void __iomem *ioremap(phys_addr_t phys_addr, size_t size);
+-extern void iounmap(volatile void __iomem *addr);
+ #define __raw_writeb __raw_writeb
+ static inline void __raw_writeb(u8 val, volatile void __iomem *addr)
+ {
+@@ -80,6 +78,7 @@ static inline u32 __raw_readl(const volatile void __iomem *addr)
+ #define writeb(v,c)	({ __iowmb(); writeb_relaxed((v),(c)); })
+ #define writew(v,c)	({ __iowmb(); writew_relaxed((v),(c)); })
+ #define writel(v,c)	({ __iowmb(); writel_relaxed((v),(c)); })
++
+ #include <asm-generic/io.h>
  
--static inline void iounmap(void __iomem *addr)
+ #endif /* __ASM_NDS32_IO_H */
+diff --git a/arch/nds32/include/asm/pgtable.h b/arch/nds32/include/asm/pgtable.h
+index 0588ec99725c..6fbf251cfc26 100644
+--- a/arch/nds32/include/asm/pgtable.h
++++ b/arch/nds32/include/asm/pgtable.h
+@@ -12,7 +12,6 @@
+ #include <asm/nds32.h>
+ #ifndef __ASSEMBLY__
+ #include <asm/fixmap.h>
+-#include <asm/io.h>
+ #include <nds32_intrinsic.h>
+ #endif
+ 
+@@ -130,6 +129,9 @@ extern void __pgd_error(const char *file, int line, unsigned long val);
+ #define _PAGE_CACHE		_PAGE_C_MEM_WB
+ #endif
+ 
++#define _PAGE_IOREMAP \
++	(_PAGE_V | _PAGE_M_KRW | _PAGE_D | _PAGE_G | _PAGE_C_DEV)
++
+ /*
+  * + Level 1 descriptor (PMD)
+  */
+diff --git a/arch/nds32/mm/Makefile b/arch/nds32/mm/Makefile
+index bd360e4583b5..897ecaf5cf54 100644
+--- a/arch/nds32/mm/Makefile
++++ b/arch/nds32/mm/Makefile
+@@ -1,6 +1,5 @@
+ # SPDX-License-Identifier: GPL-2.0-only
+-obj-y				:= extable.o tlb.o \
+-				   fault.o init.o ioremap.o mmap.o \
++obj-y				:= extable.o tlb.o fault.o init.o mmap.o \
+                                    mm-nds32.o cacheflush.o proc.o
+ 
+ obj-$(CONFIG_ALIGNMENT_TRAP)	+= alignment.o
+diff --git a/arch/nds32/mm/ioremap.c b/arch/nds32/mm/ioremap.c
+deleted file mode 100644
+index 690140bb23a2..000000000000
+--- a/arch/nds32/mm/ioremap.c
++++ /dev/null
+@@ -1,62 +0,0 @@
+-// SPDX-License-Identifier: GPL-2.0
+-// Copyright (C) 2005-2017 Andes Technology Corporation
+-
+-#include <linux/vmalloc.h>
+-#include <linux/io.h>
+-#include <linux/mm.h>
+-#include <asm/pgtable.h>
+-
+-void __iomem *ioremap(phys_addr_t phys_addr, size_t size);
+-
+-static void __iomem *__ioremap_caller(phys_addr_t phys_addr, size_t size,
+-				      void *caller)
 -{
--	__iounmap(addr);
+-	struct vm_struct *area;
+-	unsigned long addr, offset, last_addr;
+-	pgprot_t prot;
+-
+-	/* Don't allow wraparound or zero size */
+-	last_addr = phys_addr + size - 1;
+-	if (!size || last_addr < phys_addr)
+-		return NULL;
+-
+-	/*
+-	 * Mappings have to be page-aligned
+-	 */
+-	offset = phys_addr & ~PAGE_MASK;
+-	phys_addr &= PAGE_MASK;
+-	size = PAGE_ALIGN(last_addr + 1) - phys_addr;
+-
+-	/*
+-	 * Ok, go for it..
+-	 */
+-	area = get_vm_area_caller(size, VM_IOREMAP, caller);
+-	if (!area)
+-		return NULL;
+-
+-	area->phys_addr = phys_addr;
+-	addr = (unsigned long)area->addr;
+-	prot = __pgprot(_PAGE_V | _PAGE_M_KRW | _PAGE_D |
+-			_PAGE_G | _PAGE_C_DEV);
+-	if (ioremap_page_range(addr, addr + size, phys_addr, prot)) {
+-		vunmap((void *)addr);
+-		return NULL;
+-	}
+-	return (__force void __iomem *)(offset + (char *)addr);
+-
 -}
 -
- /*
-  * Convert a physical pointer to a virtual kernel pointer for /dev/mem
-  * access
-diff --git a/arch/sh/mm/ioremap.c b/arch/sh/mm/ioremap.c
-index d09ddfe58fd8..f6d02246d665 100644
---- a/arch/sh/mm/ioremap.c
-+++ b/arch/sh/mm/ioremap.c
-@@ -103,7 +103,7 @@ static inline int iomapping_nontranslatable(unsigned long offset)
- 	return 0;
- }
- 
--void __iounmap(void __iomem *addr)
-+void iounmap(void __iomem *addr)
- {
- 	unsigned long vaddr = (unsigned long __force)addr;
- 	struct vm_struct *p;
-@@ -134,4 +134,4 @@ void __iounmap(void __iomem *addr)
- 
- 	kfree(p);
- }
--EXPORT_SYMBOL(__iounmap);
-+EXPORT_SYMBOL(iounmap);
+-void __iomem *ioremap(phys_addr_t phys_addr, size_t size)
+-{
+-	return __ioremap_caller(phys_addr, size,
+-				__builtin_return_address(0));
+-}
+-
+-EXPORT_SYMBOL(ioremap);
+-
+-void iounmap(volatile void __iomem * addr)
+-{
+-	vunmap((void *)(PAGE_MASK & (unsigned long)addr));
+-}
+-
+-EXPORT_SYMBOL(iounmap);
 -- 
 2.20.1
