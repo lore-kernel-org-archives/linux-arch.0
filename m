@@ -1,14 +1,13 @@
 From: Ard Biesheuvel <ard.biesheuvel@linaro.org>
-Subject: Re: [PATCH 1/6] random: Mark CONFIG_ARCH_RANDOM functions __must_check
-Date: Tue, 29 Oct 2019 09:21:03 +0100
-Message-ID: <CAKv+Gu9iW341X8FLBedO1Lhr0H-XcA7jDp3bh3nQh7f7N_M0eA@mail.gmail.com>
+Subject: Re: [PATCH 0/6] Improvements for random.h/archrandom.h
+Date: Tue, 29 Oct 2019 09:22:16 +0100
+Message-ID: <CAKv+Gu-mnyKK_0s7fF_8C0aq1ur+RoHscVwTfd31quEVqZhefw@mail.gmail.com>
 References: <20191028210559.8289-1-rth@twiddle.net>
- <20191028210559.8289-2-rth@twiddle.net>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
-In-Reply-To: <20191028210559.8289-2-rth@twiddle.net>
+In-Reply-To: <20191028210559.8289-1-rth@twiddle.net>
 List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
  <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
 List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
@@ -19,60 +18,46 @@ List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
 Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
 Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
 To: Richard Henderson <richard.henderson@linaro.org>
-Cc: linux-arch <linux-arch@vger.kernel.org>, linux-s390 <linux-s390@vger.kernel.org>, Kees Cook <keescook@chromium.org>, the arch/x86 maintainers <x86@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, linux-arm-kernel <linux-arm-kernel@lists.infradead.org>
+Cc: linux-arch <linux-arch@vger.kernel.org>, linux-s390 <linux-s390@vger.kernel.org>, the arch/x86 maintainers <x86@kernel.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, linux-arm-kernel <linux-arm-kernel@lists.infradead.org>
 List-Id: linux-arch.vger.kernel.org
 
 On Mon, 28 Oct 2019 at 22:06, Richard Henderson
 <richard.henderson@linaro.org> wrote:
 >
-> We cannot use the pointer output without validating the
-> success of the random read.
+> During patch review for an addition of archrandom.h for arm64,
+> it was suggeted that the arch_random_get_* functions should be
+> marked __must_check.  Which does sound like a good idea, since
+> the by-reference integer output may be uninitialized when the
+> boolean result is false.
 >
-> Signed-off-by: Richard Henderson <rth@twiddle.net>
-> ---
-> Cc: Kees Cook <keescook@chromium.org>
-> Cc: "H. Peter Anvin" <hpa@zytor.com>
-> Cc: linux-arch@vger.kernel.org
-> ---
->  include/linux/random.h | 8 ++++----
->  1 file changed, 4 insertions(+), 4 deletions(-)
+> In addition, I noticed a few other minor inconsistencies between
+> the different architectures: x86 defines some functional macros
+> outside CONFIG_ARCH_RANDOM, and powerpc isn't using bool.
 >
-> diff --git a/include/linux/random.h b/include/linux/random.h
-> index f189c927fdea..84947b489649 100644
-> --- a/include/linux/random.h
-> +++ b/include/linux/random.h
-> @@ -167,11 +167,11 @@ static inline void prandom_seed_state(struct rnd_state *state, u64 seed)
->  #ifdef CONFIG_ARCH_RANDOM
->  # include <asm/archrandom.h>
->  #else
-> -static inline bool arch_get_random_long(unsigned long *v)
-> +static inline bool __must_check arch_get_random_long(unsigned long *v)
->  {
->         return 0;
+>
+> r~
+>
+>
+> Richard Henderson (6):
+>   random: Mark CONFIG_ARCH_RANDOM functions __must_check
+>   x86: Move arch_has_random* inside CONFIG_ARCH_RANDOM
+>   x86: Mark archrandom.h functions __must_check
+>   powerpc: Use bool in archrandom.h
+>   powerpc: Mark archrandom.h functions __must_check
+>   s390x: Mark archrandom.h functions __must_check
+>
 
-For symmetry with the other cleanups, you should probably change these
-into 'return false' as well
+Modulo the nit in reply to 1/6:
 
->  }
-> -static inline bool arch_get_random_int(unsigned int *v)
-> +static inline bool __must_check arch_get_random_int(unsigned int *v)
->  {
->         return 0;
->  }
-> @@ -179,11 +179,11 @@ static inline bool arch_has_random(void)
->  {
->         return 0;
->  }
-> -static inline bool arch_get_random_seed_long(unsigned long *v)
-> +static inline bool __must_check arch_get_random_seed_long(unsigned long *v)
->  {
->         return 0;
->  }
-> -static inline bool arch_get_random_seed_int(unsigned int *v)
-> +static inline bool __must_check arch_get_random_seed_int(unsigned int *v)
->  {
->         return 0;
->  }
+Reviewed-by: Ard Biesheuvel <ardb@kernel.org>
+
+
+>  arch/powerpc/include/asm/archrandom.h | 24 +++++++++++++-----------
+>  arch/s390/include/asm/archrandom.h    |  8 ++++----
+>  arch/x86/include/asm/archrandom.h     | 24 ++++++++++++------------
+>  include/linux/random.h                |  8 ++++----
+>  4 files changed, 33 insertions(+), 31 deletions(-)
+>
 > --
 > 2.17.1
 >
