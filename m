@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.133]:38222 "EHLO
+Received: from bombadil.infradead.org ([198.137.202.133]:38090 "EHLO
         bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1733142AbfJ2Gte (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 29 Oct 2019 02:49:34 -0400
+        with ESMTP id S1733095AbfJ2Gtd (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 29 Oct 2019 02:49:33 -0400
 From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 13/21] m68k: rename __iounmap and mark it static
-Date: Tue, 29 Oct 2019 07:48:26 +0100
-Message-ID: <20191029064834.23438-14-hch@lst.de>
+Subject: [PATCH 11/21] asm-generic: don't provide ioremap for CONFIG_MMU
+Date: Tue, 29 Oct 2019 07:48:24 +0100
+Message-ID: <20191029064834.23438-12-hch@lst.de>
 In-Reply-To: <20191029064834.23438-1-hch@lst.de>
 References: <20191029064834.23438-1-hch@lst.de>
 MIME-Version: 1.0
@@ -15,154 +15,108 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Arnd Bergmann <arnd@arndb.de>, Guo Ren <guoren@kernel.org>, Michal Simek <monstr@monstr.eu>, Greentime Hu <green.hu@gmail.com>, Vincent Chen <deanbo422@gmail.com>, Guan Xuetao <gxt@pku.edu.cn>, x86@kernel.org
 Cc: linux-alpha@vger.kernel.org, linux-snps-arc@lists.infradead.org, linux-arm-kernel@lists.infradead.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, nios2-dev@lists.rocketboards.org, openrisc@lists.librecores.org, linux-parisc@vger.kernel.org, linux-riscv@lists.infradead.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-mtd@lists.infradead.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20191029064826.awBFg2RpxWbXryDu-IA0BZcCfs09Y4x_5ZM1T51CAIU@z>
+Message-ID: <20191029064824.LFT1igU-jhk2i7pwx3rqTTigtKLZ7jqbPkW4I-45dl8@z>
 
-m68k uses __iounmap as the name for an internal helper that is only
-used for some CPU types.  Mark it static, give it a better name
-and move it around a bit to avoid a forward declaration.
+All MMU-enabled ports have a non-trivial ioremap and should thus provide
+the prototype for their implementation instead of providing a generic
+one unless a different symbol is not defined.  Note that this only
+affects sparc32 nds32 as all others do provide their own version.
+
+Also update the kerneldoc comments in asm-generic/io.h to explain the
+situation around the default ioremap* implementations correctly.
 
 Signed-off-by: Christoph Hellwig <hch@lst.de>
 ---
- arch/m68k/include/asm/kmap.h |   1 -
- arch/m68k/mm/kmap.c          | 100 +++++++++++++++++------------------
- 2 files changed, 50 insertions(+), 51 deletions(-)
+ arch/nds32/include/asm/io.h    |  2 ++
+ arch/sparc/include/asm/io_32.h |  1 +
+ include/asm-generic/io.h       | 29 ++++++++---------------------
+ 3 files changed, 11 insertions(+), 21 deletions(-)
 
-diff --git a/arch/m68k/include/asm/kmap.h b/arch/m68k/include/asm/kmap.h
-index 421b6c9c769d..559cb91bede1 100644
---- a/arch/m68k/include/asm/kmap.h
-+++ b/arch/m68k/include/asm/kmap.h
-@@ -20,7 +20,6 @@ extern void __iomem *__ioremap(unsigned long physaddr, unsigned long size,
- 			       int cacheflag);
- #define iounmap iounmap
- extern void iounmap(void __iomem *addr);
--extern void __iounmap(void *addr, unsigned long size);
+diff --git a/arch/nds32/include/asm/io.h b/arch/nds32/include/asm/io.h
+index 16f262322b8f..fb0e8a24c7af 100644
+--- a/arch/nds32/include/asm/io.h
++++ b/arch/nds32/include/asm/io.h
+@@ -6,6 +6,7 @@
  
- #define ioremap ioremap
- static inline void __iomem *ioremap(unsigned long physaddr, unsigned long size)
-diff --git a/arch/m68k/mm/kmap.c b/arch/m68k/mm/kmap.c
-index 40a3b327da07..23f9466aabb5 100644
---- a/arch/m68k/mm/kmap.c
-+++ b/arch/m68k/mm/kmap.c
-@@ -54,6 +54,55 @@ static inline void free_io_area(void *addr)
+ #include <linux/types.h>
  
- static struct vm_struct *iolist;
- 
-+/*
-+ * __free_io_area unmaps nearly everything, so be careful
-+ * Currently it doesn't free pointer/page tables anymore but this
-+ * wasn't used anyway and might be added later.
-+ */
-+static void __free_io_area(void *addr, unsigned long size)
-+{
-+	unsigned long virtaddr = (unsigned long)addr;
-+	pgd_t *pgd_dir;
-+	pmd_t *pmd_dir;
-+	pte_t *pte_dir;
++void __iomem *ioremap(phys_addr_t phys_addr, size_t size);
+ extern void iounmap(volatile void __iomem *addr);
+ #define __raw_writeb __raw_writeb
+ static inline void __raw_writeb(u8 val, volatile void __iomem *addr)
+@@ -80,4 +81,5 @@ static inline u32 __raw_readl(const volatile void __iomem *addr)
+ #define writew(v,c)	({ __iowmb(); writew_relaxed((v),(c)); })
+ #define writel(v,c)	({ __iowmb(); writel_relaxed((v),(c)); })
+ #include <asm-generic/io.h>
 +
-+	while ((long)size > 0) {
-+		pgd_dir = pgd_offset_k(virtaddr);
-+		if (pgd_bad(*pgd_dir)) {
-+			printk("iounmap: bad pgd(%08lx)\n", pgd_val(*pgd_dir));
-+			pgd_clear(pgd_dir);
-+			return;
-+		}
-+		pmd_dir = pmd_offset(pgd_dir, virtaddr);
-+
-+		if (CPU_IS_020_OR_030) {
-+			int pmd_off = (virtaddr/PTRTREESIZE) & 15;
-+			int pmd_type = pmd_dir->pmd[pmd_off] & _DESCTYPE_MASK;
-+
-+			if (pmd_type == _PAGE_PRESENT) {
-+				pmd_dir->pmd[pmd_off] = 0;
-+				virtaddr += PTRTREESIZE;
-+				size -= PTRTREESIZE;
-+				continue;
-+			} else if (pmd_type == 0)
-+				continue;
-+		}
-+
-+		if (pmd_bad(*pmd_dir)) {
-+			printk("iounmap: bad pmd (%08lx)\n", pmd_val(*pmd_dir));
-+			pmd_clear(pmd_dir);
-+			return;
-+		}
-+		pte_dir = pte_offset_kernel(pmd_dir, virtaddr);
-+
-+		pte_val(*pte_dir) = 0;
-+		virtaddr += PAGE_SIZE;
-+		size -= PAGE_SIZE;
-+	}
-+
-+	flush_tlb_all();
-+}
-+
- static struct vm_struct *get_io_area(unsigned long size)
- {
- 	unsigned long addr;
-@@ -90,7 +139,7 @@ static inline void free_io_area(void *addr)
- 		if (tmp->addr == addr) {
- 			*p = tmp->next;
- 			/* remove gap added in get_io_area() */
--			__iounmap(tmp->addr, tmp->size - IO_SIZE);
-+			__free_io_area(tmp->addr, tmp->size - IO_SIZE);
- 			kfree(tmp);
- 			return;
- 		}
-@@ -249,55 +298,6 @@ void iounmap(void __iomem *addr)
- }
- EXPORT_SYMBOL(iounmap);
- 
+ #endif /* __ASM_NDS32_IO_H */
+diff --git a/arch/sparc/include/asm/io_32.h b/arch/sparc/include/asm/io_32.h
+index df2dc1784673..9a52d9506f80 100644
+--- a/arch/sparc/include/asm/io_32.h
++++ b/arch/sparc/include/asm/io_32.h
+@@ -127,6 +127,7 @@ static inline void sbus_memcpy_toio(volatile void __iomem *dst,
+  * Bus number may be embedded in the higher bits of the physical address.
+  * This is why we have no bus number argument to ioremap().
+  */
++void __iomem *ioremap(phys_addr_t offset, size_t size);
+ void iounmap(volatile void __iomem *addr);
+ /* Create a virtual mapping cookie for an IO port range */
+ void __iomem *ioport_map(unsigned long port, unsigned int nr);
+diff --git a/include/asm-generic/io.h b/include/asm-generic/io.h
+index a98ed6325727..6a5edc23afe2 100644
+--- a/include/asm-generic/io.h
++++ b/include/asm-generic/io.h
+@@ -922,28 +922,16 @@ static inline void *phys_to_virt(unsigned long address)
+ /**
+  * DOC: ioremap() and ioremap_*() variants
+  *
+- * If you have an IOMMU your architecture is expected to have both ioremap()
+- * and iounmap() implemented otherwise the asm-generic helpers will provide a
+- * direct mapping.
++ * Architectures with an MMU are expected to provide ioremap() and iounmap()
++ * themselves.  For NOMMU architectures we provide a default nop-op
++ * implementation that expect that the physical address used for MMIO are
++ * already marked as uncached, and can be used as kernel virtual addresses.
+  *
+- * There are ioremap_*() call variants, if you have no IOMMU we naturally will
+- * default to direct mapping for all of them, you can override these defaults.
+- * If you have an IOMMU you are highly encouraged to provide your own
+- * ioremap variant implementation as there currently is no safe architecture
+- * agnostic default. To avoid possible improper behaviour default asm-generic
+- * ioremap_*() variants all return NULL when an IOMMU is available. If you've
+- * defined your own ioremap_*() variant you must then declare your own
+- * ioremap_*() variant as defined to itself to avoid the default NULL return.
++ * ioremap_wc() and ioremap_wt() can provide more relaxed caching attributes
++ * for specific drivers if the architecture choses to implement them.  If they
++ * are not implemented we fall back to plain ioremap.
+  */
+ #ifndef CONFIG_MMU
+-
 -/*
-- * __iounmap unmaps nearly everything, so be careful
-- * Currently it doesn't free pointer/page tables anymore but this
-- * wasn't used anyway and might be added later.
+- * Change "struct page" to physical address.
+- *
+- * This implementation is for the no-MMU case only... if you have an MMU
+- * you'll need to provide your own definitions.
 - */
--void __iounmap(void *addr, unsigned long size)
--{
--	unsigned long virtaddr = (unsigned long)addr;
--	pgd_t *pgd_dir;
--	pmd_t *pmd_dir;
--	pte_t *pte_dir;
 -
--	while ((long)size > 0) {
--		pgd_dir = pgd_offset_k(virtaddr);
--		if (pgd_bad(*pgd_dir)) {
--			printk("iounmap: bad pgd(%08lx)\n", pgd_val(*pgd_dir));
--			pgd_clear(pgd_dir);
--			return;
--		}
--		pmd_dir = pmd_offset(pgd_dir, virtaddr);
+ #ifndef ioremap
+ #define ioremap ioremap
+ static inline void __iomem *ioremap(phys_addr_t offset, size_t size)
+@@ -954,14 +942,13 @@ static inline void __iomem *ioremap(phys_addr_t offset, size_t size)
+ 
+ #ifndef iounmap
+ #define iounmap iounmap
 -
--		if (CPU_IS_020_OR_030) {
--			int pmd_off = (virtaddr/PTRTREESIZE) & 15;
--			int pmd_type = pmd_dir->pmd[pmd_off] & _DESCTYPE_MASK;
--
--			if (pmd_type == _PAGE_PRESENT) {
--				pmd_dir->pmd[pmd_off] = 0;
--				virtaddr += PTRTREESIZE;
--				size -= PTRTREESIZE;
--				continue;
--			} else if (pmd_type == 0)
--				continue;
--		}
--
--		if (pmd_bad(*pmd_dir)) {
--			printk("iounmap: bad pmd (%08lx)\n", pmd_val(*pmd_dir));
--			pmd_clear(pmd_dir);
--			return;
--		}
--		pte_dir = pte_offset_kernel(pmd_dir, virtaddr);
--
--		pte_val(*pte_dir) = 0;
--		virtaddr += PAGE_SIZE;
--		size -= PAGE_SIZE;
--	}
--
--	flush_tlb_all();
--}
--
- /*
-  * Set new cache mode for some kernel address space.
-  * The caller must push data for that range itself, if such data may already
+ static inline void iounmap(void __iomem *addr)
+ {
+ }
+ #endif
+ #endif /* CONFIG_MMU */
++
+ #ifndef ioremap_nocache
+-void __iomem *ioremap(phys_addr_t phys_addr, size_t size);
+ #define ioremap_nocache ioremap_nocache
+ static inline void __iomem *ioremap_nocache(phys_addr_t offset, size_t size)
+ {
 -- 
 2.20.1
