@@ -1,54 +1,48 @@
-From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH v3 25/29] xtensa: Move EXCEPTION_TABLE to RO_DATA segment
-Date: Tue, 29 Oct 2019 14:13:47 -0700
-Message-ID: <20191029211351.13243-26-keescook@chromium.org>
-References: <20191029211351.13243-1-keescook@chromium.org>
+From: jim.cromie@gmail.com
+Subject: Re: [PATCH 04/16] dyndbg: rename __verbose section to __dyndbg
+Date: Tue, 29 Oct 2019 15:25:33 -0600
+Message-ID: <CAJfuBxyEjhxkO5jv_qy17-EwrMyPfh6b_1EBCVyxyymH9qQVhg@mail.gmail.com>
+References: <20191029200026.9790-1-jim.cromie@gmail.com> <e9835376-1efe-1d1b-4a99-8bb920e04a08@rasmusvillemoes.dk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
-In-Reply-To: <20191029211351.13243-1-keescook@chromium.org>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
-To: Borislav Petkov <bp@alien8.de>
-Cc: linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, Michal Simek <monstr@monstr.eu>, linux-ia64@vger.kernel.org, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Michael Ellerman <mpe@ellerman.id.au>, Dave Hansen <dave.hansen@linux.intel.com>, Segher Boessenkool <segher@kernel.crashing.org>, linuxppc-dev@lists.ozlabs.org, Heiko Carstens <heiko.carstens@de.ibm.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Andy Lutomirski <luto@kernel.org>, linux-alpha@vger.kernel.org, Rick Edgecombe <rick.p.edgecombe@intel.com>, Will Deacon <will@kernel.org>, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org
+Content-Type: text/plain; charset="UTF-8"
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <e9835376-1efe-1d1b-4a99-8bb920e04a08@rasmusvillemoes.dk>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Rasmus Villemoes <linux@rasmusvillemoes.dk>
+Cc: Jason Baron <jbaron@akamai.com>, LKML <linux-kernel@vger.kernel.org>, Greg KH <greg@kroah.com>, Arnd Bergmann <arnd@arndb.de>, Jessica Yu <jeyu@kernel.org>, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-Since the EXCEPTION_TABLE is read-only, collapse it into RO_DATA.
+On Tue, Oct 29, 2019 at 2:37 PM Rasmus Villemoes
+<linux@rasmusvillemoes.dk> wrote:
+>
+> On 29/10/2019 21.00, Jim Cromie wrote:
+> > dyndbg populates its callsite info into __verbose section, change that
+> > to a more specific and descriptive name, __dyndbg.
+>
+> Yeah, that has always bugged me. Ack to that part.
+>
+> > Also, per checkpatch:
+> >   move extern struct _ddebug __(start|stop)__dyndbg[] to header file
+>
+> Hm, why? checkpatch should often be ignored. Since we only refer to
+> those symbols in the .c file, there's no reason to pollute every other
+> translation unit with those declarations. Having declarations in a
+> header makes sense when the actual entity gets defined in some .c file
+> (which hopefully also includes the header). But these are defined by the
+> linker, so there's no type safety to be had.
+>
 
-Signed-off-by: Kees Cook <keescook@chromium.org>
-Acked-by: Max Filippov <jcmvbkbc@gmail.com>
----
- arch/xtensa/kernel/vmlinux.lds.S | 3 ++-
- 1 file changed, 2 insertions(+), 1 deletion(-)
+checkpatch wasnt in a mood to explain itself,
+but the other simplification seemed good, credit by association
 
-diff --git a/arch/xtensa/kernel/vmlinux.lds.S b/arch/xtensa/kernel/vmlinux.lds.S
-index bdbd7c4056c1..0043d5858f14 100644
---- a/arch/xtensa/kernel/vmlinux.lds.S
-+++ b/arch/xtensa/kernel/vmlinux.lds.S
-@@ -14,6 +14,8 @@
-  * Joe Taylor <joe@tensilica.com, joetylr@yahoo.com>
-  */
- 
-+#define RO_EXCEPTION_TABLE_ALIGN	16
-+
- #include <asm-generic/vmlinux.lds.h>
- #include <asm/page.h>
- #include <asm/thread_info.h>
-@@ -130,7 +132,6 @@ SECTIONS
- 
-   .fixup   : { *(.fixup) }
- 
--  EXCEPTION_TABLE(16)
-   /* Data section */
- 
-   _sdata = .;
--- 
-2.17.1
+I guess the action-at-a-distance feel to the linker magic
+and the extern qualifier, swung me toward heeding the advice.
+OTOH, as you note, only dyndbg should be mucking with the symbols.
+
+
+
+> >   simplify __attribute(..) to __section(__dyndbg) declaration.
+>
+> Makes sense, since you're munching the thing anyway.
+>
+> Rasmus
