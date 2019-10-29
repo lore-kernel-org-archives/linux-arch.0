@@ -1,129 +1,56 @@
 From: Kees Cook <keescook@chromium.org>
-Subject: Re: [PATCH v2 3/4] treewide: Use sizeof_member() macro
-Date: Tue, 29 Oct 2019 15:30:18 -0700
-Message-ID: <201910291527.ED0E642@keescook>
-References: <20191010232345.26594-1-keescook@chromium.org>
- <20191010232345.26594-4-keescook@chromium.org>
- <2231d5f0a82f880e6706e2d0f070328a029c9b21.camel@perches.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Subject: [PATCH v3 1/3] MIPS: OCTEON: Replace SIZEOF_FIELD() macro
+Date: Tue, 29 Oct 2019 15:47:54 -0700
+Message-ID: <20191029224756.28618-2-keescook@chromium.org>
+References: <20191029224756.28618-1-keescook@chromium.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <2231d5f0a82f880e6706e2d0f070328a029c9b21.camel@perches.com>
+In-Reply-To: <20191029224756.28618-1-keescook@chromium.org>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Joe Perches <joe@perches.com>
-Cc: linux-kernel@vger.kernel.org, Pankaj Bharadiya <pankaj.laxminarayan.bharadiya@intel.com>, Alexey Dobriyan <adobriyan@gmail.com>, Linus Torvalds <torvalds@linux-foundation.org>, "David S. Miller" <davem@davemloft.net>, Randy Dunlap <rdunlap@infradead.org>, Andrew Morton <akpm@linux-foundation.org>, netdev@vger.kernel.org, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Kees Cook <keescook@chromium.org>, Pankaj Bharadiya <pankaj.laxminarayan.bharadiya@intel.com>, Alexey Dobriyan <adobriyan@gmail.com>, "David S. Miller" <davem@davemloft.net>, Randy Dunlap <rdunlap@infradead.org>, Andrew Morton <akpm@linux-foundation.org>, netdev@vger.kernel.org, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, Oct 10, 2019 at 04:50:27PM -0700, Joe Perches wrote:
-> On Thu, 2019-10-10 at 16:23 -0700, Kees Cook wrote:
-> > From: Pankaj Bharadiya <pankaj.laxminarayan.bharadiya@intel.com>
-> > 
-> > Replace all the occurrences of FIELD_SIZEOF() and sizeof_field() with
-> > sizeof_member() except at places where these are defined. Later patches
-> > will remove the unused definitions.
-> > 
-> > This patch is generated using following script:
-> > 
-> > EXCLUDE_FILES="include/linux/stddef.h|include/linux/kernel.h"
-> > 
-> > git grep -l -e "\bFIELD_SIZEOF\b" -e "\bsizeof_field\b" | while read file;
-> > do
-> > 
-> > 	if [[ "$file" =~ $EXCLUDE_FILES ]]; then
-> > 		continue
-> > 	fi
-> > 	sed -i  -e 's/\bFIELD_SIZEOF\b/sizeof_member/g' \
-> > 		-e 's/\bsizeof_field\b/sizeof_member/g' \
-> > 		$file;
-> > done
-> 
-> While the sed works, a cocci script would perhaps
-> be better as multi line argument realignment would
-> also occur.
-> 
-> $ cat sizeof_member.cocci
-> @@
-> @@
-> 
-> -	FIELD_SIZEOF
-> +	sizeof_member
-> 
-> @@
-> @@
-> 
-> -	sizeof_field
-> +	sizeof_member
-> $
-> 
-> For instance, this sed produces:
-> 
-> diff --git a/crypto/adiantum.c b/crypto/adiantum.c
-> @@ -435,10 +435,10 @@ static int adiantum_init_tfm(struct crypto_skcipher *tfm)
->  
->  	BUILD_BUG_ON(offsetofend(struct adiantum_request_ctx, u) !=
->  		     sizeof(struct adiantum_request_ctx));
-> -	subreq_size = max(FIELD_SIZEOF(struct adiantum_request_ctx,
-> +	subreq_size = max(sizeof_member(struct adiantum_request_ctx,
->  				       u.hash_desc) +
->  			  crypto_shash_descsize(hash),
-> -			  FIELD_SIZEOF(struct adiantum_request_ctx,
-> +			  sizeof_member(struct adiantum_request_ctx,
->  				       u.streamcipher_req) +
->  			  crypto_skcipher_reqsize(streamcipher));
->  
-> 
-> where the cocci script produces:
-> 
-> --- crypto/adiantum.c
-> +++ /tmp/cocci-output-22881-d8186c-adiantum.c
-> @@ -435,11 +435,11 @@ static int adiantum_init_tfm(struct cryp
->  
->  	BUILD_BUG_ON(offsetofend(struct adiantum_request_ctx, u) !=
->  		     sizeof(struct adiantum_request_ctx));
-> -	subreq_size = max(FIELD_SIZEOF(struct adiantum_request_ctx,
-> -				       u.hash_desc) +
-> +	subreq_size = max(sizeof_member(struct adiantum_request_ctx,
-> +					u.hash_desc) +
->  			  crypto_shash_descsize(hash),
-> -			  FIELD_SIZEOF(struct adiantum_request_ctx,
-> -				       u.streamcipher_req) +
-> +			  sizeof_member(struct adiantum_request_ctx,
-> +					u.streamcipher_req) +
->  			  crypto_skcipher_reqsize(streamcipher));
->  
->  	crypto_skcipher_set_reqsize(tfm,
+From: Pankaj Bharadiya <pankaj.laxminarayan.bharadiya@intel.com>
 
-I played with this a bit, and it seems Coccinelle can get this very very
-wrong:
+In preparation for switching to a standard sizeof_member() macro to find the
+size of a member of a struct, remove the custom SIZEOF_FIELD() macro and use
+the more common FIELD_SIZEOF() instead. Later patches will globally replace
+FIELD_SIZEOF() and sizeof_field() with the more accurate sizeof_member().
 
-diff -u -p a/drivers/net/ethernet/mellanox/mlx5/core/fpga/ipsec.c b/drivers/net/ethernet/mellanox/mlx5/core/fpga/ipsec.c
---- a/drivers/net/ethernet/mellanox/mlx5/core/fpga/ipsec.c
-+++ b/drivers/net/ethernet/mellanox/mlx5/core/fpga/ipsec.c
-@@ -87,13 +87,13 @@ static const struct rhashtable_params rh
- 	 * value is not constant during the lifetime
- 	 * of the key object.
- 	 */
--	.key_len = FIELD_SIZEOF(struct mlx5_fpga_ipsec_sa_ctx, hw_sa) -
--		   FIELD_SIZEOF(struct mlx5_ifc_fpga_ipsec_sa_v1, cmd),
-+	.key_len = sizeof_member(struct mlx5_fpga_ipsec_sa_ctx, hw_sa) -
-+	sizeof_member(struct mlx5_ifc_fpga_ipsec_sa_v1, cmd),
- 	.key_offset = offsetof(struct mlx5_fpga_ipsec_sa_ctx, hw_sa) +
--		      FIELD_SIZEOF(struct mlx5_ifc_fpga_ipsec_sa_v1, cmd),
--	.head_offset = offsetof(struct mlx5_fpga_ipsec_sa_ctx, hash),
--	.automatic_shrinking = true,
--	.min_size = 1,
-+		      sizeof_member(struct mlx5_ifc_fpga_ipsec_sa_v1, cmd),
-+		      .head_offset = offsetof(struct mlx5_fpga_ipsec_sa_ctx, hash),
-+		      .automatic_shrinking = true,
-+		      .min_size = 1,
- };
+Signed-off-by: Pankaj Bharadiya <pankaj.laxminarayan.bharadiya@intel.com>
+Link: https://lore.kernel.org/r/20190924105839.110713-4-pankaj.laxminarayan.bharadiya@intel.com
+Co-developed-by: Kees Cook <keescook@chromium.org>
+Signed-off-by: Kees Cook <keescook@chromium.org>
+---
+ arch/mips/cavium-octeon/executive/cvmx-bootmem.c | 9 +--------
+ 1 file changed, 1 insertion(+), 8 deletions(-)
+
+diff --git a/arch/mips/cavium-octeon/executive/cvmx-bootmem.c b/arch/mips/cavium-octeon/executive/cvmx-bootmem.c
+index ba8f82a29a81..44b506a14666 100644
+--- a/arch/mips/cavium-octeon/executive/cvmx-bootmem.c
++++ b/arch/mips/cavium-octeon/executive/cvmx-bootmem.c
+@@ -44,13 +44,6 @@ static struct cvmx_bootmem_desc *cvmx_bootmem_desc;
  
- struct mlx5_fpga_ipsec {
-
-
-So, since the sed is faster and causes fewer problems, I'll keep it
-as-is.
-
+ /* See header file for descriptions of functions */
+ 
+-/**
+- * This macro returns the size of a member of a structure.
+- * Logically it is the same as "sizeof(s::field)" in C++, but
+- * C lacks the "::" operator.
+- */
+-#define SIZEOF_FIELD(s, field) sizeof(((s *)NULL)->field)
+-
+ /**
+  * This macro returns a member of the
+  * cvmx_bootmem_named_block_desc_t structure. These members can't
+@@ -65,7 +58,7 @@ static struct cvmx_bootmem_desc *cvmx_bootmem_desc;
+ #define CVMX_BOOTMEM_NAMED_GET_FIELD(addr, field)			\
+ 	__cvmx_bootmem_desc_get(addr,					\
+ 		offsetof(struct cvmx_bootmem_named_block_desc, field),	\
+-		SIZEOF_FIELD(struct cvmx_bootmem_named_block_desc, field))
++		FIELD_SIZEOF(struct cvmx_bootmem_named_block_desc, field))
+ 
+ /**
+  * This function is the implementation of the get macros defined
 -- 
-Kees Cook
+2.17.1
