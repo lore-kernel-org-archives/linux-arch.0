@@ -1,68 +1,43 @@
-From: Ard Biesheuvel <ard.biesheuvel@linaro.org>
-Subject: Re: [PATCH 0/6] Improvements for random.h/archrandom.h
-Date: Tue, 29 Oct 2019 09:22:16 +0100
-Message-ID: <CAKv+Gu-mnyKK_0s7fF_8C0aq1ur+RoHscVwTfd31quEVqZhefw@mail.gmail.com>
-References: <20191028210559.8289-1-rth@twiddle.net>
+From: Will Deacon <will@kernel.org>
+Subject: Re: [patch V2 00/17] entry: Provide generic implementation for host
+ and guest entry/exit work
+Date: Tue, 29 Oct 2019 11:28:07 +0000
+Message-ID: <20191029112806.GA12103@willie-the-truck>
+References: <20191023122705.198339581@linutronix.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
-In-Reply-To: <20191028210559.8289-1-rth@twiddle.net>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
-To: Richard Henderson <richard.henderson@linaro.org>
-Cc: linux-arch <linux-arch@vger.kernel.org>, linux-s390 <linux-s390@vger.kernel.org>, the arch/x86 maintainers <x86@kernel.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, linux-arm-kernel <linux-arm-kernel@lists.infradead.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <20191023122705.198339581@linutronix.de>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Thomas Gleixner <tglx@linutronix.de>
+Cc: LKML <linux-kernel@vger.kernel.org>, x86@kernel.org, Peter Zijlstra <peterz@infradead.org>, Andy Lutomirski <luto@kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, kvm@vger.kernel.org, linux-arch@vger.kernel.org, Mike Rapoport <rppt@linux.ibm.com>, Josh Poimboeuf <jpoimboe@redhat.com>, Miroslav Benes <mbenes@suse.cz>
 List-Id: linux-arch.vger.kernel.org
 
-On Mon, 28 Oct 2019 at 22:06, Richard Henderson
-<richard.henderson@linaro.org> wrote:
->
-> During patch review for an addition of archrandom.h for arm64,
-> it was suggeted that the arch_random_get_* functions should be
-> marked __must_check.  Which does sound like a good idea, since
-> the by-reference integer output may be uninitialized when the
-> boolean result is false.
->
-> In addition, I noticed a few other minor inconsistencies between
-> the different architectures: x86 defines some functional macros
-> outside CONFIG_ARCH_RANDOM, and powerpc isn't using bool.
->
->
-> r~
->
->
-> Richard Henderson (6):
->   random: Mark CONFIG_ARCH_RANDOM functions __must_check
->   x86: Move arch_has_random* inside CONFIG_ARCH_RANDOM
->   x86: Mark archrandom.h functions __must_check
->   powerpc: Use bool in archrandom.h
->   powerpc: Mark archrandom.h functions __must_check
->   s390x: Mark archrandom.h functions __must_check
->
+Hi Thomas,
 
-Modulo the nit in reply to 1/6:
+On Wed, Oct 23, 2019 at 02:27:05PM +0200, Thomas Gleixner wrote:
+> When working on a way to move out the posix cpu timer expiry out of the
+> timer interrupt context, I noticed that KVM is not handling pending task
+> work before entering a guest. A quick hack was to add that to the x86 KVM
+> handling loop. The discussion ended with a request to make this a generic
+> infrastructure possible with also moving the per arch implementations of
+> the enter from and return to user space handling generic.
+> 
+>   https://lore.kernel.org/r/89E42BCC-47A8-458B-B06A-D6A20D20512C@amacapital.net
+> 
+> The series implements the syscall enter/exit and the general exit to
+> userspace work handling along with the pre guest enter functionality.
+> 
+> Changes vs. RFC version:
+> 
+>   - Dropped ARM64 conversion as requested by ARM64 folks
 
-Reviewed-by: Ard Biesheuvel <ardb@kernel.org>
+If you fancy another crack at arm64 on your way back from Lyon, we've now
+got more of the asm->C conversion queued up here:
 
+https://git.kernel.org/pub/scm/linux/kernel/git/arm64/linux.git/log/?h=for-next/entry-s-to-c
 
->  arch/powerpc/include/asm/archrandom.h | 24 +++++++++++++-----------
->  arch/s390/include/asm/archrandom.h    |  8 ++++----
->  arch/x86/include/asm/archrandom.h     | 24 ++++++++++++------------
->  include/linux/random.h                |  8 ++++----
->  4 files changed, 33 insertions(+), 31 deletions(-)
->
-> --
-> 2.17.1
->
->
-> _______________________________________________
-> linux-arm-kernel mailing list
-> linux-arm-kernel@lists.infradead.org
-> http://lists.infradead.org/mailman/listinfo/linux-arm-kernel
+No worries if not, but figured it was worth letting you know anyway.
+
+Will
