@@ -1,66 +1,41 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wr1-f66.google.com ([209.85.221.66]:33293 "EHLO
-        mail-wr1-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728550AbfJ2IWa (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 29 Oct 2019 04:22:30 -0400
-Received: by mail-wr1-f66.google.com with SMTP id s1so12597747wro.0
-        for <linux-arch@vger.kernel.org>; Tue, 29 Oct 2019 01:22:28 -0700 (PDT)
-MIME-Version: 1.0
+Received: from mail-pl1-f195.google.com ([209.85.214.195]:40604 "EHLO
+        mail-pl1-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S2388166AbfJ2NSz (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 29 Oct 2019 09:18:55 -0400
+Received: by mail-pl1-f195.google.com with SMTP id p5so2427317plr.7
+        for <linux-arch@vger.kernel.org>; Tue, 29 Oct 2019 06:18:55 -0700 (PDT)
+Subject: Re: [PATCH 6/6] s390x: Mark archrandom.h functions __must_check
 References: <20191028210559.8289-1-rth@twiddle.net>
-In-Reply-To: <20191028210559.8289-1-rth@twiddle.net>
-From: Ard Biesheuvel <ard.biesheuvel@linaro.org>
-Date: Tue, 29 Oct 2019 09:22:16 +0100
-Message-ID: <CAKv+Gu-mnyKK_0s7fF_8C0aq1ur+RoHscVwTfd31quEVqZhefw@mail.gmail.com>
-Subject: Re: [PATCH 0/6] Improvements for random.h/archrandom.h
-Content-Type: text/plain; charset="UTF-8"
+ <20191028210559.8289-7-rth@twiddle.net>
+ <935cf73a-d06c-365d-131a-23dcb350ba17@linux.ibm.com>
+From: Richard Henderson <richard.henderson@linaro.org>
+Message-ID: <cd6b5b8c-77f0-ad7e-702a-27e5a929ca54@linaro.org>
+Date: Tue, 29 Oct 2019 14:18:33 +0100
+MIME-Version: 1.0
+In-Reply-To: <935cf73a-d06c-365d-131a-23dcb350ba17@linux.ibm.com>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Richard Henderson <richard.henderson@linaro.org>
-Cc: linux-arch <linux-arch@vger.kernel.org>, linux-s390 <linux-s390@vger.kernel.org>, the arch/x86 maintainers <x86@kernel.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, linux-arm-kernel <linux-arm-kernel@lists.infradead.org>
-Message-ID: <20191029082216.5a1G9Sp3M11UPduKY7FAvvy5CahQwE_KVL-LUDGfi5M@z>
+To: Harald Freudenberger <freude@linux.ibm.com>, linux-arch@vger.kernel.org
+Cc: x86@kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Heiko Carstens <heiko.carstens@de.ibm.com>, Vasily Gorbik <gor@linux.ibm.com>, Christian Borntraeger <borntraeger@de.ibm.com>
+Message-ID: <20191029131833.EJcrAuZOSTaB5fADPGXFEOr04fXs9W2m1VCJ--ZGrnM@z>
 
-On Mon, 28 Oct 2019 at 22:06, Richard Henderson
-<richard.henderson@linaro.org> wrote:
->
-> During patch review for an addition of archrandom.h for arm64,
-> it was suggeted that the arch_random_get_* functions should be
-> marked __must_check.  Which does sound like a good idea, since
-> the by-reference integer output may be uninitialized when the
-> boolean result is false.
->
-> In addition, I noticed a few other minor inconsistencies between
-> the different architectures: x86 defines some functional macros
-> outside CONFIG_ARCH_RANDOM, and powerpc isn't using bool.
->
->
-> r~
->
->
-> Richard Henderson (6):
->   random: Mark CONFIG_ARCH_RANDOM functions __must_check
->   x86: Move arch_has_random* inside CONFIG_ARCH_RANDOM
->   x86: Mark archrandom.h functions __must_check
->   powerpc: Use bool in archrandom.h
->   powerpc: Mark archrandom.h functions __must_check
->   s390x: Mark archrandom.h functions __must_check
->
+On 10/29/19 8:26 AM, Harald Freudenberger wrote:
+> Fine with me, Thanks, reviewed, build and tested.
+> You may add my reviewed-by: Harald Freudenberger <freude@linux.ibm.com>
+> However, will this go into the kernel tree via crypto or s390 subsystem ?
 
-Modulo the nit in reply to 1/6:
+That's an excellent question.
 
-Reviewed-by: Ard Biesheuvel <ardb@kernel.org>
+As an API decision, perhaps going via crypto makes more sense,
+but none of the patches are dependent on one another, so they
+could go through separate architecture trees.
+
+It has been a long time since I have done much kernel work;
+I'm open to suggestions on the subject.
 
 
->  arch/powerpc/include/asm/archrandom.h | 24 +++++++++++++-----------
->  arch/s390/include/asm/archrandom.h    |  8 ++++----
->  arch/x86/include/asm/archrandom.h     | 24 ++++++++++++------------
->  include/linux/random.h                |  8 ++++----
->  4 files changed, 33 insertions(+), 31 deletions(-)
->
-> --
-> 2.17.1
->
->
-> _______________________________________________
-> linux-arm-kernel mailing list
-> linux-arm-kernel@lists.infradead.org
-> http://lists.infradead.org/mailman/listinfo/linux-arm-kernel
+r~
