@@ -1,136 +1,184 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pg1-f193.google.com ([209.85.215.193]:35219 "EHLO
-        mail-pg1-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1725999AbfJ2WaV (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 29 Oct 2019 18:30:21 -0400
-Received: by mail-pg1-f193.google.com with SMTP id c8so93368pgb.2
-        for <linux-arch@vger.kernel.org>; Tue, 29 Oct 2019 15:30:20 -0700 (PDT)
-Date: Tue, 29 Oct 2019 15:30:18 -0700
+Received: from mail-pf1-f196.google.com ([209.85.210.196]:33768 "EHLO
+        mail-pf1-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726759AbfJ2WsK (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 29 Oct 2019 18:48:10 -0400
+Received: by mail-pf1-f196.google.com with SMTP id c184so156817pfb.0
+        for <linux-arch@vger.kernel.org>; Tue, 29 Oct 2019 15:48:08 -0700 (PDT)
 From: Kees Cook <keescook@chromium.org>
-Subject: Re: [PATCH v2 3/4] treewide: Use sizeof_member() macro
-Message-ID: <201910291527.ED0E642@keescook>
-References: <20191010232345.26594-1-keescook@chromium.org>
- <20191010232345.26594-4-keescook@chromium.org>
- <2231d5f0a82f880e6706e2d0f070328a029c9b21.camel@perches.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <2231d5f0a82f880e6706e2d0f070328a029c9b21.camel@perches.com>
+Subject: [PATCH v3 0/3] treewide: Use sizeof_member() macro
+Date: Tue, 29 Oct 2019 15:47:53 -0700
+Message-ID: <20191029224756.28618-1-keescook@chromium.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Joe Perches <joe@perches.com>
-Cc: linux-kernel@vger.kernel.org, Pankaj Bharadiya <pankaj.laxminarayan.bharadiya@intel.com>, Alexey Dobriyan <adobriyan@gmail.com>, Linus Torvalds <torvalds@linux-foundation.org>, "David S. Miller" <davem@davemloft.net>, Randy Dunlap <rdunlap@infradead.org>, Andrew Morton <akpm@linux-foundation.org>, netdev@vger.kernel.org, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org
-Message-ID: <20191029223018.GB5DG15JoPuHvKjSbjWwYmm2k5BFEjhC6EPboRqbag8@z>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Kees Cook <keescook@chromium.org>, Pankaj Bharadiya <pankaj.laxminarayan.bharadiya@intel.com>, Alexey Dobriyan <adobriyan@gmail.com>, "David S. Miller" <davem@davemloft.net>, Randy Dunlap <rdunlap@infradead.org>, Andrew Morton <akpm@linux-foundation.org>, netdev@vger.kernel.org, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20191029224753.-z-50bwTWW6hU2RcyOb_0W-nPJSNoYVQPNFjWSomVpc@z>
 
-On Thu, Oct 10, 2019 at 04:50:27PM -0700, Joe Perches wrote:
-> On Thu, 2019-10-10 at 16:23 -0700, Kees Cook wrote:
-> > From: Pankaj Bharadiya <pankaj.laxminarayan.bharadiya@intel.com>
-> > 
-> > Replace all the occurrences of FIELD_SIZEOF() and sizeof_field() with
-> > sizeof_member() except at places where these are defined. Later patches
-> > will remove the unused definitions.
-> > 
-> > This patch is generated using following script:
-> > 
-> > EXCLUDE_FILES="include/linux/stddef.h|include/linux/kernel.h"
-> > 
-> > git grep -l -e "\bFIELD_SIZEOF\b" -e "\bsizeof_field\b" | while read file;
-> > do
-> > 
-> > 	if [[ "$file" =~ $EXCLUDE_FILES ]]; then
-> > 		continue
-> > 	fi
-> > 	sed -i  -e 's/\bFIELD_SIZEOF\b/sizeof_member/g' \
-> > 		-e 's/\bsizeof_field\b/sizeof_member/g' \
-> > 		$file;
-> > done
-> 
-> While the sed works, a cocci script would perhaps
-> be better as multi line argument realignment would
-> also occur.
-> 
-> $ cat sizeof_member.cocci
-> @@
-> @@
-> 
-> -	FIELD_SIZEOF
-> +	sizeof_member
-> 
-> @@
-> @@
-> 
-> -	sizeof_field
-> +	sizeof_member
-> $
-> 
-> For instance, this sed produces:
-> 
-> diff --git a/crypto/adiantum.c b/crypto/adiantum.c
-> @@ -435,10 +435,10 @@ static int adiantum_init_tfm(struct crypto_skcipher *tfm)
->  
->  	BUILD_BUG_ON(offsetofend(struct adiantum_request_ctx, u) !=
->  		     sizeof(struct adiantum_request_ctx));
-> -	subreq_size = max(FIELD_SIZEOF(struct adiantum_request_ctx,
-> +	subreq_size = max(sizeof_member(struct adiantum_request_ctx,
->  				       u.hash_desc) +
->  			  crypto_shash_descsize(hash),
-> -			  FIELD_SIZEOF(struct adiantum_request_ctx,
-> +			  sizeof_member(struct adiantum_request_ctx,
->  				       u.streamcipher_req) +
->  			  crypto_skcipher_reqsize(streamcipher));
->  
-> 
-> where the cocci script produces:
-> 
-> --- crypto/adiantum.c
-> +++ /tmp/cocci-output-22881-d8186c-adiantum.c
-> @@ -435,11 +435,11 @@ static int adiantum_init_tfm(struct cryp
->  
->  	BUILD_BUG_ON(offsetofend(struct adiantum_request_ctx, u) !=
->  		     sizeof(struct adiantum_request_ctx));
-> -	subreq_size = max(FIELD_SIZEOF(struct adiantum_request_ctx,
-> -				       u.hash_desc) +
-> +	subreq_size = max(sizeof_member(struct adiantum_request_ctx,
-> +					u.hash_desc) +
->  			  crypto_shash_descsize(hash),
-> -			  FIELD_SIZEOF(struct adiantum_request_ctx,
-> -				       u.streamcipher_req) +
-> +			  sizeof_member(struct adiantum_request_ctx,
-> +					u.streamcipher_req) +
->  			  crypto_skcipher_reqsize(streamcipher));
->  
->  	crypto_skcipher_set_reqsize(tfm,
+v3: resend, adjusted for minimizing linux-next interference
+v2: https://lore.kernel.org/lkml/20191010232345.26594-1-keescook@chromium.org
+v1: https://lore.kernel.org/lkml/201909261026.6E3381876C@keescook
 
-I played with this a bit, and it seems Coccinelle can get this very very
-wrong:
+This is basically a resend of the heads-up for this tree I'm carrying
+for the v5.5 merge window to replace the various struct member sizeof
+macros with sizeof_member(). The CC list was insane, so I trimmed it to
+the major areas that get touched.
 
-diff -u -p a/drivers/net/ethernet/mellanox/mlx5/core/fpga/ipsec.c b/drivers/net/ethernet/mellanox/mlx5/core/fpga/ipsec.c
---- a/drivers/net/ethernet/mellanox/mlx5/core/fpga/ipsec.c
-+++ b/drivers/net/ethernet/mellanox/mlx5/core/fpga/ipsec.c
-@@ -87,13 +87,13 @@ static const struct rhashtable_params rh
- 	 * value is not constant during the lifetime
- 	 * of the key object.
- 	 */
--	.key_len = FIELD_SIZEOF(struct mlx5_fpga_ipsec_sa_ctx, hw_sa) -
--		   FIELD_SIZEOF(struct mlx5_ifc_fpga_ipsec_sa_v1, cmd),
-+	.key_len = sizeof_member(struct mlx5_fpga_ipsec_sa_ctx, hw_sa) -
-+	sizeof_member(struct mlx5_ifc_fpga_ipsec_sa_v1, cmd),
- 	.key_offset = offsetof(struct mlx5_fpga_ipsec_sa_ctx, hw_sa) +
--		      FIELD_SIZEOF(struct mlx5_ifc_fpga_ipsec_sa_v1, cmd),
--	.head_offset = offsetof(struct mlx5_fpga_ipsec_sa_ctx, hash),
--	.automatic_shrinking = true,
--	.min_size = 1,
-+		      sizeof_member(struct mlx5_ifc_fpga_ipsec_sa_v1, cmd),
-+		      .head_offset = offsetof(struct mlx5_fpga_ipsec_sa_ctx, hash),
-+		      .automatic_shrinking = true,
-+		      .min_size = 1,
- };
- 
- struct mlx5_fpga_ipsec {
+Linus, if Alexey's argument on naming[1] does not convince you, please
+advise on what you want the final macro to be named and I will adjust. :)
 
+Dave, I converted your "no objection"[2] into an Acked-by; please yell
+if this is not desired.
 
-So, since the sed is faster and causes fewer problems, I'll keep it
-as-is.
+Thanks!
+
+-Kees
+
+[1] https://www.openwall.com/lists/kernel-hardening/2019/07/02/2
+[2] https://lore.kernel.org/lkml/20191002.132121.402975401040540710.davem@davemloft.net
+
+Pankaj Bharadiya (3):
+  MIPS: OCTEON: Replace SIZEOF_FIELD() macro
+  linux/stddef.h: Add sizeof_member() macro
+  treewide: Use sizeof_member() macro
+
+ Documentation/process/coding-style.rst        |   2 +-
+ .../it_IT/process/coding-style.rst            |   2 +-
+ .../zh_CN/process/coding-style.rst            |   2 +-
+ arch/arc/kernel/unwind.c                      |   6 +-
+ arch/arm64/include/asm/processor.h            |  10 +-
+ .../cavium-octeon/executive/cvmx-bootmem.c    |   9 +-
+ arch/powerpc/net/bpf_jit32.h                  |   4 +-
+ arch/powerpc/net/bpf_jit_comp.c               |  16 +-
+ arch/sparc/net/bpf_jit_comp_32.c              |   8 +-
+ arch/x86/kernel/fpu/xstate.c                  |   2 +-
+ block/blk-core.c                              |   4 +-
+ crypto/adiantum.c                             |   4 +-
+ crypto/essiv.c                                |   2 +-
+ drivers/firmware/efi/efi.c                    |   2 +-
+ drivers/gpu/drm/i915/gvt/scheduler.c          |   2 +-
+ drivers/infiniband/hw/efa/efa_verbs.c         |   2 +-
+ drivers/infiniband/hw/hfi1/sdma.c             |   2 +-
+ drivers/infiniband/hw/hfi1/verbs.h            |   4 +-
+ .../ulp/opa_vnic/opa_vnic_ethtool.c           |   2 +-
+ drivers/input/keyboard/applespi.c             |   2 +-
+ drivers/md/raid5-ppl.c                        |   2 +-
+ drivers/media/platform/omap3isp/isppreview.c  |  24 +--
+ drivers/net/ethernet/amd/xgbe/xgbe-ethtool.c  |   4 +-
+ .../ethernet/cavium/liquidio/octeon_console.c |  16 +-
+ .../net/ethernet/emulex/benet/be_ethtool.c    |   2 +-
+ .../hisilicon/hns3/hns3pf/hclge_main.c        |   2 +-
+ .../ethernet/hisilicon/hns3/hns3pf/hclge_tm.c |   2 +-
+ .../net/ethernet/huawei/hinic/hinic_ethtool.c |   8 +-
+ .../net/ethernet/intel/fm10k/fm10k_ethtool.c  |   2 +-
+ .../net/ethernet/intel/i40e/i40e_ethtool.c    |   2 +-
+ .../net/ethernet/intel/i40e/i40e_lan_hmc.c    |   2 +-
+ .../net/ethernet/intel/iavf/iavf_ethtool.c    |   2 +-
+ drivers/net/ethernet/intel/ice/ice_ethtool.c  |  10 +-
+ .../net/ethernet/intel/ice/ice_lan_tx_rx.h    |   2 +-
+ drivers/net/ethernet/intel/igb/igb_ethtool.c  |   4 +-
+ drivers/net/ethernet/intel/igc/igc_ethtool.c  |   4 +-
+ .../net/ethernet/intel/ixgb/ixgb_ethtool.c    |   4 +-
+ drivers/net/ethernet/intel/ixgbevf/ethtool.c  |   4 +-
+ drivers/net/ethernet/marvell/mv643xx_eth.c    |   4 +-
+ .../net/ethernet/mellanox/mlx4/en_ethtool.c   |   2 +-
+ .../ethernet/mellanox/mlx5/core/fpga/ipsec.c  |   6 +-
+ .../net/ethernet/mellanox/mlx5/core/fs_core.c |   4 +-
+ .../ethernet/mellanox/mlxsw/spectrum_fid.c    |   4 +-
+ .../ethernet/mellanox/mlxsw/spectrum_ptp.c    |   2 +-
+ drivers/net/ethernet/netronome/nfp/bpf/jit.c  |  10 +-
+ drivers/net/ethernet/netronome/nfp/bpf/main.c |   2 +-
+ .../net/ethernet/netronome/nfp/bpf/offload.c  |   2 +-
+ .../net/ethernet/netronome/nfp/flower/main.h  |   2 +-
+ .../oki-semi/pch_gbe/pch_gbe_ethtool.c        |   2 +-
+ drivers/net/ethernet/qlogic/qede/qede.h       |   2 +-
+ .../ethernet/qlogic/qlcnic/qlcnic_ethtool.c   |   2 +-
+ .../ethernet/samsung/sxgbe/sxgbe_ethtool.c    |   2 +-
+ .../ethernet/stmicro/stmmac/stmmac_ethtool.c  |   4 +-
+ drivers/net/ethernet/ti/cpsw_ethtool.c        |   6 +-
+ drivers/net/ethernet/ti/netcp_ethss.c         |  32 ++--
+ drivers/net/fjes/fjes_ethtool.c               |   2 +-
+ drivers/net/geneve.c                          |   2 +-
+ drivers/net/hyperv/netvsc_drv.c               |   2 +-
+ drivers/net/usb/sierra_net.c                  |   2 +-
+ drivers/net/usb/usbnet.c                      |   2 +-
+ drivers/net/vxlan.c                           |   4 +-
+ .../net/wireless/marvell/libertas/debugfs.c   |   2 +-
+ drivers/net/wireless/marvell/mwifiex/util.h   |   4 +-
+ drivers/s390/net/qeth_core_main.c             |   2 +-
+ drivers/s390/net/qeth_core_mpc.h              |  10 +-
+ drivers/scsi/aacraid/aachba.c                 |   4 +-
+ drivers/scsi/be2iscsi/be_cmds.h               |   2 +-
+ drivers/scsi/cxgbi/libcxgbi.c                 |   2 +-
+ drivers/scsi/smartpqi/smartpqi_init.c         |   6 +-
+ drivers/staging/qlge/qlge_ethtool.c           |   2 +-
+ drivers/target/iscsi/cxgbit/cxgbit_main.c     |   2 +-
+ drivers/usb/atm/usbatm.c                      |   2 +-
+ drivers/usb/gadget/function/f_fs.c            |   2 +-
+ fs/befs/linuxvfs.c                            |   2 +-
+ fs/crypto/keyring.c                           |   2 +-
+ fs/ext2/super.c                               |   2 +-
+ fs/ext4/super.c                               |   2 +-
+ fs/freevxfs/vxfs_super.c                      |   2 +-
+ fs/fuse/virtio_fs.c                           |   2 +-
+ fs/orangefs/super.c                           |   2 +-
+ fs/ufs/super.c                                |   2 +-
+ fs/verity/enable.c                            |   2 +-
+ include/linux/filter.h                        |  12 +-
+ include/linux/kvm_host.h                      |   2 +-
+ include/linux/phy_led_triggers.h              |   2 +-
+ include/linux/slab.h                          |   2 +-
+ include/linux/stddef.h                        |  13 +-
+ include/net/garp.h                            |   2 +-
+ include/net/ip_tunnels.h                      |   6 +-
+ include/net/mrp.h                             |   2 +-
+ include/net/netfilter/nf_conntrack_helper.h   |   2 +-
+ include/net/netfilter/nf_tables_core.h        |   2 +-
+ include/net/sock.h                            |   2 +-
+ ipc/util.c                                    |   2 +-
+ kernel/bpf/cgroup.c                           |   2 +-
+ kernel/bpf/local_storage.c                    |   4 +-
+ kernel/fork.c                                 |   2 +-
+ kernel/signal.c                               |  12 +-
+ kernel/utsname.c                              |   2 +-
+ net/802/mrp.c                                 |   6 +-
+ net/batman-adv/main.c                         |   2 +-
+ net/bridge/br.c                               |   2 +-
+ net/caif/caif_socket.c                        |   2 +-
+ net/core/dev.c                                |   2 +-
+ net/core/filter.c                             | 140 +++++++++---------
+ net/core/flow_dissector.c                     |  10 +-
+ net/core/skbuff.c                             |   2 +-
+ net/core/xdp.c                                |   4 +-
+ net/dccp/proto.c                              |   2 +-
+ net/ipv4/ip_gre.c                             |   4 +-
+ net/ipv4/ip_vti.c                             |   4 +-
+ net/ipv4/raw.c                                |   2 +-
+ net/ipv4/tcp.c                                |   2 +-
+ net/ipv6/ip6_gre.c                            |   4 +-
+ net/ipv6/raw.c                                |   2 +-
+ net/iucv/af_iucv.c                            |   2 +-
+ net/netfilter/nf_tables_api.c                 |   4 +-
+ net/netfilter/nfnetlink_cthelper.c            |   2 +-
+ net/netfilter/nft_ct.c                        |  12 +-
+ net/netfilter/nft_masq.c                      |   2 +-
+ net/netfilter/nft_nat.c                       |   6 +-
+ net/netfilter/nft_redir.c                     |   2 +-
+ net/netfilter/nft_tproxy.c                    |   4 +-
+ net/netfilter/xt_RATEEST.c                    |   2 +-
+ net/netlink/af_netlink.c                      |   2 +-
+ net/openvswitch/datapath.c                    |   2 +-
+ net/openvswitch/flow.h                        |   4 +-
+ net/rxrpc/af_rxrpc.c                          |   2 +-
+ net/sched/act_ct.c                            |   4 +-
+ net/sched/cls_flower.c                        |   2 +-
+ net/sctp/socket.c                             |   4 +-
+ net/unix/af_unix.c                            |   2 +-
+ security/integrity/ima/ima_policy.c           |   4 +-
+ sound/soc/codecs/hdmi-codec.c                 |   2 +-
+ tools/testing/selftests/bpf/bpf_util.h        |   6 +-
+ virt/kvm/kvm_main.c                           |   2 +-
+ 136 files changed, 340 insertions(+), 336 deletions(-)
 
 -- 
-Kees Cook
+2.17.1
