@@ -1,23 +1,79 @@
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: Re: [PATCH 08/21] x86: Clean up ioremap()
-Date: Wed, 30 Oct 2019 11:39:46 +0100 (CET)
-Message-ID: <alpine.DEB.2.21.1910301139330.19226@nanos.tec.linutronix.de>
-References: <20191029064834.23438-1-hch@lst.de> <20191029064834.23438-9-hch@lst.de>
+From: Michael Ellerman <mpe@ellerman.id.au>
+Subject: Re: [PATCH 5/6] powerpc: Mark archrandom.h functions __must_check
+Date: Wed, 30 Oct 2019 22:37:01 +1100
+Message-ID: <87v9s6bh2a.fsf@mpe.ellerman.id.au>
+References: <20191028210559.8289-1-rth@twiddle.net>
+ <20191028210559.8289-6-rth@twiddle.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20191029064834.23438-9-hch@lst.de>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Christoph Hellwig <hch@lst.de>
-Cc: Arnd Bergmann <arnd@arndb.de>, Guo Ren <guoren@kernel.org>, Michal Simek <monstr@monstr.eu>, Greentime Hu <green.hu@gmail.com>, Vincent Chen <deanbo422@gmail.com>, Guan Xuetao <gxt@pku.edu.cn>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-snps-arc@lists.infradead.org, linux-arm-kernel@lists.infradead.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, nios2-dev@lists.rocketboards.org, openrisc@lists.librecores.org, linux-parisc@vger.kernel.org, linux-riscv@lists.infradead.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-mtd@lists.infradead.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+In-Reply-To: <20191028210559.8289-6-rth@twiddle.net>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+To: Richard Henderson <richard.henderson@linaro.org>, linux-arch@vger.kernel.org
+Cc: linux-s390@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, x86@kernel.org, Paul Mackerras <paulus@samba.org>, linuxppc-dev@lists.ozlabs.org, linux-arm-kernel@lists.infradead.org
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, 29 Oct 2019, Christoph Hellwig wrote:
+Richard Henderson <richard.henderson@linaro.org> writes:
+> We cannot use the pointer output without validating the
+> success of the random read.
 
-> Use ioremap() as the main implemented function, and defines
-> ioremap_nocache() as a deprecated alias of ioremap() in
-> preparation of removing ioremap_nocache() entirely.
-> 
-> Signed-off-by: Christoph Hellwig <hch@lst.de>
+You _can_, but you must not. </pedant>
 
-Reviewed-by: Thomas Gleixner <tglx@linutronix.de>
+> Signed-off-by: Richard Henderson <rth@twiddle.net>
+> ---
+> Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+> Cc: Paul Mackerras <paulus@samba.org>
+> Cc: Michael Ellerman <mpe@ellerman.id.au>
+> ---
+>  arch/powerpc/include/asm/archrandom.h | 8 ++++----
+>  1 file changed, 4 insertions(+), 4 deletions(-)
+
+Acked-by: Michael Ellerman <mpe@ellerman.id.au>
+
+cheers
+
+> diff --git a/arch/powerpc/include/asm/archrandom.h b/arch/powerpc/include/asm/archrandom.h
+> index f8a887c8b7f8..ee214b153a71 100644
+> --- a/arch/powerpc/include/asm/archrandom.h
+> +++ b/arch/powerpc/include/asm/archrandom.h
+> @@ -6,17 +6,17 @@
+>  
+>  #include <asm/machdep.h>
+>  
+> -static inline bool arch_get_random_long(unsigned long *v)
+> +static inline bool __must_check arch_get_random_long(unsigned long *v)
+>  {
+>  	return false;
+>  }
+>  
+> -static inline bool arch_get_random_int(unsigned int *v)
+> +static inline bool __must_check arch_get_random_int(unsigned int *v)
+>  {
+>  	return false;
+>  }
+>  
+> -static inline bool arch_get_random_seed_long(unsigned long *v)
+> +static inline bool __must_check arch_get_random_seed_long(unsigned long *v)
+>  {
+>  	if (ppc_md.get_random_seed)
+>  		return ppc_md.get_random_seed(v);
+> @@ -24,7 +24,7 @@ static inline bool arch_get_random_seed_long(unsigned long *v)
+>  	return false;
+>  }
+>  
+> -static inline bool arch_get_random_seed_int(unsigned int *v)
+> +static inline bool __must_check arch_get_random_seed_int(unsigned int *v)
+>  {
+>  	unsigned long val;
+>  	bool rc;
+> -- 
+> 2.17.1
