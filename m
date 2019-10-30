@@ -1,47 +1,36 @@
-From: Harald Freudenberger <freude@linux.ibm.com>
-Subject: Re: [PATCH 6/6] s390x: Mark archrandom.h functions __must_check
-Date: Wed, 30 Oct 2019 08:56:07 +0100
-Message-ID: <95aa7fd3-5e80-f11b-3f74-42628f7dfba4@linux.ibm.com>
-References: <20191028210559.8289-1-rth@twiddle.net>
- <20191028210559.8289-7-rth@twiddle.net>
- <935cf73a-d06c-365d-131a-23dcb350ba17@linux.ibm.com>
- <cd6b5b8c-77f0-ad7e-702a-27e5a929ca54@linaro.org>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Subject: Re: [PATCH 13/21] m68k: rename __iounmap and mark it static
+Date: Wed, 30 Oct 2019 09:51:39 +0100
+Message-ID: <CAMuHMdWGiHhSv=xCqnsUXok7wYG7Wr1EQh+yuPOZBxPCskUFVw@mail.gmail.com>
+References: <20191029064834.23438-1-hch@lst.de> <20191029064834.23438-14-hch@lst.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
-In-Reply-To: <cd6b5b8c-77f0-ad7e-702a-27e5a929ca54@linaro.org>
-Content-Language: en-US
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
-To: Richard Henderson <richard.henderson@linaro.org>, linux-arch@vger.kernel.org
-Cc: linux-s390@vger.kernel.org, Vasily Gorbik <gor@linux.ibm.com>, x86@kernel.org, Heiko Carstens <heiko.carstens@de.ibm.com>, Christian Borntraeger <borntraeger@de.ibm.com>, linuxppc-dev@lists.ozlabs.org, linux-arm-kernel@lists.infradead.org
+Content-Type: text/plain; charset="UTF-8"
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20191029064834.23438-14-hch@lst.de>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Christoph Hellwig <hch@lst.de>
+Cc: Arnd Bergmann <arnd@arndb.de>, Guo Ren <guoren@kernel.org>, Michal Simek <monstr@monstr.eu>, Greentime Hu <green.hu@gmail.com>, Vincent Chen <deanbo422@gmail.com>, Guan Xuetao <gxt@pku.edu.cn>, the arch/x86 maintainers <x86@kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, linux-s390 <linux-s390@vger.kernel.org>, "linux-ia64@vger.kernel.org" <linux-ia64@vger.kernel.org>, Parisc List <linux-parisc@vger.kernel.org>, Linux-sh list <linux-sh@vger.kernel.org>, "open list:QUALCOMM HEXAGON..." <linux-hexagon@vger.kernel.org>, linux-xtensa@linux-xtensa.org, linux-mips@vger.kernel.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-m68k <linux-m68k@lists.linux-m68k.org>, Openrisc <openrisc@lists.librecores.org>, MTD Maling List <linux-mtd@lists>
 List-Id: linux-arch.vger.kernel.org
 
-On 29.10.19 14:18, Richard Henderson wrote:
-> On 10/29/19 8:26 AM, Harald Freudenberger wrote:
->> Fine with me, Thanks, reviewed, build and tested.
->> You may add my reviewed-by: Harald Freudenberger <freude@linux.ibm.com>
->> However, will this go into the kernel tree via crypto or s390 subsystem ?
-> That's an excellent question.
+On Tue, Oct 29, 2019 at 7:56 AM Christoph Hellwig <hch@lst.de> wrote:
+> m68k uses __iounmap as the name for an internal helper that is only
+> used for some CPU types.  Mark it static, give it a better name
+> and move it around a bit to avoid a forward declaration.
 >
-> As an API decision, perhaps going via crypto makes more sense,
-> but none of the patches are dependent on one another, so they
-> could go through separate architecture trees.
->
-> It has been a long time since I have done much kernel work;
-> I'm open to suggestions on the subject.
->
->
-> r~
-Since the change needs to be done in include/linux/random.h
-and in parallel with all the arch files in arch/xxx/include/asm/archrandom.h
-it should go in one shot. I'd suggest to post the patch series to linux-crypto
-and let Herbert Xu handle this.
+> Signed-off-by: Christoph Hellwig <hch@lst.de>
+
+Thanks for the update!
+
+Reviewed-by: Geert Uytterhoeven <geert@linux-m68k.org>
+Acked-by: Geert Uytterhoeven <geert@linux-m68k.org>
+
+Gr{oetje,eeting}s,
+
+                        Geert
+
+-- 
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
