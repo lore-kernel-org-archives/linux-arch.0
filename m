@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from conuserg-12.nifty.com ([210.131.2.79]:61854 "EHLO
+Received: from conuserg-12.nifty.com ([210.131.2.79]:61857 "EHLO
         conuserg-12.nifty.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1725855AbfJ3GkA (ORCPT
+        with ESMTP id S1726108AbfJ3GkA (ORCPT
         <rfc822;linux-arch@vger.kernel.org>); Wed, 30 Oct 2019 02:40:00 -0400
 From: Masahiro Yamada <yamada.masahiro@socionext.com>
-Subject: [PATCH 2/3] arch: msgbuf.h: make uapi asm/msgbuf.h self-contained
-Date: Wed, 30 Oct 2019 15:38:54 +0900
-Message-ID: <20191030063855.9989-2-yamada.masahiro@socionext.com>
+Subject: [PATCH 3/3] arch: sembuf.h: make uapi asm/sembuf.h self-contained
+Date: Wed, 30 Oct 2019 15:38:55 +0900
+Message-ID: <20191030063855.9989-3-yamada.masahiro@socionext.com>
 In-Reply-To: <20191030063855.9989-1-yamada.masahiro@socionext.com>
 References: <20191030063855.9989-1-yamada.masahiro@socionext.com>
 MIME-Version: 1.0
@@ -16,32 +16,37 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Andrew Morton <akpm@linux-foundation.org>, linux-arch <linux-arch@vger.kernel.org>
 Cc: linux-s390@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, sparclinux@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, Masahiro Yamada <yamada.masahiro@socionext.com>
-Message-ID: <20191030063854.7T5QmXPnP0Z17of6p20fZHtRC3H9v_kw1x9HFvyiMTw@z>
+Message-ID: <20191030063855.d6_O0yu-8kcLsY11yOQQJ_w5h4uhsa6M4C-S0axkhDA@z>
 
-The user-space cannot compile <asm/msgbuf.h> due to some missing type
+The user-space cannot compile <asm/sembuf.h> due to some missing type
 definitions. For example, building it for x86 fails as follows:
 
-  CC      usr/include/asm/msgbuf.h.s
-In file included from ./usr/include/asm/msgbuf.h:6:0,
-                 from <command-line>:32:
-./usr/include/asm-generic/msgbuf.h:25:20: error: field ‘msg_perm’ has incomplete type
-  struct ipc64_perm msg_perm;
+  CC      usr/include/asm/sembuf.h.s
+In file included from <command-line>:32:0:
+./usr/include/asm/sembuf.h:17:20: error: field ‘sem_perm’ has incomplete type
+  struct ipc64_perm sem_perm; /* permissions .. see ipc.h */
                     ^~~~~~~~
-./usr/include/asm-generic/msgbuf.h:27:2: error: unknown type name ‘__kernel_time_t’
-  __kernel_time_t msg_stime; /* last msgsnd time */
+./usr/include/asm/sembuf.h:24:2: error: unknown type name ‘__kernel_time_t’
+  __kernel_time_t sem_otime; /* last semop time */
   ^~~~~~~~~~~~~~~
-./usr/include/asm-generic/msgbuf.h:28:2: error: unknown type name ‘__kernel_time_t’
-  __kernel_time_t msg_rtime; /* last msgrcv time */
+./usr/include/asm/sembuf.h:25:2: error: unknown type name ‘__kernel_ulong_t’
+  __kernel_ulong_t __unused1;
+  ^~~~~~~~~~~~~~~~
+./usr/include/asm/sembuf.h:26:2: error: unknown type name ‘__kernel_time_t’
+  __kernel_time_t sem_ctime; /* last change time */
   ^~~~~~~~~~~~~~~
-./usr/include/asm-generic/msgbuf.h:29:2: error: unknown type name ‘__kernel_time_t’
-  __kernel_time_t msg_ctime; /* last change time */
-  ^~~~~~~~~~~~~~~
-./usr/include/asm-generic/msgbuf.h:41:2: error: unknown type name ‘__kernel_pid_t’
-  __kernel_pid_t msg_lspid; /* pid of last msgsnd */
-  ^~~~~~~~~~~~~~
-./usr/include/asm-generic/msgbuf.h:42:2: error: unknown type name ‘__kernel_pid_t’
-  __kernel_pid_t msg_lrpid; /* last receive pid */
-  ^~~~~~~~~~~~~~
+./usr/include/asm/sembuf.h:27:2: error: unknown type name ‘__kernel_ulong_t’
+  __kernel_ulong_t __unused2;
+  ^~~~~~~~~~~~~~~~
+./usr/include/asm/sembuf.h:29:2: error: unknown type name ‘__kernel_ulong_t’
+  __kernel_ulong_t sem_nsems; /* no. of semaphores in array */
+  ^~~~~~~~~~~~~~~~
+./usr/include/asm/sembuf.h:30:2: error: unknown type name ‘__kernel_ulong_t’
+  __kernel_ulong_t __unused3;
+  ^~~~~~~~~~~~~~~~
+./usr/include/asm/sembuf.h:31:2: error: unknown type name ‘__kernel_ulong_t’
+  __kernel_ulong_t __unused4;
+  ^~~~~~~~~~~~~~~~
 
 It is just a matter of missing include directive.
 
@@ -51,117 +56,115 @@ the compile-test coverage.
 Signed-off-by: Masahiro Yamada <yamada.masahiro@socionext.com>
 ---
 
- arch/mips/include/uapi/asm/msgbuf.h    | 1 +
- arch/parisc/include/uapi/asm/msgbuf.h  | 1 +
- arch/powerpc/include/uapi/asm/msgbuf.h | 2 ++
- arch/sparc/include/uapi/asm/msgbuf.h   | 2 ++
- arch/x86/include/uapi/asm/msgbuf.h     | 3 +++
- arch/xtensa/include/uapi/asm/msgbuf.h  | 2 ++
- include/uapi/asm-generic/msgbuf.h      | 2 ++
+ arch/mips/include/uapi/asm/sembuf.h    | 2 ++
+ arch/parisc/include/uapi/asm/sembuf.h  | 1 +
+ arch/powerpc/include/uapi/asm/sembuf.h | 2 ++
+ arch/sparc/include/uapi/asm/sembuf.h   | 2 ++
+ arch/x86/include/uapi/asm/sembuf.h     | 2 ++
+ arch/xtensa/include/uapi/asm/sembuf.h  | 1 +
+ include/uapi/asm-generic/sembuf.h      | 1 +
  usr/include/Makefile                   | 1 -
- 8 files changed, 13 insertions(+), 1 deletion(-)
+ 8 files changed, 11 insertions(+), 1 deletion(-)
 
-diff --git a/arch/mips/include/uapi/asm/msgbuf.h b/arch/mips/include/uapi/asm/msgbuf.h
-index 46aa15b13e4e..2722f9b82cf2 100644
---- a/arch/mips/include/uapi/asm/msgbuf.h
-+++ b/arch/mips/include/uapi/asm/msgbuf.h
-@@ -2,6 +2,7 @@
- #ifndef _ASM_MSGBUF_H
- #define _ASM_MSGBUF_H
+diff --git a/arch/mips/include/uapi/asm/sembuf.h b/arch/mips/include/uapi/asm/sembuf.h
+index 60c89e6cb25b..7d135b93bebd 100644
+--- a/arch/mips/include/uapi/asm/sembuf.h
++++ b/arch/mips/include/uapi/asm/sembuf.h
+@@ -2,6 +2,8 @@
+ #ifndef _ASM_SEMBUF_H
+ #define _ASM_SEMBUF_H
  
 +#include <asm/ipcbuf.h>
- 
++
  /*
-  * The msqid64_ds structure for the MIPS architecture.
-diff --git a/arch/parisc/include/uapi/asm/msgbuf.h b/arch/parisc/include/uapi/asm/msgbuf.h
-index 6a2e9ab2ef8d..02ae1f616347 100644
---- a/arch/parisc/include/uapi/asm/msgbuf.h
-+++ b/arch/parisc/include/uapi/asm/msgbuf.h
+  * The semid64_ds structure for the MIPS architecture.
+  * Note extra padding because this structure is passed back and forth
+diff --git a/arch/parisc/include/uapi/asm/sembuf.h b/arch/parisc/include/uapi/asm/sembuf.h
+index 3c31163b1241..b17a2460b184 100644
+--- a/arch/parisc/include/uapi/asm/sembuf.h
++++ b/arch/parisc/include/uapi/asm/sembuf.h
 @@ -3,6 +3,7 @@
- #define _PARISC_MSGBUF_H
+ #define _PARISC_SEMBUF_H
  
  #include <asm/bitsperlong.h>
 +#include <asm/ipcbuf.h>
  
  /* 
-  * The msqid64_ds structure for parisc architecture, copied from sparc.
-diff --git a/arch/powerpc/include/uapi/asm/msgbuf.h b/arch/powerpc/include/uapi/asm/msgbuf.h
-index 2b1b37797a47..30d5e1b45553 100644
---- a/arch/powerpc/include/uapi/asm/msgbuf.h
-+++ b/arch/powerpc/include/uapi/asm/msgbuf.h
+  * The semid64_ds structure for parisc architecture.
+diff --git a/arch/powerpc/include/uapi/asm/sembuf.h b/arch/powerpc/include/uapi/asm/sembuf.h
+index 3f60946f77e3..f42c9c3502c7 100644
+--- a/arch/powerpc/include/uapi/asm/sembuf.h
++++ b/arch/powerpc/include/uapi/asm/sembuf.h
 @@ -2,6 +2,8 @@
- #ifndef _ASM_POWERPC_MSGBUF_H
- #define _ASM_POWERPC_MSGBUF_H
+ #ifndef _ASM_POWERPC_SEMBUF_H
+ #define _ASM_POWERPC_SEMBUF_H
  
 +#include <asm/ipcbuf.h>
 +
  /*
-  * The msqid64_ds structure for the PowerPC architecture.
-  * Note extra padding because this structure is passed back and forth
-diff --git a/arch/sparc/include/uapi/asm/msgbuf.h b/arch/sparc/include/uapi/asm/msgbuf.h
-index ffc46c211d6d..81a8460fdd67 100644
---- a/arch/sparc/include/uapi/asm/msgbuf.h
-+++ b/arch/sparc/include/uapi/asm/msgbuf.h
+  * This program is free software; you can redistribute it and/or
+  * modify it under the terms of the GNU General Public License
+diff --git a/arch/sparc/include/uapi/asm/sembuf.h b/arch/sparc/include/uapi/asm/sembuf.h
+index f3d309c2e1cd..5d7764cdf80f 100644
+--- a/arch/sparc/include/uapi/asm/sembuf.h
++++ b/arch/sparc/include/uapi/asm/sembuf.h
 @@ -2,6 +2,8 @@
- #ifndef _SPARC_MSGBUF_H
- #define _SPARC_MSGBUF_H
+ #ifndef _SPARC_SEMBUF_H
+ #define _SPARC_SEMBUF_H
  
 +#include <asm/ipcbuf.h>
 +
  /*
-  * The msqid64_ds structure for sparc64 architecture.
+  * The semid64_ds structure for sparc architecture.
   * Note extra padding because this structure is passed back and forth
-diff --git a/arch/x86/include/uapi/asm/msgbuf.h b/arch/x86/include/uapi/asm/msgbuf.h
-index 90ab9a795b49..e09fd2363300 100644
---- a/arch/x86/include/uapi/asm/msgbuf.h
-+++ b/arch/x86/include/uapi/asm/msgbuf.h
-@@ -5,6 +5,9 @@
- #if !defined(__x86_64__) || !defined(__ILP32__)
- #include <asm-generic/msgbuf.h>
- #else
-+
-+#include <asm/ipcbuf.h>
-+
- /*
-  * The msqid64_ds structure for x86 architecture with x32 ABI.
-  *
-diff --git a/arch/xtensa/include/uapi/asm/msgbuf.h b/arch/xtensa/include/uapi/asm/msgbuf.h
-index d6915e9f071c..1ed2c85b693a 100644
---- a/arch/xtensa/include/uapi/asm/msgbuf.h
-+++ b/arch/xtensa/include/uapi/asm/msgbuf.h
-@@ -17,6 +17,8 @@
- #ifndef _XTENSA_MSGBUF_H
- #define _XTENSA_MSGBUF_H
+diff --git a/arch/x86/include/uapi/asm/sembuf.h b/arch/x86/include/uapi/asm/sembuf.h
+index 89de6cd9f0a7..da0464af7aa6 100644
+--- a/arch/x86/include/uapi/asm/sembuf.h
++++ b/arch/x86/include/uapi/asm/sembuf.h
+@@ -2,6 +2,8 @@
+ #ifndef _ASM_X86_SEMBUF_H
+ #define _ASM_X86_SEMBUF_H
  
 +#include <asm/ipcbuf.h>
 +
- struct msqid64_ds {
- 	struct ipc64_perm msg_perm;
- #ifdef __XTENSA_EB__
-diff --git a/include/uapi/asm-generic/msgbuf.h b/include/uapi/asm-generic/msgbuf.h
-index 9fe4881557cb..7cdc7e52490d 100644
---- a/include/uapi/asm-generic/msgbuf.h
-+++ b/include/uapi/asm-generic/msgbuf.h
-@@ -3,6 +3,8 @@
- #define __ASM_GENERIC_MSGBUF_H
+ /*
+  * The semid64_ds structure for x86 architecture.
+  * Note extra padding because this structure is passed back and forth
+diff --git a/arch/xtensa/include/uapi/asm/sembuf.h b/arch/xtensa/include/uapi/asm/sembuf.h
+index 09f348d643f1..3b9cdd406dfe 100644
+--- a/arch/xtensa/include/uapi/asm/sembuf.h
++++ b/arch/xtensa/include/uapi/asm/sembuf.h
+@@ -22,6 +22,7 @@
+ #define _XTENSA_SEMBUF_H
+ 
+ #include <asm/byteorder.h>
++#include <asm/ipcbuf.h>
+ 
+ struct semid64_ds {
+ 	struct ipc64_perm sem_perm;		/* permissions .. see ipc.h */
+diff --git a/include/uapi/asm-generic/sembuf.h b/include/uapi/asm-generic/sembuf.h
+index 0bae010f1b64..5807fcd643ba 100644
+--- a/include/uapi/asm-generic/sembuf.h
++++ b/include/uapi/asm-generic/sembuf.h
+@@ -3,6 +3,7 @@
+ #define __ASM_GENERIC_SEMBUF_H
  
  #include <asm/bitsperlong.h>
 +#include <asm/ipcbuf.h>
-+
+ 
  /*
-  * generic msqid64_ds structure.
-  *
+  * The semid64_ds structure for x86 architecture.
 diff --git a/usr/include/Makefile b/usr/include/Makefile
-index 70f8fe256aed..099d7401aa23 100644
+index 099d7401aa23..107d04bd5ee3 100644
 --- a/usr/include/Makefile
 +++ b/usr/include/Makefile
 @@ -16,7 +16,6 @@ override c_flags = $(UAPI_CFLAGS) -Wp,-MD,$(depfile) -I$(objtree)/usr/include
  # Please consider to fix the header first.
  #
  # Sorted alphabetically.
--header-test- += asm/msgbuf.h
- header-test- += asm/sembuf.h
+-header-test- += asm/sembuf.h
  header-test- += asm/shmbuf.h
  header-test- += asm/signal.h
+ header-test- += asm/ucontext.h
 -- 
 2.17.1
