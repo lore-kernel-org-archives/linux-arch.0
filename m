@@ -1,133 +1,56 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from conuserg-12.nifty.com ([210.131.2.79]:61850 "EHLO
-        conuserg-12.nifty.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726177AbfJ3GkA (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 30 Oct 2019 02:40:00 -0400
-From: Masahiro Yamada <yamada.masahiro@socionext.com>
-Subject: [PATCH 1/3] arch: ipcbuf.h: make uapi asm/ipcbuf.h self-contained
-Date: Wed, 30 Oct 2019 15:38:53 +0900
-Message-ID: <20191030063855.9989-1-yamada.masahiro@socionext.com>
+Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:34796 "EHLO
+        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
+        by vger.kernel.org with ESMTP id S1725822AbfJ3H4S (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 30 Oct 2019 03:56:18 -0400
+Received: from pps.filterd (m0098414.ppops.net [127.0.0.1])
+        by mx0b-001b2d01.pphosted.com (8.16.0.27/8.16.0.27) with SMTP id x9U7oPHH146048
+        for <linux-arch@vger.kernel.org>; Wed, 30 Oct 2019 03:56:15 -0400
+Received: from e06smtp07.uk.ibm.com (e06smtp07.uk.ibm.com [195.75.94.103])
+        by mx0b-001b2d01.pphosted.com with ESMTP id 2vy60jryay-1
+        (version=TLSv1.2 cipher=AES256-GCM-SHA384 bits=256 verify=NOT)
+        for <linux-arch@vger.kernel.org>; Wed, 30 Oct 2019 03:56:14 -0400
+Received: from localhost
+        by e06smtp07.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+        for <linux-arch@vger.kernel.org> from <freude@linux.ibm.com>;
+        Wed, 30 Oct 2019 07:56:13 -0000
+Subject: Re: [PATCH 6/6] s390x: Mark archrandom.h functions __must_check
+References: <20191028210559.8289-1-rth@twiddle.net>
+ <20191028210559.8289-7-rth@twiddle.net>
+ <935cf73a-d06c-365d-131a-23dcb350ba17@linux.ibm.com>
+ <cd6b5b8c-77f0-ad7e-702a-27e5a929ca54@linaro.org>
+From: Harald Freudenberger <freude@linux.ibm.com>
+Date: Wed, 30 Oct 2019 08:56:07 +0100
 MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
+In-Reply-To: <cd6b5b8c-77f0-ad7e-702a-27e5a929ca54@linaro.org>
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
+Content-Language: en-US
+Message-ID: <95aa7fd3-5e80-f11b-3f74-42628f7dfba4@linux.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>, linux-arch <linux-arch@vger.kernel.org>
-Cc: linux-s390@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, sparclinux@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, Masahiro Yamada <yamada.masahiro@socionext.com>
-Message-ID: <20191030063853.C_oFEqu-BQL-kniHrkrOnWIslEtKUBrLf0xHKVVUaLs@z>
+To: Richard Henderson <richard.henderson@linaro.org>, linux-arch@vger.kernel.org
+Cc: x86@kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Heiko Carstens <heiko.carstens@de.ibm.com>, Vasily Gorbik <gor@linux.ibm.com>, Christian Borntraeger <borntraeger@de.ibm.com>
+Message-ID: <20191030075607.vWkYUHX7FDNnBYU-QIlVoQ9BPFjIz0jh2h5oxo0x7hg@z>
 
-The user-space cannot compile <asm/ipcbuf.h> due to some missing type
-definitions. For example, building it for x86 fails as follows:
-
-  CC      usr/include/asm/ipcbuf.h.s
-In file included from ./usr/include/asm/ipcbuf.h:1:0,
-                 from <command-line>:32:
-./usr/include/asm-generic/ipcbuf.h:21:2: error: unknown type name ‘__kernel_key_t’
-  __kernel_key_t  key;
-  ^~~~~~~~~~~~~~
-./usr/include/asm-generic/ipcbuf.h:22:2: error: unknown type name ‘__kernel_uid32_t’
-  __kernel_uid32_t uid;
-  ^~~~~~~~~~~~~~~~
-./usr/include/asm-generic/ipcbuf.h:23:2: error: unknown type name ‘__kernel_gid32_t’
-  __kernel_gid32_t gid;
-  ^~~~~~~~~~~~~~~~
-./usr/include/asm-generic/ipcbuf.h:24:2: error: unknown type name ‘__kernel_uid32_t’
-  __kernel_uid32_t cuid;
-  ^~~~~~~~~~~~~~~~
-./usr/include/asm-generic/ipcbuf.h:25:2: error: unknown type name ‘__kernel_gid32_t’
-  __kernel_gid32_t cgid;
-  ^~~~~~~~~~~~~~~~
-./usr/include/asm-generic/ipcbuf.h:26:2: error: unknown type name ‘__kernel_mode_t’
-  __kernel_mode_t  mode;
-  ^~~~~~~~~~~~~~~
-./usr/include/asm-generic/ipcbuf.h:28:35: error: ‘__kernel_mode_t’ undeclared here (not in a function)
-  unsigned char  __pad1[4 - sizeof(__kernel_mode_t)];
-                                   ^~~~~~~~~~~~~~~
-./usr/include/asm-generic/ipcbuf.h:31:2: error: unknown type name ‘__kernel_ulong_t’
-  __kernel_ulong_t __unused1;
-  ^~~~~~~~~~~~~~~~
-./usr/include/asm-generic/ipcbuf.h:32:2: error: unknown type name ‘__kernel_ulong_t’
-  __kernel_ulong_t __unused2;
-  ^~~~~~~~~~~~~~~~
-
-It is just a matter of missing include directive.
-
-Include <asm/posix_types.h> to make it self-contained, and add it to
-the compile-test coverage.
-
-Signed-off-by: Masahiro Yamada <yamada.masahiro@socionext.com>
----
-
- arch/s390/include/uapi/asm/ipcbuf.h   | 2 ++
- arch/sparc/include/uapi/asm/ipcbuf.h  | 2 ++
- arch/xtensa/include/uapi/asm/ipcbuf.h | 2 ++
- include/uapi/asm-generic/ipcbuf.h     | 2 ++
- usr/include/Makefile                  | 1 -
- 5 files changed, 8 insertions(+), 1 deletion(-)
-
-diff --git a/arch/s390/include/uapi/asm/ipcbuf.h b/arch/s390/include/uapi/asm/ipcbuf.h
-index 5b1c4f47c656..1030cd186899 100644
---- a/arch/s390/include/uapi/asm/ipcbuf.h
-+++ b/arch/s390/include/uapi/asm/ipcbuf.h
-@@ -2,6 +2,8 @@
- #ifndef __S390_IPCBUF_H__
- #define __S390_IPCBUF_H__
- 
-+#include <linux/posix_types.h>
-+
- /*
-  * The user_ipc_perm structure for S/390 architecture.
-  * Note extra padding because this structure is passed back and forth
-diff --git a/arch/sparc/include/uapi/asm/ipcbuf.h b/arch/sparc/include/uapi/asm/ipcbuf.h
-index 9d0d125500e2..5b933a598a33 100644
---- a/arch/sparc/include/uapi/asm/ipcbuf.h
-+++ b/arch/sparc/include/uapi/asm/ipcbuf.h
-@@ -2,6 +2,8 @@
- #ifndef __SPARC_IPCBUF_H
- #define __SPARC_IPCBUF_H
- 
-+#include <linux/posix_types.h>
-+
- /*
-  * The ipc64_perm structure for sparc/sparc64 architecture.
-  * Note extra padding because this structure is passed back and forth
-diff --git a/arch/xtensa/include/uapi/asm/ipcbuf.h b/arch/xtensa/include/uapi/asm/ipcbuf.h
-index a57afa0b606f..3bd0642f6660 100644
---- a/arch/xtensa/include/uapi/asm/ipcbuf.h
-+++ b/arch/xtensa/include/uapi/asm/ipcbuf.h
-@@ -12,6 +12,8 @@
- #ifndef _XTENSA_IPCBUF_H
- #define _XTENSA_IPCBUF_H
- 
-+#include <linux/posix_types.h>
-+
- /*
-  * Pad space is left for:
-  * - 32-bit mode_t and seq
-diff --git a/include/uapi/asm-generic/ipcbuf.h b/include/uapi/asm-generic/ipcbuf.h
-index 7d80dbd336fb..41a01b494fc7 100644
---- a/include/uapi/asm-generic/ipcbuf.h
-+++ b/include/uapi/asm-generic/ipcbuf.h
-@@ -2,6 +2,8 @@
- #ifndef __ASM_GENERIC_IPCBUF_H
- #define __ASM_GENERIC_IPCBUF_H
- 
-+#include <linux/posix_types.h>
-+
- /*
-  * The generic ipc64_perm structure:
-  * Note extra padding because this structure is passed back and forth
-diff --git a/usr/include/Makefile b/usr/include/Makefile
-index 57b20f7b6729..70f8fe256aed 100644
---- a/usr/include/Makefile
-+++ b/usr/include/Makefile
-@@ -16,7 +16,6 @@ override c_flags = $(UAPI_CFLAGS) -Wp,-MD,$(depfile) -I$(objtree)/usr/include
- # Please consider to fix the header first.
- #
- # Sorted alphabetically.
--header-test- += asm/ipcbuf.h
- header-test- += asm/msgbuf.h
- header-test- += asm/sembuf.h
- header-test- += asm/shmbuf.h
--- 
-2.17.1
+On 29.10.19 14:18, Richard Henderson wrote:
+> On 10/29/19 8:26 AM, Harald Freudenberger wrote:
+>> Fine with me, Thanks, reviewed, build and tested.
+>> You may add my reviewed-by: Harald Freudenberger <freude@linux.ibm.com>
+>> However, will this go into the kernel tree via crypto or s390 subsystem ?
+> That's an excellent question.
+>
+> As an API decision, perhaps going via crypto makes more sense,
+> but none of the patches are dependent on one another, so they
+> could go through separate architecture trees.
+>
+> It has been a long time since I have done much kernel work;
+> I'm open to suggestions on the subject.
+>
+>
+> r~
+Since the change needs to be done in include/linux/random.h
+and in parallel with all the arch files in arch/xxx/include/asm/archrandom.h
+it should go in one shot. I'd suggest to post the patch series to linux-crypto
+and let Herbert Xu handle this.
