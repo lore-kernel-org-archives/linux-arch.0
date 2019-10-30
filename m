@@ -1,43 +1,167 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from gate.crashing.org ([63.228.1.57]:57584 "EHLO gate.crashing.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726094AbfJ3BCS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 29 Oct 2019 21:02:18 -0400
-Date: Tue, 29 Oct 2019 20:01:17 -0500
-From: Segher Boessenkool <segher@kernel.crashing.org>
-Subject: Re: [PATCH v2 01/29] powerpc: Rename "notes" PT_NOTE to "note"
-Message-ID: <20191030010117.GJ28442@gate.crashing.org>
-References: <20191011000609.29728-1-keescook@chromium.org> <20191011000609.29728-2-keescook@chromium.org> <20191011082519.GI9749@gate.crashing.org> <201910110910.48270FC97@keescook> <20191011162552.GK9749@gate.crashing.org> <20191015165412.GD596@zn.tnic> <201910291414.F29F738B7@keescook>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <201910291414.F29F738B7@keescook>
+Received: from conuserg-12.nifty.com ([210.131.2.79]:61854 "EHLO
+        conuserg-12.nifty.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1725855AbfJ3GkA (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 30 Oct 2019 02:40:00 -0400
+From: Masahiro Yamada <yamada.masahiro@socionext.com>
+Subject: [PATCH 2/3] arch: msgbuf.h: make uapi asm/msgbuf.h self-contained
+Date: Wed, 30 Oct 2019 15:38:54 +0900
+Message-ID: <20191030063855.9989-2-yamada.masahiro@socionext.com>
+In-Reply-To: <20191030063855.9989-1-yamada.masahiro@socionext.com>
+References: <20191030063855.9989-1-yamada.masahiro@socionext.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Kees Cook <keescook@chromium.org>
-Cc: Borislav Petkov <bp@alien8.de>, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, Michal Simek <monstr@monstr.eu>, x86@kernel.org, linux-ia64@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, linux-xtensa@linux-xtensa.org, Dave Hansen <dave.hansen@linux.intel.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, linuxppc-dev@lists.ozlabs.org, Yoshinori Sato <ysato@users.sourceforge.jp>, linux-parisc@vger.kernel.org, Andy Lutomirski <luto@kernel.org>, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, Rick Edgecombe <rick.p.edgecombe@intel.com>, Will Deacon <will@kernel.org>, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org
-Message-ID: <20191030010117.5MbpmOz6XELhjUIFxflMvWjnicmwqFOqRX8TF8OClZA@z>
+To: Andrew Morton <akpm@linux-foundation.org>, linux-arch <linux-arch@vger.kernel.org>
+Cc: linux-s390@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, sparclinux@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, Masahiro Yamada <yamada.masahiro@socionext.com>
+Message-ID: <20191030063854.7T5QmXPnP0Z17of6p20fZHtRC3H9v_kw1x9HFvyiMTw@z>
 
-On Tue, Oct 29, 2019 at 02:15:39PM -0700, Kees Cook wrote:
-> On Tue, Oct 15, 2019 at 06:54:13PM +0200, Borislav Petkov wrote:
-> > On Fri, Oct 11, 2019 at 11:25:52AM -0500, Segher Boessenkool wrote:
-> > > Names *matter*, internal names doubly so.  So why replace a good name with
-> > > a worse name?  Because it is slightly less work for you?
-> > 
-> > So if we agree on the name "notes" and we decide to rename the other
-> > arches, this should all be done in a separate patchset anyway, and ontop
-> > of this one. And I believe Kees wouldn't mind doing it ontop since he's
-> > gotten his hands dirty already. :-P
-> 
-> I've added more rationale to patch #1 in the just-sent v3 of this
-> series. If I still can't convince you Segher, I'm happy to send "patch
-> 30/29" to do a bulk rename to "notes". Let me know. :)
+The user-space cannot compile <asm/msgbuf.h> due to some missing type
+definitions. For example, building it for x86 fails as follows:
 
-I am still not convinced the worse name is a better name, no :-)  But if
-you don't want to do the work, and instead prefer the much smaller change,
-that is of course a fine decision.  Thank you!
+  CC      usr/include/asm/msgbuf.h.s
+In file included from ./usr/include/asm/msgbuf.h:6:0,
+                 from <command-line>:32:
+./usr/include/asm-generic/msgbuf.h:25:20: error: field ‘msg_perm’ has incomplete type
+  struct ipc64_perm msg_perm;
+                    ^~~~~~~~
+./usr/include/asm-generic/msgbuf.h:27:2: error: unknown type name ‘__kernel_time_t’
+  __kernel_time_t msg_stime; /* last msgsnd time */
+  ^~~~~~~~~~~~~~~
+./usr/include/asm-generic/msgbuf.h:28:2: error: unknown type name ‘__kernel_time_t’
+  __kernel_time_t msg_rtime; /* last msgrcv time */
+  ^~~~~~~~~~~~~~~
+./usr/include/asm-generic/msgbuf.h:29:2: error: unknown type name ‘__kernel_time_t’
+  __kernel_time_t msg_ctime; /* last change time */
+  ^~~~~~~~~~~~~~~
+./usr/include/asm-generic/msgbuf.h:41:2: error: unknown type name ‘__kernel_pid_t’
+  __kernel_pid_t msg_lspid; /* pid of last msgsnd */
+  ^~~~~~~~~~~~~~
+./usr/include/asm-generic/msgbuf.h:42:2: error: unknown type name ‘__kernel_pid_t’
+  __kernel_pid_t msg_lrpid; /* last receive pid */
+  ^~~~~~~~~~~~~~
 
-(I would be happy with such a 30/29 as well, of course.)
+It is just a matter of missing include directive.
 
+Include <asm/ipcbuf.h> to make it self-contained, and add it to
+the compile-test coverage.
 
-Segher
+Signed-off-by: Masahiro Yamada <yamada.masahiro@socionext.com>
+---
+
+ arch/mips/include/uapi/asm/msgbuf.h    | 1 +
+ arch/parisc/include/uapi/asm/msgbuf.h  | 1 +
+ arch/powerpc/include/uapi/asm/msgbuf.h | 2 ++
+ arch/sparc/include/uapi/asm/msgbuf.h   | 2 ++
+ arch/x86/include/uapi/asm/msgbuf.h     | 3 +++
+ arch/xtensa/include/uapi/asm/msgbuf.h  | 2 ++
+ include/uapi/asm-generic/msgbuf.h      | 2 ++
+ usr/include/Makefile                   | 1 -
+ 8 files changed, 13 insertions(+), 1 deletion(-)
+
+diff --git a/arch/mips/include/uapi/asm/msgbuf.h b/arch/mips/include/uapi/asm/msgbuf.h
+index 46aa15b13e4e..2722f9b82cf2 100644
+--- a/arch/mips/include/uapi/asm/msgbuf.h
++++ b/arch/mips/include/uapi/asm/msgbuf.h
+@@ -2,6 +2,7 @@
+ #ifndef _ASM_MSGBUF_H
+ #define _ASM_MSGBUF_H
+ 
++#include <asm/ipcbuf.h>
+ 
+ /*
+  * The msqid64_ds structure for the MIPS architecture.
+diff --git a/arch/parisc/include/uapi/asm/msgbuf.h b/arch/parisc/include/uapi/asm/msgbuf.h
+index 6a2e9ab2ef8d..02ae1f616347 100644
+--- a/arch/parisc/include/uapi/asm/msgbuf.h
++++ b/arch/parisc/include/uapi/asm/msgbuf.h
+@@ -3,6 +3,7 @@
+ #define _PARISC_MSGBUF_H
+ 
+ #include <asm/bitsperlong.h>
++#include <asm/ipcbuf.h>
+ 
+ /* 
+  * The msqid64_ds structure for parisc architecture, copied from sparc.
+diff --git a/arch/powerpc/include/uapi/asm/msgbuf.h b/arch/powerpc/include/uapi/asm/msgbuf.h
+index 2b1b37797a47..30d5e1b45553 100644
+--- a/arch/powerpc/include/uapi/asm/msgbuf.h
++++ b/arch/powerpc/include/uapi/asm/msgbuf.h
+@@ -2,6 +2,8 @@
+ #ifndef _ASM_POWERPC_MSGBUF_H
+ #define _ASM_POWERPC_MSGBUF_H
+ 
++#include <asm/ipcbuf.h>
++
+ /*
+  * The msqid64_ds structure for the PowerPC architecture.
+  * Note extra padding because this structure is passed back and forth
+diff --git a/arch/sparc/include/uapi/asm/msgbuf.h b/arch/sparc/include/uapi/asm/msgbuf.h
+index ffc46c211d6d..81a8460fdd67 100644
+--- a/arch/sparc/include/uapi/asm/msgbuf.h
++++ b/arch/sparc/include/uapi/asm/msgbuf.h
+@@ -2,6 +2,8 @@
+ #ifndef _SPARC_MSGBUF_H
+ #define _SPARC_MSGBUF_H
+ 
++#include <asm/ipcbuf.h>
++
+ /*
+  * The msqid64_ds structure for sparc64 architecture.
+  * Note extra padding because this structure is passed back and forth
+diff --git a/arch/x86/include/uapi/asm/msgbuf.h b/arch/x86/include/uapi/asm/msgbuf.h
+index 90ab9a795b49..e09fd2363300 100644
+--- a/arch/x86/include/uapi/asm/msgbuf.h
++++ b/arch/x86/include/uapi/asm/msgbuf.h
+@@ -5,6 +5,9 @@
+ #if !defined(__x86_64__) || !defined(__ILP32__)
+ #include <asm-generic/msgbuf.h>
+ #else
++
++#include <asm/ipcbuf.h>
++
+ /*
+  * The msqid64_ds structure for x86 architecture with x32 ABI.
+  *
+diff --git a/arch/xtensa/include/uapi/asm/msgbuf.h b/arch/xtensa/include/uapi/asm/msgbuf.h
+index d6915e9f071c..1ed2c85b693a 100644
+--- a/arch/xtensa/include/uapi/asm/msgbuf.h
++++ b/arch/xtensa/include/uapi/asm/msgbuf.h
+@@ -17,6 +17,8 @@
+ #ifndef _XTENSA_MSGBUF_H
+ #define _XTENSA_MSGBUF_H
+ 
++#include <asm/ipcbuf.h>
++
+ struct msqid64_ds {
+ 	struct ipc64_perm msg_perm;
+ #ifdef __XTENSA_EB__
+diff --git a/include/uapi/asm-generic/msgbuf.h b/include/uapi/asm-generic/msgbuf.h
+index 9fe4881557cb..7cdc7e52490d 100644
+--- a/include/uapi/asm-generic/msgbuf.h
++++ b/include/uapi/asm-generic/msgbuf.h
+@@ -3,6 +3,8 @@
+ #define __ASM_GENERIC_MSGBUF_H
+ 
+ #include <asm/bitsperlong.h>
++#include <asm/ipcbuf.h>
++
+ /*
+  * generic msqid64_ds structure.
+  *
+diff --git a/usr/include/Makefile b/usr/include/Makefile
+index 70f8fe256aed..099d7401aa23 100644
+--- a/usr/include/Makefile
++++ b/usr/include/Makefile
+@@ -16,7 +16,6 @@ override c_flags = $(UAPI_CFLAGS) -Wp,-MD,$(depfile) -I$(objtree)/usr/include
+ # Please consider to fix the header first.
+ #
+ # Sorted alphabetically.
+-header-test- += asm/msgbuf.h
+ header-test- += asm/sembuf.h
+ header-test- += asm/shmbuf.h
+ header-test- += asm/signal.h
+-- 
+2.17.1
