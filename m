@@ -1,79 +1,48 @@
-From: Michael Ellerman <mpe@ellerman.id.au>
-Subject: Re: [PATCH 5/6] powerpc: Mark archrandom.h functions __must_check
-Date: Wed, 30 Oct 2019 22:37:01 +1100
-Message-ID: <87v9s6bh2a.fsf@mpe.ellerman.id.au>
-References: <20191028210559.8289-1-rth@twiddle.net>
- <20191028210559.8289-6-rth@twiddle.net>
+From: Rasmus Villemoes <linux@rasmusvillemoes.dk>
+Subject: [RFC PATCH 0/5] powerpc: make iowrite32be etc. inline
+Date: Thu, 31 Oct 2019 01:31:49 +0100
+Message-ID: <20191031003154.21969-1-linux@rasmusvillemoes.dk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
-In-Reply-To: <20191028210559.8289-6-rth@twiddle.net>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
-To: Richard Henderson <richard.henderson@linaro.org>, linux-arch@vger.kernel.org
-Cc: linux-s390@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, x86@kernel.org, Paul Mackerras <paulus@samba.org>, linuxppc-dev@lists.ozlabs.org, linux-arm-kernel@lists.infradead.org
+Content-Transfer-Encoding: 8bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org
+Cc: Christophe Leroy <christophe.leroy@c-s.fr>, Arnd Bergmann <arnd@arndb.de>, Michael Ellerman <mpe@ellerman.id.au>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, linux-kernel@vger.kernel.org, Rasmus Villemoes <linux@rasmusvillemoes.dk>
 List-Id: linux-arch.vger.kernel.org
 
-Richard Henderson <richard.henderson@linaro.org> writes:
-> We cannot use the pointer output without validating the
-> success of the random read.
+When trying to make the QUICC Engine drivers compile on arm, I
+mechanically (with coccinelle) changed out_be32() to iowrite32be()
+etc. Christophe pointed out [1][2] that that would pessimize the
+powerpc SOCs since the IO accesses now incur a function call
+overhead. He asked that I try to make those io accessors inline on
+ppc, and this is the best I could come up with.
 
-You _can_, but you must not. </pedant>
+At first I tried something that wouldn't need to touch anything
+outside arch/powerpc/, but I ended up with conditional inclusion of
+asm-generic headers and/or duplicating a lot of their contents.
 
-> Signed-off-by: Richard Henderson <rth@twiddle.net>
-> ---
-> Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-> Cc: Paul Mackerras <paulus@samba.org>
-> Cc: Michael Ellerman <mpe@ellerman.id.au>
-> ---
->  arch/powerpc/include/asm/archrandom.h | 8 ++++----
->  1 file changed, 4 insertions(+), 4 deletions(-)
+The diffstat may become a little better if kernel/iomap.c can indeed
+be removed (due to !CONFIG_PPC_INDIRECT_PIO &&
+CONFIG_PPC_INDIRECT_MMIO never happening).
 
-Acked-by: Michael Ellerman <mpe@ellerman.id.au>
+[1] https://lore.kernel.org/lkml/6ee121cf-0e3d-4aa0-2593-fcb00995e429@c-s.fr/
+[2] https://lore.kernel.org/lkml/886d5218-6d6b-824c-3ab9-63aafe41ff40@c-s.fr/
 
-cheers
+Rasmus Villemoes (5):
+  asm-generic: move pcu_iounmap from iomap.h to pci_iomap.h
+  asm-generic: employ "ifndef foo; define foo foo" idiom in iomap.h
+  powerpc: move pci_iounmap() from iomap.c to pci-common.c
+  powerpc: make pcibios_vaddr_is_ioport() static
+  powerpc: make iowrite32 and friends static inline when no indirection
 
-> diff --git a/arch/powerpc/include/asm/archrandom.h b/arch/powerpc/include/asm/archrandom.h
-> index f8a887c8b7f8..ee214b153a71 100644
-> --- a/arch/powerpc/include/asm/archrandom.h
-> +++ b/arch/powerpc/include/asm/archrandom.h
-> @@ -6,17 +6,17 @@
->  
->  #include <asm/machdep.h>
->  
-> -static inline bool arch_get_random_long(unsigned long *v)
-> +static inline bool __must_check arch_get_random_long(unsigned long *v)
->  {
->  	return false;
->  }
->  
-> -static inline bool arch_get_random_int(unsigned int *v)
-> +static inline bool __must_check arch_get_random_int(unsigned int *v)
->  {
->  	return false;
->  }
->  
-> -static inline bool arch_get_random_seed_long(unsigned long *v)
-> +static inline bool __must_check arch_get_random_seed_long(unsigned long *v)
->  {
->  	if (ppc_md.get_random_seed)
->  		return ppc_md.get_random_seed(v);
-> @@ -24,7 +24,7 @@ static inline bool arch_get_random_seed_long(unsigned long *v)
->  	return false;
->  }
->  
-> -static inline bool arch_get_random_seed_int(unsigned int *v)
-> +static inline bool __must_check arch_get_random_seed_int(unsigned int *v)
->  {
->  	unsigned long val;
->  	bool rc;
-> -- 
-> 2.17.1
+ arch/powerpc/include/asm/io.h         | 172 ++++++++++++++++++++++++++
+ arch/powerpc/include/asm/pci-bridge.h |   9 --
+ arch/powerpc/kernel/Makefile          |   2 +-
+ arch/powerpc/kernel/iomap.c           |  13 --
+ arch/powerpc/kernel/pci-common.c      |  15 ++-
+ include/asm-generic/iomap.h           | 104 +++++++++++++---
+ include/asm-generic/pci_iomap.h       |   7 ++
+ 7 files changed, 282 insertions(+), 40 deletions(-)
+
+-- 
+2.23.0
