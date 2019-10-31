@@ -1,62 +1,51 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from outbound.smtp.vt.edu ([198.82.183.121]:55536 "EHLO
-        omr2.cc.vt.edu" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-        with ESMTP id S1726347AbfJaDRJ (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 30 Oct 2019 23:17:09 -0400
-Received: from mr6.cc.vt.edu (mr6.cc.ipv6.vt.edu [IPv6:2607:b400:92:8500:0:af:2d00:4488])
-        by omr2.cc.vt.edu (8.14.4/8.14.4) with ESMTP id x9V3H7NU026548
-        for <linux-arch@vger.kernel.org>; Wed, 30 Oct 2019 23:17:07 -0400
-Received: from mail-qk1-f199.google.com (mail-qk1-f199.google.com [209.85.222.199])
-        by mr6.cc.vt.edu (8.14.7/8.14.7) with ESMTP id x9V3H21k008619
-        for <linux-arch@vger.kernel.org>; Wed, 30 Oct 2019 23:17:07 -0400
-Received: by mail-qk1-f199.google.com with SMTP id x77so4372970qka.11
-        for <linux-arch@vger.kernel.org>; Wed, 30 Oct 2019 20:17:07 -0700 (PDT)
-From: "Valdis Kl=?utf-8?Q?=c4=93?=tnieks" <valdis.kletnieks@vt.edu>
-Subject: Re: [RFC] errno.h: Provide EFSCORRUPTED for everybody
-In-Reply-To: <20191031030449.GV15222@magnolia>
-References: <20191031010736.113783-1-Valdis.Kletnieks@vt.edu>
- <20191031030449.GV15222@magnolia>
-Mime-Version: 1.0
-Content-Type: multipart/signed; boundary="==_Exmh_1572491818_4623P";
-         micalg=pgp-sha1; protocol="application/pgp-signature"
+Received: from mail-lj1-f194.google.com ([209.85.208.194]:44595 "EHLO
+        mail-lj1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726596AbfJaHjA (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 31 Oct 2019 03:39:00 -0400
+Received: by mail-lj1-f194.google.com with SMTP id c4so5478775lja.11
+        for <linux-arch@vger.kernel.org>; Thu, 31 Oct 2019 00:38:57 -0700 (PDT)
+Subject: Re: [RFC PATCH 0/5] powerpc: make iowrite32be etc. inline
+References: <20191031003154.21969-1-linux@rasmusvillemoes.dk>
+From: Rasmus Villemoes <linux@rasmusvillemoes.dk>
+Message-ID: <04799503-b423-6bc8-71cd-bee54e45883e@rasmusvillemoes.dk>
+Date: Thu, 31 Oct 2019 08:38:54 +0100
+MIME-Version: 1.0
+In-Reply-To: <20191031003154.21969-1-linux@rasmusvillemoes.dk>
+Content-Type: text/plain; charset=windows-1252
+Content-Language: en-US
 Content-Transfer-Encoding: 7bit
-Date: Wed, 30 Oct 2019 23:16:59 -0400
-Message-ID: <120748.1572491819@turing-police>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Darrick J. Wong" <darrick.wong@oracle.com>
-Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Gao Xiang <xiang@kernel.org>, Chao Yu <chao@kernel.org>, Theodore Ts'o <tytso@mit.edu>, Andreas Dilger <adilger.kernel@dilger.ca>, Jaegeuk Kim <jaegeuk@kernel.org>, linux-xfs@vger.kernel.org, Jan Kara <jack@suse.com>, Arnd Bergmann <arnd@arndb.de>, linux-fsdevel@vger.kernel.org, devel@driverdev.osuosl.org, linux-kernel@vger.kernel.org, linux-erofs@lists.ozlabs.org, linux-ext4@vger.kernel.org, linux-f2fs-devel@lists.sourceforge.net, linux-arch@vger.kernel.org
-Message-ID: <20191031031659.5z4YSuXgEfLTJQlj6-y8obWLoDeMS3EPhNyiFBU-k-8@z>
+To: Rasmus Villemoes <linux@rasmusvillemoes.dk>, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org
+Cc: Christophe Leroy <christophe.leroy@c-s.fr>, Arnd Bergmann <arnd@arndb.de>, Michael Ellerman <mpe@ellerman.id.au>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, linux-kernel@vger.kernel.org
+Message-ID: <20191031073854.6JtTuD7cRkA07WE9BOh5S3u1TJID9cP8FDYeoZQZkVw@z>
 
---==_Exmh_1572491818_4623P
-Content-Type: text/plain; charset=us-ascii
+On 31/10/2019 01.31, Rasmus Villemoes wrote:
 
-On Wed, 30 Oct 2019 20:04:49 -0700, "Darrick J. Wong" said:
+> At first I tried something that wouldn't need to touch anything
+> outside arch/powerpc/, but I ended up with conditional inclusion of
+> asm-generic headers and/or duplicating a lot of their contents.
 
-> I would add (d) can we do the same to EFSBADCRC, seeing as f2fs,
-> ext4, xfs, and jbd2 all define it the same way?
+Urrgh, this is much worse than I feared. Already 1/5 is broken because
+asm-generic.h includes asm-generic/iomap.h conditionally, but
+asm-generic/pci_iomap.h unconditionally, so now users of io.h with
+CONFIG_PCI and !CONFIG_GENERIC_IOMAP get an external declaration of
+pci_iounmap they didn't use to, in addition to the static inline defined
+in io.h.
 
-If this one flies, that's a good candidate for a second patch....
+And I didn't think 2/5 could break anything - on the premise that if
+somebody already have a non-trivial define of ioread16, they couldn't
+possibly also include asm-generic/iomap.h. alpha proves me wrong; as
+long as one doesn't define ioread16 until after iomap.h has been parsed,
+there's no problem (well, except of course if some static inline that
+uses ioread16 got parsed between the compiler seeing the extern
+declaration and alpha then defining the ioread16 macro, but apparently
+that doesn't happen).
 
---==_Exmh_1572491818_4623P
-Content-Type: application/pgp-signature
+So sorry for the noise. Maybe I'll just have to bite the bullet and
+introduce private qe_iowrite32be etc. and define them based on $ARCH.
+Any better ideas would be much appreciated.
 
------BEGIN PGP SIGNATURE-----
-Comment: Exmh version 2.9.0 11/07/2018
-
-iQIVAwUBXbpSKgdmEQWDXROgAQJYmA/+PTG0+FXdOKpnGaoDDFNKM1tIitWpnoi9
-02VrxRtAXg+D3lFix+ADGPwdAI9qKi2oMzxnOdTY81JCchjmp2rN4y1iABx5+Vy1
-8eS3gGF2xihheSUp/wLsq4tQx7mY4DkcWIRsuRSmj3PPEZotxvNMkLFox/+xHCSk
-RXdXLU/kO9LZjdFdlxQ26/X9pwhTn6USWRD73f5lVzQ49IChhB+Ww3UJj2RUm4vK
-hkzocyTyA+tGSKEqh3b508buuxiUjWjYFFr8KWUzkd5Of/zgoddbTGXG117ILwDO
-V+kQgt2ZAIESvyDXpBDnkPDclJPgv9aQgkAKdSb94BoMqiry75amO2JuxCNaZcnr
-usLK+H7vWv++FXsA7BPhPAM0xuQRBbWA0sByEcKuHZEP5Z3LKjzIG8UqcbzJsRh4
-ZbmqnW34sqYegs16RUj6Uv3CpRQmNwgit0m4lovTVfHTv+5ZK65e2O615RJajHpE
-KKmSLCZCbLPN9TSAGm+p3m0aIoDH4+b5rp6KQDjfXJR3I8o0um8cLA6ejWmzhdVc
-NMJSDVYw/px/5FU35XocFQERd9DCHYmTtNg2PhPffAKY2Og0YTzyxqxu2aT1ao5S
-xLKZ1MHhLpDGdYhkJDvDHZPypg5kjtJN47yNF7naKgY7Xnt9i4s++1xoSSUVsj1a
-8rFfLA7uEbY=
-=RvfI
------END PGP SIGNATURE-----
-
---==_Exmh_1572491818_4623P--
+Thanks,
+Rasmus
