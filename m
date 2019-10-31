@@ -1,7 +1,7 @@
 From: Rasmus Villemoes <linux@rasmusvillemoes.dk>
-Subject: [RFC PATCH 5/5] powerpc: make iowrite32 and friends static inline when no indirection
-Date: Thu, 31 Oct 2019 01:31:54 +0100
-Message-ID: <20191031003154.21969-6-linux@rasmusvillemoes.dk>
+Subject: [RFC PATCH 1/5] asm-generic: move pcu_iounmap from iomap.h to pci_iomap.h
+Date: Thu, 31 Oct 2019 01:31:50 +0100
+Message-ID: <20191031003154.21969-2-linux@rasmusvillemoes.dk>
 References: <20191031003154.21969-1-linux@rasmusvillemoes.dk>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
@@ -12,226 +12,70 @@ To: linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org
 Cc: Christophe Leroy <christophe.leroy@c-s.fr>, Arnd Bergmann <arnd@arndb.de>, Michael Ellerman <mpe@ellerman.id.au>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, linux-kernel@vger.kernel.org, Rasmus Villemoes <linux@rasmusvillemoes.dk>
 List-Id: linux-arch.vger.kernel.org
 
-When porting a powerpc-only driver to work on another architecture,
-one has to change e.g. out_be32 to iowrite32be. Unfortunately, while
-the other target architecture (in my case arm) may have static inline
-definitions of iowrite32 and friends, this change pessimizes the
-existing powerpc users of that driver since out_be32() is inline while
-iowrite32be() is out-of-line.
+pci_iounmap seems misplaced in iomap.h. Move it to where its cousins
+live. Since iomap.h includes pci_iomap.h, anybody relying on getting
+the declaration through iomap.h will still get it.
 
-When neither CONFIG_PPC_INDIRECT_PIO or CONFIG_PPC_INDIRECT_MMIO are
-set (e.g. all of PPC32), there's no reason for those to be out-of-line
-as they compile to just two or three instructions. So copy the
-definitions from iomap.c into io.h, make them static inline, and add
-the self-define macro boilerplate to prevent asm-generic/iomap.h from
-providing extern declarations.
+It would be natural to put the static inline version inside the
 
-This means that kernel/iomap.c is now only compiled when
-!CONFIG_PPC_INDIRECT_PIO && CONFIG_PPC_INDIRECT_MMIO - a combination I
-don't think currently exists. So it's possible that file could simply
-be deleted.
+#elif defined(CONFIG_GENERIC_PCI_IOMAP)
+
+Since GENERIC_IOMAP selects GENERIC_PCI_IOMAP, that would be ok for
+those who select GENERIC_IOMAP. However, I fear there are some that
+select GENERIC_PCI_IOMAP without GENERIC_IOMAP, and which perhaps have
+their own pci_iounmap stub definition somewhere. So for now at least,
+define the static inline version under the same conditions as it were
+in iomap.h.
 
 Signed-off-by: Rasmus Villemoes <linux@rasmusvillemoes.dk>
 ---
- arch/powerpc/include/asm/io.h | 172 ++++++++++++++++++++++++++++++++++
- arch/powerpc/kernel/Makefile  |   2 +-
- 2 files changed, 173 insertions(+), 1 deletion(-)
+ include/asm-generic/iomap.h     | 10 ----------
+ include/asm-generic/pci_iomap.h |  7 +++++++
+ 2 files changed, 7 insertions(+), 10 deletions(-)
 
-diff --git a/arch/powerpc/include/asm/io.h b/arch/powerpc/include/asm/io.h
-index a63ec938636d..a59310620067 100644
---- a/arch/powerpc/include/asm/io.h
-+++ b/arch/powerpc/include/asm/io.h
-@@ -638,6 +638,178 @@ static inline void name at					\
- #define writel_relaxed(v, addr)	writel(v, addr)
- #define writeq_relaxed(v, addr)	writeq(v, addr)
+diff --git a/include/asm-generic/iomap.h b/include/asm-generic/iomap.h
+index a008f504a2d0..5f8321e8fea9 100644
+--- a/include/asm-generic/iomap.h
++++ b/include/asm-generic/iomap.h
+@@ -101,16 +101,6 @@ extern void ioport_unmap(void __iomem *);
+ #define ioremap_wt ioremap_nocache
+ #endif
  
-+#if !defined(CONFIG_PPC_INDIRECT_PIO) && !defined(CONFIG_PPC_INDIRECT_MMIO)
-+
-+#define ioread8 ioread8
-+static inline unsigned int ioread8(void __iomem *addr)
-+{
-+	return readb(addr);
-+}
-+#define ioread16 ioread16
-+static inline unsigned int ioread16(void __iomem *addr)
-+{
-+	return readw(addr);
-+}
-+#define ioread16be ioread16be
-+static inline unsigned int ioread16be(void __iomem *addr)
-+{
-+	return readw_be(addr);
-+}
-+#define ioread32 ioread32
-+static inline unsigned int ioread32(void __iomem *addr)
-+{
-+	return readl(addr);
-+}
-+#define ioread32be ioread32be
-+static inline unsigned int ioread32be(void __iomem *addr)
-+{
-+	return readl_be(addr);
-+}
-+#ifdef __powerpc64__
-+#define ioread64 ioread64
-+static inline u64 ioread64(void __iomem *addr)
-+{
-+	return readq(addr);
-+}
-+#define ioread64_lo_hi ioread64_lo_hi
-+static inline u64 ioread64_lo_hi(void __iomem *addr)
-+{
-+	return readq(addr);
-+}
-+#define ioread64_hi_lo ioread64_hi_lo
-+static inline u64 ioread64_hi_lo(void __iomem *addr)
-+{
-+	return readq(addr);
-+}
-+#define ioread64be ioread64be
-+static inline u64 ioread64be(void __iomem *addr)
-+{
-+	return readq_be(addr);
-+}
-+#define ioread64be_lo_hi ioread64be_lo_hi
-+static inline u64 ioread64be_lo_hi(void __iomem *addr)
-+{
-+	return readq_be(addr);
-+}
-+#define ioread64be_hi_lo ioread64be_hi_lo
-+static inline u64 ioread64be_hi_lo(void __iomem *addr)
-+{
-+	return readq_be(addr);
-+}
-+#endif /* __powerpc64__ */
-+
-+#define iowrite8 iowrite8
-+static inline void iowrite8(u8 val, void __iomem *addr)
-+{
-+	writeb(val, addr);
-+}
-+#define iowrite16 iowrite16
-+static inline void iowrite16(u16 val, void __iomem *addr)
-+{
-+	writew(val, addr);
-+}
-+#define iowrite16be iowrite16be
-+static inline void iowrite16be(u16 val, void __iomem *addr)
-+{
-+	writew_be(val, addr);
-+}
-+#define iowrite32 iowrite32
-+static inline void iowrite32(u32 val, void __iomem *addr)
-+{
-+	writel(val, addr);
-+}
-+#define iowrite32be iowrite32be
-+static inline void iowrite32be(u32 val, void __iomem *addr)
-+{
-+	writel_be(val, addr);
-+}
-+#ifdef __powerpc64__
-+#define iowrite64 iowrite64
-+static inline void iowrite64(u64 val, void __iomem *addr)
-+{
-+	writeq(val, addr);
-+}
-+#define iowrite64_lo_hi iowrite64_lo_hi
-+static inline void iowrite64_lo_hi(u64 val, void __iomem *addr)
-+{
-+	writeq(val, addr);
-+}
-+#define iowrite64_hi_lo iowrite64_hi_lo
-+static inline void iowrite64_hi_lo(u64 val, void __iomem *addr)
-+{
-+	writeq(val, addr);
-+}
-+#define iowrite64be iowrite64be
-+static inline void iowrite64be(u64 val, void __iomem *addr)
-+{
-+	writeq_be(val, addr);
-+}
-+#define iowrite64be_lo_hi iowrite64be_lo_hi
-+static inline void iowrite64be_lo_hi(u64 val, void __iomem *addr)
-+{
-+	writeq_be(val, addr);
-+}
-+#define iowrite64be_hi_lo iowrite64be_hi_lo
-+static inline void iowrite64be_hi_lo(u64 val, void __iomem *addr)
-+{
-+	writeq_be(val, addr);
-+}
-+#endif /* __powerpc64__ */
-+
-+/*
-+ * These are the "repeat read/write" functions. Note the
-+ * non-CPU byte order. We do things in "IO byteorder"
-+ * here.
-+ *
-+ * FIXME! We could make these do EEH handling if we really
-+ * wanted. Not clear if we do.
-+ */
-+#define ioread8_rep ioread8_rep
-+static inline void ioread8_rep(void __iomem *addr, void *dst, unsigned long count)
-+{
-+	readsb(addr, dst, count);
-+}
-+#define ioread16_rep ioread16_rep
-+static inline void ioread16_rep(void __iomem *addr, void *dst, unsigned long count)
-+{
-+	readsw(addr, dst, count);
-+}
-+#define ioread32_rep ioread32_rep
-+static inline void ioread32_rep(void __iomem *addr, void *dst, unsigned long count)
-+{
-+	readsl(addr, dst, count);
-+}
-+
-+#define iowrite8_rep iowrite8_rep
-+static inline void iowrite8_rep(void __iomem *addr, const void *src, unsigned long count)
-+{
-+	writesb(addr, src, count);
-+}
-+#define iowrite16_rep iowrite16_rep
-+static inline void iowrite16_rep(void __iomem *addr, const void *src, unsigned long count)
-+{
-+	writesw(addr, src, count);
-+}
-+#define iowrite32_rep iowrite32_rep
-+static inline void iowrite32_rep(void __iomem *addr, const void *src, unsigned long count)
-+{
-+	writesl(addr, src, count);
-+}
-+
-+#define ioport_map ioport_map
-+static inline void __iomem *ioport_map(unsigned long port, unsigned int len)
-+{
-+	return (void __iomem *) (port + _IO_BASE);
-+}
-+
-+#define ioport_unmap ioport_unmap
-+static inline void ioport_unmap(void __iomem *addr)
-+{
-+	/* Nothing to do */
-+}
-+
-+#endif /* !defined(CONFIG_PPC_INDIRECT_PIO) && !defined(CONFIG_PPC_INDIRECT_MMIO) */
-+
- #include <asm-generic/iomap.h>
+-#ifdef CONFIG_PCI
+-/* Destroy a virtual mapping cookie for a PCI BAR (memory or IO) */
+-struct pci_dev;
+-extern void pci_iounmap(struct pci_dev *dev, void __iomem *);
+-#elif defined(CONFIG_GENERIC_IOMAP)
+-struct pci_dev;
+-static inline void pci_iounmap(struct pci_dev *dev, void __iomem *addr)
+-{ }
+-#endif
+-
+ #include <asm-generic/pci_iomap.h>
  
- static inline void iosync(void)
-diff --git a/arch/powerpc/kernel/Makefile b/arch/powerpc/kernel/Makefile
-index a7ca8fe62368..0991b3cd007b 100644
---- a/arch/powerpc/kernel/Makefile
-+++ b/arch/powerpc/kernel/Makefile
-@@ -143,7 +143,7 @@ obj-$(CONFIG_PPC_IO_WORKAROUNDS)	+= io-workarounds.o
- obj-y				+= trace/
+ #endif
+diff --git a/include/asm-generic/pci_iomap.h b/include/asm-generic/pci_iomap.h
+index d4f16dcc2ed7..c2f78db2420e 100644
+--- a/include/asm-generic/pci_iomap.h
++++ b/include/asm-generic/pci_iomap.h
+@@ -18,6 +18,8 @@ extern void __iomem *pci_iomap_range(struct pci_dev *dev, int bar,
+ extern void __iomem *pci_iomap_wc_range(struct pci_dev *dev, int bar,
+ 					unsigned long offset,
+ 					unsigned long maxlen);
++/* Destroy a virtual mapping cookie for a PCI BAR (memory or IO) */
++extern void pci_iounmap(struct pci_dev *dev, void __iomem *);
+ /* Create a virtual mapping cookie for a port on a given PCI device.
+  * Do not call this directly, it exists to make it easier for architectures
+  * to override */
+@@ -52,4 +54,9 @@ static inline void __iomem *pci_iomap_wc_range(struct pci_dev *dev, int bar,
+ }
+ #endif
  
- ifneq ($(CONFIG_PPC_INDIRECT_PIO),y)
--obj-y				+= iomap.o
-+obj-$(CONFIG_PPC_INDIRECT_MMIO)	+= iomap.o
- endif
- 
- obj64-$(CONFIG_PPC_TRANSACTIONAL_MEM)	+= tm.o
++#if !defined(CONFIG_PCI) && defined(CONFIG_GENERIC_IOMAP)
++static inline void pci_iounmap(struct pci_dev *dev, void __iomem *addr)
++{ }
++#endif
++
+ #endif /* __ASM_GENERIC_IO_H */
 -- 
 2.23.0
