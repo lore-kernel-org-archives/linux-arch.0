@@ -1,80 +1,115 @@
-From: Rasmus Villemoes <linux@rasmusvillemoes.dk>
-Subject: [RFC PATCH 3/5] powerpc: move pci_iounmap() from iomap.c to pci-common.c
-Date: Thu, 31 Oct 2019 01:31:52 +0100
-Message-ID: <20191031003154.21969-4-linux@rasmusvillemoes.dk>
-References: <20191031003154.21969-1-linux@rasmusvillemoes.dk>
+From: Valdis Kletnieks <valdis.kletnieks@vt.edu>
+Subject: [RFC] errno.h: Provide EFSCORRUPTED for everybody
+Date: Wed, 30 Oct 2019 21:07:33 -0400
+Message-ID: <20191031010736.113783-1-Valdis.Kletnieks@vt.edu>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20191031003154.21969-1-linux@rasmusvillemoes.dk>
 Sender: linux-kernel-owner@vger.kernel.org
-To: linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org
-Cc: Christophe Leroy <christophe.leroy@c-s.fr>, Arnd Bergmann <arnd@arndb.de>, Michael Ellerman <mpe@ellerman.id.au>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, linux-kernel@vger.kernel.org, Rasmus Villemoes <linux@rasmusvillemoes.dk>
+To: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+Cc: Valdis Kletnieks <Valdis.Kletnieks@vt.edu>, Valdis Kletnieks <valdis.kletnieks@vt.edu>, Gao Xiang <xiang@kernel.org>, Chao Yu <chao@kernel.org>, Theodore Ts'o <tytso@mit.edu>, Andreas Dilger <adilger.kernel@dilger.ca>, Jaegeuk Kim <jaegeuk@kernel.org>, "Darrick J. Wong" <darrick.wong@oracle.com>, linux-xfs@vger.kernel.org, Jan Kara <jack@suse.com>, Arnd Bergmann <arnd@arndb.de>, linux-fsdevel@vger.kernel.org, devel@driverdev.osuosl.org, linux-kernel@vger.kernel.org, linux-erofs@lists.ozlabs.org, linux-ext4@vger.kernel.org, linux-f2fs-devel@lists.sourceforge.net, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-As preparation for making iowrite32 and friends static inlines, move
-the definition of pci_iounmap() from iomap.c to pci-common.c. This
-definition of pci_iounmap() is compiled in when
-!CONFIG_PPC_INDIRECT_PIO && CONFIG_PCI - we're just interchanging
-which condition is in the Kbuild logic and which is in the .c file.
+Three questions: (a) ACK/NAK on this patch, (b) should it be all in one
+patch, or one to add to errno.h and 6 patches for 6 filesystems?), and
+(c) if one patch, who gets to shepherd it through?
 
-Signed-off-by: Rasmus Villemoes <linux@rasmusvillemoes.dk>
+
+There's currently 6 filesystems that have the same #define. Move it
+into errno.h so it's defined in just one place.
+
+Signed-off-by: Valdis Kletnieks <Valdis.Kletnieks@vt.edu>
 ---
- arch/powerpc/kernel/iomap.c      | 13 -------------
- arch/powerpc/kernel/pci-common.c | 13 +++++++++++++
- 2 files changed, 13 insertions(+), 13 deletions(-)
+ drivers/staging/exfat/exfat.h    | 2 --
+ fs/erofs/internal.h              | 2 --
+ fs/ext4/ext4.h                   | 1 -
+ fs/f2fs/f2fs.h                   | 1 -
+ fs/xfs/xfs_linux.h               | 1 -
+ include/linux/jbd2.h             | 1 -
+ include/uapi/asm-generic/errno.h | 1 +
+ 7 files changed, 1 insertion(+), 8 deletions(-)
 
-diff --git a/arch/powerpc/kernel/iomap.c b/arch/powerpc/kernel/iomap.c
-index 5ac84efc6ede..b22fa8db5068 100644
---- a/arch/powerpc/kernel/iomap.c
-+++ b/arch/powerpc/kernel/iomap.c
-@@ -182,16 +182,3 @@ void ioport_unmap(void __iomem *addr)
- }
- EXPORT_SYMBOL(ioport_map);
- EXPORT_SYMBOL(ioport_unmap);
+diff --git a/drivers/staging/exfat/exfat.h b/drivers/staging/exfat/exfat.h
+index 84de1123e178..3cf7e54af0b7 100644
+--- a/drivers/staging/exfat/exfat.h
++++ b/drivers/staging/exfat/exfat.h
+@@ -30,8 +30,6 @@
+ #undef DEBUG
+ #endif
+ 
+-#define EFSCORRUPTED	EUCLEAN		/* Filesystem is corrupted */
 -
--#ifdef CONFIG_PCI
--void pci_iounmap(struct pci_dev *dev, void __iomem *addr)
--{
--	if (isa_vaddr_is_ioport(addr))
--		return;
--	if (pcibios_vaddr_is_ioport(addr))
--		return;
--	iounmap(addr);
--}
+ #define DENTRY_SIZE		32	/* dir entry size */
+ #define DENTRY_SIZE_BITS	5
+ 
+diff --git a/fs/erofs/internal.h b/fs/erofs/internal.h
+index 544a453f3076..3980026a8882 100644
+--- a/fs/erofs/internal.h
++++ b/fs/erofs/internal.h
+@@ -425,7 +425,5 @@ static inline int z_erofs_init_zip_subsystem(void) { return 0; }
+ static inline void z_erofs_exit_zip_subsystem(void) {}
+ #endif	/* !CONFIG_EROFS_FS_ZIP */
+ 
+-#define EFSCORRUPTED    EUCLEAN         /* Filesystem is corrupted */
 -
--EXPORT_SYMBOL(pci_iounmap);
--#endif /* CONFIG_PCI */
-diff --git a/arch/powerpc/kernel/pci-common.c b/arch/powerpc/kernel/pci-common.c
-index 1c448cf25506..d89a2426b405 100644
---- a/arch/powerpc/kernel/pci-common.c
-+++ b/arch/powerpc/kernel/pci-common.c
-@@ -34,6 +34,7 @@
- #include <asm/io.h>
- #include <asm/prom.h>
- #include <asm/pci-bridge.h>
-+#include <asm/isa-bridge.h>
- #include <asm/byteorder.h>
- #include <asm/machdep.h>
- #include <asm/ppc-pci.h>
-@@ -295,6 +296,18 @@ int pcibios_vaddr_is_ioport(void __iomem *address)
- 	return ret;
+ #endif	/* __EROFS_INTERNAL_H */
+ 
+diff --git a/fs/ext4/ext4.h b/fs/ext4/ext4.h
+index 03db3e71676c..a86c2585457d 100644
+--- a/fs/ext4/ext4.h
++++ b/fs/ext4/ext4.h
+@@ -3396,6 +3396,5 @@ static inline int ext4_buffer_uptodate(struct buffer_head *bh)
+ #endif	/* __KERNEL__ */
+ 
+ #define EFSBADCRC	EBADMSG		/* Bad CRC detected */
+-#define EFSCORRUPTED	EUCLEAN		/* Filesystem is corrupted */
+ 
+ #endif	/* _EXT4_H */
+diff --git a/fs/f2fs/f2fs.h b/fs/f2fs/f2fs.h
+index 4024790028aa..04ebe77569a3 100644
+--- a/fs/f2fs/f2fs.h
++++ b/fs/f2fs/f2fs.h
+@@ -3752,6 +3752,5 @@ static inline bool is_journalled_quota(struct f2fs_sb_info *sbi)
  }
  
-+#ifndef CONFIG_PPC_INDIRECT_PIO
-+void pci_iounmap(struct pci_dev *dev, void __iomem *addr)
-+{
-+	if (isa_vaddr_is_ioport(addr))
-+		return;
-+	if (pcibios_vaddr_is_ioport(addr))
-+		return;
-+	iounmap(addr);
-+}
-+EXPORT_SYMBOL(pci_iounmap);
-+#endif /* CONFIG_PPC_INDIRECT_PIO */
-+
- unsigned long pci_address_to_pio(phys_addr_t address)
- {
- 	struct pci_controller *hose;
+ #define EFSBADCRC	EBADMSG		/* Bad CRC detected */
+-#define EFSCORRUPTED	EUCLEAN		/* Filesystem is corrupted */
+ 
+ #endif /* _LINUX_F2FS_H */
+diff --git a/fs/xfs/xfs_linux.h b/fs/xfs/xfs_linux.h
+index ca15105681ca..3409d02a7d21 100644
+--- a/fs/xfs/xfs_linux.h
++++ b/fs/xfs/xfs_linux.h
+@@ -123,7 +123,6 @@ typedef __u32			xfs_nlink_t;
+ 
+ #define ENOATTR		ENODATA		/* Attribute not found */
+ #define EWRONGFS	EINVAL		/* Mount with wrong filesystem type */
+-#define EFSCORRUPTED	EUCLEAN		/* Filesystem is corrupted */
+ #define EFSBADCRC	EBADMSG		/* Bad CRC detected */
+ 
+ #define SYNCHRONIZE()	barrier()
+diff --git a/include/linux/jbd2.h b/include/linux/jbd2.h
+index 564793c24d12..1ecd3859d040 100644
+--- a/include/linux/jbd2.h
++++ b/include/linux/jbd2.h
+@@ -1657,6 +1657,5 @@ static inline tid_t  jbd2_get_latest_transaction(journal_t *journal)
+ #endif	/* __KERNEL__ */
+ 
+ #define EFSBADCRC	EBADMSG		/* Bad CRC detected */
+-#define EFSCORRUPTED	EUCLEAN		/* Filesystem is corrupted */
+ 
+ #endif	/* _LINUX_JBD2_H */
+diff --git a/include/uapi/asm-generic/errno.h b/include/uapi/asm-generic/errno.h
+index cf9c51ac49f9..1d5ffdf54cb0 100644
+--- a/include/uapi/asm-generic/errno.h
++++ b/include/uapi/asm-generic/errno.h
+@@ -98,6 +98,7 @@
+ #define	EINPROGRESS	115	/* Operation now in progress */
+ #define	ESTALE		116	/* Stale file handle */
+ #define	EUCLEAN		117	/* Structure needs cleaning */
++#define	EFSCORRUPTED	EUCLEAN
+ #define	ENOTNAM		118	/* Not a XENIX named type file */
+ #define	ENAVAIL		119	/* No XENIX semaphores available */
+ #define	EISNAM		120	/* Is a named type file */
 -- 
-2.23.0
+2.24.0.rc1
