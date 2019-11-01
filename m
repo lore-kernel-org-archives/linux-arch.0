@@ -1,76 +1,63 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:50182 "EHLO mail.kernel.org"
+Received: from mail.kernel.org ([198.145.29.99]:59812 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726532AbfKAIlQ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 1 Nov 2019 04:41:16 -0400
-From: Mike Rapoport <rppt@kernel.org>
-Subject: [PATCH v2 09/13] parisc/hugetlb: use pgtable-nopXd instead of 4level-fixup
-Date: Fri,  1 Nov 2019 10:39:40 +0200
-Message-ID: <1572597584-6390-10-git-send-email-rppt@kernel.org>
-In-Reply-To: <1572597584-6390-1-git-send-email-rppt@kernel.org>
-References: <1572597584-6390-1-git-send-email-rppt@kernel.org>
+        id S1728048AbfKAKOe (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 1 Nov 2019 06:14:34 -0400
+Date: Fri, 01 Nov 2019 11:14:28 +0100
+In-Reply-To: <1435962204.69872.1572600009245.JavaMail.zimbra@nod.at>
+References: <1572597584-6390-1-git-send-email-rppt@kernel.org> <1572597584-6390-13-git-send-email-rppt@kernel.org> <1435962204.69872.1572600009245.JavaMail.zimbra@nod.at>
+MIME-Version: 1.0
+Content-Type: text/plain;
+ charset=utf-8
+Content-Transfer-Encoding: quoted-printable
+Subject: Re: [PATCH v2 12/13] um: add support for folded p4d page tables
+Message-ID: <20191101101432.7998A2086D@mail.kernel.org>
+From: rppt@kernel.org
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-mm@kvack.org
-Cc: Andrew Morton <akpm@linux-foundation.org>, Anton Ivanov <anton.ivanov@cambridgegreys.com>, Arnd Bergmann <arnd@arndb.de>, "David S. Miller" <davem@davemloft.net>, Geert Uytterhoeven <geert@linux-m68k.org>, Greentime Hu <green.hu@gmail.com>, Greg Ungerer <gerg@linux-m68k.org>, Helge Deller <deller@gmx.de>, "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>, Jeff Dike <jdike@addtoit.com>, "Kirill A. Shutemov" <kirill@shutemov.name>, Linus Torvalds <torvalds@linux-foundation.org>, Mark Salter <msalter@redhat.com>, Matt Turner <mattst88@gmail.com>, Michal Simek <monstr@monstr.eu>, Peter Rosin <peda@axentia.se>, Richard Weinberger <richard@nod.at>, Rolf Eike Beer <eike-kernel@sf-tec.de>, Russell King <linux@armlinux.org.uk>, Sam Creasey <sammy@sammy.net>, Vincent Chen <deanbo422@gmail.com>, Vineet Gupta <Vineet.Gupta1@synopsys.com>, Mike Rapoport <rppt@kernel.org>, linux-alpha@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, linux-kernel@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-parisc@vger.kernel.org, linux-um@lists.infradead.org, sparclinux@vger.kernel.org
-Message-ID: <20191101083940.yjeMV5peNjsLo6jG3mh2IoM6sxrkTEn1v2qXEOCzkfQ@z>
+To: Richard Weinberger <richard@nod.at>
+Cc: linux-mm <linux-mm@kvack.org>, Andrew Morton <akpm@linux-foundation.org>, anton ivanov <anton.ivanov@cambridgegreys.com>, Arnd Bergmann <arnd@arndb.de>, davem <davem@davemloft.net>, Geert Uytterhoeven <geert@linux-m68k.org>, Greentime Hu <green.hu@gmail.com>, Greg Ungerer <gerg@linux-m68k.org>, Helge Deller <deller@gmx.de>, "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>, Jeff Dike <jdike@addtoit.com>, "Kirill A. Shutemov" <kirill@shutemov.name>, torvalds <torvalds@linux-foundation.org>, Mark Salter <msalter@redhat.com>, Matt Turner <mattst88@gmail.com>, Michal Simek <monstr@monstr.eu>, Peter Rosin <peda@axentia.se>, Rolf Eike Beer <eike-kernel@sf-tec.de>, Russell King <linux@armlinux.org.uk>, Sam Creasey <sammy@sammy.net>, Vincent Chen <deanbo422@gmail.com>, Vineet Gupta <Vineet.Gupta1@synopsys.com>, linux-alpha <linux-alpha@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, linux-arm-kernel <linux-arm-kernel@lists.infradead.org>, linux-c6x-dev@vger.kernel.org
+Message-ID: <20191101101428.GEjMdnMsO6UuVedaE0KzCYDuX53rDQRyjMRmAbvbURk@z>
 
-From: Helge Deller <deller@gmx.de>
+<linux-c6x-dev@linux-c6x.org>,linux-kernel <linux-kernel@vger.kernel.org>,linux-m68k <linux-m68k@lists.linux-m68k.org>,linux-parisc <linux-parisc@vger.kernel.org>,linux-um <linux-um@lists.infradead.org>,sparclinux <sparclinux@vger.kernel.org>,Mike Rapoport <rppt@linux.ibm.com>
+From: Mike Rapoport <rppt@kernel.org>
+Message-ID: <E5D8BD4D-5286-427C-A347-D73AC26EC256@kernel.org>
 
-Signed-off-by: Helge Deller <deller@gmx.de>
----
- arch/parisc/mm/hugetlbpage.c | 18 ++++++++++++------
- 1 file changed, 12 insertions(+), 6 deletions(-)
+On November 1, 2019 10:20:09 AM GMT+01:00, Richard Weinberger <richard@nod=
+=2Eat> wrote:
+>----- Urspr=C3=BCngliche Mail -----
+>> Von: "Mike Rapoport" <rppt@kernel=2Eorg>
+>
+>[=2E=2E=2E]
+>
+>> #define pte_page(x) pfn_to_page(pte_pfn(x))
+>> diff --git a/arch/um/kernel/mem=2Ec b/arch/um/kernel/mem=2Ec
+>> index 417ff64=2E=2E6fd17bc 100644
+>> --- a/arch/um/kernel/mem=2Ec
+>> +++ b/arch/um/kernel/mem=2Ec
+>> @@ -92,10 +92,26 @@ static void __init one_md_table_init(pud_t *pud)
+>> #endif
+>> }
+>>=20
+>> +static void __init one_pud_table_init(p4d_t *p4d)
+>> +{
+>> +#if CONFIG_PGTABLE_LEVELS > 3
+>
+>Isn't this dead code?
+>
+>For uml we have:
+>config PGTABLE_LEVELS
+>        int
+>        default 3 if 3_LEVEL_PGTABLES
+>        default 2
 
-diff --git a/arch/parisc/mm/hugetlbpage.c b/arch/parisc/mm/hugetlbpage.c
-index d578809..0e1e212 100644
---- a/arch/parisc/mm/hugetlbpage.c
-+++ b/arch/parisc/mm/hugetlbpage.c
-@@ -49,6 +49,7 @@ pte_t *huge_pte_alloc(struct mm_struct *mm,
- 			unsigned long addr, unsigned long sz)
- {
- 	pgd_t *pgd;
-+	p4d_t *p4d;
- 	pud_t *pud;
- 	pmd_t *pmd;
- 	pte_t *pte = NULL;
-@@ -61,7 +62,8 @@ pte_t *huge_pte_alloc(struct mm_struct *mm,
- 	addr &= HPAGE_MASK;
- 
- 	pgd = pgd_offset(mm, addr);
--	pud = pud_alloc(mm, pgd, addr);
-+	p4d = p4d_offset(pgd, addr);
-+	pud = pud_alloc(mm, p4d, addr);
- 	if (pud) {
- 		pmd = pmd_alloc(mm, pud, addr);
- 		if (pmd)
-@@ -74,6 +76,7 @@ pte_t *huge_pte_offset(struct mm_struct *mm,
- 		       unsigned long addr, unsigned long sz)
- {
- 	pgd_t *pgd;
-+	p4d_t *p4d;
- 	pud_t *pud;
- 	pmd_t *pmd;
- 	pte_t *pte = NULL;
-@@ -82,11 +85,14 @@ pte_t *huge_pte_offset(struct mm_struct *mm,
- 
- 	pgd = pgd_offset(mm, addr);
- 	if (!pgd_none(*pgd)) {
--		pud = pud_offset(pgd, addr);
--		if (!pud_none(*pud)) {
--			pmd = pmd_offset(pud, addr);
--			if (!pmd_none(*pmd))
--				pte = pte_offset_map(pmd, addr);
-+		p4d = p4d_offset(pgd, addr);
-+		if (!p4d_none(*p4d)) {
-+			pud = pud_offset(p4d, addr);
-+			if (!pud_none(*pud)) {
-+				pmd = pmd_offset(pud, addr);
-+				if (!pmd_none(*pmd))
-+					pte = pte_offset_map(pmd, addr);
-+			}
- 		}
- 	}
- 	return pte;
--- 
-2.7.4
+It's kinda a provision for 4 levels support in UML :)
+I can drop this in the next respin, no problem=2E
+
+>Thanks,
+>//richard
+
+
+--=20
+Sincerely yours,
+Mike
