@@ -1,46 +1,64 @@
-Return-Path: <schmitzmic@gmail.com>
-Subject: Re: [PATCH v3 05/13] m68k: mm: use pgtable-nopXd instead of
- 4level-fixup
-References: <1572850587-20314-1-git-send-email-rppt@kernel.org>
- <1572850587-20314-6-git-send-email-rppt@kernel.org>
- <CAMuHMdUG3V7uxzhbetw75vVeobeP0-bQySb3r=0V5XujUF123g@mail.gmail.com>
- <20191104094748.GB23288@rapoport-lnx>
- <CAMuHMdVHsNyLxhaxZcVdLvQ1PUnb=2_+ECPWVD0234V+qu+kOw@mail.gmail.com>
-From: Michael Schmitz <schmitzmic@gmail.com>
-Message-ID: <15fafca0-e4c4-1f46-4f19-9b2a177f7d6b@gmail.com>
-Date: Wed, 6 Nov 2019 20:28:59 +1300
-MIME-Version: 1.0
-In-Reply-To: <CAMuHMdVHsNyLxhaxZcVdLvQ1PUnb=2_+ECPWVD0234V+qu+kOw@mail.gmail.com>
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Transfer-Encoding: 7bit
-To: Geert Uytterhoeven <geert@linux-m68k.org>, Mike Rapoport <rppt@kernel.org>
-Cc: Linux MM <linux-mm@kvack.org>, Andrew Morton <akpm@linux-foundation.org>, Anton Ivanov <anton.ivanov@cambridgegreys.com>, Arnd Bergmann <arnd@arndb.de>, "David S. Miller" <davem@davemloft.net>, Greentime Hu <green.hu@gmail.com>, Greg Ungerer <gerg@linux-m68k.org>, Helge Deller <deller@gmx.de>, "James E.J. Bottomley" <James.Bottomley@hansenpartnership.com>, Jeff Dike <jdike@addtoit.com>, "Kirill A. Shutemov" <kirill@shutemov.name>, Linus Torvalds <torvalds@linux-foundation.org>, Mark Salter <msalter@redhat.com>, Matt Turner <mattst88@gmail.com>, Michal Simek <monstr@monstr.eu>, Peter Rosin <peda@axentia.se>, Richard Weinberger <richard@nod.at>, Rolf Eike Beer <eike-kernel@sf-tec.de>, Russell King <linux@armlinux.org.uk>, Sam Creasey <sammy@sammy.net>, Vincent Chen <deanbo422@gmail.com>, Vineet Gupta <Vineet.Gupta1@synopsys.com>, alpha <linux-alpha@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, linux-c6x-dev@linux-c6x.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-m68k <linux-m68k@lists.linux-m68k.org>, Parisc List <linux-parisc@vger.kernel.org>, linux-um@lists.infradead.org, sparclinux <sparclinux@vger.kernel.org>, Mike Rapoport <rppt@linux.ibm.com>
+Return-Path: <rppt@kernel.org>
+From: Mike Rapoport <rppt@kernel.org>
+Subject: [PATCH v2 11/13] um: remove unused pxx_offset_proc() and addr_pte() functions
+Date: Fri,  1 Nov 2019 10:39:42 +0200
+Message-ID: <1572597584-6390-12-git-send-email-rppt@kernel.org>
+In-Reply-To: <1572597584-6390-1-git-send-email-rppt@kernel.org>
+References: <1572597584-6390-1-git-send-email-rppt@kernel.org>
+To: linux-mm@kvack.org
+Cc: Andrew Morton <akpm@linux-foundation.org>, Anton Ivanov <anton.ivanov@cambridgegreys.com>, Arnd Bergmann <arnd@arndb.de>, "David S. Miller" <davem@davemloft.net>, Geert Uytterhoeven <geert@linux-m68k.org>, Greentime Hu <green.hu@gmail.com>, Greg Ungerer <gerg@linux-m68k.org>, Helge Deller <deller@gmx.de>, "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>, Jeff Dike <jdike@addtoit.com>, "Kirill A. Shutemov" <kirill@shutemov.name>, Linus Torvalds <torvalds@linux-foundation.org>, Mark Salter <msalter@redhat.com>, Matt Turner <mattst88@gmail.com>, Michal Simek <monstr@monstr.eu>, Peter Rosin <peda@axentia.se>, Richard Weinberger <richard@nod.at>, Rolf Eike Beer <eike-kernel@sf-tec.de>, Russell King <linux@armlinux.org.uk>, Sam Creasey <sammy@sammy.net>, Vincent Chen <deanbo422@gmail.com>, Vineet Gupta <Vineet.Gupta1@synopsys.com>, Mike Rapoport <rppt@kernel.org>, linux-alpha@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, linux-kernel@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-parisc@vger.kernel.org, linux-um@lists.infradead.org, sparclinux@vger.kernel.org, Mike Rapoport <rppt@linux.ibm.com>
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20191106072859.aWX-mum8io8BKQE32pIqUg28SkqJ9sttwKafdkZT5uE@z>
+Message-ID: <20191101083942.NAnK7MrKjLBb6gHYxJY_WrGAXz9heUZnBF4u7CQQW8E@z>
 
-Hi Geert,
+From: Mike Rapoport <rppt@linux.ibm.com>
 
-Am 04.11.2019 um 22:53 schrieb Geert Uytterhoeven:
->>> This indeed boots fine on ARAnyM, which emulates on 68040.
->>> It would be good to have some boot testing on '020/030, too.
->>
->> To be honest, I have no idea how to to that :)
->
-> Sure. This was more a request for the fellow m68k users.
+The pxx_offset_proc() and addr_pte() functions are never used.
+Remove them.
 
-I heard you :-) Still doing more regression testing on the latest SCSI 
-fix, but I can schedule this next.
+Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
+---
+ arch/um/kernel/tlb.c | 29 -----------------------------
+ 1 file changed, 29 deletions(-)
 
-Cheers,
-
-	Michael
-
-> But don't worry too much about it.  If it breaks '020/'030, we can fix
-> that later.
->
-> Thanks!
->
-> Gr{oetje,eeting}s,
->
->                         Geert
->
+diff --git a/arch/um/kernel/tlb.c b/arch/um/kernel/tlb.c
+index b7eaf65..8425a22 100644
+--- a/arch/um/kernel/tlb.c
++++ b/arch/um/kernel/tlb.c
+@@ -490,35 +490,6 @@ void flush_tlb_page(struct vm_area_struct *vma, unsigned long address)
+ 	force_sig(SIGKILL);
+ }
+ 
+-pgd_t *pgd_offset_proc(struct mm_struct *mm, unsigned long address)
+-{
+-	return pgd_offset(mm, address);
+-}
+-
+-pud_t *pud_offset_proc(pgd_t *pgd, unsigned long address)
+-{
+-	return pud_offset(pgd, address);
+-}
+-
+-pmd_t *pmd_offset_proc(pud_t *pud, unsigned long address)
+-{
+-	return pmd_offset(pud, address);
+-}
+-
+-pte_t *pte_offset_proc(pmd_t *pmd, unsigned long address)
+-{
+-	return pte_offset_kernel(pmd, address);
+-}
+-
+-pte_t *addr_pte(struct task_struct *task, unsigned long addr)
+-{
+-	pgd_t *pgd = pgd_offset(task->mm, addr);
+-	pud_t *pud = pud_offset(pgd, addr);
+-	pmd_t *pmd = pmd_offset(pud, addr);
+-
+-	return pte_offset_map(pmd, addr);
+-}
+-
+ void flush_tlb_all(void)
+ {
+ 	/*
+-- 
+2.7.4
