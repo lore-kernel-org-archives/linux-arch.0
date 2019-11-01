@@ -1,113 +1,178 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga05.intel.com ([192.55.52.43]:9673 "EHLO mga05.intel.com"
+Received: from mail.kernel.org ([198.145.29.99]:47408 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726658AbfKAO17 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 1 Nov 2019 10:27:59 -0400
-Message-ID: <221c36d6646ea9f88d208dc02494872a34d8b61f.camel@intel.com>
-Subject: Re: [PATCH v7 27/27] x86/cet/shstk: Add Shadow Stack instructions
- to opcode map
-From: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Date: Fri, 01 Nov 2019 07:17:45 -0700
-In-Reply-To: <93e915b9-975d-9876-8f89-8b6f2bc4586e@intel.com>
-References: <20190606200646.3951-1-yu-cheng.yu@intel.com>
-         <20190606200646.3951-28-yu-cheng.yu@intel.com>
-         <93e915b9-975d-9876-8f89-8b6f2bc4586e@intel.com>
-Content-Type: text/plain; charset="UTF-8"
-Mime-Version: 1.0
-Content-Transfer-Encoding: 7bit
+        id S1726823AbfKAQVK (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 1 Nov 2019 12:21:10 -0400
+Date: Fri, 1 Nov 2019 09:21:09 -0700
+From: "Paul E. McKenney" <paulmck@kernel.org>
+Subject: Re: [PATCH 11/11] x86,rcu: use percpu rcu_preempt_depth
+Message-ID: <20191101162109.GN20975@paulmck-ThinkPad-P72>
+Reply-To: paulmck@kernel.org
+References: <20191031100806.1326-1-laijs@linux.alibaba.com>
+ <20191031100806.1326-12-laijs@linux.alibaba.com>
+ <20191101125816.GD17910@paulmck-ThinkPad-P72>
+ <20191101131315.GY4131@hirez.programming.kicks-ass.net>
+ <20191101143036.GM20975@paulmck-ThinkPad-P72>
+ <06b15cfa-620f-d6b1-61d1-8ddfba74a2c8@linux.alibaba.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+Content-Transfer-Encoding: 8bit
+In-Reply-To: <06b15cfa-620f-d6b1-61d1-8ddfba74a2c8@linux.alibaba.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Adrian Hunter <adrian.hunter@intel.com>, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@amacapital.net>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>
-Message-ID: <20191101141745.aY_uCm2Sny9dWn2s2t5Q91UfWZBycjaD1REqX4mvu7E@z>
+To: Lai Jiangshan <laijs@linux.alibaba.com>
+Cc: Peter Zijlstra <peterz@infradead.org>, linux-kernel@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Josh Triplett <josh@joshtriplett.org>, Steven Rostedt <rostedt@goodmis.org>, Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, Lai Jiangshan <jiangshanlai@gmail.com>, Joel Fernandes <joel@joelfernandes.org>, Andy Lutomirski <luto@kernel.org>, Fenghua Yu <fenghua.yu@intel.com>, Andi Kleen <ak@linux.intel.com>, Kees Cook <keescook@chromium.org>, "Rafael J. Wysocki" <rafael.j.wysocki@intel.com>, Sebastian Andrzej Siewior <bigeasy@linutronix.de>, Dave Hansen <dave.hansen@intel.com>, Babu Moger <Babu.Moger@amd.com>, Rik van Riel <riel@surriel.com>, "Chang S. Bae" <chang.seok.bae@intel.com>, Jann Horn <jannh@google.com>, David Windsor <dwindsor@gmail.com>, Elena Reshetova <elena.reshetova@intel.com>, Andrea Parri <andrea.parri@amarulasolutions.com>, Yuyang Du <duyuyang@gmail.com>, Richard Guy Briggs <rgb@redhat.com>, Anshuman Khandual <anshuman.khandual@arm.com>, Andrew Morton <akpm@linux-foundation.org>, Christian Brauner <christian.brauner@ubuntu.com>, Michal Hocko <mhocko@suse.com>, Andrea Arcangeli <aarcange@redhat.com>, Al Viro <viro@zeniv.linux.org.uk>, "Dmitry V. Levin" <ldv@altlinux.org>, rcu@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20191101162109.8lHrPHm6NYtrsh4gcxJNwDKo2rcYZ28VdGU3brIl52g@z>
 
-On Fri, 2019-11-01 at 16:03 +0200, Adrian Hunter wrote:
-> On 6/06/19 11:06 PM, Yu-cheng Yu wrote:
-> > Add the following shadow stack management instructions.
-> > 
-> > INCSSP:
-> >     Increment shadow stack pointer by the steps specified.
-> > 
-> > RDSSP:
-> >     Read SSP register into a GPR.
-> > 
-> > SAVEPREVSSP:
-> >     Use "prev ssp" token at top of current shadow stack to
-> >     create a "restore token" on previous shadow stack.
-> > 
-> > RSTORSSP:
-> >     Restore from a "restore token" pointed by a GPR to SSP.
-> > 
-> > WRSS:
-> >     Write to kernel-mode shadow stack (kernel-mode instruction).
-> > 
-> > WRUSS:
-> >     Write to user-mode shadow stack (kernel-mode instruction).
-> > 
-> > SETSSBSY:
-> >     Verify the "supervisor token" pointed by IA32_PL0_SSP MSR,
-> >     if valid, set the token to busy, and set SSP to the value
-> >     of IA32_PL0_SSP MSR.
-> > 
-> > CLRSSBSY:
-> >     Verify the "supervisor token" pointed by a GPR, if valid,
-> >     clear the busy bit from the token.
+On Fri, Nov 01, 2019 at 11:32:32PM +0800, Lai Jiangshan wrote:
 > 
-> Does the notrack prefix also need to be catered for somehow?
-
-Yes, I will fix it.
-
 > 
+> On 2019/11/1 10:30 下午, Paul E. McKenney wrote:
+> > On Fri, Nov 01, 2019 at 02:13:15PM +0100, Peter Zijlstra wrote:
+> > > On Fri, Nov 01, 2019 at 05:58:16AM -0700, Paul E. McKenney wrote:
+> > > > On Thu, Oct 31, 2019 at 10:08:06AM +0000, Lai Jiangshan wrote:
+> > > > > +/* We mask the RCU_NEED_SPECIAL bit so that it return real depth */
+> > > > > +static __always_inline int rcu_preempt_depth(void)
+> > > > > +{
+> > > > > +	return raw_cpu_read_4(__rcu_preempt_depth) & ~RCU_NEED_SPECIAL;
+> > > > 
+> > > > Why not raw_cpu_generic_read()?
+> > > > 
+> > > > OK, OK, I get that raw_cpu_read_4() translates directly into an "mov"
+> > > > instruction on x86, but given that x86 percpu_from_op() is able to
+> > > > adjust based on operand size, why doesn't something like raw_cpu_read()
+> > > > also have an x86-specific definition that adjusts based on operand size?
+> > > 
+> > > The reason for preempt.h was header recursion hell.
 > > 
-> > Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
-> > ---
-> >  arch/x86/lib/x86-opcode-map.txt               | 26 +++++++++++++------
-> >  tools/objtool/arch/x86/lib/x86-opcode-map.txt | 26 +++++++++++++------
-> >  2 files changed, 36 insertions(+), 16 deletions(-)
+> > Fair enough, being as that is also the reason for _rcu_read_lock()
+> > not being inlined.  :-/
 > > 
-> > diff --git a/arch/x86/lib/x86-opcode-map.txt b/arch/x86/lib/x86-opcode-map.txt
-> > index e0b85930dd77..c5e825d44766 100644
-> > --- a/arch/x86/lib/x86-opcode-map.txt
-> > +++ b/arch/x86/lib/x86-opcode-map.txt
-> > @@ -366,7 +366,7 @@ AVXcode: 1
-> >  1b: BNDCN Gv,Ev (F2) | BNDMOV Ev,Gv (66) | BNDMK Gv,Ev (F3) | BNDSTX Ev,Gv
-> >  1c:
-> >  1d:
-> > -1e:
-> > +1e: RDSSP Rd (F3),REX.W
-> >  1f: NOP Ev
-> >  # 0x0f 0x20-0x2f
-> >  20: MOV Rd,Cd
-> > @@ -610,7 +610,17 @@ fe: paddd Pq,Qq | vpaddd Vx,Hx,Wx (66),(v1)
-> >  ff: UD0
-> >  EndTable
-> >  
-> > -Table: 3-byte opcode 1 (0x0f 0x38)
-> > +Table: 3-byte opcode 1 (0x0f 0x01)
-> > +Referrer:
-> > +AVXcode:
-> > +# Skip 0x00-0xe7
-> > +e8: SETSSBSY (f3)
-> > +e9:
-> > +ea: SAVEPREVSSP (f3)
-> > +# Skip 0xeb-0xff
-> > +EndTable
-> > +
-> > +Table: 3-byte opcode 2 (0x0f 0x38)
-> >  Referrer: 3-byte escape 1
-> >  AVXcode: 2
-> >  # 0x0f 0x38 0x00-0x0f
-> > @@ -789,12 +799,12 @@ f0: MOVBE Gy,My | MOVBE Gw,Mw (66) | CRC32 Gd,Eb (F2) | CRC32 Gd,Eb (66&F2)
-> >  f1: MOVBE My,Gy | MOVBE Mw,Gw (66) | CRC32 Gd,Ey (F2) | CRC32 Gd,Ew (66&F2)
-> >  f2: ANDN Gy,By,Ey (v)
-> >  f3: Grp17 (1A)
-> > -f5: BZHI Gy,Ey,By (v) | PEXT Gy,By,Ey (F3),(v) | PDEP Gy,By,Ey (F2),(v)
-> > -f6: ADCX Gy,Ey (66) | ADOX Gy,Ey (F3) | MULX By,Gy,rDX,Ey (F2),(v)
-> > +f5: BZHI Gy,Ey,By (v) | PEXT Gy,By,Ey (F3),(v) | PDEP Gy,By,Ey (F2),(v) | WRUSS Pq,Qq (66),REX.W
-> > +f6: ADCX Gy,Ey (66) | ADOX Gy,Ey (F3) | MULX By,Gy,rDX,Ey (F2),(v) | WRSS Pq,Qq (66),REX.W
+> > > > > +}
+> > > > > +
+> > > > > +static __always_inline void rcu_preempt_depth_set(int pc)
+> > > > > +{
+> > > > > +	int old, new;
+> > > > > +
+> > > > > +	do {
+> > > > > +		old = raw_cpu_read_4(__rcu_preempt_depth);
+> > > > > +		new = (old & RCU_NEED_SPECIAL) |
+> > > > > +			(pc & ~RCU_NEED_SPECIAL);
+> > > > > +	} while (raw_cpu_cmpxchg_4(__rcu_preempt_depth, old, new) != old);
+> > > > 
+> > > > Ummm...
+> > > > 
+> > > > OK, as you know, I have long wanted _rcu_read_lock() to be inlineable.
+> > > > But are you -sure- that an x86 cmpxchg is faster than a function call
+> > > > and return?  I have strong doubts on that score.
+> > > 
+> > > This is a regular CMPXCHG instruction, not a LOCK prefixed one, and that
+> > > should make all the difference
+> > 
+> > Yes, understood, but this is also adding some arithmetic, a comparison,
+> > and a conditional branch.  Are you -sure- that this is cheaper than
+> > an unconditional call and return?
 > 
-> AFAICT WRSS does not have 66 prefix
+> rcu_preempt_depth_set() is used only for exit_rcu().
+> The performance doesn't matter here. And since RCU_NEED_SPECIAL
+> bit is allowed to lost in exit_rcu(), rcu_preempt_depth_set()
+> can be a single raw_cpu_write_4() if the performance is matter.
 
-I will check.
+That code only executes if there is a bug involving a missing
+rcu_read_unlock(), but in that case it would be necessary to keep the
+check of ->rcu_read_lock_special.b.blocked due to the possibility that
+the exiting task was preempted some time after the rcu_read_lock()
+that would have been paired with the missing rcu_read_unlock().
 
-Thanks,
-Yu-cheng
+> (This complex code is copied from preempt.h and I can't expect
+> how will rcu_preempt_depth_set() be used in the feture
+> so I keep it unchanged.)
+> 
+> 
+> +static __always_inline void rcu_preempt_depth_inc(void)
+> +{
+> +	raw_cpu_add_4(__rcu_preempt_depth, 1);
+> +}
+> 
+> This one is for read_read_lock(). ONE instruction.
+
+Apologies, I did in fact confuse _inc with _set.
+
+> +
+> +static __always_inline bool rcu_preempt_depth_dec_and_test(void)
+> +{
+> +	return GEN_UNARY_RMWcc("decl", __rcu_preempt_depth, e,
+> __percpu_arg([var]));
+> +}
+> 
+> This one is for read_read_unlock() which will be 2 instructions
+> ("decl" and "je"), which is the same as preempt_enable().
+> 
+> In news days, preempt_disable() is discouraged unless it is
+> really necessary and rcu is always encouraged. Low overhead
+> read_read_[un]lock() is essential.
+
+Agreed.  And you give instruction counts below, thank you.  But is
+this reduction in the number of instructions really visible in terms of
+performance at the system level?
+
+> > > > Plus multiplying the x86-specific code by 26 doesn't look good.
+> > > > 
+> > > > And the RCU read-side nesting depth really is a per-task thing.  Copying
+> > > > it to and from the task at context-switch time might make sense if we
+> > > > had a serious optimization, but it does not appear that we do.
+> 
+> Once upon a time, __preempt_count is also being copied to and from the
+> task at context-switch, and worked well.
+> 
+> > > > You original patch some years back, ill-received though it was at the
+> > > > time, is looking rather good by comparison.  Plus it did not require
+> > > > architecture-specific code!
+> > > 
+> > > Right, so the per-cpu preempt_count code relies on the preempt_count
+> > > being invariant over context switches. That means we never have to
+> > > save/restore the thing.
+> > > 
+> > > For (preemptible) rcu, this is 'obviously' not the case.
+> > > 
+> > > That said, I've not looked over this patch series, I only got 1 actual
+> > > patch, not the whole series, and I've not had time to go dig out the
+> > > rest..
+> > 
+> > I have taken a couple of the earlier patches in the series.
+> > 
+> > Perhaps inlining these things is instead a job for the long anticipated
+> > GCC LTO?  ;-)
+> 
+> Adding a kenerl/offset.c and some Mafefile stuff will help inlining
+> these things. But I don't think Linus will happy with introducing
+> kenerl/offset.c. There will be 3 instructions for rcu_read_lock()
+> and 5 for rcu_read_unlock(), which doesn't taste so delicious.
+
+Adding kernel/offset.c would be to implement the original approach of
+computing the offset of ->rcu_read_lock_nesting within task_struct,
+correct?  (As opposed to GCC LTO.)  If so, what are your thoughts on
+the GCC LTO approach?
+
+> Moving rcu_read_lock_nesting to struct thread_info is another
+> possible way. The number of instructions is also 3 and 5.
+
+At first glance, that would require much less architecture-specific code,
+so would be more attractive.  And it would be good to avoid having two
+different _rcu_read_lock() and _rcu_read_unlock() implementations for
+PREEMPT=y.  Here are some questions, though:
+
+o	Do any architectures have size limits on thread_info?
+
+o	The thread_info reference clearly cannot change at the same
+	time as the current pointer.  Are there any issues with
+	code that executes between these two operations, either
+	when switching out or when switching in?
+
+Any other questions that I should be asking?
+
+And please rest assured that despite my lack of enthusiasm for your
+current approach, I do very much appreciate your looking into this!!!
+
+							Thanx, Paul
