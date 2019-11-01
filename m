@@ -1,37 +1,29 @@
-Return-Path: <schmitzmic@gmail.com>
-Subject: Re: [PATCH v3 05/13] m68k: mm: use pgtable-nopXd instead of
- 4level-fixup
-References: <1572850587-20314-1-git-send-email-rppt@kernel.org>
- <1572850587-20314-6-git-send-email-rppt@kernel.org>
- <CAMuHMdUG3V7uxzhbetw75vVeobeP0-bQySb3r=0V5XujUF123g@mail.gmail.com>
- <20191104094748.GB23288@rapoport-lnx>
- <CAMuHMdVHsNyLxhaxZcVdLvQ1PUnb=2_+ECPWVD0234V+qu+kOw@mail.gmail.com>
-From: Michael Schmitz <schmitzmic@gmail.com>
-Message-ID: <3d908bbf-0469-c53b-dd86-87df98f40ee7@gmail.com>
-Date: Fri, 8 Nov 2019 17:29:58 +1300
+Return-Path: <kirill@shutemov.name>
+Date: Fri, 1 Nov 2019 12:11:57 +0300
+From: "Kirill A. Shutemov" <kirill@shutemov.name>
+Subject: Re: [PATCH v2 01/13] alpha: use pgtable-nop4d instead of 4level-fixup
+Message-ID: <20191101091157.q4cesn6vsiy5qj2j@box>
+References: <1572597584-6390-1-git-send-email-rppt@kernel.org>
+ <1572597584-6390-2-git-send-email-rppt@kernel.org>
 MIME-Version: 1.0
-In-Reply-To: <CAMuHMdVHsNyLxhaxZcVdLvQ1PUnb=2_+ECPWVD0234V+qu+kOw@mail.gmail.com>
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Transfer-Encoding: 7bit
-To: Geert Uytterhoeven <geert@linux-m68k.org>, Mike Rapoport <rppt@kernel.org>
-Cc: Linux MM <linux-mm@kvack.org>, Andrew Morton <akpm@linux-foundation.org>, Anton Ivanov <anton.ivanov@cambridgegreys.com>, Arnd Bergmann <arnd@arndb.de>, "David S. Miller" <davem@davemloft.net>, Greentime Hu <green.hu@gmail.com>, Greg Ungerer <gerg@linux-m68k.org>, Helge Deller <deller@gmx.de>, "James E.J. Bottomley" <James.Bottomley@hansenpartnership.com>, Jeff Dike <jdike@addtoit.com>, "Kirill A. Shutemov" <kirill@shutemov.name>, Linus Torvalds <torvalds@linux-foundation.org>, Mark Salter <msalter@redhat.com>, Matt Turner <mattst88@gmail.com>, Michal Simek <monstr@monstr.eu>, Peter Rosin <peda@axentia.se>, Richard Weinberger <richard@nod.at>, Rolf Eike Beer <eike-kernel@sf-tec.de>, Russell King <linux@armlinux.org.uk>, Sam Creasey <sammy@sammy.net>, Vincent Chen <deanbo422@gmail.com>, Vineet Gupta <Vineet.Gupta1@synopsys.com>, alpha <linux-alpha@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, linux-c6x-dev@linux-c6x.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-m68k <linux-m68k@lists.linux-m68k.org>, Parisc List <linux-parisc@vger.kernel.org>, linux-um@lists.infradead.org, sparclinux <sparclinux@vger.kernel.org>, Mike Rapoport <rppt@linux.ibm.com>
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <1572597584-6390-2-git-send-email-rppt@kernel.org>
+To: Mike Rapoport <rppt@kernel.org>
+Cc: linux-mm@kvack.org, Andrew Morton <akpm@linux-foundation.org>, Anton Ivanov <anton.ivanov@cambridgegreys.com>, Arnd Bergmann <arnd@arndb.de>, "David S. Miller" <davem@davemloft.net>, Geert Uytterhoeven <geert@linux-m68k.org>, Greentime Hu <green.hu@gmail.com>, Greg Ungerer <gerg@linux-m68k.org>, Helge Deller <deller@gmx.de>, "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>, Jeff Dike <jdike@addtoit.com>, Linus Torvalds <torvalds@linux-foundation.org>, Mark Salter <msalter@redhat.com>, Matt Turner <mattst88@gmail.com>, Michal Simek <monstr@monstr.eu>, Peter Rosin <peda@axentia.se>, Richard Weinberger <richard@nod.at>, Rolf Eike Beer <eike-kernel@sf-tec.de>, Russell King <linux@armlinux.org.uk>, Sam Creasey <sammy@sammy.net>, Vincent Chen <deanbo422@gmail.com>, Vineet Gupta <Vineet.Gupta1@synopsys.com>, linux-alpha@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, linux-kernel@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-parisc@vger.kernel.org, linux-um@lists.infradead.org, sparclinux@vger.kernel.org, Mike Rapoport <rppt@linux.ibm.com>
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20191108042958.jtFKxFntzMT6rbQUW10PuYhWZgMWRr4kN7x-Y4JOeIM@z>
+Message-ID: <20191101091157.iLG4iA15ymetRYyjnRtlQ6zleoSAIj3G3tsprj6VtLE@z>
 
-Hi Geert,
+On Fri, Nov 01, 2019 at 10:39:32AM +0200, Mike Rapoport wrote:
+> From: Mike Rapoport <rppt@linux.ibm.com>
+> 
+> It is not likely alpha will have 5-level page tables.
+> 
+> Replace usage of include/asm-generic/4level-fixup.h and implied
+> __ARCH_HAS_4LEVEL_HACK with include/asm-generic/pgtable-nop4d.h and adjust
+> page table manipulation macros and functions accordingly.
 
-Am 04.11.2019 um 22:53 schrieb Geert Uytterhoeven:
->>> This indeed boots fine on ARAnyM, which emulates on 68040.
->>> It would be good to have some boot testing on '020/030, too.
->>
->> To be honest, I have no idea how to to that :)
->
-> Sure. This was more a request for the fellow m68k users.
-> But don't worry too much about it.  If it breaks '020/'030, we can fix
-> that later.
+Not pgtable-nop4d.h, but pgtable-nopud.h. Also in subject.
 
-Boots fine on 030, too.
-
-Cheers,
-
-	Michael
+-- 
+ Kirill A. Shutemov
