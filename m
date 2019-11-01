@@ -1,29 +1,57 @@
-Return-Path: <kirill@shutemov.name>
-Date: Fri, 1 Nov 2019 12:11:57 +0300
-From: "Kirill A. Shutemov" <kirill@shutemov.name>
-Subject: Re: [PATCH v2 01/13] alpha: use pgtable-nop4d instead of 4level-fixup
-Message-ID: <20191101091157.q4cesn6vsiy5qj2j@box>
-References: <1572597584-6390-1-git-send-email-rppt@kernel.org>
- <1572597584-6390-2-git-send-email-rppt@kernel.org>
+Return-Path: <richard@nod.at>
+Date: Fri, 1 Nov 2019 10:12:55 +0100 (CET)
+From: Richard Weinberger <richard@nod.at>
+Message-ID: <1156525130.69849.1572599575743.JavaMail.zimbra@nod.at>
+In-Reply-To: <1572597584-6390-12-git-send-email-rppt@kernel.org>
+References: <1572597584-6390-1-git-send-email-rppt@kernel.org> <1572597584-6390-12-git-send-email-rppt@kernel.org>
+Subject: Re: [PATCH v2 11/13] um: remove unused pxx_offset_proc() and
+ addr_pte() functions
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1572597584-6390-2-git-send-email-rppt@kernel.org>
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: quoted-printable
 To: Mike Rapoport <rppt@kernel.org>
-Cc: linux-mm@kvack.org, Andrew Morton <akpm@linux-foundation.org>, Anton Ivanov <anton.ivanov@cambridgegreys.com>, Arnd Bergmann <arnd@arndb.de>, "David S. Miller" <davem@davemloft.net>, Geert Uytterhoeven <geert@linux-m68k.org>, Greentime Hu <green.hu@gmail.com>, Greg Ungerer <gerg@linux-m68k.org>, Helge Deller <deller@gmx.de>, "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>, Jeff Dike <jdike@addtoit.com>, Linus Torvalds <torvalds@linux-foundation.org>, Mark Salter <msalter@redhat.com>, Matt Turner <mattst88@gmail.com>, Michal Simek <monstr@monstr.eu>, Peter Rosin <peda@axentia.se>, Richard Weinberger <richard@nod.at>, Rolf Eike Beer <eike-kernel@sf-tec.de>, Russell King <linux@armlinux.org.uk>, Sam Creasey <sammy@sammy.net>, Vincent Chen <deanbo422@gmail.com>, Vineet Gupta <Vineet.Gupta1@synopsys.com>, linux-alpha@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, linux-kernel@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-parisc@vger.kernel.org, linux-um@lists.infradead.org, sparclinux@vger.kernel.org, Mike Rapoport <rppt@linux.ibm.com>
+Cc: linux-mm@kvack.org, Andrew Morton <akpm@linux-foundation.org>, anton ivanov <anton.ivanov@cambridgegreys.com>, Arnd Bergmann <arnd@arndb.de>, davem <davem@davemloft.net>, Geert Uytterhoeven <geert@linux-m68k.org>, Greentime Hu <green.hu@gmail.com>, Greg Ungerer <gerg@linux-m68k.org>, Helge Deller <deller@gmx.de>, "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>, Jeff Dike <jdike@addtoit.com>, "Kirill A. Shutemov" <kirill@shutemov.name>, torvalds <torvalds@linux-foundation.org>, Mark Salter <msalter@redhat.com>, Matt Turner <mattst88@gmail.com>, Michal Simek <monstr@monstr.eu>, Peter Rosin <peda@axentia.se>, Rolf Eike Beer <eike-kernel@sf-tec.de>, Russell King <linux@armlinux.org.uk>, Sam Creasey <sammy@sammy.net>, Vincent Chen <deanbo422@gmail.com>, Vineet Gupta <Vineet.Gupta1@synopsys.com>, linux-alpha@vger.kernel.org, linux-arch <linux-arch@vger.kernel.org>, linux-arm-kernel <linux-arm-kernel@lists.infradead.org>, linux-c6x-dev@linux-c6x.org, linux-kernel <linux-kernel@vger.kernel.org>, linux-m68k@lists.linux-m68k.org, linux-parisc@vger.kernel.org, linux-um <linux-um@lists.infradead.org>, sparclinux@vger.kernel.org, Mike Rapoport <rppt@linux.ibm.com>
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20191101091157.iLG4iA15ymetRYyjnRtlQ6zleoSAIj3G3tsprj6VtLE@z>
+Message-ID: <20191101091255.CDclaeKFBE-6u8BeUZIv250h-JNbJImMO4W8-agxEn0@z>
 
-On Fri, Nov 01, 2019 at 10:39:32AM +0200, Mike Rapoport wrote:
+----- Urspr=C3=BCngliche Mail -----
+> Von: "Mike Rapoport" <rppt@kernel.org>
+> An: linux-mm@kvack.org
+> CC: "Andrew Morton" <akpm@linux-foundation.org>, "anton ivanov" <anton.iv=
+anov@cambridgegreys.com>, "Arnd Bergmann"
+> <arnd@arndb.de>, "davem" <davem@davemloft.net>, "Geert Uytterhoeven" <gee=
+rt@linux-m68k.org>, "Greentime Hu"
+> <green.hu@gmail.com>, "Greg Ungerer" <gerg@linux-m68k.org>, "Helge Deller=
+" <deller@gmx.de>, "James E.J. Bottomley"
+> <James.Bottomley@HansenPartnership.com>, "Jeff Dike" <jdike@addtoit.com>,=
+ "Kirill A. Shutemov" <kirill@shutemov.name>,
+> "torvalds" <torvalds@linux-foundation.org>, "Mark Salter" <msalter@redhat=
+.com>, "Matt Turner" <mattst88@gmail.com>,
+> "Michal Simek" <monstr@monstr.eu>, "Peter Rosin" <peda@axentia.se>, "rich=
+ard" <richard@nod.at>, "Rolf Eike Beer"
+> <eike-kernel@sf-tec.de>, "Russell King" <linux@armlinux.org.uk>, "Sam Cre=
+asey" <sammy@sammy.net>, "Vincent Chen"
+> <deanbo422@gmail.com>, "Vineet Gupta" <Vineet.Gupta1@synopsys.com>, "Mike=
+ Rapoport" <rppt@kernel.org>,
+> linux-alpha@vger.kernel.org, "linux-arch" <linux-arch@vger.kernel.org>, "=
+linux-arm-kernel"
+> <linux-arm-kernel@lists.infradead.org>, linux-c6x-dev@linux-c6x.org, "lin=
+ux-kernel" <linux-kernel@vger.kernel.org>,
+> linux-m68k@lists.linux-m68k.org, linux-parisc@vger.kernel.org, "linux-um"=
+ <linux-um@lists.infradead.org>,
+> sparclinux@vger.kernel.org, "Mike Rapoport" <rppt@linux.ibm.com>
+> Gesendet: Freitag, 1. November 2019 09:39:42
+> Betreff: [PATCH v2 11/13] um: remove unused pxx_offset_proc() and addr_pt=
+e() functions
+
 > From: Mike Rapoport <rppt@linux.ibm.com>
-> 
-> It is not likely alpha will have 5-level page tables.
-> 
-> Replace usage of include/asm-generic/4level-fixup.h and implied
-> __ARCH_HAS_4LEVEL_HACK with include/asm-generic/pgtable-nop4d.h and adjust
-> page table manipulation macros and functions accordingly.
+>=20
+> The pxx_offset_proc() and addr_pte() functions are never used.
+> Remove them.
+>=20
+> Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
 
-Not pgtable-nop4d.h, but pgtable-nopud.h. Also in subject.
+Acked-by: Richard Weinberger <richard@nod.at>
 
--- 
- Kirill A. Shutemov
+Thanks,
+//richard
