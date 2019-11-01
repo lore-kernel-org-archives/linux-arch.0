@@ -1,83 +1,37 @@
-From: Dave Chinner <david@fromorbit.com>
-Subject: Re: [RFC] errno.h: Provide EFSCORRUPTED for everybody
-Date: Sat, 2 Nov 2019 08:38:23 +1100
-Message-ID: <20191101213823.GW4614@dread.disaster.area>
-References: <20191031010736.113783-1-Valdis.Kletnieks@vt.edu>
- <CAMuHMdXzyVBa4TZEc5eRaBzu50thgJ2TrHJLZqwhbQ=JASgWOA@mail.gmail.com>
+From: Mike Rapoport <rppt@kernel.org>
+Subject: Re: [PATCH v2 01/13] alpha: use pgtable-nop4d instead of 4level-fixup
+Date: Fri, 1 Nov 2019 22:59:11 +0100
+Message-ID: <20191101215905.GB20065@rapoport-lnx>
+References: <1572597584-6390-1-git-send-email-rppt@kernel.org>
+ <1572597584-6390-2-git-send-email-rppt@kernel.org>
+ <20191101091157.q4cesn6vsiy5qj2j@box>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <driverdev-devel-bounces@linuxdriverproject.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <CAMuHMdXzyVBa4TZEc5eRaBzu50thgJ2TrHJLZqwhbQ=JASgWOA@mail.gmail.com>
-List-Unsubscribe: <http://driverdev.linuxdriverproject.org/mailman/options/driverdev-devel>,
- <mailto:driverdev-devel-request@linuxdriverproject.org?subject=unsubscribe>
-List-Archive: <http://driverdev.linuxdriverproject.org/pipermail/driverdev-devel/>
-List-Post: <mailto:driverdev-devel@linuxdriverproject.org>
-List-Help: <mailto:driverdev-devel-request@linuxdriverproject.org?subject=help>
-List-Subscribe: <http://driverdev.linuxdriverproject.org/mailman/listinfo/driverdev-devel>,
- <mailto:driverdev-devel-request@linuxdriverproject.org?subject=subscribe>
-Errors-To: driverdev-devel-bounces@linuxdriverproject.org
-Sender: "devel" <driverdev-devel-bounces@linuxdriverproject.org>
-To: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: driverdevel <devel@driverdev.osuosl.org>, Linux-Arch <linux-arch@vger.kernel.org>, Valdis Kletnieks <valdis.kletnieks@vt.edu>, Arnd Bergmann <arnd@arndb.de>, "Darrick J. Wong" <darrick.wong@oracle.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Chao Yu <chao@kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-f2fs-devel@lists.sourceforge.net, linux-xfs@vger.kernel.org, Andreas Dilger <adilger.kernel@dilger.ca>, Jaegeuk Kim <jaegeuk@kernel.org>, Linux FS Devel <linux-fsdevel@vger.kernel.org>, Theodore Ts'o <tytso@mit.edu>, Gao Xiang <xiang@kernel.org>, Ext4 Developers List <linux-ext4@vger.kernel.org>, linux-erofs@lists.ozlabs.org, Jan Kara <jack@suse.com>
+In-Reply-To: <20191101091157.q4cesn6vsiy5qj2j@box>
+Sender: linux-kernel-owner@vger.kernel.org
+To: "Kirill A. Shutemov" <kirill@shutemov.name>
+Cc: linux-mm@kvack.org, Andrew Morton <akpm@linux-foundation.org>, Anton Ivanov <anton.ivanov@cambridgegreys.com>, Arnd Bergmann <arnd@arndb.de>, "David S. Miller" <davem@davemloft.net>, Geert Uytterhoeven <geert@linux-m68k.org>, Greentime Hu <green.hu@gmail.com>, Greg Ungerer <gerg@linux-m68k.org>, Helge Deller <deller@gmx.de>, "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>, Jeff Dike <jdike@addtoit.com>, Linus Torvalds <torvalds@linux-foundation.org>, Mark Salter <msalter@redhat.com>, Matt Turner <mattst88@gmail.com>, Michal Simek <monstr@monstr.eu>, Peter Rosin <peda@axentia.se>, Richard Weinberger <richard@nod.at>, Rolf Eike Beer <eike-kernel@sf-tec.de>, Russell King <linux@armlinux.org.uk>, Sam Creasey <sammy@sammy.net>, Vinc
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, Nov 01, 2019 at 09:57:31PM +0100, Geert Uytterhoeven wrote:
-> Hi Valdis,
+On Fri, Nov 01, 2019 at 12:11:57PM +0300, Kirill A. Shutemov wrote:
+> On Fri, Nov 01, 2019 at 10:39:32AM +0200, Mike Rapoport wrote:
+> > From: Mike Rapoport <rppt@linux.ibm.com>
+> > 
+> > It is not likely alpha will have 5-level page tables.
+> > 
+> > Replace usage of include/asm-generic/4level-fixup.h and implied
+> > __ARCH_HAS_4LEVEL_HACK with include/asm-generic/pgtable-nop4d.h and adjust
+> > page table manipulation macros and functions accordingly.
 > 
-> On Thu, Oct 31, 2019 at 2:11 AM Valdis Kletnieks
-> <valdis.kletnieks@vt.edu> wrote:
-> > Three questions: (a) ACK/NAK on this patch, (b) should it be all in one
-> > patch, or one to add to errno.h and 6 patches for 6 filesystems?), and
-> > (c) if one patch, who gets to shepherd it through?
-> >
-> > There's currently 6 filesystems that have the same #define. Move it
-> > into errno.h so it's defined in just one place.
-> >
-> > Signed-off-by: Valdis Kletnieks <Valdis.Kletnieks@vt.edu>
-> 
-> Thanks for your patch!
-> 
-> > --- a/include/uapi/asm-generic/errno.h
-> > +++ b/include/uapi/asm-generic/errno.h
-> > @@ -98,6 +98,7 @@
-> >  #define        EINPROGRESS     115     /* Operation now in progress */
-> >  #define        ESTALE          116     /* Stale file handle */
-> >  #define        EUCLEAN         117     /* Structure needs cleaning */
-> > +#define        EFSCORRUPTED    EUCLEAN
-> 
-> I have two questions:
-> a) Why not use EUCLEAN everywhere instead?
->     Having two different names for the same errno complicates grepping.
+> Not pgtable-nop4d.h, but pgtable-nopud.h. Also in subject.
 
-Because:
-	a) EUCLEAN is horrible for code documentation. EFSCORRUPTED
-	describes exactly the error being returned and/or checked for.
+Ouch, of course.
+ 
+> -- 
+>  Kirill A. Shutemov
 
-	b) we've used EFSCORRUPTED in XFS since 1993. i.e. it was an
-	official, published error value on Irix, and we've kept it
-	in the linux code for the past ~20 years because of a)
-
-	c) Userspace programs that include filesystem specific
-	headers have already been exposed to and use EFSCORRUPTED,
-	so we can't remove/change it without breaking userspace.
-
-	d) EUCLEAN has a convenient userspace string description
-	that is appropriate for filesystem corruption: "Structure
-	needs cleaning" is precisely what needs to happen. Repair of
-	the filesystem (i.e. recovery to a clean state) is what is
-	required to fix the error....
-
-> b) Perhaps both errors should use different values?
-
-That horse bolted to userspace years ago - this is just formalising
-the practice that has spread across multiple linux filesystems from
-XFS over the past ~10 years..
-
-Cheers,
-
-Dave.
 -- 
-Dave Chinner
-david@fromorbit.com
+Sincerely yours,
+Mike.
