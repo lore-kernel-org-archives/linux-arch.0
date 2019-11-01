@@ -1,85 +1,76 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:42824 "EHLO
- mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
- with ESMTP id S1726026AbfK0G4h (ORCPT <rfc822;linux-arch@vger.kernel.org>);
- Wed, 27 Nov 2019 01:56:37 -0500
-Received: from pps.filterd (m0098419.ppops.net [127.0.0.1]) by
- mx0b-001b2d01.pphosted.com (8.16.0.42/8.16.0.42) with SMTP id xAR6pX56022636
- for <linux-arch@vger.kernel.org>; Wed, 27 Nov 2019 01:56:36 -0500
-Received: from e06smtp03.uk.ibm.com (e06smtp03.uk.ibm.com [195.75.94.99]) by
- mx0b-001b2d01.pphosted.com with ESMTP id 2whh31nh3k-1 (version=TLSv1.2
- cipher=AES256-GCM-SHA384 bits=256 verify=NOT) for
- <linux-arch@vger.kernel.org>; Wed, 27 Nov 2019 01:56:35 -0500
-Received: from localhost by e06smtp03.uk.ibm.com with IBM ESMTP SMTP Gateway:
- Authorized Use Only! Violators will be prosecuted for
- <linux-arch@vger.kernel.org> from <rppt@linux.ibm.com>; Wed, 27 Nov 2019
- 06:56:34 -0000
-Date: Wed, 27 Nov 2019 08:56:25 +0200
-From: Mike Rapoport <rppt@linux.ibm.com>
-Subject: Re: Bug 205201 - Booting halts if Dawicontrol DC-2976 UW SCSI board
- installed, unless RAM size limited to 3500M
-References: <20191121072943.GA24024@lst.de>
- <dbde2252-035e-6183-7897-43348e60647e@xenosoft.de>
- <6eec5c42-019c-a988-fc2a-cb804194683d@xenosoft.de>
- <d0252d29-7a03-20e1-ccd7-e12d906e4bdf@arm.com>
- <b3217742-2c0b-8447-c9ac-608b93265363@xenosoft.de>
- <20191121180226.GA3852@lst.de>
- <2fde79cf-875f-94e6-4a1b-f73ebb2e2c32@xenosoft.de>
- <20191125073923.GA30168@lst.de>
- <4681f5fe-c095-15f5-9221-4b55e940bafc@xenosoft.de>
- <20191126164026.GA8026@lst.de>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20191126164026.GA8026@lst.de>
-Message-ID: <20191127065624.GB16913@linux.ibm.com>
+Received: from mail.kernel.org ([198.145.29.99]:50182 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726532AbfKAIlQ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 1 Nov 2019 04:41:16 -0400
+From: Mike Rapoport <rppt@kernel.org>
+Subject: [PATCH v2 09/13] parisc/hugetlb: use pgtable-nopXd instead of 4level-fixup
+Date: Fri,  1 Nov 2019 10:39:40 +0200
+Message-ID: <1572597584-6390-10-git-send-email-rppt@kernel.org>
+In-Reply-To: <1572597584-6390-1-git-send-email-rppt@kernel.org>
+References: <1572597584-6390-1-git-send-email-rppt@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Christoph Hellwig <hch@lst.de>
-Cc: Christian Zigotzky <chzigotzky@xenosoft.de>, Robin Murphy <robin.murphy@arm.com>, linux-arch@vger.kernel.org, darren@stevens-zone.net, mad skateman <madskateman@gmail.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, linux-kernel@vger.kernel.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Rob Herring <robh+dt@kernel.org>, paulus@samba.org, rtd2@xtra.co.nz, "contact@a-eon.com" <contact@a-eon.com>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, nsaenzjulienne@suse.de
-Message-ID: <20191127065625.P_LPsuyeqq7xqKVOdddp_MTMB18Q97quY5ih-nggRDM@z>
+To: linux-mm@kvack.org
+Cc: Andrew Morton <akpm@linux-foundation.org>, Anton Ivanov <anton.ivanov@cambridgegreys.com>, Arnd Bergmann <arnd@arndb.de>, "David S. Miller" <davem@davemloft.net>, Geert Uytterhoeven <geert@linux-m68k.org>, Greentime Hu <green.hu@gmail.com>, Greg Ungerer <gerg@linux-m68k.org>, Helge Deller <deller@gmx.de>, "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>, Jeff Dike <jdike@addtoit.com>, "Kirill A. Shutemov" <kirill@shutemov.name>, Linus Torvalds <torvalds@linux-foundation.org>, Mark Salter <msalter@redhat.com>, Matt Turner <mattst88@gmail.com>, Michal Simek <monstr@monstr.eu>, Peter Rosin <peda@axentia.se>, Richard Weinberger <richard@nod.at>, Rolf Eike Beer <eike-kernel@sf-tec.de>, Russell King <linux@armlinux.org.uk>, Sam Creasey <sammy@sammy.net>, Vincent Chen <deanbo422@gmail.com>, Vineet Gupta <Vineet.Gupta1@synopsys.com>, Mike Rapoport <rppt@kernel.org>, linux-alpha@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, linux-kernel@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-parisc@vger.kernel.org, linux-um@lists.infradead.org, sparclinux@vger.kernel.org
+Message-ID: <20191101083940.yjeMV5peNjsLo6jG3mh2IoM6sxrkTEn1v2qXEOCzkfQ@z>
 
-On Tue, Nov 26, 2019 at 05:40:26PM +0100, Christoph Hellwig wrote:
-> On Tue, Nov 26, 2019 at 12:26:38PM +0100, Christian Zigotzky wrote:
-> > Hello Christoph,
-> >
-> > The PCI TV card works with your patch! I was able to patch your Git kernel 
-> > with the patch above.
-> >
-> > I haven't found any error messages in the dmesg yet.
-> 
-> Thanks.  Unfortunately this is a bit of a hack as we need to set
-> the mask based on runtime information like the magic FSL PCIe window.
-> Let me try to draft something better up, and thanks already for testing
-> this one!
+From: Helge Deller <deller@gmx.de>
 
-Maybe we'll simply force bottom up allocation before calling
-swiotlb_init()? Anyway, it's the last memblock allocation.
+Signed-off-by: Helge Deller <deller@gmx.de>
+---
+ arch/parisc/mm/hugetlbpage.c | 18 ++++++++++++------
+ 1 file changed, 12 insertions(+), 6 deletions(-)
 
-
-diff --git a/arch/powerpc/mm/mem.c b/arch/powerpc/mm/mem.c
-index 62f74b1b33bd..771e6cf7e2b9 100644
---- a/arch/powerpc/mm/mem.c
-+++ b/arch/powerpc/mm/mem.c
-@@ -286,14 +286,15 @@ void __init mem_init(void)
- 	/*
- 	 * book3s is limited to 16 page sizes due to encoding this in
- 	 * a 4-bit field for slices.
- 	 */
- 	BUILD_BUG_ON(MMU_PAGE_COUNT > 16);
-
- #ifdef CONFIG_SWIOTLB
-+	memblock_set_bottom_up(true);
- 	swiotlb_init(0);
- #endif
-
- 	high_memory = (void *) __va(max_low_pfn * PAGE_SIZE);
- 	set_max_mapnr(max_pfn);
- 	memblock_free_all();
-
-
-
-
+diff --git a/arch/parisc/mm/hugetlbpage.c b/arch/parisc/mm/hugetlbpage.c
+index d578809..0e1e212 100644
+--- a/arch/parisc/mm/hugetlbpage.c
++++ b/arch/parisc/mm/hugetlbpage.c
+@@ -49,6 +49,7 @@ pte_t *huge_pte_alloc(struct mm_struct *mm,
+ 			unsigned long addr, unsigned long sz)
+ {
+ 	pgd_t *pgd;
++	p4d_t *p4d;
+ 	pud_t *pud;
+ 	pmd_t *pmd;
+ 	pte_t *pte = NULL;
+@@ -61,7 +62,8 @@ pte_t *huge_pte_alloc(struct mm_struct *mm,
+ 	addr &= HPAGE_MASK;
+ 
+ 	pgd = pgd_offset(mm, addr);
+-	pud = pud_alloc(mm, pgd, addr);
++	p4d = p4d_offset(pgd, addr);
++	pud = pud_alloc(mm, p4d, addr);
+ 	if (pud) {
+ 		pmd = pmd_alloc(mm, pud, addr);
+ 		if (pmd)
+@@ -74,6 +76,7 @@ pte_t *huge_pte_offset(struct mm_struct *mm,
+ 		       unsigned long addr, unsigned long sz)
+ {
+ 	pgd_t *pgd;
++	p4d_t *p4d;
+ 	pud_t *pud;
+ 	pmd_t *pmd;
+ 	pte_t *pte = NULL;
+@@ -82,11 +85,14 @@ pte_t *huge_pte_offset(struct mm_struct *mm,
+ 
+ 	pgd = pgd_offset(mm, addr);
+ 	if (!pgd_none(*pgd)) {
+-		pud = pud_offset(pgd, addr);
+-		if (!pud_none(*pud)) {
+-			pmd = pmd_offset(pud, addr);
+-			if (!pmd_none(*pmd))
+-				pte = pte_offset_map(pmd, addr);
++		p4d = p4d_offset(pgd, addr);
++		if (!p4d_none(*p4d)) {
++			pud = pud_offset(p4d, addr);
++			if (!pud_none(*pud)) {
++				pmd = pmd_offset(pud, addr);
++				if (!pmd_none(*pmd))
++					pte = pte_offset_map(pmd, addr);
++			}
+ 		}
+ 	}
+ 	return pte;
 -- 
-Sincerely yours,
-Mike.
+2.7.4
