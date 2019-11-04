@@ -1,28 +1,53 @@
-Return-Path: <hch@lst.de>
-Date: Tue, 26 Nov 2019 17:40:26 +0100
-From: Christoph Hellwig <hch@lst.de>
-Subject: Re: Bug 205201 - Booting halts if Dawicontrol DC-2976 UW SCSI
- board installed, unless RAM size limited to 3500M
-Message-ID: <20191126164026.GA8026@lst.de>
-References: <F1EBB706-73DF-430E-9020-C214EC8ED5DA@xenosoft.de> <20191121072943.GA24024@lst.de> <dbde2252-035e-6183-7897-43348e60647e@xenosoft.de> <6eec5c42-019c-a988-fc2a-cb804194683d@xenosoft.de> <d0252d29-7a03-20e1-ccd7-e12d906e4bdf@arm.com> <b3217742-2c0b-8447-c9ac-608b93265363@xenosoft.de> <20191121180226.GA3852@lst.de> <2fde79cf-875f-94e6-4a1b-f73ebb2e2c32@xenosoft.de> <20191125073923.GA30168@lst.de> <4681f5fe-c095-15f5-9221-4b55e940bafc@xenosoft.de>
+Return-Path: <rppt@kernel.org>
+Date: Mon, 4 Nov 2019 12:02:22 +0200
+From: Mike Rapoport <rppt@kernel.org>
+Subject: Re: [PATCH v3 13/13] mm: remove __ARCH_HAS_4LEVEL_HACK and
+ include/asm-generic/4level-fixup.h
+Message-ID: <20191104100221.GC23288@rapoport-lnx>
+References: <1572850587-20314-1-git-send-email-rppt@kernel.org>
+ <1572850587-20314-14-git-send-email-rppt@kernel.org>
+ <CAK8P3a3e7oG5NMPbhgQOoKvB0Z5ui0iAHHFqyAxy87Nd903Vmw@mail.gmail.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <4681f5fe-c095-15f5-9221-4b55e940bafc@xenosoft.de>
-To: Christian Zigotzky <chzigotzky@xenosoft.de>
-Cc: Christoph Hellwig <hch@lst.de>, Robin Murphy <robin.murphy@arm.com>, linux-arch@vger.kernel.org, darren@stevens-zone.net, mad skateman <madskateman@gmail.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, linux-kernel@vger.kernel.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Rob Herring <robh+dt@kernel.org>, paulus@samba.org, rtd2@xtra.co.nz, "contact@a-eon.com" <contact@a-eon.com>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, nsaenzjulienne@suse.de, Mike Rapoport <rppt@linux.ibm.com>
+In-Reply-To: <CAK8P3a3e7oG5NMPbhgQOoKvB0Z5ui0iAHHFqyAxy87Nd903Vmw@mail.gmail.com>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Linux-MM <linux-mm@kvack.org>, Andrew Morton <akpm@linux-foundation.org>, Anton Ivanov <anton.ivanov@cambridgegreys.com>, "David S. Miller" <davem@davemloft.net>, Geert Uytterhoeven <geert@linux-m68k.org>, Greentime Hu <green.hu@gmail.com>, Greg Ungerer <gerg@linux-m68k.org>, Helge Deller <deller@gmx.de>, "James E.J. Bottomley" <James.Bottomley@hansenpartnership.com>, Jeff Dike <jdike@addtoit.com>, "Kirill A. Shutemov" <kirill@shutemov.name>, Linus Torvalds <torvalds@linux-foundation.org>, Mark Salter <msalter@redhat.com>, Matt Turner <mattst88@gmail.com>, Michal Simek <monstr@monstr.eu>, Peter Rosin <peda@axentia.se>, Richard Weinberger <richard@nod.at>, Rolf Eike Beer <eike-kernel@sf-tec.de>, Russell King <linux@armlinux.org.uk>, Sam Creasey <sammy@sammy.net>, Vincent Chen <deanbo422@gmail.com>, Vineet Gupta <Vineet.Gupta1@synopsys.com>, alpha <linux-alpha@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, linux-c6x-dev@linux-c6x.org, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-m68k <linux-m68k@lists.linux-m68k.org>, Parisc List <linux-parisc@vger.kernel.org>, linux-um@lists.infradead.org, sparclinux <sparclinux@vger.kernel.org>, Mike Rapoport <rppt@linux.ibm.com>
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20191126164026.QEWdyjCLnF5t1AvzIQrMShjxiNjNx3A8AUQOMGj2MzM@z>
+Message-ID: <20191104100222.D8ZHvK8No6uA0-UL65FSNr-eKCSQTLjzlbNC3EOtYKE@z>
 
-On Tue, Nov 26, 2019 at 12:26:38PM +0100, Christian Zigotzky wrote:
-> Hello Christoph,
->
-> The PCI TV card works with your patch! I was able to patch your Git kernel 
-> with the patch above.
->
-> I haven't found any error messages in the dmesg yet.
+On Mon, Nov 04, 2019 at 10:11:51AM +0100, Arnd Bergmann wrote:
+> On Mon, Nov 4, 2019 at 7:58 AM Mike Rapoport <rppt@kernel.org> wrote:
+> >
+> > From: Mike Rapoport <rppt@linux.ibm.com>
+> >
+> > There are no architectures that use include/asm-generic/4level-fixup.h
+> > therefore it can be removed along with __ARCH_HAS_4LEVEL_HACK define.
+> >
+> > Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
+> 
+> For asm-generic:
+> 
+> Acked-by: Arnd Bergmann <arnd@arndb.de>
+> 
+> Have you discussed how the series should get merged? I assume an initial
+> set of patches can just go through architecture maintainer trees, but
+> whatever patches don't get picked up that way would go through either
+> Andrew's -mm tree (for memory management) or my asm-generic tree
+> (for cross-architecture cleanups).
 
-Thanks.  Unfortunately this is a bit of a hack as we need to set
-the mask based on runtime information like the magic FSL PCIe window.
-Let me try to draft something better up, and thanks already for testing
-this one!
+I thought that the entire set could go via -mm or asm-generic, but if
+architecture maintainers would prefer to pick relevant patches to the arch
+trees, I'll resend the rest afterwards.
+ 
+> Since there is still at least one regression, I expect not to do anything
+> for now. Please let me know when/if you expect me to merge the
+> remaining patches.
+
+Sure, thanks!
+
+>       Arnd
+
+-- 
+Sincerely yours,
+Mike.
