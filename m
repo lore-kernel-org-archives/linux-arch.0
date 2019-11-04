@@ -1,255 +1,184 @@
 Return-Path: <rppt@kernel.org>
+Date: Mon, 4 Nov 2019 11:47:49 +0200
 From: Mike Rapoport <rppt@kernel.org>
-Subject: [PATCH v2 06/13] microblaze: use pgtable-nopmd instead of 4level-fixup
-Date: Fri,  1 Nov 2019 10:39:37 +0200
-Message-ID: <1572597584-6390-7-git-send-email-rppt@kernel.org>
-In-Reply-To: <1572597584-6390-1-git-send-email-rppt@kernel.org>
-References: <1572597584-6390-1-git-send-email-rppt@kernel.org>
-To: linux-mm@kvack.org
-Cc: Andrew Morton <akpm@linux-foundation.org>, Anton Ivanov <anton.ivanov@cambridgegreys.com>, Arnd Bergmann <arnd@arndb.de>, "David S. Miller" <davem@davemloft.net>, Geert Uytterhoeven <geert@linux-m68k.org>, Greentime Hu <green.hu@gmail.com>, Greg Ungerer <gerg@linux-m68k.org>, Helge Deller <deller@gmx.de>, "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>, Jeff Dike <jdike@addtoit.com>, "Kirill A. Shutemov" <kirill@shutemov.name>, Linus Torvalds <torvalds@linux-foundation.org>, Mark Salter <msalter@redhat.com>, Matt Turner <mattst88@gmail.com>, Michal Simek <monstr@monstr.eu>, Peter Rosin <peda@axentia.se>, Richard Weinberger <richard@nod.at>, Rolf Eike Beer <eike-kernel@sf-tec.de>, Russell King <linux@armlinux.org.uk>, Sam Creasey <sammy@sammy.net>, Vincent Chen <deanbo422@gmail.com>, Vineet Gupta <Vineet.Gupta1@synopsys.com>, Mike Rapoport <rppt@kernel.org>, linux-alpha@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, linux-kernel@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-parisc@vger.kernel.org, linux-um@lists.infradead.org, sparclinux@vger.kernel.org, Mike Rapoport <rppt@linux.ibm.com>
+Subject: Re: [PATCH v3 05/13] m68k: mm: use pgtable-nopXd instead of
+ 4level-fixup
+Message-ID: <20191104094748.GB23288@rapoport-lnx>
+References: <1572850587-20314-1-git-send-email-rppt@kernel.org>
+ <1572850587-20314-6-git-send-email-rppt@kernel.org>
+ <CAMuHMdUG3V7uxzhbetw75vVeobeP0-bQySb3r=0V5XujUF123g@mail.gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+Content-Transfer-Encoding: 8bit
+In-Reply-To: <CAMuHMdUG3V7uxzhbetw75vVeobeP0-bQySb3r=0V5XujUF123g@mail.gmail.com>
+To: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: Linux MM <linux-mm@kvack.org>, Andrew Morton <akpm@linux-foundation.org>, Anton Ivanov <anton.ivanov@cambridgegreys.com>, Arnd Bergmann <arnd@arndb.de>, "David S. Miller" <davem@davemloft.net>, Greentime Hu <green.hu@gmail.com>, Greg Ungerer <gerg@linux-m68k.org>, Helge Deller <deller@gmx.de>, "James E.J. Bottomley" <James.Bottomley@hansenpartnership.com>, Jeff Dike <jdike@addtoit.com>, "Kirill A. Shutemov" <kirill@shutemov.name>, Linus Torvalds <torvalds@linux-foundation.org>, Mark Salter <msalter@redhat.com>, Matt Turner <mattst88@gmail.com>, Michal Simek <monstr@monstr.eu>, Peter Rosin <peda@axentia.se>, Richard Weinberger <richard@nod.at>, Rolf Eike Beer <eike-kernel@sf-tec.de>, Russell King <linux@armlinux.org.uk>, Sam Creasey <sammy@sammy.net>, Vincent Chen <deanbo422@gmail.com>, Vineet Gupta <Vineet.Gupta1@synopsys.com>, alpha <linux-alpha@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, linux-c6x-dev@linux-c6x.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-m68k <linux-m68k@lists.linux-m68k.org>, Parisc List <linux-parisc@vger.kernel.org>, linux-um@lists.infradead.org, sparclinux <sparclinux@vger.kernel.org>, Mike Rapoport <rppt@linux.ibm.com>
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20191101083937.GRCptbxqbPRlmilCZcKhC9J3wSETHtvK1--bm2UDtOw@z>
+Message-ID: <20191104094749.ZHkO-FGvVsFzabtpo6hdTAhGAvdeWc8-pe01H7nfiCo@z>
 
-From: Mike Rapoport <rppt@linux.ibm.com>
+On Mon, Nov 04, 2019 at 09:53:34AM +0100, Geert Uytterhoeven wrote:
+> Hi Mike,
+> 
+> On Mon, Nov 4, 2019 at 7:57 AM Mike Rapoport <rppt@kernel.org> wrote:
+> > From: Mike Rapoport <rppt@linux.ibm.com>
+> > m68k has two or three levels of page tables and can use appropriate
+> > pgtable-nopXd and folding of the upper layers.
+> >
+> > Replace usage of include/asm-generic/4level-fixup.h and explicit
+> > definitions of __PAGETABLE_PxD_FOLDED in m68k with
+> > include/asm-generic/pgtable-nopmd.h for two-level configurations and with
+> > include/asm-generic/pgtable-nopud.h for three-lelve configurations and
+> > adjust page table manipulation macros and functions accordingly.
+> >
+> > Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
+> > Acked-by: Greg Ungerer <gerg@linux-m68k.org>
+> 
+> Thanks for your patch!
+> 
+> The build error reported for v1 by kbuild test robot when building for
+> sun3x is still there (m68k defconfig or sun3x_defconfig):
+> 
+>     arch/m68k/sun3x/dvma.c: In function ‘dvma_map_cpu’:
+>     arch/m68k/sun3x/dvma.c:98:33: error: passing argument 2 of
+> ‘pmd_alloc’ from incompatible pointer type
+> [-Werror=incompatible-pointer-types]
+>        if((pmd = pmd_alloc(&init_mm, pgd, vaddr)) == NULL) {
+>                                      ^~~
+>     In file included from arch/m68k/sun3x/dvma.c:17:
+>     include/linux/mm.h:1875:61: note: expected ‘pud_t *’ {aka ‘struct
+> <anonymous> *’} but argument is of type ‘pgd_t *’ {aka ‘struct
+> <anonymous> *’}
+>      static inline pmd_t *pmd_alloc(struct mm_struct *mm, pud_t *pud,
+> unsigned long address)
+>                                                           ~~~~~~~^~~
 
-microblaze has only two-level page tables and can use pgtable-nopmd and
-folding of the upper layers.
+The initial report was against older mmotm (base:
+git://git.cmpxchg.org/linux-mmotm.git master) and I presumed this was the
+cause of the error. Will fix in v4.
+ 
+> This indeed boots fine on ARAnyM, which emulates on 68040.
+> It would be good to have some boot testing on '020/030, too.
+ 
+To be honest, I have no idea how to to that :)
 
-Replace usage of include/asm-generic/4level-fixup.h and explicit definition
-of __PAGETABLE_PMD_FOLDED in microblaze with
-include/asm-generic/pgtable-nopmd.h and adjust page table manipulation
-macros and functions accordingly.
+> > --- a/arch/m68k/mm/kmap.c
+> > +++ b/arch/m68k/mm/kmap.c
+> 
+> > @@ -196,17 +198,21 @@ void __iomem *__ioremap(unsigned long physaddr, unsigned long size, int cachefla
+> >                         printk ("\npa=%#lx va=%#lx ", physaddr, virtaddr);
+> >  #endif
+> >                 pgd_dir = pgd_offset_k(virtaddr);
+> > -               pmd_dir = pmd_alloc(&init_mm, pgd_dir, virtaddr);
+> > +               p4d_dir = p4d_offset(pgd_dir, virtaddr);
+> > +               pud_dir = pud_offset(p4d_dir, virtaddr);
+> > +               pmd_dir = pmd_alloc(&init_mm, pud_dir, virtaddr);
+> >                 if (!pmd_dir) {
+> >                         printk("ioremap: no mem for pmd_dir\n");
+> >                         return NULL;
+> >                 }
+> >
+> >                 if (CPU_IS_020_OR_030) {
+> > +#if CONFIG_PGTABLE_LEVELS == 3
+> 
+> This check puzzled me a bit: when we get here, CONFIG_PGTABLE_LEVELS is
+> always true.
+> However, the check cannot be removed, as the code it protects fails to compile
+> when building for Coldfire.
+> 
+> Perhaps this can be made more clear by reverting the order?
+> I.e.
+> 
+>     #if CONFIG_PGTABLE_LEVELS == 3
+>             if (CPU_IS_020_OR_030) {
+>                     ...
+>             } else
+>     #endif
+>             {
+> 
+> Or is there some better way?
 
-Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
----
- arch/microblaze/include/asm/page.h    |  3 ---
- arch/microblaze/include/asm/pgalloc.h | 16 ----------------
- arch/microblaze/include/asm/pgtable.h | 32 ++------------------------------
- arch/microblaze/kernel/signal.c       | 10 +++++++---
- arch/microblaze/mm/init.c             |  7 +++++--
- arch/microblaze/mm/pgtable.c          | 13 +++++++++++--
- 6 files changed, 25 insertions(+), 56 deletions(-)
+I think reverting the order is fine. Here it's a bit ugly because of
+'} else {', but for the other cases below it will fine.
+ 
+> >                         pmd_dir->pmd[(virtaddr/PTRTREESIZE) & 15] = physaddr;
+> >                         physaddr += PTRTREESIZE;
+> >                         virtaddr += PTRTREESIZE;
+> >                         size -= PTRTREESIZE;
+> > +#endif
+> >                 } else {
+> >                         pte_dir = pte_alloc_kernel(pmd_dir, virtaddr);
+> >                         if (!pte_dir) {
+> > @@ -258,19 +264,24 @@ void __iounmap(void *addr, unsigned long size)
+> >  {
+> >         unsigned long virtaddr = (unsigned long)addr;
+> >         pgd_t *pgd_dir;
+> > +       p4d_t *p4d_dir;
+> > +       pud_t *pud_dir;
+> >         pmd_t *pmd_dir;
+> >         pte_t *pte_dir;
+> >
+> >         while ((long)size > 0) {
+> >                 pgd_dir = pgd_offset_k(virtaddr);
+> > -               if (pgd_bad(*pgd_dir)) {
+> > -                       printk("iounmap: bad pgd(%08lx)\n", pgd_val(*pgd_dir));
+> > -                       pgd_clear(pgd_dir);
+> > +               p4d_dir = p4d_offset(pgd_dir, virtaddr);
+> > +               pud_dir = pud_offset(p4d_dir, virtaddr);
+> > +               if (pud_bad(*pud_dir)) {
+> > +                       printk("iounmap: bad pgd(%08lx)\n", pud_val(*pud_dir));
+> > +                       pud_clear(pud_dir);
+> >                         return;
+> >                 }
+> > -               pmd_dir = pmd_offset(pgd_dir, virtaddr);
+> > +               pmd_dir = pmd_offset(pud_dir, virtaddr);
+> >
+> >                 if (CPU_IS_020_OR_030) {
+> > +#if CONFIG_PGTABLE_LEVELS == 3
+> 
+> Likewise.
+> 
+> >                         int pmd_off = (virtaddr/PTRTREESIZE) & 15;
+> >                         int pmd_type = pmd_dir->pmd[pmd_off] & _DESCTYPE_MASK;
+> >
+> 
+> > @@ -341,14 +355,17 @@ void kernel_set_cachemode(void *addr, unsigned long size, int cmode)
+> >
+> >         while ((long)size > 0) {
+> >                 pgd_dir = pgd_offset_k(virtaddr);
+> > -               if (pgd_bad(*pgd_dir)) {
+> > -                       printk("iocachemode: bad pgd(%08lx)\n", pgd_val(*pgd_dir));
+> > -                       pgd_clear(pgd_dir);
+> > +               p4d_dir = p4d_offset(pgd_dir, virtaddr);
+> > +               pud_dir = pud_offset(p4d_dir, virtaddr);
+> > +               if (pud_bad(*pud_dir)) {
+> > +                       printk("iocachemode: bad pud(%08lx)\n", pud_val(*pud_dir));
+> > +                       pud_clear(pud_dir);
+> >                         return;
+> >                 }
+> > -               pmd_dir = pmd_offset(pgd_dir, virtaddr);
+> > +               pmd_dir = pmd_offset(pud_dir, virtaddr);
+> >
+> >                 if (CPU_IS_020_OR_030) {
+> > +#if CONFIG_PGTABLE_LEVELS == 3
+> 
+> Likewise
+> 
+> >                         int pmd_off = (virtaddr/PTRTREESIZE) & 15;
+> >
+> >                         if ((pmd_dir->pmd[pmd_off] & _DESCTYPE_MASK) == _PAGE_PRESENT) {
+> 
+> Gr{oetje,eeting}s,
+> 
+>                         Geert
+> 
+> -- 
+> Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+> 
+> In personal conversations with technical people, I call myself a hacker. But
+> when I'm talking to journalists I just say "programmer" or something like that.
+>                                 -- Linus Torvalds
 
-diff --git a/arch/microblaze/include/asm/page.h b/arch/microblaze/include/asm/page.h
-index d506bb0..f4b44b2 100644
---- a/arch/microblaze/include/asm/page.h
-+++ b/arch/microblaze/include/asm/page.h
-@@ -90,7 +90,6 @@ typedef struct { unsigned long	pte; }		pte_t;
- typedef struct { unsigned long	pgprot; }	pgprot_t;
- /* FIXME this can depend on linux kernel version */
- #   ifdef CONFIG_MMU
--typedef struct { unsigned long pmd; } pmd_t;
- typedef struct { unsigned long pgd; } pgd_t;
- #   else /* CONFIG_MMU */
- typedef struct { unsigned long	ste[64]; }	pmd_t;
-@@ -103,7 +102,6 @@ typedef struct { p4d_t		pge[1]; }	pgd_t;
- # define pgprot_val(x)	((x).pgprot)
- 
- #   ifdef CONFIG_MMU
--#   define pmd_val(x)      ((x).pmd)
- #   define pgd_val(x)      ((x).pgd)
- #   else  /* CONFIG_MMU */
- #   define pmd_val(x)	((x).ste[0])
-@@ -112,7 +110,6 @@ typedef struct { p4d_t		pge[1]; }	pgd_t;
- #   endif  /* CONFIG_MMU */
- 
- # define __pte(x)	((pte_t) { (x) })
--# define __pmd(x)	((pmd_t) { (x) })
- # define __pgd(x)	((pgd_t) { (x) })
- # define __pgprot(x)	((pgprot_t) { (x) })
- 
-diff --git a/arch/microblaze/include/asm/pgalloc.h b/arch/microblaze/include/asm/pgalloc.h
-index 7ecb05b..fcf1e23 100644
---- a/arch/microblaze/include/asm/pgalloc.h
-+++ b/arch/microblaze/include/asm/pgalloc.h
-@@ -41,13 +41,6 @@ static inline void free_pgd(pgd_t *pgd)
- 
- #define pmd_pgtable(pmd)	pmd_page(pmd)
- 
--/*
-- * We don't have any real pmd's, and this code never triggers because
-- * the pgd will always be present..
-- */
--#define pmd_alloc_one_fast(mm, address)	({ BUG(); ((pmd_t *)1); })
--#define pmd_alloc_one(mm, address)	({ BUG(); ((pmd_t *)2); })
--
- extern pte_t *pte_alloc_one_kernel(struct mm_struct *mm);
- 
- #define __pte_free_tlb(tlb, pte, addr)	pte_free((tlb)->mm, (pte))
-@@ -58,15 +51,6 @@ extern pte_t *pte_alloc_one_kernel(struct mm_struct *mm);
- #define pmd_populate_kernel(mm, pmd, pte) \
- 		(pmd_val(*(pmd)) = (unsigned long) (pte))
- 
--/*
-- * We don't have any real pmd's, and this code never triggers because
-- * the pgd will always be present..
-- */
--#define pmd_alloc_one(mm, address)	({ BUG(); ((pmd_t *)2); })
--#define pmd_free(mm, x)			do { } while (0)
--#define __pmd_free_tlb(tlb, x, addr)	pmd_free((tlb)->mm, x)
--#define pgd_populate(mm, pmd, pte)	BUG()
--
- #endif /* CONFIG_MMU */
- 
- #endif /* _ASM_MICROBLAZE_PGALLOC_H */
-diff --git a/arch/microblaze/include/asm/pgtable.h b/arch/microblaze/include/asm/pgtable.h
-index 954b69a..2def331 100644
---- a/arch/microblaze/include/asm/pgtable.h
-+++ b/arch/microblaze/include/asm/pgtable.h
-@@ -59,9 +59,7 @@ extern int mem_init_done;
- 
- #else /* CONFIG_MMU */
- 
--#include <asm-generic/4level-fixup.h>
--
--#define __PAGETABLE_PMD_FOLDED 1
-+#include <asm-generic/pgtable-nopmd.h>
- 
- #ifdef __KERNEL__
- #ifndef __ASSEMBLY__
-@@ -138,13 +136,8 @@ static inline pte_t pte_mkspecial(pte_t pte)	{ return pte; }
-  *
-  */
- 
--/* PMD_SHIFT determines the size of the area mapped by the PTE pages */
--#define PMD_SHIFT	(PAGE_SHIFT + PTE_SHIFT)
--#define PMD_SIZE	(1UL << PMD_SHIFT)
--#define PMD_MASK	(~(PMD_SIZE-1))
--
- /* PGDIR_SHIFT determines what a top-level page table entry can map */
--#define PGDIR_SHIFT	PMD_SHIFT
-+#define PGDIR_SHIFT	(PAGE_SHIFT + PTE_SHIFT)
- #define PGDIR_SIZE	(1UL << PGDIR_SHIFT)
- #define PGDIR_MASK	(~(PGDIR_SIZE-1))
- 
-@@ -165,9 +158,6 @@ static inline pte_t pte_mkspecial(pte_t pte)	{ return pte; }
- #define pte_ERROR(e) \
- 	printk(KERN_ERR "%s:%d: bad pte "PTE_FMT".\n", \
- 		__FILE__, __LINE__, pte_val(e))
--#define pmd_ERROR(e) \
--	printk(KERN_ERR "%s:%d: bad pmd %08lx.\n", \
--		__FILE__, __LINE__, pmd_val(e))
- #define pgd_ERROR(e) \
- 	printk(KERN_ERR "%s:%d: bad pgd %08lx.\n", \
- 		__FILE__, __LINE__, pgd_val(e))
-@@ -314,18 +304,6 @@ extern unsigned long empty_zero_page[1024];
- 
- #ifndef __ASSEMBLY__
- /*
-- * The "pgd_xxx()" functions here are trivial for a folded two-level
-- * setup: the pgd is never bad, and a pmd always exists (as it's folded
-- * into the pgd entry)
-- */
--static inline int pgd_none(pgd_t pgd)		{ return 0; }
--static inline int pgd_bad(pgd_t pgd)		{ return 0; }
--static inline int pgd_present(pgd_t pgd)	{ return 1; }
--#define pgd_clear(xp)				do { } while (0)
--#define pgd_page(pgd) \
--	((unsigned long) __va(pgd_val(pgd) & PAGE_MASK))
--
--/*
-  * The following only work if pte_present() is true.
-  * Undefined behaviour if not..
-  */
-@@ -479,12 +457,6 @@ static inline void ptep_mkdirty(struct mm_struct *mm,
- #define pgd_index(address)	 ((address) >> PGDIR_SHIFT)
- #define pgd_offset(mm, address)	 ((mm)->pgd + pgd_index(address))
- 
--/* Find an entry in the second-level page table.. */
--static inline pmd_t *pmd_offset(pgd_t *dir, unsigned long address)
--{
--	return (pmd_t *) dir;
--}
--
- /* Find an entry in the third-level page table.. */
- #define pte_index(address)		\
- 	(((address) >> PAGE_SHIFT) & (PTRS_PER_PTE - 1))
-diff --git a/arch/microblaze/kernel/signal.c b/arch/microblaze/kernel/signal.c
-index cdd4feb..c9125c3 100644
---- a/arch/microblaze/kernel/signal.c
-+++ b/arch/microblaze/kernel/signal.c
-@@ -160,6 +160,9 @@ static int setup_rt_frame(struct ksignal *ksig, sigset_t *set,
- 	int err = 0, sig = ksig->sig;
- 	unsigned long address = 0;
- #ifdef CONFIG_MMU
-+	pgd_t *pgdp;
-+	p4d_t *p4dp;
-+	pud_t *pudp;
- 	pmd_t *pmdp;
- 	pte_t *ptep;
- #endif
-@@ -195,9 +198,10 @@ static int setup_rt_frame(struct ksignal *ksig, sigset_t *set,
- 
- 	address = ((unsigned long)frame->tramp);
- #ifdef CONFIG_MMU
--	pmdp = pmd_offset(pud_offset(
--			pgd_offset(current->mm, address),
--					address), address);
-+	pgdp = pgd_offset(current->mm, address);
-+	p4dp = p4d_offset(pgdp, address);
-+	pudp = pud_offset(p4dp, address);
-+	pmdp = pmd_offset(pudp, address);
- 
- 	preempt_disable();
- 	ptep = pte_offset_map(pmdp, address);
-diff --git a/arch/microblaze/mm/init.c b/arch/microblaze/mm/init.c
-index a015a95..050fc62 100644
---- a/arch/microblaze/mm/init.c
-+++ b/arch/microblaze/mm/init.c
-@@ -53,8 +53,11 @@ EXPORT_SYMBOL(kmap_prot);
- 
- static inline pte_t *virt_to_kpte(unsigned long vaddr)
- {
--	return pte_offset_kernel(pmd_offset(pgd_offset_k(vaddr),
--			vaddr), vaddr);
-+	pgd_t *pgd = pgd_offset_k(vaddr);
-+	p4d_t *p4d = p4d_offset(pgd, vaddr);
-+	pud_t *pud = pud_offset(p4d, vaddr);
-+
-+	return pte_offset_kernel(pmd_offset(pud, vaddr), vaddr);
- }
- 
- static void __init highmem_init(void)
-diff --git a/arch/microblaze/mm/pgtable.c b/arch/microblaze/mm/pgtable.c
-index 010bb9c..68c26ca 100644
---- a/arch/microblaze/mm/pgtable.c
-+++ b/arch/microblaze/mm/pgtable.c
-@@ -134,11 +134,16 @@ EXPORT_SYMBOL(iounmap);
- 
- int map_page(unsigned long va, phys_addr_t pa, int flags)
- {
-+	p4d_t *p4d;
-+	pud_t *pud;
- 	pmd_t *pd;
- 	pte_t *pg;
- 	int err = -ENOMEM;
-+
- 	/* Use upper 10 bits of VA to index the first level map */
--	pd = pmd_offset(pgd_offset_k(va), va);
-+	p4d = p4d_offset(pgd_offset_k(va), va);
-+	pud = pud_offset(p4d, va);
-+	pd = pmd_offset(pud, va);
- 	/* Use middle 10 bits of VA to index the second-level map */
- 	pg = pte_alloc_kernel(pd, va); /* from powerpc - pgtable.c */
- 	/* pg = pte_alloc_kernel(&init_mm, pd, va); */
-@@ -188,13 +193,17 @@ void __init mapin_ram(void)
- static int get_pteptr(struct mm_struct *mm, unsigned long addr, pte_t **ptep)
- {
- 	pgd_t	*pgd;
-+	p4d_t	*p4d;
-+	pud_t	*pud;
- 	pmd_t	*pmd;
- 	pte_t	*pte;
- 	int     retval = 0;
- 
- 	pgd = pgd_offset(mm, addr & PAGE_MASK);
- 	if (pgd) {
--		pmd = pmd_offset(pgd, addr & PAGE_MASK);
-+		p4d = p4d_offset(pgd, addr & PAGE_MASK);
-+		pud = pud_offset(p4d, addr & PAGE_MASK);
-+		pmd = pmd_offset(pud, addr & PAGE_MASK);
- 		if (pmd_present(*pmd)) {
- 			pte = pte_offset_kernel(pmd, addr & PAGE_MASK);
- 			if (pte) {
 -- 
-2.7.4
+Sincerely yours,
+Mike.
