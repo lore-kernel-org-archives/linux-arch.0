@@ -1,27 +1,182 @@
-Return-Path: <hch@lst.de>
-Date: Wed, 27 Nov 2019 09:53:51 +0100
-From: Christoph Hellwig <hch@lst.de>
-Subject: Re: Bug 205201 - Booting halts if Dawicontrol DC-2976 UW SCSI
- board installed, unless RAM size limited to 3500M
-Message-ID: <20191127085351.GA24676@lst.de>
-References: <dbde2252-035e-6183-7897-43348e60647e@xenosoft.de> <6eec5c42-019c-a988-fc2a-cb804194683d@xenosoft.de> <d0252d29-7a03-20e1-ccd7-e12d906e4bdf@arm.com> <b3217742-2c0b-8447-c9ac-608b93265363@xenosoft.de> <20191121180226.GA3852@lst.de> <2fde79cf-875f-94e6-4a1b-f73ebb2e2c32@xenosoft.de> <20191125073923.GA30168@lst.de> <4681f5fe-c095-15f5-9221-4b55e940bafc@xenosoft.de> <20191126164026.GA8026@lst.de> <20191127065624.GB16913@linux.ibm.com>
+Return-Path: <geert.uytterhoeven@gmail.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20191127065624.GB16913@linux.ibm.com>
-To: Mike Rapoport <rppt@linux.ibm.com>
-Cc: Christoph Hellwig <hch@lst.de>, Christian Zigotzky <chzigotzky@xenosoft.de>, Robin Murphy <robin.murphy@arm.com>, linux-arch@vger.kernel.org, darren@stevens-zone.net, mad skateman <madskateman@gmail.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, linux-kernel@vger.kernel.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Rob Herring <robh+dt@kernel.org>, paulus@samba.org, rtd2@xtra.co.nz, "contact@a-eon.com" <contact@a-eon.com>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, nsaenzjulienne@suse.de
+References: <1572850587-20314-1-git-send-email-rppt@kernel.org> <1572850587-20314-6-git-send-email-rppt@kernel.org>
+In-Reply-To: <1572850587-20314-6-git-send-email-rppt@kernel.org>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Date: Mon, 4 Nov 2019 09:53:34 +0100
+Message-ID: <CAMuHMdUG3V7uxzhbetw75vVeobeP0-bQySb3r=0V5XujUF123g@mail.gmail.com>
+Subject: Re: [PATCH v3 05/13] m68k: mm: use pgtable-nopXd instead of 4level-fixup
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
+To: Mike Rapoport <rppt@kernel.org>
+Cc: Linux MM <linux-mm@kvack.org>, Andrew Morton <akpm@linux-foundation.org>, Anton Ivanov <anton.ivanov@cambridgegreys.com>, Arnd Bergmann <arnd@arndb.de>, "David S. Miller" <davem@davemloft.net>, Greentime Hu <green.hu@gmail.com>, Greg Ungerer <gerg@linux-m68k.org>, Helge Deller <deller@gmx.de>, "James E.J. Bottomley" <James.Bottomley@hansenpartnership.com>, Jeff Dike <jdike@addtoit.com>, "Kirill A. Shutemov" <kirill@shutemov.name>, Linus Torvalds <torvalds@linux-foundation.org>, Mark Salter <msalter@redhat.com>, Matt Turner <mattst88@gmail.com>, Michal Simek <monstr@monstr.eu>, Peter Rosin <peda@axentia.se>, Richard Weinberger <richard@nod.at>, Rolf Eike Beer <eike-kernel@sf-tec.de>, Russell King <linux@armlinux.org.uk>, Sam Creasey <sammy@sammy.net>, Vincent Chen <deanbo422@gmail.com>, Vineet Gupta <Vineet.Gupta1@synopsys.com>, alpha <linux-alpha@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, linux-c6x-dev@linux-c6x.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-m68k <linux-m68k@lists.linux-m68k.org>, Parisc List <linux-parisc@vger.kernel.org>, linux-um@lists.infradead.org, sparclinux <sparclinux@vger.kernel.org>, Mike Rapoport <rppt@linux.ibm.com>
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20191127085351.GfpmJvqcF34IqskwQ8qW5QTb6dFsZKpzVcfrbhDI-Ho@z>
+Message-ID: <20191104085334.xYZvLOEeZkYq3wJiAfIR6vMMrwjawRkfi1gbAUzas0k@z>
 
-On Wed, Nov 27, 2019 at 08:56:25AM +0200, Mike Rapoport wrote:
-> Maybe we'll simply force bottom up allocation before calling
-> swiotlb_init()? Anyway, it's the last memblock allocation.
+Hi Mike,
 
-That should work, but I don't think it is the proper fix.  The underlying
-issue here is that ZONE_DMA/DMA32 sizing is something that needs to
-be propagated to memblock and dma-direct as is based around addressing
-limitations.  But our zone initialization is such a mess that we
-can't just reuse a variable.  Nicolas has started to clean some of
-this up, but we need to clean that whole zone initialization mess up
-a lot more.
+On Mon, Nov 4, 2019 at 7:57 AM Mike Rapoport <rppt@kernel.org> wrote:
+> From: Mike Rapoport <rppt@linux.ibm.com>
+> m68k has two or three levels of page tables and can use appropriate
+> pgtable-nopXd and folding of the upper layers.
+>
+> Replace usage of include/asm-generic/4level-fixup.h and explicit
+> definitions of __PAGETABLE_PxD_FOLDED in m68k with
+> include/asm-generic/pgtable-nopmd.h for two-level configurations and with
+> include/asm-generic/pgtable-nopud.h for three-lelve configurations and
+> adjust page table manipulation macros and functions accordingly.
+>
+> Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
+> Acked-by: Greg Ungerer <gerg@linux-m68k.org>
+
+Thanks for your patch!
+
+The build error reported for v1 by kbuild test robot when building for
+sun3x is still there (m68k defconfig or sun3x_defconfig):
+
+    arch/m68k/sun3x/dvma.c: In function =E2=80=98dvma_map_cpu=E2=80=99:
+    arch/m68k/sun3x/dvma.c:98:33: error: passing argument 2 of
+=E2=80=98pmd_alloc=E2=80=99 from incompatible pointer type
+[-Werror=3Dincompatible-pointer-types]
+       if((pmd =3D pmd_alloc(&init_mm, pgd, vaddr)) =3D=3D NULL) {
+                                     ^~~
+    In file included from arch/m68k/sun3x/dvma.c:17:
+    include/linux/mm.h:1875:61: note: expected =E2=80=98pud_t *=E2=80=99 {a=
+ka =E2=80=98struct
+<anonymous> *=E2=80=99} but argument is of type =E2=80=98pgd_t *=E2=80=99 {=
+aka =E2=80=98struct
+<anonymous> *=E2=80=99}
+     static inline pmd_t *pmd_alloc(struct mm_struct *mm, pud_t *pud,
+unsigned long address)
+                                                          ~~~~~~~^~~
+
+This indeed boots fine on ARAnyM, which emulates on 68040.
+It would be good to have some boot testing on '020/030, too.
+
+> --- a/arch/m68k/mm/kmap.c
+> +++ b/arch/m68k/mm/kmap.c
+
+> @@ -196,17 +198,21 @@ void __iomem *__ioremap(unsigned long physaddr, uns=
+igned long size, int cachefla
+>                         printk ("\npa=3D%#lx va=3D%#lx ", physaddr, virta=
+ddr);
+>  #endif
+>                 pgd_dir =3D pgd_offset_k(virtaddr);
+> -               pmd_dir =3D pmd_alloc(&init_mm, pgd_dir, virtaddr);
+> +               p4d_dir =3D p4d_offset(pgd_dir, virtaddr);
+> +               pud_dir =3D pud_offset(p4d_dir, virtaddr);
+> +               pmd_dir =3D pmd_alloc(&init_mm, pud_dir, virtaddr);
+>                 if (!pmd_dir) {
+>                         printk("ioremap: no mem for pmd_dir\n");
+>                         return NULL;
+>                 }
+>
+>                 if (CPU_IS_020_OR_030) {
+> +#if CONFIG_PGTABLE_LEVELS =3D=3D 3
+
+This check puzzled me a bit: when we get here, CONFIG_PGTABLE_LEVELS is
+always true.
+However, the check cannot be removed, as the code it protects fails to comp=
+ile
+when building for Coldfire.
+
+Perhaps this can be made more clear by reverting the order?
+I.e.
+
+    #if CONFIG_PGTABLE_LEVELS =3D=3D 3
+            if (CPU_IS_020_OR_030) {
+                    ...
+            } else
+    #endif
+            {
+
+Or is there some better way?
+
+>                         pmd_dir->pmd[(virtaddr/PTRTREESIZE) & 15] =3D phy=
+saddr;
+>                         physaddr +=3D PTRTREESIZE;
+>                         virtaddr +=3D PTRTREESIZE;
+>                         size -=3D PTRTREESIZE;
+> +#endif
+>                 } else {
+>                         pte_dir =3D pte_alloc_kernel(pmd_dir, virtaddr);
+>                         if (!pte_dir) {
+> @@ -258,19 +264,24 @@ void __iounmap(void *addr, unsigned long size)
+>  {
+>         unsigned long virtaddr =3D (unsigned long)addr;
+>         pgd_t *pgd_dir;
+> +       p4d_t *p4d_dir;
+> +       pud_t *pud_dir;
+>         pmd_t *pmd_dir;
+>         pte_t *pte_dir;
+>
+>         while ((long)size > 0) {
+>                 pgd_dir =3D pgd_offset_k(virtaddr);
+> -               if (pgd_bad(*pgd_dir)) {
+> -                       printk("iounmap: bad pgd(%08lx)\n", pgd_val(*pgd_=
+dir));
+> -                       pgd_clear(pgd_dir);
+> +               p4d_dir =3D p4d_offset(pgd_dir, virtaddr);
+> +               pud_dir =3D pud_offset(p4d_dir, virtaddr);
+> +               if (pud_bad(*pud_dir)) {
+> +                       printk("iounmap: bad pgd(%08lx)\n", pud_val(*pud_=
+dir));
+> +                       pud_clear(pud_dir);
+>                         return;
+>                 }
+> -               pmd_dir =3D pmd_offset(pgd_dir, virtaddr);
+> +               pmd_dir =3D pmd_offset(pud_dir, virtaddr);
+>
+>                 if (CPU_IS_020_OR_030) {
+> +#if CONFIG_PGTABLE_LEVELS =3D=3D 3
+
+Likewise.
+
+>                         int pmd_off =3D (virtaddr/PTRTREESIZE) & 15;
+>                         int pmd_type =3D pmd_dir->pmd[pmd_off] & _DESCTYP=
+E_MASK;
+>
+
+> @@ -341,14 +355,17 @@ void kernel_set_cachemode(void *addr, unsigned long=
+ size, int cmode)
+>
+>         while ((long)size > 0) {
+>                 pgd_dir =3D pgd_offset_k(virtaddr);
+> -               if (pgd_bad(*pgd_dir)) {
+> -                       printk("iocachemode: bad pgd(%08lx)\n", pgd_val(*=
+pgd_dir));
+> -                       pgd_clear(pgd_dir);
+> +               p4d_dir =3D p4d_offset(pgd_dir, virtaddr);
+> +               pud_dir =3D pud_offset(p4d_dir, virtaddr);
+> +               if (pud_bad(*pud_dir)) {
+> +                       printk("iocachemode: bad pud(%08lx)\n", pud_val(*=
+pud_dir));
+> +                       pud_clear(pud_dir);
+>                         return;
+>                 }
+> -               pmd_dir =3D pmd_offset(pgd_dir, virtaddr);
+> +               pmd_dir =3D pmd_offset(pud_dir, virtaddr);
+>
+>                 if (CPU_IS_020_OR_030) {
+> +#if CONFIG_PGTABLE_LEVELS =3D=3D 3
+
+Likewise
+
+>                         int pmd_off =3D (virtaddr/PTRTREESIZE) & 15;
+>
+>                         if ((pmd_dir->pmd[pmd_off] & _DESCTYPE_MASK) =3D=
+=3D _PAGE_PRESENT) {
+
+Gr{oetje,eeting}s,
+
+                        Geert
+
+--=20
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k=
+.org
+
+In personal conversations with technical people, I call myself a hacker. Bu=
+t
+when I'm talking to journalists I just say "programmer" or something like t=
+hat.
+                                -- Linus Torvalds
