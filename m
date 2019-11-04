@@ -1,137 +1,43 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from szxga02-in.huawei.com ([45.249.212.188]:2503 "EHLO huawei.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1728234AbfKDCHQ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Sun, 3 Nov 2019 21:07:16 -0500
-Date: Mon, 4 Nov 2019 10:09:53 +0800
-From: Gao Xiang <gaoxiang25@huawei.com>
-Subject: Re: [PATCH 10/10] errno.h: Provide EFSCORRUPTED for everybody
-Message-ID: <20191104020950.GA207519@architecture4>
-References: <20191104014510.102356-1-Valdis.Kletnieks@vt.edu>
- <20191104014510.102356-11-Valdis.Kletnieks@vt.edu>
+Received: from mail.skyhub.de ([5.9.137.197]:48792 "EHLO mail.skyhub.de"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726100AbfKDI70 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 4 Nov 2019 03:59:26 -0500
+Date: Mon, 4 Nov 2019 09:59:18 +0100
+From: Borislav Petkov <bp@alien8.de>
+Subject: Re: [PATCH v2 01/29] powerpc: Rename "notes" PT_NOTE to "note"
+Message-ID: <20191104085918.GA7862@zn.tnic>
+References: <20191011000609.29728-1-keescook@chromium.org>
+ <20191011000609.29728-2-keescook@chromium.org>
+ <20191011082519.GI9749@gate.crashing.org>
+ <201910110910.48270FC97@keescook>
+ <20191011162552.GK9749@gate.crashing.org>
+ <20191015165412.GD596@zn.tnic>
+ <201910291414.F29F738B7@keescook>
+ <20191030010117.GJ28442@gate.crashing.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
+Content-Type: text/plain; charset=utf-8
 Content-Disposition: inline
-In-Reply-To: <20191104014510.102356-11-Valdis.Kletnieks@vt.edu>
+In-Reply-To: <20191030010117.GJ28442@gate.crashing.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Valdis Kletnieks <valdis.kletnieks@vt.edu>
-Cc: "Darrick J . Wong" <darrick.wong@oracle.com>, Jan Kara <jack@suse.cz>, Theodore Ts'o <tytso@mit.edu>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Gao Xiang <xiang@kernel.org>, Chao Yu <chao@kernel.org>, Andreas Dilger <adilger.kernel@dilger.ca>, Jaegeuk Kim <jaegeuk@kernel.org>, linux-xfs@vger.kernel.org, Jan Kara <jack@suse.com>, Arnd Bergmann <arnd@arndb.de>, linux-fsdevel@vger.kernel.org, devel@driverdev.osuosl.org, linux-kernel@vger.kernel.org, linux-erofs@lists.ozlabs.org, linux-ext4@vger.kernel.org, linux-f2fs-devel@lists.sourceforge.net, linux-arch@vger.kernel.org
-Message-ID: <20191104020953.C1kezioex_x8eD_skySl29VvAk5H-XENQvhzph-qSQY@z>
+To: Segher Boessenkool <segher@kernel.crashing.org>
+Cc: Kees Cook <keescook@chromium.org>, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, Michal Simek <monstr@monstr.eu>, x86@kernel.org, linux-ia64@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, linux-xtensa@linux-xtensa.org, Dave Hansen <dave.hansen@linux.intel.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, linuxppc-dev@lists.ozlabs.org, Yoshinori Sato <ysato@users.sourceforge.jp>, linux-parisc@vger.kernel.org, Andy Lutomirski <luto@kernel.org>, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, Rick Edgecombe <rick.p.edgecombe@intel.com>, Will Deacon <will@kernel.org>, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org
+Message-ID: <20191104085918.y3vEpDY-VA504jzazy_KrCZgBcfdtp6w2uA2tlg5peE@z>
 
-On Sun, Nov 03, 2019 at 08:45:06PM -0500, Valdis Kletnieks wrote:
-> There's currently 6 filesystems that have the same #define. Move it
-> into errno.h so it's defined in just one place.
-> 
-> Signed-off-by: Valdis Kletnieks <Valdis.Kletnieks@vt.edu>
-> Acked-by: Darrick J. Wong <darrick.wong@oracle.com>
-> Reviewed-by: Jan Kara <jack@suse.cz>
-> Acked-by: Theodore Ts'o <tytso@mit.edu>
+On Tue, Oct 29, 2019 at 08:01:17PM -0500, Segher Boessenkool wrote:
+> I am still not convinced the worse name is a better name, no :-)  But if
+> you don't want to do the work, and instead prefer the much smaller change,
+> that is of course a fine decision.  Thank you!
+>
+> (I would be happy with such a 30/29 as well, of course.)
 
-For EROFS part,
+Ok, thanks.
 
-Acked-by: Gao Xiang <gaoxiang25@huawei.com>
+I'll start picking up the pile and the renaming patch can then go ontop.
 
-> ---
->  drivers/staging/exfat/exfat.h    | 2 --
->  fs/erofs/internal.h              | 2 --
->  fs/ext4/ext4.h                   | 1 -
->  fs/f2fs/f2fs.h                   | 1 -
->  fs/xfs/xfs_linux.h               | 1 -
->  include/linux/jbd2.h             | 1 -
->  include/uapi/asm-generic/errno.h | 1 +
->  7 files changed, 1 insertion(+), 8 deletions(-)
-> 
-> diff --git a/drivers/staging/exfat/exfat.h b/drivers/staging/exfat/exfat.h
-> index 72cf40e123de..58b091a077e8 100644
-> --- a/drivers/staging/exfat/exfat.h
-> +++ b/drivers/staging/exfat/exfat.h
-> @@ -30,8 +30,6 @@
->  #undef DEBUG
->  #endif
->  
-> -#define EFSCORRUPTED	EUCLEAN		/* Filesystem is corrupted */
-> -
->  #define DENTRY_SIZE		32	/* dir entry size */
->  #define DENTRY_SIZE_BITS	5
->  
-> diff --git a/fs/erofs/internal.h b/fs/erofs/internal.h
-> index 544a453f3076..3980026a8882 100644
-> --- a/fs/erofs/internal.h
-> +++ b/fs/erofs/internal.h
-> @@ -425,7 +425,5 @@ static inline int z_erofs_init_zip_subsystem(void) { return 0; }
->  static inline void z_erofs_exit_zip_subsystem(void) {}
->  #endif	/* !CONFIG_EROFS_FS_ZIP */
->  
-> -#define EFSCORRUPTED    EUCLEAN         /* Filesystem is corrupted */
-> -
->  #endif	/* __EROFS_INTERNAL_H */
->  
-> diff --git a/fs/ext4/ext4.h b/fs/ext4/ext4.h
-> index 03db3e71676c..a86c2585457d 100644
-> --- a/fs/ext4/ext4.h
-> +++ b/fs/ext4/ext4.h
-> @@ -3396,6 +3396,5 @@ static inline int ext4_buffer_uptodate(struct buffer_head *bh)
->  #endif	/* __KERNEL__ */
->  
->  #define EFSBADCRC	EBADMSG		/* Bad CRC detected */
-> -#define EFSCORRUPTED	EUCLEAN		/* Filesystem is corrupted */
->  
->  #endif	/* _EXT4_H */
-> diff --git a/fs/f2fs/f2fs.h b/fs/f2fs/f2fs.h
-> index 4024790028aa..04ebe77569a3 100644
-> --- a/fs/f2fs/f2fs.h
-> +++ b/fs/f2fs/f2fs.h
-> @@ -3752,6 +3752,5 @@ static inline bool is_journalled_quota(struct f2fs_sb_info *sbi)
->  }
->  
->  #define EFSBADCRC	EBADMSG		/* Bad CRC detected */
-> -#define EFSCORRUPTED	EUCLEAN		/* Filesystem is corrupted */
->  
->  #endif /* _LINUX_F2FS_H */
-> diff --git a/fs/xfs/xfs_linux.h b/fs/xfs/xfs_linux.h
-> index ca15105681ca..3409d02a7d21 100644
-> --- a/fs/xfs/xfs_linux.h
-> +++ b/fs/xfs/xfs_linux.h
-> @@ -123,7 +123,6 @@ typedef __u32			xfs_nlink_t;
->  
->  #define ENOATTR		ENODATA		/* Attribute not found */
->  #define EWRONGFS	EINVAL		/* Mount with wrong filesystem type */
-> -#define EFSCORRUPTED	EUCLEAN		/* Filesystem is corrupted */
->  #define EFSBADCRC	EBADMSG		/* Bad CRC detected */
->  
->  #define SYNCHRONIZE()	barrier()
-> diff --git a/include/linux/jbd2.h b/include/linux/jbd2.h
-> index 603fbc4e2f70..69411d7e0431 100644
-> --- a/include/linux/jbd2.h
-> +++ b/include/linux/jbd2.h
-> @@ -1657,6 +1657,5 @@ static inline tid_t  jbd2_get_latest_transaction(journal_t *journal)
->  #endif	/* __KERNEL__ */
->  
->  #define EFSBADCRC	EBADMSG		/* Bad CRC detected */
-> -#define EFSCORRUPTED	EUCLEAN		/* Filesystem is corrupted */
->  
->  #endif	/* _LINUX_JBD2_H */
-> diff --git a/include/uapi/asm-generic/errno.h b/include/uapi/asm-generic/errno.h
-> index cf9c51ac49f9..1d5ffdf54cb0 100644
-> --- a/include/uapi/asm-generic/errno.h
-> +++ b/include/uapi/asm-generic/errno.h
-> @@ -98,6 +98,7 @@
->  #define	EINPROGRESS	115	/* Operation now in progress */
->  #define	ESTALE		116	/* Stale file handle */
->  #define	EUCLEAN		117	/* Structure needs cleaning */
-> +#define	EFSCORRUPTED	EUCLEAN
+-- 
+Regards/Gruss,
+    Boris.
 
-BTW, minor, how about adding some comments right after EFSCORRUPTED
-like the other error codes although it's now an alias...
-Just my personal thought.
-
-Thanks,
-Gao Xiang
-
->  #define	ENOTNAM		118	/* Not a XENIX named type file */
->  #define	ENAVAIL		119	/* No XENIX semaphores available */
->  #define	EISNAM		120	/* Is a named type file */
-> -- 
-> 2.24.0.rc1
-> 
+https://people.kernel.org/tglx/notes-about-netiquette
