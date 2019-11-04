@@ -1,38 +1,38 @@
-From: Borislav Petkov <bp@alien8.de>
-Subject: Re: [PATCH v2 01/29] powerpc: Rename "notes" PT_NOTE to "note"
-Date: Mon, 4 Nov 2019 09:59:18 +0100
-Message-ID: <20191104085918.GA7862@zn.tnic>
-References: <20191011000609.29728-1-keescook@chromium.org>
- <20191011000609.29728-2-keescook@chromium.org>
- <20191011082519.GI9749@gate.crashing.org>
- <201910110910.48270FC97@keescook>
- <20191011162552.GK9749@gate.crashing.org>
- <20191015165412.GD596@zn.tnic>
- <201910291414.F29F738B7@keescook>
- <20191030010117.GJ28442@gate.crashing.org>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH v3 13/13] mm: remove __ARCH_HAS_4LEVEL_HACK and include/asm-generic/4level-fixup.h
+Date: Mon, 4 Nov 2019 10:11:51 +0100
+Message-ID: <CAK8P3a3e7oG5NMPbhgQOoKvB0Z5ui0iAHHFqyAxy87Nd903Vmw@mail.gmail.com>
+References: <1572850587-20314-1-git-send-email-rppt@kernel.org> <1572850587-20314-14-git-send-email-rppt@kernel.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20191030010117.GJ28442@gate.crashing.org>
+In-Reply-To: <1572850587-20314-14-git-send-email-rppt@kernel.org>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Segher Boessenkool <segher@kernel.crashing.org>
-Cc: Kees Cook <keescook@chromium.org>, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, Michal Simek <monstr@monstr.eu>, x86@kernel.org, linux-ia64@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, linux-xtensa@linux-xtensa.org, Dave Hansen <dave.hansen@linux.intel.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, linuxppc-dev@lists.ozlabs.org, Yoshinori Sato <ysato@users.sourceforge.jp>, linux-parisc@vger.kernel.org, Andy Lutomirski <luto@kernel.org>, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, Rick Edgecombe <rick.p.edgecombe@intel.com>, Will Deacon <will@kernel.org>, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org
+To: Mike Rapoport <rppt@kernel.org>
+Cc: Linux-MM <linux-mm@kvack.org>, Andrew Morton <akpm@linux-foundation.org>, Anton Ivanov <anton.ivanov@cambridgegreys.com>, "David S. Miller" <davem@davemloft.net>, Geert Uytterhoeven <geert@linux-m68k.org>, Greentime Hu <green.hu@gmail.com>, Greg Ungerer <gerg@linux-m68k.org>, Helge Deller <deller@gmx.de>, "James E.J. Bottomley" <James.Bottomley@hansenpartnership.com>, Jeff Dike <jdike@addtoit.com>, "Kirill A. Shutemov" <kirill@shutemov.name>, Linus Torvalds <torvalds@linux-foundation.org>, Mark Salter <msalter@redhat.com>, Matt Turner <mattst88@gmail.com>, Michal Simek <monstr@monstr.eu>, Peter Rosin <peda@axentia.se>, Richard Weinberger <richard@nod.at>, Rolf Eike Beer <eike-kernel@sf-tec.de>, Russell King <linux@armlinux.org.uk>, Sam
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, Oct 29, 2019 at 08:01:17PM -0500, Segher Boessenkool wrote:
-> I am still not convinced the worse name is a better name, no :-)  But if
-> you don't want to do the work, and instead prefer the much smaller change,
-> that is of course a fine decision.  Thank you!
+On Mon, Nov 4, 2019 at 7:58 AM Mike Rapoport <rppt@kernel.org> wrote:
 >
-> (I would be happy with such a 30/29 as well, of course.)
+> From: Mike Rapoport <rppt@linux.ibm.com>
+>
+> There are no architectures that use include/asm-generic/4level-fixup.h
+> therefore it can be removed along with __ARCH_HAS_4LEVEL_HACK define.
+>
+> Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
 
-Ok, thanks.
+For asm-generic:
 
-I'll start picking up the pile and the renaming patch can then go ontop.
+Acked-by: Arnd Bergmann <arnd@arndb.de>
 
--- 
-Regards/Gruss,
-    Boris.
+Have you discussed how the series should get merged? I assume an initial
+set of patches can just go through architecture maintainer trees, but
+whatever patches don't get picked up that way would go through either
+Andrew's -mm tree (for memory management) or my asm-generic tree
+(for cross-architecture cleanups).
 
-https://people.kernel.org/tglx/notes-about-netiquette
+Since there is still at least one regression, I expect not to do anything
+for now. Please let me know when/if you expect me to merge the
+remaining patches.
+
+      Arnd
