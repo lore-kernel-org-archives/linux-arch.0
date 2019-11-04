@@ -1,34 +1,34 @@
 Return-Path: <rppt@kernel.org>
 From: Mike Rapoport <rppt@kernel.org>
-Subject: [PATCH v2 12/13] um: add support for folded p4d page tables
-Date: Fri,  1 Nov 2019 10:39:43 +0200
-Message-ID: <1572597584-6390-13-git-send-email-rppt@kernel.org>
-In-Reply-To: <1572597584-6390-1-git-send-email-rppt@kernel.org>
-References: <1572597584-6390-1-git-send-email-rppt@kernel.org>
+Subject: [PATCH v3 12/13] um: add support for folded p4d page tables
+Date: Mon,  4 Nov 2019 08:56:26 +0200
+Message-ID: <1572850587-20314-13-git-send-email-rppt@kernel.org>
+In-Reply-To: <1572850587-20314-1-git-send-email-rppt@kernel.org>
+References: <1572850587-20314-1-git-send-email-rppt@kernel.org>
 To: linux-mm@kvack.org
 Cc: Andrew Morton <akpm@linux-foundation.org>, Anton Ivanov <anton.ivanov@cambridgegreys.com>, Arnd Bergmann <arnd@arndb.de>, "David S. Miller" <davem@davemloft.net>, Geert Uytterhoeven <geert@linux-m68k.org>, Greentime Hu <green.hu@gmail.com>, Greg Ungerer <gerg@linux-m68k.org>, Helge Deller <deller@gmx.de>, "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>, Jeff Dike <jdike@addtoit.com>, "Kirill A. Shutemov" <kirill@shutemov.name>, Linus Torvalds <torvalds@linux-foundation.org>, Mark Salter <msalter@redhat.com>, Matt Turner <mattst88@gmail.com>, Michal Simek <monstr@monstr.eu>, Peter Rosin <peda@axentia.se>, Richard Weinberger <richard@nod.at>, Rolf Eike Beer <eike-kernel@sf-tec.de>, Russell King <linux@armlinux.org.uk>, Sam Creasey <sammy@sammy.net>, Vincent Chen <deanbo422@gmail.com>, Vineet Gupta <Vineet.Gupta1@synopsys.com>, Mike Rapoport <rppt@kernel.org>, linux-alpha@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, linux-kernel@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-parisc@vger.kernel.org, linux-um@lists.infradead.org, sparclinux@vger.kernel.org, Mike Rapoport <rppt@linux.ibm.com>
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20191101083943.e0rCAdFpYbQqR52EX9OrQfq86N0KVXzH1aj86ldG9wk@z>
+Message-ID: <20191104065626.tHm-HQiP0qTBc5HUkaeFooRPBbyYZKQVsBwPZ1by6Ao@z>
 
 From: Mike Rapoport <rppt@linux.ibm.com>
 
 The UML port uses 4 and 5 level fixups to support higher level page table
 directories in the generic VM code.
 
-Implement primitives necessary for the 4th level folding and add walks of
-p4d level where appropriate.
+Implement primitives necessary for the 4th level folding, add walks of
+p4d level where appropriate and drop usage of __ARCH_USE_5LEVEL_HACK.
 
 Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
 ---
  arch/um/include/asm/pgtable-2level.h |  1 -
  arch/um/include/asm/pgtable-3level.h |  1 -
  arch/um/include/asm/pgtable.h        |  3 ++
- arch/um/kernel/mem.c                 | 25 ++++++++++++++--
+ arch/um/kernel/mem.c                 |  8 ++++--
  arch/um/kernel/skas/mmu.c            | 12 ++++++--
  arch/um/kernel/skas/uaccess.c        |  7 ++++-
  arch/um/kernel/tlb.c                 | 56 ++++++++++++++++++++++++++++++++----
  arch/um/kernel/trap.c                |  4 ++-
- 8 files changed, 95 insertions(+), 14 deletions(-)
+ 8 files changed, 78 insertions(+), 14 deletions(-)
 
 diff --git a/arch/um/include/asm/pgtable-2level.h b/arch/um/include/asm/pgtable-2level.h
 index 32b3d26..32106d3 100644
@@ -69,29 +69,10 @@ index 36a44d5..2daa58d 100644
  
  #define pte_page(x) pfn_to_page(pte_pfn(x))
 diff --git a/arch/um/kernel/mem.c b/arch/um/kernel/mem.c
-index 417ff64..6fd17bc 100644
+index 417ff64..30885d0 100644
 --- a/arch/um/kernel/mem.c
 +++ b/arch/um/kernel/mem.c
-@@ -92,10 +92,26 @@ static void __init one_md_table_init(pud_t *pud)
- #endif
- }
- 
-+static void __init one_pud_table_init(p4d_t *p4d)
-+{
-+#if CONFIG_PGTABLE_LEVELS > 3
-+	pud_t *pud_table = (pud_t *) memblock_alloc_low(PAGE_SIZE, PAGE_SIZE);
-+
-+	if (!pud_table)
-+		panic("%s: Failed to allocate %lu bytes align=%lx\n",
-+		      __func__, PAGE_SIZE, PAGE_SIZE);
-+
-+	set_p4d(p4d, __p4d(_KERNPG_TABLE + (unsigned long) __pa(pud_table)));
-+	if (pud_table != pud_offset(p4d, 0))
-+		BUG();
-+#endif
-+}
-+
- static void __init fixrange_init(unsigned long start, unsigned long end,
+@@ -96,6 +96,7 @@ static void __init fixrange_init(unsigned long start, unsigned long end,
  				 pgd_t *pgd_base)
  {
  	pgd_t *pgd;
@@ -99,19 +80,17 @@ index 417ff64..6fd17bc 100644
  	pud_t *pud;
  	pmd_t *pmd;
  	int i, j;
-@@ -107,7 +123,10 @@ static void __init fixrange_init(unsigned long start, unsigned long end,
+@@ -107,7 +108,8 @@ static void __init fixrange_init(unsigned long start, unsigned long end,
  	pgd = pgd_base + i;
  
  	for ( ; (i < PTRS_PER_PGD) && (vaddr < end); pgd++, i++) {
 -		pud = pud_offset(pgd, vaddr);
 +		p4d = p4d_offset(pgd, vaddr);
-+		if (p4d_none(*p4d))
-+			one_pud_table_init(p4d);
 +		pud = pud_offset(p4d, vaddr);
  		if (pud_none(*pud))
  			one_md_table_init(pud);
  		pmd = pmd_offset(pud, vaddr);
-@@ -124,6 +143,7 @@ static void __init fixaddr_user_init( void)
+@@ -124,6 +126,7 @@ static void __init fixaddr_user_init( void)
  #ifdef CONFIG_ARCH_REUSE_HOST_VSYSCALL_AREA
  	long size = FIXADDR_USER_END - FIXADDR_USER_START;
  	pgd_t *pgd;
@@ -119,7 +98,7 @@ index 417ff64..6fd17bc 100644
  	pud_t *pud;
  	pmd_t *pmd;
  	pte_t *pte;
-@@ -144,7 +164,8 @@ static void __init fixaddr_user_init( void)
+@@ -144,7 +147,8 @@ static void __init fixaddr_user_init( void)
  	for ( ; size > 0; size -= PAGE_SIZE, vaddr += PAGE_SIZE,
  		      p += PAGE_SIZE) {
  		pgd = swapper_pg_dir + pgd_index(vaddr);
