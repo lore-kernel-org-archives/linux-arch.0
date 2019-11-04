@@ -1,35 +1,41 @@
-Return-Path: <alexandre.chartre@oracle.com>
-Subject: Re: [patch V2 04/17] x86/entry: Make DEBUG_ENTRY_ASSERT_IRQS_OFF
- available for 32bit
-References: <20191023122705.198339581@linutronix.de>
- <20191023123117.976831752@linutronix.de>
-From: Alexandre Chartre <alexandre.chartre@oracle.com>
-Message-ID: <9a1170f8-819b-9d30-9d77-66c60cd4cafb@oracle.com>
-Date: Wed, 6 Nov 2019 16:50:41 +0100
-MIME-Version: 1.0
-In-Reply-To: <20191023123117.976831752@linutronix.de>
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Language: en-US
-Content-Transfer-Encoding: 7bit
-To: Thomas Gleixner <tglx@linutronix.de>, LKML <linux-kernel@vger.kernel.org>
-Cc: x86@kernel.org, Peter Zijlstra <peterz@infradead.org>, Andy Lutomirski <luto@kernel.org>, Will Deacon <will@kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, kvm@vger.kernel.org, linux-arch@vger.kernel.org, Mike Rapoport <rppt@linux.ibm.com>, Josh Poimboeuf <jpoimboe@redhat.com>, Miroslav Benes <mbenes@suse.cz>
+Return-Path: <rppt@kernel.org>
+From: Mike Rapoport <rppt@kernel.org>
+Subject: [PATCH v3 04/13] m68k: nommu: use pgtable-nopud instead of 4level-fixup
+Date: Mon,  4 Nov 2019 08:56:18 +0200
+Message-ID: <1572850587-20314-5-git-send-email-rppt@kernel.org>
+In-Reply-To: <1572850587-20314-1-git-send-email-rppt@kernel.org>
+References: <1572850587-20314-1-git-send-email-rppt@kernel.org>
+To: linux-mm@kvack.org
+Cc: Andrew Morton <akpm@linux-foundation.org>, Anton Ivanov <anton.ivanov@cambridgegreys.com>, Arnd Bergmann <arnd@arndb.de>, "David S. Miller" <davem@davemloft.net>, Geert Uytterhoeven <geert@linux-m68k.org>, Greentime Hu <green.hu@gmail.com>, Greg Ungerer <gerg@linux-m68k.org>, Helge Deller <deller@gmx.de>, "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>, Jeff Dike <jdike@addtoit.com>, "Kirill A. Shutemov" <kirill@shutemov.name>, Linus Torvalds <torvalds@linux-foundation.org>, Mark Salter <msalter@redhat.com>, Matt Turner <mattst88@gmail.com>, Michal Simek <monstr@monstr.eu>, Peter Rosin <peda@axentia.se>, Richard Weinberger <richard@nod.at>, Rolf Eike Beer <eike-kernel@sf-tec.de>, Russell King <linux@armlinux.org.uk>, Sam Creasey <sammy@sammy.net>, Vincent Chen <deanbo422@gmail.com>, Vineet Gupta <Vineet.Gupta1@synopsys.com>, Mike Rapoport <rppt@kernel.org>, linux-alpha@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, linux-kernel@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-parisc@vger.kernel.org, linux-um@lists.infradead.org, sparclinux@vger.kernel.org, Mike Rapoport <rppt@linux.ibm.com>
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20191106155041.HmWd0vKceE5rIWpX5ZQmJWi3UEuMsoGraqjPZdHHOh0@z>
+Message-ID: <20191104065618.jPPR6JTbZ-Y44Kuag4HIVvcJkRK_K87rUWcQnBaxmZ8@z>
 
+From: Mike Rapoport <rppt@linux.ibm.com>
 
-On 10/23/19 2:27 PM, Thomas Gleixner wrote:
-> Move the interrupt state verification debug macro to common code and fixup
-> the irqflags and paravirt components so it can be used in 32bit code later.
-> 
-> Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
-> ---
->   arch/x86/entry/calling.h        |   12 ++++++++++++
->   arch/x86/entry/entry_64.S       |   12 ------------
->   arch/x86/include/asm/irqflags.h |    8 ++++++--
->   arch/x86/include/asm/paravirt.h |    9 +++++----
->   4 files changed, 23 insertions(+), 18 deletions(-)
-> 
+The generic nommu implementation of page table manipulation takes care of
+folding of the upper levels and does not require fixups.
 
-Reviewed-by: Alexandre Chartre <alexandre.chartre@oracle.com>
+Simply replace of include/asm-generic/4level-fixup.h with
+include/asm-generic/pgtable-nopud.h.
 
-alex.
+Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
+Acked-by: Greg Ungerer <gerg@linux-m68k.org>
+---
+ arch/m68k/include/asm/pgtable_no.h | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/arch/m68k/include/asm/pgtable_no.h b/arch/m68k/include/asm/pgtable_no.h
+index c18165b..ccc4568 100644
+--- a/arch/m68k/include/asm/pgtable_no.h
++++ b/arch/m68k/include/asm/pgtable_no.h
+@@ -2,7 +2,7 @@
+ #ifndef _M68KNOMMU_PGTABLE_H
+ #define _M68KNOMMU_PGTABLE_H
+ 
+-#include <asm-generic/4level-fixup.h>
++#include <asm-generic/pgtable-nopud.h>
+ 
+ /*
+  * (C) Copyright 2000-2002, Greg Ungerer <gerg@snapgear.com>
+-- 
+2.7.4
