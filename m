@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mout-p-101.mailbox.org ([80.241.56.151]:52700 "EHLO
-        mout-p-101.mailbox.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1730520AbfKEJHw (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 5 Nov 2019 04:07:52 -0500
+Received: from mout-p-202.mailbox.org ([80.241.56.172]:31828 "EHLO
+        mout-p-202.mailbox.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1730652AbfKEJIP (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 5 Nov 2019 04:08:15 -0500
 From: Aleksa Sarai <cyphar@cyphar.com>
-Subject: [PATCH v15 2/9] namei: LOOKUP_NO_MAGICLINKS: block magic-link resolution
-Date: Tue,  5 Nov 2019 20:05:46 +1100
-Message-ID: <20191105090553.6350-3-cyphar@cyphar.com>
+Subject: [PATCH v15 4/9] namei: LOOKUP_BENEATH: O_BENEATH-like scoped resolution
+Date: Tue,  5 Nov 2019 20:05:48 +1100
+Message-ID: <20191105090553.6350-5-cyphar@cyphar.com>
 In-Reply-To: <20191105090553.6350-1-cyphar@cyphar.com>
 References: <20191105090553.6350-1-cyphar@cyphar.com>
 MIME-Version: 1.0
@@ -15,50 +15,52 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Al Viro <viro@zeniv.linux.org.uk>, Jeff Layton <jlayton@kernel.org>, "J. Bruce Fields" <bfields@fieldses.org>, Arnd Bergmann <arnd@arndb.de>, David Howells <dhowells@redhat.com>, Shuah Khan <shuah@kernel.org>, Shuah Khan <skhan@linuxfoundation.org>, Ingo Molnar <mingo@redhat.com>, Peter Zijlstra <peterz@infradead.org>
 Cc: Aleksa Sarai <cyphar@cyphar.com>, Christian Brauner <christian.brauner@ubuntu.com>, David Drysdale <drysdale@google.com>, Andy Lutomirski <luto@kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Eric Biederman <ebiederm@xmission.com>, Andrew Morton <akpm@linux-foundation.org>, Alexei Starovoitov <ast@kernel.org>, Kees Cook <keescook@chromium.org>, Jann Horn <jannh@google.com>, Tycho Andersen <tycho@tycho.ws>, Chanho Min <chanho.min@lge.com>, Oleg Nesterov <oleg@redhat.com>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Alexander Shishkin <alexander.shishkin@linux.intel.com>, Jiri Olsa <jolsa@redhat.com>, Namhyung Kim <namhyung@kernel.org>, Christian Brauner <christian@brauner.io>, Aleksa Sarai <asarai@suse.de>, containers@lists.linux-foundation.org, linux-alpha@vger.kernel.org, linux-api@vger.kernel.org, libc-alpha@sourceware.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-fsdevel@vger.kernel.org, linux-ia64@vger.kernel.org, linux-kernel@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, linux-xtensa@linux-xtensa.org, sparclinux@vger.kernel.org
-Message-ID: <20191105090546.W58uY9yJhvEP1Lz0csYLJCj-NIFNtKRJCxDuIqXZlOU@z>
+Message-ID: <20191105090548.e6CL-J0WiCs_dfNjwCiE3o2X9CoZW_lQuJr6VRCMSno@z>
 
 /* Background. */
-There has always been a special class of symlink-like objects in procfs
-(and a few other pseudo-filesystems) which allow for non-lexical
-resolution of paths using nd_jump_link(). These "magic-links" do not
-follow traditional mount namespace boundaries, and have been used
-consistently in container escape attacks because they can be used to
-trick unsuspecting privileged processes into resolving unexpected paths.
+There are many circumstances when userspace wants to resolve a path and
+ensure that it doesn't go outside of a particular root directory during
+resolution. Obvious examples include archive extraction tools, as well as
+other security-conscious userspace programs. FreeBSD spun out O_BENEATH
+from their Capsicum project[1,2], so it also seems reasonable to
+implement similar functionality for Linux.
 
-It is also non-trivial for userspace to unambiguously avoid resolving
-magic-links, because they do not have a reliable indication that they
-are a magic-link (in order to verify them you'd have to manually open
-the path given by readlink(2) and then verify that the two file
-descriptors reference the same underlying file, which is plagued with
-possible race conditions or supplementary attack scenarios).
-
-It would therefore be very helpful for userspace to be able to avoid
-these symlinks easily, thus hopefully removing a tool from attackers'
-toolboxes.
-
-This is part of a refresh of Al's AT_NO_JUMPS patchset[1] (which was a
-variation on David Drysdale's O_BENEATH patchset[2], which in turn was
-based on the Capsicum project[3]).
+This is part of a refresh of Al's AT_NO_JUMPS patchset[3] (which was a
+variation on David Drysdale's O_BENEATH patchset[4], which in turn was
+based on the Capsicum project[5]).
 
 /* Userspace API. */
-LOOKUP_NO_MAGICLINKS will be exposed to userspace through openat2(2).
+LOOKUP_BENEATH will be exposed to userspace through openat2(2).
 
 /* Semantics. */
 Unlike most other LOOKUP flags (most notably LOOKUP_FOLLOW),
-LOOKUP_NO_MAGICLINKS applies to all components of the path.
+LOOKUP_BENEATH applies to all components of the path.
 
-With LOOKUP_NO_MAGICLINKS, any magic-link path component encountered
-during path resolution will yield -ELOOP. The handling of ~LOOKUP_FOLLOW
-for a trailing magic-link is identical to LOOKUP_NO_SYMLINKS.
+With LOOKUP_BENEATH, any path component which attempts to "escape" the
+starting point of the filesystem lookup (the dirfd passed to openat)
+will yield -EXDEV. Thus, all absolute paths and symlinks are disallowed.
 
-LOOKUP_NO_SYMLINKS implies LOOKUP_NO_MAGICLINKS.
+Due to a security concern brought up by Jann[6], any ".." path
+components are also blocked. This restriction will be lifted in a future
+patch, but requires more work to ensure that permitting ".." is done
+safely.
+
+Magic-link jumps are also blocked, because they can beam the path lookup
+across the starting point. It would be possible to detect and block
+only the "bad" crossings with path_is_under() checks, but it's unclear
+whether it makes sense to permit magic-links at all. However, userspace
+is recommended to pass LOOKUP_NO_MAGICLINKS if they want to ensure that
+magic-link crossing is entirely disabled.
 
 /* Testing. */
-LOOKUP_NO_MAGICLINKS is tested as part of the openat2(2) selftests.
+LOOKUP_BENEATH is tested as part of the openat2(2) selftests.
 
-[1]: https://lore.kernel.org/lkml/20170429220414.GT29622@ZenIV.linux.org.uk/
-[2]: https://lore.kernel.org/lkml/1415094884-18349-1-git-send-email-drysdale@google.com/
-[3]: https://lore.kernel.org/lkml/1404124096-21445-1-git-send-email-drysdale@google.com/
+[1]: https://reviews.freebsd.org/D2808
+[2]: https://reviews.freebsd.org/D17547
+[3]: https://lore.kernel.org/lkml/20170429220414.GT29622@ZenIV.linux.org.uk/
+[4]: https://lore.kernel.org/lkml/1415094884-18349-1-git-send-email-drysdale@google.com/
+[5]: https://lore.kernel.org/lkml/1404124096-21445-1-git-send-email-drysdale@google.com/
+[6]: https://lore.kernel.org/lkml/CAG48ez1jzNvxB+bfOBnERFGp=oMM0vHWuLD6EULmne3R6xa53w@mail.gmail.com/
 
 Cc: Christian Brauner <christian.brauner@ubuntu.com>
 Suggested-by: David Drysdale <drysdale@google.com>
@@ -67,55 +69,232 @@ Suggested-by: Andy Lutomirski <luto@kernel.org>
 Suggested-by: Linus Torvalds <torvalds@linux-foundation.org>
 Signed-off-by: Aleksa Sarai <cyphar@cyphar.com>
 ---
- fs/namei.c            | 7 ++++++-
- include/linux/namei.h | 2 ++
- 2 files changed, 8 insertions(+), 1 deletion(-)
+ fs/namei.c            | 91 +++++++++++++++++++++++++++++++++++--------
+ include/linux/namei.h |  4 ++
+ 2 files changed, 79 insertions(+), 16 deletions(-)
 
 diff --git a/fs/namei.c b/fs/namei.c
-index 4e85d6fa4048..1f0d871199e5 100644
+index b73ee1601bd4..54fdbdfbeb94 100644
 --- a/fs/namei.c
 +++ b/fs/namei.c
-@@ -866,7 +866,7 @@ void nd_jump_link(struct path *path)
+@@ -644,6 +644,14 @@ static bool legitimize_links(struct nameidata *nd)
  
- 	nd->path = *path;
- 	nd->inode = nd->path.dentry->d_inode;
--	nd->flags |= LOOKUP_JUMPED;
-+	nd->flags |= LOOKUP_JUMPED | LOOKUP_MAGICLINK_JUMPED;
+ static bool legitimize_root(struct nameidata *nd)
+ {
++	/*
++	 * For scoped-lookups (where nd->root has been zeroed), we need to
++	 * restart the whole lookup from scratch -- because set_root() is wrong
++	 * for these lookups (nd->dfd is the root, not the filesystem root).
++	 */
++	if (!nd->root.mnt && (nd->flags & LOOKUP_IS_SCOPED))
++		return false;
++	/* Nothing to do if nd->root is zero or is managed by the VFS user. */
+ 	if (!nd->root.mnt || (nd->flags & LOOKUP_ROOT))
+ 		return true;
+ 	nd->flags |= LOOKUP_ROOT_GRABBED;
+@@ -779,7 +787,11 @@ static int complete_walk(struct nameidata *nd)
+ 	int status;
+ 
+ 	if (nd->flags & LOOKUP_RCU) {
+-		if (!(nd->flags & LOOKUP_ROOT))
++		/*
++		 * We don't want to zero nd->root for scoped-lookups or
++		 * externally-managed nd->root.
++		 */
++		if (!(nd->flags & (LOOKUP_ROOT | LOOKUP_IS_SCOPED)))
+ 			nd->root.mnt = NULL;
+ 		if (unlikely(unlazy_walk(nd)))
+ 			return -ECHILD;
+@@ -801,10 +813,18 @@ static int complete_walk(struct nameidata *nd)
+ 	return status;
  }
  
- static inline void put_link(struct nameidata *nd)
-@@ -1063,6 +1063,7 @@ const char *get_link(struct nameidata *nd)
- 		return ERR_PTR(error);
+-static void set_root(struct nameidata *nd)
++static int set_root(struct nameidata *nd)
+ {
+ 	struct fs_struct *fs = current->fs;
  
- 	nd->last_type = LAST_BIND;
-+	nd->flags &= ~LOOKUP_MAGICLINK_JUMPED;
- 	res = READ_ONCE(inode->i_link);
- 	if (!res) {
- 		const char * (*get)(struct dentry *, struct inode *,
-@@ -1078,6 +1079,10 @@ const char *get_link(struct nameidata *nd)
- 		} else {
- 			res = get(dentry, inode, &last->done);
++	/*
++	 * Jumping to the real root in a scoped-lookup is a BUG in namei, but we
++	 * still have to ensure it doesn't happen because it will cause a breakout
++	 * from the dirfd.
++	 */
++	if (WARN_ON(nd->flags & LOOKUP_IS_SCOPED))
++		return -ENOTRECOVERABLE;
++
+ 	if (nd->flags & LOOKUP_RCU) {
+ 		unsigned seq;
+ 
+@@ -817,6 +837,7 @@ static void set_root(struct nameidata *nd)
+ 		get_fs_root(fs, &nd->root);
+ 		nd->flags |= LOOKUP_ROOT_GRABBED;
+ 	}
++	return 0;
+ }
+ 
+ static void path_put_conditional(struct path *path, struct nameidata *nd)
+@@ -840,11 +861,18 @@ static inline void path_to_nameidata(const struct path *path,
+ 
+ static int nd_jump_root(struct nameidata *nd)
+ {
++	if (unlikely(nd->flags & LOOKUP_BENEATH))
++		return -EXDEV;
+ 	if (unlikely(nd->flags & LOOKUP_NO_XDEV)) {
+ 		/* Absolute path arguments to path_init() are allowed. */
+ 		if (nd->path.mnt != NULL && nd->path.mnt != nd->root.mnt)
+ 			return -EXDEV;
+ 	}
++	if (!nd->root.mnt) {
++		int error = set_root(nd);
++		if (error)
++			return error;
++	}
+ 	if (nd->flags & LOOKUP_RCU) {
+ 		struct dentry *d;
+ 		nd->path = nd->root;
+@@ -1096,15 +1124,17 @@ const char *get_link(struct nameidata *nd)
+ 				if (!nd->last_magiclink.same_mnt)
+ 					return ERR_PTR(-EXDEV);
+ 			}
++			/* Not currently safe for scoped-lookups. */
++			if (unlikely(nd->flags & LOOKUP_IS_SCOPED))
++				return ERR_PTR(-EXDEV);
  		}
-+		if (nd->flags & LOOKUP_MAGICLINK_JUMPED) {
-+			if (unlikely(nd->flags & LOOKUP_NO_MAGICLINKS))
-+				return ERR_PTR(-ELOOP);
-+		}
  		if (IS_ERR_OR_NULL(res))
  			return res;
  	}
+ 	if (*res == '/') {
+-		if (!nd->root.mnt)
+-			set_root(nd);
+-		if (unlikely(nd_jump_root(nd)))
+-			return ERR_PTR(-ECHILD);
++		error = nd_jump_root(nd);
++		if (unlikely(error))
++			return ERR_PTR(error);
+ 		while (unlikely(*++res == '/'))
+ 			;
+ 	}
+@@ -1373,8 +1403,11 @@ static int follow_dotdot_rcu(struct nameidata *nd)
+ 	struct inode *inode = nd->inode;
+ 
+ 	while (1) {
+-		if (path_equal(&nd->path, &nd->root))
++		if (path_equal(&nd->path, &nd->root)) {
++			if (unlikely(nd->flags & LOOKUP_BENEATH))
++				return -EXDEV;
+ 			break;
++		}
+ 		if (nd->path.dentry != nd->path.mnt->mnt_root) {
+ 			struct dentry *old = nd->path.dentry;
+ 			struct dentry *parent = old->d_parent;
+@@ -1505,8 +1538,11 @@ static int path_parent_directory(struct path *path)
+ static int follow_dotdot(struct nameidata *nd)
+ {
+ 	while(1) {
+-		if (path_equal(&nd->path, &nd->root))
++		if (path_equal(&nd->path, &nd->root)) {
++			if (unlikely(nd->flags & LOOKUP_BENEATH))
++				return -EXDEV;
+ 			break;
++		}
+ 		if (nd->path.dentry != nd->path.mnt->mnt_root) {
+ 			int ret = path_parent_directory(&nd->path);
+ 			if (ret)
+@@ -1731,8 +1767,20 @@ static inline int may_lookup(struct nameidata *nd)
+ static inline int handle_dots(struct nameidata *nd, int type)
+ {
+ 	if (type == LAST_DOTDOT) {
+-		if (!nd->root.mnt)
+-			set_root(nd);
++		int error = 0;
++
++		/*
++		 * Scoped-lookup flags resolving ".." is not currently safe --
++		 * races can cause our parent to have moved outside of the root
++		 * and us to skip over it.
++		 */
++		if (unlikely(nd->flags & LOOKUP_IS_SCOPED))
++			return -EXDEV;
++		if (!nd->root.mnt) {
++			error = set_root(nd);
++			if (error)
++				return error;
++		}
+ 		if (nd->flags & LOOKUP_RCU) {
+ 			return follow_dotdot_rcu(nd);
+ 		} else
+@@ -2195,6 +2243,7 @@ static int link_path_walk(const char *name, struct nameidata *nd)
+ /* must be paired with terminate_walk() */
+ static const char *path_init(struct nameidata *nd, unsigned flags)
+ {
++	int error;
+ 	const char *s = nd->name->name;
+ 
+ 	if (!*s)
+@@ -2227,11 +2276,12 @@ static const char *path_init(struct nameidata *nd, unsigned flags)
+ 	nd->path.dentry = NULL;
+ 
+ 	nd->m_seq = read_seqbegin(&mount_lock);
++
++	/* Figure out the starting path and root (if needed). */
+ 	if (*s == '/') {
+-		set_root(nd);
+-		if (likely(!nd_jump_root(nd)))
+-			return s;
+-		return ERR_PTR(-ECHILD);
++		error = nd_jump_root(nd);
++		if (unlikely(error))
++			return ERR_PTR(error);
+ 	} else if (nd->dfd == AT_FDCWD) {
+ 		if (flags & LOOKUP_RCU) {
+ 			struct fs_struct *fs = current->fs;
+@@ -2247,7 +2297,6 @@ static const char *path_init(struct nameidata *nd, unsigned flags)
+ 			get_fs_pwd(current->fs, &nd->path);
+ 			nd->inode = nd->path.dentry->d_inode;
+ 		}
+-		return s;
+ 	} else {
+ 		/* Caller must check execute permissions on the starting path component */
+ 		struct fd f = fdget_raw(nd->dfd);
+@@ -2272,8 +2321,18 @@ static const char *path_init(struct nameidata *nd, unsigned flags)
+ 			nd->inode = nd->path.dentry->d_inode;
+ 		}
+ 		fdput(f);
+-		return s;
+ 	}
++	/* For scoped-lookups we need to set the root to the dirfd as well. */
++	if (flags & LOOKUP_IS_SCOPED) {
++		nd->root = nd->path;
++		if (flags & LOOKUP_RCU) {
++			nd->root_seq = nd->seq;
++		} else {
++			path_get(&nd->root);
++			nd->flags |= LOOKUP_ROOT_GRABBED;
++		}
++	}
++	return s;
+ }
+ 
+ static const char *trailing_symlink(struct nameidata *nd)
 diff --git a/include/linux/namei.h b/include/linux/namei.h
-index ee2e35af387f..a8b3f93338da 100644
+index 6105c8a59fc8..12f4f36835c2 100644
 --- a/include/linux/namei.h
 +++ b/include/linux/namei.h
-@@ -38,9 +38,11 @@ enum {LAST_NORM, LAST_ROOT, LAST_DOT, LAST_DOTDOT, LAST_BIND};
- #define LOOKUP_JUMPED		0x1000
- #define LOOKUP_ROOT		0x2000
- #define LOOKUP_ROOT_GRABBED	0x0008
-+#define LOOKUP_MAGICLINK_JUMPED	0x10000
+@@ -2,6 +2,7 @@
+ #ifndef _LINUX_NAMEI_H
+ #define _LINUX_NAMEI_H
  
- /* Scoping flags for lookup. */
++#include <linux/fs.h>
+ #include <linux/kernel.h>
+ #include <linux/path.h>
+ #include <linux/fcntl.h>
+@@ -44,6 +45,9 @@ enum {LAST_NORM, LAST_ROOT, LAST_DOT, LAST_DOTDOT, LAST_BIND};
  #define LOOKUP_NO_SYMLINKS	0x020000 /* No symlink crossing. */
-+#define LOOKUP_NO_MAGICLINKS	0x040000 /* No /proc/$pid/fd/ "symlink" crossing. */
+ #define LOOKUP_NO_MAGICLINKS	0x040000 /* No /proc/$pid/fd/ "symlink" crossing. */
+ #define LOOKUP_NO_XDEV		0x080000 /* No mountpoint crossing. */
++#define LOOKUP_BENEATH		0x100000 /* No escaping from starting point. */
++/* LOOKUP_* flags which do scope-related checks based on the dirfd. */
++#define LOOKUP_IS_SCOPED LOOKUP_BENEATH
  
  extern int path_pts(struct path *path);
  
