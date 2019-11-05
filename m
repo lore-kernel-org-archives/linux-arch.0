@@ -1,78 +1,79 @@
 From: "tip-bot2 for Kees Cook" <tip-bot2@linutronix.de>
-Subject: [tip: x86/build] x86/vmlinux: Restore "text" Program Header with
- dummy section
-Date: Tue, 05 Nov 2019 09:27:34 -0000
-Message-ID: <157294605427.29376.6840275918846059638.tip-bot2@tip-bot2>
-References: <20191029211351.13243-8-keescook@chromium.org>
+Subject: [tip: x86/build] xtensa: Move EXCEPTION_TABLE to RO_DATA segment
+Date: Tue, 05 Nov 2019 09:27:27 -0000
+Message-ID: <157294604726.29376.12527593781479789931.tip-bot2@tip-bot2>
+References: <20191029211351.13243-26-keescook@chromium.org>
 Reply-To: linux-kernel@vger.kernel.org
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20191029211351.13243-8-keescook@chromium.org>
+In-Reply-To: <20191029211351.13243-26-keescook@chromium.org>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-tip-commits@vger.kernel.org
-Cc: Kees Cook <keescook@chromium.org>, Borislav Petkov <bp@suse.de>, Andy Lutomirski <luto@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Dave Hansen <dave.hansen@linux.intel.com>, linux-alpha@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, linux-ia64@vger.kernel.org, linux-s390@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, Michael Ellerman <mpe@ellerman.id.au>, Michal Simek <monstr@monstr.eu>, Rick Edgecombe <rick.p.edgecombe@intel.com>, Segher Boessenkool <segher@kernel.crashing.org>, Will Deacon <will@kernel.org>, Yoshinori Sato <ysato@users.sourceforge.jp>, x86-ml <x86@kernel.org>, Ingo Molnar <mingo@kernel.org>, Borislav Petkov <bp@alien8.de>, linux-kernel@vger.kernel.org
+Cc: Kees Cook <keescook@chromium.org>, Borislav Petkov <bp@suse.de>, Max Filippov <jcmvbkbc@gmail.com>, Andy Lutomirski <luto@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Chris Zankel <chris@zankel.net>, Dave Hansen <dave.hansen@linux.intel.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, linux-alpha@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, linux-ia64@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-xtensa@linux-xtensa.org, Michael Ellerman <mpe@ellerman.id.au>, Michal Simek <monstr@monstr.eu>, Rick Edgecombe <rick.p.edgecombe@intel.com>, Segher Boessenkool <segher@kernel.crashing.org>, Will Deacon <will@kernel.org>, x86-ml
 List-Id: linux-arch.vger.kernel.org
 
 The following commit has been merged into the x86/build branch of tip:
 
-Commit-ID:     7a42d41d9dc2829bdf589db855ce3f948de2da6b
-Gitweb:        https://git.kernel.org/tip/7a42d41d9dc2829bdf589db855ce3f948de2da6b
+Commit-ID:     94174c9b71c62a0e1a4364c2594e1422ba8fffcd
+Gitweb:        https://git.kernel.org/tip/94174c9b71c62a0e1a4364c2594e1422ba8fffcd
 Author:        Kees Cook <keescook@chromium.org>
-AuthorDate:    Tue, 29 Oct 2019 14:13:29 -07:00
+AuthorDate:    Tue, 29 Oct 2019 14:13:47 -07:00
 Committer:     Borislav Petkov <bp@suse.de>
-CommitterDate: Mon, 04 Nov 2019 15:34:36 +01:00
+CommitterDate: Mon, 04 Nov 2019 18:42:27 +01:00
 
-x86/vmlinux: Restore "text" Program Header with dummy section
+xtensa: Move EXCEPTION_TABLE to RO_DATA segment
 
-In a linker script, if one places a section in one or more segments using
-":PHDR", then the linker will place all subsequent allocatable sections,
-which do not specify ":PHDR", into the same segments. In order to have
-the NOTES section in both PT_LOAD (":text") and PT_NOTE (":note"), both
-segments are marked, and the only way to undo this to keep subsequent
-sections out of PT_NOTE is to mark the following section with just the
-single desired PT_LOAD (":text").
-
-In preparation for having a common NOTES macro, perform the segment
-assignment using a dummy section (as done by other architectures).
+Since the EXCEPTION_TABLE is read-only, collapse it into RO_DATA.
 
 Signed-off-by: Kees Cook <keescook@chromium.org>
 Signed-off-by: Borislav Petkov <bp@suse.de>
+Acked-by: Max Filippov <jcmvbkbc@gmail.com>
 Cc: Andy Lutomirski <luto@kernel.org>
 Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: Chris Zankel <chris@zankel.net>
 Cc: Dave Hansen <dave.hansen@linux.intel.com>
+Cc: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: Heiko Carstens <heiko.carstens@de.ibm.com>
 Cc: linux-alpha@vger.kernel.org
 Cc: linux-arch@vger.kernel.org
 Cc: linux-arm-kernel@lists.infradead.org
 Cc: linux-c6x-dev@linux-c6x.org
 Cc: linux-ia64@vger.kernel.org
-Cc: linux-s390@vger.kernel.org
 Cc: linuxppc-dev@lists.ozlabs.org
+Cc: linux-s390@vger.kernel.org
+Cc: linux-xtensa@linux-xtensa.org
 Cc: Michael Ellerman <mpe@ellerman.id.au>
 Cc: Michal Simek <monstr@monstr.eu>
 Cc: Rick Edgecombe <rick.p.edgecombe@intel.com>
 Cc: Segher Boessenkool <segher@kernel.crashing.org>
 Cc: Will Deacon <will@kernel.org>
-Cc: Yoshinori Sato <ysato@users.sourceforge.jp>
 Cc: x86-ml <x86@kernel.org>
-Link: https://lkml.kernel.org/r/20191029211351.13243-8-keescook@chromium.org
+Cc: Yoshinori Sato <ysato@users.sourceforge.jp>
+Link: https://lkml.kernel.org/r/20191029211351.13243-26-keescook@chromium.org
 ---
- arch/x86/kernel/vmlinux.lds.S | 3 ++-
+ arch/xtensa/kernel/vmlinux.lds.S | 3 ++-
  1 file changed, 2 insertions(+), 1 deletion(-)
 
-diff --git a/arch/x86/kernel/vmlinux.lds.S b/arch/x86/kernel/vmlinux.lds.S
-index e2feacf..788e789 100644
---- a/arch/x86/kernel/vmlinux.lds.S
-+++ b/arch/x86/kernel/vmlinux.lds.S
-@@ -147,8 +147,9 @@ SECTIONS
- 	} :text = 0x9090
+diff --git a/arch/xtensa/kernel/vmlinux.lds.S b/arch/xtensa/kernel/vmlinux.lds.S
+index bdbd7c4..0043d58 100644
+--- a/arch/xtensa/kernel/vmlinux.lds.S
++++ b/arch/xtensa/kernel/vmlinux.lds.S
+@@ -14,6 +14,8 @@
+  * Joe Taylor <joe@tensilica.com, joetylr@yahoo.com>
+  */
  
- 	NOTES :text :note
-+	.dummy : { *(.dummy) } :text
++#define RO_EXCEPTION_TABLE_ALIGN	16
++
+ #include <asm-generic/vmlinux.lds.h>
+ #include <asm/page.h>
+ #include <asm/thread_info.h>
+@@ -130,7 +132,6 @@ SECTIONS
  
--	EXCEPTION_TABLE(16) :text = 0x9090
-+	EXCEPTION_TABLE(16)
+   .fixup   : { *(.fixup) }
  
- 	/* .text should occupy whole number of pages */
- 	. = ALIGN(PAGE_SIZE);
+-  EXCEPTION_TABLE(16)
+   /* Data section */
+ 
+   _sdata = .;
