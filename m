@@ -1,44 +1,46 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from Galois.linutronix.de ([193.142.43.55]:40637 "EHLO
+Received: from Galois.linutronix.de ([193.142.43.55]:40639 "EHLO
         Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S2388098AbfKEJ2M (ORCPT
+        with ESMTP id S2388099AbfKEJ2M (ORCPT
         <rfc822;linux-arch@vger.kernel.org>); Tue, 5 Nov 2019 04:28:12 -0500
-Date: Tue, 05 Nov 2019 09:27:28 -0000
+Date: Tue, 05 Nov 2019 09:27:31 -0000
 From: "tip-bot2 for Kees Cook" <tip-bot2@linutronix.de>
 Reply-to: linux-kernel@vger.kernel.org
-Subject: [tip: x86/build] microblaze: Move EXCEPTION_TABLE to RO_DATA segment
-In-Reply-To: <20191029211351.13243-23-keescook@chromium.org>
-References: <20191029211351.13243-23-keescook@chromium.org>
+Subject: [tip: x86/build] vmlinux.lds.h: Allow EXCEPTION_TABLE to live in RO_DATA
+In-Reply-To: <20191029211351.13243-15-keescook@chromium.org>
+References: <20191029211351.13243-15-keescook@chromium.org>
 MIME-Version: 1.0
-Message-ID: <157294604834.29376.6143365893641479331.tip-bot2@tip-bot2>
+Message-ID: <157294605141.29376.16810559476409135725.tip-bot2@tip-bot2>
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-tip-commits@vger.kernel.org
-Cc: Kees Cook <keescook@chromium.org>, Borislav Petkov <bp@suse.de>, Andy Lutomirski <luto@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Dave Hansen <dave.hansen@linux.intel.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, linux-alpha@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, linux-ia64@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, Michael Ellerman <mpe@ellerman.id.au>, Michal Simek <monstr@monstr.eu>, Rick Edgecombe <rick.p.edgecombe@intel.com>, Segher Boessenkool <segher@kernel.crashing.org>, Will Deacon <will@kernel.org>, x86-ml <x86@kernel.org>, Yoshinori Sato <ysato@users.sourceforge.jp>, Ingo Molnar <mingo@kernel.org>, Borislav Petkov <bp@alien8.de>, linux-kernel@vger.kernel.org
-Message-ID: <20191105092728.99jnA4uzQVGXfNSq-jgYrfoyNqilUS_TL28seB5Nfqc@z>
+Cc: Kees Cook <keescook@chromium.org>, Borislav Petkov <bp@suse.de>, Will Deacon <will@kernel.org>, Andy Lutomirski <luto@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Dave Hansen <dave.hansen@linux.intel.com>, linux-alpha@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, linux-ia64@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, Michael Ellerman <mpe@ellerman.id.au>, Michal Simek <monstr@monstr.eu>, Rick Edgecombe <rick.p.edgecombe@intel.com>, Segher Boessenkool <segher@kernel.crashing.org>, x86-ml <x86@kernel.org>, Yoshinori Sato <ysato@users.sourceforge.jp>, Ingo Molnar <mingo@kernel.org>, Borislav Petkov <bp@alien8.de>, linux-kernel@vger.kernel.org
+Message-ID: <20191105092731.mtOyRKh43ezVwOd_74luU7KrMCewkWl6HumwR0bHlOI@z>
 
 The following commit has been merged into the x86/build branch of tip:
 
-Commit-ID:     3bda6f37a7949c803b84cf27e11a3995d900a179
-Gitweb:        https://git.kernel.org/tip/3bda6f37a7949c803b84cf27e11a3995d900a179
+Commit-ID:     b8c2f776164c8f74ac31c5e370ca3f029be0aa19
+Gitweb:        https://git.kernel.org/tip/b8c2f776164c8f74ac31c5e370ca3f029be0aa19
 Author:        Kees Cook <keescook@chromium.org>
-AuthorDate:    Tue, 29 Oct 2019 14:13:44 -07:00
+AuthorDate:    Tue, 29 Oct 2019 14:13:36 -07:00
 Committer:     Borislav Petkov <bp@suse.de>
-CommitterDate: Mon, 04 Nov 2019 18:18:23 +01:00
+CommitterDate: Mon, 04 Nov 2019 15:59:01 +01:00
 
-microblaze: Move EXCEPTION_TABLE to RO_DATA segment
+vmlinux.lds.h: Allow EXCEPTION_TABLE to live in RO_DATA
 
-Since the EXCEPTION_TABLE is read-only, collapse it into RO_DATA.
+Many architectures have an EXCEPTION_TABLE that needs to be only
+readable. As such, it should live in RO_DATA. Create a macro to identify
+this case for the architectures that can move EXCEPTION_TABLE into
+RO_DATA.
 
 Signed-off-by: Kees Cook <keescook@chromium.org>
 Signed-off-by: Borislav Petkov <bp@suse.de>
+Acked-by: Will Deacon <will@kernel.org>
 Cc: Andy Lutomirski <luto@kernel.org>
 Cc: Arnd Bergmann <arnd@arndb.de>
 Cc: Dave Hansen <dave.hansen@linux.intel.com>
-Cc: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: Heiko Carstens <heiko.carstens@de.ibm.com>
 Cc: linux-alpha@vger.kernel.org
 Cc: linux-arch@vger.kernel.org
 Cc: linux-arm-kernel@lists.infradead.org
@@ -50,32 +52,40 @@ Cc: Michael Ellerman <mpe@ellerman.id.au>
 Cc: Michal Simek <monstr@monstr.eu>
 Cc: Rick Edgecombe <rick.p.edgecombe@intel.com>
 Cc: Segher Boessenkool <segher@kernel.crashing.org>
-Cc: Will Deacon <will@kernel.org>
 Cc: x86-ml <x86@kernel.org>
 Cc: Yoshinori Sato <ysato@users.sourceforge.jp>
-Link: https://lkml.kernel.org/r/20191029211351.13243-23-keescook@chromium.org
+Link: https://lkml.kernel.org/r/20191029211351.13243-15-keescook@chromium.org
 ---
- arch/microblaze/kernel/vmlinux.lds.S | 3 ++-
- 1 file changed, 2 insertions(+), 1 deletion(-)
+ include/asm-generic/vmlinux.lds.h | 12 ++++++++++++
+ 1 file changed, 12 insertions(+)
 
-diff --git a/arch/microblaze/kernel/vmlinux.lds.S b/arch/microblaze/kernel/vmlinux.lds.S
-index b8efb08..760cac4 100644
---- a/arch/microblaze/kernel/vmlinux.lds.S
-+++ b/arch/microblaze/kernel/vmlinux.lds.S
-@@ -11,6 +11,8 @@
- OUTPUT_ARCH(microblaze)
- ENTRY(microblaze_start)
+diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
+index 356078e..9867d8e 100644
+--- a/include/asm-generic/vmlinux.lds.h
++++ b/include/asm-generic/vmlinux.lds.h
+@@ -69,6 +69,17 @@
+ #define NOTES_HEADERS_RESTORE
+ #endif
  
-+#define RO_EXCEPTION_TABLE_ALIGN	16
++/*
++ * Some architectures have non-executable read-only exception tables.
++ * They can be added to the RO_DATA segment by specifying their desired
++ * alignment.
++ */
++#ifdef RO_EXCEPTION_TABLE_ALIGN
++#define RO_EXCEPTION_TABLE	EXCEPTION_TABLE(RO_EXCEPTION_TABLE_ALIGN)
++#else
++#define RO_EXCEPTION_TABLE
++#endif
 +
- #include <asm/page.h>
- #include <asm-generic/vmlinux.lds.h>
- #include <asm/thread_info.h>
-@@ -52,7 +54,6 @@ SECTIONS {
+ /* Align . to a 8 byte boundary equals to maximum function alignment. */
+ #define ALIGN_FUNCTION()  . = ALIGN(8)
  
- 	. = ALIGN(16);
- 	RO_DATA(4096)
--	EXCEPTION_TABLE(16)
- 
- 	/*
- 	 * sdata2 section can go anywhere, but must be word aligned
+@@ -513,6 +524,7 @@
+ 		__stop___modver = .;					\
+ 	}								\
+ 									\
++	RO_EXCEPTION_TABLE						\
+ 	NOTES								\
+ 									\
+ 	. = ALIGN((align));						\
