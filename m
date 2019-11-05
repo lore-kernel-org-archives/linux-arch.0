@@ -1,182 +1,148 @@
-Return-Path: <geert.uytterhoeven@gmail.com>
-MIME-Version: 1.0
-References: <1572850587-20314-1-git-send-email-rppt@kernel.org> <1572850587-20314-6-git-send-email-rppt@kernel.org>
-In-Reply-To: <1572850587-20314-6-git-send-email-rppt@kernel.org>
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Date: Mon, 4 Nov 2019 09:53:34 +0100
-Message-ID: <CAMuHMdUG3V7uxzhbetw75vVeobeP0-bQySb3r=0V5XujUF123g@mail.gmail.com>
-Subject: Re: [PATCH v3 05/13] m68k: mm: use pgtable-nopXd instead of 4level-fixup
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
-To: Mike Rapoport <rppt@kernel.org>
-Cc: Linux MM <linux-mm@kvack.org>, Andrew Morton <akpm@linux-foundation.org>, Anton Ivanov <anton.ivanov@cambridgegreys.com>, Arnd Bergmann <arnd@arndb.de>, "David S. Miller" <davem@davemloft.net>, Greentime Hu <green.hu@gmail.com>, Greg Ungerer <gerg@linux-m68k.org>, Helge Deller <deller@gmx.de>, "James E.J. Bottomley" <James.Bottomley@hansenpartnership.com>, Jeff Dike <jdike@addtoit.com>, "Kirill A. Shutemov" <kirill@shutemov.name>, Linus Torvalds <torvalds@linux-foundation.org>, Mark Salter <msalter@redhat.com>, Matt Turner <mattst88@gmail.com>, Michal Simek <monstr@monstr.eu>, Peter Rosin <peda@axentia.se>, Richard Weinberger <richard@nod.at>, Rolf Eike Beer <eike-kernel@sf-tec.de>, Russell King <linux@armlinux.org.uk>, Sam Creasey <sammy@sammy.net>, Vincent Chen <deanbo422@gmail.com>, Vineet Gupta <Vineet.Gupta1@synopsys.com>, alpha <linux-alpha@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, linux-c6x-dev@linux-c6x.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-m68k <linux-m68k@lists.linux-m68k.org>, Parisc List <linux-parisc@vger.kernel.org>, linux-um@lists.infradead.org, sparclinux <sparclinux@vger.kernel.org>, Mike Rapoport <rppt@linux.ibm.com>
+Return-Path: <rppt@kernel.org>
+From: Mike Rapoport <rppt@kernel.org>
+Subject: [PATCH v4 13/13] mm: remove __ARCH_HAS_4LEVEL_HACK and include/asm-generic/4level-fixup.h
+Date: Tue,  5 Nov 2019 09:15:35 +0200
+Message-ID: <1572938135-31886-14-git-send-email-rppt@kernel.org>
+In-Reply-To: <1572938135-31886-1-git-send-email-rppt@kernel.org>
+References: <1572938135-31886-1-git-send-email-rppt@kernel.org>
+To: linux-mm@kvack.org
+Cc: Andrew Morton <akpm@linux-foundation.org>, Anton Ivanov <anton.ivanov@cambridgegreys.com>, Arnd Bergmann <arnd@arndb.de>, "David S. Miller" <davem@davemloft.net>, Geert Uytterhoeven <geert@linux-m68k.org>, Greentime Hu <green.hu@gmail.com>, Greg Ungerer <gerg@linux-m68k.org>, Helge Deller <deller@gmx.de>, "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>, Jeff Dike <jdike@addtoit.com>, "Kirill A. Shutemov" <kirill@shutemov.name>, Linus Torvalds <torvalds@linux-foundation.org>, Mark Salter <msalter@redhat.com>, Matt Turner <mattst88@gmail.com>, Michal Simek <monstr@monstr.eu>, Peter Rosin <peda@axentia.se>, Richard Weinberger <richard@nod.at>, Rolf Eike Beer <eike-kernel@sf-tec.de>, Russell King <linux@armlinux.org.uk>, Sam Creasey <sammy@sammy.net>, Vincent Chen <deanbo422@gmail.com>, Vineet Gupta <Vineet.Gupta1@synopsys.com>, Mike Rapoport <rppt@kernel.org>, linux-alpha@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, linux-kernel@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-parisc@vger.kernel.org, linux-um@lists.infradead.org, sparclinux@vger.kernel.org, Mike Rapoport <rppt@linux.ibm.com>
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20191104085334.xYZvLOEeZkYq3wJiAfIR6vMMrwjawRkfi1gbAUzas0k@z>
+Message-ID: <20191105071535.pv0yzHAfIuCpY3pVuqbyNhRXVbZEmN4xD2oXN1JNj0k@z>
 
-Hi Mike,
+From: Mike Rapoport <rppt@linux.ibm.com>
 
-On Mon, Nov 4, 2019 at 7:57 AM Mike Rapoport <rppt@kernel.org> wrote:
-> From: Mike Rapoport <rppt@linux.ibm.com>
-> m68k has two or three levels of page tables and can use appropriate
-> pgtable-nopXd and folding of the upper layers.
->
-> Replace usage of include/asm-generic/4level-fixup.h and explicit
-> definitions of __PAGETABLE_PxD_FOLDED in m68k with
-> include/asm-generic/pgtable-nopmd.h for two-level configurations and with
-> include/asm-generic/pgtable-nopud.h for three-lelve configurations and
-> adjust page table manipulation macros and functions accordingly.
->
-> Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
-> Acked-by: Greg Ungerer <gerg@linux-m68k.org>
+There are no architectures that use include/asm-generic/4level-fixup.h
+therefore it can be removed along with __ARCH_HAS_4LEVEL_HACK define.
 
-Thanks for your patch!
+Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
+---
+ include/asm-generic/4level-fixup.h | 40 --------------------------------------
+ include/asm-generic/tlb.h          |  2 --
+ include/linux/mm.h                 | 10 +++++-----
+ mm/memory.c                        |  8 --------
+ 4 files changed, 5 insertions(+), 55 deletions(-)
+ delete mode 100644 include/asm-generic/4level-fixup.h
 
-The build error reported for v1 by kbuild test robot when building for
-sun3x is still there (m68k defconfig or sun3x_defconfig):
-
-    arch/m68k/sun3x/dvma.c: In function =E2=80=98dvma_map_cpu=E2=80=99:
-    arch/m68k/sun3x/dvma.c:98:33: error: passing argument 2 of
-=E2=80=98pmd_alloc=E2=80=99 from incompatible pointer type
-[-Werror=3Dincompatible-pointer-types]
-       if((pmd =3D pmd_alloc(&init_mm, pgd, vaddr)) =3D=3D NULL) {
-                                     ^~~
-    In file included from arch/m68k/sun3x/dvma.c:17:
-    include/linux/mm.h:1875:61: note: expected =E2=80=98pud_t *=E2=80=99 {a=
-ka =E2=80=98struct
-<anonymous> *=E2=80=99} but argument is of type =E2=80=98pgd_t *=E2=80=99 {=
-aka =E2=80=98struct
-<anonymous> *=E2=80=99}
-     static inline pmd_t *pmd_alloc(struct mm_struct *mm, pud_t *pud,
-unsigned long address)
-                                                          ~~~~~~~^~~
-
-This indeed boots fine on ARAnyM, which emulates on 68040.
-It would be good to have some boot testing on '020/030, too.
-
-> --- a/arch/m68k/mm/kmap.c
-> +++ b/arch/m68k/mm/kmap.c
-
-> @@ -196,17 +198,21 @@ void __iomem *__ioremap(unsigned long physaddr, uns=
-igned long size, int cachefla
->                         printk ("\npa=3D%#lx va=3D%#lx ", physaddr, virta=
-ddr);
->  #endif
->                 pgd_dir =3D pgd_offset_k(virtaddr);
-> -               pmd_dir =3D pmd_alloc(&init_mm, pgd_dir, virtaddr);
-> +               p4d_dir =3D p4d_offset(pgd_dir, virtaddr);
-> +               pud_dir =3D pud_offset(p4d_dir, virtaddr);
-> +               pmd_dir =3D pmd_alloc(&init_mm, pud_dir, virtaddr);
->                 if (!pmd_dir) {
->                         printk("ioremap: no mem for pmd_dir\n");
->                         return NULL;
->                 }
->
->                 if (CPU_IS_020_OR_030) {
-> +#if CONFIG_PGTABLE_LEVELS =3D=3D 3
-
-This check puzzled me a bit: when we get here, CONFIG_PGTABLE_LEVELS is
-always true.
-However, the check cannot be removed, as the code it protects fails to comp=
-ile
-when building for Coldfire.
-
-Perhaps this can be made more clear by reverting the order?
-I.e.
-
-    #if CONFIG_PGTABLE_LEVELS =3D=3D 3
-            if (CPU_IS_020_OR_030) {
-                    ...
-            } else
-    #endif
-            {
-
-Or is there some better way?
-
->                         pmd_dir->pmd[(virtaddr/PTRTREESIZE) & 15] =3D phy=
-saddr;
->                         physaddr +=3D PTRTREESIZE;
->                         virtaddr +=3D PTRTREESIZE;
->                         size -=3D PTRTREESIZE;
-> +#endif
->                 } else {
->                         pte_dir =3D pte_alloc_kernel(pmd_dir, virtaddr);
->                         if (!pte_dir) {
-> @@ -258,19 +264,24 @@ void __iounmap(void *addr, unsigned long size)
->  {
->         unsigned long virtaddr =3D (unsigned long)addr;
->         pgd_t *pgd_dir;
-> +       p4d_t *p4d_dir;
-> +       pud_t *pud_dir;
->         pmd_t *pmd_dir;
->         pte_t *pte_dir;
->
->         while ((long)size > 0) {
->                 pgd_dir =3D pgd_offset_k(virtaddr);
-> -               if (pgd_bad(*pgd_dir)) {
-> -                       printk("iounmap: bad pgd(%08lx)\n", pgd_val(*pgd_=
-dir));
-> -                       pgd_clear(pgd_dir);
-> +               p4d_dir =3D p4d_offset(pgd_dir, virtaddr);
-> +               pud_dir =3D pud_offset(p4d_dir, virtaddr);
-> +               if (pud_bad(*pud_dir)) {
-> +                       printk("iounmap: bad pgd(%08lx)\n", pud_val(*pud_=
-dir));
-> +                       pud_clear(pud_dir);
->                         return;
->                 }
-> -               pmd_dir =3D pmd_offset(pgd_dir, virtaddr);
-> +               pmd_dir =3D pmd_offset(pud_dir, virtaddr);
->
->                 if (CPU_IS_020_OR_030) {
-> +#if CONFIG_PGTABLE_LEVELS =3D=3D 3
-
-Likewise.
-
->                         int pmd_off =3D (virtaddr/PTRTREESIZE) & 15;
->                         int pmd_type =3D pmd_dir->pmd[pmd_off] & _DESCTYP=
-E_MASK;
->
-
-> @@ -341,14 +355,17 @@ void kernel_set_cachemode(void *addr, unsigned long=
- size, int cmode)
->
->         while ((long)size > 0) {
->                 pgd_dir =3D pgd_offset_k(virtaddr);
-> -               if (pgd_bad(*pgd_dir)) {
-> -                       printk("iocachemode: bad pgd(%08lx)\n", pgd_val(*=
-pgd_dir));
-> -                       pgd_clear(pgd_dir);
-> +               p4d_dir =3D p4d_offset(pgd_dir, virtaddr);
-> +               pud_dir =3D pud_offset(p4d_dir, virtaddr);
-> +               if (pud_bad(*pud_dir)) {
-> +                       printk("iocachemode: bad pud(%08lx)\n", pud_val(*=
-pud_dir));
-> +                       pud_clear(pud_dir);
->                         return;
->                 }
-> -               pmd_dir =3D pmd_offset(pgd_dir, virtaddr);
-> +               pmd_dir =3D pmd_offset(pud_dir, virtaddr);
->
->                 if (CPU_IS_020_OR_030) {
-> +#if CONFIG_PGTABLE_LEVELS =3D=3D 3
-
-Likewise
-
->                         int pmd_off =3D (virtaddr/PTRTREESIZE) & 15;
->
->                         if ((pmd_dir->pmd[pmd_off] & _DESCTYPE_MASK) =3D=
-=3D _PAGE_PRESENT) {
-
-Gr{oetje,eeting}s,
-
-                        Geert
-
---=20
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k=
-.org
-
-In personal conversations with technical people, I call myself a hacker. Bu=
-t
-when I'm talking to journalists I just say "programmer" or something like t=
-hat.
-                                -- Linus Torvalds
+diff --git a/include/asm-generic/4level-fixup.h b/include/asm-generic/4level-fixup.h
+deleted file mode 100644
+index e3667c9..0000000
+--- a/include/asm-generic/4level-fixup.h
++++ /dev/null
+@@ -1,40 +0,0 @@
+-/* SPDX-License-Identifier: GPL-2.0 */
+-#ifndef _4LEVEL_FIXUP_H
+-#define _4LEVEL_FIXUP_H
+-
+-#define __ARCH_HAS_4LEVEL_HACK
+-#define __PAGETABLE_PUD_FOLDED 1
+-
+-#define PUD_SHIFT			PGDIR_SHIFT
+-#define PUD_SIZE			PGDIR_SIZE
+-#define PUD_MASK			PGDIR_MASK
+-#define PTRS_PER_PUD			1
+-
+-#define pud_t				pgd_t
+-
+-#define pmd_alloc(mm, pud, address) \
+-	((unlikely(pgd_none(*(pud))) && __pmd_alloc(mm, pud, address))? \
+- 		NULL: pmd_offset(pud, address))
+-
+-#define pud_offset(pgd, start)		(pgd)
+-#define pud_none(pud)			0
+-#define pud_bad(pud)			0
+-#define pud_present(pud)		1
+-#define pud_ERROR(pud)			do { } while (0)
+-#define pud_clear(pud)			pgd_clear(pud)
+-#define pud_val(pud)			pgd_val(pud)
+-#define pud_populate(mm, pud, pmd)	pgd_populate(mm, pud, pmd)
+-#define pud_page(pud)			pgd_page(pud)
+-#define pud_page_vaddr(pud)		pgd_page_vaddr(pud)
+-
+-#undef pud_free_tlb
+-#define pud_free_tlb(tlb, x, addr)	do { } while (0)
+-#define pud_free(mm, x)			do { } while (0)
+-#define __pud_free_tlb(tlb, x, addr)	do { } while (0)
+-
+-#undef  pud_addr_end
+-#define pud_addr_end(addr, end)		(end)
+-
+-#include <asm-generic/5level-fixup.h>
+-
+-#endif
+diff --git a/include/asm-generic/tlb.h b/include/asm-generic/tlb.h
+index 04c0644..5e0c2d0 100644
+--- a/include/asm-generic/tlb.h
++++ b/include/asm-generic/tlb.h
+@@ -584,7 +584,6 @@ static inline void tlb_end_vma(struct mmu_gather *tlb, struct vm_area_struct *vm
+ 	} while (0)
+ #endif
+ 
+-#ifndef __ARCH_HAS_4LEVEL_HACK
+ #ifndef pud_free_tlb
+ #define pud_free_tlb(tlb, pudp, address)			\
+ 	do {							\
+@@ -594,7 +593,6 @@ static inline void tlb_end_vma(struct mmu_gather *tlb, struct vm_area_struct *vm
+ 		__pud_free_tlb(tlb, pudp, address);		\
+ 	} while (0)
+ #endif
+-#endif
+ 
+ #ifndef __ARCH_HAS_5LEVEL_HACK
+ #ifndef p4d_free_tlb
+diff --git a/include/linux/mm.h b/include/linux/mm.h
+index cc29227..477b52a 100644
+--- a/include/linux/mm.h
++++ b/include/linux/mm.h
+@@ -1850,12 +1850,12 @@ static inline void mm_dec_nr_ptes(struct mm_struct *mm) {}
+ int __pte_alloc(struct mm_struct *mm, pmd_t *pmd);
+ int __pte_alloc_kernel(pmd_t *pmd);
+ 
++#if defined(CONFIG_MMU)
++
+ /*
+- * The following ifdef needed to get the 4level-fixup.h header to work.
+- * Remove it when 4level-fixup.h has been removed.
++ * The following ifdef needed to get the 5level-fixup.h header to work.
++ * Remove it when 5level-fixup.h has been removed.
+  */
+-#if defined(CONFIG_MMU) && !defined(__ARCH_HAS_4LEVEL_HACK)
+-
+ #ifndef __ARCH_HAS_5LEVEL_HACK
+ static inline p4d_t *p4d_alloc(struct mm_struct *mm, pgd_t *pgd,
+ 		unsigned long address)
+@@ -1877,7 +1877,7 @@ static inline pmd_t *pmd_alloc(struct mm_struct *mm, pud_t *pud, unsigned long a
+ 	return (unlikely(pud_none(*pud)) && __pmd_alloc(mm, pud, address))?
+ 		NULL: pmd_offset(pud, address);
+ }
+-#endif /* CONFIG_MMU && !__ARCH_HAS_4LEVEL_HACK */
++#endif /* CONFIG_MMU */
+ 
+ #if USE_SPLIT_PTE_PTLOCKS
+ #if ALLOC_SPLIT_PTLOCKS
+diff --git a/mm/memory.c b/mm/memory.c
+index b1ca51a..50300f0 100644
+--- a/mm/memory.c
++++ b/mm/memory.c
+@@ -4095,19 +4095,11 @@ int __pmd_alloc(struct mm_struct *mm, pud_t *pud, unsigned long address)
+ 	smp_wmb(); /* See comment in __pte_alloc */
+ 
+ 	ptl = pud_lock(mm, pud);
+-#ifndef __ARCH_HAS_4LEVEL_HACK
+ 	if (!pud_present(*pud)) {
+ 		mm_inc_nr_pmds(mm);
+ 		pud_populate(mm, pud, new);
+ 	} else	/* Another has populated it */
+ 		pmd_free(mm, new);
+-#else
+-	if (!pgd_present(*pud)) {
+-		mm_inc_nr_pmds(mm);
+-		pgd_populate(mm, pud, new);
+-	} else /* Another has populated it */
+-		pmd_free(mm, new);
+-#endif /* __ARCH_HAS_4LEVEL_HACK */
+ 	spin_unlock(ptl);
+ 	return 0;
+ }
+-- 
+2.7.4
