@@ -1,72 +1,34 @@
-Return-Path: <rppt@kernel.org>
-From: Mike Rapoport <rppt@kernel.org>
-Subject: [PATCH v4 09/13] parisc/hugetlb: use pgtable-nopXd instead of 4level-fixup
-Date: Tue,  5 Nov 2019 09:15:31 +0200
-Message-ID: <1572938135-31886-10-git-send-email-rppt@kernel.org>
-In-Reply-To: <1572938135-31886-1-git-send-email-rppt@kernel.org>
-References: <1572938135-31886-1-git-send-email-rppt@kernel.org>
-To: linux-mm@kvack.org
-Cc: Andrew Morton <akpm@linux-foundation.org>, Anton Ivanov <anton.ivanov@cambridgegreys.com>, Arnd Bergmann <arnd@arndb.de>, "David S. Miller" <davem@davemloft.net>, Geert Uytterhoeven <geert@linux-m68k.org>, Greentime Hu <green.hu@gmail.com>, Greg Ungerer <gerg@linux-m68k.org>, Helge Deller <deller@gmx.de>, "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>, Jeff Dike <jdike@addtoit.com>, "Kirill A. Shutemov" <kirill@shutemov.name>, Linus Torvalds <torvalds@linux-foundation.org>, Mark Salter <msalter@redhat.com>, Matt Turner <mattst88@gmail.com>, Michal Simek <monstr@monstr.eu>, Peter Rosin <peda@axentia.se>, Richard Weinberger <richard@nod.at>, Rolf Eike Beer <eike-kernel@sf-tec.de>, Russell King <linux@armlinux.org.uk>, Sam Creasey <sammy@sammy.net>, Vincent Chen <deanbo422@gmail.com>, Vineet Gupta <Vineet.Gupta1@synopsys.com>, Mike Rapoport <rppt@kernel.org>, linux-alpha@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, linux-kernel@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-parisc@vger.kernel.org, linux-um@lists.infradead.org, sparclinux@vger.kernel.org, Mike Rapoport <rppt@linux.ibm.com>
+Return-Path: <alexandre.chartre@oracle.com>
+Subject: Re: [patch V2 01/17] x86/entry/32: Remove unused resume_userspace
+ label
+References: <20191023122705.198339581@linutronix.de>
+ <20191023123117.686514045@linutronix.de>
+From: Alexandre Chartre <alexandre.chartre@oracle.com>
+Message-ID: <92929be8-d936-75b9-80c0-368d7f33162a@oracle.com>
+Date: Wed, 6 Nov 2019 16:26:39 +0100
+MIME-Version: 1.0
+In-Reply-To: <20191023123117.686514045@linutronix.de>
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
+To: Thomas Gleixner <tglx@linutronix.de>, LKML <linux-kernel@vger.kernel.org>
+Cc: x86@kernel.org, Peter Zijlstra <peterz@infradead.org>, Andy Lutomirski <luto@kernel.org>, Will Deacon <will@kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, kvm@vger.kernel.org, linux-arch@vger.kernel.org, Mike Rapoport <rppt@linux.ibm.com>, Josh Poimboeuf <jpoimboe@redhat.com>, Miroslav Benes <mbenes@suse.cz>
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20191105071531.EfovZbc9kUle8f-uimgK_O_N4VbdnsplA0nwZkrsIIg@z>
+Message-ID: <20191106152639.Wgw_VQVYOnRj_VgoX4GMcdQo0HxRifvKeumIXgsSjNw@z>
 
-From: Helge Deller <deller@gmx.de>
 
-Signed-off-by: Helge Deller <deller@gmx.de>
-Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
----
- arch/parisc/mm/hugetlbpage.c | 18 ++++++++++++------
- 1 file changed, 12 insertions(+), 6 deletions(-)
+On 10/23/19 2:27 PM, Thomas Gleixner wrote:
+> The C reimplementation of SYSENTER left that unused ENTRY() label
+> around. Remove it.
+> 
+> Fixes: 5f310f739b4c ("x86/entry/32: Re-implement SYSENTER using the new C path")
+> Originally-by: Peter Zijlstra <peterz@infradead.org>
+> Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
+> ---
+>   arch/x86/entry/entry_32.S |    1 -
+>   1 file changed, 1 deletion(-)
+> 
 
-diff --git a/arch/parisc/mm/hugetlbpage.c b/arch/parisc/mm/hugetlbpage.c
-index d578809..0e1e212 100644
---- a/arch/parisc/mm/hugetlbpage.c
-+++ b/arch/parisc/mm/hugetlbpage.c
-@@ -49,6 +49,7 @@ pte_t *huge_pte_alloc(struct mm_struct *mm,
- 			unsigned long addr, unsigned long sz)
- {
- 	pgd_t *pgd;
-+	p4d_t *p4d;
- 	pud_t *pud;
- 	pmd_t *pmd;
- 	pte_t *pte = NULL;
-@@ -61,7 +62,8 @@ pte_t *huge_pte_alloc(struct mm_struct *mm,
- 	addr &= HPAGE_MASK;
- 
- 	pgd = pgd_offset(mm, addr);
--	pud = pud_alloc(mm, pgd, addr);
-+	p4d = p4d_offset(pgd, addr);
-+	pud = pud_alloc(mm, p4d, addr);
- 	if (pud) {
- 		pmd = pmd_alloc(mm, pud, addr);
- 		if (pmd)
-@@ -74,6 +76,7 @@ pte_t *huge_pte_offset(struct mm_struct *mm,
- 		       unsigned long addr, unsigned long sz)
- {
- 	pgd_t *pgd;
-+	p4d_t *p4d;
- 	pud_t *pud;
- 	pmd_t *pmd;
- 	pte_t *pte = NULL;
-@@ -82,11 +85,14 @@ pte_t *huge_pte_offset(struct mm_struct *mm,
- 
- 	pgd = pgd_offset(mm, addr);
- 	if (!pgd_none(*pgd)) {
--		pud = pud_offset(pgd, addr);
--		if (!pud_none(*pud)) {
--			pmd = pmd_offset(pud, addr);
--			if (!pmd_none(*pmd))
--				pte = pte_offset_map(pmd, addr);
-+		p4d = p4d_offset(pgd, addr);
-+		if (!p4d_none(*p4d)) {
-+			pud = pud_offset(p4d, addr);
-+			if (!pud_none(*pud)) {
-+				pmd = pmd_offset(pud, addr);
-+				if (!pmd_none(*pmd))
-+					pte = pte_offset_map(pmd, addr);
-+			}
- 		}
- 	}
- 	return pte;
--- 
-2.7.4
+Reviewed-by: Alexandre Chartre <alexandre.chartre@oracle.com>
+
+alex.
