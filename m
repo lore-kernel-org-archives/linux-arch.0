@@ -1,7 +1,8 @@
 From: Richard Henderson <richard.henderson@linaro.org>
-Subject: [PATCH v2 03/10] s390: Remove arch_has_random, arch_has_random_seed
-Date: Wed,  6 Nov 2019 15:13:01 +0100
-Message-ID: <20191106141308.30535-4-rth@twiddle.net>
+Subject: [PATCH v2 04/10] linux/random.h: Remove arch_has_random,
+ arch_has_random_seed
+Date: Wed,  6 Nov 2019 15:13:02 +0100
+Message-ID: <20191106141308.30535-5-rth@twiddle.net>
 References: <20191106141308.30535-1-rth@twiddle.net>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -21,36 +22,42 @@ To: linux-crypto@vger.kernel.org
 Cc: linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, herbert@gondor.apana.org.au, x86@kernel.org, linuxppc-dev@lists.ozlabs.org, linux-arm-kernel@lists.infradead.org
 List-Id: linux-arch.vger.kernel.org
 
-These symbols are currently part of the generic archrandom.h
-interface, but are currently unused and can be removed.
+The arm64 version of archrandom.h will need to be able to test for
+support and read the random number without preemption, so a separate
+query predicate is not practical.
+
+Since this part of the generic interface is unused, remove it.
 
 Signed-off-by: Richard Henderson <rth@twiddle.net>
 ---
- arch/s390/include/asm/archrandom.h | 12 ------------
- 1 file changed, 12 deletions(-)
+ include/linux/random.h | 8 --------
+ 1 file changed, 8 deletions(-)
 
-diff --git a/arch/s390/include/asm/archrandom.h b/arch/s390/include/asm/archrandom.h
-index c67b82dfa558..9a6835137a16 100644
---- a/arch/s390/include/asm/archrandom.h
-+++ b/arch/s390/include/asm/archrandom.h
-@@ -21,18 +21,6 @@ extern atomic64_t s390_arch_random_counter;
- 
- bool s390_arch_random_generate(u8 *buf, unsigned int nbytes);
- 
+diff --git a/include/linux/random.h b/include/linux/random.h
+index f189c927fdea..7fd0360908d2 100644
+--- a/include/linux/random.h
++++ b/include/linux/random.h
+@@ -175,10 +175,6 @@ static inline bool arch_get_random_int(unsigned int *v)
+ {
+ 	return 0;
+ }
 -static inline bool arch_has_random(void)
 -{
--	return false;
+-	return 0;
 -}
--
+ static inline bool arch_get_random_seed_long(unsigned long *v)
+ {
+ 	return 0;
+@@ -187,10 +183,6 @@ static inline bool arch_get_random_seed_int(unsigned int *v)
+ {
+ 	return 0;
+ }
 -static inline bool arch_has_random_seed(void)
 -{
--	if (static_branch_likely(&s390_arch_random_available))
--		return true;
--	return false;
+-	return 0;
 -}
--
- static inline bool arch_get_random_long(unsigned long *v)
- {
- 	return false;
+ #endif
+ 
+ /* Pseudo random number generator from numerical recipes. */
 -- 
 2.17.1
