@@ -1,58 +1,58 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm1-f66.google.com ([209.85.128.66]:34262 "EHLO
-        mail-wm1-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1731861AbfKFONc (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 6 Nov 2019 09:13:32 -0500
-Received: by mail-wm1-f66.google.com with SMTP id v3so2457017wmh.1
-        for <linux-arch@vger.kernel.org>; Wed, 06 Nov 2019 06:13:30 -0800 (PST)
+Received: from mail-wr1-f67.google.com ([209.85.221.67]:39850 "EHLO
+        mail-wr1-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1731883AbfKFONe (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 6 Nov 2019 09:13:34 -0500
+Received: by mail-wr1-f67.google.com with SMTP id a11so25965963wra.6
+        for <linux-arch@vger.kernel.org>; Wed, 06 Nov 2019 06:13:33 -0800 (PST)
 From: Richard Henderson <richard.henderson@linaro.org>
-Subject: [PATCH v2 04/10] linux/random.h: Remove arch_has_random, arch_has_random_seed
-Date: Wed,  6 Nov 2019 15:13:02 +0100
-Message-ID: <20191106141308.30535-5-rth@twiddle.net>
+Subject: [PATCH v2 06/10] linux/random.h: Mark CONFIG_ARCH_RANDOM functions __must_check
+Date: Wed,  6 Nov 2019 15:13:04 +0100
+Message-ID: <20191106141308.30535-7-rth@twiddle.net>
 In-Reply-To: <20191106141308.30535-1-rth@twiddle.net>
 References: <20191106141308.30535-1-rth@twiddle.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-crypto@vger.kernel.org
 Cc: herbert@gondor.apana.org.au, linux-arch@vger.kernel.org, x86@kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-arm-kernel@lists.infradead.org
-Message-ID: <20191106141302.DI4g9109UVQPsqcmI_vfZGL6Ke9U0o87UIr69t8LsrU@z>
+Message-ID: <20191106141304.fG5jDGATPRb4iY3QnE2-l9j9-Lb45xerFz1CyrdJInI@z>
 
-The arm64 version of archrandom.h will need to be able to test for
-support and read the random number without preemption, so a separate
-query predicate is not practical.
+We must not use the pointer output without validating the
+success of the random read.
 
-Since this part of the generic interface is unused, remove it.
-
+Reviewed-by: Ard Biesheuvel <ardb@kernel.org>
 Signed-off-by: Richard Henderson <rth@twiddle.net>
 ---
- include/linux/random.h | 8 --------
- 1 file changed, 8 deletions(-)
+ include/linux/random.h | 8 ++++----
+ 1 file changed, 4 insertions(+), 4 deletions(-)
 
 diff --git a/include/linux/random.h b/include/linux/random.h
-index f189c927fdea..7fd0360908d2 100644
+index ea0e2f5f1ec5..d319f9a1e429 100644
 --- a/include/linux/random.h
 +++ b/include/linux/random.h
-@@ -175,10 +175,6 @@ static inline bool arch_get_random_int(unsigned int *v)
+@@ -167,19 +167,19 @@ static inline void prandom_seed_state(struct rnd_state *state, u64 seed)
+ #ifdef CONFIG_ARCH_RANDOM
+ # include <asm/archrandom.h>
+ #else
+-static inline bool arch_get_random_long(unsigned long *v)
++static inline bool __must_check arch_get_random_long(unsigned long *v)
  {
- 	return 0;
+ 	return false;
  }
--static inline bool arch_has_random(void)
--{
--	return 0;
--}
- static inline bool arch_get_random_seed_long(unsigned long *v)
+-static inline bool arch_get_random_int(unsigned int *v)
++static inline bool __must_check arch_get_random_int(unsigned int *v)
  {
- 	return 0;
-@@ -187,10 +183,6 @@ static inline bool arch_get_random_seed_int(unsigned int *v)
- {
- 	return 0;
+ 	return false;
  }
--static inline bool arch_has_random_seed(void)
--{
--	return 0;
--}
- #endif
- 
- /* Pseudo random number generator from numerical recipes. */
+-static inline bool arch_get_random_seed_long(unsigned long *v)
++static inline bool __must_check arch_get_random_seed_long(unsigned long *v)
+ {
+ 	return false;
+ }
+-static inline bool arch_get_random_seed_int(unsigned int *v)
++static inline bool __must_check arch_get_random_seed_int(unsigned int *v)
+ {
+ 	return false;
+ }
 -- 
 2.17.1
