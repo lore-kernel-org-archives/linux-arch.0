@@ -1,15 +1,15 @@
 From: Alexandre Chartre <alexandre.chartre@oracle.com>
-Subject: Re: [patch V2 04/17] x86/entry: Make DEBUG_ENTRY_ASSERT_IRQS_OFF
- available for 32bit
-Date: Wed, 6 Nov 2019 16:50:41 +0100
-Message-ID: <9a1170f8-819b-9d30-9d77-66c60cd4cafb@oracle.com>
+Subject: Re: [patch V2 05/17] x86/traps: Make interrupt enable/disable
+ symmetric in C code
+Date: Wed, 6 Nov 2019 17:19:44 +0100
+Message-ID: <1c6ad81c-9518-909a-03d2-e2a2cf53240d@oracle.com>
 References: <20191023122705.198339581@linutronix.de>
- <20191023123117.976831752@linutronix.de>
+ <20191023123118.084086112@linutronix.de>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=utf-8; format=flowed
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20191023123117.976831752@linutronix.de>
+In-Reply-To: <20191023123118.084086112@linutronix.de>
 Content-Language: en-US
 Sender: linux-kernel-owner@vger.kernel.org
 To: Thomas Gleixner <tglx@linutronix.de>, LKML <linux-kernel@vger.kernel.org>
@@ -18,16 +18,19 @@ List-Id: linux-arch.vger.kernel.org
 
 
 On 10/23/19 2:27 PM, Thomas Gleixner wrote:
-> Move the interrupt state verification debug macro to common code and fixup
-> the irqflags and paravirt components so it can be used in 32bit code later.
+> Traps enable interrupts conditionally but rely on the ASM return code to
+> disable them again. That results in redundant interrupt disable and trace
+> calls.
 > 
+> Make the trap handlers disable interrupts before returning to avoid that,
+> which allows simplification of the ASM entry code.
+> 
+> Originally-by: Peter Zijlstra <peterz@infradead.org>
 > Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
 > ---
->   arch/x86/entry/calling.h        |   12 ++++++++++++
->   arch/x86/entry/entry_64.S       |   12 ------------
->   arch/x86/include/asm/irqflags.h |    8 ++++++--
->   arch/x86/include/asm/paravirt.h |    9 +++++----
->   4 files changed, 23 insertions(+), 18 deletions(-)
+>   arch/x86/kernel/traps.c |   32 +++++++++++++++++++++-----------
+>   arch/x86/mm/fault.c     |    7 +++++--
+>   2 files changed, 26 insertions(+), 13 deletions(-)
 > 
 
 Reviewed-by: Alexandre Chartre <alexandre.chartre@oracle.com>
