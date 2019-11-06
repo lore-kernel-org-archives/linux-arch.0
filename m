@@ -1,15 +1,15 @@
 From: Alexandre Chartre <alexandre.chartre@oracle.com>
-Subject: Re: [patch V2 02/17] x86/entry/64: Remove pointless jump in
- paranoid_exit
-Date: Wed, 6 Nov 2019 16:29:25 +0100
-Message-ID: <10e378e2-d9dc-e8dd-fe62-7427b061decf@oracle.com>
+Subject: Re: [patch V2 03/17] x86/traps: Remove pointless irq enable from
+ do_spurious_interrupt_bug()
+Date: Wed, 6 Nov 2019 16:33:16 +0100
+Message-ID: <52673a2a-6e6e-c0f1-9586-70849429e7a0@oracle.com>
 References: <20191023122705.198339581@linutronix.de>
- <20191023123117.779277679@linutronix.de>
+ <20191023123117.871608831@linutronix.de>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=utf-8; format=flowed
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20191023123117.779277679@linutronix.de>
+In-Reply-To: <20191023123117.871608831@linutronix.de>
 Content-Language: en-US
 Sender: linux-kernel-owner@vger.kernel.org
 To: Thomas Gleixner <tglx@linutronix.de>, LKML <linux-kernel@vger.kernel.org>
@@ -18,13 +18,13 @@ List-Id: linux-arch.vger.kernel.org
 
 
 On 10/23/19 2:27 PM, Thomas Gleixner wrote:
-> Jump directly to restore_regs_and_return_to_kernel instead of making
-> a pointless extra jump through .Lparanoid_exit_restore
+> That function returns immediately after conditionally reenabling interrupts which
+> is more than pointless and requires the ASM code to disable interrupts again.
 > 
 > Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
 > ---
->   arch/x86/entry/entry_64.S |    3 +--
->   1 file changed, 1 insertion(+), 2 deletions(-)
+>   arch/x86/kernel/traps.c |    1 -
+>   1 file changed, 1 deletion(-)
 > 
 
 Reviewed-by: Alexandre Chartre <alexandre.chartre@oracle.com>
