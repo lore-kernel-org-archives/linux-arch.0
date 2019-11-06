@@ -1,7 +1,7 @@
 From: Richard Henderson <richard.henderson@linaro.org>
-Subject: [PATCH v2 02/10] powerpc: Remove arch_has_random, arch_has_random_seed
-Date: Wed,  6 Nov 2019 15:13:00 +0100
-Message-ID: <20191106141308.30535-3-rth@twiddle.net>
+Subject: [PATCH v2 03/10] s390: Remove arch_has_random, arch_has_random_seed
+Date: Wed,  6 Nov 2019 15:13:01 +0100
+Message-ID: <20191106141308.30535-4-rth@twiddle.net>
 References: <20191106141308.30535-1-rth@twiddle.net>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -26,29 +26,31 @@ interface, but are currently unused and can be removed.
 
 Signed-off-by: Richard Henderson <rth@twiddle.net>
 ---
- arch/powerpc/include/asm/archrandom.h | 10 ----------
- 1 file changed, 10 deletions(-)
+ arch/s390/include/asm/archrandom.h | 12 ------------
+ 1 file changed, 12 deletions(-)
 
-diff --git a/arch/powerpc/include/asm/archrandom.h b/arch/powerpc/include/asm/archrandom.h
-index 9c63b596e6ce..c2ed3b4681f5 100644
---- a/arch/powerpc/include/asm/archrandom.h
-+++ b/arch/powerpc/include/asm/archrandom.h
-@@ -34,16 +34,6 @@ static inline int arch_get_random_seed_int(unsigned int *v)
+diff --git a/arch/s390/include/asm/archrandom.h b/arch/s390/include/asm/archrandom.h
+index c67b82dfa558..9a6835137a16 100644
+--- a/arch/s390/include/asm/archrandom.h
++++ b/arch/s390/include/asm/archrandom.h
+@@ -21,18 +21,6 @@ extern atomic64_t s390_arch_random_counter;
  
- 	return rc;
- }
--
--static inline int arch_has_random(void)
+ bool s390_arch_random_generate(u8 *buf, unsigned int nbytes);
+ 
+-static inline bool arch_has_random(void)
 -{
--	return 0;
+-	return false;
 -}
 -
--static inline int arch_has_random_seed(void)
+-static inline bool arch_has_random_seed(void)
 -{
--	return !!ppc_md.get_random_seed;
+-	if (static_branch_likely(&s390_arch_random_available))
+-		return true;
+-	return false;
 -}
- #endif /* CONFIG_ARCH_RANDOM */
- 
- #ifdef CONFIG_PPC_POWERNV
+-
+ static inline bool arch_get_random_long(unsigned long *v)
+ {
+ 	return false;
 -- 
 2.17.1
