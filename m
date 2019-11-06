@@ -1,65 +1,65 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm1-f65.google.com ([209.85.128.65]:50433 "EHLO
-        mail-wm1-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1731920AbfKFONl (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 6 Nov 2019 09:13:41 -0500
-Received: by mail-wm1-f65.google.com with SMTP id 11so3633740wmk.0
-        for <linux-arch@vger.kernel.org>; Wed, 06 Nov 2019 06:13:40 -0800 (PST)
-From: Richard Henderson <richard.henderson@linaro.org>
-Subject: [PATCH v2 10/10] s390x: Mark archrandom.h functions __must_check
-Date: Wed,  6 Nov 2019 15:13:08 +0100
-Message-ID: <20191106141308.30535-11-rth@twiddle.net>
-In-Reply-To: <20191106141308.30535-1-rth@twiddle.net>
-References: <20191106141308.30535-1-rth@twiddle.net>
+Received: from conssluserg-01.nifty.com ([210.131.2.80]:30369 "EHLO
+        conssluserg-01.nifty.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727028AbfKFPmT (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 6 Nov 2019 10:42:19 -0500
+MIME-Version: 1.0
+References: <20191018043148.6285-1-yamada.masahiro@socionext.com>
+In-Reply-To: <20191018043148.6285-1-yamada.masahiro@socionext.com>
+From: Masahiro Yamada <yamada.masahiro@socionext.com>
+Date: Thu, 7 Nov 2019 00:41:25 +0900
+Message-ID: <CAK7LNATeTR=hZ9Ebh=R7_KTxeB0tfLCeRPOMqwZj9XUdZHTAkw@mail.gmail.com>
+Subject: Re: [PATCH 1/2] asm-generic/export.h: make __ksymtab_* local symbols
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-crypto@vger.kernel.org
-Cc: herbert@gondor.apana.org.au, linux-arch@vger.kernel.org, x86@kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-arm-kernel@lists.infradead.org
-Message-ID: <20191106141308.8CeCOyupXK4UdNho5jlkLZR0Jg8djbRUrVkDkRobbBo@z>
+To: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Jessica Yu <jeyu@kernel.org>
+Cc: Nicholas Piggin <npiggin@gmail.com>, Al Viro <viro@zeniv.linux.org.uk>, Arnd Bergmann <arnd@arndb.de>, linux-arch <linux-arch@vger.kernel.org>
+Message-ID: <20191106154125.5UOnMuj5XuYcZz4O1lI8-e22QH_uX9LNwBM6XI_1EQY@z>
 
-We must not use the pointer output without validating the
-success of the random read.
+On Fri, Oct 18, 2019 at 2:03 PM Masahiro Yamada
+<yamada.masahiro@socionext.com> wrote:
+>
+> For EXPORT_SYMBOL from C files, <linux/export.h> defines __ksymtab_*
+> as local symbols.
+>
+> For EXPORT_SYMBOL from assembly, in contrast, <asm-generic/export.h>
+> produces globally-visible __ksymtab_* symbols due to this .globl
+> directive.
+>
+> I do not understand why this must be global.  It still works without
+> this .globl directive.
+>
+> Signed-off-by: Masahiro Yamada <yamada.masahiro@socionext.com>
+> ---
 
-Reviewed-by: Harald Freudenberger <freude@linux.ibm.com>
-Reviewed-by: Ard Biesheuvel <ardb@kernel.org>
-Signed-off-by: Richard Henderson <rth@twiddle.net>
----
- arch/s390/include/asm/archrandom.h | 8 ++++----
- 1 file changed, 4 insertions(+), 4 deletions(-)
+I did not get objection, at least.
 
-diff --git a/arch/s390/include/asm/archrandom.h b/arch/s390/include/asm/archrandom.h
-index 9a6835137a16..de61ce562052 100644
---- a/arch/s390/include/asm/archrandom.h
-+++ b/arch/s390/include/asm/archrandom.h
-@@ -21,17 +21,17 @@ extern atomic64_t s390_arch_random_counter;
- 
- bool s390_arch_random_generate(u8 *buf, unsigned int nbytes);
- 
--static inline bool arch_get_random_long(unsigned long *v)
-+static inline bool __must_check arch_get_random_long(unsigned long *v)
- {
- 	return false;
- }
- 
--static inline bool arch_get_random_int(unsigned int *v)
-+static inline bool __must_check arch_get_random_int(unsigned int *v)
- {
- 	return false;
- }
- 
--static inline bool arch_get_random_seed_long(unsigned long *v)
-+static inline bool __must_check arch_get_random_seed_long(unsigned long *v)
- {
- 	if (static_branch_likely(&s390_arch_random_available)) {
- 		return s390_arch_random_generate((u8 *)v, sizeof(*v));
-@@ -39,7 +39,7 @@ static inline bool arch_get_random_seed_long(unsigned long *v)
- 	return false;
- }
- 
--static inline bool arch_get_random_seed_int(unsigned int *v)
-+static inline bool __must_check arch_get_random_seed_int(unsigned int *v)
- {
- 	if (static_branch_likely(&s390_arch_random_available)) {
- 		return s390_arch_random_generate((u8 *)v, sizeof(*v));
+Applied to linux-kbuild.
+
+
+
+>
+>  include/asm-generic/export.h | 1 -
+>  1 file changed, 1 deletion(-)
+>
+> diff --git a/include/asm-generic/export.h b/include/asm-generic/export.h
+> index fa577978fbbd..80ef2dc0c8be 100644
+> --- a/include/asm-generic/export.h
+> +++ b/include/asm-generic/export.h
+> @@ -31,7 +31,6 @@
+>   */
+>  .macro ___EXPORT_SYMBOL name,val,sec
+>  #ifdef CONFIG_MODULES
+> -       .globl __ksymtab_\name
+>         .section ___ksymtab\sec+\name,"a"
+>         .balign KSYM_ALIGN
+>  __ksymtab_\name:
+> --
+> 2.17.1
+>
+
+
 -- 
-2.17.1
+Best Regards
+Masahiro Yamada
