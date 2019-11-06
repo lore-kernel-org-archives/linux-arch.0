@@ -1,32 +1,60 @@
-From: Alexandre Chartre <alexandre.chartre@oracle.com>
-Subject: Re: [patch V2 03/17] x86/traps: Remove pointless irq enable from
- do_spurious_interrupt_bug()
-Date: Wed, 6 Nov 2019 16:33:16 +0100
-Message-ID: <52673a2a-6e6e-c0f1-9586-70849429e7a0@oracle.com>
-References: <20191023122705.198339581@linutronix.de>
- <20191023123117.871608831@linutronix.de>
+From: Masahiro Yamada <yamada.masahiro@socionext.com>
+Subject: Re: [PATCH 1/2] asm-generic/export.h: make __ksymtab_* local symbols
+Date: Thu, 7 Nov 2019 00:41:25 +0900
+Message-ID: <CAK7LNATeTR=hZ9Ebh=R7_KTxeB0tfLCeRPOMqwZj9XUdZHTAkw@mail.gmail.com>
+References: <20191018043148.6285-1-yamada.masahiro@socionext.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20191023123117.871608831@linutronix.de>
-Content-Language: en-US
+In-Reply-To: <20191018043148.6285-1-yamada.masahiro@socionext.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Thomas Gleixner <tglx@linutronix.de>, LKML <linux-kernel@vger.kernel.org>
-Cc: x86@kernel.org, Peter Zijlstra <peterz@infradead.org>, Andy Lutomirski <luto@kernel.org>, Will Deacon <will@kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, kvm@vger.kernel.org, linux-arch@vger.kernel.org, Mike Rapoport <rppt@linux.ibm.com>, Josh Poimboeuf <jpoimboe@redhat.com>, Miroslav Benes <mbenes@suse.cz>
+To: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Jessica Yu <jeyu@kernel.org>
+Cc: Nicholas Piggin <npiggin@gmail.com>, Al Viro <viro@zeniv.linux.org.uk>, Arnd Bergmann <arnd@arndb.de>, linux-arch <linux-arch@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-
-On 10/23/19 2:27 PM, Thomas Gleixner wrote:
-> That function returns immediately after conditionally reenabling interrupts which
-> is more than pointless and requires the ASM code to disable interrupts again.
-> 
-> Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
+On Fri, Oct 18, 2019 at 2:03 PM Masahiro Yamada
+<yamada.masahiro@socionext.com> wrote:
+>
+> For EXPORT_SYMBOL from C files, <linux/export.h> defines __ksymtab_*
+> as local symbols.
+>
+> For EXPORT_SYMBOL from assembly, in contrast, <asm-generic/export.h>
+> produces globally-visible __ksymtab_* symbols due to this .globl
+> directive.
+>
+> I do not understand why this must be global.  It still works without
+> this .globl directive.
+>
+> Signed-off-by: Masahiro Yamada <yamada.masahiro@socionext.com>
 > ---
->   arch/x86/kernel/traps.c |    1 -
->   1 file changed, 1 deletion(-)
-> 
 
-Reviewed-by: Alexandre Chartre <alexandre.chartre@oracle.com>
+I did not get objection, at least.
 
-alex.
+Applied to linux-kbuild.
+
+
+
+>
+>  include/asm-generic/export.h | 1 -
+>  1 file changed, 1 deletion(-)
+>
+> diff --git a/include/asm-generic/export.h b/include/asm-generic/export.h
+> index fa577978fbbd..80ef2dc0c8be 100644
+> --- a/include/asm-generic/export.h
+> +++ b/include/asm-generic/export.h
+> @@ -31,7 +31,6 @@
+>   */
+>  .macro ___EXPORT_SYMBOL name,val,sec
+>  #ifdef CONFIG_MODULES
+> -       .globl __ksymtab_\name
+>         .section ___ksymtab\sec+\name,"a"
+>         .balign KSYM_ALIGN
+>  __ksymtab_\name:
+> --
+> 2.17.1
+>
+
+
+-- 
+Best Regards
+Masahiro Yamada
