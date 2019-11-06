@@ -1,56 +1,51 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from conssluserg-05.nifty.com ([210.131.2.90]:30906 "EHLO
-        conssluserg-05.nifty.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728289AbfKFPmt (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 6 Nov 2019 10:42:49 -0500
+Received: from mail-qt1-f196.google.com ([209.85.160.196]:38547 "EHLO
+        mail-qt1-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727570AbfKFQsB (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 6 Nov 2019 11:48:01 -0500
+Date: Wed, 6 Nov 2019 11:47:56 -0500
+From: Mohammad Nasirifar <far.nasiri.m@gmail.com>
+Subject: Re: [PATCH 1/1] syscalls: Fix references to filenames containing
+ syscall defs
+Message-ID: <20191106164756.GA558585@gmail.com>
+References: <20191105022928.517526-1-farnasirim@gmail.com>
+ <alpine.DEB.2.21.1911051033050.17054@nanos.tec.linutronix.de>
+ <CAK8P3a0wyw=CwhiU34t1zBiSesf+HGBLeaV+=JVko_TjnvATHQ@mail.gmail.com>
 MIME-Version: 1.0
-References: <20191018043148.6285-1-yamada.masahiro@socionext.com> <20191018043148.6285-2-yamada.masahiro@socionext.com>
-In-Reply-To: <20191018043148.6285-2-yamada.masahiro@socionext.com>
-From: Masahiro Yamada <yamada.masahiro@socionext.com>
-Date: Thu, 7 Nov 2019 00:41:51 +0900
-Message-ID: <CAK7LNARpjkd8VpMAp+vx+Ud5ipSsfxPY6cAr31tmG=08_qi1kQ@mail.gmail.com>
-Subject: Re: [PATCH 2/2] asm-generic/export.h: remove unneeded __kcrctab_* symbols
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=us-ascii; format=flowed
+Content-Disposition: inline
+In-Reply-To: <CAK8P3a0wyw=CwhiU34t1zBiSesf+HGBLeaV+=JVko_TjnvATHQ@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Jessica Yu <jeyu@kernel.org>
-Cc: Nicholas Piggin <npiggin@gmail.com>, Al Viro <viro@zeniv.linux.org.uk>, Arnd Bergmann <arnd@arndb.de>, linux-arch <linux-arch@vger.kernel.org>
-Message-ID: <20191106154151.U3E2vxS_dbzplkMwOI_bfmdbLS1mBsmBuTg14tswWZs@z>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Thomas Gleixner <tglx@linutronix.de>, Andrew Morton <akpm@linux-foundation.org>, Mohammad Nasirifar <farnasirim@gmail.com>, Linux API <linux-api@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Valdis Kletnieks <valdis.kletnieks@vt.edu>
+Message-ID: <20191106164756.uxLn-BTAgJJAlZfW52bzu3LOE96t6JkgAnWoFwnywxc@z>
 
-On Fri, Oct 18, 2019 at 1:56 PM Masahiro Yamada
-<yamada.masahiro@socionext.com> wrote:
+On Tue, Nov 05, 2019 at 10:49:12AM +0100, Arnd Bergmann wrote:
+>On Tue, Nov 5, 2019 at 10:34 AM Thomas Gleixner <tglx@linutronix.de> wrote:
+>> On Mon, 4 Nov 2019, Mohammad Nasirifar wrote:
+>> > Fix stale references to files containing syscall definitions in
+>> > 'include/linux/syscalls.h' and 'include/uapi/asm-generic/unistd.h',
+>> > pointing to 'kernel/itimer.c', 'kernel/hrtimer.c', and 'kernel/time.c'.
+>> > They are now under 'kernel/time'.
+>> >
+>> > Also definitions of 'getpid', 'getppid', 'getuid', 'geteuid', 'getgid',
+>> > 'getegid', 'gettid', and 'sysinfo' are now in 'kernel/sys.c'.
+>>
+>> Can we please remove these file references completely. They are going to be
+>> stale sooner than later again and they really do not provide any value.
+I actually refer to them a lot when locating syscall implementations,
+which is how I found out that they were stale in the first place.
 >
-> EXPORT_SYMBOL from assembly code produces an unused symbol __kcrctab_*.
+>+1
 >
-> kcrctab is used as a section name (prefixed with three underscores),
-> but never used as a symbol.
+>Good idea!
 >
-> Signed-off-by: Masahiro Yamada <yamada.masahiro@socionext.com>
-> ---
-
-Applied to linux-kbuild.
-
+>In the long run, I'd prefer to have a parsable format that can be used to
+>generate both the header file and the stubs that we currently provide
+>using SYSCALL_DEFINEx(), but before that I'd like the remaining two
+>unistd.h files to be converted to syscall.tbl format (Nitesh is still working
+>on that).
+Sorry I didn't understand, is there anything I can do to follow up on this?
 >
->  include/asm-generic/export.h | 1 -
->  1 file changed, 1 deletion(-)
->
-> diff --git a/include/asm-generic/export.h b/include/asm-generic/export.h
-> index 80ef2dc0c8be..a3983e2ce0fd 100644
-> --- a/include/asm-generic/export.h
-> +++ b/include/asm-generic/export.h
-> @@ -43,7 +43,6 @@ __kstrtab_\name:
->  #ifdef CONFIG_MODVERSIONS
->         .section ___kcrctab\sec+\name,"a"
->         .balign KCRC_ALIGN
-> -__kcrctab_\name:
->  #if defined(CONFIG_MODULE_REL_CRCS)
->         .long __crc_\name - .
->  #else
-> --
-> 2.17.1
->
-
-
--- 
-Best Regards
-Masahiro Yamada
+>      Arnd
