@@ -1,38 +1,46 @@
-From: Alexandre Chartre <alexandre.chartre@oracle.com>
-Subject: Re: [patch V2 05/17] x86/traps: Make interrupt enable/disable
- symmetric in C code
-Date: Wed, 6 Nov 2019 17:19:44 +0100
-Message-ID: <1c6ad81c-9518-909a-03d2-e2a2cf53240d@oracle.com>
-References: <20191023122705.198339581@linutronix.de>
- <20191023123118.084086112@linutronix.de>
+From: Mohammad Nasirifar <far.nasiri.m@gmail.com>
+Subject: Re: [PATCH 1/1] syscalls: Fix references to filenames containing
+ syscall defs
+Date: Wed, 6 Nov 2019 11:47:56 -0500
+Message-ID: <20191106164756.GA558585@gmail.com>
+References: <20191105022928.517526-1-farnasirim@gmail.com>
+ <alpine.DEB.2.21.1911051033050.17054@nanos.tec.linutronix.de>
+ <CAK8P3a0wyw=CwhiU34t1zBiSesf+HGBLeaV+=JVko_TjnvATHQ@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii; format=flowed
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20191023123118.084086112@linutronix.de>
-Content-Language: en-US
+Content-Disposition: inline
+In-Reply-To: <CAK8P3a0wyw=CwhiU34t1zBiSesf+HGBLeaV+=JVko_TjnvATHQ@mail.gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Thomas Gleixner <tglx@linutronix.de>, LKML <linux-kernel@vger.kernel.org>
-Cc: x86@kernel.org, Peter Zijlstra <peterz@infradead.org>, Andy Lutomirski <luto@kernel.org>, Will Deacon <will@kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, kvm@vger.kernel.org, linux-arch@vger.kernel.org, Mike Rapoport <rppt@linux.ibm.com>, Josh Poimboeuf <jpoimboe@redhat.com>, Miroslav Benes <mbenes@suse.cz>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Thomas Gleixner <tglx@linutronix.de>, Andrew Morton <akpm@linux-foundation.org>, Mohammad Nasirifar <farnasirim@gmail.com>, Linux API <linux-api@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Valdis Kletnieks <valdis.kletnieks@vt.edu>
 List-Id: linux-arch.vger.kernel.org
 
-
-On 10/23/19 2:27 PM, Thomas Gleixner wrote:
-> Traps enable interrupts conditionally but rely on the ASM return code to
-> disable them again. That results in redundant interrupt disable and trace
-> calls.
-> 
-> Make the trap handlers disable interrupts before returning to avoid that,
-> which allows simplification of the ASM entry code.
-> 
-> Originally-by: Peter Zijlstra <peterz@infradead.org>
-> Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
-> ---
->   arch/x86/kernel/traps.c |   32 +++++++++++++++++++++-----------
->   arch/x86/mm/fault.c     |    7 +++++--
->   2 files changed, 26 insertions(+), 13 deletions(-)
-> 
-
-Reviewed-by: Alexandre Chartre <alexandre.chartre@oracle.com>
-
-alex.
+On Tue, Nov 05, 2019 at 10:49:12AM +0100, Arnd Bergmann wrote:
+>On Tue, Nov 5, 2019 at 10:34 AM Thomas Gleixner <tglx@linutronix.de> wrote:
+>> On Mon, 4 Nov 2019, Mohammad Nasirifar wrote:
+>> > Fix stale references to files containing syscall definitions in
+>> > 'include/linux/syscalls.h' and 'include/uapi/asm-generic/unistd.h',
+>> > pointing to 'kernel/itimer.c', 'kernel/hrtimer.c', and 'kernel/time.c'.
+>> > They are now under 'kernel/time'.
+>> >
+>> > Also definitions of 'getpid', 'getppid', 'getuid', 'geteuid', 'getgid',
+>> > 'getegid', 'gettid', and 'sysinfo' are now in 'kernel/sys.c'.
+>>
+>> Can we please remove these file references completely. They are going to be
+>> stale sooner than later again and they really do not provide any value.
+I actually refer to them a lot when locating syscall implementations,
+which is how I found out that they were stale in the first place.
+>
+>+1
+>
+>Good idea!
+>
+>In the long run, I'd prefer to have a parsable format that can be used to
+>generate both the header file and the stubs that we currently provide
+>using SYSCALL_DEFINEx(), but before that I'd like the remaining two
+>unistd.h files to be converted to syscall.tbl format (Nitesh is still working
+>on that).
+Sorry I didn't understand, is there anything I can do to follow up on this?
+>
+>      Arnd
