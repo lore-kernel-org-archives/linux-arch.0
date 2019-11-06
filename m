@@ -1,15 +1,15 @@
 From: Alexandre Chartre <alexandre.chartre@oracle.com>
-Subject: Re: [patch V2 01/17] x86/entry/32: Remove unused resume_userspace
- label
-Date: Wed, 6 Nov 2019 16:26:39 +0100
-Message-ID: <92929be8-d936-75b9-80c0-368d7f33162a@oracle.com>
+Subject: Re: [patch V2 02/17] x86/entry/64: Remove pointless jump in
+ paranoid_exit
+Date: Wed, 6 Nov 2019 16:29:25 +0100
+Message-ID: <10e378e2-d9dc-e8dd-fe62-7427b061decf@oracle.com>
 References: <20191023122705.198339581@linutronix.de>
- <20191023123117.686514045@linutronix.de>
+ <20191023123117.779277679@linutronix.de>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=utf-8; format=flowed
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20191023123117.686514045@linutronix.de>
+In-Reply-To: <20191023123117.779277679@linutronix.de>
 Content-Language: en-US
 Sender: linux-kernel-owner@vger.kernel.org
 To: Thomas Gleixner <tglx@linutronix.de>, LKML <linux-kernel@vger.kernel.org>
@@ -18,15 +18,13 @@ List-Id: linux-arch.vger.kernel.org
 
 
 On 10/23/19 2:27 PM, Thomas Gleixner wrote:
-> The C reimplementation of SYSENTER left that unused ENTRY() label
-> around. Remove it.
+> Jump directly to restore_regs_and_return_to_kernel instead of making
+> a pointless extra jump through .Lparanoid_exit_restore
 > 
-> Fixes: 5f310f739b4c ("x86/entry/32: Re-implement SYSENTER using the new C path")
-> Originally-by: Peter Zijlstra <peterz@infradead.org>
 > Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
 > ---
->   arch/x86/entry/entry_32.S |    1 -
->   1 file changed, 1 deletion(-)
+>   arch/x86/entry/entry_64.S |    3 +--
+>   1 file changed, 1 insertion(+), 2 deletions(-)
 > 
 
 Reviewed-by: Alexandre Chartre <alexandre.chartre@oracle.com>
