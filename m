@@ -1,51 +1,35 @@
-From: Masahiro Yamada <yamada.masahiro@socionext.com>
-Subject: Re: [PATCH 2/2] asm-generic/export.h: remove unneeded __kcrctab_* symbols
-Date: Thu, 7 Nov 2019 00:41:51 +0900
-Message-ID: <CAK7LNARpjkd8VpMAp+vx+Ud5ipSsfxPY6cAr31tmG=08_qi1kQ@mail.gmail.com>
-References: <20191018043148.6285-1-yamada.masahiro@socionext.com> <20191018043148.6285-2-yamada.masahiro@socionext.com>
+From: Alexandre Chartre <alexandre.chartre@oracle.com>
+Subject: Re: [patch V2 04/17] x86/entry: Make DEBUG_ENTRY_ASSERT_IRQS_OFF
+ available for 32bit
+Date: Wed, 6 Nov 2019 16:50:41 +0100
+Message-ID: <9a1170f8-819b-9d30-9d77-66c60cd4cafb@oracle.com>
+References: <20191023122705.198339581@linutronix.de>
+ <20191023123117.976831752@linutronix.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20191018043148.6285-2-yamada.masahiro@socionext.com>
+In-Reply-To: <20191023123117.976831752@linutronix.de>
+Content-Language: en-US
 Sender: linux-kernel-owner@vger.kernel.org
-To: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Jessica Yu <jeyu@kernel.org>
-Cc: Nicholas Piggin <npiggin@gmail.com>, Al Viro <viro@zeniv.linux.org.uk>, Arnd Bergmann <arnd@arndb.de>, linux-arch <linux-arch@vger.kernel.org>
+To: Thomas Gleixner <tglx@linutronix.de>, LKML <linux-kernel@vger.kernel.org>
+Cc: x86@kernel.org, Peter Zijlstra <peterz@infradead.org>, Andy Lutomirski <luto@kernel.org>, Will Deacon <will@kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, kvm@vger.kernel.org, linux-arch@vger.kernel.org, Mike Rapoport <rppt@linux.ibm.com>, Josh Poimboeuf <jpoimboe@redhat.com>, Miroslav Benes <mbenes@suse.cz>
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, Oct 18, 2019 at 1:56 PM Masahiro Yamada
-<yamada.masahiro@socionext.com> wrote:
->
-> EXPORT_SYMBOL from assembly code produces an unused symbol __kcrctab_*.
->
-> kcrctab is used as a section name (prefixed with three underscores),
-> but never used as a symbol.
->
-> Signed-off-by: Masahiro Yamada <yamada.masahiro@socionext.com>
+
+On 10/23/19 2:27 PM, Thomas Gleixner wrote:
+> Move the interrupt state verification debug macro to common code and fixup
+> the irqflags and paravirt components so it can be used in 32bit code later.
+> 
+> Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
 > ---
+>   arch/x86/entry/calling.h        |   12 ++++++++++++
+>   arch/x86/entry/entry_64.S       |   12 ------------
+>   arch/x86/include/asm/irqflags.h |    8 ++++++--
+>   arch/x86/include/asm/paravirt.h |    9 +++++----
+>   4 files changed, 23 insertions(+), 18 deletions(-)
+> 
 
-Applied to linux-kbuild.
+Reviewed-by: Alexandre Chartre <alexandre.chartre@oracle.com>
 
->
->  include/asm-generic/export.h | 1 -
->  1 file changed, 1 deletion(-)
->
-> diff --git a/include/asm-generic/export.h b/include/asm-generic/export.h
-> index 80ef2dc0c8be..a3983e2ce0fd 100644
-> --- a/include/asm-generic/export.h
-> +++ b/include/asm-generic/export.h
-> @@ -43,7 +43,6 @@ __kstrtab_\name:
->  #ifdef CONFIG_MODVERSIONS
->         .section ___kcrctab\sec+\name,"a"
->         .balign KCRC_ALIGN
-> -__kcrctab_\name:
->  #if defined(CONFIG_MODULE_REL_CRCS)
->         .long __crc_\name - .
->  #else
-> --
-> 2.17.1
->
-
-
--- 
-Best Regards
-Masahiro Yamada
+alex.
