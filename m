@@ -1,8 +1,7 @@
 From: Richard Henderson <richard.henderson@linaro.org>
-Subject: [PATCH v2 04/10] linux/random.h: Remove arch_has_random,
- arch_has_random_seed
-Date: Wed,  6 Nov 2019 15:13:02 +0100
-Message-ID: <20191106141308.30535-5-rth@twiddle.net>
+Subject: [PATCH v2 05/10] linux/random.h: Use false with bool
+Date: Wed,  6 Nov 2019 15:13:03 +0100
+Message-ID: <20191106141308.30535-6-rth@twiddle.net>
 References: <20191106141308.30535-1-rth@twiddle.net>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -22,42 +21,42 @@ To: linux-crypto@vger.kernel.org
 Cc: linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, herbert@gondor.apana.org.au, x86@kernel.org, linuxppc-dev@lists.ozlabs.org, linux-arm-kernel@lists.infradead.org
 List-Id: linux-arch.vger.kernel.org
 
-The arm64 version of archrandom.h will need to be able to test for
-support and read the random number without preemption, so a separate
-query predicate is not practical.
+Keep the generic fallback versions in sync with the other architecture
+specific implementations and use the proper name for false.
 
-Since this part of the generic interface is unused, remove it.
-
+Suggested-by: Ard Biesheuvel <ardb@kernel.org>
 Signed-off-by: Richard Henderson <rth@twiddle.net>
 ---
- include/linux/random.h | 8 --------
- 1 file changed, 8 deletions(-)
+ include/linux/random.h | 8 ++++----
+ 1 file changed, 4 insertions(+), 4 deletions(-)
 
 diff --git a/include/linux/random.h b/include/linux/random.h
-index f189c927fdea..7fd0360908d2 100644
+index 7fd0360908d2..ea0e2f5f1ec5 100644
 --- a/include/linux/random.h
 +++ b/include/linux/random.h
-@@ -175,10 +175,6 @@ static inline bool arch_get_random_int(unsigned int *v)
+@@ -169,19 +169,19 @@ static inline void prandom_seed_state(struct rnd_state *state, u64 seed)
+ #else
+ static inline bool arch_get_random_long(unsigned long *v)
  {
- 	return 0;
- }
--static inline bool arch_has_random(void)
--{
 -	return 0;
--}
++	return false;
+ }
+ static inline bool arch_get_random_int(unsigned int *v)
+ {
+-	return 0;
++	return false;
+ }
  static inline bool arch_get_random_seed_long(unsigned long *v)
  {
- 	return 0;
-@@ -187,10 +183,6 @@ static inline bool arch_get_random_seed_int(unsigned int *v)
- {
- 	return 0;
- }
--static inline bool arch_has_random_seed(void)
--{
 -	return 0;
--}
++	return false;
+ }
+ static inline bool arch_get_random_seed_int(unsigned int *v)
+ {
+-	return 0;
++	return false;
+ }
  #endif
  
- /* Pseudo random number generator from numerical recipes. */
 -- 
 2.17.1
