@@ -1,58 +1,29 @@
-From: "Valdis Kl=?utf-8?Q?=c4=93?=tnieks" <valdis.kletnieks@vt.edu>
-Subject: Re: [PATCH 1/1] errno.h: Provide EFSBADCRC for everybody
-Date: Tue, 05 Nov 2019 15:58:39 -0500
-Message-ID: <250143.1572987519@turing-police>
-References: <20191105024618.194134-1-Valdis.Kletnieks@vt.edu>
- <20191105151736.GB4153244@magnolia>
+From: Andrew Morton <akpm@linux-foundation.org>
+Subject: Re: [PATCH v4 13/13] mm: remove __ARCH_HAS_4LEVEL_HACK and
+ include/asm-generic/4level-fixup.h
+Date: Tue, 5 Nov 2019 17:13:09 -0800
+Message-ID: <20191105171309.9a5ccf9cf14d7288f7adf198@linux-foundation.org>
+References: <1572938135-31886-1-git-send-email-rppt@kernel.org>
+        <1572938135-31886-14-git-send-email-rppt@kernel.org>
 Mime-Version: 1.0
-Content-Type: multipart/signed; boundary="==_Exmh_1572987519_14215P";
-         micalg=pgp-sha1; protocol="application/pgp-signature"
+Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20191105151736.GB4153244@magnolia>
+In-Reply-To: <1572938135-31886-14-git-send-email-rppt@kernel.org>
 Sender: linux-kernel-owner@vger.kernel.org
-To: "Darrick J. Wong" <darrick.wong@oracle.com>
-Cc: Theodore Ts'o <tytso@mit.edu>, Andreas Dilger <adilger.kernel@dilger.ca>, Jaegeuk Kim <jaegeuk@kernel.org>, Chao Yu <chao@kernel.org>, linux-xfs@vger.kernel.org, Jan Kara <jack@suse.com>, Arnd Bergmann <arnd@arndb.de>, linux-ext4@vger.kernel.org, linux-kernel@vger.kernel.org, linux-f2fs-devel@lists.sourceforge.net, linux-arch@vger.kernel.org
+To: Mike Rapoport <rppt@kernel.org>
+Cc: linux-mm@kvack.org, Anton Ivanov <anton.ivanov@cambridgegreys.com>, Arnd Bergmann <arnd@arndb.de>, "David S. Miller" <davem@davemloft.net>, Geert Uytterhoeven <geert@linux-m68k.org>, Greentime Hu <green.hu@gmail.com>, Greg Ungerer <gerg@linux-m68k.org>, Helge Deller <deller@gmx.de>, "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>, Jeff Dike <jdike@addtoit.com>, "Kirill A. Shutemov" <kirill@shutemov.name>, Linus Torvalds <torvalds@linux-foundation.org>, Mark Salter <msalter@redhat.com>, Matt Turner <mattst88@gmail.com>, Michal Simek <monstr@monstr.eu>, Peter Rosin <peda@axentia.se>, Richard Weinberger <richard@nod.at>, Rolf Eike Beer <eike-kernel@sf-tec.de>, Russell King <linux@armlinux.org.uk>, Sam Creasey <sammy@sammy.net>, Vi
 List-Id: linux-arch.vger.kernel.org
 
---==_Exmh_1572987519_14215P
-Content-Type: text/plain; charset=us-ascii
+On Tue,  5 Nov 2019 09:15:35 +0200 Mike Rapoport <rppt@kernel.org> wrote:
 
-On Tue, 05 Nov 2019 07:17:36 -0800, "Darrick J. Wong" said:
-> On Mon, Nov 04, 2019 at 09:46:14PM -0500, Valdis Kletnieks wrote:
-> > Four filesystems have their own defines for this. Move it
-> > into errno.h so it's defined in just one place.
-> >
-> > Signed-off-by: Valdis Kletnieks <Valdis.Kletnieks@vt.edu>
->
-> Acked-by: Darrick J. Wong <darrick.wong@oracle.com>
->
-> You can build all six filesystems with both this and the EFSCORRUPTED
-> patch applied, correct?
+> There are no architectures that use include/asm-generic/4level-fixup.h
+> therefore it can be removed along with __ARCH_HAS_4LEVEL_HACK define.
 
-I can.  But it was pointed out to me that it blows up on some architectures..
+Conflicts a bit with Vineet's "asm-generic/tlb: stub out pud_free_tlb()
+if nopud ...", from
+http://lkml.kernel.org/r/20191016162400.14796-2-vgupta@synopsys.com
 
-
-
---==_Exmh_1572987519_14215P
-Content-Type: application/pgp-signature
-
------BEGIN PGP SIGNATURE-----
-Comment: Exmh version 2.9.0 11/07/2018
-
-iQIVAwUBXcHifwdmEQWDXROgAQLj5RAApcBiDjlLyeNreRjX2DmNwO+Ua9G5e5Sp
-eXKK/n2L2aQzyRQz7vGUMquNdBYorbtXuzT13bysejTkkkISSGz9lABhFZibT3n5
-EUxZmFM8LKoRYx+sAkw3sHfwj4pmLhuz3O5GXA3IkEn57++QiOoi+QR01H7B6KIU
-2W2NoauIR6t5hiO83EIpioJq07WOm1QP46diNozGGCskSwgEeJVXnWMNoIS23Xc7
-OK1FlYHnJ0wxDtnuzCEb9rOoi7u1Fr3FXTwpLo5V2krxLdW+jYhIRSoK+UPM0yky
-HIKCcTErRDckrbcT4+T6uszVrt+tXLdZE/mWgHLqbWnfB3g3Hh4C1ccX7TWqAG5S
-63ok39pe6rDa5sTRwHhEhIfBKOWXhGA1XNay3cWCgBroEwPpz0Zhy8xBP397bwZA
-7RubcSMY6Ct4tTUsS/8Ocmo/U0Kuo6k3El246di3UILbLQ1hvUXBeHtBbNKD0u4u
-nHhCqndqK0JAluIzlkpqVkcFXSWBlzlxfpNNNpgrr3aIGkwFWjJnsgkhB9T0cT4L
-8gK8W3Ly4V8A+oYoI4MgZ1LJ+jN/y7aDpDMHL3mjBECucfSmvaZLbRTOiAN7OHdz
-J7lkyAPaFi9NCVNYzS4tKLPOQcgJIA+GMCfSGmEAWiW07o2qb62I1kJz2vSkiTQC
-j0Tlv0TH9BI=
-=1Y8S
------END PGP SIGNATURE-----
-
---==_Exmh_1572987519_14215P--
+I fixed it up by removing include/asm-generic/4level-fixup.h anyway and
+removing the removal of "#ifndef __ARCH_HAS_4LEVEL_HAC" from
+include/asm-generic/tlb.h.
