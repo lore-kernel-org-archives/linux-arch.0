@@ -1,7 +1,8 @@
 From: Richard Henderson <richard.henderson@linaro.org>
-Subject: [PATCH v2 07/10] x86: Mark archrandom.h functions __must_check
-Date: Wed,  6 Nov 2019 15:13:05 +0100
-Message-ID: <20191106141308.30535-8-rth@twiddle.net>
+Subject: [PATCH v2 06/10] linux/random.h: Mark CONFIG_ARCH_RANDOM functions
+ __must_check
+Date: Wed,  6 Nov 2019 15:13:04 +0100
+Message-ID: <20191106141308.30535-7-rth@twiddle.net>
 References: <20191106141308.30535-1-rth@twiddle.net>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -27,75 +28,36 @@ success of the random read.
 Reviewed-by: Ard Biesheuvel <ardb@kernel.org>
 Signed-off-by: Richard Henderson <rth@twiddle.net>
 ---
- arch/x86/include/asm/archrandom.h | 16 ++++++++--------
- 1 file changed, 8 insertions(+), 8 deletions(-)
+ include/linux/random.h | 8 ++++----
+ 1 file changed, 4 insertions(+), 4 deletions(-)
 
-diff --git a/arch/x86/include/asm/archrandom.h b/arch/x86/include/asm/archrandom.h
-index feb59461046c..7a4bb1bd4bdb 100644
---- a/arch/x86/include/asm/archrandom.h
-+++ b/arch/x86/include/asm/archrandom.h
-@@ -27,7 +27,7 @@
- 
- /* Unconditional execution of RDRAND and RDSEED */
- 
--static inline bool rdrand_long(unsigned long *v)
-+static inline bool __must_check rdrand_long(unsigned long *v)
- {
- 	bool ok;
- 	unsigned int retry = RDRAND_RETRY_LOOPS;
-@@ -41,7 +41,7 @@ static inline bool rdrand_long(unsigned long *v)
- 	return false;
- }
- 
--static inline bool rdrand_int(unsigned int *v)
-+static inline bool __must_check rdrand_int(unsigned int *v)
- {
- 	bool ok;
- 	unsigned int retry = RDRAND_RETRY_LOOPS;
-@@ -55,7 +55,7 @@ static inline bool rdrand_int(unsigned int *v)
- 	return false;
- }
- 
--static inline bool rdseed_long(unsigned long *v)
-+static inline bool __must_check rdseed_long(unsigned long *v)
- {
- 	bool ok;
- 	asm volatile(RDSEED_LONG
-@@ -64,7 +64,7 @@ static inline bool rdseed_long(unsigned long *v)
- 	return ok;
- }
- 
--static inline bool rdseed_int(unsigned int *v)
-+static inline bool __must_check rdseed_int(unsigned int *v)
- {
- 	bool ok;
- 	asm volatile(RDSEED_INT
-@@ -80,22 +80,22 @@ static inline bool rdseed_int(unsigned int *v)
-  */
+diff --git a/include/linux/random.h b/include/linux/random.h
+index ea0e2f5f1ec5..d319f9a1e429 100644
+--- a/include/linux/random.h
++++ b/include/linux/random.h
+@@ -167,19 +167,19 @@ static inline void prandom_seed_state(struct rnd_state *state, u64 seed)
  #ifdef CONFIG_ARCH_RANDOM
- 
+ # include <asm/archrandom.h>
+ #else
 -static inline bool arch_get_random_long(unsigned long *v)
 +static inline bool __must_check arch_get_random_long(unsigned long *v)
  {
- 	return static_cpu_has(X86_FEATURE_RDRAND) ? rdrand_long(v) : false;
+ 	return false;
  }
- 
 -static inline bool arch_get_random_int(unsigned int *v)
 +static inline bool __must_check arch_get_random_int(unsigned int *v)
  {
- 	return static_cpu_has(X86_FEATURE_RDRAND) ? rdrand_int(v) : false;
+ 	return false;
  }
- 
 -static inline bool arch_get_random_seed_long(unsigned long *v)
 +static inline bool __must_check arch_get_random_seed_long(unsigned long *v)
  {
- 	return static_cpu_has(X86_FEATURE_RDSEED) ? rdseed_long(v) : false;
+ 	return false;
  }
- 
 -static inline bool arch_get_random_seed_int(unsigned int *v)
 +static inline bool __must_check arch_get_random_seed_int(unsigned int *v)
  {
- 	return static_cpu_has(X86_FEATURE_RDSEED) ? rdseed_int(v) : false;
+ 	return false;
  }
 -- 
 2.17.1
