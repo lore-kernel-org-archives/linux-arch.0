@@ -1,216 +1,444 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail105.syd.optusnet.com.au ([211.29.132.249]:51522 "EHLO
-        mail105.syd.optusnet.com.au" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1728724AbfKFGkF (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 6 Nov 2019 01:40:05 -0500
-Date: Wed, 6 Nov 2019 17:39:52 +1100
-From: Dave Chinner <david@fromorbit.com>
-Subject: Re: [RFC] errno.h: Provide EFSCORRUPTED for everybody
-Message-ID: <20191106063952.GE4614@dread.disaster.area>
-References: <20191031010736.113783-1-Valdis.Kletnieks@vt.edu>
- <CAMuHMdXzyVBa4TZEc5eRaBzu50thgJ2TrHJLZqwhbQ=JASgWOA@mail.gmail.com>
- <20191101213823.GW4614@dread.disaster.area>
- <20191105151550.GK3001@twin.jikos.cz>
+Received: from mail-qk1-f193.google.com ([209.85.222.193]:38102 "EHLO
+        mail-qk1-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726129AbfKFJiT (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 6 Nov 2019 04:38:19 -0500
+Received: by mail-qk1-f193.google.com with SMTP id e2so23983172qkn.5
+        for <linux-arch@vger.kernel.org>; Wed, 06 Nov 2019 01:38:18 -0800 (PST)
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20191105151550.GK3001@twin.jikos.cz>
+References: <20191104142745.14722-1-elver@google.com> <20191104142745.14722-2-elver@google.com>
+In-Reply-To: <20191104142745.14722-2-elver@google.com>
+From: Dmitry Vyukov <dvyukov@google.com>
+Date: Wed, 6 Nov 2019 10:38:05 +0100
+Message-ID: <CACT4Y+a+ftjHnRx9PD48hEVm98muooHwO0Y7i3cHetTJobRDxg@mail.gmail.com>
+Subject: Re: [PATCH v3 1/9] kcsan: Add Kernel Concurrency Sanitizer infrastructure
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: dsterba@suse.cz, Geert Uytterhoeven <geert@linux-m68k.org>, Valdis Kletnieks <valdis.kletnieks@vt.edu>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Gao Xiang <xiang@kernel.org>, Chao Yu <chao@kernel.org>, Theodore Ts'o <tytso@mit.edu>, Andreas Dilger <adilger.kernel@dilger.ca>, Jaegeuk Kim <jaegeuk@kernel.org>, "Darrick J. Wong" <darrick.wong@oracle.com>, linux-xfs@vger.kernel.org, Jan Kara <jack@suse.com>, Arnd Bergmann <arnd@arndb.de>, Linux FS Devel <linux-fsdevel@vger.kernel.org>, driverdevel <devel@driverdev.osuosl.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-erofs@lists.ozlabs.org, Ext4 Developers List <linux-ext4@vger.kernel.org>, linux-f2fs-devel@lists.sourceforge.net, Linux-Arch <linux-arch@vger.kernel.org>
-Message-ID: <20191106063952.dQdXuRAUcvOoDLENdLdZhOyHn52ZVh6W4jd5iO62EzM@z>
+To: Marco Elver <elver@google.com>
+Cc: LKMM Maintainers -- Akira Yokosawa <akiyks@gmail.com>, Alan Stern <stern@rowland.harvard.edu>, Alexander Potapenko <glider@google.com>, Andrea Parri <parri.andrea@gmail.com>, Andrey Konovalov <andreyknvl@google.com>, Andy Lutomirski <luto@kernel.org>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Arnd Bergmann <arnd@arndb.de>, Boqun Feng <boqun.feng@gmail.com>, Borislav Petkov <bp@alien8.de>, Daniel Axtens <dja@axtens.net>, Daniel Lustig <dlustig@nvidia.com>, Dave Hansen <dave.hansen@linux.intel.com>, David Howells <dhowells@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Ingo Molnar <mingo@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Joel Fernandes <joel@joelfernandes.org>, Jonathan Corbet <corbet@lwn.net>, Josh Poimboeuf <jpoimboe@redhat.com>, Luc Maranget <luc.maranget@inria.fr>, Mark Rutland <mark.rutland@arm.com>, Nicholas Piggin <npiggin@gmail.com>, paulmck@kernel.org, Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, Will Deacon <will@kernel.org>, kasan-dev <kasan-dev@googlegroups.com>, linux-arch <linux-arch@vger.kernel.org>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>, linux-efi@vger.kernel.org, "open list:KERNEL BUILD + fi..." <linux-kbuild@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Linux-MM <linux-mm@kvack.org>, the arch/x86 maintainers <x86@kernel.org>
+Message-ID: <20191106093805.-5L1uOX_Bq7HbcnXLIoTNsRn6QZ_mycYK5XB_sBRzqc@z>
 
-On Tue, Nov 05, 2019 at 04:15:50PM +0100, David Sterba wrote:
-> On Sat, Nov 02, 2019 at 08:38:23AM +1100, Dave Chinner wrote:
-> > On Fri, Nov 01, 2019 at 09:57:31PM +0100, Geert Uytterhoeven wrote:
-> > > Hi Valdis,
-> > > 
-> > > On Thu, Oct 31, 2019 at 2:11 AM Valdis Kletnieks
-> > > <valdis.kletnieks@vt.edu> wrote:
-> > > > Three questions: (a) ACK/NAK on this patch, (b) should it be all in one
-> > > > patch, or one to add to errno.h and 6 patches for 6 filesystems?), and
-> > > > (c) if one patch, who gets to shepherd it through?
-> > > >
-> > > > There's currently 6 filesystems that have the same #define. Move it
-> > > > into errno.h so it's defined in just one place.
-> > > >
-> > > > Signed-off-by: Valdis Kletnieks <Valdis.Kletnieks@vt.edu>
-> > > 
-> > > Thanks for your patch!
-> > > 
-> > > > --- a/include/uapi/asm-generic/errno.h
-> > > > +++ b/include/uapi/asm-generic/errno.h
-> > > > @@ -98,6 +98,7 @@
-> > > >  #define        EINPROGRESS     115     /* Operation now in progress */
-> > > >  #define        ESTALE          116     /* Stale file handle */
-> > > >  #define        EUCLEAN         117     /* Structure needs cleaning */
-> > > > +#define        EFSCORRUPTED    EUCLEAN
-> > > 
-> > > I have two questions:
-> > > a) Why not use EUCLEAN everywhere instead?
-> > >     Having two different names for the same errno complicates grepping.
-> > 
-> > Because:
-> > 	a) EUCLEAN is horrible for code documentation. EFSCORRUPTED
-> > 	describes exactly the error being returned and/or checked for.
-> > 
-> > 	b) we've used EFSCORRUPTED in XFS since 1993. i.e. it was an
-> > 	official, published error value on Irix, and we've kept it
-> > 	in the linux code for the past ~20 years because of a)
-> > 
-> > 	c) Userspace programs that include filesystem specific
-> > 	headers have already been exposed to and use EFSCORRUPTED,
-> > 	so we can't remove/change it without breaking userspace.
-> > 
-> > 	d) EUCLEAN has a convenient userspace string description
-> > 	that is appropriate for filesystem corruption: "Structure
-> > 	needs cleaning" is precisely what needs to happen. Repair of
-> > 	the filesystem (i.e. recovery to a clean state) is what is
-> > 	required to fix the error....
-> 
-> The description is very confusing to users that are also not filesystem
-> developers.
+On Mon, Nov 4, 2019 at 3:28 PM Marco Elver <elver@google.com> wrote:
+>
+> Kernel Concurrency Sanitizer (KCSAN) is a dynamic data-race detector for
+> kernel space. KCSAN is a sampling watchpoint-based data-race detector.
+> See the included Documentation/dev-tools/kcsan.rst for more details.
+...
+> +static inline atomic_long_t *find_watchpoint(unsigned long addr, size_t size,
+> +                                            bool expect_write,
+> +                                            long *encoded_watchpoint)
+> +{
+> +       const int slot = watchpoint_slot(addr);
+> +       const unsigned long addr_masked = addr & WATCHPOINT_ADDR_MASK;
+> +       atomic_long_t *watchpoint;
+> +       unsigned long wp_addr_masked;
+> +       size_t wp_size;
+> +       bool is_write;
+> +       int i;
+> +
+> +       BUILD_BUG_ON(CONFIG_KCSAN_NUM_WATCHPOINTS < CHECK_NUM_SLOTS);
+> +
+> +       for (i = 0; i < CHECK_NUM_SLOTS; ++i) {
+> +               watchpoint = &watchpoints[SLOT_IDX(slot, i)];
 
-That's a pretty good description of most error messages for modern
-software packages. Anything that is a non-trivial error requires web
-searching to understand and diagnose these days.
 
-Google knows exactly what you are looking for if you search for
-"mount structure needs cleaning" or other similar error messages.
-That means users also know what it means and what they need to
-do to address it.  i.e. it's been around long enough that there's a
-deep history in internet search engines and question forums like
-stackexchange.
+The fast path code become much nicer!
+I did another pass looking at how we can optimize the fast path.
+Currently we still have 2 push/pop pairs on the fast path because of
+register pressure. The logic in SLOT_IDX seems to be the main culprit.
+We discussed several options offline:
+1. Just check 1 slot and ignore all corner cases (we will miss racing
+unaligned access to different addresses but overlapping and crossing
+pages, which sounds pretty esoteric)
+2. Check 3 slots in order and without wraparound (watchpoints[slot +
+i], where i=-1,0,1), this will require adding dummy slots around the
+array
+3. An interesting option is to check just 2 slots (that's enough!), to
+make this work we will need to slightly offset bucket number when
+setting a watch point (namely, if an access goes to the very end of a
+page, we set the watchpoint into the bucket corresponding to the
+_next_ page)
+All of these options remove push/pop in my experiments. Obviously
+checking fewer slots will reduce dynamic overhead even more.
 
-> "Structure needs cleaning" says what needs to be done but
-> not what happened. Unlike other error codes like "not enough memory",
-> "IO error" etc. We don't have EBUYMEM / "Buy more memory" instead of
-> ENOMEM.
 
-Message grammar is largely irrelevant. And not unique to EUCLEAN. e.g.
-EAGAIN = "Try again".
+> +               *encoded_watchpoint = atomic_long_read(watchpoint);
+> +               if (!decode_watchpoint(*encoded_watchpoint, &wp_addr_masked,
+> +                                      &wp_size, &is_write))
+> +                       continue;
+> +
+> +               if (expect_write && !is_write)
+> +                       continue;
+> +
+> +               /* Check if the watchpoint matches the access. */
+> +               if (matching_access(wp_addr_masked, wp_size, addr_masked, size))
+> +                       return watchpoint;
+> +       }
+> +
+> +       return NULL;
+> +}
+> +
+> +static inline atomic_long_t *insert_watchpoint(unsigned long addr, size_t size,
+> +                                              bool is_write)
+> +{
+> +       const int slot = watchpoint_slot(addr);
+> +       const long encoded_watchpoint = encode_watchpoint(addr, size, is_write);
+> +       atomic_long_t *watchpoint;
+> +       int i;
+> +
+> +       for (i = 0; i < CHECK_NUM_SLOTS; ++i) {
+> +               long expect_val = INVALID_WATCHPOINT;
+> +
+> +               /* Try to acquire this slot. */
+> +               watchpoint = &watchpoints[SLOT_IDX(slot, i)];
 
-> Fuzzing tests and crafted images produce most of the EUCLEAN errors and
-> in this context "structure needs cleaning" makes even less sense.
+If we do this SLOT_IDX trickery to catch unaligned accesses crossing
+pages, then I think we should not use it insert_watchpoint at all and
+only set the watchpoint to the exact index. Otherwise, we will
+actually miss the corner cases which defeats the whole purpose of
+SLOT_IDX and 3 iterations.
 
-It's pretty silly to argue that a developer crafting and/or fuzzing
-corrupted filesystem images is not going to understand what the
-error message returned when they successfully corrupt a filesystem
-actually means....
+> +               if (atomic_long_try_cmpxchg_relaxed(watchpoint, &expect_val,
+> +                                                   encoded_watchpoint))
+> +                       return watchpoint;
+> +       }
+> +
+> +       return NULL;
+> +}
+> +
+> +/*
+> + * Return true if watchpoint was successfully consumed, false otherwise.
+> + *
+> + * This may return false if:
+> + *
+> + *     1. another thread already consumed the watchpoint;
+> + *     2. the thread that set up the watchpoint already removed it;
+> + *     3. the watchpoint was removed and then re-used.
+> + */
+> +static inline bool try_consume_watchpoint(atomic_long_t *watchpoint,
+> +                                         long encoded_watchpoint)
+> +{
+> +       return atomic_long_try_cmpxchg_relaxed(watchpoint, &encoded_watchpoint,
+> +                                              CONSUMED_WATCHPOINT);
+> +}
+> +
+> +/*
+> + * Return true if watchpoint was not touched, false if consumed.
+> + */
+> +static inline bool remove_watchpoint(atomic_long_t *watchpoint)
+> +{
+> +       return atomic_long_xchg_relaxed(watchpoint, INVALID_WATCHPOINT) !=
+> +              CONSUMED_WATCHPOINT;
+> +}
+> +
+> +static inline struct kcsan_ctx *get_ctx(void)
+> +{
+> +       /*
+> +        * In interrupt, use raw_cpu_ptr to avoid unnecessary checks, that would
+> +        * also result in calls that generate warnings in uaccess regions.
+> +        */
+> +       return in_task() ? &current->kcsan_ctx : raw_cpu_ptr(&kcsan_cpu_ctx);
+> +}
+> +
+> +static inline bool is_atomic(const volatile void *ptr)
+> +{
+> +       struct kcsan_ctx *ctx = get_ctx();
+> +
+> +       if (unlikely(ctx->atomic_next > 0)) {
+> +               --ctx->atomic_next;
+> +               return true;
+> +       }
+> +       if (unlikely(ctx->atomic_nest_count > 0 || ctx->in_flat_atomic))
+> +               return true;
+> +
+> +       return kcsan_is_atomic(ptr);
+> +}
+> +
+> +static inline bool should_watch(const volatile void *ptr, int type)
+> +{
+> +       /*
+> +        * Never set up watchpoints when memory operations are atomic.
+> +        *
+> +        * Need to check this first, before kcsan_skip check below: (1) atomics
+> +        * should not count towards skipped instructions, and (2) to actually
+> +        * decrement kcsan_atomic_next for consecutive instruction stream.
+> +        */
+> +       if ((type & KCSAN_ACCESS_ATOMIC) != 0 || is_atomic(ptr))
+> +               return false;
 
-> > > b) Perhaps both errors should use different values?
-> > 
-> > That horse bolted to userspace years ago - this is just
-> > formalising the practice that has spread across multiple linux
-> > filesystems from XFS over the past ~10 years..
-> 
-> EFSCORRUPTED is a appropriate name but to share the number with
-> EUCLEAN was a terrible decision and now every filesystem has to
-> suffer and explain to users what the code really means and point
-> to the the sad story when asked "So why don't you have a separate
-> code?".
+should_watch and is_atomic are invoked on the fast path and do more
+things than strictly necessary.
+The minimal amount of actions would be:
+ - check and decrement ctx->atomic_next for atomic accesses
+ - decrement kcsan_skip
 
-Damned if you do, damned if you don't.
+atomic_nest_count/in_flat_atomic/kcsan_is_atomic can be checked on
+uninlined slow path.
 
-Back in 2005-2006, XFS developers tried to make EFSCORRUPTED a
-proper system wide errno (like we had on Irix). The NIH was strong
-in the linux community back then, and we were largely told to go
-away as the superior Linux filesystems would never need to report
-corruption to userspace so we don't need a special errno just
-because some shitty Irix filesystem port needs it.
+It should not be necessary to set kcsan_skip to -1 if we _always_
+resetup kcsan_skip on slow path.
 
-And so we didn't get a new errno and went with the second choice:
-precedence set by older unix systems....
+> +       if (this_cpu_dec_return(kcsan_skip) >= 0)
+> +               return false;
+> +
+> +       /* avoid underflow if !kcsan_is_enabled() */
+> +       this_cpu_write(kcsan_skip, -1);
+> +
+> +       /* this operation should be watched */
+> +       return true;
+> +}
+> +
+> +static inline void reset_kcsan_skip(void)
+> +{
+> +       long skip_count = CONFIG_KCSAN_SKIP_WATCH -
+> +                         (IS_ENABLED(CONFIG_KCSAN_SKIP_WATCH_RANDOMIZE) ?
+> +                                  prandom_u32_max(CONFIG_KCSAN_SKIP_WATCH) :
+> +                                  0);
+> +       this_cpu_write(kcsan_skip, skip_count);
+> +}
+> +
+> +static inline bool kcsan_is_enabled(void)
+> +{
+> +       return READ_ONCE(kcsan_enabled) && get_ctx()->disable_count == 0;
+> +}
+> +
+> +static inline unsigned int get_delay(void)
+> +{
+> +       unsigned int delay = in_task() ? CONFIG_KCSAN_UDELAY_TASK :
+> +                                        CONFIG_KCSAN_UDELAY_INTERRUPT;
+> +       return delay - (IS_ENABLED(CONFIG_KCSAN_DELAY_RANDOMIZE) ?
+> +                               prandom_u32_max(delay) :
+> +                               0);
+> +}
+> +
+> +/*
+> + * Pull everything together: check_access() below contains the performance
+> + * critical operations; the fast-path (including check_access) functions should
+> + * all be inlinable by the instrumentation functions.
+> + *
+> + * The slow-path (kcsan_found_watchpoint, kcsan_setup_watchpoint) are
+> + * non-inlinable -- note that, we prefix these with "kcsan_" to ensure they can
+> + * be filtered from the stacktrace, as well as give them unique names for the
+> + * UACCESS whitelist of objtool. Each function uses user_access_save/restore(),
+> + * since they do not access any user memory, but instrumentation is still
+> + * emitted in UACCESS regions.
+> + */
+> +
+> +static noinline void kcsan_found_watchpoint(const volatile void *ptr,
+> +                                           size_t size, bool is_write,
+> +                                           bool consumed)
+> +{
+> +       unsigned long flags = user_access_save();
+> +       enum kcsan_report_type report_type;
+> +
+> +       if (!consumed) {
+> +               /*
+> +                * The other thread may not print any diagnostics, as it has
+> +                * already removed the watchpoint, or another thread consumed
+> +                * the watchpoint before this thread.
+> +                */
+> +               kcsan_counter_inc(KCSAN_COUNTER_REPORT_RACES);
+> +               report_type = KCSAN_REPORT_RACE_CHECK_RACE;
+> +       } else {
+> +               report_type = KCSAN_REPORT_RACE_CHECK;
+> +       }
+> +
+> +       kcsan_counter_inc(KCSAN_COUNTER_DATA_RACES);
+> +       kcsan_report(ptr, size, is_write, raw_smp_processor_id(), report_type);
+> +
+> +       user_access_restore(flags);
+> +}
+> +
+> +static noinline void kcsan_setup_watchpoint(const volatile void *ptr,
+> +                                           size_t size, bool is_write)
+> +{
+> +       atomic_long_t *watchpoint;
+> +       union {
+> +               u8 _1;
+> +               u16 _2;
+> +               u32 _4;
+> +               u64 _8;
+> +       } expect_value;
+> +       bool is_expected = true;
+> +       unsigned long ua_flags = user_access_save();
+> +       unsigned long irq_flags;
+> +
+> +       if (!check_encodable((unsigned long)ptr, size)) {
+> +               kcsan_counter_inc(KCSAN_COUNTER_UNENCODABLE_ACCESSES);
+> +               goto out;
+> +       }
+> +
+> +       /*
+> +        * Disable interrupts & preemptions to avoid another thread on the same
+> +        * CPU accessing memory locations for the set up watchpoint; this is to
+> +        * avoid reporting races to e.g. CPU-local data.
+> +        *
+> +        * An alternative would be adding the source CPU to the watchpoint
+> +        * encoding, and checking that watchpoint-CPU != this-CPU. There are
+> +        * several problems with this:
+> +        *   1. we should avoid stealing more bits from the watchpoint encoding
+> +        *      as it would affect accuracy, as well as increase performance
+> +        *      overhead in the fast-path;
+> +        *   2. if we are preempted, but there *is* a genuine data race, we
+> +        *      would *not* report it -- since this is the common case (vs.
+> +        *      CPU-local data accesses), it makes more sense (from a data race
+> +        *      detection point of view) to simply disable preemptions to ensure
+> +        *      as many tasks as possible run on other CPUs.
+> +        */
+> +       local_irq_save(irq_flags);
+> +
+> +       watchpoint = insert_watchpoint((unsigned long)ptr, size, is_write);
+> +       if (watchpoint == NULL) {
+> +               /*
+> +                * Out of capacity: the size of `watchpoints`, and the frequency
+> +                * with which `should_watch()` returns true should be tweaked so
+> +                * that this case happens very rarely.
+> +                */
+> +               kcsan_counter_inc(KCSAN_COUNTER_NO_CAPACITY);
+> +               goto out_unlock;
+> +       }
+> +
+> +       /*
+> +        * Reset kcsan_skip counter: only do this if we succeeded in setting up
+> +        * a watchpoint.
+> +        */
+> +       reset_kcsan_skip();
+> +
+> +       kcsan_counter_inc(KCSAN_COUNTER_SETUP_WATCHPOINTS);
+> +       kcsan_counter_inc(KCSAN_COUNTER_USED_WATCHPOINTS);
+> +
+> +       /*
+> +        * Read the current value, to later check and infer a race if the data
+> +        * was modified via a non-instrumented access, e.g. from a device.
+> +        */
+> +       switch (size) {
+> +       case 1:
+> +               expect_value._1 = READ_ONCE(*(const u8 *)ptr);
+> +               break;
+> +       case 2:
+> +               expect_value._2 = READ_ONCE(*(const u16 *)ptr);
+> +               break;
+> +       case 4:
+> +               expect_value._4 = READ_ONCE(*(const u32 *)ptr);
+> +               break;
+> +       case 8:
+> +               expect_value._8 = READ_ONCE(*(const u64 *)ptr);
+> +               break;
+> +       default:
+> +               break; /* ignore; we do not diff the values */
+> +       }
+> +
+> +       if (IS_ENABLED(CONFIG_KCSAN_DEBUG)) {
+> +               kcsan_disable_current();
+> +               pr_err("KCSAN: watching %s, size: %zu, addr: %px [slot: %d, encoded: %lx]\n",
+> +                      is_write ? "write" : "read", size, ptr,
+> +                      watchpoint_slot((unsigned long)ptr),
+> +                      encode_watchpoint((unsigned long)ptr, size, is_write));
+> +               kcsan_enable_current();
+> +       }
+> +
+> +       /*
+> +        * Delay this thread, to increase probability of observing a racy
+> +        * conflicting access.
+> +        */
+> +       udelay(get_delay());
+> +
+> +       /*
+> +        * Re-read value, and check if it is as expected; if not, we infer a
+> +        * racy access.
+> +        */
+> +       switch (size) {
+> +       case 1:
+> +               is_expected = expect_value._1 == READ_ONCE(*(const u8 *)ptr);
+> +               break;
+> +       case 2:
+> +               is_expected = expect_value._2 == READ_ONCE(*(const u16 *)ptr);
+> +               break;
+> +       case 4:
+> +               is_expected = expect_value._4 == READ_ONCE(*(const u32 *)ptr);
+> +               break;
+> +       case 8:
+> +               is_expected = expect_value._8 == READ_ONCE(*(const u64 *)ptr);
+> +               break;
+> +       default:
+> +               break; /* ignore; we do not diff the values */
+> +       }
+> +
+> +       /* Check if this access raced with another. */
+> +       if (!remove_watchpoint(watchpoint)) {
+> +               /*
+> +                * No need to increment 'data_races' counter, as the racing
+> +                * thread already did.
+> +                */
+> +               kcsan_report(ptr, size, is_write, smp_processor_id(),
+> +                            KCSAN_REPORT_RACE_SETUP);
+> +       } else if (!is_expected) {
+> +               /* Inferring a race, since the value should not have changed. */
+> +               kcsan_counter_inc(KCSAN_COUNTER_RACES_UNKNOWN_ORIGIN);
+> +               if (IS_ENABLED(CONFIG_KCSAN_REPORT_RACE_UNKNOWN_ORIGIN))
+> +                       kcsan_report(ptr, size, is_write, smp_processor_id(),
+> +                                    KCSAN_REPORT_RACE_UNKNOWN_ORIGIN);
+> +       }
+> +
+> +       kcsan_counter_dec(KCSAN_COUNTER_USED_WATCHPOINTS);
+> +out_unlock:
+> +       local_irq_restore(irq_flags);
+> +out:
+> +       user_access_restore(ua_flags);
+> +}
+> +
+> +static inline void check_access(const volatile void *ptr, size_t size, int type)
+> +{
+> +       const bool is_write = (type & KCSAN_ACCESS_WRITE) != 0;
+> +       atomic_long_t *watchpoint;
+> +       long encoded_watchpoint;
+> +
+> +       if (IS_ENABLED(CONFIG_KCSAN_PLAIN_WRITE_PRETEND_ONCE) && is_write)
+> +               type |= KCSAN_ACCESS_ATOMIC;
+> +
+> +       /*
+> +        * Avoid user_access_save in fast-path: find_watchpoint is safe without
+> +        * user_access_save, as the address that ptr points to is only used to
+> +        * check if a watchpoint exists; ptr is never dereferenced.
+> +        */
+> +       watchpoint = find_watchpoint((unsigned long)ptr, size, !is_write,
+> +                                    &encoded_watchpoint);
+> +
+> +       /*
+> +        * It is safe to check kcsan_is_enabled() after find_watchpoint, but
+> +        * right before we would enter the slow-path: no state changes that
+> +        * cause a data race to be detected and reported have occurred yet.
+> +        */
+> +
+> +       if (unlikely(watchpoint != NULL) && kcsan_is_enabled()) {
 
-commit 9e1fd551aba7291564d5d6c28948405142d5e2ca
-Author: Nathan Scott <nathans@sgi.com>
-Date:   Tue Jun 20 03:49:47 2006 +0000
+I would move kcsan_is_enabled and the rest of the code in the branch
+into non-inlined slow path.
+It makes the hot function much shorter.
+There is a trick related to number of arguments, though. We would need
+to pass ptr, size, is_write, watchpoint and encoded_watchpoint. That's
+5 arguments. Only 4 are passed in registers. So it may make sense to
+combine size and type into a single word. On the inlined fast path
+compiler packs/unpacks that statically, so it does not matter. But for
+the function call it will just forward a single const.
 
-    Map EFSCORRUPTED to an actual error code, not just a made up one
-    (990).  Turns out some ye-olde unices used EUCLEAN as
-    Filesystem-needs-cleaning, so now we use that too.
-    Merge of xfs-linux-melb:xfs-kern:26286a by kenmcd.
 
-diff --git a/fs/xfs/linux-2.6/xfs_linux.h b/fs/xfs/linux-2.6/xfs_linux.h
-index 3910afa7..b4083f8c 100644
---- a/fs/xfs/linux-2.6/xfs_linux.h
-+++ b/fs/xfs/linux-2.6/xfs_linux.h
-@@ -197,25 +197,9 @@ BUFFER_FNS(PrivateStart, unwritten);
- /* bytes to clicks */
- #define btoc(x)         (((__psunsigned_t)(x)+(NBPC-1))>>BPCSHIFT)
- 
--#ifndef ENOATTR
- #define ENOATTR                ENODATA         /* Attribute not found */
--#endif
--
--/* Note: EWRONGFS never visible outside the kernel */
--#define        EWRONGFS        EINVAL          /* Mount with wrong filesystem type */
--
--/*
-- * XXX EFSCORRUPTED needs a real value in errno.h. asm-i386/errno.h won't
-- *     return codes out of its known range in errno.
-- * XXX Also note: needs to be < 1000 and fairly unique on Linux (mustn't
-- *     conflict with any code we use already or any code a driver may use)
-- * XXX Some options (currently we do #2):
-- *     1/ New error code ["Filesystem is corrupted", _after_ glibc updated]
-- *     2/ 990 ["Unknown error 990"]
-- *     3/ EUCLEAN ["Structure needs cleaning"]
-- *     4/ Convert EFSCORRUPTED to EIO [just prior to return into userspace]
-- */
--#define EFSCORRUPTED    990            /* Filesystem is corrupted */
-+#define EWRONGFS       EINVAL          /* Mount with wrong filesystem type */
-+#define EFSCORRUPTED   EUCLEAN         /* Filesystem is corrupted */
- 
- #define SYNCHRONIZE()  barrier()
- #define __return_address __builtin_return_address(0)
+> +               /*
+> +                * Try consume the watchpoint as soon after finding the
+> +                * watchpoint as possible; this must always be guarded by
+> +                * kcsan_is_enabled() check, as otherwise we might erroneously
+> +                * triggering reports when disabled.
+> +                */
+> +               const bool consumed =
+> +                       try_consume_watchpoint(watchpoint, encoded_watchpoint);
+> +
+> +               kcsan_found_watchpoint(ptr, size, is_write, consumed);
+> +       } else if (unlikely(should_watch(ptr, type)) && kcsan_is_enabled()) {
 
-Perhaps you should learn the history of why certain decisions were
-made before letting go with both barrels, hmmm?
+I would move kcsan_is_enabled check into kcsan_setup_watchpoint. It's
+not executed on fast path, but bloats the host function code.
 
-> I wonder what userspace package really depends on the value, that
-> would eg. change code flow. Uncommon error values usually lead to
-> a message and exit.
-> 
-> Debian code search shows only jython, e2fsprogs, xfsprogs,
-> python2.7, pypy, linux, partclone using EFSCORRUPTED. So 2 of them
-> are filesystem packages that can handle that, python/jython only
-> defines the value for IRIX platform. The rest is linux kernel, not
-> relevant.
-
-You didn't search for EUCLEAN, did you?
-
-> So please give me one example where userspace will break.
-
-ABI changes cannot be justified this way and you should damn well
-know it. Especially as EUCLEAN/EFSCORRUPTED is documented in quite a
-few man pages out there:
-
-$ git grep -l EFSCORRUPTED man/
-man/man2/ioctl_xfs_ag_geometry.2
-man/man2/ioctl_xfs_bulkstat.2
-man/man2/ioctl_xfs_fsbulkstat.2
-man/man2/ioctl_xfs_fscounts.2
-man/man2/ioctl_xfs_fsgetxattr.2
-man/man2/ioctl_xfs_fsinumbers.2
-man/man2/ioctl_xfs_fsop_geometry.2
-man/man2/ioctl_xfs_getbmapx.2
-man/man2/ioctl_xfs_getresblks.2
-man/man2/ioctl_xfs_goingdown.2
-man/man2/ioctl_xfs_inumbers.2
-man/man2/ioctl_xfs_scrub_metadata.2
-
-And EUCLEAN is in a few, too. e.g:
-
-$ man ioctl_getfsmap |grep -A 1 EUCLEAN
-       EUCLEAN
-              The filesystem metadata is corrupt and needs repair.
-
-So, yeah, the EFSCORRUPTED = EUCLEAN horse bolted long ago, and no
-amount of retconning will put the genie back in the bottle.
-
-Cheers,
-
-Dave.
--- 
-Dave Chinner
-david@fromorbit.com
+> +               kcsan_setup_watchpoint(ptr, size, is_write);
+> +       }
+> +}
