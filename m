@@ -1,100 +1,134 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pg1-f196.google.com ([209.85.215.196]:37943 "EHLO
-        mail-pg1-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1729598AbfKFR4g (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 6 Nov 2019 12:56:36 -0500
-Received: by mail-pg1-f196.google.com with SMTP id 15so4468484pgh.5
-        for <linux-arch@vger.kernel.org>; Wed, 06 Nov 2019 09:56:35 -0800 (PST)
-Date: Wed, 06 Nov 2019 09:56:34 -0800 (PST)
-Subject: Re: [PATCH 10/21] asm-generic: ioremap_uc should behave the same with and without MMU
-In-Reply-To: <20191029064834.23438-11-hch@lst.de>
+Received: from mail-pg1-f193.google.com ([209.85.215.193]:45150 "EHLO
+        mail-pg1-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1732202AbfKFSLk (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 6 Nov 2019 13:11:40 -0500
+Received: by mail-pg1-f193.google.com with SMTP id w11so7339415pga.12
+        for <linux-arch@vger.kernel.org>; Wed, 06 Nov 2019 10:11:40 -0800 (PST)
+Date: Wed, 06 Nov 2019 10:11:37 -0800 (PST)
+Subject: Re: [PATCH 11/21] asm-generic: don't provide ioremap for CONFIG_MMU
+In-Reply-To: <20191029064834.23438-12-hch@lst.de>
 From: Palmer Dabbelt <palmer@dabbelt.com>
-Message-ID: <mhng-3f709a8a-a8c3-4612-b4de-847d13b4af0a@palmer-si-x1c4>
+Message-ID: <mhng-33ea9141-2440-4a2d-8133-62094486fc48@palmer-si-x1c4>
+Mime-Version: 1.0 (MHng)
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Christoph Hellwig <hch@lst.de>
 Cc: Arnd Bergmann <arnd@arndb.de>, guoren@kernel.org, monstr@monstr.eu, green.hu@gmail.com, deanbo422@gmail.com, gxt@pku.edu.cn, x86@kernel.org, linux-alpha@vger.kernel.org, linux-snps-arc@lists.infradead.org, linux-arm-kernel@lists.infradead.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, nios2-dev@lists.rocketboards.org, openrisc@lists.librecores.org, linux-parisc@vger.kernel.org, linux-riscv@lists.infradead.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-mtd@lists.infradead.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20191106175634.b0R4SXw-Z-oFZ2APxn-Sr2KeACSbDWiKLkMkIFpQ-8w@z>
+Message-ID: <20191106181137.fU6IKW5SBgDdgOqPip4dGYUn7ziGPavfhC2oC9h_swM@z>
 
-On Mon, 28 Oct 2019 23:48:23 PDT (-0700), Christoph Hellwig wrote:
-> Whatever reason there is for the existence of ioremap_uc, and the fact
-> that it returns NULL by default on architectures with an MMU applies
-> equally to nommu architectures, so don't provide different defaults.
+On Mon, 28 Oct 2019 23:48:24 PDT (-0700), Christoph Hellwig wrote:
+> All MMU-enabled ports have a non-trivial ioremap and should thus provide
+> the prototype for their implementation instead of providing a generic
+> one unless a different symbol is not defined.  Note that this only
+> affects sparc32 nds32 as all others do provide their own version.
 >
-> In practice the difference is meaningless as the only portable driver
-> that uses ioremap_uc is atyfb which probably doesn't show up on nommu
-> devices.
+> Also update the kerneldoc comments in asm-generic/io.h to explain the
+> situation around the default ioremap* implementations correctly.
 >
 > Signed-off-by: Christoph Hellwig <hch@lst.de>
 > ---
->  include/asm-generic/io.h | 36 ++++++++++++++++--------------------
->  1 file changed, 16 insertions(+), 20 deletions(-)
+>  arch/nds32/include/asm/io.h    |  2 ++
+>  arch/sparc/include/asm/io_32.h |  1 +
+>  include/asm-generic/io.h       | 29 ++++++++---------------------
+>  3 files changed, 11 insertions(+), 21 deletions(-)
 >
+> diff --git a/arch/nds32/include/asm/io.h b/arch/nds32/include/asm/io.h
+> index 16f262322b8f..fb0e8a24c7af 100644
+> --- a/arch/nds32/include/asm/io.h
+> +++ b/arch/nds32/include/asm/io.h
+> @@ -6,6 +6,7 @@
+>
+>  #include <linux/types.h>
+>
+> +void __iomem *ioremap(phys_addr_t phys_addr, size_t size);
+>  extern void iounmap(volatile void __iomem *addr);
+>  #define __raw_writeb __raw_writeb
+>  static inline void __raw_writeb(u8 val, volatile void __iomem *addr)
+> @@ -80,4 +81,5 @@ static inline u32 __raw_readl(const volatile void __iomem *addr)
+>  #define writew(v,c)	({ __iowmb(); writew_relaxed((v),(c)); })
+>  #define writel(v,c)	({ __iowmb(); writel_relaxed((v),(c)); })
+>  #include <asm-generic/io.h>
+> +
+>  #endif /* __ASM_NDS32_IO_H */
+> diff --git a/arch/sparc/include/asm/io_32.h b/arch/sparc/include/asm/io_32.h
+> index df2dc1784673..9a52d9506f80 100644
+> --- a/arch/sparc/include/asm/io_32.h
+> +++ b/arch/sparc/include/asm/io_32.h
+> @@ -127,6 +127,7 @@ static inline void sbus_memcpy_toio(volatile void __iomem *dst,
+>   * Bus number may be embedded in the higher bits of the physical address.
+>   * This is why we have no bus number argument to ioremap().
+>   */
+> +void __iomem *ioremap(phys_addr_t offset, size_t size);
+>  void iounmap(volatile void __iomem *addr);
+>  /* Create a virtual mapping cookie for an IO port range */
+>  void __iomem *ioport_map(unsigned long port, unsigned int nr);
 > diff --git a/include/asm-generic/io.h b/include/asm-generic/io.h
-> index d02806513670..a98ed6325727 100644
+> index a98ed6325727..6a5edc23afe2 100644
 > --- a/include/asm-generic/io.h
 > +++ b/include/asm-generic/io.h
-> @@ -935,18 +935,7 @@ static inline void *phys_to_virt(unsigned long address)
->   * defined your own ioremap_*() variant you must then declare your own
->   * ioremap_*() variant as defined to itself to avoid the default NULL return.
+> @@ -922,28 +922,16 @@ static inline void *phys_to_virt(unsigned long address)
+>  /**
+>   * DOC: ioremap() and ioremap_*() variants
+>   *
+> - * If you have an IOMMU your architecture is expected to have both ioremap()
+> - * and iounmap() implemented otherwise the asm-generic helpers will provide a
+> - * direct mapping.
+> + * Architectures with an MMU are expected to provide ioremap() and iounmap()
+> + * themselves.  For NOMMU architectures we provide a default nop-op
+> + * implementation that expect that the physical address used for MMIO are
+> + * already marked as uncached, and can be used as kernel virtual addresses.
+>   *
+> - * There are ioremap_*() call variants, if you have no IOMMU we naturally will
+> - * default to direct mapping for all of them, you can override these defaults.
+> - * If you have an IOMMU you are highly encouraged to provide your own
+> - * ioremap variant implementation as there currently is no safe architecture
+> - * agnostic default. To avoid possible improper behaviour default asm-generic
+> - * ioremap_*() variants all return NULL when an IOMMU is available. If you've
+> - * defined your own ioremap_*() variant you must then declare your own
+> - * ioremap_*() variant as defined to itself to avoid the default NULL return.
+> + * ioremap_wc() and ioremap_wt() can provide more relaxed caching attributes
+> + * for specific drivers if the architecture choses to implement them.  If they
+> + * are not implemented we fall back to plain ioremap.
 >   */
+>  #ifndef CONFIG_MMU
 > -
-> -#ifdef CONFIG_MMU
+> -/*
+> - * Change "struct page" to physical address.
+> - *
+> - * This implementation is for the no-MMU case only... if you have an MMU
+> - * you'll need to provide your own definitions.
+> - */
 > -
-> -#ifndef ioremap_uc
-> -#define ioremap_uc ioremap_uc
-> -static inline void __iomem *ioremap_uc(phys_addr_t offset, size_t size)
-> -{
-> -	return NULL;
-> -}
-> -#endif
-> -
-> -#else /* !CONFIG_MMU */
-> +#ifndef CONFIG_MMU
+>  #ifndef ioremap
+>  #define ioremap ioremap
+>  static inline void __iomem *ioremap(phys_addr_t offset, size_t size)
+> @@ -954,14 +942,13 @@ static inline void __iomem *ioremap(phys_addr_t offset, size_t size)
 >
->  /*
->   * Change "struct page" to physical address.
-> @@ -980,14 +969,6 @@ static inline void __iomem *ioremap_nocache(phys_addr_t offset, size_t size)
+>  #ifndef iounmap
+>  #define iounmap iounmap
+> -
+>  static inline void iounmap(void __iomem *addr)
+>  {
 >  }
 >  #endif
->
-> -#ifndef ioremap_uc
-> -#define ioremap_uc ioremap_uc
-> -static inline void __iomem *ioremap_uc(phys_addr_t offset, size_t size)
-> -{
-> -	return ioremap_nocache(offset, size);
-> -}
-> -#endif
-> -
->  #ifndef ioremap_wc
->  #define ioremap_wc ioremap_wc
->  static inline void __iomem *ioremap_wc(phys_addr_t offset, size_t size)
-> @@ -1004,6 +985,21 @@ static inline void __iomem *ioremap_wt(phys_addr_t offset, size_t size)
->  }
->  #endif
->
-> +/*
-> + * ioremap_uc is special in that we do require an explicit architecture
-> + * implementation.  In general you do now want to use this function in a
-
-Presumably that's supposed to be "do not want to use"?
-
-> + * driver and use plain ioremap, which is uncached by default.  Similarly
-> + * architectures should not implement it unless they have a very good
-> + * reason.
-> + */
-> +#ifndef ioremap_uc
-> +#define ioremap_uc ioremap_uc
-> +static inline void __iomem *ioremap_uc(phys_addr_t offset, size_t size)
-> +{
-> +	return NULL;
-> +}
-> +#endif
+>  #endif /* CONFIG_MMU */
 > +
->  #ifdef CONFIG_HAS_IOPORT_MAP
->  #ifndef CONFIG_GENERIC_IOMAP
->  #ifndef ioport_map
+>  #ifndef ioremap_nocache
+> -void __iomem *ioremap(phys_addr_t phys_addr, size_t size);
+>  #define ioremap_nocache ioremap_nocache
+>  static inline void __iomem *ioremap_nocache(phys_addr_t offset, size_t size)
+>  {
 
-With the fix:
+It looks like the difference in prototype between the architectures is between
 
-Reviewed-by: Palmer Dabbelt <palmer@dabbelt.com>
+    void __iomem *ioremap(resource_size_t, size_t)
+    void __iomem *ioremap(phys_addr_t, size_t)
+    void __iomem *ioremap(phys_addr_t, unsigned long)
+    void __iomem *ioremap(unsigned long, unsigned long)
+
+shouldn't they all just be that first one?  In other words, wouldn't it be 
+better to always provide the generic ioremap prototype and unify the ports 
+instead?
