@@ -1,58 +1,70 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm1-f67.google.com ([209.85.128.67]:38516 "EHLO
-        mail-wm1-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1731872AbfKFONe (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 6 Nov 2019 09:13:34 -0500
-Received: by mail-wm1-f67.google.com with SMTP id z19so3524255wmk.3
-        for <linux-arch@vger.kernel.org>; Wed, 06 Nov 2019 06:13:31 -0800 (PST)
+Received: from mail-wr1-f65.google.com ([209.85.221.65]:45048 "EHLO
+        mail-wr1-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1731897AbfKFONi (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 6 Nov 2019 09:13:38 -0500
+Received: by mail-wr1-f65.google.com with SMTP id f2so17073754wrs.11
+        for <linux-arch@vger.kernel.org>; Wed, 06 Nov 2019 06:13:36 -0800 (PST)
 From: Richard Henderson <richard.henderson@linaro.org>
-Subject: [PATCH v2 05/10] linux/random.h: Use false with bool
-Date: Wed,  6 Nov 2019 15:13:03 +0100
-Message-ID: <20191106141308.30535-6-rth@twiddle.net>
+Subject: [PATCH v2 08/10] powerpc: Use bool in archrandom.h
+Date: Wed,  6 Nov 2019 15:13:06 +0100
+Message-ID: <20191106141308.30535-9-rth@twiddle.net>
 In-Reply-To: <20191106141308.30535-1-rth@twiddle.net>
 References: <20191106141308.30535-1-rth@twiddle.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-crypto@vger.kernel.org
 Cc: herbert@gondor.apana.org.au, linux-arch@vger.kernel.org, x86@kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-arm-kernel@lists.infradead.org
-Message-ID: <20191106141303.5W5YCjPFfrKoFYcWemBQLdsAWGY4WaxXaVnmjlV4SZA@z>
+Message-ID: <20191106141306.B8zFLEXx_YCjjfQD6cgNHD3qQwP7G6XOU5oArAGJdkQ@z>
 
-Keep the generic fallback versions in sync with the other architecture
-specific implementations and use the proper name for false.
+The generic interface uses bool not int; match that.
 
-Suggested-by: Ard Biesheuvel <ardb@kernel.org>
+Reviewed-by: Ard Biesheuvel <ardb@kernel.org>
 Signed-off-by: Richard Henderson <rth@twiddle.net>
 ---
- include/linux/random.h | 8 ++++----
- 1 file changed, 4 insertions(+), 4 deletions(-)
+ arch/powerpc/include/asm/archrandom.h | 17 +++++++++--------
+ 1 file changed, 9 insertions(+), 8 deletions(-)
 
-diff --git a/include/linux/random.h b/include/linux/random.h
-index 7fd0360908d2..ea0e2f5f1ec5 100644
---- a/include/linux/random.h
-+++ b/include/linux/random.h
-@@ -169,19 +169,19 @@ static inline void prandom_seed_state(struct rnd_state *state, u64 seed)
- #else
- static inline bool arch_get_random_long(unsigned long *v)
- {
--	return 0;
-+	return false;
- }
- static inline bool arch_get_random_int(unsigned int *v)
- {
--	return 0;
-+	return false;
- }
- static inline bool arch_get_random_seed_long(unsigned long *v)
- {
--	return 0;
-+	return false;
- }
- static inline bool arch_get_random_seed_int(unsigned int *v)
- {
--	return 0;
-+	return false;
- }
- #endif
+diff --git a/arch/powerpc/include/asm/archrandom.h b/arch/powerpc/include/asm/archrandom.h
+index c2ed3b4681f5..7766812e2355 100644
+--- a/arch/powerpc/include/asm/archrandom.h
++++ b/arch/powerpc/include/asm/archrandom.h
+@@ -6,27 +6,28 @@
  
+ #include <asm/machdep.h>
+ 
+-static inline int arch_get_random_long(unsigned long *v)
++static inline bool arch_get_random_long(unsigned long *v)
+ {
+-	return 0;
++	return false;
+ }
+ 
+-static inline int arch_get_random_int(unsigned int *v)
++static inline bool arch_get_random_int(unsigned int *v)
+ {
+-	return 0;
++	return false;
+ }
+ 
+-static inline int arch_get_random_seed_long(unsigned long *v)
++static inline bool arch_get_random_seed_long(unsigned long *v)
+ {
+ 	if (ppc_md.get_random_seed)
+ 		return ppc_md.get_random_seed(v);
+ 
+-	return 0;
++	return false;
+ }
+-static inline int arch_get_random_seed_int(unsigned int *v)
++
++static inline bool arch_get_random_seed_int(unsigned int *v)
+ {
+ 	unsigned long val;
+-	int rc;
++	bool rc;
+ 
+ 	rc = arch_get_random_long(&val);
+ 	if (rc)
 -- 
 2.17.1
