@@ -1,51 +1,57 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qt1-f196.google.com ([209.85.160.196]:38547 "EHLO
-        mail-qt1-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727570AbfKFQsB (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 6 Nov 2019 11:48:01 -0500
-Date: Wed, 6 Nov 2019 11:47:56 -0500
-From: Mohammad Nasirifar <far.nasiri.m@gmail.com>
+Received: from Galois.linutronix.de ([193.142.43.55]:44842 "EHLO
+        Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1728448AbfKFRCr (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 6 Nov 2019 12:02:47 -0500
+Date: Wed, 6 Nov 2019 18:02:41 +0100 (CET)
+From: Thomas Gleixner <tglx@linutronix.de>
 Subject: Re: [PATCH 1/1] syscalls: Fix references to filenames containing
  syscall defs
-Message-ID: <20191106164756.GA558585@gmail.com>
-References: <20191105022928.517526-1-farnasirim@gmail.com>
- <alpine.DEB.2.21.1911051033050.17054@nanos.tec.linutronix.de>
- <CAK8P3a0wyw=CwhiU34t1zBiSesf+HGBLeaV+=JVko_TjnvATHQ@mail.gmail.com>
+In-Reply-To: <20191106164756.GA558585@gmail.com>
+Message-ID: <alpine.DEB.2.21.1911061755060.1869@nanos.tec.linutronix.de>
+References: <20191105022928.517526-1-farnasirim@gmail.com> <alpine.DEB.2.21.1911051033050.17054@nanos.tec.linutronix.de> <CAK8P3a0wyw=CwhiU34t1zBiSesf+HGBLeaV+=JVko_TjnvATHQ@mail.gmail.com> <20191106164756.GA558585@gmail.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii; format=flowed
-Content-Disposition: inline
-In-Reply-To: <CAK8P3a0wyw=CwhiU34t1zBiSesf+HGBLeaV+=JVko_TjnvATHQ@mail.gmail.com>
+Content-Type: text/plain; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Thomas Gleixner <tglx@linutronix.de>, Andrew Morton <akpm@linux-foundation.org>, Mohammad Nasirifar <farnasirim@gmail.com>, Linux API <linux-api@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Valdis Kletnieks <valdis.kletnieks@vt.edu>
-Message-ID: <20191106164756.uxLn-BTAgJJAlZfW52bzu3LOE96t6JkgAnWoFwnywxc@z>
+To: Mohammad Nasirifar <far.nasiri.m@gmail.com>
+Cc: Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, Mohammad Nasirifar <farnasirim@gmail.com>, Linux API <linux-api@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Valdis Kletnieks <valdis.kletnieks@vt.edu>
+Message-ID: <20191106170241.di8ZQNCqd-w5EsUpIPR2gRmdxp9CyxrU8fUH2LxOBpY@z>
 
-On Tue, Nov 05, 2019 at 10:49:12AM +0100, Arnd Bergmann wrote:
->On Tue, Nov 5, 2019 at 10:34 AM Thomas Gleixner <tglx@linutronix.de> wrote:
->> On Mon, 4 Nov 2019, Mohammad Nasirifar wrote:
->> > Fix stale references to files containing syscall definitions in
->> > 'include/linux/syscalls.h' and 'include/uapi/asm-generic/unistd.h',
->> > pointing to 'kernel/itimer.c', 'kernel/hrtimer.c', and 'kernel/time.c'.
->> > They are now under 'kernel/time'.
->> >
->> > Also definitions of 'getpid', 'getppid', 'getuid', 'geteuid', 'getgid',
->> > 'getegid', 'gettid', and 'sysinfo' are now in 'kernel/sys.c'.
->>
->> Can we please remove these file references completely. They are going to be
->> stale sooner than later again and they really do not provide any value.
-I actually refer to them a lot when locating syscall implementations,
-which is how I found out that they were stale in the first place.
+On Wed, 6 Nov 2019, Mohammad Nasirifar wrote:
+
+> On Tue, Nov 05, 2019 at 10:49:12AM +0100, Arnd Bergmann wrote:
+> > On Tue, Nov 5, 2019 at 10:34 AM Thomas Gleixner <tglx@linutronix.de> wrote:
+> > > On Mon, 4 Nov 2019, Mohammad Nasirifar wrote:
+> > > > Fix stale references to files containing syscall definitions in
+> > > > 'include/linux/syscalls.h' and 'include/uapi/asm-generic/unistd.h',
+> > > > pointing to 'kernel/itimer.c', 'kernel/hrtimer.c', and 'kernel/time.c'.
+> > > > They are now under 'kernel/time'.
+> > > >
+> > > > Also definitions of 'getpid', 'getppid', 'getuid', 'geteuid', 'getgid',
+> > > > 'getegid', 'gettid', and 'sysinfo' are now in 'kernel/sys.c'.
+> > > 
+> > > Can we please remove these file references completely. They are going
+> > > to be stale sooner than later again and they really do not provide
+> > > any value.
 >
->+1
->
->Good idea!
->
->In the long run, I'd prefer to have a parsable format that can be used to
->generate both the header file and the stubs that we currently provide
->using SYSCALL_DEFINEx(), but before that I'd like the remaining two
->unistd.h files to be converted to syscall.tbl format (Nitesh is still working
->on that).
-Sorry I didn't understand, is there anything I can do to follow up on this?
->
->      Arnd
+> I actually refer to them a lot when locating syscall implementations,
+> which is how I found out that they were stale in the first place.
+
+# git grep -n 'SYSCALL.*(nanosleep'
+
+kernel/time/hrtimer.c:1945:SYSCALL_DEFINE2(nanosleep, struct ...
+kernel/time/hrtimer.c:1965:SYSCALL_DEFINE2(nanosleep_time32, struct ...
+
+Gives you the always correct answer including the line number.
+
+So there is really no value in keeping those file references and have them
+outdated once a function or a file moves. It's just matter of fact that
+nobody ever fixes them up when a function or a file moves. Why? Because
+they have no connection. The compiler does not complain and there are no
+tools which could ever validate them. So removing them is the right thing
+to do.
+
+Thanks,
+
+	tglx
