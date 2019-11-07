@@ -1,131 +1,31 @@
-From: Palmer Dabbelt <palmer@dabbelt.com>
-Subject: Re: [PATCH 17/21] lib: provide a simple generic ioremap implementation
-Date: Thu, 07 Nov 2019 07:29:10 -0800 (PST)
-Message-ID: <mhng-e96b8613-e384-4e94-90f8-d1cf78c5627a@palmer-si-x1c4>
-References: <20191029064834.23438-18-hch@lst.de>
-Mime-Version: 1.0 (MHng)
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Transfer-Encoding: 8bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20191029064834.23438-18-hch@lst.de>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Christoph Hellwig <hch@lst.de>
-Cc: Arnd Bergmann <arnd@arndb.de>, guoren@kernel.org, monstr@monstr.eu, green.hu@gmail.com, deanbo422@gmail.com, gxt@pku.edu.cn, x86@kernel.org, linux-alpha@vger.kernel.org, linux-snps-arc@lists.infradead.org, linux-arm-kernel@lists.infradead.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, nios2-dev@lists.rocketboards.org, openrisc@lists.librecores.org, linux-parisc@vger.kernel.org, linux-riscv@lists.infradead.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-mtd@lists.infradead.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+From: Christoph Hellwig <hch@lst.de>
+Subject: provide in-place uncached remapping for dma-direct
+Date: Thu,  7 Nov 2019 18:40:33 +0100
+Message-ID: <20191107174035.13783-1-hch@lst.de>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+To: Jonas Bonn <jonas@southpole.se>, Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>, Stafford Horne <shorne@gmail.com>
+Cc: Mark Rutland <mark.rutland@arm.com>, linux-arch@vger.kernel.org, Robin Murphy <robin.murphy@arm.com>, linux-kernel@vger.kernel.org, iommu@lists.linux-foundation.org, openrisc@lists.librecores.org, Will Deacon <will@kernel.org>, linux-arm-kernel@lists.infradead.org, Marek Szyprowski <m.szyprowski@samsung.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Mon, 28 Oct 2019 23:48:30 PDT (-0700), Christoph Hellwig wrote:
-> A lot of architectures reuse the same simple ioremap implementation, so
-> start lifting the most simple variant to lib/ioremap.c.  It provides
-> ioremap_prot and iounmap, plus a default ioremap that uses prot_noncached,
-> although that can be overridden by asm/io.h.
->
-> Signed-off-by: Christoph Hellwig <hch@lst.de>
-> ---
->  include/asm-generic/io.h | 20 ++++++++++++++++----
->  lib/Kconfig              |  3 +++
->  lib/ioremap.c            | 39 +++++++++++++++++++++++++++++++++++++++
->  3 files changed, 58 insertions(+), 4 deletions(-)
->
-> diff --git a/include/asm-generic/io.h b/include/asm-generic/io.h
-> index 4e45e1cb6560..4a661fdd1937 100644
-> --- a/include/asm-generic/io.h
-> +++ b/include/asm-generic/io.h
-> @@ -923,9 +923,10 @@ static inline void *phys_to_virt(unsigned long address)
->   * DOC: ioremap() and ioremap_*() variants
->   *
->   * Architectures with an MMU are expected to provide ioremap() and iounmap()
-> - * themselves.  For NOMMU architectures we provide a default nop-op
-> - * implementation that expect that the physical address used for MMIO are
-> - * already marked as uncached, and can be used as kernel virtual addresses.
-> + * themselves or rely on GENERIC_IOREMAP.  For NOMMU architectures we provide
-> + * a default nop-op implementation that expect that the physical address used
-> + * for MMIO are already marked as uncached, and can be used as kernel virtual
-> + * addresses.
->   *
->   * ioremap_wc() and ioremap_wt() can provide more relaxed caching attributes
->   * for specific drivers if the architecture choses to implement them.  If they
-> @@ -946,7 +947,18 @@ static inline void iounmap(void __iomem *addr)
->  {
->  }
->  #endif
-> -#endif /* CONFIG_MMU */
-> +#elif defined(CONFIG_GENERIC_IOREMAP)
-> +#include <asm/pgtable.h>
-> +
-> +void __iomem *ioremap_prot(phys_addr_t addr, size_t size, unsigned long prot);
-> +void iounmap(volatile void __iomem *addr);
-> +
-> +static inline void __iomem *ioremap(phys_addr_t addr, size_t size)
-> +{
-> +	/* _PAGE_IOREMAP needs to be supplied by the architecture */
-> +	return ioremap_prot(addr, size, _PAGE_IOREMAP);
-> +}
-> +#endif /* !CONFIG_MMU || CONFIG_GENERIC_IOREMAP */
->
->  #ifndef ioremap_nocache
->  #define ioremap_nocache ioremap
-> diff --git a/lib/Kconfig b/lib/Kconfig
-> index 183f92a297ca..afc78aaf2b25 100644
-> --- a/lib/Kconfig
-> +++ b/lib/Kconfig
-> @@ -638,6 +638,9 @@ config STRING_SELFTEST
->
->  endmenu
->
-> +config GENERIC_IOREMAP
-> +	bool
-> +
->  config GENERIC_LIB_ASHLDI3
->  	bool
->
-> diff --git a/lib/ioremap.c b/lib/ioremap.c
-> index 0a2ffadc6d71..3f0e18543de8 100644
-> --- a/lib/ioremap.c
-> +++ b/lib/ioremap.c
-> @@ -231,3 +231,42 @@ int ioremap_page_range(unsigned long addr,
->
->  	return err;
->  }
-> +
-> +#ifdef CONFIG_GENERIC_IOREMAP
-> +void __iomem *ioremap_prot(phys_addr_t addr, size_t size, unsigned long prot)
-> +{
-> +	unsigned long offset, vaddr;
-> +	phys_addr_t last_addr;
-> +	struct vm_struct *area;
-> +
-> +	/* Disallow wrap-around or zero size */
-> +	last_addr = addr + size - 1;
-> +	if (!size || last_addr < addr)
-> +		return NULL;
-> +
-> +	/* Page-align mappings */
-> +	offset = addr & (~PAGE_MASK);
-> +	addr -= offset;
-> +	size = PAGE_ALIGN(size + offset);
-> +
-> +	area = get_vm_area_caller(size, VM_IOREMAP,
-> +			__builtin_return_address(0));
-> +	if (!area)
-> +		return NULL;
-> +	vaddr = (unsigned long)area->addr;
-> +
-> +	if (ioremap_page_range(vaddr, vaddr + size, addr, __pgprot(prot))) {
-> +		free_vm_area(area);
-> +		return NULL;
-> +	}
-> +
-> +	return (void __iomem *)(vaddr + offset);
-> +}
-> +EXPORT_SYMBOL(ioremap_prot);
-> +
-> +void iounmap(volatile void __iomem *addr)
-> +{
-> +	vunmap((void *)((unsigned long)addr & PAGE_MASK));
-> +}
-> +EXPORT_SYMBOL(iounmap);
-> +#endif /* CONFIG_GENERIC_IOREMAP */
+Hi all,
 
-Reviewed-by: Palmer Dabbelt <palmer@dabbelt.com>
+this series provides support for remapping places uncached in-place in
+the generic dma-direct code, and moves openrisc over from its own
+in-place remapping scheme.  The arm64 folks also had interest in such
+a scheme to avoid problems with speculating into cache aliases.
 
-Thanks!  This should let us get rid of arch/riscv/mm/ioremap.c.
+Also all architectures that always use small page mappings for the
+kernel and have non-coherent DMA should look into enabling this
+scheme, as it is much more efficient than the vmap remapping.
