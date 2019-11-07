@@ -1,64 +1,87 @@
-From: Pavel Machek <pavel@denx.de>
-Subject: Re: [PATCH 10/10] errno.h: Provide EFSCORRUPTED for everybody
-Date: Wed, 6 Nov 2019 22:37:25 +0100
-Message-ID: <20191106213725.GB7020@amd>
-References: <20191104014510.102356-1-Valdis.Kletnieks@vt.edu>
- <20191104014510.102356-11-Valdis.Kletnieks@vt.edu>
- <5c441427-7e65-fcae-3518-eb37cea5f875@huawei.com>
+From: Stephen Rothwell <sfr@canb.auug.org.au>
+Subject: Re: Please add powerpc topic/kasan-bitops branch to linux-next
+Date: Thu, 7 Nov 2019 17:34:51 +1100
+Message-ID: <20191107173451.6be74953@canb.auug.org.au>
+References: <87r22k5nrz.fsf@mpe.ellerman.id.au>
 Mime-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha1;
-        protocol="application/pgp-signature"; boundary="jq0ap7NbKX2Kqbes"
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <5c441427-7e65-fcae-3518-eb37cea5f875@huawei.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Chao Yu <yuchao0@huawei.com>
-Cc: Valdis Kletnieks <valdis.kletnieks@vt.edu>, "Darrick J . Wong" <darrick.wong@oracle.com>, Jan Kara <jack@suse.cz>, Theodore Ts'o <tytso@mit.edu>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Gao Xiang <xiang@kernel.org>, Chao Yu <chao@kernel.org>, Andreas Dilger <adilger.kernel@dilger.ca>, Jaegeuk Kim <jaegeuk@kernel.org>, linux-xfs@vger.kernel.org, Jan Kara <jack@suse.com>, Arnd Bergmann <arnd@arndb.de>, linux-fsdevel@vger.kernel.org, devel@driverdev.osuosl.org, linux-kernel@vger.kernel.org, linux-erofs@lists.ozlabs.org, linux-ext4@vger.kernel.org, linux-f2fs-devel@lists.sourceforge.net, linux-arch@vger.kernel.org
+Content-Type: multipart/signed; boundary="Sig_/QLj.mRHKb6JGbFGyiT8jLoU";
+ protocol="application/pgp-signature"; micalg=pgp-sha256
+Return-path: <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
+In-Reply-To: <87r22k5nrz.fsf@mpe.ellerman.id.au>
+List-Unsubscribe: <https://lists.ozlabs.org/options/linuxppc-dev>,
+ <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=unsubscribe>
+List-Archive: <http://lists.ozlabs.org/pipermail/linuxppc-dev/>
+List-Post: <mailto:linuxppc-dev@lists.ozlabs.org>
+List-Help: <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=help>
+List-Subscribe: <https://lists.ozlabs.org/listinfo/linuxppc-dev>,
+ <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=subscribe>
+Errors-To: linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org
+Sender: "Linuxppc-dev"
+ <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
+To: Michael Ellerman <mpe@ellerman.id.au>
+Cc: linux-s390@vger.kernel.org, x86@kernel.org, kasan-dev@googlegroups.com, linux-next@vger.kernel.org, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, Daniel Axtens <dja@axtens.net>
 List-Id: linux-arch.vger.kernel.org
 
-
---jq0ap7NbKX2Kqbes
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
+--Sig_/QLj.mRHKb6JGbFGyiT8jLoU
+Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: quoted-printable
 
-Hi!
+Hi Michael,
 
-> > There's currently 6 filesystems that have the same #define. Move it
-> > into errno.h so it's defined in just one place.
-> >=20
-> > Signed-off-by: Valdis Kletnieks <Valdis.Kletnieks@vt.edu>
-> > Acked-by: Darrick J. Wong <darrick.wong@oracle.com>
-> > Reviewed-by: Jan Kara <jack@suse.cz>
-> > Acked-by: Theodore Ts'o <tytso@mit.edu>
+On Thu, 07 Nov 2019 15:11:12 +1100 Michael Ellerman <mpe@ellerman.id.au> wr=
+ote:
+>
+> Can you please add the topic/kasan-bitops tree of the powerpc repository
+> to linux-next.
 >=20
-> >  fs/erofs/internal.h              | 2 --
+> powerpc         git     git://git.kernel.org/pub/scm/linux/kernel/git/pow=
+erpc/linux.git#topic/kasan-bitops
 >=20
-> >  fs/f2fs/f2fs.h                   | 1 -
+> See:
+>   https://git.kernel.org/pub/scm/linux/kernel/git/powerpc/linux.git/log/?=
+h=3Dtopic/kasan-bitops
 >=20
-> Acked-by: Chao Yu <yuchao0@huawei.com>
+> This will be a (hopefully) short lived branch to carry some cross
+> architecture KASAN related patches for v5.5.
 
-Are we still using EUCLEAN for something else than EFSCORRUPTED? Could
-we perhaps change the glibc definiton to "your filesystem is
-corrupted" in the long run?
+Added from today.
 
-Best regards,
-								Pavel
+Thanks for adding your subsystem tree as a participant of linux-next.  As
+you may know, this is not a judgement of your code.  The purpose of
+linux-next is for integration testing and to lower the impact of
+conflicts between subsystems in the next merge window.=20
+
+You will need to ensure that the patches/commits in your tree/series have
+been:
+     * submitted under GPL v2 (or later) and include the Contributor's
+        Signed-off-by,
+     * posted to the relevant mailing list,
+     * reviewed by you (or another maintainer of your subsystem tree),
+     * successfully unit tested, and=20
+     * destined for the current or next Linux merge window.
+
+Basically, this should be just what you would send to Linus (or ask him
+to fetch).  It is allowed to be rebased if you deem it necessary.
+
 --=20
-(english) http://www.livejournal.com/~pavelmachek
-(cesky, pictures) http://atrey.karlin.mff.cuni.cz/~pavel/picture/horses/blo=
-g.html
+Cheers,
+Stephen Rothwell=20
+sfr@canb.auug.org.au
 
---jq0ap7NbKX2Kqbes
-Content-Type: application/pgp-signature; name="signature.asc"
-Content-Description: Digital signature
+--Sig_/QLj.mRHKb6JGbFGyiT8jLoU
+Content-Type: application/pgp-signature
+Content-Description: OpenPGP digital signature
 
 -----BEGIN PGP SIGNATURE-----
-Version: GnuPG v1
 
-iEYEARECAAYFAl3DPRUACgkQMOfwapXb+vIeLACgumqpgUAXyu1qs1LlH4i+wJ+u
-sPEAn0YdeU4hDroZD6g3yLDme7o5MHbL
-=nCbA
+iQEzBAEBCAAdFiEENIC96giZ81tWdLgKAVBC80lX0GwFAl3DuwsACgkQAVBC80lX
+0Gx+nQf+Kb9/DdUAxGd+w9sWu1q0Z+Hiq9qD8vwzOM0/tFtNdMhWLOJRM0idUy9Q
+NHHN0yi54olE5bolHbOqmXXITBE+Dy7RyRUchaPSMkUgAAI8n+iteHy4/ZakmJr+
+6lYeGHjGzM9+9q5eYl6yD7hj6cAAyI4wBUu0fMYBcuWix/xOImWZAe/6iGRhgRLf
+UAzDGUbnyqpox0S0v10SJjbTkGXyuvaxzs27pGUBZbRODNPbZYEX7hpo5TnQxzBq
+ZMkJaRdxAKi0szigouKz9d75XPKNmc4zz5tY9gCShmBlE6bjJHzVF0ntNGrge78W
+mMgfvcvatGMcL/fbSn8nu3+vqMnFpg==
+=XNA5
 -----END PGP SIGNATURE-----
 
---jq0ap7NbKX2Kqbes--
+--Sig_/QLj.mRHKb6JGbFGyiT8jLoU--
