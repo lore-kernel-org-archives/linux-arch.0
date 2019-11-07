@@ -1,139 +1,138 @@
-From: Alex Kogan <alex.kogan@oracle.com>
-Subject: [PATCH v6 0/5] Add NUMA-awareness to qspinlock
-Date: Thu,  7 Nov 2019 12:46:17 -0500
-Message-ID: <20191107174622.61718-1-alex.kogan@oracle.com>
+From: Marco Elver <elver@google.com>
+Subject: Re: [PATCH v3 1/9] kcsan: Add Kernel Concurrency Sanitizer infrastructure
+Date: Thu, 7 Nov 2019 19:43:45 +0100
+Message-ID: <CANpmjNNWeM91Jmoh8aujpBA9YVfL6LSqH-taQO-6BJQwUZfCkw@mail.gmail.com>
+References: <20191104142745.14722-2-elver@google.com> <201911070445.vRUSVUAX%lkp@intel.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
-To: linux@armlinux.org.uk, peterz@infradead.org, mingo@redhat.com, will.deacon@arm.com, arnd@arndb.de, longman@redhat.com, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, bp@alien8.de, hpa@zytor.com, x86@kernel.org, guohanjun@huawei.com, jglauber@marvell.com
-Cc: alex.kogan@oracle.com, dave.dice@oracle.com, rahul.x.yadav@oracle.com, steven.sistare@oracle.com, daniel.m.jordan@oracle.com
+Content-Type: text/plain; charset="UTF-8"
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <201911070445.vRUSVUAX%lkp@intel.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: kbuild test robot <lkp@intel.com>
+Cc: kbuild-all@lists.01.org, LKMM Maintainers -- Akira Yokosawa <akiyks@gmail.com>, Alan Stern <stern@rowland.harvard.edu>, Alexander Potapenko <glider@google.com>, Andrea Parri <parri.andrea@gmail.com>, Andrey Konovalov <andreyknvl@google.com>, Andy Lutomirski <luto@kernel.org>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Arnd Bergmann <arnd@arndb.de>, Boqun Feng <boqun.feng@gmail.com>, Borislav Petkov <bp@alien8.de>, Daniel Axtens <dja@axtens.net>, Daniel Lustig <dlustig@nvidia.com>, Dave Hansen <dave.hansen@linux.intel.com>, David Howells <dhowells@redhat.com>, Dmitry Vyukov <dvyukov@google.com>, "H. Peter Anvin" <hpa@zytor.com>, Ingo Molnar <mingo@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Joel Fernandes <joel@joelfernandes.org>, Jonath
 List-Id: linux-arch.vger.kernel.org
 
-TWlub3IgY2hhbmdlcyBmcm9tIHY1LCBtYWlubHkgYmFzZWQgb24gZmVlZGJhY2sgZnJvbSBMb25n
-bWFuOgotLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0t
-LS0tLS0tLS0tCgotIE1ha2UgdGhlIGludHJhIG5vZGUgaGFuZG9mZiB0aHJlc2hvbGQgYSBjb25m
-aWd1cmFibGUgcGFyYW1ldGVyIAp2aWEgdGhlIG5ldyBrZXJuZWwgYm9vdCBjb21tYW5kLWxpbmUg
-b3B0aW9uICJudW1hX3NwaW5sb2NrX3RocmVzaG9sZCIuCgotIEFkZCBkb2N1bWVudGF0aW9uIG9m
-IG5ldyBjb21tYW5kLWxpbmUgb3B0aW9ucyBpbiBrZXJuZWwtcGFyYW1ldGVycy50eHQuCgotIFNt
-YWxsIGZpeCBpbiBjbmFfdHJ5X2NoYW5nZV90YWlsKCkgKHVzZSBjbXB4aGdfcmVsYXhlZCgpKS4K
-Ci0gU21hbGwgZml4IGluIGNuYV9pbml0X25vZGVzKCkgKHJldHVybiAwKS4KCi0gTWlub3IgY2hh
-bmdlcyBpbiBjbmFfcGFzc19sb2NrKCkuIAoKClN1bW1hcnkKLS0tLS0tLQoKTG9jayB0aHJvdWdo
-cHV0IGNhbiBiZSBpbmNyZWFzZWQgYnkgaGFuZGluZyBhIGxvY2sgdG8gYSB3YWl0ZXIgb24gdGhl
-CnNhbWUgTlVNQSBub2RlIGFzIHRoZSBsb2NrIGhvbGRlciwgcHJvdmlkZWQgY2FyZSBpcyB0YWtl
-biB0byBhdm9pZApzdGFydmF0aW9uIG9mIHdhaXRlcnMgb24gb3RoZXIgTlVNQSBub2Rlcy4gVGhp
-cyBwYXRjaCBpbnRyb2R1Y2VzIENOQQooY29tcGFjdCBOVU1BLWF3YXJlIGxvY2spIGFzIHRoZSBz
-bG93IHBhdGggZm9yIHFzcGlubG9jay4gSXQgaXMKZW5hYmxlZCB0aHJvdWdoIGEgY29uZmlndXJh
-dGlvbiBvcHRpb24gKE5VTUFfQVdBUkVfU1BJTkxPQ0tTKS4KCkNOQSBpcyBhIE5VTUEtYXdhcmUg
-dmVyc2lvbiBvZiB0aGUgTUNTIGxvY2suIFNwaW5uaW5nIHRocmVhZHMgYXJlCm9yZ2FuaXplZCBp
-biB0d28gcXVldWVzLCBhIG1haW4gcXVldWUgZm9yIHRocmVhZHMgcnVubmluZyBvbiB0aGUgc2Ft
-ZQpub2RlIGFzIHRoZSBjdXJyZW50IGxvY2sgaG9sZGVyLCBhbmQgYSBzZWNvbmRhcnkgcXVldWUg
-Zm9yIHRocmVhZHMKcnVubmluZyBvbiBvdGhlciBub2Rlcy4gVGhyZWFkcyBzdG9yZSB0aGUgSUQg
-b2YgdGhlIG5vZGUgb24gd2hpY2gKdGhleSBhcmUgcnVubmluZyBpbiB0aGVpciBxdWV1ZSBub2Rl
-cy4gQWZ0ZXIgYWNxdWlyaW5nIHRoZSBNQ1MgbG9jayBhbmQKYmVmb3JlIGFjcXVpcmluZyB0aGUg
-c3BpbmxvY2ssIHRoZSBsb2NrIGhvbGRlciBzY2FucyB0aGUgbWFpbiBxdWV1ZQpsb29raW5nIGZv
-ciBhIHRocmVhZCBydW5uaW5nIG9uIHRoZSBzYW1lIG5vZGUgKHByZS1zY2FuKS4gSWYgZm91bmQg
-KGNhbGwKaXQgdGhyZWFkIFQpLCBhbGwgdGhyZWFkcyBpbiB0aGUgbWFpbiBxdWV1ZSBiZXR3ZWVu
-IHRoZSBjdXJyZW50IGxvY2sKaG9sZGVyIGFuZCBUIGFyZSBtb3ZlZCB0byB0aGUgZW5kIG9mIHRo
-ZSBzZWNvbmRhcnkgcXVldWUuICBJZiBzdWNoIFQKaXMgbm90IGZvdW5kLCB3ZSBtYWtlIGFub3Ro
-ZXIgc2NhbiBvZiB0aGUgbWFpbiBxdWV1ZSBhZnRlciBhY3F1aXJpbmcgCnRoZSBzcGlubG9jayB3
-aGVuIHVubG9ja2luZyB0aGUgTUNTIGxvY2sgKHBvc3Qtc2NhbiksIHN0YXJ0aW5nIGF0IHRoZQpu
-b2RlIHdoZXJlIHByZS1zY2FuIHN0b3BwZWQuIElmIGJvdGggc2NhbnMgZmFpbCB0byBmaW5kIHN1
-Y2ggVCwgdGhlCk1DUyBsb2NrIGlzIHBhc3NlZCB0byB0aGUgZmlyc3QgdGhyZWFkIGluIHRoZSBz
-ZWNvbmRhcnkgcXVldWUuIElmIHRoZQpzZWNvbmRhcnkgcXVldWUgaXMgZW1wdHksIHRoZSBNQ1Mg
-bG9jayBpcyBwYXNzZWQgdG8gdGhlIG5leHQgdGhyZWFkIGluIHRoZQptYWluIHF1ZXVlLiBUbyBh
-dm9pZCBzdGFydmF0aW9uIG9mIHRocmVhZHMgaW4gdGhlIHNlY29uZGFyeSBxdWV1ZSwgdGhvc2UK
-dGhyZWFkcyBhcmUgbW92ZWQgYmFjayB0byB0aGUgaGVhZCBvZiB0aGUgbWFpbiBxdWV1ZSBhZnRl
-ciBhIGNlcnRhaW4KbnVtYmVyIG9mIGludHJhLW5vZGUgbG9jayBoYW5kLW9mZnMuCgpNb3JlIGRl
-dGFpbHMgYXJlIGF2YWlsYWJsZSBhdCBodHRwczovL2FyeGl2Lm9yZy9hYnMvMTgxMC4wNTYwMC4K
-CldlIGhhdmUgZG9uZSBzb21lIHBlcmZvcm1hbmNlIGV2YWx1YXRpb24gd2l0aCB0aGUgbG9ja3Rv
-cnR1cmUgbW9kdWxlCmFzIHdlbGwgYXMgd2l0aCBzZXZlcmFsIGJlbmNobWFya3MgZnJvbSB0aGUg
-d2lsbC1pdC1zY2FsZSByZXBvLgpUaGUgZm9sbG93aW5nIGxvY2t0b3J0dXJlIHJlc3VsdHMgYXJl
-IGZyb20gYW4gT3JhY2xlIFg1LTQgc2VydmVyCihmb3VyIEludGVsIFhlb24gRTctODg5NSB2MyBA
-IDIuNjBHSHogc29ja2V0cyB3aXRoIDE4IGh5cGVydGhyZWFkZWQKY29yZXMgZWFjaCkuIEVhY2gg
-bnVtYmVyIHJlcHJlc2VudHMgYW4gYXZlcmFnZSAob3ZlciAyNSBydW5zKSBvZiB0aGUKdG90YWwg
-bnVtYmVyIG9mIG9wcyAoeDEwXjcpIHJlcG9ydGVkIGF0IHRoZSBlbmQgb2YgZWFjaCBydW4uIFRo
-ZSAKc3RhbmRhcmQgZGV2aWF0aW9uIGlzIGFsc28gcmVwb3J0ZWQgaW4gKCksIGFuZCBpbiBnZW5l
-cmFsIGlzIGFib3V0IDMlCmZyb20gdGhlIGF2ZXJhZ2UuIFRoZSAnc3RvY2snIGtlcm5lbCBpcyB2
-NS40LjAtcmM1LApjb21taXQgN2M1ZTEzNmEwMmJhLCBjb21waWxlZCBpbiB0aGUgZGVmYXVsdCBj
-b25maWd1cmF0aW9uLiAKJ3BhdGNoLUNOQScgaXMgdGhlIG1vZGlmaWVkIGtlcm5lbCB3aXRoIE5V
-TUFfQVdBUkVfU1BJTkxPQ0tTIHNldDsgCnRoZSBzcGVlZHVwIGlzIGNhbGN1bGF0ZWQgZGl2aWRp
-bmcgJ3BhdGNoLUNOQScgYnkgJ3N0b2NrJy4KCiN0aHIgIAkgc3RvY2sgICAgICAgIHBhdGNoLUNO
-QSAgIHNwZWVkdXAgKHBhdGNoLUNOQS9zdG9jaykKICAxICAyLjcyNiAoMC4xMDcpICAyLjcyOSAo
-MC4wOTYpICAxLjAwMQogIDIgIDIuNjU2ICgwLjExMykgIDIuNjY2ICgwLjExNikgIDEuMDA0CiAg
-NCAgNC4xNDcgKDAuMDg1KSAgNC4yNTUgKDAuMTM1KSAgMS4wMjYKICA4ICA1LjM4OCAoMC4xNDYp
-ICA2LjY0MiAoMC4xNTUpICAxLjIzMwogMTYgIDYuNjg4ICgwLjE1MikgIDguMDM1ICgwLjE2Mikg
-IDEuMjAyCiAzMiAgNy4zODkgKDAuMjAzKSAgOC43NTEgKDAuMTkyKSAgMS4xODQKIDM2ICA3LjQy
-MCAoMC4xNzkpICA4LjgxOCAoMC4xNzMpICAxLjE4OAogNzIgIDYuNDg5ICgwLjEyMikgIDkuNDAz
-ICgwLjI1MikgIDEuNDQ5CjEwOCAgNi4xNjMgKDAuMDc4KSAgOS41MDQgKDAuMTc3KSAgMS41NDIK
-MTQyICA1LjczNiAoMC4xMDUpICA5LjM3MSAoMC4xODEpICAxLjYzNAoKVGhlIGZvbGxvd2luZyB0
-YWJsZXMgY29udGFpbiB0aHJvdWdocHV0IHJlc3VsdHMgKG9wcy91cykgZnJvbSB0aGUgc2FtZQpz
-ZXR1cCBmb3Igd2lsbC1pdC1zY2FsZS9vcGVuMV90aHJlYWRzOiAKCiN0aHIgIAkgc3RvY2sgICAg
-ICAgIHBhdGNoLUNOQSAgIHNwZWVkdXAgKHBhdGNoLUNOQS9zdG9jaykKICAxICAwLjUzMyAoMC4w
-MDEpICAwLjUzNCAoMC4wMDIpICAxLjAwMwogIDIgIDAuNzg3ICgwLjAyMCkgIDAuODAxICgwLjAy
-MikgIDEuMDE3CiAgNCAgMS40MTggKDAuMDMxKSAgMS40MjEgKDAuMDIyKSAgMS4wMDIKICA4ICAx
-Ljc0NSAoMC4xMTIpICAxLjczNiAoMC4xMDQpICAwLjk5NQogMTYgIDEuNzc5ICgwLjEwNCkgIDEu
-Njk2ICgwLjA5MCkgIDAuOTUzCiAzMiAgMC45MjMgKDAuMDYwKSAgMS42MzQgKDAuMTA5KSAgMS43
-NzEKIDM2ICAwLjg5OSAoMC4wODcpICAxLjYzNiAoMC4xMDgpICAxLjgyMQogNzIgIDAuODM3ICgw
-LjAzOCkgIDEuNjE1ICgwLjA4NikgIDEuOTI4CjEwOCAgMC44NDEgKDAuMDQ0KSAgMS43MTUgKDAu
-MDg3KSAgMi4wNDEKMTQyICAwLjgwMiAoMC4wNDApICAxLjczNCAoMC4wODUpICAyLjE2MwoKYW5k
-IHdpbGwtaXQtc2NhbGUvbG9jazJfdGhyZWFkczoKCiN0aHIgIAkgc3RvY2sgICAgICAgIHBhdGNo
-LUNOQSAgIHNwZWVkdXAgKHBhdGNoLUNOQS9zdG9jaykKICAxICAxLjU5MCAoMC4wMTMpICAxLjU4
-MyAoMC4wMTApICAwLjk5NQogIDIgIDIuNzE0ICgwLjA1NCkgIDIuNjk3ICgwLjA1MSkgIDAuOTk0
-CiAgNCAgNS4yNTEgKDAuMzExKSAgNS4yNTIgKDAuMjE3KSAgMS4wMDAKICA4ICA0LjM1OCAoMC4z
-MDEpICA0LjMwOSAoMC4zMDUpICAwLjk4OQogMTYgIDQuMjE5ICgwLjE0MCkgIDQuMTYxICgwLjEx
-NCkgIDAuOTg2CiAzMiAgMi41NDcgKDAuMTE3KSAgNC4xMzQgKDAuMDg0KSAgMS42MjMKIDM2ICAy
-LjU2MCAoMC4wNzEpICA0LjEyNyAoMC4xMjIpICAxLjYxMgogNzIgIDEuOTgyICgwLjA4NikgIDQu
-MDk3ICgwLjEwNikgIDIuMDY3CjEwOCAgMi4xMTQgKDAuMDg5KSAgNC4wODIgKDAuMTA1KSAgMS45
-MzAKMTQyICAxLjkyMyAoMC4xMDApICA0LjAyNCAoMC4wODYpICAyLjA5MwoKT3VyIGV2YWx1YXRp
-b24gc2hvd3MgdGhhdCBDTkEgYWxzbyBpbXByb3ZlcyBwZXJmb3JtYW5jZSBvZiB1c2VyIAphcHBs
-aWNhdGlvbnMgdGhhdCBoYXZlIGhvdCBwdGhyZWFkIG11dGV4ZXMuIFRob3NlIG11dGV4ZXMgYXJl
-IApibG9ja2luZywgYW5kIHdhaXRpbmcgdGhyZWFkcyBwYXJrIGFuZCB1bnBhcmsgdmlhIHRoZSBm
-dXRleCAKbWVjaGFuaXNtIGluIHRoZSBrZXJuZWwuIEdpdmVuIHRoYXQga2VybmVsIGZ1dGV4IGNo
-YWlucywgd2hpY2gKYXJlIGhhc2hlZCBieSB0aGUgbXV0ZXggYWRkcmVzcywgYXJlIGVhY2ggcHJv
-dGVjdGVkIGJ5IGEgCmNoYWluLXNwZWNpZmljIHNwaW4gbG9jaywgdGhlIGNvbnRlbnRpb24gb24g
-YSB1c2VyLW1vZGUgbXV0ZXggCnRyYW5zbGF0ZXMgaW50byBjb250ZW50aW9uIG9uIGEga2VybmVs
-IGxldmVsIHNwaW5sb2NrLiAKCkhlcmUgYXJlIHRoZSByZXN1bHRzIGZvciB0aGUgbGV2ZWxkYiDi
-gJhyZWFkcmFuZG9t4oCZIGJlbmNobWFyazoKCiN0aHIgIAkgc3RvY2sgICAgICAgIHBhdGNoLUNO
-QSAgIHNwZWVkdXAgKHBhdGNoLUNOQS9zdG9jaykKICAxICAwLjUzMyAoMC4wMTQpICAwLjUzMyAo
-MC4wMTYpICAxLjAwMQogIDIgIDAuNjY3ICgwLjAyOSkgIDAuNjY5ICgwLjAyNykgIDEuMDAzCiAg
-NCAgMC42OTkgKDAuMDE4KSAgMC43MTQgKDAuMDI2KSAgMS4wMjEKICA4ICAwLjY5MiAoMC4wMjAp
-ICAwLjY5NiAoMC4wMjYpICAxLjAwNQogMTYgIDAuNzMwICgwLjAyOSkgIDAuNzMzICgwLjAyNykg
-IDEuMDA0CiAzMiAgMC43MjYgKDAuMDM0KSAgMC45NzggKDAuMTE4KSAgMS4zNDgKIDM2ICAwLjc0
-MCAoMC4wNDIpICAxLjA5OSAoMC4xMTEpICAxLjQ4NQogNzIgIDAuNjcxICgwLjAzMykgIDEuMTY3
-ICgwLjAyMSkgIDEuNzM5CjEwOCAgMC42MzMgKDAuMDE3KSAgMS4xNjEgKDAuMDI4KSAgMS44MzQK
-MTQyICAwLjYwNiAoMC4wMTYpICAxLjE0NCAoMC4wMTgpICAxLjg4NwoKQWRkaXRpb25hbCBwZXJm
-b3JtYW5jZSBudW1iZXJzIGFyZSBhdmFpbGFibGUgaW4gcHJldmlvdXMgcmV2aXNpb25zCm9mIHRo
-ZSBzZXJpZXMuCgpGdXJ0aGVyIGNvbW1lbnRzIGFyZSB3ZWxjb21lIGFuZCBhcHByZWNpYXRlZC4K
-CkFsZXggS29nYW4gKDUpOgogIGxvY2tpbmcvcXNwaW5sb2NrOiBSZW5hbWUgbWNzIGxvY2svdW5s
-b2NrIG1hY3JvcyBhbmQgbWFrZSB0aGVtIG1vcmUKICAgIGdlbmVyaWMKICBsb2NraW5nL3FzcGlu
-bG9jazogUmVmYWN0b3IgdGhlIHFzcGlubG9jayBzbG93IHBhdGgKICBsb2NraW5nL3FzcGlubG9j
-azogSW50cm9kdWNlIENOQSBpbnRvIHRoZSBzbG93IHBhdGggb2YgcXNwaW5sb2NrCiAgbG9ja2lu
-Zy9xc3BpbmxvY2s6IEludHJvZHVjZSBzdGFydmF0aW9uIGF2b2lkYW5jZSBpbnRvIENOQQogIGxv
-Y2tpbmcvcXNwaW5sb2NrOiBJbnRyb2R1Y2UgdGhlIHNodWZmbGUgcmVkdWN0aW9uIG9wdGltaXph
-dGlvbiBpbnRvCiAgICBDTkEKCiBEb2N1bWVudGF0aW9uL2FkbWluLWd1aWRlL2tlcm5lbC1wYXJh
-bWV0ZXJzLnR4dCB8ICAxOCArKwogYXJjaC9hcm0vaW5jbHVkZS9hc20vbWNzX3NwaW5sb2NrLmgg
-ICAgICAgICAgICAgfCAgIDYgKy0KIGFyY2gveDg2L0tjb25maWcgICAgICAgICAgICAgICAgICAg
-ICAgICAgICAgICAgIHwgIDE5ICsrCiBhcmNoL3g4Ni9pbmNsdWRlL2FzbS9xc3BpbmxvY2suaCAg
-ICAgICAgICAgICAgICB8ICAgNCArCiBhcmNoL3g4Ni9rZXJuZWwvYWx0ZXJuYXRpdmUuYyAgICAg
-ICAgICAgICAgICAgICB8ICA3MCArKysrKysKIGluY2x1ZGUvYXNtLWdlbmVyaWMvbWNzX3NwaW5s
-b2NrLmggICAgICAgICAgICAgIHwgICA0ICstCiBrZXJuZWwvbG9ja2luZy9tY3Nfc3BpbmxvY2su
-aCAgICAgICAgICAgICAgICAgICB8ICAyMCArLQoga2VybmVsL2xvY2tpbmcvcXNwaW5sb2NrLmMg
-ICAgICAgICAgICAgICAgICAgICAgfCAgNzcgKysrKystCiBrZXJuZWwvbG9ja2luZy9xc3Bpbmxv
-Y2tfY25hLmggICAgICAgICAgICAgICAgICB8IDMxNSArKysrKysrKysrKysrKysrKysrKysrKysK
-IGtlcm5lbC9sb2NraW5nL3FzcGlubG9ja19wYXJhdmlydC5oICAgICAgICAgICAgIHwgICAyICst
-CiAxMCBmaWxlcyBjaGFuZ2VkLCA1MTIgaW5zZXJ0aW9ucygrKSwgMjMgZGVsZXRpb25zKC0pCiBj
-cmVhdGUgbW9kZSAxMDA2NDQga2VybmVsL2xvY2tpbmcvcXNwaW5sb2NrX2NuYS5oCgotLSAKMi4x
-MS4wIChBcHBsZSBHaXQtODEpCgoKX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19f
-X19fX19fX19fX18KbGludXgtYXJtLWtlcm5lbCBtYWlsaW5nIGxpc3QKbGludXgtYXJtLWtlcm5l
-bEBsaXN0cy5pbmZyYWRlYWQub3JnCmh0dHA6Ly9saXN0cy5pbmZyYWRlYWQub3JnL21haWxtYW4v
-bGlzdGluZm8vbGludXgtYXJtLWtlcm5lbAo=
+On Wed, 6 Nov 2019 at 21:35, kbuild test robot <lkp@intel.com> wrote:
+>
+> Hi Marco,
+>
+> I love your patch! Perhaps something to improve:
+>
+> [auto build test WARNING on linus/master]
+> [also build test WARNING on v5.4-rc6]
+> [cannot apply to next-20191106]
+> [if your patch is applied to the wrong git tree, please drop us a note to help
+> improve the system. BTW, we also suggest to use '--base' option to specify the
+> base tree in git format-patch, please see https://stackoverflow.com/a/37406982]
+>
+> url:    https://github.com/0day-ci/linux/commits/Marco-Elver/Add-Kernel-Concurrency-Sanitizer-KCSAN/20191105-002542
+> base:   https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git a99d8080aaf358d5d23581244e5da23b35e340b9
+> config: x86_64-randconfig-a004-201944 (attached as .config)
+> compiler: gcc-4.9 (Debian 4.9.2-10+deb8u1) 4.9.2
+> reproduce:
+>         # save the attached .config to linux build tree
+>         make ARCH=x86_64
+>
+> If you fix the issue, kindly add following tag
+> Reported-by: kbuild test robot <lkp@intel.com>
+
+Thanks! Will send v4 with a fix.
+
+> All warnings (new ones prefixed by >>):
+>
+>    In file included from include/linux/compiler_types.h:59:0,
+>                     from <command-line>:0:
+> >> include/linux/compiler_attributes.h:35:29: warning: "__GCC4_has_attribute___no_sanitize_thread__" is not defined [-Wundef]
+>     # define __has_attribute(x) __GCC4_has_attribute_##x
+>                                 ^
+> >> include/linux/compiler-gcc.h:148:5: note: in expansion of macro '__has_attribute'
+>     #if __has_attribute(__no_sanitize_thread__) && defined(__SANITIZE_THREAD__)
+>         ^
+> --
+>    In file included from include/linux/compiler_types.h:59:0,
+>                     from <command-line>:0:
+> >> include/linux/compiler_attributes.h:35:29: warning: "__GCC4_has_attribute___no_sanitize_thread__" is not defined [-Wundef]
+>     # define __has_attribute(x) __GCC4_has_attribute_##x
+>                                 ^
+> >> include/linux/compiler-gcc.h:148:5: note: in expansion of macro '__has_attribute'
+>     #if __has_attribute(__no_sanitize_thread__) && defined(__SANITIZE_THREAD__)
+>         ^
+>    fs/afs/dynroot.c: In function 'afs_dynroot_lookup':
+>    fs/afs/dynroot.c:117:6: warning: 'len' may be used uninitialized in this function [-Wmaybe-uninitialized]
+>      ret = lookup_one_len(name, dentry->d_parent, len);
+>          ^
+>    fs/afs/dynroot.c:91:6: note: 'len' was declared here
+>      int len;
+>          ^
+> --
+>    In file included from include/linux/compiler_types.h:59:0,
+>                     from <command-line>:0:
+> >> include/linux/compiler_attributes.h:35:29: warning: "__GCC4_has_attribute___no_sanitize_thread__" is not defined [-Wundef]
+>     # define __has_attribute(x) __GCC4_has_attribute_##x
+>                                 ^
+> >> include/linux/compiler-gcc.h:148:5: note: in expansion of macro '__has_attribute'
+>     #if __has_attribute(__no_sanitize_thread__) && defined(__SANITIZE_THREAD__)
+>         ^
+>    7 real  2 user  5 sys  107.26% cpu   make modules_prepare
+> --
+>    In file included from include/linux/compiler_types.h:59:0,
+>                     from <command-line>:0:
+> >> include/linux/compiler_attributes.h:35:29: warning: "__GCC4_has_attribute___no_sanitize_thread__" is not defined [-Wundef]
+>     # define __has_attribute(x) __GCC4_has_attribute_##x
+>                                 ^
+> >> include/linux/compiler-gcc.h:148:5: note: in expansion of macro '__has_attribute'
+>     #if __has_attribute(__no_sanitize_thread__) && defined(__SANITIZE_THREAD__)
+>         ^
+>    In file included from include/linux/compiler_types.h:59:0,
+>                     from <command-line>:0:
+> >> include/linux/compiler_attributes.h:35:29: warning: "__GCC4_has_attribute___no_sanitize_thread__" is not defined [-Wundef]
+>     # define __has_attribute(x) __GCC4_has_attribute_##x
+>                                 ^
+> >> include/linux/compiler-gcc.h:148:5: note: in expansion of macro '__has_attribute'
+>     #if __has_attribute(__no_sanitize_thread__) && defined(__SANITIZE_THREAD__)
+>         ^
+>    In file included from include/linux/compiler_types.h:59:0,
+>                     from <command-line>:0:
+> >> include/linux/compiler_attributes.h:35:29: warning: "__GCC4_has_attribute___no_sanitize_thread__" is not defined [-Wundef]
+>     # define __has_attribute(x) __GCC4_has_attribute_##x
+>                                 ^
+> >> include/linux/compiler-gcc.h:148:5: note: in expansion of macro '__has_attribute'
+>     #if __has_attribute(__no_sanitize_thread__) && defined(__SANITIZE_THREAD__)
+>         ^
+>    In file included from include/linux/compiler_types.h:59:0,
+>                     from <command-line>:0:
+> >> include/linux/compiler_attributes.h:35:29: warning: "__GCC4_has_attribute___no_sanitize_thread__" is not defined [-Wundef]
+>     # define __has_attribute(x) __GCC4_has_attribute_##x
+>                                 ^
+> >> include/linux/compiler-gcc.h:148:5: note: in expansion of macro '__has_attribute'
+>     #if __has_attribute(__no_sanitize_thread__) && defined(__SANITIZE_THREAD__)
+>         ^
+>    In file included from include/linux/compiler_types.h:59:0,
+>                     from <command-line>:0:
+> >> include/linux/compiler_attributes.h:35:29: warning: "__GCC4_has_attribute___no_sanitize_thread__" is not defined [-Wundef]
+>     # define __has_attribute(x) __GCC4_has_attribute_##x
+>                                 ^
+> >> include/linux/compiler-gcc.h:148:5: note: in expansion of macro '__has_attribute'
+>     #if __has_attribute(__no_sanitize_thread__) && defined(__SANITIZE_THREAD__)
+>         ^
+>    8 real  24 user  10 sys  405.87% cpu         make prepare
+>
+> vim +/__has_attribute +148 include/linux/compiler-gcc.h
+>
+>    147
+>  > 148  #if __has_attribute(__no_sanitize_thread__) && defined(__SANITIZE_THREAD__)
+>    149  #define __no_sanitize_thread                                                   \
+>    150          __attribute__((__noinline__)) __attribute__((no_sanitize_thread))
+>    151  #else
+>    152  #define __no_sanitize_thread
+>    153  #endif
+>    154
+>
+> ---
+> 0-DAY kernel test infrastructure                 Open Source Technology Center
+> https://lists.01.org/hyperkitty/list/kbuild-all@lists.01.org Intel Corporation
+>
+> --
+> You received this message because you are subscribed to the Google Groups "kasan-dev" group.
+> To unsubscribe from this group and stop receiving emails from it, send an email to kasan-dev+unsubscribe@googlegroups.com.
+> To view this discussion on the web visit https://groups.google.com/d/msgid/kasan-dev/201911070445.vRUSVUAX%25lkp%40intel.com.
