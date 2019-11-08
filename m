@@ -1,14 +1,14 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pl1-f196.google.com ([209.85.214.196]:32953 "EHLO
+Received: from mail-pl1-f196.google.com ([209.85.214.196]:38658 "EHLO
         mail-pl1-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1725765AbfKHFD1 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 8 Nov 2019 00:03:27 -0500
-Received: by mail-pl1-f196.google.com with SMTP id ay6so3270295plb.0
-        for <linux-arch@vger.kernel.org>; Thu, 07 Nov 2019 21:03:25 -0800 (PST)
+        with ESMTP id S1725765AbfKHFDg (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 8 Nov 2019 00:03:36 -0500
+Received: by mail-pl1-f196.google.com with SMTP id w8so3251276plq.5
+        for <linux-arch@vger.kernel.org>; Thu, 07 Nov 2019 21:03:35 -0800 (PST)
 From: Hajime Tazaki <thehajime@gmail.com>
-Subject: [RFC v2 09/37] lkl: timers, time and delay support
-Date: Fri,  8 Nov 2019 14:02:24 +0900
-Message-Id: <3414f0b2c46c2b65f53018fa06bb69b4c425d453.1573179553.git.thehajime@gmail.com>
+Subject: [RFC v2 13/37] lkl: plug in the build system
+Date: Fri,  8 Nov 2019 14:02:28 +0900
+Message-Id: <b48dbefff2c7a11f263a641cc770e2e170aa097b.1573179553.git.thehajime@gmail.com>
 In-Reply-To: <cover.1573179553.git.thehajime@gmail.com>
 References: <cover.1573179553.git.thehajime@gmail.com>
 MIME-Version: 1.0
@@ -16,203 +16,546 @@ Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-um@lists.infradead.org
-Cc: Octavian Purdila <tavi.purdila@gmail.com>, Akira Moroo <retrage01@gmail.com>, linux-kernel-library@freelists.org, linux-arch@vger.kernel.org, Hajime Tazaki <thehajime@gmail.com>, Michael Zimmermann <sigmaepsilon92@gmail.com>
+Cc: Octavian Purdila <tavi.purdila@gmail.com>, Akira Moroo <retrage01@gmail.com>, linux-kernel-library@freelists.org, linux-arch@vger.kernel.org, Hajime Tazaki <thehajime@gmail.com>
 
 From: Octavian Purdila <tavi.purdila@gmail.com>
 
-Clockevent driver based on host timer operations and clocksource
-driver and udelay support based on host time operations.
+Basic Makefiles for building LKL. Add a new architecture specific
+target for installing the resulting library files and headers.
 
-Signed-off-by: Hajime Tazaki <thehajime@gmail.com>
-Signed-off-by: Michael Zimmermann <sigmaepsilon92@gmail.com>
+To make LKL binaries build, UML introduced an additional option, UMMODE
+variable, to switch the output file of build: kernel (default), or
+library (LKL).  Those modes are not able to be ON at the same time.
+
+To build on library mode, users do the following:
+
+  make defconfig ARCH=um UMMODE=library
+  make ARCH=um UMMODE=library
+
 Signed-off-by: Octavian Purdila <tavi.purdila@gmail.com>
+Signed-off-by: Akira Moroo <retrage01@gmail.com>
+Signed-off-by: Hajime Tazaki <thehajime@gmail.com>
 ---
- arch/um/lkl/include/uapi/asm/host_ops.h |  13 +++
- arch/um/lkl/kernel/time.c               | 145 ++++++++++++++++++++++++
- 2 files changed, 158 insertions(+)
- create mode 100644 arch/um/lkl/kernel/time.c
+ arch/um/Kconfig             |  26 +++++++
+ arch/um/Makefile            | 151 +++---------------------------------
+ arch/um/Makefile.um         | 149 +++++++++++++++++++++++++++++++++++
+ arch/um/lkl/Kconfig         |  17 ++--
+ arch/um/lkl/Makefile        |  69 ++++++++++++++++
+ arch/um/lkl/auto.conf       |   1 +
+ arch/um/lkl/kernel/Makefile |   4 +
+ arch/um/lkl/mm/Makefile     |   1 +
+ 8 files changed, 264 insertions(+), 154 deletions(-)
+ create mode 100644 arch/um/Makefile.um
+ create mode 100644 arch/um/lkl/Makefile
+ create mode 100644 arch/um/lkl/auto.conf
+ create mode 100644 arch/um/lkl/kernel/Makefile
+ create mode 100644 arch/um/lkl/mm/Makefile
 
-diff --git a/arch/um/lkl/include/uapi/asm/host_ops.h b/arch/um/lkl/include/uapi/asm/host_ops.h
-index 1c839d7139f8..c9f77dd7fbe7 100644
---- a/arch/um/lkl/include/uapi/asm/host_ops.h
-+++ b/arch/um/lkl/include/uapi/asm/host_ops.h
-@@ -48,6 +48,13 @@ struct lkl_jmp_buf {
-  * @mem_alloc - allocate memory
-  * @mem_free - free memory
-  *
-+ * @timer_create - allocate a host timer that runs fn(arg) when the timer
-+ * fires.
-+ * @timer_free - disarms and free the timer
-+ * @timer_set_oneshot - arm the timer to fire once, after delta ns.
-+ * @timer_set_periodic - arm the timer to fire periodically, with a period of
-+ * delta ns.
-+ *
-  * @gettid - returns the host thread id of the caller, which need not
-  * be the same as the handle returned by thread_create
-  *
-@@ -88,6 +95,12 @@ struct lkl_host_operations {
- 	void *(*mem_alloc)(unsigned long mem);
- 	void (*mem_free)(void *mem);
- 
-+	unsigned long long (*time)(void);
+diff --git a/arch/um/Kconfig b/arch/um/Kconfig
+index 3c3adfc486f2..c46bdb2987ce 100644
+--- a/arch/um/Kconfig
++++ b/arch/um/Kconfig
+@@ -5,6 +5,10 @@ menu "UML-specific options"
+ config UML
+ 	bool
+ 	default y
 +
-+	void *(*timer_alloc)(void (*fn)(void *), void *arg);
-+	int (*timer_set_oneshot)(void *timer, unsigned long delta);
-+	void (*timer_free)(void *timer);
++config UMMODE_KERN
++	bool "UML mode: kernel mode"
++	default y if "$(UMMODE)" = "kernel"
+ 	select ARCH_HAS_KCOV
+ 	select ARCH_NO_PREEMPT
+ 	select HAVE_ARCH_AUDITSYSCALL
+@@ -18,7 +22,25 @@ config UML
+ 	select GENERIC_CLOCKEVENTS
+ 	select HAVE_GCC_PLUGINS
+ 	select TTY # Needed for line.c
++        help
++	  This mode switches a mode to build a regular kernel executable
++          of UML.
 +
- 	long (*gettid)(void);
++config UMMODE_LIB
++	bool "UML mode: library mode"
++	depends on !UMMODE_KERN
++	select LKL
++	default y if "$(UMMODE)" = "library"
++	help
++	  This mode switches a mode to build a library of UML (Linux
++	  Kernel Library/LKL).  This switch is exclusive to "kernel mode"
++	  of UML, which is traditional mode of UML.
++
++	  For more detail about LKL, see
++	  <file:Documentation/virt/uml/lkl.txt>.
  
- 	void (*jmp_buf_set)(struct lkl_jmp_buf *jmpb, void (*f)(void));
-diff --git a/arch/um/lkl/kernel/time.c b/arch/um/lkl/kernel/time.c
++
++if UMMODE_KERN
+ config MMU
+ 	bool
+ 	default y
+@@ -196,6 +218,10 @@ config UML_TIME_TRAVEL_SUPPORT
+ 
+ 	  It is safe to say Y, but you probably don't need this.
+ 
++endif #UMMODE_KERN
++
+ endmenu
+ 
+ source "arch/um/drivers/Kconfig"
++
++source "arch/um/lkl/Kconfig"
+diff --git a/arch/um/Makefile b/arch/um/Makefile
+index d2daa206872d..d8cb874c8a53 100644
+--- a/arch/um/Makefile
++++ b/arch/um/Makefile
+@@ -1,148 +1,15 @@
+-#
+-# This file is included by the global makefile so that you can add your own
+-# architecture-specific flags and dependencies.
+-#
+-# Copyright (C) 2002 - 2007 Jeff Dike (jdike@{addtoit,linux.intel}.com)
+-# Licensed under the GPL
+-#
+-
+-# select defconfig based on actual architecture
+-ifeq ($(SUBARCH),x86)
+-  ifeq ($(shell uname -m),x86_64)
+-        KBUILD_DEFCONFIG := x86_64_defconfig
+-  else
+-        KBUILD_DEFCONFIG := i386_defconfig
+-  endif
+-else
+-        KBUILD_DEFCONFIG := $(SUBARCH)_defconfig
+-endif
++# SPDX-License-Identifier: GPL-2.0
+ 
+ ARCH_DIR := arch/um
+-OS := $(shell uname -s)
+-# We require bash because the vmlinux link and loader script cpp use bash
+-# features.
+-SHELL := /bin/bash
+-
+-core-y			+= $(ARCH_DIR)/kernel/		\
+-			   $(ARCH_DIR)/drivers/		\
+-			   $(ARCH_DIR)/os-$(OS)/
+-
+-MODE_INCLUDE	+= -I$(srctree)/$(ARCH_DIR)/include/shared/skas
+ 
+-HEADER_ARCH 	:= $(SUBARCH)
++# select mode of UML build
++UMMODE ?= kernel
++include $(ARCH_DIR)/lkl/auto.conf
+ 
+-ifneq ($(filter $(SUBARCH),x86 x86_64 i386),)
+-	HEADER_ARCH := x86
++ifeq ($(UMMODE),kernel)
++	include $(ARCH_DIR)/Makefile.um
++else ifeq ($(UMMODE),library)
++	include $(ARCH_DIR)/lkl/Makefile
+ endif
+ 
+-ifdef CONFIG_64BIT
+-	KBUILD_CFLAGS += -mcmodel=large
+-endif
+-
+-HOST_DIR := arch/$(HEADER_ARCH)
+-
+-include $(ARCH_DIR)/Makefile-skas
+-include $(HOST_DIR)/Makefile.um
+-
+-core-y += $(HOST_DIR)/um/
+-
+-SHARED_HEADERS	:= $(ARCH_DIR)/include/shared
+-ARCH_INCLUDE	:= -I$(srctree)/$(SHARED_HEADERS)
+-ARCH_INCLUDE	+= -I$(srctree)/$(HOST_DIR)/um/shared
+-KBUILD_CPPFLAGS += -I$(srctree)/$(HOST_DIR)/um
+-
+-# -Dvmap=kernel_vmap prevents anything from referencing the libpcap.o symbol so
+-# named - it's a common symbol in libpcap, so we get a binary which crashes.
+-#
+-# Same things for in6addr_loopback and mktime - found in libc. For these two we
+-# only get link-time error, luckily.
+-#
+-# -Dlongjmp=kernel_longjmp prevents anything from referencing the libpthread.a
+-# embedded copy of longjmp, same thing for setjmp.
+-#
+-# These apply to USER_CFLAGS to.
+-
+-KBUILD_CFLAGS += $(CFLAGS) $(CFLAGS-y) -D__arch_um__ \
+-	$(ARCH_INCLUDE) $(MODE_INCLUDE) -Dvmap=kernel_vmap	\
+-	-Dlongjmp=kernel_longjmp -Dsetjmp=kernel_setjmp \
+-	-Din6addr_loopback=kernel_in6addr_loopback \
+-	-Din6addr_any=kernel_in6addr_any -Dstrrchr=kernel_strrchr
+-
+-KBUILD_AFLAGS += $(ARCH_INCLUDE)
+-
+-USER_CFLAGS = $(patsubst $(KERNEL_DEFINES),,$(patsubst -I%,,$(KBUILD_CFLAGS))) \
+-		$(ARCH_INCLUDE) $(MODE_INCLUDE) $(filter -I%,$(CFLAGS)) \
+-		-D_FILE_OFFSET_BITS=64 -idirafter $(srctree)/include \
+-		-idirafter $(objtree)/include -D__KERNEL__ -D__UM_HOST__
+-
+-#This will adjust *FLAGS accordingly to the platform.
+-include $(ARCH_DIR)/Makefile-os-$(OS)
+-
+-KBUILD_CPPFLAGS += -I$(srctree)/$(HOST_DIR)/include \
+-		   -I$(srctree)/$(HOST_DIR)/include/uapi \
+-		   -I$(objtree)/$(HOST_DIR)/include/generated \
+-		   -I$(objtree)/$(HOST_DIR)/include/generated/uapi
+-
+-# -Derrno=kernel_errno - This turns all kernel references to errno into
+-# kernel_errno to separate them from the libc errno.  This allows -fno-common
+-# in KBUILD_CFLAGS.  Otherwise, it would cause ld to complain about the two different
+-# errnos.
+-# These apply to kernelspace only.
+-#
+-# strip leading and trailing whitespace to make the USER_CFLAGS removal of these
+-# defines more robust
+-
+-KERNEL_DEFINES = $(strip -Derrno=kernel_errno -Dsigprocmask=kernel_sigprocmask \
+-			 -Dmktime=kernel_mktime $(ARCH_KERNEL_DEFINES))
+-KBUILD_CFLAGS += $(KERNEL_DEFINES)
+-
+-PHONY += linux
+-
+-all: linux
+-
+-linux: vmlinux
+-	@echo '  LINK $@'
+-	$(Q)ln -f $< $@
+-
+-define archhelp
+-  echo '* linux		- Binary kernel image (./linux) - for backward'
+-  echo '		   compatibility only, this creates a hard link to the'
+-  echo '		   real kernel binary, the "vmlinux" binary you'
+-  echo '		   find in the kernel root.'
+-endef
+-
+-archheaders:
+-	$(Q)$(MAKE) -f $(srctree)/Makefile ARCH=$(HEADER_ARCH) asm-generic archheaders
+-
+-archprepare:
+-	$(Q)$(MAKE) $(build)=$(HOST_DIR)/um include/generated/user_constants.h
+-
+-LINK-$(CONFIG_LD_SCRIPT_STATIC) += -static
+-LINK-$(CONFIG_LD_SCRIPT_DYN) += -Wl,-rpath,/lib $(call cc-option, -no-pie)
+-
+-CFLAGS_NO_HARDENING := $(call cc-option, -fno-PIC,) $(call cc-option, -fno-pic,) \
+-	$(call cc-option, -fno-stack-protector,) \
+-	$(call cc-option, -fno-stack-protector-all,)
+-
+-# Options used by linker script
+-export LDS_START      := $(START)
+-export LDS_ELF_ARCH   := $(ELF_ARCH)
+-export LDS_ELF_FORMAT := $(ELF_FORMAT)
+-
+-# The wrappers will select whether using "malloc" or the kernel allocator.
+-LINK_WRAPS = -Wl,--wrap,malloc -Wl,--wrap,free -Wl,--wrap,calloc
+-
+-LD_FLAGS_CMDLINE = $(foreach opt,$(KBUILD_LDFLAGS),-Wl,$(opt))
+-
+-# Used by link-vmlinux.sh which has special support for um link
+-export CFLAGS_vmlinux := $(LINK-y) $(LINK_WRAPS) $(LD_FLAGS_CMDLINE)
+-
+-# When cleaning we don't include .config, so we don't include
+-# TT or skas makefiles and don't clean skas_ptregs.h.
+-CLEAN_FILES += linux x.i gmon.out
+-
+-archclean:
+-	@find . \( -name '*.bb' -o -name '*.bbg' -o -name '*.da' \
+-		-o -name '*.gcov' \) -type f -print | xargs rm -f
+-
+-export HEADER_ARCH SUBARCH USER_CFLAGS CFLAGS_NO_HARDENING OS DEV_NULL_PATH
++export UMMODE HEADER_ARCH HOST_DIR SRCARCH
+diff --git a/arch/um/Makefile.um b/arch/um/Makefile.um
 new file mode 100644
-index 000000000000..b8320e1bfa53
+index 000000000000..d54fd387a16f
 --- /dev/null
-+++ b/arch/um/lkl/kernel/time.c
-@@ -0,0 +1,145 @@
-+// SPDX-License-Identifier: GPL-2.0
-+#include <linux/clocksource.h>
-+#include <linux/clockchips.h>
-+#include <linux/jiffies.h>
-+#include <linux/module.h>
-+#include <linux/init.h>
-+#include <linux/interrupt.h>
-+#include <linux/irq.h>
-+#include <asm/host_ops.h>
++++ b/arch/um/Makefile.um
+@@ -0,0 +1,149 @@
++# SPDX-License-Identifier: GPL-2.0
++#
++# This file is included by the global makefile so that you can add your own
++# architecture-specific flags and dependencies.
++#
++# Copyright (C) 2002 - 2007 Jeff Dike (jdike@{addtoit,linux.intel}.com)
++# Licensed under the GPL
++#
 +
-+static unsigned long long boot_time;
++# select defconfig based on actual architecture
++ifeq ($(SUBARCH),x86)
++  ifeq ($(shell uname -m),x86_64)
++        KBUILD_DEFCONFIG := x86_64_defconfig
++  else
++        KBUILD_DEFCONFIG := i386_defconfig
++  endif
++else
++        KBUILD_DEFCONFIG := $(SUBARCH)_defconfig
++endif
 +
-+void __ndelay(unsigned long nsecs)
-+{
-+	unsigned long long start = lkl_ops->time();
++ARCH_DIR := arch/um
++OS := $(shell uname -s)
++# We require bash because the vmlinux link and loader script cpp use bash
++# features.
++SHELL := /bin/bash
 +
-+	while (lkl_ops->time() < start + nsecs)
-+		;
-+}
++core-y			+= $(ARCH_DIR)/kernel/		\
++			   $(ARCH_DIR)/drivers/		\
++			   $(ARCH_DIR)/os-$(OS)/
 +
-+void __udelay(unsigned long usecs)
-+{
-+	__ndelay(usecs * NSEC_PER_USEC);
-+}
++MODE_INCLUDE	+= -I$(srctree)/$(ARCH_DIR)/include/shared/skas
 +
-+void __const_udelay(unsigned long xloops)
-+{
-+	__udelay(xloops / 0x10c7ul);
-+}
++HEADER_ARCH 	:= $(SUBARCH)
 +
-+void calibrate_delay(void)
-+{
-+}
++ifneq ($(filter $(SUBARCH),x86 x86_64 i386),)
++	HEADER_ARCH := x86
++endif
 +
-+void read_persistent_clock(struct timespec *ts)
-+{
-+	*ts = ns_to_timespec(lkl_ops->time());
-+}
++ifdef CONFIG_64BIT
++	KBUILD_CFLAGS += -mcmodel=large
++endif
 +
-+/*
-+ * Scheduler clock - returns current time in nanosec units.
-+ *
-+ */
-+unsigned long long sched_clock(void)
-+{
-+	if (!boot_time)
-+		return 0;
++HOST_DIR := arch/$(HEADER_ARCH)
 +
-+	return lkl_ops->time() - boot_time;
-+}
++include $(ARCH_DIR)/Makefile-skas
++include $(HOST_DIR)/Makefile.um
 +
-+static u64 clock_read(struct clocksource *cs)
-+{
-+	return lkl_ops->time();
-+}
++core-y += $(HOST_DIR)/um/
 +
-+static struct clocksource clocksource = {
-+	.name	= "lkl",
-+	.rating = 499,
-+	.read	= clock_read,
-+	.flags	= CLOCK_SOURCE_IS_CONTINUOUS,
-+	.mask	= CLOCKSOURCE_MASK(64),
-+};
++SHARED_HEADERS	:= $(ARCH_DIR)/include/shared
++ARCH_INCLUDE	:= -I$(srctree)/$(SHARED_HEADERS)
++ARCH_INCLUDE	+= -I$(srctree)/$(HOST_DIR)/um/shared
++KBUILD_CPPFLAGS += -I$(srctree)/$(HOST_DIR)/um
 +
-+static void *timer;
++# -Dvmap=kernel_vmap prevents anything from referencing the libpcap.o symbol so
++# named - it's a common symbol in libpcap, so we get a binary which crashes.
++#
++# Same things for in6addr_loopback and mktime - found in libc. For these two we
++# only get link-time error, luckily.
++#
++# -Dlongjmp=kernel_longjmp prevents anything from referencing the libpthread.a
++# embedded copy of longjmp, same thing for setjmp.
++#
++# These apply to USER_CFLAGS to.
 +
-+static int timer_irq;
++KBUILD_CFLAGS += $(CFLAGS) $(CFLAGS-y) -D__arch_um__ \
++	$(ARCH_INCLUDE) $(MODE_INCLUDE) -Dvmap=kernel_vmap	\
++	-Dlongjmp=kernel_longjmp -Dsetjmp=kernel_setjmp \
++	-Din6addr_loopback=kernel_in6addr_loopback \
++	-Din6addr_any=kernel_in6addr_any -Dstrrchr=kernel_strrchr
 +
-+static void timer_fn(void *arg)
-+{
-+	lkl_trigger_irq(timer_irq);
-+}
++KBUILD_AFLAGS += $(ARCH_INCLUDE)
 +
-+static int clockevent_set_state_shutdown(struct clock_event_device *evt)
-+{
-+	if (timer) {
-+		lkl_ops->timer_free(timer);
-+		timer = NULL;
-+	}
++USER_CFLAGS = $(patsubst $(KERNEL_DEFINES),,$(patsubst -I%,,$(KBUILD_CFLAGS))) \
++		$(ARCH_INCLUDE) $(MODE_INCLUDE) $(filter -I%,$(CFLAGS)) \
++		-D_FILE_OFFSET_BITS=64 -idirafter $(srctree)/include \
++		-idirafter $(objtree)/include -D__KERNEL__ -D__UM_HOST__
 +
-+	return 0;
-+}
++#This will adjust *FLAGS accordingly to the platform.
++include $(ARCH_DIR)/Makefile-os-$(OS)
 +
-+static int clockevent_set_state_oneshot(struct clock_event_device *evt)
-+{
-+	timer = lkl_ops->timer_alloc(timer_fn, NULL);
-+	if (!timer)
-+		return -ENOMEM;
++KBUILD_CPPFLAGS += -I$(srctree)/$(HOST_DIR)/include \
++		   -I$(srctree)/$(HOST_DIR)/include/uapi \
++		   -I$(objtree)/$(HOST_DIR)/include/generated \
++		   -I$(objtree)/$(HOST_DIR)/include/generated/uapi
 +
-+	return 0;
-+}
++# -Derrno=kernel_errno - This turns all kernel references to errno into
++# kernel_errno to separate them from the libc errno.  This allows -fno-common
++# in KBUILD_CFLAGS.  Otherwise, it would cause ld to complain about the two different
++# errnos.
++# These apply to kernelspace only.
++#
++# strip leading and trailing whitespace to make the USER_CFLAGS removal of these
++# defines more robust
 +
-+static irqreturn_t timer_irq_handler(int irq, void *dev_id)
-+{
-+	struct clock_event_device *dev = (struct clock_event_device *)dev_id;
++KERNEL_DEFINES = $(strip -Derrno=kernel_errno -Dsigprocmask=kernel_sigprocmask \
++			 -Dmktime=kernel_mktime $(ARCH_KERNEL_DEFINES))
++KBUILD_CFLAGS += $(KERNEL_DEFINES)
 +
-+	dev->event_handler(dev);
++PHONY += linux
 +
-+	return IRQ_HANDLED;
-+}
++all: linux
 +
-+static int clockevent_next_event(unsigned long ns,
-+				 struct clock_event_device *evt)
-+{
-+	return lkl_ops->timer_set_oneshot(timer, ns);
-+}
++linux: vmlinux
++	@echo '  LINK $@'
++	$(Q)ln -f $< $@
 +
-+static struct clock_event_device clockevent = {
-+	.name			= "lkl",
-+	.features		= CLOCK_EVT_FEAT_ONESHOT,
-+	.set_state_oneshot	= clockevent_set_state_oneshot,
-+	.set_next_event		= clockevent_next_event,
-+	.set_state_shutdown	= clockevent_set_state_shutdown,
-+};
++define archhelp
++  echo '* linux		- Binary kernel image (./linux) - for backward'
++  echo '		   compatibility only, this creates a hard link to the'
++  echo '		   real kernel binary, the "vmlinux" binary you'
++  echo '		   find in the kernel root.'
++endef
 +
-+static struct irqaction irq0  = {
-+	.handler	= timer_irq_handler,
-+	.flags		= IRQF_NOBALANCING | IRQF_TIMER,
-+	.dev_id		= &clockevent,
-+	.name		= "timer"
-+};
++archheaders:
++	$(Q)$(MAKE) -f $(srctree)/Makefile ARCH=$(HEADER_ARCH) asm-generic archheaders
 +
-+void __init time_init(void)
-+{
-+	int ret;
++archprepare:
++	$(Q)$(MAKE) $(build)=$(HOST_DIR)/um include/generated/user_constants.h
 +
-+	if (!lkl_ops->timer_alloc || !lkl_ops->timer_free ||
-+	    !lkl_ops->timer_set_oneshot || !lkl_ops->time) {
-+		pr_err("lkl: no time or timer support provided by host\n");
-+		return;
-+	}
++LINK-$(CONFIG_LD_SCRIPT_STATIC) += -static
++LINK-$(CONFIG_LD_SCRIPT_DYN) += -Wl,-rpath,/lib $(call cc-option, -no-pie)
 +
-+	timer_irq = lkl_get_free_irq("timer");
-+	setup_irq(timer_irq, &irq0);
++CFLAGS_NO_HARDENING := $(call cc-option, -fno-PIC,) $(call cc-option, -fno-pic,) \
++	$(call cc-option, -fno-stack-protector,) \
++	$(call cc-option, -fno-stack-protector-all,)
 +
-+	ret = clocksource_register_khz(&clocksource, 1000000);
-+	if (ret)
-+		pr_err("lkl: unable to register clocksource\n");
++# Options used by linker script
++export LDS_START      := $(START)
++export LDS_ELF_ARCH   := $(ELF_ARCH)
++export LDS_ELF_FORMAT := $(ELF_FORMAT)
 +
-+	clockevents_config_and_register(&clockevent, NSEC_PER_SEC, 1,
-+					ULONG_MAX);
++# The wrappers will select whether using "malloc" or the kernel allocator.
++LINK_WRAPS = -Wl,--wrap,malloc -Wl,--wrap,free -Wl,--wrap,calloc
 +
-+	boot_time = lkl_ops->time();
-+	pr_info("lkl: time and timers initialized (irq%d)\n", timer_irq);
-+}
++LD_FLAGS_CMDLINE = $(foreach opt,$(KBUILD_LDFLAGS),-Wl,$(opt))
++
++# Used by link-vmlinux.sh which has special support for um link
++export CFLAGS_vmlinux := $(LINK-y) $(LINK_WRAPS) $(LD_FLAGS_CMDLINE)
++
++# When cleaning we don't include .config, so we don't include
++# TT or skas makefiles and don't clean skas_ptregs.h.
++CLEAN_FILES += linux x.i gmon.out
++
++archclean:
++	@find . \( -name '*.bb' -o -name '*.bbg' -o -name '*.da' \
++		-o -name '*.gcov' \) -type f -print | xargs rm -f
++
++export HEADER_ARCH SUBARCH USER_CFLAGS CFLAGS_NO_HARDENING OS DEV_NULL_PATH
+diff --git a/arch/um/lkl/Kconfig b/arch/um/lkl/Kconfig
+index 1dae70f16c43..07b3699095ae 100644
+--- a/arch/um/lkl/Kconfig
++++ b/arch/um/lkl/Kconfig
+@@ -1,6 +1,8 @@
+ # SPDX-License-Identifier: GPL-2.0
+ 
+-config UML_LKL
++menu "LKL-specific options"
++
++config LKL
+        def_bool y
+        depends on !SMP && !MMU && !COREDUMP && !SECCOMP && !UPROBES && !COMPAT && !USER_RETURN_NOTIFIER
+        select ARCH_THREAD_STACK_ALLOCATOR
+@@ -59,7 +61,7 @@ config BIG_ENDIAN
+        def_bool n
+ 
+ config GENERIC_CSUM
+-       def_bool y
++       def_bool LKL
+ 
+ config GENERIC_HWEIGHT
+        def_bool y
+@@ -83,13 +85,4 @@ config HZ
+         int
+         default 100
+ 
+-config CONSOLE_LOGLEVEL_QUIET
+-	int "quiet console loglevel (1-15)"
+-	range 1 15
+-	default "4"
+-	help
+-	  loglevel to use when "quiet" is passed on the kernel commandline.
+-
+-	  When "quiet" is passed on the kernel commandline this loglevel
+-	  will be used as the loglevel. IOW passing "quiet" will be the
+-	  equivalent of passing "loglevel=<CONSOLE_LOGLEVEL_QUIET>"
++endmenu
+diff --git a/arch/um/lkl/Makefile b/arch/um/lkl/Makefile
+new file mode 100644
+index 000000000000..45af83c3825a
+--- /dev/null
++++ b/arch/um/lkl/Makefile
+@@ -0,0 +1,69 @@
++# SPDX-License-Identifier: GPL-2.0
++
++HOST_DIR := $(ARCH_DIR)/lkl
++include $(HOST_DIR)/auto.conf
++
++SRCARCH := um/lkl
++ARCH_INCLUDE += -I$(srctree)/$(HOST_DIR)/um/include
++LINUXINCLUDE := $(subst $(ARCH_DIR),$(HOST_DIR),$(LINUXINCLUDE)) $(ARCH_INCLUDE)
++KBUILD_CFLAGS += -fno-builtin -D__arch_um__
++KBUILD_DEFCONFIG := lkl_defconfig
++
++ifneq (,$(filter $(OUTPUT_FORMAT),elf64-x86-64 elf32-i386 elf64-x86-64-freebsd elf32-littlearm elf64-littleaarch64))
++KBUILD_CFLAGS += -fPIC
++else ifneq (,$(filter $(OUTPUT_FORMAT),pe-i386 pe-x86-64 ))
++ifneq ($(OUTPUT_FORMAT),pe-x86-64)
++prefix=_
++endif
++# workaround for #include_next<stdarg.h> errors
++LINUXINCLUDE := -isystem $(HOST_DIR)/include/system $(LINUXINCLUDE)
++# workaround for https://gcc.gnu.org/bugzilla/show_bug.cgi?id=52991
++KBUILD_CFLAGS += -mno-ms-bitfields
++else
++$(error Unrecognized platform: $(OUTPUT_FORMAT))
++endif
++
++ifeq ($(shell uname -s), Linux)
++NPROC=$(shell nproc)
++else # e.g., FreeBSD
++NPROC=$(shell sysctl -n hw.ncpu)
++endif
++
++LDFLAGS_vmlinux += -r
++LKL_ENTRY_POINTS := lkl_start_kernel lkl_sys_halt lkl_syscall lkl_trigger_irq \
++	lkl_get_free_irq lkl_put_irq lkl_is_running lkl_bug lkl_printf
++
++ifeq ($(OUTPUT_FORMAT),elf32-i386)
++LKL_ENTRY_POINTS += \
++	__x86.get_pc_thunk.bx __x86.get_pc_thunk.dx __x86.get_pc_thunk.ax \
++	__x86.get_pc_thunk.cx __x86.get_pc_thunk.si __x86.get_pc_thunk.di
++endif
++
++core-y += $(HOST_DIR)/kernel/
++core-y += $(HOST_DIR)/mm/
++
++all: lkl.o
++
++lkl.o: vmlinux
++	$(OBJCOPY) -R .eh_frame -R .syscall_defs $(foreach sym,$(LKL_ENTRY_POINTS),-G$(prefix)$(sym)) vmlinux lkl.o
++
++$(HOST_DIR)/include/generated/uapi/asm/syscall_defs.h: vmlinux
++	$(OBJCOPY) -j .syscall_defs -O binary --set-section-flags .syscall_defs=alloc $< $@
++	$(Q) export tmpfile=$(shell mktemp); \
++	sed 's/\x0//g' $@ > $$tmpfile; mv $$tmpfile $@ ; rm -f $$tmpfile
++
++install: lkl.o headers $(HOST_DIR)/include/generated/uapi/asm/syscall_defs.h
++	@echo "  INSTALL	$(INSTALL_PATH)/lib/lkl.o"
++	@mkdir -p $(INSTALL_PATH)/lib/
++	@cp lkl.o $(INSTALL_PATH)/lib/
++	@$(srctree)/$(HOST_DIR)/scripts/headers_install.py \
++		$(subst -j,-j$(NPROC),$(findstring -j,$(MAKEFLAGS))) \
++		$(INSTALL_PATH)/include
++
++archclean:
++	$(Q)rm -rf $(srctree)/$(HOST_DIR)/include/generated
++	$(Q)$(MAKE) $(clean)=$(boot)
++
++define archhelp
++  echo '  install	- Install library and headers to INSTALL_PATH/{lib,include}'
++endef
+diff --git a/arch/um/lkl/auto.conf b/arch/um/lkl/auto.conf
+new file mode 100644
+index 000000000000..4bfd65a02d73
+--- /dev/null
++++ b/arch/um/lkl/auto.conf
+@@ -0,0 +1 @@
++export OUTPUT_FORMAT=$(shell $(LD) -r -print-output-format)
+diff --git a/arch/um/lkl/kernel/Makefile b/arch/um/lkl/kernel/Makefile
+new file mode 100644
+index 000000000000..ef489f2f7176
+--- /dev/null
++++ b/arch/um/lkl/kernel/Makefile
+@@ -0,0 +1,4 @@
++extra-y := vmlinux.lds
++
++obj-y = setup.o threads.o irq.o time.o syscalls.o misc.o console.o \
++	syscalls_32.o cpu.o
+diff --git a/arch/um/lkl/mm/Makefile b/arch/um/lkl/mm/Makefile
+new file mode 100644
+index 000000000000..2af6e3051897
+--- /dev/null
++++ b/arch/um/lkl/mm/Makefile
+@@ -0,0 +1 @@
++obj-y = bootmem.o
 -- 
 2.20.1 (Apple Git-117)
