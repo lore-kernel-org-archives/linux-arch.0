@@ -1,14 +1,14 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pl1-f193.google.com ([209.85.214.193]:43644 "EHLO
-        mail-pl1-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726081AbfKHFEQ (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 8 Nov 2019 00:04:16 -0500
-Received: by mail-pl1-f193.google.com with SMTP id a18so3225148plm.10
-        for <linux-arch@vger.kernel.org>; Thu, 07 Nov 2019 21:04:16 -0800 (PST)
+Received: from mail-pg1-f195.google.com ([209.85.215.195]:33110 "EHLO
+        mail-pg1-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726081AbfKHFES (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 8 Nov 2019 00:04:18 -0500
+Received: by mail-pg1-f195.google.com with SMTP id h27so3319158pgn.0
+        for <linux-arch@vger.kernel.org>; Thu, 07 Nov 2019 21:04:17 -0800 (PST)
 From: Hajime Tazaki <thehajime@gmail.com>
-Subject: [RFC v2 29/37] lkl: add documentation
-Date: Fri,  8 Nov 2019 14:02:44 +0900
-Message-Id: <8f62855215a9456512fff52129eebd8f1bb02d63.1573179553.git.thehajime@gmail.com>
+Subject: [RFC v2 28/37] lkl: add system call hijack support
+Date: Fri,  8 Nov 2019 14:02:43 +0900
+Message-Id: <66c17c6fe352c81f1f1d9de52d68215df9b8faf8.1573179553.git.thehajime@gmail.com>
 In-Reply-To: <cover.1573179553.git.thehajime@gmail.com>
 References: <cover.1573179553.git.thehajime@gmail.com>
 MIME-Version: 1.0
@@ -16,485 +16,2476 @@ Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-um@lists.infradead.org
-Cc: Octavian Purdila <tavi.purdila@gmail.com>, Akira Moroo <retrage01@gmail.com>, linux-kernel-library@freelists.org, linux-arch@vger.kernel.org, Chenyang Zhong <zhongcy95@gmail.com>, Conrad Meyer <cem@FreeBSD.org>, Gustavo Bittencourt <gbitten@gmail.com>, Motomu Utsumi <motomuman@gmail.com>, Patrick Collins <pscollins@google.com>, Thomas Liebetraut <thomas@tommie-lie.de>, Yuan Liu <liuyuan@google.com>
+Cc: Octavian Purdila <tavi.purdila@gmail.com>, Akira Moroo <retrage01@gmail.com>, linux-kernel-library@freelists.org, linux-arch@vger.kernel.org, Hajime Tazaki <thehajime@gmail.com>, Motomu Utsumi <motomuman@gmail.com>, Patrick Collins <pscollins@google.com>, Thomas Liebetraut <thomas@tommie-lie.de>, Xiao Jia <xiaoj@google.com>, Yuan Liu <liuyuan@google.com>
 
-From: Octavian Purdila <tavi.purdila@gmail.com>
+This commit introduces initial support of system call hijack, based on
+LD_PRELOAD with POSIX applications on a host.
 
-A document describing brief introduction of LKL, why it is needed, and
-how it is used is added.  The document is located under uml/ directory.
+Note that system call hijack by renaming symbol by LD_PRELOAD is not a
+complete solution: it must address various issues with dirty tricks.
 
-Signed-off-by: Chenyang Zhong <zhongcy95@gmail.com>
-Signed-off-by: Conrad Meyer <cem@FreeBSD.org>
-Signed-off-by: Gustavo Bittencourt <gbitten@gmail.com>
+Those tricks/issues are:
+- introduce file descriptor offset (i.e., fd + offset)
+- path name isolation (i.e., chrooted)
+- need of handling mixture of fd between host and lkl-ed ones
+- un-hijackable symbol (__socket inside if_nametoindex() of linux
+  glibc) needs to be hijacked by upper call (i.e., if_nametoindex)
+
+Nevertheless, it is powerful in some case such as replacing network
+stack only for an application.
+
+It has been tested with socket(AF_INET/AF_INET6/AF_NETLINK) without any
+external netdevices, i.e. only works with localhost (127.0.0.1/::1).
+It may need more work on non-Linux host.
+
+The below should work on Linux.
+% ./tools/lkl/bin/hijack.sh ip ad
+
 Signed-off-by: H.K. Jerry Chu <hkchu@google.com>
 Signed-off-by: Motomu Utsumi <motomuman@gmail.com>
 Signed-off-by: Patrick Collins <pscollins@google.com>
 Signed-off-by: Thomas Liebetraut <thomas@tommie-lie.de>
+Signed-off-by: Xiao Jia <xiaoj@google.com>
 Signed-off-by: Yuan Liu <liuyuan@google.com>
+Signed-off-by: Hajime Tazaki <thehajime@gmail.com>
+[Octavian: use lkl_sys_* calls instead of lkl_sys_wrapper_* calls]
 Signed-off-by: Octavian Purdila <tavi.purdila@gmail.com>
 ---
- Documentation/virt/uml/lkl.txt | 453 +++++++++++++++++++++++++++++++++
- 1 file changed, 453 insertions(+)
- create mode 100644 Documentation/virt/uml/lkl.txt
+ tools/lkl/Targets              |   9 +
+ tools/lkl/bin/lkl-hijack.sh    |  23 +
+ tools/lkl/lib/hijack/Build     |   4 +
+ tools/lkl/lib/hijack/hijack.c  | 607 +++++++++++++++++++++++++++
+ tools/lkl/lib/hijack/init.c    | 241 +++++++++++
+ tools/lkl/lib/hijack/init.h    |   8 +
+ tools/lkl/lib/hijack/xlate.c   | 613 +++++++++++++++++++++++++++
+ tools/lkl/lib/hijack/xlate.h   |  13 +
+ tools/lkl/tests/hijack-test.sh | 737 +++++++++++++++++++++++++++++++++
+ tools/lkl/tests/run_netperf.sh |  98 +++++
+ 10 files changed, 2353 insertions(+)
+ create mode 100755 tools/lkl/bin/lkl-hijack.sh
+ create mode 100644 tools/lkl/lib/hijack/Build
+ create mode 100644 tools/lkl/lib/hijack/hijack.c
+ create mode 100644 tools/lkl/lib/hijack/init.c
+ create mode 100644 tools/lkl/lib/hijack/init.h
+ create mode 100644 tools/lkl/lib/hijack/xlate.c
+ create mode 100644 tools/lkl/lib/hijack/xlate.h
+ create mode 100755 tools/lkl/tests/hijack-test.sh
+ create mode 100755 tools/lkl/tests/run_netperf.sh
 
-diff --git a/Documentation/virt/uml/lkl.txt b/Documentation/virt/uml/lkl.txt
-new file mode 100644
-index 000000000000..01c7b8bf7edc
+diff --git a/tools/lkl/Targets b/tools/lkl/Targets
+index 5a4b3508f0a2..3ec093af1722 100644
+--- a/tools/lkl/Targets
++++ b/tools/lkl/Targets
+@@ -14,3 +14,12 @@ LDLIBS_fs2tar-$(LKL_HOST_CONFIG_NEEDS_LARGP) += -largp
+ 
+ progs-$(LKL_HOST_CONFIG_FUSE) += lklfuse
+ LDLIBS_lklfuse-y := -lfuse
++
++ifneq ($(LKL_HOST_CONFIG_BSD),y)
++libs-$(LKL_HOST_CONFIG_POSIX) += lib/hijack/liblkl-hijack
++endif
++LDFLAGS_lib/hijack/liblkl-hijack-y += -shared -nodefaultlibs
++LDLIBS_lib/hijack/liblkl-hijack-y += -ldl
++LDLIBS_lib/hijack/liblkl-hijack-$(LKL_HOST_CONFIG_ARM) += -lgcc -lc
++LDLIBS_lib/hijack/liblkl-hijack-$(LKL_HOST_CONFIG_AARCH64) += -lc
++LDLIBS_lib/hijack/liblkl-hijack-$(LKL_HOST_CONFIG_I386) += -lc_nonshared
+diff --git a/tools/lkl/bin/lkl-hijack.sh b/tools/lkl/bin/lkl-hijack.sh
+new file mode 100755
+index 000000000000..7cf92856dfad
 --- /dev/null
-+++ b/Documentation/virt/uml/lkl.txt
-@@ -0,0 +1,453 @@
++++ b/tools/lkl/bin/lkl-hijack.sh
+@@ -0,0 +1,23 @@
++#!/usr/bin/env bash
++# SPDX-License-Identifier: GPL-2.0
 +
-+Introduction
-+============
++##
++## This wrapper script works to replace system calls symbols such as
++## socket(2), recvmsg(2) for the redirection to LKL. Ideally it works
++## with any applications, but in practice (tm) it depends on the maturity
++## of hijack library (liblkl-hijack.so).
++##
++## Since LD_PRELOAD technique with setuid/setgid binary is tricky, you may
++## need to use sudo (or equivalents) to do it (e.g., ping).
++##
++## % sudo hijack.sh ping 127.0.0.1
++##
 +
-+LKL (Linux Kernel Library) is aiming to allow reusing the Linux kernel code as
-+extensively as possible with minimal effort and reduced maintenance overhead.
++script_dir=$(cd $(dirname ${BASH_SOURCE:-$0}); pwd)
 +
-+Examples of how LKL can be used are: creating userspace applications (running on
-+Linux and other operating systems) that can read or write Linux filesystems or
-+can use the Linux networking stack, creating kernel drivers for other operating
-+systems that can read Linux filesystems, bootloaders support for reading/writing
-+Linux filesystems, etc.
++export LD_LIBRARY_PATH=${script_dir}/../lib/hijack
++if [ -n ${LKL_HIJACK_DEBUG+x}  ]
++then
++  trap '' TSTP
++fi
++LD_PRELOAD=liblkl-hijack.so $*
+diff --git a/tools/lkl/lib/hijack/Build b/tools/lkl/lib/hijack/Build
+new file mode 100644
+index 000000000000..e68e93a3328a
+--- /dev/null
++++ b/tools/lkl/lib/hijack/Build
+@@ -0,0 +1,4 @@
++liblkl-hijack-y += hijack.o
++liblkl-hijack-y += init.o
++liblkl-hijack-y += xlate.o
 +
-+With LKL, the kernel code is compiled into an object file that can be directly
-+linked by applications. The API offered by LKL is based on the Linux system call
-+interface.
+diff --git a/tools/lkl/lib/hijack/hijack.c b/tools/lkl/lib/hijack/hijack.c
+new file mode 100644
+index 000000000000..485c15d7c279
+--- /dev/null
++++ b/tools/lkl/lib/hijack/hijack.c
+@@ -0,0 +1,607 @@
++// SPDX-License-Identifier: GPL-2.0
++/*
++ * system calls hijack code
++ * Copyright (c) 2015 Hajime Tazaki
++ *
++ * Author: Hajime Tazaki <tazaki@sfc.wide.ad.jp>
++ *
++ * Note: some of the code is picked from rumpkernel, written by Antti Kantee.
++ */
 +
-+LKL is implemented as one of the mode of UML (arch/um). It uses host operations
-+defined by the application or a host library (tools/lkl/lib).
++#include <unistd.h>
++#include <stdio.h>
++#include <stdarg.h>
++#include <stdlib.h>
++#include <sys/types.h>
++#include <sys/mman.h>
++#define __USE_GNU
++#include <dlfcn.h>
++#include <sys/socket.h>
++#include <sys/select.h>
++#include <sys/epoll.h>
++#include <stdint.h>
++#include <string.h>
++#include <fcntl.h>
++#include <errno.h>
++#include <poll.h>
++#include <sys/ioctl.h>
++#include <assert.h>
++#include <pthread.h>
++#include <lkl.h>
++#include <lkl_host.h>
++
++#include "xlate.h"
++#include "init.h"
++
++static int is_lklfd(int fd)
++{
++	if (fd < LKL_FD_OFFSET)
++		return 0;
++
++	return 1;
++}
++
++static void *resolve_sym(const char *sym)
++{
++	void *resolv;
++
++	resolv = dlsym(RTLD_NEXT, sym);
++	if (!resolv) {
++		fprintf(stderr, "dlsym fail %s (%s)\n", sym, dlerror());
++		assert(0);
++	}
++	return resolv;
++}
++
++typedef long (*host_call)(long p1, long p2, long p3, long p4, long p5, long p6);
++
++static host_call host_calls[__lkl__NR_syscalls];
++/* internally managed fd list for epoll */
++int dual_fds[LKL_FD_OFFSET];
++
++#define HOOK_FD_CALL(name)						\
++	static void __attribute__((constructor(101)))			\
++	init_host_##name(void)						\
++	{								\
++		host_calls[__lkl__NR_##name] = resolve_sym(#name);	\
++	}								\
++									\
++	long name##_hook(long p1, long p2, long p3, long p4, long p5,	\
++			 long p6)					\
++	{								\
++		long p[6] = {p1, p2, p3, p4, p5, p6 };			\
++									\
++		if (!host_calls[__lkl__NR_##name])			\
++			host_calls[__lkl__NR_##name] = resolve_sym(#name); \
++		if (!is_lklfd(p1))					\
++			return host_calls[__lkl__NR_##name](p1, p2, p3,	\
++							    p4, p5, p6); \
++									\
++		return lkl_set_errno(lkl_syscall(__lkl__NR_##name, p));	\
++	}								\
++	asm(".global " #name);						\
++	asm(".set " #name "," #name "_hook")
++
++#define HOOK_CALL_USE_HOST_BEFORE_START(name)				\
++	static void __attribute__((constructor(101)))			\
++	init_host_##name(void)						\
++	{								\
++		host_calls[__lkl__NR_##name] = resolve_sym(#name);	\
++	}								\
++									\
++	long name##_hook(long p1, long p2, long p3, long p4, long p5,	\
++			 long p6)					\
++	{								\
++		long p[6] = {p1, p2, p3, p4, p5, p6 };			\
++									\
++		if (!host_calls[__lkl__NR_##name])			\
++			host_calls[__lkl__NR_##name] = resolve_sym(#name); \
++		if (!lkl_running)					\
++			return host_calls[__lkl__NR_##name](p1, p2, p3,	\
++							    p4, p5, p6); \
++									\
++		return lkl_set_errno(lkl_syscall(__lkl__NR_##name, p));	\
++	}								\
++	asm(".global " #name);						\
++	asm(".set " #name "," #name "_hook")
++
++#define HOST_CALL(name)							\
++	static long (*host_##name)();					\
++	static void __attribute__((constructor(101)))			\
++	init2_host_##name(void)						\
++	{								\
++		host_##name = resolve_sym(#name);			\
++	}
++
++#define HOOK_CALL(name)							\
++	long name##_hook(long p1, long p2, long p3, long p4, long p5,	\
++			 long p6)					\
++	{								\
++		long p[6] = {p1, p2, p3, p4, p5, p6};			\
++									\
++		return lkl_set_errno(lkl_syscall(__lkl__NR_##name, p));	\
++	}								\
++	asm(".global " #name);						\
++	asm(".set " #name "," #name "_hook")
++
++#define CHECK_HOST_CALL(name)					\
++	do {							\
++		if (!host_##name)				\
++			host_##name = resolve_sym(#name);	\
++	} while (0)
++
++static int lkl_call(int nr, int args, ...)
++{
++	long params[6];
++	va_list vl;
++	int i;
++
++	va_start(vl, args);
++	for (i = 0; i < args; i++)
++		params[i] = va_arg(vl, long);
++	va_end(vl);
++
++	return lkl_set_errno(lkl_syscall(nr, params));
++}
++
++HOOK_FD_CALL(recvmsg);
++HOOK_FD_CALL(sendmsg);
++HOOK_FD_CALL(sendmmsg);
++HOOK_FD_CALL(getsockname);
++HOOK_FD_CALL(getpeername);
++HOOK_FD_CALL(bind);
++HOOK_FD_CALL(connect);
++HOOK_FD_CALL(listen);
++HOOK_FD_CALL(shutdown);
++HOOK_FD_CALL(accept);
++HOOK_FD_CALL(write);
++HOOK_FD_CALL(writev);
++HOOK_FD_CALL(sendto);
++HOOK_FD_CALL(read);
++HOOK_FD_CALL(readv);
++HOOK_FD_CALL(recvfrom);
++HOOK_FD_CALL(splice);
++HOOK_FD_CALL(vmsplice);
++
++HOOK_CALL_USE_HOST_BEFORE_START(accept4);
++HOOK_CALL_USE_HOST_BEFORE_START(pipe2);
++
++HOST_CALL(write);
++HOST_CALL(pipe2);
++
++HOST_CALL(setsockopt);
++int setsockopt(int fd, int level, int optname, const void *optval,
++	       socklen_t optlen)
++{
++	CHECK_HOST_CALL(setsockopt);
++	if (!is_lklfd(fd))
++		return host_setsockopt(fd, level, optname, optval, optlen);
++	return lkl_call(__lkl__NR_setsockopt, 5, fd, lkl_solevel_xlate(level),
++			lkl_soname_xlate(optname), (void *)optval, optlen);
++}
++
++HOST_CALL(getsockopt);
++int getsockopt(int fd, int level, int optname, void *optval, socklen_t *optlen)
++{
++	CHECK_HOST_CALL(getsockopt);
++	if (!is_lklfd(fd))
++		return host_getsockopt(fd, level, optname, optval, optlen);
++	return lkl_call(__lkl__NR_getsockopt, 5, fd, lkl_solevel_xlate(level),
++			lkl_soname_xlate(optname), optval, (int *)optlen);
++}
++
++HOST_CALL(socket);
++int socket(int domain, int type, int protocol)
++{
++	CHECK_HOST_CALL(socket);
++	if (domain == AF_UNIX || domain == PF_PACKET)
++		return host_socket(domain, type, protocol);
++
++	if (!lkl_running)
++		return host_socket(domain, type, protocol);
++
++	return lkl_call(__lkl__NR_socket, 3, domain, type, protocol);
++}
++
++HOST_CALL(ioctl);
++int ioctl(int fd, unsigned long req, ...)
++{
++	va_list vl;
++	long arg;
++
++	va_start(vl, req);
++	arg = va_arg(vl, long);
++	va_end(vl);
++
++	CHECK_HOST_CALL(ioctl);
++
++	if (!is_lklfd(fd))
++		return host_ioctl(fd, req, arg);
++	return lkl_call(__lkl__NR_ioctl, 3, fd, lkl_ioctl_req_xlate(req), arg);
++}
 +
 +
-+Supported hosts
-+===============
++HOST_CALL(fcntl);
++int fcntl(int fd, int cmd, ...)
++{
++	va_list vl;
++	long arg;
 +
-+The supported hosts for now are POSIX and Windows userspace applications.
++	va_start(vl, cmd);
++	arg = va_arg(vl, long);
++	va_end(vl);
 +
++	CHECK_HOST_CALL(fcntl);
 +
-+Building LKL the host library and LKL applications
-+==================================================
++	if (!is_lklfd(fd))
++		return host_fcntl(fd, cmd, arg);
++	return lkl_call(__lkl__NR_fcntl, 3, fd, lkl_fcntl_cmd_xlate(cmd), arg);
++}
 +
-+    $ make -C tools/lkl
++HOST_CALL(poll);
++int poll(struct pollfd *fds, nfds_t nfds, int timeout)
++{
++	unsigned int i, lklfds = 0, hostfds = 0;
 +
-+will build LKL as a object file, it will install it in tools/lkl/lib together
-+with the headers files in tools/lkl/include then will build the host library,
-+tests and a few of application examples:
++	CHECK_HOST_CALL(poll);
 +
-+* tests/boot - a simple applications that uses LKL and exercises the basic LKL
-+  APIs
++	for (i = 0; i < nfds; i++) {
++		if (is_lklfd(fds[i].fd))
++			lklfds = 1;
++		else
++			hostfds = 1;
++	}
 +
-+* tests/net-test - a simple applications that uses network feature of LKL and
-+  exercises the basic network-related APIs
-+
-+* fs2tar - a tool that converts a filesystem image to a tar archive
-+
-+* cptofs/cpfromfs - a tool that copies files to/from a filesystem image
-+
-+* lklfuse - a tool that can mount a filesystem image in userspace,
-+  without root privileges, using FUSE
-+
-+
-+Building LKL on FreeBSD
-+-----------------------
-+
-+    $ pkg install binutils gcc gnubc gmake gsed coreutils bison flex python argp-standalone
-+
-+    #Prefer ports binutils and GNU bc(1):
-+    $ export PATH=/sbin:/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/usr/lib64/ccache
-+
-+    $ gmake -C tools/lkl
-+
-+Building LKL on Ubuntu
-+-----------------------
-+
-+    $ sudo apt-get install libfuse-dev libarchive-dev xfsprogs
-+
-+    # Optional, if you would like to be able to run tests
-+    $ sudo apt-get install btrfs-tools
-+    $ pip install yamlish junit_xml
-+
-+    $ make -C tools/lkl
-+
-+    # To check that everything works:
-+    $ cd tools/lkl
-+    $ make run-tests
++	/* FIXME: need to handle mixed case of hostfd and lklfd. */
++	if (lklfds && hostfds)
++		return lkl_set_errno(-LKL_EOPNOTSUPP);
 +
 +
-+Building LKL for Windows
-+------------------------
++	if (hostfds)
++		return host_poll(fds, nfds, timeout);
 +
-+In order to build LKL for Win32 the mingw cross compiler needs to be installed
-+on the host (e.g. on Ubuntu the following packages are required:
-+binutils-mingw-w64-i686, gcc-mingw-w64-base, gcc-mingw-w64-i686
-+mingw-w64-common, mingw-w64-i686-dev).
++	return lkl_sys_poll((struct lkl_pollfd *)fds, nfds, timeout);
++}
 +
-+Due to a bug in mingw regarding weak symbols the following patches needs to be
-+applied to mingw-binutils:
++int __poll(struct pollfd *, nfds_t, int) __attribute__((alias("poll")));
 +
-+https://sourceware.org/ml/binutils/2015-10/msg00234.html
++HOST_CALL(select);
++int select(int nfds, fd_set *r, fd_set *w, fd_set *e, struct timeval *t)
++{
++	int fd, hostfds = 0, lklfds = 0;
 +
-+and i686-w64-mingw32-gas, i686-w64-mingw32-ld and i686-w64-mingw32-objcopy need
-+to be recompiled.
++	CHECK_HOST_CALL(select);
 +
-+With that pre-requisites fullfilled you can now build LKL for Win32 with the
-+following command:
++	for (fd = 0; fd < nfds; fd++) {
++		if (r != 0 && FD_ISSET(fd, r)) {
++			if (is_lklfd(fd))
++				lklfds = 1;
++			else
++				hostfds = 1;
++		}
++		if (w != 0 && FD_ISSET(fd, w)) {
++			if (is_lklfd(fd))
++				lklfds = 1;
++			else
++				hostfds = 1;
++		}
++		if (e != 0 && FD_ISSET(fd, e)) {
++			if (is_lklfd(fd))
++				lklfds = 1;
++			else
++				hostfds = 1;
++		}
++	}
 +
-+    $ make CROSS_COMPILE=i686-w64-mingw32- -C tools/lkl
++	/* FIXME: handle mixed case of hostfd and lklfd */
++	if (lklfds && hostfds)
++		return lkl_set_errno(-LKL_EOPNOTSUPP);
++
++	if (hostfds)
++		return host_select(nfds, r, w, e, t);
++
++	return lkl_sys_select(nfds, (lkl_fd_set *)r, (lkl_fd_set *)w,
++			      (lkl_fd_set *)e, (struct lkl_timeval *)t);
++}
++
++HOST_CALL(close);
++int close(int fd)
++{
++	CHECK_HOST_CALL(close);
++
++	if (!is_lklfd(fd)) {
++		/* handle epoll's dual_fd */
++		if ((dual_fds[fd] != -1) && lkl_running) {
++			lkl_call(__lkl__NR_close, 1, dual_fds[fd]);
++			dual_fds[fd] = -1;
++		}
++
++		return host_close(fd);
++	}
++
++	return lkl_call(__lkl__NR_close, 1, fd);
++}
++
++HOST_CALL(epoll_create);
++int epoll_create(int size)
++{
++	int host_fd;
++
++	CHECK_HOST_CALL(epoll_create);
++
++	host_fd = host_epoll_create(size);
++	if (!host_fd) {
++		fprintf(stderr, "%s fail (%d)\n", __func__, errno);
++		return -1;
++	}
++
++	if (!lkl_running)
++		return host_fd;
++
++	dual_fds[host_fd] = lkl_sys_epoll_create(size);
++
++	/* always returns the host fd */
++	return host_fd;
++}
++
++HOST_CALL(epoll_create1);
++int epoll_create1(int flags)
++{
++	int host_fd;
++
++	CHECK_HOST_CALL(epoll_create1);
++
++	host_fd = host_epoll_create1(flags);
++	if (!host_fd) {
++		fprintf(stderr, "%s fail (%d)\n", __func__, errno);
++		return -1;
++	}
++
++	if (!lkl_running)
++		return host_fd;
++
++	dual_fds[host_fd] = lkl_sys_epoll_create1(flags);
++
++	/* always returns the host fd */
++	return host_fd;
++}
 +
 +
++HOST_CALL(epoll_ctl);
++int epoll_ctl(int epollfd, int op, int fd, struct epoll_event *event)
++{
++	CHECK_HOST_CALL(epoll_ctl);
 +
-+Building LKL on Windows
-+------------------------
++	if (!is_lklfd(fd))
++		return host_epoll_ctl(epollfd, op, fd, event);
 +
-+To build on Windows, certain GNU tools need to be installed. These tools can come
-+from several different projects, such as cygwin, unxutils, gnu-win32 or busybox-w32.
-+Below is one minimal/modular set-up based on msys2.
++	return lkl_call(__lkl__NR_epoll_ctl, 4, dual_fds[epollfd],
++			op, fd, event);
++}
 +
-+### Common build dependencies:
-+* [MSYS2](https://sourceforge.net/projects/msys2/) (provides GNU bash and many other utilities)
-+* Extra utilities from MSYS2/pacman: bc, base-devel
++struct epollarg {
++	int epfd;
++	struct epoll_event *events;
++	int maxevents;
++	int timeout;
++	int pipefd;
++	int errnum;
++};
 +
-+### General considerations:
-+* No spaces in pathnames (source, prefix, destination,...)!
-+* Make sure that all utilities are in the PATH.
-+* Win64 (and MinGW 64-bit crt) is LLP64, which causes conflicts in size of "long" in the
-+Linux source. Linux (and lkl) can (currently) not
-+be built on LLP64.
-+* Cygwin (and msys2) are LP64, like linux.
++HOST_CALL(epoll_wait)
++static void *host_epollwait(void *arg)
++{
++	struct epollarg *earg = arg;
++	int ret;
 +
-+### For MSYS2 (and Cygwin):
-+Msys2 will install a gcc tool chain as part of the base-devel bundle. Binutils (2.26) is already
-+patched for NT weak externals. Using the msys2 shell, cd to the lkl sources and run:
++	ret = host_epoll_wait(earg->epfd, earg->events,
++			      earg->maxevents, earg->timeout);
++	if (ret == -1)
++		earg->errnum = errno;
++	lkl_call(__lkl__NR_write, 3, earg->pipefd, &ret, sizeof(ret));
 +
-+    $ make -C tools/lkl
++	return (void *)(intptr_t)ret;
++}
 +
-+### For MinGW:
-+Install mingw-w64-i686-toolchain via pacman, mingw-w64-i686-binutils (2.26) is already patched
-+for NT weak externals. Start a MinGW Win32 shell (64-bit will not work, see above)
-+and run:
++int epoll_wait(int epfd, struct epoll_event *events,
++	       int maxevents, int timeout)
++{
++	CHECK_HOST_CALL(epoll_wait);
++	CHECK_HOST_CALL(pipe2);
 +
-+    $ make -C tools/lkl
++	int l_pipe[2] = {-1, -1}, h_pipe[2] = {-1, -1};
++	struct epoll_event host_ev, lkl_ev;
++	int ret_events = maxevents;
++	struct epoll_event h_events[ret_events], l_events[ret_events];
++	struct epollarg earg;
++	pthread_t thread;
++	void *trv_val;
++	int i, ret, ret_lkl, ret_host;
++
++	ret = lkl_sys_pipe(l_pipe);
++	if (ret == -1) {
++		fprintf(stderr, "lkl pipe error(errno=%d)\n", errno);
++		return -1;
++	}
++
++	ret = host_pipe2(h_pipe, 0);
++	if (ret == -1) {
++		fprintf(stderr, "host pipe error(errno=%d)\n", errno);
++		return -1;
++	}
++
++	if (dual_fds[epfd] == -1) {
++		fprintf(stderr, "epollfd isn't available (%d)\n", epfd);
++		abort();
++	}
++
++	/* wait pipe at host/lkl epoll_fd */
++	memset(&lkl_ev, 0, sizeof(lkl_ev));
++	lkl_ev.events = EPOLLIN;
++	lkl_ev.data.fd = l_pipe[0];
++	ret = lkl_call(__lkl__NR_epoll_ctl, 4, dual_fds[epfd], EPOLL_CTL_ADD,
++		       l_pipe[0], &lkl_ev);
++	if (ret == -1) {
++		fprintf(stderr, "epoll_ctl error(epfd=%d:%d, fd=%d, err=%d)\n",
++			epfd, dual_fds[epfd], l_pipe[0], errno);
++		return -1;
++	}
++
++	memset(&host_ev, 0, sizeof(host_ev));
++	host_ev.events = EPOLLIN;
++	host_ev.data.fd = h_pipe[0];
++	ret = host_epoll_ctl(epfd, EPOLL_CTL_ADD, h_pipe[0], &host_ev);
++	if (ret == -1) {
++		fprintf(stderr, "host epoll_ctl error(%d, %d, %d, %d)\n",
++			epfd, h_pipe[0], h_pipe[1], errno);
++		return -1;
++	}
 +
 +
-+LKL hijack library
-+==================
++	/* now wait by epoll_wait on 2 threads */
++	memset(h_events, 0, sizeof(struct epoll_event) * ret_events);
++	memset(l_events, 0, sizeof(struct epoll_event) * ret_events);
++	earg.epfd = epfd;
++	earg.events = h_events;
++	earg.maxevents = maxevents;
++	earg.timeout = timeout;
++	earg.pipefd = l_pipe[1];
++	pthread_create(&thread, NULL, host_epollwait, &earg);
 +
-+LKL hijack library (liblkl-hijack.so) is used to replace system calls used by an
-+application on the fly so that the application can use LKL instead of the kernel
-+of host operating system. LD_PRELOAD is used to dynamically override system
-+calls with this library when you execute a program.
++	ret_lkl = lkl_sys_epoll_wait(dual_fds[epfd],
++				     (struct lkl_epoll_event *)l_events,
++				     maxevents, timeout);
++	if (ret_lkl == -1) {
++		fprintf(stderr,
++			"lkl_%s_wait error(epfd=%d:%d, fd=%d, err=%d)\n",
++			__func__, epfd, dual_fds[epfd], l_pipe[0], errno);
++		return -1;
++	}
++	host_write(h_pipe[1], &ret, sizeof(ret));
++	pthread_join(thread, &trv_val);
++	ret_host = (int)(intptr_t)trv_val;
++	if (ret_host == -1) {
++		fprintf(stderr,
++			"host epoll_ctl error(%d, %d, %d, %d)\n", epfd,
++			h_pipe[0], h_pipe[1], errno);
++		return -1;
++	}
 +
-+You can usually use this library via a wrapper script.
++	ret = lkl_call(__lkl__NR_epoll_ctl, 4, dual_fds[epfd], EPOLL_CTL_DEL,
++		       l_pipe[0], &lkl_ev);
++	if (ret == -1) {
++		fprintf(stderr,
++			"lkl epoll_ctl error(epfd=%d:%d, fd=%d, err=%d)\n",
++			epfd, dual_fds[epfd], l_pipe[0], errno);
++		return -1;
++	}
 +
-+    $ cd tools/lkl
-+    $ ./bin/lkl-hijack.sh ip address show
++	ret = host_epoll_ctl(epfd, EPOLL_CTL_DEL, h_pipe[0], &host_ev);
++	if (ret == -1) {
++		fprintf(stderr, "host epoll_ctl error(%d, %d, %d, %d)\n",
++			epfd, h_pipe[0], h_pipe[1], errno);
++		return -1;
++	}
 +
-+In order to configure the behavior of LKL, a json file can be used. You can
-+specify json file with environmental variables (LKL_HIJACK_CONFIG_FILE). If
-+there is nothing specified, LKL tries to find with the name 'lkl-hijack.json'
-+for the configuration file.  You can also use the old-style configuration with
-+environmental variables (e.g., LKL_HIJACK_NET_IFTYPE) but those are overridden
-+if a json file is specified.
++	memset(events, 0, sizeof(struct epoll_event) * maxevents);
++	ret = 0;
++	if (ret_host > 0) {
++		for (i = 0; i < ret_host; i++) {
++			if (h_events[i].data.fd == h_pipe[0])
++				continue;
++			if (is_lklfd(h_events[i].data.fd))
++				continue;
 +
-+```
-+     $ cat conf.json
-+     {
-+       "gateway":"192.168.0.1",
-+       "gateway6":"2001:db8:0:f101::1",
-+       "debug":"1",
-+       "singlecpu":"1",
-+       "sysctl":"net.ipv4.tcp_wmem=4096 87380 2147483647",
-+       "boot_cmdline":"ip=dhcp",
-+       "interfaces":[
++			memcpy(events, &(h_events[i]),
++			       sizeof(struct epoll_event));
++			events++;
++			ret++;
++		}
++	}
++	if (ret_lkl > 0) {
++		for (i = 0; i < ret_lkl; i++) {
++			if (l_events[i].data.fd == l_pipe[0])
++				continue;
++			if (!is_lklfd(l_events[i].data.fd))
++				continue;
++
++			memcpy(events, &(l_events[i]),
++			       sizeof(struct epoll_event));
++			events++;
++			ret++;
++		}
++	}
++
++	lkl_call(__lkl__NR_close, 1, l_pipe[0]);
++	lkl_call(__lkl__NR_close, 1, l_pipe[1]);
++	host_close(h_pipe[0]);
++	host_close(h_pipe[1]);
++
++	return ret;
++}
++
++int eventfd(unsigned int count, int flags)
++{
++	if (!lkl_running) {
++		int (*f)(unsigned int a, int b) = resolve_sym("eventfd");
++
++		return f(count, flags);
++	}
++
++	return lkl_sys_eventfd2(count, flags);
++}
++
++HOST_CALL(eventfd_read);
++int eventfd_read(int fd, uint64_t *value)
++{
++	CHECK_HOST_CALL(eventfd_read);
++
++	if (!is_lklfd(fd))
++		return host_eventfd_read(fd, value);
++
++	return lkl_sys_read(fd, (void *) value,
++			    sizeof(*value)) != sizeof(*value) ? -1 : 0;
++}
++
++HOST_CALL(eventfd_write);
++int eventfd_write(int fd, uint64_t value)
++{
++	CHECK_HOST_CALL(eventfd_write);
++
++	if (!is_lklfd(fd))
++		return host_eventfd_write(fd, value);
++
++	return lkl_sys_write(fd, (void *) &value,
++			     sizeof(value)) != sizeof(value) ? -1 : 0;
++}
++
++HOST_CALL(mmap)
++void *mmap(void *addr, size_t length, int prot, int flags, int fd, off_t offset)
++{
++	CHECK_HOST_CALL(mmap);
++
++	if (addr != NULL || flags != (MAP_ANONYMOUS|MAP_PRIVATE) ||
++	    prot != (PROT_READ|PROT_WRITE) || fd != -2 || offset != 0)
++		return (void *)host_mmap(addr, length, prot, flags, fd, offset);
++	return lkl_sys_mmap(addr, length, prot, flags, fd, offset);
++}
++
++ssize_t send(int fd, const void *buf, size_t len, int flags)
++{
++	return sendto(fd, buf, len, flags, 0, 0);
++}
++
++ssize_t recv(int fd, void *buf, size_t len, int flags)
++{
++	return recvfrom(fd, buf, len, flags, 0, 0);
++}
++
++extern int pipe2(int fd[2], int flag);
++int pipe(int fd[2])
++{
++	if (!lkl_running)
++		return host_calls[__lkl__NR_pipe2]((long)fd, 0, 0, 0, 0, 0);
++
++	return pipe2(fd, 0);
++
++}
+diff --git a/tools/lkl/lib/hijack/init.c b/tools/lkl/lib/hijack/init.c
+new file mode 100644
+index 000000000000..2145fb7ec2cb
+--- /dev/null
++++ b/tools/lkl/lib/hijack/init.c
+@@ -0,0 +1,241 @@
++// SPDX-License-Identifier: GPL-2.0
++/*
++ * system calls hijack code
++ * Copyright (c) 2015 Hajime Tazaki
++ *
++ * Author: Hajime Tazaki <tazaki@sfc.wide.ad.jp>
++ *
++ * Note: some of the code is picked from rumpkernel, written by Antti Kantee.
++ */
++
++#include <stdio.h>
++#include <net/if.h>
++#include <stdlib.h>
++#include <string.h>
++#include <sys/types.h>
++#include <fcntl.h>
++#include <errno.h>
++#include <signal.h>
++#include <lkl.h>
++#include <lkl_host.h>
++#include <lkl_config.h>
++
++#include "xlate.h"
++#include "init.h"
++
++#define __USE_GNU
++#include <dlfcn.h>
++
++#define _GNU_SOURCE
++#include <sched.h>
++
++/* Mount points are named after filesystem types so they should never
++ * be longer than ~6 characters.
++ */
++#define MAX_FSTYPE_LEN 50
++
++static void PinToCpus(const cpu_set_t *cpus)
++{
++	if (sched_setaffinity(0, sizeof(cpu_set_t), cpus))
++		perror("sched_setaffinity");
++}
++
++static void PinToFirstCpu(const cpu_set_t *cpus)
++{
++	int j;
++	cpu_set_t pinto;
++
++	CPU_ZERO(&pinto);
++	for (j = 0; j < CPU_SETSIZE; j++) {
++		if (CPU_ISSET(j, cpus)) {
++			lkl_printf("LKL: Pin To CPU %d\n", j);
++			CPU_SET(j, &pinto);
++			PinToCpus(&pinto);
++			return;
++		}
++	}
++}
++
++int lkl_debug, lkl_running;
++
++static struct lkl_config *cfg;
++
++static int config_load(void)
++{
++	int len, ret = -1;
++	char *buf;
++	int fd;
++	char *path = getenv("LKL_HIJACK_CONFIG_FILE");
++
++	cfg = (struct lkl_config *)malloc(sizeof(struct lkl_config));
++	if (!cfg) {
++		perror("config malloc");
++		return -1;
++	}
++	memset(cfg, 0, sizeof(struct lkl_config));
++
++	ret = lkl_load_config_env(cfg);
++	if (ret < 0)
++		return ret;
++
++	if (path)
++		fd = open(path, O_RDONLY, 0);
++	else if (access("lkl-hijack.json", R_OK) == 0)
++		fd = open("lkl-hijack.json", O_RDONLY, 0);
++	else
++		return 0;
++	if (fd < 0) {
++		fprintf(stderr, "config_file open %s: %s\n",
++			path, strerror(errno));
++		return -1;
++	}
++	len = lseek(fd, 0, SEEK_END);
++	lseek(fd, 0, SEEK_SET);
++	if (len < 0) {
++		perror("config size check (lseek)");
++		return -1;
++	} else if (len == 0) {
++		return 0;
++	}
++	buf = (char *)malloc(len * sizeof(char) + 1);
++	if (!buf) {
++		perror("config buf malloc");
++		return -1;
++	}
++	ret = read(fd, buf, len);
++	if (ret < 0) {
++		perror("config file read");
++		free(buf);
++		return -1;
++	}
++	ret = lkl_load_config_json(cfg, buf);
++	free(buf);
++	return ret;
++}
++
++void __attribute__((constructor))
++hijack_init(void)
++{
++	int ret, i, dev_null;
++	int single_cpu_mode = 0;
++	cpu_set_t ori_cpu;
++
++	ret = config_load();
++	if (ret < 0)
++		return;
++
++	/* reflect pre-configuration */
++	lkl_load_config_pre(cfg);
++
++	/* hijack library specific configurations */
++	if (cfg->debug)
++		lkl_register_dbg_handler();
++
++	if (lkl_debug & 0x200) {
++		char c;
++
++		printf("press 'enter' to continue\n");
++		if (scanf("%c", &c) <= 0) {
++			fprintf(stderr, "scanf() fails\n");
++			return;
++		}
++	}
++	if (cfg->single_cpu) {
++		single_cpu_mode = atoi(cfg->single_cpu);
++		switch (single_cpu_mode) {
++		case 0:
++		case 1:
++		case 2:
++			break;
++		default:
++			fprintf(stderr, "single cpu mode must be 0~2.\n");
++			single_cpu_mode = 0;
++			break;
++		}
++	}
++
++	if (single_cpu_mode) {
++		if (sched_getaffinity(0, sizeof(cpu_set_t), &ori_cpu)) {
++			perror("sched_getaffinity");
++			single_cpu_mode = 0;
++		}
++	}
++
++	/* Pin to a single cpu.
++	 * Any children thread created after it are pinned to the same CPU.
++	 */
++	if (single_cpu_mode == 2)
++		PinToFirstCpu(&ori_cpu);
++
++	if (single_cpu_mode == 1)
++		PinToFirstCpu(&ori_cpu);
++
++	ret = lkl_start_kernel(&lkl_host_ops, cfg->boot_cmdline);
++	if (ret) {
++		fprintf(stderr, "can't start kernel: %s\n", lkl_strerror(ret));
++		return;
++	}
++
++	lkl_running = 1;
++
++	/* initialize epoll manage list */
++	memset(dual_fds, -1, sizeof(int) * LKL_FD_OFFSET);
++
++	/* restore cpu affinity */
++	if (single_cpu_mode)
++		PinToCpus(&ori_cpu);
++
++	ret = lkl_set_fd_limit(65535);
++	if (ret)
++		fprintf(stderr, "lkl_set_fd_limit failed: %s\n",
++			lkl_strerror(ret));
++
++	/* fillup FDs up to LKL_FD_OFFSET */
++	ret = lkl_sys_mknod("/dev_null", LKL_S_IFCHR | 0600, LKL_MKDEV(1, 3));
++	dev_null = lkl_sys_open("/dev_null", LKL_O_RDONLY, 0);
++	if (dev_null < 0) {
++		fprintf(stderr, "failed to open /dev/null: %s\n",
++				lkl_strerror(dev_null));
++		return;
++	}
++
++	for (i = 1; i < LKL_FD_OFFSET; i++)
++		lkl_sys_dup(dev_null);
++
++	/* lo iff_up */
++	lkl_if_up(1);
++
++	/* reflect post-configuration */
++	lkl_load_config_post(cfg);
++}
++
++void __attribute__((destructor))
++hijack_fini(void)
++{
++	int i;
++	int err;
++
++	/* The following pauses the kernel before exiting allowing one
++	 * to debug or collect stattistics/diagnosis info from it.
++	 */
++	if (lkl_debug & 0x100) {
++		while (1)
++			pause();
++	}
++
++	if (!cfg)
++		return;
++
++	lkl_unload_config(cfg);
++	free(cfg);
++
++	if (!lkl_running)
++		return;
++
++	for (i = 0; i < LKL_FD_OFFSET; i++)
++		lkl_sys_close(i);
++
++	err = lkl_sys_halt();
++	if (err)
++		fprintf(stderr, "lkl_sys_halt: %s\n", lkl_strerror(err));
++}
+diff --git a/tools/lkl/lib/hijack/init.h b/tools/lkl/lib/hijack/init.h
+new file mode 100644
+index 000000000000..c4039e018b2b
+--- /dev/null
++++ b/tools/lkl/lib/hijack/init.h
+@@ -0,0 +1,8 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++#ifndef _LKL_HIJACK_INIT_H
++#define _LKL_HIJACK_INIT_H
++
++extern int lkl_running;
++extern int dual_fds[];
++
++#endif /*_LKL_HIJACK_INIT_H */
+diff --git a/tools/lkl/lib/hijack/xlate.c b/tools/lkl/lib/hijack/xlate.c
+new file mode 100644
+index 000000000000..b96a0107116a
+--- /dev/null
++++ b/tools/lkl/lib/hijack/xlate.c
+@@ -0,0 +1,613 @@
++// SPDX-License-Identifier: GPL-2.0
++#include <errno.h>
++#define __USE_GNU
++#include <fcntl.h>
++#include <sys/ioctl.h>
++#include <sys/socket.h>
++#undef st_atime
++#undef st_mtime
++#undef st_ctime
++#include <lkl.h>
++
++#include "xlate.h"
++
++long lkl_set_errno(long err)
++{
++	if (err >= 0)
++		return err;
++
++	switch (err) {
++	case -LKL_EPERM:
++		errno = EPERM;
++		break;
++	case -LKL_ENOENT:
++		errno = ENOENT;
++		break;
++	case -LKL_ESRCH:
++		errno = ESRCH;
++		break;
++	case -LKL_EINTR:
++		errno = EINTR;
++		break;
++	case -LKL_EIO:
++		errno = EIO;
++		break;
++	case -LKL_ENXIO:
++		errno = ENXIO;
++		break;
++	case -LKL_E2BIG:
++		errno = E2BIG;
++		break;
++	case -LKL_ENOEXEC:
++		errno = ENOEXEC;
++		break;
++	case -LKL_EBADF:
++		errno = EBADF;
++		break;
++	case -LKL_ECHILD:
++		errno = ECHILD;
++		break;
++	case -LKL_EAGAIN:
++		errno = EAGAIN;
++		break;
++	case -LKL_ENOMEM:
++		errno = ENOMEM;
++		break;
++	case -LKL_EACCES:
++		errno = EACCES;
++		break;
++	case -LKL_EFAULT:
++		errno = EFAULT;
++		break;
++	case -LKL_ENOTBLK:
++		errno = ENOTBLK;
++		break;
++	case -LKL_EBUSY:
++		errno = EBUSY;
++		break;
++	case -LKL_EEXIST:
++		errno = EEXIST;
++		break;
++	case -LKL_EXDEV:
++		errno = EXDEV;
++		break;
++	case -LKL_ENODEV:
++		errno = ENODEV;
++		break;
++	case -LKL_ENOTDIR:
++		errno = ENOTDIR;
++		break;
++	case -LKL_EISDIR:
++		errno = EISDIR;
++		break;
++	case -LKL_EINVAL:
++		errno = EINVAL;
++		break;
++	case -LKL_ENFILE:
++		errno = ENFILE;
++		break;
++	case -LKL_EMFILE:
++		errno = EMFILE;
++		break;
++	case -LKL_ENOTTY:
++		errno = ENOTTY;
++		break;
++	case -LKL_ETXTBSY:
++		errno = ETXTBSY;
++		break;
++	case -LKL_EFBIG:
++		errno = EFBIG;
++		break;
++	case -LKL_ENOSPC:
++		errno = ENOSPC;
++		break;
++	case -LKL_ESPIPE:
++		errno = ESPIPE;
++		break;
++	case -LKL_EROFS:
++		errno = EROFS;
++		break;
++	case -LKL_EMLINK:
++		errno = EMLINK;
++		break;
++	case -LKL_EPIPE:
++		errno = EPIPE;
++		break;
++	case -LKL_EDOM:
++		errno = EDOM;
++		break;
++	case -LKL_ERANGE:
++		errno = ERANGE;
++		break;
++	case -LKL_EDEADLK:
++		errno = EDEADLK;
++		break;
++	case -LKL_ENAMETOOLONG:
++		errno = ENAMETOOLONG;
++		break;
++	case -LKL_ENOLCK:
++		errno = ENOLCK;
++		break;
++	case -LKL_ENOSYS:
++		errno = ENOSYS;
++		break;
++	case -LKL_ENOTEMPTY:
++		errno = ENOTEMPTY;
++		break;
++	case -LKL_ELOOP:
++		errno = ELOOP;
++		break;
++	case -LKL_ENOMSG:
++		errno = ENOMSG;
++		break;
++	case -LKL_EIDRM:
++		errno = EIDRM;
++		break;
++	case -LKL_ECHRNG:
++		errno = ECHRNG;
++		break;
++	case -LKL_EL2NSYNC:
++		errno = EL2NSYNC;
++		break;
++	case -LKL_EL3HLT:
++		errno = EL3HLT;
++		break;
++	case -LKL_EL3RST:
++		errno = EL3RST;
++		break;
++	case -LKL_ELNRNG:
++		errno = ELNRNG;
++		break;
++	case -LKL_EUNATCH:
++		errno = EUNATCH;
++		break;
++	case -LKL_ENOCSI:
++		errno = ENOCSI;
++		break;
++	case -LKL_EL2HLT:
++		errno = EL2HLT;
++		break;
++	case -LKL_EBADE:
++		errno = EBADE;
++		break;
++	case -LKL_EBADR:
++		errno = EBADR;
++		break;
++	case -LKL_EXFULL:
++		errno = EXFULL;
++		break;
++	case -LKL_ENOANO:
++		errno = ENOANO;
++		break;
++	case -LKL_EBADRQC:
++		errno = EBADRQC;
++		break;
++	case -LKL_EBADSLT:
++		errno = EBADSLT;
++		break;
++	case -LKL_EBFONT:
++		errno = EBFONT;
++		break;
++	case -LKL_ENOSTR:
++		errno = ENOSTR;
++		break;
++	case -LKL_ENODATA:
++		errno = ENODATA;
++		break;
++	case -LKL_ETIME:
++		errno = ETIME;
++		break;
++	case -LKL_ENOSR:
++		errno = ENOSR;
++		break;
++	case -LKL_ENONET:
++		errno = ENONET;
++		break;
++	case -LKL_ENOPKG:
++		errno = ENOPKG;
++		break;
++	case -LKL_EREMOTE:
++		errno = EREMOTE;
++		break;
++	case -LKL_ENOLINK:
++		errno = ENOLINK;
++		break;
++	case -LKL_EADV:
++		errno = EADV;
++		break;
++	case -LKL_ESRMNT:
++		errno = ESRMNT;
++		break;
++	case -LKL_ECOMM:
++		errno = ECOMM;
++		break;
++	case -LKL_EPROTO:
++		errno = EPROTO;
++		break;
++	case -LKL_EMULTIHOP:
++		errno = EMULTIHOP;
++		break;
++	case -LKL_EDOTDOT:
++		errno = EDOTDOT;
++		break;
++	case -LKL_EBADMSG:
++		errno = EBADMSG;
++		break;
++	case -LKL_EOVERFLOW:
++		errno = EOVERFLOW;
++		break;
++	case -LKL_ENOTUNIQ:
++		errno = ENOTUNIQ;
++		break;
++	case -LKL_EBADFD:
++		errno = EBADFD;
++		break;
++	case -LKL_EREMCHG:
++		errno = EREMCHG;
++		break;
++	case -LKL_ELIBACC:
++		errno = ELIBACC;
++		break;
++	case -LKL_ELIBBAD:
++		errno = ELIBBAD;
++		break;
++	case -LKL_ELIBSCN:
++		errno = ELIBSCN;
++		break;
++	case -LKL_ELIBMAX:
++		errno = ELIBMAX;
++		break;
++	case -LKL_ELIBEXEC:
++		errno = ELIBEXEC;
++		break;
++	case -LKL_EILSEQ:
++		errno = EILSEQ;
++		break;
++	case -LKL_ERESTART:
++		errno = ERESTART;
++		break;
++	case -LKL_ESTRPIPE:
++		errno = ESTRPIPE;
++		break;
++	case -LKL_EUSERS:
++		errno = EUSERS;
++		break;
++	case -LKL_ENOTSOCK:
++		errno = ENOTSOCK;
++		break;
++	case -LKL_EDESTADDRREQ:
++		errno = EDESTADDRREQ;
++		break;
++	case -LKL_EMSGSIZE:
++		errno = EMSGSIZE;
++		break;
++	case -LKL_EPROTOTYPE:
++		errno = EPROTOTYPE;
++		break;
++	case -LKL_ENOPROTOOPT:
++		errno = ENOPROTOOPT;
++		break;
++	case -LKL_EPROTONOSUPPORT:
++		errno = EPROTONOSUPPORT;
++		break;
++	case -LKL_ESOCKTNOSUPPORT:
++		errno = ESOCKTNOSUPPORT;
++		break;
++	case -LKL_EOPNOTSUPP:
++		errno = EOPNOTSUPP;
++		break;
++	case -LKL_EPFNOSUPPORT:
++		errno = EPFNOSUPPORT;
++		break;
++	case -LKL_EAFNOSUPPORT:
++		errno = EAFNOSUPPORT;
++		break;
++	case -LKL_EADDRINUSE:
++		errno = EADDRINUSE;
++		break;
++	case -LKL_EADDRNOTAVAIL:
++		errno = EADDRNOTAVAIL;
++		break;
++	case -LKL_ENETDOWN:
++		errno = ENETDOWN;
++		break;
++	case -LKL_ENETUNREACH:
++		errno = ENETUNREACH;
++		break;
++	case -LKL_ENETRESET:
++		errno = ENETRESET;
++		break;
++	case -LKL_ECONNABORTED:
++		errno = ECONNABORTED;
++		break;
++	case -LKL_ECONNRESET:
++		errno = ECONNRESET;
++		break;
++	case -LKL_ENOBUFS:
++		errno = ENOBUFS;
++		break;
++	case -LKL_EISCONN:
++		errno = EISCONN;
++		break;
++	case -LKL_ENOTCONN:
++		errno = ENOTCONN;
++		break;
++	case -LKL_ESHUTDOWN:
++		errno = ESHUTDOWN;
++		break;
++	case -LKL_ETOOMANYREFS:
++		errno = ETOOMANYREFS;
++		break;
++	case -LKL_ETIMEDOUT:
++		errno = ETIMEDOUT;
++		break;
++	case -LKL_ECONNREFUSED:
++		errno = ECONNREFUSED;
++		break;
++	case -LKL_EHOSTDOWN:
++		errno = EHOSTDOWN;
++		break;
++	case -LKL_EHOSTUNREACH:
++		errno = EHOSTUNREACH;
++		break;
++	case -LKL_EALREADY:
++		errno = EALREADY;
++		break;
++	case -LKL_EINPROGRESS:
++		errno = EINPROGRESS;
++		break;
++	case -LKL_ESTALE:
++		errno = ESTALE;
++		break;
++	case -LKL_EUCLEAN:
++		errno = EUCLEAN;
++		break;
++	case -LKL_ENOTNAM:
++		errno = ENOTNAM;
++		break;
++	case -LKL_ENAVAIL:
++		errno = ENAVAIL;
++		break;
++	case -LKL_EISNAM:
++		errno = EISNAM;
++		break;
++	case -LKL_EREMOTEIO:
++		errno = EREMOTEIO;
++		break;
++	case -LKL_EDQUOT:
++		errno = EDQUOT;
++		break;
++	case -LKL_ENOMEDIUM:
++		errno = ENOMEDIUM;
++		break;
++	case -LKL_EMEDIUMTYPE:
++		errno = EMEDIUMTYPE;
++		break;
++	case -LKL_ECANCELED:
++		errno = ECANCELED;
++		break;
++	case -LKL_ENOKEY:
++		errno = ENOKEY;
++		break;
++	case -LKL_EKEYEXPIRED:
++		errno = EKEYEXPIRED;
++		break;
++	case -LKL_EKEYREVOKED:
++		errno = EKEYREVOKED;
++		break;
++	case -LKL_EKEYREJECTED:
++		errno = EKEYREJECTED;
++		break;
++	case -LKL_EOWNERDEAD:
++		errno = EOWNERDEAD;
++		break;
++	case -LKL_ENOTRECOVERABLE:
++		errno = ENOTRECOVERABLE;
++		break;
++	case -LKL_ERFKILL:
++		errno = ERFKILL;
++		break;
++	case -LKL_EHWPOISON:
++		errno = EHWPOISON;
++		break;
++	}
++
++	return -1;
++}
++
++int lkl_soname_xlate(int soname)
++{
++	switch (soname) {
++	case SO_DEBUG:
++		return LKL_SO_DEBUG;
++	case SO_REUSEADDR:
++		return LKL_SO_REUSEADDR;
++	case SO_TYPE:
++		return LKL_SO_TYPE;
++	case SO_ERROR:
++		return LKL_SO_ERROR;
++	case SO_DONTROUTE:
++		return LKL_SO_DONTROUTE;
++	case SO_BROADCAST:
++		return LKL_SO_BROADCAST;
++	case SO_SNDBUF:
++		return LKL_SO_SNDBUF;
++	case SO_RCVBUF:
++		return LKL_SO_RCVBUF;
++	case SO_SNDBUFFORCE:
++		return LKL_SO_SNDBUFFORCE;
++	case SO_RCVBUFFORCE:
++		return LKL_SO_RCVBUFFORCE;
++	case SO_KEEPALIVE:
++		return LKL_SO_KEEPALIVE;
++	case SO_OOBINLINE:
++		return LKL_SO_OOBINLINE;
++	case SO_NO_CHECK:
++		return LKL_SO_NO_CHECK;
++	case SO_PRIORITY:
++		return LKL_SO_PRIORITY;
++	case SO_LINGER:
++		return LKL_SO_LINGER;
++	case SO_BSDCOMPAT:
++		return LKL_SO_BSDCOMPAT;
++#ifdef SO_REUSEPORT
++	case SO_REUSEPORT:
++		return LKL_SO_REUSEPORT;
++#endif
++	case SO_PASSCRED:
++		return LKL_SO_PASSCRED;
++	case SO_PEERCRED:
++		return LKL_SO_PEERCRED;
++	case SO_RCVLOWAT:
++		return LKL_SO_RCVLOWAT;
++	case SO_SNDLOWAT:
++		return LKL_SO_SNDLOWAT;
++	case SO_RCVTIMEO:
++		return LKL_SO_RCVTIMEO;
++	case SO_SNDTIMEO:
++		return LKL_SO_SNDTIMEO;
++	case SO_SECURITY_AUTHENTICATION:
++		return LKL_SO_SECURITY_AUTHENTICATION;
++	case SO_SECURITY_ENCRYPTION_TRANSPORT:
++		return LKL_SO_SECURITY_ENCRYPTION_TRANSPORT;
++	case SO_SECURITY_ENCRYPTION_NETWORK:
++		return LKL_SO_SECURITY_ENCRYPTION_NETWORK;
++	case SO_BINDTODEVICE:
++		return LKL_SO_BINDTODEVICE;
++	case SO_ATTACH_FILTER:
++		return LKL_SO_ATTACH_FILTER;
++	case SO_DETACH_FILTER:
++		return LKL_SO_DETACH_FILTER;
++	case SO_PEERNAME:
++		return LKL_SO_PEERNAME;
++	case SO_TIMESTAMP:
++		return LKL_SO_TIMESTAMP;
++	case SO_ACCEPTCONN:
++		return LKL_SO_ACCEPTCONN;
++	case SO_PEERSEC:
++		return LKL_SO_PEERSEC;
++	case SO_PASSSEC:
++		return LKL_SO_PASSSEC;
++	case SO_TIMESTAMPNS:
++		return LKL_SO_TIMESTAMPNS;
++	case SO_MARK:
++		return LKL_SO_MARK;
++	case SO_TIMESTAMPING:
++		return LKL_SO_TIMESTAMPING;
++	case SO_PROTOCOL:
++		return LKL_SO_PROTOCOL;
++	case SO_DOMAIN:
++		return LKL_SO_DOMAIN;
++	case SO_RXQ_OVFL:
++		return LKL_SO_RXQ_OVFL;
++#ifdef SO_WIFI_STATUS
++	case SO_WIFI_STATUS:
++		return LKL_SO_WIFI_STATUS;
++#endif
++#ifdef SO_PEEK_OFF
++	case SO_PEEK_OFF:
++		return LKL_SO_PEEK_OFF;
++#endif
++#ifdef SO_NOFCS
++	case SO_NOFCS:
++		return LKL_SO_NOFCS;
++#endif
++#ifdef SO_LOCK_FILTER
++	case SO_LOCK_FILTER:
++		return LKL_SO_LOCK_FILTER;
++#endif
++#ifdef SO_SELECT_ERR_QUEUE
++	case SO_SELECT_ERR_QUEUE:
++		return LKL_SO_SELECT_ERR_QUEUE;
++#endif
++#ifdef SO_BUSY_POLL
++	case SO_BUSY_POLL:
++		return LKL_SO_BUSY_POLL;
++#endif
++#ifdef SO_MAX_PACING_RATE
++	case SO_MAX_PACING_RATE:
++		return LKL_SO_MAX_PACING_RATE;
++#endif
++	}
++
++	return soname;
++}
++
++int lkl_solevel_xlate(int solevel)
++{
++	switch (solevel) {
++	case SOL_SOCKET:
++		return LKL_SOL_SOCKET;
++	}
++
++	return solevel;
++}
++
++unsigned long lkl_ioctl_req_xlate(unsigned long req)
++{
++	switch (req) {
++	case FIOSETOWN:
++		return LKL_FIOSETOWN;
++	case SIOCSPGRP:
++		return LKL_SIOCSPGRP;
++	case FIOGETOWN:
++		return LKL_FIOGETOWN;
++	case SIOCGPGRP:
++		return LKL_SIOCGPGRP;
++	case SIOCATMARK:
++		return LKL_SIOCATMARK;
++	case SIOCGSTAMP:
++		return LKL_SIOCGSTAMP;
++	case SIOCGSTAMPNS:
++		return LKL_SIOCGSTAMPNS;
++	}
++
++	/* TODO: asm/termios.h translations */
++
++	return req;
++}
++
++int lkl_fcntl_cmd_xlate(int cmd)
++{
++	switch (cmd) {
++	case F_DUPFD:
++		return LKL_F_DUPFD;
++	case F_GETFD:
++		return LKL_F_GETFD;
++	case F_SETFD:
++		return LKL_F_SETFD;
++	case F_GETFL:
++		return LKL_F_GETFL;
++	case F_SETFL:
++		return LKL_F_SETFL;
++	case F_GETLK:
++		return LKL_F_GETLK;
++	case F_SETLK:
++		return LKL_F_SETLK;
++	case F_SETLKW:
++		return LKL_F_SETLKW;
++	case F_SETOWN:
++		return LKL_F_SETOWN;
++	case F_GETOWN:
++		return LKL_F_GETOWN;
++	case F_SETSIG:
++		return LKL_F_SETSIG;
++	case F_GETSIG:
++		return LKL_F_GETSIG;
++#ifndef LKL_CONFIG_64BIT
++	case F_GETLK64:
++		return LKL_F_GETLK64;
++	case F_SETLK64:
++		return LKL_F_SETLK64;
++	case F_SETLKW64:
++		return LKL_F_SETLKW64;
++#endif
++	case F_SETOWN_EX:
++		return LKL_F_SETOWN_EX;
++	case F_GETOWN_EX:
++		return LKL_F_GETOWN_EX;
++	}
++
++	return cmd;
++}
++
+diff --git a/tools/lkl/lib/hijack/xlate.h b/tools/lkl/lib/hijack/xlate.h
+new file mode 100644
+index 000000000000..0c0281f241a6
+--- /dev/null
++++ b/tools/lkl/lib/hijack/xlate.h
+@@ -0,0 +1,13 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++#ifndef _LKL_HIJACK_XLATE_H
++#define _LKL_HIJACK_XLATE_H
++
++long lkl_set_errno(long err);
++int lkl_soname_xlate(int soname);
++int lkl_solevel_xlate(int solevel);
++unsigned long lkl_ioctl_req_xlate(unsigned long req);
++int lkl_fcntl_cmd_xlate(int cmd);
++
++#define LKL_FD_OFFSET (FD_SETSIZE/2)
++
++#endif /* _LKL_HIJACK_XLATE_H */
+diff --git a/tools/lkl/tests/hijack-test.sh b/tools/lkl/tests/hijack-test.sh
+new file mode 100755
+index 000000000000..097af6cff3ba
+--- /dev/null
++++ b/tools/lkl/tests/hijack-test.sh
+@@ -0,0 +1,737 @@
++#!/usr/bin/env bash
++# SPDX-License-Identifier: GPL-2.0
++
++script_dir=$(cd $(dirname ${BASH_SOURCE:-$0}); pwd)
++
++clear_wdir()
++{
++    test -f ${VDESWITCH}.pid && kill $(cat ${VDESWITCH}.pid)
++    rm -rf ${wdir}
++    tap_cleanup
++    tap_cleanup 1
++}
++
++set_cfgjson()
++{
++    cfgjson=${wdir}/hijack-test$1.conf
++
++    cat > ${cfgjson}
++
++    export_vars cfgjson
++}
++
++run_hijack_cfg()
++{
++    lkl_test_cmd LKL_HIJACK_CONFIG_FILE=$cfgjson $hijack $@
++}
++
++run_hijack()
++{
++    lkl_test_cmd $hijack $@
++}
++
++run_netperf()
++{
++    lkl_test_cmd TEST_NETSERVER_PORT=$TEST_NETSERVER_PORT \
++                 LKL_HIJACK_CONFIG_FILE=$cfgjson $netperf $@
++}
++
++test_ping()
++{
++    set -e
++
++    run_hijack ${ping} -c 1 127.0.0.1
++}
++
++test_ping6()
++{
++    set -e
++
++    run_hijack ${ping6} -c 1 ::1
++}
++
++test_mount_and_dump()
++{
++    set -e
++
++    set_cfgjson << EOF
++    {
++        "mount":"proc,sysfs",
++        "dump":"/sysfs/class/net/lo/mtu,/sysfs/class/net/lo/dev_id",
++        "debug": "1"
++    }
++EOF
++
++    ans=$(run_hijack_cfg $(lkl_test_cmd which true))
++    echo "$ans"
++    echo "$ans" | grep "^65536" # lo's MTU
++    echo "$ans" | grep "0x0" # lo's dev_id
++}
++
++test_boot_cmdline()
++{
++    set -e
++
++    set_cfgjson << EOF
++    {
++        "debug":"1",
++        "boot_cmdline":"loglevel=1"
++    }
++EOF
++
++    ans=$(run_hijack_cfg $(lkl_test_cmd which true))
++    echo "$ans"
++    [ $(echo "$ans" | wc -l) = 1 ]
++}
++
++
++test_pipe_setup()
++{
++    set -e
++
++    mkfifo ${fifo1}
++    mkfifo ${fifo2}
++
++    set_cfgjson << EOF
++    {
++        "interfaces":
++        [
++            {
++                "type":"pipe",
++                "param":"${fifo1}|${fifo2}",
++                "ip":"$(ip_lkl)",
++                "masklen":"$TEST_IP_NETMASK",
++                "mac":"$TEST_MAC0",
++            }
++        ]
++    }
++EOF
++
++    # Make sure our device has the addresses we expect
++    addr=$(run_hijack_cfg ip addr)
++    echo "$addr" | grep eth0
++    echo "$addr" | grep $(ip_lkl)
++    echo "$addr" | grep "$TEST_MAC0"
++}
++
++test_pipe_ping()
++{
++    set -e
++
++    set_cfgjson << EOF
++    {
++        "gateway":"$(ip_lkl)",
++        "gateway6":"$(ip6_lkl)",
++        "interfaces":
++        [
++            {
++                "type":"pipe",
++                "param":"${fifo1}|${fifo2}",
++                "ip":"$(ip_host)",
++                "masklen":"$TEST_IP_NETMASK",
++                "mac":"$TEST_MAC0",
++                "ipv6":"$(ip6_host)",
++                "masklen6":"$TEST_IP6_NETMASK"
++            }
++        ]
++    }
++EOF
++
++    run_hijack_cfg $(lkl_test_cmd which sleep) 10 &
++
++    set_cfgjson 2 << EOF
++    {
++        "gateway":"$(ip_host)",
++        "gateway6":"$(ip6_host)",
++        "interfaces":
++        [
++            {
++                "type":"pipe",
++                "param":"${fifo2}|${fifo1}",
++                "ip":"$(ip_lkl)",
++                "masklen":"$TEST_IP_NETMASK",
++                "mac":"$TEST_MAC0",
++                "ipv6":"$(ip6_lkl)",
++                "masklen6":"$TEST_IP6_NETMASK"
++            }
++        ]
++    }
++EOF
++
++    # Ping under LKL
++    run_hijack_cfg ${ping} -c 1 -w 10 $(ip_host)
++
++    # Ping 6 under LKL
++    run_hijack_cfg ${ping6} -c 1 -w 10 $(ip6_host)
++
++    wait
++}
++
++test_tap_setup()
++{
++    set -e
++
++    # Set up the TAP device we'd like to use
++    tap_setup
++
++    set_cfgjson << EOF
++    {
++        "gateway":"$(ip_host)",
++        "gateway6":"$(ip6_host)",
++        "debug":"1",
++        "interfaces": [
++            {
++                "type":"tap",
++                "param":"$(tap_ifname)",
++                "ip":"$(ip_lkl)",
++                "masklen":"$TEST_IP_NETMASK",
++                "ipv6":"$(ip6_lkl)",
++                "masklen6":"$TEST_IP6_NETMASK",
++                "mac": "$TEST_MAC0"
++            }
++        ]
++    }
++EOF
++
++    # Make sure our device has the addresses we expect
++    addr=$(run_hijack_cfg ip addr)
++    echo "$addr" | grep eth0
++    echo "$addr" | grep $(ip_lkl)
++    echo "$addr" | grep "$TEST_MAC0"
++    echo "$addr" | grep "$(ip6_lkl)"
++    ! echo "$addr" | grep "WARN: failed to free"
++}
++
++test_tap_cleanup()
++{
++    tap_cleanup
++    tap_cleanup 1
++}
++
++test_tap_ping_host()
++{
++    set -e
++
++    # Make sure we can ping the host from inside LKL
++    run_hijack_cfg ${ping} -c 1 $(ip_host)
++    run_hijack_cfg ${ping6} -c 1 $(ip6_host)
++}
++
++test_tap_ping_lkl()
++{
++    set -e
++
++    # Now let's check that the host can see LKL.
++    lkl_test_cmd sudo ip -6 neigh del $(ip6_lkl) dev $(tap_ifname)
++    lkl_test_cmd sudo ip neigh del $(ip_lkl) dev $(tap_ifname)
++    run_hijack_cfg $(lkl_test_cmd which sleep) 3 &
++    sleep 2
++    lkl_test_cmd sudo ping -i 0.01 -c 65 $(ip_lkl)
++    lkl_test_cmd sudo ping6 -i 0.01 -c 65 $(ip6_lkl)
++}
++
++test_tap_neighbours()
++{
++    set -e
++
++    neigh1="$(ip_add 100)|12:34:56:78:9a:bc"
++    neigh2="$(ip6_add 100)|12:34:56:78:9a:be"
++
++    set_cfgjson << EOF
++    {
++        "gateway":"$(ip_host)",
++        "gateway6":"$(ip6_host)",
++        "interfaces":
++        [
++            {
++                "type":"tap",
++                "param":"$(tap_ifname)",
++                "ip":"$(ip_lkl)",
++                "masklen":"$TEST_IP_NETMASK",
++                "ipv6":"$(ip6_lkl)",
++                "masklen6":"$TEST_IP6_NETMASK",
++                "neigh":"${neigh1};${neigh2}"
++            }
++        ]
++    }
++EOF
++
++    # add neighbor entries
++    ans=$(run_hijack_cfg ip neighbor show) || true
++    echo "$ans" | tail -n 15 | grep "12:34:56:78:9a:bc"
++    echo "$ans" | tail -n 15 | grep "12:34:56:78:9a:be"
++
++    # gateway
++    ans=$(run_hijack_cfg ip route show) || true
++    echo "$ans" | tail -n 15 | grep "$(ip_host)"
++
++    # gateway v6
++    ans=$(run_hijack_cfg ip -6 route show) || true
++    echo "$ans" | tail -n 15 | grep "$(ip6_host)"
++}
++
++test_tap_netperf_stream_tso_csum()
++{
++    set -e
++
++    # offload
++    # LKL_VIRTIO_NET_F_HOST_TSO4 && LKL_VIRTIO_NET_F_GUEST_TSO4
++    # LKL_VIRTIO_NET_F_CSUM && LKL_VIRTIO_NET_F_GUEST_CSUM
++    set_cfgjson << EOF
++    {
++        "gateway":"$(ip_host)",
++        "gateway6":"$(ip6_host)",
++        "interfaces":
++        [
++            {
++                "offload":"0x883",
++                "type":"tap",
++                "param":"$(tap_ifname)",
++                "ip":"$(ip_lkl)",
++                "masklen":"$TEST_IP_NETMASK",
++                "ipv6":"$(ip6_lkl)",
++                "masklen6":"$TEST_IP6_NETMASK"
++            }
++        ]
++    }
++EOF
++
++    run_netperf $(ip_host) TCP_STREAM
++}
++
++test_tap_netperf_maerts_csum_tso()
++{
++    run_netperf $(ip_host) TCP_MAERTS
++}
++
++test_tap_netperf_stream_csum_tso_mrgrxbuf()
++{
++    set -e
++
++    # offload
++    # LKL_VIRTIO_NET_F_HOST_TSO4 && LKL_VIRTIO_NET_F_MRG_RXBUF
++    # LKL_VIRTIO_NET_F_CSUM && LKL_VIRTIO_NET_F_GUEST_CSUM
++    set_cfgjson << EOF
++    {
++        "gateway":"$(ip_host)",
++        "gateway6":"$(ip6_host)",
++        "interfaces":
++        [
++            {
++                "offload":"0x8803",
++                "type":"tap",
++                "param":"$(tap_ifname)",
++                "ip":"$(ip_lkl)",
++                "masklen":"$TEST_IP_NETMASK",
++                "ipv6":"$(ip6_lkl)",
++                "masklen6":"$TEST_IP6_NETMASK"
++            }
++        ]
++    }
++EOF
++
++    run_netperf $(ip_host) TCP_MAERTS
++}
++
++test_tap_netperf_tcp_rr()
++{
++    set -e
++
++    set_cfgjson << EOF
++    {
++        "gateway":"$(ip_host)",
++        "gateway6":"$(ip6_host)",
++        "interfaces":
++        [
++            {
++                "type":"tap",
++                "param":"$(tap_ifname)",
++                "ip":"$(ip_lkl)",
++                "masklen":"$TEST_IP_NETMASK",
++                "ipv6":"$(ip6_lkl)",
++                "masklen6":"$TEST_IP6_NETMASK"
++            }
++        ]
++    }
++EOF
++
++    run_netperf $(ip_host) TCP_RR
++}
++
++test_tap_netperf_tcp_stream()
++{
++    set -e
++
++    run_netperf $(ip_host) TCP_STREAM
++}
++
++test_tap_netperf_tcp_maerts()
++{
++    set -e
++
++    run_netperf $(ip_host) TCP_MAERTS
++}
++
++
++test_tap_qdisc()
++{
++    set -e
++
++    set_cfgjson << EOF
++    {
++        "gateway":"$(ip_host)",
++        "gateway6":"$(ip6_host)",
++        "interfaces":
++        [
++            {
++                "type":"tap",
++                "param":"$(tap_ifname)",
++                "ip":"$(ip_lkl)",
++                "masklen":"$TEST_IP_NETMASK",
++                "ipv6":"$(ip6_lkl)",
++                "masklen6":"$TEST_IP6_NETMASK",
++                "mac":"$TEST_MAC0",
++                "qdisc":"root|fq"
++            }
++        ]
++    }
++EOF
++
++    qdisc=$(run_hijack_cfg tc -s -d qdisc show)
++    echo "$qdisc"
++    echo "$qdisc" | grep "qdisc fq" > /dev/null
++    echo "$qdisc" | grep throttled > /dev/null
++}
++
++test_tap_multi_if_setup()
++{
++    set -e
++
++    # Set up 2nd TAP device we'd like to use
++    tap_setup 1
++
++    set_cfgjson << EOF
++    {
++        "gateway":"$(ip_host)",
++        "gateway6":"$(ip6_host)",
++        "interfaces":
++        [
++            {
++                "type":"tap",
++                "param":"$(tap_ifname)",
++                "ip":"$(ip_lkl)",
++                "masklen":"$TEST_IP_NETMASK",
++                "ipv6":"$(ip6_lkl)",
++                "masklen6":"$TEST_IP6_NETMASK",
++                "mac":"$TEST_MAC0"
++            },
++            {
++                "type":"tap",
++                "param":"$(tap_ifname 1)",
++                "ip":"$(ip_lkl 1)",
++                "masklen":"$TEST_IP_NETMASK",
++                "ipv6":"$(ip6_lkl 1)",
++                "masklen6":"$TEST_IP6_NETMASK",
++                "mac":"$TEST_MAC1"
++            }
++        ]
++    }
++EOF
++
++    # Make sure our device has the addresses we expect
++    addr=$(run_hijack_cfg ip addr)
++    echo "$addr" | grep eth0
++    echo "$addr" | grep $(ip_lkl)
++    echo "$addr" | grep "$TEST_MAC0"
++    echo "$addr" | grep "$(ip6_lkl)"
++    echo "$addr" | grep eth1
++    echo "$addr" | grep $(ip_lkl 1)
++    echo "$addr" | grep "$TEST_MAC1"
++    echo "$addr" | grep "$(ip6_lkl 1)"
++    ! echo "$addr" | grep "WARN: failed to free"
++}
++
++test_tap_multi_if_ping()
++{
++    run_hijack_cfg ${ping} -c 1 $(ip_host)
++    run_hijack_cfg ${ping6} -c 1 $(ip6_host)
++    run_hijack_cfg ${ping} -c 1 $(ip_host 1)
++    run_hijack_cfg ${ping6} -c 1 $(ip6_host 1)
++}
++
++test_tap_multi_if_neigh()
++{
++
++    neigh1="$(ip_host)00|12:34:56:78:9a:bc"
++    neigh2="$(ip6_host)00|12:34:56:78:9a:be"
++    neigh3="$(ip_host 1)00|12:34:56:78:9a:bd"
++    neigh4="$(ip6_host 1)00|12:34:56:78:9a:bf"
++
++    set_cfgjson << EOF
++    {
++        "gateway":"$(ip_host)",
++        "gateway6":"$(ip6_host)",
++        "interfaces":
++        [
++            {
++                "type":"tap",
++                "param":"$(tap_ifname)",
++                "ip":"$(ip_lkl)",
++                "masklen":"$TEST_IP_NETMASK",
++                "ipv6":"$(ip6_lkl)",
++                "masklen6":"$TEST_IP6_NETMASK",
++                "mac":"$TEST_MAC0",
++                "neigh":"${neigh1};${neigh2}"
++            },
++            {
++                "type":"tap",
++                "param":"$(tap_ifname 1)",
++                "ip":"$(ip_lkl 1)",
++                "masklen":"$TEST_IP_NETMASK",
++                "ipv6":"$(ip6_lkl 1)",
++                "masklen6":"$TEST_IP6_NETMASK",
++                "mac":"$TEST_MAC1",
++                "neigh":"${neigh3};${neigh4}"
++            }
++        ]
++    }
++EOF
++
++    # add neighbor entries
++    ans=$(run_hijack_cfg ip neighbor show) || true
++    echo "$ans" | tail -n 15 | grep "12:34:56:78:9a:bc"
++    echo "$ans" | tail -n 15 | grep "12:34:56:78:9a:be"
++    echo "$ans" | tail -n 15 | grep "12:34:56:78:9a:bd"
++    echo "$ans" | tail -n 15 | grep "12:34:56:78:9a:bf"
++}
++
++test_tap_multi_if_gateway()
++{
++    ans=$(run_hijack_cfg ip route show) || true
++    echo "$ans" | tail -n 15 | grep "$(ip_host)"
++}
++
++test_tap_multi_if_gateway_v6()
++{
++    ans=$(run_hijack_cfg ip -6 route show) || true
++    echo "$ans" | tail -n 15 | grep "$(ip6_host)"
++}
++
++
++test_tap_multitable_setup()
++{
++    set_cfgjson << EOF
++    {
++        "gateway":"$(ip_host)",
++        "gateway6":"$(ip6_host)",
++        "interfaces":
++        [
++            {
++                "type":"tap",
++                "param":"$(tap_ifname)",
++                "ip":"$(ip_lkl)",
++                "masklen":"$TEST_IP_NETMASK",
++                "ifgateway":"$(ip_host)",
++                "ipv6":"$(ip6_lkl)",
++                "masklen6":"$TEST_IP6_NETMASK",
++                "ifgateway6":"$(ip6_host)",
++                "mac":"$TEST_MAC0",
++                "neigh":"${neigh1};${neigh2}"
++            },
++            {
++                "type":"tap",
++                "param":"$(tap_ifname 1)",
++                "ip":"$(ip_lkl 1)",
++                "masklen":"$TEST_IP_NETMASK",
++                "ifgateway":"$(ip_host 1)",
++                "ipv6":"$(ip6_lkl 1)",
++                "masklen6":"$TEST_IP6_NETMASK",
++                "ifgateway6":"$(ip6_host 1)",
++                "mac":"$TEST_MAC1",
++                "neigh":"${neigh3};${neigh4}"
++            }
++        ]
++    }
++EOF
++}
++
++test_tap_multitable_ipv4_rule()
++{
++    addr=$(run_hijack_cfg ip rule show)
++    echo "$addr" | grep $(ip_lkl)
++    echo "$addr" | grep $(ip_lkl 1)
++}
++
++test_tap_multitable_ipv6_rule()
++{
++    addr=$(run_hijack_cfg ip -6 rule show)
++    echo "$addr" | grep $(ip6_lkl)
++    echo "$addr" | grep $(ip6_lkl 1)
++}
++
++test_tap_multitable_ipv4_rule_table_4()
++{
++    addr=$(run_hijack_cfg ip route show table 4)
++    echo "$addr" | grep $(ip_host)
++}
++
++test_tap_multitable_ipv6_rule_table_5()
++{
++    addr=$(run_hijack_cfg ip -6 route show table 5)
++    echo "$addr" | grep fc03::
++    echo "$addr" | grep $(ip6_host)
++}
++
++test_tap_multitable_ipv6_rule_table_6()
++{
++    addr=$(run_hijack_cfg ip route show table 6)
++    echo "$addr" | grep $(ip_host 1)
++}
++
++test_tap_multitable_ipv6_rule_table_7()
++{
++    addr=$(run_hijack_cfg ip -6 route show table 7)
++    echo "$addr" | grep fc04::
++    echo "$addr" | grep $(ip6_host 1)
++}
++
++test_vde_setup()
++{
++    set_cfgjson << EOF
++    {
++        "gateway":"$(ip_host)",
++        "gateway6":"$(ip6_host)",
++        "interfaces":
++        [
++            {
++                "type":"vde",
++                "param":"${VDESWITCH}",
++                "ip":"$(ip_lkl)",
++                "masklen":"$TEST_IP_NETMASK",
++                "ipv6":"$(ip6_lkl)",
++                "masklen6":"$TEST_IP6_NETMASK",
++                "mac":"$TEST_MAC0",
++                "neigh":"${neigh1};${neigh2}"
++            }
++        ]
++    }
++EOF
++
++    tap_setup
++
++    sleep 2
++    vde_switch -d -t $(tap_ifname) -s ${VDESWITCH} -p ${VDESWITCH}.pid
++
++    # Make sure our device has the addresses we expect
++    addr=$(run_hijack_cfg ip addr)
++    echo "$addr" | grep eth0
++    echo "$addr" | grep $(ip_lkl)
++    echo "$addr" | grep "$TEST_MAC0"
++}
++
++test_vde_cleanup()
++{
++    tap_cleanup
++}
++
++test_vde_ping_host()
++{
++    run_hijack_cfg ./ping $(ip_host) -c 1
++}
++
++test_vde_ping_lkl()
++{
++    lkl_test_cmd sudo arp -d $(ip_lkl)
++    lkl_test_cmd sudo ping -i 0.01 -c 65 $(ip_lkl) &
++    run_hijack_cfg sleep 3
++}
++
++source ${script_dir}/test.sh
++source ${script_dir}/net-setup.sh
++
++if [[ ! -e ${basedir}/lib/hijack/liblkl-hijack.so ]]; then
++    lkl_test_plan 0 "hijack tests"
++    echo "missing liblkl-hijack.so"
++    exit 0
++fi
++
++# Make a temporary directory to run tests in, since we'll be copying
++# things there.
++wdir=$(mktemp -d)
++cp `which ping` ${wdir}
++cp `which ping6` ${wdir}
++ping=${wdir}/ping
++ping6=${wdir}/ping6
++hijack=$basedir/bin/lkl-hijack.sh
++netperf=$basedir/tests/run_netperf.sh
++
++fifo1=${wdir}/fifo1
++fifo2=${wdir}/fifo2
++VDESWITCH=${wdir}/vde_switch
++
++# And make sure we clean up when we're done
++trap "clear_wdir &>/dev/null" EXIT
++
++lkl_test_plan 5 "hijack basic tests"
++lkl_test_run 1 run_hijack ip addr
++lkl_test_run 2 run_hijack ip route
++lkl_test_run 3 test_ping
++lkl_test_run 4 test_ping6
++lkl_test_run 5 test_mount_and_dump
++lkl_test_run 6 test_boot_cmdline
++
++if [ -z "$(QUIET=1 lkl_test_cmd which mkfifo)" ]; then
++    lkl_test_plan 0 "hijack pipe backend tests"
++    echo "no mkfifo command"
++else
++    lkl_test_plan 2 "hijack pipe backend tests"
++    lkl_test_run 1 test_pipe_setup
++    lkl_test_run 2 test_pipe_ping
++fi
++
++tap_prepare
++
++if ! lkl_test_cmd test -c /dev/net/tun &>/dev/null; then
++    lkl_test_plan 0 "hijack tap backend tests"
++    echo "missing /dev/net/tun"
++else
++    lkl_test_plan 23 "hijack tap backend tests"
++    lkl_test_run 1 test_tap_setup
++    lkl_test_run 2 test_tap_ping_host
++    lkl_test_run 3 test_tap_ping_lkl
++    lkl_test_run 4 test_tap_neighbours
++    lkl_test_run 5 test_tap_netperf_tcp_rr
++    lkl_test_run 6 test_tap_netperf_tcp_stream
++    lkl_test_run 7 test_tap_netperf_tcp_maerts
++    lkl_test_run 8 test_tap_netperf_stream_tso_csum
++    lkl_test_run 9 test_tap_netperf_maerts_csum_tso
++    lkl_test_run 10 test_tap_netperf_stream_csum_tso_mrgrxbuf
++    lkl_test_run 11 test_tap_qdisc
++    lkl_test_run 12 test_tap_multi_if_setup
++    lkl_test_run 13 test_tap_multi_if_ping
++    lkl_test_run 14 test_tap_multi_if_neigh
++    lkl_test_run 15 test_tap_multi_if_gateway
++    lkl_test_run 16 test_tap_multi_if_gateway_v6
++    lkl_test_run 17 test_tap_multitable_setup
++    lkl_test_run 18 test_tap_multitable_ipv4_rule
++    lkl_test_run 19 test_tap_multitable_ipv6_rule
++    lkl_test_run 20 test_tap_multitable_ipv4_rule_table_4
++    lkl_test_run 21 test_tap_multitable_ipv6_rule_table_5
++    lkl_test_run 22 test_tap_multitable_ipv6_rule_table_6
++    lkl_test_run 23 test_tap_multitable_ipv6_rule_table_7
++    lkl_test_run 24 test_tap_cleanup
++fi
++
++if [ -z "$LKL_HOST_CONFIG_VIRTIO_NET_VDE" ]; then
++    lkl_test_plan 0 "vde tests"
++    echo "vde not supported"
++elif [ ! -x "$(which vde_switch)" ]; then
++    lkl_test_plan 0 "hijack vde tests"
++    echo "could not find a vde_switch executable"
++else
++    lkl_test_plan 3 "hijack vde tests"
++    lkl_test_run 1 test_vde_setup
++    lkl_test_run 2 test_vde_ping_host
++    lkl_test_run 3 test_vde_ping_lkl
++    lkl_test_run 4 test_vde_cleanup
++fi
+diff --git a/tools/lkl/tests/run_netperf.sh b/tools/lkl/tests/run_netperf.sh
+new file mode 100755
+index 000000000000..08c4337b7830
+--- /dev/null
++++ b/tools/lkl/tests/run_netperf.sh
+@@ -0,0 +1,98 @@
++#!/usr/bin/env bash
++# SPDX-License-Identifier: GPL-2.0
++
++# Usage
++#  ./run_netperf.sh [ip] [test_name] [use_taskset] [num_runs]
++
++set -e
++
++script_dir=$(cd $(dirname ${BASH_SOURCE:-$0}); pwd)
++hijack_script=${script_dir}/../bin/lkl-hijack.sh
++
++num_runs="1"
++test_name="TCP_STREAM"
++use_taskset="0"
++host_ip="localhost"
++taskset_cmd="taskset -c 1"
++test_len=10  # second
++
++if [ ! -x "$(which netperf)" ]; then
++    echo "WARNING: Cannot find a netserver executable, skipping netperf tests."
++    exit $TEST_SKIP
++fi
++
++if [ $# -ge 1 ]; then
++    host_ip=$1
++fi
++if [ $# -ge 2 ]; then
++    test_name=$2
++fi
++if [ $# -ge 3 ]; then
++    use_taskset=$2
++fi
++if [ $# -ge 4 ]; then
++    num_runs=$3
++fi
++if [ $# -ge 5 ]; then
++    echo "BAD NUMBER of INPUTS."
++    exit 1
++fi
++
++if [ $use_taskset = "0" ]; then
++  taskset_cmd=""
++fi
++
++clean() {
++    kill %1 || true
++}
++
++clean_with_tap() {
++    tap_cleanup &> /dev/null || true
++    clean
++    rm -rf ${work_dir}
++}
++
++# LKL_HIJACK_CONFIG_FILE is not set, which means it's not called from
++# hijack-test.sh. Needs to set up things first.
++if [ -z ${LKL_HIJACK_CONFIG_FILE+x} ]; then
++
++    # Setting up environmental vars and TAP
++    work_dir=$(mktemp -d)
++    cfgjson=${work_dir}/hijack-test.conf
++    export LKL_HIJACK_CONFIG_FILE=$cfgjson
++
++    cat <<EOF > ${cfgjson}
++    {
++         "interfaces": [
 +               {
-+                       "mac":"12:34:56:78:9a:bc",
-+                       "type":"tap",
-+                       "param":"tap7",
-+                       "ip":"192.168.0.2",
-+                       "masklen":"24",
-+                       "ifgateway":"192.168.0.1",
-+                       "ipv6":"2001:db8:0:f101::2",
-+                       "masklen6":"64",
-+                       "ifgateway6":"2001:db8:0:f101::1",
-+                       "offload":"0xc803"
-+               },
-+               {
-+                       "mac":"12:34:56:78:9a:bd",
-+                       "type":"tap",
-+                       "param":"tap77",
-+                       "ip":"192.168.1.2",
-+                       "masklen":"24",
-+                       "ifgateway":"192.168.1.1",
-+                       "ipv6":"2001:db8:0:f102::2",
-+                       "masklen6":"64",
-+                       "ifgateway6":"2001:db8:0:f102::1",
-+                       "offload":"0xc803"
++                    "type": "tap"
++                    "param": "$(tap_ifname)"
++                    "ip": "$(ip_lkl)"
++                    "masklen":"$TEST_IP_NETMASK"
++                    "ipv6":"$(ip6_lkl)"
++                    "masklen6":"$TEST_IP6_NETMASK"
 +               }
-+       ]
-+     }
-+     $ LKL_HIJACK_CONFIG_FILE="conf.json" lkl-hijack.sh ip addr s
-+```
-+
-+The following are the list of keys to describe a JSON file.
-+
-+* IPv4 gateway address
-+
-+  key: "gateway"
-+  value type: string
-+
-+  the gateway IPv4 address of LKL network stack.
-+```
-+     "gateway":"192.168.0.1"
-+```
-+
-+* IPv6 gateway address
-+
-+  key: "gateway6"
-+  value type: string
-+
-+  the gateway IPv6 address of LKL network stack.
-+```
-+     "gateway6":"2001:db8:0:f101::1"
-+```
-+
-+* Debug
-+
-+  key: "debug"
-+  value type: string
-+
-+  Setting it causes some debug information (both from the kernel and the
-+  LKL library) to be enabled.  If zero' is specified it is disabled.
-+  It is also used as a bit mask to turn on specific debugging facilities.
-+  E.g., setting it to "0x100" will cause the LKL kernel to pause after
-+  the hijack'ed app exits. This allows one to debug or collect info from
-+  the LKL kernel before it quits.
-+```
-+     "debug":"1"
-+```
-+
-+* Single CPU pinning
-+
-+  key: "singlecpu"
-+  value type: string
-+
-+  Pin LKL kernel threads on to a single host cpu. value "1" pins
-+  only LKL kernel threads while value "2" also pins polling
-+  threads.
-+```
-+     "singlecpu":"1"
-+```
-+
-+* SYSCTL
-+
-+  key: "sysctl"
-+  value type: string
-+
-+  Configure sysctl values of the booted kernel via the hijack library. Multiple
-+  entries can be specified.
-+```
-+     "sysctl":"net.ipv4.tcp_wmem=4096 87380 2147483647"
-+```
-+
-+* Boot command line
-+
-+  key: "boot_cmdline"
-+  value type: string
-+
-+  Specify the command line to the kernel boot so that change the configuration
-+  on a kernel instance.  For instance, you can change the memory size with
-+  below.
-+```
-+     "boot_cmdline": "mem=1G"
-+```
-+
-+* Mount
-+
-+  key: "mount"
-+  value type: string
-+
-+```
-+     "mount": "proc,sysfs"
-+```
-+
-+* Network Interface Configuration
-+
-+  key: "interfaces"
-+  value type: array of objects
-+
-+  This key takes a set of sub-keys to configure a single interface. Each key is defined as follows.
-+  ```
-+       "interfaces":[{....},{....}]
-+  ```
-+
-+
-+	* Interface type
-+
-+	  key: "type"
-+	  value type: string
-+
-+	  The interface type in host operating system to connect to LKL.
-+	  The following example specifies a tap interface.
-+	```
-+	     "type":"tap"
-+	```
-+
-+	* Interface parameter
-+
-+	  key: "param"
-+	  value type: string
-+
-+	  Additional configuration parameters for the interface specified by Interface type (type).
-+	  The parameters depend on the interface type.
-+	```
-+	     "type":"tap",
-+	     "param":"tap0"
-+	```
-+
-+	* Interface MTU size
-+
-+	  key: "mtu"
-+	  value type: string
-+
-+	  the MTU size of the interface.
-+	```
-+	     "mtu":"1280"
-+	```
-+
-+	* Interface IPv4 address
-+
-+	  key: "ip"
-+	  value type: string
-+
-+	  the IPv4 address of the interface.
-+	  If you want to use DHCP for the IP address assignment,
-+	  use "boot_cmdline" with "ip=dhcp" option.
-+	```
-+	     "ip":"192.168.0.2"
-+	```
-+	```
-+	     "boot_cmdline":"ip=dhcp"
-+	```
-+
-+	* Interface IPv4 netmask length
-+
-+	  key: "masklen"
-+	  value type: string
-+
-+	  the network mask length of the interface.
-+	```
-+	     "ip":"192.168.0.2",
-+	     "masklen":"24"
-+	```
-+
-+	* Interface IPv4 gateway on routing policy table
-+
-+	  key: "ifgateway"
-+	  value type: string
-+
-+	  If you specify this parameter, LKL adds routing policy table.
-+	  And then LKL creates link local and gateway route on this table.
-+	  Table SELECTOR is "from" and PREFIX is address you assigned to this interface.
-+	  Table id is 2 * (interface index).
-+	  This parameter could be used to configure LKL for mptcp, for example.
-+
-+	```
-+	     "ip":"192.168.0.2",
-+	     "masklen":"24",
-+	     "ifgateway":"192.168.0.1"
-+	```
-+
-+	* Interface IPv6 address
-+
-+	  key: "ipv6"
-+	  value type: string
-+
-+	  the IPv6 address of the interface.
-+	```
-+	     "ipv6":"2001:db8:0:f101::2"
-+	```
-+
-+	* Interface IPv6 netmask length
-+
-+	  key: "masklen6"
-+	  value type: string
-+
-+	  the network mask length of the interface.
-+	```
-+	     "ipv6":"2001:db8:0:f101::2",
-+	     "masklen":"64"
-+	```
-+
-+	* Interface IPv6 gateway on routing policy table
-+
-+	  key: "ifgateway6"
-+	  value type: string
-+
-+	  If you specify this parameter, LKL adds routing policy table.
-+	  And then LKL creates link local and gateway route on this table.
-+	  Table SELECTOR is "from" and PREFIX is address you assigned to this interface.
-+	  Table id is 2 * (interface index) + 1.
-+	  This parameter could be used to configure LKL for mptcp, for example.
-+	```
-+	     "ipv6":"2001:db8:0:f101::2",
-+	     "masklen":"64"
-+	     "ifgateway6":"2001:db8:0:f101::1",
-+	```
-+
-+	* Interface MAC address
-+
-+	  key: "mac"
-+	  value type: string
-+
-+	  the MAC address of the interface.
-+	```
-+	     "mac":"12:34:56:78:9a:bc"
-+	```
-+
-+	* Interfac neighbor entries
-+
-+	  key: "neigh"
-+	  value type: string
-+
-+	  Add a list of permanent neighbor entries in the form of "ip|mac;ip|mac;...". ipv6 are supported
-+	```
-+	     "neigh":"192.168.0.1|12:34:56:78:9a:bc;2001:db8:0:f101::1|12:34:56:78:9a:be"
-+	```
-+
-+	* Interface qdisc entries
-+
-+	  key: "qdisc"
-+	  value type: string
-+
-+	  Add a qdisc entry in the form of "root|type;root|type;...".
-+	```
-+	     "qdisc":"root|fq"
-+	```
-+
-+	* Interface offload
-+
-+	  key: "offload"
-+	  value type: string
-+
-+	  Work as a bit mask to enable selective device offload features. E.g.,
-+	  to enable "mergeable RX buffer" (LKL_VIRTIO_NET_F_MRG_RXBUF) +
-+	  "guest csum" (LKL_VIRTIO_NET_F_GUEST_CSUM) device features, simply set
-+	  it to 0x8002.
-+	  See virtio_net.h for a list of offload features and their bit masks.
-+	```
-+	     "offload":"0x8002"
-+	```
-+
-+* Delay
-+
-+  key: "delay_main"
-+  value type: string
-+
-+  The delay before calling main() function of the application after the
-+  initialization of LKL.  Some subsystems in Linux tree require a certain
-+  amount of time before accepting a request from application, such as
-+  delivery of address assignment to an network interface.  This parameter
-+  is used in such case.  The value is described as a microsecond value.
-+```
-+     "delay_main":"500000"
-+```
++         ]
++    }
++EOF
++
++    . $script_dir/net-setup.sh
++    host_ip=$(ip_host)
++
++    tap_prepare
++    tap_setup
++    trap clean_with_tap EXIT
++fi
++
++netserver -D -N -p $TEST_NETSERVER_PORT &
++
++trap clean EXIT
++
++echo NUM=$num_runs, TEST=$test_name, TASKSET=$use_taskset
++for i in `seq $num_runs`; do
++    echo Test: $i
++    set -x
++    $taskset_cmd ${hijack_script} netperf -p $TEST_NETSERVER_PORT -H $host_ip \
++		         -t $test_name -l $test_len
++    set +x
++done
 -- 
 2.20.1 (Apple Git-117)
