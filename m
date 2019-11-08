@@ -1,14 +1,14 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pf1-f194.google.com ([209.85.210.194]:46621 "EHLO
-        mail-pf1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726103AbfKHFE1 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 8 Nov 2019 00:04:27 -0500
-Received: by mail-pf1-f194.google.com with SMTP id 193so3814831pfc.13
-        for <linux-arch@vger.kernel.org>; Thu, 07 Nov 2019 21:04:27 -0800 (PST)
+Received: from mail-pl1-f195.google.com ([209.85.214.195]:33060 "EHLO
+        mail-pl1-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726645AbfKHFE2 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 8 Nov 2019 00:04:28 -0500
+Received: by mail-pl1-f195.google.com with SMTP id ay6so3271922plb.0
+        for <linux-arch@vger.kernel.org>; Thu, 07 Nov 2019 21:04:26 -0800 (PST)
 From: Hajime Tazaki <thehajime@gmail.com>
-Subject: [RFC v2 34/37] lkl: Android ARM (arm/arm64) support
-Date: Fri,  8 Nov 2019 14:02:49 +0900
-Message-Id: <ec1915b36d1e4de138bfad60862beaaef0b47274.1573179553.git.thehajime@gmail.com>
+Subject: [RFC v2 32/37] lkl tools: add support for Windows host
+Date: Fri,  8 Nov 2019 14:02:47 +0900
+Message-Id: <f514ae67963c9ec82c0cefdd72dce018045da051.1573179553.git.thehajime@gmail.com>
 In-Reply-To: <cover.1573179553.git.thehajime@gmail.com>
 References: <cover.1573179553.git.thehajime@gmail.com>
 MIME-Version: 1.0
@@ -16,324 +16,507 @@ Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-um@lists.infradead.org
-Cc: Octavian Purdila <tavi.purdila@gmail.com>, Akira Moroo <retrage01@gmail.com>, linux-kernel-library@freelists.org, linux-arch@vger.kernel.org, Hajime Tazaki <thehajime@gmail.com>
+Cc: Octavian Purdila <tavi.purdila@gmail.com>, Akira Moroo <retrage01@gmail.com>, linux-kernel-library@freelists.org, linux-arch@vger.kernel.org, Hajime Tazaki <thehajime@gmail.com>, Patrick Collins <pscollins@google.com>, Yuan Liu <liuyuan@google.com>
 
-Initial attempt to run an application with hijack library on Android
-platform.  Tested mostly on Android 6.x and 7.x.
+From: Octavian Purdila <tavi.purdila@gmail.com>
 
-The build process assumes that the android ndk toolchain is installed in
-a host system. arm32 build is required to use alternate linker in order
-to avoid a link issue during the build (described in *1).
+Add host operations for Windows host and virtio disk support.
 
-*1
-https://github.com/lkl/linux/issues/59#issuecomment-308961122
-
+Signed-off-by: Andreas Gnau <andreas.gnau@intel.com>
 Signed-off-by: Hajime Tazaki <thehajime@gmail.com>
+Signed-off-by: Patrick Collins <pscollins@google.com>
+Signed-off-by: Yuan Liu <liuyuan@google.com>
+Signed-off-by: Octavian Purdila <tavi.purdila@gmail.com>
 ---
- arch/um/lkl/Kconfig            |  1 +
- tools/lkl/Makefile.autoconf    |  7 +++-
- tools/lkl/lib/hijack/hijack.c  | 13 ++++++++
- tools/lkl/lib/hijack/init.c    | 11 ++++++
- tools/lkl/tests/disk.sh        | 11 +++++-
- tools/lkl/tests/hijack-test.sh | 43 ++++++++++++++++++------
- tools/lkl/tests/test.sh        | 61 +++++++++++++++++++++++++++++++++-
- 7 files changed, 134 insertions(+), 13 deletions(-)
+ tools/lkl/.gitignore                   |   2 +
+ tools/lkl/Makefile.autoconf            |  22 ++
+ tools/lkl/include/mingw32/sys/socket.h |   4 +
+ tools/lkl/lib/Build                    |   2 +
+ tools/lkl/lib/nt-host.c                | 375 +++++++++++++++++++++++++
+ tools/lkl/tests/test.sh                |   4 +-
+ 6 files changed, 408 insertions(+), 1 deletion(-)
+ create mode 100644 tools/lkl/include/mingw32/sys/socket.h
+ create mode 100644 tools/lkl/lib/nt-host.c
 
-diff --git a/arch/um/lkl/Kconfig b/arch/um/lkl/Kconfig
-index 1629e2679b75..fc501b64a2af 100644
---- a/arch/um/lkl/Kconfig
-+++ b/arch/um/lkl/Kconfig
-@@ -23,6 +23,7 @@ config LKL
-        select 64BIT if "$(OUTPUT_FORMAT)" = "pe-x86-64"
-        select HAVE_UNDERSCORE_SYMBOL_PREFIX if "$(OUTPUT_FORMAT)" = "pe-i386"
-        select 64BIT if "$(OUTPUT_FORMAT)" = "elf64-x86-64-freebsd"
-+       select 64BIT if "$(OUTPUT_FORMAT)" = "elf64-littleaarch64"
-        select NET
-        select MULTIUSER
-        select INET
+diff --git a/tools/lkl/.gitignore b/tools/lkl/.gitignore
+index c78ec268e4b0..48232402224d 100644
+--- a/tools/lkl/.gitignore
++++ b/tools/lkl/.gitignore
+@@ -1,3 +1,5 @@
++*.exe
++*.dll
+ Makefile.conf
+ include/lkl_autoconf.h
+ tests/autoconf.sh
 diff --git a/tools/lkl/Makefile.autoconf b/tools/lkl/Makefile.autoconf
-index 1631f5cc25ac..7222a95c314f 100644
+index fd63b8aa5c77..1631f5cc25ac 100644
 --- a/tools/lkl/Makefile.autoconf
 +++ b/tools/lkl/Makefile.autoconf
-@@ -1,4 +1,4 @@
--POSIX_HOSTS=elf64-x86-64 elf32-i386 elf64-x86-64-freebsd
-+POSIX_HOSTS=elf64-x86-64 elf32-i386 elf64-x86-64-freebsd elf32-littlearm elf64-littleaarch64
- NT_HOSTS=pe-i386 pe-x86-64
+@@ -1,4 +1,5 @@
+ POSIX_HOSTS=elf64-x86-64 elf32-i386 elf64-x86-64-freebsd
++NT_HOSTS=pe-i386 pe-x86-64
  
  define set_autoconf_var
-@@ -17,6 +17,10 @@ define is_defined
- $(shell $(CC) -dM -E - </dev/null | grep $(1))
+   $(shell echo "#define LKL_HOST_CONFIG_$(1) $(2)" \
+@@ -65,6 +66,26 @@ define posix_host
+   $(if $(filter $(1),elf32-i386),$(call set_autoconf_var,I386,y))
  endef
  
-+define android_host
-+  $(call set_autoconf_var,ANDROID,y)
++define nt64_host
++  $(call set_autoconf_var,NEEDS_LARGP,y)
++  CFLAGS += -Wl,--enable-auto-image-base -Wl,--image-base -Wl,0x10000000 \
++	 -Wl,--out-implib=$(OUTPUT)liblkl.dll.a -Wl,--export-all-symbols \
++	 -Wl,--enable-auto-import
++  LDFLAGS +=-Wl,--image-base -Wl,0x10000000 -Wl,--enable-auto-image-base \
++	   -Wl,--out-implib=$(OUTPUT)liblkl.dll.a -Wl,--export-all-symbols \
++	   -Wl,--enable-auto-import
 +endef
 +
- define bsd_host
-   $(call set_autoconf_var,BSD,y)
++define nt_host
++  $(call set_autoconf_var,NT,y)
++  KOPT = "KALLSYMS_EXTRA_PASS=1"
++  LDLIBS += -lws2_32
++  EXESUF := .exe
++  SOSUF := .dll
++  CFLAGS += -Iinclude/mingw32
++  $(if $(filter $(1),pe-x86-64),$(call nt64_host))
++endef
++
+ define do_autoconf
+   export CROSS_COMPILE := $(CROSS_COMPILE)
+   export CC := $(CROSS_COMPILE)gcc
+@@ -74,6 +95,7 @@ define do_autoconf
+   $(eval CC := $(CROSS_COMPILE)gcc)
+   $(eval LD_FMT := $(shell $(LD) -r -print-output-format))
+   $(if $(filter $(LD_FMT),$(POSIX_HOSTS)),$(call posix_host,$(LD_FMT)))
++  $(if $(filter $(LD_FMT),$(NT_HOSTS)),$(call nt_host,$(LD_FMT)))
  endef
-@@ -54,6 +58,7 @@ define posix_host
-   LDFLAGS += -pie
-   CFLAGS += -fPIC -pthread
-   SOSUF := .so
-+  $(if $(call is_defined,__ANDROID__),$(call android_host),LDLIBS += -lrt -lpthread)
-   $(if $(filter $(1),elf64-x86-64-freebsd),$(call bsd_host))
-   $(if $(filter $(1),elf32-littlearm),$(call arm_host))
-   $(if $(filter $(1),elf64-littleaarch64),$(call aarch64_host))
-diff --git a/tools/lkl/lib/hijack/hijack.c b/tools/lkl/lib/hijack/hijack.c
-index 485c15d7c279..3a95b9dbe88b 100644
---- a/tools/lkl/lib/hijack/hijack.c
-+++ b/tools/lkl/lib/hijack/hijack.c
-@@ -204,7 +204,11 @@ int socket(int domain, int type, int protocol)
- }
  
- HOST_CALL(ioctl);
-+#ifdef __ANDROID__
-+int ioctl(int fd, int req, ...)
-+#else
- int ioctl(int fd, unsigned long req, ...)
-+#endif
- {
- 	va_list vl;
- 	long arg;
-@@ -586,6 +590,15 @@ void *mmap(void *addr, size_t length, int prot, int flags, int fd, off_t offset)
- 	return lkl_sys_mmap(addr, length, prot, flags, fd, offset);
- }
+ export do_autoconf
+diff --git a/tools/lkl/include/mingw32/sys/socket.h b/tools/lkl/include/mingw32/sys/socket.h
+new file mode 100644
+index 000000000000..f9ede3170d03
+--- /dev/null
++++ b/tools/lkl/include/mingw32/sys/socket.h
+@@ -0,0 +1,4 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++/* fake file to avoid #include <sys/socket.h> error on non-posix
++ * host (e.g., mingw32)
++ */
+diff --git a/tools/lkl/lib/Build b/tools/lkl/lib/Build
+index 1f1d55f259a3..76a1e62dfca8 100644
+--- a/tools/lkl/lib/Build
++++ b/tools/lkl/lib/Build
+@@ -1,12 +1,14 @@
+ CFLAGS_config.o += -I$(srctree)/tools/perf/pmu-events
+ CFLAGS_posix-host.o += -D_FILE_OFFSET_BITS=64
+ CFLAGS_virtio_net_vde.o += $(pkg-config --cflags vdeplug 2>/dev/null)
++CFLAGS_nt-host.o += -D_WIN32_WINNT=0x0600
  
-+#ifndef __ANDROID__
-+HOST_CALL(__xstat64)
-+int stat(const char *pathname, struct stat *buf)
+ liblkl-y += fs.o
+ liblkl-y += iomem.o
+ liblkl-y += net.o
+ liblkl-y += jmp_buf.o
+ liblkl-$(LKL_HOST_CONFIG_POSIX) += posix-host.o
++liblkl-$(LKL_HOST_CONFIG_NT) += nt-host.o
+ liblkl-y += utils.o
+ liblkl-y += virtio_blk.o
+ liblkl-y += virtio.o
+diff --git a/tools/lkl/lib/nt-host.c b/tools/lkl/lib/nt-host.c
+new file mode 100644
+index 000000000000..c7613272be3b
+--- /dev/null
++++ b/tools/lkl/lib/nt-host.c
+@@ -0,0 +1,375 @@
++// SPDX-License-Identifier: GPL-2.0
++#include <windows.h>
++#include <assert.h>
++#include <unistd.h>
++#undef s_addr
++#include <lkl_host.h>
++#include "iomem.h"
++#include "jmp_buf.h"
++
++#define DIFF_1601_TO_1970_IN_100NS (11644473600L * 10000000L)
++
++struct lkl_mutex {
++	int recursive;
++	HANDLE handle;
++};
++
++struct lkl_sem {
++	HANDLE sem;
++};
++
++struct lkl_tls_key {
++	DWORD key;
++};
++
++static struct lkl_sem *sem_alloc(int count)
 +{
-+	CHECK_HOST_CALL(__xstat64);
-+	return host___xstat64(0, pathname, buf);
++	struct lkl_sem *sem = malloc(sizeof(struct lkl_sem));
++
++	sem->sem = CreateSemaphore(NULL, count, 100, NULL);
++	return sem;
 +}
-+#endif
 +
- ssize_t send(int fd, const void *buf, size_t len, int flags)
- {
- 	return sendto(fd, buf, len, flags, 0, 0);
-diff --git a/tools/lkl/lib/hijack/init.c b/tools/lkl/lib/hijack/init.c
-index 2145fb7ec2cb..de00f2018e59 100644
---- a/tools/lkl/lib/hijack/init.c
-+++ b/tools/lkl/lib/hijack/init.c
-@@ -170,6 +170,17 @@ hijack_init(void)
- 	if (single_cpu_mode == 1)
- 		PinToFirstCpu(&ori_cpu);
- 
-+#ifdef __ANDROID__
-+	struct sigaction sa;
++static void sem_up(struct lkl_sem *sem)
++{
++	ReleaseSemaphore(sem->sem, 1, NULL);
++}
 +
-+	sa.sa_handler = SIG_IGN;
-+	sa.sa_flags = 0;
-+	if (sigaction(32, &sa, 0) == -1) {
-+		perror("sigaction");
-+		exit(1);
++static void sem_down(struct lkl_sem *sem)
++{
++	WaitForSingleObject(sem->sem, INFINITE);
++}
++
++static void sem_free(struct lkl_sem *sem)
++{
++	CloseHandle(sem->sem);
++	free(sem);
++}
++
++static struct lkl_mutex *mutex_alloc(int recursive)
++{
++	struct lkl_mutex *_mutex = malloc(sizeof(struct lkl_mutex));
++
++	if (!_mutex)
++		return NULL;
++
++	if (recursive)
++		_mutex->handle = CreateMutex(0, FALSE, 0);
++	else
++		_mutex->handle = CreateSemaphore(NULL, 1, 100, NULL);
++	_mutex->recursive = recursive;
++	return _mutex;
++}
++
++static void mutex_lock(struct lkl_mutex *mutex)
++{
++	WaitForSingleObject(mutex->handle, INFINITE);
++}
++
++static void mutex_unlock(struct lkl_mutex *_mutex)
++{
++	if (_mutex->recursive)
++		ReleaseMutex(_mutex->handle);
++	else
++		ReleaseSemaphore(_mutex->handle, 1, NULL);
++}
++
++static void mutex_free(struct lkl_mutex *_mutex)
++{
++	CloseHandle(_mutex->handle);
++	free(_mutex);
++}
++
++static lkl_thread_t thread_create(void (*fn)(void *), void *arg)
++{
++	DWORD WINAPI(*win_fn)(LPVOID arg) = (DWORD WINAPI(*)(LPVOID))fn;
++	HANDLE h = CreateThread(NULL, 0, win_fn, arg, 0, NULL);
++
++	if (!h)
++		return 0;
++
++	return GetThreadId(h);
++}
++
++static void thread_detach(void)
++{
++}
++
++static void thread_exit(void)
++{
++	ExitThread(0);
++}
++
++static int thread_join(lkl_thread_t tid)
++{
++	int ret;
++	HANDLE *h;
++
++	h = OpenThread(SYNCHRONIZE, FALSE, tid);
++	if (!h)
++		lkl_printf("%s: can't get thread handle\n", __func__);
++
++	ret = WaitForSingleObject(h, INFINITE);
++	if (ret)
++		lkl_printf("%s: %d\n", __func__, ret);
++
++	CloseHandle(h);
++
++	return ret ? -1 : 0;
++}
++
++static lkl_thread_t thread_self(void)
++{
++	return GetThreadId(GetCurrentThread());
++}
++
++static int thread_equal(lkl_thread_t a, lkl_thread_t b)
++{
++	return a == b;
++}
++
++static struct lkl_tls_key *tls_alloc(void (*destructor)(void *))
++{
++	struct lkl_tls_key *ret = malloc(sizeof(struct lkl_tls_key));
++
++	ret->key = FlsAlloc((PFLS_CALLBACK_FUNCTION)destructor);
++	if (ret->key == TLS_OUT_OF_INDEXES) {
++		free(ret);
++		return NULL;
 +	}
-+#endif
++	return ret;
++}
 +
- 	ret = lkl_start_kernel(&lkl_host_ops, cfg->boot_cmdline);
- 	if (ret) {
- 		fprintf(stderr, "can't start kernel: %s\n", lkl_strerror(ret));
-diff --git a/tools/lkl/tests/disk.sh b/tools/lkl/tests/disk.sh
-index 9bdcb16f2d5c..e2ec6cf69d4b 100755
---- a/tools/lkl/tests/disk.sh
-+++ b/tools/lkl/tests/disk.sh
-@@ -15,6 +15,12 @@ function prepfs()
- 
-     yes | mkfs.$1 $file
- 
-+    if ! [ -z $ANDROID_WDIR ]; then
-+        adb shell mkdir -p $ANDROID_WDIR
-+        adb push $file $ANDROID_WDIR
-+        rm $file
-+        file=$ANDROID_WDIR/$(basename $file)
-+    fi
-     if ! [ -z $BSD_WDIR ]; then
-         $MYSSH mkdir -p $BSD_WDIR
-         ssh_copy $file $BSD_WDIR
-@@ -29,7 +35,10 @@ function cleanfs()
- {
-     set -e
- 
--    if ! [ -z $BSD_WDIR ]; then
-+    if ! [ -z $ANDROID_WDIR ]; then
-+        adb shell rm $1
-+        adb shell rm $ANDROID_WDIR/disk
-+    elif ! [ -z $BSD_WDIR ]; then
-         $MYSSH rm $1
-         $MYSSH rm $BSD_WDIR/disk
-     else
-diff --git a/tools/lkl/tests/hijack-test.sh b/tools/lkl/tests/hijack-test.sh
-index 097af6cff3ba..a62aa5b251e0 100755
---- a/tools/lkl/tests/hijack-test.sh
-+++ b/tools/lkl/tests/hijack-test.sh
-@@ -15,7 +15,11 @@ set_cfgjson()
- {
-     cfgjson=${wdir}/hijack-test$1.conf
- 
--    cat > ${cfgjson}
-+    if [ -n "$LKL_HOST_CONFIG_ANDROID" ]; then
-+        adb shell cat \> ${cfgjson}
-+    else
-+        cat > ${cfgjson}
-+    fi
- 
-     export_vars cfgjson
- }
-@@ -54,6 +58,11 @@ test_mount_and_dump()
- {
-     set -e
- 
-+    if [ -n "$LKL_HOST_CONFIG_ANDROID" ]; then
-+        echo "TODO: android-23 doesn't call destructor..."
-+        return $TEST_SKIP
-+    fi
++static void tls_free(struct lkl_tls_key *key)
++{
++	/* setting to NULL first to prevent the callback from being called */
++	FlsSetValue(key->key, NULL);
++	FlsFree(key->key);
++	free(key);
++}
 +
-     set_cfgjson << EOF
-     {
-         "mount":"proc,sysfs",
-@@ -377,6 +386,10 @@ test_tap_qdisc()
- {
-     set -e
- 
-+    if [ -n "$LKL_HOST_CONFIG_ANDROID" ]; then
-+        return $TEST_SKIP
-+    fi
++static int tls_set(struct lkl_tls_key *key, void *data)
++{
++	return FlsSetValue(key->key, data) ? 0 : -1;
++}
 +
-     set_cfgjson << EOF
-     {
-         "gateway":"$(ip_host)",
-@@ -655,15 +668,25 @@ if [[ ! -e ${basedir}/lib/hijack/liblkl-hijack.so ]]; then
-     exit 0
- fi
- 
--# Make a temporary directory to run tests in, since we'll be copying
--# things there.
--wdir=$(mktemp -d)
--cp `which ping` ${wdir}
--cp `which ping6` ${wdir}
--ping=${wdir}/ping
--ping6=${wdir}/ping6
--hijack=$basedir/bin/lkl-hijack.sh
--netperf=$basedir/tests/run_netperf.sh
-+if [ -n "$LKL_HOST_CONFIG_ANDROID" ]; then
-+    wdir=$ANDROID_WDIR
-+    adb_push lib/hijack/liblkl-hijack.so bin/lkl-hijack.sh tests/net-setup.sh \
-+             tests/run_netperf.sh tests/hijack-test.sh
-+    ping="ping"
-+    ping6="ping6"
-+    hijack="$wdir/bin/lkl-hijack.sh"
-+    netperf="$wdir/tests/run_netperf.sh"
-+else
-+    # Make a temporary directory to run tests in, since we'll be copying
-+    # things there.
-+    wdir=$(mktemp -d)
-+    cp `which ping` ${wdir}
-+    cp `which ping6` ${wdir}
-+    ping=${wdir}/ping
-+    ping6=${wdir}/ping6
-+    hijack=$basedir/bin/lkl-hijack.sh
-+    netperf=$basedir/tests/run_netperf.sh
-+fi
- 
- fifo1=${wdir}/fifo1
- fifo2=${wdir}/fifo2
++static void *tls_get(struct lkl_tls_key *key)
++{
++	return FlsGetValue(key->key);
++}
++
++
++/*
++ * With 64 bits, we can cover about 583 years at a nanosecond resolution.
++ * Windows counts time from 1601 so we do have about 100 years before we
++ * overflow.
++ */
++static unsigned long long time_ns(void)
++{
++	SYSTEMTIME st;
++	FILETIME ft;
++	ULARGE_INTEGER uli;
++
++	GetSystemTime(&st);
++	SystemTimeToFileTime(&st, &ft);
++	uli.LowPart = ft.dwLowDateTime;
++	uli.HighPart = ft.dwHighDateTime;
++
++	return (uli.QuadPart - DIFF_1601_TO_1970_IN_100NS) * 100;
++}
++
++struct timer {
++	HANDLE queue;
++	void (*callback)(void *arg);
++	void *arg;
++};
++
++static void *timer_alloc(void (*fn)(void *), void *arg)
++{
++	struct timer *t;
++
++	t = malloc(sizeof(*t));
++	if (!t)
++		return NULL;
++
++	t->queue = CreateTimerQueue();
++	if (!t->queue) {
++		free(t);
++		return NULL;
++	}
++
++	t->callback = fn;
++	t->arg = arg;
++
++	return t;
++}
++
++static void CALLBACK timer_callback(void *arg, BOOLEAN TimerOrWaitFired)
++{
++	struct timer *t = (struct timer *)arg;
++
++	if (TimerOrWaitFired)
++		t->callback(t->arg);
++}
++
++static int timer_set_oneshot(void *timer, unsigned long ns)
++{
++	struct timer *t = (struct timer *)timer;
++	HANDLE tmp;
++
++	return !CreateTimerQueueTimer(&tmp, t->queue, timer_callback, t,
++				      ns / 1000000, 0, 0);
++}
++
++static void timer_free(void *timer)
++{
++	struct timer *t = (struct timer *)timer;
++	HANDLE completion;
++
++	completion = CreateEvent(NULL, FALSE, FALSE, NULL);
++	DeleteTimerQueueEx(t->queue, completion);
++	WaitForSingleObject(completion, INFINITE);
++	free(t);
++}
++
++static void panic(void)
++{
++	int *x = NULL;
++
++	*x = 1;
++	assert(0);
++}
++
++static void print(const char *str, int len)
++{
++	write(1, str, len);
++}
++
++static long gettid(void)
++{
++	return GetCurrentThreadId();
++}
++
++static void *mem_alloc(unsigned long size)
++{
++	return malloc(size);
++}
++
++struct lkl_host_operations lkl_host_ops = {
++	.panic = panic,
++	.thread_create = thread_create,
++	.thread_detach = thread_detach,
++	.thread_exit = thread_exit,
++	.thread_join = thread_join,
++	.thread_self = thread_self,
++	.thread_equal = thread_equal,
++	.sem_alloc = sem_alloc,
++	.sem_free = sem_free,
++	.sem_up = sem_up,
++	.sem_down = sem_down,
++	.mutex_alloc = mutex_alloc,
++	.mutex_free = mutex_free,
++	.mutex_lock = mutex_lock,
++	.mutex_unlock = mutex_unlock,
++	.tls_alloc = tls_alloc,
++	.tls_free = tls_free,
++	.tls_set = tls_set,
++	.tls_get = tls_get,
++	.time = time_ns,
++	.timer_alloc = timer_alloc,
++	.timer_set_oneshot = timer_set_oneshot,
++	.timer_free = timer_free,
++	.print = print,
++	.mem_alloc = mem_alloc,
++	.mem_free = free,
++	.ioremap = lkl_ioremap,
++	.iomem_access = lkl_iomem_access,
++	.virtio_devices = lkl_virtio_devs,
++	.gettid = gettid,
++	.jmp_buf_set = jmp_buf_set,
++	.jmp_buf_longjmp = jmp_buf_longjmp,
++};
++
++int handle_get_capacity(struct lkl_disk disk, unsigned long long *res)
++{
++	LARGE_INTEGER tmp;
++
++	if (!GetFileSizeEx(disk.handle, &tmp))
++		return -1;
++
++	*res = tmp.QuadPart;
++	return 0;
++}
++
++static int blk_request(struct lkl_disk disk, struct lkl_blk_req *req)
++{
++	unsigned long long offset = req->sector * 512;
++	OVERLAPPED ov = { 0, };
++	int err = 0, ret;
++
++	switch (req->type) {
++	case LKL_DEV_BLK_TYPE_READ:
++	case LKL_DEV_BLK_TYPE_WRITE:
++	{
++		int i;
++
++		for (i = 0; i < req->count; i++) {
++			DWORD res;
++			struct iovec *buf = &req->buf[i];
++
++			ov.Offset = offset & 0xffffffff;
++			ov.OffsetHigh = offset >> 32;
++
++			if (req->type == LKL_DEV_BLK_TYPE_READ)
++				ret = ReadFile(disk.handle, buf->iov_base,
++					       buf->iov_len, &res, &ov);
++			else
++				ret = WriteFile(disk.handle, buf->iov_base,
++						buf->iov_len, &res, &ov);
++			if (!ret) {
++				lkl_printf("%s: I/O error: %d\n", __func__,
++					   GetLastError());
++				err = -1;
++				goto out;
++			}
++
++			if (res != buf->iov_len) {
++				lkl_printf("%s: I/O error: short: %d %d\n",
++					   res, buf->iov_len);
++				err = -1;
++				goto out;
++			}
++
++			offset += buf->iov_len;
++		}
++		break;
++	}
++	case LKL_DEV_BLK_TYPE_FLUSH:
++	case LKL_DEV_BLK_TYPE_FLUSH_OUT:
++		ret = FlushFileBuffers(disk.handle);
++		if (!ret)
++			err = 1;
++		break;
++	default:
++		return LKL_DEV_BLK_STATUS_UNSUP;
++	}
++
++out:
++	if (err < 0)
++		return LKL_DEV_BLK_STATUS_IOERR;
++
++	return LKL_DEV_BLK_STATUS_OK;
++}
++
++struct lkl_dev_blk_ops lkl_dev_blk_ops = {
++	.get_capacity = handle_get_capacity,
++	.request = blk_request,
++};
++
++/* Needed to resolve linker error on Win32. We don't really support
++ * any network IO on Windows, anyway, so there's no loss here.
++ */
++int lkl_netdevs_remove(void)
++{
++	return 0;
++}
 diff --git a/tools/lkl/tests/test.sh b/tools/lkl/tests/test.sh
-index cda932b98058..a40d08fd6185 100644
+index 1a5619aed735..cda932b98058 100644
 --- a/tools/lkl/tests/test.sh
 +++ b/tools/lkl/tests/test.sh
-@@ -100,6 +100,19 @@ lkl_test_exec()
+@@ -98,7 +98,9 @@ lkl_test_exec()
+         file=$file.exe
+     fi
  
-     if file $file | grep PE32; then
-         WRAPPER="wine"
-+    elif file $file | grep "interpreter /system/bin/linker" ; then
-+        adb push "$file" $ANDROID_WDIR
-+        if [ -n "$SUDO" ]; then
-+            ANDROID_USER=root
-+            SUDO=""
-+        fi
-+        if [ -n "$ANDROID_USER" ]; then
-+            SU="su $ANDROID_USER"
-+        else
-+            SU=""
-+        fi
-+        WRAPPER="adb shell $SU"
-+        file=$ANDROID_WDIR/$(basename $file)
-     elif file $file | grep ARM; then
+-    if file $file | grep ARM; then
++    if file $file | grep PE32; then
++        WRAPPER="wine"
++    elif file $file | grep ARM; then
          WRAPPER="qemu-arm-static"
      elif file $file | grep "FreeBSD" ; then
-@@ -134,13 +147,48 @@ lkl_test_cmd()
-         SHOPTS="-x"
-     fi
- 
--    if [ -n "$LKL_HOST_CONFIG_BSD" ]; then
-+    if [ -n "$LKL_HOST_CONFIG_ANDROID" ]; then
-+        if [ "$1" = "sudo" ]; then
-+            ANDROID_USER=root
-+            shift
-+        fi
-+        if [ -n "$ANDROID_USER" ]; then
-+            SU="su $ANDROID_USER"
-+        else
-+            SU=""
-+        fi
-+        WRAPPER="adb shell $SU"
-+    elif [ -n "$LKL_HOST_CONFIG_BSD" ]; then
-         WRAPPER="$MYSSH $SU"
-     fi
- 
-     echo "$@" | $WRAPPER sh $SHOPTS
- }
- 
-+adb_push()
-+{
-+    while [ -n "$1" ]; do
-+        if [[ "$1" = *.sh ]]; then
-+            type="script"
-+        else
-+            type="file"
-+        fi
-+
-+        dir=$(dirname $1)
-+        adb shell mkdir -p $ANDROID_WDIR/$dir
-+
-+        if [ "$type" = "script" ]; then
-+            sed "s/\/usr\/bin\/env bash/\/system\/bin\/sh/" $basedir/$1 | \
-+                adb shell cat \> $ANDROID_WDIR/$1
-+            adb shell chmod a+x $ANDROID_WDIR/$1
-+        else
-+            adb push $basedir/$1 $ANDROID_WDIR/$dir
-+        fi
-+
-+        shift
-+    done
-+}
-+
- # XXX: $MYSSH and $MYSCP are defined in a circleci docker image.
- # see the definitions in lkl/lkl-docker:circleci/freebsd11/Dockerfile
- ssh_push()
-@@ -169,11 +217,22 @@ ssh_copy()
-     $MYSCP -P 7722 -r $1 root@localhost:$2
- }
- 
-+lkl_test_android_cleanup()
-+{
-+    adb shell rm -rf $ANDROID_WDIR
-+}
-+
- lkl_test_bsd_cleanup()
- {
-     $MYSSH rm -rf $BSD_WDIR
- }
- 
-+if [ -n "$LKL_HOST_CONFIG_ANDROID" ]; then
-+    trap lkl_test_android_cleanup EXIT
-+    export ANDROID_WDIR=/data/local/tmp/lkl
-+    adb shell mkdir -p $ANDROID_WDIR
-+fi
-+
- if [ -n "$LKL_HOST_CONFIG_BSD" ]; then
-     trap lkl_test_bsd_cleanup EXIT
-     export BSD_WDIR=/root/lkl
+         ssh_copy "$file" $BSD_WDIR
 -- 
 2.20.1 (Apple Git-117)
