@@ -1,34 +1,59 @@
-From: Alexandre Chartre <alexandre.chartre@oracle.com>
-Subject: Re: [patch V2 07/17] x86/entry/64: Remove redundant interrupt disable
-Date: Fri, 8 Nov 2019 12:07:27 +0100
-Message-ID: <86bf1670-dd35-f310-dab9-106897cc3921@oracle.com>
-References: <20191023122705.198339581@linutronix.de>
- <20191023123118.296135499@linutronix.de>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Transfer-Encoding: 7bit
+From: Masahiro Yamada <yamada.masahiro@socionext.com>
+Subject: [PATCH] mm: fixmap: convert __set_fixmap_offset() to an inline function
+Date: Fri,  8 Nov 2019 21:41:33 +0900
+Message-ID: <20191108124133.31751-1-yamada.masahiro@socionext.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20191023123118.296135499@linutronix.de>
-Content-Language: en-US
 Sender: linux-kernel-owner@vger.kernel.org
-To: Thomas Gleixner <tglx@linutronix.de>, LKML <linux-kernel@vger.kernel.org>
-Cc: x86@kernel.org, Peter Zijlstra <peterz@infradead.org>, Andy Lutomirski <luto@kernel.org>, Will Deacon <will@kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, kvm@vger.kernel.org, linux-arch@vger.kernel.org, Mike Rapoport <rppt@linux.ibm.com>, Josh Poimboeuf <jpoimboe@redhat.com>, Miroslav Benes <mbenes@suse.cz>
+To: linux-kernel@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, linux-mm@kvack.org
+Cc: Masahiro Yamada <yamada.masahiro@socionext.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
+I just stopped by the ugly variable name, ________addr.
+(8 underscores!)
 
-On 10/23/19 2:27 PM, Thomas Gleixner wrote:
-> Now that the trap handlers return with interrupts disabled, the
-> unconditional disabling of interrupts in the low level entry code can be
-> removed along with the trace calls.
-> 
-> Add debug checks where appropriate.
-> 
-> Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
-> ---
->   arch/x86/entry/entry_64.S |    9 +++------
->   1 file changed, 3 insertions(+), 6 deletions(-)
-> 
+If this is just a matter of casting to (unsigned long), this variable
+is unneeded since you can do like this:
 
-Reviewed-by: Alexandre Chartre <alexandre.chartre@oracle.com>
+({                                                                      \
+        __set_fixmap(idx, phys, flags);                                 \
+        (unsigned long)(fix_to_virt(idx) + ((phys) & (PAGE_SIZE - 1))); \
+})
 
-alex.
+However, I'd rather like to change it to an inline function since it
+is more readable, and the parameter types are clearer.
+
+Signed-off-by: Masahiro Yamada <yamada.masahiro@socionext.com>
+---
+
+ include/asm-generic/fixmap.h | 16 ++++++++--------
+ 1 file changed, 8 insertions(+), 8 deletions(-)
+
+diff --git a/include/asm-generic/fixmap.h b/include/asm-generic/fixmap.h
+index 8cc7b09c1bc7..de4c36912529 100644
+--- a/include/asm-generic/fixmap.h
++++ b/include/asm-generic/fixmap.h
+@@ -70,14 +70,14 @@ static inline unsigned long virt_to_fix(const unsigned long vaddr)
+ 	__set_fixmap(idx, 0, FIXMAP_PAGE_CLEAR)
+ #endif
+ 
+-/* Return a pointer with offset calculated */
+-#define __set_fixmap_offset(idx, phys, flags)				\
+-({									\
+-	unsigned long ________addr;					\
+-	__set_fixmap(idx, phys, flags);					\
+-	________addr = fix_to_virt(idx) + ((phys) & (PAGE_SIZE - 1));	\
+-	________addr;							\
+-})
++/* Return a virtual address with offset calculated */
++static inline unsigned long __set_fixmap_offset(enum fixed_addresses idx,
++						phys_addr_t phys,
++						pgprot_t flags)
++{
++	__set_fixmap(idx, phys, flags);
++	return fix_to_virt(idx) + ((phys) & (PAGE_SIZE - 1));
++}
+ 
+ #define set_fixmap_offset(idx, phys) \
+ 	__set_fixmap_offset(idx, phys, FIXMAP_PAGE_NORMAL)
+-- 
+2.17.1
