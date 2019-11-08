@@ -1,218 +1,44 @@
-From: Masahiro Yamada <yamada.masahiro@socionext.com>
-Subject: Re: [PATCH 3/3] arch: sembuf.h: make uapi asm/sembuf.h self-contained
-Date: Fri, 8 Nov 2019 14:51:59 +0900
-Message-ID: <CAK7LNAR3Runh-eLQ7_wLodvo3_+d13UctAzEzbJgWoYnf998jw@mail.gmail.com>
-References: <20191030063855.9989-1-yamada.masahiro@socionext.com> <20191030063855.9989-3-yamada.masahiro@socionext.com>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Subject: Re: [PATCH v3 05/13] m68k: mm: use pgtable-nopXd instead of 4level-fixup
+Date: Fri, 8 Nov 2019 09:32:27 +0100
+Message-ID: <CAMuHMdVe-7=587nMWK_FcHzsm1TLckwTY9JxKHM_Gg8+ogZsgA@mail.gmail.com>
+References: <1572850587-20314-1-git-send-email-rppt@kernel.org>
+ <1572850587-20314-6-git-send-email-rppt@kernel.org> <CAMuHMdUG3V7uxzhbetw75vVeobeP0-bQySb3r=0V5XujUF123g@mail.gmail.com>
+ <20191104094748.GB23288@rapoport-lnx> <CAMuHMdVHsNyLxhaxZcVdLvQ1PUnb=2_+ECPWVD0234V+qu+kOw@mail.gmail.com>
+ <3d908bbf-0469-c53b-dd86-87df98f40ee7@gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20191030063855.9989-3-yamada.masahiro@socionext.com>
+In-Reply-To: <3d908bbf-0469-c53b-dd86-87df98f40ee7@gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: linux-s390 <linux-s390@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-mips@vger.kernel.org, X86 ML <x86@kernel.org>, Arnd Bergmann <arnd@arndb.de>, sparclinux <sparclinux@vger.kernel.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, linux-arch <linux-arch@vger.kernel.org>
+To: Michael Schmitz <schmitzmic@gmail.com>
+Cc: Mike Rapoport <rppt@kernel.org>, Linux MM <linux-mm@kvack.org>, Andrew Morton <akpm@linux-foundation.org>, Anton Ivanov <anton.ivanov@cambridgegreys.com>, Arnd Bergmann <arnd@arndb.de>, "David S. Miller" <davem@davemloft.net>, Greentime Hu <green.hu@gmail.com>, Greg Ungerer <gerg@linux-m68k.org>, Helge Deller <deller@gmx.de>, "James E.J. Bottomley" <James.Bottomley@hansenpartnership.com>, Jeff Dike <jdike@addtoit.com>, "Kirill A. Shutemov" <kirill@shutemov.name>, Linus Torvalds <torvalds@linux-foundation.org>, Mark Salter <msalter@redhat.com>, Matt Turner <mattst88@gmail.com>, Michal Simek <monstr@monstr.eu>, Peter Rosin <peda@axentia.se>, Richard Weinberger <richard@nod.at>, Rolf Eike Beer <eike-kernel@sf-tec.de>, Russell King <linux@armlinux.org.uk>
 List-Id: linux-arch.vger.kernel.org
 
-Hi Andrew,
+Hi Michael,
 
-I think you modified the commit log before applying this patch.
-I just noticed a typo.
+On Fri, Nov 8, 2019 at 5:30 AM Michael Schmitz <schmitzmic@gmail.com> wrote:
+> Am 04.11.2019 um 22:53 schrieb Geert Uytterhoeven:
+> >>> This indeed boots fine on ARAnyM, which emulates on 68040.
+> >>> It would be good to have some boot testing on '020/030, too.
+> >>
+> >> To be honest, I have no idea how to to that :)
+> >
+> > Sure. This was more a request for the fellow m68k users.
+> > But don't worry too much about it.  If it breaks '020/'030, we can fix
+> > that later.
+>
+> Boots fine on 030, too.
 
+Thanks a lot for testing!
 
-commit 411865d8dd2c31f56eefc54bc16fabb47e1bfb73
-Author: Masahiro Yamada <yamada.masahiro@socionext.com>
-Date:   Wed Nov 6 16:07:08 2019 +1100
+Gr{oetje,eeting}s,
 
-    arch: sembuf.h: make uapi asm/sembuf.h self-contained
+                        Geert
 
-    Uuserspace cannot compile <asm/sembuf.h> due to some missing type
-    definitions.  For example, building it for x86 fails as follows:
+-- 
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
 
-
-
-If possible, could you fix up  s/Uuserspace/Userspace/  ?
-
-
-Thanks.
-Masahiro Yamada
-
-
-
-
-
-On Wed, Oct 30, 2019 at 3:40 PM Masahiro Yamada
-<yamada.masahiro@socionext.com> wrote:
->
-> The user-space cannot compile <asm/sembuf.h> due to some missing type
-> definitions. For example, building it for x86 fails as follows:
->
->   CC      usr/include/asm/sembuf.h.s
-> In file included from <command-line>:32:0:
-> ./usr/include/asm/sembuf.h:17:20: error: field =E2=80=98sem_perm=E2=80=99=
- has incomplete type
->   struct ipc64_perm sem_perm; /* permissions .. see ipc.h */
->                     ^~~~~~~~
-> ./usr/include/asm/sembuf.h:24:2: error: unknown type name =E2=80=98__kern=
-el_time_t=E2=80=99
->   __kernel_time_t sem_otime; /* last semop time */
->   ^~~~~~~~~~~~~~~
-> ./usr/include/asm/sembuf.h:25:2: error: unknown type name =E2=80=98__kern=
-el_ulong_t=E2=80=99
->   __kernel_ulong_t __unused1;
->   ^~~~~~~~~~~~~~~~
-> ./usr/include/asm/sembuf.h:26:2: error: unknown type name =E2=80=98__kern=
-el_time_t=E2=80=99
->   __kernel_time_t sem_ctime; /* last change time */
->   ^~~~~~~~~~~~~~~
-> ./usr/include/asm/sembuf.h:27:2: error: unknown type name =E2=80=98__kern=
-el_ulong_t=E2=80=99
->   __kernel_ulong_t __unused2;
->   ^~~~~~~~~~~~~~~~
-> ./usr/include/asm/sembuf.h:29:2: error: unknown type name =E2=80=98__kern=
-el_ulong_t=E2=80=99
->   __kernel_ulong_t sem_nsems; /* no. of semaphores in array */
->   ^~~~~~~~~~~~~~~~
-> ./usr/include/asm/sembuf.h:30:2: error: unknown type name =E2=80=98__kern=
-el_ulong_t=E2=80=99
->   __kernel_ulong_t __unused3;
->   ^~~~~~~~~~~~~~~~
-> ./usr/include/asm/sembuf.h:31:2: error: unknown type name =E2=80=98__kern=
-el_ulong_t=E2=80=99
->   __kernel_ulong_t __unused4;
->   ^~~~~~~~~~~~~~~~
->
-> It is just a matter of missing include directive.
->
-> Include <asm/ipcbuf.h> to make it self-contained, and add it to
-> the compile-test coverage.
->
-> Signed-off-by: Masahiro Yamada <yamada.masahiro@socionext.com>
-> ---
->
->  arch/mips/include/uapi/asm/sembuf.h    | 2 ++
->  arch/parisc/include/uapi/asm/sembuf.h  | 1 +
->  arch/powerpc/include/uapi/asm/sembuf.h | 2 ++
->  arch/sparc/include/uapi/asm/sembuf.h   | 2 ++
->  arch/x86/include/uapi/asm/sembuf.h     | 2 ++
->  arch/xtensa/include/uapi/asm/sembuf.h  | 1 +
->  include/uapi/asm-generic/sembuf.h      | 1 +
->  usr/include/Makefile                   | 1 -
->  8 files changed, 11 insertions(+), 1 deletion(-)
->
-> diff --git a/arch/mips/include/uapi/asm/sembuf.h b/arch/mips/include/uapi=
-/asm/sembuf.h
-> index 60c89e6cb25b..7d135b93bebd 100644
-> --- a/arch/mips/include/uapi/asm/sembuf.h
-> +++ b/arch/mips/include/uapi/asm/sembuf.h
-> @@ -2,6 +2,8 @@
->  #ifndef _ASM_SEMBUF_H
->  #define _ASM_SEMBUF_H
->
-> +#include <asm/ipcbuf.h>
-> +
->  /*
->   * The semid64_ds structure for the MIPS architecture.
->   * Note extra padding because this structure is passed back and forth
-> diff --git a/arch/parisc/include/uapi/asm/sembuf.h b/arch/parisc/include/=
-uapi/asm/sembuf.h
-> index 3c31163b1241..b17a2460b184 100644
-> --- a/arch/parisc/include/uapi/asm/sembuf.h
-> +++ b/arch/parisc/include/uapi/asm/sembuf.h
-> @@ -3,6 +3,7 @@
->  #define _PARISC_SEMBUF_H
->
->  #include <asm/bitsperlong.h>
-> +#include <asm/ipcbuf.h>
->
->  /*
->   * The semid64_ds structure for parisc architecture.
-> diff --git a/arch/powerpc/include/uapi/asm/sembuf.h b/arch/powerpc/includ=
-e/uapi/asm/sembuf.h
-> index 3f60946f77e3..f42c9c3502c7 100644
-> --- a/arch/powerpc/include/uapi/asm/sembuf.h
-> +++ b/arch/powerpc/include/uapi/asm/sembuf.h
-> @@ -2,6 +2,8 @@
->  #ifndef _ASM_POWERPC_SEMBUF_H
->  #define _ASM_POWERPC_SEMBUF_H
->
-> +#include <asm/ipcbuf.h>
-> +
->  /*
->   * This program is free software; you can redistribute it and/or
->   * modify it under the terms of the GNU General Public License
-> diff --git a/arch/sparc/include/uapi/asm/sembuf.h b/arch/sparc/include/ua=
-pi/asm/sembuf.h
-> index f3d309c2e1cd..5d7764cdf80f 100644
-> --- a/arch/sparc/include/uapi/asm/sembuf.h
-> +++ b/arch/sparc/include/uapi/asm/sembuf.h
-> @@ -2,6 +2,8 @@
->  #ifndef _SPARC_SEMBUF_H
->  #define _SPARC_SEMBUF_H
->
-> +#include <asm/ipcbuf.h>
-> +
->  /*
->   * The semid64_ds structure for sparc architecture.
->   * Note extra padding because this structure is passed back and forth
-> diff --git a/arch/x86/include/uapi/asm/sembuf.h b/arch/x86/include/uapi/a=
-sm/sembuf.h
-> index 89de6cd9f0a7..da0464af7aa6 100644
-> --- a/arch/x86/include/uapi/asm/sembuf.h
-> +++ b/arch/x86/include/uapi/asm/sembuf.h
-> @@ -2,6 +2,8 @@
->  #ifndef _ASM_X86_SEMBUF_H
->  #define _ASM_X86_SEMBUF_H
->
-> +#include <asm/ipcbuf.h>
-> +
->  /*
->   * The semid64_ds structure for x86 architecture.
->   * Note extra padding because this structure is passed back and forth
-> diff --git a/arch/xtensa/include/uapi/asm/sembuf.h b/arch/xtensa/include/=
-uapi/asm/sembuf.h
-> index 09f348d643f1..3b9cdd406dfe 100644
-> --- a/arch/xtensa/include/uapi/asm/sembuf.h
-> +++ b/arch/xtensa/include/uapi/asm/sembuf.h
-> @@ -22,6 +22,7 @@
->  #define _XTENSA_SEMBUF_H
->
->  #include <asm/byteorder.h>
-> +#include <asm/ipcbuf.h>
->
->  struct semid64_ds {
->         struct ipc64_perm sem_perm;             /* permissions .. see ipc=
-.h */
-> diff --git a/include/uapi/asm-generic/sembuf.h b/include/uapi/asm-generic=
-/sembuf.h
-> index 0bae010f1b64..5807fcd643ba 100644
-> --- a/include/uapi/asm-generic/sembuf.h
-> +++ b/include/uapi/asm-generic/sembuf.h
-> @@ -3,6 +3,7 @@
->  #define __ASM_GENERIC_SEMBUF_H
->
->  #include <asm/bitsperlong.h>
-> +#include <asm/ipcbuf.h>
->
->  /*
->   * The semid64_ds structure for x86 architecture.
-> diff --git a/usr/include/Makefile b/usr/include/Makefile
-> index 099d7401aa23..107d04bd5ee3 100644
-> --- a/usr/include/Makefile
-> +++ b/usr/include/Makefile
-> @@ -16,7 +16,6 @@ override c_flags =3D $(UAPI_CFLAGS) -Wp,-MD,$(depfile) =
--I$(objtree)/usr/include
->  # Please consider to fix the header first.
->  #
->  # Sorted alphabetically.
-> -header-test- +=3D asm/sembuf.h
->  header-test- +=3D asm/shmbuf.h
->  header-test- +=3D asm/signal.h
->  header-test- +=3D asm/ucontext.h
-> --
-> 2.17.1
->
-
-
---=20
-Best Regards
-Masahiro Yamada
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
