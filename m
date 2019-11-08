@@ -1,191 +1,66 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mout.kundenserver.de ([212.227.126.135]:38665 "EHLO
+Received: from mout.kundenserver.de ([217.72.192.73]:33093 "EHLO
         mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726394AbfKHVFg (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 8 Nov 2019 16:05:36 -0500
+        with ESMTP id S1726349AbfKHVIy (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 8 Nov 2019 16:08:54 -0500
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: [PATCH 00/23] y2038 cleanups
-Date: Fri,  8 Nov 2019 22:02:21 +0100
-Message-ID: <20191108210236.1296047-1-arnd@arndb.de>
+Subject: [PATCH 02/23] y2038: add __kernel_old_timespec and __kernel_old_time_t
+Date: Fri,  8 Nov 2019 22:07:22 +0100
+Message-ID: <20191108210824.1534248-2-arnd@arndb.de>
+In-Reply-To: <20191108210236.1296047-1-arnd@arndb.de>
+References: <20191108210236.1296047-1-arnd@arndb.de>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: y2038@lists.linaro.org
-Cc: linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, rth@twiddle.net, tony.luck@intel.com, paul.burton@mips.com, green.hu@gmail.com, deller@gmx.de, mpe@ellerman.id.au, davem@davemloft.net, tglx@linutronix.de, x86@kernel.org, jdike@addtoit.com, richard@nod.at, viro@zeniv.linux.org.uk, bcrl@kvack.org, john.stultz@linaro.org, sboyd@kernel.org, rostedt@goodmis.org, vincenzo.frascino@arm.com, paul@paul-moore.com, sds@tycho.nsa.gov, eparis@parisplace.org, peterz@infradead.org, will@kernel.org, deepa.kernel@gmail.com, christian@brauner.io, heiko.carstens@de.ibm.com, christophe.leroy@c-s.fr, ebiederm@xmission.com, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-mips@vger.kernel.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, sparclinux@vger.kernel.org, linux-um@lists.infradead.org, linux-fsdevel@vger.kernel.org, linux-aio@kvack.org, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, netdev@vger.kernel.org, selinux@vger.kernel.org
-Message-ID: <20191108210221.3ugSoNtpBLmbxLCDhQz9F-D4GT6y43FhX2LXLf5z29M@z>
+To: y2038@lists.linaro.org, Arnd Bergmann <arnd@arndb.de>
+Cc: linux-kernel@vger.kernel.org, "David S. Miller" <davem@davemloft.net>, Deepa Dinamani <deepa.kernel@gmail.com>, linux-arch@vger.kernel.org
+Message-ID: <20191108210722.VbpT8xCW8gvPdKe_AI1EEZytLtraF6QqZMiirm8WUO4@z>
 
-This is a series of cleanups for the y2038 work, mostly intended
-for namespace cleaning: the kernel defines the traditional
-time_t, timeval and timespec types that often lead to y2038-unsafe
-code. Even though the unsafe usage is mostly gone from the kernel,
-having the types and associated functions around means that we
-can still grow new users, and that we may be missing conversions
-to safe types that actually matter.
+The 'struct timespec' definition can no longer be part of the uapi headers
+because it conflicts with a a now incompatible libc definition. Also,
+we really want to remove it in order to prevent new uses from creeping in.
 
-As there is no rush on any of these patches, I would either
-queue them up in linux-next through my y2038 branch, or
-Thomas could add them to the tip tree if he wants.
+The same namespace conflict exists with time_t, which should also be
+removed. __kernel_time_t could be used safely, but adding 'old' in the
+name makes it clearer that this should not be used for new interfaces.
 
-As mentioned in another series, this is part of a larger
-effort to fix all the remaining bits and pieces that are
-not completed yet from the y2038 conversion, and the full
-set can be found at:
+Add a replacement __kernel_old_timespec structure and __kernel_old_time_t
+along the lines of __kernel_old_timeval.
 
-https://git.kernel.org/pub/scm/linux/kernel/git/arnd/playground.git/log/?h=y2038-endgame
+Signed-off-by: Arnd Bergmann <arnd@arndb.de>
+---
+ include/uapi/asm-generic/posix_types.h | 1 +
+ include/uapi/linux/time_types.h        | 5 +++++
+ 2 files changed, 6 insertions(+)
 
-Maintainers, please review and provide Acks.
-
-Let me know if you have any opinion on whether we should do
-the include last two patches of this series or not.
-
-     Arnd
-
-Arnd Bergmann (23):
-  y2038: remove CONFIG_64BIT_TIME
-  y2038: add __kernel_old_timespec and __kernel_old_time_t
-  y2038: vdso: change timeval to __kernel_old_timeval
-  y2038: vdso: change timespec to __kernel_old_timespec
-  y2038: vdso: change time_t to __kernel_old_time_t
-  y2038: vdso: nds32: open-code timespec_add_ns()
-  y2038: vdso: powerpc: avoid timespec references
-  y2038: ipc: remove __kernel_time_t reference from headers
-  y2038: stat: avoid 'time_t' in 'struct stat'
-  y2038: uapi: change __kernel_time_t to __kernel_old_time_t
-  y2038: rusage: use __kernel_old_timeval
-  y2038: syscalls: change remaining timeval to __kernel_old_timeval
-  y2038: socket: remove timespec reference in timestamping
-  y2038: make ns_to_compat_timeval use __kernel_old_timeval
-  y2038: elfcore: Use __kernel_old_timeval for process times
-  y2038: timerfd: Use timespec64 internally
-  y2038: time: avoid timespec usage in settimeofday()
-  y2038: itimer: compat handling to itimer.c
-  y2038: use compat_{get,set}_itimer on alpha
-  y2038: move itimer reset into itimer.c
-  y2038: itimer: change implementation to timespec64
-  [RFC] y2038: itimer: use ktime_t internally
-  y2038: allow disabling time32 system calls
-
- arch/Kconfig                              |  11 +-
- arch/alpha/kernel/osf_sys.c               |  67 +-----
- arch/alpha/kernel/syscalls/syscall.tbl    |   4 +-
- arch/ia64/kernel/asm-offsets.c            |   2 +-
- arch/mips/include/uapi/asm/msgbuf.h       |   6 +-
- arch/mips/include/uapi/asm/sembuf.h       |   4 +-
- arch/mips/include/uapi/asm/shmbuf.h       |   6 +-
- arch/mips/include/uapi/asm/stat.h         |  16 +-
- arch/mips/kernel/binfmt_elfn32.c          |   4 +-
- arch/mips/kernel/binfmt_elfo32.c          |   4 +-
- arch/nds32/kernel/vdso/gettimeofday.c     |  61 +++--
- arch/parisc/include/uapi/asm/msgbuf.h     |   6 +-
- arch/parisc/include/uapi/asm/sembuf.h     |   4 +-
- arch/parisc/include/uapi/asm/shmbuf.h     |   6 +-
- arch/powerpc/include/asm/asm-prototypes.h |   3 +-
- arch/powerpc/include/asm/vdso_datapage.h  |   6 +-
- arch/powerpc/include/uapi/asm/msgbuf.h    |   6 +-
- arch/powerpc/include/uapi/asm/sembuf.h    |   4 +-
- arch/powerpc/include/uapi/asm/shmbuf.h    |   6 +-
- arch/powerpc/include/uapi/asm/stat.h      |   2 +-
- arch/powerpc/kernel/asm-offsets.c         |  18 +-
- arch/powerpc/kernel/syscalls.c            |   4 +-
- arch/powerpc/kernel/time.c                |   5 +-
- arch/powerpc/kernel/vdso32/gettimeofday.S |   6 +-
- arch/powerpc/kernel/vdso64/gettimeofday.S |   8 +-
- arch/sparc/include/uapi/asm/msgbuf.h      |   6 +-
- arch/sparc/include/uapi/asm/sembuf.h      |   4 +-
- arch/sparc/include/uapi/asm/shmbuf.h      |   6 +-
- arch/sparc/include/uapi/asm/stat.h        |  24 +-
- arch/sparc/vdso/vclock_gettime.c          |  36 +--
- arch/x86/entry/vdso/vclock_gettime.c      |   6 +-
- arch/x86/entry/vsyscall/vsyscall_64.c     |   4 +-
- arch/x86/include/uapi/asm/msgbuf.h        |   6 +-
- arch/x86/include/uapi/asm/sembuf.h        |   4 +-
- arch/x86/include/uapi/asm/shmbuf.h        |   6 +-
- arch/x86/um/vdso/um_vdso.c                |  12 +-
- fs/aio.c                                  |   2 +-
- fs/binfmt_elf.c                           |  12 +-
- fs/binfmt_elf_fdpic.c                     |  12 +-
- fs/compat_binfmt_elf.c                    |   4 +-
- fs/select.c                               |  10 +-
- fs/timerfd.c                              |  14 +-
- fs/utimes.c                               |   8 +-
- include/linux/compat.h                    |  19 +-
- include/linux/syscalls.h                  |  16 +-
- include/linux/time.h                      |   9 +-
- include/linux/time32.h                    |   2 +-
- include/linux/types.h                     |   2 +-
- include/trace/events/timer.h              |  29 +--
- include/uapi/asm-generic/msgbuf.h         |  12 +-
- include/uapi/asm-generic/posix_types.h    |   1 +
- include/uapi/asm-generic/sembuf.h         |   7 +-
- include/uapi/asm-generic/shmbuf.h         |  12 +-
- include/uapi/linux/cyclades.h             |   6 +-
- include/uapi/linux/elfcore.h              |   8 +-
- include/uapi/linux/errqueue.h             |   7 +
- include/uapi/linux/msg.h                  |   6 +-
- include/uapi/linux/ppp_defs.h             |   4 +-
- include/uapi/linux/resource.h             |   4 +-
- include/uapi/linux/sem.h                  |   4 +-
- include/uapi/linux/shm.h                  |   6 +-
- include/uapi/linux/time.h                 |   6 +-
- include/uapi/linux/time_types.h           |   5 +
- include/uapi/linux/utime.h                |   4 +-
- ipc/syscall.c                             |   2 +-
- kernel/compat.c                           |  24 --
- kernel/power/power.h                      |   2 +-
- kernel/sys.c                              |   4 +-
- kernel/sys_ni.c                           |  23 ++
- kernel/time/hrtimer.c                     |   2 +-
- kernel/time/itimer.c                      | 280 ++++++++++++++--------
- kernel/time/time.c                        |  32 ++-
- lib/vdso/gettimeofday.c                   |   4 +-
- net/core/scm.c                            |   6 +-
- net/socket.c                              |   2 +-
- security/selinux/hooks.c                  |  10 +-
- 76 files changed, 501 insertions(+), 504 deletions(-)
-
+diff --git a/include/uapi/asm-generic/posix_types.h b/include/uapi/asm-generic/posix_types.h
+index f0733a26ebfc..2f9c80595ba7 100644
+--- a/include/uapi/asm-generic/posix_types.h
++++ b/include/uapi/asm-generic/posix_types.h
+@@ -86,6 +86,7 @@ typedef struct {
+  */
+ typedef __kernel_long_t	__kernel_off_t;
+ typedef long long	__kernel_loff_t;
++typedef __kernel_long_t	__kernel_old_time_t;
+ typedef __kernel_long_t	__kernel_time_t;
+ typedef long long __kernel_time64_t;
+ typedef __kernel_long_t	__kernel_clock_t;
+diff --git a/include/uapi/linux/time_types.h b/include/uapi/linux/time_types.h
+index 27bfc8fc6904..60b37f29842d 100644
+--- a/include/uapi/linux/time_types.h
++++ b/include/uapi/linux/time_types.h
+@@ -28,6 +28,11 @@ struct __kernel_old_timeval {
+ };
+ #endif
+ 
++struct __kernel_old_timespec {
++	__kernel_time_t	tv_sec;			/* seconds */
++	long		tv_nsec;		/* nanoseconds */
++};
++
+ struct __kernel_sock_timeval {
+ 	__s64 tv_sec;
+ 	__s64 tv_usec;
 -- 
 2.20.0
-
-Cc: rth@twiddle.net
-Cc: tony.luck@intel.com
-Cc: paul.burton@mips.com
-Cc: green.hu@gmail.com
-Cc: deller@gmx.de
-Cc: mpe@ellerman.id.au
-Cc: davem@davemloft.net
-Cc: tglx@linutronix.de
-Cc: x86@kernel.org
-Cc: jdike@addtoit.com
-Cc: richard@nod.at
-Cc: viro@zeniv.linux.org.uk
-Cc: bcrl@kvack.org
-Cc: john.stultz@linaro.org
-Cc: sboyd@kernel.org
-Cc: rostedt@goodmis.org
-Cc: arnd@arndb.de
-Cc: vincenzo.frascino@arm.com
-Cc: paul@paul-moore.com
-Cc: sds@tycho.nsa.gov
-Cc: eparis@parisplace.org
-Cc: peterz@infradead.org
-Cc: will@kernel.org
-Cc: deepa.kernel@gmail.com
-Cc: christian@brauner.io
-Cc: heiko.carstens@de.ibm.com
-Cc: christophe.leroy@c-s.fr
-Cc: ebiederm@xmission.com
-Cc: linux-kernel@vger.kernel.org
-Cc: linux-alpha@vger.kernel.org>
-Cc: linux-ia64@vger.kernel.org>
-Cc: linux-mips@vger.kernel.org>
-Cc: linux-parisc@vger.kernel.org>
-Cc: linuxppc-dev@lists.ozlabs.org>
-Cc: sparclinux@vger.kernel.org>
-Cc: linux-um@lists.infradead.org>
-Cc: linux-fsdevel@vger.kernel.org>
-Cc: linux-aio@kvack.org>
-Cc: linux-api@vger.kernel.org>
-Cc: linux-arch@vger.kernel.org>
-Cc: netdev@vger.kernel.org>
-Cc: selinux@vger.kernel.org>
