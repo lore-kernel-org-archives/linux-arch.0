@@ -1,198 +1,191 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga01.intel.com ([192.55.52.88]:43693 "EHLO mga01.intel.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726349AbfKHSTm (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 8 Nov 2019 13:19:42 -0500
-Message-ID: <530c46a1f4be6477ad75803401cfd4ce18abbd95.camel@intel.com>
-Subject: Re: [PATCH v8 27/27] x86/cet/shstk: Add Shadow Stack instructions
- to opcode map
-From: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Date: Fri, 08 Nov 2019 10:09:17 -0800
-In-Reply-To: <15568c48-b950-484d-d176-0f0e38a94bf7@intel.com>
-References: <20190813205225.12032-1-yu-cheng.yu@intel.com>
-         <20190813205225.12032-28-yu-cheng.yu@intel.com>
-         <15568c48-b950-484d-d176-0f0e38a94bf7@intel.com>
-Content-Type: text/plain; charset="UTF-8"
-Mime-Version: 1.0
-Content-Transfer-Encoding: 7bit
+Received: from mout.kundenserver.de ([212.227.126.135]:38665 "EHLO
+        mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726394AbfKHVFg (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 8 Nov 2019 16:05:36 -0500
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: [PATCH 00/23] y2038 cleanups
+Date: Fri,  8 Nov 2019 22:02:21 +0100
+Message-ID: <20191108210236.1296047-1-arnd@arndb.de>
+MIME-Version: 1.0
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Adrian Hunter <adrian.hunter@intel.com>, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@amacapital.net>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>
-Message-ID: <20191108180917.Jj-e9Zzb4oR4fXrCXwQHqLR6gecCzkdQOQl_k8bEdoU@z>
+To: y2038@lists.linaro.org
+Cc: linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, rth@twiddle.net, tony.luck@intel.com, paul.burton@mips.com, green.hu@gmail.com, deller@gmx.de, mpe@ellerman.id.au, davem@davemloft.net, tglx@linutronix.de, x86@kernel.org, jdike@addtoit.com, richard@nod.at, viro@zeniv.linux.org.uk, bcrl@kvack.org, john.stultz@linaro.org, sboyd@kernel.org, rostedt@goodmis.org, vincenzo.frascino@arm.com, paul@paul-moore.com, sds@tycho.nsa.gov, eparis@parisplace.org, peterz@infradead.org, will@kernel.org, deepa.kernel@gmail.com, christian@brauner.io, heiko.carstens@de.ibm.com, christophe.leroy@c-s.fr, ebiederm@xmission.com, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-mips@vger.kernel.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, sparclinux@vger.kernel.org, linux-um@lists.infradead.org, linux-fsdevel@vger.kernel.org, linux-aio@kvack.org, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, netdev@vger.kernel.org, selinux@vger.kernel.org
+Message-ID: <20191108210221.3ugSoNtpBLmbxLCDhQz9F-D4GT6y43FhX2LXLf5z29M@z>
 
-On Fri, 2019-11-08 at 15:27 +0200, Adrian Hunter wrote:
-> On 13/08/19 11:52 PM, Yu-cheng Yu wrote:
-> > Add the following shadow stack management instructions.
-> > 
-> > INCSSP:
-> >     Increment shadow stack pointer by the steps specified.
-> > 
-> > RDSSP:
-> >     Read SSP register into a GPR.
-> > 
-> > SAVEPREVSSP:
-> >     Use "prev ssp" token at top of current shadow stack to
-> >     create a "restore token" on previous shadow stack.
-> > 
-> > RSTORSSP:
-> >     Restore from a "restore token" pointed by a GPR to SSP.
-> > 
-> > WRSS:
-> >     Write to kernel-mode shadow stack (kernel-mode instruction).
-> > 
-> > WRUSS:
-> >     Write to user-mode shadow stack (kernel-mode instruction).
-> > 
-> > SETSSBSY:
-> >     Verify the "supervisor token" pointed by IA32_PL0_SSP MSR,
-> >     if valid, set the token to busy, and set SSP to the value
-> >     of IA32_PL0_SSP MSR.
-> > 
-> > CLRSSBSY:
-> >     Verify the "supervisor token" pointed by a GPR, if valid,
-> >     clear the busy bit from the token.
-> > 
-> > Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
-> > ---
-> >  arch/x86/lib/x86-opcode-map.txt               | 26 +++++++++++++------
-> >  tools/objtool/arch/x86/lib/x86-opcode-map.txt | 26 +++++++++++++------
-> >  2 files changed, 36 insertions(+), 16 deletions(-)
-> > 
-> > diff --git a/arch/x86/lib/x86-opcode-map.txt b/arch/x86/lib/x86-opcode-map.txt
-> > index e0b85930dd77..c5e825d44766 100644
-> > --- a/arch/x86/lib/x86-opcode-map.txt
-> > +++ b/arch/x86/lib/x86-opcode-map.txt
-> > @@ -366,7 +366,7 @@ AVXcode: 1
-> >  1b: BNDCN Gv,Ev (F2) | BNDMOV Ev,Gv (66) | BNDMK Gv,Ev (F3) | BNDSTX Ev,Gv
-> >  1c:
-> >  1d:
-> > -1e: f7: BEXTR Gy,Ey,By (v) | SHLX Gy,Ey,By (66),(v) | SARX Gy,Ey,By
-> > (F3),(v) | SHRX Gy,Ey,By (F2),(v)> >  EndTable> >  > > -Table: 3-byte opcode
-> > 2 (0x0f 0x3a)> > +Table: 3-byte opcode 3 (0x0f 0x3a)> >  Referrer: 3-byte
-> > escape 2> >  AVXcode: 3> >  # 0x0f 0x3a 0x00-0xff> > @@ -948,7 +958,7 @@
-> > GrpTable: Grp7> >  2: LGDT Ms | XGETBV (000),(11B) | XSETBV (001),(11B) |
-> > VMFUNC (100),(11B) | XEND (101)(11B) | XTEST (110)(11B)> >  3: LIDT Ms> > 
-> > 4: SMSW Mw/Rv> > -5: rdpkru (110),(11B) | wrpkru (111),(11B)> > +5: rdpkru
-> > (110),(11B) | wrpkru (111),(11B) | RSTORSSP Mq (F3)> >  6: LMSW Ew> >  7:
-> > INVLPG Mb | SWAPGS (o64),(000),(11B) | RDTSCP (001),(11B)> >  EndTable> > @@
-> > -1019,8 +1029,8 @@ GrpTable: Grp15> >  2: vldmxcsr Md (v1) | WRFSBASE Ry
-> > (F3),(11B)> >  3: vstmxcsr Md (v1) | WRGSBASE Ry (F3),(11B)> >  4: XSAVE |
-> > ptwrite Ey (F3),(11B)> > -5: XRSTOR | lfence (11B)> > -6: XSAVEOPT | clwb
-> > (66) | mfence (11B)> > +5: XRSTOR | lfence (11B) | INCSSP Rd (F3),REX.W> >
-> > +6: XSAVEOPT | clwb (66) | mfence (11B) | CLRSSBSY Mq (F3)> >  7: clflush |
-> > clflushopt (66) | sfence (11B)> >  EndTable> >  > > 
-> > > 
-> > > 
-> > +1e: RDSSP Rd (F3),REX.W
-> >  1f: NOP Ev
-> >  # 0x0f 0x20-0x2f
-> >  20: MOV Rd,Cd
-> > @@ -610,7 +610,17 @@ fe: paddd Pq,Qq | vpaddd Vx,Hx,Wx (66),(v1)
-> >  ff: UD0
-> >  EndTable
-> >  
-> > -Table: 3-byte opcode 1 (0x0f 0x38)
-> > +Table: 3-byte opcode 1 (0x0f 0x01)
-> > +Referrer:
-> > +AVXcode:
-> > +# Skip 0x00-0xe7
-> > +e8: SETSSBSY (f3)
-> > +e9:
-> > +ea: SAVEPREVSSP (f3)
-> > +# Skip 0xeb-0xff
-> > +EndTable
-> > +
-> > +Table: 3-byte opcode 2 (0x0f 0x38)
-> >  Referrer: 3-byte escape 1
-> >  AVXcode: 2
-> >  # 0x0f 0x38 0x00-0x0f
-> > @@ -789,12 +799,12 @@ f0: MOVBE Gy,My | MOVBE Gw,Mw (66) | CRC32 Gd,Eb (F2) | CRC32 Gd,Eb (66&F2)
-> >  f1: MOVBE My,Gy | MOVBE Mw,Gw (66) | CRC32 Gd,Ey (F2) | CRC32 Gd,Ew (66&F2)
-> >  f2: ANDN Gy,By,Ey (v)
-> >  f3: Grp17 (1A)
-> > -f5: BZHI Gy,Ey,By (v) | PEXT Gy,By,Ey (F3),(v) | PDEP Gy,By,Ey (F2),(v)
-> > -f6: ADCX Gy,Ey (66) | ADOX Gy,Ey (F3) | MULX By,Gy,rDX,Ey (F2),(v)
-> > +f5: BZHI Gy,Ey,By (v) | PEXT Gy,By,Ey (F3),(v) | PDEP Gy,By,Ey (F2),(v) | WRUSS Pq,Qq (66),REX.W
-> > +f6: ADCX Gy,Ey (66) | ADOX Gy,Ey (F3) | MULX By,Gy,rDX,Ey (F2),(v) | WRSS Pq,Qq (66),REX.W
-> >  f7: BEXTR Gy,Ey,By (v) | SHLX Gy,Ey,By (66),(v) | SARX Gy,Ey,By (F3),(v) | SHRX Gy,Ey,By (F2),(v)
-> >  EndTable
-> >  
-> > -Table: 3-byte opcode 2 (0x0f 0x3a)
-> > +Table: 3-byte opcode 3 (0x0f 0x3a)
-> >  Referrer: 3-byte escape 2
-> >  AVXcode: 3
-> >  # 0x0f 0x3a 0x00-0xff
-> > @@ -948,7 +958,7 @@ GrpTable: Grp7
-> >  2: LGDT Ms | XGETBV (000),(11B) | XSETBV (001),(11B) | VMFUNC (100),(11B) | XEND (101)(11B) | XTEST (110)(11B)
-> >  3: LIDT Ms
-> >  4: SMSW Mw/Rv
-> > -5: rdpkru (110),(11B) | wrpkru (111),(11B)
-> > +5: rdpkru (110),(11B) | wrpkru (111),(11B) | RSTORSSP Mq (F3)
-> >  6: LMSW Ew
-> >  7: INVLPG Mb | SWAPGS (o64),(000),(11B) | RDTSCP (001),(11B)
-> >  EndTable
-> > @@ -1019,8 +1029,8 @@ GrpTable: Grp15
-> >  2: vldmxcsr Md (v1) | WRFSBASE Ry (F3),(11B)
-> >  3: vstmxcsr Md (v1) | WRGSBASE Ry (F3),(11B)
-> >  4: XSAVE | ptwrite Ey (F3),(11B)
-> > -5: XRSTOR | lfence (11B)
-> > -6: XSAVEOPT | clwb (66) | mfence (11B)
-> > +5: XRSTOR | lfence (11B) | INCSSP Rd (F3),REX.W
-> > +6: XSAVEOPT | clwb (66) | mfence (11B) | CLRSSBSY Mq (F3)
-> >  7: clflush | clflushopt (66) | sfence (11B)
-> >  EndTable
-> >  
-> > diff --git a/tools/objtool/arch/x86/lib/x86-opcode-map.txt b/tools/objtool/arch/x86/lib/x86-opcode-map.txt
-> > index e0b85930dd77..c5e825d44766 100644
-> > --- a/tools/objtool/arch/x86/lib/x86-opcode-map.txt
-> > +++ b/tools/objtool/arch/x86/lib/x86-opcode-map.txt
-> > @@ -366,7 +366,7 @@ AVXcode: 1
-> >  1b: BNDCN Gv,Ev (F2) | BNDMOV Ev,Gv (66) | BNDMK Gv,Ev (F3) | BNDSTX Ev,Gv
-> >  1c:
-> >  1d:
-> > -1e:
-> > +1e: RDSSP Rd (F3),REX.W
-> 
-> RDSSP is in a Grp with ENDBR32 and ENDBR64
-> 
-> >  1f: NOP Ev
-> >  # 0x0f 0x20-0x2f
-> >  20: MOV Rd,Cd
-> > @@ -610,7 +610,17 @@ fe: paddd Pq,Qq | vpaddd Vx,Hx,Wx (66),(v1)
-> >  ff: UD0
-> >  EndTable
-> >  
-> > -Table: 3-byte opcode 1 (0x0f 0x38)
-> > +Table: 3-byte opcode 1 (0x0f 0x01)
-> > +Referrer:
-> > +AVXcode:
-> > +# Skip 0x00-0xe7
-> > +e8: SETSSBSY (f3)
-> > +e9:
-> > +ea: SAVEPREVSSP (f3)
-> 
-> SETSSBSY and SAVEPREVSSP should be in Grp7
-> 
-> > +# Skip 0xeb-0xff
-> > +EndTable
-> > +
-> > +Table: 3-byte opcode 2 (0x0f 0x38)
-> >  Referrer: 3-byte escape 1
-> >  AVXcode: 2
-> >  # 0x0f 0x38 0x00-0x0f
-> > @@ -789,12 +799,12 @@ f0: MOVBE Gy,My | MOVBE Gw,Mw (66) | CRC32 Gd,Eb (F2) | CRC32 Gd,Eb (66&F2)
-> >  f1: MOVBE My,Gy | MOVBE Mw,Gw (66) | CRC32 Gd,Ey (F2) | CRC32 Gd,Ew (66&F2)
-> >  f2: ANDN Gy,By,Ey (v)
-> >  f3: Grp17 (1A)
-> > -f5: BZHI Gy,Ey,By (v) | PEXT Gy,By,Ey (F3),(v) | PDEP Gy,By,Ey (F2),(v)
-> > -f6: ADCX Gy,Ey (66) | ADOX Gy,Ey (F3) | MULX By,Gy,rDX,Ey (F2),(v)
-> > +f5: BZHI Gy,Ey,By (v) | PEXT Gy,By,Ey (F3),(v) | PDEP Gy,By,Ey (F2),(v) | WRUSS Pq,Qq (66),REX.W
-> > +f6: ADCX Gy,Ey (66) | ADOX Gy,Ey (F3) | MULX By,Gy,rDX,Ey (F2),(v) | WRSS Pq,Qq (66),REX.W
-> 
-> I know already commented on this, but WRSS does not have (66) prefix
-> 
-> Also no other instructions have been annotated with REX.W so maybe omit that
+This is a series of cleanups for the y2038 work, mostly intended
+for namespace cleaning: the kernel defines the traditional
+time_t, timeval and timespec types that often lead to y2038-unsafe
+code. Even though the unsafe usage is mostly gone from the kernel,
+having the types and associated functions around means that we
+can still grow new users, and that we may be missing conversions
+to safe types that actually matter.
 
-Thanks!  I will look into that.
+As there is no rush on any of these patches, I would either
+queue them up in linux-next through my y2038 branch, or
+Thomas could add them to the tip tree if he wants.
 
-Yu-cheng
+As mentioned in another series, this is part of a larger
+effort to fix all the remaining bits and pieces that are
+not completed yet from the y2038 conversion, and the full
+set can be found at:
+
+https://git.kernel.org/pub/scm/linux/kernel/git/arnd/playground.git/log/?h=y2038-endgame
+
+Maintainers, please review and provide Acks.
+
+Let me know if you have any opinion on whether we should do
+the include last two patches of this series or not.
+
+     Arnd
+
+Arnd Bergmann (23):
+  y2038: remove CONFIG_64BIT_TIME
+  y2038: add __kernel_old_timespec and __kernel_old_time_t
+  y2038: vdso: change timeval to __kernel_old_timeval
+  y2038: vdso: change timespec to __kernel_old_timespec
+  y2038: vdso: change time_t to __kernel_old_time_t
+  y2038: vdso: nds32: open-code timespec_add_ns()
+  y2038: vdso: powerpc: avoid timespec references
+  y2038: ipc: remove __kernel_time_t reference from headers
+  y2038: stat: avoid 'time_t' in 'struct stat'
+  y2038: uapi: change __kernel_time_t to __kernel_old_time_t
+  y2038: rusage: use __kernel_old_timeval
+  y2038: syscalls: change remaining timeval to __kernel_old_timeval
+  y2038: socket: remove timespec reference in timestamping
+  y2038: make ns_to_compat_timeval use __kernel_old_timeval
+  y2038: elfcore: Use __kernel_old_timeval for process times
+  y2038: timerfd: Use timespec64 internally
+  y2038: time: avoid timespec usage in settimeofday()
+  y2038: itimer: compat handling to itimer.c
+  y2038: use compat_{get,set}_itimer on alpha
+  y2038: move itimer reset into itimer.c
+  y2038: itimer: change implementation to timespec64
+  [RFC] y2038: itimer: use ktime_t internally
+  y2038: allow disabling time32 system calls
+
+ arch/Kconfig                              |  11 +-
+ arch/alpha/kernel/osf_sys.c               |  67 +-----
+ arch/alpha/kernel/syscalls/syscall.tbl    |   4 +-
+ arch/ia64/kernel/asm-offsets.c            |   2 +-
+ arch/mips/include/uapi/asm/msgbuf.h       |   6 +-
+ arch/mips/include/uapi/asm/sembuf.h       |   4 +-
+ arch/mips/include/uapi/asm/shmbuf.h       |   6 +-
+ arch/mips/include/uapi/asm/stat.h         |  16 +-
+ arch/mips/kernel/binfmt_elfn32.c          |   4 +-
+ arch/mips/kernel/binfmt_elfo32.c          |   4 +-
+ arch/nds32/kernel/vdso/gettimeofday.c     |  61 +++--
+ arch/parisc/include/uapi/asm/msgbuf.h     |   6 +-
+ arch/parisc/include/uapi/asm/sembuf.h     |   4 +-
+ arch/parisc/include/uapi/asm/shmbuf.h     |   6 +-
+ arch/powerpc/include/asm/asm-prototypes.h |   3 +-
+ arch/powerpc/include/asm/vdso_datapage.h  |   6 +-
+ arch/powerpc/include/uapi/asm/msgbuf.h    |   6 +-
+ arch/powerpc/include/uapi/asm/sembuf.h    |   4 +-
+ arch/powerpc/include/uapi/asm/shmbuf.h    |   6 +-
+ arch/powerpc/include/uapi/asm/stat.h      |   2 +-
+ arch/powerpc/kernel/asm-offsets.c         |  18 +-
+ arch/powerpc/kernel/syscalls.c            |   4 +-
+ arch/powerpc/kernel/time.c                |   5 +-
+ arch/powerpc/kernel/vdso32/gettimeofday.S |   6 +-
+ arch/powerpc/kernel/vdso64/gettimeofday.S |   8 +-
+ arch/sparc/include/uapi/asm/msgbuf.h      |   6 +-
+ arch/sparc/include/uapi/asm/sembuf.h      |   4 +-
+ arch/sparc/include/uapi/asm/shmbuf.h      |   6 +-
+ arch/sparc/include/uapi/asm/stat.h        |  24 +-
+ arch/sparc/vdso/vclock_gettime.c          |  36 +--
+ arch/x86/entry/vdso/vclock_gettime.c      |   6 +-
+ arch/x86/entry/vsyscall/vsyscall_64.c     |   4 +-
+ arch/x86/include/uapi/asm/msgbuf.h        |   6 +-
+ arch/x86/include/uapi/asm/sembuf.h        |   4 +-
+ arch/x86/include/uapi/asm/shmbuf.h        |   6 +-
+ arch/x86/um/vdso/um_vdso.c                |  12 +-
+ fs/aio.c                                  |   2 +-
+ fs/binfmt_elf.c                           |  12 +-
+ fs/binfmt_elf_fdpic.c                     |  12 +-
+ fs/compat_binfmt_elf.c                    |   4 +-
+ fs/select.c                               |  10 +-
+ fs/timerfd.c                              |  14 +-
+ fs/utimes.c                               |   8 +-
+ include/linux/compat.h                    |  19 +-
+ include/linux/syscalls.h                  |  16 +-
+ include/linux/time.h                      |   9 +-
+ include/linux/time32.h                    |   2 +-
+ include/linux/types.h                     |   2 +-
+ include/trace/events/timer.h              |  29 +--
+ include/uapi/asm-generic/msgbuf.h         |  12 +-
+ include/uapi/asm-generic/posix_types.h    |   1 +
+ include/uapi/asm-generic/sembuf.h         |   7 +-
+ include/uapi/asm-generic/shmbuf.h         |  12 +-
+ include/uapi/linux/cyclades.h             |   6 +-
+ include/uapi/linux/elfcore.h              |   8 +-
+ include/uapi/linux/errqueue.h             |   7 +
+ include/uapi/linux/msg.h                  |   6 +-
+ include/uapi/linux/ppp_defs.h             |   4 +-
+ include/uapi/linux/resource.h             |   4 +-
+ include/uapi/linux/sem.h                  |   4 +-
+ include/uapi/linux/shm.h                  |   6 +-
+ include/uapi/linux/time.h                 |   6 +-
+ include/uapi/linux/time_types.h           |   5 +
+ include/uapi/linux/utime.h                |   4 +-
+ ipc/syscall.c                             |   2 +-
+ kernel/compat.c                           |  24 --
+ kernel/power/power.h                      |   2 +-
+ kernel/sys.c                              |   4 +-
+ kernel/sys_ni.c                           |  23 ++
+ kernel/time/hrtimer.c                     |   2 +-
+ kernel/time/itimer.c                      | 280 ++++++++++++++--------
+ kernel/time/time.c                        |  32 ++-
+ lib/vdso/gettimeofday.c                   |   4 +-
+ net/core/scm.c                            |   6 +-
+ net/socket.c                              |   2 +-
+ security/selinux/hooks.c                  |  10 +-
+ 76 files changed, 501 insertions(+), 504 deletions(-)
+
+-- 
+2.20.0
+
+Cc: rth@twiddle.net
+Cc: tony.luck@intel.com
+Cc: paul.burton@mips.com
+Cc: green.hu@gmail.com
+Cc: deller@gmx.de
+Cc: mpe@ellerman.id.au
+Cc: davem@davemloft.net
+Cc: tglx@linutronix.de
+Cc: x86@kernel.org
+Cc: jdike@addtoit.com
+Cc: richard@nod.at
+Cc: viro@zeniv.linux.org.uk
+Cc: bcrl@kvack.org
+Cc: john.stultz@linaro.org
+Cc: sboyd@kernel.org
+Cc: rostedt@goodmis.org
+Cc: arnd@arndb.de
+Cc: vincenzo.frascino@arm.com
+Cc: paul@paul-moore.com
+Cc: sds@tycho.nsa.gov
+Cc: eparis@parisplace.org
+Cc: peterz@infradead.org
+Cc: will@kernel.org
+Cc: deepa.kernel@gmail.com
+Cc: christian@brauner.io
+Cc: heiko.carstens@de.ibm.com
+Cc: christophe.leroy@c-s.fr
+Cc: ebiederm@xmission.com
+Cc: linux-kernel@vger.kernel.org
+Cc: linux-alpha@vger.kernel.org>
+Cc: linux-ia64@vger.kernel.org>
+Cc: linux-mips@vger.kernel.org>
+Cc: linux-parisc@vger.kernel.org>
+Cc: linuxppc-dev@lists.ozlabs.org>
+Cc: sparclinux@vger.kernel.org>
+Cc: linux-um@lists.infradead.org>
+Cc: linux-fsdevel@vger.kernel.org>
+Cc: linux-aio@kvack.org>
+Cc: linux-api@vger.kernel.org>
+Cc: linux-arch@vger.kernel.org>
+Cc: netdev@vger.kernel.org>
+Cc: selinux@vger.kernel.org>
