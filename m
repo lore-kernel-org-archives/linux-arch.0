@@ -1,41 +1,36 @@
-Return-Path: <rppt@kernel.org>
-From: Mike Rapoport <rppt@kernel.org>
-Subject: [PATCH v2 02/13] arm: nommu: use pgtable-nopud instead of 4level-fixup
-Date: Fri,  1 Nov 2019 10:39:33 +0200
-Message-ID: <1572597584-6390-3-git-send-email-rppt@kernel.org>
-In-Reply-To: <1572597584-6390-1-git-send-email-rppt@kernel.org>
-References: <1572597584-6390-1-git-send-email-rppt@kernel.org>
-To: linux-mm@kvack.org
-Cc: Andrew Morton <akpm@linux-foundation.org>, Anton Ivanov <anton.ivanov@cambridgegreys.com>, Arnd Bergmann <arnd@arndb.de>, "David S. Miller" <davem@davemloft.net>, Geert Uytterhoeven <geert@linux-m68k.org>, Greentime Hu <green.hu@gmail.com>, Greg Ungerer <gerg@linux-m68k.org>, Helge Deller <deller@gmx.de>, "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>, Jeff Dike <jdike@addtoit.com>, "Kirill A. Shutemov" <kirill@shutemov.name>, Linus Torvalds <torvalds@linux-foundation.org>, Mark Salter <msalter@redhat.com>, Matt Turner <mattst88@gmail.com>, Michal Simek <monstr@monstr.eu>, Peter Rosin <peda@axentia.se>, Richard Weinberger <richard@nod.at>, Rolf Eike Beer <eike-kernel@sf-tec.de>, Russell King <linux@armlinux.org.uk>, Sam Creasey <sammy@sammy.net>, Vincent Chen <deanbo422@gmail.com>, Vineet Gupta <Vineet.Gupta1@synopsys.com>, Mike Rapoport <rppt@kernel.org>, linux-alpha@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, linux-kernel@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-parisc@vger.kernel.org, linux-um@lists.infradead.org, sparclinux@vger.kernel.org, Mike Rapoport <rppt@linux.ibm.com>
+Return-Path: <alexandre.chartre@oracle.com>
+Subject: Re: [patch V2 06/17] x86/entry/32: Remove redundant interrupt disable
+References: <20191023122705.198339581@linutronix.de>
+ <20191023123118.191230255@linutronix.de>
+From: Alexandre Chartre <alexandre.chartre@oracle.com>
+Message-ID: <f8ba6ab8-c42d-f90f-f296-de270d1a7e21@oracle.com>
+Date: Fri, 8 Nov 2019 11:41:45 +0100
+MIME-Version: 1.0
+In-Reply-To: <20191023123118.191230255@linutronix.de>
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
+To: Thomas Gleixner <tglx@linutronix.de>, LKML <linux-kernel@vger.kernel.org>
+Cc: x86@kernel.org, Peter Zijlstra <peterz@infradead.org>, Andy Lutomirski <luto@kernel.org>, Will Deacon <will@kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, kvm@vger.kernel.org, linux-arch@vger.kernel.org, Mike Rapoport <rppt@linux.ibm.com>, Josh Poimboeuf <jpoimboe@redhat.com>, Miroslav Benes <mbenes@suse.cz>
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20191101083933.T2_D75EG4RPzz_oFe9ErhhWW9G0PtBKiAOzVRjd6cqU@z>
+Message-ID: <20191108104145.7QigZs8tpw-Rat9mXr-4TuzH6UJOpKWz04FfBM7vUNU@z>
 
-From: Mike Rapoport <rppt@linux.ibm.com>
 
-The generic nommu implementation of page table manipulation takes care of
-folding of the upper levels and does not require fixups.
+On 10/23/19 2:27 PM, Thomas Gleixner wrote:
+> Now that the trap handlers return with interrupts disabled, the
+> unconditional disabling of interrupts in the low level entry code can be
+> removed along with the trace calls and the misnomed preempt_stop macro.
+> As a consequence ret_from_exception and ret_from_intr collapse.
+> 
+> Add a debug check to verify that interrupts are disabled depending on
+> CONFIG_DEBUG_ENTRY.
+> 
+> Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
+> ---
+>   arch/x86/entry/entry_32.S |   21 ++++++---------------
+>   1 file changed, 6 insertions(+), 15 deletions(-)
+> 
 
-Simply replace of include/asm-generic/4level-fixup.h with
-include/asm-generic/pgtable-nopud.h.
+Reviewed-by: Alexandre Chartre <alexandre.chartre@oracle.com>
 
-Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
-Acked-by: Russell King <rmk+kernel@armlinux.org.uk>
----
- arch/arm/include/asm/pgtable.h | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
-
-diff --git a/arch/arm/include/asm/pgtable.h b/arch/arm/include/asm/pgtable.h
-index 3ae120c..eabcb48 100644
---- a/arch/arm/include/asm/pgtable.h
-+++ b/arch/arm/include/asm/pgtable.h
-@@ -12,7 +12,7 @@
- 
- #ifndef CONFIG_MMU
- 
--#include <asm-generic/4level-fixup.h>
-+#include <asm-generic/pgtable-nopud.h>
- #include <asm/pgtable-nommu.h>
- 
- #else
--- 
-2.7.4
+alex.
