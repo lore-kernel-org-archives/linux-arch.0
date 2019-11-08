@@ -1,64 +1,100 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from conuserg-11.nifty.com ([210.131.2.78]:25269 "EHLO
-        conuserg-11.nifty.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1725933AbfKHMl7 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 8 Nov 2019 07:41:59 -0500
-From: Masahiro Yamada <yamada.masahiro@socionext.com>
-Subject: [PATCH] mm: fixmap: convert __set_fixmap_offset() to an inline function
-Date: Fri,  8 Nov 2019 21:41:33 +0900
-Message-ID: <20191108124133.31751-1-yamada.masahiro@socionext.com>
+Received: from mga03.intel.com ([134.134.136.65]:22591 "EHLO mga03.intel.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1727903AbfKHNUu (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 8 Nov 2019 08:20:50 -0500
+Subject: Re: [PATCH v8 07/14] x86/cet/ibt: Add ENDBR to op-code-map
+References: <20190813205359.12196-1-yu-cheng.yu@intel.com>
+ <20190813205359.12196-8-yu-cheng.yu@intel.com>
+From: Adrian Hunter <adrian.hunter@intel.com>
+Message-ID: <5b81028b-2230-51c4-f504-10067cb59bf8@intel.com>
+Date: Fri, 8 Nov 2019 15:19:40 +0200
+MIME-Version: 1.0
+In-Reply-To: <20190813205359.12196-8-yu-cheng.yu@intel.com>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, linux-mm@kvack.org
-Cc: Masahiro Yamada <yamada.masahiro@socionext.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org
-Message-ID: <20191108124133.eZfFvnziZIg4fttQeyEanmP-nrpFkMbxG-zLQlWwJD0@z>
+To: Yu-cheng Yu <yu-cheng.yu@intel.com>, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@amacapital.net>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>
+Message-ID: <20191108131940.kMfgJNEhHLvQr4W1mTo8o7bU16odQa5anEtjOj4nk5I@z>
 
-I just stopped by the ugly variable name, ________addr.
-(8 underscores!)
+On 13/08/19 11:53 PM, Yu-cheng Yu wrote:
+> Add control transfer terminating instructions:
+> 
+> ENDBR64/ENDBR32:
+>     Mark a valid 64/32-bit control transfer endpoint.
+> 
+> Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
+> ---
+>  arch/x86/lib/x86-opcode-map.txt               | 13 +++++++++++--
+>  tools/objtool/arch/x86/lib/x86-opcode-map.txt | 13 +++++++++++--
+>  2 files changed, 22 insertions(+), 4 deletions(-)
+> 
+> diff --git a/arch/x86/lib/x86-opcode-map.txt b/arch/x86/lib/x86-opcode-map.txt
+> index c5e825d44766..fbc53481bc59 100644
+> --- a/arch/x86/lib/x86-opcode-map.txt
+> +++ b/arch/x86/lib/x86-opcode-map.txt
+> @@ -620,7 +620,16 @@ ea: SAVEPREVSSP (f3)
+>  # Skip 0xeb-0xff
+>  EndTable
+>  
+> -Table: 3-byte opcode 2 (0x0f 0x38)
+> +Table: 3-byte opcode 2 (0x0f 0x1e)
+> +Referrer:
+> +AVXcode:
+> +# Skip 0x00-0xf9
+> +fa: ENDBR64 (f3)
+> +fb: ENDBR32 (f3)
 
-If this is just a matter of casting to (unsigned long), this variable
-is unneeded since you can do like this:
+endbr32 and endbr64 have 2-byte opcodes (0F 1E) and a ModRM byte, so a new
+Grp is needed
 
-({                                                                      \
-        __set_fixmap(idx, phys, flags);                                 \
-        (unsigned long)(fix_to_virt(idx) + ((phys) & (PAGE_SIZE - 1))); \
-})
-
-However, I'd rather like to change it to an inline function since it
-is more readable, and the parameter types are clearer.
-
-Signed-off-by: Masahiro Yamada <yamada.masahiro@socionext.com>
----
-
- include/asm-generic/fixmap.h | 16 ++++++++--------
- 1 file changed, 8 insertions(+), 8 deletions(-)
-
-diff --git a/include/asm-generic/fixmap.h b/include/asm-generic/fixmap.h
-index 8cc7b09c1bc7..de4c36912529 100644
---- a/include/asm-generic/fixmap.h
-+++ b/include/asm-generic/fixmap.h
-@@ -70,14 +70,14 @@ static inline unsigned long virt_to_fix(const unsigned long vaddr)
- 	__set_fixmap(idx, 0, FIXMAP_PAGE_CLEAR)
- #endif
- 
--/* Return a pointer with offset calculated */
--#define __set_fixmap_offset(idx, phys, flags)				\
--({									\
--	unsigned long ________addr;					\
--	__set_fixmap(idx, phys, flags);					\
--	________addr = fix_to_virt(idx) + ((phys) & (PAGE_SIZE - 1));	\
--	________addr;							\
--})
-+/* Return a virtual address with offset calculated */
-+static inline unsigned long __set_fixmap_offset(enum fixed_addresses idx,
-+						phys_addr_t phys,
-+						pgprot_t flags)
-+{
-+	__set_fixmap(idx, phys, flags);
-+	return fix_to_virt(idx) + ((phys) & (PAGE_SIZE - 1));
-+}
- 
- #define set_fixmap_offset(idx, phys) \
- 	__set_fixmap_offset(idx, phys, FIXMAP_PAGE_NORMAL)
--- 
-2.17.1
+> +#skip 0xfc-0xff
+> +EndTable
+> +
+> +Table: 3-byte opcode 3 (0x0f 0x38)
+>  Referrer: 3-byte escape 1
+>  AVXcode: 2
+>  # 0x0f 0x38 0x00-0x0f
+> @@ -804,7 +813,7 @@ f6: ADCX Gy,Ey (66) | ADOX Gy,Ey (F3) | MULX By,Gy,rDX,Ey (F2),(v) | WRSS Pq,Qq
+>  f7: BEXTR Gy,Ey,By (v) | SHLX Gy,Ey,By (66),(v) | SARX Gy,Ey,By (F3),(v) | SHRX Gy,Ey,By (F2),(v)
+>  EndTable
+>  
+> -Table: 3-byte opcode 3 (0x0f 0x3a)
+> +Table: 3-byte opcode 4 (0x0f 0x3a)
+>  Referrer: 3-byte escape 2
+>  AVXcode: 3
+>  # 0x0f 0x3a 0x00-0xff
+> diff --git a/tools/objtool/arch/x86/lib/x86-opcode-map.txt b/tools/objtool/arch/x86/lib/x86-opcode-map.txt
+> index c5e825d44766..fbc53481bc59 100644
+> --- a/tools/objtool/arch/x86/lib/x86-opcode-map.txt
+> +++ b/tools/objtool/arch/x86/lib/x86-opcode-map.txt
+> @@ -620,7 +620,16 @@ ea: SAVEPREVSSP (f3)
+>  # Skip 0xeb-0xff
+>  EndTable
+>  
+> -Table: 3-byte opcode 2 (0x0f 0x38)
+> +Table: 3-byte opcode 2 (0x0f 0x1e)
+> +Referrer:
+> +AVXcode:
+> +# Skip 0x00-0xf9
+> +fa: ENDBR64 (f3)
+> +fb: ENDBR32 (f3)
+> +#skip 0xfc-0xff
+> +EndTable
+> +
+> +Table: 3-byte opcode 3 (0x0f 0x38)
+>  Referrer: 3-byte escape 1
+>  AVXcode: 2
+>  # 0x0f 0x38 0x00-0x0f
+> @@ -804,7 +813,7 @@ f6: ADCX Gy,Ey (66) | ADOX Gy,Ey (F3) | MULX By,Gy,rDX,Ey (F2),(v) | WRSS Pq,Qq
+>  f7: BEXTR Gy,Ey,By (v) | SHLX Gy,Ey,By (66),(v) | SARX Gy,Ey,By (F3),(v) | SHRX Gy,Ey,By (F2),(v)
+>  EndTable
+>  
+> -Table: 3-byte opcode 3 (0x0f 0x3a)
+> +Table: 3-byte opcode 4 (0x0f 0x3a)
+>  Referrer: 3-byte escape 2
+>  AVXcode: 3
+>  # 0x0f 0x3a 0x00-0xff
+> 
