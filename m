@@ -1,14 +1,14 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pl1-f194.google.com ([209.85.214.194]:33076 "EHLO
-        mail-pl1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726148AbfKHFEi (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 8 Nov 2019 00:04:38 -0500
-Received: by mail-pl1-f194.google.com with SMTP id ay6so3272221plb.0
-        for <linux-arch@vger.kernel.org>; Thu, 07 Nov 2019 21:04:36 -0800 (PST)
+Received: from mail-pf1-f196.google.com ([209.85.210.196]:39806 "EHLO
+        mail-pf1-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1725877AbfKHFDZ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 8 Nov 2019 00:03:25 -0500
+Received: by mail-pf1-f196.google.com with SMTP id x28so3856707pfo.6
+        for <linux-arch@vger.kernel.org>; Thu, 07 Nov 2019 21:03:24 -0800 (PST)
 From: Hajime Tazaki <thehajime@gmail.com>
-Subject: [RFC v2 36/37] um: use lkl virtio_net_tap device as UML device
-Date: Fri,  8 Nov 2019 14:02:51 +0900
-Message-Id: <ca18c78dd61420af74cf5cf49452285e7b551e49.1573179553.git.thehajime@gmail.com>
+Subject: [RFC v2 08/37] lkl: system call interface and application API
+Date: Fri,  8 Nov 2019 14:02:23 +0900
+Message-Id: <fbdcdfa8eacc855827947959a9862944968b24c9.1573179553.git.thehajime@gmail.com>
 In-Reply-To: <cover.1573179553.git.thehajime@gmail.com>
 References: <cover.1573179553.git.thehajime@gmail.com>
 MIME-Version: 1.0
@@ -16,143 +16,340 @@ Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-um@lists.infradead.org
-Cc: Octavian Purdila <tavi.purdila@gmail.com>, Akira Moroo <retrage01@gmail.com>, linux-kernel-library@freelists.org, linux-arch@vger.kernel.org, Hajime Tazaki <thehajime@gmail.com>
+Cc: Octavian Purdila <tavi.purdila@gmail.com>, Akira Moroo <retrage01@gmail.com>, linux-kernel-library@freelists.org, linux-arch@vger.kernel.org, Conrad Meyer <cem@FreeBSD.org>, Hajime Tazaki <thehajime@gmail.com>, Jens Staal <staal1978@gmail.com>, Lai Jiangshan <jiangshanlai@gmail.com>, Luca Dariz <luca.dariz@gmail.com>, Michael Zimmermann <sigmaepsilon92@gmail.com>, Patrick Collins <pscollins@google.com>, Pierre-Hugues Husson <phh@phh.me>, Yuan Liu <liuyuan@google.com>
 
-This also expands supporting virtio-mmio driver, which involves multiple
-addition to Kbuild file as well.
+From: Octavian Purdila <tavi.purdila@gmail.com>
 
+The LKL application API is based on the kernel system call interface
+in order to offer a stable API to applications. Note that we can't
+offer the full Linux system call interface due to LKL limitations such
+as lack of virtual memory, signal, user processes, etc.
+
+The host is using the LKL interrupt mechanism (lkl_trigger_irq) to
+initiate a system call. The system call is executed in the context of
+the init process.
+
+To avoid collisions between the Linux API and the LKL API (e.g.  struct
+stat, MKNOD, etc.) we use a python script to modify the user headers
+and to prefix all of the global symbols (structures, typedefs,
+defines) with LKL, lkl, _LKL, _lkl, __LKL or __lkl.
+
+Signed-off-by: Conrad Meyer <cem@FreeBSD.org>
 Signed-off-by: Hajime Tazaki <thehajime@gmail.com>
+Signed-off-by: Jens Staal <staal1978@gmail.com>
+Signed-off-by: Lai Jiangshan <jiangshanlai@gmail.com>
+Signed-off-by: Luca Dariz <luca.dariz@gmail.com>
+Signed-off-by: Michael Zimmermann <sigmaepsilon92@gmail.com>
+Signed-off-by: Patrick Collins <pscollins@google.com>
+Signed-off-by: Pierre-Hugues Husson <phh@phh.me>
+Signed-off-by: Yuan Liu <liuyuan@google.com>
+Signed-off-by: Octavian Purdila <tavi.purdila@gmail.com>
 ---
- .circleci/config.yml             |   2 +-
- arch/um/Kconfig                  |   6 --
- arch/um/Makefile.um              |   3 +
- arch/um/configs/x86_64_defconfig |   5 ++
- arch/um/include/asm/Kbuild       |   1 +
- arch/um/include/asm/io.h         |   4 +
- arch/um/kernel/syscall.c         |  53 ++++++++++++
- arch/um/lkl/include/asm/irq.h    |   2 +
- arch/um/os-Linux/Makefile        |   5 ++
- arch/um/os-Linux/lkl_dev.c       | 134 +++++++++++++++++++++++++++++++
- tools/lkl/lib/Makefile           |  33 ++++++++
- tools/lkl/lib/posix-host.c       |   4 +
- tools/lkl/lib/virtio.c           |  17 +++-
- tools/lkl/lib/virtio.h           |  22 +++++
- tools/lkl/lib/virtio_net.c       |  25 +++++-
- tools/lkl/lib/virtio_net_fd.c    |  22 -----
- tools/lkl/lib/virtio_net_fd.h    |  22 +++++
- 17 files changed, 328 insertions(+), 32 deletions(-)
- create mode 100644 arch/um/os-Linux/lkl_dev.c
- create mode 100644 tools/lkl/lib/Makefile
+ arch/um/lkl/include/asm/unistd.h        |  29 +++
+ arch/um/lkl/include/uapi/asm/host_ops.h |  14 ++
+ arch/um/lkl/include/uapi/asm/unistd.h   |  18 ++
+ arch/um/lkl/kernel/syscalls.c           | 246 ++++++++++++++++++++++++
+ arch/um/lkl/kernel/syscalls_32.c        | 159 +++++++++++++++
+ arch/um/lkl/scripts/headers_install.py  | 195 +++++++++++++++++++
+ 6 files changed, 661 insertions(+)
+ create mode 100644 arch/um/lkl/include/asm/unistd.h
+ create mode 100644 arch/um/lkl/include/uapi/asm/unistd.h
+ create mode 100644 arch/um/lkl/kernel/syscalls.c
+ create mode 100644 arch/um/lkl/kernel/syscalls_32.c
+ create mode 100755 arch/um/lkl/scripts/headers_install.py
 
-diff --git a/.circleci/config.yml b/.circleci/config.yml
-index 5c7b2fbad703..9753543e8198 100644
---- a/.circleci/config.yml
-+++ b/.circleci/config.yml
-@@ -141,7 +141,7 @@ do_uml_steps: &do_uml_steps
-         if [ $CIRCLE_STAGE = "i386_uml" ] || [ $CIRCLE_STAGE = "i386_uml_on_x86_64" ]; then
-           exit 0
-         fi
--        ./linux rootfstype=hostfs ro mem=1g loglevel=10 init="/bin/bash -c exit" || export RETVAL=$?
-+        ./linux rootfstype=hostfs ro mem=1g loglevel=10 veth0=tap,tap0,0xc803 init="/bin/bash -c exit" || export RETVAL=$?
-         # SIGABRT=6 => 128+6
-         if [ $RETVAL != "134" ]; then
-           exit 1
-diff --git a/arch/um/Kconfig b/arch/um/Kconfig
-index c46bdb2987ce..325a784da776 100644
---- a/arch/um/Kconfig
-+++ b/arch/um/Kconfig
-@@ -45,9 +45,6 @@ config MMU
- 	bool
- 	default y
- 
--config NO_IOMEM
--	def_bool y
--
- config ISA
- 	bool
- 
-@@ -182,9 +179,6 @@ config MMAPPER
- 	  This driver allows a host file to be used as emulated IO memory inside
- 	  UML.
- 
--config NO_DMA
--	def_bool y
--
- config PGTABLE_LEVELS
- 	int
- 	default 3 if 3_LEVEL_PGTABLES
-diff --git a/arch/um/Makefile.um b/arch/um/Makefile.um
-index d54fd387a16f..fc28305c866a 100644
---- a/arch/um/Makefile.um
-+++ b/arch/um/Makefile.um
-@@ -147,3 +147,6 @@ archclean:
- 		-o -name '*.gcov' \) -type f -print | xargs rm -f
- 
- export HEADER_ARCH SUBARCH USER_CFLAGS CFLAGS_NO_HARDENING OS DEV_NULL_PATH
+diff --git a/arch/um/lkl/include/asm/unistd.h b/arch/um/lkl/include/asm/unistd.h
+new file mode 100644
+index 000000000000..c0efc68bf41f
+--- /dev/null
++++ b/arch/um/lkl/include/asm/unistd.h
+@@ -0,0 +1,29 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++#include <uapi/asm/unistd.h>
 +
-+core-y		       += $(srctree)/tools/lkl/lib/
-+KBUILD_CPPFLAGS += -I$(srctree)/$(ARCH_DIR)/lkl/include -I$(srctree)/$(ARCH_DIR)/
-diff --git a/arch/um/configs/x86_64_defconfig b/arch/um/configs/x86_64_defconfig
-index 3281d7600225..917982b6cd60 100644
---- a/arch/um/configs/x86_64_defconfig
-+++ b/arch/um/configs/x86_64_defconfig
-@@ -70,3 +70,8 @@ CONFIG_NLS=y
- CONFIG_DEBUG_INFO=y
- CONFIG_FRAME_WARN=1024
- CONFIG_DEBUG_KERNEL=y
-+CONFIG_VIRTIO=y
-+CONFIG_VIRTIO_MENU=y
-+CONFIG_VIRTIO_MMIO=y
-+CONFIG_VIRTIO_MMIO_CMDLINE_DEVICES=y
-+CONFIG_VIRTIO_NET=y
-diff --git a/arch/um/include/asm/Kbuild b/arch/um/include/asm/Kbuild
-index 398006d27e40..f39430ba94d3 100644
---- a/arch/um/include/asm/Kbuild
-+++ b/arch/um/include/asm/Kbuild
-@@ -5,6 +5,7 @@ generic-y += compat.h
- generic-y += current.h
- generic-y += delay.h
- generic-y += device.h
-+generic-y += dma-mapping.h
- generic-y += emergency-restart.h
- generic-y += exec.h
- generic-y += extable.h
-diff --git a/arch/um/include/asm/io.h b/arch/um/include/asm/io.h
-index 96f77b5232aa..f23700d3c071 100644
---- a/arch/um/include/asm/io.h
-+++ b/arch/um/include/asm/io.h
-@@ -2,11 +2,15 @@
- #ifndef _ASM_UM_IO_H
- #define _ASM_UM_IO_H
- 
-+#ifndef CONFIG_HAS_IOMEM
- #define ioremap ioremap
- static inline void __iomem *ioremap(phys_addr_t offset, size_t size)
- {
- 	return (void __iomem *)(unsigned long)offset;
- }
++__SYSCALL(__NR_virtio_mmio_device_add, sys_virtio_mmio_device_add)
++
++#define __SC_ASCII(t, a) #t "," #a
++
++#define __ASCII_MAP0(m, ...)
++#define __ASCII_MAP1(m, t, a) m(t, a)
++#define __ASCII_MAP2(m, t, a, ...) m(t, a) "," __ASCII_MAP1(m, __VA_ARGS__)
++#define __ASCII_MAP3(m, t, a, ...) m(t, a) "," __ASCII_MAP2(m, __VA_ARGS__)
++#define __ASCII_MAP4(m, t, a, ...) m(t, a) "," __ASCII_MAP3(m, __VA_ARGS__)
++#define __ASCII_MAP5(m, t, a, ...) m(t, a) "," __ASCII_MAP4(m, __VA_ARGS__)
++#define __ASCII_MAP6(m, t, a, ...) m(t, a) "," __ASCII_MAP5(m, __VA_ARGS__)
++#define __ASCII_MAP(n, ...) __ASCII_MAP##n(__VA_ARGS__)
++
++#ifdef __MINGW32__
++#define SECTION_ATTRS "n0"
 +#else
-+#include <lkl/include/asm/io.h>
++#define SECTION_ATTRS "a"
 +#endif
++
++#define __SYSCALL_DEFINE_ARCH(x, name, ...)				\
++	asm(".section .syscall_defs,\"" SECTION_ATTRS "\"\n"		\
++	    ".ascii \"#ifdef __NR" #name "\\n\"\n"			\
++	    ".ascii \"SYSCALL_DEFINE" #x "(" #name ","			\
++	    __ASCII_MAP(x, __SC_ASCII, __VA_ARGS__) ")\\n\"\n"		\
++	    ".ascii \"#endif\\n\"\n"					\
++	    ".section .text\n");
+diff --git a/arch/um/lkl/include/uapi/asm/host_ops.h b/arch/um/lkl/include/uapi/asm/host_ops.h
+index 19924fc7c718..1c839d7139f8 100644
+--- a/arch/um/lkl/include/uapi/asm/host_ops.h
++++ b/arch/um/lkl/include/uapi/asm/host_ops.h
+@@ -36,6 +36,15 @@ struct lkl_jmp_buf {
+  * @thread_join - wait for the given thread to terminate. Returns 0
+  * for success, -1 otherwise
+  *
++ * @tls_alloc - allocate a thread local storage key; returns 0 if successful; if
++ * destructor is not NULL it will be called when a thread terminates with its
++ * argument set to the current thread local storage value
++ * @tls_free - frees a thread local storage key; returns 0 if successful
++ * @tls_set - associate data to the thread local storage key; returns 0 if
++ * successful
++ * @tls_get - return data associated with the thread local storage key or NULL
++ * on error
++ *
+  * @mem_alloc - allocate memory
+  * @mem_free - free memory
+  *
+@@ -71,6 +80,11 @@ struct lkl_host_operations {
+ 	lkl_thread_t (*thread_self)(void);
+ 	int (*thread_equal)(lkl_thread_t a, lkl_thread_t b);
  
- #define iounmap iounmap
- static inline void iounmap(void __iomem *addr)
-diff --git a/arch/um/kernel/syscall.c b/arch/um/kernel/syscall.c
-index eed54c53fbbb..3ebbeb7bab9c 100644
---- a/arch/um/kernel/syscall.c
-+++ b/arch/um/kernel/syscall.c
-@@ -13,6 +13,7 @@
- #include <asm/mman.h>
- #include <linux/uaccess.h>
- #include <asm/unistd.h>
++	struct lkl_tls_key *(*tls_alloc)(void (*destructor)(void *));
++	void (*tls_free)(struct lkl_tls_key *key);
++	int (*tls_set)(struct lkl_tls_key *key, void *data);
++	void *(*tls_get)(struct lkl_tls_key *key);
++
+ 	void *(*mem_alloc)(unsigned long mem);
+ 	void (*mem_free)(void *mem);
+ 
+diff --git a/arch/um/lkl/include/uapi/asm/unistd.h b/arch/um/lkl/include/uapi/asm/unistd.h
+new file mode 100644
+index 000000000000..561a7036821e
+--- /dev/null
++++ b/arch/um/lkl/include/uapi/asm/unistd.h
+@@ -0,0 +1,18 @@
++/* SPDX-License-Identifier: GPL-2.0 WITH Linux-syscall-note */
++#define __ARCH_WANT_SYSCALL_NO_AT
++#define __ARCH_WANT_SYSCALL_DEPRECATED
++#define __ARCH_WANT_SYSCALL_NO_FLAGS
++#define __ARCH_WANT_RENAMEAT
++#define __ARCH_WANT_NEW_STAT
++#define __ARCH_WANT_SET_GET_RLIMIT
++#define __ARCH_WANT_TIME32_SYSCALLS
++
++#include <asm/bitsperlong.h>
++
++#if __BITS_PER_LONG == 64
++#define __ARCH_WANT_SYS_NEWFSTATAT
++#endif
++
++#include <asm-generic/unistd.h>
++
++#define __NR_virtio_mmio_device_add		(__NR_arch_specific_syscall + 0)
+diff --git a/arch/um/lkl/kernel/syscalls.c b/arch/um/lkl/kernel/syscalls.c
+new file mode 100644
+index 000000000000..ce3923baa655
+--- /dev/null
++++ b/arch/um/lkl/kernel/syscalls.c
+@@ -0,0 +1,246 @@
++// SPDX-License-Identifier: GPL-2.0
++#include <linux/stat.h>
++#include <linux/irq.h>
++#include <linux/sched.h>
++#include <linux/interrupt.h>
++#include <linux/jhash.h>
++#include <linux/slab.h>
++#include <linux/types.h>
++#include <linux/net.h>
++#include <linux/task_work.h>
++#include <linux/syscalls.h>
++#include <linux/kthread.h>
 +#include <linux/platform_device.h>
- 
- long old_mmap(unsigned long addr, unsigned long len,
- 	      unsigned long prot, unsigned long flags,
-@@ -26,3 +27,55 @@ long old_mmap(unsigned long addr, unsigned long len,
-  out:
- 	return err;
- }
++#include <asm/host_ops.h>
++#include <asm/syscalls.h>
++#include <asm/syscalls_32.h>
++#include <asm/cpu.h>
++#include <asm/sched.h>
++
++static asmlinkage long sys_virtio_mmio_device_add(long base, long size,
++						  unsigned int irq);
++
++typedef long (*syscall_handler_t)(long arg1, ...);
++
++#undef __SYSCALL
++#define __SYSCALL(nr, sym)[nr] = (syscall_handler_t)sym,
++
++static syscall_handler_t syscall_table[__NR_syscalls] = {
++	[0 ... __NR_syscalls - 1] = (syscall_handler_t)sys_ni_syscall,
++#include <asm/unistd.h>
++
++#if __BITS_PER_LONG == 32
++#include <asm/unistd_32.h>
++#endif
++};
++
++static long run_syscall(long no, long *params)
++{
++	long ret;
++
++	if (no < 0 || no >= __NR_syscalls)
++		return -ENOSYS;
++
++	ret = syscall_table[no](params[0], params[1], params[2], params[3],
++				params[4], params[5]);
++
++	task_work_run();
++
++	return ret;
++}
++
++
++#define CLONE_FLAGS (CLONE_VM | CLONE_FS | CLONE_FILES | CLONE_THREAD |	\
++		     CLONE_SIGHAND | SIGCHLD)
++
++static int host_task_id;
++static struct task_struct *host0;
++
++static int new_host_task(struct task_struct **task)
++{
++	pid_t pid;
++
++	switch_to_host_task(host0);
++
++	pid = kernel_thread(host_task_stub, NULL, CLONE_FLAGS);
++	if (pid < 0)
++		return pid;
++
++	rcu_read_lock();
++	*task = find_task_by_pid_ns(pid, &init_pid_ns);
++	rcu_read_unlock();
++
++	host_task_id++;
++
++	snprintf((*task)->comm, sizeof((*task)->comm), "host%d", host_task_id);
++
++	return 0;
++}
++static void exit_task(void)
++{
++	do_exit(0);
++}
++
++static void del_host_task(void *arg)
++{
++	struct task_struct *task = (struct task_struct *)arg;
++	struct thread_info *ti = task_thread_info(task);
++
++	if (lkl_cpu_get() < 0)
++		return;
++
++	switch_to_host_task(task);
++	host_task_id--;
++	set_ti_thread_flag(ti, TIF_SCHED_JB);
++	lkl_ops->jmp_buf_set(&ti->sched_jb, exit_task);
++}
++
++static struct lkl_tls_key *task_key;
++
++long lkl_syscall(long no, long *params)
++{
++	struct task_struct *task = host0;
++	long ret;
++
++	ret = lkl_cpu_get();
++	if (ret < 0)
++		return ret;
++
++	if (lkl_ops->tls_get) {
++		task = lkl_ops->tls_get(task_key);
++		if (!task) {
++			ret = new_host_task(&task);
++			if (ret)
++				goto out;
++			lkl_ops->tls_set(task_key, task);
++		}
++	}
++
++	switch_to_host_task(task);
++
++	ret = run_syscall(no, params);
++
++	if (no == __NR_reboot) {
++		thread_sched_jb();
++		return ret;
++	}
++
++out:
++	lkl_cpu_put();
++
++	return ret;
++}
++
++static struct task_struct *idle_host_task;
++
++/* called from idle, don't failed, don't block */
++void wakeup_idle_host_task(void)
++{
++	if (!need_resched() && idle_host_task)
++		wake_up_process(idle_host_task);
++}
++
++static int idle_host_task_loop(void *unused)
++{
++	struct thread_info *ti = task_thread_info(current);
++
++	snprintf(current->comm, sizeof(current->comm), "idle_host_task");
++	set_thread_flag(TIF_HOST_THREAD);
++	idle_host_task = current;
++
++	for (;;) {
++		lkl_cpu_put();
++		lkl_ops->sem_down(ti->sched_sem);
++		if (idle_host_task == NULL) {
++			lkl_ops->thread_exit();
++			return 0;
++		}
++		schedule_tail(ti->prev_sched);
++	}
++}
++
++int syscalls_init(void)
++{
++	snprintf(current->comm, sizeof(current->comm), "host0");
++	set_thread_flag(TIF_HOST_THREAD);
++	host0 = current;
++
++	if (lkl_ops->tls_alloc) {
++		task_key = lkl_ops->tls_alloc(del_host_task);
++		if (!task_key)
++			return -1;
++	}
++
++	if (kernel_thread(idle_host_task_loop, NULL, CLONE_FLAGS) < 0) {
++		if (lkl_ops->tls_free)
++			lkl_ops->tls_free(task_key);
++		return -1;
++	}
++
++	return 0;
++}
++
++void syscalls_cleanup(void)
++{
++	if (idle_host_task) {
++		struct thread_info *ti = task_thread_info(idle_host_task);
++
++		idle_host_task = NULL;
++		lkl_ops->sem_up(ti->sched_sem);
++		lkl_ops->thread_join(ti->tid);
++	}
++
++	if (lkl_ops->tls_free)
++		lkl_ops->tls_free(task_key);
++}
 +
 +SYSCALL_DEFINE3(virtio_mmio_device_add, long, base, long, size, unsigned int,
 +		irq)
@@ -162,15 +359,15 @@ index eed54c53fbbb..3ebbeb7bab9c 100644
 +
 +	struct resource res[] = {
 +		[0] = {
-+		       .start = base,
-+		       .end = base + size - 1,
-+		       .flags = IORESOURCE_MEM,
-+		       },
++				.start = base,
++				.end = base + size - 1,
++				.flags = IORESOURCE_MEM,
++			},
 +		[1] = {
-+		       .start = irq,
-+		       .end = irq,
-+		       .flags = IORESOURCE_IRQ,
-+		       },
++				.start = irq,
++				.end = irq,
++				.flags = IORESOURCE_IRQ,
++			},
 +	};
 +
 +	pdev = platform_device_alloc("virtio-mmio", PLATFORM_DEVID_AUTO);
@@ -183,9 +380,8 @@ index eed54c53fbbb..3ebbeb7bab9c 100644
 +
 +	ret = platform_device_add_resources(pdev, res, ARRAY_SIZE(res));
 +	if (ret) {
-+		dev_err(&pdev->dev,
-+			"%s: Unable to add resources for %s%d\n", __func__,
-+			pdev->name, pdev->id);
++		dev_err(&pdev->dev, "%s: Unable to add resources for %s%d\n",
++			__func__, pdev->name, pdev->id);
 +		goto exit_device_put;
 +	}
 +
@@ -205,494 +401,371 @@ index eed54c53fbbb..3ebbeb7bab9c 100644
 +
 +	return ret;
 +}
-diff --git a/arch/um/lkl/include/asm/irq.h b/arch/um/lkl/include/asm/irq.h
-index 948fc54cb76c..7057bcd73727 100644
---- a/arch/um/lkl/include/asm/irq.h
-+++ b/arch/um/lkl/include/asm/irq.h
-@@ -2,8 +2,10 @@
- #ifndef _ASM_LKL_IRQ_H
- #define _ASM_LKL_IRQ_H
- 
-+#ifndef CONFIG_UML
- #define IRQ_STATUS_BITS		(sizeof(long) * 8)
- #define NR_IRQS			((int)(IRQ_STATUS_BITS * IRQ_STATUS_BITS))
-+#endif
- 
- void run_irqs(void);
- void set_irq_pending(int irq);
-diff --git a/arch/um/os-Linux/Makefile b/arch/um/os-Linux/Makefile
-index 839915b8c31c..d90d88a2f34e 100644
---- a/arch/um/os-Linux/Makefile
-+++ b/arch/um/os-Linux/Makefile
-@@ -11,9 +11,14 @@ obj-y = execvp.o file.o helper.o irq.o main.o mem.o process.o \
- 	umid.o user_syms.o util.o drivers/ skas/
- 
- obj-$(CONFIG_ARCH_REUSE_HOST_VSYSCALL_AREA) += elf_aux.o
-+obj-y += lkl_dev.o
-+
-+CFLAGS_lkl_dev.o:=-I$(srctree)/tools/lkl/include -Wno-undef
- 
- USER_OBJS := $(user-objs-y) elf_aux.o execvp.o file.o helper.o irq.o \
- 	main.o mem.o process.o registers.o sigio.o signal.o start_up.o time.o \
- 	tty.o umid.o util.o
- 
-+USER_OBJS += lkl_dev.o
-+
- include arch/um/scripts/Makefile.rules
-diff --git a/arch/um/os-Linux/lkl_dev.c b/arch/um/os-Linux/lkl_dev.c
+diff --git a/arch/um/lkl/kernel/syscalls_32.c b/arch/um/lkl/kernel/syscalls_32.c
 new file mode 100644
-index 000000000000..698062917ed5
+index 000000000000..a4271593c338
 --- /dev/null
-+++ b/arch/um/os-Linux/lkl_dev.c
-@@ -0,0 +1,134 @@
++++ b/arch/um/lkl/kernel/syscalls_32.c
+@@ -0,0 +1,159 @@
 +// SPDX-License-Identifier: GPL-2.0
++/*
++ * sys_ia32.c: Conversion between 32bit and 64bit native syscalls. Based on
++ *             sys_sparc32
++ *
++ * Copyright (C) 2000		VA Linux Co
++ * Copyright (C) 2000		Don Dugger <n0ano@valinux.com>
++ * Copyright (C) 1999		Arun Sharma <arun.sharma@intel.com>
++ * Copyright (C) 1997,1998	Jakub Jelinek (jj@sunsite.mff.cuni.cz)
++ * Copyright (C) 1997		David S. Miller (davem@caip.rutgers.edu)
++ * Copyright (C) 2000		Hewlett-Packard Co.
++ * Copyright (C) 2000		David Mosberger-Tang <davidm@hpl.hp.com>
++ * Copyright (C) 2000,2001,2002	Andi Kleen, SuSE Labs (x86-64 port)
++ *
++ * These routines maintain argument size conversion between 32bit and 64bit
++ * environment. In 2.5 most of this should be moved to a generic directory.
++ *
++ * This file assumes that there is a hole at the end of user address space.
++ *
++ * Some of the functions are LE specific currently. These are
++ * hopefully all marked.  This should be fixed.
++ */
 +
-+#include <stdlib.h>
-+#include <string.h>
-+#include <init.h>
-+#include <os.h>
-+#include <kern_util.h>
-+#include <errno.h>
++#include <linux/kernel.h>
++#include <linux/sched.h>
++#include <linux/fs.h>
++#include <linux/file.h>
++#include <linux/signal.h>
++#include <linux/syscalls.h>
++#include <linux/times.h>
++#include <linux/utsname.h>
++#include <linux/mm.h>
++#include <linux/uio.h>
++#include <linux/poll.h>
++#include <linux/personality.h>
++#include <linux/stat.h>
++#include <linux/rwsem.h>
++#include <linux/compat.h>
++#include <linux/vfs.h>
++#include <linux/ptrace.h>
++#include <linux/highuid.h>
++#include <linux/sysctl.h>
++#include <linux/slab.h>
++#include <asm/types.h>
++#include <linux/atomic.h>
++#include <asm/syscalls_32.h>
 +
-+#include <lkl.h>
-+#include <lkl_host.h>
++#define AA(__x)		((unsigned long)(__x))
 +
-+extern struct lkl_host_operations lkl_host_ops;
-+struct lkl_host_operations *lkl_ops = &lkl_host_ops;
++#if __BITS_PER_LONG == 32
 +
-+static struct lkl_netdev *nd;
-+
-+int __init uml_netdev_prepare(char *iftype, char *ifparams, char *ifoffload)
++asmlinkage long sys32_truncate64(const char __user *filename,
++				 unsigned long offset_low,
++				 unsigned long offset_high)
 +{
-+	int offload = 0;
++	return sys_truncate64(filename,
++			      ((loff_t)offset_high << 32) | offset_low);
++}
 +
-+	if (ifoffload)
-+		offload = strtol(ifoffload, NULL, 0);
++asmlinkage long sys32_ftruncate64(unsigned int fd, unsigned long offset_low,
++				  unsigned long offset_high)
++{
++	return sys_ftruncate64(fd, ((loff_t)offset_high << 32) | offset_low);
++}
 +
-+	if ((strcmp(iftype, "tap") == 0)) {
-+		nd = lkl_netdev_tap_create(ifparams, offload);
-+#ifdef notyet
-+	} else if ((strcmp(iftype, "macvtap") == 0)) {
-+		nd = lkl_netdev_macvtap_create(ifparams, offload);
++#ifdef CONFIG_MMU
++/*
++ * Linux/i386 didn't use to be able to handle more than
++ * 4 system call parameters, so these system calls used a memory
++ * block for parameter passing..
++ */
++
++struct mmap_arg_struct32 {
++	unsigned int addr;
++	unsigned int len;
++	unsigned int prot;
++	unsigned int flags;
++	unsigned int fd;
++	unsigned int offset;
++};
++
++asmlinkage long sys32_mmap(struct mmap_arg_struct32 __user *arg)
++{
++	struct mmap_arg_struct32 a;
++
++	if (copy_from_user(&a, arg, sizeof(a)))
++		return -EFAULT;
++
++	if (a.offset & ~PAGE_MASK)
++		return -EINVAL;
++
++	return sys_mmap_pgoff(a.addr, a.len, a.prot, a.flags, a.fd,
++			      a.offset >> PAGE_SHIFT);
++}
 +#endif
-+	} else {
-+		if (offload) {
-+			lkl_printf("WARN: %s isn't supported on %s\n",
-+				   "LKL_HIJACK_OFFLOAD",
-+				   iftype);
-+			lkl_printf(
-+				"WARN: Disabling offload features.\n");
-+		}
-+		offload = 0;
-+	}
-+#ifdef notyet
-+	if (strcmp(iftype, "raw") == 0)
-+		nd = lkl_netdev_raw_create(ifparams);
++
++asmlinkage long sys32_wait4(pid_t pid, unsigned int __user *stat_addr,
++			    int options, struct rusage __user *ru)
++{
++	return sys_wait4(pid, stat_addr, options, ru);
++}
++
++asmlinkage long sys32_pread64(unsigned int fd, char __user *ubuf, u32 count,
++			      u32 poslo, u32 poshi)
++{
++	return sys_pread64(fd, ubuf, count,
++			   ((loff_t)AA(poshi) << 32) | AA(poslo));
++}
++
++asmlinkage long sys32_pwrite64(unsigned int fd, const char __user *ubuf,
++			       u32 count, u32 poslo, u32 poshi)
++{
++	return sys_pwrite64(fd, ubuf, count,
++			    ((loff_t)AA(poshi) << 32) | AA(poslo));
++}
++
++/*
++ * Some system calls that need sign extended arguments. This could be
++ * done by a generic wrapper.
++ */
++long sys32_fadvise64_64(int fd, __u32 offset_low, __u32 offset_high,
++			__u32 len_low, __u32 len_high, int advice)
++{
++	return sys_fadvise64_64(fd, (((u64)offset_high) << 32) | offset_low,
++				(((u64)len_high) << 32) | len_low, advice);
++}
++
++asmlinkage ssize_t sys32_readahead(int fd, unsigned int off_lo,
++				   unsigned int off_hi, size_t count)
++{
++	return sys_readahead(fd, ((u64)off_hi << 32) | off_lo, count);
++}
++
++asmlinkage long sys32_sync_file_range(int fd, unsigned int off_low,
++				      unsigned int off_hi, unsigned int n_low,
++				      unsigned int n_hi, unsigned int flags)
++{
++	return sys_sync_file_range(fd, ((u64)off_hi << 32) | off_low,
++				   ((u64)n_hi << 32) | n_low, flags);
++}
++
++asmlinkage long sys32_sync_file_range2(int fd, unsigned int flags,
++				       unsigned int off_low,
++				       unsigned int off_hi, unsigned int n_low,
++				       unsigned int n_hi)
++{
++	return sys_sync_file_range(fd, ((u64)off_hi << 32) | off_low,
++				   ((u64)n_hi << 32) | n_low, flags);
++}
++
++asmlinkage long sys32_fallocate(int fd, int mode, unsigned int offset_lo,
++				unsigned int offset_hi, unsigned int len_lo,
++				unsigned int len_hi)
++{
++	return sys_fallocate(fd, mode, ((u64)offset_hi << 32) | offset_lo,
++			     ((u64)len_hi << 32) | len_lo);
++}
++
 +#endif
-+
-+	return 0;
-+}
-+
-+
-+int __init uml_netdev_add(void)
-+{
-+	if (nd)
-+		lkl_netdev_add(nd, NULL);
-+
-+	return 0;
-+}
-+__initcall(uml_netdev_add);
-+
-+static int __init lkl_eth_setup(char *str, int *niu)
-+{
-+	char *end, *iftype, *ifparams, *ifoffload;
-+	int devid, err = -EINVAL;
-+
-+	/* veth */
-+	devid = strtoul(str, &end, 0);
-+	if (end == str) {
-+		os_warn("Bad device number\n");
-+		return err;
-+	}
-+
-+	/* = */
-+	str = end;
-+	if (*str != '=') {
-+		os_warn("Expected '=' after device number\n");
-+		return err;
-+	}
-+	str++;
-+
-+	/* <iftype> */
-+	iftype = str;
-+
-+	/* <ifparams> */
-+	ifparams = strchr(str, ',');
-+	if (ifparams == NULL) {
-+		os_warn("failed to parse ifparams\n");
-+		return -1;
-+	}
-+	*ifparams = '\0';
-+	ifparams++;
-+
-+	str = ifparams;
-+	/* <offload> */
-+	ifoffload = strchr(str, ',');
-+	*ifoffload = '\0';
-+	ifoffload++;
-+
-+	os_info("str=%s, iftype=%s, ifparams=%s, offload=%s\n",
-+		str, iftype, ifparams, ifoffload);
-+
-+	/* preparation */
-+	uml_netdev_prepare(iftype, ifparams, ifoffload);
-+
-+	return 1;
-+}
-+
-+__uml_setup("veth", lkl_eth_setup,
-+"veth[0-9]+=<iftype>,<ifparams>,<offload>\n"
-+"    Configure a network device.\n\n"
-+);
-+
-+/* stub functions */
-+int lkl_is_running(void)
-+{
-+	return 1;
-+}
-+
-+
-+void lkl_put_irq(int i, const char *user)
-+{
-+}
-+
-+/* XXX */
-+static int free_irqs[2] = {5, 13};
-+int lkl_get_free_irq(const char *user)
-+{
-+	static int irq_idx;
-+	return free_irqs[irq_idx++];
-+}
-+
-+int lkl_trigger_irq(int irq)
-+{
-+	do_IRQ(irq, NULL);
-+	return 0;
-+}
-diff --git a/tools/lkl/lib/Makefile b/tools/lkl/lib/Makefile
-new file mode 100644
-index 000000000000..3c35d49843cd
+diff --git a/arch/um/lkl/scripts/headers_install.py b/arch/um/lkl/scripts/headers_install.py
+new file mode 100755
+index 000000000000..17a4d2b00681
 --- /dev/null
-+++ b/tools/lkl/lib/Makefile
-@@ -0,0 +1,33 @@
-+CFLAGS_posix-host.o += -D_FILE_OFFSET_BITS=64 -Wno-error=incompatible-pointer-types
++++ b/arch/um/lkl/scripts/headers_install.py
+@@ -0,0 +1,195 @@
++#!/usr/bin/env python
++# SPDX-License-Identifier: GPL-2.0
++import re, os, sys, argparse, multiprocessing, fnmatch
 +
-+USER_CFLAGS += -I$(srctree)/tools/lkl/include \
-+		-Wno-strict-prototypes -Wno-undef \
-+		-Wframe-larger-than=20480 -O0 -g
++srctree = os.environ["srctree"]
++objtree = os.environ["objtree"]
++header_paths = [ "include/uapi/", "arch/um/lkl/include/uapi/",
++                 "arch/um/lkl/include/generated/uapi/", "include/generated/" ]
 +
-+USER_OBJS += fs.o iomem.o net.o jmp_buf.o virtio.o virtio_net.o \
-+	 virtio_net_fd.o virtio_net_tap.o utils.o posix-host.o \
-+	../../perf/pmu-events/jsmn.o
++headers = set()
++includes = set()
 +
-+#obj-y += fs.o
-+obj-y += iomem.o
-+#obj-y += net.o
-+obj-y += jmp_buf.o
-+obj-y += posix-host.o
-+#obj-$(LKL_HOST_CONFIG_NT) += nt-host.o
-+obj-y += utils.o
-+#obj-y += virtio_blk.o
-+obj-y += virtio.o
-+#obj-y += dbg.o
-+#obj-y += dbg_handler.o
-+obj-y += virtio_net.o
-+obj-y += virtio_net_fd.o
-+obj-y += virtio_net_tap.o
-+#obj-$(LKL_HOST_CONFIG_VIRTIO_NET) += virtio_net_raw.o
-+#obj-$(LKL_HOST_CONFIG_VIRTIO_NET_MACVTAP) += virtio_net_macvtap.o
-+#obj-$(LKL_HOST_CONFIG_VIRTIO_NET_DPDK) += virtio_net_dpdk.o
-+#obj-$(LKL_HOST_CONFIG_VIRTIO_NET_VDE) += virtio_net_vde.o
-+#obj-$(LKL_HOST_CONFIG_VIRTIO_NET) += virtio_net_pipe.o
-+obj-y += ../../perf/pmu-events/jsmn.o
-+#obj-y += config.o
++def relpath2abspath(relpath):
++    if "generated" in relpath:
++        return objtree + "/" + relpath
++    else:
++        return srctree + "/" + relpath
 +
-+include arch/um/scripts/Makefile.rules
-diff --git a/tools/lkl/lib/posix-host.c b/tools/lkl/lib/posix-host.c
-index c2b579433b12..4d52b06c9944 100644
---- a/tools/lkl/lib/posix-host.c
-+++ b/tools/lkl/lib/posix-host.c
-@@ -306,10 +306,12 @@ static void timer_free(void *_timer)
- 	timer_delete(timer);
- }
- 
-+#ifndef __arch_um__
- static void panic(void)
- {
- 	assert(0);
- }
-+#endif
- 
- static long _gettid(void)
- {
-@@ -321,7 +323,9 @@ static long _gettid(void)
- }
- 
- struct lkl_host_operations lkl_host_ops = {
-+#ifndef __arch_um__
- 	.panic = panic,
-+#endif
- 	.thread_create = thread_create,
- 	.thread_detach = thread_detach,
- 	.thread_exit = thread_exit,
-diff --git a/tools/lkl/lib/virtio.c b/tools/lkl/lib/virtio.c
-index c5247665482d..a19943c87d95 100644
---- a/tools/lkl/lib/virtio.c
-+++ b/tools/lkl/lib/virtio.c
-@@ -46,6 +46,12 @@
- 		lkl_host_ops.panic();					\
- 	} while (0)
- 
-+#ifdef __arch_um__
-+extern unsigned long uml_physmem;
-+#else
-+static unsigned long uml_physmem;
-+#endif
++def find_headers(path):
++    headers.add(path)
++    f = open(relpath2abspath(path))
++    for l in f.readlines():
++        m = re.search("#include <(.*)>", l)
++        try:
++            i = m.group(1)
++            for p in header_paths:
++                if os.access(relpath2abspath(p + i), os.R_OK):
++                    if p + i not in headers:
++                        includes.add(i)
++                        headers.add(p + i)
++                        find_headers(p + i)
++        except:
++            pass
++    f.close()
 +
- struct virtio_queue {
- 	uint32_t num_max;
- 	uint32_t num;
-@@ -216,7 +222,8 @@ static void add_dev_buf_from_vring_desc(struct virtio_req *req,
- {
- 	struct iovec *buf = &req->buf[req->buf_count++];
- 
--	buf->iov_base = (void *)(uintptr_t)le64toh(vring_desc->addr);
-+	buf->iov_base = (void *)(uintptr_t)le64toh(vring_desc->addr)
-+		+ uml_physmem;
- 	buf->iov_len = le32toh(vring_desc->len);
- 
- 	if (!(buf->iov_base && buf->iov_len))
-@@ -304,8 +311,10 @@ void virtio_process_queue(struct virtio_dev *dev, uint32_t qidx)
- 	if (!q->ready)
- 		return;
- 
-+#ifndef __arch_um__
- 	if (dev->ops->acquire_queue)
- 		dev->ops->acquire_queue(dev, qidx);
-+#endif
- 
- 	while (q->last_avail_idx != le16toh(q->avail->idx)) {
- 		/*
-@@ -319,8 +328,10 @@ void virtio_process_queue(struct virtio_dev *dev, uint32_t qidx)
- 			virtio_set_avail_event(q, q->avail->idx);
- 	}
- 
-+#ifndef __arch_um__
- 	if (dev->ops->release_queue)
- 		dev->ops->release_queue(dev, qidx);
-+#endif
- }
- 
- static inline uint32_t virtio_read_device_features(struct virtio_dev *dev)
-@@ -406,7 +417,7 @@ static inline void set_ptr_low(void **ptr, uint32_t val)
- 	uint64_t tmp = (uintptr_t)*ptr;
- 
- 	tmp = (tmp & 0xFFFFFFFF00000000) | val;
--	*ptr = (void *)(long)tmp;
-+	*ptr = (void *)(long)tmp + uml_physmem;
- }
- 
- static inline void set_ptr_high(void **ptr, uint32_t val)
-@@ -579,6 +590,7 @@ int virtio_dev_setup(struct virtio_dev *dev, int queues, int num_max)
- 
- int virtio_dev_cleanup(struct virtio_dev *dev)
- {
-+#ifndef __arch_um__
- 	char devname[100];
- 	long fd, ret;
- 	long mount_ret;
-@@ -622,6 +634,7 @@ int virtio_dev_cleanup(struct virtio_dev *dev)
- 	lkl_put_irq(dev->irq, "virtio");
- 	unregister_iomem(dev->base);
- 	lkl_host_ops.mem_free(dev->queue);
-+#endif
- 	return 0;
- }
- 
-diff --git a/tools/lkl/lib/virtio.h b/tools/lkl/lib/virtio.h
-index 7427aa8fad79..be06ef09f8b0 100644
---- a/tools/lkl/lib/virtio.h
-+++ b/tools/lkl/lib/virtio.h
-@@ -87,6 +87,28 @@ void virtio_req_complete(struct virtio_req *req, uint32_t len);
- void virtio_process_queue(struct virtio_dev *dev, uint32_t qidx);
- void virtio_set_queue_max_merge_len(struct virtio_dev *dev, int q, int len);
- 
-+#ifdef __arch_um__
-+//#include <irq_kern.h>
-+#include <irq_user.h>
-+enum irqreturn {
-+	IRQ_HANDLED		= (1 << 0),
-+	IRQ_WAKE_THREAD		= (1 << 1),
-+};
++def has_lkl_prefix(w):
++  return w.startswith("lkl") or w.startswith("_lkl") or w.startswith("__lkl") \
++         or w.startswith("LKL") or w.startswith("_LKL") or w.startswith("__LKL")
 +
-+typedef enum irqreturn irqreturn_t;
-+typedef irqreturn_t (*irq_handler_t)(int, void *);
++def find_symbols(regexp, store):
++    for h in headers:
++        f = open(h)
++        for l in f.readlines():
++            m = regexp.search(l)
++            if not m:
++                continue
++            for e in reversed(m.groups()):
++                if e:
++                    if not has_lkl_prefix(e):
++                        store.add(e)
++                    break
++        f.close()
 +
-+#define IRQF_SHARED		0x00000080
++def find_ml_symbols(regexp, store):
++    for h in headers:
++        for i in regexp.finditer(open(h).read()):
++            for j in reversed(i.groups()):
++                if j:
++                    if not has_lkl_prefix(j):
++                        store.add(j)
++                    break
 +
-+extern int um_request_irq(unsigned int irq, int fd, int type,
-+			  irq_handler_t handler,
-+			  unsigned long irqflags,  const char *devname,
-+			  void *dev_id);
++def find_enums(block_regexp, symbol_regexp, store):
++    for h in headers:
++        # remove comments
++        content = re.sub(re.compile("(\/\*(\*(?!\/)|[^*])*\*\/)", re.S|re.M), " ", open(h).read())
++        # remove preprocesor lines
++        clean_content = ""
++        for l in content.split("\n"):
++            if re.match("\s*#", l):
++                continue
++            clean_content += l + "\n"
++        for i in block_regexp.finditer(clean_content):
++            for j in reversed(i.groups()):
++                if j:
++                    for k in symbol_regexp.finditer(j):
++                        for l in k.groups():
++                            if l:
++                                if not has_lkl_prefix(l):
++                                    store.add(l)
++                                break
 +
-+long sys_virtio_mmio_device_add(long base, long size, unsigned int irq);
-+#define lkl_sys_virtio_mmio_device_add sys_virtio_mmio_device_add
-+#endif /* __arch_um__ */
++def lkl_prefix(w):
++    r = ""
 +
- #define container_of(ptr, type, member) \
- 	(type *)((char *)(ptr) - __builtin_offsetof(type, member))
- 
-diff --git a/tools/lkl/lib/virtio_net.c b/tools/lkl/lib/virtio_net.c
-index cd720b363f18..18b69f98087f 100644
---- a/tools/lkl/lib/virtio_net.c
-+++ b/tools/lkl/lib/virtio_net.c
-@@ -2,6 +2,7 @@
- #include <string.h>
- #include <lkl_host.h>
- #include "virtio.h"
-+#include "virtio_net_fd.h"
- #include "endian.h"
- 
- #include <lkl/linux/virtio_net.h>
-@@ -212,9 +213,23 @@ static struct lkl_mutex **init_queue_locks(int num_queues)
- 	return ret;
- }
- 
-+#ifdef __arch_um__
-+static irqreturn_t um_virtio_intr(int irq, void *dev_id)
-+{
-+	struct virtio_dev *dev = dev_id;
++    if w.startswith("__"):
++        r = "__"
++    elif w.startswith("_"):
++        r = "_"
 +
-+	virtio_process_queue(dev, 0);
-+	return 0;
-+}
-+#endif
++    if w.isupper():
++        r += "LKL"
++    else:
++        r += "lkl"
 +
- int lkl_netdev_add(struct lkl_netdev *nd, struct lkl_netdev_args *args)
- {
- 	struct virtio_net_dev *dev;
-+#ifdef __arch_um__
-+	struct lkl_netdev_fd *nd_fd =
-+		container_of(nd, struct lkl_netdev_fd, dev);
-+#endif
- 	int ret = -LKL_ENOMEM;
- 
- 	dev = lkl_host_ops.mem_alloc(sizeof(*dev));
-@@ -252,16 +267,22 @@ int lkl_netdev_add(struct lkl_netdev *nd, struct lkl_netdev_args *args)
- 	if (ret)
- 		goto out_free;
- 
-+#ifdef __arch_um__
-+	um_request_irq(dev->dev.irq, nd_fd->fd_rx, IRQ_READ, um_virtio_intr,
-+		       IRQF_SHARED, "virtio", dev);
-+#endif
++    if not w.startswith("_"):
++        r += "_"
 +
- 	/*
- 	 * We may receive upto 64KB TSO packet so collect as many descriptors as
- 	 * there are available up to 64KB in total len.
- 	 */
- 	if (dev->dev.device_features & BIT(LKL_VIRTIO_NET_F_MRG_RXBUF))
- 		virtio_set_queue_max_merge_len(&dev->dev, RX_QUEUE_IDX, 65536);
--
-+#ifndef __arch_um__
- 	dev->poll_tid = lkl_host_ops.thread_create(poll_thread, dev);
- 	if (dev->poll_tid == 0)
- 		goto out_cleanup_dev;
-+#endif
- 
- 	ret = dev_register(dev);
- 	if (ret < 0)
-@@ -280,6 +301,7 @@ int lkl_netdev_add(struct lkl_netdev *nd, struct lkl_netdev_args *args)
- 	return ret;
- }
- 
-+#ifndef __arch_um__
- /* Return 0 for success, -1 for failure. */
- void lkl_netdev_remove(int id)
- {
-@@ -315,6 +337,7 @@ void lkl_netdev_remove(int id)
- 	free_queue_locks(dev->queue_locks, NUM_QUEUES);
- 	lkl_host_ops.mem_free(dev);
- }
-+#endif
- 
- void lkl_netdev_free(struct lkl_netdev *nd)
- {
-diff --git a/tools/lkl/lib/virtio_net_fd.c b/tools/lkl/lib/virtio_net_fd.c
-index f8664455e696..a19193cfeca9 100644
---- a/tools/lkl/lib/virtio_net_fd.c
-+++ b/tools/lkl/lib/virtio_net_fd.c
-@@ -25,28 +25,6 @@
- #include "virtio.h"
- #include "virtio_net_fd.h"
- 
--struct lkl_netdev_fd {
--	struct lkl_netdev dev;
--	/* file-descriptor based device */
--	int fd_rx;
--	int fd_tx;
--	/*
--	 * Controlls the poll mask for fd. Can be acccessed concurrently from
--	 * poll, tx, or rx routines but there is no need for syncronization
--	 * because:
--	 *
--	 * (a) TX and RX routines set different variables so even if they update
--	 * at the same time there is no race condition
--	 *
--	 * (b) Even if poll and TX / RX update at the same time poll cannot
--	 * stall: when poll resets the poll variable we know that TX / RX will
--	 * run which means that eventually the poll variable will be set.
--	 */
--	int poll_tx, poll_rx;
--	/* controle pipe */
--	int pipe[2];
--};
--
- static int fd_net_tx(struct lkl_netdev *nd, struct iovec *iov, int cnt)
- {
- 	int ret;
-diff --git a/tools/lkl/lib/virtio_net_fd.h b/tools/lkl/lib/virtio_net_fd.h
-index 713ba13cca7c..fe6d6d8e3ab4 100644
---- a/tools/lkl/lib/virtio_net_fd.h
-+++ b/tools/lkl/lib/virtio_net_fd.h
-@@ -4,6 +4,28 @@
- 
- struct ifreq;
- 
-+struct lkl_netdev_fd {
-+	struct lkl_netdev dev;
-+	/* file-descriptor based device */
-+	int fd_rx;
-+	int fd_tx;
-+	/*
-+	 * Controlls the poll mask for fd. Can be acccessed concurrently from
-+	 * poll, tx, or rx routines but there is no need for syncronization
-+	 * because:
-+	 *
-+	 * (a) TX and RX routines set different variables so even if they update
-+	 * at the same time there is no race condition
-+	 *
-+	 * (b) Even if poll and TX / RX update at the same time poll cannot
-+	 * stall: when poll resets the poll variable we know that TX / RX will
-+	 * run which means that eventually the poll variable will be set.
-+	 */
-+	int poll_tx, poll_rx;
-+	/* controle pipe */
-+	int pipe[2];
-+};
++    r += w
 +
- /**
-  * lkl_register_netdev_linux_fdnet - register a file descriptor-based network
-  * device as a NIC
++    return r
++
++def replace(h):
++    content = open(h).read()
++    for i in includes:
++        search_str = "(#[ \t]*include[ \t]*[<\"][ \t]*)" + i + "([ \t]*[>\"])"
++        replace_str = "\\1" + "lkl/" + i + "\\2"
++        content = re.sub(search_str, replace_str, content)
++    tmp = ""
++    for w in re.split("(\W+)", content):
++        if w in defines:
++            w = lkl_prefix(w)
++        tmp += w
++    content = tmp
++    for s in structs:
++        search_str = "(\W?struct\s+)" + s + "(\W)"
++        replace_str = "\\1" + lkl_prefix(s) + "\\2"
++        content = re.sub(search_str, replace_str, content, flags = re.MULTILINE)
++    for s in unions:
++        search_str = "(\W?union\s+)" + s + "(\W)"
++        replace_str = "\\1" + lkl_prefix(s) + "\\2"
++        content = re.sub(search_str, replace_str, content, flags = re.MULTILINE)
++    open(h, 'w').write(content)
++
++parser = argparse.ArgumentParser(description='install lkl headers')
++parser.add_argument('path', help='path to install to', )
++parser.add_argument('-j', '--jobs', help='number of parallel jobs', default=1, type=int)
++args = parser.parse_args()
++
++find_headers("arch/um/lkl/include/uapi/asm/syscalls.h")
++headers.add("arch/um/lkl/include/uapi/asm/host_ops.h")
++
++if 'LKL_INSTALL_ADDITIONAL_HEADERS' in os.environ:
++    with open(os.environ['LKL_INSTALL_ADDITIONAL_HEADERS'], 'rU') as f:
++        for line in f.readlines():
++            line = line.split('#', 1)[0].strip()
++            if line != '':
++                headers.add(line)
++
++new_headers = set()
++
++for h in headers:
++    dir = os.path.dirname(h)
++    out_dir = args.path + "/" + re.sub("(arch/um/lkl/include/uapi/|arch/um/lkl/include/generated/uapi/|include/uapi/|include/generated/uapi/|include/generated)(.*)", "lkl/\\2", dir)
++    try:
++        os.makedirs(out_dir)
++    except:
++        pass
++    print("  INSTALL\t%s" % (out_dir + "/" + os.path.basename(h)))
++    os.system(srctree+"/scripts/headers_install.sh %s %s" % (os.path.abspath(h),
++                                                       out_dir + "/" + os.path.basename(h)))
++    new_headers.add(out_dir + "/" + os.path.basename(h))
++
++headers = new_headers
++
++defines = set()
++structs = set()
++unions = set()
++
++p = re.compile("#[ \t]*define[ \t]*(\w+)")
++find_symbols(p, defines)
++p = re.compile("typedef.*(\(\*(\w+)\)\(.*\)\s*|\W+(\w+)\s*|\s+(\w+)\(.*\)\s*);")
++find_symbols(p, defines)
++p = re.compile("typedef\s+(struct|union)\s+\w*\s*{[^\\{\}]*}\W*(\w+)\s*;", re.M|re.S)
++find_ml_symbols(p, defines)
++defines.add("siginfo_t")
++defines.add("sigevent_t")
++p = re.compile("struct\s+(\w+)\s*\{")
++find_symbols(p, structs)
++structs.add("iovec")
++p = re.compile("union\s+(\w+)\s*\{")
++find_symbols(p, unions)
++p = re.compile("static\s+__inline__(\s+\w+)+\s+(\w+)\([^)]*\)\s")
++find_symbols(p, defines)
++p = re.compile("static\s+__always_inline(\s+\w+)+\s+(\w+)\([^)]*\)\s")
++find_symbols(p, defines)
++p = re.compile("enum\s+(\w*)\s*{([^}]*)}", re.M|re.S)
++q = re.compile("(\w+)\s*(,|=[^,]*|$)", re.M|re.S)
++find_enums(p, q, defines)
++
++# needed for i386
++defines.add("__NR_stime")
++
++def process_header(h):
++    print("  REPLACE\t%s" % (out_dir + "/" + os.path.basename(h)))
++    replace(h)
++
++p = multiprocessing.Pool(args.jobs)
++try:
++    p.map_async(process_header, headers).wait(999999)
++    p.close()
++except:
++    p.terminate()
++finally:
++    p.join()
 -- 
 2.20.1 (Apple Git-117)
