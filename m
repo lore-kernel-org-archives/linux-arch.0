@@ -1,14 +1,14 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pg1-f196.google.com ([209.85.215.196]:41763 "EHLO
-        mail-pg1-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1725765AbfKHFDi (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 8 Nov 2019 00:03:38 -0500
-Received: by mail-pg1-f196.google.com with SMTP id h4so3273947pgv.8
-        for <linux-arch@vger.kernel.org>; Thu, 07 Nov 2019 21:03:37 -0800 (PST)
+Received: from mail-pg1-f194.google.com ([209.85.215.194]:40626 "EHLO
+        mail-pg1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726394AbfKHFDq (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 8 Nov 2019 00:03:46 -0500
+Received: by mail-pg1-f194.google.com with SMTP id 15so3281335pgt.7
+        for <linux-arch@vger.kernel.org>; Thu, 07 Nov 2019 21:03:45 -0800 (PST)
 From: Hajime Tazaki <thehajime@gmail.com>
-Subject: [RFC v2 15/37] lkl tools: host lib: add utilities functions
-Date: Fri,  8 Nov 2019 14:02:30 +0900
-Message-Id: <e4c53925ee279b0b32784f8c259749d734be292c.1573179553.git.thehajime@gmail.com>
+Subject: [RFC v2 17/37] lkl tools: host lib: virtio devices
+Date: Fri,  8 Nov 2019 14:02:32 +0900
+Message-Id: <1531c5f16a00b608635c9a62fa3951807075f950.1573179553.git.thehajime@gmail.com>
 In-Reply-To: <cover.1573179553.git.thehajime@gmail.com>
 References: <cover.1573179553.git.thehajime@gmail.com>
 MIME-Version: 1.0
@@ -16,1639 +16,794 @@ Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-um@lists.infradead.org
-Cc: Octavian Purdila <tavi.purdila@gmail.com>, Akira Moroo <retrage01@gmail.com>, linux-kernel-library@freelists.org, linux-arch@vger.kernel.org, Conrad Meyer <cem@FreeBSD.org>, Hajime Tazaki <thehajime@gmail.com>, Patrick Collins <pscollins@google.com>, Yuan Liu <liuyuan@google.com>, Motomu Utsumi <motomuman@gmail.com>
+Cc: Octavian Purdila <tavi.purdila@gmail.com>, Akira Moroo <retrage01@gmail.com>, linux-kernel-library@freelists.org, linux-arch@vger.kernel.org, Conrad Meyer <cem@FreeBSD.org>, Hajime Tazaki <thehajime@gmail.com>, Michael Zimmermann <sigmaepsilon92@gmail.com>, Patrick Collins <pscollins@google.com>, Yuan Liu <liuyuan@google.com>
 
 From: Octavian Purdila <tavi.purdila@gmail.com>
 
-Add basic utility functions for getting a string from a kernel error
-code and a fprintf like function that uses the host print
-operation. The latter is useful for informing the user about errors
-that occur in the host library.
+Add helpers for implementing host virtio devices. It uses the memory
+mapped I/O helpers to interact with the Linux MMIO virtio transport
+driver and offers support to setup and add a new virtio device,
+dispatch requests from the incoming queues as well as support for
+completing requests.
 
-Other configuration and debug utilities are also added.
+All added virtio devices are stored in lkl_virtio_devs as strings, per
+the Linux MMIO virtio transport driver command line specification.
 
 Signed-off-by: Conrad Meyer <cem@FreeBSD.org>
+Signed-off-by: H.K. Jerry Chu <hkchu@google.com>
 Signed-off-by: Hajime Tazaki <thehajime@gmail.com>
+Signed-off-by: Michael Zimmermann <sigmaepsilon92@gmail.com>
 Signed-off-by: Patrick Collins <pscollins@google.com>
 Signed-off-by: Yuan Liu <liuyuan@google.com>
-Signed-off-by: Motomu Utsumi <motomuman@gmail.com>
 Signed-off-by: Octavian Purdila <tavi.purdila@gmail.com>
 ---
- tools/lkl/include/lkl_config.h |  61 +++
- tools/lkl/include/lkl_host.h   |   7 +
- tools/lkl/lib/Build            |   7 +
- tools/lkl/lib/config.c         | 793 +++++++++++++++++++++++++++++++++
- tools/lkl/lib/dbg.c            | 300 +++++++++++++
- tools/lkl/lib/dbg_handler.c    |  44 ++
- tools/lkl/lib/endian.h         |  31 ++
- tools/lkl/lib/jmp_buf.c        |  14 +
- tools/lkl/lib/jmp_buf.h        |   8 +
- tools/lkl/lib/utils.c          | 266 +++++++++++
- 10 files changed, 1531 insertions(+)
- create mode 100644 tools/lkl/include/lkl_config.h
- create mode 100644 tools/lkl/lib/config.c
- create mode 100644 tools/lkl/lib/dbg.c
- create mode 100644 tools/lkl/lib/dbg_handler.c
- create mode 100644 tools/lkl/lib/endian.h
- create mode 100644 tools/lkl/lib/jmp_buf.c
- create mode 100644 tools/lkl/lib/jmp_buf.h
- create mode 100644 tools/lkl/lib/utils.c
+ tools/lkl/include/lkl_host.h |   1 +
+ tools/lkl/lib/Build          |   1 +
+ tools/lkl/lib/virtio.c       | 631 +++++++++++++++++++++++++++++++++++
+ tools/lkl/lib/virtio.h       |  93 ++++++
+ 4 files changed, 726 insertions(+)
+ create mode 100644 tools/lkl/lib/virtio.c
+ create mode 100644 tools/lkl/lib/virtio.h
 
-diff --git a/tools/lkl/include/lkl_config.h b/tools/lkl/include/lkl_config.h
-new file mode 100644
-index 000000000000..d3edf8b414cf
---- /dev/null
-+++ b/tools/lkl/include/lkl_config.h
-@@ -0,0 +1,61 @@
-+/* SPDX-License-Identifier: GPL-2.0 */
-+#ifndef _LKL_LIB_CONFIG_H
-+#define _LKL_LIB_CONFIG_H
-+
-+#define LKL_CONFIG_JSON_TOKEN_MAX 300
-+
-+struct lkl_config_iface {
-+	struct lkl_config_iface *next;
-+	struct lkl_netdev *nd;
-+
-+	/* OBSOLETE: should use IFTYPE and IFPARAMS */
-+	char *iftap;
-+	char *iftype;
-+	char *ifparams;
-+	char *ifmtu_str;
-+	char *ifip;
-+	char *ifipv6;
-+	char *ifgateway;
-+	char *ifgateway6;
-+	char *ifmac_str;
-+	char *ifnetmask_len;
-+	char *ifnetmask6_len;
-+	char *ifoffload_str;
-+	char *ifneigh_entries;
-+	char *ifqdisc_entries;
-+};
-+
-+struct lkl_config {
-+	int ifnum;
-+	struct lkl_config_iface *ifaces;
-+
-+	char *gateway;
-+	char *gateway6;
-+	char *debug;
-+	char *mount;
-+	/* single_cpu mode:
-+	 * 0: Don't pin to single CPU (default).
-+	 * 1: Pin only LKL kernel threads to single CPU.
-+	 * 2: Pin all LKL threads to single CPU including all LKL kernel threads
-+	 * and device polling threads. Avoid this mode if having busy polling
-+	 * threads.
-+	 *
-+	 * mode 2 can achieve better TCP_RR but worse TCP_STREAM than mode 1.
-+	 * You should choose the best for your application and virtio device
-+	 * type.
-+	 */
-+	char *single_cpu;
-+	char *sysctls;
-+	char *boot_cmdline;
-+	char *dump;
-+	char *delay_main;
-+};
-+
-+int lkl_load_config_json(struct lkl_config *cfg, char *jstr);
-+int lkl_load_config_env(struct lkl_config *cfg);
-+void lkl_show_config(struct lkl_config *cfg);
-+int lkl_load_config_pre(struct lkl_config *cfg);
-+int lkl_load_config_post(struct lkl_config *cfg);
-+int lkl_unload_config(struct lkl_config *cfg);
-+
-+#endif /* _LKL_LIB_CONFIG_H */
 diff --git a/tools/lkl/include/lkl_host.h b/tools/lkl/include/lkl_host.h
-index b5f96096fe69..85e80eb4ad0d 100644
+index 85e80eb4ad0d..81239e2b556f 100644
 --- a/tools/lkl/include/lkl_host.h
 +++ b/tools/lkl/include/lkl_host.h
-@@ -11,6 +11,13 @@ extern "C" {
+@@ -18,6 +18,7 @@ extern struct lkl_host_operations lkl_host_ops;
+  */
+ int lkl_printf(const char *fmt, ...);
  
- extern struct lkl_host_operations lkl_host_ops;
- 
-+/**
-+ * lkl_printf - print a message via the host print operation
-+ *
-+ * @fmt: printf like format string
-+ */
-+int lkl_printf(const char *fmt, ...);
-+
++extern char lkl_virtio_devs[4096];
  
  #ifdef __cplusplus
  }
 diff --git a/tools/lkl/lib/Build b/tools/lkl/lib/Build
-index 8b137891791f..658bfa865b9c 100644
+index 8d01982638f8..5fd1843b51d1 100644
 --- a/tools/lkl/lib/Build
 +++ b/tools/lkl/lib/Build
-@@ -1 +1,8 @@
-+CFLAGS_config.o += -I$(srctree)/tools/perf/pmu-events
- 
-+liblkl-y += jmp_buf.o
-+liblkl-y += utils.o
-+liblkl-y += dbg.o
-+liblkl-y += dbg_handler.o
-+liblkl-y += ../../perf/pmu-events/jsmn.o
-+liblkl-y += config.o
-diff --git a/tools/lkl/lib/config.c b/tools/lkl/lib/config.c
+@@ -3,6 +3,7 @@ CFLAGS_config.o += -I$(srctree)/tools/perf/pmu-events
+ liblkl-y += iomem.o
+ liblkl-y += jmp_buf.o
+ liblkl-y += utils.o
++liblkl-y += virtio.o
+ liblkl-y += dbg.o
+ liblkl-y += dbg_handler.o
+ liblkl-y += ../../perf/pmu-events/jsmn.o
+diff --git a/tools/lkl/lib/virtio.c b/tools/lkl/lib/virtio.c
 new file mode 100644
-index 000000000000..0e77a997348a
+index 000000000000..c5247665482d
 --- /dev/null
-+++ b/tools/lkl/lib/config.c
-@@ -0,0 +1,793 @@
++++ b/tools/lkl/lib/virtio.c
+@@ -0,0 +1,631 @@
 +// SPDX-License-Identifier: GPL-2.0
-+#include <stdlib.h>
-+#define _HAVE_STRING_ARCH_strtok_r
 +#include <string.h>
++#include <stdio.h>
++#include <stdbool.h>
++#include <inttypes.h>
 +#include <lkl_host.h>
-+#include <lkl_config.h>
++#include <lkl/linux/virtio_ring.h>
++#include "iomem.h"
++#include "virtio.h"
++#include "endian.h"
 +
-+#include "jsmn.h"
++#define VIRTIO_DEV_MAGIC		0x74726976
++#define VIRTIO_DEV_VERSION		2
 +
-+static int jsoneq(const char *json, jsmntok_t *tok, const char *s)
++#define VIRTIO_MMIO_MAGIC_VALUE		0x000
++#define VIRTIO_MMIO_VERSION		0x004
++#define VIRTIO_MMIO_DEVICE_ID		0x008
++#define VIRTIO_MMIO_VENDOR_ID		0x00c
++#define VIRTIO_MMIO_DEVICE_FEATURES	0x010
++#define VIRTIO_MMIO_DEVICE_FEATURES_SEL 0x014
++#define VIRTIO_MMIO_DRIVER_FEATURES	0x020
++#define VIRTIO_MMIO_DRIVER_FEATURES_SEL 0x024
++#define VIRTIO_MMIO_QUEUE_SEL		0x030
++#define VIRTIO_MMIO_QUEUE_NUM_MAX	0x034
++#define VIRTIO_MMIO_QUEUE_NUM		0x038
++#define VIRTIO_MMIO_QUEUE_READY		0x044
++#define VIRTIO_MMIO_QUEUE_NOTIFY	0x050
++#define VIRTIO_MMIO_INTERRUPT_STATUS	0x060
++#define VIRTIO_MMIO_INTERRUPT_ACK	0x064
++#define VIRTIO_MMIO_STATUS		0x070
++#define VIRTIO_MMIO_QUEUE_DESC_LOW	0x080
++#define VIRTIO_MMIO_QUEUE_DESC_HIGH	0x084
++#define VIRTIO_MMIO_QUEUE_AVAIL_LOW	0x090
++#define VIRTIO_MMIO_QUEUE_AVAIL_HIGH	0x094
++#define VIRTIO_MMIO_QUEUE_USED_LOW	0x0a0
++#define VIRTIO_MMIO_QUEUE_USED_HIGH	0x0a4
++#define VIRTIO_MMIO_CONFIG_GENERATION	0x0fc
++#define VIRTIO_MMIO_CONFIG		0x100
++#define VIRTIO_MMIO_INT_VRING		0x01
++#define VIRTIO_MMIO_INT_CONFIG		0x02
++
++#define BIT(x) (1ULL << x)
++
++#define virtio_panic(msg, ...) do {					\
++		lkl_printf("LKL virtio error" msg, ##__VA_ARGS__);	\
++		lkl_host_ops.panic();					\
++	} while (0)
++
++struct virtio_queue {
++	uint32_t num_max;
++	uint32_t num;
++	uint32_t ready;
++	uint32_t max_merge_len;
++
++	struct lkl_vring_desc *desc;
++	struct lkl_vring_avail *avail;
++	struct lkl_vring_used *used;
++	uint16_t last_avail_idx;
++	uint16_t last_used_idx_signaled;
++};
++
++struct _virtio_req {
++	struct virtio_req req;
++	struct virtio_dev *dev;
++	struct virtio_queue *q;
++	uint16_t idx;
++};
++
++
++static inline uint16_t virtio_get_used_event(struct virtio_queue *q)
 +{
-+	if (tok->type == JSMN_STRING &&
-+		(int) strlen(s) == tok->end - tok->start &&
-+		strncmp(json + tok->start, s, tok->end - tok->start) == 0) {
-+		return 0;
-+	}
-+	return -1;
++	return q->avail->ring[q->num];
 +}
 +
-+static int cfgcpy(char **to, char *from)
++static inline void virtio_set_avail_event(struct virtio_queue *q, uint16_t val)
 +{
-+	if (!from)
-+		return 0;
-+	if (*to)
-+		free(*to);
-+	*to = (char *)malloc((strlen(from) + 1) * sizeof(char));
-+	if (*to == NULL) {
-+		lkl_printf("malloc failed\n");
-+		return -1;
-+	}
-+	strcpy(*to, from);
-+	return 0;
++	*((uint16_t *)&q->used->ring[q->num]) = val;
 +}
 +
-+static int cfgncpy(char **to, char *from, int len)
++static inline void virtio_deliver_irq(struct virtio_dev *dev)
 +{
-+	if (!from)
-+		return 0;
-+	if (*to)
-+		free(*to);
-+	*to = (char *)malloc((len + 1) * sizeof(char));
-+	if (*to == NULL) {
-+		lkl_printf("malloc failed\n");
-+		return -1;
-+	}
-+	strncpy(*to, from, len + 1);
-+	(*to)[len] = '\0';
-+	return 0;
++	dev->int_status |= VIRTIO_MMIO_INT_VRING;
++	/* Make sure all memory writes before are visible to the driver. */
++	__sync_synchronize();
++	lkl_trigger_irq(dev->irq);
 +}
 +
-+static int parse_ifarr(struct lkl_config *cfg,
-+		jsmntok_t *toks, char *jstr, int startpos)
++static inline uint16_t virtio_get_used_idx(struct virtio_queue *q)
 +{
-+	int ifidx, pos, posend, ret;
-+	char **cfgptr;
-+	struct lkl_config_iface *iface, *prev = NULL;
++	return le16toh(q->used->idx);
++}
 +
-+	if (!cfg || !toks || !jstr)
-+		return -1;
-+	pos = startpos;
-+	pos++;
-+	if (toks[pos].type != JSMN_ARRAY) {
-+		lkl_printf("unexpected json type, json array expected\n");
-+		return -1;
-+	}
++static inline void virtio_add_used(struct virtio_queue *q, uint16_t used_idx,
++				   uint16_t avail_idx, uint16_t len)
++{
++	uint16_t desc_idx = q->avail->ring[avail_idx & (q->num - 1)];
 +
-+	cfg->ifnum = toks[pos].size;
-+	pos++;
-+	iface = cfg->ifaces;
++	used_idx = used_idx & (q->num - 1);
++	q->used->ring[used_idx].id = desc_idx;
++	q->used->ring[used_idx].len = htole16(len);
++}
 +
-+	for (ifidx = 0; ifidx < cfg->ifnum; ifidx++) {
-+		if (toks[pos].type != JSMN_OBJECT) {
-+			lkl_printf("object json type expected\n");
-+			return -1;
-+		}
++/*
++ * Make sure all memory writes before are visible to the driver before updating
++ * the idx.  We need it here even we already have one in virtio_deliver_irq()
++ * because there might already be an driver thread reading the idx and dequeuing
++ * used buffers.
++ */
++static inline void virtio_sync_used_idx(struct virtio_queue *q, uint16_t idx)
++{
++	__sync_synchronize();
++	q->used->idx = htole16(idx);
++}
 +
-+		posend = pos + toks[pos].size;
-+		pos++;
-+		iface = malloc(sizeof(struct lkl_config_iface));
-+		memset(iface, 0, sizeof(struct lkl_config_iface));
++#define min_len(a, b) (a < b ? a : b)
 +
-+		if (prev)
-+			prev->next = iface;
++void virtio_req_complete(struct virtio_req *req, uint32_t len)
++{
++	int send_irq = 0;
++	struct _virtio_req *_req = container_of(req, struct _virtio_req, req);
++	struct virtio_queue *q = _req->q;
++	uint16_t avail_idx = _req->idx;
++	uint16_t used_idx = virtio_get_used_idx(_req->q);
++	int i;
++
++	/*
++	 * We've potentially used up multiple (non-chained) descriptors and have
++	 * to create one "used" entry for each descriptor we've consumed.
++	 */
++	for (i = 0; i < req->buf_count; i++) {
++		uint16_t used_len;
++
++		if (!q->max_merge_len)
++			used_len = len;
 +		else
-+			cfg->ifaces = iface;
-+		prev = iface;
++			used_len = min_len(len,  req->buf[i].iov_len);
 +
-+		for (; pos < posend; pos += 2) {
-+			if (toks[pos].type != JSMN_STRING) {
-+				lkl_printf("object json type expected\n");
-+				return -1;
-+			}
-+			if (jsoneq(jstr, &toks[pos], "type") == 0) {
-+				cfgptr = &iface->iftype;
-+			} else if (jsoneq(jstr, &toks[pos], "param") == 0) {
-+				cfgptr = &iface->ifparams;
-+			} else if (jsoneq(jstr, &toks[pos], "mtu") == 0) {
-+				cfgptr = &iface->ifmtu_str;
-+			} else if (jsoneq(jstr, &toks[pos], "ip") == 0) {
-+				cfgptr = &iface->ifip;
-+			} else if (jsoneq(jstr, &toks[pos], "ipv6") == 0) {
-+				cfgptr = &iface->ifipv6;
-+			} else if (jsoneq(jstr, &toks[pos], "ifgateway") == 0) {
-+				cfgptr = &iface->ifgateway;
-+			} else if (jsoneq(jstr, &toks[pos],
-+							"ifgateway6") == 0) {
-+				cfgptr = &iface->ifgateway6;
-+			} else if (jsoneq(jstr, &toks[pos], "mac") == 0) {
-+				cfgptr = &iface->ifmac_str;
-+			} else if (jsoneq(jstr, &toks[pos], "masklen") == 0) {
-+				cfgptr = &iface->ifnetmask_len;
-+			} else if (jsoneq(jstr, &toks[pos], "masklen6") == 0) {
-+				cfgptr = &iface->ifnetmask6_len;
-+			} else if (jsoneq(jstr, &toks[pos], "neigh") == 0) {
-+				cfgptr = &iface->ifneigh_entries;
-+			} else if (jsoneq(jstr, &toks[pos], "qdisc") == 0) {
-+				cfgptr = &iface->ifqdisc_entries;
-+			} else if (jsoneq(jstr, &toks[pos], "offload") == 0) {
-+				cfgptr = &iface->ifoffload_str;
-+			} else {
-+				lkl_printf("unexpected key: %.*s\n",
-+						toks[pos].end-toks[pos].start,
-+						jstr + toks[pos].start);
-+				return -1;
-+			}
-+			ret = cfgncpy(cfgptr, jstr + toks[pos+1].start,
-+					toks[pos+1].end-toks[pos+1].start);
-+			if (ret < 0)
-+				return ret;
-+		}
++		virtio_add_used(q, used_idx++, avail_idx++, used_len);
++
++		len -= used_len;
++		if (!len)
++			break;
 +	}
-+	return pos - startpos;
++	virtio_sync_used_idx(q, used_idx);
++	q->last_avail_idx = avail_idx;
++
++	/*
++	 * Triggers the irq whenever there is no available buffer.
++	 */
++	if (q->last_avail_idx == le16toh(q->avail->idx))
++		send_irq = 1;
++
++	/*
++	 * There are two rings: q->avail and q->used for each of the rx and tx
++	 * queues that are used to pass buffers between kernel driver and the
++	 * virtio device implementation.
++	 *
++	 * Kernel maitains the first one and appends buffers to it. In rx queue,
++	 * it's empty buffers kernel offers to store received packets. In tx
++	 * queue, it's buffers containing packets to transmit. Kernel notifies
++	 * the device by mmio write (see VIRTIO_MMIO_QUEUE_NOTIFY below).
++	 *
++	 * The virtio device (here in this file) maintains the
++	 * q->used and appends buffer to it after consuming it from q->avail.
++	 *
++	 * The device needs to notify the driver by triggering irq here. The
++	 * LKL_VIRTIO_RING_F_EVENT_IDX is enabled in this implementation so
++	 * kernel can set virtio_get_used_event(q) to tell the device to "only
++	 * trigger the irq when this item in q->used ring is populated."
++	 *
++	 * Because driver and device are run in two different threads. When
++	 * driver sets virtio_get_used_event(q), q->used->idx may already be
++	 * increased to a larger one. So we need to trigger the irq when
++	 * virtio_get_used_event(q) < q->used->idx.
++	 *
++	 * To avoid unnessary irqs for each packet after
++	 * virtio_get_used_event(q) < q->used->idx, last_used_idx_signaled is
++	 * stored and irq is only triggered if
++	 * last_used_idx_signaled <= virtio_get_used_event(q) < q->used->idx
++	 *
++	 * This is what lkl_vring_need_event() checks and it evens covers the
++	 * case when those numbers wrap up.
++	 */
++	if (send_irq || lkl_vring_need_event(le16toh(virtio_get_used_event(q)),
++					     virtio_get_used_idx(q),
++					     q->last_used_idx_signaled)) {
++		q->last_used_idx_signaled = virtio_get_used_idx(q);
++		virtio_deliver_irq(_req->dev);
++	}
 +}
 +
-+#define ARRAY_SIZE(arr) (sizeof(arr) / sizeof((arr)[0]))
-+
-+int lkl_load_config_json(struct lkl_config *cfg, char *jstr)
++/*
++ * Grab the vring_desc from the queue at the appropriate index in the
++ * queue's circular buffer, converting from little-endian to
++ * the host's endianness.
++ */
++static inline
++struct lkl_vring_desc *vring_desc_at_le_idx(struct virtio_queue *q,
++					    __lkl__virtio16 le_idx)
 +{
-+	int pos, ret;
-+	char **cfgptr;
-+	jsmn_parser jp;
-+	jsmntok_t toks[LKL_CONFIG_JSON_TOKEN_MAX];
++	return &(q->desc[le16toh(le_idx) & (q->num - 1)]);
++}
 +
-+	if (!cfg || !jstr)
-+		return -1;
-+	jsmn_init(&jp);
-+	ret = jsmn_parse(&jp, jstr, strlen(jstr), toks, ARRAY_SIZE(toks));
-+	if (ret != JSMN_SUCCESS) {
-+		lkl_printf("failed to parse json\n");
++static inline
++struct lkl_vring_desc *vring_desc_at_avail_idx(struct virtio_queue *q,
++					       uint16_t idx)
++{
++	uint16_t desc_idx = q->avail->ring[idx & (q->num - 1)];
++
++	return vring_desc_at_le_idx(q, desc_idx);
++}
++
++/* Initialize buf to hold the same info as the vring_desc */
++static void add_dev_buf_from_vring_desc(struct virtio_req *req,
++					struct lkl_vring_desc *vring_desc)
++{
++	struct iovec *buf = &req->buf[req->buf_count++];
++
++	buf->iov_base = (void *)(uintptr_t)le64toh(vring_desc->addr);
++	buf->iov_len = le32toh(vring_desc->len);
++
++	if (!(buf->iov_base && buf->iov_len))
++		virtio_panic("bad vring_desc: %p %d\n",
++			     buf->iov_base, buf->iov_len);
++
++	req->total_len += buf->iov_len;
++}
++
++static struct lkl_vring_desc *get_next_desc(struct virtio_queue *q,
++					    struct lkl_vring_desc *desc,
++					    uint16_t *idx)
++{
++	uint16_t desc_idx;
++
++	if (q->max_merge_len) {
++		if (++(*idx) == le16toh(q->avail->idx))
++			return NULL;
++		desc_idx = q->avail->ring[*idx & (q->num - 1)];
++		return vring_desc_at_le_idx(q, desc_idx);
++	}
++
++	if (!(le16toh(desc->flags) & LKL_VRING_DESC_F_NEXT))
++		return NULL;
++	return vring_desc_at_le_idx(q, desc->next);
++}
++
++/*
++ * Below there are two distinctly different (per packet) buffer allocation
++ * schemes for us to deal with:
++ *
++ * 1. One or more descriptors chained through "next" as indicated by the
++ *    LKL_VRING_DESC_F_NEXT flag,
++ * 2. One or more descriptors from the ring sequentially, as many as are
++ *    available and needed. This is the RX only "mergeable_rx_bufs" mode.
++ *    The mode is entered when the VIRTIO_NET_F_MRG_RXBUF device feature
++ *    is enabled.
++ */
++static int virtio_process_one(struct virtio_dev *dev, int qidx)
++{
++	struct virtio_queue *q = &dev->queue[qidx];
++	uint16_t idx = q->last_avail_idx;
++	struct _virtio_req _req = {
++		.dev = dev,
++		.q = q,
++		.idx = idx,
++	};
++	struct virtio_req *req = &_req.req;
++	struct lkl_vring_desc *desc = vring_desc_at_avail_idx(q, _req.idx);
++
++	do {
++		add_dev_buf_from_vring_desc(req, desc);
++		if (q->max_merge_len && req->total_len > q->max_merge_len)
++			break;
++		desc = get_next_desc(q, desc, &idx);
++	} while (desc && req->buf_count < VIRTIO_REQ_MAX_BUFS);
++
++	if (desc && le16toh(desc->flags) & LKL_VRING_DESC_F_NEXT)
++		virtio_panic("too many chained bufs");
++
++	return dev->ops->enqueue(dev, qidx, req);
++}
++
++/* NB: we can enter this function two different ways in the case of
++ * netdevs --- either through a tx/rx thread poll (which the LKL
++ * scheduler knows nothing about) or through virtio_write called
++ * inside an interrupt handler, so to be safe, it's not enough to
++ * synchronize only the tx/rx polling threads.
++ *
++ * At the moment, it seems like only netdevs require the
++ * synchronization we do here (i.e. locking around operations on a
++ * particular virtqueue, with dev->ops->acquire_queue), since they
++ * have these two different entry points, one of which isn't managed
++ * by the LKL scheduler. So only devs corresponding to netdevs will
++ * have non-NULL acquire/release_queue.
++ *
++ * In the future, this may change. If you see errors thrown in virtio
++ * driver code by block/console devices, you should be suspicious of
++ * the synchronization going on here.
++ */
++void virtio_process_queue(struct virtio_dev *dev, uint32_t qidx)
++{
++	struct virtio_queue *q = &dev->queue[qidx];
++
++	if (!q->ready)
++		return;
++
++	if (dev->ops->acquire_queue)
++		dev->ops->acquire_queue(dev, qidx);
++
++	while (q->last_avail_idx != le16toh(q->avail->idx)) {
++		/*
++		 * Make sure following loads happens after loading
++		 * q->avail->idx.
++		 */
++		__sync_synchronize();
++		if (virtio_process_one(dev, qidx) < 0)
++			break;
++		if (q->last_avail_idx == le16toh(q->avail->idx))
++			virtio_set_avail_event(q, q->avail->idx);
++	}
++
++	if (dev->ops->release_queue)
++		dev->ops->release_queue(dev, qidx);
++}
++
++static inline uint32_t virtio_read_device_features(struct virtio_dev *dev)
++{
++	if (dev->device_features_sel)
++		return (uint32_t)(dev->device_features >> 32);
++
++	return (uint32_t)dev->device_features;
++}
++
++static inline void virtio_write_driver_features(struct virtio_dev *dev,
++						uint32_t val)
++{
++	uint64_t tmp;
++
++	if (dev->driver_features_sel) {
++		tmp = dev->driver_features & 0xFFFFFFFF;
++		dev->driver_features = tmp | (uint64_t)val << 32;
++	} else {
++		tmp = dev->driver_features & 0xFFFFFFFF00000000;
++		dev->driver_features = tmp | val;
++	}
++}
++
++static int virtio_read(void *data, int offset, void *res, int size)
++{
++	uint32_t val;
++	struct virtio_dev *dev = (struct virtio_dev *)data;
++
++	if (offset >= VIRTIO_MMIO_CONFIG) {
++		offset -= VIRTIO_MMIO_CONFIG;
++		if (offset + size > dev->config_len)
++			return -LKL_EINVAL;
++		memcpy(res, dev->config_data + offset, size);
++		return 0;
++	}
++
++	if (size != sizeof(uint32_t))
++		return -LKL_EINVAL;
++
++	switch (offset) {
++	case VIRTIO_MMIO_MAGIC_VALUE:
++		val = VIRTIO_DEV_MAGIC;
++		break;
++	case VIRTIO_MMIO_VERSION:
++		val = VIRTIO_DEV_VERSION;
++		break;
++	case VIRTIO_MMIO_DEVICE_ID:
++		val = dev->device_id;
++		break;
++	case VIRTIO_MMIO_VENDOR_ID:
++		val = dev->vendor_id;
++		break;
++	case VIRTIO_MMIO_DEVICE_FEATURES:
++		val = virtio_read_device_features(dev);
++		break;
++	case VIRTIO_MMIO_QUEUE_NUM_MAX:
++		val = dev->queue[dev->queue_sel].num_max;
++		break;
++	case VIRTIO_MMIO_QUEUE_READY:
++		val = dev->queue[dev->queue_sel].ready;
++		break;
++	case VIRTIO_MMIO_INTERRUPT_STATUS:
++		val = dev->int_status;
++		break;
++	case VIRTIO_MMIO_STATUS:
++		val = dev->status;
++		break;
++	case VIRTIO_MMIO_CONFIG_GENERATION:
++		val = dev->config_gen;
++		break;
++	default:
 +		return -1;
 +	}
-+	if (toks[0].type != JSMN_OBJECT) {
-+		lkl_printf("object json type expected\n");
-+		return -1;
++
++	*(uint32_t *)res = htole32(val);
++
++	return 0;
++}
++
++static inline void set_ptr_low(void **ptr, uint32_t val)
++{
++	uint64_t tmp = (uintptr_t)*ptr;
++
++	tmp = (tmp & 0xFFFFFFFF00000000) | val;
++	*ptr = (void *)(long)tmp;
++}
++
++static inline void set_ptr_high(void **ptr, uint32_t val)
++{
++	uint64_t tmp = (uintptr_t)*ptr;
++
++	tmp = (tmp & 0x00000000FFFFFFFF) | ((uint64_t)val << 32);
++	*ptr = (void *)(long)tmp;
++}
++
++static inline void set_status(struct virtio_dev *dev, uint32_t val)
++{
++	if ((val & LKL_VIRTIO_CONFIG_S_FEATURES_OK) &&
++	    (!(dev->driver_features & BIT(LKL_VIRTIO_F_VERSION_1)) ||
++	     !(dev->driver_features & BIT(LKL_VIRTIO_RING_F_EVENT_IDX)) ||
++	     dev->ops->check_features(dev)))
++		val &= ~LKL_VIRTIO_CONFIG_S_FEATURES_OK;
++	dev->status = val;
++}
++
++static int virtio_write(void *data, int offset, void *res, int size)
++{
++	struct virtio_dev *dev = (struct virtio_dev *)data;
++	struct virtio_queue *q = &dev->queue[dev->queue_sel];
++	uint32_t val;
++	int ret = 0;
++
++	if (offset >= VIRTIO_MMIO_CONFIG) {
++		offset -= VIRTIO_MMIO_CONFIG;
++
++		if (offset + size >= dev->config_len)
++			return -LKL_EINVAL;
++		memcpy(dev->config_data + offset, res, size);
++		return 0;
 +	}
-+	for (pos = 1; pos < jp.toknext; pos++) {
-+		if (toks[pos].type != JSMN_STRING) {
-+			lkl_printf("string json type expected\n");
++
++	if (size != sizeof(uint32_t))
++		return -LKL_EINVAL;
++
++	val = le32toh(*(uint32_t *)res);
++
++	switch (offset) {
++	case VIRTIO_MMIO_DEVICE_FEATURES_SEL:
++		if (val > 1)
++			return -LKL_EINVAL;
++		dev->device_features_sel = val;
++		break;
++	case VIRTIO_MMIO_DRIVER_FEATURES_SEL:
++		if (val > 1)
++			return -LKL_EINVAL;
++		dev->driver_features_sel = val;
++		break;
++	case VIRTIO_MMIO_DRIVER_FEATURES:
++		virtio_write_driver_features(dev, val);
++		break;
++	case VIRTIO_MMIO_QUEUE_SEL:
++		dev->queue_sel = val;
++		break;
++	case VIRTIO_MMIO_QUEUE_NUM:
++		dev->queue[dev->queue_sel].num = val;
++		break;
++	case VIRTIO_MMIO_QUEUE_READY:
++		dev->queue[dev->queue_sel].ready = val;
++		break;
++	case VIRTIO_MMIO_QUEUE_NOTIFY:
++		virtio_process_queue(dev, val);
++		break;
++	case VIRTIO_MMIO_INTERRUPT_ACK:
++		dev->int_status = 0;
++		break;
++	case VIRTIO_MMIO_STATUS:
++		set_status(dev, val);
++		break;
++	case VIRTIO_MMIO_QUEUE_DESC_LOW:
++		set_ptr_low((void **)&q->desc, val);
++		break;
++	case VIRTIO_MMIO_QUEUE_DESC_HIGH:
++		set_ptr_high((void **)&q->desc, val);
++		break;
++	case VIRTIO_MMIO_QUEUE_AVAIL_LOW:
++		set_ptr_low((void **)&q->avail, val);
++		break;
++	case VIRTIO_MMIO_QUEUE_AVAIL_HIGH:
++		set_ptr_high((void **)&q->avail, val);
++		break;
++	case VIRTIO_MMIO_QUEUE_USED_LOW:
++		set_ptr_low((void **)&q->used, val);
++		break;
++	case VIRTIO_MMIO_QUEUE_USED_HIGH:
++		set_ptr_high((void **)&q->used, val);
++		break;
++	default:
++		ret = -1;
++	}
++
++	return ret;
++}
++
++static const struct lkl_iomem_ops virtio_ops = {
++	.read = virtio_read,
++	.write = virtio_write,
++};
++
++char lkl_virtio_devs[4096];
++static char *devs = lkl_virtio_devs;
++static uint32_t lkl_num_virtio_boot_devs;
++
++void virtio_set_queue_max_merge_len(struct virtio_dev *dev, int q, int len)
++{
++	dev->queue[q].max_merge_len = len;
++}
++
++int virtio_dev_setup(struct virtio_dev *dev, int queues, int num_max)
++{
++	int qsize = queues * sizeof(*dev->queue);
++	int avail, mmio_size;
++	int i;
++	int num_bytes;
++	int ret;
++
++	dev->irq = lkl_get_free_irq("virtio");
++	if (dev->irq < 0)
++		return dev->irq;
++
++	dev->int_status = 0;
++	dev->device_features |= BIT(LKL_VIRTIO_F_VERSION_1) |
++		BIT(LKL_VIRTIO_RING_F_EVENT_IDX);
++	dev->queue = lkl_host_ops.mem_alloc(qsize);
++	if (!dev->queue)
++		return -LKL_ENOMEM;
++
++	memset(dev->queue, 0, qsize);
++	for (i = 0; i < queues; i++)
++		dev->queue[i].num_max = num_max;
++
++	mmio_size = VIRTIO_MMIO_CONFIG + dev->config_len;
++	dev->base = register_iomem(dev, mmio_size, &virtio_ops);
++	if (!dev->base) {
++		lkl_host_ops.mem_free(dev->queue);
++		return -LKL_ENOMEM;
++	}
++
++	if (!lkl_is_running()) {
++		avail = sizeof(lkl_virtio_devs) - (devs - lkl_virtio_devs);
++		num_bytes = snprintf(devs, avail,
++				     " virtio_mmio.device=%d@0x%"PRIxPTR":%d",
++				     mmio_size, (uintptr_t) dev->base,
++				     dev->irq);
++		if (num_bytes < 0 || num_bytes >= avail) {
++			lkl_put_irq(dev->irq, "virtio");
++			unregister_iomem(dev->base);
++			lkl_host_ops.mem_free(dev->queue);
++			return -LKL_ENOMEM;
++		}
++		devs += num_bytes;
++		dev->virtio_mmio_id = lkl_num_virtio_boot_devs++;
++	} else {
++		ret =
++		    lkl_sys_virtio_mmio_device_add((long)dev->base, mmio_size,
++						   dev->irq);
++		if (ret < 0) {
++			lkl_printf("can't register mmio device\n");
 +			return -1;
 +		}
-+		if (jsoneq(jstr, &toks[pos], "interfaces") == 0) {
-+			ret = parse_ifarr(cfg, toks, jstr, pos);
-+			if (ret < 0)
-+				return ret;
-+			pos += ret;
-+			pos--;
-+			continue;
-+		}
-+		if (jsoneq(jstr, &toks[pos], "gateway") == 0) {
-+			cfgptr = &cfg->gateway;
-+		} else if (jsoneq(jstr, &toks[pos], "gateway6") == 0) {
-+			cfgptr = &cfg->gateway6;
-+		} else if (jsoneq(jstr, &toks[pos], "debug") == 0) {
-+			cfgptr = &cfg->debug;
-+		} else if (jsoneq(jstr, &toks[pos], "mount") == 0) {
-+			cfgptr = &cfg->mount;
-+		} else if (jsoneq(jstr, &toks[pos], "singlecpu") == 0) {
-+			cfgptr = &cfg->single_cpu;
-+		} else if (jsoneq(jstr, &toks[pos], "sysctl") == 0) {
-+			cfgptr = &cfg->sysctls;
-+		} else if (jsoneq(jstr, &toks[pos], "boot_cmdline") == 0) {
-+			cfgptr = &cfg->boot_cmdline;
-+		} else if (jsoneq(jstr, &toks[pos], "dump") == 0) {
-+			cfgptr = &cfg->dump;
-+		} else if (jsoneq(jstr, &toks[pos], "delay_main") == 0) {
-+			cfgptr = &cfg->delay_main;
-+		} else {
-+			lkl_printf("unexpected key in json %.*s\n",
-+					toks[pos].end-toks[pos].start,
-+					jstr + toks[pos].start);
-+			return -1;
-+		}
-+		pos++;
-+		ret = cfgncpy(cfgptr, jstr + toks[pos].start,
-+				toks[pos].end-toks[pos].start);
++		dev->virtio_mmio_id = lkl_num_virtio_boot_devs + ret;
++	}
++
++	return 0;
++}
++
++int virtio_dev_cleanup(struct virtio_dev *dev)
++{
++	char devname[100];
++	long fd, ret;
++	long mount_ret;
++
++	if (!lkl_is_running())
++		goto skip_unbind;
++
++	mount_ret = lkl_mount_fs("sysfs");
++	if (mount_ret < 0)
++		return mount_ret;
++
++	if (dev->virtio_mmio_id >= virtio_get_num_bootdevs())
++		ret = snprintf(devname, sizeof(devname), "virtio-mmio.%d.auto",
++			       dev->virtio_mmio_id - virtio_get_num_bootdevs());
++	else
++		ret = snprintf(devname, sizeof(devname), "virtio-mmio.%d",
++			       dev->virtio_mmio_id);
++	if (ret < 0 || (size_t) ret >= sizeof(devname))
++		return -LKL_ENOMEM;
++
++	fd = lkl_sys_open("/sysfs/bus/platform/drivers/virtio-mmio/unbind",
++			  LKL_O_WRONLY, 0);
++	if (fd < 0)
++		return fd;
++
++	ret = lkl_sys_write(fd, devname, strlen(devname));
++	if (ret < 0)
++		return ret;
++
++	ret = lkl_sys_close(fd);
++	if (ret < 0)
++		return ret;
++
++	if (mount_ret == 0) {
++		ret = lkl_sys_umount("/sysfs", 0);
 +		if (ret < 0)
 +			return ret;
 +	}
++
++skip_unbind:
++	lkl_put_irq(dev->irq, "virtio");
++	unregister_iomem(dev->base);
++	lkl_host_ops.mem_free(dev->queue);
 +	return 0;
 +}
 +
-+void lkl_show_config(struct lkl_config *cfg)
++uint32_t virtio_get_num_bootdevs(void)
 +{
-+	struct lkl_config_iface *iface;
-+	int i = 0;
-+
-+	if (!cfg)
-+		return;
-+	lkl_printf("gateway: %s\n", cfg->gateway);
-+	lkl_printf("gateway6: %s\n", cfg->gateway6);
-+	lkl_printf("debug: %s\n", cfg->debug);
-+	lkl_printf("mount: %s\n", cfg->mount);
-+	lkl_printf("singlecpu: %s\n", cfg->single_cpu);
-+	lkl_printf("sysctl: %s\n", cfg->sysctls);
-+	lkl_printf("cmdline: %s\n", cfg->boot_cmdline);
-+	lkl_printf("dump: %s\n", cfg->dump);
-+	lkl_printf("delay: %s\n", cfg->delay_main);
-+
-+	for (iface = cfg->ifaces; iface; iface = iface->next, i++) {
-+		lkl_printf("ifmac[%d] = %s\n", i, iface->ifmac_str);
-+		lkl_printf("ifmtu[%d] = %s\n", i, iface->ifmtu_str);
-+		lkl_printf("iftype[%d] = %s\n", i, iface->iftype);
-+		lkl_printf("ifparam[%d] = %s\n", i, iface->ifparams);
-+		lkl_printf("ifip[%d] = %s\n", i, iface->ifip);
-+		lkl_printf("ifmasklen[%d] = %s\n", i, iface->ifnetmask_len);
-+		lkl_printf("ifgateway[%d] = %s\n", i, iface->ifgateway);
-+		lkl_printf("ifip6[%d] = %s\n", i, iface->ifipv6);
-+		lkl_printf("ifmasklen6[%d] = %s\n", i, iface->ifnetmask6_len);
-+		lkl_printf("ifgateway6[%d] = %s\n", i, iface->ifgateway6);
-+		lkl_printf("ifoffload[%d] = %s\n", i, iface->ifoffload_str);
-+		lkl_printf("ifneigh[%d] = %s\n", i, iface->ifneigh_entries);
-+		lkl_printf("ifqdisk[%d] = %s\n", i, iface->ifqdisc_entries);
-+	}
++	return lkl_num_virtio_boot_devs;
 +}
-+
-+int lkl_load_config_env(struct lkl_config *cfg)
-+{
-+	int ret;
-+	char *envtap = getenv("LKL_HIJACK_NET_TAP");
-+	char *enviftype = getenv("LKL_HIJACK_NET_IFTYPE");
-+	char *envifparams = getenv("LKL_HIJACK_NET_IFPARAMS");
-+	char *envmtu_str = getenv("LKL_HIJACK_NET_MTU");
-+	char *envip = getenv("LKL_HIJACK_NET_IP");
-+	char *envipv6 = getenv("LKL_HIJACK_NET_IPV6");
-+	char *envifgateway = getenv("LKL_HIJACK_NET_IFGATEWAY");
-+	char *envifgateway6 = getenv("LKL_HIJACK_NET_IFGATEWAY6");
-+	char *envmac_str = getenv("LKL_HIJACK_NET_MAC");
-+	char *envnetmask_len = getenv("LKL_HIJACK_NET_NETMASK_LEN");
-+	char *envnetmask6_len = getenv("LKL_HIJACK_NET_NETMASK6_LEN");
-+	char *envgateway = getenv("LKL_HIJACK_NET_GATEWAY");
-+	char *envgateway6 = getenv("LKL_HIJACK_NET_GATEWAY6");
-+	char *envdebug = getenv("LKL_HIJACK_DEBUG");
-+	char *envmount = getenv("LKL_HIJACK_MOUNT");
-+	char *envneigh_entries = getenv("LKL_HIJACK_NET_NEIGHBOR");
-+	char *envqdisc_entries = getenv("LKL_HIJACK_NET_QDISC");
-+	char *envsingle_cpu = getenv("LKL_HIJACK_SINGLE_CPU");
-+	char *envoffload_str = getenv("LKL_HIJACK_OFFLOAD");
-+	char *envsysctls = getenv("LKL_HIJACK_SYSCTL");
-+	char *envboot_cmdline = getenv("LKL_HIJACK_BOOT_CMDLINE") ? : "";
-+	char *envdump = getenv("LKL_HIJACK_DUMP");
-+	struct lkl_config_iface *iface;
-+
-+	if (!cfg)
-+		return -1;
-+	if (envtap || enviftype)
-+		cfg->ifnum = 1;
-+
-+	iface = malloc(sizeof(struct lkl_config_iface));
-+	memset(iface, 0, sizeof(struct lkl_config_iface));
-+
-+	ret = cfgcpy(&iface->iftap, envtap);
-+	if (ret < 0)
-+		return ret;
-+	ret = cfgcpy(&iface->iftype, enviftype);
-+	if (ret < 0)
-+		return ret;
-+	ret = cfgcpy(&iface->ifparams, envifparams);
-+	if (ret < 0)
-+		return ret;
-+	ret = cfgcpy(&iface->ifmtu_str, envmtu_str);
-+	if (ret < 0)
-+		return ret;
-+	ret = cfgcpy(&iface->ifip, envip);
-+	if (ret < 0)
-+		return ret;
-+	ret = cfgcpy(&iface->ifipv6, envipv6);
-+	if (ret < 0)
-+		return ret;
-+	ret = cfgcpy(&iface->ifgateway, envifgateway);
-+	if (ret < 0)
-+		return ret;
-+	ret = cfgcpy(&iface->ifgateway6, envifgateway6);
-+	if (ret < 0)
-+		return ret;
-+	ret = cfgcpy(&iface->ifmac_str, envmac_str);
-+	if (ret < 0)
-+		return ret;
-+	ret = cfgcpy(&iface->ifnetmask_len, envnetmask_len);
-+	if (ret < 0)
-+		return ret;
-+	ret = cfgcpy(&iface->ifnetmask6_len, envnetmask6_len);
-+	if (ret < 0)
-+		return ret;
-+	ret = cfgcpy(&iface->ifoffload_str, envoffload_str);
-+	if (ret < 0)
-+		return ret;
-+	ret = cfgcpy(&iface->ifneigh_entries, envneigh_entries);
-+	if (ret < 0)
-+		return ret;
-+	ret = cfgcpy(&iface->ifqdisc_entries, envqdisc_entries);
-+	if (ret < 0)
-+		return ret;
-+	ret = cfgcpy(&cfg->gateway, envgateway);
-+	if (ret < 0)
-+		return ret;
-+	ret = cfgcpy(&cfg->gateway6, envgateway6);
-+	if (ret < 0)
-+		return ret;
-+	ret = cfgcpy(&cfg->debug, envdebug);
-+	if (ret < 0)
-+		return ret;
-+	ret = cfgcpy(&cfg->mount, envmount);
-+	if (ret < 0)
-+		return ret;
-+	ret = cfgcpy(&cfg->single_cpu, envsingle_cpu);
-+	if (ret < 0)
-+		return ret;
-+	ret = cfgcpy(&cfg->sysctls, envsysctls);
-+	if (ret < 0)
-+		return ret;
-+	ret = cfgcpy(&cfg->boot_cmdline, envboot_cmdline);
-+	if (ret < 0)
-+		return ret;
-+	ret = cfgcpy(&cfg->dump, envdump);
-+	if (ret < 0)
-+		return ret;
-+	return 0;
-+}
-+
-+static int parse_mac_str(char *mac_str, __lkl__u8 mac[LKL_ETH_ALEN])
-+{
-+	char delim[] = ":";
-+	char *saveptr = NULL, *token = NULL;
-+	int i = 0;
-+
-+	if (!mac_str)
-+		return 0;
-+
-+	for (token = strtok_r(mac_str, delim, &saveptr);
-+	     i < LKL_ETH_ALEN; i++) {
-+		if (!token) {
-+			/* The address is too short */
-+			return -1;
-+		}
-+
-+		mac[i] = (__lkl__u8) strtol(token, NULL, 16);
-+		token = strtok_r(NULL, delim, &saveptr);
-+	}
-+
-+	if (strtok_r(NULL, delim, &saveptr)) {
-+		/* The address is too long */
-+		return -1;
-+	}
-+
-+	return 1;
-+}
-+
-+/* Add permanent neighbor entries in the form of "ip|mac;ip|mac;..." */
-+static void add_neighbor(int ifindex, char *entries)
-+{
-+	char *saveptr = NULL, *token = NULL;
-+	char *ip = NULL, *mac_str = NULL;
-+	int ret = 0;
-+	__lkl__u8 mac[LKL_ETH_ALEN];
-+	char ip_addr[16];
-+	int af;
-+
-+	for (token = strtok_r(entries, ";", &saveptr); token;
-+	     token = strtok_r(NULL, ";", &saveptr)) {
-+		ip = strtok(token, "|");
-+		mac_str = strtok(NULL, "|");
-+		if (ip == NULL || mac_str == NULL || strtok(NULL, "|") != NULL)
-+			return;
-+
-+		af = LKL_AF_INET;
-+		ret = inet_pton(LKL_AF_INET, ip, ip_addr);
-+		if (ret == 0) {
-+			ret = inet_pton(LKL_AF_INET6, ip, ip_addr);
-+			af = LKL_AF_INET6;
-+		}
-+		if (ret != 1) {
-+			lkl_printf("Bad ip address: %s\n", ip);
-+			return;
-+		}
-+
-+		ret = parse_mac_str(mac_str, mac);
-+		if (ret != 1) {
-+			lkl_printf("Failed to parse mac: %s\n", mac_str);
-+			return;
-+		}
-+		ret = lkl_add_neighbor(ifindex, af, ip_addr, mac);
-+		if (ret) {
-+			lkl_printf("Failed to add neighbor entry: %s\n",
-+				   lkl_strerror(ret));
-+			return;
-+		}
-+	}
-+}
-+
-+/* We don't have an easy way to make FILE*s out of our fds, so we
-+ * can't use e.g. fgets
-+ */
-+static int dump_file(char *path)
-+{
-+	int ret = -1, bytes_read = 0;
-+	char str[1024] = { 0 };
-+	int fd;
-+
-+	fd = lkl_sys_open(path, LKL_O_RDONLY, 0);
-+
-+	if (fd < 0) {
-+		lkl_printf("%s lkl_sys_open %s: %s\n",
-+			   __func__, path, lkl_strerror(fd));
-+		return -1;
-+	}
-+
-+	/* Need to print this out in order to make sense of the output */
-+	lkl_printf("Reading from %s:\n==========\n", path);
-+	while ((ret = lkl_sys_read(fd, str, sizeof(str) - 1)) > 0)
-+		bytes_read += lkl_printf("%s", str);
-+	lkl_printf("==========\n");
-+
-+	if (ret) {
-+		lkl_printf("%s lkl_sys_read %s: %s\n",
-+			   __func__, path, lkl_strerror(ret));
-+		return -1;
-+	}
-+
-+	return 0;
-+}
-+
-+static void mount_cmds_exec(char *_cmds, int (*callback)(char *))
-+{
-+	char *saveptr = NULL, *token;
-+	int ret = 0;
-+	char *cmds = strdup(_cmds);
-+
-+	token = strtok_r(cmds, ",", &saveptr);
-+
-+	while (token && ret >= 0) {
-+		ret = callback(token);
-+		token = strtok_r(NULL, ",", &saveptr);
-+	}
-+
-+	if (ret < 0)
-+		lkl_printf("%s: failed parsing %s\n", __func__, _cmds);
-+
-+	free(cmds);
-+}
-+
-+static int lkl_config_netdev_create(struct lkl_config *cfg,
-+				    struct lkl_config_iface *iface)
-+{
-+	int ret, offload = 0;
-+	struct lkl_netdev_args nd_args;
-+	__lkl__u8 mac[LKL_ETH_ALEN] = {0};
-+	struct lkl_netdev *nd = NULL;
-+
-+	if (iface->ifoffload_str)
-+		offload = strtol(iface->ifoffload_str, NULL, 0);
-+	memset(&nd_args, 0, sizeof(struct lkl_netdev_args));
-+
-+	if (iface->iftap) {
-+		lkl_printf("WARN: LKL_HIJACK_NET_TAP is now obsoleted.\n");
-+		lkl_printf("use LKL_HIJACK_NET_IFTYPE and PARAMS\n");
-+		nd = lkl_netdev_tap_create(iface->iftap, offload);
-+	}
-+
-+	if (!nd && iface->iftype && iface->ifparams) {
-+		if ((strcmp(iface->iftype, "tap") == 0)) {
-+			nd = lkl_netdev_tap_create(iface->ifparams, offload);
-+		} else if ((strcmp(iface->iftype, "macvtap") == 0)) {
-+			nd = lkl_netdev_macvtap_create(iface->ifparams,
-+						       offload);
-+		} else if ((strcmp(iface->iftype, "dpdk") == 0)) {
-+			nd = lkl_netdev_dpdk_create(iface->ifparams, offload,
-+						    mac);
-+		} else if ((strcmp(iface->iftype, "pipe") == 0)) {
-+			nd = lkl_netdev_pipe_create(iface->ifparams, offload);
-+		} else {
-+			if (offload) {
-+				lkl_printf("WARN: %s isn't supported on %s\n",
-+					   "LKL_HIJACK_OFFLOAD",
-+					   iface->iftype);
-+				lkl_printf(
-+					"WARN: Disabling offload features.\n");
-+			}
-+			offload = 0;
-+		}
-+		if (strcmp(iface->iftype, "vde") == 0)
-+			nd = lkl_netdev_vde_create(iface->ifparams);
-+		if (strcmp(iface->iftype, "raw") == 0)
-+			nd = lkl_netdev_raw_create(iface->ifparams);
-+	}
-+
-+	if (nd) {
-+		if ((mac[0] != 0) || (mac[1] != 0) ||
-+				(mac[2] != 0) || (mac[3] != 0) ||
-+				(mac[4] != 0) || (mac[5] != 0)) {
-+			nd_args.mac = mac;
-+		} else {
-+			ret = parse_mac_str(iface->ifmac_str, mac);
-+
-+			if (ret < 0) {
-+				lkl_printf("failed to parse mac\n");
-+				return -1;
-+			} else if (ret > 0) {
-+				nd_args.mac = mac;
-+			} else {
-+				nd_args.mac = NULL;
-+			}
-+		}
-+
-+		nd_args.offload = offload;
-+		ret = lkl_netdev_add(nd, &nd_args);
-+		if (ret < 0) {
-+			lkl_printf("failed to add netdev: %s\n",
-+				   lkl_strerror(ret));
-+			return -1;
-+		}
-+		nd->id = ret;
-+		iface->nd = nd;
-+	}
-+	return 0;
-+}
-+
-+static int lkl_config_netdev_configure(struct lkl_config *cfg,
-+				       struct lkl_config_iface *iface)
-+{
-+	int ret, nd_ifindex = -1;
-+	struct lkl_netdev *nd = iface->nd;
-+
-+	if (!nd) {
-+		lkl_printf("no netdev available %s\n", iface ? iface->ifparams
-+			   : "(null)");
-+		return -1;
-+	}
-+
-+	if (nd->id >= 0) {
-+		nd_ifindex = lkl_netdev_get_ifindex(nd->id);
-+		if (nd_ifindex > 0)
-+			lkl_if_up(nd_ifindex);
-+		else
-+			lkl_printf(
-+				"failed to get ifindex for netdev id %d: %s\n",
-+				nd->id, lkl_strerror(nd_ifindex));
-+	}
-+
-+	if (nd_ifindex >= 0 && iface->ifmtu_str) {
-+		int mtu = atoi(iface->ifmtu_str);
-+
-+		ret = lkl_if_set_mtu(nd_ifindex, mtu);
-+		if (ret < 0)
-+			lkl_printf("failed to set MTU: %s\n",
-+				   lkl_strerror(ret));
-+	}
-+
-+	if (nd_ifindex >= 0 && iface->ifip && iface->ifnetmask_len) {
-+		unsigned int addr;
-+
-+		if (inet_pton(LKL_AF_INET, iface->ifip,
-+			      (struct lkl_in_addr *)&addr) != 1)
-+			lkl_printf("Invalid ipv4 address: %s\n", iface->ifip);
-+
-+		int nmlen = atoi(iface->ifnetmask_len);
-+
-+		if (addr != LKL_INADDR_NONE && nmlen > 0 && nmlen < 32) {
-+			ret = lkl_if_set_ipv4(nd_ifindex, addr, nmlen);
-+			if (ret < 0)
-+				lkl_printf("failed to set IPv4 address: %s\n",
-+					   lkl_strerror(ret));
-+		}
-+		if (iface->ifgateway) {
-+			unsigned int gwaddr;
-+
-+			if (inet_pton(LKL_AF_INET, iface->ifgateway,
-+				      (struct lkl_in_addr *)&gwaddr) != 1)
-+				lkl_printf("Invalid ipv4 gateway: %s\n",
-+					   iface->ifgateway);
-+
-+			if (gwaddr != LKL_INADDR_NONE) {
-+				ret = lkl_if_set_ipv4_gateway(nd_ifindex,
-+						addr, nmlen, gwaddr);
-+				if (ret < 0)
-+					lkl_printf(
-+						"failed to set v4 if gw: %s\n",
-+						lkl_strerror(ret));
-+			}
-+		}
-+	}
-+
-+	if (nd_ifindex >= 0 && iface->ifipv6 &&
-+			iface->ifnetmask6_len) {
-+		struct lkl_in6_addr addr;
-+		unsigned int pflen = atoi(iface->ifnetmask6_len);
-+
-+		if (inet_pton(LKL_AF_INET6, iface->ifipv6,
-+			      (struct lkl_in6_addr *)&addr) != 1) {
-+			lkl_printf("Invalid ipv6 addr: %s\n",
-+				   iface->ifipv6);
-+		}  else {
-+			ret = lkl_if_set_ipv6(nd_ifindex, &addr, pflen);
-+			if (ret < 0)
-+				lkl_printf("failed to set IPv6 address: %s\n",
-+					   lkl_strerror(ret));
-+		}
-+		if (iface->ifgateway6) {
-+			char gwaddr[16];
-+
-+			if (inet_pton(LKL_AF_INET6, iface->ifgateway6,
-+								gwaddr) != 1) {
-+				lkl_printf("Invalid ipv6 gateway: %s\n",
-+					   iface->ifgateway6);
-+			} else {
-+				ret = lkl_if_set_ipv6_gateway(nd_ifindex,
-+						&addr, pflen, gwaddr);
-+				if (ret < 0)
-+					lkl_printf(
-+						"failed to set v6 if gw: %s\n",
-+						lkl_strerror(ret));
-+			}
-+		}
-+	}
-+
-+	if (nd_ifindex >= 0 && iface->ifneigh_entries)
-+		add_neighbor(nd_ifindex, iface->ifneigh_entries);
-+
-+	if (nd_ifindex >= 0 && iface->ifqdisc_entries)
-+		lkl_qdisc_parse_add(nd_ifindex, iface->ifqdisc_entries);
-+
-+	return 0;
-+}
-+
-+static void free_cfgparam(char *cfgparam)
-+{
-+	if (cfgparam)
-+		free(cfgparam);
-+}
-+
-+static int lkl_clean_config(struct lkl_config *cfg)
-+{
-+	struct lkl_config_iface *iface;
-+
-+	if (!cfg)
-+		return -1;
-+
-+	for (iface = cfg->ifaces; iface; iface = iface->next) {
-+		free_cfgparam(iface->iftap);
-+		free_cfgparam(iface->iftype);
-+		free_cfgparam(iface->ifparams);
-+		free_cfgparam(iface->ifmtu_str);
-+		free_cfgparam(iface->ifip);
-+		free_cfgparam(iface->ifipv6);
-+		free_cfgparam(iface->ifgateway);
-+		free_cfgparam(iface->ifgateway6);
-+		free_cfgparam(iface->ifmac_str);
-+		free_cfgparam(iface->ifnetmask_len);
-+		free_cfgparam(iface->ifnetmask6_len);
-+		free_cfgparam(iface->ifoffload_str);
-+		free_cfgparam(iface->ifneigh_entries);
-+		free_cfgparam(iface->ifqdisc_entries);
-+	}
-+	free_cfgparam(cfg->gateway);
-+	free_cfgparam(cfg->gateway6);
-+	free_cfgparam(cfg->debug);
-+	free_cfgparam(cfg->mount);
-+	free_cfgparam(cfg->single_cpu);
-+	free_cfgparam(cfg->sysctls);
-+	free_cfgparam(cfg->boot_cmdline);
-+	free_cfgparam(cfg->dump);
-+	free_cfgparam(cfg->delay_main);
-+	return 0;
-+}
-+
-+
-+int lkl_load_config_pre(struct lkl_config *cfg)
-+{
-+	int lkl_debug, ret;
-+	struct lkl_config_iface *iface;
-+
-+	if (!cfg)
-+		return 0;
-+
-+	if (cfg->debug)
-+		lkl_debug = strtol(cfg->debug, NULL, 0);
-+
-+	if (!cfg->debug || (lkl_debug == 0))
-+		lkl_host_ops.print = NULL;
-+
-+	for (iface = cfg->ifaces; iface; iface = iface->next) {
-+		ret = lkl_config_netdev_create(cfg, iface);
-+		if (ret < 0)
-+			return -1;
-+	}
-+
-+	return 0;
-+}
-+
-+int lkl_load_config_post(struct lkl_config *cfg)
-+{
-+	int ret;
-+	struct lkl_config_iface *iface;
-+
-+	if (!cfg)
-+		return 0;
-+
-+	if (cfg->mount)
-+		mount_cmds_exec(cfg->mount, lkl_mount_fs);
-+
-+	for (iface = cfg->ifaces; iface; iface = iface->next) {
-+		ret = lkl_config_netdev_configure(cfg, iface);
-+		if (ret < 0)
-+			break;
-+	}
-+
-+	if (cfg->gateway) {
-+		unsigned int gwaddr;
-+
-+		if (inet_pton(LKL_AF_INET, cfg->gateway,
-+			      (struct lkl_in_addr *)&gwaddr) != 1)
-+			lkl_printf("Invalid ipv4 gateway: %s\n", cfg->gateway);
-+
-+		if (gwaddr != LKL_INADDR_NONE) {
-+			ret = lkl_set_ipv4_gateway(gwaddr);
-+			if (ret < 0)
-+				lkl_printf("failed to set IPv4 gateway: %s\n",
-+					   lkl_strerror(ret));
-+		}
-+	}
-+
-+	if (cfg->gateway6) {
-+		char gw[16];
-+
-+		if (inet_pton(LKL_AF_INET6, cfg->gateway6, gw) != 1) {
-+			lkl_printf("Invalid ipv6 gateway: %s\n", cfg->gateway6);
-+		} else {
-+			ret = lkl_set_ipv6_gateway(gw);
-+			if (ret < 0)
-+				lkl_printf("failed to set IPv6 gateway: %s\n",
-+					   lkl_strerror(ret));
-+		}
-+	}
-+
-+	if (cfg->sysctls)
-+		lkl_sysctl_parse_write(cfg->sysctls);
-+
-+	/* put a delay before calling main() */
-+	if (cfg->delay_main) {
-+		unsigned long delay = strtoul(cfg->delay_main, NULL, 10);
-+
-+		if (delay == ~0UL)
-+			lkl_printf("got invalid delay_main value (%s)\n",
-+				   cfg->delay_main);
-+		else {
-+			lkl_printf("sleeping %lu usec\n", delay);
-+			usleep(delay);
-+		}
-+	}
-+
-+	return 0;
-+}
-+
-+int lkl_unload_config(struct lkl_config *cfg)
-+{
-+	struct lkl_config_iface *iface;
-+
-+	if (cfg) {
-+		if (cfg->dump)
-+			mount_cmds_exec(cfg->dump, dump_file);
-+
-+		for (iface = cfg->ifaces; iface; iface = iface->next) {
-+			if (iface->nd) {
-+				if (iface->nd->id >= 0)
-+					lkl_netdev_remove(iface->nd->id);
-+				lkl_netdev_free(iface->nd);
-+			}
-+		}
-+
-+		lkl_clean_config(cfg);
-+	}
-+
-+	return 0;
-+}
-diff --git a/tools/lkl/lib/dbg.c b/tools/lkl/lib/dbg.c
+diff --git a/tools/lkl/lib/virtio.h b/tools/lkl/lib/virtio.h
 new file mode 100644
-index 000000000000..b613353bce5c
+index 000000000000..7427aa8fad79
 --- /dev/null
-+++ b/tools/lkl/lib/dbg.c
-@@ -0,0 +1,300 @@
-+// SPDX-License-Identifier: GPL-2.0
-+#include <errno.h>
-+#include <lkl.h>
-+#include <limits.h>
-+#include <string.h>
-+#include <stdio.h>
-+#include <stdlib.h>
-+
-+static const char *PROMOTE = "$";
-+#define str(x) #x
-+#define xstr(s) str(s)
-+#define MAX_BUF 100
-+static char cmd[MAX_BUF];
-+static char argv[10][MAX_BUF];
-+static int argc;
-+static char cur_dir[MAX_BUF] = "/";
-+
-+static char *normalize_path(const char *src, size_t src_len)
-+{
-+	char *res;
-+	unsigned int res_len;
-+	const char *ptr = src;
-+	const char *end = &src[src_len];
-+	const char *next;
-+
-+	res = malloc((src_len > 0 ? src_len : 1) + 1);
-+	res_len = 0;
-+
-+	for (ptr = src; ptr < end; ptr = next+1) {
-+		size_t len;
-+
-+		next = memchr(ptr, '/', end-ptr);
-+		if (next == NULL)
-+			next = end;
-+
-+		len = next-ptr;
-+		switch (len) {
-+		case 2:
-+			if (ptr[0] == '.' && ptr[1] == '.') {
-+				const char *slash = strrchr(res, '/');
-+
-+				if (slash != NULL)
-+					res_len = slash - res;
-+				continue;
-+			}
-+			break;
-+		case 1:
-+			if (ptr[0] == '.')
-+				continue;
-+			break;
-+		case 0:
-+			continue;
-+		}
-+		res[res_len++] = '/';
-+		memcpy(&res[res_len], ptr, len);
-+		res_len += len;
-+	}
-+	if (res_len == 0)
-+		res[res_len++] = '/';
-+	res[res_len] = '\0';
-+	return res;
-+}
-+
-+static void build_path(char *path)
-+{
-+	char *npath;
-+
-+	strcpy(path, cur_dir);
-+	if (argc >= 1) {
-+		if (argv[0][0] == '/')
-+			strncpy(path, argv[0], LKL_PATH_MAX);
-+		else {
-+			strncat(path, "/", LKL_PATH_MAX - strlen(path) - 1);
-+			strncat(path, argv[0], LKL_PATH_MAX - strlen(path) - 1);
-+		}
-+	}
-+	npath = normalize_path(path, strlen(path));
-+	strcpy(path, npath);
-+	free(npath);
-+}
-+
-+static void help(void)
-+{
-+	const char *msg =
-+		"cat FILE\n"
-+		"\tShow content of FILE\n"
-+		"cd [DIR]\n"
-+		"\tChange directory to DIR\n"
-+		"exit\n"
-+		"\tExit the debug session\n"
-+		"help\n"
-+		"\tShow this message\n"
-+		"ls [DIR]\n"
-+		"\tList files in DIR\n"
-+		"mount FSTYPE\n"
-+		"\tMount FSTYPE as /FSTYPE\n"
-+		"overwrite FILE\n"
-+		"\tOverwrite content of FILE from stdin\n"
-+		"pwd\n"
-+		"\tShow current directory\n"
-+		;
-+	printf("%s", msg);
-+}
-+
-+static void ls(void)
-+{
-+	char path[LKL_PATH_MAX];
-+	struct lkl_dir *dir;
-+	struct lkl_linux_dirent64 *de;
-+	int err;
-+
-+	build_path(path);
-+	dir = lkl_opendir(path, &err);
-+	if (dir) {
-+		do {
-+			de = lkl_readdir(dir);
-+			if (de) {
-+				printf("%s\n", de->d_name);
-+			} else {
-+				err = lkl_errdir(dir);
-+				if (err != 0) {
-+					fprintf(stderr, "%s\n",
-+						lkl_strerror(err));
-+				}
-+				break;
-+			}
-+		} while (1);
-+		lkl_closedir(dir);
-+	} else {
-+		fprintf(stderr, "%s: %s\n", path, lkl_strerror(err));
-+	}
-+}
-+
-+static void cd(void)
-+{
-+	char path[LKL_PATH_MAX];
-+	struct lkl_dir *dir;
-+	int err;
-+
-+	build_path(path);
-+	dir = lkl_opendir(path, &err);
-+	if (dir) {
-+		strcpy(cur_dir, path);
-+		lkl_closedir(dir);
-+	} else {
-+		fprintf(stderr, "%s: %s\n", path, lkl_strerror(err));
-+	}
-+}
-+
-+static void mount(void)
-+{
-+	char *fstype;
-+	int ret = 0;
-+
-+	if (argc != 1) {
-+		fprintf(stderr, "%s\n", "One argument is needed.");
-+		return;
-+	}
-+
-+	fstype = argv[0];
-+	ret = lkl_mount_fs(fstype);
-+	if (ret == 1)
-+		fprintf(stderr, "%s is already mounted.\n", fstype);
-+}
-+
-+static void cat(void)
-+{
-+	char path[LKL_PATH_MAX];
-+	int ret;
-+	char buf[1024];
-+	int fd;
-+
-+	if (argc != 1) {
-+		fprintf(stderr, "%s\n", "One argument is needed.");
-+		return;
-+	}
-+
-+	build_path(path);
-+	fd = lkl_sys_open(path, LKL_O_RDONLY, 0);
-+
-+	if (fd < 0) {
-+		fprintf(stderr, "lkl_sys_open %s: %s\n",
-+			path, lkl_strerror(fd));
-+		return;
-+	}
-+
-+	while ((ret = lkl_sys_read(fd, buf, sizeof(buf) - 1)) > 0) {
-+		buf[ret] = '\0';
-+		printf("%s", buf);
-+	}
-+
-+	if (ret) {
-+		fprintf(stderr, "lkl_sys_read %s: %s\n",
-+			path, lkl_strerror(ret));
-+	}
-+	lkl_sys_close(fd);
-+}
-+
-+static void overwrite(void)
-+{
-+	char path[LKL_PATH_MAX];
-+	int ret;
-+	int fd;
-+	char buf[1024];
-+
-+	build_path(path);
-+	fd = lkl_sys_open(path, LKL_O_WRONLY | LKL_O_CREAT, 0);
-+	if (fd < 0) {
-+		fprintf(stderr, "lkl_sys_open %s: %s\n",
-+			path, lkl_strerror(fd));
-+		return;
-+	}
-+	printf("Input the content and stop by hitting Ctrl-D:\n");
-+	while (fgets(buf, 1023, stdin)) {
-+		ret = lkl_sys_write(fd, buf, strlen(buf));
-+		if (ret < 0) {
-+			fprintf(stderr, "lkl_sys_write %s: %s\n",
-+				path, lkl_strerror(fd));
-+		}
-+	}
-+	lkl_sys_close(fd);
-+}
-+
-+static void pwd(void)
-+{
-+	printf("%s\n", cur_dir);
-+}
-+
-+static int parse_cmd(char *input)
-+{
-+	char *token;
-+
-+	token = strtok(input, " ");
-+	if (token)
-+		strcpy(cmd, token);
-+	else
-+		return -1;
-+
-+	argc = 0;
-+	token = strtok(NULL, " ");
-+	while (token) {
-+		if (argc >= 10) {
-+			fprintf(stderr, "To many args > 10\n");
-+			return -1;
-+		}
-+		strcpy(argv[argc++], token);
-+		token = strtok(NULL, " ");
-+	}
-+	return 0;
-+}
-+
-+static void run_cmd(void)
-+{
-+	if (strcmp(cmd, "cat") == 0)
-+		cat();
-+	else if (strcmp(cmd, "cd") == 0)
-+		cd();
-+	else if (strcmp(cmd, "help") == 0)
-+		help();
-+	else if (strcmp(cmd, "ls") == 0)
-+		ls();
-+	else if (strcmp(cmd, "mount") == 0)
-+		mount();
-+	else if (strcmp(cmd, "overwrite") == 0)
-+		overwrite();
-+	else if (strcmp(cmd, "pwd") == 0)
-+		pwd();
-+	else
-+		fprintf(stderr, "Unknown command: %s\n", cmd);
-+}
-+
-+void dbg_entrance(void)
-+{
-+	char input[MAX_BUF + 1];
-+	int ret;
-+	int c;
-+
-+	printf("Type help to see a list of commands\n");
-+	do {
-+		printf("%s ", PROMOTE);
-+		ret = scanf("%" xstr(MAX_BUF) "[^\n]s", input);
-+		while ((c = getchar()) != '\n' && c != EOF)
-+			;
-+		if (ret == 0)
-+			continue;
-+		if (ret != 1 && errno != EINTR) {
-+			perror("scanf");
-+			continue;
-+		}
-+		if (strlen(input) == MAX_BUF) {
-+			fprintf(stderr, "Too long input > %d\n", MAX_BUF - 1);
-+			continue;
-+		}
-+		if (parse_cmd(input))
-+			continue;
-+		if (strcmp(cmd, "exit") == 0)
-+			break;
-+		run_cmd();
-+	} while (1);
-+}
-diff --git a/tools/lkl/lib/dbg_handler.c b/tools/lkl/lib/dbg_handler.c
-new file mode 100644
-index 000000000000..01d165a5fc1e
---- /dev/null
-+++ b/tools/lkl/lib/dbg_handler.c
-@@ -0,0 +1,44 @@
-+// SPDX-License-Identifier: GPL-2.0
-+#include <stdio.h>
-+#include <lkl_host.h>
-+
-+extern void dbg_entrance(void);
-+static int dbg_running;
-+
-+static void dbg_thread(void *arg)
-+{
-+	lkl_host_ops.thread_detach();
-+	printf("======Enter Debug======\n");
-+	dbg_entrance();
-+	printf("======Exit Debug======\n");
-+	dbg_running = 0;
-+}
-+
-+void dbg_handler(int signum)
-+{
-+	/* We don't care about the possible race on dbg_running. */
-+	if (dbg_running) {
-+		fprintf(stderr, "A debug lib is running\n");
-+		return;
-+	}
-+	dbg_running = 1;
-+	lkl_host_ops.thread_create(&dbg_thread, NULL);
-+}
-+
-+#ifndef __MINGW32__
-+#include <signal.h>
-+void lkl_register_dbg_handler(void)
-+{
-+	struct sigaction sa;
-+
-+	sigemptyset(&sa.sa_mask);
-+	sa.sa_handler = dbg_handler;
-+	if (sigaction(SIGTSTP, &sa, NULL) == -1)
-+		perror("sigaction");
-+}
-+#else
-+void lkl_register_dbg_handler(void)
-+{
-+	fprintf(stderr, "%s is not implemented.\n", __func__);
-+}
-+#endif
-diff --git a/tools/lkl/lib/endian.h b/tools/lkl/lib/endian.h
-new file mode 100644
-index 000000000000..aaccfa0edb65
---- /dev/null
-+++ b/tools/lkl/lib/endian.h
-@@ -0,0 +1,31 @@
++++ b/tools/lkl/lib/virtio.h
+@@ -0,0 +1,93 @@
 +/* SPDX-License-Identifier: GPL-2.0 */
-+#ifndef _LKL_LIB_ENDIAN_H
-+#define _LKL_LIB_ENDIAN_H
++#ifndef _LKL_LIB_VIRTIO_H
++#define _LKL_LIB_VIRTIO_H
 +
-+#if defined(__FreeBSD__)
-+#include <sys/endian.h>
-+#elif defined(__ANDROID__)
-+#include <sys/endian.h>
-+#elif defined(__MINGW32__)
-+#include <winsock.h>
-+#define le32toh(x) (x)
-+#define le16toh(x) (x)
-+#define htole32(x) (x)
-+#define htole16(x) (x)
-+#define le64toh(x) (x)
-+#define htobe32(x) htonl(x)
-+#define htobe16(x) htons(x)
-+#define be32toh(x) ntohl(x)
-+#define be16toh(x) ntohs(x)
++#include <stdint.h>
++#include <lkl_host.h>
++
++#define PAGE_SIZE		4096
++
++/* The following are copied from skbuff.h */
++#if (65536/PAGE_SIZE + 1) < 16
++#define MAX_SKB_FRAGS 16UL
 +#else
-+#include <endian.h>
++#define MAX_SKB_FRAGS (65536/PAGE_SIZE + 1)
 +#endif
 +
-+#ifndef htonl
-+#define htonl(x) htobe32(x)
-+#define htons(x) htobe16(x)
-+#define ntohl(x) be32toh(x)
-+#define ntohs(x) be16toh(x)
-+#endif
++#define VIRTIO_REQ_MAX_BUFS	(MAX_SKB_FRAGS + 2)
 +
-+#endif /* _LKL_LIB_ENDIAN_H */
-diff --git a/tools/lkl/lib/jmp_buf.c b/tools/lkl/lib/jmp_buf.c
-new file mode 100644
-index 000000000000..f6bdd7e4bd83
---- /dev/null
-+++ b/tools/lkl/lib/jmp_buf.c
-@@ -0,0 +1,14 @@
-+// SPDX-License-Identifier: GPL-2.0
-+#include <setjmp.h>
-+#include <lkl_host.h>
-+
-+void jmp_buf_set(struct lkl_jmp_buf *jmpb, void (*f)(void))
-+{
-+	if (!setjmp(*((jmp_buf *)jmpb->buf)))
-+		f();
-+}
-+
-+void jmp_buf_longjmp(struct lkl_jmp_buf *jmpb, int val)
-+{
-+	longjmp(*((jmp_buf *)jmpb->buf), val);
-+}
-diff --git a/tools/lkl/lib/jmp_buf.h b/tools/lkl/lib/jmp_buf.h
-new file mode 100644
-index 000000000000..8782cbaaf51f
---- /dev/null
-+++ b/tools/lkl/lib/jmp_buf.h
-@@ -0,0 +1,8 @@
-+/* SPDX-License-Identifier: GPL-2.0 */
-+#ifndef _LKL_LIB_JMP_BUF_H
-+#define _LKL_LIB_JMP_BUF_H
-+
-+void jmp_buf_set(struct lkl_jmp_buf *jmpb, void (*f)(void));
-+void jmp_buf_longjmp(struct lkl_jmp_buf *jmpb, int val);
-+
-+#endif
-diff --git a/tools/lkl/lib/utils.c b/tools/lkl/lib/utils.c
-new file mode 100644
-index 000000000000..7de92bbe5475
---- /dev/null
-+++ b/tools/lkl/lib/utils.c
-@@ -0,0 +1,266 @@
-+// SPDX-License-Identifier: GPL-2.0
-+#include <stdarg.h>
-+#include <stdio.h>
-+#include <string.h>
-+#include <lkl_host.h>
-+
-+static const char * const lkl_err_strings[] = {
-+	"Success",
-+	"Operation not permitted",
-+	"No such file or directory",
-+	"No such process",
-+	"Interrupted system call",
-+	"I/O error",
-+	"No such device or address",
-+	"Argument list too long",
-+	"Exec format error",
-+	"Bad file number",
-+	"No child processes",
-+	"Try again",
-+	"Out of memory",
-+	"Permission denied",
-+	"Bad address",
-+	"Block device required",
-+	"Device or resource busy",
-+	"File exists",
-+	"Cross-device link",
-+	"No such device",
-+	"Not a directory",
-+	"Is a directory",
-+	"Invalid argument",
-+	"File table overflow",
-+	"Too many open files",
-+	"Not a typewriter",
-+	"Text file busy",
-+	"File too large",
-+	"No space left on device",
-+	"Illegal seek",
-+	"Read-only file system",
-+	"Too many links",
-+	"Broken pipe",
-+	"Math argument out of domain of func",
-+	"Math result not representable",
-+	"Resource deadlock would occur",
-+	"File name too long",
-+	"No record locks available",
-+	"Invalid system call number",
-+	"Directory not empty",
-+	"Too many symbolic links encountered",
-+	"Bad error code", /* EWOULDBLOCK is EAGAIN */
-+	"No message of desired type",
-+	"Identifier removed",
-+	"Channel number out of range",
-+	"Level 2 not synchronized",
-+	"Level 3 halted",
-+	"Level 3 reset",
-+	"Link number out of range",
-+	"Protocol driver not attached",
-+	"No CSI structure available",
-+	"Level 2 halted",
-+	"Invalid exchange",
-+	"Invalid request descriptor",
-+	"Exchange full",
-+	"No anode",
-+	"Invalid request code",
-+	"Invalid slot",
-+	"Bad error code", /* EDEADLOCK is EDEADLK */
-+	"Bad font file format",
-+	"Device not a stream",
-+	"No data available",
-+	"Timer expired",
-+	"Out of streams resources",
-+	"Machine is not on the network",
-+	"Package not installed",
-+	"Object is remote",
-+	"Link has been severed",
-+	"Advertise error",
-+	"Srmount error",
-+	"Communication error on send",
-+	"Protocol error",
-+	"Multihop attempted",
-+	"RFS specific error",
-+	"Not a data message",
-+	"Value too large for defined data type",
-+	"Name not unique on network",
-+	"File descriptor in bad state",
-+	"Remote address changed",
-+	"Can not access a needed shared library",
-+	"Accessing a corrupted shared library",
-+	".lib section in a.out corrupted",
-+	"Attempting to link in too many shared libraries",
-+	"Cannot exec a shared library directly",
-+	"Illegal byte sequence",
-+	"Interrupted system call should be restarted",
-+	"Streams pipe error",
-+	"Too many users",
-+	"Socket operation on non-socket",
-+	"Destination address required",
-+	"Message too long",
-+	"Protocol wrong type for socket",
-+	"Protocol not available",
-+	"Protocol not supported",
-+	"Socket type not supported",
-+	"Operation not supported on transport endpoint",
-+	"Protocol family not supported",
-+	"Address family not supported by protocol",
-+	"Address already in use",
-+	"Cannot assign requested address",
-+	"Network is down",
-+	"Network is unreachable",
-+	"Network dropped connection because of reset",
-+	"Software caused connection abort",
-+	"Connection reset by peer",
-+	"No buffer space available",
-+	"Transport endpoint is already connected",
-+	"Transport endpoint is not connected",
-+	"Cannot send after transport endpoint shutdown",
-+	"Too many references: cannot splice",
-+	"Connection timed out",
-+	"Connection refused",
-+	"Host is down",
-+	"No route to host",
-+	"Operation already in progress",
-+	"Operation now in progress",
-+	"Stale file handle",
-+	"Structure needs cleaning",
-+	"Not a XENIX named type file",
-+	"No XENIX semaphores available",
-+	"Is a named type file",
-+	"Remote I/O error",
-+	"Quota exceeded",
-+	"No medium found",
-+	"Wrong medium type",
-+	"Operation Canceled",
-+	"Required key not available",
-+	"Key has expired",
-+	"Key has been revoked",
-+	"Key was rejected by service",
-+	"Owner died",
-+	"State not recoverable",
-+	"Operation not possible due to RF-kill",
-+	"Memory page has hardware error",
++struct virtio_req {
++	uint16_t buf_count;
++	struct iovec buf[VIRTIO_REQ_MAX_BUFS];
++	uint32_t total_len;
 +};
 +
-+const char *lkl_strerror(int err)
-+{
-+	if (err < 0)
-+		err = -err;
++struct virtio_dev;
 +
-+	if ((size_t)err >= sizeof(lkl_err_strings) / sizeof(const char *))
-+		return "Bad error code";
-+
-+	return lkl_err_strings[err];
-+}
-+
-+void lkl_perror(char *msg, int err)
-+{
-+	const char *err_msg = lkl_strerror(err);
-+	/* We need to use 'real' printf because lkl_host_ops.print can
-+	 * be turned off when debugging is off.
++struct virtio_dev_ops {
++	int (*check_features)(struct virtio_dev *dev);
++	/**
++	 * enqueue - queues the request for processing
++	 *
++	 * Note that the curret implementation assumes that the requests are
++	 * processed synchronous and, as such, @virtio_req_complete must be
++	 * called by from this function.
++	 *
++	 * @dev - virtio device
++	 * @q	- queue index
++	 *
++	 * @returns a negative value if the request has not been queued for
++	 * processing in which case the virtio device is resposible for
++	 * restaring the queue processing by calling @virtio_process_queue at a
++	 * later time; 0 or a positive value means that the request has been
++	 * queued for processing
 +	 */
-+	lkl_printf("%s: %s\n", msg, err_msg);
-+}
++	int (*enqueue)(struct virtio_dev *dev, int q, struct virtio_req *req);
++	/*
++	 * Acquire/release a lock on the specified queue. Only implemented by
++	 * netdevs, all other devices have NULL acquire/release function
++	 * pointers.
++	 */
++	void (*acquire_queue)(struct virtio_dev *dev, int queue_idx);
++	void (*release_queue)(struct virtio_dev *dev, int queue_idx);
++};
 +
-+static int lkl_vprintf(const char *fmt, va_list args)
-+{
-+	int n;
-+	char *buffer;
-+	va_list copy;
++struct virtio_dev {
++	uint32_t device_id;
++	uint32_t vendor_id;
++	uint64_t device_features;
++	uint32_t device_features_sel;
++	uint64_t driver_features;
++	uint32_t driver_features_sel;
++	uint32_t queue_sel;
++	struct virtio_queue *queue;
++	uint32_t queue_notify;
++	uint32_t int_status;
++	uint32_t status;
++	uint32_t config_gen;
 +
-+	if (!lkl_host_ops.print)
-+		return 0;
++	struct virtio_dev_ops *ops;
++	int irq;
++	void *config_data;
++	int config_len;
++	void *base;
++	uint32_t virtio_mmio_id;
++};
 +
-+	va_copy(copy, args);
-+	n = vsnprintf(NULL, 0, fmt, copy);
-+	va_end(copy);
++int virtio_dev_setup(struct virtio_dev *dev, int queues, int num_max);
++int virtio_dev_cleanup(struct virtio_dev *dev);
++uint32_t virtio_get_num_bootdevs(void);
++/**
++ * virtio_req_complete - complete a virtio request
++ *
++ * @req - the request to be completed
++ * @len - the total size in bytes of the completed request
++ */
++void virtio_req_complete(struct virtio_req *req, uint32_t len);
++void virtio_process_queue(struct virtio_dev *dev, uint32_t qidx);
++void virtio_set_queue_max_merge_len(struct virtio_dev *dev, int q, int len);
 +
-+	buffer = lkl_host_ops.mem_alloc(n + 1);
-+	if (!buffer)
-+		return -1;
++#define container_of(ptr, type, member) \
++	(type *)((char *)(ptr) - __builtin_offsetof(type, member))
 +
-+	vsnprintf(buffer, n + 1, fmt, args);
-+
-+	lkl_host_ops.print(buffer, n);
-+	lkl_host_ops.mem_free(buffer);
-+
-+	return n;
-+}
-+
-+int lkl_printf(const char *fmt, ...)
-+{
-+	int n;
-+	va_list args;
-+
-+	va_start(args, fmt);
-+	n = lkl_vprintf(fmt, args);
-+	va_end(args);
-+
-+	return n;
-+}
-+
-+void lkl_bug(const char *fmt, ...)
-+{
-+	va_list args;
-+
-+	va_start(args, fmt);
-+	lkl_vprintf(fmt, args);
-+	va_end(args);
-+
-+	lkl_host_ops.panic();
-+}
-+#ifndef __arch_um__
-+int lkl_sysctl(const char *path, const char *value)
-+{
-+	int ret;
-+	int fd;
-+	char *delim, *p;
-+	char full_path[256];
-+
-+	lkl_mount_fs("proc");
-+
-+	snprintf(full_path, sizeof(full_path), "/proc/sys/%s", path);
-+	p = full_path;
-+	while ((delim = strstr(p, "."))) {
-+		*delim = '/';
-+		p = delim + 1;
-+	}
-+
-+	fd = lkl_sys_open(full_path, LKL_O_WRONLY | LKL_O_CREAT, 0);
-+	if (fd < 0) {
-+		lkl_printf("lkl_sys_open %s: %s\n",
-+			   full_path, lkl_strerror(fd));
-+		return -1;
-+	}
-+	ret = lkl_sys_write(fd, value, strlen(value));
-+	if (ret < 0) {
-+		lkl_printf("lkl_sys_write %s: %s\n",
-+			full_path, lkl_strerror(fd));
-+	}
-+
-+	lkl_sys_close(fd);
-+
-+	return 0;
-+}
-+
-+/* Configure sysctl parameters as the form of "key=value;key=value;..." */
-+void lkl_sysctl_parse_write(const char *sysctls)
-+{
-+	char *saveptr = NULL, *token = NULL;
-+	char *key = NULL, *value = NULL;
-+	char strings[256];
-+	int ret = 0;
-+
-+	strcpy(strings, sysctls);
-+	for (token = strtok_r(strings, ";", &saveptr); token;
-+	     token = strtok_r(NULL, ";", &saveptr)) {
-+		key = strtok(token, "=");
-+		value = strtok(NULL, "=");
-+		ret = lkl_sysctl(key, value);
-+		if (ret) {
-+			lkl_printf("Failed to configure sysctl entries: %s\n",
-+				   lkl_strerror(ret));
-+			return;
-+		}
-+	}
-+}
-+#endif
++#endif /* _LKL_LIB_VIRTIO_H */
 -- 
 2.20.1 (Apple Git-117)
