@@ -1,14 +1,14 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pl1-f194.google.com ([209.85.214.194]:41613 "EHLO
-        mail-pl1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726039AbfKHFEQ (ORCPT
+Received: from mail-pl1-f193.google.com ([209.85.214.193]:43644 "EHLO
+        mail-pl1-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726081AbfKHFEQ (ORCPT
         <rfc822;linux-arch@vger.kernel.org>); Fri, 8 Nov 2019 00:04:16 -0500
-Received: by mail-pl1-f194.google.com with SMTP id d29so3233451plj.8
-        for <linux-arch@vger.kernel.org>; Thu, 07 Nov 2019 21:04:15 -0800 (PST)
+Received: by mail-pl1-f193.google.com with SMTP id a18so3225148plm.10
+        for <linux-arch@vger.kernel.org>; Thu, 07 Nov 2019 21:04:16 -0800 (PST)
 From: Hajime Tazaki <thehajime@gmail.com>
-Subject: [RFC v2 31/37] lkl: add support for Windows hosts
-Date: Fri,  8 Nov 2019 14:02:46 +0900
-Message-Id: <8562184b77c641a99cb80ff37fb3d3b405f5f6ec.1573179553.git.thehajime@gmail.com>
+Subject: [RFC v2 29/37] lkl: add documentation
+Date: Fri,  8 Nov 2019 14:02:44 +0900
+Message-Id: <8f62855215a9456512fff52129eebd8f1bb02d63.1573179553.git.thehajime@gmail.com>
 In-Reply-To: <cover.1573179553.git.thehajime@gmail.com>
 References: <cover.1573179553.git.thehajime@gmail.com>
 MIME-Version: 1.0
@@ -16,163 +16,485 @@ Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-um@lists.infradead.org
-Cc: Octavian Purdila <tavi.purdila@gmail.com>, Akira Moroo <retrage01@gmail.com>, linux-kernel-library@freelists.org, linux-arch@vger.kernel.org, Hajime Tazaki <thehajime@gmail.com>, Jens Staal <staal1978@gmail.com>
+Cc: Octavian Purdila <tavi.purdila@gmail.com>, Akira Moroo <retrage01@gmail.com>, linux-kernel-library@freelists.org, linux-arch@vger.kernel.org, Chenyang Zhong <zhongcy95@gmail.com>, Conrad Meyer <cem@FreeBSD.org>, Gustavo Bittencourt <gbitten@gmail.com>, Motomu Utsumi <motomuman@gmail.com>, Patrick Collins <pscollins@google.com>, Thomas Liebetraut <thomas@tommie-lie.de>, Yuan Liu <liuyuan@google.com>
 
 From: Octavian Purdila <tavi.purdila@gmail.com>
 
-This patch allows LKL to be compiled for windows hosts with the mingw
-toolchain. Note that patches [1] that fix weak symbols linking are
-required to successfully compile LKL with mingw.
+A document describing brief introduction of LKL, why it is needed, and
+how it is used is added.  The document is located under uml/ directory.
 
-The patch disables the modpost pass over vmlinux since modpost only
-works with ELF objects.
-
-It also adds and workaround to an #include_next <stdard.h> error which
-is apparently caused by using -nosdtinc.
-
-[1] https://sourceware.org/ml/binutils/2015-10/msg00234.html
-
-Signed-off-by: Hajime Tazaki <thehajime@gmail.com>
-Signed-off-by: Jens Staal <staal1978@gmail.com>
+Signed-off-by: Chenyang Zhong <zhongcy95@gmail.com>
+Signed-off-by: Conrad Meyer <cem@FreeBSD.org>
+Signed-off-by: Gustavo Bittencourt <gbitten@gmail.com>
+Signed-off-by: H.K. Jerry Chu <hkchu@google.com>
+Signed-off-by: Motomu Utsumi <motomuman@gmail.com>
+Signed-off-by: Patrick Collins <pscollins@google.com>
+Signed-off-by: Thomas Liebetraut <thomas@tommie-lie.de>
+Signed-off-by: Yuan Liu <liuyuan@google.com>
 Signed-off-by: Octavian Purdila <tavi.purdila@gmail.com>
 ---
- arch/um/lkl/Kconfig                 | 2 ++
- arch/um/lkl/include/system/stdarg.h | 2 ++
- include/linux/compiler_attributes.h | 4 ++++
- lib/.gitignore                      | 2 ++
- lib/raid6/.gitignore                | 1 +
- scripts/.gitignore                  | 2 ++
- scripts/basic/.gitignore            | 1 +
- scripts/kconfig/.gitignore          | 1 +
- scripts/link-vmlinux.sh             | 2 ++
- scripts/mod/.gitignore              | 1 +
- 10 files changed, 18 insertions(+)
- create mode 100644 arch/um/lkl/include/system/stdarg.h
+ Documentation/virt/uml/lkl.txt | 453 +++++++++++++++++++++++++++++++++
+ 1 file changed, 453 insertions(+)
+ create mode 100644 Documentation/virt/uml/lkl.txt
 
-diff --git a/arch/um/lkl/Kconfig b/arch/um/lkl/Kconfig
-index 07b3699095ae..1629e2679b75 100644
---- a/arch/um/lkl/Kconfig
-+++ b/arch/um/lkl/Kconfig
-@@ -20,6 +20,8 @@ config LKL
-        select DMA_DIRECT_OPS
-        select PHYS_ADDR_T_64BIT if 64BIT
-        select 64BIT if "$(OUTPUT_FORMAT)" = "elf64-x86-64"
-+       select 64BIT if "$(OUTPUT_FORMAT)" = "pe-x86-64"
-+       select HAVE_UNDERSCORE_SYMBOL_PREFIX if "$(OUTPUT_FORMAT)" = "pe-i386"
-        select 64BIT if "$(OUTPUT_FORMAT)" = "elf64-x86-64-freebsd"
-        select NET
-        select MULTIUSER
-diff --git a/arch/um/lkl/include/system/stdarg.h b/arch/um/lkl/include/system/stdarg.h
+diff --git a/Documentation/virt/uml/lkl.txt b/Documentation/virt/uml/lkl.txt
 new file mode 100644
-index 000000000000..12077a36828c
+index 000000000000..01c7b8bf7edc
 --- /dev/null
-+++ b/arch/um/lkl/include/system/stdarg.h
-@@ -0,0 +1,2 @@
-+/* SPDX-License-Identifier: GPL-2.0 */
-+/* empty file to avoid #include_next<stdarg.h> error */
-diff --git a/include/linux/compiler_attributes.h b/include/linux/compiler_attributes.h
-index 6b318efd8a74..1981b1c323c1 100644
---- a/include/linux/compiler_attributes.h
-+++ b/include/linux/compiler_attributes.h
-@@ -154,7 +154,11 @@
-  *   gcc: https://gcc.gnu.org/onlinedocs/gcc/Common-Function-Attributes.html#index-format-function-attribute
-  * clang: https://clang.llvm.org/docs/AttributeReference.html#format
-  */
-+#ifdef __MINGW32__
-+#define __printf(a, b)             __attribute__((__format__(gnu_printf, a, b)))
-+#else
- #define __printf(a, b)                  __attribute__((__format__(printf, a, b)))
-+#endif
- #define __scanf(a, b)                   __attribute__((__format__(scanf, a, b)))
- 
- /*
-diff --git a/lib/.gitignore b/lib/.gitignore
-index f2a39c9e5485..eb9f11b81fe1 100644
---- a/lib/.gitignore
-+++ b/lib/.gitignore
-@@ -2,7 +2,9 @@
- # Generated files
- #
- gen_crc32table
-+gen_crc32table.exe
- gen_crc64table
-+gen_crc64table.exe
- crc32table.h
- crc64table.h
- oid_registry_data.c
-diff --git a/lib/raid6/.gitignore b/lib/raid6/.gitignore
-index 3de0d8921286..80e3566535aa 100644
---- a/lib/raid6/.gitignore
-+++ b/lib/raid6/.gitignore
-@@ -1,4 +1,5 @@
- mktables
-+mktables.exe
- altivec*.c
- int*.c
- tables.c
-diff --git a/scripts/.gitignore b/scripts/.gitignore
-index 17f8cef88fa8..ec9138a39b25 100644
---- a/scripts/.gitignore
-+++ b/scripts/.gitignore
-@@ -4,8 +4,10 @@
- bin2c
- conmakehash
- kallsyms
-+kallsyms.exe
- pnmtologo
- unifdef
-+unifdef.exe
- recordmcount
- sortextable
- asn1_compiler
-diff --git a/scripts/basic/.gitignore b/scripts/basic/.gitignore
-index a776371a3502..77ce153243fa 100644
---- a/scripts/basic/.gitignore
-+++ b/scripts/basic/.gitignore
-@@ -1 +1,2 @@
- fixdep
-+fixdep.exe
-diff --git a/scripts/kconfig/.gitignore b/scripts/kconfig/.gitignore
-index b5bf92f66d11..aa27000d896f 100644
---- a/scripts/kconfig/.gitignore
-+++ b/scripts/kconfig/.gitignore
-@@ -8,6 +8,7 @@
- # configuration programs
- #
- conf
-+conf.exe
- mconf
- nconf
- qconf
-diff --git a/scripts/link-vmlinux.sh b/scripts/link-vmlinux.sh
-index c3c5758ed7d6..553d966a1986 100755
---- a/scripts/link-vmlinux.sh
-+++ b/scripts/link-vmlinux.sh
-@@ -209,6 +209,7 @@ fi;
- # final build of init/
- ${MAKE} -f "${srctree}/scripts/Makefile.build" obj=init
- 
-+if [ -e scripts/mod/modpost ]; then
- #link vmlinux.o
- info LD vmlinux.o
- modpost_link vmlinux.o
-@@ -218,6 +219,7 @@ ${MAKE} -f "${srctree}/scripts/Makefile.modpost" MODPOST_VMLINUX=1
- 
- info MODINFO modules.builtin.modinfo
- ${OBJCOPY} -j .modinfo -O binary vmlinux.o modules.builtin.modinfo
-+fi
- 
- kallsymso=""
- kallsyms_vmlinux=""
-diff --git a/scripts/mod/.gitignore b/scripts/mod/.gitignore
-index 3bd11b603173..cd67845e326d 100644
---- a/scripts/mod/.gitignore
-+++ b/scripts/mod/.gitignore
-@@ -1,4 +1,5 @@
- elfconfig.h
- mk_elfconfig
- modpost
-+modpost.exe
- devicetable-offsets.h
++++ b/Documentation/virt/uml/lkl.txt
+@@ -0,0 +1,453 @@
++
++Introduction
++============
++
++LKL (Linux Kernel Library) is aiming to allow reusing the Linux kernel code as
++extensively as possible with minimal effort and reduced maintenance overhead.
++
++Examples of how LKL can be used are: creating userspace applications (running on
++Linux and other operating systems) that can read or write Linux filesystems or
++can use the Linux networking stack, creating kernel drivers for other operating
++systems that can read Linux filesystems, bootloaders support for reading/writing
++Linux filesystems, etc.
++
++With LKL, the kernel code is compiled into an object file that can be directly
++linked by applications. The API offered by LKL is based on the Linux system call
++interface.
++
++LKL is implemented as one of the mode of UML (arch/um). It uses host operations
++defined by the application or a host library (tools/lkl/lib).
++
++
++Supported hosts
++===============
++
++The supported hosts for now are POSIX and Windows userspace applications.
++
++
++Building LKL the host library and LKL applications
++==================================================
++
++    $ make -C tools/lkl
++
++will build LKL as a object file, it will install it in tools/lkl/lib together
++with the headers files in tools/lkl/include then will build the host library,
++tests and a few of application examples:
++
++* tests/boot - a simple applications that uses LKL and exercises the basic LKL
++  APIs
++
++* tests/net-test - a simple applications that uses network feature of LKL and
++  exercises the basic network-related APIs
++
++* fs2tar - a tool that converts a filesystem image to a tar archive
++
++* cptofs/cpfromfs - a tool that copies files to/from a filesystem image
++
++* lklfuse - a tool that can mount a filesystem image in userspace,
++  without root privileges, using FUSE
++
++
++Building LKL on FreeBSD
++-----------------------
++
++    $ pkg install binutils gcc gnubc gmake gsed coreutils bison flex python argp-standalone
++
++    #Prefer ports binutils and GNU bc(1):
++    $ export PATH=/sbin:/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/usr/lib64/ccache
++
++    $ gmake -C tools/lkl
++
++Building LKL on Ubuntu
++-----------------------
++
++    $ sudo apt-get install libfuse-dev libarchive-dev xfsprogs
++
++    # Optional, if you would like to be able to run tests
++    $ sudo apt-get install btrfs-tools
++    $ pip install yamlish junit_xml
++
++    $ make -C tools/lkl
++
++    # To check that everything works:
++    $ cd tools/lkl
++    $ make run-tests
++
++
++Building LKL for Windows
++------------------------
++
++In order to build LKL for Win32 the mingw cross compiler needs to be installed
++on the host (e.g. on Ubuntu the following packages are required:
++binutils-mingw-w64-i686, gcc-mingw-w64-base, gcc-mingw-w64-i686
++mingw-w64-common, mingw-w64-i686-dev).
++
++Due to a bug in mingw regarding weak symbols the following patches needs to be
++applied to mingw-binutils:
++
++https://sourceware.org/ml/binutils/2015-10/msg00234.html
++
++and i686-w64-mingw32-gas, i686-w64-mingw32-ld and i686-w64-mingw32-objcopy need
++to be recompiled.
++
++With that pre-requisites fullfilled you can now build LKL for Win32 with the
++following command:
++
++    $ make CROSS_COMPILE=i686-w64-mingw32- -C tools/lkl
++
++
++
++Building LKL on Windows
++------------------------
++
++To build on Windows, certain GNU tools need to be installed. These tools can come
++from several different projects, such as cygwin, unxutils, gnu-win32 or busybox-w32.
++Below is one minimal/modular set-up based on msys2.
++
++### Common build dependencies:
++* [MSYS2](https://sourceforge.net/projects/msys2/) (provides GNU bash and many other utilities)
++* Extra utilities from MSYS2/pacman: bc, base-devel
++
++### General considerations:
++* No spaces in pathnames (source, prefix, destination,...)!
++* Make sure that all utilities are in the PATH.
++* Win64 (and MinGW 64-bit crt) is LLP64, which causes conflicts in size of "long" in the
++Linux source. Linux (and lkl) can (currently) not
++be built on LLP64.
++* Cygwin (and msys2) are LP64, like linux.
++
++### For MSYS2 (and Cygwin):
++Msys2 will install a gcc tool chain as part of the base-devel bundle. Binutils (2.26) is already
++patched for NT weak externals. Using the msys2 shell, cd to the lkl sources and run:
++
++    $ make -C tools/lkl
++
++### For MinGW:
++Install mingw-w64-i686-toolchain via pacman, mingw-w64-i686-binutils (2.26) is already patched
++for NT weak externals. Start a MinGW Win32 shell (64-bit will not work, see above)
++and run:
++
++    $ make -C tools/lkl
++
++
++LKL hijack library
++==================
++
++LKL hijack library (liblkl-hijack.so) is used to replace system calls used by an
++application on the fly so that the application can use LKL instead of the kernel
++of host operating system. LD_PRELOAD is used to dynamically override system
++calls with this library when you execute a program.
++
++You can usually use this library via a wrapper script.
++
++    $ cd tools/lkl
++    $ ./bin/lkl-hijack.sh ip address show
++
++In order to configure the behavior of LKL, a json file can be used. You can
++specify json file with environmental variables (LKL_HIJACK_CONFIG_FILE). If
++there is nothing specified, LKL tries to find with the name 'lkl-hijack.json'
++for the configuration file.  You can also use the old-style configuration with
++environmental variables (e.g., LKL_HIJACK_NET_IFTYPE) but those are overridden
++if a json file is specified.
++
++```
++     $ cat conf.json
++     {
++       "gateway":"192.168.0.1",
++       "gateway6":"2001:db8:0:f101::1",
++       "debug":"1",
++       "singlecpu":"1",
++       "sysctl":"net.ipv4.tcp_wmem=4096 87380 2147483647",
++       "boot_cmdline":"ip=dhcp",
++       "interfaces":[
++               {
++                       "mac":"12:34:56:78:9a:bc",
++                       "type":"tap",
++                       "param":"tap7",
++                       "ip":"192.168.0.2",
++                       "masklen":"24",
++                       "ifgateway":"192.168.0.1",
++                       "ipv6":"2001:db8:0:f101::2",
++                       "masklen6":"64",
++                       "ifgateway6":"2001:db8:0:f101::1",
++                       "offload":"0xc803"
++               },
++               {
++                       "mac":"12:34:56:78:9a:bd",
++                       "type":"tap",
++                       "param":"tap77",
++                       "ip":"192.168.1.2",
++                       "masklen":"24",
++                       "ifgateway":"192.168.1.1",
++                       "ipv6":"2001:db8:0:f102::2",
++                       "masklen6":"64",
++                       "ifgateway6":"2001:db8:0:f102::1",
++                       "offload":"0xc803"
++               }
++       ]
++     }
++     $ LKL_HIJACK_CONFIG_FILE="conf.json" lkl-hijack.sh ip addr s
++```
++
++The following are the list of keys to describe a JSON file.
++
++* IPv4 gateway address
++
++  key: "gateway"
++  value type: string
++
++  the gateway IPv4 address of LKL network stack.
++```
++     "gateway":"192.168.0.1"
++```
++
++* IPv6 gateway address
++
++  key: "gateway6"
++  value type: string
++
++  the gateway IPv6 address of LKL network stack.
++```
++     "gateway6":"2001:db8:0:f101::1"
++```
++
++* Debug
++
++  key: "debug"
++  value type: string
++
++  Setting it causes some debug information (both from the kernel and the
++  LKL library) to be enabled.  If zero' is specified it is disabled.
++  It is also used as a bit mask to turn on specific debugging facilities.
++  E.g., setting it to "0x100" will cause the LKL kernel to pause after
++  the hijack'ed app exits. This allows one to debug or collect info from
++  the LKL kernel before it quits.
++```
++     "debug":"1"
++```
++
++* Single CPU pinning
++
++  key: "singlecpu"
++  value type: string
++
++  Pin LKL kernel threads on to a single host cpu. value "1" pins
++  only LKL kernel threads while value "2" also pins polling
++  threads.
++```
++     "singlecpu":"1"
++```
++
++* SYSCTL
++
++  key: "sysctl"
++  value type: string
++
++  Configure sysctl values of the booted kernel via the hijack library. Multiple
++  entries can be specified.
++```
++     "sysctl":"net.ipv4.tcp_wmem=4096 87380 2147483647"
++```
++
++* Boot command line
++
++  key: "boot_cmdline"
++  value type: string
++
++  Specify the command line to the kernel boot so that change the configuration
++  on a kernel instance.  For instance, you can change the memory size with
++  below.
++```
++     "boot_cmdline": "mem=1G"
++```
++
++* Mount
++
++  key: "mount"
++  value type: string
++
++```
++     "mount": "proc,sysfs"
++```
++
++* Network Interface Configuration
++
++  key: "interfaces"
++  value type: array of objects
++
++  This key takes a set of sub-keys to configure a single interface. Each key is defined as follows.
++  ```
++       "interfaces":[{....},{....}]
++  ```
++
++
++	* Interface type
++
++	  key: "type"
++	  value type: string
++
++	  The interface type in host operating system to connect to LKL.
++	  The following example specifies a tap interface.
++	```
++	     "type":"tap"
++	```
++
++	* Interface parameter
++
++	  key: "param"
++	  value type: string
++
++	  Additional configuration parameters for the interface specified by Interface type (type).
++	  The parameters depend on the interface type.
++	```
++	     "type":"tap",
++	     "param":"tap0"
++	```
++
++	* Interface MTU size
++
++	  key: "mtu"
++	  value type: string
++
++	  the MTU size of the interface.
++	```
++	     "mtu":"1280"
++	```
++
++	* Interface IPv4 address
++
++	  key: "ip"
++	  value type: string
++
++	  the IPv4 address of the interface.
++	  If you want to use DHCP for the IP address assignment,
++	  use "boot_cmdline" with "ip=dhcp" option.
++	```
++	     "ip":"192.168.0.2"
++	```
++	```
++	     "boot_cmdline":"ip=dhcp"
++	```
++
++	* Interface IPv4 netmask length
++
++	  key: "masklen"
++	  value type: string
++
++	  the network mask length of the interface.
++	```
++	     "ip":"192.168.0.2",
++	     "masklen":"24"
++	```
++
++	* Interface IPv4 gateway on routing policy table
++
++	  key: "ifgateway"
++	  value type: string
++
++	  If you specify this parameter, LKL adds routing policy table.
++	  And then LKL creates link local and gateway route on this table.
++	  Table SELECTOR is "from" and PREFIX is address you assigned to this interface.
++	  Table id is 2 * (interface index).
++	  This parameter could be used to configure LKL for mptcp, for example.
++
++	```
++	     "ip":"192.168.0.2",
++	     "masklen":"24",
++	     "ifgateway":"192.168.0.1"
++	```
++
++	* Interface IPv6 address
++
++	  key: "ipv6"
++	  value type: string
++
++	  the IPv6 address of the interface.
++	```
++	     "ipv6":"2001:db8:0:f101::2"
++	```
++
++	* Interface IPv6 netmask length
++
++	  key: "masklen6"
++	  value type: string
++
++	  the network mask length of the interface.
++	```
++	     "ipv6":"2001:db8:0:f101::2",
++	     "masklen":"64"
++	```
++
++	* Interface IPv6 gateway on routing policy table
++
++	  key: "ifgateway6"
++	  value type: string
++
++	  If you specify this parameter, LKL adds routing policy table.
++	  And then LKL creates link local and gateway route on this table.
++	  Table SELECTOR is "from" and PREFIX is address you assigned to this interface.
++	  Table id is 2 * (interface index) + 1.
++	  This parameter could be used to configure LKL for mptcp, for example.
++	```
++	     "ipv6":"2001:db8:0:f101::2",
++	     "masklen":"64"
++	     "ifgateway6":"2001:db8:0:f101::1",
++	```
++
++	* Interface MAC address
++
++	  key: "mac"
++	  value type: string
++
++	  the MAC address of the interface.
++	```
++	     "mac":"12:34:56:78:9a:bc"
++	```
++
++	* Interfac neighbor entries
++
++	  key: "neigh"
++	  value type: string
++
++	  Add a list of permanent neighbor entries in the form of "ip|mac;ip|mac;...". ipv6 are supported
++	```
++	     "neigh":"192.168.0.1|12:34:56:78:9a:bc;2001:db8:0:f101::1|12:34:56:78:9a:be"
++	```
++
++	* Interface qdisc entries
++
++	  key: "qdisc"
++	  value type: string
++
++	  Add a qdisc entry in the form of "root|type;root|type;...".
++	```
++	     "qdisc":"root|fq"
++	```
++
++	* Interface offload
++
++	  key: "offload"
++	  value type: string
++
++	  Work as a bit mask to enable selective device offload features. E.g.,
++	  to enable "mergeable RX buffer" (LKL_VIRTIO_NET_F_MRG_RXBUF) +
++	  "guest csum" (LKL_VIRTIO_NET_F_GUEST_CSUM) device features, simply set
++	  it to 0x8002.
++	  See virtio_net.h for a list of offload features and their bit masks.
++	```
++	     "offload":"0x8002"
++	```
++
++* Delay
++
++  key: "delay_main"
++  value type: string
++
++  The delay before calling main() function of the application after the
++  initialization of LKL.  Some subsystems in Linux tree require a certain
++  amount of time before accepting a request from application, such as
++  delivery of address assignment to an network interface.  This parameter
++  is used in such case.  The value is described as a microsecond value.
++```
++     "delay_main":"500000"
++```
 -- 
 2.20.1 (Apple Git-117)
