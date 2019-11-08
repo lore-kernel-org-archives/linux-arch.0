@@ -1,14 +1,14 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pf1-f193.google.com ([209.85.210.193]:34606 "EHLO
-        mail-pf1-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1725975AbfKHFDR (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 8 Nov 2019 00:03:17 -0500
-Received: by mail-pf1-f193.google.com with SMTP id n13so3891832pff.1
-        for <linux-arch@vger.kernel.org>; Thu, 07 Nov 2019 21:03:16 -0800 (PST)
+Received: from mail-pl1-f195.google.com ([209.85.214.195]:35073 "EHLO
+        mail-pl1-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1725802AbfKHFD4 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 8 Nov 2019 00:03:56 -0500
+Received: by mail-pl1-f195.google.com with SMTP id s10so3257820plp.2
+        for <linux-arch@vger.kernel.org>; Thu, 07 Nov 2019 21:03:55 -0800 (PST)
 From: Hajime Tazaki <thehajime@gmail.com>
-Subject: [RFC v2 06/37] lkl: kernel threads support
-Date: Fri,  8 Nov 2019 14:02:21 +0900
-Message-Id: <97def6ff3ef44b32cbea4471e7b90ad274b2d11b.1573179553.git.thehajime@gmail.com>
+Subject: [RFC v2 22/37] lkl tools: tool that reads/writes to/from a filesystem image
+Date: Fri,  8 Nov 2019 14:02:37 +0900
+Message-Id: <6e9de3ed3a255e42ab9203afba2a54bf3498bc50.1573179553.git.thehajime@gmail.com>
 In-Reply-To: <cover.1573179553.git.thehajime@gmail.com>
 References: <cover.1573179553.git.thehajime@gmail.com>
 MIME-Version: 1.0
@@ -16,659 +16,712 @@ Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-um@lists.infradead.org
-Cc: Octavian Purdila <tavi.purdila@gmail.com>, Akira Moroo <retrage01@gmail.com>, linux-kernel-library@freelists.org, linux-arch@vger.kernel.org, Hajime Tazaki <thehajime@gmail.com>, Lai Jiangshan <jiangshanlai@gmail.com>, Patrick Collins <pscollins@google.com>, Yuan Liu <liuyuan@google.com>
+Cc: Octavian Purdila <tavi.purdila@gmail.com>, Akira Moroo <retrage01@gmail.com>, linux-kernel-library@freelists.org, linux-arch@vger.kernel.org, Conrad Meyer <cem@FreeBSD.org>, Dan Peebles <pumpkin@me.com>, Hajime Tazaki <thehajime@gmail.com>, Petros Angelatos <petrosagg@gmail.com>, Tuomas Tynkkynen <tuomas.tynkkynen@iki.fi>, Yuriy Taraday <yorik.sar@gmail.com>
 
 From: Octavian Purdila <tavi.purdila@gmail.com>
 
-LKL does not support user processes but it must support kernel threads
-as part as the normal kernel work-flow. It uses host operations to
-create and terminate host threads that are going to run the kernel
-threads. It also uses semaphores to synchronize those threads and to
-allow the Linux kernel scheduler to control how the kernel threads
-run.
+A tool to read/write to/from a filesystem image without mounting the
+file to host filesystem.  Thus there is no root priviledge to modify the
+contents.
 
-Each kernel thread runs in a host threads and has a host semaphore
-associated with it - the thread's scheduling semaphore. The semaphore
-counter is initialized to 0. The first thing a kernel thread does
-after getting spawned, before running any kernel code, is to perform a
-down operation to block the thread.
-
-The kernel controls host threads scheduling by performing up and down
-operations on the scheduling semaphore. In __switch_context an up
-operation on the next thread is performed to wake up a blocked thread,
-and a down operation is performed on the prev thread to block it.
-
-A thread is terminated by marking it in free_thread_info and
-performing an up operation on the scheduling semaphore at which point
-the marked thread will terminate itself.
-
+Signed-off-by: Conrad Meyer <cem@FreeBSD.org>
+Signed-off-by: Dan Peebles <pumpkin@me.com>
 Signed-off-by: Hajime Tazaki <thehajime@gmail.com>
-Signed-off-by: Lai Jiangshan <jiangshanlai@gmail.com>
-Signed-off-by: Patrick Collins <pscollins@google.com>
-Signed-off-by: Yuan Liu <liuyuan@google.com>
+Signed-off-by: Petros Angelatos <petrosagg@gmail.com>
+Signed-off-by: Tuomas Tynkkynen <tuomas.tynkkynen@iki.fi>
+Signed-off-by: Yuriy Taraday <yorik.sar@gmail.com>
 Signed-off-by: Octavian Purdila <tavi.purdila@gmail.com>
 ---
- arch/um/lkl/include/asm/thread_info.h   |  70 ++++++++
- arch/um/lkl/include/uapi/asm/host_ops.h |  55 ++++++
- arch/um/lkl/kernel/cpu.c                | 223 +++++++++++++++++++++++
- arch/um/lkl/kernel/threads.c            | 227 ++++++++++++++++++++++++
- 4 files changed, 575 insertions(+)
- create mode 100644 arch/um/lkl/include/asm/thread_info.h
- create mode 100644 arch/um/lkl/kernel/cpu.c
- create mode 100644 arch/um/lkl/kernel/threads.c
+ tools/lkl/.gitignore |   2 +
+ tools/lkl/Build      |   2 +
+ tools/lkl/Makefile   |   3 +
+ tools/lkl/Targets    |   3 +
+ tools/lkl/cptofs.c   | 635 +++++++++++++++++++++++++++++++++++++++++++
+ 5 files changed, 645 insertions(+)
+ create mode 100644 tools/lkl/cptofs.c
 
-diff --git a/arch/um/lkl/include/asm/thread_info.h b/arch/um/lkl/include/asm/thread_info.h
+diff --git a/tools/lkl/.gitignore b/tools/lkl/.gitignore
+index 4e08254dbd46..1a8210f4d9c4 100644
+--- a/tools/lkl/.gitignore
++++ b/tools/lkl/.gitignore
+@@ -7,3 +7,5 @@ tests/disk
+ tests/boot
+ tests/valgrind*.xml
+ *.pyc
++cptofs
++cpfromfs
+diff --git a/tools/lkl/Build b/tools/lkl/Build
+index e69de29bb2d1..a9d12c5ca260 100644
+--- a/tools/lkl/Build
++++ b/tools/lkl/Build
+@@ -0,0 +1,2 @@
++cptofs-$(LKL_HOST_CONFIG_ARCHIVE) += cptofs.o
++
+diff --git a/tools/lkl/Makefile b/tools/lkl/Makefile
+index 9a55df5064e4..94f3ba09123d 100644
+--- a/tools/lkl/Makefile
++++ b/tools/lkl/Makefile
+@@ -85,6 +85,9 @@ $(OUTPUT)%$(EXESUF): $(OUTPUT)%-in.o $(OUTPUT)liblkl.a
+ $(OUTPUT)%-in.o: $(OUTPUT)lib/lkl.o FORCE
+ 	$(Q)$(MAKE) -f $(srctree)/tools/build/Makefile.build dir=$(patsubst %/,%,$(dir $*)) obj=$(notdir $*)
+ 
++$(OUTPUT)cpfromfs$(EXESUF): cptofs$(EXESUF)
++	$(Q)if ! [ -e $@ ]; then ln -s $< $@; fi
++
+ 
+ clean:
+ 	$(call QUIET_CLEAN, objects)find $(OUTPUT) -name '*.o' -delete -o -name '\.*.cmd'\
+diff --git a/tools/lkl/Targets b/tools/lkl/Targets
+index a9f74c3cc8fb..e629b330e5aa 100644
+--- a/tools/lkl/Targets
++++ b/tools/lkl/Targets
+@@ -4,3 +4,6 @@ progs-y += tests/boot
+ progs-y += tests/disk
+ progs-y += tests/net-test
+ 
++progs-$(LKL_HOST_CONFIG_ARCHIVE) += cptofs
++LDLIBS_cptofs-y := -larchive
++LDLIBS_cptofs-$(LKL_HOST_CONFIG_NEEDS_LARGP) += -largp
+diff --git a/tools/lkl/cptofs.c b/tools/lkl/cptofs.c
 new file mode 100644
-index 000000000000..da4e75fc7b10
+index 000000000000..dd490435d5b7
 --- /dev/null
-+++ b/arch/um/lkl/include/asm/thread_info.h
-@@ -0,0 +1,70 @@
-+/* SPDX-License-Identifier: GPL-2.0 */
-+#ifndef _ASM_LKL_THREAD_INFO_H
-+#define _ASM_LKL_THREAD_INFO_H
++++ b/tools/lkl/cptofs.c
+@@ -0,0 +1,635 @@
++// SPDX-License-Identifier: GPL-2.0
++#ifdef __FreeBSD__
++#include <sys/param.h>
++#endif
 +
-+#define THREAD_SIZE	       (4096)
++#include <stdio.h>
++#include <time.h>
++#include <argp.h>
++#include <unistd.h>
++#include <string.h>
++#include <stdlib.h>
++#include <libgen.h>
++#include <sys/stat.h>
++#include <fcntl.h>
++#include <fnmatch.h>
++#include <dirent.h>
++#include <lkl.h>
++#include <lkl_host.h>
 +
-+#ifndef __ASSEMBLY__
-+#include <asm/types.h>
-+#include <asm/processor.h>
-+#include <asm/host_ops.h>
++static const char doc_cptofs[] = "Copy files to a filesystem image";
++static const char doc_cpfromfs[] = "Copy files from a filesystem image";
++static const char args_doc_cptofs[] = "-t fstype -i fsimage path... fs_path";
++static const char args_doc_cpfromfs[] = "-t fstype -i fsimage fs_path... path";
 +
-+typedef struct {
-+	unsigned long seg;
-+} mm_segment_t;
-+
-+struct thread_info {
-+	struct task_struct *task;
-+	unsigned long flags;
-+	int preempt_count;
-+	mm_segment_t addr_limit;
-+	struct lkl_sem *sched_sem;
-+	struct lkl_jmp_buf sched_jb;
-+	bool dead;
-+	lkl_thread_t tid;
-+	struct task_struct *prev_sched;
-+	unsigned long stackend;
++static struct argp_option options[] = {
++	{"enable-printk", 'p', 0, 0, "show Linux printks"},
++	{"partition", 'P', "int", 0, "partition number"},
++	{"filesystem-type", 't', "string", 0,
++	 "select filesystem type - mandatory"},
++	{"filesystem-image", 'i', "string", 0,
++	 "path to the filesystem image - mandatory"},
++	{"selinux", 's', "string", 0, "selinux attributes for destination"},
++	{0},
 +};
 +
-+#define INIT_THREAD_INFO(tsk)				\
-+{							\
-+	.task		= &tsk,				\
-+	.preempt_count	= INIT_PREEMPT_COUNT,		\
-+	.flags		= 0,				\
-+	.addr_limit	= KERNEL_DS,			\
++static struct cl_args {
++	int printk;
++	int part;
++	const char *fsimg_type;
++	const char *fsimg_path;
++	int npaths;
++	char **paths;
++	const char *selinux;
++} cla;
++
++static int cptofs;
++
++static error_t parse_opt(int key, char *arg, struct argp_state *state)
++{
++	struct cl_args *cla = state->input;
++
++	switch (key) {
++	case 'p':
++		cla->printk = 1;
++		break;
++	case 'P':
++		cla->part = atoi(arg);
++		break;
++	case 't':
++		cla->fsimg_type = arg;
++		break;
++	case 'i':
++		cla->fsimg_path = arg;
++		break;
++	case 's':
++		cla->selinux = arg;
++		break;
++	case ARGP_KEY_ARG:
++		// Capture all remaining arguments in our paths array and stop
++		// parsing here. We treat the last one as the destination and
++		// everything before it as sources, just like cp does.
++		cla->paths = &state->argv[state->next - 1];
++		cla->npaths = state->argc - state->next + 1;
++		state->next = state->argc;
++		break;
++	default:
++		return ARGP_ERR_UNKNOWN;
++	}
++
++	return 0;
 +}
 +
-+/* how to get the thread information struct from C */
-+extern struct thread_info *_current_thread_info;
-+static inline struct thread_info *current_thread_info(void)
++static struct argp argp_cptofs = {
++	.options = options,
++	.parser = parse_opt,
++	.args_doc = args_doc_cptofs,
++	.doc = doc_cptofs,
++};
++
++static struct argp argp_cpfromfs = {
++	.options = options,
++	.parser = parse_opt,
++	.args_doc = args_doc_cpfromfs,
++	.doc = doc_cpfromfs,
++};
++
++static int searchdir(const char *fs_path, const char *path, const char *match);
++
++static int open_src(const char *path)
 +{
-+	return _current_thread_info;
++	int fd;
++
++	if (cptofs)
++		fd = open(path, O_RDONLY, 0);
++	else
++		fd = lkl_sys_open(path, LKL_O_RDONLY, 0);
++
++	if (fd < 0)
++		fprintf(stderr, "unable to open file %s for reading: %s\n",
++			path, cptofs ? strerror(errno) : lkl_strerror(fd));
++
++	return fd;
 +}
 +
-+/* thread information allocation */
-+unsigned long *alloc_thread_stack_node(struct task_struct *, int node);
-+void free_thread_stack(struct task_struct *tsk);
-+
-+void threads_init(void);
-+void threads_cleanup(void);
-+
-+#define TIF_SYSCALL_TRACE		0
-+#define TIF_NOTIFY_RESUME		1
-+#define TIF_SIGPENDING			2
-+#define TIF_NEED_RESCHED		3
-+#define TIF_RESTORE_SIGMASK		4
-+#define TIF_MEMDIE			5
-+#define TIF_NOHZ			6
-+#define TIF_SCHED_JB			7
-+#define TIF_HOST_THREAD			8
-+
-+#define __HAVE_THREAD_FUNCTIONS
-+
-+#define task_thread_info(task)	((struct thread_info *)(task)->stack)
-+#define task_stack_page(task)	((task)->stack)
-+void setup_thread_stack(struct task_struct *p, struct task_struct *org);
-+#define end_of_stack(p) (&task_thread_info(p)->stackend)
-+
-+#endif /* __ASSEMBLY__ */
-+
-+#endif
-diff --git a/arch/um/lkl/include/uapi/asm/host_ops.h b/arch/um/lkl/include/uapi/asm/host_ops.h
-index 6bbc94c120be..19924fc7c718 100644
---- a/arch/um/lkl/include/uapi/asm/host_ops.h
-+++ b/arch/um/lkl/include/uapi/asm/host_ops.h
-@@ -17,15 +17,70 @@ struct lkl_jmp_buf {
-  * These operations must be provided by a host library or by the application
-  * itself.
-  *
-+ * @sem_alloc - allocate a host semaphore an initialize it to count
-+ * @sem_free - free a host semaphore
-+ * @sem_up - perform an up operation on the semaphore
-+ * @sem_down - perform a down operation on the semaphore
-+ *
-+ * @mutex_alloc - allocate and initialize a host mutex; the recursive parameter
-+ * determines if the mutex is recursive or not
-+ * @mutex_free - free a host mutex
-+ * @mutex_lock - acquire the mutex
-+ * @mutex_unlock - release the mutex
-+ *
-+ * @thread_create - create a new thread and run f(arg) in its context; returns a
-+ * thread handle or 0 if the thread could not be created
-+ * @thread_detach - on POSIX systems, free up resources held by
-+ * pthreads. Noop on Win32.
-+ * @thread_exit - terminates the current thread
-+ * @thread_join - wait for the given thread to terminate. Returns 0
-+ * for success, -1 otherwise
-+ *
-  * @mem_alloc - allocate memory
-  * @mem_free - free memory
-  *
-+ * @gettid - returns the host thread id of the caller, which need not
-+ * be the same as the handle returned by thread_create
-+ *
-+ * @jmp_buf_set - runs the give function and setups a jump back point by saving
-+ * the context in the jump buffer; jmp_buf_longjmp can be called from the give
-+ * function or any callee in that function to return back to the jump back
-+ * point
-+ *
-+ * NOTE: we can't return from jmp_buf_set before calling jmp_buf_longjmp or
-+ * otherwise the saved context (stack) is not going to be valid, so we must pass
-+ * the function that will eventually call longjmp here
-+ *
-+ * @jmp_buf_longjmp - perform a jump back to the saved jump buffer
-  */
- struct lkl_host_operations {
-+	struct lkl_sem *(*sem_alloc)(int count);
-+	void (*sem_free)(struct lkl_sem *sem);
-+	void (*sem_up)(struct lkl_sem *sem);
-+	void (*sem_down)(struct lkl_sem *sem);
-+
-+	struct lkl_mutex *(*mutex_alloc)(int recursive);
-+	void (*mutex_free)(struct lkl_mutex *mutex);
-+	void (*mutex_lock)(struct lkl_mutex *mutex);
-+	void (*mutex_unlock)(struct lkl_mutex *mutex);
-+
-+	lkl_thread_t (*thread_create)(void (*f)(void *), void *arg);
-+	void (*thread_detach)(void);
-+	void (*thread_exit)(void);
-+	int (*thread_join)(lkl_thread_t tid);
-+	lkl_thread_t (*thread_self)(void);
-+	int (*thread_equal)(lkl_thread_t a, lkl_thread_t b);
-+
- 	void *(*mem_alloc)(unsigned long mem);
- 	void (*mem_free)(void *mem);
-+
-+	long (*gettid)(void);
-+
-+	void (*jmp_buf_set)(struct lkl_jmp_buf *jmpb, void (*f)(void));
-+	void (*jmp_buf_longjmp)(struct lkl_jmp_buf *jmpb, int val);
- };
- 
-+int lkl_printf(const char *fmt, ...);
- void lkl_bug(const char *fmt, ...);
- 
- #endif
-diff --git a/arch/um/lkl/kernel/cpu.c b/arch/um/lkl/kernel/cpu.c
-new file mode 100644
-index 000000000000..125af3b2d5dd
---- /dev/null
-+++ b/arch/um/lkl/kernel/cpu.c
-@@ -0,0 +1,223 @@
-+// SPDX-License-Identifier: GPL-2.0
-+#include <linux/kernel.h>
-+#include <linux/sched/stat.h>
-+#include <asm/host_ops.h>
-+#include <asm/cpu.h>
-+#include <asm/thread_info.h>
-+#include <asm/unistd.h>
-+#include <asm/sched.h>
-+#include <asm/syscalls.h>
-+
-+/*
-+ * This structure is used to get access to the "LKL CPU" that allows us to run
-+ * Linux code. Because we have to deal with various synchronization requirements
-+ * between idle thread, system calls, interrupts, "reentrancy", CPU shutdown,
-+ * imbalance wake up (i.e. acquire the CPU from one thread and release it from
-+ * another), we can't use a simple synchronization mechanism such as (recursive)
-+ * mutex or semaphore. Instead, we use a mutex and a bunch of status data plus a
-+ * semaphore.
-+ */
-+static struct lkl_cpu {
-+	/* lock that protects the CPU status data */
-+	struct lkl_mutex *lock;
-+	/*
-+	 * Since we must free the cpu lock during shutdown we need a
-+	 * synchronization algorithm between lkl_cpu_shutdown() and the CPU
-+	 * access functions since lkl_cpu_get() gets called from thread
-+	 * destructor callback functions which may be scheduled after
-+	 * lkl_cpu_shutdown() has freed the cpu lock.
-+	 *
-+	 * An atomic counter is used to keep track of the number of running
-+	 * CPU access functions and allow the shutdown function to wait for
-+	 * them.
-+	 *
-+	 * The shutdown functions adds MAX_THREADS to this counter which allows
-+	 * the CPU access functions to check if the shutdown process has
-+	 * started.
-+	 *
-+	 * This algorithm assumes that we never have more the MAX_THREADS
-+	 * requesting CPU access.
-+	 */
-+	#define MAX_THREADS 1000000
-+	unsigned int shutdown_gate;
-+	bool irqs_pending;
-+	/* no of threads waiting the CPU */
-+	unsigned int sleepers;
-+	/* no of times the current thread got the CPU */
-+	unsigned int count;
-+	/* current thread that owns the CPU */
-+	lkl_thread_t owner;
-+	/* semaphore for threads waiting the CPU */
-+	struct lkl_sem *sem;
-+	/* semaphore used for shutdown */
-+	struct lkl_sem *shutdown_sem;
-+} cpu;
-+
-+static int __cpu_try_get_lock(int n)
++static int open_dst(const char *path, int mode)
 +{
-+	lkl_thread_t self;
++	int fd;
 +
-+	if (__sync_fetch_and_add(&cpu.shutdown_gate, n) >= MAX_THREADS)
-+		return -2;
++	if (cptofs)
++		fd = lkl_sys_open(path, LKL_O_RDWR | LKL_O_TRUNC | LKL_O_CREAT,
++				  mode);
++	else
++		fd = open(path, O_RDWR | O_TRUNC | O_CREAT, mode);
 +
-+	lkl_ops->mutex_lock(cpu.lock);
++	if (fd < 0)
++		fprintf(stderr, "unable to open file %s for writing: %s\n",
++			path, cptofs ? lkl_strerror(fd) : strerror(errno));
 +
-+	if (cpu.shutdown_gate >= MAX_THREADS)
++	if (cla.selinux && cptofs) {
++		int ret = lkl_sys_fsetxattr(fd, "security.selinux", cla.selinux,
++					    strlen(cla.selinux), 0);
++		if (ret)
++			fprintf(stderr,
++				"unable to set selinux attribute on %s: %s\n",
++				path, lkl_strerror(ret));
++	}
++
++	return fd;
++}
++
++static int read_src(int fd, char *buf, int len)
++{
++	int ret;
++
++	if (cptofs)
++		ret = read(fd, buf, len);
++	else
++		ret = lkl_sys_read(fd, buf, len);
++
++	if (ret < 0)
++		fprintf(stderr, "error reading file: %s\n",
++			cptofs ? strerror(errno) : lkl_strerror(ret));
++
++	return ret;
++}
++
++static int write_dst(int fd, char *buf, int len)
++{
++	int ret;
++
++	if (cptofs)
++		ret = lkl_sys_write(fd, buf, len);
++	else
++		ret = write(fd, buf, len);
++
++	if (ret < 0)
++		fprintf(stderr, "error writing file: %s\n",
++			cptofs ? lkl_strerror(ret) : strerror(errno));
++
++	return ret;
++}
++
++static void close_src(int fd)
++{
++	if (cptofs)
++		close(fd);
++	else
++		lkl_sys_close(fd);
++}
++
++static void close_dst(int fd)
++{
++	if (cptofs)
++		lkl_sys_close(fd);
++	else
++		close(fd);
++}
++
++static int copy_file(const char *src, const char *dst, int mode)
++{
++	long len, to_write, wrote;
++	char buf[4096], *ptr;
++	int ret = 0;
++	int fd_src, fd_dst;
++
++	fd_src = open_src(src);
++	if (fd_src < 0)
++		return fd_src;
++
++	fd_dst = open_dst(dst, mode);
++	if (fd_dst < 0)
++		return fd_dst;
++
++	do {
++		len = read_src(fd_src, buf, sizeof(buf));
++
++		if (len > 0) {
++			ptr = buf;
++			to_write = len;
++			do {
++				wrote = write_dst(fd_dst, ptr, to_write);
++
++				if (wrote < 0) {
++					ret = wrote;
++					goto out;
++				}
++
++				to_write -= wrote;
++				ptr += len;
++
++			} while (to_write > 0);
++		}
++
++		if (len < 0)
++			ret = len;
++
++	} while (len > 0);
++
++out:
++	close_src(fd_src);
++	close_dst(fd_dst);
++
++	return ret;
++}
++
++static int stat_src(const char *path, unsigned int *type, unsigned int *mode,
++		    long long *size, struct lkl_timespec *mtime,
++		    struct lkl_timespec *atime)
++{
++	struct stat stat;
++	struct lkl_stat lkl_stat;
++	int ret;
++
++	if (cptofs) {
++		ret = lstat(path, &stat);
++		if (type)
++			*type = stat.st_mode & S_IFMT;
++		if (mode)
++			*mode = stat.st_mode & ~S_IFMT;
++		if (size)
++			*size = stat.st_size;
++		if (mtime) {
++			mtime->tv_sec = stat.st_mtim.tv_sec;
++			mtime->tv_nsec = stat.st_mtim.tv_nsec;
++		}
++		if (atime) {
++			atime->tv_sec = stat.st_atim.tv_sec;
++			atime->tv_nsec = stat.st_atim.tv_nsec;
++		}
++	} else {
++		ret = lkl_sys_lstat(path, &lkl_stat);
++		if (type)
++			*type = lkl_stat.st_mode & S_IFMT;
++		if (mode)
++			*mode = lkl_stat.st_mode & ~S_IFMT;
++		if (size)
++			*size = lkl_stat.st_size;
++		if (mtime) {
++			mtime->tv_sec = lkl_stat.lkl_st_mtime;
++			mtime->tv_nsec = lkl_stat.st_mtime_nsec;
++		}
++		if (atime) {
++			atime->tv_sec = lkl_stat.lkl_st_atime;
++			atime->tv_nsec = lkl_stat.st_atime_nsec;
++		}
++	}
++
++	if (ret)
++		fprintf(stderr, "fsimg lstat(%s) error: %s\n",
++			path, cptofs ? strerror(errno) : lkl_strerror(ret));
++
++	return ret;
++}
++
++static int mkdir_dst(const char *path, unsigned int mode)
++{
++	int ret;
++
++	if (cptofs) {
++		ret = lkl_sys_mkdir(path, mode);
++		if (ret == -LKL_EEXIST)
++			ret = 0;
++	} else {
++		ret = mkdir(path, mode);
++		if (ret < 0 && errno == EEXIST)
++			ret = 0;
++	}
++
++	if (ret)
++		fprintf(stderr, "unable to create directory %s: %s\n",
++			path, cptofs ? strerror(errno) : lkl_strerror(ret));
++
++	return ret;
++}
++
++static int readlink_src(const char *src, char *out, int outsize)
++{
++	int ret;
++
++	if (cptofs)
++		ret = readlink(src, out, outsize);
++	else
++		ret = lkl_sys_readlink(src, out, outsize);
++
++	if (ret < 0)
++		fprintf(stderr, "unable to readlink '%s': %s\n", src,
++			cptofs ? strerror(errno) : lkl_strerror(ret));
++
++	return ret;
++}
++
++static int symlink_dst(const char *path, const char *target)
++{
++	int ret;
++
++	if (cptofs)
++		ret = lkl_sys_symlink(target, path);
++	else
++		ret = symlink(target, path);
++
++	if (ret)
++		fprintf(stderr, "unable to symlink '%s' with target '%s': %s\n",
++			path, target, cptofs ? lkl_strerror(ret) :
++			strerror(errno));
++
++	return ret;
++}
++
++static int copy_symlink(const char *src, const char *dst)
++{
++	int ret;
++	long long size, actual_size;
++	char *target = NULL;
++
++	ret = stat_src(src, NULL, NULL, &size, NULL, NULL);
++	if (ret) {
++		ret = -1;
++		goto out;
++	}
++
++	target = malloc(size + 1);
++	if (!target) {
++		fprintf(stderr, "Unable to allocate memory (%lld bytes)\n",
++			size + 1);
++		ret = -1;
++		goto out;
++	}
++
++	actual_size = readlink_src(src, target, size);
++	if (actual_size != size) {
++		fprintf(stderr,
++			"readlink(%s) bad size: got %lld, expected %lld\n",
++			src, actual_size, size);
++		ret = -1;
++		goto out;
++	}
++	target[size] = 0; // readlink doesn't append the trailing null byte
++
++	ret = symlink_dst(dst, target);
++	if (ret)
++		ret = -1;
++
++out:
++	if (target)
++		free(target);
++
++	return ret;
++}
++
++static int do_entry(const char *_src, const char *_dst, const char *name)
++{
++	char src[PATH_MAX], dst[PATH_MAX];
++	struct lkl_timespec mtime, atime;
++	unsigned int type, mode;
++	int ret;
++
++	snprintf(src, sizeof(src), "%s/%s", _src, name);
++	snprintf(dst, sizeof(dst), "%s/%s", _dst, name);
++
++	ret = stat_src(src, &type, &mode, NULL, &mtime, &atime);
++
++	switch (type) {
++	case S_IFREG:
++	{
++		ret = copy_file(src, dst, mode);
++		break;
++	}
++	case S_IFDIR:
++		ret = mkdir_dst(dst, mode);
++		if (ret)
++			break;
++		ret = searchdir(src, dst, NULL);
++		break;
++	case S_IFLNK:
++		ret = copy_symlink(src, dst);
++		break;
++	case S_IFSOCK:
++	case S_IFBLK:
++	case S_IFCHR:
++	case S_IFIFO:
++	default:
++		printf("skipping %s: unsupported entry type %d\n", src, type);
++	}
++
++	if (!ret) {
++		if (cptofs) {
++			struct lkl_timespec lkl_ts[] = { atime, mtime };
++
++			ret = lkl_sys_utimensat(-1, dst,
++						(struct __lkl__kernel_timespec
++						 *)lkl_ts,
++						LKL_AT_SYMLINK_NOFOLLOW);
++		} else {
++			struct timespec ts[] = {
++				{ .tv_sec = atime.tv_sec,
++				  .tv_nsec = atime.tv_nsec, },
++				{ .tv_sec = mtime.tv_sec,
++				  .tv_nsec = mtime.tv_nsec, },
++			};
++
++			ret = utimensat(-1, dst, ts, AT_SYMLINK_NOFOLLOW);
++		}
++	}
++
++	if (ret)
++		printf("error processing entry %s, aborting\n", src);
++
++	return ret;
++}
++
++static DIR *open_dir(const char *path)
++{
++	DIR *dir;
++	int err;
++
++	if (cptofs)
++		dir = opendir(path);
++	else
++		dir = (DIR *)lkl_opendir(path, &err);
++
++	if (!dir)
++		fprintf(stderr, "unable to open directory %s: %s\n",
++			path, cptofs ? strerror(errno) : lkl_strerror(err));
++	return dir;
++}
++
++static const char *read_dir(DIR *dir, const char *path)
++{
++	struct lkl_dir *lkl_dir = (struct lkl_dir *)dir;
++	const char *name = NULL;
++	const char *err = NULL;
++
++	if (cptofs) {
++		struct dirent *de = readdir(dir);
++
++		if (de)
++			name = de->d_name;
++	} else {
++		struct lkl_linux_dirent64 *de = lkl_readdir(lkl_dir);
++
++		if (de)
++			name = de->d_name;
++	}
++
++	if (!name) {
++		if (cptofs) {
++			if (errno)
++				err = strerror(errno);
++		} else {
++			if (lkl_errdir(lkl_dir))
++				err = lkl_strerror(lkl_errdir(lkl_dir));
++		}
++	}
++
++	if (err)
++		fprintf(stderr, "error while reading directory %s: %s\n",
++			path, err);
++	return name;
++}
++
++static void close_dir(DIR *dir)
++{
++	if (cptofs)
++		closedir(dir);
++	else
++		lkl_closedir((struct lkl_dir *)dir);
++}
++
++static int searchdir(const char *src, const char *dst, const char *match)
++{
++	DIR *dir;
++	const char *name;
++	int ret = 0;
++
++	dir = open_dir(src);
++	if (!dir)
 +		return -1;
 +
-+	self = lkl_ops->thread_self();
++	while ((name = read_dir(dir, src))) {
++		if (!strcmp(name, ".") || !strcmp(name, "..") ||
++		    (match && fnmatch(match, name, 0) != 0))
++			continue;
 +
-+	if (cpu.owner && !lkl_ops->thread_equal(cpu.owner, self))
-+		return 0;
++		ret = do_entry(src, dst, name);
++		if (ret)
++			goto out;
++	}
 +
-+	cpu.owner = self;
-+	cpu.count++;
++out:
++	close_dir(dir);
++
++	return ret;
++}
++
++static int match_root(const char *src)
++{
++	const char *c = src;
++
++	while (*c) {
++		switch (*c) {
++		case '.':
++			if (c > src && c[-1] == '.')
++				return 0;
++			break;
++		case '/':
++			break;
++		default:
++			return 0;
++		}
++		c++;
++	}
 +
 +	return 1;
 +}
 +
-+static void __cpu_try_get_unlock(int lock_ret, int n)
++int copy_one(const char *src, const char *mpoint, const char *dst)
 +{
-+	if (lock_ret >= -1)
-+		lkl_ops->mutex_unlock(cpu.lock);
-+	__sync_fetch_and_sub(&cpu.shutdown_gate, n);
-+}
++	char *src_path_dir, *src_path_base;
++	char src_path[PATH_MAX], dst_path[PATH_MAX];
 +
-+void lkl_cpu_change_owner(lkl_thread_t owner)
-+{
-+	lkl_ops->mutex_lock(cpu.lock);
-+	if (cpu.count > 1)
-+		lkl_bug("bad count while changing owner\n");
-+	cpu.owner = owner;
-+	lkl_ops->mutex_unlock(cpu.lock);
-+}
-+
-+int lkl_cpu_get(void)
-+{
-+	int ret;
-+
-+	ret = __cpu_try_get_lock(1);
-+
-+	while (ret == 0) {
-+		cpu.sleepers++;
-+		__cpu_try_get_unlock(ret, 0);
-+		lkl_ops->sem_down(cpu.sem);
-+		ret = __cpu_try_get_lock(0);
++	if (cptofs) {
++		snprintf(src_path, sizeof(src_path),  "%s", src);
++		snprintf(dst_path, sizeof(dst_path),  "%s/%s", mpoint, dst);
++	} else {
++		snprintf(src_path, sizeof(src_path),  "%s/%s", mpoint, src);
++		snprintf(dst_path, sizeof(dst_path),  "%s", dst);
 +	}
 +
-+	__cpu_try_get_unlock(ret, 1);
++	if (match_root(src))
++		return searchdir(src_path, dst, NULL);
 +
-+	return ret;
++	src_path_dir = dirname(strdup(src_path));
++	src_path_base = basename(strdup(src_path));
++
++	return searchdir(src_path_dir, dst_path, src_path_base);
 +}
 +
-+void lkl_cpu_put(void)
++int main(int argc, char **argv)
 +{
-+	lkl_ops->mutex_lock(cpu.lock);
++	struct lkl_disk disk;
++	long ret, umount_ret;
++	int i;
++	char mpoint[32];
++	unsigned int disk_id;
 +
-+	if (!cpu.count || !cpu.owner ||
-+	    !lkl_ops->thread_equal(cpu.owner, lkl_ops->thread_self()))
-+		lkl_bug("%s: unbalanced put\n", __func__);
-+
-+	while (cpu.irqs_pending && !irqs_disabled()) {
-+		cpu.irqs_pending = false;
-+		lkl_ops->mutex_unlock(cpu.lock);
-+		run_irqs();
-+		lkl_ops->mutex_lock(cpu.lock);
++	if (strstr(argv[0], "cptofs")) {
++		cptofs = 1;
++		ret = argp_parse(&argp_cptofs, argc, argv, 0, 0, &cla);
++	} else {
++		ret = argp_parse(&argp_cpfromfs, argc, argv, 0, 0, &cla);
 +	}
 +
-+	if (test_ti_thread_flag(current_thread_info(), TIF_HOST_THREAD) &&
-+	    !single_task_running() && cpu.count == 1) {
-+		if (in_interrupt())
-+			lkl_bug("%s: in interrupt\n", __func__);
-+		lkl_ops->mutex_unlock(cpu.lock);
-+		thread_sched_jb();
-+		return;
-+	}
-+
-+	if (--cpu.count > 0) {
-+		lkl_ops->mutex_unlock(cpu.lock);
-+		return;
-+	}
-+
-+	if (cpu.sleepers) {
-+		cpu.sleepers--;
-+		lkl_ops->sem_up(cpu.sem);
-+	}
-+
-+	cpu.owner = 0;
-+
-+	lkl_ops->mutex_unlock(cpu.lock);
-+}
-+
-+int lkl_cpu_try_run_irq(int irq)
-+{
-+	int ret;
-+
-+	ret = __cpu_try_get_lock(1);
-+	if (!ret) {
-+		set_irq_pending(irq);
-+		cpu.irqs_pending = true;
-+	}
-+	__cpu_try_get_unlock(ret, 1);
-+
-+	return ret;
-+}
-+
-+void lkl_cpu_shutdown(void)
-+{
-+	__sync_fetch_and_add(&cpu.shutdown_gate, MAX_THREADS);
-+}
-+
-+void lkl_cpu_wait_shutdown(void)
-+{
-+	lkl_ops->sem_down(cpu.shutdown_sem);
-+	lkl_ops->sem_free(cpu.shutdown_sem);
-+}
-+
-+static void lkl_cpu_cleanup(bool shutdown)
-+{
-+	while (__sync_fetch_and_add(&cpu.shutdown_gate, 0) > MAX_THREADS)
-+		;
-+
-+	if (shutdown)
-+		lkl_ops->sem_up(cpu.shutdown_sem);
-+	else if (cpu.shutdown_sem)
-+		lkl_ops->sem_free(cpu.shutdown_sem);
-+	if (cpu.sem)
-+		lkl_ops->sem_free(cpu.sem);
-+	if (cpu.lock)
-+		lkl_ops->mutex_free(cpu.lock);
-+}
-+
-+void arch_cpu_idle(void)
-+{
-+	if (cpu.shutdown_gate >= MAX_THREADS) {
-+		lkl_ops->mutex_lock(cpu.lock);
-+		while (cpu.sleepers--)
-+			lkl_ops->sem_up(cpu.sem);
-+		lkl_ops->mutex_unlock(cpu.lock);
-+
-+		lkl_cpu_cleanup(true);
-+
-+		lkl_ops->thread_exit();
-+	}
-+	/* enable irqs now to allow direct irqs to run */
-+	local_irq_enable();
-+
-+	/* switch to idle_host_task */
-+	wakeup_idle_host_task();
-+}
-+
-+int lkl_cpu_init(void)
-+{
-+	cpu.lock = lkl_ops->mutex_alloc(0);
-+	cpu.sem = lkl_ops->sem_alloc(0);
-+	cpu.shutdown_sem = lkl_ops->sem_alloc(0);
-+
-+	if (!cpu.lock || !cpu.sem || !cpu.shutdown_sem) {
-+		lkl_cpu_cleanup(false);
-+		return -ENOMEM;
-+	}
-+
-+	return 0;
-+}
-diff --git a/arch/um/lkl/kernel/threads.c b/arch/um/lkl/kernel/threads.c
-new file mode 100644
-index 000000000000..4fe8c56ae5e0
---- /dev/null
-+++ b/arch/um/lkl/kernel/threads.c
-@@ -0,0 +1,227 @@
-+// SPDX-License-Identifier: GPL-2.0
-+#include <linux/module.h>
-+#include <linux/slab.h>
-+#include <linux/sched/task.h>
-+#include <linux/sched/signal.h>
-+#include <asm/host_ops.h>
-+#include <asm/cpu.h>
-+#include <asm/sched.h>
-+
-+static int init_ti(struct thread_info *ti)
-+{
-+	ti->sched_sem = lkl_ops->sem_alloc(0);
-+	if (!ti->sched_sem)
-+		return -ENOMEM;
-+
-+	ti->dead = false;
-+	ti->prev_sched = NULL;
-+	ti->tid = 0;
-+
-+	return 0;
-+}
-+
-+unsigned long *alloc_thread_stack_node(struct task_struct *task, int node)
-+{
-+	struct thread_info *ti;
-+
-+	ti = kmalloc(sizeof(*ti), GFP_KERNEL);
-+	if (!ti)
-+		return NULL;
-+
-+	if (init_ti(ti)) {
-+		kfree(ti);
-+		return NULL;
-+	}
-+	ti->task = task;
-+
-+	return (unsigned long *)ti;
-+}
-+
-+/*
-+ * The only new tasks created are kernel threads that have a predefined starting
-+ * point thus no stack copy is required.
-+ */
-+void setup_thread_stack(struct task_struct *p, struct task_struct *org)
-+{
-+	struct thread_info *ti = task_thread_info(p);
-+	struct thread_info *org_ti = task_thread_info(org);
-+
-+	ti->flags = org_ti->flags;
-+	ti->preempt_count = org_ti->preempt_count;
-+	ti->addr_limit = org_ti->addr_limit;
-+}
-+
-+static void kill_thread(struct thread_info *ti)
-+{
-+	if (!test_ti_thread_flag(ti, TIF_HOST_THREAD)) {
-+		ti->dead = true;
-+		lkl_ops->sem_up(ti->sched_sem);
-+		lkl_ops->thread_join(ti->tid);
-+	}
-+	lkl_ops->sem_free(ti->sched_sem);
-+}
-+
-+void free_thread_stack(struct task_struct *tsk)
-+{
-+	struct thread_info *ti = task_thread_info(tsk);
-+
-+	kill_thread(ti);
-+	kfree(ti);
-+}
-+
-+struct thread_info *_current_thread_info = &init_thread_union.thread_info;
-+
-+/*
-+ * schedule() expects the return of this function to be the task that we
-+ * switched away from. Returning prev is not going to work because we are
-+ * actually going to return the previous taks that was scheduled before the
-+ * task we are going to wake up, and not the current task, e.g.:
-+ *
-+ * swapper -> init: saved prev on swapper stack is swapper
-+ * init -> ksoftirqd0: saved prev on init stack is init
-+ * ksoftirqd0 -> swapper: returned prev is swapper
-+ */
-+static struct task_struct *abs_prev = &init_task;
-+
-+struct task_struct *__switch_to(struct task_struct *prev,
-+				struct task_struct *next)
-+{
-+	struct thread_info *_prev = task_thread_info(prev);
-+	struct thread_info *_next = task_thread_info(next);
-+	unsigned long _prev_flags = _prev->flags;
-+	struct lkl_jmp_buf _prev_jb;
-+
-+	_current_thread_info = task_thread_info(next);
-+	_next->prev_sched = prev;
-+	abs_prev = prev;
-+
-+	BUG_ON(!_next->tid);
-+	lkl_cpu_change_owner(_next->tid);
-+
-+	if (test_bit(TIF_SCHED_JB, &_prev_flags)) {
-+		/* Atomic. Must be done before wakeup next */
-+		clear_ti_thread_flag(_prev, TIF_SCHED_JB);
-+		_prev_jb = _prev->sched_jb;
-+	}
-+
-+	lkl_ops->sem_up(_next->sched_sem);
-+	if (test_bit(TIF_SCHED_JB, &_prev_flags))
-+		lkl_ops->jmp_buf_longjmp(&_prev_jb, 1);
-+	else
-+		lkl_ops->sem_down(_prev->sched_sem);
-+
-+	if (_prev->dead)
-+		lkl_ops->thread_exit();
-+
-+	return abs_prev;
-+}
-+
-+int host_task_stub(void *unused)
-+{
-+	return 0;
-+}
-+
-+void switch_to_host_task(struct task_struct *task)
-+{
-+	if (WARN_ON(!test_tsk_thread_flag(task, TIF_HOST_THREAD)))
-+		return;
-+
-+	task_thread_info(task)->tid = lkl_ops->thread_self();
-+
-+	if (current == task)
-+		return;
-+
-+	wake_up_process(task);
-+	thread_sched_jb();
-+	lkl_ops->sem_down(task_thread_info(task)->sched_sem);
-+	schedule_tail(abs_prev);
-+}
-+
-+struct thread_bootstrap_arg {
-+	struct thread_info *ti;
-+	int (*f)(void *arg);
-+	void *arg;
-+};
-+
-+static void thread_bootstrap(void *_tba)
-+{
-+	struct thread_bootstrap_arg *tba = (struct thread_bootstrap_arg *)_tba;
-+	struct thread_info *ti = tba->ti;
-+	int (*f)(void *) = tba->f;
-+	void *arg = tba->arg;
-+
-+	lkl_ops->sem_down(ti->sched_sem);
-+	kfree(tba);
-+	if (ti->prev_sched)
-+		schedule_tail(ti->prev_sched);
-+
-+	f(arg);
-+	do_exit(0);
-+}
-+
-+int copy_thread(unsigned long clone_flags, unsigned long esp,
-+		unsigned long unused, struct task_struct *p)
-+{
-+	struct thread_info *ti = task_thread_info(p);
-+	struct thread_bootstrap_arg *tba;
-+
-+	if ((int (*)(void *))esp == host_task_stub) {
-+		set_ti_thread_flag(ti, TIF_HOST_THREAD);
-+		return 0;
-+	}
-+
-+	tba = kmalloc(sizeof(*tba), GFP_KERNEL);
-+	if (!tba)
-+		return -ENOMEM;
-+
-+	tba->f = (int (*)(void *))esp;
-+	tba->arg = (void *)unused;
-+	tba->ti = ti;
-+
-+	ti->tid = lkl_ops->thread_create(thread_bootstrap, tba);
-+	if (!ti->tid) {
-+		kfree(tba);
-+		return -ENOMEM;
-+	}
-+
-+	return 0;
-+}
-+
-+void show_stack(struct task_struct *task, unsigned long *esp)
-+{
-+}
-+
-+/**
-+ * This is called before the kernel initializes, so no kernel calls (including
-+ * printk) can't be made yet.
-+ */
-+void threads_init(void)
-+{
-+	int ret;
-+	struct thread_info *ti = &init_thread_union.thread_info;
-+
-+	ret = init_ti(ti);
 +	if (ret < 0)
-+		lkl_printf("lkl: failed to allocate init schedule semaphore\n");
++		return -1;
 +
-+	ti->tid = lkl_ops->thread_self();
-+}
++	if (!cla.printk)
++		lkl_host_ops.print = NULL;
 +
-+void threads_cleanup(void)
-+{
-+	struct task_struct *p, *t;
-+
-+	for_each_process_thread(p, t) {
-+		struct thread_info *ti = task_thread_info(t);
-+
-+		if (t->pid != 1 && !test_ti_thread_flag(ti, TIF_HOST_THREAD))
-+			WARN(!(t->flags & PF_KTHREAD),
-+			     "non kernel thread task %s\n", t->comm);
-+		WARN(t->state == TASK_RUNNING,
-+		     "thread %s still running while halting\n", t->comm);
-+
-+		kill_thread(ti);
++	disk.fd = open(cla.fsimg_path, cptofs ? O_RDWR : O_RDONLY);
++	if (disk.fd < 0) {
++		fprintf(stderr, "can't open fsimg %s: %s\n", cla.fsimg_path,
++			strerror(errno));
++		ret = 1;
++		goto out;
 +	}
 +
-+	lkl_ops->sem_free(init_thread_union.thread_info.sched_sem);
++	disk.ops = NULL;
++
++	ret = lkl_disk_add(&disk);
++	if (ret < 0) {
++		fprintf(stderr, "can't add disk: %s\n", lkl_strerror(ret));
++		goto out_close;
++	}
++	disk_id = ret;
++
++	lkl_start_kernel(&lkl_host_ops, "mem=100M");
++
++	ret = lkl_mount_dev(disk_id, cla.part, cla.fsimg_type,
++			    cptofs ? 0 : LKL_MS_RDONLY,
++			    NULL, mpoint, sizeof(mpoint));
++	if (ret) {
++		fprintf(stderr, "can't mount disk: %s\n", lkl_strerror(ret));
++		goto out_close;
++	}
++
++	lkl_sys_umask(0);
++
++	for (i = 0; i < cla.npaths - 1; i++) {
++		ret = copy_one(cla.paths[i], mpoint, cla.paths[cla.npaths - 1]);
++		if (ret)
++			break;
++	}
++
++	umount_ret = lkl_umount_dev(disk_id, cla.part, 0, 1000);
++	if (ret == 0)
++		ret = umount_ret;
++
++out_close:
++	close(disk.fd);
++
++out:
++	lkl_sys_halt();
++
++	return ret;
 +}
 -- 
 2.20.1 (Apple Git-117)
