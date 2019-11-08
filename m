@@ -1,79 +1,36 @@
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: Re: [PATCH v4 05/13] m68k: mm: use pgtable-nopXd instead of 4level-fixup
-Date: Fri, 8 Nov 2019 09:35:31 +0100
-Message-ID: <CAMuHMdXqaw_k=XiY0RYvvR+smE-5tbTBzWiAZOFev731vR3q3A@mail.gmail.com>
-References: <1572938135-31886-1-git-send-email-rppt@kernel.org> <1572938135-31886-6-git-send-email-rppt@kernel.org>
+From: Alexandre Chartre <alexandre.chartre@oracle.com>
+Subject: Re: [patch V2 06/17] x86/entry/32: Remove redundant interrupt disable
+Date: Fri, 8 Nov 2019 11:41:45 +0100
+Message-ID: <f8ba6ab8-c42d-f90f-f296-de270d1a7e21@oracle.com>
+References: <20191023122705.198339581@linutronix.de>
+ <20191023123118.191230255@linutronix.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1572938135-31886-6-git-send-email-rppt@kernel.org>
+In-Reply-To: <20191023123118.191230255@linutronix.de>
+Content-Language: en-US
 Sender: linux-kernel-owner@vger.kernel.org
-To: Mike Rapoport <rppt@kernel.org>
-Cc: Linux MM <linux-mm@kvack.org>, Andrew Morton <akpm@linux-foundation.org>, Anton Ivanov <anton.ivanov@cambridgegreys.com>, Arnd Bergmann <arnd@arndb.de>, "David S. Miller" <davem@davemloft.net>, Greentime Hu <green.hu@gmail.com>, Greg Ungerer <gerg@linux-m68k.org>, Helge Deller <deller@gmx.de>, "James E.J. Bottomley" <James.Bottomley@hansenpartnership.com>, Jeff Dike <jdike@addtoit.com>, "Kirill A. Shutemov" <kirill@shutemov.name>, Linus Torvalds <torvalds@linux-foundation.org>, Mark Salter <msalter@redhat.com>, Matt Turner <mattst88@gmail.com>, Michal Simek <monstr@monstr.eu>, Peter Rosin <peda@axentia.se>, Richard Weinberger <richard@nod.at>, Rolf Eike Beer <eike-kernel@sf-tec.de>, Russell King <linux@armlinux.org.uk>, Sam Creasey <sammy@sam>
+To: Thomas Gleixner <tglx@linutronix.de>, LKML <linux-kernel@vger.kernel.org>
+Cc: x86@kernel.org, Peter Zijlstra <peterz@infradead.org>, Andy Lutomirski <luto@kernel.org>, Will Deacon <will@kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, kvm@vger.kernel.org, linux-arch@vger.kernel.org, Mike Rapoport <rppt@linux.ibm.com>, Josh Poimboeuf <jpoimboe@redhat.com>, Miroslav Benes <mbenes@suse.cz>
 List-Id: linux-arch.vger.kernel.org
 
-Hi Mike,
 
-On Tue, Nov 5, 2019 at 8:16 AM Mike Rapoport <rppt@kernel.org> wrote:
-> From: Mike Rapoport <rppt@linux.ibm.com>
->
-> m68k has two or three levels of page tables and can use appropriate
-> pgtable-nopXd and folding of the upper layers.
->
-> Replace usage of include/asm-generic/4level-fixup.h and explicit
-> definitions of __PAGETABLE_PxD_FOLDED in m68k with
-> include/asm-generic/pgtable-nopmd.h for two-level configurations and with
-> include/asm-generic/pgtable-nopud.h for three-lelve configurations and
-> adjust page table manipulation macros and functions accordingly.
->
-> Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
-> Acked-by: Greg Ungerer <gerg@linux-m68k.org>
+On 10/23/19 2:27 PM, Thomas Gleixner wrote:
+> Now that the trap handlers return with interrupts disabled, the
+> unconditional disabling of interrupts in the low level entry code can be
+> removed along with the trace calls and the misnomed preempt_stop macro.
+> As a consequence ret_from_exception and ret_from_intr collapse.
+> 
+> Add a debug check to verify that interrupts are disabled depending on
+> CONFIG_DEBUG_ENTRY.
+> 
+> Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
+> ---
+>   arch/x86/entry/entry_32.S |   21 ++++++---------------
+>   1 file changed, 6 insertions(+), 15 deletions(-)
+> 
 
-Acked-by: Geert Uytterhoeven <geert@linux-m68k.org>
+Reviewed-by: Alexandre Chartre <alexandre.chartre@oracle.com>
 
-One forgotten error message update below.
-
-> --- a/arch/m68k/mm/kmap.c
-> +++ b/arch/m68k/mm/kmap.c
-> @@ -258,18 +265,23 @@ void __iounmap(void *addr, unsigned long size)
->  {
->         unsigned long virtaddr = (unsigned long)addr;
->         pgd_t *pgd_dir;
-> +       p4d_t *p4d_dir;
-> +       pud_t *pud_dir;
->         pmd_t *pmd_dir;
->         pte_t *pte_dir;
->
->         while ((long)size > 0) {
->                 pgd_dir = pgd_offset_k(virtaddr);
-> -               if (pgd_bad(*pgd_dir)) {
-> -                       printk("iounmap: bad pgd(%08lx)\n", pgd_val(*pgd_dir));
-> -                       pgd_clear(pgd_dir);
-> +               p4d_dir = p4d_offset(pgd_dir, virtaddr);
-> +               pud_dir = pud_offset(p4d_dir, virtaddr);
-> +               if (pud_bad(*pud_dir)) {
-> +                       printk("iounmap: bad pgd(%08lx)\n", pud_val(*pud_dir));
-
-bad pud
-
-> +                       pud_clear(pud_dir);
->                         return;
->                 }
-> -               pmd_dir = pmd_offset(pgd_dir, virtaddr);
-> +               pmd_dir = pmd_offset(pud_dir, virtaddr);
->
-> +#if CONFIG_PGTABLE_LEVELS == 3
->                 if (CPU_IS_020_OR_030) {
->                         int pmd_off = (virtaddr/PTRTREESIZE) & 15;
->                         int pmd_type = pmd_dir->pmd[pmd_off] & _DESCTYPE_MASK;
-
-Gr{oetje,eeting}s,
-
-                        Geert
-
--- 
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+alex.
