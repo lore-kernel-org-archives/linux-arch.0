@@ -1,14 +1,14 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pg1-f195.google.com ([209.85.215.195]:41769 "EHLO
-        mail-pg1-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726394AbfKHFDp (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 8 Nov 2019 00:03:45 -0500
-Received: by mail-pg1-f195.google.com with SMTP id h4so3274058pgv.8
-        for <linux-arch@vger.kernel.org>; Thu, 07 Nov 2019 21:03:44 -0800 (PST)
+Received: from mail-pf1-f193.google.com ([209.85.210.193]:44767 "EHLO
+        mail-pf1-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726591AbfKHFDq (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 8 Nov 2019 00:03:46 -0500
+Received: by mail-pf1-f193.google.com with SMTP id q26so3827870pfn.11
+        for <linux-arch@vger.kernel.org>; Thu, 07 Nov 2019 21:03:45 -0800 (PST)
 From: Hajime Tazaki <thehajime@gmail.com>
-Subject: [RFC v2 16/37] lkl tools: host lib: memory mapped I/O helpers
-Date: Fri,  8 Nov 2019 14:02:31 +0900
-Message-Id: <a28bfc994d7a836817f99540115392256635e64f.1573179553.git.thehajime@gmail.com>
+Subject: [RFC v2 18/37] lkl tools: host lib: virtio block device
+Date: Fri,  8 Nov 2019 14:02:33 +0900
+Message-Id: <73d0e15d1429a089442c932d1b3fddc724a43bb6.1573179553.git.thehajime@gmail.com>
 In-Reply-To: <cover.1573179553.git.thehajime@gmail.com>
 References: <cover.1573179553.git.thehajime@gmail.com>
 MIME-Version: 1.0
@@ -16,154 +16,295 @@ Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-um@lists.infradead.org
-Cc: Octavian Purdila <tavi.purdila@gmail.com>, Akira Moroo <retrage01@gmail.com>, linux-kernel-library@freelists.org, linux-arch@vger.kernel.org
+Cc: Octavian Purdila <tavi.purdila@gmail.com>, Akira Moroo <retrage01@gmail.com>, linux-kernel-library@freelists.org, linux-arch@vger.kernel.org, Michael Zimmermann <sigmaepsilon92@gmail.com>, Petros Angelatos <petrosagg@gmail.com>
 
 From: Octavian Purdila <tavi.purdila@gmail.com>
 
-This patch adds helpers for implementing the memory mapped I/O host
-operations that can be used by code that implements host
-devices. Generic host operations for lkl_ioremap and lkl_iomem_access
-are provided that allows multiplexing multiple I/O memory mapped
-regions.
+Host independent implementation for virtio block devices. The host
+dependent part of the host library must provide an implementation for
+lkl_dev_block_ops.
 
-The host device code can create a new memory mapped I/O region with
-register_iomem(). Read and write access functions need to be provided
-by the caller.
+Disks can be added to the LKL configuration via lkl_disk_add(), a new
+LKL application API.
 
+Signed-off-by: Michael Zimmermann <sigmaepsilon92@gmail.com>
+Signed-off-by: Petros Angelatos <petrosagg@gmail.com>
 Signed-off-by: Octavian Purdila <tavi.purdila@gmail.com>
 ---
- tools/lkl/lib/Build   |  1 +
- tools/lkl/lib/iomem.c | 88 +++++++++++++++++++++++++++++++++++++++++++
- tools/lkl/lib/iomem.h | 15 ++++++++
- 3 files changed, 104 insertions(+)
- create mode 100644 tools/lkl/lib/iomem.c
- create mode 100644 tools/lkl/lib/iomem.h
+ tools/lkl/include/lkl.h      |  39 +++++++++++
+ tools/lkl/include/lkl_host.h |  57 +++++++++++++++
+ tools/lkl/lib/Build          |   1 +
+ tools/lkl/lib/virtio_blk.c   | 132 +++++++++++++++++++++++++++++++++++
+ 4 files changed, 229 insertions(+)
+ create mode 100644 tools/lkl/lib/virtio_blk.c
 
+diff --git a/tools/lkl/include/lkl.h b/tools/lkl/include/lkl.h
+index 76da534a85f1..967fbe4dbc26 100644
+--- a/tools/lkl/include/lkl.h
++++ b/tools/lkl/include/lkl.h
+@@ -350,6 +350,45 @@ const char *lkl_strerror(int err);
+  */
+ void lkl_perror(char *msg, int err);
+ 
++/**
++ * struct lkl_dev_blk_ops - block device host operations, defined in lkl_host.h.
++ */
++struct lkl_dev_blk_ops;
++
++/**
++ * lkl_disk - host disk handle
++ *
++ * @dev - a pointer to 'virtio_blk_dev' structure for this disk
++ * @fd - a POSIX file descriptor that can be used by preadv/pwritev
++ * @handle - an NT file handle that can be used by ReadFile/WriteFile
++ */
++struct lkl_disk {
++	void *dev;
++	union {
++		int fd;
++		void *handle;
++	};
++	struct lkl_dev_blk_ops *ops;
++};
++
++/**
++ * lkl_disk_add - add a new disk
++ *
++ * @disk - the host disk handle
++ * @returns a disk id (0 is valid) or a strictly negative value in case of error
++ */
++int lkl_disk_add(struct lkl_disk *disk);
++
++/**
++ * lkl_disk_remove - remove a disk
++ *
++ * This function makes a cleanup of the @disk's virtio_dev structure
++ * that was initialized by lkl_disk_add before.
++ *
++ * @disk - the host disk handle
++ */
++int lkl_disk_remove(struct lkl_disk disk);
++
+ 
+ #ifdef __cplusplus
+ }
+diff --git a/tools/lkl/include/lkl_host.h b/tools/lkl/include/lkl_host.h
+index 81239e2b556f..a630efc95f0f 100644
+--- a/tools/lkl/include/lkl_host.h
++++ b/tools/lkl/include/lkl_host.h
+@@ -20,6 +20,63 @@ int lkl_printf(const char *fmt, ...);
+ 
+ extern char lkl_virtio_devs[4096];
+ 
++#ifdef LKL_HOST_CONFIG_POSIX
++#include <sys/uio.h>
++#else
++struct iovec {
++	void *iov_base;
++	size_t iov_len;
++};
++#endif
++
++extern struct lkl_dev_blk_ops lkl_dev_blk_ops;
++
++/**
++ * struct lkl_blk_req - block device request
++ *
++ * @type: type of request
++ * @prio: priority of request - currently unused
++ * @sector: offset in units 512 bytes for read / write requests
++ * @buf: an array of buffers to be used for read / write requests
++ * @count: the number of buffers
++ */
++struct lkl_blk_req {
++#define LKL_DEV_BLK_TYPE_READ		0
++#define LKL_DEV_BLK_TYPE_WRITE		1
++#define LKL_DEV_BLK_TYPE_FLUSH		4
++#define LKL_DEV_BLK_TYPE_FLUSH_OUT	5
++	unsigned int type;
++	unsigned int prio;
++	unsigned long long sector;
++	struct iovec *buf;
++	int count;
++};
++
++/**
++ * struct lkl_dev_blk_ops - block device host operations
++ */
++struct lkl_dev_blk_ops {
++	/**
++	 * @get_capacity: returns the disk capacity in bytes
++	 *
++	 * @disk - the disk for which the capacity is requested;
++	 * @res - pointer to receive the capacity, in bytes;
++	 * @returns - 0 in case of success, negative value in case of error
++	 */
++	int (*get_capacity)(struct lkl_disk disk, unsigned long long *res);
++#define LKL_DEV_BLK_STATUS_OK		0
++#define LKL_DEV_BLK_STATUS_IOERR	1
++#define LKL_DEV_BLK_STATUS_UNSUP	2
++	/**
++	 * @request: issue a block request
++	 *
++	 * @disk - the disk the request is issued to;
++	 * @req - a request described by &struct lkl_blk_req
++	 */
++	int (*request)(struct lkl_disk disk, struct lkl_blk_req *req);
++};
++
++
+ #ifdef __cplusplus
+ }
+ #endif
 diff --git a/tools/lkl/lib/Build b/tools/lkl/lib/Build
-index 658bfa865b9c..8d01982638f8 100644
+index 5fd1843b51d1..d3154cfa4952 100644
 --- a/tools/lkl/lib/Build
 +++ b/tools/lkl/lib/Build
-@@ -1,5 +1,6 @@
- CFLAGS_config.o += -I$(srctree)/tools/perf/pmu-events
- 
-+liblkl-y += iomem.o
+@@ -3,6 +3,7 @@ CFLAGS_config.o += -I$(srctree)/tools/perf/pmu-events
+ liblkl-y += iomem.o
  liblkl-y += jmp_buf.o
  liblkl-y += utils.o
++liblkl-y += virtio_blk.o
+ liblkl-y += virtio.o
  liblkl-y += dbg.o
-diff --git a/tools/lkl/lib/iomem.c b/tools/lkl/lib/iomem.c
+ liblkl-y += dbg_handler.o
+diff --git a/tools/lkl/lib/virtio_blk.c b/tools/lkl/lib/virtio_blk.c
 new file mode 100644
-index 000000000000..2301fe4e5ad5
+index 000000000000..9e23316c5d99
 --- /dev/null
-+++ b/tools/lkl/lib/iomem.c
-@@ -0,0 +1,88 @@
++++ b/tools/lkl/lib/virtio_blk.c
+@@ -0,0 +1,132 @@
 +// SPDX-License-Identifier: GPL-2.0
-+#include <string.h>
-+#include <stdint.h>
 +#include <lkl_host.h>
++#include "virtio.h"
++#include "endian.h"
 +
-+#include "iomem.h"
++struct virtio_blk_dev {
++	struct virtio_dev dev;
++	struct lkl_virtio_blk_config config;
++	struct lkl_dev_blk_ops *ops;
++	struct lkl_disk disk;
++};
 +
-+#define IOMEM_OFFSET_BITS		24
-+#define MAX_IOMEM_REGIONS		256
++struct virtio_blk_req_trailer {
++	uint8_t status;
++};
 +
-+#define IOMEM_ADDR_TO_INDEX(addr) \
-+	(((uintptr_t)addr) >> IOMEM_OFFSET_BITS)
-+#define IOMEM_ADDR_TO_OFFSET(addr) \
-+	(((uintptr_t)addr) & ((1 << IOMEM_OFFSET_BITS) - 1))
-+#define IOMEM_INDEX_TO_ADDR(i) \
-+	(void *)(uintptr_t)(i << IOMEM_OFFSET_BITS)
-+
-+static struct iomem_region {
-+	void *data;
-+	int size;
-+	const struct lkl_iomem_ops *ops;
-+} iomem_regions[MAX_IOMEM_REGIONS];
-+
-+void *register_iomem(void *data, int size, const struct lkl_iomem_ops *ops)
++static int blk_check_features(struct virtio_dev *dev)
 +{
-+	int i;
++	if (dev->driver_features == dev->device_features)
++		return 0;
 +
-+	if (size > (1 << IOMEM_OFFSET_BITS) - 1)
-+		return NULL;
-+
-+	for (i = 1; i < MAX_IOMEM_REGIONS; i++)
-+		if (!iomem_regions[i].ops)
-+			break;
-+
-+	if (i >= MAX_IOMEM_REGIONS)
-+		return NULL;
-+
-+	iomem_regions[i].data = data;
-+	iomem_regions[i].size = size;
-+	iomem_regions[i].ops = ops;
-+	return IOMEM_INDEX_TO_ADDR(i);
++	return -LKL_EINVAL;
 +}
 +
-+void unregister_iomem(void *base)
++static int blk_enqueue(struct virtio_dev *dev, int q, struct virtio_req *req)
 +{
-+	unsigned int index = IOMEM_ADDR_TO_INDEX(base);
++	struct virtio_blk_dev *blk_dev;
++	struct lkl_virtio_blk_outhdr *h;
++	struct virtio_blk_req_trailer *t;
++	struct lkl_blk_req lkl_req;
 +
-+	if (index >= MAX_IOMEM_REGIONS) {
-+		lkl_printf("%s: invalid iomem_addr %p\n", __func__, base);
-+		return;
++	if (req->buf_count < 3) {
++		lkl_printf("virtio_blk: no status buf\n");
++		goto out;
 +	}
 +
-+	iomem_regions[index].size = 0;
-+	iomem_regions[index].ops = NULL;
++	h = req->buf[0].iov_base;
++	t = req->buf[req->buf_count - 1].iov_base;
++	blk_dev = container_of(dev, struct virtio_blk_dev, dev);
++
++	t->status = LKL_DEV_BLK_STATUS_IOERR;
++
++	if (req->buf[0].iov_len != sizeof(*h)) {
++		lkl_printf("virtio_blk: bad header buf\n");
++		goto out;
++	}
++
++	if (req->buf[req->buf_count - 1].iov_len != sizeof(*t)) {
++		lkl_printf("virtio_blk: bad status buf\n");
++		goto out;
++	}
++
++	lkl_req.type = le32toh(h->type);
++	lkl_req.prio = le32toh(h->ioprio);
++	lkl_req.sector = le32toh(h->sector);
++	lkl_req.buf = &req->buf[1];
++	lkl_req.count = req->buf_count - 2;
++
++	t->status = blk_dev->ops->request(blk_dev->disk, &lkl_req);
++
++out:
++	virtio_req_complete(req, 0);
++	return 0;
 +}
 +
-+void *lkl_ioremap(long addr, int size)
++static struct virtio_dev_ops blk_ops = {
++	.check_features = blk_check_features,
++	.enqueue = blk_enqueue,
++};
++
++
++int lkl_disk_add(struct lkl_disk *disk)
 +{
-+	int index = IOMEM_ADDR_TO_INDEX(addr);
-+	struct iomem_region *iomem = &iomem_regions[index];
-+
-+	if (index >= MAX_IOMEM_REGIONS)
-+		return NULL;
-+
-+	if (iomem->ops && size <= iomem->size)
-+		return IOMEM_INDEX_TO_ADDR(index);
-+
-+	return NULL;
-+}
-+
-+int lkl_iomem_access(const volatile void *addr, void *res, int size, int write)
-+{
-+	int index = IOMEM_ADDR_TO_INDEX(addr);
-+	struct iomem_region *iomem = &iomem_regions[index];
-+	int offset = IOMEM_ADDR_TO_OFFSET(addr);
++	struct virtio_blk_dev *dev;
++	unsigned long long capacity;
 +	int ret;
 +
-+	if (index > MAX_IOMEM_REGIONS || !iomem_regions[index].ops ||
-+	    offset + size > iomem_regions[index].size)
-+		return -1;
++	dev = lkl_host_ops.mem_alloc(sizeof(*dev));
++	if (!dev)
++		return -LKL_ENOMEM;
 +
-+	if (write)
-+		ret = iomem->ops->write(iomem->data, offset, res, size);
++	disk->dev = dev;
++
++	dev->dev.device_id = LKL_VIRTIO_ID_BLOCK;
++	dev->dev.vendor_id = 0;
++	dev->dev.device_features = 0;
++	dev->dev.config_gen = 0;
++	dev->dev.config_data = &dev->config;
++	dev->dev.config_len = sizeof(dev->config);
++	dev->dev.ops = &blk_ops;
++	if (disk->ops)
++		dev->ops = disk->ops;
 +	else
-+		ret = iomem->ops->read(iomem->data, offset, res, size);
++		dev->ops = &lkl_dev_blk_ops;
++	dev->disk = *disk;
++
++	ret = dev->ops->get_capacity(*disk, &capacity);
++	if (ret) {
++		ret = -LKL_ENOMEM;
++		goto out_free;
++	}
++	dev->config.capacity = capacity / 512;
++
++	ret = virtio_dev_setup(&dev->dev, 1, 32);
++	if (ret)
++		goto out_free;
++
++	return dev->dev.virtio_mmio_id;
++
++out_free:
++	lkl_host_ops.mem_free(dev);
 +
 +	return ret;
 +}
-diff --git a/tools/lkl/lib/iomem.h b/tools/lkl/lib/iomem.h
-new file mode 100644
-index 000000000000..0ad80ccc2626
---- /dev/null
-+++ b/tools/lkl/lib/iomem.h
-@@ -0,0 +1,15 @@
-+/* SPDX-License-Identifier: GPL-2.0 */
-+#ifndef _LKL_LIB_IOMEM_H
-+#define _LKL_LIB_IOMEM_H
 +
-+struct lkl_iomem_ops {
-+	int (*read)(void *data, int offset, void *res, int size);
-+	int (*write)(void *data, int offset, void *value, int size);
-+};
++int lkl_disk_remove(struct lkl_disk disk)
++{
++	struct virtio_blk_dev *dev;
++	int ret;
 +
-+void *register_iomem(void *data, int size, const struct lkl_iomem_ops *ops);
-+void unregister_iomem(void *iomem_base);
-+void *lkl_ioremap(long addr, int size);
-+int lkl_iomem_access(const volatile void *addr, void *res, int size, int write);
++	dev = (struct virtio_blk_dev *)disk.dev;
++	if (!dev)
++		return -LKL_EINVAL;
 +
-+#endif /* _LKL_LIB_IOMEM_H */
++	ret = virtio_dev_cleanup(&dev->dev);
++	if (ret < 0)
++		return ret;
++
++	lkl_host_ops.mem_free(dev);
++
++	return 0;
++}
 -- 
 2.20.1 (Apple Git-117)
