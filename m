@@ -1,14 +1,14 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pg1-f172.google.com ([209.85.215.172]:35937 "EHLO
-        mail-pg1-f172.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1725794AbfKHFEh (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 8 Nov 2019 00:04:37 -0500
-Received: by mail-pg1-f172.google.com with SMTP id k13so3305688pgh.3
-        for <linux-arch@vger.kernel.org>; Thu, 07 Nov 2019 21:04:35 -0800 (PST)
+Received: from mail-pf1-f193.google.com ([209.85.210.193]:41339 "EHLO
+        mail-pf1-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1725765AbfKHFDY (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 8 Nov 2019 00:03:24 -0500
+Received: by mail-pf1-f193.google.com with SMTP id p26so3849354pfq.8
+        for <linux-arch@vger.kernel.org>; Thu, 07 Nov 2019 21:03:24 -0800 (PST)
 From: Hajime Tazaki <thehajime@gmail.com>
-Subject: [RFC v2 37/37] um: add lkl virtio-blk device
-Date: Fri,  8 Nov 2019 14:02:52 +0900
-Message-Id: <61b15bfb52c7f1f066685c90a1cfe8346b3faec9.1573179553.git.thehajime@gmail.com>
+Subject: [RFC v2 11/37] lkl: basic kernel console support
+Date: Fri,  8 Nov 2019 14:02:26 +0900
+Message-Id: <9dc36b27c3a7f584425de69495e7196e0987be4c.1573179553.git.thehajime@gmail.com>
 In-Reply-To: <cover.1573179553.git.thehajime@gmail.com>
 References: <cover.1573179553.git.thehajime@gmail.com>
 MIME-Version: 1.0
@@ -16,155 +16,88 @@ Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-um@lists.infradead.org
-Cc: Octavian Purdila <tavi.purdila@gmail.com>, Akira Moroo <retrage01@gmail.com>, linux-kernel-library@freelists.org, linux-arch@vger.kernel.org, Hajime Tazaki <thehajime@gmail.com>
+Cc: Octavian Purdila <tavi.purdila@gmail.com>, Akira Moroo <retrage01@gmail.com>, linux-kernel-library@freelists.org, linux-arch@vger.kernel.org
 
-Now uml can use a virtio-blk device via 'vubd0=<filename>' over
-virtio-mmio driver.
+From: Octavian Purdila <tavi.purdila@gmail.com>
 
-Signed-off-by: Hajime Tazaki <thehajime@gmail.com>
+Write operations are deferred to the host print operation.
+
+Signed-off-by: Octavian Purdila <tavi.purdila@gmail.com>
 ---
- .circleci/config.yml             |  4 ++-
- arch/um/configs/x86_64_defconfig |  1 +
- arch/um/os-Linux/lkl_dev.c       | 56 +++++++++++++++++++++++++++++++-
- tools/lkl/lib/Makefile           |  6 ++--
- 4 files changed, 62 insertions(+), 5 deletions(-)
+ arch/um/lkl/include/uapi/asm/host_ops.h |  4 +++
+ arch/um/lkl/kernel/console.c            | 42 +++++++++++++++++++++++++
+ 2 files changed, 46 insertions(+)
+ create mode 100644 arch/um/lkl/kernel/console.c
 
-diff --git a/.circleci/config.yml b/.circleci/config.yml
-index 9753543e8198..f2fe39fc2bee 100644
---- a/.circleci/config.yml
-+++ b/.circleci/config.yml
-@@ -141,7 +141,9 @@ do_uml_steps: &do_uml_steps
-         if [ $CIRCLE_STAGE = "i386_uml" ] || [ $CIRCLE_STAGE = "i386_uml_on_x86_64" ]; then
-           exit 0
-         fi
--        ./linux rootfstype=hostfs ro mem=1g loglevel=10 veth0=tap,tap0,0xc803 init="/bin/bash -c exit" || export RETVAL=$?
-+        dd if=/dev/zero of=disk.img bs=1024 count=20480
-+        mkfs.ext4 disk.img
-+        ./linux rootfstype=hostfs ro mem=1g loglevel=10 veth0=tap,tap0,0xc803 vubd0=disk.img init='/bin/bash -x -c "mount -t ext4 /dev/vda /mnt ; ls -l /mnt/; ip addr ; exit"' || export RETVAL=$?
-         # SIGABRT=6 => 128+6
-         if [ $RETVAL != "134" ]; then
-           exit 1
-diff --git a/arch/um/configs/x86_64_defconfig b/arch/um/configs/x86_64_defconfig
-index 917982b6cd60..e5b7c048a701 100644
---- a/arch/um/configs/x86_64_defconfig
-+++ b/arch/um/configs/x86_64_defconfig
-@@ -75,3 +75,4 @@ CONFIG_VIRTIO_MENU=y
- CONFIG_VIRTIO_MMIO=y
- CONFIG_VIRTIO_MMIO_CMDLINE_DEVICES=y
- CONFIG_VIRTIO_NET=y
-+CONFIG_VIRTIO_BLK=y
-\ No newline at end of file
-diff --git a/arch/um/os-Linux/lkl_dev.c b/arch/um/os-Linux/lkl_dev.c
-index 698062917ed5..e08f113dfc0b 100644
---- a/arch/um/os-Linux/lkl_dev.c
-+++ b/arch/um/os-Linux/lkl_dev.c
-@@ -6,6 +6,7 @@
- #include <os.h>
- #include <kern_util.h>
- #include <errno.h>
-+#include <fcntl.h>
- 
- #include <lkl.h>
- #include <lkl_host.h>
-@@ -14,6 +15,7 @@ extern struct lkl_host_operations lkl_host_ops;
- struct lkl_host_operations *lkl_ops = &lkl_host_ops;
- 
- static struct lkl_netdev *nd;
-+static struct lkl_disk disk;
- 
- int __init uml_netdev_prepare(char *iftype, char *ifparams, char *ifoffload)
- {
-@@ -108,13 +110,65 @@ __uml_setup("veth", lkl_eth_setup,
- "    Configure a network device.\n\n"
- );
- 
-+int __init uml_blkdev_add(void)
+diff --git a/arch/um/lkl/include/uapi/asm/host_ops.h b/arch/um/lkl/include/uapi/asm/host_ops.h
+index 7c0c0967c44a..6ae781419ce6 100644
+--- a/arch/um/lkl/include/uapi/asm/host_ops.h
++++ b/arch/um/lkl/include/uapi/asm/host_ops.h
+@@ -17,6 +17,8 @@ struct lkl_jmp_buf {
+  * These operations must be provided by a host library or by the application
+  * itself.
+  *
++ * @print - optional operation that receives console messages
++ *
+  * @sem_alloc - allocate a host semaphore an initialize it to count
+  * @sem_free - free a host semaphore
+  * @sem_up - perform an up operation on the semaphore
+@@ -76,6 +78,8 @@ struct lkl_jmp_buf {
+  * @jmp_buf_longjmp - perform a jump back to the saved jump buffer
+  */
+ struct lkl_host_operations {
++	void (*print)(const char *str, int len);
++
+ 	struct lkl_sem *(*sem_alloc)(int count);
+ 	void (*sem_free)(struct lkl_sem *sem);
+ 	void (*sem_up)(struct lkl_sem *sem);
+diff --git a/arch/um/lkl/kernel/console.c b/arch/um/lkl/kernel/console.c
+new file mode 100644
+index 000000000000..54d7f756c6da
+--- /dev/null
++++ b/arch/um/lkl/kernel/console.c
+@@ -0,0 +1,42 @@
++// SPDX-License-Identifier: GPL-2.0
++#include <linux/init.h>
++#include <linux/kernel.h>
++#include <linux/console.h>
++#include <asm/host_ops.h>
++
++static void console_write(struct console *con, const char *str,
++			  unsigned int len)
 +{
-+	int disk_id = 0;
++	if (lkl_ops->print)
++		lkl_ops->print(str, len);
++}
 +
-+	if (disk.fd)
-+		disk_id = lkl_disk_add(&disk);
++#ifdef CONFIG_LKL_EARLY_CONSOLE
++static struct console lkl_boot_console = {
++	.name	= "lkl_boot_console",
++	.write	= console_write,
++	.flags	= CON_PRINTBUFFER | CON_BOOT,
++	.index	= -1,
++};
 +
-+	if (disk_id < 0)
-+		return -1;
-+
++int __init lkl_boot_console_init(void)
++{
++	register_console(&lkl_boot_console);
 +	return 0;
 +}
-+__initcall(uml_blkdev_add);
++early_initcall(lkl_boot_console_init);
++#endif
 +
-+static int __init lkl_ubd_setup(char *str, int *niu)
++static struct console lkl_console = {
++	.name	= "lkl_console",
++	.write	= console_write,
++	.flags	= CON_PRINTBUFFER,
++	.index	= -1,
++};
++
++static int __init lkl_console_init(void)
 +{
-+	char *end, *fname;
-+	int devid, err = -EINVAL;
-+
-+	/* veth */
-+	devid = strtoul(str, &end, 0);
-+	if (end == str) {
-+		os_warn("Bad device number\n");
-+		return err;
-+	}
-+
-+	/* = */
-+	str = end;
-+	if (*str != '=') {
-+		os_warn("Expected '=' after device number\n");
-+		return err;
-+	}
-+	str++;
-+
-+	/* <filename> */
-+	fname = str;
-+
-+	os_info("fname=%s\n", fname);
-+	/* create */
-+	disk.fd = open(fname, O_RDWR);
-+	if (disk.fd < 0)
-+		return -1;
-+
-+	disk.ops = NULL;
-+
-+	return 1;
++	register_console(&lkl_console);
++	return 0;
 +}
-+__uml_setup("vubd", lkl_ubd_setup,
-+"vubd<n>=<filename>\n"
-+"    Configure a block device.\n\n"
-+);
-+
-+
- /* stub functions */
- int lkl_is_running(void)
- {
- 	return 1;
- }
- 
--
- void lkl_put_irq(int i, const char *user)
- {
- }
-diff --git a/tools/lkl/lib/Makefile b/tools/lkl/lib/Makefile
-index 3c35d49843cd..be6cb4b8f4ec 100644
---- a/tools/lkl/lib/Makefile
-+++ b/tools/lkl/lib/Makefile
-@@ -4,9 +4,9 @@ USER_CFLAGS += -I$(srctree)/tools/lkl/include \
- 		-Wno-strict-prototypes -Wno-undef \
- 		-Wframe-larger-than=20480 -O0 -g
- 
--USER_OBJS += fs.o iomem.o net.o jmp_buf.o virtio.o virtio_net.o \
-+USER_OBJS += iomem.o jmp_buf.o virtio.o virtio_net.o \
- 	 virtio_net_fd.o virtio_net_tap.o utils.o posix-host.o \
--	../../perf/pmu-events/jsmn.o
-+	 virtio_blk.o ../../perf/pmu-events/jsmn.o
- 
- #obj-y += fs.o
- obj-y += iomem.o
-@@ -15,7 +15,7 @@ obj-y += jmp_buf.o
- obj-y += posix-host.o
- #obj-$(LKL_HOST_CONFIG_NT) += nt-host.o
- obj-y += utils.o
--#obj-y += virtio_blk.o
-+obj-y += virtio_blk.o
- obj-y += virtio.o
- #obj-y += dbg.o
- #obj-y += dbg_handler.o
++core_initcall(lkl_console_init);
 -- 
 2.20.1 (Apple Git-117)
