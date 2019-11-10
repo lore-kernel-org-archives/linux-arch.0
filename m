@@ -1,207 +1,233 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mo4-p01-ob.smtp.rzone.de ([81.169.146.166]:33021 "EHLO
-        mo4-p01-ob.smtp.rzone.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726582AbfKJHdu (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sun, 10 Nov 2019 02:33:50 -0500
-Subject: Re: Bug 205201 - overflow of DMA mask and bus mask
-From: Christian Zigotzky <chzigotzky@xenosoft.de>
-References: <20181213112511.GA4574@lst.de>
- <e109de27-f4af-147d-dc0e-067c8bafb29b@xenosoft.de>
- <ad5a5a8a-d232-d523-a6f7-e9377fc3857b@xenosoft.de>
- <e60d6ca3-860c-f01d-8860-c5e022ec7179@xenosoft.de>
- <008c981e-bdd2-21a7-f5f7-c57e4850ae9a@xenosoft.de>
- <20190103073622.GA24323@lst.de>
- <71A251A5-FA06-4019-B324-7AED32F7B714@xenosoft.de>
- <1b0c5c21-2761-d3a3-651b-3687bb6ae694@xenosoft.de>
- <3504ee70-02de-049e-6402-2d530bf55a84@xenosoft.de>
- <46025f1b-db20-ac23-7dcd-10bc43bbb6ee@xenosoft.de>
- <20191105162856.GA15402@lst.de>
- <2f3c81bd-d498-066a-12c0-0a7715cda18f@xenosoft.de>
-Message-ID: <d2c614ec-c56e-3ec2-12d0-7561cd30c643@xenosoft.de>
-Date: Sun, 10 Nov 2019 08:27:46 +0100
+Received: from mga07.intel.com ([134.134.136.100]:26860 "EHLO mga07.intel.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726882AbfKJVbE (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Sun, 10 Nov 2019 16:31:04 -0500
+Date: Mon, 11 Nov 2019 05:30:49 +0800
+From: kbuild test robot <lkp@intel.com>
+Subject: Re: [PATCH v6 3/5] locking/qspinlock: Introduce CNA into the slow
+ path of qspinlock
+Message-ID: <201911110540.8p3UoQAR%lkp@intel.com>
+References: <20191107174622.61718-4-alex.kogan@oracle.com>
 MIME-Version: 1.0
-In-Reply-To: <2f3c81bd-d498-066a-12c0-0a7715cda18f@xenosoft.de>
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Transfer-Encoding: 8bit
-Content-Language: de-DE
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20191107174622.61718-4-alex.kogan@oracle.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Christoph Hellwig <hch@lst.de>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, paulus@samba.org, darren@stevens-zone.net, "contact@a-eon.com" <contact@a-eon.com>, rtd2@xtra.co.nz, mad skateman <madskateman@gmail.com>, Rob Herring <robh+dt@kernel.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>
-Message-ID: <20191110072746.az9IXg0fUpzZou1uYiyA4jWdsAR9pTeCRgSHB6vrG0A@z>
+To: Alex Kogan <alex.kogan@oracle.com>
+Cc: kbuild-all@lists.01.org, linux@armlinux.org.uk, peterz@infradead.org, mingo@redhat.com, will.deacon@arm.com, arnd@arndb.de, longman@redhat.com, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, bp@alien8.de, hpa@zytor.com, x86@kernel.org, guohanjun@huawei.com, jglauber@marvell.com, steven.sistare@oracle.com, daniel.m.jordan@oracle.com, dave.dice@oracle.com, rahul.x.yadav@oracle.com
+Message-ID: <20191110213049.wXwwKyAdzzN_eBYTGj3dueAwvdeBGakdDSCmebgwGGE@z>
 
-On 07 November 2019 at 10:53 am, Christian Zigotzky wrote:
-> On 05 November 2019 at 5:28 pm, Christoph Hellwig wrote:
->> On Tue, Nov 05, 2019 at 08:56:27AM +0100, Christian Zigotzky wrote:
->>> Hi All,
->>>
->>> We still have DMA problems with some PCI devices. Since the PowerPC 
->>> updates
->>> 4.21-1 [1] we need to decrease the RAM to 3500MB (mem=3500M) if we 
->>> want to
->>> work with our PCI devices. The FSL P5020 and P5040 have these problems
->>> currently.
->>>
->>> Error message:
->>>
->>> [   25.654852] bttv 1000:04:05.0: overflow 0x00000000fe077000+4096 
->>> of DMA
->>> mask ffffffff bus mask df000000
->>>
->>> All 5.x Linux kernels can't initialize a SCSI PCI card anymore so 
->>> booting
->>> of a Linux userland isn't possible.
->>>
->>> PLEASE check the DMA changes in the PowerPC updates 4.21-1 [1]. The 
->>> kernel
->>> 4.20 works with all PCI devices without limitation of RAM.
->> Can you send me the .config and a dmesg?  And in the meantime try the
->> patch below?
->>
->> ---
->> >From 4d659b7311bd4141fdd3eeeb80fa2d7602ea01d4 Mon Sep 17 00:00:00 2001
->> From: Nicolas Saenz Julienne <nsaenzjulienne@suse.de>
->> Date: Fri, 18 Oct 2019 13:00:43 +0200
->> Subject: dma-direct: check for overflows on 32 bit DMA addresses
->>
->> As seen on the new Raspberry Pi 4 and sta2x11's DMA implementation it is
->> possible for a device configured with 32 bit DMA addresses and a partial
->> DMA mapping located at the end of the address space to overflow. It
->> happens when a higher physical address, not DMAable, is translated to
->> it's DMA counterpart.
->>
->> For example the Raspberry Pi 4, configurable up to 4 GB of memory, has
->> an interconnect capable of addressing the lower 1 GB of physical memory
->> with a DMA offset of 0xc0000000. It transpires that, any attempt to
->> translate physical addresses higher than the first GB will result in an
->> overflow which dma_capable() can't detect as it only checks for
->> addresses bigger then the maximum allowed DMA address.
->>
->> Fix this by verifying in dma_capable() if the DMA address range provided
->> is at any point lower than the minimum possible DMA address on the bus.
->>
->> Signed-off-by: Nicolas Saenz Julienne <nsaenzjulienne@suse.de>
->> ---
->>   include/linux/dma-direct.h | 8 ++++++++
->>   1 file changed, 8 insertions(+)
->>
->> diff --git a/include/linux/dma-direct.h b/include/linux/dma-direct.h
->> index adf993a3bd58..6ad9e9ea7564 100644
->> --- a/include/linux/dma-direct.h
->> +++ b/include/linux/dma-direct.h
->> @@ -3,6 +3,7 @@
->>   #define _LINUX_DMA_DIRECT_H 1
->>     #include <linux/dma-mapping.h>
->> +#include <linux/memblock.h> /* for min_low_pfn */
->>   #include <linux/mem_encrypt.h>
->>     #ifdef CONFIG_ARCH_HAS_PHYS_TO_DMA
->> @@ -27,6 +28,13 @@ static inline bool dma_capable(struct device *dev, 
->> dma_addr_t addr, size_t size)
->>       if (!dev->dma_mask)
->>           return false;
->>   +#ifndef CONFIG_ARCH_DMA_ADDR_T_64BIT
->> +    /* Check if DMA address overflowed */
->> +    if (min(addr, addr + size - 1) <
->> +        __phys_to_dma(dev, (phys_addr_t)(min_low_pfn << PAGE_SHIFT)))
->> +        return false;
->> +#endif
->> +
->>       return addr + size - 1 <=
->>           min_not_zero(*dev->dma_mask, dev->bus_dma_mask);
->>   }
-> Hello Christoph,
->
-> Thanks a lot for your patch! Unfortunately this patch doesn't solve 
-> the issue.
->
-> Error messages:
->
-> [    6.041163] bttv: driver version 0.9.19 loaded
-> [    6.041167] bttv: using 8 buffers with 2080k (520 pages) each for 
-> capture
-> [    6.041559] bttv: Bt8xx card found (0)
-> [    6.041609] bttv: 0: Bt878 (rev 17) at 1000:04:05.0, irq: 19, 
-> latency: 128, mmio: 0xc20001000
-> [    6.041622] bttv: 0: using: Typhoon TView RDS + FM Stereo / KNC1 TV 
-> Station RDS [card=53,insmod option]
-> [    6.042216] bttv: 0: tuner type=5
-> [    6.111994] bttv: 0: audio absent, no audio device found!
-> [    6.176425] bttv: 0: Setting PLL: 28636363 => 35468950 (needs up to 
-> 100ms)
-> [    6.200005] bttv: PLL set ok
-> [    6.209351] bttv: 0: registered device video0
-> [    6.211576] bttv: 0: registered device vbi0
-> [    6.214897] bttv: 0: registered device radio0
-> [  114.218806] bttv 1000:04:05.0: overflow 0x00000000ff507000+4096 of 
-> DMA mask ffffffff bus mask df000000
-> [  114.218848] Modules linked in: rfcomm bnep tuner_simple tuner_types 
-> tea5767 tuner tda7432 tvaudio msp3400 bttv tea575x tveeprom 
-> videobuf_dma_sg videobuf_core rc_core videodev mc btusb btrtl btbcm 
-> btintel bluetooth uio_pdrv_genirq uio ecdh_generic ecc
-> [  114.219012] [c0000001ecddf720] [80000000008ff6e8] 
-> .buffer_prepare+0x150/0x268 [bttv]
-> [  114.219029] [c0000001ecddf860] [80000000008fff6c] 
-> .bttv_qbuf+0x50/0x64 [bttv]
->
-> -----
->
-> Trace:
->
-> [  462.783184] Call Trace:
-> [  462.783187] [c0000001c6c67420] [c0000000000b3358] 
-> .report_addr+0xb8/0xc0 (unreliable)
-> [  462.783192] [c0000001c6c67490] [c0000000000b351c] 
-> .dma_direct_map_page+0xf0/0x128
-> [  462.783195] [c0000001c6c67530] [c0000000000b35b0] 
-> .dma_direct_map_sg+0x5c/0xac
-> [  462.783205] [c0000001c6c675e0] [8000000000862e88] 
-> .__videobuf_iolock+0x660/0x6d8 [videobuf_dma_sg]
-> [  462.783220] [c0000001c6c676b0] [8000000000854274] 
-> .videobuf_iolock+0x98/0xb4 [videobuf_core]
-> [  462.783271] [c0000001c6c67720] [80000000008686e8] 
-> .buffer_prepare+0x150/0x268 [bttv]
-> [  462.783276] [c0000001c6c677c0] [8000000000854afc] 
-> .videobuf_qbuf+0x2b8/0x428 [videobuf_core]
-> [  462.783288] [c0000001c6c67860] [8000000000868f6c] 
-> .bttv_qbuf+0x50/0x64 [bttv]
-> [  462.783383] [c0000001c6c678e0] [80000000007bf208] 
-> .v4l_qbuf+0x54/0x60 [videodev]
-> [  462.783402] [c0000001c6c67970] [80000000007c1eac] 
-> .__video_do_ioctl+0x30c/0x3f8 [videodev]
-> [  462.783421] [c0000001c6c67a80] [80000000007c3c08] 
-> .video_usercopy+0x18c/0x3dc [videodev]
-> [  462.783440] [c0000001c6c67c00] [80000000007bb14c] 
-> .v4l2_ioctl+0x60/0x78 [videodev]
-> [  462.783460] [c0000001c6c67c90] [80000000007d3c48] 
-> .v4l2_compat_ioctl32+0x9b4/0x1850 [videodev]
-> [  462.783468] [c0000001c6c67d70] [c0000000001ad9cc] 
-> .__se_compat_sys_ioctl+0x284/0x127c
-> [  462.783473] [c0000001c6c67e20] [c00000000000067c] 
-> system_call+0x60/0x6c
-> [  462.783475] Instruction dump:
-> [  462.783477] 40fe0044 60000000 892255d0 2f890000 40fe0020 3c82ffc5 
-> 39200001 60000000
-> [  462.783483] 38842029 992255d0 485ad0d9 60000000 <0fe00000> 38210070 
-> e8010010 7c0803a6
-> [  462.783490] ---[ end trace b677d4a00458e277 ]---
->
-> -----
->
-> dmesg fsl p5040: https://bugzilla.kernel.org/attachment.cgi?id=285813
->
-> Kernel 5.4-rc6 config for the Cyrus+ board and for the QEMU ppce500 
-> board (CPU: P5040 and P5020): 
-> https://bugzilla.kernel.org/attachment.cgi?id=285815
->
-> Bug report: https://bugzilla.kernel.org/show_bug.cgi?id=205201
->
-> Thanks for your help,
->
-> Christian
+Hi Alex,
 
-Christoph,
+Thank you for the patch! Perhaps something to improve:
 
-Do you have another patch for testing or shall I bisect?
+[auto build test WARNING on linus/master]
+[cannot apply to v5.4-rc6 next-20191108]
+[if your patch is applied to the wrong git tree, please drop us a note to help
+improve the system. BTW, we also suggest to use '--base' option to specify the
+base tree in git format-patch, please see https://stackoverflow.com/a/37406982]
 
-Thanks,
-Christian
+url:    https://github.com/0day-ci/linux/commits/Alex-Kogan/locking-qspinlock-Rename-mcs-lock-unlock-macros-and-make-them-more-generic/20191109-180535
+base:   https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git 0058b0a506e40d9a2c62015fe92eb64a44d78cd9
+reproduce:
+        # apt-get install sparse
+        # sparse version: v0.6.1-21-gb31adac-dirty
+        make ARCH=x86_64 allmodconfig
+        make C=1 CF='-fdiagnostic-prefix -D__CHECK_ENDIAN__'
+
+If you fix the issue, kindly add following tag
+Reported-by: kbuild test robot <lkp@intel.com>
+
+
+sparse warnings: (new ones prefixed by >>)
+
+   kernel/locking/qspinlock.c:450:14: sparse: sparse: incorrect type in assignment (different modifiers) @@    expected struct mcs_spinlock *[assigned] node @@    got ct mcs_spinlock *[assigned] node @@
+   kernel/locking/qspinlock.c:450:14: sparse:    expected struct mcs_spinlock *[assigned] node
+   kernel/locking/qspinlock.c:450:14: sparse:    got struct mcs_spinlock [pure] *
+   kernel/locking/qspinlock.c:498:22: sparse: sparse: incorrect type in assignment (different modifiers) @@    expected struct mcs_spinlock *prev @@    got struct struct mcs_spinlock *prev @@
+   kernel/locking/qspinlock.c:498:22: sparse:    expected struct mcs_spinlock *prev
+   kernel/locking/qspinlock.c:498:22: sparse:    got struct mcs_spinlock [pure] *
+>> kernel/locking/qspinlock_cna.h:141:60: sparse: sparse: incorrect type in initializer (different modifiers) @@    expected struct mcs_spinlock *tail_2nd @@    got struct struct mcs_spinlock *tail_2nd @@
+>> kernel/locking/qspinlock_cna.h:141:60: sparse:    expected struct mcs_spinlock *tail_2nd
+>> kernel/locking/qspinlock_cna.h:141:60: sparse:    got struct mcs_spinlock [pure] *
+   kernel/locking/qspinlock.c:450:14: sparse: sparse: incorrect type in assignment (different modifiers) @@    expected struct mcs_spinlock *[assigned] node @@    got ct mcs_spinlock *[assigned] node @@
+   kernel/locking/qspinlock.c:450:14: sparse:    expected struct mcs_spinlock *[assigned] node
+   kernel/locking/qspinlock.c:450:14: sparse:    got struct mcs_spinlock [pure] *
+   kernel/locking/qspinlock.c:498:22: sparse: sparse: incorrect type in assignment (different modifiers) @@    expected struct mcs_spinlock *prev @@    got struct struct mcs_spinlock *prev @@
+   kernel/locking/qspinlock.c:498:22: sparse:    expected struct mcs_spinlock *prev
+   kernel/locking/qspinlock.c:498:22: sparse:    got struct mcs_spinlock [pure] *
+>> kernel/locking/qspinlock_cna.h:107:18: sparse: sparse: incorrect type in assignment (different modifiers) @@    expected struct mcs_spinlock *tail_2nd @@    got struct struct mcs_spinlock *tail_2nd @@
+   kernel/locking/qspinlock_cna.h:107:18: sparse:    expected struct mcs_spinlock *tail_2nd
+   kernel/locking/qspinlock_cna.h:107:18: sparse:    got struct mcs_spinlock [pure] *
+>> kernel/locking/qspinlock_cna.h:240:61: sparse: sparse: incorrect type in argument 2 (different modifiers) @@    expected struct mcs_spinlock *pred_start @@    got struct struct mcs_spinlock *pred_start @@
+>> kernel/locking/qspinlock_cna.h:240:61: sparse:    expected struct mcs_spinlock *pred_start
+   kernel/locking/qspinlock_cna.h:240:61: sparse:    got struct mcs_spinlock [pure] *
+   kernel/locking/qspinlock_cna.h:252:26: sparse: sparse: incorrect type in assignment (different modifiers) @@    expected struct mcs_spinlock *tail_2nd @@    got struct struct mcs_spinlock *tail_2nd @@
+   kernel/locking/qspinlock_cna.h:252:26: sparse:    expected struct mcs_spinlock *tail_2nd
+   kernel/locking/qspinlock_cna.h:252:26: sparse:    got struct mcs_spinlock [pure] *
+   kernel/locking/qspinlock.c:450:14: sparse: sparse: incorrect type in assignment (different modifiers) @@    expected struct mcs_spinlock *[assigned] node @@    got ct mcs_spinlock *[assigned] node @@
+   kernel/locking/qspinlock.c:450:14: sparse:    expected struct mcs_spinlock *[assigned] node
+   kernel/locking/qspinlock.c:450:14: sparse:    got struct mcs_spinlock [pure] *
+   kernel/locking/qspinlock.c:498:22: sparse: sparse: incorrect type in assignment (different modifiers) @@    expected struct mcs_spinlock *prev @@    got struct struct mcs_spinlock *prev @@
+   kernel/locking/qspinlock.c:498:22: sparse:    expected struct mcs_spinlock *prev
+   kernel/locking/qspinlock.c:498:22: sparse:    got struct mcs_spinlock [pure] *
+
+vim +141 kernel/locking/qspinlock_cna.h
+
+    90	
+    91	static inline bool cna_try_change_tail(struct qspinlock *lock, u32 val,
+    92					       struct mcs_spinlock *node)
+    93	{
+    94		struct mcs_spinlock *head_2nd, *tail_2nd;
+    95		u32 new;
+    96	
+    97		/* If the secondary queue is empty, do what MCS does. */
+    98		if (node->locked <= 1)
+    99			return __try_clear_tail(lock, val, node);
+   100	
+   101		/*
+   102		 * Try to update the tail value to the last node in the secondary queue.
+   103		 * If successful, pass the lock to the first thread in the secondary
+   104		 * queue. Doing those two actions effectively moves all nodes from the
+   105		 * secondary queue into the main one.
+   106		 */
+ > 107		tail_2nd = decode_tail(node->locked);
+   108		head_2nd = tail_2nd->next;
+   109		new = ((struct cna_node *)tail_2nd)->encoded_tail + _Q_LOCKED_VAL;
+   110	
+   111		if (atomic_try_cmpxchg_relaxed(&lock->val, &val, new)) {
+   112			/*
+   113			 * Try to reset @next in tail_2nd to NULL, but no need to check
+   114			 * the result - if failed, a new successor has updated it.
+   115			 */
+   116			cmpxchg_relaxed(&tail_2nd->next, head_2nd, NULL);
+   117			arch_mcs_pass_lock(&head_2nd->locked, 1);
+   118			return true;
+   119		}
+   120	
+   121		return false;
+   122	}
+   123	
+   124	/*
+   125	 * cna_splice_tail -- splice nodes in the main queue between [first, last]
+   126	 * onto the secondary queue.
+   127	 */
+   128	static void cna_splice_tail(struct mcs_spinlock *node,
+   129				    struct mcs_spinlock *first,
+   130				    struct mcs_spinlock *last)
+   131	{
+   132		/* remove [first,last] */
+   133		node->next = last->next;
+   134	
+   135		/* stick [first,last] on the secondary queue tail */
+   136		if (node->locked <= 1) { /* if secondary queue is empty */
+   137			/* create secondary queue */
+   138			last->next = first;
+   139		} else {
+   140			/* add to the tail of the secondary queue */
+ > 141			struct mcs_spinlock *tail_2nd = decode_tail(node->locked);
+   142			struct mcs_spinlock *head_2nd = tail_2nd->next;
+   143	
+   144			tail_2nd->next = first;
+   145			last->next = head_2nd;
+   146		}
+   147	
+   148		node->locked = ((struct cna_node *)last)->encoded_tail;
+   149	}
+   150	
+   151	/*
+   152	 * cna_scan_main_queue - scan the main waiting queue looking for the first
+   153	 * thread running on the same NUMA node as the lock holder. If found (call it
+   154	 * thread T), move all threads in the main queue between the lock holder and
+   155	 * T to the end of the secondary queue and return 0; otherwise, return the
+   156	 * encoded pointer of the last scanned node in the primary queue (so a
+   157	 * subsequent scan can be resumed from that node)
+   158	 *
+   159	 * Schematically, this may look like the following (nn stands for numa_node and
+   160	 * et stands for encoded_tail).
+   161	 *
+   162	 *   when cna_scan_main_queue() is called (the secondary queue is empty):
+   163	 *
+   164	 *  A+------------+   B+--------+   C+--------+   T+--------+
+   165	 *   |mcs:next    | -> |mcs:next| -> |mcs:next| -> |mcs:next| -> NULL
+   166	 *   |mcs:locked=1|    |cna:nn=0|    |cna:nn=2|    |cna:nn=1|
+   167	 *   |cna:nn=1    |    +--------+    +--------+    +--------+
+   168	 *   +----------- +
+   169	 *
+   170	 *   when cna_scan_main_queue() returns (the secondary queue contains B and C):
+   171	 *
+   172	 *  A+----------------+    T+--------+
+   173	 *   |mcs:next        | ->  |mcs:next| -> NULL
+   174	 *   |mcs:locked=C.et | -+  |cna:nn=1|
+   175	 *   |cna:nn=1        |  |  +--------+
+   176	 *   +--------------- +  +-----+
+   177	 *                             \/
+   178	 *          B+--------+   C+--------+
+   179	 *           |mcs:next| -> |mcs:next| -+
+   180	 *           |cna:nn=0|    |cna:nn=2|  |
+   181	 *           +--------+    +--------+  |
+   182	 *               ^                     |
+   183	 *               +---------------------+
+   184	 *
+   185	 * The worst case complexity of the scan is O(n), where n is the number
+   186	 * of current waiters. However, the amortized complexity is close to O(1),
+   187	 * as the immediate successor is likely to be running on the same node once
+   188	 * threads from other nodes are moved to the secondary queue.
+   189	 */
+   190	static u32 cna_scan_main_queue(struct mcs_spinlock *node,
+   191				       struct mcs_spinlock *pred_start)
+   192	{
+   193		struct cna_node *cn = (struct cna_node *)node;
+   194		struct cna_node *cni = (struct cna_node *)READ_ONCE(pred_start->next);
+   195		struct cna_node *last;
+   196		int my_numa_node = cn->numa_node;
+   197	
+   198		/* find any next waiter on 'our' NUMA node */
+   199		for (last = cn;
+   200		     cni && cni->numa_node != my_numa_node;
+   201		     last = cni, cni = (struct cna_node *)READ_ONCE(cni->mcs.next))
+   202			;
+   203	
+   204		/* if found, splice any skipped waiters onto the secondary queue */
+   205		if (cni) {
+   206			if (last != cn)	/* did we skip any waiters? */
+   207				cna_splice_tail(node, node->next,
+   208						(struct mcs_spinlock *)last);
+   209			return 0;
+   210		}
+   211	
+   212		return last->encoded_tail;
+   213	}
+   214	
+   215	__always_inline u32 cna_pre_scan(struct qspinlock *lock,
+   216					  struct mcs_spinlock *node)
+   217	{
+   218		struct cna_node *cn = (struct cna_node *)node;
+   219	
+   220		cn->pre_scan_result = cna_scan_main_queue(node, node);
+   221	
+   222		return 0;
+   223	}
+   224	
+   225	static inline void cna_pass_lock(struct mcs_spinlock *node,
+   226					 struct mcs_spinlock *next)
+   227	{
+   228		struct cna_node *cn = (struct cna_node *)node;
+   229		struct mcs_spinlock *next_holder = next, *tail_2nd;
+   230		u32 val = 1;
+   231	
+   232		u32 scan = cn->pre_scan_result;
+   233	
+   234		/*
+   235		 * check if a successor from the same numa node has not been found in
+   236		 * pre-scan, and if so, try to find it in post-scan starting from the
+   237		 * node where pre-scan stopped (stored in @pre_scan_result)
+   238		 */
+   239		if (scan > 0)
+ > 240			scan = cna_scan_main_queue(node, decode_tail(scan));
+
+---
+0-DAY kernel test infrastructure                 Open Source Technology Center
+https://lists.01.org/hyperkitty/list/kbuild-all@lists.01.org Intel Corporation
