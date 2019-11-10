@@ -1,211 +1,75 @@
-From: Christian Zigotzky <chzigotzky@xenosoft.de>
-Subject: Re: Bug 205201 - overflow of DMA mask and bus mask
-Date: Sun, 10 Nov 2019 08:27:46 +0100
-Message-ID: <d2c614ec-c56e-3ec2-12d0-7561cd30c643@xenosoft.de>
-References: <20181213112511.GA4574@lst.de>
- <e109de27-f4af-147d-dc0e-067c8bafb29b@xenosoft.de>
- <ad5a5a8a-d232-d523-a6f7-e9377fc3857b@xenosoft.de>
- <e60d6ca3-860c-f01d-8860-c5e022ec7179@xenosoft.de>
- <008c981e-bdd2-21a7-f5f7-c57e4850ae9a@xenosoft.de>
- <20190103073622.GA24323@lst.de>
- <71A251A5-FA06-4019-B324-7AED32F7B714@xenosoft.de>
- <1b0c5c21-2761-d3a3-651b-3687bb6ae694@xenosoft.de>
- <3504ee70-02de-049e-6402-2d530bf55a84@xenosoft.de>
- <46025f1b-db20-ac23-7dcd-10bc43bbb6ee@xenosoft.de>
- <20191105162856.GA15402@lst.de>
- <2f3c81bd-d498-066a-12c0-0a7715cda18f@xenosoft.de>
+From: Mike Rapoport <rppt@kernel.org>
+Subject: Re: [PATCH v4 05/13] m68k: mm: use pgtable-nopXd instead of
+ 4level-fixup
+Date: Sun, 10 Nov 2019 10:41:26 +0200
+Message-ID: <20191110084125.GA9494@rapoport-lnx>
+References: <1572938135-31886-1-git-send-email-rppt@kernel.org>
+ <1572938135-31886-6-git-send-email-rppt@kernel.org>
+ <20191108113917.a9c6ebb8373cc95fd684b734@linux-foundation.org>
+ <CAMuHMdXdoFSVno4WT=F6Q1UwEaZ6AQJmhNUqPpYHJm6uh165iw@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Transfer-Encoding: 8bit
-Return-path: <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
-In-Reply-To: <2f3c81bd-d498-066a-12c0-0a7715cda18f@xenosoft.de>
-Content-Language: de-DE
-List-Unsubscribe: <https://lists.ozlabs.org/options/linuxppc-dev>,
- <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=unsubscribe>
-List-Archive: <http://lists.ozlabs.org/pipermail/linuxppc-dev/>
-List-Post: <mailto:linuxppc-dev@lists.ozlabs.org>
-List-Help: <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=help>
-List-Subscribe: <https://lists.ozlabs.org/listinfo/linuxppc-dev>,
- <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=subscribe>
-Errors-To: linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org
-Sender: "Linuxppc-dev"
- <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
-To: Christoph Hellwig <hch@lst.de>
-Cc: linux-arch@vger.kernel.org, darren@stevens-zone.net, mad skateman <madskateman@gmail.com>, linux-kernel@vger.kernel.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Rob Herring <robh+dt@kernel.org>, paulus@samba.org, rtd2@xtra.co.nz, "contact@a-eon.com" <contact@a-eon.com>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+Content-Disposition: inline
+In-Reply-To: <CAMuHMdXdoFSVno4WT=F6Q1UwEaZ6AQJmhNUqPpYHJm6uh165iw@mail.gmail.com>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+To: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: Linux/m68k <linux-m68k@vger.kernel.org>, "James E.J. Bottomley" <James.Bottomley@hansenpartnership.com>, Linux MM <linux-mm@kvack.org>, sparclinux <sparclinux@vger.kernel.org>, Rolf Eike Beer <eike-kernel@sf-tec.de>, Vincent Chen <deanbo422@gmail.com>, Greg Ungerer <gerg@linux-m68k.org>, Anton Ivanov <anton.ivanov@cambridgegreys.com>, Linux-Arch <linux-arch@vger.kernel.org>, linux-c6x-dev@linux-c6x.org, Richard Weinberger <richard@nod.at>, Helge Deller <deller@gmx.de>, Russell King <linux@armlinux.org.uk>, Mike Rapoport <rppt@linux.ibm.com>, Mark Salter <msalter@redhat.com>, Matt Turner <mattst88@gmail.com>, Vineet Gupta <Vineet.Gupta1@synopsys.com>, Sam Creasey <sammy@sammy.net>, Arnd Bergmann <arnd@arndb.de>, Jeff Dike <jdike@addtoit.com>, linux-um@lists.infradead.org, Greentime Hu <green.hu@gmail.com>, "Kirill A. Shutemov" <kirill@shutemov.name>, Linux ARM <linux-arm>
 List-Id: linux-arch.vger.kernel.org
 
-On 07 November 2019 at 10:53 am, Christian Zigotzky wrote:
-> On 05 November 2019 at 5:28 pm, Christoph Hellwig wrote:
->> On Tue, Nov 05, 2019 at 08:56:27AM +0100, Christian Zigotzky wrote:
->>> Hi All,
->>>
->>> We still have DMA problems with some PCI devices. Since the PowerPC 
->>> updates
->>> 4.21-1 [1] we need to decrease the RAM to 3500MB (mem=3500M) if we 
->>> want to
->>> work with our PCI devices. The FSL P5020 and P5040 have these problems
->>> currently.
->>>
->>> Error message:
->>>
->>> [   25.654852] bttv 1000:04:05.0: overflow 0x00000000fe077000+4096 
->>> of DMA
->>> mask ffffffff bus mask df000000
->>>
->>> All 5.x Linux kernels can't initialize a SCSI PCI card anymore so 
->>> booting
->>> of a Linux userland isn't possible.
->>>
->>> PLEASE check the DMA changes in the PowerPC updates 4.21-1 [1]. The 
->>> kernel
->>> 4.20 works with all PCI devices without limitation of RAM.
->> Can you send me the .config and a dmesg?  And in the meantime try the
->> patch below?
->>
->> ---
->> >From 4d659b7311bd4141fdd3eeeb80fa2d7602ea01d4 Mon Sep 17 00:00:00 2001
->> From: Nicolas Saenz Julienne <nsaenzjulienne@suse.de>
->> Date: Fri, 18 Oct 2019 13:00:43 +0200
->> Subject: dma-direct: check for overflows on 32 bit DMA addresses
->>
->> As seen on the new Raspberry Pi 4 and sta2x11's DMA implementation it is
->> possible for a device configured with 32 bit DMA addresses and a partial
->> DMA mapping located at the end of the address space to overflow. It
->> happens when a higher physical address, not DMAable, is translated to
->> it's DMA counterpart.
->>
->> For example the Raspberry Pi 4, configurable up to 4 GB of memory, has
->> an interconnect capable of addressing the lower 1 GB of physical memory
->> with a DMA offset of 0xc0000000. It transpires that, any attempt to
->> translate physical addresses higher than the first GB will result in an
->> overflow which dma_capable() can't detect as it only checks for
->> addresses bigger then the maximum allowed DMA address.
->>
->> Fix this by verifying in dma_capable() if the DMA address range provided
->> is at any point lower than the minimum possible DMA address on the bus.
->>
->> Signed-off-by: Nicolas Saenz Julienne <nsaenzjulienne@suse.de>
->> ---
->>   include/linux/dma-direct.h | 8 ++++++++
->>   1 file changed, 8 insertions(+)
->>
->> diff --git a/include/linux/dma-direct.h b/include/linux/dma-direct.h
->> index adf993a3bd58..6ad9e9ea7564 100644
->> --- a/include/linux/dma-direct.h
->> +++ b/include/linux/dma-direct.h
->> @@ -3,6 +3,7 @@
->>   #define _LINUX_DMA_DIRECT_H 1
->>     #include <linux/dma-mapping.h>
->> +#include <linux/memblock.h> /* for min_low_pfn */
->>   #include <linux/mem_encrypt.h>
->>     #ifdef CONFIG_ARCH_HAS_PHYS_TO_DMA
->> @@ -27,6 +28,13 @@ static inline bool dma_capable(struct device *dev, 
->> dma_addr_t addr, size_t size)
->>       if (!dev->dma_mask)
->>           return false;
->>   +#ifndef CONFIG_ARCH_DMA_ADDR_T_64BIT
->> +    /* Check if DMA address overflowed */
->> +    if (min(addr, addr + size - 1) <
->> +        __phys_to_dma(dev, (phys_addr_t)(min_low_pfn << PAGE_SHIFT)))
->> +        return false;
->> +#endif
->> +
->>       return addr + size - 1 <=
->>           min_not_zero(*dev->dma_mask, dev->bus_dma_mask);
->>   }
-> Hello Christoph,
->
-> Thanks a lot for your patch! Unfortunately this patch doesn't solve 
-> the issue.
->
-> Error messages:
->
-> [    6.041163] bttv: driver version 0.9.19 loaded
-> [    6.041167] bttv: using 8 buffers with 2080k (520 pages) each for 
-> capture
-> [    6.041559] bttv: Bt8xx card found (0)
-> [    6.041609] bttv: 0: Bt878 (rev 17) at 1000:04:05.0, irq: 19, 
-> latency: 128, mmio: 0xc20001000
-> [    6.041622] bttv: 0: using: Typhoon TView RDS + FM Stereo / KNC1 TV 
-> Station RDS [card=53,insmod option]
-> [    6.042216] bttv: 0: tuner type=5
-> [    6.111994] bttv: 0: audio absent, no audio device found!
-> [    6.176425] bttv: 0: Setting PLL: 28636363 => 35468950 (needs up to 
-> 100ms)
-> [    6.200005] bttv: PLL set ok
-> [    6.209351] bttv: 0: registered device video0
-> [    6.211576] bttv: 0: registered device vbi0
-> [    6.214897] bttv: 0: registered device radio0
-> [  114.218806] bttv 1000:04:05.0: overflow 0x00000000ff507000+4096 of 
-> DMA mask ffffffff bus mask df000000
-> [  114.218848] Modules linked in: rfcomm bnep tuner_simple tuner_types 
-> tea5767 tuner tda7432 tvaudio msp3400 bttv tea575x tveeprom 
-> videobuf_dma_sg videobuf_core rc_core videodev mc btusb btrtl btbcm 
-> btintel bluetooth uio_pdrv_genirq uio ecdh_generic ecc
-> [  114.219012] [c0000001ecddf720] [80000000008ff6e8] 
-> .buffer_prepare+0x150/0x268 [bttv]
-> [  114.219029] [c0000001ecddf860] [80000000008fff6c] 
-> .bttv_qbuf+0x50/0x64 [bttv]
->
-> -----
->
-> Trace:
->
-> [  462.783184] Call Trace:
-> [  462.783187] [c0000001c6c67420] [c0000000000b3358] 
-> .report_addr+0xb8/0xc0 (unreliable)
-> [  462.783192] [c0000001c6c67490] [c0000000000b351c] 
-> .dma_direct_map_page+0xf0/0x128
-> [  462.783195] [c0000001c6c67530] [c0000000000b35b0] 
-> .dma_direct_map_sg+0x5c/0xac
-> [  462.783205] [c0000001c6c675e0] [8000000000862e88] 
-> .__videobuf_iolock+0x660/0x6d8 [videobuf_dma_sg]
-> [  462.783220] [c0000001c6c676b0] [8000000000854274] 
-> .videobuf_iolock+0x98/0xb4 [videobuf_core]
-> [  462.783271] [c0000001c6c67720] [80000000008686e8] 
-> .buffer_prepare+0x150/0x268 [bttv]
-> [  462.783276] [c0000001c6c677c0] [8000000000854afc] 
-> .videobuf_qbuf+0x2b8/0x428 [videobuf_core]
-> [  462.783288] [c0000001c6c67860] [8000000000868f6c] 
-> .bttv_qbuf+0x50/0x64 [bttv]
-> [  462.783383] [c0000001c6c678e0] [80000000007bf208] 
-> .v4l_qbuf+0x54/0x60 [videodev]
-> [  462.783402] [c0000001c6c67970] [80000000007c1eac] 
-> .__video_do_ioctl+0x30c/0x3f8 [videodev]
-> [  462.783421] [c0000001c6c67a80] [80000000007c3c08] 
-> .video_usercopy+0x18c/0x3dc [videodev]
-> [  462.783440] [c0000001c6c67c00] [80000000007bb14c] 
-> .v4l2_ioctl+0x60/0x78 [videodev]
-> [  462.783460] [c0000001c6c67c90] [80000000007d3c48] 
-> .v4l2_compat_ioctl32+0x9b4/0x1850 [videodev]
-> [  462.783468] [c0000001c6c67d70] [c0000000001ad9cc] 
-> .__se_compat_sys_ioctl+0x284/0x127c
-> [  462.783473] [c0000001c6c67e20] [c00000000000067c] 
-> system_call+0x60/0x6c
-> [  462.783475] Instruction dump:
-> [  462.783477] 40fe0044 60000000 892255d0 2f890000 40fe0020 3c82ffc5 
-> 39200001 60000000
-> [  462.783483] 38842029 992255d0 485ad0d9 60000000 <0fe00000> 38210070 
-> e8010010 7c0803a6
-> [  462.783490] ---[ end trace b677d4a00458e277 ]---
->
-> -----
->
-> dmesg fsl p5040: https://bugzilla.kernel.org/attachment.cgi?id=285813
->
-> Kernel 5.4-rc6 config for the Cyrus+ board and for the QEMU ppce500 
-> board (CPU: P5040 and P5020): 
-> https://bugzilla.kernel.org/attachment.cgi?id=285815
->
-> Bug report: https://bugzilla.kernel.org/show_bug.cgi?id=205201
->
-> Thanks for your help,
->
-> Christian
+Hi Andrew,
 
-Christoph,
+On Sat, Nov 09, 2019 at 03:26:29PM +0100, Geert Uytterhoeven wrote:
+> Hi Andrew,
+> 
+> On Fri, Nov 8, 2019 at 8:39 PM Andrew Morton <akpm@linux-foundation.org> wrote:
+> > On Tue,  5 Nov 2019 09:15:27 +0200 Mike Rapoport <rppt@kernel.org> wrote:
+> > > m68k has two or three levels of page tables and can use appropriate
+> > > pgtable-nopXd and folding of the upper layers.
+> > >
+> > > Replace usage of include/asm-generic/4level-fixup.h and explicit
+> > > definitions of __PAGETABLE_PxD_FOLDED in m68k with
+> > > include/asm-generic/pgtable-nopmd.h for two-level configurations and with
+> > > include/asm-generic/pgtable-nopud.h for three-lelve configurations and
+> > > adjust page table manipulation macros and functions accordingly.
+> >
+> > This one was messed up by linux-next changes in arch/m68k/mm/kmap.c.
+> > Can you please take a look?
 
-Do you have another patch for testing or shall I bisect?
+Can you please elaborate what was the problem?
 
-Thanks,
-Christian
+The patch applies cleanly to v5.4-rc6-mmots-2019-11-08-16-23 (from
+github.com/hnaz/linux-mm) and all the page table traversals in
+arch/m68k/mm/kmap.c look Ok.
+
+I've build atari_defconfig and it boots fine on aranym.
+ 
+> You mean due to the rename and move of __iounmap() to __free_io_area()
+> in commit aa3a1664285d0bec ("m68k: rename __iounmap and mark it static")?
+> 
+> Commit 42d6c83d6180f800 ("m68k: mm: use pgtable-nopXd instead of
+> 4level-fixup") in next-20191108 looks good to me.
+> 
+> Gr{oetje,eeting}s,
+> 
+>                         Geert
+> 
+> --
+> Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+> 
+> In personal conversations with technical people, I call myself a hacker. But
+> when I'm talking to journalists I just say "programmer" or something like that.
+>                                 -- Linus Torvalds
+
+-- 
+Sincerely yours,
+Mike.
