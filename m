@@ -1,71 +1,39 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ot1-f67.google.com ([209.85.210.67]:40280 "EHLO
-        mail-ot1-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726845AbfKKSJF (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 11 Nov 2019 13:09:05 -0500
+Received: from mout.kundenserver.de ([212.227.17.24]:39367 "EHLO
+        mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727797AbfKKTdj (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 11 Nov 2019 14:33:39 -0500
 MIME-Version: 1.0
-References: <20191011000609.29728-1-keescook@chromium.org> <20191011000609.29728-12-keescook@chromium.org>
- <CAMuHMdXfPyti1wFBb0hhf3CeDSQ=zVv7cV-taeYCmDswMQkXPQ@mail.gmail.com> <201911110922.17A2112B0@keescook>
-In-Reply-To: <201911110922.17A2112B0@keescook>
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Date: Mon, 11 Nov 2019 19:08:51 +0100
-Message-ID: <CAMuHMdUJ8QPvqf51nVmOg1Zm20SNT7pXR72z=qmco=ecwawZ7A@mail.gmail.com>
-Subject: Re: [PATCH v2 11/29] vmlinux.lds.h: Replace RODATA with RO_DATA
+References: <20191029064834.23438-1-hch@lst.de> <20191029064834.23438-11-hch@lst.de>
+ <CAK8P3a2o4R+E2hTrHrmNy7K1ki3_98aWE5a-fjkQ_NWW=xd_gQ@mail.gmail.com>
+ <20191111101531.GA12294@lst.de> <CAK8P3a0rTvfPP2LUMw8EC0xz5gfZP5+NUkoaZBJrtYYfr6YRig@mail.gmail.com>
+ <20191111102923.GA12974@lst.de>
+In-Reply-To: <20191111102923.GA12974@lst.de>
+From: Arnd Bergmann <arnd@arndb.de>
+Date: Mon, 11 Nov 2019 20:33:17 +0100
+Message-ID: <CAK8P3a2b=td4JhYOcK1jUshh8Mp-5_w4v+dAr_JjnH783=ptBQ@mail.gmail.com>
+Subject: Re: [PATCH 10/21] asm-generic: ioremap_uc should behave the same with
+ and without MMU
 Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Kees Cook <keescook@chromium.org>
-Cc: Borislav Petkov <bp@alien8.de>, Rick Edgecombe <rick.p.edgecombe@intel.com>, Dave Hansen <dave.hansen@linux.intel.com>, Andy Lutomirski <luto@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Michael Ellerman <mpe@ellerman.id.au>, Heiko Carstens <heiko.carstens@de.ibm.com>, Will Deacon <will@kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, alpha <linux-alpha@vger.kernel.org>, "linux-ia64@vger.kernel.org" <linux-ia64@vger.kernel.org>, linux-s390 <linux-s390@vger.kernel.org>, linux-c6x-dev@linux-c6x.org, Yoshinori Sato <ysato@users.sourceforge.jp>, Michal Simek <monstr@monstr.eu>, Parisc List <linux-parisc@vger.kernel.org>, linux-xtensa@linux-xtensa.org, the arch/x86 maintainers <x86@kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
-Message-ID: <20191111180851.Z3yMH-bK4vxHaL-ThGpVqOTijuJ46YngE2TikBOx6sc@z>
+To: Christoph Hellwig <hch@lst.de>
+Cc: Guo Ren <guoren@kernel.org>, Michal Simek <monstr@monstr.eu>, Greentime Hu <green.hu@gmail.com>, Vincent Chen <deanbo422@gmail.com>, Guan Xuetao <gxt@pku.edu.cn>, the arch/x86 maintainers <x86@kernel.org>, alpha <linux-alpha@vger.kernel.org>, "open list:SYNOPSYS ARC ARCHITECTURE" <linux-snps-arc@lists.infradead.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, "open list:QUALCOMM HEXAGON..." <linux-hexagon@vger.kernel.org>, linux-ia64@vger.kernel.org, linux-m68k <linux-m68k@lists.linux-m68k.org>, linux-mips@vger.kernel.org, "moderated list:NIOS2 ARCHITECTURE" <nios2-dev@lists.rocketboards.org>, openrisc@lists.librecores.org, Parisc List <linux-parisc@vger.kernel.org>, linux-riscv@lists.infradead.org, linux-s390 <linux-s390@vger.kernel.org>, Linux-sh list <linux-sh@vger.kernel.org>, sparclinux <sparclinux@vger.kernel.org>, linux-xtensa@linux-xtensa.org, linux-mtd <linux-mtd@lists.infradead.org>, linux-arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
+Message-ID: <20191111193317.RW-192OqbWdTWgw9mHIkeEsGNNHT_DQkq6y5_ZJLPC0@z>
 
-Hi Kees,
-
-On Mon, Nov 11, 2019 at 6:23 PM Kees Cook <keescook@chromium.org> wrote:
-> On Mon, Nov 11, 2019 at 05:58:06PM +0100, Geert Uytterhoeven wrote:
-> > On Fri, Oct 11, 2019 at 2:07 AM Kees Cook <keescook@chromium.org> wrote:
-> > > There's no reason to keep the RODATA macro: replace the callers with
-> > > the expected RO_DATA macro.
-> > >
-> > > Signed-off-by: Kees Cook <keescook@chromium.org>
-> > > ---
-> > >  arch/alpha/kernel/vmlinux.lds.S      | 2 +-
-> > >  arch/ia64/kernel/vmlinux.lds.S       | 2 +-
-> > >  arch/microblaze/kernel/vmlinux.lds.S | 2 +-
-> > >  arch/mips/kernel/vmlinux.lds.S       | 2 +-
-> > >  arch/um/include/asm/common.lds.S     | 2 +-
-> > >  arch/xtensa/kernel/vmlinux.lds.S     | 2 +-
-> > >  include/asm-generic/vmlinux.lds.h    | 4 +---
-> > >  7 files changed, 7 insertions(+), 9 deletions(-)
-> >
-> > Somehow you missed:
-> >
-> >     arch/m68k/kernel/vmlinux-std.lds:  RODATA
-> >     arch/m68k/kernel/vmlinux-sun3.lds:      RODATA
+On Mon, Nov 11, 2019 at 11:29 AM Christoph Hellwig <hch@lst.de> wrote:
 >
-> Argh. I've sent a patch; sorry and thanks for catching this. For my own
-> cross-build testing, which defconfig targets will hit these two linker
-> scripts?
+> On Mon, Nov 11, 2019 at 11:27:27AM +0100, Arnd Bergmann wrote:
+> > Ok, fair enough. Let's just go with your version for now, if only to not
+> > hold your series up more. I'd still suggest we change atyfb to only
+> > use ioremap_uc() on i386 and maybe ia64. I can send a patch for that.
+>
+> I don't think we even need it on ia64.  But lets kick off a dicussion
+> with the atyfb, x86 and ia64 maintainers after this series is in.
+> Which was kinda my plan anyway.
 
-vmlinux-sun3.lds: sun3_defconfig
-vmlinux-std.lds: All other classic 680x0 targets with an MMU, e.g. plain
-                 defconfig aka multi_defconfig.
+I missed your reply and already sent my patch now. I guess it doesn't
+hurt to discuss that in parallel. Anyway I think that this patch is the
+last one you want an Ack from me for (let me know if I missed one), so
 
-> > Leading to build failures in next-20191111:
-> >
-> >     /opt/cross/kisskb/gcc-4.6.3-nolibc/m68k-linux/bin/m68k-linux-ld:./arch/m68k/kernel/vmlinux.lds:29:
-> > syntax error
-> >     make[1]: *** [/kisskb/src/Makefile:1075: vmlinux] Error 1
-> >
-> > Reported-by: noreply@ellerman.id.au
-> > http://kisskb.ellerman.id.au/kisskb/buildresult/14022846/
-
-Gr{oetje,eeting}s,
-
-                        Geert
-
--- 
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+Reviewed-by: Arnd Bergmann <arnd@arndb.de>
