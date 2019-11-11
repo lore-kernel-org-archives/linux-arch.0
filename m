@@ -1,32 +1,28 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mout.kundenserver.de ([217.72.192.73]:46443 "EHLO
+Received: from mout.kundenserver.de ([212.227.126.187]:41619 "EHLO
         mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726819AbfKKKK3 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 11 Nov 2019 05:10:29 -0500
+        with ESMTP id S1726791AbfKKKLV (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 11 Nov 2019 05:11:21 -0500
 MIME-Version: 1.0
-References: <20191029064834.23438-1-hch@lst.de> <20191029064834.23438-13-hch@lst.de>
-In-Reply-To: <20191029064834.23438-13-hch@lst.de>
+References: <20191029064834.23438-1-hch@lst.de> <20191029064834.23438-18-hch@lst.de>
+In-Reply-To: <20191029064834.23438-18-hch@lst.de>
 From: Arnd Bergmann <arnd@arndb.de>
-Date: Mon, 11 Nov 2019 11:10:07 +0100
-Message-ID: <CAK8P3a28UDPEP7Bqu_wEXsfwSpT-5i30STB2iX3RfxdvbfzrNQ@mail.gmail.com>
-Subject: Re: [PATCH 12/21] arch: rely on asm-generic/io.h for default
- ioremap_* definitions
+Date: Mon, 11 Nov 2019 11:10:59 +0100
+Message-ID: <CAK8P3a0zfmup8DYQQnT3GNCkgcv9cWxejj2QAr+FmYWs46ZuHQ@mail.gmail.com>
+Subject: Re: [PATCH 17/21] lib: provide a simple generic ioremap implementation
 Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Christoph Hellwig <hch@lst.de>
 Cc: Guo Ren <guoren@kernel.org>, Michal Simek <monstr@monstr.eu>, Greentime Hu <green.hu@gmail.com>, Vincent Chen <deanbo422@gmail.com>, Guan Xuetao <gxt@pku.edu.cn>, the arch/x86 maintainers <x86@kernel.org>, alpha <linux-alpha@vger.kernel.org>, "open list:SYNOPSYS ARC ARCHITECTURE" <linux-snps-arc@lists.infradead.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, "open list:QUALCOMM HEXAGON..." <linux-hexagon@vger.kernel.org>, linux-ia64@vger.kernel.org, linux-m68k <linux-m68k@lists.linux-m68k.org>, linux-mips@vger.kernel.org, "moderated list:NIOS2 ARCHITECTURE" <nios2-dev@lists.rocketboards.org>, openrisc@lists.librecores.org, Parisc List <linux-parisc@vger.kernel.org>, linux-riscv@lists.infradead.org, linux-s390 <linux-s390@vger.kernel.org>, Linux-sh list <linux-sh@vger.kernel.org>, sparclinux <sparclinux@vger.kernel.org>, linux-xtensa@linux-xtensa.org, linux-mtd <linux-mtd@lists.infradead.org>, linux-arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
-Message-ID: <20191111101007.icdfyy9_r2aLHvcqvy1SbU3dYz7dbqtNmXqTapemIv4@z>
+Message-ID: <20191111101059.VDEvT97Rp5wmnPhuvx8kl1OPb8HFHs6ju08iXKo-Yq0@z>
 
 On Tue, Oct 29, 2019 at 7:49 AM Christoph Hellwig <hch@lst.de> wrote:
 >
-> Various architectures that use asm-generic/io.h still defined their
-> own default versions of ioremap_nocache, ioremap_wt and ioremap_wc
-> that point back to plain ioremap directly or indirectly.  Remove these
-> definitions and rely on asm-generic/io.h instead.  For this to work
-> the backup ioremap_* defintions needs to be changed to purely cpp
-> macros instea of inlines to cover for architectures like openrisc
-> that only define ioremap after including <asm-generic/io.h>.
+> A lot of architectures reuse the same simple ioremap implementation, so
+> start lifting the most simple variant to lib/ioremap.c.  It provides
+> ioremap_prot and iounmap, plus a default ioremap that uses prot_noncached,
+> although that can be overridden by asm/io.h.
 >
 > Signed-off-by: Christoph Hellwig <hch@lst.de>
 
