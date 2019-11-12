@@ -1,48 +1,48 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mo4-p01-ob.smtp.rzone.de ([85.215.255.50]:13368 "EHLO
-        mo4-p01-ob.smtp.rzone.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726910AbfKLW6a (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 12 Nov 2019 17:58:30 -0500
-Subject: Re: Bug 205201 - overflow of DMA mask and bus mask
-References: <71A251A5-FA06-4019-B324-7AED32F7B714@xenosoft.de>
- <1b0c5c21-2761-d3a3-651b-3687bb6ae694@xenosoft.de>
- <3504ee70-02de-049e-6402-2d530bf55a84@xenosoft.de>
- <46025f1b-db20-ac23-7dcd-10bc43bbb6ee@xenosoft.de>
- <20191105162856.GA15402@lst.de>
- <2f3c81bd-d498-066a-12c0-0a7715cda18f@xenosoft.de>
- <d2c614ec-c56e-3ec2-12d0-7561cd30c643@xenosoft.de>
- <af32bfcc-5559-578d-e1f4-75e454c965bf@xenosoft.de>
- <0c5a8009-d28b-601f-3d1a-9de0e869911c@xenosoft.de>
- <a794864f-04ae-9b90-50e7-01b416c861fe@xenosoft.de>
- <20191112144109.GA11805@lst.de>
-From: Christian Zigotzky <chzigotzky@xenosoft.de>
-Message-ID: <288d3c11-725b-ecdd-2495-b4a69aafb693@xenosoft.de>
-Date: Tue, 12 Nov 2019 23:58:22 +0100
+Received: from mail-pl1-f194.google.com ([209.85.214.194]:45215 "EHLO
+        mail-pl1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726932AbfKLXBb (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 12 Nov 2019 18:01:31 -0500
+Received: by mail-pl1-f194.google.com with SMTP id w7so152278plz.12
+        for <linux-arch@vger.kernel.org>; Tue, 12 Nov 2019 15:01:29 -0800 (PST)
+Date: Tue, 12 Nov 2019 15:01:26 -0800
+From: Kees Cook <keescook@chromium.org>
+Subject: Re: [PATCH v15 0/9] open: introduce openat2(2) syscall
+Message-ID: <201911121457.7D02692@keescook>
+References: <20191105090553.6350-1-cyphar@cyphar.com>
+ <20191111132404.y523iqicbn6fivx5@yavin.dot.cyphar.com>
 MIME-Version: 1.0
-In-Reply-To: <20191112144109.GA11805@lst.de>
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Transfer-Encoding: 7bit
-Content-Language: de-DE
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20191111132404.y523iqicbn6fivx5@yavin.dot.cyphar.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Christoph Hellwig <hch@lst.de>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, paulus@samba.org, darren@stevens-zone.net, "contact@a-eon.com" <contact@a-eon.com>, rtd2@xtra.co.nz, mad skateman <madskateman@gmail.com>, Rob Herring <robh+dt@kernel.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, nsaenzjulienne@suse.de
-Message-ID: <20191112225822.MPCHl0nmpShQeZw_zLcJgpDeFVJnBsJELv3mj3JMpNg@z>
+To: Aleksa Sarai <cyphar@cyphar.com>
+Cc: Al Viro <viro@zeniv.linux.org.uk>, Jeff Layton <jlayton@kernel.org>, "J. Bruce Fields" <bfields@fieldses.org>, Arnd Bergmann <arnd@arndb.de>, David Howells <dhowells@redhat.com>, Shuah Khan <shuah@kernel.org>, Shuah Khan <skhan@linuxfoundation.org>, Ingo Molnar <mingo@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Eric Biederman <ebiederm@xmission.com>, Andy Lutomirski <luto@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Alexei Starovoitov <ast@kernel.org>, Jann Horn <jannh@google.com>, Tycho Andersen <tycho@tycho.ws>, David Drysdale <drysdale@google.com>, Chanho Min <chanho.min@lge.com>, Oleg Nesterov <oleg@redhat.com>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Alexander Shishkin <alexander.shishkin@linux.intel.com>, Jiri Olsa <jolsa@redhat.com>, Namhyung Kim <namhyung@kernel.org>, Christian Brauner <christian@brauner.io>, Aleksa Sarai <asarai@suse.de>, Linus Torvalds <torvalds@linux-foundation.org>, containers@lists.linux-foundation.org, linux-alpha@vger.kernel.org, linux-api@vger.kernel.org, libc-alpha@sourceware.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-fsdevel@vger.kernel.org, linux-ia64@vger.kernel.org, linux-kernel@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, linux-xtensa@linux-xtensa.org, sparclinux@vger.kernel.org
+Message-ID: <20191112230126.IyQcTlj_IGSTjNBLsyRBpJrQgppIlY49OIHylI3HyJA@z>
 
-On 12 November 2019 at 3:41 pm, Christoph Hellwig wrote:
-> On Mon, Nov 11, 2019 at 01:22:55PM +0100, Christian Zigotzky wrote:
->> Now, I can definitely say that this patch does not solve the issue.
->>
->> Do you have another patch for testing or shall I bisect?
-> I'm still interested in the .config and dmesg.  Especially if the
-> board is using arch/powerpc/sysdev/fsl_pci.c, which is the only
-> place inside the powerpc arch code doing funny things with the
-> bus_dma_mask, which Robin pointed out looks fishy.
->
-Here you are:
+On Tue, Nov 12, 2019 at 12:24:04AM +1100, Aleksa Sarai wrote:
+> On 2019-11-05, Aleksa Sarai <cyphar@cyphar.com> wrote:
+> > This patchset is being developed here:
+> >   <https://github.com/cyphar/linux/tree/openat2/master>
+> > 
+> > Patch changelog:
+> >  v15:
+> >   * Fix code style for LOOKUP_IN_ROOT handling in path_init(). [Linus Torvalds]
+> >   * Split out patches for each individual LOOKUP flag.
+> >   * Reword commit messages to give more background information about the
+> >     series, as well as mention the semantics of each flag in more detail.
+> > [...]
+> 
+> Ping -- this patch hasn't been touched for a week. Thanks.
 
-.config: https://bugzilla.kernel.org/attachment.cgi?id=285815
+If I've been following correctly, everyone is happy with this series.
+(i.e. Linus's comment appear to have been addressed.)
 
-dmesg: https://bugzilla.kernel.org/attachment.cgi?id=285813
+Perhaps the next question is should this go via a pull request by you to
+Linus directly during the v5.5 merge window, via akpm, via akpm, via
+Christian, or some other path? Besides Linus, it's not been clear who
+should "claim" this series. :)
 
-Thanks
+-- 
+Kees Cook
