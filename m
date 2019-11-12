@@ -1,39 +1,109 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mout.kundenserver.de ([212.227.17.24]:39367 "EHLO
-        mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727797AbfKKTdj (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 11 Nov 2019 14:33:39 -0500
+Received: from mail-wm1-f68.google.com ([209.85.128.68]:33885 "EHLO
+        mail-wm1-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1725283AbfKLHSG (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 12 Nov 2019 02:18:06 -0500
+Subject: Re: [kernel-hardening] [PATCH 09/38] usercopy: Mark kmalloc caches as
+ usercopy caches
+References: <1515636190-24061-1-git-send-email-keescook@chromium.org>
+ <1515636190-24061-10-git-send-email-keescook@chromium.org>
+From: Jiri Slaby <jslaby@suse.cz>
+Message-ID: <9519edb7-456a-a2fa-659e-3e5a1ff89466@suse.cz>
+Date: Tue, 12 Nov 2019 08:17:57 +0100
 MIME-Version: 1.0
-References: <20191029064834.23438-1-hch@lst.de> <20191029064834.23438-11-hch@lst.de>
- <CAK8P3a2o4R+E2hTrHrmNy7K1ki3_98aWE5a-fjkQ_NWW=xd_gQ@mail.gmail.com>
- <20191111101531.GA12294@lst.de> <CAK8P3a0rTvfPP2LUMw8EC0xz5gfZP5+NUkoaZBJrtYYfr6YRig@mail.gmail.com>
- <20191111102923.GA12974@lst.de>
-In-Reply-To: <20191111102923.GA12974@lst.de>
-From: Arnd Bergmann <arnd@arndb.de>
-Date: Mon, 11 Nov 2019 20:33:17 +0100
-Message-ID: <CAK8P3a2b=td4JhYOcK1jUshh8Mp-5_w4v+dAr_JjnH783=ptBQ@mail.gmail.com>
-Subject: Re: [PATCH 10/21] asm-generic: ioremap_uc should behave the same with
- and without MMU
-Content-Type: text/plain; charset="UTF-8"
+In-Reply-To: <1515636190-24061-10-git-send-email-keescook@chromium.org>
+Content-Type: text/plain; charset=iso-8859-2
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Christoph Hellwig <hch@lst.de>
-Cc: Guo Ren <guoren@kernel.org>, Michal Simek <monstr@monstr.eu>, Greentime Hu <green.hu@gmail.com>, Vincent Chen <deanbo422@gmail.com>, Guan Xuetao <gxt@pku.edu.cn>, the arch/x86 maintainers <x86@kernel.org>, alpha <linux-alpha@vger.kernel.org>, "open list:SYNOPSYS ARC ARCHITECTURE" <linux-snps-arc@lists.infradead.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, "open list:QUALCOMM HEXAGON..." <linux-hexagon@vger.kernel.org>, linux-ia64@vger.kernel.org, linux-m68k <linux-m68k@lists.linux-m68k.org>, linux-mips@vger.kernel.org, "moderated list:NIOS2 ARCHITECTURE" <nios2-dev@lists.rocketboards.org>, openrisc@lists.librecores.org, Parisc List <linux-parisc@vger.kernel.org>, linux-riscv@lists.infradead.org, linux-s390 <linux-s390@vger.kernel.org>, Linux-sh list <linux-sh@vger.kernel.org>, sparclinux <sparclinux@vger.kernel.org>, linux-xtensa@linux-xtensa.org, linux-mtd <linux-mtd@lists.infradead.org>, linux-arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
-Message-ID: <20191111193317.RW-192OqbWdTWgw9mHIkeEsGNNHT_DQkq6y5_ZJLPC0@z>
+To: Kees Cook <keescook@chromium.org>, linux-kernel@vger.kernel.org
+Cc: David Windsor <dave@nullcore.net>, Pekka Enberg <penberg@kernel.org>, David Rientjes <rientjes@google.com>, Joonsoo Kim <iamjoonsoo.kim@lge.com>, Andrew Morton <akpm@linux-foundation.org>, linux-mm@kvack.org, linux-xfs@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Alexander Viro <viro@zeniv.linux.org.uk>, Andy Lutomirski <luto@kernel.org>, Christoph Hellwig <hch@infradead.org>, Christoph Lameter <cl@linux.com>, "David S. Miller" <davem@davemloft.net>, Laura Abbott <labbott@redhat.com>, Mark Rutland <mark.rutland@arm.com>, "Martin K. Petersen" <martin.petersen@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Christoffer Dall <christoffer.dall@linaro.org>, Dave Kleikamp <dave.kleikamp@oracle.com>, Jan Kara <jack@suse.cz>, Luis de Bethencourt <luisbg@kernel.org>, Marc Zyngier <marc.zyngier@arm.com>, Rik van Riel <riel@redhat.com>, Matthew Garrett <mjg59@google.com>, linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org, netdev@vger.kernel.org, kernel-hardening@lists.openwall.com, Vlastimil Babka <vbabka@suse.cz>, Michal Kubecek <mkubecek@suse.cz>
+Message-ID: <20191112071757.r7DIuvOjTYESAgTi6-7A3w5anRMEfLCA60GscHwjhvI@z>
 
-On Mon, Nov 11, 2019 at 11:29 AM Christoph Hellwig <hch@lst.de> wrote:
->
-> On Mon, Nov 11, 2019 at 11:27:27AM +0100, Arnd Bergmann wrote:
-> > Ok, fair enough. Let's just go with your version for now, if only to not
-> > hold your series up more. I'd still suggest we change atyfb to only
-> > use ioremap_uc() on i386 and maybe ia64. I can send a patch for that.
->
-> I don't think we even need it on ia64.  But lets kick off a dicussion
-> with the atyfb, x86 and ia64 maintainers after this series is in.
-> Which was kinda my plan anyway.
+On 11. 01. 18, 3:02, Kees Cook wrote:
+> From: David Windsor <dave@nullcore.net>
+> 
+> Mark the kmalloc slab caches as entirely whitelisted. These caches
+> are frequently used to fulfill kernel allocations that contain data
+> to be copied to/from userspace. Internal-only uses are also common,
+> but are scattered in the kernel. For now, mark all the kmalloc caches
+> as whitelisted.
+> 
+> This patch is modified from Brad Spengler/PaX Team's PAX_USERCOPY
+> whitelisting code in the last public patch of grsecurity/PaX based on my
+> understanding of the code. Changes or omissions from the original code are
+> mine and don't reflect the original grsecurity/PaX code.
+> 
+> Signed-off-by: David Windsor <dave@nullcore.net>
+> [kees: merged in moved kmalloc hunks, adjust commit log]
+> Cc: Pekka Enberg <penberg@kernel.org>
+> Cc: David Rientjes <rientjes@google.com>
+> Cc: Joonsoo Kim <iamjoonsoo.kim@lge.com>
+> Cc: Andrew Morton <akpm@linux-foundation.org>
+> Cc: linux-mm@kvack.org
+> Cc: linux-xfs@vger.kernel.org
+> Signed-off-by: Kees Cook <keescook@chromium.org>
+> Acked-by: Christoph Lameter <cl@linux.com>
+> ---
+>  mm/slab.c        |  3 ++-
+>  mm/slab.h        |  3 ++-
+>  mm/slab_common.c | 10 ++++++----
+>  3 files changed, 10 insertions(+), 6 deletions(-)
+> 
+> diff --git a/mm/slab.c b/mm/slab.c
+> index b9b0df620bb9..dd367fe17a4e 100644
+> --- a/mm/slab.c
+> +++ b/mm/slab.c
+...
+> @@ -1098,7 +1099,8 @@ void __init setup_kmalloc_cache_index_table(void)
+>  static void __init new_kmalloc_cache(int idx, slab_flags_t flags)
+>  {
+>  	kmalloc_caches[idx] = create_kmalloc_cache(kmalloc_info[idx].name,
+> -					kmalloc_info[idx].size, flags);
+> +					kmalloc_info[idx].size, flags, 0,
+> +					kmalloc_info[idx].size);
+>  }
+>  
+>  /*
+> @@ -1139,7 +1141,7 @@ void __init create_kmalloc_caches(slab_flags_t flags)
+>  
+>  			BUG_ON(!n);
+>  			kmalloc_dma_caches[i] = create_kmalloc_cache(n,
+> -				size, SLAB_CACHE_DMA | flags);
+> +				size, SLAB_CACHE_DMA | flags, 0, 0);
 
-I missed your reply and already sent my patch now. I guess it doesn't
-hurt to discuss that in parallel. Anyway I think that this patch is the
-last one you want an Ack from me for (let me know if I missed one), so
+Hi,
 
-Reviewed-by: Arnd Bergmann <arnd@arndb.de>
+was there any (undocumented) reason NOT to mark DMA caches as usercopy?
+
+We are seeing this on s390x:
+
+> usercopy: Kernel memory overwrite attempt detected to SLUB object
+'dma-kmalloc-1k' (offset 0, size 11)!
+> ------------[ cut here ]------------
+> kernel BUG at mm/usercopy.c:99!
+
+See:
+https://bugzilla.suse.com/show_bug.cgi?id=1156053
+
+This indeed fixes it:
+--- a/mm/slab_common.c
++++ b/mm/slab_common.c
+@@ -1290,7 +1290,8 @@ void __init create_kmalloc_caches(slab_flags_t flags)
+                        kmalloc_caches[KMALLOC_DMA][i] =
+create_kmalloc_cache(
+                                kmalloc_info[i].name[KMALLOC_DMA],
+                                kmalloc_info[i].size,
+-                               SLAB_CACHE_DMA | flags, 0, 0);
++                               SLAB_CACHE_DMA | flags, 0,
++                               kmalloc_info[i].size);
+                }
+        }
+ #endif
+
+
+thanks,
+-- 
+js
+suse labs
