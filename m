@@ -1,96 +1,63 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from www62.your-server.de ([213.133.104.62]:55050 "EHLO
-        www62.your-server.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726896AbfKLPNw (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 12 Nov 2019 10:13:52 -0500
-Subject: Re: Question about "asm/rwonce.h: No such file or directory"
-References: <1da2db04-da6a-cedb-e85a-6ded68dada82@163.com>
- <20191112123125.GD17835@willie-the-truck>
- <CAK7LNARA99UUTY2v6rS=Nb4Cg5pB4RsR0PogLqdT9uNLcH20ew@mail.gmail.com>
-From: Daniel Borkmann <daniel@iogearbox.net>
-Message-ID: <32a3b660-f4d2-268e-2206-d50073298c0c@iogearbox.net>
-Date: Tue, 12 Nov 2019 16:13:43 +0100
+Received: from mail-pg1-f195.google.com ([209.85.215.195]:38697 "EHLO
+        mail-pg1-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726376AbfKLUzM (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 12 Nov 2019 15:55:12 -0500
+Received: by mail-pg1-f195.google.com with SMTP id 15so12645683pgh.5
+        for <linux-arch@vger.kernel.org>; Tue, 12 Nov 2019 12:55:12 -0800 (PST)
+Date: Tue, 12 Nov 2019 12:55:09 -0800
+From: Kees Cook <keescook@chromium.org>
+Subject: Re: [PATCH v2 11/29] vmlinux.lds.h: Replace RODATA with RO_DATA
+Message-ID: <201911121252.25720DC6@keescook>
+References: <20191011000609.29728-1-keescook@chromium.org>
+ <20191011000609.29728-12-keescook@chromium.org>
+ <CAMuHMdXfPyti1wFBb0hhf3CeDSQ=zVv7cV-taeYCmDswMQkXPQ@mail.gmail.com>
+ <201911110922.17A2112B0@keescook>
+ <CAMuHMdUJ8QPvqf51nVmOg1Zm20SNT7pXR72z=qmco=ecwawZ7A@mail.gmail.com>
 MIME-Version: 1.0
-In-Reply-To: <CAK7LNARA99UUTY2v6rS=Nb4Cg5pB4RsR0PogLqdT9uNLcH20ew@mail.gmail.com>
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Language: en-US
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <CAMuHMdUJ8QPvqf51nVmOg1Zm20SNT7pXR72z=qmco=ecwawZ7A@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Masahiro Yamada <yamada.masahiro@socionext.com>, Will Deacon <will@kernel.org>
-Cc: Xiao Yang <ice_yangxiao@163.com>, linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Alexei Starovoitov <ast@kernel.org>
-Message-ID: <20191112151343.OrDE7qHm7LIHw1Zq7Yn4IYJC6b3j0M0F8hVvDsKWcMg@z>
+To: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: Borislav Petkov <bp@alien8.de>, Rick Edgecombe <rick.p.edgecombe@intel.com>, Dave Hansen <dave.hansen@linux.intel.com>, Andy Lutomirski <luto@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Michael Ellerman <mpe@ellerman.id.au>, Heiko Carstens <heiko.carstens@de.ibm.com>, Will Deacon <will@kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, alpha <linux-alpha@vger.kernel.org>, "linux-ia64@vger.kernel.org" <linux-ia64@vger.kernel.org>, linux-s390 <linux-s390@vger.kernel.org>, linux-c6x-dev@linux-c6x.org, Yoshinori Sato <ysato@users.sourceforge.jp>, Michal Simek <monstr@monstr.eu>, Parisc List <linux-parisc@vger.kernel.org>, linux-xtensa@linux-xtensa.org, the arch/x86 maintainers <x86@kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
+Message-ID: <20191112205509.zRwpjEutMxB2N7ZtYWYHYOmypyyKvbBFyojcWsBs3xk@z>
 
-On 11/12/19 1:50 PM, Masahiro Yamada wrote:
-> On Tue, Nov 12, 2019 at 9:31 PM Will Deacon <will@kernel.org> wrote:
->>
->> [+lkml, Masahiro, Alexei and Daniel]
->>
->> On Tue, Nov 12, 2019 at 04:56:39PM +0800, Xiao Yang wrote:
->>> With your patch[1], I alway get the following error when building
->>> tools/bpf:
->>
->> In case people want to reproduce this, my branch is here:
->>
->> https://git.kernel.org/pub/scm/linux/kernel/git/will/linux.git/log/?h=lto
->>
->>> ----------------------------------------------------------------------------------
->>>
->>> make -C tools/bpf/
->>> make: Entering directory
->>> '/usr/src/perf_selftests-x86_64-rhel-7.6-642a312d47ceb54603630d9d04f5052f3b46d9a3/tools/bpf'
->>>
->>> Auto-detecting system features:
->>> ... libbfd: [ on ]
->>> ... disassembler-four-args: [ OFF ]
->>>
->>> CC bpf_jit_disasm.o
->>> CC bpf_dbg.o
->>> In file included from
->>> /usr/src/perf_selftests-x86_64-rhel-7.6-642a312d47ceb54603630d9d04f5052f3b46d9a3/include/uapi/linux/filter.h:9:0,
->>> from
->>> /usr/src/perf_selftests-x86_64-rhel-7.6-642a312d47ceb54603630d9d04f5052f3b46d9a3/tools/bpf/bpf_dbg.c:41:
->>> /usr/src/perf_selftests-x86_64-rhel-7.6-642a312d47ceb54603630d9d04f5052f3b46d9a3/include/linux/compiler.h:247:24:
->>> fatal error: asm/rwonce.h: No such file or directory
->>> #include <asm/rwonce.h>
->>> ^
->>> compilation terminated.
->>> Makefile:61: recipe for target 'bpf_dbg.o' failed
->>> make: *** [bpf_dbg.o] Error 1
->>> make: *** Waiting for unfinished jobs....
->>> make: Leaving directory
->>>
->>> ----------------------------------------------------------------------------------
->>>
->>> [1] https://git.kernel.org/pub/scm/linux/kernel/git/will/linux.git/commit/?h=lto&id=642a312d47ceb54603630d9d04f5052f3b46d9a3
->>>
->>> It seems that include/linux/compiler.h cannot find the asm/rwonce.h because
->>> tools/bpf/Makefile doesn't include arch/*/include/generated/asm/rwonce.h.
->>
->> The problem with referring to the generated files is that they don't exist
->> unless you've configured the main source directory. The real problem here
->> seems to be that tools/bpf/ refers directly to header files in the kernel
->> sources without any understanding of kbuild, and therefore mandatory-y
->> headers simply don't exist when it goes looking for them.
+On Mon, Nov 11, 2019 at 07:08:51PM +0100, Geert Uytterhoeven wrote:
+> Hi Kees,
+> 
+> On Mon, Nov 11, 2019 at 6:23 PM Kees Cook <keescook@chromium.org> wrote:
+> > On Mon, Nov 11, 2019 at 05:58:06PM +0100, Geert Uytterhoeven wrote:
+> > > On Fri, Oct 11, 2019 at 2:07 AM Kees Cook <keescook@chromium.org> wrote:
+> > > > There's no reason to keep the RODATA macro: replace the callers with
+> > > > the expected RO_DATA macro.
+> > > >
+> > > > Signed-off-by: Kees Cook <keescook@chromium.org>
+> > > > ---
+> > > >  arch/alpha/kernel/vmlinux.lds.S      | 2 +-
+> > > >  arch/ia64/kernel/vmlinux.lds.S       | 2 +-
+> > > >  arch/microblaze/kernel/vmlinux.lds.S | 2 +-
+> > > >  arch/mips/kernel/vmlinux.lds.S       | 2 +-
+> > > >  arch/um/include/asm/common.lds.S     | 2 +-
+> > > >  arch/xtensa/kernel/vmlinux.lds.S     | 2 +-
+> > > >  include/asm-generic/vmlinux.lds.h    | 4 +---
+> > > >  7 files changed, 7 insertions(+), 9 deletions(-)
+> > >
+> > > Somehow you missed:
+> > >
+> > >     arch/m68k/kernel/vmlinux-std.lds:  RODATA
+> > >     arch/m68k/kernel/vmlinux-sun3.lds:      RODATA
+> >
+> > Argh. I've sent a patch; sorry and thanks for catching this. For my own
+> > cross-build testing, which defconfig targets will hit these two linker
+> > scripts?
+> 
+> vmlinux-sun3.lds: sun3_defconfig
+> vmlinux-std.lds: All other classic 680x0 targets with an MMU, e.g. plain
+>                  defconfig aka multi_defconfig.
 
-Hmm, I am puzzled why that is. :/ I think there are two options, i) remove it
-from CFLAGS like below (at least this doesn't let the build fail in my case
-but requires linux headers to be installed) or ii) add a copy of filter.h to
-tools/include/uapi/linux/filter.h so the few tools can just reuse it. We do have
-bpf_common.h and bpf.h there already.
+Excellent, thank you; I've updated my multi-arch build list. :)
 
-diff --git a/tools/bpf/Makefile b/tools/bpf/Makefile
-index 5d1995fd369c..08dfd289174c 100644
---- a/tools/bpf/Makefile
-+++ b/tools/bpf/Makefile
-@@ -10,7 +10,6 @@ MAKE = make
-  INSTALL ?= install
-
-  CFLAGS += -Wall -O2
--CFLAGS += -D__EXPORTED_HEADERS__ -I$(srctree)/include/uapi -I$(srctree)/include
-
-  # This will work when bpf is built in tools env. where srctree
-  # isn't set and when invoked from selftests build, where srctree
-
-Thanks,
-Daniel
+-- 
+Kees Cook
