@@ -1,91 +1,47 @@
-From: Masahiro Yamada <yamada.masahiro@socionext.com>
-Subject: Re: Question about "asm/rwonce.h: No such file or directory"
-Date: Tue, 12 Nov 2019 21:50:31 +0900
-Message-ID: <CAK7LNARA99UUTY2v6rS=Nb4Cg5pB4RsR0PogLqdT9uNLcH20ew@mail.gmail.com>
-References: <1da2db04-da6a-cedb-e85a-6ded68dada82@163.com> <20191112123125.GD17835@willie-the-truck>
+From: Christoph Hellwig <hch-jcswGhMUV9g@public.gmane.org>
+Subject: Re: Bug 205201 - overflow of DMA mask and bus mask
+Date: Tue, 12 Nov 2019 15:41:09 +0100
+Message-ID: <20191112144109.GA11805@lst.de>
+References: <71A251A5-FA06-4019-B324-7AED32F7B714@xenosoft.de>
+	<1b0c5c21-2761-d3a3-651b-3687bb6ae694@xenosoft.de>
+	<3504ee70-02de-049e-6402-2d530bf55a84@xenosoft.de>
+	<46025f1b-db20-ac23-7dcd-10bc43bbb6ee@xenosoft.de>
+	<20191105162856.GA15402@lst.de>
+	<2f3c81bd-d498-066a-12c0-0a7715cda18f@xenosoft.de>
+	<d2c614ec-c56e-3ec2-12d0-7561cd30c643@xenosoft.de>
+	<af32bfcc-5559-578d-e1f4-75e454c965bf@xenosoft.de>
+	<0c5a8009-d28b-601f-3d1a-9de0e869911c@xenosoft.de>
+	<a794864f-04ae-9b90-50e7-01b416c861fe@xenosoft.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20191112123125.GD17835@willie-the-truck>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Will Deacon <will@kernel.org>
-Cc: Xiao Yang <ice_yangxiao@163.com>, linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Alexei Starovoitov <ast@kernel.org>, Daniel Borkmann <daniel@iogearbox.net>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
+Content-Disposition: inline
+In-Reply-To: <a794864f-04ae-9b90-50e7-01b416c861fe-KCoaydhb8eAb1SvskN2V4Q@public.gmane.org>
+List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/iommu>,
+	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
+List-Archive: <http://lists.linuxfoundation.org/pipermail/iommu/>
+List-Post: <mailto:iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
+List-Help: <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=help>
+List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/iommu>,
+	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
+Sender: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
+Errors-To: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
+To: Christian Zigotzky <chzigotzky-KCoaydhb8eAb1SvskN2V4Q@public.gmane.org>
+Cc: linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, darren-YHtdit1eIT3easaKlIn9Lw@public.gmane.org, mad skateman <madskateman-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, Benjamin Herrenschmidt <benh-XVmvHMARGAS8U2dJNN8I7kB+6BGkLq7r@public.gmane.org>, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org, iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org, Rob Herring <robh+dt-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, paulus-eUNUBHrolfbYtjvyW6yDsg@public.gmane.org, rtd2-kGM0oXzJM5p02iOg2JU2CQ@public.gmane.org, "contact-+1neenJGU+oAvxtiuMwx3w@public.gmane.org" <contact-+1neenJGU+oAvxtiuMwx3w@public.gmane.org>, linuxppc-dev <linuxppc-dev-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org>, Christoph Hellwig <hch-jcswGhMUV9g@public.gmane.org>, nsaenzjulienne-l3A5Bk7waGM@public.gmane.org
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, Nov 12, 2019 at 9:31 PM Will Deacon <will@kernel.org> wrote:
+On Mon, Nov 11, 2019 at 01:22:55PM +0100, Christian Zigotzky wrote:
+> Now, I can definitely say that this patch does not solve the issue.
 >
-> [+lkml, Masahiro, Alexei and Daniel]
->
-> On Tue, Nov 12, 2019 at 04:56:39PM +0800, Xiao Yang wrote:
-> > With your patch[1], I alway get the following error when building
-> > tools/bpf:
->
-> In case people want to reproduce this, my branch is here:
->
-> https://git.kernel.org/pub/scm/linux/kernel/git/will/linux.git/log/?h=lto
->
-> > ----------------------------------------------------------------------------------
-> >
-> > make -C tools/bpf/
-> > make: Entering directory
-> > '/usr/src/perf_selftests-x86_64-rhel-7.6-642a312d47ceb54603630d9d04f5052f3b46d9a3/tools/bpf'
-> >
-> > Auto-detecting system features:
-> > ... libbfd: [ on ]
-> > ... disassembler-four-args: [ OFF ]
-> >
-> > CC bpf_jit_disasm.o
-> > CC bpf_dbg.o
-> > In file included from
-> > /usr/src/perf_selftests-x86_64-rhel-7.6-642a312d47ceb54603630d9d04f5052f3b46d9a3/include/uapi/linux/filter.h:9:0,
-> > from
-> > /usr/src/perf_selftests-x86_64-rhel-7.6-642a312d47ceb54603630d9d04f5052f3b46d9a3/tools/bpf/bpf_dbg.c:41:
-> > /usr/src/perf_selftests-x86_64-rhel-7.6-642a312d47ceb54603630d9d04f5052f3b46d9a3/include/linux/compiler.h:247:24:
-> > fatal error: asm/rwonce.h: No such file or directory
-> > #include <asm/rwonce.h>
-> > ^
-> > compilation terminated.
-> > Makefile:61: recipe for target 'bpf_dbg.o' failed
-> > make: *** [bpf_dbg.o] Error 1
-> > make: *** Waiting for unfinished jobs....
-> > make: Leaving directory
-> >
-> > ----------------------------------------------------------------------------------
-> >
-> > [1] https://git.kernel.org/pub/scm/linux/kernel/git/will/linux.git/commit/?h=lto&id=642a312d47ceb54603630d9d04f5052f3b46d9a3
-> >
-> > It seems that include/linux/compiler.h cannot find the asm/rwonce.h because
-> > tools/bpf/Makefile doesn't include arch/*/include/generated/asm/rwonce.h.
->
-> The problem with referring to the generated files is that they don't exist
-> unless you've configured the main source directory. The real problem here
-> seems to be that tools/bpf/ refers directly to header files in the kernel
-> sources without any understanding of kbuild, and therefore mandatory-y
-> headers simply don't exist when it goes looking for them.
+> Do you have another patch for testing or shall I bisect?
 
-Please note tools/ is out of scope of Kbuild.
-The tools/ created a completely different build system.
-
-
-tools/bpf/ looks like a host program.
-Does it include a kernel-space header
-of the target architecture?
-
-I see a lots of header duplication in tools/include/,
-but I am not sure if
-tools/include/linux/filter.h is the correct header
-to include.
-
-
+I'm still interested in the .config and dmesg.  Especially if the
+board is using arch/powerpc/sysdev/fsl_pci.c, which is the only
+place inside the powerpc arch code doing funny things with the
+bus_dma_mask, which Robin pointed out looks fishy.
 
 >
-> Perhaps it's possible to introduce a dependency on a top-level "make
-> asm-generic" so that we can reference the generated headers from the arch
-> directly. Thoughts?
->
-> Will
-
-
--- 
-Best Regards
-Masahiro Yamada
+> Thanks,
+> Christian
+---end quoted text---
