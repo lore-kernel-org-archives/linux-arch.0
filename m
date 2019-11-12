@@ -1,34 +1,96 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from verein.lst.de ([213.95.11.211]:56161 "EHLO verein.lst.de"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726008AbfKLOlP (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 12 Nov 2019 09:41:15 -0500
-Date: Tue, 12 Nov 2019 15:41:09 +0100
-From: Christoph Hellwig <hch@lst.de>
-Subject: Re: Bug 205201 - overflow of DMA mask and bus mask
-Message-ID: <20191112144109.GA11805@lst.de>
-References: <71A251A5-FA06-4019-B324-7AED32F7B714@xenosoft.de> <1b0c5c21-2761-d3a3-651b-3687bb6ae694@xenosoft.de> <3504ee70-02de-049e-6402-2d530bf55a84@xenosoft.de> <46025f1b-db20-ac23-7dcd-10bc43bbb6ee@xenosoft.de> <20191105162856.GA15402@lst.de> <2f3c81bd-d498-066a-12c0-0a7715cda18f@xenosoft.de> <d2c614ec-c56e-3ec2-12d0-7561cd30c643@xenosoft.de> <af32bfcc-5559-578d-e1f4-75e454c965bf@xenosoft.de> <0c5a8009-d28b-601f-3d1a-9de0e869911c@xenosoft.de> <a794864f-04ae-9b90-50e7-01b416c861fe@xenosoft.de>
+Received: from www62.your-server.de ([213.133.104.62]:55050 "EHLO
+        www62.your-server.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726896AbfKLPNw (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 12 Nov 2019 10:13:52 -0500
+Subject: Re: Question about "asm/rwonce.h: No such file or directory"
+References: <1da2db04-da6a-cedb-e85a-6ded68dada82@163.com>
+ <20191112123125.GD17835@willie-the-truck>
+ <CAK7LNARA99UUTY2v6rS=Nb4Cg5pB4RsR0PogLqdT9uNLcH20ew@mail.gmail.com>
+From: Daniel Borkmann <daniel@iogearbox.net>
+Message-ID: <32a3b660-f4d2-268e-2206-d50073298c0c@iogearbox.net>
+Date: Tue, 12 Nov 2019 16:13:43 +0100
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <a794864f-04ae-9b90-50e7-01b416c861fe@xenosoft.de>
+In-Reply-To: <CAK7LNARA99UUTY2v6rS=Nb4Cg5pB4RsR0PogLqdT9uNLcH20ew@mail.gmail.com>
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Christian Zigotzky <chzigotzky@xenosoft.de>
-Cc: Christoph Hellwig <hch@lst.de>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, paulus@samba.org, darren@stevens-zone.net, "contact@a-eon.com" <contact@a-eon.com>, rtd2@xtra.co.nz, mad skateman <madskateman@gmail.com>, Rob Herring <robh+dt@kernel.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, nsaenzjulienne@suse.de
-Message-ID: <20191112144109.r63gCCDo4cy_bSzpzEwd-MRM-6E2vvM_K0UjZzAqqbo@z>
+To: Masahiro Yamada <yamada.masahiro@socionext.com>, Will Deacon <will@kernel.org>
+Cc: Xiao Yang <ice_yangxiao@163.com>, linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Alexei Starovoitov <ast@kernel.org>
+Message-ID: <20191112151343.OrDE7qHm7LIHw1Zq7Yn4IYJC6b3j0M0F8hVvDsKWcMg@z>
 
-On Mon, Nov 11, 2019 at 01:22:55PM +0100, Christian Zigotzky wrote:
-> Now, I can definitely say that this patch does not solve the issue.
->
-> Do you have another patch for testing or shall I bisect?
+On 11/12/19 1:50 PM, Masahiro Yamada wrote:
+> On Tue, Nov 12, 2019 at 9:31 PM Will Deacon <will@kernel.org> wrote:
+>>
+>> [+lkml, Masahiro, Alexei and Daniel]
+>>
+>> On Tue, Nov 12, 2019 at 04:56:39PM +0800, Xiao Yang wrote:
+>>> With your patch[1], I alway get the following error when building
+>>> tools/bpf:
+>>
+>> In case people want to reproduce this, my branch is here:
+>>
+>> https://git.kernel.org/pub/scm/linux/kernel/git/will/linux.git/log/?h=lto
+>>
+>>> ----------------------------------------------------------------------------------
+>>>
+>>> make -C tools/bpf/
+>>> make: Entering directory
+>>> '/usr/src/perf_selftests-x86_64-rhel-7.6-642a312d47ceb54603630d9d04f5052f3b46d9a3/tools/bpf'
+>>>
+>>> Auto-detecting system features:
+>>> ... libbfd: [ on ]
+>>> ... disassembler-four-args: [ OFF ]
+>>>
+>>> CC bpf_jit_disasm.o
+>>> CC bpf_dbg.o
+>>> In file included from
+>>> /usr/src/perf_selftests-x86_64-rhel-7.6-642a312d47ceb54603630d9d04f5052f3b46d9a3/include/uapi/linux/filter.h:9:0,
+>>> from
+>>> /usr/src/perf_selftests-x86_64-rhel-7.6-642a312d47ceb54603630d9d04f5052f3b46d9a3/tools/bpf/bpf_dbg.c:41:
+>>> /usr/src/perf_selftests-x86_64-rhel-7.6-642a312d47ceb54603630d9d04f5052f3b46d9a3/include/linux/compiler.h:247:24:
+>>> fatal error: asm/rwonce.h: No such file or directory
+>>> #include <asm/rwonce.h>
+>>> ^
+>>> compilation terminated.
+>>> Makefile:61: recipe for target 'bpf_dbg.o' failed
+>>> make: *** [bpf_dbg.o] Error 1
+>>> make: *** Waiting for unfinished jobs....
+>>> make: Leaving directory
+>>>
+>>> ----------------------------------------------------------------------------------
+>>>
+>>> [1] https://git.kernel.org/pub/scm/linux/kernel/git/will/linux.git/commit/?h=lto&id=642a312d47ceb54603630d9d04f5052f3b46d9a3
+>>>
+>>> It seems that include/linux/compiler.h cannot find the asm/rwonce.h because
+>>> tools/bpf/Makefile doesn't include arch/*/include/generated/asm/rwonce.h.
+>>
+>> The problem with referring to the generated files is that they don't exist
+>> unless you've configured the main source directory. The real problem here
+>> seems to be that tools/bpf/ refers directly to header files in the kernel
+>> sources without any understanding of kbuild, and therefore mandatory-y
+>> headers simply don't exist when it goes looking for them.
 
-I'm still interested in the .config and dmesg.  Especially if the
-board is using arch/powerpc/sysdev/fsl_pci.c, which is the only
-place inside the powerpc arch code doing funny things with the
-bus_dma_mask, which Robin pointed out looks fishy.
+Hmm, I am puzzled why that is. :/ I think there are two options, i) remove it
+from CFLAGS like below (at least this doesn't let the build fail in my case
+but requires linux headers to be installed) or ii) add a copy of filter.h to
+tools/include/uapi/linux/filter.h so the few tools can just reuse it. We do have
+bpf_common.h and bpf.h there already.
 
->
-> Thanks,
-> Christian
----end quoted text---
+diff --git a/tools/bpf/Makefile b/tools/bpf/Makefile
+index 5d1995fd369c..08dfd289174c 100644
+--- a/tools/bpf/Makefile
++++ b/tools/bpf/Makefile
+@@ -10,7 +10,6 @@ MAKE = make
+  INSTALL ?= install
+
+  CFLAGS += -Wall -O2
+-CFLAGS += -D__EXPORTED_HEADERS__ -I$(srctree)/include/uapi -I$(srctree)/include
+
+  # This will work when bpf is built in tools env. where srctree
+  # isn't set and when invoked from selftests build, where srctree
+
+Thanks,
+Daniel
