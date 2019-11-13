@@ -1,33 +1,46 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from zeniv.linux.org.uk ([195.92.253.2]:39438 "EHLO
+Received: from zeniv.linux.org.uk ([195.92.253.2]:39164 "EHLO
         ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727468AbfKMCJt (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 12 Nov 2019 21:09:49 -0500
-Date: Wed, 13 Nov 2019 02:09:17 +0000
+        with ESMTP id S1727725AbfKMB4H (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 12 Nov 2019 20:56:07 -0500
+Date: Wed, 13 Nov 2019 01:55:34 +0000
 From: Al Viro <viro@zeniv.linux.org.uk>
-Subject: Re: [PATCH v15 6/9] namei: LOOKUP_{IN_ROOT,BENEATH}: permit limited
- ".." resolution
-Message-ID: <20191113020917.GC26530@ZenIV.linux.org.uk>
+Subject: Re: [PATCH v15 4/9] namei: LOOKUP_BENEATH: O_BENEATH-like scoped
+ resolution
+Message-ID: <20191113015534.GA26530@ZenIV.linux.org.uk>
 References: <20191105090553.6350-1-cyphar@cyphar.com>
- <20191105090553.6350-7-cyphar@cyphar.com>
+ <20191105090553.6350-5-cyphar@cyphar.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20191105090553.6350-7-cyphar@cyphar.com>
+In-Reply-To: <20191105090553.6350-5-cyphar@cyphar.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Aleksa Sarai <cyphar@cyphar.com>
-Cc: Jeff Layton <jlayton@kernel.org>, "J. Bruce Fields" <bfields@fieldses.org>, Arnd Bergmann <arnd@arndb.de>, David Howells <dhowells@redhat.com>, Shuah Khan <shuah@kernel.org>, Shuah Khan <skhan@linuxfoundation.org>, Ingo Molnar <mingo@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Christian Brauner <christian.brauner@ubuntu.com>, Jann Horn <jannh@google.com>, Linus Torvalds <torvalds@linux-foundation.org>, Eric Biederman <ebiederm@xmission.com>, Andy Lutomirski <luto@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Alexei Starovoitov <ast@kernel.org>, Kees Cook <keescook@chromium.org>, Tycho Andersen <tycho@tycho.ws>, David Drysdale <drysdale@google.com>, Chanho Min <chanho.min@lge.com>, Oleg Nesterov <oleg@redhat.com>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Alexander Shishkin <alexander.shishkin@linux.intel.com>, Jiri Olsa <jolsa@redhat.com>, Namhyung Kim <namhyung@kernel.org>, Christian Brauner <christian@brauner.io>, Aleksa Sarai <asarai@suse.de>, containers@lists.linux-foundation.org, linux-alpha@vger.kernel.org, linux-api@vger.kernel.org, libc-alpha@sourceware.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-fsdevel@vger.kernel.org, linux-ia64@vger.kernel.org, linux-kernel@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, linux-xtensa@linux-xtensa.org, sparclinux@vger.kernel.org
-Message-ID: <20191113020917.srQZSQbqq8LTJyPqqHnPzTZC3kp1-hP5vKYb34cI8B4@z>
+Cc: Jeff Layton <jlayton@kernel.org>, "J. Bruce Fields" <bfields@fieldses.org>, Arnd Bergmann <arnd@arndb.de>, David Howells <dhowells@redhat.com>, Shuah Khan <shuah@kernel.org>, Shuah Khan <skhan@linuxfoundation.org>, Ingo Molnar <mingo@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Christian Brauner <christian.brauner@ubuntu.com>, David Drysdale <drysdale@google.com>, Andy Lutomirski <luto@kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Eric Biederman <ebiederm@xmission.com>, Andrew Morton <akpm@linux-foundation.org>, Alexei Starovoitov <ast@kernel.org>, Kees Cook <keescook@chromium.org>, Jann Horn <jannh@google.com>, Tycho Andersen <tycho@tycho.ws>, Chanho Min <chanho.min@lge.com>, Oleg Nesterov <oleg@redhat.com>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Alexander Shishkin <alexander.shishkin@linux.intel.com>, Jiri Olsa <jolsa@redhat.com>, Namhyung Kim <namhyung@kernel.org>, Christian Brauner <christian@brauner.io>, Aleksa Sarai <asarai@suse.de>, containers@lists.linux-foundation.org, linux-alpha@vger.kernel.org, linux-api@vger.kernel.org, libc-alpha@sourceware.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-fsdevel@vger.kernel.org, linux-ia64@vger.kernel.org, linux-kernel@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, linux-xtensa@linux-xtensa.org, sparclinux@vger.kernel.org
+Message-ID: <20191113015534.p3c9FGs8EQj0zpj0rLDzm1tXWBt-LIP_pi3yBGU4bpE@z>
 
-On Tue, Nov 05, 2019 at 08:05:50PM +1100, Aleksa Sarai wrote:
+On Tue, Nov 05, 2019 at 08:05:48PM +1100, Aleksa Sarai wrote:
 
-> One other possible alternative (which previous versions of this patch
-> used) would be to check with path_is_under() if there was a racing
-> rename or mount (after re-taking the relevant seqlocks). While this does
-> work, it results in possible O(n*m) behaviour if there are many renames
-> or mounts occuring *anywhere on the system*.
+Minor nit here - I'd split "move the conditional call of set_root()
+into nd_jump_root()" into a separate patch before that one.  Makes
+for fewer distractions in this one.  I'd probably fold "and be
+ready for errors other than -ECHILD" into the same preliminary
+patch.
 
-BTW, do you realize that open-by-fhandle (or working nfsd, for that matter)
-will trigger arseloads of write_seqlock(&rename_lock) simply on d_splice_alias()
-bringing disconnected subtrees in contact with parent?
+> +			/* Not currently safe for scoped-lookups. */
+> +			if (unlikely(nd->flags & LOOKUP_IS_SCOPED))
+> +				return ERR_PTR(-EXDEV);
+
+Also a candidate for doing in nd_jump_link()...
+
+> @@ -1373,8 +1403,11 @@ static int follow_dotdot_rcu(struct nameidata *nd)
+>  	struct inode *inode = nd->inode;
+>  
+>  	while (1) {
+> -		if (path_equal(&nd->path, &nd->root))
+> +		if (path_equal(&nd->path, &nd->root)) {
+> +			if (unlikely(nd->flags & LOOKUP_BENEATH))
+> +				return -EXDEV;
+
+Umm...  Are you sure it's not -ECHILD?
