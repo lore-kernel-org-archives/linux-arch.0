@@ -1,89 +1,40 @@
-From: Xiao Yang <ice_yangxiao@163.com>
-Subject: Re: Question about "asm/rwonce.h: No such file or directory"
-Date: Wed, 13 Nov 2019 08:59:14 +0800
-Message-ID: <cf0a0d1b-8680-7275-66b6-f704ef5cd89c@163.com>
-References: <1da2db04-da6a-cedb-e85a-6ded68dada82@163.com>
- <20191112123125.GD17835@willie-the-truck>
+From: Al Viro <viro@zeniv.linux.org.uk>
+Subject: Re: [PATCH v15 2/9] namei: LOOKUP_NO_MAGICLINKS: block magic-link
+ resolution
+Date: Wed, 13 Nov 2019 01:24:26 +0000
+Message-ID: <20191113012426.GY26530@ZenIV.linux.org.uk>
+References: <20191105090553.6350-1-cyphar@cyphar.com>
+ <20191105090553.6350-3-cyphar@cyphar.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20191112123125.GD17835@willie-the-truck>
-Content-Language: en-US
+Content-Disposition: inline
+In-Reply-To: <20191105090553.6350-3-cyphar@cyphar.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Will Deacon <will@kernel.org>
-Cc: linux-arch@vger.kernel.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, yamada.masahiro@socionext.com, ast@kernel.org, daniel@iogearbox.net
+To: Aleksa Sarai <cyphar@cyphar.com>
+Cc: Jeff Layton <jlayton@kernel.org>, "J. Bruce Fields" <bfields@fieldses.org>, Arnd Bergmann <arnd@arndb.de>, David Howells <dhowells@redhat.com>, Shuah Khan <shuah@kernel.org>, Shuah Khan <skhan@linuxfoundation.org>, Ingo Molnar <mingo@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Christian Brauner <christian.brauner@ubuntu.com>, David Drysdale <drysdale@google.com>, Andy Lutomirski <luto@kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Eric Biederman <ebiederm@xmission.com>, Andrew Morton <akpm@linux-foundation.org>, Alexei Starovoitov <ast@kernel.org>, Kees Cook <keescook@chromium.org>, Jann Horn <jannh@google.com>, Tycho Andersen <tycho@tycho.ws>, Chanho Min <chanho.min@lge.com>, Oleg Nesterov <oleg@redhat.com>, Ras
 List-Id: linux-arch.vger.kernel.org
 
-On 11/12/19 8:31 PM, Will Deacon wrote:
-> [+lkml, Masahiro, Alexei and Daniel]
->
-> On Tue, Nov 12, 2019 at 04:56:39PM +0800, Xiao Yang wrote:
->> With your patch[1], I alway get the following error when building
->> tools/bpf:
-> In case people want to reproduce this, my branch is here:
->
-> https://git.kernel.org/pub/scm/linux/kernel/git/will/linux.git/log/?h=lto
->
->> ----------------------------------------------------------------------------------
->>
->> make -C tools/bpf/
->> make: Entering directory
->> '/usr/src/perf_selftests-x86_64-rhel-7.6-642a312d47ceb54603630d9d04f5052f3b46d9a3/tools/bpf'
->>
->> Auto-detecting system features:
->> ... libbfd: [ on ]
->> ... disassembler-four-args: [ OFF ]
->>
->> CC bpf_jit_disasm.o
->> CC bpf_dbg.o
->> In file included from
->> /usr/src/perf_selftests-x86_64-rhel-7.6-642a312d47ceb54603630d9d04f5052f3b46d9a3/include/uapi/linux/filter.h:9:0,
->> from
->> /usr/src/perf_selftests-x86_64-rhel-7.6-642a312d47ceb54603630d9d04f5052f3b46d9a3/tools/bpf/bpf_dbg.c:41:
->> /usr/src/perf_selftests-x86_64-rhel-7.6-642a312d47ceb54603630d9d04f5052f3b46d9a3/include/linux/compiler.h:247:24:
->> fatal error: asm/rwonce.h: No such file or directory
->> #include <asm/rwonce.h>
->> ^
->> compilation terminated.
->> Makefile:61: recipe for target 'bpf_dbg.o' failed
->> make: *** [bpf_dbg.o] Error 1
->> make: *** Waiting for unfinished jobs....
->> make: Leaving directory
->>
->> ----------------------------------------------------------------------------------
->>
->> [1] https://git.kernel.org/pub/scm/linux/kernel/git/will/linux.git/commit/?h=lto&id=642a312d47ceb54603630d9d04f5052f3b46d9a3
->>
->> It seems that include/linux/compiler.h cannot find the asm/rwonce.h because
->> tools/bpf/Makefile doesn't include arch/*/include/generated/asm/rwonce.h.
-> The problem with referring to the generated files is that they don't exist
-> unless you've configured the main source directory. The real problem here
-> seems to be that tools/bpf/ refers directly to header files in the kernel
-> sources without any understanding of kbuild, and therefore mandatory-y
-> headers simply don't exist when it goes looking for them.
->
-> Perhaps it's possible to introduce a dependency on a top-level "make
-> asm-generic" so that we can reference the generated headers from the arch
-> directly. Thoughts?
+On Tue, Nov 05, 2019 at 08:05:46PM +1100, Aleksa Sarai wrote:
+> @@ -1078,6 +1079,10 @@ const char *get_link(struct nameidata *nd)
+>  		} else {
+>  			res = get(dentry, inode, &last->done);
+>  		}
+> +		if (nd->flags & LOOKUP_MAGICLINK_JUMPED) {
+> +			if (unlikely(nd->flags & LOOKUP_NO_MAGICLINKS))
+> +				return ERR_PTR(-ELOOP);
+> +		}
 
-Hi Will,
+Minor nit - the first check probably wants unlikely() more than the
+second one; it's probably noise anyway, but most of the symlinks
+traversed are not going to be procfs ones, so you get test + branch
+taken most of the time.
 
+OTOH, that just might compile into
+	fetch nd->flags
+	and with LOOKUP_MAGICLINK_JUMPED | LOOKUP_NO_MAGICLINKS
+	compare with the same constant
+	unlikely branch when equal
 
-Thanks for your reply.
-
-I tried to do "make asm-generic" operation before, but it just generated 
-asm/rwonce.h
-
-in arch/*/include/generated directory and building tools/bpf still 
-cannot find it.
-
-Perhaps, the Makefile of tools/bpf needs to be improved.
-
-
-Best Regards,
-
-Xiao Yang
-
->
-> Will
+Anyway, that's no more than a minor nit and can be dealt with later (if
+at all)
