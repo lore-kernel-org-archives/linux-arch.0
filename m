@@ -1,7 +1,7 @@
 From: Marco Elver <elver@google.com>
-Subject: [PATCH v4 02/10] include/linux/compiler.h: Introduce data_race(expr) macro
-Date: Thu, 14 Nov 2019 19:02:55 +0100
-Message-ID: <20191114180303.66955-3-elver@google.com>
+Subject: [PATCH v4 04/10] objtool, kcsan: Add KCSAN runtime functions to whitelist
+Date: Thu, 14 Nov 2019 19:02:57 +0100
+Message-ID: <20191114180303.66955-5-elver@google.com>
 References: <20191114180303.66955-1-elver@google.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
@@ -12,55 +12,46 @@ To: elver@google.com
 Cc: akiyks@gmail.com, stern@rowland.harvard.edu, glider@google.com, parri.andrea@gmail.com, andreyknvl@google.com, luto@kernel.org, ard.biesheuvel@linaro.org, arnd@arndb.de, boqun.feng@gmail.com, bp@alien8.de, dja@axtens.net, dlustig@nvidia.com, dave.hansen@linux.intel.com, dhowells@redhat.com, dvyukov@google.com, hpa@zytor.com, mingo@redhat.com, j.alglave@ucl.ac.uk, joel@joelfernandes.org, corbet@lwn.net, jpoimboe@redhat.com, luc.maranget@inria.fr, mark.rutland@arm.com, npiggin@gmail.com, paulmck@kernel.org, peterz@infradead.org, tglx@linutronix.de, will@kernel.org, edumazet@google.com, kasan-dev@googlegroups.com, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, linux-efi@vger.kernel.org, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, x86@kernel.
 List-Id: linux-arch.vger.kernel.org
 
-This introduces the data_race(expr) macro, which can be used to annotate
-expressions for purposes of (1) documenting, and (2) giving tooling such
-as KCSAN information about which data races are deemed "safe".
-
-More context:
-http://lkml.kernel.org/r/CAHk-=wg5CkOEF8DTez1Qu0XTEFw_oHhxN98bDnFqbY7HL5AB2g@mail.gmail.com
+This patch adds KCSAN runtime functions to the objtool whitelist.
 
 Signed-off-by: Marco Elver <elver@google.com>
-Cc: Alan Stern <stern@rowland.harvard.edu>
-Cc: Eric Dumazet <edumazet@google.com>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Paul E. McKenney <paulmck@kernel.org>
+Acked-by: Paul E. McKenney <paulmck@kernel.org>
 ---
-v4:
-* Introduce this patch to KCSAN series.
+v3:
+* Add missing instrumentation functions.
+* Use new function names of refactored core runtime.
 ---
- include/linux/compiler.h | 20 ++++++++++++++++++++
- 1 file changed, 20 insertions(+)
+ tools/objtool/check.c | 18 ++++++++++++++++++
+ 1 file changed, 18 insertions(+)
 
-diff --git a/include/linux/compiler.h b/include/linux/compiler.h
-index c42fa83f23fb..7d3e77781578 100644
---- a/include/linux/compiler.h
-+++ b/include/linux/compiler.h
-@@ -310,6 +310,26 @@ unsigned long read_word_at_a_time(const void *addr)
- 	__u.__val;					\
- })
- 
-+#include <linux/kcsan.h>
-+
-+/*
-+ * data_race: macro to document that accesses in an expression may conflict with
-+ * other concurrent accesses resulting in data races, but the resulting
-+ * behaviour is deemed safe regardless.
-+ *
-+ * This macro *does not* affect normal code generation, but is a hint to tooling
-+ * that data races here should be ignored.
-+ */
-+#define data_race(expr)                                                        \
-+	({                                                                     \
-+		typeof(({ expr; })) __val;                                     \
-+		kcsan_nestable_atomic_begin();                                 \
-+		__val = ({ expr; });                                           \
-+		kcsan_nestable_atomic_end();                                   \
-+		__val;                                                         \
-+	})
-+#else
-+
- #endif /* __KERNEL__ */
- 
- /*
+diff --git a/tools/objtool/check.c b/tools/objtool/check.c
+index 044c9a3cb247..e022a9a00ca1 100644
+--- a/tools/objtool/check.c
++++ b/tools/objtool/check.c
+@@ -466,6 +466,24 @@ static const char *uaccess_safe_builtin[] = {
+ 	"__asan_report_store4_noabort",
+ 	"__asan_report_store8_noabort",
+ 	"__asan_report_store16_noabort",
++	/* KCSAN */
++	"kcsan_found_watchpoint",
++	"kcsan_setup_watchpoint",
++	/* KCSAN/TSAN */
++	"__tsan_func_entry",
++	"__tsan_func_exit",
++	"__tsan_read_range",
++	"__tsan_write_range",
++	"__tsan_read1",
++	"__tsan_read2",
++	"__tsan_read4",
++	"__tsan_read8",
++	"__tsan_read16",
++	"__tsan_write1",
++	"__tsan_write2",
++	"__tsan_write4",
++	"__tsan_write8",
++	"__tsan_write16",
+ 	/* KCOV */
+ 	"write_comp_data",
+ 	"__sanitizer_cov_trace_pc",
 -- 
 2.24.0.rc1.363.gb1bccd3e3d-goog
