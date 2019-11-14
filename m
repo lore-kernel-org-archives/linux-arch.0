@@ -1,752 +1,260 @@
-From: Marco Elver <elver@google.com>
-Subject: Re: [PATCH v2 1/2] kasan: support instrumented bitops combined with
- generic bitops
-Date: Thu, 14 Nov 2019 21:56:31 +0100
-Message-ID: <CANpmjNOCxTxTpbB_LwUQS5jzfQ_2zbZVAc4nKf0FRXmrwO-7sA@mail.gmail.com>
-References: <20190820024941.12640-1-dja@axtens.net>
- <877e6vutiu.fsf@dja-thinkpad.axtens.net>
- <878sp57z44.fsf@dja-thinkpad.axtens.net>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
-In-Reply-To: <878sp57z44.fsf@dja-thinkpad.axtens.net>
-List-Unsubscribe: <https://lists.ozlabs.org/options/linuxppc-dev>,
- <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=unsubscribe>
-List-Archive: <http://lists.ozlabs.org/pipermail/linuxppc-dev/>
-List-Post: <mailto:linuxppc-dev@lists.ozlabs.org>
-List-Help: <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=help>
-List-Subscribe: <https://lists.ozlabs.org/listinfo/linuxppc-dev>,
- <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=subscribe>
-Errors-To: linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org
-Sender: "Linuxppc-dev"
- <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
-To: Daniel Axtens <dja@axtens.net>
-Cc: linux-s390@vger.kernel.org, the arch/x86 maintainers <x86@kernel.org>, kasan-dev <kasan-dev@googlegroups.com>, linux-arch <linux-arch@vger.kernel.org>, linuxppc-dev@lists.ozlabs.org
+From: Alex Kogan <alex.kogan@oracle.com>
+Subject: Re: [PATCH v6 3/5] locking/qspinlock: Introduce CNA into the slow
+ path of qspinlock
+Date: Thu, 14 Nov 2019 15:57:34 -0500
+Message-ID: <58623E4A-973B-46CC-8FA8-29E68DB5EFF4@oracle.com>
+References: <20191107174622.61718-4-alex.kogan@oracle.com>
+ <201911110540.8p3UoQAR%lkp@intel.com>
+Mime-Version: 1.0 (Mac OS X Mail 12.4 \(3445.104.11\))
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+In-Reply-To: <201911110540.8p3UoQAR%lkp@intel.com>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+To: kbuild test robot <lkp@intel.com>, linux-sparse@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, guohanjun@huawei.com, kbuild-all@lists.01.org, arnd@arndb.de, Peter Zijlstra <peterz@infradead.org>, dave.dice@oracle.com, jglauber@marvell.com, x86@kernel.org, will.deacon@arm.com, linux@armlinux.org.uk, steven.sistare@oracle.com, linux-kernel@vger.kernel.org, rahul.x.yadav@oracle.com, mingo@redhat.com, bp@alien8.de, hpa@zytor.com, longman@redhat.com, tglx@linutronix.de, daniel.m.jordan@oracle.com, linux-arm-kernel@lists.infradead.org
 List-Id: linux-arch.vger.kernel.org
 
-On Mon, 28 Oct 2019 at 14:56, Daniel Axtens <dja@axtens.net> wrote:
->
-> Hi all,
->
-> Would it be possible to get an Ack from a KASAN maintainter? mpe is
-> happy to take this through powerpc but would like an ack first.
->
-> Regards,
-> Daniel
->
-> >> Currently bitops-instrumented.h assumes that the architecture provides
-> >> atomic, non-atomic and locking bitops (e.g. both set_bit and __set_bit).
-> >> This is true on x86 and s390, but is not always true: there is a
-> >> generic bitops/non-atomic.h header that provides generic non-atomic
-> >> operations, and also a generic bitops/lock.h for locking operations.
-> >>
-> >> powerpc uses the generic non-atomic version, so it does not have it's
-> >> own e.g. __set_bit that could be renamed arch___set_bit.
-> >>
-> >> Split up bitops-instrumented.h to mirror the atomic/non-atomic/lock
-> >> split. This allows arches to only include the headers where they
-> >> have arch-specific versions to rename. Update x86 and s390.
-> >
-> > This patch should not cause any functional change on either arch.
-> >
-> > To verify, I have compiled kernels with and without these. With the
-> > appropriate setting of environment variables and the general assorted
-> > mucking around required for reproducible builds, I have tested:
-> >
-> >  - s390, without kasan - byte-for-byte identical vmlinux before and after
-> >  - x86,  without kasan - byte-for-byte identical vmlinux before and after
-> >
-> >  - s390, inline kasan  - byte-for-byte identical vmlinux before and after
-> >
-> >  - x86,  inline kasan  - 3 functions in drivers/rtc/dev.o are reordered,
-> >                          build-id and __ex_table differ, rest is unchanged
-> >
-> > The kernels were based on defconfigs. I disabled debug info (as that
-> > obviously changes with code being rearranged) and initrd support (as the
-> > cpio wrapper doesn't seem to take KBUILD_BUILD_TIMESTAMP but the current
-> > time, and that screws things up).
-> >
-> > I wouldn't read too much in to the weird result on x86 with inline
-> > kasan: the code I moved about is compiled even without KASAN enabled.
-> >
-> > Regards,
-> > Daniel
-> >
-> >
-> >>
-> >> (The generic operations are automatically instrumented because they're
-> >> written in C, not asm.)
-> >>
-> >> Suggested-by: Christophe Leroy <christophe.leroy@c-s.fr>
-> >> Reviewed-by: Christophe Leroy <christophe.leroy@c-s.fr>
-> >> Signed-off-by: Daniel Axtens <dja@axtens.net>
-> >> ---
-> >>  Documentation/core-api/kernel-api.rst         |  17 +-
-> >>  arch/s390/include/asm/bitops.h                |   4 +-
-> >>  arch/x86/include/asm/bitops.h                 |   4 +-
-> >>  include/asm-generic/bitops-instrumented.h     | 263 ------------------
-> >>  .../asm-generic/bitops/instrumented-atomic.h  | 100 +++++++
-> >>  .../asm-generic/bitops/instrumented-lock.h    |  81 ++++++
-> >>  .../bitops/instrumented-non-atomic.h          | 114 ++++++++
-> >>  7 files changed, 317 insertions(+), 266 deletions(-)
-> >>  delete mode 100644 include/asm-generic/bitops-instrumented.h
-> >>  create mode 100644 include/asm-generic/bitops/instrumented-atomic.h
-> >>  create mode 100644 include/asm-generic/bitops/instrumented-lock.h
-> >>  create mode 100644 include/asm-generic/bitops/instrumented-non-atomic.h
-> >>
-> >> diff --git a/Documentation/core-api/kernel-api.rst b/Documentation/core-api/kernel-api.rst
-> >> index 08af5caf036d..2e21248277e3 100644
-> >> --- a/Documentation/core-api/kernel-api.rst
-> >> +++ b/Documentation/core-api/kernel-api.rst
-> >> @@ -54,7 +54,22 @@ The Linux kernel provides more basic utility functions.
-> >>  Bit Operations
-> >>  --------------
-> >>
-> >> -.. kernel-doc:: include/asm-generic/bitops-instrumented.h
-> >> +Atomic Operations
-> >> +~~~~~~~~~~~~~~~~~
-> >> +
-> >> +.. kernel-doc:: include/asm-generic/bitops/instrumented-atomic.h
-> >> +   :internal:
-> >> +
-> >> +Non-atomic Operations
-> >> +~~~~~~~~~~~~~~~~~~~~~
-> >> +
-> >> +.. kernel-doc:: include/asm-generic/bitops/instrumented-non-atomic.h
-> >> +   :internal:
-> >> +
-> >> +Locking Operations
-> >> +~~~~~~~~~~~~~~~~~~
-> >> +
-> >> +.. kernel-doc:: include/asm-generic/bitops/instrumented-lock.h
-> >>     :internal:
-> >>
-> >>  Bitmap Operations
-> >> diff --git a/arch/s390/include/asm/bitops.h b/arch/s390/include/asm/bitops.h
-> >> index b8833ac983fa..0ceb12593a68 100644
-> >> --- a/arch/s390/include/asm/bitops.h
-> >> +++ b/arch/s390/include/asm/bitops.h
-> >> @@ -241,7 +241,9 @@ static inline void arch___clear_bit_unlock(unsigned long nr,
-> >>      arch___clear_bit(nr, ptr);
-> >>  }
-> >>
-> >> -#include <asm-generic/bitops-instrumented.h>
-> >> +#include <asm-generic/bitops/instrumented-atomic.h>
-> >> +#include <asm-generic/bitops/instrumented-non-atomic.h>
-> >> +#include <asm-generic/bitops/instrumented-lock.h>
-> >>
-> >>  /*
-> >>   * Functions which use MSB0 bit numbering.
-> >> diff --git a/arch/x86/include/asm/bitops.h b/arch/x86/include/asm/bitops.h
-> >> index ba15d53c1ca7..4a2e2432238f 100644
-> >> --- a/arch/x86/include/asm/bitops.h
-> >> +++ b/arch/x86/include/asm/bitops.h
-> >> @@ -389,7 +389,9 @@ static __always_inline int fls64(__u64 x)
-> >>
-> >>  #include <asm-generic/bitops/const_hweight.h>
-> >>
-> >> -#include <asm-generic/bitops-instrumented.h>
-> >> +#include <asm-generic/bitops/instrumented-atomic.h>
-> >> +#include <asm-generic/bitops/instrumented-non-atomic.h>
-> >> +#include <asm-generic/bitops/instrumented-lock.h>
-> >>
-> >>  #include <asm-generic/bitops/le.h>
-> >>
-> >> diff --git a/include/asm-generic/bitops-instrumented.h b/include/asm-generic/bitops-instrumented.h
-> >> deleted file mode 100644
-> >> index ddd1c6d9d8db..000000000000
-> >> --- a/include/asm-generic/bitops-instrumented.h
-> >> +++ /dev/null
-> >> @@ -1,263 +0,0 @@
-> >> -/* SPDX-License-Identifier: GPL-2.0 */
-> >> -
-> >> -/*
-> >> - * This file provides wrappers with sanitizer instrumentation for bit
-> >> - * operations.
-> >> - *
-> >> - * To use this functionality, an arch's bitops.h file needs to define each of
-> >> - * the below bit operations with an arch_ prefix (e.g. arch_set_bit(),
-> >> - * arch___set_bit(), etc.).
-> >> - */
-> >> -#ifndef _ASM_GENERIC_BITOPS_INSTRUMENTED_H
-> >> -#define _ASM_GENERIC_BITOPS_INSTRUMENTED_H
-> >> -
-> >> -#include <linux/kasan-checks.h>
-> >> -
-> >> -/**
-> >> - * set_bit - Atomically set a bit in memory
-> >> - * @nr: the bit to set
-> >> - * @addr: the address to start counting from
-> >> - *
-> >> - * This is a relaxed atomic operation (no implied memory barriers).
-> >> - *
-> >> - * Note that @nr may be almost arbitrarily large; this function is not
-> >> - * restricted to acting on a single-word quantity.
-> >> - */
-> >> -static inline void set_bit(long nr, volatile unsigned long *addr)
-> >> -{
-> >> -    kasan_check_write(addr + BIT_WORD(nr), sizeof(long));
-> >> -    arch_set_bit(nr, addr);
-> >> -}
-> >> -
-> >> -/**
-> >> - * __set_bit - Set a bit in memory
-> >> - * @nr: the bit to set
-> >> - * @addr: the address to start counting from
-> >> - *
-> >> - * Unlike set_bit(), this function is non-atomic. If it is called on the same
-> >> - * region of memory concurrently, the effect may be that only one operation
-> >> - * succeeds.
-> >> - */
-> >> -static inline void __set_bit(long nr, volatile unsigned long *addr)
-> >> -{
-> >> -    kasan_check_write(addr + BIT_WORD(nr), sizeof(long));
-> >> -    arch___set_bit(nr, addr);
-> >> -}
-> >> -
-> >> -/**
-> >> - * clear_bit - Clears a bit in memory
-> >> - * @nr: Bit to clear
-> >> - * @addr: Address to start counting from
-> >> - *
-> >> - * This is a relaxed atomic operation (no implied memory barriers).
-> >> - */
-> >> -static inline void clear_bit(long nr, volatile unsigned long *addr)
-> >> -{
-> >> -    kasan_check_write(addr + BIT_WORD(nr), sizeof(long));
-> >> -    arch_clear_bit(nr, addr);
-> >> -}
-> >> -
-> >> -/**
-> >> - * __clear_bit - Clears a bit in memory
-> >> - * @nr: the bit to clear
-> >> - * @addr: the address to start counting from
-> >> - *
-> >> - * Unlike clear_bit(), this function is non-atomic. If it is called on the same
-> >> - * region of memory concurrently, the effect may be that only one operation
-> >> - * succeeds.
-> >> - */
-> >> -static inline void __clear_bit(long nr, volatile unsigned long *addr)
-> >> -{
-> >> -    kasan_check_write(addr + BIT_WORD(nr), sizeof(long));
-> >> -    arch___clear_bit(nr, addr);
-> >> -}
-> >> -
-> >> -/**
-> >> - * clear_bit_unlock - Clear a bit in memory, for unlock
-> >> - * @nr: the bit to set
-> >> - * @addr: the address to start counting from
-> >> - *
-> >> - * This operation is atomic and provides release barrier semantics.
-> >> - */
-> >> -static inline void clear_bit_unlock(long nr, volatile unsigned long *addr)
-> >> -{
-> >> -    kasan_check_write(addr + BIT_WORD(nr), sizeof(long));
-> >> -    arch_clear_bit_unlock(nr, addr);
-> >> -}
-> >> -
-> >> -/**
-> >> - * __clear_bit_unlock - Clears a bit in memory
-> >> - * @nr: Bit to clear
-> >> - * @addr: Address to start counting from
-> >> - *
-> >> - * This is a non-atomic operation but implies a release barrier before the
-> >> - * memory operation. It can be used for an unlock if no other CPUs can
-> >> - * concurrently modify other bits in the word.
-> >> - */
-> >> -static inline void __clear_bit_unlock(long nr, volatile unsigned long *addr)
-> >> -{
-> >> -    kasan_check_write(addr + BIT_WORD(nr), sizeof(long));
-> >> -    arch___clear_bit_unlock(nr, addr);
-> >> -}
-> >> -
-> >> -/**
-> >> - * change_bit - Toggle a bit in memory
-> >> - * @nr: Bit to change
-> >> - * @addr: Address to start counting from
-> >> - *
-> >> - * This is a relaxed atomic operation (no implied memory barriers).
-> >> - *
-> >> - * Note that @nr may be almost arbitrarily large; this function is not
-> >> - * restricted to acting on a single-word quantity.
-> >> - */
-> >> -static inline void change_bit(long nr, volatile unsigned long *addr)
-> >> -{
-> >> -    kasan_check_write(addr + BIT_WORD(nr), sizeof(long));
-> >> -    arch_change_bit(nr, addr);
-> >> -}
-> >> -
-> >> -/**
-> >> - * __change_bit - Toggle a bit in memory
-> >> - * @nr: the bit to change
-> >> - * @addr: the address to start counting from
-> >> - *
-> >> - * Unlike change_bit(), this function is non-atomic. If it is called on the same
-> >> - * region of memory concurrently, the effect may be that only one operation
-> >> - * succeeds.
-> >> - */
-> >> -static inline void __change_bit(long nr, volatile unsigned long *addr)
-> >> -{
-> >> -    kasan_check_write(addr + BIT_WORD(nr), sizeof(long));
-> >> -    arch___change_bit(nr, addr);
-> >> -}
-> >> -
-> >> -/**
-> >> - * test_and_set_bit - Set a bit and return its old value
-> >> - * @nr: Bit to set
-> >> - * @addr: Address to count from
-> >> - *
-> >> - * This is an atomic fully-ordered operation (implied full memory barrier).
-> >> - */
-> >> -static inline bool test_and_set_bit(long nr, volatile unsigned long *addr)
-> >> -{
-> >> -    kasan_check_write(addr + BIT_WORD(nr), sizeof(long));
-> >> -    return arch_test_and_set_bit(nr, addr);
-> >> -}
-> >> -
-> >> -/**
-> >> - * __test_and_set_bit - Set a bit and return its old value
-> >> - * @nr: Bit to set
-> >> - * @addr: Address to count from
-> >> - *
-> >> - * This operation is non-atomic. If two instances of this operation race, one
-> >> - * can appear to succeed but actually fail.
-> >> - */
-> >> -static inline bool __test_and_set_bit(long nr, volatile unsigned long *addr)
-> >> -{
-> >> -    kasan_check_write(addr + BIT_WORD(nr), sizeof(long));
-> >> -    return arch___test_and_set_bit(nr, addr);
-> >> -}
-> >> -
-> >> -/**
-> >> - * test_and_set_bit_lock - Set a bit and return its old value, for lock
-> >> - * @nr: Bit to set
-> >> - * @addr: Address to count from
-> >> - *
-> >> - * This operation is atomic and provides acquire barrier semantics if
-> >> - * the returned value is 0.
-> >> - * It can be used to implement bit locks.
-> >> - */
-> >> -static inline bool test_and_set_bit_lock(long nr, volatile unsigned long *addr)
-> >> -{
-> >> -    kasan_check_write(addr + BIT_WORD(nr), sizeof(long));
-> >> -    return arch_test_and_set_bit_lock(nr, addr);
-> >> -}
-> >> -
-> >> -/**
-> >> - * test_and_clear_bit - Clear a bit and return its old value
-> >> - * @nr: Bit to clear
-> >> - * @addr: Address to count from
-> >> - *
-> >> - * This is an atomic fully-ordered operation (implied full memory barrier).
-> >> - */
-> >> -static inline bool test_and_clear_bit(long nr, volatile unsigned long *addr)
-> >> -{
-> >> -    kasan_check_write(addr + BIT_WORD(nr), sizeof(long));
-> >> -    return arch_test_and_clear_bit(nr, addr);
-> >> -}
-> >> -
-> >> -/**
-> >> - * __test_and_clear_bit - Clear a bit and return its old value
-> >> - * @nr: Bit to clear
-> >> - * @addr: Address to count from
-> >> - *
-> >> - * This operation is non-atomic. If two instances of this operation race, one
-> >> - * can appear to succeed but actually fail.
-> >> - */
-> >> -static inline bool __test_and_clear_bit(long nr, volatile unsigned long *addr)
-> >> -{
-> >> -    kasan_check_write(addr + BIT_WORD(nr), sizeof(long));
-> >> -    return arch___test_and_clear_bit(nr, addr);
-> >> -}
-> >> -
-> >> -/**
-> >> - * test_and_change_bit - Change a bit and return its old value
-> >> - * @nr: Bit to change
-> >> - * @addr: Address to count from
-> >> - *
-> >> - * This is an atomic fully-ordered operation (implied full memory barrier).
-> >> - */
-> >> -static inline bool test_and_change_bit(long nr, volatile unsigned long *addr)
-> >> -{
-> >> -    kasan_check_write(addr + BIT_WORD(nr), sizeof(long));
-> >> -    return arch_test_and_change_bit(nr, addr);
-> >> -}
-> >> -
-> >> -/**
-> >> - * __test_and_change_bit - Change a bit and return its old value
-> >> - * @nr: Bit to change
-> >> - * @addr: Address to count from
-> >> - *
-> >> - * This operation is non-atomic. If two instances of this operation race, one
-> >> - * can appear to succeed but actually fail.
-> >> - */
-> >> -static inline bool __test_and_change_bit(long nr, volatile unsigned long *addr)
-> >> -{
-> >> -    kasan_check_write(addr + BIT_WORD(nr), sizeof(long));
-> >> -    return arch___test_and_change_bit(nr, addr);
-> >> -}
-> >> -
-> >> -/**
-> >> - * test_bit - Determine whether a bit is set
-> >> - * @nr: bit number to test
-> >> - * @addr: Address to start counting from
-> >> - */
-> >> -static inline bool test_bit(long nr, const volatile unsigned long *addr)
-> >> -{
-> >> -    kasan_check_read(addr + BIT_WORD(nr), sizeof(long));
-> >> -    return arch_test_bit(nr, addr);
-> >> -}
-> >> -
-> >> -#if defined(arch_clear_bit_unlock_is_negative_byte)
-> >> -/**
-> >> - * clear_bit_unlock_is_negative_byte - Clear a bit in memory and test if bottom
-> >> - *                                     byte is negative, for unlock.
-> >> - * @nr: the bit to clear
-> >> - * @addr: the address to start counting from
-> >> - *
-> >> - * This operation is atomic and provides release barrier semantics.
-> >> - *
-> >> - * This is a bit of a one-trick-pony for the filemap code, which clears
-> >> - * PG_locked and tests PG_waiters,
-> >> - */
-> >> -static inline bool
-> >> -clear_bit_unlock_is_negative_byte(long nr, volatile unsigned long *addr)
-> >> -{
-> >> -    kasan_check_write(addr + BIT_WORD(nr), sizeof(long));
-> >> -    return arch_clear_bit_unlock_is_negative_byte(nr, addr);
-> >> -}
-> >> -/* Let everybody know we have it. */
-> >> -#define clear_bit_unlock_is_negative_byte clear_bit_unlock_is_negative_byte
-> >> -#endif
-> >> -
-> >> -#endif /* _ASM_GENERIC_BITOPS_INSTRUMENTED_H */
-> >> diff --git a/include/asm-generic/bitops/instrumented-atomic.h b/include/asm-generic/bitops/instrumented-atomic.h
-> >> new file mode 100644
-> >> index 000000000000..18ce3c9e8eec
-> >> --- /dev/null
-> >> +++ b/include/asm-generic/bitops/instrumented-atomic.h
-> >> @@ -0,0 +1,100 @@
-> >> +/* SPDX-License-Identifier: GPL-2.0 */
-> >> +
-> >> +/*
-> >> + * This file provides wrappers with sanitizer instrumentation for atomic bit
-> >> + * operations.
-> >> + *
-> >> + * To use this functionality, an arch's bitops.h file needs to define each of
-> >> + * the below bit operations with an arch_ prefix (e.g. arch_set_bit(),
-> >> + * arch___set_bit(), etc.).
-> >> + */
-> >> +#ifndef _ASM_GENERIC_BITOPS_INSTRUMENTED_ATOMIC_H
-> >> +#define _ASM_GENERIC_BITOPS_INSTRUMENTED_ATOMIC_H
-> >> +
-> >> +#include <linux/kasan-checks.h>
-> >> +
-> >> +/**
-> >> + * set_bit - Atomically set a bit in memory
-> >> + * @nr: the bit to set
-> >> + * @addr: the address to start counting from
-> >> + *
-> >> + * This is a relaxed atomic operation (no implied memory barriers).
-> >> + *
-> >> + * Note that @nr may be almost arbitrarily large; this function is not
-> >> + * restricted to acting on a single-word quantity.
-> >> + */
-> >> +static inline void set_bit(long nr, volatile unsigned long *addr)
-> >> +{
-> >> +    kasan_check_write(addr + BIT_WORD(nr), sizeof(long));
-> >> +    arch_set_bit(nr, addr);
-> >> +}
-> >> +
-> >> +/**
-> >> + * clear_bit - Clears a bit in memory
-> >> + * @nr: Bit to clear
-> >> + * @addr: Address to start counting from
-> >> + *
-> >> + * This is a relaxed atomic operation (no implied memory barriers).
-> >> + */
-> >> +static inline void clear_bit(long nr, volatile unsigned long *addr)
-> >> +{
-> >> +    kasan_check_write(addr + BIT_WORD(nr), sizeof(long));
-> >> +    arch_clear_bit(nr, addr);
-> >> +}
-> >> +
-> >> +/**
-> >> + * change_bit - Toggle a bit in memory
-> >> + * @nr: Bit to change
-> >> + * @addr: Address to start counting from
-> >> + *
-> >> + * This is a relaxed atomic operation (no implied memory barriers).
-> >> + *
-> >> + * Note that @nr may be almost arbitrarily large; this function is not
-> >> + * restricted to acting on a single-word quantity.
-> >> + */
-> >> +static inline void change_bit(long nr, volatile unsigned long *addr)
-> >> +{
-> >> +    kasan_check_write(addr + BIT_WORD(nr), sizeof(long));
-> >> +    arch_change_bit(nr, addr);
-> >> +}
-> >> +
-> >> +/**
-> >> + * test_and_set_bit - Set a bit and return its old value
-> >> + * @nr: Bit to set
-> >> + * @addr: Address to count from
-> >> + *
-> >> + * This is an atomic fully-ordered operation (implied full memory barrier).
-> >> + */
-> >> +static inline bool test_and_set_bit(long nr, volatile unsigned long *addr)
-> >> +{
-> >> +    kasan_check_write(addr + BIT_WORD(nr), sizeof(long));
-> >> +    return arch_test_and_set_bit(nr, addr);
-> >> +}
-> >> +
-> >> +/**
-> >> + * test_and_clear_bit - Clear a bit and return its old value
-> >> + * @nr: Bit to clear
-> >> + * @addr: Address to count from
-> >> + *
-> >> + * This is an atomic fully-ordered operation (implied full memory barrier).
-> >> + */
-> >> +static inline bool test_and_clear_bit(long nr, volatile unsigned long *addr)
-> >> +{
-> >> +    kasan_check_write(addr + BIT_WORD(nr), sizeof(long));
-> >> +    return arch_test_and_clear_bit(nr, addr);
-> >> +}
-> >> +
-> >> +/**
-> >> + * test_and_change_bit - Change a bit and return its old value
-> >> + * @nr: Bit to change
-> >> + * @addr: Address to count from
-> >> + *
-> >> + * This is an atomic fully-ordered operation (implied full memory barrier).
-> >> + */
-> >> +static inline bool test_and_change_bit(long nr, volatile unsigned long *addr)
-> >> +{
-> >> +    kasan_check_write(addr + BIT_WORD(nr), sizeof(long));
-> >> +    return arch_test_and_change_bit(nr, addr);
-> >> +}
-> >> +
-> >> +#endif /* _ASM_GENERIC_BITOPS_INSTRUMENTED_NON_ATOMIC_H */
-> >> diff --git a/include/asm-generic/bitops/instrumented-lock.h b/include/asm-generic/bitops/instrumented-lock.h
-> >> new file mode 100644
-> >> index 000000000000..ec53fdeea9ec
-> >> --- /dev/null
-> >> +++ b/include/asm-generic/bitops/instrumented-lock.h
-> >> @@ -0,0 +1,81 @@
-> >> +/* SPDX-License-Identifier: GPL-2.0 */
-> >> +
-> >> +/*
-> >> + * This file provides wrappers with sanitizer instrumentation for bit
-> >> + * locking operations.
-> >> + *
-> >> + * To use this functionality, an arch's bitops.h file needs to define each of
-> >> + * the below bit operations with an arch_ prefix (e.g. arch_set_bit(),
-> >> + * arch___set_bit(), etc.).
-> >> + */
-> >> +#ifndef _ASM_GENERIC_BITOPS_INSTRUMENTED_LOCK_H
-> >> +#define _ASM_GENERIC_BITOPS_INSTRUMENTED_LOCK_H
-> >> +
-> >> +#include <linux/kasan-checks.h>
-> >> +
-> >> +/**
-> >> + * clear_bit_unlock - Clear a bit in memory, for unlock
-> >> + * @nr: the bit to set
-> >> + * @addr: the address to start counting from
-> >> + *
-> >> + * This operation is atomic and provides release barrier semantics.
-> >> + */
-> >> +static inline void clear_bit_unlock(long nr, volatile unsigned long *addr)
-> >> +{
-> >> +    kasan_check_write(addr + BIT_WORD(nr), sizeof(long));
-> >> +    arch_clear_bit_unlock(nr, addr);
-> >> +}
-> >> +
-> >> +/**
-> >> + * __clear_bit_unlock - Clears a bit in memory
-> >> + * @nr: Bit to clear
-> >> + * @addr: Address to start counting from
-> >> + *
-> >> + * This is a non-atomic operation but implies a release barrier before the
-> >> + * memory operation. It can be used for an unlock if no other CPUs can
-> >> + * concurrently modify other bits in the word.
-> >> + */
-> >> +static inline void __clear_bit_unlock(long nr, volatile unsigned long *addr)
-> >> +{
-> >> +    kasan_check_write(addr + BIT_WORD(nr), sizeof(long));
-> >> +    arch___clear_bit_unlock(nr, addr);
-> >> +}
-> >> +
-> >> +/**
-> >> + * test_and_set_bit_lock - Set a bit and return its old value, for lock
-> >> + * @nr: Bit to set
-> >> + * @addr: Address to count from
-> >> + *
-> >> + * This operation is atomic and provides acquire barrier semantics if
-> >> + * the returned value is 0.
-> >> + * It can be used to implement bit locks.
-> >> + */
-> >> +static inline bool test_and_set_bit_lock(long nr, volatile unsigned long *addr)
-> >> +{
-> >> +    kasan_check_write(addr + BIT_WORD(nr), sizeof(long));
-> >> +    return arch_test_and_set_bit_lock(nr, addr);
-> >> +}
-> >> +
-> >> +#if defined(arch_clear_bit_unlock_is_negative_byte)
-> >> +/**
-> >> + * clear_bit_unlock_is_negative_byte - Clear a bit in memory and test if bottom
-> >> + *                                     byte is negative, for unlock.
-> >> + * @nr: the bit to clear
-> >> + * @addr: the address to start counting from
-> >> + *
-> >> + * This operation is atomic and provides release barrier semantics.
-> >> + *
-> >> + * This is a bit of a one-trick-pony for the filemap code, which clears
-> >> + * PG_locked and tests PG_waiters,
-> >> + */
-> >> +static inline bool
-> >> +clear_bit_unlock_is_negative_byte(long nr, volatile unsigned long *addr)
-> >> +{
-> >> +    kasan_check_write(addr + BIT_WORD(nr), sizeof(long));
-> >> +    return arch_clear_bit_unlock_is_negative_byte(nr, addr);
-> >> +}
-> >> +/* Let everybody know we have it. */
-> >> +#define clear_bit_unlock_is_negative_byte clear_bit_unlock_is_negative_byte
-> >> +#endif
-> >> +
-> >> +#endif /* _ASM_GENERIC_BITOPS_INSTRUMENTED_LOCK_H */
-> >> diff --git a/include/asm-generic/bitops/instrumented-non-atomic.h b/include/asm-generic/bitops/instrumented-non-atomic.h
-> >> new file mode 100644
-> >> index 000000000000..95ff28d128a1
-> >> --- /dev/null
-> >> +++ b/include/asm-generic/bitops/instrumented-non-atomic.h
-> >> @@ -0,0 +1,114 @@
-> >> +/* SPDX-License-Identifier: GPL-2.0 */
-> >> +
-> >> +/*
-> >> + * This file provides wrappers with sanitizer instrumentation for non-atomic
-> >> + * bit operations.
-> >> + *
-> >> + * To use this functionality, an arch's bitops.h file needs to define each of
-> >> + * the below bit operations with an arch_ prefix (e.g. arch_set_bit(),
-> >> + * arch___set_bit(), etc.).
-> >> + */
-> >> +#ifndef _ASM_GENERIC_BITOPS_INSTRUMENTED_NON_ATOMIC_H
-> >> +#define _ASM_GENERIC_BITOPS_INSTRUMENTED_NON_ATOMIC_H
-> >> +
-> >> +#include <linux/kasan-checks.h>
-> >> +
-> >> +/**
-> >> + * __set_bit - Set a bit in memory
-> >> + * @nr: the bit to set
-> >> + * @addr: the address to start counting from
-> >> + *
-> >> + * Unlike set_bit(), this function is non-atomic. If it is called on the same
-> >> + * region of memory concurrently, the effect may be that only one operation
-> >> + * succeeds.
-> >> + */
-> >> +static inline void __set_bit(long nr, volatile unsigned long *addr)
-> >> +{
-> >> +    kasan_check_write(addr + BIT_WORD(nr), sizeof(long));
-> >> +    arch___set_bit(nr, addr);
-> >> +}
-> >> +
-> >> +/**
-> >> + * __clear_bit - Clears a bit in memory
-> >> + * @nr: the bit to clear
-> >> + * @addr: the address to start counting from
-> >> + *
-> >> + * Unlike clear_bit(), this function is non-atomic. If it is called on the same
-> >> + * region of memory concurrently, the effect may be that only one operation
-> >> + * succeeds.
-> >> + */
-> >> +static inline void __clear_bit(long nr, volatile unsigned long *addr)
-> >> +{
-> >> +    kasan_check_write(addr + BIT_WORD(nr), sizeof(long));
-> >> +    arch___clear_bit(nr, addr);
-> >> +}
-> >> +
-> >> +/**
-> >> + * __change_bit - Toggle a bit in memory
-> >> + * @nr: the bit to change
-> >> + * @addr: the address to start counting from
-> >> + *
-> >> + * Unlike change_bit(), this function is non-atomic. If it is called on the same
-> >> + * region of memory concurrently, the effect may be that only one operation
-> >> + * succeeds.
-> >> + */
-> >> +static inline void __change_bit(long nr, volatile unsigned long *addr)
-> >> +{
-> >> +    kasan_check_write(addr + BIT_WORD(nr), sizeof(long));
-> >> +    arch___change_bit(nr, addr);
-> >> +}
-> >> +
-> >> +/**
-> >> + * __test_and_set_bit - Set a bit and return its old value
-> >> + * @nr: Bit to set
-> >> + * @addr: Address to count from
-> >> + *
-> >> + * This operation is non-atomic. If two instances of this operation race, one
-> >> + * can appear to succeed but actually fail.
-> >> + */
-> >> +static inline bool __test_and_set_bit(long nr, volatile unsigned long *addr)
-> >> +{
-> >> +    kasan_check_write(addr + BIT_WORD(nr), sizeof(long));
-> >> +    return arch___test_and_set_bit(nr, addr);
-> >> +}
-> >> +
-> >> +/**
-> >> + * __test_and_clear_bit - Clear a bit and return its old value
-> >> + * @nr: Bit to clear
-> >> + * @addr: Address to count from
-> >> + *
-> >> + * This operation is non-atomic. If two instances of this operation race, one
-> >> + * can appear to succeed but actually fail.
-> >> + */
-> >> +static inline bool __test_and_clear_bit(long nr, volatile unsigned long *addr)
-> >> +{
-> >> +    kasan_check_write(addr + BIT_WORD(nr), sizeof(long));
-> >> +    return arch___test_and_clear_bit(nr, addr);
-> >> +}
-> >> +
-> >> +/**
-> >> + * __test_and_change_bit - Change a bit and return its old value
-> >> + * @nr: Bit to change
-> >> + * @addr: Address to count from
-> >> + *
-> >> + * This operation is non-atomic. If two instances of this operation race, one
-> >> + * can appear to succeed but actually fail.
-> >> + */
-> >> +static inline bool __test_and_change_bit(long nr, volatile unsigned long *addr)
-> >> +{
-> >> +    kasan_check_write(addr + BIT_WORD(nr), sizeof(long));
-> >> +    return arch___test_and_change_bit(nr, addr);
-> >> +}
-> >> +
-> >> +/**
-> >> + * test_bit - Determine whether a bit is set
-> >> + * @nr: bit number to test
-> >> + * @addr: Address to start counting from
-> >> + */
-> >> +static inline bool test_bit(long nr, const volatile unsigned long *addr)
-> >> +{
-> >> +    kasan_check_read(addr + BIT_WORD(nr), sizeof(long));
-> >> +    return arch_test_bit(nr, addr);
-> >> +}
-
-This one slipped through the cracks, sorry I didn't notice earlier.
-
-test_bit() is an atomic bitop. I assume it was meant to be in
-instrumented-atomic.h?
-
-Thanks,
--- Marco
-
-> >> +
-> >> +#endif /* _ASM_GENERIC_BITOPS_INSTRUMENTED_NON_ATOMIC_H */
-> >> --
-> >> 2.20.1
->
-> --
-> You received this message because you are subscribed to the Google Groups "kasan-dev" group.
-> To unsubscribe from this group and stop receiving emails from it, send an email to kasan-dev+unsubscribe@googlegroups.com.
-> To view this discussion on the web visit https://groups.google.com/d/msgid/kasan-dev/878sp57z44.fsf%40dja-thinkpad.axtens.net.
+KyBsaW51eC1zcGFyc2UgbWFpbGluZyBsaXN0CgpJdCBzZWVtcyBsaWtlIGEgYnVnIGluIHRoZSB3
+YXkgc3BhcnNlIGhhbmRsZXMg4oCccHVyZeKAnSBmdW5jdGlvbnMgdGhhdCByZXR1cm4KYSBwb2lu
+dGVyLgoKT25lIG9mIHRoZSBwdXJlIGZ1bmN0aW9ucyBpbiBxdWVzdGlvbiBpcyBkZWZpbmVkIGFz
+IGZvbGxvd2luZzoKCXN0YXRpYyBpbmxpbmUgX19wdXJlCglzdHJ1Y3QgbWNzX3NwaW5sb2NrICpn
+cmFiX21jc19ub2RlKHN0cnVjdCBtY3Nfc3BpbmxvY2sgKmJhc2UsIGludCBpZHgpCgl7CiAgICAg
+ICAgCXJldHVybiAmKChzdHJ1Y3QgcW5vZGUgKiliYXNlICsgaWR4KS0+bWNzOwoJfQoKYW5kIHRo
+ZSBjb3JyZXNwb25kaW5nIHZhcmlhYmxlIGRlZmluaXRpb24gYW5kIHRoZSBhc3NpZ25tZW50IHN0
+YXRlbWVudCB0aGF0CnByb2R1Y2UgYSB3YXJuaW5nIChpbiBrZXJuZWwvbG9ja2luZy9xc3Bpbmxv
+Y2suYykgYXJlOgoJc3RydWN0IG1jc19zcGlubG9jayAqcHJldiwgKm5leHQsICpub2RlOwoJ4oCm
+Cglub2RlID0gZ3JhYl9tY3Nfbm9kZShub2RlLCBpZHgpOwoKVGhlIGlzc3VlIGNhbiBiZSByZWNy
+ZWF0ZWQgd2l0aG91dCBteSBwYXRjaCB3aXRoCgkjIHNwYXJzZSB2ZXJzaW9uOiB2MC42LjEKCW1h
+a2UgQVJDSD14ODZfNjQgYWxsbW9kY29uZmlnCgltYWtlIEM9MSBDRj0nLWZkaWFnbm9zdGljLXBy
+ZWZpeCAtRF9fQ0hFQ0tfRU5ESUFOX18nIGtlcm5lbC9sb2NraW5nL3FzcGlubG9jay5vCgoKVGhl
+IHdhcm5pbmdzIGNhbiBiZSBlbGltaW5hdGVkIGJ5IGFkZGluZyBhbiBleHBsaWNpdCBjYXN0LCBl
+LmcuOgoKCW5vZGUgPSAoc3RydWN0IG1jc19zcGlubG9jayAqKWdyYWJfbWNzX25vZGUobm9kZSwg
+aWR4KTsKCmJ1dCB0aGlzIHNlZW1zIHdyb25nICh1bm5lY2Vzc2FyeSkgdG8gbWUuCgpSZWdhcmRz
+LArigJQgQWxleAoKPiBPbiBOb3YgMTAsIDIwMTksIGF0IDQ6MzAgUE0sIGtidWlsZCB0ZXN0IHJv
+Ym90IDxsa3BAaW50ZWwuY29tPiB3cm90ZToKPiAKPiBIaSBBbGV4LAo+IAo+IFRoYW5rIHlvdSBm
+b3IgdGhlIHBhdGNoISBQZXJoYXBzIHNvbWV0aGluZyB0byBpbXByb3ZlOgo+IAo+IFthdXRvIGJ1
+aWxkIHRlc3QgV0FSTklORyBvbiBsaW51cy9tYXN0ZXJdCj4gW2Nhbm5vdCBhcHBseSB0byB2NS40
+LXJjNiBuZXh0LTIwMTkxMTA4XQo+IFtpZiB5b3VyIHBhdGNoIGlzIGFwcGxpZWQgdG8gdGhlIHdy
+b25nIGdpdCB0cmVlLCBwbGVhc2UgZHJvcCB1cyBhIG5vdGUgdG8gaGVscAo+IGltcHJvdmUgdGhl
+IHN5c3RlbS4gQlRXLCB3ZSBhbHNvIHN1Z2dlc3QgdG8gdXNlICctLWJhc2UnIG9wdGlvbiB0byBz
+cGVjaWZ5IHRoZQo+IGJhc2UgdHJlZSBpbiBnaXQgZm9ybWF0LXBhdGNoLCBwbGVhc2Ugc2VlIGh0
+dHBzOi8vdXJsZGVmZW5zZS5wcm9vZnBvaW50LmNvbS92Mi91cmw/dT1odHRwcy0zQV9fc3RhY2tv
+dmVyZmxvdy5jb21fYV8zNzQwNjk4MiZkPUR3SUJBZyZjPVJvUDFZdW1DWENnYVdIdmxaWVI4UFpo
+OEJ2N3FJck1VQjY1ZWFwSV9KbkUmcj1IdmhrM0Y0b21kQ2stR0UxUFRPbTNLbjBBN0FwV09aMmFa
+TFR1VnhGSzRrJm09aElKc3FsNUcza1pzQTJLOHNfMVdLNzA5Nm1FS3NZZS1qRXJhT1VOaGJEcyZz
+PTRiYlBjTEV0QWVka19mQnJTSUJNV3ZkRXNsTHRINVcyOG5aTGJtTUlnTDgmZT0gXQo+IAo+IHVy
+bDogICAgaHR0cHM6Ly91cmxkZWZlbnNlLnByb29mcG9pbnQuY29tL3YyL3VybD91PWh0dHBzLTNB
+X19naXRodWIuY29tXzBkYXktMkRjaV9saW51eF9jb21taXRzX0FsZXgtMkRLb2dhbl9sb2NraW5n
+LTJEcXNwaW5sb2NrLTJEUmVuYW1lLTJEbWNzLTJEbG9jay0yRHVubG9jay0yRG1hY3Jvcy0yRGFu
+ZC0yRG1ha2UtMkR0aGVtLTJEbW9yZS0yRGdlbmVyaWNfMjAxOTExMDktMkQxODA1MzUmZD1Ed0lC
+QWcmYz1Sb1AxWXVtQ1hDZ2FXSHZsWllSOFBaaDhCdjdxSXJNVUI2NWVhcElfSm5FJnI9SHZoazNG
+NG9tZENrLUdFMVBUT20zS24wQTdBcFdPWjJhWkxUdVZ4Rks0ayZtPWhJSnNxbDVHM2tac0EySzhz
+XzFXSzcwOTZtRUtzWWUtakVyYU9VTmhiRHMmcz15ZFIzaUJ0RUYtM1hVeVNCQ2NQWUo4b3F3X29O
+REItbGlKZGFwVFhlRmVNJmU9IAo+IGJhc2U6ICAgaHR0cHM6Ly91cmxkZWZlbnNlLnByb29mcG9p
+bnQuY29tL3YyL3VybD91PWh0dHBzLTNBX19naXQua2VybmVsLm9yZ19wdWJfc2NtX2xpbnV4X2tl
+cm5lbF9naXRfdG9ydmFsZHNfbGludXguZ2l0JmQ9RHdJQkFnJmM9Um9QMVl1bUNYQ2dhV0h2bFpZ
+UjhQWmg4QnY3cUlyTVVCNjVlYXBJX0puRSZyPUh2aGszRjRvbWRDay1HRTFQVE9tM0tuMEE3QXBX
+T1oyYVpMVHVWeEZLNGsmbT1oSUpzcWw1RzNrWnNBMks4c18xV0s3MDk2bUVLc1llLWpFcmFPVU5o
+YkRzJnM9YzRyQ21GWTBZVFhDUGlYVzlkX0JEMFJONldVNlFHYjY0aDFpeVdOQ205QSZlPSAgMDA1
+OGIwYTUwNmU0MGQ5YTJjNjIwMTVmZTkyZWI2NGE0NGQ3OGNkOQo+IHJlcHJvZHVjZToKPiAgICAg
+ICAgIyBhcHQtZ2V0IGluc3RhbGwgc3BhcnNlCj4gICAgICAgICMgc3BhcnNlIHZlcnNpb246IHYw
+LjYuMS0yMS1nYjMxYWRhYy1kaXJ0eQo+ICAgICAgICBtYWtlIEFSQ0g9eDg2XzY0IGFsbG1vZGNv
+bmZpZwo+ICAgICAgICBtYWtlIEM9MSBDRj0nLWZkaWFnbm9zdGljLXByZWZpeCAtRF9fQ0hFQ0tf
+RU5ESUFOX18nCj4gCj4gSWYgeW91IGZpeCB0aGUgaXNzdWUsIGtpbmRseSBhZGQgZm9sbG93aW5n
+IHRhZwo+IFJlcG9ydGVkLWJ5OiBrYnVpbGQgdGVzdCByb2JvdCA8bGtwQGludGVsLmNvbT4KPiAK
+PiAKPiBzcGFyc2Ugd2FybmluZ3M6IChuZXcgb25lcyBwcmVmaXhlZCBieSA+PikKPiAKPiAgIGtl
+cm5lbC9sb2NraW5nL3FzcGlubG9jay5jOjQ1MDoxNDogc3BhcnNlOiBzcGFyc2U6IGluY29ycmVj
+dCB0eXBlIGluIGFzc2lnbm1lbnQgKGRpZmZlcmVudCBtb2RpZmllcnMpIEBAICAgIGV4cGVjdGVk
+IHN0cnVjdCBtY3Nfc3BpbmxvY2sgKlthc3NpZ25lZF0gbm9kZSBAQCAgICBnb3QgY3QgbWNzX3Nw
+aW5sb2NrICpbYXNzaWduZWRdIG5vZGUgQEAKPiAgIGtlcm5lbC9sb2NraW5nL3FzcGlubG9jay5j
+OjQ1MDoxNDogc3BhcnNlOiAgICBleHBlY3RlZCBzdHJ1Y3QgbWNzX3NwaW5sb2NrICpbYXNzaWdu
+ZWRdIG5vZGUKPiAgIGtlcm5lbC9sb2NraW5nL3FzcGlubG9jay5jOjQ1MDoxNDogc3BhcnNlOiAg
+ICBnb3Qgc3RydWN0IG1jc19zcGlubG9jayBbcHVyZV0gKgo+ICAga2VybmVsL2xvY2tpbmcvcXNw
+aW5sb2NrLmM6NDk4OjIyOiBzcGFyc2U6IHNwYXJzZTogaW5jb3JyZWN0IHR5cGUgaW4gYXNzaWdu
+bWVudCAoZGlmZmVyZW50IG1vZGlmaWVycykgQEAgICAgZXhwZWN0ZWQgc3RydWN0IG1jc19zcGlu
+bG9jayAqcHJldiBAQCAgICBnb3Qgc3RydWN0IHN0cnVjdCBtY3Nfc3BpbmxvY2sgKnByZXYgQEAK
+PiAgIGtlcm5lbC9sb2NraW5nL3FzcGlubG9jay5jOjQ5ODoyMjogc3BhcnNlOiAgICBleHBlY3Rl
+ZCBzdHJ1Y3QgbWNzX3NwaW5sb2NrICpwcmV2Cj4gICBrZXJuZWwvbG9ja2luZy9xc3BpbmxvY2su
+Yzo0OTg6MjI6IHNwYXJzZTogICAgZ290IHN0cnVjdCBtY3Nfc3BpbmxvY2sgW3B1cmVdICoKPj4+
+IGtlcm5lbC9sb2NraW5nL3FzcGlubG9ja19jbmEuaDoxNDE6NjA6IHNwYXJzZTogc3BhcnNlOiBp
+bmNvcnJlY3QgdHlwZSBpbiBpbml0aWFsaXplciAoZGlmZmVyZW50IG1vZGlmaWVycykgQEAgICAg
+ZXhwZWN0ZWQgc3RydWN0IG1jc19zcGlubG9jayAqdGFpbF8ybmQgQEAgICAgZ290IHN0cnVjdCBz
+dHJ1Y3QgbWNzX3NwaW5sb2NrICp0YWlsXzJuZCBAQAo+Pj4ga2VybmVsL2xvY2tpbmcvcXNwaW5s
+b2NrX2NuYS5oOjE0MTo2MDogc3BhcnNlOiAgICBleHBlY3RlZCBzdHJ1Y3QgbWNzX3NwaW5sb2Nr
+ICp0YWlsXzJuZAo+Pj4ga2VybmVsL2xvY2tpbmcvcXNwaW5sb2NrX2NuYS5oOjE0MTo2MDogc3Bh
+cnNlOiAgICBnb3Qgc3RydWN0IG1jc19zcGlubG9jayBbcHVyZV0gKgo+ICAga2VybmVsL2xvY2tp
+bmcvcXNwaW5sb2NrLmM6NDUwOjE0OiBzcGFyc2U6IHNwYXJzZTogaW5jb3JyZWN0IHR5cGUgaW4g
+YXNzaWdubWVudCAoZGlmZmVyZW50IG1vZGlmaWVycykgQEAgICAgZXhwZWN0ZWQgc3RydWN0IG1j
+c19zcGlubG9jayAqW2Fzc2lnbmVkXSBub2RlIEBAICAgIGdvdCBjdCBtY3Nfc3BpbmxvY2sgKlth
+c3NpZ25lZF0gbm9kZSBAQAo+ICAga2VybmVsL2xvY2tpbmcvcXNwaW5sb2NrLmM6NDUwOjE0OiBz
+cGFyc2U6ICAgIGV4cGVjdGVkIHN0cnVjdCBtY3Nfc3BpbmxvY2sgKlthc3NpZ25lZF0gbm9kZQo+
+ICAga2VybmVsL2xvY2tpbmcvcXNwaW5sb2NrLmM6NDUwOjE0OiBzcGFyc2U6ICAgIGdvdCBzdHJ1
+Y3QgbWNzX3NwaW5sb2NrIFtwdXJlXSAqCj4gICBrZXJuZWwvbG9ja2luZy9xc3BpbmxvY2suYzo0
+OTg6MjI6IHNwYXJzZTogc3BhcnNlOiBpbmNvcnJlY3QgdHlwZSBpbiBhc3NpZ25tZW50IChkaWZm
+ZXJlbnQgbW9kaWZpZXJzKSBAQCAgICBleHBlY3RlZCBzdHJ1Y3QgbWNzX3NwaW5sb2NrICpwcmV2
+IEBAICAgIGdvdCBzdHJ1Y3Qgc3RydWN0IG1jc19zcGlubG9jayAqcHJldiBAQAo+ICAga2VybmVs
+L2xvY2tpbmcvcXNwaW5sb2NrLmM6NDk4OjIyOiBzcGFyc2U6ICAgIGV4cGVjdGVkIHN0cnVjdCBt
+Y3Nfc3BpbmxvY2sgKnByZXYKPiAgIGtlcm5lbC9sb2NraW5nL3FzcGlubG9jay5jOjQ5ODoyMjog
+c3BhcnNlOiAgICBnb3Qgc3RydWN0IG1jc19zcGlubG9jayBbcHVyZV0gKgo+Pj4ga2VybmVsL2xv
+Y2tpbmcvcXNwaW5sb2NrX2NuYS5oOjEwNzoxODogc3BhcnNlOiBzcGFyc2U6IGluY29ycmVjdCB0
+eXBlIGluIGFzc2lnbm1lbnQgKGRpZmZlcmVudCBtb2RpZmllcnMpIEBAICAgIGV4cGVjdGVkIHN0
+cnVjdCBtY3Nfc3BpbmxvY2sgKnRhaWxfMm5kIEBAICAgIGdvdCBzdHJ1Y3Qgc3RydWN0IG1jc19z
+cGlubG9jayAqdGFpbF8ybmQgQEAKPiAgIGtlcm5lbC9sb2NraW5nL3FzcGlubG9ja19jbmEuaDox
+MDc6MTg6IHNwYXJzZTogICAgZXhwZWN0ZWQgc3RydWN0IG1jc19zcGlubG9jayAqdGFpbF8ybmQK
+PiAgIGtlcm5lbC9sb2NraW5nL3FzcGlubG9ja19jbmEuaDoxMDc6MTg6IHNwYXJzZTogICAgZ290
+IHN0cnVjdCBtY3Nfc3BpbmxvY2sgW3B1cmVdICoKPj4+IGtlcm5lbC9sb2NraW5nL3FzcGlubG9j
+a19jbmEuaDoyNDA6NjE6IHNwYXJzZTogc3BhcnNlOiBpbmNvcnJlY3QgdHlwZSBpbiBhcmd1bWVu
+dCAyIChkaWZmZXJlbnQgbW9kaWZpZXJzKSBAQCAgICBleHBlY3RlZCBzdHJ1Y3QgbWNzX3NwaW5s
+b2NrICpwcmVkX3N0YXJ0IEBAICAgIGdvdCBzdHJ1Y3Qgc3RydWN0IG1jc19zcGlubG9jayAqcHJl
+ZF9zdGFydCBAQAo+Pj4ga2VybmVsL2xvY2tpbmcvcXNwaW5sb2NrX2NuYS5oOjI0MDo2MTogc3Bh
+cnNlOiAgICBleHBlY3RlZCBzdHJ1Y3QgbWNzX3NwaW5sb2NrICpwcmVkX3N0YXJ0Cj4gICBrZXJu
+ZWwvbG9ja2luZy9xc3BpbmxvY2tfY25hLmg6MjQwOjYxOiBzcGFyc2U6ICAgIGdvdCBzdHJ1Y3Qg
+bWNzX3NwaW5sb2NrIFtwdXJlXSAqCj4gICBrZXJuZWwvbG9ja2luZy9xc3BpbmxvY2tfY25hLmg6
+MjUyOjI2OiBzcGFyc2U6IHNwYXJzZTogaW5jb3JyZWN0IHR5cGUgaW4gYXNzaWdubWVudCAoZGlm
+ZmVyZW50IG1vZGlmaWVycykgQEAgICAgZXhwZWN0ZWQgc3RydWN0IG1jc19zcGlubG9jayAqdGFp
+bF8ybmQgQEAgICAgZ290IHN0cnVjdCBzdHJ1Y3QgbWNzX3NwaW5sb2NrICp0YWlsXzJuZCBAQAo+
+ICAga2VybmVsL2xvY2tpbmcvcXNwaW5sb2NrX2NuYS5oOjI1MjoyNjogc3BhcnNlOiAgICBleHBl
+Y3RlZCBzdHJ1Y3QgbWNzX3NwaW5sb2NrICp0YWlsXzJuZAo+ICAga2VybmVsL2xvY2tpbmcvcXNw
+aW5sb2NrX2NuYS5oOjI1MjoyNjogc3BhcnNlOiAgICBnb3Qgc3RydWN0IG1jc19zcGlubG9jayBb
+cHVyZV0gKgo+ICAga2VybmVsL2xvY2tpbmcvcXNwaW5sb2NrLmM6NDUwOjE0OiBzcGFyc2U6IHNw
+YXJzZTogaW5jb3JyZWN0IHR5cGUgaW4gYXNzaWdubWVudCAoZGlmZmVyZW50IG1vZGlmaWVycykg
+QEAgICAgZXhwZWN0ZWQgc3RydWN0IG1jc19zcGlubG9jayAqW2Fzc2lnbmVkXSBub2RlIEBAICAg
+IGdvdCBjdCBtY3Nfc3BpbmxvY2sgKlthc3NpZ25lZF0gbm9kZSBAQAo+ICAga2VybmVsL2xvY2tp
+bmcvcXNwaW5sb2NrLmM6NDUwOjE0OiBzcGFyc2U6ICAgIGV4cGVjdGVkIHN0cnVjdCBtY3Nfc3Bp
+bmxvY2sgKlthc3NpZ25lZF0gbm9kZQo+ICAga2VybmVsL2xvY2tpbmcvcXNwaW5sb2NrLmM6NDUw
+OjE0OiBzcGFyc2U6ICAgIGdvdCBzdHJ1Y3QgbWNzX3NwaW5sb2NrIFtwdXJlXSAqCj4gICBrZXJu
+ZWwvbG9ja2luZy9xc3BpbmxvY2suYzo0OTg6MjI6IHNwYXJzZTogc3BhcnNlOiBpbmNvcnJlY3Qg
+dHlwZSBpbiBhc3NpZ25tZW50IChkaWZmZXJlbnQgbW9kaWZpZXJzKSBAQCAgICBleHBlY3RlZCBz
+dHJ1Y3QgbWNzX3NwaW5sb2NrICpwcmV2IEBAICAgIGdvdCBzdHJ1Y3Qgc3RydWN0IG1jc19zcGlu
+bG9jayAqcHJldiBAQAo+ICAga2VybmVsL2xvY2tpbmcvcXNwaW5sb2NrLmM6NDk4OjIyOiBzcGFy
+c2U6ICAgIGV4cGVjdGVkIHN0cnVjdCBtY3Nfc3BpbmxvY2sgKnByZXYKPiAgIGtlcm5lbC9sb2Nr
+aW5nL3FzcGlubG9jay5jOjQ5ODoyMjogc3BhcnNlOiAgICBnb3Qgc3RydWN0IG1jc19zcGlubG9j
+ayBbcHVyZV0gKgo+IAo+IHZpbSArMTQxIGtlcm5lbC9sb2NraW5nL3FzcGlubG9ja19jbmEuaAo+
+IAo+ICAgIDkwCQo+ICAgIDkxCXN0YXRpYyBpbmxpbmUgYm9vbCBjbmFfdHJ5X2NoYW5nZV90YWls
+KHN0cnVjdCBxc3BpbmxvY2sgKmxvY2ssIHUzMiB2YWwsCj4gICAgOTIJCQkJCSAgICAgICBzdHJ1
+Y3QgbWNzX3NwaW5sb2NrICpub2RlKQo+ICAgIDkzCXsKPiAgICA5NAkJc3RydWN0IG1jc19zcGlu
+bG9jayAqaGVhZF8ybmQsICp0YWlsXzJuZDsKPiAgICA5NQkJdTMyIG5ldzsKPiAgICA5NgkKPiAg
+ICA5NwkJLyogSWYgdGhlIHNlY29uZGFyeSBxdWV1ZSBpcyBlbXB0eSwgZG8gd2hhdCBNQ1MgZG9l
+cy4gKi8KPiAgICA5OAkJaWYgKG5vZGUtPmxvY2tlZCA8PSAxKQo+ICAgIDk5CQkJcmV0dXJuIF9f
+dHJ5X2NsZWFyX3RhaWwobG9jaywgdmFsLCBub2RlKTsKPiAgIDEwMAkKPiAgIDEwMQkJLyoKPiAg
+IDEwMgkJICogVHJ5IHRvIHVwZGF0ZSB0aGUgdGFpbCB2YWx1ZSB0byB0aGUgbGFzdCBub2RlIGlu
+IHRoZSBzZWNvbmRhcnkgcXVldWUuCj4gICAxMDMJCSAqIElmIHN1Y2Nlc3NmdWwsIHBhc3MgdGhl
+IGxvY2sgdG8gdGhlIGZpcnN0IHRocmVhZCBpbiB0aGUgc2Vjb25kYXJ5Cj4gICAxMDQJCSAqIHF1
+ZXVlLiBEb2luZyB0aG9zZSB0d28gYWN0aW9ucyBlZmZlY3RpdmVseSBtb3ZlcyBhbGwgbm9kZXMg
+ZnJvbSB0aGUKPiAgIDEwNQkJICogc2Vjb25kYXJ5IHF1ZXVlIGludG8gdGhlIG1haW4gb25lLgo+
+ICAgMTA2CQkgKi8KPj4gMTA3CQl0YWlsXzJuZCA9IGRlY29kZV90YWlsKG5vZGUtPmxvY2tlZCk7
+Cj4gICAxMDgJCWhlYWRfMm5kID0gdGFpbF8ybmQtPm5leHQ7Cj4gICAxMDkJCW5ldyA9ICgoc3Ry
+dWN0IGNuYV9ub2RlICopdGFpbF8ybmQpLT5lbmNvZGVkX3RhaWwgKyBfUV9MT0NLRURfVkFMOwo+
+ICAgMTEwCQo+ICAgMTExCQlpZiAoYXRvbWljX3RyeV9jbXB4Y2hnX3JlbGF4ZWQoJmxvY2stPnZh
+bCwgJnZhbCwgbmV3KSkgewo+ICAgMTEyCQkJLyoKPiAgIDExMwkJCSAqIFRyeSB0byByZXNldCBA
+bmV4dCBpbiB0YWlsXzJuZCB0byBOVUxMLCBidXQgbm8gbmVlZCB0byBjaGVjawo+ICAgMTE0CQkJ
+ICogdGhlIHJlc3VsdCAtIGlmIGZhaWxlZCwgYSBuZXcgc3VjY2Vzc29yIGhhcyB1cGRhdGVkIGl0
+Lgo+ICAgMTE1CQkJICovCj4gICAxMTYJCQljbXB4Y2hnX3JlbGF4ZWQoJnRhaWxfMm5kLT5uZXh0
+LCBoZWFkXzJuZCwgTlVMTCk7Cj4gICAxMTcJCQlhcmNoX21jc19wYXNzX2xvY2soJmhlYWRfMm5k
+LT5sb2NrZWQsIDEpOwo+ICAgMTE4CQkJcmV0dXJuIHRydWU7Cj4gICAxMTkJCX0KPiAgIDEyMAkK
+PiAgIDEyMQkJcmV0dXJuIGZhbHNlOwo+ICAgMTIyCX0KPiAgIDEyMwkKPiAgIDEyNAkvKgo+ICAg
+MTI1CSAqIGNuYV9zcGxpY2VfdGFpbCAtLSBzcGxpY2Ugbm9kZXMgaW4gdGhlIG1haW4gcXVldWUg
+YmV0d2VlbiBbZmlyc3QsIGxhc3RdCj4gICAxMjYJICogb250byB0aGUgc2Vjb25kYXJ5IHF1ZXVl
+Lgo+ICAgMTI3CSAqLwo+ICAgMTI4CXN0YXRpYyB2b2lkIGNuYV9zcGxpY2VfdGFpbChzdHJ1Y3Qg
+bWNzX3NwaW5sb2NrICpub2RlLAo+ICAgMTI5CQkJCSAgICBzdHJ1Y3QgbWNzX3NwaW5sb2NrICpm
+aXJzdCwKPiAgIDEzMAkJCQkgICAgc3RydWN0IG1jc19zcGlubG9jayAqbGFzdCkKPiAgIDEzMQl7
+Cj4gICAxMzIJCS8qIHJlbW92ZSBbZmlyc3QsbGFzdF0gKi8KPiAgIDEzMwkJbm9kZS0+bmV4dCA9
+IGxhc3QtPm5leHQ7Cj4gICAxMzQJCj4gICAxMzUJCS8qIHN0aWNrIFtmaXJzdCxsYXN0XSBvbiB0
+aGUgc2Vjb25kYXJ5IHF1ZXVlIHRhaWwgKi8KPiAgIDEzNgkJaWYgKG5vZGUtPmxvY2tlZCA8PSAx
+KSB7IC8qIGlmIHNlY29uZGFyeSBxdWV1ZSBpcyBlbXB0eSAqLwo+ICAgMTM3CQkJLyogY3JlYXRl
+IHNlY29uZGFyeSBxdWV1ZSAqLwo+ICAgMTM4CQkJbGFzdC0+bmV4dCA9IGZpcnN0Owo+ICAgMTM5
+CQl9IGVsc2Ugewo+ICAgMTQwCQkJLyogYWRkIHRvIHRoZSB0YWlsIG9mIHRoZSBzZWNvbmRhcnkg
+cXVldWUgKi8KPj4gMTQxCQkJc3RydWN0IG1jc19zcGlubG9jayAqdGFpbF8ybmQgPSBkZWNvZGVf
+dGFpbChub2RlLT5sb2NrZWQpOwo+ICAgMTQyCQkJc3RydWN0IG1jc19zcGlubG9jayAqaGVhZF8y
+bmQgPSB0YWlsXzJuZC0+bmV4dDsKPiAgIDE0MwkKPiAgIDE0NAkJCXRhaWxfMm5kLT5uZXh0ID0g
+Zmlyc3Q7Cj4gICAxNDUJCQlsYXN0LT5uZXh0ID0gaGVhZF8ybmQ7Cj4gICAxNDYJCX0KPiAgIDE0
+NwkKPiAgIDE0OAkJbm9kZS0+bG9ja2VkID0gKChzdHJ1Y3QgY25hX25vZGUgKilsYXN0KS0+ZW5j
+b2RlZF90YWlsOwo+ICAgMTQ5CX0KPiAgIDE1MAkKPiAgIDE1MQkvKgo+ICAgMTUyCSAqIGNuYV9z
+Y2FuX21haW5fcXVldWUgLSBzY2FuIHRoZSBtYWluIHdhaXRpbmcgcXVldWUgbG9va2luZyBmb3Ig
+dGhlIGZpcnN0Cj4gICAxNTMJICogdGhyZWFkIHJ1bm5pbmcgb24gdGhlIHNhbWUgTlVNQSBub2Rl
+IGFzIHRoZSBsb2NrIGhvbGRlci4gSWYgZm91bmQgKGNhbGwgaXQKPiAgIDE1NAkgKiB0aHJlYWQg
+VCksIG1vdmUgYWxsIHRocmVhZHMgaW4gdGhlIG1haW4gcXVldWUgYmV0d2VlbiB0aGUgbG9jayBo
+b2xkZXIgYW5kCj4gICAxNTUJICogVCB0byB0aGUgZW5kIG9mIHRoZSBzZWNvbmRhcnkgcXVldWUg
+YW5kIHJldHVybiAwOyBvdGhlcndpc2UsIHJldHVybiB0aGUKPiAgIDE1NgkgKiBlbmNvZGVkIHBv
+aW50ZXIgb2YgdGhlIGxhc3Qgc2Nhbm5lZCBub2RlIGluIHRoZSBwcmltYXJ5IHF1ZXVlIChzbyBh
+Cj4gICAxNTcJICogc3Vic2VxdWVudCBzY2FuIGNhbiBiZSByZXN1bWVkIGZyb20gdGhhdCBub2Rl
+KQo+ICAgMTU4CSAqCj4gICAxNTkJICogU2NoZW1hdGljYWxseSwgdGhpcyBtYXkgbG9vayBsaWtl
+IHRoZSBmb2xsb3dpbmcgKG5uIHN0YW5kcyBmb3IgbnVtYV9ub2RlIGFuZAo+ICAgMTYwCSAqIGV0
+IHN0YW5kcyBmb3IgZW5jb2RlZF90YWlsKS4KPiAgIDE2MQkgKgo+ICAgMTYyCSAqICAgd2hlbiBj
+bmFfc2Nhbl9tYWluX3F1ZXVlKCkgaXMgY2FsbGVkICh0aGUgc2Vjb25kYXJ5IHF1ZXVlIGlzIGVt
+cHR5KToKPiAgIDE2MwkgKgo+ICAgMTY0CSAqICBBKy0tLS0tLS0tLS0tLSsgICBCKy0tLS0tLS0t
+KyAgIEMrLS0tLS0tLS0rICAgVCstLS0tLS0tLSsKPiAgIDE2NQkgKiAgIHxtY3M6bmV4dCAgICB8
+IC0+IHxtY3M6bmV4dHwgLT4gfG1jczpuZXh0fCAtPiB8bWNzOm5leHR8IC0+IE5VTEwKPiAgIDE2
+NgkgKiAgIHxtY3M6bG9ja2VkPTF8ICAgIHxjbmE6bm49MHwgICAgfGNuYTpubj0yfCAgICB8Y25h
+Om5uPTF8Cj4gICAxNjcJICogICB8Y25hOm5uPTEgICAgfCAgICArLS0tLS0tLS0rICAgICstLS0t
+LS0tLSsgICAgKy0tLS0tLS0tKwo+ICAgMTY4CSAqICAgKy0tLS0tLS0tLS0tICsKPiAgIDE2OQkg
+Kgo+ICAgMTcwCSAqICAgd2hlbiBjbmFfc2Nhbl9tYWluX3F1ZXVlKCkgcmV0dXJucyAodGhlIHNl
+Y29uZGFyeSBxdWV1ZSBjb250YWlucyBCIGFuZCBDKToKPiAgIDE3MQkgKgo+ICAgMTcyCSAqICBB
+Ky0tLS0tLS0tLS0tLS0tLS0rICAgIFQrLS0tLS0tLS0rCj4gICAxNzMJICogICB8bWNzOm5leHQg
+ICAgICAgIHwgLT4gIHxtY3M6bmV4dHwgLT4gTlVMTAo+ICAgMTc0CSAqICAgfG1jczpsb2NrZWQ9
+Qy5ldCB8IC0rICB8Y25hOm5uPTF8Cj4gICAxNzUJICogICB8Y25hOm5uPTEgICAgICAgIHwgIHwg
+ICstLS0tLS0tLSsKPiAgIDE3NgkgKiAgICstLS0tLS0tLS0tLS0tLS0gKyAgKy0tLS0tKwo+ICAg
+MTc3CSAqICAgICAgICAgICAgICAgICAgICAgICAgICAgICBcLwo+ICAgMTc4CSAqICAgICAgICAg
+IEIrLS0tLS0tLS0rICAgQystLS0tLS0tLSsKPiAgIDE3OQkgKiAgICAgICAgICAgfG1jczpuZXh0
+fCAtPiB8bWNzOm5leHR8IC0rCj4gICAxODAJICogICAgICAgICAgIHxjbmE6bm49MHwgICAgfGNu
+YTpubj0yfCAgfAo+ICAgMTgxCSAqICAgICAgICAgICArLS0tLS0tLS0rICAgICstLS0tLS0tLSsg
+IHwKPiAgIDE4MgkgKiAgICAgICAgICAgICAgIF4gICAgICAgICAgICAgICAgICAgICB8Cj4gICAx
+ODMJICogICAgICAgICAgICAgICArLS0tLS0tLS0tLS0tLS0tLS0tLS0tKwo+ICAgMTg0CSAqCj4g
+ICAxODUJICogVGhlIHdvcnN0IGNhc2UgY29tcGxleGl0eSBvZiB0aGUgc2NhbiBpcyBPKG4pLCB3
+aGVyZSBuIGlzIHRoZSBudW1iZXIKPiAgIDE4NgkgKiBvZiBjdXJyZW50IHdhaXRlcnMuIEhvd2V2
+ZXIsIHRoZSBhbW9ydGl6ZWQgY29tcGxleGl0eSBpcyBjbG9zZSB0byBPKDEpLAo+ICAgMTg3CSAq
+IGFzIHRoZSBpbW1lZGlhdGUgc3VjY2Vzc29yIGlzIGxpa2VseSB0byBiZSBydW5uaW5nIG9uIHRo
+ZSBzYW1lIG5vZGUgb25jZQo+ICAgMTg4CSAqIHRocmVhZHMgZnJvbSBvdGhlciBub2RlcyBhcmUg
+bW92ZWQgdG8gdGhlIHNlY29uZGFyeSBxdWV1ZS4KPiAgIDE4OQkgKi8KPiAgIDE5MAlzdGF0aWMg
+dTMyIGNuYV9zY2FuX21haW5fcXVldWUoc3RydWN0IG1jc19zcGlubG9jayAqbm9kZSwKPiAgIDE5
+MQkJCQkgICAgICAgc3RydWN0IG1jc19zcGlubG9jayAqcHJlZF9zdGFydCkKPiAgIDE5Mgl7Cj4g
+ICAxOTMJCXN0cnVjdCBjbmFfbm9kZSAqY24gPSAoc3RydWN0IGNuYV9ub2RlICopbm9kZTsKPiAg
+IDE5NAkJc3RydWN0IGNuYV9ub2RlICpjbmkgPSAoc3RydWN0IGNuYV9ub2RlICopUkVBRF9PTkNF
+KHByZWRfc3RhcnQtPm5leHQpOwo+ICAgMTk1CQlzdHJ1Y3QgY25hX25vZGUgKmxhc3Q7Cj4gICAx
+OTYJCWludCBteV9udW1hX25vZGUgPSBjbi0+bnVtYV9ub2RlOwo+ICAgMTk3CQo+ICAgMTk4CQkv
+KiBmaW5kIGFueSBuZXh0IHdhaXRlciBvbiAnb3VyJyBOVU1BIG5vZGUgKi8KPiAgIDE5OQkJZm9y
+IChsYXN0ID0gY247Cj4gICAyMDAJCSAgICAgY25pICYmIGNuaS0+bnVtYV9ub2RlICE9IG15X251
+bWFfbm9kZTsKPiAgIDIwMQkJICAgICBsYXN0ID0gY25pLCBjbmkgPSAoc3RydWN0IGNuYV9ub2Rl
+ICopUkVBRF9PTkNFKGNuaS0+bWNzLm5leHQpKQo+ICAgMjAyCQkJOwo+ICAgMjAzCQo+ICAgMjA0
+CQkvKiBpZiBmb3VuZCwgc3BsaWNlIGFueSBza2lwcGVkIHdhaXRlcnMgb250byB0aGUgc2Vjb25k
+YXJ5IHF1ZXVlICovCj4gICAyMDUJCWlmIChjbmkpIHsKPiAgIDIwNgkJCWlmIChsYXN0ICE9IGNu
+KQkvKiBkaWQgd2Ugc2tpcCBhbnkgd2FpdGVycz8gKi8KPiAgIDIwNwkJCQljbmFfc3BsaWNlX3Rh
+aWwobm9kZSwgbm9kZS0+bmV4dCwKPiAgIDIwOAkJCQkJCShzdHJ1Y3QgbWNzX3NwaW5sb2NrICop
+bGFzdCk7Cj4gICAyMDkJCQlyZXR1cm4gMDsKPiAgIDIxMAkJfQo+ICAgMjExCQo+ICAgMjEyCQly
+ZXR1cm4gbGFzdC0+ZW5jb2RlZF90YWlsOwo+ICAgMjEzCX0KPiAgIDIxNAkKPiAgIDIxNQlfX2Fs
+d2F5c19pbmxpbmUgdTMyIGNuYV9wcmVfc2NhbihzdHJ1Y3QgcXNwaW5sb2NrICpsb2NrLAo+ICAg
+MjE2CQkJCQkgIHN0cnVjdCBtY3Nfc3BpbmxvY2sgKm5vZGUpCj4gICAyMTcJewo+ICAgMjE4CQlz
+dHJ1Y3QgY25hX25vZGUgKmNuID0gKHN0cnVjdCBjbmFfbm9kZSAqKW5vZGU7Cj4gICAyMTkJCj4g
+ICAyMjAJCWNuLT5wcmVfc2Nhbl9yZXN1bHQgPSBjbmFfc2Nhbl9tYWluX3F1ZXVlKG5vZGUsIG5v
+ZGUpOwo+ICAgMjIxCQo+ICAgMjIyCQlyZXR1cm4gMDsKPiAgIDIyMwl9Cj4gICAyMjQJCj4gICAy
+MjUJc3RhdGljIGlubGluZSB2b2lkIGNuYV9wYXNzX2xvY2soc3RydWN0IG1jc19zcGlubG9jayAq
+bm9kZSwKPiAgIDIyNgkJCQkJIHN0cnVjdCBtY3Nfc3BpbmxvY2sgKm5leHQpCj4gICAyMjcJewo+
+ICAgMjI4CQlzdHJ1Y3QgY25hX25vZGUgKmNuID0gKHN0cnVjdCBjbmFfbm9kZSAqKW5vZGU7Cj4g
+ICAyMjkJCXN0cnVjdCBtY3Nfc3BpbmxvY2sgKm5leHRfaG9sZGVyID0gbmV4dCwgKnRhaWxfMm5k
+Owo+ICAgMjMwCQl1MzIgdmFsID0gMTsKPiAgIDIzMQkKPiAgIDIzMgkJdTMyIHNjYW4gPSBjbi0+
+cHJlX3NjYW5fcmVzdWx0Owo+ICAgMjMzCQo+ICAgMjM0CQkvKgo+ICAgMjM1CQkgKiBjaGVjayBp
+ZiBhIHN1Y2Nlc3NvciBmcm9tIHRoZSBzYW1lIG51bWEgbm9kZSBoYXMgbm90IGJlZW4gZm91bmQg
+aW4KPiAgIDIzNgkJICogcHJlLXNjYW4sIGFuZCBpZiBzbywgdHJ5IHRvIGZpbmQgaXQgaW4gcG9z
+dC1zY2FuIHN0YXJ0aW5nIGZyb20gdGhlCj4gICAyMzcJCSAqIG5vZGUgd2hlcmUgcHJlLXNjYW4g
+c3RvcHBlZCAoc3RvcmVkIGluIEBwcmVfc2Nhbl9yZXN1bHQpCj4gICAyMzgJCSAqLwo+ICAgMjM5
+CQlpZiAoc2NhbiA+IDApCj4+IDI0MAkJCXNjYW4gPSBjbmFfc2Nhbl9tYWluX3F1ZXVlKG5vZGUs
+IGRlY29kZV90YWlsKHNjYW4pKTsKPiAKPiAtLS0KPiAwLURBWSBrZXJuZWwgdGVzdCBpbmZyYXN0
+cnVjdHVyZSAgICAgICAgICAgICAgICAgT3BlbiBTb3VyY2UgVGVjaG5vbG9neSBDZW50ZXIKPiBo
+dHRwczovL3VybGRlZmVuc2UucHJvb2Zwb2ludC5jb20vdjIvdXJsP3U9aHR0cHMtM0FfX2xpc3Rz
+LjAxLm9yZ19oeXBlcmtpdHR5X2xpc3Rfa2J1aWxkLTJEYWxsLTQwbGlzdHMuMDEub3JnJmQ9RHdJ
+QkFnJmM9Um9QMVl1bUNYQ2dhV0h2bFpZUjhQWmg4QnY3cUlyTVVCNjVlYXBJX0puRSZyPUh2aGsz
+RjRvbWRDay1HRTFQVE9tM0tuMEE3QXBXT1oyYVpMVHVWeEZLNGsmbT1oSUpzcWw1RzNrWnNBMks4
+c18xV0s3MDk2bUVLc1llLWpFcmFPVU5oYkRzJnM9VnByVFRUQ2lCdFlEcEdLLW42MVBxb0FZb2d6
+N19jWDYwY0xOal9POEsyRSZlPSAgSW50ZWwgQ29ycG9yYXRpb24KCgpfX19fX19fX19fX19fX19f
+X19fX19fX19fX19fX19fX19fX19fX19fX19fX19fXwpsaW51eC1hcm0ta2VybmVsIG1haWxpbmcg
+bGlzdApsaW51eC1hcm0ta2VybmVsQGxpc3RzLmluZnJhZGVhZC5vcmcKaHR0cDovL2xpc3RzLmlu
+ZnJhZGVhZC5vcmcvbWFpbG1hbi9saXN0aW5mby9saW51eC1hcm0ta2VybmVsCg==
