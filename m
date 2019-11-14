@@ -1,82 +1,84 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH 00/23] y2038 cleanups
-Date: Wed, 13 Nov 2019 22:40:50 +0100
-Message-ID: <CAK8P3a1CbDaPqNsOVOuq2UDPSOwzd2U_WEmmXBMwCOhv1=iaSQ@mail.gmail.com>
-References: <20191108210236.1296047-1-arnd@arndb.de>
+From: Aleksa Sarai <cyphar@cyphar.com>
+Subject: Re: [PATCH v15 3/9] namei: LOOKUP_NO_XDEV: block mountpoint crossing
+Date: Thu, 14 Nov 2019 15:49:45 +1100
+Message-ID: <20191114044945.ldedzjrb4s7i7irr@yavin.dot.cyphar.com>
+References: <20191105090553.6350-1-cyphar@cyphar.com>
+ <20191105090553.6350-4-cyphar@cyphar.com>
+ <20191113013630.GZ26530@ZenIV.linux.org.uk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <netdev-owner@vger.kernel.org>
-In-Reply-To: <20191108210236.1296047-1-arnd@arndb.de>
-Sender: netdev-owner@vger.kernel.org
-To: y2038 Mailman List <y2038@lists.linaro.org>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Richard Henderson <rth@twiddle.net>, Tony Luck <tony.luck@intel.com>, Paul Burton <paul.burton@mips.com>, Greentime Hu <green.hu@gmail.com>, Helge Deller <deller@gmx.de>, Michael Ellerman <mpe@ellerman.id.au>, David Miller <davem@davemloft.net>, Thomas Gleixner <tglx@linutronix.de>, the arch/x86 maintainers <x86@kernel.org>, Jeff Dike <jdike@addtoit.com>, Richard Weinberger <richard@nod.at>, Al Viro <viro@zeniv.linux.org.uk>, Benjamin LaHaise <bcrl@kvack.org>, John Stultz <john.stultz@linaro.org>, Stephen Boyd <sboyd@kernel.org>, Steven Rostedt <rostedt@goodmis.org>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Paul Moore <paul@paul-moore.com>, Stephen Smalley <sds@tyc>
+Content-Type: multipart/signed; micalg=pgp-sha256;
+        protocol="application/pgp-signature"; boundary="rwq4fftbhkszxm4g"
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <20191113013630.GZ26530@ZenIV.linux.org.uk>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Al Viro <viro@zeniv.linux.org.uk>
+Cc: Jeff Layton <jlayton@kernel.org>, "J. Bruce Fields" <bfields@fieldses.org>, Arnd Bergmann <arnd@arndb.de>, David Howells <dhowells@redhat.com>, Shuah Khan <shuah@kernel.org>, Shuah Khan <skhan@linuxfoundation.org>, Ingo Molnar <mingo@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Christian Brauner <christian.brauner@ubuntu.com>, David Drysdale <drysdale@google.com>, Andy Lutomirski <luto@kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Eric Biederman <ebiederm@xmission.com>, Andrew Morton <akpm@linux-foundation.org>, Alexei Starovoitov <ast@kernel.org>, Kees Cook <keescook@chromium.org>, Jann Horn <jannh@google.com>, Tycho Andersen <tycho@tycho.ws>, Chanho Min <chanho.min@lge.com>, Oleg Nesterov <oleg@redhat.com>, Ras
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, Nov 8, 2019 at 10:04 PM Arnd Bergmann <arnd@arndb.de> wrote:
->
-> This is a series of cleanups for the y2038 work, mostly intended
-> for namespace cleaning: the kernel defines the traditional
-> time_t, timeval and timespec types that often lead to y2038-unsafe
-> code. Even though the unsafe usage is mostly gone from the kernel,
-> having the types and associated functions around means that we
-> can still grow new users, and that we may be missing conversions
-> to safe types that actually matter.
->
-> As there is no rush on any of these patches, I would either
-> queue them up in linux-next through my y2038 branch, or
-> Thomas could add them to the tip tree if he wants.
->
-> As mentioned in another series, this is part of a larger
-> effort to fix all the remaining bits and pieces that are
-> not completed yet from the y2038 conversion, and the full
-> set can be found at:
->
-> https://git.kernel.org/pub/scm/linux/kernel/git/arnd/playground.git/log/?h=y2038-endgame
->
-> Maintainers, please review and provide Acks.
->
-> Let me know if you have any opinion on whether we should do
-> the include last two patches of this series or not.
->
->      Arnd
->
-> Arnd Bergmann (23):
->   y2038: remove CONFIG_64BIT_TIME
->   y2038: add __kernel_old_timespec and __kernel_old_time_t
->   y2038: vdso: change timeval to __kernel_old_timeval
->   y2038: vdso: change timespec to __kernel_old_timespec
->   y2038: vdso: change time_t to __kernel_old_time_t
->   y2038: vdso: nds32: open-code timespec_add_ns()
->   y2038: vdso: powerpc: avoid timespec references
->   y2038: ipc: remove __kernel_time_t reference from headers
->   y2038: stat: avoid 'time_t' in 'struct stat'
->   y2038: uapi: change __kernel_time_t to __kernel_old_time_t
->   y2038: rusage: use __kernel_old_timeval
->   y2038: syscalls: change remaining timeval to __kernel_old_timeval
->   y2038: socket: remove timespec reference in timestamping
->   y2038: make ns_to_compat_timeval use __kernel_old_timeval
->   y2038: elfcore: Use __kernel_old_timeval for process times
->   y2038: timerfd: Use timespec64 internally
->   y2038: time: avoid timespec usage in settimeofday()
->   y2038: itimer: compat handling to itimer.c
->   y2038: use compat_{get,set}_itimer on alpha
->   y2038: move itimer reset into itimer.c
->   y2038: itimer: change implementation to timespec64
->   [RFC] y2038: itimer: use ktime_t internally
->   y2038: allow disabling time32 system calls
 
-I've dropped the "[RFC] y2038: itimer: use ktime_t internally" patch
-for the moment,
-and added two other patches from other series:
+--rwq4fftbhkszxm4g
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+Content-Transfer-Encoding: quoted-printable
 
-y2038: remove CONFIG_64BIT_TIME
-y2038: socket: use __kernel_old_timespec instead of timespec
+On 2019-11-13, Al Viro <viro@zeniv.linux.org.uk> wrote:
+> On Tue, Nov 05, 2019 at 08:05:47PM +1100, Aleksa Sarai wrote:
+>=20
+> > @@ -862,6 +870,8 @@ static int nd_jump_root(struct nameidata *nd)
+> >  void nd_jump_link(struct path *path)
+> >  {
+> >  	struct nameidata *nd =3D current->nameidata;
+> > +
+> > +	nd->last_magiclink.same_mnt =3D (nd->path.mnt =3D=3D path->mnt);
+> >  	path_put(&nd->path);
+> > =20
+> >  	nd->path =3D *path;
+> > @@ -1082,6 +1092,10 @@ const char *get_link(struct nameidata *nd)
+> >  		if (nd->flags & LOOKUP_MAGICLINK_JUMPED) {
+> >  			if (unlikely(nd->flags & LOOKUP_NO_MAGICLINKS))
+> >  				return ERR_PTR(-ELOOP);
+> > +			if (unlikely(nd->flags & LOOKUP_NO_XDEV)) {
+> > +				if (!nd->last_magiclink.same_mnt)
+> > +					return ERR_PTR(-EXDEV);
+> > +			}
+> >  		}
+>=20
+> Ugh...  Wouldn't it be better to take that logics (some equivalent thereo=
+f)
+> into nd_jump_link()?  Or just have nd_jump_link() return an error...
 
-Tentatively pushed out the patches with the Acks I have received so
-far to my y2038 branch on git.kernel.org so it gets included in linux-next.
+This could be done, but the reason for stashing it away in
+last_magiclink is because of the future magic-link re-opening patches
+which can't be implemented like that without putting the open_flags
+inside nameidata (which was decided to be too ugly a while ago).
 
-If I hear no complaints, I'll send a pull request for the merge window,
-along with the compat-ioctl series I have already queued up in the same
-branch.
+My point being that I could implement it this way for this series, but
+I'd have to implement something like last_magiclink when I end up
+re-posting the magic-link stuff in a few weeks.
 
-    Arnd
+Looking at all the nd_jump_link() users, the other option is to just
+disallow magic-link crossings entirely for LOOKUP_NO_XDEV. The only
+thing allowing them permits is to resolve file descriptors that are
+pointing to the same procfs mount -- and it's unclear to me how useful
+that really is (apparmorfs and nsfs will always give -EXDEV because
+aafs_mnt and nsfs_mnt are internal kernel vfsmounts).
+
+--=20
+Aleksa Sarai
+Senior Software Engineer (Containers)
+SUSE Linux GmbH
+<https://www.cyphar.com/>
+
+--rwq4fftbhkszxm4g
+Content-Type: application/pgp-signature; name="signature.asc"
+
+-----BEGIN PGP SIGNATURE-----
+
+iHUEABYIAB0WIQSxZm6dtfE8gxLLfYqdlLljIbnQEgUCXczc5gAKCRCdlLljIbnQ
+EspyAQDQkDnU2/CfvkXyKRLh2e7ycT5D4iHdCmBXbx8LlO8DlwD/S5O/FNHgyDdy
+RVaJ7aj0OZAzg7DMx3VZRiI+He4MXw0=
+=71Jv
+-----END PGP SIGNATURE-----
+
+--rwq4fftbhkszxm4g--
