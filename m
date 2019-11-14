@@ -1,42 +1,35 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm1-f68.google.com ([209.85.128.68]:33383 "EHLO
-        mail-wm1-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726852AbfKOAi1 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 14 Nov 2019 19:38:27 -0500
-Date: Fri, 15 Nov 2019 01:38:21 +0100
-From: Luc Van Oostenryck <luc.vanoostenryck@gmail.com>
-Subject: Re: [PATCH v6 3/5] locking/qspinlock: Introduce CNA into the slow
- path of qspinlock
-Message-ID: <20191115003821.raskzlj7hscz7vax@ltop.local>
-References: <20191107174622.61718-4-alex.kogan@oracle.com>
- <201911110540.8p3UoQAR%lkp@intel.com>
- <58623E4A-973B-46CC-8FA8-29E68DB5EFF4@oracle.com>
+Received: from mail-pf1-f196.google.com ([209.85.210.196]:34299 "EHLO
+        mail-pf1-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726661AbfKOF3k (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 15 Nov 2019 00:29:40 -0500
+Received: by mail-pf1-f196.google.com with SMTP id n13so5877499pff.1
+        for <linux-arch@vger.kernel.org>; Thu, 14 Nov 2019 21:29:40 -0800 (PST)
+Date: Thu, 14 Nov 2019 13:27:48 -0800
+From: Kees Cook <keescook@chromium.org>
+Subject: Re: [kernel-hardening] [PATCH 09/38] usercopy: Mark kmalloc caches
+ as usercopy caches
+Message-ID: <201911141327.4DE6510@keescook>
+References: <1515636190-24061-1-git-send-email-keescook@chromium.org>
+ <1515636190-24061-10-git-send-email-keescook@chromium.org>
+ <9519edb7-456a-a2fa-659e-3e5a1ff89466@suse.cz>
+ <201911121313.1097D6EE@keescook>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
+Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-Content-Transfer-Encoding: 8bit
-In-Reply-To: <58623E4A-973B-46CC-8FA8-29E68DB5EFF4@oracle.com>
+In-Reply-To: <201911121313.1097D6EE@keescook>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Alex Kogan <alex.kogan@oracle.com>
-Cc: kbuild test robot <lkp@intel.com>, linux-sparse@vger.kernel.org, kbuild-all@lists.01.org, linux@armlinux.org.uk, Peter Zijlstra <peterz@infradead.org>, mingo@redhat.com, will.deacon@arm.com, arnd@arndb.de, longman@redhat.com, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, bp@alien8.de, hpa@zytor.com, x86@kernel.org, guohanjun@huawei.com, jglauber@marvell.com, steven.sistare@oracle.com, daniel.m.jordan@oracle.com, dave.dice@oracle.com, rahul.x.yadav@oracle.com
-Message-ID: <20191115003821.WUa7Pt8T_eqwEopx4P7IGetXWCLtO5V56XHNywMgGUM@z>
+To: Jiri Slaby <jslaby@suse.cz>, Alexander Viro <viro@zeniv.linux.org.uk>
+Cc: linux-kernel@vger.kernel.org, David Windsor <dave@nullcore.net>, Pekka Enberg <penberg@kernel.org>, David Rientjes <rientjes@google.com>, Joonsoo Kim <iamjoonsoo.kim@lge.com>, Andrew Morton <akpm@linux-foundation.org>, linux-mm@kvack.org, linux-xfs@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, Christoph Hellwig <hch@infradead.org>, Christoph Lameter <cl@linux.com>, "David S. Miller" <davem@davemloft.net>, Laura Abbott <labbott@redhat.com>, Mark Rutland <mark.rutland@arm.com>, "Martin K. Petersen" <martin.petersen@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Christoffer Dall <christoffer.dall@linaro.org>, Dave Kleikamp <dave.kleikamp@oracle.com>, Jan Kara <jack@suse.cz>, Luis de Bethencourt <luisbg@kernel.org>, Marc Zyngier <marc.zyngier@arm.com>, Rik van Riel <riel@redhat.com>, Matthew Garrett <mjg59@google.com>, linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org, netdev@vger.kernel.org, kernel-hardening@lists.openwall.com, Vlastimil Babka <vbabka@suse.cz>, Michal Kubecek <mkubecek@suse.cz>
+Message-ID: <20191114212748.ACFs-1RTpe63LQKwTd-RFiDm-ZOe7Ywg2KCzl3MTYFU@z>
 
-On Thu, Nov 14, 2019 at 03:57:34PM -0500, Alex Kogan wrote:
-> + linux-sparse mailing list
-> 
-> It seems like a bug in the way sparse handles “pure” functions that return
-> a pointer.
+On Tue, Nov 12, 2019 at 01:21:54PM -0800, Kees Cook wrote:
+> How is iucv the only network protocol that has run into this? Do others
+> use a bounce buffer?
 
-Yes, it's a bug in sparse.
- 
-> The warnings can be eliminated by adding an explicit cast, e.g.:
-> 
-> 	node = (struct mcs_spinlock *)grab_mcs_node(node, idx);
-> 
-> but this seems wrong (unnecessary) to me.
+Another solution would be to use a dedicated kmem cache (instead of the
+shared kmalloc dma one)?
 
-Indeed, it would be wrong.
-
-Thanks for analyzing and reporting this,
--- Luc 
+-- 
+Kees Cook
