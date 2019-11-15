@@ -1,68 +1,213 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-eopbgr30091.outbound.protection.outlook.com ([40.107.3.91]:18830
-        "EHLO EUR03-AM5-obe.outbound.protection.outlook.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1725829AbfKOHiF (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 15 Nov 2019 02:38:05 -0500
-From: Pavel Tikhomirov <ptikhomirov@virtuozzo.com>
-Subject: Re: [PATCH v2] fs: add new O_MNT flag for opening mount root from
- mountpoint fd
-Date: Fri, 15 Nov 2019 07:37:58 +0000
-Message-ID: <1af96c9c-0e4c-5f18-a710-1db4b6a3cf87@virtuozzo.com>
-References: <20191114090454.27903-1-ptikhomirov@virtuozzo.com>
- <20191114141320.GI26530@ZenIV.linux.org.uk>
-In-Reply-To: <20191114141320.GI26530@ZenIV.linux.org.uk>
-Content-Language: en-US
-Content-Type: text/plain; charset="utf-8"
-Content-ID: <C32DEDA78AC6494A9DD557DA3785FC4F@eurprd08.prod.outlook.com>
-Content-Transfer-Encoding: base64
+Received: from mail-wm1-f65.google.com ([209.85.128.65]:40698 "EHLO
+        mail-wm1-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727200AbfKOLzf (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 15 Nov 2019 06:55:35 -0500
+Received: by mail-wm1-f65.google.com with SMTP id f3so10081031wmc.5
+        for <linux-arch@vger.kernel.org>; Fri, 15 Nov 2019 03:55:32 -0800 (PST)
+Date: Fri, 15 Nov 2019 12:55:24 +0100
+From: Marco Elver <elver@google.com>
+Subject: Re: [PATCH v4 08/10] asm-generic, kcsan: Add KCSAN instrumentation
+ for bitops
+Message-ID: <20191115115524.GA77379@google.com>
+References: <20191114180303.66955-1-elver@google.com>
+ <20191114180303.66955-9-elver@google.com>
 MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20191114180303.66955-9-elver@google.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Al Viro <viro@zeniv.linux.org.uk>
-Cc: Jeff Layton <jlayton@kernel.org>, "J . Bruce Fields" <bfields@fieldses.org>, Arnd Bergmann <arnd@arndb.de>, Paul Moore <paul@paul-moore.com>, Richard Guy Briggs <rgb@redhat.com>, "linux-fsdevel@vger.kernel.org" <linux-fsdevel@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "Andrei Vagin (C)" <avagin@gmail.com>
-Message-ID: <20191115073758.KnHIGcjmfkI4Yws6m0PGaw6Ef0y4JqDm_KRN7hEm1Rc@z>
+To: akiyks@gmail.com, stern@rowland.harvard.edu, glider@google.com, parri.andrea@gmail.com, andreyknvl@google.com, luto@kernel.org, ard.biesheuvel@linaro.org, arnd@arndb.de, boqun.feng@gmail.com, bp@alien8.de, dja@axtens.net, dlustig@nvidia.com, dave.hansen@linux.intel.com, dhowells@redhat.com, dvyukov@google.com, hpa@zytor.com, mingo@redhat.com, j.alglave@ucl.ac.uk, joel@joelfernandes.org, corbet@lwn.net, jpoimboe@redhat.com, luc.maranget@inria.fr, mark.rutland@arm.com, npiggin@gmail.com, paulmck@kernel.org, peterz@infradead.org, tglx@linutronix.de, will@kernel.org, edumazet@google.com, kasan-dev@googlegroups.com, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, linux-efi@vger.kernel.org, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, x86@kernel.org
+Message-ID: <20191115115524.xun2avSezMRetWhJ_udxRbzCwqY4LsHIxy3xvpFH6M4@z>
 
-DQoNCk9uIDExLzE0LzE5IDU6MTMgUE0sIEFsIFZpcm8gd3JvdGU6DQo+IE9uIFRodSwgTm92IDE0
-LCAyMDE5IGF0IDEyOjA0OjU0UE0gKzAzMDAsIFBhdmVsIFRpa2hvbWlyb3Ygd3JvdGU6DQo+IA0K
-Pj4gTW9yZSBwcmVjaXNlbHkgdGhlIGFsZ29yaXRobSBpczoNCj4+IGEpIG9wZW5hdCBtcGZkIHRv
-IGEgbmV3IG1vdW50cG9pbnQgdGhyb3VnaCBwYXJlbnQgbW91bnQncyByb290IC0NCj4+IHBfcm9v
-dGZkICh3aGljaCB3ZSBhbHJlYWR5IGhhdmUpIG9yIG1vdW50cG9pbnQgZmQgdW5kZXIgYSBzaWJs
-aW5nIG1vdW50DQo+PiAtIHNfbXBmZCBpZiBvdXIgbW91bnRwb2ludCBpcyBhbHJlYWR5IG92ZXJt
-b3VudGVkLg0KPj4gYikgY3JlYXRlIGEgbmV3IG1vdW50IG9uIG1wZmQgdmlhIC9wcm9jLzxwaWQ+
-L2ZkLzxOPiBpbnRlcmZhY2UNCj4+IGMpIG9wZW5hdCBpdCdzIHJvb3RmZCB2aWEgT19NTlQgZnJv
-bSBtcGZkDQo+Pg0KPj4gSWYgd2UgaGF2ZSBtcGZkIGFuZCByb290ZmQgZm9yIGVhY2ggbW91bnQg
-dGhyb3VnaCAvcHJvYy88cGlkPi9mZC88Tj4NCj4+IGludGVyZmFjZSB3ZSB3aWxsIGJlIGFibGUg
-dG8gYmluZG1vdW50IGFueSBwYXJ0IG9mIGVhY2ggb2YgYWxyZWFkeQ0KPj4gY3JlYXRlZCBtb3Vu
-dHMgdG8gcmVzdG9yZSBvdGhlciBtb3VudHMgIGFuZCB3ZSB3aWxsIGJlIGFibGUgdG8gY29uZmln
-dXJlDQo+PiBtb3VudHMsIGUuZy4gY2hhbmdlIHNoYXJpbmcgb3Igb3RoZXIgb3B0aW9ucyBldmVu
-IGlmIG1vdW50cyBhcmUNCj4+IGludmlzaWJsZSBmcm9tIGZzLXJvb3QuDQo+IA0KPiBFdmVyeXRo
-aW5nIGVsc2UgYXNpZGUgKGFuZCBJJ20gbm90IHRocmlsbGVkIGFib3V0IHRoZSBpZGVhIGluIGdl
-bmVyYWwpLA0KPiB5b3UgYXJlIG5vdCBoYW5kbGluZyB0aGUgc2l0dWF0aW9uIHdoZW4gdGhhdCBv
-dmVybW91bnQgaXMsIGluIHR1cm4sDQo+IG92ZXJtb3VudGVkLg0KDQpTb3JyeSBidXQgSSBkb24n
-dCB1bmRlcnN0YW5kIHdoeSBvdmVybW91bnRlZCBvdmVybW91bnQgaXMgYSBzcGVjaWFsIA0KY2Fz
-ZS4uLiBMZXQgbWUgZXhwbGFpbiBpbiBvdGhlciB3b3Jkcy4gSSB1c2UgbWF0aGVtYXRpY2FsIGlu
-ZHVjdGlvbiBhcyBhIA0KcHJvb2YgdGVjaG5pcXVlLiBCYXNlIG9mIGluZHVjdGlvbiBpcyB3aGVu
-IHdlIGhhdmUgbm8gbW91bnRzIChleGVwdCANCnJvb3QpLCBpdCBpcyBvYnZpb3VzIHRoYXQgd2Ug
-Y2FuIGFjY2VzcyBhbGwgZGlyZWN0b3JpZXMgaW4gdGhlIHN5c3RlbS4gDQpTdGVwIG9mIGluZHVj
-dGlvbiBpcyB3aGVuIHdlIGFkZCBvbmUgbW9yZSBtb3VudCBhbmQgYmVmb3JlIHRoYXQgc3RlcCAN
-CndlJ3ZlIGhhZCBhbiBhY2Nlc3MgdG8gYWxsIGRpcmVjdG9yaWVzIGluIHRoZSBzeXN0ZW0gKGhh
-dmUgbXBmZHMgYW5kIA0Kcm9vdGZkcyBmb3IgYWxsIG1vdW50cykuDQoNCklmIHN0ZXAgYWRkcyBh
-IG1vdW50IG1udCB3ZSBuZWVkIHRvIG9ubHkgY29uc2lkZXIgaXQncyBwYXJlbnQsIHNpYmxpbmdz
-IA0KYW5kIGNoaWxkcmVuIHdoaWNoIHdpbGwgYmUgdGhlcmUgYWZ0ZXIgdGhlIHN0ZXAsIGFsbCBv
-dGhlciBtb3VudHMgZG9lcyANCm5vdCBjaGFuZ2UgYW55dGhpbmcuDQoNClByb3BhZ2F0aW9ucyBv
-ZiBtbnQgY2FuJ3QgYmVjb21lIG1udCdzIGNoaWxkcmVuIG9yIHNpYmxpbmdzIG9yIHBhcmVudCwg
-DQpsdWNraWx5IGZvciB1cy4gU28gd2UgY2FuIGFjdHVhbGx5IGNvbnNpZGVyIG9uZSBtb3VudCBm
-cm9tIHByb3BhZ2F0aW9uIA0KZ3JvdXAgYXQgYSB0aW1lLg0KDQpOb3cgaWYgbXAgaXMganVzdCB2
-aXNpYmxlIGZyb20gcGFyZW50J3MgcF9yb290ZmQgd2Ugb3BlbiBtcGZkLiBFbHNlIHdlIA0KaGF2
-ZSBzb21lIHNpYmxpbmcgZnJvbSB3aGljaCBzX21wZmQgdGhlIG1wIGlzIHZpc2libGUgYW5kIHdl
-IG9wZW4gbXBmZCANCmZyb20gaXQuIEFuZCB0aGUgbGFzdCBjYXNlIGlmIHdlJ3JlIGNyYXdsaW5n
-IHVuZGVyIHNvbWUgbW91bnQgKGNoaWxkKSB3ZSANCmNhbiBvcGVuIG1wZmQgdGhyb3VnaCBjX21w
-ZmQuDQoNCk5vdyBvdXIgbXBmZCBpcyBvcGVuIHNvIHdlIHVzZSBPX01OVCB0byBvcGVuIG91ciBy
-b290ZmQuIChBbmQgaGVyZSB3ZSANCmNoYW5nZSBjX21wZmQgdG8gb3VyIHJvb3RmZCBhcyBvdXIg
-bmV3IGNoaWxkIHN3aXRjaGVkIHBhcmVudCkNCg0KPiAgT3Igd2hlbiB0aGVyZSdzIGFuIGF1dG9t
-b3VudCBzZXQgb24gdG9wIG9mIGl0LCBldGMuDQoNCkknbSBub3QgY29tbW9uIHdpdGggYXV0b21v
-dW50cyBhY3R1YWxseSwgc28gSSBtaWdodCBtaXNzIHNvbWV0aGluZyBoZXJlLiANCkNhbiB5b3Ug
-cGxlYXNlIHNob3cgYWN0dWFsIG1vdW50IHRyZWUgd2hlcmUgdGhpcyBwcm9ibGVtIGNhbiBoYXBw
-ZW4/DQoNCj4gDQoNCi0tIA0KQmVzdCByZWdhcmRzLCBUaWtob21pcm92IFBhdmVsDQpTb2Z0d2Fy
-ZSBEZXZlbG9wZXIsIFZpcnR1b3p6by4NCg==
+Signed-off-by: Marco Elver <elver@google.com>
+---
+Tentative version of the bitops patch that applies with the new
+instrumented bitops infrastructure currently in linux-next. (Note that
+that test_bit() is an atomic bitop, but is currently in the wrong
+header.)
+
+Otherwise there is no functional change compared to v4 that applies to
+mainline.
+
+---
+ include/asm-generic/bitops/instrumented-atomic.h     | 7 +++++++
+ include/asm-generic/bitops/instrumented-lock.h       | 5 +++++
+ include/asm-generic/bitops/instrumented-non-atomic.h | 8 ++++++++
+ 3 files changed, 20 insertions(+)
+
+diff --git a/include/asm-generic/bitops/instrumented-atomic.h b/include/asm-generic/bitops/instrumented-atomic.h
+index 18ce3c9e8eec..eb3abf7e5c08 100644
+--- a/include/asm-generic/bitops/instrumented-atomic.h
++++ b/include/asm-generic/bitops/instrumented-atomic.h
+@@ -12,6 +12,7 @@
+ #define _ASM_GENERIC_BITOPS_INSTRUMENTED_ATOMIC_H
+ 
+ #include <linux/kasan-checks.h>
++#include <linux/kcsan-checks.h>
+ 
+ /**
+  * set_bit - Atomically set a bit in memory
+@@ -26,6 +27,7 @@
+ static inline void set_bit(long nr, volatile unsigned long *addr)
+ {
+ 	kasan_check_write(addr + BIT_WORD(nr), sizeof(long));
++	kcsan_check_atomic_write(addr + BIT_WORD(nr), sizeof(long));
+ 	arch_set_bit(nr, addr);
+ }
+ 
+@@ -39,6 +41,7 @@ static inline void set_bit(long nr, volatile unsigned long *addr)
+ static inline void clear_bit(long nr, volatile unsigned long *addr)
+ {
+ 	kasan_check_write(addr + BIT_WORD(nr), sizeof(long));
++	kcsan_check_atomic_write(addr + BIT_WORD(nr), sizeof(long));
+ 	arch_clear_bit(nr, addr);
+ }
+ 
+@@ -55,6 +58,7 @@ static inline void clear_bit(long nr, volatile unsigned long *addr)
+ static inline void change_bit(long nr, volatile unsigned long *addr)
+ {
+ 	kasan_check_write(addr + BIT_WORD(nr), sizeof(long));
++	kcsan_check_atomic_write(addr + BIT_WORD(nr), sizeof(long));
+ 	arch_change_bit(nr, addr);
+ }
+ 
+@@ -68,6 +72,7 @@ static inline void change_bit(long nr, volatile unsigned long *addr)
+ static inline bool test_and_set_bit(long nr, volatile unsigned long *addr)
+ {
+ 	kasan_check_write(addr + BIT_WORD(nr), sizeof(long));
++	kcsan_check_atomic_write(addr + BIT_WORD(nr), sizeof(long));
+ 	return arch_test_and_set_bit(nr, addr);
+ }
+ 
+@@ -81,6 +86,7 @@ static inline bool test_and_set_bit(long nr, volatile unsigned long *addr)
+ static inline bool test_and_clear_bit(long nr, volatile unsigned long *addr)
+ {
+ 	kasan_check_write(addr + BIT_WORD(nr), sizeof(long));
++	kcsan_check_atomic_write(addr + BIT_WORD(nr), sizeof(long));
+ 	return arch_test_and_clear_bit(nr, addr);
+ }
+ 
+@@ -94,6 +100,7 @@ static inline bool test_and_clear_bit(long nr, volatile unsigned long *addr)
+ static inline bool test_and_change_bit(long nr, volatile unsigned long *addr)
+ {
+ 	kasan_check_write(addr + BIT_WORD(nr), sizeof(long));
++	kcsan_check_atomic_write(addr + BIT_WORD(nr), sizeof(long));
+ 	return arch_test_and_change_bit(nr, addr);
+ }
+ 
+diff --git a/include/asm-generic/bitops/instrumented-lock.h b/include/asm-generic/bitops/instrumented-lock.h
+index ec53fdeea9ec..2c80dca31e27 100644
+--- a/include/asm-generic/bitops/instrumented-lock.h
++++ b/include/asm-generic/bitops/instrumented-lock.h
+@@ -12,6 +12,7 @@
+ #define _ASM_GENERIC_BITOPS_INSTRUMENTED_LOCK_H
+ 
+ #include <linux/kasan-checks.h>
++#include <linux/kcsan-checks.h>
+ 
+ /**
+  * clear_bit_unlock - Clear a bit in memory, for unlock
+@@ -23,6 +24,7 @@
+ static inline void clear_bit_unlock(long nr, volatile unsigned long *addr)
+ {
+ 	kasan_check_write(addr + BIT_WORD(nr), sizeof(long));
++	kcsan_check_atomic_write(addr + BIT_WORD(nr), sizeof(long));
+ 	arch_clear_bit_unlock(nr, addr);
+ }
+ 
+@@ -38,6 +40,7 @@ static inline void clear_bit_unlock(long nr, volatile unsigned long *addr)
+ static inline void __clear_bit_unlock(long nr, volatile unsigned long *addr)
+ {
+ 	kasan_check_write(addr + BIT_WORD(nr), sizeof(long));
++	kcsan_check_write(addr + BIT_WORD(nr), sizeof(long));
+ 	arch___clear_bit_unlock(nr, addr);
+ }
+ 
+@@ -53,6 +56,7 @@ static inline void __clear_bit_unlock(long nr, volatile unsigned long *addr)
+ static inline bool test_and_set_bit_lock(long nr, volatile unsigned long *addr)
+ {
+ 	kasan_check_write(addr + BIT_WORD(nr), sizeof(long));
++	kcsan_check_atomic_write(addr + BIT_WORD(nr), sizeof(long));
+ 	return arch_test_and_set_bit_lock(nr, addr);
+ }
+ 
+@@ -72,6 +76,7 @@ static inline bool
+ clear_bit_unlock_is_negative_byte(long nr, volatile unsigned long *addr)
+ {
+ 	kasan_check_write(addr + BIT_WORD(nr), sizeof(long));
++	kcsan_check_atomic_write(addr + BIT_WORD(nr), sizeof(long));
+ 	return arch_clear_bit_unlock_is_negative_byte(nr, addr);
+ }
+ /* Let everybody know we have it. */
+diff --git a/include/asm-generic/bitops/instrumented-non-atomic.h b/include/asm-generic/bitops/instrumented-non-atomic.h
+index 95ff28d128a1..8479af8b3309 100644
+--- a/include/asm-generic/bitops/instrumented-non-atomic.h
++++ b/include/asm-generic/bitops/instrumented-non-atomic.h
+@@ -12,6 +12,7 @@
+ #define _ASM_GENERIC_BITOPS_INSTRUMENTED_NON_ATOMIC_H
+ 
+ #include <linux/kasan-checks.h>
++#include <linux/kcsan-checks.h>
+ 
+ /**
+  * __set_bit - Set a bit in memory
+@@ -25,6 +26,7 @@
+ static inline void __set_bit(long nr, volatile unsigned long *addr)
+ {
+ 	kasan_check_write(addr + BIT_WORD(nr), sizeof(long));
++	kcsan_check_write(addr + BIT_WORD(nr), sizeof(long));
+ 	arch___set_bit(nr, addr);
+ }
+ 
+@@ -40,6 +42,7 @@ static inline void __set_bit(long nr, volatile unsigned long *addr)
+ static inline void __clear_bit(long nr, volatile unsigned long *addr)
+ {
+ 	kasan_check_write(addr + BIT_WORD(nr), sizeof(long));
++	kcsan_check_write(addr + BIT_WORD(nr), sizeof(long));
+ 	arch___clear_bit(nr, addr);
+ }
+ 
+@@ -55,6 +58,7 @@ static inline void __clear_bit(long nr, volatile unsigned long *addr)
+ static inline void __change_bit(long nr, volatile unsigned long *addr)
+ {
+ 	kasan_check_write(addr + BIT_WORD(nr), sizeof(long));
++	kcsan_check_write(addr + BIT_WORD(nr), sizeof(long));
+ 	arch___change_bit(nr, addr);
+ }
+ 
+@@ -69,6 +73,7 @@ static inline void __change_bit(long nr, volatile unsigned long *addr)
+ static inline bool __test_and_set_bit(long nr, volatile unsigned long *addr)
+ {
+ 	kasan_check_write(addr + BIT_WORD(nr), sizeof(long));
++	kcsan_check_write(addr + BIT_WORD(nr), sizeof(long));
+ 	return arch___test_and_set_bit(nr, addr);
+ }
+ 
+@@ -83,6 +88,7 @@ static inline bool __test_and_set_bit(long nr, volatile unsigned long *addr)
+ static inline bool __test_and_clear_bit(long nr, volatile unsigned long *addr)
+ {
+ 	kasan_check_write(addr + BIT_WORD(nr), sizeof(long));
++	kcsan_check_write(addr + BIT_WORD(nr), sizeof(long));
+ 	return arch___test_and_clear_bit(nr, addr);
+ }
+ 
+@@ -97,6 +103,7 @@ static inline bool __test_and_clear_bit(long nr, volatile unsigned long *addr)
+ static inline bool __test_and_change_bit(long nr, volatile unsigned long *addr)
+ {
+ 	kasan_check_write(addr + BIT_WORD(nr), sizeof(long));
++	kcsan_check_write(addr + BIT_WORD(nr), sizeof(long));
+ 	return arch___test_and_change_bit(nr, addr);
+ }
+ 
+@@ -108,6 +115,7 @@ static inline bool __test_and_change_bit(long nr, volatile unsigned long *addr)
+ static inline bool test_bit(long nr, const volatile unsigned long *addr)
+ {
+ 	kasan_check_read(addr + BIT_WORD(nr), sizeof(long));
++	kcsan_check_atomic_read(addr + BIT_WORD(nr), sizeof(long));
+ 	return arch_test_bit(nr, addr);
+ }
+ 
+-- 
+2.24.0.432.g9d3f5f5b63-goog
