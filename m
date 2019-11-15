@@ -1,28 +1,62 @@
-From: Kees Cook <keescook@chromium.org>
-Subject: Re: [kernel-hardening] [PATCH 09/38] usercopy: Mark kmalloc caches
- as usercopy caches
-Date: Thu, 14 Nov 2019 13:27:48 -0800
-Message-ID: <201911141327.4DE6510@keescook>
-References: <1515636190-24061-1-git-send-email-keescook@chromium.org>
- <1515636190-24061-10-git-send-email-keescook@chromium.org>
- <9519edb7-456a-a2fa-659e-3e5a1ff89466@suse.cz>
- <201911121313.1097D6EE@keescook>
+From: Pavel Tikhomirov <ptikhomirov@virtuozzo.com>
+Subject: Re: [PATCH v2] fs: add new O_MNT flag for opening mount root from
+ mountpoint fd
+Date: Fri, 15 Nov 2019 07:37:58 +0000
+Message-ID: <1af96c9c-0e4c-5f18-a710-1db4b6a3cf87@virtuozzo.com>
+References: <20191114090454.27903-1-ptikhomirov@virtuozzo.com>
+ <20191114141320.GI26530@ZenIV.linux.org.uk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <201911121313.1097D6EE@keescook>
+In-Reply-To: <20191114141320.GI26530@ZenIV.linux.org.uk>
+Content-Language: en-US
+Content-ID: <C32DEDA78AC6494A9DD557DA3785FC4F@eurprd08.prod.outlook.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Jiri Slaby <jslaby@suse.cz>, Alexander Viro <viro@zeniv.linux.org.uk>
-Cc: linux-kernel@vger.kernel.org, David Windsor <dave@nullcore.net>, Pekka Enberg <penberg@kernel.org>, David Rientjes <rientjes@google.com>, Joonsoo Kim <iamjoonsoo.kim@lge.com>, Andrew Morton <akpm@linux-foundation.org>, linux-mm@kvack.org, linux-xfs@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, Christoph Hellwig <hch@infradead.org>, Christoph Lameter <cl@linux.com>, "David S. Miller" <davem@davemloft.net>, Laura Abbott <labbott@redhat.com>, Mark Rutland <mark.rutland@arm.com>, "Martin K. Petersen" <martin.petersen@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Christoffer Dall <christoffer.dall@linaro.org>, Dave Kleikamp <dave.kleikamp@oracle.com>
+To: Al Viro <viro@zeniv.linux.org.uk>
+Cc: Jeff Layton <jlayton@kernel.org>, "J . Bruce Fields" <bfields@fieldses.org>, Arnd Bergmann <arnd@arndb.de>, Paul Moore <paul@paul-moore.com>, Richard Guy Briggs <rgb@redhat.com>, "linux-fsdevel@vger.kernel.org" <linux-fsdevel@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "Andrei Vagin (C)" <avagin@gmail.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, Nov 12, 2019 at 01:21:54PM -0800, Kees Cook wrote:
-> How is iucv the only network protocol that has run into this? Do others
-> use a bounce buffer?
-
-Another solution would be to use a dedicated kmem cache (instead of the
-shared kmalloc dma one)?
-
--- 
-Kees Cook
+DQoNCk9uIDExLzE0LzE5IDU6MTMgUE0sIEFsIFZpcm8gd3JvdGU6DQo+IE9uIFRodSwgTm92IDE0
+LCAyMDE5IGF0IDEyOjA0OjU0UE0gKzAzMDAsIFBhdmVsIFRpa2hvbWlyb3Ygd3JvdGU6DQo+IA0K
+Pj4gTW9yZSBwcmVjaXNlbHkgdGhlIGFsZ29yaXRobSBpczoNCj4+IGEpIG9wZW5hdCBtcGZkIHRv
+IGEgbmV3IG1vdW50cG9pbnQgdGhyb3VnaCBwYXJlbnQgbW91bnQncyByb290IC0NCj4+IHBfcm9v
+dGZkICh3aGljaCB3ZSBhbHJlYWR5IGhhdmUpIG9yIG1vdW50cG9pbnQgZmQgdW5kZXIgYSBzaWJs
+aW5nIG1vdW50DQo+PiAtIHNfbXBmZCBpZiBvdXIgbW91bnRwb2ludCBpcyBhbHJlYWR5IG92ZXJt
+b3VudGVkLg0KPj4gYikgY3JlYXRlIGEgbmV3IG1vdW50IG9uIG1wZmQgdmlhIC9wcm9jLzxwaWQ+
+L2ZkLzxOPiBpbnRlcmZhY2UNCj4+IGMpIG9wZW5hdCBpdCdzIHJvb3RmZCB2aWEgT19NTlQgZnJv
+bSBtcGZkDQo+Pg0KPj4gSWYgd2UgaGF2ZSBtcGZkIGFuZCByb290ZmQgZm9yIGVhY2ggbW91bnQg
+dGhyb3VnaCAvcHJvYy88cGlkPi9mZC88Tj4NCj4+IGludGVyZmFjZSB3ZSB3aWxsIGJlIGFibGUg
+dG8gYmluZG1vdW50IGFueSBwYXJ0IG9mIGVhY2ggb2YgYWxyZWFkeQ0KPj4gY3JlYXRlZCBtb3Vu
+dHMgdG8gcmVzdG9yZSBvdGhlciBtb3VudHMgIGFuZCB3ZSB3aWxsIGJlIGFibGUgdG8gY29uZmln
+dXJlDQo+PiBtb3VudHMsIGUuZy4gY2hhbmdlIHNoYXJpbmcgb3Igb3RoZXIgb3B0aW9ucyBldmVu
+IGlmIG1vdW50cyBhcmUNCj4+IGludmlzaWJsZSBmcm9tIGZzLXJvb3QuDQo+IA0KPiBFdmVyeXRo
+aW5nIGVsc2UgYXNpZGUgKGFuZCBJJ20gbm90IHRocmlsbGVkIGFib3V0IHRoZSBpZGVhIGluIGdl
+bmVyYWwpLA0KPiB5b3UgYXJlIG5vdCBoYW5kbGluZyB0aGUgc2l0dWF0aW9uIHdoZW4gdGhhdCBv
+dmVybW91bnQgaXMsIGluIHR1cm4sDQo+IG92ZXJtb3VudGVkLg0KDQpTb3JyeSBidXQgSSBkb24n
+dCB1bmRlcnN0YW5kIHdoeSBvdmVybW91bnRlZCBvdmVybW91bnQgaXMgYSBzcGVjaWFsIA0KY2Fz
+ZS4uLiBMZXQgbWUgZXhwbGFpbiBpbiBvdGhlciB3b3Jkcy4gSSB1c2UgbWF0aGVtYXRpY2FsIGlu
+ZHVjdGlvbiBhcyBhIA0KcHJvb2YgdGVjaG5pcXVlLiBCYXNlIG9mIGluZHVjdGlvbiBpcyB3aGVu
+IHdlIGhhdmUgbm8gbW91bnRzIChleGVwdCANCnJvb3QpLCBpdCBpcyBvYnZpb3VzIHRoYXQgd2Ug
+Y2FuIGFjY2VzcyBhbGwgZGlyZWN0b3JpZXMgaW4gdGhlIHN5c3RlbS4gDQpTdGVwIG9mIGluZHVj
+dGlvbiBpcyB3aGVuIHdlIGFkZCBvbmUgbW9yZSBtb3VudCBhbmQgYmVmb3JlIHRoYXQgc3RlcCAN
+CndlJ3ZlIGhhZCBhbiBhY2Nlc3MgdG8gYWxsIGRpcmVjdG9yaWVzIGluIHRoZSBzeXN0ZW0gKGhh
+dmUgbXBmZHMgYW5kIA0Kcm9vdGZkcyBmb3IgYWxsIG1vdW50cykuDQoNCklmIHN0ZXAgYWRkcyBh
+IG1vdW50IG1udCB3ZSBuZWVkIHRvIG9ubHkgY29uc2lkZXIgaXQncyBwYXJlbnQsIHNpYmxpbmdz
+IA0KYW5kIGNoaWxkcmVuIHdoaWNoIHdpbGwgYmUgdGhlcmUgYWZ0ZXIgdGhlIHN0ZXAsIGFsbCBv
+dGhlciBtb3VudHMgZG9lcyANCm5vdCBjaGFuZ2UgYW55dGhpbmcuDQoNClByb3BhZ2F0aW9ucyBv
+ZiBtbnQgY2FuJ3QgYmVjb21lIG1udCdzIGNoaWxkcmVuIG9yIHNpYmxpbmdzIG9yIHBhcmVudCwg
+DQpsdWNraWx5IGZvciB1cy4gU28gd2UgY2FuIGFjdHVhbGx5IGNvbnNpZGVyIG9uZSBtb3VudCBm
+cm9tIHByb3BhZ2F0aW9uIA0KZ3JvdXAgYXQgYSB0aW1lLg0KDQpOb3cgaWYgbXAgaXMganVzdCB2
+aXNpYmxlIGZyb20gcGFyZW50J3MgcF9yb290ZmQgd2Ugb3BlbiBtcGZkLiBFbHNlIHdlIA0KaGF2
+ZSBzb21lIHNpYmxpbmcgZnJvbSB3aGljaCBzX21wZmQgdGhlIG1wIGlzIHZpc2libGUgYW5kIHdl
+IG9wZW4gbXBmZCANCmZyb20gaXQuIEFuZCB0aGUgbGFzdCBjYXNlIGlmIHdlJ3JlIGNyYXdsaW5n
+IHVuZGVyIHNvbWUgbW91bnQgKGNoaWxkKSB3ZSANCmNhbiBvcGVuIG1wZmQgdGhyb3VnaCBjX21w
+ZmQuDQoNCk5vdyBvdXIgbXBmZCBpcyBvcGVuIHNvIHdlIHVzZSBPX01OVCB0byBvcGVuIG91ciBy
+b290ZmQuIChBbmQgaGVyZSB3ZSANCmNoYW5nZSBjX21wZmQgdG8gb3VyIHJvb3RmZCBhcyBvdXIg
+bmV3IGNoaWxkIHN3aXRjaGVkIHBhcmVudCkNCg0KPiAgT3Igd2hlbiB0aGVyZSdzIGFuIGF1dG9t
+b3VudCBzZXQgb24gdG9wIG9mIGl0LCBldGMuDQoNCkknbSBub3QgY29tbW9uIHdpdGggYXV0b21v
+dW50cyBhY3R1YWxseSwgc28gSSBtaWdodCBtaXNzIHNvbWV0aGluZyBoZXJlLiANCkNhbiB5b3Ug
+cGxlYXNlIHNob3cgYWN0dWFsIG1vdW50IHRyZWUgd2hlcmUgdGhpcyBwcm9ibGVtIGNhbiBoYXBw
+ZW4/DQoNCj4gDQoNCi0tIA0KQmVzdCByZWdhcmRzLCBUaWtob21pcm92IFBhdmVsDQpTb2Z0d2Fy
+ZSBEZXZlbG9wZXIsIFZpcnR1b3p6by4NCg==
