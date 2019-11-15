@@ -1,74 +1,42 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:52494 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726613AbfKNWQD (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 14 Nov 2019 17:16:03 -0500
-Date: Thu, 14 Nov 2019 14:15:59 -0800
-From: "Paul E. McKenney" <paulmck@kernel.org>
-Subject: Re: [PATCH v4 00/10] Add Kernel Concurrency Sanitizer (KCSAN)
-Message-ID: <20191114221559.GS2865@paulmck-ThinkPad-P72>
-Reply-To: paulmck@kernel.org
-References: <20191114180303.66955-1-elver@google.com>
- <20191114195046.GP2865@paulmck-ThinkPad-P72>
- <20191114213303.GA237245@google.com>
+Received: from mail-wm1-f68.google.com ([209.85.128.68]:33383 "EHLO
+        mail-wm1-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726852AbfKOAi1 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 14 Nov 2019 19:38:27 -0500
+Date: Fri, 15 Nov 2019 01:38:21 +0100
+From: Luc Van Oostenryck <luc.vanoostenryck@gmail.com>
+Subject: Re: [PATCH v6 3/5] locking/qspinlock: Introduce CNA into the slow
+ path of qspinlock
+Message-ID: <20191115003821.raskzlj7hscz7vax@ltop.local>
+References: <20191107174622.61718-4-alex.kogan@oracle.com>
+ <201911110540.8p3UoQAR%lkp@intel.com>
+ <58623E4A-973B-46CC-8FA8-29E68DB5EFF4@oracle.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=utf-8
 Content-Disposition: inline
-In-Reply-To: <20191114213303.GA237245@google.com>
+Content-Transfer-Encoding: 8bit
+In-Reply-To: <58623E4A-973B-46CC-8FA8-29E68DB5EFF4@oracle.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Marco Elver <elver@google.com>
-Cc: akiyks@gmail.com, stern@rowland.harvard.edu, glider@google.com, parri.andrea@gmail.com, andreyknvl@google.com, luto@kernel.org, ard.biesheuvel@linaro.org, arnd@arndb.de, boqun.feng@gmail.com, bp@alien8.de, dja@axtens.net, dlustig@nvidia.com, dave.hansen@linux.intel.com, dhowells@redhat.com, dvyukov@google.com, hpa@zytor.com, mingo@redhat.com, j.alglave@ucl.ac.uk, joel@joelfernandes.org, corbet@lwn.net, jpoimboe@redhat.com, luc.maranget@inria.fr, mark.rutland@arm.com, npiggin@gmail.com, peterz@infradead.org, tglx@linutronix.de, will@kernel.org, edumazet@google.com, kasan-dev@googlegroups.com, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, linux-efi@vger.kernel.org, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, x86@kernel.org
-Message-ID: <20191114221559.zQQz8C4C_jMdR9nLST0pAFBGpSxPsJ92USJ4apeq7RE@z>
+To: Alex Kogan <alex.kogan@oracle.com>
+Cc: kbuild test robot <lkp@intel.com>, linux-sparse@vger.kernel.org, kbuild-all@lists.01.org, linux@armlinux.org.uk, Peter Zijlstra <peterz@infradead.org>, mingo@redhat.com, will.deacon@arm.com, arnd@arndb.de, longman@redhat.com, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, bp@alien8.de, hpa@zytor.com, x86@kernel.org, guohanjun@huawei.com, jglauber@marvell.com, steven.sistare@oracle.com, daniel.m.jordan@oracle.com, dave.dice@oracle.com, rahul.x.yadav@oracle.com
+Message-ID: <20191115003821.WUa7Pt8T_eqwEopx4P7IGetXWCLtO5V56XHNywMgGUM@z>
 
-On Thu, Nov 14, 2019 at 10:33:03PM +0100, Marco Elver wrote:
-> On Thu, 14 Nov 2019, Paul E. McKenney wrote:
+On Thu, Nov 14, 2019 at 03:57:34PM -0500, Alex Kogan wrote:
+> + linux-sparse mailing list
 > 
-> > On Thu, Nov 14, 2019 at 07:02:53PM +0100, Marco Elver wrote:
-> > > This is the patch-series for the Kernel Concurrency Sanitizer (KCSAN).
-> > > KCSAN is a sampling watchpoint-based *data race detector*. More details
-> > > are included in **Documentation/dev-tools/kcsan.rst**. This patch-series
-> > > only enables KCSAN for x86, but we expect adding support for other
-> > > architectures is relatively straightforward (we are aware of
-> > > experimental ARM64 and POWER support).
-> > > 
-> > > To gather early feedback, we announced KCSAN back in September, and have
-> > > integrated the feedback where possible:
-> > > http://lkml.kernel.org/r/CANpmjNPJ_bHjfLZCAPV23AXFfiPiyXXqqu72n6TgWzb2Gnu1eA@mail.gmail.com
-> > > 
-> > > The current list of known upstream fixes for data races found by KCSAN
-> > > can be found here:
-> > > https://github.com/google/ktsan/wiki/KCSAN#upstream-fixes-of-data-races-found-by-kcsan
-> > > 
-> > > We want to point out and acknowledge the work surrounding the LKMM,
-> > > including several articles that motivate why data races are dangerous
-> > > [1, 2], justifying a data race detector such as KCSAN.
-> > > 
-> > > [1] https://lwn.net/Articles/793253/
-> > > [2] https://lwn.net/Articles/799218/
-> > 
-> > I queued this and ran a quick rcutorture on it, which completed
-> > successfully with quite a few reports.
-> 
-> Great. Many thanks for queuing this in -rcu. And regarding merge window
-> you mentioned, we're fine with your assumption to targeting the next
-> (v5.6) merge window.
-> 
-> I've just had a look at linux-next to check what a future rebase
-> requires:
-> 
-> - There is a change in lib/Kconfig.debug and moving KCSAN to the
->   "Generic Kernel Debugging Instruments" section seems appropriate.
-> - bitops-instrumented.h was removed and split into 3 files, and needs
->   re-inserting the instrumentation into the right places.
-> 
-> Otherwise there are no issues. Let me know what you recommend.
+> It seems like a bug in the way sparse handles “pure” functions that return
+> a pointer.
 
-Sounds good!
+Yes, it's a bug in sparse.
+ 
+> The warnings can be eliminated by adding an explicit cast, e.g.:
+> 
+> 	node = (struct mcs_spinlock *)grab_mcs_node(node, idx);
+> 
+> but this seems wrong (unnecessary) to me.
 
-I will be rebasing onto v5.5-rc1 shortly after it comes out.  My usual
-approach is to fix any conflicts during that rebasing operation.
-Does that make sense, or would you prefer to send me a rebased stack at
-that point?  Either way is fine for me.
+Indeed, it would be wrong.
 
-							Thanx, Paul
+Thanks for analyzing and reporting this,
+-- Luc 
