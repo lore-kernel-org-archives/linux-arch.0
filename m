@@ -1,161 +1,157 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mout-p-102.mailbox.org ([80.241.56.152]:32672 "EHLO
-        mout-p-102.mailbox.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1725974AbfKQBWe (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sat, 16 Nov 2019 20:22:34 -0500
-From: Aleksa Sarai <cyphar@cyphar.com>
-Subject: [PATCH v17 10/13] namei: LOOKUP_{IN_ROOT,BENEATH}: permit limited ".." resolution
-Date: Sun, 17 Nov 2019 12:17:10 +1100
-Message-ID: <20191117011713.13032-11-cyphar@cyphar.com>
-In-Reply-To: <20191117011713.13032-1-cyphar@cyphar.com>
+Received: from mx2.suse.de ([195.135.220.15]:46212 "EHLO mx1.suse.de"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1726174AbfKQB3h (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Sat, 16 Nov 2019 20:29:37 -0500
+Date: Sun, 17 Nov 2019 12:28:58 +1100
+From: Aleksa Sarai <asarai@suse.de>
+Subject: [PATCH v17 13/13] Documentation: path-lookup: include new LOOKUP
+ flags
+Message-ID: <20191117012858.47t7zd3pbdlqz2mv@yavin.dot.cyphar.com>
 References: <20191117011713.13032-1-cyphar@cyphar.com>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20191117011713.13032-1-cyphar@cyphar.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Al Viro <viro@zeniv.linux.org.uk>, Jeff Layton <jlayton@kernel.org>, "J. Bruce Fields" <bfields@fieldses.org>, Arnd Bergmann <arnd@arndb.de>, David Howells <dhowells@redhat.com>, Shuah Khan <shuah@kernel.org>, Shuah Khan <skhan@linuxfoundation.org>, Ingo Molnar <mingo@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Alexei Starovoitov <ast@kernel.org>, Daniel Borkmann <daniel@iogearbox.net>, Martin KaFai Lau <kafai@fb.com>, Song Liu <songliubraving@fb.com>, Yonghong Song <yhs@fb.com>, Andrii Nakryiko <andriin@fb.com>, Jonathan Corbet <corbet@lwn.net>
-Cc: Aleksa Sarai <cyphar@cyphar.com>, Christian Brauner <christian.brauner@ubuntu.com>, Jann Horn <jannh@google.com>, Linus Torvalds <torvalds@linux-foundation.org>, Eric Biederman <ebiederm@xmission.com>, Andy Lutomirski <luto@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Kees Cook <keescook@chromium.org>, Tycho Andersen <tycho@tycho.ws>, David Drysdale <drysdale@google.com>, Chanho Min <chanho.min@lge.com>, Oleg Nesterov <oleg@redhat.com>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Alexander Shishkin <alexander.shishkin@linux.intel.com>, Jiri Olsa <jolsa@redhat.com>, Namhyung Kim <namhyung@kernel.org>, Christian Brauner <christian@brauner.io>, Aleksa Sarai <asarai@suse.de>, dev@opencontainers.org, containers@lists.linux-foundation.org, bpf@vger.kernel.org, netdev@vger.kernel.org, linux-alpha@vger.kernel.org, linux-api@vger.kernel.org, libc-alpha@sourceware.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-doc@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-ia64@vger.kernel.org, linux-kernel@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, linux-xtensa@linux-xtensa.org, sparclinux@vger.kernel.org
-Message-ID: <20191117011710.qDb_y-zcgjr3iK7wRKssdbnlUv6J1xGthKQuvOrlXgA@z>
+Cc: Aleksa Sarai <cyphar@cyphar.com>, Eric Biederman <ebiederm@xmission.com>, Andy Lutomirski <luto@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Kees Cook <keescook@chromium.org>, Jann Horn <jannh@google.com>, Tycho Andersen <tycho@tycho.ws>, David Drysdale <drysdale@google.com>, Chanho Min <chanho.min@lge.com>, Oleg Nesterov <oleg@redhat.com>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Alexander Shishkin <alexander.shishkin@linux.intel.com>, Jiri Olsa <jolsa@redhat.com>, Namhyung Kim <namhyung@kernel.org>, Christian Brauner <christian@brauner.io>, Aleksa Sarai <asarai@suse.de>, Linus Torvalds <torvalds@linux-foundation.org>, dev@opencontainers.org, containers@lists.linux-foundation.org, bpf@vger.kernel.org, netdev@vger.kernel.org, linux-alpha@vger.kernel.org, linux-api@vger.kernel.org, libc-alpha@sourceware.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-doc@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-ia64@vger.kernel.org, linux-kernel@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, linux-xtensa@linux-xtensa.org, sparclinux@vger.kernel.org
+Message-ID: <20191117012858.llVabkkAO1HrOqIcbqyTQT8OfCCP6lluEutL0Eyy7no@z>
 
-Allow LOOKUP_BENEATH and LOOKUP_IN_ROOT to safely permit ".." resolution
-(in the case of LOOKUP_BENEATH the resolution will still fail if ".."
-resolution would resolve a path outside of the root -- while
-LOOKUP_IN_ROOT will chroot(2)-style scope it). Magic-link jumps are
-still disallowed entirely[*].
+Now that we have new LOOKUP flags, we should document them in the
+relevant path-walking documentation. And now that we've settled on a
+common name for nd_jump_link() style symlinks ("magic links"), use that
+term where magic-link semantics are described.
 
-As Jann explains[1,2], the need for this patch (and the original no-".."
-restriction) is explained by observing there is a fairly easy-to-exploit
-race condition with chroot(2) (and thus by extension LOOKUP_IN_ROOT and
-LOOKUP_BENEATH if ".." is allowed) where a rename(2) of a path can be
-used to "skip over" nd->root and thus escape to the filesystem above
-nd->root.
-
-  thread1 [attacker]:
-    for (;;)
-      renameat2(AT_FDCWD, "/a/b/c", AT_FDCWD, "/a/d", RENAME_EXCHANGE);
-  thread2 [victim]:
-    for (;;)
-      openat2(dirb, "b/c/../../etc/shadow",
-              { .flags = O_PATH, .resolve = RESOLVE_IN_ROOT } );
-
-With fairly significant regularity, thread2 will resolve to
-"/etc/shadow" rather than "/a/b/etc/shadow". There is also a similar
-(though somewhat more privileged) attack using MS_MOVE.
-
-With this patch, such cases will be detected *during* ".." resolution
-and will return -EAGAIN for userspace to decide to either retry or abort
-the lookup. It should be noted that ".." is the weak point of chroot(2)
--- walking *into* a subdirectory tautologically cannot result in you
-walking *outside* nd->root (except through a bind-mount or magic-link).
-There is also no other way for a directory's parent to change (which is
-the primary worry with ".." resolution here) other than a rename or
-MS_MOVE.
-
-The primary reason for deferring to userspace with -EAGAIN is that an
-in-kernel retry loop (or doing a path_is_under() check after re-taking
-the relevant seqlocks) can become unreasonably expensive on machines
-with lots of VFS activity (nfsd can cause lots of rename_lock updates).
-Thus it should be up to userspace how many times they wish to retry the
-lookup -- the selftests for this attack indicate that there is a ~35%
-chance of the lookup succeeding on the first try even with an attacker
-thrashing rename_lock.
-
-A variant of the above attack is included in the selftests for
-openat2(2) later in this patch series. I've run this test on several
-machines for several days and no instances of a breakout were detected.
-While this is not concrete proof that this is safe, when combined with
-the above argument it should lend some trustworthiness to this
-construction.
-
-[*] It may be acceptable in the future to do a path_is_under() check for
-    magic-links after they are resolved. However this seems unlikely to
-    be a feature that people *really* need -- it can be added later if
-    it turns out a lot of people want it.
-
-[1]: https://lore.kernel.org/lkml/CAG48ez1jzNvxB+bfOBnERFGp=oMM0vHWuLD6EULmne3R6xa53w@mail.gmail.com/
-[2]: https://lore.kernel.org/lkml/CAG48ez30WJhbsro2HOc_DR7V91M+hNFzBP5ogRMZaxbAORvqzg@mail.gmail.com/
-
-Cc: Christian Brauner <christian.brauner@ubuntu.com>
-Suggested-by: Jann Horn <jannh@google.com>
-Suggested-by: Linus Torvalds <torvalds@linux-foundation.org>
 Signed-off-by: Aleksa Sarai <cyphar@cyphar.com>
 ---
- fs/namei.c | 37 ++++++++++++++++++++++++-------------
- 1 file changed, 24 insertions(+), 13 deletions(-)
+ Documentation/filesystems/path-lookup.rst | 68 +++++++++++++++++++++--
+ 1 file changed, 62 insertions(+), 6 deletions(-)
 
-diff --git a/fs/namei.c b/fs/namei.c
-index a6196786db13..88c706e459f6 100644
---- a/fs/namei.c
-+++ b/fs/namei.c
-@@ -491,7 +491,7 @@ struct nameidata {
- 	struct path	root;
- 	struct inode	*inode; /* path.dentry.d_inode */
- 	unsigned int	flags;
--	unsigned	seq, m_seq;
-+	unsigned	seq, m_seq, r_seq;
- 	int		last_type;
- 	unsigned	depth;
- 	int		total_link_count;
-@@ -1781,22 +1781,30 @@ static inline int handle_dots(struct nameidata *nd, int type)
- 	if (type == LAST_DOTDOT) {
- 		int error = 0;
+diff --git a/Documentation/filesystems/path-lookup.rst b/Documentation/filesystems/path-lookup.rst
+index 434a07b0002b..a3216979298b 100644
+--- a/Documentation/filesystems/path-lookup.rst
++++ b/Documentation/filesystems/path-lookup.rst
+@@ -13,6 +13,7 @@ It has subsequently been updated to reflect changes in the kernel
+ including:
  
--		/*
--		 * Scoped-lookup flags resolving ".." is not currently safe --
--		 * races can cause our parent to have moved outside of the root
--		 * and us to skip over it.
--		 */
--		if (unlikely(nd->flags & LOOKUP_IS_SCOPED))
--			return -EXDEV;
- 		if (!nd->root.mnt) {
- 			error = set_root(nd);
- 			if (error)
- 				return error;
- 		}
--		if (nd->flags & LOOKUP_RCU) {
--			return follow_dotdot_rcu(nd);
--		} else
--			return follow_dotdot(nd);
-+		if (nd->flags & LOOKUP_RCU)
-+			error = follow_dotdot_rcu(nd);
-+		else
-+			error = follow_dotdot(nd);
-+		if (error)
-+			return error;
-+
-+		if (unlikely(nd->flags & LOOKUP_IS_SCOPED)) {
-+			/*
-+			 * If there was a racing rename or mount along our
-+			 * path, then we can't be sure that ".." hasn't jumped
-+			 * above nd->root (and so userspace should retry or use
-+			 * some fallback).
-+			 */
-+			if (unlikely(read_seqretry(&mount_lock, nd->m_seq)))
-+				return -EAGAIN;
-+			if (unlikely(read_seqretry(&rename_lock, nd->r_seq)))
-+				return -EAGAIN;
-+		}
- 	}
- 	return 0;
- }
-@@ -2266,6 +2274,10 @@ static const char *path_init(struct nameidata *nd, unsigned flags)
- 	nd->last_type = LAST_ROOT; /* if there are only slashes... */
- 	nd->flags = flags | LOOKUP_JUMPED | LOOKUP_PARENT;
- 	nd->depth = 0;
-+
-+	nd->m_seq = read_seqbegin(&mount_lock);
-+	nd->r_seq = read_seqbegin(&rename_lock);
-+
- 	if (flags & LOOKUP_ROOT) {
- 		struct dentry *root = nd->root.dentry;
- 		struct inode *inode = root->d_inode;
-@@ -2287,7 +2299,6 @@ static const char *path_init(struct nameidata *nd, unsigned flags)
- 	nd->path.mnt = NULL;
- 	nd->path.dentry = NULL;
+ - per-directory parallel name lookup.
++- ``openat2()`` resolution restriction flags.
  
--	nd->m_seq = read_seqbegin(&mount_lock);
+ Introduction to pathname lookup
+ ===============================
+@@ -235,6 +236,13 @@ renamed.  If ``d_lookup`` finds that a rename happened while it
+ unsuccessfully scanned a chain in the hash table, it simply tries
+ again.
  
- 	/* Absolute pathname -- fetch the root (LOOKUP_IN_ROOT uses nd->dfd). */
- 	if (*s == '/' && !(flags & LOOKUP_IN_ROOT)) {
++``rename_lock`` is also used to detect and defend against potential attacks
++against ``LOOKUP_BENEATH`` and ``LOOKUP_IN_ROOT`` when resolving ".." (where
++the parent directory is moved outside the root, bypassing the ``path_equal()``
++check). If ``rename_lock`` is updated during the lookup and the path encounters
++a "..", a potential attack occurred and ``handle_dots()`` will bail out with
++``-EAGAIN``.
++
+ inode->i_rwsem
+ ~~~~~~~~~~~~~~
+ 
+@@ -348,6 +356,13 @@ any changes to any mount points while stepping up.  This locking is
+ needed to stabilize the link to the mounted-on dentry, which the
+ refcount on the mount itself doesn't ensure.
+ 
++``mount_lock`` is also used to detect and defend against potential attacks
++against ``LOOKUP_BENEATH`` and ``LOOKUP_IN_ROOT`` when resolving ".." (where
++the parent directory is moved outside the root, bypassing the ``path_equal()``
++check). If ``mount_lock`` is updated during the lookup and the path encounters
++a "..", a potential attack occurred and ``handle_dots()`` will bail out with
++``-EAGAIN``.
++
+ RCU
+ ~~~
+ 
+@@ -405,6 +420,10 @@ is requested.  Keeping a reference in the ``nameidata`` ensures that
+ only one root is in effect for the entire path walk, even if it races
+ with a ``chroot()`` system call.
+ 
++It should be noted that in the case of ``LOOKUP_IN_ROOT`` or
++``LOOKUP_BENEATH``, the effective root becomes the directory file descriptor
++passed to ``openat2()`` (which exposes these ``LOOKUP_`` flags).
++
+ The root is needed when either of two conditions holds: (1) either the
+ pathname or a symbolic link starts with a "'/'", or (2) a "``..``"
+ component is being handled, since "``..``" from the root must always stay
+@@ -1149,7 +1168,7 @@ so ``NULL`` is returned to indicate that the symlink can be released and
+ the stack frame discarded.
+ 
+ The other case involves things in ``/proc`` that look like symlinks but
+-aren't really::
++aren't really (and are therefore commonly referred to as "magic-links")::
+ 
+      $ ls -l /proc/self/fd/1
+      lrwx------ 1 neilb neilb 64 Jun 13 10:19 /proc/self/fd/1 -> /dev/pts/4
+@@ -1286,7 +1305,9 @@ A few flags
+ A suitable way to wrap up this tour of pathname walking is to list
+ the various flags that can be stored in the ``nameidata`` to guide the
+ lookup process.  Many of these are only meaningful on the final
+-component, others reflect the current state of the pathname lookup.
++component, others reflect the current state of the pathname lookup, and some
++apply restrictions to all path components encountered in the path lookup.
++
+ And then there is ``LOOKUP_EMPTY``, which doesn't fit conceptually with
+ the others.  If this is not set, an empty pathname causes an error
+ very early on.  If it is set, empty pathnames are not considered to be
+@@ -1310,13 +1331,48 @@ longer needed.
+ ``LOOKUP_JUMPED`` means that the current dentry was chosen not because
+ it had the right name but for some other reason.  This happens when
+ following "``..``", following a symlink to ``/``, crossing a mount point
+-or accessing a "``/proc/$PID/fd/$FD``" symlink.  In this case the
+-filesystem has not been asked to revalidate the name (with
+-``d_revalidate()``).  In such cases the inode may still need to be
+-revalidated, so ``d_op->d_weak_revalidate()`` is called if
++or accessing a "``/proc/$PID/fd/$FD``" symlink (also known as a "magic
++link"). In this case the filesystem has not been asked to revalidate the
++name (with ``d_revalidate()``).  In such cases the inode may still need
++to be revalidated, so ``d_op->d_weak_revalidate()`` is called if
+ ``LOOKUP_JUMPED`` is set when the look completes - which may be at the
+ final component or, when creating, unlinking, or renaming, at the penultimate component.
+ 
++Resolution-restriction flags
++~~~~~~~~~~~~~~~~~~~~~~~~~~~~
++
++In order to allow userspace to protect itself against certain race conditions
++and attack scenarios involving changing path components, a series of flags are
++available which apply restrictions to all path components encountered during
++path lookup. These flags are exposed through ``openat2()``'s ``resolve`` field.
++
++``LOOKUP_NO_SYMLINKS`` blocks all symlink traversals (including magic-links).
++This is distinctly different from ``LOOKUP_FOLLOW``, because the latter only
++relates to restricting the following of trailing symlinks.
++
++``LOOKUP_NO_MAGICLINKS`` blocks all magic-link traversals. Filesystems must
++ensure that they return errors from ``nd_jump_link()``, because that is how
++``LOOKUP_NO_MAGICLINKS`` and other magic-link restrictions are implemented.
++
++``LOOKUP_NO_XDEV`` blocks all ``vfsmount`` traversals (this includes both
++bind-mounts and ordinary mounts). Note that the ``vfsmount`` which contains the
++lookup is determined by the first mountpoint the path lookup reaches --
++absolute paths start with the ``vfsmount`` of ``/``, and relative paths start
++with the ``dfd``'s ``vfsmount``. Magic-links are only permitted if the
++``vfsmount`` of the path is unchanged.
++
++``LOOKUP_BENEATH`` blocks any path components which resolve outside the
++starting point of the resolution. This is done by blocking ``nd_jump_root()``
++as well as blocking ".." if it would jump outside the starting point.
++``rename_lock`` and ``mount_lock`` are used to detect attacks against the
++resolution of "..". Magic-links are also blocked.
++
++``LOOKUP_IN_ROOT`` resolves all path components as though the starting point
++were the filesystem root. ``nd_jump_root()`` brings the resolution back to to
++the starting point, and ".." at the starting point will act as a no-op. As with
++``LOOKUP_BENEATH``, ``rename_lock`` and ``mount_lock`` are used to detect
++attacks against ".." resolution. Magic-links are also blocked.
++
+ Final-component flags
+ ~~~~~~~~~~~~~~~~~~~~~
+ 
 -- 
 2.24.0
