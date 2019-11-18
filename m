@@ -1,46 +1,57 @@
-From: Andrew Morton <akpm@linux-foundation.org>
+From: Alexey Dobriyan <adobriyan@gmail.com>
 Subject: Re: [PATCH] ELF: warn if process starts with executable stack
-Date: Mon, 18 Nov 2019 12:54:57 -0800
-Message-ID: <20191118125457.778e44dfd4740d24795484c7@linux-foundation.org>
+Date: Tue, 19 Nov 2019 00:36:03 +0300
+Message-ID: <20191118213603.GA24086@avx2>
 References: <20191118145114.GA9228@avx2>
+ <20191118125457.778e44dfd4740d24795484c7@linux-foundation.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=utf-8
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20191118145114.GA9228@avx2>
+Content-Disposition: inline
+In-Reply-To: <20191118125457.778e44dfd4740d24795484c7@linux-foundation.org>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Alexey Dobriyan <adobriyan@gmail.com>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, security@kernel.org
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, security@kernel.org, ben.dooks@codethink.co.uk
 List-Id: linux-arch.vger.kernel.org
 
-On Mon, 18 Nov 2019 17:51:15 +0300 Alexey Dobriyan <adobriyan@gmail.com> wrote:
+On Mon, Nov 18, 2019 at 12:54:57PM -0800, Andrew Morton wrote:
+> On Mon, 18 Nov 2019 17:51:15 +0300 Alexey Dobriyan <adobriyan@gmail.com> wrote:
+> 
+> > PT_GNU_STACK is fail open design,
+> 
+> Not sure what this means.  Please expand on the motivation for this
+> change.
+> 
+> > at least warn people that something
+> > isn't right.
+> 
+> People who use an executable stack get a kernel splat.  How is that
+> useful?
 
-> PT_GNU_STACK is fail open design,
+There were two stories about silent downgrade to an executable stack:
 
-Not sure what this means.  Please expand on the motivation for this
-change.
+1)
+compiling .S file and linking it to normal code:
 
-> at least warn people that something
-> isn't right.
+	$ cat f.S
+	.intel_syntax noprefix
+	.text
+	.globl f
+	f:
+	        ret
 
-People who use an executable stack get a kernel splat.  How is that
-useful?
+will silently add PT_GNU_STACK segment with RWE permissions
 
-> ...
->
-> --- a/fs/exec.c
-> +++ b/fs/exec.c
-> @@ -762,6 +762,13 @@ int setup_arg_pages(struct linux_binprm *bprm,
->  		goto out_unlock;
->  	BUG_ON(prev != vma);
->  
-> +#ifdef CONFIG_MMU
-> +	if (vm_flags & VM_EXEC) {
-> +		pr_warn_once("process '%s'/%u started with executable stack\n",
-> +			     current->comm, current->pid);
-> +	}
-> +#endif
->
->  	/* Move stack pages down in memory. */
->  	if (stack_shift) {
->  		ret = shift_arg_pages(vma, stack_shift);
+2)
+closures with nested functions will require executable stack
+https://nullprogram.com/blog/2019/11/15/
+
+> > --- a/fs/exec.c
+> > +++ b/fs/exec.c
+> > @@ -762,6 +762,13 @@ int setup_arg_pages(struct linux_binprm *bprm,
+> >  		goto out_unlock;
+> >  	BUG_ON(prev != vma);
+> >  
+> > +#ifdef CONFIG_MMU
+
+This code is already under CONFIG_MMU. I'll resend.
