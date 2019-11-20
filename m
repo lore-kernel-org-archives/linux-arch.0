@@ -1,94 +1,52 @@
-From: ebiederm@xmission.com (Eric W. Biederman)
-Subject: Re: [PATCH] exec: warn if process starts with executable stack
-Date: Wed, 20 Nov 2019 14:28:37 -0600
-Message-ID: <87d0dm47ii.fsf@x220.int.ebiederm.org>
-References: <20191118145114.GA9228@avx2>
-        <20191118125457.778e44dfd4740d24795484c7@linux-foundation.org>
-        <20191118215227.GA24536@avx2> <20191120191752.GC4799@willie-the-truck>
+From: Ben Hutchings <ben.hutchings@codethink.co.uk>
+Subject: Re: [Y2038] [PATCH 02/23] y2038: add __kernel_old_timespec and
+ __kernel_old_time_t
+Date: Wed, 20 Nov 2019 22:30:18 +0000
+Message-ID: <a5f530323b66cd8c0055c5e642ef4eb035c53808.camel@codethink.co.uk>
+References: <20191108210236.1296047-1-arnd@arndb.de>
+         <20191108210824.1534248-2-arnd@arndb.de>
 Mime-Version: 1.0
-Content-Type: text/plain
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20191120191752.GC4799@willie-the-truck> (Will Deacon's message
-        of "Wed, 20 Nov 2019 19:17:52 +0000")
+In-Reply-To: <20191108210824.1534248-2-arnd@arndb.de>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Will Deacon <will@kernel.org>
-Cc: Alexey Dobriyan <adobriyan@gmail.com>, Andrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, security@kernel.org, ben.dooks@codethink.co.uk
+To: Arnd Bergmann <arnd@arndb.de>, y2038@lists.linaro.org
+Cc: Deepa Dinamani <deepa.kernel@gmail.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, "David S. Miller" <davem@davemloft.net>
 List-Id: linux-arch.vger.kernel.org
 
-Will Deacon <will@kernel.org> writes:
+On Fri, 2019-11-08 at 22:07 +0100, Arnd Bergmann wrote:
+> The 'struct timespec' definition can no longer be part of the uapi headers
+> because it conflicts with a a now incompatible libc definition. Also,
+> we really want to remove it in order to prevent new uses from creeping in.
+> 
+> The same namespace conflict exists with time_t, which should also be
+> removed. __kernel_time_t could be used safely, but adding 'old' in the
+> name makes it clearer that this should not be used for new interfaces.
+> 
+> Add a replacement __kernel_old_timespec structure and __kernel_old_time_t
+> along the lines of __kernel_old_timeval.
+[...]
+> --- a/include/uapi/linux/time_types.h
+> +++ b/include/uapi/linux/time_types.h
+> @@ -28,6 +28,11 @@ struct __kernel_old_timeval {
+>  };
+>  #endif
+>  
+> +struct __kernel_old_timespec {
+> +	__kernel_time_t	tv_sec;			/* seconds */
 
-> On Tue, Nov 19, 2019 at 12:52:27AM +0300, Alexey Dobriyan wrote:
->> There were few episodes of silent downgrade to an executable stack:
->> 
->> 1) linking innocent looking assembly file
->> 
->> 	$ cat f.S
->> 	.intel_syntax noprefix
->> 	.text
->> 	.globl f
->> 	f:
->> 	        ret
->> 
->> 	$ cat main.c
->> 	void f(void);
->> 	int main(void)
->> 	{
->> 	        f();
->> 	        return 0;
->> 	}
->> 
->> 	$ gcc main.c f.S
->> 	$ readelf -l ./a.out
->> 	  GNU_STACK      0x0000000000000000 0x0000000000000000 0x0000000000000000
->>                          0x0000000000000000 0x0000000000000000  RWE    0x10
->> 
->> 2) converting C99 nested function into a closure
->> https://nullprogram.com/blog/2019/11/15/
->> 
->> 	void intsort2(int *base, size_t nmemb, _Bool invert)
->> 	{
->> 	    int cmp(const void *a, const void *b)
->> 	    {
->> 	        int r = *(int *)a - *(int *)b;
->> 	        return invert ? -r : r;
->> 	    }
->> 	    qsort(base, nmemb, sizeof(*base), cmp);
->> 	}
->> 
->> will silently require stack trampolines while non-closure version will not.
->> 
->> While without a double this behaviour is documented somewhere, add a warning
->> so that developers and users can at least notice. After so many years of x86_64
->> having proper executable stack support it should not cause too much problems.
->> 
->> If the system is old or CPU is old, then there will be an early warning
->> against init and/or support personnel will write that "uh-oh, our Enterprise
->> Software absolutely requires executable stack" and close tickets and customers
->> will nod heads and life moves on.
->> 
->> Signed-off-by: Alexey Dobriyan <adobriyan@gmail.com>
->> ---
->> 
->>  fs/exec.c |    5 +++++
->>  1 file changed, 5 insertions(+)
->> 
->> --- a/fs/exec.c
->> +++ b/fs/exec.c
->> @@ -762,6 +762,11 @@ int setup_arg_pages(struct linux_binprm *bprm,
->>  		goto out_unlock;
->>  	BUG_ON(prev != vma);
->>  
->> +	if (vm_flags & VM_EXEC) {
->> +		pr_warn_once("process '%s'/%u started with executable stack\n",
->> +			     current->comm, current->pid);
->> +	}
->
-> Given that this is triggerable by userspace, is there a concern about PID
-> namespaces here?
+Should this be __kernel_old_time_t for consistency?
 
-In what sense?  Are you thinking about the printing of the pid?
+Ben.
 
-Pretty much by fiat and by definition the kernel log always print things
-in the initial pid namespace.  Which this printk does.
-
-Eric
+> +	long		tv_nsec;		/* nanoseconds */
+> +};
+> +
+>  struct __kernel_sock_timeval {
+>  	__s64 tv_sec;
+>  	__s64 tv_usec;
+-- 
+Ben Hutchings, Software Developer                         Codethink Ltd
+https://www.codethink.co.uk/                 Dale House, 35 Dale Street
+                                     Manchester, M1 2HF, United Kingdom
