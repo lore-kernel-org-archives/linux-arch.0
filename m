@@ -1,34 +1,30 @@
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: Re: [PATCH v2 1/2] x86/hyperv: Implement
- hv_is_hibernation_supported()
-Date: Wed, 20 Nov 2019 10:49:51 +0100 (CET)
-Message-ID: <alpine.DEB.2.21.1911201049030.6731@nanos.tec.linutronix.de>
-References: <1574234165-49066-1-git-send-email-decui@microsoft.com> <1574234165-49066-2-git-send-email-decui@microsoft.com>
+From: Sasha Levin <sashal@kernel.org>
+Subject: Re: [PATCH v2 0/2] Implement hv_is_hibernation_supported() and
+ enhance hv_balloon for hibernation
+Date: Wed, 20 Nov 2019 09:09:59 -0500
+Message-ID: <20191120140959.GG16867@sasha-vm>
+References: <1574234165-49066-1-git-send-email-decui@microsoft.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
+Content-Type: text/plain; charset=us-ascii; format=flowed
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1574234165-49066-2-git-send-email-decui@microsoft.com>
+Content-Disposition: inline
+In-Reply-To: <1574234165-49066-1-git-send-email-decui@microsoft.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: Dexuan Cui <decui@microsoft.com>
-Cc: kys@microsoft.com, haiyangz@microsoft.com, sthemmin@microsoft.com, sashal@kernel.org, linux-hyperv@vger.kernel.org, linux-kernel@vger.kernel.org, mikelley@microsoft.com, david@redhat.com, arnd@arndb.de, bp@alien8.de, daniel.lezcano@linaro.org, hpa@zytor.com, mingo@redhat.com, x86@kernel.org, Alexander.Levin@microsoft.com, vkuznets@redhat.com, linux-arch@vger.kernel.org
+Cc: kys@microsoft.com, haiyangz@microsoft.com, sthemmin@microsoft.com, linux-hyperv@vger.kernel.org, linux-kernel@vger.kernel.org, mikelley@microsoft.com, david@redhat.com, arnd@arndb.de, bp@alien8.de, daniel.lezcano@linaro.org, hpa@zytor.com, mingo@redhat.com, tglx@linutronix.de, x86@kernel.org, Alexander.Levin@microsoft.com, vkuznets@redhat.com, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, 19 Nov 2019, Dexuan Cui wrote:
-> Once all the vmbus and VSC patches for the hibernation feature are
-> accepted, an extra patch will be submitted to forbid hibernation if the
-> virtual ACPI S4 state is absent, i.e. hv_is_hibernation_supported() is
-> false.
-> 
-> Signed-off-by: Dexuan Cui <decui@microsoft.com>
-> Reviewed-by: Michael Kelley <mikelley@microsoft.com>
-> ---
-> 
-> v2 is actually the same as v1. This is just a resend.
-> 
-> I suggest this patch should go through the Hyper-V tree:
-> https://git.kernel.org/pub/scm/linux/kernel/git/hyperv/linux.git/log/?h=hyperv-next
-> because it's needed by
-> [PATCH v2 2/2] hv_balloon: Add the support of hibernation
-> and some upcoming patches.
+On Tue, Nov 19, 2019 at 11:16:03PM -0800, Dexuan Cui wrote:
+>v2 is actually the same as v1. This is just a resend.
+>
+>I suggest both the patches should go through the Hyper-V tree:
+>https://git.kernel.org/pub/scm/linux/kernel/git/hyperv/linux.git/log/?h=hyperv-next
+>because the first patch is needed by the second one.
+>
+>This first patch doesn't conflict with any patch in the tip.git tree.
 
-Acked-by: Thomas Gleixner <tglx@linutronix.de>
+Queued for hyperv-next, thanks!
+
+-- 
+Thanks,
+Sasha
