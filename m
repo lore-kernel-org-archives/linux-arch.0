@@ -1,234 +1,129 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mout-p-201.mailbox.org ([80.241.56.171]:42314 "EHLO
-        mout-p-201.mailbox.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726014AbfKTFIq (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 20 Nov 2019 00:08:46 -0500
-From: Aleksa Sarai <cyphar@cyphar.com>
-Subject: [PATCH RESEND v17 02/13] nsfs: clean-up ns_get_path() signature to return int
-Date: Wed, 20 Nov 2019 16:06:20 +1100
-Message-ID: <20191120050631.12816-3-cyphar@cyphar.com>
-In-Reply-To: <20191120050631.12816-1-cyphar@cyphar.com>
-References: <20191120050631.12816-1-cyphar@cyphar.com>
+Received: from mail-eopbgr770104.outbound.protection.outlook.com ([40.107.77.104]:34030
+        "EHLO NAM02-SN1-obe.outbound.protection.outlook.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1725268AbfKTHJ0 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 20 Nov 2019 02:09:26 -0500
+From: Dexuan Cui <decui@microsoft.com>
+Subject: [PATCH v6] x86/hyperv: Suspend/resume the hypercall page for hibernation
+Date: Tue, 19 Nov 2019 23:09:02 -0800
+Message-ID: <1574233742-47794-1-git-send-email-decui@microsoft.com>
+Reply-To: decui@microsoft.com
+Content-Type: text/plain
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Al Viro <viro@zeniv.linux.org.uk>, Jeff Layton <jlayton@kernel.org>, "J. Bruce Fields" <bfields@fieldses.org>, Arnd Bergmann <arnd@arndb.de>, David Howells <dhowells@redhat.com>, Shuah Khan <shuah@kernel.org>, Shuah Khan <skhan@linuxfoundation.org>, Ingo Molnar <mingo@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Alexei Starovoitov <ast@kernel.org>, Daniel Borkmann <daniel@iogearbox.net>, Martin KaFai Lau <kafai@fb.com>, Song Liu <songliubraving@fb.com>, Yonghong Song <yhs@fb.com>, Andrii Nakryiko <andriin@fb.com>, Jonathan Corbet <corbet@lwn.net>
-Cc: Aleksa Sarai <cyphar@cyphar.com>, Eric Biederman <ebiederm@xmission.com>, Andy Lutomirski <luto@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Kees Cook <keescook@chromium.org>, Jann Horn <jannh@google.com>, Tycho Andersen <tycho@tycho.ws>, David Drysdale <drysdale@google.com>, Chanho Min <chanho.min@lge.com>, Oleg Nesterov <oleg@redhat.com>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Alexander Shishkin <alexander.shishkin@linux.intel.com>, Jiri Olsa <jolsa@redhat.com>, Namhyung Kim <namhyung@kernel.org>, Christian Brauner <christian@brauner.io>, Aleksa Sarai <asarai@suse.de>, Linus Torvalds <torvalds@linux-foundation.org>, dev@opencontainers.org, containers@lists.linux-foundation.org, bpf@vger.kernel.org, netdev@vger.kernel.org, linux-alpha@vger.kernel.org, linux-api@vger.kernel.org, libc-alpha@sourceware.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-doc@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-ia64@vger.kernel.org, linux-kernel@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, linux-xtensa@linux-xtensa.org, sparclinux@vger.kernel.org
-Message-ID: <20191120050620.6PjKsOQygBQ6-bjkDR4Gnn3o-P-EkZOUhWk8WKxvQnw@z>
+To: arnd@arndb.de, bp@alien8.de, daniel.lezcano@linaro.org, haiyangz@microsoft.com, hpa@zytor.com, kys@microsoft.com, linux-hyperv@vger.kernel.org, linux-kernel@vger.kernel.org, mingo@redhat.com, sashal@kernel.org, sthemmin@microsoft.com, tglx@linutronix.de, x86@kernel.org, mikelley@microsoft.com, Alexander.Levin@microsoft.com, vkuznets@redhat.com
+Cc: linux-arch@vger.kernel.org, Dexuan Cui <decui@microsoft.com>
+Message-ID: <20191120070902.HUZ67DA-VRwrbM72BSEz8TEiaUkBRnNZ1A5G7j5H3-8@z>
 
-ns_get_path() and ns_get_path_cb() only ever return either NULL or an
-ERR_PTR. It is far more idiomatic to simply return an integer, and it
-makes all of the callers of ns_get_path() more straightforward to read.
+This is needed for hibernation, e.g. when we resume the old kernel, we need
+to disable the "current" kernel's hypercall page and then resume the old
+kernel's.
 
-Fixes: e149ed2b805f ("take the targets of /proc/*/ns/* symlinks to separate fs")
-Signed-off-by: Aleksa Sarai <cyphar@cyphar.com>
+Signed-off-by: Dexuan Cui <decui@microsoft.com>
+Reviewed-by: Michael Kelley <mikelley@microsoft.com>
 ---
- fs/nsfs.c               | 29 ++++++++++++++---------------
- fs/proc/namespaces.c    |  6 +++---
- include/linux/proc_ns.h |  4 ++--
- kernel/bpf/offload.c    | 12 ++++++------
- kernel/events/core.c    |  2 +-
- 5 files changed, 26 insertions(+), 27 deletions(-)
 
-diff --git a/fs/nsfs.c b/fs/nsfs.c
-index a0431642c6b5..f3d2833c5781 100644
---- a/fs/nsfs.c
-+++ b/fs/nsfs.c
-@@ -52,7 +52,7 @@ static void nsfs_evict(struct inode *inode)
- 	ns->ops->put(ns);
+This patch is part of the v5 patchset:
+  https://lkml.org/lkml/2019/9/5/1158
+  https://lkml.org/lkml/2019/9/5/1159 
+
+  The change is: I set 'hv_hypercall_pg' to NULL in hv_suspend(), and
+restore it in hv_resume(). This is suggested by Vitaly Kuznetsov.
+
+  There is no other change, compared to v1 (v2~v5 were posted with the other
+patches).
+
+  Please pick up this patch onto the tip.git tree's branch x86/hyperv.
+
+ arch/x86/hyperv/hv_init.c | 48 +++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 48 insertions(+)
+
+diff --git a/arch/x86/hyperv/hv_init.c b/arch/x86/hyperv/hv_init.c
+index 426dc8b78193..c170653da589 100644
+--- a/arch/x86/hyperv/hv_init.c
++++ b/arch/x86/hyperv/hv_init.c
+@@ -20,11 +20,15 @@
+ #include <linux/hyperv.h>
+ #include <linux/slab.h>
+ #include <linux/cpuhotplug.h>
++#include <linux/syscore_ops.h>
+ #include <clocksource/hyperv_timer.h>
+ 
+ void *hv_hypercall_pg;
+ EXPORT_SYMBOL_GPL(hv_hypercall_pg);
+ 
++/* Save the hypercall page temporarily for hibernation */
++static void *hv_hypercall_pg_saved;
++
+ u32 *hv_vp_index;
+ EXPORT_SYMBOL_GPL(hv_vp_index);
+ 
+@@ -245,6 +249,46 @@ static int __init hv_pci_init(void)
+ 	return 1;
  }
  
--static void *__ns_get_path(struct path *path, struct ns_common *ns)
-+static int __ns_get_path(struct path *path, struct ns_common *ns)
- {
- 	struct vfsmount *mnt = nsfs_mnt;
- 	struct dentry *dentry;
-@@ -71,13 +71,13 @@ static void *__ns_get_path(struct path *path, struct ns_common *ns)
- got_it:
- 	path->mnt = mntget(mnt);
- 	path->dentry = dentry;
--	return NULL;
++static int hv_suspend(void)
++{
++	union hv_x64_msr_hypercall_contents hypercall_msr;
++
++	/*
++	 * Reset hypercall page reference before reset the page,
++	 * let hypercall operations fail safely rather than
++	 * panic the kernel for using invalid hypercall page
++	 */
++	hv_hypercall_pg_saved = hv_hypercall_pg;
++	hv_hypercall_pg = NULL;
++
++	/* Reset the hypercall page */
++	rdmsrl(HV_X64_MSR_HYPERCALL, hypercall_msr.as_uint64);
++	hypercall_msr.enable = 0;
++	wrmsrl(HV_X64_MSR_HYPERCALL, hypercall_msr.as_uint64);
++
 +	return 0;
- slow:
- 	rcu_read_unlock();
- 	inode = new_inode_pseudo(mnt->mnt_sb);
- 	if (!inode) {
- 		ns->ops->put(ns);
--		return ERR_PTR(-ENOMEM);
-+		return -ENOMEM;
- 	}
- 	inode->i_ino = ns->inum;
- 	inode->i_mtime = inode->i_atime = inode->i_ctime = current_time(inode);
-@@ -89,7 +89,7 @@ static void *__ns_get_path(struct path *path, struct ns_common *ns)
- 	dentry = d_alloc_anon(mnt->mnt_sb);
- 	if (!dentry) {
- 		iput(inode);
--		return ERR_PTR(-ENOMEM);
-+		return -ENOMEM;
- 	}
- 	d_instantiate(dentry, inode);
- 	dentry->d_fsdata = (void *)ns->ops;
-@@ -98,23 +98,22 @@ static void *__ns_get_path(struct path *path, struct ns_common *ns)
- 		d_delete(dentry);	/* make sure ->d_prune() does nothing */
- 		dput(dentry);
- 		cpu_relax();
--		return ERR_PTR(-EAGAIN);
-+		return -EAGAIN;
- 	}
- 	goto got_it;
- }
++}
++
++static void hv_resume(void)
++{
++	union hv_x64_msr_hypercall_contents hypercall_msr;
++
++	/* Re-enable the hypercall page */
++	rdmsrl(HV_X64_MSR_HYPERCALL, hypercall_msr.as_uint64);
++	hypercall_msr.enable = 1;
++	hypercall_msr.guest_physical_address =
++		vmalloc_to_pfn(hv_hypercall_pg_saved);
++	wrmsrl(HV_X64_MSR_HYPERCALL, hypercall_msr.as_uint64);
++
++	hv_hypercall_pg = hv_hypercall_pg_saved;
++	hv_hypercall_pg_saved = NULL;
++}
++
++static struct syscore_ops hv_syscore_ops = {
++	.suspend = hv_suspend,
++	.resume = hv_resume,
++};
++
+ /*
+  * This function is to be invoked early in the boot sequence after the
+  * hypervisor has been detected.
+@@ -329,6 +373,8 @@ void __init hyperv_init(void)
  
--void *ns_get_path_cb(struct path *path, ns_get_path_helper_t *ns_get_cb,
-+int ns_get_path_cb(struct path *path, ns_get_path_helper_t *ns_get_cb,
- 		     void *private_data)
+ 	x86_init.pci.arch_init = hv_pci_init;
+ 
++	register_syscore_ops(&hv_syscore_ops);
++
+ 	return;
+ 
+ remove_cpuhp_state:
+@@ -348,6 +394,8 @@ void hyperv_cleanup(void)
  {
--	void *ret;
-+	int ret;
+ 	union hv_x64_msr_hypercall_contents hypercall_msr;
  
- 	do {
- 		struct ns_common *ns = ns_get_cb(private_data);
- 		if (!ns)
--			return ERR_PTR(-ENOENT);
--
-+			return -ENOENT;
- 		ret = __ns_get_path(path, ns);
--	} while (ret == ERR_PTR(-EAGAIN));
-+	} while (ret == -EAGAIN);
++	unregister_syscore_ops(&hv_syscore_ops);
++
+ 	/* Reset our OS id */
+ 	wrmsrl(HV_X64_MSR_GUEST_OS_ID, 0);
  
- 	return ret;
- }
-@@ -131,7 +130,7 @@ static struct ns_common *ns_get_path_task(void *private_data)
- 	return args->ns_ops->get(args->task);
- }
- 
--void *ns_get_path(struct path *path, struct task_struct *task,
-+int ns_get_path(struct path *path, struct task_struct *task,
- 		  const struct proc_ns_operations *ns_ops)
- {
- 	struct ns_get_path_task_args args = {
-@@ -147,7 +146,7 @@ int open_related_ns(struct ns_common *ns,
- {
- 	struct path path = {};
- 	struct file *f;
--	void *err;
-+	int err;
- 	int fd;
- 
- 	fd = get_unused_fd_flags(O_CLOEXEC);
-@@ -164,11 +163,11 @@ int open_related_ns(struct ns_common *ns,
- 		}
- 
- 		err = __ns_get_path(&path, relative);
--	} while (err == ERR_PTR(-EAGAIN));
-+	} while (err == -EAGAIN);
- 
--	if (IS_ERR(err)) {
-+	if (err) {
- 		put_unused_fd(fd);
--		return PTR_ERR(err);
-+		return err;
- 	}
- 
- 	f = dentry_open(&path, O_RDONLY, current_cred());
-diff --git a/fs/proc/namespaces.c b/fs/proc/namespaces.c
-index dd2b35f78b09..08dd94df1a66 100644
---- a/fs/proc/namespaces.c
-+++ b/fs/proc/namespaces.c
-@@ -42,14 +42,14 @@ static const char *proc_ns_get_link(struct dentry *dentry,
- 	const struct proc_ns_operations *ns_ops = PROC_I(inode)->ns_ops;
- 	struct task_struct *task;
- 	struct path ns_path;
--	void *error = ERR_PTR(-EACCES);
-+	int error = -EACCES;
- 
- 	if (!dentry)
- 		return ERR_PTR(-ECHILD);
- 
- 	task = get_proc_task(inode);
- 	if (!task)
--		return error;
-+		return ERR_PTR(-EACCES);
- 
- 	if (ptrace_may_access(task, PTRACE_MODE_READ_FSCREDS)) {
- 		error = ns_get_path(&ns_path, task, ns_ops);
-@@ -57,7 +57,7 @@ static const char *proc_ns_get_link(struct dentry *dentry,
- 			nd_jump_link(&ns_path);
- 	}
- 	put_task_struct(task);
--	return error;
-+	return ERR_PTR(error);
- }
- 
- static int proc_ns_readlink(struct dentry *dentry, char __user *buffer, int buflen)
-diff --git a/include/linux/proc_ns.h b/include/linux/proc_ns.h
-index d31cb6215905..aed366b4795c 100644
---- a/include/linux/proc_ns.h
-+++ b/include/linux/proc_ns.h
-@@ -76,10 +76,10 @@ static inline int ns_alloc_inum(struct ns_common *ns)
- 
- extern struct file *proc_ns_fget(int fd);
- #define get_proc_ns(inode) ((struct ns_common *)(inode)->i_private)
--extern void *ns_get_path(struct path *path, struct task_struct *task,
-+extern int ns_get_path(struct path *path, struct task_struct *task,
- 			const struct proc_ns_operations *ns_ops);
- typedef struct ns_common *ns_get_path_helper_t(void *);
--extern void *ns_get_path_cb(struct path *path, ns_get_path_helper_t ns_get_cb,
-+extern int ns_get_path_cb(struct path *path, ns_get_path_helper_t ns_get_cb,
- 			    void *private_data);
- 
- extern int ns_get_name(char *buf, size_t size, struct task_struct *task,
-diff --git a/kernel/bpf/offload.c b/kernel/bpf/offload.c
-index ba635209ae9a..a2253a044f90 100644
---- a/kernel/bpf/offload.c
-+++ b/kernel/bpf/offload.c
-@@ -302,14 +302,14 @@ int bpf_prog_offload_info_fill(struct bpf_prog_info *info,
- 	struct inode *ns_inode;
- 	struct path ns_path;
- 	char __user *uinsns;
--	void *res;
-+	int res;
- 	u32 ulen;
- 
- 	res = ns_get_path_cb(&ns_path, bpf_prog_offload_info_fill_ns, &args);
--	if (IS_ERR(res)) {
-+	if (res) {
- 		if (!info->ifindex)
- 			return -ENODEV;
--		return PTR_ERR(res);
-+		return res;
- 	}
- 
- 	down_read(&bpf_devs_lock);
-@@ -526,13 +526,13 @@ int bpf_map_offload_info_fill(struct bpf_map_info *info, struct bpf_map *map)
- 	};
- 	struct inode *ns_inode;
- 	struct path ns_path;
--	void *res;
-+	int res;
- 
- 	res = ns_get_path_cb(&ns_path, bpf_map_offload_info_fill_ns, &args);
--	if (IS_ERR(res)) {
-+	if (res) {
- 		if (!info->ifindex)
- 			return -ENODEV;
--		return PTR_ERR(res);
-+		return res;
- 	}
- 
- 	ns_inode = ns_path.dentry->d_inode;
-diff --git a/kernel/events/core.c b/kernel/events/core.c
-index 00a014670ed0..3772a04ca802 100644
---- a/kernel/events/core.c
-+++ b/kernel/events/core.c
-@@ -7258,7 +7258,7 @@ static void perf_fill_ns_link_info(struct perf_ns_link_info *ns_link_info,
- {
- 	struct path ns_path;
- 	struct inode *ns_inode;
--	void *error;
-+	int error;
- 
- 	error = ns_get_path(&ns_path, task, ns_ops);
- 	if (!error) {
 -- 
-2.24.0
+2.19.1
