@@ -1,50 +1,82 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mout.kundenserver.de ([217.72.192.75]:49977 "EHLO
+Received: from mout.kundenserver.de ([212.227.126.130]:35207 "EHLO
         mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726358AbfKUORz (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 21 Nov 2019 09:17:55 -0500
+        with ESMTP id S1726396AbfKUO2X (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 21 Nov 2019 09:28:23 -0500
 MIME-Version: 1.0
-References: <20191108210236.1296047-1-arnd@arndb.de> <20191108210824.1534248-2-arnd@arndb.de>
- <a5f530323b66cd8c0055c5e642ef4eb035c53808.camel@codethink.co.uk>
-In-Reply-To: <a5f530323b66cd8c0055c5e642ef4eb035c53808.camel@codethink.co.uk>
+References: <20191108210236.1296047-1-arnd@arndb.de> <20191108210824.1534248-8-arnd@arndb.de>
+ <dd1a30609f05e800550097080c1d1b27065f91ff.camel@codethink.co.uk>
+In-Reply-To: <dd1a30609f05e800550097080c1d1b27065f91ff.camel@codethink.co.uk>
 From: Arnd Bergmann <arnd@arndb.de>
-Date: Thu, 21 Nov 2019 15:17:36 +0100
-Message-ID: <CAK8P3a1GSncyq6dX482ZY8TmJxT8gazFZpnJs-Jzomq6keWjHg@mail.gmail.com>
-Subject: Re: [Y2038] [PATCH 02/23] y2038: add __kernel_old_timespec and __kernel_old_time_t
+Date: Thu, 21 Nov 2019 15:28:03 +0100
+Message-ID: <CAK8P3a0VORzqLLTFpt9VYn_SONsve+-q0fTrZrPbLMpX9T6SBQ@mail.gmail.com>
+Subject: Re: [Y2038] [PATCH 08/23] y2038: ipc: remove __kernel_time_t
+ reference from headers
 Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Ben Hutchings <ben.hutchings@codethink.co.uk>
-Cc: y2038 Mailman List <y2038@lists.linaro.org>, Deepa Dinamani <deepa.kernel@gmail.com>, linux-arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "David S. Miller" <davem@davemloft.net>
-Message-ID: <20191121141736.7pf8N6tvpKLzotOHwSe6DGX8NT9MDChYgWcmyLhp4F0@z>
+Cc: y2038 Mailman List <y2038@lists.linaro.org>, Ralf Baechle <ralf@linux-mips.org>, Paul Burton <paul.burton@mips.com>, James Hogan <jhogan@kernel.org>, "James E.J. Bottomley" <James.Bottomley@hansenpartnership.com>, Helge Deller <deller@gmx.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, "David S. Miller" <davem@davemloft.net>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, the arch/x86 maintainers <x86@kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Parisc List <linux-parisc@vger.kernel.org>, linux-mips@vger.kernel.org, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, sparclinux <sparclinux@vger.kernel.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>
+Message-ID: <20191121142803.UZapj4cG4IEgrRXD4AUiHd2ZIx_jlhMpLffnbYU3EqM@z>
 
-On Wed, Nov 20, 2019 at 11:30 PM Ben Hutchings
+On Wed, Nov 20, 2019 at 11:49 PM Ben Hutchings
 <ben.hutchings@codethink.co.uk> wrote:
 >
 > On Fri, 2019-11-08 at 22:07 +0100, Arnd Bergmann wrote:
-> > The 'struct timespec' definition can no longer be part of the uapi headers
-> > because it conflicts with a a now incompatible libc definition. Also,
-> > we really want to remove it in order to prevent new uses from creeping in.
-> >
-> > The same namespace conflict exists with time_t, which should also be
-> > removed. __kernel_time_t could be used safely, but adding 'old' in the
-> > name makes it clearer that this should not be used for new interfaces.
-> >
-> > Add a replacement __kernel_old_timespec structure and __kernel_old_time_t
-> > along the lines of __kernel_old_timeval.
 > [...]
-> > --- a/include/uapi/linux/time_types.h
-> > +++ b/include/uapi/linux/time_types.h
-> > @@ -28,6 +28,11 @@ struct __kernel_old_timeval {
-> >  };
+> > --- a/arch/x86/include/uapi/asm/sembuf.h
+> > +++ b/arch/x86/include/uapi/asm/sembuf.h
+> > @@ -21,9 +21,9 @@ struct semid64_ds {
+> >       unsigned long   sem_ctime;      /* last change time */
+> >       unsigned long   sem_ctime_high;
+> >  #else
+> > -     __kernel_time_t sem_otime;      /* last semop time */
+> > +     long            sem_otime;      /* last semop time */
+> >       __kernel_ulong_t __unused1;
+> > -     __kernel_time_t sem_ctime;      /* last change time */
+> > +     long            sem_ctime;      /* last change time */
+> >       __kernel_ulong_t __unused2;
 > >  #endif
-> >
-> > +struct __kernel_old_timespec {
-> > +     __kernel_time_t tv_sec;                 /* seconds */
+> >       __kernel_ulong_t sem_nsems;     /* no. of semaphores in array */
+> [...]
 >
-> Should this be __kernel_old_time_t for consistency?
+> We need to use __kernel_long_t here to do the right thing on x32.
 
-Yes. I had already noticed this and changed it in the current version
-of "y2038: uapi: change __kernel_time_t to __kernel_old_time_t".
+Good catch, thanks for the review!
 
-      Arnd
+I applied the patch below now on top.
+
+       Arnd
+
+commit c7ebd8a1c1825c3197732ea692cf3dde34a644f5 (HEAD)
+Author: Arnd Bergmann <arnd@arndb.de>
+Date:   Thu Nov 21 15:25:04 2019 +0100
+
+    y2038: ipc: fix x32 ABI breakage
+
+    The correct type on x32 is 64-bit wide, same as for the other struct
+    members around it, so use  __kernel_long_t in place of the original
+    __kernel_time_t here, corresponding to the rest of the structure.
+
+    Fixes: caf5e32d4ea7 ("y2038: ipc: remove __kernel_time_t reference
+from headers")
+    Reported-by: Ben Hutchings <ben.hutchings@codethink.co.uk>
+    Signed-off-by: Arnd Bergmann <arnd@arndb.de>
+
+diff --git a/arch/x86/include/uapi/asm/sembuf.h
+b/arch/x86/include/uapi/asm/sembuf.h
+index 7c1b156695ba..20cab43c4b15 100644
+--- a/arch/x86/include/uapi/asm/sembuf.h
++++ b/arch/x86/include/uapi/asm/sembuf.h
+@@ -21,9 +21,9 @@ struct semid64_ds {
+        unsigned long   sem_ctime;      /* last change time */
+        unsigned long   sem_ctime_high;
+ #else
+-       long            sem_otime;      /* last semop time */
++       __kernel_long_t sem_otime;      /* last semop time */
+        __kernel_ulong_t __unused1;
+-       long            sem_ctime;      /* last change time */
++       __kenrel_long_t sem_ctime;      /* last change time */
+        __kernel_ulong_t __unused2;
+ #endif
+        __kernel_ulong_t sem_nsems;     /* no. of semaphores in array */
