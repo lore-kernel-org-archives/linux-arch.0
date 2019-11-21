@@ -1,66 +1,50 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:56336 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726536AbfKUNd4 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 21 Nov 2019 08:33:56 -0500
-Subject: Re: Bug 205201 - Booting halts if Dawicontrol DC-2976 UW SCSI board
- installed, unless RAM size limited to 3500M
-References: <F1EBB706-73DF-430E-9020-C214EC8ED5DA@xenosoft.de>
- <20191121072943.GA24024@lst.de>
- <dbde2252-035e-6183-7897-43348e60647e@xenosoft.de>
- <6eec5c42-019c-a988-fc2a-cb804194683d@xenosoft.de>
-From: Robin Murphy <robin.murphy@arm.com>
-Message-ID: <d0252d29-7a03-20e1-ccd7-e12d906e4bdf@arm.com>
-Date: Thu, 21 Nov 2019 13:33:52 +0000
+Received: from mout.kundenserver.de ([217.72.192.75]:49977 "EHLO
+        mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726358AbfKUORz (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 21 Nov 2019 09:17:55 -0500
 MIME-Version: 1.0
-In-Reply-To: <6eec5c42-019c-a988-fc2a-cb804194683d@xenosoft.de>
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Language: en-GB
-Content-Transfer-Encoding: 8bit
+References: <20191108210236.1296047-1-arnd@arndb.de> <20191108210824.1534248-2-arnd@arndb.de>
+ <a5f530323b66cd8c0055c5e642ef4eb035c53808.camel@codethink.co.uk>
+In-Reply-To: <a5f530323b66cd8c0055c5e642ef4eb035c53808.camel@codethink.co.uk>
+From: Arnd Bergmann <arnd@arndb.de>
+Date: Thu, 21 Nov 2019 15:17:36 +0100
+Message-ID: <CAK8P3a1GSncyq6dX482ZY8TmJxT8gazFZpnJs-Jzomq6keWjHg@mail.gmail.com>
+Subject: Re: [Y2038] [PATCH 02/23] y2038: add __kernel_old_timespec and __kernel_old_time_t
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Christian Zigotzky <chzigotzky@xenosoft.de>, Christoph Hellwig <hch@lst.de>
-Cc: linux-arch@vger.kernel.org, darren@stevens-zone.net, mad skateman <madskateman@gmail.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, linux-kernel@vger.kernel.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Rob Herring <robh+dt@kernel.org>, paulus@samba.org, rtd2@xtra.co.nz, "contact@a-eon.com" <contact@a-eon.com>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, nsaenzjulienne@suse.de
-Message-ID: <20191121133352.lx6_fPC4qrzRa_F_i7WUcRFnjzR_pXgy4_FMBKYXVCo@z>
+To: Ben Hutchings <ben.hutchings@codethink.co.uk>
+Cc: y2038 Mailman List <y2038@lists.linaro.org>, Deepa Dinamani <deepa.kernel@gmail.com>, linux-arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "David S. Miller" <davem@davemloft.net>
+Message-ID: <20191121141736.7pf8N6tvpKLzotOHwSe6DGX8NT9MDChYgWcmyLhp4F0@z>
 
-On 21/11/2019 12:21 pm, Christian Zigotzky wrote:
-> On 21 November 2019 at 01:16 pm, Christian Zigotzky wrote:
->> On 21 November 2019 at 08:29 am, Christoph Hellwig wrote:
->>> On Sat, Nov 16, 2019 at 08:06:05AM +0100, Christian Zigotzky wrote:
->>>> /*
->>>>   *  DMA addressing mode.
->>>>   *
->>>>   *  0 : 32 bit addressing for all chips.
->>>>   *  1 : 40 bit addressing when supported by chip.
->>>>   *  2 : 64 bit addressing when supported by chip,
->>>>   *      limited to 16 segments of 4 GB -> 64 GB max.
->>>>   */
->>>> #define   SYM_CONF_DMA_ADDRESSING_MODE 
->>>> CONFIG_SCSI_SYM53C8XX_DMA_ADDRESSING_MODE
->>>>
->>>> Cyrus config:
->>>>
->>>> CONFIG_SCSI_SYM53C8XX_DMA_ADDRESSING_MODE=1
->>>>
->>>> I will configure “0 : 32 bit addressing for all chips” for the RC8. 
->>>> Maybe this is the solution.
->>> 0 means you are going to do bounce buffering a lot, which seems
->>> generally like a bad idea.
->>>
->>> But why are we talking about the sym53c8xx driver now?  The last issue
->>> you reported was about video4linux allocations.
->>>
->> Both drivers have the same problem. They don't work if we have more 
->> than 3.5GB RAM. I try to find a solution until you have a good 
->> solution. I have already a solution for V4L but I still need one for 
->> the sym53c8xx driver.
-> OK, you mean that "0" is a bad idea but maybe it works until you have a 
-> solution. ;-)
+On Wed, Nov 20, 2019 at 11:30 PM Ben Hutchings
+<ben.hutchings@codethink.co.uk> wrote:
+>
+> On Fri, 2019-11-08 at 22:07 +0100, Arnd Bergmann wrote:
+> > The 'struct timespec' definition can no longer be part of the uapi headers
+> > because it conflicts with a a now incompatible libc definition. Also,
+> > we really want to remove it in order to prevent new uses from creeping in.
+> >
+> > The same namespace conflict exists with time_t, which should also be
+> > removed. __kernel_time_t could be used safely, but adding 'old' in the
+> > name makes it clearer that this should not be used for new interfaces.
+> >
+> > Add a replacement __kernel_old_timespec structure and __kernel_old_time_t
+> > along the lines of __kernel_old_timeval.
+> [...]
+> > --- a/include/uapi/linux/time_types.h
+> > +++ b/include/uapi/linux/time_types.h
+> > @@ -28,6 +28,11 @@ struct __kernel_old_timeval {
+> >  };
+> >  #endif
+> >
+> > +struct __kernel_old_timespec {
+> > +     __kernel_time_t tv_sec;                 /* seconds */
+>
+> Should this be __kernel_old_time_t for consistency?
 
-Is this on the same machine with the funny non-power-of-two bus_dma_mask 
-as your other report? If so, does Nicolas' latest patch[1] help at all?
+Yes. I had already noticed this and changed it in the current version
+of "y2038: uapi: change __kernel_time_t to __kernel_old_time_t".
 
-Robin.
-
-[1] 
-https://lore.kernel.org/linux-iommu/20191121092646.8449-1-nsaenzjulienne@suse.de/T/#u
+      Arnd
