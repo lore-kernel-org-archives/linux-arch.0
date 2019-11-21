@@ -1,30 +1,33 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from verein.lst.de ([213.95.11.211]:47552 "EHLO verein.lst.de"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726333AbfKUSCa (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 21 Nov 2019 13:02:30 -0500
-Date: Thu, 21 Nov 2019 19:02:26 +0100
-From: Christoph Hellwig <hch@lst.de>
-Subject: Re: Bug 205201 - Booting halts if Dawicontrol DC-2976 UW SCSI
- board installed, unless RAM size limited to 3500M
-Message-ID: <20191121180226.GA3852@lst.de>
-References: <F1EBB706-73DF-430E-9020-C214EC8ED5DA@xenosoft.de> <20191121072943.GA24024@lst.de> <dbde2252-035e-6183-7897-43348e60647e@xenosoft.de> <6eec5c42-019c-a988-fc2a-cb804194683d@xenosoft.de> <d0252d29-7a03-20e1-ccd7-e12d906e4bdf@arm.com> <b3217742-2c0b-8447-c9ac-608b93265363@xenosoft.de>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <b3217742-2c0b-8447-c9ac-608b93265363@xenosoft.de>
+Received: from mo4-p01-ob.smtp.rzone.de ([85.215.255.51]:29129 "EHLO
+        mo4-p01-ob.smtp.rzone.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726279AbfKUSWA (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 21 Nov 2019 13:22:00 -0500
+Content-Type: text/plain;
+        charset=us-ascii
+Mime-Version: 1.0 (1.0)
+Subject: Re: Bug 205201 - Booting halts if Dawicontrol DC-2976 UW SCSI board installed, unless RAM size limited to 3500M
+From: Christian Zigotzky <chzigotzky@xenosoft.de>
+In-Reply-To: <20191121180226.GA3852@lst.de>
+Date: Thu, 21 Nov 2019 19:21:04 +0100
+Content-Transfer-Encoding: quoted-printable
+Message-ID: <0F53CCCE-738C-4024-9C3C-4BDEB0D0728C@xenosoft.de>
+References: <F1EBB706-73DF-430E-9020-C214EC8ED5DA@xenosoft.de> <20191121072943.GA24024@lst.de> <dbde2252-035e-6183-7897-43348e60647e@xenosoft.de> <6eec5c42-019c-a988-fc2a-cb804194683d@xenosoft.de> <d0252d29-7a03-20e1-ccd7-e12d906e4bdf@arm.com> <b3217742-2c0b-8447-c9ac-608b93265363@xenosoft.de> <20191121180226.GA3852@lst.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Christian Zigotzky <chzigotzky@xenosoft.de>
-Cc: Robin Murphy <robin.murphy@arm.com>, Christoph Hellwig <hch@lst.de>, linux-arch@vger.kernel.org, darren@stevens-zone.net, mad skateman <madskateman@gmail.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, linux-kernel@vger.kernel.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Rob Herring <robh+dt@kernel.org>, paulus@samba.org, rtd2@xtra.co.nz, "contact@a-eon.com" <contact@a-eon.com>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, nsaenzjulienne@suse.de
-Message-ID: <20191121180226.RCmWUeUKe24KJBPvtTHx_9Ku579SkAF6n40QUghRc0U@z>
+To: Christoph Hellwig <hch@lst.de>
+Cc: Robin Murphy <robin.murphy@arm.com>, linux-arch@vger.kernel.org, darren@stevens-zone.net, mad skateman <madskateman@gmail.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, linux-kernel@vger.kernel.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Rob Herring <robh+dt@kernel.org>, paulus@samba.org, rtd2@xtra.co.nz, "contact@a-eon.com" <contact@a-eon.com>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, nsaenzjulienne@suse.de
+Message-ID: <20191121182104.YRXcRCDDxPIvKL3qIzg3lS7GO6kjoh-nZoe2DptJt6k@z>
+
+On 21. Nov 2019, at 19:02, Christoph Hellwig <hch@lst.de> wrote:
 
 On Thu, Nov 21, 2019 at 05:34:48PM +0100, Christian Zigotzky wrote:
-> I modified the patch and compiled a new RC8 of kernel 5.4 today. (patch 
-> attached)
->
-> We have to wait to Rolands test results with his SCSI PCI card. I tested it 
-> today but my TV card doesn't work with this patch.
+I modified the patch and compiled a new RC8 of kernel 5.4 today. (patch=20
+attached)
+
+We have to wait to Rolands test results with his SCSI PCI card. I tested it=20=
+
+today but my TV card doesn't work with this patch.
 
 I think we have two sorta overlapping issues here.  One is that I think
 we need the bus_dma_limit, which should mostly help for something like
@@ -38,10 +41,17 @@ fact that the bounce buffering itself also fails is even more interesting.
 
 Can you try this git branch:
 
-    git://git.infradead.org/users/hch/misc.git fsl-dma-debugging
+   git://git.infradead.org/users/hch/misc.git fsl-dma-debugging
 
 Gitweb:
 
-    http://git.infradead.org/users/hch/misc.git/shortlog/refs/heads/fsl-dma-debugging
+   http://git.infradead.org/users/hch/misc.git/shortlog/refs/heads/fsl-dma-d=
+ebugging
 
 and send me the dmesg with that with your TV adapter?
+
+- - -
+
+Yes, I will test it at the weekend. Thanks for your help.
+
+Christian=
