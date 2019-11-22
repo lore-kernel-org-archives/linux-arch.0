@@ -1,142 +1,119 @@
-From: Waiman Long <longman@redhat.com>
+From: Alex Kogan <alex.kogan@oracle.com>
 Subject: Re: [PATCH v6 3/5] locking/qspinlock: Introduce CNA into the slow
  path of qspinlock
-Date: Fri, 22 Nov 2019 14:29:32 -0500
-Message-ID: <dc31b3ea-1b03-16d3-1a03-a0a7ad1729d2@redhat.com>
+Date: Fri, 22 Nov 2019 14:52:23 -0500
+Message-ID: <78BB046F-700B-4108-923B-0FC5D7550385@oracle.com>
 References: <20191107174622.61718-4-alex.kogan@oracle.com>
  <201911202212.CdyX1gua%lkp@intel.com>
  <B1A1B09F-C44E-45F7-80EB-09E30AEFD358@oracle.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: quoted-printable
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <B1A1B09F-C44E-45F7-80EB-09E30AEFD358@oracle.com>
-Content-Language: en-US
-Sender: linux-kernel-owner@vger.kernel.org
-To: Alex Kogan <alex.kogan@oracle.com>, kbuild test robot <lkp@intel.com>
-Cc: kbuild-all@lists.01.org, linux@armlinux.org.uk, peterz@infradead.org, mingo@redhat.com, will.deacon@arm.com, arnd@arndb.de, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, bp@alien8.de, hpa@zytor.com, x86@kernel.org, guohanjun@huawei.com, jglauber@marvell.com, steven.sistare@oracle.com, daniel.m.jordan@oracle.com, dave.dice@oracle.com, rahul.x.yadav@oracle.com
+ <dc31b3ea-1b03-16d3-1a03-a0a7ad1729d2@redhat.com>
+Mime-Version: 1.0 (Mac OS X Mail 12.4 \(3445.104.11\))
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+In-Reply-To: <dc31b3ea-1b03-16d3-1a03-a0a7ad1729d2@redhat.com>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+To: Waiman Long <longman@redhat.com>
+Cc: linux-arch@vger.kernel.org, guohanjun@huawei.com, kbuild-all@lists.01.org, kbuild test robot <lkp@intel.com>, arnd@arndb.de, peterz@infradead.org, dave.dice@oracle.com, jglauber@marvell.com, x86@kernel.org, will.deacon@arm.com, linux@armlinux.org.uk, linux-kernel@vger.kernel.org, rahul.x.yadav@oracle.com, mingo@redhat.com, bp@alien8.de, hpa@zytor.com, steven.sistare@oracle.com, tglx@linutronix.de, daniel.m.jordan@oracle.com, linux-arm-kernel@lists.infradead.org
 List-Id: linux-arch.vger.kernel.org
 
-On 11/22/19 1:28 PM, Alex Kogan wrote:
->
->> On Nov 20, 2019, at 10:16 AM, kbuild test robot <lkp@intel.com> wrote:
->>
->> Hi Alex,
->>
->> Thank you for the patch! Yet something to improve:
->>
->> [auto build test ERROR on linus/master]
->> [also build test ERROR on v5.4-rc8 next-20191120]
->> [if your patch is applied to the wrong git tree, please drop us a note t=
-o help
->> improve the system. BTW, we also suggest to use '--base' option to speci=
-fy the
->> base tree in git format-patch, please see https://urldefense.proofpoint.=
-com/v2/url?u=3Dhttps-3A__stackoverflow.com_a_37406982&d=3DDwIBAg&c=3DRoP1Yu=
-mCXCgaWHvlZYR8PZh8Bv7qIrMUB65eapI_JnE&r=3DHvhk3F4omdCk-GE1PTOm3Kn0A7ApWOZ2a=
-ZLTuVxFK4k&m=3DBxEt1232ccGlMGDinAB0QAUaTFyl-m5sp4C-crHjpoU&s=3DOzzQqg4fTDV5=
-5X-y4vbnGeXoJaPHSvO_EfrUQnMVRHc&e=3D ]
->>
->> url:    https://urldefense.proofpoint.com/v2/url?u=3Dhttps-3A__github.co=
-m_0day-2Dci_linux_commits_Alex-2DKogan_locking-2Dqspinlock-2DRename-2Dmcs-2=
-Dlock-2Dunlock-2Dmacros-2Dand-2Dmake-2Dthem-2Dmore-2Dgeneric_20191109-2D180=
-535&d=3DDwIBAg&c=3DRoP1YumCXCgaWHvlZYR8PZh8Bv7qIrMUB65eapI_JnE&r=3DHvhk3F4o=
-mdCk-GE1PTOm3Kn0A7ApWOZ2aZLTuVxFK4k&m=3DBxEt1232ccGlMGDinAB0QAUaTFyl-m5sp4C=
--crHjpoU&s=3DuE7ZeYXOFiu09PUVjnCntEe2rR5x_QxS6dEW9twpfok&e=3D=20
->> base:   https://urldefense.proofpoint.com/v2/url?u=3Dhttps-3A__git.kerne=
-l.org_pub_scm_linux_kernel_git_torvalds_linux.git&d=3DDwIBAg&c=3DRoP1YumCXC=
-gaWHvlZYR8PZh8Bv7qIrMUB65eapI_JnE&r=3DHvhk3F4omdCk-GE1PTOm3Kn0A7ApWOZ2aZLTu=
-VxFK4k&m=3DBxEt1232ccGlMGDinAB0QAUaTFyl-m5sp4C-crHjpoU&s=3DaAKxuXc_c7OF0ffi=
-oQfVsIB6H-4Sd9PYxSM7kurm2ig&e=3D  0058b0a506e40d9a2c62015fe92eb64a44d78cd9
->> config: i386-randconfig-f003-20191120 (attached as .config)
->> compiler: gcc-7 (Debian 7.4.0-14) 7.4.0
->> reproduce:
->>        # save the attached .config to linux build tree
->>        make ARCH=3Di386=20
->>
->> If you fix the issue, kindly add following tag
->> Reported-by: kbuild test robot <lkp@intel.com>
->>
->> All error/warnings (new ones prefixed by >>):
->>
->>   In file included from include/linux/export.h:42:0,
->>                    from include/linux/linkage.h:7,
->>                    from include/linux/kernel.h:8,
->>                    from include/linux/list.h:9,
->>                    from include/linux/smp.h:12,
->>                    from kernel/locking/qspinlock.c:16:
->>   kernel/locking/qspinlock_cna.h: In function 'cna_init_nodes':
->>>> include/linux/compiler.h:350:38: error: call to '__compiletime_assert_=
-80' declared with attribute error: BUILD_BUG_ON failed: sizeof(struct cna_n=
-ode) > sizeof(struct qnode)
->>     _compiletime_assert(condition, msg, __compiletime_assert_, __LINE__)
->>                                         ^
->>   include/linux/compiler.h:331:4: note: in definition of macro '__compil=
-etime_assert'
->>       prefix ## suffix();    \
->>       ^~~~~~
->>   include/linux/compiler.h:350:2: note: in expansion of macro '_compilet=
-ime_assert'
->>     _compiletime_assert(condition, msg, __compiletime_assert_, __LINE__)
->>     ^~~~~~~~~~~~~~~~~~~
->>   include/linux/build_bug.h:39:37: note: in expansion of macro 'compilet=
-ime_assert'
->>    #define BUILD_BUG_ON_MSG(cond, msg) compiletime_assert(!(cond), msg)
->>                                        ^~~~~~~~~~~~~~~~~~
->>   include/linux/build_bug.h:50:2: note: in expansion of macro 'BUILD_BUG=
-_ON_MSG'
->>     BUILD_BUG_ON_MSG(condition, "BUILD_BUG_ON failed: " #condition)
->>     ^~~~~~~~~~~~~~~~
->>>> kernel/locking/qspinlock_cna.h:80:2: note: in expansion of macro 'BUIL=
-D_BUG_ON'
->>     BUILD_BUG_ON(sizeof(struct cna_node) > sizeof(struct qnode));
->>     ^~~~~~~~~~~~
-> Consider the following definition of qnode:
->
-> struct qnode {
-> =09struct mcs_spinlock mcs;
-> #if defined(CONFIG_PARAVIRT_SPINLOCKS) || defined(CONFIG_NUMA_AWARE_SPINL=
-OCKS)
-> =09long reserved[2];
-> #endif
-> };
->
-> and this is how cna_node is defined:
->
-> struct cna_node {
-> =09struct mcs_spinlock=09mcs;
-> =09int=09=09=09numa_node;
-> =09u32=09=09=09encoded_tail;
-> =09u32=09=09=09pre_scan_result; /* 0, 1, 2 or encoded tail */
-> =09u32=09=09=09intra_count;
-> };
->
-> Since long is 32 bit on i386, we get the compilation error above.
->
-> We can try and squeeze CNA-specific fields into 64 bit on i386 (or any 32=
-bit=20
-> architecture for that matter). Note that an encoded tail pointer requires=
- up=20
-> to 24 bits, and we have two of those. We would want different field encod=
-ings=20
-> for 32 vs 64bit architectures, and this all will be quite ugly.
->
-> So instead we should probably either change the definition of @reserved i=
-n qnode=20
-> to long long, or perhaps disable CNA on 32bit architectures altogether?
-> I would certainly prefer the former, especially as it requires the least =
-amount=20
-> of code/config changes.
->
-> Any objections / thoughts?
->
-> Thanks,
-> =E2=80=94 Alex
->
-The easy way out is to restrict NUMA qspinlock to 64-bit only. There
-aren't that many 32-bit NUMA systems out there that we have to worry about.
-
-Just add "depends on 64BIT" to the config entry.
-
-Cheers,
-Longman
+Cgo+IE9uIE5vdiAyMiwgMjAxOSwgYXQgMjoyOSBQTSwgV2FpbWFuIExvbmcgPGxvbmdtYW5AcmVk
+aGF0LmNvbT4gd3JvdGU6Cj4gCj4gT24gMTEvMjIvMTkgMToyOCBQTSwgQWxleCBLb2dhbiB3cm90
+ZToKPj4gCj4+PiBPbiBOb3YgMjAsIDIwMTksIGF0IDEwOjE2IEFNLCBrYnVpbGQgdGVzdCByb2Jv
+dCA8bGtwQGludGVsLmNvbT4gd3JvdGU6Cj4+PiAKPj4+IEhpIEFsZXgsCj4+PiAKPj4+IFRoYW5r
+IHlvdSBmb3IgdGhlIHBhdGNoISBZZXQgc29tZXRoaW5nIHRvIGltcHJvdmU6Cj4+PiAKPj4+IFth
+dXRvIGJ1aWxkIHRlc3QgRVJST1Igb24gbGludXMvbWFzdGVyXQo+Pj4gW2Fsc28gYnVpbGQgdGVz
+dCBFUlJPUiBvbiB2NS40LXJjOCBuZXh0LTIwMTkxMTIwXQo+Pj4gW2lmIHlvdXIgcGF0Y2ggaXMg
+YXBwbGllZCB0byB0aGUgd3JvbmcgZ2l0IHRyZWUsIHBsZWFzZSBkcm9wIHVzIGEgbm90ZSB0byBo
+ZWxwCj4+PiBpbXByb3ZlIHRoZSBzeXN0ZW0uIEJUVywgd2UgYWxzbyBzdWdnZXN0IHRvIHVzZSAn
+LS1iYXNlJyBvcHRpb24gdG8gc3BlY2lmeSB0aGUKPj4+IGJhc2UgdHJlZSBpbiBnaXQgZm9ybWF0
+LXBhdGNoLCBwbGVhc2Ugc2VlIGh0dHBzOi8vdXJsZGVmZW5zZS5wcm9vZnBvaW50LmNvbS92Mi91
+cmw/dT1odHRwcy0zQV9fc3RhY2tvdmVyZmxvdy5jb21fYV8zNzQwNjk4MiZkPUR3SUJBZyZjPVJv
+UDFZdW1DWENnYVdIdmxaWVI4UFpoOEJ2N3FJck1VQjY1ZWFwSV9KbkUmcj1IdmhrM0Y0b21kQ2st
+R0UxUFRPbTNLbjBBN0FwV09aMmFaTFR1VnhGSzRrJm09QnhFdDEyMzJjY0dsTUdEaW5BQjBRQVVh
+VEZ5bC1tNXNwNEMtY3JIanBvVSZzPU96elFxZzRmVERWNTVYLXk0dmJuR2VYb0phUEhTdk9fRWZy
+VVFuTVZSSGMmZT0gXQo+Pj4gCj4+PiB1cmw6ICAgIGh0dHBzOi8vdXJsZGVmZW5zZS5wcm9vZnBv
+aW50LmNvbS92Mi91cmw/dT1odHRwcy0zQV9fZ2l0aHViLmNvbV8wZGF5LTJEY2lfbGludXhfY29t
+bWl0c19BbGV4LTJES29nYW5fbG9ja2luZy0yRHFzcGlubG9jay0yRFJlbmFtZS0yRG1jcy0yRGxv
+Y2stMkR1bmxvY2stMkRtYWNyb3MtMkRhbmQtMkRtYWtlLTJEdGhlbS0yRG1vcmUtMkRnZW5lcmlj
+XzIwMTkxMTA5LTJEMTgwNTM1JmQ9RHdJQkFnJmM9Um9QMVl1bUNYQ2dhV0h2bFpZUjhQWmg4QnY3
+cUlyTVVCNjVlYXBJX0puRSZyPUh2aGszRjRvbWRDay1HRTFQVE9tM0tuMEE3QXBXT1oyYVpMVHVW
+eEZLNGsmbT1CeEV0MTIzMmNjR2xNR0RpbkFCMFFBVWFURnlsLW01c3A0Qy1jckhqcG9VJnM9dUU3
+WmVZWE9GaXUwOVBVVmpuQ250RWUyclI1eF9ReFM2ZEVXOXR3cGZvayZlPSAKPj4+IGJhc2U6ICAg
+aHR0cHM6Ly91cmxkZWZlbnNlLnByb29mcG9pbnQuY29tL3YyL3VybD91PWh0dHBzLTNBX19naXQu
+a2VybmVsLm9yZ19wdWJfc2NtX2xpbnV4X2tlcm5lbF9naXRfdG9ydmFsZHNfbGludXguZ2l0JmQ9
+RHdJQkFnJmM9Um9QMVl1bUNYQ2dhV0h2bFpZUjhQWmg4QnY3cUlyTVVCNjVlYXBJX0puRSZyPUh2
+aGszRjRvbWRDay1HRTFQVE9tM0tuMEE3QXBXT1oyYVpMVHVWeEZLNGsmbT1CeEV0MTIzMmNjR2xN
+R0RpbkFCMFFBVWFURnlsLW01c3A0Qy1jckhqcG9VJnM9YUFLeHVYY19jN09GMGZmaW9RZlZzSUI2
+SC00U2Q5UFl4U003a3VybTJpZyZlPSAgMDA1OGIwYTUwNmU0MGQ5YTJjNjIwMTVmZTkyZWI2NGE0
+NGQ3OGNkOQo+Pj4gY29uZmlnOiBpMzg2LXJhbmRjb25maWctZjAwMy0yMDE5MTEyMCAoYXR0YWNo
+ZWQgYXMgLmNvbmZpZykKPj4+IGNvbXBpbGVyOiBnY2MtNyAoRGViaWFuIDcuNC4wLTE0KSA3LjQu
+MAo+Pj4gcmVwcm9kdWNlOgo+Pj4gICAgICAgIyBzYXZlIHRoZSBhdHRhY2hlZCAuY29uZmlnIHRv
+IGxpbnV4IGJ1aWxkIHRyZWUKPj4+ICAgICAgIG1ha2UgQVJDSD1pMzg2IAo+Pj4gCj4+PiBJZiB5
+b3UgZml4IHRoZSBpc3N1ZSwga2luZGx5IGFkZCBmb2xsb3dpbmcgdGFnCj4+PiBSZXBvcnRlZC1i
+eToga2J1aWxkIHRlc3Qgcm9ib3QgPGxrcEBpbnRlbC5jb20+Cj4+PiAKPj4+IEFsbCBlcnJvci93
+YXJuaW5ncyAobmV3IG9uZXMgcHJlZml4ZWQgYnkgPj4pOgo+Pj4gCj4+PiAgSW4gZmlsZSBpbmNs
+dWRlZCBmcm9tIGluY2x1ZGUvbGludXgvZXhwb3J0Lmg6NDI6MCwKPj4+ICAgICAgICAgICAgICAg
+ICAgIGZyb20gaW5jbHVkZS9saW51eC9saW5rYWdlLmg6NywKPj4+ICAgICAgICAgICAgICAgICAg
+IGZyb20gaW5jbHVkZS9saW51eC9rZXJuZWwuaDo4LAo+Pj4gICAgICAgICAgICAgICAgICAgZnJv
+bSBpbmNsdWRlL2xpbnV4L2xpc3QuaDo5LAo+Pj4gICAgICAgICAgICAgICAgICAgZnJvbSBpbmNs
+dWRlL2xpbnV4L3NtcC5oOjEyLAo+Pj4gICAgICAgICAgICAgICAgICAgZnJvbSBrZXJuZWwvbG9j
+a2luZy9xc3BpbmxvY2suYzoxNjoKPj4+ICBrZXJuZWwvbG9ja2luZy9xc3BpbmxvY2tfY25hLmg6
+IEluIGZ1bmN0aW9uICdjbmFfaW5pdF9ub2Rlcyc6Cj4+Pj4+IGluY2x1ZGUvbGludXgvY29tcGls
+ZXIuaDozNTA6Mzg6IGVycm9yOiBjYWxsIHRvICdfX2NvbXBpbGV0aW1lX2Fzc2VydF84MCcgZGVj
+bGFyZWQgd2l0aCBhdHRyaWJ1dGUgZXJyb3I6IEJVSUxEX0JVR19PTiBmYWlsZWQ6IHNpemVvZihz
+dHJ1Y3QgY25hX25vZGUpID4gc2l6ZW9mKHN0cnVjdCBxbm9kZSkKPj4+ICAgIF9jb21waWxldGlt
+ZV9hc3NlcnQoY29uZGl0aW9uLCBtc2csIF9fY29tcGlsZXRpbWVfYXNzZXJ0XywgX19MSU5FX18p
+Cj4+PiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICBeCj4+PiAgaW5jbHVk
+ZS9saW51eC9jb21waWxlci5oOjMzMTo0OiBub3RlOiBpbiBkZWZpbml0aW9uIG9mIG1hY3JvICdf
+X2NvbXBpbGV0aW1lX2Fzc2VydCcKPj4+ICAgICAgcHJlZml4ICMjIHN1ZmZpeCgpOyAgICBcCj4+
+PiAgICAgIF5+fn5+fgo+Pj4gIGluY2x1ZGUvbGludXgvY29tcGlsZXIuaDozNTA6Mjogbm90ZTog
+aW4gZXhwYW5zaW9uIG9mIG1hY3JvICdfY29tcGlsZXRpbWVfYXNzZXJ0Jwo+Pj4gICAgX2NvbXBp
+bGV0aW1lX2Fzc2VydChjb25kaXRpb24sIG1zZywgX19jb21waWxldGltZV9hc3NlcnRfLCBfX0xJ
+TkVfXykKPj4+ICAgIF5+fn5+fn5+fn5+fn5+fn5+fn4KPj4+ICBpbmNsdWRlL2xpbnV4L2J1aWxk
+X2J1Zy5oOjM5OjM3OiBub3RlOiBpbiBleHBhbnNpb24gb2YgbWFjcm8gJ2NvbXBpbGV0aW1lX2Fz
+c2VydCcKPj4+ICAgI2RlZmluZSBCVUlMRF9CVUdfT05fTVNHKGNvbmQsIG1zZykgY29tcGlsZXRp
+bWVfYXNzZXJ0KCEoY29uZCksIG1zZykKPj4+ICAgICAgICAgICAgICAgICAgICAgICAgICAgICAg
+ICAgICAgICAgXn5+fn5+fn5+fn5+fn5+fn5+Cj4+PiAgaW5jbHVkZS9saW51eC9idWlsZF9idWcu
+aDo1MDoyOiBub3RlOiBpbiBleHBhbnNpb24gb2YgbWFjcm8gJ0JVSUxEX0JVR19PTl9NU0cnCj4+
+PiAgICBCVUlMRF9CVUdfT05fTVNHKGNvbmRpdGlvbiwgIkJVSUxEX0JVR19PTiBmYWlsZWQ6ICIg
+I2NvbmRpdGlvbikKPj4+ICAgIF5+fn5+fn5+fn5+fn5+fn4KPj4+Pj4ga2VybmVsL2xvY2tpbmcv
+cXNwaW5sb2NrX2NuYS5oOjgwOjI6IG5vdGU6IGluIGV4cGFuc2lvbiBvZiBtYWNybyAnQlVJTERf
+QlVHX09OJwo+Pj4gICAgQlVJTERfQlVHX09OKHNpemVvZihzdHJ1Y3QgY25hX25vZGUpID4gc2l6
+ZW9mKHN0cnVjdCBxbm9kZSkpOwo+Pj4gICAgXn5+fn5+fn5+fn5+Cj4+IENvbnNpZGVyIHRoZSBm
+b2xsb3dpbmcgZGVmaW5pdGlvbiBvZiBxbm9kZToKPj4gCj4+IHN0cnVjdCBxbm9kZSB7Cj4+IAlz
+dHJ1Y3QgbWNzX3NwaW5sb2NrIG1jczsKPj4gI2lmIGRlZmluZWQoQ09ORklHX1BBUkFWSVJUX1NQ
+SU5MT0NLUykgfHwgZGVmaW5lZChDT05GSUdfTlVNQV9BV0FSRV9TUElOTE9DS1MpCj4+IAlsb25n
+IHJlc2VydmVkWzJdOwo+PiAjZW5kaWYKPj4gfTsKPj4gCj4+IGFuZCB0aGlzIGlzIGhvdyBjbmFf
+bm9kZSBpcyBkZWZpbmVkOgo+PiAKPj4gc3RydWN0IGNuYV9ub2RlIHsKPj4gCXN0cnVjdCBtY3Nf
+c3BpbmxvY2sJbWNzOwo+PiAJaW50CQkJbnVtYV9ub2RlOwo+PiAJdTMyCQkJZW5jb2RlZF90YWls
+Owo+PiAJdTMyCQkJcHJlX3NjYW5fcmVzdWx0OyAvKiAwLCAxLCAyIG9yIGVuY29kZWQgdGFpbCAq
+Lwo+PiAJdTMyCQkJaW50cmFfY291bnQ7Cj4+IH07Cj4+IAo+PiBTaW5jZSBsb25nIGlzIDMyIGJp
+dCBvbiBpMzg2LCB3ZSBnZXQgdGhlIGNvbXBpbGF0aW9uIGVycm9yIGFib3ZlLgo+PiAKPj4gV2Ug
+Y2FuIHRyeSBhbmQgc3F1ZWV6ZSBDTkEtc3BlY2lmaWMgZmllbGRzIGludG8gNjQgYml0IG9uIGkz
+ODYgKG9yIGFueSAzMmJpdCAKPj4gYXJjaGl0ZWN0dXJlIGZvciB0aGF0IG1hdHRlcikuIE5vdGUg
+dGhhdCBhbiBlbmNvZGVkIHRhaWwgcG9pbnRlciByZXF1aXJlcyB1cCAKPj4gdG8gMjQgYml0cywg
+YW5kIHdlIGhhdmUgdHdvIG9mIHRob3NlLiBXZSB3b3VsZCB3YW50IGRpZmZlcmVudCBmaWVsZCBl
+bmNvZGluZ3MgCj4+IGZvciAzMiB2cyA2NGJpdCBhcmNoaXRlY3R1cmVzLCBhbmQgdGhpcyBhbGwg
+d2lsbCBiZSBxdWl0ZSB1Z2x5Lgo+PiAKPj4gU28gaW5zdGVhZCB3ZSBzaG91bGQgcHJvYmFibHkg
+ZWl0aGVyIGNoYW5nZSB0aGUgZGVmaW5pdGlvbiBvZiBAcmVzZXJ2ZWQgaW4gcW5vZGUgCj4+IHRv
+IGxvbmcgbG9uZywgb3IgcGVyaGFwcyBkaXNhYmxlIENOQSBvbiAzMmJpdCBhcmNoaXRlY3R1cmVz
+IGFsdG9nZXRoZXI/Cj4+IEkgd291bGQgY2VydGFpbmx5IHByZWZlciB0aGUgZm9ybWVyLCBlc3Bl
+Y2lhbGx5IGFzIGl0IHJlcXVpcmVzIHRoZSBsZWFzdCBhbW91bnQgCj4+IG9mIGNvZGUvY29uZmln
+IGNoYW5nZXMuCj4+IAo+PiBBbnkgb2JqZWN0aW9ucyAvIHRob3VnaHRzPwo+PiAKPj4gVGhhbmtz
+LAo+PiDigJQgQWxleAo+PiAKPiBUaGUgZWFzeSB3YXkgb3V0IGlzIHRvIHJlc3RyaWN0IE5VTUEg
+cXNwaW5sb2NrIHRvIDY0LWJpdCBvbmx5LiBUaGVyZQo+IGFyZW4ndCB0aGF0IG1hbnkgMzItYml0
+IE5VTUEgc3lzdGVtcyBvdXQgdGhlcmUgdGhhdCB3ZSBoYXZlIHRvIHdvcnJ5IGFib3V0Lgo+IAo+
+IEp1c3QgYWRkICJkZXBlbmRzIG9uIDY0QklUIiB0byB0aGUgY29uZmlnIGVudHJ5LgpPaywgd2ls
+bCBkby4KClRoYW5rcywK4oCUIEFsZXgKX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19f
+X19fX19fX19fX19fX18KbGludXgtYXJtLWtlcm5lbCBtYWlsaW5nIGxpc3QKbGludXgtYXJtLWtl
+cm5lbEBsaXN0cy5pbmZyYWRlYWQub3JnCmh0dHA6Ly9saXN0cy5pbmZyYWRlYWQub3JnL21haWxt
+YW4vbGlzdGluZm8vbGludXgtYXJtLWtlcm5lbAo=
