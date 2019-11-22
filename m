@@ -1,57 +1,151 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mo4-p01-ob.smtp.rzone.de ([85.215.255.51]:29129 "EHLO
-        mo4-p01-ob.smtp.rzone.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726279AbfKUSWA (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 21 Nov 2019 13:22:00 -0500
-Content-Type: text/plain;
-        charset=us-ascii
-Mime-Version: 1.0 (1.0)
-Subject: Re: Bug 205201 - Booting halts if Dawicontrol DC-2976 UW SCSI board installed, unless RAM size limited to 3500M
-From: Christian Zigotzky <chzigotzky@xenosoft.de>
-In-Reply-To: <20191121180226.GA3852@lst.de>
-Date: Thu, 21 Nov 2019 19:21:04 +0100
-Content-Transfer-Encoding: quoted-printable
-Message-ID: <0F53CCCE-738C-4024-9C3C-4BDEB0D0728C@xenosoft.de>
-References: <F1EBB706-73DF-430E-9020-C214EC8ED5DA@xenosoft.de> <20191121072943.GA24024@lst.de> <dbde2252-035e-6183-7897-43348e60647e@xenosoft.de> <6eec5c42-019c-a988-fc2a-cb804194683d@xenosoft.de> <d0252d29-7a03-20e1-ccd7-e12d906e4bdf@arm.com> <b3217742-2c0b-8447-c9ac-608b93265363@xenosoft.de> <20191121180226.GA3852@lst.de>
+Received: from mail-wm1-f73.google.com ([209.85.128.73]:36727 "EHLO
+        mail-wm1-f73.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726980AbfKVPne (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 22 Nov 2019 10:43:34 -0500
+Received: by mail-wm1-f73.google.com with SMTP id z3so3247136wmk.1
+        for <linux-arch@vger.kernel.org>; Fri, 22 Nov 2019 07:43:32 -0800 (PST)
+Date: Fri, 22 Nov 2019 16:42:21 +0100
+In-Reply-To: <20191122154221.247680-1-elver@google.com>
+Message-ID: <20191122154221.247680-2-elver@google.com>
+Mime-Version: 1.0
+References: <20191122154221.247680-1-elver@google.com>
+Subject: [PATCH 2/2] kcsan: Prefer __always_inline for fast-path
+From: Marco Elver <elver@google.com>
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Christoph Hellwig <hch@lst.de>
-Cc: Robin Murphy <robin.murphy@arm.com>, linux-arch@vger.kernel.org, darren@stevens-zone.net, mad skateman <madskateman@gmail.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, linux-kernel@vger.kernel.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Rob Herring <robh+dt@kernel.org>, paulus@samba.org, rtd2@xtra.co.nz, "contact@a-eon.com" <contact@a-eon.com>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, nsaenzjulienne@suse.de
-Message-ID: <20191121182104.YRXcRCDDxPIvKL3qIzg3lS7GO6kjoh-nZoe2DptJt6k@z>
+To: elver@google.com
+Cc: will@kernel.org, peterz@infradead.org, boqun.feng@gmail.com, arnd@arndb.de, dvyukov@google.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, kasan-dev@googlegroups.com, paulmck@kernel.org, Randy Dunlap <rdunlap@infradead.org>
+Message-ID: <20191122154221.ils6J_0dHNOMvNRMb1fowEWk49LYB0fhrfMEVv8qrAw@z>
 
-On 21. Nov 2019, at 19:02, Christoph Hellwig <hch@lst.de> wrote:
+Prefer __always_inline for fast-path functions that are called outside
+of user_access_save, to avoid generating UACCESS warnings when
+optimizing for size (CC_OPTIMIZE_FOR_SIZE). It will also avoid future
+surprises with compiler versions that change the inlining heuristic even
+when optimizing for performance.
 
-On Thu, Nov 21, 2019 at 05:34:48PM +0100, Christian Zigotzky wrote:
-I modified the patch and compiled a new RC8 of kernel 5.4 today. (patch=20
-attached)
+Report: http://lkml.kernel.org/r/58708908-84a0-0a81-a836-ad97e33dbb62@infradead.org
+Reported-by: Randy Dunlap <rdunlap@infradead.org>
+Signed-off-by: Marco Elver <elver@google.com>
+---
+Rebased on: locking/kcsan branch of tip tree.
+---
+ kernel/kcsan/atomic.h   |  2 +-
+ kernel/kcsan/core.c     | 16 +++++++---------
+ kernel/kcsan/encoding.h | 14 +++++++-------
+ 3 files changed, 15 insertions(+), 17 deletions(-)
 
-We have to wait to Rolands test results with his SCSI PCI card. I tested it=20=
-
-today but my TV card doesn't work with this patch.
-
-I think we have two sorta overlapping issues here.  One is that I think
-we need the bus_dma_limit, which should mostly help for something like
-a SCSI controller that doesn't need streaming mappings (btw, do we
-have more details on that somewhere?).
-
-And something weird with the videobuf things.  Your change of the dma
-masks suggests that the driver doesn't do the right allocations and thus
-hits bounce buffering (swiotlb).  We should fix that for real, but the
-fact that the bounce buffering itself also fails is even more interesting.
-
-Can you try this git branch:
-
-   git://git.infradead.org/users/hch/misc.git fsl-dma-debugging
-
-Gitweb:
-
-   http://git.infradead.org/users/hch/misc.git/shortlog/refs/heads/fsl-dma-d=
-ebugging
-
-and send me the dmesg with that with your TV adapter?
-
-- - -
-
-Yes, I will test it at the weekend. Thanks for your help.
-
-Christian=
+diff --git a/kernel/kcsan/atomic.h b/kernel/kcsan/atomic.h
+index 576e03ddd6a3..a9c193053491 100644
+--- a/kernel/kcsan/atomic.h
++++ b/kernel/kcsan/atomic.h
+@@ -18,7 +18,7 @@
+  * than cast to volatile. Eventually, we hope to be able to remove this
+  * function.
+  */
+-static inline bool kcsan_is_atomic(const volatile void *ptr)
++static __always_inline bool kcsan_is_atomic(const volatile void *ptr)
+ {
+ 	/* only jiffies for now */
+ 	return ptr == &jiffies;
+diff --git a/kernel/kcsan/core.c b/kernel/kcsan/core.c
+index 3314fc29e236..c616fec639cd 100644
+--- a/kernel/kcsan/core.c
++++ b/kernel/kcsan/core.c
+@@ -78,10 +78,8 @@ static atomic_long_t watchpoints[CONFIG_KCSAN_NUM_WATCHPOINTS + NUM_SLOTS-1];
+  */
+ static DEFINE_PER_CPU(long, kcsan_skip);
+ 
+-static inline atomic_long_t *find_watchpoint(unsigned long addr,
+-					     size_t size,
+-					     bool expect_write,
+-					     long *encoded_watchpoint)
++static __always_inline atomic_long_t *
++find_watchpoint(unsigned long addr, size_t size, bool expect_write, long *encoded_watchpoint)
+ {
+ 	const int slot = watchpoint_slot(addr);
+ 	const unsigned long addr_masked = addr & WATCHPOINT_ADDR_MASK;
+@@ -146,7 +144,7 @@ insert_watchpoint(unsigned long addr, size_t size, bool is_write)
+  *	2. the thread that set up the watchpoint already removed it;
+  *	3. the watchpoint was removed and then re-used.
+  */
+-static inline bool
++static __always_inline bool
+ try_consume_watchpoint(atomic_long_t *watchpoint, long encoded_watchpoint)
+ {
+ 	return atomic_long_try_cmpxchg_relaxed(watchpoint, &encoded_watchpoint, CONSUMED_WATCHPOINT);
+@@ -160,7 +158,7 @@ static inline bool remove_watchpoint(atomic_long_t *watchpoint)
+ 	return atomic_long_xchg_relaxed(watchpoint, INVALID_WATCHPOINT) != CONSUMED_WATCHPOINT;
+ }
+ 
+-static inline struct kcsan_ctx *get_ctx(void)
++static __always_inline struct kcsan_ctx *get_ctx(void)
+ {
+ 	/*
+ 	 * In interrupts, use raw_cpu_ptr to avoid unnecessary checks, that would
+@@ -169,7 +167,7 @@ static inline struct kcsan_ctx *get_ctx(void)
+ 	return in_task() ? &current->kcsan_ctx : raw_cpu_ptr(&kcsan_cpu_ctx);
+ }
+ 
+-static inline bool is_atomic(const volatile void *ptr)
++static __always_inline bool is_atomic(const volatile void *ptr)
+ {
+ 	struct kcsan_ctx *ctx = get_ctx();
+ 
+@@ -193,7 +191,7 @@ static inline bool is_atomic(const volatile void *ptr)
+ 	return kcsan_is_atomic(ptr);
+ }
+ 
+-static inline bool should_watch(const volatile void *ptr, int type)
++static __always_inline bool should_watch(const volatile void *ptr, int type)
+ {
+ 	/*
+ 	 * Never set up watchpoints when memory operations are atomic.
+@@ -226,7 +224,7 @@ static inline void reset_kcsan_skip(void)
+ 	this_cpu_write(kcsan_skip, skip_count);
+ }
+ 
+-static inline bool kcsan_is_enabled(void)
++static __always_inline bool kcsan_is_enabled(void)
+ {
+ 	return READ_ONCE(kcsan_enabled) && get_ctx()->disable_count == 0;
+ }
+diff --git a/kernel/kcsan/encoding.h b/kernel/kcsan/encoding.h
+index b63890e86449..f03562aaf2eb 100644
+--- a/kernel/kcsan/encoding.h
++++ b/kernel/kcsan/encoding.h
+@@ -59,10 +59,10 @@ encode_watchpoint(unsigned long addr, size_t size, bool is_write)
+ 		      (addr & WATCHPOINT_ADDR_MASK));
+ }
+ 
+-static inline bool decode_watchpoint(long watchpoint,
+-				     unsigned long *addr_masked,
+-				     size_t *size,
+-				     bool *is_write)
++static __always_inline bool decode_watchpoint(long watchpoint,
++					      unsigned long *addr_masked,
++					      size_t *size,
++					      bool *is_write)
+ {
+ 	if (watchpoint == INVALID_WATCHPOINT ||
+ 	    watchpoint == CONSUMED_WATCHPOINT)
+@@ -78,13 +78,13 @@ static inline bool decode_watchpoint(long watchpoint,
+ /*
+  * Return watchpoint slot for an address.
+  */
+-static inline int watchpoint_slot(unsigned long addr)
++static __always_inline int watchpoint_slot(unsigned long addr)
+ {
+ 	return (addr / PAGE_SIZE) % CONFIG_KCSAN_NUM_WATCHPOINTS;
+ }
+ 
+-static inline bool matching_access(unsigned long addr1, size_t size1,
+-				   unsigned long addr2, size_t size2)
++static __always_inline bool matching_access(unsigned long addr1, size_t size1,
++					    unsigned long addr2, size_t size2)
+ {
+ 	unsigned long end_range1 = addr1 + size1 - 1;
+ 	unsigned long end_range2 = addr2 + size2 - 1;
+-- 
+2.24.0.432.g9d3f5f5b63-goog
