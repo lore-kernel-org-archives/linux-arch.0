@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from aserp2120.oracle.com ([141.146.126.78]:50898 "EHLO
+Received: from aserp2120.oracle.com ([141.146.126.78]:50916 "EHLO
         aserp2120.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1725882AbfKYVQX (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 25 Nov 2019 16:16:23 -0500
+        with ESMTP id S1725916AbfKYVQY (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 25 Nov 2019 16:16:24 -0500
 From: Alex Kogan <alex.kogan@oracle.com>
-Subject: [PATCH v7 5/5] locking/qspinlock: Introduce the shuffle reduction optimization into CNA
-Date: Mon, 25 Nov 2019 16:07:09 -0500
-Message-ID: <20191125210709.10293-6-alex.kogan@oracle.com>
+Subject: [PATCH v7 2/5] locking/qspinlock: Refactor the qspinlock slow path
+Date: Mon, 25 Nov 2019 16:07:06 -0500
+Message-ID: <20191125210709.10293-3-alex.kogan@oracle.com>
 In-Reply-To: <20191125210709.10293-1-alex.kogan@oracle.com>
 References: <20191125210709.10293-1-alex.kogan@oracle.com>
 MIME-Version: 1.0
@@ -15,129 +15,87 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux@armlinux.org.uk, peterz@infradead.org, mingo@redhat.com, will.deacon@arm.com, arnd@arndb.de, longman@redhat.com, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, bp@alien8.de, hpa@zytor.com, x86@kernel.org, guohanjun@huawei.com, jglauber@marvell.com
 Cc: steven.sistare@oracle.com, daniel.m.jordan@oracle.com, alex.kogan@oracle.com, dave.dice@oracle.com, rahul.x.yadav@oracle.com
-Message-ID: <20191125210709.RZLfWfT33NQ_OEB2mT-FagG0GJ2IlS2pkUhbsfXN9_k@z>
+Message-ID: <20191125210706.yknb0jmlo4lBEWvqGN2CVcW9drxnW97tBQMHuHA5CeU@z>
 
-This optimization reduces the probability threads will be shuffled between
-the main and secondary queues when the secondary queue is empty.
-It is helpful when the lock is only lightly contended.
+Move some of the code manipulating the spin lock into separate functions.
+This would allow easier integration of alternative ways to manipulate
+that lock.
 
 Signed-off-by: Alex Kogan <alex.kogan@oracle.com>
 Reviewed-by: Steve Sistare <steven.sistare@oracle.com>
 ---
- kernel/locking/qspinlock_cna.h | 50 ++++++++++++++++++++++++++++------
- 1 file changed, 42 insertions(+), 8 deletions(-)
+ kernel/locking/qspinlock.c | 38 ++++++++++++++++++++++++++++++++++++--
+ 1 file changed, 36 insertions(+), 2 deletions(-)
 
-diff --git a/kernel/locking/qspinlock_cna.h b/kernel/locking/qspinlock_cna.h
-index dcb2bcfd2d94..f1eef6bece7b 100644
---- a/kernel/locking/qspinlock_cna.h
-+++ b/kernel/locking/qspinlock_cna.h
-@@ -4,6 +4,7 @@
+diff --git a/kernel/locking/qspinlock.c b/kernel/locking/qspinlock.c
+index 804c0fbd6328..c06d1e8075d9 100644
+--- a/kernel/locking/qspinlock.c
++++ b/kernel/locking/qspinlock.c
+@@ -288,6 +288,34 @@ static __always_inline u32  __pv_wait_head_or_lock(struct qspinlock *lock,
+ #define queued_spin_lock_slowpath	native_queued_spin_lock_slowpath
  #endif
  
- #include <linux/topology.h>
-+#include <linux/random.h>
- 
- /*
-  * Implement a NUMA-aware version of MCS (aka CNA, or compact NUMA-aware lock).
-@@ -50,7 +51,7 @@ struct cna_node {
- 	struct mcs_spinlock	mcs;
- 	int			numa_node;
- 	u32			encoded_tail;
--	u32			pre_scan_result; /* 0, 1 or encoded tail */
-+	u32			pre_scan_result; /* 0, 1, 2 or encoded tail */
- 	u32			intra_count;
- };
- 
-@@ -60,6 +61,34 @@ struct cna_node {
-  */
- extern int intra_node_handoff_threshold;
- 
 +/*
-+ * Controls the probability for enabling the scan of the main queue when
-+ * the secondary queue is empty. The chosen value reduces the amount of
-+ * unnecessary shuffling of threads between the two waiting queues when
-+ * the contention is low, while responding fast enough and enabling
-+ * the shuffling when the contention is high.
++ * __try_clear_tail - try to clear tail by setting the lock value to
++ * _Q_LOCKED_VAL.
++ * @lock: Pointer to the queued spinlock structure
++ * @val: Current value of the lock
++ * @node: Pointer to the MCS node of the lock holder
 + */
-+#define SHUFFLE_REDUCTION_PROB_ARG  (7)
-+
-+/* Per-CPU pseudo-random number seed */
-+static DEFINE_PER_CPU(u32, seed);
-+
-+/*
-+ * Return false with probability 1 / 2^@num_bits.
-+ * Intuitively, the larger @num_bits the less likely false is to be returned.
-+ * @num_bits must be a number between 0 and 31.
-+ */
-+static bool probably(unsigned int num_bits)
++static __always_inline bool __try_clear_tail(struct qspinlock *lock,
++						   u32 val,
++						   struct mcs_spinlock *node)
 +{
-+	u32 s;
-+
-+	s = this_cpu_read(seed);
-+	s = next_pseudo_random32(s);
-+	this_cpu_write(seed, s);
-+
-+	return s & ((1 << num_bits) - 1);
++	return atomic_try_cmpxchg_relaxed(&lock->val, &val, _Q_LOCKED_VAL);
 +}
 +
- static void __init cna_init_nodes_per_cpu(unsigned int cpu)
- {
- 	struct mcs_spinlock *base = per_cpu_ptr(&qnodes[0].mcs, cpu);
-@@ -72,11 +101,11 @@ static void __init cna_init_nodes_per_cpu(unsigned int cpu)
- 		cn->numa_node = numa_node;
- 		cn->encoded_tail = encode_tail(cpu, i);
- 		/*
--		 * @encoded_tail has to be larger than 1, so we do not confuse
-+		 * @encoded_tail has to be larger than 2, so we do not confuse
- 		 * it with other valid values for @locked or @pre_scan_result
--		 * (0 or 1)
-+		 * (0, 1 or 2)
- 		 */
--		WARN_ON(cn->encoded_tail <= 1);
-+		WARN_ON(cn->encoded_tail <= 2);
- 	}
- }
- 
-@@ -234,12 +263,13 @@ __always_inline u32 cna_pre_scan(struct qspinlock *lock,
- 	struct cna_node *cn = (struct cna_node *)node;
- 
- 	/*
--	 * setting @pre_scan_result to 1 indicates that no post-scan
-+	 * setting @pre_scan_result to 1 or 2 indicates that no post-scan
- 	 * should be made in cna_pass_lock()
- 	 */
- 	cn->pre_scan_result =
--		cn->intra_count == intra_node_handoff_threshold ?
--			1 : cna_scan_main_queue(node, node);
-+		(node->locked <= 1 && probably(SHUFFLE_REDUCTION_PROB_ARG)) ?
-+			1 : cn->intra_count == intra_node_handoff_threshold ?
-+			2 : cna_scan_main_queue(node, node);
- 
- 	return 0;
- }
-@@ -253,12 +283,15 @@ static inline void cna_pass_lock(struct mcs_spinlock *node,
- 
- 	u32 scan = cn->pre_scan_result;
- 
-+	if (scan == 1)
-+		goto pass_lock;
++/*
++ * __mcs_pass_lock - pass the MCS lock to the next waiter
++ * @node: Pointer to the MCS node of the lock holder
++ * @next: Pointer to the MCS node of the first waiter in the MCS queue
++ */
++static __always_inline void __mcs_pass_lock(struct mcs_spinlock *node,
++					    struct mcs_spinlock *next)
++{
++	arch_mcs_pass_lock(&next->locked, 1);
++}
 +
- 	/*
- 	 * check if a successor from the same numa node has not been found in
- 	 * pre-scan, and if so, try to find it in post-scan starting from the
- 	 * node where pre-scan stopped (stored in @pre_scan_result)
- 	 */
--	if (scan > 1)
-+	if (scan > 2)
- 		scan = cna_scan_main_queue(node, decode_tail(scan));
++#define try_clear_tail	__try_clear_tail
++#define mcs_pass_lock		__mcs_pass_lock
++
+ #endif /* _GEN_PV_LOCK_SLOWPATH */
  
- 	if (!scan) { /* if found a successor from the same numa node */
-@@ -281,5 +314,6 @@ static inline void cna_pass_lock(struct mcs_spinlock *node,
- 		tail_2nd->next = next;
+ /**
+@@ -532,7 +560,7 @@ void queued_spin_lock_slowpath(struct qspinlock *lock, u32 val)
+ 	 *       PENDING will make the uncontended transition fail.
+ 	 */
+ 	if ((val & _Q_TAIL_MASK) == tail) {
+-		if (atomic_try_cmpxchg_relaxed(&lock->val, &val, _Q_LOCKED_VAL))
++		if (try_clear_tail(lock, val, node))
+ 			goto release; /* No contention */
  	}
  
-+pass_lock:
- 	arch_mcs_pass_lock(&next_holder->locked, val);
- }
+@@ -549,7 +577,7 @@ void queued_spin_lock_slowpath(struct qspinlock *lock, u32 val)
+ 	if (!next)
+ 		next = smp_cond_load_relaxed(&node->next, (VAL));
+ 
+-	arch_mcs_pass_lock(&next->locked, 1);
++	mcs_pass_lock(node, next);
+ 	pv_kick_node(lock, next);
+ 
+ release:
+@@ -574,6 +602,12 @@ EXPORT_SYMBOL(queued_spin_lock_slowpath);
+ #undef pv_kick_node
+ #undef pv_wait_head_or_lock
+ 
++#undef try_clear_tail
++#define try_clear_tail		__try_clear_tail
++
++#undef mcs_pass_lock
++#define mcs_pass_lock			__mcs_pass_lock
++
+ #undef  queued_spin_lock_slowpath
+ #define queued_spin_lock_slowpath	__pv_queued_spin_lock_slowpath
+ 
 -- 
 2.21.0 (Apple Git-122.2)
