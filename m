@@ -1,105 +1,45 @@
-From: Aleksa Sarai <cyphar@cyphar.com>
-Subject: Re: [PATCH v17 08/13] namei: LOOKUP_BENEATH: O_BENEATH-like scoped
- resolution
-Date: Mon, 25 Nov 2019 17:03:48 +1100
-Message-ID: <20191125060348.bkdlxvoacdeyy6od@yavin.dot.cyphar.com>
-References: <20191117011713.13032-1-cyphar@cyphar.com>
- <20191117011713.13032-9-cyphar@cyphar.com>
- <20191125002604.GE4203@ZenIV.linux.org.uk>
+From: Christoph Hellwig <hch@lst.de>
+Subject: Re: Bug 205201 - Booting halts if Dawicontrol DC-2976 UW SCSI
+ board installed, unless RAM size limited to 3500M
+Date: Mon, 25 Nov 2019 08:39:23 +0100
+Message-ID: <20191125073923.GA30168@lst.de>
+References: <F1EBB706-73DF-430E-9020-C214EC8ED5DA@xenosoft.de> <20191121072943.GA24024@lst.de> <dbde2252-035e-6183-7897-43348e60647e@xenosoft.de> <6eec5c42-019c-a988-fc2a-cb804194683d@xenosoft.de> <d0252d29-7a03-20e1-ccd7-e12d906e4bdf@arm.com> <b3217742-2c0b-8447-c9ac-608b93265363@xenosoft.de> <20191121180226.GA3852@lst.de> <2fde79cf-875f-94e6-4a1b-f73ebb2e2c32@xenosoft.de>
 Mime-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha256;
-	protocol="application/pgp-signature"; boundary="n5oan2cpdmv3a5ir"
-Return-path: <libc-alpha-return-107328-glibc-alpha=m.gmane.org@sourceware.org>
-List-Unsubscribe: <mailto:libc-alpha-unsubscribe-glibc-alpha=m.gmane.org@sourceware.org>
-List-Subscribe: <mailto:libc-alpha-subscribe@sourceware.org>
-List-Archive: <http://sourceware.org/ml/libc-alpha/>
-List-Post: <mailto:libc-alpha@sourceware.org>
-List-Help: <mailto:libc-alpha-help@sourceware.org>, <http://sourceware.org/ml/#faqs>
-Sender: libc-alpha-owner@sourceware.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <20191125002604.GE4203@ZenIV.linux.org.uk>
-To: Al Viro <viro@zeniv.linux.org.uk>
-Cc: Jeff Layton <jlayton@kernel.org>, "J. Bruce Fields" <bfields@fieldses.org>, Arnd Bergmann <arnd@arndb.de>, David Howells <dhowells@redhat.com>, Shuah Khan <shuah@kernel.org>, Shuah Khan <skhan@linuxfoundation.org>, Ingo Molnar <mingo@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Alexei Starovoitov <ast@kernel.org>, Daniel Borkmann <daniel@iogearbox.net>, Martin KaFai Lau <kafai@fb.com>, Song Liu <songliubraving@fb.com>, Yonghong Song <yhs@fb.com>, Andrii Nakryiko <andriin@fb.com>, Jonathan Corbet <corbet@lwn.net>, Christian Brauner <christian.brauner@ubuntu.com>, David Drysdale <drysdale@google.com>, Andy Lutomirski <luto@kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Eric Biederman <ebiederm@xmission.com>, Andrew Morton <akpm@linux-foundation.org>, Kees Cook <keescook@chromium.org>, Jann Horn <jannh@google.com>, Tycho Andersen <tycho@tycho.ws>
+In-Reply-To: <2fde79cf-875f-94e6-4a1b-f73ebb2e2c32@xenosoft.de>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Christian Zigotzky <chzigotzky@xenosoft.de>
+Cc: Robin Murphy <robin.murphy@arm.com>, linux-arch@vger.kernel.org, darren@stevens-zone.net, mad skateman <madskateman@gmail.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, linux-kernel@vger.kernel.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Rob Herring <robh+dt@kernel.org>, paulus@samba.org, rtd2@xtra.co.nz, "contact@a-eon.com" <contact@a-eon.com>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, nsaenzjulienne@suse.de, Mike Rapoport <rppt@linux.ibm.com>
 List-Id: linux-arch.vger.kernel.org
 
+On Sat, Nov 23, 2019 at 12:42:27PM +0100, Christian Zigotzky wrote:
+> Hello Christoph,
+>
+> Please find attached the dmesg of your Git kernel.
 
---n5oan2cpdmv3a5ir
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
+Thanks.  It looks like on your platform the swiotlb buffer isn't
+actually addressable based on the bus dma mask limit, which is rather
+interesting.  swiotlb_init uses memblock_alloc_low to allocate the
+buffer, and I'll need some help from Mike and the powerpc maintainers
+to figure out how that select where to allocate the buffer from, and
+how we can move it to a lower address.  My gut feeling would be to try
+to do what arm64 does and define a new ARCH_LOW_ADDRESS_LIMIT, preferably
+without needing too much arch specific magic.
 
-On 2019-11-25, Al Viro <viro@zeniv.linux.org.uk> wrote:
-> On Sun, Nov 17, 2019 at 12:17:08PM +1100, Aleksa Sarai wrote:
->=20
-> > +	if (unlikely(nd->flags & LOOKUP_IS_SCOPED)) {
-> > +		/*
-> > +		 * Do a final check to ensure that the path didn't escape. Note
-> > +		 * that this should already be guaranteed by all of the other
-> > +		 * LOOKUP_IS_SCOPED checks (and delaying this check this late
-> > +		 * does open the door to some possible timing-based attacks).
-> > +		 */
-> > +		if (WARN_ON(!path_is_under(&nd->path, &nd->root)))
-> > +			return -EXDEV;
->=20
-> I don't like that.  What it gives is an ability to race that with
-> rename(), with user-triggered WARN_ON.  You *can't* promise that result of
-> lookup is in a subtree, simply because it can get moved just as you've
-> declared it to be in the clear.
->=20
-> 	Anyone who relies upon that is delusional; it really can't be done.
-> What warranties LOOKUP_IS_SCOPED is really supposed to provide?  That we =
-do not
-> attempt to walk out of the subtree rooted at the start point?  Fine, but =
-this
-> is not what this test does.  What are you trying to achieve there?  If it=
-'s
-> "what we'd got was at one point in our subtree", the test is more or less
-> right, but WARN_ON isn't.
+As a quick hack can you try this patch on top of the tree from Friday?
 
-You're right that (looking at this again) this chunk doesn't make too
-much sense -- though I still think it wouldn't be a bad idea to include
-it without the WARN_ON.
-
-The reason I added it was as an attempt to have a last-chance check to
-make sure we don't hand out a file descriptor to userspace that is
-outside nd->root as a result of some yet-unknown namei bug (hence the
-WARN_ON). But you're quite right that I overlooked that user-space could
-trigger this maliciously.
-
-Regarding the warranties LOOKUP_IS_SCOPED is supposed to provide --
-arguably the guarantee is meant to be "you never step outside the root
-during lookup" but that should already be implemented with the
-handle_dots() checks -- and it's not something you could easily check at
-the end of a lookup anyway. The idea was that (if for some reason those
-checks were bypassed), at the very least you wouldn't silently get a
-file descriptor which is completely outside the root.
-
-Looking at this again, I can see the argument that check this shouldn't
-be done at all -- but I will admit that I feel more comfortable with the
-guarantees of LOOKUP_IS_SCOPED if we had some kind of last-chance check
-to avoid a privileged process opening /etc/shadow on the host. Then
-again, libpathrs (which I assume will be the primary consumer of
-LOOKUP_IN_ROOT) already does a double-check in userspace after getting
-the file descriptor from openat2().
-
-All of that being said, I'd be happy to drop it entirely if you feel
-it's unnecessary.
-
---=20
-Aleksa Sarai
-Senior Software Engineer (Containers)
-SUSE Linux GmbH
-<https://www.cyphar.com/>
-
---n5oan2cpdmv3a5ir
-Content-Type: application/pgp-signature; name="signature.asc"
-
------BEGIN PGP SIGNATURE-----
-
-iHUEABYIAB0WIQSxZm6dtfE8gxLLfYqdlLljIbnQEgUCXdtuwQAKCRCdlLljIbnQ
-EhgrAQCziGLc25C4Hq/hsTYZTCJzE1b4oLj4e/P/0nPg2wdhrgD9GKxS3kIpRVhT
-Rq6CsaKi+Hr4YN+hVfgGVHLHAPRTRQA=
-=7pdt
------END PGP SIGNATURE-----
-
---n5oan2cpdmv3a5ir--
+diff --git a/include/linux/memblock.h b/include/linux/memblock.h
+index f491690d54c6..e3f95c362922 100644
+--- a/include/linux/memblock.h
++++ b/include/linux/memblock.h
+@@ -344,7 +344,7 @@ static inline int memblock_get_region_node(const struct memblock_region *r)
+ #define MEMBLOCK_LOW_LIMIT 0
+ 
+ #ifndef ARCH_LOW_ADDRESS_LIMIT
+-#define ARCH_LOW_ADDRESS_LIMIT  0xffffffffUL
++#define ARCH_LOW_ADDRESS_LIMIT  0x0fffffffUL
+ #endif
+ 
+ phys_addr_t memblock_phys_alloc_range(phys_addr_t size, phys_addr_t align,
