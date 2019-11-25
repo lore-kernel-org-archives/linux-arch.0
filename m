@@ -1,174 +1,83 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from aserp2120.oracle.com ([141.146.126.78]:52698 "EHLO
-        aserp2120.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1725916AbfKYVR4 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 25 Nov 2019 16:17:56 -0500
+Received: from userp2120.oracle.com ([156.151.31.85]:56188 "EHLO
+        userp2120.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1725916AbfKYVSF (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 25 Nov 2019 16:18:05 -0500
 From: Alex Kogan <alex.kogan@oracle.com>
-Subject: [PATCH v7 4/5] locking/qspinlock: Introduce starvation avoidance into CNA
-Date: Mon, 25 Nov 2019 16:07:08 -0500
-Message-ID: <20191125210709.10293-5-alex.kogan@oracle.com>
-In-Reply-To: <20191125210709.10293-1-alex.kogan@oracle.com>
-References: <20191125210709.10293-1-alex.kogan@oracle.com>
+Subject: [PATCH v7 0/5] Add NUMA-awareness to qspinlock
+Date: Mon, 25 Nov 2019 16:07:04 -0500
+Message-ID: <20191125210709.10293-1-alex.kogan@oracle.com>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux@armlinux.org.uk, peterz@infradead.org, mingo@redhat.com, will.deacon@arm.com, arnd@arndb.de, longman@redhat.com, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, bp@alien8.de, hpa@zytor.com, x86@kernel.org, guohanjun@huawei.com, jglauber@marvell.com
 Cc: steven.sistare@oracle.com, daniel.m.jordan@oracle.com, alex.kogan@oracle.com, dave.dice@oracle.com, rahul.x.yadav@oracle.com
-Message-ID: <20191125210708.S0REecUvhDDCRFBnk5zg5LiAuFr68-7owchj5aCsIJs@z>
+Message-ID: <20191125210704.mqR7fdjR8XiDo3kDygw0CemQWabzt7Wih4p3C6jtyiQ@z>
 
-Keep track of the number of intra-node lock handoffs, and force
-inter-node handoff once this number reaches a preset threshold.
-The default value for the threshold can be overridden with
-the new kernel boot command-line option "numa_spinlock_threshold".
+Minor change from v6:
+---------------------
 
-Signed-off-by: Alex Kogan <alex.kogan@oracle.com>
-Reviewed-by: Steve Sistare <steven.sistare@oracle.com>
----
- .../admin-guide/kernel-parameters.txt         |  8 ++++++
- arch/x86/kernel/alternative.c                 | 27 +++++++++++++++++++
- kernel/locking/qspinlock.c                    |  3 +++
- kernel/locking/qspinlock_cna.h                | 27 ++++++++++++++++---
- 4 files changed, 62 insertions(+), 3 deletions(-)
+- fixed a 32-bit build failure by adding dependency on 64BIT in Kconfig.
+Reported-by: kbuild test robot <lkp@intel.com>
 
-diff --git a/Documentation/admin-guide/kernel-parameters.txt b/Documentation/admin-guide/kernel-parameters.txt
-index 904cb32f592d..887fbfce701d 100644
---- a/Documentation/admin-guide/kernel-parameters.txt
-+++ b/Documentation/admin-guide/kernel-parameters.txt
-@@ -3185,6 +3185,14 @@
- 			Not specifying this option is equivalent to
- 			numa_spinlock=auto.
- 
-+	numa_spinlock_threshold=	[NUMA, PV_OPS]
-+			Set the threshold for the number of intra-node
-+			lock hand-offs before the NUMA-aware spinlock
-+			is forced to be passed to a thread on another NUMA node.
-+			Valid values are in the [0..31] range. Smaller values
-+			result in a more fair, but less performant spinlock, and
-+			vice versa. The default value is 16.
-+
- 	cpu0_hotplug	[X86] Turn on CPU0 hotplug feature when
- 			CONFIG_BOOTPARAM_HOTPLUG_CPU0 is off.
- 			Some features depend on CPU0. Known dependencies are:
-diff --git a/arch/x86/kernel/alternative.c b/arch/x86/kernel/alternative.c
-index 6a4ccbf4e09c..28552e0491b5 100644
---- a/arch/x86/kernel/alternative.c
-+++ b/arch/x86/kernel/alternative.c
-@@ -723,6 +723,33 @@ static int __init numa_spinlock_setup(char *str)
- 
- __setup("numa_spinlock=", numa_spinlock_setup);
- 
-+/*
-+ * Controls the threshold for the number of intra-node lock hand-offs before
-+ * the NUMA-aware variant of spinlock is forced to be passed to a thread on
-+ * another NUMA node. By default, the chosen value provides reasonable
-+ * long-term fairness without sacrificing performance compared to a lock
-+ * that does not have any fairness guarantees.
-+ */
-+int intra_node_handoff_threshold = 1 << 16;
-+
-+static int __init numa_spinlock_threshold_setup(char *str)
-+{
-+	int new_threshold_param;
-+
-+	if (get_option(&str, &new_threshold_param)) {
-+		/* valid value is between 0 and 31 */
-+		if (new_threshold_param < 0 || new_threshold_param > 31)
-+			return 0;
-+
-+		intra_node_handoff_threshold = 1 << new_threshold_param;
-+		return 1;
-+	}
-+
-+	return 0;
-+}
-+
-+__setup("numa_spinlock_threshold=", numa_spinlock_threshold_setup);
-+
- #endif
- 
- void __init alternative_instructions(void)
-diff --git a/kernel/locking/qspinlock.c b/kernel/locking/qspinlock.c
-index 6d8c4a52e44e..1d0d884308ef 100644
---- a/kernel/locking/qspinlock.c
-+++ b/kernel/locking/qspinlock.c
-@@ -597,6 +597,9 @@ EXPORT_SYMBOL(queued_spin_lock_slowpath);
- #if !defined(_GEN_CNA_LOCK_SLOWPATH) && defined(CONFIG_NUMA_AWARE_SPINLOCKS)
- #define _GEN_CNA_LOCK_SLOWPATH
- 
-+#undef pv_init_node
-+#define pv_init_node			cna_init_node
-+
- #undef pv_wait_head_or_lock
- #define pv_wait_head_or_lock		cna_pre_scan
- 
-diff --git a/kernel/locking/qspinlock_cna.h b/kernel/locking/qspinlock_cna.h
-index a638336f9560..dcb2bcfd2d94 100644
---- a/kernel/locking/qspinlock_cna.h
-+++ b/kernel/locking/qspinlock_cna.h
-@@ -50,9 +50,16 @@ struct cna_node {
- 	struct mcs_spinlock	mcs;
- 	int			numa_node;
- 	u32			encoded_tail;
--	u32			pre_scan_result; /* 0 or encoded tail */
-+	u32			pre_scan_result; /* 0, 1 or encoded tail */
-+	u32			intra_count;
- };
- 
-+/*
-+ * Controls the threshold for the number of intra-node lock hand-offs.
-+ * See arch/x86/kernel/alternative.c for details.
-+ */
-+extern int intra_node_handoff_threshold;
-+
- static void __init cna_init_nodes_per_cpu(unsigned int cpu)
- {
- 	struct mcs_spinlock *base = per_cpu_ptr(&qnodes[0].mcs, cpu);
-@@ -92,6 +99,11 @@ static int __init cna_init_nodes(void)
- }
- early_initcall(cna_init_nodes);
- 
-+static __always_inline void cna_init_node(struct mcs_spinlock *node)
-+{
-+	((struct cna_node *)node)->intra_count = 0;
-+}
-+
- static inline bool cna_try_change_tail(struct qspinlock *lock, u32 val,
- 				       struct mcs_spinlock *node)
- {
-@@ -221,7 +233,13 @@ __always_inline u32 cna_pre_scan(struct qspinlock *lock,
- {
- 	struct cna_node *cn = (struct cna_node *)node;
- 
--	cn->pre_scan_result = cna_scan_main_queue(node, node);
-+	/*
-+	 * setting @pre_scan_result to 1 indicates that no post-scan
-+	 * should be made in cna_pass_lock()
-+	 */
-+	cn->pre_scan_result =
-+		cn->intra_count == intra_node_handoff_threshold ?
-+			1 : cna_scan_main_queue(node, node);
- 
- 	return 0;
- }
-@@ -240,7 +258,7 @@ static inline void cna_pass_lock(struct mcs_spinlock *node,
- 	 * pre-scan, and if so, try to find it in post-scan starting from the
- 	 * node where pre-scan stopped (stored in @pre_scan_result)
- 	 */
--	if (scan > 0)
-+	if (scan > 1)
- 		scan = cna_scan_main_queue(node, decode_tail(scan));
- 
- 	if (!scan) { /* if found a successor from the same numa node */
-@@ -251,6 +269,9 @@ static inline void cna_pass_lock(struct mcs_spinlock *node,
- 		 * if we acquired the MCS lock when its queue was empty
- 		 */
- 		val = node->locked ? node->locked : 1;
-+		/* inc @intra_count if the secondary queue is not empty */
-+		((struct cna_node *)next_holder)->intra_count =
-+			cn->intra_count + (node->locked > 1);
- 	} else if (node->locked > 1) {	  /* if secondary queue is not empty */
- 		/* next holder will be the first node in the secondary queue */
- 		tail_2nd = decode_tail(node->locked);
+
+Summary
+-------
+
+Lock throughput can be increased by handing a lock to a waiter on the
+same NUMA node as the lock holder, provided care is taken to avoid
+starvation of waiters on other NUMA nodes. This patch introduces CNA
+(compact NUMA-aware lock) as the slow path for qspinlock. It is
+enabled through a configuration option (NUMA_AWARE_SPINLOCKS).
+
+CNA is a NUMA-aware version of the MCS lock. Spinning threads are
+organized in two queues, a main queue for threads running on the same
+node as the current lock holder, and a secondary queue for threads
+running on other nodes. Threads store the ID of the node on which
+they are running in their queue nodes. After acquiring the MCS lock and
+before acquiring the spinlock, the lock holder scans the main queue
+looking for a thread running on the same node (pre-scan). If found (call
+it thread T), all threads in the main queue between the current lock
+holder and T are moved to the end of the secondary queue.  If such T
+is not found, we make another scan of the main queue after acquiring 
+the spinlock when unlocking the MCS lock (post-scan), starting at the
+node where pre-scan stopped. If both scans fail to find such T, the
+MCS lock is passed to the first thread in the secondary queue. If the
+secondary queue is empty, the MCS lock is passed to the next thread in the
+main queue. To avoid starvation of threads in the secondary queue, those
+threads are moved back to the head of the main queue after a certain
+number of intra-node lock hand-offs.
+
+More details are available at https://arxiv.org/abs/1810.05600.
+
+The series applies on top of v5.4.0, commit eae56099de85.
+Performance numbers are available in previous revisions
+of the series.
+
+Further comments are welcome and appreciated.
+
+Alex Kogan (5):
+  locking/qspinlock: Rename mcs lock/unlock macros and make them more
+    generic
+  locking/qspinlock: Refactor the qspinlock slow path
+  locking/qspinlock: Introduce CNA into the slow path of qspinlock
+  locking/qspinlock: Introduce starvation avoidance into CNA
+  locking/qspinlock: Introduce the shuffle reduction optimization into
+    CNA
+
+ .../admin-guide/kernel-parameters.txt         |  18 +
+ arch/arm/include/asm/mcs_spinlock.h           |   6 +-
+ arch/x86/Kconfig                              |  20 ++
+ arch/x86/include/asm/qspinlock.h              |   4 +
+ arch/x86/kernel/alternative.c                 |  70 ++++
+ include/asm-generic/mcs_spinlock.h            |   4 +-
+ kernel/locking/mcs_spinlock.h                 |  20 +-
+ kernel/locking/qspinlock.c                    |  77 ++++-
+ kernel/locking/qspinlock_cna.h                | 319 ++++++++++++++++++
+ kernel/locking/qspinlock_paravirt.h           |   2 +-
+ 10 files changed, 517 insertions(+), 23 deletions(-)
+ create mode 100644 kernel/locking/qspinlock_cna.h
+
 -- 
 2.21.0 (Apple Git-122.2)
