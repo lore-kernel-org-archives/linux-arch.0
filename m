@@ -1,83 +1,99 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from userp2120.oracle.com ([156.151.31.85]:56188 "EHLO
-        userp2120.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1725916AbfKYVSF (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 25 Nov 2019 16:18:05 -0500
-From: Alex Kogan <alex.kogan@oracle.com>
-Subject: [PATCH v7 0/5] Add NUMA-awareness to qspinlock
-Date: Mon, 25 Nov 2019 16:07:04 -0500
-Message-ID: <20191125210709.10293-1-alex.kogan@oracle.com>
+Received: from mail-wr1-f65.google.com ([209.85.221.65]:36242 "EHLO
+        mail-wr1-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1725912AbfKYWAq (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 25 Nov 2019 17:00:46 -0500
+Received: by mail-wr1-f65.google.com with SMTP id z3so20027736wru.3
+        for <linux-arch@vger.kernel.org>; Mon, 25 Nov 2019 14:00:44 -0800 (PST)
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+References: <cover.1573179553.git.thehajime@gmail.com> <64a5d6c94d331058331af7d191d2cdbe870d009b.1573179553.git.thehajime@gmail.com>
+In-Reply-To: <64a5d6c94d331058331af7d191d2cdbe870d009b.1573179553.git.thehajime@gmail.com>
+From: Richard Weinberger <richard.weinberger@gmail.com>
+Date: Mon, 25 Nov 2019 23:00:33 +0100
+Message-ID: <CAFLxGvw+w+xmput3xMjKPXPn4hj9opbo+gtV6896hhzDUzQNiA@mail.gmail.com>
+Subject: Re: [RFC v2 03/37] lkl: architecture skeleton for Linux kernel library
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux@armlinux.org.uk, peterz@infradead.org, mingo@redhat.com, will.deacon@arm.com, arnd@arndb.de, longman@redhat.com, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, bp@alien8.de, hpa@zytor.com, x86@kernel.org, guohanjun@huawei.com, jglauber@marvell.com
-Cc: steven.sistare@oracle.com, daniel.m.jordan@oracle.com, alex.kogan@oracle.com, dave.dice@oracle.com, rahul.x.yadav@oracle.com
-Message-ID: <20191125210704.mqR7fdjR8XiDo3kDygw0CemQWabzt7Wih4p3C6jtyiQ@z>
+To: Hajime Tazaki <thehajime@gmail.com>
+Cc: linux-um@lists.infradead.org, Linux-Arch <linux-arch@vger.kernel.org>, Patrick Collins <pscollins@google.com>, Levente Kurusa <levex@linux.com>, Matthieu Coudron <mattator@gmail.com>, Conrad Meyer <cem@freebsd.org>, Octavian Purdila <tavi.purdila@gmail.com>, Jens Staal <staal1978@gmail.com>, Motomu Utsumi <motomuman@gmail.com>, Lai Jiangshan <jiangshanlai@gmail.com>, Akira Moroo <retrage01@gmail.com>, Petros Angelatos <petrosagg@gmail.com>, Yuan Liu <liuyuan@google.com>, Xiao Jia <xiaoj@google.com>, Mark Stillwell <mark@stillwell.me>, linux-kernel-library@freelists.org, Pierre-Hugues Husson <phh@phh.me>, Michael Zimmermann <sigmaepsilon92@gmail.com>, Luca Dariz <luca.dariz@gmail.com>, "Edison M . Castro" <edisonmcastro@hotmail.com>
 
-Minor change from v6:
----------------------
+On Fri, Nov 8, 2019 at 6:03 AM Hajime Tazaki <thehajime@gmail.com> wrote:
+>
+> From: Octavian Purdila <tavi.purdila@gmail.com>
+>
+> Adds the LKL Kconfig, vmlinux linker script, basic architecture
+> headers and miscellaneous basic functions or stubs such as
+> dump_stack(), show_regs() and cpuinfo proc ops.
+>
+> The headers we introduce in this patch are simple wrappers to the
+> asm-generic headers or stubs for things we don't support, such as
+> ptrace, DMA, signals, ELF handling and low level processor operations.
+>
+> The kernel configuration is automatically updated to reflect the
+> endianness of the host, 64bit support or the output format for
+> vmlinux's linker script. We do this by looking at the ld's default
+> output format.
+>
+> Signed-off-by: Andreas Abel <aabel@google.com>
+> Signed-off-by: Conrad Meyer <cem@FreeBSD.org>
+> Signed-off-by: Edison M. Castro <edisonmcastro@hotmail.com>
+> Signed-off-by: H.K. Jerry Chu <hkchu@google.com>
+> Signed-off-by: Hajime Tazaki <thehajime@gmail.com>
+> Signed-off-by: Jens Staal <staal1978@gmail.com>
+> Signed-off-by: Lai Jiangshan <jiangshanlai@gmail.com>
+> Signed-off-by: Levente Kurusa <levex@linux.com>
+> Signed-off-by: Luca Dariz <luca.dariz@gmail.com>
+> Signed-off-by: Mark Stillwell <mark@stillwell.me>
+> Signed-off-by: Matthieu Coudron <mattator@gmail.com>
+> Signed-off-by: Michael Zimmermann <sigmaepsilon92@gmail.com>
+> Signed-off-by: Motomu Utsumi <motomuman@gmail.com>
+> Signed-off-by: Patrick Collins <pscollins@google.com>
+> Signed-off-by: Petros Angelatos <petrosagg@gmail.com>
+> Signed-off-by: Pierre-Hugues Husson <phh@phh.me>
+> Signed-off-by: Xiao Jia <xiaoj@google.com>
+> Signed-off-by: Yuan Liu <liuyuan@google.com>
+> Signed-off-by: Octavian Purdila <tavi.purdila@gmail.com>
 
-- fixed a 32-bit build failure by adding dependency on 64BIT in Kconfig.
-Reported-by: kbuild test robot <lkp@intel.com>
+Can we please have this chain cleaned up?
+Please see process/submitting-patches.rst.
 
+> ---
+>  MAINTAINERS                                |   8 +
+>  arch/um/lkl/.gitignore                     |   2 +
+>  arch/um/lkl/Kconfig                        |  95 ++++++
+>  arch/um/lkl/Kconfig.debug                  |   0
+>  arch/um/lkl/configs/lkl_defconfig          |  91 ++++++
+>  arch/um/lkl/include/asm/Kbuild             |  80 +++++
+>  arch/um/lkl/include/asm/bitsperlong.h      |  11 +
+>  arch/um/lkl/include/asm/byteorder.h        |   7 +
+>  arch/um/lkl/include/asm/cpu.h              |  14 +
+>  arch/um/lkl/include/asm/elf.h              |  15 +
+>  arch/um/lkl/include/asm/mutex.h            |   7 +
+>  arch/um/lkl/include/asm/processor.h        |  60 ++++
+>  arch/um/lkl/include/asm/ptrace.h           |  25 ++
+>  arch/um/lkl/include/asm/sched.h            |  23 ++
+>  arch/um/lkl/include/asm/syscalls.h         |  18 ++
+>  arch/um/lkl/include/asm/syscalls_32.h      |  43 +++
+>  arch/um/lkl/include/asm/tlb.h              |  12 +
+>  arch/um/lkl/include/asm/uaccess.h          |  64 ++++
+>  arch/um/lkl/include/asm/unistd_32.h        |  31 ++
+>  arch/um/lkl/include/asm/vmlinux.lds.h      |  14 +
+>  arch/um/lkl/include/asm/xor.h              |   9 +
+>  arch/um/lkl/include/uapi/asm/Kbuild        |   9 +
+>  arch/um/lkl/include/uapi/asm/bitsperlong.h |  13 +
+>  arch/um/lkl/include/uapi/asm/byteorder.h   |  11 +
+>  arch/um/lkl/include/uapi/asm/siginfo.h     |  11 +
+>  arch/um/lkl/include/uapi/asm/swab.h        |  11 +
+>  arch/um/lkl/include/uapi/asm/syscalls.h    | 348 +++++++++++++++++++++
 
-Summary
--------
+I think this is the first big thing which needs a unification.
 
-Lock throughput can be increased by handing a lock to a waiter on the
-same NUMA node as the lock holder, provided care is taken to avoid
-starvation of waiters on other NUMA nodes. This patch introduces CNA
-(compact NUMA-aware lock) as the slow path for qspinlock. It is
-enabled through a configuration option (NUMA_AWARE_SPINLOCKS).
+In UML we try hard to re-use headers from x86.
+We also have some headers in arch/x86/um/.
 
-CNA is a NUMA-aware version of the MCS lock. Spinning threads are
-organized in two queues, a main queue for threads running on the same
-node as the current lock holder, and a secondary queue for threads
-running on other nodes. Threads store the ID of the node on which
-they are running in their queue nodes. After acquiring the MCS lock and
-before acquiring the spinlock, the lock holder scans the main queue
-looking for a thread running on the same node (pre-scan). If found (call
-it thread T), all threads in the main queue between the current lock
-holder and T are moved to the end of the secondary queue.  If such T
-is not found, we make another scan of the main queue after acquiring 
-the spinlock when unlocking the MCS lock (post-scan), starting at the
-node where pre-scan stopped. If both scans fail to find such T, the
-MCS lock is passed to the first thread in the secondary queue. If the
-secondary queue is empty, the MCS lock is passed to the next thread in the
-main queue. To avoid starvation of threads in the secondary queue, those
-threads are moved back to the head of the main queue after a certain
-number of intra-node lock hand-offs.
-
-More details are available at https://arxiv.org/abs/1810.05600.
-
-The series applies on top of v5.4.0, commit eae56099de85.
-Performance numbers are available in previous revisions
-of the series.
-
-Further comments are welcome and appreciated.
-
-Alex Kogan (5):
-  locking/qspinlock: Rename mcs lock/unlock macros and make them more
-    generic
-  locking/qspinlock: Refactor the qspinlock slow path
-  locking/qspinlock: Introduce CNA into the slow path of qspinlock
-  locking/qspinlock: Introduce starvation avoidance into CNA
-  locking/qspinlock: Introduce the shuffle reduction optimization into
-    CNA
-
- .../admin-guide/kernel-parameters.txt         |  18 +
- arch/arm/include/asm/mcs_spinlock.h           |   6 +-
- arch/x86/Kconfig                              |  20 ++
- arch/x86/include/asm/qspinlock.h              |   4 +
- arch/x86/kernel/alternative.c                 |  70 ++++
- include/asm-generic/mcs_spinlock.h            |   4 +-
- kernel/locking/mcs_spinlock.h                 |  20 +-
- kernel/locking/qspinlock.c                    |  77 ++++-
- kernel/locking/qspinlock_cna.h                | 319 ++++++++++++++++++
- kernel/locking/qspinlock_paravirt.h           |   2 +-
- 10 files changed, 517 insertions(+), 23 deletions(-)
- create mode 100644 kernel/locking/qspinlock_cna.h
+LKL should do the same. At least try hard to avoid duplication.
 
 -- 
-2.21.0 (Apple Git-122.2)
+Thanks,
+//richard
