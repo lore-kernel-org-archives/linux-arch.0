@@ -1,97 +1,28 @@
-From: Marco Elver <elver@google.com>
-Subject: Re: [PATCH v2 1/3] asm-generic/atomic: Use __always_inline for pure wrappers
-Date: Tue, 26 Nov 2019 15:06:21 +0100
-Message-ID: <CANpmjNNcWujm-Q8WD2Lgf2ww5aG-kfmFca7YC96BdcFOkwgxXw@mail.gmail.com>
-References: <20191126114121.85552-1-elver@google.com> <20191126122917.GA37833@lakrids.cambridge.arm.com>
+From: Christoph Hellwig <hch@lst.de>
+Subject: Re: Bug 205201 - Booting halts if Dawicontrol DC-2976 UW SCSI
+ board installed, unless RAM size limited to 3500M
+Date: Tue, 26 Nov 2019 17:40:26 +0100
+Message-ID: <20191126164026.GA8026@lst.de>
+References: <F1EBB706-73DF-430E-9020-C214EC8ED5DA@xenosoft.de> <20191121072943.GA24024@lst.de> <dbde2252-035e-6183-7897-43348e60647e@xenosoft.de> <6eec5c42-019c-a988-fc2a-cb804194683d@xenosoft.de> <d0252d29-7a03-20e1-ccd7-e12d906e4bdf@arm.com> <b3217742-2c0b-8447-c9ac-608b93265363@xenosoft.de> <20191121180226.GA3852@lst.de> <2fde79cf-875f-94e6-4a1b-f73ebb2e2c32@xenosoft.de> <20191125073923.GA30168@lst.de> <4681f5fe-c095-15f5-9221-4b55e940bafc@xenosoft.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20191126122917.GA37833@lakrids.cambridge.arm.com>
+Content-Disposition: inline
+In-Reply-To: <4681f5fe-c095-15f5-9221-4b55e940bafc@xenosoft.de>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Mark Rutland <mark.rutland@arm.com>
-Cc: Will Deacon <will@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Boqun Feng <boqun.feng@gmail.com>, Arnd Bergmann <arnd@arndb.de>, Dmitry Vyukov <dvyukov@google.com>, LKML <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, kasan-dev <kasan-dev@googlegroups.com>, "Paul E. McKenney" <paulmck@kernel.org>, Randy Dunlap <rdunlap@infradead.org>
+To: Christian Zigotzky <chzigotzky@xenosoft.de>
+Cc: Christoph Hellwig <hch@lst.de>, Robin Murphy <robin.murphy@arm.com>, linux-arch@vger.kernel.org, darren@stevens-zone.net, mad skateman <madskateman@gmail.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, linux-kernel@vger.kernel.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Rob Herring <robh+dt@kernel.org>, paulus@samba.org, rtd2@xtra.co.nz, "contact@a-eon.com" <contact@a-eon.com>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, nsaenzjulienne@suse.de, Mike Rapoport <rppt@linux.ibm.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, 26 Nov 2019 at 13:29, Mark Rutland <mark.rutland@arm.com> wrote:
+On Tue, Nov 26, 2019 at 12:26:38PM +0100, Christian Zigotzky wrote:
+> Hello Christoph,
 >
-> On Tue, Nov 26, 2019 at 12:41:19PM +0100, Marco Elver wrote:
-> > Prefer __always_inline for atomic wrappers. When building for size
-> > (CC_OPTIMIZE_FOR_SIZE), some compilers appear to be less inclined to
-> > inline even relatively small static inline functions that are assumed to
-> > be inlinable such as atomic ops. This can cause problems, for example in
-> > UACCESS regions.
-> >
-> > By using __always_inline, we let the real implementation and not the
-> > wrapper determine the final inlining preference.
-> >
-> > For x86 tinyconfig we observe:
-> > - vmlinux baseline: 1316204
-> > - vmlinux with patch: 1315988 (-216 bytes)
-> >
-> > This came up when addressing UACCESS warnings with CC_OPTIMIZE_FOR_SIZE
-> > in the KCSAN runtime:
-> > http://lkml.kernel.org/r/58708908-84a0-0a81-a836-ad97e33dbb62@infradead.org
-> >
-> > Reported-by: Randy Dunlap <rdunlap@infradead.org>
-> > Signed-off-by: Marco Elver <elver@google.com>
-> > ---
-> > v2:
-> > * Add missing '#include <linux/compiler.h>'
-> > * Add size diff to commit message.
-> >
-> > v1: http://lkml.kernel.org/r/20191122154221.247680-1-elver@google.com
-> > ---
-> >  include/asm-generic/atomic-instrumented.h | 335 +++++++++++-----------
-> >  include/asm-generic/atomic-long.h         | 331 ++++++++++-----------
-> >  scripts/atomic/gen-atomic-instrumented.sh |   7 +-
-> >  scripts/atomic/gen-atomic-long.sh         |   3 +-
-> >  4 files changed, 340 insertions(+), 336 deletions(-)
+> The PCI TV card works with your patch! I was able to patch your Git kernel 
+> with the patch above.
 >
-> > diff --git a/scripts/atomic/gen-atomic-instrumented.sh b/scripts/atomic/gen-atomic-instrumented.sh
-> > index 8b8b2a6f8d68..86d27252b988 100755
-> > --- a/scripts/atomic/gen-atomic-instrumented.sh
-> > +++ b/scripts/atomic/gen-atomic-instrumented.sh
-> > @@ -84,7 +84,7 @@ gen_proto_order_variant()
-> >       [ ! -z "${guard}" ] && printf "#if ${guard}\n"
-> >
-> >  cat <<EOF
-> > -static inline ${ret}
-> > +static __always_inline ${ret}
-> >  ${atomicname}(${params})
-> >  {
-> >  ${checks}
-> > @@ -146,17 +146,18 @@ cat << EOF
-> >  #ifndef _ASM_GENERIC_ATOMIC_INSTRUMENTED_H
-> >  #define _ASM_GENERIC_ATOMIC_INSTRUMENTED_H
-> >
-> > +#include <linux/compiler.h>
-> >  #include <linux/build_bug.h>
->
-> Sorry for the (super) trivial nit, but could you please re-order these
-> two alphabetically, i.e.
->
-> #include <linux/build_bug.h>
-> #include <linux/compiler.h>
->
-> With that:
->
-> Acked-by: Mark Rutland <mark.rutland@arm.com>
+> I haven't found any error messages in the dmesg yet.
 
-Done, thanks for the acks!
-
-v3: http://lkml.kernel.org/r/20191126140406.164870-1-elver@google.com
-
-> [...]
->
-> > @@ -64,6 +64,7 @@ cat << EOF
-> >  #ifndef _ASM_GENERIC_ATOMIC_LONG_H
-> >  #define _ASM_GENERIC_ATOMIC_LONG_H
-> >
-> > +#include <linux/compiler.h>
-> >  #include <asm/types.h>
->
-> Unlike the above, this doesn't need to be re-ordered; for whatever
-> reason, linux/* includes typically come before asm/* includes.
->
-> Thanks,
-> Mark.
+Thanks.  Unfortunately this is a bit of a hack as we need to set
+the mask based on runtime information like the magic FSL PCIe window.
+Let me try to draft something better up, and thanks already for testing
+this one!
