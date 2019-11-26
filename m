@@ -1,114 +1,148 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-io1-f66.google.com ([209.85.166.66]:40344 "EHLO
-        mail-io1-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1725884AbfKZLmz (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 26 Nov 2019 06:42:55 -0500
-Received: by mail-io1-f66.google.com with SMTP id b26so18265044ion.7
-        for <linux-arch@vger.kernel.org>; Tue, 26 Nov 2019 03:42:54 -0800 (PST)
+Received: from mail-ot1-f65.google.com ([209.85.210.65]:39319 "EHLO
+        mail-ot1-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1728187AbfKZLqf (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 26 Nov 2019 06:46:35 -0500
+Received: by mail-ot1-f65.google.com with SMTP id w24so15619133otk.6
+        for <linux-arch@vger.kernel.org>; Tue, 26 Nov 2019 03:46:32 -0800 (PST)
 MIME-Version: 1.0
-References: <cover.1573179553.git.thehajime@gmail.com> <64a5d6c94d331058331af7d191d2cdbe870d009b.1573179553.git.thehajime@gmail.com>
- <CAFLxGvw+w+xmput3xMjKPXPn4hj9opbo+gtV6896hhzDUzQNiA@mail.gmail.com>
-In-Reply-To: <CAFLxGvw+w+xmput3xMjKPXPn4hj9opbo+gtV6896hhzDUzQNiA@mail.gmail.com>
-From: Octavian Purdila <tavi.purdila@gmail.com>
-Date: Tue, 26 Nov 2019 13:42:43 +0200
-Message-ID: <CAMoF9u2g2+_qjfAKh3jD-PSEBhwBVBLDvEEa8Sawutp4fQaYNw@mail.gmail.com>
-Subject: Re: [RFC v2 03/37] lkl: architecture skeleton for Linux kernel library
+References: <20191122154221.247680-1-elver@google.com> <20191125173756.GF32635@lakrids.cambridge.arm.com>
+ <CANpmjNMLEYdW0kaLAiO9fQN1uC7bW6K08zZRG=GG7vq4fBn+WA@mail.gmail.com> <20191125183936.GG32635@lakrids.cambridge.arm.com>
+In-Reply-To: <20191125183936.GG32635@lakrids.cambridge.arm.com>
+From: Marco Elver <elver@google.com>
+Date: Tue, 26 Nov 2019 12:46:19 +0100
+Message-ID: <CANpmjNM5tgiyFOt4jW97Dg1ot1LmJC1rcrQX+Q74B28c=t7Kzw@mail.gmail.com>
+Subject: Re: [PATCH 1/2] asm-generic/atomic: Prefer __always_inline for wrappers
 Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Richard Weinberger <richard.weinberger@gmail.com>
-Cc: Hajime Tazaki <thehajime@gmail.com>, linux-um <linux-um@lists.infradead.org>, Linux-Arch <linux-arch@vger.kernel.org>, Patrick Collins <pscollins@google.com>, Levente Kurusa <levex@linux.com>, Matthieu Coudron <mattator@gmail.com>, Conrad Meyer <cem@freebsd.org>, Jens Staal <staal1978@gmail.com>, Motomu Utsumi <motomuman@gmail.com>, Lai Jiangshan <jiangshanlai@gmail.com>, Akira Moroo <retrage01@gmail.com>, Petros Angelatos <petrosagg@gmail.com>, Yuan Liu <liuyuan@google.com>, Xiao Jia <xiaoj@google.com>, Mark Stillwell <mark@stillwell.me>, linux-kernel-library <linux-kernel-library@freelists.org>, Pierre-Hugues Husson <phh@phh.me>, Michael Zimmermann <sigmaepsilon92@gmail.com>, Luca Dariz <luca.dariz@gmail.com>, "Edison M . Castro" <edisonmcastro@hotmail.com>
+To: Mark Rutland <mark.rutland@arm.com>
+Cc: Will Deacon <will@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Boqun Feng <boqun.feng@gmail.com>, Arnd Bergmann <arnd@arndb.de>, Dmitry Vyukov <dvyukov@google.com>, LKML <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, kasan-dev <kasan-dev@googlegroups.com>, "Paul E. McKenney" <paulmck@kernel.org>, Randy Dunlap <rdunlap@infradead.org>
+Message-ID: <20191126114619.LYLS_rwW5rXp1YvlEAw3ZI4NwtatiRRvOXSCa7fPbPs@z>
 
-On Tue, Nov 26, 2019 at 12:00 AM Richard Weinberger
-<richard.weinberger@gmail.com> wrote:
+On Mon, 25 Nov 2019 at 19:39, Mark Rutland <mark.rutland@arm.com> wrote:
 >
-> On Fri, Nov 8, 2019 at 6:03 AM Hajime Tazaki <thehajime@gmail.com> wrote:
+> On Mon, Nov 25, 2019 at 07:22:33PM +0100, Marco Elver wrote:
+> > On Mon, 25 Nov 2019 at 18:38, Mark Rutland <mark.rutland@arm.com> wrote:
+> > >
+> > > On Fri, Nov 22, 2019 at 04:42:20PM +0100, Marco Elver wrote:
+> > > > Prefer __always_inline for atomic wrappers. When building for size
+> > > > (CC_OPTIMIZE_FOR_SIZE), some compilers appear to be less inclined to
+> > > > inline even relatively small static inline functions that are assumed to
+> > > > be inlinable such as atomic ops. This can cause problems, for example in
+> > > > UACCESS regions.
+> > >
+> > > From looking at the link below, the problem is tat objtool isn't happy
+> > > about non-whiteliested calls within UACCESS regions.
+> > >
+> > > Is that a problem here? are the kasan/kcsan calls whitelisted?
 > >
-> > From: Octavian Purdila <tavi.purdila@gmail.com>
+> > We whitelisted all the relevant functions.
 > >
-> > Adds the LKL Kconfig, vmlinux linker script, basic architecture
-> > headers and miscellaneous basic functions or stubs such as
-> > dump_stack(), show_regs() and cpuinfo proc ops.
+> > The problem it that small static inline functions private to the
+> > compilation unit do not get inlined when CC_OPTIMIZE_FOR_SIZE=y (they
+> > do get inlined when CC_OPTIMIZE_FOR_PERFORMANCE=y).
 > >
-> > The headers we introduce in this patch are simple wrappers to the
-> > asm-generic headers or stubs for things we don't support, such as
-> > ptrace, DMA, signals, ELF handling and low level processor operations.
+> > For the runtime this is easy to fix, by just making these small
+> > functions __always_inline (also avoiding these function call overheads
+> > in the runtime when CC_OPTIMIZE_FOR_SIZE).
 > >
-> > The kernel configuration is automatically updated to reflect the
-> > endianness of the host, 64bit support or the output format for
-> > vmlinux's linker script. We do this by looking at the ld's default
-> > output format.
+> > I stumbled upon the issue for the atomic ops, because the runtime uses
+> > atomic_long_try_cmpxchg outside a user_access_save() region (and it
+> > should not be moved inside). Essentially I fixed up the runtime, but
+> > then objtool still complained about the access to
+> > atomic64_try_cmpxchg. Hence this patch.
 > >
-> > Signed-off-by: Andreas Abel <aabel@google.com>
-> > Signed-off-by: Conrad Meyer <cem@FreeBSD.org>
-> > Signed-off-by: Edison M. Castro <edisonmcastro@hotmail.com>
-> > Signed-off-by: H.K. Jerry Chu <hkchu@google.com>
-> > Signed-off-by: Hajime Tazaki <thehajime@gmail.com>
-> > Signed-off-by: Jens Staal <staal1978@gmail.com>
-> > Signed-off-by: Lai Jiangshan <jiangshanlai@gmail.com>
-> > Signed-off-by: Levente Kurusa <levex@linux.com>
-> > Signed-off-by: Luca Dariz <luca.dariz@gmail.com>
-> > Signed-off-by: Mark Stillwell <mark@stillwell.me>
-> > Signed-off-by: Matthieu Coudron <mattator@gmail.com>
-> > Signed-off-by: Michael Zimmermann <sigmaepsilon92@gmail.com>
-> > Signed-off-by: Motomu Utsumi <motomuman@gmail.com>
-> > Signed-off-by: Patrick Collins <pscollins@google.com>
-> > Signed-off-by: Petros Angelatos <petrosagg@gmail.com>
-> > Signed-off-by: Pierre-Hugues Husson <phh@phh.me>
-> > Signed-off-by: Xiao Jia <xiaoj@google.com>
-> > Signed-off-by: Yuan Liu <liuyuan@google.com>
-> > Signed-off-by: Octavian Purdila <tavi.purdila@gmail.com>
+> > I believe it is the right thing to do, because the final inlining
+> > decision should *not* be made by wrappers. I would think this patch is
+> > the right thing to do irrespective of KCSAN or not.
 >
-> Can we please have this chain cleaned up?
-> Please see process/submitting-patches.rst.
+> Given the wrappers are trivial, and for !KASAN && !KCSAN, this would
+> make them equivalent to the things they wrap, that sounds fine to me.
 >
-> > ---
-> >  MAINTAINERS                                |   8 +
-> >  arch/um/lkl/.gitignore                     |   2 +
-> >  arch/um/lkl/Kconfig                        |  95 ++++++
-> >  arch/um/lkl/Kconfig.debug                  |   0
-> >  arch/um/lkl/configs/lkl_defconfig          |  91 ++++++
-> >  arch/um/lkl/include/asm/Kbuild             |  80 +++++
-> >  arch/um/lkl/include/asm/bitsperlong.h      |  11 +
-> >  arch/um/lkl/include/asm/byteorder.h        |   7 +
-> >  arch/um/lkl/include/asm/cpu.h              |  14 +
-> >  arch/um/lkl/include/asm/elf.h              |  15 +
-> >  arch/um/lkl/include/asm/mutex.h            |   7 +
-> >  arch/um/lkl/include/asm/processor.h        |  60 ++++
-> >  arch/um/lkl/include/asm/ptrace.h           |  25 ++
-> >  arch/um/lkl/include/asm/sched.h            |  23 ++
-> >  arch/um/lkl/include/asm/syscalls.h         |  18 ++
-> >  arch/um/lkl/include/asm/syscalls_32.h      |  43 +++
-> >  arch/um/lkl/include/asm/tlb.h              |  12 +
-> >  arch/um/lkl/include/asm/uaccess.h          |  64 ++++
-> >  arch/um/lkl/include/asm/unistd_32.h        |  31 ++
-> >  arch/um/lkl/include/asm/vmlinux.lds.h      |  14 +
-> >  arch/um/lkl/include/asm/xor.h              |   9 +
-> >  arch/um/lkl/include/uapi/asm/Kbuild        |   9 +
-> >  arch/um/lkl/include/uapi/asm/bitsperlong.h |  13 +
-> >  arch/um/lkl/include/uapi/asm/byteorder.h   |  11 +
-> >  arch/um/lkl/include/uapi/asm/siginfo.h     |  11 +
-> >  arch/um/lkl/include/uapi/asm/swab.h        |  11 +
-> >  arch/um/lkl/include/uapi/asm/syscalls.h    | 348 +++++++++++++++++++++
+> > > > By using __always_inline, we let the real implementation and not the
+> > > > wrapper determine the final inlining preference.
+> > >
+> > > That sounds reasonable to me, assuming that doesn't end up significantly
+> > > bloating the kernel text. What impact does this have on code size?
+> >
+> > It actually seems to make it smaller.
+> >
+> > x86 tinyconfig:
+> > - vmlinux baseline: 1316204
+> > - vmlinux with patches: 1315988 (-216 bytes)
 >
-> I think this is the first big thing which needs a unification.
->
-> In UML we try hard to re-use headers from x86.
-> We also have some headers in arch/x86/um/.
->
-> LKL should do the same. At least try hard to avoid duplication.
->
+> Great! Fancy putting that in the commit message?
 
-In LKL we tried to avoid coupling the kernel build part to a
-particular architecture, to make it easier to port it (to different
-arches, but as well to other OSes or special environments [1][2]).
-That is the main reason for having two build steps, one for kernel
-proper, and one for the host. That is why the host part was placed
-into tools/lkl to make it clear that is not part of the kernel proper.
+Done.
 
-I think this is one of the biggest differences between UML and LKL and
-it would be helpful to get feedback of what people think of a
-potential similar split for UML.
+> > > > This came up when addressing UACCESS warnings with CC_OPTIMIZE_FOR_SIZE
+> > > > in the KCSAN runtime:
+> > > > http://lkml.kernel.org/r/58708908-84a0-0a81-a836-ad97e33dbb62@infradead.org
+> > > >
+> > > > Reported-by: Randy Dunlap <rdunlap@infradead.org>
+> > > > Signed-off-by: Marco Elver <elver@google.com>
+> > > > ---
+> > > >  include/asm-generic/atomic-instrumented.h | 334 +++++++++++-----------
+> > > >  include/asm-generic/atomic-long.h         | 330 ++++++++++-----------
+> > > >  scripts/atomic/gen-atomic-instrumented.sh |   6 +-
+> > > >  scripts/atomic/gen-atomic-long.sh         |   2 +-
+> > > >  4 files changed, 336 insertions(+), 336 deletions(-)
+> > >
+> > > Do we need to do similar for gen-atomic-fallback.sh and the fallbacks
+> > > defined in scripts/atomic/fallbacks/ ?
+> >
+> > I think they should be, but I think that's debatable. Some of them do
+> > a little more than just wrap things. If we want to make this
+> > __always_inline, I would do it in a separate patch independent from
+> > this series to not stall the fixes here.
+>
+> I would expect that they would suffer the same problem if used in a
+> UACCESS region, so if that's what we're trying to fix here, I think that
+> we need to do likewise there.
+>
+> The majority are trivial wrappers (shuffling arguments or adding trivial
+> barriers), so those seem fine. The rest call things that we're inlining
+> here.
+>
+> Would you be able to give that a go?
 
-[1] https://www.haiku-os.org/blog/lucian/2010-07-08_booting_lkl_inside_haiku/
-[2] https://github.com/lkl/lkl-ntk-driver-poc
+Done in v2.
+
+> > > > diff --git a/scripts/atomic/gen-atomic-instrumented.sh b/scripts/atomic/gen-atomic-instrumented.sh
+> > > > index 8b8b2a6f8d68..68532d4f36ca 100755
+> > > > --- a/scripts/atomic/gen-atomic-instrumented.sh
+> > > > +++ b/scripts/atomic/gen-atomic-instrumented.sh
+> > > > @@ -84,7 +84,7 @@ gen_proto_order_variant()
+> > > >       [ ! -z "${guard}" ] && printf "#if ${guard}\n"
+> > > >
+> > > >  cat <<EOF
+> > > > -static inline ${ret}
+> > > > +static __always_inline ${ret}
+> > >
+> > > We should add an include of <linux/compiler.h> to the preamble if we're
+> > > explicitly using __always_inline.
+> >
+> > Will add in v2.
+> >
+> > > > diff --git a/scripts/atomic/gen-atomic-long.sh b/scripts/atomic/gen-atomic-long.sh
+> > > > index c240a7231b2e..4036d2dd22e9 100755
+> > > > --- a/scripts/atomic/gen-atomic-long.sh
+> > > > +++ b/scripts/atomic/gen-atomic-long.sh
+> > > > @@ -46,7 +46,7 @@ gen_proto_order_variant()
+> > > >       local retstmt="$(gen_ret_stmt "${meta}")"
+> > > >
+> > > >  cat <<EOF
+> > > > -static inline ${ret}
+> > > > +static __always_inline ${ret}
+> > >
+> > > Likewise here
+> >
+> > Will add in v2.
+>
+> Great; thanks!
+
+Sent v2: http://lkml.kernel.org/r/20191126114121.85552-1-elver@google.com
+
+Thanks,
+-- Marco
