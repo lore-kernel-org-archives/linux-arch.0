@@ -1,169 +1,66 @@
-From: Christophe Leroy <christophe.leroy@c-s.fr>
-Subject: =?UTF-8?B?UmU6IOetlOWkjTog562U5aSNOiBsb29wIG5lc3RpbmcgaW4gYWxpZ25t?=
- =?UTF-8?Q?ent_exception_and_machine_check?=
-Date: Tue, 26 Nov 2019 09:13:28 +0100
-Message-ID: <a77f2266-b654-087c-7af8-78c745a52b37@c-s.fr>
-References: <D44062DC474617438D5181ADFE2B2C21016DE42A@dggemi529-mbs.china.huawei.com>
- <8215aeb3-57dd-223a-29d3-45ca22b0543c@c-s.fr>
- <D44062DC474617438D5181ADFE2B2C21016E9EAA@dggemi529-mbs.china.huawei.com>
- <ef93fa2f-d98f-2e94-322e-0ae095626e75@c-s.fr>
- <D44062DC474617438D5181ADFE2B2C21016ED78D@dggemi529-mbs.china.huawei.com>
+From: Christian Zigotzky <chzigotzky@xenosoft.de>
+Subject: Re: Bug 205201 - Booting halts if Dawicontrol DC-2976 UW SCSI board
+ installed, unless RAM size limited to 3500M
+Date: Tue, 26 Nov 2019 12:26:38 +0100
+Message-ID: <4681f5fe-c095-15f5-9221-4b55e940bafc@xenosoft.de>
+References: <F1EBB706-73DF-430E-9020-C214EC8ED5DA@xenosoft.de>
+ <20191121072943.GA24024@lst.de>
+ <dbde2252-035e-6183-7897-43348e60647e@xenosoft.de>
+ <6eec5c42-019c-a988-fc2a-cb804194683d@xenosoft.de>
+ <d0252d29-7a03-20e1-ccd7-e12d906e4bdf@arm.com>
+ <b3217742-2c0b-8447-c9ac-608b93265363@xenosoft.de>
+ <20191121180226.GA3852@lst.de>
+ <2fde79cf-875f-94e6-4a1b-f73ebb2e2c32@xenosoft.de>
+ <20191125073923.GA30168@lst.de>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Transfer-Encoding: 8bit
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <D44062DC474617438D5181ADFE2B2C21016ED78D@dggemi529-mbs.china.huawei.com>
-Content-Language: fr
+In-Reply-To: <20191125073923.GA30168@lst.de>
+Content-Language: de-DE
 Sender: linux-kernel-owner@vger.kernel.org
-To: "Wangshaobo (bobo)" <bobo.shaobowang@huawei.com>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "alistair@popple.id.au" <alistair@popple.id.au>, "chengjian (D)" <cj.chengjian@huawei.com>, Xiexiuqi <xiexiuqi@huawei.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "oss@buserror.net" <oss@buserror.net>, "paulus@samba.org" <paulus@samba.org>, "Libin (Huawei)" <huawei.libin@huawei.com>, "agust@denx.de" <agust@denx.de>, "linuxppc-dev@lists.ozlabs.org" <linuxppc-dev@lists.ozlabs.org>
+To: Christoph Hellwig <hch@lst.de>
+Cc: Robin Murphy <robin.murphy@arm.com>, linux-arch@vger.kernel.org, darren@stevens-zone.net, mad skateman <madskateman@gmail.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, linux-kernel@vger.kernel.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Rob Herring <robh+dt@kernel.org>, paulus@samba.org, rtd2@xtra.co.nz, "contact@a-eon.com" <contact@a-eon.com>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, nsaenzjulienne@suse.de, Mike Rapoport <rppt@linux.ibm.com>
 List-Id: linux-arch.vger.kernel.org
 
-Hi,
+On 25 November 2019 at 08:39 am, Christoph Hellwig wrote:
+> On Sat, Nov 23, 2019 at 12:42:27PM +0100, Christian Zigotzky wrote:
+>> Hello Christoph,
+>>
+>> Please find attached the dmesg of your Git kernel.
+> Thanks.  It looks like on your platform the swiotlb buffer isn't
+> actually addressable based on the bus dma mask limit, which is rather
+> interesting.  swiotlb_init uses memblock_alloc_low to allocate the
+> buffer, and I'll need some help from Mike and the powerpc maintainers
+> to figure out how that select where to allocate the buffer from, and
+> how we can move it to a lower address.  My gut feeling would be to try
+> to do what arm64 does and define a new ARCH_LOW_ADDRESS_LIMIT, preferably
+> without needing too much arch specific magic.
+>
+> As a quick hack can you try this patch on top of the tree from Friday?
+>
+> diff --git a/include/linux/memblock.h b/include/linux/memblock.h
+> index f491690d54c6..e3f95c362922 100644
+> --- a/include/linux/memblock.h
+> +++ b/include/linux/memblock.h
+> @@ -344,7 +344,7 @@ static inline int memblock_get_region_node(const struct memblock_region *r)
+>   #define MEMBLOCK_LOW_LIMIT 0
+>   
+>   #ifndef ARCH_LOW_ADDRESS_LIMIT
+> -#define ARCH_LOW_ADDRESS_LIMIT  0xffffffffUL
+> +#define ARCH_LOW_ADDRESS_LIMIT  0x0fffffffUL
+>   #endif
+>   
+>   phys_addr_t memblock_phys_alloc_range(phys_addr_t size, phys_addr_t align,
+>
+Hello Christoph,
 
-Le 01/11/2019 à 02:57, Wangshaobo (bobo) a écrit :
-> Hi, Christophe
-> 
-> 	I am sorry that we are in some troubles for some unpredictable problems when we replay and haven't given you a quick reply.
-> 	
-> 	I also want to ask does the phenomeon(use memcpy_toio when copy ioremap_address) only occurs in powerpc ? does any other
-> arch also has the same problem ? we are in persuit of asking why this phenomenon happened. Our linux kernel version is 4.4.
+The PCI TV card works with your patch! I was able to patch your Git 
+kernel with the patch above.
 
-It's not a problem ... it's a feature.
+I haven't found any error messages in the dmesg yet.
 
-I have no idea whether the same kind of issue can happen on other 
-arches, sorry.
+Thank you!
 
-Christophe
-
-> 	
-> 	thanks very much.
-> 
-> -----邮件原件-----
-> 发件人: Christophe Leroy [mailto:christophe.leroy@c-s.fr]
-> 发送时间: 2019年10月31日 19:13
-> 收件人: Wangshaobo (bobo) <bobo.shaobowang@huawei.com>
-> 抄送: chengjian (D) <cj.chengjian@huawei.com>; Libin (Huawei) <huawei.libin@huawei.com>; Xiexiuqi <xiexiuqi@huawei.com>; zhangyi (F) <yi.zhang@huawei.com>
-> 主题: Re: 答复: loop nesting in alignment exception and machine check
-> 
-> Hi,
-> 
-> Did you try ? Does it work ?
-> 
-> Christophe
-> 
-> Le 28/10/2019 à 06:57, Wangshaobo (bobo) a écrit :
->> Hi,Christophe
->>
->> Thank you for your quick reply. I will try to use memcpy_toio() instead of memcpy().
->>
->> -----邮件原件-----
->> 发件人: Christophe Leroy [mailto:christophe.leroy@c-s.fr]
->> 发送时间: 2019年10月26日 19:20
->> 收件人: Wangshaobo (bobo) <bobo.shaobowang@huawei.com>
->> 抄送: linux-arch@vger.kernel.org; alistair@popple.id.au; chengjian (D)
->> <cj.chengjian@huawei.com>; Xiexiuqi <xiexiuqi@huawei.com>;
->> linux-kernel@vger.kernel.org; oss@buserror.net; paulus@samba.org;
->> Libin (Huawei) <huawei.libin@huawei.com>; agust@denx.de;
->> linuxppc-dev@lists.ozlabs.org
->> 主题: Re: loop nesting in alignment exception and machine check
->>
->> Hi,
->>
->> Le 26/10/2019 à 09:23, Wangshaobo (bobo) a écrit :
->>> Hi,
->>>
->>> I encountered a problem about a loop nesting occurred in
->>> manufacturing the alignment exception in machine check, trigger background is :
->>>
->>> problem:
->>>
->>> machine checkout or critical interrupt ->…->kbox_write[for recording
->>> last words] -> memcpy(irremap_addr, src,size):_GLOBAL(memcpy)…
->>>
->>> when we enter memcpy,a command ‘dcbz r11,r6’ will cause a alignment
->>> exception, in this situation,r11 loads the ioremap address,which
->>> leads to the alignment exception,
->>
->> You can't use memcpy() on something else than memory.
->>
->> For an ioremapped area, you have to use memcpy_toio()
->>
->> Christophe
->>
->>>
->>> then the command can not be process successfully,as we still in
->>> machine check.at the end ,it triggers a new irq machine check in irq
->>> handler function,a loop nesting begins.
->>>
->>> analysis:
->>>
->>> We have analysed a lot,but it still can not come to a reasonable
->>> description,in common,the alignment triggered in machine check
->>> context can still be collected into the Kbox
->>>
->>> after alignment exception be handled by handler function, but how
->>> does the machine checkout can be triggered in the handler fucntion
->>> for any causes? We print relevant registers
->>>
->>> as follow when first enter machine check and alignment exception
->>> handler
->>> function:
->>>
->>>             MSR:0x2      MSR:0x0
->>>
->>>             SRR1:0x2      SRR1:0x21002
->>>
->>>             But the manual says SRR1 should be set to MSR(0x2),why
->>> that happened ?
->>>
->>>             Then a branch in handler function copy the SRR1 to
->>> MSR,this enble MSR[ME] and MSR[CE],system collapses.
->>>
->>> Conclusion:
->>>
->>>             1)  why the alignment exception can not be handled in
->>> machine check ?
->>>
->>>             2)  besides memcpy,any other function can cause the
->>> alignment exception ?
->>>
->>> We still recurrent it, the line as follows:
->>>
->>>             Cpu dead lock->watch log->trigger
->>> fiq->kbox_write->memcpy->alignment exception->print last words.
->>>
->>>             but for those problems as below,what the kbox printed is empty.
->>>
->>> ------------------kbox restart:[   10.147594]----------------
->>>
->>> kbox verify fs magic fail
->>>
->>> kbox mem mabye destroyed, format it
->>>
->>> kbox: load OK
->>>
->>> lock-task: major[249] minor[0]
->>>
->>> -----start show_destroyed_kbox_mem_head----
->>>
->>> 00000000: 00000000 00000000 00000000 00000000  ................
->>>
->>> 00000010: 00000000 00000000 00000000 00000000  ................
->>>
->>> 00000020: 00000000 00000000 00000000 00000000  ................
->>>
->>> 00000030: 00000000 00000000 00000000 00000000  ................
->>>
->>> 00000040: 00000000 00000000 00000000 00000000  ................
->>>
->>> 00000050: 00000000 00000000 00000000 00000000  ................
->>>
->>> 00000060: 00000000 00000000 00000000 00000000  ................
->>>
->>> 00000070: 00000000 00000000 00000000 00000000  ................
->>>
->>> 00000080: 00000000 00000000 00000000 00000000  ................
->>>
->>> 00000090: 00000000 00000000 00000000 00000000  ................
->>>
+Cheers,
+Christian
