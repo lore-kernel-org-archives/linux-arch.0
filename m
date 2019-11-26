@@ -1,392 +1,122 @@
-Return-Path: <rppt@kernel.org>
-From: Mike Rapoport <rppt@kernel.org>
-Subject: [PATCH v3 10/13] sparc32: use pgtable-nopud instead of 4level-fixup
-Date: Mon,  4 Nov 2019 08:56:24 +0200
-Message-ID: <1572850587-20314-11-git-send-email-rppt@kernel.org>
-In-Reply-To: <1572850587-20314-1-git-send-email-rppt@kernel.org>
-References: <1572850587-20314-1-git-send-email-rppt@kernel.org>
-To: linux-mm@kvack.org
-Cc: Andrew Morton <akpm@linux-foundation.org>, Anton Ivanov <anton.ivanov@cambridgegreys.com>, Arnd Bergmann <arnd@arndb.de>, "David S. Miller" <davem@davemloft.net>, Geert Uytterhoeven <geert@linux-m68k.org>, Greentime Hu <green.hu@gmail.com>, Greg Ungerer <gerg@linux-m68k.org>, Helge Deller <deller@gmx.de>, "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>, Jeff Dike <jdike@addtoit.com>, "Kirill A. Shutemov" <kirill@shutemov.name>, Linus Torvalds <torvalds@linux-foundation.org>, Mark Salter <msalter@redhat.com>, Matt Turner <mattst88@gmail.com>, Michal Simek <monstr@monstr.eu>, Peter Rosin <peda@axentia.se>, Richard Weinberger <richard@nod.at>, Rolf Eike Beer <eike-kernel@sf-tec.de>, Russell King <linux@armlinux.org.uk>, Sam Creasey <sammy@sammy.net>, Vincent Chen <deanbo422@gmail.com>, Vineet Gupta <Vineet.Gupta1@synopsys.com>, Mike Rapoport <rppt@kernel.org>, linux-alpha@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, linux-kernel@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-parisc@vger.kernel.org, linux-um@lists.infradead.org, sparclinux@vger.kernel.org, Mike Rapoport <rppt@linux.ibm.com>
+Return-Path: <chzigotzky@xenosoft.de>
+Subject: Re: Bug 205201 - Booting halts if Dawicontrol DC-2976 UW SCSI board
+ installed, unless RAM size limited to 3500M
+References: <F1EBB706-73DF-430E-9020-C214EC8ED5DA@xenosoft.de>
+ <20191121072943.GA24024@lst.de>
+ <dbde2252-035e-6183-7897-43348e60647e@xenosoft.de>
+ <6eec5c42-019c-a988-fc2a-cb804194683d@xenosoft.de>
+ <d0252d29-7a03-20e1-ccd7-e12d906e4bdf@arm.com>
+ <b3217742-2c0b-8447-c9ac-608b93265363@xenosoft.de>
+ <20191121180226.GA3852@lst.de>
+ <2fde79cf-875f-94e6-4a1b-f73ebb2e2c32@xenosoft.de>
+ <20191125073923.GA30168@lst.de> <20191125093159.GA23118@linux.ibm.com>
+From: Christian Zigotzky <chzigotzky@xenosoft.de>
+Message-ID: <b668bc25-9268-d25e-f9a0-176bb4ce1d07@xenosoft.de>
+Date: Tue, 26 Nov 2019 12:57:02 +0100
+MIME-Version: 1.0
+In-Reply-To: <20191125093159.GA23118@linux.ibm.com>
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Transfer-Encoding: 8bit
+Content-Language: de-DE
+To: Mike Rapoport <rppt@linux.ibm.com>, Christoph Hellwig <hch@lst.de>
+Cc: Robin Murphy <robin.murphy@arm.com>, linux-arch@vger.kernel.org, darren@stevens-zone.net, mad skateman <madskateman@gmail.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, linux-kernel@vger.kernel.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Rob Herring <robh+dt@kernel.org>, paulus@samba.org, rtd2@xtra.co.nz, "contact@a-eon.com" <contact@a-eon.com>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, nsaenzjulienne@suse.de
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20191104065624.sN_WMgASI864Xgnno6VU9FgfN5cZT0NBvdv5EpUsZWA@z>
+Message-ID: <20191126115702.Ma7Xnjlh3vuuLPqNAbiQKQmkztEG7Y_rWIVrUeaXXGc@z>
 
-From: Mike Rapoport <rppt@linux.ibm.com>
+On 25 November 2019 at 10:32 am, Mike Rapoport wrote:
+> On Mon, Nov 25, 2019 at 08:39:23AM +0100, Christoph Hellwig wrote:
+>> On Sat, Nov 23, 2019 at 12:42:27PM +0100, Christian Zigotzky wrote:
+>>> Hello Christoph,
+>>>
+>>> Please find attached the dmesg of your Git kernel.
+>> Thanks.  It looks like on your platform the swiotlb buffer isn't
+>> actually addressable based on the bus dma mask limit, which is rather
+>> interesting.  swiotlb_init uses memblock_alloc_low to allocate the
+>> buffer, and I'll need some help from Mike and the powerpc maintainers
+>> to figure out how that select where to allocate the buffer from, and
+>> how we can move it to a lower address.  My gut feeling would be to try
+>> to do what arm64 does and define a new ARCH_LOW_ADDRESS_LIMIT, preferably
+>> without needing too much arch specific magic.
+> Presuming the problem is relevant for all CoreNet boards something like
+> this could work:
+>   
+> diff --git a/arch/powerpc/include/asm/dma.h b/arch/powerpc/include/asm/dma.h
+> index 1b4f0254868f..7c6cfeeaff52 100644
+> --- a/arch/powerpc/include/asm/dma.h
+> +++ b/arch/powerpc/include/asm/dma.h
+> @@ -347,5 +347,11 @@ extern int isa_dma_bridge_buggy;
+>   #define isa_dma_bridge_buggy	(0)
+>   #endif
+>   
+> +#ifdef CONFIG_CORENET_GENERIC
+> +extern phys_addr_t ppc_dma_phys_limit;
+> +#define ARCH_LOW_ADDRESS_LIMIT	(ppc_dma_phys_limit - 1)
+> +#endif
+> +
+> +
+>   #endif /* __KERNEL__ */
+>   #endif	/* _ASM_POWERPC_DMA_H */
+> diff --git a/arch/powerpc/platforms/85xx/common.c b/arch/powerpc/platforms/85xx/common.c
+> index fe0606439b5a..346b436b6d3f 100644
+> --- a/arch/powerpc/platforms/85xx/common.c
+> +++ b/arch/powerpc/platforms/85xx/common.c
+> @@ -126,3 +126,7 @@ void __init mpc85xx_qe_par_io_init(void)
+>   	}
+>   }
+>   #endif
+> +
+> +#ifdef CONFIG_CORENET_GENERIC
+> +phys_addr_t ppc_dma_phys_limit = 0xffffffffUL;
+> +#endif
+> diff --git a/arch/powerpc/platforms/85xx/corenet_generic.c b/arch/powerpc/platforms/85xx/corenet_generic.c
+> index 7ee2c6628f64..673bcbdc7c75 100644
+> --- a/arch/powerpc/platforms/85xx/corenet_generic.c
+> +++ b/arch/powerpc/platforms/85xx/corenet_generic.c
+> @@ -64,7 +64,7 @@ void __init corenet_gen_setup_arch(void)
+>   	mpc85xx_smp_init();
+>   
+>   	swiotlb_detect_4g();
+> -
+> +	ppc_dma_phys_limit = 0x0fffffffUL;
+>   	pr_info("%s board\n", ppc_md.name);
+>   
+>   	mpc85xx_qe_init();
+Hello Mike,
 
-32-bit version of sparc has three-level page tables and can use
-pgtable-nopud and folding of the upper layers.
+My PCI TV card works also with your patch! Before I had to add "#include 
+<asm/dma.h>" to the file "arch/powerpc/platforms/85xx/corenet_generic.c" 
+because of the following error:
 
-Replace usage of include/asm-generic/4level-fixup.h with
-include/asm-generic/pgtable-nopud.h and adjust page table manipulation
-macros and functions accordingly.
+------
 
-Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
-Acked-by: David S. Miller <davem@davemloft.net>
----
- arch/sparc/include/asm/pgalloc_32.h |  6 ++---
- arch/sparc/include/asm/pgtable_32.h | 28 ++++++++++----------
- arch/sparc/mm/fault_32.c            | 11 ++++++--
- arch/sparc/mm/highmem.c             |  6 ++++-
- arch/sparc/mm/io-unit.c             |  6 ++++-
- arch/sparc/mm/iommu.c               |  6 ++++-
- arch/sparc/mm/srmmu.c               | 51 +++++++++++++++++++++++++++++--------
- 7 files changed, 81 insertions(+), 33 deletions(-)
+   CC      arch/powerpc/platforms/85xx/corenet_generic.o
+   CC      ipc/util.o
+   CC      ipc/msgutil.o
+arch/powerpc/platforms/85xx/corenet_generic.c: In function 
+‘corenet_gen_setup_arch’:
+arch/powerpc/platforms/85xx/corenet_generic.c:77:2: error: 
+‘ppc_dma_phys_limit’ undeclared (first use in this function); did you 
+mean ‘cpu_to_phys_id’?
+   ppc_dma_phys_limit = 0x0fffffffUL;
+   ^~~~~~~~~~~~~~~~~~
+   cpu_to_phys_id
+arch/powerpc/platforms/85xx/corenet_generic.c:77:2: note: each 
+undeclared identifier is reported only once for each function it appears in
+scripts/Makefile.build:265: recipe for target 
+'arch/powerpc/platforms/85xx/corenet_generic.o' failed
+make[3]: *** [arch/powerpc/platforms/85xx/corenet_generic.o] Error 1
+scripts/Makefile.build:509: recipe for target 
+'arch/powerpc/platforms/85xx' failed
+make[2]: *** [arch/powerpc/platforms/85xx] Error 2
+scripts/Makefile.build:509: recipe for target 'arch/powerpc/platforms' 
+failed
+make[1]: *** [arch/powerpc/platforms] Error 2
+Makefile:1652: recipe for target 'arch/powerpc' failed
+make: *** [arch/powerpc] Error 2
 
-diff --git a/arch/sparc/include/asm/pgalloc_32.h b/arch/sparc/include/asm/pgalloc_32.h
-index 10538a4..eae0c92 100644
---- a/arch/sparc/include/asm/pgalloc_32.h
-+++ b/arch/sparc/include/asm/pgalloc_32.h
-@@ -26,14 +26,14 @@ static inline void free_pgd_fast(pgd_t *pgd)
- #define pgd_free(mm, pgd)	free_pgd_fast(pgd)
- #define pgd_alloc(mm)	get_pgd_fast()
- 
--static inline void pgd_set(pgd_t * pgdp, pmd_t * pmdp)
-+static inline void pud_set(pud_t * pudp, pmd_t * pmdp)
- {
- 	unsigned long pa = __nocache_pa(pmdp);
- 
--	set_pte((pte_t *)pgdp, __pte((SRMMU_ET_PTD | (pa >> 4))));
-+	set_pte((pte_t *)pudp, __pte((SRMMU_ET_PTD | (pa >> 4))));
- }
- 
--#define pgd_populate(MM, PGD, PMD)      pgd_set(PGD, PMD)
-+#define pud_populate(MM, PGD, PMD)      pud_set(PGD, PMD)
- 
- static inline pmd_t *pmd_alloc_one(struct mm_struct *mm,
- 				   unsigned long address)
-diff --git a/arch/sparc/include/asm/pgtable_32.h b/arch/sparc/include/asm/pgtable_32.h
-index 31da448..6d6f44c 100644
---- a/arch/sparc/include/asm/pgtable_32.h
-+++ b/arch/sparc/include/asm/pgtable_32.h
-@@ -12,7 +12,7 @@
- #include <linux/const.h>
- 
- #ifndef __ASSEMBLY__
--#include <asm-generic/4level-fixup.h>
-+#include <asm-generic/pgtable-nopud.h>
- 
- #include <linux/spinlock.h>
- #include <linux/mm_types.h>
-@@ -132,12 +132,12 @@ static inline struct page *pmd_page(pmd_t pmd)
- 	return pfn_to_page((pmd_val(pmd) & SRMMU_PTD_PMASK) >> (PAGE_SHIFT-4));
- }
- 
--static inline unsigned long pgd_page_vaddr(pgd_t pgd)
-+static inline unsigned long pud_page_vaddr(pud_t pud)
- {
--	if (srmmu_device_memory(pgd_val(pgd))) {
-+	if (srmmu_device_memory(pud_val(pud))) {
- 		return ~0;
- 	} else {
--		unsigned long v = pgd_val(pgd) & SRMMU_PTD_PMASK;
-+		unsigned long v = pud_val(pud) & SRMMU_PTD_PMASK;
- 		return (unsigned long)__nocache_va(v << 4);
- 	}
- }
-@@ -184,24 +184,24 @@ static inline void pmd_clear(pmd_t *pmdp)
- 		set_pte((pte_t *)&pmdp->pmdv[i], __pte(0));
- }
- 
--static inline int pgd_none(pgd_t pgd)          
-+static inline int pud_none(pud_t pud)
- {
--	return !(pgd_val(pgd) & 0xFFFFFFF);
-+	return !(pud_val(pud) & 0xFFFFFFF);
- }
- 
--static inline int pgd_bad(pgd_t pgd)
-+static inline int pud_bad(pud_t pud)
- {
--	return (pgd_val(pgd) & SRMMU_ET_MASK) != SRMMU_ET_PTD;
-+	return (pud_val(pud) & SRMMU_ET_MASK) != SRMMU_ET_PTD;
- }
- 
--static inline int pgd_present(pgd_t pgd)
-+static inline int pud_present(pud_t pud)
- {
--	return ((pgd_val(pgd) & SRMMU_ET_MASK) == SRMMU_ET_PTD);
-+	return ((pud_val(pud) & SRMMU_ET_MASK) == SRMMU_ET_PTD);
- }
- 
--static inline void pgd_clear(pgd_t *pgdp)
-+static inline void pud_clear(pud_t *pudp)
- {
--	set_pte((pte_t *)pgdp, __pte(0));
-+	set_pte((pte_t *)pudp, __pte(0));
- }
- 
- /*
-@@ -319,9 +319,9 @@ static inline pte_t pte_modify(pte_t pte, pgprot_t newprot)
- #define pgd_offset_k(address) pgd_offset(&init_mm, address)
- 
- /* Find an entry in the second-level page table.. */
--static inline pmd_t *pmd_offset(pgd_t * dir, unsigned long address)
-+static inline pmd_t *pmd_offset(pud_t * dir, unsigned long address)
- {
--	return (pmd_t *) pgd_page_vaddr(*dir) +
-+	return (pmd_t *) pud_page_vaddr(*dir) +
- 		((address >> PMD_SHIFT) & (PTRS_PER_PMD - 1));
- }
- 
-diff --git a/arch/sparc/mm/fault_32.c b/arch/sparc/mm/fault_32.c
-index 8d69de1..89976c9 100644
---- a/arch/sparc/mm/fault_32.c
-+++ b/arch/sparc/mm/fault_32.c
-@@ -351,6 +351,8 @@ asmlinkage void do_sparc_fault(struct pt_regs *regs, int text_fault, int write,
- 		 */
- 		int offset = pgd_index(address);
- 		pgd_t *pgd, *pgd_k;
-+		p4d_t *p4d, *p4d_k;
-+		pud_t *pud, *pud_k;
- 		pmd_t *pmd, *pmd_k;
- 
- 		pgd = tsk->active_mm->pgd + offset;
-@@ -363,8 +365,13 @@ asmlinkage void do_sparc_fault(struct pt_regs *regs, int text_fault, int write,
- 			return;
- 		}
- 
--		pmd = pmd_offset(pgd, address);
--		pmd_k = pmd_offset(pgd_k, address);
-+		p4d = p4d_offset(pgd, address);
-+		pud = pud_offset(p4d, address);
-+		pmd = pmd_offset(pud, address);
-+
-+		p4d_k = p4d_offset(pgd_k, address);
-+		pud_k = pud_offset(p4d_k, address);
-+		pmd_k = pmd_offset(pud_k, address);
- 
- 		if (pmd_present(*pmd) || !pmd_present(*pmd_k))
- 			goto bad_area_nosemaphore;
-diff --git a/arch/sparc/mm/highmem.c b/arch/sparc/mm/highmem.c
-index 86bc2a5..d4a80ad 100644
---- a/arch/sparc/mm/highmem.c
-+++ b/arch/sparc/mm/highmem.c
-@@ -39,10 +39,14 @@ static pte_t *kmap_pte;
- void __init kmap_init(void)
- {
- 	unsigned long address;
-+	p4d_t *p4d;
-+	pud_t *pud;
- 	pmd_t *dir;
- 
- 	address = __fix_to_virt(FIX_KMAP_BEGIN);
--	dir = pmd_offset(pgd_offset_k(address), address);
-+	p4d = p4d_offset(pgd_offset_k(address), address);
-+	pud = pud_offset(p4d, address);
-+	dir = pmd_offset(pud, address);
- 
-         /* cache the first kmap pte */
-         kmap_pte = pte_offset_kernel(dir, address);
-diff --git a/arch/sparc/mm/io-unit.c b/arch/sparc/mm/io-unit.c
-index f770ee7..33a0fac 100644
---- a/arch/sparc/mm/io-unit.c
-+++ b/arch/sparc/mm/io-unit.c
-@@ -239,12 +239,16 @@ static void *iounit_alloc(struct device *dev, size_t len,
- 		page = va;
- 		{
- 			pgd_t *pgdp;
-+			p4d_t *p4dp;
-+			pud_t *pudp;
- 			pmd_t *pmdp;
- 			pte_t *ptep;
- 			long i;
- 
- 			pgdp = pgd_offset(&init_mm, addr);
--			pmdp = pmd_offset(pgdp, addr);
-+			p4dp = p4d_offset(pgdp, addr);
-+			pudp = pud_offset(p4dp, addr);
-+			pmdp = pmd_offset(pudp, addr);
- 			ptep = pte_offset_map(pmdp, addr);
- 
- 			set_pte(ptep, mk_pte(virt_to_page(page), dvma_prot));
-diff --git a/arch/sparc/mm/iommu.c b/arch/sparc/mm/iommu.c
-index 71ac353..4d3c699 100644
---- a/arch/sparc/mm/iommu.c
-+++ b/arch/sparc/mm/iommu.c
-@@ -343,6 +343,8 @@ static void *sbus_iommu_alloc(struct device *dev, size_t len,
- 		page = va;
- 		{
- 			pgd_t *pgdp;
-+			p4d_t *p4dp;
-+			pud_t *pudp;
- 			pmd_t *pmdp;
- 			pte_t *ptep;
- 
-@@ -354,7 +356,9 @@ static void *sbus_iommu_alloc(struct device *dev, size_t len,
- 				__flush_page_to_ram(page);
- 
- 			pgdp = pgd_offset(&init_mm, addr);
--			pmdp = pmd_offset(pgdp, addr);
-+			p4dp = p4d_offset(pgdp, addr);
-+			pudp = pud_offset(p4dp, addr);
-+			pmdp = pmd_offset(pudp, addr);
- 			ptep = pte_offset_map(pmdp, addr);
- 
- 			set_pte(ptep, mk_pte(virt_to_page(page), dvma_prot));
-diff --git a/arch/sparc/mm/srmmu.c b/arch/sparc/mm/srmmu.c
-index cc3ad64..f56c3c9 100644
---- a/arch/sparc/mm/srmmu.c
-+++ b/arch/sparc/mm/srmmu.c
-@@ -296,6 +296,8 @@ static void __init srmmu_nocache_init(void)
- 	void *srmmu_nocache_bitmap;
- 	unsigned int bitmap_bits;
- 	pgd_t *pgd;
-+	p4d_t *p4d;
-+	pud_t *pud;
- 	pmd_t *pmd;
- 	pte_t *pte;
- 	unsigned long paddr, vaddr;
-@@ -329,6 +331,8 @@ static void __init srmmu_nocache_init(void)
- 
- 	while (vaddr < srmmu_nocache_end) {
- 		pgd = pgd_offset_k(vaddr);
-+		p4d = p4d_offset(__nocache_fix(pgd), vaddr);
-+		pud = pud_offset(__nocache_fix(p4d), vaddr);
- 		pmd = pmd_offset(__nocache_fix(pgd), vaddr);
- 		pte = pte_offset_kernel(__nocache_fix(pmd), vaddr);
- 
-@@ -516,13 +520,17 @@ static inline void srmmu_mapioaddr(unsigned long physaddr,
- 				   unsigned long virt_addr, int bus_type)
- {
- 	pgd_t *pgdp;
-+	p4d_t *p4dp;
-+	pud_t *pudp;
- 	pmd_t *pmdp;
- 	pte_t *ptep;
- 	unsigned long tmp;
- 
- 	physaddr &= PAGE_MASK;
- 	pgdp = pgd_offset_k(virt_addr);
--	pmdp = pmd_offset(pgdp, virt_addr);
-+	p4dp = p4d_offset(pgdp, virt_addr);
-+	pudp = pud_offset(p4dp, virt_addr);
-+	pmdp = pmd_offset(pudp, virt_addr);
- 	ptep = pte_offset_kernel(pmdp, virt_addr);
- 	tmp = (physaddr >> 4) | SRMMU_ET_PTE;
- 
-@@ -551,11 +559,16 @@ void srmmu_mapiorange(unsigned int bus, unsigned long xpa,
- static inline void srmmu_unmapioaddr(unsigned long virt_addr)
- {
- 	pgd_t *pgdp;
-+	p4d_t *p4dp;
-+	pud_t *pudp;
- 	pmd_t *pmdp;
- 	pte_t *ptep;
- 
-+
- 	pgdp = pgd_offset_k(virt_addr);
--	pmdp = pmd_offset(pgdp, virt_addr);
-+	p4dp = p4d_offset(pgdp, virt_addr);
-+	pudp = pud_offset(p4dp, virt_addr);
-+	pmdp = pmd_offset(pudp, virt_addr);
- 	ptep = pte_offset_kernel(pmdp, virt_addr);
- 
- 	/* No need to flush uncacheable page. */
-@@ -693,20 +706,24 @@ static void __init srmmu_early_allocate_ptable_skeleton(unsigned long start,
- 							unsigned long end)
- {
- 	pgd_t *pgdp;
-+	p4d_t *p4dp;
-+	pud_t *pudp;
- 	pmd_t *pmdp;
- 	pte_t *ptep;
- 
- 	while (start < end) {
- 		pgdp = pgd_offset_k(start);
--		if (pgd_none(*(pgd_t *)__nocache_fix(pgdp))) {
-+		p4dp = p4d_offset(pgdp, start);
-+		pudp = pud_offset(p4dp, start);
-+		if (pud_none(*(pud_t *)__nocache_fix(pudp))) {
- 			pmdp = __srmmu_get_nocache(
- 			    SRMMU_PMD_TABLE_SIZE, SRMMU_PMD_TABLE_SIZE);
- 			if (pmdp == NULL)
- 				early_pgtable_allocfail("pmd");
- 			memset(__nocache_fix(pmdp), 0, SRMMU_PMD_TABLE_SIZE);
--			pgd_set(__nocache_fix(pgdp), pmdp);
-+			pud_set(__nocache_fix(pudp), pmdp);
- 		}
--		pmdp = pmd_offset(__nocache_fix(pgdp), start);
-+		pmdp = pmd_offset(__nocache_fix(pudp), start);
- 		if (srmmu_pmd_none(*(pmd_t *)__nocache_fix(pmdp))) {
- 			ptep = __srmmu_get_nocache(PTE_SIZE, PTE_SIZE);
- 			if (ptep == NULL)
-@@ -724,19 +741,23 @@ static void __init srmmu_allocate_ptable_skeleton(unsigned long start,
- 						  unsigned long end)
- {
- 	pgd_t *pgdp;
-+	p4d_t *p4dp;
-+	pud_t *pudp;
- 	pmd_t *pmdp;
- 	pte_t *ptep;
- 
- 	while (start < end) {
- 		pgdp = pgd_offset_k(start);
--		if (pgd_none(*pgdp)) {
-+		p4dp = p4d_offset(pgdp, start);
-+		pudp = pud_offset(p4dp, start);
-+		if (pud_none(*pudp)) {
- 			pmdp = __srmmu_get_nocache(SRMMU_PMD_TABLE_SIZE, SRMMU_PMD_TABLE_SIZE);
- 			if (pmdp == NULL)
- 				early_pgtable_allocfail("pmd");
- 			memset(pmdp, 0, SRMMU_PMD_TABLE_SIZE);
--			pgd_set(pgdp, pmdp);
-+			pud_set((pud_t *)pgdp, pmdp);
- 		}
--		pmdp = pmd_offset(pgdp, start);
-+		pmdp = pmd_offset(pudp, start);
- 		if (srmmu_pmd_none(*pmdp)) {
- 			ptep = __srmmu_get_nocache(PTE_SIZE,
- 							     PTE_SIZE);
-@@ -779,6 +800,8 @@ static void __init srmmu_inherit_prom_mappings(unsigned long start,
- 	unsigned long probed;
- 	unsigned long addr;
- 	pgd_t *pgdp;
-+	p4d_t *p4dp;
-+	pud_t *pudp;
- 	pmd_t *pmdp;
- 	pte_t *ptep;
- 	int what; /* 0 = normal-pte, 1 = pmd-level pte, 2 = pgd-level pte */
-@@ -810,18 +833,20 @@ static void __init srmmu_inherit_prom_mappings(unsigned long start,
- 		}
- 
- 		pgdp = pgd_offset_k(start);
-+		p4dp = p4d_offset(pgdp, start);
-+		pudp = pud_offset(p4dp, start);
- 		if (what == 2) {
- 			*(pgd_t *)__nocache_fix(pgdp) = __pgd(probed);
- 			start += SRMMU_PGDIR_SIZE;
- 			continue;
- 		}
--		if (pgd_none(*(pgd_t *)__nocache_fix(pgdp))) {
-+		if (pud_none(*(pud_t *)__nocache_fix(pudp))) {
- 			pmdp = __srmmu_get_nocache(SRMMU_PMD_TABLE_SIZE,
- 						   SRMMU_PMD_TABLE_SIZE);
- 			if (pmdp == NULL)
- 				early_pgtable_allocfail("pmd");
- 			memset(__nocache_fix(pmdp), 0, SRMMU_PMD_TABLE_SIZE);
--			pgd_set(__nocache_fix(pgdp), pmdp);
-+			pud_set(__nocache_fix(pudp), pmdp);
- 		}
- 		pmdp = pmd_offset(__nocache_fix(pgdp), start);
- 		if (srmmu_pmd_none(*(pmd_t *)__nocache_fix(pmdp))) {
-@@ -906,6 +931,8 @@ void __init srmmu_paging_init(void)
- 	phandle cpunode;
- 	char node_str[128];
- 	pgd_t *pgd;
-+	p4d_t *p4d;
-+	pud_t *pud;
- 	pmd_t *pmd;
- 	pte_t *pte;
- 	unsigned long pages_avail;
-@@ -967,7 +994,9 @@ void __init srmmu_paging_init(void)
- 	srmmu_allocate_ptable_skeleton(PKMAP_BASE, PKMAP_END);
- 
- 	pgd = pgd_offset_k(PKMAP_BASE);
--	pmd = pmd_offset(pgd, PKMAP_BASE);
-+	p4d = p4d_offset(pgd, PKMAP_BASE);
-+	pud = pud_offset(p4d, PKMAP_BASE);
-+	pmd = pmd_offset(pud, PKMAP_BASE);
- 	pte = pte_offset_kernel(pmd, PKMAP_BASE);
- 	pkmap_page_table = pte;
- 
--- 
-2.7.4
+------
+
+After that I was able to compile the latest Git kernel with your patch.
+
+Thanks,
+Christian
