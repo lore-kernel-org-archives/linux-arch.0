@@ -1,48 +1,48 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from pegase1.c-s.fr ([93.17.236.30]:42412 "EHLO pegase1.c-s.fr"
+Received: from pegase1.c-s.fr ([93.17.236.30]:22197 "EHLO pegase1.c-s.fr"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1725933AbfKZINb (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 26 Nov 2019 03:13:31 -0500
+        id S1725876AbfKZIQR (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 26 Nov 2019 03:16:17 -0500
 Subject: =?UTF-8?B?UmU6IOetlOWkjTog562U5aSNOiBsb29wIG5lc3RpbmcgaW4gYWxpZ25t?=
  =?UTF-8?Q?ent_exception_and_machine_check?=
 References: <D44062DC474617438D5181ADFE2B2C21016DE42A@dggemi529-mbs.china.huawei.com>
  <8215aeb3-57dd-223a-29d3-45ca22b0543c@c-s.fr>
  <D44062DC474617438D5181ADFE2B2C21016E9EAA@dggemi529-mbs.china.huawei.com>
  <ef93fa2f-d98f-2e94-322e-0ae095626e75@c-s.fr>
- <D44062DC474617438D5181ADFE2B2C21016ED78D@dggemi529-mbs.china.huawei.com>
+ <D44062DC474617438D5181ADFE2B2C2101701C71@dggemi529-mbs.china.huawei.com>
 From: Christophe Leroy <christophe.leroy@c-s.fr>
-Message-ID: <a77f2266-b654-087c-7af8-78c745a52b37@c-s.fr>
-Date: Tue, 26 Nov 2019 09:13:28 +0100
+Message-ID: <e2429afb-a5f6-a5f1-40ec-1c5ca70edd2d@c-s.fr>
+Date: Tue, 26 Nov 2019 09:16:14 +0100
 MIME-Version: 1.0
-In-Reply-To: <D44062DC474617438D5181ADFE2B2C21016ED78D@dggemi529-mbs.china.huawei.com>
+In-Reply-To: <D44062DC474617438D5181ADFE2B2C2101701C71@dggemi529-mbs.china.huawei.com>
 Content-Type: text/plain; charset=utf-8; format=flowed
 Content-Language: fr
 Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: "Wangshaobo (bobo)" <bobo.shaobowang@huawei.com>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "alistair@popple.id.au" <alistair@popple.id.au>, "chengjian (D)" <cj.chengjian@huawei.com>, Xiexiuqi <xiexiuqi@huawei.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "oss@buserror.net" <oss@buserror.net>, "paulus@samba.org" <paulus@samba.org>, "Libin (Huawei)" <huawei.libin@huawei.com>, "agust@denx.de" <agust@denx.de>, "linuxppc-dev@lists.ozlabs.org" <linuxppc-dev@lists.ozlabs.org>
-Message-ID: <20191126081328.DnEP_VdwDl-ARi-P26yaFjAt6O0gz_tbkgIczguJOxI@z>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "chengjian (D)" <cj.chengjian@huawei.com>, "Libin (Huawei)" <huawei.libin@huawei.com>, Xiexiuqi <xiexiuqi@huawei.com>, "zhangyi (F)" <yi.zhang@huawei.com>, "Liuwenliang (Abbott Liu)" <liuwenliang@huawei.com>
 
-Hi,
 
-Le 01/11/2019 à 02:57, Wangshaobo (bobo) a écrit :
-> Hi, Christophe
-> 
-> 	I am sorry that we are in some troubles for some unpredictable problems when we replay and haven't given you a quick reply.
-> 	
-> 	I also want to ask does the phenomeon(use memcpy_toio when copy ioremap_address) only occurs in powerpc ? does any other
-> arch also has the same problem ? we are in persuit of asking why this phenomenon happened. Our linux kernel version is 4.4.
 
-It's not a problem ... it's a feature.
+Le 14/11/2019 à 04:46, Wangshaobo (bobo) a écrit :
+> Hi Christophe,
+> 	It testifys problem fixed when we use memcpy_toio() instead of memcpy In our practice, we found everything is ok before the cache_memcpy becomes memcpy in the
+> Patch 0b05e2d671c40cfb57e66e4e402320d6e056b2f8 adopted, it accelerates the memcpy but introduces implicit trouble, our products commonly used memcpy for continuous
+> matainance for a long time , but now those become a big problem for us to check where we use is correct and where is wrong, with respect to cachable_memcpy and memcpy_toio.
+> 	So, I also want to ask,
+> 	how can we trustly and unified fill the gap resulted by those changes in memcpy in version mantainance, if you have some tips pls tell me.
+> 	Tthanks, your Shaobo Wang
 
-I have no idea whether the same kind of issue can happen on other 
-arches, sorry.
+All accesses to I/O memory should use io accessors. Direct access to io 
+memory is unsafe by definition.
+
+Incorrect accesses to I/O memory can be detected with 'sparse' tool. For 
+that, you just have to build the kernel with 'make vmlinux C=2' and 
+you'll get notified for unsafe accesses to IO memory.
 
 Christophe
 
-> 	
-> 	thanks very much.
 > 
 > -----邮件原件-----
 > 发件人: Christophe Leroy [mailto:christophe.leroy@c-s.fr]
