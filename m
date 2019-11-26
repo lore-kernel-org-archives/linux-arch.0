@@ -1,141 +1,122 @@
-From: Marco Elver <elver@google.com>
-Subject: Re: [PATCH 1/2] asm-generic/atomic: Prefer __always_inline for wrappers
-Date: Tue, 26 Nov 2019 12:46:19 +0100
-Message-ID: <CANpmjNM5tgiyFOt4jW97Dg1ot1LmJC1rcrQX+Q74B28c=t7Kzw@mail.gmail.com>
-References: <20191122154221.247680-1-elver@google.com> <20191125173756.GF32635@lakrids.cambridge.arm.com>
- <CANpmjNMLEYdW0kaLAiO9fQN1uC7bW6K08zZRG=GG7vq4fBn+WA@mail.gmail.com> <20191125183936.GG32635@lakrids.cambridge.arm.com>
+From: Christian Zigotzky <chzigotzky@xenosoft.de>
+Subject: Re: Bug 205201 - Booting halts if Dawicontrol DC-2976 UW SCSI board
+ installed, unless RAM size limited to 3500M
+Date: Tue, 26 Nov 2019 12:57:02 +0100
+Message-ID: <b668bc25-9268-d25e-f9a0-176bb4ce1d07@xenosoft.de>
+References: <F1EBB706-73DF-430E-9020-C214EC8ED5DA@xenosoft.de>
+ <20191121072943.GA24024@lst.de>
+ <dbde2252-035e-6183-7897-43348e60647e@xenosoft.de>
+ <6eec5c42-019c-a988-fc2a-cb804194683d@xenosoft.de>
+ <d0252d29-7a03-20e1-ccd7-e12d906e4bdf@arm.com>
+ <b3217742-2c0b-8447-c9ac-608b93265363@xenosoft.de>
+ <20191121180226.GA3852@lst.de>
+ <2fde79cf-875f-94e6-4a1b-f73ebb2e2c32@xenosoft.de>
+ <20191125073923.GA30168@lst.de> <20191125093159.GA23118@linux.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Transfer-Encoding: 8bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20191125183936.GG32635@lakrids.cambridge.arm.com>
+In-Reply-To: <20191125093159.GA23118@linux.ibm.com>
+Content-Language: de-DE
 Sender: linux-kernel-owner@vger.kernel.org
-To: Mark Rutland <mark.rutland@arm.com>
-Cc: Will Deacon <will@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Boqun Feng <boqun.feng@gmail.com>, Arnd Bergmann <arnd@arndb.de>, Dmitry Vyukov <dvyukov@google.com>, LKML <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, kasan-dev <kasan-dev@googlegroups.com>, "Paul E. McKenney" <paulmck@kernel.org>, Randy Dunlap <rdunlap@infradead.org>
+To: Mike Rapoport <rppt@linux.ibm.com>, Christoph Hellwig <hch@lst.de>
+Cc: Robin Murphy <robin.murphy@arm.com>, linux-arch@vger.kernel.org, darren@stevens-zone.net, mad skateman <madskateman@gmail.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, linux-kernel@vger.kernel.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Rob Herring <robh+dt@kernel.org>, paulus@samba.org, rtd2@xtra.co.nz, "contact@a-eon.com" <contact@a-eon.com>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, nsaenzjulienne@suse.de
 List-Id: linux-arch.vger.kernel.org
 
-On Mon, 25 Nov 2019 at 19:39, Mark Rutland <mark.rutland@arm.com> wrote:
->
-> On Mon, Nov 25, 2019 at 07:22:33PM +0100, Marco Elver wrote:
-> > On Mon, 25 Nov 2019 at 18:38, Mark Rutland <mark.rutland@arm.com> wrote:
-> > >
-> > > On Fri, Nov 22, 2019 at 04:42:20PM +0100, Marco Elver wrote:
-> > > > Prefer __always_inline for atomic wrappers. When building for size
-> > > > (CC_OPTIMIZE_FOR_SIZE), some compilers appear to be less inclined to
-> > > > inline even relatively small static inline functions that are assumed to
-> > > > be inlinable such as atomic ops. This can cause problems, for example in
-> > > > UACCESS regions.
-> > >
-> > > From looking at the link below, the problem is tat objtool isn't happy
-> > > about non-whiteliested calls within UACCESS regions.
-> > >
-> > > Is that a problem here? are the kasan/kcsan calls whitelisted?
-> >
-> > We whitelisted all the relevant functions.
-> >
-> > The problem it that small static inline functions private to the
-> > compilation unit do not get inlined when CC_OPTIMIZE_FOR_SIZE=y (they
-> > do get inlined when CC_OPTIMIZE_FOR_PERFORMANCE=y).
-> >
-> > For the runtime this is easy to fix, by just making these small
-> > functions __always_inline (also avoiding these function call overheads
-> > in the runtime when CC_OPTIMIZE_FOR_SIZE).
-> >
-> > I stumbled upon the issue for the atomic ops, because the runtime uses
-> > atomic_long_try_cmpxchg outside a user_access_save() region (and it
-> > should not be moved inside). Essentially I fixed up the runtime, but
-> > then objtool still complained about the access to
-> > atomic64_try_cmpxchg. Hence this patch.
-> >
-> > I believe it is the right thing to do, because the final inlining
-> > decision should *not* be made by wrappers. I would think this patch is
-> > the right thing to do irrespective of KCSAN or not.
->
-> Given the wrappers are trivial, and for !KASAN && !KCSAN, this would
-> make them equivalent to the things they wrap, that sounds fine to me.
->
-> > > > By using __always_inline, we let the real implementation and not the
-> > > > wrapper determine the final inlining preference.
-> > >
-> > > That sounds reasonable to me, assuming that doesn't end up significantly
-> > > bloating the kernel text. What impact does this have on code size?
-> >
-> > It actually seems to make it smaller.
-> >
-> > x86 tinyconfig:
-> > - vmlinux baseline: 1316204
-> > - vmlinux with patches: 1315988 (-216 bytes)
->
-> Great! Fancy putting that in the commit message?
+On 25 November 2019 at 10:32 am, Mike Rapoport wrote:
+> On Mon, Nov 25, 2019 at 08:39:23AM +0100, Christoph Hellwig wrote:
+>> On Sat, Nov 23, 2019 at 12:42:27PM +0100, Christian Zigotzky wrote:
+>>> Hello Christoph,
+>>>
+>>> Please find attached the dmesg of your Git kernel.
+>> Thanks.  It looks like on your platform the swiotlb buffer isn't
+>> actually addressable based on the bus dma mask limit, which is rather
+>> interesting.  swiotlb_init uses memblock_alloc_low to allocate the
+>> buffer, and I'll need some help from Mike and the powerpc maintainers
+>> to figure out how that select where to allocate the buffer from, and
+>> how we can move it to a lower address.  My gut feeling would be to try
+>> to do what arm64 does and define a new ARCH_LOW_ADDRESS_LIMIT, preferably
+>> without needing too much arch specific magic.
+> Presuming the problem is relevant for all CoreNet boards something like
+> this could work:
+>   
+> diff --git a/arch/powerpc/include/asm/dma.h b/arch/powerpc/include/asm/dma.h
+> index 1b4f0254868f..7c6cfeeaff52 100644
+> --- a/arch/powerpc/include/asm/dma.h
+> +++ b/arch/powerpc/include/asm/dma.h
+> @@ -347,5 +347,11 @@ extern int isa_dma_bridge_buggy;
+>   #define isa_dma_bridge_buggy	(0)
+>   #endif
+>   
+> +#ifdef CONFIG_CORENET_GENERIC
+> +extern phys_addr_t ppc_dma_phys_limit;
+> +#define ARCH_LOW_ADDRESS_LIMIT	(ppc_dma_phys_limit - 1)
+> +#endif
+> +
+> +
+>   #endif /* __KERNEL__ */
+>   #endif	/* _ASM_POWERPC_DMA_H */
+> diff --git a/arch/powerpc/platforms/85xx/common.c b/arch/powerpc/platforms/85xx/common.c
+> index fe0606439b5a..346b436b6d3f 100644
+> --- a/arch/powerpc/platforms/85xx/common.c
+> +++ b/arch/powerpc/platforms/85xx/common.c
+> @@ -126,3 +126,7 @@ void __init mpc85xx_qe_par_io_init(void)
+>   	}
+>   }
+>   #endif
+> +
+> +#ifdef CONFIG_CORENET_GENERIC
+> +phys_addr_t ppc_dma_phys_limit = 0xffffffffUL;
+> +#endif
+> diff --git a/arch/powerpc/platforms/85xx/corenet_generic.c b/arch/powerpc/platforms/85xx/corenet_generic.c
+> index 7ee2c6628f64..673bcbdc7c75 100644
+> --- a/arch/powerpc/platforms/85xx/corenet_generic.c
+> +++ b/arch/powerpc/platforms/85xx/corenet_generic.c
+> @@ -64,7 +64,7 @@ void __init corenet_gen_setup_arch(void)
+>   	mpc85xx_smp_init();
+>   
+>   	swiotlb_detect_4g();
+> -
+> +	ppc_dma_phys_limit = 0x0fffffffUL;
+>   	pr_info("%s board\n", ppc_md.name);
+>   
+>   	mpc85xx_qe_init();
+Hello Mike,
 
-Done.
+My PCI TV card works also with your patch! Before I had to add "#include 
+<asm/dma.h>" to the file "arch/powerpc/platforms/85xx/corenet_generic.c" 
+because of the following error:
 
-> > > > This came up when addressing UACCESS warnings with CC_OPTIMIZE_FOR_SIZE
-> > > > in the KCSAN runtime:
-> > > > http://lkml.kernel.org/r/58708908-84a0-0a81-a836-ad97e33dbb62@infradead.org
-> > > >
-> > > > Reported-by: Randy Dunlap <rdunlap@infradead.org>
-> > > > Signed-off-by: Marco Elver <elver@google.com>
-> > > > ---
-> > > >  include/asm-generic/atomic-instrumented.h | 334 +++++++++++-----------
-> > > >  include/asm-generic/atomic-long.h         | 330 ++++++++++-----------
-> > > >  scripts/atomic/gen-atomic-instrumented.sh |   6 +-
-> > > >  scripts/atomic/gen-atomic-long.sh         |   2 +-
-> > > >  4 files changed, 336 insertions(+), 336 deletions(-)
-> > >
-> > > Do we need to do similar for gen-atomic-fallback.sh and the fallbacks
-> > > defined in scripts/atomic/fallbacks/ ?
-> >
-> > I think they should be, but I think that's debatable. Some of them do
-> > a little more than just wrap things. If we want to make this
-> > __always_inline, I would do it in a separate patch independent from
-> > this series to not stall the fixes here.
->
-> I would expect that they would suffer the same problem if used in a
-> UACCESS region, so if that's what we're trying to fix here, I think that
-> we need to do likewise there.
->
-> The majority are trivial wrappers (shuffling arguments or adding trivial
-> barriers), so those seem fine. The rest call things that we're inlining
-> here.
->
-> Would you be able to give that a go?
+------
 
-Done in v2.
+   CC      arch/powerpc/platforms/85xx/corenet_generic.o
+   CC      ipc/util.o
+   CC      ipc/msgutil.o
+arch/powerpc/platforms/85xx/corenet_generic.c: In function 
+‘corenet_gen_setup_arch’:
+arch/powerpc/platforms/85xx/corenet_generic.c:77:2: error: 
+‘ppc_dma_phys_limit’ undeclared (first use in this function); did you 
+mean ‘cpu_to_phys_id’?
+   ppc_dma_phys_limit = 0x0fffffffUL;
+   ^~~~~~~~~~~~~~~~~~
+   cpu_to_phys_id
+arch/powerpc/platforms/85xx/corenet_generic.c:77:2: note: each 
+undeclared identifier is reported only once for each function it appears in
+scripts/Makefile.build:265: recipe for target 
+'arch/powerpc/platforms/85xx/corenet_generic.o' failed
+make[3]: *** [arch/powerpc/platforms/85xx/corenet_generic.o] Error 1
+scripts/Makefile.build:509: recipe for target 
+'arch/powerpc/platforms/85xx' failed
+make[2]: *** [arch/powerpc/platforms/85xx] Error 2
+scripts/Makefile.build:509: recipe for target 'arch/powerpc/platforms' 
+failed
+make[1]: *** [arch/powerpc/platforms] Error 2
+Makefile:1652: recipe for target 'arch/powerpc' failed
+make: *** [arch/powerpc] Error 2
 
-> > > > diff --git a/scripts/atomic/gen-atomic-instrumented.sh b/scripts/atomic/gen-atomic-instrumented.sh
-> > > > index 8b8b2a6f8d68..68532d4f36ca 100755
-> > > > --- a/scripts/atomic/gen-atomic-instrumented.sh
-> > > > +++ b/scripts/atomic/gen-atomic-instrumented.sh
-> > > > @@ -84,7 +84,7 @@ gen_proto_order_variant()
-> > > >       [ ! -z "${guard}" ] && printf "#if ${guard}\n"
-> > > >
-> > > >  cat <<EOF
-> > > > -static inline ${ret}
-> > > > +static __always_inline ${ret}
-> > >
-> > > We should add an include of <linux/compiler.h> to the preamble if we're
-> > > explicitly using __always_inline.
-> >
-> > Will add in v2.
-> >
-> > > > diff --git a/scripts/atomic/gen-atomic-long.sh b/scripts/atomic/gen-atomic-long.sh
-> > > > index c240a7231b2e..4036d2dd22e9 100755
-> > > > --- a/scripts/atomic/gen-atomic-long.sh
-> > > > +++ b/scripts/atomic/gen-atomic-long.sh
-> > > > @@ -46,7 +46,7 @@ gen_proto_order_variant()
-> > > >       local retstmt="$(gen_ret_stmt "${meta}")"
-> > > >
-> > > >  cat <<EOF
-> > > > -static inline ${ret}
-> > > > +static __always_inline ${ret}
-> > >
-> > > Likewise here
-> >
-> > Will add in v2.
->
-> Great; thanks!
+------
 
-Sent v2: http://lkml.kernel.org/r/20191126114121.85552-1-elver@google.com
+After that I was able to compile the latest Git kernel with your patch.
 
 Thanks,
--- Marco
+Christian
