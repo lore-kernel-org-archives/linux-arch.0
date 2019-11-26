@@ -1,144 +1,97 @@
 From: Marco Elver <elver@google.com>
-Subject: [PATCH v3 3/3] kcsan: Prefer __always_inline for fast-path
-Date: Tue, 26 Nov 2019 15:04:06 +0100
-Message-ID: <20191126140406.164870-3-elver@google.com>
-References: <20191126140406.164870-1-elver@google.com>
+Subject: Re: [PATCH v2 1/3] asm-generic/atomic: Use __always_inline for pure wrappers
+Date: Tue, 26 Nov 2019 15:06:21 +0100
+Message-ID: <CANpmjNNcWujm-Q8WD2Lgf2ww5aG-kfmFca7YC96BdcFOkwgxXw@mail.gmail.com>
+References: <20191126114121.85552-1-elver@google.com> <20191126122917.GA37833@lakrids.cambridge.arm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20191126140406.164870-1-elver@google.com>
+In-Reply-To: <20191126122917.GA37833@lakrids.cambridge.arm.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: elver@google.com
-Cc: mark.rutland@arm.com, paulmck@kernel.org, linux-kernel@vger.kernel.org, will@kernel.org, peterz@infradead.org, boqun.feng@gmail.com, arnd@arndb.de, dvyukov@google.com, linux-arch@vger.kernel.org, kasan-dev@googlegroups.com, Randy Dunlap <rdunlap@infradead.org>
+To: Mark Rutland <mark.rutland@arm.com>
+Cc: Will Deacon <will@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Boqun Feng <boqun.feng@gmail.com>, Arnd Bergmann <arnd@arndb.de>, Dmitry Vyukov <dvyukov@google.com>, LKML <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, kasan-dev <kasan-dev@googlegroups.com>, "Paul E. McKenney" <paulmck@kernel.org>, Randy Dunlap <rdunlap@infradead.org>
 List-Id: linux-arch.vger.kernel.org
 
-Prefer __always_inline for fast-path functions that are called outside
-of user_access_save, to avoid generating UACCESS warnings when
-optimizing for size (CC_OPTIMIZE_FOR_SIZE). It will also avoid future
-surprises with compiler versions that change the inlining heuristic even
-when optimizing for performance.
+On Tue, 26 Nov 2019 at 13:29, Mark Rutland <mark.rutland@arm.com> wrote:
+>
+> On Tue, Nov 26, 2019 at 12:41:19PM +0100, Marco Elver wrote:
+> > Prefer __always_inline for atomic wrappers. When building for size
+> > (CC_OPTIMIZE_FOR_SIZE), some compilers appear to be less inclined to
+> > inline even relatively small static inline functions that are assumed to
+> > be inlinable such as atomic ops. This can cause problems, for example in
+> > UACCESS regions.
+> >
+> > By using __always_inline, we let the real implementation and not the
+> > wrapper determine the final inlining preference.
+> >
+> > For x86 tinyconfig we observe:
+> > - vmlinux baseline: 1316204
+> > - vmlinux with patch: 1315988 (-216 bytes)
+> >
+> > This came up when addressing UACCESS warnings with CC_OPTIMIZE_FOR_SIZE
+> > in the KCSAN runtime:
+> > http://lkml.kernel.org/r/58708908-84a0-0a81-a836-ad97e33dbb62@infradead.org
+> >
+> > Reported-by: Randy Dunlap <rdunlap@infradead.org>
+> > Signed-off-by: Marco Elver <elver@google.com>
+> > ---
+> > v2:
+> > * Add missing '#include <linux/compiler.h>'
+> > * Add size diff to commit message.
+> >
+> > v1: http://lkml.kernel.org/r/20191122154221.247680-1-elver@google.com
+> > ---
+> >  include/asm-generic/atomic-instrumented.h | 335 +++++++++++-----------
+> >  include/asm-generic/atomic-long.h         | 331 ++++++++++-----------
+> >  scripts/atomic/gen-atomic-instrumented.sh |   7 +-
+> >  scripts/atomic/gen-atomic-long.sh         |   3 +-
+> >  4 files changed, 340 insertions(+), 336 deletions(-)
+>
+> > diff --git a/scripts/atomic/gen-atomic-instrumented.sh b/scripts/atomic/gen-atomic-instrumented.sh
+> > index 8b8b2a6f8d68..86d27252b988 100755
+> > --- a/scripts/atomic/gen-atomic-instrumented.sh
+> > +++ b/scripts/atomic/gen-atomic-instrumented.sh
+> > @@ -84,7 +84,7 @@ gen_proto_order_variant()
+> >       [ ! -z "${guard}" ] && printf "#if ${guard}\n"
+> >
+> >  cat <<EOF
+> > -static inline ${ret}
+> > +static __always_inline ${ret}
+> >  ${atomicname}(${params})
+> >  {
+> >  ${checks}
+> > @@ -146,17 +146,18 @@ cat << EOF
+> >  #ifndef _ASM_GENERIC_ATOMIC_INSTRUMENTED_H
+> >  #define _ASM_GENERIC_ATOMIC_INSTRUMENTED_H
+> >
+> > +#include <linux/compiler.h>
+> >  #include <linux/build_bug.h>
+>
+> Sorry for the (super) trivial nit, but could you please re-order these
+> two alphabetically, i.e.
+>
+> #include <linux/build_bug.h>
+> #include <linux/compiler.h>
+>
+> With that:
+>
+> Acked-by: Mark Rutland <mark.rutland@arm.com>
 
-Report: http://lkml.kernel.org/r/58708908-84a0-0a81-a836-ad97e33dbb62@infradead.org
-Reported-by: Randy Dunlap <rdunlap@infradead.org>
-Signed-off-by: Marco Elver <elver@google.com>
----
-Rebased on: locking/kcsan branch of tip tree.
----
- kernel/kcsan/atomic.h   |  2 +-
- kernel/kcsan/core.c     | 16 +++++++---------
- kernel/kcsan/encoding.h | 14 +++++++-------
- 3 files changed, 15 insertions(+), 17 deletions(-)
+Done, thanks for the acks!
 
-diff --git a/kernel/kcsan/atomic.h b/kernel/kcsan/atomic.h
-index 576e03ddd6a3..a9c193053491 100644
---- a/kernel/kcsan/atomic.h
-+++ b/kernel/kcsan/atomic.h
-@@ -18,7 +18,7 @@
-  * than cast to volatile. Eventually, we hope to be able to remove this
-  * function.
-  */
--static inline bool kcsan_is_atomic(const volatile void *ptr)
-+static __always_inline bool kcsan_is_atomic(const volatile void *ptr)
- {
- 	/* only jiffies for now */
- 	return ptr == &jiffies;
-diff --git a/kernel/kcsan/core.c b/kernel/kcsan/core.c
-index 3314fc29e236..c616fec639cd 100644
---- a/kernel/kcsan/core.c
-+++ b/kernel/kcsan/core.c
-@@ -78,10 +78,8 @@ static atomic_long_t watchpoints[CONFIG_KCSAN_NUM_WATCHPOINTS + NUM_SLOTS-1];
-  */
- static DEFINE_PER_CPU(long, kcsan_skip);
- 
--static inline atomic_long_t *find_watchpoint(unsigned long addr,
--					     size_t size,
--					     bool expect_write,
--					     long *encoded_watchpoint)
-+static __always_inline atomic_long_t *
-+find_watchpoint(unsigned long addr, size_t size, bool expect_write, long *encoded_watchpoint)
- {
- 	const int slot = watchpoint_slot(addr);
- 	const unsigned long addr_masked = addr & WATCHPOINT_ADDR_MASK;
-@@ -146,7 +144,7 @@ insert_watchpoint(unsigned long addr, size_t size, bool is_write)
-  *	2. the thread that set up the watchpoint already removed it;
-  *	3. the watchpoint was removed and then re-used.
-  */
--static inline bool
-+static __always_inline bool
- try_consume_watchpoint(atomic_long_t *watchpoint, long encoded_watchpoint)
- {
- 	return atomic_long_try_cmpxchg_relaxed(watchpoint, &encoded_watchpoint, CONSUMED_WATCHPOINT);
-@@ -160,7 +158,7 @@ static inline bool remove_watchpoint(atomic_long_t *watchpoint)
- 	return atomic_long_xchg_relaxed(watchpoint, INVALID_WATCHPOINT) != CONSUMED_WATCHPOINT;
- }
- 
--static inline struct kcsan_ctx *get_ctx(void)
-+static __always_inline struct kcsan_ctx *get_ctx(void)
- {
- 	/*
- 	 * In interrupts, use raw_cpu_ptr to avoid unnecessary checks, that would
-@@ -169,7 +167,7 @@ static inline struct kcsan_ctx *get_ctx(void)
- 	return in_task() ? &current->kcsan_ctx : raw_cpu_ptr(&kcsan_cpu_ctx);
- }
- 
--static inline bool is_atomic(const volatile void *ptr)
-+static __always_inline bool is_atomic(const volatile void *ptr)
- {
- 	struct kcsan_ctx *ctx = get_ctx();
- 
-@@ -193,7 +191,7 @@ static inline bool is_atomic(const volatile void *ptr)
- 	return kcsan_is_atomic(ptr);
- }
- 
--static inline bool should_watch(const volatile void *ptr, int type)
-+static __always_inline bool should_watch(const volatile void *ptr, int type)
- {
- 	/*
- 	 * Never set up watchpoints when memory operations are atomic.
-@@ -226,7 +224,7 @@ static inline void reset_kcsan_skip(void)
- 	this_cpu_write(kcsan_skip, skip_count);
- }
- 
--static inline bool kcsan_is_enabled(void)
-+static __always_inline bool kcsan_is_enabled(void)
- {
- 	return READ_ONCE(kcsan_enabled) && get_ctx()->disable_count == 0;
- }
-diff --git a/kernel/kcsan/encoding.h b/kernel/kcsan/encoding.h
-index b63890e86449..f03562aaf2eb 100644
---- a/kernel/kcsan/encoding.h
-+++ b/kernel/kcsan/encoding.h
-@@ -59,10 +59,10 @@ encode_watchpoint(unsigned long addr, size_t size, bool is_write)
- 		      (addr & WATCHPOINT_ADDR_MASK));
- }
- 
--static inline bool decode_watchpoint(long watchpoint,
--				     unsigned long *addr_masked,
--				     size_t *size,
--				     bool *is_write)
-+static __always_inline bool decode_watchpoint(long watchpoint,
-+					      unsigned long *addr_masked,
-+					      size_t *size,
-+					      bool *is_write)
- {
- 	if (watchpoint == INVALID_WATCHPOINT ||
- 	    watchpoint == CONSUMED_WATCHPOINT)
-@@ -78,13 +78,13 @@ static inline bool decode_watchpoint(long watchpoint,
- /*
-  * Return watchpoint slot for an address.
-  */
--static inline int watchpoint_slot(unsigned long addr)
-+static __always_inline int watchpoint_slot(unsigned long addr)
- {
- 	return (addr / PAGE_SIZE) % CONFIG_KCSAN_NUM_WATCHPOINTS;
- }
- 
--static inline bool matching_access(unsigned long addr1, size_t size1,
--				   unsigned long addr2, size_t size2)
-+static __always_inline bool matching_access(unsigned long addr1, size_t size1,
-+					    unsigned long addr2, size_t size2)
- {
- 	unsigned long end_range1 = addr1 + size1 - 1;
- 	unsigned long end_range2 = addr2 + size2 - 1;
--- 
-2.24.0.432.g9d3f5f5b63-goog
+v3: http://lkml.kernel.org/r/20191126140406.164870-1-elver@google.com
+
+> [...]
+>
+> > @@ -64,6 +64,7 @@ cat << EOF
+> >  #ifndef _ASM_GENERIC_ATOMIC_LONG_H
+> >  #define _ASM_GENERIC_ATOMIC_LONG_H
+> >
+> > +#include <linux/compiler.h>
+> >  #include <asm/types.h>
+>
+> Unlike the above, this doesn't need to be re-ordered; for whatever
+> reason, linux/* includes typically come before asm/* includes.
+>
+> Thanks,
+> Mark.
