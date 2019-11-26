@@ -1,49 +1,97 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from out01.mta.xmission.com ([166.70.13.231]:36776 "EHLO
-        out01.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1725970AbfKZUG0 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 26 Nov 2019 15:06:26 -0500
-From: ebiederm@xmission.com (Eric W. Biederman)
-References: <8736eaxxdg.fsf@x220.int.ebiederm.org>
-        <CAMo8BfK-Ua70sZe8JBHz3KK7+WjP1MvBa=jTK=-HrOHuAuDnHg@mail.gmail.com>
-Date: Tue, 26 Nov 2019 14:05:50 -0600
-In-Reply-To: <CAMo8BfK-Ua70sZe8JBHz3KK7+WjP1MvBa=jTK=-HrOHuAuDnHg@mail.gmail.com>
-        (Max Filippov's message of "Tue, 26 Nov 2019 11:27:29 -0800")
-Message-ID: <87v9r6wggx.fsf@x220.int.ebiederm.org>
+Received: from mail-wm1-f65.google.com ([209.85.128.65]:51258 "EHLO
+        mail-wm1-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1725970AbfKZUGb (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 26 Nov 2019 15:06:31 -0500
+From: Luc Van Oostenryck <luc.vanoostenryck@gmail.com>
+Subject: [PATCH] fix __percpu annotation in asm-generic
+Date: Tue, 26 Nov 2019 21:06:19 +0100
+Message-ID: <20191126200619.63348-1-luc.vanoostenryck@gmail.com>
 MIME-Version: 1.0
-Content-Type: text/plain
-Subject: Re: new uses of SYSCTL_SYSCALL
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Max Filippov <jcmvbkbc@gmail.com>
-Cc: Linux-Arch <linux-arch@vger.kernel.org>, "open list:TENSILICA XTENSA PORT (xtensa)" <linux-xtensa@linux-xtensa.org>
+To: Dennis Zhou <dennis@kernel.org>
+Cc: Ben Dooks <ben.dooks@codethink.co.uk>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>, Tejun Heo <tj@kernel.org>, Christoph Lameter <cl@linux.com>, Nicholas Piggin <npiggin@gmail.com>, Arnd Bergmann <arnd@arndb.de>
+Message-ID: <20191126200619.ePNXGCAlkk5vVhO7INNGBYibkoW_6rv4jteaWYRJ1L4@z>
 
-Max Filippov <jcmvbkbc@gmail.com> writes:
+The generic implementation of raw_cpu_generic_add_return() is:
 
-> Hi Eric,
->
-> On Tue, Nov 26, 2019 at 11:15 AM Eric W. Biederman
-> <ebiederm@xmission.com> wrote:
->> Doing a test merge against linux-next I see that in the
->> tree git://github.com/jcmvbkbc/linux-xtensa.git#xtensa-for-next
->> a new defconfig is added:
->>
->> arch/xtensa/configs/xip_kc705_defconfig
->>
->> That defconfig adds CONFIG_SYSCTL_SYSCALL.
->>
->> Is xtensa actually using this system call?  So far I have not seen any
->> other users and I am serously proposing to remove it.
->
-> I'm sure that this config symbol was inherited from some other config
-> that I used as a base for the xip_kc705_defconfig. I didn't enable it
-> intentionally. I'll drop it from the config and fix up the patch that
-> introduced it.
+        #define raw_cpu_generic_add_return(pcp, val)            \
+        ({                                                      \
+                typeof(&(pcp)) __p = raw_cpu_ptr(&(pcp));       \
+                                                                \
+                *__p += val;                                    \
+                *__p;                                           \
+        })
 
-Thank you for confirming that.
+where the 'pcp' argument is a __percpu lvalue.
+There, the variable '__p' is declared as a __percpu pointer
+the type of the address of 'pcp') but:
+1) the value assigned to it, the return value of raw_cpu_ptr(), is
+   a plain (__kernel) pointer, not a __percpu one.
+2) the variable is dereferenced just after while a __percpu pointer
+   is implicitly __noderef.
 
-I would recommend an incremental commit/patch on top to change just this
-one thing so you don't rebase just before you send a pull request and
-cause Linus's to wonder if you have tested the code at all.
+So, fix the declaration of the 'pcp' variable to its correct type:
+the plain (non-percpu) pointer corresponding to its address.
+Same for raw_cpu_generic_xchg(), raw_cpu_generic_cmpxchg() &
+raw_cpu_generic_cmpxchg_double().
 
-Eric
+This remove 209 warnings on ARM, 460 on x86 & 2600+ on ppc64.
+
+Cc: Dennis Zhou <dennis@kernel.org>
+Cc: Tejun Heo <tj@kernel.org>
+Cc: Christoph Lameter <cl@linux.com>
+Cc: Nicholas Piggin <npiggin@gmail.com>
+Cc: Arnd Bergmann <arnd@arndb.de>
+Reported-by: Ben Dooks <ben.dooks@codethink.co.uk>
+Signed-off-by: Luc Van Oostenryck <luc.vanoostenryck@gmail.com>
+---
+ include/asm-generic/percpu.h | 10 +++++-----
+ 1 file changed, 5 insertions(+), 5 deletions(-)
+
+diff --git a/include/asm-generic/percpu.h b/include/asm-generic/percpu.h
+index c2de013b2cf4..4ae5f89a0e61 100644
+--- a/include/asm-generic/percpu.h
++++ b/include/asm-generic/percpu.h
+@@ -74,7 +74,7 @@ do {									\
+ 
+ #define raw_cpu_generic_add_return(pcp, val)				\
+ ({									\
+-	typeof(&(pcp)) __p = raw_cpu_ptr(&(pcp));			\
++	typeof(pcp) __kernel __force *__p = raw_cpu_ptr(&(pcp));	\
+ 									\
+ 	*__p += val;							\
+ 	*__p;								\
+@@ -82,7 +82,7 @@ do {									\
+ 
+ #define raw_cpu_generic_xchg(pcp, nval)					\
+ ({									\
+-	typeof(&(pcp)) __p = raw_cpu_ptr(&(pcp));			\
++	typeof(pcp) __kernel __force *__p = raw_cpu_ptr(&(pcp));	\
+ 	typeof(pcp) __ret;						\
+ 	__ret = *__p;							\
+ 	*__p = nval;							\
+@@ -91,7 +91,7 @@ do {									\
+ 
+ #define raw_cpu_generic_cmpxchg(pcp, oval, nval)			\
+ ({									\
+-	typeof(&(pcp)) __p = raw_cpu_ptr(&(pcp));			\
++	typeof(pcp) __kernel __force *__p = raw_cpu_ptr(&(pcp));	\
+ 	typeof(pcp) __ret;						\
+ 	__ret = *__p;							\
+ 	if (__ret == (oval))						\
+@@ -101,8 +101,8 @@ do {									\
+ 
+ #define raw_cpu_generic_cmpxchg_double(pcp1, pcp2, oval1, oval2, nval1, nval2) \
+ ({									\
+-	typeof(&(pcp1)) __p1 = raw_cpu_ptr(&(pcp1));			\
+-	typeof(&(pcp2)) __p2 = raw_cpu_ptr(&(pcp2));			\
++	typeof(pcp1) __kernel __force *__p1 = raw_cpu_ptr(&(pcp1));	\
++	typeof(pcp2) __kernel __force *__p2 = raw_cpu_ptr(&(pcp2));	\
+ 	int __ret = 0;							\
+ 	if (*__p1 == (oval1) && *__p2  == (oval2)) {			\
+ 		*__p1 = nval1;						\
+-- 
+2.24.0
