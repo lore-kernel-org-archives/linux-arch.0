@@ -1,78 +1,169 @@
-From: Alex Kogan <alex.kogan@oracle.com>
-Subject: [PATCH v7 0/5] Add NUMA-awareness to qspinlock
-Date: Mon, 25 Nov 2019 16:07:04 -0500
-Message-ID: <20191125210709.10293-1-alex.kogan@oracle.com>
+From: Christophe Leroy <christophe.leroy@c-s.fr>
+Subject: =?UTF-8?B?UmU6IOetlOWkjTog562U5aSNOiBsb29wIG5lc3RpbmcgaW4gYWxpZ25t?=
+ =?UTF-8?Q?ent_exception_and_machine_check?=
+Date: Tue, 26 Nov 2019 09:13:28 +0100
+Message-ID: <a77f2266-b654-087c-7af8-78c745a52b37@c-s.fr>
+References: <D44062DC474617438D5181ADFE2B2C21016DE42A@dggemi529-mbs.china.huawei.com>
+ <8215aeb3-57dd-223a-29d3-45ca22b0543c@c-s.fr>
+ <D44062DC474617438D5181ADFE2B2C21016E9EAA@dggemi529-mbs.china.huawei.com>
+ <ef93fa2f-d98f-2e94-322e-0ae095626e75@c-s.fr>
+ <D44062DC474617438D5181ADFE2B2C21016ED78D@dggemi529-mbs.china.huawei.com>
 Mime-Version: 1.0
+Content-Type: text/plain; charset=utf-8; format=flowed
 Content-Transfer-Encoding: 8bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <D44062DC474617438D5181ADFE2B2C21016ED78D@dggemi529-mbs.china.huawei.com>
+Content-Language: fr
 Sender: linux-kernel-owner@vger.kernel.org
-To: linux@armlinux.org.uk, peterz@infradead.org, mingo@redhat.com, will.deacon@arm.com, arnd@arndb.de, longman@redhat.com, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, bp@alien8.de, hpa@zytor.com, x86@kernel.org, guohanjun@huawei.com, jglauber@marvell.com
-Cc: steven.sistare@oracle.com, daniel.m.jordan@oracle.com, alex.kogan@oracle.com, dave.dice@oracle.com, rahul.x.yadav@oracle.com
+To: "Wangshaobo (bobo)" <bobo.shaobowang@huawei.com>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "alistair@popple.id.au" <alistair@popple.id.au>, "chengjian (D)" <cj.chengjian@huawei.com>, Xiexiuqi <xiexiuqi@huawei.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "oss@buserror.net" <oss@buserror.net>, "paulus@samba.org" <paulus@samba.org>, "Libin (Huawei)" <huawei.libin@huawei.com>, "agust@denx.de" <agust@denx.de>, "linuxppc-dev@lists.ozlabs.org" <linuxppc-dev@lists.ozlabs.org>
 List-Id: linux-arch.vger.kernel.org
 
-Minor change from v6:
----------------------
+Hi,
 
-- fixed a 32-bit build failure by adding dependency on 64BIT in Kconfig.
-Reported-by: kbuild test robot <lkp@intel.com>
+Le 01/11/2019 à 02:57, Wangshaobo (bobo) a écrit :
+> Hi, Christophe
+> 
+> 	I am sorry that we are in some troubles for some unpredictable problems when we replay and haven't given you a quick reply.
+> 	
+> 	I also want to ask does the phenomeon(use memcpy_toio when copy ioremap_address) only occurs in powerpc ? does any other
+> arch also has the same problem ? we are in persuit of asking why this phenomenon happened. Our linux kernel version is 4.4.
 
+It's not a problem ... it's a feature.
 
-Summary
--------
+I have no idea whether the same kind of issue can happen on other 
+arches, sorry.
 
-Lock throughput can be increased by handing a lock to a waiter on the
-same NUMA node as the lock holder, provided care is taken to avoid
-starvation of waiters on other NUMA nodes. This patch introduces CNA
-(compact NUMA-aware lock) as the slow path for qspinlock. It is
-enabled through a configuration option (NUMA_AWARE_SPINLOCKS).
+Christophe
 
-CNA is a NUMA-aware version of the MCS lock. Spinning threads are
-organized in two queues, a main queue for threads running on the same
-node as the current lock holder, and a secondary queue for threads
-running on other nodes. Threads store the ID of the node on which
-they are running in their queue nodes. After acquiring the MCS lock and
-before acquiring the spinlock, the lock holder scans the main queue
-looking for a thread running on the same node (pre-scan). If found (call
-it thread T), all threads in the main queue between the current lock
-holder and T are moved to the end of the secondary queue.  If such T
-is not found, we make another scan of the main queue after acquiring 
-the spinlock when unlocking the MCS lock (post-scan), starting at the
-node where pre-scan stopped. If both scans fail to find such T, the
-MCS lock is passed to the first thread in the secondary queue. If the
-secondary queue is empty, the MCS lock is passed to the next thread in the
-main queue. To avoid starvation of threads in the secondary queue, those
-threads are moved back to the head of the main queue after a certain
-number of intra-node lock hand-offs.
-
-More details are available at https://arxiv.org/abs/1810.05600.
-
-The series applies on top of v5.4.0, commit eae56099de85.
-Performance numbers are available in previous revisions
-of the series.
-
-Further comments are welcome and appreciated.
-
-Alex Kogan (5):
-  locking/qspinlock: Rename mcs lock/unlock macros and make them more
-    generic
-  locking/qspinlock: Refactor the qspinlock slow path
-  locking/qspinlock: Introduce CNA into the slow path of qspinlock
-  locking/qspinlock: Introduce starvation avoidance into CNA
-  locking/qspinlock: Introduce the shuffle reduction optimization into
-    CNA
-
- .../admin-guide/kernel-parameters.txt         |  18 +
- arch/arm/include/asm/mcs_spinlock.h           |   6 +-
- arch/x86/Kconfig                              |  20 ++
- arch/x86/include/asm/qspinlock.h              |   4 +
- arch/x86/kernel/alternative.c                 |  70 ++++
- include/asm-generic/mcs_spinlock.h            |   4 +-
- kernel/locking/mcs_spinlock.h                 |  20 +-
- kernel/locking/qspinlock.c                    |  77 ++++-
- kernel/locking/qspinlock_cna.h                | 319 ++++++++++++++++++
- kernel/locking/qspinlock_paravirt.h           |   2 +-
- 10 files changed, 517 insertions(+), 23 deletions(-)
- create mode 100644 kernel/locking/qspinlock_cna.h
-
--- 
-2.21.0 (Apple Git-122.2)
+> 	
+> 	thanks very much.
+> 
+> -----邮件原件-----
+> 发件人: Christophe Leroy [mailto:christophe.leroy@c-s.fr]
+> 发送时间: 2019年10月31日 19:13
+> 收件人: Wangshaobo (bobo) <bobo.shaobowang@huawei.com>
+> 抄送: chengjian (D) <cj.chengjian@huawei.com>; Libin (Huawei) <huawei.libin@huawei.com>; Xiexiuqi <xiexiuqi@huawei.com>; zhangyi (F) <yi.zhang@huawei.com>
+> 主题: Re: 答复: loop nesting in alignment exception and machine check
+> 
+> Hi,
+> 
+> Did you try ? Does it work ?
+> 
+> Christophe
+> 
+> Le 28/10/2019 à 06:57, Wangshaobo (bobo) a écrit :
+>> Hi,Christophe
+>>
+>> Thank you for your quick reply. I will try to use memcpy_toio() instead of memcpy().
+>>
+>> -----邮件原件-----
+>> 发件人: Christophe Leroy [mailto:christophe.leroy@c-s.fr]
+>> 发送时间: 2019年10月26日 19:20
+>> 收件人: Wangshaobo (bobo) <bobo.shaobowang@huawei.com>
+>> 抄送: linux-arch@vger.kernel.org; alistair@popple.id.au; chengjian (D)
+>> <cj.chengjian@huawei.com>; Xiexiuqi <xiexiuqi@huawei.com>;
+>> linux-kernel@vger.kernel.org; oss@buserror.net; paulus@samba.org;
+>> Libin (Huawei) <huawei.libin@huawei.com>; agust@denx.de;
+>> linuxppc-dev@lists.ozlabs.org
+>> 主题: Re: loop nesting in alignment exception and machine check
+>>
+>> Hi,
+>>
+>> Le 26/10/2019 à 09:23, Wangshaobo (bobo) a écrit :
+>>> Hi,
+>>>
+>>> I encountered a problem about a loop nesting occurred in
+>>> manufacturing the alignment exception in machine check, trigger background is :
+>>>
+>>> problem:
+>>>
+>>> machine checkout or critical interrupt ->…->kbox_write[for recording
+>>> last words] -> memcpy(irremap_addr, src,size):_GLOBAL(memcpy)…
+>>>
+>>> when we enter memcpy,a command ‘dcbz r11,r6’ will cause a alignment
+>>> exception, in this situation,r11 loads the ioremap address,which
+>>> leads to the alignment exception,
+>>
+>> You can't use memcpy() on something else than memory.
+>>
+>> For an ioremapped area, you have to use memcpy_toio()
+>>
+>> Christophe
+>>
+>>>
+>>> then the command can not be process successfully,as we still in
+>>> machine check.at the end ,it triggers a new irq machine check in irq
+>>> handler function,a loop nesting begins.
+>>>
+>>> analysis:
+>>>
+>>> We have analysed a lot,but it still can not come to a reasonable
+>>> description,in common,the alignment triggered in machine check
+>>> context can still be collected into the Kbox
+>>>
+>>> after alignment exception be handled by handler function, but how
+>>> does the machine checkout can be triggered in the handler fucntion
+>>> for any causes? We print relevant registers
+>>>
+>>> as follow when first enter machine check and alignment exception
+>>> handler
+>>> function:
+>>>
+>>>             MSR:0x2      MSR:0x0
+>>>
+>>>             SRR1:0x2      SRR1:0x21002
+>>>
+>>>             But the manual says SRR1 should be set to MSR(0x2),why
+>>> that happened ?
+>>>
+>>>             Then a branch in handler function copy the SRR1 to
+>>> MSR,this enble MSR[ME] and MSR[CE],system collapses.
+>>>
+>>> Conclusion:
+>>>
+>>>             1)  why the alignment exception can not be handled in
+>>> machine check ?
+>>>
+>>>             2)  besides memcpy,any other function can cause the
+>>> alignment exception ?
+>>>
+>>> We still recurrent it, the line as follows:
+>>>
+>>>             Cpu dead lock->watch log->trigger
+>>> fiq->kbox_write->memcpy->alignment exception->print last words.
+>>>
+>>>             but for those problems as below,what the kbox printed is empty.
+>>>
+>>> ------------------kbox restart:[   10.147594]----------------
+>>>
+>>> kbox verify fs magic fail
+>>>
+>>> kbox mem mabye destroyed, format it
+>>>
+>>> kbox: load OK
+>>>
+>>> lock-task: major[249] minor[0]
+>>>
+>>> -----start show_destroyed_kbox_mem_head----
+>>>
+>>> 00000000: 00000000 00000000 00000000 00000000  ................
+>>>
+>>> 00000010: 00000000 00000000 00000000 00000000  ................
+>>>
+>>> 00000020: 00000000 00000000 00000000 00000000  ................
+>>>
+>>> 00000030: 00000000 00000000 00000000 00000000  ................
+>>>
+>>> 00000040: 00000000 00000000 00000000 00000000  ................
+>>>
+>>> 00000050: 00000000 00000000 00000000 00000000  ................
+>>>
+>>> 00000060: 00000000 00000000 00000000 00000000  ................
+>>>
+>>> 00000070: 00000000 00000000 00000000 00000000  ................
+>>>
+>>> 00000080: 00000000 00000000 00000000 00000000  ................
+>>>
+>>> 00000090: 00000000 00000000 00000000 00000000  ................
+>>>
