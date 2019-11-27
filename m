@@ -1,133 +1,27 @@
-Return-Path: <rppt@kernel.org>
-From: Mike Rapoport <rppt@kernel.org>
-Subject: [PATCH v4 00/13] mm: remove __ARCH_HAS_4LEVEL_HACK
-Date: Tue,  5 Nov 2019 09:15:22 +0200
-Message-ID: <1572938135-31886-1-git-send-email-rppt@kernel.org>
-To: linux-mm@kvack.org
-Cc: Andrew Morton <akpm@linux-foundation.org>, Anton Ivanov <anton.ivanov@cambridgegreys.com>, Arnd Bergmann <arnd@arndb.de>, "David S. Miller" <davem@davemloft.net>, Geert Uytterhoeven <geert@linux-m68k.org>, Greentime Hu <green.hu@gmail.com>, Greg Ungerer <gerg@linux-m68k.org>, Helge Deller <deller@gmx.de>, "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>, Jeff Dike <jdike@addtoit.com>, "Kirill A. Shutemov" <kirill@shutemov.name>, Linus Torvalds <torvalds@linux-foundation.org>, Mark Salter <msalter@redhat.com>, Matt Turner <mattst88@gmail.com>, Michal Simek <monstr@monstr.eu>, Peter Rosin <peda@axentia.se>, Richard Weinberger <richard@nod.at>, Rolf Eike Beer <eike-kernel@sf-tec.de>, Russell King <linux@armlinux.org.uk>, Sam Creasey <sammy@sammy.net>, Vincent Chen <deanbo422@gmail.com>, Vineet Gupta <Vineet.Gupta1@synopsys.com>, Mike Rapoport <rppt@kernel.org>, linux-alpha@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, linux-kernel@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-parisc@vger.kernel.org, linux-um@lists.infradead.org, sparclinux@vger.kernel.org, Mike Rapoport <rppt@linux.ibm.com>
+Return-Path: <hch@lst.de>
+Date: Wed, 27 Nov 2019 09:53:51 +0100
+From: Christoph Hellwig <hch@lst.de>
+Subject: Re: Bug 205201 - Booting halts if Dawicontrol DC-2976 UW SCSI
+ board installed, unless RAM size limited to 3500M
+Message-ID: <20191127085351.GA24676@lst.de>
+References: <dbde2252-035e-6183-7897-43348e60647e@xenosoft.de> <6eec5c42-019c-a988-fc2a-cb804194683d@xenosoft.de> <d0252d29-7a03-20e1-ccd7-e12d906e4bdf@arm.com> <b3217742-2c0b-8447-c9ac-608b93265363@xenosoft.de> <20191121180226.GA3852@lst.de> <2fde79cf-875f-94e6-4a1b-f73ebb2e2c32@xenosoft.de> <20191125073923.GA30168@lst.de> <4681f5fe-c095-15f5-9221-4b55e940bafc@xenosoft.de> <20191126164026.GA8026@lst.de> <20191127065624.GB16913@linux.ibm.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20191127065624.GB16913@linux.ibm.com>
+To: Mike Rapoport <rppt@linux.ibm.com>
+Cc: Christoph Hellwig <hch@lst.de>, Christian Zigotzky <chzigotzky@xenosoft.de>, Robin Murphy <robin.murphy@arm.com>, linux-arch@vger.kernel.org, darren@stevens-zone.net, mad skateman <madskateman@gmail.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, linux-kernel@vger.kernel.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Rob Herring <robh+dt@kernel.org>, paulus@samba.org, rtd2@xtra.co.nz, "contact@a-eon.com" <contact@a-eon.com>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, nsaenzjulienne@suse.de
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20191105071522.00KgHh8uY4Z4GkRItOSkqml3YCfcsx43xA8rZsLG3ZY@z>
+Message-ID: <20191127085351.GfpmJvqcF34IqskwQ8qW5QTb6dFsZKpzVcfrbhDI-Ho@z>
 
-From: Mike Rapoport <rppt@linux.ibm.com>
+On Wed, Nov 27, 2019 at 08:56:25AM +0200, Mike Rapoport wrote:
+> Maybe we'll simply force bottom up allocation before calling
+> swiotlb_init()? Anyway, it's the last memblock allocation.
 
-Hi,
-
-These patches convert several architectures to use page table folding and
-remove __ARCH_HAS_4LEVEL_HACK along with include/asm-generic/4level-fixup.h.
-
-For the nommu configurations the folding is already implemented by the
-generic code so the only change was to use the appropriate header file.
-
-As for the rest, the changes are mostly about mechanical replacement of
-pgd accessors with pud/pmd ones and the addition of higher levels to page
-table traversals.
-
-With Vineet's patches from "elide extraneous generated code for folded
-p4d/pud/pmd" series [1] there is a small shrink of the kernel size of about
--0.01% for the defconfig builds. 
-
-The set is boot-tested on UML, qemu-{alpha,sparc} and aranym.
-
-v4 changes:
-* m68k: fix sun3x_defconfig build and reorder ifdefs as per Geert's
-  suggestion
-
-v3 changes:
-* alpha: fix changelog to use pgtable-nopud.h rather than pgtable-nop4d.h
-* um: remove dead-code that was intended as provisioning for 4-level page
-  tables
-
-v2 changes:
-* m68k: fixed ifdefs around pmd_t defintion to work with nommu
-* parisc: added conversion of hugetlb (thanks, Helge!); lexical fixups in
-  comments and changelog
-* collected acks
-
-[1] https://lore.kernel.org/lkml/20191016162400.14796-1-vgupta@synopsys.com
-
-Helge Deller (1):
-  parisc/hugetlb: use pgtable-nopXd instead of 4level-fixup
-
-Mike Rapoport (12):
-  alpha: use pgtable-nopud instead of 4level-fixup
-  arm: nommu: use pgtable-nopud instead of 4level-fixup
-  c6x: use pgtable-nopud instead of 4level-fixup
-  m68k: nommu: use pgtable-nopud instead of 4level-fixup
-  m68k: mm: use pgtable-nopXd instead of 4level-fixup
-  microblaze: use pgtable-nopmd instead of 4level-fixup
-  nds32: use pgtable-nopmd instead of 4level-fixup
-  parisc: use pgtable-nopXd instead of 4level-fixup
-  sparc32: use pgtable-nopud instead of 4level-fixup
-  um: remove unused pxx_offset_proc() and addr_pte() functions
-  um: add support for folded p4d page tables
-  mm: remove __ARCH_HAS_4LEVEL_HACK and include/asm-generic/4level-fixup.h
-
- arch/alpha/include/asm/mmzone.h          |  1 -
- arch/alpha/include/asm/pgalloc.h         |  4 +-
- arch/alpha/include/asm/pgtable.h         | 24 ++++-----
- arch/alpha/mm/init.c                     | 12 +++--
- arch/arm/include/asm/pgtable.h           |  2 +-
- arch/c6x/include/asm/pgtable.h           |  2 +-
- arch/m68k/include/asm/mcf_pgalloc.h      |  7 ---
- arch/m68k/include/asm/mcf_pgtable.h      | 28 ++++-------
- arch/m68k/include/asm/mmu_context.h      | 12 ++++-
- arch/m68k/include/asm/motorola_pgalloc.h |  4 +-
- arch/m68k/include/asm/motorola_pgtable.h | 32 +++++++-----
- arch/m68k/include/asm/page.h             |  9 ++--
- arch/m68k/include/asm/pgtable_mm.h       | 11 +++--
- arch/m68k/include/asm/pgtable_no.h       |  2 +-
- arch/m68k/include/asm/sun3_pgalloc.h     |  5 --
- arch/m68k/include/asm/sun3_pgtable.h     | 18 -------
- arch/m68k/kernel/sys_m68k.c              | 10 +++-
- arch/m68k/mm/init.c                      |  6 ++-
- arch/m68k/mm/kmap.c                      | 39 +++++++++++----
- arch/m68k/mm/mcfmmu.c                    | 16 +++++-
- arch/m68k/mm/motorola.c                  | 17 ++++---
- arch/m68k/sun3x/dvma.c                   |  7 ++-
- arch/microblaze/include/asm/page.h       |  3 --
- arch/microblaze/include/asm/pgalloc.h    | 16 ------
- arch/microblaze/include/asm/pgtable.h    | 32 +-----------
- arch/microblaze/kernel/signal.c          | 10 ++--
- arch/microblaze/mm/init.c                |  7 ++-
- arch/microblaze/mm/pgtable.c             | 13 ++++-
- arch/nds32/include/asm/page.h            |  3 --
- arch/nds32/include/asm/pgalloc.h         |  3 --
- arch/nds32/include/asm/pgtable.h         | 12 +----
- arch/nds32/include/asm/tlb.h             |  1 -
- arch/nds32/kernel/pm.c                   |  4 +-
- arch/nds32/mm/fault.c                    | 16 ++++--
- arch/nds32/mm/init.c                     | 11 +++--
- arch/nds32/mm/mm-nds32.c                 |  6 ++-
- arch/nds32/mm/proc.c                     | 26 ++++++----
- arch/parisc/include/asm/page.h           | 30 ++++++-----
- arch/parisc/include/asm/pgalloc.h        | 41 ++++++---------
- arch/parisc/include/asm/pgtable.h        | 52 ++++++++++---------
- arch/parisc/include/asm/tlb.h            |  2 +
- arch/parisc/kernel/cache.c               | 13 +++--
- arch/parisc/kernel/pci-dma.c             |  9 +++-
- arch/parisc/mm/fixmap.c                  | 10 ++--
- arch/parisc/mm/hugetlbpage.c             | 18 ++++---
- arch/sparc/include/asm/pgalloc_32.h      |  6 +--
- arch/sparc/include/asm/pgtable_32.h      | 28 +++++------
- arch/sparc/mm/fault_32.c                 | 11 ++++-
- arch/sparc/mm/highmem.c                  |  6 ++-
- arch/sparc/mm/io-unit.c                  |  6 ++-
- arch/sparc/mm/iommu.c                    |  6 ++-
- arch/sparc/mm/srmmu.c                    | 51 ++++++++++++++-----
- arch/um/include/asm/pgtable-2level.h     |  1 -
- arch/um/include/asm/pgtable-3level.h     |  1 -
- arch/um/include/asm/pgtable.h            |  3 ++
- arch/um/kernel/mem.c                     |  8 ++-
- arch/um/kernel/skas/mmu.c                | 12 ++++-
- arch/um/kernel/skas/uaccess.c            |  7 ++-
- arch/um/kernel/tlb.c                     | 85 +++++++++++++++++++-------------
- arch/um/kernel/trap.c                    |  4 +-
- include/asm-generic/4level-fixup.h       | 40 ---------------
- include/asm-generic/tlb.h                |  2 -
- include/linux/mm.h                       | 10 ++--
- mm/memory.c                              |  8 ---
- 64 files changed, 483 insertions(+), 418 deletions(-)
- delete mode 100644 include/asm-generic/4level-fixup.h
-
--- 
-2.7.4
+That should work, but I don't think it is the proper fix.  The underlying
+issue here is that ZONE_DMA/DMA32 sizing is something that needs to
+be propagated to memblock and dma-direct as is based around addressing
+limitations.  But our zone initialization is such a mess that we
+can't just reuse a variable.  Nicolas has started to clean some of
+this up, but we need to clean that whole zone initialization mess up
+a lot more.
