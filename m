@@ -1,30 +1,90 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from gentwo.org ([3.19.106.255]:39434 "EHLO gentwo.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726514AbfK0PzU (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 27 Nov 2019 10:55:20 -0500
-Date: Wed, 27 Nov 2019 15:55:19 +0000 (UTC)
-From: Christopher Lameter <cl@linux.com>
-Subject: Re: [PATCH] fix __percpu annotation in asm-generic
-In-Reply-To: <20191126200619.63348-1-luc.vanoostenryck@gmail.com>
-Message-ID: <alpine.DEB.2.21.1911271553560.16980@www.lameter.com>
-References: <20191126200619.63348-1-luc.vanoostenryck@gmail.com>
+Received: from out01.mta.xmission.com ([166.70.13.231]:50890 "EHLO
+        out01.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726984AbfK0Q4a (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 27 Nov 2019 11:56:30 -0500
+From: ebiederm@xmission.com (Eric W. Biederman)
+Date: Wed, 27 Nov 2019 10:55:52 -0600
+Message-ID: <87r21tuulj.fsf@x220.int.ebiederm.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
+Content-Type: text/plain
+Subject: [GIT PULL] sysctl: Remove the sysctl system call
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Luc Van Oostenryck <luc.vanoostenryck@gmail.com>
-Cc: Dennis Zhou <dennis@kernel.org>, Ben Dooks <ben.dooks@codethink.co.uk>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Tejun Heo <tj@kernel.org>, Nicholas Piggin <npiggin@gmail.com>, Arnd Bergmann <arnd@arndb.de>
-Message-ID: <20191127155519.NeLUQvNSWmTQDlF2vJC_O72a1EnHPB51UptWdykWMhg@z>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org
+Message-ID: <20191127165552.5CURnpdbghFVZGcuU5_p9DOhAZgMoTeShV7Ll11zFN8@z>
 
-On Tue, 26 Nov 2019, Luc Van Oostenryck wrote:
 
-> So, fix the declaration of the 'pcp' variable to its correct type:
-> the plain (non-percpu) pointer corresponding to its address.
-> Same for raw_cpu_generic_xchg(), raw_cpu_generic_cmpxchg() &
-> raw_cpu_generic_cmpxchg_double().
+Linus,
 
-Acked-by: Christoph Lameter <cl@linux.com>
+Please pull the for-linus branch from the git tree:
 
-Maybe a better fix is to come up with a typeof_strip_percu() or so
-macro for all the places where this needs to be done?
+   git://git.kernel.org/pub/scm/linux/kernel/git/ebiederm/user-namespace.git for-linus
+
+   HEAD: 61a47c1ad3a4dc6882f01ebdc88138ac62d0df03 sysctl: Remove the sysctl system call
+
+As far as I can tell we have reached the point where no one enables the
+sysctl system call anymore.  It still is enabled in a few defconfigs
+but they are mostly the rarely used one and in asking people about
+that it was more cut & paste enabled than anything else.
+
+This is single commit that just deletes code.  Leaving just enough code
+so that the deprecated sysctl warning continues to be printed.  If my
+analysis turns out to be wrong and someone actually cares it will be
+easy to revert this commit and have the system call again.
+
+There was one new xtensa defconfig in linux-next that enabled the system
+call this cycle and when asked about it the maintainer of the code
+replied that it was not enabled on purpose.  As of today's linux-next
+tree that defconfig no longer enables the system call.
+
+I have recently amended the commit to include the review status.
+
+Some of the mailing list choked on my patch posting, I don't know why
+but here is a link to part of the review that made it to linux-kernel.
+https://lore.kernel.org/lkml/201910011140.EA0181F13@keescook/
+
+What we saw in the review discussion was that if we go a step farther
+than my patch and mess with uapi headers there are pieces of code that
+won't compile, but nothing minds the system call actually disappearing
+from the kernel.
+
+Eric W. Biederman (1):
+      sysctl: Remove the sysctl system call
+
+ arch/arc/configs/nps_defconfig              |    1 -
+ arch/arc/configs/tb10x_defconfig            |    1 -
+ arch/arm/configs/axm55xx_defconfig          |    1 -
+ arch/arm/configs/keystone_defconfig         |    1 -
+ arch/arm/configs/lpc32xx_defconfig          |    1 -
+ arch/arm/configs/moxart_defconfig           |    1 -
+ arch/arm/configs/qcom_defconfig             |    1 -
+ arch/arm/configs/zx_defconfig               |    1 -
+ arch/m68k/configs/m5475evb_defconfig        |    1 -
+ arch/mips/configs/ci20_defconfig            |    1 -
+ arch/mips/configs/loongson3_defconfig       |    1 -
+ arch/mips/configs/malta_qemu_32r6_defconfig |    1 -
+ arch/mips/configs/maltaaprp_defconfig       |    1 -
+ arch/mips/configs/maltasmvp_defconfig       |    1 -
+ arch/mips/configs/maltasmvp_eva_defconfig   |    1 -
+ arch/mips/configs/maltaup_defconfig         |    1 -
+ arch/mips/configs/omega2p_defconfig         |    1 -
+ arch/mips/configs/qi_lb60_defconfig         |    1 -
+ arch/mips/configs/vocore2_defconfig         |    1 -
+ arch/nios2/configs/10m50_defconfig          |    1 -
+ arch/nios2/configs/3c120_defconfig          |    1 -
+ arch/parisc/configs/c8000_defconfig         |    1 -
+ arch/parisc/configs/generic-32bit_defconfig |    1 -
+ arch/powerpc/configs/40x/klondike_defconfig |    1 -
+ arch/sh/configs/rsk7264_defconfig           |    1 -
+ arch/xtensa/configs/audio_kc705_defconfig   |    1 -
+ arch/xtensa/configs/cadence_csp_defconfig   |    1 -
+ arch/xtensa/configs/generic_kc705_defconfig |    1 -
+ arch/xtensa/configs/iss_defconfig           |    1 -
+ arch/xtensa/configs/nommu_kc705_defconfig   |    1 -
+ arch/xtensa/configs/smp_lx200_defconfig     |    1 -
+ arch/xtensa/configs/virt_defconfig          |    1 -
+ init/Kconfig                                |   17 -
+ kernel/sysctl_binary.c                      | 1305 ---------------------------
+ 34 files changed, 1354 deletions(-)
