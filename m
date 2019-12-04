@@ -1,71 +1,64 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pj1-f67.google.com ([209.85.216.67]:33476 "EHLO
-        mail-pj1-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726224AbfLCXjt (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 3 Dec 2019 18:39:49 -0500
-Received: by mail-pj1-f67.google.com with SMTP id r67so2170151pjb.0
-        for <linux-arch@vger.kernel.org>; Tue, 03 Dec 2019 15:39:48 -0800 (PST)
-From: Daniel Axtens <dja@axtens.net>
-Subject: Re: [PATCH v2 1/2] kasan: support instrumented bitops combined with generic bitops
-In-Reply-To: <87r21lef1k.fsf@mpe.ellerman.id.au>
-References: <20190820024941.12640-1-dja@axtens.net> <877e6vutiu.fsf@dja-thinkpad.axtens.net> <878sp57z44.fsf@dja-thinkpad.axtens.net> <CANpmjNOCxTxTpbB_LwUQS5jzfQ_2zbZVAc4nKf0FRXmrwO-7sA@mail.gmail.com> <87a78xgu8o.fsf@dja-thinkpad.axtens.net> <87y2wbf0xx.fsf@dja-thinkpad.axtens.net> <CANpmjNN-=F6GK_jHPUx8OdpboK7nMV=i=sKKfSsKwKEHnMTG0g@mail.gmail.com> <87r21lef1k.fsf@mpe.ellerman.id.au>
-Date: Wed, 04 Dec 2019 10:39:44 +1100
-Message-ID: <87pnh5dlmn.fsf@dja-thinkpad.axtens.net>
+Received: from merlin.infradead.org ([205.233.59.134]:59866 "EHLO
+        merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727268AbfLDKtS (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 4 Dec 2019 05:49:18 -0500
+Date: Wed, 4 Dec 2019 11:47:33 +0100
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH v6 10/18] sh/tlb: Convert SH to generic mmu_gather
+Message-ID: <20191204104733.GR2844@hirez.programming.kicks-ass.net>
+References: <20190219103148.192029670@infradead.org>
+ <20190219103233.443069009@infradead.org>
+ <CAMuHMdW3nwckjA9Bt-_Dmf50B__sZH+9E5s0_ziK1U_y9onN=g@mail.gmail.com>
 MIME-Version: 1.0
-Content-Type: text/plain
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <CAMuHMdW3nwckjA9Bt-_Dmf50B__sZH+9E5s0_ziK1U_y9onN=g@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Michael Ellerman <mpe@ellerman.id.au>, Marco Elver <elver@google.com>
-Cc: linux-s390@vger.kernel.org, the arch/x86 maintainers <x86@kernel.org>, kasan-dev <kasan-dev@googlegroups.com>, linux-arch <linux-arch@vger.kernel.org>, linuxppc-dev@lists.ozlabs.org
-Message-ID: <20191203233944.RaNkZl3fV8AAiOBoKpTI3ZrDaUg-Sl8OL_6OdMNP6Ik@z>
+To: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: Will Deacon <will.deacon@arm.com>, "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, Nicholas Piggin <npiggin@gmail.com>, Linux-Arch <linux-arch@vger.kernel.org>, Linux MM <linux-mm@kvack.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Russell King <linux@armlinux.org.uk>, Heiko Carstens <heiko.carstens@de.ibm.com>, Rik van Riel <riel@surriel.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, Linux-sh list <linux-sh@vger.kernel.org>, Guenter Roeck <linux@roeck-us.net>
+Message-ID: <20191204104733.Bg_dnr5-L__qtY5u5Xl4TOBMfwecaRR9GkAWnC6o7Wk@z>
 
-Hi Michael,
-> I only just noticed this thread as I was about to send a pull request
-> for these two commits.
->
-> I think I agree that test_bit() shouldn't move (yet), but I dislike that
-> the documentation ends up being confusing due to this patch.
->
-> So I'm inclined to append or squash in the patch below, which removes
-> the new headers from the documentation. The end result is the docs look
-> more or less the same, just the ordering of some of the functions
-> changes. But we don't end up with test_bit() under the "Non-atomic"
-> header, and then also documented in Documentation/atomic_bitops.txt.
->
-> Thoughts?
+On Tue, Dec 03, 2019 at 12:19:00PM +0100, Geert Uytterhoeven wrote:
+> Hoi Peter,
+> 
+> On Tue, Feb 19, 2019 at 11:35 AM Peter Zijlstra <peterz@infradead.org> wrote:
+> > Generic mmu_gather provides everything SH needs (range tracking and
+> > cache coherency).
+> >
+> > Cc: Will Deacon <will.deacon@arm.com>
+> > Cc: "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com>
+> > Cc: Andrew Morton <akpm@linux-foundation.org>
+> > Cc: Nick Piggin <npiggin@gmail.com>
+> > Cc: Yoshinori Sato <ysato@users.sourceforge.jp>
+> > Cc: Rich Felker <dalias@libc.org>
+> > Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+> 
+> I got remote access to an SH7722-based Migo-R again, which spews a long
+> sequence of BUGs during userspace startup.  I've bisected this to commit
+> c5b27a889da92f4a ("sh/tlb: Convert SH to generic mmu_gather").
 
-That sounds good to me.
+Whoopsy.. also, is this really the first time anybody booted an SH
+kernel in over a year ?!?
 
-Regards,
-Daniel
+> Do you have a clue?
 
->
-> cheers
->
->
-> diff --git a/Documentation/core-api/kernel-api.rst b/Documentation/core-api/kernel-api.rst
-> index 2caaeb55e8dd..4ac53a1363f6 100644
-> --- a/Documentation/core-api/kernel-api.rst
-> +++ b/Documentation/core-api/kernel-api.rst
-> @@ -57,21 +57,12 @@ The Linux kernel provides more basic utility functions.
->  Bit Operations
->  --------------
->  
-> -Atomic Operations
-> -~~~~~~~~~~~~~~~~~
-> -
->  .. kernel-doc:: include/asm-generic/bitops/instrumented-atomic.h
->     :internal:
->  
-> -Non-atomic Operations
-> -~~~~~~~~~~~~~~~~~~~~~
-> -
->  .. kernel-doc:: include/asm-generic/bitops/instrumented-non-atomic.h
->     :internal:
->  
-> -Locking Operations
-> -~~~~~~~~~~~~~~~~~~
-> -
->  .. kernel-doc:: include/asm-generic/bitops/instrumented-lock.h
->     :internal:
->  
+Does the below help?
+
+diff --git a/arch/sh/include/asm/pgalloc.h b/arch/sh/include/asm/pgalloc.h
+index 22d968bfe9bb..73a2c00de6c5 100644
+--- a/arch/sh/include/asm/pgalloc.h
++++ b/arch/sh/include/asm/pgalloc.h
+@@ -36,9 +36,8 @@ do {							\
+ #if CONFIG_PGTABLE_LEVELS > 2
+ #define __pmd_free_tlb(tlb, pmdp, addr)			\
+ do {							\
+-	struct page *page = virt_to_page(pmdp);		\
+-	pgtable_pmd_page_dtor(page);			\
+-	tlb_remove_page((tlb), page);			\
++	pgtable_pmd_page_dtor(pmdp);			\
++	tlb_remove_page((tlb), (pmdp));			\
+ } while (0);
+ #endif
+ 
