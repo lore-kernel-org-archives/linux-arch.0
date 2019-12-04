@@ -1,42 +1,85 @@
-From: Christoph Hellwig <hch-jcswGhMUV9g@public.gmane.org>
-Subject: Re: [PATCH] powerpc: ensure that swiotlb buffer is allocated from
- low memory
-Date: Wed, 4 Dec 2019 14:56:32 +0100
-Message-ID: <20191204135632.GA31262@lst.de>
-References: <20191204123524.22919-1-rppt@kernel.org>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Subject: Re: [PATCH v6 10/18] sh/tlb: Convert SH to generic mmu_gather
+Date: Wed, 4 Dec 2019 16:07:53 +0100
+Message-ID: <CAMuHMdVnhNFBqPQXKYCQbCnoQjZPSXRkuxbsbaguZ7_TcXXmVg@mail.gmail.com>
+References: <20190219103148.192029670@infradead.org> <20190219103233.443069009@infradead.org>
+ <CAMuHMdW3nwckjA9Bt-_Dmf50B__sZH+9E5s0_ziK1U_y9onN=g@mail.gmail.com>
+ <20191204104733.GR2844@hirez.programming.kicks-ass.net> <CAMuHMdXs_Fm93t=O9jJPLxcREZy-T53Z_U_RtHcvaWyV+ESdjg@mail.gmail.com>
+ <20191204133454.GW2844@hirez.programming.kicks-ass.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-Content-Disposition: inline
-In-Reply-To: <20191204123524.22919-1-rppt-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/iommu>,
- <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/iommu/>
-List-Post: <mailto:iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-List-Help: <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/iommu>,
- <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
-Errors-To: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-Sender: "iommu" <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-To: Mike Rapoport <rppt-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>
-Cc: linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Darren Stevens <darren-YHtdit1eIT3easaKlIn9Lw@public.gmane.org>, Benjamin Herrenschmidt <benh-XVmvHMARGAS8U2dJNN8I7kB+6BGkLq7r@public.gmane.org>, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Mike Rapoport <rppt-tEXmvtCZX7AybS5Ee8rs3A@public.gmane.org>, linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org, iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org, Rob Herring <robh+dt-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Paul Mackerras <paulus-eUNUBHrolfbYtjvyW6yDsg@public.gmane.org>, Michael Ellerman <mpe-Gsx/Oe8HsFggBc27wqDAHg@public.gmane.org>, mad skateman <madskateman-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, Christian Zigotzky <chzigotzky-KCoaydhb8eAb1SvskN2V4Q@public.gmane.org>, linuxppc-dev-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org, Christoph Hellwig <hch-jcswGhMUV9g@public.gmane.org>, Nicolas Saenz Julienne <nsaenzjulienne-l3A5Bk7waGM@public.gmane.org>, Robin Murphy <robin.murphy-5wv7dgnIgG8@public.gmane.org>
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 8BIT
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20191204133454.GW2844@hirez.programming.kicks-ass.net>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Will Deacon <will.deacon@arm.com>, "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, Nicholas Piggin <npiggin@gmail.com>, Linux-Arch <linux-arch@vger.kernel.org>, Linux MM <linux-mm@kvack.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Russell King <linux@armlinux.org.uk>, Heiko Carstens <heiko.carstens@de.ibm.com>, Rik van Riel <riel@surriel.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, Linux-sh list <linux-sh@vger.kernel.org>, Guenter Roeck <linux@roeck-us.net>
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Dec 04, 2019 at 02:35:24PM +0200, Mike Rapoport wrote:
-> From: Mike Rapoport <rppt-tEXmvtCZX7AybS5Ee8rs3A@public.gmane.org>
-> 
-> Some powerpc platforms (e.g. 85xx) limit DMA-able memory way below 4G. If a
-> system has more physical memory than this limit, the swiotlb buffer is not
-> addressable because it is allocated from memblock using top-down mode.
-> 
-> Force memblock to bottom-up mode before calling swiotlb_init() to ensure
-> that the swiotlb buffer is DMA-able.
-> 
-> Link: https://lkml.kernel.org/r/F1EBB706-73DF-430E-9020-C214EC8ED5DA-KCoaydhb8eAb1SvskN2V4Q@public.gmane.org
-> Reported-by: Christian Zigotzky <chzigotzky-KCoaydhb8eAb1SvskN2V4Q@public.gmane.org>
-> Signed-off-by: Mike Rapoport <rppt-tEXmvtCZX7AybS5Ee8rs3A@public.gmane.org>
+Hoi Peter,
 
-Looks good:
+On Wed, Dec 4, 2019 at 2:35 PM Peter Zijlstra <peterz@infradead.org> wrote:
+> On Wed, Dec 04, 2019 at 01:32:58PM +0100, Geert Uytterhoeven wrote:
+> > > Does the below help?
+> >
+> > Unfortunately not.
+> >
+> > > diff --git a/arch/sh/include/asm/pgalloc.h b/arch/sh/include/asm/pgalloc.h
+> > > index 22d968bfe9bb..73a2c00de6c5 100644
+> > > --- a/arch/sh/include/asm/pgalloc.h
+> > > +++ b/arch/sh/include/asm/pgalloc.h
+> > > @@ -36,9 +36,8 @@ do {                                                  \
+> > >  #if CONFIG_PGTABLE_LEVELS > 2
+> > >  #define __pmd_free_tlb(tlb, pmdp, addr)                        \
+> > >  do {                                                   \
+> > > -       struct page *page = virt_to_page(pmdp);         \
+> > > -       pgtable_pmd_page_dtor(page);                    \
+> > > -       tlb_remove_page((tlb), page);                   \
+> > > +       pgtable_pmd_page_dtor(pmdp);                    \
+> >
+> > expected ‘struct page *’ but argument is of type ‘pmd_t * {aka struct
+> > <anonymous> *}’
+> >
+> > > +       tlb_remove_page((tlb), (pmdp));                 \
+> >
+> > likewise
+>
+> Duh.. clearly I misplaced my SH cross compiler. Let me go find it.
+>
+> Also, looking at pgtable.c the pmd_t* actually comes from a kmemcach()
+> and should probably use pmd_free() (which is what the old code did too).
+>
+> Also, since SH doesn't have ARCH_ENABLE_SPLIT_PMD_PTLOCK, it will never
+> need pgtable_pmd_page_dtor().
+>
+> The below seems to build se7722_defconfig using sh4-linux-. That is, the
+> build fails, on 'node_reclaim_distance', not pgtable stuff.
+>
+> Does this fare better?
 
-Reviewed-by: Christoph Hellwig <hch-jcswGhMUV9g@public.gmane.org>
+Yes. Migo-R is happy again.
+Tested-by: Geert Uytterhoeven <geert+renesas@glider.be>
+
+> --- a/arch/sh/include/asm/pgalloc.h
+> +++ b/arch/sh/include/asm/pgalloc.h
+> @@ -36,9 +36,7 @@ do {                                                  \
+>  #if CONFIG_PGTABLE_LEVELS > 2
+>  #define __pmd_free_tlb(tlb, pmdp, addr)                        \
+>  do {                                                   \
+> -       struct page *page = virt_to_page(pmdp);         \
+> -       pgtable_pmd_page_dtor(page);                    \
+> -       tlb_remove_page((tlb), page);                   \
+> +       pmd_free((tlb)->mm, (pmdp));                    \
+>  } while (0);
+>  #endif
+
+Gr{oetje,eeting}s,
+
+                        Geert
+
+-- 
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
