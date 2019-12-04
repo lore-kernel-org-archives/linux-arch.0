@@ -1,123 +1,47 @@
-Return-Path: <SRS0=aRn0=2U=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from aserp2120.oracle.com ([141.146.126.78]:58780 "EHLO
-        aserp2120.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727278AbfL3Txv (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 30 Dec 2019 14:53:51 -0500
-From: Alex Kogan <alex.kogan@oracle.com>
-Subject: [PATCH v8 5/5] locking/qspinlock: Introduce the shuffle reduction optimization into CNA
-Date: Mon, 30 Dec 2019 14:40:42 -0500
-Message-ID: <20191230194042.67789-6-alex.kogan@oracle.com>
-In-Reply-To: <20191230194042.67789-1-alex.kogan@oracle.com>
-References: <20191230194042.67789-1-alex.kogan@oracle.com>
-MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
-Sender: linux-arch-owner@vger.kernel.org
+Return-Path: <chzigotzky@xenosoft.de>
+Content-Type: text/plain;
+	charset=utf-8
+Mime-Version: 1.0 (1.0)
+Subject: Re: Bug 205201 - Booting halts if Dawicontrol DC-2976 UW SCSI board installed, unless RAM size limited to 3500M
+From: Christian Zigotzky <chzigotzky@xenosoft.de>
+In-Reply-To: <20191204085634.GA25929@lst.de>
+Date: Wed, 4 Dec 2019 13:22:01 +0100
+Content-Transfer-Encoding: quoted-printable
+Message-ID: <1D79E674-5A47-4268-AA96-DA02E8A51929@xenosoft.de>
+References: <dbde2252-035e-6183-7897-43348e60647e@xenosoft.de> <6eec5c42-019c-a988-fc2a-cb804194683d@xenosoft.de> <d0252d29-7a03-20e1-ccd7-e12d906e4bdf@arm.com> <b3217742-2c0b-8447-c9ac-608b93265363@xenosoft.de> <20191121180226.GA3852@lst.de> <2fde79cf-875f-94e6-4a1b-f73ebb2e2c32@xenosoft.de> <20191125073923.GA30168@lst.de> <4681f5fe-c095-15f5-9221-4b55e940bafc@xenosoft.de> <20191126164026.GA8026@lst.de> <20191127065624.GB16913@linux.ibm.com> <20191204085634.GA25929@lst.de>
+To: Christoph Hellwig <hch@lst.de>
+Cc: Mike Rapoport <rppt@linux.ibm.com>, Robin Murphy <robin.murphy@arm.com>, linux-arch@vger.kernel.org, darren@stevens-zone.net, mad skateman <madskateman@gmail.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, linux-kernel@vger.kernel.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Rob Herring <robh+dt@kernel.org>, paulus@samba.org, rtd2@xtra.co.nz, "contact@a-eon.com" <contact@a-eon.com>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, nsaenzjulienne@suse.de
 List-ID: <linux-arch.vger.kernel.org>
-To: linux@armlinux.org.uk, peterz@infradead.org, mingo@redhat.com, will.deacon@arm.com, arnd@arndb.de, longman@redhat.com, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, bp@alien8.de, hpa@zytor.com, x86@kernel.org, guohanjun@huawei.com, jglauber@marvell.com
-Cc: steven.sistare@oracle.com, daniel.m.jordan@oracle.com, alex.kogan@oracle.com, dave.dice@oracle.com
-Message-ID: <20191230194042.k5WzggA4TmU0WILKBYKa-Tqhr3XMgseD33el-095aTk@z>
+Message-ID: <20191204122201.TPRFyQBEnqBTbsZq0UW65Gj5ev43rSN2tys5noKY-JA@z>
 
-This performance optimization reduces the probability threads will be
-shuffled between the main and secondary queues when the secondary queue
-is empty. It is helpful when the lock is only lightly contended.
+I think we have to wait to Roland=E2=80=99s test results with his SCSI PCI c=
+ard.
 
-Signed-off-by: Alex Kogan <alex.kogan@oracle.com>
-Reviewed-by: Steve Sistare <steven.sistare@oracle.com>
----
- kernel/locking/qspinlock_cna.h | 46 ++++++++++++++++++++++++++++++++--
- 1 file changed, 44 insertions(+), 2 deletions(-)
+Christian
 
-diff --git a/kernel/locking/qspinlock_cna.h b/kernel/locking/qspinlock_cna.h
-index 30feff02865d..f21056560104 100644
---- a/kernel/locking/qspinlock_cna.h
-+++ b/kernel/locking/qspinlock_cna.h
-@@ -4,6 +4,7 @@
- #endif
- 
- #include <linux/topology.h>
-+#include <linux/random.h>
- 
- /*
-  * Implement a NUMA-aware version of MCS (aka CNA, or compact NUMA-aware lock).
-@@ -57,6 +58,7 @@ struct cna_node {
- enum {
- 	LOCAL_WAITER_FOUND = 2,	/* 0 and 1 are reserved for @locked */
- 	FLUSH_SECONDARY_QUEUE = 3,
-+	PASS_LOCK_IMMEDIATELY = 4,
- 	MIN_ENCODED_TAIL
- };
- 
-@@ -70,6 +72,34 @@ enum {
-  */
- int intra_node_handoff_threshold __ro_after_init = 1 << 16;
- 
-+/*
-+ * Controls the probability for enabling the scan of the main queue when
-+ * the secondary queue is empty. The chosen value reduces the amount of
-+ * unnecessary shuffling of threads between the two waiting queues when
-+ * the contention is low, while responding fast enough and enabling
-+ * the shuffling when the contention is high.
-+ */
-+#define SHUFFLE_REDUCTION_PROB_ARG  (7)
-+
-+/* Per-CPU pseudo-random number seed */
-+static DEFINE_PER_CPU(u32, seed);
-+
-+/*
-+ * Return false with probability 1 / 2^@num_bits.
-+ * Intuitively, the larger @num_bits the less likely false is to be returned.
-+ * @num_bits must be a number between 0 and 31.
-+ */
-+static bool probably(unsigned int num_bits)
-+{
-+	u32 s;
-+
-+	s = this_cpu_read(seed);
-+	s = next_pseudo_random32(s);
-+	this_cpu_write(seed, s);
-+
-+	return s & ((1 << num_bits) - 1);
-+}
-+
- static void __init cna_init_nodes_per_cpu(unsigned int cpu)
- {
- 	struct mcs_spinlock *base = per_cpu_ptr(&qnodes[0].mcs, cpu);
-@@ -251,8 +281,11 @@ __always_inline u32 cna_pre_scan(struct qspinlock *lock,
- 	struct cna_node *cn = (struct cna_node *)node;
- 
- 	cn->pre_scan_result =
--		cn->intra_count == intra_node_handoff_threshold ?
--			FLUSH_SECONDARY_QUEUE : cna_scan_main_queue(node, node);
-+		(node->locked <= 1 && probably(SHUFFLE_REDUCTION_PROB_ARG)) ?
-+			PASS_LOCK_IMMEDIATELY :
-+			cn->intra_count == intra_node_handoff_threshold ?
-+				FLUSH_SECONDARY_QUEUE :
-+				cna_scan_main_queue(node, node);
- 
- 	return 0;
- }
-@@ -266,6 +299,14 @@ static inline void cna_pass_lock(struct mcs_spinlock *node,
- 
- 	u32 scan = cn->pre_scan_result;
- 
-+	/*
-+	 * perf. optimization - check if we can skip the logic of triaging
-+	 * through other possible values in @scan (helps under light lock
-+	 * contention)
-+	 */
-+	if (scan == PASS_LOCK_IMMEDIATELY)
-+		goto pass_lock;
-+
- 	/*
- 	 * check if a successor from the same numa node has not been found in
- 	 * pre-scan, and if so, try to find it in post-scan starting from the
-@@ -294,6 +335,7 @@ static inline void cna_pass_lock(struct mcs_spinlock *node,
- 		tail_2nd->next = next;
- 	}
- 
-+pass_lock:
- 	arch_mcs_pass_lock(&next_holder->locked, val);
- }
- 
--- 
-2.21.0 (Apple Git-122.2)
+Sent from my iPhone
+
+> On 4. Dec 2019, at 09:56, Christoph Hellwig <hch@lst.de> wrote:
+>=20
+>> On Wed, Nov 27, 2019 at 08:56:25AM +0200, Mike Rapoport wrote:
+>>> On Tue, Nov 26, 2019 at 05:40:26PM +0100, Christoph Hellwig wrote:
+>>>> On Tue, Nov 26, 2019 at 12:26:38PM +0100, Christian Zigotzky wrote:
+>>>> Hello Christoph,
+>>>>=20
+>>>> The PCI TV card works with your patch! I was able to patch your Git ker=
+nel=20
+>>>> with the patch above.
+>>>>=20
+>>>> I haven't found any error messages in the dmesg yet.
+>>>=20
+>>> Thanks.  Unfortunately this is a bit of a hack as we need to set
+>>> the mask based on runtime information like the magic FSL PCIe window.
+>>> Let me try to draft something better up, and thanks already for testing
+>>> this one!
+>>=20
+>> Maybe we'll simply force bottom up allocation before calling
+>> swiotlb_init()? Anyway, it's the last memblock allocation.
+>=20
+> So I think we should go with this fix (plus a source code comment) for
+> now.  Revamping the whole memory initialization is going to take a
+> while, and this fix also is easily backportable.
