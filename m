@@ -1,58 +1,42 @@
-From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Subject: Re: [PATCH v7 16/25] arm: Add support for generic vDSO (causing
- crash)
-Date: Wed, 4 Dec 2019 13:58:25 +0000
-Message-ID: <6cdf4734-4065-09c1-8623-1bf523b38c1b@arm.com>
-References: <20190621095252.32307-1-vincenzo.frascino@arm.com>
- <20190621095252.32307-17-vincenzo.frascino@arm.com>
- <20191204135159.GA7210@roeck-us.net>
+From: Christoph Hellwig <hch-jcswGhMUV9g@public.gmane.org>
+Subject: Re: [PATCH] powerpc: ensure that swiotlb buffer is allocated from
+ low memory
+Date: Wed, 4 Dec 2019 14:56:32 +0100
+Message-ID: <20191204135632.GA31262@lst.de>
+References: <20191204123524.22919-1-rppt@kernel.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
+Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20191204135159.GA7210@roeck-us.net>
-Content-Language: en-US
-Sender: linux-kernel-owner@vger.kernel.org
-To: Guenter Roeck <linux@roeck-us.net>
-Cc: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org, linux-kselftest@vger.kernel.org, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Paul Burton <paul.burton@mips.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, Thomas Gleixner <tglx@linutronix.de>, Mark Salyzyn <salyzyn@android.com>, Peter Collingbourne <pcc@google.com>, Shuah Khan <shuah@kernel.org>, Dmitry Safonov <0x7f454c46@gmail.com>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Huw Davies <huw@codeweavers.com>, Shijith Thotton <sthotton@marvell.com>, Andre Przywara <andre.przywara@>
+Return-path: <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
+Content-Disposition: inline
+In-Reply-To: <20191204123524.22919-1-rppt-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>
+List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/iommu>,
+ <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
+List-Archive: <http://lists.linuxfoundation.org/pipermail/iommu/>
+List-Post: <mailto:iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
+List-Help: <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=help>
+List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/iommu>,
+ <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
+Errors-To: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
+Sender: "iommu" <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
+To: Mike Rapoport <rppt-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>
+Cc: linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Darren Stevens <darren-YHtdit1eIT3easaKlIn9Lw@public.gmane.org>, Benjamin Herrenschmidt <benh-XVmvHMARGAS8U2dJNN8I7kB+6BGkLq7r@public.gmane.org>, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Mike Rapoport <rppt-tEXmvtCZX7AybS5Ee8rs3A@public.gmane.org>, linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org, iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org, Rob Herring <robh+dt-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Paul Mackerras <paulus-eUNUBHrolfbYtjvyW6yDsg@public.gmane.org>, Michael Ellerman <mpe-Gsx/Oe8HsFggBc27wqDAHg@public.gmane.org>, mad skateman <madskateman-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, Christian Zigotzky <chzigotzky-KCoaydhb8eAb1SvskN2V4Q@public.gmane.org>, linuxppc-dev-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org, Christoph Hellwig <hch-jcswGhMUV9g@public.gmane.org>, Nicolas Saenz Julienne <nsaenzjulienne-l3A5Bk7waGM@public.gmane.org>, Robin Murphy <robin.murphy-5wv7dgnIgG8@public.gmane.org>
 List-Id: linux-arch.vger.kernel.org
 
-Hi Guenter,
+On Wed, Dec 04, 2019 at 02:35:24PM +0200, Mike Rapoport wrote:
+> From: Mike Rapoport <rppt-tEXmvtCZX7AybS5Ee8rs3A@public.gmane.org>
+> 
+> Some powerpc platforms (e.g. 85xx) limit DMA-able memory way below 4G. If a
+> system has more physical memory than this limit, the swiotlb buffer is not
+> addressable because it is allocated from memblock using top-down mode.
+> 
+> Force memblock to bottom-up mode before calling swiotlb_init() to ensure
+> that the swiotlb buffer is DMA-able.
+> 
+> Link: https://lkml.kernel.org/r/F1EBB706-73DF-430E-9020-C214EC8ED5DA-KCoaydhb8eAb1SvskN2V4Q@public.gmane.org
+> Reported-by: Christian Zigotzky <chzigotzky-KCoaydhb8eAb1SvskN2V4Q@public.gmane.org>
+> Signed-off-by: Mike Rapoport <rppt-tEXmvtCZX7AybS5Ee8rs3A@public.gmane.org>
 
-On 12/4/19 1:51 PM, Guenter Roeck wrote:
-> On Fri, Jun 21, 2019 at 10:52:43AM +0100, Vincenzo Frascino wrote:
->> The arm vDSO library requires some adaptations to use to take advantage
->> of the newly introduced generic vDSO library.
->>
->> Introduce the following changes:
->>  - Modification vdso.c to be compliant with the common vdso datapage
->>  - Use of lib/vdso for gettimeofday
->>  - Implementation of elf note
->>
->> Cc: Russell King <linux@armlinux.org.uk>
->> Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
-> 
-> This patch causes a crash with qemu's mcimx6ul-evk emulation while running
-> imx_v6_v7_defconfig.
-> 
+Looks good:
 
-Thank you for reporting this. Could you please provide some details on how I can
-reproduce the scenario you are describing?
-
-> [   19.976852] Run /sbin/init as init process
-> [   20.044931] Kernel panic - not syncing: Attempted to kill init! exitcode=0x00000004
-> 
-> There is nothing else useful in the log, unfortunately.
-> 
-> Reverting the following three patches fixes the problem.
-> 
-> 74d06efb9c2f ARM: 8932/1: Add clock_gettime64 entry point
-> 052e76a31b4a ARM: 8931/1: Add clock_getres entry point
-> 20e2fc42312f ARM: 8930/1: Add support for generic vDSO
-> 
-> Guenter
-> 
-
--- 
-Regards,
-Vincenzo
+Reviewed-by: Christoph Hellwig <hch-jcswGhMUV9g@public.gmane.org>
