@@ -1,37 +1,59 @@
-From: Christoph Hellwig <hch@lst.de>
-Subject: Re: Bug 205201 - Booting halts if Dawicontrol DC-2976 UW SCSI
- board installed, unless RAM size limited to 3500M
-Date: Wed, 4 Dec 2019 09:56:34 +0100
-Message-ID: <20191204085634.GA25929@lst.de>
-References: <dbde2252-035e-6183-7897-43348e60647e@xenosoft.de> <6eec5c42-019c-a988-fc2a-cb804194683d@xenosoft.de> <d0252d29-7a03-20e1-ccd7-e12d906e4bdf@arm.com> <b3217742-2c0b-8447-c9ac-608b93265363@xenosoft.de> <20191121180226.GA3852@lst.de> <2fde79cf-875f-94e6-4a1b-f73ebb2e2c32@xenosoft.de> <20191125073923.GA30168@lst.de> <4681f5fe-c095-15f5-9221-4b55e940bafc@xenosoft.de> <20191126164026.GA8026@lst.de> <20191127065624.GB16913@linux.ibm.com>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH v6 10/18] sh/tlb: Convert SH to generic mmu_gather
+Date: Wed, 4 Dec 2019 11:47:33 +0100
+Message-ID: <20191204104733.GR2844@hirez.programming.kicks-ass.net>
+References: <20190219103148.192029670@infradead.org>
+ <20190219103233.443069009@infradead.org>
+ <CAMuHMdW3nwckjA9Bt-_Dmf50B__sZH+9E5s0_ziK1U_y9onN=g@mail.gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <20191127065624.GB16913@linux.ibm.com>
+In-Reply-To: <CAMuHMdW3nwckjA9Bt-_Dmf50B__sZH+9E5s0_ziK1U_y9onN=g@mail.gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Mike Rapoport <rppt@linux.ibm.com>
-Cc: Christoph Hellwig <hch@lst.de>, Christian Zigotzky <chzigotzky@xenosoft.de>, Robin Murphy <robin.murphy@arm.com>, linux-arch@vger.kernel.org, darren@stevens-zone.net, mad skateman <madskateman@gmail.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, linux-kernel@vger.kernel.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Rob Herring <robh+dt@kernel.org>, paulus@samba.org, rtd2@xtra.co.nz, "contact@a-eon.com" <contact@a-eon.com>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, nsaenzjulienne@suse.de
+To: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: Will Deacon <will.deacon@arm.com>, "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, Nicholas Piggin <npiggin@gmail.com>, Linux-Arch <linux-arch@vger.kernel.org>, Linux MM <linux-mm@kvack.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Russell King <linux@armlinux.org.uk>, Heiko Carstens <heiko.carstens@de.ibm.com>, Rik van Riel <riel@surriel.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, Linux-sh list <linux-sh@vger.kernel.org>, Guenter Roeck <linux@roeck-us.net>
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Nov 27, 2019 at 08:56:25AM +0200, Mike Rapoport wrote:
-> On Tue, Nov 26, 2019 at 05:40:26PM +0100, Christoph Hellwig wrote:
-> > On Tue, Nov 26, 2019 at 12:26:38PM +0100, Christian Zigotzky wrote:
-> > > Hello Christoph,
-> > >
-> > > The PCI TV card works with your patch! I was able to patch your Git kernel 
-> > > with the patch above.
-> > >
-> > > I haven't found any error messages in the dmesg yet.
-> > 
-> > Thanks.  Unfortunately this is a bit of a hack as we need to set
-> > the mask based on runtime information like the magic FSL PCIe window.
-> > Let me try to draft something better up, and thanks already for testing
-> > this one!
+On Tue, Dec 03, 2019 at 12:19:00PM +0100, Geert Uytterhoeven wrote:
+> Hoi Peter,
 > 
-> Maybe we'll simply force bottom up allocation before calling
-> swiotlb_init()? Anyway, it's the last memblock allocation.
+> On Tue, Feb 19, 2019 at 11:35 AM Peter Zijlstra <peterz@infradead.org> wrote:
+> > Generic mmu_gather provides everything SH needs (range tracking and
+> > cache coherency).
+> >
+> > Cc: Will Deacon <will.deacon@arm.com>
+> > Cc: "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com>
+> > Cc: Andrew Morton <akpm@linux-foundation.org>
+> > Cc: Nick Piggin <npiggin@gmail.com>
+> > Cc: Yoshinori Sato <ysato@users.sourceforge.jp>
+> > Cc: Rich Felker <dalias@libc.org>
+> > Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+> 
+> I got remote access to an SH7722-based Migo-R again, which spews a long
+> sequence of BUGs during userspace startup.  I've bisected this to commit
+> c5b27a889da92f4a ("sh/tlb: Convert SH to generic mmu_gather").
 
-So I think we should go with this fix (plus a source code comment) for
-now.  Revamping the whole memory initialization is going to take a
-while, and this fix also is easily backportable.
+Whoopsy.. also, is this really the first time anybody booted an SH
+kernel in over a year ?!?
+
+> Do you have a clue?
+
+Does the below help?
+
+diff --git a/arch/sh/include/asm/pgalloc.h b/arch/sh/include/asm/pgalloc.h
+index 22d968bfe9bb..73a2c00de6c5 100644
+--- a/arch/sh/include/asm/pgalloc.h
++++ b/arch/sh/include/asm/pgalloc.h
+@@ -36,9 +36,8 @@ do {							\
+ #if CONFIG_PGTABLE_LEVELS > 2
+ #define __pmd_free_tlb(tlb, pmdp, addr)			\
+ do {							\
+-	struct page *page = virt_to_page(pmdp);		\
+-	pgtable_pmd_page_dtor(page);			\
+-	tlb_remove_page((tlb), page);			\
++	pgtable_pmd_page_dtor(pmdp);			\
++	tlb_remove_page((tlb), (pmdp));			\
+ } while (0);
+ #endif
+ 
