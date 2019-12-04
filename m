@@ -1,67 +1,37 @@
-Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:53150 "EHLO
- mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
- with ESMTP id S1727609AbfLPNl2 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
- Mon, 16 Dec 2019 08:41:28 -0500
-Subject: Re: [PATCH 05/17] asm-generic/tlb: Rename
- HAVE_RCU_TABLE_NO_INVALIDATE
-References: <20191211120713.360281197@infradead.org>
- <20191211122955.940455408@infradead.org> <87woawzc1t.fsf@linux.ibm.com>
- <20191216123752.GM2844@hirez.programming.kicks-ass.net>
- <d52ea890-c2ea-88f3-9d62-b86e60ee77ae@linux.ibm.com>
- <20191216132004.GO2844@hirez.programming.kicks-ass.net>
-From: "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>
-Message-ID: <a9ae27c8-aa84-cda3-355c-7abb3b450d38@linux.ibm.com>
-Date: Mon, 16 Dec 2019 19:10:30 +0530
+Return-Path: <hch@lst.de>
+Date: Wed, 4 Dec 2019 09:56:34 +0100
+From: Christoph Hellwig <hch@lst.de>
+Subject: Re: Bug 205201 - Booting halts if Dawicontrol DC-2976 UW SCSI
+ board installed, unless RAM size limited to 3500M
+Message-ID: <20191204085634.GA25929@lst.de>
+References: <dbde2252-035e-6183-7897-43348e60647e@xenosoft.de> <6eec5c42-019c-a988-fc2a-cb804194683d@xenosoft.de> <d0252d29-7a03-20e1-ccd7-e12d906e4bdf@arm.com> <b3217742-2c0b-8447-c9ac-608b93265363@xenosoft.de> <20191121180226.GA3852@lst.de> <2fde79cf-875f-94e6-4a1b-f73ebb2e2c32@xenosoft.de> <20191125073923.GA30168@lst.de> <4681f5fe-c095-15f5-9221-4b55e940bafc@xenosoft.de> <20191126164026.GA8026@lst.de> <20191127065624.GB16913@linux.ibm.com>
 MIME-Version: 1.0
-In-Reply-To: <20191216132004.GO2844@hirez.programming.kicks-ass.net>
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Language: en-US
-Content-Transfer-Encoding: 7bit
-Sender: linux-arch-owner@vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20191127065624.GB16913@linux.ibm.com>
+To: Mike Rapoport <rppt@linux.ibm.com>
+Cc: Christoph Hellwig <hch@lst.de>, Christian Zigotzky <chzigotzky@xenosoft.de>, Robin Murphy <robin.murphy@arm.com>, linux-arch@vger.kernel.org, darren@stevens-zone.net, mad skateman <madskateman@gmail.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, linux-kernel@vger.kernel.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Rob Herring <robh+dt@kernel.org>, paulus@samba.org, rtd2@xtra.co.nz, "contact@a-eon.com" <contact@a-eon.com>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, nsaenzjulienne@suse.de
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>, Michael Ellerman <mpe@ellerman.id.au>
-Cc: Will Deacon <will@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Nick Piggin <npiggin@gmail.com>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, "David S. Miller" <davem@davemloft.net>, Helge Deller <deller@gmx.de>, Geert Uytterhoeven <geert@linux-m68k.org>, Paul Burton <paulburton@kernel.org>, Tony Luck <tony.luck@intel.com>, Richard Henderson <rth@twiddle.net>, Nick Hu <nickhu@andestech.com>, Paul Walmsley <paul.walmsley@sifive.com>
-Message-ID: <20191216134030.DcRa7JQTjTT1MfDAz7VFF8LXKNwJ9VBuK7L0sac9lnQ@z>
+Message-ID: <20191204085634.82BZvXOKLhs0eBLEDXMGvrQ3FBKlIwHoc3kRbE91etM@z>
 
-On 12/16/19 6:50 PM, Peter Zijlstra wrote:
-> On Mon, Dec 16, 2019 at 06:43:53PM +0530, Aneesh Kumar K.V wrote:
->> On 12/16/19 6:07 PM, Peter Zijlstra wrote:
+On Wed, Nov 27, 2019 at 08:56:25AM +0200, Mike Rapoport wrote:
+> On Tue, Nov 26, 2019 at 05:40:26PM +0100, Christoph Hellwig wrote:
+> > On Tue, Nov 26, 2019 at 12:26:38PM +0100, Christian Zigotzky wrote:
+> > > Hello Christoph,
+> > >
+> > > The PCI TV card works with your patch! I was able to patch your Git kernel 
+> > > with the patch above.
+> > >
+> > > I haven't found any error messages in the dmesg yet.
+> > 
+> > Thanks.  Unfortunately this is a bit of a hack as we need to set
+> > the mask based on runtime information like the magic FSL PCIe window.
+> > Let me try to draft something better up, and thanks already for testing
+> > this one!
 > 
->>> I'm confused, are you saing you're happy to have PowerPC eat the extra
->>> TLB invalidates? I thought you cared about PPC performance :-)
->>>
->>>
->>
->> Instead can we do
->>
->> static inline void tlb_table_invalidate(struct mmu_gather *tlb)
->> {
->> #ifndef CONFIG_MMU_GATHER_RCU_TABLE_FREE
->> 	 * Invalidate page-table caches used by hardware walkers. Then we still
->> 	 * need to RCU-sched wait while freeing the pages because software
->> 	 * walkers can still be in-flight.
->> 	 */
->> 	tlb_flush_mmu_tlbonly(tlb);
->> #endif
->> }
-> 
-> How does that not break ARM/ARM64/s390 and x86 ?
-> 
+> Maybe we'll simply force bottom up allocation before calling
+> swiotlb_init()? Anyway, it's the last memblock allocation.
 
-Hmm I missed that usage of RCU_TABLE_NO_INVALIDATE.
-
-Ok I guess we need to revert this change that went upstream this merge 
-window then
-
-commit 52162ec784fa05f3a4b1d8e84421279998be3773
-Author: Aneesh Kumar K.V <aneesh.kumar@linux.ibm.com>
-Date:   Thu Oct 24 13:28:00 2019 +0530
-
-     powerpc/mm/book3s64/radix: Use freed_tables instead of need_flush_all
-
-
-
-I will review the change closely.
-
--aneesh
+So I think we should go with this fix (plus a source code comment) for
+now.  Revamping the whole memory initialization is going to take a
+while, and this fix also is easily backportable.
