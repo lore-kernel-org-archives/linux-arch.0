@@ -1,58 +1,87 @@
-From: Mike Rapoport <rppt@kernel.org>
-Subject: [PATCH] powerpc: ensure that swiotlb buffer is allocated from low memory
-Date: Wed,  4 Dec 2019 14:35:24 +0200
-Message-ID: <20191204123524.22919-1-rppt@kernel.org>
+From: Guenter Roeck <linux@roeck-us.net>
+Subject: Re: [PATCH v6 10/18] sh/tlb: Convert SH to generic mmu_gather
+Date: Wed, 4 Dec 2019 05:22:28 -0800
+Message-ID: <156fa92f-4c5a-08bd-bcda-20029724c0de@roeck-us.net>
+References: <20190219103148.192029670@infradead.org>
+ <20190219103233.443069009@infradead.org>
+ <CAMuHMdW3nwckjA9Bt-_Dmf50B__sZH+9E5s0_ziK1U_y9onN=g@mail.gmail.com>
+ <20191204104733.GR2844@hirez.programming.kicks-ass.net>
+ <CAMuHMdXs_Fm93t=O9jJPLxcREZy-T53Z_U_RtHcvaWyV+ESdjg@mail.gmail.com>
 Mime-Version: 1.0
+Content-Type: text/plain; charset=utf-8; format=flowed
 Content-Transfer-Encoding: 8bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <CAMuHMdXs_Fm93t=O9jJPLxcREZy-T53Z_U_RtHcvaWyV+ESdjg@mail.gmail.com>
+Content-Language: en-US
 Sender: linux-kernel-owner@vger.kernel.org
-To: linux-kernel@vger.kernel.org
-Cc: linuxppc-dev@lists.ozlabs.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Mike Rapoport <rppt@linux.ibm.com>, Christian Zigotzky <chzigotzky@xenosoft.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Christoph Hellwig <hch@lst.de>, Darren Stevens <darren@stevens-zone.net>, mad skateman <madskateman@gmail.com>, Michael Ellerman <mpe@ellerman.id.au>, Nicolas Saenz Julienne <nsaenzjulienne@suse.de>, Paul Mackerras <paulus@samba.org>, Robin Murphy <robin.murphy@arm.com>, Rob Herring <robh+dt@kernel.org>
+To: Geert Uytterhoeven <geert@linux-m68k.org>, Peter Zijlstra <peterz@infradead.org>
+Cc: Will Deacon <will.deacon@arm.com>, "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, Nicholas Piggin <npiggin@gmail.com>, Linux-Arch <linux-arch@vger.kernel.org>, Linux MM <linux-mm@kvack.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Russell King <linux@armlinux.org.uk>, Heiko Carstens <heiko.carstens@de.ibm.com>, Rik van Riel <riel@surriel.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, Linux-sh list <linux-sh@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-From: Mike Rapoport <rppt@linux.ibm.com>
+On 12/4/19 4:32 AM, Geert Uytterhoeven wrote:
+> Hoi Peter,
+> 
+> On Wed, Dec 4, 2019 at 11:48 AM Peter Zijlstra <peterz@infradead.org> wrote:
+>> On Tue, Dec 03, 2019 at 12:19:00PM +0100, Geert Uytterhoeven wrote:
+>>> On Tue, Feb 19, 2019 at 11:35 AM Peter Zijlstra <peterz@infradead.org> wrote:
+>>>> Generic mmu_gather provides everything SH needs (range tracking and
+>>>> cache coherency).
+>>>>
+>>>> Cc: Will Deacon <will.deacon@arm.com>
+>>>> Cc: "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com>
+>>>> Cc: Andrew Morton <akpm@linux-foundation.org>
+>>>> Cc: Nick Piggin <npiggin@gmail.com>
+>>>> Cc: Yoshinori Sato <ysato@users.sourceforge.jp>
+>>>> Cc: Rich Felker <dalias@libc.org>
+>>>> Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+>>>
+>>> I got remote access to an SH7722-based Migo-R again, which spews a long
+>>> sequence of BUGs during userspace startup.  I've bisected this to commit
+>>> c5b27a889da92f4a ("sh/tlb: Convert SH to generic mmu_gather").
+>>
+>> Whoopsy.. also, is this really the first time anybody booted an SH
+>> kernel in over a year ?!?
+> 
+> Nah, but the v5.4-rc3 I booted recently on qemu -M r2d had
+> CONFIG_PGTABLE_LEVELS=2, so it didn't show the problem.
+> 
 
-Some powerpc platforms (e.g. 85xx) limit DMA-able memory way below 4G. If a
-system has more physical memory than this limit, the swiotlb buffer is not
-addressable because it is allocated from memblock using top-down mode.
+Guess that explains why I do not see the problem with my qemu boots.
+I use rts7751r2dplus_defconfig. Is it possible to reproduce the problem
+with qemu ? I don't think so, but maybe I am missing something.
 
-Force memblock to bottom-up mode before calling swiotlb_init() to ensure
-that the swiotlb buffer is DMA-able.
+Guenter
 
-Link: https://lkml.kernel.org/r/F1EBB706-73DF-430E-9020-C214EC8ED5DA@xenosoft.de
-Reported-by: Christian Zigotzky <chzigotzky@xenosoft.de>
-Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
-Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc: Christoph Hellwig <hch@lst.de>
-Cc: Darren Stevens <darren@stevens-zone.net>
-Cc: mad skateman <madskateman@gmail.com>
-Cc: Michael Ellerman <mpe@ellerman.id.au>
-Cc: Nicolas Saenz Julienne <nsaenzjulienne@suse.de>
-Cc: Paul Mackerras <paulus@samba.org>
-Cc: Robin Murphy <robin.murphy@arm.com>
-Cc: Rob Herring <robh+dt@kernel.org>
----
- arch/powerpc/mm/mem.c | 8 ++++++++
- 1 file changed, 8 insertions(+)
-
-diff --git a/arch/powerpc/mm/mem.c b/arch/powerpc/mm/mem.c
-index be941d382c8d..14c2c53e3f9e 100644
---- a/arch/powerpc/mm/mem.c
-+++ b/arch/powerpc/mm/mem.c
-@@ -260,6 +260,14 @@ void __init mem_init(void)
- 	BUILD_BUG_ON(MMU_PAGE_COUNT > 16);
- 
- #ifdef CONFIG_SWIOTLB
-+	/*
-+	 * Some platforms (e.g. 85xx) limit DMA-able memory way below
-+	 * 4G. We force memblock to bottom-up mode to ensure that the
-+	 * memory allocated in swiotlb_init() is DMA-able.
-+	 * As it's the last memblock allocation, no need to reset it
-+	 * back to to-down.
-+	 */
-+	memblock_set_bottom_up(true);
- 	swiotlb_init(0);
- #endif
- 
--- 
-2.24.0
+>>> Do you have a clue?
+>>
+>> Does the below help?
+> 
+> Unfortunately not.
+> 
+>> diff --git a/arch/sh/include/asm/pgalloc.h b/arch/sh/include/asm/pgalloc.h
+>> index 22d968bfe9bb..73a2c00de6c5 100644
+>> --- a/arch/sh/include/asm/pgalloc.h
+>> +++ b/arch/sh/include/asm/pgalloc.h
+>> @@ -36,9 +36,8 @@ do {                                                  \
+>>   #if CONFIG_PGTABLE_LEVELS > 2
+>>   #define __pmd_free_tlb(tlb, pmdp, addr)                        \
+>>   do {                                                   \
+>> -       struct page *page = virt_to_page(pmdp);         \
+>> -       pgtable_pmd_page_dtor(page);                    \
+>> -       tlb_remove_page((tlb), page);                   \
+>> +       pgtable_pmd_page_dtor(pmdp);                    \
+> 
+> expected ‘struct page *’ but argument is of type ‘pmd_t * {aka struct
+> <anonymous> *}’
+> 
+>> +       tlb_remove_page((tlb), (pmdp));                 \
+> 
+> likewise
+> 
+>>   } while (0);
+>>   #endif
+> 
+> Gr{oetje,eeting}s,
+> 
+>                          Geert
+> 
