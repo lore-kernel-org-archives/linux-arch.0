@@ -1,81 +1,37 @@
-From: Daniel Axtens <dja@axtens.net>
-Subject: Re: [PATCH v2 1/2] kasan: support instrumented bitops combined with
- generic bitops
-Date: Wed, 04 Dec 2019 10:39:44 +1100
-Message-ID: <87pnh5dlmn.fsf@dja-thinkpad.axtens.net>
-References: <20190820024941.12640-1-dja@axtens.net>
- <877e6vutiu.fsf@dja-thinkpad.axtens.net>
- <878sp57z44.fsf@dja-thinkpad.axtens.net>
- <CANpmjNOCxTxTpbB_LwUQS5jzfQ_2zbZVAc4nKf0FRXmrwO-7sA@mail.gmail.com>
- <87a78xgu8o.fsf@dja-thinkpad.axtens.net>
- <87y2wbf0xx.fsf@dja-thinkpad.axtens.net>
- <CANpmjNN-=F6GK_jHPUx8OdpboK7nMV=i=sKKfSsKwKEHnMTG0g@mail.gmail.com>
- <87r21lef1k.fsf@mpe.ellerman.id.au>
+From: Christoph Hellwig <hch@lst.de>
+Subject: Re: Bug 205201 - Booting halts if Dawicontrol DC-2976 UW SCSI
+ board installed, unless RAM size limited to 3500M
+Date: Wed, 4 Dec 2019 09:56:34 +0100
+Message-ID: <20191204085634.GA25929@lst.de>
+References: <dbde2252-035e-6183-7897-43348e60647e@xenosoft.de> <6eec5c42-019c-a988-fc2a-cb804194683d@xenosoft.de> <d0252d29-7a03-20e1-ccd7-e12d906e4bdf@arm.com> <b3217742-2c0b-8447-c9ac-608b93265363@xenosoft.de> <20191121180226.GA3852@lst.de> <2fde79cf-875f-94e6-4a1b-f73ebb2e2c32@xenosoft.de> <20191125073923.GA30168@lst.de> <4681f5fe-c095-15f5-9221-4b55e940bafc@xenosoft.de> <20191126164026.GA8026@lst.de> <20191127065624.GB16913@linux.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain
-Return-path: <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
-In-Reply-To: <87r21lef1k.fsf@mpe.ellerman.id.au>
-List-Unsubscribe: <https://lists.ozlabs.org/options/linuxppc-dev>,
- <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=unsubscribe>
-List-Archive: <http://lists.ozlabs.org/pipermail/linuxppc-dev/>
-List-Post: <mailto:linuxppc-dev@lists.ozlabs.org>
-List-Help: <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=help>
-List-Subscribe: <https://lists.ozlabs.org/listinfo/linuxppc-dev>,
- <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=subscribe>
-Errors-To: linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org
-Sender: "Linuxppc-dev"
- <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
-To: Michael Ellerman <mpe@ellerman.id.au>, Marco Elver <elver@google.com>
-Cc: linux-arch <linux-arch@vger.kernel.org>, linux-s390@vger.kernel.org, the arch/x86 maintainers <x86@kernel.org>, linuxppc-dev@lists.ozlabs.org, kasan-dev <kasan-dev@googlegroups.com>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <20191127065624.GB16913@linux.ibm.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Mike Rapoport <rppt@linux.ibm.com>
+Cc: Christoph Hellwig <hch@lst.de>, Christian Zigotzky <chzigotzky@xenosoft.de>, Robin Murphy <robin.murphy@arm.com>, linux-arch@vger.kernel.org, darren@stevens-zone.net, mad skateman <madskateman@gmail.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, linux-kernel@vger.kernel.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Rob Herring <robh+dt@kernel.org>, paulus@samba.org, rtd2@xtra.co.nz, "contact@a-eon.com" <contact@a-eon.com>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, nsaenzjulienne@suse.de
 List-Id: linux-arch.vger.kernel.org
 
-Hi Michael,
-> I only just noticed this thread as I was about to send a pull request
-> for these two commits.
->
-> I think I agree that test_bit() shouldn't move (yet), but I dislike that
-> the documentation ends up being confusing due to this patch.
->
-> So I'm inclined to append or squash in the patch below, which removes
-> the new headers from the documentation. The end result is the docs look
-> more or less the same, just the ordering of some of the functions
-> changes. But we don't end up with test_bit() under the "Non-atomic"
-> header, and then also documented in Documentation/atomic_bitops.txt.
->
-> Thoughts?
+On Wed, Nov 27, 2019 at 08:56:25AM +0200, Mike Rapoport wrote:
+> On Tue, Nov 26, 2019 at 05:40:26PM +0100, Christoph Hellwig wrote:
+> > On Tue, Nov 26, 2019 at 12:26:38PM +0100, Christian Zigotzky wrote:
+> > > Hello Christoph,
+> > >
+> > > The PCI TV card works with your patch! I was able to patch your Git kernel 
+> > > with the patch above.
+> > >
+> > > I haven't found any error messages in the dmesg yet.
+> > 
+> > Thanks.  Unfortunately this is a bit of a hack as we need to set
+> > the mask based on runtime information like the magic FSL PCIe window.
+> > Let me try to draft something better up, and thanks already for testing
+> > this one!
+> 
+> Maybe we'll simply force bottom up allocation before calling
+> swiotlb_init()? Anyway, it's the last memblock allocation.
 
-That sounds good to me.
-
-Regards,
-Daniel
-
->
-> cheers
->
->
-> diff --git a/Documentation/core-api/kernel-api.rst b/Documentation/core-api/kernel-api.rst
-> index 2caaeb55e8dd..4ac53a1363f6 100644
-> --- a/Documentation/core-api/kernel-api.rst
-> +++ b/Documentation/core-api/kernel-api.rst
-> @@ -57,21 +57,12 @@ The Linux kernel provides more basic utility functions.
->  Bit Operations
->  --------------
->  
-> -Atomic Operations
-> -~~~~~~~~~~~~~~~~~
-> -
->  .. kernel-doc:: include/asm-generic/bitops/instrumented-atomic.h
->     :internal:
->  
-> -Non-atomic Operations
-> -~~~~~~~~~~~~~~~~~~~~~
-> -
->  .. kernel-doc:: include/asm-generic/bitops/instrumented-non-atomic.h
->     :internal:
->  
-> -Locking Operations
-> -~~~~~~~~~~~~~~~~~~
-> -
->  .. kernel-doc:: include/asm-generic/bitops/instrumented-lock.h
->     :internal:
->  
+So I think we should go with this fix (plus a source code comment) for
+now.  Revamping the whole memory initialization is going to take a
+while, and this fix also is easily backportable.
