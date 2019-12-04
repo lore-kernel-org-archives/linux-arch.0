@@ -1,50 +1,62 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm1-f65.google.com ([209.85.128.65]:55537 "EHLO
-        mail-wm1-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728567AbfLDQGF (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 4 Dec 2019 11:06:05 -0500
-Received: by mail-wm1-f65.google.com with SMTP id q9so266165wmj.5
-        for <linux-arch@vger.kernel.org>; Wed, 04 Dec 2019 08:06:02 -0800 (PST)
-Subject: Re: [PATCH v6] clocksource/drivers: Suspend/resume Hyper-V
- clocksource for hibernation
-References: <1574233946-48377-1-git-send-email-decui@microsoft.com>
-From: Daniel Lezcano <daniel.lezcano@linaro.org>
-Message-ID: <fc5c9000-9753-4f64-2912-3e2a794f5528@linaro.org>
-Date: Wed, 4 Dec 2019 17:05:59 +0100
+Received: from mail-pj1-f68.google.com ([209.85.216.68]:38647 "EHLO
+        mail-pj1-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727912AbfLDQQq (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 4 Dec 2019 11:16:46 -0500
+Date: Wed, 4 Dec 2019 08:16:41 -0800
+From: Guenter Roeck <linux@roeck-us.net>
+Subject: Re: [PATCH v7 16/25] arm: Add support for generic vDSO (causing
+ crash)
+Message-ID: <20191204161641.GA28130@roeck-us.net>
+References: <20190621095252.32307-1-vincenzo.frascino@arm.com>
+ <20190621095252.32307-17-vincenzo.frascino@arm.com>
+ <20191204135159.GA7210@roeck-us.net>
+ <6cdf4734-4065-09c1-8623-1bf523b38c1b@arm.com>
 MIME-Version: 1.0
-In-Reply-To: <1574233946-48377-1-git-send-email-decui@microsoft.com>
-Content-Type: text/plain; charset=utf-8
-Content-Language: en-US
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <6cdf4734-4065-09c1-8623-1bf523b38c1b@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: decui@microsoft.com, arnd@arndb.de, bp@alien8.de, haiyangz@microsoft.com, hpa@zytor.com, kys@microsoft.com, linux-hyperv@vger.kernel.org, linux-kernel@vger.kernel.org, mingo@redhat.com, sashal@kernel.org, sthemmin@microsoft.com, tglx@linutronix.de, x86@kernel.org, mikelley@microsoft.com, Alexander.Levin@microsoft.com, vkuznets@redhat.com
-Cc: linux-arch@vger.kernel.org
-Message-ID: <20191204160559.G_FeyQc2drKp0vlCKbVuqpj8hGJuU-Zls9lYp4HdTSg@z>
+To: Vincenzo Frascino <vincenzo.frascino@arm.com>
+Cc: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org, linux-kselftest@vger.kernel.org, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Paul Burton <paul.burton@mips.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, Thomas Gleixner <tglx@linutronix.de>, Mark Salyzyn <salyzyn@android.com>, Peter Collingbourne <pcc@google.com>, Shuah Khan <shuah@kernel.org>, Dmitry Safonov <0x7f454c46@gmail.com>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Huw Davies <huw@codeweavers.com>, Shijith Thotton <sthotton@marvell.com>, Andre Przywara <andre.przywara@arm.com>
+Message-ID: <20191204161641.bH3Hhew74Oio4K2lo1iv79QpUiHT-R2JlTTGO60DRwU@z>
 
-On 20/11/2019 08:12, Dexuan Cui wrote:
-> This is needed for hibernation, e.g. when we resume the old kernel, we need
-> to disable the "current" kernel's TSC page and then resume the old kernel's.
+On Wed, Dec 04, 2019 at 01:58:25PM +0000, Vincenzo Frascino wrote:
+> Hi Guenter,
 > 
-> Signed-off-by: Dexuan Cui <decui@microsoft.com>
-> Reviewed-by: Michael Kelley <mikelley@microsoft.com>
-> ---
+> On 12/4/19 1:51 PM, Guenter Roeck wrote:
+> > On Fri, Jun 21, 2019 at 10:52:43AM +0100, Vincenzo Frascino wrote:
+> >> The arm vDSO library requires some adaptations to use to take advantage
+> >> of the newly introduced generic vDSO library.
+> >>
+> >> Introduce the following changes:
+> >>  - Modification vdso.c to be compliant with the common vdso datapage
+> >>  - Use of lib/vdso for gettimeofday
+> >>  - Implementation of elf note
+> >>
+> >> Cc: Russell King <linux@armlinux.org.uk>
+> >> Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
+> > 
+> > This patch causes a crash with qemu's mcimx6ul-evk emulation while running
+> > imx_v6_v7_defconfig.
+> > 
 > 
-> This patch is part of the v5 patchset:
->   https://lkml.org/lkml/2019/9/5/1158
->   https://lkml.org/lkml/2019/9/5/1161
+> Thank you for reporting this. Could you please provide some details on how I can
+> reproduce the scenario you are describing?
 > 
->   Actually v6 is the same as v1 (v2~v5 were posted with the other patches).
-> 
->   Please pick up this patch into the tip.git tree, probably onto the branch
-> timers/core.
+- Build imx_v6_v7_defconfig
+- Get root file system or initrd, for example from
+  https://github.com/groeck/linux-build-test/tree/master/rootfs/arm
+- Run image. Example, with initrd:
+	qemu-system-arm -M mcimx6ul-evk -kernel arch/arm/boot/zImage \
+		-no-reboot -initrd rootfs-armv7a.cpio \
+		-m 256 -display none -serial null \
+		--append 'rdinit=/sbin/init earlycon=ec_imx6q,mmio,0x21e8000,115200n8 console=ttymxc1,115200'
+		-dtb arch/arm/boot/dts/imx6ul-14x14-evk.dtb \
+		-nographic -monitor null -serial stdio
 
-Applied, thanks!
+qemu has to be v3.1 or later to support the machine.
 
-
--- 
- <http://www.linaro.org/> Linaro.org │ Open source software for ARM SoCs
-
-Follow Linaro:  <http://www.facebook.com/pages/Linaro> Facebook |
-<http://twitter.com/#!/linaroorg> Twitter |
-<http://www.linaro.org/linaro-blog/> Blog
+Hope this helps,
+Guenter
