@@ -1,58 +1,46 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from 216-12-86-13.cv.mvl.ntelos.net ([216.12.86.13]:51470 "EHLO
-        brightrain.aerifal.cx" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726028AbfLETZl (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 5 Dec 2019 14:25:41 -0500
-Date: Thu, 5 Dec 2019 14:23:14 -0500
-From: Rich Felker <dalias@libc.org>
+Received: from outpost1.zedat.fu-berlin.de ([130.133.4.66]:35353 "EHLO
+        outpost1.zedat.fu-berlin.de" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S1726028AbfLETaZ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 5 Dec 2019 14:30:25 -0500
 Subject: Re: [PATCH v6 10/18] sh/tlb: Convert SH to generic mmu_gather
-Message-ID: <20191205192314.GC16318@brightrain.aerifal.cx>
 References: <20190219103148.192029670@infradead.org>
  <20190219103233.443069009@infradead.org>
  <CAMuHMdW3nwckjA9Bt-_Dmf50B__sZH+9E5s0_ziK1U_y9onN=g@mail.gmail.com>
  <20191204104733.GR2844@hirez.programming.kicks-ass.net>
- <e2cf6780-ba7e-d6f6-9d15-92e182f98e84@landley.net>
+From: John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>
+Message-ID: <3c83eaec-8f33-1b90-1c70-9e7c1c8b1855@physik.fu-berlin.de>
+Date: Thu, 5 Dec 2019 20:30:17 +0100
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <e2cf6780-ba7e-d6f6-9d15-92e182f98e84@landley.net>
+In-Reply-To: <20191204104733.GR2844@hirez.programming.kicks-ass.net>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Rob Landley <rob@landley.net>
-Cc: Peter Zijlstra <peterz@infradead.org>, Geert Uytterhoeven <geert@linux-m68k.org>, Will Deacon <will.deacon@arm.com>, "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, Nicholas Piggin <npiggin@gmail.com>, Linux-Arch <linux-arch@vger.kernel.org>, Linux MM <linux-mm@kvack.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Russell King <linux@armlinux.org.uk>, Heiko Carstens <heiko.carstens@de.ibm.com>, Rik van Riel <riel@surriel.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Linux-sh list <linux-sh@vger.kernel.org>, Guenter Roeck <linux@roeck-us.net>
-Message-ID: <20191205192314.j6h6NYrhYADPU52ztcuPat7SXb1r6sn0CSaB6q_HBCQ@z>
+To: Peter Zijlstra <peterz@infradead.org>, Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: Will Deacon <will.deacon@arm.com>, "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, Nicholas Piggin <npiggin@gmail.com>, Linux-Arch <linux-arch@vger.kernel.org>, Linux MM <linux-mm@kvack.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Russell King <linux@armlinux.org.uk>, Heiko Carstens <heiko.carstens@de.ibm.com>, Rik van Riel <riel@surriel.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, Linux-sh list <linux-sh@vger.kernel.org>, Guenter Roeck <linux@roeck-us.net>
+Message-ID: <20191205193017.55x8_HYH75PjDxViJFmqR_ABFACsNkBdFzStk24d9fo@z>
 
-On Thu, Dec 05, 2019 at 01:24:02PM -0600, Rob Landley wrote:
-> On 12/4/19 4:47 AM, Peter Zijlstra wrote:
-> > On Tue, Dec 03, 2019 at 12:19:00PM +0100, Geert Uytterhoeven wrote:
-> >> Hoi Peter,
-> >>
-> >> On Tue, Feb 19, 2019 at 11:35 AM Peter Zijlstra <peterz@infradead.org> wrote:
-> >>> Generic mmu_gather provides everything SH needs (range tracking and
-> >>> cache coherency).
-> >>>
-> >>> Cc: Will Deacon <will.deacon@arm.com>
-> >>> Cc: "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com>
-> >>> Cc: Andrew Morton <akpm@linux-foundation.org>
-> >>> Cc: Nick Piggin <npiggin@gmail.com>
-> >>> Cc: Yoshinori Sato <ysato@users.sourceforge.jp>
-> >>> Cc: Rich Felker <dalias@libc.org>
-> >>> Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
-> >>
-> >> I got remote access to an SH7722-based Migo-R again, which spews a long
-> >> sequence of BUGs during userspace startup.  I've bisected this to commit
-> >> c5b27a889da92f4a ("sh/tlb: Convert SH to generic mmu_gather").
-> > 
-> > Whoopsy.. also, is this really the first time anybody booted an SH
-> > kernel in over a year ?!?
+Hi!
+
+On 12/4/19 11:47 AM, Peter Zijlstra wrote:
+>> I got remote access to an SH7722-based Migo-R again, which spews a long
+>> sequence of BUGs during userspace startup.  I've bisected this to commit
+>> c5b27a889da92f4a ("sh/tlb: Convert SH to generic mmu_gather").
 > 
-> No, but most people running this kind of hardware tend not to upgrade to current
-> kernels on a regular basis.
-> 
-> The j-core guys tested the 5.3 release. I can't find an email about 5.4 so I
-> dunno if that's been tested yet?
+> Whoopsy.. also, is this really the first time anybody booted an SH
+> kernel in over a year ?!?
 
-Being that this code is about mmu, does it affect nommu machines?
-That's what we've got at present on the J-core side.
+I have to admit, I have been very lazy with kernel updates. I have been
+planning to upgrade to a much more recent release on my boards for a while
+now, I have just been postponing it since the machines run very stable
+with the current kernel I am using.
 
-Rich
+Adrian
+
+-- 
+ .''`.  John Paul Adrian Glaubitz
+: :' :  Debian Developer - glaubitz@debian.org
+`. `'   Freie Universitaet Berlin - glaubitz@physik.fu-berlin.de
+  `-    GPG: 62FF 8A75 84E0 2956 9546  0006 7426 3B37 F5B5 F913
