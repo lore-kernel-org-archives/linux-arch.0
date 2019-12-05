@@ -1,49 +1,119 @@
-From: =?UTF-8?Q?Philippe_Mathieu=2DDaud=C3=A9?= <f4bug@amsat.org>
-Subject: Re: [PATCH v7 16/25] arm: Add support for generic vDSO (causing crash)
-Date: Thu, 5 Dec 2019 15:56:15 +0100
-Message-ID: <CAAdtpL5cMZQPa-SdMdi3SZnO=3-FkTkDCZjgjyy5Gmcqo+-MXw@mail.gmail.com>
-References: <20190621095252.32307-1-vincenzo.frascino@arm.com>
- <20190621095252.32307-17-vincenzo.frascino@arm.com> <20191204135159.GA7210@roeck-us.net>
- <6cdf4734-4065-09c1-8623-1bf523b38c1b@arm.com> <20191204161641.GA28130@roeck-us.net>
- <e35a7f71-2477-fa52-01e4-301199e99c2e@arm.com> <CAAdtpL71ED3zbkHMqtd1XFQwToOctWJpy2WPqahxHR81fKdTkg@mail.gmail.com>
- <a391048e-f57c-159e-7174-d9d38d8f3825@arm.com> <CAK8P3a1krE=nOi6Dy=QaWiE9VTgNpUVbrHUVm_3Cq+JGJyuwKQ@mail.gmail.com>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Subject: Re: [PATCH v6 10/18] sh/tlb: Convert SH to generic mmu_gather
+Date: Thu, 5 Dec 2019 16:26:57 +0100
+Message-ID: <CAMuHMdVQO6vMDuns7rwk8sD+cPhEVQjEU_DiKiTQn0NY2ppzag@mail.gmail.com>
+References: <20190219103148.192029670@infradead.org> <20190219103233.443069009@infradead.org>
+ <CAMuHMdW3nwckjA9Bt-_Dmf50B__sZH+9E5s0_ziK1U_y9onN=g@mail.gmail.com>
+ <20191204104733.GR2844@hirez.programming.kicks-ass.net> <CAMuHMdXs_Fm93t=O9jJPLxcREZy-T53Z_U_RtHcvaWyV+ESdjg@mail.gmail.com>
+ <20191204133454.GW2844@hirez.programming.kicks-ass.net> <CAMuHMdVnhNFBqPQXKYCQbCnoQjZPSXRkuxbsbaguZ7_TcXXmVg@mail.gmail.com>
+ <20191204164143.GB2810@hirez.programming.kicks-ass.net>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 8BIT
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <CAK8P3a1krE=nOi6Dy=QaWiE9VTgNpUVbrHUVm_3Cq+JGJyuwKQ@mail.gmail.com>
+In-Reply-To: <20191204164143.GB2810@hirez.programming.kicks-ass.net>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Vincenzo Frascino <vincenzo.frascino@arm.com>, Guenter Roeck <linux@roeck-us.net>, linux-arch <linux-arch@vger.kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, open list <linux-kernel@vger.kernel.org>, "open list:BROADCOM NVRAM DRIVER" <linux-mips@vger.kernel.org>, "open list:KERNEL SELFTEST FRAMEWORK" <linux-kselftest@vger.kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Russell King <linux@armlinux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Paul Burton <paul.burton@mips.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, Thomas Gleixner <tglx@linutronix.de>, Mark Salyzyn <salyzyn@android.com>, Peter Collingbourne <pcc@google.com>, Shuah Khan <shuah@kernel.org>, Dmitry Safonov <0x7f454>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Will Deacon <will.deacon@arm.com>, "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, Nicholas Piggin <npiggin@gmail.com>, Linux-Arch <linux-arch@vger.kernel.org>, Linux MM <linux-mm@kvack.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Russell King <linux@armlinux.org.uk>, Heiko Carstens <heiko.carstens@de.ibm.com>, Rik van Riel <riel@surriel.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, Linux-sh list <linux-sh@vger.kernel.org>, Guenter Roeck <linux@roeck-us.net>
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, Dec 5, 2019 at 12:02 PM Arnd Bergmann <arnd@arndb.de> wrote:
-> On Thu, Dec 5, 2019 at 11:00 AM Vincenzo Frascino
-> <vincenzo.frascino@arm.com> wrote:
+Hoi Peter,
+
+On Wed, Dec 4, 2019 at 5:42 PM Peter Zijlstra <peterz@infradead.org> wrote:
+> On Wed, Dec 04, 2019 at 04:07:53PM +0100, Geert Uytterhoeven wrote:
+> > On Wed, Dec 4, 2019 at 2:35 PM Peter Zijlstra <peterz@infradead.org> wrote:
+> > > Does this fare better?
 > >
-> > Hi Philippe,
+> > Yes. Migo-R is happy again.
+> > Tested-by: Geert Uytterhoeven <geert+renesas@glider.be>
 > >
-> > On 05/12/2019 09:42, Philippe Mathieu-Daudé wrote:
-> > > There are only 2 "Investigated-by" vs 7k+ "Suggested-by"... Is there a
-> > > real difference?
-> >
-> > Not sure about that. My take is that Suggested-by is used when someone suggests
-> > you how to possibly implement a feature and you go and do that. Investigated-by
-> > is when there is a fix to make and someone comes to you with the exact solution
-> > like in this case Arnd did.
+> > > --- a/arch/sh/include/asm/pgalloc.h
+> > > +++ b/arch/sh/include/asm/pgalloc.h
+> > > @@ -36,9 +36,7 @@ do {                                                  \
+> > >  #if CONFIG_PGTABLE_LEVELS > 2
+> > >  #define __pmd_free_tlb(tlb, pmdp, addr)                        \
+> > >  do {                                                   \
+> > > -       struct page *page = virt_to_page(pmdp);         \
+> > > -       pgtable_pmd_page_dtor(page);                    \
+> > > -       tlb_remove_page((tlb), page);                   \
+> > > +       pmd_free((tlb)->mm, (pmdp));                    \
+> > >  } while (0);
+> > >  #endif
 >
-> It's not a standard tag, but I suggested it because it does explain
-> better what I did.
+> OK, so I was going to write a Changelog to go with that, but then I
+> realized that while this works and is similar to before the patch, I'm
+> not sure this is in fact correct.
 >
-> You could also just explain in clear text that I did the analysis and then add
-> the more normal Suggested-by tag, I don't care either way.
+> With this on (and also before) we're freeing the PMD before we've done
+> the TLB invalidate, that seems wrong!
+>
+> Looking at the size of that pmd_cache, that looks to be 30-(12+12-3)+3
+> == 12, which is exactly 1 page, for PAGE_SIZE_4K, less for the larger
+> pages.
+>
+> I'm thinking perhaps we should do something like the below instead?
 
-No problem, I was just wondering the subtle difference between both tags.
-I don't mind which one you use, as long as this issue get fixed :)
-Thanks for the patch BTW!
+Your advice is better when in close vicinity of an SH cross compiler,
+though ;-)
 
-Regards,
+> --- a/arch/sh/mm/pgtable.c
+> +++ b/arch/sh/mm/pgtable.c
+> @@ -5,9 +5,6 @@
+>  #define PGALLOC_GFP GFP_KERNEL | __GFP_ZERO
+>
+>  static struct kmem_cache *pgd_cachep;
+> -#if PAGETABLE_LEVELS > 2
+> -static struct kmem_cache *pmd_cachep;
+> -#endif
+>
+>  void pgd_ctor(void *x)
+>  {
+> @@ -23,11 +20,6 @@ void pgtable_cache_init(void)
+>         pgd_cachep = kmem_cache_create("pgd_cache",
+>                                        PTRS_PER_PGD * (1<<PTE_MAGNITUDE),
+>                                        PAGE_SIZE, SLAB_PANIC, pgd_ctor);
+> -#if PAGETABLE_LEVELS > 2
+> -       pmd_cachep = kmem_cache_create("pmd_cache",
+> -                                      PTRS_PER_PMD * (1<<PTE_MAGNITUDE),
+> -                                      PAGE_SIZE, SLAB_PANIC, NULL);
+> -#endif
+>  }
+>
+>  pgd_t *pgd_alloc(struct mm_struct *mm)
+> @@ -48,11 +40,7 @@ void pud_populate(struct mm_struct *mm, pud_t *pud, pmd_t *pmd)
+>
+>  pmd_t *pmd_alloc_one(struct mm_struct *mm, unsigned long address)
+>  {
+> -       return kmem_cache_alloc(pmd_cachep, PGALLOC_GFP);
+> -}
+> -
+> -void pmd_free(struct mm_struct *mm, pmd_t *pmd)
 
-Phil.
+mm/memory.o: In function `__pmd_alloc':
+memory.c:(.text+0x1d74): undefined reference to `pmd_free'
 
->       Arnd
+> -{
+> -       kmem_cache_free(pmd_cachep, pmd);
+> +       BUILD_BUG_ON(PTRS_PER_PMD * (1<<PTE_MAGNITUDE) <= PAGE_SIZE);
+
+... > PAGE_SIZE ?
+
+Else it triggers all the time.
+
+> +       return (pmd_t *)__get_free_page(PGALLOC_GFP);
+>  }
+>  #endif /* PAGETABLE_LEVELS > 2 */
+
+BTW, I'm still running Willy's fix that never made it upstream
+to kill an ugly boot warning, which also touches this code:
+https://patchwork.kernel.org/patch/10549883/#22166333
+
+Gr{oetje,eeting}s,
+
+                        Geert
+
+-- 
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
