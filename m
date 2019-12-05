@@ -1,124 +1,109 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ot1-f68.google.com ([209.85.210.68]:44650 "EHLO
-        mail-ot1-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1725909AbfLEP1K (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 5 Dec 2019 10:27:10 -0500
-MIME-Version: 1.0
-References: <20190219103148.192029670@infradead.org> <20190219103233.443069009@infradead.org>
- <CAMuHMdW3nwckjA9Bt-_Dmf50B__sZH+9E5s0_ziK1U_y9onN=g@mail.gmail.com>
- <20191204104733.GR2844@hirez.programming.kicks-ass.net> <CAMuHMdXs_Fm93t=O9jJPLxcREZy-T53Z_U_RtHcvaWyV+ESdjg@mail.gmail.com>
- <20191204133454.GW2844@hirez.programming.kicks-ass.net> <CAMuHMdVnhNFBqPQXKYCQbCnoQjZPSXRkuxbsbaguZ7_TcXXmVg@mail.gmail.com>
- <20191204164143.GB2810@hirez.programming.kicks-ass.net>
-In-Reply-To: <20191204164143.GB2810@hirez.programming.kicks-ass.net>
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Date: Thu, 5 Dec 2019 16:26:57 +0100
-Message-ID: <CAMuHMdVQO6vMDuns7rwk8sD+cPhEVQjEU_DiKiTQn0NY2ppzag@mail.gmail.com>
+Received: from mail-oi1-f196.google.com ([209.85.167.196]:40244 "EHLO
+        mail-oi1-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726028AbfLETUz (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 5 Dec 2019 14:20:55 -0500
+Received: by mail-oi1-f196.google.com with SMTP id 6so3808738oix.7
+        for <linux-arch@vger.kernel.org>; Thu, 05 Dec 2019 11:20:54 -0800 (PST)
 Subject: Re: [PATCH v6 10/18] sh/tlb: Convert SH to generic mmu_gather
-Content-Type: text/plain; charset="UTF-8"
+References: <20190219103148.192029670@infradead.org>
+ <20190219103233.443069009@infradead.org>
+ <CAMuHMdW3nwckjA9Bt-_Dmf50B__sZH+9E5s0_ziK1U_y9onN=g@mail.gmail.com>
+ <20191204104733.GR2844@hirez.programming.kicks-ass.net>
+From: Rob Landley <rob@landley.net>
+Message-ID: <e2cf6780-ba7e-d6f6-9d15-92e182f98e84@landley.net>
+Date: Thu, 5 Dec 2019 13:24:02 -0600
+MIME-Version: 1.0
+In-Reply-To: <20191204104733.GR2844@hirez.programming.kicks-ass.net>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
+To: Peter Zijlstra <peterz@infradead.org>, Geert Uytterhoeven <geert@linux-m68k.org>
 Cc: Will Deacon <will.deacon@arm.com>, "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, Nicholas Piggin <npiggin@gmail.com>, Linux-Arch <linux-arch@vger.kernel.org>, Linux MM <linux-mm@kvack.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Russell King <linux@armlinux.org.uk>, Heiko Carstens <heiko.carstens@de.ibm.com>, Rik van Riel <riel@surriel.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, Linux-sh list <linux-sh@vger.kernel.org>, Guenter Roeck <linux@roeck-us.net>
-Message-ID: <20191205152657.1i6JvWp7ZomCraSxLu9CpKjjvesXlnOFEDys8Qxi0-U@z>
+Message-ID: <20191205192402.LSlxp4r5ZoN7X0wKYo84ayTvNyg0IjOx3GHBtnxJAII@z>
 
-Hoi Peter,
+On 12/4/19 4:47 AM, Peter Zijlstra wrote:
+> On Tue, Dec 03, 2019 at 12:19:00PM +0100, Geert Uytterhoeven wrote:
+>> Hoi Peter,
+>>
+>> On Tue, Feb 19, 2019 at 11:35 AM Peter Zijlstra <peterz@infradead.org> wrote:
+>>> Generic mmu_gather provides everything SH needs (range tracking and
+>>> cache coherency).
+>>>
+>>> Cc: Will Deacon <will.deacon@arm.com>
+>>> Cc: "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com>
+>>> Cc: Andrew Morton <akpm@linux-foundation.org>
+>>> Cc: Nick Piggin <npiggin@gmail.com>
+>>> Cc: Yoshinori Sato <ysato@users.sourceforge.jp>
+>>> Cc: Rich Felker <dalias@libc.org>
+>>> Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+>>
+>> I got remote access to an SH7722-based Migo-R again, which spews a long
+>> sequence of BUGs during userspace startup.  I've bisected this to commit
+>> c5b27a889da92f4a ("sh/tlb: Convert SH to generic mmu_gather").
+> 
+> Whoopsy.. also, is this really the first time anybody booted an SH
+> kernel in over a year ?!?
 
-On Wed, Dec 4, 2019 at 5:42 PM Peter Zijlstra <peterz@infradead.org> wrote:
-> On Wed, Dec 04, 2019 at 04:07:53PM +0100, Geert Uytterhoeven wrote:
-> > On Wed, Dec 4, 2019 at 2:35 PM Peter Zijlstra <peterz@infradead.org> wrote:
-> > > Does this fare better?
-> >
-> > Yes. Migo-R is happy again.
-> > Tested-by: Geert Uytterhoeven <geert+renesas@glider.be>
-> >
-> > > --- a/arch/sh/include/asm/pgalloc.h
-> > > +++ b/arch/sh/include/asm/pgalloc.h
-> > > @@ -36,9 +36,7 @@ do {                                                  \
-> > >  #if CONFIG_PGTABLE_LEVELS > 2
-> > >  #define __pmd_free_tlb(tlb, pmdp, addr)                        \
-> > >  do {                                                   \
-> > > -       struct page *page = virt_to_page(pmdp);         \
-> > > -       pgtable_pmd_page_dtor(page);                    \
-> > > -       tlb_remove_page((tlb), page);                   \
-> > > +       pmd_free((tlb)->mm, (pmdp));                    \
-> > >  } while (0);
-> > >  #endif
->
-> OK, so I was going to write a Changelog to go with that, but then I
-> realized that while this works and is similar to before the patch, I'm
-> not sure this is in fact correct.
->
-> With this on (and also before) we're freeing the PMD before we've done
-> the TLB invalidate, that seems wrong!
->
-> Looking at the size of that pmd_cache, that looks to be 30-(12+12-3)+3
-> == 12, which is exactly 1 page, for PAGE_SIZE_4K, less for the larger
-> pages.
->
-> I'm thinking perhaps we should do something like the below instead?
+No, but most people running this kind of hardware tend not to upgrade to current
+kernels on a regular basis.
 
-Your advice is better when in close vicinity of an SH cross compiler,
-though ;-)
+The j-core guys tested the 5.3 release. I can't find an email about 5.4 so I
+dunno if that's been tested yet?
 
-> --- a/arch/sh/mm/pgtable.c
-> +++ b/arch/sh/mm/pgtable.c
-> @@ -5,9 +5,6 @@
->  #define PGALLOC_GFP GFP_KERNEL | __GFP_ZERO
->
->  static struct kmem_cache *pgd_cachep;
-> -#if PAGETABLE_LEVELS > 2
-> -static struct kmem_cache *pmd_cachep;
-> -#endif
->
->  void pgd_ctor(void *x)
->  {
-> @@ -23,11 +20,6 @@ void pgtable_cache_init(void)
->         pgd_cachep = kmem_cache_create("pgd_cache",
->                                        PTRS_PER_PGD * (1<<PTE_MAGNITUDE),
->                                        PAGE_SIZE, SLAB_PANIC, pgd_ctor);
-> -#if PAGETABLE_LEVELS > 2
-> -       pmd_cachep = kmem_cache_create("pmd_cache",
-> -                                      PTRS_PER_PMD * (1<<PTE_MAGNITUDE),
-> -                                      PAGE_SIZE, SLAB_PANIC, NULL);
-> -#endif
->  }
->
->  pgd_t *pgd_alloc(struct mm_struct *mm)
-> @@ -48,11 +40,7 @@ void pud_populate(struct mm_struct *mm, pud_t *pud, pmd_t *pmd)
->
->  pmd_t *pmd_alloc_one(struct mm_struct *mm, unsigned long address)
->  {
-> -       return kmem_cache_alloc(pmd_cachep, PGALLOC_GFP);
-> -}
-> -
-> -void pmd_free(struct mm_struct *mm, pmd_t *pmd)
+I just tested yesterday's git and it works fine with
+http://lkml.iu.edu/hypermail/linux/kernel/1912.0/01554.html installed, modulo it
+_still_ has the suprious stack dump shortly before calling init, which I've
+complained about on linux-sh and off for a year now?
 
-mm/memory.o: In function `__pmd_alloc':
-memory.c:(.text+0x1d74): undefined reference to `pmd_free'
+------------[ cut here ]------------
+WARNING: CPU: 0 PID: 1 at mm/slub.c:2451 kmem_cache_free_bulk+0x2c2/0x37c
 
-> -{
-> -       kmem_cache_free(pmd_cachep, pmd);
-> +       BUILD_BUG_ON(PTRS_PER_PMD * (1<<PTE_MAGNITUDE) <= PAGE_SIZE);
+CPU: 0 PID: 1 Comm: swapper Not tainted 5.4.0 #1
+PC is at kmem_cache_free_bulk+0x2c2/0x37c
+PR is at kmem_cache_alloc_bulk+0x36/0x1a0
+PC  : 8c0a6fae SP  : 8f829e9c SR  : 400080f0
+TEA : c0001240
+R0  : 8c0a6de4 R1  : 00000100 R2  : 00000100 R3  : 00000000
+R4  : 8f8020a0 R5  : 00000dc0 R6  : 8c01d66c R7  : 8fff5180
+R8  : 8c011a00 R9  : 8fff5180 R10 : 8c01d66c R11 : 80000000
+R12 : 00007fff R13 : 00000dc0 R14 : 8f8020a0
+MACH: 0000017a MACL: 0ae4849d GBR : 00000000 PR  : 8c0a709e
 
-... > PAGE_SIZE ?
+Call trace:
+ [<(ptrval)>] copy_process+0x218/0x1094
+ [<(ptrval)>] copy_process+0x7ba/0x1094
+ [<(ptrval)>] kmem_cache_alloc_bulk+0x36/0x1a0
+ [<(ptrval)>] restore_sigcontext+0x94/0x1b0
+ [<(ptrval)>] restore_sigcontext+0x70/0x1b0
+ [<(ptrval)>] copy_process+0x218/0x1094
+ [<(ptrval)>] sysfs_slab_add+0x106/0x354
+ [<(ptrval)>] restore_sigcontext+0x70/0x1b0
+ [<(ptrval)>] copy_process+0x218/0x1094
+ [<(ptrval)>] copy_process+0x218/0x1094
+ [<(ptrval)>] fprop_fraction_single+0x38/0xa4
+ [<(ptrval)>] pipe_read+0x7a/0x23c
+ [<(ptrval)>] restore_sigcontext+0x70/0x1b0
+ [<(ptrval)>] restore_sigcontext+0x94/0x1b0
+ [<(ptrval)>] alloc_pipe_info+0x162/0x1c8
+ [<(ptrval)>] restore_sigcontext+0x94/0x1b0
+ [<(ptrval)>] restore_sigcontext+0x70/0x1b0
+ [<(ptrval)>] handle_bad_irq+0x154/0x188
+ [<(ptrval)>] raw6_exit_net+0x0/0x14
+ [<(ptrval)>] prepare_stack+0xe4/0x2fc
+ [<(ptrval)>] sys_sched_get_priority_min+0x18/0x28
+ [<(ptrval)>] ndisc_net_exit+0x4/0x24
 
-Else it triggers all the time.
+---[ end trace 6ce4eefeb577b078 ]---
 
-> +       return (pmd_t *)__get_free_page(PGALLOC_GFP);
->  }
->  #endif /* PAGETABLE_LEVELS > 2 */
+But it's cosmetic...
 
-BTW, I'm still running Willy's fix that never made it upstream
-to kill an ugly boot warning, which also touches this code:
-https://patchwork.kernel.org/patch/10549883/#22166333
+I haven't got one of the new Turtle boards yet (next time I visit Japan...) and
+the USB connector broke off my old one, so I haven't got test hardware in my bag
+to boot it on with me at this coffee shop. So just qemu testing at the moment.
+The actual j-core deployment environment I'm working on this month is a deeply
+embedded thing with 128k sram so isn't running Linux. :)
 
-Gr{oetje,eeting}s,
-
-                        Geert
-
--- 
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+Rob
