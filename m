@@ -1,269 +1,181 @@
-From: Alex Kogan <alex.kogan@oracle.com>
-Subject: Re: [PATCH v7 3/5] locking/qspinlock: Introduce CNA into the slow
- path of qspinlock
-Date: Fri, 6 Dec 2019 14:50:39 -0500
-Message-ID: <436D6D76-21C0-451B-B74E-5516864925FF@oracle.com>
+From: Waiman Long <longman@redhat.com>
+Subject: Re: [PATCH v7 5/5] locking/qspinlock: Introduce the shuffle reduction
+ optimization into CNA
+Date: Fri, 6 Dec 2019 17:00:24 -0500
+Message-ID: <1fce5ebf-7f80-fb9e-92b1-74062a6611a5@redhat.com>
 References: <20191125210709.10293-1-alex.kogan@oracle.com>
- <20191125210709.10293-4-alex.kogan@oracle.com>
- <ec048549-c522-27af-d638-789c8465a224@redhat.com>
-Mime-Version: 1.0 (Mac OS X Mail 12.4 \(3445.104.11\))
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
-In-Reply-To: <ec048549-c522-27af-d638-789c8465a224@redhat.com>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
-To: Waiman Long <longman@redhat.com>
-Cc: linux-arch@vger.kernel.org, guohanjun@huawei.com, arnd@arndb.de, Peter Zijlstra <peterz@infradead.org>, dave.dice@oracle.com, jglauber@marvell.com, x86@kernel.org, will.deacon@arm.com, linux@armlinux.org.uk, linux-kernel@vger.kernel.org, rahul.x.yadav@oracle.com, mingo@redhat.com, bp@alien8.de, hpa@zytor.com, steven.sistare@oracle.com, tglx@linutronix.de, daniel.m.jordan@oracle.com, linux-arm-kernel@lists.infradead.org
+ <20191125210709.10293-6-alex.kogan@oracle.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: quoted-printable
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20191125210709.10293-6-alex.kogan@oracle.com>
+Content-Language: en-US
+Sender: linux-kernel-owner@vger.kernel.org
+To: Alex Kogan <alex.kogan@oracle.com>, linux@armlinux.org.uk, peterz@infradead.org, mingo@redhat.com, will.deacon@arm.com, arnd@arndb.de, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, bp@alien8.de, hpa@zytor.com, x86@kernel.org, guohanjun@huawei.com, jglauber@marvell.com
+Cc: steven.sistare@oracle.com, daniel.m.jordan@oracle.com, dave.dice@oracle.com, rahul.x.yadav@oracle.com
 List-Id: linux-arch.vger.kernel.org
 
-VGhhbmtzIGZvciB0aGUgZmVlZGJhY2suIEkgd2lsbCB0YWtlIGNhcmUgb2YgdGhhdCBhbmQgcmVz
-dWJtaXQuCgpSZWdhcmRzLArigJQgQWxleAoKPiBPbiBEZWMgNiwgMjAxOSwgYXQgMTI6MjEgUE0s
-IFdhaW1hbiBMb25nIDxsb25nbWFuQHJlZGhhdC5jb20+IHdyb3RlOgo+IAo+IE9uIDExLzI1LzE5
-IDQ6MDcgUE0sIEFsZXggS29nYW4gd3JvdGU6Cj4+IEluIENOQSwgc3Bpbm5pbmcgdGhyZWFkcyBh
-cmUgb3JnYW5pemVkIGluIHR3byBxdWV1ZXMsIGEgbWFpbiBxdWV1ZSBmb3IKPj4gdGhyZWFkcyBy
-dW5uaW5nIG9uIHRoZSBzYW1lIG5vZGUgYXMgdGhlIGN1cnJlbnQgbG9jayBob2xkZXIsIGFuZCBh
-Cj4+IHNlY29uZGFyeSBxdWV1ZSBmb3IgdGhyZWFkcyBydW5uaW5nIG9uIG90aGVyIG5vZGVzLiBB
-ZnRlciBhY3F1aXJpbmcgdGhlCj4+IE1DUyBsb2NrIGFuZCBiZWZvcmUgYWNxdWlyaW5nIHRoZSBz
-cGlubG9jaywgdGhlIGxvY2sgaG9sZGVyIHNjYW5zIHRoZQo+PiBtYWluIHF1ZXVlIGxvb2tpbmcg
-Zm9yIGEgdGhyZWFkIHJ1bm5pbmcgb24gdGhlIHNhbWUgbm9kZSAocHJlLXNjYW4pLiBJZgo+PiBm
-b3VuZCAoY2FsbCBpdCB0aHJlYWQgVCksIGFsbCB0aHJlYWRzIGluIHRoZSBtYWluIHF1ZXVlIGJl
-dHdlZW4gdGhlCj4+IGN1cnJlbnQgbG9jayBob2xkZXIgYW5kIFQgYXJlIG1vdmVkIHRvIHRoZSBl
-bmQgb2YgdGhlIHNlY29uZGFyeSBxdWV1ZS4KPj4gSWYgc3VjaCBUIGlzIG5vdCBmb3VuZCwgd2Ug
-bWFrZSBhbm90aGVyIHNjYW4gb2YgdGhlIG1haW4gcXVldWUgd2hlbgo+PiB1bmxvY2tpbmcgdGhl
-IE1DUyBsb2NrIChwb3N0LXNjYW4pLCBzdGFydGluZyBhdCB0aGUgcG9zaXRpb24gd2hlcmUKPj4g
-cHJlLXNjYW4gc3RvcHBlZC4gSWYgYm90aCBzY2FucyBmYWlsIHRvIGZpbmQgc3VjaCBULCB0aGUg
-TUNTIGxvY2sgaXMKPj4gcGFzc2VkIHRvIHRoZSBmaXJzdCB0aHJlYWQgaW4gdGhlIHNlY29uZGFy
-eSBxdWV1ZS4gSWYgdGhlIHNlY29uZGFyeSBxdWV1ZQo+PiBpcyBlbXB0eSwgdGhlIGxvY2sgaXMg
-cGFzc2VkIHRvIHRoZSBuZXh0IHRocmVhZCBpbiB0aGUgbWFpbiBxdWV1ZS4KPj4gRm9yIG1vcmUg
-ZGV0YWlscywgc2VlIGh0dHBzOi8vdXJsZGVmZW5zZS5wcm9vZnBvaW50LmNvbS92Mi91cmw/dT1o
-dHRwcy0zQV9fYXJ4aXYub3JnX2Fic18xODEwLjA1NjAwJmQ9RHdJRmFRJmM9Um9QMVl1bUNYQ2dh
-V0h2bFpZUjhQWmg4QnY3cUlyTVVCNjVlYXBJX0puRSZyPUh2aGszRjRvbWRDay1HRTFQVE9tM0tu
-MEE3QXBXT1oyYVpMVHVWeEZLNGsmbT1GY0pBLWhwQUhzOE14TDNya3NNZnFfR1lzQTdSSWNpSEVG
-M0FFNFpBVE9JJnM9U1ItcDBMdEV6VUNycHdXWTJTaFJJRjlsWG9kNVdjX05rTjl6SU9WdmZ4TSZl
-PSAuCj4+IAo+PiBOb3RlIHRoYXQgdGhpcyB2YXJpYW50IG9mIENOQSBtYXkgaW50cm9kdWNlIHN0
-YXJ2YXRpb24gYnkgY29udGludW91c2x5Cj4+IHBhc3NpbmcgdGhlIGxvY2sgdG8gdGhyZWFkcyBy
-dW5uaW5nIG9uIHRoZSBzYW1lIG5vZGUuIFRoaXMgaXNzdWUKPj4gd2lsbCBiZSBhZGRyZXNzZWQg
-bGF0ZXIgaW4gdGhlIHNlcmllcy4KPj4gCj4+IEVuYWJsaW5nIENOQSBpcyBjb250cm9sbGVkIHZp
-YSBhIG5ldyBjb25maWd1cmF0aW9uIG9wdGlvbgo+PiAoTlVNQV9BV0FSRV9TUElOTE9DS1MpLiBC
-eSBkZWZhdWx0LCB0aGUgQ05BIHZhcmlhbnQgaXMgcGF0Y2hlZCBpbiBhdCB0aGUKPj4gYm9vdCB0
-aW1lIG9ubHkgaWYgd2UgcnVuIG9uIGEgbXVsdGktbm9kZSBtYWNoaW5lIGluIG5hdGl2ZSBlbnZp
-cm9ubWVudCBhbmQKPj4gdGhlIG5ldyBjb25maWcgaXMgZW5hYmxlZC4gKEZvciB0aGUgdGltZSBi
-ZWluZywgdGhlIHBhdGNoaW5nIHJlcXVpcmVzCj4+IENPTkZJR19QQVJBVklSVF9TUElOTE9DS1Mg
-dG8gYmUgZW5hYmxlZCBhcyB3ZWxsLiBIb3dldmVyLCB0aGlzIHNob3VsZCBiZQo+PiByZXNvbHZl
-ZCBvbmNlIHN0YXRpY19jYWxsKCkgaXMgYXZhaWxhYmxlLikgVGhpcyBkZWZhdWx0IGJlaGF2aW9y
-IGNhbiBiZQo+PiBvdmVycmlkZGVuIHdpdGggdGhlIG5ldyBrZXJuZWwgYm9vdCBjb21tYW5kLWxp
-bmUgb3B0aW9uCj4+ICJudW1hX3NwaW5sb2NrPW9uL29mZiIgKGRlZmF1bHQgaXMgImF1dG8iKS4K
-Pj4gCj4+IFNpZ25lZC1vZmYtYnk6IEFsZXggS29nYW4gPGFsZXgua29nYW5Ab3JhY2xlLmNvbT4K
-Pj4gUmV2aWV3ZWQtYnk6IFN0ZXZlIFNpc3RhcmUgPHN0ZXZlbi5zaXN0YXJlQG9yYWNsZS5jb20+
-Cj4+IC0tLQo+PiAuLi4vYWRtaW4tZ3VpZGUva2VybmVsLXBhcmFtZXRlcnMudHh0ICAgICAgICAg
-fCAgMTAgKwo+PiBhcmNoL3g4Ni9LY29uZmlnICAgICAgICAgICAgICAgICAgICAgICAgICAgICAg
-fCAgMjAgKysKPj4gYXJjaC94ODYvaW5jbHVkZS9hc20vcXNwaW5sb2NrLmggICAgICAgICAgICAg
-IHwgICA0ICsKPj4gYXJjaC94ODYva2VybmVsL2FsdGVybmF0aXZlLmMgICAgICAgICAgICAgICAg
-IHwgIDQzICsrKwo+PiBrZXJuZWwvbG9ja2luZy9tY3Nfc3BpbmxvY2suaCAgICAgICAgICAgICAg
-ICAgfCAgIDIgKy0KPj4ga2VybmVsL2xvY2tpbmcvcXNwaW5sb2NrLmMgICAgICAgICAgICAgICAg
-ICAgIHwgIDM0ICsrLQo+PiBrZXJuZWwvbG9ja2luZy9xc3BpbmxvY2tfY25hLmggICAgICAgICAg
-ICAgICAgfCAyNjQgKysrKysrKysrKysrKysrKysrCj4+IDcgZmlsZXMgY2hhbmdlZCwgMzcyIGlu
-c2VydGlvbnMoKyksIDUgZGVsZXRpb25zKC0pCj4+IGNyZWF0ZSBtb2RlIDEwMDY0NCBrZXJuZWwv
-bG9ja2luZy9xc3BpbmxvY2tfY25hLmgKPj4gCj4gICA6Cj4+IGRpZmYgLS1naXQgYS9hcmNoL3g4
-Ni9rZXJuZWwvYWx0ZXJuYXRpdmUuYyBiL2FyY2gveDg2L2tlcm5lbC9hbHRlcm5hdGl2ZS5jCj4+
-IGluZGV4IDlkM2E5NzFlYTM2NC4uNmE0Y2NiZjRlMDljIDEwMDY0NAo+PiAtLS0gYS9hcmNoL3g4
-Ni9rZXJuZWwvYWx0ZXJuYXRpdmUuYwo+PiArKysgYi9hcmNoL3g4Ni9rZXJuZWwvYWx0ZXJuYXRp
-dmUuYwo+PiBAQCAtNjk4LDYgKzY5OCwzMyBAQCBzdGF0aWMgdm9pZCBfX2luaXQgaW50M19zZWxm
-dGVzdCh2b2lkKQo+PiAJdW5yZWdpc3Rlcl9kaWVfbm90aWZpZXIoJmludDNfZXhjZXB0aW9uX25i
-KTsKPj4gfQo+PiAKPj4gKyNpZiBkZWZpbmVkKENPTkZJR19OVU1BX0FXQVJFX1NQSU5MT0NLUykK
-Pj4gKy8qCj4+ICsgKiBDb25zdGFudCAoYm9vdC1wYXJhbSBjb25maWd1cmFibGUpIGZsYWcgc2Vs
-ZWN0aW5nIHRoZSBOVU1BLWF3YXJlIHZhcmlhbnQKPj4gKyAqIG9mIHNwaW5sb2NrLiAgUG9zc2li
-bGUgdmFsdWVzOiAtMSAob2ZmKSAvIDAgKGF1dG8sIGRlZmF1bHQpIC8gMSAob24pLgo+PiArICov
-Cj4+ICtzdGF0aWMgaW50IG51bWFfc3BpbmxvY2tfZmxhZzsKPj4gKwo+PiArc3RhdGljIGludCBf
-X2luaXQgbnVtYV9zcGlubG9ja19zZXR1cChjaGFyICpzdHIpCj4+ICt7Cj4+ICsJaWYgKCFzdHJj
-bXAoc3RyLCAiYXV0byIpKSB7Cj4+ICsJCW51bWFfc3BpbmxvY2tfZmxhZyA9IDA7Cj4+ICsJCXJl
-dHVybiAxOwo+PiArCX0gZWxzZSBpZiAoIXN0cmNtcChzdHIsICJvbiIpKSB7Cj4+ICsJCW51bWFf
-c3BpbmxvY2tfZmxhZyA9IDE7Cj4+ICsJCXJldHVybiAxOwo+PiArCX0gZWxzZSBpZiAoIXN0cmNt
-cChzdHIsICJvZmYiKSkgewo+PiArCQludW1hX3NwaW5sb2NrX2ZsYWcgPSAtMTsKPj4gKwkJcmV0
-dXJuIDE7Cj4+ICsJfQo+PiArCj4+ICsJcmV0dXJuIDA7Cj4+ICt9Cj4+ICsKPj4gK19fc2V0dXAo
-Im51bWFfc3BpbmxvY2s9IiwgbnVtYV9zcGlubG9ja19zZXR1cCk7Cj4+ICsKPj4gKyNlbmRpZgo+
-PiArCj4gCj4gVGhpcyBfX2luaXQgZnVuY3Rpb24gc2hvdWxkIGJlIGluIHFzcGlubG9ja19jbmEu
-aC4gV2UgZ2VuZXJhbGx5IGxpa2UgdG8KPiBwdXQgYXMgbXVjaCByZWxhdGVkIGNvZGUgaW50byBh
-cyBmZXcgcGxhY2VzIGFzIHBvc3NpYmxlIGluc3RlYWQgb2YKPiBzcHJlYWRpbmcgdGhlbSBhcm91
-bmQgaW4gZGlmZmVyZW50IHBsYWNlcy4KPiAKPj4gdm9pZCBfX2luaXQgYWx0ZXJuYXRpdmVfaW5z
-dHJ1Y3Rpb25zKHZvaWQpCj4+IHsKPj4gCWludDNfc2VsZnRlc3QoKTsKPj4gQEAgLTczOCw2ICs3
-NjUsMjIgQEAgdm9pZCBfX2luaXQgYWx0ZXJuYXRpdmVfaW5zdHJ1Y3Rpb25zKHZvaWQpCj4+IAl9
-Cj4+ICNlbmRpZgo+PiAKPj4gKyNpZiBkZWZpbmVkKENPTkZJR19OVU1BX0FXQVJFX1NQSU5MT0NL
-UykKPj4gKwkvKgo+PiArCSAqIEJ5IGRlZmF1bHQsIHN3aXRjaCB0byB0aGUgTlVNQS1mcmllbmRs
-eSBzbG93IHBhdGggZm9yCj4+ICsJICogc3BpbmxvY2tzIHdoZW4gd2UgaGF2ZSBtdWx0aXBsZSBO
-VU1BIG5vZGVzIGluIG5hdGl2ZSBlbnZpcm9ubWVudC4KPj4gKwkgKi8KPj4gKwlpZiAoKG51bWFf
-c3BpbmxvY2tfZmxhZyA9PSAxKSB8fAo+PiArCSAgICAobnVtYV9zcGlubG9ja19mbGFnID09IDAg
-JiYgbnJfbm9kZV9pZHMgPiAxICYmCj4+ICsJCSAgICBwdl9vcHMubG9jay5xdWV1ZWRfc3Bpbl9s
-b2NrX3Nsb3dwYXRoID09Cj4+ICsJCQluYXRpdmVfcXVldWVkX3NwaW5fbG9ja19zbG93cGF0aCkp
-IHsKPj4gKwkJcHZfb3BzLmxvY2sucXVldWVkX3NwaW5fbG9ja19zbG93cGF0aCA9Cj4+ICsJCSAg
-ICBfX2NuYV9xdWV1ZWRfc3Bpbl9sb2NrX3Nsb3dwYXRoOwo+PiArCj4+ICsJCXByX2luZm8oIkVu
-YWJsaW5nIENOQSBzcGlubG9ja1xuIik7Cj4+ICsJfQo+PiArI2VuZGlmCj4+ICsKPj4gCWFwcGx5
-X3BhcmF2aXJ0KF9fcGFyYWluc3RydWN0aW9ucywgX19wYXJhaW5zdHJ1Y3Rpb25zX2VuZCk7Cj4g
-Cj4gRW5jYXBzdWxhdGUgdGhlIGxvZ2ljIGludG8gYW5vdGhlciBfX2luaXQgZnVuY3Rpb24gaW4g
-cXNwaW5sb2NrX2NuYS5oCj4gYW5kIGp1c3QgbWFrZSBhIGZ1bmN0aW9uIGNhbGwgaGVyZS4gWW91
-IGNhbiBkZWNsYXJlIHRoZSBmdW5jdGlvbiBpbgo+IGFyY2gveDg2L2luY2x1ZGUvYXNtL3FzcGlu
-bG9jay5oLgo+IAo+IAo+PiAKPj4gCXJlc3RhcnRfbm1pKCk7Cj4+IGRpZmYgLS1naXQgYS9rZXJu
-ZWwvbG9ja2luZy9tY3Nfc3BpbmxvY2suaCBiL2tlcm5lbC9sb2NraW5nL21jc19zcGlubG9jay5o
-Cj4+IGluZGV4IDUyZDA2ZWM2ZjUyNS4uZTQwYjk1MzhiNzlmIDEwMDY0NAo+PiAtLS0gYS9rZXJu
-ZWwvbG9ja2luZy9tY3Nfc3BpbmxvY2suaAo+PiArKysgYi9rZXJuZWwvbG9ja2luZy9tY3Nfc3Bp
-bmxvY2suaAo+PiBAQCAtMTcsNyArMTcsNyBAQAo+PiAKPj4gc3RydWN0IG1jc19zcGlubG9jayB7
-Cj4+IAlzdHJ1Y3QgbWNzX3NwaW5sb2NrICpuZXh0Owo+PiAtCWludCBsb2NrZWQ7IC8qIDEgaWYg
-bG9jayBhY3F1aXJlZCAqLwo+PiArCXVuc2lnbmVkIGludCBsb2NrZWQ7IC8qIDEgaWYgbG9jayBh
-Y3F1aXJlZCAqLwo+PiAJaW50IGNvdW50OyAgLyogbmVzdGluZyBjb3VudCwgc2VlIHFzcGlubG9j
-ay5jICovCj4+IH07Cj4+IAo+PiBkaWZmIC0tZ2l0IGEva2VybmVsL2xvY2tpbmcvcXNwaW5sb2Nr
-LmMgYi9rZXJuZWwvbG9ja2luZy9xc3BpbmxvY2suYwo+PiBpbmRleCBjMDZkMWU4MDc1ZDkuLjZk
-OGM0YTUyZTQ0ZSAxMDA2NDQKPj4gLS0tIGEva2VybmVsL2xvY2tpbmcvcXNwaW5sb2NrLmMKPj4g
-KysrIGIva2VybmVsL2xvY2tpbmcvcXNwaW5sb2NrLmMKPj4gQEAgLTExLDcgKzExLDcgQEAKPj4g
-ICogICAgICAgICAgUGV0ZXIgWmlqbHN0cmEgPHBldGVyekBpbmZyYWRlYWQub3JnPgo+PiAgKi8K
-Pj4gCj4+IC0jaWZuZGVmIF9HRU5fUFZfTE9DS19TTE9XUEFUSAo+PiArI2lmICFkZWZpbmVkKF9H
-RU5fUFZfTE9DS19TTE9XUEFUSCkgJiYgIWRlZmluZWQoX0dFTl9DTkFfTE9DS19TTE9XUEFUSCkK
-Pj4gCj4+ICNpbmNsdWRlIDxsaW51eC9zbXAuaD4KPj4gI2luY2x1ZGUgPGxpbnV4L2J1Zy5oPgo+
-PiBAQCAtNzAsNyArNzAsOCBAQAo+PiAvKgo+PiAgKiBPbiA2NC1iaXQgYXJjaGl0ZWN0dXJlcywg
-dGhlIG1jc19zcGlubG9jayBzdHJ1Y3R1cmUgd2lsbCBiZSAxNiBieXRlcyBpbgo+PiAgKiBzaXpl
-IGFuZCBmb3VyIG9mIHRoZW0gd2lsbCBmaXQgbmljZWx5IGluIG9uZSA2NC1ieXRlIGNhY2hlbGlu
-ZS4gRm9yCj4+IC0gKiBwdnFzcGlubG9jaywgaG93ZXZlciwgd2UgbmVlZCBtb3JlIHNwYWNlIGZv
-ciBleHRyYSBkYXRhLiBUbyBhY2NvbW1vZGF0ZQo+PiArICogcHZxc3BpbmxvY2ssIGhvd2V2ZXIs
-IHdlIG5lZWQgbW9yZSBzcGFjZSBmb3IgZXh0cmEgZGF0YS4gVGhlIHNhbWUgYWxzbwo+PiArICog
-YXBwbGllcyBmb3IgdGhlIE5VTUEtYXdhcmUgdmFyaWFudCBvZiBzcGlubG9ja3MgKENOQSkuIFRv
-IGFjY29tbW9kYXRlCj4+ICAqIHRoYXQsIHdlIGluc2VydCB0d28gbW9yZSBsb25nIHdvcmRzIHRv
-IHBhZCBpdCB1cCB0byAzMiBieXRlcy4gSU9XLCBvbmx5Cj4+ICAqIHR3byBvZiB0aGVtIGNhbiBm
-aXQgaW4gYSBjYWNoZWxpbmUgaW4gdGhpcyBjYXNlLiBUaGF0IGlzIE9LIGFzIGl0IGlzIHJhcmUK
-Pj4gICogdG8gaGF2ZSBtb3JlIHRoYW4gMiBsZXZlbHMgb2Ygc2xvd3BhdGggbmVzdGluZyBpbiBh
-Y3R1YWwgdXNlLiBXZSBkb24ndAo+PiBAQCAtNzksNyArODAsNyBAQAo+PiAgKi8KPj4gc3RydWN0
-IHFub2RlIHsKPj4gCXN0cnVjdCBtY3Nfc3BpbmxvY2sgbWNzOwo+PiAtI2lmZGVmIENPTkZJR19Q
-QVJBVklSVF9TUElOTE9DS1MKPj4gKyNpZiBkZWZpbmVkKENPTkZJR19QQVJBVklSVF9TUElOTE9D
-S1MpIHx8IGRlZmluZWQoQ09ORklHX05VTUFfQVdBUkVfU1BJTkxPQ0tTKQo+PiAJbG9uZyByZXNl
-cnZlZFsyXTsKPj4gI2VuZGlmCj4+IH07Cj4+IEBAIC0xMDMsNiArMTA0LDggQEAgc3RydWN0IHFu
-b2RlIHsKPj4gICogRXhhY3RseSBmaXRzIG9uZSA2NC1ieXRlIGNhY2hlbGluZSBvbiBhIDY0LWJp
-dCBhcmNoaXRlY3R1cmUuCj4+ICAqCj4+ICAqIFBWIGRvdWJsZXMgdGhlIHN0b3JhZ2UgYW5kIHVz
-ZXMgdGhlIHNlY29uZCBjYWNoZWxpbmUgZm9yIFBWIHN0YXRlLgo+PiArICogQ05BIGFsc28gZG91
-YmxlcyB0aGUgc3RvcmFnZSBhbmQgdXNlcyB0aGUgc2Vjb25kIGNhY2hlbGluZSBmb3IKPj4gKyAq
-IENOQS1zcGVjaWZpYyBzdGF0ZS4KPj4gICovCj4+IHN0YXRpYyBERUZJTkVfUEVSX0NQVV9BTElH
-TkVEKHN0cnVjdCBxbm9kZSwgcW5vZGVzW01BWF9OT0RFU10pOwo+PiAKPj4gQEAgLTMxNiw3ICsz
-MTksNyBAQCBzdGF0aWMgX19hbHdheXNfaW5saW5lIHZvaWQgX19tY3NfcGFzc19sb2NrKHN0cnVj
-dCBtY3Nfc3BpbmxvY2sgKm5vZGUsCj4+ICNkZWZpbmUgdHJ5X2NsZWFyX3RhaWwJX190cnlfY2xl
-YXJfdGFpbAo+PiAjZGVmaW5lIG1jc19wYXNzX2xvY2sJCV9fbWNzX3Bhc3NfbG9jawo+PiAKPj4g
-LSNlbmRpZiAvKiBfR0VOX1BWX0xPQ0tfU0xPV1BBVEggKi8KPj4gKyNlbmRpZiAvKiBfR0VOX1BW
-X0xPQ0tfU0xPV1BBVEggJiYgX0dFTl9DTkFfTE9DS19TTE9XUEFUSCAqLwo+PiAKPj4gLyoqCj4+
-ICAqIHF1ZXVlZF9zcGluX2xvY2tfc2xvd3BhdGggLSBhY3F1aXJlIHRoZSBxdWV1ZWQgc3Bpbmxv
-Y2sKPj4gQEAgLTU4OCw2ICs1OTEsMjkgQEAgdm9pZCBxdWV1ZWRfc3Bpbl9sb2NrX3Nsb3dwYXRo
-KHN0cnVjdCBxc3BpbmxvY2sgKmxvY2ssIHUzMiB2YWwpCj4+IH0KPj4gRVhQT1JUX1NZTUJPTChx
-dWV1ZWRfc3Bpbl9sb2NrX3Nsb3dwYXRoKTsKPj4gCj4+ICsvKgo+PiArICogR2VuZXJhdGUgdGhl
-IGNvZGUgZm9yIE5VTUEtYXdhcmUgc3BpbmxvY2tzCj4+ICsgKi8KPj4gKyNpZiAhZGVmaW5lZChf
-R0VOX0NOQV9MT0NLX1NMT1dQQVRIKSAmJiBkZWZpbmVkKENPTkZJR19OVU1BX0FXQVJFX1NQSU5M
-T0NLUykKPj4gKyNkZWZpbmUgX0dFTl9DTkFfTE9DS19TTE9XUEFUSAo+PiArCj4+ICsjdW5kZWYg
-cHZfd2FpdF9oZWFkX29yX2xvY2sKPj4gKyNkZWZpbmUgcHZfd2FpdF9oZWFkX29yX2xvY2sJCWNu
-YV9wcmVfc2Nhbgo+PiArCj4+ICsjdW5kZWYgdHJ5X2NsZWFyX3RhaWwKPj4gKyNkZWZpbmUgdHJ5
-X2NsZWFyX3RhaWwJCQljbmFfdHJ5X2NoYW5nZV90YWlsCj4+ICsKPj4gKyN1bmRlZiBtY3NfcGFz
-c19sb2NrCj4+ICsjZGVmaW5lIG1jc19wYXNzX2xvY2sJCQljbmFfcGFzc19sb2NrCj4+ICsKPj4g
-KyN1bmRlZiAgcXVldWVkX3NwaW5fbG9ja19zbG93cGF0aAo+PiArI2RlZmluZSBxdWV1ZWRfc3Bp
-bl9sb2NrX3Nsb3dwYXRoCV9fY25hX3F1ZXVlZF9zcGluX2xvY2tfc2xvd3BhdGgKPj4gKwo+PiAr
-I2luY2x1ZGUgInFzcGlubG9ja19jbmEuaCIKPj4gKyNpbmNsdWRlICJxc3BpbmxvY2suYyIKPj4g
-Kwo+PiArI2VuZGlmCj4+ICsKPj4gLyoKPj4gICogR2VuZXJhdGUgdGhlIHBhcmF2aXJ0IGNvZGUg
-Zm9yIHF1ZXVlZF9zcGluX3VubG9ja19zbG93cGF0aCgpLgo+PiAgKi8KPj4gZGlmZiAtLWdpdCBh
-L2tlcm5lbC9sb2NraW5nL3FzcGlubG9ja19jbmEuaCBiL2tlcm5lbC9sb2NraW5nL3FzcGlubG9j
-a19jbmEuaAo+PiBuZXcgZmlsZSBtb2RlIDEwMDY0NAo+PiBpbmRleCAwMDAwMDAwMDAwMDAuLmE2
-MzgzMzZmOTU2MAo+PiAtLS0gL2Rldi9udWxsCj4+ICsrKyBiL2tlcm5lbC9sb2NraW5nL3FzcGlu
-bG9ja19jbmEuaAo+PiBAQCAtMCwwICsxLDI2NCBAQAo+PiArLyogU1BEWC1MaWNlbnNlLUlkZW50
-aWZpZXI6IEdQTC0yLjAgKi8KPj4gKyNpZm5kZWYgX0dFTl9DTkFfTE9DS19TTE9XUEFUSAo+PiAr
-I2Vycm9yICJkbyBub3QgaW5jbHVkZSB0aGlzIGZpbGUiCj4+ICsjZW5kaWYKPj4gKwo+PiArI2lu
-Y2x1ZGUgPGxpbnV4L3RvcG9sb2d5Lmg+Cj4+ICsKPj4gKy8qCj4+ICsgKiBJbXBsZW1lbnQgYSBO
-VU1BLWF3YXJlIHZlcnNpb24gb2YgTUNTIChha2EgQ05BLCBvciBjb21wYWN0IE5VTUEtYXdhcmUg
-bG9jaykuCj4+ICsgKgo+PiArICogSW4gQ05BLCBzcGlubmluZyB0aHJlYWRzIGFyZSBvcmdhbml6
-ZWQgaW4gdHdvIHF1ZXVlcywgYSBtYWluIHF1ZXVlIGZvcgo+PiArICogdGhyZWFkcyBydW5uaW5n
-IG9uIHRoZSBzYW1lIE5VTUEgbm9kZSBhcyB0aGUgY3VycmVudCBsb2NrIGhvbGRlciwgYW5kIGEK
-Pj4gKyAqIHNlY29uZGFyeSBxdWV1ZSBmb3IgdGhyZWFkcyBydW5uaW5nIG9uIG90aGVyIG5vZGVz
-LiBTY2hlbWF0aWNhbGx5LCBpdAo+PiArICogbG9va3MgbGlrZSB0aGlzOgo+PiArICoKPj4gKyAq
-ICAgIGNuYV9ub2RlCj4+ICsgKiAgICstLS0tLS0tLS0tKyAgICArLS0tLS0tLS0rICAgICAgICAr
-LS0tLS0tLS0rCj4+ICsgKiAgIHxtY3M6bmV4dCAgfCAtPiB8bWNzOm5leHR8IC0+IC4uLiB8bWNz
-Om5leHR8IC0+IE5VTEwgICAgICBbTWFpbiBxdWV1ZV0KPj4gKyAqICAgfG1jczpsb2NrZWR8IC0r
-ICstLS0tLS0tLSsgICAgICAgICstLS0tLS0tLSsKPj4gKyAqICAgKy0tLS0tLS0tLS0rICB8Cj4+
-ICsgKiAgICAgICAgICAgICAgICAgKy0tLS0tLS0tLS0tLS0tLS0tLS0tLS0rCj4+ICsgKiAgICAg
-ICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICBcLwo+PiArICogICAgICAgICAgICAg
-ICAgICstLS0tLS0tLSsgICAgICAgICArLS0tLS0tLS0rCj4+ICsgKiAgICAgICAgICAgICAgICAg
-fG1jczpuZXh0fCAtPiAuLi4gIHxtY3M6bmV4dHwgICAgICAgICAgW1NlY29uZGFyeSBxdWV1ZV0K
-Pj4gKyAqICAgICAgICAgICAgICAgICArLS0tLS0tLS0rICAgICAgICAgKy0tLS0tLS0tKwo+PiAr
-ICogICAgICAgICAgICAgICAgICAgICBeICAgICAgICAgICAgICAgICAgICB8Cj4+ICsgKiAgICAg
-ICAgICAgICAgICAgICAgICstLS0tLS0tLS0tLS0tLS0tLS0tLSsKPj4gKyAqCj4+ICsgKiBOLkIu
-IGxvY2tlZCA9IDEgaWYgc2Vjb25kYXJ5IHF1ZXVlIGlzIGFic2VudC4gT3RoZXdyaXNlLCBpdCBj
-b250YWlucyB0aGUKPj4gKyAqIGVuY29kZWQgcG9pbnRlciB0byB0aGUgdGFpbCBvZiB0aGUgc2Vj
-b25kYXJ5IHF1ZXVlLCB3aGljaCBpcyBvcmdhbml6ZWQgYXMgYQo+PiArICogY2lyY3VsYXIgbGlz
-dC4KPj4gKyAqCj4+ICsgKiBBZnRlciBhY3F1aXJpbmcgdGhlIE1DUyBsb2NrIGFuZCBiZWZvcmUg
-YWNxdWlyaW5nIHRoZSBzcGlubG9jaywgdGhlIGxvY2sKPj4gKyAqIGhvbGRlciBzY2FucyB0aGUg
-bWFpbiBxdWV1ZSBsb29raW5nIGZvciBhIHRocmVhZCBydW5uaW5nIG9uIHRoZSBzYW1lIG5vZGUK
-Pj4gKyAqIChwcmUtc2NhbikuIElmIGZvdW5kIChjYWxsIGl0IHRocmVhZCBUKSwgYWxsIHRocmVh
-ZHMgaW4gdGhlIG1haW4gcXVldWUKPj4gKyAqIGJldHdlZW4gdGhlIGN1cnJlbnQgbG9jayBob2xk
-ZXIgYW5kIFQgYXJlIG1vdmVkIHRvIHRoZSBlbmQgb2YgdGhlIHNlY29uZGFyeQo+PiArICogcXVl
-dWUuICBJZiBzdWNoIFQgaXMgbm90IGZvdW5kLCB3ZSBtYWtlIGFub3RoZXIgc2NhbiBvZiB0aGUg
-bWFpbiBxdWV1ZSB3aGVuCj4+ICsgKiB1bmxvY2tpbmcgdGhlIE1DUyBsb2NrIChwb3N0LXNjYW4p
-LCBzdGFydGluZyBhdCB0aGUgbm9kZSB3aGVyZSBwcmUtc2Nhbgo+PiArICogc3RvcHBlZC4gSWYg
-Ym90aCBzY2FucyBmYWlsIHRvIGZpbmQgc3VjaCBULCB0aGUgTUNTIGxvY2sgaXMgcGFzc2VkIHRv
-IHRoZQo+PiArICogZmlyc3QgdGhyZWFkIGluIHRoZSBzZWNvbmRhcnkgcXVldWUuIElmIHRoZSBz
-ZWNvbmRhcnkgcXVldWUgaXMgZW1wdHksIHRoZQo+PiArICogbG9jayBpcyBwYXNzZWQgdG8gdGhl
-IG5leHQgdGhyZWFkIGluIHRoZSBtYWluIHF1ZXVlLgo+PiArICoKPj4gKyAqIEZvciBtb3JlIGRl
-dGFpbHMsIHNlZSBodHRwczovL3VybGRlZmVuc2UucHJvb2Zwb2ludC5jb20vdjIvdXJsP3U9aHR0
-cHMtM0FfX2FyeGl2Lm9yZ19hYnNfMTgxMC4wNTYwMCZkPUR3SUZhUSZjPVJvUDFZdW1DWENnYVdI
-dmxaWVI4UFpoOEJ2N3FJck1VQjY1ZWFwSV9KbkUmcj1IdmhrM0Y0b21kQ2stR0UxUFRPbTNLbjBB
-N0FwV09aMmFaTFR1VnhGSzRrJm09RmNKQS1ocEFIczhNeEwzcmtzTWZxX0dZc0E3UkljaUhFRjNB
-RTRaQVRPSSZzPVNSLXAwTHRFelVDcnB3V1kyU2hSSUY5bFhvZDVXY19Oa045eklPVnZmeE0mZT0g
-Lgo+PiArICoKPj4gKyAqIEF1dGhvcnM6IEFsZXggS29nYW4gPGFsZXgua29nYW5Ab3JhY2xlLmNv
-bT4KPj4gKyAqICAgICAgICAgIERhdmUgRGljZSA8ZGF2ZS5kaWNlQG9yYWNsZS5jb20+Cj4+ICsg
-Ki8KPj4gKwo+PiArc3RydWN0IGNuYV9ub2RlIHsKPj4gKwlzdHJ1Y3QgbWNzX3NwaW5sb2NrCW1j
-czsKPj4gKwlpbnQJCQludW1hX25vZGU7Cj4+ICsJdTMyCQkJZW5jb2RlZF90YWlsOwo+PiArCXUz
-MgkJCXByZV9zY2FuX3Jlc3VsdDsgLyogMCBvciBlbmNvZGVkIHRhaWwgKi8KPj4gK307Cj4+ICsK
-Pj4gK3N0YXRpYyB2b2lkIF9faW5pdCBjbmFfaW5pdF9ub2Rlc19wZXJfY3B1KHVuc2lnbmVkIGlu
-dCBjcHUpCj4+ICt7Cj4+ICsJc3RydWN0IG1jc19zcGlubG9jayAqYmFzZSA9IHBlcl9jcHVfcHRy
-KCZxbm9kZXNbMF0ubWNzLCBjcHUpOwo+PiArCWludCBudW1hX25vZGUgPSBjcHVfdG9fbm9kZShj
-cHUpOwo+PiArCWludCBpOwo+PiArCj4+ICsJZm9yIChpID0gMDsgaSA8IE1BWF9OT0RFUzsgaSsr
-KSB7Cj4+ICsJCXN0cnVjdCBjbmFfbm9kZSAqY24gPSAoc3RydWN0IGNuYV9ub2RlICopZ3JhYl9t
-Y3Nfbm9kZShiYXNlLCBpKTsKPj4gKwo+PiArCQljbi0+bnVtYV9ub2RlID0gbnVtYV9ub2RlOwo+
-PiArCQljbi0+ZW5jb2RlZF90YWlsID0gZW5jb2RlX3RhaWwoY3B1LCBpKTsKPj4gKwkJLyoKPj4g
-KwkJICogQGVuY29kZWRfdGFpbCBoYXMgdG8gYmUgbGFyZ2VyIHRoYW4gMSwgc28gd2UgZG8gbm90
-IGNvbmZ1c2UKPj4gKwkJICogaXQgd2l0aCBvdGhlciB2YWxpZCB2YWx1ZXMgZm9yIEBsb2NrZWQg
-b3IgQHByZV9zY2FuX3Jlc3VsdAo+PiArCQkgKiAoMCBvciAxKQo+PiArCQkgKi8KPj4gKwkJV0FS
-Tl9PTihjbi0+ZW5jb2RlZF90YWlsIDw9IDEpOwo+PiArCX0KPj4gK30KPj4gKwo+PiArc3RhdGlj
-IGludCBfX2luaXQgY25hX2luaXRfbm9kZXModm9pZCkKPj4gK3sKPj4gKwl1bnNpZ25lZCBpbnQg
-Y3B1Owo+PiArCj4+ICsJLyoKPj4gKwkgKiB0aGlzIHdpbGwgYnJlYWsgb24gMzJiaXQgYXJjaGl0
-ZWN0dXJlcywgc28gd2UgcmVzdHJpY3QKPj4gKwkgKiB0aGUgdXNlIG9mIENOQSB0byA2NGJpdCBv
-bmx5IChzZWUgYXJjaC94ODYvS2NvbmZpZykKPj4gKwkgKi8KPj4gKwlCVUlMRF9CVUdfT04oc2l6
-ZW9mKHN0cnVjdCBjbmFfbm9kZSkgPiBzaXplb2Yoc3RydWN0IHFub2RlKSk7Cj4+ICsJLyogd2Ug
-c3RvcmUgYW4gZWNvZGVkIHRhaWwgd29yZCBpbiB0aGUgbm9kZSdzIEBsb2NrZWQgZmllbGQgKi8K
-Pj4gKwlCVUlMRF9CVUdfT04oc2l6ZW9mKHUzMikgPiBzaXplb2YodW5zaWduZWQgaW50KSk7Cj4+
-ICsKPj4gKwlmb3JfZWFjaF9wb3NzaWJsZV9jcHUoY3B1KQo+PiArCQljbmFfaW5pdF9ub2Rlc19w
-ZXJfY3B1KGNwdSk7Cj4+ICsKPj4gKwlyZXR1cm4gMDsKPj4gK30KPj4gK2Vhcmx5X2luaXRjYWxs
-KGNuYV9pbml0X25vZGVzKTsKPj4gKwo+IAo+IEluY2x1ZGUgYSBjb21tZW50IGhlcmUgc2F5aW5n
-IHRoYXQgdGhlIGNuYV90cnlfY2hhbmdlX3RhaWwoKSBmdW5jdGlvbiBpcwo+IG9ubHkgY2FsbGVk
-IHdoZW4gdGhlIHByaW1hcnkgcXVldWUgaXMgZW1wdHkuIFRoYXQgd2lsbCBtYWtlIHRoZSBjb2Rl
-Cj4gZWFzaWVyIHRvIHJlYWQuCj4gCj4gCj4+ICtzdGF0aWMgaW5saW5lIGJvb2wgY25hX3RyeV9j
-aGFuZ2VfdGFpbChzdHJ1Y3QgcXNwaW5sb2NrICpsb2NrLCB1MzIgdmFsLAo+PiArCQkJCSAgICAg
-ICBzdHJ1Y3QgbWNzX3NwaW5sb2NrICpub2RlKQo+PiArewo+PiArCXN0cnVjdCBtY3Nfc3Bpbmxv
-Y2sgKmhlYWRfMm5kLCAqdGFpbF8ybmQ7Cj4+ICsJdTMyIG5ldzsKPj4gKwo+PiArCS8qIElmIHRo
-ZSBzZWNvbmRhcnkgcXVldWUgaXMgZW1wdHksIGRvIHdoYXQgTUNTIGRvZXMuICovCj4+ICsJaWYg
-KG5vZGUtPmxvY2tlZCA8PSAxKQo+PiArCQlyZXR1cm4gX190cnlfY2xlYXJfdGFpbChsb2NrLCB2
-YWwsIG5vZGUpOwo+PiArCj4+ICsJLyoKPj4gKwkgKiBUcnkgdG8gdXBkYXRlIHRoZSB0YWlsIHZh
-bHVlIHRvIHRoZSBsYXN0IG5vZGUgaW4gdGhlIHNlY29uZGFyeSBxdWV1ZS4KPj4gKwkgKiBJZiBz
-dWNjZXNzZnVsLCBwYXNzIHRoZSBsb2NrIHRvIHRoZSBmaXJzdCB0aHJlYWQgaW4gdGhlIHNlY29u
-ZGFyeQo+PiArCSAqIHF1ZXVlLiBEb2luZyB0aG9zZSB0d28gYWN0aW9ucyBlZmZlY3RpdmVseSBt
-b3ZlcyBhbGwgbm9kZXMgZnJvbSB0aGUKPj4gKwkgKiBzZWNvbmRhcnkgcXVldWUgaW50byB0aGUg
-bWFpbiBvbmUuCj4+ICsJICovCj4+ICsJdGFpbF8ybmQgPSBkZWNvZGVfdGFpbChub2RlLT5sb2Nr
-ZWQpOwo+PiArCWhlYWRfMm5kID0gdGFpbF8ybmQtPm5leHQ7Cj4+ICsJbmV3ID0gKChzdHJ1Y3Qg
-Y25hX25vZGUgKil0YWlsXzJuZCktPmVuY29kZWRfdGFpbCArIF9RX0xPQ0tFRF9WQUw7Cj4+ICsK
-Pj4gKwlpZiAoYXRvbWljX3RyeV9jbXB4Y2hnX3JlbGF4ZWQoJmxvY2stPnZhbCwgJnZhbCwgbmV3
-KSkgewo+PiArCQkvKgo+PiArCQkgKiBUcnkgdG8gcmVzZXQgQG5leHQgaW4gdGFpbF8ybmQgdG8g
-TlVMTCwgYnV0IG5vIG5lZWQgdG8gY2hlY2sKPj4gKwkJICogdGhlIHJlc3VsdCAtIGlmIGZhaWxl
-ZCwgYSBuZXcgc3VjY2Vzc29yIGhhcyB1cGRhdGVkIGl0Lgo+PiArCQkgKi8KPj4gKwkJY21weGNo
-Z19yZWxheGVkKCZ0YWlsXzJuZC0+bmV4dCwgaGVhZF8ybmQsIE5VTEwpOwo+PiArCQlhcmNoX21j
-c19wYXNzX2xvY2soJmhlYWRfMm5kLT5sb2NrZWQsIDEpOwo+PiArCQlyZXR1cm4gdHJ1ZTsKPj4g
-Kwl9Cj4+ICsKPj4gKwlyZXR1cm4gZmFsc2U7Cj4+ICt9Cj4gQ2hlZXJzLAo+IExvbmdtYW4KPiAK
-CgpfX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fXwpsaW51eC1h
-cm0ta2VybmVsIG1haWxpbmcgbGlzdApsaW51eC1hcm0ta2VybmVsQGxpc3RzLmluZnJhZGVhZC5v
-cmcKaHR0cDovL2xpc3RzLmluZnJhZGVhZC5vcmcvbWFpbG1hbi9saXN0aW5mby9saW51eC1hcm0t
-a2VybmVsCg==
+On 11/25/19 4:07 PM, Alex Kogan wrote:
+> @@ -234,12 +263,13 @@ __always_inline u32 cna_pre_scan(struct qspinlock *=
+lock,
+>  =09struct cna_node *cn =3D (struct cna_node *)node;
+> =20
+>  =09/*
+> -=09 * setting @pre_scan_result to 1 indicates that no post-scan
+> +=09 * setting @pre_scan_result to 1 or 2 indicates that no post-scan
+>  =09 * should be made in cna_pass_lock()
+>  =09 */
+>  =09cn->pre_scan_result =3D
+> -=09=09cn->intra_count =3D=3D intra_node_handoff_threshold ?
+> -=09=09=091 : cna_scan_main_queue(node, node);
+> +=09=09(node->locked <=3D 1 && probably(SHUFFLE_REDUCTION_PROB_ARG)) ?
+> +=09=09=091 : cn->intra_count =3D=3D intra_node_handoff_threshold ?
+> +=09=09=092 : cna_scan_main_queue(node, node);
+> =20
+>  =09return 0;
+>  }
+> @@ -253,12 +283,15 @@ static inline void cna_pass_lock(struct mcs_spinloc=
+k *node,
+> =20
+>  =09u32 scan =3D cn->pre_scan_result;
+> =20
+> +=09if (scan =3D=3D 1)
+> +=09=09goto pass_lock;
+> +
+>  =09/*
+>  =09 * check if a successor from the same numa node has not been found in
+>  =09 * pre-scan, and if so, try to find it in post-scan starting from the
+>  =09 * node where pre-scan stopped (stored in @pre_scan_result)
+>  =09 */
+> -=09if (scan > 1)
+> +=09if (scan > 2)
+>  =09=09scan =3D cna_scan_main_queue(node, decode_tail(scan));
+> =20
+>  =09if (!scan) { /* if found a successor from the same numa node */
+> @@ -281,5 +314,6 @@ static inline void cna_pass_lock(struct mcs_spinlock =
+*node,
+>  =09=09tail_2nd->next =3D next;
+>  =09}
+> =20
+> +pass_lock:
+>  =09arch_mcs_pass_lock(&next_holder->locked, val);
+>  }
+
+I think you might have mishandled the proper accounting of intra_count.
+How about something like:
+
+diff --git a/kernel/locking/qspinlock_cna.h b/kernel/locking/qspinlock_cna.=
+h
+index f1eef6bece7b..03f8fdec2b80 100644
+--- a/kernel/locking/qspinlock_cna.h
++++ b/kernel/locking/qspinlock_cna.h
+@@ -268,7 +268,7 @@ __always_inline u32 cna_pre_scan(struct qspinlock *lock=
+,
+=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0 */
+=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0 cn->pre_scan_result =3D
+=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=
+=A0=C2=A0=C2=A0 (node->locked <=3D 1 &&
+probably(SHUFFLE_REDUCTION_PROB_ARG)) ?
+-=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=
+=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0 1 : cn->intra_=
+count =3D=3D
+intra_node_handoff_threshold ?
++=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=
+=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0 1 : cn->intra_=
+count >=3D
+intra_node_handoff_threshold ?
+=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=
+=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0 2 : cna_sca=
+n_main_queue(node, node);
+=C2=A0
+=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0 return 0;
+@@ -283,9 +283,6 @@ static inline void cna_pass_lock(struct mcs_spinlock
+*node,
+=C2=A0
+=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0 u32 scan =3D cn->pre_scan_result=
+;
+=C2=A0
+-=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0 if (scan =3D=3D 1)
+-=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=
+=C2=A0=C2=A0 goto pass_lock;
+-
+=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0 /*
+=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0 * check if a successor fro=
+m the same numa node has not been
+found in
+=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0 * pre-scan, and if so, try=
+ to find it in post-scan starting
+from the
+@@ -294,7 +291,13 @@ static inline void cna_pass_lock(struct
+mcs_spinlock *node,
+=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0 if (scan > 2)
+=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=
+=A0=C2=A0=C2=A0 scan =3D cna_scan_main_queue(node, decode_tail(scan));
+=C2=A0
+-=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0 if (!scan) { /* if found a successor =
+from the same numa node */
++=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0 if (scan <=3D 1) { /* if found a succ=
+essor from the same numa node */
++=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=
+=C2=A0=C2=A0 /* inc @intra_count if the secondary queue is not empty */
++=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=
+=C2=A0=C2=A0 ((struct cna_node *)next_holder)->intra_count =3D
++=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=
+=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0 cn->intra_coun=
+t + (node->locked > 1);
++=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=
+=C2=A0=C2=A0 if ((scan =3D=3D 1)
++=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=
+=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0 goto pass_lock=
+;
++
+=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=
+=A0=C2=A0=C2=A0 next_holder =3D node->next;
+=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=
+=A0=C2=A0=C2=A0 /*
+=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=
+=A0=C2=A0=C2=A0=C2=A0 * we unlock successor by passing a non-zero value,
+@@ -302,9 +305,6 @@ static inline void cna_pass_lock(struct mcs_spinlock
+*node,
+=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=
+=A0=C2=A0=C2=A0=C2=A0 * if we acquired the MCS lock when its queue was empt=
+y
+=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=
+=A0=C2=A0=C2=A0=C2=A0 */
+=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=
+=A0=C2=A0=C2=A0 val =3D node->locked ? node->locked : 1;
+-=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=
+=C2=A0=C2=A0 /* inc @intra_count if the secondary queue is not empty */
+-=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=
+=C2=A0=C2=A0 ((struct cna_node *)next_holder)->intra_count =3D
+-=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=
+=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0 cn->intra_coun=
+t + (node->locked > 1);
+=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0 } else if (node->locked > 1) {=
+=C2=A0=C2=A0=C2=A0 /* if secondary queue is not
+empty */
+=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=
+=A0=C2=A0=C2=A0 /* next holder will be the first node in the secondary
+queue */
+=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=
+=A0=C2=A0=C2=A0 tail_2nd =3D decode_tail(node->locked);
+
+The meaning of scan value:
+
+0 - pass to next cna node, which is in the same numa node. Additional
+cna node may or may not be added to the secondary queue
+
+1 - pass to next cna node, which may not be in the same numa node. No
+change to secondary queue
+
+2 - exceed intra node handoff threshold, unconditionally merge back the
+secondary queue cna nodes, if available
+
+>2 no cna node of the same numa node found, unconditionally merge back
+the secondary queue cna nodes, if available
+
+The code will be easier to read if symbolic names instead of just numbers.
+
+Cheers,
+Longman
