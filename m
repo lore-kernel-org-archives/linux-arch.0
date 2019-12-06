@@ -1,53 +1,98 @@
-From: Guenter Roeck <linux@roeck-us.net>
-Subject: Re: [PATCH v6 10/18] sh/tlb: Convert SH to generic mmu_gather
-Date: Thu, 5 Dec 2019 14:56:10 -0800
-Message-ID: <20191205225610.GB2532@roeck-us.net>
-References: <20190219103148.192029670@infradead.org>
- <20190219103233.443069009@infradead.org>
- <CAMuHMdW3nwckjA9Bt-_Dmf50B__sZH+9E5s0_ziK1U_y9onN=g@mail.gmail.com>
- <20191204104733.GR2844@hirez.programming.kicks-ass.net>
- <3c83eaec-8f33-1b90-1c70-9e7c1c8b1855@physik.fu-berlin.de>
+From: Michael Ellerman <mpe@ellerman.id.au>
+Subject: [GIT PULL] Please pull powerpc/linux.git powerpc-5.5-2 tag (topic/kasan-bitops)
+Date: Fri, 06 Dec 2019 23:46:11 +1100
+Message-ID: <87blslei5o.fsf@mpe.ellerman.id.au>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <3c83eaec-8f33-1b90-1c70-9e7c1c8b1855@physik.fu-berlin.de>
 Sender: linux-kernel-owner@vger.kernel.org
-To: John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>
-Cc: Peter Zijlstra <peterz@infradead.org>, Geert Uytterhoeven <geert@linux-m68k.org>, Will Deacon <will.deacon@arm.com>, "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, Nicholas Piggin <npiggin@gmail.com>, Linux-Arch <linux-arch@vger.kernel.org>, Linux MM <linux-mm@kvack.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Russell King <linux@armlinux.org.uk>, Heiko Carstens <heiko.carstens@de.ibm.com>, Rik van Riel <riel@surriel.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, Linux-sh list <linux-sh@vger.kernel.org>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: dja@axtens.net, elver@google.com, linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, christophe.leroy@c-s.fr, linux-s390@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org, kasan-dev@googlegroups.com
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, Dec 05, 2019 at 08:30:17PM +0100, John Paul Adrian Glaubitz wrote:
-> Hi!
-> 
-> On 12/4/19 11:47 AM, Peter Zijlstra wrote:
-> >> I got remote access to an SH7722-based Migo-R again, which spews a long
-> >> sequence of BUGs during userspace startup.  I've bisected this to commit
-> >> c5b27a889da92f4a ("sh/tlb: Convert SH to generic mmu_gather").
-> > 
-> > Whoopsy.. also, is this really the first time anybody booted an SH
-> > kernel in over a year ?!?
-> 
-> I have to admit, I have been very lazy with kernel updates. I have been
-> planning to upgrade to a much more recent release on my boards for a while
-> now, I have just been postponing it since the machines run very stable
-> with the current kernel I am using.
-> 
+-----BEGIN PGP SIGNED MESSAGE-----
+Hash: SHA256
 
-Hey, if you write a qemu emulation, I'll be happy to run it on a regular
-basis :-)
+Hi Linus,
 
-Problem is really that the architecture doesn't get as much attention as
-it needs. The backtrace pointed to by Rob has been seen for a long time,
-but either there is no one with the knowledge to fix it, or they are all
-busy with other stuff.
+Please pull another powerpc update for 5.5.
 
-Guenter
+As you'll see from the diffstat this is mostly not powerpc code. In order to do
+KASAN instrumentation of bitops we needed to juggle some of the generic bitops
+headers.
 
-> Adrian
-> 
-> -- 
->  .''`.  John Paul Adrian Glaubitz
-> : :' :  Debian Developer - glaubitz@debian.org
-> `. `'   Freie Universitaet Berlin - glaubitz@physik.fu-berlin.de
->   `-    GPG: 62FF 8A75 84E0 2956 9546  0006 7426 3B37 F5B5 F913
+Because those changes potentially affect several architectures I wasn't
+confident putting them directly into my tree, so I've had them sitting in a
+topic branch. That branch (topic/kasan-bitops) has been in linux-next for a
+month, and I've not had any feedback that it's caused any problems.
+
+So I think this is good to merge, but it's a standalone pull so if anyone does
+object it's not a problem.
+
+cheers
+
+
+The following changes since commit da0c9ea146cbe92b832f1b0f694840ea8eb33cce:
+
+  Linux 5.4-rc2 (2019-10-06 14:27:30 -0700)
+
+are available in the git repository at:
+
+  https://git.kernel.org/pub/scm/linux/kernel/git/powerpc/linux.git tags/powerpc-5.5-2
+
+for you to fetch changes up to 4f4afc2c9599520300b3f2b3666d2034fca03df3:
+
+  docs/core-api: Remove possibly confusing sub-headings from Bit Operations (2019-12-04 21:20:28 +1100)
+
+- ------------------------------------------------------------------
+powerpc updates for 5.5 #2
+
+A few commits splitting the KASAN instrumented bitops header in
+three, to match the split of the asm-generic bitops headers.
+
+This is needed on powerpc because we use asm-generic/bitops/non-atomic.h,
+for the non-atomic bitops, whereas the existing KASAN instrumented
+bitops assume all the underlying operations are provided by the arch
+as arch_foo() versions.
+
+Thanks to:
+  Daniel Axtens & Christophe Leroy.
+
+- ------------------------------------------------------------------
+Daniel Axtens (2):
+      kasan: support instrumented bitops combined with generic bitops
+      powerpc: support KASAN instrumentation of bitops
+
+Michael Ellerman (1):
+      docs/core-api: Remove possibly confusing sub-headings from Bit Operations
+
+
+ Documentation/core-api/kernel-api.rst                |   8 +-
+ arch/powerpc/include/asm/bitops.h                    |  51 ++--
+ arch/s390/include/asm/bitops.h                       |   4 +-
+ arch/x86/include/asm/bitops.h                        |   4 +-
+ include/asm-generic/bitops-instrumented.h            | 263 --------------------
+ include/asm-generic/bitops/instrumented-atomic.h     | 100 ++++++++
+ include/asm-generic/bitops/instrumented-lock.h       |  81 ++++++
+ include/asm-generic/bitops/instrumented-non-atomic.h | 114 +++++++++
+ 8 files changed, 337 insertions(+), 288 deletions(-)
+ delete mode 100644 include/asm-generic/bitops-instrumented.h
+ create mode 100644 include/asm-generic/bitops/instrumented-atomic.h
+ create mode 100644 include/asm-generic/bitops/instrumented-lock.h
+ create mode 100644 include/asm-generic/bitops/instrumented-non-atomic.h
+-----BEGIN PGP SIGNATURE-----
+
+iQIzBAEBCAAdFiEEJFGtCPCthwEv2Y/bUevqPMjhpYAFAl3qSS4ACgkQUevqPMjh
+pYCp1Q//TrG2tPMDPHpWqCzNdWoh96zpIo2UsauDcc8l+XT7shkwHcGnpoECgCfK
+NjhP77qqXI61E+5qUCfO16/j5g6PbvvG/E/xlQEdgX7lIxBeGs4IkoRU8QjkJ9w5
+wAjG/XwaMJ21CQY2F51dn9NPQUvFxKV0o6QJ+/pIFBnv0eeYCtRWno7+tZGIiMhk
+ExfJhR0rnBdBc6oonNOTAfWn5u51FRRqUeICeo4iFoICu5v4cTbPiU3/8bZYzhSb
+wM9WdG+/IUs02PffIQF4GDyMmzi/Qm3Ujl3tUIEaFHlfN9pF6X7Yog7Co26CShJj
+No4wJK5rS3ECXmwo7Yd69sV9FZrMZZvGY9x7p7bEE7mqk1fHMaM3DMXvR8Gx6UGM
+NCXX2QIIigz3RUTbj3CW2iZa9R/FTSFXs3Ih4YDDJdPNanYpcX3/wE6mpwsco8do
+lxWcN1AMGXLiaNdQ8IkRZ6hOLH/Po34RvDo1P1mS06NzfyyTZW7JNiUtU2HSqPRs
+vjIkHDM7585ika6jeDHU4cJaLy7bsCNV2fLsHWDE3Xno43g7qcKGOx+PtO25XubZ
+iP1vojR4Qml+e3ySf6dDiOIDltSWZwjCGtbi2gmdErHiLdLeJX2XGjC36Qnep6u6
+15HIWzX41tg8y4QRJDmPyeDm3Ccbabz+m4LaccbdObgGWVwxwgA=
+=06Wr
+-----END PGP SIGNATURE-----
