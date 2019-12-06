@@ -1,150 +1,175 @@
-From: Aleksa Sarai <cyphar@cyphar.com>
-Subject: [PATCH v18 13/13] Documentation: path-lookup: include new LOOKUP flags
-Date: Sat,  7 Dec 2019 01:13:38 +1100
-Message-ID: <20191206141338.23338-14-cyphar@cyphar.com>
-References: <20191206141338.23338-1-cyphar@cyphar.com>
+From: Thomas Renninger <trenn@suse.de>
+Subject: [PATCH 3/3] arm64 cpuinfo: implement sysfs nodes for arm64
+Date: Fri,  6 Dec 2019 17:24:21 +0100
+Message-ID: <20191206162421.15050-4-trenn@suse.de>
+References: <20191206162421.15050-1-trenn@suse.de>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
-Return-path: <netdev-owner@vger.kernel.org>
-In-Reply-To: <20191206141338.23338-1-cyphar@cyphar.com>
-Sender: netdev-owner@vger.kernel.org
-To: Al Viro <viro@zeniv.linux.org.uk>, Jeff Layton <jlayton@kernel.org>, "J. Bruce Fields" <bfields@fieldses.org>, Arnd Bergmann <arnd@arndb.de>, David Howells <dhowells@redhat.com>, Shuah Khan <shuah@kernel.org>, Shuah Khan <skhan@linuxfoundation.org>, Ingo Molnar <mingo@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Alexei Starovoitov <ast@kernel.org>, Daniel Borkmann <daniel@iogearbox.net>, Martin KaFai Lau <kafai@fb.com>, Song Liu <songliubraving@fb.com>, Yonghong Song <yhs@fb.com>, Andrii Nakryiko <andriin@fb.com>, Jonathan Corbet <corbet@lwn.net>
-Cc: Aleksa Sarai <cyphar@cyphar.com>, Eric Biederman <ebiederm@xmission.com>, Andy Lutomirski <luto@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Kees Cook <keescook@chromium.org>, Jann Horn <jannh@google.com>, Tycho Andersen <tycho@tycho.ws>, David Drysdale <drysdale@google.com>, Chanho Min <chanho.min@lge.com>, Oleg Nesterov <oleg@redhat.com>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Alexander Shishkin <alexander.shishkin@linux.intel.com>, Jiri Olsa <jolsa@redhat.com>, Namhyung Kim <namhyung@kernel.org>, Christian Brauner <christian@brauner.io>, Aleksa Sarai <asarai@suse.de>, Linus Torvalds <torvalds@linux-foundation.org>, dev@opencontainers.org, containers@lists.linux-foundation.org, bpf@vger.kernel.org, netdev@vger.kernel.orgl
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20191206162421.15050-1-trenn@suse.de>
+Sender: linux-kernel-owner@vger.kernel.org
+To: linux-kernel@vger.kernel.org
+Cc: gregkh@linuxfoundation.org, Felix Schnizlein <fschnizlein@suse.de>, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux@armlinux.org.uk, will.deacon@arm.com, x86@kernel.org, trenn@suse.de, fschnitzlein@suse.de, Felix Schnizlein <fschnizlein@suse.com>
 List-Id: linux-arch.vger.kernel.org
 
-Now that we have new LOOKUP flags, we should document them in the
-relevant path-walking documentation. And now that we've settled on a
-common name for nd_jump_link() style symlinks ("magic links"), use that
-term where magic-link semantics are described.
+From: Felix Schnizlein <fschnizlein@suse.de>
 
-Signed-off-by: Aleksa Sarai <cyphar@cyphar.com>
+Export all information from /proc/cpuinfo to sysfs:
+implementer, architecture, variant, part, revision,
+bogomips and flags are exported.
+
+Example:
+/sys/devices/system/cpu/cpu1/info/:[0]# head *
+==> architecture <==
+8
+
+==> bogomips <==
+40.00
+
+==> flags <==
+fp asimd evtstrm aes pmull sha1 sha2 crc32 cpuid asimdrdm
+
+==> implementer <==
+0x51
+
+==> part <==
+0xc00
+
+==> revision <==
+1
+
+==> variant <==
+0x0
+
+Signed-off-by: Thomas Renninger <trenn@suse.de>
+Signed-off-by: Felix Schnizlein <fschnizlein@suse.com>
 ---
- Documentation/filesystems/path-lookup.rst | 68 +++++++++++++++++++++--
- 1 file changed, 62 insertions(+), 6 deletions(-)
+ Documentation/ABI/testing/sysfs-devices-system-cpu | 22 +++++++++
+ arch/arm64/Kconfig                                 |  1 +
+ arch/arm64/kernel/cpuinfo.c                        | 55 ++++++++++++++++++++++
+ 3 files changed, 78 insertions(+)
 
-diff --git a/Documentation/filesystems/path-lookup.rst b/Documentation/filesystems/path-lookup.rst
-index 434a07b0002b..a3216979298b 100644
---- a/Documentation/filesystems/path-lookup.rst
-+++ b/Documentation/filesystems/path-lookup.rst
-@@ -13,6 +13,7 @@ It has subsequently been updated to reflect changes in the kernel
- including:
- 
- - per-directory parallel name lookup.
-+- ``openat2()`` resolution restriction flags.
- 
- Introduction to pathname lookup
- ===============================
-@@ -235,6 +236,13 @@ renamed.  If ``d_lookup`` finds that a rename happened while it
- unsuccessfully scanned a chain in the hash table, it simply tries
- again.
- 
-+``rename_lock`` is also used to detect and defend against potential attacks
-+against ``LOOKUP_BENEATH`` and ``LOOKUP_IN_ROOT`` when resolving ".." (where
-+the parent directory is moved outside the root, bypassing the ``path_equal()``
-+check). If ``rename_lock`` is updated during the lookup and the path encounters
-+a "..", a potential attack occurred and ``handle_dots()`` will bail out with
-+``-EAGAIN``.
+diff --git a/Documentation/ABI/testing/sysfs-devices-system-cpu b/Documentation/ABI/testing/sysfs-devices-system-cpu
+index 791390ab66d5..b6a167cd0beb 100644
+--- a/Documentation/ABI/testing/sysfs-devices-system-cpu
++++ b/Documentation/ABI/testing/sysfs-devices-system-cpu
+@@ -604,3 +604,25 @@ Description:	Expose information about x86 cpu information.
+ 		flags: Extended capabilities supported by the cpu
+ 		bugs: Known bugs by cpu
+ 		bogomips: calculated bogomips
 +
- inode->i_rwsem
- ~~~~~~~~~~~~~~
++
++What:		/sys/devices/system/cpu/cpu#/info/
++		/sys/devices/system/cpu/cpu#/info/implementer
++		/sys/devices/system/cpu/cpu#/info/architecture
++		/sys/devices/system/cpu/cpu#/info/variant
++		/sys/devices/system/cpu/cpu#/info/part
++		/sys/devices/system/cpu/cpu#/info/revision
++		/sys/devices/system/cpu/cpu#/info/flags
++		/sys/devices/system/cpu/cpu#/info/bogomips
++Date:		August 2017
++Contact:	Linux kernel mailing list <linux-kernel@vger.kernel.org>
++Description:	Expose information about arm64 cpu.
++
++		implementer,
++		architecture,
++		variant,
++		part,
++		revision: Cpu identification depending on each vendor
++
++		flags: Extended capabilities supported by the cpu
++		bogomips: calculated bogomips
+diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
+index 43aa1de727f4..0e8f7733e8c3 100644
+--- a/arch/arm64/Kconfig
++++ b/arch/arm64/Kconfig
+@@ -169,6 +169,7 @@ config ARM64
+ 	select HAVE_KPROBES
+ 	select HAVE_KRETPROBES
+ 	select HAVE_GENERIC_VDSO
++	select HAVE_CPUINFO_SYSFS if SYSFS
+ 	select IOMMU_DMA if IOMMU_SUPPORT
+ 	select IRQ_DOMAIN
+ 	select IRQ_FORCED_THREADING
+diff --git a/arch/arm64/kernel/cpuinfo.c b/arch/arm64/kernel/cpuinfo.c
+index 56bba746da1c..d142e2d37ead 100644
+--- a/arch/arm64/kernel/cpuinfo.c
++++ b/arch/arm64/kernel/cpuinfo.c
+@@ -24,6 +24,7 @@
+ #include <linux/sched.h>
+ #include <linux/smp.h>
+ #include <linux/delay.h>
++#include <linux/cpuinfo.h>
  
-@@ -348,6 +356,13 @@ any changes to any mount points while stepping up.  This locking is
- needed to stabilize the link to the mounted-on dentry, which the
- refcount on the mount itself doesn't ensure.
+ /*
+  * In case the boot CPU is hotpluggable, we record its initial state and
+@@ -33,6 +34,8 @@
+ DEFINE_PER_CPU(struct cpuinfo_arm64, cpu_data);
+ static struct cpuinfo_arm64 boot_cpu_data;
  
-+``mount_lock`` is also used to detect and defend against potential attacks
-+against ``LOOKUP_BENEATH`` and ``LOOKUP_IN_ROOT`` when resolving ".." (where
-+the parent directory is moved outside the root, bypassing the ``path_equal()``
-+check). If ``mount_lock`` is updated during the lookup and the path encounters
-+a "..", a potential attack occurred and ``handle_dots()`` will bail out with
-+``-EAGAIN``.
++#define cpu_data(cpu)			per_cpu(cpu_data, cpu)
 +
- RCU
- ~~~
+ static const char *icache_policy_str[] = {
+ 	[0 ... ICACHE_POLICY_PIPT]	= "RESERVED/UNKNOWN",
+ 	[ICACHE_POLICY_VIPT]		= "VIPT",
+@@ -285,6 +288,58 @@ static int cpuid_cpu_offline(unsigned int cpu)
+ 	return 0;
+ }
  
-@@ -405,6 +420,10 @@ is requested.  Keeping a reference in the ``nameidata`` ensures that
- only one root is in effect for the entire path walk, even if it races
- with a ``chroot()`` system call.
- 
-+It should be noted that in the case of ``LOOKUP_IN_ROOT`` or
-+``LOOKUP_BENEATH``, the effective root becomes the directory file descriptor
-+passed to ``openat2()`` (which exposes these ``LOOKUP_`` flags).
++#ifdef CONFIG_HAVE_CPUINFO_SYSFS
 +
- The root is needed when either of two conditions holds: (1) either the
- pathname or a symbolic link starts with a "'/'", or (2) a "``..``"
- component is being handled, since "``..``" from the root must always stay
-@@ -1149,7 +1168,7 @@ so ``NULL`` is returned to indicate that the symlink can be released and
- the stack frame discarded.
- 
- The other case involves things in ``/proc`` that look like symlinks but
--aren't really::
-+aren't really (and are therefore commonly referred to as "magic-links")::
- 
-      $ ls -l /proc/self/fd/1
-      lrwx------ 1 neilb neilb 64 Jun 13 10:19 /proc/self/fd/1 -> /dev/pts/4
-@@ -1286,7 +1305,9 @@ A few flags
- A suitable way to wrap up this tour of pathname walking is to list
- the various flags that can be stored in the ``nameidata`` to guide the
- lookup process.  Many of these are only meaningful on the final
--component, others reflect the current state of the pathname lookup.
-+component, others reflect the current state of the pathname lookup, and some
-+apply restrictions to all path components encountered in the path lookup.
++#define cpuinfo_implementer(cpu)	MIDR_IMPLEMENTOR(cpu_data(cpu).reg_midr)
++#define cpuinfo_architecture(cpu)	"8"
++#define cpuinfo_variant(cpu)		MIDR_VARIANT(cpu_data(cpu).reg_midr)
++#define cpuinfo_part(cpu)		MIDR_PARTNUM(cpu_data(cpu).reg_midr)
++#define cpuinfo_revision(cpu)		MIDR_REVISION(cpu_data(cpu).reg_midr)
 +
- And then there is ``LOOKUP_EMPTY``, which doesn't fit conceptually with
- the others.  If this is not set, an empty pathname causes an error
- very early on.  If it is set, empty pathnames are not considered to be
-@@ -1310,13 +1331,48 @@ longer needed.
- ``LOOKUP_JUMPED`` means that the current dentry was chosen not because
- it had the right name but for some other reason.  This happens when
- following "``..``", following a symlink to ``/``, crossing a mount point
--or accessing a "``/proc/$PID/fd/$FD``" symlink.  In this case the
--filesystem has not been asked to revalidate the name (with
--``d_revalidate()``).  In such cases the inode may still need to be
--revalidated, so ``d_op->d_weak_revalidate()`` is called if
-+or accessing a "``/proc/$PID/fd/$FD``" symlink (also known as a "magic
-+link"). In this case the filesystem has not been asked to revalidate the
-+name (with ``d_revalidate()``).  In such cases the inode may still need
-+to be revalidated, so ``d_op->d_weak_revalidate()`` is called if
- ``LOOKUP_JUMPED`` is set when the look completes - which may be at the
- final component or, when creating, unlinking, or renaming, at the penultimate component.
- 
-+Resolution-restriction flags
-+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
++static ssize_t cpuinfo_flags(unsigned int c, char *buf)
++{
++	unsigned int i;
++	ssize_t len = 0;
 +
-+In order to allow userspace to protect itself against certain race conditions
-+and attack scenarios involving changing path components, a series of flags are
-+available which apply restrictions to all path components encountered during
-+path lookup. These flags are exposed through ``openat2()``'s ``resolve`` field.
++	for (i = 0; hwcap_str[i]; i++) {
++		if (cpu_have_feature(i))
++			len += sprintf(buf+len, len == 0 ? "%s" : " %s",
++				       hwcap_str[i]);
++	}
++	if (!len)
++		return 0;
++	return len + sprintf(buf+len, "\n");
++}
 +
-+``LOOKUP_NO_SYMLINKS`` blocks all symlink traversals (including magic-links).
-+This is distinctly different from ``LOOKUP_FOLLOW``, because the latter only
-+relates to restricting the following of trailing symlinks.
++static ssize_t cpuinfo_bogomips(unsigned int c, char *buf)
++{
++	return sprintf(buf, "%lu.%02lu\n", loops_per_jiffy / (500000 / HZ),
++		       (loops_per_jiffy / (5000 / HZ)) % 100);
 +
-+``LOOKUP_NO_MAGICLINKS`` blocks all magic-link traversals. Filesystems must
-+ensure that they return errors from ``nd_jump_link()``, because that is how
-+``LOOKUP_NO_MAGICLINKS`` and other magic-link restrictions are implemented.
++}
 +
-+``LOOKUP_NO_XDEV`` blocks all ``vfsmount`` traversals (this includes both
-+bind-mounts and ordinary mounts). Note that the ``vfsmount`` which contains the
-+lookup is determined by the first mountpoint the path lookup reaches --
-+absolute paths start with the ``vfsmount`` of ``/``, and relative paths start
-+with the ``dfd``'s ``vfsmount``. Magic-links are only permitted if the
-+``vfsmount`` of the path is unchanged.
++CPUINFO_DEFINE_ATTR(implementer, "0x%02x");
++CPUINFO_DEFINE_ATTR(architecture, "%s");
++CPUINFO_DEFINE_ATTR(variant, "0x%x");
++CPUINFO_DEFINE_ATTR(part, "0x%03x");
++CPUINFO_DEFINE_ATTR(revision, "%d");
 +
-+``LOOKUP_BENEATH`` blocks any path components which resolve outside the
-+starting point of the resolution. This is done by blocking ``nd_jump_root()``
-+as well as blocking ".." if it would jump outside the starting point.
-+``rename_lock`` and ``mount_lock`` are used to detect attacks against the
-+resolution of "..". Magic-links are also blocked.
++CPUINFO_DEFINE_ATTR_FUNC(bogomips);
++CPUINFO_DEFINE_ATTR_FUNC(flags);
 +
-+``LOOKUP_IN_ROOT`` resolves all path components as though the starting point
-+were the filesystem root. ``nd_jump_root()`` brings the resolution back to to
-+the starting point, and ".." at the starting point will act as a no-op. As with
-+``LOOKUP_BENEATH``, ``rename_lock`` and ``mount_lock`` are used to detect
-+attacks against ".." resolution. Magic-links are also blocked.
++struct attribute *cpuinfo_attrs[] = {
++	CPUINFO_ATTR(implementer),
++	CPUINFO_ATTR(architecture),
++	CPUINFO_ATTR(variant),
++	CPUINFO_ATTR(part),
++	CPUINFO_ATTR(revision),
++	CPUINFO_ATTR(bogomips),
++	CPUINFO_ATTR(flags),
++	NULL
++};
++#endif /* CONFIG_HAVE_CPUINFO_SYSFS */
 +
- Final-component flags
- ~~~~~~~~~~~~~~~~~~~~~
- 
++
+ static int __init cpuinfo_regs_init(void)
+ {
+ 	int cpu, ret;
 -- 
-2.24.0
+2.16.4
