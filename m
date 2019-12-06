@@ -1,180 +1,135 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.suse.de ([195.135.220.15]:41968 "EHLO mx1.suse.de"
+Received: from mx2.suse.de ([195.135.220.15]:41970 "EHLO mx1.suse.de"
         rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1726332AbfLFQYh (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        id S1726258AbfLFQYh (ORCPT <rfc822;linux-arch@vger.kernel.org>);
         Fri, 6 Dec 2019 11:24:37 -0500
 From: Thomas Renninger <trenn@suse.de>
-Subject: [PATCH 3/3] arm64 cpuinfo: implement sysfs nodes for arm64
-Date: Fri,  6 Dec 2019 17:24:21 +0100
-Message-ID: <20191206162421.15050-4-trenn@suse.de>
-In-Reply-To: <20191206162421.15050-1-trenn@suse.de>
-References: <20191206162421.15050-1-trenn@suse.de>
+Subject: [PATCH v5 0/3] sysfs: add sysfs based cpuinfo
+Date: Fri,  6 Dec 2019 17:24:18 +0100
+Message-ID: <20191206162421.15050-1-trenn@suse.de>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: gregkh@linuxfoundation.org, Felix Schnizlein <fschnizlein@suse.de>, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux@armlinux.org.uk, will.deacon@arm.com, x86@kernel.org, trenn@suse.de, fschnitzlein@suse.de, Felix Schnizlein <fschnizlein@suse.com>
-Message-ID: <20191206162421.iEg8d70ROlqPrNRzfLB5OXRLCzvGuNw0CbvJsbKJX-0@z>
+Cc: gregkh@linuxfoundation.org, Thomas Renninger <trenn@suse.de>, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux@armlinux.org.uk, will.deacon@arm.com, x86@kernel.org, fschnitzlein@suse.de
+Message-ID: <20191206162418.hPx_SZH70CNpabJP4ZI51bBPpNSCmYGuF5LRZi2Zk0c@z>
 
-From: Felix Schnizlein <fschnizlein@suse.de>
+I picked up Felix Schnizlein's work from 2017.
 
-Export all information from /proc/cpuinfo to sysfs:
-implementer, architecture, variant, part, revision,
-bogomips and flags are exported.
+It was already reviewed by Greg-KH at this time and even
+pushed into linux-next tree, when it came out that the mails
+never reached lkml, even the list was added to CC.
 
-Example:
-/sys/devices/system/cpu/cpu1/info/:[0]# head *
-==> architecture <==
-8
+ARM people then correctly complained that this needs more review
+by ARCH people. It got reverted, Felix had no time anymore and this
+nice patcheset was hanging around nowhere...
 
-==> bogomips <==
-40.00
 
-==> flags <==
-fp asimd evtstrm aes pmull sha1 sha2 crc32 cpuid asimdrdm
+Changes (by trenn) since v4:
+- Do not separate bug and flag list via comma, but by space
+- Adjust renamed cpu_data(c).x86_mask to cpu_data(c).x86_stepping
+  due to commit b399151cb48db30ad1e0
+- Introduce
+  config CPUINFO_SYSFS
+  and use config HAVE_CPUINFO_SYSFS as a pre-set helper only
+- Set CPUINFO_SYSFS
+  def_bool y
 
-==> implementer <==
-0x51
+=============================================
 
-==> part <==
-0xc00
+Tested on x86_64 and aarch64 (see below).
 
-==> revision <==
+Tested on x86_64 (virtual machine):
+
+------------------------------------------------------------
+
+/sys/devices/system/cpu/cpu1/info/:[0]# ls
+bogomips  bugs  cpu_family  flags  model  model_name  stepping  vendor_id
+
+for file in *;do echo $file; cat $file;echo;done
+bogomips
+5187.72
+
+bugs
+cpu_meltdown spectre_v1 spectre_v2 spec_store_bypass l1tf mds swapgs 
+itlb_multihit
+
+cpu_family
+6
+
+flags
+fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 
+clflush mmx fxsr sse sse2 ss syscall nx pdpe1gb rdtscp lm constant_tsc 
+rep_good nopl xtopology cpuid tsc_known_freq pni pclmulqdq ssse3 fma cx16 pcid 
+sse4_1 sse4_2 x2apic movbe popcnt tsc_deadline_timer aes xsave avx f16c rdrand 
+hypervisor lahf_lm abm cpuid_fault invpcid_single pti ssbd ibrs ibpb fsgsbase 
+tsc_adjust bmi1 avx2 smep bmi2 erms invpcid xsaveopt arat umip
+
+model
+60
+
+model_name
+Intel Core Processor (Haswell, no TSX, IBRS)
+
+stepping
 1
 
-==> variant <==
+vendor_id
+GenuineIntel
+
+=============================================
+
+Tested on aarch64:
+
+/sys/devices/system/cpu/cpu1/info/:[0]# ls
+architecture  bogomips  flags  implementer  part  revision  variant
+
+------------------------------------------------------------
+
+for file in *;do echo $file; cat $file;echo;done
+architecture
+8
+
+bogomips
+40.00
+
+flags
+fp asimd evtstrm aes pmull sha1 sha2 crc32 cpuid asimdrdm
+
+implementer
+0x51
+
+part
+0xc00
+
+revision
+1
+
+variant
 0x0
 
-Signed-off-by: Thomas Renninger <trenn@suse.de>
-Signed-off-by: Felix Schnizlein <fschnizlein@suse.com>
----
- Documentation/ABI/testing/sysfs-devices-system-cpu | 22 +++++++++
- arch/arm64/Kconfig                                 |  1 +
- arch/arm64/kernel/cpuinfo.c                        | 55 ++++++++++++++++++++++
- 3 files changed, 78 insertions(+)
 
-diff --git a/Documentation/ABI/testing/sysfs-devices-system-cpu b/Documentation/ABI/testing/sysfs-devices-system-cpu
-index 791390ab66d5..b6a167cd0beb 100644
---- a/Documentation/ABI/testing/sysfs-devices-system-cpu
-+++ b/Documentation/ABI/testing/sysfs-devices-system-cpu
-@@ -604,3 +604,25 @@ Description:	Expose information about x86 cpu information.
- 		flags: Extended capabilities supported by the cpu
- 		bugs: Known bugs by cpu
- 		bogomips: calculated bogomips
-+
-+
-+What:		/sys/devices/system/cpu/cpu#/info/
-+		/sys/devices/system/cpu/cpu#/info/implementer
-+		/sys/devices/system/cpu/cpu#/info/architecture
-+		/sys/devices/system/cpu/cpu#/info/variant
-+		/sys/devices/system/cpu/cpu#/info/part
-+		/sys/devices/system/cpu/cpu#/info/revision
-+		/sys/devices/system/cpu/cpu#/info/flags
-+		/sys/devices/system/cpu/cpu#/info/bogomips
-+Date:		August 2017
-+Contact:	Linux kernel mailing list <linux-kernel@vger.kernel.org>
-+Description:	Expose information about arm64 cpu.
-+
-+		implementer,
-+		architecture,
-+		variant,
-+		part,
-+		revision: Cpu identification depending on each vendor
-+
-+		flags: Extended capabilities supported by the cpu
-+		bogomips: calculated bogomips
-diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
-index 43aa1de727f4..0e8f7733e8c3 100644
---- a/arch/arm64/Kconfig
-+++ b/arch/arm64/Kconfig
-@@ -169,6 +169,7 @@ config ARM64
- 	select HAVE_KPROBES
- 	select HAVE_KRETPROBES
- 	select HAVE_GENERIC_VDSO
-+	select HAVE_CPUINFO_SYSFS if SYSFS
- 	select IOMMU_DMA if IOMMU_SUPPORT
- 	select IRQ_DOMAIN
- 	select IRQ_FORCED_THREADING
-diff --git a/arch/arm64/kernel/cpuinfo.c b/arch/arm64/kernel/cpuinfo.c
-index 56bba746da1c..d142e2d37ead 100644
---- a/arch/arm64/kernel/cpuinfo.c
-+++ b/arch/arm64/kernel/cpuinfo.c
-@@ -24,6 +24,7 @@
- #include <linux/sched.h>
- #include <linux/smp.h>
- #include <linux/delay.h>
-+#include <linux/cpuinfo.h>
- 
- /*
-  * In case the boot CPU is hotpluggable, we record its initial state and
-@@ -33,6 +34,8 @@
- DEFINE_PER_CPU(struct cpuinfo_arm64, cpu_data);
- static struct cpuinfo_arm64 boot_cpu_data;
- 
-+#define cpu_data(cpu)			per_cpu(cpu_data, cpu)
-+
- static const char *icache_policy_str[] = {
- 	[0 ... ICACHE_POLICY_PIPT]	= "RESERVED/UNKNOWN",
- 	[ICACHE_POLICY_VIPT]		= "VIPT",
-@@ -285,6 +288,58 @@ static int cpuid_cpu_offline(unsigned int cpu)
- 	return 0;
- }
- 
-+#ifdef CONFIG_HAVE_CPUINFO_SYSFS
-+
-+#define cpuinfo_implementer(cpu)	MIDR_IMPLEMENTOR(cpu_data(cpu).reg_midr)
-+#define cpuinfo_architecture(cpu)	"8"
-+#define cpuinfo_variant(cpu)		MIDR_VARIANT(cpu_data(cpu).reg_midr)
-+#define cpuinfo_part(cpu)		MIDR_PARTNUM(cpu_data(cpu).reg_midr)
-+#define cpuinfo_revision(cpu)		MIDR_REVISION(cpu_data(cpu).reg_midr)
-+
-+static ssize_t cpuinfo_flags(unsigned int c, char *buf)
-+{
-+	unsigned int i;
-+	ssize_t len = 0;
-+
-+	for (i = 0; hwcap_str[i]; i++) {
-+		if (cpu_have_feature(i))
-+			len += sprintf(buf+len, len == 0 ? "%s" : " %s",
-+				       hwcap_str[i]);
-+	}
-+	if (!len)
-+		return 0;
-+	return len + sprintf(buf+len, "\n");
-+}
-+
-+static ssize_t cpuinfo_bogomips(unsigned int c, char *buf)
-+{
-+	return sprintf(buf, "%lu.%02lu\n", loops_per_jiffy / (500000 / HZ),
-+		       (loops_per_jiffy / (5000 / HZ)) % 100);
-+
-+}
-+
-+CPUINFO_DEFINE_ATTR(implementer, "0x%02x");
-+CPUINFO_DEFINE_ATTR(architecture, "%s");
-+CPUINFO_DEFINE_ATTR(variant, "0x%x");
-+CPUINFO_DEFINE_ATTR(part, "0x%03x");
-+CPUINFO_DEFINE_ATTR(revision, "%d");
-+
-+CPUINFO_DEFINE_ATTR_FUNC(bogomips);
-+CPUINFO_DEFINE_ATTR_FUNC(flags);
-+
-+struct attribute *cpuinfo_attrs[] = {
-+	CPUINFO_ATTR(implementer),
-+	CPUINFO_ATTR(architecture),
-+	CPUINFO_ATTR(variant),
-+	CPUINFO_ATTR(part),
-+	CPUINFO_ATTR(revision),
-+	CPUINFO_ATTR(bogomips),
-+	CPUINFO_ATTR(flags),
-+	NULL
-+};
-+#endif /* CONFIG_HAVE_CPUINFO_SYSFS */
-+
-+
- static int __init cpuinfo_regs_init(void)
- {
- 	int cpu, ret;
+Felix Schnizlein (3):
+  cpuinfo: add sysfs based arch independent cpuinfo framework
+  x86 cpuinfo: implement sysfs nodes for x86
+  arm64 cpuinfo: implement sysfs nodes for arm64
+
+ Documentation/ABI/testing/sysfs-devices-system-cpu | 52 ++++++++++++
+ arch/Kconfig                                       | 11 +++
+ arch/arm64/Kconfig                                 |  1 +
+ arch/arm64/kernel/cpuinfo.c                        | 55 ++++++++++++
+ arch/x86/Kconfig                                   |  1 +
+ arch/x86/kernel/Makefile                           |  2 +
+ arch/x86/kernel/cpuinfo.c                          | 99 ++++++++++++++++++++++
+ drivers/base/Makefile                              |  1 +
+ drivers/base/cpuinfo.c                             | 48 +++++++++++
+ include/linux/cpuhotplug.h                         |  1 +
+ include/linux/cpuinfo.h                            | 43 ++++++++++
+ 11 files changed, 314 insertions(+)
+ create mode 100644 arch/x86/kernel/cpuinfo.c
+ create mode 100644 drivers/base/cpuinfo.c
+ create mode 100644 include/linux/cpuinfo.h
+
 -- 
 2.16.4
