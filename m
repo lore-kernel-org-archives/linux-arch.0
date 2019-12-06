@@ -1,54 +1,55 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [GIT PULL] Please pull powerpc/linux.git powerpc-5.5-2 tag
- (topic/kasan-bitops)
-Date: Fri, 6 Dec 2019 14:16:50 +0100
-Message-ID: <20191206131650.GM2827@hirez.programming.kicks-ass.net>
-References: <87blslei5o.fsf@mpe.ellerman.id.au>
+From: John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>
+Subject: Re: [PATCH v6 10/18] sh/tlb: Convert SH to generic mmu_gather
+Date: Fri, 6 Dec 2019 14:38:27 +0100
+Message-ID: <a188f905-bb08-db98-0b8a-e31bec1dfa31@physik.fu-berlin.de>
+References: <20190219103148.192029670@infradead.org>
+ <20190219103233.443069009@infradead.org>
+ <CAMuHMdW3nwckjA9Bt-_Dmf50B__sZH+9E5s0_ziK1U_y9onN=g@mail.gmail.com>
+ <20191204104733.GR2844@hirez.programming.kicks-ass.net>
+ <3c83eaec-8f33-1b90-1c70-9e7c1c8b1855@physik.fu-berlin.de>
+ <20191205225610.GB2532@roeck-us.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <87blslei5o.fsf@mpe.ellerman.id.au>
+In-Reply-To: <20191205225610.GB2532@roeck-us.net>
+Content-Language: en-US
 Sender: linux-kernel-owner@vger.kernel.org
-To: Michael Ellerman <mpe@ellerman.id.au>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, dja@axtens.net, elver@google.com, linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, christophe.leroy@c-s.fr, linux-s390@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org, kasan-dev@googlegroups.com, Will Deacon <will@kernel.org>, Mark Rutland <mark.rutland@arm.com>
+To: Guenter Roeck <linux@roeck-us.net>
+Cc: Peter Zijlstra <peterz@infradead.org>, Geert Uytterhoeven <geert@linux-m68k.org>, Will Deacon <will.deacon@arm.com>, "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, Nicholas Piggin <npiggin@gmail.com>, Linux-Arch <linux-arch@vger.kernel.org>, Linux MM <linux-mm@kvack.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Russell King <linux@armlinux.org.uk>, Heiko Carstens <heiko.carstens@de.ibm.com>, Rik van Riel <riel@surriel.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, Linux-sh list <linux-sh@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, Dec 06, 2019 at 11:46:11PM +1100, Michael Ellerman wrote:
-> -----BEGIN PGP SIGNED MESSAGE-----
-> Hash: SHA256
+Hi!
+
+On 12/5/19 11:56 PM, Guenter Roeck wrote:
+>> I have to admit, I have been very lazy with kernel updates. I have been
+>> planning to upgrade to a much more recent release on my boards for a while
+>> now, I have just been postponing it since the machines run very stable
+>> with the current kernel I am using.
+>>
 > 
-> Hi Linus,
-> 
-> Please pull another powerpc update for 5.5.
-> 
-> As you'll see from the diffstat this is mostly not powerpc code. In order to do
-> KASAN instrumentation of bitops we needed to juggle some of the generic bitops
-> headers.
-> 
-> Because those changes potentially affect several architectures I wasn't
-> confident putting them directly into my tree, so I've had them sitting in a
-> topic branch. That branch (topic/kasan-bitops) has been in linux-next for a
-> month, and I've not had any feedback that it's caused any problems.
-> 
-> So I think this is good to merge, but it's a standalone pull so if anyone does
-> object it's not a problem.
+> Hey, if you write a qemu emulation, I'll be happy to run it on a regular
+> basis :-)
 
-No objections, but here:
+There is working SH emulation in QEMU. I have been wanting to prepare a
+current Debian/sh4 test image for that purpose for a while now.
 
-  https://git.kernel.org/pub/scm/linux/kernel/git/powerpc/linux.git/commit/?h=topic/kasan-bitops&id=81d2c6f81996e01fbcd2b5aeefbb519e21c806e9
+For the time being, you can use the image by Aurelien Jarno:
 
-you write:
+> https://people.debian.org/~aurel32/qemu/sh4/
 
-  "Currently bitops-instrumented.h assumes that the architecture provides
-atomic, non-atomic and locking bitops (e.g. both set_bit and __set_bit).
-This is true on x86 and s390, but is not always true: there is a
-generic bitops/non-atomic.h header that provides generic non-atomic
-operations, and also a generic bitops/lock.h for locking operations."
+> Problem is really that the architecture doesn't get as much attention as
+> it needs. The backtrace pointed to by Rob has been seen for a long time,
+> but either there is no one with the knowledge to fix it, or they are all
+> busy with other stuff.
 
-Is there any actual benefit for PPC to using their own atomic bitops
-over bitops/lock.h ? I'm thinking that the generic code is fairly
-optimal for most LL/SC architectures.
+I fully agree. I'm mostly busy with the userland stuff, i.e. Debian packages
+for sh4 and not so much with the kernel.
 
-I've been meaning to audit the various architectures and move them over,
-but alas, it's something I've not yet had time for...
+Adrian
+
+-- 
+ .''`.  John Paul Adrian Glaubitz
+: :' :  Debian Developer - glaubitz@debian.org
+`. `'   Freie Universitaet Berlin - glaubitz@physik.fu-berlin.de
+  `-    GPG: 62FF 8A75 84E0 2956 9546  0006 7426 3B37 F5B5 F913
