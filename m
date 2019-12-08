@@ -1,445 +1,108 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from userp2120.oracle.com ([156.151.31.85]:42418 "EHLO
-        userp2120.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726353AbfLFW5V (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 6 Dec 2019 17:57:21 -0500
-Content-Type: text/plain;
-        charset=utf-8
-Mime-Version: 1.0 (Mac OS X Mail 12.4 \(3445.104.11\))
-Subject: Re: [PATCH v7 3/5] locking/qspinlock: Introduce CNA into the slow
- path of qspinlock
-From: Alex Kogan <alex.kogan@oracle.com>
-In-Reply-To: <ec048549-c522-27af-d638-789c8465a224@redhat.com>
-Date: Fri, 6 Dec 2019 14:50:39 -0500
-Content-Transfer-Encoding: quoted-printable
-Message-ID: <436D6D76-21C0-451B-B74E-5516864925FF@oracle.com>
-References: <20191125210709.10293-1-alex.kogan@oracle.com>
- <20191125210709.10293-4-alex.kogan@oracle.com>
- <ec048549-c522-27af-d638-789c8465a224@redhat.com>
+Received: from mail-wm1-f67.google.com ([209.85.128.67]:55805 "EHLO
+        mail-wm1-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726460AbfLHQoC (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 8 Dec 2019 11:44:02 -0500
+Date: Sun, 8 Dec 2019 19:43:54 +0300
+From: Alexey Dobriyan <adobriyan@gmail.com>
+Subject: Re: [PATCH] exec: warn if process starts with executable stack
+Message-ID: <20191208164354.GA19908@avx2>
+References: <20191118145114.GA9228@avx2>
+ <20191118125457.778e44dfd4740d24795484c7@linux-foundation.org>
+ <20191118215227.GA24536@avx2>
+ <20191120191752.GC4799@willie-the-truck>
+ <87d0dm47ii.fsf@x220.int.ebiederm.org>
+ <20191121093806.GB1091@willie-the-truck>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <20191121093806.GB1091@willie-the-truck>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Waiman Long <longman@redhat.com>
-Cc: linux@armlinux.org.uk, Peter Zijlstra <peterz@infradead.org>, mingo@redhat.com, will.deacon@arm.com, arnd@arndb.de, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, bp@alien8.de, hpa@zytor.com, x86@kernel.org, guohanjun@huawei.com, jglauber@marvell.com, steven.sistare@oracle.com, daniel.m.jordan@oracle.com, dave.dice@oracle.com, rahul.x.yadav@oracle.com
-Message-ID: <20191206195039.ZSeTEMwbGZ-flXkGikQmZdtbDFXj05y7EsyKiz3gmJU@z>
+To: Will Deacon <will@kernel.org>
+Cc: "Eric W. Biederman" <ebiederm@xmission.com>, Andrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, security@kernel.org, ben.dooks@codethink.co.uk
+Message-ID: <20191208164354.cDv0Gzo1F8o7X15UsbkI-Nxv9i_i7amCTc7dRmCnOmU@z>
 
-Thanks for the feedback. I will take care of that and resubmit.
+On Thu, Nov 21, 2019 at 09:38:06AM +0000, Will Deacon wrote:
+> On Wed, Nov 20, 2019 at 02:28:37PM -0600, Eric W. Biederman wrote:
+> > Will Deacon <will@kernel.org> writes:
+> > 
+> > > On Tue, Nov 19, 2019 at 12:52:27AM +0300, Alexey Dobriyan wrote:
+> > >> There were few episodes of silent downgrade to an executable stack:
+> > >> 
+> > >> 1) linking innocent looking assembly file
+> > >> 
+> > >> 	$ cat f.S
+> > >> 	.intel_syntax noprefix
+> > >> 	.text
+> > >> 	.globl f
+> > >> 	f:
+> > >> 	        ret
+> > >> 
+> > >> 	$ cat main.c
+> > >> 	void f(void);
+> > >> 	int main(void)
+> > >> 	{
+> > >> 	        f();
+> > >> 	        return 0;
+> > >> 	}
+> > >> 
+> > >> 	$ gcc main.c f.S
+> > >> 	$ readelf -l ./a.out
+> > >> 	  GNU_STACK      0x0000000000000000 0x0000000000000000 0x0000000000000000
+> > >>                          0x0000000000000000 0x0000000000000000  RWE    0x10
+> > >> 
+> > >> 2) converting C99 nested function into a closure
+> > >> https://nullprogram.com/blog/2019/11/15/
+> > >> 
+> > >> 	void intsort2(int *base, size_t nmemb, _Bool invert)
+> > >> 	{
+> > >> 	    int cmp(const void *a, const void *b)
+> > >> 	    {
+> > >> 	        int r = *(int *)a - *(int *)b;
+> > >> 	        return invert ? -r : r;
+> > >> 	    }
+> > >> 	    qsort(base, nmemb, sizeof(*base), cmp);
+> > >> 	}
+> > >> 
+> > >> will silently require stack trampolines while non-closure version will not.
+> > >> 
+> > >> While without a double this behaviour is documented somewhere, add a warning
+> > >> so that developers and users can at least notice. After so many years of x86_64
+> > >> having proper executable stack support it should not cause too much problems.
+> > >> 
+> > >> If the system is old or CPU is old, then there will be an early warning
+> > >> against init and/or support personnel will write that "uh-oh, our Enterprise
+> > >> Software absolutely requires executable stack" and close tickets and customers
+> > >> will nod heads and life moves on.
+> > >> 
+> > >> Signed-off-by: Alexey Dobriyan <adobriyan@gmail.com>
+> > >> ---
+> > >> 
+> > >>  fs/exec.c |    5 +++++
+> > >>  1 file changed, 5 insertions(+)
+> > >> 
+> > >> --- a/fs/exec.c
+> > >> +++ b/fs/exec.c
+> > >> @@ -762,6 +762,11 @@ int setup_arg_pages(struct linux_binprm *bprm,
+> > >>  		goto out_unlock;
+> > >>  	BUG_ON(prev != vma);
+> > >>  
+> > >> +	if (vm_flags & VM_EXEC) {
+> > >> +		pr_warn_once("process '%s'/%u started with executable stack\n",
+> > >> +			     current->comm, current->pid);
+> > >> +	}
+> > >
+> > > Given that this is triggerable by userspace, is there a concern about PID
+> > > namespaces here?
+> > 
+> > In what sense?  Are you thinking about the printing of the pid?
+> > 
+> > Pretty much by fiat and by definition the kernel log always print things
+> > in the initial pid namespace.  Which this printk does.
+> 
+> Ok, fair enough. Just wanted to make sure it was ok, since we're not using
+> a task_pid_nr*() accessor and it might have been overlooked.
 
-Regards,
-=E2=80=94 Alex
-
-> On Dec 6, 2019, at 12:21 PM, Waiman Long <longman@redhat.com> wrote:
->=20
-> On 11/25/19 4:07 PM, Alex Kogan wrote:
->> In CNA, spinning threads are organized in two queues, a main queue =
-for
->> threads running on the same node as the current lock holder, and a
->> secondary queue for threads running on other nodes. After acquiring =
-the
->> MCS lock and before acquiring the spinlock, the lock holder scans the
->> main queue looking for a thread running on the same node (pre-scan). =
-If
->> found (call it thread T), all threads in the main queue between the
->> current lock holder and T are moved to the end of the secondary =
-queue.
->> If such T is not found, we make another scan of the main queue when
->> unlocking the MCS lock (post-scan), starting at the position where
->> pre-scan stopped. If both scans fail to find such T, the MCS lock is
->> passed to the first thread in the secondary queue. If the secondary =
-queue
->> is empty, the lock is passed to the next thread in the main queue.
->> For more details, see =
-https://urldefense.proofpoint.com/v2/url?u=3Dhttps-3A__arxiv.org_abs_1810.=
-05600&d=3DDwIFaQ&c=3DRoP1YumCXCgaWHvlZYR8PZh8Bv7qIrMUB65eapI_JnE&r=3DHvhk3=
-F4omdCk-GE1PTOm3Kn0A7ApWOZ2aZLTuVxFK4k&m=3DFcJA-hpAHs8MxL3rksMfq_GYsA7RIci=
-HEF3AE4ZATOI&s=3DSR-p0LtEzUCrpwWY2ShRIF9lXod5Wc_NkN9zIOVvfxM&e=3D .
->>=20
->> Note that this variant of CNA may introduce starvation by =
-continuously
->> passing the lock to threads running on the same node. This issue
->> will be addressed later in the series.
->>=20
->> Enabling CNA is controlled via a new configuration option
->> (NUMA_AWARE_SPINLOCKS). By default, the CNA variant is patched in at =
-the
->> boot time only if we run on a multi-node machine in native =
-environment and
->> the new config is enabled. (For the time being, the patching requires
->> CONFIG_PARAVIRT_SPINLOCKS to be enabled as well. However, this should =
-be
->> resolved once static_call() is available.) This default behavior can =
-be
->> overridden with the new kernel boot command-line option
->> "numa_spinlock=3Don/off" (default is "auto").
->>=20
->> Signed-off-by: Alex Kogan <alex.kogan@oracle.com>
->> Reviewed-by: Steve Sistare <steven.sistare@oracle.com>
->> ---
->> .../admin-guide/kernel-parameters.txt         |  10 +
->> arch/x86/Kconfig                              |  20 ++
->> arch/x86/include/asm/qspinlock.h              |   4 +
->> arch/x86/kernel/alternative.c                 |  43 +++
->> kernel/locking/mcs_spinlock.h                 |   2 +-
->> kernel/locking/qspinlock.c                    |  34 ++-
->> kernel/locking/qspinlock_cna.h                | 264 =
-++++++++++++++++++
->> 7 files changed, 372 insertions(+), 5 deletions(-)
->> create mode 100644 kernel/locking/qspinlock_cna.h
->>=20
->   :
->> diff --git a/arch/x86/kernel/alternative.c =
-b/arch/x86/kernel/alternative.c
->> index 9d3a971ea364..6a4ccbf4e09c 100644
->> --- a/arch/x86/kernel/alternative.c
->> +++ b/arch/x86/kernel/alternative.c
->> @@ -698,6 +698,33 @@ static void __init int3_selftest(void)
->> 	unregister_die_notifier(&int3_exception_nb);
->> }
->>=20
->> +#if defined(CONFIG_NUMA_AWARE_SPINLOCKS)
->> +/*
->> + * Constant (boot-param configurable) flag selecting the NUMA-aware =
-variant
->> + * of spinlock.  Possible values: -1 (off) / 0 (auto, default) / 1 =
-(on).
->> + */
->> +static int numa_spinlock_flag;
->> +
->> +static int __init numa_spinlock_setup(char *str)
->> +{
->> +	if (!strcmp(str, "auto")) {
->> +		numa_spinlock_flag =3D 0;
->> +		return 1;
->> +	} else if (!strcmp(str, "on")) {
->> +		numa_spinlock_flag =3D 1;
->> +		return 1;
->> +	} else if (!strcmp(str, "off")) {
->> +		numa_spinlock_flag =3D -1;
->> +		return 1;
->> +	}
->> +
->> +	return 0;
->> +}
->> +
->> +__setup("numa_spinlock=3D", numa_spinlock_setup);
->> +
->> +#endif
->> +
->=20
-> This __init function should be in qspinlock_cna.h. We generally like =
-to
-> put as much related code into as few places as possible instead of
-> spreading them around in different places.
->=20
->> void __init alternative_instructions(void)
->> {
->> 	int3_selftest();
->> @@ -738,6 +765,22 @@ void __init alternative_instructions(void)
->> 	}
->> #endif
->>=20
->> +#if defined(CONFIG_NUMA_AWARE_SPINLOCKS)
->> +	/*
->> +	 * By default, switch to the NUMA-friendly slow path for
->> +	 * spinlocks when we have multiple NUMA nodes in native =
-environment.
->> +	 */
->> +	if ((numa_spinlock_flag =3D=3D 1) ||
->> +	    (numa_spinlock_flag =3D=3D 0 && nr_node_ids > 1 &&
->> +		    pv_ops.lock.queued_spin_lock_slowpath =3D=3D
->> +			native_queued_spin_lock_slowpath)) {
->> +		pv_ops.lock.queued_spin_lock_slowpath =3D
->> +		    __cna_queued_spin_lock_slowpath;
->> +
->> +		pr_info("Enabling CNA spinlock\n");
->> +	}
->> +#endif
->> +
->> 	apply_paravirt(__parainstructions, __parainstructions_end);
->=20
-> Encapsulate the logic into another __init function in qspinlock_cna.h
-> and just make a function call here. You can declare the function in
-> arch/x86/include/asm/qspinlock.h.
->=20
->=20
->>=20
->> 	restart_nmi();
->> diff --git a/kernel/locking/mcs_spinlock.h =
-b/kernel/locking/mcs_spinlock.h
->> index 52d06ec6f525..e40b9538b79f 100644
->> --- a/kernel/locking/mcs_spinlock.h
->> +++ b/kernel/locking/mcs_spinlock.h
->> @@ -17,7 +17,7 @@
->>=20
->> struct mcs_spinlock {
->> 	struct mcs_spinlock *next;
->> -	int locked; /* 1 if lock acquired */
->> +	unsigned int locked; /* 1 if lock acquired */
->> 	int count;  /* nesting count, see qspinlock.c */
->> };
->>=20
->> diff --git a/kernel/locking/qspinlock.c b/kernel/locking/qspinlock.c
->> index c06d1e8075d9..6d8c4a52e44e 100644
->> --- a/kernel/locking/qspinlock.c
->> +++ b/kernel/locking/qspinlock.c
->> @@ -11,7 +11,7 @@
->>  *          Peter Zijlstra <peterz@infradead.org>
->>  */
->>=20
->> -#ifndef _GEN_PV_LOCK_SLOWPATH
->> +#if !defined(_GEN_PV_LOCK_SLOWPATH) && =
-!defined(_GEN_CNA_LOCK_SLOWPATH)
->>=20
->> #include <linux/smp.h>
->> #include <linux/bug.h>
->> @@ -70,7 +70,8 @@
->> /*
->>  * On 64-bit architectures, the mcs_spinlock structure will be 16 =
-bytes in
->>  * size and four of them will fit nicely in one 64-byte cacheline. =
-For
->> - * pvqspinlock, however, we need more space for extra data. To =
-accommodate
->> + * pvqspinlock, however, we need more space for extra data. The same =
-also
->> + * applies for the NUMA-aware variant of spinlocks (CNA). To =
-accommodate
->>  * that, we insert two more long words to pad it up to 32 bytes. IOW, =
-only
->>  * two of them can fit in a cacheline in this case. That is OK as it =
-is rare
->>  * to have more than 2 levels of slowpath nesting in actual use. We =
-don't
->> @@ -79,7 +80,7 @@
->>  */
->> struct qnode {
->> 	struct mcs_spinlock mcs;
->> -#ifdef CONFIG_PARAVIRT_SPINLOCKS
->> +#if defined(CONFIG_PARAVIRT_SPINLOCKS) || =
-defined(CONFIG_NUMA_AWARE_SPINLOCKS)
->> 	long reserved[2];
->> #endif
->> };
->> @@ -103,6 +104,8 @@ struct qnode {
->>  * Exactly fits one 64-byte cacheline on a 64-bit architecture.
->>  *
->>  * PV doubles the storage and uses the second cacheline for PV state.
->> + * CNA also doubles the storage and uses the second cacheline for
->> + * CNA-specific state.
->>  */
->> static DEFINE_PER_CPU_ALIGNED(struct qnode, qnodes[MAX_NODES]);
->>=20
->> @@ -316,7 +319,7 @@ static __always_inline void =
-__mcs_pass_lock(struct mcs_spinlock *node,
->> #define try_clear_tail	__try_clear_tail
->> #define mcs_pass_lock		__mcs_pass_lock
->>=20
->> -#endif /* _GEN_PV_LOCK_SLOWPATH */
->> +#endif /* _GEN_PV_LOCK_SLOWPATH && _GEN_CNA_LOCK_SLOWPATH */
->>=20
->> /**
->>  * queued_spin_lock_slowpath - acquire the queued spinlock
->> @@ -588,6 +591,29 @@ void queued_spin_lock_slowpath(struct qspinlock =
-*lock, u32 val)
->> }
->> EXPORT_SYMBOL(queued_spin_lock_slowpath);
->>=20
->> +/*
->> + * Generate the code for NUMA-aware spinlocks
->> + */
->> +#if !defined(_GEN_CNA_LOCK_SLOWPATH) && =
-defined(CONFIG_NUMA_AWARE_SPINLOCKS)
->> +#define _GEN_CNA_LOCK_SLOWPATH
->> +
->> +#undef pv_wait_head_or_lock
->> +#define pv_wait_head_or_lock		cna_pre_scan
->> +
->> +#undef try_clear_tail
->> +#define try_clear_tail			cna_try_change_tail
->> +
->> +#undef mcs_pass_lock
->> +#define mcs_pass_lock			cna_pass_lock
->> +
->> +#undef  queued_spin_lock_slowpath
->> +#define queued_spin_lock_slowpath	__cna_queued_spin_lock_slowpath
->> +
->> +#include "qspinlock_cna.h"
->> +#include "qspinlock.c"
->> +
->> +#endif
->> +
->> /*
->>  * Generate the paravirt code for queued_spin_unlock_slowpath().
->>  */
->> diff --git a/kernel/locking/qspinlock_cna.h =
-b/kernel/locking/qspinlock_cna.h
->> new file mode 100644
->> index 000000000000..a638336f9560
->> --- /dev/null
->> +++ b/kernel/locking/qspinlock_cna.h
->> @@ -0,0 +1,264 @@
->> +/* SPDX-License-Identifier: GPL-2.0 */
->> +#ifndef _GEN_CNA_LOCK_SLOWPATH
->> +#error "do not include this file"
->> +#endif
->> +
->> +#include <linux/topology.h>
->> +
->> +/*
->> + * Implement a NUMA-aware version of MCS (aka CNA, or compact =
-NUMA-aware lock).
->> + *
->> + * In CNA, spinning threads are organized in two queues, a main =
-queue for
->> + * threads running on the same NUMA node as the current lock holder, =
-and a
->> + * secondary queue for threads running on other nodes. =
-Schematically, it
->> + * looks like this:
->> + *
->> + *    cna_node
->> + *   +----------+    +--------+        +--------+
->> + *   |mcs:next  | -> |mcs:next| -> ... |mcs:next| -> NULL      [Main =
-queue]
->> + *   |mcs:locked| -+ +--------+        +--------+
->> + *   +----------+  |
->> + *                 +----------------------+
->> + *                                        \/
->> + *                 +--------+         +--------+
->> + *                 |mcs:next| -> ...  |mcs:next|          [Secondary =
-queue]
->> + *                 +--------+         +--------+
->> + *                     ^                    |
->> + *                     +--------------------+
->> + *
->> + * N.B. locked =3D 1 if secondary queue is absent. Othewrise, it =
-contains the
->> + * encoded pointer to the tail of the secondary queue, which is =
-organized as a
->> + * circular list.
->> + *
->> + * After acquiring the MCS lock and before acquiring the spinlock, =
-the lock
->> + * holder scans the main queue looking for a thread running on the =
-same node
->> + * (pre-scan). If found (call it thread T), all threads in the main =
-queue
->> + * between the current lock holder and T are moved to the end of the =
-secondary
->> + * queue.  If such T is not found, we make another scan of the main =
-queue when
->> + * unlocking the MCS lock (post-scan), starting at the node where =
-pre-scan
->> + * stopped. If both scans fail to find such T, the MCS lock is =
-passed to the
->> + * first thread in the secondary queue. If the secondary queue is =
-empty, the
->> + * lock is passed to the next thread in the main queue.
->> + *
->> + * For more details, see =
-https://urldefense.proofpoint.com/v2/url?u=3Dhttps-3A__arxiv.org_abs_1810.=
-05600&d=3DDwIFaQ&c=3DRoP1YumCXCgaWHvlZYR8PZh8Bv7qIrMUB65eapI_JnE&r=3DHvhk3=
-F4omdCk-GE1PTOm3Kn0A7ApWOZ2aZLTuVxFK4k&m=3DFcJA-hpAHs8MxL3rksMfq_GYsA7RIci=
-HEF3AE4ZATOI&s=3DSR-p0LtEzUCrpwWY2ShRIF9lXod5Wc_NkN9zIOVvfxM&e=3D .
->> + *
->> + * Authors: Alex Kogan <alex.kogan@oracle.com>
->> + *          Dave Dice <dave.dice@oracle.com>
->> + */
->> +
->> +struct cna_node {
->> +	struct mcs_spinlock	mcs;
->> +	int			numa_node;
->> +	u32			encoded_tail;
->> +	u32			pre_scan_result; /* 0 or encoded tail */
->> +};
->> +
->> +static void __init cna_init_nodes_per_cpu(unsigned int cpu)
->> +{
->> +	struct mcs_spinlock *base =3D per_cpu_ptr(&qnodes[0].mcs, cpu);
->> +	int numa_node =3D cpu_to_node(cpu);
->> +	int i;
->> +
->> +	for (i =3D 0; i < MAX_NODES; i++) {
->> +		struct cna_node *cn =3D (struct cna_node =
-*)grab_mcs_node(base, i);
->> +
->> +		cn->numa_node =3D numa_node;
->> +		cn->encoded_tail =3D encode_tail(cpu, i);
->> +		/*
->> +		 * @encoded_tail has to be larger than 1, so we do not =
-confuse
->> +		 * it with other valid values for @locked or =
-@pre_scan_result
->> +		 * (0 or 1)
->> +		 */
->> +		WARN_ON(cn->encoded_tail <=3D 1);
->> +	}
->> +}
->> +
->> +static int __init cna_init_nodes(void)
->> +{
->> +	unsigned int cpu;
->> +
->> +	/*
->> +	 * this will break on 32bit architectures, so we restrict
->> +	 * the use of CNA to 64bit only (see arch/x86/Kconfig)
->> +	 */
->> +	BUILD_BUG_ON(sizeof(struct cna_node) > sizeof(struct qnode));
->> +	/* we store an ecoded tail word in the node's @locked field */
->> +	BUILD_BUG_ON(sizeof(u32) > sizeof(unsigned int));
->> +
->> +	for_each_possible_cpu(cpu)
->> +		cna_init_nodes_per_cpu(cpu);
->> +
->> +	return 0;
->> +}
->> +early_initcall(cna_init_nodes);
->> +
->=20
-> Include a comment here saying that the cna_try_change_tail() function =
-is
-> only called when the primary queue is empty. That will make the code
-> easier to read.
->=20
->=20
->> +static inline bool cna_try_change_tail(struct qspinlock *lock, u32 =
-val,
->> +				       struct mcs_spinlock *node)
->> +{
->> +	struct mcs_spinlock *head_2nd, *tail_2nd;
->> +	u32 new;
->> +
->> +	/* If the secondary queue is empty, do what MCS does. */
->> +	if (node->locked <=3D 1)
->> +		return __try_clear_tail(lock, val, node);
->> +
->> +	/*
->> +	 * Try to update the tail value to the last node in the =
-secondary queue.
->> +	 * If successful, pass the lock to the first thread in the =
-secondary
->> +	 * queue. Doing those two actions effectively moves all nodes =
-from the
->> +	 * secondary queue into the main one.
->> +	 */
->> +	tail_2nd =3D decode_tail(node->locked);
->> +	head_2nd =3D tail_2nd->next;
->> +	new =3D ((struct cna_node *)tail_2nd)->encoded_tail + =
-_Q_LOCKED_VAL;
->> +
->> +	if (atomic_try_cmpxchg_relaxed(&lock->val, &val, new)) {
->> +		/*
->> +		 * Try to reset @next in tail_2nd to NULL, but no need =
-to check
->> +		 * the result - if failed, a new successor has updated =
-it.
->> +		 */
->> +		cmpxchg_relaxed(&tail_2nd->next, head_2nd, NULL);
->> +		arch_mcs_pass_lock(&head_2nd->locked, 1);
->> +		return true;
->> +	}
->> +
->> +	return false;
->> +}
-> Cheers,
-> Longman
->=20
+PID is printed both as ->pid and a task_pid_vnr().
+I'll just print filename, so that executable can be easily found.
