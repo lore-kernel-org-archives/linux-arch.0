@@ -1,25 +1,32 @@
-From: pr-tracker-bot@kernel.org
-Subject: Re: [GIT PULL] Please pull powerpc/linux.git powerpc-5.5-2 tag
- (topic/kasan-bitops)
-Date: Fri, 06 Dec 2019 22:15:23 +0000
-Message-ID: <157567052394.8833.9919496603126638238.pr-tracker-bot@kernel.org>
-References: <87blslei5o.fsf@mpe.ellerman.id.au>
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <87blslei5o.fsf@mpe.ellerman.id.au>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Michael Ellerman <mpe@ellerman.id.au>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, dja@axtens.net, elver@google.com, linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, christophe.leroy@c-s.fr, linux-s390@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org, kasan-dev@googlegroups.com
+From: Al Viro <viro@zeniv.linux.org.uk>
+Subject: Re: [PATCH v18 00/13] open: introduce openat2(2) syscall
+Date: Sun, 8 Dec 2019 04:39:35 +0000
+Message-ID: <20191208043935.GQ4203@ZenIV.linux.org.uk>
+References: <20191206141338.23338-1-cyphar@cyphar.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
+Content-Disposition: inline
+In-Reply-To: <20191206141338.23338-1-cyphar@cyphar.com>
+List-Unsubscribe: <https://lists.ozlabs.org/options/linuxppc-dev>,
+ <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=unsubscribe>
+List-Archive: <http://lists.ozlabs.org/pipermail/linuxppc-dev/>
+List-Post: <mailto:linuxppc-dev@lists.ozlabs.org>
+List-Help: <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=help>
+List-Subscribe: <https://lists.ozlabs.org/listinfo/linuxppc-dev>,
+ <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=subscribe>
+Errors-To: linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org
+Sender: "Linuxppc-dev"
+ <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
+To: Aleksa Sarai <cyphar@cyphar.com>
+Cc: Song Liu <songliubraving@fb.com>, linux-ia64@vger.kernel.org, linux-doc@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Alexei Starovoitov <ast@kernel.org>, linux-kernel@vger.kernel.org, David Howells <dhowells@redhat.com>, linux-kselftest@vger.kernel.org, sparclinux@vger.kernel.org, containers@lists.linux-foundation.org, linux-api@vger.kernel.org, Shuah Khan <shuah@kernel.org>, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, Tycho Andersen <tycho@tycho.ws>, Daniel Borkmann <daniel@iogearbox.net>, Jonathan Corbet <corbet@lwn.net>, Jiri Olsa <jolsa@redhat.com>, linux-sh@vger.kernel.org, Alexander Shishkin <alexander.shishkin@linux.intel.com>, Ingo Molnar <mingo@redhat.com>, linux-arm-kernel@lists.infradead.org, Yonghong Song <yhs@fb.com>, linux-mips@vger.kernel.org, Andrii Nakryiko <andriin@fb.com>, bpf@vger.ke
 List-Id: linux-arch.vger.kernel.org
 
-The pull request you sent on Fri, 06 Dec 2019 23:46:11 +1100:
+On Sat, Dec 07, 2019 at 01:13:25AM +1100, Aleksa Sarai wrote:
+> This patchset is being developed here:
+>   <https://github.com/cyphar/linux/tree/openat2/master>
 
-> https://git.kernel.org/pub/scm/linux/kernel/git/powerpc/linux.git tags/powerpc-5.5-2
-
-has been merged into torvalds/linux.git:
-https://git.kernel.org/torvalds/c/43a2898631a8beee66c1d64c1e860f43d96b2e91
-
-Thank you!
-
--- 
-Deet-doot-dot, I am a bot.
-https://korg.wiki.kernel.org/userdoc/prtracker
+See #work.openat2; rebased on top of #fixes (there's a minor
+conflict in follow_managed()).  I'll either leave that as-is
+or rebase to -rc1 once it appears; the thing goes into #for-next
+right after -rc1 in any case.
