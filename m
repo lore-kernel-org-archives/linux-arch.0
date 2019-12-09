@@ -1,86 +1,65 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.suse.de ([195.135.220.15]:60682 "EHLO mx1.suse.de"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1726377AbfLIL2q (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 9 Dec 2019 06:28:46 -0500
-From: Thomas Renninger <trenn@suse.de>
-Subject: Re: [PATCH 3/3] arm64 cpuinfo: implement sysfs nodes for arm64
-Date: Mon, 09 Dec 2019 12:28:44 +0100
-Message-ID: <25032400.G9DUGnJgnc@skinner.arch.suse.de>
-In-Reply-To: <20191209103110.GB3306@willie-the-truck>
-References: <20191206162421.15050-1-trenn@suse.de> <20191206162421.15050-4-trenn@suse.de> <20191209103110.GB3306@willie-the-truck>
+Received: from bombadil.infradead.org ([198.137.202.133]:51342 "EHLO
+        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727438AbfLIN62 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 9 Dec 2019 08:58:28 -0500
+From: Christoph Hellwig <hch@lst.de>
+Subject: [PATCH 1/2] MIPS: define ioremap_nocache to ioremap
+Date: Mon,  9 Dec 2019 14:58:21 +0100
+Message-ID: <20191209135823.28465-2-hch@lst.de>
+In-Reply-To: <20191209135823.28465-1-hch@lst.de>
+References: <20191209135823.28465-1-hch@lst.de>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 7Bit
-Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will@kernel.org>, Felix Schnizlein <fschnizlein@suse.com>
-Cc: linux-kernel@vger.kernel.org, gregkh@linuxfoundation.org, Felix Schnizlein <fschnizlein@suse.de>, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux@armlinux.org.uk, will.deacon@arm.com, x86@kernel.org
-Message-ID: <20191209112844.UrdF2VkWcI99r-sBL6kB0Nbv0r7ZVLH-QUSDJUxZJGw@z>
+To: Linus Torvalds <torvalds@linux-foundation.org>, Paul Burton <paulburton@kernel.org>, James Hogan <jhogan@kernel.org>
+Cc: Arnd Bergmann <arnd@arndb.de>, linux-mips@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20191209135821.aAMSZxSdQstzKqGKoO6IDkS1JfXHTVIODskbIG5NpiU@z>
 
-On Monday, December 9, 2019 11:31:11 AM CET Will Deacon wrote:
-> On Fri, Dec 06, 2019 at 05:24:21PM +0100, Thomas Renninger wrote:
-> > From: Felix Schnizlein <fschnizlein@suse.de>
-> > 
-> > Export all information from /proc/cpuinfo to sysfs:
-> > implementer, architecture, variant, part, revision,
-> > bogomips and flags are exported.
-> > 
-> > Example:
-> > /sys/devices/system/cpu/cpu1/info/:[0]# head *
+They are both defined the same way, but this makes it easier to validate
+the scripted ioremap_nocache removal following soon.
 
-...
+Signed-off-by: Christoph Hellwig <hch@lst.de>
+---
+ arch/mips/include/asm/io.h | 25 ++-----------------------
+ 1 file changed, 2 insertions(+), 23 deletions(-)
 
-> > ==> flags <==
-> > fp asimd evtstrm aes pmull sha1 sha2 crc32 cpuid asimdrdm
+diff --git a/arch/mips/include/asm/io.h b/arch/mips/include/asm/io.h
+index 3f6ce74335b4..d9caa811a2fa 100644
+--- a/arch/mips/include/asm/io.h
++++ b/arch/mips/include/asm/io.h
+@@ -227,29 +227,8 @@ static inline void __iomem *ioremap_prot(phys_addr_t offset,
+  */
+ #define ioremap(offset, size)						\
+ 	__ioremap_mode((offset), (size), _CACHE_UNCACHED)
+-
+-/*
+- * ioremap_nocache     -   map bus memory into CPU space
+- * @offset:    bus address of the memory
+- * @size:      size of the resource to map
+- *
+- * ioremap_nocache performs a platform specific sequence of operations to
+- * make bus memory CPU accessible via the readb/readw/readl/writeb/
+- * writew/writel functions and the other mmio helpers. The returned
+- * address is not guaranteed to be usable directly as a virtual
+- * address.
+- *
+- * This version of ioremap ensures that the memory is marked uncachable
+- * on the CPU as well as honouring existing caching rules from things like
+- * the PCI bus. Note that there are other caches and buffers on many
+- * busses. In particular driver authors should read up on PCI writes
+- *
+- * It's useful if some control registers are in such an area and
+- * write combining or read caching is not desirable:
+- */
+-#define ioremap_nocache(offset, size)					\
+-	__ioremap_mode((offset), (size), _CACHE_UNCACHED)
+-#define ioremap_uc ioremap_nocache
++#define ioremap_nocache		ioremap
++#define ioremap_uc		ioremap
  
-...
-
-> I don't understand why we need this on arm64
-
-The first intention of these patches is to port x86 /proc/cpuinfo.
-
-Because of the divergence of /proc/cpuinfo and the totally different
-info exported there across architectures,
-therefore it is also tried to get a unified interface across architectures 
-where possible.
-
-So for flags and bugs this may work out, right?
-
-For the rest, it looks like people again only had their CPU in mind and
-exported to userspace what currently was needed...
-
-> and why it's an improvement
-> over all the other schemes we already support for identifying CPU features.
-
-Sigh...
-
-> Given the pain we've endured over the years exposing this sort of stuff to
-> userspace, I'm relucant to add more just for the fun of it.
-
-If there should ever be something like a string describing the CPU...
-In x86 it comes from the CPU itself.
-Maybe we get a model description at some point as well...
-
-Or any other entity which may also get exported on other archs..
-
-Please remember this interface and watch out whether you could export
-things under the same name as done on other architectures.
-
-I'll revert everything but flags for ARM now.
-But this is the best example for the need of a generic interface:
-
-x86 -   /proc/cpuinfo:
-flags           : ...
-arm64 - /proc/cpuinfo:
-Features        : ...
-
-even it is exactly the same kernel interface, even x86 flags are used 
-according to arch/arm64/include/asm/cpufeature.h:
-
-  * We use arm64_cpu_capabilities to represent system features, errata work
-
-But it is named differently in /proc/cpuinfo.
-This should not happen again in /sys/...
-
-    Thomas
+ /*
+  * ioremap_cache -	map bus memory into CPU space
+-- 
+2.20.1
