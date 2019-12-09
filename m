@@ -1,31 +1,29 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.133]:51348 "EHLO
-        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727669AbfLIN63 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 9 Dec 2019 08:58:29 -0500
-From: Christoph Hellwig <hch@lst.de>
-Subject: RFC: kill off ioremap_nocache
-Date: Mon,  9 Dec 2019 14:58:20 +0100
-Message-ID: <20191209135823.28465-1-hch@lst.de>
+Received: from mout.kundenserver.de ([212.227.17.13]:53947 "EHLO
+        mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726335AbfLIP6f (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 9 Dec 2019 10:58:35 -0500
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+References: <20191209135823.28465-1-hch@lst.de> <20191209135823.28465-3-hch@lst.de>
+In-Reply-To: <20191209135823.28465-3-hch@lst.de>
+From: Arnd Bergmann <arnd@arndb.de>
+Date: Mon, 9 Dec 2019 16:58:15 +0100
+Message-ID: <CAK8P3a0xD-kdKYzDp+hvN=uHwSJtzYE-YSyR3_mkxOTUEs-C3w@mail.gmail.com>
+Subject: Re: [PATCH 2/2] remove ioremap_nocache and devm_ioremap_nocache
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>, Paul Burton <paulburton@kernel.org>, James Hogan <jhogan@kernel.org>
-Cc: Arnd Bergmann <arnd@arndb.de>, linux-mips@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20191209135820.hFpvjS4u0EsKUBksho0-hJNzei9OyrCNscts4w3te9w@z>
+To: Christoph Hellwig <hch@lst.de>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Paul Burton <paulburton@kernel.org>, James Hogan <jhogan@kernel.org>, "open list:BROADCOM NVRAM DRIVER" <linux-mips@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
+Message-ID: <20191209155815.pDkySNiqne65RN8Lrn8eeaC3J9_hGtMbffAkBNNmoE0@z>
 
-Hi all,
+On Mon, Dec 9, 2019 at 2:58 PM Christoph Hellwig <hch@lst.de> wrote:
+>
+> ioremap has provided non-cached semantics by default since the Linux 2.6
+> days, so remove the additional ioremap_nocache interface.
+>
+> Signed-off-by: Christoph Hellwig <hch@lst.de>
 
-with the ioremap changes that did land in 5.5-rc1 ioremap_nocache is
-now equal to ioremap for all architectures.  For most architectures
-including the common one this has been the case for about 20 years,
-but we had a few holdouts.
+Great work, thanks for getting this done!
 
-That means ioremap_nocache is entirely superflous now and can be
-killed off.  This series has one big scripted patch to do just that
-after a little prep patch to fix up the not entirely obvious mips
-definition.
-
-Let me know what you think and if this is something acceptable for
-just after -rc1.
+Acked-by: Arnd Bergmann <arnd@arndb.de>
