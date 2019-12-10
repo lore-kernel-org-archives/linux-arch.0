@@ -1,69 +1,97 @@
-From: Greg KH <gregkh@linuxfoundation.org>
-Subject: Re: [PATCH 2/3] x86 cpuinfo: implement sysfs nodes for x86
-Date: Tue, 10 Dec 2019 21:53:48 +0100
-Message-ID: <20191210205348.GA4080658@kroah.com>
-References: <20191206162421.15050-1-trenn@suse.de>
- <20191206162421.15050-3-trenn@suse.de>
- <20191206163656.GC86904@kroah.com>
- <87sglroqix.fsf@nanos.tec.linutronix.de>
+From: Sasha Levin <sashal@kernel.org>
+Subject: [PATCH AUTOSEL 5.4 065/350] tools/memory-model: Fix data race detection for unordered store and load
+Date: Tue, 10 Dec 2019 16:02:50 -0500
+Message-ID: <20191210210735.9077-26-sashal@kernel.org>
+References: <20191210210735.9077-1-sashal@kernel.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
 Content-Transfer-Encoding: 8bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <87sglroqix.fsf@nanos.tec.linutronix.de>
+In-Reply-To: <20191210210735.9077-1-sashal@kernel.org>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Thomas Gleixner <tglx@linutronix.de>
-Cc: Thomas Renninger <trenn@suse.de>, linux-kernel@vger.kernel.org, Felix Schnizlein <fschnizlein@suse.de>, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux@armlinux.org.uk, will.deacon@arm.com, x86@kernel.org, fschnitzlein@suse.de, Felix Schnizlein <fschnizlein@suse.com>, Thomas Renninger <trenn@suse.com>
+To: linux-kernel@vger.kernel.org, stable@vger.kernel.org
+Cc: Alan Stern <stern@rowland.harvard.edu>, Andrea Parri <parri.andrea@gmail.com>, "Paul E . McKenney" <paulmck@kernel.org>, Sasha Levin <sashal@kernel.org>, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, Dec 10, 2019 at 09:48:54PM +0100, Thomas Gleixner wrote:
-> Greg KH <gregkh@linuxfoundation.org> writes:
-> > On Fri, Dec 06, 2019 at 05:24:20PM +0100, Thomas Renninger wrote:
-> >> From: Felix Schnizlein <fschnizlein@suse.de>
-> >> ==> flags <==
-> >> fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush mmx fxsr sse sse2 ss syscall nx pdpe1gb rdtscp lm constant_tsc rep_good nopl xtopology cpuid tsc_known_freq pni pclmulqdq ssse3 fma cx16 pcid sse4_1 sse4_2 x2apic movbe popcnt tsc_deadline_timer aes xsave avx f16c rdrand hypervisor lahf_lm abm cpuid_fault invpcid_single pti ssbd ibrs ibpb fsgsbase tsc_adjust bmi1 avx2 smep bmi2 erms invpcid xsaveopt arat umip
-> >
-> > One file with all of that?  We are going to run into problems
-> > eventually, that should be split up.
-> >
-> > Just like bugs, that's going to just grow over time and eventually
-> > overflow PAGE_SIZE :(
-> >
-> > Make this:
-> >   ├── flags
-> >   │   ├── fpu
-> >   │   ├── vme
-> > ...
-> >
-> > Much simpler to parse, right?
-> 
-> Well, I'm not really sure whether 100+ files are simpler to parse.
-> 
-> Aside of that I really don't see the value for 100+ files per CPU which
-> are just returning 1 or True or whatever as long as you are not
-> suggesting to provide real feature files which have 0/1 or True/False
-> content.
-> 
-> But I still don't get the whole thing. The only "argument" I've seen so
-> far is the 'proc moves to sys' mantra, but that does not make it any
-> better.
+From: Alan Stern <stern@rowland.harvard.edu>
 
-That is not a valid mantra, as I tried to explain later in this thread.
+[ Upstream commit daebf24a8e8c6064cba3a330db9fe9376a137d2c ]
 
-I don't understand the need for this patchset either, all I was trying
-to do was to at least make it sane from a sysfs-point-of-view if people
-really wanted to do this type of thing.
+Currently the Linux Kernel Memory Model gives an incorrect response
+for the following litmus test:
 
-> We won't get rid of /proc/cpuinfo for a very long time simply because
-> too much userspace uses it. Introducing a mess in /sys/ in parallel just
-> for following the mantra does not help much.
+C plain-WWC
 
-Again, invalid mantra, not a valid reason :)
+{}
 
-I think this is a patchset in search of a problem, which is why it was
-dropped all those years ago...
+P0(int *x)
+{
+	WRITE_ONCE(*x, 2);
+}
 
-thanks,
+P1(int *x, int *y)
+{
+	int r1;
+	int r2;
+	int r3;
 
-greg k-h
+	r1 = READ_ONCE(*x);
+	if (r1 == 2) {
+		smp_rmb();
+		r2 = *x;
+	}
+	smp_rmb();
+	r3 = READ_ONCE(*x);
+	WRITE_ONCE(*y, r3 - 1);
+}
+
+P2(int *x, int *y)
+{
+	int r4;
+
+	r4 = READ_ONCE(*y);
+	if (r4 > 0)
+		WRITE_ONCE(*x, 1);
+}
+
+exists (x=2 /\ 1:r2=2 /\ 2:r4=1)
+
+The memory model says that the plain read of *x in P1 races with the
+WRITE_ONCE(*x) in P2.
+
+The problem is that we have a write W and a read R related by neither
+fre or rfe, but rather W ->coe W' ->rfe R, where W' is an intermediate
+write (the WRITE_ONCE() in P0).  In this situation there is no
+particular ordering between W and R, so either a wr-vis link from W to
+R or an rw-xbstar link from R to W would prove that the accesses
+aren't concurrent.
+
+But the LKMM only looks for a wr-vis link, which is equivalent to
+assuming that W must execute before R.  This is not necessarily true
+on non-multicopy-atomic systems, as the WWC pattern demonstrates.
+
+This patch changes the LKMM to accept either a wr-vis or a reverse
+rw-xbstar link as a proof of non-concurrency.
+
+Signed-off-by: Alan Stern <stern@rowland.harvard.edu>
+Acked-by: Andrea Parri <parri.andrea@gmail.com>
+Signed-off-by: Paul E. McKenney <paulmck@kernel.org>
+Signed-off-by: Sasha Levin <sashal@kernel.org>
+---
+ tools/memory-model/linux-kernel.cat | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/tools/memory-model/linux-kernel.cat b/tools/memory-model/linux-kernel.cat
+index ea2ff4b940749..2a9b4fe4a84eb 100644
+--- a/tools/memory-model/linux-kernel.cat
++++ b/tools/memory-model/linux-kernel.cat
+@@ -197,7 +197,7 @@ empty (wr-incoh | rw-incoh | ww-incoh) as plain-coherence
+ (* Actual races *)
+ let ww-nonrace = ww-vis & ((Marked * W) | rw-xbstar) & ((W * Marked) | wr-vis)
+ let ww-race = (pre-race & co) \ ww-nonrace
+-let wr-race = (pre-race & (co? ; rf)) \ wr-vis
++let wr-race = (pre-race & (co? ; rf)) \ wr-vis \ rw-xbstar^-1
+ let rw-race = (pre-race & fr) \ rw-xbstar
+ 
+ flag ~empty (ww-race | wr-race | rw-race) as data-race
+-- 
+2.20.1
