@@ -1,102 +1,68 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bilbo.ozlabs.org ([203.11.71.1]:35845 "EHLO ozlabs.org"
+Received: from pegase1.c-s.fr ([93.17.236.30]:29864 "EHLO pegase1.c-s.fr"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1725857AbfLJFjG (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 10 Dec 2019 00:39:06 -0500
-From: Michael Ellerman <mpe@ellerman.id.au>
-Subject: Re: [GIT PULL] Please pull powerpc/linux.git powerpc-5.5-2 tag (topic/kasan-bitops)
-In-Reply-To: <20191206131650.GM2827@hirez.programming.kicks-ass.net>
-References: <87blslei5o.fsf@mpe.ellerman.id.au> <20191206131650.GM2827@hirez.programming.kicks-ass.net>
-Date: Tue, 10 Dec 2019 16:38:54 +1100
-Message-ID: <87wob4pwnl.fsf@mpe.ellerman.id.au>
+        id S1726819AbfLJGfS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 10 Dec 2019 01:35:18 -0500
+Subject: Re: [PATCH v2 1/4] mm: define MAX_PTRS_PER_{PTE,PMD,PUD}
+References: <20191210044714.27265-1-dja@axtens.net>
+ <20191210044714.27265-2-dja@axtens.net>
+From: Christophe Leroy <christophe.leroy@c-s.fr>
+Message-ID: <80f340f2-0323-8092-7e6d-c93b26fb7cf7@c-s.fr>
+Date: Tue, 10 Dec 2019 07:35:15 +0100
 MIME-Version: 1.0
-Content-Type: text/plain
+In-Reply-To: <20191210044714.27265-2-dja@axtens.net>
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Language: fr
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, dja@axtens.net, elver@google.com, linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, christophe.leroy@c-s.fr, linux-s390@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org, kasan-dev@googlegroups.com, Will Deacon <will@kernel.org>, Mark Rutland <mark.rutland@arm.com>
-Message-ID: <20191210053854.WAW2JCJzjALLpDhF1N_vMYPsvdGauZwf6EOsT-cVwT4@z>
+To: Daniel Axtens <dja@axtens.net>, linux-kernel@vger.kernel.org, linux-mm@kvack.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, kasan-dev@googlegroups.com, aneesh.kumar@linux.ibm.com, bsingharora@gmail.com
+Message-ID: <20191210063515.g8t1qJ5BkmYJ2Oj3M6CHwHS4ZPLCt0SLz71lQQSDajE@z>
 
-Peter Zijlstra <peterz@infradead.org> writes:
-> On Fri, Dec 06, 2019 at 11:46:11PM +1100, Michael Ellerman wrote:
->> -----BEGIN PGP SIGNED MESSAGE-----
->> Hash: SHA256
->> 
->> Hi Linus,
->> 
->> Please pull another powerpc update for 5.5.
->> 
->> As you'll see from the diffstat this is mostly not powerpc code. In order to do
->> KASAN instrumentation of bitops we needed to juggle some of the generic bitops
->> headers.
->> 
->> Because those changes potentially affect several architectures I wasn't
->> confident putting them directly into my tree, so I've had them sitting in a
->> topic branch. That branch (topic/kasan-bitops) has been in linux-next for a
->> month, and I've not had any feedback that it's caused any problems.
->> 
->> So I think this is good to merge, but it's a standalone pull so if anyone does
->> object it's not a problem.
->
-> No objections, but here:
->
->   https://git.kernel.org/pub/scm/linux/kernel/git/powerpc/linux.git/commit/?h=topic/kasan-bitops&id=81d2c6f81996e01fbcd2b5aeefbb519e21c806e9
->
-> you write:
->
->   "Currently bitops-instrumented.h assumes that the architecture provides
-> atomic, non-atomic and locking bitops (e.g. both set_bit and __set_bit).
-> This is true on x86 and s390, but is not always true: there is a
-> generic bitops/non-atomic.h header that provides generic non-atomic
-> operations, and also a generic bitops/lock.h for locking operations."
->
-> Is there any actual benefit for PPC to using their own atomic bitops
-> over bitops/lock.h ? I'm thinking that the generic code is fairly
-> optimal for most LL/SC architectures.
 
-Good question, I'll have a look.
 
-There seems to be confusion about what the type of the bit number is,
-which is leading to sign extension in some cases and not others.
+Le 10/12/2019 à 05:47, Daniel Axtens a écrit :
+> powerpc has boot-time configurable PTRS_PER_PTE, PMD and PUD. The
+> values are selected based on the MMU under which the kernel is
+> booted. This is much like how 4 vs 5-level paging on x86_64 leads to
+> boot-time configurable PTRS_PER_P4D.
+> 
+> So far, this hasn't leaked out of arch/powerpc. But with KASAN, we
+> have static arrays based on PTRS_PER_*, so for powerpc support must
+> provide constant upper bounds for generic code.
+> 
+> Define MAX_PTRS_PER_{PTE,PMD,PUD} for this purpose.
+> 
+> I have configured these constants:
+>   - in asm-generic headers
+>   - on arches that implement KASAN: x86, s390, arm64, xtensa and powerpc
 
-eg, comparing the generic clear_bit_unlock() vs ours:
+I think we shoud avoid spreading default values all over the place when 
+all arches but one uses the default.
 
- 1 c000000000031890 <generic_clear_bit_unlock>:             1 c0000000000319a0 <ppc_clear_bit_unlock>:
-                                                            2         extsw   r3,r3
-                                                            3         li      r10,1
-                                                            4         srawi   r9,r3,6
-                                                            5         addze   r9,r9
-                                                            6         rlwinm  r8,r9,6,0,25
-                                                            7         extsw   r9,r9
-                                                            8         subf    r3,r8,r3
- 2         rlwinm  r9,r3,29,3,28                            9         rldicr  r9,r9,3,60
-                                                           10         sld     r3,r10,r3
- 3         add     r4,r4,r9                                11         add     r4,r4,r9
- 4         lwsync                                          12         lwsync
- 5         li      r9,-2
- 6         clrlwi  r3,r3,26
- 7         rotld   r3,r9,r3
- 8         ldarx   r9,0,r4                                 13         ldarx   r9,0,r4
- 9         and     r10,r3,r9                               14         andc    r9,r9,r3
-10         stdcx.  r10,0,r4                                15         stdcx.  r9,0,r4
-11         bne-    <generic_clear_bit_unlock+0x18>         16         bne-    <ppc_clear_bit_unlock+0x2c>
-12         blr                                             17         blr
+I would drop this patch 1, squash the powerpc part of it in the last 
+patch, and define defaults in patch 2, see my comments there.
 
-It looks like in actual usage it often doesn't matter, ie. when we pass
-a constant bit number it all gets inlined and the compiler works it out.
+> 
+> I haven't wired up any other arches just yet - there is no user of
+> the constants outside of the KASAN code I add in the next patch, so
+> missing the constants on arches that don't support KASAN shouldn't
+> break anything.
+> 
+> Suggested-by: Christophe Leroy <christophe.leroy@c-s.fr>
+> Signed-off-by: Daniel Axtens <dja@axtens.net>
+> ---
+>   arch/arm64/include/asm/pgtable-hwdef.h       | 3 +++
+>   arch/powerpc/include/asm/book3s/64/hash.h    | 4 ++++
+>   arch/powerpc/include/asm/book3s/64/pgtable.h | 7 +++++++
+>   arch/powerpc/include/asm/book3s/64/radix.h   | 5 +++++
+>   arch/s390/include/asm/pgtable.h              | 3 +++
+>   arch/x86/include/asm/pgtable_types.h         | 5 +++++
+>   arch/xtensa/include/asm/pgtable.h            | 1 +
+>   include/asm-generic/pgtable-nop4d-hack.h     | 9 +++++----
+>   include/asm-generic/pgtable-nopmd.h          | 9 +++++----
+>   include/asm-generic/pgtable-nopud.h          | 9 +++++----
+>   10 files changed, 43 insertions(+), 12 deletions(-)
+> 
 
-It looks like the type should be unsigned long?
-
-  Documentation/core-api/atomic_ops.rst:  void __clear_bit_unlock(unsigned long nr, unsigned long *addr);
-  arch/mips/include/asm/bitops.h:static inline void __clear_bit_unlock(unsigned long nr, volatile unsigned long *addr)
-  arch/powerpc/include/asm/bitops.h:static inline void arch___clear_bit_unlock(int nr, volatile unsigned long *addr)
-  arch/riscv/include/asm/bitops.h:static inline void __clear_bit_unlock(unsigned long nr, volatile unsigned long *addr)
-  arch/s390/include/asm/bitops.h:static inline void arch___clear_bit_unlock(unsigned long nr,
-  include/asm-generic/bitops/instrumented-lock.h:static inline void __clear_bit_unlock(long nr, volatile unsigned long *addr)
-  include/asm-generic/bitops/lock.h:static inline void __clear_bit_unlock(unsigned int nr,
-
-So I guess step one is to convert our versions to use unsigned long, so
-we're at least not tripping over that difference when comparing the
-assembly.
-
-cheers
+Christophe
