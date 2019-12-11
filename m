@@ -1,80 +1,55 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:55114 "EHLO
-        merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1729453AbfLKMcE (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 11 Dec 2019 07:32:04 -0500
-Message-ID: <20191211122956.169764611@infradead.org>
-Date: Wed, 11 Dec 2019 13:07:22 +0100
+Received: from bombadil.infradead.org ([198.137.202.133]:51092 "EHLO
+        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1729345AbfLKMbc (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 11 Dec 2019 07:31:32 -0500
+Message-ID: <20191211122955.711253433@infradead.org>
+Date: Wed, 11 Dec 2019 13:07:14 +0100
 From: Peter Zijlstra <peterz@infradead.org>
-Subject: [PATCH 09/17] sh/tlb: Fix __pmd_free_tlb()
+Subject: [PATCH 01/17] sh/tlb: Fix PGTABLE_LEVELS > 2
 References: <20191211120713.360281197@infradead.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Will Deacon <will@kernel.org>, "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, Nick Piggin <npiggin@gmail.com>, Peter Zijlstra <peterz@infradead.org>
-Cc: linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, "David S. Miller" <davem@davemloft.net>, Helge Deller <deller@gmx.de>, Geert Uytterhoeven <geert@linux-m68k.org>, Paul Burton <paulburton@kernel.org>, Tony Luck <tony.luck@intel.com>, Richard Henderson <rth@twiddle.net>, Nick Hu <nickhu@andestech.com>, Paul Walmsley <paul.walmsley@sifive.com>
-Message-ID: <20191211120722._rsG4KksA8oQv76i2g7bSCmZXPGkhZnVThRoTeUSW-s@z>
+Cc: linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, "David S. Miller" <davem@davemloft.net>, Helge Deller <deller@gmx.de>, Geert Uytterhoeven <geert@linux-m68k.org>, Paul Burton <paulburton@kernel.org>, Tony Luck <tony.luck@intel.com>, Richard Henderson <rth@twiddle.net>, Nick Hu <nickhu@andestech.com>, Paul Walmsley <paul.walmsley@sifive.com>, Geert Uytterhoeven <geert+renesas@glider.be>
+Message-ID: <20191211120714.68Mlim9Oj5avxw9_qugSqkiqrECwwOuM8NMFlQb6x1c@z>
 
-SH violates the freeing order for it's PMD page directories. It's
-__pmd_free_tlb() does not ensure there is a TLB invalidation between
-itself and the eventualy freeing of the page.
+Geert reported that his SH7722-based Migo-R board failed to boot after
+commit:
 
-Further complicating the situation is that SH uses non page based
-allocation for it's PMDs.
+  c5b27a889da9 ("sh/tlb: Convert SH to generic mmu_gather")
 
-Use the shiny new HAVE_TABLE_FREE option to enable a custom page table
-freeer.
+That commit fell victim to copying the wrong pattern --
+__pmd_free_tlb() used to be implemented with pmd_free().
 
-(SuperH uses IPI based TLB invalidation and therefore doesn't need
-HAVE_RCU_TABLE_FREE for its HAVE_FAST_GUP).
-
+Fixes: c5b27a889da9 ("sh/tlb: Convert SH to generic mmu_gather")
+Reported-by: Geert Uytterhoeven <geert@linux-m68k.org>
 Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+Tested-by: Geert Uytterhoeven <geert+renesas@glider.be>
 ---
- arch/sh/Kconfig               |    1 +
- arch/sh/include/asm/pgalloc.h |    3 ++-
- arch/sh/mm/pgtable.c          |    6 ++++++
- 3 files changed, 9 insertions(+), 1 deletion(-)
-
---- a/arch/sh/Kconfig
-+++ b/arch/sh/Kconfig
-@@ -15,6 +15,7 @@ config SUPERH
- 	select HAVE_PERF_EVENTS
- 	select HAVE_DEBUG_BUGVERBOSE
- 	select HAVE_FAST_GUP if MMU
-+	select MMU_GATHER_TABLE_FREE if X2TLB
- 	select ARCH_HAVE_CUSTOM_GPIO_H
- 	select ARCH_HAVE_NMI_SAFE_CMPXCHG if (GUSA_RB || CPU_SH4A)
- 	select ARCH_HAS_GCOV_PROFILE_ALL
 --- a/arch/sh/include/asm/pgalloc.h
 +++ b/arch/sh/include/asm/pgalloc.h
-@@ -12,7 +12,8 @@ extern void pgd_free(struct mm_struct *m
+@@ -12,6 +12,7 @@ extern void pgd_free(struct mm_struct *m
  extern void pud_populate(struct mm_struct *mm, pud_t *pudp, pmd_t *pmd);
  extern pmd_t *pmd_alloc_one(struct mm_struct *mm, unsigned long address);
  extern void pmd_free(struct mm_struct *mm, pmd_t *pmd);
--#define __pmd_free_tlb(tlb, pmdp, addr)		pmd_free((tlb)->mm, (pmdp))
-+extern void __tlb_remove_table(void *table);
-+#define __pmd_free_tlb(tlb, pmdp, addr)	tlb_remove_table((tlb), (pmdp))
++#define __pmd_free_tlb(tlb, pmdp, addr)		pmd_free((tlb)->mm, (pmdp))
  #endif
  
  static inline void pmd_populate_kernel(struct mm_struct *mm, pmd_t *pmd,
---- a/arch/sh/mm/pgtable.c
-+++ b/arch/sh/mm/pgtable.c
-@@ -1,6 +1,7 @@
- // SPDX-License-Identifier: GPL-2.0
- #include <linux/mm.h>
- #include <linux/slab.h>
-+#include <asm/pgalloc.h>
+@@ -33,13 +34,4 @@ do {							\
+ 	tlb_remove_page((tlb), (pte));			\
+ } while (0)
  
- #define PGALLOC_GFP GFP_KERNEL | __GFP_ZERO
- 
-@@ -55,4 +56,9 @@ void pmd_free(struct mm_struct *mm, pmd_
- {
- 	kmem_cache_free(pmd_cachep, pmd);
- }
-+
-+void __tlb_remove_table(void *table)
-+{
-+	pmd_free(NULL, table);
-+}
- #endif /* PAGETABLE_LEVELS > 2 */
+-#if CONFIG_PGTABLE_LEVELS > 2
+-#define __pmd_free_tlb(tlb, pmdp, addr)			\
+-do {							\
+-	struct page *page = virt_to_page(pmdp);		\
+-	pgtable_pmd_page_dtor(page);			\
+-	tlb_remove_page((tlb), page);			\
+-} while (0);
+-#endif
+-
+ #endif /* __ASM_SH_PGALLOC_H */
