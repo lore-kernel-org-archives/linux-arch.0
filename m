@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:43006 "EHLO foss.arm.com"
+Received: from foss.arm.com ([217.140.110.172]:43114 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1728128AbfLKSkj (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 11 Dec 2019 13:40:39 -0500
+        id S1726242AbfLKSkx (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 11 Dec 2019 13:40:53 -0500
 From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: [PATCH 01/22] mm: Reserve asm-generic prot flags 0x10 and 0x20 for arch use
-Date: Wed, 11 Dec 2019 18:40:06 +0000
-Message-ID: <20191211184027.20130-2-catalin.marinas@arm.com>
+Subject: [PATCH 09/22] arm64: mte: Tags-aware clear_page() implementation
+Date: Wed, 11 Dec 2019 18:40:14 +0000
+Message-ID: <20191211184027.20130-10-catalin.marinas@arm.com>
 In-Reply-To: <20191211184027.20130-1-catalin.marinas@arm.com>
 References: <20191211184027.20130-1-catalin.marinas@arm.com>
 MIME-Version: 1.0
@@ -14,37 +14,47 @@ Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arm-kernel@lists.infradead.org
-Cc: Will Deacon <will@kernel.org>, Marc Zyngier <maz@kernel.org>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Richard Earnshaw <Richard.Earnshaw@arm.com>, Kevin Brodsky <kevin.brodsky@arm.com>, Andrey Konovalov <andreyknvl@google.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, Dave Martin <Dave.Martin@arm.com>, Arnd Bergmann <arnd@arndb.de>
-Message-ID: <20191211184006.M2MJyBTPCozZ_POEwgsBzbbNqddi77X0CrTwQZa3dJA@z>
+Cc: Will Deacon <will@kernel.org>, Marc Zyngier <maz@kernel.org>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Richard Earnshaw <Richard.Earnshaw@arm.com>, Kevin Brodsky <kevin.brodsky@arm.com>, Andrey Konovalov <andreyknvl@google.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org
+Message-ID: <20191211184014.xJnQIKiI4dtOgX0DUN548rHrc0tK_qIhmh7YieJWq6I@z>
 
-From: Dave Martin <Dave.Martin@arm.com>
+From: Vincenzo Frascino <vincenzo.frascino@arm.com>
 
-The asm-generic/mman.h definitions are used by a few architectures that
-also define arch-specific PROT flags with value 0x10 and 0x20. This
-currently applies to sparc and powerpc for 0x10, while arm64 will soon
-join with 0x10 and 0x20.
+When the Memory Tagging Extension is enabled, the tags need to be set to
+zero a page is cleared as they are visible to the user.
 
-To help future maintainers, document the use of this flag in the
-asm-generic header too.
+Introduce an MTE-aware clear_page() which clears the tags in addition to
+data.
 
-Cc: Arnd Bergmann <arnd@arndb.de>
-Signed-off-by: Dave Martin <Dave.Martin@arm.com>
-[catalin.marinas@arm.com: reserve 0x20 as well]
+Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
+Co-developed-by: Catalin Marinas <catalin.marinas@arm.com>
 Signed-off-by: Catalin Marinas <catalin.marinas@arm.com>
 ---
- include/uapi/asm-generic/mman-common.h | 2 ++
- 1 file changed, 2 insertions(+)
+ arch/arm64/lib/clear_page.S | 7 +++++--
+ 1 file changed, 5 insertions(+), 2 deletions(-)
 
-diff --git a/include/uapi/asm-generic/mman-common.h b/include/uapi/asm-generic/mman-common.h
-index c160a5354eb6..f94f65d429be 100644
---- a/include/uapi/asm-generic/mman-common.h
-+++ b/include/uapi/asm-generic/mman-common.h
-@@ -11,6 +11,8 @@
- #define PROT_WRITE	0x2		/* page can be written */
- #define PROT_EXEC	0x4		/* page can be executed */
- #define PROT_SEM	0x8		/* page may be used for atomic ops */
-+/*			0x10		   reserved for arch-specific use */
-+/*			0x20		   reserved for arch-specific use */
- #define PROT_NONE	0x0		/* page can not be accessed */
- #define PROT_GROWSDOWN	0x01000000	/* mprotect flag: extend change to start of growsdown vma */
- #define PROT_GROWSUP	0x02000000	/* mprotect flag: extend change to end of growsup vma */
+diff --git a/arch/arm64/lib/clear_page.S b/arch/arm64/lib/clear_page.S
+index 78a9ef66288a..575cea03f68a 100644
+--- a/arch/arm64/lib/clear_page.S
++++ b/arch/arm64/lib/clear_page.S
+@@ -5,7 +5,9 @@
+ 
+ #include <linux/linkage.h>
+ #include <linux/const.h>
++#include <asm/alternative.h>
+ #include <asm/assembler.h>
++#include <asm/cpufeature.h>
+ #include <asm/page.h>
+ 
+ /*
+@@ -19,8 +21,9 @@ ENTRY(clear_page)
+ 	and	w1, w1, #0xf
+ 	mov	x2, #4
+ 	lsl	x1, x2, x1
+-
+-1:	dc	zva, x0
++1:
++alternative_insn "dc zva, x0", "stzgm xzr, [x0]", \
++			 ARM64_MTE, IS_ENABLED(CONFIG_ARM64_MTE), 1
+ 	add	x0, x0, x1
+ 	tst	x0, #(PAGE_SIZE - 1)
+ 	b.ne	1b
