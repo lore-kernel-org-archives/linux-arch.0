@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:43256 "EHLO foss.arm.com"
+Received: from foss.arm.com ([217.140.110.172]:43162 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726411AbfLKSlP (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 11 Dec 2019 13:41:15 -0500
+        id S1729879AbfLKSlA (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 11 Dec 2019 13:41:00 -0500
 From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: [PATCH 22/22] arm64: mte: Add Memory Tagging Extension documentation
-Date: Wed, 11 Dec 2019 18:40:27 +0000
-Message-ID: <20191211184027.20130-23-catalin.marinas@arm.com>
+Subject: [PATCH 13/22] arm64: mte: Handle synchronous and asynchronous tag check faults
+Date: Wed, 11 Dec 2019 18:40:18 +0000
+Message-ID: <20191211184027.20130-14-catalin.marinas@arm.com>
 In-Reply-To: <20191211184027.20130-1-catalin.marinas@arm.com>
 References: <20191211184027.20130-1-catalin.marinas@arm.com>
 MIME-Version: 1.0
@@ -15,306 +15,165 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arm-kernel@lists.infradead.org
 Cc: Will Deacon <will@kernel.org>, Marc Zyngier <maz@kernel.org>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Richard Earnshaw <Richard.Earnshaw@arm.com>, Kevin Brodsky <kevin.brodsky@arm.com>, Andrey Konovalov <andreyknvl@google.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org
-Message-ID: <20191211184027.aarxGySOwmxpgCx4qBJJqeTPEg_ewDQX1FAJ2jl4CcI@z>
+Message-ID: <20191211184018.Uj6Jv_beTWyGsxzOray_iUTjRghrp_EVxdKakd1B9FQ@z>
 
 From: Vincenzo Frascino <vincenzo.frascino@arm.com>
 
-Memory Tagging Extension (part of the ARMv8.5 Extensions) provides
-a mechanism to detect the sources of memory related errors which
-may be vulnerable to exploitation, including bounds violations,
-use-after-free, use-after-return, use-out-of-scope and use before
-initialization errors.
+The Memory Tagging Extension has two modes of notifying a tag check
+fault at EL0, configurable through the SCTLR_EL1.TCF0 field:
 
-Add Memory Tagging Extension documentation for the arm64 linux
-kernel support.
+1. Synchronous raising of a Data Abort exception with DFSC 17.
+2. Asynchronous setting of a cumulative bit in TFSRE0_EL1.
+
+Add the exception handler for the synchronous exception and handling of
+the asynchronous TFSRE0_EL1.TF0 bit setting via a new TIF flag in
+do_notify_resume().
 
 Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
 Co-developed-by: Catalin Marinas <catalin.marinas@arm.com>
 Signed-off-by: Catalin Marinas <catalin.marinas@arm.com>
 ---
- Documentation/arm64/cpu-feature-registers.rst |   4 +
- Documentation/arm64/elf_hwcaps.rst            |   4 +
- Documentation/arm64/index.rst                 |   1 +
- .../arm64/memory-tagging-extension.rst        | 229 ++++++++++++++++++
- 4 files changed, 238 insertions(+)
- create mode 100644 Documentation/arm64/memory-tagging-extension.rst
+ arch/arm64/include/asm/thread_info.h |  4 +++-
+ arch/arm64/kernel/entry.S            | 17 +++++++++++++++++
+ arch/arm64/kernel/process.c          |  7 +++++++
+ arch/arm64/kernel/signal.c           |  8 ++++++++
+ arch/arm64/mm/fault.c                |  9 ++++++++-
+ 5 files changed, 43 insertions(+), 2 deletions(-)
 
-diff --git a/Documentation/arm64/cpu-feature-registers.rst b/Documentation/arm64/cpu-feature-registers.rst
-index b6e44884e3ad..67305a5f613a 100644
---- a/Documentation/arm64/cpu-feature-registers.rst
-+++ b/Documentation/arm64/cpu-feature-registers.rst
-@@ -172,8 +172,12 @@ infrastructure:
-      +------------------------------+---------+---------+
-      | Name                         |  bits   | visible |
-      +------------------------------+---------+---------+
-+     | MTE                          | [11-8]  |    y    |
-+     +------------------------------+---------+---------+
-      | SSBS                         | [7-4]   |    y    |
-      +------------------------------+---------+---------+
-+     | BT                           | [3-0]   |    n    |
-+     +------------------------------+---------+---------+
+diff --git a/arch/arm64/include/asm/thread_info.h b/arch/arm64/include/asm/thread_info.h
+index f0cec4160136..f759a0215a71 100644
+--- a/arch/arm64/include/asm/thread_info.h
++++ b/arch/arm64/include/asm/thread_info.h
+@@ -63,6 +63,7 @@ void arch_release_task_struct(struct task_struct *tsk);
+ #define TIF_FOREIGN_FPSTATE	3	/* CPU's FP state is not current's */
+ #define TIF_UPROBE		4	/* uprobe breakpoint or singlestep */
+ #define TIF_FSCHECK		5	/* Check FS is USER_DS on return */
++#define TIF_MTE_ASYNC_FAULT	6	/* MTE Asynchronous Tag Check Fault */
+ #define TIF_NOHZ		7
+ #define TIF_SYSCALL_TRACE	8	/* syscall trace active */
+ #define TIF_SYSCALL_AUDIT	9	/* syscall auditing */
+@@ -93,10 +94,11 @@ void arch_release_task_struct(struct task_struct *tsk);
+ #define _TIF_FSCHECK		(1 << TIF_FSCHECK)
+ #define _TIF_32BIT		(1 << TIF_32BIT)
+ #define _TIF_SVE		(1 << TIF_SVE)
++#define _TIF_MTE_ASYNC_FAULT	(1 << TIF_MTE_ASYNC_FAULT)
  
+ #define _TIF_WORK_MASK		(_TIF_NEED_RESCHED | _TIF_SIGPENDING | \
+ 				 _TIF_NOTIFY_RESUME | _TIF_FOREIGN_FPSTATE | \
+-				 _TIF_UPROBE | _TIF_FSCHECK)
++				 _TIF_UPROBE | _TIF_FSCHECK | _TIF_MTE_ASYNC_FAULT)
  
-   4) MIDR_EL1 - Main ID Register
-diff --git a/Documentation/arm64/elf_hwcaps.rst b/Documentation/arm64/elf_hwcaps.rst
-index 7fa3d215ae6a..0f52d22c28af 100644
---- a/Documentation/arm64/elf_hwcaps.rst
-+++ b/Documentation/arm64/elf_hwcaps.rst
-@@ -204,6 +204,10 @@ HWCAP2_FRINT
+ #define _TIF_SYSCALL_WORK	(_TIF_SYSCALL_TRACE | _TIF_SYSCALL_AUDIT | \
+ 				 _TIF_SYSCALL_TRACEPOINT | _TIF_SECCOMP | \
+diff --git a/arch/arm64/kernel/entry.S b/arch/arm64/kernel/entry.S
+index 7c6a0a41676f..c221a539e61d 100644
+--- a/arch/arm64/kernel/entry.S
++++ b/arch/arm64/kernel/entry.S
+@@ -144,6 +144,22 @@ alternative_cb_end
+ #endif
+ 	.endm
  
-     Functionality implied by ID_AA64ISAR1_EL1.FRINTTS == 0b0001.
++	// Check for MTE asynchronous tag check faults
++	.macro check_mte_async_tcf, flgs, tmp
++#ifdef CONFIG_ARM64_MTE
++alternative_if_not ARM64_MTE
++	b	1f
++alternative_else_nop_endif
++	mrs_s	\tmp, SYS_TFSRE0_EL1
++	tbz	\tmp, #SYS_TFSR_EL1_TF0_SHIFT, 1f
++	// Asynchronous TCF occurred at EL0, set the TI flag
++	orr	\flgs, \flgs, #_TIF_MTE_ASYNC_FAULT
++	str	\flgs, [tsk, #TSK_TI_FLAGS]
++	msr_s	SYS_TFSRE0_EL1, xzr
++1:
++#endif
++	.endm
++
+ 	.macro	kernel_entry, el, regsize = 64
+ 	.if	\regsize == 32
+ 	mov	w0, w0				// zero upper 32 bits of x0
+@@ -171,6 +187,7 @@ alternative_cb_end
+ 	ldr	x19, [tsk, #TSK_TI_FLAGS]	// since we can unmask debug
+ 	disable_step_tsk x19, x20		// exceptions when scheduling.
  
-+HWCAP2_MTE
-+
-+    Functionality implied by ID_AA64PFR1_EL1.MTE == 0b0010.
-+    Documentation/arm64/memory-tagging-extension.rst.
++	check_mte_async_tcf x19, x22
+ 	apply_ssbd 1, x22, x23
  
- 4. Unused AT_HWCAP bits
- -----------------------
-diff --git a/Documentation/arm64/index.rst b/Documentation/arm64/index.rst
-index 5c0c69dc58aa..82970c6d384f 100644
---- a/Documentation/arm64/index.rst
-+++ b/Documentation/arm64/index.rst
-@@ -13,6 +13,7 @@ ARM64 Architecture
-     hugetlbpage
-     legacy_instructions
-     memory
-+    memory-tagging-extension
-     pointer-authentication
-     silicon-errata
-     sve
-diff --git a/Documentation/arm64/memory-tagging-extension.rst b/Documentation/arm64/memory-tagging-extension.rst
-new file mode 100644
-index 000000000000..ae02f0771971
---- /dev/null
-+++ b/Documentation/arm64/memory-tagging-extension.rst
-@@ -0,0 +1,229 @@
-+===============================================
-+Memory Tagging Extension (MTE) in AArch64 Linux
-+===============================================
+ 	.else
+diff --git a/arch/arm64/kernel/process.c b/arch/arm64/kernel/process.c
+index 71f788cd2b18..dd98d539894e 100644
+--- a/arch/arm64/kernel/process.c
++++ b/arch/arm64/kernel/process.c
+@@ -317,12 +317,19 @@ static void flush_tagged_addr_state(void)
+ 		clear_thread_flag(TIF_TAGGED_ADDR);
+ }
+ 
++static void flush_mte_state(void)
++{
++	if (system_supports_mte())
++		clear_thread_flag(TIF_MTE_ASYNC_FAULT);
++}
 +
-+Authors: Vincenzo Frascino <vincenzo.frascino@arm.com>
-+         Catalin Marinas <catalin.marinas@arm.com>
+ void flush_thread(void)
+ {
+ 	fpsimd_flush_thread();
+ 	tls_thread_flush();
+ 	flush_ptrace_hw_breakpoint(current);
+ 	flush_tagged_addr_state();
++	flush_mte_state();
+ }
+ 
+ void release_thread(struct task_struct *dead_task)
+diff --git a/arch/arm64/kernel/signal.c b/arch/arm64/kernel/signal.c
+index dd2cdc0d5be2..41fae64af82a 100644
+--- a/arch/arm64/kernel/signal.c
++++ b/arch/arm64/kernel/signal.c
+@@ -730,6 +730,9 @@ static void setup_return(struct pt_regs *regs, struct k_sigaction *ka,
+ 	regs->regs[29] = (unsigned long)&user->next_frame->fp;
+ 	regs->pc = (unsigned long)ka->sa.sa_handler;
+ 
++	/* TCO (Tag Check Override) always cleared for signal handlers */
++	regs->pstate &= ~PSR_TCO_BIT;
 +
-+Date: 2019-11-29
+ 	if (ka->sa.sa_flags & SA_RESTORER)
+ 		sigtramp = ka->sa.sa_restorer;
+ 	else
+@@ -921,6 +924,11 @@ asmlinkage void do_notify_resume(struct pt_regs *regs,
+ 			if (thread_flags & _TIF_UPROBE)
+ 				uprobe_notify_resume(regs);
+ 
++			if (thread_flags & _TIF_MTE_ASYNC_FAULT) {
++				clear_thread_flag(TIF_MTE_ASYNC_FAULT);
++				force_signal_inject(SIGSEGV, SEGV_MTEAERR, 0);
++			}
 +
-+This document describes the provision of the Memory Tagging Extension
-+functionality in AArch64 Linux.
+ 			if (thread_flags & _TIF_SIGPENDING)
+ 				do_signal(regs);
+ 
+diff --git a/arch/arm64/mm/fault.c b/arch/arm64/mm/fault.c
+index 077b02a2d4d3..ef3bfa2bf2b1 100644
+--- a/arch/arm64/mm/fault.c
++++ b/arch/arm64/mm/fault.c
+@@ -660,6 +660,13 @@ static int do_sea(unsigned long addr, unsigned int esr, struct pt_regs *regs)
+ 	return 0;
+ }
+ 
++static int do_tag_check_fault(unsigned long addr, unsigned int esr,
++			      struct pt_regs *regs)
++{
++	do_bad_area(addr, esr, regs);
++	return 0;
++}
 +
-+Introduction
-+============
-+
-+ARMv8.5 based processors introduce the Memory Tagging Extension (MTE)
-+feature. MTE is built on top of the ARMv8.0 virtual address tagging TBI
-+(Top Byte Ignore) feature and allows software to access a 4-bit
-+allocation tag for each 16-byte granule in the physical address space.
-+Such memory range must be mapped with the Normal-Tagged memory
-+attribute. A logical tag is derived from bits 59-56 of the virtual
-+address used for the memory access. A CPU with MTE enabled will compare
-+the logical tag against the allocation tag and potentially raise an
-+exception on mismatch, subject to system registers configuration.
-+
-+Userspace Support
-+=================
-+
-+Memory Tagging Extension Linux support depends on AArch64 Tagged Address
-+ABI being enabled in the kernel. For more details on AArch64 Tagged
-+Address ABI refer to Documentation/arm64/tagged-address-abi.rst.
-+
-+When ``CONFIG_ARM64_MTE`` is selected and Memory Tagging Extension is
-+supported by the hardware, the kernel advertises the feature to
-+userspace via ``HWCAP2_MTE``.
-+
-+PROT_MTE
-+--------
-+
-+To access the allocation tags, a user process must enable the Tagged
-+memory attribute on an address range using a new ``prot`` flag for
-+``mmap()`` and ``mprotect()``:
-+
-+``PROT_MTE`` - Pages allow access to the MTE allocation tags.
-+
-+The allocation tag is set to 0 when such pages are first mapped in the
-+user address space and preserved on copy-on-write. ``MAP_SHARED`` is
-+supported and the allocation tags can be shared between processes.
-+
-+**Note**: ``PROT_MTE`` is only supported on ``MAP_ANONYMOUS`` and
-+RAM-based file mappings (``tmpfs``, ``memfd``). Passing it to other
-+types of mapping will result in ``-EINVAL`` returned by these system
-+calls.
-+
-+**Note**: The ``PROT_MTE`` flag (and corresponding memory type) cannot
-+be cleared by ``mprotect()``. If this is desirable, ``munmap()``
-+(followed by ``mmap()``) must be used.
-+
-+Tag Check Faults
-+----------------
-+
-+When ``PROT_MTE`` is enabled on an address range and a mismatch between
-+the logical and allocation tags occurs on access, there are three
-+configurable behaviours:
-+
-+- *Ignore* - This is the default mode. The CPU (and kernel) ignores the
-+  tag check fault.
-+
-+- *Synchronous* - The kernel raises a ``SIGSEGV`` synchronously, with
-+  ``.si_code = SEGV_MTESERR`` and ``.si_addr = <fault-address>``. The
-+  memory access is not performed.
-+
-+- *Asynchronous* - The kernel raises a ``SIGSEGV``, in the current
-+  thread, asynchronously following one or multiple tag check faults,
-+  with ``.si_code = SEGV_MTEAERR`` and ``.si_addr = 0``.
-+
-+**Note**: There are no *match-all* logical tags available for user
-+applications.
-+
-+The user can select the above modes, per thread, using the
-+``prctl(PR_SET_TAGGED_ADDR_CTRL, flags, 0, 0, 0)`` system call where
-+``flags`` contain one of the following values in the ``PR_MTE_TCF_MASK``
-+bit-field:
-+
-+- ``PR_MTE_TCF_NONE``  - *Ignore* tag check faults
-+- ``PR_MTE_TCF_SYNC``  - *Synchronous* tag check fault mode
-+- ``PR_MTE_TCF_ASYNC`` - *Asynchronous* tag check fault mode
-+
-+Tag checking can also be disabled for a user thread by setting the
-+``PSTATE.TCO`` bit with ``MSR TCO, #1``.
-+
-+**Note**: Signal handlers are always invoked with ``PSTATE.TCO = 0``,
-+irrespective of the interrupted context.
-+
-+**Note**: Kernel accesses to user memory (e.g. ``read()`` system call)
-+do not generate a tag check fault.
-+
-+Excluding Tags in the ``IRG``, ``ADDG`` and ``SUBG`` instructions
-+-----------------------------------------------------------------
-+
-+The architecture allows excluding certain tags to be randomly generated
-+via the ``GCR_EL1.Exclude`` register bit-field. This can be configured,
-+per thread, using the ``prctl(PR_SET_TAGGED_ADDR_CTRL, flags, 0, 0, 0)``
-+system call where ``flags`` contains the exclusion bitmap in the
-+``PR_MTE_EXCL_MASK`` bit-field.
-+
-+Example of correct usage
-+========================
-+
-+*MTE Example code*
-+
-+.. code-block:: c
-+
-+    /*
-+     * To be compiled with -march=armv8.5-a+memtag
-+     */
-+    #include <errno.h>
-+    #include <stdio.h>
-+    #include <stdlib.h>
-+    #include <unistd.h>
-+    #include <sys/auxv.h>
-+    #include <sys/mman.h>
-+    #include <sys/prctl.h>
-+
-+    /*
-+     * From arch/arm64/include/uapi/asm/hwcap.h
-+     */
-+    #define HWCAP2_MTE              (1 << 10)
-+
-+    /*
-+     * From arch/arm64/include/uapi/asm/mman.h
-+     */
-+    #define PROT_MTE                 0x20
-+
-+    /*
-+     * From include/uapi/linux/prctl.h
-+     */
-+    #define PR_SET_TAGGED_ADDR_CTRL 55
-+    #define PR_GET_TAGGED_ADDR_CTRL 56
-+    # define PR_TAGGED_ADDR_ENABLE  (1UL << 0)
-+    # define PR_MTE_TCF_SHIFT       1
-+    # define PR_MTE_TCF_NONE        (0UL << PR_MTE_TCF_SHIFT)
-+    # define PR_MTE_TCF_SYNC        (1UL << PR_MTE_TCF_SHIFT)
-+    # define PR_MTE_TCF_ASYNC       (2UL << PR_MTE_TCF_SHIFT)
-+    # define PR_MTE_TCF_MASK        (3UL << PR_MTE_TCF_SHIFT)
-+    # define PR_MTE_EXCL_SHIFT      3
-+    # define PR_MTE_EXCL_MASK       (0xffffUL << PR_MTE_EXCL_SHIFT)
-+
-+    /*
-+     * Insert a random logical tag into the given pointer.
-+     */
-+    #define insert_random_tag(ptr) ({                       \
-+            __u64 __val;                                    \
-+            asm("irg %0, %1" : "=r" (__val) : "r" (ptr));   \
-+            __val;                                          \
-+    })
-+
-+    /*
-+     * Set the allocation tag on the destination address.
-+     */
-+    #define set_tag(tag, addr) do {                                 \
-+            asm volatile("stg %0, [%1]" : : "r" (tag), "r" (addr)); \
-+    } while (0)
-+
-+    int main()
-+    {
-+            unsigned long *a;
-+            unsigned long page_sz = getpagesize();
-+            unsigned long hwcap2 = getauxval(AT_HWCAP2);
-+
-+            /* check if MTE is present */
-+            if (!(hwcap2 & HWCAP2_MTE))
-+                    return -1;
-+
-+            /*
-+             * Enable the tagged address ABI, synchronous MTE tag check faults and
-+             * exclude tag 0 from the randomly generated set.
-+             */
-+            if (prctl(PR_SET_TAGGED_ADDR_CTRL,
-+                      PR_TAGGED_ADDR_ENABLE | PR_MTE_TCF_SYNC | (1 << PR_MTE_EXCL_SHIFT),
-+                      0, 0, 0)) {
-+                    perror("prctl() failed");
-+                    return -1;
-+            }
-+
-+            a = mmap(0, page_sz, PROT_READ | PROT_WRITE,
-+                     MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
-+            if (a == MAP_FAILED) {
-+                    perror("mmap() failed");
-+                    return -1;
-+            }
-+
-+            /*
-+             * Enable MTE on the above anonymous mmap. The flag could be passed
-+             * directly to mmap() and skip this step.
-+             */
-+            if (mprotect(a, page_sz, PROT_READ | PROT_WRITE | PROT_MTE)) {
-+                    perror("mprotect() failed");
-+                    return -1;
-+            }
-+
-+            /* access with the default tag (0) */
-+            a[0] = 1;
-+            a[1] = 2;
-+
-+            printf("a[0] = %lu a[1] = %lu\n", a[0], a[1]);
-+
-+            /* set the logical and allocation tags */
-+            a = (unsigned long *)insert_random_tag(a);
-+            set_tag(a, a);
-+
-+            printf("%p\n", a);
-+
-+            /* non-zero tag access */
-+            a[0] = 3;
-+            printf("a[0] = %lu a[1] = %lu\n", a[0], a[1]);
-+
-+            /*
-+             * If MTE is enabled correctly the next instruction will generate an
-+             * exception.
-+             */
-+            printf("Expecting SIGSEGV...\n");
-+            a[2] = 0xdead;
-+
-+            /* this should not be printed in the PR_MTE_TCF_SYNC mode */
-+            printf("...done\n");
-+
-+            return 0;
-+    }
+ static const struct fault_info fault_info[] = {
+ 	{ do_bad,		SIGKILL, SI_KERNEL,	"ttbr address size fault"	},
+ 	{ do_bad,		SIGKILL, SI_KERNEL,	"level 1 address size fault"	},
+@@ -678,7 +685,7 @@ static const struct fault_info fault_info[] = {
+ 	{ do_page_fault,	SIGSEGV, SEGV_ACCERR,	"level 2 permission fault"	},
+ 	{ do_page_fault,	SIGSEGV, SEGV_ACCERR,	"level 3 permission fault"	},
+ 	{ do_sea,		SIGBUS,  BUS_OBJERR,	"synchronous external abort"	},
+-	{ do_bad,		SIGKILL, SI_KERNEL,	"unknown 17"			},
++	{ do_tag_check_fault,	SIGSEGV, SEGV_MTESERR,	"synchronous tag check fault"	},
+ 	{ do_bad,		SIGKILL, SI_KERNEL,	"unknown 18"			},
+ 	{ do_bad,		SIGKILL, SI_KERNEL,	"unknown 19"			},
+ 	{ do_sea,		SIGKILL, SI_KERNEL,	"level 0 (translation table walk)"	},
