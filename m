@@ -1,113 +1,86 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:35326 "EHLO foss.arm.com"
+Received: from foss.arm.com ([217.140.110.172]:35524 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S2388672AbfLKPmu (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 11 Dec 2019 10:42:50 -0500
+        id S2387912AbfLKPnG (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 11 Dec 2019 10:43:06 -0500
 From: Mark Brown <broonie@kernel.org>
-Subject: [PATCH v4 00/12] arm64: ARMv8.5-A: Branch Target Identification support
-Date: Wed, 11 Dec 2019 15:41:54 +0000
-Message-ID: <20191211154206.46260-1-broonie@kernel.org>
+Subject: [PATCH v4 07/12] arm64: BTI: Decode BYTPE bits when printing PSTATE
+Date: Wed, 11 Dec 2019 15:42:01 +0000
+Message-ID: <20191211154206.46260-8-broonie@kernel.org>
+In-Reply-To: <20191211154206.46260-1-broonie@kernel.org>
+References: <20191211154206.46260-1-broonie@kernel.org>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>
-Cc: Paul Elliott <paul.elliott@arm.com>, Peter Zijlstra <peterz@infradead.org>, Yu-cheng Yu <yu-cheng.yu@intel.com>, Amit Kachhap <amit.kachhap@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Marc Zyngier <maz@kernel.org>, Eugene Syromiatnikov <esyr@redhat.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, "H.J. Lu" <hjl.tools@gmail.com>, Andrew Jones <drjones@redhat.com>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Jann Horn <jannh@google.com>, Richard Henderson <richard.henderson@linaro.org>, =?UTF-8?q?Kristina=20Mart=C5=A1enko?= <kristina.martsenko@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Florian Weimer <fweimer@redhat.com>, Sudakshina Das <sudi.das@arm.com>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Mark Brown <broonie@kernel.org>
-Message-ID: <20191211154154.i8vv8Vd1Sjd-R_X8we4GATxP_pxZBrqyqHF5lQBbAx8@z>
+Cc: Paul Elliott <paul.elliott@arm.com>, Peter Zijlstra <peterz@infradead.org>, Yu-cheng Yu <yu-cheng.yu@intel.com>, Amit Kachhap <amit.kachhap@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Marc Zyngier <maz@kernel.org>, Eugene Syromiatnikov <esyr@redhat.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, "H.J. Lu" <hjl.tools@gmail.com>, Andrew Jones <drjones@redhat.com>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Jann Horn <jannh@google.com>, Richard Henderson <richard.henderson@linaro.org>, =?UTF-8?q?Kristina=20Mart=C5=A1enko?= <kristina.martsenko@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Florian Weimer <fweimer@redhat.com>, Sudakshina Das <sudi.das@arm.com>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Dave Martin <Dave.Martin@arm.com>, Mark Brown <broonie@kernel.org>
+Message-ID: <20191211154201.7FQnvm0yR-KIRo7bXhW9S7lz9B3u_hJc4xbuF1wjF3c@z>
 
-This patch implements support for ARMv8.5-A Branch Target Identification
-(BTI), which is a control flow integrity protection feature introduced
-as part of the ARMv8.5-A extensions.
+From: Dave Martin <Dave.Martin@arm.com>
 
-This is mainly a repost based on v5.5-rc1.
+The current code to print PSTATE symbolically when generating
+backtraces etc., does not include the BYTPE field used by Branch
+Target Identification.
 
-Changes:
+So, decode BYTPE and print it too.
 
-v4:
- - Dropped patch fixing existing documentation as it has already been merged.
- - Convert WARN_ON() to WARN_ON_ONCE() in "ELF: Add ELF program property
-   parsing support".
- - Added display of guarded pages to ptdump.
- - Updated for conversion of exception handling from assembler to C.
+In the interests of human-readability, print the classes of BTI
+matched.  The symbolic notation, BYTPE (PSTATE[11:10]) and
+permitted classes of subsequent instruction are:
 
-Notes:
+    -- (BTYPE=0b00): any insn
+    jc (BTYPE=0b01): BTI jc, BTI j, BTI c, PACIxSP
+    -c (BYTPE=0b10): BTI jc, BTI c, PACIxSP
+    j- (BTYPE=0b11): BTI jc, BTI j
 
- * GCC 9 can compile backwards-compatible BTI-enabled code with
-   -mbranch-protection=bti or -mbranch-protection=standard.
+Signed-off-by: Dave Martin <Dave.Martin@arm.com>
+Signed-off-by: Mark Brown <broonie@kernel.org>
+---
+ arch/arm64/kernel/process.c | 17 +++++++++++++++--
+ 1 file changed, 15 insertions(+), 2 deletions(-)
 
- * Binutils trunk supports the new ELF note, but this wasn't in a release
-   the last time I posted this series.  (The situation _might_ have changed
-   in the meantime...)
-
-   Creation of a BTI-enabled binary requires _everything_ linked in to
-   be BTI-enabled.  For now ld --force-bti can be used to override this,
-   but some things may break until the required C library support is in
-   place.
-
-   There is no straightforward way to mark a .s file as BTI-enabled:
-   scraping the output from gcc -S works as a quick hack for now.
-
-   readelf -n can be used to examing the program properties in an ELF
-   file.
-
- * Runtime mmap() and mprotect() can be used to enable BTI on a
-   page-by-page basis using the new PROT_BTI, but the code in the
-   affected pages still needs to be written or compiled to contain the
-   appopriate BTI landing pads.
-
-Dave Martin (11):
-  ELF: UAPI and Kconfig additions for ELF program properties
-  ELF: Add ELF program property parsing support
-  mm: Reserve asm-generic prot flag 0x10 for arch use
-  arm64: Basic Branch Target Identification support
-  elf: Allow arch to tweak initial mmap prot flags
-  arm64: elf: Enable BTI at exec based on ELF program properties
-  arm64: BTI: Decode BYTPE bits when printing PSTATE
-  arm64: unify native/compat instruction skipping
-  arm64: traps: Shuffle code to eliminate forward declarations
-  arm64: BTI: Reset BTYPE when skipping emulated instructions
-  KVM: arm64: BTI: Reset BTYPE when skipping emulated instructions
-
-Mark Brown (1):
-  arm64: mm: Display guarded pages in ptdump
-
- Documentation/arm64/cpu-feature-registers.rst |   2 +
- Documentation/arm64/elf_hwcaps.rst            |   4 +
- arch/arm64/Kconfig                            |  29 ++++
- arch/arm64/include/asm/cpucaps.h              |   3 +-
- arch/arm64/include/asm/cpufeature.h           |   6 +
- arch/arm64/include/asm/elf.h                  |  50 ++++++
- arch/arm64/include/asm/esr.h                  |   2 +-
- arch/arm64/include/asm/exception.h            |   1 +
- arch/arm64/include/asm/hwcap.h                |   1 +
- arch/arm64/include/asm/kvm_emulate.h          |   6 +-
- arch/arm64/include/asm/mman.h                 |  37 +++++
- arch/arm64/include/asm/pgtable-hwdef.h        |   1 +
- arch/arm64/include/asm/pgtable.h              |   2 +-
- arch/arm64/include/asm/ptrace.h               |   8 +
- arch/arm64/include/asm/sysreg.h               |   4 +
- arch/arm64/include/uapi/asm/hwcap.h           |   1 +
- arch/arm64/include/uapi/asm/mman.h            |   9 ++
- arch/arm64/include/uapi/asm/ptrace.h          |   1 +
- arch/arm64/kernel/cpufeature.c                |  33 ++++
- arch/arm64/kernel/cpuinfo.c                   |   1 +
- arch/arm64/kernel/entry-common.c              |  11 ++
- arch/arm64/kernel/process.c                   |  36 ++++-
- arch/arm64/kernel/ptrace.c                    |   2 +-
- arch/arm64/kernel/signal.c                    |  16 ++
- arch/arm64/kernel/syscall.c                   |  18 +++
- arch/arm64/kernel/traps.c                     | 127 +++++++--------
- arch/arm64/mm/dump.c                          |   5 +
- fs/Kconfig.binfmt                             |   6 +
- fs/binfmt_elf.c                               | 145 +++++++++++++++++-
- fs/compat_binfmt_elf.c                        |   4 +
- include/linux/elf.h                           |  43 ++++++
- include/linux/mm.h                            |   3 +
- include/uapi/asm-generic/mman-common.h        |   1 +
- include/uapi/linux/elf.h                      |  11 ++
- 34 files changed, 554 insertions(+), 75 deletions(-)
- create mode 100644 arch/arm64/include/asm/mman.h
- create mode 100644 arch/arm64/include/uapi/asm/mman.h
-
+diff --git a/arch/arm64/kernel/process.c b/arch/arm64/kernel/process.c
+index 37c508f409ac..e8eb70cd3fa0 100644
+--- a/arch/arm64/kernel/process.c
++++ b/arch/arm64/kernel/process.c
+@@ -211,6 +211,15 @@ void machine_restart(char *cmd)
+ 	while (1);
+ }
+ 
++#define bstr(suffix, str) [PSR_BTYPE_ ## suffix >> PSR_BTYPE_SHIFT] = str
++static const char *const btypes[] = {
++	bstr(NONE, "--"),
++	bstr(  JC, "jc"),
++	bstr(   C, "-c"),
++	bstr(  J , "j-")
++};
++#undef bstr
++
+ static void print_pstate(struct pt_regs *regs)
+ {
+ 	u64 pstate = regs->pstate;
+@@ -229,7 +238,10 @@ static void print_pstate(struct pt_regs *regs)
+ 			pstate & PSR_AA32_I_BIT ? 'I' : 'i',
+ 			pstate & PSR_AA32_F_BIT ? 'F' : 'f');
+ 	} else {
+-		printk("pstate: %08llx (%c%c%c%c %c%c%c%c %cPAN %cUAO)\n",
++		const char *btype_str = btypes[(pstate & PSR_BTYPE_MASK) >>
++					       PSR_BTYPE_SHIFT];
++
++		printk("pstate: %08llx (%c%c%c%c %c%c%c%c %cPAN %cUAO BTYPE=%s)\n",
+ 			pstate,
+ 			pstate & PSR_N_BIT ? 'N' : 'n',
+ 			pstate & PSR_Z_BIT ? 'Z' : 'z',
+@@ -240,7 +252,8 @@ static void print_pstate(struct pt_regs *regs)
+ 			pstate & PSR_I_BIT ? 'I' : 'i',
+ 			pstate & PSR_F_BIT ? 'F' : 'f',
+ 			pstate & PSR_PAN_BIT ? '+' : '-',
+-			pstate & PSR_UAO_BIT ? '+' : '-');
++			pstate & PSR_UAO_BIT ? '+' : '-',
++			btype_str);
+ 	}
+ }
+ 
 -- 
 2.20.1
