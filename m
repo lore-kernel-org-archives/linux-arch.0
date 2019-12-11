@@ -1,65 +1,88 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ozlabs.org ([203.11.71.1]:40799 "EHLO ozlabs.org"
+Received: from mail.kernel.org ([198.145.29.99]:57846 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1725999AbfLKA3X (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 10 Dec 2019 19:29:23 -0500
-From: Michael Ellerman <mpe@ellerman.id.au>
-Subject: Re: [GIT PULL] Please pull powerpc/linux.git powerpc-5.5-2 tag (topic/kasan-bitops)
-In-Reply-To: <20191210101545.GL2844@hirez.programming.kicks-ass.net>
-References: <87blslei5o.fsf@mpe.ellerman.id.au> <20191206131650.GM2827@hirez.programming.kicks-ass.net> <87wob4pwnl.fsf@mpe.ellerman.id.au> <20191210101545.GL2844@hirez.programming.kicks-ass.net>
-Date: Wed, 11 Dec 2019 11:29:16 +1100
-Message-ID: <87lfrjpuw3.fsf@mpe.ellerman.id.au>
-MIME-Version: 1.0
-Content-Type: text/plain
+        id S1726532AbfLKBr1 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 10 Dec 2019 20:47:27 -0500
+Date: Tue, 10 Dec 2019 17:47:26 -0800
+From: Andrew Morton <akpm@linux-foundation.org>
+Subject: Re: [PATCH v2] execve: warn if process starts with executable stack
+Message-ID: <20191210174726.101e434df59b6aec8a53cca1@linux-foundation.org>
+In-Reply-To: <20191208171918.GC19716@avx2>
+References: <20191208171918.GC19716@avx2>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, dja@axtens.net, elver@google.com, linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, christophe.leroy@c-s.fr, linux-s390@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org, kasan-dev@googlegroups.com, Will Deacon <will@kernel.org>, Mark Rutland <mark.rutland@arm.com>
-Message-ID: <20191211002916.Ffo4S6p5EoVkwlquiAWEB3XaNe3-6sZF26YaRtghUWI@z>
+To: Alexey Dobriyan <adobriyan@gmail.com>
+Cc: dan.carpenter@oracle.com, will@kernel.org, ebiederm@xmission.com, linux-arch@vger.kernel.org, security@kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20191211014726.rt8hiqs_SLQcsbG0HpF0Cd3BbuK1tkaVP7Mzruk611w@z>
 
-Peter Zijlstra <peterz@infradead.org> writes:
-> On Tue, Dec 10, 2019 at 04:38:54PM +1100, Michael Ellerman wrote:
->
->> Good question, I'll have a look.
->> 
->> There seems to be confusion about what the type of the bit number is,
->> which is leading to sign extension in some cases and not others.
->
-> Shiny.
->
->> It looks like the type should be unsigned long?
->
-> I'm thinking unsigned makes most sense, I mean, negative bit offsets
-> should 'work' but that's almost always guaranteed to be an out-of-bound
-> operation.
+On Sun, 8 Dec 2019 20:19:18 +0300 Alexey Dobriyan <adobriyan@gmail.com> wrote:
 
-Yeah I agree.
+> There were few episodes of silent downgrade to an executable stack over
+> years:
+> 
+> 1) linking innocent looking assembly file will silently add executable
+>    stack if proper linker options is not given as well:
+> 
+> 	$ cat f.S
+> 	.intel_syntax noprefix
+> 	.text
+> 	.globl f
+> 	f:
+> 	        ret
+> 
+> 	$ cat main.c
+> 	void f(void);
+> 	int main(void)
+> 	{
+> 	        f();
+> 	        return 0;
+> 	}
+> 
+> 	$ gcc main.c f.S
+> 	$ readelf -l ./a.out
+> 	  GNU_STACK      0x0000000000000000 0x0000000000000000 0x0000000000000000
+>                          0x0000000000000000 0x0000000000000000  RWE    0x10
+> 			 					 ^^^
+> 
+> 2) converting C99 nested function into a closure
+> https://nullprogram.com/blog/2019/11/15/
+> 
+> 	void intsort2(int *base, size_t nmemb, _Bool invert)
+> 	{
+> 	    int cmp(const void *a, const void *b)
+> 	    {
+> 	        int r = *(int *)a - *(int *)b;
+> 	        return invert ? -r : r;
+> 	    }
+> 	    qsort(base, nmemb, sizeof(*base), cmp);
+> 	}
+> 
+> will silently require stack trampolines while non-closure version will not.
+> 
+> Without doubt this behaviour is documented somewhere, add a warning so that
+> developers and users can at least notice. After so many years of x86_64 having
+> proper executable stack support it should not cause too many problems.
 
-> As to 'long' vs 'int', I'm not sure, 4G bits is a long bitmap. But I
-> suppose since the bitmap itself is 'unsigned long', we might as well use
-> 'unsigned long' for the bitnr too.
+hm, OK, let's give it a trial run.
 
-4G is a lot of bits, but it's not *that* many.
+> --- a/fs/exec.c
+> +++ b/fs/exec.c
+> @@ -761,6 +761,11 @@ int setup_arg_pages(struct linux_binprm *bprm,
+>  		goto out_unlock;
+>  	BUG_ON(prev != vma);
+>  
+> +	if (unlikely(vm_flags & VM_EXEC)) {
+> +		pr_warn_once("process '%pD4' started with executable stack\n",
+> +			     bprm->file);
+> +	}
+> +
+>  	/* Move stack pages down in memory. */
+>  	if (stack_shift) {
+>  		ret = shift_arg_pages(vma, stack_shift);
 
-eg. If we had a bit per 4K page on a 32T machine that would be 8G bits.
-
-So unsigned long seems best.
-
->>   Documentation/core-api/atomic_ops.rst:  void __clear_bit_unlock(unsigned long nr, unsigned long *addr);
->>   arch/mips/include/asm/bitops.h:static inline void __clear_bit_unlock(unsigned long nr, volatile unsigned long *addr)
->>   arch/powerpc/include/asm/bitops.h:static inline void arch___clear_bit_unlock(int nr, volatile unsigned long *addr)
->>   arch/riscv/include/asm/bitops.h:static inline void __clear_bit_unlock(unsigned long nr, volatile unsigned long *addr)
->>   arch/s390/include/asm/bitops.h:static inline void arch___clear_bit_unlock(unsigned long nr,
->>   include/asm-generic/bitops/instrumented-lock.h:static inline void __clear_bit_unlock(long nr, volatile unsigned long *addr)
->>   include/asm-generic/bitops/lock.h:static inline void __clear_bit_unlock(unsigned int nr,
->> 
->> So I guess step one is to convert our versions to use unsigned long, so
->> we're at least not tripping over that difference when comparing the
->> assembly.
->
-> Yeah, I'll look at fixing the generic code, bitops/atomic.h and
-> bitops/non-atomic.h don't even agree on the type of bitnr.
-
-Thanks.
-
-cheers
+What are poor users supposed to do if this message comes out? 
+Hopefully google the message and end up at this thread.  What do you
+want to tell them?
