@@ -1,7 +1,7 @@
 From: Peter Zijlstra <peterz@infradead.org>
-Subject: [PATCH 06/17] asm-generic/tlb: Rename HAVE_MMU_GATHER_PAGE_SIZE
-Date: Wed, 11 Dec 2019 13:07:19 +0100
-Message-ID: <20191211122955.997638865@infradead.org>
+Subject: [PATCH 11/17] parisc/tlb: Fix __p*_free_tlb()
+Date: Wed, 11 Dec 2019 13:07:24 +0100
+Message-ID: <20191211122956.285169327@infradead.org>
 References: <20191211120713.360281197@infradead.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
@@ -11,91 +11,97 @@ To: Will Deacon <will@kernel.org>, "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.co
 Cc: linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, "David S. Miller" <davem@davemloft.net>, Helge Deller <deller@gmx.de>, Geert Uytterhoeven <geert@linux-m68k.org>, Paul Burton <paulburton@kernel.org>, Tony Luck <tony.luck@intel.com>, Richard Henderson <rth@twiddle.net>, Nick Hu <nickhu@andestech.com>, Paul Walmsley <paul.walmsley@sifive.com>
 List-Id: linux-arch.vger.kernel.org
 
-Towards a more consistent naming scheme.
+Just like regular pages, page directories need to observe the
+following order:
+
+ 1) unhook
+ 2) TLB invalidate
+ 3) free
+
+to ensure it is safe against concurrent accesses.
+
+Because PARISC has non-page-size PMDs, use a custom table freeer.
 
 Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
 ---
- arch/Kconfig              |    2 +-
- arch/powerpc/Kconfig      |    2 +-
- include/asm-generic/tlb.h |    9 ++++++---
- mm/mmu_gather.c           |    4 ++--
- 4 files changed, 10 insertions(+), 7 deletions(-)
+ arch/parisc/Kconfig               |    1 +
+ arch/parisc/include/asm/pgalloc.h |   25 ++++++++++++++++++++++---
+ arch/parisc/include/asm/tlb.h     |    7 +++++--
+ 3 files changed, 28 insertions(+), 5 deletions(-)
 
---- a/arch/Kconfig
-+++ b/arch/Kconfig
-@@ -400,7 +400,7 @@ config MMU_GATHER_NO_TABLE_INVALIDATE
- 	bool
- 	depends on MMU_GATHER_RCU_TABLE_FREE
+--- a/arch/parisc/Kconfig
++++ b/arch/parisc/Kconfig
+@@ -62,6 +62,7 @@ config PARISC
+ 	select HAVE_FTRACE_MCOUNT_RECORD if HAVE_DYNAMIC_FTRACE
+ 	select HAVE_KPROBES_ON_FTRACE
+ 	select HAVE_DYNAMIC_FTRACE_WITH_REGS
++	select MMU_GATHER_TABLE_FREE if PGTABLE_LEVELS >= 3
  
--config HAVE_MMU_GATHER_PAGE_SIZE
-+config MMU_GATHER_PAGE_SIZE
- 	bool
+ 	help
+ 	  The PA-RISC microprocessor is designed by Hewlett-Packard and used
+--- a/arch/parisc/include/asm/pgalloc.h
++++ b/arch/parisc/include/asm/pgalloc.h
+@@ -73,7 +73,7 @@ static inline pmd_t *pmd_alloc_one(struc
+ 	return pmd;
+ }
  
- config MMU_GATHER_NO_RANGE
---- a/arch/powerpc/Kconfig
-+++ b/arch/powerpc/Kconfig
-@@ -224,7 +224,7 @@ config PPC
- 	select HAVE_PERF_USER_STACK_DUMP
- 	select MMU_GATHER_RCU_TABLE_FREE		if SMP
- 	select MMU_GATHER_NO_TABLE_INVALIDATE	if MMU_GATHER_RCU_TABLE_FREE
--	select HAVE_MMU_GATHER_PAGE_SIZE
-+	select MMU_GATHER_PAGE_SIZE
- 	select HAVE_REGS_AND_STACK_ACCESS_API
- 	select HAVE_RELIABLE_STACKTRACE		if PPC_BOOK3S_64 && CPU_LITTLE_ENDIAN
- 	select HAVE_SYSCALL_TRACEPOINTS
---- a/include/asm-generic/tlb.h
-+++ b/include/asm-generic/tlb.h
-@@ -121,11 +121,14 @@
-  *
-  * Additionally there are a few opt-in features:
-  *
-- *  HAVE_MMU_GATHER_PAGE_SIZE
-+ *  MMU_GATHER_PAGE_SIZE
-  *
-  *  This ensures we call tlb_flush() every time tlb_change_page_size() actually
-  *  changes the size and provides mmu_gather::page_size to tlb_flush().
-  *
-+ *  This might be useful if your architecture has size specific TLB
-+ *  invalidation instructions.
-+ *
-  *  MMU_GATHER_RCU_TABLE_FREE
-  *
-  *  This provides tlb_remove_table(), to be used instead of tlb_remove_page()
-@@ -271,7 +274,7 @@ struct mmu_gather {
- 	struct mmu_gather_batch	local;
- 	struct page		*__pages[MMU_GATHER_BUNDLE];
- 
--#ifdef CONFIG_HAVE_MMU_GATHER_PAGE_SIZE
-+#ifdef CONFIG_MMU_GATHER_PAGE_SIZE
- 	unsigned int page_size;
- #endif
- #endif
-@@ -422,7 +425,7 @@ static inline void tlb_remove_page(struc
- static inline void tlb_change_page_size(struct mmu_gather *tlb,
- 						     unsigned int page_size)
+-static inline void pmd_free(struct mm_struct *mm, pmd_t *pmd)
++static inline bool __pmd_free(struct mm_struct *mm, pmd_t *pmd)
  {
--#ifdef CONFIG_HAVE_MMU_GATHER_PAGE_SIZE
-+#ifdef CONFIG_MMU_GATHER_PAGE_SIZE
- 	if (tlb->page_size && tlb->page_size != page_size) {
- 		if (!tlb->fullmm && !tlb->need_flush_all)
- 			tlb_flush_mmu(tlb);
---- a/mm/mmu_gather.c
-+++ b/mm/mmu_gather.c
-@@ -69,7 +69,7 @@ bool __tlb_remove_page_size(struct mmu_g
+ 	if (pmd_flag(*pmd) & PxD_FLAG_ATTACHED) {
+ 		/*
+@@ -83,11 +83,28 @@ static inline void pmd_free(struct mm_st
+ 		 * done by generic mm code.
+ 		 */
+ 		mm_inc_nr_pmds(mm);
+-		return;
++		return false;
+ 	}
+-	free_pages((unsigned long)pmd, PMD_ORDER);
++	return true;
++}
++
++static inline void pmd_free(struct mm_struct *mm, pmd_t *pmd)
++{
++	if (__pmd_free(mm, pmd))
++		free_pages((unsigned long)pmd, PMD_ORDER);
+ }
  
- 	VM_BUG_ON(!tlb->end);
++static inline void __tlb_remove_table(void *table)
++{
++	free_pages((unsigned long)table, PMD_ORDER);
++}
++
++#define __pmd_free_tlb(tlb, pmd, addr)		\
++do {						\
++	if (__pmd_free((tlb)->mm, (pmd)))	\
++		tlb_remove_table((tlb), (pmd));	\
++} while (0)
++
+ #else
  
--#ifdef CONFIG_HAVE_MMU_GATHER_PAGE_SIZE
-+#ifdef CONFIG_MMU_GATHER_PAGE_SIZE
- 	VM_WARN_ON(tlb->page_size != page_size);
+ /* Two Level Page Table Support for pmd's */
+@@ -101,6 +118,8 @@ static inline void pmd_free(struct mm_st
+ #define pmd_free(mm, x)			do { } while (0)
+ #define pgd_populate(mm, pmd, pte)	BUG()
+ 
++#define __pmd_free_tlb(tlb, pmd, addr)	do { } while (0)
++
  #endif
  
-@@ -223,7 +223,7 @@ void tlb_gather_mmu(struct mmu_gather *t
- #ifdef CONFIG_MMU_GATHER_RCU_TABLE_FREE
- 	tlb->batch = NULL;
- #endif
--#ifdef CONFIG_HAVE_MMU_GATHER_PAGE_SIZE
-+#ifdef CONFIG_MMU_GATHER_PAGE_SIZE
- 	tlb->page_size = 0;
- #endif
+ static inline void
+--- a/arch/parisc/include/asm/tlb.h
++++ b/arch/parisc/include/asm/tlb.h
+@@ -4,7 +4,10 @@
  
+ #include <asm-generic/tlb.h>
+ 
+-#define __pmd_free_tlb(tlb, pmd, addr)	pmd_free((tlb)->mm, pmd)
+-#define __pte_free_tlb(tlb, pte, addr)	pte_free((tlb)->mm, pte)
++#define __pte_free_tlb(tlb,pte,addr)			\
++do {							\
++	pgtable_pte_page_dtor(pte);			\
++	tlb_remove_page((tlb), (pte));			\
++} while (0)
+ 
+ #endif
