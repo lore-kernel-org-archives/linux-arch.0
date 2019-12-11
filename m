@@ -1,7 +1,7 @@
 From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: [PATCH 09/22] arm64: mte: Tags-aware clear_page() implementation
-Date: Wed, 11 Dec 2019 18:40:14 +0000
-Message-ID: <20191211184027.20130-10-catalin.marinas@arm.com>
+Subject: [PATCH 11/22] arm64: Tags-aware memcmp_pages() implementation
+Date: Wed, 11 Dec 2019 18:40:16 +0000
+Message-ID: <20191211184027.20130-12-catalin.marinas@arm.com>
 References: <20191211184027.20130-1-catalin.marinas@arm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -21,44 +21,160 @@ To: linux-arm-kernel@lists.infradead.org
 Cc: linux-arch@vger.kernel.org, Richard Earnshaw <Richard.Earnshaw@arm.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Marc Zyngier <maz@kernel.org>, Kevin Brodsky <kevin.brodsky@arm.com>, linux-mm@kvack.org, Andrey Konovalov <andreyknvl@google.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Will Deacon <will@kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-From: Vincenzo Frascino <vincenzo.frascino@arm.com>
+When the Memory Tagging Extension is enabled, two pages are identical
+only if both their data and tags are identical.
 
-When the Memory Tagging Extension is enabled, the tags need to be set to
-zero a page is cleared as they are visible to the user.
+Make the generic memcmp_pages() a __weak function and add an
+arm64-specific implementation which takes care of the tags comparison.
 
-Introduce an MTE-aware clear_page() which clears the tags in addition to
-data.
-
+Co-developed-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
 Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Co-developed-by: Catalin Marinas <catalin.marinas@arm.com>
 Signed-off-by: Catalin Marinas <catalin.marinas@arm.com>
 ---
- arch/arm64/lib/clear_page.S | 7 +++++--
- 1 file changed, 5 insertions(+), 2 deletions(-)
+ arch/arm64/include/asm/mte.h | 11 +++++++++
+ arch/arm64/lib/Makefile      |  2 ++
+ arch/arm64/lib/mte.S         | 46 ++++++++++++++++++++++++++++++++++++
+ arch/arm64/mm/Makefile       |  1 +
+ arch/arm64/mm/cmppages.c     | 26 ++++++++++++++++++++
+ mm/util.c                    |  2 +-
+ 6 files changed, 87 insertions(+), 1 deletion(-)
+ create mode 100644 arch/arm64/include/asm/mte.h
+ create mode 100644 arch/arm64/lib/mte.S
+ create mode 100644 arch/arm64/mm/cmppages.c
 
-diff --git a/arch/arm64/lib/clear_page.S b/arch/arm64/lib/clear_page.S
-index 78a9ef66288a..575cea03f68a 100644
---- a/arch/arm64/lib/clear_page.S
-+++ b/arch/arm64/lib/clear_page.S
-@@ -5,7 +5,9 @@
+diff --git a/arch/arm64/include/asm/mte.h b/arch/arm64/include/asm/mte.h
+new file mode 100644
+index 000000000000..64e814273659
+--- /dev/null
++++ b/arch/arm64/include/asm/mte.h
+@@ -0,0 +1,11 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++#ifndef __ASM_MTE_H
++#define __ASM_MTE_H
++
++#ifndef __ASSEMBLY__
++
++/* Memory Tagging API */
++int mte_memcmp_pages(const void *page1_addr, const void *page2_addr);
++
++#endif /* __ASSEMBLY__ */
++#endif /* __ASM_MTE_H  */
+diff --git a/arch/arm64/lib/Makefile b/arch/arm64/lib/Makefile
+index c21b936dc01d..178879a754b0 100644
+--- a/arch/arm64/lib/Makefile
++++ b/arch/arm64/lib/Makefile
+@@ -16,3 +16,5 @@ lib-$(CONFIG_ARCH_HAS_UACCESS_FLUSHCACHE) += uaccess_flushcache.o
+ obj-$(CONFIG_CRC32) += crc32.o
  
- #include <linux/linkage.h>
- #include <linux/const.h>
-+#include <asm/alternative.h>
- #include <asm/assembler.h>
-+#include <asm/cpufeature.h>
- #include <asm/page.h>
- 
- /*
-@@ -19,8 +21,9 @@ ENTRY(clear_page)
- 	and	w1, w1, #0xf
- 	mov	x2, #4
- 	lsl	x1, x2, x1
--
--1:	dc	zva, x0
+ obj-$(CONFIG_FUNCTION_ERROR_INJECTION) += error-inject.o
++
++obj-$(CONFIG_ARM64_MTE) += mte.o
+diff --git a/arch/arm64/lib/mte.S b/arch/arm64/lib/mte.S
+new file mode 100644
+index 000000000000..d41955ab4134
+--- /dev/null
++++ b/arch/arm64/lib/mte.S
+@@ -0,0 +1,46 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++/*
++ * Copyright (C) 2019 ARM Ltd.
++ */
++#include <linux/linkage.h>
++
++#include <asm/assembler.h>
++
++/*
++ * Compare tags of two pages
++ *   x0 - page1 address
++ *   x1 - page2 address
++ * Returns:
++ *   w0 - negative, zero or positive value if the tag in the first page is
++ *	  less than, equal to or greater than the tag in the second page
++ */
++ENTRY(mte_memcmp_pages)
++	multitag_transfer_size x7, x5
 +1:
-+alternative_insn "dc zva, x0", "stzgm xzr, [x0]", \
-+			 ARM64_MTE, IS_ENABLED(CONFIG_ARM64_MTE), 1
- 	add	x0, x0, x1
- 	tst	x0, #(PAGE_SIZE - 1)
- 	b.ne	1b
++	ldgm	x2, [x0]
++	ldgm	x3, [x1]
++
++	eor	x4, x2, x3
++	cbnz	x4, 2f
++
++	add	x0, x0, x7
++	add	x1, x1, x7
++
++	tst	x0, #(PAGE_SIZE - 1)
++	b.ne	1b
++
++	mov	w0, #0
++	ret
++2:
++	rbit	x4, x4
++	clz	x4, x4			// count the least significant equal bits
++	and	x4, x4, #~3		// round down to a multiple of 4 (bits per tag)
++
++	lsr	x2, x2, x4		// remove equal tags
++	lsr	x3, x3, x4
++
++	lsl	w2, w2, #28		// compare the differing tags
++	sub	w0, w2, w3, lsl #28
++
++	ret
++ENDPROC(mte_memcmp_pages)
+diff --git a/arch/arm64/mm/Makefile b/arch/arm64/mm/Makefile
+index 849c1df3d214..7a556e9a19dc 100644
+--- a/arch/arm64/mm/Makefile
++++ b/arch/arm64/mm/Makefile
+@@ -8,6 +8,7 @@ obj-$(CONFIG_ARM64_PTDUMP_CORE)	+= dump.o
+ obj-$(CONFIG_ARM64_PTDUMP_DEBUGFS)	+= ptdump_debugfs.o
+ obj-$(CONFIG_NUMA)		+= numa.o
+ obj-$(CONFIG_DEBUG_VIRTUAL)	+= physaddr.o
++obj-$(CONFIG_ARM64_MTE)		+= cmppages.o
+ KASAN_SANITIZE_physaddr.o	+= n
+ 
+ obj-$(CONFIG_KASAN)		+= kasan_init.o
+diff --git a/arch/arm64/mm/cmppages.c b/arch/arm64/mm/cmppages.c
+new file mode 100644
+index 000000000000..943c1877e014
+--- /dev/null
++++ b/arch/arm64/mm/cmppages.c
+@@ -0,0 +1,26 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/*
++ * Copyright (C) 2019 ARM Ltd.
++ */
++
++#include <linux/mm.h>
++#include <linux/string.h>
++
++#include <asm/cpufeature.h>
++#include <asm/mte.h>
++
++int memcmp_pages(struct page *page1, struct page *page2)
++{
++	char *addr1, *addr2;
++	int ret;
++
++	addr1 = page_address(page1);
++	addr2 = page_address(page2);
++
++	ret = memcmp(addr1, addr2, PAGE_SIZE);
++	/* if page content identical, check the tags */
++	if (ret == 0 && system_supports_mte())
++		ret = mte_memcmp_pages(addr1, addr2);
++
++	return ret;
++}
+diff --git a/mm/util.c b/mm/util.c
+index 988d11e6c17c..662fb3da6d01 100644
+--- a/mm/util.c
++++ b/mm/util.c
+@@ -899,7 +899,7 @@ int get_cmdline(struct task_struct *task, char *buffer, int buflen)
+ 	return res;
+ }
+ 
+-int memcmp_pages(struct page *page1, struct page *page2)
++int __weak memcmp_pages(struct page *page1, struct page *page2)
+ {
+ 	char *addr1, *addr2;
+ 	int ret;
