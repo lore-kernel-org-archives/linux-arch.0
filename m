@@ -1,7 +1,7 @@
 From: Peter Zijlstra <peterz@infradead.org>
-Subject: [PATCH 14/17] ia64/tlb: Fix __p*_free_tlb()
-Date: Wed, 11 Dec 2019 13:07:27 +0100
-Message-ID: <20191211122956.456987895@infradead.org>
+Subject: [PATCH 09/17] sh/tlb: Fix __pmd_free_tlb()
+Date: Wed, 11 Dec 2019 13:07:22 +0100
+Message-ID: <20191211122956.169764611@infradead.org>
 References: <20191211120713.360281197@infradead.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
@@ -11,56 +11,65 @@ To: Will Deacon <will@kernel.org>, "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.co
 Cc: linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, "David S. Miller" <davem@davemloft.net>, Helge Deller <deller@gmx.de>, Geert Uytterhoeven <geert@linux-m68k.org>, Paul Burton <paulburton@kernel.org>, Tony Luck <tony.luck@intel.com>, Richard Henderson <rth@twiddle.net>, Nick Hu <nickhu@andestech.com>, Paul Walmsley <paul.walmsley@sifive.com>
 List-Id: linux-arch.vger.kernel.org
 
-Just like regular pages, page directories need to observe the
-following order:
+SH violates the freeing order for it's PMD page directories. It's
+__pmd_free_tlb() does not ensure there is a TLB invalidation between
+itself and the eventualy freeing of the page.
 
- 1) unhook
- 2) TLB invalidate
- 3) free
+Further complicating the situation is that SH uses non page based
+allocation for it's PMDs.
 
-to ensure it is safe against concurrent accesses.
-
-Since IA64 has page based P[UM]Ds, no software walkers and IPI based
-TLB invalidation, it can use the simple tlb_remove_page() based
+Use the shiny new HAVE_TABLE_FREE option to enable a custom page table
 freeer.
+
+(SuperH uses IPI based TLB invalidation and therefore doesn't need
+HAVE_RCU_TABLE_FREE for its HAVE_FAST_GUP).
 
 Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
 ---
- arch/ia64/include/asm/pgalloc.h |   13 ++++++++++---
- 1 file changed, 10 insertions(+), 3 deletions(-)
+ arch/sh/Kconfig               |    1 +
+ arch/sh/include/asm/pgalloc.h |    3 ++-
+ arch/sh/mm/pgtable.c          |    6 ++++++
+ 3 files changed, 9 insertions(+), 1 deletion(-)
 
---- a/arch/ia64/include/asm/pgalloc.h
-+++ b/arch/ia64/include/asm/pgalloc.h
-@@ -50,7 +50,9 @@ static inline void pud_free(struct mm_st
+--- a/arch/sh/Kconfig
++++ b/arch/sh/Kconfig
+@@ -15,6 +15,7 @@ config SUPERH
+ 	select HAVE_PERF_EVENTS
+ 	select HAVE_DEBUG_BUGVERBOSE
+ 	select HAVE_FAST_GUP if MMU
++	select MMU_GATHER_TABLE_FREE if X2TLB
+ 	select ARCH_HAVE_CUSTOM_GPIO_H
+ 	select ARCH_HAVE_NMI_SAFE_CMPXCHG if (GUSA_RB || CPU_SH4A)
+ 	select ARCH_HAS_GCOV_PROFILE_ALL
+--- a/arch/sh/include/asm/pgalloc.h
++++ b/arch/sh/include/asm/pgalloc.h
+@@ -12,7 +12,8 @@ extern void pgd_free(struct mm_struct *m
+ extern void pud_populate(struct mm_struct *mm, pud_t *pudp, pmd_t *pmd);
+ extern pmd_t *pmd_alloc_one(struct mm_struct *mm, unsigned long address);
+ extern void pmd_free(struct mm_struct *mm, pmd_t *pmd);
+-#define __pmd_free_tlb(tlb, pmdp, addr)		pmd_free((tlb)->mm, (pmdp))
++extern void __tlb_remove_table(void *table);
++#define __pmd_free_tlb(tlb, pmdp, addr)	tlb_remove_table((tlb), (pmdp))
+ #endif
+ 
+ static inline void pmd_populate_kernel(struct mm_struct *mm, pmd_t *pmd,
+--- a/arch/sh/mm/pgtable.c
++++ b/arch/sh/mm/pgtable.c
+@@ -1,6 +1,7 @@
+ // SPDX-License-Identifier: GPL-2.0
+ #include <linux/mm.h>
+ #include <linux/slab.h>
++#include <asm/pgalloc.h>
+ 
+ #define PGALLOC_GFP GFP_KERNEL | __GFP_ZERO
+ 
+@@ -55,4 +56,9 @@ void pmd_free(struct mm_struct *mm, pmd_
  {
- 	free_page((unsigned long)pud);
+ 	kmem_cache_free(pmd_cachep, pmd);
  }
--#define __pud_free_tlb(tlb, pud, address)	pud_free((tlb)->mm, pud)
 +
-+#define __pud_free_tlb(tlb, pud, address)	\
-+	tlb_remove_table((tlb), virt_to_page(pud))
- #endif /* CONFIG_PGTABLE_LEVELS == 4 */
- 
- static inline void
-@@ -69,7 +71,8 @@ static inline void pmd_free(struct mm_st
- 	free_page((unsigned long)pmd);
- }
- 
--#define __pmd_free_tlb(tlb, pmd, address)	pmd_free((tlb)->mm, pmd)
-+#define __pmd_free_tlb(tlb, pmd, address)	\
-+	tlb_remove_table((tlb), virt_to_page(pmd)
- 
- static inline void
- pmd_populate(struct mm_struct *mm, pmd_t * pmd_entry, pgtable_t pte)
-@@ -84,6 +87,10 @@ pmd_populate_kernel(struct mm_struct *mm
- 	pmd_val(*pmd_entry) = __pa(pte);
- }
- 
--#define __pte_free_tlb(tlb, pte, address)	pte_free((tlb)->mm, pte)
-+#define __pte_free_tlb(tlb, pte, address)	\
-+do {						\
-+	pgtable_pte_page_dtor(pte);		\
-+	tlb_remove_table((tlb), (pte));		\
-+} while (0)
- 
- #endif				/* _ASM_IA64_PGALLOC_H */
++void __tlb_remove_table(void *table)
++{
++	pmd_free(NULL, table);
++}
+ #endif /* PAGETABLE_LEVELS > 2 */
