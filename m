@@ -1,42 +1,32 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: [PATCH 00/17] Fixup page directory freeing
-Date: Wed, 11 Dec 2019 13:07:13 +0100
-Message-ID: <20191211120713.360281197@infradead.org>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Subject: Re: [PATCH 02/17] asm-gemeric/tlb: Remove stray function declarations
+Date: Wed, 11 Dec 2019 14:19:11 +0100
+Message-ID: <CAMuHMdUA-Bj+q4g2NimMv3nnu5v=X81BEkoSgUTOTLG+rsPK4g@mail.gmail.com>
+References: <20191211120713.360281197@infradead.org> <20191211122955.769069740@infradead.org>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20191211122955.769069740@infradead.org>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Will Deacon <will@kernel.org>, "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, Nick Piggin <npiggin@gmail.com>, Peter Zijlstra <peterz@infradead.org>
-Cc: linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, "David S. Miller" <davem@davemloft.net>, Helge Deller <deller@gmx.de>, Geert Uytterhoeven <geert@linux-m68k.org>, Paul Burton <paulburton@kernel.org>, Tony Luck <tony.luck@intel.com>, Richard Henderson <rth@twiddle.net>, Nick Hu <nickhu@andestech.com>, Paul Walmsley <paul.walmsley@sifive.com>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Will Deacon <will@kernel.org>, "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, Nick Piggin <npiggin@gmail.com>, Linux-Arch <linux-arch@vger.kernel.org>, Linux MM <linux-mm@kvack.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, "David S. Miller" <davem@davemloft.net>, Helge Deller <deller@gmx.de>, Paul Burton <paulburton@kernel.org>, Tony Luck <tony.luck@intel.com>, Richard Henderson <rth@twiddle.net>, Nick Hu <nickhu@andestech.com>, Paul Walmsley <paul.walmsley@sifive.com>
 List-Id: linux-arch.vger.kernel.org
 
-Hi All,
+On Wed, Dec 11, 2019 at 1:31 PM Peter Zijlstra <peterz@infradead.org> wrote:
+> We removed the actual functions a while ago.
+>
+> Fixes: 1808d65b55e4 ("asm-generic/tlb: Remove arch_tlb*_mmu()")
+> Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
 
-While fixing a silly bug on SH (patch #1), I realized that even with the
-trivial patch to restore prior behaviour, page directory freeing was still
-broken.
+Reviewed-by: Geert Uytterhoeven <geert+renesas@glider.be>
 
-The thing is, on anything SMP, freeing page directories should observe the
-exact same order as normal page freeing:
+Gr{oetje,eeting}s,
 
- 1) unhook page/directory
- 2) TLB invalidate
- 3) free page/directory
+                        Geert
 
-Without this any concurrent page-table walk could end up with a Use-after-Free.
-This is esp. trivial for anything that has software page-table walkers
-(HAVE_FAST_GUP / software TLB fill) or the hardware caches partial page-walks
-(ie. caches page directories).
+-- 
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
 
-Even on UP this might give issues, since mmu_gather is preemptible these days.
-An interrupt or preempted task accessing user pages might stumble into the free
-page if the hardware caches page directories.
-
-So I've converted everything to always observe the above order, simply so we
-don't have to worry about it.
-
-If however I've been over zealous and your arch/mmu really doesn't need this
-and you're offended by this potentially superfluous code, please let me know
-and I'll replace the patch with one that adds a comment describing your
-rationale for why it is not needed.
-
-Also included are some patches that rename/document some of the mmu gather
-options.
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
