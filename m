@@ -1,8 +1,7 @@
 From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: [PATCH 08/22] arm64: mte: Assembler macros and default architecture
- for .S files
-Date: Wed, 11 Dec 2019 18:40:13 +0000
-Message-ID: <20191211184027.20130-9-catalin.marinas@arm.com>
+Subject: [PATCH 12/22] arm64: mte: Add specific SIGSEGV codes
+Date: Wed, 11 Dec 2019 18:40:17 +0000
+Message-ID: <20191211184027.20130-13-catalin.marinas@arm.com>
 References: <20191211184027.20130-1-catalin.marinas@arm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -19,48 +18,42 @@ List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
 Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
 Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
 To: linux-arm-kernel@lists.infradead.org
-Cc: linux-arch@vger.kernel.org, Richard Earnshaw <Richard.Earnshaw@arm.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Marc Zyngier <maz@kernel.org>, Kevin Brodsky <kevin.brodsky@arm.com>, linux-mm@kvack.org, Andrey Konovalov <andreyknvl@google.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Will Deacon <will@kernel.org>
+Cc: linux-arch@vger.kernel.org, Richard Earnshaw <Richard.Earnshaw@arm.com>, Arnd Bergmann <arnd@arndb.de>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Marc Zyngier <maz@kernel.org>, Kevin Brodsky <kevin.brodsky@arm.com>, linux-mm@kvack.org, Andrey Konovalov <andreyknvl@google.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Will Deacon <will@kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-Add the multitag_transfer_size macro to the arm64 assembler.h, together
-with '.arch armv8.5-a+memtag' when CONFIG_ARM64_MTE is enabled.
+From: Vincenzo Frascino <vincenzo.frascino@arm.com>
 
+Add MTE-specific SIGSEGV codes to siginfo.h.
+
+Note that the for MTE we are reusing the same SPARC ADI codes because
+the two functionalities are similar and they cannot coexist on the same
+system.
+
+Cc: Arnd Bergmann <arnd@arndb.de>
+Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
+[catalin.marinas@arm.com: renamed precise/imprecise to sync/async]
 Signed-off-by: Catalin Marinas <catalin.marinas@arm.com>
 ---
- arch/arm64/include/asm/assembler.h | 16 ++++++++++++++++
- 1 file changed, 16 insertions(+)
+ include/uapi/asm-generic/siginfo.h | 9 +++++++--
+ 1 file changed, 7 insertions(+), 2 deletions(-)
 
-diff --git a/arch/arm64/include/asm/assembler.h b/arch/arm64/include/asm/assembler.h
-index b8cf7c85ffa2..74a649a0b6e6 100644
---- a/arch/arm64/include/asm/assembler.h
-+++ b/arch/arm64/include/asm/assembler.h
-@@ -21,8 +21,13 @@
- #include <asm/page.h>
- #include <asm/pgtable-hwdef.h>
- #include <asm/ptrace.h>
-+#include <asm/sysreg.h>
- #include <asm/thread_info.h>
- 
-+#ifdef CONFIG_ARM64_MTE
-+	.arch armv8.5-a+memtag
+diff --git a/include/uapi/asm-generic/siginfo.h b/include/uapi/asm-generic/siginfo.h
+index cb3d6c267181..a5184a5438c6 100644
+--- a/include/uapi/asm-generic/siginfo.h
++++ b/include/uapi/asm-generic/siginfo.h
+@@ -227,8 +227,13 @@ typedef struct siginfo {
+ # define SEGV_PKUERR	4	/* failed protection key checks */
+ #endif
+ #define SEGV_ACCADI	5	/* ADI not enabled for mapped object */
+-#define SEGV_ADIDERR	6	/* Disrupting MCD error */
+-#define SEGV_ADIPERR	7	/* Precise MCD exception */
++#ifdef __aarch64__
++# define SEGV_MTEAERR	6	/* Asynchronous MTE error */
++# define SEGV_MTESERR	7	/* Synchronous MTE exception */
++#else
++# define SEGV_ADIDERR	6	/* Disrupting MCD error */
++# define SEGV_ADIPERR	7	/* Precise MCD exception */
 +#endif
-+
- 	.macro save_and_disable_daif, flags
- 	mrs	\flags, daif
- 	msr	daifset, #0xf
-@@ -756,4 +761,15 @@ USER(\label, ic	ivau, \tmp2)			// invalidate I line PoU
- .Lyield_out_\@ :
- 	.endm
+ #define NSIGSEGV	7
  
-+/*
-+ * multitag_transfer_size - set \reg to the block size that is accessed by the
-+ * LDGM/STGM instructions.
-+ */
-+	.macro	multitag_transfer_size, reg, tmp
-+	mrs_s	\reg, SYS_GMID_EL1
-+	ubfx	\reg, \reg, #SYS_GMID_EL1_BS_SHIFT, #SYS_GMID_EL1_BS_SIZE
-+	mov	\tmp, #4
-+	lsl	\reg, \tmp, \reg
-+	.endm
-+
- #endif	/* __ASM_ASSEMBLER_H */
+ /*
