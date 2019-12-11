@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:35612 "EHLO foss.arm.com"
+Received: from foss.arm.com ([217.140.110.172]:35582 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S2388372AbfLKPnO (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 11 Dec 2019 10:43:14 -0500
+        id S2387912AbfLKPnM (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 11 Dec 2019 10:43:12 -0500
 From: Mark Brown <broonie@kernel.org>
-Subject: [PATCH v4 10/12] arm64: BTI: Reset BTYPE when skipping emulated instructions
-Date: Wed, 11 Dec 2019 15:42:04 +0000
-Message-ID: <20191211154206.46260-11-broonie@kernel.org>
+Subject: [PATCH v4 09/12] arm64: traps: Shuffle code to eliminate forward declarations
+Date: Wed, 11 Dec 2019 15:42:03 +0000
+Message-ID: <20191211154206.46260-10-broonie@kernel.org>
 In-Reply-To: <20191211154206.46260-1-broonie@kernel.org>
 References: <20191211154206.46260-1-broonie@kernel.org>
 MIME-Version: 1.0
@@ -15,35 +15,146 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>
 Cc: Paul Elliott <paul.elliott@arm.com>, Peter Zijlstra <peterz@infradead.org>, Yu-cheng Yu <yu-cheng.yu@intel.com>, Amit Kachhap <amit.kachhap@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Marc Zyngier <maz@kernel.org>, Eugene Syromiatnikov <esyr@redhat.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, "H.J. Lu" <hjl.tools@gmail.com>, Andrew Jones <drjones@redhat.com>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Jann Horn <jannh@google.com>, Richard Henderson <richard.henderson@linaro.org>, =?UTF-8?q?Kristina=20Mart=C5=A1enko?= <kristina.martsenko@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Florian Weimer <fweimer@redhat.com>, Sudakshina Das <sudi.das@arm.com>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Dave Martin <Dave.Martin@arm.com>, Mark Brown <broonie@kernel.org>
-Message-ID: <20191211154204.CQxBEwpicQWXgONUSwR5smIjNjswqr6naByKbnb66Go@z>
+Message-ID: <20191211154203.6xKSVvIgb_-jX_7xshRt1_i01HcV5MWHBJkge73LdCo@z>
 
 From: Dave Martin <Dave.Martin@arm.com>
 
-Since normal execution of any non-branch instruction resets the
-PSTATE BTYPE field to 0, so do the same thing when emulating a
-trapped instruction.
+Hoist the IT state handling code earlier in traps.c, to avoid
+accumulating forward declarations.
 
-Branches don't trap directly, so we should never need to assign a
-non-zero value to BTYPE here.
+No functional change.
 
 Signed-off-by: Dave Martin <Dave.Martin@arm.com>
 Signed-off-by: Mark Brown <broonie@kernel.org>
 ---
- arch/arm64/kernel/traps.c | 2 ++
- 1 file changed, 2 insertions(+)
+ arch/arm64/kernel/traps.c | 101 ++++++++++++++++++--------------------
+ 1 file changed, 49 insertions(+), 52 deletions(-)
 
 diff --git a/arch/arm64/kernel/traps.c b/arch/arm64/kernel/traps.c
-index bf79d8024fbe..9fc05ae500e6 100644
+index de01e5041d4d..bf79d8024fbe 100644
 --- a/arch/arm64/kernel/traps.c
 +++ b/arch/arm64/kernel/traps.c
-@@ -332,6 +332,8 @@ void arm64_skip_faulting_instruction(struct pt_regs *regs, unsigned long size)
- 
- 	if (regs->pstate & PSR_MODE32_BIT)
- 		advance_itstate(regs);
-+	else
-+		regs->pstate &= ~PSR_BTYPE_MASK;
+@@ -269,7 +269,55 @@ void arm64_notify_die(const char *str, struct pt_regs *regs,
+ 	}
  }
  
- static LIST_HEAD(undef_hook);
+-static void advance_itstate(struct pt_regs *regs);
++#ifdef CONFIG_COMPAT
++#define PSTATE_IT_1_0_SHIFT	25
++#define PSTATE_IT_1_0_MASK	(0x3 << PSTATE_IT_1_0_SHIFT)
++#define PSTATE_IT_7_2_SHIFT	10
++#define PSTATE_IT_7_2_MASK	(0x3f << PSTATE_IT_7_2_SHIFT)
++
++static u32 compat_get_it_state(struct pt_regs *regs)
++{
++	u32 it, pstate = regs->pstate;
++
++	it  = (pstate & PSTATE_IT_1_0_MASK) >> PSTATE_IT_1_0_SHIFT;
++	it |= ((pstate & PSTATE_IT_7_2_MASK) >> PSTATE_IT_7_2_SHIFT) << 2;
++
++	return it;
++}
++
++static void compat_set_it_state(struct pt_regs *regs, u32 it)
++{
++	u32 pstate_it;
++
++	pstate_it  = (it << PSTATE_IT_1_0_SHIFT) & PSTATE_IT_1_0_MASK;
++	pstate_it |= ((it >> 2) << PSTATE_IT_7_2_SHIFT) & PSTATE_IT_7_2_MASK;
++
++	regs->pstate &= ~PSR_AA32_IT_MASK;
++	regs->pstate |= pstate_it;
++}
++
++static void advance_itstate(struct pt_regs *regs)
++{
++	u32 it;
++
++	/* ARM mode */
++	if (!(regs->pstate & PSR_AA32_T_BIT) ||
++	    !(regs->pstate & PSR_AA32_IT_MASK))
++		return;
++
++	it  = compat_get_it_state(regs);
++
++	/*
++	 * If this is the last instruction of the block, wipe the IT
++	 * state. Otherwise advance it.
++	 */
++	if (!(it & 7))
++		it = 0;
++	else
++		it = (it & 0xe0) | ((it << 1) & 0x1f);
++
++	compat_set_it_state(regs, it);
++}
+ 
+ void arm64_skip_faulting_instruction(struct pt_regs *regs, unsigned long size)
+ {
+@@ -575,34 +623,6 @@ static const struct sys64_hook sys64_hooks[] = {
+ 	{},
+ };
+ 
+-
+-#ifdef CONFIG_COMPAT
+-#define PSTATE_IT_1_0_SHIFT	25
+-#define PSTATE_IT_1_0_MASK	(0x3 << PSTATE_IT_1_0_SHIFT)
+-#define PSTATE_IT_7_2_SHIFT	10
+-#define PSTATE_IT_7_2_MASK	(0x3f << PSTATE_IT_7_2_SHIFT)
+-
+-static u32 compat_get_it_state(struct pt_regs *regs)
+-{
+-	u32 it, pstate = regs->pstate;
+-
+-	it  = (pstate & PSTATE_IT_1_0_MASK) >> PSTATE_IT_1_0_SHIFT;
+-	it |= ((pstate & PSTATE_IT_7_2_MASK) >> PSTATE_IT_7_2_SHIFT) << 2;
+-
+-	return it;
+-}
+-
+-static void compat_set_it_state(struct pt_regs *regs, u32 it)
+-{
+-	u32 pstate_it;
+-
+-	pstate_it  = (it << PSTATE_IT_1_0_SHIFT) & PSTATE_IT_1_0_MASK;
+-	pstate_it |= ((it >> 2) << PSTATE_IT_7_2_SHIFT) & PSTATE_IT_7_2_MASK;
+-
+-	regs->pstate &= ~PSR_AA32_IT_MASK;
+-	regs->pstate |= pstate_it;
+-}
+-
+ static bool cp15_cond_valid(unsigned int esr, struct pt_regs *regs)
+ {
+ 	int cond;
+@@ -623,29 +643,6 @@ static bool cp15_cond_valid(unsigned int esr, struct pt_regs *regs)
+ 	return aarch32_opcode_cond_checks[cond](regs->pstate);
+ }
+ 
+-static void advance_itstate(struct pt_regs *regs)
+-{
+-	u32 it;
+-
+-	/* ARM mode */
+-	if (!(regs->pstate & PSR_AA32_T_BIT) ||
+-	    !(regs->pstate & PSR_AA32_IT_MASK))
+-		return;
+-
+-	it  = compat_get_it_state(regs);
+-
+-	/*
+-	 * If this is the last instruction of the block, wipe the IT
+-	 * state. Otherwise advance it.
+-	 */
+-	if (!(it & 7))
+-		it = 0;
+-	else
+-		it = (it & 0xe0) | ((it << 1) & 0x1f);
+-
+-	compat_set_it_state(regs, it);
+-}
+-
+ static void compat_cntfrq_read_handler(unsigned int esr, struct pt_regs *regs)
+ {
+ 	int reg = (esr & ESR_ELx_CP15_32_ISS_RT_MASK) >> ESR_ELx_CP15_32_ISS_RT_SHIFT;
 -- 
 2.20.1
