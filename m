@@ -1,211 +1,132 @@
-From: Mark Brown <broonie@kernel.org>
-Subject: [PATCH v4 06/12] arm64: elf: Enable BTI at exec based on ELF program properties
-Date: Wed, 11 Dec 2019 15:42:00 +0000
-Message-ID: <20191211154206.46260-7-broonie@kernel.org>
-References: <20191211154206.46260-1-broonie@kernel.org>
+From: Alexey Dobriyan <adobriyan@gmail.com>
+Subject: Re: [PATCH v2] execve: warn if process starts with executable stack
+Date: Wed, 11 Dec 2019 21:19:33 +0300
+Message-ID: <20191211181933.GA3919@avx2>
+References: <20191208171918.GC19716@avx2>
+ <20191210174726.101e434df59b6aec8a53cca1@linux-foundation.org>
+ <20191211072225.GB3700@avx2>
+ <20191211095937.GB31670@1wt.eu>
 Mime-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=utf-8
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20191211154206.46260-1-broonie@kernel.org>
+Content-Disposition: inline
+In-Reply-To: <20191211095937.GB31670@1wt.eu>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>
-Cc: Paul Elliott <paul.elliott@arm.com>, Peter Zijlstra <peterz@infradead.org>, Yu-cheng Yu <yu-cheng.yu@intel.com>, Amit Kachhap <amit.kachhap@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Marc Zyngier <maz@kernel.org>, Eugene Syromiatnikov <esyr@redhat.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, "H.J. Lu" <hjl.tools@gmail.com>, Andrew Jones <drjones@redhat.com>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Jann Horn <jannh@google.com>, Richard Henderson <richard.henderson@linaro.org>, =?UTF-8?q?Kristina=20Mart=C5=A1enko?= <kristina.martsenko@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Florian Weimer <fweimer@redhat.com>, Sudakshina Das <sudi.das@arm.com>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org
+To: Willy Tarreau <w@1wt.eu>
+Cc: Andrew Morton <akpm@linux-foundation.org>, dan.carpenter@oracle.com, will@kernel.org, ebiederm@xmission.com, linux-arch@vger.kernel.org, security@kernel.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-From: Dave Martin <Dave.Martin@arm.com>
+On Wed, Dec 11, 2019 at 10:59:37AM +0100, Willy Tarreau wrote:
+> On Wed, Dec 11, 2019 at 10:22:25AM +0300, Alexey Dobriyan wrote:
+> > On Tue, Dec 10, 2019 at 05:47:26PM -0800, Andrew Morton wrote:
+> > > On Sun, 8 Dec 2019 20:19:18 +0300 Alexey Dobriyan <adobriyan@gmail.com> wrote:
+> > > 
+> > > > There were few episodes of silent downgrade to an executable stack over
+> > > > years:
+> > > > 
+> > > > 1) linking innocent looking assembly file will silently add executable
+> > > >    stack if proper linker options is not given as well:
+> > > > 
+> > > > 	$ cat f.S
+> > > > 	.intel_syntax noprefix
+> > > > 	.text
+> > > > 	.globl f
+> > > > 	f:
+> > > > 	        ret
+> > > > 
+> > > > 	$ cat main.c
+> > > > 	void f(void);
+> > > > 	int main(void)
+> > > > 	{
+> > > > 	        f();
+> > > > 	        return 0;
+> > > > 	}
+> > > > 
+> > > > 	$ gcc main.c f.S
+> > > > 	$ readelf -l ./a.out
+> > > > 	  GNU_STACK      0x0000000000000000 0x0000000000000000 0x0000000000000000
+> > > >                          0x0000000000000000 0x0000000000000000  RWE    0x10
+> > > > 			 					 ^^^
+> > > > 
+> > > > 2) converting C99 nested function into a closure
+> > > > https://nullprogram.com/blog/2019/11/15/
+> > > > 
+> > > > 	void intsort2(int *base, size_t nmemb, _Bool invert)
+> > > > 	{
+> > > > 	    int cmp(const void *a, const void *b)
+> > > > 	    {
+> > > > 	        int r = *(int *)a - *(int *)b;
+> > > > 	        return invert ? -r : r;
+> > > > 	    }
+> > > > 	    qsort(base, nmemb, sizeof(*base), cmp);
+> > > > 	}
+> > > > 
+> > > > will silently require stack trampolines while non-closure version will not.
+> > > > 
+> > > > Without doubt this behaviour is documented somewhere, add a warning so that
+> > > > developers and users can at least notice. After so many years of x86_64 having
+> > > > proper executable stack support it should not cause too many problems.
+> > > 
+> > > hm, OK, let's give it a trial run.
+> > > 
+> > > > --- a/fs/exec.c
+> > > > +++ b/fs/exec.c
+> > > > @@ -761,6 +761,11 @@ int setup_arg_pages(struct linux_binprm *bprm,
+> > > >  		goto out_unlock;
+> > > >  	BUG_ON(prev != vma);
+> > > >  
+> > > > +	if (unlikely(vm_flags & VM_EXEC)) {
+> > > > +		pr_warn_once("process '%pD4' started with executable stack\n",
+> > > > +			     bprm->file);
+> > > > +	}
+> > > > +
+> > > >  	/* Move stack pages down in memory. */
+> > > >  	if (stack_shift) {
+> > > >  		ret = shift_arg_pages(vma, stack_shift);
+> > > 
+> > > What are poor users supposed to do if this message comes out? 
+> > > Hopefully google the message and end up at this thread.  What do you
+> > > want to tell them?
+> > 
+> > Me? Nothing :-) They hopefully should file tickets against distros and ISV,
+> > post egregious examples to oss-security.
+> > 
+> > Like they already do against this warning!
+> > > ACPI: [Firmware Bug]: BIOS _OSI(Linux) query ignored
+> 
+> Alexey, Andrew is right. Your message gives no instruction and users are
+> already flooded with messages they got used to ignore. A warning is made
+> to catch attention so it should give instructions. It can either say
+> "this application relies on insecure capabilities and might not work
+> anymore in the future, you should report this to its author",
 
-For BTI protection to be as comprehensive as possible, it is
-desirable to have BTI enabled from process startup.  If this is not
-done, the process must use mprotect() to enable BTI for each of its
-executable mappings, but this is painful to do in the libc startup
-code.  It's simpler and more sound to have the kernel do it
-instead.
+"Insecure" is an accusation and baseless until source code is seen.
+This program is secure despite having executable stack.
 
-To this end, detect BTI support in the executable (or ELF
-interpreter, as appropriate), via the
-NT_GNU_PROGRAM_PROPERTY_TYPE_0 note, and tweak the initial prot
-flags for the process' executable pages to include PROT_BTI as
-appropriate.
+	.globl _start
+	_start:
+		mov	eax, 60
+		xor	edi, edi
+		syscall
 
-Signed-off-by: Dave Martin <Dave.Martin@arm.com>
-Signed-off-by: Mark Brown <broonie@kernel.org>
----
- arch/arm64/Kconfig           |  3 +++
- arch/arm64/include/asm/elf.h | 50 ++++++++++++++++++++++++++++++++++++
- arch/arm64/kernel/process.c  | 19 ++++++++++++++
- include/linux/elf.h          |  6 ++++-
- include/uapi/linux/elf.h     |  6 +++++
- 5 files changed, 83 insertions(+), 1 deletion(-)
+"Might not work" is false, because PT_GNU_STACK is not going anywhere and
+the default is not flipped and applications with executable stack aren't
+going to become rejected. This patch is not about starting deprecation
+executable stacks programme.
 
-diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
-index 39292a0fc603..ea3a5150f5f6 100644
---- a/arch/arm64/Kconfig
-+++ b/arch/arm64/Kconfig
-@@ -9,6 +9,7 @@ config ARM64
- 	select ACPI_MCFG if (ACPI && PCI)
- 	select ACPI_SPCR_TABLE if ACPI
- 	select ACPI_PPTT if ACPI
-+	select ARCH_BINFMT_ELF_STATE
- 	select ARCH_CLOCKSOURCE_DATA
- 	select ARCH_HAS_DEBUG_VIRTUAL
- 	select ARCH_HAS_DEVMEM_IS_ALLOWED
-@@ -33,6 +34,7 @@ config ARM64
- 	select ARCH_HAS_SYSCALL_WRAPPER
- 	select ARCH_HAS_TEARDOWN_DMA_OPS if IOMMU_SUPPORT
- 	select ARCH_HAS_TICK_BROADCAST if GENERIC_CLOCKEVENTS_BROADCAST
-+	select ARCH_HAVE_ELF_PROT
- 	select ARCH_HAVE_NMI_SAFE_CMPXCHG
- 	select ARCH_INLINE_READ_LOCK if !PREEMPT
- 	select ARCH_INLINE_READ_LOCK_BH if !PREEMPT
-@@ -62,6 +64,7 @@ config ARM64
- 	select ARCH_INLINE_SPIN_UNLOCK_IRQRESTORE if !PREEMPT
- 	select ARCH_KEEP_MEMBLOCK
- 	select ARCH_USE_CMPXCHG_LOCKREF
-+	select ARCH_USE_GNU_PROPERTY if BINFMT_ELF
- 	select ARCH_USE_QUEUED_RWLOCKS
- 	select ARCH_USE_QUEUED_SPINLOCKS
- 	select ARCH_SUPPORTS_MEMORY_FAILURE
-diff --git a/arch/arm64/include/asm/elf.h b/arch/arm64/include/asm/elf.h
-index b618017205a3..8bc154ce4e00 100644
---- a/arch/arm64/include/asm/elf.h
-+++ b/arch/arm64/include/asm/elf.h
-@@ -114,7 +114,11 @@
- 
- #ifndef __ASSEMBLY__
- 
-+#include <uapi/linux/elf.h>
- #include <linux/bug.h>
-+#include <linux/errno.h>
-+#include <linux/fs.h>
-+#include <linux/types.h>
- #include <asm/processor.h> /* for signal_minsigstksz, used by ARCH_DLINFO */
- 
- typedef unsigned long elf_greg_t;
-@@ -224,6 +228,52 @@ extern int aarch32_setup_additional_pages(struct linux_binprm *bprm,
- 
- #endif /* CONFIG_COMPAT */
- 
-+struct arch_elf_state {
-+	int flags;
-+};
-+
-+#define ARM64_ELF_BTI		(1 << 0)
-+
-+#define INIT_ARCH_ELF_STATE {			\
-+	.flags = 0,				\
-+}
-+
-+static inline int arch_parse_elf_property(u32 type, const void *data,
-+					  size_t datasz, bool compat,
-+					  struct arch_elf_state *arch)
-+{
-+	/* No known properties for AArch32 yet */
-+	if (IS_ENABLED(CONFIG_COMPAT) && compat)
-+		return 0;
-+
-+	if (type == GNU_PROPERTY_AARCH64_FEATURE_1_AND) {
-+		const u32 *p = data;
-+
-+		if (datasz != sizeof(*p))
-+			return -EIO;
-+
-+		if (IS_ENABLED(CONFIG_ARM64_BTI) &&
-+		    (*p & GNU_PROPERTY_AARCH64_FEATURE_1_BTI))
-+			arch->flags |= ARM64_ELF_BTI;
-+	}
-+
-+	return 0;
-+}
-+
-+static inline int arch_elf_pt_proc(void *ehdr, void *phdr,
-+				   struct file *f, bool is_interp,
-+				   struct arch_elf_state *state)
-+{
-+	return 0;
-+}
-+
-+static inline int arch_check_elf(void *ehdr, bool has_interp,
-+				 void *interp_ehdr,
-+				 struct arch_elf_state *state)
-+{
-+	return 0;
-+}
-+
- #endif /* !__ASSEMBLY__ */
- 
- #endif
-diff --git a/arch/arm64/kernel/process.c b/arch/arm64/kernel/process.c
-index 71f788cd2b18..37c508f409ac 100644
---- a/arch/arm64/kernel/process.c
-+++ b/arch/arm64/kernel/process.c
-@@ -11,6 +11,7 @@
- 
- #include <linux/compat.h>
- #include <linux/efi.h>
-+#include <linux/elf.h>
- #include <linux/export.h>
- #include <linux/sched.h>
- #include <linux/sched/debug.h>
-@@ -18,6 +19,7 @@
- #include <linux/sched/task_stack.h>
- #include <linux/kernel.h>
- #include <linux/lockdep.h>
-+#include <linux/mman.h>
- #include <linux/mm.h>
- #include <linux/stddef.h>
- #include <linux/sysctl.h>
-@@ -649,3 +651,20 @@ asmlinkage void __sched arm64_preempt_schedule_irq(void)
- 	if (static_branch_likely(&arm64_const_caps_ready))
- 		preempt_schedule_irq();
- }
-+
-+#ifdef CONFIG_BINFMT_ELF
-+int arch_elf_adjust_prot(int prot, const struct arch_elf_state *state,
-+			 bool has_interp, bool is_interp)
-+{
-+	if (is_interp != has_interp)
-+		return prot;
-+
-+	if (!(state->flags & ARM64_ELF_BTI))
-+		return prot;
-+
-+	if (prot & PROT_EXEC)
-+		prot |= PROT_BTI;
-+
-+	return prot;
-+}
-+#endif
-diff --git a/include/linux/elf.h b/include/linux/elf.h
-index 1b6e8955c597..5d5b0321da0b 100644
---- a/include/linux/elf.h
-+++ b/include/linux/elf.h
-@@ -63,7 +63,11 @@ extern int elf_coredump_extra_notes_size(void);
- extern int elf_coredump_extra_notes_write(struct coredump_params *cprm);
- #endif
- 
--/* NT_GNU_PROPERTY_TYPE_0 header */
-+/*
-+ * NT_GNU_PROPERTY_TYPE_0 header:
-+ * Keep this internal until/unless there is an agreed UAPI definition.
-+ * pr_type values (GNU_PROPERTY_*) are public and defined in the UAPI header.
-+ */
- struct gnu_property {
- 	u32 pr_type;
- 	u32 pr_datasz;
-diff --git a/include/uapi/linux/elf.h b/include/uapi/linux/elf.h
-index 20900f4496b7..c6dd0215482e 100644
---- a/include/uapi/linux/elf.h
-+++ b/include/uapi/linux/elf.h
-@@ -448,4 +448,10 @@ typedef struct elf64_note {
-   Elf64_Word n_type;	/* Content type */
- } Elf64_Nhdr;
- 
-+/* .note.gnu.property types for EM_AARCH64: */
-+#define GNU_PROPERTY_AARCH64_FEATURE_1_AND	0xc0000000
-+
-+/* Bits for GNU_PROPERTY_AARCH64_FEATURE_1_BTI */
-+#define GNU_PROPERTY_AARCH64_FEATURE_1_BTI	(1U << 0)
-+
- #endif /* _UAPI_LINUX_ELF_H */
--- 
-2.20.1
+Ideally distros which don't have post build check implement one after
+seeing few reports and someone reports few cases to ISV who aren't
+clueless as well.
+
+> or "report
+> this to kernel developers if you think this warning is inappropriate".
+
+Reports are better be done by people who know what they are doing, as in
+understand what executable stack is and what does it mean in reality.
+
+> Otherwise it will just go to /dev/null with all warning about bad blocks
+> on USB sticks and CPU core throttling under high temperature.
+
+That's fine. You don't want bugreports from people who don't know what
+is executable stack. Every security bug bounty program is flooded by
+such people. This is why message is worded in a neutral way.
