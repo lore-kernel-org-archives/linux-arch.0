@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:35498 "EHLO foss.arm.com"
+Received: from foss.arm.com ([217.140.110.172]:35382 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S2388709AbfLKPnE (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 11 Dec 2019 10:43:04 -0500
+        id S2388681AbfLKPmy (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 11 Dec 2019 10:42:54 -0500
 From: Mark Brown <broonie@kernel.org>
-Subject: [PATCH v4 06/12] arm64: elf: Enable BTI at exec based on ELF program properties
-Date: Wed, 11 Dec 2019 15:42:00 +0000
-Message-ID: <20191211154206.46260-7-broonie@kernel.org>
+Subject: [PATCH v4 02/12] ELF: Add ELF program property parsing support
+Date: Wed, 11 Dec 2019 15:41:56 +0000
+Message-ID: <20191211154206.46260-3-broonie@kernel.org>
 In-Reply-To: <20191211154206.46260-1-broonie@kernel.org>
 References: <20191211154206.46260-1-broonie@kernel.org>
 MIME-Version: 1.0
@@ -15,202 +15,309 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>
 Cc: Paul Elliott <paul.elliott@arm.com>, Peter Zijlstra <peterz@infradead.org>, Yu-cheng Yu <yu-cheng.yu@intel.com>, Amit Kachhap <amit.kachhap@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Marc Zyngier <maz@kernel.org>, Eugene Syromiatnikov <esyr@redhat.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, "H.J. Lu" <hjl.tools@gmail.com>, Andrew Jones <drjones@redhat.com>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Jann Horn <jannh@google.com>, Richard Henderson <richard.henderson@linaro.org>, =?UTF-8?q?Kristina=20Mart=C5=A1enko?= <kristina.martsenko@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Florian Weimer <fweimer@redhat.com>, Sudakshina Das <sudi.das@arm.com>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Dave Martin <Dave.Martin@arm.com>, Mark Brown <broonie@kernel.org>
-Message-ID: <20191211154200.V0SlnhLVXX3X9J9uf_wv7AK9HL7_eN1Djbz3jAR1IRQ@z>
+Message-ID: <20191211154156.V8uEpVlg0ehpY6ubf6IqgYUpSOd_gu6kiT3xRoUeic0@z>
 
 From: Dave Martin <Dave.Martin@arm.com>
 
-For BTI protection to be as comprehensive as possible, it is
-desirable to have BTI enabled from process startup.  If this is not
-done, the process must use mprotect() to enable BTI for each of its
-executable mappings, but this is painful to do in the libc startup
-code.  It's simpler and more sound to have the kernel do it
-instead.
+ELF program properties will be needed for detecting whether to
+enable optional architecture or ABI features for a new ELF process.
 
-To this end, detect BTI support in the executable (or ELF
-interpreter, as appropriate), via the
-NT_GNU_PROGRAM_PROPERTY_TYPE_0 note, and tweak the initial prot
-flags for the process' executable pages to include PROT_BTI as
-appropriate.
+For now, there are no generic properties that we care about, so do
+nothing unless CONFIG_ARCH_USE_GNU_PROPERTY=y.
+
+Otherwise, the presence of properties using the PT_PROGRAM_PROPERTY
+phdrs entry (if any), and notify each property to the arch code.
+
+For now, the added code is not used.
 
 Signed-off-by: Dave Martin <Dave.Martin@arm.com>
 Signed-off-by: Mark Brown <broonie@kernel.org>
 ---
- arch/arm64/Kconfig           |  3 +++
- arch/arm64/include/asm/elf.h | 50 ++++++++++++++++++++++++++++++++++++
- arch/arm64/kernel/process.c  | 19 ++++++++++++++
- include/linux/elf.h          |  6 ++++-
- include/uapi/linux/elf.h     |  6 +++++
- 5 files changed, 83 insertions(+), 1 deletion(-)
+ fs/binfmt_elf.c          | 127 +++++++++++++++++++++++++++++++++++++++
+ fs/compat_binfmt_elf.c   |   4 ++
+ include/linux/elf.h      |  19 ++++++
+ include/uapi/linux/elf.h |   4 ++
+ 4 files changed, 154 insertions(+)
 
-diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
-index 39292a0fc603..ea3a5150f5f6 100644
---- a/arch/arm64/Kconfig
-+++ b/arch/arm64/Kconfig
-@@ -9,6 +9,7 @@ config ARM64
- 	select ACPI_MCFG if (ACPI && PCI)
- 	select ACPI_SPCR_TABLE if ACPI
- 	select ACPI_PPTT if ACPI
-+	select ARCH_BINFMT_ELF_STATE
- 	select ARCH_CLOCKSOURCE_DATA
- 	select ARCH_HAS_DEBUG_VIRTUAL
- 	select ARCH_HAS_DEVMEM_IS_ALLOWED
-@@ -33,6 +34,7 @@ config ARM64
- 	select ARCH_HAS_SYSCALL_WRAPPER
- 	select ARCH_HAS_TEARDOWN_DMA_OPS if IOMMU_SUPPORT
- 	select ARCH_HAS_TICK_BROADCAST if GENERIC_CLOCKEVENTS_BROADCAST
-+	select ARCH_HAVE_ELF_PROT
- 	select ARCH_HAVE_NMI_SAFE_CMPXCHG
- 	select ARCH_INLINE_READ_LOCK if !PREEMPT
- 	select ARCH_INLINE_READ_LOCK_BH if !PREEMPT
-@@ -62,6 +64,7 @@ config ARM64
- 	select ARCH_INLINE_SPIN_UNLOCK_IRQRESTORE if !PREEMPT
- 	select ARCH_KEEP_MEMBLOCK
- 	select ARCH_USE_CMPXCHG_LOCKREF
-+	select ARCH_USE_GNU_PROPERTY if BINFMT_ELF
- 	select ARCH_USE_QUEUED_RWLOCKS
- 	select ARCH_USE_QUEUED_SPINLOCKS
- 	select ARCH_SUPPORTS_MEMORY_FAILURE
-diff --git a/arch/arm64/include/asm/elf.h b/arch/arm64/include/asm/elf.h
-index b618017205a3..8bc154ce4e00 100644
---- a/arch/arm64/include/asm/elf.h
-+++ b/arch/arm64/include/asm/elf.h
-@@ -114,7 +114,11 @@
- 
- #ifndef __ASSEMBLY__
- 
-+#include <uapi/linux/elf.h>
- #include <linux/bug.h>
-+#include <linux/errno.h>
-+#include <linux/fs.h>
+diff --git a/fs/binfmt_elf.c b/fs/binfmt_elf.c
+index ecd8d2698515..f584da3c6932 100644
+--- a/fs/binfmt_elf.c
++++ b/fs/binfmt_elf.c
+@@ -39,12 +39,18 @@
+ #include <linux/sched/coredump.h>
+ #include <linux/sched/task_stack.h>
+ #include <linux/sched/cputime.h>
++#include <linux/sizes.h>
 +#include <linux/types.h>
- #include <asm/processor.h> /* for signal_minsigstksz, used by ARCH_DLINFO */
+ #include <linux/cred.h>
+ #include <linux/dax.h>
+ #include <linux/uaccess.h>
+ #include <asm/param.h>
+ #include <asm/page.h>
  
- typedef unsigned long elf_greg_t;
-@@ -224,6 +228,52 @@ extern int aarch32_setup_additional_pages(struct linux_binprm *bprm,
- 
- #endif /* CONFIG_COMPAT */
- 
-+struct arch_elf_state {
-+	int flags;
-+};
++#ifndef ELF_COMPAT
++#define ELF_COMPAT 0
++#endif
 +
-+#define ARM64_ELF_BTI		(1 << 0)
+ #ifndef user_long_t
+ #define user_long_t long
+ #endif
+@@ -678,6 +684,111 @@ static unsigned long load_elf_interp(struct elfhdr *interp_elf_ex,
+  * libraries.  There is no binary dependent code anywhere else.
+  */
+ 
++static int parse_elf_property(const char *data, size_t *off, size_t datasz,
++			      struct arch_elf_state *arch,
++			      bool have_prev_type, u32 *prev_type)
++{
++	size_t o, step;
++	const struct gnu_property *pr;
++	int ret;
 +
-+#define INIT_ARCH_ELF_STATE {			\
-+	.flags = 0,				\
++	if (*off == datasz)
++		return -ENOENT;
++
++	if (WARN_ON_ONCE(*off > datasz || *off % ELF_GNU_PROPERTY_ALIGN))
++		return -EIO;
++	o = *off;
++	datasz -= *off;
++
++	if (datasz < sizeof(*pr))
++		return -EIO;
++	pr = (const struct gnu_property *)(data + o);
++	o += sizeof(*pr);
++	datasz -= sizeof(*pr);
++
++	if (pr->pr_datasz > datasz)
++		return -EIO;
++
++	WARN_ON_ONCE(o % ELF_GNU_PROPERTY_ALIGN);
++	step = round_up(pr->pr_datasz, ELF_GNU_PROPERTY_ALIGN);
++	if (step > datasz)
++		return -EIO;
++
++	/* Properties are supposed to be unique and sorted on pr_type: */
++	if (have_prev_type && pr->pr_type <= *prev_type)
++		return -EIO;
++	*prev_type = pr->pr_type;
++
++	ret = arch_parse_elf_property(pr->pr_type, data + o,
++				      pr->pr_datasz, ELF_COMPAT, arch);
++	if (ret)
++		return ret;
++
++	*off = o + step;
++	return 0;
 +}
 +
++#define NOTE_DATA_SZ SZ_1K
++#define GNU_PROPERTY_TYPE_0_NAME "GNU"
++#define NOTE_NAME_SZ (sizeof(GNU_PROPERTY_TYPE_0_NAME))
++
++static int parse_elf_properties(struct file *f, const struct elf_phdr *phdr,
++				struct arch_elf_state *arch)
++{
++	union {
++		struct elf_note nhdr;
++		char data[NOTE_DATA_SZ];
++	} note;
++	loff_t pos;
++	ssize_t n;
++	size_t off, datasz;
++	int ret;
++	bool have_prev_type;
++	u32 prev_type;
++
++	if (!IS_ENABLED(CONFIG_ARCH_USE_GNU_PROPERTY) || !phdr)
++		return 0;
++
++	/* load_elf_binary() shouldn't call us unless this is true... */
++	if (WARN_ON_ONCE(phdr->p_type != PT_GNU_PROPERTY))
++		return -EIO;
++
++	/* If the properties are crazy large, that's too bad (for now): */
++	if (phdr->p_filesz > sizeof(note))
++		return -ENOEXEC;
++
++	pos = phdr->p_offset;
++	n = kernel_read(f, &note, phdr->p_filesz, &pos);
++
++	BUILD_BUG_ON(sizeof(note) < sizeof(note.nhdr) + NOTE_NAME_SZ);
++	if (n < 0 || n < sizeof(note.nhdr) + NOTE_NAME_SZ)
++		return -EIO;
++
++	if (note.nhdr.n_type != NT_GNU_PROPERTY_TYPE_0 ||
++	    note.nhdr.n_namesz != NOTE_NAME_SZ ||
++	    strncmp(note.data + sizeof(note.nhdr),
++		    GNU_PROPERTY_TYPE_0_NAME, n - sizeof(note.nhdr)))
++		return -EIO;
++
++	off = round_up(sizeof(note.nhdr) + NOTE_NAME_SZ,
++		       ELF_GNU_PROPERTY_ALIGN);
++	if (off > n)
++		return -EIO;
++
++	if (note.nhdr.n_descsz > n - off)
++		return -EIO;
++	datasz = off + note.nhdr.n_descsz;
++
++	have_prev_type = false;
++	do {
++		ret = parse_elf_property(note.data, &off, datasz, arch,
++					 have_prev_type, &prev_type);
++		have_prev_type = true;
++	} while (!ret);
++
++	return ret == -ENOENT ? 0 : ret;
++}
++
+ static int load_elf_binary(struct linux_binprm *bprm)
+ {
+ 	struct file *interpreter = NULL; /* to shut gcc up */
+@@ -685,6 +796,7 @@ static int load_elf_binary(struct linux_binprm *bprm)
+ 	int load_addr_set = 0;
+ 	unsigned long error;
+ 	struct elf_phdr *elf_ppnt, *elf_phdata, *interp_elf_phdata = NULL;
++	struct elf_phdr *elf_property_phdata = NULL;
+ 	unsigned long elf_bss, elf_brk;
+ 	int bss_prot = 0;
+ 	int retval, i;
+@@ -731,6 +843,11 @@ static int load_elf_binary(struct linux_binprm *bprm)
+ 	for (i = 0; i < loc->elf_ex.e_phnum; i++, elf_ppnt++) {
+ 		char *elf_interpreter;
+ 
++		if (elf_ppnt->p_type == PT_GNU_PROPERTY) {
++			elf_property_phdata = elf_ppnt;
++			continue;
++		}
++
+ 		if (elf_ppnt->p_type != PT_INTERP)
+ 			continue;
+ 
+@@ -818,9 +935,14 @@ static int load_elf_binary(struct linux_binprm *bprm)
+ 			goto out_free_dentry;
+ 
+ 		/* Pass PT_LOPROC..PT_HIPROC headers to arch code */
++		elf_property_phdata = NULL;
+ 		elf_ppnt = interp_elf_phdata;
+ 		for (i = 0; i < loc->interp_elf_ex.e_phnum; i++, elf_ppnt++)
+ 			switch (elf_ppnt->p_type) {
++			case PT_GNU_PROPERTY:
++				elf_property_phdata = elf_ppnt;
++				break;
++
+ 			case PT_LOPROC ... PT_HIPROC:
+ 				retval = arch_elf_pt_proc(&loc->interp_elf_ex,
+ 							  elf_ppnt, interpreter,
+@@ -831,6 +953,11 @@ static int load_elf_binary(struct linux_binprm *bprm)
+ 			}
+ 	}
+ 
++	retval = parse_elf_properties(interpreter ?: bprm->file,
++				      elf_property_phdata, &arch_state);
++	if (retval)
++		goto out_free_dentry;
++
+ 	/*
+ 	 * Allow arch code to reject the ELF at this point, whilst it's
+ 	 * still possible to return an error to the code that invoked
+diff --git a/fs/compat_binfmt_elf.c b/fs/compat_binfmt_elf.c
+index aaad4ca1217e..13a087bc816b 100644
+--- a/fs/compat_binfmt_elf.c
++++ b/fs/compat_binfmt_elf.c
+@@ -17,6 +17,8 @@
+ #include <linux/elfcore-compat.h>
+ #include <linux/time.h>
+ 
++#define ELF_COMPAT	1
++
+ /*
+  * Rename the basic ELF layout types to refer to the 32-bit class of files.
+  */
+@@ -28,11 +30,13 @@
+ #undef	elf_shdr
+ #undef	elf_note
+ #undef	elf_addr_t
++#undef	ELF_GNU_PROPERTY_ALIGN
+ #define elfhdr		elf32_hdr
+ #define elf_phdr	elf32_phdr
+ #define elf_shdr	elf32_shdr
+ #define elf_note	elf32_note
+ #define elf_addr_t	Elf32_Addr
++#define ELF_GNU_PROPERTY_ALIGN	ELF32_GNU_PROPERTY_ALIGN
+ 
+ /*
+  * Some data types as stored in coredump.
+diff --git a/include/linux/elf.h b/include/linux/elf.h
+index 459cddcceaac..7bdc6da160c7 100644
+--- a/include/linux/elf.h
++++ b/include/linux/elf.h
+@@ -22,6 +22,9 @@
+ 	SET_PERSONALITY(ex)
+ #endif
+ 
++#define ELF32_GNU_PROPERTY_ALIGN	4
++#define ELF64_GNU_PROPERTY_ALIGN	8
++
+ #if ELF_CLASS == ELFCLASS32
+ 
+ extern Elf32_Dyn _DYNAMIC [];
+@@ -32,6 +35,7 @@ extern Elf32_Dyn _DYNAMIC [];
+ #define elf_addr_t	Elf32_Off
+ #define Elf_Half	Elf32_Half
+ #define Elf_Word	Elf32_Word
++#define ELF_GNU_PROPERTY_ALIGN	ELF32_GNU_PROPERTY_ALIGN
+ 
+ #else
+ 
+@@ -43,6 +47,7 @@ extern Elf64_Dyn _DYNAMIC [];
+ #define elf_addr_t	Elf64_Off
+ #define Elf_Half	Elf64_Half
+ #define Elf_Word	Elf64_Word
++#define ELF_GNU_PROPERTY_ALIGN	ELF64_GNU_PROPERTY_ALIGN
+ 
+ #endif
+ 
+@@ -64,4 +69,18 @@ struct gnu_property {
+ 	u32 pr_datasz;
+ };
+ 
++struct arch_elf_state;
++
++#ifndef CONFIG_ARCH_USE_GNU_PROPERTY
 +static inline int arch_parse_elf_property(u32 type, const void *data,
 +					  size_t datasz, bool compat,
 +					  struct arch_elf_state *arch)
 +{
-+	/* No known properties for AArch32 yet */
-+	if (IS_ENABLED(CONFIG_COMPAT) && compat)
-+		return 0;
-+
-+	if (type == GNU_PROPERTY_AARCH64_FEATURE_1_AND) {
-+		const u32 *p = data;
-+
-+		if (datasz != sizeof(*p))
-+			return -EIO;
-+
-+		if (IS_ENABLED(CONFIG_ARM64_BTI) &&
-+		    (*p & GNU_PROPERTY_AARCH64_FEATURE_1_BTI))
-+			arch->flags |= ARM64_ELF_BTI;
-+	}
-+
 +	return 0;
 +}
-+
-+static inline int arch_elf_pt_proc(void *ehdr, void *phdr,
-+				   struct file *f, bool is_interp,
-+				   struct arch_elf_state *state)
-+{
-+	return 0;
-+}
-+
-+static inline int arch_check_elf(void *ehdr, bool has_interp,
-+				 void *interp_ehdr,
-+				 struct arch_elf_state *state)
-+{
-+	return 0;
-+}
-+
- #endif /* !__ASSEMBLY__ */
- 
- #endif
-diff --git a/arch/arm64/kernel/process.c b/arch/arm64/kernel/process.c
-index 71f788cd2b18..37c508f409ac 100644
---- a/arch/arm64/kernel/process.c
-+++ b/arch/arm64/kernel/process.c
-@@ -11,6 +11,7 @@
- 
- #include <linux/compat.h>
- #include <linux/efi.h>
-+#include <linux/elf.h>
- #include <linux/export.h>
- #include <linux/sched.h>
- #include <linux/sched/debug.h>
-@@ -18,6 +19,7 @@
- #include <linux/sched/task_stack.h>
- #include <linux/kernel.h>
- #include <linux/lockdep.h>
-+#include <linux/mman.h>
- #include <linux/mm.h>
- #include <linux/stddef.h>
- #include <linux/sysctl.h>
-@@ -649,3 +651,20 @@ asmlinkage void __sched arm64_preempt_schedule_irq(void)
- 	if (static_branch_likely(&arm64_const_caps_ready))
- 		preempt_schedule_irq();
- }
-+
-+#ifdef CONFIG_BINFMT_ELF
-+int arch_elf_adjust_prot(int prot, const struct arch_elf_state *state,
-+			 bool has_interp, bool is_interp)
-+{
-+	if (is_interp != has_interp)
-+		return prot;
-+
-+	if (!(state->flags & ARM64_ELF_BTI))
-+		return prot;
-+
-+	if (prot & PROT_EXEC)
-+		prot |= PROT_BTI;
-+
-+	return prot;
-+}
++#else
++extern int arch_parse_elf_property(u32 type, const void *data, size_t datasz,
++				   bool compat, struct arch_elf_state *arch);
 +#endif
-diff --git a/include/linux/elf.h b/include/linux/elf.h
-index 1b6e8955c597..5d5b0321da0b 100644
---- a/include/linux/elf.h
-+++ b/include/linux/elf.h
-@@ -63,7 +63,11 @@ extern int elf_coredump_extra_notes_size(void);
- extern int elf_coredump_extra_notes_write(struct coredump_params *cprm);
- #endif
- 
--/* NT_GNU_PROPERTY_TYPE_0 header */
-+/*
-+ * NT_GNU_PROPERTY_TYPE_0 header:
-+ * Keep this internal until/unless there is an agreed UAPI definition.
-+ * pr_type values (GNU_PROPERTY_*) are public and defined in the UAPI header.
-+ */
- struct gnu_property {
- 	u32 pr_type;
- 	u32 pr_datasz;
++
+ #endif /* _LINUX_ELF_H */
 diff --git a/include/uapi/linux/elf.h b/include/uapi/linux/elf.h
-index 20900f4496b7..c6dd0215482e 100644
+index c37731407074..20900f4496b7 100644
 --- a/include/uapi/linux/elf.h
 +++ b/include/uapi/linux/elf.h
-@@ -448,4 +448,10 @@ typedef struct elf64_note {
-   Elf64_Word n_type;	/* Content type */
- } Elf64_Nhdr;
+@@ -368,6 +368,7 @@ typedef struct elf64_shdr {
+  * Notes used in ET_CORE. Architectures export some of the arch register sets
+  * using the corresponding note types via the PTRACE_GETREGSET and
+  * PTRACE_SETREGSET requests.
++ * The note name for all these is "LINUX".
+  */
+ #define NT_PRSTATUS	1
+ #define NT_PRFPREG	2
+@@ -430,6 +431,9 @@ typedef struct elf64_shdr {
+ #define NT_MIPS_FP_MODE	0x801		/* MIPS floating-point mode */
+ #define NT_MIPS_MSA	0x802		/* MIPS SIMD registers */
  
-+/* .note.gnu.property types for EM_AARCH64: */
-+#define GNU_PROPERTY_AARCH64_FEATURE_1_AND	0xc0000000
++/* Note types with note name "GNU" */
++#define NT_GNU_PROPERTY_TYPE_0	5
 +
-+/* Bits for GNU_PROPERTY_AARCH64_FEATURE_1_BTI */
-+#define GNU_PROPERTY_AARCH64_FEATURE_1_BTI	(1U << 0)
-+
- #endif /* _UAPI_LINUX_ELF_H */
+ /* Note header in a PT_NOTE section */
+ typedef struct elf32_note {
+   Elf32_Word	n_namesz;	/* Name size */
 -- 
 2.20.1
