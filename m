@@ -1,176 +1,44 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:43138 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1729879AbfLKSk4 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 11 Dec 2019 13:40:56 -0500
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: [PATCH 11/22] arm64: Tags-aware memcmp_pages() implementation
-Date: Wed, 11 Dec 2019 18:40:16 +0000
-Message-ID: <20191211184027.20130-12-catalin.marinas@arm.com>
-In-Reply-To: <20191211184027.20130-1-catalin.marinas@arm.com>
-References: <20191211184027.20130-1-catalin.marinas@arm.com>
+Received: from mout.kundenserver.de ([212.227.126.131]:60335 "EHLO
+        mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726487AbfLKT06 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 11 Dec 2019 14:26:58 -0500
+Received: from mail-qk1-f171.google.com ([209.85.222.171]) by
+ mrelayeu.kundenserver.de (mreue011 [212.227.15.129]) with ESMTPSA (Nemesis)
+ id 1Mt7Ll-1hqKMr2ziz-00tQbm for <linux-arch@vger.kernel.org>; Wed, 11 Dec
+ 2019 20:26:56 +0100
+Received: by mail-qk1-f171.google.com with SMTP id r14so12513622qke.13
+        for <linux-arch@vger.kernel.org>; Wed, 11 Dec 2019 11:26:56 -0800 (PST)
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+References: <20191211184027.20130-1-catalin.marinas@arm.com> <20191211184027.20130-2-catalin.marinas@arm.com>
+In-Reply-To: <20191211184027.20130-2-catalin.marinas@arm.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Date: Wed, 11 Dec 2019 20:26:39 +0100
+Message-ID: <CAK8P3a0OxNWPjekT_m55reuopHJeWZs6dm7YTtoLgd39P6y2PQ@mail.gmail.com>
+Subject: Re: [PATCH 01/22] mm: Reserve asm-generic prot flags 0x10 and 0x20
+ for arch use
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arm-kernel@lists.infradead.org
-Cc: Will Deacon <will@kernel.org>, Marc Zyngier <maz@kernel.org>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Richard Earnshaw <Richard.Earnshaw@arm.com>, Kevin Brodsky <kevin.brodsky@arm.com>, Andrey Konovalov <andreyknvl@google.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org
-Message-ID: <20191211184016.OP-_YSjDaVOn8GiLrnV7Rm4xCeW4IkLkYeGyS1cVvgQ@z>
+To: Catalin Marinas <catalin.marinas@arm.com>
+Cc: Linux ARM <linux-arm-kernel@lists.infradead.org>, Will Deacon <will@kernel.org>, Marc Zyngier <maz@kernel.org>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Richard Earnshaw <Richard.Earnshaw@arm.com>, Kevin Brodsky <kevin.brodsky@arm.com>, Andrey Konovalov <andreyknvl@google.com>, Linux-MM <linux-mm@kvack.org>, linux-arch <linux-arch@vger.kernel.org>, Dave Martin <Dave.Martin@arm.com>
+Message-ID: <20191211192639.M7UrtkgvE72HIi9qw2aYVVtIYwMAPCh5v4QoasyGGuw@z>
 
-When the Memory Tagging Extension is enabled, two pages are identical
-only if both their data and tags are identical.
+On Wed, Dec 11, 2019 at 7:40 PM Catalin Marinas <catalin.marinas@arm.com> wrote:
+>
+> From: Dave Martin <Dave.Martin@arm.com>
+>
+> The asm-generic/mman.h definitions are used by a few architectures that
+> also define arch-specific PROT flags with value 0x10 and 0x20. This
+> currently applies to sparc and powerpc for 0x10, while arm64 will soon
+> join with 0x10 and 0x20.
+>
+> To help future maintainers, document the use of this flag in the
+> asm-generic header too.
+>
+> Cc: Arnd Bergmann <arnd@arndb.de>
+> Signed-off-by: Dave Martin <Dave.Martin@arm.com>
+> [catalin.marinas@arm.com: reserve 0x20 as well]
+> Signed-off-by: Catalin Marinas <catalin.marinas@arm.com>
 
-Make the generic memcmp_pages() a __weak function and add an
-arm64-specific implementation which takes care of the tags comparison.
-
-Co-developed-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Signed-off-by: Catalin Marinas <catalin.marinas@arm.com>
----
- arch/arm64/include/asm/mte.h | 11 +++++++++
- arch/arm64/lib/Makefile      |  2 ++
- arch/arm64/lib/mte.S         | 46 ++++++++++++++++++++++++++++++++++++
- arch/arm64/mm/Makefile       |  1 +
- arch/arm64/mm/cmppages.c     | 26 ++++++++++++++++++++
- mm/util.c                    |  2 +-
- 6 files changed, 87 insertions(+), 1 deletion(-)
- create mode 100644 arch/arm64/include/asm/mte.h
- create mode 100644 arch/arm64/lib/mte.S
- create mode 100644 arch/arm64/mm/cmppages.c
-
-diff --git a/arch/arm64/include/asm/mte.h b/arch/arm64/include/asm/mte.h
-new file mode 100644
-index 000000000000..64e814273659
---- /dev/null
-+++ b/arch/arm64/include/asm/mte.h
-@@ -0,0 +1,11 @@
-+/* SPDX-License-Identifier: GPL-2.0 */
-+#ifndef __ASM_MTE_H
-+#define __ASM_MTE_H
-+
-+#ifndef __ASSEMBLY__
-+
-+/* Memory Tagging API */
-+int mte_memcmp_pages(const void *page1_addr, const void *page2_addr);
-+
-+#endif /* __ASSEMBLY__ */
-+#endif /* __ASM_MTE_H  */
-diff --git a/arch/arm64/lib/Makefile b/arch/arm64/lib/Makefile
-index c21b936dc01d..178879a754b0 100644
---- a/arch/arm64/lib/Makefile
-+++ b/arch/arm64/lib/Makefile
-@@ -16,3 +16,5 @@ lib-$(CONFIG_ARCH_HAS_UACCESS_FLUSHCACHE) += uaccess_flushcache.o
- obj-$(CONFIG_CRC32) += crc32.o
- 
- obj-$(CONFIG_FUNCTION_ERROR_INJECTION) += error-inject.o
-+
-+obj-$(CONFIG_ARM64_MTE) += mte.o
-diff --git a/arch/arm64/lib/mte.S b/arch/arm64/lib/mte.S
-new file mode 100644
-index 000000000000..d41955ab4134
---- /dev/null
-+++ b/arch/arm64/lib/mte.S
-@@ -0,0 +1,46 @@
-+/* SPDX-License-Identifier: GPL-2.0-only */
-+/*
-+ * Copyright (C) 2019 ARM Ltd.
-+ */
-+#include <linux/linkage.h>
-+
-+#include <asm/assembler.h>
-+
-+/*
-+ * Compare tags of two pages
-+ *   x0 - page1 address
-+ *   x1 - page2 address
-+ * Returns:
-+ *   w0 - negative, zero or positive value if the tag in the first page is
-+ *	  less than, equal to or greater than the tag in the second page
-+ */
-+ENTRY(mte_memcmp_pages)
-+	multitag_transfer_size x7, x5
-+1:
-+	ldgm	x2, [x0]
-+	ldgm	x3, [x1]
-+
-+	eor	x4, x2, x3
-+	cbnz	x4, 2f
-+
-+	add	x0, x0, x7
-+	add	x1, x1, x7
-+
-+	tst	x0, #(PAGE_SIZE - 1)
-+	b.ne	1b
-+
-+	mov	w0, #0
-+	ret
-+2:
-+	rbit	x4, x4
-+	clz	x4, x4			// count the least significant equal bits
-+	and	x4, x4, #~3		// round down to a multiple of 4 (bits per tag)
-+
-+	lsr	x2, x2, x4		// remove equal tags
-+	lsr	x3, x3, x4
-+
-+	lsl	w2, w2, #28		// compare the differing tags
-+	sub	w0, w2, w3, lsl #28
-+
-+	ret
-+ENDPROC(mte_memcmp_pages)
-diff --git a/arch/arm64/mm/Makefile b/arch/arm64/mm/Makefile
-index 849c1df3d214..7a556e9a19dc 100644
---- a/arch/arm64/mm/Makefile
-+++ b/arch/arm64/mm/Makefile
-@@ -8,6 +8,7 @@ obj-$(CONFIG_ARM64_PTDUMP_CORE)	+= dump.o
- obj-$(CONFIG_ARM64_PTDUMP_DEBUGFS)	+= ptdump_debugfs.o
- obj-$(CONFIG_NUMA)		+= numa.o
- obj-$(CONFIG_DEBUG_VIRTUAL)	+= physaddr.o
-+obj-$(CONFIG_ARM64_MTE)		+= cmppages.o
- KASAN_SANITIZE_physaddr.o	+= n
- 
- obj-$(CONFIG_KASAN)		+= kasan_init.o
-diff --git a/arch/arm64/mm/cmppages.c b/arch/arm64/mm/cmppages.c
-new file mode 100644
-index 000000000000..943c1877e014
---- /dev/null
-+++ b/arch/arm64/mm/cmppages.c
-@@ -0,0 +1,26 @@
-+// SPDX-License-Identifier: GPL-2.0-only
-+/*
-+ * Copyright (C) 2019 ARM Ltd.
-+ */
-+
-+#include <linux/mm.h>
-+#include <linux/string.h>
-+
-+#include <asm/cpufeature.h>
-+#include <asm/mte.h>
-+
-+int memcmp_pages(struct page *page1, struct page *page2)
-+{
-+	char *addr1, *addr2;
-+	int ret;
-+
-+	addr1 = page_address(page1);
-+	addr2 = page_address(page2);
-+
-+	ret = memcmp(addr1, addr2, PAGE_SIZE);
-+	/* if page content identical, check the tags */
-+	if (ret == 0 && system_supports_mte())
-+		ret = mte_memcmp_pages(addr1, addr2);
-+
-+	return ret;
-+}
-diff --git a/mm/util.c b/mm/util.c
-index 988d11e6c17c..662fb3da6d01 100644
---- a/mm/util.c
-+++ b/mm/util.c
-@@ -899,7 +899,7 @@ int get_cmdline(struct task_struct *task, char *buffer, int buflen)
- 	return res;
- }
- 
--int memcmp_pages(struct page *page1, struct page *page2)
-+int __weak memcmp_pages(struct page *page1, struct page *page2)
- {
- 	char *addr1, *addr2;
- 	int ret;
+Acked-by: Arnd Bergmann <arnd@arndb.de>
