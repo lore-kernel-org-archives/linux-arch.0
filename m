@@ -1,7 +1,8 @@
 From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: [PATCH 10/22] arm64: mte: Tags-aware copy_page() implementation
-Date: Wed, 11 Dec 2019 18:40:15 +0000
-Message-ID: <20191211184027.20130-11-catalin.marinas@arm.com>
+Subject: [PATCH 08/22] arm64: mte: Assembler macros and default architecture
+ for .S files
+Date: Wed, 11 Dec 2019 18:40:13 +0000
+Message-ID: <20191211184027.20130-9-catalin.marinas@arm.com>
 References: <20191211184027.20130-1-catalin.marinas@arm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -21,52 +22,45 @@ To: linux-arm-kernel@lists.infradead.org
 Cc: linux-arch@vger.kernel.org, Richard Earnshaw <Richard.Earnshaw@arm.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Marc Zyngier <maz@kernel.org>, Kevin Brodsky <kevin.brodsky@arm.com>, linux-mm@kvack.org, Andrey Konovalov <andreyknvl@google.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Will Deacon <will@kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-From: Vincenzo Frascino <vincenzo.frascino@arm.com>
+Add the multitag_transfer_size macro to the arm64 assembler.h, together
+with '.arch armv8.5-a+memtag' when CONFIG_ARM64_MTE is enabled.
 
-When the Memory Tagging Extension is enabled, the tags need to be
-preserved across page copy (e.g. for copy-on-write).
-
-Introduce MTE-aware copy_page() which preserves the tags across page
-copy.
-
-Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Co-developed-by: Catalin Marinas <catalin.marinas@arm.com>
 Signed-off-by: Catalin Marinas <catalin.marinas@arm.com>
 ---
- arch/arm64/lib/copy_page.S | 23 +++++++++++++++++++++++
- 1 file changed, 23 insertions(+)
+ arch/arm64/include/asm/assembler.h | 16 ++++++++++++++++
+ 1 file changed, 16 insertions(+)
 
-diff --git a/arch/arm64/lib/copy_page.S b/arch/arm64/lib/copy_page.S
-index bbb8562396af..970b7a20da70 100644
---- a/arch/arm64/lib/copy_page.S
-+++ b/arch/arm64/lib/copy_page.S
-@@ -25,6 +25,29 @@ alternative_if ARM64_HAS_NO_HW_PREFETCH
- 	prfm	pldl1strm, [x1, #384]
- alternative_else_nop_endif
+diff --git a/arch/arm64/include/asm/assembler.h b/arch/arm64/include/asm/assembler.h
+index b8cf7c85ffa2..74a649a0b6e6 100644
+--- a/arch/arm64/include/asm/assembler.h
++++ b/arch/arm64/include/asm/assembler.h
+@@ -21,8 +21,13 @@
+ #include <asm/page.h>
+ #include <asm/pgtable-hwdef.h>
+ #include <asm/ptrace.h>
++#include <asm/sysreg.h>
+ #include <asm/thread_info.h>
  
 +#ifdef CONFIG_ARM64_MTE
-+alternative_if_not ARM64_MTE
-+	b	2f
-+alternative_else_nop_endif
-+	/*
-+	 * Copy tags if MTE has been enabled.
-+	 */
-+	mov	x2, x0
-+	mov	x3, x1
-+
-+	multitag_transfer_size x7, x5
-+1:
-+	ldgm	x4, [x3]
-+	stgm	x4, [x2]
-+
-+	add	x2, x2, x7
-+	add	x3, x3, x7
-+
-+	tst	x2, #(PAGE_SIZE - 1)
-+	b.ne	1b
-+2:
++	.arch armv8.5-a+memtag
 +#endif
 +
- 	ldp	x2, x3, [x1]
- 	ldp	x4, x5, [x1, #16]
- 	ldp	x6, x7, [x1, #32]
+ 	.macro save_and_disable_daif, flags
+ 	mrs	\flags, daif
+ 	msr	daifset, #0xf
+@@ -756,4 +761,15 @@ USER(\label, ic	ivau, \tmp2)			// invalidate I line PoU
+ .Lyield_out_\@ :
+ 	.endm
+ 
++/*
++ * multitag_transfer_size - set \reg to the block size that is accessed by the
++ * LDGM/STGM instructions.
++ */
++	.macro	multitag_transfer_size, reg, tmp
++	mrs_s	\reg, SYS_GMID_EL1
++	ubfx	\reg, \reg, #SYS_GMID_EL1_BS_SHIFT, #SYS_GMID_EL1_BS_SIZE
++	mov	\tmp, #4
++	lsl	\reg, \tmp, \reg
++	.endm
++
+ #endif	/* __ASM_ASSEMBLER_H */
