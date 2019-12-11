@@ -1,7 +1,8 @@
 From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: [PATCH 11/22] arm64: Tags-aware memcmp_pages() implementation
-Date: Wed, 11 Dec 2019 18:40:16 +0000
-Message-ID: <20191211184027.20130-12-catalin.marinas@arm.com>
+Subject: [PATCH 13/22] arm64: mte: Handle synchronous and asynchronous tag
+ check faults
+Date: Wed, 11 Dec 2019 18:40:18 +0000
+Message-ID: <20191211184027.20130-14-catalin.marinas@arm.com>
 References: <20191211184027.20130-1-catalin.marinas@arm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -21,160 +22,163 @@ To: linux-arm-kernel@lists.infradead.org
 Cc: linux-arch@vger.kernel.org, Richard Earnshaw <Richard.Earnshaw@arm.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Marc Zyngier <maz@kernel.org>, Kevin Brodsky <kevin.brodsky@arm.com>, linux-mm@kvack.org, Andrey Konovalov <andreyknvl@google.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Will Deacon <will@kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-When the Memory Tagging Extension is enabled, two pages are identical
-only if both their data and tags are identical.
+From: Vincenzo Frascino <vincenzo.frascino@arm.com>
 
-Make the generic memcmp_pages() a __weak function and add an
-arm64-specific implementation which takes care of the tags comparison.
+The Memory Tagging Extension has two modes of notifying a tag check
+fault at EL0, configurable through the SCTLR_EL1.TCF0 field:
 
-Co-developed-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
+1. Synchronous raising of a Data Abort exception with DFSC 17.
+2. Asynchronous setting of a cumulative bit in TFSRE0_EL1.
+
+Add the exception handler for the synchronous exception and handling of
+the asynchronous TFSRE0_EL1.TF0 bit setting via a new TIF flag in
+do_notify_resume().
+
 Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
+Co-developed-by: Catalin Marinas <catalin.marinas@arm.com>
 Signed-off-by: Catalin Marinas <catalin.marinas@arm.com>
 ---
- arch/arm64/include/asm/mte.h | 11 +++++++++
- arch/arm64/lib/Makefile      |  2 ++
- arch/arm64/lib/mte.S         | 46 ++++++++++++++++++++++++++++++++++++
- arch/arm64/mm/Makefile       |  1 +
- arch/arm64/mm/cmppages.c     | 26 ++++++++++++++++++++
- mm/util.c                    |  2 +-
- 6 files changed, 87 insertions(+), 1 deletion(-)
- create mode 100644 arch/arm64/include/asm/mte.h
- create mode 100644 arch/arm64/lib/mte.S
- create mode 100644 arch/arm64/mm/cmppages.c
+ arch/arm64/include/asm/thread_info.h |  4 +++-
+ arch/arm64/kernel/entry.S            | 17 +++++++++++++++++
+ arch/arm64/kernel/process.c          |  7 +++++++
+ arch/arm64/kernel/signal.c           |  8 ++++++++
+ arch/arm64/mm/fault.c                |  9 ++++++++-
+ 5 files changed, 43 insertions(+), 2 deletions(-)
 
-diff --git a/arch/arm64/include/asm/mte.h b/arch/arm64/include/asm/mte.h
-new file mode 100644
-index 000000000000..64e814273659
---- /dev/null
-+++ b/arch/arm64/include/asm/mte.h
-@@ -0,0 +1,11 @@
-+/* SPDX-License-Identifier: GPL-2.0 */
-+#ifndef __ASM_MTE_H
-+#define __ASM_MTE_H
-+
-+#ifndef __ASSEMBLY__
-+
-+/* Memory Tagging API */
-+int mte_memcmp_pages(const void *page1_addr, const void *page2_addr);
-+
-+#endif /* __ASSEMBLY__ */
-+#endif /* __ASM_MTE_H  */
-diff --git a/arch/arm64/lib/Makefile b/arch/arm64/lib/Makefile
-index c21b936dc01d..178879a754b0 100644
---- a/arch/arm64/lib/Makefile
-+++ b/arch/arm64/lib/Makefile
-@@ -16,3 +16,5 @@ lib-$(CONFIG_ARCH_HAS_UACCESS_FLUSHCACHE) += uaccess_flushcache.o
- obj-$(CONFIG_CRC32) += crc32.o
+diff --git a/arch/arm64/include/asm/thread_info.h b/arch/arm64/include/asm/thread_info.h
+index f0cec4160136..f759a0215a71 100644
+--- a/arch/arm64/include/asm/thread_info.h
++++ b/arch/arm64/include/asm/thread_info.h
+@@ -63,6 +63,7 @@ void arch_release_task_struct(struct task_struct *tsk);
+ #define TIF_FOREIGN_FPSTATE	3	/* CPU's FP state is not current's */
+ #define TIF_UPROBE		4	/* uprobe breakpoint or singlestep */
+ #define TIF_FSCHECK		5	/* Check FS is USER_DS on return */
++#define TIF_MTE_ASYNC_FAULT	6	/* MTE Asynchronous Tag Check Fault */
+ #define TIF_NOHZ		7
+ #define TIF_SYSCALL_TRACE	8	/* syscall trace active */
+ #define TIF_SYSCALL_AUDIT	9	/* syscall auditing */
+@@ -93,10 +94,11 @@ void arch_release_task_struct(struct task_struct *tsk);
+ #define _TIF_FSCHECK		(1 << TIF_FSCHECK)
+ #define _TIF_32BIT		(1 << TIF_32BIT)
+ #define _TIF_SVE		(1 << TIF_SVE)
++#define _TIF_MTE_ASYNC_FAULT	(1 << TIF_MTE_ASYNC_FAULT)
  
- obj-$(CONFIG_FUNCTION_ERROR_INJECTION) += error-inject.o
-+
-+obj-$(CONFIG_ARM64_MTE) += mte.o
-diff --git a/arch/arm64/lib/mte.S b/arch/arm64/lib/mte.S
-new file mode 100644
-index 000000000000..d41955ab4134
---- /dev/null
-+++ b/arch/arm64/lib/mte.S
-@@ -0,0 +1,46 @@
-+/* SPDX-License-Identifier: GPL-2.0-only */
-+/*
-+ * Copyright (C) 2019 ARM Ltd.
-+ */
-+#include <linux/linkage.h>
-+
-+#include <asm/assembler.h>
-+
-+/*
-+ * Compare tags of two pages
-+ *   x0 - page1 address
-+ *   x1 - page2 address
-+ * Returns:
-+ *   w0 - negative, zero or positive value if the tag in the first page is
-+ *	  less than, equal to or greater than the tag in the second page
-+ */
-+ENTRY(mte_memcmp_pages)
-+	multitag_transfer_size x7, x5
+ #define _TIF_WORK_MASK		(_TIF_NEED_RESCHED | _TIF_SIGPENDING | \
+ 				 _TIF_NOTIFY_RESUME | _TIF_FOREIGN_FPSTATE | \
+-				 _TIF_UPROBE | _TIF_FSCHECK)
++				 _TIF_UPROBE | _TIF_FSCHECK | _TIF_MTE_ASYNC_FAULT)
+ 
+ #define _TIF_SYSCALL_WORK	(_TIF_SYSCALL_TRACE | _TIF_SYSCALL_AUDIT | \
+ 				 _TIF_SYSCALL_TRACEPOINT | _TIF_SECCOMP | \
+diff --git a/arch/arm64/kernel/entry.S b/arch/arm64/kernel/entry.S
+index 7c6a0a41676f..c221a539e61d 100644
+--- a/arch/arm64/kernel/entry.S
++++ b/arch/arm64/kernel/entry.S
+@@ -144,6 +144,22 @@ alternative_cb_end
+ #endif
+ 	.endm
+ 
++	// Check for MTE asynchronous tag check faults
++	.macro check_mte_async_tcf, flgs, tmp
++#ifdef CONFIG_ARM64_MTE
++alternative_if_not ARM64_MTE
++	b	1f
++alternative_else_nop_endif
++	mrs_s	\tmp, SYS_TFSRE0_EL1
++	tbz	\tmp, #SYS_TFSR_EL1_TF0_SHIFT, 1f
++	// Asynchronous TCF occurred at EL0, set the TI flag
++	orr	\flgs, \flgs, #_TIF_MTE_ASYNC_FAULT
++	str	\flgs, [tsk, #TSK_TI_FLAGS]
++	msr_s	SYS_TFSRE0_EL1, xzr
 +1:
-+	ldgm	x2, [x0]
-+	ldgm	x3, [x1]
++#endif
++	.endm
 +
-+	eor	x4, x2, x3
-+	cbnz	x4, 2f
-+
-+	add	x0, x0, x7
-+	add	x1, x1, x7
-+
-+	tst	x0, #(PAGE_SIZE - 1)
-+	b.ne	1b
-+
-+	mov	w0, #0
-+	ret
-+2:
-+	rbit	x4, x4
-+	clz	x4, x4			// count the least significant equal bits
-+	and	x4, x4, #~3		// round down to a multiple of 4 (bits per tag)
-+
-+	lsr	x2, x2, x4		// remove equal tags
-+	lsr	x3, x3, x4
-+
-+	lsl	w2, w2, #28		// compare the differing tags
-+	sub	w0, w2, w3, lsl #28
-+
-+	ret
-+ENDPROC(mte_memcmp_pages)
-diff --git a/arch/arm64/mm/Makefile b/arch/arm64/mm/Makefile
-index 849c1df3d214..7a556e9a19dc 100644
---- a/arch/arm64/mm/Makefile
-+++ b/arch/arm64/mm/Makefile
-@@ -8,6 +8,7 @@ obj-$(CONFIG_ARM64_PTDUMP_CORE)	+= dump.o
- obj-$(CONFIG_ARM64_PTDUMP_DEBUGFS)	+= ptdump_debugfs.o
- obj-$(CONFIG_NUMA)		+= numa.o
- obj-$(CONFIG_DEBUG_VIRTUAL)	+= physaddr.o
-+obj-$(CONFIG_ARM64_MTE)		+= cmppages.o
- KASAN_SANITIZE_physaddr.o	+= n
+ 	.macro	kernel_entry, el, regsize = 64
+ 	.if	\regsize == 32
+ 	mov	w0, w0				// zero upper 32 bits of x0
+@@ -171,6 +187,7 @@ alternative_cb_end
+ 	ldr	x19, [tsk, #TSK_TI_FLAGS]	// since we can unmask debug
+ 	disable_step_tsk x19, x20		// exceptions when scheduling.
  
- obj-$(CONFIG_KASAN)		+= kasan_init.o
-diff --git a/arch/arm64/mm/cmppages.c b/arch/arm64/mm/cmppages.c
-new file mode 100644
-index 000000000000..943c1877e014
---- /dev/null
-+++ b/arch/arm64/mm/cmppages.c
-@@ -0,0 +1,26 @@
-+// SPDX-License-Identifier: GPL-2.0-only
-+/*
-+ * Copyright (C) 2019 ARM Ltd.
-+ */
-+
-+#include <linux/mm.h>
-+#include <linux/string.h>
-+
-+#include <asm/cpufeature.h>
-+#include <asm/mte.h>
-+
-+int memcmp_pages(struct page *page1, struct page *page2)
-+{
-+	char *addr1, *addr2;
-+	int ret;
-+
-+	addr1 = page_address(page1);
-+	addr2 = page_address(page2);
-+
-+	ret = memcmp(addr1, addr2, PAGE_SIZE);
-+	/* if page content identical, check the tags */
-+	if (ret == 0 && system_supports_mte())
-+		ret = mte_memcmp_pages(addr1, addr2);
-+
-+	return ret;
-+}
-diff --git a/mm/util.c b/mm/util.c
-index 988d11e6c17c..662fb3da6d01 100644
---- a/mm/util.c
-+++ b/mm/util.c
-@@ -899,7 +899,7 @@ int get_cmdline(struct task_struct *task, char *buffer, int buflen)
- 	return res;
++	check_mte_async_tcf x19, x22
+ 	apply_ssbd 1, x22, x23
+ 
+ 	.else
+diff --git a/arch/arm64/kernel/process.c b/arch/arm64/kernel/process.c
+index 71f788cd2b18..dd98d539894e 100644
+--- a/arch/arm64/kernel/process.c
++++ b/arch/arm64/kernel/process.c
+@@ -317,12 +317,19 @@ static void flush_tagged_addr_state(void)
+ 		clear_thread_flag(TIF_TAGGED_ADDR);
  }
  
--int memcmp_pages(struct page *page1, struct page *page2)
-+int __weak memcmp_pages(struct page *page1, struct page *page2)
++static void flush_mte_state(void)
++{
++	if (system_supports_mte())
++		clear_thread_flag(TIF_MTE_ASYNC_FAULT);
++}
++
+ void flush_thread(void)
  {
- 	char *addr1, *addr2;
- 	int ret;
+ 	fpsimd_flush_thread();
+ 	tls_thread_flush();
+ 	flush_ptrace_hw_breakpoint(current);
+ 	flush_tagged_addr_state();
++	flush_mte_state();
+ }
+ 
+ void release_thread(struct task_struct *dead_task)
+diff --git a/arch/arm64/kernel/signal.c b/arch/arm64/kernel/signal.c
+index dd2cdc0d5be2..41fae64af82a 100644
+--- a/arch/arm64/kernel/signal.c
++++ b/arch/arm64/kernel/signal.c
+@@ -730,6 +730,9 @@ static void setup_return(struct pt_regs *regs, struct k_sigaction *ka,
+ 	regs->regs[29] = (unsigned long)&user->next_frame->fp;
+ 	regs->pc = (unsigned long)ka->sa.sa_handler;
+ 
++	/* TCO (Tag Check Override) always cleared for signal handlers */
++	regs->pstate &= ~PSR_TCO_BIT;
++
+ 	if (ka->sa.sa_flags & SA_RESTORER)
+ 		sigtramp = ka->sa.sa_restorer;
+ 	else
+@@ -921,6 +924,11 @@ asmlinkage void do_notify_resume(struct pt_regs *regs,
+ 			if (thread_flags & _TIF_UPROBE)
+ 				uprobe_notify_resume(regs);
+ 
++			if (thread_flags & _TIF_MTE_ASYNC_FAULT) {
++				clear_thread_flag(TIF_MTE_ASYNC_FAULT);
++				force_signal_inject(SIGSEGV, SEGV_MTEAERR, 0);
++			}
++
+ 			if (thread_flags & _TIF_SIGPENDING)
+ 				do_signal(regs);
+ 
+diff --git a/arch/arm64/mm/fault.c b/arch/arm64/mm/fault.c
+index 077b02a2d4d3..ef3bfa2bf2b1 100644
+--- a/arch/arm64/mm/fault.c
++++ b/arch/arm64/mm/fault.c
+@@ -660,6 +660,13 @@ static int do_sea(unsigned long addr, unsigned int esr, struct pt_regs *regs)
+ 	return 0;
+ }
+ 
++static int do_tag_check_fault(unsigned long addr, unsigned int esr,
++			      struct pt_regs *regs)
++{
++	do_bad_area(addr, esr, regs);
++	return 0;
++}
++
+ static const struct fault_info fault_info[] = {
+ 	{ do_bad,		SIGKILL, SI_KERNEL,	"ttbr address size fault"	},
+ 	{ do_bad,		SIGKILL, SI_KERNEL,	"level 1 address size fault"	},
+@@ -678,7 +685,7 @@ static const struct fault_info fault_info[] = {
+ 	{ do_page_fault,	SIGSEGV, SEGV_ACCERR,	"level 2 permission fault"	},
+ 	{ do_page_fault,	SIGSEGV, SEGV_ACCERR,	"level 3 permission fault"	},
+ 	{ do_sea,		SIGBUS,  BUS_OBJERR,	"synchronous external abort"	},
+-	{ do_bad,		SIGKILL, SI_KERNEL,	"unknown 17"			},
++	{ do_tag_check_fault,	SIGSEGV, SEGV_MTESERR,	"synchronous tag check fault"	},
+ 	{ do_bad,		SIGKILL, SI_KERNEL,	"unknown 18"			},
+ 	{ do_bad,		SIGKILL, SI_KERNEL,	"unknown 19"			},
+ 	{ do_sea,		SIGKILL, SI_KERNEL,	"level 0 (translation table walk)"	},
