@@ -1,7 +1,7 @@
 From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: [PATCH 12/22] arm64: mte: Add specific SIGSEGV codes
-Date: Wed, 11 Dec 2019 18:40:17 +0000
-Message-ID: <20191211184027.20130-13-catalin.marinas@arm.com>
+Subject: [PATCH 09/22] arm64: mte: Tags-aware clear_page() implementation
+Date: Wed, 11 Dec 2019 18:40:14 +0000
+Message-ID: <20191211184027.20130-10-catalin.marinas@arm.com>
 References: <20191211184027.20130-1-catalin.marinas@arm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -18,42 +18,47 @@ List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
 Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
 Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
 To: linux-arm-kernel@lists.infradead.org
-Cc: linux-arch@vger.kernel.org, Richard Earnshaw <Richard.Earnshaw@arm.com>, Arnd Bergmann <arnd@arndb.de>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Marc Zyngier <maz@kernel.org>, Kevin Brodsky <kevin.brodsky@arm.com>, linux-mm@kvack.org, Andrey Konovalov <andreyknvl@google.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Will Deacon <will@kernel.org>
+Cc: linux-arch@vger.kernel.org, Richard Earnshaw <Richard.Earnshaw@arm.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Marc Zyngier <maz@kernel.org>, Kevin Brodsky <kevin.brodsky@arm.com>, linux-mm@kvack.org, Andrey Konovalov <andreyknvl@google.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Will Deacon <will@kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
 From: Vincenzo Frascino <vincenzo.frascino@arm.com>
 
-Add MTE-specific SIGSEGV codes to siginfo.h.
+When the Memory Tagging Extension is enabled, the tags need to be set to
+zero a page is cleared as they are visible to the user.
 
-Note that the for MTE we are reusing the same SPARC ADI codes because
-the two functionalities are similar and they cannot coexist on the same
-system.
+Introduce an MTE-aware clear_page() which clears the tags in addition to
+data.
 
-Cc: Arnd Bergmann <arnd@arndb.de>
 Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
-[catalin.marinas@arm.com: renamed precise/imprecise to sync/async]
+Co-developed-by: Catalin Marinas <catalin.marinas@arm.com>
 Signed-off-by: Catalin Marinas <catalin.marinas@arm.com>
 ---
- include/uapi/asm-generic/siginfo.h | 9 +++++++--
- 1 file changed, 7 insertions(+), 2 deletions(-)
+ arch/arm64/lib/clear_page.S | 7 +++++--
+ 1 file changed, 5 insertions(+), 2 deletions(-)
 
-diff --git a/include/uapi/asm-generic/siginfo.h b/include/uapi/asm-generic/siginfo.h
-index cb3d6c267181..a5184a5438c6 100644
---- a/include/uapi/asm-generic/siginfo.h
-+++ b/include/uapi/asm-generic/siginfo.h
-@@ -227,8 +227,13 @@ typedef struct siginfo {
- # define SEGV_PKUERR	4	/* failed protection key checks */
- #endif
- #define SEGV_ACCADI	5	/* ADI not enabled for mapped object */
--#define SEGV_ADIDERR	6	/* Disrupting MCD error */
--#define SEGV_ADIPERR	7	/* Precise MCD exception */
-+#ifdef __aarch64__
-+# define SEGV_MTEAERR	6	/* Asynchronous MTE error */
-+# define SEGV_MTESERR	7	/* Synchronous MTE exception */
-+#else
-+# define SEGV_ADIDERR	6	/* Disrupting MCD error */
-+# define SEGV_ADIPERR	7	/* Precise MCD exception */
-+#endif
- #define NSIGSEGV	7
+diff --git a/arch/arm64/lib/clear_page.S b/arch/arm64/lib/clear_page.S
+index 78a9ef66288a..575cea03f68a 100644
+--- a/arch/arm64/lib/clear_page.S
++++ b/arch/arm64/lib/clear_page.S
+@@ -5,7 +5,9 @@
+ 
+ #include <linux/linkage.h>
+ #include <linux/const.h>
++#include <asm/alternative.h>
+ #include <asm/assembler.h>
++#include <asm/cpufeature.h>
+ #include <asm/page.h>
  
  /*
+@@ -19,8 +21,9 @@ ENTRY(clear_page)
+ 	and	w1, w1, #0xf
+ 	mov	x2, #4
+ 	lsl	x1, x2, x1
+-
+-1:	dc	zva, x0
++1:
++alternative_insn "dc zva, x0", "stzgm xzr, [x0]", \
++			 ARM64_MTE, IS_ENABLED(CONFIG_ARM64_MTE), 1
+ 	add	x0, x0, x1
+ 	tst	x0, #(PAGE_SIZE - 1)
+ 	b.ne	1b
