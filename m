@@ -1,32 +1,31 @@
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: Re: [PATCH 02/17] asm-gemeric/tlb: Remove stray function declarations
-Date: Wed, 11 Dec 2019 14:19:11 +0100
-Message-ID: <CAMuHMdUA-Bj+q4g2NimMv3nnu5v=X81BEkoSgUTOTLG+rsPK4g@mail.gmail.com>
-References: <20191211120713.360281197@infradead.org> <20191211122955.769069740@infradead.org>
+From: Greg KH <gregkh@linuxfoundation.org>
+Subject: Re: [PATCH 2/3] x86 cpuinfo: implement sysfs nodes for x86
+Date: Wed, 11 Dec 2019 14:56:19 +0100
+Message-ID: <20191211135619.GA538980@kroah.com>
+References: <20191206162421.15050-1-trenn@suse.de>
+ <20191206163656.GC86904@kroah.com>
+ <87sglroqix.fsf@nanos.tec.linutronix.de>
+ <4737004.4U1sY2OxSp@skinner.arch.suse.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20191211122955.769069740@infradead.org>
+Content-Disposition: inline
+In-Reply-To: <4737004.4U1sY2OxSp@skinner.arch.suse.de>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Will Deacon <will@kernel.org>, "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, Nick Piggin <npiggin@gmail.com>, Linux-Arch <linux-arch@vger.kernel.org>, Linux MM <linux-mm@kvack.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, "David S. Miller" <davem@davemloft.net>, Helge Deller <deller@gmx.de>, Paul Burton <paulburton@kernel.org>, Tony Luck <tony.luck@intel.com>, Richard Henderson <rth@twiddle.net>, Nick Hu <nickhu@andestech.com>, Paul Walmsley <paul.walmsley@sifive.com>
+To: Thomas Renninger <trenn@suse.de>
+Cc: Thomas Gleixner <tglx@linutronix.de>, Felix Schnizlein <fschnizlein@suse.com>, linux-kernel@vger.kernel.org, Felix Schnizlein <fschnizlein@suse.de>, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux@armlinux.org.uk, will.deacon@arm.com, x86@kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Dec 11, 2019 at 1:31 PM Peter Zijlstra <peterz@infradead.org> wrote:
-> We removed the actual functions a while ago.
->
-> Fixes: 1808d65b55e4 ("asm-generic/tlb: Remove arch_tlb*_mmu()")
-> Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+On Wed, Dec 11, 2019 at 11:42:35AM +0100, Thomas Renninger wrote:
+> If Greg (and others) are ok, I would add "page size exceeding" handling.
+> Hm, quick searching for an example I realize that debugfs can exceed page 
+> size. Is it that hard to expose a sysfs file larger than page size?
 
-Reviewed-by: Geert Uytterhoeven <geert+renesas@glider.be>
+No, there is a simple way to do it, but I'm not going to show you how as
+it is NOT how to use sysfs at all :)
 
-Gr{oetje,eeting}s,
+Why are you wanting to dump this whole mess into one file and then parse
+it, it's no different from having 100+ different sysfs files and then
+doing a readdir(3) on the thing, right?
 
-                        Geert
-
--- 
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+greg k-h
