@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.133]:51020 "EHLO
+Received: from bombadil.infradead.org ([198.137.202.133]:51088 "EHLO
         bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1729293AbfLKMb0 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 11 Dec 2019 07:31:26 -0500
-Message-ID: <20191211122955.883347160@infradead.org>
-Date: Wed, 11 Dec 2019 13:07:17 +0100
+        with ESMTP id S1729341AbfLKMbc (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 11 Dec 2019 07:31:32 -0500
+Message-ID: <20191211122956.055418242@infradead.org>
+Date: Wed, 11 Dec 2019 13:07:20 +0100
 From: Peter Zijlstra <peterz@infradead.org>
-Subject: [PATCH 04/17] asm-generic/tlb: Rename HAVE_RCU_TABLE_FREE
+Subject: [PATCH 07/17] asm-generic/tlb: Rename HAVE_MMU_GATHER_NO_GATHER
 References: <20191211120713.360281197@infradead.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
@@ -14,214 +14,121 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Will Deacon <will@kernel.org>, "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, Nick Piggin <npiggin@gmail.com>, Peter Zijlstra <peterz@infradead.org>
 Cc: linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, "David S. Miller" <davem@davemloft.net>, Helge Deller <deller@gmx.de>, Geert Uytterhoeven <geert@linux-m68k.org>, Paul Burton <paulburton@kernel.org>, Tony Luck <tony.luck@intel.com>, Richard Henderson <rth@twiddle.net>, Nick Hu <nickhu@andestech.com>, Paul Walmsley <paul.walmsley@sifive.com>
-Message-ID: <20191211120717.p_51ZTqVuHNJ7oAh3jxoXikyaJo5oXk2SsEKZnbt4KU@z>
+Message-ID: <20191211120720.ijLxYMoWx0wh6fof9VhpkDUX4mTiJEd5QuqBL0uNzGE@z>
 
 Towards a more consistent naming scheme.
 
 Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
 ---
- arch/Kconfig               |    2 +-
- arch/arm/Kconfig           |    2 +-
- arch/arm/include/asm/tlb.h |    2 +-
- arch/arm64/Kconfig         |    2 +-
- arch/powerpc/Kconfig       |    4 ++--
- arch/s390/Kconfig          |    2 +-
- arch/sparc/Kconfig         |    4 ++--
- arch/x86/Kconfig           |    2 +-
- arch/x86/include/asm/tlb.h |    4 ++--
- include/asm-generic/tlb.h  |   10 +++++-----
- mm/gup.c                   |    2 +-
- mm/mmu_gather.c            |    8 ++++----
- 12 files changed, 22 insertions(+), 22 deletions(-)
+ arch/Kconfig              |    2 +-
+ arch/s390/Kconfig         |    2 +-
+ include/asm-generic/tlb.h |   14 ++++++++++++--
+ mm/mmu_gather.c           |   10 +++++-----
+ 4 files changed, 19 insertions(+), 9 deletions(-)
 
 --- a/arch/Kconfig
 +++ b/arch/Kconfig
-@@ -393,7 +393,7 @@ config HAVE_ARCH_JUMP_LABEL
- config HAVE_ARCH_JUMP_LABEL_RELATIVE
+@@ -406,7 +406,7 @@ config MMU_GATHER_PAGE_SIZE
+ config MMU_GATHER_NO_RANGE
  	bool
  
--config HAVE_RCU_TABLE_FREE
-+config MMU_GATHER_RCU_TABLE_FREE
+-config HAVE_MMU_GATHER_NO_GATHER
++config MMU_GATHER_NO_GATHER
  	bool
  
- config HAVE_RCU_TABLE_NO_INVALIDATE
---- a/arch/arm/Kconfig
-+++ b/arch/arm/Kconfig
-@@ -101,7 +101,7 @@ config ARM
- 	select HAVE_PERF_EVENTS
- 	select HAVE_PERF_REGS
- 	select HAVE_PERF_USER_STACK_DUMP
--	select HAVE_RCU_TABLE_FREE if SMP && ARM_LPAE
-+	select MMU_GATHER_RCU_TABLE_FREE if SMP && ARM_LPAE
- 	select HAVE_REGS_AND_STACK_ACCESS_API
- 	select HAVE_RSEQ
- 	select HAVE_STACKPROTECTOR
---- a/arch/arm/include/asm/tlb.h
-+++ b/arch/arm/include/asm/tlb.h
-@@ -37,7 +37,7 @@ static inline void __tlb_remove_table(vo
- 
- #include <asm-generic/tlb.h>
- 
--#ifndef CONFIG_HAVE_RCU_TABLE_FREE
-+#ifndef CONFIG_MMU_GATHER_RCU_TABLE_FREE
- #define tlb_remove_table(tlb, entry) tlb_remove_page(tlb, entry)
- #endif
- 
---- a/arch/arm64/Kconfig
-+++ b/arch/arm64/Kconfig
-@@ -161,7 +161,7 @@ config ARM64
- 	select HAVE_PERF_USER_STACK_DUMP
- 	select HAVE_REGS_AND_STACK_ACCESS_API
- 	select HAVE_FUNCTION_ARG_ACCESS_API
--	select HAVE_RCU_TABLE_FREE
-+	select MMU_GATHER_RCU_TABLE_FREE
- 	select HAVE_RSEQ
- 	select HAVE_STACKPROTECTOR
- 	select HAVE_SYSCALL_TRACEPOINTS
---- a/arch/powerpc/Kconfig
-+++ b/arch/powerpc/Kconfig
-@@ -222,8 +222,8 @@ config PPC
- 	select HAVE_HARDLOCKUP_DETECTOR_PERF	if PERF_EVENTS && HAVE_PERF_EVENTS_NMI && !HAVE_HARDLOCKUP_DETECTOR_ARCH
- 	select HAVE_PERF_REGS
- 	select HAVE_PERF_USER_STACK_DUMP
--	select HAVE_RCU_TABLE_FREE		if SMP
--	select HAVE_RCU_TABLE_NO_INVALIDATE	if HAVE_RCU_TABLE_FREE
-+	select MMU_GATHER_RCU_TABLE_FREE		if SMP
-+	select HAVE_RCU_TABLE_NO_INVALIDATE	if MMU_GATHER_RCU_TABLE_FREE
- 	select HAVE_MMU_GATHER_PAGE_SIZE
- 	select HAVE_REGS_AND_STACK_ACCESS_API
- 	select HAVE_RELIABLE_STACKTRACE		if PPC_BOOK3S_64 && CPU_LITTLE_ENDIAN
+ config ARCH_HAVE_NMI_SAFE_CMPXCHG
 --- a/arch/s390/Kconfig
 +++ b/arch/s390/Kconfig
-@@ -168,7 +168,7 @@ config S390
- 	select HAVE_OPROFILE
- 	select HAVE_PCI
- 	select HAVE_PERF_EVENTS
--	select HAVE_RCU_TABLE_FREE
-+	select MMU_GATHER_RCU_TABLE_FREE
- 	select HAVE_REGS_AND_STACK_ACCESS_API
- 	select HAVE_RELIABLE_STACKTRACE
- 	select HAVE_RSEQ
---- a/arch/sparc/Kconfig
-+++ b/arch/sparc/Kconfig
-@@ -64,8 +64,8 @@ config SPARC64
- 	select HAVE_FUNCTION_GRAPH_TRACER
- 	select HAVE_KRETPROBES
- 	select HAVE_KPROBES
--	select HAVE_RCU_TABLE_FREE if SMP
--	select HAVE_RCU_TABLE_NO_INVALIDATE if HAVE_RCU_TABLE_FREE
-+	select MMU_GATHER_RCU_TABLE_FREE if SMP
-+	select HAVE_RCU_TABLE_NO_INVALIDATE if MMU_GATHER_RCU_TABLE_FREE
- 	select HAVE_MEMBLOCK_NODE_MAP
- 	select HAVE_ARCH_TRANSPARENT_HUGEPAGE
- 	select HAVE_DYNAMIC_FTRACE
---- a/arch/x86/Kconfig
-+++ b/arch/x86/Kconfig
-@@ -200,7 +200,7 @@ config X86
- 	select HAVE_PCI
- 	select HAVE_PERF_REGS
+@@ -162,7 +162,7 @@ config S390
  	select HAVE_PERF_USER_STACK_DUMP
--	select HAVE_RCU_TABLE_FREE		if PARAVIRT
-+	select MMU_GATHER_RCU_TABLE_FREE		if PARAVIRT
- 	select HAVE_REGS_AND_STACK_ACCESS_API
- 	select HAVE_RELIABLE_STACKTRACE		if X86_64 && (UNWINDER_FRAME_POINTER || UNWINDER_ORC) && STACK_VALIDATION
- 	select HAVE_FUNCTION_ARG_ACCESS_API
---- a/arch/x86/include/asm/tlb.h
-+++ b/arch/x86/include/asm/tlb.h
-@@ -29,8 +29,8 @@ static inline void tlb_flush(struct mmu_
-  * shootdown, enablement code for several hypervisors overrides
-  * .flush_tlb_others hook in pv_mmu_ops and implements it by issuing
-  * a hypercall. To keep software pagetable walkers safe in this case we
-- * switch to RCU based table free (HAVE_RCU_TABLE_FREE). See the comment
-- * below 'ifdef CONFIG_HAVE_RCU_TABLE_FREE' in include/asm-generic/tlb.h
-+ * switch to RCU based table free (MMU_GATHER_RCU_TABLE_FREE). See the comment
-+ * below 'ifdef CONFIG_MMU_GATHER_RCU_TABLE_FREE' in include/asm-generic/tlb.h
-  * for more details.
-  */
- static inline void __tlb_remove_table(void *table)
+ 	select HAVE_MEMBLOCK_NODE_MAP
+ 	select HAVE_MEMBLOCK_PHYS_MAP
+-	select HAVE_MMU_GATHER_NO_GATHER
++	select MMU_GATHER_NO_GATHER
+ 	select HAVE_MOD_ARCH_SPECIFIC
+ 	select HAVE_NOP_MCOUNT
+ 	select HAVE_OPROFILE
 --- a/include/asm-generic/tlb.h
 +++ b/include/asm-generic/tlb.h
-@@ -126,7 +126,7 @@
-  *  This ensures we call tlb_flush() every time tlb_change_page_size() actually
-  *  changes the size and provides mmu_gather::page_size to tlb_flush().
-  *
-- *  HAVE_RCU_TABLE_FREE
-+ *  MMU_GATHER_RCU_TABLE_FREE
-  *
-  *  This provides tlb_remove_table(), to be used instead of tlb_remove_page()
-  *  for page directores (__p*_free_tlb()). This provides separate freeing of
-@@ -139,9 +139,9 @@
-  *
-  *  HAVE_RCU_TABLE_NO_INVALIDATE
-  *
-- *  This makes HAVE_RCU_TABLE_FREE avoid calling tlb_flush_mmu_tlbonly() before
-+ *  This makes MMU_GATHER_RCU_TABLE_FREE avoid calling tlb_flush_mmu_tlbonly() before
-  *  freeing the page-table pages. This can be avoided if you use
-- *  HAVE_RCU_TABLE_FREE and your architecture does _NOT_ use the Linux
-+ *  MMU_GATHER_RCU_TABLE_FREE and your architecture does _NOT_ use the Linux
-  *  page-tables natively.
-  *
+@@ -147,6 +147,16 @@
   *  MMU_GATHER_NO_RANGE
-@@ -149,7 +149,7 @@
+  *
   *  Use this if your architecture lacks an efficient flush_tlb_range().
++ *
++ *  MMU_GATHER_NO_GATHER
++ *
++ *  If the option is set the mmu_gather will not track individual pages for
++ *  delayed page free anymore. A platform that enables the option needs to
++ *  provide its own implementation of the __tlb_remove_page_size() function to
++ *  free pages.
++ *
++ *  This is useful if your architecture already flushes TLB entries in the
++ *  various ptep_get_and_clear() functions.
   */
  
--#ifdef CONFIG_HAVE_RCU_TABLE_FREE
-+#ifdef CONFIG_MMU_GATHER_RCU_TABLE_FREE
- /*
-  * Semi RCU freeing of the page directories.
-  *
-@@ -227,7 +227,7 @@ extern bool __tlb_remove_page_size(struc
- struct mmu_gather {
- 	struct mm_struct	*mm;
+ #ifdef CONFIG_MMU_GATHER_RCU_TABLE_FREE
+@@ -191,7 +201,7 @@ extern void tlb_remove_table(struct mmu_
  
--#ifdef CONFIG_HAVE_RCU_TABLE_FREE
-+#ifdef CONFIG_MMU_GATHER_RCU_TABLE_FREE
- 	struct mmu_table_batch	*batch;
  #endif
  
---- a/mm/gup.c
-+++ b/mm/gup.c
-@@ -1729,7 +1729,7 @@ EXPORT_SYMBOL(get_user_pages_unlocked);
-  * Before activating this code, please be aware that the following assumptions
-  * are currently made:
-  *
-- *  *) Either HAVE_RCU_TABLE_FREE is enabled, and tlb_remove_table() is used to
-+ *  *) Either MMU_GATHER_RCU_TABLE_FREE is enabled, and tlb_remove_table() is used to
-  *  free pages containing page tables or TLB flushing requires IPI broadcast.
-  *
-  *  *) ptes can be read atomically by the architecture.
+-#ifndef CONFIG_HAVE_MMU_GATHER_NO_GATHER
++#ifndef CONFIG_MMU_GATHER_NO_GATHER
+ /*
+  * If we can't allocate a page to make a big batch of page pointers
+  * to work on, then just handle a few from the on-stack structure.
+@@ -266,7 +276,7 @@ struct mmu_gather {
+ 
+ 	unsigned int		batch_count;
+ 
+-#ifndef CONFIG_HAVE_MMU_GATHER_NO_GATHER
++#ifndef CONFIG_MMU_GATHER_NO_GATHER
+ 	struct mmu_gather_batch *active;
+ 	struct mmu_gather_batch	local;
+ 	struct page		*__pages[MMU_GATHER_BUNDLE];
 --- a/mm/mmu_gather.c
 +++ b/mm/mmu_gather.c
-@@ -91,7 +91,7 @@ bool __tlb_remove_page_size(struct mmu_g
+@@ -11,7 +11,7 @@
+ #include <asm/pgalloc.h>
+ #include <asm/tlb.h>
  
- #endif /* HAVE_MMU_GATHER_NO_GATHER */
+-#ifndef CONFIG_HAVE_MMU_GATHER_NO_GATHER
++#ifndef CONFIG_MMU_GATHER_NO_GATHER
  
--#ifdef CONFIG_HAVE_RCU_TABLE_FREE
-+#ifdef CONFIG_MMU_GATHER_RCU_TABLE_FREE
- 
- /*
-  * See the comment near struct mmu_table_batch.
-@@ -173,11 +173,11 @@ void tlb_remove_table(struct mmu_gather
- 		tlb_table_flush(tlb);
+ static bool tlb_next_batch(struct mmu_gather *tlb)
+ {
+@@ -89,7 +89,7 @@ bool __tlb_remove_page_size(struct mmu_g
+ 	return false;
  }
  
--#endif /* CONFIG_HAVE_RCU_TABLE_FREE */
-+#endif /* CONFIG_MMU_GATHER_RCU_TABLE_FREE */
+-#endif /* HAVE_MMU_GATHER_NO_GATHER */
++#endif /* MMU_GATHER_NO_GATHER */
  
- static void tlb_flush_mmu_free(struct mmu_gather *tlb)
- {
--#ifdef CONFIG_HAVE_RCU_TABLE_FREE
-+#ifdef CONFIG_MMU_GATHER_RCU_TABLE_FREE
+ #ifdef CONFIG_MMU_GATHER_RCU_TABLE_FREE
+ 
+@@ -180,7 +180,7 @@ static void tlb_flush_mmu_free(struct mm
+ #ifdef CONFIG_MMU_GATHER_RCU_TABLE_FREE
  	tlb_table_flush(tlb);
  #endif
- #ifndef CONFIG_HAVE_MMU_GATHER_NO_GATHER
-@@ -220,7 +220,7 @@ void tlb_gather_mmu(struct mmu_gather *t
- 	tlb->batch_count = 0;
+-#ifndef CONFIG_HAVE_MMU_GATHER_NO_GATHER
++#ifndef CONFIG_MMU_GATHER_NO_GATHER
+ 	tlb_batch_pages_flush(tlb);
  #endif
+ }
+@@ -211,7 +211,7 @@ void tlb_gather_mmu(struct mmu_gather *t
+ 	/* Is it from 0 to ~0? */
+ 	tlb->fullmm     = !(start | (end+1));
  
--#ifdef CONFIG_HAVE_RCU_TABLE_FREE
-+#ifdef CONFIG_MMU_GATHER_RCU_TABLE_FREE
- 	tlb->batch = NULL;
+-#ifndef CONFIG_HAVE_MMU_GATHER_NO_GATHER
++#ifndef CONFIG_MMU_GATHER_NO_GATHER
+ 	tlb->need_flush_all = 0;
+ 	tlb->local.next = NULL;
+ 	tlb->local.nr   = 0;
+@@ -271,7 +271,7 @@ void tlb_finish_mmu(struct mmu_gather *t
+ 
+ 	tlb_flush_mmu(tlb);
+ 
+-#ifndef CONFIG_HAVE_MMU_GATHER_NO_GATHER
++#ifndef CONFIG_MMU_GATHER_NO_GATHER
+ 	tlb_batch_list_free(tlb);
  #endif
- #ifdef CONFIG_HAVE_MMU_GATHER_PAGE_SIZE
+ 	dec_tlb_flush_pending(tlb->mm);
