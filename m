@@ -1,7 +1,7 @@
 From: Peter Zijlstra <peterz@infradead.org>
-Subject: [PATCH 10/17] sparc32/tlb: Fix __p*_free_tlb()
-Date: Wed, 11 Dec 2019 13:07:23 +0100
-Message-ID: <20191211122956.227316370@infradead.org>
+Subject: [PATCH 14/17] ia64/tlb: Fix __p*_free_tlb()
+Date: Wed, 11 Dec 2019 13:07:27 +0100
+Message-ID: <20191211122956.456987895@infradead.org>
 References: <20191211120713.360281197@infradead.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
@@ -20,93 +20,47 @@ following order:
 
 to ensure it is safe against concurrent accesses.
 
-Because Sparc32 has non-page based page directories, use a custom
-table freeer.
+Since IA64 has page based P[UM]Ds, no software walkers and IPI based
+TLB invalidation, it can use the simple tlb_remove_page() based
+freeer.
 
 Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
 ---
- arch/sparc/Kconfig                  |    1 +
- arch/sparc/include/asm/pgalloc_32.h |    7 +++++--
- arch/sparc/mm/srmmu.c               |   28 ++++++++++++++++++++++++++++
- 3 files changed, 34 insertions(+), 2 deletions(-)
+ arch/ia64/include/asm/pgalloc.h |   13 ++++++++++---
+ 1 file changed, 10 insertions(+), 3 deletions(-)
 
---- a/arch/sparc/Kconfig
-+++ b/arch/sparc/Kconfig
-@@ -57,6 +57,7 @@ config SPARC32
- 	select CLZ_TAB
- 	select HAVE_UID16
- 	select OLD_SIGACTION
-+	select MMU_GATHER_TABLE_FREE
- 
- config SPARC64
- 	def_bool 64BIT
---- a/arch/sparc/include/asm/pgalloc_32.h
-+++ b/arch/sparc/include/asm/pgalloc_32.h
-@@ -12,6 +12,9 @@
- 
- struct page;
- 
-+extern void pgtable_free_tlb(struct mmu_gather *tlb, void *table, int idx);
-+extern void __tlb_remove_table(void *table);
+--- a/arch/ia64/include/asm/pgalloc.h
++++ b/arch/ia64/include/asm/pgalloc.h
+@@ -50,7 +50,9 @@ static inline void pud_free(struct mm_st
+ {
+ 	free_page((unsigned long)pud);
+ }
+-#define __pud_free_tlb(tlb, pud, address)	pud_free((tlb)->mm, pud)
 +
- void *srmmu_get_nocache(int size, int align);
- void srmmu_free_nocache(void *addr, int size);
++#define __pud_free_tlb(tlb, pud, address)	\
++	tlb_remove_table((tlb), virt_to_page(pud))
+ #endif /* CONFIG_PGTABLE_LEVELS == 4 */
  
-@@ -48,7 +51,7 @@ static inline void free_pmd_fast(pmd_t *
+ static inline void
+@@ -69,7 +71,8 @@ static inline void pmd_free(struct mm_st
+ 	free_page((unsigned long)pmd);
  }
  
- #define pmd_free(mm, pmd)		free_pmd_fast(pmd)
--#define __pmd_free_tlb(tlb, pmd, addr)	pmd_free((tlb)->mm, pmd)
-+#define __pmd_free_tlb(tlb, pmd, addr)	pgtable_free_tlb((tlb), (pmd), 1)
+-#define __pmd_free_tlb(tlb, pmd, address)	pmd_free((tlb)->mm, pmd)
++#define __pmd_free_tlb(tlb, pmd, address)	\
++	tlb_remove_table((tlb), virt_to_page(pmd)
  
- void pmd_populate(struct mm_struct *mm, pmd_t *pmdp, struct page *ptep);
- #define pmd_pgtable(pmd) pmd_page(pmd)
-@@ -72,6 +75,6 @@ static inline void free_pte_fast(pte_t *
- #define pte_free_kernel(mm, pte)	free_pte_fast(pte)
- 
- void pte_free(struct mm_struct * mm, pgtable_t pte);
--#define __pte_free_tlb(tlb, pte, addr)	pte_free((tlb)->mm, pte)
-+#define __pte_free_tlb(tlb, pte, addr)	pgtable_free_tlb((tlb), (pte), 0)
- 
- #endif /* _SPARC_PGALLOC_H */
---- a/arch/sparc/mm/srmmu.c
-+++ b/arch/sparc/mm/srmmu.c
-@@ -38,6 +38,7 @@
- #include <asm/page.h>
- #include <asm/asi.h>
- #include <asm/smp.h>
-+#include <asm/tlb.h>
- #include <asm/io.h>
- 
- /* Now the cpu specific definitions. */
-@@ -1849,3 +1850,30 @@ void __init load_mmu(void)
- 		sun4m_init_smp();
- #endif
+ static inline void
+ pmd_populate(struct mm_struct *mm, pmd_t * pmd_entry, pgtable_t pte)
+@@ -84,6 +87,10 @@ pmd_populate_kernel(struct mm_struct *mm
+ 	pmd_val(*pmd_entry) = __pa(pte);
  }
-+
-+#define TLB_IDX_MASK	1UL
-+
-+void __tlb_remove_table(void *table)
-+{
-+	void *dir = (void *)((unsigned long)table & ~TLB_IDX_MASK);
-+	int idx = (unsigned long)table & TLB_IDX_MASK;
-+
-+	switch (idx) {
-+	case 1: /* PMD */
-+		pmd_free(NULL, dir);
-+		break;
-+	case 0: /* PTE */
-+		pte_free(NULL, dir);
-+		break;
-+	}
-+}
-+
-+void pgtable_free_tlb(struct mmu_gather *tlb, void *table, int idx)
-+{
-+	unsigned long pgf = (unsigned long)table;
-+	BUG_ON(idx > TLB_IDX_MASK);
-+	BUG_ON(pgf & TLB_IDX_MASK);
-+	pgf |= idx;
-+	tlb_remove_table(tlb, (void *)pgf);
-+}
-+
+ 
+-#define __pte_free_tlb(tlb, pte, address)	pte_free((tlb)->mm, pte)
++#define __pte_free_tlb(tlb, pte, address)	\
++do {						\
++	pgtable_pte_page_dtor(pte);		\
++	tlb_remove_table((tlb), (pte));		\
++} while (0)
+ 
+ #endif				/* _ASM_IA64_PGALLOC_H */
