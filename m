@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:55090 "EHLO
+Received: from merlin.infradead.org ([205.233.59.134]:55112 "EHLO
         merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1729442AbfLKMb6 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 11 Dec 2019 07:31:58 -0500
-Message-ID: <20191211122955.997638865@infradead.org>
-Date: Wed, 11 Dec 2019 13:07:19 +0100
+        with ESMTP id S1729455AbfLKMcD (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 11 Dec 2019 07:32:03 -0500
+Message-ID: <20191211122956.456987895@infradead.org>
+Date: Wed, 11 Dec 2019 13:07:27 +0100
 From: Peter Zijlstra <peterz@infradead.org>
-Subject: [PATCH 06/17] asm-generic/tlb: Rename HAVE_MMU_GATHER_PAGE_SIZE
+Subject: [PATCH 14/17] ia64/tlb: Fix __p*_free_tlb()
 References: <20191211120713.360281197@infradead.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
@@ -14,93 +14,58 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Will Deacon <will@kernel.org>, "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, Nick Piggin <npiggin@gmail.com>, Peter Zijlstra <peterz@infradead.org>
 Cc: linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, "David S. Miller" <davem@davemloft.net>, Helge Deller <deller@gmx.de>, Geert Uytterhoeven <geert@linux-m68k.org>, Paul Burton <paulburton@kernel.org>, Tony Luck <tony.luck@intel.com>, Richard Henderson <rth@twiddle.net>, Nick Hu <nickhu@andestech.com>, Paul Walmsley <paul.walmsley@sifive.com>
-Message-ID: <20191211120719.nWlGx7u4ww5DRO55vnJh7lMrrjokSkiYZ-bDF1gGRzg@z>
+Message-ID: <20191211120727.WQCgBaC9zrHXzM1UaSfubLKWS1CO6u5ZDIZfc9G3Kpc@z>
 
-Towards a more consistent naming scheme.
+Just like regular pages, page directories need to observe the
+following order:
+
+ 1) unhook
+ 2) TLB invalidate
+ 3) free
+
+to ensure it is safe against concurrent accesses.
+
+Since IA64 has page based P[UM]Ds, no software walkers and IPI based
+TLB invalidation, it can use the simple tlb_remove_page() based
+freeer.
 
 Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
 ---
- arch/Kconfig              |    2 +-
- arch/powerpc/Kconfig      |    2 +-
- include/asm-generic/tlb.h |    9 ++++++---
- mm/mmu_gather.c           |    4 ++--
- 4 files changed, 10 insertions(+), 7 deletions(-)
+ arch/ia64/include/asm/pgalloc.h |   13 ++++++++++---
+ 1 file changed, 10 insertions(+), 3 deletions(-)
 
---- a/arch/Kconfig
-+++ b/arch/Kconfig
-@@ -400,7 +400,7 @@ config MMU_GATHER_NO_TABLE_INVALIDATE
- 	bool
- 	depends on MMU_GATHER_RCU_TABLE_FREE
- 
--config HAVE_MMU_GATHER_PAGE_SIZE
-+config MMU_GATHER_PAGE_SIZE
- 	bool
- 
- config MMU_GATHER_NO_RANGE
---- a/arch/powerpc/Kconfig
-+++ b/arch/powerpc/Kconfig
-@@ -224,7 +224,7 @@ config PPC
- 	select HAVE_PERF_USER_STACK_DUMP
- 	select MMU_GATHER_RCU_TABLE_FREE		if SMP
- 	select MMU_GATHER_NO_TABLE_INVALIDATE	if MMU_GATHER_RCU_TABLE_FREE
--	select HAVE_MMU_GATHER_PAGE_SIZE
-+	select MMU_GATHER_PAGE_SIZE
- 	select HAVE_REGS_AND_STACK_ACCESS_API
- 	select HAVE_RELIABLE_STACKTRACE		if PPC_BOOK3S_64 && CPU_LITTLE_ENDIAN
- 	select HAVE_SYSCALL_TRACEPOINTS
---- a/include/asm-generic/tlb.h
-+++ b/include/asm-generic/tlb.h
-@@ -121,11 +121,14 @@
-  *
-  * Additionally there are a few opt-in features:
-  *
-- *  HAVE_MMU_GATHER_PAGE_SIZE
-+ *  MMU_GATHER_PAGE_SIZE
-  *
-  *  This ensures we call tlb_flush() every time tlb_change_page_size() actually
-  *  changes the size and provides mmu_gather::page_size to tlb_flush().
-  *
-+ *  This might be useful if your architecture has size specific TLB
-+ *  invalidation instructions.
-+ *
-  *  MMU_GATHER_RCU_TABLE_FREE
-  *
-  *  This provides tlb_remove_table(), to be used instead of tlb_remove_page()
-@@ -271,7 +274,7 @@ struct mmu_gather {
- 	struct mmu_gather_batch	local;
- 	struct page		*__pages[MMU_GATHER_BUNDLE];
- 
--#ifdef CONFIG_HAVE_MMU_GATHER_PAGE_SIZE
-+#ifdef CONFIG_MMU_GATHER_PAGE_SIZE
- 	unsigned int page_size;
- #endif
- #endif
-@@ -422,7 +425,7 @@ static inline void tlb_remove_page(struc
- static inline void tlb_change_page_size(struct mmu_gather *tlb,
- 						     unsigned int page_size)
+--- a/arch/ia64/include/asm/pgalloc.h
++++ b/arch/ia64/include/asm/pgalloc.h
+@@ -50,7 +50,9 @@ static inline void pud_free(struct mm_st
  {
--#ifdef CONFIG_HAVE_MMU_GATHER_PAGE_SIZE
-+#ifdef CONFIG_MMU_GATHER_PAGE_SIZE
- 	if (tlb->page_size && tlb->page_size != page_size) {
- 		if (!tlb->fullmm && !tlb->need_flush_all)
- 			tlb_flush_mmu(tlb);
---- a/mm/mmu_gather.c
-+++ b/mm/mmu_gather.c
-@@ -69,7 +69,7 @@ bool __tlb_remove_page_size(struct mmu_g
+ 	free_page((unsigned long)pud);
+ }
+-#define __pud_free_tlb(tlb, pud, address)	pud_free((tlb)->mm, pud)
++
++#define __pud_free_tlb(tlb, pud, address)	\
++	tlb_remove_table((tlb), virt_to_page(pud))
+ #endif /* CONFIG_PGTABLE_LEVELS == 4 */
  
- 	VM_BUG_ON(!tlb->end);
+ static inline void
+@@ -69,7 +71,8 @@ static inline void pmd_free(struct mm_st
+ 	free_page((unsigned long)pmd);
+ }
  
--#ifdef CONFIG_HAVE_MMU_GATHER_PAGE_SIZE
-+#ifdef CONFIG_MMU_GATHER_PAGE_SIZE
- 	VM_WARN_ON(tlb->page_size != page_size);
- #endif
+-#define __pmd_free_tlb(tlb, pmd, address)	pmd_free((tlb)->mm, pmd)
++#define __pmd_free_tlb(tlb, pmd, address)	\
++	tlb_remove_table((tlb), virt_to_page(pmd)
  
-@@ -223,7 +223,7 @@ void tlb_gather_mmu(struct mmu_gather *t
- #ifdef CONFIG_MMU_GATHER_RCU_TABLE_FREE
- 	tlb->batch = NULL;
- #endif
--#ifdef CONFIG_HAVE_MMU_GATHER_PAGE_SIZE
-+#ifdef CONFIG_MMU_GATHER_PAGE_SIZE
- 	tlb->page_size = 0;
- #endif
+ static inline void
+ pmd_populate(struct mm_struct *mm, pmd_t * pmd_entry, pgtable_t pte)
+@@ -84,6 +87,10 @@ pmd_populate_kernel(struct mm_struct *mm
+ 	pmd_val(*pmd_entry) = __pa(pte);
+ }
  
+-#define __pte_free_tlb(tlb, pte, address)	pte_free((tlb)->mm, pte)
++#define __pte_free_tlb(tlb, pte, address)	\
++do {						\
++	pgtable_pte_page_dtor(pte);		\
++	tlb_remove_table((tlb), (pte));		\
++} while (0)
+ 
+ #endif				/* _ASM_IA64_PGALLOC_H */
