@@ -1,118 +1,102 @@
-From: Thomas Renninger <trenn@suse.de>
-Subject: Re: [PATCH 2/3] x86 cpuinfo: implement sysfs nodes for x86
-Date: Wed, 11 Dec 2019 11:42:35 +0100
-Message-ID: <4737004.4U1sY2OxSp@skinner.arch.suse.de>
-References: <20191206162421.15050-1-trenn@suse.de> <20191206163656.GC86904@kroah.com> <87sglroqix.fsf@nanos.tec.linutronix.de>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: [PATCH 12/17] m68k/tlb: Fix __p*_free_tlb()
+Date: Wed, 11 Dec 2019 13:07:25 +0100
+Message-ID: <20191211122956.342306385@infradead.org>
+References: <20191211120713.360281197@infradead.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 8BIT
+Content-Type: text/plain; charset=UTF-8
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <87sglroqix.fsf@nanos.tec.linutronix.de>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Thomas Gleixner <tglx@linutronix.de>, Felix Schnizlein <fschnizlein@suse.com>
-Cc: Greg KH <gregkh@linuxfoundation.org>, linux-kernel@vger.kernel.org, Felix Schnizlein <fschnizlein@suse.de>, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux@armlinux.org.uk, will.deacon@arm.com, x86@kernel.org
+To: Will Deacon <will@kernel.org>, "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, Nick Piggin <npiggin@gmail.com>, Peter Zijlstra <peterz@infradead.org>
+Cc: linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, "David S. Miller" <davem@davemloft.net>, Helge Deller <deller@gmx.de>, Geert Uytterhoeven <geert@linux-m68k.org>, Paul Burton <paulburton@kernel.org>, Tony Luck <tony.luck@intel.com>, Richard Henderson <rth@twiddle.net>, Nick Hu <nickhu@andestech.com>, Paul Walmsley <paul.walmsley@sifive.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Tuesday, December 10, 2019 9:48:54 PM CET Thomas Gleixner wrote:
-> Greg KH <gregkh@linuxfoundation.org> writes:
-> > On Fri, Dec 06, 2019 at 05:24:20PM +0100, Thomas Renninger wrote:
-> >> From: Felix Schnizlein <fschnizlein@suse.de>
-> >> ==> flags <==
-> >> fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36
-> >> clflush mmx fxsr sse sse2 ss syscall nx pdpe1gb rdtscp lm constant_tsc
-> >> rep_good nopl xtopology cpuid tsc_known_freq pni pclmulqdq ssse3 fma
-> >> cx16 pcid sse4_1 sse4_2 x2apic movbe popcnt tsc_deadline_timer aes xsave
-> >> avx f16c rdrand hypervisor lahf_lm abm cpuid_fault invpcid_single pti
-> >> ssbd ibrs ibpb fsgsbase tsc_adjust bmi1 avx2 smep bmi2 erms invpcid
-> >> xsaveopt arat umip> 
-> > One file with all of that?  We are going to run into problems
-> > eventually, that should be split up.
-> > 
-> > Just like bugs, that's going to just grow over time and eventually
-> > overflow PAGE_SIZE :(
-> > 
-> > Make this:
-> >   ├── flags
-> >   │   ├── fpu
-> >   │   ├── vme
-> > 
-> > ...
-> > 
-> > Much simpler to parse, right?
-> 
-> Well, I'm not really sure whether 100+ files are simpler to parse.
-> 
-> Aside of that I really don't see the value for 100+ files per CPU which
-> are just returning 1 or True or whatever as long as you are not
-> suggesting to provide real feature files which have 0/1 or True/False
-> content.
+Just like regular pages, page directories need to observe the
+following order:
 
-I also do not like the one file per cpu flag approach.
-This still is one "data"/"info" per sysfs file.
-Similar to:
-cpu/cpufreq/policy1/scaling_available_governors
-and probably a lot others. If PAGE_SIZE overflow has to be cared for, then be 
-it.
+ 1) unhook
+ 2) TLB invalidate
+ 3) free
+
+to ensure it is safe against concurrent accesses.
+
+The Motorola MMU has funny PMD stuff, so use a custom table freeer.
+
+Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+---
+ arch/m68k/Kconfig                        |    1 +
+ arch/m68k/include/asm/mcf_pgalloc.h      |   11 +++++------
+ arch/m68k/include/asm/motorola_pgalloc.h |   22 ++++++++++------------
+ 3 files changed, 16 insertions(+), 18 deletions(-)
+
+--- a/arch/m68k/Kconfig
++++ b/arch/m68k/Kconfig
+@@ -31,6 +31,7 @@ config M68K
+ 	select OLD_SIGSUSPEND3
+ 	select OLD_SIGACTION
+ 	select MMU_GATHER_NO_RANGE if MMU
++	select MMU_GATHER_TABLE_FREE if MMU_MOTOROLA
  
-> But I still don't get the whole thing. The only "argument" I've seen so
-> far is the 'proc moves to sys' mantra, but that does not make it any
-> better.
-> 
-> We won't get rid of /proc/cpuinfo for a very long time simply because
-> too much userspace uses it.
-
-The reason we will never get rid of it is:
-Newly written userspace tools still (have to) make use it.
-This is because of a small set of remaining info which is convenient
-to have in userspace but which is not avail in sysfs yet.
-
-Therefore only x of the 26 /proc/cpuinfo data has been picked up.
-
-For decades unused info like:
-fpu             : yes
-fpu_exception   : yes
-cpuid level     : 13
-wp              : yes
-power management:
-
-shall die at (long but) some point of time.
-
-It's quite some years ago when acpi and cpufreq proc info first got
-deprecated and duplicated in sys.
-It has been said that it needs years of deprecation that the event file
-on which damons were listening for acpi events can ever be removed...
-It has been 2013 when the removal has been done, more than 5 years ago:
-1696d9dc57e062ce5200f6a42a6aaada15b434bb
-ACPI: Remove the old /proc/acpi/event interface
-
-/proc/cpuinfo may need some years more, but there should be no
-reason it is still getting used.
-
-> Introducing a mess in /sys/ in parallel just
-> for following the mantra does not help much.
+ config CPU_BIG_ENDIAN
+ 	def_bool y
+--- a/arch/m68k/include/asm/mcf_pgalloc.h
++++ b/arch/m68k/include/asm/mcf_pgalloc.h
+@@ -38,12 +38,11 @@ extern inline pmd_t *pmd_alloc_kernel(pg
  
-> Also IF we ever expose feature flags in sys then this needs to be a
-> split ino
-> 
->   cpu/common_features
-> 
-> and
-> 
->   cpu/CPU$N/unique_features
-
-Makes sense.
-feature (without common/unique) is also a better naming than flags.
-
-If Greg (and others) are ok, I would add "page size exceeding" handling.
-Hm, quick searching for an example I realize that debugfs can exceed page 
-size. Is it that hard to expose a sysfs file larger than page size?
-
-> On most systems unique_features wont exist, but there is such stuff on
-> the horizon.
-
-I still wait a bit before doing work for nothing.
-I hope everybody agrees, that remaining useful info in /proc/cpuinfo should
-show up in /sys if that did not happen yet. And that userspace tools should
-not (need to) make use of /proc/cpuinfo anymore.
-
-    Thomas
+ #define pmd_pgtable(pmd) pmd_page(pmd)
+ 
+-static inline void __pte_free_tlb(struct mmu_gather *tlb, pgtable_t page,
+-				  unsigned long address)
+-{
+-	pgtable_pte_page_dtor(page);
+-	__free_page(page);
+-}
++#define __pte_free_tlb(tlb, pte, address)	\
++do {						\
++	pgtable_pte_page_dtor(pte);		\
++	tlb_remove_page((tlb), (pte));		\
++} while (0)
+ 
+ #define __pmd_free_tlb(tlb, pmd, address) do { } while (0)
+ 
+--- a/arch/m68k/include/asm/motorola_pgalloc.h
++++ b/arch/m68k/include/asm/motorola_pgalloc.h
+@@ -57,15 +57,13 @@ static inline void pte_free(struct mm_st
+ 	__free_page(page);
+ }
+ 
+-static inline void __pte_free_tlb(struct mmu_gather *tlb, pgtable_t page,
+-				  unsigned long address)
+-{
+-	pgtable_pte_page_dtor(page);
+-	cache_page(kmap(page));
+-	kunmap(page);
+-	__free_page(page);
+-}
+-
++#define __pte_free_tlb(tlb, pte, address)		\
++do {							\
++	pgtable_pte_page_dtor(pte);			\
++	cache_page(kmap(pte));				\
++	kunmap(pte);					\
++	tlb_remove_page((tlb), (pte));			\
++} while (0)
+ 
+ static inline pmd_t *pmd_alloc_one(struct mm_struct *mm, unsigned long address)
+ {
+@@ -77,12 +75,12 @@ static inline int pmd_free(struct mm_str
+ 	return free_pointer_table(pmd);
+ }
+ 
+-static inline int __pmd_free_tlb(struct mmu_gather *tlb, pmd_t *pmd,
+-				 unsigned long address)
++static inline void __tlb_remove_table(void *table)
+ {
+-	return free_pointer_table(pmd);
++	free_pointer_table(table);
+ }
+ 
++#define __pmd_free_tlb(tlb, pmd, address) tlb_remove_table((tlb), (pmd))
+ 
+ static inline void pgd_free(struct mm_struct *mm, pgd_t *pgd)
+ {
