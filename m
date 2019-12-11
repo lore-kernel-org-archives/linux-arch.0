@@ -1,7 +1,7 @@
 From: Mark Brown <broonie@kernel.org>
-Subject: [PATCH v4 11/12] KVM: arm64: BTI: Reset BTYPE when skipping emulated instructions
-Date: Wed, 11 Dec 2019 15:42:05 +0000
-Message-ID: <20191211154206.46260-12-broonie@kernel.org>
+Subject: [PATCH v4 10/12] arm64: BTI: Reset BTYPE when skipping emulated instructions
+Date: Wed, 11 Dec 2019 15:42:04 +0000
+Message-ID: <20191211154206.46260-11-broonie@kernel.org>
 References: <20191211154206.46260-1-broonie@kernel.org>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
@@ -24,27 +24,21 @@ non-zero value to BTYPE here.
 Signed-off-by: Dave Martin <Dave.Martin@arm.com>
 Signed-off-by: Mark Brown <broonie@kernel.org>
 ---
- arch/arm64/include/asm/kvm_emulate.h | 6 ++++--
- 1 file changed, 4 insertions(+), 2 deletions(-)
+ arch/arm64/kernel/traps.c | 2 ++
+ 1 file changed, 2 insertions(+)
 
-diff --git a/arch/arm64/include/asm/kvm_emulate.h b/arch/arm64/include/asm/kvm_emulate.h
-index 5efe5ca8fecf..05fb1b4e0fa2 100644
---- a/arch/arm64/include/asm/kvm_emulate.h
-+++ b/arch/arm64/include/asm/kvm_emulate.h
-@@ -470,10 +470,12 @@ static inline unsigned long vcpu_data_host_to_guest(struct kvm_vcpu *vcpu,
+diff --git a/arch/arm64/kernel/traps.c b/arch/arm64/kernel/traps.c
+index bf79d8024fbe..9fc05ae500e6 100644
+--- a/arch/arm64/kernel/traps.c
++++ b/arch/arm64/kernel/traps.c
+@@ -332,6 +332,8 @@ void arm64_skip_faulting_instruction(struct pt_regs *regs, unsigned long size)
  
- static inline void kvm_skip_instr(struct kvm_vcpu *vcpu, bool is_wide_instr)
- {
--	if (vcpu_mode_is_32bit(vcpu))
-+	if (vcpu_mode_is_32bit(vcpu)) {
- 		kvm_skip_instr32(vcpu, is_wide_instr);
--	else
-+	} else {
- 		*vcpu_pc(vcpu) += 4;
-+		*vcpu_cpsr(vcpu) &= ~PSR_BTYPE_MASK;
-+	}
+ 	if (regs->pstate & PSR_MODE32_BIT)
+ 		advance_itstate(regs);
++	else
++		regs->pstate &= ~PSR_BTYPE_MASK;
+ }
  
- 	/* advance the singlestep state machine */
- 	*vcpu_cpsr(vcpu) &= ~DBG_SPSR_SS;
+ static LIST_HEAD(undef_hook);
 -- 
 2.20.1
