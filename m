@@ -1,80 +1,75 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:58080 "EHLO
-        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
-        by vger.kernel.org with ESMTP id S1730306AbfLLS32 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 12 Dec 2019 13:29:28 -0500
-Received: from pps.filterd (m0098417.ppops.net [127.0.0.1])
-        by mx0a-001b2d01.pphosted.com (8.16.0.42/8.16.0.42) with SMTP id xBCIMBqs078598
-        for <linux-arch@vger.kernel.org>; Thu, 12 Dec 2019 13:29:26 -0500
-Received: from e06smtp04.uk.ibm.com (e06smtp04.uk.ibm.com [195.75.94.100])
-        by mx0a-001b2d01.pphosted.com with ESMTP id 2wujxrj7w2-1
-        (version=TLSv1.2 cipher=AES256-GCM-SHA384 bits=256 verify=NOT)
-        for <linux-arch@vger.kernel.org>; Thu, 12 Dec 2019 13:29:26 -0500
-Received: from localhost
-        by e06smtp04.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-        for <linux-arch@vger.kernel.org> from <borntraeger@de.ibm.com>;
-        Thu, 12 Dec 2019 18:29:24 -0000
+Received: from mail-lf1-f67.google.com ([209.85.167.67]:33234 "EHLO
+        mail-lf1-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1730255AbfLLSnY (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 12 Dec 2019 13:43:24 -0500
+Received: by mail-lf1-f67.google.com with SMTP id n25so50590lfl.0
+        for <linux-arch@vger.kernel.org>; Thu, 12 Dec 2019 10:43:23 -0800 (PST)
+Received: from mail-lf1-f43.google.com (mail-lf1-f43.google.com. [209.85.167.43])
+        by smtp.gmail.com with ESMTPSA id y11sm3840416lfc.27.2019.12.12.10.43.21
+        for <linux-arch@vger.kernel.org>
+        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
+        Thu, 12 Dec 2019 10:43:21 -0800 (PST)
+Received: by mail-lf1-f43.google.com with SMTP id l18so46702lfc.1
+        for <linux-arch@vger.kernel.org>; Thu, 12 Dec 2019 10:43:21 -0800 (PST)
+MIME-Version: 1.0
+References: <87blslei5o.fsf@mpe.ellerman.id.au> <20191206131650.GM2827@hirez.programming.kicks-ass.net>
+ <875zimp0ay.fsf@mpe.ellerman.id.au> <20191212080105.GV2844@hirez.programming.kicks-ass.net>
+ <20191212100756.GA11317@willie-the-truck> <20191212104610.GW2827@hirez.programming.kicks-ass.net>
+ <CAHk-=wjUBsH0BYDBv=q36482G-U7c=9bC89L_BViSciTfb8fhA@mail.gmail.com> <20191212180634.GA19020@willie-the-truck>
+In-Reply-To: <20191212180634.GA19020@willie-the-truck>
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Date: Thu, 12 Dec 2019 10:43:05 -0800
+Message-ID: <CAHk-=whRxB0adkz+V7SQC8Ac_rr_YfaPY8M2mFDfJP2FFBNz8A@mail.gmail.com>
 Subject: Re: READ_ONCE() + STACKPROTECTOR_STRONG == :/ (was Re: [GIT PULL]
  Please pull powerpc/linux.git powerpc-5.5-2 tag (topic/kasan-bitops))
-References: <87blslei5o.fsf@mpe.ellerman.id.au>
- <20191206131650.GM2827@hirez.programming.kicks-ass.net>
- <875zimp0ay.fsf@mpe.ellerman.id.au>
- <20191212080105.GV2844@hirez.programming.kicks-ass.net>
- <20191212100756.GA11317@willie-the-truck>
- <20191212104610.GW2827@hirez.programming.kicks-ass.net>
- <CAHk-=wjUBsH0BYDBv=q36482G-U7c=9bC89L_BViSciTfb8fhA@mail.gmail.com>
- <20191212180634.GA19020@willie-the-truck>
-From: Christian Borntraeger <borntraeger@de.ibm.com>
-Date: Thu, 12 Dec 2019 19:29:18 +0100
-MIME-Version: 1.0
-In-Reply-To: <20191212180634.GA19020@willie-the-truck>
-Content-Type: text/plain; charset=utf-8
-Content-Language: en-US
-Content-Transfer-Encoding: 7bit
-Message-ID: <b37ce52d-89cc-5f2e-827d-c260e63152da@de.ibm.com>
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will@kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Peter Zijlstra <peterz@infradead.org>, Michael Ellerman <mpe@ellerman.id.au>, dja@axtens.net, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linuxppc-dev@lists.ozlabs.org, Christophe Leroy <christophe.leroy@c-s.fr>, linux-arch <linux-arch@vger.kernel.org>, Mark Rutland <mark.rutland@arm.com>, Segher Boessenkool <segher@kernel.crashing.org>, Arnd Bergmann <arnd@arndb.de>
-Message-ID: <20191212182918.sQotCPCaViFEIRcx24Wn60Q-a7p0HD4Suftfzx9Xk4I@z>
+To: Will Deacon <will@kernel.org>
+Cc: Peter Zijlstra <peterz@infradead.org>, Michael Ellerman <mpe@ellerman.id.au>, dja@axtens.net, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linuxppc-dev@lists.ozlabs.org, Christophe Leroy <christophe.leroy@c-s.fr>, linux-arch <linux-arch@vger.kernel.org>, Mark Rutland <mark.rutland@arm.com>, Segher Boessenkool <segher@kernel.crashing.org>, Arnd Bergmann <arnd@arndb.de>, Christian Borntraeger <borntraeger@de.ibm.com>
+Message-ID: <20191212184305.OiwkG5hE55ucqS_AviP15BS08OENvR8ZuIzxeLnOwaM@z>
 
-
-
-On 12.12.19 19:06, Will Deacon wrote:
-> On Thu, Dec 12, 2019 at 09:41:32AM -0800, Linus Torvalds wrote:
->> On Thu, Dec 12, 2019 at 2:46 AM Peter Zijlstra <peterz@infradead.org> wrote:
->>>
->>> +#ifdef GCC_VERSION < 40800
->>
->> Where does that 4.8 version check come from, and why?
->>
->> Yeah, I know, but this really wants a comment. Sadly it looks like gcc
->> bugzilla is down, so
->>
->>    https://gcc.gnu.org/bugzilla/show_bug.cgi?id=58145
->>
->> currently gives an "Internal Server Error" for me.
->>
->> [ Delete the horrid code we have because of gcc bugs ]
->>
->>> +#else /* GCC_VERSION < 40800 */
->>> +
->>> +#define READ_ONCE_NOCHECK(x)                                           \
->>> +({                                                                     \
->>> +       typeof(x) __x = *(volatile typeof(x))&(x);                      \
->>
->> I think we can/should just do this unconditionally if it helps th eissue.
-> 
+On Thu, Dec 12, 2019 at 10:06 AM Will Deacon <will@kernel.org> wrote:
+>
 > I'm currently trying to solve the issue by removing volatile from the bitop
-> function signatures, but it's grotty because there are quite a few callers
-> to fix up. I'm still trying to do it, because removing volatile fields from
-> structurs is generally a "good thing", but I'd be keen to simplify
-> READ_ONCE() as you suggest regardless.
+> function signatures
 
-As I am the one who added the foundation of READ_ONCEs uglyness, I am now in
-favour of re-simplifying it again. I was first a bit scared about re-introducing
-bugs, but the gcc testsuite has this particular case covered, so hopefully we
-should not see the issue with volatile and aggregate types again.
+I really think that's the wrong thing to do.
 
-Christian
+The bitop signature really should be "volatile" (and it should be
+"const volatile" for test_bit, but I'm not sure anybody cares).
+
+Exactly because it's simply valid to say "hey, my data is volatile,
+but do an atomic test of this bit". So it might be volatile in the
+caller.
+
+Now, I generally frown on actual volatile data structures - because
+the data structure volatility often depends on _context_. The same
+data might be volatile in one context (when you do some optimistic
+test on it without locking), but 100% stable in another (when you do
+have a lock).
+
+So I don't want to see "volatile" on data definitions ("jiffies" being
+the one traditional exception), but marking things volatile in code
+(because you know you're working with unlocked data) and then passing
+them down to various helper functions - including the bitops ones - is
+quite traditional and accepted.
+
+In other words, 'volatile" should be treated the same way "const" is
+largely treated in C.
+
+A pointer to "const" data doesn't mean that the data is read-only, or
+that it cannot be modified _elsewhere_, it means that within this
+particular context and this copy of the pointer we promise not to
+write to it.
+
+Similarly, a pointer to "volatile" data doesn't mean that the data
+might not be stable once you take a lock, for example. So it's ok to
+have volatile pointers even if the data declaration itself isn't
+volatile - you're stating something about the context, not something
+fundamental about the data.
+
+And in the context of the bit operations, "volatile" is the correct thing to do.
+
+                     Linus
