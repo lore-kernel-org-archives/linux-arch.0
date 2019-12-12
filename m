@@ -1,72 +1,111 @@
-From: Will Deacon <will@kernel.org>
-Subject: Re: READ_ONCE() + STACKPROTECTOR_STRONG == :/ (was Re: [GIT PULL]
- Please pull powerpc/linux.git powerpc-5.5-2 tag (topic/kasan-bitops))
-Date: Thu, 12 Dec 2019 18:06:35 +0000
-Message-ID: <20191212180634.GA19020@willie-the-truck>
-References: <87blslei5o.fsf@mpe.ellerman.id.au>
- <20191206131650.GM2827@hirez.programming.kicks-ass.net>
- <875zimp0ay.fsf@mpe.ellerman.id.au>
- <20191212080105.GV2844@hirez.programming.kicks-ass.net>
- <20191212100756.GA11317@willie-the-truck>
- <20191212104610.GW2827@hirez.programming.kicks-ass.net>
- <CAHk-=wjUBsH0BYDBv=q36482G-U7c=9bC89L_BViSciTfb8fhA@mail.gmail.com>
+From: ebiederm@xmission.com (Eric W. Biederman)
+Subject: Re: [PATCH 12/22] arm64: mte: Add specific SIGSEGV codes
+Date: Thu, 12 Dec 2019 12:26:41 -0600
+Message-ID: <87zhfxqu1q.fsf@x220.int.ebiederm.org>
+References: <20191211184027.20130-1-catalin.marinas@arm.com>
+ <20191211184027.20130-13-catalin.marinas@arm.com>
+ <CAK8P3a1-eaR7NddhDce65vXKCGeZD3xUMrTTAWN4U3oW0ecN=g@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <CAHk-=wjUBsH0BYDBv=q36482G-U7c=9bC89L_BViSciTfb8fhA@mail.gmail.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Peter Zijlstra <peterz@infradead.org>, Michael Ellerman <mpe@ellerman.id.au>, dja@axtens.net, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linuxppc-dev@lists.ozlabs.org, Christophe Leroy <christophe.leroy@c-s.fr>, linux-arch <linux-arch@vger.kernel.org>, Mark Rutland <mark.rutland@arm.com>, Segher Boessenkool <segher@kernel.crashing.org>, Arnd Bergmann <arnd@arndb.de>, Christian Borntraeger <borntraeger@de.ibm.com>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+In-Reply-To: <CAK8P3a1-eaR7NddhDce65vXKCGeZD3xUMrTTAWN4U3oW0ecN=g@mail.gmail.com>
+ (Arnd Bergmann's message of "Wed, 11 Dec 2019 20:31:28 +0100")
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: linux-arch <linux-arch@vger.kernel.org>, Richard Earnshaw <Richard.Earnshaw@arm.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Kevin Brodsky <kevin.brodsky@arm.com>, Andrey Konovalov <andreyknvl@google.com>, Linux-MM <linux-mm@kvack.org>, Al Viro <viro@zeniv.linux.org.uk>, Marc Zyngier <maz@kernel.org>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Will Deacon <will@kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, Dec 12, 2019 at 09:41:32AM -0800, Linus Torvalds wrote:
-> On Thu, Dec 12, 2019 at 2:46 AM Peter Zijlstra <peterz@infradead.org> wrote:
-> >
-> > +#ifdef GCC_VERSION < 40800
-> 
-> Where does that 4.8 version check come from, and why?
-> 
-> Yeah, I know, but this really wants a comment. Sadly it looks like gcc
-> bugzilla is down, so
-> 
->    https://gcc.gnu.org/bugzilla/show_bug.cgi?id=58145
-> 
-> currently gives an "Internal Server Error" for me.
-> 
-> [ Delete the horrid code we have because of gcc bugs ]
-> 
-> > +#else /* GCC_VERSION < 40800 */
-> > +
-> > +#define READ_ONCE_NOCHECK(x)                                           \
-> > +({                                                                     \
-> > +       typeof(x) __x = *(volatile typeof(x))&(x);                      \
-> 
-> I think we can/should just do this unconditionally if it helps th eissue.
+Arnd Bergmann <arnd@arndb.de> writes:
 
-I'm currently trying to solve the issue by removing volatile from the bitop
-function signatures, but it's grotty because there are quite a few callers
-to fix up. I'm still trying to do it, because removing volatile fields from
-structurs is generally a "good thing", but I'd be keen to simplify
-READ_ONCE() as you suggest regardless.
+> On Wed, Dec 11, 2019 at 7:40 PM Catalin Marinas <catalin.marinas@arm.com> wrote:
+>>
+>> From: Vincenzo Frascino <vincenzo.frascino@arm.com>
+>>
+>> Add MTE-specific SIGSEGV codes to siginfo.h.
+>>
+>> Note that the for MTE we are reusing the same SPARC ADI codes because
+>> the two functionalities are similar and they cannot coexist on the same
+>> system.
 
-> Maybe add a warning about how gcc < 4.8 might mis-compile the kernel -
-> those versions are getting close to being unacceptable for kernel
-> builds anyway.
-> 
-> We could also look at being stricter for the normal READ/WRITE_ONCE(),
-> and require that they are
-> 
->  (a) regular integer types
-> 
->  (b) fit in an atomic word
-> 
-> We actually did (b) for a while, until we noticed that we do it on
-> loff_t's etc and relaxed the rules. But maybe we could have a
-> "non-atomic" version of READ/WRITE_ONCE() that is used for the
-> questionable cases?
+Please Please Please don't do that.
 
-That makes a lot of sense to me, and it would allow us to use
-compiletime_assert_atomic_type() as we do for the acquire/release accessors.
+It is actively harmful to have architecture specific si_code values.
+As it makes maintenance much more difficult.
 
-Will
+Especially as the si_codes are part of union descrimanator.
+
+If your functionality is identical reuse the numbers otherwise please
+just select the next numbers not yet used.
+
+We have at least 256 si_codes per signal 2**32 if we really need them so
+there is no need to be reuse numbers.
+
+The practical problem is that architecture specific si_codes start
+turning kernel/signal.c into #ifdef soup, and we loose a lot of
+basic compile coverage because of that.  In turn not compiling the code
+leads to bit-rot in all kinds of weird places.
+
+
+
+Now as far as the observation that this is almost the same as other
+functionality why can't this fit the existing interface exposed to
+userspace?   Sometimes there are good reasons, but technology gets
+a lot more uptake and testing when the same interfaces are more widely
+available.
+
+Eric
+
+p.s. As for coexistence there is always the possibility that one chip
+in a cpu family does supports one thing and another chip in a cpu
+family supports another.  So userspace may have to cope with the
+situation even if an individual chip doesn't.
+
+I remember a similar case where sparc had several distinct page table
+formats and we had a single kernel that had to cope with them all.
+
+
+>> Cc: Arnd Bergmann <arnd@arndb.de>
+>> Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
+>> [catalin.marinas@arm.com: renamed precise/imprecise to sync/async]
+>> Signed-off-by: Catalin Marinas <catalin.marinas@arm.com>
+>> ---
+>>  include/uapi/asm-generic/siginfo.h | 9 +++++++--
+>>  1 file changed, 7 insertions(+), 2 deletions(-)
+>>
+>> diff --git a/include/uapi/asm-generic/siginfo.h b/include/uapi/asm-generic/siginfo.h
+>> index cb3d6c267181..a5184a5438c6 100644
+>> --- a/include/uapi/asm-generic/siginfo.h
+>> +++ b/include/uapi/asm-generic/siginfo.h
+>> @@ -227,8 +227,13 @@ typedef struct siginfo {
+>>  # define SEGV_PKUERR   4       /* failed protection key checks */
+>>  #endif
+>>  #define SEGV_ACCADI    5       /* ADI not enabled for mapped object */
+>> -#define SEGV_ADIDERR   6       /* Disrupting MCD error */
+>> -#define SEGV_ADIPERR   7       /* Precise MCD exception */
+>> +#ifdef __aarch64__
+>> +# define SEGV_MTEAERR  6       /* Asynchronous MTE error */
+>> +# define SEGV_MTESERR  7       /* Synchronous MTE exception */
+>> +#else
+>> +# define SEGV_ADIDERR  6       /* Disrupting MCD error */
+>> +# define SEGV_ADIPERR  7       /* Precise MCD exception */
+>> +#endif
+>
+> SEGV_ADIPERR/SEGV_ADIDERR were added together with SEGV_ACCADI,
+> it seems a bit odd to make only two of them conditional but not the others.
+>
+> I think we are generally working towards having the same constants
+> across architectures even for features that only exist on one of them.
+>
+> Adding Al and Eric to Cc, maybe they have another suggestion on what
+> constants should be used.
+>
+>      Arnd
