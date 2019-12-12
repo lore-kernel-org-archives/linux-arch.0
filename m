@@ -1,75 +1,177 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: READ_ONCE() + STACKPROTECTOR_STRONG == :/ (was Re: [GIT PULL]
- Please pull powerpc/linux.git powerpc-5.5-2 tag (topic/kasan-bitops))
-Date: Thu, 12 Dec 2019 21:53:38 +0100
-Message-ID: <20191212205338.GB11802@worktop.programming.kicks-ass.net>
-References: <20191206131650.GM2827@hirez.programming.kicks-ass.net>
- <875zimp0ay.fsf@mpe.ellerman.id.au>
- <20191212080105.GV2844@hirez.programming.kicks-ass.net>
- <20191212100756.GA11317@willie-the-truck>
- <20191212104610.GW2827@hirez.programming.kicks-ass.net>
- <CAHk-=wjUBsH0BYDBv=q36482G-U7c=9bC89L_BViSciTfb8fhA@mail.gmail.com>
- <20191212180634.GA19020@willie-the-truck>
- <CAHk-=whRxB0adkz+V7SQC8Ac_rr_YfaPY8M2mFDfJP2FFBNz8A@mail.gmail.com>
- <20191212193401.GB19020@willie-the-truck>
- <20191212202157.GD11457@worktop.programming.kicks-ass.net>
+From: Marco Elver <elver@google.com>
+Subject: Re: [PATCH v3 3/3] kcsan: Prefer __always_inline for fast-path
+Date: Thu, 12 Dec 2019 22:11:59 +0100
+Message-ID: <CANpmjNOvDHoapk1cR5rCAcYgfVwf8NS0wFJncJ-bQrWzCKLPpw@mail.gmail.com>
+References: <20191126140406.164870-1-elver@google.com> <20191126140406.164870-3-elver@google.com>
+ <00ee3b40-0e37-c9ac-3209-d07b233a0c1d@infradead.org> <20191203160128.GC2889@paulmck-ThinkPad-P72>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20191212202157.GD11457@worktop.programming.kicks-ass.net>
+In-Reply-To: <20191203160128.GC2889@paulmck-ThinkPad-P72>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Will Deacon <will@kernel.org>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Michael Ellerman <mpe@ellerman.id.au>, dja@axtens.net, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linuxppc-dev@lists.ozlabs.org, Christophe Leroy <christophe.leroy@c-s.fr>, linux-arch <linux-arch@vger.kernel.org>, Mark Rutland <mark.rutland@arm.com>, Segher Boessenkool <segher@kernel.crashing.org>, Arnd Bergmann <arnd@arndb.de>, Christian Borntraeger <borntraeger@de.ibm.com>
+To: "Paul E. McKenney" <paulmck@kernel.org>
+Cc: Randy Dunlap <rdunlap@infradead.org>, Mark Rutland <mark.rutland@arm.com>, LKML <linux-kernel@vger.kernel.org>, Will Deacon <will@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Boqun Feng <boqun.feng@gmail.com>, Arnd Bergmann <arnd@arndb.de>, Dmitry Vyukov <dvyukov@google.com>, linux-arch <linux-arch@vger.kernel.org>, kasan-dev <kasan-dev@googlegroups.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, Dec 12, 2019 at 09:21:57PM +0100, Peter Zijlstra wrote:
-> On Thu, Dec 12, 2019 at 07:34:01PM +0000, Will Deacon wrote:
-> > void ool_store_release(volatile unsigned long *ptr, unsigned long val)
-> > {
-> > 	smp_store_release(ptr, val);
-> > }
-> > 
-> > 0000000000000000 <ool_store_release>:
-> >    0:   a9be7bfd        stp     x29, x30, [sp, #-32]!
-> >    4:   90000002        adrp    x2, 0 <__stack_chk_guard>
-> >    8:   91000042        add     x2, x2, #0x0
-> >    c:   910003fd        mov     x29, sp
-> >   10:   f9400043        ldr     x3, [x2]
-> >   14:   f9000fa3        str     x3, [x29, #24]
-> >   18:   d2800003        mov     x3, #0x0                        // #0
-> >   1c:   c89ffc01        stlr    x1, [x0]
-> >   20:   f9400fa1        ldr     x1, [x29, #24]
-> >   24:   f9400040        ldr     x0, [x2]
-> >   28:   ca000020        eor     x0, x1, x0
-> >   2c:   b5000060        cbnz    x0, 38 <ool_store_release+0x38>
-> >   30:   a8c27bfd        ldp     x29, x30, [sp], #32
-> >   34:   d65f03c0        ret
-> >   38:   94000000        bl      0 <__stack_chk_fail>
-> > 
-> > It's a mess, and fixing READ_ONCE() doesn't help this case, which is why
-> > I was looking at getting rid of volatile where it's not strictly needed.
-> > I'm certainly open to other suggestions, I just haven't managed to think
-> > of anything else.
-> 
-> We could move the kernel to C++ and write:
-> 
-> 	std::remove_volatile<typeof(p)>::type __p = (p);
-> 
-> /me runs like hell...
+On Tue, 3 Dec 2019 at 17:01, Paul E. McKenney <paulmck@kernel.org> wrote:
+>
+> On Mon, Dec 02, 2019 at 09:30:22PM -0800, Randy Dunlap wrote:
+> > On 11/26/19 6:04 AM, Marco Elver wrote:
+> > > Prefer __always_inline for fast-path functions that are called outside
+> > > of user_access_save, to avoid generating UACCESS warnings when
+> > > optimizing for size (CC_OPTIMIZE_FOR_SIZE). It will also avoid future
+> > > surprises with compiler versions that change the inlining heuristic even
+> > > when optimizing for performance.
+> > >
+> > > Report: http://lkml.kernel.org/r/58708908-84a0-0a81-a836-ad97e33dbb62@infradead.org
+> > > Reported-by: Randy Dunlap <rdunlap@infradead.org>
+> > > Signed-off-by: Marco Elver <elver@google.com>
+> >
+> > Acked-by: Randy Dunlap <rdunlap@infradead.org> # build-tested
+>
+> Thank you, Randy!
 
-Also, the GCC __auto_type thing strips _Atomic and const qualifiers but
-for some obscure raisin forgets to strip volatile :/
+Hoped this would have applied by now, but since KCSAN isn't in
+mainline yet, should I send a version of this patch rebased on
+-rcu/kcsan?
+It will just conflict with the style cleanup that is in
+-tip/locking/kcsan when another eventual merge happens. Alternatively,
+we can delay it for now and just have to remember to apply eventually
+(and have to live with things being messy for a bit longer :-)).
 
-  https://gcc.gnu.org/ml/gcc-patches/2013-11/msg01378.html
+The version as-is here applies on -tip/locking/kcsan and -next (which
+merged -tip/locking/kcsan).
 
-Now, looking at the current GCC source:
+Thanks,
+-- Marco
 
-  https://github.com/gcc-mirror/gcc/blob/97d7270f894395e513667a031a0c309d1819d05e/gcc/c/c-parser.c#L3707
 
-it seems that __typeof__() is supposed to strip all qualifiers from
-_Atomic types. That lead me to try:
-
-	typeof(_Atomic typeof(p)) __p = (p);
-
-But alas, I still get the same junk you got for ool_store_release() :/
+>                                                         Thanx, Paul
+>
+> > Thanks.
+> >
+> > > ---
+> > > Rebased on: locking/kcsan branch of tip tree.
+> > > ---
+> > >  kernel/kcsan/atomic.h   |  2 +-
+> > >  kernel/kcsan/core.c     | 16 +++++++---------
+> > >  kernel/kcsan/encoding.h | 14 +++++++-------
+> > >  3 files changed, 15 insertions(+), 17 deletions(-)
+> > >
+> > > diff --git a/kernel/kcsan/atomic.h b/kernel/kcsan/atomic.h
+> > > index 576e03ddd6a3..a9c193053491 100644
+> > > --- a/kernel/kcsan/atomic.h
+> > > +++ b/kernel/kcsan/atomic.h
+> > > @@ -18,7 +18,7 @@
+> > >   * than cast to volatile. Eventually, we hope to be able to remove this
+> > >   * function.
+> > >   */
+> > > -static inline bool kcsan_is_atomic(const volatile void *ptr)
+> > > +static __always_inline bool kcsan_is_atomic(const volatile void *ptr)
+> > >  {
+> > >     /* only jiffies for now */
+> > >     return ptr == &jiffies;
+> > > diff --git a/kernel/kcsan/core.c b/kernel/kcsan/core.c
+> > > index 3314fc29e236..c616fec639cd 100644
+> > > --- a/kernel/kcsan/core.c
+> > > +++ b/kernel/kcsan/core.c
+> > > @@ -78,10 +78,8 @@ static atomic_long_t watchpoints[CONFIG_KCSAN_NUM_WATCHPOINTS + NUM_SLOTS-1];
+> > >   */
+> > >  static DEFINE_PER_CPU(long, kcsan_skip);
+> > >
+> > > -static inline atomic_long_t *find_watchpoint(unsigned long addr,
+> > > -                                        size_t size,
+> > > -                                        bool expect_write,
+> > > -                                        long *encoded_watchpoint)
+> > > +static __always_inline atomic_long_t *
+> > > +find_watchpoint(unsigned long addr, size_t size, bool expect_write, long *encoded_watchpoint)
+> > >  {
+> > >     const int slot = watchpoint_slot(addr);
+> > >     const unsigned long addr_masked = addr & WATCHPOINT_ADDR_MASK;
+> > > @@ -146,7 +144,7 @@ insert_watchpoint(unsigned long addr, size_t size, bool is_write)
+> > >   * 2. the thread that set up the watchpoint already removed it;
+> > >   * 3. the watchpoint was removed and then re-used.
+> > >   */
+> > > -static inline bool
+> > > +static __always_inline bool
+> > >  try_consume_watchpoint(atomic_long_t *watchpoint, long encoded_watchpoint)
+> > >  {
+> > >     return atomic_long_try_cmpxchg_relaxed(watchpoint, &encoded_watchpoint, CONSUMED_WATCHPOINT);
+> > > @@ -160,7 +158,7 @@ static inline bool remove_watchpoint(atomic_long_t *watchpoint)
+> > >     return atomic_long_xchg_relaxed(watchpoint, INVALID_WATCHPOINT) != CONSUMED_WATCHPOINT;
+> > >  }
+> > >
+> > > -static inline struct kcsan_ctx *get_ctx(void)
+> > > +static __always_inline struct kcsan_ctx *get_ctx(void)
+> > >  {
+> > >     /*
+> > >      * In interrupts, use raw_cpu_ptr to avoid unnecessary checks, that would
+> > > @@ -169,7 +167,7 @@ static inline struct kcsan_ctx *get_ctx(void)
+> > >     return in_task() ? &current->kcsan_ctx : raw_cpu_ptr(&kcsan_cpu_ctx);
+> > >  }
+> > >
+> > > -static inline bool is_atomic(const volatile void *ptr)
+> > > +static __always_inline bool is_atomic(const volatile void *ptr)
+> > >  {
+> > >     struct kcsan_ctx *ctx = get_ctx();
+> > >
+> > > @@ -193,7 +191,7 @@ static inline bool is_atomic(const volatile void *ptr)
+> > >     return kcsan_is_atomic(ptr);
+> > >  }
+> > >
+> > > -static inline bool should_watch(const volatile void *ptr, int type)
+> > > +static __always_inline bool should_watch(const volatile void *ptr, int type)
+> > >  {
+> > >     /*
+> > >      * Never set up watchpoints when memory operations are atomic.
+> > > @@ -226,7 +224,7 @@ static inline void reset_kcsan_skip(void)
+> > >     this_cpu_write(kcsan_skip, skip_count);
+> > >  }
+> > >
+> > > -static inline bool kcsan_is_enabled(void)
+> > > +static __always_inline bool kcsan_is_enabled(void)
+> > >  {
+> > >     return READ_ONCE(kcsan_enabled) && get_ctx()->disable_count == 0;
+> > >  }
+> > > diff --git a/kernel/kcsan/encoding.h b/kernel/kcsan/encoding.h
+> > > index b63890e86449..f03562aaf2eb 100644
+> > > --- a/kernel/kcsan/encoding.h
+> > > +++ b/kernel/kcsan/encoding.h
+> > > @@ -59,10 +59,10 @@ encode_watchpoint(unsigned long addr, size_t size, bool is_write)
+> > >                   (addr & WATCHPOINT_ADDR_MASK));
+> > >  }
+> > >
+> > > -static inline bool decode_watchpoint(long watchpoint,
+> > > -                                unsigned long *addr_masked,
+> > > -                                size_t *size,
+> > > -                                bool *is_write)
+> > > +static __always_inline bool decode_watchpoint(long watchpoint,
+> > > +                                         unsigned long *addr_masked,
+> > > +                                         size_t *size,
+> > > +                                         bool *is_write)
+> > >  {
+> > >     if (watchpoint == INVALID_WATCHPOINT ||
+> > >         watchpoint == CONSUMED_WATCHPOINT)
+> > > @@ -78,13 +78,13 @@ static inline bool decode_watchpoint(long watchpoint,
+> > >  /*
+> > >   * Return watchpoint slot for an address.
+> > >   */
+> > > -static inline int watchpoint_slot(unsigned long addr)
+> > > +static __always_inline int watchpoint_slot(unsigned long addr)
+> > >  {
+> > >     return (addr / PAGE_SIZE) % CONFIG_KCSAN_NUM_WATCHPOINTS;
+> > >  }
+> > >
+> > > -static inline bool matching_access(unsigned long addr1, size_t size1,
+> > > -                              unsigned long addr2, size_t size2)
+> > > +static __always_inline bool matching_access(unsigned long addr1, size_t size1,
+> > > +                                       unsigned long addr2, size_t size2)
+> > >  {
+> > >     unsigned long end_range1 = addr1 + size1 - 1;
+> > >     unsigned long end_range2 = addr2 + size2 - 1;
+> > >
+> >
+> >
+> > --
+> > ~Randy
+> >
