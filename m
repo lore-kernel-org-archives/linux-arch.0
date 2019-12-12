@@ -1,85 +1,85 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH 08/17] asm-generic/tlb: Provide MMU_GATHER_TABLE_FREE
-Date: Thu, 12 Dec 2019 10:30:55 +0100
-Message-ID: <20191212093055.GT2827@hirez.programming.kicks-ass.net>
-References: <20191211120713.360281197@infradead.org>
- <20191211122956.112607298@infradead.org>
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: Re: [PATCH 12/22] arm64: mte: Add specific SIGSEGV codes
+Date: Thu, 12 Dec 2019 09:34:26 +0000
+Message-ID: <20191212093425.GA18258@arrakis.emea.arm.com>
+References: <20191211184027.20130-1-catalin.marinas@arm.com>
+ <20191211184027.20130-13-catalin.marinas@arm.com>
+ <CAK8P3a1-eaR7NddhDce65vXKCGeZD3xUMrTTAWN4U3oW0ecN=g@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
 Content-Disposition: inline
-In-Reply-To: <20191211122956.112607298@infradead.org>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Will Deacon <will@kernel.org>, "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, Nick Piggin <npiggin@gmail.com>
-Cc: linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, "David S. Miller" <davem@davemloft.net>, Helge Deller <deller@gmx.de>, Geert Uytterhoeven <geert@linux-m68k.org>, Paul Burton <paulburton@kernel.org>, Tony Luck <tony.luck@intel.com>, Richard Henderson <rth@twiddle.net>, Nick Hu <nickhu@andestech.com>, Paul Walmsley <paul.walmsley@sifive.com>
+In-Reply-To: <CAK8P3a1-eaR7NddhDce65vXKCGeZD3xUMrTTAWN4U3oW0ecN=g@mail.gmail.com>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: linux-arch <linux-arch@vger.kernel.org>, Richard Earnshaw <Richard.Earnshaw@arm.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Marc Zyngier <maz@kernel.org>, Kevin Brodsky <kevin.brodsky@arm.com>, Linux-MM <linux-mm@kvack.org>, "Eric W. Biederman" <ebiederm@xmission.com>, Andrey Konovalov <andreyknvl@google.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Will Deacon <will@kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, Al Viro <viro@zeniv.linux.org.uk>
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Dec 11, 2019 at 01:07:21PM +0100, Peter Zijlstra wrote:
-> @@ -56,6 +56,15 @@
->   *    Defaults to flushing at tlb_end_vma() to reset the range; helps when
->   *    there's large holes between the VMAs.
->   *
-> + *  - tlb_remove_table()
-> + *
-> + *    tlb_remove_table() is the basic primitive to free page-table directories
-> + *    (__p*_free_tlb()).  In it's most primitive form it is an alias for
-> + *    tlb_remove_page() below, for when page directories are pages and have no
-> + *    additional constraints.
-> + *
-> + *    See also MMU_GATHER_TABLE_FREE and MMU_GATHER_RCU_TABLE_FREE.
-> + *
->   *  - tlb_remove_page() / __tlb_remove_page()
->   *  - tlb_remove_page_size() / __tlb_remove_page_size()
->   *
+On Wed, Dec 11, 2019 at 08:31:28PM +0100, Arnd Bergmann wrote:
+> On Wed, Dec 11, 2019 at 7:40 PM Catalin Marinas <catalin.marinas@arm.com> wrote:
+> >
+> > From: Vincenzo Frascino <vincenzo.frascino@arm.com>
+> >
+> > Add MTE-specific SIGSEGV codes to siginfo.h.
+> >
+> > Note that the for MTE we are reusing the same SPARC ADI codes because
+> > the two functionalities are similar and they cannot coexist on the same
+> > system.
+> >
+> > Cc: Arnd Bergmann <arnd@arndb.de>
+> > Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
+> > [catalin.marinas@arm.com: renamed precise/imprecise to sync/async]
+> > Signed-off-by: Catalin Marinas <catalin.marinas@arm.com>
+> > ---
+> >  include/uapi/asm-generic/siginfo.h | 9 +++++++--
+> >  1 file changed, 7 insertions(+), 2 deletions(-)
+> >
+> > diff --git a/include/uapi/asm-generic/siginfo.h b/include/uapi/asm-generic/siginfo.h
+> > index cb3d6c267181..a5184a5438c6 100644
+> > --- a/include/uapi/asm-generic/siginfo.h
+> > +++ b/include/uapi/asm-generic/siginfo.h
+> > @@ -227,8 +227,13 @@ typedef struct siginfo {
+> >  # define SEGV_PKUERR   4       /* failed protection key checks */
+> >  #endif
+> >  #define SEGV_ACCADI    5       /* ADI not enabled for mapped object */
+> > -#define SEGV_ADIDERR   6       /* Disrupting MCD error */
+> > -#define SEGV_ADIPERR   7       /* Precise MCD exception */
+> > +#ifdef __aarch64__
+> > +# define SEGV_MTEAERR  6       /* Asynchronous MTE error */
+> > +# define SEGV_MTESERR  7       /* Synchronous MTE exception */
+> > +#else
+> > +# define SEGV_ADIDERR  6       /* Disrupting MCD error */
+> > +# define SEGV_ADIPERR  7       /* Precise MCD exception */
+> > +#endif
+> 
+> SEGV_ADIPERR/SEGV_ADIDERR were added together with SEGV_ACCADI,
+> it seems a bit odd to make only two of them conditional but not the others.
 
-> @@ -202,7 +193,16 @@ struct mmu_table_batch {
->  
->  extern void tlb_remove_table(struct mmu_gather *tlb, void *table);
->  
-> -#endif
-> +#else /* !CONFIG_MMU_GATHER_HAVE_TABLE_FREE */
-> +
-> +/*
-> + * Without either HAVE_TABLE_FREE || CONFIG_HAVE_RCU_TABLE_FREE the
-> + * architecture is assumed to have page based page directories and
-> + * we can use the normal page batching to free them.
-> + */
-> +#define tlb_remove_table(tlb, page) tlb_remove_page((tlb), (page))
-> +
-> +#endif /* CONFIG_MMU_GATHER_TABLE_FREE */
+Ah, I missed this. I think we should drop the #ifdef entirely. There is
+no harm in having two different macros with the same value.
 
-The build robot kindly notified me that this breaks ARM because it does
-the exact same #define for the same reason.
+> I think we are generally working towards having the same constants
+> across architectures even for features that only exist on one of them.
 
-(and I noticed the comment is stale)
+I'd rather keep both the ARM and SPARC naming here as the behaviour may
+be subtly different between the two architectures. IIUC, the disrupting
+SPARC MCD error on means a memory corruption trap sent to the
+hypervisor. On ARM MTE, the asynchronous tag check fault is a pretty
+much benign setting of a status flag. The kernel, when detecting this
+flag, injects a SIGSEGV on the ret_to_user path. If there's no switch
+into the kernel, a user program cannot become aware of the asynchronous
+MTE tag check fault.
 
-I'll post a new version of this patch with the below delta.
+We also don't have the equivalent of ACCADI.
 
----
---- a/arch/arm/include/asm/tlb.h
-+++ b/arch/arm/include/asm/tlb.h
-@@ -37,10 +37,6 @@ static inline void __tlb_remove_table(vo
- 
- #include <asm-generic/tlb.h>
- 
--#ifndef CONFIG_MMU_GATHER_RCU_TABLE_FREE
--#define tlb_remove_table(tlb, entry) tlb_remove_page(tlb, entry)
--#endif
--
- static inline void
- __pte_free_tlb(struct mmu_gather *tlb, pgtable_t pte, unsigned long addr)
- {
---- a/include/asm-generic/tlb.h
-+++ b/include/asm-generic/tlb.h
-@@ -196,9 +196,8 @@ extern void tlb_remove_table(struct mmu_
- #else /* !CONFIG_MMU_GATHER_HAVE_TABLE_FREE */
- 
- /*
-- * Without either HAVE_TABLE_FREE || CONFIG_HAVE_RCU_TABLE_FREE the
-- * architecture is assumed to have page based page directories and
-- * we can use the normal page batching to free them.
-+ * Without MMU_GATHER_TABLE_FREE the architecture is assumed to have page based
-+ * page directories and we can use the normal page batching to free them.
-  */
- #define tlb_remove_table(tlb, page) tlb_remove_page((tlb), (page))
- 
+-- 
+Catalin
