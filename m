@@ -1,47 +1,75 @@
-From: Linus Torvalds <torvalds@linux-foundation.org>
+From: Peter Zijlstra <peterz@infradead.org>
 Subject: Re: READ_ONCE() + STACKPROTECTOR_STRONG == :/ (was Re: [GIT PULL]
  Please pull powerpc/linux.git powerpc-5.5-2 tag (topic/kasan-bitops))
-Date: Thu, 12 Dec 2019 12:49:52 -0800
-Message-ID: <CAHk-=wiMuHmWzQ7-CRQB6o+SHtA-u-Rp6VZwPcqDbjAaug80rQ@mail.gmail.com>
-References: <87blslei5o.fsf@mpe.ellerman.id.au> <20191206131650.GM2827@hirez.programming.kicks-ass.net>
- <875zimp0ay.fsf@mpe.ellerman.id.au> <20191212080105.GV2844@hirez.programming.kicks-ass.net>
- <20191212100756.GA11317@willie-the-truck> <20191212104610.GW2827@hirez.programming.kicks-ass.net>
+Date: Thu, 12 Dec 2019 21:53:38 +0100
+Message-ID: <20191212205338.GB11802@worktop.programming.kicks-ass.net>
+References: <20191206131650.GM2827@hirez.programming.kicks-ass.net>
+ <875zimp0ay.fsf@mpe.ellerman.id.au>
+ <20191212080105.GV2844@hirez.programming.kicks-ass.net>
+ <20191212100756.GA11317@willie-the-truck>
+ <20191212104610.GW2827@hirez.programming.kicks-ass.net>
  <CAHk-=wjUBsH0BYDBv=q36482G-U7c=9bC89L_BViSciTfb8fhA@mail.gmail.com>
- <20191212180634.GA19020@willie-the-truck> <CAHk-=whRxB0adkz+V7SQC8Ac_rr_YfaPY8M2mFDfJP2FFBNz8A@mail.gmail.com>
+ <20191212180634.GA19020@willie-the-truck>
+ <CAHk-=whRxB0adkz+V7SQC8Ac_rr_YfaPY8M2mFDfJP2FFBNz8A@mail.gmail.com>
  <20191212193401.GB19020@willie-the-truck>
+ <20191212202157.GD11457@worktop.programming.kicks-ass.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20191212193401.GB19020@willie-the-truck>
+Content-Disposition: inline
+In-Reply-To: <20191212202157.GD11457@worktop.programming.kicks-ass.net>
 Sender: linux-kernel-owner@vger.kernel.org
 To: Will Deacon <will@kernel.org>
-Cc: Peter Zijlstra <peterz@infradead.org>, Michael Ellerman <mpe@ellerman.id.au>, dja@axtens.net, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linuxppc-dev@lists.ozlabs.org, Christophe Leroy <christophe.leroy@c-s.fr>, linux-arch <linux-arch@vger.kernel.org>, Mark Rutland <mark.rutland@arm.com>, Segher Boessenkool <segher@kernel.crashing.org>, Arnd Bergmann <arnd@arndb.de>, Christian Borntraeger <borntraeger@de.ibm.com>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Michael Ellerman <mpe@ellerman.id.au>, dja@axtens.net, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linuxppc-dev@lists.ozlabs.org, Christophe Leroy <christophe.leroy@c-s.fr>, linux-arch <linux-arch@vger.kernel.org>, Mark Rutland <mark.rutland@arm.com>, Segher Boessenkool <segher@kernel.crashing.org>, Arnd Bergmann <arnd@arndb.de>, Christian Borntraeger <borntraeger@de.ibm.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, Dec 12, 2019 at 11:34 AM Will Deacon <will@kernel.org> wrote:
->
-> The root of my concern in all of this, and what started me looking at it in
-> the first place, is the interaction with 'typeof()'. Inheriting 'volatile'
-> for a pointer means that local variables in macros declared using typeof()
-> suddenly start generating *hideous* code, particularly when pointless stack
-> spills get stackprotector all excited.
+On Thu, Dec 12, 2019 at 09:21:57PM +0100, Peter Zijlstra wrote:
+> On Thu, Dec 12, 2019 at 07:34:01PM +0000, Will Deacon wrote:
+> > void ool_store_release(volatile unsigned long *ptr, unsigned long val)
+> > {
+> > 	smp_store_release(ptr, val);
+> > }
+> > 
+> > 0000000000000000 <ool_store_release>:
+> >    0:   a9be7bfd        stp     x29, x30, [sp, #-32]!
+> >    4:   90000002        adrp    x2, 0 <__stack_chk_guard>
+> >    8:   91000042        add     x2, x2, #0x0
+> >    c:   910003fd        mov     x29, sp
+> >   10:   f9400043        ldr     x3, [x2]
+> >   14:   f9000fa3        str     x3, [x29, #24]
+> >   18:   d2800003        mov     x3, #0x0                        // #0
+> >   1c:   c89ffc01        stlr    x1, [x0]
+> >   20:   f9400fa1        ldr     x1, [x29, #24]
+> >   24:   f9400040        ldr     x0, [x2]
+> >   28:   ca000020        eor     x0, x1, x0
+> >   2c:   b5000060        cbnz    x0, 38 <ool_store_release+0x38>
+> >   30:   a8c27bfd        ldp     x29, x30, [sp], #32
+> >   34:   d65f03c0        ret
+> >   38:   94000000        bl      0 <__stack_chk_fail>
+> > 
+> > It's a mess, and fixing READ_ONCE() doesn't help this case, which is why
+> > I was looking at getting rid of volatile where it's not strictly needed.
+> > I'm certainly open to other suggestions, I just haven't managed to think
+> > of anything else.
+> 
+> We could move the kernel to C++ and write:
+> 
+> 	std::remove_volatile<typeof(p)>::type __p = (p);
+> 
+> /me runs like hell...
 
-Yeah, removing volatile can be a bit annoying.
+Also, the GCC __auto_type thing strips _Atomic and const qualifiers but
+for some obscure raisin forgets to strip volatile :/
 
-For the particular case of the bitops, though, it's not an issue.
-Since you know the type there, you can just cast it.
+  https://gcc.gnu.org/ml/gcc-patches/2013-11/msg01378.html
 
-And if we had the rule that READ_ONCE() was an arithmetic type, you could do
+Now, looking at the current GCC source:
 
-    typeof(0+(*p)) __var;
+  https://github.com/gcc-mirror/gcc/blob/97d7270f894395e513667a031a0c309d1819d05e/gcc/c/c-parser.c#L3707
 
-since you might as well get the integer promotion anyway (on the
-non-volatile result).
+it seems that __typeof__() is supposed to strip all qualifiers from
+_Atomic types. That lead me to try:
 
-But that doesn't work with structures or unions, of course.
+	typeof(_Atomic typeof(p)) __p = (p);
 
-I'm not entirely sure we have READ_ONCE() with a struct. I do know we
-have it with 64-bit entities on 32-bit machines, but that's ok with
-the "0+" trick.
-
-               Linus
+But alas, I still get the same junk you got for ool_store_release() :/
