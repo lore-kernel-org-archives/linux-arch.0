@@ -1,61 +1,71 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:57952 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1730040AbfLLRQh (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 12 Dec 2019 12:16:37 -0500
-Date: Thu, 12 Dec 2019 17:16:31 +0000
-From: Will Deacon <will@kernel.org>
+Received: from mail-lj1-f195.google.com ([209.85.208.195]:38038 "EHLO
+        mail-lj1-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1730198AbfLLRlx (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 12 Dec 2019 12:41:53 -0500
+Received: by mail-lj1-f195.google.com with SMTP id k8so3232343ljh.5
+        for <linux-arch@vger.kernel.org>; Thu, 12 Dec 2019 09:41:51 -0800 (PST)
+Received: from mail-lj1-f169.google.com (mail-lj1-f169.google.com. [209.85.208.169])
+        by smtp.gmail.com with ESMTPSA id q13sm3785115ljj.63.2019.12.12.09.41.48
+        for <linux-arch@vger.kernel.org>
+        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
+        Thu, 12 Dec 2019 09:41:48 -0800 (PST)
+Received: by mail-lj1-f169.google.com with SMTP id d20so3197000ljc.12
+        for <linux-arch@vger.kernel.org>; Thu, 12 Dec 2019 09:41:48 -0800 (PST)
+MIME-Version: 1.0
+References: <87blslei5o.fsf@mpe.ellerman.id.au> <20191206131650.GM2827@hirez.programming.kicks-ass.net>
+ <875zimp0ay.fsf@mpe.ellerman.id.au> <20191212080105.GV2844@hirez.programming.kicks-ass.net>
+ <20191212100756.GA11317@willie-the-truck> <20191212104610.GW2827@hirez.programming.kicks-ass.net>
+In-Reply-To: <20191212104610.GW2827@hirez.programming.kicks-ass.net>
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Date: Thu, 12 Dec 2019 09:41:32 -0800
+Message-ID: <CAHk-=wjUBsH0BYDBv=q36482G-U7c=9bC89L_BViSciTfb8fhA@mail.gmail.com>
 Subject: Re: READ_ONCE() + STACKPROTECTOR_STRONG == :/ (was Re: [GIT PULL]
  Please pull powerpc/linux.git powerpc-5.5-2 tag (topic/kasan-bitops))
-Message-ID: <20191212171630.GC16364@willie-the-truck>
-References: <87blslei5o.fsf@mpe.ellerman.id.au>
- <20191206131650.GM2827@hirez.programming.kicks-ass.net>
- <875zimp0ay.fsf@mpe.ellerman.id.au>
- <20191212080105.GV2844@hirez.programming.kicks-ass.net>
- <20191212100756.GA11317@willie-the-truck>
- <20191212104610.GW2827@hirez.programming.kicks-ass.net>
- <20191212170427.GA16364@willie-the-truck>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20191212170427.GA16364@willie-the-truck>
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Peter Zijlstra <peterz@infradead.org>
-Cc: Michael Ellerman <mpe@ellerman.id.au>, Linus Torvalds <torvalds@linux-foundation.org>, dja@axtens.net, linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, christophe.leroy@c-s.fr, linux-arch@vger.kernel.org, Mark Rutland <mark.rutland@arm.com>, Segher Boessenkool <segher@kernel.crashing.org>, Arnd Bergmann <arnd@arndb.de>, Christian Borntraeger <borntraeger@de.ibm.com>
-Message-ID: <20191212171631.16HtJD7MD7_s2lsovv6S0gW16aeX0wirO0T6OE-wM4M@z>
+Cc: Will Deacon <will@kernel.org>, Michael Ellerman <mpe@ellerman.id.au>, dja@axtens.net, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linuxppc-dev@lists.ozlabs.org, Christophe Leroy <christophe.leroy@c-s.fr>, linux-arch <linux-arch@vger.kernel.org>, Mark Rutland <mark.rutland@arm.com>, Segher Boessenkool <segher@kernel.crashing.org>, Arnd Bergmann <arnd@arndb.de>, Christian Borntraeger <borntraeger@de.ibm.com>
+Message-ID: <20191212174132.T_CgTyh4h3lMdtkJ0cablyLsaDUylmIHdhaX-dk7bqE@z>
 
-On Thu, Dec 12, 2019 at 05:04:27PM +0000, Will Deacon wrote:
-> On Thu, Dec 12, 2019 at 11:46:10AM +0100, Peter Zijlstra wrote:
-> > On Thu, Dec 12, 2019 at 10:07:56AM +0000, Will Deacon wrote:
-> > 
-> > > > So your proposed change _should_ be fine. Will, I'm assuming you never
-> > > > saw this on your ARGH64 builds when you did this code ?
-> > > 
-> > > I did see it, but (a) looking at the code out-of-line makes it look a lot
-> > > worse than it actually is (so the ext4 example is really helpful -- thanks
-> > > Michael!) and (b) I chalked it up to a crappy compiler.
-> > > 
-> > > However, see this comment from Arnd on my READ_ONCE series from the other
-> > > day:
-> > > 
-> > > https://lore.kernel.org/lkml/CAK8P3a0f=WvSQSBQ4t0FmEkcFE_mC3oARxaeTviTSkSa-D2qhg@mail.gmail.com
-> > > 
-> > > In which case, I'm thinking that we should be doing better in READ_ONCE()
-> > > for non-buggy compilers which would also keep the KCSAN folks happy for this
-> > > code (and would help with [1] too).
-> > 
-> > So something like this then? Although I suppose that should be moved
-> > into compiler-gcc.h and then guarded by #ifndef READ_ONCE or so.
-> 
-> Ah wait, I think we've been looking at this wrong. The volatile pointer
-> argument is actually the problem here, not READ_ONCE()! The use of typeof()
-> means that the temporary variable to which __READ_ONCE_SIZE writes ends up
-> being a volatile store, so it can't be optimised away. This is why we get
-> a stack access and why stack protector then wrecks the codegen for us.
+On Thu, Dec 12, 2019 at 2:46 AM Peter Zijlstra <peterz@infradead.org> wrote:
+>
+> +#ifdef GCC_VERSION < 40800
 
-Hmm, it's actually probably the volatile read which is causing the problem,
-since __READ_ONCE_SIZE has casted that away and just uses "void *", but you
-get the idea.
+Where does that 4.8 version check come from, and why?
 
-Will
+Yeah, I know, but this really wants a comment. Sadly it looks like gcc
+bugzilla is down, so
+
+   https://gcc.gnu.org/bugzilla/show_bug.cgi?id=58145
+
+currently gives an "Internal Server Error" for me.
+
+[ Delete the horrid code we have because of gcc bugs ]
+
+> +#else /* GCC_VERSION < 40800 */
+> +
+> +#define READ_ONCE_NOCHECK(x)                                           \
+> +({                                                                     \
+> +       typeof(x) __x = *(volatile typeof(x))&(x);                      \
+
+I think we can/should just do this unconditionally if it helps th eissue.
+
+Maybe add a warning about how gcc < 4.8 might mis-compile the kernel -
+those versions are getting close to being unacceptable for kernel
+builds anyway.
+
+We could also look at being stricter for the normal READ/WRITE_ONCE(),
+and require that they are
+
+ (a) regular integer types
+
+ (b) fit in an atomic word
+
+We actually did (b) for a while, until we noticed that we do it on
+loff_t's etc and relaxed the rules. But maybe we could have a
+"non-atomic" version of READ/WRITE_ONCE() that is used for the
+questionable cases?
+
+              Linus
