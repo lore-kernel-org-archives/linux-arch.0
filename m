@@ -1,70 +1,72 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ozlabs.org ([203.11.71.1]:53267 "EHLO ozlabs.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1725937AbfLMVGz (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 13 Dec 2019 16:06:55 -0500
-From: Michael Ellerman <mpe@ellerman.id.au>
-Subject: Re: READ_ONCE() + STACKPROTECTOR_STRONG == :/ (was Re: [GIT PULL] Please pull powerpc/linux.git powerpc-5.5-2 tag (topic/kasan-bitops))
-In-Reply-To: <20191213135353.GN3152@gate.crashing.org>
-References: <87blslei5o.fsf@mpe.ellerman.id.au> <20191206131650.GM2827@hirez.programming.kicks-ass.net> <875zimp0ay.fsf@mpe.ellerman.id.au> <20191212080105.GV2844@hirez.programming.kicks-ass.net> <20191212100756.GA11317@willie-the-truck> <20191212104610.GW2827@hirez.programming.kicks-ass.net> <87pngso2ck.fsf@mpe.ellerman.id.au> <20191213135353.GN3152@gate.crashing.org>
-Date: Sat, 14 Dec 2019 08:06:49 +1100
-Message-ID: <87mubwndee.fsf@mpe.ellerman.id.au>
+Received: from mout.kundenserver.de ([212.227.126.130]:38607 "EHLO
+        mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1725554AbfLMVdH (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 13 Dec 2019 16:33:07 -0500
 MIME-Version: 1.0
-Content-Type: text/plain
+References: <87blslei5o.fsf@mpe.ellerman.id.au> <20191206131650.GM2827@hirez.programming.kicks-ass.net>
+ <875zimp0ay.fsf@mpe.ellerman.id.au> <20191212080105.GV2844@hirez.programming.kicks-ass.net>
+ <20191212100756.GA11317@willie-the-truck> <20191212104610.GW2827@hirez.programming.kicks-ass.net>
+ <CAHk-=wjUBsH0BYDBv=q36482G-U7c=9bC89L_BViSciTfb8fhA@mail.gmail.com>
+ <20191212180634.GA19020@willie-the-truck> <CAHk-=whRxB0adkz+V7SQC8Ac_rr_YfaPY8M2mFDfJP2FFBNz8A@mail.gmail.com>
+ <20191212193401.GB19020@willie-the-truck> <CAHk-=wiMuHmWzQ7-CRQB6o+SHtA-u-Rp6VZwPcqDbjAaug80rQ@mail.gmail.com>
+ <CAK8P3a2QYpT_u3D7c_w+hoyeO-Stkj5MWyU_LgGOqnMtKLEudg@mail.gmail.com>
+In-Reply-To: <CAK8P3a2QYpT_u3D7c_w+hoyeO-Stkj5MWyU_LgGOqnMtKLEudg@mail.gmail.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Date: Fri, 13 Dec 2019 22:32:48 +0100
+Message-ID: <CAK8P3a014U76S+t3rKyPghepOT_fYHBExuMC27MoGMNffjczEw@mail.gmail.com>
+Subject: Re: READ_ONCE() + STACKPROTECTOR_STRONG == :/ (was Re: [GIT PULL]
+ Please pull powerpc/linux.git powerpc-5.5-2 tag (topic/kasan-bitops))
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Segher Boessenkool <segher@kernel.crashing.org>
-Cc: Peter Zijlstra <peterz@infradead.org>, Will Deacon <will@kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, dja@axtens.net, linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, christophe.leroy@c-s.fr, linux-arch@vger.kernel.org, Mark Rutland <mark.rutland@arm.com>, Arnd Bergmann <arnd@arndb.de>, Christian Borntraeger <borntraeger@de.ibm.com>
-Message-ID: <20191213210649.ZA1Ee45KV4TW8mktNVTghF6gC_xyQezw1vL_rHbyN2o@z>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Will Deacon <will@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Michael Ellerman <mpe@ellerman.id.au>, Daniel Axtens <dja@axtens.net>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, Christophe Leroy <christophe.leroy@c-s.fr>, linux-arch <linux-arch@vger.kernel.org>, Mark Rutland <mark.rutland@arm.com>, Segher Boessenkool <segher@kernel.crashing.org>, Christian Borntraeger <borntraeger@de.ibm.com>
+Message-ID: <20191213213248.HjYIu8Mqtvk2rOhjexrofU9lEi9Nt3AF4xPmixNnd2w@z>
 
-Segher Boessenkool <segher@kernel.crashing.org> writes:
-> Hi!
+On Fri, Dec 13, 2019 at 2:17 PM Arnd Bergmann <arnd@arndb.de> wrote:
 >
-> On Fri, Dec 13, 2019 at 11:07:55PM +1100, Michael Ellerman wrote:
->> I tried this:
->> 
->> > @@ -295,6 +296,23 @@ void __write_once_size(volatile void *p, void *res, int size)
->> >   */
->> >  #define READ_ONCE_NOCHECK(x) __READ_ONCE(x, 0)
->> >  
->> > +#else /* GCC_VERSION < 40800 */
->> > +
->> > +#define READ_ONCE_NOCHECK(x)						\
->> > +({									\
->> > +	typeof(x) __x = *(volatile typeof(x))&(x);			\
->> 
->> Didn't compile, needed:
->> 
->> 	typeof(x) __x = *(volatile typeof(&x))&(x);			\
->> 
->> 
->> > +	smp_read_barrier_depends();					\
->> > +	__x;
->> > +})
->> 
->> 
->> And that works for me. No extra stack check stuff.
->> 
->> I guess the question is does that version of READ_ONCE() implement the
->> read once semantics. Do we have a good way to test that?
->> 
->> The only differences are because of the early return in the generic
->> test_and_set_bit_lock():
+> On Thu, Dec 12, 2019 at 9:50 PM Linus Torvalds
+> <torvalds@linux-foundation.org> wrote:
+> I'll have my randconfig builder look for instances, so far I found one,
+> see below. My feeling is that it would be better to enforce at least
+> the size being a 1/2/4/8, to avoid cases where someone thinks
+> the access is atomic, but it falls back on a memcpy.
 >
-> No, there is another difference:
+>       Arnd
 >
->>   30         ld      r10,560(r9)
->>   31         std     r10,104(r1)
->>   32         ld      r10,104(r1)
->>   33         andi.   r10,r10,1
->>   34         bne     <ext4_resize_begin_generic+0xd0>       29         bne     <ext4_resize_begin_ppc+0xd0>
->
-> The stack var is volatile, so it is read back immediately after writing
-> it, here.  This is a bad idea for performance, in general.
+> diff --git a/drivers/xen/time.c b/drivers/xen/time.c
+> index 0968859c29d0..adb492c0aa34 100644
+> --- a/drivers/xen/time.c
+> +++ b/drivers/xen/time.c
+> @@ -64,7 +64,7 @@ static void xen_get_runstate_snapshot_cpu_delta(
+>         do {
+>                 state_time = get64(&state->state_entry_time);
+>                 rmb();  /* Hypervisor might update data. */
+> -               *res = READ_ONCE(*state);
+> +               memcpy(res, state, sizeof(*res));
+>                 rmb();  /* Hypervisor might update data. */
+>         } while (get64(&state->state_entry_time) != state_time ||
+>                  (state_time & XEN_RUNSTATE_UPDATE));
 
-Argh, yuck. Thanks, I shouldn't try to read asm listings at 11pm.
 
-So that just confirms what Will was saying further up the thread about
-the volatile pointer, rather than READ_ONCE() per se.
+A few hundred randconfig (x86, arm32 and arm64) builds later I
+still only found one other instance:
 
-cheers
+diff --git a/net/xdp/xsk_queue.h b/net/xdp/xsk_queue.h
+index eddae4688862..1c1f33447e96 100644
+--- a/net/xdp/xsk_queue.h
++++ b/net/xdp/xsk_queue.h
+@@ -304,7 +304,9 @@ static inline struct xdp_desc
+*xskq_validate_desc(struct xsk_queue *q,
+                struct xdp_rxtx_ring *ring = (struct xdp_rxtx_ring *)q->ring;
+                unsigned int idx = q->cons_tail & q->ring_mask;
+
+-               *desc = READ_ONCE(ring->desc[idx]);
++               barrier();
++               memcpy(desc, &ring->desc[idx], sizeof(*desc));
++               barrier();
+                if (xskq_is_valid_desc(q, desc, umem))
+                        return desc;
+
+       Arnd
