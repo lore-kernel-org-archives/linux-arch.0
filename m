@@ -1,67 +1,202 @@
-From: "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>
-Subject: Re: [PATCH 05/17] asm-generic/tlb: Rename
- HAVE_RCU_TABLE_NO_INVALIDATE
-Date: Mon, 16 Dec 2019 22:30:03 +0530
-Message-ID: <c4edc550-b510-2521-d703-be324de68436@linux.ibm.com>
-References: <20191211120713.360281197@infradead.org>
- <20191211122955.940455408@infradead.org> <87woawzc1t.fsf@linux.ibm.com>
- <20191216123752.GM2844@hirez.programming.kicks-ass.net>
- <d52ea890-c2ea-88f3-9d62-b86e60ee77ae@linux.ibm.com>
- <20191216132004.GO2844@hirez.programming.kicks-ass.net>
- <a9ae27c8-aa84-cda3-355c-7abb3b450d38@linux.ibm.com>
- <33ed03aa-a34c-3a81-0f83-20c3e8d4eff7@linux.ibm.com>
- <20191216145041.GG2827@hirez.programming.kicks-ass.net>
- <20191216151419.GL2871@hirez.programming.kicks-ass.net>
- <20191216153047.GM2871@hirez.programming.kicks-ass.net>
+From: Peter Collingbourne <pcc@google.com>
+Subject: Re: [PATCH 20/22] arm64: mte: Allow user control of the excluded tags
+ via prctl()
+Date: Mon, 16 Dec 2019 09:30:36 -0800
+Message-ID: <CAMn1gO6KGbeSkuEJB_j+WG8DAjbn81OdfA6DQQ+FFA5F6dcsVQ@mail.gmail.com>
+References: <20191211184027.20130-1-catalin.marinas@arm.com>
+ <20191211184027.20130-21-catalin.marinas@arm.com>
+ <ef61bbc6-76d6-531d-2156-b57efc070da4@arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20191216153047.GM2871@hirez.programming.kicks-ass.net>
-Content-Language: en-US
-Sender: linux-kernel-owner@vger.kernel.org
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Michael Ellerman <mpe@ellerman.id.au>, Will Deacon <will@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Nick Piggin <npiggin@gmail.com>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, "David S. Miller" <davem@davemloft.net>, Helge Deller <deller@gmx.de>, Geert Uytterhoeven <geert@linux-m68k.org>, Paul Burton <paulburton@kernel.org>, Tony Luck <tony.luck@intel.com>, Richard Henderson <rth@twiddle.net>, Nick Hu <nickhu@andestech.com>, Paul Walmsley <paul.walmsley@sifive.com>
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+In-Reply-To: <ef61bbc6-76d6-531d-2156-b57efc070da4@arm.com>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+To: Kevin Brodsky <kevin.brodsky@arm.com>
+Cc: linux-arch@vger.kernel.org, Richard Earnshaw <Richard.Earnshaw@arm.com>, Branislav Rankov <Branislav.Rankov@arm.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Andrey Konovalov <andreyknvl@google.com>, linux-mm@kvack.org, Marc Zyngier <maz@kernel.org>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Will Deacon <will@kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>
 List-Id: linux-arch.vger.kernel.org
 
-On 12/16/19 9:00 PM, Peter Zijlstra wrote:
-> On Mon, Dec 16, 2019 at 04:14:19PM +0100, Peter Zijlstra wrote:
->> On Mon, Dec 16, 2019 at 03:50:41PM +0100, Peter Zijlstra wrote:
->>> On Mon, Dec 16, 2019 at 07:24:24PM +0530, Aneesh Kumar K.V wrote:
->>>
->>>> So __p*_free_tlb() routines on ppc64 just mark that we need a page walk
->>>> cache flush and the actual flush in done in tlb_flush_mmu.
->>>
->>> Not quite, your __p*_free_tlb() goes to pgtable_free_tlb() which call
->>> tlb_remove_table().
->>>
->>>> As per
->>>>
->>>> d86564a2f085b79ec046a5cba90188e61235280 (mm/tlb, x86/mm: Support
->>>> invalidating TLB caches for RCU_TABLE_FREE ) that is not sufficient?
->>>
->>> 96bc9567cbe1 ("asm-generic/tlb, arch: Invert CONFIG_HAVE_RCU_TABLE_INVALIDATE")
->>>
->>> And no. Since you have TABLE_NO_INVALIDATE set, tlb_remove_table() will
->>> not TLBI when it fails to allocate a batch page, which is an error for
->>> PPC-Radix.
->>>
->>> There is also no TLBI when the batch page is full and the RCU callback
->>> happens, which is also a bug on PPC-Radix.
->>
->> It seems to me you need something like this here patch, all you need to
->> add is a suitable definition of tlb_needs_table_invalidate() for Power.
-> 
-> I'm thinking this:
-> 
-> #define tlb_needs_table_invalidate()	radix_enabled()
-> 
-> should work for you. When you have Radix you need that TLBI, if you have
-> Hash you don't.
-> 
+On Mon, Dec 16, 2019 at 6:20 AM Kevin Brodsky <kevin.brodsky@arm.com> wrote:
+>
+> +Branislav, Peter
+>
+> In this patch, the default exclusion mask remains 0 (i.e. all tags can be generated).
+> After some more discussions, Branislav and I think that it would be better to start
+> with the reverse, i.e. all tags but 0 excluded (mask = 0xfe or 0xff).
+>
+> This should simplify the MTE setup in the early C runtime quite a bit. Indeed, if all
+> tags can be generated, doing any heap or stack tagging before the
+> PR_SET_TAGGED_ADDR_CTRL prctl() is issued can cause problems, notably because tagged
+> addresses could end up being passed to syscalls. Conversely, if IRG and ADDG never
+> set the top byte by default, then tagging operations should be no-ops until the
+> prctl() is issued. This would be particularly useful given that it may not be
+> straightforward for the C runtime to issue the prctl() before doing anything else.
+>
+> Additionally, since the default tag checking mode is PR_MTE_TCF_NONE, it would make
+> perfect sense not to generate tags by default.
+>
+> Any thoughts?
 
-yes. I was doing something similar with #ifdef around 
-tlb_table_invalidate(). I will take your approach rather than an arch 
-override of tlb_table_invalidate()
+This would indeed allow the early C runtime startup code to pass
+tagged addresses to syscalls, but I don't think it would entirely free
+the code from the burden of worrying about stack tagging. Either way,
+any stack frames that are active at the point when the prctl() is
+issued would need to be compiled without stack tagging, because
+otherwise those stack frames may use ADDG to rematerialize a stack
+object address, which may produce a different address post-prctl.
+Setting the exclude mask to 0xffff would at least make it more likely
+for this problem to be detected, though.
 
--aneesh
+If we change the default in this way, maybe it would be worth
+considering flipping the meaning of the tag mask and have it be a mask
+of tags to allow. That would be consistent with the existing behaviour
+where userspace sets bits in tagged_addr_ctrl in order to enable
+tagging features.
+
+Peter
+
+>
+> Thanks,
+> Kevin
+>
+> On 11/12/2019 18:40, Catalin Marinas wrote:
+> > The IRG, ADDG and SUBG instructions insert a random tag in the resulting
+> > address. Certain tags can be excluded via the GCR_EL1.Exclude bitmap
+> > when, for example, the user wants a certain colour for freed buffers.
+> > Since the GCR_EL1 register is not accessible at EL0, extend the
+> > prctl(PR_SET_TAGGED_ADDR_CTRL) interface to include a 16-bit field in
+> > the first argument for controlling the excluded tags. This setting is
+> > pre-thread.
+> >
+> > Signed-off-by: Catalin Marinas <catalin.marinas@arm.com>
+> > ---
+> >   arch/arm64/include/asm/processor.h |  1 +
+> >   arch/arm64/include/asm/sysreg.h    |  7 +++++++
+> >   arch/arm64/kernel/process.c        | 27 +++++++++++++++++++++++----
+> >   include/uapi/linux/prctl.h         |  3 +++
+> >   4 files changed, 34 insertions(+), 4 deletions(-)
+> >
+> > diff --git a/arch/arm64/include/asm/processor.h b/arch/arm64/include/asm/processor.h
+> > index 91aa270afc7d..5b6988035334 100644
+> > --- a/arch/arm64/include/asm/processor.h
+> > +++ b/arch/arm64/include/asm/processor.h
+> > @@ -150,6 +150,7 @@ struct thread_struct {
+> >   #endif
+> >   #ifdef CONFIG_ARM64_MTE
+> >       u64                     sctlr_tcf0;
+> > +     u64                     gcr_excl;
+> >   #endif
+> >   };
+> >
+> > diff --git a/arch/arm64/include/asm/sysreg.h b/arch/arm64/include/asm/sysreg.h
+> > index 9e5753272f4b..b6bb6d31f1cd 100644
+> > --- a/arch/arm64/include/asm/sysreg.h
+> > +++ b/arch/arm64/include/asm/sysreg.h
+> > @@ -901,6 +901,13 @@
+> >               write_sysreg(__scs_new, sysreg);                        \
+> >   } while (0)
+> >
+> > +#define sysreg_clear_set_s(sysreg, clear, set) do {                  \
+> > +     u64 __scs_val = read_sysreg_s(sysreg);                          \
+> > +     u64 __scs_new = (__scs_val & ~(u64)(clear)) | (set);            \
+> > +     if (__scs_new != __scs_val)                                     \
+> > +             write_sysreg_s(__scs_new, sysreg);                      \
+> > +} while (0)
+> > +
+> >   #endif
+> >
+> >   #endif      /* __ASM_SYSREG_H */
+> > diff --git a/arch/arm64/kernel/process.c b/arch/arm64/kernel/process.c
+> > index 47ce98f47253..5ec6889795fc 100644
+> > --- a/arch/arm64/kernel/process.c
+> > +++ b/arch/arm64/kernel/process.c
+> > @@ -502,6 +502,15 @@ static void update_sctlr_el1_tcf0(u64 tcf0)
+> >       sysreg_clear_set(sctlr_el1, SCTLR_EL1_TCF0_MASK, tcf0);
+> >   }
+> >
+> > +static void update_gcr_el1_excl(u64 excl)
+> > +{
+> > +     /*
+> > +      * No need for ISB since this only affects EL0 currently, implicit
+> > +      * with ERET.
+> > +      */
+> > +     sysreg_clear_set_s(SYS_GCR_EL1, SYS_GCR_EL1_EXCL_MASK, excl);
+> > +}
+> > +
+> >   /* Handle MTE thread switch */
+> >   static void mte_thread_switch(struct task_struct *next)
+> >   {
+> > @@ -511,6 +520,7 @@ static void mte_thread_switch(struct task_struct *next)
+> >       /* avoid expensive SCTLR_EL1 accesses if no change */
+> >       if (current->thread.sctlr_tcf0 != next->thread.sctlr_tcf0)
+> >               update_sctlr_el1_tcf0(next->thread.sctlr_tcf0);
+> > +     update_gcr_el1_excl(next->thread.gcr_excl);
+> >   }
+> >   #else
+> >   static void mte_thread_switch(struct task_struct *next)
+> > @@ -641,22 +651,31 @@ static long set_mte_ctrl(unsigned long arg)
+> >       update_sctlr_el1_tcf0(tcf0);
+> >       preempt_enable();
+> >
+> > +     current->thread.gcr_excl = (arg & PR_MTE_EXCL_MASK) >> PR_MTE_EXCL_SHIFT;
+> > +     update_gcr_el1_excl(current->thread.gcr_excl);
+> > +
+> >       return 0;
+> >   }
+> >
+> >   static long get_mte_ctrl(void)
+> >   {
+> > +     unsigned long ret;
+> > +
+> >       if (!system_supports_mte())
+> >               return 0;
+> >
+> > +     ret = current->thread.gcr_excl << PR_MTE_EXCL_SHIFT;
+> > +
+> >       switch (current->thread.sctlr_tcf0) {
+> >       case SCTLR_EL1_TCF0_SYNC:
+> > -             return PR_MTE_TCF_SYNC;
+> > +             ret |= PR_MTE_TCF_SYNC;
+> > +             break;
+> >       case SCTLR_EL1_TCF0_ASYNC:
+> > -             return PR_MTE_TCF_ASYNC;
+> > +             ret |= PR_MTE_TCF_ASYNC;
+> > +             break;
+> >       }
+> >
+> > -     return 0;
+> > +     return ret;
+> >   }
+> >   #else
+> >   static long set_mte_ctrl(unsigned long arg)
+> > @@ -684,7 +703,7 @@ long set_tagged_addr_ctrl(unsigned long arg)
+> >               return -EINVAL;
+> >
+> >       if (system_supports_mte())
+> > -             valid_mask |= PR_MTE_TCF_MASK;
+> > +             valid_mask |= PR_MTE_TCF_MASK | PR_MTE_EXCL_MASK;
+> >
+> >       if (arg & ~valid_mask)
+> >               return -EINVAL;
+> > diff --git a/include/uapi/linux/prctl.h b/include/uapi/linux/prctl.h
+> > index 5e9323e66a38..749de5ab4f9f 100644
+> > --- a/include/uapi/linux/prctl.h
+> > +++ b/include/uapi/linux/prctl.h
+> > @@ -239,5 +239,8 @@ struct prctl_mm_map {
+> >   # define PR_MTE_TCF_SYNC            (1UL << PR_MTE_TCF_SHIFT)
+> >   # define PR_MTE_TCF_ASYNC           (2UL << PR_MTE_TCF_SHIFT)
+> >   # define PR_MTE_TCF_MASK            (3UL << PR_MTE_TCF_SHIFT)
+> > +/* MTE tag exclusion mask */
+> > +# define PR_MTE_EXCL_SHIFT           3
+> > +# define PR_MTE_EXCL_MASK            (0xffffUL << PR_MTE_EXCL_SHIFT)
+> >
+> >   #endif /* _LINUX_PRCTL_H */
+>
