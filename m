@@ -1,85 +1,93 @@
-From: Florian Weimer <fweimer@redhat.com>
-Subject: Re: [PATCH v18 11/13] open: introduce openat2(2) syscall
-Date: Mon, 16 Dec 2019 20:20:17 +0100
-Message-ID: <20191216192158.B9F19832924A@oldenburg2.str.redhat.com>
-References: <20191206141338.23338-1-cyphar@cyphar.com>
-	<20191206141338.23338-12-cyphar@cyphar.com>
+From: Brendan Higgins <brendanhiggins@google.com>
+Subject: [RFC v1 0/6] kunit: create a centralized executor to dispatch all
+ KUnit tests
+Date: Mon, 16 Dec 2019 14:05:49 -0800
+Message-ID: <20191216220555.245089-1-brendanhiggins@google.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf8
-Content-Transfer-Encoding: quoted-printable
-Return-path: <libc-alpha-return-108113-glibc-alpha=m.gmane.org@sourceware.org>
-List-Unsubscribe: <mailto:libc-alpha-unsubscribe-glibc-alpha=m.gmane.org@sourceware.org>
-List-Subscribe: <mailto:libc-alpha-subscribe@sourceware.org>
-List-Archive: <http://sourceware.org/ml/libc-alpha/>
-List-Post: <mailto:libc-alpha@sourceware.org>
-List-Help: <mailto:libc-alpha-help@sourceware.org>, <http://sourceware.org/ml/#faqs>
-Sender: libc-alpha-owner@sourceware.org
-In-Reply-To: <20191206141338.23338-12-cyphar@cyphar.com> (Aleksa Sarai's
-	message of "Sat, 7 Dec 2019 01:13:36 +1100")
-To: Aleksa Sarai <cyphar@cyphar.com>
-Cc: Al Viro <viro@zeniv.linux.org.uk>, Jeff Layton <jlayton@kernel.org>, "J. Bruce Fields" <bfields@fieldses.org>, Arnd Bergmann <arnd@arndb.de>, David Howells <dhowells@redhat.com>, Shuah Khan <shuah@kernel.org>, Shuah Khan <skhan@linuxfoundation.org>, Ingo Molnar <mingo@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Alexei Starovoitov <ast@kernel.org>, Daniel Borkmann <daniel@iogearbox.net>, Martin KaFai Lau <kafai@fb.com>, Song Liu <songliubraving@fb.com>, Yonghong Song <yhs@fb.com>, Andrii Nakryiko <andriin@fb.com>, Jonathan Corbet <corbet@lwn.net>, linux-ia64@vger.kernel.org, linux-doc@vger.kernel.org, Alexander Shishkin <alexander.shishkin@linux.intel.com>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, linux-kernel@vger.kernel.org, linux-kselftest@vger.kernel.org, sparclinux@vger.kernel.org, linux-api@vger.kernel.org, Jiri Olsa <jolsa@redhat.com>lin
+Content-Type: text/plain; charset="UTF-8"
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: jdike@addtoit.com, richard@nod.at, anton.ivanov@cambridgegreys.com, arnd@arndb.de, keescook@chromium.org, skhan@linuxfoundation.org, alan.maguire@oracle.com, yzaikin@google.com, davidgow@google.com, akpm@linux-foundation.org, rppt@linux.ibm.com
+Cc: gregkh@linuxfoundation.org, sboyd@kernel.org, logang@deltatee.com, mcgrof@kernel.org, knut.omang@oracle.com, linux-um@lists.infradead.org, linux-arch@vger.kernel.org, linux-kselftest@vger.kernel.org, kunit-dev@googlegroups.com, linux-kernel@vger.kernel.org, Brendan Higgins <brendanhiggins@google.com>
 List-Id: linux-arch.vger.kernel.org
 
-* Aleksa Sarai:
+## TL;DR
 
-> diff --git a/include/uapi/linux/fcntl.h b/include/uapi/linux/fcntl.h
-> index 1d338357df8a..58c3a0e543c6 100644
-> --- a/include/uapi/linux/fcntl.h
-> +++ b/include/uapi/linux/fcntl.h
-> @@ -93,5 +93,40 @@
-> =20
->  #define AT_RECURSIVE		0x8000	/* Apply to the entire subtree */
-> =20
-> +/*
-> + * Arguments for how openat2(2) should open the target path. If @resol=
-ve is
-> + * zero, then openat2(2) operates very similarly to openat(2).
-> + *
-> + * However, unlike openat(2), unknown bits in @flags result in -EINVAL=
- rather
-> + * than being silently ignored. @mode must be zero unless one of {O_CR=
-EAT,
-> + * O_TMPFILE} are set.
-> + *
-> + * @flags: O_* flags.
-> + * @mode: O_CREAT/O_TMPFILE file mode.
-> + * @resolve: RESOLVE_* flags.
-> + */
-> +struct open_how {
-> +	__aligned_u64 flags;
-> +	__u16 mode;
-> +	__u16 __padding[3]; /* must be zeroed */
-> +	__aligned_u64 resolve;
-> +};
-> +
-> +#define OPEN_HOW_SIZE_VER0	24 /* sizeof first published struct */
-> +#define OPEN_HOW_SIZE_LATEST	OPEN_HOW_SIZE_VER0
-> +
-> +/* how->resolve flags for openat2(2). */
-> +#define RESOLVE_NO_XDEV		0x01 /* Block mount-point crossings
-> +					(includes bind-mounts). */
-> +#define RESOLVE_NO_MAGICLINKS	0x02 /* Block traversal through procfs-s=
-tyle
-> +					"magic-links". */
-> +#define RESOLVE_NO_SYMLINKS	0x04 /* Block traversal through all symlin=
-ks
-> +					(implies OEXT_NO_MAGICLINKS) */
-> +#define RESOLVE_BENEATH		0x08 /* Block "lexical" trickery like
-> +					"..", symlinks, and absolute
-> +					paths which escape the dirfd. */
-> +#define RESOLVE_IN_ROOT		0x10 /* Make all jumps to "/" and ".."
-> +					be scoped inside the dirfd
-> +					(similar to chroot(2)). */
-> =20
->  #endif /* _UAPI_LINUX_FCNTL_H */
+This patchset adds a centralized executor to dispatch tests rather than
+relying on late_initcall to schedule each test suite separately along
+with a couple of new features that depend on it.
 
-Would it be possible to move these to a new UAPI header?
+## What am I trying to do?
 
-In glibc, we currently do not #include <linux/fcntl.h>.  We need some of
-the AT_* constants in POSIX mode, and the header is not necessarily
-namespace-clean.  If there was a separate header for openat2 support, we
-could use that easily, and we would only have to maintain the baseline
-definitions (which never change).
+Conceptually, I am trying to provide a mechanism by which test suites
+can be grouped together so that they can be reasoned about collectively.
+The last two patches in this series add features which depend on this:
 
-Thanks,
-Florian
+RFC 5/6 Prints out a test plan right before KUnit tests are run[1]; this
+        is valuable because it makes it possible for a test harness to
+        detect whether the number of tests run matches the number of
+        tests expected to be run, ensuring that no tests silently
+        failed.
+
+RFC 6/6 Add a new kernel command-line option which allows the user to
+        specify that the kernel poweroff, halt, or reboot after
+        completing all KUnit tests; this is very handy for running KUnit
+        tests on UML or a VM so that the UML/VM process exits cleanly
+        immediately after running all tests without needing a special
+        initramfs.
+
+In addition, by dispatching tests from a single location, we can
+guarantee that all KUnit tests run after late_init is complete, which
+was a concern during the initial KUnit patchset review (this has not
+been a problem in practice, but resolving with certainty is nevertheless
+desirable).
+
+Other use cases for this exist, but the above features should provide an
+idea of the value that this could provide.
+
+## What work remains to be done?
+
+These patches were based on patches in our non-upstream branch[2], so we
+have a pretty good idea that they are useable as presented;
+nevertheless, some of the changes done in this patchset could
+*definitely* use some review by subsystem experts (linker scripts, init,
+etc), and will likely change a lot after getting feedback.
+
+The biggest thing that I know will require additional attention is
+integrating this patchset with the KUnit module support patchset[3]. I
+have not even attempted to build these patches on top of the module
+support patches as I would like to get people's initial thoughts first
+(especially Alan's :-) ). I think that making these patches work with
+module support should be fairly straight forward, nevertheless.
+
+Brendan Higgins (5):
+  vmlinux.lds.h: add linker section for KUnit test suites
+  arch: um: add linker section for KUnit test suites
+  kunit: test: create a single centralized executor for all tests
+  init: main: add KUnit to kernel init
+  kunit: test: add test plan to KUnit TAP format
+
+David Gow (1):
+  kunit: Add 'kunit_shutdown' option
+
+ arch/um/include/asm/common.lds.S              |  4 +
+ include/asm-generic/vmlinux.lds.h             |  8 ++
+ include/kunit/test.h                          | 16 ++--
+ init/main.c                                   |  4 +
+ lib/kunit/Makefile                            |  3 +-
+ lib/kunit/executor.c                          | 74 ++++++++++++++++++
+ lib/kunit/test.c                              | 11 ---
+ tools/testing/kunit/kunit_kernel.py           |  2 +-
+ tools/testing/kunit/kunit_parser.py           | 76 +++++++++++++++----
+ .../test_is_test_passed-all_passed.log        |  1 +
+ .../test_data/test_is_test_passed-crash.log   |  1 +
+ .../test_data/test_is_test_passed-failure.log |  1 +
+ 12 files changed, 170 insertions(+), 31 deletions(-)
+ create mode 100644 lib/kunit/executor.c
+
+[1]: https://github.com/isaacs/testanything.github.io/blob/tap14/tap-version-14-specification.md#the-plan
+[2]: https://kunit-review.googlesource.com/c/linux/+/1037
+[3]: https://patchwork.kernel.org/project/linux-kselftest/list/?series=211727
+
+-- 
+2.24.1.735.g03f4e72817-goog
