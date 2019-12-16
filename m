@@ -1,100 +1,48 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-yb1-f201.google.com ([209.85.219.201]:53256 "EHLO
-        mail-yb1-f201.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726275AbfLPWGv (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 16 Dec 2019 17:06:51 -0500
-Received: by mail-yb1-f201.google.com with SMTP id g12so7625855ybc.20
-        for <linux-arch@vger.kernel.org>; Mon, 16 Dec 2019 14:06:50 -0800 (PST)
-Date: Mon, 16 Dec 2019 14:05:49 -0800
-Message-ID: <20191216220555.245089-1-brendanhiggins@google.com>
+Received: from mail-pf1-f201.google.com ([209.85.210.201]:41700 "EHLO
+        mail-pf1-f201.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727647AbfLPWGz (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 16 Dec 2019 17:06:55 -0500
+Received: by mail-pf1-f201.google.com with SMTP id x6so2975742pfx.8
+        for <linux-arch@vger.kernel.org>; Mon, 16 Dec 2019 14:06:55 -0800 (PST)
+Date: Mon, 16 Dec 2019 14:05:51 -0800
+In-Reply-To: <20191216220555.245089-1-brendanhiggins@google.com>
+Message-ID: <20191216220555.245089-3-brendanhiggins@google.com>
 Mime-Version: 1.0
-Subject: [RFC v1 0/6] kunit: create a centralized executor to dispatch all
- KUnit tests
+References: <20191216220555.245089-1-brendanhiggins@google.com>
+Subject: [RFC v1 2/6] arch: um: add linker section for KUnit test suites
 From: Brendan Higgins <brendanhiggins@google.com>
 Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: jdike@addtoit.com, richard@nod.at, anton.ivanov@cambridgegreys.com, arnd@arndb.de, keescook@chromium.org, skhan@linuxfoundation.org, alan.maguire@oracle.com, yzaikin@google.com, davidgow@google.com, akpm@linux-foundation.org, rppt@linux.ibm.com
 Cc: gregkh@linuxfoundation.org, sboyd@kernel.org, logang@deltatee.com, mcgrof@kernel.org, knut.omang@oracle.com, linux-um@lists.infradead.org, linux-arch@vger.kernel.org, linux-kselftest@vger.kernel.org, kunit-dev@googlegroups.com, linux-kernel@vger.kernel.org, Brendan Higgins <brendanhiggins@google.com>
-Message-ID: <20191216220549.2OUGTD9f6GgLhzqL9nYGdepa6MZc2OTF96dVjUG0fQ0@z>
+Message-ID: <20191216220551.Zm6ghlvg3wR0Iit7jz84foUMGC08nTJPqd7hczhJdDw@z>
 
-## TL;DR
+Add a linker section to UML where KUnit can put references to its test
+suites. This patch is an early step in transitioning to dispatching all
+KUnit tests from a centralized executor rather than having each as its
+own separate late_initcall.
 
-This patchset adds a centralized executor to dispatch tests rather than
-relying on late_initcall to schedule each test suite separately along
-with a couple of new features that depend on it.
+Signed-off-by: Brendan Higgins <brendanhiggins@google.com>
+---
+ arch/um/include/asm/common.lds.S | 4 ++++
+ 1 file changed, 4 insertions(+)
 
-## What am I trying to do?
-
-Conceptually, I am trying to provide a mechanism by which test suites
-can be grouped together so that they can be reasoned about collectively.
-The last two patches in this series add features which depend on this:
-
-RFC 5/6 Prints out a test plan right before KUnit tests are run[1]; this
-        is valuable because it makes it possible for a test harness to
-        detect whether the number of tests run matches the number of
-        tests expected to be run, ensuring that no tests silently
-        failed.
-
-RFC 6/6 Add a new kernel command-line option which allows the user to
-        specify that the kernel poweroff, halt, or reboot after
-        completing all KUnit tests; this is very handy for running KUnit
-        tests on UML or a VM so that the UML/VM process exits cleanly
-        immediately after running all tests without needing a special
-        initramfs.
-
-In addition, by dispatching tests from a single location, we can
-guarantee that all KUnit tests run after late_init is complete, which
-was a concern during the initial KUnit patchset review (this has not
-been a problem in practice, but resolving with certainty is nevertheless
-desirable).
-
-Other use cases for this exist, but the above features should provide an
-idea of the value that this could provide.
-
-## What work remains to be done?
-
-These patches were based on patches in our non-upstream branch[2], so we
-have a pretty good idea that they are useable as presented;
-nevertheless, some of the changes done in this patchset could
-*definitely* use some review by subsystem experts (linker scripts, init,
-etc), and will likely change a lot after getting feedback.
-
-The biggest thing that I know will require additional attention is
-integrating this patchset with the KUnit module support patchset[3]. I
-have not even attempted to build these patches on top of the module
-support patches as I would like to get people's initial thoughts first
-(especially Alan's :-) ). I think that making these patches work with
-module support should be fairly straight forward, nevertheless.
-
-Brendan Higgins (5):
-  vmlinux.lds.h: add linker section for KUnit test suites
-  arch: um: add linker section for KUnit test suites
-  kunit: test: create a single centralized executor for all tests
-  init: main: add KUnit to kernel init
-  kunit: test: add test plan to KUnit TAP format
-
-David Gow (1):
-  kunit: Add 'kunit_shutdown' option
-
- arch/um/include/asm/common.lds.S              |  4 +
- include/asm-generic/vmlinux.lds.h             |  8 ++
- include/kunit/test.h                          | 16 ++--
- init/main.c                                   |  4 +
- lib/kunit/Makefile                            |  3 +-
- lib/kunit/executor.c                          | 74 ++++++++++++++++++
- lib/kunit/test.c                              | 11 ---
- tools/testing/kunit/kunit_kernel.py           |  2 +-
- tools/testing/kunit/kunit_parser.py           | 76 +++++++++++++++----
- .../test_is_test_passed-all_passed.log        |  1 +
- .../test_data/test_is_test_passed-crash.log   |  1 +
- .../test_data/test_is_test_passed-failure.log |  1 +
- 12 files changed, 170 insertions(+), 31 deletions(-)
- create mode 100644 lib/kunit/executor.c
-
-[1]: https://github.com/isaacs/testanything.github.io/blob/tap14/tap-version-14-specification.md#the-plan
-[2]: https://kunit-review.googlesource.com/c/linux/+/1037
-[3]: https://patchwork.kernel.org/project/linux-kselftest/list/?series=211727
-
+diff --git a/arch/um/include/asm/common.lds.S b/arch/um/include/asm/common.lds.S
+index 7145ce6999822..eab9ceb450efd 100644
+--- a/arch/um/include/asm/common.lds.S
++++ b/arch/um/include/asm/common.lds.S
+@@ -52,6 +52,10 @@
+ 	CON_INITCALL
+   }
+ 
++  .kunit_test_suites : {
++	KUNIT_TEST_SUITES
++  }
++
+   .exitcall : {
+ 	__exitcall_begin = .;
+ 	*(.exitcall.exit)
 -- 
 2.24.1.735.g03f4e72817-goog
