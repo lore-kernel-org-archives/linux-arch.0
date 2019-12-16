@@ -1,77 +1,54 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:54186 "EHLO
- mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
- with ESMTP id S1727579AbfLPNzN (ORCPT <rfc822;linux-arch@vger.kernel.org>);
- Mon, 16 Dec 2019 08:55:13 -0500
+Received: from merlin.infradead.org ([205.233.59.134]:39466 "EHLO
+ merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+ id S1727512AbfLPMjD (ORCPT <rfc822;linux-arch@vger.kernel.org>); Mon, 16 Dec
+ 2019 07:39:03 -0500
+Date: Mon, 16 Dec 2019 13:37:52 +0100
+From: Peter Zijlstra <peterz@infradead.org>
 Subject: Re: [PATCH 05/17] asm-generic/tlb: Rename
  HAVE_RCU_TABLE_NO_INVALIDATE
-From: "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>
+Message-ID: <20191216123752.GM2844@hirez.programming.kicks-ass.net>
 References: <20191211120713.360281197@infradead.org>
  <20191211122955.940455408@infradead.org> <87woawzc1t.fsf@linux.ibm.com>
- <20191216123752.GM2844@hirez.programming.kicks-ass.net>
- <d52ea890-c2ea-88f3-9d62-b86e60ee77ae@linux.ibm.com>
- <20191216132004.GO2844@hirez.programming.kicks-ass.net>
- <a9ae27c8-aa84-cda3-355c-7abb3b450d38@linux.ibm.com>
-Message-ID: <33ed03aa-a34c-3a81-0f83-20c3e8d4eff7@linux.ibm.com>
-Date: Mon, 16 Dec 2019 19:24:24 +0530
 MIME-Version: 1.0
-In-Reply-To: <a9ae27c8-aa84-cda3-355c-7abb3b450d38@linux.ibm.com>
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Language: en-US
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <87woawzc1t.fsf@linux.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>, Michael Ellerman <mpe@ellerman.id.au>
+To: "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>
 Cc: Will Deacon <will@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Nick Piggin <npiggin@gmail.com>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, "David S. Miller" <davem@davemloft.net>, Helge Deller <deller@gmx.de>, Geert Uytterhoeven <geert@linux-m68k.org>, Paul Burton <paulburton@kernel.org>, Tony Luck <tony.luck@intel.com>, Richard Henderson <rth@twiddle.net>, Nick Hu <nickhu@andestech.com>, Paul Walmsley <paul.walmsley@sifive.com>
-Message-ID: <20191216135424.dF2ER6IgDeEV4WqIEv4y_0Kv-dIKSOad1ngaQY5yK_U@z>
+Message-ID: <20191216123752.3gyFzDlKdTDBt44eLSlEf9SNUqvOOcol3-tIzTVDjDM@z>
 
-On 12/16/19 7:10 PM, Aneesh Kumar K.V wrote:
-> On 12/16/19 6:50 PM, Peter Zijlstra wrote:
->> On Mon, Dec 16, 2019 at 06:43:53PM +0530, Aneesh Kumar K.V wrote:
->>> On 12/16/19 6:07 PM, Peter Zijlstra wrote:
->>
->>>> I'm confused, are you saing you're happy to have PowerPC eat the extra
->>>> TLB invalidates? I thought you cared about PPC performance :-)
->>>>
->>>>
->>>
->>> Instead can we do
->>>
->>> static inline void tlb_table_invalidate(struct mmu_gather *tlb)
->>> {
->>> #ifndef CONFIG_MMU_GATHER_RCU_TABLE_FREE
->>>      * Invalidate page-table caches used by hardware walkers. Then we 
->>> still
->>>      * need to RCU-sched wait while freeing the pages because software
->>>      * walkers can still be in-flight.
->>>      */
->>>     tlb_flush_mmu_tlbonly(tlb);
->>> #endif
->>> }
->>
->> How does that not break ARM/ARM64/s390 and x86 ?
->>
+On Mon, Dec 16, 2019 at 06:01:58PM +0530, Aneesh Kumar K.V wrote:
+> Peter Zijlstra <peterz@infradead.org> writes:
 > 
-> Hmm I missed that usage of RCU_TABLE_NO_INVALIDATE.
-> 
-> Ok I guess we need to revert this change that went upstream this merge 
-> window then
-> 
-> commit 52162ec784fa05f3a4b1d8e84421279998be3773
-> Author: Aneesh Kumar K.V <aneesh.kumar@linux.ibm.com>
-> Date:   Thu Oct 24 13:28:00 2019 +0530
-> 
->      powerpc/mm/book3s64/radix: Use freed_tables instead of need_flush_all
+> > Towards a more consistent naming scheme.
+> >
+> > Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+> > ---
+> >  arch/Kconfig              |    3 ++-
+> >  arch/powerpc/Kconfig      |    2 +-
+> >  arch/sparc/Kconfig        |    2 +-
+> >  include/asm-generic/tlb.h |    2 +-
+> >  mm/mmu_gather.c           |    2 +-
+> >  5 files changed, 6 insertions(+), 5 deletions(-)
+> >
+> > --- a/arch/Kconfig
+> > +++ b/arch/Kconfig
+> > @@ -396,8 +396,9 @@ config HAVE_ARCH_JUMP_LABEL_RELATIVE
+> >  config MMU_GATHER_RCU_TABLE_FREE
+> >  	bool
+> >  
+> > -config HAVE_RCU_TABLE_NO_INVALIDATE
+> > +config MMU_GATHER_NO_TABLE_INVALIDATE
+> >  	bool
+> > +	depends on MMU_GATHER_RCU_TABLE_FREE
 > 
 > 
-> 
-> I will review the change closely.
+> Can we drop this Kernel config option instead use
+> MMU_GATHER_RCU_TABLE_FREE? IMHO reducing the kernel config related to
+> mmu_gather can reduce the complexity. 
 
-
-So __p*_free_tlb() routines on ppc64 just mark that we need a page walk 
-cache flush and the actual flush in done in tlb_flush_mmu. As per
-
-d86564a2f085b79ec046a5cba90188e61235280 (mm/tlb, x86/mm: Support 
-invalidating TLB caches for RCU_TABLE_FREE ) that is not sufficient?
-
--aneesh
+I'm confused, are you saing you're happy to have PowerPC eat the extra
+TLB invalidates? I thought you cared about PPC performance :-)
