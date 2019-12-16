@@ -1,93 +1,116 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pg1-f202.google.com ([209.85.215.202]:52511 "EHLO
-        mail-pg1-f202.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727763AbfLPWHC (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 16 Dec 2019 17:07:02 -0500
-Received: by mail-pg1-f202.google.com with SMTP id p1so6006522pgg.19
-        for <linux-arch@vger.kernel.org>; Mon, 16 Dec 2019 14:07:00 -0800 (PST)
-Date: Mon, 16 Dec 2019 14:05:53 -0800
+Received: from mail-pf1-f202.google.com ([209.85.210.202]:48570 "EHLO
+        mail-pf1-f202.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727836AbfLPWHF (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 16 Dec 2019 17:07:05 -0500
+Received: by mail-pf1-f202.google.com with SMTP id u13so2421437pfl.15
+        for <linux-arch@vger.kernel.org>; Mon, 16 Dec 2019 14:07:05 -0800 (PST)
+Date: Mon, 16 Dec 2019 14:05:55 -0800
 In-Reply-To: <20191216220555.245089-1-brendanhiggins@google.com>
-Message-ID: <20191216220555.245089-5-brendanhiggins@google.com>
+Message-ID: <20191216220555.245089-7-brendanhiggins@google.com>
 Mime-Version: 1.0
 References: <20191216220555.245089-1-brendanhiggins@google.com>
-Subject: [RFC v1 4/6] init: main: add KUnit to kernel init
+Subject: [RFC v1 6/6] kunit: Add 'kunit_shutdown' option
 From: Brendan Higgins <brendanhiggins@google.com>
 Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: jdike@addtoit.com, richard@nod.at, anton.ivanov@cambridgegreys.com, arnd@arndb.de, keescook@chromium.org, skhan@linuxfoundation.org, alan.maguire@oracle.com, yzaikin@google.com, davidgow@google.com, akpm@linux-foundation.org, rppt@linux.ibm.com
 Cc: gregkh@linuxfoundation.org, sboyd@kernel.org, logang@deltatee.com, mcgrof@kernel.org, knut.omang@oracle.com, linux-um@lists.infradead.org, linux-arch@vger.kernel.org, linux-kselftest@vger.kernel.org, kunit-dev@googlegroups.com, linux-kernel@vger.kernel.org, Brendan Higgins <brendanhiggins@google.com>
-Message-ID: <20191216220553.I3XXwD6wlYXDOgNSMtkeaeqozXj2y9vKknuOHtblVLo@z>
+Message-ID: <20191216220555.doWAGShoS7u3CWAK81mNkumjLIaIuUVE3yLyeyhw1wc@z>
 
-Remove KUnit from init calls entirely, instead call directly from
-kernel_init().
+From: David Gow <davidgow@google.com>
 
+Add a new kernel command-line option, 'kunit_shutdown', which allows the
+user to specify that the kernel poweroff, halt, or reboot after
+completing all KUnit tests; this is very handy for running KUnit tests
+on UML or a VM so that the UML/VM process exits cleanly immediately
+after running all tests without needing a special initramfs.
+
+Signed-off-by: David Gow <davidgow@google.com>
 Signed-off-by: Brendan Higgins <brendanhiggins@google.com>
 ---
- include/kunit/test.h | 9 +++++++++
- init/main.c          | 4 ++++
- lib/kunit/executor.c | 4 +---
- 3 files changed, 14 insertions(+), 3 deletions(-)
+ lib/kunit/executor.c                | 18 ++++++++++++++++++
+ tools/testing/kunit/kunit_kernel.py |  2 +-
+ tools/testing/kunit/kunit_parser.py |  2 +-
+ 3 files changed, 20 insertions(+), 2 deletions(-)
 
-diff --git a/include/kunit/test.h b/include/kunit/test.h
-index c070798ebb765..9da4f2cc1a3fc 100644
---- a/include/kunit/test.h
-+++ b/include/kunit/test.h
-@@ -196,6 +196,15 @@ void kunit_init_test(struct kunit *test, const char *name);
- 
- int kunit_run_tests(struct kunit_suite *suite);
- 
-+#if IS_ENABLED(CONFIG_KUNIT)
-+int kunit_executor_init(void);
-+#else
-+static inline int kunit_executor_init(void)
-+{
-+	return 0;
-+}
-+#endif /* IS_ENABLED(CONFIG_KUNIT) */
-+
- /**
-  * kunit_test_suite() - used to register a &struct kunit_suite with KUnit.
-  *
-diff --git a/init/main.c b/init/main.c
-index 91f6ebb30ef04..b299396a5466b 100644
---- a/init/main.c
-+++ b/init/main.c
-@@ -103,6 +103,8 @@
- #define CREATE_TRACE_POINTS
- #include <trace/events/initcall.h>
- 
-+#include <kunit/test.h>
-+
- static int kernel_init(void *);
- 
- extern void init_IRQ(void);
-@@ -1190,6 +1192,8 @@ static noinline void __init kernel_init_freeable(void)
- 
- 	do_basic_setup();
- 
-+	kunit_executor_init();
-+
- 	/* Open the /dev/console on the rootfs, this should never fail */
- 	if (ksys_open((const char __user *) "/dev/console", O_RDWR, 0) < 0)
- 		pr_err("Warning: unable to open an initial console.\n");
 diff --git a/lib/kunit/executor.c b/lib/kunit/executor.c
-index 978086cfd257d..ca880224c0bab 100644
+index d5f1d07f2f817..32462ecb94eb6 100644
 --- a/lib/kunit/executor.c
 +++ b/lib/kunit/executor.c
-@@ -32,12 +32,10 @@ static bool kunit_run_all_tests(void)
+@@ -7,7 +7,9 @@
+  */
+ 
+ #include <linux/init.h>
++#include <linux/moduleparam.h>
+ #include <linux/printk.h>
++#include <linux/reboot.h>
+ #include <kunit/test.h>
+ 
+ /*
+@@ -17,6 +19,9 @@
+ extern struct kunit_suite *__kunit_suites_start[];
+ extern struct kunit_suite *__kunit_suites_end[];
+ 
++static char *kunit_shutdown;
++core_param(kunit_shutdown, kunit_shutdown, charp, 0644);
++
+ static void kunit_print_tap_header(void)
+ {
+ 	size_t num_of_suites;
+@@ -30,6 +35,17 @@ static void kunit_print_tap_header(void)
+ 	pr_info("1..%zd\n", num_of_suites);
+ }
+ 
++static void kunit_handle_shutdown(void)
++{
++	if (!strcmp(kunit_shutdown, "poweroff")) {
++		kernel_power_off();
++	} else if (!strcmp(kunit_shutdown, "halt")) {
++		kernel_halt();
++	} else if (!strcmp(kunit_shutdown, "reboot")) {
++		kernel_restart(NULL);
++	}
++}
++
+ static bool kunit_run_all_tests(void)
+ {
+ 	struct kunit_suite **suite;
+@@ -44,6 +60,8 @@ static bool kunit_run_all_tests(void)
+ 			has_test_failed = true;
+ 	}
+ 
++	kunit_handle_shutdown();
++
  	return !has_test_failed;
  }
  
--static int kunit_executor_init(void)
-+int kunit_executor_init(void)
- {
- 	if (kunit_run_all_tests())
- 		return 0;
- 	else
- 		return -EFAULT;
- }
--
--late_initcall(kunit_executor_init);
+diff --git a/tools/testing/kunit/kunit_kernel.py b/tools/testing/kunit/kunit_kernel.py
+index bf38768353313..0070c6b807d2a 100644
+--- a/tools/testing/kunit/kunit_kernel.py
++++ b/tools/testing/kunit/kunit_kernel.py
+@@ -141,7 +141,7 @@ class LinuxSourceTree(object):
+ 		return True
+ 
+ 	def run_kernel(self, args=[], timeout=None, build_dir=None):
+-		args.extend(['mem=256M'])
++		args.extend(['mem=256M', 'kunit_shutdown=halt'])
+ 		process = self._ops.linux_bin(args, timeout, build_dir)
+ 		with open('test.log', 'w') as f:
+ 			for line in process.stdout:
+diff --git a/tools/testing/kunit/kunit_parser.py b/tools/testing/kunit/kunit_parser.py
+index 78b3bdd03b1e4..633811dd9bce8 100644
+--- a/tools/testing/kunit/kunit_parser.py
++++ b/tools/testing/kunit/kunit_parser.py
+@@ -48,7 +48,7 @@ class TestStatus(Enum):
+ 	FAILURE_TO_PARSE_TESTS = auto()
+ 
+ kunit_start_re = re.compile(r'^TAP version [0-9]+$')
+-kunit_end_re = re.compile('List of all partitions:')
++kunit_end_re = re.compile(r'reboot: System halted')
+ 
+ def isolate_kunit_output(kernel_output):
+ 	started = False
 -- 
 2.24.1.735.g03f4e72817-goog
