@@ -1,7 +1,7 @@
 From: Brendan Higgins <brendanhiggins@google.com>
-Subject: [RFC v1 1/6] vmlinux.lds.h: add linker section for KUnit test suites
-Date: Mon, 16 Dec 2019 14:05:50 -0800
-Message-ID: <20191216220555.245089-2-brendanhiggins@google.com>
+Subject: [RFC v1 4/6] init: main: add KUnit to kernel init
+Date: Mon, 16 Dec 2019 14:05:53 -0800
+Message-ID: <20191216220555.245089-5-brendanhiggins@google.com>
 References: <20191216220555.245089-1-brendanhiggins@google.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
@@ -12,43 +12,75 @@ To: jdike@addtoit.com, richard@nod.at, anton.ivanov@cambridgegreys.com, arnd@arn
 Cc: gregkh@linuxfoundation.org, sboyd@kernel.org, logang@deltatee.com, mcgrof@kernel.org, knut.omang@oracle.com, linux-um@lists.infradead.org, linux-arch@vger.kernel.org, linux-kselftest@vger.kernel.org, kunit-dev@googlegroups.com, linux-kernel@vger.kernel.org, Brendan Higgins <brendanhiggins@google.com>
 List-Id: linux-arch.vger.kernel.org
 
-Add a linker section where KUnit can put references to its test suites.
-This patch is the first step in transitioning to dispatching all KUnit
-tests from a centralized executor rather than having each as its own
-separate late_initcall.
+Remove KUnit from init calls entirely, instead call directly from
+kernel_init().
 
 Signed-off-by: Brendan Higgins <brendanhiggins@google.com>
-Co-developed-by: Iurii Zaikin <yzaikin@google.com>
-Signed-off-by: Iurii Zaikin <yzaikin@google.com>
 ---
- include/asm-generic/vmlinux.lds.h | 8 ++++++++
- 1 file changed, 8 insertions(+)
+ include/kunit/test.h | 9 +++++++++
+ init/main.c          | 4 ++++
+ lib/kunit/executor.c | 4 +---
+ 3 files changed, 14 insertions(+), 3 deletions(-)
 
-diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
-index e00f41aa8ec4f..99a866f49cb3d 100644
---- a/include/asm-generic/vmlinux.lds.h
-+++ b/include/asm-generic/vmlinux.lds.h
-@@ -856,6 +856,13 @@
- 		KEEP(*(.con_initcall.init))				\
- 		__con_initcall_end = .;
+diff --git a/include/kunit/test.h b/include/kunit/test.h
+index c070798ebb765..9da4f2cc1a3fc 100644
+--- a/include/kunit/test.h
++++ b/include/kunit/test.h
+@@ -196,6 +196,15 @@ void kunit_init_test(struct kunit *test, const char *name);
  
-+/* Alignment must be consistent with (kunit_suite *) in include/kunit/test.h */
-+#define KUNIT_TEST_SUITES						\
-+		. = ALIGN(8);						\
-+		__kunit_suites_start = .;				\
-+		KEEP(*(.kunit_test_suites))				\
-+		__kunit_suites_end = .;
+ int kunit_run_tests(struct kunit_suite *suite);
+ 
++#if IS_ENABLED(CONFIG_KUNIT)
++int kunit_executor_init(void);
++#else
++static inline int kunit_executor_init(void)
++{
++	return 0;
++}
++#endif /* IS_ENABLED(CONFIG_KUNIT) */
 +
- #ifdef CONFIG_BLK_DEV_INITRD
- #define INIT_RAM_FS							\
- 	. = ALIGN(4);							\
-@@ -1024,6 +1031,7 @@
- 		INIT_CALLS						\
- 		CON_INITCALL						\
- 		INIT_RAM_FS						\
-+		KUNIT_TEST_SUITES					\
- 	}
+ /**
+  * kunit_test_suite() - used to register a &struct kunit_suite with KUnit.
+  *
+diff --git a/init/main.c b/init/main.c
+index 91f6ebb30ef04..b299396a5466b 100644
+--- a/init/main.c
++++ b/init/main.c
+@@ -103,6 +103,8 @@
+ #define CREATE_TRACE_POINTS
+ #include <trace/events/initcall.h>
  
- #define BSS_SECTION(sbss_align, bss_align, stop_align)			\
++#include <kunit/test.h>
++
+ static int kernel_init(void *);
+ 
+ extern void init_IRQ(void);
+@@ -1190,6 +1192,8 @@ static noinline void __init kernel_init_freeable(void)
+ 
+ 	do_basic_setup();
+ 
++	kunit_executor_init();
++
+ 	/* Open the /dev/console on the rootfs, this should never fail */
+ 	if (ksys_open((const char __user *) "/dev/console", O_RDWR, 0) < 0)
+ 		pr_err("Warning: unable to open an initial console.\n");
+diff --git a/lib/kunit/executor.c b/lib/kunit/executor.c
+index 978086cfd257d..ca880224c0bab 100644
+--- a/lib/kunit/executor.c
++++ b/lib/kunit/executor.c
+@@ -32,12 +32,10 @@ static bool kunit_run_all_tests(void)
+ 	return !has_test_failed;
+ }
+ 
+-static int kunit_executor_init(void)
++int kunit_executor_init(void)
+ {
+ 	if (kunit_run_all_tests())
+ 		return 0;
+ 	else
+ 		return -EFAULT;
+ }
+-
+-late_initcall(kunit_executor_init);
 -- 
 2.24.1.735.g03f4e72817-goog
