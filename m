@@ -1,71 +1,48 @@
-Return-Path: <mpe@ellerman.id.au>
-From: Michael Ellerman <mpe@ellerman.id.au>
-Subject: Re: [PATCH] powerpc: ensure that swiotlb buffer is allocated from low memory
-In-Reply-To: <20191204123524.22919-1-rppt@kernel.org>
-References: <20191204123524.22919-1-rppt@kernel.org>
-Date: Mon, 09 Dec 2019 16:43:17 +1100
-Message-ID: <87h82aqcju.fsf@mpe.ellerman.id.au>
+Return-Path: <linux-arch-owner@vger.kernel.org>
+Received: from bombadil.infradead.org ([198.137.202.133]:54558 "EHLO
+ bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with
+ ESMTP id S1728086AbfLPOu6 (ORCPT <rfc822;linux-arch@vger.kernel.org>); Mon,
+ 16 Dec 2019 09:50:58 -0500
+Date: Mon, 16 Dec 2019 15:50:41 +0100
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH 05/17] asm-generic/tlb: Rename
+ HAVE_RCU_TABLE_NO_INVALIDATE
+Message-ID: <20191216145041.GG2827@hirez.programming.kicks-ass.net>
+References: <20191211120713.360281197@infradead.org>
+ <20191211122955.940455408@infradead.org> <87woawzc1t.fsf@linux.ibm.com>
+ <20191216123752.GM2844@hirez.programming.kicks-ass.net>
+ <d52ea890-c2ea-88f3-9d62-b86e60ee77ae@linux.ibm.com>
+ <20191216132004.GO2844@hirez.programming.kicks-ass.net>
+ <a9ae27c8-aa84-cda3-355c-7abb3b450d38@linux.ibm.com>
+ <33ed03aa-a34c-3a81-0f83-20c3e8d4eff7@linux.ibm.com>
 MIME-Version: 1.0
-Content-Type: text/plain
-To: Mike Rapoport <rppt@kernel.org>, linux-kernel@vger.kernel.org
-Cc: linuxppc-dev@lists.ozlabs.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Mike Rapoport <rppt@linux.ibm.com>, Christian Zigotzky <chzigotzky@xenosoft.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Christoph Hellwig <hch@lst.de>, Darren Stevens <darren@stevens-zone.net>, mad skateman <madskateman@gmail.com>, Nicolas Saenz Julienne <nsaenzjulienne@suse.de>, Paul Mackerras <paulus@samba.org>, Robin Murphy <robin.murphy@arm.com>, Rob Herring <robh+dt@kernel.org>
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <33ed03aa-a34c-3a81-0f83-20c3e8d4eff7@linux.ibm.com>
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20191209054317.Er242Q_aR-leIIXO-za1PtstY3MblqPXs-xLbX6pZxA@z>
+To: "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>
+Cc: Michael Ellerman <mpe@ellerman.id.au>, Will Deacon <will@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Nick Piggin <npiggin@gmail.com>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, "David S. Miller" <davem@davemloft.net>, Helge Deller <deller@gmx.de>, Geert Uytterhoeven <geert@linux-m68k.org>, Paul Burton <paulburton@kernel.org>, Tony Luck <tony.luck@intel.com>, Richard Henderson <rth@twiddle.net>, Nick Hu <nickhu@andestech.com>, Paul Walmsley <paul.walmsley@sifive.com>
+Message-ID: <20191216145041.tqVENJA18cGRjeq4R8v6_gF6LLVtxTMtha8o98wXtOg@z>
 
-Mike Rapoport <rppt@kernel.org> writes:
-> From: Mike Rapoport <rppt@linux.ibm.com>
->
-> Some powerpc platforms (e.g. 85xx) limit DMA-able memory way below 4G. If a
-> system has more physical memory than this limit, the swiotlb buffer is not
-> addressable because it is allocated from memblock using top-down mode.
->
-> Force memblock to bottom-up mode before calling swiotlb_init() to ensure
-> that the swiotlb buffer is DMA-able.
->
-> Link: https://lkml.kernel.org/r/F1EBB706-73DF-430E-9020-C214EC8ED5DA@xenosoft.de
+On Mon, Dec 16, 2019 at 07:24:24PM +0530, Aneesh Kumar K.V wrote:
 
-This wasn't bisected, but I thought it was a regression. Do we know what
-commit caused it?
+> So __p*_free_tlb() routines on ppc64 just mark that we need a page walk
+> cache flush and the actual flush in done in tlb_flush_mmu.
 
-Was it 25078dc1f74b ("powerpc: use mm zones more sensibly") ?
+Not quite, your __p*_free_tlb() goes to pgtable_free_tlb() which call
+tlb_remove_table().
 
-Or was that a red herring?
+> As per
+> 
+> d86564a2f085b79ec046a5cba90188e61235280 (mm/tlb, x86/mm: Support
+> invalidating TLB caches for RCU_TABLE_FREE ) that is not sufficient?
 
-cheers
+96bc9567cbe1 ("asm-generic/tlb, arch: Invert CONFIG_HAVE_RCU_TABLE_INVALIDATE")
 
-> Reported-by: Christian Zigotzky <chzigotzky@xenosoft.de>
-> Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
-> Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-> Cc: Christoph Hellwig <hch@lst.de>
-> Cc: Darren Stevens <darren@stevens-zone.net>
-> Cc: mad skateman <madskateman@gmail.com>
-> Cc: Michael Ellerman <mpe@ellerman.id.au>
-> Cc: Nicolas Saenz Julienne <nsaenzjulienne@suse.de>
-> Cc: Paul Mackerras <paulus@samba.org>
-> Cc: Robin Murphy <robin.murphy@arm.com>
-> Cc: Rob Herring <robh+dt@kernel.org>
-> ---
->  arch/powerpc/mm/mem.c | 8 ++++++++
->  1 file changed, 8 insertions(+)
->
-> diff --git a/arch/powerpc/mm/mem.c b/arch/powerpc/mm/mem.c
-> index be941d382c8d..14c2c53e3f9e 100644
-> --- a/arch/powerpc/mm/mem.c
-> +++ b/arch/powerpc/mm/mem.c
-> @@ -260,6 +260,14 @@ void __init mem_init(void)
->  	BUILD_BUG_ON(MMU_PAGE_COUNT > 16);
->  
->  #ifdef CONFIG_SWIOTLB
-> +	/*
-> +	 * Some platforms (e.g. 85xx) limit DMA-able memory way below
-> +	 * 4G. We force memblock to bottom-up mode to ensure that the
-> +	 * memory allocated in swiotlb_init() is DMA-able.
-> +	 * As it's the last memblock allocation, no need to reset it
-> +	 * back to to-down.
-> +	 */
-> +	memblock_set_bottom_up(true);
->  	swiotlb_init(0);
->  #endif
->  
-> -- 
-> 2.24.0
+And no. Since you have TABLE_NO_INVALIDATE set, tlb_remove_table() will
+not TLBI when it fails to allocate a batch page, which is an error for
+PPC-Radix.
+
+There is also no TLBI when the batch page is full and the RCU callback
+happens, which is also a bug on PPC-Radix.
