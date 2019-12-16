@@ -1,48 +1,93 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pf1-f201.google.com ([209.85.210.201]:41700 "EHLO
-        mail-pf1-f201.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727647AbfLPWGz (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 16 Dec 2019 17:06:55 -0500
-Received: by mail-pf1-f201.google.com with SMTP id x6so2975742pfx.8
-        for <linux-arch@vger.kernel.org>; Mon, 16 Dec 2019 14:06:55 -0800 (PST)
-Date: Mon, 16 Dec 2019 14:05:51 -0800
+Received: from mail-pg1-f202.google.com ([209.85.215.202]:52511 "EHLO
+        mail-pg1-f202.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727763AbfLPWHC (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 16 Dec 2019 17:07:02 -0500
+Received: by mail-pg1-f202.google.com with SMTP id p1so6006522pgg.19
+        for <linux-arch@vger.kernel.org>; Mon, 16 Dec 2019 14:07:00 -0800 (PST)
+Date: Mon, 16 Dec 2019 14:05:53 -0800
 In-Reply-To: <20191216220555.245089-1-brendanhiggins@google.com>
-Message-ID: <20191216220555.245089-3-brendanhiggins@google.com>
+Message-ID: <20191216220555.245089-5-brendanhiggins@google.com>
 Mime-Version: 1.0
 References: <20191216220555.245089-1-brendanhiggins@google.com>
-Subject: [RFC v1 2/6] arch: um: add linker section for KUnit test suites
+Subject: [RFC v1 4/6] init: main: add KUnit to kernel init
 From: Brendan Higgins <brendanhiggins@google.com>
 Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: jdike@addtoit.com, richard@nod.at, anton.ivanov@cambridgegreys.com, arnd@arndb.de, keescook@chromium.org, skhan@linuxfoundation.org, alan.maguire@oracle.com, yzaikin@google.com, davidgow@google.com, akpm@linux-foundation.org, rppt@linux.ibm.com
 Cc: gregkh@linuxfoundation.org, sboyd@kernel.org, logang@deltatee.com, mcgrof@kernel.org, knut.omang@oracle.com, linux-um@lists.infradead.org, linux-arch@vger.kernel.org, linux-kselftest@vger.kernel.org, kunit-dev@googlegroups.com, linux-kernel@vger.kernel.org, Brendan Higgins <brendanhiggins@google.com>
-Message-ID: <20191216220551.Zm6ghlvg3wR0Iit7jz84foUMGC08nTJPqd7hczhJdDw@z>
+Message-ID: <20191216220553.I3XXwD6wlYXDOgNSMtkeaeqozXj2y9vKknuOHtblVLo@z>
 
-Add a linker section to UML where KUnit can put references to its test
-suites. This patch is an early step in transitioning to dispatching all
-KUnit tests from a centralized executor rather than having each as its
-own separate late_initcall.
+Remove KUnit from init calls entirely, instead call directly from
+kernel_init().
 
 Signed-off-by: Brendan Higgins <brendanhiggins@google.com>
 ---
- arch/um/include/asm/common.lds.S | 4 ++++
- 1 file changed, 4 insertions(+)
+ include/kunit/test.h | 9 +++++++++
+ init/main.c          | 4 ++++
+ lib/kunit/executor.c | 4 +---
+ 3 files changed, 14 insertions(+), 3 deletions(-)
 
-diff --git a/arch/um/include/asm/common.lds.S b/arch/um/include/asm/common.lds.S
-index 7145ce6999822..eab9ceb450efd 100644
---- a/arch/um/include/asm/common.lds.S
-+++ b/arch/um/include/asm/common.lds.S
-@@ -52,6 +52,10 @@
- 	CON_INITCALL
-   }
+diff --git a/include/kunit/test.h b/include/kunit/test.h
+index c070798ebb765..9da4f2cc1a3fc 100644
+--- a/include/kunit/test.h
++++ b/include/kunit/test.h
+@@ -196,6 +196,15 @@ void kunit_init_test(struct kunit *test, const char *name);
  
-+  .kunit_test_suites : {
-+	KUNIT_TEST_SUITES
-+  }
+ int kunit_run_tests(struct kunit_suite *suite);
+ 
++#if IS_ENABLED(CONFIG_KUNIT)
++int kunit_executor_init(void);
++#else
++static inline int kunit_executor_init(void)
++{
++	return 0;
++}
++#endif /* IS_ENABLED(CONFIG_KUNIT) */
 +
-   .exitcall : {
- 	__exitcall_begin = .;
- 	*(.exitcall.exit)
+ /**
+  * kunit_test_suite() - used to register a &struct kunit_suite with KUnit.
+  *
+diff --git a/init/main.c b/init/main.c
+index 91f6ebb30ef04..b299396a5466b 100644
+--- a/init/main.c
++++ b/init/main.c
+@@ -103,6 +103,8 @@
+ #define CREATE_TRACE_POINTS
+ #include <trace/events/initcall.h>
+ 
++#include <kunit/test.h>
++
+ static int kernel_init(void *);
+ 
+ extern void init_IRQ(void);
+@@ -1190,6 +1192,8 @@ static noinline void __init kernel_init_freeable(void)
+ 
+ 	do_basic_setup();
+ 
++	kunit_executor_init();
++
+ 	/* Open the /dev/console on the rootfs, this should never fail */
+ 	if (ksys_open((const char __user *) "/dev/console", O_RDWR, 0) < 0)
+ 		pr_err("Warning: unable to open an initial console.\n");
+diff --git a/lib/kunit/executor.c b/lib/kunit/executor.c
+index 978086cfd257d..ca880224c0bab 100644
+--- a/lib/kunit/executor.c
++++ b/lib/kunit/executor.c
+@@ -32,12 +32,10 @@ static bool kunit_run_all_tests(void)
+ 	return !has_test_failed;
+ }
+ 
+-static int kunit_executor_init(void)
++int kunit_executor_init(void)
+ {
+ 	if (kunit_run_all_tests())
+ 		return 0;
+ 	else
+ 		return -EFAULT;
+ }
+-
+-late_initcall(kunit_executor_init);
 -- 
 2.24.1.735.g03f4e72817-goog
