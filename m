@@ -1,72 +1,84 @@
-From: "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>
+From: Peter Zijlstra <peterz@infradead.org>
 Subject: Re: [PATCH 05/17] asm-generic/tlb: Rename
  HAVE_RCU_TABLE_NO_INVALIDATE
-Date: Mon, 16 Dec 2019 19:24:24 +0530
-Message-ID: <33ed03aa-a34c-3a81-0f83-20c3e8d4eff7@linux.ibm.com>
+Date: Mon, 16 Dec 2019 15:00:17 +0100
+Message-ID: <20191216140017.GF2827@hirez.programming.kicks-ass.net>
 References: <20191211120713.360281197@infradead.org>
- <20191211122955.940455408@infradead.org> <87woawzc1t.fsf@linux.ibm.com>
+ <20191211122955.940455408@infradead.org>
+ <87woawzc1t.fsf@linux.ibm.com>
  <20191216123752.GM2844@hirez.programming.kicks-ass.net>
  <d52ea890-c2ea-88f3-9d62-b86e60ee77ae@linux.ibm.com>
  <20191216132004.GO2844@hirez.programming.kicks-ass.net>
  <a9ae27c8-aa84-cda3-355c-7abb3b450d38@linux.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
 In-Reply-To: <a9ae27c8-aa84-cda3-355c-7abb3b450d38@linux.ibm.com>
-Content-Language: en-US
 Sender: linux-kernel-owner@vger.kernel.org
-To: Peter Zijlstra <peterz@infradead.org>, Michael Ellerman <mpe@ellerman.id.au>
-Cc: Will Deacon <will@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Nick Piggin <npiggin@gmail.com>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, "David S. Miller" <davem@davemloft.net>, Helge Deller <deller@gmx.de>, Geert Uytterhoeven <geert@linux-m68k.org>, Paul Burton <paulburton@kernel.org>, Tony Luck <tony.luck@intel.com>, Richard Henderson <rth@twiddle.net>, Nick Hu <nickhu@andestech.com>, Paul Walmsley <paul.walmsley@sifive.com>
+To: "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>
+Cc: Michael Ellerman <mpe@ellerman.id.au>, Will Deacon <will@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Nick Piggin <npiggin@gmail.com>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, "David S. Miller" <davem@davemloft.net>, Helge Deller <deller@gmx.de>, Geert Uytterhoeven <geert@linux-m68k.org>, Paul Burton <paulburton@kernel.org>, Tony Luck <tony.luck@intel.com>, Richard Henderson <rth@twiddle.net>, Nick Hu <nickhu@andestech.com>, Paul Walmsley <paul.walmsley@sifive.com>
 List-Id: linux-arch.vger.kernel.org
 
-On 12/16/19 7:10 PM, Aneesh Kumar K.V wrote:
+On Mon, Dec 16, 2019 at 07:10:30PM +0530, Aneesh Kumar K.V wrote:
 > On 12/16/19 6:50 PM, Peter Zijlstra wrote:
->> On Mon, Dec 16, 2019 at 06:43:53PM +0530, Aneesh Kumar K.V wrote:
->>> On 12/16/19 6:07 PM, Peter Zijlstra wrote:
->>
->>>> I'm confused, are you saing you're happy to have PowerPC eat the extra
->>>> TLB invalidates? I thought you cared about PPC performance :-)
->>>>
->>>>
->>>
->>> Instead can we do
->>>
->>> static inline void tlb_table_invalidate(struct mmu_gather *tlb)
->>> {
->>> #ifndef CONFIG_MMU_GATHER_RCU_TABLE_FREE
->>>      * Invalidate page-table caches used by hardware walkers. Then we 
->>> still
->>>      * need to RCU-sched wait while freeing the pages because software
->>>      * walkers can still be in-flight.
->>>      */
->>>     tlb_flush_mmu_tlbonly(tlb);
->>> #endif
->>> }
->>
->> How does that not break ARM/ARM64/s390 and x86 ?
->>
+> > On Mon, Dec 16, 2019 at 06:43:53PM +0530, Aneesh Kumar K.V wrote:
+> > > On 12/16/19 6:07 PM, Peter Zijlstra wrote:
+> > 
+> > > > I'm confused, are you saing you're happy to have PowerPC eat the extra
+> > > > TLB invalidates? I thought you cared about PPC performance :-)
+> > > > 
+> > > > 
+> > > 
+> > > Instead can we do
+> > > 
+> > > static inline void tlb_table_invalidate(struct mmu_gather *tlb)
+> > > {
+> > > #ifndef CONFIG_MMU_GATHER_RCU_TABLE_FREE
+> > > 	 * Invalidate page-table caches used by hardware walkers. Then we still
+> > > 	 * need to RCU-sched wait while freeing the pages because software
+> > > 	 * walkers can still be in-flight.
+> > > 	 */
+> > > 	tlb_flush_mmu_tlbonly(tlb);
+> > > #endif
+> > > }
+> > 
+> > How does that not break ARM/ARM64/s390 and x86 ?
+> > 
 > 
 > Hmm I missed that usage of RCU_TABLE_NO_INVALIDATE.
-> 
-> Ok I guess we need to revert this change that went upstream this merge 
+
+What use? Only PPC and SPARC64 use that option. The reason they can use
+it is because they don't have a hardware walker (with exception of
+PPC-Radix, which I suppose your below patch fudges ?!).
+
+So HAVE_RCU_TABLE_FREE will provide tlb_remove_table() for the use of
+freeing page-tables/directories. This is required for all architectures
+that have software walkers and !IPI TLBI.
+
+Arm, Arm64, Power, Sparc64, s390 and x86 use this option. While x86
+natively has IPI based TLBI, a bunch of the virtualization solutions got
+rid of the IPI for performance.
+
+Of those, Arm, Arm64, s390, x86 (and PPC-Radix) also have hardware
+walkers on those page-tables, and thus _must_ TLBI in between unhooking
+and freeing these pages.
+
+PPC-Hash and Sparc64 OTOH only ever access the linux page-tables through
+the software walker and thus can forgo this TLBI, and _THAT_ is what
+TABLE_NO_INVALIDATE is about (there actually is a comment that clearly
+states this).
+
+> Ok I guess we need to revert this change that went upstream this merge
 > window then
 > 
 > commit 52162ec784fa05f3a4b1d8e84421279998be3773
 > Author: Aneesh Kumar K.V <aneesh.kumar@linux.ibm.com>
-> Date:   Thu Oct 24 13:28:00 2019 +0530
+> Date:   Thu Oct 24 13:28:00 2019 +0530
 > 
->      powerpc/mm/book3s64/radix: Use freed_tables instead of need_flush_all
+>     powerpc/mm/book3s64/radix: Use freed_tables instead of need_flush_all
 > 
-> 
-> 
-> I will review the change closely.
 
-
-So __p*_free_tlb() routines on ppc64 just mark that we need a page walk 
-cache flush and the actual flush in done in tlb_flush_mmu. As per
-
-d86564a2f085b79ec046a5cba90188e61235280 (mm/tlb, x86/mm: Support 
-invalidating TLB caches for RCU_TABLE_FREE ) that is not sufficient?
-
--aneesh
+This really looks like you've got PPC-Radix wrong. As soon as you got
+hardware walkers on the linux page-tables, you must not use
+TABLE_NO_INVALIDATE.
