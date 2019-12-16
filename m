@@ -1,37 +1,97 @@
-Return-Path: <hch@lst.de>
-Date: Wed, 4 Dec 2019 09:56:34 +0100
-From: Christoph Hellwig <hch@lst.de>
-Subject: Re: Bug 205201 - Booting halts if Dawicontrol DC-2976 UW SCSI
- board installed, unless RAM size limited to 3500M
-Message-ID: <20191204085634.GA25929@lst.de>
-References: <dbde2252-035e-6183-7897-43348e60647e@xenosoft.de> <6eec5c42-019c-a988-fc2a-cb804194683d@xenosoft.de> <d0252d29-7a03-20e1-ccd7-e12d906e4bdf@arm.com> <b3217742-2c0b-8447-c9ac-608b93265363@xenosoft.de> <20191121180226.GA3852@lst.de> <2fde79cf-875f-94e6-4a1b-f73ebb2e2c32@xenosoft.de> <20191125073923.GA30168@lst.de> <4681f5fe-c095-15f5-9221-4b55e940bafc@xenosoft.de> <20191126164026.GA8026@lst.de> <20191127065624.GB16913@linux.ibm.com>
+Return-Path: <linux-arch-owner@vger.kernel.org>
+Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:45028 "EHLO
+ mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+ with ESMTP id S1727241AbfLPMdn (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+ Mon, 16 Dec 2019 07:33:43 -0500
+From: "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>
+Subject: Re: [PATCH 05/17] asm-generic/tlb: Rename
+ HAVE_RCU_TABLE_NO_INVALIDATE
+In-Reply-To: <20191211122955.940455408@infradead.org>
+References: <20191211120713.360281197@infradead.org>
+ <20191211122955.940455408@infradead.org>
+Date: Mon, 16 Dec 2019 18:01:58 +0530
+Message-ID: <87woawzc1t.fsf@linux.ibm.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20191127065624.GB16913@linux.ibm.com>
-To: Mike Rapoport <rppt@linux.ibm.com>
-Cc: Christoph Hellwig <hch@lst.de>, Christian Zigotzky <chzigotzky@xenosoft.de>, Robin Murphy <robin.murphy@arm.com>, linux-arch@vger.kernel.org, darren@stevens-zone.net, mad skateman <madskateman@gmail.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, linux-kernel@vger.kernel.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Rob Herring <robh+dt@kernel.org>, paulus@samba.org, rtd2@xtra.co.nz, "contact@a-eon.com" <contact@a-eon.com>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, nsaenzjulienne@suse.de
+Content-Type: text/plain
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20191204085634.82BZvXOKLhs0eBLEDXMGvrQ3FBKlIwHoc3kRbE91etM@z>
+To: Peter Zijlstra <peterz@infradead.org>, Will Deacon <will@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Nick Piggin <npiggin@gmail.com>Peter Zijlstra <peterz@infradead.org>
+Cc: linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, "David S. Miller" <davem@davemloft.net>, Helge Deller <deller@gmx.de>, Geert Uytterhoeven <geert@linux-m68k.org>, Paul Burton <paulburton@kernel.org>, Tony Luck <tony.luck@intel.com>, Richard Henderson <rth@twiddle.net>, Nick Hu <nickhu@andestech.com>, Paul Walmsley <paul.walmsley@sifive.com>
+Message-ID: <20191216123158.TcstTj8WIj5L6f8tKVlSMFvVBsIXIiEpKue3L3Uoul4@z>
 
-On Wed, Nov 27, 2019 at 08:56:25AM +0200, Mike Rapoport wrote:
-> On Tue, Nov 26, 2019 at 05:40:26PM +0100, Christoph Hellwig wrote:
-> > On Tue, Nov 26, 2019 at 12:26:38PM +0100, Christian Zigotzky wrote:
-> > > Hello Christoph,
-> > >
-> > > The PCI TV card works with your patch! I was able to patch your Git kernel 
-> > > with the patch above.
-> > >
-> > > I haven't found any error messages in the dmesg yet.
-> > 
-> > Thanks.  Unfortunately this is a bit of a hack as we need to set
-> > the mask based on runtime information like the magic FSL PCIe window.
-> > Let me try to draft something better up, and thanks already for testing
-> > this one!
-> 
-> Maybe we'll simply force bottom up allocation before calling
-> swiotlb_init()? Anyway, it's the last memblock allocation.
+Peter Zijlstra <peterz@infradead.org> writes:
 
-So I think we should go with this fix (plus a source code comment) for
-now.  Revamping the whole memory initialization is going to take a
-while, and this fix also is easily backportable.
+> Towards a more consistent naming scheme.
+>
+> Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+> ---
+>  arch/Kconfig              |    3 ++-
+>  arch/powerpc/Kconfig      |    2 +-
+>  arch/sparc/Kconfig        |    2 +-
+>  include/asm-generic/tlb.h |    2 +-
+>  mm/mmu_gather.c           |    2 +-
+>  5 files changed, 6 insertions(+), 5 deletions(-)
+>
+> --- a/arch/Kconfig
+> +++ b/arch/Kconfig
+> @@ -396,8 +396,9 @@ config HAVE_ARCH_JUMP_LABEL_RELATIVE
+>  config MMU_GATHER_RCU_TABLE_FREE
+>  	bool
+>  
+> -config HAVE_RCU_TABLE_NO_INVALIDATE
+> +config MMU_GATHER_NO_TABLE_INVALIDATE
+>  	bool
+> +	depends on MMU_GATHER_RCU_TABLE_FREE
+
+
+Can we drop this Kernel config option instead use
+MMU_GATHER_RCU_TABLE_FREE? IMHO reducing the kernel config related to
+mmu_gather can reduce the complexity. 
+
+>  
+>  config HAVE_MMU_GATHER_PAGE_SIZE
+>  	bool
+> --- a/arch/powerpc/Kconfig
+> +++ b/arch/powerpc/Kconfig
+> @@ -223,7 +223,7 @@ config PPC
+>  	select HAVE_PERF_REGS
+>  	select HAVE_PERF_USER_STACK_DUMP
+>  	select MMU_GATHER_RCU_TABLE_FREE		if SMP
+> -	select HAVE_RCU_TABLE_NO_INVALIDATE	if MMU_GATHER_RCU_TABLE_FREE
+> +	select MMU_GATHER_NO_TABLE_INVALIDATE	if MMU_GATHER_RCU_TABLE_FREE
+>  	select HAVE_MMU_GATHER_PAGE_SIZE
+>  	select HAVE_REGS_AND_STACK_ACCESS_API
+>  	select HAVE_RELIABLE_STACKTRACE		if PPC_BOOK3S_64 && CPU_LITTLE_ENDIAN
+> --- a/arch/sparc/Kconfig
+> +++ b/arch/sparc/Kconfig
+> @@ -65,7 +65,7 @@ config SPARC64
+>  	select HAVE_KRETPROBES
+>  	select HAVE_KPROBES
+>  	select MMU_GATHER_RCU_TABLE_FREE if SMP
+> -	select HAVE_RCU_TABLE_NO_INVALIDATE if MMU_GATHER_RCU_TABLE_FREE
+> +	select MMU_GATHER_NO_TABLE_INVALIDATE if MMU_GATHER_RCU_TABLE_FREE
+>  	select HAVE_MEMBLOCK_NODE_MAP
+>  	select HAVE_ARCH_TRANSPARENT_HUGEPAGE
+>  	select HAVE_DYNAMIC_FTRACE
+> --- a/include/asm-generic/tlb.h
+> +++ b/include/asm-generic/tlb.h
+> @@ -137,7 +137,7 @@
+>   *  When used, an architecture is expected to provide __tlb_remove_table()
+>   *  which does the actual freeing of these pages.
+>   *
+> - *  HAVE_RCU_TABLE_NO_INVALIDATE
+> + *  MMU_GATHER_NO_TABLE_INVALIDATE
+>   *
+>   *  This makes MMU_GATHER_RCU_TABLE_FREE avoid calling tlb_flush_mmu_tlbonly() before
+>   *  freeing the page-table pages. This can be avoided if you use
+> --- a/mm/mmu_gather.c
+> +++ b/mm/mmu_gather.c
+> @@ -102,7 +102,7 @@ bool __tlb_remove_page_size(struct mmu_g
+>   */
+>  static inline void tlb_table_invalidate(struct mmu_gather *tlb)
+>  {
+> -#ifndef CONFIG_HAVE_RCU_TABLE_NO_INVALIDATE
+> +#ifndef CONFIG_MMU_GATHER_NO_TABLE_INVALIDATE
+>  	/*
+>  	 * Invalidate page-table caches used by hardware walkers. Then we still
+>  	 * need to RCU-sched wait while freeing the pages because software
