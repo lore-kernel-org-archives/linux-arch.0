@@ -1,202 +1,85 @@
-From: Peter Collingbourne <pcc@google.com>
-Subject: Re: [PATCH 20/22] arm64: mte: Allow user control of the excluded tags
- via prctl()
-Date: Mon, 16 Dec 2019 09:30:36 -0800
-Message-ID: <CAMn1gO6KGbeSkuEJB_j+WG8DAjbn81OdfA6DQQ+FFA5F6dcsVQ@mail.gmail.com>
-References: <20191211184027.20130-1-catalin.marinas@arm.com>
- <20191211184027.20130-21-catalin.marinas@arm.com>
- <ef61bbc6-76d6-531d-2156-b57efc070da4@arm.com>
+From: Florian Weimer <fweimer@redhat.com>
+Subject: Re: [PATCH v18 11/13] open: introduce openat2(2) syscall
+Date: Mon, 16 Dec 2019 20:20:17 +0100
+Message-ID: <20191216192158.B9F19832924A@oldenburg2.str.redhat.com>
+References: <20191206141338.23338-1-cyphar@cyphar.com>
+	<20191206141338.23338-12-cyphar@cyphar.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
-In-Reply-To: <ef61bbc6-76d6-531d-2156-b57efc070da4@arm.com>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
-To: Kevin Brodsky <kevin.brodsky@arm.com>
-Cc: linux-arch@vger.kernel.org, Richard Earnshaw <Richard.Earnshaw@arm.com>, Branislav Rankov <Branislav.Rankov@arm.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Andrey Konovalov <andreyknvl@google.com>, linux-mm@kvack.org, Marc Zyngier <maz@kernel.org>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Will Deacon <will@kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>
+Content-Type: text/plain; charset=utf8
+Content-Transfer-Encoding: quoted-printable
+Return-path: <libc-alpha-return-108113-glibc-alpha=m.gmane.org@sourceware.org>
+List-Unsubscribe: <mailto:libc-alpha-unsubscribe-glibc-alpha=m.gmane.org@sourceware.org>
+List-Subscribe: <mailto:libc-alpha-subscribe@sourceware.org>
+List-Archive: <http://sourceware.org/ml/libc-alpha/>
+List-Post: <mailto:libc-alpha@sourceware.org>
+List-Help: <mailto:libc-alpha-help@sourceware.org>, <http://sourceware.org/ml/#faqs>
+Sender: libc-alpha-owner@sourceware.org
+In-Reply-To: <20191206141338.23338-12-cyphar@cyphar.com> (Aleksa Sarai's
+	message of "Sat, 7 Dec 2019 01:13:36 +1100")
+To: Aleksa Sarai <cyphar@cyphar.com>
+Cc: Al Viro <viro@zeniv.linux.org.uk>, Jeff Layton <jlayton@kernel.org>, "J. Bruce Fields" <bfields@fieldses.org>, Arnd Bergmann <arnd@arndb.de>, David Howells <dhowells@redhat.com>, Shuah Khan <shuah@kernel.org>, Shuah Khan <skhan@linuxfoundation.org>, Ingo Molnar <mingo@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Alexei Starovoitov <ast@kernel.org>, Daniel Borkmann <daniel@iogearbox.net>, Martin KaFai Lau <kafai@fb.com>, Song Liu <songliubraving@fb.com>, Yonghong Song <yhs@fb.com>, Andrii Nakryiko <andriin@fb.com>, Jonathan Corbet <corbet@lwn.net>, linux-ia64@vger.kernel.org, linux-doc@vger.kernel.org, Alexander Shishkin <alexander.shishkin@linux.intel.com>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, linux-kernel@vger.kernel.org, linux-kselftest@vger.kernel.org, sparclinux@vger.kernel.org, linux-api@vger.kernel.org, Jiri Olsa <jolsa@redhat.com>lin
 List-Id: linux-arch.vger.kernel.org
 
-On Mon, Dec 16, 2019 at 6:20 AM Kevin Brodsky <kevin.brodsky@arm.com> wrote:
->
-> +Branislav, Peter
->
-> In this patch, the default exclusion mask remains 0 (i.e. all tags can be generated).
-> After some more discussions, Branislav and I think that it would be better to start
-> with the reverse, i.e. all tags but 0 excluded (mask = 0xfe or 0xff).
->
-> This should simplify the MTE setup in the early C runtime quite a bit. Indeed, if all
-> tags can be generated, doing any heap or stack tagging before the
-> PR_SET_TAGGED_ADDR_CTRL prctl() is issued can cause problems, notably because tagged
-> addresses could end up being passed to syscalls. Conversely, if IRG and ADDG never
-> set the top byte by default, then tagging operations should be no-ops until the
-> prctl() is issued. This would be particularly useful given that it may not be
-> straightforward for the C runtime to issue the prctl() before doing anything else.
->
-> Additionally, since the default tag checking mode is PR_MTE_TCF_NONE, it would make
-> perfect sense not to generate tags by default.
->
-> Any thoughts?
+* Aleksa Sarai:
 
-This would indeed allow the early C runtime startup code to pass
-tagged addresses to syscalls, but I don't think it would entirely free
-the code from the burden of worrying about stack tagging. Either way,
-any stack frames that are active at the point when the prctl() is
-issued would need to be compiled without stack tagging, because
-otherwise those stack frames may use ADDG to rematerialize a stack
-object address, which may produce a different address post-prctl.
-Setting the exclude mask to 0xffff would at least make it more likely
-for this problem to be detected, though.
+> diff --git a/include/uapi/linux/fcntl.h b/include/uapi/linux/fcntl.h
+> index 1d338357df8a..58c3a0e543c6 100644
+> --- a/include/uapi/linux/fcntl.h
+> +++ b/include/uapi/linux/fcntl.h
+> @@ -93,5 +93,40 @@
+> =20
+>  #define AT_RECURSIVE		0x8000	/* Apply to the entire subtree */
+> =20
+> +/*
+> + * Arguments for how openat2(2) should open the target path. If @resol=
+ve is
+> + * zero, then openat2(2) operates very similarly to openat(2).
+> + *
+> + * However, unlike openat(2), unknown bits in @flags result in -EINVAL=
+ rather
+> + * than being silently ignored. @mode must be zero unless one of {O_CR=
+EAT,
+> + * O_TMPFILE} are set.
+> + *
+> + * @flags: O_* flags.
+> + * @mode: O_CREAT/O_TMPFILE file mode.
+> + * @resolve: RESOLVE_* flags.
+> + */
+> +struct open_how {
+> +	__aligned_u64 flags;
+> +	__u16 mode;
+> +	__u16 __padding[3]; /* must be zeroed */
+> +	__aligned_u64 resolve;
+> +};
+> +
+> +#define OPEN_HOW_SIZE_VER0	24 /* sizeof first published struct */
+> +#define OPEN_HOW_SIZE_LATEST	OPEN_HOW_SIZE_VER0
+> +
+> +/* how->resolve flags for openat2(2). */
+> +#define RESOLVE_NO_XDEV		0x01 /* Block mount-point crossings
+> +					(includes bind-mounts). */
+> +#define RESOLVE_NO_MAGICLINKS	0x02 /* Block traversal through procfs-s=
+tyle
+> +					"magic-links". */
+> +#define RESOLVE_NO_SYMLINKS	0x04 /* Block traversal through all symlin=
+ks
+> +					(implies OEXT_NO_MAGICLINKS) */
+> +#define RESOLVE_BENEATH		0x08 /* Block "lexical" trickery like
+> +					"..", symlinks, and absolute
+> +					paths which escape the dirfd. */
+> +#define RESOLVE_IN_ROOT		0x10 /* Make all jumps to "/" and ".."
+> +					be scoped inside the dirfd
+> +					(similar to chroot(2)). */
+> =20
+>  #endif /* _UAPI_LINUX_FCNTL_H */
 
-If we change the default in this way, maybe it would be worth
-considering flipping the meaning of the tag mask and have it be a mask
-of tags to allow. That would be consistent with the existing behaviour
-where userspace sets bits in tagged_addr_ctrl in order to enable
-tagging features.
+Would it be possible to move these to a new UAPI header?
 
-Peter
+In glibc, we currently do not #include <linux/fcntl.h>.  We need some of
+the AT_* constants in POSIX mode, and the header is not necessarily
+namespace-clean.  If there was a separate header for openat2 support, we
+could use that easily, and we would only have to maintain the baseline
+definitions (which never change).
 
->
-> Thanks,
-> Kevin
->
-> On 11/12/2019 18:40, Catalin Marinas wrote:
-> > The IRG, ADDG and SUBG instructions insert a random tag in the resulting
-> > address. Certain tags can be excluded via the GCR_EL1.Exclude bitmap
-> > when, for example, the user wants a certain colour for freed buffers.
-> > Since the GCR_EL1 register is not accessible at EL0, extend the
-> > prctl(PR_SET_TAGGED_ADDR_CTRL) interface to include a 16-bit field in
-> > the first argument for controlling the excluded tags. This setting is
-> > pre-thread.
-> >
-> > Signed-off-by: Catalin Marinas <catalin.marinas@arm.com>
-> > ---
-> >   arch/arm64/include/asm/processor.h |  1 +
-> >   arch/arm64/include/asm/sysreg.h    |  7 +++++++
-> >   arch/arm64/kernel/process.c        | 27 +++++++++++++++++++++++----
-> >   include/uapi/linux/prctl.h         |  3 +++
-> >   4 files changed, 34 insertions(+), 4 deletions(-)
-> >
-> > diff --git a/arch/arm64/include/asm/processor.h b/arch/arm64/include/asm/processor.h
-> > index 91aa270afc7d..5b6988035334 100644
-> > --- a/arch/arm64/include/asm/processor.h
-> > +++ b/arch/arm64/include/asm/processor.h
-> > @@ -150,6 +150,7 @@ struct thread_struct {
-> >   #endif
-> >   #ifdef CONFIG_ARM64_MTE
-> >       u64                     sctlr_tcf0;
-> > +     u64                     gcr_excl;
-> >   #endif
-> >   };
-> >
-> > diff --git a/arch/arm64/include/asm/sysreg.h b/arch/arm64/include/asm/sysreg.h
-> > index 9e5753272f4b..b6bb6d31f1cd 100644
-> > --- a/arch/arm64/include/asm/sysreg.h
-> > +++ b/arch/arm64/include/asm/sysreg.h
-> > @@ -901,6 +901,13 @@
-> >               write_sysreg(__scs_new, sysreg);                        \
-> >   } while (0)
-> >
-> > +#define sysreg_clear_set_s(sysreg, clear, set) do {                  \
-> > +     u64 __scs_val = read_sysreg_s(sysreg);                          \
-> > +     u64 __scs_new = (__scs_val & ~(u64)(clear)) | (set);            \
-> > +     if (__scs_new != __scs_val)                                     \
-> > +             write_sysreg_s(__scs_new, sysreg);                      \
-> > +} while (0)
-> > +
-> >   #endif
-> >
-> >   #endif      /* __ASM_SYSREG_H */
-> > diff --git a/arch/arm64/kernel/process.c b/arch/arm64/kernel/process.c
-> > index 47ce98f47253..5ec6889795fc 100644
-> > --- a/arch/arm64/kernel/process.c
-> > +++ b/arch/arm64/kernel/process.c
-> > @@ -502,6 +502,15 @@ static void update_sctlr_el1_tcf0(u64 tcf0)
-> >       sysreg_clear_set(sctlr_el1, SCTLR_EL1_TCF0_MASK, tcf0);
-> >   }
-> >
-> > +static void update_gcr_el1_excl(u64 excl)
-> > +{
-> > +     /*
-> > +      * No need for ISB since this only affects EL0 currently, implicit
-> > +      * with ERET.
-> > +      */
-> > +     sysreg_clear_set_s(SYS_GCR_EL1, SYS_GCR_EL1_EXCL_MASK, excl);
-> > +}
-> > +
-> >   /* Handle MTE thread switch */
-> >   static void mte_thread_switch(struct task_struct *next)
-> >   {
-> > @@ -511,6 +520,7 @@ static void mte_thread_switch(struct task_struct *next)
-> >       /* avoid expensive SCTLR_EL1 accesses if no change */
-> >       if (current->thread.sctlr_tcf0 != next->thread.sctlr_tcf0)
-> >               update_sctlr_el1_tcf0(next->thread.sctlr_tcf0);
-> > +     update_gcr_el1_excl(next->thread.gcr_excl);
-> >   }
-> >   #else
-> >   static void mte_thread_switch(struct task_struct *next)
-> > @@ -641,22 +651,31 @@ static long set_mte_ctrl(unsigned long arg)
-> >       update_sctlr_el1_tcf0(tcf0);
-> >       preempt_enable();
-> >
-> > +     current->thread.gcr_excl = (arg & PR_MTE_EXCL_MASK) >> PR_MTE_EXCL_SHIFT;
-> > +     update_gcr_el1_excl(current->thread.gcr_excl);
-> > +
-> >       return 0;
-> >   }
-> >
-> >   static long get_mte_ctrl(void)
-> >   {
-> > +     unsigned long ret;
-> > +
-> >       if (!system_supports_mte())
-> >               return 0;
-> >
-> > +     ret = current->thread.gcr_excl << PR_MTE_EXCL_SHIFT;
-> > +
-> >       switch (current->thread.sctlr_tcf0) {
-> >       case SCTLR_EL1_TCF0_SYNC:
-> > -             return PR_MTE_TCF_SYNC;
-> > +             ret |= PR_MTE_TCF_SYNC;
-> > +             break;
-> >       case SCTLR_EL1_TCF0_ASYNC:
-> > -             return PR_MTE_TCF_ASYNC;
-> > +             ret |= PR_MTE_TCF_ASYNC;
-> > +             break;
-> >       }
-> >
-> > -     return 0;
-> > +     return ret;
-> >   }
-> >   #else
-> >   static long set_mte_ctrl(unsigned long arg)
-> > @@ -684,7 +703,7 @@ long set_tagged_addr_ctrl(unsigned long arg)
-> >               return -EINVAL;
-> >
-> >       if (system_supports_mte())
-> > -             valid_mask |= PR_MTE_TCF_MASK;
-> > +             valid_mask |= PR_MTE_TCF_MASK | PR_MTE_EXCL_MASK;
-> >
-> >       if (arg & ~valid_mask)
-> >               return -EINVAL;
-> > diff --git a/include/uapi/linux/prctl.h b/include/uapi/linux/prctl.h
-> > index 5e9323e66a38..749de5ab4f9f 100644
-> > --- a/include/uapi/linux/prctl.h
-> > +++ b/include/uapi/linux/prctl.h
-> > @@ -239,5 +239,8 @@ struct prctl_mm_map {
-> >   # define PR_MTE_TCF_SYNC            (1UL << PR_MTE_TCF_SHIFT)
-> >   # define PR_MTE_TCF_ASYNC           (2UL << PR_MTE_TCF_SHIFT)
-> >   # define PR_MTE_TCF_MASK            (3UL << PR_MTE_TCF_SHIFT)
-> > +/* MTE tag exclusion mask */
-> > +# define PR_MTE_EXCL_SHIFT           3
-> > +# define PR_MTE_EXCL_MASK            (0xffffUL << PR_MTE_EXCL_SHIFT)
-> >
-> >   #endif /* _LINUX_PRCTL_H */
->
+Thanks,
+Florian
