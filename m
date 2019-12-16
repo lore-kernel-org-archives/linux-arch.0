@@ -1,214 +1,77 @@
-Return-Path: <green.hu@gmail.com>
+Return-Path: <linux-arch-owner@vger.kernel.org>
+Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:54186 "EHLO
+ mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+ with ESMTP id S1727579AbfLPNzN (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+ Mon, 16 Dec 2019 08:55:13 -0500
+Subject: Re: [PATCH 05/17] asm-generic/tlb: Rename
+ HAVE_RCU_TABLE_NO_INVALIDATE
+From: "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>
+References: <20191211120713.360281197@infradead.org>
+ <20191211122955.940455408@infradead.org> <87woawzc1t.fsf@linux.ibm.com>
+ <20191216123752.GM2844@hirez.programming.kicks-ass.net>
+ <d52ea890-c2ea-88f3-9d62-b86e60ee77ae@linux.ibm.com>
+ <20191216132004.GO2844@hirez.programming.kicks-ass.net>
+ <a9ae27c8-aa84-cda3-355c-7abb3b450d38@linux.ibm.com>
+Message-ID: <33ed03aa-a34c-3a81-0f83-20c3e8d4eff7@linux.ibm.com>
+Date: Mon, 16 Dec 2019 19:24:24 +0530
 MIME-Version: 1.0
-References: <20191223110004.2157-1-rppt@kernel.org> <20191223110004.2157-2-rppt@kernel.org>
-In-Reply-To: <20191223110004.2157-2-rppt@kernel.org>
-From: Greentime Hu <green.hu@gmail.com>
-Date: Tue, 24 Dec 2019 10:13:53 +0800
-Message-ID: <CAEbi=3eGPkQLALqspua3g0ZLkkm+t7myW8hopZO+dzQhpf4DmQ@mail.gmail.com>
-Subject: Re: [PATCH 1/2] asm-generic/nds32: don't redefine cacheflush primitives
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
-To: Mike Rapoport <rppt@kernel.org>
-Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Nick Hu <nickhu@andestech.com>, Vincent Chen <deanbo422@gmail.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch <linux-arch@vger.kernel.org>, Mike Rapoport <rppt@linux.ibm.com>, kbuild test robot <lkp@intel.com>
+In-Reply-To: <a9ae27c8-aa84-cda3-355c-7abb3b450d38@linux.ibm.com>
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Language: en-US
+Content-Transfer-Encoding: 8bit
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20191224021353.TUy5H2ETuevdA6To3aRpMB39e5K4MeyXEj-KSgGKDPo@z>
+To: Peter Zijlstra <peterz@infradead.org>, Michael Ellerman <mpe@ellerman.id.au>
+Cc: Will Deacon <will@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Nick Piggin <npiggin@gmail.com>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, "David S. Miller" <davem@davemloft.net>, Helge Deller <deller@gmx.de>, Geert Uytterhoeven <geert@linux-m68k.org>, Paul Burton <paulburton@kernel.org>, Tony Luck <tony.luck@intel.com>, Richard Henderson <rth@twiddle.net>, Nick Hu <nickhu@andestech.com>, Paul Walmsley <paul.walmsley@sifive.com>
+Message-ID: <20191216135424.dF2ER6IgDeEV4WqIEv4y_0Kv-dIKSOad1ngaQY5yK_U@z>
 
-Mike Rapoport <rppt@kernel.org> =E6=96=BC 2019=E5=B9=B412=E6=9C=8823=E6=97=
-=A5 =E9=80=B1=E4=B8=80 =E4=B8=8B=E5=8D=887:00=E5=AF=AB=E9=81=93=EF=BC=9A
->
-> From: Mike Rapoport <rppt@linux.ibm.com>
->
-> The commit c296d4dc13ae ("asm-generic: fix a compilation warning") change=
-d
-> asm-generic/cachflush.h to use static inlines instead of macros and as a
-> result the nds32 build with CONFIG_CPU_CACHE_ALIASING=3Dn fails:
->
->   CC      init/main.o
-> In file included from arch/nds32/include/asm/cacheflush.h:43,
->                  from include/linux/highmem.h:12,
->                  from include/linux/pagemap.h:11,
->                  from include/linux/blkdev.h:16,
->                  from include/linux/blk-cgroup.h:23,
->                  from include/linux/writeback.h:14,
->                  from init/main.c:44:
-> include/asm-generic/cacheflush.h:50:20: error: static declaration of 'flu=
-sh_icache_range' follows non-static declaration
->  static inline void flush_icache_range(unsigned long start, unsigned long=
- end)
->                     ^~~~~~~~~~~~~~~~~~
-> In file included from include/linux/highmem.h:12,
->                  from include/linux/pagemap.h:11,
->                  from include/linux/blkdev.h:16,
->                  from include/linux/blk-cgroup.h:23,
->                  from include/linux/writeback.h:14,
->                  from init/main.c:44:
-> arch/nds32/include/asm/cacheflush.h:11:6: note: previous declaration of '=
-flush_icache_range' was here
->  void flush_icache_range(unsigned long start, unsigned long end);
->       ^~~~~~~~~~~~~~~~~~
->
-> Surround the inline functions in asm-generic/cacheflush.h by ifdef's so
-> that architectures could override them and add the required overrides to
-> nds32.
->
-> Fixes: c296d4dc13ae ("asm-generic: fix a compilation warning")
-> Link: https://lore.kernel.org/lkml/201912212139.yptX8CsV%25lkp@intel.com/
-> Reported-by: kbuild test robot <lkp@intel.com>
-> Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
-> ---
->  arch/nds32/include/asm/cacheflush.h | 11 ++++++----
->  include/asm-generic/cacheflush.h    | 33 ++++++++++++++++++++++++++++-
->  2 files changed, 39 insertions(+), 5 deletions(-)
->
-> diff --git a/arch/nds32/include/asm/cacheflush.h b/arch/nds32/include/asm=
-/cacheflush.h
-> index d9ac7e6408ef..caddded56e77 100644
-> --- a/arch/nds32/include/asm/cacheflush.h
-> +++ b/arch/nds32/include/asm/cacheflush.h
-> @@ -9,7 +9,11 @@
->  #define PG_dcache_dirty PG_arch_1
->
->  void flush_icache_range(unsigned long start, unsigned long end);
-> +#define flush_icache_range flush_icache_range
-> +
->  void flush_icache_page(struct vm_area_struct *vma, struct page *page);
-> +#define flush_icache_page flush_icache_page
-> +
->  #ifdef CONFIG_CPU_CACHE_ALIASING
->  void flush_cache_mm(struct mm_struct *mm);
->  void flush_cache_dup_mm(struct mm_struct *mm);
-> @@ -40,12 +44,11 @@ void invalidate_kernel_vmap_range(void *addr, int siz=
-e);
->  #define flush_dcache_mmap_unlock(mapping) xa_unlock_irq(&(mapping)->i_pa=
-ges)
->
->  #else
-> -#include <asm-generic/cacheflush.h>
-> -#undef flush_icache_range
-> -#undef flush_icache_page
-> -#undef flush_icache_user_range
->  void flush_icache_user_range(struct vm_area_struct *vma, struct page *pa=
-ge,
->                              unsigned long addr, int len);
-> +#define flush_icache_user_range flush_icache_user_range
-> +
-> +#include <asm-generic/cacheflush.h>
->  #endif
->
->  #endif /* __NDS32_CACHEFLUSH_H__ */
-> diff --git a/include/asm-generic/cacheflush.h b/include/asm-generic/cache=
-flush.h
-> index a950a22c4890..cac7404b2bdd 100644
-> --- a/include/asm-generic/cacheflush.h
-> +++ b/include/asm-generic/cacheflush.h
-> @@ -11,71 +11,102 @@
->   * The cache doesn't need to be flushed when TLB entries change when
->   * the cache is mapped to physical memory, not virtual memory
->   */
-> +#ifndef flush_cache_all
->  static inline void flush_cache_all(void)
->  {
->  }
-> +#endif
->
-> +#ifndef flush_cache_mm
->  static inline void flush_cache_mm(struct mm_struct *mm)
->  {
->  }
-> +#endif
->
-> +#ifndef flush_cache_dup_mm
->  static inline void flush_cache_dup_mm(struct mm_struct *mm)
->  {
->  }
-> +#endif
->
-> +#ifndef flush_cache_range
->  static inline void flush_cache_range(struct vm_area_struct *vma,
->                                      unsigned long start,
->                                      unsigned long end)
->  {
->  }
-> +#endif
->
-> +#ifndef flush_cache_page
->  static inline void flush_cache_page(struct vm_area_struct *vma,
->                                     unsigned long vmaddr,
->                                     unsigned long pfn)
->  {
->  }
-> +#endif
->
-> +#ifndef flush_dcache_page
->  static inline void flush_dcache_page(struct page *page)
->  {
->  }
-> +#endif
->
-> +#ifndef flush_dcache_mmap_lock
->  static inline void flush_dcache_mmap_lock(struct address_space *mapping)
->  {
->  }
-> +#endif
->
-> +#ifndef flush_dcache_mmap_unlock
->  static inline void flush_dcache_mmap_unlock(struct address_space *mappin=
-g)
->  {
->  }
-> +#endif
->
-> +#ifndef flush_icache_range
->  static inline void flush_icache_range(unsigned long start, unsigned long=
- end)
->  {
->  }
-> +#endif
->
-> +#ifndef flush_icache_page
->  static inline void flush_icache_page(struct vm_area_struct *vma,
->                                      struct page *page)
->  {
->  }
-> +#endif
->
-> +#ifndef flush_icache_user_range
->  static inline void flush_icache_user_range(struct vm_area_struct *vma,
->                                            struct page *page,
->                                            unsigned long addr, int len)
->  {
->  }
-> +#endif
->
-> +#ifndef flush_cache_vmap
->  static inline void flush_cache_vmap(unsigned long start, unsigned long e=
-nd)
->  {
->  }
-> +#endif
->
-> +#ifndef flush_cache_vunmap
->  static inline void flush_cache_vunmap(unsigned long start, unsigned long=
- end)
->  {
->  }
-> +#endif
->
-> -#define copy_to_user_page(vma, page, vaddr, dst, src, len) \
-> +#ifndef copy_to_user_page
-> +#define copy_to_user_page(vma, page, vaddr, dst, src, len)     \
->         do { \
->                 memcpy(dst, src, len); \
->                 flush_icache_user_range(vma, page, vaddr, len); \
->         } while (0)
-> +#endif
-> +
-> +#ifndef copy_from_user_page
->  #define copy_from_user_page(vma, page, vaddr, dst, src, len) \
->         memcpy(dst, src, len)
-> +#endif
->
->  #endif /* __ASM_CACHEFLUSH_H */
+On 12/16/19 7:10 PM, Aneesh Kumar K.V wrote:
+> On 12/16/19 6:50 PM, Peter Zijlstra wrote:
+>> On Mon, Dec 16, 2019 at 06:43:53PM +0530, Aneesh Kumar K.V wrote:
+>>> On 12/16/19 6:07 PM, Peter Zijlstra wrote:
+>>
+>>>> I'm confused, are you saing you're happy to have PowerPC eat the extra
+>>>> TLB invalidates? I thought you cared about PPC performance :-)
+>>>>
+>>>>
+>>>
+>>> Instead can we do
+>>>
+>>> static inline void tlb_table_invalidate(struct mmu_gather *tlb)
+>>> {
+>>> #ifndef CONFIG_MMU_GATHER_RCU_TABLE_FREE
+>>>      * Invalidate page-table caches used by hardware walkers. Then we 
+>>> still
+>>>      * need to RCU-sched wait while freeing the pages because software
+>>>      * walkers can still be in-flight.
+>>>      */
+>>>     tlb_flush_mmu_tlbonly(tlb);
+>>> #endif
+>>> }
+>>
+>> How does that not break ARM/ARM64/s390 and x86 ?
+>>
+> 
+> Hmm I missed that usage of RCU_TABLE_NO_INVALIDATE.
+> 
+> Ok I guess we need to revert this change that went upstream this merge 
+> window then
+> 
+> commit 52162ec784fa05f3a4b1d8e84421279998be3773
+> Author: Aneesh Kumar K.V <aneesh.kumar@linux.ibm.com>
+> Date:   Thu Oct 24 13:28:00 2019 +0530
+> 
+>      powerpc/mm/book3s64/radix: Use freed_tables instead of need_flush_all
+> 
+> 
+> 
+> I will review the change closely.
 
-Thank you, Mike.
-Reviewed-by: Greentime Hu <green.hu@gmail.com>
+
+So __p*_free_tlb() routines on ppc64 just mark that we need a page walk 
+cache flush and the actual flush in done in tlb_flush_mmu. As per
+
+d86564a2f085b79ec046a5cba90188e61235280 (mm/tlb, x86/mm: Support 
+invalidating TLB caches for RCU_TABLE_FREE ) that is not sufficient?
+
+-aneesh
