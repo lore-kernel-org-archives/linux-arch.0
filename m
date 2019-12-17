@@ -1,44 +1,108 @@
 From: Stephen Boyd <sboyd@kernel.org>
-Subject: Re: [RFC v1 4/6] init: main: add KUnit to kernel init
-Date: Mon, 16 Dec 2019 23:58:36 -0800
-Message-ID: <20191217075836.C76942072D@mail.kernel.org>
-References: <20191216220555.245089-1-brendanhiggins@google.com> <20191216220555.245089-5-brendanhiggins@google.com>
+Subject: Re: [RFC v1 3/6] kunit: test: create a single centralized executor for all tests
+Date: Tue, 17 Dec 2019 00:04:07 -0800
+Message-ID: <20191217080408.0E805207FF@mail.kernel.org>
+References: <20191216220555.245089-1-brendanhiggins@google.com> <20191216220555.245089-4-brendanhiggins@google.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: quoted-printable
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20191216220555.245089-5-brendanhiggins@google.com>
+In-Reply-To: <20191216220555.245089-4-brendanhiggins@google.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: akpm@linux-foundation.org, alan.maguire@oracle.com, anton.ivanov@cambridgegreys.com, arnd@arndb.de, davidgow@google.com, jdike@addtoit.com, keescook@chromium.org, richard@nod.at, rppt@linux.ibm.com, skhan@linuxfoundation.org, yzaikin@google.com
 Cc: gregkh@linuxfoundation.org, logang@deltatee.com, mcgrof@kernel.org, knut.omang@oracle.com, linux-um@lists.infradead.org, linux-arch@vger.kernel.org, linux-kselftest@vger.kernel.org, kunit-dev@googlegroups.com, linux-kernel@vger.kernel.org, Brendan Higgins <brendanhiggins@google.com>
 List-Id: linux-arch.vger.kernel.org
 
-Quoting Brendan Higgins (2019-12-16 14:05:53)
-> Remove KUnit from init calls entirely, instead call directly from
-> kernel_init().
+Quoting Brendan Higgins (2019-12-16 14:05:52)
+> diff --git a/include/kunit/test.h b/include/kunit/test.h
+> index dba48304b3bd3..c070798ebb765 100644
+> --- a/include/kunit/test.h
+> +++ b/include/kunit/test.h
+> @@ -217,11 +217,8 @@ int kunit_run_tests(struct kunit_suite *suite);
+>   * everything else is definitely initialized.
+>   */
+>  #define kunit_test_suite(suite)                                         =
+              \
+> -       static int kunit_suite_init##suite(void)                         =
+      \
 
-Yes, but why? Is it desired to run the unit tests earlier than opening
-the console or something?
+Oh this should have been __init before.
 
->=20
-> diff --git a/lib/kunit/executor.c b/lib/kunit/executor.c
-> index 978086cfd257d..ca880224c0bab 100644
-> --- a/lib/kunit/executor.c
-> +++ b/lib/kunit/executor.c
-> @@ -32,12 +32,10 @@ static bool kunit_run_all_tests(void)
->         return !has_test_failed;
->  }
+> -       {                                                                =
+      \
+> -               return kunit_run_tests(&suite);                          =
+      \
+> -       }                                                                =
+      \
+> -       late_initcall(kunit_suite_init##suite)
+> +       static struct kunit_suite *__kunit_suite_##suite                 =
+      \
+> +       __used __aligned(8) __section(.kunit_test_suites) =3D &suite
 > =20
-> -static int kunit_executor_init(void)
-> +int kunit_executor_init(void)
+>  /*
+>   * Like kunit_alloc_resource() below, but returns the struct kunit_resou=
+rce
+> diff --git a/lib/kunit/executor.c b/lib/kunit/executor.c
+> new file mode 100644
+> index 0000000000000..978086cfd257d
+> --- /dev/null
+> +++ b/lib/kunit/executor.c
+> @@ -0,0 +1,43 @@
+> +// SPDX-License-Identifier: GPL-2.0
+> +/*
+> + * Base unit test (KUnit) API.
+> + *
+> + * Copyright (C) 2019, Google LLC.
+> + * Author: Brendan Higgins <brendanhiggins@google.com>
+> + */
+> +
+> +#include <linux/init.h>
+> +#include <linux/printk.h>
+> +#include <kunit/test.h>
+> +
+> +/*
+> + * These symbols point to the .kunit_test_suites section and are defined=
+ in
+> + * include/asm-generic/vmlinux.lds.h, and consequently must be extern.
+> + */
+> +extern struct kunit_suite *__kunit_suites_start[];
+> +extern struct kunit_suite *__kunit_suites_end[];
+> +
+> +static bool kunit_run_all_tests(void)
 
-Should be marked __init? Even before this patch presumably.
+Should be __init?
 
->  {
->         if (kunit_run_all_tests())
->                 return 0;
->         else
->                 return -EFAULT;
->  }
-> -
-> -late_initcall(kunit_executor_init);
+> +{
+> +       struct kunit_suite **suite;
+
+Can this be const? And the linker references above too?
+
+> +       bool has_test_failed =3D false;
+> +
+> +       for (suite =3D __kunit_suites_start;
+> +            suite < __kunit_suites_end;
+> +            ++suite) {
+> +               if (kunit_run_tests(*suite))
+> +                       has_test_failed =3D true;
+> +       }
+> +
+> +       return !has_test_failed;
+> +}
+> +
+> +static int kunit_executor_init(void)
+
+Should be __init?
+
+> +{
+> +       if (kunit_run_all_tests())
+> +               return 0;
+> +       else
+> +               return -EFAULT;
+
+Why two functions instead of just one that is the target of the
+late_initcall? Nitpick: deindent that last return and take it out of the
+else.
+
+> +}
+> +
+> +late_initcall(kunit_executor_init);
