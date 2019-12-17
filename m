@@ -1,49 +1,56 @@
-From: "Enrico Weigelt, metux IT consult" <lkml@metux.net>
+From: Greg KH <greg@kroah.com>
 Subject: Re: [PATCH] RFC: platform driver registering via initcall tables
-Date: Tue, 17 Dec 2019 14:44:39 +0100
-Message-ID: <6422bc88-6d0a-7b51-aaa7-640c6961b177@metux.net>
+Date: Tue, 17 Dec 2019 15:06:46 +0100
+Message-ID: <20191217140646.GC3489463@kroah.com>
 References: <20191217102219.29223-1-info@metux.net>
  <20191217103152.GB2914497@kroah.com>
+ <6422bc88-6d0a-7b51-aaa7-640c6961b177@metux.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <netdev-owner@vger.kernel.org>
-In-Reply-To: <20191217103152.GB2914497@kroah.com>
-Content-Language: tl
+Content-Disposition: inline
+In-Reply-To: <6422bc88-6d0a-7b51-aaa7-640c6961b177@metux.net>
 Sender: netdev-owner@vger.kernel.org
-To: Greg KH <greg@kroah.com>, "Enrico Weigelt, metux IT consult" <info@metux.net>
-Cc: linux-kernel@vger.kernel.org, linus.walleij@linaro.org, bgolaszewski@baylibre.com, dmitry.torokhov@gmail.com, jacek.anaszewski@gmail.com, pavel@ucw.cz, dmurphy@ti.com, arnd@arndb.de, masahiroy@kernel.org, michal.lkml@markovi.net, kafai@fb.com, songliubraving@fb.com, yhs@fb.com, andriin@fb.com, linux-gpio@vger.kernel.org, linux-input@vger.kernel.org, linux-leds@vger.kernel.org, linux-arch@vger.kernel.org, linux-kbuild@vger.kernel.org, netdev@vger.kernel.org, bpf@vger.kernel.org
+To: "Enrico Weigelt, metux IT consult" <lkml@metux.net>
+Cc: "Enrico Weigelt, metux IT consult" <info@metux.net>, linux-kernel@vger.kernel.org, linus.walleij@linaro.org, bgolaszewski@baylibre.com, dmitry.torokhov@gmail.com, jacek.anaszewski@gmail.com, pavel@ucw.cz, dmurphy@ti.com, arnd@arndb.de, masahiroy@kernel.org, michal.lkml@markovi.net, kafai@fb.com, songliubraving@fb.com, yhs@fb.com, andriin@fb.com, linux-gpio@vger.kernel.org, linux-input@vger.kernel.org, linux-leds@vger.kernel.org, linux-arch@vger.kernel.org, linux-kbuild@vger.kernel.org, netdev@vger.kernel.org, bpf@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On 17.12.19 11:31, Greg KH wrote:
+On Tue, Dec 17, 2019 at 02:44:39PM +0100, Enrico Weigelt, metux IT consult wrote:
+> On 17.12.19 11:31, Greg KH wrote:
+> 
+> Hi,
+> 
+> > No, what is so "special" about platform drivers that they require this?
+> 
+> Nothing, of course ;-)
+> 
+> It's the the starting point for this PoC. The idea actually is doing
+> this for all other driver types, too (eg. spi, pci, usb, ...). But
+> they'll need their own tables, as different *_register() functions have
+> to be called - just haven't implemented that yet.
 
-Hi,
+That's not needed, and you are going to break the implicit ordering we
+already have with link order.  You are going to have to figure out what
+bus type the driver is, to determine what segment it was in, to figure
+out what was loaded before what.
 
-> No, what is so "special" about platform drivers that they require this?
+Not good.
 
-Nothing, of course ;-)
+> > If anything, we should be moving _AWAY_ from platform drivers and use
+> > real bus drivers instead.
+> 
+> That would be nice, but, unfortunately, we have lots of devices which
+> aren't attached to any (probing-capable) bus. That's why we have things
+> like oftree, etc.
+> 
+> > Please no, I don't see why this is even needed.
+> 
+> The idea is getting rid of all the init code, which all just does the
+> same, just calls some *_register() function.
 
-It's the the starting point for this PoC. The idea actually is doing
-this for all other driver types, too (eg. spi, pci, usb, ...). But
-they'll need their own tables, as different *_register() functions have
-to be called - just haven't implemented that yet.
+There's no need to get rid of it, what are you trying to save here?  How
+can you be sure init order is still the same?
 
-> If anything, we should be moving _AWAY_ from platform drivers and use
-> real bus drivers instead.
+thanks,
 
-That would be nice, but, unfortunately, we have lots of devices which
-aren't attached to any (probing-capable) bus. That's why we have things
-like oftree, etc.
-
-> Please no, I don't see why this is even needed.
-
-The idea is getting rid of all the init code, which all just does the
-same, just calls some *_register() function.
-
-
---mtx
-
----
-Enrico Weigelt, metux IT consult
-Free software and Linux embedded engineering
-info@metux.net -- +49-151-27565287
+greg k-h
