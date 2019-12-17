@@ -1,28 +1,30 @@
 From: Stephen Boyd <sboyd@kernel.org>
-Subject: Re: [RFC v1 5/6] kunit: test: add test plan to KUnit TAP format
-Date: Tue, 17 Dec 2019 00:18:44 -0800
-Message-ID: <20191217081845.141F4206A5@mail.kernel.org>
-References: <20191216220555.245089-1-brendanhiggins@google.com> <20191216220555.245089-6-brendanhiggins@google.com>
+Subject: Re: [RFC v1 1/6] vmlinux.lds.h: add linker section for KUnit test suites
+Date: Tue, 17 Dec 2019 00:21:17 -0800
+Message-ID: <20191217082117.E5D98206EC@mail.kernel.org>
+References: <20191216220555.245089-1-brendanhiggins@google.com> <20191216220555.245089-2-brendanhiggins@google.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: quoted-printable
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20191216220555.245089-6-brendanhiggins@google.com>
+In-Reply-To: <20191216220555.245089-2-brendanhiggins@google.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: akpm@linux-foundation.org, alan.maguire@oracle.com, anton.ivanov@cambridgegreys.com, arnd@arndb.de, davidgow@google.com, jdike@addtoit.com, keescook@chromium.org, richard@nod.at, rppt@linux.ibm.com, skhan@linuxfoundation.org, yzaikin@google.com
 Cc: gregkh@linuxfoundation.org, logang@deltatee.com, mcgrof@kernel.org, knut.omang@oracle.com, linux-um@lists.infradead.org, linux-arch@vger.kernel.org, linux-kselftest@vger.kernel.org, kunit-dev@googlegroups.com, linux-kernel@vger.kernel.org, Brendan Higgins <brendanhiggins@google.com>
 List-Id: linux-arch.vger.kernel.org
 
-Quoting Brendan Higgins (2019-12-16 14:05:54)
-> TAP 14 allows an optional test plan to be emitted before the start of
-> the start of testing[1]; this is valuable because it makes it possible
-> for a test harness to detect whether the number of tests run matches the
-> number of tests expected to be run, ensuring that no tests silently
-> failed.
+Quoting Brendan Higgins (2019-12-16 14:05:50)
+> Add a linker section where KUnit can put references to its test suites.
+> This patch is the first step in transitioning to dispatching all KUnit
+> tests from a centralized executor rather than having each as its own
+> separate late_initcall.
 >=20
-> Link[1]: https://github.com/isaacs/testanything.github.io/blob/tap14/tap-=
-version-14-specification.md#the-plan
 > Signed-off-by: Brendan Higgins <brendanhiggins@google.com>
-> ---
+> Co-developed-by: Iurii Zaikin <yzaikin@google.com>
+> Signed-off-by: Iurii Zaikin <yzaikin@google.com>
+
+I thought your SoB should come last given you're sending the patch.
+
+Otherwise,
 
 Reviewed-by: Stephen Boyd <sboyd@kernel.org>
