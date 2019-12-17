@@ -1,89 +1,78 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:41742 "EHLO mail.kernel.org"
+Received: from foss.arm.com ([217.140.110.172]:43670 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726191AbfLQRH0 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 17 Dec 2019 12:07:26 -0500
-Date: Tue, 17 Dec 2019 17:07:19 +0000
-From: Will Deacon <will@kernel.org>
-Subject: Re: READ_ONCE() + STACKPROTECTOR_STRONG == :/ (was Re: [GIT PULL]
- Please pull powerpc/linux.git powerpc-5.5-2 tag (topic/kasan-bitops))
-Message-ID: <20191217170719.GA869@willie-the-truck>
-References: <20191212100756.GA11317@willie-the-truck>
- <20191212104610.GW2827@hirez.programming.kicks-ass.net>
- <CAHk-=wjUBsH0BYDBv=q36482G-U7c=9bC89L_BViSciTfb8fhA@mail.gmail.com>
- <20191212180634.GA19020@willie-the-truck>
- <CAHk-=whRxB0adkz+V7SQC8Ac_rr_YfaPY8M2mFDfJP2FFBNz8A@mail.gmail.com>
- <20191212193401.GB19020@willie-the-truck>
- <CAHk-=wiMuHmWzQ7-CRQB6o+SHtA-u-Rp6VZwPcqDbjAaug80rQ@mail.gmail.com>
+        id S1726764AbfLQRsO (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 17 Dec 2019 12:48:14 -0500
+Date: Tue, 17 Dec 2019 17:48:10 +0000
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: Re: [PATCH 12/22] arm64: mte: Add specific SIGSEGV codes
+Message-ID: <20191217174808.GM5624@arrakis.emea.arm.com>
+References: <20191211184027.20130-1-catalin.marinas@arm.com>
+ <20191211184027.20130-13-catalin.marinas@arm.com>
+ <CAK8P3a1-eaR7NddhDce65vXKCGeZD3xUMrTTAWN4U3oW0ecN=g@mail.gmail.com>
+ <87zhfxqu1q.fsf@x220.int.ebiederm.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <CAHk-=wiMuHmWzQ7-CRQB6o+SHtA-u-Rp6VZwPcqDbjAaug80rQ@mail.gmail.com>
+In-Reply-To: <87zhfxqu1q.fsf@x220.int.ebiederm.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Peter Zijlstra <peterz@infradead.org>, Michael Ellerman <mpe@ellerman.id.au>, dja@axtens.net, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linuxppc-dev@lists.ozlabs.org, Christophe Leroy <christophe.leroy@c-s.fr>, linux-arch <linux-arch@vger.kernel.org>, Mark Rutland <mark.rutland@arm.com>, Segher Boessenkool <segher@kernel.crashing.org>, Arnd Bergmann <arnd@arndb.de>, Christian Borntraeger <borntraeger@de.ibm.com>
-Message-ID: <20191217170719.x8vpicK4nYtpY_KfmFnOnqVm2COYqpIF8DOt60sSpLg@z>
+To: "Eric W. Biederman" <ebiederm@xmission.com>
+Cc: Arnd Bergmann <arnd@arndb.de>, Linux ARM <linux-arm-kernel@lists.infradead.org>, Will Deacon <will@kernel.org>, Marc Zyngier <maz@kernel.org>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Richard Earnshaw <Richard.Earnshaw@arm.com>, Kevin Brodsky <kevin.brodsky@arm.com>, Andrey Konovalov <andreyknvl@google.com>, Linux-MM <linux-mm@kvack.org>, linux-arch <linux-arch@vger.kernel.org>, Al Viro <viro@zeniv.linux.org.uk>
+Message-ID: <20191217174810.TfTzVugU-XyfDzQyyat-jSO0NJKIun_8p-5Fn6LDMkk@z>
 
-On Thu, Dec 12, 2019 at 12:49:52PM -0800, Linus Torvalds wrote:
-> On Thu, Dec 12, 2019 at 11:34 AM Will Deacon <will@kernel.org> wrote:
-> >
-> > The root of my concern in all of this, and what started me looking at it in
-> > the first place, is the interaction with 'typeof()'. Inheriting 'volatile'
-> > for a pointer means that local variables in macros declared using typeof()
-> > suddenly start generating *hideous* code, particularly when pointless stack
-> > spills get stackprotector all excited.
+Hi Eric,
+
+On Thu, Dec 12, 2019 at 12:26:41PM -0600, Eric W. Biederman wrote:
+> Arnd Bergmann <arnd@arndb.de> writes:
+> > On Wed, Dec 11, 2019 at 7:40 PM Catalin Marinas <catalin.marinas@arm.com> wrote:
+> >>
+> >> From: Vincenzo Frascino <vincenzo.frascino@arm.com>
+> >>
+> >> Add MTE-specific SIGSEGV codes to siginfo.h.
+> >>
+> >> Note that the for MTE we are reusing the same SPARC ADI codes because
+> >> the two functionalities are similar and they cannot coexist on the same
+> >> system.
 > 
-> Yeah, removing volatile can be a bit annoying.
+> Please Please Please don't do that.
 > 
-> For the particular case of the bitops, though, it's not an issue.
-> Since you know the type there, you can just cast it.
+> It is actively harmful to have architecture specific si_code values.
+> As it makes maintenance much more difficult.
 > 
-> And if we had the rule that READ_ONCE() was an arithmetic type, you could do
+> Especially as the si_codes are part of union descrimanator.
 > 
->     typeof(0+(*p)) __var;
+> If your functionality is identical reuse the numbers otherwise please
+> just select the next numbers not yet used.
+
+It makes sense.
+
+> We have at least 256 si_codes per signal 2**32 if we really need them so
+> there is no need to be reuse numbers.
 > 
-> since you might as well get the integer promotion anyway (on the
-> non-volatile result).
+> The practical problem is that architecture specific si_codes start
+> turning kernel/signal.c into #ifdef soup, and we loose a lot of
+> basic compile coverage because of that.  In turn not compiling the code
+> leads to bit-rot in all kinds of weird places.
+
+Fortunately for MTE we don't need to change kernel/signal.c. It's
+sufficient to call force_sig_fault() from the arch code with the
+corresponding signo, code and fault address.
+
+> p.s. As for coexistence there is always the possibility that one chip
+> in a cpu family does supports one thing and another chip in a cpu
+> family supports another.  So userspace may have to cope with the
+> situation even if an individual chip doesn't.
 > 
-> But that doesn't work with structures or unions, of course.
-> 
-> I'm not entirely sure we have READ_ONCE() with a struct. I do know we
-> have it with 64-bit entities on 32-bit machines, but that's ok with
-> the "0+" trick.
+> I remember a similar case where sparc had several distinct page table
+> formats and we had a single kernel that had to cope with them all.
 
-Other than the two trivial examples Arnd and I spotted, it looks like
-we're in for some fun with the page-table types such as pud_t but that
-/should/ be fixable with enough effort.
+We have such fun on ARM as well with the big.LITTLE systems where not
+all CPUs support the same features. For example, MTE is only enabled
+once all the secondary CPUs have booted and confirmed to have the
+feature.
 
-However, I'm really banging my head against the compiler trying to get
-your trick above to work for pointer types when the pointed-to-type is
-not defined. As a very cut down example (I pulled this back out of the
-preprocessor and cleaned it up a bit):
+Thanks.
 
-
-struct dentry {
-	struct inode *d_inode;
-};
-
-static inline struct inode *d_inode_rcu(struct dentry *dentry)
-{
-	return ({
-		typeof(0 + dentry->d_inode) __x = (*(volatile typeof(dentry->d_inode) *)&(dentry->d_inode));
-		(typeof(dentry->d_inode))__x;
-	});
-}
-
-
-Trying to compile this results in:
-
-  | In function 'd_inode_rcu':
-  | error: invalid use of undefined type 'struct inode'
-
-whereas it compiles fine if you remove the '0 +' from the first typeof.
-
-What am I missing? Perhaps the compiler wants the size information of
-'struct inode' before it will contemplate the arithmetic, but if so then
-I don't think we can use this trick after all. Hmm.
-
-Will
+-- 
+Catalin
