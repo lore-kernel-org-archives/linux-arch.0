@@ -1,163 +1,303 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH 05/17] asm-generic/tlb: Rename
- HAVE_RCU_TABLE_NO_INVALIDATE
-Date: Tue, 17 Dec 2019 09:51:38 +0100
-Message-ID: <20191217085138.GN2871@hirez.programming.kicks-ass.net>
-References: <20191211120713.360281197@infradead.org>
- <20191211122955.940455408@infradead.org>
- <87woawzc1t.fsf@linux.ibm.com>
- <20191216123752.GM2844@hirez.programming.kicks-ass.net>
- <d52ea890-c2ea-88f3-9d62-b86e60ee77ae@linux.ibm.com>
- <20191216132004.GO2844@hirez.programming.kicks-ass.net>
- <a9ae27c8-aa84-cda3-355c-7abb3b450d38@linux.ibm.com>
- <33ed03aa-a34c-3a81-0f83-20c3e8d4eff7@linux.ibm.com>
- <20191216145041.GG2827@hirez.programming.kicks-ass.net>
- <20191216151419.GL2871@hirez.programming.kicks-ass.net>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+From: "Enrico Weigelt, metux IT consult" <info@metux.net>
+Subject: [PATCH] RFC: platform driver registering via initcall tables
+Date: Tue, 17 Dec 2019 11:22:19 +0100
+Message-ID: <20191217102219.29223-1-info@metux.net>
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20191216151419.GL2871@hirez.programming.kicks-ass.net>
 Sender: linux-kernel-owner@vger.kernel.org
-To: "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>
-Cc: Michael Ellerman <mpe@ellerman.id.au>, Will Deacon <will@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Nick Piggin <npiggin@gmail.com>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, "David S. Miller" <davem@davemloft.net>, Helge Deller <deller@gmx.de>, Geert Uytterhoeven <geert@linux-m68k.org>, Paul Burton <paulburton@kernel.org>, Tony Luck <tony.luck@intel.com>, Richard Henderson <rth@twiddle.net>, Nick Hu <nickhu@andestech.com>, Paul Walmsley <paul.walmsley@sifive.com>
+To: linux-kernel@vger.kernel.org
+Cc: info@metux.net, linus.walleij@linaro.org, bgolaszewski@baylibre.com, dmitry.torokhov@gmail.com, jacek.anaszewski@gmail.com, pavel@ucw.cz, dmurphy@ti.com, arnd@arndb.de, masahiroy@kernel.org, michal.lkml@markovi.net, kafai@fb.com, songliubraving@fb.com, yhs@fb.com, andriin@fb.com, linux-gpio@vger.kernel.org, linux-input@vger.kernel.org, linux-leds@vger.kernel.org, linux-arch@vger.kernel.org, linux-kbuild@vger.kernel.org, netdev@vger.kernel.org, bpf@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Mon, Dec 16, 2019 at 04:14:19PM +0100, Peter Zijlstra wrote:
-> It seems to me you need something like this here patch, all you need to
-> add is a suitable definition of tlb_needs_table_invalidate() for Power.
+A large portion of platform drivers doesn't need their own init/exit
+functions. At source level, the boilerplate is already replaced by
+module_platform_driver() macro call, which creates this code under
+the hood. But in the binary, the code is still there.
 
-FWIW, Paul (Burton), MIPS should be able to have
-tlb_needs_table_invalidate() return false when it has pure software TLB
-fill. I tried to have a quick look for P5600 and P6600 to see if I could
-find the right state that indicates hardware TLB, but couldn't find
-anything.
+This patch is an attempt to remove them it, by the same approach
+already used for the init functions: collect pointers to the driver
+structs in special sections, which are then processed by the init
+code which already calls the init function vectors. For each level,
+the structs are processed right after the init funcs, so we guarantee
+the existing order, and explicit inits always come before the automatic
+registering.
 
-> ---
-> 
-> diff --git a/arch/Kconfig b/arch/Kconfig
-> index c44ef15866a3..98de654b79b3 100644
-> --- a/arch/Kconfig
-> +++ b/arch/Kconfig
-> @@ -400,10 +400,6 @@ config MMU_GATHER_RCU_TABLE_FREE
->  	bool
->  	select MMU_GATHER_TABLE_FREE
->  
-> -config MMU_GATHER_NO_TABLE_INVALIDATE
-> -	bool
-> -	depends on MMU_GATHER_RCU_TABLE_FREE
-> -
->  config MMU_GATHER_PAGE_SIZE
->  	bool
->  
-> diff --git a/arch/powerpc/Kconfig b/arch/powerpc/Kconfig
-> index 3dea4c8d39f2..2ddf24822d5b 100644
-> --- a/arch/powerpc/Kconfig
-> +++ b/arch/powerpc/Kconfig
-> @@ -223,7 +223,6 @@ config PPC
->  	select HAVE_PERF_REGS
->  	select HAVE_PERF_USER_STACK_DUMP
->  	select MMU_GATHER_RCU_TABLE_FREE		if SMP
-> -	select MMU_GATHER_NO_TABLE_INVALIDATE	if MMU_GATHER_RCU_TABLE_FREE
->  	select MMU_GATHER_PAGE_SIZE
->  	select HAVE_REGS_AND_STACK_ACCESS_API
->  	select HAVE_RELIABLE_STACKTRACE		if PPC_BOOK3S_64 && CPU_LITTLE_ENDIAN
-> diff --git a/arch/sparc/Kconfig b/arch/sparc/Kconfig
-> index a76e915ab207..acf20b6c0a54 100644
-> --- a/arch/sparc/Kconfig
-> +++ b/arch/sparc/Kconfig
-> @@ -66,7 +66,6 @@ config SPARC64
->  	select HAVE_KRETPROBES
->  	select HAVE_KPROBES
->  	select MMU_GATHER_RCU_TABLE_FREE if SMP
-> -	select MMU_GATHER_NO_TABLE_INVALIDATE if MMU_GATHER_RCU_TABLE_FREE
->  	select HAVE_MEMBLOCK_NODE_MAP
->  	select HAVE_ARCH_TRANSPARENT_HUGEPAGE
->  	select HAVE_DYNAMIC_FTRACE
-> diff --git a/arch/sparc/include/asm/tlb_64.h b/arch/sparc/include/asm/tlb_64.h
-> index a2f3fa61ee36..ac8e74a96122 100644
-> --- a/arch/sparc/include/asm/tlb_64.h
-> +++ b/arch/sparc/include/asm/tlb_64.h
-> @@ -28,6 +28,12 @@ void flush_tlb_pending(void);
->  #define __tlb_remove_tlb_entry(tlb, ptep, address) do { } while (0)
->  #define tlb_flush(tlb)	flush_tlb_pending()
->  
-> +/*
-> + * SPARC64's hardware TLB fill does not use the Linux page-tables
-> + * and therefore we don't need a TLBI when freeing page-table pages.
-> + */
-> +#define tlb_needs_table_invalidate()	(false)
-> +
->  #include <asm-generic/tlb.h>
->  
->  #endif /* _SPARC64_TLB_H */
-> diff --git a/include/asm-generic/tlb.h b/include/asm-generic/tlb.h
-> index fe0ea6ff3636..4108d6d18ca5 100644
-> --- a/include/asm-generic/tlb.h
-> +++ b/include/asm-generic/tlb.h
-> @@ -156,13 +156,6 @@
->   *  Useful if your architecture doesn't use IPIs for remote TLB invalidates
->   *  and therefore doesn't naturally serialize with software page-table walkers.
->   *
-> - *  MMU_GATHER_NO_TABLE_INVALIDATE
-> - *
-> - *  This makes MMU_GATHER_RCU_TABLE_FREE avoid calling tlb_flush_mmu_tlbonly()
-> - *  before freeing the page-table pages. This can be avoided if you use
-> - *  MMU_GATHER_RCU_TABLE_FREE and your architecture does _NOT_ use the Linux
-> - *  page-tables natively.
-> - *
->   *  MMU_GATHER_NO_RANGE
->   *
->   *  Use this if your architecture lacks an efficient flush_tlb_range().
-> @@ -203,6 +196,24 @@ extern void tlb_remove_table(struct mmu_gather *tlb, void *table);
->  
->  #endif /* CONFIG_MMU_GATHER_TABLE_FREE */
->  
-> +#ifdef CONFIG_MMU_GATHER_RCU_TABLE_FREE
-> +
-> +/*
-> + * This allows an architecture that does not use the linux page-tables for
-> + * hardware to skip the TLBI when freeing page tables.
-> + */
-> +#ifndef tlb_needs_table_invalidate
-> +#define tlb_needs_table_invalidate() (true)
-> +#endif
-> +
-> +#else
-> +
-> +#ifdef tlb_needs_table_invalidate
-> +#error tlb_needs_table_invalidate() requires MMU_GATHER_RCU_TABLE_FREE
-> +#endif
-> +
-> +#endif /* CONFIG_MMU_GATHER_RCU_TABLE_FREE */
-> +
->  #ifndef CONFIG_MMU_GATHER_NO_GATHER
->  /*
->   * If we can't allocate a page to make a big batch of page pointers
-> diff --git a/mm/mmu_gather.c b/mm/mmu_gather.c
-> index 9d103031568d..a3538cb2bcbe 100644
-> --- a/mm/mmu_gather.c
-> +++ b/mm/mmu_gather.c
-> @@ -177,14 +177,14 @@ static void tlb_remove_table_free(struct mmu_table_batch *batch)
->   */
->  static inline void tlb_table_invalidate(struct mmu_gather *tlb)
->  {
-> -#ifndef CONFIG_MMU_GATHER_NO_TABLE_INVALIDATE
-> -	/*
-> -	 * Invalidate page-table caches used by hardware walkers. Then we still
-> -	 * need to RCU-sched wait while freeing the pages because software
-> -	 * walkers can still be in-flight.
-> -	 */
-> -	tlb_flush_mmu_tlbonly(tlb);
-> -#endif
-> +	if (tlb_needs_table_invalidate()) {
-> +		/*
-> +		 * Invalidate page-table caches used by hardware walkers. Then
-> +		 * we still need to RCU-sched wait while freeing the pages
-> +		 * because software walkers can still be in-flight.
-> +		 */
-> +		tlb_flush_mmu_tlbonly(tlb);
-> +	}
->  }
->  
->  static void tlb_remove_table_one(void *table)
+Downside of apprach: cluttering init code w/ a little bit knowledge
+about driver related stuff (calls to platform_driver_register(), etc).
+
+For now, only implemented for the built-in case (modules still go the
+old route). The module case is a little bit trickier: either we have to
+extend the module header (and modpost tool) or do some dynamic symbol
+lookup.
+
+This patch is just a PoC for further discussions, not ready for mainline.
+It also changes a few drivers, just for illustration. In case the general
+approach is accepted, it will be cleaned up and splitted.
+
+2DO:
+    * check for potential arch specific issues (-> um ?)
+    * implement loadable module case
+    * add other driver types (eg. spi, pci, ...)
+    * design a practical way for converting drivers step by step
+      (or shall we just brutally change module_platform_driver() ?)
+
+Please let me know what you think about this.
+
+happy hacking
+--mtx
+---
+ drivers/gpio/gpio-amd-fch.c               |  3 +--
+ drivers/input/keyboard/gpio_keys_polled.c |  2 +-
+ drivers/leds/leds-gpio.c                  |  3 +--
+ include/asm-generic/vmlinux.lds.h         | 20 ++++++++++++++
+ include/linux/init.h                      | 25 ++++++++++++++++++
+ include/linux/platform_device.h           |  9 +++++++
+ init/main.c                               | 43 +++++++++++++++++++++++++++++++
+ scripts/mod/modpost.c                     |  2 +-
+ 8 files changed, 101 insertions(+), 6 deletions(-)
+
+diff --git a/drivers/gpio/gpio-amd-fch.c b/drivers/gpio/gpio-amd-fch.c
+index 4e44ba4d7423..2542d30258c6 100644
+--- a/drivers/gpio/gpio-amd-fch.c
++++ b/drivers/gpio/gpio-amd-fch.c
+@@ -183,8 +183,7 @@ static struct platform_driver amd_fch_gpio_driver = {
+ 	},
+ 	.probe = amd_fch_gpio_probe,
+ };
+-
+-module_platform_driver(amd_fch_gpio_driver);
++MODULE_PLATFORM_DRIVER(amd_fch_gpio_driver);
+ 
+ MODULE_AUTHOR("Enrico Weigelt, metux IT consult <info@metux.net>");
+ MODULE_DESCRIPTION("AMD G-series FCH GPIO driver");
+diff --git a/drivers/input/keyboard/gpio_keys_polled.c b/drivers/input/keyboard/gpio_keys_polled.c
+index 6eb0a2f3f9de..0c107c11dd1d 100644
+--- a/drivers/input/keyboard/gpio_keys_polled.c
++++ b/drivers/input/keyboard/gpio_keys_polled.c
+@@ -383,7 +383,7 @@ static struct platform_driver gpio_keys_polled_driver = {
+ 		.of_match_table = gpio_keys_polled_of_match,
+ 	},
+ };
+-module_platform_driver(gpio_keys_polled_driver);
++MODULE_PLATFORM_DRIVER(gpio_keys_polled_driver);
+ 
+ MODULE_LICENSE("GPL v2");
+ MODULE_AUTHOR("Gabor Juhos <juhosg@openwrt.org>");
+diff --git a/drivers/leds/leds-gpio.c b/drivers/leds/leds-gpio.c
+index a5c73f3d5f79..cf0ef4a9eb79 100644
+--- a/drivers/leds/leds-gpio.c
++++ b/drivers/leds/leds-gpio.c
+@@ -313,8 +313,7 @@ static struct platform_driver gpio_led_driver = {
+ 		.of_match_table = of_gpio_leds_match,
+ 	},
+ };
+-
+-module_platform_driver(gpio_led_driver);
++MODULE_PLATFORM_DRIVER(gpio_led_driver);
+ 
+ MODULE_AUTHOR("Raphael Assenat <raph@8d.com>, Trent Piepho <tpiepho@freescale.com>");
+ MODULE_DESCRIPTION("GPIO LED driver");
+diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
+index e00f41aa8ec4..5956f64db7c6 100644
+--- a/include/asm-generic/vmlinux.lds.h
++++ b/include/asm-generic/vmlinux.lds.h
+@@ -851,6 +851,25 @@
+ 		INIT_CALLS_LEVEL(7)					\
+ 		__initcall_end = .;
+ 
++#define INIT_DRVS_PLAT_LEVEL(level)					\
++		__initdrv_plat##level##_start = .;			\
++		KEEP(*(.initdrv_plat##level##.init))			\
++		KEEP(*(.initdrv_plat##level##s.init))			\
++
++#define INIT_DRVS							\
++		__initdrv_plat_start = .;				\
++		KEEP(*(.initdrv_plat_early.init))			\
++		INIT_DRVS_PLAT_LEVEL(0)					\
++		INIT_DRVS_PLAT_LEVEL(1)					\
++		INIT_DRVS_PLAT_LEVEL(2)					\
++		INIT_DRVS_PLAT_LEVEL(3)					\
++		INIT_DRVS_PLAT_LEVEL(4)					\
++		INIT_DRVS_PLAT_LEVEL(5)					\
++		INIT_DRVS_PLAT_LEVEL(rootfs)				\
++		INIT_DRVS_PLAT_LEVEL(6)					\
++		INIT_DRVS_PLAT_LEVEL(7)					\
++		__initdrv_plat_end = .;
++
+ #define CON_INITCALL							\
+ 		__con_initcall_start = .;				\
+ 		KEEP(*(.con_initcall.init))				\
+@@ -1022,6 +1041,7 @@
+ 		INIT_DATA						\
+ 		INIT_SETUP(initsetup_align)				\
+ 		INIT_CALLS						\
++		INIT_DRVS						\
+ 		CON_INITCALL						\
+ 		INIT_RAM_FS						\
+ 	}
+diff --git a/include/linux/init.h b/include/linux/init.h
+index 212fc9e2f691..9aa1695bf69c 100644
+--- a/include/linux/init.h
++++ b/include/linux/init.h
+@@ -123,6 +123,11 @@ static inline initcall_t initcall_from_entry(initcall_entry_t *entry)
+ {
+ 	return offset_to_ptr(entry);
+ }
++
++static inline struct platform_driver *initdrv_plat_from_entry(initcall_entry_t *entry)
++{
++	return offset_to_ptr(entry);
++}
+ #else
+ typedef initcall_t initcall_entry_t;
+ 
+@@ -130,6 +135,11 @@ static inline initcall_t initcall_from_entry(initcall_entry_t *entry)
+ {
+ 	return *entry;
+ }
++
++static inline struct platform_driver *initdrv_plat_from_entry(initcall_entry_t *entry)
++{
++	return *entry;
++}
+ #endif
+ 
+ extern initcall_entry_t __con_initcall_start[], __con_initcall_end[];
+@@ -191,13 +201,28 @@ extern bool initcall_debug;
+ 	"__initcall_" #fn #id ":			\n"	\
+ 	    ".long	" #fn " - .			\n"	\
+ 	    ".previous					\n");
++
++#define ___define_platform_driver(pd, id, __sec)		\
++	__ADDRESSABLE(pd)					\
++	asm(".section	\"" #__sec ".init\", \"a\"	\n"	\
++	"__plat_drv__" #pd #id ":			\n"	\
++	    ".long	" #pd " - .			\n"	\
++	    ".previous					\n");
++
++
+ #else
+ #define ___define_initcall(fn, id, __sec) \
+ 	static initcall_t __initcall_##fn##id __used \
+ 		__attribute__((__section__(#__sec ".init"))) = fn;
++
++#define ___define_platform_driver(fn, id, __sec) \
++	static initcall_t __initcall_##pd##id __used \
++		__attribute__((__section__(#__sec ".init"))) = fn;
++
+ #endif
+ 
+ #define __define_initcall(fn, id) ___define_initcall(fn, id, .initcall##id)
++#define __define_platform_driver(fn, id) ___define_platform_driver(fn, id, .initdrv_plat##id)
+ 
+ /*
+  * Early initcalls run before initializing SMP.
+diff --git a/include/linux/platform_device.h b/include/linux/platform_device.h
+index 276a03c24691..3868b0e75f5f 100644
+--- a/include/linux/platform_device.h
++++ b/include/linux/platform_device.h
+@@ -244,6 +244,15 @@ static inline void platform_set_drvdata(struct platform_device *pdev,
+ 	module_driver(__platform_driver, platform_driver_register, \
+ 			platform_driver_unregister)
+ 
++#ifdef MODULE
++#define MODULE_PLATFORM_DRIVER(__platform_driver) \
++	module_driver(__platform_driver, platform_driver_register, \
++			platform_driver_unregister)
++#else
++#define MODULE_PLATFORM_DRIVER(__platform_driver) \
++	__define_platform_driver(__platform_driver, 6)
++#endif
++
+ /* builtin_platform_driver() - Helper macro for builtin drivers that
+  * don't do anything special in driver init.  This eliminates some
+  * boilerplate.  Each driver may only use this macro once, and
+diff --git a/init/main.c b/init/main.c
+index ec3a1463ac69..754b68111b53 100644
+--- a/init/main.c
++++ b/init/main.c
+@@ -94,6 +94,7 @@
+ #include <linux/jump_label.h>
+ #include <linux/mem_encrypt.h>
+ #include <linux/file.h>
++#include <linux/platform_device.h>
+ 
+ #include <asm/io.h>
+ #include <asm/bugs.h>
+@@ -955,6 +956,22 @@ int __init_or_module do_one_initcall(initcall_t fn)
+ 	return ret;
+ }
+ 
++struct platform_driver;
++
++int __init_or_module do_one_initdrv_plat(struct platform_driver *pd)
++{
++	int rc;
++
++	rc = platform_driver_register(pd);
++	if (rc)
++		pr_warn("init: failed registering platform driver: %s: %d\n",
++			pd->driver.name, rc);
++	else
++		pr_info("init: registered platform driver: %s\n",
++			pd->driver.name);
++
++	return rc;
++}
+ 
+ extern initcall_entry_t __initcall_start[];
+ extern initcall_entry_t __initcall0_start[];
+@@ -979,6 +996,29 @@ static initcall_entry_t *initcall_levels[] __initdata = {
+ 	__initcall_end,
+ };
+ 
++extern initcall_entry_t __initdrv_plat_start[];
++extern initcall_entry_t __initdrv_plat0_start[];
++extern initcall_entry_t __initdrv_plat1_start[];
++extern initcall_entry_t __initdrv_plat2_start[];
++extern initcall_entry_t __initdrv_plat3_start[];
++extern initcall_entry_t __initdrv_plat4_start[];
++extern initcall_entry_t __initdrv_plat5_start[];
++extern initcall_entry_t __initdrv_plat6_start[];
++extern initcall_entry_t __initdrv_plat7_start[];
++extern initcall_entry_t __initdrv_plat_end[];
++
++static initcall_entry_t *initdrv_plat_levels[] __initdata = {
++	__initdrv_plat0_start,
++	__initdrv_plat1_start,
++	__initdrv_plat2_start,
++	__initdrv_plat3_start,
++	__initdrv_plat4_start,
++	__initdrv_plat5_start,
++	__initdrv_plat6_start,
++	__initdrv_plat7_start,
++	__initdrv_plat_end,
++};
++
+ /* Keep these in sync with initcalls in include/linux/init.h */
+ static const char *initcall_level_names[] __initdata = {
+ 	"pure",
+@@ -1005,6 +1045,9 @@ static void __init do_initcall_level(int level)
+ 	trace_initcall_level(initcall_level_names[level]);
+ 	for (fn = initcall_levels[level]; fn < initcall_levels[level+1]; fn++)
+ 		do_one_initcall(initcall_from_entry(fn));
++
++	for (fn = initdrv_plat_levels[level]; fn < initdrv_plat_levels[level+1]; fn++)
++		do_one_initdrv_plat(initdrv_plat_from_entry(fn));
+ }
+ 
+ static void __init do_initcalls(void)
+diff --git a/scripts/mod/modpost.c b/scripts/mod/modpost.c
+index 6e892c93d104..7fc8871c4da6 100644
+--- a/scripts/mod/modpost.c
++++ b/scripts/mod/modpost.c
+@@ -957,7 +957,7 @@ static void check_section(const char *modname, struct elf_info *elf,
+ #define ALL_INIT_SECTIONS INIT_SECTIONS, ALL_XXXINIT_SECTIONS
+ #define ALL_EXIT_SECTIONS EXIT_SECTIONS, ALL_XXXEXIT_SECTIONS
+ 
+-#define DATA_SECTIONS ".data", ".data.rel"
++#define DATA_SECTIONS ".data", ".data.rel", ".data.platdrv"
+ #define TEXT_SECTIONS ".text", ".text.unlikely", ".sched.text", \
+ 		".kprobes.text", ".cpuidle.text"
+ #define OTHER_TEXT_SECTIONS ".ref.text", ".head.text", ".spinlock.text", \
+-- 
+2.11.0
