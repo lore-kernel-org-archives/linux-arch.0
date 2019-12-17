@@ -1,89 +1,17 @@
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Subject: Re: READ_ONCE() + STACKPROTECTOR_STRONG == :/ (was Re: [GIT PULL]
- Please pull powerpc/linux.git powerpc-5.5-2 tag (topic/kasan-bitops))
-Date: Tue, 17 Dec 2019 10:32:35 -0800
-Message-ID: <CAHk-=wjNLxSZZs+A0tyb-MnJ2YU-sqTAfy0-X+9vxjXfs_O4zA@mail.gmail.com>
-References: <20191212100756.GA11317@willie-the-truck> <20191212104610.GW2827@hirez.programming.kicks-ass.net>
- <CAHk-=wjUBsH0BYDBv=q36482G-U7c=9bC89L_BViSciTfb8fhA@mail.gmail.com>
- <20191212180634.GA19020@willie-the-truck> <CAHk-=whRxB0adkz+V7SQC8Ac_rr_YfaPY8M2mFDfJP2FFBNz8A@mail.gmail.com>
- <20191212193401.GB19020@willie-the-truck> <CAHk-=wiMuHmWzQ7-CRQB6o+SHtA-u-Rp6VZwPcqDbjAaug80rQ@mail.gmail.com>
- <20191217170719.GA869@willie-the-truck> <CAHk-=whBnZBVNwu8aVVp205EKk7xtsnQgSjs38a5=y9HyheXzQ@mail.gmail.com>
+From: Christoph Hellwig <hch@lst.de>
+Subject: Re: RFC: kill off ioremap_nocache
+Date: Tue, 17 Dec 2019 19:35:10 +0100
+Message-ID: <20191217183510.GA32372@lst.de>
+References: <20191209135823.28465-1-hch@lst.de> <CAADWXX9zEBT-NPCwE09D+6=8iCZ+kCmdyXoGrTKhnmYn82XEJQ@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: multipart/mixed; boundary="0000000000005752d20599ea8ef5"
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <CAHk-=whBnZBVNwu8aVVp205EKk7xtsnQgSjs38a5=y9HyheXzQ@mail.gmail.com>
+Content-Disposition: inline
+In-Reply-To: <CAADWXX9zEBT-NPCwE09D+6=8iCZ+kCmdyXoGrTKhnmYn82XEJQ@mail.gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Will Deacon <will@kernel.org>
-Cc: Peter Zijlstra <peterz@infradead.org>, Michael Ellerman <mpe@ellerman.id.au>, Daniel Axtens <dja@axtens.net>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, Christophe Leroy <christophe.leroy@c-s.fr>, linux-arch <linux-arch@vger.kernel.org>, Mark Rutland <mark.rutland@arm.com>, Segher Boessenkool <segher@kernel.crashing.org>, Arnd Bergmann <arnd@arndb.de>, Christian Borntraeger <borntraeger@de.ibm.com>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Christoph Hellwig <hch@lst.de>, Paul Burton <paulburton@kernel.org>, James Hogan <jhogan@kernel.org>, Arnd Bergmann <arnd@arndb.de>, linux-mips <linux-mips@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, lkml <linux-kernel@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
---0000000000005752d20599ea8ef5
-Content-Type: text/plain; charset="UTF-8"
-
-On Tue, Dec 17, 2019 at 10:04 AM Linus Torvalds
-<torvalds@linux-foundation.org> wrote:
->
-> Let me think about it.
-
-How about we just get rid of the union entirely, and just use
-'unsigned long' or 'unsigned long long' depending on the size.
-
-Something like the attached patch - it still requires that it be an
-arithmetic type, but now because of the final cast.
-
-But it might still be a cast to a volatile type, of course. Then the
-result will be volatile, but at least now READ_ONCE() won't be taking
-the address of a volatile variable on the stack - does that at least
-fix some of the horrible code generation. Hmm?
-
-This is untested, because I obviously still have the cases of
-structures (page table entries) being accessed once..
-
-              Linus
-
---0000000000005752d20599ea8ef5
-Content-Type: text/x-patch; charset="US-ASCII"; name="patch.diff"
-Content-Disposition: attachment; filename="patch.diff"
-Content-Transfer-Encoding: base64
-Content-ID: <f_k4a7eqn90>
-X-Attachment-Id: f_k4a7eqn90
-
-IGluY2x1ZGUvbGludXgvY29tcGlsZXIuaCB8IDMzICsrKysrKysrKysrKysrKysrLS0tLS0tLS0t
-LS0tLS0tLQogMSBmaWxlIGNoYW5nZWQsIDE3IGluc2VydGlvbnMoKyksIDE2IGRlbGV0aW9ucygt
-KQoKZGlmZiAtLWdpdCBhL2luY2x1ZGUvbGludXgvY29tcGlsZXIuaCBiL2luY2x1ZGUvbGludXgv
-Y29tcGlsZXIuaAppbmRleCA1ZTg4ZTdlMzNhYmUuLjhiNDI4MjE5NGYxNiAxMDA2NDQKLS0tIGEv
-aW5jbHVkZS9saW51eC9jb21waWxlci5oCisrKyBiL2luY2x1ZGUvbGludXgvY29tcGlsZXIuaApA
-QCAtMTc5LDE4ICsxNzksMTggQEAgdm9pZCBmdHJhY2VfbGlrZWx5X3VwZGF0ZShzdHJ1Y3QgZnRy
-YWNlX2xpa2VseV9kYXRhICpmLCBpbnQgdmFsLAogCiAjaW5jbHVkZSA8dWFwaS9saW51eC90eXBl
-cy5oPgogCi0jZGVmaW5lIF9fUkVBRF9PTkNFX1NJWkUJCQkJCQlcCi0oewkJCQkJCQkJCVwKLQlz
-d2l0Y2ggKHNpemUpIHsJCQkJCQkJXAotCWNhc2UgMTogKihfX3U4ICopcmVzID0gKih2b2xhdGls
-ZSBfX3U4ICopcDsgYnJlYWs7CQlcCi0JY2FzZSAyOiAqKF9fdTE2ICopcmVzID0gKih2b2xhdGls
-ZSBfX3UxNiAqKXA7IGJyZWFrOwkJXAotCWNhc2UgNDogKihfX3UzMiAqKXJlcyA9ICoodm9sYXRp
-bGUgX191MzIgKilwOyBicmVhazsJCVwKLQljYXNlIDg6ICooX191NjQgKilyZXMgPSAqKHZvbGF0
-aWxlIF9fdTY0ICopcDsgYnJlYWs7CQlcCi0JZGVmYXVsdDoJCQkJCQkJXAotCQliYXJyaWVyKCk7
-CQkJCQkJXAotCQlfX2J1aWx0aW5fbWVtY3B5KCh2b2lkICopcmVzLCAoY29uc3Qgdm9pZCAqKXAs
-IHNpemUpOwlcCi0JCWJhcnJpZXIoKTsJCQkJCQlcCi0JfQkJCQkJCQkJXAorLyogInVuc2lnbmVk
-IGxvbmciIG9yICJ1bnNpZ25lZCBsb25nIGxvbmciIC0gbWFrZSBpdCBmaXQgaW4gYSByZWdpc3Rl
-ciBpZiBwb3NzaWJsZSAqLworI2RlZmluZSBfX1JFQURfT05DRV9UWVBFKHNpemUpIFwKKwlfX3R5
-cGVvZl9fKF9fYnVpbHRpbl9jaG9vc2VfZXhwcihzaXplID4gc2l6ZW9mKDBVTCksIDBVTEwsIDBV
-TCkpCisKKyNkZWZpbmUgX19SRUFEX09OQ0VfU0laRQkJCQkJCQlcCisoewkJCQkJCQkJCQlcCisJ
-c3dpdGNoIChzaXplKSB7CQkJCQkJCQlcCisJY2FzZSAxOiAqKHVuc2lnbmVkIGxvbmcgKilyZXMg
-PSAqKHZvbGF0aWxlIF9fdTggKilwOyBicmVhazsJCVwKKwljYXNlIDI6ICoodW5zaWduZWQgbG9u
-ZyAqKXJlcyA9ICoodm9sYXRpbGUgX191MTYgKilwOyBicmVhazsJCVwKKwljYXNlIDQ6ICoodW5z
-aWduZWQgbG9uZyAqKXJlcyA9ICoodm9sYXRpbGUgX191MzIgKilwOyBicmVhazsJCVwKKwljYXNl
-IDg6ICoodW5zaWduZWQgbG9uZyBsb25nICopcmVzID0gKih2b2xhdGlsZSBfX3U2NCAqKXA7IGJy
-ZWFrOwlcCisJfQkJCQkJCQkJCVwKIH0pCiAKIHN0YXRpYyBfX2Fsd2F5c19pbmxpbmUKQEAgLTI1
-OCwxMyArMjU4LDE0IEBAIHN0YXRpYyBfX2Fsd2F5c19pbmxpbmUgdm9pZCBfX3dyaXRlX29uY2Vf
-c2l6ZSh2b2xhdGlsZSB2b2lkICpwLCB2b2lkICpyZXMsIGludCBzCiAKICNkZWZpbmUgX19SRUFE
-X09OQ0UoeCwgY2hlY2spCQkJCQkJXAogKHsJCQkJCQkJCQlcCi0JdW5pb24geyB0eXBlb2YoeCkg
-X192YWw7IGNoYXIgX19jWzFdOyB9IF9fdTsJCQlcCisJX19SRUFEX09OQ0VfVFlQRShzaXplb2Yo
-eCkpIF9fdTsJCQkJXAorCWNvbXBpbGV0aW1lX2Fzc2VydChzaXplb2YoeCkgPD0gc2l6ZW9mKF9f
-dSksICJSRUFEX09OQ0UgdHlwZSIpOwlcCiAJaWYgKGNoZWNrKQkJCQkJCQlcCi0JCV9fcmVhZF9v
-bmNlX3NpemUoJih4KSwgX191Ll9fYywgc2l6ZW9mKHgpKTsJCVwKKwkJX19yZWFkX29uY2Vfc2l6
-ZSgmKHgpLCAmX191LCBzaXplb2YoeCkpOwkJXAogCWVsc2UJCQkJCQkJCVwKLQkJX19yZWFkX29u
-Y2Vfc2l6ZV9ub2NoZWNrKCYoeCksIF9fdS5fX2MsIHNpemVvZih4KSk7CVwKKwkJX19yZWFkX29u
-Y2Vfc2l6ZV9ub2NoZWNrKCYoeCksICZfX3UsIHNpemVvZih4KSk7CVwKIAlzbXBfcmVhZF9iYXJy
-aWVyX2RlcGVuZHMoKTsgLyogRW5mb3JjZSBkZXBlbmRlbmN5IG9yZGVyaW5nIGZyb20geCAqLyBc
-Ci0JX191Ll9fdmFsOwkJCQkJCQlcCisJKF9fdHlwZW9mX18oeCkpX191OwkJCQkJCVwKIH0pCiAj
-ZGVmaW5lIFJFQURfT05DRSh4KSBfX1JFQURfT05DRSh4LCAxKQogCg==
---0000000000005752d20599ea8ef5--
+I've pushed this out to the for-next branch and thus linux-next.  Let's
+see if anyone screams.
