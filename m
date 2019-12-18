@@ -1,8 +1,8 @@
 From: Sandipan Das <sandipan@linux.ibm.com>
-Subject: [PATCH v15 18/23] selftests/vm/pkeys: Detect write violation on a
- mapped access-denied-key page
-Date: Wed, 18 Dec 2019 13:21:51 +0530
-Message-ID: <c2b0a51fb723bc525e9674a480702e109d937e1e.1576645161.git.sandipan@linux.ibm.com>
+Subject: [PATCH v15 17/23] selftests/vm/pkeys: Associate key on a mapped page
+ and detect write violation
+Date: Wed, 18 Dec 2019 13:21:50 +0530
+Message-ID: <8a6a95cc7cefa290fc451f36d447389f1df9658c.1576645161.git.sandipan@linux.ibm.com>
 References: <cover.1576645161.git.sandipan@linux.ibm.com>
 Return-path: <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
 In-Reply-To: <cover.1576645161.git.sandipan@linux.ibm.com>
@@ -24,7 +24,7 @@ List-Id: linux-arch.vger.kernel.org
 
 From: Ram Pai <linuxram@us.ibm.com>
 
-Detect write-violation on a page to which access-disabled
+Detect write-violation on a page to which write-disabled
 key is associated much after the page is mapped.
 
 cc: Dave Hansen <dave.hansen@intel.com>
@@ -33,39 +33,38 @@ Signed-off-by: Ram Pai <linuxram@us.ibm.com>
 Acked-by: Dave Hansen <dave.hansen@intel.com>
 Signed-off-by: Sandipan Das <sandipan@linux.ibm.com>
 ---
- tools/testing/selftests/vm/protection_keys.c | 13 +++++++++++++
- 1 file changed, 13 insertions(+)
+ tools/testing/selftests/vm/protection_keys.c | 12 ++++++++++++
+ 1 file changed, 12 insertions(+)
 
 diff --git a/tools/testing/selftests/vm/protection_keys.c b/tools/testing/selftests/vm/protection_keys.c
-index ff207b765afd..176625ded549 100644
+index f63b9f55b3a7..ff207b765afd 100644
 --- a/tools/testing/selftests/vm/protection_keys.c
 +++ b/tools/testing/selftests/vm/protection_keys.c
-@@ -1026,6 +1026,18 @@ void test_write_of_access_disabled_region(int *ptr, u16 pkey)
- 	*ptr = __LINE__;
+@@ -1001,6 +1001,17 @@ void test_read_of_access_disabled_region_with_page_already_mapped(int *ptr,
  	expected_pkey_fault(pkey);
  }
-+
-+void test_write_of_access_disabled_region_with_page_already_mapped(int *ptr,
-+			u16 pkey)
+ 
++void test_write_of_write_disabled_region_with_page_already_mapped(int *ptr,
++		u16 pkey)
 +{
 +	*ptr = __LINE__;
-+	dprintf1("disabling access; after accessing the page, "
-+		" to PKEY[%02d], doing write\n", pkey);
-+	pkey_access_deny(pkey);
++	dprintf1("disabling write access; after accessing the page, "
++		"to PKEY[%02d], doing write\n", pkey);
++	pkey_write_deny(pkey);
 +	*ptr = __LINE__;
 +	expected_pkey_fault(pkey);
 +}
 +
- void test_kernel_write_of_access_disabled_region(int *ptr, u16 pkey)
+ void test_write_of_write_disabled_region(int *ptr, u16 pkey)
  {
- 	int ret;
-@@ -1422,6 +1434,7 @@ void (*pkey_tests[])(int *ptr, u16 pkey) = {
+ 	dprintf1("disabling write access to PKEY[%02d], doing write\n", pkey);
+@@ -1409,6 +1420,7 @@ void (*pkey_tests[])(int *ptr, u16 pkey) = {
+ 	test_read_of_access_disabled_region,
+ 	test_read_of_access_disabled_region_with_page_already_mapped,
  	test_write_of_write_disabled_region,
- 	test_write_of_write_disabled_region_with_page_already_mapped,
++	test_write_of_write_disabled_region_with_page_already_mapped,
  	test_write_of_access_disabled_region,
-+	test_write_of_access_disabled_region_with_page_already_mapped,
  	test_kernel_write_of_access_disabled_region,
  	test_kernel_write_of_write_disabled_region,
- 	test_kernel_gup_of_access_disabled_region,
 -- 
 2.17.1
