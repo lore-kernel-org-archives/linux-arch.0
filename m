@@ -1,163 +1,71 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:4030 "EHLO
+Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:20462 "EHLO
         mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1726526AbfLRHwb (ORCPT
+        by vger.kernel.org with ESMTP id S1726526AbfLRHwe (ORCPT
         <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 18 Dec 2019 02:52:31 -0500
+        Wed, 18 Dec 2019 02:52:34 -0500
 Received: from pps.filterd (m0098399.ppops.net [127.0.0.1])
-        by mx0a-001b2d01.pphosted.com (8.16.0.42/8.16.0.42) with SMTP id xBI7qSkM039178
-        for <linux-arch@vger.kernel.org>; Wed, 18 Dec 2019 02:52:30 -0500
-Received: from e06smtp05.uk.ibm.com (e06smtp05.uk.ibm.com [195.75.94.101])
-        by mx0a-001b2d01.pphosted.com with ESMTP id 2wye06434j-1
+        by mx0a-001b2d01.pphosted.com (8.16.0.42/8.16.0.42) with SMTP id xBI7qRoV039137
+        for <linux-arch@vger.kernel.org>; Wed, 18 Dec 2019 02:52:33 -0500
+Received: from e06smtp03.uk.ibm.com (e06smtp03.uk.ibm.com [195.75.94.99])
+        by mx0a-001b2d01.pphosted.com with ESMTP id 2wye0643ca-1
         (version=TLSv1.2 cipher=AES256-GCM-SHA384 bits=256 verify=NOT)
-        for <linux-arch@vger.kernel.org>; Wed, 18 Dec 2019 02:52:29 -0500
+        for <linux-arch@vger.kernel.org>; Wed, 18 Dec 2019 02:52:33 -0500
 Received: from localhost
-        by e06smtp05.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+        by e06smtp03.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
         for <linux-arch@vger.kernel.org> from <sandipan@linux.ibm.com>;
-        Wed, 18 Dec 2019 07:52:12 -0000
+        Wed, 18 Dec 2019 07:52:30 -0000
 From: Sandipan Das <sandipan@linux.ibm.com>
-Subject: [PATCH v15 03/23] selftests/vm/pkeys: Move generic definitions to header file
-Date: Wed, 18 Dec 2019 13:21:36 +0530
+Subject: [PATCH v15 10/23] selftests/vm/pkeys: Fix alloc_random_pkey() to make it really random
+Date: Wed, 18 Dec 2019 13:21:43 +0530
 In-Reply-To: <cover.1576645161.git.sandipan@linux.ibm.com>
 References: <cover.1576645161.git.sandipan@linux.ibm.com>
 In-Reply-To: <cover.1576645161.git.sandipan@linux.ibm.com>
 References: <cover.1576645161.git.sandipan@linux.ibm.com>
-Message-ID: <dc75a6c7e8440c8cf2fc3e7a56135ca2e85249ac.1576645161.git.sandipan@linux.ibm.com>
+Message-ID: <a2dce1bcfd118360569ab6e0b0fc9a4d3dc1739f.1576645161.git.sandipan@linux.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: shuahkh@osg.samsung.com, linux-kselftest@vger.kernel.org
 Cc: linux-arch@vger.kernel.org, fweimer@redhat.com, dave.hansen@intel.com, x86@kernel.org, linuxram@us.ibm.com, mhocko@kernel.org, linux-mm@kvack.org, mingo@redhat.com, aneesh.kumar@linux.ibm.com, bauerman@linux.ibm.com, msuchanek@suse.de, linuxppc-dev@lists.ozlabs.org
-Message-ID: <20191218075136.69ClJvKlZ3pTSZT6y3RX3kEN_hfBuvqMtYETqtzBNu8@z>
+Message-ID: <20191218075143.V_hyYst83nToT6wrcUHocNr4CiZOTBAtzu-mhYswP8o@z>
 
 From: Ram Pai <linuxram@us.ibm.com>
 
-This moves all the generic definitions and helper functions
-to a header file.
+alloc_random_pkey() was allocating the same pkey every
+time. Not all pkeys were geting tested. This fixes it.
 
 cc: Dave Hansen <dave.hansen@intel.com>
 cc: Florian Weimer <fweimer@redhat.com>
 Signed-off-by: Ram Pai <linuxram@us.ibm.com>
-Signed-off-by: Thiago Jung Bauermann <bauerman@linux.ibm.com>
 Acked-by: Dave Hansen <dave.hansen@intel.com>
 Signed-off-by: Sandipan Das <sandipan@linux.ibm.com>
 ---
- tools/testing/selftests/vm/pkey-helpers.h    | 35 +++++++++++++++++---
- tools/testing/selftests/vm/protection_keys.c | 27 ---------------
- 2 files changed, 30 insertions(+), 32 deletions(-)
+ tools/testing/selftests/vm/protection_keys.c | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
 
-diff --git a/tools/testing/selftests/vm/pkey-helpers.h b/tools/testing/selftests/vm/pkey-helpers.h
-index d5779be4793f..6ad1bd54ef94 100644
---- a/tools/testing/selftests/vm/pkey-helpers.h
-+++ b/tools/testing/selftests/vm/pkey-helpers.h
-@@ -13,6 +13,14 @@
- #include <ucontext.h>
- #include <sys/mman.h>
- 
-+/* Define some kernel-like types */
-+#define  u8 uint8_t
-+#define u16 uint16_t
-+#define u32 uint32_t
-+#define u64 uint64_t
-+
-+#define PTR_ERR_ENOTSUP ((void *)-ENOTSUP)
-+
- #define NR_PKEYS 16
- #define PKEY_BITS_PER_PKEY 2
- 
-@@ -53,6 +61,18 @@ static inline void sigsafe_printf(const char *format, ...)
- #define dprintf3(args...) dprintf_level(3, args)
- #define dprintf4(args...) dprintf_level(4, args)
- 
-+extern void abort_hooks(void);
-+#define pkey_assert(condition) do {		\
-+	if (!(condition)) {			\
-+		dprintf0("assert() at %s::%d test_nr: %d iteration: %d\n", \
-+				__FILE__, __LINE__,	\
-+				test_nr, iteration_nr);	\
-+		dprintf0("errno at assert: %d", errno);	\
-+		abort_hooks();			\
-+		exit(__LINE__);			\
-+	}					\
-+} while (0)
-+
- extern unsigned int shadow_pkey_reg;
- static inline unsigned int __read_pkey_reg(void)
- {
-@@ -137,11 +157,6 @@ static inline void __pkey_write_allow(int pkey, int do_allow_write)
- 	dprintf4("pkey_reg now: %08x\n", read_pkey_reg());
- }
- 
--#define PROT_PKEY0     0x10            /* protection key value (bit 0) */
--#define PROT_PKEY1     0x20            /* protection key value (bit 1) */
--#define PROT_PKEY2     0x40            /* protection key value (bit 2) */
--#define PROT_PKEY3     0x80            /* protection key value (bit 3) */
--
- #define PAGE_SIZE 4096
- #define MB	(1<<20)
- 
-@@ -219,4 +234,14 @@ int pkey_reg_xstate_offset(void)
- 	return xstate_offset;
- }
- 
-+#define ARRAY_SIZE(x) (sizeof(x) / sizeof(*(x)))
-+#define ALIGN_UP(x, align_to)	(((x) + ((align_to)-1)) & ~((align_to)-1))
-+#define ALIGN_DOWN(x, align_to) ((x) & ~((align_to)-1))
-+#define ALIGN_PTR_UP(p, ptr_align_to)	\
-+	((typeof(p))ALIGN_UP((unsigned long)(p), ptr_align_to))
-+#define ALIGN_PTR_DOWN(p, ptr_align_to)	\
-+	((typeof(p))ALIGN_DOWN((unsigned long)(p), ptr_align_to))
-+#define __stringify_1(x...)     #x
-+#define __stringify(x...)       __stringify_1(x)
-+
- #endif /* _PKEYS_HELPER_H */
 diff --git a/tools/testing/selftests/vm/protection_keys.c b/tools/testing/selftests/vm/protection_keys.c
-index 2f4ab81c570d..42ffb58810f2 100644
+index fbee0b061851..d3c13283bbd0 100644
 --- a/tools/testing/selftests/vm/protection_keys.c
 +++ b/tools/testing/selftests/vm/protection_keys.c
-@@ -51,31 +51,10 @@ int test_nr;
- unsigned int shadow_pkey_reg;
+@@ -24,6 +24,7 @@
+ #define _GNU_SOURCE
+ #include <errno.h>
+ #include <linux/futex.h>
++#include <time.h>
+ #include <sys/time.h>
+ #include <sys/syscall.h>
+ #include <string.h>
+@@ -545,10 +546,10 @@ int alloc_random_pkey(void)
+ 	int nr_alloced = 0;
+ 	int random_index;
+ 	memset(alloced_pkeys, 0, sizeof(alloced_pkeys));
++	srand((unsigned int)time(NULL));
  
- #define HPAGE_SIZE	(1UL<<21)
--#define ARRAY_SIZE(x) (sizeof(x) / sizeof(*(x)))
--#define ALIGN_UP(x, align_to)	(((x) + ((align_to)-1)) & ~((align_to)-1))
--#define ALIGN_DOWN(x, align_to) ((x) & ~((align_to)-1))
--#define ALIGN_PTR_UP(p, ptr_align_to)	((typeof(p))ALIGN_UP((unsigned long)(p),	ptr_align_to))
--#define ALIGN_PTR_DOWN(p, ptr_align_to)	((typeof(p))ALIGN_DOWN((unsigned long)(p),	ptr_align_to))
--#define __stringify_1(x...)     #x
--#define __stringify(x...)       __stringify_1(x)
--
--#define PTR_ERR_ENOTSUP ((void *)-ENOTSUP)
- 
- int dprint_in_signal;
- char dprint_in_signal_buffer[DPRINT_IN_SIGNAL_BUF_SIZE];
- 
--extern void abort_hooks(void);
--#define pkey_assert(condition) do {		\
--	if (!(condition)) {			\
--		dprintf0("assert() at %s::%d test_nr: %d iteration: %d\n", \
--				__FILE__, __LINE__,	\
--				test_nr, iteration_nr);	\
--		dprintf0("errno at assert: %d", errno);	\
--		abort_hooks();			\
--		exit(__LINE__);			\
--	}					\
--} while (0)
--
- void cat_into_file(char *str, char *file)
- {
- 	int fd = open(file, O_RDWR);
-@@ -186,12 +165,6 @@ void lots_o_noops_around_write(int *write_to_me)
- 	dprintf3("%s() done\n", __func__);
- }
- 
--/* Define some kernel-like types */
--#define  u8 uint8_t
--#define u16 uint16_t
--#define u32 uint32_t
--#define u64 uint64_t
--
- #ifdef __i386__
- 
- #ifndef SYS_mprotect_key
+ 	/* allocate every possible key and make a note of which ones we got */
+ 	max_nr_pkey_allocs = NR_PKEYS;
+-	max_nr_pkey_allocs = 1;
+ 	for (i = 0; i < max_nr_pkey_allocs; i++) {
+ 		int new_pkey = alloc_pkey();
+ 		if (new_pkey < 0)
 -- 
 2.17.1
