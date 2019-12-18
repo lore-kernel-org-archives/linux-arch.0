@@ -1,8 +1,8 @@
 From: Sandipan Das <sandipan@linux.ibm.com>
-Subject: [PATCH v15 05/23] selftests/vm/pkeys: Make gcc check arguments of
- sigsafe_printf()
-Date: Wed, 18 Dec 2019 13:21:38 +0530
-Message-ID: <e4f9e734801a90d617957bc56397a0c5c466d179.1576645161.git.sandipan@linux.ibm.com>
+Subject: [PATCH v15 22/23] selftests/vm/pkeys: Override access right
+ definitions on powerpc
+Date: Wed, 18 Dec 2019 13:21:55 +0530
+Message-ID: <0e4fe4b4966255ea50657befd6004e90bca01761.1576645161.git.sandipan@linux.ibm.com>
 References: <cover.1576645161.git.sandipan@linux.ibm.com>
 Return-path: <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
 In-Reply-To: <cover.1576645161.git.sandipan@linux.ibm.com>
@@ -22,31 +22,41 @@ To: shuahkh@osg.samsung.com, linux-kselftest@vger.kernel.org
 Cc: linux-arch@vger.kernel.org, fweimer@redhat.com, linux-mm@kvack.org, aneesh.kumar@linux.ibm.com, x86@kernel.org, linuxram@us.ibm.com, mhocko@kernel.org, dave.hansen@intel.com, mingo@redhat.com, msuchanek@suse.de, linuxppc-dev@lists.ozlabs.org, bauerman@linux.ibm.com
 List-Id: linux-arch.vger.kernel.org
 
-From: Thiago Jung Bauermann <bauerman@linux.ibm.com>
+From: Ram Pai <linuxram@us.ibm.com>
 
-This will help us ensure we print pkey_reg_t values correctly in
-different architectures.
+Some platforms hardcode the x86 values for PKEY_DISABLE_ACCESS
+and PKEY_DISABLE_WRITE such as those in:
+ /usr/include/bits/mman-shared.h.
 
-Signed-off-by: Thiago Jung Bauermann <bauerman@linux.ibm.com>
+This overrides the definitions with correct values for powerpc.
+
+cc: Dave Hansen <dave.hansen@intel.com>
+cc: Florian Weimer <fweimer@redhat.com>
+Signed-off-by: Ram Pai <linuxram@us.ibm.com>
 Signed-off-by: Sandipan Das <sandipan@linux.ibm.com>
 ---
- tools/testing/selftests/vm/pkey-helpers.h | 4 ++++
- 1 file changed, 4 insertions(+)
+ tools/testing/selftests/vm/pkey-powerpc.h | 6 ++++--
+ 1 file changed, 4 insertions(+), 2 deletions(-)
 
-diff --git a/tools/testing/selftests/vm/pkey-helpers.h b/tools/testing/selftests/vm/pkey-helpers.h
-index 3ed2f021bf7a..7f18a82e54fc 100644
---- a/tools/testing/selftests/vm/pkey-helpers.h
-+++ b/tools/testing/selftests/vm/pkey-helpers.h
-@@ -27,6 +27,10 @@
- #define DPRINT_IN_SIGNAL_BUF_SIZE 4096
- extern int dprint_in_signal;
- extern char dprint_in_signal_buffer[DPRINT_IN_SIGNAL_BUF_SIZE];
-+
-+#ifdef __GNUC__
-+__attribute__((format(printf, 1, 2)))
-+#endif
- static inline void sigsafe_printf(const char *format, ...)
- {
- 	va_list ap;
+diff --git a/tools/testing/selftests/vm/pkey-powerpc.h b/tools/testing/selftests/vm/pkey-powerpc.h
+index a70577045074..3cd8e03fd640 100644
+--- a/tools/testing/selftests/vm/pkey-powerpc.h
++++ b/tools/testing/selftests/vm/pkey-powerpc.h
+@@ -16,11 +16,13 @@
+ #define fpregs			fp_regs
+ #define si_pkey_offset		0x20
+ 
+-#ifndef PKEY_DISABLE_ACCESS
++#ifdef PKEY_DISABLE_ACCESS
++#undef PKEY_DISABLE_ACCESS
+ # define PKEY_DISABLE_ACCESS	0x3  /* disable read and write */
+ #endif
+ 
+-#ifndef PKEY_DISABLE_WRITE
++#ifdef PKEY_DISABLE_WRITE
++#undef PKEY_DISABLE_WRITE
+ # define PKEY_DISABLE_WRITE	0x2
+ #endif
+ 
 -- 
 2.17.1
