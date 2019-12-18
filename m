@@ -1,169 +1,30 @@
-Return-Path: <SRS0=aRn0=2U=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from userp2120.oracle.com ([156.151.31.85]:42772 "EHLO
-        userp2120.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727696AbfL3Txy (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 30 Dec 2019 14:53:54 -0500
-From: Alex Kogan <alex.kogan@oracle.com>
-Subject: [PATCH v8 1/5] locking/qspinlock: Rename mcs lock/unlock macros and make them more generic
-Date: Mon, 30 Dec 2019 14:40:38 -0500
-Message-ID: <20191230194042.67789-2-alex.kogan@oracle.com>
-In-Reply-To: <20191230194042.67789-1-alex.kogan@oracle.com>
-References: <20191230194042.67789-1-alex.kogan@oracle.com>
-MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
-Sender: linux-arch-owner@vger.kernel.org
+Return-Path: <michael@ozlabs.org>
+In-Reply-To: <20191204123524.22919-1-rppt@kernel.org>
+From: Michael Ellerman <patch-notifications@ellerman.id.au>
+Subject: Re: [PATCH] powerpc: ensure that swiotlb buffer is allocated from low memory
+Message-ID: <47d1cj4B0Fz9sRc@ozlabs.org>
+Date: Wed, 18 Dec 2019 15:05:09 +1100 (AEDT)
+To: Mike Rapoport <rppt@kernel.org>, linux-kernel@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, Darren Stevens <darren@stevens-zone.net>, Robin Murphy <robin.murphy@arm.com>, Mike Rapoport <rppt@linux.ibm.com>, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Rob Herring <robh+dt@kernel.org>, Paul Mackerras <paulus@samba.org>, mad skateman <madskateman@gmail.com>, Christian Zigotzky <chzigotzky@xenosoft.de>, linuxppc-dev@lists.ozlabs.org, Christoph Hellwig <hch@lst.de>, Nicolas Saenz Julienne <nsaenzjulienne@suse.de>
 List-ID: <linux-arch.vger.kernel.org>
-To: linux@armlinux.org.uk, peterz@infradead.org, mingo@redhat.com, will.deacon@arm.com, arnd@arndb.de, longman@redhat.com, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, bp@alien8.de, hpa@zytor.com, x86@kernel.org, guohanjun@huawei.com, jglauber@marvell.com
-Cc: steven.sistare@oracle.com, daniel.m.jordan@oracle.com, alex.kogan@oracle.com, dave.dice@oracle.com
-Message-ID: <20191230194038.Dxz0XDZW6vM_mK_EFS3mGySDrwkdfKF6k3UXCaSfze8@z>
+Message-ID: <20191218040509.Z9VHujpyadSJVctdcyTArRpCSPek5_f_9Rjy_0Sjur8@z>
 
-The mcs unlock macro (arch_mcs_pass_lock) should accept the value to be
-stored into the lock argument as another argument. This allows using the
-same macro in cases where the value to be stored when passing the lock is
-different from 1.
+On Wed, 2019-12-04 at 12:35:24 UTC, Mike Rapoport wrote:
+> From: Mike Rapoport <rppt@linux.ibm.com>
+> 
+> Some powerpc platforms (e.g. 85xx) limit DMA-able memory way below 4G. If a
+> system has more physical memory than this limit, the swiotlb buffer is not
+> addressable because it is allocated from memblock using top-down mode.
+> 
+> Force memblock to bottom-up mode before calling swiotlb_init() to ensure
+> that the swiotlb buffer is DMA-able.
+> 
+> Link: https://lkml.kernel.org/r/F1EBB706-73DF-430E-9020-C214EC8ED5DA@xenosoft.de
+> Reported-by: Christian Zigotzky <chzigotzky@xenosoft.de>
+> Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
 
-Signed-off-by: Alex Kogan <alex.kogan@oracle.com>
-Reviewed-by: Steve Sistare <steven.sistare@oracle.com>
----
- arch/arm/include/asm/mcs_spinlock.h |  6 +++---
- include/asm-generic/mcs_spinlock.h  |  4 ++--
- kernel/locking/mcs_spinlock.h       | 18 +++++++++---------
- kernel/locking/qspinlock.c          |  4 ++--
- kernel/locking/qspinlock_paravirt.h |  2 +-
- 5 files changed, 17 insertions(+), 17 deletions(-)
+Applied to powerpc fixes, thanks.
 
-diff --git a/arch/arm/include/asm/mcs_spinlock.h b/arch/arm/include/asm/mcs_spinlock.h
-index 529d2cf4d06f..693fe6ce3c43 100644
---- a/arch/arm/include/asm/mcs_spinlock.h
-+++ b/arch/arm/include/asm/mcs_spinlock.h
-@@ -6,7 +6,7 @@
- #include <asm/spinlock.h>
- 
- /* MCS spin-locking. */
--#define arch_mcs_spin_lock_contended(lock)				\
-+#define arch_mcs_spin_lock(lock)				\
- do {									\
- 	/* Ensure prior stores are observed before we enter wfe. */	\
- 	smp_mb();							\
-@@ -14,9 +14,9 @@ do {									\
- 		wfe();							\
- } while (0)								\
- 
--#define arch_mcs_spin_unlock_contended(lock)				\
-+#define arch_mcs_pass_lock(lock, val)					\
- do {									\
--	smp_store_release(lock, 1);					\
-+	smp_store_release((lock), (val));				\
- 	dsb_sev();							\
- } while (0)
- 
-diff --git a/include/asm-generic/mcs_spinlock.h b/include/asm-generic/mcs_spinlock.h
-index 10cd4ffc6ba2..868da43dba7c 100644
---- a/include/asm-generic/mcs_spinlock.h
-+++ b/include/asm-generic/mcs_spinlock.h
-@@ -4,8 +4,8 @@
- /*
-  * Architectures can define their own:
-  *
-- *   arch_mcs_spin_lock_contended(l)
-- *   arch_mcs_spin_unlock_contended(l)
-+ *   arch_mcs_spin_lock(l)
-+ *   arch_mcs_pass_lock(l, val)
-  *
-  * See kernel/locking/mcs_spinlock.c.
-  */
-diff --git a/kernel/locking/mcs_spinlock.h b/kernel/locking/mcs_spinlock.h
-index 5e10153b4d3c..52d06ec6f525 100644
---- a/kernel/locking/mcs_spinlock.h
-+++ b/kernel/locking/mcs_spinlock.h
-@@ -21,7 +21,7 @@ struct mcs_spinlock {
- 	int count;  /* nesting count, see qspinlock.c */
- };
- 
--#ifndef arch_mcs_spin_lock_contended
-+#ifndef arch_mcs_spin_lock
- /*
-  * Using smp_cond_load_acquire() provides the acquire semantics
-  * required so that subsequent operations happen after the
-@@ -29,20 +29,20 @@ struct mcs_spinlock {
-  * ARM64 would like to do spin-waiting instead of purely
-  * spinning, and smp_cond_load_acquire() provides that behavior.
-  */
--#define arch_mcs_spin_lock_contended(l)					\
--do {									\
--	smp_cond_load_acquire(l, VAL);					\
-+#define arch_mcs_spin_lock(l)					\
-+do {								\
-+	smp_cond_load_acquire(l, VAL);				\
- } while (0)
- #endif
- 
--#ifndef arch_mcs_spin_unlock_contended
-+#ifndef arch_mcs_spin_unlock
- /*
-  * smp_store_release() provides a memory barrier to ensure all
-  * operations in the critical section has been completed before
-  * unlocking.
-  */
--#define arch_mcs_spin_unlock_contended(l)				\
--	smp_store_release((l), 1)
-+#define arch_mcs_pass_lock(l, val)				\
-+	smp_store_release((l), (val))
- #endif
- 
- /*
-@@ -91,7 +91,7 @@ void mcs_spin_lock(struct mcs_spinlock **lock, struct mcs_spinlock *node)
- 	WRITE_ONCE(prev->next, node);
- 
- 	/* Wait until the lock holder passes the lock down. */
--	arch_mcs_spin_lock_contended(&node->locked);
-+	arch_mcs_spin_lock(&node->locked);
- }
- 
- /*
-@@ -115,7 +115,7 @@ void mcs_spin_unlock(struct mcs_spinlock **lock, struct mcs_spinlock *node)
- 	}
- 
- 	/* Pass lock to next waiter. */
--	arch_mcs_spin_unlock_contended(&next->locked);
-+	arch_mcs_pass_lock(&next->locked, 1);
- }
- 
- #endif /* __LINUX_MCS_SPINLOCK_H */
-diff --git a/kernel/locking/qspinlock.c b/kernel/locking/qspinlock.c
-index 2473f10c6956..804c0fbd6328 100644
---- a/kernel/locking/qspinlock.c
-+++ b/kernel/locking/qspinlock.c
-@@ -470,7 +470,7 @@ void queued_spin_lock_slowpath(struct qspinlock *lock, u32 val)
- 		WRITE_ONCE(prev->next, node);
- 
- 		pv_wait_node(node, prev);
--		arch_mcs_spin_lock_contended(&node->locked);
-+		arch_mcs_spin_lock(&node->locked);
- 
- 		/*
- 		 * While waiting for the MCS lock, the next pointer may have
-@@ -549,7 +549,7 @@ void queued_spin_lock_slowpath(struct qspinlock *lock, u32 val)
- 	if (!next)
- 		next = smp_cond_load_relaxed(&node->next, (VAL));
- 
--	arch_mcs_spin_unlock_contended(&next->locked);
-+	arch_mcs_pass_lock(&next->locked, 1);
- 	pv_kick_node(lock, next);
- 
- release:
-diff --git a/kernel/locking/qspinlock_paravirt.h b/kernel/locking/qspinlock_paravirt.h
-index e84d21aa0722..e98079414671 100644
---- a/kernel/locking/qspinlock_paravirt.h
-+++ b/kernel/locking/qspinlock_paravirt.h
-@@ -368,7 +368,7 @@ static void pv_kick_node(struct qspinlock *lock, struct mcs_spinlock *node)
- 	 *
- 	 * Matches with smp_store_mb() and cmpxchg() in pv_wait_node()
- 	 *
--	 * The write to next->locked in arch_mcs_spin_unlock_contended()
-+	 * The write to next->locked in arch_mcs_pass_lock()
- 	 * must be ordered before the read of pn->state in the cmpxchg()
- 	 * below for the code to work correctly. To guarantee full ordering
- 	 * irrespective of the success or failure of the cmpxchg(),
--- 
-2.21.0 (Apple Git-122.2)
+https://git.kernel.org/powerpc/c/8fabc623238e68b3ac63c0dd1657bf86c1fa33af
+
+cheers
