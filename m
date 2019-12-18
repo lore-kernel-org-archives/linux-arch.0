@@ -1,85 +1,79 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:55522 "EHLO
-        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1725955AbfLRHwq (ORCPT
+Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:44342 "EHLO
+        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
+        by vger.kernel.org with ESMTP id S1725799AbfLRHw4 (ORCPT
         <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 18 Dec 2019 02:52:46 -0500
-Received: from pps.filterd (m0098399.ppops.net [127.0.0.1])
-        by mx0a-001b2d01.pphosted.com (8.16.0.42/8.16.0.42) with SMTP id xBI7qTfv039298
-        for <linux-arch@vger.kernel.org>; Wed, 18 Dec 2019 02:52:44 -0500
-Received: from e06smtp05.uk.ibm.com (e06smtp05.uk.ibm.com [195.75.94.101])
-        by mx0a-001b2d01.pphosted.com with ESMTP id 2wye0643ub-1
+        Wed, 18 Dec 2019 02:52:56 -0500
+Received: from pps.filterd (m0098413.ppops.net [127.0.0.1])
+        by mx0b-001b2d01.pphosted.com (8.16.0.42/8.16.0.42) with SMTP id xBI7qpNC098929
+        for <linux-arch@vger.kernel.org>; Wed, 18 Dec 2019 02:52:54 -0500
+Received: from e06smtp04.uk.ibm.com (e06smtp04.uk.ibm.com [195.75.94.100])
+        by mx0b-001b2d01.pphosted.com with ESMTP id 2wyfhbru8q-1
         (version=TLSv1.2 cipher=AES256-GCM-SHA384 bits=256 verify=NOT)
-        for <linux-arch@vger.kernel.org>; Wed, 18 Dec 2019 02:52:44 -0500
+        for <linux-arch@vger.kernel.org>; Wed, 18 Dec 2019 02:52:53 -0500
 Received: from localhost
-        by e06smtp05.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+        by e06smtp04.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
         for <linux-arch@vger.kernel.org> from <sandipan@linux.ibm.com>;
-        Wed, 18 Dec 2019 07:52:41 -0000
+        Wed, 18 Dec 2019 07:52:29 -0000
 From: Sandipan Das <sandipan@linux.ibm.com>
-Subject: [PATCH v15 14/23] selftests/vm/pkeys: Fix assertion in test_pkey_alloc_exhaust()
-Date: Wed, 18 Dec 2019 13:21:47 +0530
+Subject: [PATCH v15 09/23] selftests/vm/pkeys: Fix assertion in pkey_disable_set/clear()
+Date: Wed, 18 Dec 2019 13:21:42 +0530
 In-Reply-To: <cover.1576645161.git.sandipan@linux.ibm.com>
 References: <cover.1576645161.git.sandipan@linux.ibm.com>
 In-Reply-To: <cover.1576645161.git.sandipan@linux.ibm.com>
 References: <cover.1576645161.git.sandipan@linux.ibm.com>
-Message-ID: <d82e1652135569cfc38b289f88e39e94d55308ff.1576645161.git.sandipan@linux.ibm.com>
+Message-ID: <8cbf050170b80ef33db611fd392136066c318ce0.1576645161.git.sandipan@linux.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: shuahkh@osg.samsung.com, linux-kselftest@vger.kernel.org
 Cc: linux-arch@vger.kernel.org, fweimer@redhat.com, dave.hansen@intel.com, x86@kernel.org, linuxram@us.ibm.com, mhocko@kernel.org, linux-mm@kvack.org, mingo@redhat.com, aneesh.kumar@linux.ibm.com, bauerman@linux.ibm.com, msuchanek@suse.de, linuxppc-dev@lists.ozlabs.org
-Message-ID: <20191218075147.uMLvXZa5M8aKqsj0Yn0tfIjVKvQW29k2UDZFrq5EEug@z>
+Message-ID: <20191218075142.5OXRHjWxLG57rJsm5NHeuHGZX1qOq0k6YrWn573BsXw@z>
 
 From: Ram Pai <linuxram@us.ibm.com>
 
-Some pkeys which are valid on the hardware are reserved
-and not available for application use. These keys cannot
-be allocated.
+In some cases, a pkey's bits need not necessarily change
+in a way that the value of the pkey register increases
+when performing a pkey_disable_set() or decreases when
+performing a pkey_disable_clear().
 
-test_pkey_alloc_exhaust() tries to account for these and
-has an assertion which validates if all available pkeys
-have been exahaustively allocated. However, the expression
-that is currently used is only valid for x86. On powerpc,
-a pkey is additionally reserved as compared to x86. Hence,
-the assertion is made to use an arch-specific helper to
-get the correct count of reserved pkeys.
+For example, on powerpc, if a pkey's current state is
+PKEY_DISABLE_ACCESS and we perform a pkey_write_disable()
+on it, the bits still remain the same. We will observe
+something similar when the pkey's current state is 0 and
+a pkey_access_enable() is performed on it.
+
+Either case would cause some assertions to fail. This
+fixes the problem.
 
 cc: Dave Hansen <dave.hansen@intel.com>
 cc: Florian Weimer <fweimer@redhat.com>
 Signed-off-by: Ram Pai <linuxram@us.ibm.com>
 Signed-off-by: Sandipan Das <sandipan@linux.ibm.com>
 ---
- tools/testing/selftests/vm/protection_keys.c | 11 ++++++++++-
- 1 file changed, 10 insertions(+), 1 deletion(-)
+ tools/testing/selftests/vm/protection_keys.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
 
 diff --git a/tools/testing/selftests/vm/protection_keys.c b/tools/testing/selftests/vm/protection_keys.c
-index 1920bca84def..8d90cfe2c9bd 100644
+index 9a6c95b220cc..fbee0b061851 100644
 --- a/tools/testing/selftests/vm/protection_keys.c
 +++ b/tools/testing/selftests/vm/protection_keys.c
-@@ -1152,6 +1152,7 @@ void test_pkey_alloc_exhaust(int *ptr, u16 pkey)
- 	dprintf3("%s()::%d\n", __func__, __LINE__);
+@@ -399,7 +399,7 @@ void pkey_disable_set(int pkey, int flags)
+ 	dprintf1("%s(%d) pkey_reg: 0x"PKEY_REG_FMT"\n",
+ 		__func__, pkey, read_pkey_reg());
+ 	if (flags)
+-		pkey_assert(read_pkey_reg() > orig_pkey_reg);
++		pkey_assert(read_pkey_reg() >= orig_pkey_reg);
+ 	dprintf1("END<---%s(%d, 0x%x)\n", __func__,
+ 		pkey, flags);
+ }
+@@ -430,7 +430,7 @@ void pkey_disable_clear(int pkey, int flags)
+ 	dprintf1("%s(%d) pkey_reg: 0x"PKEY_REG_FMT"\n", __func__,
+ 			pkey, read_pkey_reg());
+ 	if (flags)
+-		assert(read_pkey_reg() < orig_pkey_reg);
++		assert(read_pkey_reg() <= orig_pkey_reg);
+ }
  
- 	/*
-+	 * On x86:
- 	 * There are 16 pkeys supported in hardware.  Three are
- 	 * allocated by the time we get here:
- 	 *   1. The default key (0)
-@@ -1159,8 +1160,16 @@ void test_pkey_alloc_exhaust(int *ptr, u16 pkey)
- 	 *   3. One allocated by the test code and passed in via
- 	 *      'pkey' to this function.
- 	 * Ensure that we can allocate at least another 13 (16-3).
-+	 *
-+	 * On powerpc:
-+	 * There are either 5 or 32 pkeys supported in hardware
-+	 * depending on the page size (4K or 64K). Four are
-+	 * allocated by the time we get here. This includes
-+	 * pkey-0, pkey-1, exec-only pkey and the one allocated
-+	 * by the test code.
-+	 * Ensure that we can allocate the remaining.
- 	 */
--	pkey_assert(i >= NR_PKEYS-3);
-+	pkey_assert(i >= (NR_PKEYS - get_arch_reserved_keys() - 1));
- 
- 	for (i = 0; i < nr_allocated_pkeys; i++) {
- 		err = sys_pkey_free(allocated_pkeys[i]);
+ void pkey_write_allow(int pkey)
 -- 
 2.17.1
