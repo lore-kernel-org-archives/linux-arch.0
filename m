@@ -1,40 +1,82 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.133]:39334 "EHLO
-        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726680AbfLRJTO (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 18 Dec 2019 04:19:14 -0500
-Date: Wed, 18 Dec 2019 10:19:06 +0100
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH v2 3/3] asm-generic/tlb: Avoid potential double flush
-Message-ID: <20191218091906.GP2844@hirez.programming.kicks-ass.net>
-References: <20191218053530.73053-1-aneesh.kumar@linux.ibm.com>
- <20191218053530.73053-3-aneesh.kumar@linux.ibm.com>
+Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:62980 "EHLO
+        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
+        by vger.kernel.org with ESMTP id S1725930AbfLRKWN (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 18 Dec 2019 05:22:13 -0500
+Received: from pps.filterd (m0098414.ppops.net [127.0.0.1])
+        by mx0b-001b2d01.pphosted.com (8.16.0.42/8.16.0.42) with SMTP id xBIAGt7B111357
+        for <linux-arch@vger.kernel.org>; Wed, 18 Dec 2019 05:22:12 -0500
+Received: from e06smtp02.uk.ibm.com (e06smtp02.uk.ibm.com [195.75.94.98])
+        by mx0b-001b2d01.pphosted.com with ESMTP id 2wyj6p872y-1
+        (version=TLSv1.2 cipher=AES256-GCM-SHA384 bits=256 verify=NOT)
+        for <linux-arch@vger.kernel.org>; Wed, 18 Dec 2019 05:22:12 -0500
+Received: from localhost
+        by e06smtp02.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+        for <linux-arch@vger.kernel.org> from <borntraeger@de.ibm.com>;
+        Wed, 18 Dec 2019 10:22:11 -0000
+Subject: Re: READ_ONCE() + STACKPROTECTOR_STRONG == :/ (was Re: [GIT PULL]
+ Please pull powerpc/linux.git powerpc-5.5-2 tag (topic/kasan-bitops))
+References: <87blslei5o.fsf@mpe.ellerman.id.au>
+ <20191206131650.GM2827@hirez.programming.kicks-ass.net>
+ <875zimp0ay.fsf@mpe.ellerman.id.au>
+ <20191212080105.GV2844@hirez.programming.kicks-ass.net>
+ <20191212100756.GA11317@willie-the-truck>
+ <20191212104610.GW2827@hirez.programming.kicks-ass.net>
+ <CAHk-=wjUBsH0BYDBv=q36482G-U7c=9bC89L_BViSciTfb8fhA@mail.gmail.com>
+ <20191212180634.GA19020@willie-the-truck>
+ <CAHk-=whRxB0adkz+V7SQC8Ac_rr_YfaPY8M2mFDfJP2FFBNz8A@mail.gmail.com>
+ <20191212193401.GB19020@willie-the-truck>
+ <CAHk-=wiMuHmWzQ7-CRQB6o+SHtA-u-Rp6VZwPcqDbjAaug80rQ@mail.gmail.com>
+From: Christian Borntraeger <borntraeger@de.ibm.com>
+Date: Wed, 18 Dec 2019 11:22:05 +0100
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20191218053530.73053-3-aneesh.kumar@linux.ibm.com>
+In-Reply-To: <CAHk-=wiMuHmWzQ7-CRQB6o+SHtA-u-Rp6VZwPcqDbjAaug80rQ@mail.gmail.com>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
+Message-ID: <fb4bba85-1f83-435e-b84e-ee29770d7090@de.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>
-Cc: akpm@linux-foundation.org, npiggin@gmail.com, mpe@ellerman.id.au, will@kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-arch@vger.kernel.org
-Message-ID: <20191218091906.qfYtIajllVqllwfBOCFtW9WPSnHCcpqS77TvS5O_X8Y@z>
+To: Linus Torvalds <torvalds@linux-foundation.org>, Will Deacon <will@kernel.org>
+Cc: Peter Zijlstra <peterz@infradead.org>, Michael Ellerman <mpe@ellerman.id.au>, dja@axtens.net, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linuxppc-dev@lists.ozlabs.org, Christophe Leroy <christophe.leroy@c-s.fr>, linux-arch <linux-arch@vger.kernel.org>, Mark Rutland <mark.rutland@arm.com>, Segher Boessenkool <segher@kernel.crashing.org>, Arnd Bergmann <arnd@arndb.de>
+Message-ID: <20191218102205.WxeQu405mVMF11_jjNKioSuhSkntuZDCPw7m3eXr1go@z>
 
-On Wed, Dec 18, 2019 at 11:05:30AM +0530, Aneesh Kumar K.V wrote:
+On 12.12.19 21:49, Linus Torvalds wrote:
+> On Thu, Dec 12, 2019 at 11:34 AM Will Deacon <will@kernel.org> wrote:
+>>
+>> The root of my concern in all of this, and what started me looking at it in
+>> the first place, is the interaction with 'typeof()'. Inheriting 'volatile'
+>> for a pointer means that local variables in macros declared using typeof()
+>> suddenly start generating *hideous* code, particularly when pointless stack
+>> spills get stackprotector all excited.
+> 
+> Yeah, removing volatile can be a bit annoying.
+> 
+> For the particular case of the bitops, though, it's not an issue.
+> Since you know the type there, you can just cast it.
+> 
+> And if we had the rule that READ_ONCE() was an arithmetic type, you could do
+> 
+>     typeof(0+(*p)) __var;
+> 
+> since you might as well get the integer promotion anyway (on the
+> non-volatile result).
+> 
+> But that doesn't work with structures or unions, of course.
 
-> --- a/include/asm-generic/tlb.h
-> +++ b/include/asm-generic/tlb.h
-> @@ -402,7 +402,12 @@ tlb_update_vma_flags(struct mmu_gather *tlb, struct vm_area_struct *vma) { }
->  
->  static inline void tlb_flush_mmu_tlbonly(struct mmu_gather *tlb)
->  {
-> -	if (!tlb->end)
-> +	/*
-> +	 * Anything calling __tlb_adjust_range() also sets at least one of
-> +	 * these bits.
-> +	 */
-> +	if (!(tlb->freed_tables || tlb->cleared_ptes || tlb->cleared_pmds ||
-> +	      tlb->cleared_puds || tlb->cleared_p4ds))
->  		return;
+We do have a READ_ONCE on the following union in s390 code.
 
-FWIW I looked at the GCC generated assembly output for this (x86_64) and
-it did a single load and mask as expected.
+union ipte_control {
+        unsigned long val;
+        struct {
+                unsigned long k  : 1;
+                unsigned long kh : 31;
+                unsigned long kg : 32;
+        }; 
+};
+
+
+In fact this one was the original failure case why we change ACCESS_ONCE.
+
+see arch/s390/kvm/gaccess.c
