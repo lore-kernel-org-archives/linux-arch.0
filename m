@@ -1,84 +1,65 @@
-From: Sandipan Das <sandipan@linux.ibm.com>
-Subject: [PATCH v15 01/23] selftests/x86/pkeys: Move selftests to arch-neutral
- directory
-Date: Wed, 18 Dec 2019 13:21:34 +0530
-Message-ID: <47158483e6c807bdb2f14e65aa9adee4b3ae929b.1576645161.git.sandipan@linux.ibm.com>
-References: <cover.1576645161.git.sandipan@linux.ibm.com>
-Return-path: <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
-In-Reply-To: <cover.1576645161.git.sandipan@linux.ibm.com>
-In-Reply-To: <cover.1576645161.git.sandipan@linux.ibm.com>
-References: <cover.1576645161.git.sandipan@linux.ibm.com>
-List-Unsubscribe: <https://lists.ozlabs.org/options/linuxppc-dev>,
- <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=unsubscribe>
-List-Archive: <http://lists.ozlabs.org/pipermail/linuxppc-dev/>
-List-Post: <mailto:linuxppc-dev@lists.ozlabs.org>
-List-Help: <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=help>
-List-Subscribe: <https://lists.ozlabs.org/listinfo/linuxppc-dev>,
- <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=subscribe>
-Errors-To: linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org
-Sender: "Linuxppc-dev"
- <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
-To: shuahkh@osg.samsung.com, linux-kselftest@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, fweimer@redhat.com, linux-mm@kvack.org, aneesh.kumar@linux.ibm.com, x86@kernel.org, linuxram@us.ibm.com, mhocko@kernel.org, dave.hansen@intel.com, mingo@redhat.com, msuchanek@suse.de, linuxppc-dev@lists.ozlabs.org, bauerman@linux.ibm.com
+From: Christian Borntraeger <borntraeger@de.ibm.com>
+Subject: Re: READ_ONCE() + STACKPROTECTOR_STRONG == :/ (was Re: [GIT PULL]
+ Please pull powerpc/linux.git powerpc-5.5-2 tag (topic/kasan-bitops))
+Date: Wed, 18 Dec 2019 11:22:05 +0100
+Message-ID: <fb4bba85-1f83-435e-b84e-ee29770d7090@de.ibm.com>
+References: <87blslei5o.fsf@mpe.ellerman.id.au>
+ <20191206131650.GM2827@hirez.programming.kicks-ass.net>
+ <875zimp0ay.fsf@mpe.ellerman.id.au>
+ <20191212080105.GV2844@hirez.programming.kicks-ass.net>
+ <20191212100756.GA11317@willie-the-truck>
+ <20191212104610.GW2827@hirez.programming.kicks-ass.net>
+ <CAHk-=wjUBsH0BYDBv=q36482G-U7c=9bC89L_BViSciTfb8fhA@mail.gmail.com>
+ <20191212180634.GA19020@willie-the-truck>
+ <CAHk-=whRxB0adkz+V7SQC8Ac_rr_YfaPY8M2mFDfJP2FFBNz8A@mail.gmail.com>
+ <20191212193401.GB19020@willie-the-truck>
+ <CAHk-=wiMuHmWzQ7-CRQB6o+SHtA-u-Rp6VZwPcqDbjAaug80rQ@mail.gmail.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <CAHk-=wiMuHmWzQ7-CRQB6o+SHtA-u-Rp6VZwPcqDbjAaug80rQ@mail.gmail.com>
+Content-Language: en-US
+Sender: linux-kernel-owner@vger.kernel.org
+To: Linus Torvalds <torvalds@linux-foundation.org>, Will Deacon <will@kernel.org>
+Cc: Peter Zijlstra <peterz@infradead.org>, Michael Ellerman <mpe@ellerman.id.au>, dja@axtens.net, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linuxppc-dev@lists.ozlabs.org, Christophe Leroy <christophe.leroy@c-s.fr>, linux-arch <linux-arch@vger.kernel.org>, Mark Rutland <mark.rutland@arm.com>, Segher Boessenkool <segher@kernel.crashing.org>, Arnd Bergmann <arnd@arndb.de>
 List-Id: linux-arch.vger.kernel.org
 
-From: Ram Pai <linuxram@us.ibm.com>
+On 12.12.19 21:49, Linus Torvalds wrote:
+> On Thu, Dec 12, 2019 at 11:34 AM Will Deacon <will@kernel.org> wrote:
+>>
+>> The root of my concern in all of this, and what started me looking at it in
+>> the first place, is the interaction with 'typeof()'. Inheriting 'volatile'
+>> for a pointer means that local variables in macros declared using typeof()
+>> suddenly start generating *hideous* code, particularly when pointless stack
+>> spills get stackprotector all excited.
+> 
+> Yeah, removing volatile can be a bit annoying.
+> 
+> For the particular case of the bitops, though, it's not an issue.
+> Since you know the type there, you can just cast it.
+> 
+> And if we had the rule that READ_ONCE() was an arithmetic type, you could do
+> 
+>     typeof(0+(*p)) __var;
+> 
+> since you might as well get the integer promotion anyway (on the
+> non-volatile result).
+> 
+> But that doesn't work with structures or unions, of course.
 
-cc: Dave Hansen <dave.hansen@intel.com>
-cc: Florian Weimer <fweimer@redhat.com>
-Signed-off-by: Ram Pai <linuxram@us.ibm.com>
-Signed-off-by: Thiago Jung Bauermann <bauerman@linux.ibm.com>
-Acked-by: Ingo Molnar <mingo@kernel.org>
-Acked-by: Dave Hansen <dave.hansen@intel.com>
-Signed-off-by: Sandipan Das <sandipan@linux.ibm.com>
----
- tools/testing/selftests/vm/.gitignore                 | 1 +
- tools/testing/selftests/vm/Makefile                   | 1 +
- tools/testing/selftests/{x86 => vm}/pkey-helpers.h    | 0
- tools/testing/selftests/{x86 => vm}/protection_keys.c | 0
- tools/testing/selftests/x86/.gitignore                | 1 -
- 5 files changed, 2 insertions(+), 1 deletion(-)
- rename tools/testing/selftests/{x86 => vm}/pkey-helpers.h (100%)
- rename tools/testing/selftests/{x86 => vm}/protection_keys.c (100%)
+We do have a READ_ONCE on the following union in s390 code.
 
-diff --git a/tools/testing/selftests/vm/.gitignore b/tools/testing/selftests/vm/.gitignore
-index 31b3c98b6d34..c55837bf39fa 100644
---- a/tools/testing/selftests/vm/.gitignore
-+++ b/tools/testing/selftests/vm/.gitignore
-@@ -14,3 +14,4 @@ virtual_address_range
- gup_benchmark
- va_128TBswitch
- map_fixed_noreplace
-+protection_keys
-diff --git a/tools/testing/selftests/vm/Makefile b/tools/testing/selftests/vm/Makefile
-index 7f9a8a8c31da..4e9c741be6af 100644
---- a/tools/testing/selftests/vm/Makefile
-+++ b/tools/testing/selftests/vm/Makefile
-@@ -18,6 +18,7 @@ TEST_GEN_FILES += on-fault-limit
- TEST_GEN_FILES += thuge-gen
- TEST_GEN_FILES += transhuge-stress
- TEST_GEN_FILES += userfaultfd
-+TEST_GEN_FILES += protection_keys
- 
- ifneq (,$(filter $(ARCH),arm64 ia64 mips64 parisc64 ppc64 riscv64 s390x sh64 sparc64 x86_64))
- TEST_GEN_FILES += va_128TBswitch
-diff --git a/tools/testing/selftests/x86/pkey-helpers.h b/tools/testing/selftests/vm/pkey-helpers.h
-similarity index 100%
-rename from tools/testing/selftests/x86/pkey-helpers.h
-rename to tools/testing/selftests/vm/pkey-helpers.h
-diff --git a/tools/testing/selftests/x86/protection_keys.c b/tools/testing/selftests/vm/protection_keys.c
-similarity index 100%
-rename from tools/testing/selftests/x86/protection_keys.c
-rename to tools/testing/selftests/vm/protection_keys.c
-diff --git a/tools/testing/selftests/x86/.gitignore b/tools/testing/selftests/x86/.gitignore
-index 7757f73ff9a3..eb30ffd83876 100644
---- a/tools/testing/selftests/x86/.gitignore
-+++ b/tools/testing/selftests/x86/.gitignore
-@@ -11,5 +11,4 @@ ldt_gdt
- iopl
- mpx-mini-test
- ioperm
--protection_keys
- test_vdso
--- 
-2.17.1
+union ipte_control {
+        unsigned long val;
+        struct {
+                unsigned long k  : 1;
+                unsigned long kh : 31;
+                unsigned long kg : 32;
+        }; 
+};
+
+
+In fact this one was the original failure case why we change ACCESS_ONCE.
+
+see arch/s390/kvm/gaccess.c
