@@ -1,38 +1,38 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:42952 "EHLO
+Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:4030 "EHLO
         mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1725991AbfLRHwa (ORCPT
+        by vger.kernel.org with ESMTP id S1726526AbfLRHwb (ORCPT
         <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 18 Dec 2019 02:52:30 -0500
+        Wed, 18 Dec 2019 02:52:31 -0500
 Received: from pps.filterd (m0098399.ppops.net [127.0.0.1])
-        by mx0a-001b2d01.pphosted.com (8.16.0.42/8.16.0.42) with SMTP id xBI7qSQl039195
+        by mx0a-001b2d01.pphosted.com (8.16.0.42/8.16.0.42) with SMTP id xBI7qSkM039178
         for <linux-arch@vger.kernel.org>; Wed, 18 Dec 2019 02:52:30 -0500
-Received: from e06smtp01.uk.ibm.com (e06smtp01.uk.ibm.com [195.75.94.97])
-        by mx0a-001b2d01.pphosted.com with ESMTP id 2wye06435v-1
+Received: from e06smtp05.uk.ibm.com (e06smtp05.uk.ibm.com [195.75.94.101])
+        by mx0a-001b2d01.pphosted.com with ESMTP id 2wye06434j-1
         (version=TLSv1.2 cipher=AES256-GCM-SHA384 bits=256 verify=NOT)
         for <linux-arch@vger.kernel.org>; Wed, 18 Dec 2019 02:52:29 -0500
 Received: from localhost
-        by e06smtp01.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+        by e06smtp05.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
         for <linux-arch@vger.kernel.org> from <sandipan@linux.ibm.com>;
-        Wed, 18 Dec 2019 07:52:15 -0000
+        Wed, 18 Dec 2019 07:52:12 -0000
 From: Sandipan Das <sandipan@linux.ibm.com>
-Subject: [PATCH v15 04/23] selftests/vm/pkeys: Move some definitions to arch-specific header
-Date: Wed, 18 Dec 2019 13:21:37 +0530
+Subject: [PATCH v15 03/23] selftests/vm/pkeys: Move generic definitions to header file
+Date: Wed, 18 Dec 2019 13:21:36 +0530
 In-Reply-To: <cover.1576645161.git.sandipan@linux.ibm.com>
 References: <cover.1576645161.git.sandipan@linux.ibm.com>
 In-Reply-To: <cover.1576645161.git.sandipan@linux.ibm.com>
 References: <cover.1576645161.git.sandipan@linux.ibm.com>
-Message-ID: <50f232822f41eab4d9829748b5c3861cf448fe9e.1576645161.git.sandipan@linux.ibm.com>
+Message-ID: <dc75a6c7e8440c8cf2fc3e7a56135ca2e85249ac.1576645161.git.sandipan@linux.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: shuahkh@osg.samsung.com, linux-kselftest@vger.kernel.org
 Cc: linux-arch@vger.kernel.org, fweimer@redhat.com, dave.hansen@intel.com, x86@kernel.org, linuxram@us.ibm.com, mhocko@kernel.org, linux-mm@kvack.org, mingo@redhat.com, aneesh.kumar@linux.ibm.com, bauerman@linux.ibm.com, msuchanek@suse.de, linuxppc-dev@lists.ozlabs.org
-Message-ID: <20191218075137.MIcMJEKYy4y59nHFN48OMoXg9WksZcjbLs3g-MQdkTs@z>
+Message-ID: <20191218075136.69ClJvKlZ3pTSZT6y3RX3kEN_hfBuvqMtYETqtzBNu8@z>
 
-From: Thiago Jung Bauermann <bauerman@linux.ibm.com>
+From: Ram Pai <linuxram@us.ibm.com>
 
-This moves definitions which have arch-specific values to the
-x86-specific header in preparation for multi-arch support.
+This moves all the generic definitions and helper functions
+to a header file.
 
 cc: Dave Hansen <dave.hansen@intel.com>
 cc: Florian Weimer <fweimer@redhat.com>
@@ -41,396 +41,123 @@ Signed-off-by: Thiago Jung Bauermann <bauerman@linux.ibm.com>
 Acked-by: Dave Hansen <dave.hansen@intel.com>
 Signed-off-by: Sandipan Das <sandipan@linux.ibm.com>
 ---
- tools/testing/selftests/vm/pkey-helpers.h    | 111 +------------
- tools/testing/selftests/vm/pkey-x86.h        | 156 +++++++++++++++++++
- tools/testing/selftests/vm/protection_keys.c |  47 ------
- 3 files changed, 162 insertions(+), 152 deletions(-)
- create mode 100644 tools/testing/selftests/vm/pkey-x86.h
+ tools/testing/selftests/vm/pkey-helpers.h    | 35 +++++++++++++++++---
+ tools/testing/selftests/vm/protection_keys.c | 27 ---------------
+ 2 files changed, 30 insertions(+), 32 deletions(-)
 
 diff --git a/tools/testing/selftests/vm/pkey-helpers.h b/tools/testing/selftests/vm/pkey-helpers.h
-index 6ad1bd54ef94..3ed2f021bf7a 100644
+index d5779be4793f..6ad1bd54ef94 100644
 --- a/tools/testing/selftests/vm/pkey-helpers.h
 +++ b/tools/testing/selftests/vm/pkey-helpers.h
-@@ -21,9 +21,6 @@
+@@ -13,6 +13,14 @@
+ #include <ucontext.h>
+ #include <sys/mman.h>
  
- #define PTR_ERR_ENOTSUP ((void *)-ENOTSUP)
++/* Define some kernel-like types */
++#define  u8 uint8_t
++#define u16 uint16_t
++#define u32 uint32_t
++#define u64 uint64_t
++
++#define PTR_ERR_ENOTSUP ((void *)-ENOTSUP)
++
+ #define NR_PKEYS 16
+ #define PKEY_BITS_PER_PKEY 2
  
--#define NR_PKEYS 16
--#define PKEY_BITS_PER_PKEY 2
--
- #ifndef DEBUG_LEVEL
- #define DEBUG_LEVEL 0
- #endif
-@@ -73,19 +70,13 @@ extern void abort_hooks(void);
- 	}					\
- } while (0)
+@@ -53,6 +61,18 @@ static inline void sigsafe_printf(const char *format, ...)
+ #define dprintf3(args...) dprintf_level(3, args)
+ #define dprintf4(args...) dprintf_level(4, args)
  
-+#if defined(__i386__) || defined(__x86_64__) /* arch */
-+#include "pkey-x86.h"
-+#else /* arch */
-+#error Architecture not supported
-+#endif /* arch */
++extern void abort_hooks(void);
++#define pkey_assert(condition) do {		\
++	if (!(condition)) {			\
++		dprintf0("assert() at %s::%d test_nr: %d iteration: %d\n", \
++				__FILE__, __LINE__,	\
++				test_nr, iteration_nr);	\
++		dprintf0("errno at assert: %d", errno);	\
++		abort_hooks();			\
++		exit(__LINE__);			\
++	}					\
++} while (0)
 +
  extern unsigned int shadow_pkey_reg;
--static inline unsigned int __read_pkey_reg(void)
--{
--	unsigned int eax, edx;
--	unsigned int ecx = 0;
--	unsigned int pkey_reg;
--
--	asm volatile(".byte 0x0f,0x01,0xee\n\t"
--		     : "=a" (eax), "=d" (edx)
--		     : "c" (ecx));
--	pkey_reg = eax;
--	return pkey_reg;
--}
- 
- static inline unsigned int _read_pkey_reg(int line)
+ static inline unsigned int __read_pkey_reg(void)
  {
-@@ -100,19 +91,6 @@ static inline unsigned int _read_pkey_reg(int line)
- 
- #define read_pkey_reg() _read_pkey_reg(__LINE__)
- 
--static inline void __write_pkey_reg(unsigned int pkey_reg)
--{
--	unsigned int eax = pkey_reg;
--	unsigned int ecx = 0;
--	unsigned int edx = 0;
--
--	dprintf4("%s() changing %08x to %08x\n", __func__,
--			__read_pkey_reg(), pkey_reg);
--	asm volatile(".byte 0x0f,0x01,0xef\n\t"
--		     : : "a" (eax), "c" (ecx), "d" (edx));
--	assert(pkey_reg == __read_pkey_reg());
--}
--
- static inline void write_pkey_reg(unsigned int pkey_reg)
- {
- 	dprintf4("%s() changing %08x to %08x\n", __func__,
-@@ -157,83 +135,6 @@ static inline void __pkey_write_allow(int pkey, int do_allow_write)
+@@ -137,11 +157,6 @@ static inline void __pkey_write_allow(int pkey, int do_allow_write)
  	dprintf4("pkey_reg now: %08x\n", read_pkey_reg());
  }
  
--#define PAGE_SIZE 4096
--#define MB	(1<<20)
+-#define PROT_PKEY0     0x10            /* protection key value (bit 0) */
+-#define PROT_PKEY1     0x20            /* protection key value (bit 1) */
+-#define PROT_PKEY2     0x40            /* protection key value (bit 2) */
+-#define PROT_PKEY3     0x80            /* protection key value (bit 3) */
 -
--static inline void __cpuid(unsigned int *eax, unsigned int *ebx,
--		unsigned int *ecx, unsigned int *edx)
--{
--	/* ecx is often an input as well as an output. */
--	asm volatile(
--		"cpuid;"
--		: "=a" (*eax),
--		  "=b" (*ebx),
--		  "=c" (*ecx),
--		  "=d" (*edx)
--		: "0" (*eax), "2" (*ecx));
--}
--
--/* Intel-defined CPU features, CPUID level 0x00000007:0 (ecx) */
--#define X86_FEATURE_PKU        (1<<3) /* Protection Keys for Userspace */
--#define X86_FEATURE_OSPKE      (1<<4) /* OS Protection Keys Enable */
--
--static inline int cpu_has_pku(void)
--{
--	unsigned int eax;
--	unsigned int ebx;
--	unsigned int ecx;
--	unsigned int edx;
--
--	eax = 0x7;
--	ecx = 0x0;
--	__cpuid(&eax, &ebx, &ecx, &edx);
--
--	if (!(ecx & X86_FEATURE_PKU)) {
--		dprintf2("cpu does not have PKU\n");
--		return 0;
--	}
--	if (!(ecx & X86_FEATURE_OSPKE)) {
--		dprintf2("cpu does not have OSPKE\n");
--		return 0;
--	}
--	return 1;
--}
--
--#define XSTATE_PKEY_BIT	(9)
--#define XSTATE_PKEY	0x200
--
--int pkey_reg_xstate_offset(void)
--{
--	unsigned int eax;
--	unsigned int ebx;
--	unsigned int ecx;
--	unsigned int edx;
--	int xstate_offset;
--	int xstate_size;
--	unsigned long XSTATE_CPUID = 0xd;
--	int leaf;
--
--	/* assume that XSTATE_PKEY is set in XCR0 */
--	leaf = XSTATE_PKEY_BIT;
--	{
--		eax = XSTATE_CPUID;
--		ecx = leaf;
--		__cpuid(&eax, &ebx, &ecx, &edx);
--
--		if (leaf == XSTATE_PKEY_BIT) {
--			xstate_offset = ebx;
--			xstate_size = eax;
--		}
--	}
--
--	if (xstate_size == 0) {
--		printf("could not find size/offset of PKEY in xsave state\n");
--		return 0;
--	}
--
--	return xstate_offset;
--}
--
- #define ARRAY_SIZE(x) (sizeof(x) / sizeof(*(x)))
- #define ALIGN_UP(x, align_to)	(((x) + ((align_to)-1)) & ~((align_to)-1))
- #define ALIGN_DOWN(x, align_to) ((x) & ~((align_to)-1))
-diff --git a/tools/testing/selftests/vm/pkey-x86.h b/tools/testing/selftests/vm/pkey-x86.h
-new file mode 100644
-index 000000000000..2f04ade8ca9c
---- /dev/null
-+++ b/tools/testing/selftests/vm/pkey-x86.h
-@@ -0,0 +1,156 @@
-+/* SPDX-License-Identifier: GPL-2.0 */
+ #define PAGE_SIZE 4096
+ #define MB	(1<<20)
+ 
+@@ -219,4 +234,14 @@ int pkey_reg_xstate_offset(void)
+ 	return xstate_offset;
+ }
+ 
++#define ARRAY_SIZE(x) (sizeof(x) / sizeof(*(x)))
++#define ALIGN_UP(x, align_to)	(((x) + ((align_to)-1)) & ~((align_to)-1))
++#define ALIGN_DOWN(x, align_to) ((x) & ~((align_to)-1))
++#define ALIGN_PTR_UP(p, ptr_align_to)	\
++	((typeof(p))ALIGN_UP((unsigned long)(p), ptr_align_to))
++#define ALIGN_PTR_DOWN(p, ptr_align_to)	\
++	((typeof(p))ALIGN_DOWN((unsigned long)(p), ptr_align_to))
++#define __stringify_1(x...)     #x
++#define __stringify(x...)       __stringify_1(x)
 +
-+#ifndef _PKEYS_X86_H
-+#define _PKEYS_X86_H
-+
-+#ifdef __i386__
-+
-+#ifndef SYS_mprotect_key
-+# define SYS_mprotect_key	380
-+#endif
-+
-+#ifndef SYS_pkey_alloc
-+# define SYS_pkey_alloc		381
-+# define SYS_pkey_free		382
-+#endif
-+
-+#define REG_IP_IDX		REG_EIP
-+#define si_pkey_offset		0x14
-+
-+#else
-+
-+#ifndef SYS_mprotect_key
-+# define SYS_mprotect_key	329
-+#endif
-+
-+#ifndef SYS_pkey_alloc
-+# define SYS_pkey_alloc		330
-+# define SYS_pkey_free		331
-+#endif
-+
-+#define REG_IP_IDX		REG_RIP
-+#define si_pkey_offset		0x20
-+
-+#endif
-+
-+#ifndef PKEY_DISABLE_ACCESS
-+# define PKEY_DISABLE_ACCESS	0x1
-+#endif
-+
-+#ifndef PKEY_DISABLE_WRITE
-+# define PKEY_DISABLE_WRITE	0x2
-+#endif
-+
-+#define NR_PKEYS		16
-+#define PKEY_BITS_PER_PKEY	2
-+#define HPAGE_SIZE		(1UL<<21)
-+#define PAGE_SIZE		4096
-+#define MB			(1<<20)
-+
-+static inline void __page_o_noops(void)
-+{
-+	/* 8-bytes of instruction * 512 bytes = 1 page */
-+	asm(".rept 512 ; nopl 0x7eeeeeee(%eax) ; .endr");
-+}
-+
-+static inline unsigned int __read_pkey_reg(void)
-+{
-+	unsigned int eax, edx;
-+	unsigned int ecx = 0;
-+	unsigned int pkey_reg;
-+
-+	asm volatile(".byte 0x0f,0x01,0xee\n\t"
-+		     : "=a" (eax), "=d" (edx)
-+		     : "c" (ecx));
-+	pkey_reg = eax;
-+	return pkey_reg;
-+}
-+
-+static inline void __write_pkey_reg(unsigned int pkey_reg)
-+{
-+	unsigned int eax = pkey_reg;
-+	unsigned int ecx = 0;
-+	unsigned int edx = 0;
-+
-+	dprintf4("%s() changing %08x to %08x\n", __func__,
-+			__read_pkey_reg(), pkey_reg);
-+	asm volatile(".byte 0x0f,0x01,0xef\n\t"
-+		     : : "a" (eax), "c" (ecx), "d" (edx));
-+	assert(pkey_reg == __read_pkey_reg());
-+}
-+
-+static inline void __cpuid(unsigned int *eax, unsigned int *ebx,
-+		unsigned int *ecx, unsigned int *edx)
-+{
-+	/* ecx is often an input as well as an output. */
-+	asm volatile(
-+		"cpuid;"
-+		: "=a" (*eax),
-+		  "=b" (*ebx),
-+		  "=c" (*ecx),
-+		  "=d" (*edx)
-+		: "0" (*eax), "2" (*ecx));
-+}
-+
-+/* Intel-defined CPU features, CPUID level 0x00000007:0 (ecx) */
-+#define X86_FEATURE_PKU        (1<<3) /* Protection Keys for Userspace */
-+#define X86_FEATURE_OSPKE      (1<<4) /* OS Protection Keys Enable */
-+
-+static inline int cpu_has_pku(void)
-+{
-+	unsigned int eax;
-+	unsigned int ebx;
-+	unsigned int ecx;
-+	unsigned int edx;
-+
-+	eax = 0x7;
-+	ecx = 0x0;
-+	__cpuid(&eax, &ebx, &ecx, &edx);
-+
-+	if (!(ecx & X86_FEATURE_PKU)) {
-+		dprintf2("cpu does not have PKU\n");
-+		return 0;
-+	}
-+	if (!(ecx & X86_FEATURE_OSPKE)) {
-+		dprintf2("cpu does not have OSPKE\n");
-+		return 0;
-+	}
-+	return 1;
-+}
-+
-+#define XSTATE_PKEY_BIT	(9)
-+#define XSTATE_PKEY	0x200
-+
-+int pkey_reg_xstate_offset(void)
-+{
-+	unsigned int eax;
-+	unsigned int ebx;
-+	unsigned int ecx;
-+	unsigned int edx;
-+	int xstate_offset;
-+	int xstate_size;
-+	unsigned long XSTATE_CPUID = 0xd;
-+	int leaf;
-+
-+	/* assume that XSTATE_PKEY is set in XCR0 */
-+	leaf = XSTATE_PKEY_BIT;
-+	{
-+		eax = XSTATE_CPUID;
-+		ecx = leaf;
-+		__cpuid(&eax, &ebx, &ecx, &edx);
-+
-+		if (leaf == XSTATE_PKEY_BIT) {
-+			xstate_offset = ebx;
-+			xstate_size = eax;
-+		}
-+	}
-+
-+	if (xstate_size == 0) {
-+		printf("could not find size/offset of PKEY in xsave state\n");
-+		return 0;
-+	}
-+
-+	return xstate_offset;
-+}
-+
-+#endif /* _PKEYS_X86_H */
+ #endif /* _PKEYS_HELPER_H */
 diff --git a/tools/testing/selftests/vm/protection_keys.c b/tools/testing/selftests/vm/protection_keys.c
-index 42ffb58810f2..2d0e881f109d 100644
+index 2f4ab81c570d..42ffb58810f2 100644
 --- a/tools/testing/selftests/vm/protection_keys.c
 +++ b/tools/testing/selftests/vm/protection_keys.c
-@@ -49,9 +49,6 @@ int iteration_nr = 1;
- int test_nr;
- 
+@@ -51,31 +51,10 @@ int test_nr;
  unsigned int shadow_pkey_reg;
+ 
+ #define HPAGE_SIZE	(1UL<<21)
+-#define ARRAY_SIZE(x) (sizeof(x) / sizeof(*(x)))
+-#define ALIGN_UP(x, align_to)	(((x) + ((align_to)-1)) & ~((align_to)-1))
+-#define ALIGN_DOWN(x, align_to) ((x) & ~((align_to)-1))
+-#define ALIGN_PTR_UP(p, ptr_align_to)	((typeof(p))ALIGN_UP((unsigned long)(p),	ptr_align_to))
+-#define ALIGN_PTR_DOWN(p, ptr_align_to)	((typeof(p))ALIGN_DOWN((unsigned long)(p),	ptr_align_to))
+-#define __stringify_1(x...)     #x
+-#define __stringify(x...)       __stringify_1(x)
 -
--#define HPAGE_SIZE	(1UL<<21)
--
+-#define PTR_ERR_ENOTSUP ((void *)-ENOTSUP)
+ 
  int dprint_in_signal;
  char dprint_in_signal_buffer[DPRINT_IN_SIGNAL_BUF_SIZE];
  
-@@ -137,12 +134,6 @@ void abort_hooks(void)
- #endif
- }
- 
--static inline void __page_o_noops(void)
--{
--	/* 8-bytes of instruction * 512 bytes = 1 page */
--	asm(".rept 512 ; nopl 0x7eeeeeee(%eax) ; .endr");
--}
+-extern void abort_hooks(void);
+-#define pkey_assert(condition) do {		\
+-	if (!(condition)) {			\
+-		dprintf0("assert() at %s::%d test_nr: %d iteration: %d\n", \
+-				__FILE__, __LINE__,	\
+-				test_nr, iteration_nr);	\
+-		dprintf0("errno at assert: %d", errno);	\
+-		abort_hooks();			\
+-		exit(__LINE__);			\
+-	}					\
+-} while (0)
 -
- /*
-  * This attempts to have roughly a page of instructions followed by a few
-  * instructions that do a write, and another page of instructions.  That
-@@ -165,36 +156,6 @@ void lots_o_noops_around_write(int *write_to_me)
+ void cat_into_file(char *str, char *file)
+ {
+ 	int fd = open(file, O_RDWR);
+@@ -186,12 +165,6 @@ void lots_o_noops_around_write(int *write_to_me)
  	dprintf3("%s() done\n", __func__);
  }
  
--#ifdef __i386__
+-/* Define some kernel-like types */
+-#define  u8 uint8_t
+-#define u16 uint16_t
+-#define u32 uint32_t
+-#define u64 uint64_t
 -
--#ifndef SYS_mprotect_key
--# define SYS_mprotect_key	380
--#endif
--
--#ifndef SYS_pkey_alloc
--# define SYS_pkey_alloc		381
--# define SYS_pkey_free		382
--#endif
--
--#define REG_IP_IDX		REG_EIP
--#define si_pkey_offset		0x14
--
--#else
--
--#ifndef SYS_mprotect_key
--# define SYS_mprotect_key	329
--#endif
--
--#ifndef SYS_pkey_alloc
--# define SYS_pkey_alloc		330
--# define SYS_pkey_free		331
--#endif
--
--#define REG_IP_IDX		REG_RIP
--#define si_pkey_offset		0x20
--
--#endif
--
- void dump_mem(void *dumpme, int len_bytes)
- {
- 	char *c = (void *)dumpme;
-@@ -367,14 +328,6 @@ pid_t fork_lazy_child(void)
- 	return forkret;
- }
+ #ifdef __i386__
  
--#ifndef PKEY_DISABLE_ACCESS
--# define PKEY_DISABLE_ACCESS	0x1
--#endif
--
--#ifndef PKEY_DISABLE_WRITE
--# define PKEY_DISABLE_WRITE	0x2
--#endif
--
- static u32 hw_pkey_get(int pkey, unsigned long flags)
- {
- 	u32 mask = (PKEY_DISABLE_ACCESS|PKEY_DISABLE_WRITE);
+ #ifndef SYS_mprotect_key
 -- 
 2.17.1
