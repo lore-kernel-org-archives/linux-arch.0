@@ -1,25 +1,14 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:62980 "EHLO
-        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
-        by vger.kernel.org with ESMTP id S1725930AbfLRKWN (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 18 Dec 2019 05:22:13 -0500
-Received: from pps.filterd (m0098414.ppops.net [127.0.0.1])
-        by mx0b-001b2d01.pphosted.com (8.16.0.42/8.16.0.42) with SMTP id xBIAGt7B111357
-        for <linux-arch@vger.kernel.org>; Wed, 18 Dec 2019 05:22:12 -0500
-Received: from e06smtp02.uk.ibm.com (e06smtp02.uk.ibm.com [195.75.94.98])
-        by mx0b-001b2d01.pphosted.com with ESMTP id 2wyj6p872y-1
-        (version=TLSv1.2 cipher=AES256-GCM-SHA384 bits=256 verify=NOT)
-        for <linux-arch@vger.kernel.org>; Wed, 18 Dec 2019 05:22:12 -0500
-Received: from localhost
-        by e06smtp02.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-        for <linux-arch@vger.kernel.org> from <borntraeger@de.ibm.com>;
-        Wed, 18 Dec 2019 10:22:11 -0000
+Received: from mail.kernel.org ([198.145.29.99]:41672 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1725785AbfLRKfI (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 18 Dec 2019 05:35:08 -0500
+Date: Wed, 18 Dec 2019 10:35:01 +0000
+From: Will Deacon <will@kernel.org>
 Subject: Re: READ_ONCE() + STACKPROTECTOR_STRONG == :/ (was Re: [GIT PULL]
  Please pull powerpc/linux.git powerpc-5.5-2 tag (topic/kasan-bitops))
-References: <87blslei5o.fsf@mpe.ellerman.id.au>
- <20191206131650.GM2827@hirez.programming.kicks-ass.net>
- <875zimp0ay.fsf@mpe.ellerman.id.au>
+Message-ID: <20191218103501.GA15021@willie-the-truck>
+References: <875zimp0ay.fsf@mpe.ellerman.id.au>
  <20191212080105.GV2844@hirez.programming.kicks-ass.net>
  <20191212100756.GA11317@willie-the-truck>
  <20191212104610.GW2827@hirez.programming.kicks-ass.net>
@@ -28,55 +17,60 @@ References: <87blslei5o.fsf@mpe.ellerman.id.au>
  <CAHk-=whRxB0adkz+V7SQC8Ac_rr_YfaPY8M2mFDfJP2FFBNz8A@mail.gmail.com>
  <20191212193401.GB19020@willie-the-truck>
  <CAHk-=wiMuHmWzQ7-CRQB6o+SHtA-u-Rp6VZwPcqDbjAaug80rQ@mail.gmail.com>
-From: Christian Borntraeger <borntraeger@de.ibm.com>
-Date: Wed, 18 Dec 2019 11:22:05 +0100
+ <fb4bba85-1f83-435e-b84e-ee29770d7090@de.ibm.com>
 MIME-Version: 1.0
-In-Reply-To: <CAHk-=wiMuHmWzQ7-CRQB6o+SHtA-u-Rp6VZwPcqDbjAaug80rQ@mail.gmail.com>
-Content-Type: text/plain; charset=utf-8
-Content-Language: en-US
-Content-Transfer-Encoding: 7bit
-Message-ID: <fb4bba85-1f83-435e-b84e-ee29770d7090@de.ibm.com>
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <fb4bba85-1f83-435e-b84e-ee29770d7090@de.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>, Will Deacon <will@kernel.org>
-Cc: Peter Zijlstra <peterz@infradead.org>, Michael Ellerman <mpe@ellerman.id.au>, dja@axtens.net, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linuxppc-dev@lists.ozlabs.org, Christophe Leroy <christophe.leroy@c-s.fr>, linux-arch <linux-arch@vger.kernel.org>, Mark Rutland <mark.rutland@arm.com>, Segher Boessenkool <segher@kernel.crashing.org>, Arnd Bergmann <arnd@arndb.de>
-Message-ID: <20191218102205.WxeQu405mVMF11_jjNKioSuhSkntuZDCPw7m3eXr1go@z>
+To: Christian Borntraeger <borntraeger@de.ibm.com>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Peter Zijlstra <peterz@infradead.org>, Michael Ellerman <mpe@ellerman.id.au>, dja@axtens.net, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linuxppc-dev@lists.ozlabs.org, Christophe Leroy <christophe.leroy@c-s.fr>, linux-arch <linux-arch@vger.kernel.org>, Mark Rutland <mark.rutland@arm.com>, Segher Boessenkool <segher@kernel.crashing.org>, Arnd Bergmann <arnd@arndb.de>
+Message-ID: <20191218103501.oEDSKfQ-pwm5Qj9y4tbB1tARJJaCqtIWzM-edZP71io@z>
 
-On 12.12.19 21:49, Linus Torvalds wrote:
-> On Thu, Dec 12, 2019 at 11:34 AM Will Deacon <will@kernel.org> wrote:
->>
->> The root of my concern in all of this, and what started me looking at it in
->> the first place, is the interaction with 'typeof()'. Inheriting 'volatile'
->> for a pointer means that local variables in macros declared using typeof()
->> suddenly start generating *hideous* code, particularly when pointless stack
->> spills get stackprotector all excited.
+On Wed, Dec 18, 2019 at 11:22:05AM +0100, Christian Borntraeger wrote:
+> On 12.12.19 21:49, Linus Torvalds wrote:
+> > On Thu, Dec 12, 2019 at 11:34 AM Will Deacon <will@kernel.org> wrote:
+> >>
+> >> The root of my concern in all of this, and what started me looking at it in
+> >> the first place, is the interaction with 'typeof()'. Inheriting 'volatile'
+> >> for a pointer means that local variables in macros declared using typeof()
+> >> suddenly start generating *hideous* code, particularly when pointless stack
+> >> spills get stackprotector all excited.
+> > 
+> > Yeah, removing volatile can be a bit annoying.
+> > 
+> > For the particular case of the bitops, though, it's not an issue.
+> > Since you know the type there, you can just cast it.
+> > 
+> > And if we had the rule that READ_ONCE() was an arithmetic type, you could do
+> > 
+> >     typeof(0+(*p)) __var;
+> > 
+> > since you might as well get the integer promotion anyway (on the
+> > non-volatile result).
+> > 
+> > But that doesn't work with structures or unions, of course.
 > 
-> Yeah, removing volatile can be a bit annoying.
+> We do have a READ_ONCE on the following union in s390 code.
 > 
-> For the particular case of the bitops, though, it's not an issue.
-> Since you know the type there, you can just cast it.
+> union ipte_control {
+>         unsigned long val;
+>         struct {
+>                 unsigned long k  : 1;
+>                 unsigned long kh : 31;
+>                 unsigned long kg : 32;
+>         }; 
+> };
 > 
-> And if we had the rule that READ_ONCE() was an arithmetic type, you could do
 > 
->     typeof(0+(*p)) __var;
+> In fact this one was the original failure case why we change ACCESS_ONCE.
 > 
-> since you might as well get the integer promotion anyway (on the
-> non-volatile result).
-> 
-> But that doesn't work with structures or unions, of course.
+> see arch/s390/kvm/gaccess.c
 
-We do have a READ_ONCE on the following union in s390 code.
+Thanks. I think we should be ok just using the 'val' field instead of the
+whole union but, then again, when bitfields are involved who knows what the
+compiler might do. I thought we usually shied away from using them to mirror
+hardware structures like this?
 
-union ipte_control {
-        unsigned long val;
-        struct {
-                unsigned long k  : 1;
-                unsigned long kh : 31;
-                unsigned long kg : 32;
-        }; 
-};
-
-
-In fact this one was the original failure case why we change ACCESS_ONCE.
-
-see arch/s390/kvm/gaccess.c
+Will
