@@ -1,97 +1,138 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from out01.mta.xmission.com ([166.70.13.231]:40546 "EHLO
-        out01.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726967AbfLQUHE (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 17 Dec 2019 15:07:04 -0500
-From: ebiederm@xmission.com (Eric W. Biederman)
-References: <20191211184027.20130-1-catalin.marinas@arm.com>
-        <20191211184027.20130-13-catalin.marinas@arm.com>
-        <CAK8P3a1-eaR7NddhDce65vXKCGeZD3xUMrTTAWN4U3oW0ecN=g@mail.gmail.com>
-        <87zhfxqu1q.fsf@x220.int.ebiederm.org>
-        <20191217174808.GM5624@arrakis.emea.arm.com>
-Date: Tue, 17 Dec 2019 14:06:01 -0600
-In-Reply-To: <20191217174808.GM5624@arrakis.emea.arm.com> (Catalin Marinas's
-        message of "Tue, 17 Dec 2019 17:48:10 +0000")
-Message-ID: <877e2ura3a.fsf@x220.int.ebiederm.org>
+Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:26514 "EHLO
+        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S1725797AbfLRFgR (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 18 Dec 2019 00:36:17 -0500
+From: "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>
+Subject: [PATCH v2 1/3] powerpc/mmu_gather: Enable RCU_TABLE_FREE even for !SMP case
+Date: Wed, 18 Dec 2019 11:05:28 +0530
+Message-ID: <20191218053530.73053-1-aneesh.kumar@linux.ibm.com>
 MIME-Version: 1.0
-Content-Type: text/plain
-Subject: Re: [PATCH 12/22] arm64: mte: Add specific SIGSEGV codes
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Arnd Bergmann <arnd@arndb.de>, Linux ARM <linux-arm-kernel@lists.infradead.org>, Will Deacon <will@kernel.org>, Marc Zyngier <maz@kernel.org>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Richard Earnshaw <Richard.Earnshaw@arm.com>, Kevin Brodsky <kevin.brodsky@arm.com>, Andrey Konovalov <andreyknvl@google.com>, Linux-MM <linux-mm@kvack.org>, linux-arch <linux-arch@vger.kernel.org>, Al Viro <viro@zeniv.linux.org.uk>
-Message-ID: <20191217200601.ePEYOIpnfbL9zxs2hATEXBzRGdj1-Wyesg2NE7sZZvE@z>
+To: akpm@linux-foundation.org, npiggin@gmail.com, mpe@ellerman.id.au, peterz@infradead.org, will@kernel.org
+Cc: linux-mm@kvack.org, linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-arch@vger.kernel.org, "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>
+Message-ID: <20191218053528.6PmoZB9BfjFpYDijorVH9PptKdCXwjiCGd9GaB0Z3DM@z>
 
-Catalin Marinas <catalin.marinas@arm.com> writes:
+A follow up patch is going to make sure we correctly invalidate page walk cache
+before we free page table pages. In order to keep things simple enable
+RCU_TABLE_FREE even for !SMP so that we don't have to fixup the !SMP case
+differently in the followup patch
 
-> Hi Eric,
->
-> On Thu, Dec 12, 2019 at 12:26:41PM -0600, Eric W. Biederman wrote:
->> Arnd Bergmann <arnd@arndb.de> writes:
->> > On Wed, Dec 11, 2019 at 7:40 PM Catalin Marinas <catalin.marinas@arm.com> wrote:
->> >>
->> >> From: Vincenzo Frascino <vincenzo.frascino@arm.com>
->> >>
->> >> Add MTE-specific SIGSEGV codes to siginfo.h.
->> >>
->> >> Note that the for MTE we are reusing the same SPARC ADI codes because
->> >> the two functionalities are similar and they cannot coexist on the same
->> >> system.
->> 
->> Please Please Please don't do that.
->> 
->> It is actively harmful to have architecture specific si_code values.
->> As it makes maintenance much more difficult.
->> 
->> Especially as the si_codes are part of union descrimanator.
->> 
->> If your functionality is identical reuse the numbers otherwise please
->> just select the next numbers not yet used.
->
-> It makes sense.
->
->> We have at least 256 si_codes per signal 2**32 if we really need them so
->> there is no need to be reuse numbers.
->> 
->> The practical problem is that architecture specific si_codes start
->> turning kernel/signal.c into #ifdef soup, and we loose a lot of
->> basic compile coverage because of that.  In turn not compiling the code
->> leads to bit-rot in all kinds of weird places.
->
-> Fortunately for MTE we don't need to change kernel/signal.c. It's
-> sufficient to call force_sig_fault() from the arch code with the
-> corresponding signo, code and fault address.
+Signed-off-by: Aneesh Kumar K.V <aneesh.kumar@linux.ibm.com>
+---
+ arch/powerpc/Kconfig                         | 2 +-
+ arch/powerpc/include/asm/book3s/32/pgalloc.h | 8 --------
+ arch/powerpc/include/asm/book3s/64/pgalloc.h | 2 --
+ arch/powerpc/include/asm/nohash/pgalloc.h    | 8 --------
+ arch/powerpc/mm/book3s64/pgtable.c           | 7 -------
+ 5 files changed, 1 insertion(+), 26 deletions(-)
 
-Hooray for force_sig_fault at keeping people honest about which
-parameters they are passing.
-
-So far it looks like it is just BUS_MCEERR_AR, BUS_MCEERR_AO,
-SEGV_BNDERR, and SEGV_PKUERR that are the really confusing ones,
-as they go beyond the ordinary force_sig_fault layout.
-
-But we really do need the knowledge of how all of the cases are encoded
-or things can get very confusing.  Especially when mixing 32bit and
-64bit code.
-
->> p.s. As for coexistence there is always the possibility that one chip
->> in a cpu family does supports one thing and another chip in a cpu
->> family supports another.  So userspace may have to cope with the
->> situation even if an individual chip doesn't.
->> 
->> I remember a similar case where sparc had several distinct page table
->> formats and we had a single kernel that had to cope with them all.
->
-> We have such fun on ARM as well with the big.LITTLE systems where not
-> all CPUs support the same features. For example, MTE is only enabled
-> once all the secondary CPUs have booted and confirmed to have the
-> feature.
-
-Which all makes it possible that the alternative to MTE referenced as
-ADI might show up in some future ARM chip.  Which really makes reusing
-the numbers a bad idea.
-
-Not that I actually recall what any of this functionality actually is,
-but I can tell when people are setting themselves of for a challenge
-unnecessarily.
-
-Eric
+diff --git a/arch/powerpc/Kconfig b/arch/powerpc/Kconfig
+index 1ec34e16ed65..04240205f38c 100644
+--- a/arch/powerpc/Kconfig
++++ b/arch/powerpc/Kconfig
+@@ -222,7 +222,7 @@ config PPC
+ 	select HAVE_HARDLOCKUP_DETECTOR_PERF	if PERF_EVENTS && HAVE_PERF_EVENTS_NMI && !HAVE_HARDLOCKUP_DETECTOR_ARCH
+ 	select HAVE_PERF_REGS
+ 	select HAVE_PERF_USER_STACK_DUMP
+-	select HAVE_RCU_TABLE_FREE		if SMP
++	select HAVE_RCU_TABLE_FREE
+ 	select HAVE_RCU_TABLE_NO_INVALIDATE	if HAVE_RCU_TABLE_FREE
+ 	select HAVE_MMU_GATHER_PAGE_SIZE
+ 	select HAVE_REGS_AND_STACK_ACCESS_API
+diff --git a/arch/powerpc/include/asm/book3s/32/pgalloc.h b/arch/powerpc/include/asm/book3s/32/pgalloc.h
+index 998317702630..dc5c039eb28e 100644
+--- a/arch/powerpc/include/asm/book3s/32/pgalloc.h
++++ b/arch/powerpc/include/asm/book3s/32/pgalloc.h
+@@ -49,7 +49,6 @@ static inline void pgtable_free(void *table, unsigned index_size)
+ 
+ #define get_hugepd_cache_index(x)  (x)
+ 
+-#ifdef CONFIG_SMP
+ static inline void pgtable_free_tlb(struct mmu_gather *tlb,
+ 				    void *table, int shift)
+ {
+@@ -66,13 +65,6 @@ static inline void __tlb_remove_table(void *_table)
+ 
+ 	pgtable_free(table, shift);
+ }
+-#else
+-static inline void pgtable_free_tlb(struct mmu_gather *tlb,
+-				    void *table, int shift)
+-{
+-	pgtable_free(table, shift);
+-}
+-#endif
+ 
+ static inline void __pte_free_tlb(struct mmu_gather *tlb, pgtable_t table,
+ 				  unsigned long address)
+diff --git a/arch/powerpc/include/asm/book3s/64/pgalloc.h b/arch/powerpc/include/asm/book3s/64/pgalloc.h
+index f6968c811026..a41e91bd0580 100644
+--- a/arch/powerpc/include/asm/book3s/64/pgalloc.h
++++ b/arch/powerpc/include/asm/book3s/64/pgalloc.h
+@@ -19,9 +19,7 @@ extern struct vmemmap_backing *vmemmap_list;
+ extern pmd_t *pmd_fragment_alloc(struct mm_struct *, unsigned long);
+ extern void pmd_fragment_free(unsigned long *);
+ extern void pgtable_free_tlb(struct mmu_gather *tlb, void *table, int shift);
+-#ifdef CONFIG_SMP
+ extern void __tlb_remove_table(void *_table);
+-#endif
+ void pte_frag_destroy(void *pte_frag);
+ 
+ static inline pgd_t *radix__pgd_alloc(struct mm_struct *mm)
+diff --git a/arch/powerpc/include/asm/nohash/pgalloc.h b/arch/powerpc/include/asm/nohash/pgalloc.h
+index 332b13b4ecdb..29c43665a753 100644
+--- a/arch/powerpc/include/asm/nohash/pgalloc.h
++++ b/arch/powerpc/include/asm/nohash/pgalloc.h
+@@ -46,7 +46,6 @@ static inline void pgtable_free(void *table, int shift)
+ 
+ #define get_hugepd_cache_index(x)	(x)
+ 
+-#ifdef CONFIG_SMP
+ static inline void pgtable_free_tlb(struct mmu_gather *tlb, void *table, int shift)
+ {
+ 	unsigned long pgf = (unsigned long)table;
+@@ -64,13 +63,6 @@ static inline void __tlb_remove_table(void *_table)
+ 	pgtable_free(table, shift);
+ }
+ 
+-#else
+-static inline void pgtable_free_tlb(struct mmu_gather *tlb, void *table, int shift)
+-{
+-	pgtable_free(table, shift);
+-}
+-#endif
+-
+ static inline void __pte_free_tlb(struct mmu_gather *tlb, pgtable_t table,
+ 				  unsigned long address)
+ {
+diff --git a/arch/powerpc/mm/book3s64/pgtable.c b/arch/powerpc/mm/book3s64/pgtable.c
+index 75483b40fcb1..2bf7e1b4fd82 100644
+--- a/arch/powerpc/mm/book3s64/pgtable.c
++++ b/arch/powerpc/mm/book3s64/pgtable.c
+@@ -378,7 +378,6 @@ static inline void pgtable_free(void *table, int index)
+ 	}
+ }
+ 
+-#ifdef CONFIG_SMP
+ void pgtable_free_tlb(struct mmu_gather *tlb, void *table, int index)
+ {
+ 	unsigned long pgf = (unsigned long)table;
+@@ -395,12 +394,6 @@ void __tlb_remove_table(void *_table)
+ 
+ 	return pgtable_free(table, index);
+ }
+-#else
+-void pgtable_free_tlb(struct mmu_gather *tlb, void *table, int index)
+-{
+-	return pgtable_free(table, index);
+-}
+-#endif
+ 
+ #ifdef CONFIG_PROC_FS
+ atomic_long_t direct_pages_count[MMU_PAGE_COUNT];
+-- 
+2.23.0
