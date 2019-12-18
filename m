@@ -1,79 +1,78 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:5036 "EHLO
-        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
-        by vger.kernel.org with ESMTP id S1725882AbfLRHxI (ORCPT
+Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:41760 "EHLO
+        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S1725797AbfLRHxk (ORCPT
         <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 18 Dec 2019 02:53:08 -0500
-Received: from pps.filterd (m0098414.ppops.net [127.0.0.1])
-        by mx0b-001b2d01.pphosted.com (8.16.0.42/8.16.0.42) with SMTP id xBI7qtbb048490
-        for <linux-arch@vger.kernel.org>; Wed, 18 Dec 2019 02:53:06 -0500
-Received: from e06smtp03.uk.ibm.com (e06smtp03.uk.ibm.com [195.75.94.99])
-        by mx0b-001b2d01.pphosted.com with ESMTP id 2wybqph0xn-1
+        Wed, 18 Dec 2019 02:53:40 -0500
+Received: from pps.filterd (m0098396.ppops.net [127.0.0.1])
+        by mx0a-001b2d01.pphosted.com (8.16.0.42/8.16.0.42) with SMTP id xBI7rbMv131404
+        for <linux-arch@vger.kernel.org>; Wed, 18 Dec 2019 02:53:39 -0500
+Received: from e06smtp01.uk.ibm.com (e06smtp01.uk.ibm.com [195.75.94.97])
+        by mx0a-001b2d01.pphosted.com with ESMTP id 2wy7uapv4c-1
         (version=TLSv1.2 cipher=AES256-GCM-SHA384 bits=256 verify=NOT)
-        for <linux-arch@vger.kernel.org>; Wed, 18 Dec 2019 02:53:06 -0500
+        for <linux-arch@vger.kernel.org>; Wed, 18 Dec 2019 02:53:38 -0500
 Received: from localhost
-        by e06smtp03.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+        by e06smtp01.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
         for <linux-arch@vger.kernel.org> from <sandipan@linux.ibm.com>;
-        Wed, 18 Dec 2019 07:53:04 -0000
+        Wed, 18 Dec 2019 07:52:51 -0000
 From: Sandipan Das <sandipan@linux.ibm.com>
-Subject: [PATCH v15 23/23] selftests: vm: pkeys: Use the correct page size on powerpc
-Date: Wed, 18 Dec 2019 13:21:56 +0530
+Subject: [PATCH v15 18/23] selftests/vm/pkeys: Detect write violation on a mapped access-denied-key page
+Date: Wed, 18 Dec 2019 13:21:51 +0530
 In-Reply-To: <cover.1576645161.git.sandipan@linux.ibm.com>
 References: <cover.1576645161.git.sandipan@linux.ibm.com>
 In-Reply-To: <cover.1576645161.git.sandipan@linux.ibm.com>
 References: <cover.1576645161.git.sandipan@linux.ibm.com>
-Message-ID: <ff7c288e2a88ccfb3b79be30967646fe5b869683.1576645161.git.sandipan@linux.ibm.com>
+Message-ID: <c2b0a51fb723bc525e9674a480702e109d937e1e.1576645161.git.sandipan@linux.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: shuahkh@osg.samsung.com, linux-kselftest@vger.kernel.org
 Cc: linux-arch@vger.kernel.org, fweimer@redhat.com, dave.hansen@intel.com, x86@kernel.org, linuxram@us.ibm.com, mhocko@kernel.org, linux-mm@kvack.org, mingo@redhat.com, aneesh.kumar@linux.ibm.com, bauerman@linux.ibm.com, msuchanek@suse.de, linuxppc-dev@lists.ozlabs.org
-Message-ID: <20191218075156.WlJL0KIBdGgsEAV1JRHWD5VUQDet5LplJKohSipK6tE@z>
+Message-ID: <20191218075151.W66Ukbqm9vuISzyg4AxyYeiZO9vp2qtl9WmWpNncUvw@z>
 
-Both 4K and 64K pages are supported on powerpc. Parts of
-the selftest code perform alignment computations based on
-the PAGE_SIZE macro which is currently hardcoded to 64K
-for powerpc. This causes some test failures on kernels
-configured with 4K page size.
+From: Ram Pai <linuxram@us.ibm.com>
 
-This problem is solved by determining the correct page
-size during the build process rather than hardcoding it
-in the header file.
+Detect write-violation on a page to which access-disabled
+key is associated much after the page is mapped.
 
 cc: Dave Hansen <dave.hansen@intel.com>
 cc: Florian Weimer <fweimer@redhat.com>
-cc: Ram Pai <linuxram@us.ibm.com>
+Signed-off-by: Ram Pai <linuxram@us.ibm.com>
+Acked-by: Dave Hansen <dave.hansen@intel.com>
 Signed-off-by: Sandipan Das <sandipan@linux.ibm.com>
 ---
- tools/testing/selftests/vm/Makefile       | 4 ++++
- tools/testing/selftests/vm/pkey-powerpc.h | 1 -
- 2 files changed, 4 insertions(+), 1 deletion(-)
+ tools/testing/selftests/vm/protection_keys.c | 13 +++++++++++++
+ 1 file changed, 13 insertions(+)
 
-diff --git a/tools/testing/selftests/vm/Makefile b/tools/testing/selftests/vm/Makefile
-index 4e9c741be6af..ada3a67eaac6 100644
---- a/tools/testing/selftests/vm/Makefile
-+++ b/tools/testing/selftests/vm/Makefile
-@@ -4,6 +4,10 @@ uname_M := $(shell uname -m 2>/dev/null || echo not)
- ARCH ?= $(shell echo $(uname_M) | sed -e 's/aarch64.*/arm64/')
- 
- CFLAGS = -Wall -I ../../../../usr/include $(EXTRA_CFLAGS)
-+ifneq (,$(filter $(ARCH), ppc64 ppc64le))
-+protection_keys: EXTRA_CFLAGS += -DPAGE_SIZE=$(shell getconf PAGESIZE)
-+endif
+diff --git a/tools/testing/selftests/vm/protection_keys.c b/tools/testing/selftests/vm/protection_keys.c
+index ff207b765afd..176625ded549 100644
+--- a/tools/testing/selftests/vm/protection_keys.c
++++ b/tools/testing/selftests/vm/protection_keys.c
+@@ -1026,6 +1026,18 @@ void test_write_of_access_disabled_region(int *ptr, u16 pkey)
+ 	*ptr = __LINE__;
+ 	expected_pkey_fault(pkey);
+ }
 +
- LDLIBS = -lrt
- TEST_GEN_FILES = compaction_test
- TEST_GEN_FILES += gup_benchmark
-diff --git a/tools/testing/selftests/vm/pkey-powerpc.h b/tools/testing/selftests/vm/pkey-powerpc.h
-index 3cd8e03fd640..07fa9f529014 100644
---- a/tools/testing/selftests/vm/pkey-powerpc.h
-+++ b/tools/testing/selftests/vm/pkey-powerpc.h
-@@ -36,7 +36,6 @@
- 					     pkey-31 and exec-only key */
- #define PKEY_BITS_PER_PKEY	2
- #define HPAGE_SIZE		(1UL << 24)
--#define PAGE_SIZE		(1UL << 16)
- #define pkey_reg_t		u64
- #define PKEY_REG_FMT		"%016lx"
- 
++void test_write_of_access_disabled_region_with_page_already_mapped(int *ptr,
++			u16 pkey)
++{
++	*ptr = __LINE__;
++	dprintf1("disabling access; after accessing the page, "
++		" to PKEY[%02d], doing write\n", pkey);
++	pkey_access_deny(pkey);
++	*ptr = __LINE__;
++	expected_pkey_fault(pkey);
++}
++
+ void test_kernel_write_of_access_disabled_region(int *ptr, u16 pkey)
+ {
+ 	int ret;
+@@ -1422,6 +1434,7 @@ void (*pkey_tests[])(int *ptr, u16 pkey) = {
+ 	test_write_of_write_disabled_region,
+ 	test_write_of_write_disabled_region_with_page_already_mapped,
+ 	test_write_of_access_disabled_region,
++	test_write_of_access_disabled_region_with_page_already_mapped,
+ 	test_kernel_write_of_access_disabled_region,
+ 	test_kernel_write_of_write_disabled_region,
+ 	test_kernel_gup_of_access_disabled_region,
 -- 
 2.17.1
