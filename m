@@ -1,64 +1,156 @@
-From: "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>
-Subject: [PATCH v2 3/3] asm-generic/tlb: Avoid potential double flush
-Date: Wed, 18 Dec 2019 11:05:30 +0530
-Message-ID: <20191218053530.73053-3-aneesh.kumar@linux.ibm.com>
-References: <20191218053530.73053-1-aneesh.kumar@linux.ibm.com>
-Mime-Version: 1.0
-Content-Transfer-Encoding: 8bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20191218053530.73053-1-aneesh.kumar@linux.ibm.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: akpm@linux-foundation.org, npiggin@gmail.com, mpe@ellerman.id.au, peterz@infradead.org, will@kernel.org
-Cc: linux-mm@kvack.org, linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-arch@vger.kernel.org, "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>
+From: Sandipan Das <sandipan@linux.ibm.com>
+Subject: [PATCH v15 03/23] selftests/vm/pkeys: Move generic definitions to
+ header file
+Date: Wed, 18 Dec 2019 13:21:36 +0530
+Message-ID: <dc75a6c7e8440c8cf2fc3e7a56135ca2e85249ac.1576645161.git.sandipan@linux.ibm.com>
+References: <cover.1576645161.git.sandipan@linux.ibm.com>
+Return-path: <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
+In-Reply-To: <cover.1576645161.git.sandipan@linux.ibm.com>
+In-Reply-To: <cover.1576645161.git.sandipan@linux.ibm.com>
+References: <cover.1576645161.git.sandipan@linux.ibm.com>
+List-Unsubscribe: <https://lists.ozlabs.org/options/linuxppc-dev>,
+ <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=unsubscribe>
+List-Archive: <http://lists.ozlabs.org/pipermail/linuxppc-dev/>
+List-Post: <mailto:linuxppc-dev@lists.ozlabs.org>
+List-Help: <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=help>
+List-Subscribe: <https://lists.ozlabs.org/listinfo/linuxppc-dev>,
+ <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=subscribe>
+Errors-To: linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org
+Sender: "Linuxppc-dev"
+ <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
+To: shuahkh@osg.samsung.com, linux-kselftest@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, fweimer@redhat.com, linux-mm@kvack.org, aneesh.kumar@linux.ibm.com, x86@kernel.org, linuxram@us.ibm.com, mhocko@kernel.org, dave.hansen@intel.com, mingo@redhat.com, msuchanek@suse.de, linuxppc-dev@lists.ozlabs.org, bauerman@linux.ibm.com
 List-Id: linux-arch.vger.kernel.org
 
-From: Peter Zijlstra <peterz@infradead.org>
+From: Ram Pai <linuxram@us.ibm.com>
 
-Aneesh reported that:
+This moves all the generic definitions and helper functions
+to a header file.
 
-	tlb_flush_mmu()
-	  tlb_flush_mmu_tlbonly()
-	    tlb_flush()			<-- #1
-	  tlb_flush_mmu_free()
-	    tlb_table_flush()
-	      tlb_table_invalidate()
-		tlb_flush_mmu_tlbonly()
-		  tlb_flush()		<-- #2
-
-does two TLBIs when tlb->fullmm, because __tlb_reset_range() will not
-clear tlb->end in that case.
-
-Observe that any caller to __tlb_adjust_range() also sets at least one
-of the tlb->freed_tables || tlb->cleared_p* bits, and those are
-unconditionally cleared by __tlb_reset_range().
-
-Change the condition for actually issuing TLBI to having one of those
-bits set, as opposed to having tlb->end != 0.
-
-Reported-by: "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>
-Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
-Signed-off-by: Aneesh Kumar K.V <aneesh.kumar@linux.ibm.com>
+cc: Dave Hansen <dave.hansen@intel.com>
+cc: Florian Weimer <fweimer@redhat.com>
+Signed-off-by: Ram Pai <linuxram@us.ibm.com>
+Signed-off-by: Thiago Jung Bauermann <bauerman@linux.ibm.com>
+Acked-by: Dave Hansen <dave.hansen@intel.com>
+Signed-off-by: Sandipan Das <sandipan@linux.ibm.com>
 ---
- include/asm-generic/tlb.h | 7 ++++++-
- 1 file changed, 6 insertions(+), 1 deletion(-)
+ tools/testing/selftests/vm/pkey-helpers.h    | 35 +++++++++++++++++---
+ tools/testing/selftests/vm/protection_keys.c | 27 ---------------
+ 2 files changed, 30 insertions(+), 32 deletions(-)
 
-diff --git a/include/asm-generic/tlb.h b/include/asm-generic/tlb.h
-index 9e22ac369d1d..b36b3bef5661 100644
---- a/include/asm-generic/tlb.h
-+++ b/include/asm-generic/tlb.h
-@@ -402,7 +402,12 @@ tlb_update_vma_flags(struct mmu_gather *tlb, struct vm_area_struct *vma) { }
+diff --git a/tools/testing/selftests/vm/pkey-helpers.h b/tools/testing/selftests/vm/pkey-helpers.h
+index d5779be4793f..6ad1bd54ef94 100644
+--- a/tools/testing/selftests/vm/pkey-helpers.h
++++ b/tools/testing/selftests/vm/pkey-helpers.h
+@@ -13,6 +13,14 @@
+ #include <ucontext.h>
+ #include <sys/mman.h>
  
- static inline void tlb_flush_mmu_tlbonly(struct mmu_gather *tlb)
++/* Define some kernel-like types */
++#define  u8 uint8_t
++#define u16 uint16_t
++#define u32 uint32_t
++#define u64 uint64_t
++
++#define PTR_ERR_ENOTSUP ((void *)-ENOTSUP)
++
+ #define NR_PKEYS 16
+ #define PKEY_BITS_PER_PKEY 2
+ 
+@@ -53,6 +61,18 @@ static inline void sigsafe_printf(const char *format, ...)
+ #define dprintf3(args...) dprintf_level(3, args)
+ #define dprintf4(args...) dprintf_level(4, args)
+ 
++extern void abort_hooks(void);
++#define pkey_assert(condition) do {		\
++	if (!(condition)) {			\
++		dprintf0("assert() at %s::%d test_nr: %d iteration: %d\n", \
++				__FILE__, __LINE__,	\
++				test_nr, iteration_nr);	\
++		dprintf0("errno at assert: %d", errno);	\
++		abort_hooks();			\
++		exit(__LINE__);			\
++	}					\
++} while (0)
++
+ extern unsigned int shadow_pkey_reg;
+ static inline unsigned int __read_pkey_reg(void)
  {
--	if (!tlb->end)
-+	/*
-+	 * Anything calling __tlb_adjust_range() also sets at least one of
-+	 * these bits.
-+	 */
-+	if (!(tlb->freed_tables || tlb->cleared_ptes || tlb->cleared_pmds ||
-+	      tlb->cleared_puds || tlb->cleared_p4ds))
- 		return;
+@@ -137,11 +157,6 @@ static inline void __pkey_write_allow(int pkey, int do_allow_write)
+ 	dprintf4("pkey_reg now: %08x\n", read_pkey_reg());
+ }
  
- 	tlb_flush(tlb);
+-#define PROT_PKEY0     0x10            /* protection key value (bit 0) */
+-#define PROT_PKEY1     0x20            /* protection key value (bit 1) */
+-#define PROT_PKEY2     0x40            /* protection key value (bit 2) */
+-#define PROT_PKEY3     0x80            /* protection key value (bit 3) */
+-
+ #define PAGE_SIZE 4096
+ #define MB	(1<<20)
+ 
+@@ -219,4 +234,14 @@ int pkey_reg_xstate_offset(void)
+ 	return xstate_offset;
+ }
+ 
++#define ARRAY_SIZE(x) (sizeof(x) / sizeof(*(x)))
++#define ALIGN_UP(x, align_to)	(((x) + ((align_to)-1)) & ~((align_to)-1))
++#define ALIGN_DOWN(x, align_to) ((x) & ~((align_to)-1))
++#define ALIGN_PTR_UP(p, ptr_align_to)	\
++	((typeof(p))ALIGN_UP((unsigned long)(p), ptr_align_to))
++#define ALIGN_PTR_DOWN(p, ptr_align_to)	\
++	((typeof(p))ALIGN_DOWN((unsigned long)(p), ptr_align_to))
++#define __stringify_1(x...)     #x
++#define __stringify(x...)       __stringify_1(x)
++
+ #endif /* _PKEYS_HELPER_H */
+diff --git a/tools/testing/selftests/vm/protection_keys.c b/tools/testing/selftests/vm/protection_keys.c
+index 2f4ab81c570d..42ffb58810f2 100644
+--- a/tools/testing/selftests/vm/protection_keys.c
++++ b/tools/testing/selftests/vm/protection_keys.c
+@@ -51,31 +51,10 @@ int test_nr;
+ unsigned int shadow_pkey_reg;
+ 
+ #define HPAGE_SIZE	(1UL<<21)
+-#define ARRAY_SIZE(x) (sizeof(x) / sizeof(*(x)))
+-#define ALIGN_UP(x, align_to)	(((x) + ((align_to)-1)) & ~((align_to)-1))
+-#define ALIGN_DOWN(x, align_to) ((x) & ~((align_to)-1))
+-#define ALIGN_PTR_UP(p, ptr_align_to)	((typeof(p))ALIGN_UP((unsigned long)(p),	ptr_align_to))
+-#define ALIGN_PTR_DOWN(p, ptr_align_to)	((typeof(p))ALIGN_DOWN((unsigned long)(p),	ptr_align_to))
+-#define __stringify_1(x...)     #x
+-#define __stringify(x...)       __stringify_1(x)
+-
+-#define PTR_ERR_ENOTSUP ((void *)-ENOTSUP)
+ 
+ int dprint_in_signal;
+ char dprint_in_signal_buffer[DPRINT_IN_SIGNAL_BUF_SIZE];
+ 
+-extern void abort_hooks(void);
+-#define pkey_assert(condition) do {		\
+-	if (!(condition)) {			\
+-		dprintf0("assert() at %s::%d test_nr: %d iteration: %d\n", \
+-				__FILE__, __LINE__,	\
+-				test_nr, iteration_nr);	\
+-		dprintf0("errno at assert: %d", errno);	\
+-		abort_hooks();			\
+-		exit(__LINE__);			\
+-	}					\
+-} while (0)
+-
+ void cat_into_file(char *str, char *file)
+ {
+ 	int fd = open(file, O_RDWR);
+@@ -186,12 +165,6 @@ void lots_o_noops_around_write(int *write_to_me)
+ 	dprintf3("%s() done\n", __func__);
+ }
+ 
+-/* Define some kernel-like types */
+-#define  u8 uint8_t
+-#define u16 uint16_t
+-#define u32 uint32_t
+-#define u64 uint64_t
+-
+ #ifdef __i386__
+ 
+ #ifndef SYS_mprotect_key
 -- 
-2.23.0
+2.17.1
