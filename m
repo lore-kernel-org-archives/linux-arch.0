@@ -1,76 +1,86 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:41672 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1725785AbfLRKfI (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 18 Dec 2019 05:35:08 -0500
-Date: Wed, 18 Dec 2019 10:35:01 +0000
-From: Will Deacon <will@kernel.org>
-Subject: Re: READ_ONCE() + STACKPROTECTOR_STRONG == :/ (was Re: [GIT PULL]
- Please pull powerpc/linux.git powerpc-5.5-2 tag (topic/kasan-bitops))
-Message-ID: <20191218103501.GA15021@willie-the-truck>
-References: <875zimp0ay.fsf@mpe.ellerman.id.au>
- <20191212080105.GV2844@hirez.programming.kicks-ass.net>
- <20191212100756.GA11317@willie-the-truck>
- <20191212104610.GW2827@hirez.programming.kicks-ass.net>
- <CAHk-=wjUBsH0BYDBv=q36482G-U7c=9bC89L_BViSciTfb8fhA@mail.gmail.com>
- <20191212180634.GA19020@willie-the-truck>
- <CAHk-=whRxB0adkz+V7SQC8Ac_rr_YfaPY8M2mFDfJP2FFBNz8A@mail.gmail.com>
- <20191212193401.GB19020@willie-the-truck>
- <CAHk-=wiMuHmWzQ7-CRQB6o+SHtA-u-Rp6VZwPcqDbjAaug80rQ@mail.gmail.com>
- <fb4bba85-1f83-435e-b84e-ee29770d7090@de.ibm.com>
+Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:28160 "EHLO
+        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S1726551AbfLRLhz (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 18 Dec 2019 06:37:55 -0500
+Subject: Re: [PATCH v2 2/3] mm/mmu_gather: Invalidate TLB correctly on batch
+ allocation failure and flush
+References: <20191218053530.73053-1-aneesh.kumar@linux.ibm.com>
+ <20191218053530.73053-2-aneesh.kumar@linux.ibm.com>
+ <20191218091733.GO2844@hirez.programming.kicks-ass.net>
+From: "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>
+Message-ID: <0f0bea3b-b7b5-fa8c-f75c-396cf78c47b4@linux.ibm.com>
+Date: Wed, 18 Dec 2019 17:07:02 +0530
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <fb4bba85-1f83-435e-b84e-ee29770d7090@de.ibm.com>
+In-Reply-To: <20191218091733.GO2844@hirez.programming.kicks-ass.net>
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Christian Borntraeger <borntraeger@de.ibm.com>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Peter Zijlstra <peterz@infradead.org>, Michael Ellerman <mpe@ellerman.id.au>, dja@axtens.net, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linuxppc-dev@lists.ozlabs.org, Christophe Leroy <christophe.leroy@c-s.fr>, linux-arch <linux-arch@vger.kernel.org>, Mark Rutland <mark.rutland@arm.com>, Segher Boessenkool <segher@kernel.crashing.org>, Arnd Bergmann <arnd@arndb.de>
-Message-ID: <20191218103501.oEDSKfQ-pwm5Qj9y4tbB1tARJJaCqtIWzM-edZP71io@z>
+To: Peter Zijlstra <peterz@infradead.org>, Paul Mackerras <paulus@ozlabs.org>
+Cc: akpm@linux-foundation.org, npiggin@gmail.com, mpe@ellerman.id.au, will@kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-arch@vger.kernel.org
+Message-ID: <20191218113702.bualJvmXfMCKJadLi3kNMs5CLIiGp7XdcYdmYbSx6hU@z>
 
-On Wed, Dec 18, 2019 at 11:22:05AM +0100, Christian Borntraeger wrote:
-> On 12.12.19 21:49, Linus Torvalds wrote:
-> > On Thu, Dec 12, 2019 at 11:34 AM Will Deacon <will@kernel.org> wrote:
-> >>
-> >> The root of my concern in all of this, and what started me looking at it in
-> >> the first place, is the interaction with 'typeof()'. Inheriting 'volatile'
-> >> for a pointer means that local variables in macros declared using typeof()
-> >> suddenly start generating *hideous* code, particularly when pointless stack
-> >> spills get stackprotector all excited.
-> > 
-> > Yeah, removing volatile can be a bit annoying.
-> > 
-> > For the particular case of the bitops, though, it's not an issue.
-> > Since you know the type there, you can just cast it.
-> > 
-> > And if we had the rule that READ_ONCE() was an arithmetic type, you could do
-> > 
-> >     typeof(0+(*p)) __var;
-> > 
-> > since you might as well get the integer promotion anyway (on the
-> > non-volatile result).
-> > 
-> > But that doesn't work with structures or unions, of course.
+On 12/18/19 2:47 PM, Peter Zijlstra wrote:
+> On Wed, Dec 18, 2019 at 11:05:29AM +0530, Aneesh Kumar K.V wrote:
+>> From: Peter Zijlstra <peterz@infradead.org>
+>>
+>> Architectures for which we have hardware walkers of Linux page table should
+>> flush TLB on mmu gather batch allocation failures and batch flush. Some
+>> architectures like POWER supports multiple translation modes (hash and radix)
 > 
-> We do have a READ_ONCE on the following union in s390 code.
+> nohash, hash and radix in fact :-)
 > 
-> union ipte_control {
->         unsigned long val;
->         struct {
->                 unsigned long k  : 1;
->                 unsigned long kh : 31;
->                 unsigned long kg : 32;
->         }; 
-> };
+>> and in the case of POWER only radix translation mode needs the above TLBI.
 > 
+>> This is because for hash translation mode kernel wants to avoid this extra
+>> flush since there are no hardware walkers of linux page table. With radix
+>> translation, the hardware also walks linux page table and with that, kernel
+>> needs to make sure to TLB invalidate page walk cache before page table pages are
+>> freed.
+>>
+>> More details in
+>> commit: d86564a2f085 ("mm/tlb, x86/mm: Support invalidating TLB caches for RCU_TABLE_FREE")
+>>
+>> Fixes: a46cc7a90fd8 ("powerpc/mm/radix: Improve TLB/PWC flushes")
+>> Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org
+>> Signed-off-by: Aneesh Kumar K.V <aneesh.kumar@linux.ibm.com>
+>> ---
 > 
-> In fact this one was the original failure case why we change ACCESS_ONCE.
+>> diff --git a/arch/powerpc/include/asm/tlb.h b/arch/powerpc/include/asm/tlb.h
+>> index b2c0be93929d..7f3a8b902325 100644
+>> --- a/arch/powerpc/include/asm/tlb.h
+>> +++ b/arch/powerpc/include/asm/tlb.h
+>> @@ -26,6 +26,17 @@
+>>   
+>>   #define tlb_flush tlb_flush
+>>   extern void tlb_flush(struct mmu_gather *tlb);
+>> +/*
+>> + * book3s:
+>> + * Hash does not use the linux page-tables, so we can avoid
+>> + * the TLB invalidate for page-table freeing, Radix otoh does use the
+>> + * page-tables and needs the TLBI.
+>> + *
+>> + * nohash:
+>> + * We still do TLB invalidate in the __pte_free_tlb routine before we
+>> + * add the page table pages to mmu gather table batch.
 > 
-> see arch/s390/kvm/gaccess.c
+> I'm a little confused though; if nohash is a software TLB fill, why do
+> you need a TLBI for tables?
+> 
 
-Thanks. I think we should be ok just using the 'val' field instead of the
-whole union but, then again, when bitfields are involved who knows what the
-compiler might do. I thought we usually shied away from using them to mirror
-hardware structures like this?
+nohash (AKA book3e) has different mmu modes. I don't follow all the 
+details w.r.t book3e. Paul or Michael might be able to explain the need 
+for table flush with book3e.
 
-Will
+Documentation/powerpc/cpu-faimilies.rst shows different hardware assist 
+TLB fill support.
+
+What I wanted to convey with the above comment way we handle only radix 
+translation mode with tlb_needs_table_invalidate() check. Other 
+translations (hash,  different variants of book3e) are all good because 
+of the reason outlined above.
+
+-aneesh
