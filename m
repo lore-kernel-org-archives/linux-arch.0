@@ -1,138 +1,70 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:26514 "EHLO
-        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1725797AbfLRFgR (ORCPT
+Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:38446 "EHLO
+        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
+        by vger.kernel.org with ESMTP id S1726674AbfLRFgW (ORCPT
         <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 18 Dec 2019 00:36:17 -0500
+        Wed, 18 Dec 2019 00:36:22 -0500
 From: "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>
-Subject: [PATCH v2 1/3] powerpc/mmu_gather: Enable RCU_TABLE_FREE even for !SMP case
-Date: Wed, 18 Dec 2019 11:05:28 +0530
-Message-ID: <20191218053530.73053-1-aneesh.kumar@linux.ibm.com>
+Subject: [PATCH v2 3/3] asm-generic/tlb: Avoid potential double flush
+Date: Wed, 18 Dec 2019 11:05:30 +0530
+Message-ID: <20191218053530.73053-3-aneesh.kumar@linux.ibm.com>
+In-Reply-To: <20191218053530.73053-1-aneesh.kumar@linux.ibm.com>
+References: <20191218053530.73053-1-aneesh.kumar@linux.ibm.com>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: akpm@linux-foundation.org, npiggin@gmail.com, mpe@ellerman.id.au, peterz@infradead.org, will@kernel.org
 Cc: linux-mm@kvack.org, linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-arch@vger.kernel.org, "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>
-Message-ID: <20191218053528.6PmoZB9BfjFpYDijorVH9PptKdCXwjiCGd9GaB0Z3DM@z>
+Message-ID: <20191218053530.aSahknzw_uFEWUN55pCATrAT5s0sWoS7FWAFAILjSn4@z>
 
-A follow up patch is going to make sure we correctly invalidate page walk cache
-before we free page table pages. In order to keep things simple enable
-RCU_TABLE_FREE even for !SMP so that we don't have to fixup the !SMP case
-differently in the followup patch
+From: Peter Zijlstra <peterz@infradead.org>
 
+Aneesh reported that:
+
+	tlb_flush_mmu()
+	  tlb_flush_mmu_tlbonly()
+	    tlb_flush()			<-- #1
+	  tlb_flush_mmu_free()
+	    tlb_table_flush()
+	      tlb_table_invalidate()
+		tlb_flush_mmu_tlbonly()
+		  tlb_flush()		<-- #2
+
+does two TLBIs when tlb->fullmm, because __tlb_reset_range() will not
+clear tlb->end in that case.
+
+Observe that any caller to __tlb_adjust_range() also sets at least one
+of the tlb->freed_tables || tlb->cleared_p* bits, and those are
+unconditionally cleared by __tlb_reset_range().
+
+Change the condition for actually issuing TLBI to having one of those
+bits set, as opposed to having tlb->end != 0.
+
+Reported-by: "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>
+Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
 Signed-off-by: Aneesh Kumar K.V <aneesh.kumar@linux.ibm.com>
 ---
- arch/powerpc/Kconfig                         | 2 +-
- arch/powerpc/include/asm/book3s/32/pgalloc.h | 8 --------
- arch/powerpc/include/asm/book3s/64/pgalloc.h | 2 --
- arch/powerpc/include/asm/nohash/pgalloc.h    | 8 --------
- arch/powerpc/mm/book3s64/pgtable.c           | 7 -------
- 5 files changed, 1 insertion(+), 26 deletions(-)
+ include/asm-generic/tlb.h | 7 ++++++-
+ 1 file changed, 6 insertions(+), 1 deletion(-)
 
-diff --git a/arch/powerpc/Kconfig b/arch/powerpc/Kconfig
-index 1ec34e16ed65..04240205f38c 100644
---- a/arch/powerpc/Kconfig
-+++ b/arch/powerpc/Kconfig
-@@ -222,7 +222,7 @@ config PPC
- 	select HAVE_HARDLOCKUP_DETECTOR_PERF	if PERF_EVENTS && HAVE_PERF_EVENTS_NMI && !HAVE_HARDLOCKUP_DETECTOR_ARCH
- 	select HAVE_PERF_REGS
- 	select HAVE_PERF_USER_STACK_DUMP
--	select HAVE_RCU_TABLE_FREE		if SMP
-+	select HAVE_RCU_TABLE_FREE
- 	select HAVE_RCU_TABLE_NO_INVALIDATE	if HAVE_RCU_TABLE_FREE
- 	select HAVE_MMU_GATHER_PAGE_SIZE
- 	select HAVE_REGS_AND_STACK_ACCESS_API
-diff --git a/arch/powerpc/include/asm/book3s/32/pgalloc.h b/arch/powerpc/include/asm/book3s/32/pgalloc.h
-index 998317702630..dc5c039eb28e 100644
---- a/arch/powerpc/include/asm/book3s/32/pgalloc.h
-+++ b/arch/powerpc/include/asm/book3s/32/pgalloc.h
-@@ -49,7 +49,6 @@ static inline void pgtable_free(void *table, unsigned index_size)
+diff --git a/include/asm-generic/tlb.h b/include/asm-generic/tlb.h
+index 9e22ac369d1d..b36b3bef5661 100644
+--- a/include/asm-generic/tlb.h
++++ b/include/asm-generic/tlb.h
+@@ -402,7 +402,12 @@ tlb_update_vma_flags(struct mmu_gather *tlb, struct vm_area_struct *vma) { }
  
- #define get_hugepd_cache_index(x)  (x)
- 
--#ifdef CONFIG_SMP
- static inline void pgtable_free_tlb(struct mmu_gather *tlb,
- 				    void *table, int shift)
+ static inline void tlb_flush_mmu_tlbonly(struct mmu_gather *tlb)
  {
-@@ -66,13 +65,6 @@ static inline void __tlb_remove_table(void *_table)
+-	if (!tlb->end)
++	/*
++	 * Anything calling __tlb_adjust_range() also sets at least one of
++	 * these bits.
++	 */
++	if (!(tlb->freed_tables || tlb->cleared_ptes || tlb->cleared_pmds ||
++	      tlb->cleared_puds || tlb->cleared_p4ds))
+ 		return;
  
- 	pgtable_free(table, shift);
- }
--#else
--static inline void pgtable_free_tlb(struct mmu_gather *tlb,
--				    void *table, int shift)
--{
--	pgtable_free(table, shift);
--}
--#endif
- 
- static inline void __pte_free_tlb(struct mmu_gather *tlb, pgtable_t table,
- 				  unsigned long address)
-diff --git a/arch/powerpc/include/asm/book3s/64/pgalloc.h b/arch/powerpc/include/asm/book3s/64/pgalloc.h
-index f6968c811026..a41e91bd0580 100644
---- a/arch/powerpc/include/asm/book3s/64/pgalloc.h
-+++ b/arch/powerpc/include/asm/book3s/64/pgalloc.h
-@@ -19,9 +19,7 @@ extern struct vmemmap_backing *vmemmap_list;
- extern pmd_t *pmd_fragment_alloc(struct mm_struct *, unsigned long);
- extern void pmd_fragment_free(unsigned long *);
- extern void pgtable_free_tlb(struct mmu_gather *tlb, void *table, int shift);
--#ifdef CONFIG_SMP
- extern void __tlb_remove_table(void *_table);
--#endif
- void pte_frag_destroy(void *pte_frag);
- 
- static inline pgd_t *radix__pgd_alloc(struct mm_struct *mm)
-diff --git a/arch/powerpc/include/asm/nohash/pgalloc.h b/arch/powerpc/include/asm/nohash/pgalloc.h
-index 332b13b4ecdb..29c43665a753 100644
---- a/arch/powerpc/include/asm/nohash/pgalloc.h
-+++ b/arch/powerpc/include/asm/nohash/pgalloc.h
-@@ -46,7 +46,6 @@ static inline void pgtable_free(void *table, int shift)
- 
- #define get_hugepd_cache_index(x)	(x)
- 
--#ifdef CONFIG_SMP
- static inline void pgtable_free_tlb(struct mmu_gather *tlb, void *table, int shift)
- {
- 	unsigned long pgf = (unsigned long)table;
-@@ -64,13 +63,6 @@ static inline void __tlb_remove_table(void *_table)
- 	pgtable_free(table, shift);
- }
- 
--#else
--static inline void pgtable_free_tlb(struct mmu_gather *tlb, void *table, int shift)
--{
--	pgtable_free(table, shift);
--}
--#endif
--
- static inline void __pte_free_tlb(struct mmu_gather *tlb, pgtable_t table,
- 				  unsigned long address)
- {
-diff --git a/arch/powerpc/mm/book3s64/pgtable.c b/arch/powerpc/mm/book3s64/pgtable.c
-index 75483b40fcb1..2bf7e1b4fd82 100644
---- a/arch/powerpc/mm/book3s64/pgtable.c
-+++ b/arch/powerpc/mm/book3s64/pgtable.c
-@@ -378,7 +378,6 @@ static inline void pgtable_free(void *table, int index)
- 	}
- }
- 
--#ifdef CONFIG_SMP
- void pgtable_free_tlb(struct mmu_gather *tlb, void *table, int index)
- {
- 	unsigned long pgf = (unsigned long)table;
-@@ -395,12 +394,6 @@ void __tlb_remove_table(void *_table)
- 
- 	return pgtable_free(table, index);
- }
--#else
--void pgtable_free_tlb(struct mmu_gather *tlb, void *table, int index)
--{
--	return pgtable_free(table, index);
--}
--#endif
- 
- #ifdef CONFIG_PROC_FS
- atomic_long_t direct_pages_count[MMU_PAGE_COUNT];
+ 	tlb_flush(tlb);
 -- 
 2.23.0
