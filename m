@@ -1,31 +1,132 @@
-From: Michael Ellerman <patch-notifications@ellerman.id.au>
-Subject: Re: [PATCH] powerpc: ensure that swiotlb buffer is allocated from low memory
-Date: Wed, 18 Dec 2019 15:05:09 +1100 (AEDT)
-Message-ID: <47d1cj4B0Fz9sRc@ozlabs.org>
-References: <20191204123524.22919-1-rppt@kernel.org>
+From: "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>
+Subject: [PATCH v2 1/3] powerpc/mmu_gather: Enable RCU_TABLE_FREE even for !SMP case
+Date: Wed, 18 Dec 2019 11:05:28 +0530
+Message-ID: <20191218053530.73053-1-aneesh.kumar@linux.ibm.com>
+Mime-Version: 1.0
+Content-Transfer-Encoding: 8bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20191204123524.22919-1-rppt@kernel.org>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Mike Rapoport <rppt@kernel.org>, linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, Darren Stevens <darren@stevens-zone.net>, Robin Murphy <robin.murphy@arm.com>, Mike Rapoport <rppt@linux.ibm.com>, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Rob Herring <robh+dt@kernel.org>, Paul Mackerras <paulus@samba.org>, mad skateman <madskateman@gmail.com>, Christian Zigotzky <chzigotzky@xenosoft.de>, linuxppc-dev@lists.ozlabs.org, Christoph Hellwig <hch@lst.de>, Nicolas Saenz Julienne <nsaenzjulienne@suse.de>
+To: akpm@linux-foundation.org, npiggin@gmail.com, mpe@ellerman.id.au, peterz@infradead.org, will@kernel.org
+Cc: linux-mm@kvack.org, linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-arch@vger.kernel.org, "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, 2019-12-04 at 12:35:24 UTC, Mike Rapoport wrote:
-> From: Mike Rapoport <rppt@linux.ibm.com>
-> 
-> Some powerpc platforms (e.g. 85xx) limit DMA-able memory way below 4G. If a
-> system has more physical memory than this limit, the swiotlb buffer is not
-> addressable because it is allocated from memblock using top-down mode.
-> 
-> Force memblock to bottom-up mode before calling swiotlb_init() to ensure
-> that the swiotlb buffer is DMA-able.
-> 
-> Link: https://lkml.kernel.org/r/F1EBB706-73DF-430E-9020-C214EC8ED5DA@xenosoft.de
-> Reported-by: Christian Zigotzky <chzigotzky@xenosoft.de>
-> Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
+A follow up patch is going to make sure we correctly invalidate page walk cache
+before we free page table pages. In order to keep things simple enable
+RCU_TABLE_FREE even for !SMP so that we don't have to fixup the !SMP case
+differently in the followup patch
 
-Applied to powerpc fixes, thanks.
+Signed-off-by: Aneesh Kumar K.V <aneesh.kumar@linux.ibm.com>
+---
+ arch/powerpc/Kconfig                         | 2 +-
+ arch/powerpc/include/asm/book3s/32/pgalloc.h | 8 --------
+ arch/powerpc/include/asm/book3s/64/pgalloc.h | 2 --
+ arch/powerpc/include/asm/nohash/pgalloc.h    | 8 --------
+ arch/powerpc/mm/book3s64/pgtable.c           | 7 -------
+ 5 files changed, 1 insertion(+), 26 deletions(-)
 
-https://git.kernel.org/powerpc/c/8fabc623238e68b3ac63c0dd1657bf86c1fa33af
-
-cheers
+diff --git a/arch/powerpc/Kconfig b/arch/powerpc/Kconfig
+index 1ec34e16ed65..04240205f38c 100644
+--- a/arch/powerpc/Kconfig
++++ b/arch/powerpc/Kconfig
+@@ -222,7 +222,7 @@ config PPC
+ 	select HAVE_HARDLOCKUP_DETECTOR_PERF	if PERF_EVENTS && HAVE_PERF_EVENTS_NMI && !HAVE_HARDLOCKUP_DETECTOR_ARCH
+ 	select HAVE_PERF_REGS
+ 	select HAVE_PERF_USER_STACK_DUMP
+-	select HAVE_RCU_TABLE_FREE		if SMP
++	select HAVE_RCU_TABLE_FREE
+ 	select HAVE_RCU_TABLE_NO_INVALIDATE	if HAVE_RCU_TABLE_FREE
+ 	select HAVE_MMU_GATHER_PAGE_SIZE
+ 	select HAVE_REGS_AND_STACK_ACCESS_API
+diff --git a/arch/powerpc/include/asm/book3s/32/pgalloc.h b/arch/powerpc/include/asm/book3s/32/pgalloc.h
+index 998317702630..dc5c039eb28e 100644
+--- a/arch/powerpc/include/asm/book3s/32/pgalloc.h
++++ b/arch/powerpc/include/asm/book3s/32/pgalloc.h
+@@ -49,7 +49,6 @@ static inline void pgtable_free(void *table, unsigned index_size)
+ 
+ #define get_hugepd_cache_index(x)  (x)
+ 
+-#ifdef CONFIG_SMP
+ static inline void pgtable_free_tlb(struct mmu_gather *tlb,
+ 				    void *table, int shift)
+ {
+@@ -66,13 +65,6 @@ static inline void __tlb_remove_table(void *_table)
+ 
+ 	pgtable_free(table, shift);
+ }
+-#else
+-static inline void pgtable_free_tlb(struct mmu_gather *tlb,
+-				    void *table, int shift)
+-{
+-	pgtable_free(table, shift);
+-}
+-#endif
+ 
+ static inline void __pte_free_tlb(struct mmu_gather *tlb, pgtable_t table,
+ 				  unsigned long address)
+diff --git a/arch/powerpc/include/asm/book3s/64/pgalloc.h b/arch/powerpc/include/asm/book3s/64/pgalloc.h
+index f6968c811026..a41e91bd0580 100644
+--- a/arch/powerpc/include/asm/book3s/64/pgalloc.h
++++ b/arch/powerpc/include/asm/book3s/64/pgalloc.h
+@@ -19,9 +19,7 @@ extern struct vmemmap_backing *vmemmap_list;
+ extern pmd_t *pmd_fragment_alloc(struct mm_struct *, unsigned long);
+ extern void pmd_fragment_free(unsigned long *);
+ extern void pgtable_free_tlb(struct mmu_gather *tlb, void *table, int shift);
+-#ifdef CONFIG_SMP
+ extern void __tlb_remove_table(void *_table);
+-#endif
+ void pte_frag_destroy(void *pte_frag);
+ 
+ static inline pgd_t *radix__pgd_alloc(struct mm_struct *mm)
+diff --git a/arch/powerpc/include/asm/nohash/pgalloc.h b/arch/powerpc/include/asm/nohash/pgalloc.h
+index 332b13b4ecdb..29c43665a753 100644
+--- a/arch/powerpc/include/asm/nohash/pgalloc.h
++++ b/arch/powerpc/include/asm/nohash/pgalloc.h
+@@ -46,7 +46,6 @@ static inline void pgtable_free(void *table, int shift)
+ 
+ #define get_hugepd_cache_index(x)	(x)
+ 
+-#ifdef CONFIG_SMP
+ static inline void pgtable_free_tlb(struct mmu_gather *tlb, void *table, int shift)
+ {
+ 	unsigned long pgf = (unsigned long)table;
+@@ -64,13 +63,6 @@ static inline void __tlb_remove_table(void *_table)
+ 	pgtable_free(table, shift);
+ }
+ 
+-#else
+-static inline void pgtable_free_tlb(struct mmu_gather *tlb, void *table, int shift)
+-{
+-	pgtable_free(table, shift);
+-}
+-#endif
+-
+ static inline void __pte_free_tlb(struct mmu_gather *tlb, pgtable_t table,
+ 				  unsigned long address)
+ {
+diff --git a/arch/powerpc/mm/book3s64/pgtable.c b/arch/powerpc/mm/book3s64/pgtable.c
+index 75483b40fcb1..2bf7e1b4fd82 100644
+--- a/arch/powerpc/mm/book3s64/pgtable.c
++++ b/arch/powerpc/mm/book3s64/pgtable.c
+@@ -378,7 +378,6 @@ static inline void pgtable_free(void *table, int index)
+ 	}
+ }
+ 
+-#ifdef CONFIG_SMP
+ void pgtable_free_tlb(struct mmu_gather *tlb, void *table, int index)
+ {
+ 	unsigned long pgf = (unsigned long)table;
+@@ -395,12 +394,6 @@ void __tlb_remove_table(void *_table)
+ 
+ 	return pgtable_free(table, index);
+ }
+-#else
+-void pgtable_free_tlb(struct mmu_gather *tlb, void *table, int index)
+-{
+-	return pgtable_free(table, index);
+-}
+-#endif
+ 
+ #ifdef CONFIG_PROC_FS
+ atomic_long_t direct_pages_count[MMU_PAGE_COUNT];
+-- 
+2.23.0
