@@ -1,8 +1,8 @@
 From: Sandipan Das <sandipan@linux.ibm.com>
-Subject: [PATCH v15 10/23] selftests/vm/pkeys: Fix alloc_random_pkey() to make
- it really random
-Date: Wed, 18 Dec 2019 13:21:43 +0530
-Message-ID: <a2dce1bcfd118360569ab6e0b0fc9a4d3dc1739f.1576645161.git.sandipan@linux.ibm.com>
+Subject: [PATCH v15 04/23] selftests/vm/pkeys: Move some definitions to
+ arch-specific header
+Date: Wed, 18 Dec 2019 13:21:37 +0530
+Message-ID: <50f232822f41eab4d9829748b5c3861cf448fe9e.1576645161.git.sandipan@linux.ibm.com>
 References: <cover.1576645161.git.sandipan@linux.ibm.com>
 Return-path: <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
 In-Reply-To: <cover.1576645161.git.sandipan@linux.ibm.com>
@@ -22,43 +22,408 @@ To: shuahkh@osg.samsung.com, linux-kselftest@vger.kernel.org
 Cc: linux-arch@vger.kernel.org, fweimer@redhat.com, linux-mm@kvack.org, aneesh.kumar@linux.ibm.com, x86@kernel.org, linuxram@us.ibm.com, mhocko@kernel.org, dave.hansen@intel.com, mingo@redhat.com, msuchanek@suse.de, linuxppc-dev@lists.ozlabs.org, bauerman@linux.ibm.com
 List-Id: linux-arch.vger.kernel.org
 
-From: Ram Pai <linuxram@us.ibm.com>
+From: Thiago Jung Bauermann <bauerman@linux.ibm.com>
 
-alloc_random_pkey() was allocating the same pkey every
-time. Not all pkeys were geting tested. This fixes it.
+This moves definitions which have arch-specific values to the
+x86-specific header in preparation for multi-arch support.
 
 cc: Dave Hansen <dave.hansen@intel.com>
 cc: Florian Weimer <fweimer@redhat.com>
 Signed-off-by: Ram Pai <linuxram@us.ibm.com>
+Signed-off-by: Thiago Jung Bauermann <bauerman@linux.ibm.com>
 Acked-by: Dave Hansen <dave.hansen@intel.com>
 Signed-off-by: Sandipan Das <sandipan@linux.ibm.com>
 ---
- tools/testing/selftests/vm/protection_keys.c | 3 ++-
- 1 file changed, 2 insertions(+), 1 deletion(-)
+ tools/testing/selftests/vm/pkey-helpers.h    | 111 +------------
+ tools/testing/selftests/vm/pkey-x86.h        | 156 +++++++++++++++++++
+ tools/testing/selftests/vm/protection_keys.c |  47 ------
+ 3 files changed, 162 insertions(+), 152 deletions(-)
+ create mode 100644 tools/testing/selftests/vm/pkey-x86.h
 
+diff --git a/tools/testing/selftests/vm/pkey-helpers.h b/tools/testing/selftests/vm/pkey-helpers.h
+index 6ad1bd54ef94..3ed2f021bf7a 100644
+--- a/tools/testing/selftests/vm/pkey-helpers.h
++++ b/tools/testing/selftests/vm/pkey-helpers.h
+@@ -21,9 +21,6 @@
+ 
+ #define PTR_ERR_ENOTSUP ((void *)-ENOTSUP)
+ 
+-#define NR_PKEYS 16
+-#define PKEY_BITS_PER_PKEY 2
+-
+ #ifndef DEBUG_LEVEL
+ #define DEBUG_LEVEL 0
+ #endif
+@@ -73,19 +70,13 @@ extern void abort_hooks(void);
+ 	}					\
+ } while (0)
+ 
++#if defined(__i386__) || defined(__x86_64__) /* arch */
++#include "pkey-x86.h"
++#else /* arch */
++#error Architecture not supported
++#endif /* arch */
++
+ extern unsigned int shadow_pkey_reg;
+-static inline unsigned int __read_pkey_reg(void)
+-{
+-	unsigned int eax, edx;
+-	unsigned int ecx = 0;
+-	unsigned int pkey_reg;
+-
+-	asm volatile(".byte 0x0f,0x01,0xee\n\t"
+-		     : "=a" (eax), "=d" (edx)
+-		     : "c" (ecx));
+-	pkey_reg = eax;
+-	return pkey_reg;
+-}
+ 
+ static inline unsigned int _read_pkey_reg(int line)
+ {
+@@ -100,19 +91,6 @@ static inline unsigned int _read_pkey_reg(int line)
+ 
+ #define read_pkey_reg() _read_pkey_reg(__LINE__)
+ 
+-static inline void __write_pkey_reg(unsigned int pkey_reg)
+-{
+-	unsigned int eax = pkey_reg;
+-	unsigned int ecx = 0;
+-	unsigned int edx = 0;
+-
+-	dprintf4("%s() changing %08x to %08x\n", __func__,
+-			__read_pkey_reg(), pkey_reg);
+-	asm volatile(".byte 0x0f,0x01,0xef\n\t"
+-		     : : "a" (eax), "c" (ecx), "d" (edx));
+-	assert(pkey_reg == __read_pkey_reg());
+-}
+-
+ static inline void write_pkey_reg(unsigned int pkey_reg)
+ {
+ 	dprintf4("%s() changing %08x to %08x\n", __func__,
+@@ -157,83 +135,6 @@ static inline void __pkey_write_allow(int pkey, int do_allow_write)
+ 	dprintf4("pkey_reg now: %08x\n", read_pkey_reg());
+ }
+ 
+-#define PAGE_SIZE 4096
+-#define MB	(1<<20)
+-
+-static inline void __cpuid(unsigned int *eax, unsigned int *ebx,
+-		unsigned int *ecx, unsigned int *edx)
+-{
+-	/* ecx is often an input as well as an output. */
+-	asm volatile(
+-		"cpuid;"
+-		: "=a" (*eax),
+-		  "=b" (*ebx),
+-		  "=c" (*ecx),
+-		  "=d" (*edx)
+-		: "0" (*eax), "2" (*ecx));
+-}
+-
+-/* Intel-defined CPU features, CPUID level 0x00000007:0 (ecx) */
+-#define X86_FEATURE_PKU        (1<<3) /* Protection Keys for Userspace */
+-#define X86_FEATURE_OSPKE      (1<<4) /* OS Protection Keys Enable */
+-
+-static inline int cpu_has_pku(void)
+-{
+-	unsigned int eax;
+-	unsigned int ebx;
+-	unsigned int ecx;
+-	unsigned int edx;
+-
+-	eax = 0x7;
+-	ecx = 0x0;
+-	__cpuid(&eax, &ebx, &ecx, &edx);
+-
+-	if (!(ecx & X86_FEATURE_PKU)) {
+-		dprintf2("cpu does not have PKU\n");
+-		return 0;
+-	}
+-	if (!(ecx & X86_FEATURE_OSPKE)) {
+-		dprintf2("cpu does not have OSPKE\n");
+-		return 0;
+-	}
+-	return 1;
+-}
+-
+-#define XSTATE_PKEY_BIT	(9)
+-#define XSTATE_PKEY	0x200
+-
+-int pkey_reg_xstate_offset(void)
+-{
+-	unsigned int eax;
+-	unsigned int ebx;
+-	unsigned int ecx;
+-	unsigned int edx;
+-	int xstate_offset;
+-	int xstate_size;
+-	unsigned long XSTATE_CPUID = 0xd;
+-	int leaf;
+-
+-	/* assume that XSTATE_PKEY is set in XCR0 */
+-	leaf = XSTATE_PKEY_BIT;
+-	{
+-		eax = XSTATE_CPUID;
+-		ecx = leaf;
+-		__cpuid(&eax, &ebx, &ecx, &edx);
+-
+-		if (leaf == XSTATE_PKEY_BIT) {
+-			xstate_offset = ebx;
+-			xstate_size = eax;
+-		}
+-	}
+-
+-	if (xstate_size == 0) {
+-		printf("could not find size/offset of PKEY in xsave state\n");
+-		return 0;
+-	}
+-
+-	return xstate_offset;
+-}
+-
+ #define ARRAY_SIZE(x) (sizeof(x) / sizeof(*(x)))
+ #define ALIGN_UP(x, align_to)	(((x) + ((align_to)-1)) & ~((align_to)-1))
+ #define ALIGN_DOWN(x, align_to) ((x) & ~((align_to)-1))
+diff --git a/tools/testing/selftests/vm/pkey-x86.h b/tools/testing/selftests/vm/pkey-x86.h
+new file mode 100644
+index 000000000000..2f04ade8ca9c
+--- /dev/null
++++ b/tools/testing/selftests/vm/pkey-x86.h
+@@ -0,0 +1,156 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++
++#ifndef _PKEYS_X86_H
++#define _PKEYS_X86_H
++
++#ifdef __i386__
++
++#ifndef SYS_mprotect_key
++# define SYS_mprotect_key	380
++#endif
++
++#ifndef SYS_pkey_alloc
++# define SYS_pkey_alloc		381
++# define SYS_pkey_free		382
++#endif
++
++#define REG_IP_IDX		REG_EIP
++#define si_pkey_offset		0x14
++
++#else
++
++#ifndef SYS_mprotect_key
++# define SYS_mprotect_key	329
++#endif
++
++#ifndef SYS_pkey_alloc
++# define SYS_pkey_alloc		330
++# define SYS_pkey_free		331
++#endif
++
++#define REG_IP_IDX		REG_RIP
++#define si_pkey_offset		0x20
++
++#endif
++
++#ifndef PKEY_DISABLE_ACCESS
++# define PKEY_DISABLE_ACCESS	0x1
++#endif
++
++#ifndef PKEY_DISABLE_WRITE
++# define PKEY_DISABLE_WRITE	0x2
++#endif
++
++#define NR_PKEYS		16
++#define PKEY_BITS_PER_PKEY	2
++#define HPAGE_SIZE		(1UL<<21)
++#define PAGE_SIZE		4096
++#define MB			(1<<20)
++
++static inline void __page_o_noops(void)
++{
++	/* 8-bytes of instruction * 512 bytes = 1 page */
++	asm(".rept 512 ; nopl 0x7eeeeeee(%eax) ; .endr");
++}
++
++static inline unsigned int __read_pkey_reg(void)
++{
++	unsigned int eax, edx;
++	unsigned int ecx = 0;
++	unsigned int pkey_reg;
++
++	asm volatile(".byte 0x0f,0x01,0xee\n\t"
++		     : "=a" (eax), "=d" (edx)
++		     : "c" (ecx));
++	pkey_reg = eax;
++	return pkey_reg;
++}
++
++static inline void __write_pkey_reg(unsigned int pkey_reg)
++{
++	unsigned int eax = pkey_reg;
++	unsigned int ecx = 0;
++	unsigned int edx = 0;
++
++	dprintf4("%s() changing %08x to %08x\n", __func__,
++			__read_pkey_reg(), pkey_reg);
++	asm volatile(".byte 0x0f,0x01,0xef\n\t"
++		     : : "a" (eax), "c" (ecx), "d" (edx));
++	assert(pkey_reg == __read_pkey_reg());
++}
++
++static inline void __cpuid(unsigned int *eax, unsigned int *ebx,
++		unsigned int *ecx, unsigned int *edx)
++{
++	/* ecx is often an input as well as an output. */
++	asm volatile(
++		"cpuid;"
++		: "=a" (*eax),
++		  "=b" (*ebx),
++		  "=c" (*ecx),
++		  "=d" (*edx)
++		: "0" (*eax), "2" (*ecx));
++}
++
++/* Intel-defined CPU features, CPUID level 0x00000007:0 (ecx) */
++#define X86_FEATURE_PKU        (1<<3) /* Protection Keys for Userspace */
++#define X86_FEATURE_OSPKE      (1<<4) /* OS Protection Keys Enable */
++
++static inline int cpu_has_pku(void)
++{
++	unsigned int eax;
++	unsigned int ebx;
++	unsigned int ecx;
++	unsigned int edx;
++
++	eax = 0x7;
++	ecx = 0x0;
++	__cpuid(&eax, &ebx, &ecx, &edx);
++
++	if (!(ecx & X86_FEATURE_PKU)) {
++		dprintf2("cpu does not have PKU\n");
++		return 0;
++	}
++	if (!(ecx & X86_FEATURE_OSPKE)) {
++		dprintf2("cpu does not have OSPKE\n");
++		return 0;
++	}
++	return 1;
++}
++
++#define XSTATE_PKEY_BIT	(9)
++#define XSTATE_PKEY	0x200
++
++int pkey_reg_xstate_offset(void)
++{
++	unsigned int eax;
++	unsigned int ebx;
++	unsigned int ecx;
++	unsigned int edx;
++	int xstate_offset;
++	int xstate_size;
++	unsigned long XSTATE_CPUID = 0xd;
++	int leaf;
++
++	/* assume that XSTATE_PKEY is set in XCR0 */
++	leaf = XSTATE_PKEY_BIT;
++	{
++		eax = XSTATE_CPUID;
++		ecx = leaf;
++		__cpuid(&eax, &ebx, &ecx, &edx);
++
++		if (leaf == XSTATE_PKEY_BIT) {
++			xstate_offset = ebx;
++			xstate_size = eax;
++		}
++	}
++
++	if (xstate_size == 0) {
++		printf("could not find size/offset of PKEY in xsave state\n");
++		return 0;
++	}
++
++	return xstate_offset;
++}
++
++#endif /* _PKEYS_X86_H */
 diff --git a/tools/testing/selftests/vm/protection_keys.c b/tools/testing/selftests/vm/protection_keys.c
-index fbee0b061851..d3c13283bbd0 100644
+index 42ffb58810f2..2d0e881f109d 100644
 --- a/tools/testing/selftests/vm/protection_keys.c
 +++ b/tools/testing/selftests/vm/protection_keys.c
-@@ -24,6 +24,7 @@
- #define _GNU_SOURCE
- #include <errno.h>
- #include <linux/futex.h>
-+#include <time.h>
- #include <sys/time.h>
- #include <sys/syscall.h>
- #include <string.h>
-@@ -545,10 +546,10 @@ int alloc_random_pkey(void)
- 	int nr_alloced = 0;
- 	int random_index;
- 	memset(alloced_pkeys, 0, sizeof(alloced_pkeys));
-+	srand((unsigned int)time(NULL));
+@@ -49,9 +49,6 @@ int iteration_nr = 1;
+ int test_nr;
  
- 	/* allocate every possible key and make a note of which ones we got */
- 	max_nr_pkey_allocs = NR_PKEYS;
--	max_nr_pkey_allocs = 1;
- 	for (i = 0; i < max_nr_pkey_allocs; i++) {
- 		int new_pkey = alloc_pkey();
- 		if (new_pkey < 0)
+ unsigned int shadow_pkey_reg;
+-
+-#define HPAGE_SIZE	(1UL<<21)
+-
+ int dprint_in_signal;
+ char dprint_in_signal_buffer[DPRINT_IN_SIGNAL_BUF_SIZE];
+ 
+@@ -137,12 +134,6 @@ void abort_hooks(void)
+ #endif
+ }
+ 
+-static inline void __page_o_noops(void)
+-{
+-	/* 8-bytes of instruction * 512 bytes = 1 page */
+-	asm(".rept 512 ; nopl 0x7eeeeeee(%eax) ; .endr");
+-}
+-
+ /*
+  * This attempts to have roughly a page of instructions followed by a few
+  * instructions that do a write, and another page of instructions.  That
+@@ -165,36 +156,6 @@ void lots_o_noops_around_write(int *write_to_me)
+ 	dprintf3("%s() done\n", __func__);
+ }
+ 
+-#ifdef __i386__
+-
+-#ifndef SYS_mprotect_key
+-# define SYS_mprotect_key	380
+-#endif
+-
+-#ifndef SYS_pkey_alloc
+-# define SYS_pkey_alloc		381
+-# define SYS_pkey_free		382
+-#endif
+-
+-#define REG_IP_IDX		REG_EIP
+-#define si_pkey_offset		0x14
+-
+-#else
+-
+-#ifndef SYS_mprotect_key
+-# define SYS_mprotect_key	329
+-#endif
+-
+-#ifndef SYS_pkey_alloc
+-# define SYS_pkey_alloc		330
+-# define SYS_pkey_free		331
+-#endif
+-
+-#define REG_IP_IDX		REG_RIP
+-#define si_pkey_offset		0x20
+-
+-#endif
+-
+ void dump_mem(void *dumpme, int len_bytes)
+ {
+ 	char *c = (void *)dumpme;
+@@ -367,14 +328,6 @@ pid_t fork_lazy_child(void)
+ 	return forkret;
+ }
+ 
+-#ifndef PKEY_DISABLE_ACCESS
+-# define PKEY_DISABLE_ACCESS	0x1
+-#endif
+-
+-#ifndef PKEY_DISABLE_WRITE
+-# define PKEY_DISABLE_WRITE	0x2
+-#endif
+-
+ static u32 hw_pkey_get(int pkey, unsigned long flags)
+ {
+ 	u32 mask = (PKEY_DISABLE_ACCESS|PKEY_DISABLE_WRITE);
 -- 
 2.17.1
