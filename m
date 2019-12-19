@@ -1,142 +1,70 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:37892 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726882AbfLSMTh (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 19 Dec 2019 07:19:37 -0500
-From: Cristian Marussi <cristian.marussi@arm.com>
-Subject: [RFC PATCH v3 05/12] arm64: smp: use generic SMP stop common code
-Date: Thu, 19 Dec 2019 12:18:58 +0000
-Message-ID: <20191219121905.26905-6-cristian.marussi@arm.com>
-In-Reply-To: <20191219121905.26905-1-cristian.marussi@arm.com>
-References: <20191219121905.26905-1-cristian.marussi@arm.com>
+Received: from mo4-p01-ob.smtp.rzone.de ([85.215.255.52]:36985 "EHLO
+        mo4-p01-ob.smtp.rzone.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726760AbfLSNzL (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 19 Dec 2019 08:55:11 -0500
+Subject: Re: use generic DMA mapping code in powerpc V4
+From: Christian Zigotzky <chzigotzky@xenosoft.de>
+References: <20181114082314.8965-1-hch@lst.de> <20181127074253.GB30186@lst.de>
+ <87zhttfonk.fsf@concordia.ellerman.id.au>
+ <535776df-dea3-eb26-6bf3-83f225e977df@xenosoft.de>
+Message-ID: <ea5433f6-ef8d-3cd0-0645-dd89c4806dca@xenosoft.de>
+Date: Thu, 19 Dec 2019 14:54:27 +0100
+MIME-Version: 1.0
+In-Reply-To: <535776df-dea3-eb26-6bf3-83f225e977df@xenosoft.de>
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Transfer-Encoding: 7bit
+Content-Language: de-DE
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, mark.rutland@arm.com, peterz@infradead.org, catalin.marinas@arm.com, takahiro.akashi@linaro.org, james.morse@arm.com, hidehiro.kawai.ez@hitachi.com, tglx@linutronix.de, will@kernel.org, linux-arm-kernel@lists.infradead.org, mingo@redhat.com, x86@kernel.org, dzickus@redhat.com, ehabkost@redhat.com, linux@armlinux.org.uk, davem@davemloft.net, sparclinux@vger.kernel.org, hch@infradead.org
-Message-ID: <20191219121858.VrtdAavEhgQimPI45Ji0KDiPJSyybtI5GHiwGbYm77w@z>
+To: Michael Ellerman <mpe@ellerman.id.au>, Christoph Hellwig <hch@lst.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>
+Cc: linux-arch@vger.kernel.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, "R.T.Dickinson" <rtd2@xtra.co.nz>, "contact@a-eon.com" <contact@a-eon.com>, mad skateman <madskateman@gmail.com>, Darren Stevens <darren@stevens-zone.net>
+Message-ID: <20191219135427.84DV5zU6taFoNSSEaK2Ov1YcBlB06JXdIRFGW_i7jxk@z>
 
-Make arm64 use the generic SMP-stop logic provided by common code
-unified smp_send_stop() function.
+Hi All,
 
-arm64 smp_send_stop() logic had a bug in it: it failed to consider the
-online status of the calling CPU when evaluating if any stop message
-needed to be sent to other CPus at all: this resulted, on a 2-CPUs
-system, in the failure to stop all cpus if one paniced while starting
-up, leaving such system in an unexpected lively state.
+We still have some issues with PCI cards in our FSL P5020 and P5040 
+systems since the DMA mapping updates. [1, 2]
 
-[root@arch ~]# echo 1 > /sys/devices/system/cpu/cpu1/online
-[root@arch ~]# [  152.583368] ------------[ cut here ]------------
-[  152.583872] kernel BUG at arch/arm64/kernel/cpufeature.c:852!
-[  152.584693] Internal error: Oops - BUG: 0 [#1] PREEMPT SMP
-[  152.585228] Modules linked in:
-[  152.586040] CPU: 1 PID: 0 Comm: swapper/1 Not tainted 5.3.0-rc5-00001-gcabd12118c4a-dirty #2
-[  152.586218] Hardware name: Foundation-v8A (DT)
-[  152.586478] pstate: 000001c5 (nzcv dAIF -PAN -UAO)
-[  152.587260] pc : has_cpuid_feature+0x35c/0x360
-[  152.587398] lr : verify_local_elf_hwcaps+0x6c/0xf0
-[  152.587520] sp : ffff0000118bbf60
-[  152.587605] x29: ffff0000118bbf60 x28: 0000000000000000
-[  152.587784] x27: 0000000000000000 x26: 0000000000000000
-[  152.587882] x25: ffff00001167a010 x24: ffff0000112f59f8
-[  152.587992] x23: 0000000000000000 x22: 0000000000000000
-[  152.588085] x21: ffff0000112ea018 x20: ffff000010fe5518
-[  152.588180] x19: ffff000010ba3f30 x18: 0000000000000036
-[  152.588285] x17: 0000000000000000 x16: 0000000000000000
-[  152.588380] x15: 0000000000000000 x14: ffff80087a821210
-[  152.588481] x13: 0000000000000000 x12: 0000000000000000
-[  152.588599] x11: 0000000000000080 x10: 00400032b5503510
-[  152.588709] x9 : 0000000000000000 x8 : ffff000010b93204
-[  152.588810] x7 : 00000000800001d8 x6 : 0000000000000005
-[  152.588910] x5 : 0000000000000000 x4 : 0000000000000000
-[  152.589021] x3 : 0000000000000000 x2 : 0000000000008000
-[  152.589121] x1 : 0000000000180480 x0 : 0000000000180480
-[  152.589379] Call trace:
-[  152.589646]  has_cpuid_feature+0x35c/0x360
-[  152.589763]  verify_local_elf_hwcaps+0x6c/0xf0
-[  152.589858]  check_local_cpu_capabilities+0x88/0x118
-[  152.589968]  secondary_start_kernel+0xc4/0x168
-[  152.590530] Code: d53801e0 17ffff58 d5380600 17ffff56 (d4210000)
-[  152.592215] ---[ end trace 80ea98416149c87e ]---
-[  152.592734] Kernel panic - not syncing: Attempted to kill the idle task!
-[  152.593173] Kernel Offset: disabled
-[  152.593501] CPU features: 0x0004,20c02008
-[  152.593678] Memory Limit: none
-[  152.594208] ---[ end Kernel panic - not syncing: Attempted to kill the idle
-task! ]---
-[root@arch ~]# bash: echo: write error: Input/output error
-[root@arch ~]#
-[root@arch ~]#
-[root@arch ~]# echo HELO
-HELO
+We have to limit the RAM to 3500MB for some problematic PCI cards. 
+(kernel boot argument 'mem=3500M')
 
-Get rid of such bug, switching arm64 to use the common SMP stop code.
+The problematic DMA mapping code was added with the PowerPC updates 
+4.21-1 to the official kernel source code last year. [3]
 
-Reported-by: Dave Martin <Dave.Martin@arm.com>
-Signed-off-by: Cristian Marussi <cristian.marussi@arm.com>
----
-v1 --> v2
-- now selecting arch/Kconfig ARCH_USE_COMMON_SMP_STOP
-- added attempt_num arch_smp_stop_call() helper
----
- arch/arm64/Kconfig      |  1 +
- arch/arm64/kernel/smp.c | 29 ++++++-----------------------
- 2 files changed, 7 insertions(+), 23 deletions(-)
+We have created a bug report. [4]
 
-diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
-index b1b4476ddb83..618e2c2052dd 100644
---- a/arch/arm64/Kconfig
-+++ b/arch/arm64/Kconfig
-@@ -64,6 +64,7 @@ config ARM64
- 	select ARCH_USE_CMPXCHG_LOCKREF
- 	select ARCH_USE_QUEUED_RWLOCKS
- 	select ARCH_USE_QUEUED_SPINLOCKS
-+	select ARCH_USE_COMMON_SMP_STOP
- 	select ARCH_SUPPORTS_MEMORY_FAILURE
- 	select ARCH_SUPPORTS_ATOMIC_RMW
- 	select ARCH_SUPPORTS_INT128 if CC_HAS_INT128 && (GCC_VERSION >= 50000 || CC_IS_CLANG)
-diff --git a/arch/arm64/kernel/smp.c b/arch/arm64/kernel/smp.c
-index d4ed9a19d8fe..7c1869161b5e 100644
---- a/arch/arm64/kernel/smp.c
-+++ b/arch/arm64/kernel/smp.c
-@@ -958,33 +958,16 @@ void tick_broadcast(const struct cpumask *mask)
- }
- #endif
- 
--void smp_send_stop(void)
-+void arch_smp_cpus_stop_complete(void)
- {
--	unsigned long timeout;
--
--	if (num_online_cpus() > 1) {
--		cpumask_t mask;
--
--		cpumask_copy(&mask, cpu_online_mask);
--		cpumask_clear_cpu(smp_processor_id(), &mask);
--
--		if (system_state <= SYSTEM_RUNNING)
--			pr_crit("SMP: stopping secondary CPUs\n");
--		smp_cross_call(&mask, IPI_CPU_STOP);
--	}
--
--	/* Wait up to one second for other CPUs to stop */
--	timeout = USEC_PER_SEC;
--	while (num_online_cpus() > 1 && timeout--)
--		udelay(1);
--
--	if (num_online_cpus() > 1)
--		pr_warn("SMP: failed to stop secondary CPUs %*pbl\n",
--			cpumask_pr_args(cpu_online_mask));
--
- 	sdei_mask_local_cpu();
- }
- 
-+void arch_smp_stop_call(cpumask_t *cpus, unsigned int __unused)
-+{
-+	smp_cross_call(cpus, IPI_CPU_STOP);
-+}
-+
- #ifdef CONFIG_KEXEC_CORE
- void crash_smp_send_stop(void)
- {
--- 
-2.17.1
+The old 4.x kernels aren't affected because they use the old DMA code.
+
+Please check the new DMA code again.
+
+Thanks,
+Christian
+
+[1] 
+http://forum.hyperion-entertainment.com/viewtopic.php?f=58&p=49486#p49486
+[2] 
+http://forum.hyperion-entertainment.com/viewtopic.php?f=58&t=4349&start=50#p49099
+[3] 
+https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=8d6973327ee84c2f40dd9efd8928d4a1186c96e2
+[4] https://bugzilla.kernel.org/show_bug.cgi?id=205201
+
+
+On 28 November 2018 at 4:55 pm, Christian Zigotzky wrote:
+> On 28 November 2018 at 12:05PM, Michael Ellerman wrote:
+>> Nothing specific yet.
+>>
+>> I'm a bit worried it might break one of the many old obscure platforms
+>> we have that aren't well tested.
+>>
+> Please don't apply the new DMA mapping code if you don't be sure if it 
+> works on all supported PowerPC machines. Is the new DMA mapping code 
+> really necessary? It's not really nice, to rewrote code if the old 
+> code works perfect. We must not forget, that we work for the end 
+> users. Does the end user have advantages with this new code? Is it 
+> faster? The old code works without any problems. I am also worried 
+> about this code. How can I test this new DMA mapping code?
+>
+> Thanks
+>
+>
