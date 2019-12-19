@@ -1,73 +1,85 @@
-From: Christian Zigotzky <chzigotzky-KCoaydhb8eAb1SvskN2V4Q@public.gmane.org>
-Subject: Re: use generic DMA mapping code in powerpc V4
-Date: Thu, 19 Dec 2019 14:54:27 +0100
-Message-ID: <ea5433f6-ef8d-3cd0-0645-dd89c4806dca@xenosoft.de>
-References: <20181114082314.8965-1-hch@lst.de> <20181127074253.GB30186@lst.de>
- <87zhttfonk.fsf@concordia.ellerman.id.au>
- <535776df-dea3-eb26-6bf3-83f225e977df@xenosoft.de>
+From: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+Subject: [PATCH 4.4 077/162] sched/core, x86: Make struct thread_info arch specific again
+Date: Thu, 19 Dec 2019 19:33:05 +0100
+Message-ID: <20191219183212.482196665@linuxfoundation.org>
+References: <20191219183150.477687052@linuxfoundation.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"; Format="flowed"
-Content-Transfer-Encoding: 7bit
-Return-path: <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-In-Reply-To: <535776df-dea3-eb26-6bf3-83f225e977df-KCoaydhb8eAb1SvskN2V4Q@public.gmane.org>
-Content-Language: de-DE
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/iommu>,
- <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/iommu/>
-List-Post: <mailto:iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-List-Help: <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/iommu>,
- <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
-Errors-To: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-Sender: "iommu" <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-To: Michael Ellerman <mpe-Gsx/Oe8HsFggBc27wqDAHg@public.gmane.org>, Christoph Hellwig <hch-jcswGhMUV9g@public.gmane.org>, Benjamin Herrenschmidt <benh-XVmvHMARGAS8U2dJNN8I7kB+6BGkLq7r@public.gmane.org>, Paul Mackerras <paulus-eUNUBHrolfbYtjvyW6yDsg@public.gmane.org>
-Cc: linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Darren Stevens <darren-YHtdit1eIT3easaKlIn9Lw@public.gmane.org>, mad skateman <madskateman-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org, iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org, "contact-+1neenJGU+oAvxtiuMwx3w@public.gmane.org" <contact-+1neenJGU+oAvxtiuMwx3w@public.gmane.org>, "R.T.Dickinson" <rtd2-kGM0oXzJM5p02iOg2JU2CQ@public.gmane.org>, linuxppc-dev-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20191219183150.477687052@linuxfoundation.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: linux-kernel@vger.kernel.org
+Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, stable@vger.kernel.org, Heiko Carstens <heiko.carstens@de.ibm.com>, Mark Rutland <mark.rutland@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Peter Zijlstra <peterz@infradead.org>, keescook@chromium.org, linux-arch@vger.kernel.org, Ingo Molnar <mingo@kernel.org>, "zhangyi (F)" <yi.zhang@huawei.com>
 List-Id: linux-arch.vger.kernel.org
 
-Hi All,
+From: Heiko Carstens <heiko.carstens@de.ibm.com>
 
-We still have some issues with PCI cards in our FSL P5020 and P5040 
-systems since the DMA mapping updates. [1, 2]
+commit c8061485a0d7569a865a3cc3c63347b0f42b3765 upstream.
 
-We have to limit the RAM to 3500MB for some problematic PCI cards. 
-(kernel boot argument 'mem=3500M')
+The following commit:
 
-The problematic DMA mapping code was added with the PowerPC updates 
-4.21-1 to the official kernel source code last year. [3]
+  c65eacbe290b ("sched/core: Allow putting thread_info into task_struct")
 
-We have created a bug report. [4]
+... made 'struct thread_info' a generic struct with only a
+single ::flags member, if CONFIG_THREAD_INFO_IN_TASK_STRUCT=y is
+selected.
 
-The old 4.x kernels aren't affected because they use the old DMA code.
+This change however seems to be quite x86 centric, since at least the
+generic preemption code (asm-generic/preempt.h) assumes that struct
+thread_info also has a preempt_count member, which apparently was not
+true for x86.
 
-Please check the new DMA code again.
+We could add a bit more #ifdefs to solve this problem too, but it seems
+to be much simpler to make struct thread_info arch specific
+again. This also makes the conversion to THREAD_INFO_IN_TASK_STRUCT a
+bit easier for architectures that have a couple of arch specific stuff
+in their thread_info definition.
 
-Thanks,
-Christian
+The arch specific stuff _could_ be moved to thread_struct. However
+keeping them in thread_info makes it easier: accessing thread_info
+members is simple, since it is at the beginning of the task_struct,
+while the thread_struct is at the end. At least on s390 the offsets
+needed to access members of the thread_struct (with task_struct as
+base) are too large for various asm instructions.  This is not a
+problem when keeping these members within thread_info.
 
-[1] 
-http://forum.hyperion-entertainment.com/viewtopic.php?f=58&p=49486#p49486
-[2] 
-http://forum.hyperion-entertainment.com/viewtopic.php?f=58&t=4349&start=50#p49099
-[3] 
-https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=8d6973327ee84c2f40dd9efd8928d4a1186c96e2
-[4] https://bugzilla.kernel.org/show_bug.cgi?id=205201
+Signed-off-by: Heiko Carstens <heiko.carstens@de.ibm.com>
+Signed-off-by: Mark Rutland <mark.rutland@arm.com>
+Acked-by: Thomas Gleixner <tglx@linutronix.de>
+Cc: Andrew Morton <akpm@linux-foundation.org>
+Cc: Andy Lutomirski <luto@kernel.org>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Peter Zijlstra <peterz@infradead.org>
+Cc: keescook@chromium.org
+Cc: linux-arch@vger.kernel.org
+Link: http://lkml.kernel.org/r/1476901693-8492-2-git-send-email-mark.rutland@arm.com
+Signed-off-by: Ingo Molnar <mingo@kernel.org>
+[ zhangyi: skip defination of INIT_THREAD_INFO and struct thread_info ]
+Signed-off-by: zhangyi (F) <yi.zhang@huawei.com>
+Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
 
+---
+ include/linux/thread_info.h |   11 -----------
+ 1 file changed, 11 deletions(-)
 
-On 28 November 2018 at 4:55 pm, Christian Zigotzky wrote:
-> On 28 November 2018 at 12:05PM, Michael Ellerman wrote:
->> Nothing specific yet.
->>
->> I'm a bit worried it might break one of the many old obscure platforms
->> we have that aren't well tested.
->>
-> Please don't apply the new DMA mapping code if you don't be sure if it 
-> works on all supported PowerPC machines. Is the new DMA mapping code 
-> really necessary? It's not really nice, to rewrote code if the old 
-> code works perfect. We must not forget, that we work for the end 
-> users. Does the end user have advantages with this new code? Is it 
-> faster? The old code works without any problems. I am also worried 
-> about this code. How can I test this new DMA mapping code?
->
-> Thanks
->
->
+--- a/include/linux/thread_info.h
++++ b/include/linux/thread_info.h
+@@ -14,17 +14,6 @@ struct timespec;
+ struct compat_timespec;
+ 
+ #ifdef CONFIG_THREAD_INFO_IN_TASK
+-struct thread_info {
+-	u32			flags;		/* low level flags */
+-};
+-
+-#define INIT_THREAD_INFO(tsk)			\
+-{						\
+-	.flags		= 0,			\
+-}
+-#endif
+-
+-#ifdef CONFIG_THREAD_INFO_IN_TASK
+ #define current_thread_info() ((struct thread_info *)current)
+ #endif
+ 
