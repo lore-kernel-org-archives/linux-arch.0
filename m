@@ -1,228 +1,261 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:37804 "EHLO foss.arm.com"
+Received: from foss.arm.com ([217.140.110.172]:37992 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726668AbfLSMT1 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 19 Dec 2019 07:19:27 -0500
+        id S1727011AbfLSMTr (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 19 Dec 2019 07:19:47 -0500
 From: Cristian Marussi <cristian.marussi@arm.com>
-Subject: [RFC PATCH v3 01/12] smp: add generic SMP-stop support to common code
-Date: Thu, 19 Dec 2019 12:18:54 +0000
-Message-ID: <20191219121905.26905-2-cristian.marussi@arm.com>
+Subject: [RFC PATCH v3 09/12] x86: smp: use SMP crash-stop common code
+Date: Thu, 19 Dec 2019 12:19:02 +0000
+Message-ID: <20191219121905.26905-10-cristian.marussi@arm.com>
 In-Reply-To: <20191219121905.26905-1-cristian.marussi@arm.com>
 References: <20191219121905.26905-1-cristian.marussi@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
 Cc: linux-arch@vger.kernel.org, mark.rutland@arm.com, peterz@infradead.org, catalin.marinas@arm.com, takahiro.akashi@linaro.org, james.morse@arm.com, hidehiro.kawai.ez@hitachi.com, tglx@linutronix.de, will@kernel.org, linux-arm-kernel@lists.infradead.org, mingo@redhat.com, x86@kernel.org, dzickus@redhat.com, ehabkost@redhat.com, linux@armlinux.org.uk, davem@davemloft.net, sparclinux@vger.kernel.org, hch@infradead.org
-Message-ID: <20191219121854.cbMPFxyD0TekTqItk9HvdNiBJsqj1rayhmQzoEhIcCg@z>
+Message-ID: <20191219121902.SooOpn-wlROE3g3ZsCRCPchajvFwKIj4S-mS7e-rjDU@z>
 
-There was a lot of code duplication across architectures regarding the
-SMP stop procedures' logic; moreover some of this duplicated code logic
-happened to be similarly faulty across a few architectures: while fixing
-such logic, move such generic logic as much as possible inside common
-code.
+Make x86 use the SMP common implementation of crash_smp_send_stop() and
+its generic logic, by removing the x86 crash_smp_send_stop() definition
+and providing the needed arch specific helpers.
 
-Collect all the common logic related to SMP stop operations into the
-common SMP code; any architecture willing to use such centralized logic
-can select CONFIG_ARCH_USE_COMMON_STOP=y and provide the related
-arch-specific helpers: in such a scenario, those architectures will
-transparently start using the common code provided by smp_send_stop()
-common function.
+Remove also redundant smp_ops.crash_stop_other_cpus(); add shared util
+function do_nmi_shootdown_cpus(), which is a generalization of the previous
+nmi_shootdown_cpus(), and it is used by architecture backend helper
+arch_smp_crash_call().
 
-On the other side, Architectures not willing to use common code SMP stop
-logic will simply leave CONFIG_ARCH_USE_COMMON_STOP undefined and carry
-on executing their local arch-specific smp_send_stop() as before.
+Modify original crash_nmi_callback() to properly set cpu offline flag
+and adding needed memory barriers.
 
-Suggested-by: Dave Martin <Dave.Martin@arm.com>
+Modify original nmi_shootdown_cpus() to rely on common code logic provided
+by generic crash_smp_send_stop(): this was needed because the original
+nmi_shootdown_cpus() was used also on the emergency reboot path, employing
+a different callback. Reuse the same shootdown_callback mechanism to
+properly handle both a crash and an emergency reboot through the same
+common code crash path.
+
 Signed-off-by: Cristian Marussi <cristian.marussi@arm.com>
 ---
-v2 --> v3
-- reviewed wait/timeout helpers avoiding broken shared static globals
-v1 --> v2
-- moved related Kconfig to common code inside arch/Kconfig
-- introduced additional CONFIG_USE_COMMON_STOP selected by
-  CONFIG_ARCH_USE_COMMON_STOP
-- introduced helpers to let architectures optionally alter
-  the default common code behaviour while waiting for CPUs:
-  change timeout or wait for ever. (will be needed by x86)
----
- arch/Kconfig        |  7 ++++
- include/linux/smp.h | 39 +++++++++++++++++++
- kernel/smp.c        | 91 +++++++++++++++++++++++++++++++++++++++++++++
- 3 files changed, 137 insertions(+)
+Note that in this patch we kept in use the original x86 local handling
+of 'crashing_cpu' variable:
 
-diff --git a/arch/Kconfig b/arch/Kconfig
-index 48b5e103bdb0..99550754e2ea 100644
---- a/arch/Kconfig
-+++ b/arch/Kconfig
-@@ -169,6 +169,13 @@ config ARCH_USE_BUILTIN_BSWAP
- 	 instructions should set this. And it shouldn't hurt to set it
- 	 on architectures that don't have such instructions.
+	crashing_cpu = safe_smp_processor_id();
+
+Instead, common SMP stop code could have been easily extended to keep and
+expose to architectures backends such value using some additional helper
+like smp_stop_get_stopping_cpu_id().
+
+This has not been addressed in this series.
+
+v2 --> v3
+- conflicts
+- simplified _shootdown_nmi_cpus calls
+---
+ arch/x86/include/asm/reboot.h |  2 ++
+ arch/x86/include/asm/smp.h    |  1 -
+ arch/x86/kernel/crash.c       | 27 +++-------------
+ arch/x86/kernel/reboot.c      | 58 ++++++++++++++++++++++-------------
+ arch/x86/kernel/smp.c         |  3 --
+ 5 files changed, 43 insertions(+), 48 deletions(-)
+
+diff --git a/arch/x86/include/asm/reboot.h b/arch/x86/include/asm/reboot.h
+index 04c17be9b5fd..bae3ecf84659 100644
+--- a/arch/x86/include/asm/reboot.h
++++ b/arch/x86/include/asm/reboot.h
+@@ -3,6 +3,7 @@
+ #define _ASM_X86_REBOOT_H
  
-+config ARCH_USE_COMMON_SMP_STOP
-+       def_bool n
+ #include <linux/kdebug.h>
++#include <linux/cpumask.h>
+ 
+ struct pt_regs;
+ 
+@@ -28,6 +29,7 @@ void __noreturn machine_real_restart(unsigned int type);
+ typedef void (*nmi_shootdown_cb)(int, struct pt_regs*);
+ void nmi_panic_self_stop(struct pt_regs *regs);
+ void nmi_shootdown_cpus(nmi_shootdown_cb callback);
++void do_nmi_shootdown_cpus(cpumask_t *cpus, nmi_shootdown_cb callback);
+ void run_crash_ipi_callback(struct pt_regs *regs);
+ 
+ #endif /* _ASM_X86_REBOOT_H */
+diff --git a/arch/x86/include/asm/smp.h b/arch/x86/include/asm/smp.h
+index e937fab6474b..22db383fc2d3 100644
+--- a/arch/x86/include/asm/smp.h
++++ b/arch/x86/include/asm/smp.h
+@@ -49,7 +49,6 @@ struct smp_ops {
+ 	void (*smp_cpus_done)(unsigned max_cpus);
+ 
+ 	void (*stop_other_cpus)(int wait);
+-	void (*crash_stop_other_cpus)(void);
+ 	void (*smp_send_reschedule)(int cpu);
+ 
+ 	int (*cpu_up)(unsigned cpu, struct task_struct *tidle);
+diff --git a/arch/x86/kernel/crash.c b/arch/x86/kernel/crash.c
+index 00fc55ac7ffa..c311a70bcb76 100644
+--- a/arch/x86/kernel/crash.c
++++ b/arch/x86/kernel/crash.c
+@@ -111,34 +111,16 @@ static void kdump_nmi_callback(int cpu, struct pt_regs *regs)
+ 	disable_local_APIC();
+ }
+ 
+-void kdump_nmi_shootdown_cpus(void)
++void arch_smp_crash_call(cpumask_t *cpus, unsigned int __unused)
+ {
+-	nmi_shootdown_cpus(kdump_nmi_callback);
+-
+-	disable_local_APIC();
++	do_nmi_shootdown_cpus(cpus, kdump_nmi_callback);
+ }
+ 
+-/* Override the weak function in kernel/panic.c */
+-void crash_smp_send_stop(void)
++void arch_smp_cpus_crash_complete(void)
+ {
+-	static int cpus_stopped;
+-
+-	if (cpus_stopped)
+-		return;
+-
+-	if (smp_ops.crash_stop_other_cpus)
+-		smp_ops.crash_stop_other_cpus();
+-	else
+-		smp_send_stop();
+-
+-	cpus_stopped = 1;
++	disable_local_APIC();
+ }
+ 
+-#else
+-void crash_smp_send_stop(void)
+-{
+-	/* There are no cpus to shootdown */
+-}
+ #endif
+ 
+ void native_machine_crash_shutdown(struct pt_regs *regs)
+@@ -154,6 +136,7 @@ void native_machine_crash_shutdown(struct pt_regs *regs)
+ 	/* The kernel is broken so disable interrupts */
+ 	local_irq_disable();
+ 
++	/* calling into SMP common stop code */
+ 	crash_smp_send_stop();
+ 
+ 	/*
+diff --git a/arch/x86/kernel/reboot.c b/arch/x86/kernel/reboot.c
+index 0cc7c0b106bb..0d1bf44643e9 100644
+--- a/arch/x86/kernel/reboot.c
++++ b/arch/x86/kernel/reboot.c
+@@ -799,7 +799,6 @@ int crashing_cpu = -1;
+ 
+ static nmi_shootdown_cb shootdown_callback;
+ 
+-static atomic_t waiting_for_crash_ipi;
+ static int crash_ipi_issued;
+ 
+ static int crash_nmi_callback(unsigned int val, struct pt_regs *regs)
+@@ -819,7 +818,12 @@ static int crash_nmi_callback(unsigned int val, struct pt_regs *regs)
+ 
+ 	shootdown_callback(cpu, regs);
+ 
+-	atomic_dec(&waiting_for_crash_ipi);
++	/* ensure all shootdown writes are visible once cpu is seen offline */
++	smp_wmb();
++	set_cpu_online(cpu, false);
++	/* ensure all writes are globally visible before cpu parks */
++	wmb();
 +
-+config USE_COMMON_SMP_STOP
-+       depends on SMP && ARCH_USE_COMMON_SMP_STOP
-+       def_bool y
-+
- config KRETPROBES
- 	def_bool y
- 	depends on KPROBES && HAVE_KRETPROBES
-diff --git a/include/linux/smp.h b/include/linux/smp.h
-index 6fc856c9eda5..22a0adeb7350 100644
---- a/include/linux/smp.h
-+++ b/include/linux/smp.h
-@@ -77,6 +77,45 @@ int smp_call_function_single_async(int cpu, call_single_data_t *csd);
+ 	/* Assume hlt works */
+ 	halt();
+ 	for (;;)
+@@ -829,23 +833,26 @@ static int crash_nmi_callback(unsigned int val, struct pt_regs *regs)
+ }
+ 
+ /*
+- * Halt all other CPUs, calling the specified function on each of them
+- *
+- * This function can be used to halt all other CPUs on crash
+- * or emergency reboot time. The function passed as parameter
+- * will be called inside a NMI handler on all CPUs.
++ * Halt the specified @cpus, calling the provided @callback on each of them
++ * unless a shootdown_callback was already installed previously: this way
++ * we can handle here also the emergency reboot requests issued via
++ * nmi_shootdown_cpus() and routed via usual common code crash_smp_send_stop()
   */
- extern void smp_send_stop(void);
+-void nmi_shootdown_cpus(nmi_shootdown_cb callback)
++void do_nmi_shootdown_cpus(cpumask_t *cpus, nmi_shootdown_cb callback)
+ {
+-	unsigned long msecs;
+-	local_irq_disable();
++	if (!shootdown_callback)
++		shootdown_callback = callback;
++
++	if (!cpus) {
++		/* ensure callback in place before calling commmon SMP */
++		wmb();
++		/* call into common SMP to reuse the generic logic */
++		return crash_smp_send_stop();
++	}
  
-+#ifdef CONFIG_USE_COMMON_SMP_STOP
++	local_irq_disable();
+ 	/* Make a note of crashing cpu. Will be used in NMI callback. */
+ 	crashing_cpu = safe_smp_processor_id();
+-
+-	shootdown_callback = callback;
+-
+-	atomic_set(&waiting_for_crash_ipi, num_online_cpus() - 1);
+ 	/* Would it be better to replace the trap vector here? */
+ 	if (register_nmi_handler(NMI_LOCAL, crash_nmi_callback,
+ 				 NMI_FLAG_FIRST, "crash"))
+@@ -855,21 +862,28 @@ void nmi_shootdown_cpus(nmi_shootdown_cb callback)
+ 	 * out the NMI
+ 	 */
+ 	wmb();
+-
+-	apic_send_IPI_allbutself(NMI_VECTOR);
++	apic->send_IPI_mask(cpus, NMI_VECTOR);
+ 
+ 	/* Kick CPUs looping in NMI context. */
+ 	WRITE_ONCE(crash_ipi_issued, 1);
+ 
+-	msecs = 1000; /* Wait at most a second for the other cpus to stop */
+-	while ((atomic_read(&waiting_for_crash_ipi) > 0) && msecs) {
+-		mdelay(1);
+-		msecs--;
+-	}
+-
+ 	/* Leave the nmi callback set */
+ }
+ 
 +/*
-+ * An Architecture can optionally use this helper to change the default
-+ * waiting behaviour of common STOP logic.
-+ */
-+void smp_stop_set_wait_forever(bool wait_forever);
-+
-+/*
-+ * An Architecture can optionally use this helper to change the default
-+ * waiting timeout of common STOP logic.
-+ * A ZERO timeout means no waiting at all as long as waiting forever was
-+ * not also previously set.
++ * Halt all other CPUs, calling the specified function on each of them
 + *
-+ * Note that, in this way, waiting forever and timeout period settings
-+ * remain disjoint.
++ * This function can be used to halt all other CPUs on crash
++ * or emergency reboot time. The function passed as parameter
++ * will be called inside a NMI handler on all CPUs.
++ *
++ * It relies on crash_smp_send_stop() common code logic to shutdown CPUs.
 + */
-+void smp_stop_set_wait_timeout_us(unsigned long timeout);
-+
-+/*
-+ * Retrieve the current SMP STOP wait settings.
-+ * Returns true if waiting forever is set.
-+ */
-+bool smp_stop_get_wait_settings(unsigned long *timeout);
-+
-+/*
-+ * Any Architecture willing to use STOP common logic implementation
-+ * MUST at least provide the arch_smp_stop_call() helper which implements
-+ * the arch-specific CPU-stop mechanism.
-+ */
-+extern void arch_smp_stop_call(cpumask_t *cpus);
-+
-+/*
-+ * An Architecture CAN also provide the arch_smp_cpus_stop_complete()
-+ * dedicated helper, to perform any final arch-specific operation on
-+ * the local CPU once the other CPUs have been successfully stopped.
-+ */
-+void arch_smp_cpus_stop_complete(void);
-+#endif
++void nmi_shootdown_cpus(nmi_shootdown_cb callback)
++{
++	do_nmi_shootdown_cpus(NULL, callback);
++}
 +
  /*
-  * sends a 'reschedule' event to another CPU:
-  */
-diff --git a/kernel/smp.c b/kernel/smp.c
-index 7dbcb402c2fc..de29cd94a948 100644
---- a/kernel/smp.c
-+++ b/kernel/smp.c
-@@ -20,6 +20,7 @@
- #include <linux/sched.h>
- #include <linux/sched/idle.h>
- #include <linux/hypervisor.h>
-+#include <linux/delay.h>
+  * Check if the crash dumping IPI got issued and if so, call its callback
+  * directly. This function is used when we have already been in NMI handler.
+diff --git a/arch/x86/kernel/smp.c b/arch/x86/kernel/smp.c
+index 7aeb45c512f7..3bd93912898a 100644
+--- a/arch/x86/kernel/smp.c
++++ b/arch/x86/kernel/smp.c
+@@ -276,9 +276,6 @@ struct smp_ops smp_ops = {
+ 	.smp_cpus_done		= native_smp_cpus_done,
  
- #include "smpboot.h"
+ 	.stop_other_cpus	= native_stop_other_cpus,
+-#if defined(CONFIG_KEXEC_CORE)
+-	.crash_stop_other_cpus	= kdump_nmi_shootdown_cpus,
+-#endif
+ 	.smp_send_reschedule	= native_smp_send_reschedule,
  
-@@ -817,3 +818,93 @@ int smp_call_on_cpu(unsigned int cpu, int (*func)(void *), void *par, bool phys)
- 	return sscs.ret;
- }
- EXPORT_SYMBOL_GPL(smp_call_on_cpu);
-+
-+#ifdef CONFIG_USE_COMMON_SMP_STOP
-+static atomic_t smp_stop_wait_forever;
-+static atomic_t smp_stop_wait_timeout = ATOMIC_INIT(USEC_PER_SEC);
-+
-+void smp_stop_set_wait_forever(bool wait_forever)
-+{
-+	atomic_set(&smp_stop_wait_forever, wait_forever);
-+	/* ensure wait atomic-op is visible */
-+	smp_mb__after_atomic();
-+}
-+
-+void smp_stop_set_wait_timeout_us(unsigned long timeout)
-+{
-+	atomic_set(&smp_stop_wait_timeout, timeout);
-+	/* ensure timeout atomic-op is visible */
-+	smp_mb__after_atomic();
-+}
-+
-+bool smp_stop_get_wait_settings(unsigned long *timeout)
-+{
-+	if (timeout)
-+		*timeout = atomic_read(&smp_stop_wait_timeout);
-+	return atomic_read(&smp_stop_wait_forever);
-+}
-+
-+void __weak arch_smp_cpus_stop_complete(void) { }
-+
-+static inline bool any_other_cpus_online(cpumask_t *mask,
-+					 unsigned int this_cpu_id)
-+{
-+	cpumask_copy(mask, cpu_online_mask);
-+	cpumask_clear_cpu(this_cpu_id, mask);
-+
-+	return !cpumask_empty(mask);
-+}
-+
-+/*
-+ * This centralizes the common logic to:
-+ *
-+ *  - evaluate which CPUs are online and needs to be notified for stop,
-+ *    while considering properly the status of the calling CPU
-+ *
-+ *  - call the arch-specific helpers to request the effective stop
-+ *
-+ *  - wait for the stop operation to be completed across all involved CPUs
-+ *    monitoring the cpu_online_mask
-+ */
-+void smp_send_stop(void)
-+{
-+	unsigned int this_cpu_id;
-+	cpumask_t mask;
-+
-+	this_cpu_id = smp_processor_id();
-+	if (any_other_cpus_online(&mask, this_cpu_id)) {
-+		bool wait_forever;
-+		unsigned long timeout;
-+		unsigned int this_cpu_online = cpu_online(this_cpu_id);
-+
-+		if (system_state <= SYSTEM_RUNNING)
-+			pr_crit("stopping secondary CPUs\n");
-+		arch_smp_stop_call(&mask);
-+
-+		/*
-+		 * Defaults to wait up to one second for other CPUs to stop;
-+		 * architectures can modify the default timeout or request
-+		 * to wait forever.
-+		 *
-+		 * Here we rely simply on cpu_online_mask to sync with
-+		 * arch-specific stop code without bloating the code with an
-+		 * additional atomic_t ad-hoc counter.
-+		 *
-+		 * As a consequence we'll need proper explicit memory barriers
-+		 * in case the other CPUs running the arch-specific stop-code
-+		 * would need to commit to memory some data (like saved_regs).
-+		 */
-+		wait_forever = smp_stop_get_wait_settings(&timeout);
-+		while (num_online_cpus() > this_cpu_online &&
-+		       (wait_forever || timeout--))
-+			udelay(1);
-+		/* ensure any stopping-CPUs memory access is made visible */
-+		smp_rmb();
-+		if (num_online_cpus() > this_cpu_online)
-+			pr_warn("failed to stop secondary CPUs %*pbl\n",
-+				cpumask_pr_args(cpu_online_mask));
-+	}
-+	/* Perform final (possibly arch-specific) work on this CPU */
-+	arch_smp_cpus_stop_complete();
-+}
-+#endif
+ 	.cpu_up			= native_cpu_up,
 -- 
 2.17.1
