@@ -1,7 +1,7 @@
 From: Cristian Marussi <cristian.marussi@arm.com>
-Subject: [RFC PATCH v3 11/12] arm: smp: use SMP crash-stop common code
-Date: Thu, 19 Dec 2019 12:19:04 +0000
-Message-ID: <20191219121905.26905-12-cristian.marussi@arm.com>
+Subject: [RFC PATCH v3 12/12] sparc64: smp: use generic SMP stop common code
+Date: Thu, 19 Dec 2019 12:19:05 +0000
+Message-ID: <20191219121905.26905-13-cristian.marussi@arm.com>
 References: <20191219121905.26905-1-cristian.marussi@arm.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20191219121905.26905-1-cristian.marussi@arm.com>
@@ -10,70 +10,66 @@ To: linux-kernel@vger.kernel.org
 Cc: linux-arch@vger.kernel.org, mark.rutland@arm.com, peterz@infradead.org, catalin.marinas@arm.com, takahiro.akashi@linaro.org, james.morse@arm.com, hidehiro.kawai.ez@hitachi.com, tglx@linutronix.de, will@kernel.org, linux-arm-kernel@lists.infradead.org, mingo@redhat.com, x86@kernel.org, dzickus@redhat.com, ehabkost@redhat.com, linux@armlinux.org.uk, davem@davemloft.net, sparclinux@vger.kernel.org, hch@infradead.org
 List-Id: linux-arch.vger.kernel.org
 
-Make arm use the SMP common implementation of crash_smp_send_stop() and
-its generic logic, by removing the arm crash_smp_send_stop() definition
-and providing the needed arch specific helpers.
+Make sparc64 use the generic SMP-stop logic provided by common code
+unified smp_send_stop() function.
 
 Signed-off-by: Cristian Marussi <cristian.marussi@arm.com>
 ---
- arch/arm/kernel/machine_kexec.c | 29 ++++++++---------------------
- 1 file changed, 8 insertions(+), 21 deletions(-)
+ arch/sparc/Kconfig         |  1 +
+ arch/sparc/kernel/smp_64.c | 15 ++++++++-------
+ 2 files changed, 9 insertions(+), 7 deletions(-)
 
-diff --git a/arch/arm/kernel/machine_kexec.c b/arch/arm/kernel/machine_kexec.c
-index 76300f3813e8..5289984e3941 100644
---- a/arch/arm/kernel/machine_kexec.c
-+++ b/arch/arm/kernel/machine_kexec.c
-@@ -29,8 +29,6 @@ extern unsigned long kexec_indirection_page;
- extern unsigned long kexec_mach_type;
- extern unsigned long kexec_boot_atags;
+diff --git a/arch/sparc/Kconfig b/arch/sparc/Kconfig
+index eb24cb1afc11..9fedb79209d7 100644
+--- a/arch/sparc/Kconfig
++++ b/arch/sparc/Kconfig
+@@ -95,6 +95,7 @@ config SPARC64
+ 	select ARCH_HAS_PTE_SPECIAL
+ 	select PCI_DOMAINS if PCI
+ 	select ARCH_HAS_GIGANTIC_PAGE
++	select ARCH_USE_COMMON_SMP_STOP
  
--static atomic_t waiting_for_crash_ipi;
--
- /*
-  * Provide a dummy crash_notes definition while crash dump arrives to arm.
-  * This prevents breakage of crash_notes attribute in kernel/ksysfs.c.
-@@ -89,34 +87,23 @@ void machine_crash_nonpanic_core(void *unused)
- 	crash_save_cpu(&regs, smp_processor_id());
- 	flush_cache_all();
- 
-+	/* ensure saved regs writes are visible before going offline */
-+	smp_wmb();
- 	set_cpu_online(smp_processor_id(), false);
--	atomic_dec(&waiting_for_crash_ipi);
- 
-+	/* ensure all writes visible before parking */
-+	wmb();
- 	while (1) {
- 		cpu_relax();
- 		wfe();
- 	}
+ config ARCH_DEFCONFIG
+ 	string
+diff --git a/arch/sparc/kernel/smp_64.c b/arch/sparc/kernel/smp_64.c
+index 9b4506373353..87a9f3c96193 100644
+--- a/arch/sparc/kernel/smp_64.c
++++ b/arch/sparc/kernel/smp_64.c
+@@ -1537,7 +1537,12 @@ static void stop_this_cpu(void *dummy)
+ 	prom_stopself();
  }
  
--void crash_smp_send_stop(void)
-+void arch_smp_crash_call(cpumask_t *cpus, unsigned int __unused)
+-void smp_send_stop(void)
++void arch_smp_cpus_stop_complete(void)
++{
++	smp_call_function(stop_this_cpu, NULL, 0);
++}
++
++void arch_smp_stop_call(cpumask_t *cpus, unsigned int __unused)
  {
--	static int cpus_stopped;
--	unsigned long msecs;
+ 	int cpu;
+ 
+@@ -1546,10 +1551,7 @@ void smp_send_stop(void)
+ #ifdef CONFIG_SERIAL_SUNHV
+ 		sunhv_migrate_hvcons_irq(this_cpu);
+ #endif
+-		for_each_online_cpu(cpu) {
+-			if (cpu == this_cpu)
+-				continue;
 -
--	if (cpus_stopped)
--		return;
--
--	atomic_set(&waiting_for_crash_ipi, num_online_cpus() - 1);
--	smp_call_function(machine_crash_nonpanic_core, NULL, false);
--	msecs = 1000; /* Wait at most a second for the other cpus to stop */
--	while ((atomic_read(&waiting_for_crash_ipi) > 0) && msecs) {
--		mdelay(1);
--		msecs--;
--	}
--	if (atomic_read(&waiting_for_crash_ipi) > 0)
--		pr_warn("Non-crashing CPUs did not react to IPI\n");
--
--	cpus_stopped = 1;
-+	preempt_disable();
-+	smp_call_function_many(cpus, machine_crash_nonpanic_core, NULL, false);
-+	preempt_enable();
++		for_each_cpu(cpu, cpus) {
+ 			set_cpu_online(cpu, false);
+ #ifdef CONFIG_SUN_LDOMS
+ 			if (ldom_domaining_enabled) {
+@@ -1562,8 +1564,7 @@ void smp_send_stop(void)
+ #endif
+ 				prom_stopcpu_cpuid(cpu);
+ 		}
+-	} else
+-		smp_call_function(stop_this_cpu, NULL, 0);
++	}
  }
  
- static void machine_kexec_mask_interrupts(void)
+ /**
 -- 
 2.17.1
