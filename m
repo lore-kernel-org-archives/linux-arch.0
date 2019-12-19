@@ -1,7 +1,7 @@
 From: Cristian Marussi <cristian.marussi@arm.com>
-Subject: [RFC PATCH v3 10/12] arm: smp: use generic SMP stop common code
-Date: Thu, 19 Dec 2019 12:19:03 +0000
-Message-ID: <20191219121905.26905-11-cristian.marussi@arm.com>
+Subject: [RFC PATCH v3 11/12] arm: smp: use SMP crash-stop common code
+Date: Thu, 19 Dec 2019 12:19:04 +0000
+Message-ID: <20191219121905.26905-12-cristian.marussi@arm.com>
 References: <20191219121905.26905-1-cristian.marussi@arm.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20191219121905.26905-1-cristian.marussi@arm.com>
@@ -10,78 +10,70 @@ To: linux-kernel@vger.kernel.org
 Cc: linux-arch@vger.kernel.org, mark.rutland@arm.com, peterz@infradead.org, catalin.marinas@arm.com, takahiro.akashi@linaro.org, james.morse@arm.com, hidehiro.kawai.ez@hitachi.com, tglx@linutronix.de, will@kernel.org, linux-arm-kernel@lists.infradead.org, mingo@redhat.com, x86@kernel.org, dzickus@redhat.com, ehabkost@redhat.com, linux@armlinux.org.uk, davem@davemloft.net, sparclinux@vger.kernel.org, hch@infradead.org
 List-Id: linux-arch.vger.kernel.org
 
-Make arm use the generic SMP-stop logic provided by common code
-unified smp_send_stop() function.
+Make arm use the SMP common implementation of crash_smp_send_stop() and
+its generic logic, by removing the arm crash_smp_send_stop() definition
+and providing the needed arch specific helpers.
 
 Signed-off-by: Cristian Marussi <cristian.marussi@arm.com>
 ---
-v2 --> v3
-- conflicts
-- added missing barriers
----
- arch/arm/Kconfig      |  1 +
- arch/arm/kernel/smp.c | 22 ++++++----------------
- 2 files changed, 7 insertions(+), 16 deletions(-)
+ arch/arm/kernel/machine_kexec.c | 29 ++++++++---------------------
+ 1 file changed, 8 insertions(+), 21 deletions(-)
 
-diff --git a/arch/arm/Kconfig b/arch/arm/Kconfig
-index ba75e3661a41..40f6961c449c 100644
---- a/arch/arm/Kconfig
-+++ b/arch/arm/Kconfig
-@@ -35,6 +35,7 @@ config ARM
- 	select ARCH_USE_CMPXCHG_LOCKREF
- 	select ARCH_WANT_DEFAULT_TOPDOWN_MMAP_LAYOUT if MMU
- 	select ARCH_WANT_IPC_PARSE_VERSION
-+	select ARCH_USE_COMMON_SMP_STOP
- 	select BINFMT_FLAT_ARGVP_ENVP_ON_STACK
- 	select BUILDTIME_EXTABLE_SORT if MMU
- 	select CLONE_BACKWARDS
-diff --git a/arch/arm/kernel/smp.c b/arch/arm/kernel/smp.c
-index 46e1be9e57a8..f03e9bbf4116 100644
---- a/arch/arm/kernel/smp.c
-+++ b/arch/arm/kernel/smp.c
-@@ -598,6 +598,8 @@ static void ipi_cpu_stop(unsigned int cpu)
- 	}
+diff --git a/arch/arm/kernel/machine_kexec.c b/arch/arm/kernel/machine_kexec.c
+index 76300f3813e8..5289984e3941 100644
+--- a/arch/arm/kernel/machine_kexec.c
++++ b/arch/arm/kernel/machine_kexec.c
+@@ -29,8 +29,6 @@ extern unsigned long kexec_indirection_page;
+ extern unsigned long kexec_mach_type;
+ extern unsigned long kexec_boot_atags;
  
- 	set_cpu_online(cpu, false);
-+	/* ensure all writes are globally visible before cpu parks */
-+	wmb();
- 
- 	local_fiq_disable();
- 	local_irq_disable();
-@@ -705,23 +707,9 @@ void smp_send_reschedule(int cpu)
- 	smp_cross_call(cpumask_of(cpu), IPI_RESCHEDULE);
- }
- 
--void smp_send_stop(void)
-+void arch_smp_stop_call(cpumask_t *cpus, unsigned int __unused)
- {
--	unsigned long timeout;
--	struct cpumask mask;
+-static atomic_t waiting_for_crash_ipi;
 -
--	cpumask_copy(&mask, cpu_online_mask);
--	cpumask_clear_cpu(smp_processor_id(), &mask);
--	if (!cpumask_empty(&mask))
--		smp_cross_call(&mask, IPI_CPU_STOP);
--
--	/* Wait up to one second for other CPUs to stop */
--	timeout = USEC_PER_SEC;
--	while (num_online_cpus() > 1 && timeout--)
--		udelay(1);
--
--	if (num_online_cpus() > 1)
--		pr_warn("SMP: failed to stop secondary CPUs\n");
-+	smp_cross_call(cpus, IPI_CPU_STOP);
- }
+ /*
+  * Provide a dummy crash_notes definition while crash dump arrives to arm.
+  * This prevents breakage of crash_notes attribute in kernel/ksysfs.c.
+@@ -89,34 +87,23 @@ void machine_crash_nonpanic_core(void *unused)
+ 	crash_save_cpu(&regs, smp_processor_id());
+ 	flush_cache_all();
  
- /* In case panic() and panic() called at the same time on CPU1 and CPU2,
-@@ -735,6 +723,8 @@ void panic_smp_self_stop(void)
- 	pr_debug("CPU %u will stop doing anything useful since another CPU has paniced\n",
- 	         smp_processor_id());
++	/* ensure saved regs writes are visible before going offline */
++	smp_wmb();
  	set_cpu_online(smp_processor_id(), false);
+-	atomic_dec(&waiting_for_crash_ipi);
+ 
 +	/* ensure all writes visible before parking */
 +	wmb();
- 	while (1)
+ 	while (1) {
  		cpu_relax();
+ 		wfe();
+ 	}
  }
+ 
+-void crash_smp_send_stop(void)
++void arch_smp_crash_call(cpumask_t *cpus, unsigned int __unused)
+ {
+-	static int cpus_stopped;
+-	unsigned long msecs;
+-
+-	if (cpus_stopped)
+-		return;
+-
+-	atomic_set(&waiting_for_crash_ipi, num_online_cpus() - 1);
+-	smp_call_function(machine_crash_nonpanic_core, NULL, false);
+-	msecs = 1000; /* Wait at most a second for the other cpus to stop */
+-	while ((atomic_read(&waiting_for_crash_ipi) > 0) && msecs) {
+-		mdelay(1);
+-		msecs--;
+-	}
+-	if (atomic_read(&waiting_for_crash_ipi) > 0)
+-		pr_warn("Non-crashing CPUs did not react to IPI\n");
+-
+-	cpus_stopped = 1;
++	preempt_disable();
++	smp_call_function_many(cpus, machine_crash_nonpanic_core, NULL, false);
++	preempt_enable();
+ }
+ 
+ static void machine_kexec_mask_interrupts(void)
 -- 
 2.17.1
