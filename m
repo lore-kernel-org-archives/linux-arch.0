@@ -1,40 +1,88 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ozlabs.org ([203.11.71.1]:49947 "EHLO ozlabs.org"
+Received: from mail.kernel.org ([198.145.29.99]:39744 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726668AbfLSLju (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 19 Dec 2019 06:39:50 -0500
-From: Michael Ellerman <mpe@ellerman.id.au>
-Subject: Re: [PATCH v15 06/23] selftests/vm/pkeys: Typecast the pkey register
-In-Reply-To: <15c3b6cc-d8da-9a32-da6a-4c3990f48994@intel.com>
-References: <cover.1576645161.git.sandipan@linux.ibm.com> <719ec65756a64cc03e8464a9c6da51c4519d2389.1576645161.git.sandipan@linux.ibm.com> <5b6c3f8a-9d2f-2534-c072-89f130ce110f@intel.com> <20191218205905.GG4113@kitsune.suse.cz> <15c3b6cc-d8da-9a32-da6a-4c3990f48994@intel.com>
-Date: Thu, 19 Dec 2019 22:39:44 +1100
-Message-ID: <87d0ckmtmn.fsf@mpe.ellerman.id.au>
+        id S1726668AbfLSMLV (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 19 Dec 2019 07:11:21 -0500
+Date: Thu, 19 Dec 2019 12:11:16 +0000
+From: Will Deacon <will@kernel.org>
+Subject: Re: READ_ONCE() + STACKPROTECTOR_STRONG == :/ (was Re: [GIT PULL]
+ Please pull powerpc/linux.git powerpc-5.5-2 tag (topic/kasan-bitops))
+Message-ID: <20191219121115.GB32361@willie-the-truck>
+References: <20191212100756.GA11317@willie-the-truck>
+ <20191212104610.GW2827@hirez.programming.kicks-ass.net>
+ <CAHk-=wjUBsH0BYDBv=q36482G-U7c=9bC89L_BViSciTfb8fhA@mail.gmail.com>
+ <20191212180634.GA19020@willie-the-truck>
+ <CAHk-=whRxB0adkz+V7SQC8Ac_rr_YfaPY8M2mFDfJP2FFBNz8A@mail.gmail.com>
+ <20191212193401.GB19020@willie-the-truck>
+ <CAHk-=wiMuHmWzQ7-CRQB6o+SHtA-u-Rp6VZwPcqDbjAaug80rQ@mail.gmail.com>
+ <20191217170719.GA869@willie-the-truck>
+ <CAHk-=whBnZBVNwu8aVVp205EKk7xtsnQgSjs38a5=y9HyheXzQ@mail.gmail.com>
+ <CAHk-=wjNLxSZZs+A0tyb-MnJ2YU-sqTAfy0-X+9vxjXfs_O4zA@mail.gmail.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: quoted-printable
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <CAHk-=wjNLxSZZs+A0tyb-MnJ2YU-sqTAfy0-X+9vxjXfs_O4zA@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dave Hansen <dave.hansen@intel.com>, Michal =?utf-8?Q?Such=C3=A1nek?= <msuchanek@suse.de>
-Cc: linux-arch@vger.kernel.org, fweimer@redhat.com, aneesh.kumar@linux.ibm.com, x86@kernel.org, linuxram@us.ibm.com, shuahkh@osg.samsung.com, mhocko@kernel.org, linux-mm@kvack.org, mingo@redhat.com, Sandipan Das <sandipan@linux.ibm.com>, linux-kselftest@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, bauerman@linux.ibm.com
-Message-ID: <20191219113944.kcQyrRYmD9yDiguAp6MQLtkCwrPBdU34lc9kcEJ05ys@z>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Peter Zijlstra <peterz@infradead.org>, Michael Ellerman <mpe@ellerman.id.au>, Daniel Axtens <dja@axtens.net>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, Christophe Leroy <christophe.leroy@c-s.fr>, linux-arch <linux-arch@vger.kernel.org>, Mark Rutland <mark.rutland@arm.com>, Segher Boessenkool <segher@kernel.crashing.org>, Arnd Bergmann <arnd@arndb.de>, Christian Borntraeger <borntraeger@de.ibm.com>
+Message-ID: <20191219121116.8hdUL7lKmBhVPhrQONYgDoWt-eIVau2t1uMEktR_dsQ@z>
 
-Dave Hansen <dave.hansen@intel.com> writes:
-> On 12/18/19 12:59 PM, Michal Such=C3=A1nek wrote:
->>> I'd really just rather do %016lx *everywhere* than sprinkle the
->>> PKEY_REG_FMTs around.
->> Does lx work with u32 without warnings?
->
-> Either way, I'd be happy to just make the x86 one u64 to make the whole
-> thing look more sane,
+On Tue, Dec 17, 2019 at 10:32:35AM -0800, Linus Torvalds wrote:
+> On Tue, Dec 17, 2019 at 10:04 AM Linus Torvalds
+> <torvalds@linux-foundation.org> wrote:
+> >
+> > Let me think about it.
+> 
+> How about we just get rid of the union entirely, and just use
+> 'unsigned long' or 'unsigned long long' depending on the size.
+> 
+> Something like the attached patch - it still requires that it be an
+> arithmetic type, but now because of the final cast.
+> 
+> But it might still be a cast to a volatile type, of course. Then the
+> result will be volatile, but at least now READ_ONCE() won't be taking
+> the address of a volatile variable on the stack - does that at least
+> fix some of the horrible code generation. Hmm?
 
-It's userspace so you don't get u64, you only get __u64.
+Sounds like it according to mpe, but I'll confirm too for arm64.
 
-And then you'll hit the fact that by default __u64 is unsigned long on
-powerpc and unsigned long long on x86, meaning you still can't use the
-same printf specifier.
+> This is untested, because I obviously still have the cases of
+> structures (page table entries) being accessed once..
+> 
+>               Linus
 
-To avoid that you should define __SANE_USERSPACE_TYPES__ before
-including any headers, and then you'll get unsigned long long for __u64
-everywhere and you can just use %llx.
+>  include/linux/compiler.h | 33 +++++++++++++++++----------------
+>  1 file changed, 17 insertions(+), 16 deletions(-)
+> 
+> diff --git a/include/linux/compiler.h b/include/linux/compiler.h
+> index 5e88e7e33abe..8b4282194f16 100644
+> --- a/include/linux/compiler.h
+> +++ b/include/linux/compiler.h
+> @@ -179,18 +179,18 @@ void ftrace_likely_update(struct ftrace_likely_data *f, int val,
+>  
+>  #include <uapi/linux/types.h>
+>  
+> -#define __READ_ONCE_SIZE						\
+> -({									\
+> -	switch (size) {							\
+> -	case 1: *(__u8 *)res = *(volatile __u8 *)p; break;		\
+> -	case 2: *(__u16 *)res = *(volatile __u16 *)p; break;		\
+> -	case 4: *(__u32 *)res = *(volatile __u32 *)p; break;		\
+> -	case 8: *(__u64 *)res = *(volatile __u64 *)p; break;		\
+> -	default:							\
+> -		barrier();						\
+> -		__builtin_memcpy((void *)res, (const void *)p, size);	\
+> -		barrier();						\
+> -	}								\
+> +/* "unsigned long" or "unsigned long long" - make it fit in a register if possible */
+> +#define __READ_ONCE_TYPE(size) \
+> +	__typeof__(__builtin_choose_expr(size > sizeof(0UL), 0ULL, 0UL))
 
-cheers
+Ha, I wondered when '__builtin_choose_expr()' would make an appearance in
+this thread! Nice trick. I'll try integrating this with what I have and see
+what I run into next.
+
+Back down the rabbit hole...
+
+Will
