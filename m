@@ -1,70 +1,334 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mo4-p01-ob.smtp.rzone.de ([85.215.255.52]:36985 "EHLO
-        mo4-p01-ob.smtp.rzone.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726760AbfLSNzL (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 19 Dec 2019 08:55:11 -0500
-Subject: Re: use generic DMA mapping code in powerpc V4
-From: Christian Zigotzky <chzigotzky@xenosoft.de>
-References: <20181114082314.8965-1-hch@lst.de> <20181127074253.GB30186@lst.de>
- <87zhttfonk.fsf@concordia.ellerman.id.au>
- <535776df-dea3-eb26-6bf3-83f225e977df@xenosoft.de>
-Message-ID: <ea5433f6-ef8d-3cd0-0645-dd89c4806dca@xenosoft.de>
-Date: Thu, 19 Dec 2019 14:54:27 +0100
+Received: from mail-wr1-f68.google.com ([209.85.221.68]:37928 "EHLO
+        mail-wr1-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727071AbfLSUcs (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 19 Dec 2019 15:32:48 -0500
+Received: by mail-wr1-f68.google.com with SMTP id y17so7328550wrh.5
+        for <linux-arch@vger.kernel.org>; Thu, 19 Dec 2019 12:32:44 -0800 (PST)
 MIME-Version: 1.0
-In-Reply-To: <535776df-dea3-eb26-6bf3-83f225e977df@xenosoft.de>
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Transfer-Encoding: 7bit
-Content-Language: de-DE
+References: <20191211184027.20130-1-catalin.marinas@arm.com> <20191211184027.20130-20-catalin.marinas@arm.com>
+In-Reply-To: <20191211184027.20130-20-catalin.marinas@arm.com>
+From: Peter Collingbourne <pcc@google.com>
+Date: Thu, 19 Dec 2019 12:32:31 -0800
+Message-ID: <CAMn1gO4iv1FsxV+aR3CgU=jgmVjHL0YQF-xJJG0UMv3nJZnOBw@mail.gmail.com>
+Subject: Re: [PATCH 19/22] arm64: mte: Allow user control of the tag check
+ mode via prctl()
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Michael Ellerman <mpe@ellerman.id.au>, Christoph Hellwig <hch@lst.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>
-Cc: linux-arch@vger.kernel.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, "R.T.Dickinson" <rtd2@xtra.co.nz>, "contact@a-eon.com" <contact@a-eon.com>, mad skateman <madskateman@gmail.com>, Darren Stevens <darren@stevens-zone.net>
-Message-ID: <20191219135427.84DV5zU6taFoNSSEaK2Ov1YcBlB06JXdIRFGW_i7jxk@z>
+To: Catalin Marinas <catalin.marinas@arm.com>, Evgenii Stepanov <eugenis@google.com>, Kostya Serebryany <kcc@google.com>
+Cc: Linux ARM <linux-arm-kernel@lists.infradead.org>, linux-arch@vger.kernel.org, Richard Earnshaw <Richard.Earnshaw@arm.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Marc Zyngier <maz@kernel.org>, Kevin Brodsky <kevin.brodsky@arm.com>, linux-mm@kvack.org, Andrey Konovalov <andreyknvl@google.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Will Deacon <will@kernel.org>
+Message-ID: <20191219203231.MX_ah1uEmLUP5q09tGCFOGNjp1l84jcl9Noj1rJ2Ui4@z>
 
-Hi All,
-
-We still have some issues with PCI cards in our FSL P5020 and P5040 
-systems since the DMA mapping updates. [1, 2]
-
-We have to limit the RAM to 3500MB for some problematic PCI cards. 
-(kernel boot argument 'mem=3500M')
-
-The problematic DMA mapping code was added with the PowerPC updates 
-4.21-1 to the official kernel source code last year. [3]
-
-We have created a bug report. [4]
-
-The old 4.x kernels aren't affected because they use the old DMA code.
-
-Please check the new DMA code again.
-
-Thanks,
-Christian
-
-[1] 
-http://forum.hyperion-entertainment.com/viewtopic.php?f=58&p=49486#p49486
-[2] 
-http://forum.hyperion-entertainment.com/viewtopic.php?f=58&t=4349&start=50#p49099
-[3] 
-https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=8d6973327ee84c2f40dd9efd8928d4a1186c96e2
-[4] https://bugzilla.kernel.org/show_bug.cgi?id=205201
-
-
-On 28 November 2018 at 4:55 pm, Christian Zigotzky wrote:
-> On 28 November 2018 at 12:05PM, Michael Ellerman wrote:
->> Nothing specific yet.
->>
->> I'm a bit worried it might break one of the many old obscure platforms
->> we have that aren't well tested.
->>
-> Please don't apply the new DMA mapping code if you don't be sure if it 
-> works on all supported PowerPC machines. Is the new DMA mapping code 
-> really necessary? It's not really nice, to rewrote code if the old 
-> code works perfect. We must not forget, that we work for the end 
-> users. Does the end user have advantages with this new code? Is it 
-> faster? The old code works without any problems. I am also worried 
-> about this code. How can I test this new DMA mapping code?
+On Wed, Dec 11, 2019 at 10:45 AM Catalin Marinas
+<catalin.marinas@arm.com> wrote:
 >
-> Thanks
+> By default, even if PROT_MTE is set on a memory range, there is no tag
+> check fault reporting (SIGSEGV). Introduce a set of option to the
+> exiting prctl(PR_SET_TAGGED_ADDR_CTRL) to allow user control of the tag
+> check fault mode:
 >
+>   PR_MTE_TCF_NONE  - no reporting (default)
+>   PR_MTE_TCF_SYNC  - synchronous tag check fault reporting
+>   PR_MTE_TCF_ASYNC - asynchronous tag check fault reporting
 >
+> These options translate into the corresponding SCTLR_EL1.TCF0 bitfield,
+> context-switched by the kernel. Note that uaccess done by the kernel is
+> not checked and cannot be configured by the user.
+>
+> Signed-off-by: Catalin Marinas <catalin.marinas@arm.com>
+> ---
+>  arch/arm64/include/asm/processor.h |   3 +
+>  arch/arm64/kernel/process.c        | 119 +++++++++++++++++++++++++++--
+>  include/uapi/linux/prctl.h         |   6 ++
+>  3 files changed, 123 insertions(+), 5 deletions(-)
+>
+> diff --git a/arch/arm64/include/asm/processor.h b/arch/arm64/include/asm/processor.h
+> index 5ba63204d078..91aa270afc7d 100644
+> --- a/arch/arm64/include/asm/processor.h
+> +++ b/arch/arm64/include/asm/processor.h
+> @@ -148,6 +148,9 @@ struct thread_struct {
+>  #ifdef CONFIG_ARM64_PTR_AUTH
+>         struct ptrauth_keys     keys_user;
+>  #endif
+> +#ifdef CONFIG_ARM64_MTE
+> +       u64                     sctlr_tcf0;
+> +#endif
+>  };
+>
+>  static inline void arch_thread_struct_whitelist(unsigned long *offset,
+> diff --git a/arch/arm64/kernel/process.c b/arch/arm64/kernel/process.c
+> index dd98d539894e..47ce98f47253 100644
+> --- a/arch/arm64/kernel/process.c
+> +++ b/arch/arm64/kernel/process.c
+> @@ -317,11 +317,22 @@ static void flush_tagged_addr_state(void)
+>                 clear_thread_flag(TIF_TAGGED_ADDR);
+>  }
+>
+> +#ifdef CONFIG_ARM64_MTE
+> +static void flush_mte_state(void)
+> +{
+> +       if (!system_supports_mte())
+> +               return;
+> +
+> +       /* clear any pending asynchronous tag fault */
+> +       clear_thread_flag(TIF_MTE_ASYNC_FAULT);
+> +       /* disable tag checking */
+> +       current->thread.sctlr_tcf0 = 0;
+> +}
+> +#else
+>  static void flush_mte_state(void)
+>  {
+> -       if (system_supports_mte())
+> -               clear_thread_flag(TIF_MTE_ASYNC_FAULT);
+>  }
+> +#endif
+>
+>  void flush_thread(void)
+>  {
+> @@ -484,6 +495,29 @@ static void ssbs_thread_switch(struct task_struct *next)
+>                 set_ssbs_bit(regs);
+>  }
+>
+> +#ifdef CONFIG_ARM64_MTE
+> +static void update_sctlr_el1_tcf0(u64 tcf0)
+> +{
+> +       /* no need for ISB since this only affects EL0, implicit with ERET */
+> +       sysreg_clear_set(sctlr_el1, SCTLR_EL1_TCF0_MASK, tcf0);
+> +}
+> +
+> +/* Handle MTE thread switch */
+> +static void mte_thread_switch(struct task_struct *next)
+> +{
+> +       if (!system_supports_mte())
+> +               return;
+> +
+> +       /* avoid expensive SCTLR_EL1 accesses if no change */
+> +       if (current->thread.sctlr_tcf0 != next->thread.sctlr_tcf0)
+> +               update_sctlr_el1_tcf0(next->thread.sctlr_tcf0);
+
+I don't entirely understand why yet, but I've found that this check is
+insufficient for ensuring consistency between SCTLR_EL1.TCF0 and
+sctlr_tcf0. In my Android test environment with some processes having
+sctlr_tcf0=SCTLR_EL1_TCF0_SYNC and others having sctlr_tcf0=0, I am
+seeing intermittent tag failures coming from the sctlr_tcf0=0
+processes. With this patch:
+
+diff --git a/arch/arm64/mm/fault.c b/arch/arm64/mm/fault.c
+index ef3bfa2bf2b1..4e5d02520a51 100644
+--- a/arch/arm64/mm/fault.c
++++ b/arch/arm64/mm/fault.c
+@@ -663,6 +663,8 @@ static int do_sea(unsigned long addr, unsigned int
+esr, struct pt_regs *regs)
+ static int do_tag_check_fault(unsigned long addr, unsigned int esr,
+                              struct pt_regs *regs)
+ {
++       printk(KERN_ERR "do_tag_check_fault %lx %lx\n",
++              current->thread.sctlr_tcf0, read_sysreg(sctlr_el1));
+        do_bad_area(addr, esr, regs);
+        return 0;
+ }
+
+I see dmesg output like this:
+
+[   15.249216] do_tag_check_fault 0 c60fc64791d
+
+showing that SCTLR_EL1.TCF0 became inconsistent with sctlr_tcf0. This
+patch fixes the problem for me:
+
+diff --git a/arch/arm64/kernel/process.c b/arch/arm64/kernel/process.c
+index fba89c9f070b..fb012f0baa12 100644
+--- a/arch/arm64/kernel/process.c
++++ b/arch/arm64/kernel/process.c
+@@ -518,9 +518,7 @@ static void mte_thread_switch(struct task_struct *next)
+        if (!system_supports_mte())
+                return;
+
+-       /* avoid expensive SCTLR_EL1 accesses if no change */
+-       if (current->thread.sctlr_tcf0 != next->thread.sctlr_tcf0)
+-               update_sctlr_el1_tcf0(next->thread.sctlr_tcf0);
++       update_sctlr_el1_tcf0(next->thread.sctlr_tcf0);
+        update_gcr_el1_excl(next->thread.gcr_excl);
+ }
+ #else
+@@ -643,15 +641,8 @@ static long set_mte_ctrl(unsigned long arg)
+                return -EINVAL;
+        }
+
+-       /*
+-        * mte_thread_switch() checks current->thread.sctlr_tcf0 as an
+-        * optimisation. Disable preemption so that it does not see
+-        * the variable update before the SCTLR_EL1.TCF0 one.
+-        */
+-       preempt_disable();
+        current->thread.sctlr_tcf0 = tcf0;
+        update_sctlr_el1_tcf0(tcf0);
+-       preempt_enable();
+
+        current->thread.gcr_excl = (arg & PR_MTE_EXCL_MASK) >>
+PR_MTE_EXCL_SHIFT;
+        update_gcr_el1_excl(current->thread.gcr_excl);
+
+Since sysreg_clear_set only sets the sysreg if it ended up changing, I
+wouldn't expect this to cause a significant performance hit unless
+just reading SCTLR_EL1 is expensive. That being said, if the
+inconsistency is indicative of a deeper problem, we should probably
+address that.
+
+
+Peter
+
+> +}
+> +#else
+> +static void mte_thread_switch(struct task_struct *next)
+> +{
+> +}
+> +#endif
+> +
+>  /*
+>   * We store our current task in sp_el0, which is clobbered by userspace. Keep a
+>   * shadow copy so that we can restore this upon entry from userspace.
+> @@ -514,6 +548,7 @@ __notrace_funcgraph struct task_struct *__switch_to(struct task_struct *prev,
+>         uao_thread_switch(next);
+>         ptrauth_thread_switch(next);
+>         ssbs_thread_switch(next);
+> +       mte_thread_switch(next);
+>
+>         /*
+>          * Complete any pending TLB or cache maintenance on this CPU in case
+> @@ -574,6 +609,67 @@ void arch_setup_new_exec(void)
+>         ptrauth_thread_init_user(current);
+>  }
+>
+> +#ifdef CONFIG_ARM64_MTE
+> +static long set_mte_ctrl(unsigned long arg)
+> +{
+> +       u64 tcf0;
+> +
+> +       if (!system_supports_mte())
+> +               return 0;
+> +
+> +       switch (arg & PR_MTE_TCF_MASK) {
+> +       case PR_MTE_TCF_NONE:
+> +               tcf0 = 0;
+> +               break;
+> +       case PR_MTE_TCF_SYNC:
+> +               tcf0 = SCTLR_EL1_TCF0_SYNC;
+> +               break;
+> +       case PR_MTE_TCF_ASYNC:
+> +               tcf0 = SCTLR_EL1_TCF0_ASYNC;
+> +               break;
+> +       default:
+> +               return -EINVAL;
+> +       }
+> +
+> +       /*
+> +        * mte_thread_switch() checks current->thread.sctlr_tcf0 as an
+> +        * optimisation. Disable preemption so that it does not see
+> +        * the variable update before the SCTLR_EL1.TCF0 one.
+> +        */
+> +       preempt_disable();
+> +       current->thread.sctlr_tcf0 = tcf0;
+> +       update_sctlr_el1_tcf0(tcf0);
+> +       preempt_enable();
+> +
+> +       return 0;
+> +}
+> +
+> +static long get_mte_ctrl(void)
+> +{
+> +       if (!system_supports_mte())
+> +               return 0;
+> +
+> +       switch (current->thread.sctlr_tcf0) {
+> +       case SCTLR_EL1_TCF0_SYNC:
+> +               return PR_MTE_TCF_SYNC;
+> +       case SCTLR_EL1_TCF0_ASYNC:
+> +               return PR_MTE_TCF_ASYNC;
+> +       }
+> +
+> +       return 0;
+> +}
+> +#else
+> +static long set_mte_ctrl(unsigned long arg)
+> +{
+> +       return 0;
+> +}
+> +
+> +static long get_mte_ctrl(void)
+> +{
+> +       return 0;
+> +}
+> +#endif
+> +
+>  #ifdef CONFIG_ARM64_TAGGED_ADDR_ABI
+>  /*
+>   * Control the relaxed ABI allowing tagged user addresses into the kernel.
+> @@ -582,9 +678,15 @@ static unsigned int tagged_addr_disabled;
+>
+>  long set_tagged_addr_ctrl(unsigned long arg)
+>  {
+> +       unsigned long valid_mask = PR_TAGGED_ADDR_ENABLE;
+> +
+>         if (is_compat_task())
+>                 return -EINVAL;
+> -       if (arg & ~PR_TAGGED_ADDR_ENABLE)
+> +
+> +       if (system_supports_mte())
+> +               valid_mask |= PR_MTE_TCF_MASK;
+> +
+> +       if (arg & ~valid_mask)
+>                 return -EINVAL;
+>
+>         /*
+> @@ -594,6 +696,9 @@ long set_tagged_addr_ctrl(unsigned long arg)
+>         if (arg & PR_TAGGED_ADDR_ENABLE && tagged_addr_disabled)
+>                 return -EINVAL;
+>
+> +       if (set_mte_ctrl(arg) != 0)
+> +               return -EINVAL;
+> +
+>         update_thread_flag(TIF_TAGGED_ADDR, arg & PR_TAGGED_ADDR_ENABLE);
+>
+>         return 0;
+> @@ -601,13 +706,17 @@ long set_tagged_addr_ctrl(unsigned long arg)
+>
+>  long get_tagged_addr_ctrl(void)
+>  {
+> +       long ret = 0;
+> +
+>         if (is_compat_task())
+>                 return -EINVAL;
+>
+>         if (test_thread_flag(TIF_TAGGED_ADDR))
+> -               return PR_TAGGED_ADDR_ENABLE;
+> +               ret = PR_TAGGED_ADDR_ENABLE;
+>
+> -       return 0;
+> +       ret |= get_mte_ctrl();
+> +
+> +       return ret;
+>  }
+>
+>  /*
+> diff --git a/include/uapi/linux/prctl.h b/include/uapi/linux/prctl.h
+> index 7da1b37b27aa..5e9323e66a38 100644
+> --- a/include/uapi/linux/prctl.h
+> +++ b/include/uapi/linux/prctl.h
+> @@ -233,5 +233,11 @@ struct prctl_mm_map {
+>  #define PR_SET_TAGGED_ADDR_CTRL                55
+>  #define PR_GET_TAGGED_ADDR_CTRL                56
+>  # define PR_TAGGED_ADDR_ENABLE         (1UL << 0)
+> +/* MTE tag check fault modes */
+> +# define PR_MTE_TCF_SHIFT              1
+> +# define PR_MTE_TCF_NONE               (0UL << PR_MTE_TCF_SHIFT)
+> +# define PR_MTE_TCF_SYNC               (1UL << PR_MTE_TCF_SHIFT)
+> +# define PR_MTE_TCF_ASYNC              (2UL << PR_MTE_TCF_SHIFT)
+> +# define PR_MTE_TCF_MASK               (3UL << PR_MTE_TCF_SHIFT)
+>
+>  #endif /* _LINUX_PRCTL_H */
+>
+> _______________________________________________
+> linux-arm-kernel mailing list
+> linux-arm-kernel@lists.infradead.org
+> http://lists.infradead.org/mailman/listinfo/linux-arm-kernel
