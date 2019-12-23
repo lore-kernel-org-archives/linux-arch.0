@@ -1,74 +1,112 @@
-Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:49070 "EHLO
- mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
- with ESMTP id S1727722AbfLPNOi (ORCPT <rfc822;linux-arch@vger.kernel.org>);
- Mon, 16 Dec 2019 08:14:38 -0500
-Subject: Re: [PATCH 05/17] asm-generic/tlb: Rename
- HAVE_RCU_TABLE_NO_INVALIDATE
-References: <20191211120713.360281197@infradead.org>
- <20191211122955.940455408@infradead.org> <87woawzc1t.fsf@linux.ibm.com>
- <20191216123752.GM2844@hirez.programming.kicks-ass.net>
-From: "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>
-Message-ID: <d52ea890-c2ea-88f3-9d62-b86e60ee77ae@linux.ibm.com>
-Date: Mon, 16 Dec 2019 18:43:53 +0530
+Return-Path: <rppt@kernel.org>
+From: Mike Rapoport <rppt@kernel.org>
+Subject: [PATCH 2/2] nds32: fix build failure caused by page table folding updates
+Date: Mon, 23 Dec 2019 13:00:04 +0200
+Message-ID: <20191223110004.2157-3-rppt@kernel.org>
+In-Reply-To: <20191223110004.2157-1-rppt@kernel.org>
+References: <20191223110004.2157-1-rppt@kernel.org>
 MIME-Version: 1.0
-In-Reply-To: <20191216123752.GM2844@hirez.programming.kicks-ass.net>
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Language: en-US
-Content-Transfer-Encoding: 7bit
-Sender: linux-arch-owner@vger.kernel.org
+Content-Transfer-Encoding: 8bit
+To: linux-kernel@vger.kernel.org
+Cc: Nick Hu <nickhu@andestech.com>, Greentime Hu <green.hu@gmail.com>, Vincent Chen <deanbo422@gmail.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Mike Rapoport <rppt@kernel.org>, Mike Rapoport <rppt@linux.ibm.com>, kbuild test robot <lkp@intel.com>
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Will Deacon <will@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Nick Piggin <npiggin@gmail.com>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, "David S. Miller" <davem@davemloft.net>, Helge Deller <deller@gmx.de>, Geert Uytterhoeven <geert@linux-m68k.org>, Paul Burton <paulburton@kernel.org>, Tony Luck <tony.luck@intel.com>, Richard Henderson <rth@twiddle.net>, Nick Hu <nickhu@andestech.com>, Paul Walmsley <paul.walmsley@sifive.com>
-Message-ID: <20191216131353.nmoN0inRWWwp2Qq2n5qAhqhQkL0Rpq4khA8qBhZoUek@z>
+Message-ID: <20191223110004.8iolf5aXJRrRe7qB1pUwekdGr1Z3ds32Z40OYqDmb_U@z>
 
-On 12/16/19 6:07 PM, Peter Zijlstra wrote:
-> On Mon, Dec 16, 2019 at 06:01:58PM +0530, Aneesh Kumar K.V wrote:
->> Peter Zijlstra <peterz@infradead.org> writes:
->>
->>> Towards a more consistent naming scheme.
->>>
->>> Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
->>> ---
->>>   arch/Kconfig              |    3 ++-
->>>   arch/powerpc/Kconfig      |    2 +-
->>>   arch/sparc/Kconfig        |    2 +-
->>>   include/asm-generic/tlb.h |    2 +-
->>>   mm/mmu_gather.c           |    2 +-
->>>   5 files changed, 6 insertions(+), 5 deletions(-)
->>>
->>> --- a/arch/Kconfig
->>> +++ b/arch/Kconfig
->>> @@ -396,8 +396,9 @@ config HAVE_ARCH_JUMP_LABEL_RELATIVE
->>>   config MMU_GATHER_RCU_TABLE_FREE
->>>   	bool
->>>   
->>> -config HAVE_RCU_TABLE_NO_INVALIDATE
->>> +config MMU_GATHER_NO_TABLE_INVALIDATE
->>>   	bool
->>> +	depends on MMU_GATHER_RCU_TABLE_FREE
->>
->>
->> Can we drop this Kernel config option instead use
->> MMU_GATHER_RCU_TABLE_FREE? IMHO reducing the kernel config related to
->> mmu_gather can reduce the complexity.
-> 
-> I'm confused, are you saing you're happy to have PowerPC eat the extra
-> TLB invalidates? I thought you cared about PPC performance :-)
-> 
-> 
+From: Mike Rapoport <rppt@linux.ibm.com>
 
-Instead can we do
+The commit 7c2763c42326 ("nds32: use pgtable-nopmd instead of
+4level-fixup") missed the pmd_off_k() macro which caused the following
+build error:
 
-static inline void tlb_table_invalidate(struct mmu_gather *tlb)
-{
-#ifndef CONFIG_MMU_GATHER_RCU_TABLE_FREE
-	 * Invalidate page-table caches used by hardware walkers. Then we still
-	 * need to RCU-sched wait while freeing the pages because software
-	 * walkers can still be in-flight.
-	 */
-	tlb_flush_mmu_tlbonly(tlb);
-#endif
-}
+  CC      arch/nds32/mm/highmem.o
+In file included from arch/nds32/include/asm/page.h:57,
+                 from include/linux/mm_types_task.h:16,
+                 from include/linux/mm_types.h:5,
+                 from include/linux/mmzone.h:21,
+                 from include/linux/gfp.h:6,
+                 from include/linux/xarray.h:14,
+                 from include/linux/radix-tree.h:18,
+                 from include/linux/fs.h:15,
+                 from include/linux/highmem.h:5,
+                 from arch/nds32/mm/highmem.c:5:
+arch/nds32/mm/highmem.c: In function 'kmap_atomic':
+arch/nds32/include/asm/pgtable.h:360:44: error: passing argument 1 of 'pmd_offset' from incompatible pointer type [-Werror=incompatible-pointer-types]
+ #define pgd_offset(mm, address) ((mm)->pgd + pgd_index(address))
+                                 ~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~
+arch/nds32/include/asm/memory.h:33:29: note: in definition of macro '__phys_to_virt'
+ #define __phys_to_virt(x) ((x) - PHYS_OFFSET + PAGE_OFFSET)
+                             ^
+arch/nds32/include/asm/pgtable.h:193:55: note: in expansion of macro '__va'
+ #define pmd_page_kernel(pmd)         ((unsigned long) __va(pmd_val(pmd) & PAGE_MASK))
+                                                       ^~~~
+include/asm-generic/pgtable-nop4d.h:41:24: note: in expansion of macro 'pgd_val'
+ #define p4d_val(x)    (pgd_val((x).pgd))
+                        ^~~~~~~
+include/asm-generic/pgtable-nopud.h:50:24: note: in expansion of macro 'p4d_val'
+ #define pud_val(x)    (p4d_val((x).p4d))
+                        ^~~~~~~
+include/asm-generic/pgtable-nopmd.h:49:24: note: in expansion of macro 'pud_val'
+ #define pmd_val(x)    (pud_val((x).pud))
+                        ^~~~~~~
+arch/nds32/include/asm/pgtable.h:193:60: note: in expansion of macro 'pmd_val'
+ #define pmd_page_kernel(pmd)         ((unsigned long) __va(pmd_val(pmd) & PAGE_MASK))
+                                                            ^~~~~~~
+arch/nds32/include/asm/pgtable.h:190:56: note: in expansion of macro 'pmd_page_kernel'
+ #define pte_offset_kernel(dir, address)      ((pte_t *)pmd_page_kernel(*(dir)) + pte_index(address))
+                                                        ^~~~~~~~~~~~~~~
+arch/nds32/mm/highmem.c:52:9: note: in expansion of macro 'pte_offset_kernel'
+  ptep = pte_offset_kernel(pmd_off_k(vaddr), vaddr);
+         ^~~~~~~~~~~~~~~~~
+arch/nds32/include/asm/pgtable.h:362:33: note: in expansion of macro 'pgd_offset'
+ #define pgd_offset_k(addr)      pgd_offset(&init_mm, addr)
+                                 ^~~~~~~~~~
+arch/nds32/include/asm/pgtable.h:198:39: note: in expansion of macro 'pgd_offset_k'
+ #define pmd_off_k(address) pmd_offset(pgd_offset_k(address), address)
+                                       ^~~~~~~~~~~~
+arch/nds32/mm/highmem.c:52:27: note: in expansion of macro 'pmd_off_k'
+  ptep = pte_offset_kernel(pmd_off_k(vaddr), vaddr);
+                           ^~~~~~~~~
+In file included from arch/nds32/include/asm/pgtable.h:7,
+                 from include/linux/mm.h:99,
+                 from include/linux/highmem.h:8,
+                 from arch/nds32/mm/highmem.c:5:
+include/asm-generic/pgtable-nopmd.h:44:42: note: expected 'pud_t *' {aka 'struct <anonymous> *'} but argument is of type 'pgd_t *' {aka 'long unsigned int *'}
+ static inline pmd_t * pmd_offset(pud_t * pud, unsigned long address)
+                                  ~~~~~~~~^~~
+In file included from arch/nds32/include/asm/page.h:57,
+                 from include/linux/mm_types_task.h:16,
+                 from include/linux/mm_types.h:5,
+                 from include/linux/mmzone.h:21,
+                 from include/linux/gfp.h:6,
+                 from include/linux/xarray.h:14,
+                 from include/linux/radix-tree.h:18,
+                 from include/linux/fs.h:15,
+                 from include/linux/highmem.h:5,
+                 from arch/nds32/mm/highmem.c:5:
 
--aneesh
+Updating the pmd_off_k() macro to use the correct page table unfolding
+fixes the issue.
+
+Fixes: 7c2763c42326 ("nds32: use pgtable-nopmd instead of 4level-fixup")
+Link: https://lore.kernel.org/lkml/201912212139.yptX8CsV%25lkp@intel.com/
+Reported-by: kbuild test robot <lkp@intel.com>
+Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
+---
+ arch/nds32/include/asm/pgtable.h | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/arch/nds32/include/asm/pgtable.h b/arch/nds32/include/asm/pgtable.h
+index 0214e4150539..6abc58ac406d 100644
+--- a/arch/nds32/include/asm/pgtable.h
++++ b/arch/nds32/include/asm/pgtable.h
+@@ -195,7 +195,7 @@ extern void paging_init(void);
+ #define pte_unmap(pte)		do { } while (0)
+ #define pte_unmap_nested(pte)	do { } while (0)
+ 
+-#define pmd_off_k(address)	pmd_offset(pgd_offset_k(address), address)
++#define pmd_off_k(address)	pmd_offset(pud_offset(p4d_offset(pgd_offset_k(address), (address)), (address)), (address))
+ 
+ #define set_pte_at(mm,addr,ptep,pteval) set_pte(ptep,pteval)
+ /*
+-- 
+2.24.0
