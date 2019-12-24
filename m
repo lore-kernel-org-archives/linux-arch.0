@@ -1,137 +1,357 @@
-From: Greentime Hu <green.hu@gmail.com>
-Subject: Re: [PATCH 2/2] nds32: fix build failure caused by page table folding updates
-Date: Tue, 24 Dec 2019 10:14:13 +0800
-Message-ID: <CAEbi=3e0Bh__ROAx_HRD1EM25scPwTcVVwDa3eFrJnG8g3-5ag@mail.gmail.com>
-References: <20191223110004.2157-1-rppt@kernel.org> <20191223110004.2157-3-rppt@kernel.org>
+From: Kevin Brodsky <kevin.brodsky@arm.com>
+Subject: Re: [PATCH 22/22] arm64: mte: Add Memory Tagging Extension
+ documentation
+Date: Tue, 24 Dec 2019 15:03:22 +0000
+Message-ID: <268ef441-0817-e97d-b752-826be24ca191@arm.com>
+References: <20191211184027.20130-1-catalin.marinas@arm.com>
+ <20191211184027.20130-23-catalin.marinas@arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20191223110004.2157-3-rppt@kernel.org>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Mike Rapoport <rppt@kernel.org>
-Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Nick Hu <nickhu@andestech.com>, Vincent Chen <deanbo422@gmail.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch <linux-arch@vger.kernel.org>, Mike Rapoport <rppt@linux.ibm.com>, kbuild test robot <lkp@intel.com>
+Content-Type: text/plain; charset="us-ascii"; Format="flowed"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+In-Reply-To: <20191211184027.20130-23-catalin.marinas@arm.com>
+Content-Language: en-GB
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+To: Catalin Marinas <catalin.marinas@arm.com>, linux-arm-kernel@lists.infradead.org
+Cc: linux-arch@vger.kernel.org, Richard Earnshaw <Richard.Earnshaw@arm.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Marc Zyngier <maz@kernel.org>, linux-mm@kvack.org, Andrey Konovalov <andreyknvl@google.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Will Deacon <will@kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-Mike Rapoport <rppt@kernel.org> =E6=96=BC 2019=E5=B9=B412=E6=9C=8823=E6=97=
-=A5 =E9=80=B1=E4=B8=80 =E4=B8=8B=E5=8D=887:00=E5=AF=AB=E9=81=93=EF=BC=9A
+On 11/12/2019 18:40, Catalin Marinas wrote:
+> From: Vincenzo Frascino <vincenzo.frascino@arm.com>
 >
-> From: Mike Rapoport <rppt@linux.ibm.com>
+> Memory Tagging Extension (part of the ARMv8.5 Extensions) provides
+> a mechanism to detect the sources of memory related errors which
+> may be vulnerable to exploitation, including bounds violations,
+> use-after-free, use-after-return, use-out-of-scope and use before
+> initialization errors.
 >
-> The commit 7c2763c42326 ("nds32: use pgtable-nopmd instead of
-> 4level-fixup") missed the pmd_off_k() macro which caused the following
-> build error:
+> Add Memory Tagging Extension documentation for the arm64 linux
+> kernel support.
 >
->   CC      arch/nds32/mm/highmem.o
-> In file included from arch/nds32/include/asm/page.h:57,
->                  from include/linux/mm_types_task.h:16,
->                  from include/linux/mm_types.h:5,
->                  from include/linux/mmzone.h:21,
->                  from include/linux/gfp.h:6,
->                  from include/linux/xarray.h:14,
->                  from include/linux/radix-tree.h:18,
->                  from include/linux/fs.h:15,
->                  from include/linux/highmem.h:5,
->                  from arch/nds32/mm/highmem.c:5:
-> arch/nds32/mm/highmem.c: In function 'kmap_atomic':
-> arch/nds32/include/asm/pgtable.h:360:44: error: passing argument 1 of 'pm=
-d_offset' from incompatible pointer type [-Werror=3Dincompatible-pointer-ty=
-pes]
->  #define pgd_offset(mm, address) ((mm)->pgd + pgd_index(address))
->                                  ~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~
-> arch/nds32/include/asm/memory.h:33:29: note: in definition of macro '__ph=
-ys_to_virt'
->  #define __phys_to_virt(x) ((x) - PHYS_OFFSET + PAGE_OFFSET)
->                              ^
-> arch/nds32/include/asm/pgtable.h:193:55: note: in expansion of macro '__v=
-a'
->  #define pmd_page_kernel(pmd)         ((unsigned long) __va(pmd_val(pmd) =
-& PAGE_MASK))
->                                                        ^~~~
-> include/asm-generic/pgtable-nop4d.h:41:24: note: in expansion of macro 'p=
-gd_val'
->  #define p4d_val(x)    (pgd_val((x).pgd))
->                         ^~~~~~~
-> include/asm-generic/pgtable-nopud.h:50:24: note: in expansion of macro 'p=
-4d_val'
->  #define pud_val(x)    (p4d_val((x).p4d))
->                         ^~~~~~~
-> include/asm-generic/pgtable-nopmd.h:49:24: note: in expansion of macro 'p=
-ud_val'
->  #define pmd_val(x)    (pud_val((x).pud))
->                         ^~~~~~~
-> arch/nds32/include/asm/pgtable.h:193:60: note: in expansion of macro 'pmd=
-_val'
->  #define pmd_page_kernel(pmd)         ((unsigned long) __va(pmd_val(pmd) =
-& PAGE_MASK))
->                                                             ^~~~~~~
-> arch/nds32/include/asm/pgtable.h:190:56: note: in expansion of macro 'pmd=
-_page_kernel'
->  #define pte_offset_kernel(dir, address)      ((pte_t *)pmd_page_kernel(*=
-(dir)) + pte_index(address))
->                                                         ^~~~~~~~~~~~~~~
-> arch/nds32/mm/highmem.c:52:9: note: in expansion of macro 'pte_offset_ker=
-nel'
->   ptep =3D pte_offset_kernel(pmd_off_k(vaddr), vaddr);
->          ^~~~~~~~~~~~~~~~~
-> arch/nds32/include/asm/pgtable.h:362:33: note: in expansion of macro 'pgd=
-_offset'
->  #define pgd_offset_k(addr)      pgd_offset(&init_mm, addr)
->                                  ^~~~~~~~~~
-> arch/nds32/include/asm/pgtable.h:198:39: note: in expansion of macro 'pgd=
-_offset_k'
->  #define pmd_off_k(address) pmd_offset(pgd_offset_k(address), address)
->                                        ^~~~~~~~~~~~
-> arch/nds32/mm/highmem.c:52:27: note: in expansion of macro 'pmd_off_k'
->   ptep =3D pte_offset_kernel(pmd_off_k(vaddr), vaddr);
->                            ^~~~~~~~~
-> In file included from arch/nds32/include/asm/pgtable.h:7,
->                  from include/linux/mm.h:99,
->                  from include/linux/highmem.h:8,
->                  from arch/nds32/mm/highmem.c:5:
-> include/asm-generic/pgtable-nopmd.h:44:42: note: expected 'pud_t *' {aka =
-'struct <anonymous> *'} but argument is of type 'pgd_t *' {aka 'long unsign=
-ed int *'}
->  static inline pmd_t * pmd_offset(pud_t * pud, unsigned long address)
->                                   ~~~~~~~~^~~
-> In file included from arch/nds32/include/asm/page.h:57,
->                  from include/linux/mm_types_task.h:16,
->                  from include/linux/mm_types.h:5,
->                  from include/linux/mmzone.h:21,
->                  from include/linux/gfp.h:6,
->                  from include/linux/xarray.h:14,
->                  from include/linux/radix-tree.h:18,
->                  from include/linux/fs.h:15,
->                  from include/linux/highmem.h:5,
->                  from arch/nds32/mm/highmem.c:5:
->
-> Updating the pmd_off_k() macro to use the correct page table unfolding
-> fixes the issue.
->
-> Fixes: 7c2763c42326 ("nds32: use pgtable-nopmd instead of 4level-fixup")
-> Link: https://lore.kernel.org/lkml/201912212139.yptX8CsV%25lkp@intel.com/
-> Reported-by: kbuild test robot <lkp@intel.com>
-> Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
+> Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
+> Co-developed-by: Catalin Marinas <catalin.marinas@arm.com>
+> Signed-off-by: Catalin Marinas <catalin.marinas@arm.com>
 > ---
->  arch/nds32/include/asm/pgtable.h | 2 +-
->  1 file changed, 1 insertion(+), 1 deletion(-)
+>   Documentation/arm64/cpu-feature-registers.rst |   4 +
+>   Documentation/arm64/elf_hwcaps.rst            |   4 +
+>   Documentation/arm64/index.rst                 |   1 +
+>   .../arm64/memory-tagging-extension.rst        | 229 ++++++++++++++++++
+>   4 files changed, 238 insertions(+)
+>   create mode 100644 Documentation/arm64/memory-tagging-extension.rst
 >
-> diff --git a/arch/nds32/include/asm/pgtable.h b/arch/nds32/include/asm/pg=
-table.h
-> index 0214e4150539..6abc58ac406d 100644
-> --- a/arch/nds32/include/asm/pgtable.h
-> +++ b/arch/nds32/include/asm/pgtable.h
-> @@ -195,7 +195,7 @@ extern void paging_init(void);
->  #define pte_unmap(pte)         do { } while (0)
->  #define pte_unmap_nested(pte)  do { } while (0)
->
-> -#define pmd_off_k(address)     pmd_offset(pgd_offset_k(address), address=
-)
-> +#define pmd_off_k(address)     pmd_offset(pud_offset(p4d_offset(pgd_offs=
-et_k(address), (address)), (address)), (address))
->
->  #define set_pte_at(mm,addr,ptep,pteval) set_pte(ptep,pteval)
->  /*
+> diff --git a/Documentation/arm64/cpu-feature-registers.rst b/Documentation/arm64/cpu-feature-registers.rst
+> index b6e44884e3ad..67305a5f613a 100644
+> --- a/Documentation/arm64/cpu-feature-registers.rst
+> +++ b/Documentation/arm64/cpu-feature-registers.rst
+> @@ -172,8 +172,12 @@ infrastructure:
+>        +------------------------------+---------+---------+
+>        | Name                         |  bits   | visible |
+>        +------------------------------+---------+---------+
+> +     | MTE                          | [11-8]  |    y    |
+> +     +------------------------------+---------+---------+
+>        | SSBS                         | [7-4]   |    y    |
+>        +------------------------------+---------+---------+
+> +     | BT                           | [3-0]   |    n    |
+> +     +------------------------------+---------+---------+
 
-Thank you, Mike.
-Reviewed-by: Greentime Hu <green.hu@gmail.com>
+Not sure the BTI bits should be in this patch.
+
+>     4) MIDR_EL1 - Main ID Register
+> diff --git a/Documentation/arm64/elf_hwcaps.rst b/Documentation/arm64/elf_hwcaps.rst
+> index 7fa3d215ae6a..0f52d22c28af 100644
+> --- a/Documentation/arm64/elf_hwcaps.rst
+> +++ b/Documentation/arm64/elf_hwcaps.rst
+> @@ -204,6 +204,10 @@ HWCAP2_FRINT
+>   
+>       Functionality implied by ID_AA64ISAR1_EL1.FRINTTS == 0b0001.
+>   
+> +HWCAP2_MTE
+> +
+> +    Functionality implied by ID_AA64PFR1_EL1.MTE == 0b0010.
+> +    Documentation/arm64/memory-tagging-extension.rst.
+
+Nit: to be consistent with the PAC bits, the text should be something like "implied 
+by ..., as described by Documentation/..."
+
+>   4. Unused AT_HWCAP bits
+>   -----------------------
+> diff --git a/Documentation/arm64/index.rst b/Documentation/arm64/index.rst
+> index 5c0c69dc58aa..82970c6d384f 100644
+> --- a/Documentation/arm64/index.rst
+> +++ b/Documentation/arm64/index.rst
+> @@ -13,6 +13,7 @@ ARM64 Architecture
+>       hugetlbpage
+>       legacy_instructions
+>       memory
+> +    memory-tagging-extension
+>       pointer-authentication
+>       silicon-errata
+>       sve
+> diff --git a/Documentation/arm64/memory-tagging-extension.rst b/Documentation/arm64/memory-tagging-extension.rst
+> new file mode 100644
+> index 000000000000..ae02f0771971
+> --- /dev/null
+> +++ b/Documentation/arm64/memory-tagging-extension.rst
+> @@ -0,0 +1,229 @@
+> +===============================================
+> +Memory Tagging Extension (MTE) in AArch64 Linux
+> +===============================================
+> +
+> +Authors: Vincenzo Frascino <vincenzo.frascino@arm.com>
+> +         Catalin Marinas <catalin.marinas@arm.com>
+> +
+> +Date: 2019-11-29
+> +
+> +This document describes the provision of the Memory Tagging Extension
+> +functionality in AArch64 Linux.
+> +
+> +Introduction
+> +============
+> +
+> +ARMv8.5 based processors introduce the Memory Tagging Extension (MTE)
+> +feature. MTE is built on top of the ARMv8.0 virtual address tagging TBI
+> +(Top Byte Ignore) feature and allows software to access a 4-bit
+> +allocation tag for each 16-byte granule in the physical address space.
+> +Such memory range must be mapped with the Normal-Tagged memory
+> +attribute. A logical tag is derived from bits 59-56 of the virtual
+> +address used for the memory access. A CPU with MTE enabled will compare
+> +the logical tag against the allocation tag and potentially raise an
+> +exception on mismatch, subject to system registers configuration.
+> +
+> +Userspace Support
+> +=================
+> +
+> +Memory Tagging Extension Linux support depends on AArch64 Tagged Address
+> +ABI being enabled in the kernel.
+
+This is not very clear. Does it mean that the thread must have PR_TAGGED_ADDR_ENABLE 
+set? In fact, as per patch 19, it is perfectly possible to enable tag checking 
+without enabling the tagged address ABI, and this can work as long as no tagged 
+pointer is passed to a syscall. Therefore enabling the tagged address ABI should be a 
+recommendation and not a requirement.
+
+>   For more details on AArch64 Tagged
+> +Address ABI refer to Documentation/arm64/tagged-address-abi.rst.
+> +
+> +When ``CONFIG_ARM64_MTE`` is selected and Memory Tagging Extension is
+> +supported by the hardware, the kernel advertises the feature to
+> +userspace via ``HWCAP2_MTE``.
+> +
+> +PROT_MTE
+> +--------
+> +
+> +To access the allocation tags, a user process must enable the Tagged
+> +memory attribute on an address range using a new ``prot`` flag for
+> +``mmap()`` and ``mprotect()``:
+> +
+> +``PROT_MTE`` - Pages allow access to the MTE allocation tags.
+> +
+> +The allocation tag is set to 0 when such pages are first mapped in the
+> +user address space and preserved on copy-on-write. ``MAP_SHARED`` is
+> +supported and the allocation tags can be shared between processes.
+> +
+> +**Note**: ``PROT_MTE`` is only supported on ``MAP_ANONYMOUS`` and
+> +RAM-based file mappings (``tmpfs``, ``memfd``). Passing it to other
+> +types of mapping will result in ``-EINVAL`` returned by these system
+> +calls.
+> +
+> +**Note**: The ``PROT_MTE`` flag (and corresponding memory type) cannot
+> +be cleared by ``mprotect()``. If this is desirable, ``munmap()``
+> +(followed by ``mmap()``) must be used.
+
+Or mmap(addr, ..., MAP_FIXED) to "overwrite" the mapping. Maybe it's better to just 
+say that a new mapping must be created.
+
+> +
+> +Tag Check Faults
+> +----------------
+> +
+> +When ``PROT_MTE`` is enabled on an address range and a mismatch between
+> +the logical and allocation tags occurs on access, there are three
+> +configurable behaviours:
+> +
+> +- *Ignore* - This is the default mode. The CPU (and kernel) ignores the
+> +  tag check fault.
+> +
+> +- *Synchronous* - The kernel raises a ``SIGSEGV`` synchronously, with
+> +  ``.si_code = SEGV_MTESERR`` and ``.si_addr = <fault-address>``. The
+> +  memory access is not performed.
+> +
+> +- *Asynchronous* - The kernel raises a ``SIGSEGV``, in the current
+> +  thread, asynchronously following one or multiple tag check faults,
+> +  with ``.si_code = SEGV_MTEAERR`` and ``.si_addr = 0``.
+> +
+> +**Note**: There are no *match-all* logical tags available for user
+> +applications.
+> +
+> +The user can select the above modes, per thread, using the
+> +``prctl(PR_SET_TAGGED_ADDR_CTRL, flags, 0, 0, 0)`` system call where
+> +``flags`` contain one of the following values in the ``PR_MTE_TCF_MASK``
+> +bit-field:
+> +
+> +- ``PR_MTE_TCF_NONE``  - *Ignore* tag check faults
+> +- ``PR_MTE_TCF_SYNC``  - *Synchronous* tag check fault mode
+> +- ``PR_MTE_TCF_ASYNC`` - *Asynchronous* tag check fault mode
+> +
+> +Tag checking can also be disabled for a user thread by setting the
+> +``PSTATE.TCO`` bit with ``MSR TCO, #1``.
+> +
+> +**Note**: Signal handlers are always invoked with ``PSTATE.TCO = 0``,
+> +irrespective of the interrupted context.
+> +
+> +**Note**: Kernel accesses to user memory (e.g. ``read()`` system call)
+> +do not generate a tag check fault.
+> +
+> +Excluding Tags in the ``IRG``, ``ADDG`` and ``SUBG`` instructions
+> +-----------------------------------------------------------------
+> +
+> +The architecture allows excluding certain tags to be randomly generated
+> +via the ``GCR_EL1.Exclude`` register bit-field. This can be configured,
+> +per thread, using the ``prctl(PR_SET_TAGGED_ADDR_CTRL, flags, 0, 0, 0)``
+> +system call where ``flags`` contains the exclusion bitmap in the
+> +``PR_MTE_EXCL_MASK`` bit-field.
+> +
+> +Example of correct usage
+> +========================
+> +
+> +*MTE Example code*
+> +
+> +.. code-block:: c
+> +
+> +    /*
+> +     * To be compiled with -march=armv8.5-a+memtag
+> +     */
+> +    #include <errno.h>
+> +    #include <stdio.h>
+> +    #include <stdlib.h>
+> +    #include <unistd.h>
+> +    #include <sys/auxv.h>
+> +    #include <sys/mman.h>
+> +    #include <sys/prctl.h>
+> +
+> +    /*
+> +     * From arch/arm64/include/uapi/asm/hwcap.h
+> +     */
+> +    #define HWCAP2_MTE              (1 << 10)
+> +
+> +    /*
+> +     * From arch/arm64/include/uapi/asm/mman.h
+> +     */
+> +    #define PROT_MTE                 0x20
+> +
+> +    /*
+> +     * From include/uapi/linux/prctl.h
+> +     */
+> +    #define PR_SET_TAGGED_ADDR_CTRL 55
+> +    #define PR_GET_TAGGED_ADDR_CTRL 56
+> +    # define PR_TAGGED_ADDR_ENABLE  (1UL << 0)
+> +    # define PR_MTE_TCF_SHIFT       1
+> +    # define PR_MTE_TCF_NONE        (0UL << PR_MTE_TCF_SHIFT)
+> +    # define PR_MTE_TCF_SYNC        (1UL << PR_MTE_TCF_SHIFT)
+> +    # define PR_MTE_TCF_ASYNC       (2UL << PR_MTE_TCF_SHIFT)
+> +    # define PR_MTE_TCF_MASK        (3UL << PR_MTE_TCF_SHIFT)
+> +    # define PR_MTE_EXCL_SHIFT      3
+> +    # define PR_MTE_EXCL_MASK       (0xffffUL << PR_MTE_EXCL_SHIFT)
+> +
+> +    /*
+> +     * Insert a random logical tag into the given pointer.
+> +     */
+> +    #define insert_random_tag(ptr) ({                       \
+> +            __u64 __val;                                    \
+> +            asm("irg %0, %1" : "=r" (__val) : "r" (ptr));   \
+> +            __val;                                          \
+> +    })
+> +
+> +    /*
+> +     * Set the allocation tag on the destination address.
+> +     */
+> +    #define set_tag(tag, addr) do {                                 \
+> +            asm volatile("stg %0, [%1]" : : "r" (tag), "r" (addr)); \
+
+Since STG modifies the memory, "memory" should be added to the clobber list. 
+`volatile` makes no difference since there's no output operand.
+
+To simplify the example for people less familiar with MTE, I would also suggest for 
+this macro to only take one argument, and use it for both operands of STG. The 
+two-operand form is a relatively recent addition to the architecture, and using 
+different operands is very rarely needed (especially in userspace).
+
+Otherwise the documentation and example look good to me.
+
+Kevin
+
+> +    } while (0)
+> +
+> +    int main()
+> +    {
+> +            unsigned long *a;
+> +            unsigned long page_sz = getpagesize();
+> +            unsigned long hwcap2 = getauxval(AT_HWCAP2);
+> +
+> +            /* check if MTE is present */
+> +            if (!(hwcap2 & HWCAP2_MTE))
+> +                    return -1;
+> +
+> +            /*
+> +             * Enable the tagged address ABI, synchronous MTE tag check faults and
+> +             * exclude tag 0 from the randomly generated set.
+> +             */
+> +            if (prctl(PR_SET_TAGGED_ADDR_CTRL,
+> +                      PR_TAGGED_ADDR_ENABLE | PR_MTE_TCF_SYNC | (1 << PR_MTE_EXCL_SHIFT),
+> +                      0, 0, 0)) {
+> +                    perror("prctl() failed");
+> +                    return -1;
+> +            }
+> +
+> +            a = mmap(0, page_sz, PROT_READ | PROT_WRITE,
+> +                     MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+> +            if (a == MAP_FAILED) {
+> +                    perror("mmap() failed");
+> +                    return -1;
+> +            }
+> +
+> +            /*
+> +             * Enable MTE on the above anonymous mmap. The flag could be passed
+> +             * directly to mmap() and skip this step.
+> +             */
+> +            if (mprotect(a, page_sz, PROT_READ | PROT_WRITE | PROT_MTE)) {
+> +                    perror("mprotect() failed");
+> +                    return -1;
+> +            }
+> +
+> +            /* access with the default tag (0) */
+> +            a[0] = 1;
+> +            a[1] = 2;
+> +
+> +            printf("a[0] = %lu a[1] = %lu\n", a[0], a[1]);
+> +
+> +            /* set the logical and allocation tags */
+> +            a = (unsigned long *)insert_random_tag(a);
+> +            set_tag(a, a);
+> +
+> +            printf("%p\n", a);
+> +
+> +            /* non-zero tag access */
+> +            a[0] = 3;
+> +            printf("a[0] = %lu a[1] = %lu\n", a[0], a[1]);
+> +
+> +            /*
+> +             * If MTE is enabled correctly the next instruction will generate an
+> +             * exception.
+> +             */
+> +            printf("Expecting SIGSEGV...\n");
+> +            a[2] = 0xdead;
+> +
+> +            /* this should not be printed in the PR_MTE_TCF_SYNC mode */
+> +            printf("...done\n");
+> +
+> +            return 0;
+> +    }
