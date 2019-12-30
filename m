@@ -1,45 +1,123 @@
 Return-Path: <SRS0=aRn0=2U=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:48094 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727270AbfL3IYW (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 30 Dec 2019 03:24:22 -0500
-From: guoren@kernel.org
-Subject: [PATCH 5/5] csky/mm: Fixup export invalid_pte_table symbol
-Date: Mon, 30 Dec 2019 16:23:31 +0800
-Message-ID: <20191230082331.30976-5-guoren@kernel.org>
-In-Reply-To: <20191230082331.30976-1-guoren@kernel.org>
-References: <20191230082331.30976-1-guoren@kernel.org>
+Received: from aserp2120.oracle.com ([141.146.126.78]:58780 "EHLO
+        aserp2120.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727278AbfL3Txv (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 30 Dec 2019 14:53:51 -0500
+From: Alex Kogan <alex.kogan@oracle.com>
+Subject: [PATCH v8 5/5] locking/qspinlock: Introduce the shuffle reduction optimization into CNA
+Date: Mon, 30 Dec 2019 14:40:42 -0500
+Message-ID: <20191230194042.67789-6-alex.kogan@oracle.com>
+In-Reply-To: <20191230194042.67789-1-alex.kogan@oracle.com>
+References: <20191230194042.67789-1-alex.kogan@oracle.com>
+MIME-Version: 1.0
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-csky@vger.kernel.org
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, Guo Ren <ren_guo@c-sky.com>, Mo Qihui <qihui.mo@verisilicon.com>, Zhange Jian <zhang_jian5@dahuatech.com>
-Message-ID: <20191230082331.R2ypsQnde39NQL4_dAhlntuFH8ClYLWBa1qsZ4zzeLE@z>
+To: linux@armlinux.org.uk, peterz@infradead.org, mingo@redhat.com, will.deacon@arm.com, arnd@arndb.de, longman@redhat.com, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, bp@alien8.de, hpa@zytor.com, x86@kernel.org, guohanjun@huawei.com, jglauber@marvell.com
+Cc: steven.sistare@oracle.com, daniel.m.jordan@oracle.com, alex.kogan@oracle.com, dave.dice@oracle.com
+Message-ID: <20191230194042.k5WzggA4TmU0WILKBYKa-Tqhr3XMgseD33el-095aTk@z>
 
-From: Guo Ren <ren_guo@c-sky.com>
+This performance optimization reduces the probability threads will be
+shuffled between the main and secondary queues when the secondary queue
+is empty. It is helpful when the lock is only lightly contended.
 
-There is no present bit in csky pmd hardware, so we need to prepare invalid_pte_table
-for empty pmd entry and the functions (pmd_none & pmd_present) in pgtable.h need
-invalid_pte_talbe to get result. If a module use these functions, we need export the
-symbol for it.
-
-Signed-off-by: Guo Ren <ren_guo@c-sky.com>
-Cc: Mo Qihui <qihui.mo@verisilicon.com>
-Cc: Zhange Jian <zhang_jian5@dahuatech.com>
+Signed-off-by: Alex Kogan <alex.kogan@oracle.com>
+Reviewed-by: Steve Sistare <steven.sistare@oracle.com>
 ---
- arch/csky/mm/init.c | 1 +
- 1 file changed, 1 insertion(+)
+ kernel/locking/qspinlock_cna.h | 46 ++++++++++++++++++++++++++++++++--
+ 1 file changed, 44 insertions(+), 2 deletions(-)
 
-diff --git a/arch/csky/mm/init.c b/arch/csky/mm/init.c
-index 322eb7bd7962..dbb4b2dfe4b7 100644
---- a/arch/csky/mm/init.c
-+++ b/arch/csky/mm/init.c
-@@ -31,6 +31,7 @@
+diff --git a/kernel/locking/qspinlock_cna.h b/kernel/locking/qspinlock_cna.h
+index 30feff02865d..f21056560104 100644
+--- a/kernel/locking/qspinlock_cna.h
++++ b/kernel/locking/qspinlock_cna.h
+@@ -4,6 +4,7 @@
+ #endif
  
- pgd_t swapper_pg_dir[PTRS_PER_PGD] __page_aligned_bss;
- pte_t invalid_pte_table[PTRS_PER_PTE] __page_aligned_bss;
-+EXPORT_SYMBOL(invalid_pte_table);
- unsigned long empty_zero_page[PAGE_SIZE / sizeof(unsigned long)]
- 						__page_aligned_bss;
- EXPORT_SYMBOL(empty_zero_page);
+ #include <linux/topology.h>
++#include <linux/random.h>
+ 
+ /*
+  * Implement a NUMA-aware version of MCS (aka CNA, or compact NUMA-aware lock).
+@@ -57,6 +58,7 @@ struct cna_node {
+ enum {
+ 	LOCAL_WAITER_FOUND = 2,	/* 0 and 1 are reserved for @locked */
+ 	FLUSH_SECONDARY_QUEUE = 3,
++	PASS_LOCK_IMMEDIATELY = 4,
+ 	MIN_ENCODED_TAIL
+ };
+ 
+@@ -70,6 +72,34 @@ enum {
+  */
+ int intra_node_handoff_threshold __ro_after_init = 1 << 16;
+ 
++/*
++ * Controls the probability for enabling the scan of the main queue when
++ * the secondary queue is empty. The chosen value reduces the amount of
++ * unnecessary shuffling of threads between the two waiting queues when
++ * the contention is low, while responding fast enough and enabling
++ * the shuffling when the contention is high.
++ */
++#define SHUFFLE_REDUCTION_PROB_ARG  (7)
++
++/* Per-CPU pseudo-random number seed */
++static DEFINE_PER_CPU(u32, seed);
++
++/*
++ * Return false with probability 1 / 2^@num_bits.
++ * Intuitively, the larger @num_bits the less likely false is to be returned.
++ * @num_bits must be a number between 0 and 31.
++ */
++static bool probably(unsigned int num_bits)
++{
++	u32 s;
++
++	s = this_cpu_read(seed);
++	s = next_pseudo_random32(s);
++	this_cpu_write(seed, s);
++
++	return s & ((1 << num_bits) - 1);
++}
++
+ static void __init cna_init_nodes_per_cpu(unsigned int cpu)
+ {
+ 	struct mcs_spinlock *base = per_cpu_ptr(&qnodes[0].mcs, cpu);
+@@ -251,8 +281,11 @@ __always_inline u32 cna_pre_scan(struct qspinlock *lock,
+ 	struct cna_node *cn = (struct cna_node *)node;
+ 
+ 	cn->pre_scan_result =
+-		cn->intra_count == intra_node_handoff_threshold ?
+-			FLUSH_SECONDARY_QUEUE : cna_scan_main_queue(node, node);
++		(node->locked <= 1 && probably(SHUFFLE_REDUCTION_PROB_ARG)) ?
++			PASS_LOCK_IMMEDIATELY :
++			cn->intra_count == intra_node_handoff_threshold ?
++				FLUSH_SECONDARY_QUEUE :
++				cna_scan_main_queue(node, node);
+ 
+ 	return 0;
+ }
+@@ -266,6 +299,14 @@ static inline void cna_pass_lock(struct mcs_spinlock *node,
+ 
+ 	u32 scan = cn->pre_scan_result;
+ 
++	/*
++	 * perf. optimization - check if we can skip the logic of triaging
++	 * through other possible values in @scan (helps under light lock
++	 * contention)
++	 */
++	if (scan == PASS_LOCK_IMMEDIATELY)
++		goto pass_lock;
++
+ 	/*
+ 	 * check if a successor from the same numa node has not been found in
+ 	 * pre-scan, and if so, try to find it in post-scan starting from the
+@@ -294,6 +335,7 @@ static inline void cna_pass_lock(struct mcs_spinlock *node,
+ 		tail_2nd->next = next;
+ 	}
+ 
++pass_lock:
+ 	arch_mcs_pass_lock(&next_holder->locked, val);
+ }
+ 
 -- 
-2.17.0
+2.21.0 (Apple Git-122.2)
