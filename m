@@ -1,87 +1,104 @@
 Return-Path: <SRS0=aRn0=2U=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from userp2120.oracle.com ([156.151.31.85]:42748 "EHLO
-        userp2120.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727665AbfL3Txw (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 30 Dec 2019 14:53:52 -0500
-From: Alex Kogan <alex.kogan@oracle.com>
-Subject: [PATCH v8 0/5] Add NUMA-awareness to qspinlock
-Date: Mon, 30 Dec 2019 14:40:37 -0500
-Message-ID: <20191230194042.67789-1-alex.kogan@oracle.com>
-MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Received: from mail.kernel.org ([198.145.29.99]:47690 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1727175AbfL3IX7 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 30 Dec 2019 03:23:59 -0500
+From: guoren@kernel.org
+Subject: [PATCH 2/5] csky: Initial stack protector support
+Date: Mon, 30 Dec 2019 16:23:28 +0800
+Message-ID: <20191230082331.30976-2-guoren@kernel.org>
+In-Reply-To: <20191230082331.30976-1-guoren@kernel.org>
+References: <20191230082331.30976-1-guoren@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux@armlinux.org.uk, peterz@infradead.org, mingo@redhat.com, will.deacon@arm.com, arnd@arndb.de, longman@redhat.com, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, bp@alien8.de, hpa@zytor.com, x86@kernel.org, guohanjun@huawei.com, jglauber@marvell.com
-Cc: steven.sistare@oracle.com, daniel.m.jordan@oracle.com, alex.kogan@oracle.com, dave.dice@oracle.com
-Message-ID: <20191230194037.q2GEoea2eKnKGSSxS72z1hRAq4rmkCQrlBke1IBlvqU@z>
+To: linux-csky@vger.kernel.org
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, Mao Han <han_mao@c-sky.com>, Guo Ren <guoren@kernel.org>
+Message-ID: <20191230082328.4YS55YfGP5rjNLZ0H0wh7ZREVwGmnhEpah7jO5yIcug@z>
 
-Minor changes from v7 based on feedback from Longman:
------------------------------------------------------
+From: Mao Han <han_mao@c-sky.com>
 
-- Move __init functions from alternative.c to qspinlock_cna.h
+This is a basic -fstack-protector support without per-task canary
+switching. The protector will report something like when stack
+corruption is detected:
 
-- Introduce enum for return values from cna_pre_scan(), for better
-readability.
+It's tested with strcpy local array overflow in sys_kill and get:
+stack-protector: Kernel stack is corrupted in: sys_kill+0x23c/0x23c
 
-- Add/revise a few comments to improve readability.
+TODO:
+ - Support task switch for different cannary
 
+Signed-off-by: Mao Han <han_mao@c-sky.com>
+Signed-off-by: Guo Ren <guoren@kernel.org>
+---
+ arch/csky/Kconfig                      |  1 +
+ arch/csky/include/asm/stackprotector.h | 29 ++++++++++++++++++++++++++
+ arch/csky/kernel/process.c             |  6 ++++++
+ 3 files changed, 36 insertions(+)
+ create mode 100644 arch/csky/include/asm/stackprotector.h
 
-Summary
--------
-
-Lock throughput can be increased by handing a lock to a waiter on the
-same NUMA node as the lock holder, provided care is taken to avoid
-starvation of waiters on other NUMA nodes. This patch introduces CNA
-(compact NUMA-aware lock) as the slow path for qspinlock. It is
-enabled through a configuration option (NUMA_AWARE_SPINLOCKS).
-
-CNA is a NUMA-aware version of the MCS lock. Spinning threads are
-organized in two queues, a main queue for threads running on the same
-node as the current lock holder, and a secondary queue for threads
-running on other nodes. Threads store the ID of the node on which
-they are running in their queue nodes. After acquiring the MCS lock and
-before acquiring the spinlock, the lock holder scans the main queue
-looking for a thread running on the same node (pre-scan). If found (call
-it thread T), all threads in the main queue between the current lock
-holder and T are moved to the end of the secondary queue.  If such T
-is not found, we make another scan of the main queue after acquiring 
-the spinlock when unlocking the MCS lock (post-scan), starting at the
-node where pre-scan stopped. If both scans fail to find such T, the
-MCS lock is passed to the first thread in the secondary queue. If the
-secondary queue is empty, the MCS lock is passed to the next thread in the
-main queue. To avoid starvation of threads in the secondary queue, those
-threads are moved back to the head of the main queue after a certain
-number of intra-node lock hand-offs.
-
-More details are available at https://arxiv.org/abs/1810.05600.
-
-The series applies on top of v5.5.0-rc2, commit ea200dec51.
-Performance numbers are available in previous revisions
-of the series.
-
-Further comments are welcome and appreciated.
-
-Alex Kogan (5):
-  locking/qspinlock: Rename mcs lock/unlock macros and make them more
-    generic
-  locking/qspinlock: Refactor the qspinlock slow path
-  locking/qspinlock: Introduce CNA into the slow path of qspinlock
-  locking/qspinlock: Introduce starvation avoidance into CNA
-  locking/qspinlock: Introduce the shuffle reduction optimization into
-    CNA
-
- .../admin-guide/kernel-parameters.txt         |  18 +
- arch/arm/include/asm/mcs_spinlock.h           |   6 +-
- arch/x86/Kconfig                              |  20 +
- arch/x86/include/asm/qspinlock.h              |   4 +
- arch/x86/kernel/alternative.c                 |   4 +
- include/asm-generic/mcs_spinlock.h            |   4 +-
- kernel/locking/mcs_spinlock.h                 |  20 +-
- kernel/locking/qspinlock.c                    |  82 +++-
- kernel/locking/qspinlock_cna.h                | 400 ++++++++++++++++++
- kernel/locking/qspinlock_paravirt.h           |   2 +-
- 10 files changed, 537 insertions(+), 23 deletions(-)
- create mode 100644 kernel/locking/qspinlock_cna.h
-
+diff --git a/arch/csky/Kconfig b/arch/csky/Kconfig
+index 3973847b5f42..285234300740 100644
+--- a/arch/csky/Kconfig
++++ b/arch/csky/Kconfig
+@@ -48,6 +48,7 @@ config CSKY
+ 	select HAVE_PERF_USER_STACK_DUMP
+ 	select HAVE_DMA_API_DEBUG
+ 	select HAVE_DMA_CONTIGUOUS
++	select HAVE_STACKPROTECTOR
+ 	select HAVE_SYSCALL_TRACEPOINTS
+ 	select MAY_HAVE_SPARSE_IRQ
+ 	select MODULES_USE_ELF_RELA if MODULES
+diff --git a/arch/csky/include/asm/stackprotector.h b/arch/csky/include/asm/stackprotector.h
+new file mode 100644
+index 000000000000..d7cd4e51edd9
+--- /dev/null
++++ b/arch/csky/include/asm/stackprotector.h
+@@ -0,0 +1,29 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++#ifndef _ASM_STACKPROTECTOR_H
++#define _ASM_STACKPROTECTOR_H 1
++
++#include <linux/random.h>
++#include <linux/version.h>
++
++extern unsigned long __stack_chk_guard;
++
++/*
++ * Initialize the stackprotector canary value.
++ *
++ * NOTE: this must only be called from functions that never return,
++ * and it must always be inlined.
++ */
++static __always_inline void boot_init_stack_canary(void)
++{
++	unsigned long canary;
++
++	/* Try to get a semi random initial value. */
++	get_random_bytes(&canary, sizeof(canary));
++	canary ^= LINUX_VERSION_CODE;
++	canary &= CANARY_MASK;
++
++	current->stack_canary = canary;
++	__stack_chk_guard = current->stack_canary;
++}
++
++#endif /* __ASM_SH_STACKPROTECTOR_H */
+diff --git a/arch/csky/kernel/process.c b/arch/csky/kernel/process.c
+index f320d9248a22..5349cd8c0f30 100644
+--- a/arch/csky/kernel/process.c
++++ b/arch/csky/kernel/process.c
+@@ -16,6 +16,12 @@
+ 
+ struct cpuinfo_csky cpu_data[NR_CPUS];
+ 
++#ifdef CONFIG_STACKPROTECTOR
++#include <linux/stackprotector.h>
++unsigned long __stack_chk_guard __read_mostly;
++EXPORT_SYMBOL(__stack_chk_guard);
++#endif
++
+ asmlinkage void ret_from_fork(void);
+ asmlinkage void ret_from_kernel_thread(void);
+ 
 -- 
-2.21.0 (Apple Git-122.2)
+2.17.0
