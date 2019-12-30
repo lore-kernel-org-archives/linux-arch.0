@@ -1,40 +1,21 @@
-From: guoren@kernel.org
-Subject: [PATCH 5/5] csky/mm: Fixup export invalid_pte_table symbol
-Date: Mon, 30 Dec 2019 16:23:31 +0800
-Message-ID: <20191230082331.30976-5-guoren@kernel.org>
-References: <20191230082331.30976-1-guoren@kernel.org>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH 0/2] fix recent nds32 build breakage
+Date: Mon, 30 Dec 2019 11:21:22 +0100
+Message-ID: <CAK8P3a2ofBtooPi1ARCaHaJa9zRUVP_DKO1Td3WUgvO-0HnPSA@mail.gmail.com>
+References: <20191223110004.2157-1-rppt@kernel.org> <20191227110736.GA30363@rapoport-lnx>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20191230082331.30976-1-guoren@kernel.org>
+In-Reply-To: <20191227110736.GA30363@rapoport-lnx>
 Sender: linux-kernel-owner@vger.kernel.org
-To: linux-csky@vger.kernel.org
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, Guo Ren <ren_guo@c-sky.com>, Mo Qihui <qihui.mo@verisilicon.com>, Zhange Jian <zhang_jian5@dahuatech.com>
+To: Mike Rapoport <rppt@kernel.org>
+Cc: Nick Hu <nickhu@andestech.com>, Greentime Hu <green.hu@gmail.com>, Vincent Chen <deanbo422@gmail.com>, linux-arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Mike Rapoport <rppt@linux.ibm.com>
 List-Id: linux-arch.vger.kernel.org
 
-From: Guo Ren <ren_guo@c-sky.com>
+On Fri, Dec 27, 2019 at 12:07 PM Mike Rapoport <rppt@kernel.org> wrote:
+> Can you please take these via asm-generic tree?
 
-There is no present bit in csky pmd hardware, so we need to prepare invalid_pte_table
-for empty pmd entry and the functions (pmd_none & pmd_present) in pgtable.h need
-invalid_pte_talbe to get result. If a module use these functions, we need export the
-symbol for it.
+Merged into my asm-generic tree now, I'll send a pull request in a few days
+after the build bots have had a chance to check for remaining problems.
 
-Signed-off-by: Guo Ren <ren_guo@c-sky.com>
-Cc: Mo Qihui <qihui.mo@verisilicon.com>
-Cc: Zhange Jian <zhang_jian5@dahuatech.com>
----
- arch/csky/mm/init.c | 1 +
- 1 file changed, 1 insertion(+)
-
-diff --git a/arch/csky/mm/init.c b/arch/csky/mm/init.c
-index 322eb7bd7962..dbb4b2dfe4b7 100644
---- a/arch/csky/mm/init.c
-+++ b/arch/csky/mm/init.c
-@@ -31,6 +31,7 @@
- 
- pgd_t swapper_pg_dir[PTRS_PER_PGD] __page_aligned_bss;
- pte_t invalid_pte_table[PTRS_PER_PTE] __page_aligned_bss;
-+EXPORT_SYMBOL(invalid_pte_table);
- unsigned long empty_zero_page[PAGE_SIZE / sizeof(unsigned long)]
- 						__page_aligned_bss;
- EXPORT_SYMBOL(empty_zero_page);
--- 
-2.17.0
+       Arnd
