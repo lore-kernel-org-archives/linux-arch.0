@@ -1,48 +1,151 @@
-Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.133]:54558 "EHLO
- bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with
- ESMTP id S1728086AbfLPOu6 (ORCPT <rfc822;linux-arch@vger.kernel.org>); Mon,
- 16 Dec 2019 09:50:58 -0500
-Date: Mon, 16 Dec 2019 15:50:41 +0100
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH 05/17] asm-generic/tlb: Rename
- HAVE_RCU_TABLE_NO_INVALIDATE
-Message-ID: <20191216145041.GG2827@hirez.programming.kicks-ass.net>
-References: <20191211120713.360281197@infradead.org>
- <20191211122955.940455408@infradead.org> <87woawzc1t.fsf@linux.ibm.com>
- <20191216123752.GM2844@hirez.programming.kicks-ass.net>
- <d52ea890-c2ea-88f3-9d62-b86e60ee77ae@linux.ibm.com>
- <20191216132004.GO2844@hirez.programming.kicks-ass.net>
- <a9ae27c8-aa84-cda3-355c-7abb3b450d38@linux.ibm.com>
- <33ed03aa-a34c-3a81-0f83-20c3e8d4eff7@linux.ibm.com>
+Return-Path: <SRS0=aRn0=2U=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from aserp2120.oracle.com ([141.146.126.78]:58802 "EHLO
+        aserp2120.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727684AbfL3Txx (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 30 Dec 2019 14:53:53 -0500
+From: Alex Kogan <alex.kogan@oracle.com>
+Subject: [PATCH v8 4/5] locking/qspinlock: Introduce starvation avoidance into CNA
+Date: Mon, 30 Dec 2019 14:40:41 -0500
+Message-ID: <20191230194042.67789-5-alex.kogan@oracle.com>
+In-Reply-To: <20191230194042.67789-1-alex.kogan@oracle.com>
+References: <20191230194042.67789-1-alex.kogan@oracle.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <33ed03aa-a34c-3a81-0f83-20c3e8d4eff7@linux.ibm.com>
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>
-Cc: Michael Ellerman <mpe@ellerman.id.au>, Will Deacon <will@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Nick Piggin <npiggin@gmail.com>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, "David S. Miller" <davem@davemloft.net>, Helge Deller <deller@gmx.de>, Geert Uytterhoeven <geert@linux-m68k.org>, Paul Burton <paulburton@kernel.org>, Tony Luck <tony.luck@intel.com>, Richard Henderson <rth@twiddle.net>, Nick Hu <nickhu@andestech.com>, Paul Walmsley <paul.walmsley@sifive.com>
-Message-ID: <20191216145041.tqVENJA18cGRjeq4R8v6_gF6LLVtxTMtha8o98wXtOg@z>
+To: linux@armlinux.org.uk, peterz@infradead.org, mingo@redhat.com, will.deacon@arm.com, arnd@arndb.de, longman@redhat.com, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, bp@alien8.de, hpa@zytor.com, x86@kernel.org, guohanjun@huawei.com, jglauber@marvell.com
+Cc: steven.sistare@oracle.com, daniel.m.jordan@oracle.com, alex.kogan@oracle.com, dave.dice@oracle.com
+Message-ID: <20191230194041.STZDX0L6ty6ygJ3rmqjDCSwMxdRxfipXyUPDWz_Nl90@z>
 
-On Mon, Dec 16, 2019 at 07:24:24PM +0530, Aneesh Kumar K.V wrote:
+Keep track of the number of intra-node lock handoffs, and force
+inter-node handoff once this number reaches a preset threshold.
+The default value for the threshold can be overridden with
+the new kernel boot command-line option "numa_spinlock_threshold".
 
-> So __p*_free_tlb() routines on ppc64 just mark that we need a page walk
-> cache flush and the actual flush in done in tlb_flush_mmu.
+Signed-off-by: Alex Kogan <alex.kogan@oracle.com>
+Reviewed-by: Steve Sistare <steven.sistare@oracle.com>
+---
+ .../admin-guide/kernel-parameters.txt         |  8 ++++
+ kernel/locking/qspinlock.c                    |  3 ++
+ kernel/locking/qspinlock_cna.h                | 41 ++++++++++++++++++-
+ 3 files changed, 51 insertions(+), 1 deletion(-)
 
-Not quite, your __p*_free_tlb() goes to pgtable_free_tlb() which call
-tlb_remove_table().
-
-> As per
-> 
-> d86564a2f085b79ec046a5cba90188e61235280 (mm/tlb, x86/mm: Support
-> invalidating TLB caches for RCU_TABLE_FREE ) that is not sufficient?
-
-96bc9567cbe1 ("asm-generic/tlb, arch: Invert CONFIG_HAVE_RCU_TABLE_INVALIDATE")
-
-And no. Since you have TABLE_NO_INVALIDATE set, tlb_remove_table() will
-not TLBI when it fails to allocate a batch page, which is an error for
-PPC-Radix.
-
-There is also no TLBI when the batch page is full and the RCU callback
-happens, which is also a bug on PPC-Radix.
+diff --git a/Documentation/admin-guide/kernel-parameters.txt b/Documentation/admin-guide/kernel-parameters.txt
+index b68cb80e477f..30d79819a3b0 100644
+--- a/Documentation/admin-guide/kernel-parameters.txt
++++ b/Documentation/admin-guide/kernel-parameters.txt
+@@ -3200,6 +3200,14 @@
+ 			Not specifying this option is equivalent to
+ 			numa_spinlock=auto.
+ 
++	numa_spinlock_threshold=	[NUMA, PV_OPS]
++			Set the threshold for the number of intra-node
++			lock hand-offs before the NUMA-aware spinlock
++			is forced to be passed to a thread on another NUMA node.
++			Valid values are in the [0..31] range. Smaller values
++			result in a more fair, but less performant spinlock, and
++			vice versa. The default value is 16.
++
+ 	cpu0_hotplug	[X86] Turn on CPU0 hotplug feature when
+ 			CONFIG_BOOTPARAM_HOTPLUG_CPU0 is off.
+ 			Some features depend on CPU0. Known dependencies are:
+diff --git a/kernel/locking/qspinlock.c b/kernel/locking/qspinlock.c
+index 609980a53841..e382d8946ccc 100644
+--- a/kernel/locking/qspinlock.c
++++ b/kernel/locking/qspinlock.c
+@@ -597,6 +597,9 @@ EXPORT_SYMBOL(queued_spin_lock_slowpath);
+ #if !defined(_GEN_CNA_LOCK_SLOWPATH) && defined(CONFIG_NUMA_AWARE_SPINLOCKS)
+ #define _GEN_CNA_LOCK_SLOWPATH
+ 
++#undef pv_init_node
++#define pv_init_node			cna_init_node
++
+ #undef pv_wait_head_or_lock
+ #define pv_wait_head_or_lock		cna_pre_scan
+ 
+diff --git a/kernel/locking/qspinlock_cna.h b/kernel/locking/qspinlock_cna.h
+index 3c99a4a6184b..30feff02865d 100644
+--- a/kernel/locking/qspinlock_cna.h
++++ b/kernel/locking/qspinlock_cna.h
+@@ -51,13 +51,25 @@ struct cna_node {
+ 	int			numa_node;
+ 	u32			encoded_tail;
+ 	u32			pre_scan_result; /* encoded tail or enum val */
++	u32			intra_count;
+ };
+ 
+ enum {
+ 	LOCAL_WAITER_FOUND = 2,	/* 0 and 1 are reserved for @locked */
++	FLUSH_SECONDARY_QUEUE = 3,
+ 	MIN_ENCODED_TAIL
+ };
+ 
++/*
++ * Controls the threshold for the number of intra-node lock hand-offs before
++ * the NUMA-aware variant of spinlock is forced to be passed to a thread on
++ * another NUMA node. By default, the chosen value provides reasonable
++ * long-term fairness without sacrificing performance compared to a lock
++ * that does not have any fairness guarantees. The default setting can
++ * be changed with the "numa_spinlock_threshold" boot option.
++ */
++int intra_node_handoff_threshold __ro_after_init = 1 << 16;
++
+ static void __init cna_init_nodes_per_cpu(unsigned int cpu)
+ {
+ 	struct mcs_spinlock *base = per_cpu_ptr(&qnodes[0].mcs, cpu);
+@@ -97,6 +109,11 @@ static int __init cna_init_nodes(void)
+ }
+ early_initcall(cna_init_nodes);
+ 
++static __always_inline void cna_init_node(struct mcs_spinlock *node)
++{
++	((struct cna_node *)node)->intra_count = 0;
++}
++
+ /* this function is called only when the primary queue is empty */
+ static inline bool cna_try_change_tail(struct qspinlock *lock, u32 val,
+ 				       struct mcs_spinlock *node)
+@@ -233,7 +250,9 @@ __always_inline u32 cna_pre_scan(struct qspinlock *lock,
+ {
+ 	struct cna_node *cn = (struct cna_node *)node;
+ 
+-	cn->pre_scan_result = cna_scan_main_queue(node, node);
++	cn->pre_scan_result =
++		cn->intra_count == intra_node_handoff_threshold ?
++			FLUSH_SECONDARY_QUEUE : cna_scan_main_queue(node, node);
+ 
+ 	return 0;
+ }
+@@ -263,6 +282,9 @@ static inline void cna_pass_lock(struct mcs_spinlock *node,
+ 		 * if we acquired the MCS lock when its queue was empty
+ 		 */
+ 		val = node->locked ? node->locked : 1;
++		/* inc @intra_count if the secondary queue is not empty */
++		((struct cna_node *)next_holder)->intra_count =
++			cn->intra_count + (node->locked > 1);
+ 	} else if (node->locked > 1) {	  /* if secondary queue is not empty */
+ 		/* next holder will be the first node in the secondary queue */
+ 		tail_2nd = decode_tail(node->locked);
+@@ -317,3 +339,20 @@ void cna_configure_spin_lock_slowpath(void)
+ 		pr_info("Enabling CNA spinlock\n");
+ 	}
+ }
++
++static int __init numa_spinlock_threshold_setup(char *str)
++{
++	int new_threshold_param;
++
++	if (get_option(&str, &new_threshold_param)) {
++		/* valid value is between 0 and 31 */
++		if (new_threshold_param < 0 || new_threshold_param > 31)
++			return 0;
++
++		intra_node_handoff_threshold = 1 << new_threshold_param;
++		return 1;
++	}
++
++	return 0;
++}
++__setup("numa_spinlock_threshold=", numa_spinlock_threshold_setup);
+-- 
+2.21.0 (Apple Git-122.2)
