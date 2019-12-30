@@ -1,182 +1,87 @@
-Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.133]:39690 "EHLO
- bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with
- ESMTP id S1728008AbfLPPOt (ORCPT <rfc822;linux-arch@vger.kernel.org>); Mon,
- 16 Dec 2019 10:14:49 -0500
-Date: Mon, 16 Dec 2019 16:14:19 +0100
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH 05/17] asm-generic/tlb: Rename
- HAVE_RCU_TABLE_NO_INVALIDATE
-Message-ID: <20191216151419.GL2871@hirez.programming.kicks-ass.net>
-References: <20191211120713.360281197@infradead.org>
- <20191211122955.940455408@infradead.org> <87woawzc1t.fsf@linux.ibm.com>
- <20191216123752.GM2844@hirez.programming.kicks-ass.net>
- <d52ea890-c2ea-88f3-9d62-b86e60ee77ae@linux.ibm.com>
- <20191216132004.GO2844@hirez.programming.kicks-ass.net>
- <a9ae27c8-aa84-cda3-355c-7abb3b450d38@linux.ibm.com>
- <33ed03aa-a34c-3a81-0f83-20c3e8d4eff7@linux.ibm.com>
- <20191216145041.GG2827@hirez.programming.kicks-ass.net>
+Return-Path: <SRS0=aRn0=2U=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from userp2120.oracle.com ([156.151.31.85]:42748 "EHLO
+        userp2120.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727665AbfL3Txw (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 30 Dec 2019 14:53:52 -0500
+From: Alex Kogan <alex.kogan@oracle.com>
+Subject: [PATCH v8 0/5] Add NUMA-awareness to qspinlock
+Date: Mon, 30 Dec 2019 14:40:37 -0500
+Message-ID: <20191230194042.67789-1-alex.kogan@oracle.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20191216145041.GG2827@hirez.programming.kicks-ass.net>
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>
-Cc: Michael Ellerman <mpe@ellerman.id.au>, Will Deacon <will@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Nick Piggin <npiggin@gmail.com>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, "David S. Miller" <davem@davemloft.net>, Helge Deller <deller@gmx.de>, Geert Uytterhoeven <geert@linux-m68k.org>, Paul Burton <paulburton@kernel.org>, Tony Luck <tony.luck@intel.com>, Richard Henderson <rth@twiddle.net>, Nick Hu <nickhu@andestech.com>, Paul Walmsley <paul.walmsley@sifive.com>
-Message-ID: <20191216151419.Zm8e0mOlHvEUwUODNp9TGdaxrarV08v43qWKXzxRcQI@z>
+To: linux@armlinux.org.uk, peterz@infradead.org, mingo@redhat.com, will.deacon@arm.com, arnd@arndb.de, longman@redhat.com, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, bp@alien8.de, hpa@zytor.com, x86@kernel.org, guohanjun@huawei.com, jglauber@marvell.com
+Cc: steven.sistare@oracle.com, daniel.m.jordan@oracle.com, alex.kogan@oracle.com, dave.dice@oracle.com
+Message-ID: <20191230194037.q2GEoea2eKnKGSSxS72z1hRAq4rmkCQrlBke1IBlvqU@z>
 
-On Mon, Dec 16, 2019 at 03:50:41PM +0100, Peter Zijlstra wrote:
-> On Mon, Dec 16, 2019 at 07:24:24PM +0530, Aneesh Kumar K.V wrote:
-> 
-> > So __p*_free_tlb() routines on ppc64 just mark that we need a page walk
-> > cache flush and the actual flush in done in tlb_flush_mmu.
-> 
-> Not quite, your __p*_free_tlb() goes to pgtable_free_tlb() which call
-> tlb_remove_table().
-> 
-> > As per
-> > 
-> > d86564a2f085b79ec046a5cba90188e61235280 (mm/tlb, x86/mm: Support
-> > invalidating TLB caches for RCU_TABLE_FREE ) that is not sufficient?
-> 
-> 96bc9567cbe1 ("asm-generic/tlb, arch: Invert CONFIG_HAVE_RCU_TABLE_INVALIDATE")
-> 
-> And no. Since you have TABLE_NO_INVALIDATE set, tlb_remove_table() will
-> not TLBI when it fails to allocate a batch page, which is an error for
-> PPC-Radix.
-> 
-> There is also no TLBI when the batch page is full and the RCU callback
-> happens, which is also a bug on PPC-Radix.
+Minor changes from v7 based on feedback from Longman:
+-----------------------------------------------------
 
-It seems to me you need something like this here patch, all you need to
-add is a suitable definition of tlb_needs_table_invalidate() for Power.
+- Move __init functions from alternative.c to qspinlock_cna.h
 
----
+- Introduce enum for return values from cna_pre_scan(), for better
+readability.
 
-diff --git a/arch/Kconfig b/arch/Kconfig
-index c44ef15866a3..98de654b79b3 100644
---- a/arch/Kconfig
-+++ b/arch/Kconfig
-@@ -400,10 +400,6 @@ config MMU_GATHER_RCU_TABLE_FREE
- 	bool
- 	select MMU_GATHER_TABLE_FREE
+- Add/revise a few comments to improve readability.
 
--config MMU_GATHER_NO_TABLE_INVALIDATE
--	bool
--	depends on MMU_GATHER_RCU_TABLE_FREE
--
- config MMU_GATHER_PAGE_SIZE
- 	bool
 
-diff --git a/arch/powerpc/Kconfig b/arch/powerpc/Kconfig
-index 3dea4c8d39f2..2ddf24822d5b 100644
---- a/arch/powerpc/Kconfig
-+++ b/arch/powerpc/Kconfig
-@@ -223,7 +223,6 @@ config PPC
- 	select HAVE_PERF_REGS
- 	select HAVE_PERF_USER_STACK_DUMP
- 	select MMU_GATHER_RCU_TABLE_FREE		if SMP
--	select MMU_GATHER_NO_TABLE_INVALIDATE	if MMU_GATHER_RCU_TABLE_FREE
- 	select MMU_GATHER_PAGE_SIZE
- 	select HAVE_REGS_AND_STACK_ACCESS_API
- 	select HAVE_RELIABLE_STACKTRACE		if PPC_BOOK3S_64 && CPU_LITTLE_ENDIAN
-diff --git a/arch/sparc/Kconfig b/arch/sparc/Kconfig
-index a76e915ab207..acf20b6c0a54 100644
---- a/arch/sparc/Kconfig
-+++ b/arch/sparc/Kconfig
-@@ -66,7 +66,6 @@ config SPARC64
- 	select HAVE_KRETPROBES
- 	select HAVE_KPROBES
- 	select MMU_GATHER_RCU_TABLE_FREE if SMP
--	select MMU_GATHER_NO_TABLE_INVALIDATE if MMU_GATHER_RCU_TABLE_FREE
- 	select HAVE_MEMBLOCK_NODE_MAP
- 	select HAVE_ARCH_TRANSPARENT_HUGEPAGE
- 	select HAVE_DYNAMIC_FTRACE
-diff --git a/arch/sparc/include/asm/tlb_64.h b/arch/sparc/include/asm/tlb_64.h
-index a2f3fa61ee36..ac8e74a96122 100644
---- a/arch/sparc/include/asm/tlb_64.h
-+++ b/arch/sparc/include/asm/tlb_64.h
-@@ -28,6 +28,12 @@ void flush_tlb_pending(void);
- #define __tlb_remove_tlb_entry(tlb, ptep, address) do { } while (0)
- #define tlb_flush(tlb)	flush_tlb_pending()
+Summary
+-------
 
-+/*
-+ * SPARC64's hardware TLB fill does not use the Linux page-tables
-+ * and therefore we don't need a TLBI when freeing page-table pages.
-+ */
-+#define tlb_needs_table_invalidate()	(false)
-+
- #include <asm-generic/tlb.h>
+Lock throughput can be increased by handing a lock to a waiter on the
+same NUMA node as the lock holder, provided care is taken to avoid
+starvation of waiters on other NUMA nodes. This patch introduces CNA
+(compact NUMA-aware lock) as the slow path for qspinlock. It is
+enabled through a configuration option (NUMA_AWARE_SPINLOCKS).
 
- #endif /* _SPARC64_TLB_H */
-diff --git a/include/asm-generic/tlb.h b/include/asm-generic/tlb.h
-index fe0ea6ff3636..4108d6d18ca5 100644
---- a/include/asm-generic/tlb.h
-+++ b/include/asm-generic/tlb.h
-@@ -156,13 +156,6 @@
-  *  Useful if your architecture doesn't use IPIs for remote TLB invalidates
-  *  and therefore doesn't naturally serialize with software page-table walkers.
-  *
-- *  MMU_GATHER_NO_TABLE_INVALIDATE
-- *
-- *  This makes MMU_GATHER_RCU_TABLE_FREE avoid calling tlb_flush_mmu_tlbonly()
-- *  before freeing the page-table pages. This can be avoided if you use
-- *  MMU_GATHER_RCU_TABLE_FREE and your architecture does _NOT_ use the Linux
-- *  page-tables natively.
-- *
-  *  MMU_GATHER_NO_RANGE
-  *
-  *  Use this if your architecture lacks an efficient flush_tlb_range().
-@@ -203,6 +196,24 @@ extern void tlb_remove_table(struct mmu_gather *tlb, void *table);
+CNA is a NUMA-aware version of the MCS lock. Spinning threads are
+organized in two queues, a main queue for threads running on the same
+node as the current lock holder, and a secondary queue for threads
+running on other nodes. Threads store the ID of the node on which
+they are running in their queue nodes. After acquiring the MCS lock and
+before acquiring the spinlock, the lock holder scans the main queue
+looking for a thread running on the same node (pre-scan). If found (call
+it thread T), all threads in the main queue between the current lock
+holder and T are moved to the end of the secondary queue.  If such T
+is not found, we make another scan of the main queue after acquiring 
+the spinlock when unlocking the MCS lock (post-scan), starting at the
+node where pre-scan stopped. If both scans fail to find such T, the
+MCS lock is passed to the first thread in the secondary queue. If the
+secondary queue is empty, the MCS lock is passed to the next thread in the
+main queue. To avoid starvation of threads in the secondary queue, those
+threads are moved back to the head of the main queue after a certain
+number of intra-node lock hand-offs.
 
- #endif /* CONFIG_MMU_GATHER_TABLE_FREE */
+More details are available at https://arxiv.org/abs/1810.05600.
 
-+#ifdef CONFIG_MMU_GATHER_RCU_TABLE_FREE
-+
-+/*
-+ * This allows an architecture that does not use the linux page-tables for
-+ * hardware to skip the TLBI when freeing page tables.
-+ */
-+#ifndef tlb_needs_table_invalidate
-+#define tlb_needs_table_invalidate() (true)
-+#endif
-+
-+#else
-+
-+#ifdef tlb_needs_table_invalidate
-+#error tlb_needs_table_invalidate() requires MMU_GATHER_RCU_TABLE_FREE
-+#endif
-+
-+#endif /* CONFIG_MMU_GATHER_RCU_TABLE_FREE */
-+
- #ifndef CONFIG_MMU_GATHER_NO_GATHER
- /*
-  * If we can't allocate a page to make a big batch of page pointers
-diff --git a/mm/mmu_gather.c b/mm/mmu_gather.c
-index 9d103031568d..a3538cb2bcbe 100644
---- a/mm/mmu_gather.c
-+++ b/mm/mmu_gather.c
-@@ -177,14 +177,14 @@ static void tlb_remove_table_free(struct mmu_table_batch *batch)
-  */
- static inline void tlb_table_invalidate(struct mmu_gather *tlb)
- {
--#ifndef CONFIG_MMU_GATHER_NO_TABLE_INVALIDATE
--	/*
--	 * Invalidate page-table caches used by hardware walkers. Then we still
--	 * need to RCU-sched wait while freeing the pages because software
--	 * walkers can still be in-flight.
--	 */
--	tlb_flush_mmu_tlbonly(tlb);
--#endif
-+	if (tlb_needs_table_invalidate()) {
-+		/*
-+		 * Invalidate page-table caches used by hardware walkers. Then
-+		 * we still need to RCU-sched wait while freeing the pages
-+		 * because software walkers can still be in-flight.
-+		 */
-+		tlb_flush_mmu_tlbonly(tlb);
-+	}
- }
+The series applies on top of v5.5.0-rc2, commit ea200dec51.
+Performance numbers are available in previous revisions
+of the series.
 
- static void tlb_remove_table_one(void *table)
+Further comments are welcome and appreciated.
+
+Alex Kogan (5):
+  locking/qspinlock: Rename mcs lock/unlock macros and make them more
+    generic
+  locking/qspinlock: Refactor the qspinlock slow path
+  locking/qspinlock: Introduce CNA into the slow path of qspinlock
+  locking/qspinlock: Introduce starvation avoidance into CNA
+  locking/qspinlock: Introduce the shuffle reduction optimization into
+    CNA
+
+ .../admin-guide/kernel-parameters.txt         |  18 +
+ arch/arm/include/asm/mcs_spinlock.h           |   6 +-
+ arch/x86/Kconfig                              |  20 +
+ arch/x86/include/asm/qspinlock.h              |   4 +
+ arch/x86/kernel/alternative.c                 |   4 +
+ include/asm-generic/mcs_spinlock.h            |   4 +-
+ kernel/locking/mcs_spinlock.h                 |  20 +-
+ kernel/locking/qspinlock.c                    |  82 +++-
+ kernel/locking/qspinlock_cna.h                | 400 ++++++++++++++++++
+ kernel/locking/qspinlock_paravirt.h           |   2 +-
+ 10 files changed, 537 insertions(+), 23 deletions(-)
+ create mode 100644 kernel/locking/qspinlock_cna.h
+
+-- 
+2.21.0 (Apple Git-122.2)
