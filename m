@@ -1,54 +1,169 @@
-Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:39466 "EHLO
- merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
- id S1727512AbfLPMjD (ORCPT <rfc822;linux-arch@vger.kernel.org>); Mon, 16 Dec
- 2019 07:39:03 -0500
-Date: Mon, 16 Dec 2019 13:37:52 +0100
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH 05/17] asm-generic/tlb: Rename
- HAVE_RCU_TABLE_NO_INVALIDATE
-Message-ID: <20191216123752.GM2844@hirez.programming.kicks-ass.net>
-References: <20191211120713.360281197@infradead.org>
- <20191211122955.940455408@infradead.org> <87woawzc1t.fsf@linux.ibm.com>
+Return-Path: <SRS0=aRn0=2U=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from userp2120.oracle.com ([156.151.31.85]:42772 "EHLO
+        userp2120.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727696AbfL3Txy (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 30 Dec 2019 14:53:54 -0500
+From: Alex Kogan <alex.kogan@oracle.com>
+Subject: [PATCH v8 1/5] locking/qspinlock: Rename mcs lock/unlock macros and make them more generic
+Date: Mon, 30 Dec 2019 14:40:38 -0500
+Message-ID: <20191230194042.67789-2-alex.kogan@oracle.com>
+In-Reply-To: <20191230194042.67789-1-alex.kogan@oracle.com>
+References: <20191230194042.67789-1-alex.kogan@oracle.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <87woawzc1t.fsf@linux.ibm.com>
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>
-Cc: Will Deacon <will@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Nick Piggin <npiggin@gmail.com>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, "David S. Miller" <davem@davemloft.net>, Helge Deller <deller@gmx.de>, Geert Uytterhoeven <geert@linux-m68k.org>, Paul Burton <paulburton@kernel.org>, Tony Luck <tony.luck@intel.com>, Richard Henderson <rth@twiddle.net>, Nick Hu <nickhu@andestech.com>, Paul Walmsley <paul.walmsley@sifive.com>
-Message-ID: <20191216123752.3gyFzDlKdTDBt44eLSlEf9SNUqvOOcol3-tIzTVDjDM@z>
+To: linux@armlinux.org.uk, peterz@infradead.org, mingo@redhat.com, will.deacon@arm.com, arnd@arndb.de, longman@redhat.com, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, bp@alien8.de, hpa@zytor.com, x86@kernel.org, guohanjun@huawei.com, jglauber@marvell.com
+Cc: steven.sistare@oracle.com, daniel.m.jordan@oracle.com, alex.kogan@oracle.com, dave.dice@oracle.com
+Message-ID: <20191230194038.Dxz0XDZW6vM_mK_EFS3mGySDrwkdfKF6k3UXCaSfze8@z>
 
-On Mon, Dec 16, 2019 at 06:01:58PM +0530, Aneesh Kumar K.V wrote:
-> Peter Zijlstra <peterz@infradead.org> writes:
-> 
-> > Towards a more consistent naming scheme.
-> >
-> > Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
-> > ---
-> >  arch/Kconfig              |    3 ++-
-> >  arch/powerpc/Kconfig      |    2 +-
-> >  arch/sparc/Kconfig        |    2 +-
-> >  include/asm-generic/tlb.h |    2 +-
-> >  mm/mmu_gather.c           |    2 +-
-> >  5 files changed, 6 insertions(+), 5 deletions(-)
-> >
-> > --- a/arch/Kconfig
-> > +++ b/arch/Kconfig
-> > @@ -396,8 +396,9 @@ config HAVE_ARCH_JUMP_LABEL_RELATIVE
-> >  config MMU_GATHER_RCU_TABLE_FREE
-> >  	bool
-> >  
-> > -config HAVE_RCU_TABLE_NO_INVALIDATE
-> > +config MMU_GATHER_NO_TABLE_INVALIDATE
-> >  	bool
-> > +	depends on MMU_GATHER_RCU_TABLE_FREE
-> 
-> 
-> Can we drop this Kernel config option instead use
-> MMU_GATHER_RCU_TABLE_FREE? IMHO reducing the kernel config related to
-> mmu_gather can reduce the complexity. 
+The mcs unlock macro (arch_mcs_pass_lock) should accept the value to be
+stored into the lock argument as another argument. This allows using the
+same macro in cases where the value to be stored when passing the lock is
+different from 1.
 
-I'm confused, are you saing you're happy to have PowerPC eat the extra
-TLB invalidates? I thought you cared about PPC performance :-)
+Signed-off-by: Alex Kogan <alex.kogan@oracle.com>
+Reviewed-by: Steve Sistare <steven.sistare@oracle.com>
+---
+ arch/arm/include/asm/mcs_spinlock.h |  6 +++---
+ include/asm-generic/mcs_spinlock.h  |  4 ++--
+ kernel/locking/mcs_spinlock.h       | 18 +++++++++---------
+ kernel/locking/qspinlock.c          |  4 ++--
+ kernel/locking/qspinlock_paravirt.h |  2 +-
+ 5 files changed, 17 insertions(+), 17 deletions(-)
+
+diff --git a/arch/arm/include/asm/mcs_spinlock.h b/arch/arm/include/asm/mcs_spinlock.h
+index 529d2cf4d06f..693fe6ce3c43 100644
+--- a/arch/arm/include/asm/mcs_spinlock.h
++++ b/arch/arm/include/asm/mcs_spinlock.h
+@@ -6,7 +6,7 @@
+ #include <asm/spinlock.h>
+ 
+ /* MCS spin-locking. */
+-#define arch_mcs_spin_lock_contended(lock)				\
++#define arch_mcs_spin_lock(lock)				\
+ do {									\
+ 	/* Ensure prior stores are observed before we enter wfe. */	\
+ 	smp_mb();							\
+@@ -14,9 +14,9 @@ do {									\
+ 		wfe();							\
+ } while (0)								\
+ 
+-#define arch_mcs_spin_unlock_contended(lock)				\
++#define arch_mcs_pass_lock(lock, val)					\
+ do {									\
+-	smp_store_release(lock, 1);					\
++	smp_store_release((lock), (val));				\
+ 	dsb_sev();							\
+ } while (0)
+ 
+diff --git a/include/asm-generic/mcs_spinlock.h b/include/asm-generic/mcs_spinlock.h
+index 10cd4ffc6ba2..868da43dba7c 100644
+--- a/include/asm-generic/mcs_spinlock.h
++++ b/include/asm-generic/mcs_spinlock.h
+@@ -4,8 +4,8 @@
+ /*
+  * Architectures can define their own:
+  *
+- *   arch_mcs_spin_lock_contended(l)
+- *   arch_mcs_spin_unlock_contended(l)
++ *   arch_mcs_spin_lock(l)
++ *   arch_mcs_pass_lock(l, val)
+  *
+  * See kernel/locking/mcs_spinlock.c.
+  */
+diff --git a/kernel/locking/mcs_spinlock.h b/kernel/locking/mcs_spinlock.h
+index 5e10153b4d3c..52d06ec6f525 100644
+--- a/kernel/locking/mcs_spinlock.h
++++ b/kernel/locking/mcs_spinlock.h
+@@ -21,7 +21,7 @@ struct mcs_spinlock {
+ 	int count;  /* nesting count, see qspinlock.c */
+ };
+ 
+-#ifndef arch_mcs_spin_lock_contended
++#ifndef arch_mcs_spin_lock
+ /*
+  * Using smp_cond_load_acquire() provides the acquire semantics
+  * required so that subsequent operations happen after the
+@@ -29,20 +29,20 @@ struct mcs_spinlock {
+  * ARM64 would like to do spin-waiting instead of purely
+  * spinning, and smp_cond_load_acquire() provides that behavior.
+  */
+-#define arch_mcs_spin_lock_contended(l)					\
+-do {									\
+-	smp_cond_load_acquire(l, VAL);					\
++#define arch_mcs_spin_lock(l)					\
++do {								\
++	smp_cond_load_acquire(l, VAL);				\
+ } while (0)
+ #endif
+ 
+-#ifndef arch_mcs_spin_unlock_contended
++#ifndef arch_mcs_spin_unlock
+ /*
+  * smp_store_release() provides a memory barrier to ensure all
+  * operations in the critical section has been completed before
+  * unlocking.
+  */
+-#define arch_mcs_spin_unlock_contended(l)				\
+-	smp_store_release((l), 1)
++#define arch_mcs_pass_lock(l, val)				\
++	smp_store_release((l), (val))
+ #endif
+ 
+ /*
+@@ -91,7 +91,7 @@ void mcs_spin_lock(struct mcs_spinlock **lock, struct mcs_spinlock *node)
+ 	WRITE_ONCE(prev->next, node);
+ 
+ 	/* Wait until the lock holder passes the lock down. */
+-	arch_mcs_spin_lock_contended(&node->locked);
++	arch_mcs_spin_lock(&node->locked);
+ }
+ 
+ /*
+@@ -115,7 +115,7 @@ void mcs_spin_unlock(struct mcs_spinlock **lock, struct mcs_spinlock *node)
+ 	}
+ 
+ 	/* Pass lock to next waiter. */
+-	arch_mcs_spin_unlock_contended(&next->locked);
++	arch_mcs_pass_lock(&next->locked, 1);
+ }
+ 
+ #endif /* __LINUX_MCS_SPINLOCK_H */
+diff --git a/kernel/locking/qspinlock.c b/kernel/locking/qspinlock.c
+index 2473f10c6956..804c0fbd6328 100644
+--- a/kernel/locking/qspinlock.c
++++ b/kernel/locking/qspinlock.c
+@@ -470,7 +470,7 @@ void queued_spin_lock_slowpath(struct qspinlock *lock, u32 val)
+ 		WRITE_ONCE(prev->next, node);
+ 
+ 		pv_wait_node(node, prev);
+-		arch_mcs_spin_lock_contended(&node->locked);
++		arch_mcs_spin_lock(&node->locked);
+ 
+ 		/*
+ 		 * While waiting for the MCS lock, the next pointer may have
+@@ -549,7 +549,7 @@ void queued_spin_lock_slowpath(struct qspinlock *lock, u32 val)
+ 	if (!next)
+ 		next = smp_cond_load_relaxed(&node->next, (VAL));
+ 
+-	arch_mcs_spin_unlock_contended(&next->locked);
++	arch_mcs_pass_lock(&next->locked, 1);
+ 	pv_kick_node(lock, next);
+ 
+ release:
+diff --git a/kernel/locking/qspinlock_paravirt.h b/kernel/locking/qspinlock_paravirt.h
+index e84d21aa0722..e98079414671 100644
+--- a/kernel/locking/qspinlock_paravirt.h
++++ b/kernel/locking/qspinlock_paravirt.h
+@@ -368,7 +368,7 @@ static void pv_kick_node(struct qspinlock *lock, struct mcs_spinlock *node)
+ 	 *
+ 	 * Matches with smp_store_mb() and cmpxchg() in pv_wait_node()
+ 	 *
+-	 * The write to next->locked in arch_mcs_spin_unlock_contended()
++	 * The write to next->locked in arch_mcs_pass_lock()
+ 	 * must be ordered before the read of pn->state in the cmpxchg()
+ 	 * below for the code to work correctly. To guarantee full ordering
+ 	 * irrespective of the success or failure of the cmpxchg(),
+-- 
+2.21.0 (Apple Git-122.2)
