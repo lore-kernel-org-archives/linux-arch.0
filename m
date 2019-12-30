@@ -1,88 +1,39 @@
-Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.133]:44580 "EHLO
- bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with
- ESMTP id S1727895AbfLPOAp (ORCPT <rfc822;linux-arch@vger.kernel.org>); Mon,
- 16 Dec 2019 09:00:45 -0500
-Date: Mon, 16 Dec 2019 15:00:17 +0100
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH 05/17] asm-generic/tlb: Rename
- HAVE_RCU_TABLE_NO_INVALIDATE
-Message-ID: <20191216140017.GF2827@hirez.programming.kicks-ass.net>
-References: <20191211120713.360281197@infradead.org>
- <20191211122955.940455408@infradead.org> <87woawzc1t.fsf@linux.ibm.com>
- <20191216123752.GM2844@hirez.programming.kicks-ass.net>
- <d52ea890-c2ea-88f3-9d62-b86e60ee77ae@linux.ibm.com>
- <20191216132004.GO2844@hirez.programming.kicks-ass.net>
- <a9ae27c8-aa84-cda3-355c-7abb3b450d38@linux.ibm.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <a9ae27c8-aa84-cda3-355c-7abb3b450d38@linux.ibm.com>
+Return-Path: <SRS0=aRn0=2U=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail.kernel.org ([198.145.29.99]:47566 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1727175AbfL3IXy (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 30 Dec 2019 03:23:54 -0500
+From: guoren@kernel.org
+Subject: [PATCH 1/5] MAINTAINERS: csky: Add mailing list for csky
+Date: Mon, 30 Dec 2019 16:23:27 +0800
+Message-ID: <20191230082331.30976-1-guoren@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>
-Cc: Michael Ellerman <mpe@ellerman.id.au>, Will Deacon <will@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Nick Piggin <npiggin@gmail.com>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, "David S. Miller" <davem@davemloft.net>, Helge Deller <deller@gmx.de>, Geert Uytterhoeven <geert@linux-m68k.org>, Paul Burton <paulburton@kernel.org>, Tony Luck <tony.luck@intel.com>, Richard Henderson <rth@twiddle.net>, Nick Hu <nickhu@andestech.com>, Paul Walmsley <paul.walmsley@sifive.com>
-Message-ID: <20191216140017.OQu28nQW5l2Ttawzgz4ByqakySnUpyRfSCkO6-WrHDo@z>
+To: linux-csky@vger.kernel.org
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, Guo Ren <ren_guo@c-sky.com>
+Message-ID: <20191230082327.3VsFMbnVInLYERutlf3Zi5Uz0WrIxFvZeJCzHTeSglU@z>
 
-On Mon, Dec 16, 2019 at 07:10:30PM +0530, Aneesh Kumar K.V wrote:
-> On 12/16/19 6:50 PM, Peter Zijlstra wrote:
-> > On Mon, Dec 16, 2019 at 06:43:53PM +0530, Aneesh Kumar K.V wrote:
-> > > On 12/16/19 6:07 PM, Peter Zijlstra wrote:
-> > 
-> > > > I'm confused, are you saing you're happy to have PowerPC eat the extra
-> > > > TLB invalidates? I thought you cared about PPC performance :-)
-> > > > 
-> > > > 
-> > > 
-> > > Instead can we do
-> > > 
-> > > static inline void tlb_table_invalidate(struct mmu_gather *tlb)
-> > > {
-> > > #ifndef CONFIG_MMU_GATHER_RCU_TABLE_FREE
-> > > 	 * Invalidate page-table caches used by hardware walkers. Then we still
-> > > 	 * need to RCU-sched wait while freeing the pages because software
-> > > 	 * walkers can still be in-flight.
-> > > 	 */
-> > > 	tlb_flush_mmu_tlbonly(tlb);
-> > > #endif
-> > > }
-> > 
-> > How does that not break ARM/ARM64/s390 and x86 ?
-> > 
-> 
-> Hmm I missed that usage of RCU_TABLE_NO_INVALIDATE.
+From: Guo Ren <ren_guo@c-sky.com>
 
-What use? Only PPC and SPARC64 use that option. The reason they can use
-it is because they don't have a hardware walker (with exception of
-PPC-Radix, which I suppose your below patch fudges ?!).
+Add mailing list and it's convenient for maintain C-SKY
+subsystem.
 
-So HAVE_RCU_TABLE_FREE will provide tlb_remove_table() for the use of
-freeing page-tables/directories. This is required for all architectures
-that have software walkers and !IPI TLBI.
+Signed-off-by: Guo Ren <ren_guo@c-sky.com>
+---
+ MAINTAINERS | 1 +
+ 1 file changed, 1 insertion(+)
 
-Arm, Arm64, Power, Sparc64, s390 and x86 use this option. While x86
-natively has IPI based TLBI, a bunch of the virtualization solutions got
-rid of the IPI for performance.
-
-Of those, Arm, Arm64, s390, x86 (and PPC-Radix) also have hardware
-walkers on those page-tables, and thus _must_ TLBI in between unhooking
-and freeing these pages.
-
-PPC-Hash and Sparc64 OTOH only ever access the linux page-tables through
-the software walker and thus can forgo this TLBI, and _THAT_ is what
-TABLE_NO_INVALIDATE is about (there actually is a comment that clearly
-states this).
-
-> Ok I guess we need to revert this change that went upstream this merge
-> window then
-> 
-> commit 52162ec784fa05f3a4b1d8e84421279998be3773
-> Author: Aneesh Kumar K.V <aneesh.kumar@linux.ibm.com>
-> Date:   Thu Oct 24 13:28:00 2019 +0530
-> 
->     powerpc/mm/book3s64/radix: Use freed_tables instead of need_flush_all
-> 
-
-This really looks like you've got PPC-Radix wrong. As soon as you got
-hardware walkers on the linux page-tables, you must not use
-TABLE_NO_INVALIDATE.
+diff --git a/MAINTAINERS b/MAINTAINERS
+index e4f170d8bc29..1b0e8dcefb94 100644
+--- a/MAINTAINERS
++++ b/MAINTAINERS
+@@ -3553,6 +3553,7 @@ F:	sound/pci/oxygen/
+ 
+ C-SKY ARCHITECTURE
+ M:	Guo Ren <guoren@kernel.org>
++L:	linux-csky@vger.kernel.org
+ T:	git https://github.com/c-sky/csky-linux.git
+ S:	Supported
+ F:	arch/csky/
+-- 
+2.17.0
