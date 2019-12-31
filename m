@@ -1,96 +1,36 @@
-From: Alex Kogan <alex.kogan@oracle.com>
-Subject: [PATCH v8 2/5] locking/qspinlock: Refactor the qspinlock slow path
-Date: Mon, 30 Dec 2019 14:40:39 -0500
-Message-ID: <20191230194042.67789-3-alex.kogan@oracle.com>
-References: <20191230194042.67789-1-alex.kogan@oracle.com>
+From: Andrew Morton <akpm@linux-foundation.org>
+Subject: Re: [PATCH 2/2] proc: convert everything to "struct proc_ops"
+Date: Tue, 31 Dec 2019 15:01:21 -0800
+Message-ID: <20191231150121.5b09e34205444f6c65277b73@linux-foundation.org>
+References: <20191225172228.GA13378@avx2>
+        <20191225172546.GB13378@avx2>
 Mime-Version: 1.0
-Content-Transfer-Encoding: 8bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20191230194042.67789-1-alex.kogan@oracle.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: linux@armlinux.org.uk, peterz@infradead.org, mingo@redhat.com, will.deacon@arm.com, arnd@arndb.de, longman@redhat.com, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, bp@alien8.de, hpa@zytor.com, x86@kernel.org, guohanjun@huawei.com, jglauber@marvell.com
-Cc: steven.sistare@oracle.com, daniel.m.jordan@oracle.com, alex.kogan@oracle.com, dave.dice@oracle.com
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
+Return-path: <netdev-owner@vger.kernel.org>
+In-Reply-To: <20191225172546.GB13378@avx2>
+Sender: netdev-owner@vger.kernel.org
+To: Alexey Dobriyan <adobriyan@gmail.com>
+Cc: linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org, netdev@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-Move some of the code manipulating the spin lock into separate functions.
-This would allow easier integration of alternative ways to manipulate
-that lock.
+On Wed, 25 Dec 2019 20:25:46 +0300 Alexey Dobriyan <adobriyan@gmail.com> wrote:
 
-Signed-off-by: Alex Kogan <alex.kogan@oracle.com>
-Reviewed-by: Steve Sistare <steven.sistare@oracle.com>
----
- kernel/locking/qspinlock.c | 38 ++++++++++++++++++++++++++++++++++++--
- 1 file changed, 36 insertions(+), 2 deletions(-)
+> The most notable change is DEFINE_SHOW_ATTRIBUTE macro split in
+> seq_file.h.
+> 
+> Conversion rule is:
+> 
+> 	llseek		=> proc_lseek
+> 	unlocked_ioctl	=> proc_ioctl
+> 
+> 	xxx		=> proc_xxx
+> 
+> 	delete ".owner = THIS_MODULE" line
+> 
+> ...
+>
+>  drivers/staging/isdn/hysdn/hysdn_procconf.c           |   15 +-
+>  drivers/staging/isdn/hysdn/hysdn_proclog.c            |   17 +-
 
-diff --git a/kernel/locking/qspinlock.c b/kernel/locking/qspinlock.c
-index 804c0fbd6328..c06d1e8075d9 100644
---- a/kernel/locking/qspinlock.c
-+++ b/kernel/locking/qspinlock.c
-@@ -288,6 +288,34 @@ static __always_inline u32  __pv_wait_head_or_lock(struct qspinlock *lock,
- #define queued_spin_lock_slowpath	native_queued_spin_lock_slowpath
- #endif
- 
-+/*
-+ * __try_clear_tail - try to clear tail by setting the lock value to
-+ * _Q_LOCKED_VAL.
-+ * @lock: Pointer to the queued spinlock structure
-+ * @val: Current value of the lock
-+ * @node: Pointer to the MCS node of the lock holder
-+ */
-+static __always_inline bool __try_clear_tail(struct qspinlock *lock,
-+						   u32 val,
-+						   struct mcs_spinlock *node)
-+{
-+	return atomic_try_cmpxchg_relaxed(&lock->val, &val, _Q_LOCKED_VAL);
-+}
-+
-+/*
-+ * __mcs_pass_lock - pass the MCS lock to the next waiter
-+ * @node: Pointer to the MCS node of the lock holder
-+ * @next: Pointer to the MCS node of the first waiter in the MCS queue
-+ */
-+static __always_inline void __mcs_pass_lock(struct mcs_spinlock *node,
-+					    struct mcs_spinlock *next)
-+{
-+	arch_mcs_pass_lock(&next->locked, 1);
-+}
-+
-+#define try_clear_tail	__try_clear_tail
-+#define mcs_pass_lock		__mcs_pass_lock
-+
- #endif /* _GEN_PV_LOCK_SLOWPATH */
- 
- /**
-@@ -532,7 +560,7 @@ void queued_spin_lock_slowpath(struct qspinlock *lock, u32 val)
- 	 *       PENDING will make the uncontended transition fail.
- 	 */
- 	if ((val & _Q_TAIL_MASK) == tail) {
--		if (atomic_try_cmpxchg_relaxed(&lock->val, &val, _Q_LOCKED_VAL))
-+		if (try_clear_tail(lock, val, node))
- 			goto release; /* No contention */
- 	}
- 
-@@ -549,7 +577,7 @@ void queued_spin_lock_slowpath(struct qspinlock *lock, u32 val)
- 	if (!next)
- 		next = smp_cond_load_relaxed(&node->next, (VAL));
- 
--	arch_mcs_pass_lock(&next->locked, 1);
-+	mcs_pass_lock(node, next);
- 	pv_kick_node(lock, next);
- 
- release:
-@@ -574,6 +602,12 @@ EXPORT_SYMBOL(queued_spin_lock_slowpath);
- #undef pv_kick_node
- #undef pv_wait_head_or_lock
- 
-+#undef try_clear_tail
-+#define try_clear_tail		__try_clear_tail
-+
-+#undef mcs_pass_lock
-+#define mcs_pass_lock			__mcs_pass_lock
-+
- #undef  queued_spin_lock_slowpath
- #define queued_spin_lock_slowpath	__pv_queued_spin_lock_slowpath
- 
--- 
-2.21.0 (Apple Git-122.2)
+These seem to have disappeared in linux-next.
