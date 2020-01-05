@@ -1,56 +1,59 @@
-Return-Path: <SRS0=zjVl=3K=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from us-smtp-delivery-1.mimecast.com ([205.139.110.120]:36778 "EHLO
-        us-smtp-1.mimecast.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-        with ESMTP id S1728748AbgAUVTk (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jan 2020 16:19:40 -0500
-Received: by mail-wr1-f72.google.com with SMTP id u18so1989075wrn.11
-        for <linux-arch@vger.kernel.org>; Tue, 21 Jan 2020 13:19:35 -0800 (PST)
-Subject: Re: [PATCH v8 4/5] locking/qspinlock: Introduce starvation avoidance
- into CNA
-References: <20191230194042.67789-1-alex.kogan@oracle.com>
- <20191230194042.67789-5-alex.kogan@oracle.com>
- <20200121132949.GL14914@hirez.programming.kicks-ass.net>
- <20200121135034.GA14946@hirez.programming.kicks-ass.net>
-From: Daniel Bristot de Oliveira <bristot@redhat.com>
-Message-ID: <e10414a6-dbfc-a666-18b8-a0499c93a203@redhat.com>
-Date: Tue, 21 Jan 2020 22:19:32 +0100
+Return-Path: <SRS0=cGiU=22=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail.kernel.org ([198.145.29.99]:59806 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1725535AbgAEJBq (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Sun, 5 Jan 2020 04:01:46 -0500
 MIME-Version: 1.0
-In-Reply-To: <20200121135034.GA14946@hirez.programming.kicks-ass.net>
-Content-Type: text/plain; charset=utf-8
-Content-Language: en-US
-Content-Transfer-Encoding: 7bit
+References: <20200105025215.2522-1-guoren@kernel.org> <20200105025215.2522-2-guoren@kernel.org>
+ <87o8viwb44.fsf@hase.home>
+In-Reply-To: <87o8viwb44.fsf@hase.home>
+From: Guo Ren <guoren@kernel.org>
+Date: Sun, 5 Jan 2020 17:01:31 +0800
+Message-ID: <CAJF2gTREKZ7FwQtyG+3YJ-Ne2BiyyWNhy4dgjVt0Y_qyy79p-Q@mail.gmail.com>
+Subject: Re: [PATCH 2/2] riscv: Add vector ISA support
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>, Alex Kogan <alex.kogan@oracle.com>
-Cc: linux@armlinux.org.uk, mingo@redhat.com, will.deacon@arm.com, arnd@arndb.de, longman@redhat.com, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, bp@alien8.de, hpa@zytor.com, x86@kernel.org, guohanjun@huawei.com, jglauber@marvell.com, steven.sistare@oracle.com, daniel.m.jordan@oracle.com, dave.dice@oracle.com
-Message-ID: <20200121211932.NTxz77UseWwKcu9TvqnlBKU1e6MUT3zdWYl3BDrBfRM@z>
+To: Andreas Schwab <schwab@linux-m68k.org>
+Cc: Paul Walmsley <paul.walmsley@sifive.com>, palmer@dabbelt.com, aou@eecs.berkeley.edu, Anup Patel <Anup.Patel@wdc.com>, vincent.chen@sifive.com, zong.li@sifive.com, greentime.hu@sifive.com, Bin Meng <bmeng.cn@gmail.com>, Atish Patra <atish.patra@wdc.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, linux-csky@vger.kernel.org, linux-riscv@lists.infradead.org, Guo Ren <ren_guo@c-sky.com>
+Message-ID: <20200105090131.xFHdns4xz92BXm_R9KlrVLHwhq_bsgTaY7cbIm7YxvU@z>
 
-On 1/21/20 2:50 PM, Peter Zijlstra wrote:
-> On Tue, Jan 21, 2020 at 02:29:49PM +0100, Peter Zijlstra wrote:
->> On Mon, Dec 30, 2019 at 02:40:41PM -0500, Alex Kogan wrote:
->>
->>> +/*
->>> + * Controls the threshold for the number of intra-node lock hand-offs before
->>> + * the NUMA-aware variant of spinlock is forced to be passed to a thread on
->>> + * another NUMA node. By default, the chosen value provides reasonable
->>> + * long-term fairness without sacrificing performance compared to a lock
->>> + * that does not have any fairness guarantees. The default setting can
->>> + * be changed with the "numa_spinlock_threshold" boot option.
->>> + */
->>> +int intra_node_handoff_threshold __ro_after_init = 1 << 16;
->> There is a distinct lack of quantitative data to back up that
->> 'reasonable' claim there.
->>
->> Where is the table of inter-node latencies observed for the various
->> values tested, and on what criteria is this number deemed reasonable?
->>
->> To me, 64k lock hold times seems like a giant number, entirely outside
->> of reasonable.
-> Daniel, IIRC you just did a paper on constructing worst case latencies
-> from measuring pieces. Do you have data on average lock hold times?
-> 
+Oops, thx. :)
 
-I am still writing the paper, but I do not have the (avg) lock times. It is it
-is in the TODO list, though!
+On Sun, Jan 5, 2020 at 4:39 PM Andreas Schwab <schwab@linux-m68k.org> wrote:
+>
+> On Jan 05 2020, guoren@kernel.org wrote:
+>
+> > diff --git a/arch/riscv/Kconfig b/arch/riscv/Kconfig
+> > index d8efbaa78d67..3d336f869ffe 100644
+> > --- a/arch/riscv/Kconfig
+> > +++ b/arch/riscv/Kconfig
+> > @@ -286,6 +286,15 @@ config FPU
+> >
+> >         If you don't know what to do here, say Y.
+> >
+> > +config VECTOR
+> > +     bool "VECTOR support"
+> > +     default n
+>
+> default n is the default.  Did you mean default y?
+>
+> > +     help
+> > +       Say N here if you want to disable all vecotr related procedure
+>
+> s/vecotr/vector/
+>
+> Andreas.
+>
+> --
+> Andreas Schwab, schwab@linux-m68k.org
+> GPG Key fingerprint = 7578 EB47 D4E5 4D69 2510  2552 DF73 E780 A9DA AEC1
+> "And now for something completely different."
 
--- Daniel
+
+
+-- 
+Best Regards
+ Guo Ren
+
+ML: https://lore.kernel.org/linux-csky/
