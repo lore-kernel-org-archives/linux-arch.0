@@ -1,195 +1,46 @@
-Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-yw1-f73.google.com ([209.85.161.73]:51330 "EHLO
-        mail-yw1-f73.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727006AbfLTBtW (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 19 Dec 2019 20:49:22 -0500
-Received: by mail-yw1-f73.google.com with SMTP id a16so5522693ywa.18
-        for <linux-arch@vger.kernel.org>; Thu, 19 Dec 2019 17:49:20 -0800 (PST)
-Date: Thu, 19 Dec 2019 17:48:53 -0800
-In-Reply-To: <CAMn1gO4iv1FsxV+aR3CgU=jgmVjHL0YQF-xJJG0UMv3nJZnOBw@mail.gmail.com>
-Message-ID: <20191220014853.223389-1-pcc@google.com>
-Mime-Version: 1.0
-References: <CAMn1gO4iv1FsxV+aR3CgU=jgmVjHL0YQF-xJJG0UMv3nJZnOBw@mail.gmail.com>
-Subject: [PATCH] arm64: mte: Clear SCTLR_EL1.TCF0 on exec
-From: Peter Collingbourne <pcc@google.com>
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
+Return-Path: <SRS0=948I=23=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail-wm1-f66.google.com ([209.85.128.66]:36639 "EHLO
+        mail-wm1-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726825AbgAFPRa (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 6 Jan 2020 10:17:30 -0500
+Date: Mon, 6 Jan 2020 18:17:25 +0300
+From: Alexey Dobriyan <adobriyan@gmail.com>
+Subject: Re: [PATCH 2/2] proc: convert everything to "struct proc_ops"
+Message-ID: <20200106151725.GB382@avx2>
+References: <20191225172228.GA13378@avx2>
+ <20191225172546.GB13378@avx2>
+ <20191231150121.5b09e34205444f6c65277b73@linux-foundation.org>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <20191231150121.5b09e34205444f6c65277b73@linux-foundation.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Catalin Marinas <catalin.marinas@arm.com>, Evgenii Stepanov <eugenis@google.com>, Kostya Serebryany <kcc@google.com>
-Cc: Peter Collingbourne <pcc@google.com>, Linux ARM <linux-arm-kernel@lists.infradead.org>, linux-arch@vger.kernel.org, Richard Earnshaw <Richard.Earnshaw@arm.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Marc Zyngier <maz@kernel.org>, Kevin Brodsky <kevin.brodsky@arm.com>, linux-mm@kvack.org, Andrey Konovalov <andreyknvl@google.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Will Deacon <will@kernel.org>
-Message-ID: <20191220014853.K5ZYk0eejuNmjncflZd0drdj2Wm1xN88D83sgWd_W08@z>
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org, netdev@vger.kernel.org
+Message-ID: <20200106151725.lTmnEe9k4gbW211-sFgUCdG68qqFwXcJ1_Oh3DKciRU@z>
 
-Signed-off-by: Peter Collingbourne <pcc@google.com>
----
-On Thu, Dec 19, 2019 at 12:32 PM Peter Collingbourne <pcc@google.com> wrote=
-:
->
-> On Wed, Dec 11, 2019 at 10:45 AM Catalin Marinas
-> <catalin.marinas@arm.com> wrote:
-> > + =C2=A0 =C2=A0 =C2=A0 if (current->thread.sctlr_tcf0 !=3D next->thread=
-.sctlr_tcf0)
-> > + =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 update_sctlr_el1_tcf=
-0(next->thread.sctlr_tcf0);
->
-> I don't entirely understand why yet, but I've found that this check is
-> insufficient for ensuring consistency between SCTLR_EL1.TCF0 and
-> sctlr_tcf0. In my Android test environment with some processes having
-> sctlr_tcf0=3DSCTLR_EL1_TCF0_SYNC and others having sctlr_tcf0=3D0, I am
-> seeing intermittent tag failures coming from the sctlr_tcf0=3D0
-> processes. With this patch:
->
-> diff --git a/arch/arm64/mm/fault.c b/arch/arm64/mm/fault.c
-> index ef3bfa2bf2b1..4e5d02520a51 100644
-> --- a/arch/arm64/mm/fault.c
-> +++ b/arch/arm64/mm/fault.c
-> @@ -663,6 +663,8 @@ static int do_sea(unsigned long addr, unsigned int
-> esr, struct pt_regs *regs)
-> =C2=A0static int do_tag_check_fault(unsigned long addr, unsigned int esr,
-> =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=
-=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 struct pt_regs *regs)
-> =C2=A0{
-> + =C2=A0 =C2=A0 =C2=A0 printk(KERN_ERR "do_tag_check_fault %lx %lx\n",
-> + =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0current->thread.sctlr_t=
-cf0, read_sysreg(sctlr_el1));
-> =C2=A0 =C2=A0 =C2=A0 =C2=A0 do_bad_area(addr, esr, regs);
-> =C2=A0 =C2=A0 =C2=A0 =C2=A0 return 0;
-> =C2=A0}
->
-> I see dmesg output like this:
->
-> [ =C2=A0 15.249216] do_tag_check_fault 0 c60fc64791d
->
-> showing that SCTLR_EL1.TCF0 became inconsistent with sctlr_tcf0. This
-> patch fixes the problem for me:
->
-> diff --git a/arch/arm64/kernel/process.c b/arch/arm64/kernel/process.c
-> index fba89c9f070b..fb012f0baa12 100644
-> --- a/arch/arm64/kernel/process.c
-> +++ b/arch/arm64/kernel/process.c
-> @@ -518,9 +518,7 @@ static void mte_thread_switch(struct task_struct *nex=
-t)
-> =C2=A0 =C2=A0 =C2=A0 =C2=A0 if (!system_supports_mte())
-> =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 return;
->
-> - =C2=A0 =C2=A0 =C2=A0 /* avoid expensive SCTLR_EL1 accesses if no change=
- */
-> - =C2=A0 =C2=A0 =C2=A0 if (current->thread.sctlr_tcf0 !=3D next->thread.s=
-ctlr_tcf0)
-> - =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 update_sctlr_el1_tcf0(=
-next->thread.sctlr_tcf0);
-> + =C2=A0 =C2=A0 =C2=A0 update_sctlr_el1_tcf0(next->thread.sctlr_tcf0);
-> =C2=A0 =C2=A0 =C2=A0 =C2=A0 update_gcr_el1_excl(next->thread.gcr_excl);
-> =C2=A0}
-> =C2=A0#else
-> @@ -643,15 +641,8 @@ static long set_mte_ctrl(unsigned long arg)
-> =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 return -EINVAL;
-> =C2=A0 =C2=A0 =C2=A0 =C2=A0 }
->
-> - =C2=A0 =C2=A0 =C2=A0 /*
-> - =C2=A0 =C2=A0 =C2=A0 =C2=A0* mte_thread_switch() checks current->thread=
-.sctlr_tcf0 as an
-> - =C2=A0 =C2=A0 =C2=A0 =C2=A0* optimisation. Disable preemption so that i=
-t does not see
-> - =C2=A0 =C2=A0 =C2=A0 =C2=A0* the variable update before the SCTLR_EL1.T=
-CF0 one.
-> - =C2=A0 =C2=A0 =C2=A0 =C2=A0*/
-> - =C2=A0 =C2=A0 =C2=A0 preempt_disable();
-> =C2=A0 =C2=A0 =C2=A0 =C2=A0 current->thread.sctlr_tcf0 =3D tcf0;
-> =C2=A0 =C2=A0 =C2=A0 =C2=A0 update_sctlr_el1_tcf0(tcf0);
-> - =C2=A0 =C2=A0 =C2=A0 preempt_enable();
->
-> =C2=A0 =C2=A0 =C2=A0 =C2=A0 current->thread.gcr_excl =3D (arg & PR_MTE_EX=
-CL_MASK) >>
-> PR_MTE_EXCL_SHIFT;
-> =C2=A0 =C2=A0 =C2=A0 =C2=A0 update_gcr_el1_excl(current->thread.gcr_excl)=
-;
->
-> Since sysreg_clear_set only sets the sysreg if it ended up changing, I
-> wouldn't expect this to cause a significant performance hit unless
-> just reading SCTLR_EL1 is expensive. That being said, if the
-> inconsistency is indicative of a deeper problem, we should probably
-> address that.
+On Tue, Dec 31, 2019 at 03:01:21PM -0800, Andrew Morton wrote:
+> On Wed, 25 Dec 2019 20:25:46 +0300 Alexey Dobriyan <adobriyan@gmail.com> wrote:
+> 
+> > The most notable change is DEFINE_SHOW_ATTRIBUTE macro split in
+> > seq_file.h.
+> > 
+> > Conversion rule is:
+> > 
+> > 	llseek		=> proc_lseek
+> > 	unlocked_ioctl	=> proc_ioctl
+> > 
+> > 	xxx		=> proc_xxx
+> > 
+> > 	delete ".owner = THIS_MODULE" line
+> > 
+> > ...
+> >
+> >  drivers/staging/isdn/hysdn/hysdn_procconf.c           |   15 +-
+> >  drivers/staging/isdn/hysdn/hysdn_proclog.c            |   17 +-
+> 
+> These seem to have disappeared in linux-next.
 
-I tracked it down to the flush_mte_state() function setting sctlr_tcf0 but
-failing to update SCTLR_EL1.TCF0. With this patch I am not seeing any more
-inconsistencies.
-
-Peter
-
- arch/arm64/kernel/process.c | 37 +++++++++++++++++++++----------------
- 1 file changed, 21 insertions(+), 16 deletions(-)
-
-diff --git a/arch/arm64/kernel/process.c b/arch/arm64/kernel/process.c
-index fba89c9f070b..07e8e7bd3bec 100644
---- a/arch/arm64/kernel/process.c
-+++ b/arch/arm64/kernel/process.c
-@@ -319,6 +319,25 @@ static void flush_tagged_addr_state(void)
- }
-=20
- #ifdef CONFIG_ARM64_MTE
-+static void update_sctlr_el1_tcf0(u64 tcf0)
-+{
-+	/* no need for ISB since this only affects EL0, implicit with ERET */
-+	sysreg_clear_set(sctlr_el1, SCTLR_EL1_TCF0_MASK, tcf0);
-+}
-+
-+static void set_sctlr_el1_tcf0(u64 tcf0)
-+{
-+	/*
-+	 * mte_thread_switch() checks current->thread.sctlr_tcf0 as an
-+	 * optimisation. Disable preemption so that it does not see
-+	 * the variable update before the SCTLR_EL1.TCF0 one.
-+	 */
-+	preempt_disable();
-+	current->thread.sctlr_tcf0 =3D tcf0;
-+	update_sctlr_el1_tcf0(tcf0);
-+	preempt_enable();
-+}
-+
- static void flush_mte_state(void)
- {
- 	if (!system_supports_mte())
-@@ -327,7 +346,7 @@ static void flush_mte_state(void)
- 	/* clear any pending asynchronous tag fault */
- 	clear_thread_flag(TIF_MTE_ASYNC_FAULT);
- 	/* disable tag checking */
--	current->thread.sctlr_tcf0 =3D 0;
-+	set_sctlr_el1_tcf0(0);
- }
- #else
- static void flush_mte_state(void)
-@@ -497,12 +516,6 @@ static void ssbs_thread_switch(struct task_struct *nex=
-t)
- }
-=20
- #ifdef CONFIG_ARM64_MTE
--static void update_sctlr_el1_tcf0(u64 tcf0)
--{
--	/* no need for ISB since this only affects EL0, implicit with ERET */
--	sysreg_clear_set(sctlr_el1, SCTLR_EL1_TCF0_MASK, tcf0);
--}
--
- static void update_gcr_el1_excl(u64 excl)
- {
- 	/*
-@@ -643,15 +656,7 @@ static long set_mte_ctrl(unsigned long arg)
- 		return -EINVAL;
- 	}
-=20
--	/*
--	 * mte_thread_switch() checks current->thread.sctlr_tcf0 as an
--	 * optimisation. Disable preemption so that it does not see
--	 * the variable update before the SCTLR_EL1.TCF0 one.
--	 */
--	preempt_disable();
--	current->thread.sctlr_tcf0 =3D tcf0;
--	update_sctlr_el1_tcf0(tcf0);
--	preempt_enable();
-+	set_sctlr_el1_tcf0(tcf0);
-=20
- 	current->thread.gcr_excl =3D (arg & PR_MTE_EXCL_MASK) >> PR_MTE_EXCL_SHIF=
-T;
- 	update_gcr_el1_excl(current->thread.gcr_excl);
---=20
-2.24.1.735.g03f4e72817-goog
+Excellent, the less chunks the better.
+Any actual conversion can be dropped if file was deleted.
