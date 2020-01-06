@@ -1,209 +1,70 @@
-Return-Path: <SRS0=nYHR=3J=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail-ot1-f67.google.com ([209.85.210.67]:40373 "EHLO
-        mail-ot1-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1729073AbgATPF4 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 20 Jan 2020 10:05:56 -0500
-Received: by mail-ot1-f67.google.com with SMTP id w21so28906747otj.7
-        for <linux-arch@vger.kernel.org>; Mon, 20 Jan 2020 07:05:55 -0800 (PST)
+Return-Path: <SRS0=948I=23=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail.kernel.org ([198.145.29.99]:52110 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1727307AbgAFDip (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Sun, 5 Jan 2020 22:38:45 -0500
 MIME-Version: 1.0
-References: <20200120141927.114373-1-elver@google.com> <20200120141927.114373-5-elver@google.com>
- <CACT4Y+bUvoePVPV+BqU-cwhF6bR41_eaYkr9WLLMYi-2q11JjQ@mail.gmail.com>
-In-Reply-To: <CACT4Y+bUvoePVPV+BqU-cwhF6bR41_eaYkr9WLLMYi-2q11JjQ@mail.gmail.com>
-From: Marco Elver <elver@google.com>
-Date: Mon, 20 Jan 2020 16:05:42 +0100
-Message-ID: <CANpmjNMZpLfNKLOs7JVxP-S7oWbkvyg=bt=uYGU30bMZXYtUHA@mail.gmail.com>
-Subject: Re: [PATCH 5/5] copy_to_user, copy_from_user: Use generic instrumented.h
+References: <20200105025215.2522-1-guoren@kernel.org> <20200105025215.2522-2-guoren@kernel.org>
+ <20200106024515.GA1021@andestech.com> <CAAhSdy2N1v20g-WGo99Utrvhj4NXZeFP-is1jqCs9DE_Zs2VKg@mail.gmail.com>
+In-Reply-To: <CAAhSdy2N1v20g-WGo99Utrvhj4NXZeFP-is1jqCs9DE_Zs2VKg@mail.gmail.com>
+From: Guo Ren <guoren@kernel.org>
+Date: Mon, 6 Jan 2020 11:38:30 +0800
+Message-ID: <CAJF2gTQ8-b2w7-v1giYN_UYcNMaeju8yv0ksUu2=g5YJtk1rdw@mail.gmail.com>
+Subject: Re: [PATCH 2/2] riscv: Add vector ISA support
 Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dmitry Vyukov <dvyukov@google.com>
-Cc: "Paul E. McKenney" <paulmck@kernel.org>, Andrey Konovalov <andreyknvl@google.com>, Alexander Potapenko <glider@google.com>, kasan-dev <kasan-dev@googlegroups.com>, LKML <linux-kernel@vger.kernel.org>, Mark Rutland <mark.rutland@arm.com>, Will Deacon <will@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Boqun Feng <boqun.feng@gmail.com>, Arnd Bergmann <arnd@arndb.de>, Al Viro <viro@zeniv.linux.org.uk>, Christophe Leroy <christophe.leroy@c-s.fr>, Daniel Axtens <dja@axtens.net>, Michael Ellerman <mpe@ellerman.id.au>, Steven Rostedt <rostedt@goodmis.org>, Masami Hiramatsu <mhiramat@kernel.org>, Ingo Molnar <mingo@kernel.org>, Christian Brauner <christian.brauner@ubuntu.com>, Daniel Borkmann <daniel@iogearbox.net>, cyphar@cyphar.com, Kees Cook <keescook@chromium.org>, linux-arch <linux-arch@vger.kernel.org>
-Message-ID: <20200120150542.SHpt7omhIgu7VdFIGCy5gze0uWTM_xvyV-fUOs9W0_s@z>
+To: Anup Patel <anup@brainfault.org>
+Cc: Alan Kao <alankao@andestech.com>, linux-arch <linux-arch@vger.kernel.org>, Albert Ou <aou@eecs.berkeley.edu>, Guo Ren <ren_guo@c-sky.com>, Arnd Bergmann <arnd@arndb.de>, Atish Patra <atish.patra@wdc.com>, Anup Patel <Anup.Patel@wdc.com>, "linux-kernel@vger.kernel.org List" <linux-kernel@vger.kernel.org>, linux-csky@vger.kernel.org, Vincent Chen <vincent.chen@sifive.com>, Palmer Dabbelt <palmer@dabbelt.com>, Zong Li <zong.li@sifive.com>, Paul Walmsley <paul.walmsley@sifive.com>, Greentime Hu <greentime.hu@sifive.com>, linux-riscv <linux-riscv@lists.infradead.org>, Bin Meng <bmeng.cn@gmail.com>
+Message-ID: <20200106033830.3vdEpZ1EIEr0cQH_dqU1Rj7FLDD_KK1xkD706HMVlls@z>
 
-On Mon, 20 Jan 2020 at 15:52, Dmitry Vyukov <dvyukov@google.com> wrote:
+Thx Anup,
+
+The purpose of the patch is to talk about abi for linux & libc.
+
+The most confused me is how max vlen (128/256/512/1024 ???), we should
+put it into sigcontext. I need people's suggestions, thx.
+
+Anyone help to review the patch are very helpful and we could
+co-developed together, Thx
+
+On Mon, Jan 6, 2020 at 11:00 AM Anup Patel <anup@brainfault.org> wrote:
 >
-> On Mon, Jan 20, 2020 at 3:19 PM Marco Elver <elver@google.com> wrote:
+> On Mon, Jan 6, 2020 at 8:15 AM Alan Kao <alankao@andestech.com> wrote:
 > >
-> > This replaces the KASAN instrumentation with generic instrumentation,
-> > implicitly adding KCSAN instrumentation support.
+> > Hi Guo,
 > >
-> > For KASAN no functional change is intended.
+> > On Sun, Jan 05, 2020 at 10:52:15AM +0800, guoren@kernel.org wrote:
+> > > From: Guo Ren <ren_guo@c-sky.com>
+> > >
+> > > The implementation follow the RISC-V "V" Vector Extension draft v0.8 with
+> > > 128bit-vlen and it's based on linux-5.5-rc4.
+> > >
 > >
-> > Suggested-by: Arnd Bergmann <arnd@arndb.de>
-> > Signed-off-by: Marco Elver <elver@google.com>
-> > ---
-> >  include/linux/uaccess.h | 46 +++++++++++++++++++++++++++++------------
-> >  lib/usercopy.c          | 14 ++++++++-----
-> >  2 files changed, 42 insertions(+), 18 deletions(-)
+> > According to https://lkml.org/lkml/2019/11/22/2169, in which Paul has stated
+> > that "we plan to only accept patches for new modules or extensions that have
+> > been frozen or ratified by the RISC-V Foundation."
 > >
-> > diff --git a/include/linux/uaccess.h b/include/linux/uaccess.h
-> > index 67f016010aad..d3f2d9a8cae3 100644
-> > --- a/include/linux/uaccess.h
-> > +++ b/include/linux/uaccess.h
-> > @@ -2,9 +2,9 @@
-> >  #ifndef __LINUX_UACCESS_H__
-> >  #define __LINUX_UACCESS_H__
-> >
-> > +#include <linux/instrumented.h>
-> >  #include <linux/sched.h>
-> >  #include <linux/thread_info.h>
-> > -#include <linux/kasan-checks.h>
-> >
-> >  #define uaccess_kernel() segment_eq(get_fs(), KERNEL_DS)
-> >
-> > @@ -58,18 +58,26 @@
-> >  static __always_inline __must_check unsigned long
-> >  __copy_from_user_inatomic(void *to, const void __user *from, unsigned long n)
-> >  {
-> > -       kasan_check_write(to, n);
-> > +       unsigned long res;
-> > +
-> >         check_object_size(to, n, false);
-> > -       return raw_copy_from_user(to, from, n);
-> > +       instrument_copy_from_user_pre(to, n);
-> > +       res = raw_copy_from_user(to, from, n);
-> > +       instrument_copy_from_user_post(to, n, res);
-> > +       return res;
-> >  }
+> > Is v0.8 ratified enough for now?
 >
-> There is also something called strncpy_from_user() that has kasan
-> instrumentation now:
-> https://elixir.bootlin.com/linux/v5.5-rc6/source/lib/strncpy_from_user.c#L117
+> As-per the patch acceptance policy, we cannot merge it now (just like KVM
+> patches) but we can always review and get the patches in final shape
+> by the time spec is frozen or ratified.
+>
+> I think we should continue with the patch review and get this series in
+> good shape.
+>
+> In fact, having this patches early on LKML is very helpful for people working
+> on RISC-V vector extension implementation in HW. On this line, this a good
+> contribution coming at the right time.
+>
+> Regards,
+> Anup
 
-Yes, however, I think it's a special case for KASAN. The
-implementation is already instrumented by the compiler. In the
-original commit it says (1771c6e1a567e):
 
-"Note: Unlike others strncpy_from_user() is written mostly in C and KASAN
-    sees memory accesses in it.  However, it makes sense to add explicit
-    check for all @count bytes that *potentially* could be written to the
-    kernel."
 
-I don't think we want unconditional double-instrumentation here. Let
-me know if you think otherwise.
+-- 
+Best Regards
+ Guo Ren
 
-Thanks,
--- Marco
-
-> >  static __always_inline __must_check unsigned long
-> >  __copy_from_user(void *to, const void __user *from, unsigned long n)
-> >  {
-> > +       unsigned long res;
-> > +
-> >         might_fault();
-> > -       kasan_check_write(to, n);
-> >         check_object_size(to, n, false);
-> > -       return raw_copy_from_user(to, from, n);
-> > +       instrument_copy_from_user_pre(to, n);
-> > +       res = raw_copy_from_user(to, from, n);
-> > +       instrument_copy_from_user_post(to, n, res);
-> > +       return res;
-> >  }
-> >
-> >  /**
-> > @@ -88,18 +96,26 @@ __copy_from_user(void *to, const void __user *from, unsigned long n)
-> >  static __always_inline __must_check unsigned long
-> >  __copy_to_user_inatomic(void __user *to, const void *from, unsigned long n)
-> >  {
-> > -       kasan_check_read(from, n);
-> > +       unsigned long res;
-> > +
-> >         check_object_size(from, n, true);
-> > -       return raw_copy_to_user(to, from, n);
-> > +       instrument_copy_to_user_pre(from, n);
-> > +       res = raw_copy_to_user(to, from, n);
-> > +       instrument_copy_to_user_post(from, n, res);
-> > +       return res;
-> >  }
-> >
-> >  static __always_inline __must_check unsigned long
-> >  __copy_to_user(void __user *to, const void *from, unsigned long n)
-> >  {
-> > +       unsigned long res;
-> > +
-> >         might_fault();
-> > -       kasan_check_read(from, n);
-> >         check_object_size(from, n, true);
-> > -       return raw_copy_to_user(to, from, n);
-> > +       instrument_copy_to_user_pre(from, n);
-> > +       res = raw_copy_to_user(to, from, n);
-> > +       instrument_copy_to_user_post(from, n, res);
-> > +       return res;
-> >  }
-> >
-> >  #ifdef INLINE_COPY_FROM_USER
-> > @@ -109,8 +125,9 @@ _copy_from_user(void *to, const void __user *from, unsigned long n)
-> >         unsigned long res = n;
-> >         might_fault();
-> >         if (likely(access_ok(from, n))) {
-> > -               kasan_check_write(to, n);
-> > +               instrument_copy_from_user_pre(to, n);
-> >                 res = raw_copy_from_user(to, from, n);
-> > +               instrument_copy_from_user_post(to, n, res);
-> >         }
-> >         if (unlikely(res))
-> >                 memset(to + (n - res), 0, res);
-> > @@ -125,12 +142,15 @@ _copy_from_user(void *, const void __user *, unsigned long);
-> >  static inline __must_check unsigned long
-> >  _copy_to_user(void __user *to, const void *from, unsigned long n)
-> >  {
-> > +       unsigned long res = n;
-> > +
-> >         might_fault();
-> >         if (access_ok(to, n)) {
-> > -               kasan_check_read(from, n);
-> > -               n = raw_copy_to_user(to, from, n);
-> > +               instrument_copy_to_user_pre(from, n);
-> > +               res = raw_copy_to_user(to, from, n);
-> > +               instrument_copy_to_user_post(from, n, res);
-> >         }
-> > -       return n;
-> > +       return res;
-> >  }
-> >  #else
-> >  extern __must_check unsigned long
-> > diff --git a/lib/usercopy.c b/lib/usercopy.c
-> > index cbb4d9ec00f2..1c20d4423b86 100644
-> > --- a/lib/usercopy.c
-> > +++ b/lib/usercopy.c
-> > @@ -1,6 +1,7 @@
-> >  // SPDX-License-Identifier: GPL-2.0
-> > -#include <linux/uaccess.h>
-> >  #include <linux/bitops.h>
-> > +#include <linux/instrumented.h>
-> > +#include <linux/uaccess.h>
-> >
-> >  /* out-of-line parts */
-> >
-> > @@ -10,8 +11,9 @@ unsigned long _copy_from_user(void *to, const void __user *from, unsigned long n
-> >         unsigned long res = n;
-> >         might_fault();
-> >         if (likely(access_ok(from, n))) {
-> > -               kasan_check_write(to, n);
-> > +               instrument_copy_from_user_pre(to, n);
-> >                 res = raw_copy_from_user(to, from, n);
-> > +               instrument_copy_from_user_post(to, n, res);
-> >         }
-> >         if (unlikely(res))
-> >                 memset(to + (n - res), 0, res);
-> > @@ -23,12 +25,14 @@ EXPORT_SYMBOL(_copy_from_user);
-> >  #ifndef INLINE_COPY_TO_USER
-> >  unsigned long _copy_to_user(void __user *to, const void *from, unsigned long n)
-> >  {
-> > +       unsigned long res = n;
-> >         might_fault();
-> >         if (likely(access_ok(to, n))) {
-> > -               kasan_check_read(from, n);
-> > -               n = raw_copy_to_user(to, from, n);
-> > +               instrument_copy_to_user_pre(from, n);
-> > +               res = raw_copy_to_user(to, from, n);
-> > +               instrument_copy_to_user_post(from, n, res);
-> >         }
-> > -       return n;
-> > +       return res;
-> >  }
-> >  EXPORT_SYMBOL(_copy_to_user);
-> >  #endif
-> > --
-> > 2.25.0.341.g760bfbb309-goog
-> >
+ML: https://lore.kernel.org/linux-csky/
