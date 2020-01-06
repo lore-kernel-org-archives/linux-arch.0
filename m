@@ -1,61 +1,52 @@
-Return-Path: <SRS0=fIL7=27=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:45844 "EHLO foss.arm.com"
+Return-Path: <SRS0=948I=23=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail.kernel.org ([198.145.29.99]:48768 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1728239AbgAJOyg (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 10 Jan 2020 09:54:36 -0500
-From: Mark Brown <broonie@kernel.org>
-Subject: [PATCH v2 04/10] linux/random.h: Remove arch_has_random, arch_has_random_seed
-Date: Fri, 10 Jan 2020 14:54:16 +0000
-Message-ID: <20200110145422.49141-5-broonie@kernel.org>
-In-Reply-To: <20200110145422.49141-1-broonie@kernel.org>
-References: <20200110145422.49141-1-broonie@kernel.org>
+        id S1727307AbgAFDdI (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Sun, 5 Jan 2020 22:33:08 -0500
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+References: <20200105025215.2522-1-guoren@kernel.org> <20200105025215.2522-2-guoren@kernel.org>
+ <20200106024515.GA1021@andestech.com>
+In-Reply-To: <20200106024515.GA1021@andestech.com>
+From: Guo Ren <guoren@kernel.org>
+Date: Mon, 6 Jan 2020 11:32:53 +0800
+Message-ID: <CAJF2gTRd=PmNAj3T-_pD-k4x7aOgzRr54h_J-HCqUjLvVNCoTg@mail.gmail.com>
+Subject: Re: [PATCH 2/2] riscv: Add vector ISA support
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org
-Cc: Richard Henderson <richard.henderson@linaro.org>, Borislav Petkov <bp@alien8.de>, linux-s390@vger.kernel.org, herbert@gondor.apana.org.au, x86@kernel.org, linux-crypto@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-arm-kernel@lists.infradead.org, Richard Henderson <rth@twiddle.net>, Mark Brown <broonie@kernel.org>
-Message-ID: <20200110145416.E70rA8VL-Oq8BSh6sPbM-0N89Z3Ldtx5TL3k0wAplO8@z>
+To: Alan Kao <alankao@andestech.com>
+Cc: linux-arch <linux-arch@vger.kernel.org>, aou@eecs.berkeley.edu, Guo Ren <ren_guo@c-sky.com>, Arnd Bergmann <arnd@arndb.de>, Atish Patra <atish.patra@wdc.com>, Anup Patel <Anup.Patel@wdc.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-csky@vger.kernel.org, vincent.chen@sifive.com, Palmer Dabbelt <palmer@dabbelt.com>, zong.li@sifive.com, Paul Walmsley <paul.walmsley@sifive.com>, greentime.hu@sifive.com, linux-riscv@lists.infradead.org, Bin Meng <bmeng.cn@gmail.com>
+Message-ID: <20200106033253.JBURDeAkZEkXP8wLIr_H_j4e4GndD31feMeeIP0rnzg@z>
 
-From: Richard Henderson <richard.henderson@linaro.org>
+Let's talk about libc abi for sigcontext and our cpu has the vector
+features, so we need start the work to support stress-test.
 
-The arm64 version of archrandom.h will need to be able to test for
-support and read the random number without preemption, so a separate
-query predicate is not practical.
+I think it's the same to andes, because andes also announced the
+vector processor. The linux and libc are only small part of vector
+ISA, let's work together :)
 
-Since this part of the generic interface is unused, remove it.
+On Mon, Jan 6, 2020 at 10:45 AM Alan Kao <alankao@andestech.com> wrote:
+>
+> Hi Guo,
+>
+> On Sun, Jan 05, 2020 at 10:52:15AM +0800, guoren@kernel.org wrote:
+> > From: Guo Ren <ren_guo@c-sky.com>
+> >
+> > The implementation follow the RISC-V "V" Vector Extension draft v0.8 with
+> > 128bit-vlen and it's based on linux-5.5-rc4.
+> >
+>
+> According to https://lkml.org/lkml/2019/11/22/2169, in which Paul has stated
+> that "we plan to only accept patches for new modules or extensions that have
+> been frozen or ratified by the RISC-V Foundation."
+>
+> Is v0.8 ratified enough for now?
+>
+>
 
-Signed-off-by: Richard Henderson <rth@twiddle.net>
-Signed-off-by: Mark Brown <broonie@kernel.org>
----
- include/linux/random.h | 8 --------
- 1 file changed, 8 deletions(-)
 
-diff --git a/include/linux/random.h b/include/linux/random.h
-index f189c927fdea..7fd0360908d2 100644
---- a/include/linux/random.h
-+++ b/include/linux/random.h
-@@ -175,10 +175,6 @@ static inline bool arch_get_random_int(unsigned int *v)
- {
- 	return 0;
- }
--static inline bool arch_has_random(void)
--{
--	return 0;
--}
- static inline bool arch_get_random_seed_long(unsigned long *v)
- {
- 	return 0;
-@@ -187,10 +183,6 @@ static inline bool arch_get_random_seed_int(unsigned int *v)
- {
- 	return 0;
- }
--static inline bool arch_has_random_seed(void)
--{
--	return 0;
--}
- #endif
- 
- /* Pseudo random number generator from numerical recipes. */
 -- 
-2.20.1
+Best Regards
+ Guo Ren
+
+ML: https://lore.kernel.org/linux-csky/
