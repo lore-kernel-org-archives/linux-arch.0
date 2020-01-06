@@ -1,41 +1,106 @@
-From: Alexey Dobriyan <adobriyan@gmail.com>
-Subject: Re: [PATCH 2/2] proc: convert everything to "struct proc_ops"
-Date: Mon, 6 Jan 2020 18:17:25 +0300
-Message-ID: <20200106151725.GB382@avx2>
-References: <20191225172228.GA13378@avx2>
- <20191225172546.GB13378@avx2>
- <20191231150121.5b09e34205444f6c65277b73@linux-foundation.org>
+From: Waiman Long <longman@redhat.com>
+Subject: Re: [PATCH v8 4/5] locking/qspinlock: Introduce starvation avoidance
+ into CNA
+Date: Mon, 6 Jan 2020 10:33:27 -0500
+Message-ID: <53b08fc3-f29f-65ec-f2e9-0f469cd79744@redhat.com>
+References: <20191230194042.67789-1-alex.kogan@oracle.com>
+ <20191230194042.67789-5-alex.kogan@oracle.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Return-path: <netdev-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20191231150121.5b09e34205444f6c65277b73@linux-foundation.org>
-Sender: netdev-owner@vger.kernel.org
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org, netdev@vger.kernel.org
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+In-Reply-To: <20191230194042.67789-5-alex.kogan@oracle.com>
+Content-Language: en-US
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+To: Alex Kogan <alex.kogan@oracle.com>, linux@armlinux.org.uk, peterz@infradead.org, mingo@redhat.com, will.deacon@arm.com, arnd@arndb.de, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, bp@alien8.de, hpa@zytor.com, x86@kernel.org, guohanjun@huawei.com, jglauber@marvell.com
+Cc: dave.dice@oracle.com, steven.sistare@oracle.com, daniel.m.jordan@oracle.com
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, Dec 31, 2019 at 03:01:21PM -0800, Andrew Morton wrote:
-> On Wed, 25 Dec 2019 20:25:46 +0300 Alexey Dobriyan <adobriyan@gmail.com> wrote:
-> 
-> > The most notable change is DEFINE_SHOW_ATTRIBUTE macro split in
-> > seq_file.h.
-> > 
-> > Conversion rule is:
-> > 
-> > 	llseek		=> proc_lseek
-> > 	unlocked_ioctl	=> proc_ioctl
-> > 
-> > 	xxx		=> proc_xxx
-> > 
-> > 	delete ".owner = THIS_MODULE" line
-> > 
-> > ...
-> >
-> >  drivers/staging/isdn/hysdn/hysdn_procconf.c           |   15 +-
-> >  drivers/staging/isdn/hysdn/hysdn_proclog.c            |   17 +-
-> 
-> These seem to have disappeared in linux-next.
+On 12/30/19 2:40 PM, Alex Kogan wrote:
+> Keep track of the number of intra-node lock handoffs, and force
+> inter-node handoff once this number reaches a preset threshold.
+> The default value for the threshold can be overridden with
+> the new kernel boot command-line option "numa_spinlock_threshold".
+>
+> Signed-off-by: Alex Kogan <alex.kogan@oracle.com>
+> Reviewed-by: Steve Sistare <steven.sistare@oracle.com>
+> ---
+>  .../admin-guide/kernel-parameters.txt         |  8 ++++
+>  kernel/locking/qspinlock.c                    |  3 ++
+>  kernel/locking/qspinlock_cna.h                | 41 ++++++++++++++++++-
+>  3 files changed, 51 insertions(+), 1 deletion(-)
+>
+> diff --git a/Documentation/admin-guide/kernel-parameters.txt b/Documentation/admin-guide/kernel-parameters.txt
+> index b68cb80e477f..30d79819a3b0 100644
+> --- a/Documentation/admin-guide/kernel-parameters.txt
+> +++ b/Documentation/admin-guide/kernel-parameters.txt
+> @@ -3200,6 +3200,14 @@
+>  			Not specifying this option is equivalent to
+>  			numa_spinlock=auto.
+>  
+> +	numa_spinlock_threshold=	[NUMA, PV_OPS]
+> +			Set the threshold for the number of intra-node
+> +			lock hand-offs before the NUMA-aware spinlock
+> +			is forced to be passed to a thread on another NUMA node.
+> +			Valid values are in the [0..31] range. Smaller values
+> +			result in a more fair, but less performant spinlock, and
+> +			vice versa. The default value is 16.
+> +
+>  	cpu0_hotplug	[X86] Turn on CPU0 hotplug feature when
+>  			CONFIG_BOOTPARAM_HOTPLUG_CPU0 is off.
+>  			Some features depend on CPU0. Known dependencies are:
+> diff --git a/kernel/locking/qspinlock.c b/kernel/locking/qspinlock.c
+> index 609980a53841..e382d8946ccc 100644
+> --- a/kernel/locking/qspinlock.c
+> +++ b/kernel/locking/qspinlock.c
+> @@ -597,6 +597,9 @@ EXPORT_SYMBOL(queued_spin_lock_slowpath);
+>  #if !defined(_GEN_CNA_LOCK_SLOWPATH) && defined(CONFIG_NUMA_AWARE_SPINLOCKS)
+>  #define _GEN_CNA_LOCK_SLOWPATH
+>  
+> +#undef pv_init_node
+> +#define pv_init_node			cna_init_node
+> +
+>  #undef pv_wait_head_or_lock
+>  #define pv_wait_head_or_lock		cna_pre_scan
+>  
+> diff --git a/kernel/locking/qspinlock_cna.h b/kernel/locking/qspinlock_cna.h
+> index 3c99a4a6184b..30feff02865d 100644
+> --- a/kernel/locking/qspinlock_cna.h
+> +++ b/kernel/locking/qspinlock_cna.h
+> @@ -51,13 +51,25 @@ struct cna_node {
+>  	int			numa_node;
+>  	u32			encoded_tail;
+>  	u32			pre_scan_result; /* encoded tail or enum val */
+> +	u32			intra_count;
+>  };
+>  
+>  enum {
+>  	LOCAL_WAITER_FOUND = 2,	/* 0 and 1 are reserved for @locked */
+> +	FLUSH_SECONDARY_QUEUE = 3,
+>  	MIN_ENCODED_TAIL
+>  };
+>  
+> +/*
+> + * Controls the threshold for the number of intra-node lock hand-offs before
+> + * the NUMA-aware variant of spinlock is forced to be passed to a thread on
+> + * another NUMA node. By default, the chosen value provides reasonable
+> + * long-term fairness without sacrificing performance compared to a lock
+> + * that does not have any fairness guarantees. The default setting can
+> + * be changed with the "numa_spinlock_threshold" boot option.
+> + */
+> +int intra_node_handoff_threshold __ro_after_init = 1 << 16;
 
-Excellent, the less chunks the better.
-Any actual conversion can be dropped if file was deleted.
+Another minor nit. (1 << 31) is negative for an int value. I will
+suggest that you either make intra_node_handoff_threshold an unsigned
+int or limit the upper bound to 30.
+
+Cheers,
+Longman
