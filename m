@@ -1,61 +1,100 @@
-Return-Path: <SRS0=fIL7=27=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:45888 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1728358AbgAJOyl (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 10 Jan 2020 09:54:41 -0500
-From: Mark Brown <broonie@kernel.org>
-Subject: [PATCH v2 06/10] linux/random.h: Mark CONFIG_ARCH_RANDOM functions __must_check
-Date: Fri, 10 Jan 2020 14:54:18 +0000
-Message-ID: <20200110145422.49141-7-broonie@kernel.org>
-In-Reply-To: <20200110145422.49141-1-broonie@kernel.org>
-References: <20200110145422.49141-1-broonie@kernel.org>
+Return-Path: <SRS0=948I=23=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from us-smtp-delivery-1.mimecast.com ([205.139.110.120]:21924 "EHLO
+        us-smtp-1.mimecast.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+        with ESMTP id S1726446AbgAFPsb (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 6 Jan 2020 10:48:31 -0500
+Subject: Re: [PATCH v8 0/5] Add NUMA-awareness to qspinlock
+References: <20191230194042.67789-1-alex.kogan@oracle.com>
+From: Waiman Long <longman@redhat.com>
+Message-ID: <13cde730-34c1-8b99-6990-1f64cc78670d@redhat.com>
+Date: Mon, 6 Jan 2020 10:48:15 -0500
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+In-Reply-To: <20191230194042.67789-1-alex.kogan@oracle.com>
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
+Content-Language: en-US
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org
-Cc: Richard Henderson <richard.henderson@linaro.org>, Borislav Petkov <bp@alien8.de>, linux-s390@vger.kernel.org, herbert@gondor.apana.org.au, x86@kernel.org, linux-crypto@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-arm-kernel@lists.infradead.org, Ard Biesheuvel <ardb@kernel.org>, Richard Henderson <rth@twiddle.net>, Mark Brown <broonie@kernel.org>
-Message-ID: <20200110145418.X-cIbIQozFa_wddJY3Wh7iwwBu7pW9FJ3_W-rpLxlcQ@z>
+To: Alex Kogan <alex.kogan@oracle.com>, linux@armlinux.org.uk, peterz@infradead.org, mingo@redhat.com, will.deacon@arm.com, arnd@arndb.de, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, bp@alien8.de, hpa@zytor.com, x86@kernel.org, guohanjun@huawei.com, jglauber@marvell.com
+Cc: steven.sistare@oracle.com, daniel.m.jordan@oracle.com, dave.dice@oracle.com
+Message-ID: <20200106154815.xf86hYtKuVbHQN9wFfw9ZAtS70d13Mw6JfXljsSiVno@z>
 
-From: Richard Henderson <richard.henderson@linaro.org>
+On 12/30/19 2:40 PM, Alex Kogan wrote:
+> Minor changes from v7 based on feedback from Longman:
+> -----------------------------------------------------
+>
+> - Move __init functions from alternative.c to qspinlock_cna.h
+>
+> - Introduce enum for return values from cna_pre_scan(), for better
+> readability.
+>
+> - Add/revise a few comments to improve readability.
+>
+>
+> Summary
+> -------
+>
+> Lock throughput can be increased by handing a lock to a waiter on the
+> same NUMA node as the lock holder, provided care is taken to avoid
+> starvation of waiters on other NUMA nodes. This patch introduces CNA
+> (compact NUMA-aware lock) as the slow path for qspinlock. It is
+> enabled through a configuration option (NUMA_AWARE_SPINLOCKS).
+>
+> CNA is a NUMA-aware version of the MCS lock. Spinning threads are
+> organized in two queues, a main queue for threads running on the same
+> node as the current lock holder, and a secondary queue for threads
+> running on other nodes. Threads store the ID of the node on which
+> they are running in their queue nodes. After acquiring the MCS lock and
+> before acquiring the spinlock, the lock holder scans the main queue
+> looking for a thread running on the same node (pre-scan). If found (call
+> it thread T), all threads in the main queue between the current lock
+> holder and T are moved to the end of the secondary queue.  If such T
+> is not found, we make another scan of the main queue after acquiring 
+> the spinlock when unlocking the MCS lock (post-scan), starting at the
+> node where pre-scan stopped. If both scans fail to find such T, the
+> MCS lock is passed to the first thread in the secondary queue. If the
+> secondary queue is empty, the MCS lock is passed to the next thread in the
+> main queue. To avoid starvation of threads in the secondary queue, those
+> threads are moved back to the head of the main queue after a certain
+> number of intra-node lock hand-offs.
+>
+> More details are available at https://arxiv.org/abs/1810.05600.
+>
+> The series applies on top of v5.5.0-rc2, commit ea200dec51.
+> Performance numbers are available in previous revisions
+> of the series.
+>
+> Further comments are welcome and appreciated.
+>
+> Alex Kogan (5):
+>   locking/qspinlock: Rename mcs lock/unlock macros and make them more
+>     generic
+>   locking/qspinlock: Refactor the qspinlock slow path
+>   locking/qspinlock: Introduce CNA into the slow path of qspinlock
+>   locking/qspinlock: Introduce starvation avoidance into CNA
+>   locking/qspinlock: Introduce the shuffle reduction optimization into
+>     CNA
+>
+>  .../admin-guide/kernel-parameters.txt         |  18 +
+>  arch/arm/include/asm/mcs_spinlock.h           |   6 +-
+>  arch/x86/Kconfig                              |  20 +
+>  arch/x86/include/asm/qspinlock.h              |   4 +
+>  arch/x86/kernel/alternative.c                 |   4 +
+>  include/asm-generic/mcs_spinlock.h            |   4 +-
+>  kernel/locking/mcs_spinlock.h                 |  20 +-
+>  kernel/locking/qspinlock.c                    |  82 +++-
+>  kernel/locking/qspinlock_cna.h                | 400 ++++++++++++++++++
+>  kernel/locking/qspinlock_paravirt.h           |   2 +-
+>  10 files changed, 537 insertions(+), 23 deletions(-)
+>  create mode 100644 kernel/locking/qspinlock_cna.h
+>
+I have reviewed this patch series. Besides a few minor nits, the rests
+look solid to me. So you can put my review tag.
 
-We must not use the pointer output without validating the
-success of the random read.
+Reviewed-by: Waiman Long <longman@redhat.com>
 
-Reviewed-by: Ard Biesheuvel <ardb@kernel.org>
-Signed-off-by: Richard Henderson <rth@twiddle.net>
-Signed-off-by: Mark Brown <broonie@kernel.org>
----
- include/linux/random.h | 8 ++++----
- 1 file changed, 4 insertions(+), 4 deletions(-)
+Peter and Will, would you mind taking a look to see if you have anything
+to add?
 
-diff --git a/include/linux/random.h b/include/linux/random.h
-index ea0e2f5f1ec5..d319f9a1e429 100644
---- a/include/linux/random.h
-+++ b/include/linux/random.h
-@@ -167,19 +167,19 @@ static inline void prandom_seed_state(struct rnd_state *state, u64 seed)
- #ifdef CONFIG_ARCH_RANDOM
- # include <asm/archrandom.h>
- #else
--static inline bool arch_get_random_long(unsigned long *v)
-+static inline bool __must_check arch_get_random_long(unsigned long *v)
- {
- 	return false;
- }
--static inline bool arch_get_random_int(unsigned int *v)
-+static inline bool __must_check arch_get_random_int(unsigned int *v)
- {
- 	return false;
- }
--static inline bool arch_get_random_seed_long(unsigned long *v)
-+static inline bool __must_check arch_get_random_seed_long(unsigned long *v)
- {
- 	return false;
- }
--static inline bool arch_get_random_seed_int(unsigned int *v)
-+static inline bool __must_check arch_get_random_seed_int(unsigned int *v)
- {
- 	return false;
- }
--- 
-2.20.1
+Thanks,
+Longman
