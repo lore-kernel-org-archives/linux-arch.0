@@ -1,144 +1,147 @@
-Return-Path: <SRS0=lDRc=3L=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:60876 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1725928AbgAVVWF (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 22 Jan 2020 16:22:05 -0500
-From: Mark Brown <broonie@kernel.org>
-Subject: [PATCH v5 05/12] elf: Allow arch to tweak initial mmap prot flags
-Date: Wed, 22 Jan 2020 21:21:37 +0000
-Message-ID: <20200122212144.6409-6-broonie@kernel.org>
-In-Reply-To: <20200122212144.6409-1-broonie@kernel.org>
-References: <20200122212144.6409-1-broonie@kernel.org>
-MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Return-Path: <SRS0=948I=23=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from aserp2120.oracle.com ([141.146.126.78]:34458 "EHLO
+        aserp2120.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726296AbgAFPE1 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 6 Jan 2020 10:04:27 -0500
+Content-Type: text/plain;
+        charset=utf-8
+Mime-Version: 1.0 (Mac OS X Mail 12.4 \(3445.104.11\))
+Subject: Re: [PATCH v8 3/5] locking/qspinlock: Introduce CNA into the slow
+ path of qspinlock
+From: Alex Kogan <alex.kogan@oracle.com>
+In-Reply-To: <fcba7eee-b98f-5381-ea33-6fd94a9e66a6@redhat.com>
+Date: Mon, 6 Jan 2020 10:02:26 -0500
+Content-Transfer-Encoding: quoted-printable
+Message-ID: <1E203DB5-E35B-48AA-90DC-286FE479BB91@oracle.com>
+References: <20191230194042.67789-1-alex.kogan@oracle.com>
+ <20191230194042.67789-4-alex.kogan@oracle.com>
+ <fcba7eee-b98f-5381-ea33-6fd94a9e66a6@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>
-Cc: Alexander Viro <viro@zeniv.linux.org.uk>, Paul Elliott <paul.elliott@arm.com>, Peter Zijlstra <peterz@infradead.org>, Yu-cheng Yu <yu-cheng.yu@intel.com>, Amit Kachhap <amit.kachhap@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Marc Zyngier <maz@kernel.org>, Eugene Syromiatnikov <esyr@redhat.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, "H . J . Lu " <hjl.tools@gmail.com>, Andrew Jones <drjones@redhat.com>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Jann Horn <jannh@google.com>, Richard Henderson <richard.henderson@linaro.org>, =?UTF-8?q?Kristina=20Mart=C5=A1enko?= <kristina.martsenko@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Florian Weimer <fweimer@redhat.com>, Sudakshina Das <sudi.das@arm.com>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, Dave Martin <Dave.Martin@arm.com>, Mark Brown <broonie@kernel.org>
-Message-ID: <20200122212137.gHwaVo1xtIiVIqJ8Ku4vyNYd30fjTIHYEp_smRFe01Q@z>
+To: Waiman Long <longman@redhat.com>
+Cc: linux@armlinux.org.uk, Peter Zijlstra <peterz@infradead.org>, mingo@redhat.com, will.deacon@arm.com, arnd@arndb.de, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, bp@alien8.de, hpa@zytor.com, x86@kernel.org, guohanjun@huawei.com, jglauber@marvell.com, steven.sistare@oracle.com, daniel.m.jordan@oracle.com, dave.dice@oracle.com
+Message-ID: <20200106150226.wN80ln0Z7D16iu_jFSG8ouI3mtsQbEGCyxiTVIojoj4@z>
 
-From: Dave Martin <Dave.Martin@arm.com>
 
-An arch may want to tweak the mmap prot flags for an
-ELFexecutable's initial mappings.  For example, arm64 is going to
-need to add PROT_BTI for executable pages in an ELF process whose
-executable is marked as using Branch Target Identification (an
-ARMv8.5-A control flow integrity feature).
 
-So that this can be done in a generic way, add a hook
-arch_elf_adjust_prot() to modify the prot flags as desired: arches
-can select CONFIG_HAVE_ELF_PROT and implement their own backend
-where necessary.
+> On Jan 3, 2020, at 5:14 PM, Waiman Long <longman@redhat.com> wrote:
+>=20
+> On 12/30/19 2:40 PM, Alex Kogan wrote:
+>> +/*
+>> + * cna_scan_main_queue - scan the main waiting queue looking for the =
+first
+>> + * thread running on the same NUMA node as the lock holder. If found =
+(call it
+>> + * thread T), move all threads in the main queue between the lock =
+holder and
+>> + * T to the end of the secondary queue and return 0
+>> + * (=3DSUCCESSOR_FROM_SAME_NUMA_NODE_FOUND); otherwise, return the =
+encoded
+> Are you talking about LOCAL_WAITER_FOUND?
+Ahh, yes =E2=80=94 good catch!
 
-By default, leave the prot flags unchanged.
+>> + * pointer of the last scanned node in the primary queue (so a =
+subsequent scan
+>> + * can be resumed from that node).
+>> + *
+>> + * Schematically, this may look like the following (nn stands for =
+numa_node and
+>> + * et stands for encoded_tail).
+>> + *
+>> + *   when cna_scan_main_queue() is called (the secondary queue is =
+empty):
+>> + *
+>> + *  A+------------+   B+--------+   C+--------+   T+--------+
+>> + *   |mcs:next    | -> |mcs:next| -> |mcs:next| -> |mcs:next| -> =
+NULL
+>> + *   |mcs:locked=3D1|    |cna:nn=3D0|    |cna:nn=3D2|    |cna:nn=3D1|
+>> + *   |cna:nn=3D1    |    +--------+    +--------+    +--------+
+>> + *   +----------- +
+>> + *
+>> + *   when cna_scan_main_queue() returns (the secondary queue =
+contains B and C):
+>> + *
+>> + *  A+----------------+    T+--------+
+>> + *   |mcs:next        | ->  |mcs:next| -> NULL
+>> + *   |mcs:locked=3DC.et | -+  |cna:nn=3D1|
+>> + *   |cna:nn=3D1        |  |  +--------+
+>> + *   +--------------- +  +-----+
+>> + *                             \/
+>> + *          B+--------+   C+--------+
+>> + *           |mcs:next| -> |mcs:next| -+
+>> + *           |cna:nn=3D0|    |cna:nn=3D2|  |
+>> + *           +--------+    +--------+  |
+>> + *               ^                     |
+>> + *               +---------------------+
+>> + *
+>> + * The worst case complexity of the scan is O(n), where n is the =
+number
+>> + * of current waiters. However, the amortized complexity is close to =
+O(1),
+>> + * as the immediate successor is likely to be running on the same =
+node once
+>> + * threads from other nodes are moved to the secondary queue.
+>> + *
+>> + * @node      : Pointer to the MCS node of the lock holder
+>> + * @pred_start: Pointer to the MCS node of the waiter whose =
+successor should be
+>> + *              the first node in the scan
+>> + * Return     : LOCAL_WAITER_FOUND or encoded tail of the last =
+scanned waiter
+>> + */
+>> +static u32 cna_scan_main_queue(struct mcs_spinlock *node,
+>> +			       struct mcs_spinlock *pred_start)
+>> +{
+>> +	struct cna_node *cn =3D (struct cna_node *)node;
+>> +	struct cna_node *cni =3D (struct cna_node =
+*)READ_ONCE(pred_start->next);
+>> +	struct cna_node *last;
+>> +	int my_numa_node =3D cn->numa_node;
+>> +
+>> +	/* find any next waiter on 'our' NUMA node */
+>> +	for (last =3D cn;
+>> +	     cni && cni->numa_node !=3D my_numa_node;
+>> +	     last =3D cni, cni =3D (struct cna_node =
+*)READ_ONCE(cni->mcs.next))
+>> +		;
+>> +
+>> +	/* if found, splice any skipped waiters onto the secondary queue =
+*/
+>> +	if (cni) {
+>> +		if (last !=3D cn)	/* did we skip any waiters? */
+>> +			cna_splice_tail(node, node->next,
+>> +					(struct mcs_spinlock *)last);
+>> +		return LOCAL_WAITER_FOUND;
+>> +	}
+>> +
+>> +	return last->encoded_tail;
+>> +}
+>> +
+>>=20
+>> +/*
+>> + * Switch to the NUMA-friendly slow path for spinlocks when we have
+>> + * multiple NUMA nodes in native environment, unless the user has
+>> + * overridden this default behavior by setting the numa_spinlock =
+flag.
+>> + */
+>> +void cna_configure_spin_lock_slowpath(void)
+> Nit: There should be a __init.
+True. I will fix that.
 
-Signed-off-by: Dave Martin <Dave.Martin@arm.com>
-Reviewed-by: Kees Cook <keescook@chromium.org>
-Signed-off-by: Mark Brown <broonie@kernel.org>
----
- fs/Kconfig.binfmt   |  3 +++
- fs/binfmt_elf.c     | 18 ++++++++++++------
- include/linux/elf.h | 12 ++++++++++++
- 3 files changed, 27 insertions(+), 6 deletions(-)
+>> +{
+>> +	if ((numa_spinlock_flag =3D=3D 1) ||
+>> +	    (numa_spinlock_flag =3D=3D 0 && nr_node_ids > 1 &&
+>> +		    pv_ops.lock.queued_spin_lock_slowpath =3D=3D
+>> +			native_queued_spin_lock_slowpath)) {
+>> +		pv_ops.lock.queued_spin_lock_slowpath =3D
+>> +		    __cna_queued_spin_lock_slowpath;
+>> +
+>> +		pr_info("Enabling CNA spinlock\n");
+>> +	}
+>> +}
+>=20
+> Other than these two minor nits, the rests looks good to me.
+Great. I will revise and resubmit.
 
-diff --git a/fs/Kconfig.binfmt b/fs/Kconfig.binfmt
-index d2cfe0729a73..2358368319b8 100644
---- a/fs/Kconfig.binfmt
-+++ b/fs/Kconfig.binfmt
-@@ -36,6 +36,9 @@ config COMPAT_BINFMT_ELF
- config ARCH_BINFMT_ELF_STATE
- 	bool
- 
-+config ARCH_HAVE_ELF_PROT
-+	bool
-+
- config ARCH_USE_GNU_PROPERTY
- 	bool
- 
-diff --git a/fs/binfmt_elf.c b/fs/binfmt_elf.c
-index 00edfc36a584..65e221b17495 100644
---- a/fs/binfmt_elf.c
-+++ b/fs/binfmt_elf.c
-@@ -541,7 +541,8 @@ static inline int arch_check_elf(struct elfhdr *ehdr, bool has_interp,
- 
- #endif /* !CONFIG_ARCH_BINFMT_ELF_STATE */
- 
--static inline int make_prot(u32 p_flags)
-+static inline int make_prot(u32 p_flags, struct arch_elf_state *arch_state,
-+			    bool has_interp, bool is_interp)
- {
- 	int prot = 0;
- 
-@@ -551,7 +552,8 @@ static inline int make_prot(u32 p_flags)
- 		prot |= PROT_WRITE;
- 	if (p_flags & PF_X)
- 		prot |= PROT_EXEC;
--	return prot;
-+
-+	return arch_elf_adjust_prot(prot, arch_state, has_interp, is_interp);
- }
- 
- /* This is much more generalized than the library routine read function,
-@@ -561,7 +563,8 @@ static inline int make_prot(u32 p_flags)
- 
- static unsigned long load_elf_interp(struct elfhdr *interp_elf_ex,
- 		struct file *interpreter,
--		unsigned long no_base, struct elf_phdr *interp_elf_phdata)
-+		unsigned long no_base, struct elf_phdr *interp_elf_phdata,
-+		struct arch_elf_state *arch_state)
- {
- 	struct elf_phdr *eppnt;
- 	unsigned long load_addr = 0;
-@@ -593,7 +596,8 @@ static unsigned long load_elf_interp(struct elfhdr *interp_elf_ex,
- 	for (i = 0; i < interp_elf_ex->e_phnum; i++, eppnt++) {
- 		if (eppnt->p_type == PT_LOAD) {
- 			int elf_type = MAP_PRIVATE | MAP_DENYWRITE;
--			int elf_prot = make_prot(eppnt->p_flags);
-+			int elf_prot = make_prot(eppnt->p_flags, arch_state,
-+						 true, true);
- 			unsigned long vaddr = 0;
- 			unsigned long k, map_addr;
- 
-@@ -1039,7 +1043,8 @@ static int load_elf_binary(struct linux_binprm *bprm)
- 			}
- 		}
- 
--		elf_prot = make_prot(elf_ppnt->p_flags);
-+		elf_prot = make_prot(elf_ppnt->p_flags, &arch_state,
-+				     !!interpreter, false);
- 
- 		elf_flags = MAP_PRIVATE | MAP_DENYWRITE | MAP_EXECUTABLE;
- 
-@@ -1182,7 +1187,8 @@ static int load_elf_binary(struct linux_binprm *bprm)
- 	if (interpreter) {
- 		elf_entry = load_elf_interp(&loc->interp_elf_ex,
- 					    interpreter,
--					    load_bias, interp_elf_phdata);
-+					    load_bias, interp_elf_phdata,
-+					    &arch_state);
- 		if (!IS_ERR((void *)elf_entry)) {
- 			/*
- 			 * load_elf_interp() returns relocation
-diff --git a/include/linux/elf.h b/include/linux/elf.h
-index 7bdc6da160c7..1b6e8955c597 100644
---- a/include/linux/elf.h
-+++ b/include/linux/elf.h
-@@ -83,4 +83,16 @@ extern int arch_parse_elf_property(u32 type, const void *data, size_t datasz,
- 				   bool compat, struct arch_elf_state *arch);
- #endif
- 
-+#ifdef CONFIG_ARCH_HAVE_ELF_PROT
-+int arch_elf_adjust_prot(int prot, const struct arch_elf_state *state,
-+			 bool has_interp, bool is_interp);
-+#else
-+static inline int arch_elf_adjust_prot(int prot,
-+				       const struct arch_elf_state *state,
-+				       bool has_interp, bool is_interp)
-+{
-+	return prot;
-+}
-+#endif
-+
- #endif /* _LINUX_ELF_H */
--- 
-2.20.1
+Best regards,
+=E2=80=94 Alex=
