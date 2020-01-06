@@ -1,41 +1,124 @@
 Return-Path: <SRS0=948I=23=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:54602 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727432AbgAFEL2 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Sun, 5 Jan 2020 23:11:28 -0500
-Date: Mon, 6 Jan 2020 05:11:25 +0100
-From: Frederic Weisbecker <frederic@kernel.org>
-Subject: Re: [patch V2 09/17] x86/entry: Remove _TIF_NOHZ from
- _TIF_WORK_SYSCALL_ENTRY
-Message-ID: <20200106041124.GA26097@lenoir>
-References: <20191023122705.198339581@linutronix.de>
- <20191023123118.491328859@linutronix.de>
+Received: from mail-dm6nam10on2136.outbound.protection.outlook.com ([40.107.93.136]:22150
+        "EHLO NAM10-DM6-obe.outbound.protection.outlook.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1726735AbgAFWna (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 6 Jan 2020 17:43:30 -0500
+From: Dexuan Cui <decui@microsoft.com>
+Subject: [PATCH v6][RESEND] x86/hyperv: Suspend/resume the hypercall page for hibernation
+Date: Mon,  6 Jan 2020 14:42:39 -0800
+Message-ID: <1578350559-130275-1-git-send-email-decui@microsoft.com>
+Reply-To: decui@microsoft.com
+Content-Type: text/plain
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20191023123118.491328859@linutronix.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Thomas Gleixner <tglx@linutronix.de>
-Cc: LKML <linux-kernel@vger.kernel.org>, x86@kernel.org, Peter Zijlstra <peterz@infradead.org>, Andy Lutomirski <luto@kernel.org>, Will Deacon <will@kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, kvm@vger.kernel.org, linux-arch@vger.kernel.org, Mike Rapoport <rppt@linux.ibm.com>, Josh Poimboeuf <jpoimboe@redhat.com>, Miroslav Benes <mbenes@suse.cz>
-Message-ID: <20200106041125.N1S5nME4crqck_AWSPxR4lXBWGsnrY-y2uAFITPjHJ8@z>
+To: arnd@arndb.de, bp@alien8.de, daniel.lezcano@linaro.org, haiyangz@microsoft.com, hpa@zytor.com, kys@microsoft.com, linux-hyperv@vger.kernel.org, linux-kernel@vger.kernel.org, mingo@redhat.com, sashal@kernel.org, sthemmin@microsoft.com, tglx@linutronix.de, x86@kernel.org, mikelley@microsoft.com, Alexander.Levin@microsoft.com, vkuznets@redhat.com
+Cc: linux-arch@vger.kernel.org, Dexuan Cui <decui@microsoft.com>
+Message-ID: <20200106224239.l-lw8No2efljN2lNhtHCwCaZH3hIxWvdHEfOOeVZMig@z>
 
-On Wed, Oct 23, 2019 at 02:27:14PM +0200, Thomas Gleixner wrote:
-> From: Thomas Gleixner <tglx@linutronix.de>
-> 
-> Evaluating _TIF_NOHZ to decide whether to use the slow syscall entry path
-> is not only pointless, it's actually counterproductive:
-> 
->  1) Context tracking code is invoked unconditionally before that flag is
->     evaluated.
-> 
->  2) If the flag is set the slow path is invoked for nothing due to #1
-> 
-> Remove it.
-> 
-> Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
+This is needed for hibernation, e.g. when we resume the old kernel, we need
+to disable the "current" kernel's hypercall page and then resume the old
+kernel's.
 
-I'm borrowing this patch for a series of mine. But if you apply
-it in the meantime, that would be even better :-)
+Signed-off-by: Dexuan Cui <decui@microsoft.com>
+Reviewed-by: Michael Kelley <mikelley@microsoft.com>
+---
 
-Thanks!
+This is a RESEND of https://lkml.org/lkml/2019/11/20/68 .
+
+Please review.
+
+If it looks good, can you please pick it up through the tip.git tree?
+
+
+ arch/x86/hyperv/hv_init.c | 48 +++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 48 insertions(+)
+
+diff --git a/arch/x86/hyperv/hv_init.c b/arch/x86/hyperv/hv_init.c
+index caaf4dce99bf..24a62d33067c 100644
+--- a/arch/x86/hyperv/hv_init.c
++++ b/arch/x86/hyperv/hv_init.c
+@@ -21,11 +21,15 @@
+ #include <linux/hyperv.h>
+ #include <linux/slab.h>
+ #include <linux/cpuhotplug.h>
++#include <linux/syscore_ops.h>
+ #include <clocksource/hyperv_timer.h>
+ 
+ void *hv_hypercall_pg;
+ EXPORT_SYMBOL_GPL(hv_hypercall_pg);
+ 
++/* Save the hypercall page temporarily for hibernation */
++static void *hv_hypercall_pg_saved;
++
+ u32 *hv_vp_index;
+ EXPORT_SYMBOL_GPL(hv_vp_index);
+ 
+@@ -246,6 +250,46 @@ static int __init hv_pci_init(void)
+ 	return 1;
+ }
+ 
++static int hv_suspend(void)
++{
++	union hv_x64_msr_hypercall_contents hypercall_msr;
++
++	/*
++	 * Reset hypercall page reference before reset the page,
++	 * let hypercall operations fail safely rather than
++	 * panic the kernel for using invalid hypercall page
++	 */
++	hv_hypercall_pg_saved = hv_hypercall_pg;
++	hv_hypercall_pg = NULL;
++
++	/* Reset the hypercall page */
++	rdmsrl(HV_X64_MSR_HYPERCALL, hypercall_msr.as_uint64);
++	hypercall_msr.enable = 0;
++	wrmsrl(HV_X64_MSR_HYPERCALL, hypercall_msr.as_uint64);
++
++	return 0;
++}
++
++static void hv_resume(void)
++{
++	union hv_x64_msr_hypercall_contents hypercall_msr;
++
++	/* Re-enable the hypercall page */
++	rdmsrl(HV_X64_MSR_HYPERCALL, hypercall_msr.as_uint64);
++	hypercall_msr.enable = 1;
++	hypercall_msr.guest_physical_address =
++		vmalloc_to_pfn(hv_hypercall_pg_saved);
++	wrmsrl(HV_X64_MSR_HYPERCALL, hypercall_msr.as_uint64);
++
++	hv_hypercall_pg = hv_hypercall_pg_saved;
++	hv_hypercall_pg_saved = NULL;
++}
++
++static struct syscore_ops hv_syscore_ops = {
++	.suspend = hv_suspend,
++	.resume = hv_resume,
++};
++
+ /*
+  * This function is to be invoked early in the boot sequence after the
+  * hypervisor has been detected.
+@@ -330,6 +374,8 @@ void __init hyperv_init(void)
+ 
+ 	x86_init.pci.arch_init = hv_pci_init;
+ 
++	register_syscore_ops(&hv_syscore_ops);
++
+ 	return;
+ 
+ remove_cpuhp_state:
+@@ -349,6 +395,8 @@ void hyperv_cleanup(void)
+ {
+ 	union hv_x64_msr_hypercall_contents hypercall_msr;
+ 
++	unregister_syscore_ops(&hv_syscore_ops);
++
+ 	/* Reset our OS id */
+ 	wrmsrl(HV_X64_MSR_GUEST_OS_ID, 0);
+ 
+-- 
+2.19.1
