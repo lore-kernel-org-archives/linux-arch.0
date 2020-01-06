@@ -1,57 +1,41 @@
-Return-Path: <SRS0=Pd00=3D=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from zeniv.linux.org.uk ([195.92.253.2]:47370 "EHLO
-        ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728757AbgANXqT (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 14 Jan 2020 18:46:19 -0500
-Date: Tue, 14 Jan 2020 23:46:00 +0000
-From: Al Viro <viro@zeniv.linux.org.uk>
-Subject: Re: [RFC 2/4] lib/strncpy_from_user: Remove redundant user space
- pointer range check
-Message-ID: <20200114234600.GD8904@ZenIV.linux.org.uk>
-References: <20200114200846.29434-1-vgupta@synopsys.com>
- <20200114200846.29434-3-vgupta@synopsys.com>
- <CAHk-=wgoc5DaF6=WxsAcft_Lp4XUYTiRhhCJGcmM5PwEDXY6Gw@mail.gmail.com>
+Return-Path: <SRS0=948I=23=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail.kernel.org ([198.145.29.99]:54602 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1727432AbgAFEL2 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Sun, 5 Jan 2020 23:11:28 -0500
+Date: Mon, 6 Jan 2020 05:11:25 +0100
+From: Frederic Weisbecker <frederic@kernel.org>
+Subject: Re: [patch V2 09/17] x86/entry: Remove _TIF_NOHZ from
+ _TIF_WORK_SYSCALL_ENTRY
+Message-ID: <20200106041124.GA26097@lenoir>
+References: <20191023122705.198339581@linutronix.de>
+ <20191023123118.491328859@linutronix.de>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <CAHk-=wgoc5DaF6=WxsAcft_Lp4XUYTiRhhCJGcmM5PwEDXY6Gw@mail.gmail.com>
+In-Reply-To: <20191023123118.491328859@linutronix.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Vineet Gupta <Vineet.Gupta1@synopsys.com>, Arnd Bergmann <arnd@arndb.de>, Khalid Aziz <khalid.aziz@oracle.com>, Andrey Konovalov <andreyknvl@google.com>, Andrew Morton <akpm@linux-foundation.org>, Peter Zijlstra <peterz@infradead.org>, Christian Brauner <christian.brauner@ubuntu.com>, Kees Cook <keescook@chromium.org>, Ingo Molnar <mingo@kernel.org>, Aleksa Sarai <cyphar@cyphar.com>, linux-snps-arc@lists.infradead.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>
-Message-ID: <20200114234600.lQzwAbM5iBDWlXaK83rstvOroECBgKujGp510xzC--o@z>
+To: Thomas Gleixner <tglx@linutronix.de>
+Cc: LKML <linux-kernel@vger.kernel.org>, x86@kernel.org, Peter Zijlstra <peterz@infradead.org>, Andy Lutomirski <luto@kernel.org>, Will Deacon <will@kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, kvm@vger.kernel.org, linux-arch@vger.kernel.org, Mike Rapoport <rppt@linux.ibm.com>, Josh Poimboeuf <jpoimboe@redhat.com>, Miroslav Benes <mbenes@suse.cz>
+Message-ID: <20200106041125.N1S5nME4crqck_AWSPxR4lXBWGsnrY-y2uAFITPjHJ8@z>
 
-On Tue, Jan 14, 2020 at 01:22:07PM -0800, Linus Torvalds wrote:
-
-> The fact is, copying a string from user space is *very* different from
-> copying a fixed number of bytes, and that whole dance with
+On Wed, Oct 23, 2019 at 02:27:14PM +0200, Thomas Gleixner wrote:
+> From: Thomas Gleixner <tglx@linutronix.de>
 > 
->         max_addr = user_addr_max();
+> Evaluating _TIF_NOHZ to decide whether to use the slow syscall entry path
+> is not only pointless, it's actually counterproductive:
 > 
-> is absolutely required and necessary.
+>  1) Context tracking code is invoked unconditionally before that flag is
+>     evaluated.
 > 
-> You completely broke string copying.
+>  2) If the flag is set the slow path is invoked for nothing due to #1
+> 
+> Remove it.
+> 
+> Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
 
-BTW, a quick grep through the callers has found something odd -
-static ssize_t kmemleak_write(struct file *file, const char __user *user_buf,
-                              size_t size, loff_t *ppos)
-{
-        char buf[64];
-        int buf_size;
-        int ret;
+I'm borrowing this patch for a series of mine. But if you apply
+it in the meantime, that would be even better :-)
 
-        buf_size = min(size, (sizeof(buf) - 1));
-        if (strncpy_from_user(buf, user_buf, buf_size) < 0)
-                return -EFAULT;
-        buf[buf_size] = 0;
-
-What the hell?  If somebody is calling write(fd, buf, n) they'd
-better be ready to see any byte from buf[0] up to buf[n - 1]
-fetched, and if something is unmapped - deal with -EFAULT.
-Is something really doing that and if so, why does kmemleak
-try to accomodate that idiocy?
-
-The same goes for several more ->write() instances - mtrr_write(),
-armada_debugfs_crtc_reg_write() and cio_ignore_write(); IMO that's
-seriously misguided (and cio one ought use vmemdup_user() instead
-of what it's doing)...
+Thanks!
