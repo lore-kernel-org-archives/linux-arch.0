@@ -1,182 +1,101 @@
-From: Marco Elver <elver@google.com>
-Subject: Re: [PATCH v4 01/10] kcsan: Add Kernel Concurrency Sanitizer infrastructure
-Date: Mon, 6 Jan 2020 13:46:57 +0100
-Message-ID: <CANpmjNOC2PYFsE_TK2SYmKcHxyG+2arWc8x_fmeWPOMi0+ot8g@mail.gmail.com>
-References: <20191114180303.66955-1-elver@google.com> <20191114180303.66955-2-elver@google.com>
- <BAB5F853-95FA-4623-A067-4E62B90721D3@lca.pw>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <BAB5F853-95FA-4623-A067-4E62B90721D3@lca.pw>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Qian Cai <cai@lca.pw>
-Cc: LKMM Maintainers -- Akira Yokosawa <akiyks@gmail.com>, Alan Stern <stern@rowland.harvard.edu>, Alexander Potapenko <glider@google.com>, Andrea Parri <parri.andrea@gmail.com>, Andrey Konovalov <andreyknvl@google.com>, Andy Lutomirski <luto@kernel.org>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Arnd Bergmann <arnd@arndb.de>, Boqun Feng <boqun.feng@gmail.com>, Borislav Petkov <bp@alien8.de>, Daniel Axtens <dja@axtens.net>, Daniel Lustig <dlustig@nvidia.com>, Dave Hansen <dave.hansen@linux.intel.com>, David Howells <dhowells@redhat.com>, Dmitry Vyukov <dvyukov@google.com>, "H. Peter Anvin" <hpa@zytor.com>, Ingo Molnar <mingo@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Joel Fernandes <joel@joelfernandes.org>, Jonathan Corbet <corbet@lwn.net>
+From: Alex Kogan <alex.kogan@oracle.com>
+Subject: Re: [PATCH v8 3/5] locking/qspinlock: Introduce CNA into the slow
+ path of qspinlock
+Date: Mon, 6 Jan 2020 10:02:26 -0500
+Message-ID: <1E203DB5-E35B-48AA-90DC-286FE479BB91@oracle.com>
+References: <20191230194042.67789-1-alex.kogan@oracle.com>
+ <20191230194042.67789-4-alex.kogan@oracle.com>
+ <fcba7eee-b98f-5381-ea33-6fd94a9e66a6@redhat.com>
+Mime-Version: 1.0 (Mac OS X Mail 12.4 \(3445.104.11\))
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+In-Reply-To: <fcba7eee-b98f-5381-ea33-6fd94a9e66a6@redhat.com>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+To: Waiman Long <longman@redhat.com>
+Cc: linux-arch@vger.kernel.org, guohanjun@huawei.com, arnd@arndb.de, Peter Zijlstra <peterz@infradead.org>, dave.dice@oracle.com, jglauber@marvell.com, x86@kernel.org, will.deacon@arm.com, linux@armlinux.org.uk, linux-kernel@vger.kernel.org, mingo@redhat.com, bp@alien8.de, hpa@zytor.com, steven.sistare@oracle.com, tglx@linutronix.de, daniel.m.jordan@oracle.com, linux-arm-kernel@lists.infradead.org
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, 3 Jan 2020 at 06:13, Qian Cai <cai@lca.pw> wrote:
->
->
->
-> > On Nov 14, 2019, at 1:02 PM, 'Marco Elver' via kasan-dev <kasan-dev@googlegroups.com> wrote:
-> > +static noinline void kcsan_setup_watchpoint(const volatile void *ptr,
-> > +                                         size_t size, bool is_write)
-> > +{
-> > +     atomic_long_t *watchpoint;
-> > +     union {
-> > +             u8 _1;
-> > +             u16 _2;
-> > +             u32 _4;
-> > +             u64 _8;
-> > +     } expect_value;
-> > +     bool value_change = false;
-> > +     unsigned long ua_flags = user_access_save();
-> > +     unsigned long irq_flags;
-> > +
-> > +     /*
-> > +      * Always reset kcsan_skip counter in slow-path to avoid underflow; see
-> > +      * should_watch().
-> > +      */
-> > +     reset_kcsan_skip();
-> > +
-> > +     if (!kcsan_is_enabled())
-> > +             goto out;
-> > +
-> > +     if (!check_encodable((unsigned long)ptr, size)) {
-> > +             kcsan_counter_inc(KCSAN_COUNTER_UNENCODABLE_ACCESSES);
-> > +             goto out;
-> > +     }
-> > +
-> > +     /*
-> > +      * Disable interrupts & preemptions to avoid another thread on the same
-> > +      * CPU accessing memory locations for the set up watchpoint; this is to
-> > +      * avoid reporting races to e.g. CPU-local data.
-> > +      *
-> > +      * An alternative would be adding the source CPU to the watchpoint
-> > +      * encoding, and checking that watchpoint-CPU != this-CPU. There are
-> > +      * several problems with this:
-> > +      *   1. we should avoid stealing more bits from the watchpoint encoding
-> > +      *      as it would affect accuracy, as well as increase performance
-> > +      *      overhead in the fast-path;
-> > +      *   2. if we are preempted, but there *is* a genuine data race, we
-> > +      *      would *not* report it -- since this is the common case (vs.
-> > +      *      CPU-local data accesses), it makes more sense (from a data race
-> > +      *      detection point of view) to simply disable preemptions to ensure
-> > +      *      as many tasks as possible run on other CPUs.
-> > +      */
-> > +     local_irq_save(irq_flags);
->
-> Enabling KCSAN will now generate a warning during boot here.
->
-> Config (need to deselect KASAN and select KCSAN):
->
-> https://raw.githubusercontent.com/cailca/linux-mm/master/x86.config
-
-Thanks, I'll look into KCSAN + lockdep compatibility. It's probably
-missing some KCSAN_SANITIZE := n in some Makefile.
-
-> [   13.358813][    T0] Spectre V2 : Spectre v2 / SpectreRSB mitigation: Filling RSB on context switch
-> [   13.361606][    T0] Speculative Store Bypass: Vulnerable
-> [   13.363254][    T0] TAA: Vulnerable: Clear CPU buffers attempted, no microcode
-> [   13.366836][    T0] MDS: Vulnerable: Clear CPU buffers attempted, no microcode
-> [   13.369877][    T0] debug: unmapping init [mem 0xffffffff8dd83000-0xffffffff8dd87fff]
-> [   13.415028][    T1] ------------[ cut here ]------------
-> [   13.416814][    T1] DEBUG_LOCKS_WARN_ON(!current->hardirqs_enabled)
-> [   13.416814][    T1] WARNING: CPU: 0 PID: 1 at kernel/locking/lockdep.c:4406 check_flags.part.26+0x102/0x240
-> [   13.416814][    T1] Modules linked in:
-> [   13.416814][    T1] CPU: 0 PID: 1 Comm: swapper/0 Not tainted 5.5.0-rc2-next-20191220+ #4
-> [   13.416814][    T1] Hardware name: HP ProLiant DL580 Gen9/ProLiant DL580 Gen9, BIOS U17 07/21/2016
-> [   13.416814][    T1] RIP: 0010:check_flags.part.26+0x102/0x240
-> [   13.416814][    T1] Code: bc 8d e8 51 a1 15 00 44 8b 05 2a a0 46 01 45 85 c0 0f 85 57 76 00 00 48 c7 c6 5d fa 7b 8d 48 c7 c7 b1 54 7b 8d e8 10 91 f5 ff <0f> 0b e9 3d 76 00 00 65 48 8b 3c 25 40 7f 01 00 e8 89 f0 ff ff e8
-> [   13.416814][    T1] RSP: 0000:ffff9d3206287ce8 EFLAGS: 00010082
-> [   13.416814][    T1] RAX: 0000000000000000 RBX: ffff8e5b8541e040 RCX: 0000000000000000
-> [   13.416814][    T1] RDX: 0000000000000000 RSI: 0000000000000001 RDI: 0000000000000000
-> [   13.416814][    T1] RBP: ffff9d3206287cf0 R08: 0000000000000000 R09: 0000ffff8dbcc254
-> [   13.416814][    T1] R10: 0000ffffffffffff R11: 0000ffff8dbcc257 R12: 0000000000000235
-> [   13.416814][    T1] R13: 0000000000000000 R14: 0000000000000246 R15: 000000000000001b
-> [   13.416814][    T1] FS:  0000000000000000(0000) GS:ffff8e61e3200000(0000) knlGS:0000000000000000
-> [   13.416814][    T1] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
-> [   13.416814][    T1] CR2: ffff8e79f07ff000 CR3: 0000001284c0e001 CR4: 00000000003606f0
-> [   13.416814][    T1] DR0: 0000000000000000 DR1: 0000000000000000 DR2: 0000000000000000
-> [   13.416814][    T1] DR3: 0000000000000000 DR6: 00000000fffe0ff0 DR7: 0000000000000400
-> [   13.416814][    T1] Call Trace:
-> [   13.416814][    T1]  lock_is_held_type+0x66/0x160
-> [   13.416814][    T1]  ___might_sleep+0xc1/0x1d0
-> [   13.416814][    T1]  __might_sleep+0x5b/0xa0
-> [   13.416814][    T1]  slab_pre_alloc_hook+0x7b/0xa0
-> [   13.416814][    T1]  __kmalloc_node+0x60/0x300
-> [   13.416814   T1]  ? alloc_cpumask_var_node+0x44/0x70
-> [   13.416814][    T1]  ? topology_phys_to_logical_die+0x7e/0x180
-> [   13.416814][    T1]  alloc_cpumask_var_node+0x44/0x70
-> [   13.416814][    T1]  zalloc_cpumask_var+0x2a/0x40
-> [   13.416814][    T1]  native_smp_prepare_cpus+0x246/0x425
-> [   13.416814][    T1]  kernel_init_freeable+0x1b8/0x496
-> [   13.416814][    T1]  ? rest_init+0x381/0x381
-> [   13.416814][    T1]  kernel_init+0x18/0x17f
-> [   13.416814][    T1]  ? rest_init+0x381/0x381
-> [   13.416814][    T1]  ret_from_fork+0x3a/0x50
-> [   13.416814][    T1] irq event stamp: 910
-> [   13.416814][    T1] hardirqs last  enabled at (909): [<ffffffff8d1240f3>] _raw_write_unlock_irqrestore+0x53/0x57
-> [   13.416814][    T1] hardirqs last disabled at (910): [<ffffffff8c8bba76>] kcsan_setup_watchpoint+0x96/0x460
-> [   13.416814][    T1] softirqs last  enabled at (0): [<ffffffff8c6b697a>] copy_process+0x11fa/0x34f0
-> [   13.416814][    T1] softirqs last disabled at (0): [<0000000000000000>] 0x0
-> [   13.416814][    T1] ---[ end trace 7d1df66da055aa92 ]---
-> [   13.416814][    T1] possible reason: unannotated irqs-on.
-> [   13.416814][ent stamp: 910
-> [   13.416814][    T1] hardirqs last  enabled at (909): [<ffffffff8d1240f3>] _raw_write_unlock_irqrestore+0x53/0x57
-> [   13.416814][    T1] hardirqs last disabled at (910): [<ffffffff8c8bba76>] kcsan_setup_watchpoint+0x96/0x460
-> [   13.416814][    T1] softirqs last  enabled at (0): [<ffffffff8c6b697a>] copy_process+0x11fa/0x34f0
-> [   13.416814][    T1] softirqs last disabled at (0): [<0000000000000000>] 0x0
->
->
-> The other issue is that the system is unable to boot due to endless of those messages.
-
-Apart from fixing the data races, I can add a feature to KCSAN to
-limit reporting too often (will send patch).
-
-> [   17.976814][  T578] Reported by Kernel Concurrency Sanitizer on:
-> [   17.976814][  T578] CPU: 12 PID: 578 Comm: pgdatinit1 Tainted: G        W         5.5.0-rc2-next-20191220+ #4
-> [   17.976814][  T578] Hardware name: HP ProLiant DL580 Gen9/ProLiant DL580 Gen9, BIOS U17 07/21/2016
-> [   17.976814][  T578] ==================================================================
-> [   17.976814][  T578] ==================================================================
-> [   17.976814][  T578] BUG: KCSAN: data-race in __change_page_attr / __change_page_attr
-> [   17.976814][  T578]
-> [   17.976814][  T578] write to 0xffffffff8dda0de0 of 8 bytes by task 577 on cpu 2:
-> [   17.976814][  T578]  __change_page_attr+0xef7/0x16a0
-> [   17.976814][  T578]  __change_page_attr_set_clr+0xec/0x4f0
-> [   17.97681pages_np+0xcc/0x100
-> [   17.976814][  T578]  __kernel_map_pages+0xd6/0xdb
-> [   17.976814][  T578]  __free_pages_ok+0x1a8/0x730
-> [   17.976814][  T578]  __free_pages+0x51/0x90
-> [   17.976814][  T578]  __free_pages_core+0x1c7/0x2c0
-> [   17.976814][  T578]  deferred_free_range+0x59/0x8f
-> [   17.976814][  T578]  deferred_init_maxorder+0x1d6/0x21d
-> [   17.976814][  T578]  deferred_init_memmap+0x14a/0x1c1
-> [   17.976814][  T578]  kthread+0x1e0/0x200
-> [   17.976814][  T578]  ret_from_fork+0x3a/0x50
-> [   17.976814][  T578]
-> [   17.976814][  T578] read to 0xffffffff8dda0de0 of 8 bytes by task 578 on cpu 12:
-> [   17.976814][  T578]  __change_page_attr+0xed1/0x16a0
-> [   17.976814][  T578]  __change_page_attr_set_clr+0xec/0x4f0
-> [   17.976814][  T578]  __set_pages_np+0xcc/0x100
-> [   17.976814][  T578]  __kernel_map_pages+0xd6/0xdb
-> [   17.976814][  T578]  __free_pages_ok+0x1a8/0x730
-> [   17.976814][  T578]  __free_pages+0x51/0x90
-> [   17.976814][  T578]  __free_pages_core+0x1c7/0x2c0
-> [   17.976814][  T578]  deferred_free_range+0x59/0x8f
-> [   17.976814][  T578]  deferred_init_maxorder+0x1aa/0x21d
-> [   17.976814][  T578]  deferred_init_memmap+0x14a/0x1c1
-> [   17.976814][  T578]  kthread+0x1e0/0x200
-> [   17.976814][  T578]  ret_from_fork+0x3a/0x50
->
-> # ./scripts/faddr2line vmlinux __change_page_attr+0xef7/0x16a0
-> __change_page_attr+0xef7/0x16a0:
-> static_protections at arch/x86/mm/pat/set_memory.c:528
-> (inlined by) __change_page_attr at arch/x86/mm/pat/set_memory.c:1516
->
-> # ./scripts/faddr2line vmlinux __change_page_attr+0xed1/0x16a0
-> __change_page_attr+0xed1/0x16a0:
-> cpa_inc_4k_install at arch/x86/mm/pat/set_memory.c:131
-> (inlined by) __change_page_attr at arch/x86/mm/pat/set_memory.c:1514
-
-Thanks,
--- Marco
+Cgo+IE9uIEphbiAzLCAyMDIwLCBhdCA1OjE0IFBNLCBXYWltYW4gTG9uZyA8bG9uZ21hbkByZWRo
+YXQuY29tPiB3cm90ZToKPiAKPiBPbiAxMi8zMC8xOSAyOjQwIFBNLCBBbGV4IEtvZ2FuIHdyb3Rl
+Ogo+PiArLyoKPj4gKyAqIGNuYV9zY2FuX21haW5fcXVldWUgLSBzY2FuIHRoZSBtYWluIHdhaXRp
+bmcgcXVldWUgbG9va2luZyBmb3IgdGhlIGZpcnN0Cj4+ICsgKiB0aHJlYWQgcnVubmluZyBvbiB0
+aGUgc2FtZSBOVU1BIG5vZGUgYXMgdGhlIGxvY2sgaG9sZGVyLiBJZiBmb3VuZCAoY2FsbCBpdAo+
+PiArICogdGhyZWFkIFQpLCBtb3ZlIGFsbCB0aHJlYWRzIGluIHRoZSBtYWluIHF1ZXVlIGJldHdl
+ZW4gdGhlIGxvY2sgaG9sZGVyIGFuZAo+PiArICogVCB0byB0aGUgZW5kIG9mIHRoZSBzZWNvbmRh
+cnkgcXVldWUgYW5kIHJldHVybiAwCj4+ICsgKiAoPVNVQ0NFU1NPUl9GUk9NX1NBTUVfTlVNQV9O
+T0RFX0ZPVU5EKTsgb3RoZXJ3aXNlLCByZXR1cm4gdGhlIGVuY29kZWQKPiBBcmUgeW91IHRhbGtp
+bmcgYWJvdXQgTE9DQUxfV0FJVEVSX0ZPVU5EPwpBaGgsIHllcyDigJQgZ29vZCBjYXRjaCEKCj4+
+ICsgKiBwb2ludGVyIG9mIHRoZSBsYXN0IHNjYW5uZWQgbm9kZSBpbiB0aGUgcHJpbWFyeSBxdWV1
+ZSAoc28gYSBzdWJzZXF1ZW50IHNjYW4KPj4gKyAqIGNhbiBiZSByZXN1bWVkIGZyb20gdGhhdCBu
+b2RlKS4KPj4gKyAqCj4+ICsgKiBTY2hlbWF0aWNhbGx5LCB0aGlzIG1heSBsb29rIGxpa2UgdGhl
+IGZvbGxvd2luZyAobm4gc3RhbmRzIGZvciBudW1hX25vZGUgYW5kCj4+ICsgKiBldCBzdGFuZHMg
+Zm9yIGVuY29kZWRfdGFpbCkuCj4+ICsgKgo+PiArICogICB3aGVuIGNuYV9zY2FuX21haW5fcXVl
+dWUoKSBpcyBjYWxsZWQgKHRoZSBzZWNvbmRhcnkgcXVldWUgaXMgZW1wdHkpOgo+PiArICoKPj4g
+KyAqICBBKy0tLS0tLS0tLS0tLSsgICBCKy0tLS0tLS0tKyAgIEMrLS0tLS0tLS0rICAgVCstLS0t
+LS0tLSsKPj4gKyAqICAgfG1jczpuZXh0ICAgIHwgLT4gfG1jczpuZXh0fCAtPiB8bWNzOm5leHR8
+IC0+IHxtY3M6bmV4dHwgLT4gTlVMTAo+PiArICogICB8bWNzOmxvY2tlZD0xfCAgICB8Y25hOm5u
+PTB8ICAgIHxjbmE6bm49MnwgICAgfGNuYTpubj0xfAo+PiArICogICB8Y25hOm5uPTEgICAgfCAg
+ICArLS0tLS0tLS0rICAgICstLS0tLS0tLSsgICAgKy0tLS0tLS0tKwo+PiArICogICArLS0tLS0t
+LS0tLS0gKwo+PiArICoKPj4gKyAqICAgd2hlbiBjbmFfc2Nhbl9tYWluX3F1ZXVlKCkgcmV0dXJu
+cyAodGhlIHNlY29uZGFyeSBxdWV1ZSBjb250YWlucyBCIGFuZCBDKToKPj4gKyAqCj4+ICsgKiAg
+QSstLS0tLS0tLS0tLS0tLS0tKyAgICBUKy0tLS0tLS0tKwo+PiArICogICB8bWNzOm5leHQgICAg
+ICAgIHwgLT4gIHxtY3M6bmV4dHwgLT4gTlVMTAo+PiArICogICB8bWNzOmxvY2tlZD1DLmV0IHwg
+LSsgIHxjbmE6bm49MXwKPj4gKyAqICAgfGNuYTpubj0xICAgICAgICB8ICB8ICArLS0tLS0tLS0r
+Cj4+ICsgKiAgICstLS0tLS0tLS0tLS0tLS0gKyAgKy0tLS0tKwo+PiArICogICAgICAgICAgICAg
+ICAgICAgICAgICAgICAgIFwvCj4+ICsgKiAgICAgICAgICBCKy0tLS0tLS0tKyAgIEMrLS0tLS0t
+LS0rCj4+ICsgKiAgICAgICAgICAgfG1jczpuZXh0fCAtPiB8bWNzOm5leHR8IC0rCj4+ICsgKiAg
+ICAgICAgICAgfGNuYTpubj0wfCAgICB8Y25hOm5uPTJ8ICB8Cj4+ICsgKiAgICAgICAgICAgKy0t
+LS0tLS0tKyAgICArLS0tLS0tLS0rICB8Cj4+ICsgKiAgICAgICAgICAgICAgIF4gICAgICAgICAg
+ICAgICAgICAgICB8Cj4+ICsgKiAgICAgICAgICAgICAgICstLS0tLS0tLS0tLS0tLS0tLS0tLS0r
+Cj4+ICsgKgo+PiArICogVGhlIHdvcnN0IGNhc2UgY29tcGxleGl0eSBvZiB0aGUgc2NhbiBpcyBP
+KG4pLCB3aGVyZSBuIGlzIHRoZSBudW1iZXIKPj4gKyAqIG9mIGN1cnJlbnQgd2FpdGVycy4gSG93
+ZXZlciwgdGhlIGFtb3J0aXplZCBjb21wbGV4aXR5IGlzIGNsb3NlIHRvIE8oMSksCj4+ICsgKiBh
+cyB0aGUgaW1tZWRpYXRlIHN1Y2Nlc3NvciBpcyBsaWtlbHkgdG8gYmUgcnVubmluZyBvbiB0aGUg
+c2FtZSBub2RlIG9uY2UKPj4gKyAqIHRocmVhZHMgZnJvbSBvdGhlciBub2RlcyBhcmUgbW92ZWQg
+dG8gdGhlIHNlY29uZGFyeSBxdWV1ZS4KPj4gKyAqCj4+ICsgKiBAbm9kZSAgICAgIDogUG9pbnRl
+ciB0byB0aGUgTUNTIG5vZGUgb2YgdGhlIGxvY2sgaG9sZGVyCj4+ICsgKiBAcHJlZF9zdGFydDog
+UG9pbnRlciB0byB0aGUgTUNTIG5vZGUgb2YgdGhlIHdhaXRlciB3aG9zZSBzdWNjZXNzb3Igc2hv
+dWxkIGJlCj4+ICsgKiAgICAgICAgICAgICAgdGhlIGZpcnN0IG5vZGUgaW4gdGhlIHNjYW4KPj4g
+KyAqIFJldHVybiAgICAgOiBMT0NBTF9XQUlURVJfRk9VTkQgb3IgZW5jb2RlZCB0YWlsIG9mIHRo
+ZSBsYXN0IHNjYW5uZWQgd2FpdGVyCj4+ICsgKi8KPj4gK3N0YXRpYyB1MzIgY25hX3NjYW5fbWFp
+bl9xdWV1ZShzdHJ1Y3QgbWNzX3NwaW5sb2NrICpub2RlLAo+PiArCQkJICAgICAgIHN0cnVjdCBt
+Y3Nfc3BpbmxvY2sgKnByZWRfc3RhcnQpCj4+ICt7Cj4+ICsJc3RydWN0IGNuYV9ub2RlICpjbiA9
+IChzdHJ1Y3QgY25hX25vZGUgKilub2RlOwo+PiArCXN0cnVjdCBjbmFfbm9kZSAqY25pID0gKHN0
+cnVjdCBjbmFfbm9kZSAqKVJFQURfT05DRShwcmVkX3N0YXJ0LT5uZXh0KTsKPj4gKwlzdHJ1Y3Qg
+Y25hX25vZGUgKmxhc3Q7Cj4+ICsJaW50IG15X251bWFfbm9kZSA9IGNuLT5udW1hX25vZGU7Cj4+
+ICsKPj4gKwkvKiBmaW5kIGFueSBuZXh0IHdhaXRlciBvbiAnb3VyJyBOVU1BIG5vZGUgKi8KPj4g
+Kwlmb3IgKGxhc3QgPSBjbjsKPj4gKwkgICAgIGNuaSAmJiBjbmktPm51bWFfbm9kZSAhPSBteV9u
+dW1hX25vZGU7Cj4+ICsJICAgICBsYXN0ID0gY25pLCBjbmkgPSAoc3RydWN0IGNuYV9ub2RlICop
+UkVBRF9PTkNFKGNuaS0+bWNzLm5leHQpKQo+PiArCQk7Cj4+ICsKPj4gKwkvKiBpZiBmb3VuZCwg
+c3BsaWNlIGFueSBza2lwcGVkIHdhaXRlcnMgb250byB0aGUgc2Vjb25kYXJ5IHF1ZXVlICovCj4+
+ICsJaWYgKGNuaSkgewo+PiArCQlpZiAobGFzdCAhPSBjbikJLyogZGlkIHdlIHNraXAgYW55IHdh
+aXRlcnM/ICovCj4+ICsJCQljbmFfc3BsaWNlX3RhaWwobm9kZSwgbm9kZS0+bmV4dCwKPj4gKwkJ
+CQkJKHN0cnVjdCBtY3Nfc3BpbmxvY2sgKilsYXN0KTsKPj4gKwkJcmV0dXJuIExPQ0FMX1dBSVRF
+Ul9GT1VORDsKPj4gKwl9Cj4+ICsKPj4gKwlyZXR1cm4gbGFzdC0+ZW5jb2RlZF90YWlsOwo+PiAr
+fQo+PiArCj4+IAo+PiArLyoKPj4gKyAqIFN3aXRjaCB0byB0aGUgTlVNQS1mcmllbmRseSBzbG93
+IHBhdGggZm9yIHNwaW5sb2NrcyB3aGVuIHdlIGhhdmUKPj4gKyAqIG11bHRpcGxlIE5VTUEgbm9k
+ZXMgaW4gbmF0aXZlIGVudmlyb25tZW50LCB1bmxlc3MgdGhlIHVzZXIgaGFzCj4+ICsgKiBvdmVy
+cmlkZGVuIHRoaXMgZGVmYXVsdCBiZWhhdmlvciBieSBzZXR0aW5nIHRoZSBudW1hX3NwaW5sb2Nr
+IGZsYWcuCj4+ICsgKi8KPj4gK3ZvaWQgY25hX2NvbmZpZ3VyZV9zcGluX2xvY2tfc2xvd3BhdGgo
+dm9pZCkKPiBOaXQ6IFRoZXJlIHNob3VsZCBiZSBhIF9faW5pdC4KVHJ1ZS4gSSB3aWxsIGZpeCB0
+aGF0LgoKPj4gK3sKPj4gKwlpZiAoKG51bWFfc3BpbmxvY2tfZmxhZyA9PSAxKSB8fAo+PiArCSAg
+ICAobnVtYV9zcGlubG9ja19mbGFnID09IDAgJiYgbnJfbm9kZV9pZHMgPiAxICYmCj4+ICsJCSAg
+ICBwdl9vcHMubG9jay5xdWV1ZWRfc3Bpbl9sb2NrX3Nsb3dwYXRoID09Cj4+ICsJCQluYXRpdmVf
+cXVldWVkX3NwaW5fbG9ja19zbG93cGF0aCkpIHsKPj4gKwkJcHZfb3BzLmxvY2sucXVldWVkX3Nw
+aW5fbG9ja19zbG93cGF0aCA9Cj4+ICsJCSAgICBfX2NuYV9xdWV1ZWRfc3Bpbl9sb2NrX3Nsb3dw
+YXRoOwo+PiArCj4+ICsJCXByX2luZm8oIkVuYWJsaW5nIENOQSBzcGlubG9ja1xuIik7Cj4+ICsJ
+fQo+PiArfQo+IAo+IE90aGVyIHRoYW4gdGhlc2UgdHdvIG1pbm9yIG5pdHMsIHRoZSByZXN0cyBs
+b29rcyBnb29kIHRvIG1lLgpHcmVhdC4gSSB3aWxsIHJldmlzZSBhbmQgcmVzdWJtaXQuCgpCZXN0
+IHJlZ2FyZHMsCuKAlCBBbGV4Cl9fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19f
+X19fX19fX19fCmxpbnV4LWFybS1rZXJuZWwgbWFpbGluZyBsaXN0CmxpbnV4LWFybS1rZXJuZWxA
+bGlzdHMuaW5mcmFkZWFkLm9yZwpodHRwOi8vbGlzdHMuaW5mcmFkZWFkLm9yZy9tYWlsbWFuL2xp
+c3RpbmZvL2xpbnV4LWFybS1rZXJuZWwK
