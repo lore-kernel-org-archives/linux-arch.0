@@ -1,65 +1,36 @@
-From: Guo Ren <guoren@kernel.org>
-Subject: Re: [PATCH 2/2] riscv: Add vector ISA support
-Date: Mon, 6 Jan 2020 11:38:30 +0800
-Message-ID: <CAJF2gTQ8-b2w7-v1giYN_UYcNMaeju8yv0ksUu2=g5YJtk1rdw@mail.gmail.com>
-References: <20200105025215.2522-1-guoren@kernel.org> <20200105025215.2522-2-guoren@kernel.org>
- <20200106024515.GA1021@andestech.com> <CAAhSdy2N1v20g-WGo99Utrvhj4NXZeFP-is1jqCs9DE_Zs2VKg@mail.gmail.com>
+From: Frederic Weisbecker <frederic@kernel.org>
+Subject: Re: [patch V2 09/17] x86/entry: Remove _TIF_NOHZ from
+ _TIF_WORK_SYSCALL_ENTRY
+Date: Mon, 6 Jan 2020 05:11:25 +0100
+Message-ID: <20200106041124.GA26097@lenoir>
+References: <20191023122705.198339581@linutronix.de>
+ <20191023123118.491328859@linutronix.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <CAAhSdy2N1v20g-WGo99Utrvhj4NXZeFP-is1jqCs9DE_Zs2VKg@mail.gmail.com>
+Content-Disposition: inline
+In-Reply-To: <20191023123118.491328859@linutronix.de>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Anup Patel <anup@brainfault.org>
-Cc: Alan Kao <alankao@andestech.com>, linux-arch <linux-arch@vger.kernel.org>, Albert Ou <aou@eecs.berkeley.edu>, Guo Ren <ren_guo@c-sky.com>, Arnd Bergmann <arnd@arndb.de>, Atish Patra <atish.patra@wdc.com>, Anup Patel <Anup.Patel@wdc.com>, "linux-kernel@vger.kernel.org List" <linux-kernel@vger.kernel.org>, linux-csky@vger.kernel.org, Vincent Chen <vincent.chen@sifive.com>, Palmer Dabbelt <palmer@dabbelt.com>, Zong Li <zong.li@sifive.com>, Paul Walmsley <paul.walmsley@sifive.com>, Greentime Hu <greentime.hu@sifive.com>, linux-riscv <linux-riscv@lists.infradead.org>, Bin Meng <bmeng.cn@gmail.com>
+To: Thomas Gleixner <tglx@linutronix.de>
+Cc: LKML <linux-kernel@vger.kernel.org>, x86@kernel.org, Peter Zijlstra <peterz@infradead.org>, Andy Lutomirski <luto@kernel.org>, Will Deacon <will@kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, kvm@vger.kernel.org, linux-arch@vger.kernel.org, Mike Rapoport <rppt@linux.ibm.com>, Josh Poimboeuf <jpoimboe@redhat.com>, Miroslav Benes <mbenes@suse.cz>
 List-Id: linux-arch.vger.kernel.org
 
-Thx Anup,
+On Wed, Oct 23, 2019 at 02:27:14PM +0200, Thomas Gleixner wrote:
+> From: Thomas Gleixner <tglx@linutronix.de>
+> 
+> Evaluating _TIF_NOHZ to decide whether to use the slow syscall entry path
+> is not only pointless, it's actually counterproductive:
+> 
+>  1) Context tracking code is invoked unconditionally before that flag is
+>     evaluated.
+> 
+>  2) If the flag is set the slow path is invoked for nothing due to #1
+> 
+> Remove it.
+> 
+> Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
 
-The purpose of the patch is to talk about abi for linux & libc.
+I'm borrowing this patch for a series of mine. But if you apply
+it in the meantime, that would be even better :-)
 
-The most confused me is how max vlen (128/256/512/1024 ???), we should
-put it into sigcontext. I need people's suggestions, thx.
-
-Anyone help to review the patch are very helpful and we could
-co-developed together, Thx
-
-On Mon, Jan 6, 2020 at 11:00 AM Anup Patel <anup@brainfault.org> wrote:
->
-> On Mon, Jan 6, 2020 at 8:15 AM Alan Kao <alankao@andestech.com> wrote:
-> >
-> > Hi Guo,
-> >
-> > On Sun, Jan 05, 2020 at 10:52:15AM +0800, guoren@kernel.org wrote:
-> > > From: Guo Ren <ren_guo@c-sky.com>
-> > >
-> > > The implementation follow the RISC-V "V" Vector Extension draft v0.8 with
-> > > 128bit-vlen and it's based on linux-5.5-rc4.
-> > >
-> >
-> > According to https://lkml.org/lkml/2019/11/22/2169, in which Paul has stated
-> > that "we plan to only accept patches for new modules or extensions that have
-> > been frozen or ratified by the RISC-V Foundation."
-> >
-> > Is v0.8 ratified enough for now?
->
-> As-per the patch acceptance policy, we cannot merge it now (just like KVM
-> patches) but we can always review and get the patches in final shape
-> by the time spec is frozen or ratified.
->
-> I think we should continue with the patch review and get this series in
-> good shape.
->
-> In fact, having this patches early on LKML is very helpful for people working
-> on RISC-V vector extension implementation in HW. On this line, this a good
-> contribution coming at the right time.
->
-> Regards,
-> Anup
-
-
-
--- 
-Best Regards
- Guo Ren
-
-ML: https://lore.kernel.org/linux-csky/
+Thanks!
