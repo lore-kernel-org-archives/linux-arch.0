@@ -1,15 +1,15 @@
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [RFT 03/13] sh: Constify ioreadX() iomem argument (as in generic
+Subject: Re: [RFT 06/13] arc: Constify ioreadX() iomem argument (as in generic
  implementation)
-Date: Tue, 7 Jan 2020 18:08:18 +0100
-Message-ID: <CAK8P3a2eMB34Qd=U_9vGBCN3m5Zh4qDhyEpGH6M=M4e22aPQLQ@mail.gmail.com>
+Date: Tue, 7 Jan 2020 18:10:07 +0100
+Message-ID: <CAK8P3a1RibnRU6SiVjrOy-q+ZDdKacQgD9mrft_aHMgA9hm3PA@mail.gmail.com>
 References: <1578415992-24054-1-git-send-email-krzk@kernel.org>
- <1578415992-24054-6-git-send-email-krzk@kernel.org>
+ <1578415992-24054-9-git-send-email-krzk@kernel.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 Return-path: <dri-devel-bounces@lists.freedesktop.org>
-In-Reply-To: <1578415992-24054-6-git-send-email-krzk@kernel.org>
+In-Reply-To: <1578415992-24054-9-git-send-email-krzk@kernel.org>
 List-Unsubscribe: <https://lists.freedesktop.org/mailman/options/dri-devel>,
  <mailto:dri-devel-request@lists.freedesktop.org?subject=unsubscribe>
 List-Archive: <https://lists.freedesktop.org/archives/dri-devel>
@@ -28,13 +28,13 @@ On Tue, Jan 7, 2020 at 5:54 PM Krzysztof Kozlowski <krzk@kernel.org> wrote:
 > The ioreadX() helpers have inconsistent interface.  On some architectures
 > void *__iomem address argument is a pointer to const, on some not.
 >
-> Implementations of ioreadX() do not modify the memory under the address
-> so they can be converted to a "const" version for const-safety and
-> consistency among architectures.
+> Implementations of ioreadX() do not modify the memory under the
+> address so they can be converted to a "const" version for const-safety
+> and consistency among architectures.
 >
 > Signed-off-by: Krzysztof Kozlowski <krzk@kernel.org>
 
-The patch looks good, but I think this has to be done together with the powerpc
-version and the header that declares the function, for bisectibility.
+The patch looks correct, but I would not bother here, as it has no
+effect on the compiler or its output.
 
-       Arnd
+      Arnd
