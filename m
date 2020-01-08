@@ -1,62 +1,80 @@
-Return-Path: <SRS0=XOKs=3M=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from eu-smtp-delivery-151.mimecast.com ([146.101.78.151]:20905 "EHLO
-        eu-smtp-delivery-151.mimecast.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1727296AbgAWRcL (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 23 Jan 2020 12:32:11 -0500
-From: David Laight <David.Laight@ACULAB.COM>
-Subject: RE: [PATCH v2 00/10] Rework READ_ONCE() to improve codegen
-Date: Thu, 23 Jan 2020 17:32:06 +0000
-Message-ID: <2bfe2be6da484f15b0d229dd02d16ae6@AcuMS.aculab.com>
-References: <20200123153341.19947-1-will@kernel.org>
- <26ad7a8a975c4e06b44a3184d7c86e5f@AcuMS.aculab.com>
- <20200123171641.GC20126@willie-the-truck>
-In-Reply-To: <20200123171641.GC20126@willie-the-truck>
-Content-Language: en-US
+Return-Path: <SRS0=+omB=25=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from pegase1.c-s.fr ([93.17.236.30]:9734 "EHLO pegase1.c-s.fr"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1727313AbgAHIsu (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 8 Jan 2020 03:48:50 -0500
+Subject: Re: [RFT 00/13] iomap: Constify ioreadX() iomem argument
+References: <1578415992-24054-1-git-send-email-krzk@kernel.org>
+ <CAMuHMdW4ek0OYQDrrbcpZjNUTTP04nSbwkmiZvBmKcU=PQM9qA@mail.gmail.com>
+ <CAMuHMdUBmYtJKtSYzS_5u67hVZOqcKSgFY1rDGme6gLNRBJ_gA@mail.gmail.com>
+ <CAJKOXPfq9vS4kSyx1jOPHBvi9_HjviRv0LU2A8ZwdmqgUuebHQ@mail.gmail.com>
+ <2355489c-a207-1927-54cf-85c04b62f18f@c-s.fr>
+ <CAMuHMdV=-m-eN4rOa=XQhk2oBDZZwgXXMU6RMVQRVsc6ALyeoA@mail.gmail.com>
+From: Christophe Leroy <christophe.leroy@c-s.fr>
+Message-ID: <00a43e5c-0708-d49a-9cc4-eb2ce8b4cf99@c-s.fr>
+Date: Wed, 8 Jan 2020 09:48:46 +0100
 MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8BIT
+In-Reply-To: <CAMuHMdV=-m-eN4rOa=XQhk2oBDZZwgXXMU6RMVQRVsc6ALyeoA@mail.gmail.com>
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Language: fr
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: 'Will Deacon' <will@kernel.org>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "kernel-team@android.com" <kernel-team@android.com>, Michael Ellerman <mpe@ellerman.id.au>, Peter Zijlstra <peterz@infradead.org>, Linus Torvalds <torvalds@linux-foundation.org>, Segher Boessenkool <segher@kernel.crashing.org>, Christian Borntraeger <borntraeger@de.ibm.com>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>, Arnd Bergmann <arnd@arndb.de>, Peter Oberparleiter <oberpar@linux.ibm.com>, Masahiro Yamada <masahiroy@kernel.org>, Nick Desaulniers <ndesaulniers@google.com>
-Message-ID: <20200123173206.ty7hCM8MDl098tQHXfyYsCVOuN9XDg8mICdqbnOyElI@z>
+To: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: Krzysztof Kozlowski <krzk@kernel.org>, Rich Felker <dalias@libc.org>, Jiri Slaby <jirislaby@gmail.com>, "Michael S. Tsirkin" <mst@redhat.com>, David Airlie <airlied@linux.ie>, Jason Wang <jasowang@redhat.com>, DRI Development <dri-devel@lists.freedesktop.org>, virtualization@lists.linux-foundation.org, "James E.J. Bottomley" <James.Bottomley@hansenpartnership.com>, netdev <netdev@vger.kernel.org>, Paul Mackerras <paulus@samba.org>, Linux-Arch <linux-arch@vger.kernel.org>, Dave Jiang <dave.jiang@intel.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Helge Deller <deller@gmx.de>, Linux-sh list <linux-sh@vger.kernel.org>, Alexey Brodkin <abrodkin@synopsys.com>, Ben Skeggs <bskeggs@redhat.com>, nouveau@lists.freedesktop.org, Dave Airlie <airlied@redhat.com>, Matt Turner <mattst88@gmail.com>, arcml <linux-snps-arc@lists.infradead.org>, Nick Kossifidis <mickflemm@gmail.com>, Allen Hubbe <allenbh@gmail.com>, Arnd Bergmann <arnd@arndb.de>, alpha <linux-alpha@vger.kernel.org>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Thomas Gleixner <tglx@linutronix.de>, Mauro Carvalho Chehab <mchehab@kernel.org>, Kalle Valo <kvalo@codeaurora.org>, Richard Henderson <rth@twiddle.net>, Parisc List <linux-parisc@vger.kernel.org>, Vineet Gupta <vgupta@synopsys.com>, linux-wireless <linux-wireless@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Luis Chamberlain <mcgrof@kernel.org>, Daniel Vetter <daniel@ffwll.ch>, Jon Mason <jdmason@kudzu.us>, linux-ntb@googlegroups.com, Andrew Morton <akpm@linux-foundation.org>, Linux Media Mailing List <linux-media@vger.kernel.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, "David S. Miller" <davem@davemloft.net>
+Message-ID: <20200108084846.3Ms2e3cPfQBmCFpVc0jcN-65xBG_U3UnQiLzlj-XngM@z>
 
-From: Will Deacon
-> Sent: 23 January 2020 17:17
+Hi Geert,
+
+Le 08/01/2020 à 09:43, Geert Uytterhoeven a écrit :
+> Hi Christophe,
 > 
-> On Thu, Jan 23, 2020 at 05:07:40PM +0000, David Laight wrote:
-> > From: Will Deacon
-> > > Sent: 23 January 2020 15:34
-> > ...
-> > >   * Only warn once at build-time if GCC prior to 4.8 is detected...
-> > >
-> > >   * ... and then raise the minimum GCC version to 4.8, with an error for
-> > >     older versions of the compiler
-> >
-> > If the kernel compiled with gcc 4.7 is likely to be buggy, don't these
-> > need to be in the other order?
-> >
-> > Otherwise you need to keep the old versions for use with the old
-> > compilers.
+> On Wed, Jan 8, 2020 at 9:35 AM Christophe Leroy <christophe.leroy@c-s.fr> wrote:
+>> Le 08/01/2020 à 09:18, Krzysztof Kozlowski a écrit :
+>>> On Wed, 8 Jan 2020 at 09:13, Geert Uytterhoeven <geert@linux-m68k.org> wrote:
+>>>> On Wed, Jan 8, 2020 at 9:07 AM Geert Uytterhoeven <geert@linux-m68k.org> wrote:
+>>>>> On Tue, Jan 7, 2020 at 5:53 PM Krzysztof Kozlowski <krzk@kernel.org> wrote:
+>>>>>> The ioread8/16/32() and others have inconsistent interface among the
+>>>>>> architectures: some taking address as const, some not.
+>>>>>>
+>>>>>> It seems there is nothing really stopping all of them to take
+>>>>>> pointer to const.
+>>>>>
+>>>>> Shouldn't all of them take const volatile __iomem pointers?
+>>>>> It seems the "volatile" is missing from all but the implementations in
+>>>>> include/asm-generic/io.h.
+>>>>
+>>>> As my "volatile" comment applies to iowrite*(), too, probably that should be
+>>>> done in a separate patch.
+>>>>
+>>>> Hence with patches 1-5 squashed, and for patches 11-13:
+>>>> Reviewed-by: Geert Uytterhoeven <geert+renesas@glider.be>
+>>>
+>>> I'll add to this one also changes to ioreadX_rep() and add another
+>>> patch for volatile for reads and writes. I guess your review will be
+>>> appreciated once more because of ioreadX_rep()
+>>
+>> volatile should really only be used where deemed necessary:
+>>
+>> https://www.kernel.org/doc/html/latest/process/volatile-considered-harmful.html
+>>
+>> It is said: " ...  accessor functions might use volatile on
+>> architectures where direct I/O memory access does work. Essentially,
+>> each accessor call becomes a little critical section on its own and
+>> ensures that the access happens as expected by the programmer."
 > 
-> I think it depends how much we care about those older compilers. My series
-> first moves it to "Good luck mate, you're on your own" and then follows up
-> with a "Let me take that off you it's sharp".
+> That is exactly the use case here: all above are accessor functions.
+> 
+> Why would ioreadX() not need volatile, while readY() does?
+> 
 
-Depends on how 'sharp' it is.
+My point was: it might be necessary for some arches and not for others.
 
-If the kernel suffers from the code example in the gcc bug itself
-(where 'volatile' is lost and some code is moved out of a loop)
-then things will really break somewhere odd.
+And as pointed by Arnd, the volatile is really only necessary for the 
+dereference itself, should the arch use dereferencing.
 
-OTOH if it might generate code that reads something twice
-you'd have to be unlucky as well.
+So I guess the best would be to go in the other direction: remove 
+volatile keyword wherever possible instead of adding it where it is not 
+needed.
 
-Oh - and I need to find a newer compiler :-(
-
-	David
-
--
-Registered Address Lakeside, Bramley Road, Mount Farm, Milton Keynes, MK1 1PT, UK
-Registration No: 1397386 (Wales)
+Christophe
