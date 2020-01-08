@@ -1,75 +1,66 @@
-From: Christophe Leroy <christophe.leroy@c-s.fr>
-Subject: Re: [RFT 00/13] iomap: Constify ioreadX() iomem argument
-Date: Wed, 8 Jan 2020 09:48:46 +0100
-Message-ID: <00a43e5c-0708-d49a-9cc4-eb2ce8b4cf99@c-s.fr>
+From: Krzysztof Kozlowski <krzk@kernel.org>
+Subject: Re: [RFT 02/13] alpha: Constify ioreadX() iomem argument (as in
+ generic implementation)
+Date: Wed, 8 Jan 2020 10:07:32 +0100
+Message-ID: <20200108090732.GA10145@pi3>
 References: <1578415992-24054-1-git-send-email-krzk@kernel.org>
- <CAMuHMdW4ek0OYQDrrbcpZjNUTTP04nSbwkmiZvBmKcU=PQM9qA@mail.gmail.com>
- <CAMuHMdUBmYtJKtSYzS_5u67hVZOqcKSgFY1rDGme6gLNRBJ_gA@mail.gmail.com>
- <CAJKOXPfq9vS4kSyx1jOPHBvi9_HjviRv0LU2A8ZwdmqgUuebHQ@mail.gmail.com>
- <2355489c-a207-1927-54cf-85c04b62f18f@c-s.fr>
- <CAMuHMdV=-m-eN4rOa=XQhk2oBDZZwgXXMU6RMVQRVsc6ALyeoA@mail.gmail.com>
+ <1578415992-24054-3-git-send-email-krzk@kernel.org>
+ <CAMuHMdXHhF6GhS1W8qS4j7Jv5YnxXjcRopT5QSA=+trc8qwFng@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Transfer-Encoding: 8bit
-Return-path: <netdev-owner@vger.kernel.org>
-In-Reply-To: <CAMuHMdV=-m-eN4rOa=XQhk2oBDZZwgXXMU6RMVQRVsc6ALyeoA@mail.gmail.com>
-Content-Language: fr
-Sender: netdev-owner@vger.kernel.org
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-snps-arc-bounces+gla-linux-snps-arc=m.gmane.org@lists.infradead.org>
+Content-Disposition: inline
+In-Reply-To: <CAMuHMdXHhF6GhS1W8qS4j7Jv5YnxXjcRopT5QSA=+trc8qwFng@mail.gmail.com>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-snps-arc>,
+ <mailto:linux-snps-arc-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-snps-arc/>
+List-Post: <mailto:linux-snps-arc@lists.infradead.org>
+List-Help: <mailto:linux-snps-arc-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-snps-arc>,
+ <mailto:linux-snps-arc-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-snps-arc" <linux-snps-arc-bounces@lists.infradead.org>
+Errors-To: linux-snps-arc-bounces+gla-linux-snps-arc=m.gmane.org@lists.infradead.org
 To: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: Krzysztof Kozlowski <krzk@kernel.org>, Rich Felker <dalias@libc.org>, Jiri Slaby <jirislaby@gmail.com>, "Michael S. Tsirkin" <mst@redhat.com>, David Airlie <airlied@linux.ie>, Jason Wang <jasowang@redhat.com>, DRI Development <dri-devel@lists.freedesktop.org>, virtualization@lists.linux-foundation.org, "James E.J. Bottomley" <James.Bottomley@hansenpartnership.com>, netdev <netdev@vger.kernel.org>, Paul Mackerras <paulus@samba.org>, Linux-Arch <linux-arch@vger.kernel.org>, Dave Jiang <dave.jiang@intel.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Helge Deller <deller@gmx.de>, Linux-sh list <linux-sh@vger.kernel.org>, Alexey Brodkin <abrodkin@synopsys.com>, Ben Skeggs <bskeggs@redhat.com>, nouveau@lists.freedesktop.orgDave Airlie <airlie>
+Cc: Rich Felker <dalias@libc.org>, Jiri Slaby <jirislaby@gmail.com>, "Michael S. Tsirkin" <mst@redhat.com>, David Airlie <airlied@linux.ie>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Jason Wang <jasowang@redhat.com>, DRI Development <dri-devel@lists.freedesktop.org>, virtualization@lists.linux-foundation.org, "James E.J. Bottomley" <James.Bottomley@hansenpartnership.com>, netdev <netdev@vger.kernel.org>, Paul Mackerras <paulus@samba.org>, Linux-Arch <linux-arch@vger.kernel.org>, Dave Jiang <dave.jiang@intel.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Michael Ellerman <mpe@ellerman.id.au>, Helge Deller <deller@gmx.de>, Linux-sh list <linux-sh@vger.kernel.org>, Alexey Brodkin <abrodkin@synopsys.com>, Ben Skeggs <bskeggs@redhat.com>, nouveau@lists.freedesktop.org, Dave Airlie <airlied@redhat.com>, Matt Turner <mattst88@gmail.com>, arcml <linux-snps-arc@lists.in>
 List-Id: linux-arch.vger.kernel.org
 
-Hi Geert,
-
-Le 08/01/2020 à 09:43, Geert Uytterhoeven a écrit :
-> Hi Christophe,
+On Wed, Jan 08, 2020 at 09:10:06AM +0100, Geert Uytterhoeven wrote:
+> Hi Krzysztof,
 > 
-> On Wed, Jan 8, 2020 at 9:35 AM Christophe Leroy <christophe.leroy@c-s.fr> wrote:
->> Le 08/01/2020 à 09:18, Krzysztof Kozlowski a écrit :
->>> On Wed, 8 Jan 2020 at 09:13, Geert Uytterhoeven <geert@linux-m68k.org> wrote:
->>>> On Wed, Jan 8, 2020 at 9:07 AM Geert Uytterhoeven <geert@linux-m68k.org> wrote:
->>>>> On Tue, Jan 7, 2020 at 5:53 PM Krzysztof Kozlowski <krzk@kernel.org> wrote:
->>>>>> The ioread8/16/32() and others have inconsistent interface among the
->>>>>> architectures: some taking address as const, some not.
->>>>>>
->>>>>> It seems there is nothing really stopping all of them to take
->>>>>> pointer to const.
->>>>>
->>>>> Shouldn't all of them take const volatile __iomem pointers?
->>>>> It seems the "volatile" is missing from all but the implementations in
->>>>> include/asm-generic/io.h.
->>>>
->>>> As my "volatile" comment applies to iowrite*(), too, probably that should be
->>>> done in a separate patch.
->>>>
->>>> Hence with patches 1-5 squashed, and for patches 11-13:
->>>> Reviewed-by: Geert Uytterhoeven <geert+renesas@glider.be>
->>>
->>> I'll add to this one also changes to ioreadX_rep() and add another
->>> patch for volatile for reads and writes. I guess your review will be
->>> appreciated once more because of ioreadX_rep()
->>
->> volatile should really only be used where deemed necessary:
->>
->> https://www.kernel.org/doc/html/latest/process/volatile-considered-harmful.html
->>
->> It is said: " ...  accessor functions might use volatile on
->> architectures where direct I/O memory access does work. Essentially,
->> each accessor call becomes a little critical section on its own and
->> ensures that the access happens as expected by the programmer."
+> On Tue, Jan 7, 2020 at 5:53 PM Krzysztof Kozlowski <krzk@kernel.org> wrote:
+> > The ioreadX() helpers have inconsistent interface.  On some architectures
+> > void *__iomem address argument is a pointer to const, on some not.
+> >
+> > Implementations of ioreadX() do not modify the memory under the address
+> > so they can be converted to a "const" version for const-safety and
+> > consistency among architectures.
+> >
+> > Signed-off-by: Krzysztof Kozlowski <krzk@kernel.org>
 > 
-> That is exactly the use case here: all above are accessor functions.
+> > --- a/arch/alpha/include/asm/io.h
+> > +++ b/arch/alpha/include/asm/io.h
+> > @@ -151,9 +151,9 @@ static inline void generic_##NAME(TYPE b, QUAL void __iomem *addr)  \
+> >         alpha_mv.mv_##NAME(b, addr);                                    \
+> >  }
+> >
+> > -REMAP1(unsigned int, ioread8, /**/)
+> > -REMAP1(unsigned int, ioread16, /**/)
+> > -REMAP1(unsigned int, ioread32, /**/)
+> > +REMAP1(unsigned int, ioread8, const)
+> > +REMAP1(unsigned int, ioread16, const)
+> > +REMAP1(unsigned int, ioread32, const)
 > 
-> Why would ioreadX() not need volatile, while readY() does?
+> If these would become "const volatile", there would no longer be a need
+> for the last parameter of the REMAP1() macro.
 > 
+> >  REMAP1(u8, readb, const volatile)
+> >  REMAP1(u16, readw, const volatile)
+> >  REMAP1(u32, readl, const volatile)
+> 
+> Same for REMAP2() macro below, for iowrite*().
 
-My point was: it might be necessary for some arches and not for others.
+Good point, thanks!
 
-And as pointed by Arnd, the volatile is really only necessary for the 
-dereference itself, should the arch use dereferencing.
-
-So I guess the best would be to go in the other direction: remove 
-volatile keyword wherever possible instead of adding it where it is not 
-needed.
-
-Christophe
+Best regards,
+Krzysztof
