@@ -1,66 +1,76 @@
 From: Krzysztof Kozlowski <krzk@kernel.org>
-Subject: Re: [RFT 02/13] alpha: Constify ioreadX() iomem argument (as in
- generic implementation)
-Date: Wed, 8 Jan 2020 10:07:32 +0100
-Message-ID: <20200108090732.GA10145@pi3>
+Subject: Re: [RFT 00/13] iomap: Constify ioreadX() iomem argument
+Date: Wed, 8 Jan 2020 10:15:49 +0100
+Message-ID: <20200108091549.GB10145@pi3>
 References: <1578415992-24054-1-git-send-email-krzk@kernel.org>
- <1578415992-24054-3-git-send-email-krzk@kernel.org>
- <CAMuHMdXHhF6GhS1W8qS4j7Jv5YnxXjcRopT5QSA=+trc8qwFng@mail.gmail.com>
+ <CAMuHMdW4ek0OYQDrrbcpZjNUTTP04nSbwkmiZvBmKcU=PQM9qA@mail.gmail.com>
+ <CAMuHMdUBmYtJKtSYzS_5u67hVZOqcKSgFY1rDGme6gLNRBJ_gA@mail.gmail.com>
+ <CAJKOXPfq9vS4kSyx1jOPHBvi9_HjviRv0LU2A8ZwdmqgUuebHQ@mail.gmail.com>
+ <2355489c-a207-1927-54cf-85c04b62f18f@c-s.fr>
+ <CAK8P3a21yPrmp4ik3Ei1BZfeqZNf0wL5NZNF3uXqb4FLRDyUPw@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-snps-arc-bounces+gla-linux-snps-arc=m.gmane.org@lists.infradead.org>
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
+Return-path: <virtualization-bounces@lists.linux-foundation.org>
 Content-Disposition: inline
-In-Reply-To: <CAMuHMdXHhF6GhS1W8qS4j7Jv5YnxXjcRopT5QSA=+trc8qwFng@mail.gmail.com>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-snps-arc>,
- <mailto:linux-snps-arc-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-snps-arc/>
-List-Post: <mailto:linux-snps-arc@lists.infradead.org>
-List-Help: <mailto:linux-snps-arc-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-snps-arc>,
- <mailto:linux-snps-arc-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-snps-arc" <linux-snps-arc-bounces@lists.infradead.org>
-Errors-To: linux-snps-arc-bounces+gla-linux-snps-arc=m.gmane.org@lists.infradead.org
-To: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: Rich Felker <dalias@libc.org>, Jiri Slaby <jirislaby@gmail.com>, "Michael S. Tsirkin" <mst@redhat.com>, David Airlie <airlied@linux.ie>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Jason Wang <jasowang@redhat.com>, DRI Development <dri-devel@lists.freedesktop.org>, virtualization@lists.linux-foundation.org, "James E.J. Bottomley" <James.Bottomley@hansenpartnership.com>, netdev <netdev@vger.kernel.org>, Paul Mackerras <paulus@samba.org>, Linux-Arch <linux-arch@vger.kernel.org>, Dave Jiang <dave.jiang@intel.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Michael Ellerman <mpe@ellerman.id.au>, Helge Deller <deller@gmx.de>, Linux-sh list <linux-sh@vger.kernel.org>, Alexey Brodkin <abrodkin@synopsys.com>, Ben Skeggs <bskeggs@redhat.com>, nouveau@lists.freedesktop.org, Dave Airlie <airlied@redhat.com>, Matt Turner <mattst88@gmail.com>, arcml <linux-snps-arc@lists.in>
+In-Reply-To: <CAK8P3a21yPrmp4ik3Ei1BZfeqZNf0wL5NZNF3uXqb4FLRDyUPw@mail.gmail.com>
+List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
+ <mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
+List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
+List-Post: <mailto:virtualization@lists.linux-foundation.org>
+List-Help: <mailto:virtualization-request@lists.linux-foundation.org?subject=help>
+List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualization>,
+ <mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
+Errors-To: virtualization-bounces@lists.linux-foundation.org
+Sender: "Virtualization" <virtualization-bounces@lists.linux-foundation.org>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Rich Felker <dalias@libc.org>, Jiri Slaby <jirislaby@gmail.com>, "Michael S. Tsirkin" <mst@redhat.com>, David Airlie <airlied@linux.ie>, ML nouveau <nouveau@lists.freedesktop.org>, DRI Development <dri-devel@lists.freedesktop.org>, virtualization@lists.linux-foundation.org, "James E.J. Bottomley" <James.Bottomley@hansenpartnership.com>, Paul Mackerras <paulus@samba.org>, Linux-Arch <linux-arch@vger.kernel.org>, Dave Jiang <dave.jiang@intel.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Helge Deller <deller@gmx.de>, Linux-sh list <linux-sh@vger.kernel.org>, Alexey Brodkin <abrodkin@synopsys.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Ben Skeggs <bskeggs@redhat.com>, Dave Airlie <airlied@redhat.com>, Matt Turner <mattst88@gmail.com>, arcml <linux-snps-arc@lists.infradead.org>, Nick Kossifidis <mickflemm@gmail.com>, Allen Hubbe <allenbh@gmail.com>, Jon Mason <jdma>
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Jan 08, 2020 at 09:10:06AM +0100, Geert Uytterhoeven wrote:
-> Hi Krzysztof,
-> 
-> On Tue, Jan 7, 2020 at 5:53 PM Krzysztof Kozlowski <krzk@kernel.org> wrote:
-> > The ioreadX() helpers have inconsistent interface.  On some architectures
-> > void *__iomem address argument is a pointer to const, on some not.
-> >
-> > Implementations of ioreadX() do not modify the memory under the address
-> > so they can be converted to a "const" version for const-safety and
-> > consistency among architectures.
-> >
-> > Signed-off-by: Krzysztof Kozlowski <krzk@kernel.org>
-> 
-> > --- a/arch/alpha/include/asm/io.h
-> > +++ b/arch/alpha/include/asm/io.h
-> > @@ -151,9 +151,9 @@ static inline void generic_##NAME(TYPE b, QUAL void __iomem *addr)  \
-> >         alpha_mv.mv_##NAME(b, addr);                                    \
-> >  }
-> >
-> > -REMAP1(unsigned int, ioread8, /**/)
-> > -REMAP1(unsigned int, ioread16, /**/)
-> > -REMAP1(unsigned int, ioread32, /**/)
-> > +REMAP1(unsigned int, ioread8, const)
-> > +REMAP1(unsigned int, ioread16, const)
-> > +REMAP1(unsigned int, ioread32, const)
-> 
-> If these would become "const volatile", there would no longer be a need
-> for the last parameter of the REMAP1() macro.
-> 
-> >  REMAP1(u8, readb, const volatile)
-> >  REMAP1(u16, readw, const volatile)
-> >  REMAP1(u32, readl, const volatile)
-> 
-> Same for REMAP2() macro below, for iowrite*().
-
-Good point, thanks!
-
-Best regards,
-Krzysztof
+T24gV2VkLCBKYW4gMDgsIDIwMjAgYXQgMDk6NDQ6MzZBTSArMDEwMCwgQXJuZCBCZXJnbWFubiB3
+cm90ZToKPiBPbiBXZWQsIEphbiA4LCAyMDIwIGF0IDk6MzYgQU0gQ2hyaXN0b3BoZSBMZXJveSA8
+Y2hyaXN0b3BoZS5sZXJveUBjLXMuZnI+IHdyb3RlOgo+ID4gTGUgMDgvMDEvMjAyMCDDoCAwOTox
+OCwgS3J6eXN6dG9mIEtvemxvd3NraSBhIMOpY3JpdCA6Cj4gPiA+IE9uIFdlZCwgOCBKYW4gMjAy
+MCBhdCAwOToxMywgR2VlcnQgVXl0dGVyaG9ldmVuIDxnZWVydEBsaW51eC1tNjhrLm9yZz4gd3Jv
+dGU6Cj4gPiA+IEknbGwgYWRkIHRvIHRoaXMgb25lIGFsc28gY2hhbmdlcyB0byBpb3JlYWRYX3Jl
+cCgpIGFuZCBhZGQgYW5vdGhlcgo+ID4gPiBwYXRjaCBmb3Igdm9sYXRpbGUgZm9yIHJlYWRzIGFu
+ZCB3cml0ZXMuIEkgZ3Vlc3MgeW91ciByZXZpZXcgd2lsbCBiZQo+ID4gPiBhcHByZWNpYXRlZCBv
+bmNlIG1vcmUgYmVjYXVzZSBvZiBpb3JlYWRYX3JlcCgpCj4gPiA+Cj4gPgo+ID4gdm9sYXRpbGUg
+c2hvdWxkIHJlYWxseSBvbmx5IGJlIHVzZWQgd2hlcmUgZGVlbWVkIG5lY2Vzc2FyeToKPiA+Cj4g
+PiBodHRwczovL3d3dy5rZXJuZWwub3JnL2RvYy9odG1sL2xhdGVzdC9wcm9jZXNzL3ZvbGF0aWxl
+LWNvbnNpZGVyZWQtaGFybWZ1bC5odG1sCj4gPgo+ID4gSXQgaXMgc2FpZDogIiAuLi4gIGFjY2Vz
+c29yIGZ1bmN0aW9ucyBtaWdodCB1c2Ugdm9sYXRpbGUgb24KPiA+IGFyY2hpdGVjdHVyZXMgd2hl
+cmUgZGlyZWN0IEkvTyBtZW1vcnkgYWNjZXNzIGRvZXMgd29yay4gRXNzZW50aWFsbHksCj4gPiBl
+YWNoIGFjY2Vzc29yIGNhbGwgYmVjb21lcyBhIGxpdHRsZSBjcml0aWNhbCBzZWN0aW9uIG9uIGl0
+cyBvd24gYW5kCj4gPiBlbnN1cmVzIHRoYXQgdGhlIGFjY2VzcyBoYXBwZW5zIGFzIGV4cGVjdGVk
+IGJ5IHRoZSBwcm9ncmFtbWVyLiIKPiAKPiBUaGUgSS9PIGFjY2Vzc29ycyBhcmUgb25lIG9mIHRo
+ZSBmZXcgcGxhY2VzIGluIHdoaWNoICd2b2xhdGlsZScgZ2VuZXJhbGx5Cj4gbWFrZXMgc2Vuc2Us
+IGF0IGxlYXN0IGZvciB0aGUgaW1wbGVtZW50YXRpb25zIHRoYXQgZG8gYSBwbGFpbiBwb2ludGVy
+Cj4gZGVyZWZlcmVuY2UgKHByb2JhYmx5IG5vbmUgb2YgdGhlIG9uZXMgaW4gcXVlc3Rpb24gaGVy
+ZSkuCj4gCj4gSW4gY2FzZSBvZiByZWFkbC93cml0ZWwsIHRoaXMgaXMgd2hhdCB3ZSBkbyBpbiBh
+c20tZ2VuZXJpYzoKPiAKPiBzdGF0aWMgaW5saW5lIHUzMiBfX3Jhd19yZWFkbChjb25zdCB2b2xh
+dGlsZSB2b2lkIF9faW9tZW0gKmFkZHIpCj4gewo+ICAgICAgICAgcmV0dXJuICooY29uc3Qgdm9s
+YXRpbGUgdTMyIF9fZm9yY2UgKilhZGRyOwo+IH0KClN1cGVySCBpcyBhbm90aGVyIGV4YW1wbGU6
+CjEuIGlvcmVhZDhfcmVwKHZvaWQgX19pb21lbSAqYWRkciwgdm9pZCAqZHN0LCB1bnNpZ25lZCBs
+b25nIGNvdW50KQogICBjYWxscyBtbWlvX2luc2IoKQoKMi4gc3RhdGljIGlubGluZSB2b2lkIG1t
+aW9faW5zYih2b2lkIF9faW9tZW0gKmFkZHIsIHU4ICpkc3QsIGludCBjb3VudCkKICAgY2FsbHMg
+X19yYXdfcmVhZGIoKQoKMy4gI2RlZmluZSBfX3Jhd19yZWFkYihhKSAgICAgICAgICAoX19jaGtf
+aW9fcHRyKGEpLCAqKHZvbGF0aWxlIHU4ICBfX2ZvcmNlICopKGEpKQoKRXZlbiBpZiBpbnRlcmZh
+Y2Ugd2FzIG5vdCBtYXJrZWQgYXMgdm9sYXRpbGUsIGluIGZhY3QgaXRzIGltcGxlbWVudGF0aW9u
+CndhcyBjYXN0aW5nIHRvIHZvbGF0aWxlLgoKPiBUaGUgX19mb3JjZS1jYXN0IHRoYXQgcmVtb3Zl
+cyB0aGUgX19pb21lbSBoZXJlIGFsc28gbWVhbnMgdGhhdAo+IHRoZSAndm9sYXRpbGUnIGtleXdv
+cmQgY291bGQgYmUgZHJvcHBlZCBmcm9tIHRoZSBhcmd1bWVudCBsaXN0LAo+IGFzIGl0IGhhcyBu
+byByZWFsIGVmZmVjdCBhbnkgbW9yZSwgYnV0IHRoZW4gdGhlcmUgYXJlIGEgZmV3IGRyaXZlcnMK
+PiB0aGF0IG1hcmsgdGhlaXIgaW9tZW0gcG9pbnRlcnMgYXMgZWl0aGVyICd2b2xhdGlsZSB2b2lk
+IF9faW9tZW0qJyBvcgo+ICh3b3JzZSkgJ3ZvbGF0aWxlIHZvaWQgKicsIHNvIHdlIGtlZXAgaXQg
+aW4gdGhlIGFyZ3VtZW50IGxpc3QgdG8gbm90Cj4gYWRkIHdhcm5pbmdzIGZvciB0aG9zZSBkcml2
+ZXJzLgo+IAo+IEl0IG1heSBiZSB0aW1lIHRvIGNoYW5nZSB0aGVzZSBkcml2ZXJzIHRvIG5vdCB1
+c2Ugdm9sYXRpbGUgZm9yIF9faW9tZW0KPiBwb2ludGVycywgYnV0IHRoYXQgc2VlbXMgb3V0IG9m
+IHNjb3BlIGZvciB3aGF0IEtyenlzenRvZiBpcyB0cnlpbmcKPiB0byBkby4gSWRlYWxseSB3ZSB3
+b3VsZCBiZSBjb25zaXN0ZW50IGhlcmUgdGhvdWdoLCBlaXRoZXIgdXNpbmcgdm9sYXRpbGUKPiBh
+bGwgdGhlIHRpbWUgb3IgbmV2ZXIuCgpJbmRlZWQuIEkgZ3Vlc3MgdGhlcmUgYXJlIG5vIG9iamVj
+dGlvbnMgYXJvdW5kIGNvbnN0IHNvIGxldCBtZSBzZW5kIHYyCmZvciBjb25zdCBvbmx5LgoKQmVz
+dCByZWdhcmRzLApLcnp5c3p0b2YKCl9fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19f
+X19fX19fX19fX19fClZpcnR1YWxpemF0aW9uIG1haWxpbmcgbGlzdApWaXJ0dWFsaXphdGlvbkBs
+aXN0cy5saW51eC1mb3VuZGF0aW9uLm9yZwpodHRwczovL2xpc3RzLmxpbnV4Zm91bmRhdGlvbi5v
+cmcvbWFpbG1hbi9saXN0aW5mby92aXJ0dWFsaXphdGlvbg==
