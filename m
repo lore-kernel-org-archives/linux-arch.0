@@ -1,74 +1,42 @@
-Return-Path: <SRS0=XOKs=3M=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail-wr1-f66.google.com ([209.85.221.66]:45231 "EHLO
-        mail-wr1-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1725818AbgAWFoe (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 23 Jan 2020 00:44:34 -0500
-Received: by mail-wr1-f66.google.com with SMTP id j42so1632904wrj.12
-        for <linux-arch@vger.kernel.org>; Wed, 22 Jan 2020 21:44:33 -0800 (PST)
-MIME-Version: 1.0
-References: <20200116143029.31441-1-guoren@kernel.org>
-In-Reply-To: <20200116143029.31441-1-guoren@kernel.org>
-From: Anup Patel <anup@brainfault.org>
-Date: Thu, 23 Jan 2020 11:14:20 +0530
-Message-ID: <CAAhSdy0k2gb1+k214dW1Zk-YwvujNdui5GJE3zPb_NhDS9b_Rw@mail.gmail.com>
-Subject: Re: [PATCH V2 1/4] riscv: Separate patch for cflags and aflags
-Content-Type: text/plain; charset="UTF-8"
+Return-Path: <SRS0=+omB=25=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail.kernel.org ([198.145.29.99]:32884 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726182AbgAHUHA (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 8 Jan 2020 15:07:00 -0500
+From: Krzysztof Kozlowski <krzk@kernel.org>
+Subject: [PATCH v2 8/9] media: fsl-viu: Constify ioreadX() iomem argument (as in generic implementation)
+Date: Wed,  8 Jan 2020 21:05:27 +0100
+Message-Id: <20200108200528.4614-9-krzk@kernel.org>
+In-Reply-To: <20200108200528.4614-1-krzk@kernel.org>
+References: <20200108200528.4614-1-krzk@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Guo Ren <guoren@kernel.org>
-Cc: Paul Walmsley <paul.walmsley@sifive.com>, Palmer Dabbelt <palmer@dabbelt.com>, Albert Ou <aou@eecs.berkeley.edu>, Anup Patel <Anup.Patel@wdc.com>, Vincent Chen <vincent.chen@sifive.com>, Zong Li <zong.li@sifive.com>, Greentime Hu <greentime.hu@sifive.com>, Bin Meng <bmeng.cn@gmail.com>, Atish Patra <atish.patra@wdc.com>, Andreas Schwab <schwab@linux-m68k.org>, "linux-kernel@vger.kernel.org List" <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, linux-csky@vger.kernel.org, linux-riscv <linux-riscv@lists.infradead.org>, Guo Ren <ren_guo@c-sky.com>
-Message-ID: <20200123054420.UFPuXsWR3VwlknmZktdASX7vUtHS7Mx-qJ7EPinB97o@z>
+To: Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Alexey Brodkin <abrodkin@synopsys.com>, Vineet Gupta <vgupta@synopsys.com>, "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>, Helge Deller <deller@gmx.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, Dave Airlie <airlied@redhat.com>, David Airlie <airlied@linux.ie>, Daniel Vetter <daniel@ffwll.ch>, Ben Skeggs <bskeggs@redhat.com>, Mauro Carvalho Chehab <mchehab@kernel.org>, Jiri Slaby <jirislaby@gmail.com>, Nick Kossifidis <mickflemm@gmail.com>, Luis Chamberlain <mcgrof@kernel.org>, Kalle Valo <kvalo@codeaurora.org>, "David S. Miller" <davem@davemloft.net>, Dave Jiang <dave.jiang@intel.com>, Jon Mason <jdmason@kudzu.us>, Allen Hubbe <allenbh@gmail.com>, "Michael S. Tsirkin" <mst@redhat.com>, Jason Wang <jasowang@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Krzysztof Kozlowski <krzk@kernel.org>, Geert Uytterhoeven <geert+renesas@glider.be>, Thomas Gleixner <tglx@linutronix.de>, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-snps-arc@lists.infradead.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org, dri-devel@lists.freedesktop.org, nouveau@lists.freedesktop.org, linux-media@vger.kernel.org, linux-wireless@vger.kernel.org, netdev@vger.kernel.org, linux-ntb@googlegroups.com, virtualization@lists.linux-foundation.org, linux-arch@vger.kernel.org
 
-On Thu, Jan 16, 2020 at 8:01 PM <guoren@kernel.org> wrote:
->
-> From: Guo Ren <ren_guo@c-sky.com>
->
-> Use "subst fd" in Makefile is a hack way and it's not convenient
-> to add new ISA feature. Just separate them into riscv-march-cflags
-> and riscv-march-aflags.
->
-> Signed-off-by: Guo Ren <ren_guo@c-sky.com>
-> Cc: Anup Patel <Anup.Patel@wdc.com>
-> ---
->  arch/riscv/Makefile | 18 ++++++++++++------
->  1 file changed, 12 insertions(+), 6 deletions(-)
->
-> diff --git a/arch/riscv/Makefile b/arch/riscv/Makefile
-> index b9009a2fbaf5..6d09b53cf106 100644
-> --- a/arch/riscv/Makefile
-> +++ b/arch/riscv/Makefile
-> @@ -35,12 +35,18 @@ else
->  endif
->
->  # ISA string setting
-> -riscv-march-$(CONFIG_ARCH_RV32I)       := rv32ima
-> -riscv-march-$(CONFIG_ARCH_RV64I)       := rv64ima
-> -riscv-march-$(CONFIG_FPU)              := $(riscv-march-y)fd
-> -riscv-march-$(CONFIG_RISCV_ISA_C)      := $(riscv-march-y)c
-> -KBUILD_CFLAGS += -march=$(subst fd,,$(riscv-march-y))
-> -KBUILD_AFLAGS += -march=$(riscv-march-y)
-> +riscv-march-cflags-$(CONFIG_ARCH_RV32I)                := rv32ima
-> +riscv-march-cflags-$(CONFIG_ARCH_RV64I)                := rv64ima
-> +riscv-march-$(CONFIG_FPU)                      := $(riscv-march-y)fd
-> +riscv-march-cflags-$(CONFIG_RISCV_ISA_C)       := $(riscv-march-cflags-y)c
-> +
-> +riscv-march-aflags-$(CONFIG_ARCH_RV32I)                := rv32ima
-> +riscv-march-aflags-$(CONFIG_ARCH_RV64I)                := rv64ima
-> +riscv-march-aflags-$(CONFIG_FPU)               := $(riscv-march-aflags-y)fd
-> +riscv-march-aflags-$(CONFIG_RISCV_ISA_C)       := $(riscv-march-aflags-y)c
-> +
-> +KBUILD_CFLAGS += -march=$(riscv-march-cflags-y)
-> +KBUILD_AFLAGS += -march=$(riscv-march-aflags-y)
->
->  KBUILD_CFLAGS += -mno-save-restore
->  KBUILD_CFLAGS += -DCONFIG_PAGE_OFFSET=$(CONFIG_PAGE_OFFSET)
-> --
-> 2.17.0
->
+The ioreadX() helpers have inconsistent interface.  On some architectures
+void *__iomem address argument is a pointer to const, on some not.
 
-LGTM.
+Implementations of ioreadX() do not modify the memory under the address
+so they can be converted to a "const" version for const-safety and
+consistency among architectures.
 
-Reviewed-by: Anup Patel <anup@brainfault.org>
+Signed-off-by: Krzysztof Kozlowski <krzk@kernel.org>
+---
+ drivers/media/platform/fsl-viu.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-Regards,
-Anup
+diff --git a/drivers/media/platform/fsl-viu.c b/drivers/media/platform/fsl-viu.c
+index 81a8faedbba6..991d9dc82749 100644
+--- a/drivers/media/platform/fsl-viu.c
++++ b/drivers/media/platform/fsl-viu.c
+@@ -34,7 +34,7 @@
+ /* Allow building this driver with COMPILE_TEST */
+ #if !defined(CONFIG_PPC) && !defined(CONFIG_MICROBLAZE)
+ #define out_be32(v, a)	iowrite32be(a, (void __iomem *)v)
+-#define in_be32(a)	ioread32be((void __iomem *)a)
++#define in_be32(a)	ioread32be((const void __iomem *)a)
+ #endif
+ 
+ #define BUFFER_TIMEOUT		msecs_to_jiffies(500)  /* 0.5 seconds */
+-- 
+2.17.1
