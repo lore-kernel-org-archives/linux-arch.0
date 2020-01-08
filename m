@@ -1,124 +1,45 @@
-Return-Path: <SRS0=948I=23=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail-dm6nam10on2136.outbound.protection.outlook.com ([40.107.93.136]:22150
-        "EHLO NAM10-DM6-obe.outbound.protection.outlook.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1726735AbgAFWna (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 6 Jan 2020 17:43:30 -0500
-From: Dexuan Cui <decui@microsoft.com>
-Subject: [PATCH v6][RESEND] x86/hyperv: Suspend/resume the hypercall page for hibernation
-Date: Mon,  6 Jan 2020 14:42:39 -0800
-Message-ID: <1578350559-130275-1-git-send-email-decui@microsoft.com>
-Reply-To: decui@microsoft.com
-Content-Type: text/plain
-MIME-Version: 1.0
+Return-Path: <SRS0=+omB=25=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail.kernel.org ([198.145.29.99]:60438 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726254AbgAHUGm (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 8 Jan 2020 15:06:42 -0500
+From: Krzysztof Kozlowski <krzk@kernel.org>
+Subject: [PATCH v2 6/9] drm/mgag200: Constify ioreadX() iomem argument (as in generic implementation)
+Date: Wed,  8 Jan 2020 21:05:25 +0100
+Message-Id: <20200108200528.4614-7-krzk@kernel.org>
+In-Reply-To: <20200108200528.4614-1-krzk@kernel.org>
+References: <20200108200528.4614-1-krzk@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: arnd@arndb.de, bp@alien8.de, daniel.lezcano@linaro.org, haiyangz@microsoft.com, hpa@zytor.com, kys@microsoft.com, linux-hyperv@vger.kernel.org, linux-kernel@vger.kernel.org, mingo@redhat.com, sashal@kernel.org, sthemmin@microsoft.com, tglx@linutronix.de, x86@kernel.org, mikelley@microsoft.com, Alexander.Levin@microsoft.com, vkuznets@redhat.com
-Cc: linux-arch@vger.kernel.org, Dexuan Cui <decui@microsoft.com>
-Message-ID: <20200106224239.l-lw8No2efljN2lNhtHCwCaZH3hIxWvdHEfOOeVZMig@z>
+To: Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Alexey Brodkin <abrodkin@synopsys.com>, Vineet Gupta <vgupta@synopsys.com>, "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>, Helge Deller <deller@gmx.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, Dave Airlie <airlied@redhat.com>, David Airlie <airlied@linux.ie>, Daniel Vetter <daniel@ffwll.ch>, Ben Skeggs <bskeggs@redhat.com>, Mauro Carvalho Chehab <mchehab@kernel.org>, Jiri Slaby <jirislaby@gmail.com>, Nick Kossifidis <mickflemm@gmail.com>, Luis Chamberlain <mcgrof@kernel.org>, Kalle Valo <kvalo@codeaurora.org>, "David S. Miller" <davem@davemloft.net>, Dave Jiang <dave.jiang@intel.com>, Jon Mason <jdmason@kudzu.us>, Allen Hubbe <allenbh@gmail.com>, "Michael S. Tsirkin" <mst@redhat.com>, Jason Wang <jasowang@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Krzysztof Kozlowski <krzk@kernel.org>, Geert Uytterhoeven <geert+renesas@glider.be>, Thomas Gleixner <tglx@linutronix.de>, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-snps-arc@lists.infradead.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org, dri-devel@lists.freedesktop.org, nouveau@lists.freedesktop.org, linux-media@vger.kernel.org, linux-wireless@vger.kernel.org, netdev@vger.kernel.org, linux-ntb@googlegroups.com, virtualization@lists.linux-foundation.org, linux-arch@vger.kernel.org
 
-This is needed for hibernation, e.g. when we resume the old kernel, we need
-to disable the "current" kernel's hypercall page and then resume the old
-kernel's.
+The ioreadX() helpers have inconsistent interface.  On some architectures
+void *__iomem address argument is a pointer to const, on some not.
 
-Signed-off-by: Dexuan Cui <decui@microsoft.com>
-Reviewed-by: Michael Kelley <mikelley@microsoft.com>
+Implementations of ioreadX() do not modify the memory under the address
+so they can be converted to a "const" version for const-safety and
+consistency among architectures.
+
+Signed-off-by: Krzysztof Kozlowski <krzk@kernel.org>
 ---
+ drivers/gpu/drm/mgag200/mgag200_drv.h | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
 
-This is a RESEND of https://lkml.org/lkml/2019/11/20/68 .
-
-Please review.
-
-If it looks good, can you please pick it up through the tip.git tree?
-
-
- arch/x86/hyperv/hv_init.c | 48 +++++++++++++++++++++++++++++++++++++++
- 1 file changed, 48 insertions(+)
-
-diff --git a/arch/x86/hyperv/hv_init.c b/arch/x86/hyperv/hv_init.c
-index caaf4dce99bf..24a62d33067c 100644
---- a/arch/x86/hyperv/hv_init.c
-+++ b/arch/x86/hyperv/hv_init.c
-@@ -21,11 +21,15 @@
- #include <linux/hyperv.h>
- #include <linux/slab.h>
- #include <linux/cpuhotplug.h>
-+#include <linux/syscore_ops.h>
- #include <clocksource/hyperv_timer.h>
+diff --git a/drivers/gpu/drm/mgag200/mgag200_drv.h b/drivers/gpu/drm/mgag200/mgag200_drv.h
+index aa32aad222c2..6512b3af4fb7 100644
+--- a/drivers/gpu/drm/mgag200/mgag200_drv.h
++++ b/drivers/gpu/drm/mgag200/mgag200_drv.h
+@@ -34,9 +34,9 @@
  
- void *hv_hypercall_pg;
- EXPORT_SYMBOL_GPL(hv_hypercall_pg);
+ #define MGAG200FB_CONN_LIMIT 1
  
-+/* Save the hypercall page temporarily for hibernation */
-+static void *hv_hypercall_pg_saved;
-+
- u32 *hv_vp_index;
- EXPORT_SYMBOL_GPL(hv_vp_index);
+-#define RREG8(reg) ioread8(((void __iomem *)mdev->rmmio) + (reg))
++#define RREG8(reg) ioread8(((const void __iomem *)mdev->rmmio) + (reg))
+ #define WREG8(reg, v) iowrite8(v, ((void __iomem *)mdev->rmmio) + (reg))
+-#define RREG32(reg) ioread32(((void __iomem *)mdev->rmmio) + (reg))
++#define RREG32(reg) ioread32(((const void __iomem *)mdev->rmmio) + (reg))
+ #define WREG32(reg, v) iowrite32(v, ((void __iomem *)mdev->rmmio) + (reg))
  
-@@ -246,6 +250,46 @@ static int __init hv_pci_init(void)
- 	return 1;
- }
- 
-+static int hv_suspend(void)
-+{
-+	union hv_x64_msr_hypercall_contents hypercall_msr;
-+
-+	/*
-+	 * Reset hypercall page reference before reset the page,
-+	 * let hypercall operations fail safely rather than
-+	 * panic the kernel for using invalid hypercall page
-+	 */
-+	hv_hypercall_pg_saved = hv_hypercall_pg;
-+	hv_hypercall_pg = NULL;
-+
-+	/* Reset the hypercall page */
-+	rdmsrl(HV_X64_MSR_HYPERCALL, hypercall_msr.as_uint64);
-+	hypercall_msr.enable = 0;
-+	wrmsrl(HV_X64_MSR_HYPERCALL, hypercall_msr.as_uint64);
-+
-+	return 0;
-+}
-+
-+static void hv_resume(void)
-+{
-+	union hv_x64_msr_hypercall_contents hypercall_msr;
-+
-+	/* Re-enable the hypercall page */
-+	rdmsrl(HV_X64_MSR_HYPERCALL, hypercall_msr.as_uint64);
-+	hypercall_msr.enable = 1;
-+	hypercall_msr.guest_physical_address =
-+		vmalloc_to_pfn(hv_hypercall_pg_saved);
-+	wrmsrl(HV_X64_MSR_HYPERCALL, hypercall_msr.as_uint64);
-+
-+	hv_hypercall_pg = hv_hypercall_pg_saved;
-+	hv_hypercall_pg_saved = NULL;
-+}
-+
-+static struct syscore_ops hv_syscore_ops = {
-+	.suspend = hv_suspend,
-+	.resume = hv_resume,
-+};
-+
- /*
-  * This function is to be invoked early in the boot sequence after the
-  * hypervisor has been detected.
-@@ -330,6 +374,8 @@ void __init hyperv_init(void)
- 
- 	x86_init.pci.arch_init = hv_pci_init;
- 
-+	register_syscore_ops(&hv_syscore_ops);
-+
- 	return;
- 
- remove_cpuhp_state:
-@@ -349,6 +395,8 @@ void hyperv_cleanup(void)
- {
- 	union hv_x64_msr_hypercall_contents hypercall_msr;
- 
-+	unregister_syscore_ops(&hv_syscore_ops);
-+
- 	/* Reset our OS id */
- 	wrmsrl(HV_X64_MSR_GUEST_OS_ID, 0);
- 
+ #define ATTR_INDEX 0x1fc0
 -- 
-2.19.1
+2.17.1
