@@ -1,50 +1,70 @@
-Return-Path: <SRS0=XOKs=3M=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from us-smtp-delivery-1.mimecast.com ([205.139.110.120]:53952 "EHLO
-        us-smtp-1.mimecast.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-        with ESMTP id S1728792AbgAWUjL (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 23 Jan 2020 15:39:11 -0500
-Subject: Re: [PATCH v9 4/5] locking/qspinlock: Introduce starvation avoidance
- into CNA
-From: Waiman Long <longman@redhat.com>
-References: <20200115035920.54451-1-alex.kogan@oracle.com>
- <20200115035920.54451-5-alex.kogan@oracle.com>
- <f5e31716-d687-f64c-0fc5-f1c9b539c4ff@redhat.com>
-Message-ID: <5f865b62-4867-2c7b-715a-0605759e647f@redhat.com>
-Date: Thu, 23 Jan 2020 15:39:00 -0500
-MIME-Version: 1.0
-In-Reply-To: <f5e31716-d687-f64c-0fc5-f1c9b539c4ff@redhat.com>
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
-Content-Language: en-US
+Return-Path: <SRS0=+omB=25=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail.kernel.org ([198.145.29.99]:33272 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726390AbgAHUHK (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 8 Jan 2020 15:07:10 -0500
+From: Krzysztof Kozlowski <krzk@kernel.org>
+Subject: [PATCH v2 9/9] net: wireless: ath5k: Constify ioreadX() iomem argument (as in generic implementation)
+Date: Wed,  8 Jan 2020 21:05:28 +0100
+Message-Id: <20200108200528.4614-10-krzk@kernel.org>
+In-Reply-To: <20200108200528.4614-1-krzk@kernel.org>
+References: <20200108200528.4614-1-krzk@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Alex Kogan <alex.kogan@oracle.com>, linux@armlinux.org.uk, peterz@infradead.org, mingo@redhat.com, will.deacon@arm.com, arnd@arndb.de, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, bp@alien8.de, hpa@zytor.com, x86@kernel.org, guohanjun@huawei.com, jglauber@marvell.com
-Cc: steven.sistare@oracle.com, daniel.m.jordan@oracle.com, dave.dice@oracle.com
-Message-ID: <20200123203900.OaGj49Js_CazipUu1GWrgZoYrSufzPXq6SbSheL32tc@z>
+To: Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Alexey Brodkin <abrodkin@synopsys.com>, Vineet Gupta <vgupta@synopsys.com>, "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>, Helge Deller <deller@gmx.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, Dave Airlie <airlied@redhat.com>, David Airlie <airlied@linux.ie>, Daniel Vetter <daniel@ffwll.ch>, Ben Skeggs <bskeggs@redhat.com>, Mauro Carvalho Chehab <mchehab@kernel.org>, Jiri Slaby <jirislaby@gmail.com>, Nick Kossifidis <mickflemm@gmail.com>, Luis Chamberlain <mcgrof@kernel.org>, Kalle Valo <kvalo@codeaurora.org>, "David S. Miller" <davem@davemloft.net>, Dave Jiang <dave.jiang@intel.com>, Jon Mason <jdmason@kudzu.us>, Allen Hubbe <allenbh@gmail.com>, "Michael S. Tsirkin" <mst@redhat.com>, Jason Wang <jasowang@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Krzysztof Kozlowski <krzk@kernel.org>, Geert Uytterhoeven <geert+renesas@glider.be>, Thomas Gleixner <tglx@linutronix.de>, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-snps-arc@lists.infradead.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org, dri-devel@lists.freedesktop.org, nouveau@lists.freedesktop.org, linux-media@vger.kernel.org, linux-wireless@vger.kernel.org, netdev@vger.kernel.org, linux-ntb@googlegroups.com, virtualization@lists.linux-foundation.org, linux-arch@vger.kernel.org
 
-On 1/23/20 2:55 PM, Waiman Long wrote:
-> Playing with lock event counts, I would like you to change the meaning
-> intra_count parameter that you are tracking. Instead of tracking the
-> number of times a lock is passed to a waiter of the same node
-> consecutively, I would like you to track the number of times the head
-> waiter in the secondary queue has given up its chance to acquire the
-> lock because a later waiter has jumped the queue and acquire the lock
-> before it. This value determines the worst case latency that a secondary
-> queue waiter can experience. So
+The ioreadX() helpers have inconsistent interface.  On some architectures
+void *__iomem address argument is a pointer to const, on some not.
 
-Well, that is not strictly true as a a waiter in the middle of the
-secondary queue can go back and fro between the queues for a number of
-times. Of course, if we can ensure that when a FLUSH_SECONDARY_QUEUE is
-issued, those waiters that were in the secondary queue won't be put back
-into the secondary queue again. The parameter will then really determine
-the worst case latency.
+Implementations of ioreadX() do not modify the memory under the address
+so they can be converted to a "const" version for const-safety and
+consistency among architectures.
 
-One way to do it is to store the tail of the secondary queue into the
-CNA node and passed it down the queue until it matches the current
-encoded tail. That will require changing both numa_node and intra_count
-into u16 to squeeze out space for another u32.
+Signed-off-by: Krzysztof Kozlowski <krzk@kernel.org>
+---
+ drivers/net/wireless/ath/ath5k/ahb.c | 10 +++++-----
+ 1 file changed, 5 insertions(+), 5 deletions(-)
 
-That will also make the code a bit easier to analyze.
-
-Cheers,
-Longman
+diff --git a/drivers/net/wireless/ath/ath5k/ahb.c b/drivers/net/wireless/ath/ath5k/ahb.c
+index 2c9cec8b53d9..8bd01df369fb 100644
+--- a/drivers/net/wireless/ath/ath5k/ahb.c
++++ b/drivers/net/wireless/ath/ath5k/ahb.c
+@@ -138,18 +138,18 @@ static int ath_ahb_probe(struct platform_device *pdev)
+ 
+ 	if (bcfg->devid >= AR5K_SREV_AR2315_R6) {
+ 		/* Enable WMAC AHB arbitration */
+-		reg = ioread32((void __iomem *) AR5K_AR2315_AHB_ARB_CTL);
++		reg = ioread32((const void __iomem *) AR5K_AR2315_AHB_ARB_CTL);
+ 		reg |= AR5K_AR2315_AHB_ARB_CTL_WLAN;
+ 		iowrite32(reg, (void __iomem *) AR5K_AR2315_AHB_ARB_CTL);
+ 
+ 		/* Enable global WMAC swapping */
+-		reg = ioread32((void __iomem *) AR5K_AR2315_BYTESWAP);
++		reg = ioread32((const void __iomem *) AR5K_AR2315_BYTESWAP);
+ 		reg |= AR5K_AR2315_BYTESWAP_WMAC;
+ 		iowrite32(reg, (void __iomem *) AR5K_AR2315_BYTESWAP);
+ 	} else {
+ 		/* Enable WMAC DMA access (assuming 5312 or 231x*/
+ 		/* TODO: check other platforms */
+-		reg = ioread32((void __iomem *) AR5K_AR5312_ENABLE);
++		reg = ioread32((const void __iomem *) AR5K_AR5312_ENABLE);
+ 		if (to_platform_device(ah->dev)->id == 0)
+ 			reg |= AR5K_AR5312_ENABLE_WLAN0;
+ 		else
+@@ -202,12 +202,12 @@ static int ath_ahb_remove(struct platform_device *pdev)
+ 
+ 	if (bcfg->devid >= AR5K_SREV_AR2315_R6) {
+ 		/* Disable WMAC AHB arbitration */
+-		reg = ioread32((void __iomem *) AR5K_AR2315_AHB_ARB_CTL);
++		reg = ioread32((const void __iomem *) AR5K_AR2315_AHB_ARB_CTL);
+ 		reg &= ~AR5K_AR2315_AHB_ARB_CTL_WLAN;
+ 		iowrite32(reg, (void __iomem *) AR5K_AR2315_AHB_ARB_CTL);
+ 	} else {
+ 		/*Stop DMA access */
+-		reg = ioread32((void __iomem *) AR5K_AR5312_ENABLE);
++		reg = ioread32((const void __iomem *) AR5K_AR5312_ENABLE);
+ 		if (to_platform_device(ah->dev)->id == 0)
+ 			reg &= ~AR5K_AR5312_ENABLE_WLAN0;
+ 		else
+-- 
+2.17.1
