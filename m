@@ -1,15 +1,15 @@
 From: Kalle Valo <kvalo@codeaurora.org>
-Subject: Re: [PATCH v2 2/9] net: wireless: rtl818x: Constify ioreadX() iomem
+Subject: Re: [PATCH v2 9/9] net: wireless: ath5k: Constify ioreadX() iomem
  argument (as in generic implementation)
-Date: Fri, 10 Jan 2020 15:32:13 +0200
-Message-ID: <87imljsahu.fsf@codeaurora.org>
+Date: Fri, 10 Jan 2020 15:33:11 +0200
+Message-ID: <87eew7sag8.fsf@codeaurora.org>
 References: <20200108200528.4614-1-krzk@kernel.org>
- <20200108200528.4614-3-krzk@kernel.org>
+ <20200108200528.4614-10-krzk@kernel.org>
 Mime-Version: 1.0
 Content-Type: text/plain
 Return-path: <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
-In-Reply-To: <20200108200528.4614-3-krzk@kernel.org> (Krzysztof Kozlowski's
- message of "Wed, 8 Jan 2020 21:05:21 +0100")
+In-Reply-To: <20200108200528.4614-10-krzk@kernel.org> (Krzysztof Kozlowski's
+ message of "Wed, 8 Jan 2020 21:05:28 +0100")
 List-Unsubscribe: <https://lists.ozlabs.org/options/linuxppc-dev>,
  <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=unsubscribe>
 List-Archive: <http://lists.ozlabs.org/pipermail/linuxppc-dev/>
@@ -34,21 +34,11 @@ Krzysztof Kozlowski <krzk@kernel.org> writes:
 > consistency among architectures.
 >
 > Signed-off-by: Krzysztof Kozlowski <krzk@kernel.org>
-> Reviewed-by: Geert Uytterhoeven <geert+renesas@glider.be>
->
 > ---
->
-> Changes since v1:
-> 1. Add Geert's review.
-> ---
->  drivers/net/wireless/realtek/rtl818x/rtl8180/rtl8180.h | 6 +++---
->  1 file changed, 3 insertions(+), 3 deletions(-)
+>  drivers/net/wireless/ath/ath5k/ahb.c | 10 +++++-----
+>  1 file changed, 5 insertions(+), 5 deletions(-)
 
-No need to have "net: wireless: " in the title, this is enough.
-
-rtl818x: Constify ioreadX() iomem argument (as in generic implementation)
-
-I assume someone else will take this so here's my ack:
+No need to have "net: wireless: " in the title, otherwise looks good.
 
 Acked-by: Kalle Valo <kvalo@codeaurora.org>
 
