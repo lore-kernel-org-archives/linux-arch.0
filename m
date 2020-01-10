@@ -1,41 +1,53 @@
-Return-Path: <SRS0=cGiU=22=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:42272 "EHLO mail.kernel.org"
+Return-Path: <SRS0=fIL7=27=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from foss.arm.com ([217.140.110.172]:45806 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726240AbgAECw0 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Sat, 4 Jan 2020 21:52:26 -0500
-From: guoren@kernel.org
-Subject: [PATCH 1/2] riscv: Fixup obvious bug for fp-regs reset
-Date: Sun,  5 Jan 2020 10:52:14 +0800
-Message-ID: <20200105025215.2522-1-guoren@kernel.org>
+        id S1728137AbgAJOyc (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 10 Jan 2020 09:54:32 -0500
+From: Mark Brown <broonie@kernel.org>
+Subject: [PATCH v2 02/10] powerpc: Remove arch_has_random, arch_has_random_seed
+Date: Fri, 10 Jan 2020 14:54:14 +0000
+Message-ID: <20200110145422.49141-3-broonie@kernel.org>
+In-Reply-To: <20200110145422.49141-1-broonie@kernel.org>
+References: <20200110145422.49141-1-broonie@kernel.org>
+MIME-Version: 1.0
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: paul.walmsley@sifive.com, palmer@dabbelt.com, aou@eecs.berkeley.edu, Anup.Patel@wdc.com, vincent.chen@sifive.com, zong.li@sifive.com, greentime.hu@sifive.com, bmeng.cn@gmail.com, atish.patra@wdc.com
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, linux-csky@vger.kernel.org, linux-riscv@lists.infradead.org, Guo Ren <ren_guo@c-sky.com>
-Message-ID: <20200105025214.Z5cxs5i-hKKLbOCXavs76uf1e94lbDW_ETBlP4VZ0fk@z>
+To: linux-arch@vger.kernel.org
+Cc: Richard Henderson <richard.henderson@linaro.org>, Borislav Petkov <bp@alien8.de>, linux-s390@vger.kernel.org, herbert@gondor.apana.org.au, x86@kernel.org, linux-crypto@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-arm-kernel@lists.infradead.org, Richard Henderson <rth@twiddle.net>, Mark Brown <broonie@kernel.org>
+Message-ID: <20200110145414.BzDK55NKKwm3BvlqFV839glW4m3n2iix-Tp2LDhhC_0@z>
 
-From: Guo Ren <ren_guo@c-sky.com>
+From: Richard Henderson <richard.henderson@linaro.org>
 
-CSR_MISA is defined in Privileged Architectures' spec: 3.1.1 Machine
-ISA Register misa. Every bit:1 indicate a feature, so we should beqz
-reset_done when there is no F/D bit in csr_msia register.
+These symbols are currently part of the generic archrandom.h
+interface, but are currently unused and can be removed.
 
-Signed-off-by: Guo Ren <ren_guo@c-sky.com>
+Signed-off-by: Richard Henderson <rth@twiddle.net>
+Signed-off-by: Mark Brown <broonie@kernel.org>
 ---
- arch/riscv/kernel/head.S | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+ arch/powerpc/include/asm/archrandom.h | 10 ----------
+ 1 file changed, 10 deletions(-)
 
-diff --git a/arch/riscv/kernel/head.S b/arch/riscv/kernel/head.S
-index 797802c73dee..2227db63f895 100644
---- a/arch/riscv/kernel/head.S
-+++ b/arch/riscv/kernel/head.S
-@@ -251,7 +251,7 @@ ENTRY(reset_regs)
- #ifdef CONFIG_FPU
- 	csrr	t0, CSR_MISA
- 	andi	t0, t0, (COMPAT_HWCAP_ISA_F | COMPAT_HWCAP_ISA_D)
--	bnez	t0, .Lreset_regs_done
-+	beqz	t0, .Lreset_regs_done
+diff --git a/arch/powerpc/include/asm/archrandom.h b/arch/powerpc/include/asm/archrandom.h
+index a09595f00cab..2fa7cdfbba24 100644
+--- a/arch/powerpc/include/asm/archrandom.h
++++ b/arch/powerpc/include/asm/archrandom.h
+@@ -34,16 +34,6 @@ static inline int arch_get_random_seed_int(unsigned int *v)
  
- 	li	t1, SR_FS
- 	csrs	CSR_STATUS, t1
+ 	return rc;
+ }
+-
+-static inline int arch_has_random(void)
+-{
+-	return 0;
+-}
+-
+-static inline int arch_has_random_seed(void)
+-{
+-	return !!ppc_md.get_random_seed;
+-}
+ #endif /* CONFIG_ARCH_RANDOM */
+ 
+ #ifdef CONFIG_PPC_POWERNV
 -- 
-2.17.0
+2.20.1
