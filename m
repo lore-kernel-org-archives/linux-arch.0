@@ -1,36 +1,61 @@
-Return-Path: <SRS0=HZcf=3N=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:39454 "EHLO
-        merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1725817AbgAXHxX (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 24 Jan 2020 02:53:23 -0500
-Date: Fri, 24 Jan 2020 08:52:35 +0100
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH v8 4/5] locking/qspinlock: Introduce starvation avoidance
- into CNA
-Message-ID: <20200124075235.GX14914@hirez.programming.kicks-ass.net>
-References: <20191230194042.67789-1-alex.kogan@oracle.com>
- <20191230194042.67789-5-alex.kogan@oracle.com>
- <20200121132949.GL14914@hirez.programming.kicks-ass.net>
- <cfdf635d-be2e-9d4b-c4ca-6bcbddc6868f@redhat.com>
- <3862F8A1-FF9B-40AD-A88E-2C0BA7AF6F58@oracle.com>
+Return-Path: <SRS0=fIL7=27=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from foss.arm.com ([217.140.110.172]:45862 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1727993AbgAJOyi (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 10 Jan 2020 09:54:38 -0500
+From: Mark Brown <broonie@kernel.org>
+Subject: [PATCH v2 05/10] linux/random.h: Use false with bool
+Date: Fri, 10 Jan 2020 14:54:17 +0000
+Message-ID: <20200110145422.49141-6-broonie@kernel.org>
+In-Reply-To: <20200110145422.49141-1-broonie@kernel.org>
+References: <20200110145422.49141-1-broonie@kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <3862F8A1-FF9B-40AD-A88E-2C0BA7AF6F58@oracle.com>
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Alex Kogan <alex.kogan@oracle.com>
-Cc: Waiman Long <longman@redhat.com>, linux@armlinux.org.uk, Ingo Molnar <mingo@redhat.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-arm-kernel <linux-arm-kernel@lists.infradead.org>, linux-kernel@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>, Borislav Petkov <bp@alien8.de>, hpa@zytor.com, x86@kernel.org, Hanjun Guo <guohanjun@huawei.com>, Jan Glauber <jglauber@marvell.com>, Steven Sistare <steven.sistare@oracle.com>, Daniel Jordan <daniel.m.jordan@oracle.com>, dave.dice@oracle.com
-Message-ID: <20200124075235.oaetb2bEaqB_ezSxnCHzBVIKQQ3e9CBk4pGB5_Ns53E@z>
+To: linux-arch@vger.kernel.org
+Cc: Richard Henderson <richard.henderson@linaro.org>, Borislav Petkov <bp@alien8.de>, linux-s390@vger.kernel.org, herbert@gondor.apana.org.au, x86@kernel.org, linux-crypto@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-arm-kernel@lists.infradead.org, Ard Biesheuvel <ardb@kernel.org>, Richard Henderson <rth@twiddle.net>, Mark Brown <broonie@kernel.org>
+Message-ID: <20200110145417.ZWHHok6ptNTKjbLUlaKRCRgw4GxBe0wY89WEAqc-LD8@z>
 
-On Thu, Jan 23, 2020 at 04:33:54PM -0500, Alex Kogan wrote:
-> Let me put this question to you. What do you think the number should be?
+From: Richard Henderson <richard.henderson@linaro.org>
 
-I think it would be very good to keep the inter-node latency below 1ms.
+Keep the generic fallback versions in sync with the other architecture
+specific implementations and use the proper name for false.
 
-But to realize that we need data on the lock hold times. Specifically
-for the heavily contended locks that make CNA worth it in the first
-place.
+Suggested-by: Ard Biesheuvel <ardb@kernel.org>
+Signed-off-by: Richard Henderson <rth@twiddle.net>
+Signed-off-by: Mark Brown <broonie@kernel.org>
+---
+ include/linux/random.h | 8 ++++----
+ 1 file changed, 4 insertions(+), 4 deletions(-)
 
-I don't see that data, so I don't see how we can argue about this let
-alone call something reasonable.
+diff --git a/include/linux/random.h b/include/linux/random.h
+index 7fd0360908d2..ea0e2f5f1ec5 100644
+--- a/include/linux/random.h
++++ b/include/linux/random.h
+@@ -169,19 +169,19 @@ static inline void prandom_seed_state(struct rnd_state *state, u64 seed)
+ #else
+ static inline bool arch_get_random_long(unsigned long *v)
+ {
+-	return 0;
++	return false;
+ }
+ static inline bool arch_get_random_int(unsigned int *v)
+ {
+-	return 0;
++	return false;
+ }
+ static inline bool arch_get_random_seed_long(unsigned long *v)
+ {
+-	return 0;
++	return false;
+ }
+ static inline bool arch_get_random_seed_int(unsigned int *v)
+ {
+-	return 0;
++	return false;
+ }
+ #endif
+ 
+-- 
+2.20.1
