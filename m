@@ -1,65 +1,159 @@
-Return-Path: <SRS0=Pd00=3D=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail-lj1-f194.google.com ([209.85.208.194]:35118 "EHLO
-        mail-lj1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727102AbgANVdM (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 14 Jan 2020 16:33:12 -0500
-Received: by mail-lj1-f194.google.com with SMTP id j1so16077886lja.2
-        for <linux-arch@vger.kernel.org>; Tue, 14 Jan 2020 13:33:10 -0800 (PST)
-Received: from mail-lj1-f176.google.com (mail-lj1-f176.google.com. [209.85.208.176])
-        by smtp.gmail.com with ESMTPSA id 195sm8010968ljj.55.2020.01.14.13.33.06
-        for <linux-arch@vger.kernel.org>
-        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
-        Tue, 14 Jan 2020 13:33:07 -0800 (PST)
-Received: by mail-lj1-f176.google.com with SMTP id u1so16087691ljk.7
-        for <linux-arch@vger.kernel.org>; Tue, 14 Jan 2020 13:33:06 -0800 (PST)
+Return-Path: <SRS0=fIL7=27=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail.kernel.org ([198.145.29.99]:60326 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1728695AbgAJQ4z (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 10 Jan 2020 11:56:55 -0500
+From: Will Deacon <will@kernel.org>
+Subject: [RFC PATCH 5/8] READ_ONCE: Enforce atomicity for {READ,WRITE}_ONCE() memory accesses
+Date: Fri, 10 Jan 2020 16:56:33 +0000
+Message-ID: <20200110165636.28035-6-will@kernel.org>
+In-Reply-To: <20200110165636.28035-1-will@kernel.org>
+References: <20200110165636.28035-1-will@kernel.org>
 MIME-Version: 1.0
-References: <20200114200846.29434-1-vgupta@synopsys.com> <20200114200846.29434-2-vgupta@synopsys.com>
-In-Reply-To: <20200114200846.29434-2-vgupta@synopsys.com>
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Date: Tue, 14 Jan 2020 13:32:50 -0800
-Message-ID: <CAHk-=wjChjfOaDnGygOJpC36R6mtT7=Xf6wWTzD_wLJm=quu0Q@mail.gmail.com>
-Subject: Re: [RFC 1/4] asm-generic/uaccess: don't define inline functions if
- noinline lib/* in use
-Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Cc: Arnd Bergmann <arnd@arndb.de>, Khalid Aziz <khalid.aziz@oracle.com>, Andrey Konovalov <andreyknvl@google.com>, Andrew Morton <akpm@linux-foundation.org>, Peter Zijlstra <peterz@infradead.org>, Christian Brauner <christian.brauner@ubuntu.com>, Kees Cook <keescook@chromium.org>, Ingo Molnar <mingo@kernel.org>, Aleksa Sarai <cyphar@cyphar.com>, linux-snps-arc@lists.infradead.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>
-Message-ID: <20200114213250.nbJ0G-Ir4o42xaJ3bngy3HXSvdvb08xxEOUWxArU9Ic@z>
+To: linux-kernel@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, kernel-team@android.com, Will Deacon <will@kernel.org>, Michael Ellerman <mpe@ellerman.id.au>, Peter Zijlstra <peterz@infradead.org>, Linus Torvalds <torvalds@linux-foundation.org>, Segher Boessenkool <segher@kernel.crashing.org>, Christian Borntraeger <borntraeger@de.ibm.com>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>, Arnd Bergmann <arnd@arndb.de>
+Message-ID: <20200110165633.QV9jnTBYHImsOxcr5DNRfk84Xzt9kzowGaEPGu9iBgI@z>
 
-On Tue, Jan 14, 2020 at 12:09 PM Vineet Gupta
-<Vineet.Gupta1@synopsys.com> wrote:
->
-> There are 2 generic varaints of strncpy_from_user() / strnlen_user()
->  (1). inline version in asm-generic/uaccess.h
+{READ,WRITE}_ONCE() cannot guarantee atomicity for arbitrary data sizes.
+This can be surprising to callers that might incorrectly be expecting
+atomicity for accesses to aggregate structures, although there are other
+callers where tearing is actually permissable (e.g. if they are using
+something akin to sequence locking to protect the access).
 
-I think we should get rid of this entirely. It's just a buggy garbage
-implementation that nobody should ever actually use.
+Linus sayeth:
 
-It does just about everything wrong that you *can* do, wrong,
-including doing the NUL-filling termination of standard strncpy() that
-"strncpy_from_user()" doesn't actually do.
+  | We could also look at being stricter for the normal READ/WRITE_ONCE(),
+  | and require that they are
+  |
+  | (a) regular integer types
+  |
+  | (b) fit in an atomic word
+  |
+  | We actually did (b) for a while, until we noticed that we do it on
+  | loff_t's etc and relaxed the rules. But maybe we could have a
+  | "non-atomic" version of READ/WRITE_ONCE() that is used for the
+  | questionable cases?
 
-So:
+The slight snag is that we also have to support 64-bit accesses on 32-bit
+architectures, as these appear to be widespread and tend to work out ok
+if either the architecture supports atomic 64-bit accesses (x86, armv7)
+or if the variable being accesses represents a virtual address and
+therefore only requires 32-bit atomicity in practice.
 
- - the asm-generic/uaccess.h __strncpy_from_user() function is just
-horribly wrong
+Take a step in that direction by introducing a variant of
+'compiletime_assert_atomic_type()' and use it to check the pointer
+argument to {READ,WRITE}_ONCE(). Expose __{READ,WRITE_ONCE}() variants
+which are allowed to tear and convert the two broken callers over to the
+new macros.
 
- - the generic/uaccess.h version of strncpy_from_user() shouldn't be
-an inline function either, since the only thing it can do inline is
-the bogus one-byte access check that _barely_ makes security work (you
-also need to have a guard page to _actually_ make it work, and I'm not
-atr all convinced that people do).
+Suggested-by: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Peter Zijlstra <peterz@infradead.org>
+Cc: Michael Ellerman <mpe@ellerman.id.au>
+Cc: Arnd Bergmann <arnd@arndb.de>
+Signed-off-by: Will Deacon <will@kernel.org>
+---
+ drivers/xen/time.c       |  2 +-
+ include/linux/compiler.h | 37 +++++++++++++++++++++++++++++++++----
+ net/xdp/xsk_queue.h      |  2 +-
+ 3 files changed, 35 insertions(+), 6 deletions(-)
 
-the whole thing is just broken and should be removed from a header file.
-
->  (2). optimized word-at-a-time version in lib/*
-
-That is - outside of the original x86 strncpy_from_user() - the only
-copy of this function that historically gets all the corner cases
-right. And even those we've gotten wrong occasionally.
-
-I would suggest that anybody who uses asm-generic/uaccess.h needs to
-simply use the generic library version.
-
-             Linus
+diff --git a/drivers/xen/time.c b/drivers/xen/time.c
+index 0968859c29d0..108edbcbc040 100644
+--- a/drivers/xen/time.c
++++ b/drivers/xen/time.c
+@@ -64,7 +64,7 @@ static void xen_get_runstate_snapshot_cpu_delta(
+ 	do {
+ 		state_time = get64(&state->state_entry_time);
+ 		rmb();	/* Hypervisor might update data. */
+-		*res = READ_ONCE(*state);
++		*res = __READ_ONCE(*state);
+ 		rmb();	/* Hypervisor might update data. */
+ 	} while (get64(&state->state_entry_time) != state_time ||
+ 		 (state_time & XEN_RUNSTATE_UPDATE));
+diff --git a/include/linux/compiler.h b/include/linux/compiler.h
+index 44974d658f30..863180641336 100644
+--- a/include/linux/compiler.h
++++ b/include/linux/compiler.h
+@@ -198,24 +198,43 @@ void ftrace_likely_update(struct ftrace_likely_data *f, int val,
+ #include <asm/barrier.h>
+ #include <linux/kasan-checks.h>
+ 
++/*
++ * Use __READ_ONCE() instead of READ_ONCE() if you do not require any
++ * atomicity or dependency ordering guarantees. Note that this may result
++ * in tears!
++ */
++#define __READ_ONCE(x)	(*(volatile typeof(x) *)&(x))
++
++#define __READ_ONCE_SCALAR(x)						\
++({									\
++	typeof(x) __x = __READ_ONCE(x);					\
++	smp_read_barrier_depends();					\
++	__x;								\
++})
++
+ /*
+  * Use READ_ONCE_NOCHECK() instead of READ_ONCE() if you need
+  * to hide memory access from KASAN.
+  */
+ #define READ_ONCE_NOCHECK(x)						\
+ ({									\
+-	typeof(x) __x = *(volatile typeof(x) *)&(x);			\
+-	smp_read_barrier_depends();					\
+-	__x;								\
++	compiletime_assert_rwonce_type(x);				\
++	__READ_ONCE_SCALAR(x);						\
+ })
+ 
+ #define READ_ONCE(x)	READ_ONCE_NOCHECK(x)
+ 
+-#define WRITE_ONCE(x, val)				\
++#define __WRITE_ONCE(x, val)				\
+ do {							\
+ 	*(volatile typeof(x) *)&(x) = (val);		\
+ } while (0)
+ 
++#define WRITE_ONCE(x, val)				\
++do {							\
++	compiletime_assert_rwonce_type(x);		\
++	__WRITE_ONCE(x, val);				\
++} while (0)
++
+ #ifdef CONFIG_KASAN
+ /*
+  * We can't declare function 'inline' because __no_sanitize_address conflicts
+@@ -299,6 +318,16 @@ static inline void *offset_to_ptr(const int *off)
+ 	compiletime_assert(__native_word(t),				\
+ 		"Need native word sized stores/loads for atomicity.")
+ 
++/*
++ * Yes, this permits 64-bit accesses on 32-bit architectures. These will
++ * actually be atomic in many cases (namely x86), but for others we rely on
++ * the access being split into 2x32-bit accesses for a 32-bit quantity (e.g.
++ * a virtual address) and a strong prevailing wind.
++ */
++#define compiletime_assert_rwonce_type(t)					\
++	compiletime_assert(__native_word(t) || sizeof(t) == sizeof(long long),	\
++		"Unsupported access size for {READ,WRITE}_ONCE().")
++
+ /* &a[0] degrades to a pointer: a different type from an array */
+ #define __must_be_array(a)	BUILD_BUG_ON_ZERO(__same_type((a), &(a)[0]))
+ 
+diff --git a/net/xdp/xsk_queue.h b/net/xdp/xsk_queue.h
+index eddae4688862..2b55c1c7b2b6 100644
+--- a/net/xdp/xsk_queue.h
++++ b/net/xdp/xsk_queue.h
+@@ -304,7 +304,7 @@ static inline struct xdp_desc *xskq_validate_desc(struct xsk_queue *q,
+ 		struct xdp_rxtx_ring *ring = (struct xdp_rxtx_ring *)q->ring;
+ 		unsigned int idx = q->cons_tail & q->ring_mask;
+ 
+-		*desc = READ_ONCE(ring->desc[idx]);
++		*desc = __READ_ONCE(ring->desc[idx]);
+ 		if (xskq_is_valid_desc(q, desc, umem))
+ 			return desc;
+ 
+-- 
+2.25.0.rc1.283.g88dfdc4193-goog
