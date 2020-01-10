@@ -1,131 +1,114 @@
-From: "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>
-Subject: Re: [PATCH v15 00/24] selftests, powerpc, x86: Memory Protection Keys
-Date: Fri, 10 Jan 2020 23:08:53 +0530
-Message-ID: <87y2ufxlci.fsf@linux.ibm.com>
-References: <cover.1576645161.git.sandipan@linux.ibm.com>
+From: Mark Rutland <mark.rutland@arm.com>
+Subject: Re: [RFC PATCH 8/8] arm64: barrier: Use '__unqual_scalar_typeof' for
+ acquire/release macros
+Date: Fri, 10 Jan 2020 17:45:07 +0000
+Message-ID: <20200110174506.GK33536@lakrids.cambridge.arm.com>
+References: <20200110165636.28035-1-will@kernel.org>
+ <20200110165636.28035-9-will@kernel.org>
 Mime-Version: 1.0
-Content-Type: text/plain
-Return-path: <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
-In-Reply-To: <cover.1576645161.git.sandipan@linux.ibm.com>
-List-Unsubscribe: <https://lists.ozlabs.org/options/linuxppc-dev>,
- <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=unsubscribe>
-List-Archive: <http://lists.ozlabs.org/pipermail/linuxppc-dev/>
-List-Post: <mailto:linuxppc-dev@lists.ozlabs.org>
-List-Help: <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=help>
-List-Subscribe: <https://lists.ozlabs.org/listinfo/linuxppc-dev>,
- <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=subscribe>
-Errors-To: linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org
-Sender: "Linuxppc-dev"
- <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
-To: Sandipan Das <sandipan@linux.ibm.com>, shuahkh@osg.samsung.com, linux-kselftest@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, fweimer@redhat.com, linux-mm@kvack.org, x86@kernel.org, linuxram@us.ibm.com, mhocko@kernel.org, dave.hansen@intel.com, mingo@redhat.com, msuchanek@suse.de, linuxppc-dev@lists.ozlabs.org, bauerman@linux.ibm.com
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from foss.arm.com ([217.140.110.172]:49260 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1727742AbgAJRpL (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 10 Jan 2020 12:45:11 -0500
+Content-Disposition: inline
+In-Reply-To: <20200110165636.28035-9-will@kernel.org>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Will Deacon <will@kernel.org>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, kernel-team@android.com, Michael Ellerman <mpe@ellerman.id.au>, Peter Zijlstra <peterz@infradead.org>, Linus Torvalds <torvalds@linux-foundation.org>, Segher Boessenkool <segher@kernel.crashing.org>, Christian Borntraeger <borntraeger@de.ibm.com>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>, Arnd Bergmann <arnd@arndb.de>
 
-Sandipan Das <sandipan@linux.ibm.com> writes:
+On Fri, Jan 10, 2020 at 04:56:36PM +0000, Will Deacon wrote:
+> Passing volatile-qualified pointers to the arm64 implementations of the
+> load-acquire/store-release macros results in a re-load from the stack
+> and a bunch of associated stack-protector churn due to the temporary
+> result variable inheriting the volatile semantics thanks to the use of
+> 'typeof()'.
+> 
+> Define these temporary variables using 'unqual_scalar_typeof' to drop
+> the volatile qualifier in the case that they are scalar types.
+> 
+> Cc: Mark Rutland <mark.rutland@arm.com>
+> Cc: Linus Torvalds <torvalds@linux-foundation.org>
+> Cc: Peter Zijlstra <peterz@infradead.org>
+> Cc: Arnd Bergmann <arnd@arndb.de>
+> Signed-off-by: Will Deacon <will@kernel.org>
 
-> Memory protection keys enables an application to protect its address
-> space from inadvertent access by its own code.
->
-> This feature is now enabled on powerpc and has been available since
-> 4.16-rc1. The patches move the selftests to arch neutral directory
-> and enhance their test coverage.
->
-> Testing
-> -------
-> Verified for correctness on powerpc. Need help with x86 testing as I
-> do not have access to a Skylake server. Client platforms like Coffee
-> Lake do not have the required feature bits set in CPUID.
->
-> Changelog
-> ---------
-> Link to previous version (v14):
-> https://patchwork.ozlabs.org/project/linuxppc-dev/list/?series=55981&state=*
->
-> v15:
-> 	(1) Rebased on top of latest master.
-> 	(2) Addressed review comments from Dave Hansen.
-> 	(3) Moved code for getting or setting pkey bits to new
-> 	    helpers. These changes replace patch 7 of v14.
-> 	(4) Added a fix which ensures that the correct count of
-> 	    reserved keys is used across different platforms.
-> 	(5) Added a fix which ensures that the correct page size
-> 	    is used as powerpc supports both 4K and 64K pages.
->
+Based on my understanding of __unqual_scalar_typeof(), these changes
+look sound to me:
 
-Any update on merging this series? Can Intel help with testing this
-series on Skylake server? Possibly merging to -next will result in
-automated 01.org tests?
+Acked-by: Mark Rutland <mark.rutland@arm.com>
 
+Mark.
 
-> v14:
-> 	(1) Incorporated another round of comments from Dave Hansen.
->
-> v13:
-> 	(1) Incorporated comments for Dave Hansen.
-> 	(2) Added one more test for correct pkey-0 behavior.
->
-> v12:
-> 	(1) Fixed the offset of pkey field in the siginfo structure for
-> 	    x86_64 and powerpc. And tries to use the actual field
-> 	    if the headers have it defined.
->
-> v11:
-> 	(1) Fixed a deadlock in the ptrace testcase.
->
-> v10 and prior:
-> 	(1) Moved the testcase to arch neutral directory.
-> 	(2) Split the changes into incremental patches.
->
-> Desnes A. Nunes do Rosario (1):
->   selftests/vm/pkeys: Fix number of reserved powerpc pkeys
->
-> Ram Pai (17):
->   selftests/x86/pkeys: Move selftests to arch-neutral directory
->   selftests/vm/pkeys: Rename all references to pkru to a generic name
->   selftests/vm/pkeys: Move generic definitions to header file
->   selftests/vm/pkeys: Typecast the pkey register
->   selftests/vm/pkeys: Fix pkey_disable_clear()
->   selftests/vm/pkeys: Fix assertion in pkey_disable_set/clear()
->   selftests/vm/pkeys: Fix alloc_random_pkey() to make it really random
->   selftests/vm/pkeys: Introduce generic pkey abstractions
->   selftests/vm/pkeys: Introduce powerpc support
->   selftests/vm/pkeys: Fix assertion in test_pkey_alloc_exhaust()
->   selftests/vm/pkeys: Improve checks to determine pkey support
->   selftests/vm/pkeys: Associate key on a mapped page and detect access
->     violation
->   selftests/vm/pkeys: Associate key on a mapped page and detect write
->     violation
->   selftests/vm/pkeys: Detect write violation on a mapped
->     access-denied-key page
->   selftests/vm/pkeys: Introduce a sub-page allocator
->   selftests/vm/pkeys: Test correct behaviour of pkey-0
->   selftests/vm/pkeys: Override access right definitions on powerpc
->
-> Sandipan Das (3):
->   selftests: vm: pkeys: Add helpers for pkey bits
->   selftests: vm: pkeys: Use the correct huge page size
->   selftests: vm: pkeys: Use the correct page size on powerpc
->
-> Thiago Jung Bauermann (2):
->   selftests/vm/pkeys: Move some definitions to arch-specific header
->   selftests/vm/pkeys: Make gcc check arguments of sigsafe_printf()
->
->  tools/testing/selftests/vm/.gitignore         |   1 +
->  tools/testing/selftests/vm/Makefile           |   5 +
->  tools/testing/selftests/vm/pkey-helpers.h     | 226 ++++++
->  tools/testing/selftests/vm/pkey-powerpc.h     | 138 ++++
->  tools/testing/selftests/vm/pkey-x86.h         | 183 +++++
->  .../selftests/{x86 => vm}/protection_keys.c   | 688 ++++++++++--------
->  tools/testing/selftests/x86/.gitignore        |   1 -
->  tools/testing/selftests/x86/pkey-helpers.h    | 219 ------
->  8 files changed, 931 insertions(+), 530 deletions(-)
->  create mode 100644 tools/testing/selftests/vm/pkey-helpers.h
->  create mode 100644 tools/testing/selftests/vm/pkey-powerpc.h
->  create mode 100644 tools/testing/selftests/vm/pkey-x86.h
->  rename tools/testing/selftests/{x86 => vm}/protection_keys.c (74%)
->  delete mode 100644 tools/testing/selftests/x86/pkey-helpers.h
->
+> ---
+>  arch/arm64/include/asm/barrier.h | 16 ++++++++--------
+>  1 file changed, 8 insertions(+), 8 deletions(-)
+> 
+> diff --git a/arch/arm64/include/asm/barrier.h b/arch/arm64/include/asm/barrier.h
+> index 7d9cc5ec4971..fb4c27506ef4 100644
+> --- a/arch/arm64/include/asm/barrier.h
+> +++ b/arch/arm64/include/asm/barrier.h
+> @@ -76,8 +76,8 @@ static inline unsigned long array_index_mask_nospec(unsigned long idx,
+>  #define __smp_store_release(p, v)					\
+>  do {									\
+>  	typeof(p) __p = (p);						\
+> -	union { typeof(*p) __val; char __c[1]; } __u =			\
+> -		{ .__val = (__force typeof(*p)) (v) };			\
+> +	union { __unqual_scalar_typeof(*p) __val; char __c[1]; } __u =	\
+> +		{ .__val = (__force __unqual_scalar_typeof(*p)) (v) };	\
+>  	compiletime_assert_atomic_type(*p);				\
+>  	kasan_check_write(__p, sizeof(*p));				\
+>  	switch (sizeof(*p)) {						\
+> @@ -110,7 +110,7 @@ do {									\
+>  
+>  #define __smp_load_acquire(p)						\
+>  ({									\
+> -	union { typeof(*p) __val; char __c[1]; } __u;			\
+> +	union { __unqual_scalar_typeof(*p) __val; char __c[1]; } __u;	\
+>  	typeof(p) __p = (p);						\
+>  	compiletime_assert_atomic_type(*p);				\
+>  	kasan_check_read(__p, sizeof(*p));				\
+> @@ -136,33 +136,33 @@ do {									\
+>  			: "Q" (*__p) : "memory");			\
+>  		break;							\
+>  	}								\
+> -	__u.__val;							\
+> +	(typeof(*p))__u.__val;						\
+>  })
+>  
+>  #define smp_cond_load_relaxed(ptr, cond_expr)				\
+>  ({									\
+>  	typeof(ptr) __PTR = (ptr);					\
+> -	typeof(*ptr) VAL;						\
+> +	__unqual_scalar_typeof(*ptr) VAL;				\
+>  	for (;;) {							\
+>  		VAL = READ_ONCE(*__PTR);				\
+>  		if (cond_expr)						\
+>  			break;						\
+>  		__cmpwait_relaxed(__PTR, VAL);				\
+>  	}								\
+> -	VAL;								\
+> +	(typeof(*ptr))VAL;						\
+>  })
+>  
+>  #define smp_cond_load_acquire(ptr, cond_expr)				\
+>  ({									\
+>  	typeof(ptr) __PTR = (ptr);					\
+> -	typeof(*ptr) VAL;						\
+> +	__unqual_scalar_typeof(*ptr) VAL;				\
+>  	for (;;) {							\
+>  		VAL = smp_load_acquire(__PTR);				\
+>  		if (cond_expr)						\
+>  			break;						\
+>  		__cmpwait_relaxed(__PTR, VAL);				\
+>  	}								\
+> -	VAL;								\
+> +	(typeof(*ptr))VAL;						\
+>  })
+>  
+>  #include <asm-generic/barrier.h>
 > -- 
-> 2.17.1
-
--aneesh
+> 2.25.0.rc1.283.g88dfdc4193-goog
+> 
