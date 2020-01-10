@@ -1,66 +1,71 @@
 From: Mark Brown <broonie@kernel.org>
-Subject: [PATCH v2 04/10] linux/random.h: Remove arch_has_random,
- arch_has_random_seed
-Date: Fri, 10 Jan 2020 14:54:16 +0000
-Message-ID: <20200110145422.49141-5-broonie@kernel.org>
+Subject: [PATCH v2 01/10] x86: Remove arch_has_random, arch_has_random_seed
+Date: Fri, 10 Jan 2020 14:54:13 +0000
+Message-ID: <20200110145422.49141-2-broonie@kernel.org>
 References: <20200110145422.49141-1-broonie@kernel.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane-mx.org@lists.infradead.org>
+Content-Transfer-Encoding: 8bit
+Return-path: <linux-crypto-owner@vger.kernel.org>
 In-Reply-To: <20200110145422.49141-1-broonie@kernel.org>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane-mx.org@lists.infradead.org
+Sender: linux-crypto-owner@vger.kernel.org
 To: linux-arch@vger.kernel.org
-Cc: linux-s390@vger.kernel.org, herbert@gondor.apana.org.au, x86@kernel.org, Richard Henderson <richard.henderson@linaro.org>, Mark Brown <broonie@kernel.org>, Borislav Petkov <bp@alien8.de>, linux-crypto@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-arm-kernel@lists.infradead.org, Richard Henderson <rth@twiddle.net>
+Cc: Richard Henderson <richard.henderson@linaro.org>, Borislav Petkov <bp@alien8.de>, linux-s390@vger.kernel.org, herbert@gondor.apana.org.au, x86@kernel.org, linux-crypto@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-arm-kernel@lists.infradead.org, Richard Henderson <rth@twiddle.net>, Mark Brown <broonie@kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
 From: Richard Henderson <richard.henderson@linaro.org>
 
-The arm64 version of archrandom.h will need to be able to test for
-support and read the random number without preemption, so a separate
-query predicate is not practical.
+Use the expansion of these macros directly in arch_get_random_*.
 
-Since this part of the generic interface is unused, remove it.
+These symbols are currently part of the generic archrandom.h
+interface, but are currently unused and can be removed.
 
 Signed-off-by: Richard Henderson <rth@twiddle.net>
 Signed-off-by: Mark Brown <broonie@kernel.org>
 ---
- include/linux/random.h | 8 --------
- 1 file changed, 8 deletions(-)
+ arch/x86/include/asm/archrandom.h | 12 ++++--------
+ 1 file changed, 4 insertions(+), 8 deletions(-)
 
-diff --git a/include/linux/random.h b/include/linux/random.h
-index f189c927fdea..7fd0360908d2 100644
---- a/include/linux/random.h
-+++ b/include/linux/random.h
-@@ -175,10 +175,6 @@ static inline bool arch_get_random_int(unsigned int *v)
- {
- 	return 0;
+diff --git a/arch/x86/include/asm/archrandom.h b/arch/x86/include/asm/archrandom.h
+index af45e1452f09..feb59461046c 100644
+--- a/arch/x86/include/asm/archrandom.h
++++ b/arch/x86/include/asm/archrandom.h
+@@ -73,10 +73,6 @@ static inline bool rdseed_int(unsigned int *v)
+ 	return ok;
  }
--static inline bool arch_has_random(void)
--{
--	return 0;
--}
+ 
+-/* Conditional execution based on CPU type */
+-#define arch_has_random()	static_cpu_has(X86_FEATURE_RDRAND)
+-#define arch_has_random_seed()	static_cpu_has(X86_FEATURE_RDSEED)
+-
+ /*
+  * These are the generic interfaces; they must not be declared if the
+  * stubs in <linux/random.h> are to be invoked,
+@@ -86,22 +82,22 @@ static inline bool rdseed_int(unsigned int *v)
+ 
+ static inline bool arch_get_random_long(unsigned long *v)
+ {
+-	return arch_has_random() ? rdrand_long(v) : false;
++	return static_cpu_has(X86_FEATURE_RDRAND) ? rdrand_long(v) : false;
+ }
+ 
+ static inline bool arch_get_random_int(unsigned int *v)
+ {
+-	return arch_has_random() ? rdrand_int(v) : false;
++	return static_cpu_has(X86_FEATURE_RDRAND) ? rdrand_int(v) : false;
+ }
+ 
  static inline bool arch_get_random_seed_long(unsigned long *v)
  {
- 	return 0;
-@@ -187,10 +183,6 @@ static inline bool arch_get_random_seed_int(unsigned int *v)
- {
- 	return 0;
+-	return arch_has_random_seed() ? rdseed_long(v) : false;
++	return static_cpu_has(X86_FEATURE_RDSEED) ? rdseed_long(v) : false;
  }
--static inline bool arch_has_random_seed(void)
--{
--	return 0;
--}
- #endif
  
- /* Pseudo random number generator from numerical recipes. */
+ static inline bool arch_get_random_seed_int(unsigned int *v)
+ {
+-	return arch_has_random_seed() ? rdseed_int(v) : false;
++	return static_cpu_has(X86_FEATURE_RDSEED) ? rdseed_int(v) : false;
+ }
+ 
+ extern void x86_init_rdrand(struct cpuinfo_x86 *c);
 -- 
 2.20.1
