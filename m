@@ -1,15 +1,15 @@
 From: Mark Brown <broonie@kernel.org>
-Subject: [PATCH v2 07/10] x86: Mark archrandom.h functions __must_check
-Date: Fri, 10 Jan 2020 14:54:19 +0000
-Message-ID: <20200110145422.49141-8-broonie@kernel.org>
+Subject: [PATCH v2 08/10] powerpc: Use bool in archrandom.h
+Date: Fri, 10 Jan 2020 14:54:20 +0000
+Message-ID: <20200110145422.49141-9-broonie@kernel.org>
 References: <20200110145422.49141-1-broonie@kernel.org>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:45914 "EHLO foss.arm.com"
+Received: from foss.arm.com ([217.140.110.172]:45932 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1728374AbgAJOyn (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 10 Jan 2020 09:54:43 -0500
+        id S1728370AbgAJOyp (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 10 Jan 2020 09:54:45 -0500
 In-Reply-To: <20200110145422.49141-1-broonie@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
@@ -18,82 +18,55 @@ Cc: Richard Henderson <richard.henderson@linaro.org>, Borislav Petkov <bp@alien8
 
 From: Richard Henderson <richard.henderson@linaro.org>
 
-We must not use the pointer output without validating the
-success of the random read.
+The generic interface uses bool not int; match that.
 
 Reviewed-by: Ard Biesheuvel <ardb@kernel.org>
 Signed-off-by: Richard Henderson <rth@twiddle.net>
 Signed-off-by: Mark Brown <broonie@kernel.org>
 ---
- arch/x86/include/asm/archrandom.h | 16 ++++++++--------
- 1 file changed, 8 insertions(+), 8 deletions(-)
+ arch/powerpc/include/asm/archrandom.h | 17 +++++++++--------
+ 1 file changed, 9 insertions(+), 8 deletions(-)
 
-diff --git a/arch/x86/include/asm/archrandom.h b/arch/x86/include/asm/archrandom.h
-index feb59461046c..7a4bb1bd4bdb 100644
---- a/arch/x86/include/asm/archrandom.h
-+++ b/arch/x86/include/asm/archrandom.h
-@@ -27,7 +27,7 @@
+diff --git a/arch/powerpc/include/asm/archrandom.h b/arch/powerpc/include/asm/archrandom.h
+index 2fa7cdfbba24..f0f16b4fc5ea 100644
+--- a/arch/powerpc/include/asm/archrandom.h
++++ b/arch/powerpc/include/asm/archrandom.h
+@@ -6,27 +6,28 @@
  
- /* Unconditional execution of RDRAND and RDSEED */
+ #include <asm/machdep.h>
  
--static inline bool rdrand_long(unsigned long *v)
-+static inline bool __must_check rdrand_long(unsigned long *v)
+-static inline int arch_get_random_long(unsigned long *v)
++static inline bool arch_get_random_long(unsigned long *v)
  {
- 	bool ok;
- 	unsigned int retry = RDRAND_RETRY_LOOPS;
-@@ -41,7 +41,7 @@ static inline bool rdrand_long(unsigned long *v)
- 	return false;
+-	return 0;
++	return false;
  }
  
--static inline bool rdrand_int(unsigned int *v)
-+static inline bool __must_check rdrand_int(unsigned int *v)
+-static inline int arch_get_random_int(unsigned int *v)
++static inline bool arch_get_random_int(unsigned int *v)
  {
- 	bool ok;
- 	unsigned int retry = RDRAND_RETRY_LOOPS;
-@@ -55,7 +55,7 @@ static inline bool rdrand_int(unsigned int *v)
- 	return false;
+-	return 0;
++	return false;
  }
  
--static inline bool rdseed_long(unsigned long *v)
-+static inline bool __must_check rdseed_long(unsigned long *v)
+-static inline int arch_get_random_seed_long(unsigned long *v)
++static inline bool arch_get_random_seed_long(unsigned long *v)
  {
- 	bool ok;
- 	asm volatile(RDSEED_LONG
-@@ -64,7 +64,7 @@ static inline bool rdseed_long(unsigned long *v)
- 	return ok;
- }
+ 	if (ppc_md.get_random_seed)
+ 		return ppc_md.get_random_seed(v);
  
--static inline bool rdseed_int(unsigned int *v)
-+static inline bool __must_check rdseed_int(unsigned int *v)
- {
- 	bool ok;
- 	asm volatile(RDSEED_INT
-@@ -80,22 +80,22 @@ static inline bool rdseed_int(unsigned int *v)
-  */
- #ifdef CONFIG_ARCH_RANDOM
- 
--static inline bool arch_get_random_long(unsigned long *v)
-+static inline bool __must_check arch_get_random_long(unsigned long *v)
- {
- 	return static_cpu_has(X86_FEATURE_RDRAND) ? rdrand_long(v) : false;
+-	return 0;
++	return false;
  }
- 
--static inline bool arch_get_random_int(unsigned int *v)
-+static inline bool __must_check arch_get_random_int(unsigned int *v)
+-static inline int arch_get_random_seed_int(unsigned int *v)
++
++static inline bool arch_get_random_seed_int(unsigned int *v)
  {
- 	return static_cpu_has(X86_FEATURE_RDRAND) ? rdrand_int(v) : false;
- }
+ 	unsigned long val;
+-	int rc;
++	bool rc;
  
--static inline bool arch_get_random_seed_long(unsigned long *v)
-+static inline bool __must_check arch_get_random_seed_long(unsigned long *v)
- {
- 	return static_cpu_has(X86_FEATURE_RDSEED) ? rdseed_long(v) : false;
- }
- 
--static inline bool arch_get_random_seed_int(unsigned int *v)
-+static inline bool __must_check arch_get_random_seed_int(unsigned int *v)
- {
- 	return static_cpu_has(X86_FEATURE_RDSEED) ? rdseed_int(v) : false;
- }
+ 	rc = arch_get_random_seed_long(&val);
+ 	if (rc)
 -- 
 2.20.1
