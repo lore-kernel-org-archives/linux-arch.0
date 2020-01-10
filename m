@@ -1,154 +1,89 @@
 From: Will Deacon <will@kernel.org>
-Subject: [RFC PATCH 5/8] READ_ONCE: Enforce atomicity for {READ,WRITE}_ONCE() memory accesses
-Date: Fri, 10 Jan 2020 16:56:33 +0000
-Message-ID: <20200110165636.28035-6-will@kernel.org>
-References: <20200110165636.28035-1-will@kernel.org>
+Subject: [RFC PATCH 0/8] Rework READ_ONCE() to improve codegen
+Date: Fri, 10 Jan 2020 16:56:28 +0000
+Message-ID: <20200110165636.28035-1-will@kernel.org>
 Mime-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20200110165636.28035-1-will@kernel.org>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org
 Cc: linux-arch@vger.kernel.org, kernel-team@android.com, Will Deacon <will@kernel.org>, Michael Ellerman <mpe@ellerman.id.au>, Peter Zijlstra <peterz@infradead.org>, Linus Torvalds <torvalds@linux-foundation.org>, Segher Boessenkool <segher@kernel.crashing.org>, Christian Borntraeger <borntraeger@de.ibm.com>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>, Arnd Bergmann <arnd@arndb.de>
 List-Id: linux-arch.vger.kernel.org
 
-{READ,WRITE}_ONCE() cannot guarantee atomicity for arbitrary data sizes.
-This can be surprising to callers that might incorrectly be expecting
-atomicity for accesses to aggregate structures, although there are other
-callers where tearing is actually permissable (e.g. if they are using
-something akin to sequence locking to protect the access).
+Hi all,
 
-Linus sayeth:
+This is a follow-up RFC to the discussions we had on the mailing list at
+the end of last year:
 
-  | We could also look at being stricter for the normal READ/WRITE_ONCE(),
-  | and require that they are
-  |
-  | (a) regular integer types
-  |
-  | (b) fit in an atomic word
-  |
-  | We actually did (b) for a while, until we noticed that we do it on
-  | loff_t's etc and relaxed the rules. But maybe we could have a
-  | "non-atomic" version of READ/WRITE_ONCE() that is used for the
-  | questionable cases?
+https://lore.kernel.org/lkml/875zimp0ay.fsf@mpe.ellerman.id.au
 
-The slight snag is that we also have to support 64-bit accesses on 32-bit
-architectures, as these appear to be widespread and tend to work out ok
-if either the architecture supports atomic 64-bit accesses (x86, armv7)
-or if the variable being accesses represents a virtual address and
-therefore only requires 32-bit atomicity in practice.
+Unfortunately, we didn't get a "silver bullet" solution out of that
+long thread, but I've tried to piece together some of the bits and
+pieces we discussed and I've ended up with this series, which does at
+least solve the pressing problem with the bitops for arm64.
 
-Take a step in that direction by introducing a variant of
-'compiletime_assert_atomic_type()' and use it to check the pointer
-argument to {READ,WRITE}_ONCE(). Expose __{READ,WRITE_ONCE}() variants
-which are allowed to tear and convert the two broken callers over to the
-new macros.
+The rough summary of the series is:
 
-Suggested-by: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Peter Zijlstra <peterz@infradead.org>
+  * Drop the GCC 4.8 workarounds, so that READ_ONCE() is a
+    straightforward dereference of a cast-to-volatile pointer.
+
+  * Require that the access is either 1, 2, 4 or 8 bytes in size
+    (even 32-bit architectures tend to use 8-byte accesses here).
+
+  * Introduce __READ_ONCE() for tearing operations with no size
+    restriction.
+
+  * Drop pointer qualifiers from scalar types, so that volatile scalars
+    don't generate horrible stack-spilling mess. This is pretty ugly,
+    but it's also mechanical and wrapped up in a macro.
+
+  * Convert acquire/release accessors to perform the same qualifier
+    stripping.
+
+I gave up trying to prevent READ_ONCE() on aggregates because it is
+pervasive, particularly within the mm/ layer on things like pmd_t.
+Thankfully, these don't tend to be volatile.
+
+I have more patches in this area because I'm trying to move all the
+read_barrier_depends() magic into arch/alpha/, but I'm holding off until
+we agree on this part first.
+
+Cheers,
+
+Will
+
 Cc: Michael Ellerman <mpe@ellerman.id.au>
+Cc: Peter Zijlstra <peterz@infradead.org>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Segher Boessenkool <segher@kernel.crashing.org>
+Cc: Christian Borntraeger <borntraeger@de.ibm.com>
+Cc: Luc Van Oostenryck <luc.vanoostenryck@gmail.com>
 Cc: Arnd Bergmann <arnd@arndb.de>
-Signed-off-by: Will Deacon <will@kernel.org>
----
- drivers/xen/time.c       |  2 +-
- include/linux/compiler.h | 37 +++++++++++++++++++++++++++++++++----
- net/xdp/xsk_queue.h      |  2 +-
- 3 files changed, 35 insertions(+), 6 deletions(-)
 
-diff --git a/drivers/xen/time.c b/drivers/xen/time.c
-index 0968859c29d0..108edbcbc040 100644
---- a/drivers/xen/time.c
-+++ b/drivers/xen/time.c
-@@ -64,7 +64,7 @@ static void xen_get_runstate_snapshot_cpu_delta(
- 	do {
- 		state_time = get64(&state->state_entry_time);
- 		rmb();	/* Hypervisor might update data. */
--		*res = READ_ONCE(*state);
-+		*res = __READ_ONCE(*state);
- 		rmb();	/* Hypervisor might update data. */
- 	} while (get64(&state->state_entry_time) != state_time ||
- 		 (state_time & XEN_RUNSTATE_UPDATE));
-diff --git a/include/linux/compiler.h b/include/linux/compiler.h
-index 44974d658f30..863180641336 100644
---- a/include/linux/compiler.h
-+++ b/include/linux/compiler.h
-@@ -198,24 +198,43 @@ void ftrace_likely_update(struct ftrace_likely_data *f, int val,
- #include <asm/barrier.h>
- #include <linux/kasan-checks.h>
- 
-+/*
-+ * Use __READ_ONCE() instead of READ_ONCE() if you do not require any
-+ * atomicity or dependency ordering guarantees. Note that this may result
-+ * in tears!
-+ */
-+#define __READ_ONCE(x)	(*(volatile typeof(x) *)&(x))
-+
-+#define __READ_ONCE_SCALAR(x)						\
-+({									\
-+	typeof(x) __x = __READ_ONCE(x);					\
-+	smp_read_barrier_depends();					\
-+	__x;								\
-+})
-+
- /*
-  * Use READ_ONCE_NOCHECK() instead of READ_ONCE() if you need
-  * to hide memory access from KASAN.
-  */
- #define READ_ONCE_NOCHECK(x)						\
- ({									\
--	typeof(x) __x = *(volatile typeof(x) *)&(x);			\
--	smp_read_barrier_depends();					\
--	__x;								\
-+	compiletime_assert_rwonce_type(x);				\
-+	__READ_ONCE_SCALAR(x);						\
- })
- 
- #define READ_ONCE(x)	READ_ONCE_NOCHECK(x)
- 
--#define WRITE_ONCE(x, val)				\
-+#define __WRITE_ONCE(x, val)				\
- do {							\
- 	*(volatile typeof(x) *)&(x) = (val);		\
- } while (0)
- 
-+#define WRITE_ONCE(x, val)				\
-+do {							\
-+	compiletime_assert_rwonce_type(x);		\
-+	__WRITE_ONCE(x, val);				\
-+} while (0)
-+
- #ifdef CONFIG_KASAN
- /*
-  * We can't declare function 'inline' because __no_sanitize_address conflicts
-@@ -299,6 +318,16 @@ static inline void *offset_to_ptr(const int *off)
- 	compiletime_assert(__native_word(t),				\
- 		"Need native word sized stores/loads for atomicity.")
- 
-+/*
-+ * Yes, this permits 64-bit accesses on 32-bit architectures. These will
-+ * actually be atomic in many cases (namely x86), but for others we rely on
-+ * the access being split into 2x32-bit accesses for a 32-bit quantity (e.g.
-+ * a virtual address) and a strong prevailing wind.
-+ */
-+#define compiletime_assert_rwonce_type(t)					\
-+	compiletime_assert(__native_word(t) || sizeof(t) == sizeof(long long),	\
-+		"Unsupported access size for {READ,WRITE}_ONCE().")
-+
- /* &a[0] degrades to a pointer: a different type from an array */
- #define __must_be_array(a)	BUILD_BUG_ON_ZERO(__same_type((a), &(a)[0]))
- 
-diff --git a/net/xdp/xsk_queue.h b/net/xdp/xsk_queue.h
-index eddae4688862..2b55c1c7b2b6 100644
---- a/net/xdp/xsk_queue.h
-+++ b/net/xdp/xsk_queue.h
-@@ -304,7 +304,7 @@ static inline struct xdp_desc *xskq_validate_desc(struct xsk_queue *q,
- 		struct xdp_rxtx_ring *ring = (struct xdp_rxtx_ring *)q->ring;
- 		unsigned int idx = q->cons_tail & q->ring_mask;
- 
--		*desc = READ_ONCE(ring->desc[idx]);
-+		*desc = __READ_ONCE(ring->desc[idx]);
- 		if (xskq_is_valid_desc(q, desc, umem))
- 			return desc;
- 
+--->8
+
+Will Deacon (8):
+  compiler/gcc: Emit build-time warning for GCC prior to version 4.8
+  netfilter: Avoid assigning 'const' pointer to non-const pointer
+  fault_inject: Don't rely on "return value" from WRITE_ONCE()
+  READ_ONCE: Simplify implementations of {READ,WRITE}_ONCE()
+  READ_ONCE: Enforce atomicity for {READ,WRITE}_ONCE() memory accesses
+  READ_ONCE: Drop pointer qualifiers when reading from scalar types
+  locking/barriers: Use '__unqual_scalar_typeof' for load-acquire macros
+  arm64: barrier: Use '__unqual_scalar_typeof' for acquire/release
+    macros
+
+ arch/arm64/include/asm/barrier.h |  16 ++--
+ drivers/xen/time.c               |   2 +-
+ include/asm-generic/barrier.h    |  16 ++--
+ include/linux/compiler-gcc.h     |   4 +
+ include/linux/compiler.h         | 129 +++++++++++++------------------
+ include/linux/compiler_types.h   |  15 ++++
+ lib/fault-inject.c               |   4 +-
+ net/netfilter/core.c             |   2 +-
+ net/xdp/xsk_queue.h              |   2 +-
+ 9 files changed, 93 insertions(+), 97 deletions(-)
+
 -- 
 2.25.0.rc1.283.g88dfdc4193-goog
