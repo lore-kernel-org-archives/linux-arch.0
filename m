@@ -1,139 +1,67 @@
-Return-Path: <SRS0=GP1c=3Q=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:49314 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1729152AbgA0PJE (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 27 Jan 2020 10:09:04 -0500
-Date: Mon, 27 Jan 2020 07:09:02 -0800
-From: "Paul E. McKenney" <paulmck@kernel.org>
-Subject: Re: [PATCH v9 0/5] Add NUMA-awareness to qspinlock
-Message-ID: <20200127150902.GN2935@paulmck-ThinkPad-P72>
-Reply-To: paulmck@kernel.org
-References: <20200124222434.GA7196@paulmck-ThinkPad-P72>
- <6AAE7FC6-F5DE-4067-8BC4-77F27948CD09@oracle.com>
- <20200125005713.GZ2935@paulmck-ThinkPad-P72>
- <02defadb-217d-7803-88a1-ec72a37eda28@redhat.com>
- <adb4fb09-f374-4d64-096b-ba9ad8b35fd5@redhat.com>
- <20200125045844.GC2935@paulmck-ThinkPad-P72>
- <967f99ee-b781-43f4-d8ba-af83786c429c@redhat.com>
- <20200126153535.GL2935@paulmck-ThinkPad-P72>
- <20200126224245.GA22901@paulmck-ThinkPad-P72>
- <2e552fad-79c0-ec06-3b8c-d13f1b67f57d@redhat.com>
+Return-Path: <SRS0=fIL7=27=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mout.kundenserver.de ([212.227.17.24]:32853 "EHLO
+        mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1728248AbgAJR60 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 10 Jan 2020 12:58:26 -0500
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <2e552fad-79c0-ec06-3b8c-d13f1b67f57d@redhat.com>
+References: <20200110165636.28035-1-will@kernel.org>
+In-Reply-To: <20200110165636.28035-1-will@kernel.org>
+From: Arnd Bergmann <arnd@arndb.de>
+Date: Fri, 10 Jan 2020 18:58:06 +0100
+Message-ID: <CAK8P3a3LAirovfV=RRqf9dT7K_WkiC8SJK9oa-amn_EkibqEsA@mail.gmail.com>
+Subject: Re: [RFC PATCH 0/8] Rework READ_ONCE() to improve codegen
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Waiman Long <longman@redhat.com>
-Cc: Alex Kogan <alex.kogan@oracle.com>, linux@armlinux.org.uk, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-arm-kernel <linux-arm-kernel@lists.infradead.org>, linux-kernel@vger.kernel.org, tglx@linutronix.de, bp@alien8.de, hpa@zytor.com, x86@kernel.org, guohanjun@huawei.com, jglauber@marvell.com, dave.dice@oracle.com, steven.sistare@oracle.com, daniel.m.jordan@oracle.com
-Message-ID: <20200127150902._FMiJEhYbNLDg0ViaH3JrbMLq00bcndbWtZ8xFw74KM@z>
+To: Will Deacon <will@kernel.org>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Android Kernel Team <kernel-team@android.com>, Michael Ellerman <mpe@ellerman.id.au>, Peter Zijlstra <peterz@infradead.org>, Linus Torvalds <torvalds@linux-foundation.org>, Segher Boessenkool <segher@kernel.crashing.org>, Christian Borntraeger <borntraeger@de.ibm.com>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>
+Message-ID: <20200110175806.rcjArfjx6E5wVuWbmYO5LpkZ1ZNMqeQkoLU07KKA9Mg@z>
 
-On Mon, Jan 27, 2020 at 09:11:43AM -0500, Waiman Long wrote:
-> On 1/26/20 5:42 PM, Paul E. McKenney wrote:
-> > On Sun, Jan 26, 2020 at 07:35:35AM -0800, Paul E. McKenney wrote:
-> >> On Sat, Jan 25, 2020 at 02:41:39PM -0500, Waiman Long wrote:
-> >>> On 1/24/20 11:58 PM, Paul E. McKenney wrote:
-> >>>> On Fri, Jan 24, 2020 at 09:17:05PM -0500, Waiman Long wrote:
-> >>>>> On 1/24/20 8:59 PM, Waiman Long wrote:
-> >>>>>>> You called it!  I will play with QEMU's -numa argument to see if I can get
-> >>>>>>> CNA to run for me.  Please accept my apologies for the false alarm.
-> >>>>>>>
-> >>>>>>> 							Thanx, Paul
-> >>>>>>>
-> >>>>>> CNA is not currently supported in a VM guest simply because the numa
-> >>>>>> information is not reliable. You will have to run it on baremetal to
-> >>>>>> test it. Sorry for that.
-> >>>>> Correction. There is a command line option to force CNA lock to be used
-> >>>>> in a VM. Use the "numa_spinlock=on" boot command line parameter.
-> >>>> As I understand it, I need to use a series of -numa arguments to qemu
-> >>>> combined with the numa_spinlock=on (or =1) on the kernel command line.
-> >>>> If the kernel thinks that there is only one NUMA node, it appears to
-> >>>> avoid doing CNA.
-> >>>>
-> >>>> Correct?
-> >>>>
-> >>>> 							Thanx, Paul
-> >>>>
-> >>> In auto-detection mode (the default), CNA will only be turned on when
-> >>> paravirt qspinlock is not enabled first and there are at least 2 numa
-> >>> nodes. The "numa_spinlock=on" option will force it on even when both of
-> >>> the above conditions are false.
-> >> Hmmm...
-> >>
-> >> Here is my kernel command line taken from the console log:
-> >>
-> >> console=ttyS0 locktorture.onoff_interval=0 numa_spinlock=on locktorture.stat_interval=15 locktorture.shutdown_secs=1800 locktorture.verbose=1
-> >>
-> >> Yet the string "Enabling CNA spinlock" does not appear.
-> >>
-> >> Ah, idiot here needs to enable CONFIG_NUMA_AWARE_SPINLOCKS in his build.
-> >> Trying again with "--kconfig "CONFIG_NUMA_AWARE_SPINLOCKS=y"...
-> > And after fixing that, plus adding the other three Kconfig options required
-> > to enable this, I really do see "Enabling CNA spinlock" in the console log.
-> > Yay!
-> >
-> > At the end of the 30-minute locktorture exclusive-lock run, I see this:
-> >
-> > Writes:  Total: 572176565  Max/Min: 54167704/10878216 ???  Fail: 0
-> >
-> > This is about a five-to-one ratio.  Is this expected behavior, given a
-> > single NUMA node on a single-socket system with 12 hardware threads?
-> Do you mean within the VM, lscpu showed that the system has one node and
-> 12 threads per node? If that is the case, it should behave like regular
-> qspinlock and be fair.
+On Fri, Jan 10, 2020 at 5:56 PM Will Deacon <will@kernel.org> wrote:
+>
+> Hi all,
+>
+> This is a follow-up RFC to the discussions we had on the mailing list at
+> the end of last year:
+>
+> https://lore.kernel.org/lkml/875zimp0ay.fsf@mpe.ellerman.id.au
+>
+> Unfortunately, we didn't get a "silver bullet" solution out of that
+> long thread, but I've tried to piece together some of the bits and
+> pieces we discussed and I've ended up with this series, which does at
+> least solve the pressing problem with the bitops for arm64.
+>
+> The rough summary of the series is:
+>
+>   * Drop the GCC 4.8 workarounds, so that READ_ONCE() is a
+>     straightforward dereference of a cast-to-volatile pointer.
+>
+>   * Require that the access is either 1, 2, 4 or 8 bytes in size
+>     (even 32-bit architectures tend to use 8-byte accesses here).
+>
+>   * Introduce __READ_ONCE() for tearing operations with no size
+>     restriction.
+>
+>   * Drop pointer qualifiers from scalar types, so that volatile scalars
+>     don't generate horrible stack-spilling mess. This is pretty ugly,
+>     but it's also mechanical and wrapped up in a macro.
+>
+>   * Convert acquire/release accessors to perform the same qualifier
+>     stripping.
+>
+> I gave up trying to prevent READ_ONCE() on aggregates because it is
+> pervasive, particularly within the mm/ layer on things like pmd_t.
+> Thankfully, these don't tend to be volatile.
+>
+> I have more patches in this area because I'm trying to move all the
+> read_barrier_depends() magic into arch/alpha/, but I'm holding off until
+> we agree on this part first.
 
-I mean that I saw this in dmesg, which I believe to be telling me the
-same thing as lscpu saying that there is one node, but you tell me!
+Looks very nice overall, thanks for working on this.
 
-[    0.007106] No NUMA configuration found
-[    0.007107] Faking a node at [mem 0x0000000000000000-0x000000001ffdefff]
-[    0.007111] NODE_DATA(0) allocated [mem 0x1ffdb000-0x1ffdefff]
-[    0.007126] Zone ranges:
-[    0.007127]   DMA      [mem 0x0000000000001000-0x0000000000ffffff]
-[    0.007128]   DMA32    [mem 0x0000000001000000-0x000000001ffdefff]
-[    0.007128]   Normal   empty
-[    0.007129] Movable zone start for each node
-[    0.007129] Early memory node ranges
-[    0.007130]   node   0: [mem 0x0000000000001000-0x000000000009efff]
-[    0.007132]   node   0: [mem 0x0000000000100000-0x000000001ffdefff]
-[    0.007227] Zeroed struct page in unavailable ranges: 98 pages
-[    0.007227] Initmem setup node 0 [mem 0x0000000000001000-0x000000001ffdefff]
-[    0.007228] On node 0 totalpages: 130941
-[    0.007231]   DMA zone: 64 pages used for memmap
-[    0.007231]   DMA zone: 21 pages reserved
-[    0.007232]   DMA zone: 3998 pages, LIFO batch:0
-[    0.007266]   DMA32 zone: 1984 pages used for memmap
-[    0.007267]   DMA32 zone: 126943 pages, LIFO batch:31
+I've added a the series into my randconfig build setup to see
+if I run into build-time regressions. Unfortunately there are some
+conflicts with the kcsan patches in linux-next that I have to work
+around first.
 
-> > I will try reader-writer lock next.
-> >
-> > Again, should I be using qemu's -numa command-line option to create nodes?
-> > If so, what would be a sane configuration given 12 CPUs and 512MB of
-> > memory for the VM?  If not, what is a good way to exercise CNA's NUMA
-> > capabilities within a guest OS?
-> 
-> You can certainly play around with CNA in a VM. However, it is generally
-> not recommended to use CNA in a VM unless the VM cpu topology matches
-> the host with 1-to-1 vcpu pinning and there is no vcpu overcommit. In
-> this case, one may see some performance improvement using CNA by using
-> the "numa_spinlock=on" option to explicitly turn it on.
-
-Sorry, but I will not be booting this on bare metal on the systems that
-I currently have access to.  No more than I run rcutorture on bare metal
-on them, especially not with newly modified variants of RCU.  ;-)
-
-> Because of the shuffling of queue entries, CNA is inherently less fair
-> than the regular qspinlock. However, a ratio of 5 seems excessive to me.
-> vcpu preemption may be a factor in contributing to this large variation.
-> My testing on bare metal only showed a throughput variation within
-> 10-20% at most.
-
-OK.  Any guidance on qemu's -numa, or should I just experiment with it?
-The latter will take me some time, as I must focus on other things
-this week.
-
-Alternatively, would it make sense for you to give it a spin in a VM?
-After all, it is entirely possible that I still have some configuration
-or another messed up.
-
-							Thanx, Paul
+       Arnd
