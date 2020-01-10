@@ -1,7 +1,7 @@
 From: Will Deacon <will@kernel.org>
-Subject: [RFC PATCH 3/8] fault_inject: Don't rely on "return value" from WRITE_ONCE()
-Date: Fri, 10 Jan 2020 16:56:31 +0000
-Message-ID: <20200110165636.28035-4-will@kernel.org>
+Subject: [RFC PATCH 7/8] locking/barriers: Use '__unqual_scalar_typeof' for load-acquire macros
+Date: Fri, 10 Jan 2020 16:56:35 +0000
+Message-ID: <20200110165636.28035-8-will@kernel.org>
 References: <20200110165636.28035-1-will@kernel.org>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
@@ -9,35 +9,84 @@ Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20200110165636.28035-1-will@kernel.org>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, kernel-team@android.com, Will Deacon <will@kernel.org>, Michael Ellerman <mpe@ellerman.id.au>, Peter Zijlstra <peterz@infradead.org>, Linus Torvalds <torvalds@linux-foundation.org>, Segher Boessenkool <segher@kernel.crashing.org>, Christian Borntraeger <borntraeger@de.ibm.com>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>, Arnd Bergmann <arnd@arndb.de>, Akinobu Mita <akinobu.mita@gmail.com>
+Cc: linux-arch@vger.kernel.org, kernel-team@android.com, Will Deacon <will@kernel.org>, Michael Ellerman <mpe@ellerman.id.au>, Peter Zijlstra <peterz@infradead.org>, Linus Torvalds <torvalds@linux-foundation.org>, Segher Boessenkool <segher@kernel.crashing.org>, Christian Borntraeger <borntraeger@de.ibm.com>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>, Arnd Bergmann <arnd@arndb.de>
 List-Id: linux-arch.vger.kernel.org
 
-It's a bit weird that WRITE_ONCE() evaluates to the value it stores and
-it's different to smp_store_release(), which can't be used this way.
+Passing volatile-qualified pointers to the asm-generic implementations of
+the load-acquire macros results in a re-load from the stack due to the
+temporary result variable inheriting the volatile semantics thanks to the
+use of 'typeof()'.
 
-In preparation for preventing this in WRITE_ONCE(), change the fault
-injection code to use a local variable instead.
+Define these temporary variables using 'unqual_scalar_typeof' to drop
+the volatile qualifier in the case that they are scalar types.
 
-Cc: Akinobu Mita <akinobu.mita@gmail.com>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Peter Zijlstra <peterz@infradead.org>
+Cc: Arnd Bergmann <arnd@arndb.de>
 Signed-off-by: Will Deacon <will@kernel.org>
 ---
- lib/fault-inject.c | 4 +++-
- 1 file changed, 3 insertions(+), 1 deletion(-)
+ include/asm-generic/barrier.h | 16 ++++++++--------
+ 1 file changed, 8 insertions(+), 8 deletions(-)
 
-diff --git a/lib/fault-inject.c b/lib/fault-inject.c
-index 8186ca84910b..ce12621b4275 100644
---- a/lib/fault-inject.c
-+++ b/lib/fault-inject.c
-@@ -106,7 +106,9 @@ bool should_fail(struct fault_attr *attr, ssize_t size)
- 		unsigned int fail_nth = READ_ONCE(current->fail_nth);
+diff --git a/include/asm-generic/barrier.h b/include/asm-generic/barrier.h
+index 85b28eb80b11..2eacaf7d62f6 100644
+--- a/include/asm-generic/barrier.h
++++ b/include/asm-generic/barrier.h
+@@ -128,10 +128,10 @@ do {									\
+ #ifndef __smp_load_acquire
+ #define __smp_load_acquire(p)						\
+ ({									\
+-	typeof(*p) ___p1 = READ_ONCE(*p);				\
++	__unqual_scalar_typeof(*p) ___p1 = READ_ONCE(*p);		\
+ 	compiletime_assert_atomic_type(*p);				\
+ 	__smp_mb();							\
+-	___p1;								\
++	(typeof(*p))___p1;						\
+ })
+ #endif
  
- 		if (fail_nth) {
--			if (!WRITE_ONCE(current->fail_nth, fail_nth - 1))
-+			fail_nth--;
-+			WRITE_ONCE(current->fail_nth, fail_nth);
-+			if (!fail_nth)
- 				goto fail;
+@@ -183,10 +183,10 @@ do {									\
+ #ifndef smp_load_acquire
+ #define smp_load_acquire(p)						\
+ ({									\
+-	typeof(*p) ___p1 = READ_ONCE(*p);				\
++	__unqual_scalar_typeof(*p) ___p1 = READ_ONCE(*p);		\
+ 	compiletime_assert_atomic_type(*p);				\
+ 	barrier();							\
+-	___p1;								\
++	(typeof(*p))___p1;						\
+ })
+ #endif
  
- 			return false;
+@@ -229,14 +229,14 @@ do {									\
+ #ifndef smp_cond_load_relaxed
+ #define smp_cond_load_relaxed(ptr, cond_expr) ({		\
+ 	typeof(ptr) __PTR = (ptr);				\
+-	typeof(*ptr) VAL;					\
++	__unqual_scalar_typeof(*ptr) VAL;			\
+ 	for (;;) {						\
+ 		VAL = READ_ONCE(*__PTR);			\
+ 		if (cond_expr)					\
+ 			break;					\
+ 		cpu_relax();					\
+ 	}							\
+-	VAL;							\
++	(typeof(*ptr))VAL;					\
+ })
+ #endif
+ 
+@@ -250,10 +250,10 @@ do {									\
+  */
+ #ifndef smp_cond_load_acquire
+ #define smp_cond_load_acquire(ptr, cond_expr) ({		\
+-	typeof(*ptr) _val;					\
++	__unqual_scalar_typeof(*ptr) _val;			\
+ 	_val = smp_cond_load_relaxed(ptr, cond_expr);		\
+ 	smp_acquire__after_ctrl_dep();				\
+-	_val;							\
++	(typeof(*ptr))_val;					\
+ })
+ #endif
+ 
 -- 
 2.25.0.rc1.283.g88dfdc4193-goog
