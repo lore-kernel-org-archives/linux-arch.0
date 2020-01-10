@@ -1,27 +1,56 @@
-From: Christian Zigotzky <chzigotzky@xenosoft.de>
-Subject: Re: Bug 205201 - Booting halts if Dawicontrol DC-2976 UW SCSI board installed, unless RAM size limited to 3500M
-Date: Fri, 10 Jan 2020 08:10:28 +0100
-Message-ID: <533E86ED-00F4-4FB2-9D91-D4705088817D@xenosoft.de>
-References: <20191204085634.GA25929@lst.de>
-Mime-Version: 1.0 (1.0)
-Content-Type: text/plain; charset=us-ascii
-Content-Transfer-Encoding: quoted-printable
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <20191204085634.GA25929@lst.de>
-Sender: owner-linux-mm@kvack.org
-To: Christoph Hellwig <hch@lst.de>
-Cc: Mike Rapoport <rppt@linux.ibm.com>, Robin Murphy <robin.murphy@arm.com>, linux-arch@vger.kernel.org, darren@stevens-zone.net, mad skateman <madskateman@gmail.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, linux-kernel@vger.kernel.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Rob Herring <robh+dt@kernel.org>, paulus@samba.org, rtd2@xtra.co.nz, "contact@a-eon.com" <contact@a-eon.com>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, nsaenzjulienne@suse.de
+From: Kalle Valo <kvalo@codeaurora.org>
+Subject: Re: [PATCH v2 2/9] net: wireless: rtl818x: Constify ioreadX() iomem
+ argument (as in generic implementation)
+Date: Fri, 10 Jan 2020 15:32:13 +0200
+Message-ID: <87imljsahu.fsf@codeaurora.org>
+References: <20200108200528.4614-1-krzk@kernel.org>
+ <20200108200528.4614-3-krzk@kernel.org>
+Mime-Version: 1.0
+Content-Type: text/plain
+Return-path: <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
+In-Reply-To: <20200108200528.4614-3-krzk@kernel.org> (Krzysztof Kozlowski's
+ message of "Wed, 8 Jan 2020 21:05:21 +0100")
+List-Unsubscribe: <https://lists.ozlabs.org/options/linuxppc-dev>,
+ <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=unsubscribe>
+List-Archive: <http://lists.ozlabs.org/pipermail/linuxppc-dev/>
+List-Post: <mailto:linuxppc-dev@lists.ozlabs.org>
+List-Help: <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=help>
+List-Subscribe: <https://lists.ozlabs.org/listinfo/linuxppc-dev>,
+ <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=subscribe>
+Errors-To: linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org
+Sender: "Linuxppc-dev"
+ <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
+To: Krzysztof Kozlowski <krzk@kernel.org>
+Cc: Rich Felker <dalias@libc.org>, Jiri Slaby <jirislaby@gmail.com>, Geert Uytterhoeven <geert+renesas@glider.be>, "Michael S. Tsirkin" <mst@redhat.com>, David Airlie <airlied@linux.ie>, Jason Wang <jasowang@redhat.com>, dri-devel@lists.freedesktop.org, virtualization@lists.linux-foundation.org, "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>, netdev@vger.kernel.org, Paul Mackerras <paulus@samba.org>, linux-arch@vger.kernel.org, Dave Jiang <dave.jiang@intel.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Helge Deller <deller@gmx.de>, linux-sh@vger.kernel.org, Alexey Brodkin <abrodkin@synopsys.com>, Ben Skeggs <bskeggs@redhat.com>, nouveau@lists.freedesktop.org, Dave Airlie <airlied@redhat.com>, Matt Turner <mattst88@gmail.com>, linux-snps-arc@lists.infradead.org, Nick Kossifidis <mickflemm@gmail.com>, Allen Hubbe <allenbh@gmail.com>, Arnd Bergmann <arnd@arn>
 List-Id: linux-arch.vger.kernel.org
 
-Hi All,
+Krzysztof Kozlowski <krzk@kernel.org> writes:
 
-The SCSI cards work again. [1, 2]
+> The ioreadX() helpers have inconsistent interface.  On some architectures
+> void *__iomem address argument is a pointer to const, on some not.
+>
+> Implementations of ioreadX() do not modify the memory under the address
+> so they can be converted to a "const" version for const-safety and
+> consistency among architectures.
+>
+> Signed-off-by: Krzysztof Kozlowski <krzk@kernel.org>
+> Reviewed-by: Geert Uytterhoeven <geert+renesas@glider.be>
+>
+> ---
+>
+> Changes since v1:
+> 1. Add Geert's review.
+> ---
+>  drivers/net/wireless/realtek/rtl818x/rtl8180/rtl8180.h | 6 +++---
+>  1 file changed, 3 insertions(+), 3 deletions(-)
 
-Sorry for bothering you.
+No need to have "net: wireless: " in the title, this is enough.
 
-Thanks,
-Christian
+rtl818x: Constify ioreadX() iomem argument (as in generic implementation)
 
-[1] http://forum.hyperion-entertainment.com/viewtopic.php?f=3D58&p=3D49603&s=
-id=3D1adf9e6d558c136c1ad4ff15c44212ba#p49599
-[2] https://bugzilla.kernel.org/show_bug.cgi?id=3D205201=
+I assume someone else will take this so here's my ack:
+
+Acked-by: Kalle Valo <kvalo@codeaurora.org>
+
+-- 
+https://wireless.wiki.kernel.org/en/developers/documentation/submittingpatches
