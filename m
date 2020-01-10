@@ -1,66 +1,40 @@
-From: Mark Brown <broonie@kernel.org>
-Subject: [PATCH v2 06/10] linux/random.h: Mark CONFIG_ARCH_RANDOM functions
- __must_check
-Date: Fri, 10 Jan 2020 14:54:18 +0000
-Message-ID: <20200110145422.49141-7-broonie@kernel.org>
+From: Borislav Petkov <bp@alien8.de>
+Subject: Re: [PATCH v2 00/10] Impveovements for random.h/archrandom.h
+Date: Fri, 10 Jan 2020 16:51:53 +0100
+Message-ID: <20200110155153.GG19453@zn.tnic>
 References: <20200110145422.49141-1-broonie@kernel.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane-mx.org@lists.infradead.org>
+Content-Type: text/plain; charset=utf-8
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail.skyhub.de ([5.9.137.197]:55556 "EHLO mail.skyhub.de"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1728151AbgAJPwC (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 10 Jan 2020 10:52:02 -0500
+Content-Disposition: inline
 In-Reply-To: <20200110145422.49141-1-broonie@kernel.org>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane-mx.org@lists.infradead.org
-To: linux-arch@vger.kernel.org
-Cc: linux-s390@vger.kernel.org, herbert@gondor.apana.org.au, x86@kernel.org, Richard Henderson <richard.henderson@linaro.org>, Mark Brown <broonie@kernel.org>, Borislav Petkov <bp@alien8.de>, linux-crypto@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, Ard Biesheuvel <ardb@kernel.org>, linux-arm-kernel@lists.infradead.org, Richard Henderson <rth@twiddle.net>
-List-Id: linux-arch.vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Mark Brown <broonie@kernel.org>, Andrew Morton <akpm@linux-foundation.org>
+Cc: linux-arch@vger.kernel.org, Richard Henderson <richard.henderson@linaro.org>, linux-s390@vger.kernel.org, herbert@gondor.apana.org.au, x86@kernel.org, linux-crypto@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-arm-kernel@lists.infradead.org
 
-From: Richard Henderson <richard.henderson@linaro.org>
+On Fri, Jan 10, 2020 at 02:54:12PM +0000, Mark Brown wrote:
+> This is a resend of a series from Richard Henderson last posted back in
+> November:
+> 
+>    https://lore.kernel.org/linux-arm-kernel/20191106141308.30535-1-rth@twiddle.net/
+> 
+> Back then Borislav said they looked good and asked if he should take
+> them through the tip tree but things seem to have got lost since then.
 
-We must not use the pointer output without validating the
-success of the random read.
+Or, alternatively, akpm could take them. In any case, if someone else
+ends up doing that, for the x86 bits:
 
-Reviewed-by: Ard Biesheuvel <ardb@kernel.org>
-Signed-off-by: Richard Henderson <rth@twiddle.net>
-Signed-off-by: Mark Brown <broonie@kernel.org>
----
- include/linux/random.h | 8 ++++----
- 1 file changed, 4 insertions(+), 4 deletions(-)
+Reviewed-by: Borislav Petkov <bp@suse.de>
 
-diff --git a/include/linux/random.h b/include/linux/random.h
-index ea0e2f5f1ec5..d319f9a1e429 100644
---- a/include/linux/random.h
-+++ b/include/linux/random.h
-@@ -167,19 +167,19 @@ static inline void prandom_seed_state(struct rnd_state *state, u64 seed)
- #ifdef CONFIG_ARCH_RANDOM
- # include <asm/archrandom.h>
- #else
--static inline bool arch_get_random_long(unsigned long *v)
-+static inline bool __must_check arch_get_random_long(unsigned long *v)
- {
- 	return false;
- }
--static inline bool arch_get_random_int(unsigned int *v)
-+static inline bool __must_check arch_get_random_int(unsigned int *v)
- {
- 	return false;
- }
--static inline bool arch_get_random_seed_long(unsigned long *v)
-+static inline bool __must_check arch_get_random_seed_long(unsigned long *v)
- {
- 	return false;
- }
--static inline bool arch_get_random_seed_int(unsigned int *v)
-+static inline bool __must_check arch_get_random_seed_int(unsigned int *v)
- {
- 	return false;
- }
+Thx.
+
 -- 
-2.20.1
+Regards/Gruss,
+    Boris.
+
+https://people.kernel.org/tglx/notes-about-netiquette
