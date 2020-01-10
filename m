@@ -1,88 +1,73 @@
-Return-Path: <SRS0=42Ht=3P=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:45326 "EHLO mail.kernel.org"
+Return-Path: <SRS0=fIL7=27=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from foss.arm.com ([217.140.110.172]:49744 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726144AbgAZWmq (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Sun, 26 Jan 2020 17:42:46 -0500
-Date: Sun, 26 Jan 2020 14:42:45 -0800
-From: "Paul E. McKenney" <paulmck@kernel.org>
-Subject: Re: [PATCH v9 0/5] Add NUMA-awareness to qspinlock
-Message-ID: <20200126224245.GA22901@paulmck-ThinkPad-P72>
-Reply-To: paulmck@kernel.org
-References: <20200115035920.54451-1-alex.kogan@oracle.com>
- <20200124222434.GA7196@paulmck-ThinkPad-P72>
- <6AAE7FC6-F5DE-4067-8BC4-77F27948CD09@oracle.com>
- <20200125005713.GZ2935@paulmck-ThinkPad-P72>
- <02defadb-217d-7803-88a1-ec72a37eda28@redhat.com>
- <adb4fb09-f374-4d64-096b-ba9ad8b35fd5@redhat.com>
- <20200125045844.GC2935@paulmck-ThinkPad-P72>
- <967f99ee-b781-43f4-d8ba-af83786c429c@redhat.com>
- <20200126153535.GL2935@paulmck-ThinkPad-P72>
+        id S1726346AbgAJS2G (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 10 Jan 2020 13:28:06 -0500
+Date: Fri, 10 Jan 2020 18:28:00 +0000
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: Re: [PATCH v4 04/12] arm64: Basic Branch Target Identification
+ support
+Message-ID: <20200110182800.GI8786@arrakis.emea.arm.com>
+References: <20191211154206.46260-1-broonie@kernel.org>
+ <20191211154206.46260-5-broonie@kernel.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20200126153535.GL2935@paulmck-ThinkPad-P72>
+In-Reply-To: <20191211154206.46260-5-broonie@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Waiman Long <longman@redhat.com>
-Cc: Alex Kogan <alex.kogan@oracle.com>, linux@armlinux.org.uk, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-arm-kernel <linux-arm-kernel@lists.infradead.org>, linux-kernel@vger.kernel.org, tglx@linutronix.de, bp@alien8.de, hpa@zytor.com, x86@kernel.org, guohanjun@huawei.com, jglauber@marvell.com, dave.dice@oracle.com, steven.sistare@oracle.com, daniel.m.jordan@oracle.com
-Message-ID: <20200126224245.XaGz1cjBW9AcvmyCEC8t2wyNrRENwon0PUXZufXCZec@z>
+To: Mark Brown <broonie@kernel.org>
+Cc: Will Deacon <will@kernel.org>, Paul Elliott <paul.elliott@arm.com>, Peter Zijlstra <peterz@infradead.org>, Yu-cheng Yu <yu-cheng.yu@intel.com>, Amit Kachhap <amit.kachhap@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Marc Zyngier <maz@kernel.org>, Eugene Syromiatnikov <esyr@redhat.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, "H.J. Lu" <hjl.tools@gmail.com>, Andrew Jones <drjones@redhat.com>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Jann Horn <jannh@google.com>, Richard Henderson <richard.henderson@linaro.org>, Kristina =?utf-8?Q?Mart=C5=A1enko?= <kristina.martsenko@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Florian Weimer <fweimer@redhat.com>, Sudakshina Das <sudi.das@arm.com>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Dave Martin <Dave.Martin@arm.com>
+Message-ID: <20200110182800.AepteY9FJS1zkMDEge1OkGf2hdpSXU7XqnXRblLb3go@z>
 
-On Sun, Jan 26, 2020 at 07:35:35AM -0800, Paul E. McKenney wrote:
-> On Sat, Jan 25, 2020 at 02:41:39PM -0500, Waiman Long wrote:
-> > On 1/24/20 11:58 PM, Paul E. McKenney wrote:
-> > > On Fri, Jan 24, 2020 at 09:17:05PM -0500, Waiman Long wrote:
-> > >> On 1/24/20 8:59 PM, Waiman Long wrote:
-> > >>>> You called it!  I will play with QEMU's -numa argument to see if I can get
-> > >>>> CNA to run for me.  Please accept my apologies for the false alarm.
-> > >>>>
-> > >>>> 							Thanx, Paul
-> > >>>>
-> > >>> CNA is not currently supported in a VM guest simply because the numa
-> > >>> information is not reliable. You will have to run it on baremetal to
-> > >>> test it. Sorry for that.
-> > >> Correction. There is a command line option to force CNA lock to be used
-> > >> in a VM. Use the "numa_spinlock=on" boot command line parameter.
-> > > As I understand it, I need to use a series of -numa arguments to qemu
-> > > combined with the numa_spinlock=on (or =1) on the kernel command line.
-> > > If the kernel thinks that there is only one NUMA node, it appears to
-> > > avoid doing CNA.
-> > >
-> > > Correct?
-> > >
-> > > 							Thanx, Paul
-> > >
-> > In auto-detection mode (the default), CNA will only be turned on when
-> > paravirt qspinlock is not enabled first and there are at least 2 numa
-> > nodes. The "numa_spinlock=on" option will force it on even when both of
-> > the above conditions are false.
-> 
-> Hmmm...
-> 
-> Here is my kernel command line taken from the console log:
-> 
-> console=ttyS0 locktorture.onoff_interval=0 numa_spinlock=on locktorture.stat_interval=15 locktorture.shutdown_secs=1800 locktorture.verbose=1
-> 
-> Yet the string "Enabling CNA spinlock" does not appear.
-> 
-> Ah, idiot here needs to enable CONFIG_NUMA_AWARE_SPINLOCKS in his build.
-> Trying again with "--kconfig "CONFIG_NUMA_AWARE_SPINLOCKS=y"...
+On Wed, Dec 11, 2019 at 03:41:58PM +0000, Mark Brown wrote:
+> diff --git a/arch/arm64/include/asm/ptrace.h b/arch/arm64/include/asm/ptrace.h
+> index fbebb411ae20..212bba1f8d84 100644
+> --- a/arch/arm64/include/asm/ptrace.h
+> +++ b/arch/arm64/include/asm/ptrace.h
+> @@ -35,8 +35,16 @@
+>  #define GIC_PRIO_PSR_I_SET		(1 << 4)
+>  
+>  /* Additional SPSR bits not exposed in the UABI */
+> +#define PSR_BTYPE_SHIFT		10
+> +
+>  #define PSR_IL_BIT		(1 << 20)
+>  
+> +/* Convenience names for the values of PSTATE.BTYPE */
+> +#define PSR_BTYPE_NONE		(0b00 << PSR_BTYPE_SHIFT)
+> +#define PSR_BTYPE_JC		(0b01 << PSR_BTYPE_SHIFT)
+> +#define PSR_BTYPE_C		(0b10 << PSR_BTYPE_SHIFT)
+> +#define PSR_BTYPE_J		(0b11 << PSR_BTYPE_SHIFT)
 
-And after fixing that, plus adding the other three Kconfig options required
-to enable this, I really do see "Enabling CNA spinlock" in the console log.
-Yay!
+Would these be better placed in the uapi/ptrace.h?
 
-At the end of the 30-minute locktorture exclusive-lock run, I see this:
+> diff --git a/arch/arm64/kernel/syscall.c b/arch/arm64/kernel/syscall.c
+> index 9a9d98a443fc..ef80ecbd6eaf 100644
+> --- a/arch/arm64/kernel/syscall.c
+> +++ b/arch/arm64/kernel/syscall.c
+> @@ -98,6 +98,24 @@ static void el0_svc_common(struct pt_regs *regs, int scno, int sc_nr,
+>  	regs->orig_x0 = regs->regs[0];
+>  	regs->syscallno = scno;
+>  
+> +	/*
+> +	 * BTI note:
+> +	 * The architecture does not guarantee that SPSR.BTYPE is zero
+> +	 * on taking an SVC, so we could return to userspace with a
+> +	 * non-zero BTYPE after the syscall.
 
-Writes:  Total: 572176565  Max/Min: 54167704/10878216 ???  Fail: 0
+On page 2580 of the ARM ARM there is a statement that "any instruction
+other than BR, ..." sets BTYPE to 0. Wouldn't SVC fall into the same
+category?
 
-This is about a five-to-one ratio.  Is this expected behavior, given a
-single NUMA node on a single-socket system with 12 hardware threads?
+> +	 *
+> +	 * This shouldn't matter except when userspace is explicitly
+> +	 * doing something stupid, such as setting PROT_BTI on a page
+> +	 * that lacks conforming BTI/PACIxSP instructions, falling
+> +	 * through from one executable page to another with differing
+> +	 * PROT_BTI, or messing with BYTPE via ptrace: in such cases,
 
-I will try reader-writer lock next.
+s/BYTPE/BTYPE/
 
-Again, should I be using qemu's -numa command-line option to create nodes?
-If so, what would be a sane configuration given 12 CPUs and 512MB of
-memory for the VM?  If not, what is a good way to exercise CNA's NUMA
-capabilities within a guest OS?
+Apart from the nitpicks above, the patch looks good to me:
 
-							Thanx, Paul
+Reviewed-by: Catalin Marinas <catalin.marinas@arm.com>
