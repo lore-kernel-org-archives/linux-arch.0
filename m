@@ -1,63 +1,154 @@
 From: Will Deacon <will@kernel.org>
-Subject: [RFC PATCH 2/8] netfilter: Avoid assigning 'const' pointer to non-const pointer
-Date: Fri, 10 Jan 2020 16:56:30 +0000
-Message-ID: <20200110165636.28035-3-will@kernel.org>
+Subject: [RFC PATCH 5/8] READ_ONCE: Enforce atomicity for {READ,WRITE}_ONCE() memory accesses
+Date: Fri, 10 Jan 2020 16:56:33 +0000
+Message-ID: <20200110165636.28035-6-will@kernel.org>
 References: <20200110165636.28035-1-will@kernel.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:60006 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1728594AbgAJQ4s (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 10 Jan 2020 11:56:48 -0500
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20200110165636.28035-1-will@kernel.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, kernel-team@android.com, Will Deacon <will@kernel.org>, Michael Ellerman <mpe@ellerman.id.au>, Peter Zijlstra <peterz@infradead.org>, Linus Torvalds <torvalds@linux-foundation.org>, Segher Boessenkool <segher@kernel.crashing.org>, Christian Borntraeger <borntraeger@de.ibm.com>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>, Arnd Bergmann <arnd@arndb.de>, Pablo Neira Ayuso <pablo@netfilter.org>, Jozsef Kadlecsik <kadlec@netfilter.org>, Florian Westphal <fw@strlen.de>, "David S. Miller" <davem@davemloft.net>
+Cc: linux-arch@vger.kernel.org, kernel-team@android.com, Will Deacon <will@kernel.org>, Michael Ellerman <mpe@ellerman.id.au>, Peter Zijlstra <peterz@infradead.org>, Linus Torvalds <torvalds@linux-foundation.org>, Segher Boessenkool <segher@kernel.crashing.org>, Christian Borntraeger <borntraeger@de.ibm.com>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>, Arnd Bergmann <arnd@arndb.de>
+List-Id: linux-arch.vger.kernel.org
 
-nf_remove_net_hook() uses WRITE_ONCE() to assign a 'const pointer to a
-'non-const' pointer. Cleanups to the implementation of WRITE_ONCE() mean
-that this will give rise to a compiler warning, just like a plain old
-assignment would do:
+{READ,WRITE}_ONCE() cannot guarantee atomicity for arbitrary data sizes.
+This can be surprising to callers that might incorrectly be expecting
+atomicity for accesses to aggregate structures, although there are other
+callers where tearing is actually permissable (e.g. if they are using
+something akin to sequence locking to protect the access).
 
-  | In file included from ./include/linux/export.h:43,
-  |                  from ./include/linux/linkage.h:7,
-  |                  from ./include/linux/kernel.h:8,
-  |                  from net/netfilter/core.c:9:
-  | net/netfilter/core.c: In function ‘nf_remove_net_hook’:
-  | ./include/linux/compiler.h:216:30: warning: assignment discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
-  |   *(volatile typeof(x) *)&(x) = (val);  \
-  |                               ^
-  | net/netfilter/core.c:379:3: note: in expansion of macro ‘WRITE_ONCE’
-  |    WRITE_ONCE(orig_ops[i], &dummy_ops);
-  |    ^~~~~~~~~~
+Linus sayeth:
 
-Follow the pattern used elsewhere in this file and add a cast to 'void *'
-to squash the warning.
+  | We could also look at being stricter for the normal READ/WRITE_ONCE(),
+  | and require that they are
+  |
+  | (a) regular integer types
+  |
+  | (b) fit in an atomic word
+  |
+  | We actually did (b) for a while, until we noticed that we do it on
+  | loff_t's etc and relaxed the rules. But maybe we could have a
+  | "non-atomic" version of READ/WRITE_ONCE() that is used for the
+  | questionable cases?
 
-Cc: Pablo Neira Ayuso <pablo@netfilter.org>
-Cc: Jozsef Kadlecsik <kadlec@netfilter.org>
-Cc: Florian Westphal <fw@strlen.de>
-Cc: "David S. Miller" <davem@davemloft.net>
+The slight snag is that we also have to support 64-bit accesses on 32-bit
+architectures, as these appear to be widespread and tend to work out ok
+if either the architecture supports atomic 64-bit accesses (x86, armv7)
+or if the variable being accesses represents a virtual address and
+therefore only requires 32-bit atomicity in practice.
+
+Take a step in that direction by introducing a variant of
+'compiletime_assert_atomic_type()' and use it to check the pointer
+argument to {READ,WRITE}_ONCE(). Expose __{READ,WRITE_ONCE}() variants
+which are allowed to tear and convert the two broken callers over to the
+new macros.
+
+Suggested-by: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Peter Zijlstra <peterz@infradead.org>
+Cc: Michael Ellerman <mpe@ellerman.id.au>
+Cc: Arnd Bergmann <arnd@arndb.de>
 Signed-off-by: Will Deacon <will@kernel.org>
 ---
- net/netfilter/core.c | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+ drivers/xen/time.c       |  2 +-
+ include/linux/compiler.h | 37 +++++++++++++++++++++++++++++++++----
+ net/xdp/xsk_queue.h      |  2 +-
+ 3 files changed, 35 insertions(+), 6 deletions(-)
 
-diff --git a/net/netfilter/core.c b/net/netfilter/core.c
-index 78f046ec506f..3ac7c8c1548d 100644
---- a/net/netfilter/core.c
-+++ b/net/netfilter/core.c
-@@ -376,7 +376,7 @@ static bool nf_remove_net_hook(struct nf_hook_entries *old,
- 		if (orig_ops[i] != unreg)
- 			continue;
- 		WRITE_ONCE(old->hooks[i].hook, accept_all);
--		WRITE_ONCE(orig_ops[i], &dummy_ops);
-+		WRITE_ONCE(orig_ops[i], (void *)&dummy_ops);
- 		return true;
- 	}
+diff --git a/drivers/xen/time.c b/drivers/xen/time.c
+index 0968859c29d0..108edbcbc040 100644
+--- a/drivers/xen/time.c
++++ b/drivers/xen/time.c
+@@ -64,7 +64,7 @@ static void xen_get_runstate_snapshot_cpu_delta(
+ 	do {
+ 		state_time = get64(&state->state_entry_time);
+ 		rmb();	/* Hypervisor might update data. */
+-		*res = READ_ONCE(*state);
++		*res = __READ_ONCE(*state);
+ 		rmb();	/* Hypervisor might update data. */
+ 	} while (get64(&state->state_entry_time) != state_time ||
+ 		 (state_time & XEN_RUNSTATE_UPDATE));
+diff --git a/include/linux/compiler.h b/include/linux/compiler.h
+index 44974d658f30..863180641336 100644
+--- a/include/linux/compiler.h
++++ b/include/linux/compiler.h
+@@ -198,24 +198,43 @@ void ftrace_likely_update(struct ftrace_likely_data *f, int val,
+ #include <asm/barrier.h>
+ #include <linux/kasan-checks.h>
+ 
++/*
++ * Use __READ_ONCE() instead of READ_ONCE() if you do not require any
++ * atomicity or dependency ordering guarantees. Note that this may result
++ * in tears!
++ */
++#define __READ_ONCE(x)	(*(volatile typeof(x) *)&(x))
++
++#define __READ_ONCE_SCALAR(x)						\
++({									\
++	typeof(x) __x = __READ_ONCE(x);					\
++	smp_read_barrier_depends();					\
++	__x;								\
++})
++
+ /*
+  * Use READ_ONCE_NOCHECK() instead of READ_ONCE() if you need
+  * to hide memory access from KASAN.
+  */
+ #define READ_ONCE_NOCHECK(x)						\
+ ({									\
+-	typeof(x) __x = *(volatile typeof(x) *)&(x);			\
+-	smp_read_barrier_depends();					\
+-	__x;								\
++	compiletime_assert_rwonce_type(x);				\
++	__READ_ONCE_SCALAR(x);						\
+ })
+ 
+ #define READ_ONCE(x)	READ_ONCE_NOCHECK(x)
+ 
+-#define WRITE_ONCE(x, val)				\
++#define __WRITE_ONCE(x, val)				\
+ do {							\
+ 	*(volatile typeof(x) *)&(x) = (val);		\
+ } while (0)
+ 
++#define WRITE_ONCE(x, val)				\
++do {							\
++	compiletime_assert_rwonce_type(x);		\
++	__WRITE_ONCE(x, val);				\
++} while (0)
++
+ #ifdef CONFIG_KASAN
+ /*
+  * We can't declare function 'inline' because __no_sanitize_address conflicts
+@@ -299,6 +318,16 @@ static inline void *offset_to_ptr(const int *off)
+ 	compiletime_assert(__native_word(t),				\
+ 		"Need native word sized stores/loads for atomicity.")
+ 
++/*
++ * Yes, this permits 64-bit accesses on 32-bit architectures. These will
++ * actually be atomic in many cases (namely x86), but for others we rely on
++ * the access being split into 2x32-bit accesses for a 32-bit quantity (e.g.
++ * a virtual address) and a strong prevailing wind.
++ */
++#define compiletime_assert_rwonce_type(t)					\
++	compiletime_assert(__native_word(t) || sizeof(t) == sizeof(long long),	\
++		"Unsupported access size for {READ,WRITE}_ONCE().")
++
+ /* &a[0] degrades to a pointer: a different type from an array */
+ #define __must_be_array(a)	BUILD_BUG_ON_ZERO(__same_type((a), &(a)[0]))
+ 
+diff --git a/net/xdp/xsk_queue.h b/net/xdp/xsk_queue.h
+index eddae4688862..2b55c1c7b2b6 100644
+--- a/net/xdp/xsk_queue.h
++++ b/net/xdp/xsk_queue.h
+@@ -304,7 +304,7 @@ static inline struct xdp_desc *xskq_validate_desc(struct xsk_queue *q,
+ 		struct xdp_rxtx_ring *ring = (struct xdp_rxtx_ring *)q->ring;
+ 		unsigned int idx = q->cons_tail & q->ring_mask;
+ 
+-		*desc = READ_ONCE(ring->desc[idx]);
++		*desc = __READ_ONCE(ring->desc[idx]);
+ 		if (xskq_is_valid_desc(q, desc, umem))
+ 			return desc;
  
 -- 
 2.25.0.rc1.283.g88dfdc4193-goog
