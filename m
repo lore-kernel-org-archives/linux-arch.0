@@ -1,114 +1,42 @@
-From: Mark Rutland <mark.rutland@arm.com>
-Subject: Re: [RFC PATCH 8/8] arm64: barrier: Use '__unqual_scalar_typeof' for
- acquire/release macros
-Date: Fri, 10 Jan 2020 17:45:07 +0000
-Message-ID: <20200110174506.GK33536@lakrids.cambridge.arm.com>
+From: Joe Perches <joe@perches.com>
+Subject: Re: [RFC PATCH 1/8] compiler/gcc: Emit build-time warning for GCC
+ prior to version 4.8
+Date: Fri, 10 Jan 2020 09:53:36 -0800
+Message-ID: <8fe4f81699517758b44afbe0e1a53bc080f64a62.camel@perches.com>
 References: <20200110165636.28035-1-will@kernel.org>
- <20200110165636.28035-9-will@kernel.org>
+         <20200110165636.28035-2-will@kernel.org>
+         <CAK8P3a3ueJ_rQc-1JTg=3N0JSuY9BduJ6FrrPFG1K2FWVzJdfA@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:49260 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727742AbgAJRpL (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 10 Jan 2020 12:45:11 -0500
-Content-Disposition: inline
-In-Reply-To: <20200110165636.28035-9-will@kernel.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will@kernel.org>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, kernel-team@android.com, Michael Ellerman <mpe@ellerman.id.au>, Peter Zijlstra <peterz@infradead.org>, Linus Torvalds <torvalds@linux-foundation.org>, Segher Boessenkool <segher@kernel.crashing.org>, Christian Borntraeger <borntraeger@de.ibm.com>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>, Arnd Bergmann <arnd@arndb.de>
+Content-Type: text/plain; charset="ISO-8859-1"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <CAK8P3a3ueJ_rQc-1JTg=3N0JSuY9BduJ6FrrPFG1K2FWVzJdfA@mail.gmail.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Arnd Bergmann <arnd@arndb.de>, Will Deacon <will@kernel.org>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Android Kernel Team <kernel-team@android.com>, Michael Ellerman <mpe@ellerman.id.au>, Peter Zijlstra <peterz@infradead.org>, Linus Torvalds <torvalds@linux-foundation.org>, Segher Boessenkool <segher@kernel.crashing.org>, Christian Borntraeger <borntraeger@de.ibm.com>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>
+List-Id: linux-arch.vger.kernel.org
 
-On Fri, Jan 10, 2020 at 04:56:36PM +0000, Will Deacon wrote:
-> Passing volatile-qualified pointers to the arm64 implementations of the
-> load-acquire/store-release macros results in a re-load from the stack
-> and a bunch of associated stack-protector churn due to the temporary
-> result variable inheriting the volatile semantics thanks to the use of
-> 'typeof()'.
+On Fri, 2020-01-10 at 18:35 +0100, Arnd Bergmann wrote:
+> On Fri, Jan 10, 2020 at 5:56 PM Will Deacon <will@kernel.org> wrote:
+> > Prior to version 4.8, GCC may miscompile READ_ONCE() by erroneously
+> > discarding the 'volatile' qualifier:
+> > 
+> > https://gcc.gnu.org/bugzilla/show_bug.cgi?id=58145
+> > 
+> > We've been working around this using some nasty hacks which make
+> > READ_ONCE() both horribly complicated and also prevent us from enforcing
+> > that it is only used on scalar types. Since GCC 4.8 is pretty old for
+> > kernel builds now, emit a warning if we detect it during the build.
 > 
-> Define these temporary variables using 'unqual_scalar_typeof' to drop
-> the volatile qualifier in the case that they are scalar types.
-> 
-> Cc: Mark Rutland <mark.rutland@arm.com>
-> Cc: Linus Torvalds <torvalds@linux-foundation.org>
-> Cc: Peter Zijlstra <peterz@infradead.org>
-> Cc: Arnd Bergmann <arnd@arndb.de>
-> Signed-off-by: Will Deacon <will@kernel.org>
+> No objection to recommending gcc-4.8, but I think this should either
+> just warn once during the kernel build instead of for every file, or
+> it should become a hard requirement.
 
-Based on my understanding of __unqual_scalar_typeof(), these changes
-look sound to me:
+It might as well be a hard requirement as
+gcc 4.8.0 is already nearly 7 years old.
 
-Acked-by: Mark Rutland <mark.rutland@arm.com>
+gcc 4.6.0 released 2011-03-25
+gcc 4.8.0 released 2013-03-22
 
-Mark.
-
-> ---
->  arch/arm64/include/asm/barrier.h | 16 ++++++++--------
->  1 file changed, 8 insertions(+), 8 deletions(-)
-> 
-> diff --git a/arch/arm64/include/asm/barrier.h b/arch/arm64/include/asm/barrier.h
-> index 7d9cc5ec4971..fb4c27506ef4 100644
-> --- a/arch/arm64/include/asm/barrier.h
-> +++ b/arch/arm64/include/asm/barrier.h
-> @@ -76,8 +76,8 @@ static inline unsigned long array_index_mask_nospec(unsigned long idx,
->  #define __smp_store_release(p, v)					\
->  do {									\
->  	typeof(p) __p = (p);						\
-> -	union { typeof(*p) __val; char __c[1]; } __u =			\
-> -		{ .__val = (__force typeof(*p)) (v) };			\
-> +	union { __unqual_scalar_typeof(*p) __val; char __c[1]; } __u =	\
-> +		{ .__val = (__force __unqual_scalar_typeof(*p)) (v) };	\
->  	compiletime_assert_atomic_type(*p);				\
->  	kasan_check_write(__p, sizeof(*p));				\
->  	switch (sizeof(*p)) {						\
-> @@ -110,7 +110,7 @@ do {									\
->  
->  #define __smp_load_acquire(p)						\
->  ({									\
-> -	union { typeof(*p) __val; char __c[1]; } __u;			\
-> +	union { __unqual_scalar_typeof(*p) __val; char __c[1]; } __u;	\
->  	typeof(p) __p = (p);						\
->  	compiletime_assert_atomic_type(*p);				\
->  	kasan_check_read(__p, sizeof(*p));				\
-> @@ -136,33 +136,33 @@ do {									\
->  			: "Q" (*__p) : "memory");			\
->  		break;							\
->  	}								\
-> -	__u.__val;							\
-> +	(typeof(*p))__u.__val;						\
->  })
->  
->  #define smp_cond_load_relaxed(ptr, cond_expr)				\
->  ({									\
->  	typeof(ptr) __PTR = (ptr);					\
-> -	typeof(*ptr) VAL;						\
-> +	__unqual_scalar_typeof(*ptr) VAL;				\
->  	for (;;) {							\
->  		VAL = READ_ONCE(*__PTR);				\
->  		if (cond_expr)						\
->  			break;						\
->  		__cmpwait_relaxed(__PTR, VAL);				\
->  	}								\
-> -	VAL;								\
-> +	(typeof(*ptr))VAL;						\
->  })
->  
->  #define smp_cond_load_acquire(ptr, cond_expr)				\
->  ({									\
->  	typeof(ptr) __PTR = (ptr);					\
-> -	typeof(*ptr) VAL;						\
-> +	__unqual_scalar_typeof(*ptr) VAL;				\
->  	for (;;) {							\
->  		VAL = smp_load_acquire(__PTR);				\
->  		if (cond_expr)						\
->  			break;						\
->  		__cmpwait_relaxed(__PTR, VAL);				\
->  	}								\
-> -	VAL;								\
-> +	(typeof(*ptr))VAL;						\
->  })
->  
->  #include <asm-generic/barrier.h>
-> -- 
-> 2.25.0.rc1.283.g88dfdc4193-goog
-> 
+Perhaps there are exceedingly few to zero new
+instances using gcc compiler versions < 4.8
