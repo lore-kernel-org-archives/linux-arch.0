@@ -1,7 +1,8 @@
 From: Mark Brown <broonie@kernel.org>
-Subject: [PATCH v2 02/10] powerpc: Remove arch_has_random, arch_has_random_seed
-Date: Fri, 10 Jan 2020 14:54:14 +0000
-Message-ID: <20200110145422.49141-3-broonie@kernel.org>
+Subject: [PATCH v2 06/10] linux/random.h: Mark CONFIG_ARCH_RANDOM functions
+ __must_check
+Date: Fri, 10 Jan 2020 14:54:18 +0000
+Message-ID: <20200110145422.49141-7-broonie@kernel.org>
 References: <20200110145422.49141-1-broonie@kernel.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -18,40 +19,48 @@ List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
 Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
 Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane-mx.org@lists.infradead.org
 To: linux-arch@vger.kernel.org
-Cc: linux-s390@vger.kernel.org, herbert@gondor.apana.org.au, x86@kernel.org, Richard Henderson <richard.henderson@linaro.org>, Mark Brown <broonie@kernel.org>, Borislav Petkov <bp@alien8.de>, linux-crypto@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-arm-kernel@lists.infradead.org, Richard Henderson <rth@twiddle.net>
+Cc: linux-s390@vger.kernel.org, herbert@gondor.apana.org.au, x86@kernel.org, Richard Henderson <richard.henderson@linaro.org>, Mark Brown <broonie@kernel.org>, Borislav Petkov <bp@alien8.de>, linux-crypto@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, Ard Biesheuvel <ardb@kernel.org>, linux-arm-kernel@lists.infradead.org, Richard Henderson <rth@twiddle.net>
 List-Id: linux-arch.vger.kernel.org
 
 From: Richard Henderson <richard.henderson@linaro.org>
 
-These symbols are currently part of the generic archrandom.h
-interface, but are currently unused and can be removed.
+We must not use the pointer output without validating the
+success of the random read.
 
+Reviewed-by: Ard Biesheuvel <ardb@kernel.org>
 Signed-off-by: Richard Henderson <rth@twiddle.net>
 Signed-off-by: Mark Brown <broonie@kernel.org>
 ---
- arch/powerpc/include/asm/archrandom.h | 10 ----------
- 1 file changed, 10 deletions(-)
+ include/linux/random.h | 8 ++++----
+ 1 file changed, 4 insertions(+), 4 deletions(-)
 
-diff --git a/arch/powerpc/include/asm/archrandom.h b/arch/powerpc/include/asm/archrandom.h
-index a09595f00cab..2fa7cdfbba24 100644
---- a/arch/powerpc/include/asm/archrandom.h
-+++ b/arch/powerpc/include/asm/archrandom.h
-@@ -34,16 +34,6 @@ static inline int arch_get_random_seed_int(unsigned int *v)
- 
- 	return rc;
+diff --git a/include/linux/random.h b/include/linux/random.h
+index ea0e2f5f1ec5..d319f9a1e429 100644
+--- a/include/linux/random.h
++++ b/include/linux/random.h
+@@ -167,19 +167,19 @@ static inline void prandom_seed_state(struct rnd_state *state, u64 seed)
+ #ifdef CONFIG_ARCH_RANDOM
+ # include <asm/archrandom.h>
+ #else
+-static inline bool arch_get_random_long(unsigned long *v)
++static inline bool __must_check arch_get_random_long(unsigned long *v)
+ {
+ 	return false;
  }
--
--static inline int arch_has_random(void)
--{
--	return 0;
--}
--
--static inline int arch_has_random_seed(void)
--{
--	return !!ppc_md.get_random_seed;
--}
- #endif /* CONFIG_ARCH_RANDOM */
- 
- #ifdef CONFIG_PPC_POWERNV
+-static inline bool arch_get_random_int(unsigned int *v)
++static inline bool __must_check arch_get_random_int(unsigned int *v)
+ {
+ 	return false;
+ }
+-static inline bool arch_get_random_seed_long(unsigned long *v)
++static inline bool __must_check arch_get_random_seed_long(unsigned long *v)
+ {
+ 	return false;
+ }
+-static inline bool arch_get_random_seed_int(unsigned int *v)
++static inline bool __must_check arch_get_random_seed_int(unsigned int *v)
+ {
+ 	return false;
+ }
 -- 
 2.20.1
