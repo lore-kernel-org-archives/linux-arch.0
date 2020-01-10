@@ -1,42 +1,62 @@
-From: Joe Perches <joe@perches.com>
-Subject: Re: [RFC PATCH 1/8] compiler/gcc: Emit build-time warning for GCC
- prior to version 4.8
-Date: Fri, 10 Jan 2020 09:53:36 -0800
-Message-ID: <8fe4f81699517758b44afbe0e1a53bc080f64a62.camel@perches.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [RFC PATCH 0/8] Rework READ_ONCE() to improve codegen
+Date: Fri, 10 Jan 2020 18:58:06 +0100
+Message-ID: <CAK8P3a3LAirovfV=RRqf9dT7K_WkiC8SJK9oa-amn_EkibqEsA@mail.gmail.com>
 References: <20200110165636.28035-1-will@kernel.org>
-         <20200110165636.28035-2-will@kernel.org>
-         <CAK8P3a3ueJ_rQc-1JTg=3N0JSuY9BduJ6FrrPFG1K2FWVzJdfA@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="ISO-8859-1"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <CAK8P3a3ueJ_rQc-1JTg=3N0JSuY9BduJ6FrrPFG1K2FWVzJdfA@mail.gmail.com>
+In-Reply-To: <20200110165636.28035-1-will@kernel.org>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Arnd Bergmann <arnd@arndb.de>, Will Deacon <will@kernel.org>
+To: Will Deacon <will@kernel.org>
 Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Android Kernel Team <kernel-team@android.com>, Michael Ellerman <mpe@ellerman.id.au>, Peter Zijlstra <peterz@infradead.org>, Linus Torvalds <torvalds@linux-foundation.org>, Segher Boessenkool <segher@kernel.crashing.org>, Christian Borntraeger <borntraeger@de.ibm.com>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, 2020-01-10 at 18:35 +0100, Arnd Bergmann wrote:
-> On Fri, Jan 10, 2020 at 5:56 PM Will Deacon <will@kernel.org> wrote:
-> > Prior to version 4.8, GCC may miscompile READ_ONCE() by erroneously
-> > discarding the 'volatile' qualifier:
-> > 
-> > https://gcc.gnu.org/bugzilla/show_bug.cgi?id=58145
-> > 
-> > We've been working around this using some nasty hacks which make
-> > READ_ONCE() both horribly complicated and also prevent us from enforcing
-> > that it is only used on scalar types. Since GCC 4.8 is pretty old for
-> > kernel builds now, emit a warning if we detect it during the build.
-> 
-> No objection to recommending gcc-4.8, but I think this should either
-> just warn once during the kernel build instead of for every file, or
-> it should become a hard requirement.
+On Fri, Jan 10, 2020 at 5:56 PM Will Deacon <will@kernel.org> wrote:
+>
+> Hi all,
+>
+> This is a follow-up RFC to the discussions we had on the mailing list at
+> the end of last year:
+>
+> https://lore.kernel.org/lkml/875zimp0ay.fsf@mpe.ellerman.id.au
+>
+> Unfortunately, we didn't get a "silver bullet" solution out of that
+> long thread, but I've tried to piece together some of the bits and
+> pieces we discussed and I've ended up with this series, which does at
+> least solve the pressing problem with the bitops for arm64.
+>
+> The rough summary of the series is:
+>
+>   * Drop the GCC 4.8 workarounds, so that READ_ONCE() is a
+>     straightforward dereference of a cast-to-volatile pointer.
+>
+>   * Require that the access is either 1, 2, 4 or 8 bytes in size
+>     (even 32-bit architectures tend to use 8-byte accesses here).
+>
+>   * Introduce __READ_ONCE() for tearing operations with no size
+>     restriction.
+>
+>   * Drop pointer qualifiers from scalar types, so that volatile scalars
+>     don't generate horrible stack-spilling mess. This is pretty ugly,
+>     but it's also mechanical and wrapped up in a macro.
+>
+>   * Convert acquire/release accessors to perform the same qualifier
+>     stripping.
+>
+> I gave up trying to prevent READ_ONCE() on aggregates because it is
+> pervasive, particularly within the mm/ layer on things like pmd_t.
+> Thankfully, these don't tend to be volatile.
+>
+> I have more patches in this area because I'm trying to move all the
+> read_barrier_depends() magic into arch/alpha/, but I'm holding off until
+> we agree on this part first.
 
-It might as well be a hard requirement as
-gcc 4.8.0 is already nearly 7 years old.
+Looks very nice overall, thanks for working on this.
 
-gcc 4.6.0 released 2011-03-25
-gcc 4.8.0 released 2013-03-22
+I've added a the series into my randconfig build setup to see
+if I run into build-time regressions. Unfortunately there are some
+conflicts with the kcsan patches in linux-next that I have to work
+around first.
 
-Perhaps there are exceedingly few to zero new
-instances using gcc compiler versions < 4.8
+       Arnd
