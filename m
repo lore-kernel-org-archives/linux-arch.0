@@ -1,186 +1,96 @@
 From: Will Deacon <will@kernel.org>
-Subject: [RFC PATCH 4/8] READ_ONCE: Simplify implementations of {READ,WRITE}_ONCE()
-Date: Fri, 10 Jan 2020 16:56:32 +0000
-Message-ID: <20200110165636.28035-5-will@kernel.org>
+Subject: [RFC PATCH 6/8] READ_ONCE: Drop pointer qualifiers when reading from scalar types
+Date: Fri, 10 Jan 2020 16:56:34 +0000
+Message-ID: <20200110165636.28035-7-will@kernel.org>
 References: <20200110165636.28035-1-will@kernel.org>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:60216 "EHLO mail.kernel.org"
+Received: from mail.kernel.org ([198.145.29.99]:60396 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1728679AbgAJQ4x (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 10 Jan 2020 11:56:53 -0500
+        id S1728752AbgAJQ46 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 10 Jan 2020 11:56:58 -0500
 In-Reply-To: <20200110165636.28035-1-will@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
 Cc: linux-arch@vger.kernel.org, kernel-team@android.com, Will Deacon <will@kernel.org>, Michael Ellerman <mpe@ellerman.id.au>, Peter Zijlstra <peterz@infradead.org>, Linus Torvalds <torvalds@linux-foundation.org>, Segher Boessenkool <segher@kernel.crashing.org>, Christian Borntraeger <borntraeger@de.ibm.com>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>, Arnd Bergmann <arnd@arndb.de>
 
-The implementations of {READ,WRITE}_ONCE() suffer from a significant
-amount of indirection and complexity due to a historic GCC bug:
+Passing a volatile-qualified pointer to READ_ONCE() is an absolute
+trainwreck for code generation: the use of 'typeof()' to define a
+temporary variable inside the macro means that the final evaluation in
+macro scope ends up forcing a read back from the stack. When stack
+protector is enabled (the default for arm64, at least), this causes
+the compiler to vomit up all sorts of junk.
 
-https://gcc.gnu.org/bugzilla/show_bug.cgi?id=58145
+Unfortunately, dropping pointer qualifiers inside the macro poses quite
+a challenge, especially since the pointed-to type is permitted to be an
+aggregate, and this is relied upon by mm/ code accessing things like
+'pmd_t'. Based on numerous hacks and discussions on the mailing list,
+this is the best I've managed to come up with.
 
-which was originally worked around by 230fa253df63 ("kernel: Provide
-READ_ONCE and ASSIGN_ONCE").
+Introduce '__unqual_scalar_typeof()' which takes an expression and, if
+the expression is an optionally qualified 8, 16, 32 or 64-bit scalar
+type, evaluates to the unqualified type. Other input types, including
+aggregates, remain unchanged. Hopefully READ_ONCE() on volatile aggregate
+pointers isn't something we do on a fast-path.
 
-Since GCC 4.8 is fairly vintage at this point and we emit a warning if
-we detect it during the build, return {READ,WRITE}_ONCE() to their former
-glory with an implementation that is easier to understand and, crucially,
-more amenable to optimisation. A side effect of this simplification is
-that WRITE_ONCE() no longer returns a value, but nobody seems to be
-relying on that and the new behaviour is aligned with smp_store_release().
-
-Suggested-by: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>
 Cc: Peter Zijlstra <peterz@infradead.org>
-Cc: Michael Ellerman <mpe@ellerman.id.au>
 Cc: Arnd Bergmann <arnd@arndb.de>
-Cc: Christian Borntraeger <borntraeger@de.ibm.com>
+Reported-by: Michael Ellerman <mpe@ellerman.id.au>
 Signed-off-by: Will Deacon <will@kernel.org>
 ---
- include/linux/compiler.h | 104 ++++++++++-----------------------------
- 1 file changed, 25 insertions(+), 79 deletions(-)
+ include/linux/compiler.h       |  6 +++---
+ include/linux/compiler_types.h | 15 +++++++++++++++
+ 2 files changed, 18 insertions(+), 3 deletions(-)
 
 diff --git a/include/linux/compiler.h b/include/linux/compiler.h
-index 5e88e7e33abe..44974d658f30 100644
+index 863180641336..d3491fd44c19 100644
 --- a/include/linux/compiler.h
 +++ b/include/linux/compiler.h
-@@ -177,60 +177,6 @@ void ftrace_likely_update(struct ftrace_likely_data *f, int val,
- # define __UNIQUE_ID(prefix) __PASTE(__PASTE(__UNIQUE_ID_, prefix), __LINE__)
- #endif
- 
--#include <uapi/linux/types.h>
--
--#define __READ_ONCE_SIZE						\
--({									\
--	switch (size) {							\
--	case 1: *(__u8 *)res = *(volatile __u8 *)p; break;		\
--	case 2: *(__u16 *)res = *(volatile __u16 *)p; break;		\
--	case 4: *(__u32 *)res = *(volatile __u32 *)p; break;		\
--	case 8: *(__u64 *)res = *(volatile __u64 *)p; break;		\
--	default:							\
--		barrier();						\
--		__builtin_memcpy((void *)res, (const void *)p, size);	\
--		barrier();						\
--	}								\
--})
--
--static __always_inline
--void __read_once_size(const volatile void *p, void *res, int size)
--{
--	__READ_ONCE_SIZE;
--}
--
--#ifdef CONFIG_KASAN
--/*
-- * We can't declare function 'inline' because __no_sanitize_address confilcts
-- * with inlining. Attempt to inline it may cause a build failure.
-- * 	https://gcc.gnu.org/bugzilla/show_bug.cgi?id=67368
-- * '__maybe_unused' allows us to avoid defined-but-not-used warnings.
-- */
--# define __no_kasan_or_inline __no_sanitize_address notrace __maybe_unused
--#else
--# define __no_kasan_or_inline __always_inline
--#endif
--
--static __no_kasan_or_inline
--void __read_once_size_nocheck(const volatile void *p, void *res, int size)
--{
--	__READ_ONCE_SIZE;
--}
--
--static __always_inline void __write_once_size(volatile void *p, void *res, int size)
--{
--	switch (size) {
--	case 1: *(volatile __u8 *)p = *(__u8 *)res; break;
--	case 2: *(volatile __u16 *)p = *(__u16 *)res; break;
--	case 4: *(volatile __u32 *)p = *(__u32 *)res; break;
--	case 8: *(volatile __u64 *)p = *(__u64 *)res; break;
--	default:
--		barrier();
--		__builtin_memcpy((void *)p, (const void *)res, size);
--		barrier();
--	}
--}
--
- /*
-  * Prevent the compiler from merging or refetching reads or writes. The
-  * compiler is also forbidden from reordering successive instances of
-@@ -240,11 +186,7 @@ static __always_inline void __write_once_size(volatile void *p, void *res, int s
-  * statements.
-  *
-  * These two macros will also work on aggregate data types like structs or
-- * unions. If the size of the accessed data type exceeds the word size of
-- * the machine (e.g., 32 bits or 64 bits) READ_ONCE() and WRITE_ONCE() will
-- * fall back to memcpy(). There's at least two memcpy()s: one for the
-- * __builtin_memcpy() and then one for the macro doing the copy of variable
-- * - '__u' allocated on the stack.
-+ * unions.
-  *
-  * Their two major use cases are: (1) Mediating communication between
-  * process-level code and irq/NMI handlers, all running on the same CPU,
-@@ -256,23 +198,35 @@ static __always_inline void __write_once_size(volatile void *p, void *res, int s
- #include <asm/barrier.h>
- #include <linux/kasan-checks.h>
- 
--#define __READ_ONCE(x, check)						\
-+/*
-+ * Use READ_ONCE_NOCHECK() instead of READ_ONCE() if you need
-+ * to hide memory access from KASAN.
-+ */
-+#define READ_ONCE_NOCHECK(x)						\
- ({									\
--	union { typeof(x) __val; char __c[1]; } __u;			\
--	if (check)							\
--		__read_once_size(&(x), __u.__c, sizeof(x));		\
--	else								\
--		__read_once_size_nocheck(&(x), __u.__c, sizeof(x));	\
--	smp_read_barrier_depends(); /* Enforce dependency ordering from x */ \
--	__u.__val;							\
-+	typeof(x) __x = *(volatile typeof(x) *)&(x);			\
-+	smp_read_barrier_depends();					\
-+	__x;								\
- })
--#define READ_ONCE(x) __READ_ONCE(x, 1)
- 
-+#define READ_ONCE(x)	READ_ONCE_NOCHECK(x)
-+
-+#define WRITE_ONCE(x, val)				\
-+do {							\
-+	*(volatile typeof(x) *)&(x) = (val);		\
-+} while (0)
-+
-+#ifdef CONFIG_KASAN
- /*
-- * Use READ_ONCE_NOCHECK() instead of READ_ONCE() if you need
-- * to hide memory access from KASAN.
-+ * We can't declare function 'inline' because __no_sanitize_address conflicts
-+ * with inlining. Attempt to inline it may cause a build failure.
-+ *     https://gcc.gnu.org/bugzilla/show_bug.cgi?id=67368
-+ * '__maybe_unused' allows us to avoid defined-but-not-used warnings.
+@@ -203,13 +203,13 @@ void ftrace_likely_update(struct ftrace_likely_data *f, int val,
+  * atomicity or dependency ordering guarantees. Note that this may result
+  * in tears!
   */
--#define READ_ONCE_NOCHECK(x) __READ_ONCE(x, 0)
-+# define __no_kasan_or_inline __no_sanitize_address notrace __maybe_unused
-+#else
-+# define __no_kasan_or_inline __always_inline
-+#endif
+-#define __READ_ONCE(x)	(*(volatile typeof(x) *)&(x))
++#define __READ_ONCE(x)	(*(volatile __unqual_scalar_typeof(x) *)&(x))
  
- static __no_kasan_or_inline
- unsigned long read_word_at_a_time(const void *addr)
-@@ -281,14 +235,6 @@ unsigned long read_word_at_a_time(const void *addr)
- 	return *(unsigned long *)addr;
- }
- 
--#define WRITE_ONCE(x, val) \
--({							\
--	union { typeof(x) __val; char __c[1]; } __u =	\
--		{ .__val = (__force typeof(x)) (val) }; \
--	__write_once_size(&(x), __u.__c, sizeof(x));	\
--	__u.__val;					\
--})
--
- #endif /* __KERNEL__ */
+ #define __READ_ONCE_SCALAR(x)						\
+ ({									\
+-	typeof(x) __x = __READ_ONCE(x);					\
++	__unqual_scalar_typeof(x) __x = __READ_ONCE(x);			\
+ 	smp_read_barrier_depends();					\
+-	__x;								\
++	(typeof(x))__x;							\
+ })
  
  /*
+diff --git a/include/linux/compiler_types.h b/include/linux/compiler_types.h
+index 72393a8c1a6c..21e7859a356f 100644
+--- a/include/linux/compiler_types.h
++++ b/include/linux/compiler_types.h
+@@ -219,6 +219,21 @@ struct ftrace_likely_data {
+ /* Are two types/vars the same type (ignoring qualifiers)? */
+ #define __same_type(a, b) __builtin_types_compatible_p(typeof(a), typeof(b))
+ 
++/* Declare an unqualified scalar type. Leaves non-scalar types unchanged. */
++#define __unqual_scalar_typeof(x) typeof(					\
++	__builtin_choose_expr(__same_type(x, (__s8)0), (__s8)0,			\
++	__builtin_choose_expr(__same_type(x, (__u8)0), (__u8)0,			\
++	__builtin_choose_expr(__same_type(x, (__s16)0), (__s16)0,		\
++	__builtin_choose_expr(__same_type(x, (__u16)0), (__u16)0,		\
++	__builtin_choose_expr(__same_type(x, (__s32)0), (__s32)0,		\
++	__builtin_choose_expr(__same_type(x, (__u32)0), (__u32)0,		\
++	__builtin_choose_expr(__same_type(x, 0L), 0L,				\
++	__builtin_choose_expr(__same_type(x, 0UL), 0UL,				\
++	__builtin_choose_expr(__same_type(x, 0LL), 0LL,				\
++	__builtin_choose_expr(__same_type(x, 0ULL), 0ULL,			\
++	(x)									\
++)))))))))))
++
+ /* Is this type a native word size -- useful for atomic operations */
+ #define __native_word(t) \
+ 	(sizeof(t) == sizeof(char) || sizeof(t) == sizeof(short) || \
 -- 
 2.25.0.rc1.283.g88dfdc4193-goog
