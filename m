@@ -1,62 +1,39 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [RFC PATCH 0/8] Rework READ_ONCE() to improve codegen
-Date: Fri, 10 Jan 2020 18:58:06 +0100
-Message-ID: <CAK8P3a3LAirovfV=RRqf9dT7K_WkiC8SJK9oa-amn_EkibqEsA@mail.gmail.com>
-References: <20200110165636.28035-1-will@kernel.org>
+From: Dave Hansen <dave.hansen@intel.com>
+Subject: Re: [PATCH v15 00/24] selftests, powerpc, x86: Memory Protection Keys
+Date: Fri, 10 Jan 2020 09:57:43 -0800
+Message-ID: <4a35bf48-d191-4e42-ea47-f419895ed876@intel.com>
+References: <cover.1576645161.git.sandipan@linux.ibm.com>
+ <87y2ufxlci.fsf@linux.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20200110165636.28035-1-will@kernel.org>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Will Deacon <will@kernel.org>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Android Kernel Team <kernel-team@android.com>, Michael Ellerman <mpe@ellerman.id.au>, Peter Zijlstra <peterz@infradead.org>, Linus Torvalds <torvalds@linux-foundation.org>, Segher Boessenkool <segher@kernel.crashing.org>, Christian Borntraeger <borntraeger@de.ibm.com>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mga09.intel.com ([134.134.136.24]:12106 "EHLO mga09.intel.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1728248AbgAJR56 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 10 Jan 2020 12:57:58 -0500
+In-Reply-To: <87y2ufxlci.fsf@linux.ibm.com>
+Content-Language: en-US
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>, Sandipan Das <sandipan@linux.ibm.com>, shuahkh@osg.samsung.com, linux-kselftest@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, fweimer@redhat.com, x86@kernel.org, linuxram@us.ibm.com, mhocko@kernel.org, linux-mm@kvack.org, mingo@redhat.com, bauerman@linux.ibm.com, msuchanek@suse.de, linuxppc-dev@lists.ozlabs.org, mpe@ellerman.id.au
 
-On Fri, Jan 10, 2020 at 5:56 PM Will Deacon <will@kernel.org> wrote:
->
-> Hi all,
->
-> This is a follow-up RFC to the discussions we had on the mailing list at
-> the end of last year:
->
-> https://lore.kernel.org/lkml/875zimp0ay.fsf@mpe.ellerman.id.au
->
-> Unfortunately, we didn't get a "silver bullet" solution out of that
-> long thread, but I've tried to piece together some of the bits and
-> pieces we discussed and I've ended up with this series, which does at
-> least solve the pressing problem with the bitops for arm64.
->
-> The rough summary of the series is:
->
->   * Drop the GCC 4.8 workarounds, so that READ_ONCE() is a
->     straightforward dereference of a cast-to-volatile pointer.
->
->   * Require that the access is either 1, 2, 4 or 8 bytes in size
->     (even 32-bit architectures tend to use 8-byte accesses here).
->
->   * Introduce __READ_ONCE() for tearing operations with no size
->     restriction.
->
->   * Drop pointer qualifiers from scalar types, so that volatile scalars
->     don't generate horrible stack-spilling mess. This is pretty ugly,
->     but it's also mechanical and wrapped up in a macro.
->
->   * Convert acquire/release accessors to perform the same qualifier
->     stripping.
->
-> I gave up trying to prevent READ_ONCE() on aggregates because it is
-> pervasive, particularly within the mm/ layer on things like pmd_t.
-> Thankfully, these don't tend to be volatile.
->
-> I have more patches in this area because I'm trying to move all the
-> read_barrier_depends() magic into arch/alpha/, but I'm holding off until
-> we agree on this part first.
+On 1/10/20 9:38 AM, Aneesh Kumar K.V wrote:
+>> v15:
+>> 	(1) Rebased on top of latest master.
+>> 	(2) Addressed review comments from Dave Hansen.
+>> 	(3) Moved code for getting or setting pkey bits to new
+>> 	    helpers. These changes replace patch 7 of v14.
+>> 	(4) Added a fix which ensures that the correct count of
+>> 	    reserved keys is used across different platforms.
+>> 	(5) Added a fix which ensures that the correct page size
+>> 	    is used as powerpc supports both 4K and 64K pages.
+>>
+> Any update on merging this series? Can Intel help with testing this
+> series on Skylake server? Possibly merging to -next will result in
+> automated 01.org tests?
 
-Looks very nice overall, thanks for working on this.
-
-I've added a the series into my randconfig build setup to see
-if I run into build-time regressions. Unfortunately there are some
-conflicts with the kcsan patches in linux-next that I have to work
-around first.
-
-       Arnd
+Could you dump these in a git tree, please?  It will make it a wee bit
+easier for me to ship the resulting tree around to a couple different
+systems.
