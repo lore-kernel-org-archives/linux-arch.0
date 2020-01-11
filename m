@@ -1,28 +1,34 @@
-From: Paul Walmsley <paul.walmsley@sifive.com>
-Subject: Re: [PATCH 1/2] riscv: Fixup obvious bug for fp-regs reset
-Date: Fri, 10 Jan 2020 17:30:45 -0800 (PST)
-Message-ID: <alpine.DEB.2.21.9999.2001101730140.38813@viisi.sifive.com>
-References: <20200105025215.2522-1-guoren@kernel.org>
+From: Sandipan Das <sandipan@linux.ibm.com>
+Subject: Re: [PATCH v15 00/24] selftests, powerpc, x86: Memory Protection Keys
+Date: Sat, 11 Jan 2020 22:20:34 +0530
+Message-ID: <3a6280fe-6b0f-7e3c-08a9-8186a9c3ea46@linux.ibm.com>
+References: <cover.1576645161.git.sandipan@linux.ibm.com>
+ <87y2ufxlci.fsf@linux.ibm.com>
+ <4a35bf48-d191-4e42-ea47-f419895ed876@intel.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20200105025215.2522-1-guoren@kernel.org>
-Sender: linux-kernel-owner@vger.kernel.org
-To: guoren@kernel.org
-Cc: palmer@dabbelt.com, aou@eecs.berkeley.edu, Anup.Patel@wdc.com, vincent.chen@sifive.com, zong.li@sifive.com, greentime.hu@sifive.com, bmeng.cn@gmail.com, atish.patra@wdc.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, linux-csky@vger.kernel.org, linux-riscv@lists.infradead.org, Guo Ren <ren_guo@c-sky.com>
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <4a35bf48-d191-4e42-ea47-f419895ed876@intel.com>
+Content-Language: en-US
+Sender: owner-linux-mm@kvack.org
+To: Dave Hansen <dave.hansen@intel.com>
+Cc: "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>, shuahkh@osg.samsung.com, linux-kselftest@vger.kernel.org, linux-arch@vger.kernel.org, fweimer@redhat.com, x86@kernel.org, linuxram@us.ibm.com, mhocko@kernel.org, linux-mm@kvack.org, mingo@redhat.com, bauerman@linux.ibm.com, msuchanek@suse.de, linuxppc-dev@lists.ozlabs.org, mpe@ellerman.id.au
 List-Id: linux-arch.vger.kernel.org
 
-On Sun, 5 Jan 2020, guoren@kernel.org wrote:
+Hi Dave,
 
-> From: Guo Ren <ren_guo@c-sky.com>
+On 10/01/20 11:27 pm, Dave Hansen wrote:
 > 
-> CSR_MISA is defined in Privileged Architectures' spec: 3.1.1 Machine
-> ISA Register misa. Every bit:1 indicate a feature, so we should beqz
-> reset_done when there is no F/D bit in csr_msia register.
+> Could you dump these in a git tree, please?  It will make it a wee bit
+> easier for me to ship the resulting tree around to a couple different
+> systems.
 > 
-> Signed-off-by: Guo Ren <ren_guo@c-sky.com>
 
-Thanks Guo Ren, queued for v5.5-rc.
+I have pushed a version of this series that uses u64 for all references
+to the pkey register irrespective of architecture. This is available at:
+
+https://github.com/sandip4n/linux/tree/pkey-selftests
 
 
-- Paul
+- Sandipan
