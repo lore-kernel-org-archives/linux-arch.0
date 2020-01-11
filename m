@@ -1,97 +1,37 @@
-Return-Path: <SRS0=n+LR=24=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:42024 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1728614AbgAGQyd (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 7 Jan 2020 11:54:33 -0500
-From: Krzysztof Kozlowski <krzk@kernel.org>
-Subject: [RFT 05/13] powerpc: Constify ioreadX() iomem argument (as in generic implementation)
-Date: Tue,  7 Jan 2020 17:53:04 +0100
-Message-Id: <1578415992-24054-8-git-send-email-krzk@kernel.org>
-In-Reply-To: <1578415992-24054-1-git-send-email-krzk@kernel.org>
-References: <1578415992-24054-1-git-send-email-krzk@kernel.org>
-Sender: linux-arch-owner@vger.kernel.org
+Return-Path: <SRS0=ejdr=3A=lists.infradead.org=linux-riscv-bounces+rppt=kernel.org@kernel.org>
+Date: Fri, 10 Jan 2020 17:30:45 -0800 (PST)
+From: Paul Walmsley <paul.walmsley@sifive.com>
+Subject: Re: [PATCH 1/2] riscv: Fixup obvious bug for fp-regs reset
+In-Reply-To: <20200105025215.2522-1-guoren@kernel.org>
+Message-ID: <alpine.DEB.2.21.9999.2001101730140.38813@viisi.sifive.com>
+References: <20200105025215.2522-1-guoren@kernel.org>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-riscv>,
+ <mailto:linux-riscv-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-riscv/>
+List-Post: <mailto:linux-riscv@lists.infradead.org>
+List-Help: <mailto:linux-riscv-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-riscv>,
+ <mailto:linux-riscv-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-riscv" <linux-riscv-bounces@lists.infradead.org>
+Errors-To: linux-riscv-bounces+rppt=kernel.org@lists.infradead.org
+To: guoren@kernel.org
+Cc: linux-arch@vger.kernel.org, aou@eecs.berkeley.edu, Guo Ren <ren_guo@c-sky.com>, arnd@arndb.de, atish.patra@wdc.com, Anup.Patel@wdc.com, linux-kernel@vger.kernel.org, linux-csky@vger.kernel.org, vincent.chen@sifive.com, palmer@dabbelt.com, zong.li@sifive.com, greentime.hu@sifive.com, linux-riscv@lists.infradead.org, bmeng.cn@gmail.com
 List-ID: <linux-arch.vger.kernel.org>
-To: Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Alexey Brodkin <abrodkin@synopsys.com>, Vineet Gupta <vgupta@synopsys.com>, "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>, Helge Deller <deller@gmx.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, Dave Airlie <airlied@redhat.com>, David Airlie <airlied@linux.ie>, Daniel Vetter <daniel@ffwll.ch>, Ben Skeggs <bskeggs@redhat.com>, Mauro Carvalho Chehab <mchehab@kernel.org>, Jiri Slaby <jirislaby@gmail.com>, Nick Kossifidis <mickflemm@gmail.com>, Luis Chamberlain <mcgrof@kernel.org>, Kalle Valo <kvalo@codeaurora.org>, "David S. Miller" <davem@davemloft.net>, Dave Jiang <dave.jiang@intel.com>, Jon Mason <jdmason@kudzu.us>, Allen Hubbe <allenbh@gmail.com>, "Michael S. Tsirkin" <mst@redhat.com>, Jason Wang <jasowang@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, Geert Uytterhoeven <geert@linux-m68k.org>, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-snps-arc@lists.infradead.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org, dri-devel@lists.freedesktop.org, nouveau@lists.freedesktop.org, linux-media@vger.kernel.org, linux-wireless@vger.kernel.org, netdev@vger.kernel.org, linux-ntb@googlegroups.com, virtualization@lists.linux-foundation.org, linux-arch@vger.kernel.org
-Cc: Krzysztof Kozlowski <krzk@kernel.org>
+Message-ID: <20200111013045.ift7Z6YVM8RYp1DN8pouRfEVwSTDpYrmVZc-FQWiu4w@z>
 
-The ioreadX() helpers have inconsistent interface.  On some architectures
-void *__iomem address argument is a pointer to const, on some not.
+On Sun, 5 Jan 2020, guoren@kernel.org wrote:
 
-Implementations of ioreadX() do not modify the memory under the address
-so they can be converted to a "const" version for const-safety and
-consistency among architectures.
+> From: Guo Ren <ren_guo@c-sky.com>
+> 
+> CSR_MISA is defined in Privileged Architectures' spec: 3.1.1 Machine
+> ISA Register misa. Every bit:1 indicate a feature, so we should beqz
+> reset_done when there is no F/D bit in csr_msia register.
+> 
+> Signed-off-by: Guo Ren <ren_guo@c-sky.com>
 
-Signed-off-by: Krzysztof Kozlowski <krzk@kernel.org>
----
- arch/powerpc/kernel/iomap.c | 22 +++++++++++-----------
- 1 file changed, 11 insertions(+), 11 deletions(-)
+Thanks Guo Ren, queued for v5.5-rc.
 
-diff --git a/arch/powerpc/kernel/iomap.c b/arch/powerpc/kernel/iomap.c
-index 5ac84efc6ede..de8da1c3496f 100644
---- a/arch/powerpc/kernel/iomap.c
-+++ b/arch/powerpc/kernel/iomap.c
-@@ -15,23 +15,23 @@
-  * Here comes the ppc64 implementation of the IOMAP 
-  * interfaces.
-  */
--unsigned int ioread8(void __iomem *addr)
-+unsigned int ioread8(const void __iomem *addr)
- {
- 	return readb(addr);
- }
--unsigned int ioread16(void __iomem *addr)
-+unsigned int ioread16(const void __iomem *addr)
- {
- 	return readw(addr);
- }
--unsigned int ioread16be(void __iomem *addr)
-+unsigned int ioread16be(const void __iomem *addr)
- {
- 	return readw_be(addr);
- }
--unsigned int ioread32(void __iomem *addr)
-+unsigned int ioread32(const void __iomem *addr)
- {
- 	return readl(addr);
- }
--unsigned int ioread32be(void __iomem *addr)
-+unsigned int ioread32be(const void __iomem *addr)
- {
- 	return readl_be(addr);
- }
-@@ -41,27 +41,27 @@ EXPORT_SYMBOL(ioread16be);
- EXPORT_SYMBOL(ioread32);
- EXPORT_SYMBOL(ioread32be);
- #ifdef __powerpc64__
--u64 ioread64(void __iomem *addr)
-+u64 ioread64(const void __iomem *addr)
- {
- 	return readq(addr);
- }
--u64 ioread64_lo_hi(void __iomem *addr)
-+u64 ioread64_lo_hi(const void __iomem *addr)
- {
- 	return readq(addr);
- }
--u64 ioread64_hi_lo(void __iomem *addr)
-+u64 ioread64_hi_lo(const void __iomem *addr)
- {
- 	return readq(addr);
- }
--u64 ioread64be(void __iomem *addr)
-+u64 ioread64be(const void __iomem *addr)
- {
- 	return readq_be(addr);
- }
--u64 ioread64be_lo_hi(void __iomem *addr)
-+u64 ioread64be_lo_hi(const void __iomem *addr)
- {
- 	return readq_be(addr);
- }
--u64 ioread64be_hi_lo(void __iomem *addr)
-+u64 ioread64be_hi_lo(const void __iomem *addr)
- {
- 	return readq_be(addr);
- }
--- 
-2.7.4
+
+- Paul
