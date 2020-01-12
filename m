@@ -1,34 +1,21 @@
-From: Sandipan Das <sandipan@linux.ibm.com>
-Subject: Re: [PATCH v15 00/24] selftests, powerpc, x86: Memory Protection Keys
-Date: Sat, 11 Jan 2020 22:20:34 +0530
-Message-ID: <3a6280fe-6b0f-7e3c-08a9-8186a9c3ea46@linux.ibm.com>
-References: <cover.1576645161.git.sandipan@linux.ibm.com>
- <87y2ufxlci.fsf@linux.ibm.com>
- <4a35bf48-d191-4e42-ea47-f419895ed876@intel.com>
+From: =?utf-8?q?=22IMFC-Gew=C3=A4hren=22=3Creservations=40hotel-khreschatyk=2Ek?=@mail.a-hostel.com,
+        =?utf-8?q?iev=2Eua=3E?=@mail.a-hostel.com
+Subject: IMFC-FINANZIERUNG
+Date: Sun, 12 Jan 2020 08:07:57 -0800
+Message-ID: <20200112160802.EABF31B4F799@mail.a-hostel.com>
+Reply-To: imfcompensationfunding@gmail.com
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <4a35bf48-d191-4e42-ea47-f419895ed876@intel.com>
-Content-Language: en-US
-Sender: owner-linux-mm@kvack.org
-To: Dave Hansen <dave.hansen@intel.com>
-Cc: "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>, shuahkh@osg.samsung.com, linux-kselftest@vger.kernel.org, linux-arch@vger.kernel.org, fweimer@redhat.com, x86@kernel.org, linuxram@us.ibm.com, mhocko@kernel.org, linux-mm@kvack.org, mingo@redhat.com, bauerman@linux.ibm.com, msuchanek@suse.de, linuxppc-dev@lists.ozlabs.org, mpe@ellerman.id.au
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset="iso-8859-1"
+Content-Transfer-Encoding: 8BIT
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail.a-hostel.com ([193.193.200.100]:36272 "EHLO
+        mail.a-hostel.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1733104AbgALRdg (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 12 Jan 2020 12:33:36 -0500
+Content-Description: Mail message body
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Recipients <reservations@hotel-khreschatyk.kiev.ua>
 
-Hi Dave,
-
-On 10/01/20 11:27 pm, Dave Hansen wrote:
-> 
-> Could you dump these in a git tree, please?  It will make it a wee bit
-> easier for me to ship the resulting tree around to a couple different
-> systems.
-> 
-
-I have pushed a version of this series that uses u64 for all references
-to the pkey register irrespective of architecture. This is available at:
-
-https://github.com/sandip4n/linux/tree/pkey-selftests
-
-
-- Sandipan
+Sie haben sich für den IMFC-Zuschuss von 2.500.000,00 Euro qualifiziert (Frau Ronnie Mara Holbrook) Email: imfcompensationfunding@gmail.com 
+Weitere Informationen zum Einfordern Ihrer Gelder
