@@ -1,52 +1,58 @@
 Return-Path: <SRS0=fNgb=3C=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mout.kundenserver.de ([212.227.126.134]:40195 "EHLO
+Received: from mout.kundenserver.de ([212.227.126.130]:38769 "EHLO
         mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726450AbgAMNEB (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 13 Jan 2020 08:04:01 -0500
+        with ESMTP id S1726277AbgAMOkD (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 13 Jan 2020 09:40:03 -0500
 MIME-Version: 1.0
-References: <20200110165636.28035-1-will@kernel.org> <CAK8P3a1UzSOHdihbzOn5CZZfo1kvCdj7BAzdQE=PgYS9GBF4Hw@mail.gmail.com>
- <CAHk-=wggv_LmrL85Ez0TLcAku8iz05VZmJxDGo=2aP2VvQtrsA@mail.gmail.com>
-In-Reply-To: <CAHk-=wggv_LmrL85Ez0TLcAku8iz05VZmJxDGo=2aP2VvQtrsA@mail.gmail.com>
+References: <20200110165636.28035-1-will@kernel.org> <20200110165636.28035-2-will@kernel.org>
+ <CAK8P3a3ueJ_rQc-1JTg=3N0JSuY9BduJ6FrrPFG1K2FWVzJdfA@mail.gmail.com> <8fe4f81699517758b44afbe0e1a53bc080f64a62.camel@perches.com>
+In-Reply-To: <8fe4f81699517758b44afbe0e1a53bc080f64a62.camel@perches.com>
 From: Arnd Bergmann <arnd@arndb.de>
-Date: Mon, 13 Jan 2020 14:03:41 +0100
-Message-ID: <CAK8P3a1Qvz+HB-ROy2cmtPtE2m113iBhWbdibpdQ4ycNp9u=ng@mail.gmail.com>
-Subject: Re: [RFC PATCH 0/8] Rework READ_ONCE() to improve codegen
+Date: Mon, 13 Jan 2020 15:39:45 +0100
+Message-ID: <CAK8P3a1t9757M5CRKNX_X+T9VuLX+5=z5_845rLJGTG50RogXA@mail.gmail.com>
+Subject: Re: [RFC PATCH 1/8] compiler/gcc: Emit build-time warning for GCC
+ prior to version 4.8
 Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Will Deacon <will@kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Android Kernel Team <kernel-team@android.com>, Michael Ellerman <mpe@ellerman.id.au>, Peter Zijlstra <peterz@infradead.org>, Segher Boessenkool <segher@kernel.crashing.org>, Christian Borntraeger <borntraeger@de.ibm.com>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>
-Message-ID: <20200113130341.0e1S5LElNDoD0TGi_pgzUE6VRGlrmIPg1HRaG0ErJk4@z>
+To: Joe Perches <joe@perches.com>
+Cc: Will Deacon <will@kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Android Kernel Team <kernel-team@android.com>, Michael Ellerman <mpe@ellerman.id.au>, Peter Zijlstra <peterz@infradead.org>, Linus Torvalds <torvalds@linux-foundation.org>, Segher Boessenkool <segher@kernel.crashing.org>, Christian Borntraeger <borntraeger@de.ibm.com>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>
+Message-ID: <20200113143945.5eLnwbo_Of8hZBL_NmMpTb_YCTzB9GPy6a3l9OFmkVA@z>
 
-On Fri, Jan 10, 2020 at 9:15 PM Linus Torvalds
-<torvalds@linux-foundation.org> wrote:
+On Fri, Jan 10, 2020 at 6:54 PM Joe Perches <joe@perches.com> wrote:
 >
-> On Fri, Jan 10, 2020 at 11:47 AM Arnd Bergmann <arnd@arndb.de> wrote:
+> On Fri, 2020-01-10 at 18:35 +0100, Arnd Bergmann wrote:
+> > On Fri, Jan 10, 2020 at 5:56 PM Will Deacon <will@kernel.org> wrote:
+> > > Prior to version 4.8, GCC may miscompile READ_ONCE() by erroneously
+> > > discarding the 'volatile' qualifier:
+> > >
+> > > https://gcc.gnu.org/bugzilla/show_bug.cgi?id=58145
+> > >
+> > > We've been working around this using some nasty hacks which make
+> > > READ_ONCE() both horribly complicated and also prevent us from enforcing
+> > > that it is only used on scalar types. Since GCC 4.8 is pretty old for
+> > > kernel builds now, emit a warning if we detect it during the build.
 > >
-> > Isn't the read_barrier_depends() the only reason for actually needing
-> > the temporary local variable that must not be volatile?
-> >
-> > If you make alpha provide its own READ_ONCE() as the first
-> > step, it would seem that the rest of the series gets much easier
-> > as the others can go back to the simple statement from your
+> > No objection to recommending gcc-4.8, but I think this should either
+> > just warn once during the kernel build instead of for every file, or
+> > it should become a hard requirement.
 >
-> Hmm.. The union still would cause that "take the address of a volatile
-> thing on the stack" problem, wouldn't it? And that was what caused
-> most of the issues.
+> It might as well be a hard requirement as
+> gcc 4.8.0 is already nearly 7 years old.
+>
+> gcc 4.6.0 released 2011-03-25
+> gcc 4.8.0 released 2013-03-22
+>
+> Perhaps there are exceedingly few to zero new
+> instances using gcc compiler versions < 4.8
 
-Ah, I was missing that there is still the union in smp_load_acquire(),
-I only saw that the one in READ_ONCE() is needed only on alpha.
+The last time we had this discussion, the result was that gcc-4.8 is
+probably ok as a minimum version, but moving to 5.1+ (from 2015)
+was not an obvious choice:
 
-The number of files using smp_load_acquire() is fairly small though,
-so we could consider changing it to pass both source and destination
-as macro arguments and use typeof(dest) instad of typeof(source)
-to avoid the volatile pointer access.
+https://www.spinics.net/lists/linux-kbuild/msg23648.html
 
-> I think the _real_ issue is how KASAN forces that odd pair of inline
-> functions in order to have the annotations on the accesses.
+If nobody complains about the move to 4.8, we can try moving to
+gcc-5.1 and GNU99/GNU11 next year  ;-)
 
-But the inline functions (I assume you mean __write_once_size
-and __read_once_size_nocheck?) are completely removed after
-Will's series, so those no longer cause harm, right?
-
-      Arnd
+       Arnd
