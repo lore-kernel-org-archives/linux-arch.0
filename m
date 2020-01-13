@@ -1,46 +1,44 @@
-Return-Path: <SRS0=948I=23=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail-wm1-f66.google.com ([209.85.128.66]:36639 "EHLO
-        mail-wm1-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726825AbgAFPRa (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 6 Jan 2020 10:17:30 -0500
-Date: Mon, 6 Jan 2020 18:17:25 +0300
-From: Alexey Dobriyan <adobriyan@gmail.com>
-Subject: Re: [PATCH 2/2] proc: convert everything to "struct proc_ops"
-Message-ID: <20200106151725.GB382@avx2>
-References: <20191225172228.GA13378@avx2>
- <20191225172546.GB13378@avx2>
- <20191231150121.5b09e34205444f6c65277b73@linux-foundation.org>
+Return-Path: <SRS0=fNgb=3C=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail.kernel.org ([198.145.29.99]:51224 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726943AbgAMQQM (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 13 Jan 2020 11:16:12 -0500
+Date: Mon, 13 Jan 2020 16:16:06 +0000
+From: Will Deacon <will@kernel.org>
+Subject: Re: [RFC PATCH 5/8] READ_ONCE: Enforce atomicity for
+ {READ,WRITE}_ONCE() memory accesses
+Message-ID: <20200113161606.GD4458@willie-the-truck>
+References: <20200110165636.28035-1-will@kernel.org>
+ <20200110165636.28035-6-will@kernel.org>
+ <CAK8P3a1pDW7cABLeotZBNTTxLxkQ299wO0OG3AWGyDqJWmQA+A@mail.gmail.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
+Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20191231150121.5b09e34205444f6c65277b73@linux-foundation.org>
+In-Reply-To: <CAK8P3a1pDW7cABLeotZBNTTxLxkQ299wO0OG3AWGyDqJWmQA+A@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org, netdev@vger.kernel.org
-Message-ID: <20200106151725.lTmnEe9k4gbW211-sFgUCdG68qqFwXcJ1_Oh3DKciRU@z>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Android Kernel Team <kernel-team@android.com>, Michael Ellerman <mpe@ellerman.id.au>, Peter Zijlstra <peterz@infradead.org>, Linus Torvalds <torvalds@linux-foundation.org>, Segher Boessenkool <segher@kernel.crashing.org>, Christian Borntraeger <borntraeger@de.ibm.com>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>
+Message-ID: <20200113161606.IAjLmmsptyzour9CNmR-98MTx5kWP5H_7Bh66iFvF68@z>
 
-On Tue, Dec 31, 2019 at 03:01:21PM -0800, Andrew Morton wrote:
-> On Wed, 25 Dec 2019 20:25:46 +0300 Alexey Dobriyan <adobriyan@gmail.com> wrote:
+On Fri, Jan 10, 2020 at 08:24:00PM +0100, Arnd Bergmann wrote:
+> On Fri, Jan 10, 2020 at 5:56 PM Will Deacon <will@kernel.org> wrote:
 > 
-> > The most notable change is DEFINE_SHOW_ATTRIBUTE macro split in
-> > seq_file.h.
-> > 
-> > Conversion rule is:
-> > 
-> > 	llseek		=> proc_lseek
-> > 	unlocked_ioctl	=> proc_ioctl
-> > 
-> > 	xxx		=> proc_xxx
-> > 
-> > 	delete ".owner = THIS_MODULE" line
-> > 
-> > ...
-> >
-> >  drivers/staging/isdn/hysdn/hysdn_procconf.c           |   15 +-
-> >  drivers/staging/isdn/hysdn/hysdn_proclog.c            |   17 +-
+> > +/*
+> > + * Use __READ_ONCE() instead of READ_ONCE() if you do not require any
+> > + * atomicity or dependency ordering guarantees. Note that this may result
+> > + * in tears!
+> > + */
+> > +#define __READ_ONCE(x) (*(volatile typeof(x) *)&(x))
+> > +
 > 
-> These seem to have disappeared in linux-next.
+> This probably allows writing
+> 
+>        extern int i;
+>        __READ_ONCE(i) = 1;
+> 
+> and not get a warning for it. How about also casting to 'const'?
 
-Excellent, the less chunks the better.
-Any actual conversion can be dropped if file was deleted.
+Well spotted! I'll fold that in.
+
+Will
