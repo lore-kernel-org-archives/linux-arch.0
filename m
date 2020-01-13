@@ -1,47 +1,85 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [RFC PATCH 0/8] Rework READ_ONCE() to improve codegen
-Date: Mon, 13 Jan 2020 14:03:41 +0100
-Message-ID: <CAK8P3a1Qvz+HB-ROy2cmtPtE2m113iBhWbdibpdQ4ycNp9u=ng@mail.gmail.com>
-References: <20200110165636.28035-1-will@kernel.org> <CAK8P3a1UzSOHdihbzOn5CZZfo1kvCdj7BAzdQE=PgYS9GBF4Hw@mail.gmail.com>
- <CAHk-=wggv_LmrL85Ez0TLcAku8iz05VZmJxDGo=2aP2VvQtrsA@mail.gmail.com>
+From: Mark Brown <broonie@kernel.org>
+Subject: Re: [PATCH v4 04/12] arm64: Basic Branch Target Identification
+ support
+Date: Mon, 13 Jan 2020 14:00:51 +0000
+Message-ID: <20200113140051.GI3897@sirena.org.uk>
+References: <20191211154206.46260-1-broonie@kernel.org>
+ <20191211154206.46260-5-broonie@kernel.org>
+ <20200110182800.GI8786@arrakis.emea.arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <CAHk-=wggv_LmrL85Ez0TLcAku8iz05VZmJxDGo=2aP2VvQtrsA@mail.gmail.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Will Deacon <will@kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Android Kernel Team <kernel-team@android.com>, Michael Ellerman <mpe@ellerman.id.au>, Peter Zijlstra <peterz@infradead.org>, Segher Boessenkool <segher@kernel.crashing.org>, Christian Borntraeger <borntraeger@de.ibm.com>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: multipart/signed; micalg=pgp-sha512;
+        protocol="application/pgp-signature"; boundary="h22Fi9ANawrtbNPX"
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from heliosphere.sirena.org.uk ([172.104.155.198]:55380 "EHLO
+        heliosphere.sirena.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1728810AbgAMOBM (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 13 Jan 2020 09:01:12 -0500
+Content-Disposition: inline
+In-Reply-To: <20200110182800.GI8786@arrakis.emea.arm.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Catalin Marinas <catalin.marinas@arm.com>
+Cc: Will Deacon <will@kernel.org>, Paul Elliott <paul.elliott@arm.com>, Peter Zijlstra <peterz@infradead.org>, Yu-cheng Yu <yu-cheng.yu@intel.com>, Amit Kachhap <amit.kachhap@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Marc Zyngier <maz@kernel.org>, Eugene Syromiatnikov <esyr@redhat.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, "H.J. Lu" <hjl.tools@gmail.com>, Andrew Jones <drjones@redhat.com>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Jann Horn <jannh@google.com>, Richard Henderson <richard.henderson@linaro.org>, Kristina =?utf-8?Q?Mart=C5=A1enko?= <kristina.martsenko@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Florian Weimer <fweimer@redhat.com>, Sudakshina Das <sudi.das@arm.com>, linux-arm-kernel@lists.infradead.orgli
 
-On Fri, Jan 10, 2020 at 9:15 PM Linus Torvalds
-<torvalds@linux-foundation.org> wrote:
->
-> On Fri, Jan 10, 2020 at 11:47 AM Arnd Bergmann <arnd@arndb.de> wrote:
-> >
-> > Isn't the read_barrier_depends() the only reason for actually needing
-> > the temporary local variable that must not be volatile?
-> >
-> > If you make alpha provide its own READ_ONCE() as the first
-> > step, it would seem that the rest of the series gets much easier
-> > as the others can go back to the simple statement from your
->
-> Hmm.. The union still would cause that "take the address of a volatile
-> thing on the stack" problem, wouldn't it? And that was what caused
-> most of the issues.
 
-Ah, I was missing that there is still the union in smp_load_acquire(),
-I only saw that the one in READ_ONCE() is needed only on alpha.
+--h22Fi9ANawrtbNPX
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+Content-Transfer-Encoding: quoted-printable
 
-The number of files using smp_load_acquire() is fairly small though,
-so we could consider changing it to pass both source and destination
-as macro arguments and use typeof(dest) instad of typeof(source)
-to avoid the volatile pointer access.
+On Fri, Jan 10, 2020 at 06:28:00PM +0000, Catalin Marinas wrote:
+> On Wed, Dec 11, 2019 at 03:41:58PM +0000, Mark Brown wrote:
 
-> I think the _real_ issue is how KASAN forces that odd pair of inline
-> functions in order to have the annotations on the accesses.
+> >  /* Additional SPSR bits not exposed in the UABI */
+> > +#define PSR_BTYPE_SHIFT		10
+> > +
+> >  #define PSR_IL_BIT		(1 << 20)
+> > =20
+> > +/* Convenience names for the values of PSTATE.BTYPE */
+> > +#define PSR_BTYPE_NONE		(0b00 << PSR_BTYPE_SHIFT)
+> > +#define PSR_BTYPE_JC		(0b01 << PSR_BTYPE_SHIFT)
+> > +#define PSR_BTYPE_C		(0b10 << PSR_BTYPE_SHIFT)
+> > +#define PSR_BTYPE_J		(0b11 << PSR_BTYPE_SHIFT)
 
-But the inline functions (I assume you mean __write_once_size
-and __read_once_size_nocheck?) are completely removed after
-Will's series, so those no longer cause harm, right?
+> Would these be better placed in the uapi/ptrace.h?
 
-      Arnd
+Seems reasonable, they might be useful to virt stuff and they're
+part of the architecture so it's not like we might change them.
+
+> > +	/*
+> > +	 * BTI note:
+> > +	 * The architecture does not guarantee that SPSR.BTYPE is zero
+> > +	 * on taking an SVC, so we could return to userspace with a
+> > +	 * non-zero BTYPE after the syscall.
+
+> On page 2580 of the ARM ARM there is a statement that "any instruction
+> other than BR, ..." sets BTYPE to 0. Wouldn't SVC fall into the same
+> category?
+
+I think what Dave was referring to there is that (unless I'm
+misreading things) that section of the ARM says that BTYPE is set
+at the end of the execution of the instruction but since SVC is
+specified as generating an exception that means that when we
+enter the kernel the instruction won't have ended yet and we
+still have the BTYPE from the previous instruction.
+
+> Reviewed-by: Catalin Marinas <catalin.marinas@arm.com>
+
+Thanks.
+
+--h22Fi9ANawrtbNPX
+Content-Type: application/pgp-signature; name="signature.asc"
+
+-----BEGIN PGP SIGNATURE-----
+
+iQEzBAABCgAdFiEEreZoqmdXGLWf4p/qJNaLcl1Uh9AFAl4ceBAACgkQJNaLcl1U
+h9DLSQf6Apx/rsxXW/+0SHiXPGDJpdzgdlaKg/WkwvZD5tKjvP5SnU3YQ8L96jEk
+YLvo3VX4o6G174B4i7eQvKINZJOQXPzcgYtwV8LjZIxfg7qSygSFOlfxqXPxYoh1
+M3UeD4sFYwQcvvuisyxxehY7F2Qpy7r2AGPcEz/lIgJBK/afVqze34aedkAc8USs
+RiEH1OneNIi0iiKiqrJTEjTNNH4eXokXteOoWKCQONDeMkBQUyGSJB09LKZibH/+
+n1bqPuST5v4Qtag8JcHi9/z/xytJf6oO1QLWnXTqpUR3IUem+LucwksP8+xXIlXC
+vchzbBePuEZheDLobl52IOjKdmX2Vg==
+=X4rD
+-----END PGP SIGNATURE-----
+
+--h22Fi9ANawrtbNPX--
