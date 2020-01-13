@@ -1,187 +1,52 @@
-Return-Path: <SRS0=XOKs=3M=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:51708 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726232AbgAWPeD (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 23 Jan 2020 10:34:03 -0500
-From: Will Deacon <will@kernel.org>
-Subject: [PATCH v2 04/10] READ_ONCE: Simplify implementations of {READ,WRITE}_ONCE()
-Date: Thu, 23 Jan 2020 15:33:35 +0000
-Message-ID: <20200123153341.19947-5-will@kernel.org>
-In-Reply-To: <20200123153341.19947-1-will@kernel.org>
-References: <20200123153341.19947-1-will@kernel.org>
+Return-Path: <SRS0=fNgb=3C=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mout.kundenserver.de ([212.227.126.134]:40195 "EHLO
+        mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726450AbgAMNEB (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 13 Jan 2020 08:04:01 -0500
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+References: <20200110165636.28035-1-will@kernel.org> <CAK8P3a1UzSOHdihbzOn5CZZfo1kvCdj7BAzdQE=PgYS9GBF4Hw@mail.gmail.com>
+ <CAHk-=wggv_LmrL85Ez0TLcAku8iz05VZmJxDGo=2aP2VvQtrsA@mail.gmail.com>
+In-Reply-To: <CAHk-=wggv_LmrL85Ez0TLcAku8iz05VZmJxDGo=2aP2VvQtrsA@mail.gmail.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Date: Mon, 13 Jan 2020 14:03:41 +0100
+Message-ID: <CAK8P3a1Qvz+HB-ROy2cmtPtE2m113iBhWbdibpdQ4ycNp9u=ng@mail.gmail.com>
+Subject: Re: [RFC PATCH 0/8] Rework READ_ONCE() to improve codegen
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, kernel-team@android.com, Will Deacon <will@kernel.org>, Michael Ellerman <mpe@ellerman.id.au>, Peter Zijlstra <peterz@infradead.org>, Linus Torvalds <torvalds@linux-foundation.org>, Segher Boessenkool <segher@kernel.crashing.org>, Christian Borntraeger <borntraeger@de.ibm.com>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>, Arnd Bergmann <arnd@arndb.de>, Peter Oberparleiter <oberpar@linux.ibm.com>, Masahiro Yamada <masahiroy@kernel.org>, Nick Desaulniers <ndesaulniers@google.com>
-Message-ID: <20200123153335.XIghcNPxPM_HiKc4PdIdhDTIotWg6eSsLxpTwoQ-lds@z>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Will Deacon <will@kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Android Kernel Team <kernel-team@android.com>, Michael Ellerman <mpe@ellerman.id.au>, Peter Zijlstra <peterz@infradead.org>, Segher Boessenkool <segher@kernel.crashing.org>, Christian Borntraeger <borntraeger@de.ibm.com>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>
+Message-ID: <20200113130341.0e1S5LElNDoD0TGi_pgzUE6VRGlrmIPg1HRaG0ErJk4@z>
 
-The implementations of {READ,WRITE}_ONCE() suffer from a significant
-amount of indirection and complexity due to a historic GCC bug:
+On Fri, Jan 10, 2020 at 9:15 PM Linus Torvalds
+<torvalds@linux-foundation.org> wrote:
+>
+> On Fri, Jan 10, 2020 at 11:47 AM Arnd Bergmann <arnd@arndb.de> wrote:
+> >
+> > Isn't the read_barrier_depends() the only reason for actually needing
+> > the temporary local variable that must not be volatile?
+> >
+> > If you make alpha provide its own READ_ONCE() as the first
+> > step, it would seem that the rest of the series gets much easier
+> > as the others can go back to the simple statement from your
+>
+> Hmm.. The union still would cause that "take the address of a volatile
+> thing on the stack" problem, wouldn't it? And that was what caused
+> most of the issues.
 
-https://gcc.gnu.org/bugzilla/show_bug.cgi?id=58145
+Ah, I was missing that there is still the union in smp_load_acquire(),
+I only saw that the one in READ_ONCE() is needed only on alpha.
 
-which was originally worked around by 230fa253df63 ("kernel: Provide
-READ_ONCE and ASSIGN_ONCE").
+The number of files using smp_load_acquire() is fairly small though,
+so we could consider changing it to pass both source and destination
+as macro arguments and use typeof(dest) instad of typeof(source)
+to avoid the volatile pointer access.
 
-Since GCC 4.8 is fairly vintage at this point and we emit a warning if
-we detect it during the build, return {READ,WRITE}_ONCE() to their former
-glory with an implementation that is easier to understand and, crucially,
-more amenable to optimisation. A side effect of this simplification is
-that WRITE_ONCE() no longer returns a value, but nobody seems to be
-relying on that and the new behaviour is aligned with smp_store_release().
+> I think the _real_ issue is how KASAN forces that odd pair of inline
+> functions in order to have the annotations on the accesses.
 
-Suggested-by: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Peter Zijlstra <peterz@infradead.org>
-Cc: Michael Ellerman <mpe@ellerman.id.au>
-Cc: Arnd Bergmann <arnd@arndb.de>
-Cc: Christian Borntraeger <borntraeger@de.ibm.com>
-Signed-off-by: Will Deacon <will@kernel.org>
----
- include/linux/compiler.h | 104 ++++++++++-----------------------------
- 1 file changed, 25 insertions(+), 79 deletions(-)
+But the inline functions (I assume you mean __write_once_size
+and __read_once_size_nocheck?) are completely removed after
+Will's series, so those no longer cause harm, right?
 
-diff --git a/include/linux/compiler.h b/include/linux/compiler.h
-index 5e88e7e33abe..44974d658f30 100644
---- a/include/linux/compiler.h
-+++ b/include/linux/compiler.h
-@@ -177,60 +177,6 @@ void ftrace_likely_update(struct ftrace_likely_data *f, int val,
- # define __UNIQUE_ID(prefix) __PASTE(__PASTE(__UNIQUE_ID_, prefix), __LINE__)
- #endif
- 
--#include <uapi/linux/types.h>
--
--#define __READ_ONCE_SIZE						\
--({									\
--	switch (size) {							\
--	case 1: *(__u8 *)res = *(volatile __u8 *)p; break;		\
--	case 2: *(__u16 *)res = *(volatile __u16 *)p; break;		\
--	case 4: *(__u32 *)res = *(volatile __u32 *)p; break;		\
--	case 8: *(__u64 *)res = *(volatile __u64 *)p; break;		\
--	default:							\
--		barrier();						\
--		__builtin_memcpy((void *)res, (const void *)p, size);	\
--		barrier();						\
--	}								\
--})
--
--static __always_inline
--void __read_once_size(const volatile void *p, void *res, int size)
--{
--	__READ_ONCE_SIZE;
--}
--
--#ifdef CONFIG_KASAN
--/*
-- * We can't declare function 'inline' because __no_sanitize_address confilcts
-- * with inlining. Attempt to inline it may cause a build failure.
-- * 	https://gcc.gnu.org/bugzilla/show_bug.cgi?id=67368
-- * '__maybe_unused' allows us to avoid defined-but-not-used warnings.
-- */
--# define __no_kasan_or_inline __no_sanitize_address notrace __maybe_unused
--#else
--# define __no_kasan_or_inline __always_inline
--#endif
--
--static __no_kasan_or_inline
--void __read_once_size_nocheck(const volatile void *p, void *res, int size)
--{
--	__READ_ONCE_SIZE;
--}
--
--static __always_inline void __write_once_size(volatile void *p, void *res, int size)
--{
--	switch (size) {
--	case 1: *(volatile __u8 *)p = *(__u8 *)res; break;
--	case 2: *(volatile __u16 *)p = *(__u16 *)res; break;
--	case 4: *(volatile __u32 *)p = *(__u32 *)res; break;
--	case 8: *(volatile __u64 *)p = *(__u64 *)res; break;
--	default:
--		barrier();
--		__builtin_memcpy((void *)p, (const void *)res, size);
--		barrier();
--	}
--}
--
- /*
-  * Prevent the compiler from merging or refetching reads or writes. The
-  * compiler is also forbidden from reordering successive instances of
-@@ -240,11 +186,7 @@ static __always_inline void __write_once_size(volatile void *p, void *res, int s
-  * statements.
-  *
-  * These two macros will also work on aggregate data types like structs or
-- * unions. If the size of the accessed data type exceeds the word size of
-- * the machine (e.g., 32 bits or 64 bits) READ_ONCE() and WRITE_ONCE() will
-- * fall back to memcpy(). There's at least two memcpy()s: one for the
-- * __builtin_memcpy() and then one for the macro doing the copy of variable
-- * - '__u' allocated on the stack.
-+ * unions.
-  *
-  * Their two major use cases are: (1) Mediating communication between
-  * process-level code and irq/NMI handlers, all running on the same CPU,
-@@ -256,23 +198,35 @@ static __always_inline void __write_once_size(volatile void *p, void *res, int s
- #include <asm/barrier.h>
- #include <linux/kasan-checks.h>
- 
--#define __READ_ONCE(x, check)						\
-+/*
-+ * Use READ_ONCE_NOCHECK() instead of READ_ONCE() if you need
-+ * to hide memory access from KASAN.
-+ */
-+#define READ_ONCE_NOCHECK(x)						\
- ({									\
--	union { typeof(x) __val; char __c[1]; } __u;			\
--	if (check)							\
--		__read_once_size(&(x), __u.__c, sizeof(x));		\
--	else								\
--		__read_once_size_nocheck(&(x), __u.__c, sizeof(x));	\
--	smp_read_barrier_depends(); /* Enforce dependency ordering from x */ \
--	__u.__val;							\
-+	typeof(x) __x = *(volatile typeof(x) *)&(x);			\
-+	smp_read_barrier_depends();					\
-+	__x;								\
- })
--#define READ_ONCE(x) __READ_ONCE(x, 1)
- 
-+#define READ_ONCE(x)	READ_ONCE_NOCHECK(x)
-+
-+#define WRITE_ONCE(x, val)				\
-+do {							\
-+	*(volatile typeof(x) *)&(x) = (val);		\
-+} while (0)
-+
-+#ifdef CONFIG_KASAN
- /*
-- * Use READ_ONCE_NOCHECK() instead of READ_ONCE() if you need
-- * to hide memory access from KASAN.
-+ * We can't declare function 'inline' because __no_sanitize_address conflicts
-+ * with inlining. Attempt to inline it may cause a build failure.
-+ *     https://gcc.gnu.org/bugzilla/show_bug.cgi?id=67368
-+ * '__maybe_unused' allows us to avoid defined-but-not-used warnings.
-  */
--#define READ_ONCE_NOCHECK(x) __READ_ONCE(x, 0)
-+# define __no_kasan_or_inline __no_sanitize_address notrace __maybe_unused
-+#else
-+# define __no_kasan_or_inline __always_inline
-+#endif
- 
- static __no_kasan_or_inline
- unsigned long read_word_at_a_time(const void *addr)
-@@ -281,14 +235,6 @@ unsigned long read_word_at_a_time(const void *addr)
- 	return *(unsigned long *)addr;
- }
- 
--#define WRITE_ONCE(x, val) \
--({							\
--	union { typeof(x) __val; char __c[1]; } __u =	\
--		{ .__val = (__force typeof(x)) (val) }; \
--	__write_once_size(&(x), __u.__c, sizeof(x));	\
--	__u.__val;					\
--})
--
- #endif /* __KERNEL__ */
- 
- /*
--- 
-2.25.0.341.g760bfbb309-goog
+      Arnd
