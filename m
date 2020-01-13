@@ -1,53 +1,96 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [RFC PATCH 1/8] compiler/gcc: Emit build-time warning for GCC
- prior to version 4.8
-Date: Mon, 13 Jan 2020 15:39:45 +0100
-Message-ID: <CAK8P3a1t9757M5CRKNX_X+T9VuLX+5=z5_845rLJGTG50RogXA@mail.gmail.com>
-References: <20200110165636.28035-1-will@kernel.org> <20200110165636.28035-2-will@kernel.org>
- <CAK8P3a3ueJ_rQc-1JTg=3N0JSuY9BduJ6FrrPFG1K2FWVzJdfA@mail.gmail.com> <8fe4f81699517758b44afbe0e1a53bc080f64a62.camel@perches.com>
+From: Will Deacon <will@kernel.org>
+Subject: Re: [RFC PATCH 6/8] READ_ONCE: Drop pointer qualifiers when reading
+ from scalar types
+Date: Mon, 13 Jan 2020 14:59:54 +0000
+Message-ID: <20200113145954.GB4458@willie-the-truck>
+References: <20200110165636.28035-1-will@kernel.org>
+ <20200110165636.28035-7-will@kernel.org>
+ <CAHk-=wia5ppBsfHLMx648utCjO01JAZiME0K0eSHmhWuRyL+6w@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <8fe4f81699517758b44afbe0e1a53bc080f64a62.camel@perches.com>
+Content-Disposition: inline
+In-Reply-To: <CAHk-=wia5ppBsfHLMx648utCjO01JAZiME0K0eSHmhWuRyL+6w@mail.gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Joe Perches <joe@perches.com>
-Cc: Will Deacon <will@kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Android Kernel Team <kernel-team@android.com>, Michael Ellerman <mpe@ellerman.id.au>, Peter Zijlstra <peterz@infradead.org>, Linus Torvalds <torvalds@linux-foundation.org>, Segher Boessenkool <segher@kernel.crashing.org>, Christian Borntraeger <borntraeger@de.ibm.com>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Android Kernel Team <kernel-team@android.com>, Michael Ellerman <mpe@ellerman.id.au>, Peter Zijlstra <peterz@infradead.org>, Segher Boessenkool <segher@kernel.crashing.org>, Christian Borntraeger <borntraeger@de.ibm.com>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>, Arnd Bergmann <arnd@arndb.de>
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, Jan 10, 2020 at 6:54 PM Joe Perches <joe@perches.com> wrote:
->
-> On Fri, 2020-01-10 at 18:35 +0100, Arnd Bergmann wrote:
-> > On Fri, Jan 10, 2020 at 5:56 PM Will Deacon <will@kernel.org> wrote:
-> > > Prior to version 4.8, GCC may miscompile READ_ONCE() by erroneously
-> > > discarding the 'volatile' qualifier:
-> > >
-> > > https://gcc.gnu.org/bugzilla/show_bug.cgi?id=58145
-> > >
-> > > We've been working around this using some nasty hacks which make
-> > > READ_ONCE() both horribly complicated and also prevent us from enforcing
-> > > that it is only used on scalar types. Since GCC 4.8 is pretty old for
-> > > kernel builds now, emit a warning if we detect it during the build.
+On Fri, Jan 10, 2020 at 10:54:27AM -0800, Linus Torvalds wrote:
+> On Fri, Jan 10, 2020 at 8:56 AM Will Deacon <will@kernel.org> wrote:
 > >
-> > No objection to recommending gcc-4.8, but I think this should either
-> > just warn once during the kernel build instead of for every file, or
-> > it should become a hard requirement.
->
-> It might as well be a hard requirement as
-> gcc 4.8.0 is already nearly 7 years old.
->
-> gcc 4.6.0 released 2011-03-25
-> gcc 4.8.0 released 2013-03-22
->
-> Perhaps there are exceedingly few to zero new
-> instances using gcc compiler versions < 4.8
+> > +/* Declare an unqualified scalar type. Leaves non-scalar types unchanged. */
+> > +#define __unqual_scalar_typeof(x) typeof(                                      \
+> 
+> Ugh. My eyes. That's horrendous.
+> 
+> I can't see any better alternatives, but it does make me go "Eww".
 
-The last time we had this discussion, the result was that gcc-4.8 is
-probably ok as a minimum version, but moving to 5.1+ (from 2015)
-was not an obvious choice:
+I can't disagree with that, but the only option we've come up with so far
+that solves this in the READ_ONCE() macro itself is the thing from PeterZ:
 
-https://www.spinics.net/lists/linux-kbuild/msg23648.html
+// Insert big fat comment here
+#define unqual_typeof(x)    typeof(({_Atomic typeof(x) ___x __maybe_unused; ___x; }))
 
-If nobody complains about the move to 4.8, we can try moving to
-gcc-5.1 and GNU99/GNU11 next year  ;-)
+That apparently *requires* GCC 4.8, but I think the question is more about
+whether it's easier to stomach the funny use of _Atomic or the nested
+__builtin_choose_expr() I have here. I'm also worried about how reliable
+the _Atomic thing is, or whether it's just an artifact of how GCC happens
+to work today.
 
-       Arnd
+> Well, I do see one possible alternative: just re-write the bitop
+> implementations in terms of "atomic_long_t", and just avoid the issue
+> entirely.
+> 
+> IOW, do something like the attached (but fleshed out and tested - this
+> patch has not seen a compiler, much less any thought at all).
+
+The big downside of this approach in preference to the proposal here is that
+as long as we've got volatile-qualified pointer arguments describing shared
+memory, I fear that we'll be playing a constant game of whack-a-mole adding
+non-volatile casts as you do below. The same problem manifests for the
+acquire/release accessors, which is why having something like
+__unqual_typeof() would be beneficial and at least the awfulness is
+contained in one place.
+
+So I suppose my question is: how ill does this code really make you feel?
+The disassembly is really nice!
+
+Will
+
+>  include/asm-generic/bitops/lock.h | 12 +++++++++---
+>  1 file changed, 9 insertions(+), 3 deletions(-)
+> 
+> diff --git a/include/asm-generic/bitops/lock.h b/include/asm-generic/bitops/lock.h
+> index 3ae021368f48..071d8bfd86e5 100644
+> --- a/include/asm-generic/bitops/lock.h
+> +++ b/include/asm-generic/bitops/lock.h
+> @@ -6,6 +6,12 @@
+>  #include <linux/compiler.h>
+>  #include <asm/barrier.h>
+>  
+> +/* Drop the volatile, we will be doing READ_ONCE by hand */
+> +static inline atomic_long_t *atomic_long_bit_word(unsigned int nr, volatile unsigned long *p)
+> +{
+> +	return BIT_WORD(nr) + (atomic_long_t *)p;
+> +}
+> +
+>  /**
+>   * test_and_set_bit_lock - Set a bit and return its old value, for lock
+>   * @nr: Bit to set
+> @@ -20,12 +26,12 @@ static inline int test_and_set_bit_lock(unsigned int nr,
+>  {
+>  	long old;
+>  	unsigned long mask = BIT_MASK(nr);
+> +	atomic_long_t *loc = atomic_long_bit_word(nr, p);
+>  
+> -	p += BIT_WORD(nr);
+> -	if (READ_ONCE(*p) & mask)
+> +	if (atomic_read(loc) & mask)
+>  		return 1;
+>  
+> -	old = atomic_long_fetch_or_acquire(mask, (atomic_long_t *)p);
+> +	old = atomic_long_fetch_or_acquire(mask, loc);
+>  	return !!(old & mask);
+>  }
+>  
