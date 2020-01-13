@@ -1,96 +1,86 @@
-Return-Path: <SRS0=XOKs=3M=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:51436 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726232AbgAWPdw (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 23 Jan 2020 10:33:52 -0500
-From: Will Deacon <will@kernel.org>
-Subject: [PATCH v2 00/10] Rework READ_ONCE() to improve codegen
-Date: Thu, 23 Jan 2020 15:33:31 +0000
-Message-ID: <20200123153341.19947-1-will@kernel.org>
+Return-Path: <SRS0=fNgb=3C=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from heliosphere.sirena.org.uk ([172.104.155.198]:55380 "EHLO
+        heliosphere.sirena.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1728810AbgAMOBM (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 13 Jan 2020 09:01:12 -0500
+Date: Mon, 13 Jan 2020 14:00:51 +0000
+From: Mark Brown <broonie@kernel.org>
+Subject: Re: [PATCH v4 04/12] arm64: Basic Branch Target Identification
+ support
+Message-ID: <20200113140051.GI3897@sirena.org.uk>
+References: <20191211154206.46260-1-broonie@kernel.org>
+ <20191211154206.46260-5-broonie@kernel.org>
+ <20200110182800.GI8786@arrakis.emea.arm.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
+Content-Type: multipart/signed; micalg=pgp-sha512;
+        protocol="application/pgp-signature"; boundary="h22Fi9ANawrtbNPX"
+Content-Disposition: inline
+In-Reply-To: <20200110182800.GI8786@arrakis.emea.arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, kernel-team@android.com, Will Deacon <will@kernel.org>, Michael Ellerman <mpe@ellerman.id.au>, Peter Zijlstra <peterz@infradead.org>, Linus Torvalds <torvalds@linux-foundation.org>, Segher Boessenkool <segher@kernel.crashing.org>, Christian Borntraeger <borntraeger@de.ibm.com>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>, Arnd Bergmann <arnd@arndb.de>, Peter Oberparleiter <oberpar@linux.ibm.com>, Masahiro Yamada <masahiroy@kernel.org>, Nick Desaulniers <ndesaulniers@google.com>
-Message-ID: <20200123153331.jMcuM0ZhTolblbeTg4NADJqGAd2Z5RFv75kR4BhM_P4@z>
+To: Catalin Marinas <catalin.marinas@arm.com>
+Cc: Will Deacon <will@kernel.org>, Paul Elliott <paul.elliott@arm.com>, Peter Zijlstra <peterz@infradead.org>, Yu-cheng Yu <yu-cheng.yu@intel.com>, Amit Kachhap <amit.kachhap@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Marc Zyngier <maz@kernel.org>, Eugene Syromiatnikov <esyr@redhat.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, "H.J. Lu" <hjl.tools@gmail.com>, Andrew Jones <drjones@redhat.com>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Jann Horn <jannh@google.com>, Richard Henderson <richard.henderson@linaro.org>, Kristina =?utf-8?Q?Mart=C5=A1enko?= <kristina.martsenko@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Florian Weimer <fweimer@redhat.com>, Sudakshina Das <sudi.das@arm.com>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Dave Martin <Dave.Martin@arm.com>
+Message-ID: <20200113140051.h7puWO7TQW3qHh8gs9KtwjjRsGKHYLFNdsFAI2i2H04@z>
 
-Hi folks,
 
-This is version two of the patches I previously posted as an RFC here:
+--h22Fi9ANawrtbNPX
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+Content-Transfer-Encoding: quoted-printable
 
-https://lore.kernel.org/lkml/20200110165636.28035-1-will@kernel.org
+On Fri, Jan 10, 2020 at 06:28:00PM +0000, Catalin Marinas wrote:
+> On Wed, Dec 11, 2019 at 03:41:58PM +0000, Mark Brown wrote:
 
-Changes since then include:
+> >  /* Additional SPSR bits not exposed in the UABI */
+> > +#define PSR_BTYPE_SHIFT		10
+> > +
+> >  #define PSR_IL_BIT		(1 << 20)
+> > =20
+> > +/* Convenience names for the values of PSTATE.BTYPE */
+> > +#define PSR_BTYPE_NONE		(0b00 << PSR_BTYPE_SHIFT)
+> > +#define PSR_BTYPE_JC		(0b01 << PSR_BTYPE_SHIFT)
+> > +#define PSR_BTYPE_C		(0b10 << PSR_BTYPE_SHIFT)
+> > +#define PSR_BTYPE_J		(0b11 << PSR_BTYPE_SHIFT)
 
-  * Adopted a less vomit-inducing series of macros for __unqual_scalar_typeof
+> Would these be better placed in the uapi/ptrace.h?
 
-  * Cast to 'const' in READ_ONCE() to prevent assignment to the resulting
-    expression
+Seems reasonable, they might be useful to virt stuff and they're
+part of the architecture so it's not like we might change them.
 
-  * Only warn once at build-time if GCC prior to 4.8 is detected...
+> > +	/*
+> > +	 * BTI note:
+> > +	 * The architecture does not guarantee that SPSR.BTYPE is zero
+> > +	 * on taking an SVC, so we could return to userspace with a
+> > +	 * non-zero BTYPE after the syscall.
 
-  * ... and then raise the minimum GCC version to 4.8, with an error for
-    older versions of the compiler
+> On page 2580 of the ARM ARM there is a statement that "any instruction
+> other than BR, ..." sets BTYPE to 0. Wouldn't SVC fall into the same
+> category?
 
-  * Remove some dead gcov code so that the resulting diffstat can distract
-    from those less vomit-inducing macros I mentioned earlier on
+I think what Dave was referring to there is that (unless I'm
+misreading things) that section of the ARM says that BTYPE is set
+at the end of the execution of the instruction but since SVC is
+specified as generating an exception that means that when we
+enter the kernel the instruction won't have ended yet and we
+still have the BTYPE from the previous instruction.
 
-Failing the build for older compilers is always a contentious topic, so
-I've done that as a separate couple of patches on the end in case we end
-up dropping or reverting them.
+> Reviewed-by: Catalin Marinas <catalin.marinas@arm.com>
 
-Cheers,
+Thanks.
 
-Will
+--h22Fi9ANawrtbNPX
+Content-Type: application/pgp-signature; name="signature.asc"
 
-Cc: Michael Ellerman <mpe@ellerman.id.au>
-Cc: Peter Zijlstra <peterz@infradead.org>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Segher Boessenkool <segher@kernel.crashing.org>
-Cc: Christian Borntraeger <borntraeger@de.ibm.com>
-Cc: Luc Van Oostenryck <luc.vanoostenryck@gmail.com>
-Cc: Arnd Bergmann <arnd@arndb.de>
-Cc: Peter Oberparleiter <oberpar@linux.ibm.com>
-Cc: Masahiro Yamada <masahiroy@kernel.org>
-Cc: Nick Desaulniers <ndesaulniers@google.com>
+-----BEGIN PGP SIGNATURE-----
 
---->8
+iQEzBAABCgAdFiEEreZoqmdXGLWf4p/qJNaLcl1Uh9AFAl4ceBAACgkQJNaLcl1U
+h9DLSQf6Apx/rsxXW/+0SHiXPGDJpdzgdlaKg/WkwvZD5tKjvP5SnU3YQ8L96jEk
+YLvo3VX4o6G174B4i7eQvKINZJOQXPzcgYtwV8LjZIxfg7qSygSFOlfxqXPxYoh1
+M3UeD4sFYwQcvvuisyxxehY7F2Qpy7r2AGPcEz/lIgJBK/afVqze34aedkAc8USs
+RiEH1OneNIi0iiKiqrJTEjTNNH4eXokXteOoWKCQONDeMkBQUyGSJB09LKZibH/+
+n1bqPuST5v4Qtag8JcHi9/z/xytJf6oO1QLWnXTqpUR3IUem+LucwksP8+xXIlXC
+vchzbBePuEZheDLobl52IOjKdmX2Vg==
+=X4rD
+-----END PGP SIGNATURE-----
 
-Will Deacon (10):
-  compiler/gcc: Emit build-time warning for GCC prior to version 4.8
-  netfilter: Avoid assigning 'const' pointer to non-const pointer
-  fault_inject: Don't rely on "return value" from WRITE_ONCE()
-  READ_ONCE: Simplify implementations of {READ,WRITE}_ONCE()
-  READ_ONCE: Enforce atomicity for {READ,WRITE}_ONCE() memory accesses
-  READ_ONCE: Drop pointer qualifiers when reading from scalar types
-  locking/barriers: Use '__unqual_scalar_typeof' for load-acquire macros
-  arm64: barrier: Use '__unqual_scalar_typeof' for acquire/release
-    macros
-  compiler/gcc: Raise minimum GCC version for kernel builds to 4.8
-  gcov: Remove old GCC 3.4 support
-
- Documentation/process/changes.rst |   2 +-
- arch/arm/crypto/Kconfig           |  12 +-
- arch/arm64/include/asm/barrier.h  |  16 +-
- crypto/Kconfig                    |   1 -
- drivers/xen/time.c                |   2 +-
- include/asm-generic/barrier.h     |  16 +-
- include/linux/compiler-gcc.h      |   5 +-
- include/linux/compiler.h          | 129 +++----
- include/linux/compiler_types.h    |  21 ++
- init/Kconfig                      |   5 +-
- kernel/gcov/Kconfig               |  24 --
- kernel/gcov/Makefile              |   3 +-
- kernel/gcov/gcc_3_4.c             | 573 ------------------------------
- lib/fault-inject.c                |   4 +-
- net/netfilter/core.c              |   2 +-
- net/xdp/xsk_queue.h               |   2 +-
- scripts/Kconfig.include           |   3 +
- scripts/gcc-plugins/Kconfig       |   4 +-
- 18 files changed, 111 insertions(+), 713 deletions(-)
- delete mode 100644 kernel/gcov/gcc_3_4.c
-
--- 
-2.25.0.341.g760bfbb309-goog
+--h22Fi9ANawrtbNPX--
