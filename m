@@ -1,70 +1,101 @@
-Return-Path: <SRS0=948I=23=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:52110 "EHLO mail.kernel.org"
+Return-Path: <SRS0=fNgb=3C=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail.kernel.org ([198.145.29.99]:59178 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727307AbgAFDip (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Sun, 5 Jan 2020 22:38:45 -0500
+        id S1728843AbgAMPAA (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 13 Jan 2020 10:00:00 -0500
+Date: Mon, 13 Jan 2020 14:59:54 +0000
+From: Will Deacon <will@kernel.org>
+Subject: Re: [RFC PATCH 6/8] READ_ONCE: Drop pointer qualifiers when reading
+ from scalar types
+Message-ID: <20200113145954.GB4458@willie-the-truck>
+References: <20200110165636.28035-1-will@kernel.org>
+ <20200110165636.28035-7-will@kernel.org>
+ <CAHk-=wia5ppBsfHLMx648utCjO01JAZiME0K0eSHmhWuRyL+6w@mail.gmail.com>
 MIME-Version: 1.0
-References: <20200105025215.2522-1-guoren@kernel.org> <20200105025215.2522-2-guoren@kernel.org>
- <20200106024515.GA1021@andestech.com> <CAAhSdy2N1v20g-WGo99Utrvhj4NXZeFP-is1jqCs9DE_Zs2VKg@mail.gmail.com>
-In-Reply-To: <CAAhSdy2N1v20g-WGo99Utrvhj4NXZeFP-is1jqCs9DE_Zs2VKg@mail.gmail.com>
-From: Guo Ren <guoren@kernel.org>
-Date: Mon, 6 Jan 2020 11:38:30 +0800
-Message-ID: <CAJF2gTQ8-b2w7-v1giYN_UYcNMaeju8yv0ksUu2=g5YJtk1rdw@mail.gmail.com>
-Subject: Re: [PATCH 2/2] riscv: Add vector ISA support
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <CAHk-=wia5ppBsfHLMx648utCjO01JAZiME0K0eSHmhWuRyL+6w@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Anup Patel <anup@brainfault.org>
-Cc: Alan Kao <alankao@andestech.com>, linux-arch <linux-arch@vger.kernel.org>, Albert Ou <aou@eecs.berkeley.edu>, Guo Ren <ren_guo@c-sky.com>, Arnd Bergmann <arnd@arndb.de>, Atish Patra <atish.patra@wdc.com>, Anup Patel <Anup.Patel@wdc.com>, "linux-kernel@vger.kernel.org List" <linux-kernel@vger.kernel.org>, linux-csky@vger.kernel.org, Vincent Chen <vincent.chen@sifive.com>, Palmer Dabbelt <palmer@dabbelt.com>, Zong Li <zong.li@sifive.com>, Paul Walmsley <paul.walmsley@sifive.com>, Greentime Hu <greentime.hu@sifive.com>, linux-riscv <linux-riscv@lists.infradead.org>, Bin Meng <bmeng.cn@gmail.com>
-Message-ID: <20200106033830.3vdEpZ1EIEr0cQH_dqU1Rj7FLDD_KK1xkD706HMVlls@z>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Android Kernel Team <kernel-team@android.com>, Michael Ellerman <mpe@ellerman.id.au>, Peter Zijlstra <peterz@infradead.org>, Segher Boessenkool <segher@kernel.crashing.org>, Christian Borntraeger <borntraeger@de.ibm.com>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>, Arnd Bergmann <arnd@arndb.de>
+Message-ID: <20200113145954.3seCGH0jPUcLeQ0qoKUIVa6ZtRQf14bzavdy4Pnj9YQ@z>
 
-Thx Anup,
-
-The purpose of the patch is to talk about abi for linux & libc.
-
-The most confused me is how max vlen (128/256/512/1024 ???), we should
-put it into sigcontext. I need people's suggestions, thx.
-
-Anyone help to review the patch are very helpful and we could
-co-developed together, Thx
-
-On Mon, Jan 6, 2020 at 11:00 AM Anup Patel <anup@brainfault.org> wrote:
->
-> On Mon, Jan 6, 2020 at 8:15 AM Alan Kao <alankao@andestech.com> wrote:
+On Fri, Jan 10, 2020 at 10:54:27AM -0800, Linus Torvalds wrote:
+> On Fri, Jan 10, 2020 at 8:56 AM Will Deacon <will@kernel.org> wrote:
 > >
-> > Hi Guo,
-> >
-> > On Sun, Jan 05, 2020 at 10:52:15AM +0800, guoren@kernel.org wrote:
-> > > From: Guo Ren <ren_guo@c-sky.com>
-> > >
-> > > The implementation follow the RISC-V "V" Vector Extension draft v0.8 with
-> > > 128bit-vlen and it's based on linux-5.5-rc4.
-> > >
-> >
-> > According to https://lkml.org/lkml/2019/11/22/2169, in which Paul has stated
-> > that "we plan to only accept patches for new modules or extensions that have
-> > been frozen or ratified by the RISC-V Foundation."
-> >
-> > Is v0.8 ratified enough for now?
->
-> As-per the patch acceptance policy, we cannot merge it now (just like KVM
-> patches) but we can always review and get the patches in final shape
-> by the time spec is frozen or ratified.
->
-> I think we should continue with the patch review and get this series in
-> good shape.
->
-> In fact, having this patches early on LKML is very helpful for people working
-> on RISC-V vector extension implementation in HW. On this line, this a good
-> contribution coming at the right time.
->
-> Regards,
-> Anup
+> > +/* Declare an unqualified scalar type. Leaves non-scalar types unchanged. */
+> > +#define __unqual_scalar_typeof(x) typeof(                                      \
+> 
+> Ugh. My eyes. That's horrendous.
+> 
+> I can't see any better alternatives, but it does make me go "Eww".
 
+I can't disagree with that, but the only option we've come up with so far
+that solves this in the READ_ONCE() macro itself is the thing from PeterZ:
 
+// Insert big fat comment here
+#define unqual_typeof(x)    typeof(({_Atomic typeof(x) ___x __maybe_unused; ___x; }))
 
--- 
-Best Regards
- Guo Ren
+That apparently *requires* GCC 4.8, but I think the question is more about
+whether it's easier to stomach the funny use of _Atomic or the nested
+__builtin_choose_expr() I have here. I'm also worried about how reliable
+the _Atomic thing is, or whether it's just an artifact of how GCC happens
+to work today.
 
-ML: https://lore.kernel.org/linux-csky/
+> Well, I do see one possible alternative: just re-write the bitop
+> implementations in terms of "atomic_long_t", and just avoid the issue
+> entirely.
+> 
+> IOW, do something like the attached (but fleshed out and tested - this
+> patch has not seen a compiler, much less any thought at all).
+
+The big downside of this approach in preference to the proposal here is that
+as long as we've got volatile-qualified pointer arguments describing shared
+memory, I fear that we'll be playing a constant game of whack-a-mole adding
+non-volatile casts as you do below. The same problem manifests for the
+acquire/release accessors, which is why having something like
+__unqual_typeof() would be beneficial and at least the awfulness is
+contained in one place.
+
+So I suppose my question is: how ill does this code really make you feel?
+The disassembly is really nice!
+
+Will
+
+>  include/asm-generic/bitops/lock.h | 12 +++++++++---
+>  1 file changed, 9 insertions(+), 3 deletions(-)
+> 
+> diff --git a/include/asm-generic/bitops/lock.h b/include/asm-generic/bitops/lock.h
+> index 3ae021368f48..071d8bfd86e5 100644
+> --- a/include/asm-generic/bitops/lock.h
+> +++ b/include/asm-generic/bitops/lock.h
+> @@ -6,6 +6,12 @@
+>  #include <linux/compiler.h>
+>  #include <asm/barrier.h>
+>  
+> +/* Drop the volatile, we will be doing READ_ONCE by hand */
+> +static inline atomic_long_t *atomic_long_bit_word(unsigned int nr, volatile unsigned long *p)
+> +{
+> +	return BIT_WORD(nr) + (atomic_long_t *)p;
+> +}
+> +
+>  /**
+>   * test_and_set_bit_lock - Set a bit and return its old value, for lock
+>   * @nr: Bit to set
+> @@ -20,12 +26,12 @@ static inline int test_and_set_bit_lock(unsigned int nr,
+>  {
+>  	long old;
+>  	unsigned long mask = BIT_MASK(nr);
+> +	atomic_long_t *loc = atomic_long_bit_word(nr, p);
+>  
+> -	p += BIT_WORD(nr);
+> -	if (READ_ONCE(*p) & mask)
+> +	if (atomic_read(loc) & mask)
+>  		return 1;
+>  
+> -	old = atomic_long_fetch_or_acquire(mask, (atomic_long_t *)p);
+> +	old = atomic_long_fetch_or_acquire(mask, loc);
+>  	return !!(old & mask);
+>  }
+>  
