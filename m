@@ -1,39 +1,27 @@
 From: Will Deacon <will@kernel.org>
-Subject: Re: [RFC PATCH 5/8] READ_ONCE: Enforce atomicity for
- {READ,WRITE}_ONCE() memory accesses
-Date: Mon, 13 Jan 2020 16:16:06 +0000
-Message-ID: <20200113161606.GD4458@willie-the-truck>
-References: <20200110165636.28035-1-will@kernel.org>
- <20200110165636.28035-6-will@kernel.org>
- <CAK8P3a1pDW7cABLeotZBNTTxLxkQ299wO0OG3AWGyDqJWmQA+A@mail.gmail.com>
+Subject: Re: [RFC PATCH v3 00/12] Unify SMP stop generic logic to common code
+Date: Mon, 13 Jan 2020 16:40:29 +0000
+Message-ID: <20200113164029.GE4458@willie-the-truck>
+References: <20191219121905.26905-1-cristian.marussi@arm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <sparclinux-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <CAK8P3a1pDW7cABLeotZBNTTxLxkQ299wO0OG3AWGyDqJWmQA+A@mail.gmail.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Android Kernel Team <kernel-team@android.com>, Michael Ellerman <mpe@ellerman.id.au>, Peter Zijlstra <peterz@infradead.org>, Linus Torvalds <torvalds@linux-foundation.org>, Segher Boessenkool <segher@kernel.crashing.org>, Christian Borntraeger <borntraeger@de.ibm.com>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>
+In-Reply-To: <20191219121905.26905-1-cristian.marussi@arm.com>
+Sender: sparclinux-owner@vger.kernel.org
+To: Cristian Marussi <cristian.marussi@arm.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mark.rutland@arm.com, peterz@infradead.org, catalin.marinas@arm.com, takahiro.akashi@linaro.org, james.morse@arm.com, hidehiro.kawai.ez@hitachi.com, tglx@linutronix.de, linux-arm-kernel@lists.infradead.org, mingo@redhat.com, x86@kernel.org, dzickus@redhat.com, ehabkost@redhat.com, linux@armlinux.org.uk, davem@davemloft.net, sparclinux@vger.kernel.org, hch@infradead.org
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, Jan 10, 2020 at 08:24:00PM +0100, Arnd Bergmann wrote:
-> On Fri, Jan 10, 2020 at 5:56 PM Will Deacon <will@kernel.org> wrote:
-> 
-> > +/*
-> > + * Use __READ_ONCE() instead of READ_ONCE() if you do not require any
-> > + * atomicity or dependency ordering guarantees. Note that this may result
-> > + * in tears!
-> > + */
-> > +#define __READ_ONCE(x) (*(volatile typeof(x) *)&(x))
-> > +
-> 
-> This probably allows writing
-> 
->        extern int i;
->        __READ_ONCE(i) = 1;
-> 
-> and not get a warning for it. How about also casting to 'const'?
+On Thu, Dec 19, 2019 at 12:18:53PM +0000, Cristian Marussi wrote:
+> the logic underlying SMP stop and kexec crash procedures, beside containing
+> some arch-specific bits, is mostly generic and common across all archs:
+> despite this fact, such logic is now scattered across all architectures and
+> on some of them is flawed, in such a way that, under some specific
+> conditions, you can end up with a CPU left still running after a panic and
+> possibly lost across a subsequent kexec crash reboot. [1]
 
-Well spotted! I'll fold that in.
+Is this still the case even after 20bb759a66be ("panic: ensure preemption is
+disabled during panic()")?
 
 Will
