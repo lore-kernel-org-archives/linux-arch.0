@@ -1,40 +1,40 @@
-From: Cristian Marussi <cristian.marussi@arm.com>
-Subject: Re: [RFC PATCH v3 00/12] Unify SMP stop generic logic to common code
-Date: Mon, 13 Jan 2020 17:05:43 +0000
-Message-ID: <7937f12d-8aba-733a-c313-f446857a1447@arm.com>
-References: <20191219121905.26905-1-cristian.marussi@arm.com>
- <20200113164029.GE4458@willie-the-truck>
+From: Luc Van Oostenryck <luc.vanoostenryck@gmail.com>
+Subject: Re: [RFC PATCH 6/8] READ_ONCE: Drop pointer qualifiers when reading
+ from scalar types
+Date: Mon, 13 Jan 2020 18:42:25 +0100
+Message-ID: <20200113174225.xs3n7t3obysbsmzd@ltop.local>
+References: <20200110165636.28035-1-will@kernel.org>
+ <20200110165636.28035-7-will@kernel.org>
+ <CAHk-=wia5ppBsfHLMx648utCjO01JAZiME0K0eSHmhWuRyL+6w@mail.gmail.com>
+ <20200113145954.GB4458@willie-the-truck>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
-Return-path: <sparclinux-owner@vger.kernel.org>
-In-Reply-To: <20200113164029.GE4458@willie-the-truck>
-Content-Language: en-US
-Sender: sparclinux-owner@vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <20200113145954.GB4458@willie-the-truck>
+Sender: linux-kernel-owner@vger.kernel.org
 To: Will Deacon <will@kernel.org>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mark.rutland@arm.com, peterz@infradead.org, catalin.marinas@arm.com, takahiro.akashi@linaro.org, james.morse@arm.com, hidehiro.kawai.ez@hitachi.com, tglx@linutronix.de, linux-arm-kernel@lists.infradead.org, mingo@redhat.com, x86@kernel.org, dzickus@redhat.com, ehabkost@redhat.com, linux@armlinux.org.uk, davem@davemloft.net, sparclinux@vger.kernel.org, hch@infradead.org
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Android Kernel Team <kernel-team@android.com>, Michael Ellerman <mpe@ellerman.id.au>, Peter Zijlstra <peterz@infradead.org>, Segher Boessenkool <segher@kernel.crashing.org>, Christian Borntraeger <borntraeger@de.ibm.com>, Arnd Bergmann <arnd@arndb.de>
 List-Id: linux-arch.vger.kernel.org
 
-Hi Will
-
-On 13/01/2020 16:40, Will Deacon wrote:
-> On Thu, Dec 19, 2019 at 12:18:53PM +0000, Cristian Marussi wrote:
->> the logic underlying SMP stop and kexec crash procedures, beside containing
->> some arch-specific bits, is mostly generic and common across all archs:
->> despite this fact, such logic is now scattered across all architectures and
->> on some of them is flawed, in such a way that, under some specific
->> conditions, you can end up with a CPU left still running after a panic and
->> possibly lost across a subsequent kexec crash reboot. [1]
+On Mon, Jan 13, 2020 at 02:59:54PM +0000, Will Deacon wrote:
+> // Insert big fat comment here
+> #define unqual_typeof(x)    typeof(({_Atomic typeof(x) ___x __maybe_unused; ___x; }))
 > 
-> Is this still the case even after 20bb759a66be ("panic: ensure preemption is
-> disabled during panic()")?
-> 
+> That apparently *requires* GCC 4.8, but I think the question is more about
+> whether it's easier to stomach the funny use of _Atomic or the nested
+> __builtin_choose_expr() I have here. I'm also worried about how reliable
+> the _Atomic thing is, or whether it's just an artifact of how GCC happens
+> to work today.
 
-v3 is based on 5.5-rc2 which seems to include 20bb759a66be, and when I tested before
-re-posting a few weeks ago it was still failing as usual, i.e. kernel still alive after panic.
-[but please be aware that to reproduce it, you need to have only one core online and another one
- panicing while starting up (while still marked offline)]
+As far as I understand it, it's an artifact of how GCC works today (it
+was added to support the type-generic macros in <tgmath.h>).
+I also think it's also quite fragile, for example, the unqualified type
+is returned if typeof's argument is an expression but not if it's a
+'typename'. IOW:
+	typeof(_Atomic typeof(const int))
+returns 'const int', while
+	typeof(({_Atomic typeof(const int) x; x; }))
+returns 'int'.
 
-Thanks
-
-Cristian
+-- Luc
