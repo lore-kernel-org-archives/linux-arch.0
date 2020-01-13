@@ -1,30 +1,45 @@
-Return-Path: <SRS0=Pd00=3D=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:55626 "EHLO foss.arm.com"
+Return-Path: <SRS0=fNgb=3C=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from foss.arm.com ([217.140.110.172]:41904 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726270AbgANRhS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 14 Jan 2020 12:37:18 -0500
-Date: Tue, 14 Jan 2020 17:37:13 +0000
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [PATCH v4 12/12] arm64: mm: Display guarded pages in ptdump
-Message-ID: <20200114173712.GO30444@arrakis.emea.arm.com>
-References: <20191211154206.46260-1-broonie@kernel.org>
- <20191211154206.46260-13-broonie@kernel.org>
+        id S1727331AbgAMRFv (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 13 Jan 2020 12:05:51 -0500
+Subject: Re: [RFC PATCH v3 00/12] Unify SMP stop generic logic to common code
+References: <20191219121905.26905-1-cristian.marussi@arm.com>
+ <20200113164029.GE4458@willie-the-truck>
+From: Cristian Marussi <cristian.marussi@arm.com>
+Message-ID: <7937f12d-8aba-733a-c313-f446857a1447@arm.com>
+Date: Mon, 13 Jan 2020 17:05:43 +0000
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20191211154206.46260-13-broonie@kernel.org>
+In-Reply-To: <20200113164029.GE4458@willie-the-truck>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Mark Brown <broonie@kernel.org>
-Cc: Will Deacon <will@kernel.org>, Paul Elliott <paul.elliott@arm.com>, Peter Zijlstra <peterz@infradead.org>, Yu-cheng Yu <yu-cheng.yu@intel.com>, Amit Kachhap <amit.kachhap@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Marc Zyngier <maz@kernel.org>, Eugene Syromiatnikov <esyr@redhat.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, "H.J. Lu" <hjl.tools@gmail.com>, Andrew Jones <drjones@redhat.com>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Jann Horn <jannh@google.com>, Richard Henderson <richard.henderson@linaro.org>, Kristina =?utf-8?Q?Mart=C5=A1enko?= <kristina.martsenko@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Florian Weimer <fweimer@redhat.com>, Sudakshina Das <sudi.das@arm.com>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20200114173713.HvcoWrLm6rgxBaC73nIhqO4u90ejhpA0KVFxU1nS9HM@z>
+To: Will Deacon <will@kernel.org>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mark.rutland@arm.com, peterz@infradead.org, catalin.marinas@arm.com, takahiro.akashi@linaro.org, james.morse@arm.com, hidehiro.kawai.ez@hitachi.com, tglx@linutronix.de, linux-arm-kernel@lists.infradead.org, mingo@redhat.com, x86@kernel.org, dzickus@redhat.com, ehabkost@redhat.com, linux@armlinux.org.uk, davem@davemloft.net, sparclinux@vger.kernel.org, hch@infradead.org
+Message-ID: <20200113170543.jHbipPJTK8xea_2c4WYG2vHpjKPMTJ__FbKP8EfcgeM@z>
 
-On Wed, Dec 11, 2019 at 03:42:06PM +0000, Mark Brown wrote:
-> v8.5-BTI introduces the GP field in stage 1 translation tables which
-> indicates that blocks and pages with it set are guarded pages for which
-> branch target identification checks should be performed. Decode this
-> when dumping the page tables to aid debugging.
+Hi Will
+
+On 13/01/2020 16:40, Will Deacon wrote:
+> On Thu, Dec 19, 2019 at 12:18:53PM +0000, Cristian Marussi wrote:
+>> the logic underlying SMP stop and kexec crash procedures, beside containing
+>> some arch-specific bits, is mostly generic and common across all archs:
+>> despite this fact, such logic is now scattered across all architectures and
+>> on some of them is flawed, in such a way that, under some specific
+>> conditions, you can end up with a CPU left still running after a panic and
+>> possibly lost across a subsequent kexec crash reboot. [1]
 > 
-> Signed-off-by: Mark Brown <broonie@kernel.org>
+> Is this still the case even after 20bb759a66be ("panic: ensure preemption is
+> disabled during panic()")?
+> 
 
-Reviewed-by: Catalin Marinas <catalin.marinas@arm.com>
+v3 is based on 5.5-rc2 which seems to include 20bb759a66be, and when I tested before
+re-posting a few weeks ago it was still failing as usual, i.e. kernel still alive after panic.
+[but please be aware that to reproduce it, you need to have only one core online and another one
+ panicing while starting up (while still marked offline)]
+
+Thanks
+
+Cristian
