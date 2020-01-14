@@ -1,75 +1,52 @@
-Return-Path: <SRS0=XOKs=3M=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:51508 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726232AbgAWPdy (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 23 Jan 2020 10:33:54 -0500
-From: Will Deacon <will@kernel.org>
-Subject: [PATCH v2 01/10] compiler/gcc: Emit build-time warning for GCC prior to version 4.8
-Date: Thu, 23 Jan 2020 15:33:32 +0000
-Message-ID: <20200123153341.19947-2-will@kernel.org>
-In-Reply-To: <20200123153341.19947-1-will@kernel.org>
-References: <20200123153341.19947-1-will@kernel.org>
+Return-Path: <SRS0=Pd00=3D=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail-lf1-f65.google.com ([209.85.167.65]:34257 "EHLO
+        mail-lf1-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726491AbgANVtX (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 14 Jan 2020 16:49:23 -0500
+Received: by mail-lf1-f65.google.com with SMTP id l18so11051133lfc.1
+        for <linux-arch@vger.kernel.org>; Tue, 14 Jan 2020 13:49:22 -0800 (PST)
+Received: from mail-lf1-f42.google.com (mail-lf1-f42.google.com. [209.85.167.42])
+        by smtp.gmail.com with ESMTPSA id s4sm8248225ljd.94.2020.01.14.13.49.19
+        for <linux-arch@vger.kernel.org>
+        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
+        Tue, 14 Jan 2020 13:49:19 -0800 (PST)
+Received: by mail-lf1-f42.google.com with SMTP id l18so11051046lfc.1
+        for <linux-arch@vger.kernel.org>; Tue, 14 Jan 2020 13:49:19 -0800 (PST)
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+References: <20200114200846.29434-1-vgupta@synopsys.com> <20200114200846.29434-5-vgupta@synopsys.com>
+ <CAK8P3a2GUqmcA_q33=20OrK1+cU4f3mCrgci_bO3ho4B5PRODg@mail.gmail.com> <3734021d-1756-3a09-6595-14ca58c64bf9@synopsys.com>
+In-Reply-To: <3734021d-1756-3a09-6595-14ca58c64bf9@synopsys.com>
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Date: Tue, 14 Jan 2020 13:49:03 -0800
+Message-ID: <CAHk-=wjX-c9YpPhbQ073UPnTvELNQCN49vqK1yY7JGuHSn5-ew@mail.gmail.com>
+Subject: Re: [RFC 4/4] ARC: uaccess: use optimized generic __strnlen_user/__strncpy_from_user
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, kernel-team@android.com, Will Deacon <will@kernel.org>, Michael Ellerman <mpe@ellerman.id.au>, Peter Zijlstra <peterz@infradead.org>, Linus Torvalds <torvalds@linux-foundation.org>, Segher Boessenkool <segher@kernel.crashing.org>, Christian Borntraeger <borntraeger@de.ibm.com>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>, Arnd Bergmann <arnd@arndb.de>, Peter Oberparleiter <oberpar@linux.ibm.com>, Masahiro Yamada <masahiroy@kernel.org>, Nick Desaulniers <ndesaulniers@google.com>
-Message-ID: <20200123153332.O49p6S7tYZEChFXK2KmkvyJ_TsdQdQm49dj6qe8VVmo@z>
+To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Cc: Arnd Bergmann <arnd@arndb.de>, Khalid Aziz <khalid.aziz@oracle.com>, Andrey Konovalov <andreyknvl@google.com>, Andrew Morton <akpm@linux-foundation.org>, Peter Zijlstra <peterz@infradead.org>, Christian Brauner <christian.brauner@ubuntu.com>, Kees Cook <keescook@chromium.org>, Ingo Molnar <mingo@kernel.org>, Aleksa Sarai <cyphar@cyphar.com>, "open list:SYNOPSYS ARC ARCHITECTURE" <linux-snps-arc@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>
+Message-ID: <20200114214903.6SGarHJEUVX_5h96ABxUELTke3eFBaaXZusUgwsFP-Y@z>
 
-Prior to version 4.8, GCC may miscompile READ_ONCE() by erroneously
-discarding the 'volatile' qualifier:
+On Tue, Jan 14, 2020 at 1:37 PM Vineet Gupta <Vineet.Gupta1@synopsys.com> wrote:
+>
+> On 1/14/20 12:42 PM, Arnd Bergmann wrote:
+> >
+> > What's wrong with the generic version on little-endian? Any
+> > chance you can find a way to make it work as well for you as
+> > this copy?
+>
+> find_zero() by default doesn't use pop count instructions.
 
-https://gcc.gnu.org/bugzilla/show_bug.cgi?id=58145
+Don't you think the generic find_zero() is likely just as fast as the
+pop count instruction? On 32-bit, I think it's like a shift and a mask
+and a couple of additions.
 
-We've been working around this using some nasty hacks which make
-READ_ONCE() both horribly complicated and also prevent us from enforcing
-that it is only used on scalar types. Since GCC 4.8 is pretty old for
-kernel builds now, emit a warning if we detect it during the build.
+The 64-bit case has a multiply that is likely expensive unless you
+have a good multiplication unit (but what 64-bit architecture
+doesn't?), but the generic 32-bit LE code should already be pretty
+close to optimal, and it might not be worth it to worry about it.
 
-Suggested-by: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Peter Zijlstra <peterz@infradead.org>
-Cc: Michael Ellerman <mpe@ellerman.id.au>
-Cc: Arnd Bergmann <arnd@arndb.de>
-Cc: Christian Borntraeger <borntraeger@de.ibm.com>
-Cc: Masahiro Yamada <masahiroy@kernel.org>
-Signed-off-by: Will Deacon <will@kernel.org>
----
- init/Kconfig            | 4 ++--
- scripts/Kconfig.include | 6 ++++++
- 2 files changed, 8 insertions(+), 2 deletions(-)
+(The big-endian case is very different, and architectures really can
+do much better. But LE allows for bit tricks using the carry chain)
 
-diff --git a/init/Kconfig b/init/Kconfig
-index a34064a031a5..bdc2f1b1667b 100644
---- a/init/Kconfig
-+++ b/init/Kconfig
-@@ -10,11 +10,11 @@ config DEFCONFIG_LIST
- 	default "arch/$(ARCH)/defconfig"
- 
- config CC_IS_GCC
--	def_bool $(success,$(CC) --version | head -n 1 | grep -q gcc)
-+	def_bool $(cc-is-gcc)
- 
- config GCC_VERSION
- 	int
--	default $(shell,$(srctree)/scripts/gcc-version.sh $(CC)) if CC_IS_GCC
-+	default $(gcc-version) if CC_IS_GCC
- 	default 0
- 
- config CC_IS_CLANG
-diff --git a/scripts/Kconfig.include b/scripts/Kconfig.include
-index d4adfbe42690..4e645a798b56 100644
---- a/scripts/Kconfig.include
-+++ b/scripts/Kconfig.include
-@@ -40,3 +40,9 @@ $(error-if,$(success, $(LD) -v | grep -q gold), gold linker '$(LD)' not supporte
- 
- # gcc version including patch level
- gcc-version := $(shell,$(srctree)/scripts/gcc-version.sh $(CC))
-+
-+# Return y if the compiler is GCC, n otherwise
-+cc-is-gcc := $(success,$(CC) --version | head -n 1 | grep -q gcc)
-+
-+# Warn if the compiler is GCC prior to 4.8
-+$(warning-if,$(if-success,[ $(gcc-version) -lt 40800 ],$(cc-is-gcc),n),"Your compiler is old and may miscompile the kernel due to https://gcc.gnu.org/bugzilla/show_bug.cgi?id=58145 - please upgrade it.")
--- 
-2.25.0.341.g760bfbb309-goog
+             Linus
