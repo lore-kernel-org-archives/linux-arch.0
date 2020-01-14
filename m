@@ -1,63 +1,77 @@
-Return-Path: <frowand.list@gmail.com>
-Subject: Re: [RFC v1 0/6] kunit: create a centralized executor to dispatch all
- KUnit tests
-References: <20191216220555.245089-1-brendanhiggins@google.com>
- <20200106224022.GX11244@42.do-not-panic.com>
- <CAFd5g456c2Zs7rCvRPgio83G=SrtPGi25zbqAUyTBHspHwtu4w@mail.gmail.com>
- <594b7815-0611-34ea-beb5-0642114b5d82@gmail.com>
- <CAFd5g469TWzrLKmQNR2i0HACJ3FEu-=4-Rk005g9szB5UsZAcw@mail.gmail.com>
- <e801e4ac-b7c2-3d0a-71e7-f8153a3dfbc8@gmail.com>
- <ECADFF3FD767C149AD96A924E7EA6EAF982C9840@USCULXMSG17.am.sony.com>
- <CAFd5g46Ut9Suptmp_bBspkp=KKt2GP+=1C5zLu0FXJY9dGJbFQ@mail.gmail.com>
-From: Frank Rowand <frowand.list@gmail.com>
-Message-ID: <dcf2d008-c044-f2d4-63b9-47151157eeb4@gmail.com>
-Date: Tue, 28 Jan 2020 22:24:53 -0600
+Return-Path: <linux-arch-owner@vger.kernel.org>
+Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:50508 "EHLO
+ mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with
+ ESMTP id S1729238AbgANKCd (ORCPT <rfc822;linux-arch@vger.kernel.org>); Tue,
+ 14 Jan 2020 05:02:33 -0500
+From: "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>
+Subject: [PATCH v3 0/9] Fixup page directory freeing
+Date: Tue, 14 Jan 2020 15:31:36 +0530
+Message-ID: <20200114100145.365527-1-aneesh.kumar@linux.ibm.com>
 MIME-Version: 1.0
-In-Reply-To: <CAFd5g46Ut9Suptmp_bBspkp=KKt2GP+=1C5zLu0FXJY9dGJbFQ@mail.gmail.com>
-Content-Type: text/plain; charset=utf-8
-Content-Language: en-US
-Content-Transfer-Encoding: 7bit
-To: Brendan Higgins <brendanhiggins@google.com>, "Bird, Timothy" <Tim.Bird@sony.com>, Alan Maguire <alan.maguire@oracle.com>
-Cc: Luis Chamberlain <mcgrof@kernel.org>, Jeff Dike <jdike@addtoit.com>, Richard Weinberger <richard@nod.at>, Anton Ivanov <anton.ivanov@cambridgegreys.com>, Arnd Bergmann <arnd@arndb.de>, Kees Cook <keescook@chromium.org>, Shuah Khan <skhan@linuxfoundation.org>, Iurii Zaikin <yzaikin@google.com>, David Gow <davidgow@google.com>, Andrew Morton <akpm@linux-foundation.org>, rppt@linux.ibm.com, Greg KH <gregkh@linuxfoundation.org>, Stephen Boyd <sboyd@kernel.org>, Logan Gunthorpe <logang@deltatee.com>, Knut Omang <knut.omang@oracle.com>, linux-um <linux-um@lists.infradead.org>, linux-arch@vger.kernel.org, "open list:KERNEL SELFTEST FRAMEWORK" <linux-kselftest@vger.kernel.org>, KUnit Development <kunit-dev@googlegroups.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
+Content-Transfer-Encoding: 8bit
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200129042453.aYvILnkgwtaTVADju7RBOQNmZ4ZdAIyZYld2xoDeJ3E@z>
+To: akpm@linux-foundation.org, peterz@infradead.org, will@kernel.org
+Cc: linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>
+Message-ID: <20200114100136.tTF7OQx0W62x4zqxpe4tPl-ca0ozVbED0wzccEWoBNU@z>
 
-On 1/28/20 1:53 PM, Brendan Higgins wrote:
-> On Tue, Jan 28, 2020 at 11:35 AM <Tim.Bird@sony.com> wrote:
->>
->>> -----Original Message-----
->>> From:  Frank Rowand on January 28, 2020 11:37 AM
->>>
->>> On 1/28/20 1:19 AM, Brendan Higgins wrote:
->>>> On Mon, Jan 27, 2020 at 9:40 AM Frank Rowand <frowand.list@gmail.com> wrote:
->> ...
->>>> we could add Kconfigs to control this, but the compiler nevertheless
->>>> complains because it doesn't know what phase KUnit runs in.
->>>>
->>>> Is there any way to tell the compiler that it is okay for non __init
->>>> code to call __init code? I would prefer not to have a duplicate
->>>> version of all the KUnit libraries with all the symbols marked __init.
->>>
->>> I'm not sure.  The build messages have always been useful and valid in
->>> my context, so I never thought to consider that possibility.
->>>
->>>> Thoughts?
->>
->> I'm not sure there's a restriction on non __init code calling __init
->> code.  In init/main.c arch_call_reset_init() is in __init, and it calls
->> rest_init which is non __init, without any special handling.
->>
->> Is the compiler complaint mentioned above related to  calling
->> into __init code, or with some other issue?
-> 
-> I distinctly remember having the compiler complain at me when I was
-> messing around with the device tree unit tests because of KUnit
-> calling code marked as __init. Maybe it's time to start converting
-> those to KUnit to force the issue? Frank, does that work for you?
+This is a repost of patch series from Peter with the arch specific changes except ppc64 dropped.
+ppc64 changes are added here because we are redoing the patch series on top of ppc64 changes. This makes it
+easy to backport these changes. Only the first 3 patches need to be backported to stable. 
 
-I have agreed to try converting the devicetree unittest to KUnit.
+The thing is, on anything SMP, freeing page directories should observe the
+exact same order as normal page freeing:
 
-Now that KUnit is in 5.5, I think there is a solid foundation for
-me to proceed.
+ 1) unhook page/directory
+ 2) TLB invalidate
+ 3) free page/directory
 
--Frank
+Without this, any concurrent page-table walk could end up with a Use-after-Free.
+This is esp. trivial for anything that has software page-table walkers
+(HAVE_FAST_GUP / software TLB fill) or the hardware caches partial page-walks
+(ie. caches page directories).
+
+Even on UP this might give issues since mmu_gather is preemptible these days.
+An interrupt or preempted task accessing user pages might stumble into the free
+page if the hardware caches page directories.
+
+This patch series fixup ppc64 and add generic MMU_GATHER changes to support the conversion of other architectures.
+I haven't added patches w.r.t other architecture because they are yet to be acked.
+
+
+Aneesh Kumar K.V (1):
+  powerpc/mmu_gather: Enable RCU_TABLE_FREE even for !SMP case
+
+Peter Zijlstra (8):
+  mm/mmu_gather: Invalidate TLB correctly on batch allocation failure
+    and flush
+  asm-generic/tlb: Avoid potential double flush
+  asm-gemeric/tlb: Remove stray function declarations
+  asm-generic/tlb: Add missing CONFIG symbol
+  asm-generic/tlb: Rename HAVE_RCU_TABLE_FREE
+  asm-generic/tlb: Rename HAVE_MMU_GATHER_PAGE_SIZE
+  asm-generic/tlb: Rename HAVE_MMU_GATHER_NO_GATHER
+  asm-generic/tlb: Provide MMU_GATHER_TABLE_FREE
+
+ arch/Kconfig                                 |  13 +-
+ arch/arm/Kconfig                             |   2 +-
+ arch/arm/include/asm/tlb.h                   |   4 -
+ arch/arm64/Kconfig                           |   2 +-
+ arch/powerpc/Kconfig                         |   5 +-
+ arch/powerpc/include/asm/book3s/32/pgalloc.h |   8 --
+ arch/powerpc/include/asm/book3s/64/pgalloc.h |   2 -
+ arch/powerpc/include/asm/nohash/pgalloc.h    |   8 --
+ arch/powerpc/include/asm/tlb.h               |  11 ++
+ arch/powerpc/mm/book3s64/pgtable.c           |   7 -
+ arch/s390/Kconfig                            |   4 +-
+ arch/sparc/Kconfig                           |   3 +-
+ arch/sparc/include/asm/tlb_64.h              |   9 ++
+ arch/x86/Kconfig                             |   2 +-
+ arch/x86/include/asm/tlb.h                   |   4 +-
+ include/asm-generic/tlb.h                    | 120 ++++++++++-------
+ mm/gup.c                                     |   2 +-
+ mm/mmu_gather.c                              | 134 +++++++++++++------
+ 18 files changed, 207 insertions(+), 133 deletions(-)
+
+-- 
+2.24.1
