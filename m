@@ -1,198 +1,120 @@
 From: "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>
-Subject: [PATCH v3 2/9] mm/mmu_gather: Invalidate TLB correctly on batch allocation failure and flush
-Date: Tue, 14 Jan 2020 15:31:38 +0530
-Message-ID: <20200114100145.365527-3-aneesh.kumar@linux.ibm.com>
+Subject: [PATCH v3 7/9] asm-generic/tlb: Rename HAVE_MMU_GATHER_PAGE_SIZE
+Date: Tue, 14 Jan 2020 15:31:43 +0530
+Message-ID: <20200114100145.365527-8-aneesh.kumar@linux.ibm.com>
 References: <20200114100145.365527-1-aneesh.kumar@linux.ibm.com>
 Mime-Version: 1.0
-Content-Transfer-Encoding: 8bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:25188 "EHLO
-        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1729016AbgANKC3 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 14 Jan 2020 05:02:29 -0500
+Content-Transfer-Encoding: quoted-printable
+Return-path: <owner-linux-mm@kvack.org>
 In-Reply-To: <20200114100145.365527-1-aneesh.kumar@linux.ibm.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: owner-linux-mm@kvack.org
 To: akpm@linux-foundation.org, peterz@infradead.org, will@kernel.org
 Cc: linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, "Aneesh Kumar K . V" <aneesh.kumar@linux.ibm.com>
+List-Id: linux-arch.vger.kernel.org
 
 From: Peter Zijlstra <peterz@infradead.org>
 
-Architectures for which we have hardware walkers of Linux page table should
-flush TLB on mmu gather batch allocation failures and batch flush. Some
-architectures like POWER supports multiple translation modes (hash and radix)
-and in the case of POWER only radix translation mode needs the above TLBI.
-This is because for hash translation mode kernel wants to avoid this extra
-flush since there are no hardware walkers of linux page table. With radix
-translation, the hardware also walks linux page table and with that, kernel
-needs to make sure to TLB invalidate page walk cache before page table pages are
-freed.
+Towards a more consistent naming scheme.
 
-More details in
-commit: d86564a2f085 ("mm/tlb, x86/mm: Support invalidating TLB caches for RCU_TABLE_FREE")
-
-Fixes: a46cc7a90fd8 ("powerpc/mm/radix: Improve TLB/PWC flushes")
-Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org
+Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
 Signed-off-by: Aneesh Kumar K.V <aneesh.kumar@linux.ibm.com>
 ---
- arch/Kconfig                    |  3 ---
- arch/powerpc/Kconfig            |  1 -
- arch/powerpc/include/asm/tlb.h  | 11 +++++++++++
- arch/sparc/Kconfig              |  1 -
- arch/sparc/include/asm/tlb_64.h |  9 +++++++++
- include/asm-generic/tlb.h       | 22 +++++++++++++++-------
- mm/mmu_gather.c                 | 16 ++++++++--------
- 7 files changed, 43 insertions(+), 20 deletions(-)
+ arch/Kconfig              | 2 +-
+ arch/powerpc/Kconfig      | 2 +-
+ include/asm-generic/tlb.h | 9 ++++++---
+ mm/mmu_gather.c           | 4 ++--
+ 4 files changed, 10 insertions(+), 7 deletions(-)
 
 diff --git a/arch/Kconfig b/arch/Kconfig
-index 48b5e103bdb0..208aad121630 100644
+index 501d565690b5..e8548211b6a9 100644
 --- a/arch/Kconfig
 +++ b/arch/Kconfig
-@@ -396,9 +396,6 @@ config HAVE_ARCH_JUMP_LABEL_RELATIVE
- config HAVE_RCU_TABLE_FREE
+@@ -396,7 +396,7 @@ config HAVE_ARCH_JUMP_LABEL_RELATIVE
+ config MMU_GATHER_RCU_TABLE_FREE
  	bool
- 
--config HAVE_RCU_TABLE_NO_INVALIDATE
--	bool
--
- config HAVE_MMU_GATHER_PAGE_SIZE
+=20
+-config HAVE_MMU_GATHER_PAGE_SIZE
++config MMU_GATHER_PAGE_SIZE
  	bool
- 
+=20
+ config MMU_GATHER_NO_RANGE
 diff --git a/arch/powerpc/Kconfig b/arch/powerpc/Kconfig
-index 04240205f38c..f9970f87612e 100644
+index 955759234776..cefacb9c8f48 100644
 --- a/arch/powerpc/Kconfig
 +++ b/arch/powerpc/Kconfig
-@@ -223,7 +223,6 @@ config PPC
+@@ -223,7 +223,7 @@ config PPC
  	select HAVE_PERF_REGS
  	select HAVE_PERF_USER_STACK_DUMP
- 	select HAVE_RCU_TABLE_FREE
--	select HAVE_RCU_TABLE_NO_INVALIDATE	if HAVE_RCU_TABLE_FREE
- 	select HAVE_MMU_GATHER_PAGE_SIZE
+ 	select MMU_GATHER_RCU_TABLE_FREE
+-	select HAVE_MMU_GATHER_PAGE_SIZE
++	select MMU_GATHER_PAGE_SIZE
  	select HAVE_REGS_AND_STACK_ACCESS_API
  	select HAVE_RELIABLE_STACKTRACE		if PPC_BOOK3S_64 && CPU_LITTLE_ENDIAN
-diff --git a/arch/powerpc/include/asm/tlb.h b/arch/powerpc/include/asm/tlb.h
-index b2c0be93929d..7f3a8b902325 100644
---- a/arch/powerpc/include/asm/tlb.h
-+++ b/arch/powerpc/include/asm/tlb.h
-@@ -26,6 +26,17 @@
- 
- #define tlb_flush tlb_flush
- extern void tlb_flush(struct mmu_gather *tlb);
-+/*
-+ * book3s:
-+ * Hash does not use the linux page-tables, so we can avoid
-+ * the TLB invalidate for page-table freeing, Radix otoh does use the
-+ * page-tables and needs the TLBI.
-+ *
-+ * nohash:
-+ * We still do TLB invalidate in the __pte_free_tlb routine before we
-+ * add the page table pages to mmu gather table batch.
-+ */
-+#define tlb_needs_table_invalidate()	radix_enabled()
- 
- /* Get the generic bits... */
- #include <asm-generic/tlb.h>
-diff --git a/arch/sparc/Kconfig b/arch/sparc/Kconfig
-index eb24cb1afc11..18e9fb6fcf1b 100644
---- a/arch/sparc/Kconfig
-+++ b/arch/sparc/Kconfig
-@@ -65,7 +65,6 @@ config SPARC64
- 	select HAVE_KRETPROBES
- 	select HAVE_KPROBES
- 	select HAVE_RCU_TABLE_FREE if SMP
--	select HAVE_RCU_TABLE_NO_INVALIDATE if HAVE_RCU_TABLE_FREE
- 	select HAVE_MEMBLOCK_NODE_MAP
- 	select HAVE_ARCH_TRANSPARENT_HUGEPAGE
- 	select HAVE_DYNAMIC_FTRACE
-diff --git a/arch/sparc/include/asm/tlb_64.h b/arch/sparc/include/asm/tlb_64.h
-index a2f3fa61ee36..8cb8f3833239 100644
---- a/arch/sparc/include/asm/tlb_64.h
-+++ b/arch/sparc/include/asm/tlb_64.h
-@@ -28,6 +28,15 @@ void flush_tlb_pending(void);
- #define __tlb_remove_tlb_entry(tlb, ptep, address) do { } while (0)
- #define tlb_flush(tlb)	flush_tlb_pending()
- 
-+/*
-+ * SPARC64's hardware TLB fill does not use the Linux page-tables
-+ * and therefore we don't need a TLBI when freeing page-table pages.
-+ */
-+
-+#ifdef CONFIG_HAVE_RCU_TABLE_FREE
-+#define tlb_needs_table_invalidate()	(false)
-+#endif
-+
- #include <asm-generic/tlb.h>
- 
- #endif /* _SPARC64_TLB_H */
+ 	select HAVE_SYSCALL_TRACEPOINTS
 diff --git a/include/asm-generic/tlb.h b/include/asm-generic/tlb.h
-index 2b10036fefd0..9e22ac369d1d 100644
+index 04a1b8f08eea..53befa5acb27 100644
 --- a/include/asm-generic/tlb.h
 +++ b/include/asm-generic/tlb.h
-@@ -137,13 +137,6 @@
-  *  When used, an architecture is expected to provide __tlb_remove_table()
-  *  which does the actual freeing of these pages.
+@@ -121,11 +121,14 @@
   *
-- *  HAVE_RCU_TABLE_NO_INVALIDATE
-- *
-- *  This makes HAVE_RCU_TABLE_FREE avoid calling tlb_flush_mmu_tlbonly() before
-- *  freeing the page-table pages. This can be avoided if you use
-- *  HAVE_RCU_TABLE_FREE and your architecture does _NOT_ use the Linux
-- *  page-tables natively.
-- *
-  *  MMU_GATHER_NO_RANGE
+  * Additionally there are a few opt-in features:
   *
-  *  Use this if your architecture lacks an efficient flush_tlb_range().
-@@ -189,8 +182,23 @@ struct mmu_table_batch {
- 
- extern void tlb_remove_table(struct mmu_gather *tlb, void *table);
- 
-+/*
-+ * This allows an architecture that does not use the linux page-tables for
-+ * hardware to skip the TLBI when freeing page tables.
-+ */
-+#ifndef tlb_needs_table_invalidate
-+#define tlb_needs_table_invalidate() (true)
-+#endif
-+
-+#else
-+
-+#ifdef tlb_needs_table_invalidate
-+#error tlb_needs_table_invalidate() requires HAVE_RCU_TABLE_FREE
+- *  HAVE_MMU_GATHER_PAGE_SIZE
++ *  MMU_GATHER_PAGE_SIZE
+  *
+  *  This ensures we call tlb_flush() every time tlb_change_page_size() a=
+ctually
+  *  changes the size and provides mmu_gather::page_size to tlb_flush().
+  *
++ *  This might be useful if your architecture has size specific TLB
++ *  invalidation instructions.
++ *
+  *  MMU_GATHER_RCU_TABLE_FREE
+  *
+  *  This provides tlb_remove_table(), to be used instead of tlb_remove_p=
+age()
+@@ -279,7 +282,7 @@ struct mmu_gather {
+ 	struct mmu_gather_batch	local;
+ 	struct page		*__pages[MMU_GATHER_BUNDLE];
+=20
+-#ifdef CONFIG_HAVE_MMU_GATHER_PAGE_SIZE
++#ifdef CONFIG_MMU_GATHER_PAGE_SIZE
+ 	unsigned int page_size;
  #endif
- 
-+#endif /* CONFIG_HAVE_RCU_TABLE_FREE */
-+
-+
- #ifndef CONFIG_HAVE_MMU_GATHER_NO_GATHER
- /*
-  * If we can't allocate a page to make a big batch of page pointers
+ #endif
+@@ -435,7 +438,7 @@ static inline void tlb_remove_page(struct mmu_gather =
+*tlb, struct page *page)
+ static inline void tlb_change_page_size(struct mmu_gather *tlb,
+ 						     unsigned int page_size)
+ {
+-#ifdef CONFIG_HAVE_MMU_GATHER_PAGE_SIZE
++#ifdef CONFIG_MMU_GATHER_PAGE_SIZE
+ 	if (tlb->page_size && tlb->page_size !=3D page_size) {
+ 		if (!tlb->fullmm && !tlb->need_flush_all)
+ 			tlb_flush_mmu(tlb);
 diff --git a/mm/mmu_gather.c b/mm/mmu_gather.c
-index 7d70e5c78f97..7c1b8f67af7b 100644
+index 86bb2176e173..297c70307367 100644
 --- a/mm/mmu_gather.c
 +++ b/mm/mmu_gather.c
-@@ -102,14 +102,14 @@ bool __tlb_remove_page_size(struct mmu_gather *tlb, struct page *page, int page_
-  */
- static inline void tlb_table_invalidate(struct mmu_gather *tlb)
- {
--#ifndef CONFIG_HAVE_RCU_TABLE_NO_INVALIDATE
--	/*
--	 * Invalidate page-table caches used by hardware walkers. Then we still
--	 * need to RCU-sched wait while freeing the pages because software
--	 * walkers can still be in-flight.
--	 */
--	tlb_flush_mmu_tlbonly(tlb);
--#endif
-+	if (tlb_needs_table_invalidate()) {
-+		/*
-+		 * Invalidate page-table caches used by hardware walkers. Then
-+		 * we still need to RCU-sched wait while freeing the pages
-+		 * because software walkers can still be in-flight.
-+		 */
-+		tlb_flush_mmu_tlbonly(tlb);
-+	}
- }
- 
- static void tlb_remove_table_smp_sync(void *arg)
--- 
+@@ -69,7 +69,7 @@ bool __tlb_remove_page_size(struct mmu_gather *tlb, str=
+uct page *page, int page_
+=20
+ 	VM_BUG_ON(!tlb->end);
+=20
+-#ifdef CONFIG_HAVE_MMU_GATHER_PAGE_SIZE
++#ifdef CONFIG_MMU_GATHER_PAGE_SIZE
+ 	VM_WARN_ON(tlb->page_size !=3D page_size);
+ #endif
+=20
+@@ -223,7 +223,7 @@ void tlb_gather_mmu(struct mmu_gather *tlb, struct mm=
+_struct *mm,
+ #ifdef CONFIG_MMU_GATHER_RCU_TABLE_FREE
+ 	tlb->batch =3D NULL;
+ #endif
+-#ifdef CONFIG_HAVE_MMU_GATHER_PAGE_SIZE
++#ifdef CONFIG_MMU_GATHER_PAGE_SIZE
+ 	tlb->page_size =3D 0;
+ #endif
+=20
+--=20
 2.24.1
