@@ -1,175 +1,72 @@
-Return-Path: <SRS0=nYHR=3J=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail-oi1-f193.google.com ([209.85.167.193]:34543 "EHLO
-        mail-oi1-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726988AbgATPxy (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 20 Jan 2020 10:53:54 -0500
-Received: by mail-oi1-f193.google.com with SMTP id l136so28888631oig.1
-        for <linux-arch@vger.kernel.org>; Mon, 20 Jan 2020 07:53:53 -0800 (PST)
+Return-Path: <SRS0=Pd00=3D=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from smtprelay-out1.synopsys.com ([149.117.73.133]:53180 "EHLO
+        smtprelay-out1.synopsys.com" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S1726839AbgANUI4 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 14 Jan 2020 15:08:56 -0500
+From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Subject: [RFC 1/4] asm-generic/uaccess: don't define inline functions if noinline lib/* in use
+Date: Tue, 14 Jan 2020 12:08:43 -0800
+Message-ID: <20200114200846.29434-2-vgupta@synopsys.com>
+In-Reply-To: <20200114200846.29434-1-vgupta@synopsys.com>
+References: <20200114200846.29434-1-vgupta@synopsys.com>
 MIME-Version: 1.0
-References: <20200120141927.114373-1-elver@google.com> <CACT4Y+ajkjCzv2adupX9oVKjNppn-AKsGkGqLMExwjHXG37Lxw@mail.gmail.com>
-In-Reply-To: <CACT4Y+ajkjCzv2adupX9oVKjNppn-AKsGkGqLMExwjHXG37Lxw@mail.gmail.com>
-From: Marco Elver <elver@google.com>
-Date: Mon, 20 Jan 2020 16:53:41 +0100
-Message-ID: <CANpmjNN4XhU6WL35bHF2Wu76fJMXO5++uRBk0nh_s6BiRV9jdA@mail.gmail.com>
-Subject: Re: [PATCH 1/5] include/linux: Add instrumented.h infrastructure
-Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dmitry Vyukov <dvyukov@google.com>
-Cc: "Paul E. McKenney" <paulmck@kernel.org>, Andrey Konovalov <andreyknvl@google.com>, Alexander Potapenko <glider@google.com>, kasan-dev <kasan-dev@googlegroups.com>, LKML <linux-kernel@vger.kernel.org>, Mark Rutland <mark.rutland@arm.com>, Will Deacon <will@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Boqun Feng <boqun.feng@gmail.com>, Arnd Bergmann <arnd@arndb.de>, Al Viro <viro@zeniv.linux.org.uk>, Christophe Leroy <christophe.leroy@c-s.fr>, Daniel Axtens <dja@axtens.net>, Michael Ellerman <mpe@ellerman.id.au>, Steven Rostedt <rostedt@goodmis.org>, Masami Hiramatsu <mhiramat@kernel.org>, Ingo Molnar <mingo@kernel.org>, Christian Brauner <christian.brauner@ubuntu.com>, Daniel Borkmann <daniel@iogearbox.net>, cyphar@cyphar.com, Kees Cook <keescook@chromium.org>, linux-arch <linux-arch@vger.kernel.org>
-Message-ID: <20200120155341.7hdFb4mhJNE8TEQTe4IE7oLgdVx0pen4pz53s8-C97w@z>
+To: Arnd Bergmann <arnd@arndb.de>, Khalid Aziz <khalid.aziz@oracle.com>, Andrey Konovalov <andreyknvl@google.com>, Andrew Morton <akpm@linux-foundation.org>, Peter Zijlstra <peterz@infradead.org>, Christian Brauner <christian.brauner@ubuntu.com>, Kees Cook <keescook@chromium.org>, Ingo Molnar <mingo@kernel.org>, Aleksa Sarai <cyphar@cyphar.com>, Linus Torvalds <torvalds@linux-foundation.org>
+Cc: linux-snps-arc@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Message-ID: <20200114200843.6pNXQZHZ2HTcUhwFL4rNKnt1p2e9lGtozuZmRxne1nw@z>
 
-On Mon, 20 Jan 2020 at 15:34, Dmitry Vyukov <dvyukov@google.com> wrote:
->
-> On Mon, Jan 20, 2020 at 3:19 PM Marco Elver <elver@google.com> wrote:
-> >
-> > This adds instrumented.h, which provides generic wrappers for memory
-> > access instrumentation that the compiler cannot emit for various
-> > sanitizers. Currently this unifies KASAN and KCSAN instrumentation. In
-> > future this will also include KMSAN instrumentation.
-> >
-> > Note that, copy_{to,from}_user require special instrumentation,
-> > providing hooks before and after the access, since we may need to know
-> > the actual bytes accessed (currently this is relevant for KCSAN, and is
-> > also relevant in future for KMSAN).
->
-> How will KMSAN instrumentation look like?
->
-> > Suggested-by: Arnd Bergmann <arnd@arndb.de>
-> > Signed-off-by: Marco Elver <elver@google.com>
-> > ---
-> >  include/linux/instrumented.h | 153 +++++++++++++++++++++++++++++++++++
-> >  1 file changed, 153 insertions(+)
-> >  create mode 100644 include/linux/instrumented.h
-> >
-> > diff --git a/include/linux/instrumented.h b/include/linux/instrumented.h
-> > new file mode 100644
-> > index 000000000000..9f83c8520223
-> > --- /dev/null
-> > +++ b/include/linux/instrumented.h
-> > @@ -0,0 +1,153 @@
-> > +/* SPDX-License-Identifier: GPL-2.0 */
-> > +
-> > +/*
-> > + * This header provides generic wrappers for memory access instrumentation that
-> > + * the compiler cannot emit for: KASAN, KCSAN.
-> > + */
-> > +#ifndef _LINUX_INSTRUMENTED_H
-> > +#define _LINUX_INSTRUMENTED_H
-> > +
-> > +#include <linux/compiler.h>
-> > +#include <linux/kasan-checks.h>
-> > +#include <linux/kcsan-checks.h>
-> > +#include <linux/types.h>
-> > +
-> > +/**
-> > + * instrument_read - instrument regular read access
-> > + *
-> > + * Instrument a regular read access. The instrumentation should be inserted
-> > + * before the actual read happens.
-> > + *
-> > + * @ptr address of access
-> > + * @size size of access
-> > + */
-> > +static __always_inline void instrument_read(const volatile void *v, size_t size)
-> > +{
-> > +       kasan_check_read(v, size);
-> > +       kcsan_check_read(v, size);
-> > +}
-> > +
-> > +/**
-> > + * instrument_write - instrument regular write access
-> > + *
-> > + * Instrument a regular write access. The instrumentation should be inserted
-> > + * before the actual write happens.
-> > + *
-> > + * @ptr address of access
-> > + * @size size of access
-> > + */
-> > +static __always_inline void instrument_write(const volatile void *v, size_t size)
-> > +{
-> > +       kasan_check_write(v, size);
-> > +       kcsan_check_write(v, size);
-> > +}
-> > +
-> > +/**
-> > + * instrument_atomic_read - instrument atomic read access
-> > + *
-> > + * Instrument an atomic read access. The instrumentation should be inserted
-> > + * before the actual read happens.
-> > + *
-> > + * @ptr address of access
-> > + * @size size of access
-> > + */
-> > +static __always_inline void instrument_atomic_read(const volatile void *v, size_t size)
-> > +{
-> > +       kasan_check_read(v, size);
-> > +       kcsan_check_atomic_read(v, size);
-> > +}
-> > +
-> > +/**
-> > + * instrument_atomic_write - instrument atomic write access
-> > + *
-> > + * Instrument an atomic write access. The instrumentation should be inserted
-> > + * before the actual write happens.
-> > + *
-> > + * @ptr address of access
-> > + * @size size of access
-> > + */
-> > +static __always_inline void instrument_atomic_write(const volatile void *v, size_t size)
-> > +{
-> > +       kasan_check_write(v, size);
-> > +       kcsan_check_atomic_write(v, size);
-> > +}
-> > +
-> > +/**
-> > + * instrument_copy_to_user_pre - instrument reads of copy_to_user
-> > + *
-> > + * Instrument reads from kernel memory, that are due to copy_to_user (and
-> > + * variants).
-> > + *
-> > + * The instrumentation must be inserted before the accesses. At this point the
-> > + * actual number of bytes accessed is not yet known.
-> > + *
-> > + * @dst destination address
-> > + * @size maximum access size
-> > + */
-> > +static __always_inline void
-> > +instrument_copy_to_user_pre(const volatile void *src, size_t size)
-> > +{
-> > +       /* Check before, to warn before potential memory corruption. */
-> > +       kasan_check_read(src, size);
-> > +}
-> > +
-> > +/**
-> > + * instrument_copy_to_user_post - instrument reads of copy_to_user
-> > + *
-> > + * Instrument reads from kernel memory, that are due to copy_to_user (and
-> > + * variants).
-> > + *
-> > + * The instrumentation must be inserted after the accesses. At this point the
-> > + * actual number of bytes accessed should be known.
-> > + *
-> > + * @dst destination address
-> > + * @size maximum access size
-> > + * @left number of bytes left that were not copied
-> > + */
-> > +static __always_inline void
-> > +instrument_copy_to_user_post(const volatile void *src, size_t size, size_t left)
-> > +{
-> > +       /* Check after, to avoid false positive if memory was not accessed. */
-> > +       kcsan_check_read(src, size - left);
->
-> Why don't we check the full range?
-> Kernel intending to copy something racy to user already looks like a
-> bug to me, even if user-space has that page unmapped. User-space can
-> always make the full range succeed. What am I missing?
+There are 2 generic varaints of strncpy_from_user() / strnlen_user()
+ (1). inline version in asm-generic/uaccess.h
+ (2). optimized word-at-a-time version in lib/*
 
-Fair enough. I can move this into the pre-hooks in v2.
+This patch disables #1 if #2 selected. This allows arches to continue
+reusing asm-generic/uaccess.h for rest of code
 
-However, note that, that leaves us with a bunch of empty post-hooks in
-the patch. While this will probably change when we get KMSAN, is it
-reasonable to keep them empty for now?
+This came up when switching ARC to generic word-at-a-time interface
 
-Thanks,
--- Marco
+Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
+---
+ include/asm-generic/uaccess.h | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/include/asm-generic/uaccess.h b/include/asm-generic/uaccess.h
+index e935318804f8..74c14211377b 100644
+--- a/include/asm-generic/uaccess.h
++++ b/include/asm-generic/uaccess.h
+@@ -227,6 +227,7 @@ __strncpy_from_user(char *dst, const char __user *src, long count)
+ }
+ #endif
+ 
++#ifndef CONFIG_GENERIC_STRNCPY_FROM_USER
+ static inline long
+ strncpy_from_user(char *dst, const char __user *src, long count)
+ {
+@@ -234,6 +235,7 @@ strncpy_from_user(char *dst, const char __user *src, long count)
+ 		return -EFAULT;
+ 	return __strncpy_from_user(dst, src, count);
+ }
++#endif
+ 
+ /*
+  * Return the size of a string (including the ending 0)
+@@ -244,6 +246,7 @@ strncpy_from_user(char *dst, const char __user *src, long count)
+ #define __strnlen_user(s, n) (strnlen((s), (n)) + 1)
+ #endif
+ 
++#ifndef CONFIG_GENERIC_STRNLEN_USER
+ /*
+  * Unlike strnlen, strnlen_user includes the nul terminator in
+  * its returned count. Callers should check for a returned value
+@@ -255,6 +258,7 @@ static inline long strnlen_user(const char __user *src, long n)
+ 		return 0;
+ 	return __strnlen_user(src, n);
+ }
++#endif
+ 
+ /*
+  * Zero Userspace
+-- 
+2.20.1
