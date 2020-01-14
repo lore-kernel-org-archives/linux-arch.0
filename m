@@ -1,62 +1,159 @@
-Return-Path: <owner-linux-mm@kvack.org>
-From: Sandipan Das <sandipan@linux.ibm.com>
-Subject: [PATCH v17 19/24] selftests/vm/pkeys: Associate key on a mapped page
- and detect write violation
-Date: Mon, 20 Jan 2020 14:06:16 +0530
-In-Reply-To: <cover.1579507768.git.sandipan@linux.ibm.com>
-References: <cover.1579507768.git.sandipan@linux.ibm.com>
-In-Reply-To: <cover.1579507768.git.sandipan@linux.ibm.com>
-References: <cover.1579507768.git.sandipan@linux.ibm.com>
-Message-ID: <45459f250aa2d382163c73f497ac6931901f148b.1579507768.git.sandipan@linux.ibm.com>
-Sender: owner-linux-mm@kvack.org
-To: shuah@kernel.org, linux-kselftest@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, fweimer@redhat.com, dave.hansen@intel.com, x86@kernel.org, linuxram@us.ibm.com, mhocko@kernel.org, linux-mm@kvack.org, mingo@redhat.com, aneesh.kumar@linux.ibm.com, bauerman@linux.ibm.com, msuchanek@suse.de, mpe@ellerman.id.au, linuxppc-dev@lists.ozlabs.org
+Return-Path: <linux-arch-owner@vger.kernel.org>
+Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:54230 "EHLO
+ mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with
+ ESMTP id S1729067AbgANKDn (ORCPT <rfc822;linux-arch@vger.kernel.org>); Tue,
+ 14 Jan 2020 05:03:43 -0500
+From: "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>
+Subject: [PATCH v3 1/9] powerpc/mmu_gather: Enable RCU_TABLE_FREE even for
+ !SMP case
+Date: Tue, 14 Jan 2020 15:31:37 +0530
+Message-ID: <20200114100145.365527-2-aneesh.kumar@linux.ibm.com>
+In-Reply-To: <20200114100145.365527-1-aneesh.kumar@linux.ibm.com>
+References: <20200114100145.365527-1-aneesh.kumar@linux.ibm.com>
+MIME-Version: 1.0
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200120083616.4JgwhhrYyuM7AAU9Ze4uPkGnXUXtiC3Xp1NsCGV4S-A@z>
+Content-Transfer-Encoding: quoted-printable
+To: akpm@linux-foundation.org, peterz@infradead.org, will@kernel.org
+Cc: linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>
+Message-ID: <20200114100137.MnoUu3gjJ2i2TbZfuckLVJglGdK5nxE-UTZ6icXyfew@z>
 
-From: Ram Pai <linuxram@us.ibm.com>
+A follow up patch is going to make sure we correctly invalidate page walk=
+ cache
+before we free page table pages. In order to keep things simple enable
+RCU_TABLE_FREE even for !SMP so that we don't have to fixup the !SMP case
+differently in the followup patch
 
-Detect write-violation on a page to which write-disabled
-key is associated much after the page is mapped.
+!SMP case is right now broken for radix translation w.r.t page walk cache=
+ flush.
+We can get interrupted in between page table free and that would imply we
+have page walk cache entries pointing to tables which got freed already.
 
-cc: Dave Hansen <dave.hansen@intel.com>
-cc: Florian Weimer <fweimer@redhat.com>
-Signed-off-by: Ram Pai <linuxram@us.ibm.com>
-Acked-by: Dave Hansen <dave.hansen@intel.com>
-Signed-off-by: Sandipan Das <sandipan@linux.ibm.com>
+Acked-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+Signed-off-by: Aneesh Kumar K.V <aneesh.kumar@linux.ibm.com>
 ---
- tools/testing/selftests/vm/protection_keys.c | 12 ++++++++++++
- 1 file changed, 12 insertions(+)
+ arch/powerpc/Kconfig                         | 2 +-
+ arch/powerpc/include/asm/book3s/32/pgalloc.h | 8 --------
+ arch/powerpc/include/asm/book3s/64/pgalloc.h | 2 --
+ arch/powerpc/include/asm/nohash/pgalloc.h    | 8 --------
+ arch/powerpc/mm/book3s64/pgtable.c           | 7 -------
+ 5 files changed, 1 insertion(+), 26 deletions(-)
 
-diff --git a/tools/testing/selftests/vm/protection_keys.c b/tools/testing/selftests/vm/protection_keys.c
-index f65d384ef6a0..cb31a5cdf6d9 100644
---- a/tools/testing/selftests/vm/protection_keys.c
-+++ b/tools/testing/selftests/vm/protection_keys.c
-@@ -1002,6 +1002,17 @@ void test_read_of_access_disabled_region_with_page_already_mapped(int *ptr,
- 	expected_pkey_fault(pkey);
+diff --git a/arch/powerpc/Kconfig b/arch/powerpc/Kconfig
+index 1ec34e16ed65..04240205f38c 100644
+--- a/arch/powerpc/Kconfig
++++ b/arch/powerpc/Kconfig
+@@ -222,7 +222,7 @@ config PPC
+ 	select HAVE_HARDLOCKUP_DETECTOR_PERF	if PERF_EVENTS && HAVE_PERF_EVENTS=
+_NMI && !HAVE_HARDLOCKUP_DETECTOR_ARCH
+ 	select HAVE_PERF_REGS
+ 	select HAVE_PERF_USER_STACK_DUMP
+-	select HAVE_RCU_TABLE_FREE		if SMP
++	select HAVE_RCU_TABLE_FREE
+ 	select HAVE_RCU_TABLE_NO_INVALIDATE	if HAVE_RCU_TABLE_FREE
+ 	select HAVE_MMU_GATHER_PAGE_SIZE
+ 	select HAVE_REGS_AND_STACK_ACCESS_API
+diff --git a/arch/powerpc/include/asm/book3s/32/pgalloc.h b/arch/powerpc/=
+include/asm/book3s/32/pgalloc.h
+index 998317702630..dc5c039eb28e 100644
+--- a/arch/powerpc/include/asm/book3s/32/pgalloc.h
++++ b/arch/powerpc/include/asm/book3s/32/pgalloc.h
+@@ -49,7 +49,6 @@ static inline void pgtable_free(void *table, unsigned i=
+ndex_size)
+
+ #define get_hugepd_cache_index(x)  (x)
+
+-#ifdef CONFIG_SMP
+ static inline void pgtable_free_tlb(struct mmu_gather *tlb,
+ 				    void *table, int shift)
+ {
+@@ -66,13 +65,6 @@ static inline void __tlb_remove_table(void *_table)
+
+ 	pgtable_free(table, shift);
+ }
+-#else
+-static inline void pgtable_free_tlb(struct mmu_gather *tlb,
+-				    void *table, int shift)
+-{
+-	pgtable_free(table, shift);
+-}
+-#endif
+
+ static inline void __pte_free_tlb(struct mmu_gather *tlb, pgtable_t tabl=
+e,
+ 				  unsigned long address)
+diff --git a/arch/powerpc/include/asm/book3s/64/pgalloc.h b/arch/powerpc/=
+include/asm/book3s/64/pgalloc.h
+index f6968c811026..a41e91bd0580 100644
+--- a/arch/powerpc/include/asm/book3s/64/pgalloc.h
++++ b/arch/powerpc/include/asm/book3s/64/pgalloc.h
+@@ -19,9 +19,7 @@ extern struct vmemmap_backing *vmemmap_list;
+ extern pmd_t *pmd_fragment_alloc(struct mm_struct *, unsigned long);
+ extern void pmd_fragment_free(unsigned long *);
+ extern void pgtable_free_tlb(struct mmu_gather *tlb, void *table, int sh=
+ift);
+-#ifdef CONFIG_SMP
+ extern void __tlb_remove_table(void *_table);
+-#endif
+ void pte_frag_destroy(void *pte_frag);
+
+ static inline pgd_t *radix__pgd_alloc(struct mm_struct *mm)
+diff --git a/arch/powerpc/include/asm/nohash/pgalloc.h b/arch/powerpc/inc=
+lude/asm/nohash/pgalloc.h
+index 332b13b4ecdb..29c43665a753 100644
+--- a/arch/powerpc/include/asm/nohash/pgalloc.h
++++ b/arch/powerpc/include/asm/nohash/pgalloc.h
+@@ -46,7 +46,6 @@ static inline void pgtable_free(void *table, int shift)
+
+ #define get_hugepd_cache_index(x)	(x)
+
+-#ifdef CONFIG_SMP
+ static inline void pgtable_free_tlb(struct mmu_gather *tlb, void *table,=
+ int shift)
+ {
+ 	unsigned long pgf =3D (unsigned long)table;
+@@ -64,13 +63,6 @@ static inline void __tlb_remove_table(void *_table)
+ 	pgtable_free(table, shift);
  }
 
-+void test_write_of_write_disabled_region_with_page_already_mapped(int *ptr,
-+		u16 pkey)
-+{
-+	*ptr = __LINE__;
-+	dprintf1("disabling write access; after accessing the page, "
-+		"to PKEY[%02d], doing write\n", pkey);
-+	pkey_write_deny(pkey);
-+	*ptr = __LINE__;
-+	expected_pkey_fault(pkey);
-+}
-+
- void test_write_of_write_disabled_region(int *ptr, u16 pkey)
+-#else
+-static inline void pgtable_free_tlb(struct mmu_gather *tlb, void *table,=
+ int shift)
+-{
+-	pgtable_free(table, shift);
+-}
+-#endif
+-
+ static inline void __pte_free_tlb(struct mmu_gather *tlb, pgtable_t tabl=
+e,
+ 				  unsigned long address)
  {
- 	dprintf1("disabling write access to PKEY[%02d], doing write\n", pkey);
-@@ -1410,6 +1421,7 @@ void (*pkey_tests[])(int *ptr, u16 pkey) = {
- 	test_read_of_access_disabled_region,
- 	test_read_of_access_disabled_region_with_page_already_mapped,
- 	test_write_of_write_disabled_region,
-+	test_write_of_write_disabled_region_with_page_already_mapped,
- 	test_write_of_access_disabled_region,
- 	test_kernel_write_of_access_disabled_region,
- 	test_kernel_write_of_write_disabled_region,
--- 
-2.17.1
+diff --git a/arch/powerpc/mm/book3s64/pgtable.c b/arch/powerpc/mm/book3s6=
+4/pgtable.c
+index 75483b40fcb1..2bf7e1b4fd82 100644
+--- a/arch/powerpc/mm/book3s64/pgtable.c
++++ b/arch/powerpc/mm/book3s64/pgtable.c
+@@ -378,7 +378,6 @@ static inline void pgtable_free(void *table, int inde=
+x)
+ 	}
+ }
+
+-#ifdef CONFIG_SMP
+ void pgtable_free_tlb(struct mmu_gather *tlb, void *table, int index)
+ {
+ 	unsigned long pgf =3D (unsigned long)table;
+@@ -395,12 +394,6 @@ void __tlb_remove_table(void *_table)
+
+ 	return pgtable_free(table, index);
+ }
+-#else
+-void pgtable_free_tlb(struct mmu_gather *tlb, void *table, int index)
+-{
+-	return pgtable_free(table, index);
+-}
+-#endif
+
+ #ifdef CONFIG_PROC_FS
+ atomic_long_t direct_pages_count[MMU_PAGE_COUNT];
+--=20
+2.24.1
