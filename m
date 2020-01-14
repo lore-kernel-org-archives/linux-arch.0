@@ -1,43 +1,48 @@
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: Re: [PATCH v2 2/8] lib: vdso: Build 32 bit specific functions in the right context
-Date: Tue, 14 Jan 2020 10:33:50 +0100
-Message-ID: <87r202qt4x.fsf@nanos.tec.linutronix.de>
-References: <20190830135902.20861-1-vincenzo.frascino@arm.com> <20190830135902.20861-3-vincenzo.frascino@arm.com> <87tv4zq9dc.fsf@nanos.tec.linutronix.de>
+From: "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>
+Subject: [PATCH v3 4/9] asm-gemeric/tlb: Remove stray function declarations
+Date: Tue, 14 Jan 2020 15:31:40 +0530
+Message-ID: <20200114100145.365527-5-aneesh.kumar@linux.ibm.com>
+References: <20200114100145.365527-1-aneesh.kumar@linux.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 8BIT
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <87tv4zq9dc.fsf@nanos.tec.linutronix.de>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Vincenzo Frascino <vincenzo.frascino@arm.com>, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org, linux-kselftest@vger.kernel.org
-Cc: catalin.marinas@arm.com, will@kernel.org, paul.burton@mips.com, salyzyn@android.com, 0x7f454c46@gmail.com, luto@kernel.org
-List-Id: linux-arch.vger.kernel.org
+Content-Transfer-Encoding: 8bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:51236 "EHLO
+        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S1726053AbgANKCY (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 14 Jan 2020 05:02:24 -0500
+In-Reply-To: <20200114100145.365527-1-aneesh.kumar@linux.ibm.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: akpm@linux-foundation.org, peterz@infradead.org, will@kernel.org
+Cc: linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, "Aneesh Kumar K . V" <aneesh.kumar@linux.ibm.com>
 
-Thomas Gleixner <tglx@linutronix.de> writes:
+From: Peter Zijlstra <peterz@infradead.org>
 
-> Vincenzo Frascino <vincenzo.frascino@arm.com> writes:
->
->> clock_gettime32 and clock_getres_time32 should be compiled only with a
->> 32 bit vdso library.
->>
->> Exclude these symbols when BUILD_VDSO32 is not defined.
->
-> This breaks the ARM build with:
->
-> arch/arm/vdso/vgettimeofday.c: In function ‘__vdso_clock_gettime’:
-> arch/arm/vdso/vgettimeofday.c:15:9: error: implicit declaration of function ‘__cvdso_clock_gettime32’; did you mean ‘__cvdso_clock_gettime’? [-Werror=implicit-function-declaration]
->   return __cvdso_clock_gettime32(clock, ts);
->          ^~~~~~~~~~~~~~~~~~~~~~~
->          __cvdso_clock_gettime
-> arch/arm/vdso/vgettimeofday.c: In function ‘__vdso_clock_getres’:
-> arch/arm/vdso/vgettimeofday.c:33:9: error: implicit declaration of function ‘__cvdso_clock_getres_time32’; did you mean ‘__cvdso_clock_getres_common’? [-Werror=implicit-function-declaration]
->   return __cvdso_clock_getres_time32(clock_id, res);
->          ^~~~~~~~~~~~~~~~~~~~~~~~~~~
->          __cvdso_clock_getres_common
-> cc1: some warnings being treated as errors
->
-> The patch below 'fixes' at least the build. Can someone please confirm
-> the correctness?
+We removed the actual functions a while ago.
 
-Bah, it's not fixing it. That's what you get when you compile the wrong
-tree...
+Fixes: 1808d65b55e4 ("asm-generic/tlb: Remove arch_tlb*_mmu()")
+Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+Signed-off-by: Aneesh Kumar K.V <aneesh.kumar@linux.ibm.com>
+---
+ include/asm-generic/tlb.h | 4 ----
+ 1 file changed, 4 deletions(-)
+
+diff --git a/include/asm-generic/tlb.h b/include/asm-generic/tlb.h
+index b36b3bef5661..1a4cea5f95df 100644
+--- a/include/asm-generic/tlb.h
++++ b/include/asm-generic/tlb.h
+@@ -285,11 +285,7 @@ struct mmu_gather {
+ #endif
+ };
+ 
+-void arch_tlb_gather_mmu(struct mmu_gather *tlb,
+-	struct mm_struct *mm, unsigned long start, unsigned long end);
+ void tlb_flush_mmu(struct mmu_gather *tlb);
+-void arch_tlb_finish_mmu(struct mmu_gather *tlb,
+-			 unsigned long start, unsigned long end, bool force);
+ 
+ static inline void __tlb_adjust_range(struct mmu_gather *tlb,
+ 				      unsigned long address,
+-- 
+2.24.1
