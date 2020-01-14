@@ -1,177 +1,208 @@
-Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:52722 "EHLO
- mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
- with ESMTP id S1726465AbgATIjI (ORCPT <rfc822;linux-arch@vger.kernel.org>);
- Mon, 20 Jan 2020 03:39:08 -0500
-Received: from pps.filterd (m0098420.ppops.net [127.0.0.1]) by
- mx0b-001b2d01.pphosted.com (8.16.0.42/8.16.0.42) with SMTP id 00K8d0uo121523
- for <linux-arch@vger.kernel.org>; Mon, 20 Jan 2020 03:39:07 -0500
-Received: from e06smtp04.uk.ibm.com (e06smtp04.uk.ibm.com [195.75.94.100]) by
- mx0b-001b2d01.pphosted.com with ESMTP id 2xmg39fyke-1 (version=TLSv1.2
- cipher=AES256-GCM-SHA384 bits=256 verify=NOT) for
- <linux-arch@vger.kernel.org>; Mon, 20 Jan 2020 03:39:05 -0500
-Received: from localhost by e06smtp04.uk.ibm.com with IBM ESMTP SMTP Gateway:
- Authorized Use Only! Violators will be prosecuted for
- <linux-arch@vger.kernel.org> from <sandipan@linux.ibm.com>; Mon, 20 Jan 2020
- 08:36:51 -0000
-From: Sandipan Das <sandipan@linux.ibm.com>
-Subject: [PATCH v17 08/24] selftests: vm: pkeys: Add helpers for pkey bits
-Date: Mon, 20 Jan 2020 14:06:05 +0530
-In-Reply-To: <cover.1579507768.git.sandipan@linux.ibm.com>
-References: <cover.1579507768.git.sandipan@linux.ibm.com>
-In-Reply-To: <cover.1579507768.git.sandipan@linux.ibm.com>
-References: <cover.1579507768.git.sandipan@linux.ibm.com>
-Message-ID: <ece81867019cf4a6c4680e1e2d4254ef11e42a3f.1579507768.git.sandipan@linux.ibm.com>
-Sender: linux-arch-owner@vger.kernel.org
+Return-Path: <owner-linux-mm@kvack.org>
+From: "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>
+Subject: [PATCH v3 2/9] mm/mmu_gather: Invalidate TLB correctly on batch
+ allocation failure and flush
+Date: Tue, 14 Jan 2020 15:31:38 +0530
+Message-ID: <20200114100145.365527-3-aneesh.kumar@linux.ibm.com>
+In-Reply-To: <20200114100145.365527-1-aneesh.kumar@linux.ibm.com>
+References: <20200114100145.365527-1-aneesh.kumar@linux.ibm.com>
+MIME-Version: 1.0
+Content-Transfer-Encoding: quoted-printable
+Sender: owner-linux-mm@kvack.org
+To: akpm@linux-foundation.org, peterz@infradead.org, will@kernel.org
+Cc: linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, "Aneesh Kumar K . V" <aneesh.kumar@linux.ibm.com>
 List-ID: <linux-arch.vger.kernel.org>
-To: shuah@kernel.org, linux-kselftest@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, fweimer@redhat.com, dave.hansen@intel.com, x86@kernel.org, linuxram@us.ibm.com, mhocko@kernel.org, linux-mm@kvack.org, mingo@redhat.com, aneesh.kumar@linux.ibm.com, bauerman@linux.ibm.com, msuchanek@suse.de, mpe@ellerman.id.au, linuxppc-dev@lists.ozlabs.org
-Message-ID: <20200120083605.tdFLQVmHY7_Tt7Rn_rhkbF4GHM_FiLfPBR9tts5iZJ0@z>
+Message-ID: <20200114100138.Vy-EIjN84xFqgfPrZk3QP2cOJk03OM1jctDRfwzmkto@z>
 
-This introduces some functions that help with setting
-or clearing bits of a particular pkey. This also adds
-an abstraction for getting a pkey's bit position in
-the pkey register as this may vary across architectures.
+From: Peter Zijlstra <peterz@infradead.org>
 
-Signed-off-by: Sandipan Das <sandipan@linux.ibm.com>
+Architectures for which we have hardware walkers of Linux page table shou=
+ld
+flush TLB on mmu gather batch allocation failures and batch flush. Some
+architectures like POWER supports multiple translation modes (hash and ra=
+dix)
+and in the case of POWER only radix translation mode needs the above TLBI=
+.
+This is because for hash translation mode kernel wants to avoid this extr=
+a
+flush since there are no hardware walkers of linux page table. With radix
+translation, the hardware also walks linux page table and with that, kern=
+el
+needs to make sure to TLB invalidate page walk cache before page table pa=
+ges are
+freed.
+
+More details in
+commit: d86564a2f085 ("mm/tlb, x86/mm: Support invalidating TLB caches fo=
+r RCU_TABLE_FREE")
+
+Fixes: a46cc7a90fd8 ("powerpc/mm/radix: Improve TLB/PWC flushes")
+Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org
+Signed-off-by: Aneesh Kumar K.V <aneesh.kumar@linux.ibm.com>
 ---
- tools/testing/selftests/vm/pkey-helpers.h    | 22 ++++++++++++++
- tools/testing/selftests/vm/pkey-x86.h        |  5 +++
- tools/testing/selftests/vm/protection_keys.c | 32 ++++++--------------
- 3 files changed, 36 insertions(+), 23 deletions(-)
+ arch/Kconfig                    |  3 ---
+ arch/powerpc/Kconfig            |  1 -
+ arch/powerpc/include/asm/tlb.h  | 11 +++++++++++
+ arch/sparc/Kconfig              |  1 -
+ arch/sparc/include/asm/tlb_64.h |  9 +++++++++
+ include/asm-generic/tlb.h       | 22 +++++++++++++++-------
+ mm/mmu_gather.c                 | 16 ++++++++--------
+ 7 files changed, 43 insertions(+), 20 deletions(-)
 
-diff --git a/tools/testing/selftests/vm/pkey-helpers.h b/tools/testing/selftests/vm/pkey-helpers.h
-index dfbce49269ce..0e3da7c8d628 100644
---- a/tools/testing/selftests/vm/pkey-helpers.h
-+++ b/tools/testing/selftests/vm/pkey-helpers.h
-@@ -80,6 +80,28 @@ extern void abort_hooks(void);
- #error Architecture not supported
- #endif /* arch */
-
-+#define PKEY_MASK	(PKEY_DISABLE_ACCESS | PKEY_DISABLE_WRITE)
+diff --git a/arch/Kconfig b/arch/Kconfig
+index 48b5e103bdb0..208aad121630 100644
+--- a/arch/Kconfig
++++ b/arch/Kconfig
+@@ -396,9 +396,6 @@ config HAVE_ARCH_JUMP_LABEL_RELATIVE
+ config HAVE_RCU_TABLE_FREE
+ 	bool
+=20
+-config HAVE_RCU_TABLE_NO_INVALIDATE
+-	bool
+-
+ config HAVE_MMU_GATHER_PAGE_SIZE
+ 	bool
+=20
+diff --git a/arch/powerpc/Kconfig b/arch/powerpc/Kconfig
+index 04240205f38c..f9970f87612e 100644
+--- a/arch/powerpc/Kconfig
++++ b/arch/powerpc/Kconfig
+@@ -223,7 +223,6 @@ config PPC
+ 	select HAVE_PERF_REGS
+ 	select HAVE_PERF_USER_STACK_DUMP
+ 	select HAVE_RCU_TABLE_FREE
+-	select HAVE_RCU_TABLE_NO_INVALIDATE	if HAVE_RCU_TABLE_FREE
+ 	select HAVE_MMU_GATHER_PAGE_SIZE
+ 	select HAVE_REGS_AND_STACK_ACCESS_API
+ 	select HAVE_RELIABLE_STACKTRACE		if PPC_BOOK3S_64 && CPU_LITTLE_ENDIAN
+diff --git a/arch/powerpc/include/asm/tlb.h b/arch/powerpc/include/asm/tl=
+b.h
+index b2c0be93929d..7f3a8b902325 100644
+--- a/arch/powerpc/include/asm/tlb.h
++++ b/arch/powerpc/include/asm/tlb.h
+@@ -26,6 +26,17 @@
+=20
+ #define tlb_flush tlb_flush
+ extern void tlb_flush(struct mmu_gather *tlb);
++/*
++ * book3s:
++ * Hash does not use the linux page-tables, so we can avoid
++ * the TLB invalidate for page-table freeing, Radix otoh does use the
++ * page-tables and needs the TLBI.
++ *
++ * nohash:
++ * We still do TLB invalidate in the __pte_free_tlb routine before we
++ * add the page table pages to mmu gather table batch.
++ */
++#define tlb_needs_table_invalidate()	radix_enabled()
+=20
+ /* Get the generic bits... */
+ #include <asm-generic/tlb.h>
+diff --git a/arch/sparc/Kconfig b/arch/sparc/Kconfig
+index eb24cb1afc11..18e9fb6fcf1b 100644
+--- a/arch/sparc/Kconfig
++++ b/arch/sparc/Kconfig
+@@ -65,7 +65,6 @@ config SPARC64
+ 	select HAVE_KRETPROBES
+ 	select HAVE_KPROBES
+ 	select HAVE_RCU_TABLE_FREE if SMP
+-	select HAVE_RCU_TABLE_NO_INVALIDATE if HAVE_RCU_TABLE_FREE
+ 	select HAVE_MEMBLOCK_NODE_MAP
+ 	select HAVE_ARCH_TRANSPARENT_HUGEPAGE
+ 	select HAVE_DYNAMIC_FTRACE
+diff --git a/arch/sparc/include/asm/tlb_64.h b/arch/sparc/include/asm/tlb=
+_64.h
+index a2f3fa61ee36..8cb8f3833239 100644
+--- a/arch/sparc/include/asm/tlb_64.h
++++ b/arch/sparc/include/asm/tlb_64.h
+@@ -28,6 +28,15 @@ void flush_tlb_pending(void);
+ #define __tlb_remove_tlb_entry(tlb, ptep, address) do { } while (0)
+ #define tlb_flush(tlb)	flush_tlb_pending()
+=20
++/*
++ * SPARC64's hardware TLB fill does not use the Linux page-tables
++ * and therefore we don't need a TLBI when freeing page-table pages.
++ */
 +
-+static inline u64 set_pkey_bits(u64 reg, int pkey, u64 flags)
-+{
-+	u32 shift = pkey_bit_position(pkey);
-+	/* mask out bits from pkey in old value */
-+	reg &= ~((u64)PKEY_MASK << shift);
-+	/* OR in new bits for pkey */
-+	reg |= (flags & PKEY_MASK) << shift;
-+	return reg;
-+}
++#ifdef CONFIG_HAVE_RCU_TABLE_FREE
++#define tlb_needs_table_invalidate()	(false)
++#endif
 +
-+static inline u64 get_pkey_bits(u64 reg, int pkey)
-+{
-+	u32 shift = pkey_bit_position(pkey);
-+	/*
-+	 * shift down the relevant bits to the lowest two, then
-+	 * mask off all the other higher bits
-+	 */
-+	return ((reg >> shift) & PKEY_MASK);
-+}
+ #include <asm-generic/tlb.h>
+=20
+ #endif /* _SPARC64_TLB_H */
+diff --git a/include/asm-generic/tlb.h b/include/asm-generic/tlb.h
+index 2b10036fefd0..9e22ac369d1d 100644
+--- a/include/asm-generic/tlb.h
++++ b/include/asm-generic/tlb.h
+@@ -137,13 +137,6 @@
+  *  When used, an architecture is expected to provide __tlb_remove_table=
+()
+  *  which does the actual freeing of these pages.
+  *
+- *  HAVE_RCU_TABLE_NO_INVALIDATE
+- *
+- *  This makes HAVE_RCU_TABLE_FREE avoid calling tlb_flush_mmu_tlbonly()=
+ before
+- *  freeing the page-table pages. This can be avoided if you use
+- *  HAVE_RCU_TABLE_FREE and your architecture does _NOT_ use the Linux
+- *  page-tables natively.
+- *
+  *  MMU_GATHER_NO_RANGE
+  *
+  *  Use this if your architecture lacks an efficient flush_tlb_range().
+@@ -189,8 +182,23 @@ struct mmu_table_batch {
+=20
+ extern void tlb_remove_table(struct mmu_gather *tlb, void *table);
+=20
++/*
++ * This allows an architecture that does not use the linux page-tables f=
+or
++ * hardware to skip the TLBI when freeing page tables.
++ */
++#ifndef tlb_needs_table_invalidate
++#define tlb_needs_table_invalidate() (true)
++#endif
 +
- extern u64 shadow_pkey_reg;
-
- static inline u64 _read_pkey_reg(int line)
-diff --git a/tools/testing/selftests/vm/pkey-x86.h b/tools/testing/selftests/vm/pkey-x86.h
-index 6ffea27e2d2d..def2a1bcf6a5 100644
---- a/tools/testing/selftests/vm/pkey-x86.h
-+++ b/tools/testing/selftests/vm/pkey-x86.h
-@@ -118,6 +118,11 @@ static inline int cpu_has_pku(void)
- 	return 1;
- }
-
-+static inline u32 pkey_bit_position(int pkey)
-+{
-+	return pkey * PKEY_BITS_PER_PKEY;
-+}
++#else
 +
- #define XSTATE_PKEY_BIT	(9)
- #define XSTATE_PKEY	0x200
-
-diff --git a/tools/testing/selftests/vm/protection_keys.c b/tools/testing/selftests/vm/protection_keys.c
-index efa35cc6f6b9..bed9d4de12b4 100644
---- a/tools/testing/selftests/vm/protection_keys.c
-+++ b/tools/testing/selftests/vm/protection_keys.c
-@@ -334,25 +334,13 @@ pid_t fork_lazy_child(void)
-
- static u32 hw_pkey_get(int pkey, unsigned long flags)
++#ifdef tlb_needs_table_invalidate
++#error tlb_needs_table_invalidate() requires HAVE_RCU_TABLE_FREE
+ #endif
+=20
++#endif /* CONFIG_HAVE_RCU_TABLE_FREE */
++
++
+ #ifndef CONFIG_HAVE_MMU_GATHER_NO_GATHER
+ /*
+  * If we can't allocate a page to make a big batch of page pointers
+diff --git a/mm/mmu_gather.c b/mm/mmu_gather.c
+index 7d70e5c78f97..7c1b8f67af7b 100644
+--- a/mm/mmu_gather.c
++++ b/mm/mmu_gather.c
+@@ -102,14 +102,14 @@ bool __tlb_remove_page_size(struct mmu_gather *tlb,=
+ struct page *page, int page_
+  */
+ static inline void tlb_table_invalidate(struct mmu_gather *tlb)
  {
--	u32 mask = (PKEY_DISABLE_ACCESS|PKEY_DISABLE_WRITE);
- 	u64 pkey_reg = __read_pkey_reg();
--	u64 shifted_pkey_reg;
--	u32 masked_pkey_reg;
-
- 	dprintf1("%s(pkey=%d, flags=%lx) = %x / %d\n",
- 			__func__, pkey, flags, 0, 0);
- 	dprintf2("%s() raw pkey_reg: %016llx\n", __func__, pkey_reg);
-
--	shifted_pkey_reg = (pkey_reg >> (pkey * PKEY_BITS_PER_PKEY));
--	dprintf2("%s() shifted_pkey_reg: %016llx\n", __func__,
--			shifted_pkey_reg);
--	masked_pkey_reg = shifted_pkey_reg & mask;
--	dprintf2("%s() masked  pkey_reg: %x\n", __func__, masked_pkey_reg);
+-#ifndef CONFIG_HAVE_RCU_TABLE_NO_INVALIDATE
 -	/*
--	 * shift down the relevant bits to the lowest two, then
--	 * mask off all the other high bits.
+-	 * Invalidate page-table caches used by hardware walkers. Then we still
+-	 * need to RCU-sched wait while freeing the pages because software
+-	 * walkers can still be in-flight.
 -	 */
--	return masked_pkey_reg;
-+	return (u32) get_pkey_bits(pkey_reg, pkey);
+-	tlb_flush_mmu_tlbonly(tlb);
+-#endif
++	if (tlb_needs_table_invalidate()) {
++		/*
++		 * Invalidate page-table caches used by hardware walkers. Then
++		 * we still need to RCU-sched wait while freeing the pages
++		 * because software walkers can still be in-flight.
++		 */
++		tlb_flush_mmu_tlbonly(tlb);
++	}
  }
-
- static int hw_pkey_set(int pkey, unsigned long rights, unsigned long flags)
-@@ -364,12 +352,8 @@ static int hw_pkey_set(int pkey, unsigned long rights, unsigned long flags)
- 	/* make sure that 'rights' only contains the bits we expect: */
- 	assert(!(rights & ~mask));
-
--	/* copy old pkey_reg */
--	new_pkey_reg = old_pkey_reg;
--	/* mask out bits from pkey in old value: */
--	new_pkey_reg &= ~(mask << (pkey * PKEY_BITS_PER_PKEY));
--	/* OR in new bits for pkey: */
--	new_pkey_reg |= (rights << (pkey * PKEY_BITS_PER_PKEY));
-+	/* modify bits accordingly in old pkey_reg and assign it */
-+	new_pkey_reg = set_pkey_bits(old_pkey_reg, pkey, rights);
-
- 	__write_pkey_reg(new_pkey_reg);
-
-@@ -403,7 +387,7 @@ void pkey_disable_set(int pkey, int flags)
- 	ret = hw_pkey_set(pkey, pkey_rights, syscall_flags);
- 	assert(!ret);
- 	/* pkey_reg and flags have the same format */
--	shadow_pkey_reg |= flags << (pkey * 2);
-+	shadow_pkey_reg = set_pkey_bits(shadow_pkey_reg, pkey, pkey_rights);
- 	dprintf1("%s(%d) shadow: 0x%016llx\n",
- 		__func__, pkey, shadow_pkey_reg);
-
-@@ -437,7 +421,7 @@ void pkey_disable_clear(int pkey, int flags)
- 	pkey_rights |= flags;
-
- 	ret = hw_pkey_set(pkey, pkey_rights, 0);
--	shadow_pkey_reg &= ~(flags << (pkey * 2));
-+	shadow_pkey_reg = set_pkey_bits(shadow_pkey_reg, pkey, pkey_rights);
- 	pkey_assert(ret >= 0);
-
- 	pkey_rights = hw_pkey_get(pkey, syscall_flags);
-@@ -513,7 +497,8 @@ int alloc_pkey(void)
- 			shadow_pkey_reg);
- 	if (ret) {
- 		/* clear both the bits: */
--		shadow_pkey_reg &= ~(0x3      << (ret * 2));
-+		shadow_pkey_reg = set_pkey_bits(shadow_pkey_reg, ret,
-+						~PKEY_MASK);
- 		dprintf4("%s()::%d, ret: %d pkey_reg: 0x%016llx"
- 				" shadow: 0x%016llx\n",
- 				__func__,
-@@ -523,7 +508,8 @@ int alloc_pkey(void)
- 		 * move the new state in from init_val
- 		 * (remember, we cheated and init_val == pkey_reg format)
- 		 */
--		shadow_pkey_reg |=  (init_val << (ret * 2));
-+		shadow_pkey_reg = set_pkey_bits(shadow_pkey_reg, ret,
-+						init_val);
- 	}
- 	dprintf4("%s()::%d, ret: %d pkey_reg: 0x%016llx"
- 			" shadow: 0x%016llx\n",
--- 
-2.17.1
+=20
+ static void tlb_remove_table_smp_sync(void *arg)
+--=20
+2.24.1
