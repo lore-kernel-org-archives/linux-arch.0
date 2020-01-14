@@ -1,79 +1,52 @@
-Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pj1-f68.google.com ([209.85.216.68]:37743 "EHLO
- mail-pj1-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with
- ESMTP id S1727456AbgA3TXl (ORCPT <rfc822;linux-arch@vger.kernel.org>); Thu,
- 30 Jan 2020 14:23:41 -0500
-Received: by mail-pj1-f68.google.com with SMTP id m13so1772538pjb.2 for
- <linux-arch@vger.kernel.org>; Thu, 30 Jan 2020 11:23:41 -0800 (PST)
-Date: Thu, 30 Jan 2020 11:23:38 -0800
-From: Kees Cook <keescook@chromium.org>
-Subject: Re: [kernel-hardening] [PATCH 09/38] usercopy: Mark kmalloc caches as
- usercopy caches
-Message-ID: <202001300945.7D465B5F5@keescook>
-References: <201911121313.1097D6EE@keescook> <201911141327.4DE6510@keescook>
- <bfca96db-bbd0-d958-7732-76e36c667c68@suse.cz>
- <202001271519.AA6ADEACF0@keescook>
- <5861936c-1fe1-4c44-d012-26efa0c8b6e7@de.ibm.com>
- <202001281457.FA11CC313A@keescook>
- <alpine.DEB.2.21.2001291640350.1546@www.lameter.com>
- <6844ea47-8e0e-4fb7-d86f-68046995a749@de.ibm.com>
- <20200129170939.GA4277@infradead.org>
- <771c5511-c5ab-3dd1-d938-5dbc40396daa@de.ibm.com>
+Return-Path: <owner-linux-mm@kvack.org>
+Subject: Re: [PATCH v3 0/9] Fixup page directory freeing
+References: <20200114100145.365527-1-aneesh.kumar@linux.ibm.com>
+ <20200114105002.GD2844@hirez.programming.kicks-ass.net>
+From: "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>
+Date: Tue, 14 Jan 2020 17:58:58 +0530
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <771c5511-c5ab-3dd1-d938-5dbc40396daa@de.ibm.com>
-Sender: linux-arch-owner@vger.kernel.org
+In-Reply-To: <20200114105002.GD2844@hirez.programming.kicks-ass.net>
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
+Message-ID: <ed2e6567-30db-a3c7-2973-a307bf2dfa7b@linux.ibm.com>
+Sender: owner-linux-mm@kvack.org
+To: Peter Zijlstra <peterz@infradead.org>, Michael Ellerman <mpe@ellerman.id.au>
+Cc: akpm@linux-foundation.org, will@kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Christian Borntraeger <borntraeger@de.ibm.com>
-Cc: Christoph Hellwig <hch@infradead.org>, Christopher Lameter <cl@linux.com>, Jiri Slaby <jslaby@suse.cz>, Julian Wiedmann <jwi@linux.ibm.com>, Ursula Braun <ubraun@linux.ibm.com>, Alexander Viro <viro@zeniv.linux.org.uk>, linux-kernel@vger.kernel.org, David Windsor <dave@nullcore.net>, Pekka Enberg <penberg@kernel.org>, David Rientjes <rientjes@google.com>, Joonsoo Kim <iamjoonsoo.kim@lge.com>, Andrew Morton <akpm@linux-foundation.org>, linux-mm@kvack.org, linux-xfs@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, "David S. Miller" <davem@davemloft.net>, Laura Abbott <labbott@redhat.com>, Mark Rutland <mark.rutland@arm.com>, "Martin K. Petersen" <martin.petersen@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Christoffer Dall <christoffer.dall@linaro.org>, Dave Kleikamp <dave.kleikamp@oracle.com>, Jan Kara <jack@suse.cz>, Luis de Bethencourt <luisbg@kernel.org>, Marc Zyngier <marc.zyngier@arm.com>, Rik van Riel <riel@redhat.com>, Matthew Garrett <mjg59@google.com>, linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org, netdev@vger.kernel.org, kernel-hardening@lists.openwall.com, Vlastimil Babka <vbabka@suse.cz>, Michal Kubecek <mkubecek@suse.cz>
-Message-ID: <20200130192338.jNsotkktoXUoi2_y-PE67eJErmSl4W8B2ztfBBN6snQ@z>
+Message-ID: <20200114122858.zRdPLD3DXgsIg8iGS4OHgbif251F7xK4vKxLn1HGv3o@z>
 
-On Wed, Jan 29, 2020 at 06:19:56PM +0100, Christian Borntraeger wrote:
-> On 29.01.20 18:09, Christoph Hellwig wrote:
-> > On Wed, Jan 29, 2020 at 06:07:14PM +0100, Christian Borntraeger wrote:
-> >>> DMA can be done to NORMAL memory as well.
-> >>
-> >> Exactly. 
-> >> I think iucv uses GFP_DMA because z/VM needs those buffers to reside below 2GB (which is ZONA_DMA for s390).
-> > 
-> > The normal way to allocate memory with addressing limits would be to
-> > use dma_alloc_coherent and friends.  Any chance to switch iucv over to
-> > that?  Or is there no device associated with it?
+On 1/14/20 4:20 PM, Peter Zijlstra wrote:
+> On Tue, Jan 14, 2020 at 03:31:36PM +0530, Aneesh Kumar K.V wrote:
+>> This is a repost of patch series from Peter with the arch specific changes except ppc64 dropped.
+>> ppc64 changes are added here because we are redoing the patch series on top of ppc64 changes. This makes it
+>> easy to backport these changes. Only the first 3 patches need to be backported to stable.
+>>
+>> The thing is, on anything SMP, freeing page directories should observe the
+>> exact same order as normal page freeing:
+>>
+>>   1) unhook page/directory
+>>   2) TLB invalidate
+>>   3) free page/directory
+>>
+>> Without this, any concurrent page-table walk could end up with a Use-after-Free.
+>> This is esp. trivial for anything that has software page-table walkers
+>> (HAVE_FAST_GUP / software TLB fill) or the hardware caches partial page-walks
+>> (ie. caches page directories).
+>>
+>> Even on UP this might give issues since mmu_gather is preemptible these days.
+>> An interrupt or preempted task accessing user pages might stumble into the free
+>> page if the hardware caches page directories.
+>>
+>> This patch series fixup ppc64 and add generic MMU_GATHER changes to support the conversion of other architectures.
+>> I haven't added patches w.r.t other architecture because they are yet to be acked.
 > 
-> There is not necessarily a device for that. It is a hypervisor interface (an
-> instruction that is interpreted by z/VM). We do have the netiucv driver that
-> creates a virtual nic, but there is also AF_IUCV which works without a device.
+> Obviously looks good to me; will you route this through the Power tree
+> since you're in a hurry to see this fixed?
 > 
-> But back to the original question: If we mark kmalloc caches as usercopy caches,
-> we should do the same for DMA kmalloc caches. As outlined by Christoph, this has
-> nothing to do with device DMA.
 
-Hm, looks like it's allocated from the low 16MB. Seems like poor naming!
-:) There seems to be a LOT of stuff using GFP_DMA, and it seems unlikely
-those are all expecting low addresses?
+Michael,
 
-Since this has only been a problem on s390, should just s390 gain the
-weakening of the usercopy restriction?  Something like:
+Can you take this via your tree?
 
-
-diff --git a/mm/slab_common.c b/mm/slab_common.c
-index 1907cb2903c7..c5bbc141f20b 100644
---- a/mm/slab_common.c
-+++ b/mm/slab_common.c
-@@ -1303,7 +1303,9 @@ void __init create_kmalloc_caches(slab_flags_t flags)
- 			kmalloc_caches[KMALLOC_DMA][i] = create_kmalloc_cache(
- 				kmalloc_info[i].name[KMALLOC_DMA],
- 				kmalloc_info[i].size,
--				SLAB_CACHE_DMA | flags, 0, 0);
-+				SLAB_CACHE_DMA | flags, 0,
-+				IS_ENABLED(CONFIG_S390) ?
-+					kmalloc_info[i].size : 0);
- 		}
- 	}
- #endif
-
-
-
--- 
-Kees Cook
+-aneesh
