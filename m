@@ -1,79 +1,40 @@
-From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: Re: [RFC 2/4] lib/strncpy_from_user: Remove redundant user space
- pointer range check
-Date: Tue, 14 Jan 2020 21:52:47 +0000
-Message-ID: <72451406-6575-c16e-057e-30dc68ed9d2f@synopsys.com>
-References: <20200114200846.29434-1-vgupta@synopsys.com>
- <20200114200846.29434-3-vgupta@synopsys.com>
- <CAHk-=wgoc5DaF6=WxsAcft_Lp4XUYTiRhhCJGcmM5PwEDXY6Gw@mail.gmail.com>
+From: "Paul E. McKenney" <paulmck@kernel.org>
+Subject: Re: [PATCH v4 01/10] kcsan: Add Kernel Concurrency Sanitizer
+ infrastructure
+Date: Tue, 14 Jan 2020 14:09:06 -0800
+Message-ID: <20200114220906.GZ2935@paulmck-ThinkPad-P72>
+References: <20200114213405.GX2935@paulmck-ThinkPad-P72>
+ <9970E373-DF70-4FE4-A839-AAE641612EC5@lca.pw>
+Reply-To: paulmck@kernel.org
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from us03-smtprelay2.synopsys.com ([149.117.87.133]:57660 "EHLO
-        smtprelay-out1.synopsys.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1726491AbgANVxi (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 14 Jan 2020 16:53:38 -0500
-In-Reply-To: <CAHk-=wgoc5DaF6=WxsAcft_Lp4XUYTiRhhCJGcmM5PwEDXY6Gw@mail.gmail.com>
-Content-Language: en-US
-Content-ID: <E98DDBD8F53B0845B4739E9AE1F79431@namprd12.prod.outlook.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Arnd Bergmann <arnd@arndb.de>, Khalid Aziz <khalid.aziz@oracle.com>, Andrey Konovalov <andreyknvl@google.com>, Andrew Morton <akpm@linux-foundation.org>, Peter Zijlstra <peterz@infradead.org>, Christian Brauner <christian.brauner@ubuntu.com>, Kees Cook <keescook@chromium.org>, Ingo Molnar <mingo@kernel.org>, Aleksa Sarai <cyphar@cyphar.com>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 8bit
+Return-path: <linux-kbuild-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <9970E373-DF70-4FE4-A839-AAE641612EC5@lca.pw>
+Sender: linux-kbuild-owner@vger.kernel.org
+To: Qian Cai <cai@lca.pw>
+Cc: Marco Elver <elver@google.com>, LKMM Maintainers -- Akira Yokosawa <akiyks@gmail.com>, Alan Stern <stern@rowland.harvard.edu>, Alexander Potapenko <glider@google.com>, Andrea Parri <parri.andrea@gmail.com>, Andrey Konovalov <andreyknvl@google.com>, Andy Lutomirski <luto@kernel.org>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Arnd Bergmann <arnd@arndb.de>, Boqun Feng <boqun.feng@gmail.com>, Borislav Petkov <bp@alien8.de>, Daniel Axtens <dja@axtens.net>, Daniel Lustig <dlustig@nvidia.com>, Dave Hansen <dave.hansen@linux.intel.com>, David Howells <dhowells@redhat.com>, Dmitry Vyukov <dvyukov@google.com>, "H. Peter Anvin" <hpa@zytor.com>, Ingo Molnar <mingo@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Joel Fernandes <joel@joelfernandes.org>
+List-Id: linux-arch.vger.kernel.org
 
-T24gMS8xNC8yMCAxOjIyIFBNLCBMaW51cyBUb3J2YWxkcyB3cm90ZToNCj4gT24gVHVlLCBKYW4g
-MTQsIDIwMjAgYXQgMTI6MDkgUE0gVmluZWV0IEd1cHRhDQo+IDxWaW5lZXQuR3VwdGExQHN5bm9w
-c3lzLmNvbT4gd3JvdGU6DQo+Pg0KPj4gVGhpcyBjYW1lIHVwIHdoZW4gc3dpdGNoaW5nIEFSQyB0
-byB3b3JkLWF0LWEtdGltZSBpbnRlcmZhY2UgYW5kIHVzaW5nDQo+PiBnZW5lcmljL29wdGltaXpl
-ZCBzdHJuY3B5X2Zyb21fdXNlcg0KPj4NCj4+IEl0IHNlZW1zIHRoZSBleGlzdGluZyBjb2RlIGNo
-ZWNrcyBmb3IgdXNlciBidWZmZXIvc3RyaW5nIHJhbmdlIG11bHRpcGxlDQo+PiB0aW1lcyBhbmQg
-b25lIG9mIHRlbSBjbiBiZSBhdm9pZGVkLg0KPiANCj4gTk8hDQo+IA0KPiBETyBOT1QgRE8gVEhJ
-Uy4NCj4gDQo+IFRoaXMgaXMgc2VyaW91c2x5IGJ1Z2d5Lg0KPiANCj4+ICBsb25nIHN0cm5jcHlf
-ZnJvbV91c2VyKGNoYXIgKmRzdCwgY29uc3QgY2hhciBfX3VzZXIgKnNyYywgbG9uZyBjb3VudCkN
-Cj4+ICB7DQo+PiAtICAgICAgIHVuc2lnbmVkIGxvbmcgbWF4X2FkZHIsIHNyY19hZGRyOw0KPj4g
-LQ0KPj4gICAgICAgICBpZiAodW5saWtlbHkoY291bnQgPD0gMCkpDQo+PiAgICAgICAgICAgICAg
-ICAgcmV0dXJuIDA7DQo+Pg0KPj4gLSAgICAgICBtYXhfYWRkciA9IHVzZXJfYWRkcl9tYXgoKTsN
-Cj4+IC0gICAgICAgc3JjX2FkZHIgPSAodW5zaWduZWQgbG9uZyl1bnRhZ2dlZF9hZGRyKHNyYyk7
-DQo+PiAtICAgICAgIGlmIChsaWtlbHkoc3JjX2FkZHIgPCBtYXhfYWRkcikpIHsNCj4+IC0gICAg
-ICAgICAgICAgICB1bnNpZ25lZCBsb25nIG1heCA9IG1heF9hZGRyIC0gc3JjX2FkZHI7DQo+PiAr
-ICAgICAgIGthc2FuX2NoZWNrX3dyaXRlKGRzdCwgY291bnQpOw0KPj4gKyAgICAgICBjaGVja19v
-YmplY3Rfc2l6ZShkc3QsIGNvdW50LCBmYWxzZSk7DQo+PiArICAgICAgIGlmICh1c2VyX2FjY2Vz
-c19iZWdpbihzcmMsIGNvdW50KSkgew0KPiANCj4gWW91IGNhbid0IGRvIHRoYXQgInVzZXJfYWNj
-ZXNzX2JlZ2luKHNyYywgY291bnQpIiwgYmVjYXVzZSAiY291bnQiIGlzDQo+IHRoZSBtYXhpbXVt
-IF9wb3NzaWJsZV8gbGVuZ3RoLCBidXQgaXQgaXMgKk5PVCogbmVjZXNzYXJpbHkgdGhlIGFjdHVh
-bA0KPiBsZW5ndGggb2YgdGhlIHN0cmluZyB3ZSByZWFsbHkgZ2V0IGZyb20gdXNlciBzcGFjZSEN
-Cj4gDQo+IFRoaW5rIG9mIHRoaXMgc2l0dWF0aW9uOg0KPiANCj4gIC0gdXNlciBoYXMgYSA1LWJ5
-dGUgc3RyaW5nIGF0IHRoZSBlbmQgb2YgdGhlIGFkZHJlc3Mgc3BhY2UNCj4gDQo+ICAtIGtlcm5l
-bCBkb2VzIGENCj4gDQo+ICAgICAgbiA9IHN0cm5jcHlfZnJvbV91c2VyKHVhZGRyLCBwYWdlLCBQ
-QUdFX1NJWkUpDQo+IA0KPiBub3cgeW91ciAidXNlcl9hY2Nlc3NfYmVnaW4oc3JjLCBjb3VudCki
-IHdpbGwgX2ZhaWxfLCBiZWNhdXNlICJ1YWRkciINCj4gaXMgY2xvc2UgdG8gdGhlIGVuZCBvZiB0
-aGUgdXNlciBhZGRyZXNzIHNwYWNlLCBhbmQgdGhlcmUncyBub3Qgcm9vbQ0KPiBmb3IgUEFHRV9T
-SVpFIGJ5dGVzIGFueSBtb3JlLg0KDQpPb3BzIGluZGVlZCB0aGF0IHdhcyB0aGUgY2FzZSBJIGRp
-ZG4ndCBjb21wcmVoZW5kLiBJbiBteSBpbml0aWFsIHRlc3RzIHdpdGgNCmRlYnVnZ2VyLCBldmVy
-eSBzaW5nbGUgaGl0IG9uIHN0cm5jcHlfZnJvbV91c2VyKCkgaGFkIHVzZXIgYWRkcmVzc2VzIHdl
-bGwgaW50byB0aGUNCmFkZHJlc3Mgc3BhY2Ugc3VjaCB0aGF0IEBtYXggd2FzIHJpZGljdWxvdXNs
-eSBsYXJnZSAoMHhGRkZGX0ZGRkYgLSBwdHIpIGNvbXBhcmVkDQp0byBAY291bnQuDQoNCj4gQnV0
-ICJjb3VudCIgaXNuJ3QgYWN0dWFsbHkgaG93IG1hbnkgYnl0ZXMgd2Ugd2lsbCBhY2Nlc3MgZnJv
-bSB1c2VyDQo+IHNwYWNlLCBpdCdzIG9ubHkgdGhlIG1heGltdW0gbGltaXQgb24gdGhlICp0YXJn
-ZXQqLiBJT1csIGl0J3MgYWJvdXQgYQ0KPiBrZXJuZWwgYnVmZmVyIHNpemUsIG5vdCBhYm91dCB0
-aGUgdXNlciBhY2Nlc3Mgc2l6ZS4NCg0KUmlnaHQgSSB1bmRlcnN0b29kIGFsbCB0aGF0LCBidXQg
-bWlzc2VkIHRoZSBjYXNlIHdoZW4gdXNlciBidWZmZXIgaXMgdG93YXJkcyBlbmQNCm9mIGFkZHJl
-c3Mgc3BhY2UgYW5kIGFjY2Vzc19vaygpIHdpbGwgZXJyb25lb3VzbHkgZmxhZyBpdC4NCg0KPiBC
-ZWNhdXNlIHdlJ2xsIG9ubHkgYWNjZXNzIHRoYXQgNS1ieXRlIHN0cmluZywgd2hpY2ggZml0cyBq
-dXN0IGZpbmUgaW4NCj4gdGhlIHVzZXIgc3BhY2UsIGFuZCBkb2luZyB0aGF0ICJ1c2VyX2FjY2Vz
-c19iZWdpbihzcmMsIGNvdW50KSIgZ2l2ZXMNCj4gdGhlIHdyb25nIGFuc3dlci4NCj4gDQo+IFRo
-ZSBmYWN0IGlzLCBjb3B5aW5nIGEgc3RyaW5nIGZyb20gdXNlciBzcGFjZSBpcyAqdmVyeSogZGlm
-ZmVyZW50IGZyb20NCj4gY29weWluZyBhIGZpeGVkIG51bWJlciBvZiBieXRlcywgYW5kIHRoYXQg
-d2hvbGUgZGFuY2Ugd2l0aA0KPiANCj4gICAgICAgICBtYXhfYWRkciA9IHVzZXJfYWRkcl9tYXgo
-KTsNCj4gDQo+IGlzIGFic29sdXRlbHkgcmVxdWlyZWQgYW5kIG5lY2Vzc2FyeS4NCj4gDQo+IFlv
-dSBjb21wbGV0ZWx5IGJyb2tlIHN0cmluZyBjb3B5aW5nLg0KDQpJJ20gc29ycnkgYW5kIEkgd2Fz
-bid0IHN1cmUgdG8gYmVnaW4gd2l0aCBoZW5jZSB0aGUgZGlzY2xhaW1lciBpbiAwLzQNCg0KPiBJ
-dCBpcyB2ZXJ5IHBvc3NpYmxlIHRoYXQgc3RyaW5nIGNvcHlpbmcgd2FzIGhvcnJpYmx5IGJyb2tl
-biBvbiBBUkMNCj4gYmVmb3JlIHRvbyAtIGFsbW9zdCBub2JvZHkgZXZlciBnZXRzIHRoaXMgcmln
-aHQsIGJ1dCB0aGUgZ2VuZXJpYw0KPiByb3V0aW5lIGRvZXMuDQoNCk5vIGl0IGlzIG5vdC4gSXQg
-aXMganVzdCBkb2cgc2xvdyBzaW5jZSBpdCBkb2VzIGJ5dGUgY29weSBhbmQgdXNlcyB0aGUgWmVy
-byBkZWxheQ0KbG9vcHMgd2hpY2ggSSdtIHRyeWluZyB0byBnZXQgcmlkIG9mLiBUaGF0J3Mgd2hl
-biBJIHJlY2FsbGVkIHRoZSB3b3JkLWF0LWEtdGltZQ0KQVBJIHdoaWNoIEknZCBtZWFuaW5nIHRv
-IGdvIGJhY2sgdG8gZm9yIGxhc3QgNyB5ZWFycyA6LSkNCg0KLVZpbmVldA0KDQo=
+On Tue, Jan 14, 2020 at 04:48:22PM -0500, Qian Cai wrote:
+> 
+> 
+> > On Jan 14, 2020, at 4:34 PM, Paul E. McKenney <paulmck@kernel.org> wrote:
+> > 
+> > As an alternative, once the patches needed for your tests to pass
+> > reach mainline, you could announce that KCSAN was ready to be enabled
+> > in distros.
+> > 
+> > Though I confess that I don't know how that works.  Is there a separate
+> > testing kernel binary provided by the distros in question?
+> 
+> I don’t think I have powers to announce that. Once the feature hit the mainline, distro people could start to use in the debug kernel variant, and it is a shame to only find out it is broken. Anyway, I’ll try to edge out those corner cases. Stay tuned.
+
+Very good, thank you!
+
+And you do have the power to announce.  But just like most of the rest
+of use, myself included, you won't always have the power to make people
+actually pay attention to what you say.  ;-)
+
+							Thanx, Paul
