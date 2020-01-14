@@ -1,34 +1,34 @@
-Return-Path: <SRS0=XOKs=3M=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mga01.intel.com ([192.55.52.88]:39674 "EHLO mga01.intel.com"
+Return-Path: <SRS0=Pd00=3D=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from foss.arm.com ([217.140.110.172]:55500 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1728765AbgAWVXg (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 23 Jan 2020 16:23:36 -0500
-Subject: Re: [PATCH 0/5] x86: finish the MPX removal process
-References: <20200123190456.8E05ADE6@viggo.jf.intel.com>
- <CAHk-=wgLR5JnaBgCtg0-AAxtdN3=4=LMp6-0212608=vbmCAxg@mail.gmail.com>
- <20200123202600.GG10328@zn.tnic>
-From: Dave Hansen <dave.hansen@intel.com>
-Message-ID: <636d5f4b-c47f-77f6-067f-a6b342db5650@intel.com>
-Date: Thu, 23 Jan 2020 13:23:35 -0800
+        id S1726270AbgANRfM (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 14 Jan 2020 12:35:12 -0500
+Date: Tue, 14 Jan 2020 17:35:07 +0000
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: Re: [PATCH v4 09/12] arm64: traps: Shuffle code to eliminate forward
+ declarations
+Message-ID: <20200114173506.GL30444@arrakis.emea.arm.com>
+References: <20191211154206.46260-1-broonie@kernel.org>
+ <20191211154206.46260-10-broonie@kernel.org>
 MIME-Version: 1.0
-In-Reply-To: <20200123202600.GG10328@zn.tnic>
-Content-Type: text/plain; charset=utf-8
-Content-Language: en-US
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20191211154206.46260-10-broonie@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Borislav Petkov <bp@alien8.de>, Linus Torvalds <torvalds@linux-foundation.org>, Dave Hansen <dave.hansen@linux.intel.com>
-Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, Andrew Lutomirski <luto@kernel.org>, the arch/x86 maintainers <x86@kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Jeff Dike <jdike@addtoit.com>, Richard Weinberger <richard@nod.at>, Anton Ivanov <anton.ivanov@cambridgegreys.com>, Guan Xuetao <gxt@pku.edu.cn>
-Message-ID: <20200123212335.kv5O-roDp3R1Np2krkYdbledED0H_blRCU5aOVs9VDU@z>
+To: Mark Brown <broonie@kernel.org>
+Cc: Will Deacon <will@kernel.org>, Paul Elliott <paul.elliott@arm.com>, Peter Zijlstra <peterz@infradead.org>, Yu-cheng Yu <yu-cheng.yu@intel.com>, Amit Kachhap <amit.kachhap@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Marc Zyngier <maz@kernel.org>, Eugene Syromiatnikov <esyr@redhat.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, "H.J. Lu" <hjl.tools@gmail.com>, Andrew Jones <drjones@redhat.com>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Jann Horn <jannh@google.com>, Richard Henderson <richard.henderson@linaro.org>, Kristina =?utf-8?Q?Mart=C5=A1enko?= <kristina.martsenko@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Florian Weimer <fweimer@redhat.com>, Sudakshina Das <sudi.das@arm.com>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Dave Martin <Dave.Martin@arm.com>
+Message-ID: <20200114173507.4GN0fPLm8XR68d2-o3nq6v_W9ap8QhMbIuQ3EefZDHA@z>
 
-On 1/23/20 12:26 PM, Borislav Petkov wrote:
-> On Thu, Jan 23, 2020 at 11:26:38AM -0800, Linus Torvalds wrote:
->> On Thu, Jan 23, 2020 at 11:23 AM Dave Hansen
->> <dave.hansen@linux.intel.com> wrote:
->>> I'd _rather_ this go in via the x86 tree, but I'm not picky.
-> Any particular reason why?
+On Wed, Dec 11, 2019 at 03:42:03PM +0000, Mark Brown wrote:
+> From: Dave Martin <Dave.Martin@arm.com>
+> 
+> Hoist the IT state handling code earlier in traps.c, to avoid
+> accumulating forward declarations.
+> 
+> No functional change.
+> 
+> Signed-off-by: Dave Martin <Dave.Martin@arm.com>
+> Signed-off-by: Mark Brown <broonie@kernel.org>
 
-I'm confident I can send patches to the x86 maintainers and not make
-them too angry.  Sending pull requests to Linus, not so much. :)
-
-I'll just plan to send it to Linus directly.
+Acked-by: Catalin Marinas <catalin.marinas@arm.com>
