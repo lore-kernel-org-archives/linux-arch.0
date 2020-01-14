@@ -1,51 +1,41 @@
-From: Mark Brown <broonie@kernel.org>
-Subject: Re: [PATCH v4 02/12] ELF: Add ELF program property parsing support
-Date: Tue, 14 Jan 2020 17:28:45 +0000
-Message-ID: <20200114172845.GF3897@sirena.org.uk>
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: Re: [PATCH v4 06/12] arm64: elf: Enable BTI at exec based on ELF
+ program properties
+Date: Tue, 14 Jan 2020 17:33:37 +0000
+Message-ID: <20200114173336.GJ30444@arrakis.emea.arm.com>
 References: <20191211154206.46260-1-broonie@kernel.org>
- <20191211154206.46260-3-broonie@kernel.org>
- <20200114163402.GH30444@arrakis.emea.arm.com>
+ <20191211154206.46260-7-broonie@kernel.org>
 Mime-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha512;
-        protocol="application/pgp-signature"; boundary="656hIAUFSU7Oh46B"
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from heliosphere.sirena.org.uk ([172.104.155.198]:58536 "EHLO
-        heliosphere.sirena.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726270AbgANR3E (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 14 Jan 2020 12:29:04 -0500
+Received: from foss.arm.com ([217.140.110.172]:55412 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726270AbgANRdn (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 14 Jan 2020 12:33:43 -0500
 Content-Disposition: inline
-In-Reply-To: <20200114163402.GH30444@arrakis.emea.arm.com>
+In-Reply-To: <20191211154206.46260-7-broonie@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Catalin Marinas <catalin.marinas@arm.com>
+To: Mark Brown <broonie@kernel.org>
 Cc: Will Deacon <will@kernel.org>, Paul Elliott <paul.elliott@arm.com>, Peter Zijlstra <peterz@infradead.org>, Yu-cheng Yu <yu-cheng.yu@intel.com>, Amit Kachhap <amit.kachhap@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Marc Zyngier <maz@kernel.org>, Eugene Syromiatnikov <esyr@redhat.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, "H.J. Lu" <hjl.tools@gmail.com>, Andrew Jones <drjones@redhat.com>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Jann Horn <jannh@google.com>, Richard Henderson <richard.henderson@linaro.org>, Kristina =?utf-8?Q?Mart=C5=A1enko?= <kristina.martsenko@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Florian Weimer <fweimer@redhat.com>, Sudakshina Das <sudi.das@arm.com>, linux-arm-kernel@lists.infradead.orgli
 
+On Wed, Dec 11, 2019 at 03:42:00PM +0000, Mark Brown wrote:
+> +static inline int arch_parse_elf_property(u32 type, const void *data,
+> +					  size_t datasz, bool compat,
+> +					  struct arch_elf_state *arch)
+> +{
+> +	/* No known properties for AArch32 yet */
+> +	if (IS_ENABLED(CONFIG_COMPAT) && compat)
+> +		return 0;
+> +
+> +	if (type == GNU_PROPERTY_AARCH64_FEATURE_1_AND) {
+> +		const u32 *p = data;
+> +
+> +		if (datasz != sizeof(*p))
+> +			return -EIO;
 
---656hIAUFSU7Oh46B
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
+Is this -EIO or -ENOEXEC sounds better?
 
-On Tue, Jan 14, 2020 at 04:34:03PM +0000, Catalin Marinas wrote:
+Apart from this, the patch looks fine.
 
-> The logic looks fine to me but I'm not sure the choice of returning -EIO
-> is suitable in most cases. I think apart from kernel_read() returning an
-> error, there rest look like malformed ELF notes, so rather -ENOEXEC.
-
-Sure, I don't have strong opinions either way.
-
---656hIAUFSU7Oh46B
-Content-Type: application/pgp-signature; name="signature.asc"
-
------BEGIN PGP SIGNATURE-----
-
-iQEzBAABCgAdFiEEreZoqmdXGLWf4p/qJNaLcl1Uh9AFAl4d+koACgkQJNaLcl1U
-h9BzOAf/ZW4b8JHQ9qlWZwLXs7dElEQgCxM18zekE7pOdxU3oF7g7qLspavQhRB9
-6VwtDC7KE1ohuOMkwPE5HFSzlOW5WyGKodH8581UTigsQ3vp5Y4OKdIwNYCmvI0O
-OaPHa1Us+qy5w2fwhYFGQpJaKBAo52VFWFb1eS65cv/A1RVktrwfF0/5CUKQlOvT
-eUsZAkU1zgYf5BTaFmLlhrKlfbfOZE7U3nSMfRpM9k0uHS8TkV4gJY8Krs2/IKWG
-1ePbKRpoEnul7u915WZxspdgU8UI556Y1gmiJEO1RyMOWH56mWwEgHrQc/8MxLpG
-AoSckdNGC+G7zG4pARh7eWJDwYq3GA==
-=w1Xx
------END PGP SIGNATURE-----
-
---656hIAUFSU7Oh46B--
+Reviewed-by: Catalin Marinas <catalin.marinas@arm.com>
