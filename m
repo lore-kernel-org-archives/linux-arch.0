@@ -1,30 +1,38 @@
-From: Qian Cai <cai@lca.pw>
-Subject: Re: [PATCH v4 01/10] kcsan: Add Kernel Concurrency Sanitizer infrastructure
-Date: Tue, 14 Jan 2020 16:48:22 -0500
-Message-ID: <9970E373-DF70-4FE4-A839-AAE641612EC5@lca.pw>
-References: <20200114213405.GX2935@paulmck-ThinkPad-P72>
-Mime-Version: 1.0 (1.0)
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: quoted-printable
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <20200114213405.GX2935@paulmck-ThinkPad-P72>
-Sender: owner-linux-mm@kvack.org
-To: paulmck@kernel.org
-Cc: Marco Elver <elver@google.com>, LKMM Maintainers -- Akira Yokosawa <akiyks@gmail.com>, Alan Stern <stern@rowland.harvard.edu>, Alexander Potapenko <glider@google.com>, Andrea Parri <parri.andrea@gmail.com>, Andrey Konovalov <andreyknvl@google.com>, Andy Lutomirski <luto@kernel.org>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Arnd Bergmann <arnd@arndb.de>, Boqun Feng <boqun.feng@gmail.com>, Borislav Petkov <bp@alien8.de>, Daniel Axtens <dja@axtens.net>, Daniel Lustig <dlustig@nvidia.com>, Dave Hansen <dave.hansen@linux.intel.com>, David Howells <dhowells@redhat.com>, Dmitry Vyukov <dvyukov@google.com>, "H. Peter Anvin" <hpa@zytor.com>, Ingo Molnar <mingo@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Joel Fernandes <joel@joelfernandes.org>, Jonathan Corbet <corbet@lwn.net>, Josh Poimboeuf <jpoimboe@redhat.com>, Luc Maranget <luc.maranget@inria.fr>Mark Rutland <Mar>
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Subject: Re: [RFC 4/4] ARC: uaccess: use optimized generic __strnlen_user/__strncpy_from_user
+Date: Tue, 14 Jan 2020 13:49:03 -0800
+Message-ID: <CAHk-=wjX-c9YpPhbQ073UPnTvELNQCN49vqK1yY7JGuHSn5-ew@mail.gmail.com>
+References: <20200114200846.29434-1-vgupta@synopsys.com> <20200114200846.29434-5-vgupta@synopsys.com>
+ <CAK8P3a2GUqmcA_q33=20OrK1+cU4f3mCrgci_bO3ho4B5PRODg@mail.gmail.com> <3734021d-1756-3a09-6595-14ca58c64bf9@synopsys.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="UTF-8"
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <3734021d-1756-3a09-6595-14ca58c64bf9@synopsys.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Cc: Arnd Bergmann <arnd@arndb.de>, Khalid Aziz <khalid.aziz@oracle.com>, Andrey Konovalov <andreyknvl@google.com>, Andrew Morton <akpm@linux-foundation.org>, Peter Zijlstra <peterz@infradead.org>, Christian Brauner <christian.brauner@ubuntu.com>, Kees Cook <keescook@chromium.org>, Ingo Molnar <mingo@kernel.org>, Aleksa Sarai <cyphar@cyphar.com>, "open list:SYNOPSYS ARC ARCHITECTURE" <linux-snps-arc@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
+On Tue, Jan 14, 2020 at 1:37 PM Vineet Gupta <Vineet.Gupta1@synopsys.com> wrote:
+>
+> On 1/14/20 12:42 PM, Arnd Bergmann wrote:
+> >
+> > What's wrong with the generic version on little-endian? Any
+> > chance you can find a way to make it work as well for you as
+> > this copy?
+>
+> find_zero() by default doesn't use pop count instructions.
 
+Don't you think the generic find_zero() is likely just as fast as the
+pop count instruction? On 32-bit, I think it's like a shift and a mask
+and a couple of additions.
 
-> On Jan 14, 2020, at 4:34 PM, Paul E. McKenney <paulmck@kernel.org> wrote:
->=20
-> As an alternative, once the patches needed for your tests to pass
-> reach mainline, you could announce that KCSAN was ready to be enabled
-> in distros.
->=20
-> Though I confess that I don't know how that works.  Is there a separate
-> testing kernel binary provided by the distros in question?
+The 64-bit case has a multiply that is likely expensive unless you
+have a good multiplication unit (but what 64-bit architecture
+doesn't?), but the generic 32-bit LE code should already be pretty
+close to optimal, and it might not be worth it to worry about it.
 
-I don=E2=80=99t think I have powers to announce that. Once the feature hit t=
-he mainline, distro people could start to use in the debug kernel variant, a=
-nd it is a shame to only find out it is broken. Anyway, I=E2=80=99ll try to e=
-dge out those corner cases. Stay tuned.=
+(The big-endian case is very different, and architectures really can
+do much better. But LE allows for bit tricks using the carry chain)
+
+             Linus
