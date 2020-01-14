@@ -1,37 +1,104 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [RFC 1/4] asm-generic/uaccess: don't define inline functions if
- noinline lib/* in use
-Date: Tue, 14 Jan 2020 21:57:42 +0100
-Message-ID: <CAK8P3a3W0eLK+qypnPwq=PdcF7+ey8OZEhmOoA6Bg7hMGm5hqQ@mail.gmail.com>
-References: <20200114200846.29434-1-vgupta@synopsys.com> <20200114200846.29434-2-vgupta@synopsys.com>
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Subject: Re: [RFC 2/4] lib/strncpy_from_user: Remove redundant user space
+ pointer range check
+Date: Tue, 14 Jan 2020 13:22:07 -0800
+Message-ID: <CAHk-=wgoc5DaF6=WxsAcft_Lp4XUYTiRhhCJGcmM5PwEDXY6Gw@mail.gmail.com>
+References: <20200114200846.29434-1-vgupta@synopsys.com> <20200114200846.29434-3-vgupta@synopsys.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20200114200846.29434-2-vgupta@synopsys.com>
-Sender: linux-kernel-owner@vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-lj1-f194.google.com ([209.85.208.194]:36278 "EHLO
+        mail-lj1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1728656AbgANVW2 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 14 Jan 2020 16:22:28 -0500
+Received: by mail-lj1-f194.google.com with SMTP id r19so16067786ljg.3
+        for <linux-arch@vger.kernel.org>; Tue, 14 Jan 2020 13:22:25 -0800 (PST)
+Received: from mail-lj1-f176.google.com (mail-lj1-f176.google.com. [209.85.208.176])
+        by smtp.gmail.com with ESMTPSA id p12sm7732427lfc.43.2020.01.14.13.22.24
+        for <linux-arch@vger.kernel.org>
+        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
+        Tue, 14 Jan 2020 13:22:24 -0800 (PST)
+Received: by mail-lj1-f176.google.com with SMTP id r19so16067727ljg.3
+        for <linux-arch@vger.kernel.org>; Tue, 14 Jan 2020 13:22:24 -0800 (PST)
+In-Reply-To: <20200114200846.29434-3-vgupta@synopsys.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Cc: Khalid Aziz <khalid.aziz@oracle.com>, Andrey Konovalov <andreyknvl@google.com>, Andrew Morton <akpm@linux-foundation.org>, Peter Zijlstra <peterz@infradead.org>, Christian Brauner <christian.brauner@ubuntu.com>, Kees Cook <keescook@chromium.org>, Ingo Molnar <mingo@kernel.org>, Aleksa Sarai <cyphar@cyphar.com>, Linus Torvalds <torvalds@linux-foundation.org>, "open list:SYNOPSYS ARC ARCHITECTURE" <linux-snps-arc@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>
-List-Id: linux-arch.vger.kernel.org
+Cc: Arnd Bergmann <arnd@arndb.de>, Khalid Aziz <khalid.aziz@oracle.com>, Andrey Konovalov <andreyknvl@google.com>, Andrew Morton <akpm@linux-foundation.org>, Peter Zijlstra <peterz@infradead.org>, Christian Brauner <christian.brauner@ubuntu.com>, Kees Cook <keescook@chromium.org>, Ingo Molnar <mingo@kernel.org>, Aleksa Sarai <cyphar@cyphar.com>, linux-snps-arc@lists.infradead.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>
 
-On Tue, Jan 14, 2020 at 9:08 PM Vineet Gupta <Vineet.Gupta1@synopsys.com> wrote:
+On Tue, Jan 14, 2020 at 12:09 PM Vineet Gupta
+<Vineet.Gupta1@synopsys.com> wrote:
 >
-> There are 2 generic varaints of strncpy_from_user() / strnlen_user()
->  (1). inline version in asm-generic/uaccess.h
->  (2). optimized word-at-a-time version in lib/*
+> This came up when switching ARC to word-at-a-time interface and using
+> generic/optimized strncpy_from_user
 >
-> This patch disables #1 if #2 selected. This allows arches to continue
-> reusing asm-generic/uaccess.h for rest of code
->
-> This came up when switching ARC to generic word-at-a-time interface
->
-> Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
+> It seems the existing code checks for user buffer/string range multiple
+> times and one of tem cn be avoided.
 
-This looks like a useful change, but I think we can do even better: It
-seems that
-there are no  callers of __strnlen_user or __strncpy_from_user  in the
-kernel today, so these should not be defined either when the Kconfig symbols
-are set. Also, I would suggest moving the 'extern' declaration for the two
-functions into the #else branch of the conditional so it does not need to be
-duplicated.
+NO!
 
-      Arnd
+DO NOT DO THIS.
+
+This is seriously buggy.
+
+>  long strncpy_from_user(char *dst, const char __user *src, long count)
+>  {
+> -       unsigned long max_addr, src_addr;
+> -
+>         if (unlikely(count <= 0))
+>                 return 0;
+>
+> -       max_addr = user_addr_max();
+> -       src_addr = (unsigned long)untagged_addr(src);
+> -       if (likely(src_addr < max_addr)) {
+> -               unsigned long max = max_addr - src_addr;
+> +       kasan_check_write(dst, count);
+> +       check_object_size(dst, count, false);
+> +       if (user_access_begin(src, count)) {
+
+You can't do that "user_access_begin(src, count)", because "count" is
+the maximum _possible_ length, but it is *NOT* necessarily the actual
+length of the string we really get from user space!
+
+Think of this situation:
+
+ - user has a 5-byte string at the end of the address space
+
+ - kernel does a
+
+     n = strncpy_from_user(uaddr, page, PAGE_SIZE)
+
+now your "user_access_begin(src, count)" will _fail_, because "uaddr"
+is close to the end of the user address space, and there's not room
+for PAGE_SIZE bytes any more.
+
+But "count" isn't actually how many bytes we will access from user
+space, it's only the maximum limit on the *target*. IOW, it's about a
+kernel buffer size, not about the user access size.
+
+Because we'll only access that 5-byte string, which fits just fine in
+the user space, and doing that "user_access_begin(src, count)" gives
+the wrong answer.
+
+The fact is, copying a string from user space is *very* different from
+copying a fixed number of bytes, and that whole dance with
+
+        max_addr = user_addr_max();
+
+is absolutely required and necessary.
+
+You completely broke string copying.
+
+It is very possible that string copying was horribly broken on ARC
+before too - almost nobody ever gets this right, but the generic
+routine does.
+
+So the generic routine is not only faster, it is *correct*, and your
+change broke it.
+
+Don't touch generic code. If you want to use the generic code, please
+do so. But DO NOT TOUCH IT. It is correct, your patch is wrong.
+
+The exact same issue is true in strnlen_user(). Don't break it.
+
+              Linus
