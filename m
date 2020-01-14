@@ -1,70 +1,66 @@
-From: "Paul E. McKenney" <paulmck@kernel.org>
-Subject: Re: [PATCH v4 01/10] kcsan: Add Kernel Concurrency Sanitizer
- infrastructure
-Date: Tue, 14 Jan 2020 11:22:20 -0800
-Message-ID: <20200114192220.GS2935@paulmck-ThinkPad-P72>
-References: <CANpmjNOC2PYFsE_TK2SYmKcHxyG+2arWc8x_fmeWPOMi0+ot8g@mail.gmail.com>
- <53F6B915-AC53-41BB-BF32-33732515B3A0@lca.pw>
-Reply-To: paulmck@kernel.org
+From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Subject: [RFC 1/4] asm-generic/uaccess: don't define inline functions if noinline lib/* in use
+Date: Tue, 14 Jan 2020 12:08:43 -0800
+Message-ID: <20200114200846.29434-2-vgupta@synopsys.com>
+References: <20200114200846.29434-1-vgupta@synopsys.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kbuild-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <53F6B915-AC53-41BB-BF32-33732515B3A0@lca.pw>
-Sender: linux-kbuild-owner@vger.kernel.org
-To: Qian Cai <cai@lca.pw>
-Cc: Marco Elver <elver@google.com>, LKMM Maintainers -- Akira Yokosawa <akiyks@gmail.com>, Alan Stern <stern@rowland.harvard.edu>, Alexander Potapenko <glider@google.com>, Andrea Parri <parri.andrea@gmail.com>, Andrey Konovalov <andreyknvl@google.com>, Andy Lutomirski <luto@kernel.org>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Arnd Bergmann <arnd@arndb.de>, Boqun Feng <boqun.feng@gmail.com>, Borislav Petkov <bp@alien8.de>, Daniel Axtens <dja@axtens.net>, Daniel Lustig <dlustig@nvidia.com>, Dave Hansen <dave.hansen@linux.intel.com>, David Howells <dhowells@redhat.com>, Dmitry Vyukov <dvyukov@google.com>, "H. Peter Anvin" <hpa@zytor.com>, Ingo Molnar <mingo@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Joel Fernandes <joel@joelfernandes.org>
+Content-Transfer-Encoding: 8bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20200114200846.29434-1-vgupta@synopsys.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Arnd Bergmann <arnd@arndb.de>, Khalid Aziz <khalid.aziz@oracle.com>, Andrey Konovalov <andreyknvl@google.com>, Andrew Morton <akpm@linux-foundation.org>, Peter Zijlstra <peterz@infradead.org>, Christian Brauner <christian.brauner@ubuntu.com>, Kees Cook <keescook@chromium.org>, Ingo Molnar <mingo@kernel.org>, Aleksa Sarai <cyphar@cyphar.com>, Linus Torvalds <torvalds@linux-foundation.org>
+Cc: linux-snps-arc@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Vineet Gupta <Vineet.Gupta1@synopsys.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, Jan 14, 2020 at 06:08:29AM -0500, Qian Cai wrote:
-> 
-> 
-> > On Jan 6, 2020, at 7:47 AM, Marco Elver <elver@google.com> wrote:
-> > 
-> > Thanks, I'll look into KCSAN + lockdep compatibility. It's probably
-> > missing some KCSAN_SANITIZE := n in some Makefile.
-> 
-> Can I have a update on fixing this? It looks like more of a problem that kcsan_setup_watchpoint() will disable IRQs and then dive into the page allocator where it would complain because it might sleep.
-> 
-> BTW, I saw Paul sent a pull request for 5.6 but it is ugly to have everybody could trigger a deadlock (sleep function called in atomic context) like this during boot once this hits the mainline not to mention about only recently it is possible to test this feature (thanks to warning ratelimit) with the existing debugging options because it was unable to boot due to the brokenness with debug_pagealloc as mentioned in this thread, so this does sounds like it needs more soak time for the mainline to me.
+There are 2 generic varaints of strncpy_from_user() / strnlen_user()
+ (1). inline version in asm-generic/uaccess.h
+ (2). optimized word-at-a-time version in lib/*
 
-Just so I understand...  Does this problem happen even in CONFIG_KCSAN=n
-kernels?
+This patch disables #1 if #2 selected. This allows arches to continue
+reusing asm-generic/uaccess.h for rest of code
 
-I have been running extensive CONFIG_KSCAN=y rcutorture tests for quite
-awhile now, so even if this only happens for CONFIG_KSCAN=y, it is not
-like it affects everyone.
+This came up when switching ARC to generic word-at-a-time interface
 
-Yes, it should be fixed, and Marco does have a patch on the way.
+Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
+---
+ include/asm-generic/uaccess.h | 4 ++++
+ 1 file changed, 4 insertions(+)
 
-							Thanx, Paul
-
-> 0000000000000400
-> [   13.416814][    T1] Call Trace:
-> [   13.416814][    T1]  lock_is_held_type+0x66/0x160
-> [   13.416814][    T1]  ___might_sleep+0xc1/0x1d0
-> [   13.416814][    T1]  __might_sleep+0x5b/0xa0
-> [   13.416814][    T1]  slab_pre_alloc_hook+0x7b/0xa0
-> [   13.416814][    T1]  __kmalloc_node+0x60/0x300
-> [   13.416814   T1]  ? alloc_cpumask_var_node+0x44/0x70
-> [   13.416814][    T1]  ? topology_phys_to_logical_die+0x7e/0x180
-> [   13.416814][    T1]  alloc_cpumask_var_node+0x44/0x70
-> [   13.416814][    T1]  zalloc_cpumask_var+0x2a/0x40
-> [   13.416814][    T1]  native_smp_prepare_cpus+0x246/0x425
-> [   13.416814][    T1]  kernel_init_freeable+0x1b8/0x496
-> [   13.416814][    T1]  ? rest_init+0x381/0x381
-> [   13.416814][    T1]  kernel_init+0x18/0x17f
-> [   13.416814][    T1]  ? rest_init+0x381/0x381
-> [   13.416814][    T1]  ret_from_fork+0x3a/0x50
-> [   13.416814][    T1] irq event stamp: 910
-> [   13.416814][    T1] hardirqs last  enabled at (909): [<ffffffff8d1240f3>] _raw_write_unlock_irqrestore+0x53/0x57
-> [   13.416814][    T1] hardirqs last disabled at (910): [<ffffffff8c8bba76>] kcsan_setup_watchpoint+0x96/0x460
-> [   13.416814][    T1] softirqs last  enabled at (0): [<ffffffff8c6b697a>] copy_process+0x11fa/0x34f0
-> [   13.416814][    T1] softirqs last disabled at (0): [<0000000000000000>] 0x0
-> [   13.416814][    T1] ---[ end trace 7d1df66da055aa92 ]---
-> [   13.416814][    T1] possible reason: unannotated irqs-on.
-> [   13.416814][ent stamp: 910
-> [   13.416814][    T1] hardirqs last  enabled at (909): [<ffffffff8d1240f3>] _raw_write_unlock_irqrestore+0x53/0x57
-> [   13.416814][    T1] hardirqs last disabled at (910): [<ffffffff8c8bba76>] kcsan_setup_watchpoint+0x96/0x460
-> [   13.416814][    T1] softirqs last  enabled at (0): [<ffffffff8c6b697a>] copy_process+0x11fa/0x34f0
-> [   13.416814][    T1] softirqs last disabled at (0): [<0000000000000000>] 0x0
+diff --git a/include/asm-generic/uaccess.h b/include/asm-generic/uaccess.h
+index e935318804f8..74c14211377b 100644
+--- a/include/asm-generic/uaccess.h
++++ b/include/asm-generic/uaccess.h
+@@ -227,6 +227,7 @@ __strncpy_from_user(char *dst, const char __user *src, long count)
+ }
+ #endif
+ 
++#ifndef CONFIG_GENERIC_STRNCPY_FROM_USER
+ static inline long
+ strncpy_from_user(char *dst, const char __user *src, long count)
+ {
+@@ -234,6 +235,7 @@ strncpy_from_user(char *dst, const char __user *src, long count)
+ 		return -EFAULT;
+ 	return __strncpy_from_user(dst, src, count);
+ }
++#endif
+ 
+ /*
+  * Return the size of a string (including the ending 0)
+@@ -244,6 +246,7 @@ strncpy_from_user(char *dst, const char __user *src, long count)
+ #define __strnlen_user(s, n) (strnlen((s), (n)) + 1)
+ #endif
+ 
++#ifndef CONFIG_GENERIC_STRNLEN_USER
+ /*
+  * Unlike strnlen, strnlen_user includes the nul terminator in
+  * its returned count. Callers should check for a returned value
+@@ -255,6 +258,7 @@ static inline long strnlen_user(const char __user *src, long n)
+ 		return 0;
+ 	return __strnlen_user(src, n);
+ }
++#endif
+ 
+ /*
+  * Zero Userspace
+-- 
+2.20.1
