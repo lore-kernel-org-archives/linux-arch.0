@@ -1,51 +1,32 @@
-Return-Path: <brendanhiggins@google.com>
-MIME-Version: 1.0
-References: <20200128072002.79250-1-brendanhiggins@google.com>
- <20200128072002.79250-8-brendanhiggins@google.com> <20200129062709.5B2A22067C@mail.kernel.org>
-In-Reply-To: <20200129062709.5B2A22067C@mail.kernel.org>
-From: Brendan Higgins <brendanhiggins@google.com>
-Date: Thu, 30 Jan 2020 15:04:47 -0800
-Message-ID: <CAFd5g47cha8DJdS9x=Qjj-vLXjGOugQK38Ln85eznfuN11cLrQ@mail.gmail.com>
-Subject: Re: [PATCH v1 7/7] Documentation: Add kunit_shutdown to kernel-parameters.txt
-Content-Type: text/plain; charset="UTF-8"
-To: Stephen Boyd <sboyd@kernel.org>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Alan Maguire <alan.maguire@oracle.com>, Anton Ivanov <anton.ivanov@cambridgegreys.com>, Arnd Bergmann <arnd@arndb.de>, David Gow <davidgow@google.com>, Frank Rowand <frowand.list@gmail.com>, Jeff Dike <jdike@addtoit.com>, Kees Cook <keescook@chromium.org>, Richard Weinberger <richard@nod.at>, rppt@linux.ibm.com, Shuah Khan <skhan@linuxfoundation.org>, Iurii Zaikin <yzaikin@google.com>, Greg KH <gregkh@linuxfoundation.org>, Logan Gunthorpe <logang@deltatee.com>, Luis Chamberlain <mcgrof@kernel.org>, Knut Omang <knut.omang@oracle.com>, linux-um <linux-um@lists.infradead.org>, linux-arch@vger.kernel.org, "open list:KERNEL SELFTEST FRAMEWORK" <linux-kselftest@vger.kernel.org>, KUnit Development <kunit-dev@googlegroups.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>
+Return-Path: <owner-linux-mm@kvack.org>
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: quoted-printable
+From: Qian Cai <cai@lca.pw>
+Mime-Version: 1.0 (1.0)
+Subject: Re: [PATCH v4 01/10] kcsan: Add Kernel Concurrency Sanitizer
+ infrastructure
+Date: Tue, 14 Jan 2020 16:48:22 -0500
+Message-ID: <9970E373-DF70-4FE4-A839-AAE641612EC5@lca.pw>
+References: <20200114213405.GX2935@paulmck-ThinkPad-P72>
+In-Reply-To: <20200114213405.GX2935@paulmck-ThinkPad-P72>
+Sender: owner-linux-mm@kvack.org
+To: paulmck@kernel.org
+Cc: Marco Elver <elver@google.com>, LKMM Maintainers -- Akira Yokosawa <akiyks@gmail.com>, Alan Stern <stern@rowland.harvard.edu>, Alexander Potapenko <glider@google.com>, Andrea Parri <parri.andrea@gmail.com>, Andrey Konovalov <andreyknvl@google.com>, Andy Lutomirski <luto@kernel.org>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Arnd Bergmann <arnd@arndb.de>, Boqun Feng <boqun.feng@gmail.com>, Borislav Petkov <bp@alien8.de>, Daniel Axtens <dja@axtens.net>, Daniel Lustig <dlustig@nvidia.com>, Dave Hansen <dave.hansen@linux.intel.com>, David Howells <dhowells@redhat.com>, Dmitry Vyukov <dvyukov@google.com>, "H. Peter Anvin" <hpa@zytor.com>, Ingo Molnar <mingo@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Joel Fernandes <joel@joelfernandes.org>, Jonathan Corbet <corbet@lwn.net>, Josh Poimboeuf <jpoimboe@redhat.com>, Luc Maranget <luc.maranget@inria.fr>, Mark Rutland <Mark.Rutland@arm.com>, Nicholas Piggin <npiggin@gmail.com>, Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, Will Deacon <will@kernel.org>, Eric Dumazet <edumazet@google.com>, kasan-dev <kasan-dev@googlegroups.com>, linux-arch <linux-arch@vger.kernel.org>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>, linux-efi@vger.kernel.org, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Linux Memory Management List <linux-mm@kvack.org>, the arch/x86 maintainers <x86@kernel.org>
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200130230447.K9EgMj62mMZcuYmrJj040LyGke7Og2OLFLHR8qFKbas@z>
+Message-ID: <20200114214822.y77GyZh1-YS1Hh9i14nTiueQl6qVh6DIbktXjozz9HA@z>
 
-On Tue, Jan 28, 2020 at 10:27 PM Stephen Boyd <sboyd@kernel.org> wrote:
->
-> Quoting Brendan Higgins (2020-01-27 23:20:02)
-> > Add kunit_shutdown, an option to specify that the kernel shutsdown after
-> > running KUnit tests, to the kernel-parameters.txt documentation.
-> >
-> > Signed-off-by: Brendan Higgins <brendanhiggins@google.com>
-> > ---
-> >  Documentation/admin-guide/kernel-parameters.txt | 7 +++++++
-> >  1 file changed, 7 insertions(+)
-> >
-> > diff --git a/Documentation/admin-guide/kernel-parameters.txt b/Documentation/admin-guide/kernel-parameters.txt
-> > index ade4e6ec23e03..0472b02ce16bb 100644
-> > --- a/Documentation/admin-guide/kernel-parameters.txt
-> > +++ b/Documentation/admin-guide/kernel-parameters.txt
-> > @@ -2054,6 +2054,13 @@
-> >                         0: force disabled
-> >                         1: force enabled
-> >
-> > +       kunit_shutdown  [KERNEL UNIT TESTING FRAMEWORK] Shutdown kernel after
-> > +                       running tests.
-> > +                       Default:        (flag not present) don't shutdown
-> > +                       poweroff:       poweroff the kernel after running tests.
-> > +                       halt:           halt the kernel after running tests.
-> > +                       reboot:         reboot the kernel after running tests.
->
-> Maybe drop the full stops on the short descriptions.
 
-Will fix.
 
-> Otherwise,
->
-> Reviewed-by: Stephen Boyd <sboyd@kernel.org>
->
+> On Jan 14, 2020, at 4:34 PM, Paul E. McKenney <paulmck@kernel.org> wrote:
+>=20
+> As an alternative, once the patches needed for your tests to pass
+> reach mainline, you could announce that KCSAN was ready to be enabled
+> in distros.
+>=20
+> Though I confess that I don't know how that works.  Is there a separate
+> testing kernel binary provided by the distros in question?
 
-Thanks!
+I don=E2=80=99t think I have powers to announce that. Once the feature hit t=
+he mainline, distro people could start to use in the debug kernel variant, a=
+nd it is a shame to only find out it is broken. Anyway, I=E2=80=99ll try to e=
+dge out those corner cases. Stay tuned.=
