@@ -1,55 +1,152 @@
 Return-Path: <owner-linux-mm@kvack.org>
-From: Sandipan Das <sandipan@linux.ibm.com>
-Subject: [PATCH v16 08/23] selftests/vm: Fix pkey_disable_clear()
-Date: Fri, 17 Jan 2020 18:19:47 +0530
-In-Reply-To: <cover.1579265066.git.sandipan@linux.ibm.com>
-References: <cover.1579265066.git.sandipan@linux.ibm.com>
-In-Reply-To: <cover.1579265066.git.sandipan@linux.ibm.com>
-References: <cover.1579265066.git.sandipan@linux.ibm.com>
-Message-ID: <2c5a7d6888e87bbe11a533e0b5c34c99829f8e5f.1579265066.git.sandipan@linux.ibm.com>
+From: "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>
+Subject: [PATCH v3 8/9] asm-generic/tlb: Rename HAVE_MMU_GATHER_NO_GATHER
+Date: Tue, 14 Jan 2020 15:31:44 +0530
+Message-ID: <20200114100145.365527-9-aneesh.kumar@linux.ibm.com>
+In-Reply-To: <20200114100145.365527-1-aneesh.kumar@linux.ibm.com>
+References: <20200114100145.365527-1-aneesh.kumar@linux.ibm.com>
+MIME-Version: 1.0
+Content-Transfer-Encoding: quoted-printable
 Sender: owner-linux-mm@kvack.org
-To: shuah@kernel.org, linux-kselftest@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, fweimer@redhat.com, dave.hansen@intel.com, x86@kernel.org, linuxram@us.ibm.com, mhocko@kernel.org, linux-mm@kvack.org, mingo@redhat.com, aneesh.kumar@linux.ibm.com, bauerman@linux.ibm.com, msuchanek@suse.de, mpe@ellerman.id.au, linuxppc-dev@lists.ozlabs.org
+To: akpm@linux-foundation.org, peterz@infradead.org, will@kernel.org
+Cc: linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, "Aneesh Kumar K . V" <aneesh.kumar@linux.ibm.com>
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200117124947.fvEY77CNXfPa-1LJv4RMDnq2z8UTDdupuwXu-aWsfvg@z>
+Message-ID: <20200114100144.5aLYlzjWSij1WhsxKnfFZ6IlYckDEHjPlCHec4EgkAs@z>
 
-From: Ram Pai <linuxram@us.ibm.com>
+From: Peter Zijlstra <peterz@infradead.org>
 
-Currently, pkey_disable_clear() sets the specified bits
-instead clearing them. This has been dead code up to now
-because its only callers i.e. pkey_access/write_allow()
-are also unused.
+Towards a more consistent naming scheme.
 
-cc: Dave Hansen <dave.hansen@intel.com>
-cc: Florian Weimer <fweimer@redhat.com>
-Signed-off-by: Ram Pai <linuxram@us.ibm.com>
-Acked-by: Dave Hansen <dave.hansen@intel.com>
-Signed-off-by: Sandipan Das <sandipan@linux.ibm.com>
+Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+Signed-off-by: Aneesh Kumar K.V <aneesh.kumar@linux.ibm.com>
 ---
- tools/testing/selftests/vm/protection_keys.c | 4 ++--
- 1 file changed, 2 insertions(+), 2 deletions(-)
+ arch/Kconfig              |  2 +-
+ arch/s390/Kconfig         |  2 +-
+ include/asm-generic/tlb.h | 14 ++++++++++++--
+ mm/mmu_gather.c           | 10 +++++-----
+ 4 files changed, 19 insertions(+), 9 deletions(-)
 
-diff --git a/tools/testing/selftests/vm/protection_keys.c b/tools/testing/selftests/vm/protection_keys.c
-index 3ce5a87804ab..7440f6fa7be3 100644
---- a/tools/testing/selftests/vm/protection_keys.c
-+++ b/tools/testing/selftests/vm/protection_keys.c
-@@ -417,7 +417,7 @@ void pkey_disable_clear(int pkey, int flags)
- 			pkey, pkey, pkey_rights);
- 	pkey_assert(pkey_rights >= 0);
-
--	pkey_rights |= flags;
-+	pkey_rights &= ~flags;
-
- 	ret = hw_pkey_set(pkey, pkey_rights, 0);
- 	shadow_pkey_reg = set_pkey_bits(shadow_pkey_reg, pkey, pkey_rights);
-@@ -430,7 +430,7 @@ void pkey_disable_clear(int pkey, int flags)
- 	dprintf1("%s(%d) pkey_reg: 0x%016lx\n", __func__,
- 			pkey, read_pkey_reg());
- 	if (flags)
--		assert(read_pkey_reg() > orig_pkey_reg);
-+		assert(read_pkey_reg() < orig_pkey_reg);
+diff --git a/arch/Kconfig b/arch/Kconfig
+index e8548211b6a9..c35668fbf4d4 100644
+--- a/arch/Kconfig
++++ b/arch/Kconfig
+@@ -402,7 +402,7 @@ config MMU_GATHER_PAGE_SIZE
+ config MMU_GATHER_NO_RANGE
+ 	bool
+=20
+-config HAVE_MMU_GATHER_NO_GATHER
++config MMU_GATHER_NO_GATHER
+ 	bool
+=20
+ config ARCH_HAVE_NMI_SAFE_CMPXCHG
+diff --git a/arch/s390/Kconfig b/arch/s390/Kconfig
+index e2cde82a1a3c..de39c2e92435 100644
+--- a/arch/s390/Kconfig
++++ b/arch/s390/Kconfig
+@@ -163,7 +163,7 @@ config S390
+ 	select HAVE_PERF_USER_STACK_DUMP
+ 	select HAVE_MEMBLOCK_NODE_MAP
+ 	select HAVE_MEMBLOCK_PHYS_MAP
+-	select HAVE_MMU_GATHER_NO_GATHER
++	select MMU_GATHER_NO_GATHER
+ 	select HAVE_MOD_ARCH_SPECIFIC
+ 	select HAVE_NOP_MCOUNT
+ 	select HAVE_OPROFILE
+diff --git a/include/asm-generic/tlb.h b/include/asm-generic/tlb.h
+index 53befa5acb27..ca0fe75b5355 100644
+--- a/include/asm-generic/tlb.h
++++ b/include/asm-generic/tlb.h
+@@ -143,6 +143,16 @@
+  *  MMU_GATHER_NO_RANGE
+  *
+  *  Use this if your architecture lacks an efficient flush_tlb_range().
++ *
++ *  MMU_GATHER_NO_GATHER
++ *
++ *  If the option is set the mmu_gather will not track individual pages =
+for
++ *  delayed page free anymore. A platform that enables the option needs =
+to
++ *  provide its own implementation of the __tlb_remove_page_size() funct=
+ion to
++ *  free pages.
++ *
++ *  This is useful if your architecture already flushes TLB entries in t=
+he
++ *  various ptep_get_and_clear() functions.
+  */
+=20
+ #ifdef CONFIG_MMU_GATHER_RCU_TABLE_FREE
+@@ -202,7 +212,7 @@ extern void tlb_remove_table(struct mmu_gather *tlb, =
+void *table);
+ #endif /* CONFIG_MMU_GATHER_RCU_TABLE_FREE */
+=20
+=20
+-#ifndef CONFIG_HAVE_MMU_GATHER_NO_GATHER
++#ifndef CONFIG_MMU_GATHER_NO_GATHER
+ /*
+  * If we can't allocate a page to make a big batch of page pointers
+  * to work on, then just handle a few from the on-stack structure.
+@@ -277,7 +287,7 @@ struct mmu_gather {
+=20
+ 	unsigned int		batch_count;
+=20
+-#ifndef CONFIG_HAVE_MMU_GATHER_NO_GATHER
++#ifndef CONFIG_MMU_GATHER_NO_GATHER
+ 	struct mmu_gather_batch *active;
+ 	struct mmu_gather_batch	local;
+ 	struct page		*__pages[MMU_GATHER_BUNDLE];
+diff --git a/mm/mmu_gather.c b/mm/mmu_gather.c
+index 297c70307367..a28c74328085 100644
+--- a/mm/mmu_gather.c
++++ b/mm/mmu_gather.c
+@@ -11,7 +11,7 @@
+ #include <asm/pgalloc.h>
+ #include <asm/tlb.h>
+=20
+-#ifndef CONFIG_HAVE_MMU_GATHER_NO_GATHER
++#ifndef CONFIG_MMU_GATHER_NO_GATHER
+=20
+ static bool tlb_next_batch(struct mmu_gather *tlb)
+ {
+@@ -89,7 +89,7 @@ bool __tlb_remove_page_size(struct mmu_gather *tlb, str=
+uct page *page, int page_
+ 	return false;
  }
-
- void pkey_write_allow(int pkey)
--- 
-2.17.1
+=20
+-#endif /* HAVE_MMU_GATHER_NO_GATHER */
++#endif /* MMU_GATHER_NO_GATHER */
+=20
+ #ifdef CONFIG_MMU_GATHER_RCU_TABLE_FREE
+=20
+@@ -180,7 +180,7 @@ static void tlb_flush_mmu_free(struct mmu_gather *tlb=
+)
+ #ifdef CONFIG_MMU_GATHER_RCU_TABLE_FREE
+ 	tlb_table_flush(tlb);
+ #endif
+-#ifndef CONFIG_HAVE_MMU_GATHER_NO_GATHER
++#ifndef CONFIG_MMU_GATHER_NO_GATHER
+ 	tlb_batch_pages_flush(tlb);
+ #endif
+ }
+@@ -211,7 +211,7 @@ void tlb_gather_mmu(struct mmu_gather *tlb, struct mm=
+_struct *mm,
+ 	/* Is it from 0 to ~0? */
+ 	tlb->fullmm     =3D !(start | (end+1));
+=20
+-#ifndef CONFIG_HAVE_MMU_GATHER_NO_GATHER
++#ifndef CONFIG_MMU_GATHER_NO_GATHER
+ 	tlb->need_flush_all =3D 0;
+ 	tlb->local.next =3D NULL;
+ 	tlb->local.nr   =3D 0;
+@@ -271,7 +271,7 @@ void tlb_finish_mmu(struct mmu_gather *tlb,
+=20
+ 	tlb_flush_mmu(tlb);
+=20
+-#ifndef CONFIG_HAVE_MMU_GATHER_NO_GATHER
++#ifndef CONFIG_MMU_GATHER_NO_GATHER
+ 	tlb_batch_list_free(tlb);
+ #endif
+ 	dec_tlb_flush_pending(tlb->mm);
+--=20
+2.24.1
