@@ -1,51 +1,52 @@
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Subject: Re: [RFC 1/4] asm-generic/uaccess: don't define inline functions if
- noinline lib/* in use
-Date: Tue, 14 Jan 2020 13:32:50 -0800
-Message-ID: <CAHk-=wjChjfOaDnGygOJpC36R6mtT7=Xf6wWTzD_wLJm=quu0Q@mail.gmail.com>
-References: <20200114200846.29434-1-vgupta@synopsys.com> <20200114200846.29434-2-vgupta@synopsys.com>
+From: "Paul E. McKenney" <paulmck@kernel.org>
+Subject: Re: [PATCH v4 01/10] kcsan: Add Kernel Concurrency Sanitizer
+ infrastructure
+Date: Tue, 14 Jan 2020 13:34:05 -0800
+Message-ID: <20200114213405.GX2935@paulmck-ThinkPad-P72>
+References: <20200114192220.GS2935@paulmck-ThinkPad-P72>
+ <F185919B-2D86-43B6-9BEC-D14D72871A58@lca.pw>
+Reply-To: paulmck@kernel.org
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20200114200846.29434-2-vgupta@synopsys.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Cc: Arnd Bergmann <arnd@arndb.de>, Khalid Aziz <khalid.aziz@oracle.com>, Andrey Konovalov <andreyknvl@google.com>, Andrew Morton <akpm@linux-foundation.org>, Peter Zijlstra <peterz@infradead.org>, Christian Brauner <christian.brauner@ubuntu.com>, Kees Cook <keescook@chromium.org>, Ingo Molnar <mingo@kernel.org>, Aleksa Sarai <cyphar@cyphar.com>, linux-snps-arc@lists.infradead.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 8bit
+Return-path: <linux-doc-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <F185919B-2D86-43B6-9BEC-D14D72871A58@lca.pw>
+Sender: linux-doc-owner@vger.kernel.org
+To: Qian Cai <cai@lca.pw>
+Cc: Marco Elver <elver@google.com>, LKMM Maintainers -- Akira Yokosawa <akiyks@gmail.com>, Alan Stern <stern@rowland.harvard.edu>, Alexander Potapenko <glider@google.com>, Andrea Parri <parri.andrea@gmail.com>, Andrey Konovalov <andreyknvl@google.com>, Andy Lutomirski <luto@kernel.org>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Arnd Bergmann <arnd@arndb.de>, Boqun Feng <boqun.feng@gmail.com>, Borislav Petkov <bp@alien8.de>, Daniel Axtens <dja@axtens.net>, Daniel Lustig <dlustig@nvidia.com>, Dave Hansen <dave.hansen@linux.intel.com>, David Howells <dhowells@redhat.com>, Dmitry Vyukov <dvyukov@google.com>, "H. Peter Anvin" <hpa@zytor.com>, Ingo Molnar <mingo@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Joel Fernandes <joel@joelfernandes.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, Jan 14, 2020 at 12:09 PM Vineet Gupta
-<Vineet.Gupta1@synopsys.com> wrote:
->
-> There are 2 generic varaints of strncpy_from_user() / strnlen_user()
->  (1). inline version in asm-generic/uaccess.h
+On Tue, Jan 14, 2020 at 03:30:53PM -0500, Qian Cai wrote:
+> 
+> 
+> > On Jan 14, 2020, at 2:22 PM, Paul E. McKenney <paulmck@kernel.org> wrote:
+> > 
+> > Just so I understand...  Does this problem happen even in CONFIG_KCSAN=n
+> > kernels?
+> 
+> No.
 
-I think we should get rid of this entirely. It's just a buggy garbage
-implementation that nobody should ever actually use.
+Whew!!!  ;-)
 
-It does just about everything wrong that you *can* do, wrong,
-including doing the NUL-filling termination of standard strncpy() that
-"strncpy_from_user()" doesn't actually do.
+> > I have been running extensive CONFIG_KSCAN=y rcutorture tests for quite
+> > awhile now, so even if this only happens for CONFIG_KSCAN=y, it is not
+> > like it affects everyone.
+> > 
+> > Yes, it should be fixed, and Marco does have a patch on the way.
+> 
+> The concern is really about setting KSCAN=y in a distro debug kernel where it has other debug options. I’ll try to dig into more of those issues in the next few days.
 
-So:
+Understood.  But there are likely to be other issues with KCSAN, given how
+new it is.  Yes, yes, I certainly would like to believe that the patches
+we currently know about will make KCSAN perfect for distros, I have way
+too much grey hair (and too little hair as well!) to really beleive that.
 
- - the asm-generic/uaccess.h __strncpy_from_user() function is just
-horribly wrong
+As an alternative, once the patches needed for your tests to pass
+reach mainline, you could announce that KCSAN was ready to be enabled
+in distros.
 
- - the generic/uaccess.h version of strncpy_from_user() shouldn't be
-an inline function either, since the only thing it can do inline is
-the bogus one-byte access check that _barely_ makes security work (you
-also need to have a guard page to _actually_ make it work, and I'm not
-atr all convinced that people do).
+Though I confess that I don't know how that works.  Is there a separate
+testing kernel binary provided by the distros in question?
 
-the whole thing is just broken and should be removed from a header file.
-
->  (2). optimized word-at-a-time version in lib/*
-
-That is - outside of the original x86 strncpy_from_user() - the only
-copy of this function that historically gets all the corner cases
-right. And even those we've gotten wrong occasionally.
-
-I would suggest that anybody who uses asm-generic/uaccess.h needs to
-simply use the generic library version.
-
-             Linus
+							Thanx, Paul
