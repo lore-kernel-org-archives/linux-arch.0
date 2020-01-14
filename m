@@ -1,139 +1,43 @@
-Return-Path: <owner-linux-mm@kvack.org>
-From: Sandipan Das <sandipan@linux.ibm.com>
-Subject: [PATCH v16 16/23] selftests/vm/pkeys: Improve checks to determine
- pkey support
-Date: Fri, 17 Jan 2020 18:19:55 +0530
-In-Reply-To: <cover.1579265066.git.sandipan@linux.ibm.com>
-References: <cover.1579265066.git.sandipan@linux.ibm.com>
-In-Reply-To: <cover.1579265066.git.sandipan@linux.ibm.com>
-References: <cover.1579265066.git.sandipan@linux.ibm.com>
-Message-ID: <0dfcb9e184190bc9f3928031113085e0cd28d844.1579265066.git.sandipan@linux.ibm.com>
-Sender: owner-linux-mm@kvack.org
-To: shuah@kernel.org, linux-kselftest@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, fweimer@redhat.com, dave.hansen@intel.com, x86@kernel.org, linuxram@us.ibm.com, mhocko@kernel.org, linux-mm@kvack.org, mingo@redhat.com, aneesh.kumar@linux.ibm.com, bauerman@linux.ibm.com, msuchanek@suse.de, mpe@ellerman.id.au, linuxppc-dev@lists.ozlabs.org
+Return-Path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-qk1-f195.google.com ([209.85.222.195]:38616 "EHLO
+ mail-qk1-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with
+ ESMTP id S1727556AbgANUa4 (ORCPT <rfc822;linux-arch@vger.kernel.org>); Tue,
+ 14 Jan 2020 15:30:56 -0500
+Received: by mail-qk1-f195.google.com with SMTP id k6so13485597qki.5 for
+ <linux-arch@vger.kernel.org>; Tue, 14 Jan 2020 12:30:55 -0800 (PST)
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: quoted-printable
+From: Qian Cai <cai@lca.pw>
+Mime-Version: 1.0 (1.0)
+Subject: Re: [PATCH v4 01/10] kcsan: Add Kernel Concurrency Sanitizer
+ infrastructure
+Date: Tue, 14 Jan 2020 15:30:53 -0500
+Message-ID: <F185919B-2D86-43B6-9BEC-D14D72871A58@lca.pw>
+References: <20200114192220.GS2935@paulmck-ThinkPad-P72>
+In-Reply-To: <20200114192220.GS2935@paulmck-ThinkPad-P72>
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200117124955.id8RoOCTqW8TIJn-gsOePgbUiW-i243D1TGA4uOUhqE@z>
+To: paulmck@kernel.org
+Cc: Marco Elver <elver@google.com>, LKMM Maintainers -- Akira Yokosawa <akiyks@gmail.com>, Alan Stern <stern@rowland.harvard.edu>, Alexander Potapenko <glider@google.com>, Andrea Parri <parri.andrea@gmail.com>, Andrey Konovalov <andreyknvl@google.com>, Andy Lutomirski <luto@kernel.org>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Arnd Bergmann <arnd@arndb.de>, Boqun Feng <boqun.feng@gmail.com>, Borislav Petkov <bp@alien8.de>, Daniel Axtens <dja@axtens.net>, Daniel Lustig <dlustig@nvidia.com>, Dave Hansen <dave.hansen@linux.intel.com>, David Howells <dhowells@redhat.com>, Dmitry Vyukov <dvyukov@google.com>, "H. Peter Anvin" <hpa@zytor.com>, Ingo Molnar <mingo@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Joel Fernandes <joel@joelfernandes.org>, Jonathan Corbet <corbet@lwn.net>, Josh Poimboeuf <jpoimboe@redhat.com>, Luc Maranget <luc.maranget@inria.fr>, Mark Rutland <Mark.Rutland@arm.com>, Nicholas Piggin <npiggin@gmail.com>, Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, Will Deacon <will@kernel.org>, Eric Dumazet <edumazet@google.com>, kasan-dev <kasan-dev@googlegroups.com>, linux-arch <linux-arch@vger.kernel.org>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>, linux-efi@vger.kernel.org, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Linux Memory Management List <linux-mm@kvack.org>, the arch/x86 maintainers <x86@kernel.org>
+Message-ID: <20200114203053.ggSRuu4QXrfrcWut1mPOT9ffXpkWjAPlDf0az5Rg5Us@z>
 
-From: Ram Pai <linuxram@us.ibm.com>
 
-For the pkeys subsystem to work, both the CPU and the
-kernel need to have support. So, additionally check if
-the kernel supports pkeys apart from the CPU feature
-checks.
 
-cc: Dave Hansen <dave.hansen@intel.com>
-cc: Florian Weimer <fweimer@redhat.com>
-Signed-off-by: Ram Pai <linuxram@us.ibm.com>
-Signed-off-by: Sandipan Das <sandipan@linux.ibm.com>
----
- tools/testing/selftests/vm/pkey-helpers.h    | 30 ++++++++++++++++++++
- tools/testing/selftests/vm/pkey-powerpc.h    |  3 +-
- tools/testing/selftests/vm/pkey-x86.h        |  2 +-
- tools/testing/selftests/vm/protection_keys.c |  7 +++--
- 4 files changed, 37 insertions(+), 5 deletions(-)
+> On Jan 14, 2020, at 2:22 PM, Paul E. McKenney <paulmck@kernel.org> wrote:
+>=20
+> Just so I understand...  Does this problem happen even in CONFIG_KCSAN=3Dn=
 
-diff --git a/tools/testing/selftests/vm/pkey-helpers.h b/tools/testing/selftests/vm/pkey-helpers.h
-index ec3f87d53b7d..ac9076136fc8 100644
---- a/tools/testing/selftests/vm/pkey-helpers.h
-+++ b/tools/testing/selftests/vm/pkey-helpers.h
-@@ -76,6 +76,8 @@ extern void abort_hooks(void);
+> kernels?
 
- __attribute__((noinline)) int read_ptr(int *ptr);
- void expected_pkey_fault(int pkey);
-+int sys_pkey_alloc(unsigned long flags, unsigned long init_val);
-+int sys_pkey_free(unsigned long pkey);
+No.
 
- #if defined(__i386__) || defined(__x86_64__) /* arch */
- #include "pkey-x86.h"
-@@ -186,4 +188,32 @@ static inline u32 *siginfo_get_pkey_ptr(siginfo_t *si)
- #endif
- }
+>=20
+> I have been running extensive CONFIG_KSCAN=3Dy rcutorture tests for quite
+> awhile now, so even if this only happens for CONFIG_KSCAN=3Dy, it is not
+> like it affects everyone.
+>=20
+> Yes, it should be fixed, and Marco does have a patch on the way.
 
-+static inline int kernel_has_pkeys(void)
-+{
-+	/* try allocating a key and see if it succeeds */
-+	int ret = sys_pkey_alloc(0, 0);
-+	if (ret <= 0) {
-+		return 0;
-+	}
-+	sys_pkey_free(ret);
-+	return 1;
-+}
-+
-+static inline int is_pkeys_supported(void)
-+{
-+	/* check if the cpu supports pkeys */
-+	if (!cpu_has_pkeys()) {
-+		dprintf1("SKIP: %s: no CPU support\n", __func__);
-+		return 0;
-+	}
-+
-+	/* check if the kernel supports pkeys */
-+	if (!kernel_has_pkeys()) {
-+		dprintf1("SKIP: %s: no kernel support\n", __func__);
-+		return 0;
-+	}
-+
-+	return 1;
-+}
-+
- #endif /* _PKEYS_HELPER_H */
-diff --git a/tools/testing/selftests/vm/pkey-powerpc.h b/tools/testing/selftests/vm/pkey-powerpc.h
-index eaced8c198a2..a5e5157c4f7e 100644
---- a/tools/testing/selftests/vm/pkey-powerpc.h
-+++ b/tools/testing/selftests/vm/pkey-powerpc.h
-@@ -63,8 +63,9 @@ static inline void __write_pkey_reg(u64 pkey_reg)
- 			__func__, __read_pkey_reg(), pkey_reg);
- }
-
--static inline int cpu_has_pku(void)
-+static inline int cpu_has_pkeys(void)
- {
-+	/* No simple way to determine this */
- 	return 1;
- }
-
-diff --git a/tools/testing/selftests/vm/pkey-x86.h b/tools/testing/selftests/vm/pkey-x86.h
-index 296151309a30..207e8c180f39 100644
---- a/tools/testing/selftests/vm/pkey-x86.h
-+++ b/tools/testing/selftests/vm/pkey-x86.h
-@@ -97,7 +97,7 @@ static inline void __cpuid(unsigned int *eax, unsigned int *ebx,
- #define X86_FEATURE_PKU        (1<<3) /* Protection Keys for Userspace */
- #define X86_FEATURE_OSPKE      (1<<4) /* OS Protection Keys Enable */
-
--static inline int cpu_has_pku(void)
-+static inline int cpu_has_pkeys(void)
- {
- 	unsigned int eax;
- 	unsigned int ebx;
-diff --git a/tools/testing/selftests/vm/protection_keys.c b/tools/testing/selftests/vm/protection_keys.c
-index a91d11c6a0ec..4a0677e618ac 100644
---- a/tools/testing/selftests/vm/protection_keys.c
-+++ b/tools/testing/selftests/vm/protection_keys.c
-@@ -1377,7 +1377,7 @@ void test_mprotect_pkey_on_unsupported_cpu(int *ptr, u16 pkey)
- 	int size = PAGE_SIZE;
- 	int sret;
-
--	if (cpu_has_pku()) {
-+	if (cpu_has_pkeys()) {
- 		dprintf1("SKIP: %s: no CPU support\n", __func__);
- 		return;
- 	}
-@@ -1446,12 +1446,13 @@ void pkey_setup_shadow(void)
- int main(void)
- {
- 	int nr_iterations = 22;
-+	int pkeys_supported = is_pkeys_supported();
-
- 	setup_handlers();
-
--	printf("has pku: %d\n", cpu_has_pku());
-+	printf("has pkeys: %d\n", pkeys_supported);
-
--	if (!cpu_has_pku()) {
-+	if (!pkeys_supported) {
- 		int size = PAGE_SIZE;
- 		int *ptr;
-
--- 
-2.17.1
+The concern is really about setting KSCAN=3Dy in a distro debug kernel where=
+ it has other debug options. I=E2=80=99ll try to dig into more of those issu=
+es in the next few days.=
