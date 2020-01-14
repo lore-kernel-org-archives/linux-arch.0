@@ -1,84 +1,42 @@
-Return-Path: <SRS0=XOKs=3M=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:60824 "EHLO
-        merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726026AbgAWKHE (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 23 Jan 2020 05:07:04 -0500
-Date: Thu, 23 Jan 2020 11:06:35 +0100
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH v9 3/5] locking/qspinlock: Introduce CNA into the slow
- path of qspinlock
-Message-ID: <20200123100635.GE14946@hirez.programming.kicks-ass.net>
-References: <20200115035920.54451-1-alex.kogan@oracle.com>
- <20200115035920.54451-4-alex.kogan@oracle.com>
- <20200123092658.GC14879@hirez.programming.kicks-ass.net>
+Return-Path: <SRS0=Pd00=3D=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mout.kundenserver.de ([217.72.192.73]:43061 "EHLO
+        mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726491AbgANU6A (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 14 Jan 2020 15:58:00 -0500
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20200123092658.GC14879@hirez.programming.kicks-ass.net>
+References: <20200114200846.29434-1-vgupta@synopsys.com> <20200114200846.29434-2-vgupta@synopsys.com>
+In-Reply-To: <20200114200846.29434-2-vgupta@synopsys.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Date: Tue, 14 Jan 2020 21:57:42 +0100
+Message-ID: <CAK8P3a3W0eLK+qypnPwq=PdcF7+ey8OZEhmOoA6Bg7hMGm5hqQ@mail.gmail.com>
+Subject: Re: [RFC 1/4] asm-generic/uaccess: don't define inline functions if
+ noinline lib/* in use
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Alex Kogan <alex.kogan@oracle.com>
-Cc: linux@armlinux.org.uk, mingo@redhat.com, will.deacon@arm.com, arnd@arndb.de, longman@redhat.com, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, bp@alien8.de, hpa@zytor.com, x86@kernel.org, guohanjun@huawei.com, jglauber@marvell.com, steven.sistare@oracle.com, daniel.m.jordan@oracle.com, dave.dice@oracle.com
-Message-ID: <20200123100635.mT2PgmqZwQAFSBKWSUMU1Ght3g2YwUOzXhXbVyvbOBA@z>
+To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Cc: Khalid Aziz <khalid.aziz@oracle.com>, Andrey Konovalov <andreyknvl@google.com>, Andrew Morton <akpm@linux-foundation.org>, Peter Zijlstra <peterz@infradead.org>, Christian Brauner <christian.brauner@ubuntu.com>, Kees Cook <keescook@chromium.org>, Ingo Molnar <mingo@kernel.org>, Aleksa Sarai <cyphar@cyphar.com>, Linus Torvalds <torvalds@linux-foundation.org>, "open list:SYNOPSYS ARC ARCHITECTURE" <linux-snps-arc@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>
+Message-ID: <20200114205742.IevXvlPe9J8FnX9qL8ykSj0nyFMLnjk-_OjV5M9S25w@z>
 
-On Thu, Jan 23, 2020 at 10:26:58AM +0100, Peter Zijlstra wrote:
-> On Tue, Jan 14, 2020 at 10:59:18PM -0500, Alex Kogan wrote:
-> > +/* this function is called only when the primary queue is empty */
-> > +static inline bool cna_try_change_tail(struct qspinlock *lock, u32 val,
-> > +				       struct mcs_spinlock *node)
-> > +{
-> > +	struct mcs_spinlock *head_2nd, *tail_2nd;
-> > +	u32 new;
-> > +
-> > +	/* If the secondary queue is empty, do what MCS does. */
-> > +	if (node->locked <= 1)
-> > +		return __try_clear_tail(lock, val, node);
-> > +
-> > +	/*
-> > +	 * Try to update the tail value to the last node in the secondary queue.
-> > +	 * If successful, pass the lock to the first thread in the secondary
-> > +	 * queue. Doing those two actions effectively moves all nodes from the
-> > +	 * secondary queue into the main one.
-> > +	 */
-> > +	tail_2nd = decode_tail(node->locked);
-> > +	head_2nd = tail_2nd->next;
-> > +	new = ((struct cna_node *)tail_2nd)->encoded_tail + _Q_LOCKED_VAL;
-> > +
-> > +	if (atomic_try_cmpxchg_relaxed(&lock->val, &val, new)) {
-> > +		/*
-> > +		 * Try to reset @next in tail_2nd to NULL, but no need to check
-> > +		 * the result - if failed, a new successor has updated it.
-> > +		 */
-> 
-> I think you actually have an ordering bug here; the load of head_2nd
-> *must* happen before the atomic_try_cmpxchg(), otherwise it might
-> observe the new next and clear a valid next pointer.
-> 
-> What would be the best fix for that; I'm thinking:
-> 
-> 	head_2nd = smp_load_acquire(&tail_2nd->next);
-> 
-> Will?
+On Tue, Jan 14, 2020 at 9:08 PM Vineet Gupta <Vineet.Gupta1@synopsys.com> wrote:
+>
+> There are 2 generic varaints of strncpy_from_user() / strnlen_user()
+>  (1). inline version in asm-generic/uaccess.h
+>  (2). optimized word-at-a-time version in lib/*
+>
+> This patch disables #1 if #2 selected. This allows arches to continue
+> reusing asm-generic/uaccess.h for rest of code
+>
+> This came up when switching ARC to generic word-at-a-time interface
+>
+> Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
 
-Hmm, given we've not passed the lock around yet; why wouldn't something
-like this work:
+This looks like a useful change, but I think we can do even better: It
+seems that
+there are no  callers of __strnlen_user or __strncpy_from_user  in the
+kernel today, so these should not be defined either when the Kconfig symbols
+are set. Also, I would suggest moving the 'extern' declaration for the two
+functions into the #else branch of the conditional so it does not need to be
+duplicated.
 
-	smp_store_release(&tail_2nd->next, NULL);
-
-	if (!atomic_try_cmpxchg_relaxed(&lock, &val, new)) {
-		tail_2nd->next = head_2nd;
-		return false;
-	}
-
-The whole second queue is only ever modified by the lock owner, and that
-is us, so we can pre-terminate the secondary queue (break the circular
-link), try the cmpxchg and fix it back up when it fails.
-
-
-> > +		cmpxchg_relaxed(&tail_2nd->next, head_2nd, NULL);
-> > +		arch_mcs_pass_lock(&head_2nd->locked, 1);
-> > +		return true;
-> > +	}
-> > +
-> > +	return false;
-> > +}
+      Arnd
