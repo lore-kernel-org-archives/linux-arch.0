@@ -1,42 +1,65 @@
 Return-Path: <SRS0=Pd00=3D=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:55412 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726270AbgANRdn (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 14 Jan 2020 12:33:43 -0500
-Date: Tue, 14 Jan 2020 17:33:37 +0000
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [PATCH v4 06/12] arm64: elf: Enable BTI at exec based on ELF
- program properties
-Message-ID: <20200114173336.GJ30444@arrakis.emea.arm.com>
-References: <20191211154206.46260-1-broonie@kernel.org>
- <20191211154206.46260-7-broonie@kernel.org>
+Received: from mail-lj1-f194.google.com ([209.85.208.194]:35118 "EHLO
+        mail-lj1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727102AbgANVdM (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 14 Jan 2020 16:33:12 -0500
+Received: by mail-lj1-f194.google.com with SMTP id j1so16077886lja.2
+        for <linux-arch@vger.kernel.org>; Tue, 14 Jan 2020 13:33:10 -0800 (PST)
+Received: from mail-lj1-f176.google.com (mail-lj1-f176.google.com. [209.85.208.176])
+        by smtp.gmail.com with ESMTPSA id 195sm8010968ljj.55.2020.01.14.13.33.06
+        for <linux-arch@vger.kernel.org>
+        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
+        Tue, 14 Jan 2020 13:33:07 -0800 (PST)
+Received: by mail-lj1-f176.google.com with SMTP id u1so16087691ljk.7
+        for <linux-arch@vger.kernel.org>; Tue, 14 Jan 2020 13:33:06 -0800 (PST)
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20191211154206.46260-7-broonie@kernel.org>
+References: <20200114200846.29434-1-vgupta@synopsys.com> <20200114200846.29434-2-vgupta@synopsys.com>
+In-Reply-To: <20200114200846.29434-2-vgupta@synopsys.com>
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Date: Tue, 14 Jan 2020 13:32:50 -0800
+Message-ID: <CAHk-=wjChjfOaDnGygOJpC36R6mtT7=Xf6wWTzD_wLJm=quu0Q@mail.gmail.com>
+Subject: Re: [RFC 1/4] asm-generic/uaccess: don't define inline functions if
+ noinline lib/* in use
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Mark Brown <broonie@kernel.org>
-Cc: Will Deacon <will@kernel.org>, Paul Elliott <paul.elliott@arm.com>, Peter Zijlstra <peterz@infradead.org>, Yu-cheng Yu <yu-cheng.yu@intel.com>, Amit Kachhap <amit.kachhap@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Marc Zyngier <maz@kernel.org>, Eugene Syromiatnikov <esyr@redhat.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, "H.J. Lu" <hjl.tools@gmail.com>, Andrew Jones <drjones@redhat.com>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Jann Horn <jannh@google.com>, Richard Henderson <richard.henderson@linaro.org>, Kristina =?utf-8?Q?Mart=C5=A1enko?= <kristina.martsenko@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Florian Weimer <fweimer@redhat.com>, Sudakshina Das <sudi.das@arm.com>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Dave Martin <Dave.Martin@arm.com>
-Message-ID: <20200114173337.q5UKh-j_XKASyFKCnTHqXmfVTP1waeKKkCbRFoH7Ack@z>
+To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Cc: Arnd Bergmann <arnd@arndb.de>, Khalid Aziz <khalid.aziz@oracle.com>, Andrey Konovalov <andreyknvl@google.com>, Andrew Morton <akpm@linux-foundation.org>, Peter Zijlstra <peterz@infradead.org>, Christian Brauner <christian.brauner@ubuntu.com>, Kees Cook <keescook@chromium.org>, Ingo Molnar <mingo@kernel.org>, Aleksa Sarai <cyphar@cyphar.com>, linux-snps-arc@lists.infradead.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>
+Message-ID: <20200114213250.nbJ0G-Ir4o42xaJ3bngy3HXSvdvb08xxEOUWxArU9Ic@z>
 
-On Wed, Dec 11, 2019 at 03:42:00PM +0000, Mark Brown wrote:
-> +static inline int arch_parse_elf_property(u32 type, const void *data,
-> +					  size_t datasz, bool compat,
-> +					  struct arch_elf_state *arch)
-> +{
-> +	/* No known properties for AArch32 yet */
-> +	if (IS_ENABLED(CONFIG_COMPAT) && compat)
-> +		return 0;
-> +
-> +	if (type == GNU_PROPERTY_AARCH64_FEATURE_1_AND) {
-> +		const u32 *p = data;
-> +
-> +		if (datasz != sizeof(*p))
-> +			return -EIO;
+On Tue, Jan 14, 2020 at 12:09 PM Vineet Gupta
+<Vineet.Gupta1@synopsys.com> wrote:
+>
+> There are 2 generic varaints of strncpy_from_user() / strnlen_user()
+>  (1). inline version in asm-generic/uaccess.h
 
-Is this -EIO or -ENOEXEC sounds better?
+I think we should get rid of this entirely. It's just a buggy garbage
+implementation that nobody should ever actually use.
 
-Apart from this, the patch looks fine.
+It does just about everything wrong that you *can* do, wrong,
+including doing the NUL-filling termination of standard strncpy() that
+"strncpy_from_user()" doesn't actually do.
 
-Reviewed-by: Catalin Marinas <catalin.marinas@arm.com>
+So:
+
+ - the asm-generic/uaccess.h __strncpy_from_user() function is just
+horribly wrong
+
+ - the generic/uaccess.h version of strncpy_from_user() shouldn't be
+an inline function either, since the only thing it can do inline is
+the bogus one-byte access check that _barely_ makes security work (you
+also need to have a guard page to _actually_ make it work, and I'm not
+atr all convinced that people do).
+
+the whole thing is just broken and should be removed from a header file.
+
+>  (2). optimized word-at-a-time version in lib/*
+
+That is - outside of the original x86 strncpy_from_user() - the only
+copy of this function that historically gets all the corner cases
+right. And even those we've gotten wrong occasionally.
+
+I would suggest that anybody who uses asm-generic/uaccess.h needs to
+simply use the generic library version.
+
+             Linus
