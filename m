@@ -1,51 +1,95 @@
-From: "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>
-Subject: Re: [PATCH v3 0/9] Fixup page directory freeing
-Date: Tue, 14 Jan 2020 17:58:58 +0530
-Message-ID: <ed2e6567-30db-a3c7-2973-a307bf2dfa7b@linux.ibm.com>
-References: <20200114100145.365527-1-aneesh.kumar@linux.ibm.com>
- <20200114105002.GD2844@hirez.programming.kicks-ass.net>
+From: Marco Elver <elver@google.com>
+Subject: Re: [PATCH v4 01/10] kcsan: Add Kernel Concurrency Sanitizer infrastructure
+Date: Tue, 14 Jan 2020 13:51:01 +0100
+Message-ID: <CANpmjNMXD3Qzj748CXWtmenxx4cC3Q8Fr70L5PWNe6ZSARcZ9w@mail.gmail.com>
+References: <CANpmjNOC2PYFsE_TK2SYmKcHxyG+2arWc8x_fmeWPOMi0+ot8g@mail.gmail.com>
+ <53F6B915-AC53-41BB-BF32-33732515B3A0@lca.pw>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20200114105002.GD2844@hirez.programming.kicks-ass.net>
-Content-Language: en-US
-Sender: linux-kernel-owner@vger.kernel.org
-To: Peter Zijlstra <peterz@infradead.org>, Michael Ellerman <mpe@ellerman.id.au>
-Cc: akpm@linux-foundation.org, will@kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <53F6B915-AC53-41BB-BF32-33732515B3A0@lca.pw>
+Sender: owner-linux-mm@kvack.org
+To: Qian Cai <cai@lca.pw>
+Cc: LKMM Maintainers -- Akira Yokosawa <akiyks@gmail.com>, Alan Stern <stern@rowland.harvard.edu>, Alexander Potapenko <glider@google.com>, Andrea Parri <parri.andrea@gmail.com>, Andrey Konovalov <andreyknvl@google.com>, Andy Lutomirski <luto@kernel.org>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Arnd Bergmann <arnd@arndb.de>, Boqun Feng <boqun.feng@gmail.com>, Borislav Petkov <bp@alien8.de>, Daniel Axtens <dja@axtens.net>, Daniel Lustig <dlustig@nvidia.com>, Dave Hansen <dave.hansen@linux.intel.com>, David Howells <dhowells@redhat.com>, Dmitry Vyukov <dvyukov@google.com>, "H. Peter Anvin" <hpa@zytor.com>, Ingo Molnar <mingo@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Joel Fernandes <joel@joelfernandes.org>, Jonathan Corbet <corbet@lwn.net>, Josh Poimboeuf <jpoimboe@redhat.com>, Luc Maranget <luc.maranget@inria.fr>, Mark Rutland <Mark.Rutland@arm.com>, Nicholas
 List-Id: linux-arch.vger.kernel.org
 
-On 1/14/20 4:20 PM, Peter Zijlstra wrote:
-> On Tue, Jan 14, 2020 at 03:31:36PM +0530, Aneesh Kumar K.V wrote:
->> This is a repost of patch series from Peter with the arch specific changes except ppc64 dropped.
->> ppc64 changes are added here because we are redoing the patch series on top of ppc64 changes. This makes it
->> easy to backport these changes. Only the first 3 patches need to be backported to stable.
->>
->> The thing is, on anything SMP, freeing page directories should observe the
->> exact same order as normal page freeing:
->>
->>   1) unhook page/directory
->>   2) TLB invalidate
->>   3) free page/directory
->>
->> Without this, any concurrent page-table walk could end up with a Use-after-Free.
->> This is esp. trivial for anything that has software page-table walkers
->> (HAVE_FAST_GUP / software TLB fill) or the hardware caches partial page-walks
->> (ie. caches page directories).
->>
->> Even on UP this might give issues since mmu_gather is preemptible these days.
->> An interrupt or preempted task accessing user pages might stumble into the free
->> page if the hardware caches page directories.
->>
->> This patch series fixup ppc64 and add generic MMU_GATHER changes to support the conversion of other architectures.
->> I haven't added patches w.r.t other architecture because they are yet to be acked.
-> 
-> Obviously looks good to me; will you route this through the Power tree
-> since you're in a hurry to see this fixed?
-> 
+On Tue, 14 Jan 2020 at 12:08, Qian Cai <cai@lca.pw> wrote:
+>
+>
+>
+> > On Jan 6, 2020, at 7:47 AM, Marco Elver <elver@google.com> wrote:
+> >
+> > Thanks, I'll look into KCSAN + lockdep compatibility. It's probably
+> > missing some KCSAN_SANITIZE :=3D n in some Makefile.
+>
+> Can I have a update on fixing this? It looks like more of a problem that =
+kcsan_setup_watchpoint() will disable IRQs and then dive into the page allo=
+cator where it would complain because it might sleep.
 
-Michael,
+KCSAN does *not* keep IRQs disabled (we have a clear irqsave / restore
+pair kcsan_setup_watchpoint).
 
-Can you take this via your tree?
+If you look closer at the warning you sent in this thread, the warning
+is not generated because IRQs are off when it wants to sleep, but
+rather because IRQs are enabled but IRQ tracing state is inconsistent:
+"DEBUG_LOCKS_WARN_ON(!current->hardirqs_enabled)" in lockdep checks
+that if IRQs are enabled, the trace state matches. These are only
+checked with LOCKDEP_DEBUG and TRACE_IRQFLAGS.
 
--aneesh
+In other words, IRQ trace flags got corrupted somewhere. AFAIK, this
+problem here is only relevant with TRACE_IRQFLAGS -- again, it is
+clear that IRQs are enabled but the IRQ tracing logic somehow ended up
+corrupting hardirqs_enabled (TRACE_IRQFLAGS).
+
+I believe this patch will take care of this issue:
+http://lkml.kernel.org/r/20200114124919.11891-1-elver@google.com
+
+Thanks,
+-- Marco
+
+> BTW, I saw Paul sent a pull request for 5.6 but it is ugly to have everyb=
+ody could trigger a deadlock (sleep function called in atomic context) like=
+ this during boot once this hits the mainline not to mention about only rec=
+ently it is possible to test this feature (thanks to warning ratelimit) wit=
+h the existing debugging options because it was unable to boot due to the b=
+rokenness with debug_pagealloc as mentioned in this thread, so this does so=
+unds like it needs more soak time for the mainline to me.
+>
+> 0000000000000400
+> [   13.416814][    T1] Call Trace:
+> [   13.416814][    T1]  lock_is_held_type+0x66/0x160
+> [   13.416814][    T1]  ___might_sleep+0xc1/0x1d0
+> [   13.416814][    T1]  __might_sleep+0x5b/0xa0
+> [   13.416814][    T1]  slab_pre_alloc_hook+0x7b/0xa0
+> [   13.416814][    T1]  __kmalloc_node+0x60/0x300
+> [   13.416814   T1]  ? alloc_cpumask_var_node+0x44/0x70
+> [   13.416814][    T1]  ? topology_phys_to_logical_die+0x7e/0x180
+> [   13.416814][    T1]  alloc_cpumask_var_node+0x44/0x70
+> [   13.416814][    T1]  zalloc_cpumask_var+0x2a/0x40
+> [   13.416814][    T1]  native_smp_prepare_cpus+0x246/0x425
+> [   13.416814][    T1]  kernel_init_freeable+0x1b8/0x496
+> [   13.416814][    T1]  ? rest_init+0x381/0x381
+> [   13.416814][    T1]  kernel_init+0x18/0x17f
+> [   13.416814][    T1]  ? rest_init+0x381/0x381
+> [   13.416814][    T1]  ret_from_fork+0x3a/0x50
+> [   13.416814][    T1] irq event stamp: 910
+> [   13.416814][    T1] hardirqs last  enabled at (909): [<ffffffff8d1240f=
+3>] _raw_write_unlock_irqrestore+0x53/0x57
+> [   13.416814][    T1] hardirqs last disabled at (910): [<ffffffff8c8bba7=
+6>] kcsan_setup_watchpoint+0x96/0x460
+> [   13.416814][    T1] softirqs last  enabled at (0): [<ffffffff8c6b697a>=
+] copy_process+0x11fa/0x34f0
+> [   13.416814][    T1] softirqs last disabled at (0): [<0000000000000000>=
+] 0x0
+> [   13.416814][    T1] ---[ end trace 7d1df66da055aa92 ]---
+> [   13.416814][    T1] possible reason: unannotated irqs-on.
+> [   13.416814][ent stamp: 910
+> [   13.416814][    T1] hardirqs last  enabled at (909): [<ffffffff8d1240f=
+3>] _raw_write_unlock_irqrestore+0x53/0x57
+> [   13.416814][    T1] hardirqs last disabled at (910): [<ffffffff8c8bba7=
+6>] kcsan_setup_watchpoint+0x96/0x460
+> [   13.416814][    T1] softirqs last  enabled at (0): [<ffffffff8c6b697a>=
+] copy_process+0x11fa/0x34f0
+> [   13.416814][    T1] softirqs last disabled at (0): [<0000000000000000>=
+] 0x0
