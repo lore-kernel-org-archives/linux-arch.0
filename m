@@ -1,41 +1,57 @@
-From: Qian Cai <cai@lca.pw>
-Subject: Re: [PATCH v4 01/10] kcsan: Add Kernel Concurrency Sanitizer infrastructure
-Date: Tue, 14 Jan 2020 15:30:53 -0500
-Message-ID: <F185919B-2D86-43B6-9BEC-D14D72871A58@lca.pw>
-References: <20200114192220.GS2935@paulmck-ThinkPad-P72>
-Mime-Version: 1.0 (1.0)
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: quoted-printable
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [RFC 4/4] ARC: uaccess: use optimized generic __strnlen_user/__strncpy_from_user
+Date: Tue, 14 Jan 2020 21:42:15 +0100
+Message-ID: <CAK8P3a2GUqmcA_q33=20OrK1+cU4f3mCrgci_bO3ho4B5PRODg@mail.gmail.com>
+References: <20200114200846.29434-1-vgupta@synopsys.com> <20200114200846.29434-5-vgupta@synopsys.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qk1-f195.google.com ([209.85.222.195]:38616 "EHLO
-        mail-qk1-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727556AbgANUa4 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 14 Jan 2020 15:30:56 -0500
-Received: by mail-qk1-f195.google.com with SMTP id k6so13485597qki.5
-        for <linux-arch@vger.kernel.org>; Tue, 14 Jan 2020 12:30:55 -0800 (PST)
-In-Reply-To: <20200114192220.GS2935@paulmck-ThinkPad-P72>
+Received: from mout.kundenserver.de ([212.227.17.24]:51325 "EHLO
+        mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727102AbgANUmf (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 14 Jan 2020 15:42:35 -0500
+In-Reply-To: <20200114200846.29434-5-vgupta@synopsys.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: paulmck@kernel.org
-Cc: Marco Elver <elver@google.com>, LKMM Maintainers -- Akira Yokosawa <akiyks@gmail.com>, Alan Stern <stern@rowland.harvard.edu>, Alexander Potapenko <glider@google.com>, Andrea Parri <parri.andrea@gmail.com>, Andrey Konovalov <andreyknvl@google.com>, Andy Lutomirski <luto@kernel.org>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Arnd Bergmann <arnd@arndb.de>, Boqun Feng <boqun.feng@gmail.com>, Borislav Petkov <bp@alien8.de>, Daniel Axtens <dja@axtens.net>, Daniel Lustig <dlustig@nvidia.com>, Dave Hansen <dave.hansen@linux.intel.com>, David Howells <dhowells@redhat.com>, Dmitry Vyukov <dvyukov@google.com>, "H. Peter Anvin" <hpa@zytor.com>, Ingo Molnar <mingo@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Joel Fernandes <joel@joelfernandes.org>
+To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Cc: Khalid Aziz <khalid.aziz@oracle.com>, Andrey Konovalov <andreyknvl@google.com>, Andrew Morton <akpm@linux-foundation.org>, Peter Zijlstra <peterz@infradead.org>, Christian Brauner <christian.brauner@ubuntu.com>, Kees Cook <keescook@chromium.org>, Ingo Molnar <mingo@kernel.org>, Aleksa Sarai <cyphar@cyphar.com>, Linus Torvalds <torvalds@linux-foundation.org>, "open list:SYNOPSYS ARC ARCHITECTURE" <linux-snps-arc@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>
 
+On Tue, Jan 14, 2020 at 9:08 PM Vineet Gupta <Vineet.Gupta1@synopsys.com> wrote:
 
+> diff --git a/arch/arc/include/asm/word-at-a-time.h b/arch/arc/include/asm/word-at-a-time.h
+> new file mode 100644
+> index 000000000000..00e92be70987
+> --- /dev/null
+> +++ b/arch/arc/include/asm/word-at-a-time.h
+> @@ -0,0 +1,49 @@
+> +/* SPDX-License-Identifier: GPL-2.0-only */
+> +/*
+> + * Copyright (C) 2020 Synopsys Inc.
+> + */
+> +#ifndef __ASM_ARC_WORD_AT_A_TIME_H
+> +#define __ASM_ARC_WORD_AT_A_TIME_H
+> +
+> +#ifdef __LITTLE_ENDIAN__
+> +
+> +#include <linux/kernel.h>
+> +
+> +struct word_at_a_time {
+> +       const unsigned long one_bits, high_bits;
+> +};
 
-> On Jan 14, 2020, at 2:22 PM, Paul E. McKenney <paulmck@kernel.org> wrote:
->=20
-> Just so I understand...  Does this problem happen even in CONFIG_KCSAN=3Dn=
+What's wrong with the generic version on little-endian? Any
+chance you can find a way to make it work as well for you as
+this copy?
 
-> kernels?
+> +static inline unsigned long find_zero(unsigned long mask)
+> +{
+> +#ifdef CONFIG_64BIT
+> +       return fls64(mask) >> 3;
+> +#else
+> +       return fls(mask) >> 3;
+> +#endif
 
-No.
+The CONFIG_64BIT check not be needed, unless you are adding
+support for 64-bit ARC really soon.
 
->=20
-> I have been running extensive CONFIG_KSCAN=3Dy rcutorture tests for quite
-> awhile now, so even if this only happens for CONFIG_KSCAN=3Dy, it is not
-> like it affects everyone.
->=20
-> Yes, it should be fixed, and Marco does have a patch on the way.
-
-The concern is really about setting KSCAN=3Dy in a distro debug kernel where=
- it has other debug options. I=E2=80=99ll try to dig into more of those issu=
-es in the next few days.=
+       Arnd
