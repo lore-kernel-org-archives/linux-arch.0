@@ -1,148 +1,72 @@
 From: "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>
-Subject: [PATCH v3 8/9] asm-generic/tlb: Rename HAVE_MMU_GATHER_NO_GATHER
-Date: Tue, 14 Jan 2020 15:31:44 +0530
-Message-ID: <20200114100145.365527-9-aneesh.kumar@linux.ibm.com>
-References: <20200114100145.365527-1-aneesh.kumar@linux.ibm.com>
+Subject: [PATCH v3 0/9] Fixup page directory freeing
+Date: Tue, 14 Jan 2020 15:31:36 +0530
+Message-ID: <20200114100145.365527-1-aneesh.kumar@linux.ibm.com>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:38796 "EHLO
-        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
-        by vger.kernel.org with ESMTP id S1726053AbgANKC3 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 14 Jan 2020 05:02:29 -0500
-In-Reply-To: <20200114100145.365527-1-aneesh.kumar@linux.ibm.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: akpm@linux-foundation.org, peterz@infradead.org, will@kernel.org
-Cc: linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, "Aneesh Kumar K . V" <aneesh.kumar@linux.ibm.com>
+Cc: linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>
+List-Id: linux-arch.vger.kernel.org
 
-From: Peter Zijlstra <peterz@infradead.org>
+This is a repost of patch series from Peter with the arch specific changes except ppc64 dropped.
+ppc64 changes are added here because we are redoing the patch series on top of ppc64 changes. This makes it
+easy to backport these changes. Only the first 3 patches need to be backported to stable. 
 
-Towards a more consistent naming scheme.
+The thing is, on anything SMP, freeing page directories should observe the
+exact same order as normal page freeing:
 
-Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
-Signed-off-by: Aneesh Kumar K.V <aneesh.kumar@linux.ibm.com>
----
- arch/Kconfig              |  2 +-
- arch/s390/Kconfig         |  2 +-
- include/asm-generic/tlb.h | 14 ++++++++++++--
- mm/mmu_gather.c           | 10 +++++-----
- 4 files changed, 19 insertions(+), 9 deletions(-)
+ 1) unhook page/directory
+ 2) TLB invalidate
+ 3) free page/directory
 
-diff --git a/arch/Kconfig b/arch/Kconfig
-index e8548211b6a9..c35668fbf4d4 100644
---- a/arch/Kconfig
-+++ b/arch/Kconfig
-@@ -402,7 +402,7 @@ config MMU_GATHER_PAGE_SIZE
- config MMU_GATHER_NO_RANGE
- 	bool
- 
--config HAVE_MMU_GATHER_NO_GATHER
-+config MMU_GATHER_NO_GATHER
- 	bool
- 
- config ARCH_HAVE_NMI_SAFE_CMPXCHG
-diff --git a/arch/s390/Kconfig b/arch/s390/Kconfig
-index e2cde82a1a3c..de39c2e92435 100644
---- a/arch/s390/Kconfig
-+++ b/arch/s390/Kconfig
-@@ -163,7 +163,7 @@ config S390
- 	select HAVE_PERF_USER_STACK_DUMP
- 	select HAVE_MEMBLOCK_NODE_MAP
- 	select HAVE_MEMBLOCK_PHYS_MAP
--	select HAVE_MMU_GATHER_NO_GATHER
-+	select MMU_GATHER_NO_GATHER
- 	select HAVE_MOD_ARCH_SPECIFIC
- 	select HAVE_NOP_MCOUNT
- 	select HAVE_OPROFILE
-diff --git a/include/asm-generic/tlb.h b/include/asm-generic/tlb.h
-index 53befa5acb27..ca0fe75b5355 100644
---- a/include/asm-generic/tlb.h
-+++ b/include/asm-generic/tlb.h
-@@ -143,6 +143,16 @@
-  *  MMU_GATHER_NO_RANGE
-  *
-  *  Use this if your architecture lacks an efficient flush_tlb_range().
-+ *
-+ *  MMU_GATHER_NO_GATHER
-+ *
-+ *  If the option is set the mmu_gather will not track individual pages for
-+ *  delayed page free anymore. A platform that enables the option needs to
-+ *  provide its own implementation of the __tlb_remove_page_size() function to
-+ *  free pages.
-+ *
-+ *  This is useful if your architecture already flushes TLB entries in the
-+ *  various ptep_get_and_clear() functions.
-  */
- 
- #ifdef CONFIG_MMU_GATHER_RCU_TABLE_FREE
-@@ -202,7 +212,7 @@ extern void tlb_remove_table(struct mmu_gather *tlb, void *table);
- #endif /* CONFIG_MMU_GATHER_RCU_TABLE_FREE */
- 
- 
--#ifndef CONFIG_HAVE_MMU_GATHER_NO_GATHER
-+#ifndef CONFIG_MMU_GATHER_NO_GATHER
- /*
-  * If we can't allocate a page to make a big batch of page pointers
-  * to work on, then just handle a few from the on-stack structure.
-@@ -277,7 +287,7 @@ struct mmu_gather {
- 
- 	unsigned int		batch_count;
- 
--#ifndef CONFIG_HAVE_MMU_GATHER_NO_GATHER
-+#ifndef CONFIG_MMU_GATHER_NO_GATHER
- 	struct mmu_gather_batch *active;
- 	struct mmu_gather_batch	local;
- 	struct page		*__pages[MMU_GATHER_BUNDLE];
-diff --git a/mm/mmu_gather.c b/mm/mmu_gather.c
-index 297c70307367..a28c74328085 100644
---- a/mm/mmu_gather.c
-+++ b/mm/mmu_gather.c
-@@ -11,7 +11,7 @@
- #include <asm/pgalloc.h>
- #include <asm/tlb.h>
- 
--#ifndef CONFIG_HAVE_MMU_GATHER_NO_GATHER
-+#ifndef CONFIG_MMU_GATHER_NO_GATHER
- 
- static bool tlb_next_batch(struct mmu_gather *tlb)
- {
-@@ -89,7 +89,7 @@ bool __tlb_remove_page_size(struct mmu_gather *tlb, struct page *page, int page_
- 	return false;
- }
- 
--#endif /* HAVE_MMU_GATHER_NO_GATHER */
-+#endif /* MMU_GATHER_NO_GATHER */
- 
- #ifdef CONFIG_MMU_GATHER_RCU_TABLE_FREE
- 
-@@ -180,7 +180,7 @@ static void tlb_flush_mmu_free(struct mmu_gather *tlb)
- #ifdef CONFIG_MMU_GATHER_RCU_TABLE_FREE
- 	tlb_table_flush(tlb);
- #endif
--#ifndef CONFIG_HAVE_MMU_GATHER_NO_GATHER
-+#ifndef CONFIG_MMU_GATHER_NO_GATHER
- 	tlb_batch_pages_flush(tlb);
- #endif
- }
-@@ -211,7 +211,7 @@ void tlb_gather_mmu(struct mmu_gather *tlb, struct mm_struct *mm,
- 	/* Is it from 0 to ~0? */
- 	tlb->fullmm     = !(start | (end+1));
- 
--#ifndef CONFIG_HAVE_MMU_GATHER_NO_GATHER
-+#ifndef CONFIG_MMU_GATHER_NO_GATHER
- 	tlb->need_flush_all = 0;
- 	tlb->local.next = NULL;
- 	tlb->local.nr   = 0;
-@@ -271,7 +271,7 @@ void tlb_finish_mmu(struct mmu_gather *tlb,
- 
- 	tlb_flush_mmu(tlb);
- 
--#ifndef CONFIG_HAVE_MMU_GATHER_NO_GATHER
-+#ifndef CONFIG_MMU_GATHER_NO_GATHER
- 	tlb_batch_list_free(tlb);
- #endif
- 	dec_tlb_flush_pending(tlb->mm);
+Without this, any concurrent page-table walk could end up with a Use-after-Free.
+This is esp. trivial for anything that has software page-table walkers
+(HAVE_FAST_GUP / software TLB fill) or the hardware caches partial page-walks
+(ie. caches page directories).
+
+Even on UP this might give issues since mmu_gather is preemptible these days.
+An interrupt or preempted task accessing user pages might stumble into the free
+page if the hardware caches page directories.
+
+This patch series fixup ppc64 and add generic MMU_GATHER changes to support the conversion of other architectures.
+I haven't added patches w.r.t other architecture because they are yet to be acked.
+
+
+Aneesh Kumar K.V (1):
+  powerpc/mmu_gather: Enable RCU_TABLE_FREE even for !SMP case
+
+Peter Zijlstra (8):
+  mm/mmu_gather: Invalidate TLB correctly on batch allocation failure
+    and flush
+  asm-generic/tlb: Avoid potential double flush
+  asm-gemeric/tlb: Remove stray function declarations
+  asm-generic/tlb: Add missing CONFIG symbol
+  asm-generic/tlb: Rename HAVE_RCU_TABLE_FREE
+  asm-generic/tlb: Rename HAVE_MMU_GATHER_PAGE_SIZE
+  asm-generic/tlb: Rename HAVE_MMU_GATHER_NO_GATHER
+  asm-generic/tlb: Provide MMU_GATHER_TABLE_FREE
+
+ arch/Kconfig                                 |  13 +-
+ arch/arm/Kconfig                             |   2 +-
+ arch/arm/include/asm/tlb.h                   |   4 -
+ arch/arm64/Kconfig                           |   2 +-
+ arch/powerpc/Kconfig                         |   5 +-
+ arch/powerpc/include/asm/book3s/32/pgalloc.h |   8 --
+ arch/powerpc/include/asm/book3s/64/pgalloc.h |   2 -
+ arch/powerpc/include/asm/nohash/pgalloc.h    |   8 --
+ arch/powerpc/include/asm/tlb.h               |  11 ++
+ arch/powerpc/mm/book3s64/pgtable.c           |   7 -
+ arch/s390/Kconfig                            |   4 +-
+ arch/sparc/Kconfig                           |   3 +-
+ arch/sparc/include/asm/tlb_64.h              |   9 ++
+ arch/x86/Kconfig                             |   2 +-
+ arch/x86/include/asm/tlb.h                   |   4 +-
+ include/asm-generic/tlb.h                    | 120 ++++++++++-------
+ mm/gup.c                                     |   2 +-
+ mm/mmu_gather.c                              | 134 +++++++++++++------
+ 18 files changed, 207 insertions(+), 133 deletions(-)
+
 -- 
 2.24.1
