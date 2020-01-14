@@ -1,38 +1,79 @@
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Subject: Re: [RFC 4/4] ARC: uaccess: use optimized generic __strnlen_user/__strncpy_from_user
-Date: Tue, 14 Jan 2020 13:49:03 -0800
-Message-ID: <CAHk-=wjX-c9YpPhbQ073UPnTvELNQCN49vqK1yY7JGuHSn5-ew@mail.gmail.com>
-References: <20200114200846.29434-1-vgupta@synopsys.com> <20200114200846.29434-5-vgupta@synopsys.com>
- <CAK8P3a2GUqmcA_q33=20OrK1+cU4f3mCrgci_bO3ho4B5PRODg@mail.gmail.com> <3734021d-1756-3a09-6595-14ca58c64bf9@synopsys.com>
+From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Subject: Re: [RFC 2/4] lib/strncpy_from_user: Remove redundant user space
+ pointer range check
+Date: Tue, 14 Jan 2020 21:52:47 +0000
+Message-ID: <72451406-6575-c16e-057e-30dc68ed9d2f@synopsys.com>
+References: <20200114200846.29434-1-vgupta@synopsys.com>
+ <20200114200846.29434-3-vgupta@synopsys.com>
+ <CAHk-=wgoc5DaF6=WxsAcft_Lp4XUYTiRhhCJGcmM5PwEDXY6Gw@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <3734021d-1756-3a09-6595-14ca58c64bf9@synopsys.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Cc: Arnd Bergmann <arnd@arndb.de>, Khalid Aziz <khalid.aziz@oracle.com>, Andrey Konovalov <andreyknvl@google.com>, Andrew Morton <akpm@linux-foundation.org>, Peter Zijlstra <peterz@infradead.org>, Christian Brauner <christian.brauner@ubuntu.com>, Kees Cook <keescook@chromium.org>, Ingo Molnar <mingo@kernel.org>, Aleksa Sarai <cyphar@cyphar.com>, "open list:SYNOPSYS ARC ARCHITECTURE" <linux-snps-arc@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from us03-smtprelay2.synopsys.com ([149.117.87.133]:57660 "EHLO
+        smtprelay-out1.synopsys.com" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S1726491AbgANVxi (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 14 Jan 2020 16:53:38 -0500
+In-Reply-To: <CAHk-=wgoc5DaF6=WxsAcft_Lp4XUYTiRhhCJGcmM5PwEDXY6Gw@mail.gmail.com>
+Content-Language: en-US
+Content-ID: <E98DDBD8F53B0845B4739E9AE1F79431@namprd12.prod.outlook.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Arnd Bergmann <arnd@arndb.de>, Khalid Aziz <khalid.aziz@oracle.com>, Andrey Konovalov <andreyknvl@google.com>, Andrew Morton <akpm@linux-foundation.org>, Peter Zijlstra <peterz@infradead.org>, Christian Brauner <christian.brauner@ubuntu.com>, Kees Cook <keescook@chromium.org>, Ingo Molnar <mingo@kernel.org>, Aleksa Sarai <cyphar@cyphar.com>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>
 
-On Tue, Jan 14, 2020 at 1:37 PM Vineet Gupta <Vineet.Gupta1@synopsys.com> wrote:
->
-> On 1/14/20 12:42 PM, Arnd Bergmann wrote:
-> >
-> > What's wrong with the generic version on little-endian? Any
-> > chance you can find a way to make it work as well for you as
-> > this copy?
->
-> find_zero() by default doesn't use pop count instructions.
-
-Don't you think the generic find_zero() is likely just as fast as the
-pop count instruction? On 32-bit, I think it's like a shift and a mask
-and a couple of additions.
-
-The 64-bit case has a multiply that is likely expensive unless you
-have a good multiplication unit (but what 64-bit architecture
-doesn't?), but the generic 32-bit LE code should already be pretty
-close to optimal, and it might not be worth it to worry about it.
-
-(The big-endian case is very different, and architectures really can
-do much better. But LE allows for bit tricks using the carry chain)
-
-             Linus
+T24gMS8xNC8yMCAxOjIyIFBNLCBMaW51cyBUb3J2YWxkcyB3cm90ZToNCj4gT24gVHVlLCBKYW4g
+MTQsIDIwMjAgYXQgMTI6MDkgUE0gVmluZWV0IEd1cHRhDQo+IDxWaW5lZXQuR3VwdGExQHN5bm9w
+c3lzLmNvbT4gd3JvdGU6DQo+Pg0KPj4gVGhpcyBjYW1lIHVwIHdoZW4gc3dpdGNoaW5nIEFSQyB0
+byB3b3JkLWF0LWEtdGltZSBpbnRlcmZhY2UgYW5kIHVzaW5nDQo+PiBnZW5lcmljL29wdGltaXpl
+ZCBzdHJuY3B5X2Zyb21fdXNlcg0KPj4NCj4+IEl0IHNlZW1zIHRoZSBleGlzdGluZyBjb2RlIGNo
+ZWNrcyBmb3IgdXNlciBidWZmZXIvc3RyaW5nIHJhbmdlIG11bHRpcGxlDQo+PiB0aW1lcyBhbmQg
+b25lIG9mIHRlbSBjbiBiZSBhdm9pZGVkLg0KPiANCj4gTk8hDQo+IA0KPiBETyBOT1QgRE8gVEhJ
+Uy4NCj4gDQo+IFRoaXMgaXMgc2VyaW91c2x5IGJ1Z2d5Lg0KPiANCj4+ICBsb25nIHN0cm5jcHlf
+ZnJvbV91c2VyKGNoYXIgKmRzdCwgY29uc3QgY2hhciBfX3VzZXIgKnNyYywgbG9uZyBjb3VudCkN
+Cj4+ICB7DQo+PiAtICAgICAgIHVuc2lnbmVkIGxvbmcgbWF4X2FkZHIsIHNyY19hZGRyOw0KPj4g
+LQ0KPj4gICAgICAgICBpZiAodW5saWtlbHkoY291bnQgPD0gMCkpDQo+PiAgICAgICAgICAgICAg
+ICAgcmV0dXJuIDA7DQo+Pg0KPj4gLSAgICAgICBtYXhfYWRkciA9IHVzZXJfYWRkcl9tYXgoKTsN
+Cj4+IC0gICAgICAgc3JjX2FkZHIgPSAodW5zaWduZWQgbG9uZyl1bnRhZ2dlZF9hZGRyKHNyYyk7
+DQo+PiAtICAgICAgIGlmIChsaWtlbHkoc3JjX2FkZHIgPCBtYXhfYWRkcikpIHsNCj4+IC0gICAg
+ICAgICAgICAgICB1bnNpZ25lZCBsb25nIG1heCA9IG1heF9hZGRyIC0gc3JjX2FkZHI7DQo+PiAr
+ICAgICAgIGthc2FuX2NoZWNrX3dyaXRlKGRzdCwgY291bnQpOw0KPj4gKyAgICAgICBjaGVja19v
+YmplY3Rfc2l6ZShkc3QsIGNvdW50LCBmYWxzZSk7DQo+PiArICAgICAgIGlmICh1c2VyX2FjY2Vz
+c19iZWdpbihzcmMsIGNvdW50KSkgew0KPiANCj4gWW91IGNhbid0IGRvIHRoYXQgInVzZXJfYWNj
+ZXNzX2JlZ2luKHNyYywgY291bnQpIiwgYmVjYXVzZSAiY291bnQiIGlzDQo+IHRoZSBtYXhpbXVt
+IF9wb3NzaWJsZV8gbGVuZ3RoLCBidXQgaXQgaXMgKk5PVCogbmVjZXNzYXJpbHkgdGhlIGFjdHVh
+bA0KPiBsZW5ndGggb2YgdGhlIHN0cmluZyB3ZSByZWFsbHkgZ2V0IGZyb20gdXNlciBzcGFjZSEN
+Cj4gDQo+IFRoaW5rIG9mIHRoaXMgc2l0dWF0aW9uOg0KPiANCj4gIC0gdXNlciBoYXMgYSA1LWJ5
+dGUgc3RyaW5nIGF0IHRoZSBlbmQgb2YgdGhlIGFkZHJlc3Mgc3BhY2UNCj4gDQo+ICAtIGtlcm5l
+bCBkb2VzIGENCj4gDQo+ICAgICAgbiA9IHN0cm5jcHlfZnJvbV91c2VyKHVhZGRyLCBwYWdlLCBQ
+QUdFX1NJWkUpDQo+IA0KPiBub3cgeW91ciAidXNlcl9hY2Nlc3NfYmVnaW4oc3JjLCBjb3VudCki
+IHdpbGwgX2ZhaWxfLCBiZWNhdXNlICJ1YWRkciINCj4gaXMgY2xvc2UgdG8gdGhlIGVuZCBvZiB0
+aGUgdXNlciBhZGRyZXNzIHNwYWNlLCBhbmQgdGhlcmUncyBub3Qgcm9vbQ0KPiBmb3IgUEFHRV9T
+SVpFIGJ5dGVzIGFueSBtb3JlLg0KDQpPb3BzIGluZGVlZCB0aGF0IHdhcyB0aGUgY2FzZSBJIGRp
+ZG4ndCBjb21wcmVoZW5kLiBJbiBteSBpbml0aWFsIHRlc3RzIHdpdGgNCmRlYnVnZ2VyLCBldmVy
+eSBzaW5nbGUgaGl0IG9uIHN0cm5jcHlfZnJvbV91c2VyKCkgaGFkIHVzZXIgYWRkcmVzc2VzIHdl
+bGwgaW50byB0aGUNCmFkZHJlc3Mgc3BhY2Ugc3VjaCB0aGF0IEBtYXggd2FzIHJpZGljdWxvdXNs
+eSBsYXJnZSAoMHhGRkZGX0ZGRkYgLSBwdHIpIGNvbXBhcmVkDQp0byBAY291bnQuDQoNCj4gQnV0
+ICJjb3VudCIgaXNuJ3QgYWN0dWFsbHkgaG93IG1hbnkgYnl0ZXMgd2Ugd2lsbCBhY2Nlc3MgZnJv
+bSB1c2VyDQo+IHNwYWNlLCBpdCdzIG9ubHkgdGhlIG1heGltdW0gbGltaXQgb24gdGhlICp0YXJn
+ZXQqLiBJT1csIGl0J3MgYWJvdXQgYQ0KPiBrZXJuZWwgYnVmZmVyIHNpemUsIG5vdCBhYm91dCB0
+aGUgdXNlciBhY2Nlc3Mgc2l6ZS4NCg0KUmlnaHQgSSB1bmRlcnN0b29kIGFsbCB0aGF0LCBidXQg
+bWlzc2VkIHRoZSBjYXNlIHdoZW4gdXNlciBidWZmZXIgaXMgdG93YXJkcyBlbmQNCm9mIGFkZHJl
+c3Mgc3BhY2UgYW5kIGFjY2Vzc19vaygpIHdpbGwgZXJyb25lb3VzbHkgZmxhZyBpdC4NCg0KPiBC
+ZWNhdXNlIHdlJ2xsIG9ubHkgYWNjZXNzIHRoYXQgNS1ieXRlIHN0cmluZywgd2hpY2ggZml0cyBq
+dXN0IGZpbmUgaW4NCj4gdGhlIHVzZXIgc3BhY2UsIGFuZCBkb2luZyB0aGF0ICJ1c2VyX2FjY2Vz
+c19iZWdpbihzcmMsIGNvdW50KSIgZ2l2ZXMNCj4gdGhlIHdyb25nIGFuc3dlci4NCj4gDQo+IFRo
+ZSBmYWN0IGlzLCBjb3B5aW5nIGEgc3RyaW5nIGZyb20gdXNlciBzcGFjZSBpcyAqdmVyeSogZGlm
+ZmVyZW50IGZyb20NCj4gY29weWluZyBhIGZpeGVkIG51bWJlciBvZiBieXRlcywgYW5kIHRoYXQg
+d2hvbGUgZGFuY2Ugd2l0aA0KPiANCj4gICAgICAgICBtYXhfYWRkciA9IHVzZXJfYWRkcl9tYXgo
+KTsNCj4gDQo+IGlzIGFic29sdXRlbHkgcmVxdWlyZWQgYW5kIG5lY2Vzc2FyeS4NCj4gDQo+IFlv
+dSBjb21wbGV0ZWx5IGJyb2tlIHN0cmluZyBjb3B5aW5nLg0KDQpJJ20gc29ycnkgYW5kIEkgd2Fz
+bid0IHN1cmUgdG8gYmVnaW4gd2l0aCBoZW5jZSB0aGUgZGlzY2xhaW1lciBpbiAwLzQNCg0KPiBJ
+dCBpcyB2ZXJ5IHBvc3NpYmxlIHRoYXQgc3RyaW5nIGNvcHlpbmcgd2FzIGhvcnJpYmx5IGJyb2tl
+biBvbiBBUkMNCj4gYmVmb3JlIHRvbyAtIGFsbW9zdCBub2JvZHkgZXZlciBnZXRzIHRoaXMgcmln
+aHQsIGJ1dCB0aGUgZ2VuZXJpYw0KPiByb3V0aW5lIGRvZXMuDQoNCk5vIGl0IGlzIG5vdC4gSXQg
+aXMganVzdCBkb2cgc2xvdyBzaW5jZSBpdCBkb2VzIGJ5dGUgY29weSBhbmQgdXNlcyB0aGUgWmVy
+byBkZWxheQ0KbG9vcHMgd2hpY2ggSSdtIHRyeWluZyB0byBnZXQgcmlkIG9mLiBUaGF0J3Mgd2hl
+biBJIHJlY2FsbGVkIHRoZSB3b3JkLWF0LWEtdGltZQ0KQVBJIHdoaWNoIEknZCBtZWFuaW5nIHRv
+IGdvIGJhY2sgdG8gZm9yIGxhc3QgNyB5ZWFycyA6LSkNCg0KLVZpbmVldA0KDQo=
