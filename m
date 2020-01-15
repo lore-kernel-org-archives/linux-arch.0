@@ -1,49 +1,68 @@
-Return-Path: <SRS0=lDRc=3L=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:60822 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1725928AbgAVVV7 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 22 Jan 2020 16:21:59 -0500
-From: Mark Brown <broonie@kernel.org>
-Subject: [PATCH v5 03/12] mm: Reserve asm-generic prot flag 0x10 for arch use
-Date: Wed, 22 Jan 2020 21:21:35 +0000
-Message-ID: <20200122212144.6409-4-broonie@kernel.org>
-In-Reply-To: <20200122212144.6409-1-broonie@kernel.org>
-References: <20200122212144.6409-1-broonie@kernel.org>
+Return-Path: <SRS0=vo9y=3E=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mout.kundenserver.de ([212.227.126.133]:48347 "EHLO
+        mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1729267AbgAOJIu (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 15 Jan 2020 04:08:50 -0500
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+References: <20200114200846.29434-1-vgupta@synopsys.com> <20200114200846.29434-2-vgupta@synopsys.com>
+ <CAHk-=wjChjfOaDnGygOJpC36R6mtT7=Xf6wWTzD_wLJm=quu0Q@mail.gmail.com>
+In-Reply-To: <CAHk-=wjChjfOaDnGygOJpC36R6mtT7=Xf6wWTzD_wLJm=quu0Q@mail.gmail.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Date: Wed, 15 Jan 2020 10:08:31 +0100
+Message-ID: <CAK8P3a2ao=xBuy3XHBkdo03KEjpMHGe9ahwj-uogtkZBXsMkGw@mail.gmail.com>
+Subject: Re: [RFC 1/4] asm-generic/uaccess: don't define inline functions if
+ noinline lib/* in use
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>
-Cc: Alexander Viro <viro@zeniv.linux.org.uk>, Paul Elliott <paul.elliott@arm.com>, Peter Zijlstra <peterz@infradead.org>, Yu-cheng Yu <yu-cheng.yu@intel.com>, Amit Kachhap <amit.kachhap@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Marc Zyngier <maz@kernel.org>, Eugene Syromiatnikov <esyr@redhat.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, "H . J . Lu " <hjl.tools@gmail.com>, Andrew Jones <drjones@redhat.com>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Jann Horn <jannh@google.com>, Richard Henderson <richard.henderson@linaro.org>, =?UTF-8?q?Kristina=20Mart=C5=A1enko?= <kristina.martsenko@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Florian Weimer <fweimer@redhat.com>, Sudakshina Das <sudi.das@arm.com>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, Dave Martin <Dave.Martin@arm.com>, Mark Brown <broonie@kernel.org>
-Message-ID: <20200122212135.7AWIqqXYG-W8ty-e6OU96kRL02tRgj8x2GUgcDuCn64@z>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Vineet Gupta <Vineet.Gupta1@synopsys.com>, Khalid Aziz <khalid.aziz@oracle.com>, Andrey Konovalov <andreyknvl@google.com>, Andrew Morton <akpm@linux-foundation.org>, Peter Zijlstra <peterz@infradead.org>, Christian Brauner <christian.brauner@ubuntu.com>, Kees Cook <keescook@chromium.org>, Ingo Molnar <mingo@kernel.org>, Aleksa Sarai <cyphar@cyphar.com>, "open list:SYNOPSYS ARC ARCHITECTURE" <linux-snps-arc@lists.infradead.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>
+Message-ID: <20200115090831.6kHrgYKFC37-a0XB4A-ha-pkXis5H2Pb69akeDr6SXo@z>
 
-From: Dave Martin <Dave.Martin@arm.com>
+On Tue, Jan 14, 2020 at 10:33 PM Linus Torvalds
+<torvalds@linux-foundation.org> wrote:
+>
+> On Tue, Jan 14, 2020 at 12:09 PM Vineet Gupta
+> <Vineet.Gupta1@synopsys.com> wrote:
+> >
+> > There are 2 generic varaints of strncpy_from_user() / strnlen_user()
+> >  (1). inline version in asm-generic/uaccess.h
+>
+> I think we should get rid of this entirely. It's just a buggy garbage
+> implementation that nobody should ever actually use.
+>
+> It does just about everything wrong that you *can* do, wrong,
+> including doing the NUL-filling termination of standard strncpy() that
+> "strncpy_from_user()" doesn't actually do.
+>
+> So:
+>
+>  - the asm-generic/uaccess.h __strncpy_from_user() function is just
+> horribly wrong
 
-The asm-generic mman definitions are used by a few architectures
-that also define an arch-specific PROT flag with value 0x10.  This
-currently applies to sparc and powerpc, and arm64 will soon join
-in.
+I checked who is actually using it, and the only ones I found
+are c6x and rv32-nommu. It shouldn't be hard to move them over
+to the generic version.
 
-To help future maintainers, document the use of this flag in the
-asm-generic header too.
+>  - the generic/uaccess.h version of strncpy_from_user() shouldn't be
+> an inline function either, since the only thing it can do inline is
+> the bogus one-byte access check that _barely_ makes security work (you
+> also need to have a guard page to _actually_ make it work, and I'm not
+> atr all convinced that people do).
 
-Signed-off-by: Dave Martin <Dave.Martin@arm.com>
-Signed-off-by: Mark Brown <broonie@kernel.org>
----
- include/uapi/asm-generic/mman-common.h | 1 +
- 1 file changed, 1 insertion(+)
+That would be arc, hexagon, unicore32, and um. Hexagon already has
+the same bug in strncpy_from_user and should be converted to the
+generic version as you say. For unicore32 the existing asm imlpementation
+may be fine, but it's clearly easier to use the generic code than moving
+the range check in there.
 
-diff --git a/include/uapi/asm-generic/mman-common.h b/include/uapi/asm-generic/mman-common.h
-index c160a5354eb6..81442d2aaecb 100644
---- a/include/uapi/asm-generic/mman-common.h
-+++ b/include/uapi/asm-generic/mman-common.h
-@@ -11,6 +11,7 @@
- #define PROT_WRITE	0x2		/* page can be written */
- #define PROT_EXEC	0x4		/* page can be executed */
- #define PROT_SEM	0x8		/* page may be used for atomic ops */
-+ /*			0x10		   reserved for arch-specific use */
- #define PROT_NONE	0x0		/* page can not be accessed */
- #define PROT_GROWSDOWN	0x01000000	/* mprotect flag: extend change to start of growsdown vma */
- #define PROT_GROWSUP	0x02000000	/* mprotect flag: extend change to end of growsup vma */
--- 
-2.20.1
+I don't know what the arch/um implementation needs, but since it's in C,
+moving the access_ok() in there is easy enough.
+
+> I would suggest that anybody who uses asm-generic/uaccess.h needs to
+> simply use the generic library version.
+
+Or possibly just everybody altogether: the remaining architectures that
+have a custom implementation don't seem to be doing any better either.
+
+     Arnd
