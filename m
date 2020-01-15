@@ -1,52 +1,45 @@
-From: Al Viro <viro@zeniv.linux.org.uk>
-Subject: Re: [RFC 2/4] lib/strncpy_from_user: Remove redundant user space
- pointer range check
-Date: Tue, 14 Jan 2020 23:46:00 +0000
-Message-ID: <20200114234600.GD8904@ZenIV.linux.org.uk>
-References: <20200114200846.29434-1-vgupta@synopsys.com>
- <20200114200846.29434-3-vgupta@synopsys.com>
- <CAHk-=wgoc5DaF6=WxsAcft_Lp4XUYTiRhhCJGcmM5PwEDXY6Gw@mail.gmail.com>
+From: Andrew Morton <akpm@linux-foundation.org>
+Subject: Re: [PATCH v3 0/9] Fixup page directory freeing
+Date: Tue, 14 Jan 2020 16:25:26 -0800
+Message-ID: <20200114162526.87863ebce00695cc979b5217@linux-foundation.org>
+References: <20200114100145.365527-1-aneesh.kumar@linux.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <CAHk-=wgoc5DaF6=WxsAcft_Lp4XUYTiRhhCJGcmM5PwEDXY6Gw@mail.gmail.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Vineet Gupta <Vineet.Gupta1@synopsys.com>, Arnd Bergmann <arnd@arndb.de>, Khalid Aziz <khalid.aziz@oracle.com>, Andrey Konovalov <andreyknvl@google.com>, Andrew Morton <akpm@linux-foundation.org>, Peter Zijlstra <peterz@infradead.org>, Christian Brauner <christian.brauner@ubuntu.com>, Kees Cook <keescook@chromium.org>, Ingo Molnar <mingo@kernel.org>, Aleksa Sarai <cyphar@cyphar.com>, linux-snps-arc@lists.infradead.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail.kernel.org ([198.145.29.99]:58666 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1728774AbgAOAZ2 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 14 Jan 2020 19:25:28 -0500
+In-Reply-To: <20200114100145.365527-1-aneesh.kumar@linux.ibm.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>
+Cc: peterz@infradead.org, will@kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-On Tue, Jan 14, 2020 at 01:22:07PM -0800, Linus Torvalds wrote:
+On Tue, 14 Jan 2020 15:31:36 +0530 "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com> wrote:
 
-> The fact is, copying a string from user space is *very* different from
-> copying a fixed number of bytes, and that whole dance with
+> This is a repost of patch series from Peter with the arch specific changes except ppc64 dropped.
+> ppc64 changes are added here because we are redoing the patch series on top of ppc64 changes. This makes it
+> easy to backport these changes. Only the first 3 patches need to be backported to stable. 
+
+But none of these patches had a cc:stable in the changelog?
+
+> The thing is, on anything SMP, freeing page directories should observe the
+> exact same order as normal page freeing:
 > 
->         max_addr = user_addr_max();
+>  1) unhook page/directory
+>  2) TLB invalidate
+>  3) free page/directory
 > 
-> is absolutely required and necessary.
+> Without this, any concurrent page-table walk could end up with a Use-after-Free.
+> This is esp. trivial for anything that has software page-table walkers
+> (HAVE_FAST_GUP / software TLB fill) or the hardware caches partial page-walks
+> (ie. caches page directories).
 > 
-> You completely broke string copying.
-
-BTW, a quick grep through the callers has found something odd -
-static ssize_t kmemleak_write(struct file *file, const char __user *user_buf,
-                              size_t size, loff_t *ppos)
-{
-        char buf[64];
-        int buf_size;
-        int ret;
-
-        buf_size = min(size, (sizeof(buf) - 1));
-        if (strncpy_from_user(buf, user_buf, buf_size) < 0)
-                return -EFAULT;
-        buf[buf_size] = 0;
-
-What the hell?  If somebody is calling write(fd, buf, n) they'd
-better be ready to see any byte from buf[0] up to buf[n - 1]
-fetched, and if something is unmapped - deal with -EFAULT.
-Is something really doing that and if so, why does kmemleak
-try to accomodate that idiocy?
-
-The same goes for several more ->write() instances - mtrr_write(),
-armada_debugfs_crtc_reg_write() and cio_ignore_write(); IMO that's
-seriously misguided (and cio one ought use vmemdup_user() instead
-of what it's doing)...
+> Even on UP this might give issues since mmu_gather is preemptible these days.
+> An interrupt or preempted task accessing user pages might stumble into the free
+> page if the hardware caches page directories.
+> 
+> This patch series fixup ppc64 and add generic MMU_GATHER changes to support the conversion of other architectures.
+> I haven't added patches w.r.t other architecture because they are yet to be acked.
