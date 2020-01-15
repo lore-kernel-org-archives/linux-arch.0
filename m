@@ -1,148 +1,32 @@
 Return-Path: <owner-linux-mm@kvack.org>
-From: Sandipan Das <sandipan@linux.ibm.com>
-Subject: [PATCH v16 03/23] selftests/vm: Move generic definitions to header
- file
-Date: Fri, 17 Jan 2020 18:19:42 +0530
-In-Reply-To: <cover.1579265066.git.sandipan@linux.ibm.com>
-References: <cover.1579265066.git.sandipan@linux.ibm.com>
-In-Reply-To: <cover.1579265066.git.sandipan@linux.ibm.com>
-References: <cover.1579265066.git.sandipan@linux.ibm.com>
-Message-ID: <82e1b0f42e47b03c0bd5e6ad008f54a3381daaae.1579265066.git.sandipan@linux.ibm.com>
+Subject: Re: [PATCH v3 0/9] Fixup page directory freeing
+References: <20200114100145.365527-1-aneesh.kumar@linux.ibm.com>
+ <20200114162526.87863ebce00695cc979b5217@linux-foundation.org>
+From: "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>
+Date: Wed, 15 Jan 2020 20:17:24 +0530
+MIME-Version: 1.0
+In-Reply-To: <20200114162526.87863ebce00695cc979b5217@linux-foundation.org>
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
+Message-ID: <950b9610-30b9-a9ec-24e9-ca3fdec23199@linux.ibm.com>
 Sender: owner-linux-mm@kvack.org
-To: shuah@kernel.org, linux-kselftest@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, fweimer@redhat.com, dave.hansen@intel.com, x86@kernel.org, linuxram@us.ibm.com, mhocko@kernel.org, linux-mm@kvack.org, mingo@redhat.com, aneesh.kumar@linux.ibm.com, bauerman@linux.ibm.com, msuchanek@suse.de, mpe@ellerman.id.au, linuxppc-dev@lists.ozlabs.org
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: peterz@infradead.org, will@kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200117124942.sEw6oVCqfvUPqhMnzXFRw1O2MjzvsPOUtdVtjYO0OAc@z>
+Message-ID: <20200115144724.af5cwtudf7pG32YKcooX7mD5xfk3g-9f4htbvZ6wwzA@z>
 
-From: Ram Pai <linuxram@us.ibm.com>
+On 1/15/20 5:55 AM, Andrew Morton wrote:
+> On Tue, 14 Jan 2020 15:31:36 +0530 "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com> wrote:
+> 
+>> This is a repost of patch series from Peter with the arch specific changes except ppc64 dropped.
+>> ppc64 changes are added here because we are redoing the patch series on top of ppc64 changes. This makes it
+>> easy to backport these changes. Only the first 3 patches need to be backported to stable.
+> 
+> But none of these patches had a cc:stable in the changelog?
 
-Moved all the generic definition and helper functions to the
-header file.
+Patch 2 mention
 
-cc: Dave Hansen <dave.hansen@intel.com>
-cc: Florian Weimer <fweimer@redhat.com>
-Signed-off-by: Ram Pai <linuxram@us.ibm.com>
-Signed-off-by: Thiago Jung Bauermann <bauerman@linux.ibm.com>
-Acked-by: Dave Hansen <dave.hansen@intel.com>
-Signed-off-by: Sandipan Das <sandipan@linux.ibm.com>
----
- tools/testing/selftests/vm/pkey-helpers.h    | 35 +++++++++++++++++---
- tools/testing/selftests/vm/protection_keys.c | 27 ---------------
- 2 files changed, 30 insertions(+), 32 deletions(-)
+Fixes: a46cc7a90fd8 ("powerpc/mm/radix: Improve TLB/PWC flushes")
 
-diff --git a/tools/testing/selftests/vm/pkey-helpers.h b/tools/testing/selftests/vm/pkey-helpers.h
-index d5779be4793f..6ad1bd54ef94 100644
---- a/tools/testing/selftests/vm/pkey-helpers.h
-+++ b/tools/testing/selftests/vm/pkey-helpers.h
-@@ -13,6 +13,14 @@
- #include <ucontext.h>
- #include <sys/mman.h>
-
-+/* Define some kernel-like types */
-+#define  u8 uint8_t
-+#define u16 uint16_t
-+#define u32 uint32_t
-+#define u64 uint64_t
-+
-+#define PTR_ERR_ENOTSUP ((void *)-ENOTSUP)
-+
- #define NR_PKEYS 16
- #define PKEY_BITS_PER_PKEY 2
-
-@@ -53,6 +61,18 @@ static inline void sigsafe_printf(const char *format, ...)
- #define dprintf3(args...) dprintf_level(3, args)
- #define dprintf4(args...) dprintf_level(4, args)
-
-+extern void abort_hooks(void);
-+#define pkey_assert(condition) do {		\
-+	if (!(condition)) {			\
-+		dprintf0("assert() at %s::%d test_nr: %d iteration: %d\n", \
-+				__FILE__, __LINE__,	\
-+				test_nr, iteration_nr);	\
-+		dprintf0("errno at assert: %d", errno);	\
-+		abort_hooks();			\
-+		exit(__LINE__);			\
-+	}					\
-+} while (0)
-+
- extern unsigned int shadow_pkey_reg;
- static inline unsigned int __read_pkey_reg(void)
- {
-@@ -137,11 +157,6 @@ static inline void __pkey_write_allow(int pkey, int do_allow_write)
- 	dprintf4("pkey_reg now: %08x\n", read_pkey_reg());
- }
-
--#define PROT_PKEY0     0x10            /* protection key value (bit 0) */
--#define PROT_PKEY1     0x20            /* protection key value (bit 1) */
--#define PROT_PKEY2     0x40            /* protection key value (bit 2) */
--#define PROT_PKEY3     0x80            /* protection key value (bit 3) */
--
- #define PAGE_SIZE 4096
- #define MB	(1<<20)
-
-@@ -219,4 +234,14 @@ int pkey_reg_xstate_offset(void)
- 	return xstate_offset;
- }
-
-+#define ARRAY_SIZE(x) (sizeof(x) / sizeof(*(x)))
-+#define ALIGN_UP(x, align_to)	(((x) + ((align_to)-1)) & ~((align_to)-1))
-+#define ALIGN_DOWN(x, align_to) ((x) & ~((align_to)-1))
-+#define ALIGN_PTR_UP(p, ptr_align_to)	\
-+	((typeof(p))ALIGN_UP((unsigned long)(p), ptr_align_to))
-+#define ALIGN_PTR_DOWN(p, ptr_align_to)	\
-+	((typeof(p))ALIGN_DOWN((unsigned long)(p), ptr_align_to))
-+#define __stringify_1(x...)     #x
-+#define __stringify(x...)       __stringify_1(x)
-+
- #endif /* _PKEYS_HELPER_H */
-diff --git a/tools/testing/selftests/vm/protection_keys.c b/tools/testing/selftests/vm/protection_keys.c
-index 2f4ab81c570d..42ffb58810f2 100644
---- a/tools/testing/selftests/vm/protection_keys.c
-+++ b/tools/testing/selftests/vm/protection_keys.c
-@@ -51,31 +51,10 @@ int test_nr;
- unsigned int shadow_pkey_reg;
-
- #define HPAGE_SIZE	(1UL<<21)
--#define ARRAY_SIZE(x) (sizeof(x) / sizeof(*(x)))
--#define ALIGN_UP(x, align_to)	(((x) + ((align_to)-1)) & ~((align_to)-1))
--#define ALIGN_DOWN(x, align_to) ((x) & ~((align_to)-1))
--#define ALIGN_PTR_UP(p, ptr_align_to)	((typeof(p))ALIGN_UP((unsigned long)(p),	ptr_align_to))
--#define ALIGN_PTR_DOWN(p, ptr_align_to)	((typeof(p))ALIGN_DOWN((unsigned long)(p),	ptr_align_to))
--#define __stringify_1(x...)     #x
--#define __stringify(x...)       __stringify_1(x)
--
--#define PTR_ERR_ENOTSUP ((void *)-ENOTSUP)
-
- int dprint_in_signal;
- char dprint_in_signal_buffer[DPRINT_IN_SIGNAL_BUF_SIZE];
-
--extern void abort_hooks(void);
--#define pkey_assert(condition) do {		\
--	if (!(condition)) {			\
--		dprintf0("assert() at %s::%d test_nr: %d iteration: %d\n", \
--				__FILE__, __LINE__,	\
--				test_nr, iteration_nr);	\
--		dprintf0("errno at assert: %d", errno);	\
--		abort_hooks();			\
--		exit(__LINE__);			\
--	}					\
--} while (0)
--
- void cat_into_file(char *str, char *file)
- {
- 	int fd = open(file, O_RDWR);
-@@ -186,12 +165,6 @@ void lots_o_noops_around_write(int *write_to_me)
- 	dprintf3("%s() done\n", __func__);
- }
-
--/* Define some kernel-like types */
--#define  u8 uint8_t
--#define u16 uint16_t
--#define u32 uint32_t
--#define u64 uint64_t
--
- #ifdef __i386__
-
- #ifndef SYS_mprotect_key
--- 
-2.17.1
+-aneesh
