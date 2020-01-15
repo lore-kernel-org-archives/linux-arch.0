@@ -1,45 +1,106 @@
-From: Andrew Morton <akpm@linux-foundation.org>
-Subject: Re: [PATCH v3 0/9] Fixup page directory freeing
-Date: Tue, 14 Jan 2020 16:25:26 -0800
-Message-ID: <20200114162526.87863ebce00695cc979b5217@linux-foundation.org>
-References: <20200114100145.365527-1-aneesh.kumar@linux.ibm.com>
+From: Alex Kogan <alex.kogan@oracle.com>
+Subject: [PATCH v9 2/5] locking/qspinlock: Refactor the qspinlock slow path
+Date: Tue, 14 Jan 2020 22:59:17 -0500
+Message-ID: <20200115035920.54451-3-alex.kogan@oracle.com>
+References: <20200115035920.54451-1-alex.kogan@oracle.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
+Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:58666 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1728774AbgAOAZ2 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 14 Jan 2020 19:25:28 -0500
-In-Reply-To: <20200114100145.365527-1-aneesh.kumar@linux.ibm.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>
-Cc: peterz@infradead.org, will@kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane-mx.org@lists.infradead.org>
+In-Reply-To: <20200115035920.54451-1-alex.kogan@oracle.com>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane-mx.org@lists.infradead.org
+To: linux@armlinux.org.uk, peterz@infradead.org, mingo@redhat.com, will.deacon@arm.com, arnd@arndb.de, longman@redhat.com, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, bp@alien8.de, hpa@zytor.com, x86@kernel.org, guohanjun@huawei.com, jglauber@marvell.com
+Cc: alex.kogan@oracle.com, dave.dice@oracle.com, steven.sistare@oracle.com, daniel.m.jordan@oracle.com
+List-Id: linux-arch.vger.kernel.org
 
-On Tue, 14 Jan 2020 15:31:36 +0530 "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com> wrote:
+Move some of the code manipulating the spin lock into separate functions.
+This would allow easier integration of alternative ways to manipulate
+that lock.
 
-> This is a repost of patch series from Peter with the arch specific changes except ppc64 dropped.
-> ppc64 changes are added here because we are redoing the patch series on top of ppc64 changes. This makes it
-> easy to backport these changes. Only the first 3 patches need to be backported to stable. 
+Signed-off-by: Alex Kogan <alex.kogan@oracle.com>
+Reviewed-by: Steve Sistare <steven.sistare@oracle.com>
+Reviewed-by: Waiman Long <longman@redhat.com>
+---
+ kernel/locking/qspinlock.c | 38 ++++++++++++++++++++++++++++++++++++--
+ 1 file changed, 36 insertions(+), 2 deletions(-)
 
-But none of these patches had a cc:stable in the changelog?
-
-> The thing is, on anything SMP, freeing page directories should observe the
-> exact same order as normal page freeing:
-> 
->  1) unhook page/directory
->  2) TLB invalidate
->  3) free page/directory
-> 
-> Without this, any concurrent page-table walk could end up with a Use-after-Free.
-> This is esp. trivial for anything that has software page-table walkers
-> (HAVE_FAST_GUP / software TLB fill) or the hardware caches partial page-walks
-> (ie. caches page directories).
-> 
-> Even on UP this might give issues since mmu_gather is preemptible these days.
-> An interrupt or preempted task accessing user pages might stumble into the free
-> page if the hardware caches page directories.
-> 
-> This patch series fixup ppc64 and add generic MMU_GATHER changes to support the conversion of other architectures.
-> I haven't added patches w.r.t other architecture because they are yet to be acked.
+diff --git a/kernel/locking/qspinlock.c b/kernel/locking/qspinlock.c
+index 804c0fbd6328..c06d1e8075d9 100644
+--- a/kernel/locking/qspinlock.c
++++ b/kernel/locking/qspinlock.c
+@@ -288,6 +288,34 @@ static __always_inline u32  __pv_wait_head_or_lock(struct qspinlock *lock,
+ #define queued_spin_lock_slowpath	native_queued_spin_lock_slowpath
+ #endif
+ 
++/*
++ * __try_clear_tail - try to clear tail by setting the lock value to
++ * _Q_LOCKED_VAL.
++ * @lock: Pointer to the queued spinlock structure
++ * @val: Current value of the lock
++ * @node: Pointer to the MCS node of the lock holder
++ */
++static __always_inline bool __try_clear_tail(struct qspinlock *lock,
++						   u32 val,
++						   struct mcs_spinlock *node)
++{
++	return atomic_try_cmpxchg_relaxed(&lock->val, &val, _Q_LOCKED_VAL);
++}
++
++/*
++ * __mcs_pass_lock - pass the MCS lock to the next waiter
++ * @node: Pointer to the MCS node of the lock holder
++ * @next: Pointer to the MCS node of the first waiter in the MCS queue
++ */
++static __always_inline void __mcs_pass_lock(struct mcs_spinlock *node,
++					    struct mcs_spinlock *next)
++{
++	arch_mcs_pass_lock(&next->locked, 1);
++}
++
++#define try_clear_tail	__try_clear_tail
++#define mcs_pass_lock		__mcs_pass_lock
++
+ #endif /* _GEN_PV_LOCK_SLOWPATH */
+ 
+ /**
+@@ -532,7 +560,7 @@ void queued_spin_lock_slowpath(struct qspinlock *lock, u32 val)
+ 	 *       PENDING will make the uncontended transition fail.
+ 	 */
+ 	if ((val & _Q_TAIL_MASK) == tail) {
+-		if (atomic_try_cmpxchg_relaxed(&lock->val, &val, _Q_LOCKED_VAL))
++		if (try_clear_tail(lock, val, node))
+ 			goto release; /* No contention */
+ 	}
+ 
+@@ -549,7 +577,7 @@ void queued_spin_lock_slowpath(struct qspinlock *lock, u32 val)
+ 	if (!next)
+ 		next = smp_cond_load_relaxed(&node->next, (VAL));
+ 
+-	arch_mcs_pass_lock(&next->locked, 1);
++	mcs_pass_lock(node, next);
+ 	pv_kick_node(lock, next);
+ 
+ release:
+@@ -574,6 +602,12 @@ EXPORT_SYMBOL(queued_spin_lock_slowpath);
+ #undef pv_kick_node
+ #undef pv_wait_head_or_lock
+ 
++#undef try_clear_tail
++#define try_clear_tail		__try_clear_tail
++
++#undef mcs_pass_lock
++#define mcs_pass_lock			__mcs_pass_lock
++
+ #undef  queued_spin_lock_slowpath
+ #define queued_spin_lock_slowpath	__pv_queued_spin_lock_slowpath
+ 
+-- 
+2.21.0 (Apple Git-122.2)
