@@ -1,86 +1,67 @@
-Return-Path: <SRS0=lDRc=3L=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from us-smtp-delivery-1.mimecast.com ([205.139.110.120]:51466 "EHLO
-        us-smtp-1.mimecast.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-        with ESMTP id S1725883AbgAVRZL (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 22 Jan 2020 12:25:11 -0500
-Subject: Re: [PATCH v9 0/5] Add NUMA-awareness to qspinlock
-References: <20200115035920.54451-1-alex.kogan@oracle.com>
- <CAC4j=Y8rCeTX9oKKbh+dCdTP8Ud4hW1ybu+iE7t_nxMSYBOR5w@mail.gmail.com>
-From: Waiman Long <longman@redhat.com>
-Message-ID: <4e15fa1d-9540-3274-502a-4195a0d46f63@redhat.com>
-Date: Wed, 22 Jan 2020 12:24:58 -0500
+Return-Path: <SRS0=vo9y=3E=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mout.kundenserver.de ([212.227.126.187]:36717 "EHLO
+        mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1729025AbgAOTzS (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 15 Jan 2020 14:55:18 -0500
 MIME-Version: 1.0
-In-Reply-To: <CAC4j=Y8rCeTX9oKKbh+dCdTP8Ud4hW1ybu+iE7t_nxMSYBOR5w@mail.gmail.com>
-Content-Type: text/plain; charset=utf-8
-Content-Language: en-US
-Content-Transfer-Encoding: quoted-printable
+References: <20200115165749.145649-1-elver@google.com> <CAK8P3a3b=SviUkQw7ZXZF85gS1JO8kzh2HOns5zXoEJGz-+JiQ@mail.gmail.com>
+ <CANpmjNOpTYnF3ssqrE_s+=UA-2MpfzzdrXoyaifb3A55_mc0uA@mail.gmail.com>
+In-Reply-To: <CANpmjNOpTYnF3ssqrE_s+=UA-2MpfzzdrXoyaifb3A55_mc0uA@mail.gmail.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Date: Wed, 15 Jan 2020 20:54:59 +0100
+Message-ID: <CAK8P3a3WywSsahH2vtZ_EOYTWE44YdN+Pj6G8nt_zrL3sckdwQ@mail.gmail.com>
+Subject: Re: [PATCH -rcu] asm-generic, kcsan: Add KCSAN instrumentation for bitops
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Lihao Liang <lihaoliang@google.com>, Alex Kogan <alex.kogan@oracle.com>
-Cc: linux@armlinux.org.uk, peterz@infradead.org, mingo@redhat.com, will.deacon@arm.com, arnd@arndb.de, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, bp@alien8.de, hpa@zytor.com, x86@kernel.org, guohanjun@huawei.com, jglauber@marvell.com, dave.dice@oracle.com, steven.sistare@oracle.com, daniel.m.jordan@oracle.com, Will Deacon <will@kernel.org>
-Message-ID: <20200122172458.vtFzlBncBzSQ5R-WnsVAvyETf9luvBsOhyMs0yOro8E@z>
+To: Marco Elver <elver@google.com>
+Cc: "Paul E. McKenney" <paulmck@kernel.org>, Andrey Konovalov <andreyknvl@google.com>, Alexander Potapenko <glider@google.com>, Dmitry Vyukov <dvyukov@google.com>, kasan-dev <kasan-dev@googlegroups.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Michael Ellerman <mpe@ellerman.id.au>, christophe leroy <christophe.leroy@c-s.fr>, Daniel Axtens <dja@axtens.net>, linux-arch <linux-arch@vger.kernel.org>
+Message-ID: <20200115195459.En0qxHHFfXXgMWCpEo1DlIbVswa06EiFqUMaUh6bvbM@z>
 
-On 1/22/20 6:45 AM, Lihao Liang wrote:
-> Hi Alex,
+On Wed, Jan 15, 2020 at 8:51 PM Marco Elver <elver@google.com> wrote:
 >
-> On Wed, Jan 22, 2020 at 10:28 AM Alex Kogan <alex.kogan@oracle.com> wro=
-te:
->> Summary
->> -------
->>
->> Lock throughput can be increased by handing a lock to a waiter on the
->> same NUMA node as the lock holder, provided care is taken to avoid
->> starvation of waiters on other NUMA nodes. This patch introduces CNA
->> (compact NUMA-aware lock) as the slow path for qspinlock. It is
->> enabled through a configuration option (NUMA_AWARE_SPINLOCKS).
->>
-> Thanks for your patches. The experimental results look promising!
+> On Wed, 15 Jan 2020 at 20:27, Arnd Bergmann <arnd@arndb.de> wrote:
+> >
+> > On Wed, Jan 15, 2020 at 5:58 PM Marco Elver <elver@google.com> wrote:
+> > >   * set_bit - Atomically set a bit in memory
+> > > @@ -26,6 +27,7 @@
+> > >  static inline void set_bit(long nr, volatile unsigned long *addr)
+> > >  {
+> > >         kasan_check_write(addr + BIT_WORD(nr), sizeof(long));
+> > > +       kcsan_check_atomic_write(addr + BIT_WORD(nr), sizeof(long));
+> > >         arch_set_bit(nr, addr);
+> > >  }
+> >
+> > It looks like you add a kcsan_check_atomic_write or kcsan_check_write directly
+> > next to almost any instance of kasan_check_write().
+> >
+> > Are there any cases where we actually just need one of the two but not the
+> > other? If not, maybe it's better to rename the macro and have it do both things
+> > as needed?
 >
-> I understand that the new CNA qspinlock uses randomization to achieve
-> long-term fairness, and provides the numa_spinlock_threshold parameter
-> for users to tune. As Linux runs extremely diverse workloads, it is not
-> clear how randomization affects its fairness, and how users with
-> different requirements are supposed to tune this parameter.
->
-> To this end, Will and I consider it beneficial to be able to answer the
-> following question:
->
-> With different values of numa_spinlock_threshold and
-> SHUFFLE_REDUCTION_PROB_ARG, how long do threads running on different
-> sockets have to wait to acquire the lock? This is particularly relevant
-> in high contention situations when new threads keep arriving on the sam=
-e
-> socket as the lock holder.
->
-> In this email, I try to provide some formal analysis to address this
-> question. Let's assume the probability for the lock to stay on the
-> same socket is *at least* p, which corresponds to the probability for
-> the function probably(unsigned int num_bits) in the patch to return *fa=
-lse*,
-> where SHUFFLE_REDUCTION_PROB_ARG is passed as the value of num_bits to =
-the
-> function.
+> Do you mean adding an inline helper at the top of each bitops header
+> here, similar to what we did for atomic-instrumented?  Happy to do
+> that if it improves readability.
 
-That is not strictly true from my understanding of the code. The
-probably() function does not come into play if a secondary queue is
-present. Also calling cna_scan_main_queue() doesn't guarantee that a
-waiter in the same node can be found. So the simple mathematical
-analysis isn't that applicable in this case. One will have to do an
-actual simulation to find out what the actual behavior will be.
+I was thinking of treewide wrappers, given that there are only a couple of files
+calling kasan_check_write():
 
-The comment in the code states that:
+$ git grep -wl kasan_check_write
+arch/arm64/include/asm/barrier.h
+arch/arm64/include/asm/uaccess.h
+arch/x86/include/asm/uaccess_64.h
+include/asm-generic/atomic-instrumented.h
+include/asm-generic/bitops/instrumented-atomic.h
+include/asm-generic/bitops/instrumented-lock.h
+include/asm-generic/bitops/instrumented-non-atomic.h
+include/linux/kasan-checks.h
+include/linux/uaccess.h
+lib/iov_iter.c
+lib/strncpy_from_user.c
+lib/usercopy.c
+scripts/atomic/gen-atomic-instrumented.sh
 
-/*
-=C2=A0* Controls the probability for enabling the scan of the main queue =
-when
-=C2=A0* the secondary queue is empty. The chosen value reduces the amount=
- of
-=C2=A0* unnecessary shuffling of threads between the two waiting queues w=
-hen
-=C2=A0* the contention is low, while responding fast enough and enabling
-=C2=A0* the shuffling when the contention is high.
-=C2=A0*/
-#define SHUFFLE_REDUCTION_PROB_ARG=C2=A0 (7)
+Are there any that really just want kasan_check_write() but not one
+of the kcsan checks?
 
-Cheers,
-Longman
+      Arnd
