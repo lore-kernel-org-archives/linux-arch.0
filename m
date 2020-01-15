@@ -1,96 +1,111 @@
-From: Marco Elver <elver@google.com>
-Subject: Re: [PATCH -rcu] asm-generic, kcsan: Add KCSAN instrumentation for bitops
-Date: Wed, 15 Jan 2020 21:50:08 +0100
-Message-ID: <CANpmjNMk2HbuvmN1RaZ=8OV+tx9qZwKyRySONDRQar6RCGM1SA@mail.gmail.com>
-References: <20200115165749.145649-1-elver@google.com> <CAK8P3a3b=SviUkQw7ZXZF85gS1JO8kzh2HOns5zXoEJGz-+JiQ@mail.gmail.com>
- <CANpmjNOpTYnF3ssqrE_s+=UA-2MpfzzdrXoyaifb3A55_mc0uA@mail.gmail.com> <CAK8P3a3WywSsahH2vtZ_EOYTWE44YdN+Pj6G8nt_zrL3sckdwQ@mail.gmail.com>
+From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Subject: clone3 on ARC (was Re: [PATCH v3 2/2] arch: wire-up clone3() syscall)
+Date: Wed, 15 Jan 2020 22:41:20 +0000
+Message-ID: <a58c8425-83a3-b64c-339a-7e94a72f4bee@synopsys.com>
+References: <20190604160944.4058-1-christian@brauner.io>
+ <20190604160944.4058-2-christian@brauner.io>
+ <CAK8P3a0OfBpx6y4m5uWX-DUg16NoFby5ik-3xCcD+yMrw0tbEw@mail.gmail.com>
+ <20190604212930.jaaztvkent32b7d3@brauner.io>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ot1-f67.google.com ([209.85.210.67]:39490 "EHLO
-        mail-ot1-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1729094AbgAOUuU (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 15 Jan 2020 15:50:20 -0500
-Received: by mail-ot1-f67.google.com with SMTP id 77so17351599oty.6
-        for <linux-arch@vger.kernel.org>; Wed, 15 Jan 2020 12:50:20 -0800 (PST)
-In-Reply-To: <CAK8P3a3WywSsahH2vtZ_EOYTWE44YdN+Pj6G8nt_zrL3sckdwQ@mail.gmail.com>
+Received: from us03-smtprelay2.synopsys.com ([149.117.87.133]:35772 "EHLO
+        smtprelay-out1.synopsys.com" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S1729418AbgAOWlp (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 15 Jan 2020 17:41:45 -0500
+In-Reply-To: <20190604212930.jaaztvkent32b7d3@brauner.io>
+Content-Language: en-US
+Content-ID: <BB017E12F10A4D488BE280BF32F60C06@namprd12.prod.outlook.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: "Paul E. McKenney" <paulmck@kernel.org>, Andrey Konovalov <andreyknvl@google.com>, Alexander Potapenko <glider@google.com>, Dmitry Vyukov <dvyukov@google.com>, kasan-dev <kasan-dev@googlegroups.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Michael Ellerman <mpe@ellerman.id.au>, christophe leroy <christophe.leroy@c-s.fr>, Daniel Axtens <dja@axtens.net>, linux-arch <linux-arch@vger.kernel.org>
+To: Christian Brauner <christian@brauner.io>, Arnd Bergmann <arnd@arndb.de>
+Cc: Al Viro <viro@zeniv.linux.org.uk>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Jann Horn <jannh@google.com>, Kees Cook <keescook@chromium.org>, Florian Weimer <fweimer@redhat.com>, Oleg Nesterov <oleg@redhat.com>, David Howells <dhowells@redhat.com>, Andrew Morton <akpm@linux-foundation.org>, Adrian Reber <adrian@lisas.de>, Linux API <linux-api@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, the arch/x86 maintainers <x86@kernel.org>, arcml <linux-snps-arc@lists.infradead.org>
 
-On Wed, 15 Jan 2020 at 20:55, Arnd Bergmann <arnd@arndb.de> wrote:
->
-> On Wed, Jan 15, 2020 at 8:51 PM Marco Elver <elver@google.com> wrote:
-> >
-> > On Wed, 15 Jan 2020 at 20:27, Arnd Bergmann <arnd@arndb.de> wrote:
-> > >
-> > > On Wed, Jan 15, 2020 at 5:58 PM Marco Elver <elver@google.com> wrote:
-> > > >   * set_bit - Atomically set a bit in memory
-> > > > @@ -26,6 +27,7 @@
-> > > >  static inline void set_bit(long nr, volatile unsigned long *addr)
-> > > >  {
-> > > >         kasan_check_write(addr + BIT_WORD(nr), sizeof(long));
-> > > > +       kcsan_check_atomic_write(addr + BIT_WORD(nr), sizeof(long));
-> > > >         arch_set_bit(nr, addr);
-> > > >  }
-> > >
-> > > It looks like you add a kcsan_check_atomic_write or kcsan_check_write directly
-> > > next to almost any instance of kasan_check_write().
-> > >
-> > > Are there any cases where we actually just need one of the two but not the
-> > > other? If not, maybe it's better to rename the macro and have it do both things
-> > > as needed?
-> >
-> > Do you mean adding an inline helper at the top of each bitops header
-> > here, similar to what we did for atomic-instrumented?  Happy to do
-> > that if it improves readability.
->
-> I was thinking of treewide wrappers, given that there are only a couple of files
-> calling kasan_check_write():
->
-> $ git grep -wl kasan_check_write
-> arch/arm64/include/asm/barrier.h
-> arch/arm64/include/asm/uaccess.h
-> arch/x86/include/asm/uaccess_64.h
-> include/asm-generic/atomic-instrumented.h
-> include/asm-generic/bitops/instrumented-atomic.h
-> include/asm-generic/bitops/instrumented-lock.h
-> include/asm-generic/bitops/instrumented-non-atomic.h
-> include/linux/kasan-checks.h
-> include/linux/uaccess.h
-> lib/iov_iter.c
-> lib/strncpy_from_user.c
-> lib/usercopy.c
-> scripts/atomic/gen-atomic-instrumented.sh
->
-> Are there any that really just want kasan_check_write() but not one
-> of the kcsan checks?
-
-If I understood correctly, this suggestion would amount to introducing
-a new header, e.g. 'ksan-checks.h', that provides unified generic
-checks. For completeness, we will also need to consider reads. Since
-KCSAN provides 4 check variants ({read,write} x {plain,atomic}), we
-will need 4 generic check variants.
-
-I certainly do not feel comfortable blindly introducing kcsan_checks
-in all places where we have kasan_checks, but it may be worthwhile
-adding this infrastructure and starting with atomic-instrumented and
-bitops-instrumented wrappers. The other locations you list above would
-need to be evaluated on a case-by-case basis to check if we want to
-report data races for those accesses.
-
-As a minor data point, {READ,WRITE}_ONCE in compiler.h currently only
-has kcsan_checks and not kasan_checks.
-
-My personal preference would be to keep the various checks explicit,
-clearly opting into either KCSAN and/or KASAN. Since I do not think
-it's obvious if we want both for the existing and potentially new
-locations (in future), the potential for error by blindly using a
-generic 'ksan_check' appears worse than potentially adding a dozen
-lines or so.
-
-Let me know if you'd like to proceed with 'ksan-checks.h'.
-
-Thanks,
--- Marco
+T24gNi80LzE5IDI6MjkgUE0sIENocmlzdGlhbiBCcmF1bmVyIHdyb3RlOg0KPiBPbiBUdWUsIEp1
+biAwNCwgMjAxOSBhdCAwODo0MDowMVBNICswMjAwLCBBcm5kIEJlcmdtYW5uIHdyb3RlOg0KPj4g
+T24gVHVlLCBKdW4gNCwgMjAxOSBhdCA2OjA5IFBNIENocmlzdGlhbiBCcmF1bmVyIDxjaHJpc3Rp
+YW5AYnJhdW5lci5pbz4gd3JvdGU6DQo+Pj4NCj4+PiBXaXJlIHVwIHRoZSBjbG9uZTMoKSBjYWxs
+IG9uIGFsbCBhcmNoZXMgdGhhdCBkb24ndCByZXF1aXJlIGhhbmQtcm9sbGVkDQo+Pj4gYXNzZW1i
+bHkuDQo+Pj4NCj4+PiBTb21lIG9mIHRoZSBhcmNoZXMgbG9vayBsaWtlIHRoZXkgbmVlZCBzcGVj
+aWFsIGFzc2VtYmx5IG1hc3NhZ2luZyBhbmQgaXQgaXMNCj4+PiBwcm9iYWJseSBzbWFydGVyIGlm
+IHRoZSBhcHByb3ByaWF0ZSBhcmNoIG1haW50YWluZXJzIHdvdWxkIGRvIHRoZSBhY3R1YWwNCj4+
+PiB3aXJpbmcuIEFyY2hlcyB0aGF0IGFyZSB3aXJlZC11cCBhcmU6DQo+Pj4gLSB4ODZ7XzMyLDY0
+fQ0KPj4+IC0gYXJtezY0fQ0KPj4+IC0geHRlbnNhDQo+Pg0KPj4gVGhlIG9uZXMgeW91IGRpZCBs
+b29rIGdvb2QgdG8gbWUuIEkgd291bGQgaG9wZSB0aGF0IHdlIGNhbiBkbyBhbGwgb3RoZXINCj4+
+IGFyY2hpdGVjdHVyZXMgdGhlIHNhbWUgd2F5LCBldmVuIGlmIHRoZXkgaGF2ZSBzcGVjaWFsIGFz
+c2VtYmx5IHdyYXBwZXJzDQo+PiBmb3IgdGhlIG9sZCBjbG9uZSgpLiBUaGUgbW9zdCBpbnRlcmVz
+dGluZyBjYXNlcyBhcHBlYXIgdG8gYmUgaWE2NCwgYWxwaGEsDQo+PiBtNjhrIGFuZCBzcGFyYywg
+c28gaXQgd291bGQgYmUgZ29vZCBpZiB0aGVpciBtYWludGFpbmVycyBjb3VsZCB0YWtlIGENCj4+
+IGxvb2suDQo+IA0KPiBZZXMsIGFncmVlZC4gVGhleSBjYW4gc29ydCB0aGlzIG91dCBldmVuIGFm
+dGVyIHRoaXMgbGFuZHMuDQo+IA0KPj4NCj4+IFdoYXQgZG8geW91IHVzZSBmb3IgdGVzdGluZz8g
+V291bGQgaXQgYmUgcG9zc2libGUgdG8gb3ZlcnJpZGUgdGhlDQo+PiBpbnRlcm5hbCBjbG9uZSgp
+IGZ1bmN0aW9uIGluIGdsaWJjIHdpdGggYW4gTERfUFJFTE9BRCBsaWJyYXJ5DQo+PiB0byBxdWlj
+a2x5IHRlc3Qgb25lIG9mIHRoZSBvdGhlciBhcmNoaXRlY3R1cmVzIGZvciByZWdyZXNzaW9ucz8N
+Cj4gDQo+IEkgaGF2ZSBhIHRlc3QgcHJvZ3JhbSB0aGF0IGlzIHJhdGhlciBob3JyZW5kb3VzbHkg
+dWdseSBhbmQgSSBjb21waWxlZA0KPiBrZXJuZWxzIGZvciB4ODYgYW5kIHRoZSBhcm1zIGFuZCB0
+ZXN0ZWQgaW4gcWVtdS4gVGhlIHByb2dyYW0gYmFzaWNhbGx5DQo+IGxvb2tzIGxpa2UgWzFdLg0K
+DQpJIGp1c3QgZ290IGFyb3VuZCB0byBmaXhpbmcgdGhpcyBmb3IgQVJDIChwYXRjaCB0byBmb2xs
+b3cgYWZ0ZXIgd2Ugc29ydCBvdXQgdGhlDQp0ZXN0aW5nKSBhbmQgd2FzIHRyeWluZyB0byB1c2Ug
+dGhlIHRlc3QgY2FzZSBiZWxvdyBmb3IgYSBxdWNpayBhbmQgZGlydHkgc21va2UNCnRlc3QgKHNv
+IGV4aXN0aW5nIHRvb2xjaGFpbiBsYWNraW5nIHdpdGggaGVhZGVycyBsYWNraW5nIE5SX2Nsb25l
+MyBvciBzdHJ1Y3QNCmNsb25lX2FyZ3MgZXRjKS4gSSBkaWQgaGFjayB0aG9zZSB1cCwgYnV0IHRo
+ZW4gc3BvdHRlZCBiZWxvdw0KDQp1YXBpL2xpbnV4L3NjaGVkLmgNCg0KfCAgICBzdHJ1Y3QgY2xv
+bmVfYXJncyB7DQp8CV9fYWxpZ25lZF91NjQgZmxhZ3M7DQp8CV9fYWxpZ25lZF91NjQgcGlkZmQ7
+DQp8CV9fYWxpZ25lZF91NjQgY2hpbGRfdGlkOw0KfAlfX2FsaWduZWRfdTY0IHBhcmVudF90aWQ7
+DQouLg0KLi4NCg0KQXJlIGFsbCBjbG9uZTMgYXJnIGZpZWxkcyBzdXBwb3NlZCB0byBiZSA2NC1i
+aXQgd2lkZSwgZXZlbiB0aGluZ3MgbGlrZSBAY2hpbGRfdGlkLA0KQHRscyAuLi4uIHdoaWNoIGFy
+ZSB0cmFkaXRpb25hbGx5IEFSQ0ggd29yZCB3aWRlID8NCg0KDQo+IA0KPiBDaHJpc3RpYW4NCj4g
+DQo+IFsxXToNCj4gI2RlZmluZSBfR05VX1NPVVJDRQ0KPiAjaW5jbHVkZSA8ZXJyLmg+DQo+ICNp
+bmNsdWRlIDxlcnJuby5oPg0KPiAjaW5jbHVkZSA8ZmNudGwuaD4NCj4gI2luY2x1ZGUgPGxpbnV4
+L3NjaGVkLmg+DQo+ICNpbmNsdWRlIDxsaW51eC90eXBlcy5oPg0KPiAjaW5jbHVkZSA8c2NoZWQu
+aD4NCj4gI2luY2x1ZGUgPHNpZ25hbC5oPg0KPiAjaW5jbHVkZSA8c3RkaW50Lmg+DQo+ICNpbmNs
+dWRlIDxzdGRpby5oPg0KPiAjaW5jbHVkZSA8c3RkbGliLmg+DQo+ICNpbmNsdWRlIDxzeXMvbW91
+bnQuaD4NCj4gI2luY2x1ZGUgPHN5cy9zb2NrZXQuaD4NCj4gI2luY2x1ZGUgPHN5cy9zdGF0Lmg+
+DQo+ICNpbmNsdWRlIDxzeXMvc3lzY2FsbC5oPg0KPiAjaW5jbHVkZSA8c3lzL3N5c21hY3Jvcy5o
+Pg0KPiAjaW5jbHVkZSA8c3lzL3R5cGVzLmg+DQo+ICNpbmNsdWRlIDxzeXMvdW4uaD4NCj4gI2lu
+Y2x1ZGUgPHN5cy93YWl0Lmg+DQo+ICNpbmNsdWRlIDx1bmlzdGQuaD4NCj4gDQo+IHN0YXRpYyBw
+aWRfdCByYXdfY2xvbmUoc3RydWN0IGNsb25lX2FyZ3MgKmFyZ3MpDQo+IHsNCj4gCXJldHVybiBz
+eXNjYWxsKF9fTlJfY2xvbmUzLCBhcmdzLCBzaXplb2Yoc3RydWN0IGNsb25lX2FyZ3MpKTsNCj4g
+fQ0KPiANCj4gc3RhdGljIHBpZF90IHJhd19jbG9uZV9sZWdhY3koaW50ICpwaWRmZCwgdW5zaWdu
+ZWQgaW50IGZsYWdzKQ0KPiB7DQo+IAlyZXR1cm4gc3lzY2FsbChfX05SX2Nsb25lLCBmbGFncywg
+MCwgcGlkZmQsIDAsIDApOw0KPiB9DQo+IA0KPiBzdGF0aWMgaW50IHdhaXRfZm9yX3BpZChwaWRf
+dCBwaWQpDQo+IHsNCj4gCWludCBzdGF0dXMsIHJldDsNCj4gDQo+IGFnYWluOg0KPiAJcmV0ID0g
+d2FpdHBpZChwaWQsICZzdGF0dXMsIDApOw0KPiAJaWYgKHJldCA9PSAtMSkgew0KPiAJCWlmIChl
+cnJubyA9PSBFSU5UUikNCj4gCQkJZ290byBhZ2FpbjsNCj4gDQo+IAkJcmV0dXJuIC0xOw0KPiAJ
+fQ0KPiANCj4gCWlmIChyZXQgIT0gcGlkKQ0KPiAJCWdvdG8gYWdhaW47DQo+IA0KPiAJaWYgKCFX
+SUZFWElURUQoc3RhdHVzKSB8fCBXRVhJVFNUQVRVUyhzdGF0dXMpICE9IDApDQo+IAkJcmV0dXJu
+IC0xOw0KPiANCj4gCXJldHVybiAwOw0KPiB9DQo+IA0KPiAjZGVmaW5lIHB0cl90b191NjQocHRy
+KSAoKF9fdTY0KSgodWludHB0cl90KShwdHIpKSkNCj4gI2RlZmluZSB1NjRfdG9fcHRyKG4pICgo
+dWludHB0cl90KSgoX191NjQpKG4pKSkNCj4gDQo+IGludCBtYWluKGludCBhcmdjLCBjaGFyICph
+cmd2W10pDQo+IHsNCj4gCWludCBwaWRmZCA9IC0xOw0KPiAJcGlkX3QgcGFyZW50X3RpZCA9IC0x
+LCBwaWQgPSAtMTsNCj4gCXN0cnVjdCBjbG9uZV9hcmdzIGFyZ3MgPSB7MH07DQo+IAlhcmdzLnBh
+cmVudF90aWQgPSBwdHJfdG9fdTY0KCZwYXJlbnRfdGlkKTsNCj4gCWFyZ3MucGlkZmQgPSBwdHJf
+dG9fdTY0KCZwaWRmZCk7DQo+IAlhcmdzLmZsYWdzID0gQ0xPTkVfUElERkQgfCBDTE9ORV9QQVJF
+TlRfU0VUVElEOw0KPiAJYXJncy5leGl0X3NpZ25hbCA9IFNJR0NITEQ7DQo+IA0KPiAJcGlkID0g
+cmF3X2Nsb25lKCZhcmdzKTsNCj4gCWlmIChwaWQgPCAwKSB7DQo+IAkJZnByaW50ZihzdGRlcnIs
+ICIlcyAtIEZhaWxlZCB0byBjcmVhdGUgbmV3IHByb2Nlc3NcbiIsDQo+IAkJCXN0cmVycm9yKGVy
+cm5vKSk7DQo+IAkJZXhpdChFWElUX0ZBSUxVUkUpOw0KPiAJfQ0KPiANCj4gCWlmIChwaWQgPT0g
+MCkgew0KPiAJCXByaW50ZigiSSBhbSB0aGUgY2hpbGQgd2l0aCBwaWQgJWRcbiIsIGdldHBpZCgp
+KTsNCj4gCQlleGl0KEVYSVRfU1VDQ0VTUyk7DQo+IAl9DQo+IA0KPiAJcHJpbnRmKCJyYXdfY2xv
+bmU6IEkgYW0gdGhlIHBhcmVudC4gTXkgY2hpbGQncyBwaWQgaXMgICAlZFxuIiwgcGlkKTsNCj4g
+CXByaW50ZigicmF3X2Nsb25lOiBJIGFtIHRoZSBwYXJlbnQuIE15IGNoaWxkJ3MgcGlkZmQgaXMg
+JWRcbiIsDQo+IAkgICAgICAgKihpbnQgKilhcmdzLnBpZGZkKTsNCj4gCXByaW50ZigicmF3X2Ns
+b25lOiBJIGFtIHRoZSBwYXJlbnQuIE15IGNoaWxkJ3MgcGFyZW5fdGlkIHZhbHVlIGlzICVkXG4i
+LA0KPiAJICAgICAgICoocGlkX3QgKilhcmdzLnBhcmVudF90aWQpOw0KPiANCj4gCWlmICh3YWl0
+X2Zvcl9waWQocGlkKSkNCj4gCQlleGl0KEVYSVRfRkFJTFVSRSk7DQo+IA0KPiAJaWYgKHBpZCAh
+PSAqKHBpZF90ICopYXJncy5wYXJlbnRfdGlkKQ0KPiAJCWV4aXQoRVhJVF9GQUlMVVJFKTsNCj4g
+DQo+IAljbG9zZShwaWRmZCk7DQo+IA0KPiAJcHJpbnRmKCJcblxuIik7DQo+IAlwaWRmZCA9IC0x
+Ow0KPiAJcGlkID0gcmF3X2Nsb25lX2xlZ2FjeSgmcGlkZmQsIENMT05FX1BJREZEIHwgU0lHQ0hM
+RCk7DQo+IAlpZiAocGlkIDwgMCkgew0KPiAJCWZwcmludGYoc3RkZXJyLCAiJXMgLSBGYWlsZWQg
+dG8gY3JlYXRlIG5ldyBwcm9jZXNzXG4iLA0KPiAJCQlzdHJlcnJvcihlcnJubykpOw0KPiAJCWV4
+aXQoRVhJVF9GQUlMVVJFKTsNCj4gCX0NCj4gDQo+IAlpZiAocGlkID09IDApIHsNCj4gCQlwcmlu
+dGYoIkkgYW0gdGhlIGNoaWxkIHdpdGggcGlkICVkXG4iLCBnZXRwaWQoKSk7DQo+IAkJZXhpdChF
+WElUX1NVQ0NFU1MpOw0KPiAJfQ0KPiANCj4gCXByaW50ZigicmF3X2Nsb25lX2xlZ2FjeTogSSBh
+bSB0aGUgcGFyZW50LiBNeSBjaGlsZCdzIHBpZCBpcyAgICVkXG4iLA0KPiAJICAgICAgIHBpZCk7
+DQo+IAlwcmludGYoInJhd19jbG9uZV9sZWdhY3k6IEkgYW0gdGhlIHBhcmVudC4gTXkgY2hpbGQn
+cyBwaWRmZCBpcyAlZFxuIiwNCj4gCSAgICAgICBwaWRmZCk7DQo+IA0KPiAJaWYgKHdhaXRfZm9y
+X3BpZChwaWQpKQ0KPiAJCWV4aXQoRVhJVF9GQUlMVVJFKTsNCj4gDQo+IAlpZiAocGlkICE9ICoo
+cGlkX3QgKilhcmdzLnBhcmVudF90aWQpDQo+IAkJZXhpdChFWElUX0ZBSUxVUkUpOw0KPiANCj4g
+CXJldHVybiAwOw0KPiB9DQo+IA0KDQo=
