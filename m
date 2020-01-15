@@ -1,245 +1,152 @@
-Return-Path: <SRS0=zjVl=3K=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail-qv1-f67.google.com ([209.85.219.67]:35155 "EHLO
-        mail-qv1-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1725890AbgAUNB1 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jan 2020 08:01:27 -0500
-Received: by mail-qv1-f67.google.com with SMTP id u10so1379340qvi.2
-        for <linux-arch@vger.kernel.org>; Tue, 21 Jan 2020 05:01:26 -0800 (PST)
+Return-Path: <SRS0=vo9y=3E=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from userp2120.oracle.com ([156.151.31.85]:34196 "EHLO
+        userp2120.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1728925AbgAOEPQ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 14 Jan 2020 23:15:16 -0500
+From: Alex Kogan <alex.kogan@oracle.com>
+Subject: [PATCH v9 4/5] locking/qspinlock: Introduce starvation avoidance into CNA
+Date: Tue, 14 Jan 2020 22:59:19 -0500
+Message-ID: <20200115035920.54451-5-alex.kogan@oracle.com>
+In-Reply-To: <20200115035920.54451-1-alex.kogan@oracle.com>
+References: <20200115035920.54451-1-alex.kogan@oracle.com>
 MIME-Version: 1.0
-References: <20200120141927.114373-1-elver@google.com> <CACT4Y+bnRoKinPopVqyxj4av6_xa_OUN0wwnidpO3dX3iYq_gg@mail.gmail.com>
-In-Reply-To: <CACT4Y+bnRoKinPopVqyxj4av6_xa_OUN0wwnidpO3dX3iYq_gg@mail.gmail.com>
-From: Dmitry Vyukov <dvyukov@google.com>
-Date: Tue, 21 Jan 2020 14:01:13 +0100
-Message-ID: <CACT4Y+bjAn0g980ZCxCn4MkgCsg7KrA69CExCeJZ63eRON5fXw@mail.gmail.com>
-Subject: Re: [PATCH 1/5] include/linux: Add instrumented.h infrastructure
-Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Marco Elver <elver@google.com>
-Cc: "Paul E. McKenney" <paulmck@kernel.org>, Andrey Konovalov <andreyknvl@google.com>, Alexander Potapenko <glider@google.com>, kasan-dev <kasan-dev@googlegroups.com>, LKML <linux-kernel@vger.kernel.org>, Mark Rutland <mark.rutland@arm.com>, Will Deacon <will@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Boqun Feng <boqun.feng@gmail.com>, Arnd Bergmann <arnd@arndb.de>, Al Viro <viro@zeniv.linux.org.uk>, Christophe Leroy <christophe.leroy@c-s.fr>, Daniel Axtens <dja@axtens.net>, Michael Ellerman <mpe@ellerman.id.au>, Steven Rostedt <rostedt@goodmis.org>, Masami Hiramatsu <mhiramat@kernel.org>, Ingo Molnar <mingo@kernel.org>, Christian Brauner <christian.brauner@ubuntu.com>, Daniel Borkmann <daniel@iogearbox.net>, cyphar@cyphar.com, Kees Cook <keescook@chromium.org>, linux-arch <linux-arch@vger.kernel.org>
-Message-ID: <20200121130113.3J83mxFTapF8jwMNgAewVwXVXJdnHws-9qlwyV0bbPI@z>
+To: linux@armlinux.org.uk, peterz@infradead.org, mingo@redhat.com, will.deacon@arm.com, arnd@arndb.de, longman@redhat.com, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, bp@alien8.de, hpa@zytor.com, x86@kernel.org, guohanjun@huawei.com, jglauber@marvell.com
+Cc: steven.sistare@oracle.com, daniel.m.jordan@oracle.com, alex.kogan@oracle.com, dave.dice@oracle.com
+Message-ID: <20200115035919.ai_gHU_THRlFcdkBEbPu2qpzFAUeeOKexom8gx5bAQo@z>
 
-On Mon, Jan 20, 2020 at 3:45 PM Dmitry Vyukov <dvyukov@google.com> wrote:
->
-> On Mon, Jan 20, 2020 at 3:19 PM Marco Elver <elver@google.com> wrote:
-> >
-> > This adds instrumented.h, which provides generic wrappers for memory
-> > access instrumentation that the compiler cannot emit for various
-> > sanitizers. Currently this unifies KASAN and KCSAN instrumentation. In
-> > future this will also include KMSAN instrumentation.
-> >
-> > Note that, copy_{to,from}_user require special instrumentation,
-> > providing hooks before and after the access, since we may need to know
-> > the actual bytes accessed (currently this is relevant for KCSAN, and is
-> > also relevant in future for KMSAN).
-> >
-> > Suggested-by: Arnd Bergmann <arnd@arndb.de>
-> > Signed-off-by: Marco Elver <elver@google.com>
-> > ---
-> >  include/linux/instrumented.h | 153 +++++++++++++++++++++++++++++++++++
-> >  1 file changed, 153 insertions(+)
-> >  create mode 100644 include/linux/instrumented.h
-> >
-> > diff --git a/include/linux/instrumented.h b/include/linux/instrumented.h
-> > new file mode 100644
-> > index 000000000000..9f83c8520223
-> > --- /dev/null
-> > +++ b/include/linux/instrumented.h
-> > @@ -0,0 +1,153 @@
-> > +/* SPDX-License-Identifier: GPL-2.0 */
-> > +
-> > +/*
-> > + * This header provides generic wrappers for memory access instrumentation that
-> > + * the compiler cannot emit for: KASAN, KCSAN.
-> > + */
-> > +#ifndef _LINUX_INSTRUMENTED_H
-> > +#define _LINUX_INSTRUMENTED_H
-> > +
-> > +#include <linux/compiler.h>
-> > +#include <linux/kasan-checks.h>
-> > +#include <linux/kcsan-checks.h>
-> > +#include <linux/types.h>
-> > +
-> > +/**
-> > + * instrument_read - instrument regular read access
-> > + *
-> > + * Instrument a regular read access. The instrumentation should be inserted
-> > + * before the actual read happens.
-> > + *
-> > + * @ptr address of access
-> > + * @size size of access
-> > + */
->
-> Based on offline discussion, that's what we add for KMSAN:
->
-> > +static __always_inline void instrument_read(const volatile void *v, size_t size)
-> > +{
-> > +       kasan_check_read(v, size);
-> > +       kcsan_check_read(v, size);
->
-> KMSAN: nothing
->
-> > +}
-> > +
-> > +/**
-> > + * instrument_write - instrument regular write access
-> > + *
-> > + * Instrument a regular write access. The instrumentation should be inserted
-> > + * before the actual write happens.
-> > + *
-> > + * @ptr address of access
-> > + * @size size of access
-> > + */
-> > +static __always_inline void instrument_write(const volatile void *v, size_t size)
-> > +{
-> > +       kasan_check_write(v, size);
-> > +       kcsan_check_write(v, size);
->
-> KMSAN: nothing
->
-> > +}
-> > +
-> > +/**
-> > + * instrument_atomic_read - instrument atomic read access
-> > + *
-> > + * Instrument an atomic read access. The instrumentation should be inserted
-> > + * before the actual read happens.
-> > + *
-> > + * @ptr address of access
-> > + * @size size of access
-> > + */
-> > +static __always_inline void instrument_atomic_read(const volatile void *v, size_t size)
-> > +{
-> > +       kasan_check_read(v, size);
-> > +       kcsan_check_atomic_read(v, size);
->
-> KMSAN: nothing
->
-> > +}
-> > +
-> > +/**
-> > + * instrument_atomic_write - instrument atomic write access
-> > + *
-> > + * Instrument an atomic write access. The instrumentation should be inserted
-> > + * before the actual write happens.
-> > + *
-> > + * @ptr address of access
-> > + * @size size of access
-> > + */
-> > +static __always_inline void instrument_atomic_write(const volatile void *v, size_t size)
-> > +{
-> > +       kasan_check_write(v, size);
-> > +       kcsan_check_atomic_write(v, size);
->
-> KMSAN: nothing
->
-> > +}
-> > +
-> > +/**
-> > + * instrument_copy_to_user_pre - instrument reads of copy_to_user
-> > + *
-> > + * Instrument reads from kernel memory, that are due to copy_to_user (and
-> > + * variants).
-> > + *
-> > + * The instrumentation must be inserted before the accesses. At this point the
-> > + * actual number of bytes accessed is not yet known.
-> > + *
-> > + * @dst destination address
-> > + * @size maximum access size
-> > + */
-> > +static __always_inline void
-> > +instrument_copy_to_user_pre(const volatile void *src, size_t size)
-> > +{
-> > +       /* Check before, to warn before potential memory corruption. */
-> > +       kasan_check_read(src, size);
->
-> KMSAN: check that (src,size) is initialized
->
-> > +}
-> > +
-> > +/**
-> > + * instrument_copy_to_user_post - instrument reads of copy_to_user
-> > + *
-> > + * Instrument reads from kernel memory, that are due to copy_to_user (and
-> > + * variants).
-> > + *
-> > + * The instrumentation must be inserted after the accesses. At this point the
-> > + * actual number of bytes accessed should be known.
-> > + *
-> > + * @dst destination address
-> > + * @size maximum access size
-> > + * @left number of bytes left that were not copied
-> > + */
-> > +static __always_inline void
-> > +instrument_copy_to_user_post(const volatile void *src, size_t size, size_t left)
-> > +{
-> > +       /* Check after, to avoid false positive if memory was not accessed. */
-> > +       kcsan_check_read(src, size - left);
->
-> KMSAN: nothing
+Keep track of the number of intra-node lock handoffs, and force
+inter-node handoff once this number reaches a preset threshold.
+The default value for the threshold can be overridden with
+the new kernel boot command-line option "numa_spinlock_threshold".
 
-One detail I noticed for KMSAN is that kmsan_copy_to_user has a
-special case when @to address is in kernel-space (compat syscalls
-doing tricky things), in that case it only copies metadata. We can't
-handle this with existing annotations.
+Signed-off-by: Alex Kogan <alex.kogan@oracle.com>
+Reviewed-by: Steve Sistare <steven.sistare@oracle.com>
+Reviewed-by: Waiman Long <longman@redhat.com>
+---
+ .../admin-guide/kernel-parameters.txt         |  8 ++++
+ kernel/locking/qspinlock.c                    |  3 ++
+ kernel/locking/qspinlock_cna.h                | 41 ++++++++++++++++++-
+ 3 files changed, 51 insertions(+), 1 deletion(-)
 
-
- * actually copied to ensure there was no information leak. If @to belongs to
- * the kernel space (which is possible for compat syscalls), KMSAN just copies
- * the metadata.
- */
-void kmsan_copy_to_user(const void *to, const void *from, size_t
-to_copy, size_t left);
-
-
-> > +}
-> > +
-> > +/**
-> > + * instrument_copy_from_user_pre - instrument writes of copy_from_user
-> > + *
-> > + * Instrument writes to kernel memory, that are due to copy_from_user (and
-> > + * variants).
-> > + *
-> > + * The instrumentation must be inserted before the accesses. At this point the
-> > + * actual number of bytes accessed is not yet known.
-> > + *
-> > + * @dst destination address
-> > + * @size maximum access size
-> > + */
-> > +static __always_inline void
-> > +instrument_copy_from_user_pre(const volatile void *dst, size_t size)
-> > +{
-> > +       /* Check before, to warn before potential memory corruption. */
-> > +       kasan_check_write(dst, size);
->
-> KMSAN: nothing
->
-> > +}
-> > +
-> > +/**
-> > + * instrument_copy_from_user_post - instrument writes of copy_from_user
-> > + *
-> > + * Instrument writes to kernel memory, that are due to copy_from_user (and
-> > + * variants).
-> > + *
-> > + * The instrumentation must be inserted after the accesses. At this point the
-> > + * actual number of bytes accessed should be known.
-> > + *
-> > + * @dst destination address
-> > + * @size maximum access size
-> > + * @left number of bytes left that were not copied
-> > + */
-> > +static __always_inline void
-> > +instrument_copy_from_user_post(const volatile void *dst, size_t size, size_t left)
-> > +{
-> > +       /* Check after, to avoid false positive if memory was not accessed. */
-> > +       kcsan_check_write(dst, size - left);
->
-> KMSAN: mark (dst, size-left) as initialized
->
-> > +}
-> > +
-> > +#endif /* _LINUX_INSTRUMENTED_H */
-> > --
-> > 2.25.0.341.g760bfbb309-goog
-> >
+diff --git a/Documentation/admin-guide/kernel-parameters.txt b/Documentation/admin-guide/kernel-parameters.txt
+index b68cb80e477f..30d79819a3b0 100644
+--- a/Documentation/admin-guide/kernel-parameters.txt
++++ b/Documentation/admin-guide/kernel-parameters.txt
+@@ -3200,6 +3200,14 @@
+ 			Not specifying this option is equivalent to
+ 			numa_spinlock=auto.
+ 
++	numa_spinlock_threshold=	[NUMA, PV_OPS]
++			Set the threshold for the number of intra-node
++			lock hand-offs before the NUMA-aware spinlock
++			is forced to be passed to a thread on another NUMA node.
++			Valid values are in the [0..31] range. Smaller values
++			result in a more fair, but less performant spinlock, and
++			vice versa. The default value is 16.
++
+ 	cpu0_hotplug	[X86] Turn on CPU0 hotplug feature when
+ 			CONFIG_BOOTPARAM_HOTPLUG_CPU0 is off.
+ 			Some features depend on CPU0. Known dependencies are:
+diff --git a/kernel/locking/qspinlock.c b/kernel/locking/qspinlock.c
+index 609980a53841..e382d8946ccc 100644
+--- a/kernel/locking/qspinlock.c
++++ b/kernel/locking/qspinlock.c
+@@ -597,6 +597,9 @@ EXPORT_SYMBOL(queued_spin_lock_slowpath);
+ #if !defined(_GEN_CNA_LOCK_SLOWPATH) && defined(CONFIG_NUMA_AWARE_SPINLOCKS)
+ #define _GEN_CNA_LOCK_SLOWPATH
+ 
++#undef pv_init_node
++#define pv_init_node			cna_init_node
++
+ #undef pv_wait_head_or_lock
+ #define pv_wait_head_or_lock		cna_pre_scan
+ 
+diff --git a/kernel/locking/qspinlock_cna.h b/kernel/locking/qspinlock_cna.h
+index 8000231f3d51..a2b65f87e6f8 100644
+--- a/kernel/locking/qspinlock_cna.h
++++ b/kernel/locking/qspinlock_cna.h
+@@ -51,13 +51,25 @@ struct cna_node {
+ 	int			numa_node;
+ 	u32			encoded_tail;
+ 	u32			pre_scan_result; /* encoded tail or enum val */
++	u32			intra_count;
+ };
+ 
+ enum {
+ 	LOCAL_WAITER_FOUND = 2,	/* 0 and 1 are reserved for @locked */
++	FLUSH_SECONDARY_QUEUE = 3,
+ 	MIN_ENCODED_TAIL
+ };
+ 
++/*
++ * Controls the threshold for the number of intra-node lock hand-offs before
++ * the NUMA-aware variant of spinlock is forced to be passed to a thread on
++ * another NUMA node. By default, the chosen value provides reasonable
++ * long-term fairness without sacrificing performance compared to a lock
++ * that does not have any fairness guarantees. The default setting can
++ * be changed with the "numa_spinlock_threshold" boot option.
++ */
++unsigned int intra_node_handoff_threshold __ro_after_init = 1 << 16;
++
+ static void __init cna_init_nodes_per_cpu(unsigned int cpu)
+ {
+ 	struct mcs_spinlock *base = per_cpu_ptr(&qnodes[0].mcs, cpu);
+@@ -97,6 +109,11 @@ static int __init cna_init_nodes(void)
+ }
+ early_initcall(cna_init_nodes);
+ 
++static __always_inline void cna_init_node(struct mcs_spinlock *node)
++{
++	((struct cna_node *)node)->intra_count = 0;
++}
++
+ /* this function is called only when the primary queue is empty */
+ static inline bool cna_try_change_tail(struct qspinlock *lock, u32 val,
+ 				       struct mcs_spinlock *node)
+@@ -232,7 +249,9 @@ __always_inline u32 cna_pre_scan(struct qspinlock *lock,
+ {
+ 	struct cna_node *cn = (struct cna_node *)node;
+ 
+-	cn->pre_scan_result = cna_scan_main_queue(node, node);
++	cn->pre_scan_result =
++		cn->intra_count == intra_node_handoff_threshold ?
++			FLUSH_SECONDARY_QUEUE : cna_scan_main_queue(node, node);
+ 
+ 	return 0;
+ }
+@@ -262,6 +281,9 @@ static inline void cna_pass_lock(struct mcs_spinlock *node,
+ 		 * if we acquired the MCS lock when its queue was empty
+ 		 */
+ 		val = node->locked ? node->locked : 1;
++		/* inc @intra_count if the secondary queue is not empty */
++		((struct cna_node *)next_holder)->intra_count =
++			cn->intra_count + (node->locked > 1);
+ 	} else if (node->locked > 1) {	  /* if secondary queue is not empty */
+ 		/* next holder will be the first node in the secondary queue */
+ 		tail_2nd = decode_tail(node->locked);
+@@ -316,3 +338,20 @@ void __init cna_configure_spin_lock_slowpath(void)
+ 		pr_info("Enabling CNA spinlock\n");
+ 	}
+ }
++
++static int __init numa_spinlock_threshold_setup(char *str)
++{
++	int new_threshold_param;
++
++	if (get_option(&str, &new_threshold_param)) {
++		/* valid value is between 0 and 31 */
++		if (new_threshold_param < 0 || new_threshold_param > 31)
++			return 0;
++
++		intra_node_handoff_threshold = 1 << new_threshold_param;
++		return 1;
++	}
++
++	return 0;
++}
++__setup("numa_spinlock_threshold=", numa_spinlock_threshold_setup);
+-- 
+2.21.0 (Apple Git-122.2)
