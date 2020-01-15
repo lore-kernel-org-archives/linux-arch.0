@@ -1,102 +1,210 @@
 Return-Path: <SRS0=vo9y=3E=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from userp2130.oracle.com ([156.151.31.86]:48036 "EHLO
-        userp2130.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728880AbgAOEPN (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 14 Jan 2020 23:15:13 -0500
-From: Alex Kogan <alex.kogan@oracle.com>
-Subject: [PATCH v9 2/5] locking/qspinlock: Refactor the qspinlock slow path
-Date: Tue, 14 Jan 2020 22:59:17 -0500
-Message-ID: <20200115035920.54451-3-alex.kogan@oracle.com>
-In-Reply-To: <20200115035920.54451-1-alex.kogan@oracle.com>
-References: <20200115035920.54451-1-alex.kogan@oracle.com>
-MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Received: from mail-qv1-f73.google.com ([209.85.219.73]:53500 "EHLO
+        mail-qv1-f73.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726574AbgAOQ6U (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 15 Jan 2020 11:58:20 -0500
+Received: by mail-qv1-f73.google.com with SMTP id g15so11381909qvq.20
+        for <linux-arch@vger.kernel.org>; Wed, 15 Jan 2020 08:58:19 -0800 (PST)
+Date: Wed, 15 Jan 2020 17:57:49 +0100
+Message-ID: <20200115165749.145649-1-elver@google.com>
+Mime-Version: 1.0
+Subject: [PATCH -rcu] asm-generic, kcsan: Add KCSAN instrumentation for bitops
+From: Marco Elver <elver@google.com>
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux@armlinux.org.uk, peterz@infradead.org, mingo@redhat.com, will.deacon@arm.com, arnd@arndb.de, longman@redhat.com, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, bp@alien8.de, hpa@zytor.com, x86@kernel.org, guohanjun@huawei.com, jglauber@marvell.com
-Cc: steven.sistare@oracle.com, daniel.m.jordan@oracle.com, alex.kogan@oracle.com, dave.dice@oracle.com
-Message-ID: <20200115035917.T3lZl1jpuP0b2J3I9-maTO12miI5vHn2_qdMDT4JUzw@z>
+To: elver@google.com
+Cc: paulmck@kernel.org, andreyknvl@google.com, glider@google.com, dvyukov@google.com, kasan-dev@googlegroups.com, linux-kernel@vger.kernel.org, arnd@arndb.de, mpe@ellerman.id.au, christophe.leroy@c-s.fr, dja@axtens.net, linux-arch@vger.kernel.org
+Message-ID: <20200115165749.ZX5hySCLaSvRk0NvnROICZ-7EUH2DYHKzqdsP13aJz0@z>
 
-Move some of the code manipulating the spin lock into separate functions.
-This would allow easier integration of alternative ways to manipulate
-that lock.
+Add explicit KCSAN checks for bitops.
 
-Signed-off-by: Alex Kogan <alex.kogan@oracle.com>
-Reviewed-by: Steve Sistare <steven.sistare@oracle.com>
-Reviewed-by: Waiman Long <longman@redhat.com>
+Signed-off-by: Marco Elver <elver@google.com>
 ---
- kernel/locking/qspinlock.c | 38 ++++++++++++++++++++++++++++++++++++--
- 1 file changed, 36 insertions(+), 2 deletions(-)
+The same patch was previously sent, but at that point the updated bitops
+instrumented infrastructure was not yet in mainline:
+ http://lkml.kernel.org/r/20191115115524.GA77379@google.com
 
-diff --git a/kernel/locking/qspinlock.c b/kernel/locking/qspinlock.c
-index 804c0fbd6328..c06d1e8075d9 100644
---- a/kernel/locking/qspinlock.c
-+++ b/kernel/locking/qspinlock.c
-@@ -288,6 +288,34 @@ static __always_inline u32  __pv_wait_head_or_lock(struct qspinlock *lock,
- #define queued_spin_lock_slowpath	native_queued_spin_lock_slowpath
- #endif
+Note that test_bit() is an atomic bitop, and KCSAN treats it as such,
+although it is in the non-atomic header. Currently it cannot be moved:
+ http://lkml.kernel.org/r/87pnh5dlmn.fsf@dja-thinkpad.axtens.net
+---
+ include/asm-generic/bitops/instrumented-atomic.h     | 7 +++++++
+ include/asm-generic/bitops/instrumented-lock.h       | 5 +++++
+ include/asm-generic/bitops/instrumented-non-atomic.h | 8 ++++++++
+ 3 files changed, 20 insertions(+)
+
+diff --git a/include/asm-generic/bitops/instrumented-atomic.h b/include/asm-generic/bitops/instrumented-atomic.h
+index 18ce3c9e8eec..eb3abf7e5c08 100644
+--- a/include/asm-generic/bitops/instrumented-atomic.h
++++ b/include/asm-generic/bitops/instrumented-atomic.h
+@@ -12,6 +12,7 @@
+ #define _ASM_GENERIC_BITOPS_INSTRUMENTED_ATOMIC_H
  
-+/*
-+ * __try_clear_tail - try to clear tail by setting the lock value to
-+ * _Q_LOCKED_VAL.
-+ * @lock: Pointer to the queued spinlock structure
-+ * @val: Current value of the lock
-+ * @node: Pointer to the MCS node of the lock holder
-+ */
-+static __always_inline bool __try_clear_tail(struct qspinlock *lock,
-+						   u32 val,
-+						   struct mcs_spinlock *node)
-+{
-+	return atomic_try_cmpxchg_relaxed(&lock->val, &val, _Q_LOCKED_VAL);
-+}
-+
-+/*
-+ * __mcs_pass_lock - pass the MCS lock to the next waiter
-+ * @node: Pointer to the MCS node of the lock holder
-+ * @next: Pointer to the MCS node of the first waiter in the MCS queue
-+ */
-+static __always_inline void __mcs_pass_lock(struct mcs_spinlock *node,
-+					    struct mcs_spinlock *next)
-+{
-+	arch_mcs_pass_lock(&next->locked, 1);
-+}
-+
-+#define try_clear_tail	__try_clear_tail
-+#define mcs_pass_lock		__mcs_pass_lock
-+
- #endif /* _GEN_PV_LOCK_SLOWPATH */
+ #include <linux/kasan-checks.h>
++#include <linux/kcsan-checks.h>
  
  /**
-@@ -532,7 +560,7 @@ void queued_spin_lock_slowpath(struct qspinlock *lock, u32 val)
- 	 *       PENDING will make the uncontended transition fail.
- 	 */
- 	if ((val & _Q_TAIL_MASK) == tail) {
--		if (atomic_try_cmpxchg_relaxed(&lock->val, &val, _Q_LOCKED_VAL))
-+		if (try_clear_tail(lock, val, node))
- 			goto release; /* No contention */
- 	}
+  * set_bit - Atomically set a bit in memory
+@@ -26,6 +27,7 @@
+ static inline void set_bit(long nr, volatile unsigned long *addr)
+ {
+ 	kasan_check_write(addr + BIT_WORD(nr), sizeof(long));
++	kcsan_check_atomic_write(addr + BIT_WORD(nr), sizeof(long));
+ 	arch_set_bit(nr, addr);
+ }
  
-@@ -549,7 +577,7 @@ void queued_spin_lock_slowpath(struct qspinlock *lock, u32 val)
- 	if (!next)
- 		next = smp_cond_load_relaxed(&node->next, (VAL));
+@@ -39,6 +41,7 @@ static inline void set_bit(long nr, volatile unsigned long *addr)
+ static inline void clear_bit(long nr, volatile unsigned long *addr)
+ {
+ 	kasan_check_write(addr + BIT_WORD(nr), sizeof(long));
++	kcsan_check_atomic_write(addr + BIT_WORD(nr), sizeof(long));
+ 	arch_clear_bit(nr, addr);
+ }
  
--	arch_mcs_pass_lock(&next->locked, 1);
-+	mcs_pass_lock(node, next);
- 	pv_kick_node(lock, next);
+@@ -55,6 +58,7 @@ static inline void clear_bit(long nr, volatile unsigned long *addr)
+ static inline void change_bit(long nr, volatile unsigned long *addr)
+ {
+ 	kasan_check_write(addr + BIT_WORD(nr), sizeof(long));
++	kcsan_check_atomic_write(addr + BIT_WORD(nr), sizeof(long));
+ 	arch_change_bit(nr, addr);
+ }
  
- release:
-@@ -574,6 +602,12 @@ EXPORT_SYMBOL(queued_spin_lock_slowpath);
- #undef pv_kick_node
- #undef pv_wait_head_or_lock
+@@ -68,6 +72,7 @@ static inline void change_bit(long nr, volatile unsigned long *addr)
+ static inline bool test_and_set_bit(long nr, volatile unsigned long *addr)
+ {
+ 	kasan_check_write(addr + BIT_WORD(nr), sizeof(long));
++	kcsan_check_atomic_write(addr + BIT_WORD(nr), sizeof(long));
+ 	return arch_test_and_set_bit(nr, addr);
+ }
  
-+#undef try_clear_tail
-+#define try_clear_tail		__try_clear_tail
-+
-+#undef mcs_pass_lock
-+#define mcs_pass_lock			__mcs_pass_lock
-+
- #undef  queued_spin_lock_slowpath
- #define queued_spin_lock_slowpath	__pv_queued_spin_lock_slowpath
+@@ -81,6 +86,7 @@ static inline bool test_and_set_bit(long nr, volatile unsigned long *addr)
+ static inline bool test_and_clear_bit(long nr, volatile unsigned long *addr)
+ {
+ 	kasan_check_write(addr + BIT_WORD(nr), sizeof(long));
++	kcsan_check_atomic_write(addr + BIT_WORD(nr), sizeof(long));
+ 	return arch_test_and_clear_bit(nr, addr);
+ }
+ 
+@@ -94,6 +100,7 @@ static inline bool test_and_clear_bit(long nr, volatile unsigned long *addr)
+ static inline bool test_and_change_bit(long nr, volatile unsigned long *addr)
+ {
+ 	kasan_check_write(addr + BIT_WORD(nr), sizeof(long));
++	kcsan_check_atomic_write(addr + BIT_WORD(nr), sizeof(long));
+ 	return arch_test_and_change_bit(nr, addr);
+ }
+ 
+diff --git a/include/asm-generic/bitops/instrumented-lock.h b/include/asm-generic/bitops/instrumented-lock.h
+index ec53fdeea9ec..2c80dca31e27 100644
+--- a/include/asm-generic/bitops/instrumented-lock.h
++++ b/include/asm-generic/bitops/instrumented-lock.h
+@@ -12,6 +12,7 @@
+ #define _ASM_GENERIC_BITOPS_INSTRUMENTED_LOCK_H
+ 
+ #include <linux/kasan-checks.h>
++#include <linux/kcsan-checks.h>
+ 
+ /**
+  * clear_bit_unlock - Clear a bit in memory, for unlock
+@@ -23,6 +24,7 @@
+ static inline void clear_bit_unlock(long nr, volatile unsigned long *addr)
+ {
+ 	kasan_check_write(addr + BIT_WORD(nr), sizeof(long));
++	kcsan_check_atomic_write(addr + BIT_WORD(nr), sizeof(long));
+ 	arch_clear_bit_unlock(nr, addr);
+ }
+ 
+@@ -38,6 +40,7 @@ static inline void clear_bit_unlock(long nr, volatile unsigned long *addr)
+ static inline void __clear_bit_unlock(long nr, volatile unsigned long *addr)
+ {
+ 	kasan_check_write(addr + BIT_WORD(nr), sizeof(long));
++	kcsan_check_write(addr + BIT_WORD(nr), sizeof(long));
+ 	arch___clear_bit_unlock(nr, addr);
+ }
+ 
+@@ -53,6 +56,7 @@ static inline void __clear_bit_unlock(long nr, volatile unsigned long *addr)
+ static inline bool test_and_set_bit_lock(long nr, volatile unsigned long *addr)
+ {
+ 	kasan_check_write(addr + BIT_WORD(nr), sizeof(long));
++	kcsan_check_atomic_write(addr + BIT_WORD(nr), sizeof(long));
+ 	return arch_test_and_set_bit_lock(nr, addr);
+ }
+ 
+@@ -72,6 +76,7 @@ static inline bool
+ clear_bit_unlock_is_negative_byte(long nr, volatile unsigned long *addr)
+ {
+ 	kasan_check_write(addr + BIT_WORD(nr), sizeof(long));
++	kcsan_check_atomic_write(addr + BIT_WORD(nr), sizeof(long));
+ 	return arch_clear_bit_unlock_is_negative_byte(nr, addr);
+ }
+ /* Let everybody know we have it. */
+diff --git a/include/asm-generic/bitops/instrumented-non-atomic.h b/include/asm-generic/bitops/instrumented-non-atomic.h
+index 95ff28d128a1..8479af8b3309 100644
+--- a/include/asm-generic/bitops/instrumented-non-atomic.h
++++ b/include/asm-generic/bitops/instrumented-non-atomic.h
+@@ -12,6 +12,7 @@
+ #define _ASM_GENERIC_BITOPS_INSTRUMENTED_NON_ATOMIC_H
+ 
+ #include <linux/kasan-checks.h>
++#include <linux/kcsan-checks.h>
+ 
+ /**
+  * __set_bit - Set a bit in memory
+@@ -25,6 +26,7 @@
+ static inline void __set_bit(long nr, volatile unsigned long *addr)
+ {
+ 	kasan_check_write(addr + BIT_WORD(nr), sizeof(long));
++	kcsan_check_write(addr + BIT_WORD(nr), sizeof(long));
+ 	arch___set_bit(nr, addr);
+ }
+ 
+@@ -40,6 +42,7 @@ static inline void __set_bit(long nr, volatile unsigned long *addr)
+ static inline void __clear_bit(long nr, volatile unsigned long *addr)
+ {
+ 	kasan_check_write(addr + BIT_WORD(nr), sizeof(long));
++	kcsan_check_write(addr + BIT_WORD(nr), sizeof(long));
+ 	arch___clear_bit(nr, addr);
+ }
+ 
+@@ -55,6 +58,7 @@ static inline void __clear_bit(long nr, volatile unsigned long *addr)
+ static inline void __change_bit(long nr, volatile unsigned long *addr)
+ {
+ 	kasan_check_write(addr + BIT_WORD(nr), sizeof(long));
++	kcsan_check_write(addr + BIT_WORD(nr), sizeof(long));
+ 	arch___change_bit(nr, addr);
+ }
+ 
+@@ -69,6 +73,7 @@ static inline void __change_bit(long nr, volatile unsigned long *addr)
+ static inline bool __test_and_set_bit(long nr, volatile unsigned long *addr)
+ {
+ 	kasan_check_write(addr + BIT_WORD(nr), sizeof(long));
++	kcsan_check_write(addr + BIT_WORD(nr), sizeof(long));
+ 	return arch___test_and_set_bit(nr, addr);
+ }
+ 
+@@ -83,6 +88,7 @@ static inline bool __test_and_set_bit(long nr, volatile unsigned long *addr)
+ static inline bool __test_and_clear_bit(long nr, volatile unsigned long *addr)
+ {
+ 	kasan_check_write(addr + BIT_WORD(nr), sizeof(long));
++	kcsan_check_write(addr + BIT_WORD(nr), sizeof(long));
+ 	return arch___test_and_clear_bit(nr, addr);
+ }
+ 
+@@ -97,6 +103,7 @@ static inline bool __test_and_clear_bit(long nr, volatile unsigned long *addr)
+ static inline bool __test_and_change_bit(long nr, volatile unsigned long *addr)
+ {
+ 	kasan_check_write(addr + BIT_WORD(nr), sizeof(long));
++	kcsan_check_write(addr + BIT_WORD(nr), sizeof(long));
+ 	return arch___test_and_change_bit(nr, addr);
+ }
+ 
+@@ -108,6 +115,7 @@ static inline bool __test_and_change_bit(long nr, volatile unsigned long *addr)
+ static inline bool test_bit(long nr, const volatile unsigned long *addr)
+ {
+ 	kasan_check_read(addr + BIT_WORD(nr), sizeof(long));
++	kcsan_check_atomic_read(addr + BIT_WORD(nr), sizeof(long));
+ 	return arch_test_bit(nr, addr);
+ }
  
 -- 
-2.21.0 (Apple Git-122.2)
+2.25.0.rc1.283.g88dfdc4193-goog
