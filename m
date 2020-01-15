@@ -1,169 +1,65 @@
-From: Alex Kogan <alex.kogan@oracle.com>
-Subject: [PATCH v9 1/5] locking/qspinlock: Rename mcs lock/unlock macros and make them more generic
-Date: Tue, 14 Jan 2020 22:59:16 -0500
-Message-ID: <20200115035920.54451-2-alex.kogan@oracle.com>
-References: <20200115035920.54451-1-alex.kogan@oracle.com>
+From: Michael Ellerman <mpe@ellerman.id.au>
+Subject: Re: [PATCH v15 23/23] selftests: vm: pkeys: Use the correct page size on powerpc
+Date: Wed, 15 Jan 2020 17:07:36 +1000
+Message-ID: <87h80x9ozr.fsf@mpe.ellerman.id.au>
+References: <cover.1576645161.git.sandipan@linux.ibm.com> <ff7c288e2a88ccfb3b79be30967646fe5b869683.1576645161.git.sandipan@linux.ibm.com>
 Mime-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from userp2120.oracle.com ([156.151.31.85]:34996 "EHLO
-        userp2120.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728880AbgAOEQX (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 14 Jan 2020 23:16:23 -0500
-In-Reply-To: <20200115035920.54451-1-alex.kogan@oracle.com>
+Received: from bilbo.ozlabs.org ([203.11.71.1]:50577 "EHLO ozlabs.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726018AbgAOHHg (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 15 Jan 2020 02:07:36 -0500
+In-Reply-To: <ff7c288e2a88ccfb3b79be30967646fe5b869683.1576645161.git.sandipan@linux.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux@armlinux.org.uk, peterz@infradead.org, mingo@redhat.com, will.deacon@arm.com, arnd@arndb.de, longman@redhat.com, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, bp@alien8.de, hpa@zytor.com, x86@kernel.org, guohanjun@huawei.com, jglauber@marvell.com
-Cc: steven.sistare@oracle.com, daniel.m.jordan@oracle.com, alex.kogan@oracle.com, dave.dice@oracle.com
+To: Sandipan Das <sandipan@linux.ibm.com>, shuahkh@osg.samsung.com, linux-kselftest@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, fweimer@redhat.com, linux-mm@kvack.org, aneesh.kumar@linux.ibm.com, x86@kernel.org, linuxram@us.ibm.com, mhocko@kernel.org, dave.hansen@intel.com, mingo@redhat.com, msuchanek@suse.de, linuxppc-dev@lists.ozlabs.org, bauerman@linux.ibm.com
 
-The mcs unlock macro (arch_mcs_pass_lock) should accept the value to be
-stored into the lock argument as another argument. This allows using the
-same macro in cases where the value to be stored when passing the lock is
-different from 1.
+Sandipan Das <sandipan@linux.ibm.com> writes:
+> Both 4K and 64K pages are supported on powerpc. Parts of
+> the selftest code perform alignment computations based on
+> the PAGE_SIZE macro which is currently hardcoded to 64K
+> for powerpc. This causes some test failures on kernels
+> configured with 4K page size.
+>
+> This problem is solved by determining the correct page
+> size during the build process rather than hardcoding it
+> in the header file.
 
-Signed-off-by: Alex Kogan <alex.kogan@oracle.com>
-Reviewed-by: Steve Sistare <steven.sistare@oracle.com>
-Reviewed-by: Waiman Long <longman@redhat.com>
----
- arch/arm/include/asm/mcs_spinlock.h |  6 +++---
- include/asm-generic/mcs_spinlock.h  |  4 ++--
- kernel/locking/mcs_spinlock.h       | 18 +++++++++---------
- kernel/locking/qspinlock.c          |  4 ++--
- kernel/locking/qspinlock_paravirt.h |  2 +-
- 5 files changed, 17 insertions(+), 17 deletions(-)
+Doing it at build time is wrong, the test could be built on a 4K system
+and then run on a 64K system, or vice versa.
 
-diff --git a/arch/arm/include/asm/mcs_spinlock.h b/arch/arm/include/asm/mcs_spinlock.h
-index 529d2cf4d06f..693fe6ce3c43 100644
---- a/arch/arm/include/asm/mcs_spinlock.h
-+++ b/arch/arm/include/asm/mcs_spinlock.h
-@@ -6,7 +6,7 @@
- #include <asm/spinlock.h>
- 
- /* MCS spin-locking. */
--#define arch_mcs_spin_lock_contended(lock)				\
-+#define arch_mcs_spin_lock(lock)				\
- do {									\
- 	/* Ensure prior stores are observed before we enter wfe. */	\
- 	smp_mb();							\
-@@ -14,9 +14,9 @@ do {									\
- 		wfe();							\
- } while (0)								\
- 
--#define arch_mcs_spin_unlock_contended(lock)				\
-+#define arch_mcs_pass_lock(lock, val)					\
- do {									\
--	smp_store_release(lock, 1);					\
-+	smp_store_release((lock), (val));				\
- 	dsb_sev();							\
- } while (0)
- 
-diff --git a/include/asm-generic/mcs_spinlock.h b/include/asm-generic/mcs_spinlock.h
-index 10cd4ffc6ba2..868da43dba7c 100644
---- a/include/asm-generic/mcs_spinlock.h
-+++ b/include/asm-generic/mcs_spinlock.h
-@@ -4,8 +4,8 @@
- /*
-  * Architectures can define their own:
-  *
-- *   arch_mcs_spin_lock_contended(l)
-- *   arch_mcs_spin_unlock_contended(l)
-+ *   arch_mcs_spin_lock(l)
-+ *   arch_mcs_pass_lock(l, val)
-  *
-  * See kernel/locking/mcs_spinlock.c.
-  */
-diff --git a/kernel/locking/mcs_spinlock.h b/kernel/locking/mcs_spinlock.h
-index 5e10153b4d3c..52d06ec6f525 100644
---- a/kernel/locking/mcs_spinlock.h
-+++ b/kernel/locking/mcs_spinlock.h
-@@ -21,7 +21,7 @@ struct mcs_spinlock {
- 	int count;  /* nesting count, see qspinlock.c */
- };
- 
--#ifndef arch_mcs_spin_lock_contended
-+#ifndef arch_mcs_spin_lock
- /*
-  * Using smp_cond_load_acquire() provides the acquire semantics
-  * required so that subsequent operations happen after the
-@@ -29,20 +29,20 @@ struct mcs_spinlock {
-  * ARM64 would like to do spin-waiting instead of purely
-  * spinning, and smp_cond_load_acquire() provides that behavior.
-  */
--#define arch_mcs_spin_lock_contended(l)					\
--do {									\
--	smp_cond_load_acquire(l, VAL);					\
-+#define arch_mcs_spin_lock(l)					\
-+do {								\
-+	smp_cond_load_acquire(l, VAL);				\
- } while (0)
- #endif
- 
--#ifndef arch_mcs_spin_unlock_contended
-+#ifndef arch_mcs_spin_unlock
- /*
-  * smp_store_release() provides a memory barrier to ensure all
-  * operations in the critical section has been completed before
-  * unlocking.
-  */
--#define arch_mcs_spin_unlock_contended(l)				\
--	smp_store_release((l), 1)
-+#define arch_mcs_pass_lock(l, val)				\
-+	smp_store_release((l), (val))
- #endif
- 
- /*
-@@ -91,7 +91,7 @@ void mcs_spin_lock(struct mcs_spinlock **lock, struct mcs_spinlock *node)
- 	WRITE_ONCE(prev->next, node);
- 
- 	/* Wait until the lock holder passes the lock down. */
--	arch_mcs_spin_lock_contended(&node->locked);
-+	arch_mcs_spin_lock(&node->locked);
- }
- 
- /*
-@@ -115,7 +115,7 @@ void mcs_spin_unlock(struct mcs_spinlock **lock, struct mcs_spinlock *node)
- 	}
- 
- 	/* Pass lock to next waiter. */
--	arch_mcs_spin_unlock_contended(&next->locked);
-+	arch_mcs_pass_lock(&next->locked, 1);
- }
- 
- #endif /* __LINUX_MCS_SPINLOCK_H */
-diff --git a/kernel/locking/qspinlock.c b/kernel/locking/qspinlock.c
-index 2473f10c6956..804c0fbd6328 100644
---- a/kernel/locking/qspinlock.c
-+++ b/kernel/locking/qspinlock.c
-@@ -470,7 +470,7 @@ void queued_spin_lock_slowpath(struct qspinlock *lock, u32 val)
- 		WRITE_ONCE(prev->next, node);
- 
- 		pv_wait_node(node, prev);
--		arch_mcs_spin_lock_contended(&node->locked);
-+		arch_mcs_spin_lock(&node->locked);
- 
- 		/*
- 		 * While waiting for the MCS lock, the next pointer may have
-@@ -549,7 +549,7 @@ void queued_spin_lock_slowpath(struct qspinlock *lock, u32 val)
- 	if (!next)
- 		next = smp_cond_load_relaxed(&node->next, (VAL));
- 
--	arch_mcs_spin_unlock_contended(&next->locked);
-+	arch_mcs_pass_lock(&next->locked, 1);
- 	pv_kick_node(lock, next);
- 
- release:
-diff --git a/kernel/locking/qspinlock_paravirt.h b/kernel/locking/qspinlock_paravirt.h
-index e84d21aa0722..e98079414671 100644
---- a/kernel/locking/qspinlock_paravirt.h
-+++ b/kernel/locking/qspinlock_paravirt.h
-@@ -368,7 +368,7 @@ static void pv_kick_node(struct qspinlock *lock, struct mcs_spinlock *node)
- 	 *
- 	 * Matches with smp_store_mb() and cmpxchg() in pv_wait_node()
- 	 *
--	 * The write to next->locked in arch_mcs_spin_unlock_contended()
-+	 * The write to next->locked in arch_mcs_pass_lock()
- 	 * must be ordered before the read of pn->state in the cmpxchg()
- 	 * below for the code to work correctly. To guarantee full ordering
- 	 * irrespective of the success or failure of the cmpxchg(),
--- 
-2.21.0 (Apple Git-122.2)
+You should just use getpagesize() at runtime.
+
+cheers
+
+> diff --git a/tools/testing/selftests/vm/Makefile b/tools/testing/selftests/vm/Makefile
+> index 4e9c741be6af..ada3a67eaac6 100644
+> --- a/tools/testing/selftests/vm/Makefile
+> +++ b/tools/testing/selftests/vm/Makefile
+> @@ -4,6 +4,10 @@ uname_M := $(shell uname -m 2>/dev/null || echo not)
+>  ARCH ?= $(shell echo $(uname_M) | sed -e 's/aarch64.*/arm64/')
+>  
+>  CFLAGS = -Wall -I ../../../../usr/include $(EXTRA_CFLAGS)
+> +ifneq (,$(filter $(ARCH), ppc64 ppc64le))
+> +protection_keys: EXTRA_CFLAGS += -DPAGE_SIZE=$(shell getconf PAGESIZE)
+> +endif
+> +
+>  LDLIBS = -lrt
+>  TEST_GEN_FILES = compaction_test
+>  TEST_GEN_FILES += gup_benchmark
+> diff --git a/tools/testing/selftests/vm/pkey-powerpc.h b/tools/testing/selftests/vm/pkey-powerpc.h
+> index 3cd8e03fd640..07fa9f529014 100644
+> --- a/tools/testing/selftests/vm/pkey-powerpc.h
+> +++ b/tools/testing/selftests/vm/pkey-powerpc.h
+> @@ -36,7 +36,6 @@
+>  					     pkey-31 and exec-only key */
+>  #define PKEY_BITS_PER_PKEY	2
+>  #define HPAGE_SIZE		(1UL << 24)
+> -#define PAGE_SIZE		(1UL << 16)
+>  #define pkey_reg_t		u64
+>  #define PKEY_REG_FMT		"%016lx"
+>  
+> -- 
+> 2.17.1
