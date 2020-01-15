@@ -1,51 +1,194 @@
-Return-Path: <SRS0=fIL7=27=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from smtprelay0205.hostedemail.com ([216.40.44.205]:54524 "EHLO
-        smtprelay.hostedemail.com" rhost-flags-OK-OK-OK-FAIL)
-        by vger.kernel.org with ESMTP id S1726980AbgAJSB0 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 10 Jan 2020 13:01:26 -0500
-Received: from smtprelay.hostedemail.com (10.5.19.251.rfc1918.com [10.5.19.251])
-        by smtpgrave01.hostedemail.com (Postfix) with ESMTP id BB9A31813CB82
-        for <linux-arch@vger.kernel.org>; Fri, 10 Jan 2020 17:54:32 +0000 (UTC)
-Message-ID: <8fe4f81699517758b44afbe0e1a53bc080f64a62.camel@perches.com>
-Subject: Re: [RFC PATCH 1/8] compiler/gcc: Emit build-time warning for GCC
- prior to version 4.8
-From: Joe Perches <joe@perches.com>
-Date: Fri, 10 Jan 2020 09:53:36 -0800
-In-Reply-To: <CAK8P3a3ueJ_rQc-1JTg=3N0JSuY9BduJ6FrrPFG1K2FWVzJdfA@mail.gmail.com>
-References: <20200110165636.28035-1-will@kernel.org>
-         <20200110165636.28035-2-will@kernel.org>
-         <CAK8P3a3ueJ_rQc-1JTg=3N0JSuY9BduJ6FrrPFG1K2FWVzJdfA@mail.gmail.com>
-Content-Type: text/plain; charset="ISO-8859-1"
+Return-Path: <SRS0=vo9y=3E=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail-pf1-f196.google.com ([209.85.210.196]:37625 "EHLO
+        mail-pf1-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726440AbgAOOmy (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 15 Jan 2020 09:42:54 -0500
+Received: by mail-pf1-f196.google.com with SMTP id p14so8629529pfn.4
+        for <linux-arch@vger.kernel.org>; Wed, 15 Jan 2020 06:42:54 -0800 (PST)
 MIME-Version: 1.0
-Content-Transfer-Encoding: 7bit
+References: <20200114200846.29434-1-vgupta@synopsys.com> <20200114200846.29434-3-vgupta@synopsys.com>
+In-Reply-To: <20200114200846.29434-3-vgupta@synopsys.com>
+From: Andrey Konovalov <andreyknvl@google.com>
+Date: Wed, 15 Jan 2020 15:42:42 +0100
+Message-ID: <CAAeHK+zxVw6jOu-NzjR14U_i5cpDynE=OC3D5WswTvqT8o5NhQ@mail.gmail.com>
+Subject: Re: [RFC 2/4] lib/strncpy_from_user: Remove redundant user space
+ pointer range check
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>, Will Deacon <will@kernel.org>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Android Kernel Team <kernel-team@android.com>, Michael Ellerman <mpe@ellerman.id.au>, Peter Zijlstra <peterz@infradead.org>, Linus Torvalds <torvalds@linux-foundation.org>, Segher Boessenkool <segher@kernel.crashing.org>, Christian Borntraeger <borntraeger@de.ibm.com>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>
-Message-ID: <20200110175336.JvQ6_M3Jqlkk2gy5gC2Cu2RQnbHHEVSKt22TIWRQtpE@z>
+To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Cc: Arnd Bergmann <arnd@arndb.de>, Khalid Aziz <khalid.aziz@oracle.com>, Andrew Morton <akpm@linux-foundation.org>, Peter Zijlstra <peterz@infradead.org>, Christian Brauner <christian.brauner@ubuntu.com>, Kees Cook <keescook@chromium.org>, Ingo Molnar <mingo@kernel.org>, Aleksa Sarai <cyphar@cyphar.com>, Linus Torvalds <torvalds@linux-foundation.org>, linux-snps-arc@lists.infradead.org, LKML <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>
+Message-ID: <20200115144242.THajcIFpXwFDogYe2GRFqh-W8434gdSTwR0b46ZxfTs@z>
 
-On Fri, 2020-01-10 at 18:35 +0100, Arnd Bergmann wrote:
-> On Fri, Jan 10, 2020 at 5:56 PM Will Deacon <will@kernel.org> wrote:
-> > Prior to version 4.8, GCC may miscompile READ_ONCE() by erroneously
-> > discarding the 'volatile' qualifier:
-> > 
-> > https://gcc.gnu.org/bugzilla/show_bug.cgi?id=58145
-> > 
-> > We've been working around this using some nasty hacks which make
-> > READ_ONCE() both horribly complicated and also prevent us from enforcing
-> > that it is only used on scalar types. Since GCC 4.8 is pretty old for
-> > kernel builds now, emit a warning if we detect it during the build.
-> 
-> No objection to recommending gcc-4.8, but I think this should either
-> just warn once during the kernel build instead of for every file, or
-> it should become a hard requirement.
+On Tue, Jan 14, 2020 at 9:08 PM Vineet Gupta <Vineet.Gupta1@synopsys.com> wrote:
+>
+> This came up when switching ARC to word-at-a-time interface and using
+> generic/optimized strncpy_from_user
+>
+> It seems the existing code checks for user buffer/string range multiple
+> times and one of tem cn be avoided.
+>
+> There's an open-coded range check which computes @max off of user_addr_max()
+> and thus typically way larger than the kernel buffer @count and subsequently
+> discarded in do_strncpy_from_user()
+>
+>         if (max > count)
+>                 max = count;
+>
+> The canonical user_access_begin() => access_ok() follow anyways and even
+> with @count it should suffice for an intial range check as is true for
+> any copy_{to,from}_user()
+>
+> And in case actual user space buffer is smaller than kernel dest pointer
+> (i.e. @max < @count) the usual string copy, null byte detection would
+> abort the process early anyways
+>
+> Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
+> ---
+>  lib/strncpy_from_user.c | 36 +++++++++++-------------------------
+>  lib/strnlen_user.c      | 28 +++++++---------------------
+>  2 files changed, 18 insertions(+), 46 deletions(-)
+>
+> diff --git a/lib/strncpy_from_user.c b/lib/strncpy_from_user.c
+> index dccb95af6003..a1622d71f037 100644
+> --- a/lib/strncpy_from_user.c
+> +++ b/lib/strncpy_from_user.c
+> @@ -21,22 +21,15 @@
+>  /*
+>   * Do a strncpy, return length of string without final '\0'.
+>   * 'count' is the user-supplied count (return 'count' if we
+> - * hit it), 'max' is the address space maximum (and we return
+> - * -EFAULT if we hit it).
+> + * hit it). If access fails, return -EFAULT.
+>   */
+>  static inline long do_strncpy_from_user(char *dst, const char __user *src,
+> -                                       unsigned long count, unsigned long max)
+> +                                       unsigned long count)
+>  {
+>         const struct word_at_a_time constants = WORD_AT_A_TIME_CONSTANTS;
+> +       unsigned long max = count;
+>         unsigned long res = 0;
+>
+> -       /*
+> -        * Truncate 'max' to the user-specified limit, so that
+> -        * we only have one limit we need to check in the loop
+> -        */
+> -       if (max > count)
+> -               max = count;
+> -
+>         if (IS_UNALIGNED(src, dst))
+>                 goto byte_at_a_time;
+>
+> @@ -72,7 +65,7 @@ static inline long do_strncpy_from_user(char *dst, const char __user *src,
+>          * Uhhuh. We hit 'max'. But was that the user-specified maximum
+>          * too? If so, that's ok - we got as much as the user asked for.
+>          */
+> -       if (res >= count)
+> +       if (res == count)
+>                 return res;
+>
+>         /*
+> @@ -103,25 +96,18 @@ static inline long do_strncpy_from_user(char *dst, const char __user *src,
+>   */
+>  long strncpy_from_user(char *dst, const char __user *src, long count)
+>  {
+> -       unsigned long max_addr, src_addr;
+> -
+>         if (unlikely(count <= 0))
+>                 return 0;
+>
+> -       max_addr = user_addr_max();
+> -       src_addr = (unsigned long)untagged_addr(src);
 
-It might as well be a hard requirement as
-gcc 4.8.0 is already nearly 7 years old.
+If you end up changing this code, you need to keep the untagged_addr()
+logic, otherwise this breaks arm64 tagged address ABI [1].
 
-gcc 4.6.0 released 2011-03-25
-gcc 4.8.0 released 2013-03-22
+[1] https://www.kernel.org/doc/html/latest/arm64/tagged-address-abi.html
 
-Perhaps there are exceedingly few to zero new
-instances using gcc compiler versions < 4.8
+> -       if (likely(src_addr < max_addr)) {
+> -               unsigned long max = max_addr - src_addr;
+> +       kasan_check_write(dst, count);
+> +       check_object_size(dst, count, false);
+> +       if (user_access_begin(src, count)) {
+>                 long retval;
+> -
+> -               kasan_check_write(dst, count);
+> -               check_object_size(dst, count, false);
+> -               if (user_access_begin(src, max)) {
+> -                       retval = do_strncpy_from_user(dst, src, count, max);
+> -                       user_access_end();
+> -                       return retval;
+> -               }
+> +               retval = do_strncpy_from_user(dst, src, count);
+> +               user_access_end();
+> +               return retval;
+>         }
+> +
+>         return -EFAULT;
+>  }
+>  EXPORT_SYMBOL(strncpy_from_user);
+> diff --git a/lib/strnlen_user.c b/lib/strnlen_user.c
+> index 6c0005d5dd5c..5ce61f303d6e 100644
+> --- a/lib/strnlen_user.c
+> +++ b/lib/strnlen_user.c
+> @@ -20,19 +20,13 @@
+>   * if it fits in a aligned 'long'. The caller needs to check
+>   * the return value against "> max".
+>   */
+> -static inline long do_strnlen_user(const char __user *src, unsigned long count, unsigned long max)
+> +static inline long do_strnlen_user(const char __user *src, unsigned long count)
+>  {
+>         const struct word_at_a_time constants = WORD_AT_A_TIME_CONSTANTS;
+>         unsigned long align, res = 0;
+> +       unsigned long max = count;
+>         unsigned long c;
+>
+> -       /*
+> -        * Truncate 'max' to the user-specified limit, so that
+> -        * we only have one limit we need to check in the loop
+> -        */
+> -       if (max > count)
+> -               max = count;
+> -
+>         /*
+>          * Do everything aligned. But that means that we
+>          * need to also expand the maximum..
+> @@ -64,7 +58,7 @@ static inline long do_strnlen_user(const char __user *src, unsigned long count,
+>          * Uhhuh. We hit 'max'. But was that the user-specified maximum
+>          * too? If so, return the marker for "too long".
+>          */
+> -       if (res >= count)
+> +       if (res == count)
+>                 return count+1;
+>
+>         /*
+> @@ -98,22 +92,14 @@ static inline long do_strnlen_user(const char __user *src, unsigned long count,
+>   */
+>  long strnlen_user(const char __user *str, long count)
+>  {
+> -       unsigned long max_addr, src_addr;
+> -
+>         if (unlikely(count <= 0))
+>                 return 0;
+>
+> -       max_addr = user_addr_max();
+> -       src_addr = (unsigned long)untagged_addr(str);
+> -       if (likely(src_addr < max_addr)) {
+> -               unsigned long max = max_addr - src_addr;
+> +       if (user_access_begin(str, count)) {
+>                 long retval;
+> -
+> -               if (user_access_begin(str, max)) {
+> -                       retval = do_strnlen_user(str, count, max);
+> -                       user_access_end();
+> -                       return retval;
+> -               }
+> +               retval = do_strnlen_user(str, count);
+> +               user_access_end();
+> +               return retval;
+>         }
+>         return 0;
+>  }
+> --
+> 2.20.1
+>
