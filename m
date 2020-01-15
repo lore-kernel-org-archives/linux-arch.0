@@ -1,34 +1,41 @@
 From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: Re: [RFC 2/4] lib/strncpy_from_user: Remove redundant user space
- pointer range check
-Date: Wed, 15 Jan 2020 23:00:17 +0000
-Message-ID: <ff24ea2b-e232-36a2-4e11-c89400feff45@synopsys.com>
+Subject: Re: [RFC 1/4] asm-generic/uaccess: don't define inline functions if
+ noinline lib/* in use
+Date: Wed, 15 Jan 2020 23:01:48 +0000
+Message-ID: <6eb7587b-c3bc-691d-9d27-d4e687114a42@synopsys.com>
 References: <20200114200846.29434-1-vgupta@synopsys.com>
- <20200114200846.29434-3-vgupta@synopsys.com>
- <CAAeHK+zxVw6jOu-NzjR14U_i5cpDynE=OC3D5WswTvqT8o5NhQ@mail.gmail.com>
+ <20200114200846.29434-2-vgupta@synopsys.com>
+ <CAK8P3a3W0eLK+qypnPwq=PdcF7+ey8OZEhmOoA6Bg7hMGm5hqQ@mail.gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: base64
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <CAAeHK+zxVw6jOu-NzjR14U_i5cpDynE=OC3D5WswTvqT8o5NhQ@mail.gmail.com>
+In-Reply-To: <CAK8P3a3W0eLK+qypnPwq=PdcF7+ey8OZEhmOoA6Bg7hMGm5hqQ@mail.gmail.com>
 Content-Language: en-US
-Content-ID: <3D60597E658C594BBC4C84C7030A0485@namprd12.prod.outlook.com>
+Content-ID: <B676B95FC3FC714FA1FB6336730C5498@namprd12.prod.outlook.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Andrey Konovalov <andreyknvl@google.com>
-Cc: linux-arch <linux-arch@vger.kernel.org>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Peter Zijlstra <peterz@infradead.org>, LKML <linux-kernel@vger.kernel.org>, Aleksa Sarai <cyphar@cyphar.com>, Ingo Molnar <mingo@kernel.org>, Khalid Aziz <khalid.aziz@oracle.com>, Christian Brauner <christian.brauner@ubuntu.com>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>
+To: Arnd Bergmann <arnd@arndb.de>, Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Cc: Khalid Aziz <khalid.aziz@oracle.com>, Andrey Konovalov <andreyknvl@google.com>, Andrew Morton <akpm@linux-foundation.org>, Peter Zijlstra <peterz@infradead.org>, Christian Brauner <christian.brauner@ubuntu.com>, Kees Cook <keescook@chromium.org>, Ingo Molnar <mingo@kernel.org>, Aleksa Sarai <cyphar@cyphar.com>, Linus Torvalds <torvalds@linux-foundation.org>, "open list:SYNOPSYS ARC ARCHITECTURE" <linux-snps-arc@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-T24gMS8xNS8yMCA2OjQyIEFNLCBBbmRyZXkgS29ub3ZhbG92IHdyb3RlOg0KPj4gLSAgICAgICBt
-YXhfYWRkciA9IHVzZXJfYWRkcl9tYXgoKTsNCj4+IC0gICAgICAgc3JjX2FkZHIgPSAodW5zaWdu
-ZWQgbG9uZyl1bnRhZ2dlZF9hZGRyKHNyYyk7DQo+DQo+IElmIHlvdSBlbmQgdXAgY2hhbmdpbmcg
-dGhpcyBjb2RlLCB5b3UgbmVlZCB0byBrZWVwIHRoZSB1bnRhZ2dlZF9hZGRyKCkNCj4gbG9naWMs
-IG90aGVyd2lzZSB0aGlzIGJyZWFrcyBhcm02NCB0YWdnZWQgYWRkcmVzcyBBQkkgWzFdLg0KDQpJ
-dCBpcyBtb290IHBvaW50IG5vdywgYnV0IGZ3aXcgdW50YWdnZWRfYWRkcigpIHdvdWxkIG5vdCBo
-YXZlIGJlZW4gbmVlZGVkIGFueW1vcmUNCmFzIGl0IHdhcyBvbmx5IG5lZWRlZCB0byBjb21wdXRl
-IHRoZSBwb2ludGVyIGRpZmZlcmVuY2Ugd2hpY2ggbXkgcGF0Y2ggZ290IHJpZCBvZi4NCg0KPiAN
-Cj4gWzFdIGh0dHBzOi8vd3d3Lmtlcm5lbC5vcmcvZG9jL2h0bWwvbGF0ZXN0L2FybTY0L3RhZ2dl
-ZC1hZGRyZXNzLWFiaS5odG1sDQo+IA0KPj4gLSAgICAgICBpZiAobGlrZWx5KHNyY19hZGRyIDwg
-bWF4X2FkZHIpKSB7DQo+PiAtICAgICAgICAgICAgICAgdW5zaWduZWQgbG9uZyBtYXggPSBtYXhf
-YWRkciAtIHNyY19hZGRyOw0KPj4gKyAgICAgICBrYXNhbl9jaGVja193cml0ZShkc3QsIGNvdW50
-KTsNCj4+ICsgICAgICAgY2hlY2tfb2JqZWN0X3NpemUoZHN0LCBjb3VudCwgZmFsc2UpOw0KPj4g
-KyAgICAgICBpZiAodXNlcl9hY2Nlc3NfYmVnaW4oc3JjLCBjb3VudCkpIHsNCg0K
+T24gMS8xNC8yMCAxMjo1NyBQTSwgQXJuZCBCZXJnbWFubiB3cm90ZToNCj4gT24gVHVlLCBKYW4g
+MTQsIDIwMjAgYXQgOTowOCBQTSBWaW5lZXQgR3VwdGEgPFZpbmVldC5HdXB0YTFAc3lub3BzeXMu
+Y29tPiB3cm90ZToNCj4+IFRoZXJlIGFyZSAyIGdlbmVyaWMgdmFyYWludHMgb2Ygc3RybmNweV9m
+cm9tX3VzZXIoKSAvIHN0cm5sZW5fdXNlcigpDQo+PiAgKDEpLiBpbmxpbmUgdmVyc2lvbiBpbiBh
+c20tZ2VuZXJpYy91YWNjZXNzLmgNCj4+ICAoMikuIG9wdGltaXplZCB3b3JkLWF0LWEtdGltZSB2
+ZXJzaW9uIGluIGxpYi8qDQo+Pg0KPj4gVGhpcyBwYXRjaCBkaXNhYmxlcyAjMSBpZiAjMiBzZWxl
+Y3RlZC4gVGhpcyBhbGxvd3MgYXJjaGVzIHRvIGNvbnRpbnVlDQo+PiByZXVzaW5nIGFzbS1nZW5l
+cmljL3VhY2Nlc3MuaCBmb3IgcmVzdCBvZiBjb2RlDQo+Pg0KPj4gVGhpcyBjYW1lIHVwIHdoZW4g
+c3dpdGNoaW5nIEFSQyB0byBnZW5lcmljIHdvcmQtYXQtYS10aW1lIGludGVyZmFjZQ0KPj4NCj4+
+IFNpZ25lZC1vZmYtYnk6IFZpbmVldCBHdXB0YSA8dmd1cHRhQHN5bm9wc3lzLmNvbT4NCj4gVGhp
+cyBsb29rcyBsaWtlIGEgdXNlZnVsIGNoYW5nZSwgYnV0IEkgdGhpbmsgd2UgY2FuIGRvIGV2ZW4g
+YmV0dGVyOiBJdA0KPiBzZWVtcyB0aGF0DQo+IHRoZXJlIGFyZSBubyAgY2FsbGVycyBvZiBfX3N0
+cm5sZW5fdXNlciBvciBfX3N0cm5jcHlfZnJvbV91c2VyICBpbiB0aGUNCj4ga2VybmVsIHRvZGF5
+LCBzbyB0aGVzZSBzaG91bGQgbm90IGJlIGRlZmluZWQgZWl0aGVyIHdoZW4gdGhlIEtjb25maWcg
+c3ltYm9scw0KPiBhcmUgc2V0LiBBbHNvLCBJIHdvdWxkIHN1Z2dlc3QgbW92aW5nIHRoZSAnZXh0
+ZXJuJyBkZWNsYXJhdGlvbiBmb3IgdGhlIHR3bw0KPiBmdW5jdGlvbnMgaW50byB0aGUgI2Vsc2Ug
+YnJhbmNoIG9mIHRoZSBjb25kaXRpb25hbCBzbyBpdCBkb2VzIG5vdCBuZWVkIHRvIGJlDQo+IGR1
+cGxpY2F0ZWQuDQoNCkdpdmVuIHdoZXJlIHRoaW5ncyBzZWVtIHRvIGJlIGhlYWRpbmcsIGRvIHUg
+c3RpbGwgd2FudCBhbiB1cGRhdGVkIHBhdGNoIGZvciB0aGlzDQpvciBkbyB1IHBsYW4gdG8gZGl0
+Y2ggdGhlIGlubGluZSB2ZXJzaW9uIGluIHNob3J0IHRlcm0gYW55d2F5cy4NCg0KLVZpbmVldA0K
+DQo=
