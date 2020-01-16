@@ -1,145 +1,206 @@
-Return-Path: <owner-linux-mm@kvack.org>
-From: Sandipan Das <sandipan@linux.ibm.com>
-Subject: Re: [PATCH v16 00/23] selftests, powerpc, x86: Memory Protection Keys
-References: <cover.1579507768.git.sandipan@linux.ibm.com>
- <3ceb2814-f8b0-ec6b-3c24-ec72297a99f5@intel.com>
-Date: Mon, 27 Jan 2020 15:41:08 +0530
+Return-Path: <linux-arch-owner@vger.kernel.org>
+Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:9880 "EHLO
+ mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+ with ESMTP id S1726230AbgAPGqJ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+ Thu, 16 Jan 2020 01:46:09 -0500
+From: "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>
+Subject: [PATCH v4 2/9] mm/mmu_gather: Invalidate TLB correctly on batch
+ allocation failure and flush
+Date: Thu, 16 Jan 2020 12:15:24 +0530
+Message-ID: <20200116064531.483522-3-aneesh.kumar@linux.ibm.com>
+In-Reply-To: <20200116064531.483522-1-aneesh.kumar@linux.ibm.com>
+References: <20200116064531.483522-1-aneesh.kumar@linux.ibm.com>
 MIME-Version: 1.0
-In-Reply-To: <3ceb2814-f8b0-ec6b-3c24-ec72297a99f5@intel.com>
-Content-Type: text/plain; charset=utf-8
-Content-Language: en-US
-Content-Transfer-Encoding: 7bit
-Message-ID: <8f14bee0-ab1c-fc90-dfdb-5128607b767f@linux.ibm.com>
-Sender: owner-linux-mm@kvack.org
-To: Dave Hansen <dave.hansen@intel.com>
-Cc: shuah@kernel.org, linux-kselftest@vger.kernel.org, linux-arch@vger.kernel.org, fweimer@redhat.com, x86@kernel.org, linuxram@us.ibm.com, mhocko@kernel.org, linux-mm@kvack.org, mingo@redhat.com, aneesh.kumar@linux.ibm.com, bauerman@linux.ibm.com, msuchanek@suse.de, mpe@ellerman.id.au, linuxppc-dev@lists.ozlabs.org
+Content-Transfer-Encoding: 8bit
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200127101108.V2vXj9MPmDrdrWOUZtxTVbZCRZlwSuM48U1GD45411E@z>
+To: akpm@linux-foundation.org, peterz@infradead.org, will@kernel.org, mpe@ellerman.id.au
+Cc: linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, stable@vger.kernel.org, "Aneesh Kumar K . V" <aneesh.kumar@linux.ibm.com>
+Message-ID: <20200116064524.QtXwLfReWFdL0GtxEb4xDqoX6ojhurmf0KgGvsnQjYU@z>
 
-Hi Dave,
+From: Peter Zijlstra <peterz@infradead.org>
 
-On 23/01/20 12:15 am, Dave Hansen wrote:
-> Still doesn't build for me:
-> 
+Architectures for which we have hardware walkers of Linux page table should
+flush TLB on mmu gather batch allocation failures and batch flush. Some
+architectures like POWER supports multiple translation modes (hash and radix)
+and in the case of POWER only radix translation mode needs the above TLBI.
+This is because for hash translation mode kernel wants to avoid this extra
+flush since there are no hardware walkers of linux page table. With radix
+translation, the hardware also walks linux page table and with that, kernel
+needs to make sure to TLB invalidate page walk cache before page table pages are
+freed.
 
-I have this patch that hopefully fixes this. My understanding was
-that the vm tests are supposed to be generic but this has quite a
-bit of x86-specific conditional code which complicates things even
-though it is not used by any of the other tests.
+More details in
+commit: d86564a2f085 ("mm/tlb, x86/mm: Support invalidating TLB caches for RCU_TABLE_FREE")
 
-I'm not sure if we should keep x86 multilib build support for these
-selftests but I'll let the maintainers take a call.
+The changes to sparc are to make sure we keep the old behavior since we are now
+removing HAVE_RCU_TABLE_NO_INVALIDATE. The default value for
+tlb_needs_table_invalidate is to always force an invalidate and sparc can avoid
+the table invalidate. Hence we define tlb_needs_table_invalidate to false for
+sparc architecture.
 
-From a5609f79e5d5164c99c3cb599e14ca620de9c8d4 Mon Sep 17 00:00:00 2001
-From: Sandipan Das <sandipan@linux.ibm.com>
-Date: Sat, 18 Jan 2020 15:59:04 +0530
-Subject: [PATCH] selftests: vm: pkeys: Fix multilib builds for x86
-
-This ensures that both 32-bit and 64-bit binaries are generated
-when this is built on a x86_64 system that has both 32-bit and
-64-bit libraries. Most of the changes have been borrowed from
-tools/testing/selftests/x86/Makefile.
-
-Signed-off-by: Sandipan Das <sandipan@linux.ibm.com>
+Cc: <stable@vger.kernel.org>
+Fixes: a46cc7a90fd8 ("powerpc/mm/radix: Improve TLB/PWC flushes")
+Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org
+Signed-off-by: Aneesh Kumar K.V <aneesh.kumar@linux.ibm.com>
 ---
- tools/testing/selftests/vm/Makefile | 72 +++++++++++++++++++++++++++++
- 1 file changed, 72 insertions(+)
+ arch/Kconfig                    |  3 ---
+ arch/powerpc/Kconfig            |  1 -
+ arch/powerpc/include/asm/tlb.h  | 11 +++++++++++
+ arch/sparc/Kconfig              |  1 -
+ arch/sparc/include/asm/tlb_64.h |  9 +++++++++
+ include/asm-generic/tlb.h       | 22 +++++++++++++++-------
+ mm/mmu_gather.c                 | 16 ++++++++--------
+ 7 files changed, 43 insertions(+), 20 deletions(-)
 
-diff --git a/tools/testing/selftests/vm/Makefile b/tools/testing/selftests/vm/Makefile
-index 4e9c741be6af..82031f84af21 100644
---- a/tools/testing/selftests/vm/Makefile
-+++ b/tools/testing/selftests/vm/Makefile
-@@ -18,7 +18,30 @@ TEST_GEN_FILES += on-fault-limit
- TEST_GEN_FILES += thuge-gen
- TEST_GEN_FILES += transhuge-stress
- TEST_GEN_FILES += userfaultfd
-+
-+ifeq ($(ARCH),x86_64)
-+CAN_BUILD_I386 := $(shell ./../x86/check_cc.sh $(CC) ../x86/trivial_32bit_program.c -m32)
-+CAN_BUILD_X86_64 := $(shell ./../x86/check_cc.sh $(CC) ../x86/trivial_64bit_program.c)
-+CAN_BUILD_WITH_NOPIE := $(shell ./../x86/check_cc.sh $(CC) ../x86/trivial_program.c -no-pie)
-+
-+TARGETS := protection_keys
-+BINARIES_32 := $(TARGETS:%=%_32)
-+BINARIES_64 := $(TARGETS:%=%_64)
-+
-+ifeq ($(CAN_BUILD_WITH_NOPIE),1)
-+CFLAGS += -no-pie
-+endif
-+
-+ifeq ($(CAN_BUILD_I386),1)
-+TEST_GEN_FILES += $(BINARIES_32)
-+endif
-+
-+ifeq ($(CAN_BUILD_X86_64),1)
-+TEST_GEN_FILES += $(BINARIES_64)
-+endif
-+else
- TEST_GEN_FILES += protection_keys
-+endif
+diff --git a/arch/Kconfig b/arch/Kconfig
+index 48b5e103bdb0..208aad121630 100644
+--- a/arch/Kconfig
++++ b/arch/Kconfig
+@@ -396,9 +396,6 @@ config HAVE_ARCH_JUMP_LABEL_RELATIVE
+ config HAVE_RCU_TABLE_FREE
+ 	bool
 
- ifneq (,$(filter $(ARCH),arm64 ia64 mips64 parisc64 ppc64 riscv64 s390x sh64 sparc64 x86_64))
- TEST_GEN_FILES += va_128TBswitch
-@@ -32,6 +55,55 @@ TEST_FILES := test_vmalloc.sh
- KSFT_KHDR_INSTALL := 1
- include ../lib.mk
+-config HAVE_RCU_TABLE_NO_INVALIDATE
+-	bool
+-
+ config HAVE_MMU_GATHER_PAGE_SIZE
+ 	bool
 
-+ifeq ($(ARCH),x86_64)
-+BINARIES_32 := $(patsubst %,$(OUTPUT)/%,$(BINARIES_32))
-+BINARIES_64 := $(patsubst %,$(OUTPUT)/%,$(BINARIES_64))
-+
-+define gen-target-rule-32
-+$(1) $(1)_32: $(OUTPUT)/$(1)_32
-+.PHONY: $(1) $(1)_32
-+endef
-+
-+define gen-target-rule-64
-+$(1) $(1)_64: $(OUTPUT)/$(1)_64
-+.PHONY: $(1) $(1)_64
-+endef
-+
-+ifeq ($(CAN_BUILD_I386),1)
-+$(BINARIES_32): CFLAGS += -m32
-+$(BINARIES_32): LDLIBS += -lrt -ldl -lm
-+$(BINARIES_32): %_32: %.c
-+	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) $(notdir $^) $(LDLIBS) -o $@
-+$(foreach t,$(TARGETS),$(eval $(call gen-target-rule-32,$(t))))
-+endif
-+
-+ifeq ($(CAN_BUILD_X86_64),1)
-+$(BINARIES_64): CFLAGS += -m64
-+$(BINARIES_64): LDLIBS += -lrt -ldl
-+$(BINARIES_64): %_64: %.c
-+	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) $(notdir $^) $(LDLIBS) -o $@
-+$(foreach t,$(TARGETS),$(eval $(call gen-target-rule-64,$(t))))
-+endif
-+
-+# x86_64 users should be encouraged to install 32-bit libraries
-+ifeq ($(CAN_BUILD_I386)$(CAN_BUILD_X86_64),01)
-+all: warn_32bit_failure
-+
-+warn_32bit_failure:
-+	@echo "Warning: you seem to have a broken 32-bit build" 2>&1;		\
-+	echo  "environment. This will reduce test coverage of 64-bit" 2>&1;	\
-+	echo  "kernels. If you are using a Debian-like distribution," 2>&1;	\
-+	echo  "try:"; 2>&1;							\
-+	echo  "";								\
-+	echo  "  apt-get install gcc-multilib libc6-i386 libc6-dev-i386";	\
-+	echo  "";								\
-+	echo  "If you are using a Fedora-like distribution, try:";		\
-+	echo  "";								\
-+	echo  "  yum install glibc-devel.*i686";				\
-+	exit 0;
-+endif
-+endif
-+
- $(OUTPUT)/userfaultfd: LDLIBS += -lpthread
+diff --git a/arch/powerpc/Kconfig b/arch/powerpc/Kconfig
+index 04240205f38c..f9970f87612e 100644
+--- a/arch/powerpc/Kconfig
++++ b/arch/powerpc/Kconfig
+@@ -223,7 +223,6 @@ config PPC
+ 	select HAVE_PERF_REGS
+ 	select HAVE_PERF_USER_STACK_DUMP
+ 	select HAVE_RCU_TABLE_FREE
+-	select HAVE_RCU_TABLE_NO_INVALIDATE	if HAVE_RCU_TABLE_FREE
+ 	select HAVE_MMU_GATHER_PAGE_SIZE
+ 	select HAVE_REGS_AND_STACK_ACCESS_API
+ 	select HAVE_RELIABLE_STACKTRACE		if PPC_BOOK3S_64 && CPU_LITTLE_ENDIAN
+diff --git a/arch/powerpc/include/asm/tlb.h b/arch/powerpc/include/asm/tlb.h
+index b2c0be93929d..7f3a8b902325 100644
+--- a/arch/powerpc/include/asm/tlb.h
++++ b/arch/powerpc/include/asm/tlb.h
+@@ -26,6 +26,17 @@
 
- $(OUTPUT)/mlock-random-test: LDLIBS += -lcap
+ #define tlb_flush tlb_flush
+ extern void tlb_flush(struct mmu_gather *tlb);
++/*
++ * book3s:
++ * Hash does not use the linux page-tables, so we can avoid
++ * the TLB invalidate for page-table freeing, Radix otoh does use the
++ * page-tables and needs the TLBI.
++ *
++ * nohash:
++ * We still do TLB invalidate in the __pte_free_tlb routine before we
++ * add the page table pages to mmu gather table batch.
++ */
++#define tlb_needs_table_invalidate()	radix_enabled()
+
+ /* Get the generic bits... */
+ #include <asm-generic/tlb.h>
+diff --git a/arch/sparc/Kconfig b/arch/sparc/Kconfig
+index eb24cb1afc11..18e9fb6fcf1b 100644
+--- a/arch/sparc/Kconfig
++++ b/arch/sparc/Kconfig
+@@ -65,7 +65,6 @@ config SPARC64
+ 	select HAVE_KRETPROBES
+ 	select HAVE_KPROBES
+ 	select HAVE_RCU_TABLE_FREE if SMP
+-	select HAVE_RCU_TABLE_NO_INVALIDATE if HAVE_RCU_TABLE_FREE
+ 	select HAVE_MEMBLOCK_NODE_MAP
+ 	select HAVE_ARCH_TRANSPARENT_HUGEPAGE
+ 	select HAVE_DYNAMIC_FTRACE
+diff --git a/arch/sparc/include/asm/tlb_64.h b/arch/sparc/include/asm/tlb_64.h
+index a2f3fa61ee36..8cb8f3833239 100644
+--- a/arch/sparc/include/asm/tlb_64.h
++++ b/arch/sparc/include/asm/tlb_64.h
+@@ -28,6 +28,15 @@ void flush_tlb_pending(void);
+ #define __tlb_remove_tlb_entry(tlb, ptep, address) do { } while (0)
+ #define tlb_flush(tlb)	flush_tlb_pending()
+
++/*
++ * SPARC64's hardware TLB fill does not use the Linux page-tables
++ * and therefore we don't need a TLBI when freeing page-table pages.
++ */
++
++#ifdef CONFIG_HAVE_RCU_TABLE_FREE
++#define tlb_needs_table_invalidate()	(false)
++#endif
++
+ #include <asm-generic/tlb.h>
+
+ #endif /* _SPARC64_TLB_H */
+diff --git a/include/asm-generic/tlb.h b/include/asm-generic/tlb.h
+index 2b10036fefd0..9e22ac369d1d 100644
+--- a/include/asm-generic/tlb.h
++++ b/include/asm-generic/tlb.h
+@@ -137,13 +137,6 @@
+  *  When used, an architecture is expected to provide __tlb_remove_table()
+  *  which does the actual freeing of these pages.
+  *
+- *  HAVE_RCU_TABLE_NO_INVALIDATE
+- *
+- *  This makes HAVE_RCU_TABLE_FREE avoid calling tlb_flush_mmu_tlbonly() before
+- *  freeing the page-table pages. This can be avoided if you use
+- *  HAVE_RCU_TABLE_FREE and your architecture does _NOT_ use the Linux
+- *  page-tables natively.
+- *
+  *  MMU_GATHER_NO_RANGE
+  *
+  *  Use this if your architecture lacks an efficient flush_tlb_range().
+@@ -189,8 +182,23 @@ struct mmu_table_batch {
+
+ extern void tlb_remove_table(struct mmu_gather *tlb, void *table);
+
++/*
++ * This allows an architecture that does not use the linux page-tables for
++ * hardware to skip the TLBI when freeing page tables.
++ */
++#ifndef tlb_needs_table_invalidate
++#define tlb_needs_table_invalidate() (true)
++#endif
++
++#else
++
++#ifdef tlb_needs_table_invalidate
++#error tlb_needs_table_invalidate() requires HAVE_RCU_TABLE_FREE
+ #endif
+
++#endif /* CONFIG_HAVE_RCU_TABLE_FREE */
++
++
+ #ifndef CONFIG_HAVE_MMU_GATHER_NO_GATHER
+ /*
+  * If we can't allocate a page to make a big batch of page pointers
+diff --git a/mm/mmu_gather.c b/mm/mmu_gather.c
+index 7d70e5c78f97..7c1b8f67af7b 100644
+--- a/mm/mmu_gather.c
++++ b/mm/mmu_gather.c
+@@ -102,14 +102,14 @@ bool __tlb_remove_page_size(struct mmu_gather *tlb, struct page *page, int page_
+  */
+ static inline void tlb_table_invalidate(struct mmu_gather *tlb)
+ {
+-#ifndef CONFIG_HAVE_RCU_TABLE_NO_INVALIDATE
+-	/*
+-	 * Invalidate page-table caches used by hardware walkers. Then we still
+-	 * need to RCU-sched wait while freeing the pages because software
+-	 * walkers can still be in-flight.
+-	 */
+-	tlb_flush_mmu_tlbonly(tlb);
+-#endif
++	if (tlb_needs_table_invalidate()) {
++		/*
++		 * Invalidate page-table caches used by hardware walkers. Then
++		 * we still need to RCU-sched wait while freeing the pages
++		 * because software walkers can still be in-flight.
++		 */
++		tlb_flush_mmu_tlbonly(tlb);
++	}
+ }
+
+ static void tlb_remove_table_smp_sync(void *arg)
 -- 
 2.24.1
-
-This can also be viewed at:
-https://github.com/sandip4n/linux/commit/a5609f79e5d5164c99c3cb599e14ca620de9c8d4
-
-- Sandipan
