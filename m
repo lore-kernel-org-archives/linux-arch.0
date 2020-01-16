@@ -1,35 +1,46 @@
-Return-Path: <SRS0=fIL7=27=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mout.kundenserver.de ([217.72.192.75]:47301 "EHLO
-        mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727812AbgAJTrD (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 10 Jan 2020 14:47:03 -0500
+Return-Path: <SRS0=WRhj=3F=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from sv2-smtprelay2.synopsys.com ([149.117.73.133]:58930 "EHLO
+        smtprelay-out1.synopsys.com" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S1730114AbgAPAV2 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 15 Jan 2020 19:21:28 -0500
+From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Subject: [PATCH v2 0/2] Switching ARC to optimized generic strncpy_from_user
+Date: Wed, 15 Jan 2020 16:21:22 -0800
+Message-ID: <20200116002124.17988-1-vgupta@synopsys.com>
 MIME-Version: 1.0
-References: <20200110165636.28035-1-will@kernel.org>
-In-Reply-To: <20200110165636.28035-1-will@kernel.org>
-From: Arnd Bergmann <arnd@arndb.de>
-Date: Fri, 10 Jan 2020 20:46:44 +0100
-Message-ID: <CAK8P3a1UzSOHdihbzOn5CZZfo1kvCdj7BAzdQE=PgYS9GBF4Hw@mail.gmail.com>
-Subject: Re: [RFC PATCH 0/8] Rework READ_ONCE() to improve codegen
-Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will@kernel.org>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Android Kernel Team <kernel-team@android.com>, Michael Ellerman <mpe@ellerman.id.au>, Peter Zijlstra <peterz@infradead.org>, Linus Torvalds <torvalds@linux-foundation.org>, Segher Boessenkool <segher@kernel.crashing.org>, Christian Borntraeger <borntraeger@de.ibm.com>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>
-Message-ID: <20200110194644.6o3oMcP0qu21teEe0xjVFACuySz96gkFm4CD3EHDbVE@z>
+To: linux-snps-arc@lists.infradead.org
+Cc: Arnd Bergmann <arnd@arndb.de>, linux-kernel@vger.kernel.org, linux-arch <linux-arch@vger.kernel.org>, Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Message-ID: <20200116002122.KqjKUfGr5Iq6SBSbFXFQYPfYaOHm4_hFGXbGhd3j7n4@z>
 
-On Fri, Jan 10, 2020 at 5:56 PM Will Deacon <will@kernel.org> wrote:
->
-> I have more patches in this area because I'm trying to move all the
-> read_barrier_depends() magic into arch/alpha/, but I'm holding off until
-> we agree on this part first.
+Hi,
 
-Isn't the read_barrier_depends() the only reason for actually needing
-the temporary local variable that must not be volatile?
+This series switches ARC to generic word-at-a-time interface.
 
-If you make alpha provide its own READ_ONCE() as the first
-step, it would seem that the rest of the series gets much easier
-as the others can go back to the simple statement from your
+I understand that going fwd, we may drop the inline versions altogether but this
+helps ARC code in the interim.
 
-#define __READ_ONCE(x)  (*(volatile __unqual_scalar_typeof(x) *)&(x))
+v2 <- v1
+ - Moved __strnlen_user/__strncpy_from_user to under ifdef gaurd [Arnd]
+ - Dropped the broken optimization patch [Linus]
+ - Folded 2 ARC patches into 1
 
-      Arnd
+Thx,
+-Vineet
+
+Vineet Gupta (2):
+  asm-generic/uaccess: don't define inline functions if noinline lib/*
+    in use
+  ARC: uaccess: use optimized generic __strnlen_user/__strncpy_from_user
+
+ arch/arc/Kconfig               |  2 +
+ arch/arc/include/asm/uaccess.h | 85 ++--------------------------------
+ arch/arc/mm/extable.c          | 23 ---------
+ include/asm-generic/uaccess.h  |  8 ++++
+ 4 files changed, 14 insertions(+), 104 deletions(-)
+
+-- 
+2.20.1
