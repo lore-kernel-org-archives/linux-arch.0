@@ -1,71 +1,190 @@
-Return-Path: <SRS0=n+LR=24=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:43986 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1728391AbgAGQzf (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 7 Jan 2020 11:55:35 -0500
-From: Krzysztof Kozlowski <krzk@kernel.org>
-Subject: [RFT 12/13] ntb: intel: Constify ioreadX() iomem argument (as in generic implementation)
-Date: Tue,  7 Jan 2020 17:53:11 +0100
-Message-Id: <1578415992-24054-15-git-send-email-krzk@kernel.org>
-In-Reply-To: <1578415992-24054-1-git-send-email-krzk@kernel.org>
-References: <1578415992-24054-1-git-send-email-krzk@kernel.org>
+Return-Path: <SRS0=WRhj=3F=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from sv2-smtprelay2.synopsys.com ([149.117.73.133]:58922 "EHLO
+        smtprelay-out1.synopsys.com" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S1729548AbgAPAV2 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 15 Jan 2020 19:21:28 -0500
+From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Subject: [PATCH v2 2/2] ARC: uaccess: use optimized generic __strnlen_user/__strncpy_from_user
+Date: Wed, 15 Jan 2020 16:21:24 -0800
+Message-ID: <20200116002124.17988-3-vgupta@synopsys.com>
+In-Reply-To: <20200116002124.17988-1-vgupta@synopsys.com>
+References: <20200116002124.17988-1-vgupta@synopsys.com>
+MIME-Version: 1.0
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Alexey Brodkin <abrodkin@synopsys.com>, Vineet Gupta <vgupta@synopsys.com>, "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>, Helge Deller <deller@gmx.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, Dave Airlie <airlied@redhat.com>, David Airlie <airlied@linux.ie>, Daniel Vetter <daniel@ffwll.ch>, Ben Skeggs <bskeggs@redhat.com>, Mauro Carvalho Chehab <mchehab@kernel.org>, Jiri Slaby <jirislaby@gmail.com>, Nick Kossifidis <mickflemm@gmail.com>, Luis Chamberlain <mcgrof@kernel.org>, Kalle Valo <kvalo@codeaurora.org>, "David S. Miller" <davem@davemloft.net>, Dave Jiang <dave.jiang@intel.com>, Jon Mason <jdmason@kudzu.us>, Allen Hubbe <allenbh@gmail.com>, "Michael S. Tsirkin" <mst@redhat.com>, Jason Wang <jasowang@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, Geert Uytterhoeven <geert@linux-m68k.org>, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-snps-arc@lists.infradead.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org, dri-devel@lists.freedesktop.org, nouveau@lists.freedesktop.org, linux-media@vger.kernel.org, linux-wireless@vger.kernel.org, netdev@vger.kernel.org, linux-ntb@googlegroups.com, virtualization@lists.linux-foundation.org, linux-arch@vger.kernel.org
-Cc: Krzysztof Kozlowski <krzk@kernel.org>
+To: linux-snps-arc@lists.infradead.org
+Cc: Arnd Bergmann <arnd@arndb.de>, linux-kernel@vger.kernel.org, linux-arch <linux-arch@vger.kernel.org>, Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Message-ID: <20200116002124.fkZl-3790fNnheAEKYAmMJ6KugktcdV07W9GtO5UVCk@z>
 
-The ioreadX() helpers have inconsistent interface.  On some architectures
-void *__iomem address argument is a pointer to const, on some not.
+The existing ARC variants have 2 issues
+ - Use ZOL which may not be present in forthcoming architecture
+ - Byte loop based vs. generic version which is word loop based
 
-Implementations of ioreadX() do not modify the memory under the address
-so they can be converted to a "const" version for const-safety and
-consistency among architectures.
-
-Signed-off-by: Krzysztof Kozlowski <krzk@kernel.org>
+Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
 ---
- drivers/ntb/hw/intel/ntb_hw_gen1.c  | 2 +-
- drivers/ntb/hw/intel/ntb_hw_gen3.h  | 2 +-
- drivers/ntb/hw/intel/ntb_hw_intel.h | 2 +-
- 3 files changed, 3 insertions(+), 3 deletions(-)
+ arch/arc/Kconfig               |  2 +
+ arch/arc/include/asm/uaccess.h | 85 ++--------------------------------
+ arch/arc/mm/extable.c          | 23 ---------
+ 3 files changed, 6 insertions(+), 104 deletions(-)
 
-diff --git a/drivers/ntb/hw/intel/ntb_hw_gen1.c b/drivers/ntb/hw/intel/ntb_hw_gen1.c
-index bb57ec239029..9202502a9787 100644
---- a/drivers/ntb/hw/intel/ntb_hw_gen1.c
-+++ b/drivers/ntb/hw/intel/ntb_hw_gen1.c
-@@ -1202,7 +1202,7 @@ int intel_ntb_peer_spad_write(struct ntb_dev *ntb, int pidx, int sidx,
- 			       ndev->peer_reg->spad);
+diff --git a/arch/arc/Kconfig b/arch/arc/Kconfig
+index 26108ea785c2..3b074c4d31fb 100644
+--- a/arch/arc/Kconfig
++++ b/arch/arc/Kconfig
+@@ -26,6 +26,8 @@ config ARC
+ 	select GENERIC_PENDING_IRQ if SMP
+ 	select GENERIC_SCHED_CLOCK
+ 	select GENERIC_SMP_IDLE_THREAD
++	select GENERIC_STRNCPY_FROM_USER if MMU
++	select GENERIC_STRNLEN_USER if MMU
+ 	select HAVE_ARCH_KGDB
+ 	select HAVE_ARCH_TRACEHOOK
+ 	select HAVE_DEBUG_STACKOVERFLOW
+diff --git a/arch/arc/include/asm/uaccess.h b/arch/arc/include/asm/uaccess.h
+index ea40ec7f6cae..a3c943993b7b 100644
+--- a/arch/arc/include/asm/uaccess.h
++++ b/arch/arc/include/asm/uaccess.h
+@@ -52,6 +52,8 @@
+ #define __access_ok(addr, sz)	(unlikely(__kernel_ok) || \
+ 				 likely(__user_ok((addr), (sz))))
+ 
++#define user_addr_max() 	(uaccess_kernel() ? ~0UL : get_fs())
++
+ /*********** Single byte/hword/word copies ******************/
+ 
+ #define __get_user_fn(sz, u, k)					\
+@@ -613,7 +615,7 @@ raw_copy_to_user(void __user *to, const void *from, unsigned long n)
+ 	return res;
  }
  
--static u64 xeon_db_ioread(void __iomem *mmio)
-+static u64 xeon_db_ioread(const void __iomem *mmio)
+-static inline unsigned long __arc_clear_user(void __user *to, unsigned long n)
++static inline unsigned long __clear_user(void __user *to, unsigned long n)
  {
- 	return (u64)ioread16(mmio);
+ 	long res = n;
+ 	unsigned char *d_char = to;
+@@ -655,89 +657,10 @@ static inline unsigned long __arc_clear_user(void __user *to, unsigned long n)
+ 	return res;
  }
-diff --git a/drivers/ntb/hw/intel/ntb_hw_gen3.h b/drivers/ntb/hw/intel/ntb_hw_gen3.h
-index 75fb86ca27bb..d1455f24ec99 100644
---- a/drivers/ntb/hw/intel/ntb_hw_gen3.h
-+++ b/drivers/ntb/hw/intel/ntb_hw_gen3.h
-@@ -91,7 +91,7 @@
- #define GEN3_DB_TOTAL_SHIFT		33
- #define GEN3_SPAD_COUNT			16
  
--static inline u64 gen3_db_ioread(void __iomem *mmio)
-+static inline u64 gen3_db_ioread(const void __iomem *mmio)
- {
- 	return ioread64(mmio);
+-static inline long
+-__arc_strncpy_from_user(char *dst, const char __user *src, long count)
+-{
+-	long res = 0;
+-	char val;
+-
+-	if (count == 0)
+-		return 0;
+-
+-	__asm__ __volatile__(
+-	"	mov	lp_count, %5		\n"
+-	"	lp	3f			\n"
+-	"1:	ldb.ab  %3, [%2, 1]		\n"
+-	"	breq.d	%3, 0, 3f               \n"
+-	"	stb.ab  %3, [%1, 1]		\n"
+-	"	add	%0, %0, 1	# Num of NON NULL bytes copied	\n"
+-	"3:								\n"
+-	"	.section .fixup, \"ax\"		\n"
+-	"	.align 4			\n"
+-	"4:	mov %0, %4		# sets @res as -EFAULT	\n"
+-	"	j   3b				\n"
+-	"	.previous			\n"
+-	"	.section __ex_table, \"a\"	\n"
+-	"	.align 4			\n"
+-	"	.word   1b, 4b			\n"
+-	"	.previous			\n"
+-	: "+r"(res), "+r"(dst), "+r"(src), "=r"(val)
+-	: "g"(-EFAULT), "r"(count)
+-	: "lp_count", "memory");
+-
+-	return res;
+-}
+-
+-static inline long __arc_strnlen_user(const char __user *s, long n)
+-{
+-	long res, tmp1, cnt;
+-	char val;
+-
+-	__asm__ __volatile__(
+-	"	mov %2, %1			\n"
+-	"1:	ldb.ab  %3, [%0, 1]		\n"
+-	"	breq.d  %3, 0, 2f		\n"
+-	"	sub.f   %2, %2, 1		\n"
+-	"	bnz 1b				\n"
+-	"	sub %2, %2, 1			\n"
+-	"2:	sub %0, %1, %2			\n"
+-	"3:	;nop				\n"
+-	"	.section .fixup, \"ax\"		\n"
+-	"	.align 4			\n"
+-	"4:	mov %0, 0			\n"
+-	"	j   3b				\n"
+-	"	.previous			\n"
+-	"	.section __ex_table, \"a\"	\n"
+-	"	.align 4			\n"
+-	"	.word 1b, 4b			\n"
+-	"	.previous			\n"
+-	: "=r"(res), "=r"(tmp1), "=r"(cnt), "=r"(val)
+-	: "0"(s), "1"(n)
+-	: "memory");
+-
+-	return res;
+-}
+-
+-#ifndef CONFIG_CC_OPTIMIZE_FOR_SIZE
+-
+ #define INLINE_COPY_TO_USER
+ #define INLINE_COPY_FROM_USER
+ 
+-#define __clear_user(d, n)		__arc_clear_user(d, n)
+-#define __strncpy_from_user(d, s, n)	__arc_strncpy_from_user(d, s, n)
+-#define __strnlen_user(s, n)		__arc_strnlen_user(s, n)
+-#else
+-extern unsigned long arc_clear_user_noinline(void __user *to,
+-		unsigned long n);
+-extern long arc_strncpy_from_user_noinline (char *dst, const char __user *src,
+-		long count);
+-extern long arc_strnlen_user_noinline(const char __user *src, long n);
+-
+-#define __clear_user(d, n)		arc_clear_user_noinline(d, n)
+-#define __strncpy_from_user(d, s, n)	arc_strncpy_from_user_noinline(d, s, n)
+-#define __strnlen_user(s, n)		arc_strnlen_user_noinline(s, n)
+-
+-#endif
++#define __clear_user		__clear_user
+ 
+ #include <asm/segment.h>
+ #include <asm-generic/uaccess.h>
+diff --git a/arch/arc/mm/extable.c b/arch/arc/mm/extable.c
+index b06b09ddf924..88fa3a4d4906 100644
+--- a/arch/arc/mm/extable.c
++++ b/arch/arc/mm/extable.c
+@@ -22,26 +22,3 @@ int fixup_exception(struct pt_regs *regs)
+ 
+ 	return 0;
  }
-diff --git a/drivers/ntb/hw/intel/ntb_hw_intel.h b/drivers/ntb/hw/intel/ntb_hw_intel.h
-index e071e28bca3f..3c0a5a2da241 100644
---- a/drivers/ntb/hw/intel/ntb_hw_intel.h
-+++ b/drivers/ntb/hw/intel/ntb_hw_intel.h
-@@ -102,7 +102,7 @@ struct intel_ntb_dev;
- struct intel_ntb_reg {
- 	int (*poll_link)(struct intel_ntb_dev *ndev);
- 	int (*link_is_up)(struct intel_ntb_dev *ndev);
--	u64 (*db_ioread)(void __iomem *mmio);
-+	u64 (*db_ioread)(const void __iomem *mmio);
- 	void (*db_iowrite)(u64 db_bits, void __iomem *mmio);
- 	unsigned long			ntb_ctl;
- 	resource_size_t			db_size;
+-
+-#ifdef CONFIG_CC_OPTIMIZE_FOR_SIZE
+-
+-unsigned long arc_clear_user_noinline(void __user *to,
+-		unsigned long n)
+-{
+-	return __arc_clear_user(to, n);
+-}
+-EXPORT_SYMBOL(arc_clear_user_noinline);
+-
+-long arc_strncpy_from_user_noinline(char *dst, const char __user *src,
+-		long count)
+-{
+-	return __arc_strncpy_from_user(dst, src, count);
+-}
+-EXPORT_SYMBOL(arc_strncpy_from_user_noinline);
+-
+-long arc_strnlen_user_noinline(const char __user *src, long n)
+-{
+-	return __arc_strnlen_user(src, n);
+-}
+-EXPORT_SYMBOL(arc_strnlen_user_noinline);
+-#endif
 -- 
-2.7.4
+2.20.1
