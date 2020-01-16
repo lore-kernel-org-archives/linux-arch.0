@@ -1,438 +1,90 @@
 From: "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>
-Subject: [PATCH v4 9/9] asm-generic/tlb: Provide MMU_GATHER_TABLE_FREE
-Date: Thu, 16 Jan 2020 12:15:31 +0530
-Message-ID: <20200116064531.483522-10-aneesh.kumar@linux.ibm.com>
+Subject: Re: [PATCH v4 3/9] asm-generic/tlb: Avoid potential double flush
+Date: Thu, 16 Jan 2020 12:19:59 +0530
+Message-ID: <c12bb139-9eda-74a9-b4de-b147a88ed1b0@linux.ibm.com>
 References: <20200116064531.483522-1-aneesh.kumar@linux.ibm.com>
+ <20200116064531.483522-4-aneesh.kumar@linux.ibm.com>
 Mime-Version: 1.0
-Content-Transfer-Encoding: quoted-printable
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <20200116064531.483522-1-aneesh.kumar@linux.ibm.com>
-Sender: owner-linux-mm@kvack.org
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:34122 "EHLO
+        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
+        by vger.kernel.org with ESMTP id S1726160AbgAPGuJ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 16 Jan 2020 01:50:09 -0500
+Received: from pps.filterd (m0098419.ppops.net [127.0.0.1])
+        by mx0b-001b2d01.pphosted.com (8.16.0.42/8.16.0.42) with SMTP id 00G6mUIn118871
+        for <linux-arch@vger.kernel.org>; Thu, 16 Jan 2020 01:50:08 -0500
+Received: from e06smtp03.uk.ibm.com (e06smtp03.uk.ibm.com [195.75.94.99])
+        by mx0b-001b2d01.pphosted.com with ESMTP id 2xhgs7h6gm-1
+        (version=TLSv1.2 cipher=AES256-GCM-SHA384 bits=256 verify=NOT)
+        for <linux-arch@vger.kernel.org>; Thu, 16 Jan 2020 01:50:08 -0500
+Received: from localhost
+        by e06smtp03.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+        for <linux-arch@vger.kernel.org> from <aneesh.kumar@linux.ibm.com>;
+        Thu, 16 Jan 2020 06:50:06 -0000
+In-Reply-To: <20200116064531.483522-4-aneesh.kumar@linux.ibm.com>
+Content-Language: en-US
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: akpm@linux-foundation.org, peterz@infradead.org, will@kernel.org, mpe@ellerman.id.au
-Cc: linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, "Aneesh Kumar K . V" <aneesh.kumar@linux.ibm.com>
-List-Id: linux-arch.vger.kernel.org
+Cc: linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org
 
-From: Peter Zijlstra <peterz@infradead.org>
+On 1/16/20 12:15 PM, Aneesh Kumar K.V wrote:
+> From: Peter Zijlstra <peterz@infradead.org>
+> 
+> Aneesh reported that:
+> 
+> 	tlb_flush_mmu()
+> 	  tlb_flush_mmu_tlbonly()
+> 	    tlb_flush()			<-- #1
+> 	  tlb_flush_mmu_free()
+> 	    tlb_table_flush()
+> 	      tlb_table_invalidate()
+> 		tlb_flush_mmu_tlbonly()
+> 		  tlb_flush()		<-- #2
+> 
+> does two TLBIs when tlb->fullmm, because __tlb_reset_range() will not
+> clear tlb->end in that case.
+> 
+> Observe that any caller to __tlb_adjust_range() also sets at least one
+> of the tlb->freed_tables || tlb->cleared_p* bits, and those are
+> unconditionally cleared by __tlb_reset_range().
+> 
+> Change the condition for actually issuing TLBI to having one of those
+> bits set, as opposed to having tlb->end != 0.
+> 
 
-As described in the comment, the correct order for freeing pages is:
 
- 1) unhook page
- 2) TLB invalidate page
- 3) free page
+We should possibly get this to stable too along with the first two 
+patches. I am not quiet sure if this will qualify for a stable backport. 
+Hence avoided adding Cc:stable@kernel.org
 
-This order equally applies to page directories.
 
-Currently there are two correct options:
-
- - use tlb_remove_page(), when all page directores are full pages and
-   there are no futher contraints placed by things like software
-   walkers (HAVE_FAST_GUP).
-
- - use MMU_GATHER_RCU_TABLE_FREE and tlb_remove_table() when the
-   architecture does not do IPI based TLB invalidate and has
-   HAVE_FAST_GUP (or software TLB fill).
-
-This however leaves architectures that don't have page based
-directories but don't need RCU in a bind. For those, provide
-MMU_GATHER_TABLE_FREE, which provides the independent batching for
-directories without the additional RCU freeing.
-
-Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
-Signed-off-by: Aneesh Kumar K.V <aneesh.kumar@linux.ibm.com>
----
- arch/Kconfig               |   5 ++
- arch/arm/include/asm/tlb.h |   4 --
- include/asm-generic/tlb.h  |  72 +++++++++++-----------
- mm/mmu_gather.c            | 120 +++++++++++++++++++++++++++----------
- 4 files changed, 130 insertions(+), 71 deletions(-)
-
-diff --git a/arch/Kconfig b/arch/Kconfig
-index c35668fbf4d4..98de654b79b3 100644
---- a/arch/Kconfig
-+++ b/arch/Kconfig
-@@ -393,8 +393,12 @@ config HAVE_ARCH_JUMP_LABEL
- config HAVE_ARCH_JUMP_LABEL_RELATIVE
- 	bool
-=20
-+config MMU_GATHER_TABLE_FREE
-+	bool
-+
- config MMU_GATHER_RCU_TABLE_FREE
- 	bool
-+	select MMU_GATHER_TABLE_FREE
-=20
- config MMU_GATHER_PAGE_SIZE
- 	bool
-@@ -404,6 +408,7 @@ config MMU_GATHER_NO_RANGE
-=20
- config MMU_GATHER_NO_GATHER
- 	bool
-+	depends on MMU_GATHER_TABLE_FREE
-=20
- config ARCH_HAVE_NMI_SAFE_CMPXCHG
- 	bool
-diff --git a/arch/arm/include/asm/tlb.h b/arch/arm/include/asm/tlb.h
-index 46a21cee3442..4d4e7b6aabff 100644
---- a/arch/arm/include/asm/tlb.h
-+++ b/arch/arm/include/asm/tlb.h
-@@ -37,10 +37,6 @@ static inline void __tlb_remove_table(void *_table)
-=20
- #include <asm-generic/tlb.h>
-=20
--#ifndef CONFIG_MMU_GATHER_RCU_TABLE_FREE
--#define tlb_remove_table(tlb, entry) tlb_remove_page(tlb, entry)
--#endif
--
- static inline void
- __pte_free_tlb(struct mmu_gather *tlb, pgtable_t pte, unsigned long addr=
-)
- {
-diff --git a/include/asm-generic/tlb.h b/include/asm-generic/tlb.h
-index ca0fe75b5355..f391f6b500b4 100644
---- a/include/asm-generic/tlb.h
-+++ b/include/asm-generic/tlb.h
-@@ -56,6 +56,15 @@
-  *    Defaults to flushing at tlb_end_vma() to reset the range; helps wh=
-en
-  *    there's large holes between the VMAs.
-  *
-+ *  - tlb_remove_table()
-+ *
-+ *    tlb_remove_table() is the basic primitive to free page-table direc=
-tories
-+ *    (__p*_free_tlb()).  In it's most primitive form it is an alias for
-+ *    tlb_remove_page() below, for when page directories are pages and h=
-ave no
-+ *    additional constraints.
-+ *
-+ *    See also MMU_GATHER_TABLE_FREE and MMU_GATHER_RCU_TABLE_FREE.
-+ *
-  *  - tlb_remove_page() / __tlb_remove_page()
-  *  - tlb_remove_page_size() / __tlb_remove_page_size()
-  *
-@@ -129,17 +138,24 @@
-  *  This might be useful if your architecture has size specific TLB
-  *  invalidation instructions.
-  *
-- *  MMU_GATHER_RCU_TABLE_FREE
-+ *  MMU_GATHER_TABLE_FREE
-  *
-  *  This provides tlb_remove_table(), to be used instead of tlb_remove_p=
-age()
-- *  for page directores (__p*_free_tlb()). This provides separate freein=
-g of
-- *  the page-table pages themselves in a semi-RCU fashion (see comment b=
-elow).
-- *  Useful if your architecture doesn't use IPIs for remote TLB invalida=
-tes
-- *  and therefore doesn't naturally serialize with software page-table w=
-alkers.
-+ *  for page directores (__p*_free_tlb()).
-+ *
-+ *  Useful if your architecture has non-page page directories.
-  *
-  *  When used, an architecture is expected to provide __tlb_remove_table=
-()
-  *  which does the actual freeing of these pages.
-  *
-+ *  MMU_GATHER_RCU_TABLE_FREE
-+ *
-+ *  Like MMU_GATHER_TABLE_FREE, and adds semi-RCU semantics to the free =
-(see
-+ *  comment below).
-+ *
-+ *  Useful if your architecture doesn't use IPIs for remote TLB invalida=
-tes
-+ *  and therefore doesn't naturally serialize with software page-table w=
-alkers.
-+ *
-  *  MMU_GATHER_NO_RANGE
-  *
-  *  Use this if your architecture lacks an efficient flush_tlb_range().
-@@ -155,37 +171,12 @@
-  *  various ptep_get_and_clear() functions.
-  */
-=20
--#ifdef CONFIG_MMU_GATHER_RCU_TABLE_FREE
--/*
-- * Semi RCU freeing of the page directories.
-- *
-- * This is needed by some architectures to implement software pagetable =
-walkers.
-- *
-- * gup_fast() and other software pagetable walkers do a lockless page-ta=
-ble
-- * walk and therefore needs some synchronization with the freeing of the=
- page
-- * directories. The chosen means to accomplish that is by disabling IRQs=
- over
-- * the walk.
-- *
-- * Architectures that use IPIs to flush TLBs will then automagically DTR=
-T,
-- * since we unlink the page, flush TLBs, free the page. Since the disabl=
-ing of
-- * IRQs delays the completion of the TLB flush we can never observe an a=
-lready
-- * freed page.
-- *
-- * Architectures that do not have this (PPC) need to delay the freeing b=
-y some
-- * other means, this is that means.
-- *
-- * What we do is batch the freed directory pages (tables) and RCU free t=
-hem.
-- * We use the sched RCU variant, as that guarantees that IRQ/preempt dis=
-abling
-- * holds off grace periods.
-- *
-- * However, in order to batch these pages we need to allocate storage, t=
-his
-- * allocation is deep inside the MM code and can thus easily fail on mem=
-ory
-- * pressure. To guarantee progress we fall back to single table freeing,=
- see
-- * the implementation of tlb_remove_table_one().
-- *
-- */
-+#ifdef CONFIG_MMU_GATHER_TABLE_FREE
-+
- struct mmu_table_batch {
-+#ifdef CONFIG_MMU_GATHER_RCU_TABLE_FREE
- 	struct rcu_head		rcu;
-+#endif
- 	unsigned int		nr;
- 	void			*tables[0];
- };
-@@ -195,6 +186,17 @@ struct mmu_table_batch {
-=20
- extern void tlb_remove_table(struct mmu_gather *tlb, void *table);
-=20
-+#else /* !CONFIG_MMU_GATHER_HAVE_TABLE_FREE */
-+
-+/*
-+ * Without MMU_GATHER_TABLE_FREE the architecture is assumed to have pag=
-e based
-+ * page directories and we can use the normal page batching to free them=
-.
-+ */
-+#define tlb_remove_table(tlb, page) tlb_remove_page((tlb), (page))
-+
-+#endif /* CONFIG_MMU_GATHER_TABLE_FREE */
-+
-+#ifdef CONFIG_MMU_GATHER_RCU_TABLE_FREE
- /*
-  * This allows an architecture that does not use the linux page-tables f=
-or
-  * hardware to skip the TLBI when freeing page tables.
-@@ -248,7 +250,7 @@ extern bool __tlb_remove_page_size(struct mmu_gather =
-*tlb, struct page *page,
- struct mmu_gather {
- 	struct mm_struct	*mm;
-=20
--#ifdef CONFIG_MMU_GATHER_RCU_TABLE_FREE
-+#ifdef CONFIG_MMU_GATHER_TABLE_FREE
- 	struct mmu_table_batch	*batch;
- #endif
-=20
-diff --git a/mm/mmu_gather.c b/mm/mmu_gather.c
-index a28c74328085..a3538cb2bcbe 100644
---- a/mm/mmu_gather.c
-+++ b/mm/mmu_gather.c
-@@ -91,56 +91,106 @@ bool __tlb_remove_page_size(struct mmu_gather *tlb, =
-struct page *page, int page_
-=20
- #endif /* MMU_GATHER_NO_GATHER */
-=20
--#ifdef CONFIG_MMU_GATHER_RCU_TABLE_FREE
-+#ifdef CONFIG_MMU_GATHER_TABLE_FREE
-=20
--/*
-- * See the comment near struct mmu_table_batch.
-- */
-+static void __tlb_remove_table_free(struct mmu_table_batch *batch)
-+{
-+	int i;
-+
-+	for (i =3D 0; i < batch->nr; i++)
-+		__tlb_remove_table(batch->tables[i]);
-+
-+	free_page((unsigned long)batch);
-+}
-+
-+#ifdef CONFIG_MMU_GATHER_RCU_TABLE_FREE
-=20
- /*
-- * If we want tlb_remove_table() to imply TLB invalidates.
-+ * Semi RCU freeing of the page directories.
-+ *
-+ * This is needed by some architectures to implement software pagetable =
-walkers.
-+ *
-+ * gup_fast() and other software pagetable walkers do a lockless page-ta=
-ble
-+ * walk and therefore needs some synchronization with the freeing of the=
- page
-+ * directories. The chosen means to accomplish that is by disabling IRQs=
- over
-+ * the walk.
-+ *
-+ * Architectures that use IPIs to flush TLBs will then automagically DTR=
-T,
-+ * since we unlink the page, flush TLBs, free the page. Since the disabl=
-ing of
-+ * IRQs delays the completion of the TLB flush we can never observe an a=
-lready
-+ * freed page.
-+ *
-+ * Architectures that do not have this (PPC) need to delay the freeing b=
-y some
-+ * other means, this is that means.
-+ *
-+ * What we do is batch the freed directory pages (tables) and RCU free t=
-hem.
-+ * We use the sched RCU variant, as that guarantees that IRQ/preempt dis=
-abling
-+ * holds off grace periods.
-+ *
-+ * However, in order to batch these pages we need to allocate storage, t=
-his
-+ * allocation is deep inside the MM code and can thus easily fail on mem=
-ory
-+ * pressure. To guarantee progress we fall back to single table freeing,=
- see
-+ * the implementation of tlb_remove_table_one().
-+ *
-  */
--static inline void tlb_table_invalidate(struct mmu_gather *tlb)
--{
--	if (tlb_needs_table_invalidate()) {
--		/*
--		 * Invalidate page-table caches used by hardware walkers. Then
--		 * we still need to RCU-sched wait while freeing the pages
--		 * because software walkers can still be in-flight.
--		 */
--		tlb_flush_mmu_tlbonly(tlb);
--	}
--}
-=20
- static void tlb_remove_table_smp_sync(void *arg)
- {
- 	/* Simply deliver the interrupt */
- }
-=20
--static void tlb_remove_table_one(void *table)
-+static void tlb_remove_table_sync_one(void)
- {
- 	/*
- 	 * This isn't an RCU grace period and hence the page-tables cannot be
- 	 * assumed to be actually RCU-freed.
- 	 *
- 	 * It is however sufficient for software page-table walkers that rely o=
-n
--	 * IRQ disabling. See the comment near struct mmu_table_batch.
-+	 * IRQ disabling.
- 	 */
- 	smp_call_function(tlb_remove_table_smp_sync, NULL, 1);
--	__tlb_remove_table(table);
- }
-=20
- static void tlb_remove_table_rcu(struct rcu_head *head)
- {
--	struct mmu_table_batch *batch;
--	int i;
-+	__tlb_remove_table_free(container_of(head, struct mmu_table_batch, rcu)=
-);
-+}
-=20
--	batch =3D container_of(head, struct mmu_table_batch, rcu);
-+static void tlb_remove_table_free(struct mmu_table_batch *batch)
-+{
-+	call_rcu(&batch->rcu, tlb_remove_table_rcu);
-+}
-=20
--	for (i =3D 0; i < batch->nr; i++)
--		__tlb_remove_table(batch->tables[i]);
-+#else /* !CONFIG_MMU_GATHER_RCU_TABLE_FREE */
-=20
--	free_page((unsigned long)batch);
-+static void tlb_remove_table_sync_one(void) { }
-+
-+static void tlb_remove_table_free(struct mmu_table_batch *batch)
-+{
-+	__tlb_remove_table_free(batch);
-+}
-+
-+#endif /* CONFIG_MMU_GATHER_RCU_TABLE_FREE */
-+
-+/*
-+ * If we want tlb_remove_table() to imply TLB invalidates.
-+ */
-+static inline void tlb_table_invalidate(struct mmu_gather *tlb)
-+{
-+	if (tlb_needs_table_invalidate()) {
-+		/*
-+		 * Invalidate page-table caches used by hardware walkers. Then
-+		 * we still need to RCU-sched wait while freeing the pages
-+		 * because software walkers can still be in-flight.
-+		 */
-+		tlb_flush_mmu_tlbonly(tlb);
-+	}
-+}
-+
-+static void tlb_remove_table_one(void *table)
-+{
-+	tlb_remove_table_sync_one();
-+	__tlb_remove_table(table);
- }
-=20
- static void tlb_table_flush(struct mmu_gather *tlb)
-@@ -149,7 +199,7 @@ static void tlb_table_flush(struct mmu_gather *tlb)
-=20
- 	if (*batch) {
- 		tlb_table_invalidate(tlb);
--		call_rcu(&(*batch)->rcu, tlb_remove_table_rcu);
-+		tlb_remove_table_free(*batch);
- 		*batch =3D NULL;
- 	}
- }
-@@ -173,13 +223,21 @@ void tlb_remove_table(struct mmu_gather *tlb, void =
-*table)
- 		tlb_table_flush(tlb);
- }
-=20
--#endif /* CONFIG_MMU_GATHER_RCU_TABLE_FREE */
-+static inline void tlb_table_init(struct mmu_gather *tlb)
-+{
-+	tlb->batch =3D NULL;
-+}
-+
-+#else /* !CONFIG_MMU_GATHER_TABLE_FREE */
-+
-+static inline void tlb_table_flush(struct mmu_gather *tlb) { }
-+static inline void tlb_table_init(struct mmu_gather *tlb) { }
-+
-+#endif /* CONFIG_MMU_GATHER_TABLE_FREE */
-=20
- static void tlb_flush_mmu_free(struct mmu_gather *tlb)
- {
--#ifdef CONFIG_MMU_GATHER_RCU_TABLE_FREE
- 	tlb_table_flush(tlb);
--#endif
- #ifndef CONFIG_MMU_GATHER_NO_GATHER
- 	tlb_batch_pages_flush(tlb);
- #endif
-@@ -220,9 +278,7 @@ void tlb_gather_mmu(struct mmu_gather *tlb, struct mm=
-_struct *mm,
- 	tlb->batch_count =3D 0;
- #endif
-=20
--#ifdef CONFIG_MMU_GATHER_RCU_TABLE_FREE
--	tlb->batch =3D NULL;
--#endif
-+	tlb_table_init(tlb);
- #ifdef CONFIG_MMU_GATHER_PAGE_SIZE
- 	tlb->page_size =3D 0;
- #endif
---=20
-2.24.1
+> Reported-by: "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>
+> Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+> Signed-off-by: Aneesh Kumar K.V <aneesh.kumar@linux.ibm.com>
+> ---
+>   include/asm-generic/tlb.h | 7 ++++++-
+>   1 file changed, 6 insertions(+), 1 deletion(-)
+> 
+> diff --git a/include/asm-generic/tlb.h b/include/asm-generic/tlb.h
+> index 9e22ac369d1d..b36b3bef5661 100644
+> --- a/include/asm-generic/tlb.h
+> +++ b/include/asm-generic/tlb.h
+> @@ -402,7 +402,12 @@ tlb_update_vma_flags(struct mmu_gather *tlb, struct vm_area_struct *vma) { }
+>   
+>   static inline void tlb_flush_mmu_tlbonly(struct mmu_gather *tlb)
+>   {
+> -	if (!tlb->end)
+> +	/*
+> +	 * Anything calling __tlb_adjust_range() also sets at least one of
+> +	 * these bits.
+> +	 */
+> +	if (!(tlb->freed_tables || tlb->cleared_ptes || tlb->cleared_pmds ||
+> +	      tlb->cleared_puds || tlb->cleared_p4ds))
+>   		return;
+>   
+>   	tlb_flush(tlb);
+> 
