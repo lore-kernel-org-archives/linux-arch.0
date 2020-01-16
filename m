@@ -1,44 +1,85 @@
-From: Xuefeng Wang <wxf.wang@hisilicon.com>
-Subject: [PATCH 0/2] mm/thp: rework the pmd protect changing flow
-Date: Thu, 16 Jan 2020 11:09:15 +0800
-Message-ID: <1579144157-7736-1-git-send-email-wxf.wang@hisilicon.com>
+From: "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>
+Subject: [PATCH v4 0/9] Fixup page directory freeing
+Date: Thu, 16 Jan 2020 12:15:22 +0530
+Message-ID: <20200116064531.483522-1-aneesh.kumar@linux.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Sender: linux-kernel-owner@vger.kernel.org
-To: arnd@arndb.de, akpm@linux-foundation.org, catalin.marinas@arm.com, will@kernel.org, mark.rutland@arm.com
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, linux-arm-kernel@lists.infradead.org, chenzhou10@huawei.com
+Content-Transfer-Encoding: quoted-printable
+Return-path: <owner-linux-mm@kvack.org>
+Sender: owner-linux-mm@kvack.org
+To: akpm@linux-foundation.org, peterz@infradead.org, will@kernel.org, mpe@ellerman.id.au
+Cc: linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>
 List-Id: linux-arch.vger.kernel.org
 
-On KunPeng920 board. When changing permission of a large range region,
-pmdp_invalidate() takes about 65% in profile (with hugepages) in JIT tool.
-Kernel will flush tlb twice: first flush happens in pmdp_invalidate, second
-flush happens at the end of change_protect_range(). The first pmdp_invalidate
-is not necessary if the hardware support atomic pmdp changing. The atomic
-changing pimd to zero can prevent the hardware from update asynchronous.
-So reconstruct it and remove the first pmdp_invalidate. And the second tlb
-flush can make sure the new tlb entry valid.
+This is a repost of patch series from Peter with the arch specific change=
+s except ppc64 dropped.
+ppc64 changes are added here because we are redoing the patch series on t=
+op of ppc64 changes. This makes it
+easy to backport these changes. Only the first 2 patches need to be backp=
+orted to stable.=20
 
-This patch series add a pmdp_modify_prot transaction abstraction firstly.
-Then add pmdp_modify_prot_start() in arm64, which uses pmdp_huge_get_and_clear()
-to atomically fetch the pmd and zero the entry.
+The thing is, on anything SMP, freeing page directories should observe th=
+e
+exact same order as normal page freeing:
 
-After rework, the mprotect can get 3~13 times performace gain in range
-64M to 512M on KunPeng920:
+ 1) unhook page/directory
+ 2) TLB invalidate
+ 3) free page/directory
 
-4K granule/THP on
-memory size(M)	64	128	256	320	448	512
-pre-patch		0.77	1.40	2.64	3.23	4.49	5.10
-post-patch		0.20	0.23	0.28	0.31	0.37	0.39
+Without this, any concurrent page-table walk could end up with a Use-afte=
+r-Free.
+This is esp. trivial for anything that has software page-table walkers
+(HAVE_FAST_GUP / software TLB fill) or the hardware caches partial page-w=
+alks
+(ie. caches page directories).
 
-Xuefeng Wang (2):
-  mm: add helpers pmdp_modify_prot_start/commit
-  arm64: mm: rework the pmd protect changing flow
+Even on UP this might give issues since mmu_gather is preemptible these d=
+ays.
+An interrupt or preempted task accessing user pages might stumble into th=
+e free
+page if the hardware caches page directories.
 
- arch/arm64/include/asm/pgtable.h | 14 +++++++++++++
- include/asm-generic/pgtable.h    | 35 ++++++++++++++++++++++++++++++++
- mm/huge_memory.c                 | 19 ++++++++---------
- 3 files changed, 57 insertions(+), 11 deletions(-)
+This patch series fixup ppc64 and add generic MMU_GATHER changes to suppo=
+rt the conversion of other architectures.
+I haven't added patches w.r.t other architecture because they are yet to =
+be acked.
 
--- 
-2.17.1
+Changes from V3:
+* Added Cc:stable for first two patches
+* Explained why we have sparc related changes in patch 2
+
+Aneesh Kumar K.V (1):
+  powerpc/mmu_gather: Enable RCU_TABLE_FREE even for !SMP case
+
+Peter Zijlstra (8):
+  mm/mmu_gather: Invalidate TLB correctly on batch allocation failure
+    and flush
+  asm-generic/tlb: Avoid potential double flush
+  asm-gemeric/tlb: Remove stray function declarations
+  asm-generic/tlb: Add missing CONFIG symbol
+  asm-generic/tlb: Rename HAVE_RCU_TABLE_FREE
+  asm-generic/tlb: Rename HAVE_MMU_GATHER_PAGE_SIZE
+  asm-generic/tlb: Rename HAVE_MMU_GATHER_NO_GATHER
+  asm-generic/tlb: Provide MMU_GATHER_TABLE_FREE
+
+ arch/Kconfig                                 |  13 +-
+ arch/arm/Kconfig                             |   2 +-
+ arch/arm/include/asm/tlb.h                   |   4 -
+ arch/arm64/Kconfig                           |   2 +-
+ arch/powerpc/Kconfig                         |   5 +-
+ arch/powerpc/include/asm/book3s/32/pgalloc.h |   8 --
+ arch/powerpc/include/asm/book3s/64/pgalloc.h |   2 -
+ arch/powerpc/include/asm/nohash/pgalloc.h    |   8 --
+ arch/powerpc/include/asm/tlb.h               |  11 ++
+ arch/powerpc/mm/book3s64/pgtable.c           |   7 -
+ arch/s390/Kconfig                            |   4 +-
+ arch/sparc/Kconfig                           |   3 +-
+ arch/sparc/include/asm/tlb_64.h              |   9 ++
+ arch/x86/Kconfig                             |   2 +-
+ arch/x86/include/asm/tlb.h                   |   4 +-
+ include/asm-generic/tlb.h                    | 120 ++++++++++-------
+ mm/gup.c                                     |   2 +-
+ mm/mmu_gather.c                              | 134 +++++++++++++------
+ 18 files changed, 207 insertions(+), 133 deletions(-)
+
+--=20
+2.24.1
