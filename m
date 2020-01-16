@@ -1,125 +1,69 @@
 From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: [PATCH] ARC: wireup clone3 syscall
-Date: Wed, 15 Jan 2020 16:09:48 -0800
-Message-ID: <20200116000948.17646-1-vgupta@synopsys.com>
+Subject: [PATCH v2 1/2] asm-generic/uaccess: don't define inline functions if noinline lib/* in use
+Date: Wed, 15 Jan 2020 16:21:23 -0800
+Message-ID: <20200116002124.17988-2-vgupta@synopsys.com>
+References: <20200116002124.17988-1-vgupta@synopsys.com>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtprelay-out1.synopsys.com ([149.117.87.133]:39148 "EHLO
+Received: from smtprelay-out1.synopsys.com ([149.117.73.133]:58916 "EHLO
         smtprelay-out1.synopsys.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1729186AbgAPAJx (ORCPT
+        by vger.kernel.org with ESMTP id S1729025AbgAPAV2 (ORCPT
         <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 15 Jan 2020 19:09:53 -0500
+        Wed, 15 Jan 2020 19:21:28 -0500
+In-Reply-To: <20200116002124.17988-1-vgupta@synopsys.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-snps-arc@lists.infradead.org
-Cc: Christian Brauner <christian@brauner.io>, Arnd Bergmann <arnd@arndb.de>, linux-kernel@vger.kernel.org, linux-arch <linux-arch@vger.kernel.org>, Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Cc: Arnd Bergmann <arnd@arndb.de>, linux-kernel@vger.kernel.org, linux-arch <linux-arch@vger.kernel.org>, Vineet Gupta <Vineet.Gupta1@synopsys.com>
+
+There are 2 generic varaints of strncpy_from_user() / strnlen_user()
+ (1). inline version in asm-generic/uaccess.h
+ (2). optimized word-at-a-time version in lib/*
+
+This patch disables #1 if #2 selected. This allows arches to continue
+reusing asm-generic/uaccess.h for rest of code
+
+This came up when switching ARC to generic word-at-a-time interface
 
 Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
 ---
- arch/arc/Kconfig                   |  1 +
- arch/arc/include/asm/syscalls.h    |  1 +
- arch/arc/include/uapi/asm/unistd.h |  1 +
- arch/arc/kernel/entry.S            | 12 ++++++++++++
- arch/arc/kernel/process.c          |  7 +++----
- arch/arc/kernel/sys.c              |  1 +
- 6 files changed, 19 insertions(+), 4 deletions(-)
+ include/asm-generic/uaccess.h | 8 ++++++++
+ 1 file changed, 8 insertions(+)
 
-diff --git a/arch/arc/Kconfig b/arch/arc/Kconfig
-index 26108ea785c2..c4409eab07a9 100644
---- a/arch/arc/Kconfig
-+++ b/arch/arc/Kconfig
-@@ -28,6 +28,7 @@ config ARC
- 	select GENERIC_SMP_IDLE_THREAD
- 	select HAVE_ARCH_KGDB
- 	select HAVE_ARCH_TRACEHOOK
-+	select HAVE_COPY_THREAD_TLS
- 	select HAVE_DEBUG_STACKOVERFLOW
- 	select HAVE_DEBUG_KMEMLEAK
- 	select HAVE_FUTEX_CMPXCHG if FUTEX
-diff --git a/arch/arc/include/asm/syscalls.h b/arch/arc/include/asm/syscalls.h
-index 7ddba13e9b59..c3f4714a4f5c 100644
---- a/arch/arc/include/asm/syscalls.h
-+++ b/arch/arc/include/asm/syscalls.h
-@@ -11,6 +11,7 @@
- #include <linux/types.h>
+diff --git a/include/asm-generic/uaccess.h b/include/asm-generic/uaccess.h
+index e935318804f8..2ea7f4e0e60e 100644
+--- a/include/asm-generic/uaccess.h
++++ b/include/asm-generic/uaccess.h
+@@ -212,6 +212,7 @@ static inline int __get_user_fn(size_t size, const void __user *ptr, void *x)
  
- int sys_clone_wrapper(int, int, int, int, int);
-+int sys_clone3_wrapper(void *, size_t);
- int sys_cacheflush(uint32_t, uint32_t uint32_t);
- int sys_arc_settls(void *);
- int sys_arc_gettls(void);
-diff --git a/arch/arc/include/uapi/asm/unistd.h b/arch/arc/include/uapi/asm/unistd.h
-index 5eafa1115162..fa2713ae6bea 100644
---- a/arch/arc/include/uapi/asm/unistd.h
-+++ b/arch/arc/include/uapi/asm/unistd.h
-@@ -21,6 +21,7 @@
- #define __ARCH_WANT_SET_GET_RLIMIT
- #define __ARCH_WANT_SYS_EXECVE
- #define __ARCH_WANT_SYS_CLONE
-+#define __ARCH_WANT_SYS_CLONE3
- #define __ARCH_WANT_SYS_VFORK
- #define __ARCH_WANT_SYS_FORK
- #define __ARCH_WANT_TIME32_SYSCALLS
-diff --git a/arch/arc/kernel/entry.S b/arch/arc/kernel/entry.S
-index 72be01270e24..7e5109dab4e8 100644
---- a/arch/arc/kernel/entry.S
-+++ b/arch/arc/kernel/entry.S
-@@ -35,6 +35,18 @@ ENTRY(sys_clone_wrapper)
- 	b .Lret_from_system_call
- END(sys_clone_wrapper)
+ extern int __get_user_bad(void) __attribute__((noreturn));
  
-+ENTRY(sys_clone3_wrapper)
-+	SAVE_CALLEE_SAVED_USER
-+	bl  @sys_clone3
-+	DISCARD_CALLEE_SAVED_USER
-+
-+	GET_CURR_THR_INFO_FLAGS   r10
-+	btst r10, TIF_SYSCALL_TRACE
-+	bnz  tracesys_exit
-+
-+	b .Lret_from_system_call
-+END(sys_clone3_wrapper)
-+
- ENTRY(ret_from_fork)
- 	; when the forked child comes here from the __switch_to function
- 	; r0 has the last task pointer.
-diff --git a/arch/arc/kernel/process.c b/arch/arc/kernel/process.c
-index e1889ce3faf9..bfd4cbe74aa3 100644
---- a/arch/arc/kernel/process.c
-+++ b/arch/arc/kernel/process.c
-@@ -171,9 +171,8 @@ asmlinkage void ret_from_fork(void);
-  * |    user_r25    |
-  * ------------------  <===== END of PAGE
++#ifndef CONFIG_GENERIC_STRNCPY_FROM_USER
+ /*
+  * Copy a null terminated string from userspace.
   */
--int copy_thread(unsigned long clone_flags,
--		unsigned long usp, unsigned long kthread_arg,
--		struct task_struct *p)
-+int copy_thread_tls(unsigned long clone_flags, unsigned long usp,
-+	unsigned long kthread_arg, struct task_struct *p, unsigned long tls)
- {
- 	struct pt_regs *c_regs;        /* child's pt_regs */
- 	unsigned long *childksp;       /* to unwind out of __switch_to() */
-@@ -231,7 +230,7 @@ int copy_thread(unsigned long clone_flags,
- 		 * set task's userland tls data ptr from 4th arg
- 		 * clone C-lib call is difft from clone sys-call
- 		 */
--		task_thread_info(p)->thr_ptr = regs->r3;
-+		task_thread_info(p)->thr_ptr = tls;
- 	} else {
- 		/* Normal fork case: set parent's TLS ptr in child */
- 		task_thread_info(p)->thr_ptr =
-diff --git a/arch/arc/kernel/sys.c b/arch/arc/kernel/sys.c
-index fddecc76efb7..1069446bdc58 100644
---- a/arch/arc/kernel/sys.c
-+++ b/arch/arc/kernel/sys.c
-@@ -7,6 +7,7 @@
- #include <asm/syscalls.h>
+@@ -234,7 +235,11 @@ strncpy_from_user(char *dst, const char __user *src, long count)
+ 		return -EFAULT;
+ 	return __strncpy_from_user(dst, src, count);
+ }
++#else
++extern long strncpy_from_user(char *dest, const char __user *src, long count);
++#endif
  
- #define sys_clone	sys_clone_wrapper
-+#define sys_clone3	sys_clone3_wrapper
++#ifndef CONFIG_GENERIC_STRNLEN_USER
+ /*
+  * Return the size of a string (including the ending 0)
+  *
+@@ -255,6 +260,9 @@ static inline long strnlen_user(const char __user *src, long n)
+ 		return 0;
+ 	return __strnlen_user(src, n);
+ }
++#else
++extern __must_check long strnlen_user(const char __user *str, long n);
++#endif
  
- #undef __SYSCALL
- #define __SYSCALL(nr, call) [nr] = (call),
+ /*
+  * Zero Userspace
 -- 
 2.20.1
