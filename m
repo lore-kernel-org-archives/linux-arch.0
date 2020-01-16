@@ -1,55 +1,122 @@
 Return-Path: <owner-linux-mm@kvack.org>
-From: Sandipan Das <sandipan@linux.ibm.com>
-Subject: [PATCH v18 08/24] selftests/vm/pkeys: Fix pkey_disable_clear()
-Date: Thu, 30 Jan 2020 12:06:50 +0530
-In-Reply-To: <cover.1580365432.git.sandipan@linux.ibm.com>
-References: <cover.1580365432.git.sandipan@linux.ibm.com>
-In-Reply-To: <cover.1580365432.git.sandipan@linux.ibm.com>
-References: <cover.1580365432.git.sandipan@linux.ibm.com>
-Message-ID: <38d20da74d5b2d166e60ab87160954da654029c8.1580365432.git.sandipan@linux.ibm.com>
+From: Xuefeng Wang <wxf.wang@hisilicon.com>
+Subject: [PATCH 1/2] mm: add helpers pmdp_modify_prot_start/commit
+Date: Thu, 16 Jan 2020 11:09:16 +0800
+Message-ID: <1579144157-7736-2-git-send-email-wxf.wang@hisilicon.com>
+In-Reply-To: <1579144157-7736-1-git-send-email-wxf.wang@hisilicon.com>
+References: <1579144157-7736-1-git-send-email-wxf.wang@hisilicon.com>
+MIME-Version: 1.0
+Content-Type: text/plain
 Sender: owner-linux-mm@kvack.org
-To: shuah@kernel.org, skhan@linuxfoundation.org, linux-kselftest@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, x86@kernel.org, linux-mm@kvack.org, fweimer@redhat.com, dave.hansen@intel.com, linuxram@us.ibm.com, mhocko@kernel.org, mingo@redhat.com, aneesh.kumar@linux.ibm.com, bauerman@linux.ibm.com, msuchanek@suse.de, mpe@ellerman.id.au
+To: arnd@arndb.de, akpm@linux-foundation.org, catalin.marinas@arm.com, will@kernel.org, mark.rutland@arm.com
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, linux-arm-kernel@lists.infradead.org, chenzhou10@huawei.com
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200130063650.dtfLH1iiALV1RIYBdVMhkhLZstrdvQ6WF8BqHXxOfWg@z>
+Message-ID: <20200116030916.l0jiqzKAQ-1ls11TiG7vjuRYW2fpwQuU9Y4NBuxVKt4@z>
 
-From: Ram Pai <linuxram@us.ibm.com>
+Introduce helpers pmdp_modify_prot_start/commit to abstract pmdp_modify_prot
+transaction. Helpers pmdp_modify_prot_start/commit are functionally unchanged.
 
-Currently, pkey_disable_clear() sets the specified bits
-instead clearing them. This has been dead code up to now
-because its only callers i.e. pkey_access/write_allow()
-are also unused.
-
-cc: Dave Hansen <dave.hansen@intel.com>
-cc: Florian Weimer <fweimer@redhat.com>
-Signed-off-by: Ram Pai <linuxram@us.ibm.com>
-Acked-by: Dave Hansen <dave.hansen@intel.com>
-Signed-off-by: Sandipan Das <sandipan@linux.ibm.com>
+Signed-off-by: Xuefeng Wang <wxf.wang@hisilicon.com>
+Signed-off-by: Chen Zhou <chenzhou10@huawei.com>
 ---
- tools/testing/selftests/vm/protection_keys.c | 4 ++--
- 1 file changed, 2 insertions(+), 2 deletions(-)
+ include/asm-generic/pgtable.h | 35 +++++++++++++++++++++++++++++++++++
+ mm/huge_memory.c              | 19 ++++++++-----------
+ 2 files changed, 43 insertions(+), 11 deletions(-)
 
-diff --git a/tools/testing/selftests/vm/protection_keys.c b/tools/testing/selftests/vm/protection_keys.c
-index bed9d4de12b4..4b1ddb526228 100644
---- a/tools/testing/selftests/vm/protection_keys.c
-+++ b/tools/testing/selftests/vm/protection_keys.c
-@@ -418,7 +418,7 @@ void pkey_disable_clear(int pkey, int flags)
- 			pkey, pkey, pkey_rights);
- 	pkey_assert(pkey_rights >= 0);
-
--	pkey_rights |= flags;
-+	pkey_rights &= ~flags;
-
- 	ret = hw_pkey_set(pkey, pkey_rights, 0);
- 	shadow_pkey_reg = set_pkey_bits(shadow_pkey_reg, pkey, pkey_rights);
-@@ -431,7 +431,7 @@ void pkey_disable_clear(int pkey, int flags)
- 	dprintf1("%s(%d) pkey_reg: 0x%016llx\n", __func__,
- 			pkey, read_pkey_reg());
- 	if (flags)
--		assert(read_pkey_reg() > orig_pkey_reg);
-+		assert(read_pkey_reg() < orig_pkey_reg);
+diff --git a/include/asm-generic/pgtable.h b/include/asm-generic/pgtable.h
+index 798ea36a0549..e81bd58a9170 100644
+--- a/include/asm-generic/pgtable.h
++++ b/include/asm-generic/pgtable.h
+@@ -673,6 +673,41 @@ static inline void ptep_modify_prot_commit(struct vm_area_struct *vma,
+ 	__ptep_modify_prot_commit(vma, addr, ptep, pte);
  }
+ #endif /* __HAVE_ARCH_PTEP_MODIFY_PROT_TRANSACTION */
++
++static inline pmd_t __pmdp_modify_prot_start(struct vm_area_struct *vma,
++						unsigned long addr,
++						pmd_t *pmdp)
++{
++	return pmdp_invalidate(vma, addr, pmdp);
++}
++
++static inline void __pmdp_modify_prot_commit(struct vm_area_struct *vma,
++						unsigned long addr,
++						pmd_t *pmdp, pmd_t pmd)
++{
++	set_pmd_at(vma->vm_mm, addr, pmdp, pmd);
++}
++
++#ifdef CONFIG_TRANSPARENT_HUGEPAGE
++#ifndef __HAVE_ARCH_PMDP_MODIFY_PROT_TRANSACTION
++static inline pmd_t pmdp_modify_prot_start(struct vm_area_struct *vma,
++						unsigned long addr,
++						pmd_t *pmdp)
++{
++	__pmdp_modify_prot_start(vma, addr, pmdp);
++}
++#endif /* __HAVE_ARCH_PMDP_MODIFY_PROT_TRANSACTION */
++
++/*
++ * Commit an update to a pmd.
++ */
++static inline void pmdp_modify_prot_commit(struct vm_area_struct *vma,
++						unsigned long addr,
++						pmd_t *pmdp, pmd_t old_pmd, pmd_t pmd)
++{
++	__pmdp_modify_prot_commit(vma, addr, pmdp, pmd);
++}
++#endif /* CONFIG_TRANSPARENT_HUGEPAGE */
+ #endif /* CONFIG_MMU */
 
- void pkey_write_allow(int pkey)
+ /*
+diff --git a/mm/huge_memory.c b/mm/huge_memory.c
+index a88093213674..53515a3c91dd 100644
+--- a/mm/huge_memory.c
++++ b/mm/huge_memory.c
+@@ -1933,9 +1933,8 @@ bool move_huge_pmd(struct vm_area_struct *vma, unsigned long old_addr,
+ int change_huge_pmd(struct vm_area_struct *vma, pmd_t *pmd,
+ 		unsigned long addr, pgprot_t newprot, int prot_numa)
+ {
+-	struct mm_struct *mm = vma->vm_mm;
+ 	spinlock_t *ptl;
+-	pmd_t entry;
++	pmd_t pmdnt, oldpmd;
+ 	bool preserve_write;
+ 	int ret;
+
+@@ -1961,7 +1960,7 @@ int change_huge_pmd(struct vm_area_struct *vma, pmd_t *pmd,
+ 			newpmd = swp_entry_to_pmd(entry);
+ 			if (pmd_swp_soft_dirty(*pmd))
+ 				newpmd = pmd_swp_mksoft_dirty(newpmd);
+-			set_pmd_at(mm, addr, pmd, newpmd);
++			set_pmd_at(vma->vm_mm, addr, pmd, newpmd);
+ 		}
+ 		goto unlock;
+ 	}
+@@ -1995,18 +1994,16 @@ int change_huge_pmd(struct vm_area_struct *vma, pmd_t *pmd,
+ 	 *
+ 	 * The race makes MADV_DONTNEED miss the huge pmd and don't clear it
+ 	 * which may break userspace.
+-	 *
+-	 * pmdp_invalidate() is required to make sure we don't miss
+-	 * dirty/young flags set by hardware.
+ 	 */
+-	entry = pmdp_invalidate(vma, addr, pmd);
+
+-	entry = pmd_modify(entry, newprot);
++	oldpmd = pmdp_modify_prot_start(vma, addr, pmd);
++	pmdnt = pmd_modify(oldpmd, newprot);
+ 	if (preserve_write)
+-		entry = pmd_mk_savedwrite(entry);
++		pmdnt = pmd_mk_savedwrite(pmdnt);
++	pmdp_modify_prot_commit(vma, addr, pmd, oldpmd, pmdnt);
++
+ 	ret = HPAGE_PMD_NR;
+-	set_pmd_at(mm, addr, pmd, entry);
+-	BUG_ON(vma_is_anonymous(vma) && !preserve_write && pmd_write(entry));
++	BUG_ON(vma_is_anonymous(vma) && !preserve_write && pmd_write(pmdnt));
+ unlock:
+ 	spin_unlock(ptl);
+ 	return ret;
 -- 
 2.17.1
