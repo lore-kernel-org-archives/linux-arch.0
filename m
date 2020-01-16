@@ -1,44 +1,71 @@
-Return-Path: <owner-linux-mm@kvack.org>
-Subject: Re: [PATCH mk-II 08/17] asm-generic/tlb: Provide
- MMU_GATHER_TABLE_FREE
-References: <20191211120713.360281197@infradead.org>
- <20191211122956.112607298@infradead.org>
- <20191212093205.GU2827@hirez.programming.kicks-ass.net>
- <20200126155205.GA19169@roeck-us.net>
- <20200127081134.GI14914@hirez.programming.kicks-ass.net>
- <33932bc9-1fca-66ae-8f55-6da2f131c5be@linux.ibm.com>
- <20200127130503.GG14879@hirez.programming.kicks-ass.net>
-From: "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>
-Date: Mon, 27 Jan 2020 19:12:45 +0530
+Return-Path: <linux-arch-owner@vger.kernel.org>
+Received: from szxga04-in.huawei.com ([45.249.212.190]:9626 "EHLO huawei.com"
+ rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP id S1729486AbgAPDOM
+ (ORCPT <rfc822;linux-arch@vger.kernel.org>); Wed, 15 Jan 2020 22:14:12 -0500
+From: Xuefeng Wang <wxf.wang@hisilicon.com>
+Subject: [PATCH 2/2] arm64: mm: rework the pmd protect changing flow
+Date: Thu, 16 Jan 2020 11:09:17 +0800
+Message-ID: <1579144157-7736-3-git-send-email-wxf.wang@hisilicon.com>
+In-Reply-To: <1579144157-7736-1-git-send-email-wxf.wang@hisilicon.com>
+References: <1579144157-7736-1-git-send-email-wxf.wang@hisilicon.com>
 MIME-Version: 1.0
-In-Reply-To: <20200127130503.GG14879@hirez.programming.kicks-ass.net>
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Language: en-US
-Content-Transfer-Encoding: 7bit
-Message-ID: <523015f1-99d0-3974-8f4a-44f54d4280c2@linux.ibm.com>
-Sender: owner-linux-mm@kvack.org
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Guenter Roeck <linux@roeck-us.net>, Will Deacon <will@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Nick Piggin <npiggin@gmail.com>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, "David S. Miller" <davem@davemloft.net>, Helge Deller <deller@gmx.de>, Geert Uytterhoeven <geert@linux-m68k.org>, Paul Burton <paulburton@kernel.org>, Tony Luck <tony.luck@intel.com>, Richard Henderson <rth@twiddle.net>, Nick Hu <nickhu@andestech.com>, Paul Walmsley <paul.walmsley@sifive.com>
+Content-Type: text/plain
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200127134245.e83MJqK624mQ0_NQLGntewV1sHL32W6hM4SGQYuhuik@z>
+To: arnd@arndb.de, akpm@linux-foundation.org, catalin.marinas@arm.com, will@kernel.org, mark.rutland@arm.com
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, linux-arm-kernel@lists.infradead.org, chenzhou10@huawei.com
+Message-ID: <20200116030917.LNpJ_XisAWbxojbnpdUhf5bnj3yBq4GaTCcFo1cCsBs@z>
 
-On 1/27/20 6:35 PM, Peter Zijlstra wrote:
-> On Mon, Jan 27, 2020 at 01:43:34PM +0530, Aneesh Kumar K.V wrote:
-> 
->> I did send a change to fix that. it is to drop !SMP change in the patch
->>
->> https://lore.kernel.org/linux-mm/87v9p9mhnr.fsf@linux.ibm.com
-> 
-> Indeed you did. Did those patches land anywhere, or is it all still up
-> in the air? (I was hoping to find those patches in a tree somewhere)
-> 
+On KunPeng920 board. When changing permission of a large range region,
+pmdp_invalidate() takes about 65% in profile (with hugepages) in JIT tool.
+Kernel will flush tlb twice: first flush happens in pmdp_invalidate, second
+flush happens at the end of change_protect_range(). The first pmdp_invalidate
+is not necessary if the hardware support atomic pmdp changing. The atomic
+changing pimd to zero can prevent the hardware from update asynchronous.
+So reconstruct it and remove the first pmdp_invalidate. And the second tlb
+flush can make sure the new tlb entry valid.
 
-Andrew did pick the series. I am not sure whether he got to pick the 
-build fix.
+Add pmdp_modify_prot_start() in arm64, which uses pmdp_huge_get_and_clear()
+to fetch the pmd and zero entry, preventing racing of any hardware updates.
 
-Guenter,
+After rework, the mprotect can get 3~13 times performace gain in range
+64M to 512M.
 
-Can you confirm that patch did fix the build issue?
+4K granule/THP on
+memory size(M)	64	128	256	320	448	512
+pre-patch		0.77	1.40	2.64	3.23	4.49	5.10
+post-patch		0.20	0.23	0.28	0.31	0.37	0.39
 
+Signed-off-by: Xuefeng Wang <wxf.wang@hisilicon.com>
+Signed-off-by: Chen Zhou <chenzhou10@huawei.com>
+---
+ arch/arm64/include/asm/pgtable.h | 14 ++++++++++++++
+ 1 file changed, 14 insertions(+)
 
--aneesh
+diff --git a/arch/arm64/include/asm/pgtable.h b/arch/arm64/include/asm/pgtable.h
+index cd5de0e40bfa..bccdaa5bd5f2 100644
+--- a/arch/arm64/include/asm/pgtable.h
++++ b/arch/arm64/include/asm/pgtable.h
+@@ -769,6 +769,20 @@ static inline pmd_t pmdp_huge_get_and_clear(struct mm_struct *mm,
+ }
+ #endif /* CONFIG_TRANSPARENT_HUGEPAGE */
+
++#ifdef CONFIG_TRANSPARENT_HUGEPAGE
++#define __HAVE_ARCH_PMDP_MODIFY_PROT_TRANSACTION
++static inline pmd_t pmdp_modify_prot_start(struct vm_area_struct *vma,
++						unsigned long addr,
++						pmd_t *pmdp)
++{
++	/*
++	 * Atomic change pmd to zero, prevent the hardware from update
++	 * aynchronously update it.
++	 */
++	return pmdp_huge_get_and_clear(vma->vm_mm, addr, pmdp);
++}
++#endif /* CONFIG_TRANSPARENT_HUGEPAGE */
++
+ /*
+  * ptep_set_wrprotect - mark read-only while trasferring potential hardware
+  * dirty status (PTE_DBM && !PTE_RDONLY) to the software PTE_DIRTY bit.
+-- 
+2.17.1
