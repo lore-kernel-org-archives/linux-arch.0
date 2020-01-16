@@ -1,274 +1,285 @@
-Return-Path: <3-WEzXg4KBIIhxktjgtnommotymuumrk.iusxvvzrot03.ohs.ius@flex--brendanhiggins.bounces.google.com>
-Date: Thu, 30 Jan 2020 15:08:10 -0800
-In-Reply-To: <20200130230812.142642-1-brendanhiggins@google.com>
-Message-ID: <20200130230812.142642-6-brendanhiggins@google.com>
-Mime-Version: 1.0
-References: <20200130230812.142642-1-brendanhiggins@google.com>
-Subject: [PATCH v2 5/7] kunit: test: add test plan to KUnit TAP format
-From: Brendan Higgins <brendanhiggins@google.com>
-Content-Type: text/plain; charset="UTF-8"
-To: jdike@addtoit.com, richard@nod.at, anton.ivanov@cambridgegreys.com, arnd@arndb.de, keescook@chromium.org, skhan@linuxfoundation.org, alan.maguire@oracle.com, yzaikin@google.com, davidgow@google.com, akpm@linux-foundation.org, rppt@linux.ibm.com, frowand.list@gmail.com
-Cc: gregkh@linuxfoundation.org, sboyd@kernel.org, logang@deltatee.com, mcgrof@kernel.org, knut.omang@oracle.com, linux-um@lists.infradead.org, linux-arch@vger.kernel.org, linux-kselftest@vger.kernel.org, kunit-dev@googlegroups.com, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, Brendan Higgins <brendanhiggins@google.com>
+Return-Path: <linux-arch-owner@vger.kernel.org>
+Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:56108 "EHLO
+ mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+ with ESMTP id S1726706AbgAPGq2 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+ Thu, 16 Jan 2020 01:46:28 -0500
+From: "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>
+Subject: [PATCH v4 6/9] asm-generic/tlb: Rename HAVE_RCU_TABLE_FREE
+Date: Thu, 16 Jan 2020 12:15:28 +0530
+Message-ID: <20200116064531.483522-7-aneesh.kumar@linux.ibm.com>
+In-Reply-To: <20200116064531.483522-1-aneesh.kumar@linux.ibm.com>
+References: <20200116064531.483522-1-aneesh.kumar@linux.ibm.com>
+MIME-Version: 1.0
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200130230810.eDKn2-PKg8kYslwthgORU47yh75Xpq783SSqHBeR1k8@z>
+Content-Transfer-Encoding: quoted-printable
+To: akpm@linux-foundation.org, peterz@infradead.org, will@kernel.org, mpe@ellerman.id.au
+Cc: linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, "Aneesh Kumar K . V" <aneesh.kumar@linux.ibm.com>
+Message-ID: <20200116064528.Ob_gMz-66arCA9k0I9LRXbNm1iaZuPGXoZiZI-XOp6U@z>
 
-TAP 14 allows an optional test plan to be emitted before the start of
-the start of testing[1]; this is valuable because it makes it possible
-for a test harness to detect whether the number of tests run matches the
-number of tests expected to be run, ensuring that no tests silently
-failed.
+From: Peter Zijlstra <peterz@infradead.org>
 
-Link[1]: https://github.com/isaacs/testanything.github.io/blob/tap14/tap-version-14-specification.md#the-plan
-Signed-off-by: Brendan Higgins <brendanhiggins@google.com>
-Reviewed-by: Stephen Boyd <sboyd@kernel.org>
+Towards a more consistent naming scheme.
+
+Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+Signed-off-by: Aneesh Kumar K.V <aneesh.kumar@linux.ibm.com>
 ---
- lib/kunit/executor.c                          | 17 +++++
- lib/kunit/test.c                              | 11 ---
- tools/testing/kunit/kunit_parser.py           | 74 ++++++++++++++++---
- .../test_is_test_passed-all_passed.log        |  1 +
- .../test_data/test_is_test_passed-crash.log   |  1 +
- .../test_data/test_is_test_passed-failure.log |  1 +
- 6 files changed, 82 insertions(+), 23 deletions(-)
+ arch/Kconfig                    |  2 +-
+ arch/arm/Kconfig                |  2 +-
+ arch/arm/include/asm/tlb.h      |  2 +-
+ arch/arm64/Kconfig              |  2 +-
+ arch/powerpc/Kconfig            |  2 +-
+ arch/s390/Kconfig               |  2 +-
+ arch/sparc/Kconfig              |  2 +-
+ arch/sparc/include/asm/tlb_64.h |  2 +-
+ arch/x86/Kconfig                |  2 +-
+ arch/x86/include/asm/tlb.h      |  4 ++--
+ include/asm-generic/tlb.h       | 10 +++++-----
+ mm/gup.c                        |  2 +-
+ mm/mmu_gather.c                 |  8 ++++----
+ 13 files changed, 21 insertions(+), 21 deletions(-)
 
-diff --git a/lib/kunit/executor.c b/lib/kunit/executor.c
-index b75a46c560847..7fd16feff157e 100644
---- a/lib/kunit/executor.c
-+++ b/lib/kunit/executor.c
-@@ -11,11 +11,28 @@ extern struct kunit_suite * const * const __kunit_suites_end[];
- 
- #if IS_BUILTIN(CONFIG_KUNIT)
- 
-+static void kunit_print_tap_header(void)
-+{
-+	struct kunit_suite * const * const *suites, * const *subsuite;
-+	int num_of_suites = 0;
-+
-+	for (suites = __kunit_suites_start;
-+	     suites < __kunit_suites_end;
-+	     suites++)
-+		for (subsuite = *suites; *subsuite != NULL; subsuite++)
-+			num_of_suites++;
-+
-+	pr_info("TAP version 14\n");
-+	pr_info("1..%d\n", num_of_suites);
-+}
-+
- int kunit_run_all_tests(void)
- {
- 	struct kunit_suite * const * const *suites, * const *subsuite;
- 	bool has_test_failed = false;
- 
-+	kunit_print_tap_header();
-+
- 	for (suites = __kunit_suites_start;
- 	     suites < __kunit_suites_end;
- 	     suites++) {
-diff --git a/lib/kunit/test.c b/lib/kunit/test.c
-index 9242f932896c7..da56b94261b43 100644
---- a/lib/kunit/test.c
-+++ b/lib/kunit/test.c
-@@ -18,16 +18,6 @@ static void kunit_set_failure(struct kunit *test)
- 	WRITE_ONCE(test->success, false);
+diff --git a/arch/Kconfig b/arch/Kconfig
+index 5e907a954532..501d565690b5 100644
+--- a/arch/Kconfig
++++ b/arch/Kconfig
+@@ -393,7 +393,7 @@ config HAVE_ARCH_JUMP_LABEL
+ config HAVE_ARCH_JUMP_LABEL_RELATIVE
+ 	bool
+
+-config HAVE_RCU_TABLE_FREE
++config MMU_GATHER_RCU_TABLE_FREE
+ 	bool
+
+ config HAVE_MMU_GATHER_PAGE_SIZE
+diff --git a/arch/arm/Kconfig b/arch/arm/Kconfig
+index 96dab76da3b3..36445579243c 100644
+--- a/arch/arm/Kconfig
++++ b/arch/arm/Kconfig
+@@ -102,7 +102,7 @@ config ARM
+ 	select HAVE_PERF_EVENTS
+ 	select HAVE_PERF_REGS
+ 	select HAVE_PERF_USER_STACK_DUMP
+-	select HAVE_RCU_TABLE_FREE if SMP && ARM_LPAE
++	select MMU_GATHER_RCU_TABLE_FREE if SMP && ARM_LPAE
+ 	select HAVE_REGS_AND_STACK_ACCESS_API
+ 	select HAVE_RSEQ
+ 	select HAVE_STACKPROTECTOR
+diff --git a/arch/arm/include/asm/tlb.h b/arch/arm/include/asm/tlb.h
+index 669474add486..46a21cee3442 100644
+--- a/arch/arm/include/asm/tlb.h
++++ b/arch/arm/include/asm/tlb.h
+@@ -37,7 +37,7 @@ static inline void __tlb_remove_table(void *_table)
+
+ #include <asm-generic/tlb.h>
+
+-#ifndef CONFIG_HAVE_RCU_TABLE_FREE
++#ifndef CONFIG_MMU_GATHER_RCU_TABLE_FREE
+ #define tlb_remove_table(tlb, entry) tlb_remove_page(tlb, entry)
+ #endif
+
+diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
+index e688dfad0b72..a434f7c2438f 100644
+--- a/arch/arm64/Kconfig
++++ b/arch/arm64/Kconfig
+@@ -162,7 +162,7 @@ config ARM64
+ 	select HAVE_PERF_USER_STACK_DUMP
+ 	select HAVE_REGS_AND_STACK_ACCESS_API
+ 	select HAVE_FUNCTION_ARG_ACCESS_API
+-	select HAVE_RCU_TABLE_FREE
++	select MMU_GATHER_RCU_TABLE_FREE
+ 	select HAVE_RSEQ
+ 	select HAVE_STACKPROTECTOR
+ 	select HAVE_SYSCALL_TRACEPOINTS
+diff --git a/arch/powerpc/Kconfig b/arch/powerpc/Kconfig
+index f9970f87612e..955759234776 100644
+--- a/arch/powerpc/Kconfig
++++ b/arch/powerpc/Kconfig
+@@ -222,7 +222,7 @@ config PPC
+ 	select HAVE_HARDLOCKUP_DETECTOR_PERF	if PERF_EVENTS && HAVE_PERF_EVENTS=
+_NMI && !HAVE_HARDLOCKUP_DETECTOR_ARCH
+ 	select HAVE_PERF_REGS
+ 	select HAVE_PERF_USER_STACK_DUMP
+-	select HAVE_RCU_TABLE_FREE
++	select MMU_GATHER_RCU_TABLE_FREE
+ 	select HAVE_MMU_GATHER_PAGE_SIZE
+ 	select HAVE_REGS_AND_STACK_ACCESS_API
+ 	select HAVE_RELIABLE_STACKTRACE		if PPC_BOOK3S_64 && CPU_LITTLE_ENDIAN
+diff --git a/arch/s390/Kconfig b/arch/s390/Kconfig
+index bc88841d335d..e2cde82a1a3c 100644
+--- a/arch/s390/Kconfig
++++ b/arch/s390/Kconfig
+@@ -169,7 +169,7 @@ config S390
+ 	select HAVE_OPROFILE
+ 	select HAVE_PCI
+ 	select HAVE_PERF_EVENTS
+-	select HAVE_RCU_TABLE_FREE
++	select MMU_GATHER_RCU_TABLE_FREE
+ 	select HAVE_REGS_AND_STACK_ACCESS_API
+ 	select HAVE_RELIABLE_STACKTRACE
+ 	select HAVE_RSEQ
+diff --git a/arch/sparc/Kconfig b/arch/sparc/Kconfig
+index 18e9fb6fcf1b..c703eb6b7461 100644
+--- a/arch/sparc/Kconfig
++++ b/arch/sparc/Kconfig
+@@ -64,7 +64,7 @@ config SPARC64
+ 	select HAVE_FUNCTION_GRAPH_TRACER
+ 	select HAVE_KRETPROBES
+ 	select HAVE_KPROBES
+-	select HAVE_RCU_TABLE_FREE if SMP
++	select MMU_GATHER_RCU_TABLE_FREE
+ 	select HAVE_MEMBLOCK_NODE_MAP
+ 	select HAVE_ARCH_TRANSPARENT_HUGEPAGE
+ 	select HAVE_DYNAMIC_FTRACE
+diff --git a/arch/sparc/include/asm/tlb_64.h b/arch/sparc/include/asm/tlb=
+_64.h
+index 8cb8f3833239..6820d357581c 100644
+--- a/arch/sparc/include/asm/tlb_64.h
++++ b/arch/sparc/include/asm/tlb_64.h
+@@ -33,7 +33,7 @@ void flush_tlb_pending(void);
+  * and therefore we don't need a TLBI when freeing page-table pages.
+  */
+
+-#ifdef CONFIG_HAVE_RCU_TABLE_FREE
++#ifdef CONFIG_MMU_GATHER_RCU_TABLE_FREE
+ #define tlb_needs_table_invalidate()	(false)
+ #endif
+
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index 5e8949953660..f809bed408dd 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -200,7 +200,7 @@ config X86
+ 	select HAVE_PCI
+ 	select HAVE_PERF_REGS
+ 	select HAVE_PERF_USER_STACK_DUMP
+-	select HAVE_RCU_TABLE_FREE		if PARAVIRT
++	select MMU_GATHER_RCU_TABLE_FREE		if PARAVIRT
+ 	select HAVE_REGS_AND_STACK_ACCESS_API
+ 	select HAVE_RELIABLE_STACKTRACE		if X86_64 && (UNWINDER_FRAME_POINTER |=
+| UNWINDER_ORC) && STACK_VALIDATION
+ 	select HAVE_FUNCTION_ARG_ACCESS_API
+diff --git a/arch/x86/include/asm/tlb.h b/arch/x86/include/asm/tlb.h
+index f23e7aaff4cd..820082bd6880 100644
+--- a/arch/x86/include/asm/tlb.h
++++ b/arch/x86/include/asm/tlb.h
+@@ -29,8 +29,8 @@ static inline void tlb_flush(struct mmu_gather *tlb)
+  * shootdown, enablement code for several hypervisors overrides
+  * .flush_tlb_others hook in pv_mmu_ops and implements it by issuing
+  * a hypercall. To keep software pagetable walkers safe in this case we
+- * switch to RCU based table free (HAVE_RCU_TABLE_FREE). See the comment
+- * below 'ifdef CONFIG_HAVE_RCU_TABLE_FREE' in include/asm-generic/tlb.h
++ * switch to RCU based table free (MMU_GATHER_RCU_TABLE_FREE). See the c=
+omment
++ * below 'ifdef CONFIG_MMU_GATHER_RCU_TABLE_FREE' in include/asm-generic=
+/tlb.h
+  * for more details.
+  */
+ static inline void __tlb_remove_table(void *table)
+diff --git a/include/asm-generic/tlb.h b/include/asm-generic/tlb.h
+index 1a4cea5f95df..04a1b8f08eea 100644
+--- a/include/asm-generic/tlb.h
++++ b/include/asm-generic/tlb.h
+@@ -126,7 +126,7 @@
+  *  This ensures we call tlb_flush() every time tlb_change_page_size() a=
+ctually
+  *  changes the size and provides mmu_gather::page_size to tlb_flush().
+  *
+- *  HAVE_RCU_TABLE_FREE
++ *  MMU_GATHER_RCU_TABLE_FREE
+  *
+  *  This provides tlb_remove_table(), to be used instead of tlb_remove_p=
+age()
+  *  for page directores (__p*_free_tlb()). This provides separate freein=
+g of
+@@ -142,7 +142,7 @@
+  *  Use this if your architecture lacks an efficient flush_tlb_range().
+  */
+
+-#ifdef CONFIG_HAVE_RCU_TABLE_FREE
++#ifdef CONFIG_MMU_GATHER_RCU_TABLE_FREE
+ /*
+  * Semi RCU freeing of the page directories.
+  *
+@@ -193,10 +193,10 @@ extern void tlb_remove_table(struct mmu_gather *tlb=
+, void *table);
+ #else
+
+ #ifdef tlb_needs_table_invalidate
+-#error tlb_needs_table_invalidate() requires HAVE_RCU_TABLE_FREE
++#error tlb_needs_table_invalidate() requires MMU_GATHER_RCU_TABLE_FREE
+ #endif
+
+-#endif /* CONFIG_HAVE_RCU_TABLE_FREE */
++#endif /* CONFIG_MMU_GATHER_RCU_TABLE_FREE */
+
+
+ #ifndef CONFIG_HAVE_MMU_GATHER_NO_GATHER
+@@ -235,7 +235,7 @@ extern bool __tlb_remove_page_size(struct mmu_gather =
+*tlb, struct page *page,
+ struct mmu_gather {
+ 	struct mm_struct	*mm;
+
+-#ifdef CONFIG_HAVE_RCU_TABLE_FREE
++#ifdef CONFIG_MMU_GATHER_RCU_TABLE_FREE
+ 	struct mmu_table_batch	*batch;
+ #endif
+
+diff --git a/mm/gup.c b/mm/gup.c
+index 7646bf993b25..789fadc011b8 100644
+--- a/mm/gup.c
++++ b/mm/gup.c
+@@ -1729,7 +1729,7 @@ EXPORT_SYMBOL(get_user_pages_unlocked);
+  * Before activating this code, please be aware that the following assum=
+ptions
+  * are currently made:
+  *
+- *  *) Either HAVE_RCU_TABLE_FREE is enabled, and tlb_remove_table() is =
+used to
++ *  *) Either MMU_GATHER_RCU_TABLE_FREE is enabled, and tlb_remove_table=
+() is used to
+  *  free pages containing page tables or TLB flushing requires IPI broad=
+cast.
+  *
+  *  *) ptes can be read atomically by the architecture.
+diff --git a/mm/mmu_gather.c b/mm/mmu_gather.c
+index 7c1b8f67af7b..86bb2176e173 100644
+--- a/mm/mmu_gather.c
++++ b/mm/mmu_gather.c
+@@ -91,7 +91,7 @@ bool __tlb_remove_page_size(struct mmu_gather *tlb, str=
+uct page *page, int page_
+
+ #endif /* HAVE_MMU_GATHER_NO_GATHER */
+
+-#ifdef CONFIG_HAVE_RCU_TABLE_FREE
++#ifdef CONFIG_MMU_GATHER_RCU_TABLE_FREE
+
+ /*
+  * See the comment near struct mmu_table_batch.
+@@ -173,11 +173,11 @@ void tlb_remove_table(struct mmu_gather *tlb, void =
+*table)
+ 		tlb_table_flush(tlb);
  }
- 
--static void kunit_print_tap_version(void)
--{
--	static bool kunit_has_printed_tap_version;
--
--	if (!kunit_has_printed_tap_version) {
--		pr_info("TAP version 14\n");
--		kunit_has_printed_tap_version = true;
--	}
--}
--
- static size_t kunit_test_cases_len(struct kunit_case *test_cases)
+
+-#endif /* CONFIG_HAVE_RCU_TABLE_FREE */
++#endif /* CONFIG_MMU_GATHER_RCU_TABLE_FREE */
+
+ static void tlb_flush_mmu_free(struct mmu_gather *tlb)
  {
- 	struct kunit_case *test_case;
-@@ -41,7 +31,6 @@ static size_t kunit_test_cases_len(struct kunit_case *test_cases)
- 
- static void kunit_print_subtest_start(struct kunit_suite *suite)
- {
--	kunit_print_tap_version();
- 	pr_info("\t# Subtest: %s\n", suite->name);
- 	pr_info("\t1..%zd\n", kunit_test_cases_len(suite->test_cases));
- }
-diff --git a/tools/testing/kunit/kunit_parser.py b/tools/testing/kunit/kunit_parser.py
-index 4ffbae0f67325..78b3bdd03b1e4 100644
---- a/tools/testing/kunit/kunit_parser.py
-+++ b/tools/testing/kunit/kunit_parser.py
-@@ -45,6 +45,7 @@ class TestStatus(Enum):
- 	FAILURE = auto()
- 	TEST_CRASHED = auto()
- 	NO_TESTS = auto()
-+	FAILURE_TO_PARSE_TESTS = auto()
- 
- kunit_start_re = re.compile(r'^TAP version [0-9]+$')
- kunit_end_re = re.compile('List of all partitions:')
-@@ -106,7 +107,7 @@ OkNotOkResult = namedtuple('OkNotOkResult', ['is_ok','description', 'text'])
- 
- OK_NOT_OK_SUBTEST = re.compile(r'^\t(ok|not ok) [0-9]+ - (.*)$')
- 
--OK_NOT_OK_MODULE = re.compile(r'^(ok|not ok) [0-9]+ - (.*)$')
-+OK_NOT_OK_MODULE = re.compile(r'^(ok|not ok) ([0-9]+) - (.*)$')
- 
- def parse_ok_not_ok_test_case(lines: List[str],
- 			      test_case: TestCase,
-@@ -196,7 +197,9 @@ def max_status(left: TestStatus, right: TestStatus) -> TestStatus:
- 	else:
- 		return TestStatus.SUCCESS
- 
--def parse_ok_not_ok_test_suite(lines: List[str], test_suite: TestSuite) -> bool:
-+def parse_ok_not_ok_test_suite(lines: List[str],
-+			       test_suite: TestSuite,
-+			       expected_suite_index: int) -> bool:
- 	consume_non_diagnositic(lines)
- 	if not lines:
- 		test_suite.status = TestStatus.TEST_CRASHED
-@@ -209,6 +212,12 @@ def parse_ok_not_ok_test_suite(lines: List[str], test_suite: TestSuite) -> bool:
- 			test_suite.status = TestStatus.SUCCESS
- 		else:
- 			test_suite.status = TestStatus.FAILURE
-+		suite_index = int(match.group(2))
-+		if suite_index != expected_suite_index:
-+			print_with_timestamp(
-+				red('[ERROR] ') + 'expected_suite_index ' +
-+				str(expected_suite_index) + ', but got ' +
-+				str(suite_index))
- 		return True
- 	else:
- 		return False
-@@ -221,7 +230,7 @@ def bubble_up_test_case_errors(test_suite: TestSuite) -> TestStatus:
- 	max_test_case_status = bubble_up_errors(lambda x: x.status, test_suite.cases)
- 	return max_status(max_test_case_status, test_suite.status)
- 
--def parse_test_suite(lines: List[str]) -> TestSuite:
-+def parse_test_suite(lines: List[str], expected_suite_index: int) -> TestSuite:
- 	if not lines:
- 		return None
- 	consume_non_diagnositic(lines)
-@@ -240,7 +249,7 @@ def parse_test_suite(lines: List[str]) -> TestSuite:
- 		test_suite.cases.append(test_case)
- 		test_case = parse_test_case(lines, expected_test_case_num > 0)
- 		expected_test_case_num -= 1
--	if parse_ok_not_ok_test_suite(lines, test_suite):
-+	if parse_ok_not_ok_test_suite(lines, test_suite, expected_suite_index):
- 		test_suite.status = bubble_up_test_case_errors(test_suite)
- 		return test_suite
- 	elif not lines:
-@@ -260,6 +269,17 @@ def parse_tap_header(lines: List[str]) -> bool:
- 	else:
- 		return False
- 
-+TEST_PLAN = re.compile(r'[0-9]+\.\.([0-9]+)')
-+
-+def parse_test_plan(lines: List[str]) -> int:
-+	consume_non_diagnositic(lines)
-+	match = TEST_PLAN.match(lines[0])
-+	if match:
-+		lines.pop(0)
-+		return int(match.group(1))
-+	else:
-+		return None
-+
- def bubble_up_suite_errors(test_suite_list: List[TestSuite]) -> TestStatus:
- 	return bubble_up_errors(lambda x: x.status, test_suite_list)
- 
-@@ -268,19 +288,34 @@ def parse_test_result(lines: List[str]) -> TestResult:
- 		return TestResult(TestStatus.NO_TESTS, [], lines)
- 	consume_non_diagnositic(lines)
- 	if not parse_tap_header(lines):
--		return None
-+		return TestResult(TestStatus.NO_TESTS, [], lines)
-+	expected_test_suite_num = parse_test_plan(lines)
-+	if not expected_test_suite_num:
-+		return TestResult(TestStatus.FAILURE_TO_PARSE_TESTS, [], lines)
- 	test_suites = []
--	test_suite = parse_test_suite(lines)
--	while test_suite:
--		test_suites.append(test_suite)
--		test_suite = parse_test_suite(lines)
--	return TestResult(bubble_up_suite_errors(test_suites), test_suites, lines)
-+	for i in range(1, expected_test_suite_num + 1):
-+		test_suite = parse_test_suite(lines, i)
-+		if test_suite:
-+			test_suites.append(test_suite)
-+		else:
-+			print_with_timestamp(
-+				red('[ERROR] ') + ' expected ' +
-+				str(expected_test_suite_num) +
-+				' test suites, but got ' + str(i - 2))
-+			break
-+	test_suite = parse_test_suite(lines, -1)
-+	if test_suite:
-+		print_with_timestamp(red('[ERROR] ') +
-+			'got unexpected test suite: ' + test_suite.name)
-+	if test_suites:
-+		return TestResult(bubble_up_suite_errors(test_suites), test_suites, lines)
-+	else:
-+		return TestResult(TestStatus.NO_TESTS, [], lines)
- 
--def parse_run_tests(kernel_output) -> TestResult:
-+def print_and_count_results(test_result: TestResult) -> None:
- 	total_tests = 0
- 	failed_tests = 0
- 	crashed_tests = 0
--	test_result = parse_test_result(list(isolate_kunit_output(kernel_output)))
- 	for test_suite in test_result.suites:
- 		if test_suite.status == TestStatus.SUCCESS:
- 			print_suite_divider(green('[PASSED] ') + test_suite.name)
-@@ -302,6 +337,21 @@ def parse_run_tests(kernel_output) -> TestResult:
- 				print_with_timestamp(red('[FAILED] ') + test_case.name)
- 				print_log(map(yellow, test_case.log))
- 				print_with_timestamp('')
-+	return total_tests, failed_tests, crashed_tests
-+
-+def parse_run_tests(kernel_output) -> TestResult:
-+	total_tests = 0
-+	failed_tests = 0
-+	crashed_tests = 0
-+	test_result = parse_test_result(list(isolate_kunit_output(kernel_output)))
-+	if test_result.status == TestStatus.NO_TESTS:
-+		print(red('[ERROR] ') + yellow('no tests run!'))
-+	elif test_result.status == TestStatus.FAILURE_TO_PARSE_TESTS:
-+		print(red('[ERROR] ') + yellow('could not parse test results!'))
-+	else:
-+		(total_tests,
-+		 failed_tests,
-+		 crashed_tests) = print_and_count_results(test_result)
- 	print_with_timestamp(DIVIDER)
- 	fmt = green if test_result.status == TestStatus.SUCCESS else red
- 	print_with_timestamp(
-diff --git a/tools/testing/kunit/test_data/test_is_test_passed-all_passed.log b/tools/testing/kunit/test_data/test_is_test_passed-all_passed.log
-index 62ebc0288355c..bc0dc8fe35b76 100644
---- a/tools/testing/kunit/test_data/test_is_test_passed-all_passed.log
-+++ b/tools/testing/kunit/test_data/test_is_test_passed-all_passed.log
-@@ -1,4 +1,5 @@
- TAP version 14
-+1..2
- 	# Subtest: sysctl_test
- 	1..8
- 	# sysctl_test_dointvec_null_tbl_data: sysctl_test_dointvec_null_tbl_data passed
-diff --git a/tools/testing/kunit/test_data/test_is_test_passed-crash.log b/tools/testing/kunit/test_data/test_is_test_passed-crash.log
-index 0b249870c8be4..4d97f6708c4a5 100644
---- a/tools/testing/kunit/test_data/test_is_test_passed-crash.log
-+++ b/tools/testing/kunit/test_data/test_is_test_passed-crash.log
-@@ -1,6 +1,7 @@
- printk: console [tty0] enabled
- printk: console [mc-1] enabled
- TAP version 14
-+1..2
- 	# Subtest: sysctl_test
- 	1..8
- 	# sysctl_test_dointvec_null_tbl_data: sysctl_test_dointvec_null_tbl_data passed
-diff --git a/tools/testing/kunit/test_data/test_is_test_passed-failure.log b/tools/testing/kunit/test_data/test_is_test_passed-failure.log
-index 9e89d32d5667a..7a416497e3bec 100644
---- a/tools/testing/kunit/test_data/test_is_test_passed-failure.log
-+++ b/tools/testing/kunit/test_data/test_is_test_passed-failure.log
-@@ -1,4 +1,5 @@
- TAP version 14
-+1..2
- 	# Subtest: sysctl_test
- 	1..8
- 	# sysctl_test_dointvec_null_tbl_data: sysctl_test_dointvec_null_tbl_data passed
--- 
-2.25.0.341.g760bfbb309-goog
+-#ifdef CONFIG_HAVE_RCU_TABLE_FREE
++#ifdef CONFIG_MMU_GATHER_RCU_TABLE_FREE
+ 	tlb_table_flush(tlb);
+ #endif
+ #ifndef CONFIG_HAVE_MMU_GATHER_NO_GATHER
+@@ -220,7 +220,7 @@ void tlb_gather_mmu(struct mmu_gather *tlb, struct mm=
+_struct *mm,
+ 	tlb->batch_count =3D 0;
+ #endif
+
+-#ifdef CONFIG_HAVE_RCU_TABLE_FREE
++#ifdef CONFIG_MMU_GATHER_RCU_TABLE_FREE
+ 	tlb->batch =3D NULL;
+ #endif
+ #ifdef CONFIG_HAVE_MMU_GATHER_PAGE_SIZE
+--=20
+2.24.1
