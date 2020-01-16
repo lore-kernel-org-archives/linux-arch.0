@@ -1,184 +1,125 @@
-From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: [PATCH v2 2/2] ARC: uaccess: use optimized generic __strnlen_user/__strncpy_from_user
-Date: Wed, 15 Jan 2020 16:21:24 -0800
-Message-ID: <20200116002124.17988-3-vgupta@synopsys.com>
-References: <20200116002124.17988-1-vgupta@synopsys.com>
+From: Xuefeng Wang <wxf.wang@hisilicon.com>
+Subject: [PATCH 1/2] mm: add helpers pmdp_modify_prot_start/commit
+Date: Thu, 16 Jan 2020 11:09:16 +0800
+Message-ID: <1579144157-7736-2-git-send-email-wxf.wang@hisilicon.com>
+References: <1579144157-7736-1-git-send-email-wxf.wang@hisilicon.com>
 Mime-Version: 1.0
-Content-Transfer-Encoding: 8bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20200116002124.17988-1-vgupta@synopsys.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: linux-snps-arc@lists.infradead.org
-Cc: Arnd Bergmann <arnd@arndb.de>, linux-kernel@vger.kernel.org, linux-arch <linux-arch@vger.kernel.org>, Vineet Gupta <Vineet.Gupta1@synopsys.com>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from szxga04-in.huawei.com ([45.249.212.190]:9627 "EHLO huawei.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1729241AbgAPDOK (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 15 Jan 2020 22:14:10 -0500
+In-Reply-To: <1579144157-7736-1-git-send-email-wxf.wang@hisilicon.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: arnd@arndb.de, akpm@linux-foundation.org, catalin.marinas@arm.com, will@kernel.org, mark.rutland@arm.com
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, linux-arm-kernel@lists.infradead.org, chenzhou10@huawei.com
 
-The existing ARC variants have 2 issues
- - Use ZOL which may not be present in forthcoming architecture
- - Byte loop based vs. generic version which is word loop based
+Introduce helpers pmdp_modify_prot_start/commit to abstract pmdp_modify_prot
+transaction. Helpers pmdp_modify_prot_start/commit are functionally unchanged.
 
-Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
+Signed-off-by: Xuefeng Wang <wxf.wang@hisilicon.com>
+Signed-off-by: Chen Zhou <chenzhou10@huawei.com>
 ---
- arch/arc/Kconfig               |  2 +
- arch/arc/include/asm/uaccess.h | 85 ++--------------------------------
- arch/arc/mm/extable.c          | 23 ---------
- 3 files changed, 6 insertions(+), 104 deletions(-)
+ include/asm-generic/pgtable.h | 35 +++++++++++++++++++++++++++++++++++
+ mm/huge_memory.c              | 19 ++++++++-----------
+ 2 files changed, 43 insertions(+), 11 deletions(-)
 
-diff --git a/arch/arc/Kconfig b/arch/arc/Kconfig
-index 26108ea785c2..3b074c4d31fb 100644
---- a/arch/arc/Kconfig
-+++ b/arch/arc/Kconfig
-@@ -26,6 +26,8 @@ config ARC
- 	select GENERIC_PENDING_IRQ if SMP
- 	select GENERIC_SCHED_CLOCK
- 	select GENERIC_SMP_IDLE_THREAD
-+	select GENERIC_STRNCPY_FROM_USER if MMU
-+	select GENERIC_STRNLEN_USER if MMU
- 	select HAVE_ARCH_KGDB
- 	select HAVE_ARCH_TRACEHOOK
- 	select HAVE_DEBUG_STACKOVERFLOW
-diff --git a/arch/arc/include/asm/uaccess.h b/arch/arc/include/asm/uaccess.h
-index ea40ec7f6cae..a3c943993b7b 100644
---- a/arch/arc/include/asm/uaccess.h
-+++ b/arch/arc/include/asm/uaccess.h
-@@ -52,6 +52,8 @@
- #define __access_ok(addr, sz)	(unlikely(__kernel_ok) || \
- 				 likely(__user_ok((addr), (sz))))
- 
-+#define user_addr_max() 	(uaccess_kernel() ? ~0UL : get_fs())
+diff --git a/include/asm-generic/pgtable.h b/include/asm-generic/pgtable.h
+index 798ea36a0549..e81bd58a9170 100644
+--- a/include/asm-generic/pgtable.h
++++ b/include/asm-generic/pgtable.h
+@@ -673,6 +673,41 @@ static inline void ptep_modify_prot_commit(struct vm_area_struct *vma,
+ 	__ptep_modify_prot_commit(vma, addr, ptep, pte);
+ }
+ #endif /* __HAVE_ARCH_PTEP_MODIFY_PROT_TRANSACTION */
 +
- /*********** Single byte/hword/word copies ******************/
++static inline pmd_t __pmdp_modify_prot_start(struct vm_area_struct *vma,
++						unsigned long addr,
++						pmd_t *pmdp)
++{
++	return pmdp_invalidate(vma, addr, pmdp);
++}
++
++static inline void __pmdp_modify_prot_commit(struct vm_area_struct *vma,
++						unsigned long addr,
++						pmd_t *pmdp, pmd_t pmd)
++{
++	set_pmd_at(vma->vm_mm, addr, pmdp, pmd);
++}
++
++#ifdef CONFIG_TRANSPARENT_HUGEPAGE
++#ifndef __HAVE_ARCH_PMDP_MODIFY_PROT_TRANSACTION
++static inline pmd_t pmdp_modify_prot_start(struct vm_area_struct *vma,
++						unsigned long addr,
++						pmd_t *pmdp)
++{
++	__pmdp_modify_prot_start(vma, addr, pmdp);
++}
++#endif /* __HAVE_ARCH_PMDP_MODIFY_PROT_TRANSACTION */
++
++/*
++ * Commit an update to a pmd.
++ */
++static inline void pmdp_modify_prot_commit(struct vm_area_struct *vma,
++						unsigned long addr,
++						pmd_t *pmdp, pmd_t old_pmd, pmd_t pmd)
++{
++	__pmdp_modify_prot_commit(vma, addr, pmdp, pmd);
++}
++#endif /* CONFIG_TRANSPARENT_HUGEPAGE */
+ #endif /* CONFIG_MMU */
  
- #define __get_user_fn(sz, u, k)					\
-@@ -613,7 +615,7 @@ raw_copy_to_user(void __user *to, const void *from, unsigned long n)
- 	return res;
- }
- 
--static inline unsigned long __arc_clear_user(void __user *to, unsigned long n)
-+static inline unsigned long __clear_user(void __user *to, unsigned long n)
+ /*
+diff --git a/mm/huge_memory.c b/mm/huge_memory.c
+index a88093213674..53515a3c91dd 100644
+--- a/mm/huge_memory.c
++++ b/mm/huge_memory.c
+@@ -1933,9 +1933,8 @@ bool move_huge_pmd(struct vm_area_struct *vma, unsigned long old_addr,
+ int change_huge_pmd(struct vm_area_struct *vma, pmd_t *pmd,
+ 		unsigned long addr, pgprot_t newprot, int prot_numa)
  {
- 	long res = n;
- 	unsigned char *d_char = to;
-@@ -655,89 +657,10 @@ static inline unsigned long __arc_clear_user(void __user *to, unsigned long n)
- 	return res;
- }
+-	struct mm_struct *mm = vma->vm_mm;
+ 	spinlock_t *ptl;
+-	pmd_t entry;
++	pmd_t pmdnt, oldpmd;
+ 	bool preserve_write;
+ 	int ret;
  
--static inline long
--__arc_strncpy_from_user(char *dst, const char __user *src, long count)
--{
--	long res = 0;
--	char val;
--
--	if (count == 0)
--		return 0;
--
--	__asm__ __volatile__(
--	"	mov	lp_count, %5		\n"
--	"	lp	3f			\n"
--	"1:	ldb.ab  %3, [%2, 1]		\n"
--	"	breq.d	%3, 0, 3f               \n"
--	"	stb.ab  %3, [%1, 1]		\n"
--	"	add	%0, %0, 1	# Num of NON NULL bytes copied	\n"
--	"3:								\n"
--	"	.section .fixup, \"ax\"		\n"
--	"	.align 4			\n"
--	"4:	mov %0, %4		# sets @res as -EFAULT	\n"
--	"	j   3b				\n"
--	"	.previous			\n"
--	"	.section __ex_table, \"a\"	\n"
--	"	.align 4			\n"
--	"	.word   1b, 4b			\n"
--	"	.previous			\n"
--	: "+r"(res), "+r"(dst), "+r"(src), "=r"(val)
--	: "g"(-EFAULT), "r"(count)
--	: "lp_count", "memory");
--
--	return res;
--}
--
--static inline long __arc_strnlen_user(const char __user *s, long n)
--{
--	long res, tmp1, cnt;
--	char val;
--
--	__asm__ __volatile__(
--	"	mov %2, %1			\n"
--	"1:	ldb.ab  %3, [%0, 1]		\n"
--	"	breq.d  %3, 0, 2f		\n"
--	"	sub.f   %2, %2, 1		\n"
--	"	bnz 1b				\n"
--	"	sub %2, %2, 1			\n"
--	"2:	sub %0, %1, %2			\n"
--	"3:	;nop				\n"
--	"	.section .fixup, \"ax\"		\n"
--	"	.align 4			\n"
--	"4:	mov %0, 0			\n"
--	"	j   3b				\n"
--	"	.previous			\n"
--	"	.section __ex_table, \"a\"	\n"
--	"	.align 4			\n"
--	"	.word 1b, 4b			\n"
--	"	.previous			\n"
--	: "=r"(res), "=r"(tmp1), "=r"(cnt), "=r"(val)
--	: "0"(s), "1"(n)
--	: "memory");
--
--	return res;
--}
--
--#ifndef CONFIG_CC_OPTIMIZE_FOR_SIZE
--
- #define INLINE_COPY_TO_USER
- #define INLINE_COPY_FROM_USER
+@@ -1961,7 +1960,7 @@ int change_huge_pmd(struct vm_area_struct *vma, pmd_t *pmd,
+ 			newpmd = swp_entry_to_pmd(entry);
+ 			if (pmd_swp_soft_dirty(*pmd))
+ 				newpmd = pmd_swp_mksoft_dirty(newpmd);
+-			set_pmd_at(mm, addr, pmd, newpmd);
++			set_pmd_at(vma->vm_mm, addr, pmd, newpmd);
+ 		}
+ 		goto unlock;
+ 	}
+@@ -1995,18 +1994,16 @@ int change_huge_pmd(struct vm_area_struct *vma, pmd_t *pmd,
+ 	 *
+ 	 * The race makes MADV_DONTNEED miss the huge pmd and don't clear it
+ 	 * which may break userspace.
+-	 *
+-	 * pmdp_invalidate() is required to make sure we don't miss
+-	 * dirty/young flags set by hardware.
+ 	 */
+-	entry = pmdp_invalidate(vma, addr, pmd);
  
--#define __clear_user(d, n)		__arc_clear_user(d, n)
--#define __strncpy_from_user(d, s, n)	__arc_strncpy_from_user(d, s, n)
--#define __strnlen_user(s, n)		__arc_strnlen_user(s, n)
--#else
--extern unsigned long arc_clear_user_noinline(void __user *to,
--		unsigned long n);
--extern long arc_strncpy_from_user_noinline (char *dst, const char __user *src,
--		long count);
--extern long arc_strnlen_user_noinline(const char __user *src, long n);
--
--#define __clear_user(d, n)		arc_clear_user_noinline(d, n)
--#define __strncpy_from_user(d, s, n)	arc_strncpy_from_user_noinline(d, s, n)
--#define __strnlen_user(s, n)		arc_strnlen_user_noinline(s, n)
--
--#endif
-+#define __clear_user		__clear_user
- 
- #include <asm/segment.h>
- #include <asm-generic/uaccess.h>
-diff --git a/arch/arc/mm/extable.c b/arch/arc/mm/extable.c
-index b06b09ddf924..88fa3a4d4906 100644
---- a/arch/arc/mm/extable.c
-+++ b/arch/arc/mm/extable.c
-@@ -22,26 +22,3 @@ int fixup_exception(struct pt_regs *regs)
- 
- 	return 0;
- }
--
--#ifdef CONFIG_CC_OPTIMIZE_FOR_SIZE
--
--unsigned long arc_clear_user_noinline(void __user *to,
--		unsigned long n)
--{
--	return __arc_clear_user(to, n);
--}
--EXPORT_SYMBOL(arc_clear_user_noinline);
--
--long arc_strncpy_from_user_noinline(char *dst, const char __user *src,
--		long count)
--{
--	return __arc_strncpy_from_user(dst, src, count);
--}
--EXPORT_SYMBOL(arc_strncpy_from_user_noinline);
--
--long arc_strnlen_user_noinline(const char __user *src, long n)
--{
--	return __arc_strnlen_user(src, n);
--}
--EXPORT_SYMBOL(arc_strnlen_user_noinline);
--#endif
+-	entry = pmd_modify(entry, newprot);
++	oldpmd = pmdp_modify_prot_start(vma, addr, pmd);
++	pmdnt = pmd_modify(oldpmd, newprot);
+ 	if (preserve_write)
+-		entry = pmd_mk_savedwrite(entry);
++		pmdnt = pmd_mk_savedwrite(pmdnt);
++	pmdp_modify_prot_commit(vma, addr, pmd, oldpmd, pmdnt);
++
+ 	ret = HPAGE_PMD_NR;
+-	set_pmd_at(mm, addr, pmd, entry);
+-	BUG_ON(vma_is_anonymous(vma) && !preserve_write && pmd_write(entry));
++	BUG_ON(vma_is_anonymous(vma) && !preserve_write && pmd_write(pmdnt));
+ unlock:
+ 	spin_unlock(ptl);
+ 	return ret;
 -- 
-2.20.1
+2.17.1
