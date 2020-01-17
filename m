@@ -1,190 +1,141 @@
-Return-Path: <SRS0=WRhj=3F=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from sv2-smtprelay2.synopsys.com ([149.117.73.133]:58922 "EHLO
-        smtprelay-out1.synopsys.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1729548AbgAPAV2 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 15 Jan 2020 19:21:28 -0500
-From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: [PATCH v2 2/2] ARC: uaccess: use optimized generic __strnlen_user/__strncpy_from_user
-Date: Wed, 15 Jan 2020 16:21:24 -0800
-Message-ID: <20200116002124.17988-3-vgupta@synopsys.com>
-In-Reply-To: <20200116002124.17988-1-vgupta@synopsys.com>
-References: <20200116002124.17988-1-vgupta@synopsys.com>
+Return-Path: <SRS0=L7cK=3G=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail-wr1-f66.google.com ([209.85.221.66]:46836 "EHLO
+        mail-wr1-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1729375AbgAQIDj (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 17 Jan 2020 03:03:39 -0500
+Received: by mail-wr1-f66.google.com with SMTP id z7so21653122wrl.13
+        for <linux-arch@vger.kernel.org>; Fri, 17 Jan 2020 00:03:37 -0800 (PST)
+From: Michal Simek <michal.simek@xilinx.com>
+Subject: [PATCH v2 1/2] asm-generic: Make dma-contiguous.h a mandatory include/asm header
+Date: Fri, 17 Jan 2020 09:03:31 +0100
+Message-ID: <0274919c5e3b134df19d943f99cb7e84e5135ccd.1579248206.git.michal.simek@xilinx.com>
+In-Reply-To: <cover.1579248206.git.michal.simek@xilinx.com>
+References: <cover.1579248206.git.michal.simek@xilinx.com>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-snps-arc@lists.infradead.org
-Cc: Arnd Bergmann <arnd@arndb.de>, linux-kernel@vger.kernel.org, linux-arch <linux-arch@vger.kernel.org>, Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Message-ID: <20200116002124.fkZl-3790fNnheAEKYAmMJ6KugktcdV07W9GtO5UVCk@z>
+To: linux-kernel@vger.kernel.org, monstr@monstr.eu, michal.simek@xilinx.com, git@xilinx.com, Christoph Hellwig <hch@lst.de>
+Cc: Christoph Hellwig <hch@infradead.org>, Paul Burton <paulburton@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Borislav Petkov <bp@alien8.de>, linux-mips@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>, Catalin Marinas <catalin.marinas@arm.com>, linux-riscv@lists.infradead.org, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, Palmer Dabbelt <palmer@dabbelt.com>, x86@kernel.org, Guo Ren <guoren@kernel.org>, Kate Stewart <kstewart@linuxfoundation.org>, Wesley Terpstra <wesley@sifive.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Ralf Baechle <ralf@linux-mips.org>, Paul Walmsley <paul.walmsley@sifive.com>, Max Filippov <jcmvbkbc@gmail.com>, linux-xtensa@linux-xtensa.org, "H. Peter Anvin" <hpa@zytor.com>, "Peter Zijlstra (Intel)" <peterz@infradead.org>, Will Deacon <will@kernel.org>, Christian Borntraeger <borntraeger@de.ibm.com>, Deepa Dinamani <deepa.kernel@gmail.com>, Chris Zankel <chris@zankel.net>, Ingo Molnar <mingo@redhat.com>, Waiman Long <longman@redhat.com>, linux-arm-kernel@lists.infradead.org, Albert Ou <aou@eecs.berkeley.edu>, Vasily Gorbik <gor@linux.ibm.com>, James Hogan <jhogan@kernel.org>, Masahiro Yamada <yamada.masahiro@socionext.com>, Heiko Carstens <heiko.carstens@de.ibm.com>
+Message-ID: <20200117080331.52ztntyZlweUmcIiNAQCmPhj1s-ILL5QwB79GWD1bt0@z>
 
-The existing ARC variants have 2 issues
- - Use ZOL which may not be present in forthcoming architecture
- - Byte loop based vs. generic version which is word loop based
+dma-continuguous.h is generic for all architectures except arm32 which has
+its own version.
 
-Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
+Similar change was done for msi.h by commit a1b39bae16a6
+("asm-generic: Make msi.h a mandatory include/asm header")
+
+Suggested-by: Christoph Hellwig <hch@infradead.org>
+Signed-off-by: Michal Simek <michal.simek@xilinx.com>
 ---
- arch/arc/Kconfig               |  2 +
- arch/arc/include/asm/uaccess.h | 85 ++--------------------------------
- arch/arc/mm/extable.c          | 23 ---------
- 3 files changed, 6 insertions(+), 104 deletions(-)
 
-diff --git a/arch/arc/Kconfig b/arch/arc/Kconfig
-index 26108ea785c2..3b074c4d31fb 100644
---- a/arch/arc/Kconfig
-+++ b/arch/arc/Kconfig
-@@ -26,6 +26,8 @@ config ARC
- 	select GENERIC_PENDING_IRQ if SMP
- 	select GENERIC_SCHED_CLOCK
- 	select GENERIC_SMP_IDLE_THREAD
-+	select GENERIC_STRNCPY_FROM_USER if MMU
-+	select GENERIC_STRNLEN_USER if MMU
- 	select HAVE_ARCH_KGDB
- 	select HAVE_ARCH_TRACEHOOK
- 	select HAVE_DEBUG_STACKOVERFLOW
-diff --git a/arch/arc/include/asm/uaccess.h b/arch/arc/include/asm/uaccess.h
-index ea40ec7f6cae..a3c943993b7b 100644
---- a/arch/arc/include/asm/uaccess.h
-+++ b/arch/arc/include/asm/uaccess.h
-@@ -52,6 +52,8 @@
- #define __access_ok(addr, sz)	(unlikely(__kernel_ok) || \
- 				 likely(__user_ok((addr), (sz))))
+Changes in v2:
+- New patch suggested by Christoph
+
+ arch/arm64/include/asm/Kbuild  | 1 -
+ arch/csky/include/asm/Kbuild   | 1 -
+ arch/mips/include/asm/Kbuild   | 1 -
+ arch/riscv/include/asm/Kbuild  | 1 -
+ arch/s390/include/asm/Kbuild   | 1 -
+ arch/x86/include/asm/Kbuild    | 1 -
+ arch/xtensa/include/asm/Kbuild | 1 -
+ include/asm-generic/Kbuild     | 1 +
+ 8 files changed, 1 insertion(+), 7 deletions(-)
+
+diff --git a/arch/arm64/include/asm/Kbuild b/arch/arm64/include/asm/Kbuild
+index bd23f87d6c55..d3077c991962 100644
+--- a/arch/arm64/include/asm/Kbuild
++++ b/arch/arm64/include/asm/Kbuild
+@@ -3,7 +3,6 @@ generic-y += bugs.h
+ generic-y += delay.h
+ generic-y += div64.h
+ generic-y += dma.h
+-generic-y += dma-contiguous.h
+ generic-y += dma-mapping.h
+ generic-y += early_ioremap.h
+ generic-y += emergency-restart.h
+diff --git a/arch/csky/include/asm/Kbuild b/arch/csky/include/asm/Kbuild
+index 4d4754e6bf89..bc15a26c782f 100644
+--- a/arch/csky/include/asm/Kbuild
++++ b/arch/csky/include/asm/Kbuild
+@@ -7,7 +7,6 @@ generic-y += delay.h
+ generic-y += device.h
+ generic-y += div64.h
+ generic-y += dma.h
+-generic-y += dma-contiguous.h
+ generic-y += dma-mapping.h
+ generic-y += emergency-restart.h
+ generic-y += exec.h
+diff --git a/arch/mips/include/asm/Kbuild b/arch/mips/include/asm/Kbuild
+index 61b0fc2026e6..179403ae5837 100644
+--- a/arch/mips/include/asm/Kbuild
++++ b/arch/mips/include/asm/Kbuild
+@@ -6,7 +6,6 @@ generated-y += syscall_table_64_n64.h
+ generated-y += syscall_table_64_o32.h
+ generic-y += current.h
+ generic-y += device.h
+-generic-y += dma-contiguous.h
+ generic-y += emergency-restart.h
+ generic-y += export.h
+ generic-y += irq_work.h
+diff --git a/arch/riscv/include/asm/Kbuild b/arch/riscv/include/asm/Kbuild
+index 1efaeddf1e4b..ec0ca8c6ab64 100644
+--- a/arch/riscv/include/asm/Kbuild
++++ b/arch/riscv/include/asm/Kbuild
+@@ -7,7 +7,6 @@ generic-y += div64.h
+ generic-y += extable.h
+ generic-y += flat.h
+ generic-y += dma.h
+-generic-y += dma-contiguous.h
+ generic-y += dma-mapping.h
+ generic-y += emergency-restart.h
+ generic-y += exec.h
+diff --git a/arch/s390/include/asm/Kbuild b/arch/s390/include/asm/Kbuild
+index 2531f673f099..1832ae6442ef 100644
+--- a/arch/s390/include/asm/Kbuild
++++ b/arch/s390/include/asm/Kbuild
+@@ -7,7 +7,6 @@ generated-y += unistd_nr.h
+ generic-y += asm-offsets.h
+ generic-y += cacheflush.h
+ generic-y += device.h
+-generic-y += dma-contiguous.h
+ generic-y += dma-mapping.h
+ generic-y += div64.h
+ generic-y += emergency-restart.h
+diff --git a/arch/x86/include/asm/Kbuild b/arch/x86/include/asm/Kbuild
+index 8b52bc5ddf69..ea34464d6221 100644
+--- a/arch/x86/include/asm/Kbuild
++++ b/arch/x86/include/asm/Kbuild
+@@ -7,7 +7,6 @@ generated-y += unistd_32_ia32.h
+ generated-y += unistd_64_x32.h
+ generated-y += xen-hypercalls.h
  
-+#define user_addr_max() 	(uaccess_kernel() ? ~0UL : get_fs())
-+
- /*********** Single byte/hword/word copies ******************/
+-generic-y += dma-contiguous.h
+ generic-y += early_ioremap.h
+ generic-y += export.h
+ generic-y += mcs_spinlock.h
+diff --git a/arch/xtensa/include/asm/Kbuild b/arch/xtensa/include/asm/Kbuild
+index 3acc31e55e02..271917c24b7f 100644
+--- a/arch/xtensa/include/asm/Kbuild
++++ b/arch/xtensa/include/asm/Kbuild
+@@ -4,7 +4,6 @@ generic-y += bug.h
+ generic-y += compat.h
+ generic-y += device.h
+ generic-y += div64.h
+-generic-y += dma-contiguous.h
+ generic-y += dma-mapping.h
+ generic-y += emergency-restart.h
+ generic-y += exec.h
+diff --git a/include/asm-generic/Kbuild b/include/asm-generic/Kbuild
+index ddfee1bd9dc1..cd17d50697cc 100644
+--- a/include/asm-generic/Kbuild
++++ b/include/asm-generic/Kbuild
+@@ -4,5 +4,6 @@
+ # (This file is not included when SRCARCH=um since UML borrows several
+ # asm headers from the host architecutre.)
  
- #define __get_user_fn(sz, u, k)					\
-@@ -613,7 +615,7 @@ raw_copy_to_user(void __user *to, const void *from, unsigned long n)
- 	return res;
- }
- 
--static inline unsigned long __arc_clear_user(void __user *to, unsigned long n)
-+static inline unsigned long __clear_user(void __user *to, unsigned long n)
- {
- 	long res = n;
- 	unsigned char *d_char = to;
-@@ -655,89 +657,10 @@ static inline unsigned long __arc_clear_user(void __user *to, unsigned long n)
- 	return res;
- }
- 
--static inline long
--__arc_strncpy_from_user(char *dst, const char __user *src, long count)
--{
--	long res = 0;
--	char val;
--
--	if (count == 0)
--		return 0;
--
--	__asm__ __volatile__(
--	"	mov	lp_count, %5		\n"
--	"	lp	3f			\n"
--	"1:	ldb.ab  %3, [%2, 1]		\n"
--	"	breq.d	%3, 0, 3f               \n"
--	"	stb.ab  %3, [%1, 1]		\n"
--	"	add	%0, %0, 1	# Num of NON NULL bytes copied	\n"
--	"3:								\n"
--	"	.section .fixup, \"ax\"		\n"
--	"	.align 4			\n"
--	"4:	mov %0, %4		# sets @res as -EFAULT	\n"
--	"	j   3b				\n"
--	"	.previous			\n"
--	"	.section __ex_table, \"a\"	\n"
--	"	.align 4			\n"
--	"	.word   1b, 4b			\n"
--	"	.previous			\n"
--	: "+r"(res), "+r"(dst), "+r"(src), "=r"(val)
--	: "g"(-EFAULT), "r"(count)
--	: "lp_count", "memory");
--
--	return res;
--}
--
--static inline long __arc_strnlen_user(const char __user *s, long n)
--{
--	long res, tmp1, cnt;
--	char val;
--
--	__asm__ __volatile__(
--	"	mov %2, %1			\n"
--	"1:	ldb.ab  %3, [%0, 1]		\n"
--	"	breq.d  %3, 0, 2f		\n"
--	"	sub.f   %2, %2, 1		\n"
--	"	bnz 1b				\n"
--	"	sub %2, %2, 1			\n"
--	"2:	sub %0, %1, %2			\n"
--	"3:	;nop				\n"
--	"	.section .fixup, \"ax\"		\n"
--	"	.align 4			\n"
--	"4:	mov %0, 0			\n"
--	"	j   3b				\n"
--	"	.previous			\n"
--	"	.section __ex_table, \"a\"	\n"
--	"	.align 4			\n"
--	"	.word 1b, 4b			\n"
--	"	.previous			\n"
--	: "=r"(res), "=r"(tmp1), "=r"(cnt), "=r"(val)
--	: "0"(s), "1"(n)
--	: "memory");
--
--	return res;
--}
--
--#ifndef CONFIG_CC_OPTIMIZE_FOR_SIZE
--
- #define INLINE_COPY_TO_USER
- #define INLINE_COPY_FROM_USER
- 
--#define __clear_user(d, n)		__arc_clear_user(d, n)
--#define __strncpy_from_user(d, s, n)	__arc_strncpy_from_user(d, s, n)
--#define __strnlen_user(s, n)		__arc_strnlen_user(s, n)
--#else
--extern unsigned long arc_clear_user_noinline(void __user *to,
--		unsigned long n);
--extern long arc_strncpy_from_user_noinline (char *dst, const char __user *src,
--		long count);
--extern long arc_strnlen_user_noinline(const char __user *src, long n);
--
--#define __clear_user(d, n)		arc_clear_user_noinline(d, n)
--#define __strncpy_from_user(d, s, n)	arc_strncpy_from_user_noinline(d, s, n)
--#define __strnlen_user(s, n)		arc_strnlen_user_noinline(s, n)
--
--#endif
-+#define __clear_user		__clear_user
- 
- #include <asm/segment.h>
- #include <asm-generic/uaccess.h>
-diff --git a/arch/arc/mm/extable.c b/arch/arc/mm/extable.c
-index b06b09ddf924..88fa3a4d4906 100644
---- a/arch/arc/mm/extable.c
-+++ b/arch/arc/mm/extable.c
-@@ -22,26 +22,3 @@ int fixup_exception(struct pt_regs *regs)
- 
- 	return 0;
- }
--
--#ifdef CONFIG_CC_OPTIMIZE_FOR_SIZE
--
--unsigned long arc_clear_user_noinline(void __user *to,
--		unsigned long n)
--{
--	return __arc_clear_user(to, n);
--}
--EXPORT_SYMBOL(arc_clear_user_noinline);
--
--long arc_strncpy_from_user_noinline(char *dst, const char __user *src,
--		long count)
--{
--	return __arc_strncpy_from_user(dst, src, count);
--}
--EXPORT_SYMBOL(arc_strncpy_from_user_noinline);
--
--long arc_strnlen_user_noinline(const char __user *src, long n)
--{
--	return __arc_strnlen_user(src, n);
--}
--EXPORT_SYMBOL(arc_strnlen_user_noinline);
--#endif
++mandatory-y += dma-contiguous.h
+ mandatory-y += msi.h
+ mandatory-y += simd.h
 -- 
-2.20.1
+2.25.0
