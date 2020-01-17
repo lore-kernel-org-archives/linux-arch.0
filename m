@@ -1,25 +1,25 @@
 From: Sandipan Das <sandipan@linux.ibm.com>
-Subject: [PATCH v16 19/23] selftests/vm/pkeys: Detect write violation on a mapped access-denied-key page
-Date: Fri, 17 Jan 2020 18:19:58 +0530
-Message-ID: <b8cd7fa3341f1afae4cd427ef5cf68b8dbeb9154.1579265066.git.sandipan@linux.ibm.com>
+Subject: [PATCH v16 21/23] selftests/vm/pkeys: Test correct behaviour of pkey-0
+Date: Fri, 17 Jan 2020 18:20:00 +0530
+Message-ID: <8e85fa672934220d5c494d812350dab7cc8e7e56.1579265066.git.sandipan@linux.ibm.com>
 References: <cover.1579265066.git.sandipan@linux.ibm.com>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:10950 "EHLO
-        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1726871AbgAQMvF (ORCPT
+Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:41498 "EHLO
+        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
+        by vger.kernel.org with ESMTP id S1726901AbgAQMvJ (ORCPT
         <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 17 Jan 2020 07:51:05 -0500
-Received: from pps.filterd (m0098393.ppops.net [127.0.0.1])
-        by mx0a-001b2d01.pphosted.com (8.16.0.42/8.16.0.42) with SMTP id 00HCm8BT006279
-        for <linux-arch@vger.kernel.org>; Fri, 17 Jan 2020 07:51:04 -0500
-Received: from e06smtp05.uk.ibm.com (e06smtp05.uk.ibm.com [195.75.94.101])
-        by mx0a-001b2d01.pphosted.com with ESMTP id 2xk0qt48uy-1
+        Fri, 17 Jan 2020 07:51:09 -0500
+Received: from pps.filterd (m0098413.ppops.net [127.0.0.1])
+        by mx0b-001b2d01.pphosted.com (8.16.0.42/8.16.0.42) with SMTP id 00HClH9F084920
+        for <linux-arch@vger.kernel.org>; Fri, 17 Jan 2020 07:51:08 -0500
+Received: from e06smtp07.uk.ibm.com (e06smtp07.uk.ibm.com [195.75.94.103])
+        by mx0b-001b2d01.pphosted.com with ESMTP id 2xk0qrut47-1
         (version=TLSv1.2 cipher=AES256-GCM-SHA384 bits=256 verify=NOT)
-        for <linux-arch@vger.kernel.org>; Fri, 17 Jan 2020 07:51:04 -0500
+        for <linux-arch@vger.kernel.org>; Fri, 17 Jan 2020 07:51:08 -0500
 Received: from localhost
-        by e06smtp05.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+        by e06smtp07.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
         for <linux-arch@vger.kernel.org> from <sandipan@linux.ibm.com>;
-        Fri, 17 Jan 2020 12:51:01 -0000
+        Fri, 17 Jan 2020 12:51:06 -0000
 In-Reply-To: <cover.1579265066.git.sandipan@linux.ibm.com>
 In-Reply-To: <cover.1579265066.git.sandipan@linux.ibm.com>
 References: <cover.1579265066.git.sandipan@linux.ibm.com>
@@ -30,48 +30,87 @@ Cc: linux-arch@vger.kernel.org, fweimer@redhat.com, dave.hansen@intel.com, x86@k
 
 From: Ram Pai <linuxram@us.ibm.com>
 
-Detect write-violation on a page to which access-disabled
-key is associated much after the page is mapped.
+Ensure that pkey-0 is allocated on start and that it can
+be attached dynamically in various modes, without failures.
 
 cc: Dave Hansen <dave.hansen@intel.com>
 cc: Florian Weimer <fweimer@redhat.com>
 Signed-off-by: Ram Pai <linuxram@us.ibm.com>
-Acked-by: Dave Hansen <dave.hansen@intel.com>
 Signed-off-by: Sandipan Das <sandipan@linux.ibm.com>
 ---
- tools/testing/selftests/vm/protection_keys.c | 13 +++++++++++++
- 1 file changed, 13 insertions(+)
+ tools/testing/selftests/vm/protection_keys.c | 53 ++++++++++++++++++++
+ 1 file changed, 53 insertions(+)
 
 diff --git a/tools/testing/selftests/vm/protection_keys.c b/tools/testing/selftests/vm/protection_keys.c
-index babe3f6310f2..38ac3211d214 100644
+index 4840a986e72e..9e04bfbbd7e6 100644
 --- a/tools/testing/selftests/vm/protection_keys.c
 +++ b/tools/testing/selftests/vm/protection_keys.c
-@@ -1026,6 +1026,18 @@ void test_write_of_access_disabled_region(int *ptr, u16 pkey)
- 	*ptr = __LINE__;
- 	expected_pkey_fault(pkey);
+@@ -963,6 +963,58 @@ __attribute__((noinline)) int read_ptr(int *ptr)
+ 	return *ptr;
  }
-+
-+void test_write_of_access_disabled_region_with_page_already_mapped(int *ptr,
-+			u16 pkey)
+ 
++void test_pkey_alloc_free_attach_pkey0(int *ptr, u16 pkey)
 +{
-+	*ptr = __LINE__;
-+	dprintf1("disabling access; after accessing the page, "
-+		" to PKEY[%02d], doing write\n", pkey);
-+	pkey_access_deny(pkey);
-+	*ptr = __LINE__;
-+	expected_pkey_fault(pkey);
++	int i, err;
++	int max_nr_pkey_allocs;
++	int alloced_pkeys[NR_PKEYS];
++	int nr_alloced = 0;
++	long size;
++
++	pkey_assert(pkey_last_malloc_record);
++	size = pkey_last_malloc_record->size;
++	/*
++	 * This is a bit of a hack.  But mprotect() requires
++	 * huge-page-aligned sizes when operating on hugetlbfs.
++	 * So, make sure that we use something that's a multiple
++	 * of a huge page when we can.
++	 */
++	if (size >= HPAGE_SIZE)
++		size = HPAGE_SIZE;
++
++	/* allocate every possible key and make sure key-0 never got allocated */
++	max_nr_pkey_allocs = NR_PKEYS;
++	for (i = 0; i < max_nr_pkey_allocs; i++) {
++		int new_pkey = alloc_pkey();
++		pkey_assert(new_pkey != 0);
++
++		if (new_pkey < 0)
++			break;
++		alloced_pkeys[nr_alloced++] = new_pkey;
++	}
++	/* free all the allocated keys */
++	for (i = 0; i < nr_alloced; i++) {
++		int free_ret;
++
++		if (!alloced_pkeys[i])
++			continue;
++		free_ret = sys_pkey_free(alloced_pkeys[i]);
++		pkey_assert(!free_ret);
++	}
++
++	/* attach key-0 in various modes */
++	err = sys_mprotect_pkey(ptr, size, PROT_READ, 0);
++	pkey_assert(!err);
++	err = sys_mprotect_pkey(ptr, size, PROT_WRITE, 0);
++	pkey_assert(!err);
++	err = sys_mprotect_pkey(ptr, size, PROT_EXEC, 0);
++	pkey_assert(!err);
++	err = sys_mprotect_pkey(ptr, size, PROT_READ|PROT_WRITE, 0);
++	pkey_assert(!err);
++	err = sys_mprotect_pkey(ptr, size, PROT_READ|PROT_WRITE|PROT_EXEC, 0);
++	pkey_assert(!err);
 +}
 +
- void test_kernel_write_of_access_disabled_region(int *ptr, u16 pkey)
+ void test_read_of_write_disabled_region(int *ptr, u16 pkey)
  {
- 	int ret;
-@@ -1422,6 +1434,7 @@ void (*pkey_tests[])(int *ptr, u16 pkey) = {
- 	test_write_of_write_disabled_region,
- 	test_write_of_write_disabled_region_with_page_already_mapped,
- 	test_write_of_access_disabled_region,
-+	test_write_of_access_disabled_region_with_page_already_mapped,
- 	test_kernel_write_of_access_disabled_region,
- 	test_kernel_write_of_write_disabled_region,
- 	test_kernel_gup_of_access_disabled_region,
+ 	int ptr_contents;
+@@ -1447,6 +1499,7 @@ void (*pkey_tests[])(int *ptr, u16 pkey) = {
+ 	test_pkey_syscalls_on_non_allocated_pkey,
+ 	test_pkey_syscalls_bad_args,
+ 	test_pkey_alloc_exhaust,
++	test_pkey_alloc_free_attach_pkey0,
+ };
+ 
+ void run_tests_once(void)
 -- 
 2.17.1
