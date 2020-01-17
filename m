@@ -1,65 +1,55 @@
 Return-Path: <owner-linux-mm@kvack.org>
 From: Sandipan Das <sandipan@linux.ibm.com>
-Subject: [PATCH v18 23/24] selftests: vm: pkeys: Use the correct page size on
- powerpc
-Date: Thu, 30 Jan 2020 12:07:05 +0530
-In-Reply-To: <cover.1580365432.git.sandipan@linux.ibm.com>
-References: <cover.1580365432.git.sandipan@linux.ibm.com>
-In-Reply-To: <cover.1580365432.git.sandipan@linux.ibm.com>
-References: <cover.1580365432.git.sandipan@linux.ibm.com>
-Message-ID: <ff2f307f4087edda4aa4b3158f3bc7df4cbd0f21.1580365432.git.sandipan@linux.ibm.com>
+Subject: [PATCH v16 08/23] selftests/vm: Fix pkey_disable_clear()
+Date: Fri, 17 Jan 2020 18:19:47 +0530
+In-Reply-To: <cover.1579265066.git.sandipan@linux.ibm.com>
+References: <cover.1579265066.git.sandipan@linux.ibm.com>
+In-Reply-To: <cover.1579265066.git.sandipan@linux.ibm.com>
+References: <cover.1579265066.git.sandipan@linux.ibm.com>
+Message-ID: <2c5a7d6888e87bbe11a533e0b5c34c99829f8e5f.1579265066.git.sandipan@linux.ibm.com>
 Sender: owner-linux-mm@kvack.org
-To: shuah@kernel.org, skhan@linuxfoundation.org, linux-kselftest@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, x86@kernel.org, linux-mm@kvack.org, fweimer@redhat.com, dave.hansen@intel.com, linuxram@us.ibm.com, mhocko@kernel.org, mingo@redhat.com, aneesh.kumar@linux.ibm.com, bauerman@linux.ibm.com, msuchanek@suse.de, mpe@ellerman.id.au
+To: shuah@kernel.org, linux-kselftest@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, fweimer@redhat.com, dave.hansen@intel.com, x86@kernel.org, linuxram@us.ibm.com, mhocko@kernel.org, linux-mm@kvack.org, mingo@redhat.com, aneesh.kumar@linux.ibm.com, bauerman@linux.ibm.com, msuchanek@suse.de, mpe@ellerman.id.au, linuxppc-dev@lists.ozlabs.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200130063705.xXWHBFxTlce4i7oPcbfEiKvZXN4DUmLbHhQeewJIsrM@z>
+Message-ID: <20200117124947.fvEY77CNXfPa-1LJv4RMDnq2z8UTDdupuwXu-aWsfvg@z>
 
-Both 4K and 64K pages are supported on powerpc. Parts of
-the selftest code perform alignment computations based on
-the PAGE_SIZE macro which is currently hardcoded to 64K
-for powerpc. This causes some test failures on kernels
-configured with 4K page size.
+From: Ram Pai <linuxram@us.ibm.com>
 
-In some cases, we need to enforce function alignment on
-page size. Since this can only be done at build time,
-64K is used as the alignment factor as that also ensures
-4K alignment.
+Currently, pkey_disable_clear() sets the specified bits
+instead clearing them. This has been dead code up to now
+because its only callers i.e. pkey_access/write_allow()
+are also unused.
 
+cc: Dave Hansen <dave.hansen@intel.com>
+cc: Florian Weimer <fweimer@redhat.com>
+Signed-off-by: Ram Pai <linuxram@us.ibm.com>
+Acked-by: Dave Hansen <dave.hansen@intel.com>
 Signed-off-by: Sandipan Das <sandipan@linux.ibm.com>
 ---
- tools/testing/selftests/vm/pkey-powerpc.h    | 2 +-
- tools/testing/selftests/vm/protection_keys.c | 5 +++++
- 2 files changed, 6 insertions(+), 1 deletion(-)
+ tools/testing/selftests/vm/protection_keys.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
 
-diff --git a/tools/testing/selftests/vm/pkey-powerpc.h b/tools/testing/selftests/vm/pkey-powerpc.h
-index 02bd4dd7d467..3a761e51a587 100644
---- a/tools/testing/selftests/vm/pkey-powerpc.h
-+++ b/tools/testing/selftests/vm/pkey-powerpc.h
-@@ -36,7 +36,7 @@
- 					     pkey-31 and exec-only key */
- #define PKEY_BITS_PER_PKEY	2
- #define HPAGE_SIZE		(1UL << 24)
--#define PAGE_SIZE		(1UL << 16)
-+#define PAGE_SIZE		sysconf(_SC_PAGESIZE)
-
- static inline u32 pkey_bit_position(int pkey)
- {
 diff --git a/tools/testing/selftests/vm/protection_keys.c b/tools/testing/selftests/vm/protection_keys.c
-index a1cb9a71e77c..fc19addcb5c8 100644
+index 3ce5a87804ab..7440f6fa7be3 100644
 --- a/tools/testing/selftests/vm/protection_keys.c
 +++ b/tools/testing/selftests/vm/protection_keys.c
-@@ -146,7 +146,12 @@ void abort_hooks(void)
-  * will then fault, which makes sure that the fault code handles
-  * execute-only memory properly.
-  */
-+#ifdef __powerpc64__
-+/* This way, both 4K and 64K alignment are maintained */
-+__attribute__((__aligned__(65536)))
-+#else
- __attribute__((__aligned__(PAGE_SIZE)))
-+#endif
- void lots_o_noops_around_write(int *write_to_me)
- {
- 	dprintf3("running %s()\n", __func__);
+@@ -417,7 +417,7 @@ void pkey_disable_clear(int pkey, int flags)
+ 			pkey, pkey, pkey_rights);
+ 	pkey_assert(pkey_rights >= 0);
+
+-	pkey_rights |= flags;
++	pkey_rights &= ~flags;
+
+ 	ret = hw_pkey_set(pkey, pkey_rights, 0);
+ 	shadow_pkey_reg = set_pkey_bits(shadow_pkey_reg, pkey, pkey_rights);
+@@ -430,7 +430,7 @@ void pkey_disable_clear(int pkey, int flags)
+ 	dprintf1("%s(%d) pkey_reg: 0x%016lx\n", __func__,
+ 			pkey, read_pkey_reg());
+ 	if (flags)
+-		assert(read_pkey_reg() > orig_pkey_reg);
++		assert(read_pkey_reg() < orig_pkey_reg);
+ }
+
+ void pkey_write_allow(int pkey)
 -- 
 2.17.1
