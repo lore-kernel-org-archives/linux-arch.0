@@ -1,123 +1,44 @@
 Return-Path: <owner-linux-mm@kvack.org>
-From: Xuefeng Wang <wxf.wang@hisilicon.com>
-Subject: [PATCH v2 1/2] mm: add helpers pmdp_modify_prot_start/commit
-Date: Thu, 23 Jan 2020 15:55:12 +0800
-Message-ID: <20200123075514.15142-2-wxf.wang@hisilicon.com>
-In-Reply-To: <20200123075514.15142-1-wxf.wang@hisilicon.com>
-References: <20200123075514.15142-1-wxf.wang@hisilicon.com>
-MIME-Version: 1.0
-Content-Type: text/plain
+From: Sandipan Das <sandipan@linux.ibm.com>
+Subject: [PATCH v16 05/23] selftests/vm: Make gcc check arguments of
+ sigsafe_printf()
+Date: Fri, 17 Jan 2020 18:19:44 +0530
+In-Reply-To: <cover.1579265066.git.sandipan@linux.ibm.com>
+References: <cover.1579265066.git.sandipan@linux.ibm.com>
+In-Reply-To: <cover.1579265066.git.sandipan@linux.ibm.com>
+References: <cover.1579265066.git.sandipan@linux.ibm.com>
+Message-ID: <d2721f0dcc5f67a9ca989995611427a8abe4747d.1579265066.git.sandipan@linux.ibm.com>
 Sender: owner-linux-mm@kvack.org
-To: catalin.marinas@arm.com, will@kernel.org, mark.rutland@arm.com, arnd@arndb.de, akpm@linux-foundation.org
-Cc: linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, chenzhou10@huawei.com, Xuefeng Wang <wxf.wang@hisilicon.com>
+To: shuah@kernel.org, linux-kselftest@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, fweimer@redhat.com, dave.hansen@intel.com, x86@kernel.org, linuxram@us.ibm.com, mhocko@kernel.org, linux-mm@kvack.org, mingo@redhat.com, aneesh.kumar@linux.ibm.com, bauerman@linux.ibm.com, msuchanek@suse.de, mpe@ellerman.id.au, linuxppc-dev@lists.ozlabs.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200123075512.UTdYZV5DL6T2P0cGI9unjAuBZM74OejfDvLV6HPQlE8@z>
+Message-ID: <20200117124944._4VQtJrmANVwmDfTaeRTdc50REVtlWtc8ZDUEawL2WE@z>
 
-Introduce helpers pmdp_modify_prot_start/commit to abstract
-pmdp_modify_prot transaction. Helpers pmdp_modify_prot_start/commit are
-functionally unchanged.
+From: Thiago Jung Bauermann <bauerman@linux.ibm.com>
 
-Signed-off-by: Xuefeng Wang <wxf.wang@hisilicon.com>
-Signed-off-by: Chen Zhou <chenzhou10@huawei.com>
+This will help us ensure we print pkey_reg_t values correctly in
+different architectures.
+
+Signed-off-by: Thiago Jung Bauermann <bauerman@linux.ibm.com>
+Signed-off-by: Sandipan Das <sandipan@linux.ibm.com>
 ---
- include/asm-generic/pgtable.h | 35 +++++++++++++++++++++++++++++++++++
- mm/huge_memory.c              | 19 ++++++++-----------
- 2 files changed, 43 insertions(+), 11 deletions(-)
+ tools/testing/selftests/vm/pkey-helpers.h | 4 ++++
+ 1 file changed, 4 insertions(+)
 
-diff --git a/include/asm-generic/pgtable.h b/include/asm-generic/pgtable.h
-index 798ea36a0549..e81bd58a9170 100644
---- a/include/asm-generic/pgtable.h
-+++ b/include/asm-generic/pgtable.h
-@@ -673,6 +673,41 @@ static inline void ptep_modify_prot_commit(struct vm_area_struct *vma,
-	__ptep_modify_prot_commit(vma, addr, ptep, pte);
- }
- #endif /* __HAVE_ARCH_PTEP_MODIFY_PROT_TRANSACTION */
+diff --git a/tools/testing/selftests/vm/pkey-helpers.h b/tools/testing/selftests/vm/pkey-helpers.h
+index 3ed2f021bf7a..7f18a82e54fc 100644
+--- a/tools/testing/selftests/vm/pkey-helpers.h
++++ b/tools/testing/selftests/vm/pkey-helpers.h
+@@ -27,6 +27,10 @@
+ #define DPRINT_IN_SIGNAL_BUF_SIZE 4096
+ extern int dprint_in_signal;
+ extern char dprint_in_signal_buffer[DPRINT_IN_SIGNAL_BUF_SIZE];
 +
-+static inline pmd_t __pmdp_modify_prot_start(struct vm_area_struct *vma,
-+						unsigned long addr,
-+						pmd_t *pmdp)
-+{
-+	return pmdp_invalidate(vma, addr, pmdp);
-+}
-+
-+static inline void __pmdp_modify_prot_commit(struct vm_area_struct *vma,
-+						unsigned long addr,
-+						pmd_t *pmdp, pmd_t pmd)
-+{
-+	set_pmd_at(vma->vm_mm, addr, pmdp, pmd);
-+}
-+
-+#ifdef CONFIG_TRANSPARENT_HUGEPAGE
-+#ifndef __HAVE_ARCH_PMDP_MODIFY_PROT_TRANSACTION
-+static inline pmd_t pmdp_modify_prot_start(struct vm_area_struct *vma,
-+						unsigned long addr,
-+						pmd_t *pmdp)
-+{
-+	__pmdp_modify_prot_start(vma, addr, pmdp);
-+}
-+#endif /* __HAVE_ARCH_PMDP_MODIFY_PROT_TRANSACTION */
-+
-+/*
-+ * Commit an update to a pmd.
-+ */
-+static inline void pmdp_modify_prot_commit(struct vm_area_struct *vma,
-+						unsigned long addr,
-+						pmd_t *pmdp, pmd_t old_pmd, pmd_t pmd)
-+{
-+	__pmdp_modify_prot_commit(vma, addr, pmdp, pmd);
-+}
-+#endif /* CONFIG_TRANSPARENT_HUGEPAGE */
- #endif /* CONFIG_MMU */
-
- /*
-diff --git a/mm/huge_memory.c b/mm/huge_memory.c
-index a88093213674..53515a3c91dd 100644
---- a/mm/huge_memory.c
-+++ b/mm/huge_memory.c
-@@ -1933,9 +1933,8 @@ bool move_huge_pmd(struct vm_area_struct *vma, unsigned long old_addr,
- int change_huge_pmd(struct vm_area_struct *vma, pmd_t *pmd,
-		unsigned long addr, pgprot_t newprot, int prot_numa)
++#ifdef __GNUC__
++__attribute__((format(printf, 1, 2)))
++#endif
+ static inline void sigsafe_printf(const char *format, ...)
  {
--	struct mm_struct *mm = vma->vm_mm;
-	spinlock_t *ptl;
--	pmd_t entry;
-+	pmd_t pmdnt, oldpmd;
-	bool preserve_write;
-	int ret;
-
-@@ -1961,7 +1960,7 @@ int change_huge_pmd(struct vm_area_struct *vma, pmd_t *pmd,
-			newpmd = swp_entry_to_pmd(entry);
-			if (pmd_swp_soft_dirty(*pmd))
-				newpmd = pmd_swp_mksoft_dirty(newpmd);
--			set_pmd_at(mm, addr, pmd, newpmd);
-+			set_pmd_at(vma->vm_mm, addr, pmd, newpmd);
-		}
-		goto unlock;
-	}
-@@ -1995,18 +1994,16 @@ int change_huge_pmd(struct vm_area_struct *vma, pmd_t *pmd,
-	 *
-	 * The race makes MADV_DONTNEED miss the huge pmd and don't clear it
-	 * which may break userspace.
--	 *
--	 * pmdp_invalidate() is required to make sure we don't miss
--	 * dirty/young flags set by hardware.
-	 */
--	entry = pmdp_invalidate(vma, addr, pmd);
-
--	entry = pmd_modify(entry, newprot);
-+	oldpmd = pmdp_modify_prot_start(vma, addr, pmd);
-+	pmdnt = pmd_modify(oldpmd, newprot);
-	if (preserve_write)
--		entry = pmd_mk_savedwrite(entry);
-+		pmdnt = pmd_mk_savedwrite(pmdnt);
-+	pmdp_modify_prot_commit(vma, addr, pmd, oldpmd, pmdnt);
-+
-	ret = HPAGE_PMD_NR;
--	set_pmd_at(mm, addr, pmd, entry);
--	BUG_ON(vma_is_anonymous(vma) && !preserve_write && pmd_write(entry));
-+	BUG_ON(vma_is_anonymous(vma) && !preserve_write && pmd_write(pmdnt));
- unlock:
-	spin_unlock(ptl);
-	return ret;
---
+ 	va_list ap;
+-- 
 2.17.1
