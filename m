@@ -1,98 +1,90 @@
-Return-Path: <SRS0=948I=23=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:45298 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727307AbgAFD1P (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Sun, 5 Jan 2020 22:27:15 -0500
+Return-Path: <SRS0=L7cK=3G=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail-ot1-f47.google.com ([209.85.210.47]:40244 "EHLO
+        mail-ot1-f47.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726513AbgAQNPB (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 17 Jan 2020 08:15:01 -0500
+Received: by mail-ot1-f47.google.com with SMTP id w21so22446208otj.7
+        for <linux-arch@vger.kernel.org>; Fri, 17 Jan 2020 05:15:00 -0800 (PST)
 MIME-Version: 1.0
-References: <20200105025215.2522-2-guoren@kernel.org> <202001052007.tXdAjjwN%lkp@intel.com>
-In-Reply-To: <202001052007.tXdAjjwN%lkp@intel.com>
-From: Guo Ren <guoren@kernel.org>
-Date: Mon, 6 Jan 2020 11:27:00 +0800
-Message-ID: <CAJF2gTTxu+rWAB2nZqQ8P-Z6xoFDi82ZSjHjjG-Ub99mU9yA-A@mail.gmail.com>
-Subject: Re: [PATCH 2/2] riscv: Add vector ISA support
+References: <20200115165749.145649-1-elver@google.com> <CAK8P3a3b=SviUkQw7ZXZF85gS1JO8kzh2HOns5zXoEJGz-+JiQ@mail.gmail.com>
+ <CANpmjNOpTYnF3ssqrE_s+=UA-2MpfzzdrXoyaifb3A55_mc0uA@mail.gmail.com>
+ <CAK8P3a3WywSsahH2vtZ_EOYTWE44YdN+Pj6G8nt_zrL3sckdwQ@mail.gmail.com>
+ <CANpmjNMk2HbuvmN1RaZ=8OV+tx9qZwKyRySONDRQar6RCGM1SA@mail.gmail.com> <CAK8P3a066Knr-KC2v4M8Dr1phr0Gbb2KeZZLQ7Ana0fkrgPDPg@mail.gmail.com>
+In-Reply-To: <CAK8P3a066Knr-KC2v4M8Dr1phr0Gbb2KeZZLQ7Ana0fkrgPDPg@mail.gmail.com>
+From: Marco Elver <elver@google.com>
+Date: Fri, 17 Jan 2020 14:14:48 +0100
+Message-ID: <CANpmjNO395-atZXu_yEArZqAQ+ib3Ack-miEhA9msJ6_eJsh4g@mail.gmail.com>
+Subject: Re: [PATCH -rcu] asm-generic, kcsan: Add KCSAN instrumentation for bitops
 Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: kbuild test robot <lkp@intel.com>
-Cc: kbuild-all@lists.01.org, Paul Walmsley <paul.walmsley@sifive.com>, Palmer Dabbelt <palmer@dabbelt.com>, aou@eecs.berkeley.edu, Anup Patel <Anup.Patel@wdc.com>, vincent.chen@sifive.com, zong.li@sifive.com, greentime.hu@sifive.com, Bin Meng <bmeng.cn@gmail.com>, Atish Patra <atish.patra@wdc.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, linux-csky@vger.kernel.org, linux-riscv@lists.infradead.org, Guo Ren <ren_guo@c-sky.com>
-Message-ID: <20200106032700.E80TXguxg5fkTemK9BEc_Dit0RSQ6cs3PB7NmxGJjt4@z>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: "Paul E. McKenney" <paulmck@kernel.org>, Andrey Konovalov <andreyknvl@google.com>, Alexander Potapenko <glider@google.com>, Dmitry Vyukov <dvyukov@google.com>, kasan-dev <kasan-dev@googlegroups.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Michael Ellerman <mpe@ellerman.id.au>, christophe leroy <christophe.leroy@c-s.fr>, Daniel Axtens <dja@axtens.net>, linux-arch <linux-arch@vger.kernel.org>
+Message-ID: <20200117131448.Kh07JLKjSlZeRI6szMpSTq6czfSyZe9SzGhMnzwofQk@z>
 
-__uint128_t could work with gcc 8.1.
+On Fri, 17 Jan 2020 at 13:25, Arnd Bergmann <arnd@arndb.de> wrote:
+>
+> On Wed, Jan 15, 2020 at 9:50 PM Marco Elver <elver@google.com> wrote:
+> > On Wed, 15 Jan 2020 at 20:55, Arnd Bergmann <arnd@arndb.de> wrote:
+> > > On Wed, Jan 15, 2020 at 8:51 PM Marco Elver <elver@google.com> wrote:
+> > > > On Wed, 15 Jan 2020 at 20:27, Arnd Bergmann <arnd@arndb.de> wrote:
+> > > Are there any that really just want kasan_check_write() but not one
+> > > of the kcsan checks?
+> >
+> > If I understood correctly, this suggestion would amount to introducing
+> > a new header, e.g. 'ksan-checks.h', that provides unified generic
+> > checks. For completeness, we will also need to consider reads. Since
+> > KCSAN provides 4 check variants ({read,write} x {plain,atomic}), we
+> > will need 4 generic check variants.
+>
+> Yes, that was the idea.
+>
+> > I certainly do not feel comfortable blindly introducing kcsan_checks
+> > in all places where we have kasan_checks, but it may be worthwhile
+> > adding this infrastructure and starting with atomic-instrumented and
+> > bitops-instrumented wrappers. The other locations you list above would
+> > need to be evaluated on a case-by-case basis to check if we want to
+> > report data races for those accesses.
+>
+> I think the main question to answer is whether it is more likely to go
+> wrong because we are missing checks when one caller accidentally
+> only has one but not the other, or whether they go wrong because
+> we accidentally check both when we should only be checking one.
+>
+> My guess would be that the first one is more likely to happen, but
+> the second one is more likely to cause problems when it happens.
 
-If compile the patch we need some small patch for binutils to support
-several vector instructions, 0-day gcc need be updated in future.
+Right, I guess both have trade-offs.
 
+> > As a minor data point, {READ,WRITE}_ONCE in compiler.h currently only
+> > has kcsan_checks and not kasan_checks.
+>
+> Right. This is because we want an explicit "atomic" check for kcsan
+> but we want to have the function inlined for kasan, right?
 
-On Sun, Jan 5, 2020 at 8:33 PM kbuild test robot <lkp@intel.com> wrote:
->
-> Hi,
->
-> I love your patch! Yet something to improve:
->
-> [auto build test ERROR on linus/master]
-> [also build test ERROR on v5.5-rc4 next-20191220]
-> [if your patch is applied to the wrong git tree, please drop us a note to help
-> improve the system. BTW, we also suggest to use '--base' option to specify the
-> base tree in git format-patch, please see https://stackoverflow.com/a/37406982]
->
-> url:    https://github.com/0day-ci/linux/commits/guoren-kernel-org/riscv-Fixup-obvious-bug-for-fp-regs-reset/20200105-105609
-> base:   https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git c420ddda506b80ec2686e405698d37fafeea3b7a
-> config: riscv-rv32_defconfig (attached as .config)
-> compiler: riscv32-linux-gcc (GCC) 7.5.0
-> reproduce:
->         wget https://raw.githubusercontent.com/intel/lkp-tests/master/sbin/make.cross -O ~/bin/make.cross
->         chmod +x ~/bin/make.cross
->         # save the attached .config to linux build tree
->         GCC_VERSION=7.5.0 make.cross ARCH=riscv
->
-> If you fix the issue, kindly add following tag
-> Reported-by: kbuild test robot <lkp@intel.com>
->
-> All errors (new ones prefixed by >>):
->
->    In file included from arch/riscv/include/asm/ptrace.h:9:0,
->                     from arch/riscv/include/asm/processor.h:11,
->                     from arch/riscv/include/asm/irqflags.h:10,
->                     from include/linux/irqflags.h:16,
->                     from arch/riscv/include/asm/bitops.h:14,
->                     from include/linux/bitops.h:26,
->                     from include/linux/kernel.h:12,
->                     from include/asm-generic/bug.h:19,
->                     from arch/riscv/include/asm/bug.h:75,
->                     from include/linux/bug.h:5,
->                     from include/linux/page-flags.h:10,
->                     from kernel/bounds.c:10:
-> >> arch/riscv/include/uapi/asm/ptrace.h:75:2: error: unknown type name '__uint128_t'
->      __uint128_t v[32];
->      ^~~~~~~~~~~
->    make[2]: *** [kernel/bounds.s] Error 1
->    make[2]: Target '__build' not remade because of errors.
->    make[1]: *** [prepare0] Error 2
->    make[1]: Target 'prepare' not remade because of errors.
->    make: *** [sub-make] Error 2
->    507 real  2 user  5 sys  1.58% cpu   make prepare
->
-> vim +/__uint128_t +75 arch/riscv/include/uapi/asm/ptrace.h
->
->     73
->     74  struct __riscv_v_state {
->   > 75          __uint128_t v[32];
->     76          unsigned long vstart;
->     77          unsigned long vxsat;
->     78          unsigned long vxrm;
->     79          unsigned long vl;
->     80          unsigned long vtype;
->     81  };
->     82
->
-> ---
-> 0-DAY kernel test infrastructure                 Open Source Technology Center
-> https://lists.01.org/hyperkitty/list/kbuild-all@lists.01.org Intel Corporation
+Yes, correct.
 
+> > My personal preference would be to keep the various checks explicit,
+> > clearly opting into either KCSAN and/or KASAN. Since I do not think
+> > it's obvious if we want both for the existing and potentially new
+> > locations (in future), the potential for error by blindly using a
+> > generic 'ksan_check' appears worse than potentially adding a dozen
+> > lines or so.
+> >
+> > Let me know if you'd like to proceed with 'ksan-checks.h'.
+>
+> Could you have a look at the files I listed and see if there are any
+> other examples that probably a different set of checks between the
+> two, besides the READ_ONCE() example?
 
+All the user-copy related code should probably have kcsan_checks as well.
 
---
-Best Regards
- Guo Ren
+> If you can't find any, I would prefer having the simpler interface
+> with just one set of annotations.
 
-ML: https://lore.kernel.org/linux-csky/
+That's fair enough. I'll prepare a v2 series that first introduces the
+new header, and then applies it to the locations that seem obvious
+candidates for having both checks.
+
+Thanks,
+-- Marco
