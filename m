@@ -1,119 +1,102 @@
 Return-Path: <owner-linux-mm@kvack.org>
 From: Sandipan Das <sandipan@linux.ibm.com>
-Subject: [PATCH v18 20/24] selftests/vm/pkeys: Introduce a sub-page allocator
-Date: Thu, 30 Jan 2020 12:07:02 +0530
-In-Reply-To: <cover.1580365432.git.sandipan@linux.ibm.com>
-References: <cover.1580365432.git.sandipan@linux.ibm.com>
-In-Reply-To: <cover.1580365432.git.sandipan@linux.ibm.com>
-References: <cover.1580365432.git.sandipan@linux.ibm.com>
-Message-ID: <beebf605f68d3b594d7ab2ae404d54a7046a6652.1580365432.git.sandipan@linux.ibm.com>
+Subject: [PATCH v16 21/23] selftests/vm/pkeys: Test correct behaviour of
+ pkey-0
+Date: Fri, 17 Jan 2020 18:20:00 +0530
+In-Reply-To: <cover.1579265066.git.sandipan@linux.ibm.com>
+References: <cover.1579265066.git.sandipan@linux.ibm.com>
+In-Reply-To: <cover.1579265066.git.sandipan@linux.ibm.com>
+References: <cover.1579265066.git.sandipan@linux.ibm.com>
+Message-ID: <8e85fa672934220d5c494d812350dab7cc8e7e56.1579265066.git.sandipan@linux.ibm.com>
 Sender: owner-linux-mm@kvack.org
-To: shuah@kernel.org, skhan@linuxfoundation.org, linux-kselftest@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, x86@kernel.org, linux-mm@kvack.org, fweimer@redhat.com, dave.hansen@intel.com, linuxram@us.ibm.com, mhocko@kernel.org, mingo@redhat.com, aneesh.kumar@linux.ibm.com, bauerman@linux.ibm.com, msuchanek@suse.de, mpe@ellerman.id.au
+To: shuah@kernel.org, linux-kselftest@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, fweimer@redhat.com, dave.hansen@intel.com, x86@kernel.org, linuxram@us.ibm.com, mhocko@kernel.org, linux-mm@kvack.org, mingo@redhat.com, aneesh.kumar@linux.ibm.com, bauerman@linux.ibm.com, msuchanek@suse.de, mpe@ellerman.id.au, linuxppc-dev@lists.ozlabs.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200130063702.BcZELLwJEteQAEHt8O5AQ0wQv_TrPN174Om-d4a__qE@z>
+Message-ID: <20200117125000.HXL-2MAu-ruUX6Q7RxYndz_YT0OpAKm439Dm9RpvZaY@z>
 
 From: Ram Pai <linuxram@us.ibm.com>
 
-This introduces a new allocator that allocates 4K hardware
-pages to back 64K linux pages. This allocator is available
-only on powerpc.
+Ensure that pkey-0 is allocated on start and that it can
+be attached dynamically in various modes, without failures.
 
 cc: Dave Hansen <dave.hansen@intel.com>
 cc: Florian Weimer <fweimer@redhat.com>
 Signed-off-by: Ram Pai <linuxram@us.ibm.com>
-Signed-off-by: Thiago Jung Bauermann <bauerman@linux.ibm.com>
 Signed-off-by: Sandipan Das <sandipan@linux.ibm.com>
 ---
- tools/testing/selftests/vm/pkey-helpers.h    |  6 +++++
- tools/testing/selftests/vm/pkey-powerpc.h    | 25 ++++++++++++++++++++
- tools/testing/selftests/vm/pkey-x86.h        |  5 ++++
- tools/testing/selftests/vm/protection_keys.c |  1 +
- 4 files changed, 37 insertions(+)
+ tools/testing/selftests/vm/protection_keys.c | 53 ++++++++++++++++++++
+ 1 file changed, 53 insertions(+)
 
-diff --git a/tools/testing/selftests/vm/pkey-helpers.h b/tools/testing/selftests/vm/pkey-helpers.h
-index 59ccdff18214..622a85848f61 100644
---- a/tools/testing/selftests/vm/pkey-helpers.h
-+++ b/tools/testing/selftests/vm/pkey-helpers.h
-@@ -28,6 +28,9 @@
- extern int dprint_in_signal;
- extern char dprint_in_signal_buffer[DPRINT_IN_SIGNAL_BUF_SIZE];
-
-+extern int test_nr;
-+extern int iteration_nr;
-+
- #ifdef __GNUC__
- __attribute__((format(printf, 1, 2)))
- #endif
-@@ -78,6 +81,9 @@ __attribute__((noinline)) int read_ptr(int *ptr);
- void expected_pkey_fault(int pkey);
- int sys_pkey_alloc(unsigned long flags, unsigned long init_val);
- int sys_pkey_free(unsigned long pkey);
-+int mprotect_pkey(void *ptr, size_t size, unsigned long orig_prot,
-+		unsigned long pkey);
-+void record_pkey_malloc(void *ptr, long size, int prot);
-
- #if defined(__i386__) || defined(__x86_64__) /* arch */
- #include "pkey-x86.h"
-diff --git a/tools/testing/selftests/vm/pkey-powerpc.h b/tools/testing/selftests/vm/pkey-powerpc.h
-index 7d7c3ffafdd9..d31665c48f5e 100644
---- a/tools/testing/selftests/vm/pkey-powerpc.h
-+++ b/tools/testing/selftests/vm/pkey-powerpc.h
-@@ -106,4 +106,29 @@ void expect_fault_on_read_execonly_key(void *p1, int pkey)
- /* 4-byte instructions * 16384 = 64K page */
- #define __page_o_noops() asm(".rept 16384 ; nop; .endr")
-
-+void *malloc_pkey_with_mprotect_subpage(long size, int prot, u16 pkey)
-+{
-+	void *ptr;
-+	int ret;
-+
-+	dprintf1("doing %s(size=%ld, prot=0x%x, pkey=%d)\n", __func__,
-+			size, prot, pkey);
-+	pkey_assert(pkey < NR_PKEYS);
-+	ptr = mmap(NULL, size, prot, MAP_ANONYMOUS|MAP_PRIVATE, -1, 0);
-+	pkey_assert(ptr != (void *)-1);
-+
-+	ret = syscall(__NR_subpage_prot, ptr, size, NULL);
-+	if (ret) {
-+		perror("subpage_perm");
-+		return PTR_ERR_ENOTSUP;
-+	}
-+
-+	ret = mprotect_pkey((void *)ptr, PAGE_SIZE, prot, pkey);
-+	pkey_assert(!ret);
-+	record_pkey_malloc(ptr, size, prot);
-+
-+	dprintf1("%s() for pkey %d @ %p\n", __func__, pkey, ptr);
-+	return ptr;
-+}
-+
- #endif /* _PKEYS_POWERPC_H */
-diff --git a/tools/testing/selftests/vm/pkey-x86.h b/tools/testing/selftests/vm/pkey-x86.h
-index 6421b846aa16..3be20f5d5275 100644
---- a/tools/testing/selftests/vm/pkey-x86.h
-+++ b/tools/testing/selftests/vm/pkey-x86.h
-@@ -173,4 +173,9 @@ void expect_fault_on_read_execonly_key(void *p1, int pkey)
- 	expected_pkey_fault(pkey);
- }
-
-+void *malloc_pkey_with_mprotect_subpage(long size, int prot, u16 pkey)
-+{
-+	return PTR_ERR_ENOTSUP;
-+}
-+
- #endif /* _PKEYS_X86_H */
 diff --git a/tools/testing/selftests/vm/protection_keys.c b/tools/testing/selftests/vm/protection_keys.c
-index 8bb4de103874..d4952b57cc90 100644
+index 4840a986e72e..9e04bfbbd7e6 100644
 --- a/tools/testing/selftests/vm/protection_keys.c
 +++ b/tools/testing/selftests/vm/protection_keys.c
-@@ -845,6 +845,7 @@ void *malloc_pkey_mmap_dax(long size, int prot, u16 pkey)
- void *(*pkey_malloc[])(long size, int prot, u16 pkey) = {
+@@ -963,6 +963,58 @@ __attribute__((noinline)) int read_ptr(int *ptr)
+ 	return *ptr;
+ }
 
- 	malloc_pkey_with_mprotect,
-+	malloc_pkey_with_mprotect_subpage,
- 	malloc_pkey_anon_huge,
- 	malloc_pkey_hugetlb
- /* can not do direct with the pkey_mprotect() API:
++void test_pkey_alloc_free_attach_pkey0(int *ptr, u16 pkey)
++{
++	int i, err;
++	int max_nr_pkey_allocs;
++	int alloced_pkeys[NR_PKEYS];
++	int nr_alloced = 0;
++	long size;
++
++	pkey_assert(pkey_last_malloc_record);
++	size = pkey_last_malloc_record->size;
++	/*
++	 * This is a bit of a hack.  But mprotect() requires
++	 * huge-page-aligned sizes when operating on hugetlbfs.
++	 * So, make sure that we use something that's a multiple
++	 * of a huge page when we can.
++	 */
++	if (size >= HPAGE_SIZE)
++		size = HPAGE_SIZE;
++
++	/* allocate every possible key and make sure key-0 never got allocated */
++	max_nr_pkey_allocs = NR_PKEYS;
++	for (i = 0; i < max_nr_pkey_allocs; i++) {
++		int new_pkey = alloc_pkey();
++		pkey_assert(new_pkey != 0);
++
++		if (new_pkey < 0)
++			break;
++		alloced_pkeys[nr_alloced++] = new_pkey;
++	}
++	/* free all the allocated keys */
++	for (i = 0; i < nr_alloced; i++) {
++		int free_ret;
++
++		if (!alloced_pkeys[i])
++			continue;
++		free_ret = sys_pkey_free(alloced_pkeys[i]);
++		pkey_assert(!free_ret);
++	}
++
++	/* attach key-0 in various modes */
++	err = sys_mprotect_pkey(ptr, size, PROT_READ, 0);
++	pkey_assert(!err);
++	err = sys_mprotect_pkey(ptr, size, PROT_WRITE, 0);
++	pkey_assert(!err);
++	err = sys_mprotect_pkey(ptr, size, PROT_EXEC, 0);
++	pkey_assert(!err);
++	err = sys_mprotect_pkey(ptr, size, PROT_READ|PROT_WRITE, 0);
++	pkey_assert(!err);
++	err = sys_mprotect_pkey(ptr, size, PROT_READ|PROT_WRITE|PROT_EXEC, 0);
++	pkey_assert(!err);
++}
++
+ void test_read_of_write_disabled_region(int *ptr, u16 pkey)
+ {
+ 	int ptr_contents;
+@@ -1447,6 +1499,7 @@ void (*pkey_tests[])(int *ptr, u16 pkey) = {
+ 	test_pkey_syscalls_on_non_allocated_pkey,
+ 	test_pkey_syscalls_bad_args,
+ 	test_pkey_alloc_exhaust,
++	test_pkey_alloc_free_attach_pkey0,
+ };
+
+ void run_tests_once(void)
 -- 
 2.17.1
