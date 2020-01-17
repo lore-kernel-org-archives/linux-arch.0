@@ -1,21 +1,26 @@
-From: manuel franco <hmorales@conatel.gob.ve>
-Subject: Spende von 2 Millionen Euro.
-Date: Thu, 16 Jan 2020 16:12:26 -0430 (VET)
-Message-ID: <1748376480.464914.1579207346807.JavaMail.zimbra@conatel.gob.ve>
-Reply-To: manuel franco <manuelfrancospende11@gmail.com>
+From: Thomas Gleixner <tglx@linutronix.de>
+Subject: Re: [PATCH v2 1/2] asm-generic: Make dma-contiguous.h a mandatory include/asm header
+Date: Fri, 17 Jan 2020 10:43:34 +0100
+Message-ID: <87y2u6cta1.fsf@nanos.tec.linutronix.de>
+References: <cover.1579248206.git.michal.simek@xilinx.com> <0274919c5e3b134df19d943f99cb7e84e5135ccd.1579248206.git.michal.simek@xilinx.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.conatel.gob.ve ([201.248.69.230]:43196 "EHLO
-        mail.conatel.gob.ve" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S2388429AbgAPV7P (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 16 Jan 2020 16:59:15 -0500
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Content-Type: text/plain
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <0274919c5e3b134df19d943f99cb7e84e5135ccd.1579248206.git.michal.simek@xilinx.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Michal Simek <michal.simek@xilinx.com>, linux-kernel@vger.kernel.org, monstr@monstr.eumichal.simek@xilinx.com, git@xilinx.com, Christoph Hellwig <hch@lst.de>
+Cc: Christoph Hellwig <hch@infradead.org>, Paul Burton <paulburton@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Borislav Petkov <bp@alien8.de>, linux-mips@vger.kernel.org, Catalin Marinas <catalin.marinas@arm.com>, linux-riscv@lists.infradead.org, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, Palmer Dabbelt <palmer@dabbelt.com>, x86@kernel.org, Guo Ren <guoren@kernel.org>, Kate Stewart <kstewart@linuxfoundation.org>, Wesley Terpstra <wesley@sifive.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Ralf Baechle <ralf@linux-mips.org>, Paul Walmsley <paul.walmsley@sifive.com>, Max Filippov <jcmvbkbc@gmail.com>, linux-xtensa@linux-xtensa.org, "H. Peter Anvin" <hpa@zytor.com>, "Peter Zijlstra (Intel)" <peterz@infradead.org>, Will Deacon <will@kernel.or>
+List-Id: linux-arch.vger.kernel.org
 
+Michal Simek <michal.simek@xilinx.com> writes:
 
+> dma-continuguous.h is generic for all architectures except arm32 which has
+> its own version.
+>
+> Similar change was done for msi.h by commit a1b39bae16a6
+> ("asm-generic: Make msi.h a mandatory include/asm header")
+>
+> Suggested-by: Christoph Hellwig <hch@infradead.org>
+> Signed-off-by: Michal Simek <michal.simek@xilinx.com>
 
-
-Hallo
-Sie wurden ausgewaumlhlt, um die Summe von euro 2.000.000,00 (zwei Millionen Euro) in meinem laufenden Wohltaumltigkeitsprogramm zu erhalten. Fur  weitere Informationen senden Sie bitte ein Email: manuelfrancospende@gmail.com
+Acked-by: Thomas Gleixner <tglx@linutronix.de>
