@@ -1,55 +1,28 @@
-From: Andrew Morton <akpm@linux-foundation.org>
-Subject: Re: [PATCH v4 3/9] asm-generic/tlb: Avoid potential double flush
-Date: Thu, 16 Jan 2020 17:46:26 -0800
-Message-ID: <20200116174626.0244f71bbff64eee6c7faa1d@linux-foundation.org>
-References: <20200116064531.483522-1-aneesh.kumar@linux.ibm.com>
-        <20200116064531.483522-4-aneesh.kumar@linux.ibm.com>
-        <c12bb139-9eda-74a9-b4de-b147a88ed1b0@linux.ibm.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH v2 1/2] asm-generic: Make dma-contiguous.h a mandatory
+ include/asm header
+Date: Fri, 17 Jan 2020 12:23:28 +0100
+Message-ID: <CAK8P3a14ASj7Bq7pntaxPRomGKfAALyD6GGR-APYEdh=ja6UkQ@mail.gmail.com>
+References: <cover.1579248206.git.michal.simek@xilinx.com> <0274919c5e3b134df19d943f99cb7e84e5135ccd.1579248206.git.michal.simek@xilinx.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <c12bb139-9eda-74a9-b4de-b147a88ed1b0@linux.ibm.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>
-Cc: peterz@infradead.org, will@kernel.org, mpe@ellerman.id.au, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org
+Content-Type: text/plain; charset="UTF-8"
+Return-path: <linux-mips-owner@vger.kernel.org>
+In-Reply-To: <0274919c5e3b134df19d943f99cb7e84e5135ccd.1579248206.git.michal.simek@xilinx.com>
+Sender: linux-mips-owner@vger.kernel.org
+To: Michal Simek <michal.simek@xilinx.com>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Michal Simek <monstr@monstr.eu>, git@xilinx.com, Christoph Hellwig <hch@lst.de>, Christoph Hellwig <hch@infradead.org>, Paul Burton <paulburton@kernel.org>, Borislav Petkov <bp@alien8.de>, "open list:BROADCOM NVRAM DRIVER" <linux-mips@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Catalin Marinas <catalin.marinas@arm.com>, linux-riscv@lists.infradead.org, linux-arch <linux-arch@vger.kernel.org>, linux-s390 <linux-s390@vger.kernel.org>, Palmer Dabbelt <palmer@dabbelt.com>, the arch/x86 maintainers <x86@kernel.org>, Guo Ren <guoren@kernel.org>, Kate Stewart <kstewart@linuxfoundation.org>, Wesley Terpstra <wesley@sifive.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, 16 Jan 2020 12:19:59 +0530 "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com> wrote:
+On Fri, Jan 17, 2020 at 9:03 AM Michal Simek <michal.simek@xilinx.com> wrote:
+>
+> dma-continuguous.h is generic for all architectures except arm32 which has
+> its own version.
+>
+> Similar change was done for msi.h by commit a1b39bae16a6
+> ("asm-generic: Make msi.h a mandatory include/asm header")
+>
+> Suggested-by: Christoph Hellwig <hch@infradead.org>
+> Signed-off-by: Michal Simek <michal.simek@xilinx.com>
+> ---
 
-> On 1/16/20 12:15 PM, Aneesh Kumar K.V wrote:
-> > From: Peter Zijlstra <peterz@infradead.org>
-> > 
-> > Aneesh reported that:
-> > 
-> > 	tlb_flush_mmu()
-> > 	  tlb_flush_mmu_tlbonly()
-> > 	    tlb_flush()			<-- #1
-> > 	  tlb_flush_mmu_free()
-> > 	    tlb_table_flush()
-> > 	      tlb_table_invalidate()
-> > 		tlb_flush_mmu_tlbonly()
-> > 		  tlb_flush()		<-- #2
-> > 
-> > does two TLBIs when tlb->fullmm, because __tlb_reset_range() will not
-> > clear tlb->end in that case.
-> > 
-> > Observe that any caller to __tlb_adjust_range() also sets at least one
-> > of the tlb->freed_tables || tlb->cleared_p* bits, and those are
-> > unconditionally cleared by __tlb_reset_range().
-> > 
-> > Change the condition for actually issuing TLBI to having one of those
-> > bits set, as opposed to having tlb->end != 0.
-> > 
-> 
-> 
-> We should possibly get this to stable too along with the first two 
-> patches. I am not quiet sure if this will qualify for a stable backport. 
-> Hence avoided adding Cc:stable@kernel.org
-
-I'm not seeing any description of the user-visible runtime effects. 
-Always needed, especially for -stable, please.
-
-It appears to be a small performance benefit?  If that benefit was
-"large" and measurements were presented then that would be something
-we might wish to backport.
+Acked-by: Arnd Bergmann <arnd@arndb.de>
