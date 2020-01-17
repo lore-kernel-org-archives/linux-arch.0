@@ -1,51 +1,53 @@
-Return-Path: <SRS0=Pd00=3D=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:55544 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726270AbgANRgd (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 14 Jan 2020 12:36:33 -0500
-Date: Tue, 14 Jan 2020 17:36:28 +0000
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [PATCH v4 10/12] arm64: BTI: Reset BTYPE when skipping emulated
- instructions
-Message-ID: <20200114173627.GM30444@arrakis.emea.arm.com>
-References: <20191211154206.46260-1-broonie@kernel.org>
- <20191211154206.46260-11-broonie@kernel.org>
+Return-Path: <SRS0=L7cK=3G=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail-wm1-f66.google.com ([209.85.128.66]:51134 "EHLO
+        mail-wm1-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1728986AbgAQIDh (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 17 Jan 2020 03:03:37 -0500
+Received: by mail-wm1-f66.google.com with SMTP id a5so6462856wmb.0
+        for <linux-arch@vger.kernel.org>; Fri, 17 Jan 2020 00:03:35 -0800 (PST)
+From: Michal Simek <michal.simek@xilinx.com>
+Subject: [PATCH v2 0/2] microblaze: Enable CMA
+Date: Fri, 17 Jan 2020 09:03:30 +0100
+Message-ID: <cover.1579248206.git.michal.simek@xilinx.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20191211154206.46260-11-broonie@kernel.org>
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Mark Brown <broonie@kernel.org>
-Cc: Will Deacon <will@kernel.org>, Paul Elliott <paul.elliott@arm.com>, Peter Zijlstra <peterz@infradead.org>, Yu-cheng Yu <yu-cheng.yu@intel.com>, Amit Kachhap <amit.kachhap@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Marc Zyngier <maz@kernel.org>, Eugene Syromiatnikov <esyr@redhat.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, "H.J. Lu" <hjl.tools@gmail.com>, Andrew Jones <drjones@redhat.com>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Jann Horn <jannh@google.com>, Richard Henderson <richard.henderson@linaro.org>, Kristina =?utf-8?Q?Mart=C5=A1enko?= <kristina.martsenko@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Florian Weimer <fweimer@redhat.com>, Sudakshina Das <sudi.das@arm.com>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Dave Martin <Dave.Martin@arm.com>
-Message-ID: <20200114173628.OF7Fev0DmgeP34KzzQLF2HHZivSqMjXfGeScs_ATgGk@z>
+To: linux-kernel@vger.kernel.org, monstr@monstr.eu, michal.simek@xilinx.com, git@xilinx.com, Christoph Hellwig <hch@lst.de>
+Cc: Paul Burton <paulburton@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Mike Rapoport <rppt@linux.ibm.com>, Manjukumar Matha <manjukumar.harthikote-matha@xilinx.com>, Borislav Petkov <bp@alien8.de>, Linus Walleij <linus.walleij@linaro.org>, linux-mips@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>, Geert Uytterhoeven <geert@linux-m68k.org>, Catalin Marinas <catalin.marinas@arm.com>, linux-riscv@lists.infradead.org, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, Palmer Dabbelt <palmer@dabbelt.com>, x86@kernel.org, Guo Ren <guoren@kernel.org>, Kate Stewart <kstewart@linuxfoundation.org>, Wesley Terpstra <wesley@sifive.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Ralf Baechle <ralf@linux-mips.org>, Paul Walmsley <paul.walmsley@sifive.com>, Andrew Morton <akpm@linux-foundation.org>, Max Filippov <jcmvbkbc@gmail.com>, linux-xtensa@linux-xtensa.org, "H. Peter Anvin" <hpa@zytor.com>, "Peter Zijlstra (Intel)" <peterz@infradead.org>, Will Deacon <will@kernel.org>, Christian Borntraeger <borntraeger@de.ibm.com>, Deepa Dinamani <deepa.kernel@gmail.com>, Chris Zankel <chris@zankel.net>, Manish Narani <manish.narani@xilinx.com>, Ingo Molnar <mingo@redhat.com>, Waiman Long <longman@redhat.com>, linux-arm-kernel@lists.infradead.org, Albert Ou <aou@eecs.berkeley.edu>, Vasily Gorbik <gor@linux.ibm.com>, James Hogan <jhogan@kernel.org>, Masahiro Yamada <yamada.masahiro@socionext.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Guo Ren <ren_guo@c-sky.com>
+Message-ID: <20200117080330.yf406YT6c-RH5TSQP3eLs-VfKsqNxVkIVf4tcFF-u6g@z>
 
-On Wed, Dec 11, 2019 at 03:42:04PM +0000, Mark Brown wrote:
-> From: Dave Martin <Dave.Martin@arm.com>
-> 
-> Since normal execution of any non-branch instruction resets the
-> PSTATE BTYPE field to 0, so do the same thing when emulating a
-> trapped instruction.
-> 
-> Branches don't trap directly, so we should never need to assign a
-> non-zero value to BTYPE here.
-> 
-> Signed-off-by: Dave Martin <Dave.Martin@arm.com>
-> Signed-off-by: Mark Brown <broonie@kernel.org>
-> ---
->  arch/arm64/kernel/traps.c | 2 ++
->  1 file changed, 2 insertions(+)
-> 
-> diff --git a/arch/arm64/kernel/traps.c b/arch/arm64/kernel/traps.c
-> index bf79d8024fbe..9fc05ae500e6 100644
-> --- a/arch/arm64/kernel/traps.c
-> +++ b/arch/arm64/kernel/traps.c
-> @@ -332,6 +332,8 @@ void arm64_skip_faulting_instruction(struct pt_regs *regs, unsigned long size)
->  
->  	if (regs->pstate & PSR_MODE32_BIT)
+Hi,
 
-Same comment as on a previous patch, compat_user_mode() could be used.
+the patchset enable CMA on Microblaze. Based on Christoph request I have
+created the first patch which makes dma-continugous.h mandatory for all
+archs before Microblaze wiring.
 
-Other than this:
+Thanks,
+Michal
 
-Reviewed-by: Catalin Marinas <catalin.marinas@arm.com>
+Changes in v2:
+- New patch suggested by Christoph
+- Align commit message
+- Remove adding dma-contigous.h via Kbuild because it is done by previous
+  patch
+
+Michal Simek (2):
+  asm-generic: Make dma-contiguous.h a mandatory include/asm header
+  microblaze: Wire CMA allocator
+
+ arch/arm64/include/asm/Kbuild         | 1 -
+ arch/csky/include/asm/Kbuild          | 1 -
+ arch/microblaze/Kconfig               | 1 +
+ arch/microblaze/configs/mmu_defconfig | 2 ++
+ arch/microblaze/mm/init.c             | 4 ++++
+ arch/mips/include/asm/Kbuild          | 1 -
+ arch/riscv/include/asm/Kbuild         | 1 -
+ arch/s390/include/asm/Kbuild          | 1 -
+ arch/x86/include/asm/Kbuild           | 1 -
+ arch/xtensa/include/asm/Kbuild        | 1 -
+ include/asm-generic/Kbuild            | 1 +
+ 11 files changed, 8 insertions(+), 7 deletions(-)
+
+-- 
+2.25.0
