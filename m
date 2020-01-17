@@ -1,79 +1,423 @@
-Return-Path: <3r-AvXg4KBCgFVIRHERLMKKMRWKSSKPI.GSQVTTXPMRYb.MFQ.GSQ@flex--brendanhiggins.bounces.google.com>
-Date: Mon, 27 Jan 2020 23:19:55 -0800
-Message-ID: <20200128072002.79250-1-brendanhiggins@google.com>
-Mime-Version: 1.0
-Subject: [PATCH v1 0/7] kunit: create a centralized executor to dispatch all
- KUnit tests
-From: Brendan Higgins <brendanhiggins@google.com>
-Content-Type: text/plain; charset="UTF-8"
-To: jdike@addtoit.com, richard@nod.at, anton.ivanov@cambridgegreys.com, arnd@arndb.de, keescook@chromium.org, skhan@linuxfoundation.org, alan.maguire@oracle.com, yzaikin@google.com, davidgow@google.com, akpm@linux-foundation.org, rppt@linux.ibm.com, frowand.list@gmail.com
-Cc: gregkh@linuxfoundation.org, sboyd@kernel.org, logang@deltatee.com, mcgrof@kernel.org, knut.omang@oracle.com, linux-um@lists.infradead.org, linux-arch@vger.kernel.org, linux-kselftest@vger.kernel.org, kunit-dev@googlegroups.com, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, Brendan Higgins <brendanhiggins@google.com>
+Return-Path: <owner-linux-mm@kvack.org>
+From: Sandipan Das <sandipan@linux.ibm.com>
+Subject: [PATCH v16 06/23] selftests/vm: Typecast references to pkey register
+Date: Fri, 17 Jan 2020 18:19:45 +0530
+In-Reply-To: <cover.1579265066.git.sandipan@linux.ibm.com>
+References: <cover.1579265066.git.sandipan@linux.ibm.com>
+In-Reply-To: <cover.1579265066.git.sandipan@linux.ibm.com>
+References: <cover.1579265066.git.sandipan@linux.ibm.com>
+Message-ID: <ba30fdb27558102c1764821d2f11b954a2486a9e.1579265066.git.sandipan@linux.ibm.com>
+Sender: owner-linux-mm@kvack.org
+To: shuah@kernel.org, linux-kselftest@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, fweimer@redhat.com, dave.hansen@intel.com, x86@kernel.org, linuxram@us.ibm.com, mhocko@kernel.org, linux-mm@kvack.org, mingo@redhat.com, aneesh.kumar@linux.ibm.com, bauerman@linux.ibm.com, msuchanek@suse.de, mpe@ellerman.id.au, linuxppc-dev@lists.ozlabs.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200128071955.FtLW2Q7yOpx1LCbp3V1e8k_Yd3HKfzuJrYAe5xp8fUw@z>
+Message-ID: <20200117124945.TCTntl-1B5BJ1cKkuAuYs16wvaT6jeTq7LSCtDDXNxE@z>
 
-## TL;DR
+From: Ram Pai <linuxram@us.ibm.com>
 
-This patchset adds a centralized executor to dispatch tests rather than
-relying on late_initcall to schedule each test suite separately along
-with a couple of new features that depend on it.
+The size of the pkey register can vary across architectures.
+This converts the data type of all its references to u64 in
+preparation for multi-arch support.
 
-## What am I trying to do?
+cc: Dave Hansen <dave.hansen@intel.com>
+cc: Florian Weimer <fweimer@redhat.com>
+Signed-off-by: Ram Pai <linuxram@us.ibm.com>
+Signed-off-by: Thiago Jung Bauermann <bauerman@linux.ibm.com>
+Signed-off-by: Sandipan Das <sandipan@linux.ibm.com>
+---
+ tools/testing/selftests/vm/pkey-helpers.h    | 23 +++---
+ tools/testing/selftests/vm/pkey-x86.h        |  8 +-
+ tools/testing/selftests/vm/protection_keys.c | 83 ++++++++++++--------
+ 3 files changed, 66 insertions(+), 48 deletions(-)
 
-Conceptually, I am trying to provide a mechanism by which test suites
-can be grouped together so that they can be reasoned about collectively.
-The last two of three patches in this series add features which depend
-on this:
+diff --git a/tools/testing/selftests/vm/pkey-helpers.h b/tools/testing/selftests/vm/pkey-helpers.h
+index 7f18a82e54fc..cc3491a6df2d 100644
+--- a/tools/testing/selftests/vm/pkey-helpers.h
++++ b/tools/testing/selftests/vm/pkey-helpers.h
+@@ -80,13 +80,14 @@ extern void abort_hooks(void);
+ #error Architecture not supported
+ #endif /* arch */
 
-PATCH 5/7 Prints out a test plan right before KUnit tests are run[1];
-          this is valuable because it makes it possible for a test
-          harness to detect whether the number of tests run matches the
-          number of tests expected to be run, ensuring that no tests
-          silently failed.
+-extern unsigned int shadow_pkey_reg;
++extern u64 shadow_pkey_reg;
 
-PATCH 6/7 Add a new kernel command-line option which allows the user to
-          specify that the kernel poweroff, halt, or reboot after
-          completing all KUnit tests; this is very handy for running
-          KUnit tests on UML or a VM so that the UML/VM process exits
-          cleanly immediately after running all tests without needing a
-          special initramfs.
+-static inline unsigned int _read_pkey_reg(int line)
++static inline u64 _read_pkey_reg(int line)
+ {
+-	unsigned int pkey_reg = __read_pkey_reg();
++	u64 pkey_reg = __read_pkey_reg();
 
-In addition, by dispatching tests from a single location, we can
-guarantee that all KUnit tests run after late_init is complete, which
-was a concern during the initial KUnit patchset review (this has not
-been a problem in practice, but resolving with certainty is nevertheless
-desirable).
+-	dprintf4("read_pkey_reg(line=%d) pkey_reg: %x shadow: %x\n",
++	dprintf4("read_pkey_reg(line=%d) pkey_reg: %016lx"
++			" shadow: %016lx\n",
+ 			line, pkey_reg, shadow_pkey_reg);
+ 	assert(pkey_reg == shadow_pkey_reg);
 
-Other use cases for this exist, but the above features should provide an
-idea of the value that this could provide.
+@@ -95,15 +96,15 @@ static inline unsigned int _read_pkey_reg(int line)
 
-Alan Maguire (1):
-  kunit: test: create a single centralized executor for all tests
+ #define read_pkey_reg() _read_pkey_reg(__LINE__)
 
-Brendan Higgins (5):
-  vmlinux.lds.h: add linker section for KUnit test suites
-  arch: um: add linker section for KUnit test suites
-  init: main: add KUnit to kernel init
-  kunit: test: add test plan to KUnit TAP format
-  Documentation: Add kunit_shutdown to kernel-parameters.txt
+-static inline void write_pkey_reg(unsigned int pkey_reg)
++static inline void write_pkey_reg(u64 pkey_reg)
+ {
+-	dprintf4("%s() changing %08x to %08x\n", __func__,
++	dprintf4("%s() changing %016lx to %016lx\n", __func__,
+ 			__read_pkey_reg(), pkey_reg);
+ 	/* will do the shadow check for us: */
+ 	read_pkey_reg();
+ 	__write_pkey_reg(pkey_reg);
+ 	shadow_pkey_reg = pkey_reg;
+-	dprintf4("%s(%08x) pkey_reg: %08x\n", __func__,
++	dprintf4("%s(%016lx) pkey_reg: %016lx\n", __func__,
+ 			pkey_reg, __read_pkey_reg());
+ }
 
-David Gow (1):
-  kunit: Add 'kunit_shutdown' option
+@@ -113,7 +114,7 @@ static inline void write_pkey_reg(unsigned int pkey_reg)
+  */
+ static inline void __pkey_access_allow(int pkey, int do_allow)
+ {
+-	unsigned int pkey_reg = read_pkey_reg();
++	u64 pkey_reg = read_pkey_reg();
+ 	int bit = pkey * 2;
 
- .../admin-guide/kernel-parameters.txt         |  7 ++
- arch/um/include/asm/common.lds.S              |  4 +
- include/asm-generic/vmlinux.lds.h             |  8 ++
- include/kunit/test.h                          | 82 ++++++++++++-------
- init/main.c                                   |  4 +
- lib/kunit/Makefile                            |  3 +-
- lib/kunit/executor.c                          | 71 ++++++++++++++++
- lib/kunit/test.c                              | 11 ---
- tools/testing/kunit/kunit_kernel.py           |  2 +-
- tools/testing/kunit/kunit_parser.py           | 76 ++++++++++++++---
- .../test_is_test_passed-all_passed.log        |  1 +
- .../test_data/test_is_test_passed-crash.log   |  1 +
- .../test_data/test_is_test_passed-failure.log |  1 +
- 13 files changed, 217 insertions(+), 54 deletions(-)
- create mode 100644 lib/kunit/executor.c
+ 	if (do_allow)
+@@ -121,13 +122,13 @@ static inline void __pkey_access_allow(int pkey, int do_allow)
+ 	else
+ 		pkey_reg |= (1<<bit);
 
+-	dprintf4("pkey_reg now: %08x\n", read_pkey_reg());
++	dprintf4("pkey_reg now: %016lx\n", read_pkey_reg());
+ 	write_pkey_reg(pkey_reg);
+ }
+
+ static inline void __pkey_write_allow(int pkey, int do_allow_write)
+ {
+-	long pkey_reg = read_pkey_reg();
++	u64 pkey_reg = read_pkey_reg();
+ 	int bit = pkey * 2 + 1;
+
+ 	if (do_allow_write)
+@@ -136,7 +137,7 @@ static inline void __pkey_write_allow(int pkey, int do_allow_write)
+ 		pkey_reg |= (1<<bit);
+
+ 	write_pkey_reg(pkey_reg);
+-	dprintf4("pkey_reg now: %08x\n", read_pkey_reg());
++	dprintf4("pkey_reg now: %016lx\n", read_pkey_reg());
+ }
+
+ #define ARRAY_SIZE(x) (sizeof(x) / sizeof(*(x)))
+diff --git a/tools/testing/selftests/vm/pkey-x86.h b/tools/testing/selftests/vm/pkey-x86.h
+index 2f04ade8ca9c..dc34ae21e714 100644
+--- a/tools/testing/selftests/vm/pkey-x86.h
++++ b/tools/testing/selftests/vm/pkey-x86.h
+@@ -53,11 +53,11 @@ static inline void __page_o_noops(void)
+ 	asm(".rept 512 ; nopl 0x7eeeeeee(%eax) ; .endr");
+ }
+
+-static inline unsigned int __read_pkey_reg(void)
++static inline u64 __read_pkey_reg(void)
+ {
+ 	unsigned int eax, edx;
+ 	unsigned int ecx = 0;
+-	unsigned int pkey_reg;
++	unsigned pkey_reg;
+
+ 	asm volatile(".byte 0x0f,0x01,0xee\n\t"
+ 		     : "=a" (eax), "=d" (edx)
+@@ -66,13 +66,13 @@ static inline unsigned int __read_pkey_reg(void)
+ 	return pkey_reg;
+ }
+
+-static inline void __write_pkey_reg(unsigned int pkey_reg)
++static inline void __write_pkey_reg(u64 pkey_reg)
+ {
+ 	unsigned int eax = pkey_reg;
+ 	unsigned int ecx = 0;
+ 	unsigned int edx = 0;
+
+-	dprintf4("%s() changing %08x to %08x\n", __func__,
++	dprintf4("%s() changing %016lx to %016lx\n", __func__,
+ 			__read_pkey_reg(), pkey_reg);
+ 	asm volatile(".byte 0x0f,0x01,0xef\n\t"
+ 		     : : "a" (eax), "c" (ecx), "d" (edx));
+diff --git a/tools/testing/selftests/vm/protection_keys.c b/tools/testing/selftests/vm/protection_keys.c
+index 2d0e881f109d..f36e9e7789ce 100644
+--- a/tools/testing/selftests/vm/protection_keys.c
++++ b/tools/testing/selftests/vm/protection_keys.c
+@@ -48,7 +48,7 @@
+ int iteration_nr = 1;
+ int test_nr;
+
+-unsigned int shadow_pkey_reg;
++u64 shadow_pkey_reg;
+ int dprint_in_signal;
+ char dprint_in_signal_buffer[DPRINT_IN_SIGNAL_BUF_SIZE];
+
+@@ -163,7 +163,7 @@ void dump_mem(void *dumpme, int len_bytes)
+
+ 	for (i = 0; i < len_bytes; i += sizeof(u64)) {
+ 		u64 *ptr = (u64 *)(c + i);
+-		dprintf1("dump[%03d][@%p]: %016jx\n", i, ptr, *ptr);
++		dprintf1("dump[%03d][@%p]: %016lx\n", i, ptr, *ptr);
+ 	}
+ }
+
+@@ -205,7 +205,8 @@ void signal_handler(int signum, siginfo_t *si, void *vucontext)
+
+ 	dprint_in_signal = 1;
+ 	dprintf1(">>>>===============SIGSEGV============================\n");
+-	dprintf1("%s()::%d, pkey_reg: 0x%x shadow: %x\n", __func__, __LINE__,
++	dprintf1("%s()::%d, pkey_reg: 0x%016lx shadow: %016lx\n",
++			__func__, __LINE__,
+ 			__read_pkey_reg(), shadow_pkey_reg);
+
+ 	trapno = uctxt->uc_mcontext.gregs[REG_TRAPNO];
+@@ -213,8 +214,9 @@ void signal_handler(int signum, siginfo_t *si, void *vucontext)
+ 	fpregset = uctxt->uc_mcontext.fpregs;
+ 	fpregs = (void *)fpregset;
+
+-	dprintf2("%s() trapno: %d ip: 0x%lx info->si_code: %s/%d\n", __func__,
+-			trapno, ip, si_code_str(si->si_code), si->si_code);
++	dprintf2("%s() trapno: %d ip: 0x%016lx info->si_code: %s/%d\n",
++			__func__, trapno, ip, si_code_str(si->si_code),
++			si->si_code);
+ #ifdef __i386__
+ 	/*
+ 	 * 32-bit has some extra padding so that userspace can tell whether
+@@ -256,7 +258,8 @@ void signal_handler(int signum, siginfo_t *si, void *vucontext)
+ 	 * need __read_pkey_reg() version so we do not do shadow_pkey_reg
+ 	 * checking
+ 	 */
+-	dprintf1("signal pkey_reg from  pkey_reg: %08x\n", __read_pkey_reg());
++	dprintf1("signal pkey_reg from  pkey_reg: %016lx\n",
++			__read_pkey_reg());
+ 	dprintf1("pkey from siginfo: %jx\n", siginfo_pkey);
+ 	*(u64 *)pkey_reg_ptr = 0x00000000;
+ 	dprintf1("WARNING: set PKEY_REG=0 to allow faulting instruction to continue\n");
+@@ -331,16 +334,17 @@ pid_t fork_lazy_child(void)
+ static u32 hw_pkey_get(int pkey, unsigned long flags)
+ {
+ 	u32 mask = (PKEY_DISABLE_ACCESS|PKEY_DISABLE_WRITE);
+-	u32 pkey_reg = __read_pkey_reg();
+-	u32 shifted_pkey_reg;
++	u64 pkey_reg = __read_pkey_reg();
++	u64 shifted_pkey_reg;
+ 	u32 masked_pkey_reg;
+
+ 	dprintf1("%s(pkey=%d, flags=%lx) = %x / %d\n",
+ 			__func__, pkey, flags, 0, 0);
+-	dprintf2("%s() raw pkey_reg: %x\n", __func__, pkey_reg);
++	dprintf2("%s() raw pkey_reg: %016lx\n", __func__, pkey_reg);
+
+ 	shifted_pkey_reg = (pkey_reg >> (pkey * PKEY_BITS_PER_PKEY));
+-	dprintf2("%s() shifted_pkey_reg: %x\n", __func__, shifted_pkey_reg);
++	dprintf2("%s() shifted_pkey_reg: %016lx\n", __func__,
++			shifted_pkey_reg);
+ 	masked_pkey_reg = shifted_pkey_reg & mask;
+ 	dprintf2("%s() masked  pkey_reg: %x\n", __func__, masked_pkey_reg);
+ 	/*
+@@ -353,8 +357,8 @@ static u32 hw_pkey_get(int pkey, unsigned long flags)
+ static int hw_pkey_set(int pkey, unsigned long rights, unsigned long flags)
+ {
+ 	u32 mask = (PKEY_DISABLE_ACCESS|PKEY_DISABLE_WRITE);
+-	u32 old_pkey_reg = __read_pkey_reg();
+-	u32 new_pkey_reg;
++	u64 old_pkey_reg = __read_pkey_reg();
++	u64 new_pkey_reg;
+
+ 	/* make sure that 'rights' only contains the bits we expect: */
+ 	assert(!(rights & ~mask));
+@@ -369,7 +373,7 @@ static int hw_pkey_set(int pkey, unsigned long rights, unsigned long flags)
+ 	__write_pkey_reg(new_pkey_reg);
+
+ 	dprintf3("%s(pkey=%d, rights=%lx, flags=%lx) = %x"
+-		" pkey_reg now: %x old_pkey_reg: %x\n",
++		" pkey_reg now: %016lx old_pkey_reg: %016lx\n",
+ 		__func__, pkey, rights, flags, 0, __read_pkey_reg(),
+ 		old_pkey_reg);
+ 	return 0;
+@@ -380,7 +384,7 @@ void pkey_disable_set(int pkey, int flags)
+ 	unsigned long syscall_flags = 0;
+ 	int ret;
+ 	int pkey_rights;
+-	u32 orig_pkey_reg = read_pkey_reg();
++	u64 orig_pkey_reg = read_pkey_reg();
+
+ 	dprintf1("START->%s(%d, 0x%x)\n", __func__,
+ 		pkey, flags);
+@@ -390,6 +394,7 @@ void pkey_disable_set(int pkey, int flags)
+
+ 	dprintf1("%s(%d) hw_pkey_get(%d): %x\n", __func__,
+ 			pkey, pkey, pkey_rights);
++
+ 	pkey_assert(pkey_rights >= 0);
+
+ 	pkey_rights |= flags;
+@@ -398,7 +403,8 @@ void pkey_disable_set(int pkey, int flags)
+ 	assert(!ret);
+ 	/* pkey_reg and flags have the same format */
+ 	shadow_pkey_reg |= flags << (pkey * 2);
+-	dprintf1("%s(%d) shadow: 0x%x\n", __func__, pkey, shadow_pkey_reg);
++	dprintf1("%s(%d) shadow: 0x%016lx\n",
++		__func__, pkey, shadow_pkey_reg);
+
+ 	pkey_assert(ret >= 0);
+
+@@ -406,7 +412,8 @@ void pkey_disable_set(int pkey, int flags)
+ 	dprintf1("%s(%d) hw_pkey_get(%d): %x\n", __func__,
+ 			pkey, pkey, pkey_rights);
+
+-	dprintf1("%s(%d) pkey_reg: 0x%x\n", __func__, pkey, read_pkey_reg());
++	dprintf1("%s(%d) pkey_reg: 0x%016lx\n",
++		__func__, pkey, read_pkey_reg());
+ 	if (flags)
+ 		pkey_assert(read_pkey_reg() > orig_pkey_reg);
+ 	dprintf1("END<---%s(%d, 0x%x)\n", __func__,
+@@ -418,7 +425,7 @@ void pkey_disable_clear(int pkey, int flags)
+ 	unsigned long syscall_flags = 0;
+ 	int ret;
+ 	int pkey_rights = hw_pkey_get(pkey, syscall_flags);
+-	u32 orig_pkey_reg = read_pkey_reg();
++	u64 orig_pkey_reg = read_pkey_reg();
+
+ 	pkey_assert(flags & (PKEY_DISABLE_ACCESS | PKEY_DISABLE_WRITE));
+
+@@ -436,7 +443,8 @@ void pkey_disable_clear(int pkey, int flags)
+ 	dprintf1("%s(%d) hw_pkey_get(%d): %x\n", __func__,
+ 			pkey, pkey, pkey_rights);
+
+-	dprintf1("%s(%d) pkey_reg: 0x%x\n", __func__, pkey, read_pkey_reg());
++	dprintf1("%s(%d) pkey_reg: 0x%016lx\n", __func__,
++			pkey, read_pkey_reg());
+ 	if (flags)
+ 		assert(read_pkey_reg() > orig_pkey_reg);
+ }
+@@ -491,20 +499,22 @@ int alloc_pkey(void)
+ 	int ret;
+ 	unsigned long init_val = 0x0;
+
+-	dprintf1("%s()::%d, pkey_reg: 0x%x shadow: %x\n", __func__,
+-			__LINE__, __read_pkey_reg(), shadow_pkey_reg);
++	dprintf1("%s()::%d, pkey_reg: 0x%016lx shadow: %016lx\n",
++			__func__, __LINE__, __read_pkey_reg(), shadow_pkey_reg);
+ 	ret = sys_pkey_alloc(0, init_val);
+ 	/*
+ 	 * pkey_alloc() sets PKEY register, so we need to reflect it in
+ 	 * shadow_pkey_reg:
+ 	 */
+-	dprintf4("%s()::%d, ret: %d pkey_reg: 0x%x shadow: 0x%x\n",
++	dprintf4("%s()::%d, ret: %d pkey_reg: 0x%016lx"
++			" shadow: 0x%016lx\n",
+ 			__func__, __LINE__, ret, __read_pkey_reg(),
+ 			shadow_pkey_reg);
+ 	if (ret) {
+ 		/* clear both the bits: */
+ 		shadow_pkey_reg &= ~(0x3      << (ret * 2));
+-		dprintf4("%s()::%d, ret: %d pkey_reg: 0x%x shadow: 0x%x\n",
++		dprintf4("%s()::%d, ret: %d pkey_reg: 0x%016lx"
++				" shadow: 0x%016lx\n",
+ 				__func__,
+ 				__LINE__, ret, __read_pkey_reg(),
+ 				shadow_pkey_reg);
+@@ -514,13 +524,15 @@ int alloc_pkey(void)
+ 		 */
+ 		shadow_pkey_reg |=  (init_val << (ret * 2));
+ 	}
+-	dprintf4("%s()::%d, ret: %d pkey_reg: 0x%x shadow: 0x%x\n",
++	dprintf4("%s()::%d, ret: %d pkey_reg: 0x%016lx"
++			" shadow: 0x%016lx\n",
+ 			__func__, __LINE__, ret, __read_pkey_reg(),
+ 			shadow_pkey_reg);
+ 	dprintf1("%s()::%d errno: %d\n", __func__, __LINE__, errno);
+ 	/* for shadow checking: */
+ 	read_pkey_reg();
+-	dprintf4("%s()::%d, ret: %d pkey_reg: 0x%x shadow: 0x%x\n",
++	dprintf4("%s()::%d, ret: %d pkey_reg: 0x%016lx"
++		 " shadow: 0x%016lx\n",
+ 		__func__, __LINE__, ret, __read_pkey_reg(),
+ 		shadow_pkey_reg);
+ 	return ret;
+@@ -573,7 +585,8 @@ int alloc_random_pkey(void)
+ 		free_ret = sys_pkey_free(alloced_pkeys[i]);
+ 		pkey_assert(!free_ret);
+ 	}
+-	dprintf1("%s()::%d, ret: %d pkey_reg: 0x%x shadow: 0x%x\n", __func__,
++	dprintf1("%s()::%d, ret: %d pkey_reg: 0x%016lx"
++			 " shadow: 0x%016lx\n", __func__,
+ 			__LINE__, ret, __read_pkey_reg(), shadow_pkey_reg);
+ 	return ret;
+ }
+@@ -592,11 +605,13 @@ int mprotect_pkey(void *ptr, size_t size, unsigned long orig_prot,
+ 		if (nr_iterations-- < 0)
+ 			break;
+
+-		dprintf1("%s()::%d, ret: %d pkey_reg: 0x%x shadow: 0x%x\n",
++		dprintf1("%s()::%d, ret: %d pkey_reg: 0x%016lx"
++			" shadow: 0x%016lx\n",
+ 			__func__, __LINE__, ret, __read_pkey_reg(),
+ 			shadow_pkey_reg);
+ 		sys_pkey_free(rpkey);
+-		dprintf1("%s()::%d, ret: %d pkey_reg: 0x%x shadow: 0x%x\n",
++		dprintf1("%s()::%d, ret: %d pkey_reg: 0x%016lx"
++			" shadow: 0x%016lx\n",
+ 			__func__, __LINE__, ret, __read_pkey_reg(),
+ 			shadow_pkey_reg);
+ 	}
+@@ -606,7 +621,8 @@ int mprotect_pkey(void *ptr, size_t size, unsigned long orig_prot,
+ 	dprintf1("mprotect_pkey(%p, %zx, prot=0x%lx, pkey=%ld) ret: %d\n",
+ 			ptr, size, orig_prot, pkey, ret);
+ 	pkey_assert(!ret);
+-	dprintf1("%s()::%d, ret: %d pkey_reg: 0x%x shadow: 0x%x\n", __func__,
++	dprintf1("%s()::%d, ret: %d pkey_reg: 0x%016lx"
++			" shadow: 0x%016lx\n", __func__,
+ 			__LINE__, ret, __read_pkey_reg(), shadow_pkey_reg);
+ 	return ret;
+ }
+@@ -885,7 +901,7 @@ void expected_pkey_fault(int pkey)
+ 		pkey_assert(0);
+
+ 	__write_pkey_reg(shadow_pkey_reg);
+-	dprintf1("%s() set pkey_reg=%x to restore state after signal "
++	dprintf1("%s() set pkey_reg=%016lx to restore state after signal "
+ 		       "nuked it\n", __func__, shadow_pkey_reg);
+ 	last_pkey_faults = pkey_faults;
+ 	last_si_pkey = -1;
+@@ -1097,7 +1113,8 @@ void test_pkey_alloc_exhaust(int *ptr, u16 pkey)
+ 		int new_pkey;
+ 		dprintf1("%s() alloc loop: %d\n", __func__, i);
+ 		new_pkey = alloc_pkey();
+-		dprintf4("%s()::%d, err: %d pkey_reg: 0x%x shadow: 0x%x\n",
++		dprintf4("%s()::%d, err: %d pkey_reg: 0x%016lx"
++				" shadow: 0x%016lx\n",
+ 				__func__, __LINE__, err, __read_pkey_reg(),
+ 				shadow_pkey_reg);
+ 		read_pkey_reg(); /* for shadow checking */
+@@ -1285,7 +1302,7 @@ void test_executing_on_unreadable_memory(int *ptr, u16 pkey)
+ 	pkey_assert(!ret);
+ 	pkey_access_deny(pkey);
+
+-	dprintf2("pkey_reg: %x\n", read_pkey_reg());
++	dprintf2("pkey_reg: %016lx\n", read_pkey_reg());
+
+ 	/*
+ 	 * Make sure this is an *instruction* fault
+@@ -1316,7 +1333,7 @@ void test_implicit_mprotect_exec_only_memory(int *ptr, u16 pkey)
+ 	ret = mprotect(p1, PAGE_SIZE, PROT_EXEC);
+ 	pkey_assert(!ret);
+
+-	dprintf2("pkru: %x\n", read_pkey_reg());
++	dprintf2("pkey_reg: %016lx\n", read_pkey_reg());
+
+ 	/* Make sure this is an *instruction* fault */
+ 	madvise(p1, PAGE_SIZE, MADV_DONTNEED);
+@@ -1433,7 +1450,7 @@ int main(void)
+ 	}
+
+ 	pkey_setup_shadow();
+-	printf("startup pkey_reg: %x\n", read_pkey_reg());
++	printf("startup pkey_reg: %016lx\n", read_pkey_reg());
+ 	setup_hugetlbfs();
+
+ 	while (nr_iterations-- > 0)
 -- 
-2.25.0.341.g760bfbb309-goog
+2.17.1
