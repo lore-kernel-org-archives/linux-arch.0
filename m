@@ -1,148 +1,76 @@
 Return-Path: <owner-linux-mm@kvack.org>
 From: Sandipan Das <sandipan@linux.ibm.com>
-Subject: [PATCH v17 04/24] selftests/vm/pkeys: Move generic definitions to
- header file
-Date: Mon, 20 Jan 2020 14:06:01 +0530
-In-Reply-To: <cover.1579507768.git.sandipan@linux.ibm.com>
-References: <cover.1579507768.git.sandipan@linux.ibm.com>
-In-Reply-To: <cover.1579507768.git.sandipan@linux.ibm.com>
-References: <cover.1579507768.git.sandipan@linux.ibm.com>
-Message-ID: <a454a369d8e11308dc7d9ad9ad52d4d24ef77bad.1579507768.git.sandipan@linux.ibm.com>
+Subject: [PATCH v16 01/23] selftests/x86/pkeys: Move selftests to arch-neutral
+ directory
+Date: Fri, 17 Jan 2020 18:19:40 +0530
+In-Reply-To: <cover.1579265066.git.sandipan@linux.ibm.com>
+References: <cover.1579265066.git.sandipan@linux.ibm.com>
+In-Reply-To: <cover.1579265066.git.sandipan@linux.ibm.com>
+References: <cover.1579265066.git.sandipan@linux.ibm.com>
+Message-ID: <5bef2b0584a6dc2863874d0e2ccd873cceab98c2.1579265066.git.sandipan@linux.ibm.com>
 Sender: owner-linux-mm@kvack.org
 To: shuah@kernel.org, linux-kselftest@vger.kernel.org
 Cc: linux-arch@vger.kernel.org, fweimer@redhat.com, dave.hansen@intel.com, x86@kernel.org, linuxram@us.ibm.com, mhocko@kernel.org, linux-mm@kvack.org, mingo@redhat.com, aneesh.kumar@linux.ibm.com, bauerman@linux.ibm.com, msuchanek@suse.de, mpe@ellerman.id.au, linuxppc-dev@lists.ozlabs.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200120083601.Klk4Fn68cmV-8b2CGYlMbsvjzLaY80auHULMstGJLhk@z>
+Message-ID: <20200117124940.pvUXG5yV2qOf9LP8p_YYZqw6AH1gyX_Sqix6imWQhI0@z>
 
 From: Ram Pai <linuxram@us.ibm.com>
-
-Moved all the generic definition and helper functions to the
-header file.
 
 cc: Dave Hansen <dave.hansen@intel.com>
 cc: Florian Weimer <fweimer@redhat.com>
 Signed-off-by: Ram Pai <linuxram@us.ibm.com>
 Signed-off-by: Thiago Jung Bauermann <bauerman@linux.ibm.com>
+Acked-by: Ingo Molnar <mingo@kernel.org>
 Acked-by: Dave Hansen <dave.hansen@intel.com>
 Signed-off-by: Sandipan Das <sandipan@linux.ibm.com>
 ---
- tools/testing/selftests/vm/pkey-helpers.h    | 35 +++++++++++++++++---
- tools/testing/selftests/vm/protection_keys.c | 27 ---------------
- 2 files changed, 30 insertions(+), 32 deletions(-)
+ tools/testing/selftests/vm/.gitignore                 | 1 +
+ tools/testing/selftests/vm/Makefile                   | 1 +
+ tools/testing/selftests/{x86 => vm}/pkey-helpers.h    | 0
+ tools/testing/selftests/{x86 => vm}/protection_keys.c | 0
+ tools/testing/selftests/x86/.gitignore                | 1 -
+ 5 files changed, 2 insertions(+), 1 deletion(-)
+ rename tools/testing/selftests/{x86 => vm}/pkey-helpers.h (100%)
+ rename tools/testing/selftests/{x86 => vm}/protection_keys.c (100%)
 
-diff --git a/tools/testing/selftests/vm/pkey-helpers.h b/tools/testing/selftests/vm/pkey-helpers.h
-index d5779be4793f..6ad1bd54ef94 100644
---- a/tools/testing/selftests/vm/pkey-helpers.h
-+++ b/tools/testing/selftests/vm/pkey-helpers.h
-@@ -13,6 +13,14 @@
- #include <ucontext.h>
- #include <sys/mman.h>
+diff --git a/tools/testing/selftests/vm/.gitignore b/tools/testing/selftests/vm/.gitignore
+index 31b3c98b6d34..c55837bf39fa 100644
+--- a/tools/testing/selftests/vm/.gitignore
++++ b/tools/testing/selftests/vm/.gitignore
+@@ -14,3 +14,4 @@ virtual_address_range
+ gup_benchmark
+ va_128TBswitch
+ map_fixed_noreplace
++protection_keys
+diff --git a/tools/testing/selftests/vm/Makefile b/tools/testing/selftests/vm/Makefile
+index 7f9a8a8c31da..4e9c741be6af 100644
+--- a/tools/testing/selftests/vm/Makefile
++++ b/tools/testing/selftests/vm/Makefile
+@@ -18,6 +18,7 @@ TEST_GEN_FILES += on-fault-limit
+ TEST_GEN_FILES += thuge-gen
+ TEST_GEN_FILES += transhuge-stress
+ TEST_GEN_FILES += userfaultfd
++TEST_GEN_FILES += protection_keys
 
-+/* Define some kernel-like types */
-+#define  u8 uint8_t
-+#define u16 uint16_t
-+#define u32 uint32_t
-+#define u64 uint64_t
-+
-+#define PTR_ERR_ENOTSUP ((void *)-ENOTSUP)
-+
- #define NR_PKEYS 16
- #define PKEY_BITS_PER_PKEY 2
-
-@@ -53,6 +61,18 @@ static inline void sigsafe_printf(const char *format, ...)
- #define dprintf3(args...) dprintf_level(3, args)
- #define dprintf4(args...) dprintf_level(4, args)
-
-+extern void abort_hooks(void);
-+#define pkey_assert(condition) do {		\
-+	if (!(condition)) {			\
-+		dprintf0("assert() at %s::%d test_nr: %d iteration: %d\n", \
-+				__FILE__, __LINE__,	\
-+				test_nr, iteration_nr);	\
-+		dprintf0("errno at assert: %d", errno);	\
-+		abort_hooks();			\
-+		exit(__LINE__);			\
-+	}					\
-+} while (0)
-+
- extern unsigned int shadow_pkey_reg;
- static inline unsigned int __read_pkey_reg(void)
- {
-@@ -137,11 +157,6 @@ static inline void __pkey_write_allow(int pkey, int do_allow_write)
- 	dprintf4("pkey_reg now: %08x\n", read_pkey_reg());
- }
-
--#define PROT_PKEY0     0x10            /* protection key value (bit 0) */
--#define PROT_PKEY1     0x20            /* protection key value (bit 1) */
--#define PROT_PKEY2     0x40            /* protection key value (bit 2) */
--#define PROT_PKEY3     0x80            /* protection key value (bit 3) */
--
- #define PAGE_SIZE 4096
- #define MB	(1<<20)
-
-@@ -219,4 +234,14 @@ int pkey_reg_xstate_offset(void)
- 	return xstate_offset;
- }
-
-+#define ARRAY_SIZE(x) (sizeof(x) / sizeof(*(x)))
-+#define ALIGN_UP(x, align_to)	(((x) + ((align_to)-1)) & ~((align_to)-1))
-+#define ALIGN_DOWN(x, align_to) ((x) & ~((align_to)-1))
-+#define ALIGN_PTR_UP(p, ptr_align_to)	\
-+	((typeof(p))ALIGN_UP((unsigned long)(p), ptr_align_to))
-+#define ALIGN_PTR_DOWN(p, ptr_align_to)	\
-+	((typeof(p))ALIGN_DOWN((unsigned long)(p), ptr_align_to))
-+#define __stringify_1(x...)     #x
-+#define __stringify(x...)       __stringify_1(x)
-+
- #endif /* _PKEYS_HELPER_H */
-diff --git a/tools/testing/selftests/vm/protection_keys.c b/tools/testing/selftests/vm/protection_keys.c
-index 2f4ab81c570d..42ffb58810f2 100644
---- a/tools/testing/selftests/vm/protection_keys.c
-+++ b/tools/testing/selftests/vm/protection_keys.c
-@@ -51,31 +51,10 @@ int test_nr;
- unsigned int shadow_pkey_reg;
-
- #define HPAGE_SIZE	(1UL<<21)
--#define ARRAY_SIZE(x) (sizeof(x) / sizeof(*(x)))
--#define ALIGN_UP(x, align_to)	(((x) + ((align_to)-1)) & ~((align_to)-1))
--#define ALIGN_DOWN(x, align_to) ((x) & ~((align_to)-1))
--#define ALIGN_PTR_UP(p, ptr_align_to)	((typeof(p))ALIGN_UP((unsigned long)(p),	ptr_align_to))
--#define ALIGN_PTR_DOWN(p, ptr_align_to)	((typeof(p))ALIGN_DOWN((unsigned long)(p),	ptr_align_to))
--#define __stringify_1(x...)     #x
--#define __stringify(x...)       __stringify_1(x)
--
--#define PTR_ERR_ENOTSUP ((void *)-ENOTSUP)
-
- int dprint_in_signal;
- char dprint_in_signal_buffer[DPRINT_IN_SIGNAL_BUF_SIZE];
-
--extern void abort_hooks(void);
--#define pkey_assert(condition) do {		\
--	if (!(condition)) {			\
--		dprintf0("assert() at %s::%d test_nr: %d iteration: %d\n", \
--				__FILE__, __LINE__,	\
--				test_nr, iteration_nr);	\
--		dprintf0("errno at assert: %d", errno);	\
--		abort_hooks();			\
--		exit(__LINE__);			\
--	}					\
--} while (0)
--
- void cat_into_file(char *str, char *file)
- {
- 	int fd = open(file, O_RDWR);
-@@ -186,12 +165,6 @@ void lots_o_noops_around_write(int *write_to_me)
- 	dprintf3("%s() done\n", __func__);
- }
-
--/* Define some kernel-like types */
--#define  u8 uint8_t
--#define u16 uint16_t
--#define u32 uint32_t
--#define u64 uint64_t
--
- #ifdef __i386__
-
- #ifndef SYS_mprotect_key
+ ifneq (,$(filter $(ARCH),arm64 ia64 mips64 parisc64 ppc64 riscv64 s390x sh64 sparc64 x86_64))
+ TEST_GEN_FILES += va_128TBswitch
+diff --git a/tools/testing/selftests/x86/pkey-helpers.h b/tools/testing/selftests/vm/pkey-helpers.h
+similarity index 100%
+rename from tools/testing/selftests/x86/pkey-helpers.h
+rename to tools/testing/selftests/vm/pkey-helpers.h
+diff --git a/tools/testing/selftests/x86/protection_keys.c b/tools/testing/selftests/vm/protection_keys.c
+similarity index 100%
+rename from tools/testing/selftests/x86/protection_keys.c
+rename to tools/testing/selftests/vm/protection_keys.c
+diff --git a/tools/testing/selftests/x86/.gitignore b/tools/testing/selftests/x86/.gitignore
+index 7757f73ff9a3..eb30ffd83876 100644
+--- a/tools/testing/selftests/x86/.gitignore
++++ b/tools/testing/selftests/x86/.gitignore
+@@ -11,5 +11,4 @@ ldt_gdt
+ iopl
+ mpx-mini-test
+ ioperm
+-protection_keys
+ test_vdso
 -- 
 2.17.1
