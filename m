@@ -1,38 +1,59 @@
-Return-Path: <owner-linux-mm@kvack.org>
-Subject: Re: [kernel-hardening] [PATCH 09/38] usercopy: Mark kmalloc caches as
- usercopy caches
-References: <1515636190-24061-1-git-send-email-keescook@chromium.org>
- <1515636190-24061-10-git-send-email-keescook@chromium.org>
- <9519edb7-456a-a2fa-659e-3e5a1ff89466@suse.cz>
- <201911121313.1097D6EE@keescook> <201911141327.4DE6510@keescook>
-From: Jiri Slaby <jslaby@suse.cz>
-Message-ID: <bfca96db-bbd0-d958-7732-76e36c667c68@suse.cz>
-Date: Thu, 23 Jan 2020 09:14:20 +0100
-MIME-Version: 1.0
-In-Reply-To: <201911141327.4DE6510@keescook>
-Content-Type: text/plain; charset=iso-8859-2
-Content-Language: en-US
+Return-Path: <linux-arch-owner@vger.kernel.org>
+Received: from mail.kernel.org ([198.145.29.99]:39162 "EHLO mail.kernel.org"
+ rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP id S1726741AbgAQBq2
+ (ORCPT <rfc822;linux-arch@vger.kernel.org>); Thu, 16 Jan 2020 20:46:28 -0500
+Date: Thu, 16 Jan 2020 17:46:26 -0800
+From: Andrew Morton <akpm@linux-foundation.org>
+Subject: Re: [PATCH v4 3/9] asm-generic/tlb: Avoid potential double flush
+Message-ID: <20200116174626.0244f71bbff64eee6c7faa1d@linux-foundation.org>
+In-Reply-To: <c12bb139-9eda-74a9-b4de-b147a88ed1b0@linux.ibm.com>
+References: <20200116064531.483522-1-aneesh.kumar@linux.ibm.com>
+ <20200116064531.483522-4-aneesh.kumar@linux.ibm.com>
+ <c12bb139-9eda-74a9-b4de-b147a88ed1b0@linux.ibm.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
-Sender: owner-linux-mm@kvack.org
-To: Kees Cook <keescook@chromium.org>, Alexander Viro <viro@zeniv.linux.org.uk>
-Cc: linux-kernel@vger.kernel.org, David Windsor <dave@nullcore.net>, Pekka Enberg <penberg@kernel.org>, David Rientjes <rientjes@google.com>, Joonsoo Kim <iamjoonsoo.kim@lge.com>, Andrew Morton <akpm@linux-foundation.org>, linux-mm@kvack.org, linux-xfs@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, Christoph Hellwig <hch@infradead.org>, Christoph Lameter <cl@linux.com>, "David S. Miller" <davem@davemloft.net>, Laura Abbott <labbott@redhat.com>, Mark Rutland <mark.rutland@arm.com>, "Martin K. Petersen" <martin.petersen@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Christoffer Dall <christoffer.dall@linaro.org>, Dave Kleikamp <dave.kleikamp@oracle.com>, Jan Kara <jack@suse.cz>, Luis de Bethencourt <luisbg@kernel.org>, Marc Zyngier <marc.zyngier@arm.com>, Rik van Riel <riel@redhat.com>, Matthew Garrett <mjg59@google.com>, linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org, netdev@vger.kernel.org, kernel-hardening@lists.openwall.com, Vlastimil Babka <vbabka@suse.cz>, Michal Kubecek <mkubecek@suse.cz>
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200123081420.muT92tBulvLAVFvbLVxKg9B442_DhRtCUeAV5yOReSU@z>
+To: "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>
+Cc: peterz@infradead.org, will@kernel.org, mpe@ellerman.id.au, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org
+Message-ID: <20200117014626.YjhCLpPG4M7ROiugBSzwz9_7g5_jNyE_W8UCLBE8hqk@z>
 
-On 14. 11. 19, 22:27, Kees Cook wrote:
-> On Tue, Nov 12, 2019 at 01:21:54PM -0800, Kees Cook wrote:
->> How is iucv the only network protocol that has run into this? Do others
->> use a bounce buffer?
+On Thu, 16 Jan 2020 12:19:59 +0530 "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com> wrote:
+
+> On 1/16/20 12:15 PM, Aneesh Kumar K.V wrote:
+> > From: Peter Zijlstra <peterz@infradead.org>
+> > 
+> > Aneesh reported that:
+> > 
+> > 	tlb_flush_mmu()
+> > 	  tlb_flush_mmu_tlbonly()
+> > 	    tlb_flush()			<-- #1
+> > 	  tlb_flush_mmu_free()
+> > 	    tlb_table_flush()
+> > 	      tlb_table_invalidate()
+> > 		tlb_flush_mmu_tlbonly()
+> > 		  tlb_flush()		<-- #2
+> > 
+> > does two TLBIs when tlb->fullmm, because __tlb_reset_range() will not
+> > clear tlb->end in that case.
+> > 
+> > Observe that any caller to __tlb_adjust_range() also sets at least one
+> > of the tlb->freed_tables || tlb->cleared_p* bits, and those are
+> > unconditionally cleared by __tlb_reset_range().
+> > 
+> > Change the condition for actually issuing TLBI to having one of those
+> > bits set, as opposed to having tlb->end != 0.
+> > 
 > 
-> Another solution would be to use a dedicated kmem cache (instead of the
-> shared kmalloc dma one)?
+> 
+> We should possibly get this to stable too along with the first two 
+> patches. I am not quiet sure if this will qualify for a stable backport. 
+> Hence avoided adding Cc:stable@kernel.org
 
-Has there been any conclusion to this thread yet? For the time being, we
-disabled HARDENED_USERCOPY on s390...
+I'm not seeing any description of the user-visible runtime effects. 
+Always needed, especially for -stable, please.
 
-https://lore.kernel.org/kernel-hardening/9519edb7-456a-a2fa-659e-3e5a1ff89466@suse.cz/
-
-thanks,
--- 
-js
-suse labs
+It appears to be a small performance benefit?  If that benefit was
+"large" and measurements were presented then that would be something
+we might wish to backport.
