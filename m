@@ -1,59 +1,33 @@
-Return-Path: <SRS0=cGiU=22=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:59806 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1725535AbgAEJBq (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Sun, 5 Jan 2020 04:01:46 -0500
+Return-Path: <SRS0=L7cK=3G=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mout.kundenserver.de ([217.72.192.75]:51133 "EHLO
+        mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726785AbgAQLXr (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 17 Jan 2020 06:23:47 -0500
 MIME-Version: 1.0
-References: <20200105025215.2522-1-guoren@kernel.org> <20200105025215.2522-2-guoren@kernel.org>
- <87o8viwb44.fsf@hase.home>
-In-Reply-To: <87o8viwb44.fsf@hase.home>
-From: Guo Ren <guoren@kernel.org>
-Date: Sun, 5 Jan 2020 17:01:31 +0800
-Message-ID: <CAJF2gTREKZ7FwQtyG+3YJ-Ne2BiyyWNhy4dgjVt0Y_qyy79p-Q@mail.gmail.com>
-Subject: Re: [PATCH 2/2] riscv: Add vector ISA support
+References: <cover.1579248206.git.michal.simek@xilinx.com> <0274919c5e3b134df19d943f99cb7e84e5135ccd.1579248206.git.michal.simek@xilinx.com>
+In-Reply-To: <0274919c5e3b134df19d943f99cb7e84e5135ccd.1579248206.git.michal.simek@xilinx.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Date: Fri, 17 Jan 2020 12:23:28 +0100
+Message-ID: <CAK8P3a14ASj7Bq7pntaxPRomGKfAALyD6GGR-APYEdh=ja6UkQ@mail.gmail.com>
+Subject: Re: [PATCH v2 1/2] asm-generic: Make dma-contiguous.h a mandatory
+ include/asm header
 Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andreas Schwab <schwab@linux-m68k.org>
-Cc: Paul Walmsley <paul.walmsley@sifive.com>, palmer@dabbelt.com, aou@eecs.berkeley.edu, Anup Patel <Anup.Patel@wdc.com>, vincent.chen@sifive.com, zong.li@sifive.com, greentime.hu@sifive.com, Bin Meng <bmeng.cn@gmail.com>, Atish Patra <atish.patra@wdc.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, linux-csky@vger.kernel.org, linux-riscv@lists.infradead.org, Guo Ren <ren_guo@c-sky.com>
-Message-ID: <20200105090131.xFHdns4xz92BXm_R9KlrVLHwhq_bsgTaY7cbIm7YxvU@z>
+To: Michal Simek <michal.simek@xilinx.com>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Michal Simek <monstr@monstr.eu>, git@xilinx.com, Christoph Hellwig <hch@lst.de>, Christoph Hellwig <hch@infradead.org>, Paul Burton <paulburton@kernel.org>, Borislav Petkov <bp@alien8.de>, "open list:BROADCOM NVRAM DRIVER" <linux-mips@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Catalin Marinas <catalin.marinas@arm.com>, linux-riscv@lists.infradead.org, linux-arch <linux-arch@vger.kernel.org>, linux-s390 <linux-s390@vger.kernel.org>, Palmer Dabbelt <palmer@dabbelt.com>, the arch/x86 maintainers <x86@kernel.org>, Guo Ren <guoren@kernel.org>, Kate Stewart <kstewart@linuxfoundation.org>, Wesley Terpstra <wesley@sifive.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Ralf Baechle <ralf@linux-mips.org>, Paul Walmsley <paul.walmsley@sifive.com>, Max Filippov <jcmvbkbc@gmail.com>, linux-xtensa@linux-xtensa.org, "H. Peter Anvin" <hpa@zytor.com>, "Peter Zijlstra (Intel)" <peterz@infradead.org>, Will Deacon <will@kernel.org>, Christian Borntraeger <borntraeger@de.ibm.com>, Deepa Dinamani <deepa.kernel@gmail.com>, Chris Zankel <chris@zankel.net>, Ingo Molnar <mingo@redhat.com>, Waiman Long <longman@redhat.com>, Linux ARM <linux-arm-kernel@lists.infradead.org>, Albert Ou <aou@eecs.berkeley.edu>, Vasily Gorbik <gor@linux.ibm.com>, James Hogan <jhogan@kernel.org>, Masahiro Yamada <yamada.masahiro@socionext.com>, Heiko Carstens <heiko.carstens@de.ibm.com>
+Message-ID: <20200117112328.NhbRdnyLxeZnWqZ1frSghlAHR5HGtRRlQ0ObM07IgMs@z>
 
-Oops, thx. :)
+On Fri, Jan 17, 2020 at 9:03 AM Michal Simek <michal.simek@xilinx.com> wrote:
+>
+> dma-continuguous.h is generic for all architectures except arm32 which has
+> its own version.
+>
+> Similar change was done for msi.h by commit a1b39bae16a6
+> ("asm-generic: Make msi.h a mandatory include/asm header")
+>
+> Suggested-by: Christoph Hellwig <hch@infradead.org>
+> Signed-off-by: Michal Simek <michal.simek@xilinx.com>
+> ---
 
-On Sun, Jan 5, 2020 at 4:39 PM Andreas Schwab <schwab@linux-m68k.org> wrote:
->
-> On Jan 05 2020, guoren@kernel.org wrote:
->
-> > diff --git a/arch/riscv/Kconfig b/arch/riscv/Kconfig
-> > index d8efbaa78d67..3d336f869ffe 100644
-> > --- a/arch/riscv/Kconfig
-> > +++ b/arch/riscv/Kconfig
-> > @@ -286,6 +286,15 @@ config FPU
-> >
-> >         If you don't know what to do here, say Y.
-> >
-> > +config VECTOR
-> > +     bool "VECTOR support"
-> > +     default n
->
-> default n is the default.  Did you mean default y?
->
-> > +     help
-> > +       Say N here if you want to disable all vecotr related procedure
->
-> s/vecotr/vector/
->
-> Andreas.
->
-> --
-> Andreas Schwab, schwab@linux-m68k.org
-> GPG Key fingerprint = 7578 EB47 D4E5 4D69 2510  2552 DF73 E780 A9DA AEC1
-> "And now for something completely different."
-
-
-
--- 
-Best Regards
- Guo Ren
-
-ML: https://lore.kernel.org/linux-csky/
+Acked-by: Arnd Bergmann <arnd@arndb.de>
