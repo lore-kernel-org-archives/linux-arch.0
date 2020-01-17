@@ -1,34 +1,139 @@
 Return-Path: <owner-linux-mm@kvack.org>
-Date: Wed, 29 Jan 2020 09:09:39 -0800
-From: Christoph Hellwig <hch@infradead.org>
-Subject: Re: [kernel-hardening] [PATCH 09/38] usercopy: Mark kmalloc caches as
- usercopy caches
-Message-ID: <20200129170939.GA4277@infradead.org>
-References: <1515636190-24061-10-git-send-email-keescook@chromium.org>
- <9519edb7-456a-a2fa-659e-3e5a1ff89466@suse.cz>
- <201911121313.1097D6EE@keescook> <201911141327.4DE6510@keescook>
- <bfca96db-bbd0-d958-7732-76e36c667c68@suse.cz>
- <202001271519.AA6ADEACF0@keescook>
- <5861936c-1fe1-4c44-d012-26efa0c8b6e7@de.ibm.com>
- <202001281457.FA11CC313A@keescook>
- <alpine.DEB.2.21.2001291640350.1546@www.lameter.com>
- <6844ea47-8e0e-4fb7-d86f-68046995a749@de.ibm.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <6844ea47-8e0e-4fb7-d86f-68046995a749@de.ibm.com>
+From: Sandipan Das <sandipan@linux.ibm.com>
+Subject: [PATCH v16 16/23] selftests/vm/pkeys: Improve checks to determine
+ pkey support
+Date: Fri, 17 Jan 2020 18:19:55 +0530
+In-Reply-To: <cover.1579265066.git.sandipan@linux.ibm.com>
+References: <cover.1579265066.git.sandipan@linux.ibm.com>
+In-Reply-To: <cover.1579265066.git.sandipan@linux.ibm.com>
+References: <cover.1579265066.git.sandipan@linux.ibm.com>
+Message-ID: <0dfcb9e184190bc9f3928031113085e0cd28d844.1579265066.git.sandipan@linux.ibm.com>
 Sender: owner-linux-mm@kvack.org
-To: Christian Borntraeger <borntraeger@de.ibm.com>
-Cc: Christopher Lameter <cl@linux.com>, Kees Cook <keescook@chromium.org>, Jiri Slaby <jslaby@suse.cz>, Julian Wiedmann <jwi@linux.ibm.com>, Ursula Braun <ubraun@linux.ibm.com>, Alexander Viro <viro@zeniv.linux.org.uk>, linux-kernel@vger.kernel.org, David Windsor <dave@nullcore.net>, Pekka Enberg <penberg@kernel.org>, David Rientjes <rientjes@google.com>, Joonsoo Kim <iamjoonsoo.kim@lge.com>, Andrew Morton <akpm@linux-foundation.org>, linux-mm@kvack.org, linux-xfs@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, Christoph Hellwig <hch@infradead.org>, "David S. Miller" <davem@davemloft.net>, Laura Abbott <labbott@redhat.com>, Mark Rutland <mark.rutland@arm.com>, "Martin K. Petersen" <martin.petersen@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Christoffer Dall <christoffer.dall@linaro.org>, Dave Kleikamp <dave.kleikamp@oracle.com>, Jan Kara <jack@suse.cz>, Luis de Bethencourt <luisbg@kernel.org>, Marc Zyngier <marc.zyngier@arm.com>, Rik van Riel <riel@redhat.com>, Matthew Garrett <mjg59@google.com>, linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org, netdev@vger.kernel.org, kernel-hardening@lists.openwall.com, Vlastimil Babka <vbabka@suse.cz>, Michal Kubecek <mkubecek@suse.cz>
+To: shuah@kernel.org, linux-kselftest@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, fweimer@redhat.com, dave.hansen@intel.com, x86@kernel.org, linuxram@us.ibm.com, mhocko@kernel.org, linux-mm@kvack.org, mingo@redhat.com, aneesh.kumar@linux.ibm.com, bauerman@linux.ibm.com, msuchanek@suse.de, mpe@ellerman.id.au, linuxppc-dev@lists.ozlabs.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200129170939.E7detbzIL9mG5Kw1rDCqtkDXIilM5rcY6gmIKYaWOhE@z>
+Message-ID: <20200117124955.id8RoOCTqW8TIJn-gsOePgbUiW-i243D1TGA4uOUhqE@z>
 
-On Wed, Jan 29, 2020 at 06:07:14PM +0100, Christian Borntraeger wrote:
-> > DMA can be done to NORMAL memory as well.
-> 
-> Exactly. 
-> I think iucv uses GFP_DMA because z/VM needs those buffers to reside below 2GB (which is ZONA_DMA for s390).
+From: Ram Pai <linuxram@us.ibm.com>
 
-The normal way to allocate memory with addressing limits would be to
-use dma_alloc_coherent and friends.  Any chance to switch iucv over to
-that?  Or is there no device associated with it?
+For the pkeys subsystem to work, both the CPU and the
+kernel need to have support. So, additionally check if
+the kernel supports pkeys apart from the CPU feature
+checks.
+
+cc: Dave Hansen <dave.hansen@intel.com>
+cc: Florian Weimer <fweimer@redhat.com>
+Signed-off-by: Ram Pai <linuxram@us.ibm.com>
+Signed-off-by: Sandipan Das <sandipan@linux.ibm.com>
+---
+ tools/testing/selftests/vm/pkey-helpers.h    | 30 ++++++++++++++++++++
+ tools/testing/selftests/vm/pkey-powerpc.h    |  3 +-
+ tools/testing/selftests/vm/pkey-x86.h        |  2 +-
+ tools/testing/selftests/vm/protection_keys.c |  7 +++--
+ 4 files changed, 37 insertions(+), 5 deletions(-)
+
+diff --git a/tools/testing/selftests/vm/pkey-helpers.h b/tools/testing/selftests/vm/pkey-helpers.h
+index ec3f87d53b7d..ac9076136fc8 100644
+--- a/tools/testing/selftests/vm/pkey-helpers.h
++++ b/tools/testing/selftests/vm/pkey-helpers.h
+@@ -76,6 +76,8 @@ extern void abort_hooks(void);
+
+ __attribute__((noinline)) int read_ptr(int *ptr);
+ void expected_pkey_fault(int pkey);
++int sys_pkey_alloc(unsigned long flags, unsigned long init_val);
++int sys_pkey_free(unsigned long pkey);
+
+ #if defined(__i386__) || defined(__x86_64__) /* arch */
+ #include "pkey-x86.h"
+@@ -186,4 +188,32 @@ static inline u32 *siginfo_get_pkey_ptr(siginfo_t *si)
+ #endif
+ }
+
++static inline int kernel_has_pkeys(void)
++{
++	/* try allocating a key and see if it succeeds */
++	int ret = sys_pkey_alloc(0, 0);
++	if (ret <= 0) {
++		return 0;
++	}
++	sys_pkey_free(ret);
++	return 1;
++}
++
++static inline int is_pkeys_supported(void)
++{
++	/* check if the cpu supports pkeys */
++	if (!cpu_has_pkeys()) {
++		dprintf1("SKIP: %s: no CPU support\n", __func__);
++		return 0;
++	}
++
++	/* check if the kernel supports pkeys */
++	if (!kernel_has_pkeys()) {
++		dprintf1("SKIP: %s: no kernel support\n", __func__);
++		return 0;
++	}
++
++	return 1;
++}
++
+ #endif /* _PKEYS_HELPER_H */
+diff --git a/tools/testing/selftests/vm/pkey-powerpc.h b/tools/testing/selftests/vm/pkey-powerpc.h
+index eaced8c198a2..a5e5157c4f7e 100644
+--- a/tools/testing/selftests/vm/pkey-powerpc.h
++++ b/tools/testing/selftests/vm/pkey-powerpc.h
+@@ -63,8 +63,9 @@ static inline void __write_pkey_reg(u64 pkey_reg)
+ 			__func__, __read_pkey_reg(), pkey_reg);
+ }
+
+-static inline int cpu_has_pku(void)
++static inline int cpu_has_pkeys(void)
+ {
++	/* No simple way to determine this */
+ 	return 1;
+ }
+
+diff --git a/tools/testing/selftests/vm/pkey-x86.h b/tools/testing/selftests/vm/pkey-x86.h
+index 296151309a30..207e8c180f39 100644
+--- a/tools/testing/selftests/vm/pkey-x86.h
++++ b/tools/testing/selftests/vm/pkey-x86.h
+@@ -97,7 +97,7 @@ static inline void __cpuid(unsigned int *eax, unsigned int *ebx,
+ #define X86_FEATURE_PKU        (1<<3) /* Protection Keys for Userspace */
+ #define X86_FEATURE_OSPKE      (1<<4) /* OS Protection Keys Enable */
+
+-static inline int cpu_has_pku(void)
++static inline int cpu_has_pkeys(void)
+ {
+ 	unsigned int eax;
+ 	unsigned int ebx;
+diff --git a/tools/testing/selftests/vm/protection_keys.c b/tools/testing/selftests/vm/protection_keys.c
+index a91d11c6a0ec..4a0677e618ac 100644
+--- a/tools/testing/selftests/vm/protection_keys.c
++++ b/tools/testing/selftests/vm/protection_keys.c
+@@ -1377,7 +1377,7 @@ void test_mprotect_pkey_on_unsupported_cpu(int *ptr, u16 pkey)
+ 	int size = PAGE_SIZE;
+ 	int sret;
+
+-	if (cpu_has_pku()) {
++	if (cpu_has_pkeys()) {
+ 		dprintf1("SKIP: %s: no CPU support\n", __func__);
+ 		return;
+ 	}
+@@ -1446,12 +1446,13 @@ void pkey_setup_shadow(void)
+ int main(void)
+ {
+ 	int nr_iterations = 22;
++	int pkeys_supported = is_pkeys_supported();
+
+ 	setup_handlers();
+
+-	printf("has pku: %d\n", cpu_has_pku());
++	printf("has pkeys: %d\n", pkeys_supported);
+
+-	if (!cpu_has_pku()) {
++	if (!pkeys_supported) {
+ 		int size = PAGE_SIZE;
+ 		int *ptr;
+
+-- 
+2.17.1
