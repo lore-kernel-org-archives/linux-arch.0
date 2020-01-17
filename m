@@ -1,684 +1,74 @@
-Return-Path: <SRS0=XOKs=3M=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail-pj1-f65.google.com ([209.85.216.65]:39765 "EHLO
-        mail-pj1-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728057AbgAWSvz (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 23 Jan 2020 13:51:55 -0500
-Received: by mail-pj1-f65.google.com with SMTP id e11so1728023pjt.4
-        for <linux-arch@vger.kernel.org>; Thu, 23 Jan 2020 10:51:54 -0800 (PST)
+Return-Path: <SRS0=L7cK=3G=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mout.kundenserver.de ([217.72.192.75]:37055 "EHLO
+        mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726917AbgAQMZ2 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 17 Jan 2020 07:25:28 -0500
 MIME-Version: 1.0
-References: <20200123153341.19947-1-will@kernel.org> <20200123153341.19947-11-will@kernel.org>
-In-Reply-To: <20200123153341.19947-11-will@kernel.org>
-From: Nick Desaulniers <ndesaulniers@google.com>
-Date: Thu, 23 Jan 2020 10:51:41 -0800
-Message-ID: <CAKwvOdnDh0FbYNPG0FZ6BR1BgVQZ3Z_stJvP_j_sQfbD92MNKA@mail.gmail.com>
-Subject: Re: [PATCH v2 10/10] gcov: Remove old GCC 3.4 support
+References: <20200115165749.145649-1-elver@google.com> <CAK8P3a3b=SviUkQw7ZXZF85gS1JO8kzh2HOns5zXoEJGz-+JiQ@mail.gmail.com>
+ <CANpmjNOpTYnF3ssqrE_s+=UA-2MpfzzdrXoyaifb3A55_mc0uA@mail.gmail.com>
+ <CAK8P3a3WywSsahH2vtZ_EOYTWE44YdN+Pj6G8nt_zrL3sckdwQ@mail.gmail.com> <CANpmjNMk2HbuvmN1RaZ=8OV+tx9qZwKyRySONDRQar6RCGM1SA@mail.gmail.com>
+In-Reply-To: <CANpmjNMk2HbuvmN1RaZ=8OV+tx9qZwKyRySONDRQar6RCGM1SA@mail.gmail.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Date: Fri, 17 Jan 2020 13:25:08 +0100
+Message-ID: <CAK8P3a066Knr-KC2v4M8Dr1phr0Gbb2KeZZLQ7Ana0fkrgPDPg@mail.gmail.com>
+Subject: Re: [PATCH -rcu] asm-generic, kcsan: Add KCSAN instrumentation for bitops
 Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will@kernel.org>
-Cc: LKML <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, kernel-team <kernel-team@android.com>, Michael Ellerman <mpe@ellerman.id.au>, Peter Zijlstra <peterz@infradead.org>, Linus Torvalds <torvalds@linux-foundation.org>, Segher Boessenkool <segher@kernel.crashing.org>, Christian Borntraeger <borntraeger@de.ibm.com>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>, Arnd Bergmann <arnd@arndb.de>, Peter Oberparleiter <oberpar@linux.ibm.com>, Masahiro Yamada <masahiroy@kernel.org>
-Message-ID: <20200123185141.-9KHoA5zRKJct7K5dWkHPQa7JVWIlUgQRswaKlrL3_s@z>
+To: Marco Elver <elver@google.com>
+Cc: "Paul E. McKenney" <paulmck@kernel.org>, Andrey Konovalov <andreyknvl@google.com>, Alexander Potapenko <glider@google.com>, Dmitry Vyukov <dvyukov@google.com>, kasan-dev <kasan-dev@googlegroups.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Michael Ellerman <mpe@ellerman.id.au>, christophe leroy <christophe.leroy@c-s.fr>, Daniel Axtens <dja@axtens.net>, linux-arch <linux-arch@vger.kernel.org>
+Message-ID: <20200117122508.9o2vtDfq2waPrsXWhVEdhJfvKoR2F0SfAYA6_IFKydE@z>
 
-On Thu, Jan 23, 2020 at 7:34 AM Will Deacon <will@kernel.org> wrote:
+On Wed, Jan 15, 2020 at 9:50 PM Marco Elver <elver@google.com> wrote:
+> On Wed, 15 Jan 2020 at 20:55, Arnd Bergmann <arnd@arndb.de> wrote:
+> > On Wed, Jan 15, 2020 at 8:51 PM Marco Elver <elver@google.com> wrote:
+> > > On Wed, 15 Jan 2020 at 20:27, Arnd Bergmann <arnd@arndb.de> wrote:
+> > Are there any that really just want kasan_check_write() but not one
+> > of the kcsan checks?
 >
-> The kernel requires at least GCC 4.8 in order to build, and so there is
-> no need to cater for the pre-4.7 gcov format.
+> If I understood correctly, this suggestion would amount to introducing
+> a new header, e.g. 'ksan-checks.h', that provides unified generic
+> checks. For completeness, we will also need to consider reads. Since
+> KCSAN provides 4 check variants ({read,write} x {plain,atomic}), we
+> will need 4 generic check variants.
 
-Thanks for the cleanup! Deleting such a large volume of code is great!
+Yes, that was the idea.
 
+> I certainly do not feel comfortable blindly introducing kcsan_checks
+> in all places where we have kasan_checks, but it may be worthwhile
+> adding this infrastructure and starting with atomic-instrumented and
+> bitops-instrumented wrappers. The other locations you list above would
+> need to be evaluated on a case-by-case basis to check if we want to
+> report data races for those accesses.
+
+I think the main question to answer is whether it is more likely to go
+wrong because we are missing checks when one caller accidentally
+only has one but not the other, or whether they go wrong because
+we accidentally check both when we should only be checking one.
+
+My guess would be that the first one is more likely to happen, but
+the second one is more likely to cause problems when it happens.
+
+> As a minor data point, {READ,WRITE}_ONCE in compiler.h currently only
+> has kcsan_checks and not kasan_checks.
+
+Right. This is because we want an explicit "atomic" check for kcsan
+but we want to have the function inlined for kasan, right?
+
+> My personal preference would be to keep the various checks explicit,
+> clearly opting into either KCSAN and/or KASAN. Since I do not think
+> it's obvious if we want both for the existing and potentially new
+> locations (in future), the potential for error by blindly using a
+> generic 'ksan_check' appears worse than potentially adding a dozen
+> lines or so.
 >
-> Remove the obsolete code.
->
-> Cc: Peter Oberparleiter <oberpar@linux.ibm.com>
-> Signed-off-by: Will Deacon <will@kernel.org>
-> ---
->  kernel/gcov/Kconfig   |  24 --
->  kernel/gcov/Makefile  |   3 +-
->  kernel/gcov/gcc_3_4.c | 573 ------------------------------------------
->  3 files changed, 1 insertion(+), 599 deletions(-)
->  delete mode 100644 kernel/gcov/gcc_3_4.c
->
-> diff --git a/kernel/gcov/Kconfig b/kernel/gcov/Kconfig
-> index 060e8e726755..8df7fad82df8 100644
-> --- a/kernel/gcov/Kconfig
-> +++ b/kernel/gcov/Kconfig
-> @@ -51,28 +51,4 @@ config GCOV_PROFILE_ALL
->         larger and run slower. Also be sure to exclude files from profiling
->         which are not linked to the kernel image to prevent linker errors.
->
-> -choice
-> -       prompt "Specify GCOV format"
-> -       depends on GCOV_KERNEL
-> -       depends on CC_IS_GCC
-> -       ---help---
-> -       The gcov format is usually determined by the GCC version, and the
-> -       default is chosen according to your GCC version. However, there are
-> -       exceptions where format changes are integrated in lower-version GCCs.
-> -       In such a case, change this option to adjust the format used in the
-> -       kernel accordingly.
-> -
-> -config GCOV_FORMAT_3_4
-> -       bool "GCC 3.4 format"
-> -       depends on GCC_VERSION < 40700
+> Let me know if you'd like to proceed with 'ksan-checks.h'.
 
-I was thinking this patch could be independant of the series, until I
-saw this; before the series GCC 4.6+ is still supported, after GCC
-4.8+ is.  So NVM.
+Could you have a look at the files I listed and see if there are any
+other examples that probably a different set of checks between the
+two, besides the READ_ONCE() example?
 
-> -       ---help---
-> -       Select this option to use the format defined by GCC 3.4.
-> -
-> -config GCOV_FORMAT_4_7
-> -       bool "GCC 4.7 format"
-> -       ---help---
-> -       Select this option to use the format defined by GCC 4.7.
-> -
-> -endchoice
-> -
->  endmenu
-> diff --git a/kernel/gcov/Makefile b/kernel/gcov/Makefile
-> index d66a74b0f100..16f8ecc7d882 100644
-> --- a/kernel/gcov/Makefile
-> +++ b/kernel/gcov/Makefile
-> @@ -2,6 +2,5 @@
->  ccflags-y := -DSRCTREE='"$(srctree)"' -DOBJTREE='"$(objtree)"'
->
->  obj-y := base.o fs.o
-> -obj-$(CONFIG_GCOV_FORMAT_3_4) += gcc_base.o gcc_3_4.o
-> -obj-$(CONFIG_GCOV_FORMAT_4_7) += gcc_base.o gcc_4_7.o
-> +obj-$(CONFIG_CC_IS_GCC) += gcc_base.o gcc_4_7.o
+If you can't find any, I would prefer having the simpler interface
+with just one set of annotations.
 
-For further refactoring/cleanups, the split between gcc_base.c and
-gcc_4_7.c can now be combined into one source file.  gcc_base.c just
-shared code with either 3.4 or 4.7, but I'll leave that as work that
-can be done another day.  Thanks for the patch.
-Reviewed-by: Nick Desaulniers <ndesaulniers@google.com>
-
->  obj-$(CONFIG_CC_IS_CLANG) += clang.o
-> diff --git a/kernel/gcov/gcc_3_4.c b/kernel/gcov/gcc_3_4.c
-> deleted file mode 100644
-> index 801ee4b0b969..000000000000
-> --- a/kernel/gcov/gcc_3_4.c
-> +++ /dev/null
-> @@ -1,573 +0,0 @@
-> -// SPDX-License-Identifier: GPL-2.0
-> -/*
-> - *  This code provides functions to handle gcc's profiling data format
-> - *  introduced with gcc 3.4. Future versions of gcc may change the gcov
-> - *  format (as happened before), so all format-specific information needs
-> - *  to be kept modular and easily exchangeable.
-> - *
-> - *  This file is based on gcc-internal definitions. Functions and data
-> - *  structures are defined to be compatible with gcc counterparts.
-> - *  For a better understanding, refer to gcc source: gcc/gcov-io.h.
-> - *
-> - *    Copyright IBM Corp. 2009
-> - *    Author(s): Peter Oberparleiter <oberpar@linux.vnet.ibm.com>
-> - *
-> - *    Uses gcc-internal data definitions.
-> - */
-> -
-> -#include <linux/errno.h>
-> -#include <linux/slab.h>
-> -#include <linux/string.h>
-> -#include <linux/seq_file.h>
-> -#include <linux/vmalloc.h>
-> -#include "gcov.h"
-> -
-> -#define GCOV_COUNTERS          5
-> -
-> -static struct gcov_info *gcov_info_head;
-> -
-> -/**
-> - * struct gcov_fn_info - profiling meta data per function
-> - * @ident: object file-unique function identifier
-> - * @checksum: function checksum
-> - * @n_ctrs: number of values per counter type belonging to this function
-> - *
-> - * This data is generated by gcc during compilation and doesn't change
-> - * at run-time.
-> - */
-> -struct gcov_fn_info {
-> -       unsigned int ident;
-> -       unsigned int checksum;
-> -       unsigned int n_ctrs[0];
-> -};
-> -
-> -/**
-> - * struct gcov_ctr_info - profiling data per counter type
-> - * @num: number of counter values for this type
-> - * @values: array of counter values for this type
-> - * @merge: merge function for counter values of this type (unused)
-> - *
-> - * This data is generated by gcc during compilation and doesn't change
-> - * at run-time with the exception of the values array.
-> - */
-> -struct gcov_ctr_info {
-> -       unsigned int    num;
-> -       gcov_type       *values;
-> -       void            (*merge)(gcov_type *, unsigned int);
-> -};
-> -
-> -/**
-> - * struct gcov_info - profiling data per object file
-> - * @version: gcov version magic indicating the gcc version used for compilation
-> - * @next: list head for a singly-linked list
-> - * @stamp: time stamp
-> - * @filename: name of the associated gcov data file
-> - * @n_functions: number of instrumented functions
-> - * @functions: function data
-> - * @ctr_mask: mask specifying which counter types are active
-> - * @counts: counter data per counter type
-> - *
-> - * This data is generated by gcc during compilation and doesn't change
-> - * at run-time with the exception of the next pointer.
-> - */
-> -struct gcov_info {
-> -       unsigned int                    version;
-> -       struct gcov_info                *next;
-> -       unsigned int                    stamp;
-> -       const char                      *filename;
-> -       unsigned int                    n_functions;
-> -       const struct gcov_fn_info       *functions;
-> -       unsigned int                    ctr_mask;
-> -       struct gcov_ctr_info            counts[0];
-> -};
-> -
-> -/**
-> - * gcov_info_filename - return info filename
-> - * @info: profiling data set
-> - */
-> -const char *gcov_info_filename(struct gcov_info *info)
-> -{
-> -       return info->filename;
-> -}
-> -
-> -/**
-> - * gcov_info_version - return info version
-> - * @info: profiling data set
-> - */
-> -unsigned int gcov_info_version(struct gcov_info *info)
-> -{
-> -       return info->version;
-> -}
-> -
-> -/**
-> - * gcov_info_next - return next profiling data set
-> - * @info: profiling data set
-> - *
-> - * Returns next gcov_info following @info or first gcov_info in the chain if
-> - * @info is %NULL.
-> - */
-> -struct gcov_info *gcov_info_next(struct gcov_info *info)
-> -{
-> -       if (!info)
-> -               return gcov_info_head;
-> -
-> -       return info->next;
-> -}
-> -
-> -/**
-> - * gcov_info_link - link/add profiling data set to the list
-> - * @info: profiling data set
-> - */
-> -void gcov_info_link(struct gcov_info *info)
-> -{
-> -       info->next = gcov_info_head;
-> -       gcov_info_head = info;
-> -}
-> -
-> -/**
-> - * gcov_info_unlink - unlink/remove profiling data set from the list
-> - * @prev: previous profiling data set
-> - * @info: profiling data set
-> - */
-> -void gcov_info_unlink(struct gcov_info *prev, struct gcov_info *info)
-> -{
-> -       if (prev)
-> -               prev->next = info->next;
-> -       else
-> -               gcov_info_head = info->next;
-> -}
-> -
-> -/**
-> - * gcov_info_within_module - check if a profiling data set belongs to a module
-> - * @info: profiling data set
-> - * @mod: module
-> - *
-> - * Returns true if profiling data belongs module, false otherwise.
-> - */
-> -bool gcov_info_within_module(struct gcov_info *info, struct module *mod)
-> -{
-> -       return within_module((unsigned long)info, mod);
-> -}
-> -
-> -/* Symbolic links to be created for each profiling data file. */
-> -const struct gcov_link gcov_link[] = {
-> -       { OBJ_TREE, "gcno" },   /* Link to .gcno file in $(objtree). */
-> -       { 0, NULL},
-> -};
-> -
-> -/*
-> - * Determine whether a counter is active. Based on gcc magic. Doesn't change
-> - * at run-time.
-> - */
-> -static int counter_active(struct gcov_info *info, unsigned int type)
-> -{
-> -       return (1 << type) & info->ctr_mask;
-> -}
-> -
-> -/* Determine number of active counters. Based on gcc magic. */
-> -static unsigned int num_counter_active(struct gcov_info *info)
-> -{
-> -       unsigned int i;
-> -       unsigned int result = 0;
-> -
-> -       for (i = 0; i < GCOV_COUNTERS; i++) {
-> -               if (counter_active(info, i))
-> -                       result++;
-> -       }
-> -       return result;
-> -}
-> -
-> -/**
-> - * gcov_info_reset - reset profiling data to zero
-> - * @info: profiling data set
-> - */
-> -void gcov_info_reset(struct gcov_info *info)
-> -{
-> -       unsigned int active = num_counter_active(info);
-> -       unsigned int i;
-> -
-> -       for (i = 0; i < active; i++) {
-> -               memset(info->counts[i].values, 0,
-> -                      info->counts[i].num * sizeof(gcov_type));
-> -       }
-> -}
-> -
-> -/**
-> - * gcov_info_is_compatible - check if profiling data can be added
-> - * @info1: first profiling data set
-> - * @info2: second profiling data set
-> - *
-> - * Returns non-zero if profiling data can be added, zero otherwise.
-> - */
-> -int gcov_info_is_compatible(struct gcov_info *info1, struct gcov_info *info2)
-> -{
-> -       return (info1->stamp == info2->stamp);
-> -}
-> -
-> -/**
-> - * gcov_info_add - add up profiling data
-> - * @dest: profiling data set to which data is added
-> - * @source: profiling data set which is added
-> - *
-> - * Adds profiling counts of @source to @dest.
-> - */
-> -void gcov_info_add(struct gcov_info *dest, struct gcov_info *source)
-> -{
-> -       unsigned int i;
-> -       unsigned int j;
-> -
-> -       for (i = 0; i < num_counter_active(dest); i++) {
-> -               for (j = 0; j < dest->counts[i].num; j++) {
-> -                       dest->counts[i].values[j] +=
-> -                               source->counts[i].values[j];
-> -               }
-> -       }
-> -}
-> -
-> -/* Get size of function info entry. Based on gcc magic. */
-> -static size_t get_fn_size(struct gcov_info *info)
-> -{
-> -       size_t size;
-> -
-> -       size = sizeof(struct gcov_fn_info) + num_counter_active(info) *
-> -              sizeof(unsigned int);
-> -       if (__alignof__(struct gcov_fn_info) > sizeof(unsigned int))
-> -               size = ALIGN(size, __alignof__(struct gcov_fn_info));
-> -       return size;
-> -}
-> -
-> -/* Get address of function info entry. Based on gcc magic. */
-> -static struct gcov_fn_info *get_fn_info(struct gcov_info *info, unsigned int fn)
-> -{
-> -       return (struct gcov_fn_info *)
-> -               ((char *) info->functions + fn * get_fn_size(info));
-> -}
-> -
-> -/**
-> - * gcov_info_dup - duplicate profiling data set
-> - * @info: profiling data set to duplicate
-> - *
-> - * Return newly allocated duplicate on success, %NULL on error.
-> - */
-> -struct gcov_info *gcov_info_dup(struct gcov_info *info)
-> -{
-> -       struct gcov_info *dup;
-> -       unsigned int i;
-> -       unsigned int active;
-> -
-> -       /* Duplicate gcov_info. */
-> -       active = num_counter_active(info);
-> -       dup = kzalloc(struct_size(dup, counts, active), GFP_KERNEL);
-> -       if (!dup)
-> -               return NULL;
-> -       dup->version            = info->version;
-> -       dup->stamp              = info->stamp;
-> -       dup->n_functions        = info->n_functions;
-> -       dup->ctr_mask           = info->ctr_mask;
-> -       /* Duplicate filename. */
-> -       dup->filename           = kstrdup(info->filename, GFP_KERNEL);
-> -       if (!dup->filename)
-> -               goto err_free;
-> -       /* Duplicate table of functions. */
-> -       dup->functions = kmemdup(info->functions, info->n_functions *
-> -                                get_fn_size(info), GFP_KERNEL);
-> -       if (!dup->functions)
-> -               goto err_free;
-> -       /* Duplicate counter arrays. */
-> -       for (i = 0; i < active ; i++) {
-> -               struct gcov_ctr_info *ctr = &info->counts[i];
-> -               size_t size = ctr->num * sizeof(gcov_type);
-> -
-> -               dup->counts[i].num = ctr->num;
-> -               dup->counts[i].merge = ctr->merge;
-> -               dup->counts[i].values = vmalloc(size);
-> -               if (!dup->counts[i].values)
-> -                       goto err_free;
-> -               memcpy(dup->counts[i].values, ctr->values, size);
-> -       }
-> -       return dup;
-> -
-> -err_free:
-> -       gcov_info_free(dup);
-> -       return NULL;
-> -}
-> -
-> -/**
-> - * gcov_info_free - release memory for profiling data set duplicate
-> - * @info: profiling data set duplicate to free
-> - */
-> -void gcov_info_free(struct gcov_info *info)
-> -{
-> -       unsigned int active = num_counter_active(info);
-> -       unsigned int i;
-> -
-> -       for (i = 0; i < active ; i++)
-> -               vfree(info->counts[i].values);
-> -       kfree(info->functions);
-> -       kfree(info->filename);
-> -       kfree(info);
-> -}
-> -
-> -/**
-> - * struct type_info - iterator helper array
-> - * @ctr_type: counter type
-> - * @offset: index of the first value of the current function for this type
-> - *
-> - * This array is needed to convert the in-memory data format into the in-file
-> - * data format:
-> - *
-> - * In-memory:
-> - *   for each counter type
-> - *     for each function
-> - *       values
-> - *
-> - * In-file:
-> - *   for each function
-> - *     for each counter type
-> - *       values
-> - *
-> - * See gcc source gcc/gcov-io.h for more information on data organization.
-> - */
-> -struct type_info {
-> -       int ctr_type;
-> -       unsigned int offset;
-> -};
-> -
-> -/**
-> - * struct gcov_iterator - specifies current file position in logical records
-> - * @info: associated profiling data
-> - * @record: record type
-> - * @function: function number
-> - * @type: counter type
-> - * @count: index into values array
-> - * @num_types: number of counter types
-> - * @type_info: helper array to get values-array offset for current function
-> - */
-> -struct gcov_iterator {
-> -       struct gcov_info *info;
-> -
-> -       int record;
-> -       unsigned int function;
-> -       unsigned int type;
-> -       unsigned int count;
-> -
-> -       int num_types;
-> -       struct type_info type_info[0];
-> -};
-> -
-> -static struct gcov_fn_info *get_func(struct gcov_iterator *iter)
-> -{
-> -       return get_fn_info(iter->info, iter->function);
-> -}
-> -
-> -static struct type_info *get_type(struct gcov_iterator *iter)
-> -{
-> -       return &iter->type_info[iter->type];
-> -}
-> -
-> -/**
-> - * gcov_iter_new - allocate and initialize profiling data iterator
-> - * @info: profiling data set to be iterated
-> - *
-> - * Return file iterator on success, %NULL otherwise.
-> - */
-> -struct gcov_iterator *gcov_iter_new(struct gcov_info *info)
-> -{
-> -       struct gcov_iterator *iter;
-> -
-> -       iter = kzalloc(struct_size(iter, type_info, num_counter_active(info)),
-> -                      GFP_KERNEL);
-> -       if (iter)
-> -               iter->info = info;
-> -
-> -       return iter;
-> -}
-> -
-> -/**
-> - * gcov_iter_free - release memory for iterator
-> - * @iter: file iterator to free
-> - */
-> -void gcov_iter_free(struct gcov_iterator *iter)
-> -{
-> -       kfree(iter);
-> -}
-> -
-> -/**
-> - * gcov_iter_get_info - return profiling data set for given file iterator
-> - * @iter: file iterator
-> - */
-> -struct gcov_info *gcov_iter_get_info(struct gcov_iterator *iter)
-> -{
-> -       return iter->info;
-> -}
-> -
-> -/**
-> - * gcov_iter_start - reset file iterator to starting position
-> - * @iter: file iterator
-> - */
-> -void gcov_iter_start(struct gcov_iterator *iter)
-> -{
-> -       int i;
-> -
-> -       iter->record = 0;
-> -       iter->function = 0;
-> -       iter->type = 0;
-> -       iter->count = 0;
-> -       iter->num_types = 0;
-> -       for (i = 0; i < GCOV_COUNTERS; i++) {
-> -               if (counter_active(iter->info, i)) {
-> -                       iter->type_info[iter->num_types].ctr_type = i;
-> -                       iter->type_info[iter->num_types++].offset = 0;
-> -               }
-> -       }
-> -}
-> -
-> -/* Mapping of logical record number to actual file content. */
-> -#define RECORD_FILE_MAGIC      0
-> -#define RECORD_GCOV_VERSION    1
-> -#define RECORD_TIME_STAMP      2
-> -#define RECORD_FUNCTION_TAG    3
-> -#define RECORD_FUNCTON_TAG_LEN 4
-> -#define RECORD_FUNCTION_IDENT  5
-> -#define RECORD_FUNCTION_CHECK  6
-> -#define RECORD_COUNT_TAG       7
-> -#define RECORD_COUNT_LEN       8
-> -#define RECORD_COUNT           9
-> -
-> -/**
-> - * gcov_iter_next - advance file iterator to next logical record
-> - * @iter: file iterator
-> - *
-> - * Return zero if new position is valid, non-zero if iterator has reached end.
-> - */
-> -int gcov_iter_next(struct gcov_iterator *iter)
-> -{
-> -       switch (iter->record) {
-> -       case RECORD_FILE_MAGIC:
-> -       case RECORD_GCOV_VERSION:
-> -       case RECORD_FUNCTION_TAG:
-> -       case RECORD_FUNCTON_TAG_LEN:
-> -       case RECORD_FUNCTION_IDENT:
-> -       case RECORD_COUNT_TAG:
-> -               /* Advance to next record */
-> -               iter->record++;
-> -               break;
-> -       case RECORD_COUNT:
-> -               /* Advance to next count */
-> -               iter->count++;
-> -               /* fall through */
-> -       case RECORD_COUNT_LEN:
-> -               if (iter->count < get_func(iter)->n_ctrs[iter->type]) {
-> -                       iter->record = 9;
-> -                       break;
-> -               }
-> -               /* Advance to next counter type */
-> -               get_type(iter)->offset += iter->count;
-> -               iter->count = 0;
-> -               iter->type++;
-> -               /* fall through */
-> -       case RECORD_FUNCTION_CHECK:
-> -               if (iter->type < iter->num_types) {
-> -                       iter->record = 7;
-> -                       break;
-> -               }
-> -               /* Advance to next function */
-> -               iter->type = 0;
-> -               iter->function++;
-> -               /* fall through */
-> -       case RECORD_TIME_STAMP:
-> -               if (iter->function < iter->info->n_functions)
-> -                       iter->record = 3;
-> -               else
-> -                       iter->record = -1;
-> -               break;
-> -       }
-> -       /* Check for EOF. */
-> -       if (iter->record == -1)
-> -               return -EINVAL;
-> -       else
-> -               return 0;
-> -}
-> -
-> -/**
-> - * seq_write_gcov_u32 - write 32 bit number in gcov format to seq_file
-> - * @seq: seq_file handle
-> - * @v: value to be stored
-> - *
-> - * Number format defined by gcc: numbers are recorded in the 32 bit
-> - * unsigned binary form of the endianness of the machine generating the
-> - * file.
-> - */
-> -static int seq_write_gcov_u32(struct seq_file *seq, u32 v)
-> -{
-> -       return seq_write(seq, &v, sizeof(v));
-> -}
-> -
-> -/**
-> - * seq_write_gcov_u64 - write 64 bit number in gcov format to seq_file
-> - * @seq: seq_file handle
-> - * @v: value to be stored
-> - *
-> - * Number format defined by gcc: numbers are recorded in the 32 bit
-> - * unsigned binary form of the endianness of the machine generating the
-> - * file. 64 bit numbers are stored as two 32 bit numbers, the low part
-> - * first.
-> - */
-> -static int seq_write_gcov_u64(struct seq_file *seq, u64 v)
-> -{
-> -       u32 data[2];
-> -
-> -       data[0] = (v & 0xffffffffUL);
-> -       data[1] = (v >> 32);
-> -       return seq_write(seq, data, sizeof(data));
-> -}
-> -
-> -/**
-> - * gcov_iter_write - write data for current pos to seq_file
-> - * @iter: file iterator
-> - * @seq: seq_file handle
-> - *
-> - * Return zero on success, non-zero otherwise.
-> - */
-> -int gcov_iter_write(struct gcov_iterator *iter, struct seq_file *seq)
-> -{
-> -       int rc = -EINVAL;
-> -
-> -       switch (iter->record) {
-> -       case RECORD_FILE_MAGIC:
-> -               rc = seq_write_gcov_u32(seq, GCOV_DATA_MAGIC);
-> -               break;
-> -       case RECORD_GCOV_VERSION:
-> -               rc = seq_write_gcov_u32(seq, iter->info->version);
-> -               break;
-> -       case RECORD_TIME_STAMP:
-> -               rc = seq_write_gcov_u32(seq, iter->info->stamp);
-> -               break;
-> -       case RECORD_FUNCTION_TAG:
-> -               rc = seq_write_gcov_u32(seq, GCOV_TAG_FUNCTION);
-> -               break;
-> -       case RECORD_FUNCTON_TAG_LEN:
-> -               rc = seq_write_gcov_u32(seq, 2);
-> -               break;
-> -       case RECORD_FUNCTION_IDENT:
-> -               rc = seq_write_gcov_u32(seq, get_func(iter)->ident);
-> -               break;
-> -       case RECORD_FUNCTION_CHECK:
-> -               rc = seq_write_gcov_u32(seq, get_func(iter)->checksum);
-> -               break;
-> -       case RECORD_COUNT_TAG:
-> -               rc = seq_write_gcov_u32(seq,
-> -                       GCOV_TAG_FOR_COUNTER(get_type(iter)->ctr_type));
-> -               break;
-> -       case RECORD_COUNT_LEN:
-> -               rc = seq_write_gcov_u32(seq,
-> -                               get_func(iter)->n_ctrs[iter->type] * 2);
-> -               break;
-> -       case RECORD_COUNT:
-> -               rc = seq_write_gcov_u64(seq,
-> -                       iter->info->counts[iter->type].
-> -                               values[iter->count + get_type(iter)->offset]);
-> -               break;
-> -       }
-> -       return rc;
-> -}
-> --
-> 2.25.0.341.g760bfbb309-goog
->
-
-
--- 
-Thanks,
-~Nick Desaulniers
+     Arnd
