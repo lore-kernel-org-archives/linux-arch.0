@@ -1,63 +1,54 @@
 Return-Path: <owner-linux-mm@kvack.org>
 From: Sandipan Das <sandipan@linux.ibm.com>
-Subject: [PATCH v16 19/23] selftests/vm/pkeys: Detect write violation on a
- mapped access-denied-key page
-Date: Fri, 17 Jan 2020 18:19:58 +0530
+Subject: [PATCH v16 22/23] selftests/vm/pkeys: Override access right
+ definitions on powerpc
+Date: Fri, 17 Jan 2020 18:20:01 +0530
 In-Reply-To: <cover.1579265066.git.sandipan@linux.ibm.com>
 References: <cover.1579265066.git.sandipan@linux.ibm.com>
 In-Reply-To: <cover.1579265066.git.sandipan@linux.ibm.com>
 References: <cover.1579265066.git.sandipan@linux.ibm.com>
-Message-ID: <b8cd7fa3341f1afae4cd427ef5cf68b8dbeb9154.1579265066.git.sandipan@linux.ibm.com>
+Message-ID: <a1901895804d25cccb478b077a1a6509af93407a.1579265066.git.sandipan@linux.ibm.com>
 Sender: owner-linux-mm@kvack.org
 To: shuah@kernel.org, linux-kselftest@vger.kernel.org
 Cc: linux-arch@vger.kernel.org, fweimer@redhat.com, dave.hansen@intel.com, x86@kernel.org, linuxram@us.ibm.com, mhocko@kernel.org, linux-mm@kvack.org, mingo@redhat.com, aneesh.kumar@linux.ibm.com, bauerman@linux.ibm.com, msuchanek@suse.de, mpe@ellerman.id.au, linuxppc-dev@lists.ozlabs.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200117124958.3JR1hKY0bRwHwmuRlNLKINJSz4YVIIi0g4o9YPM48WE@z>
+Message-ID: <20200117125001.64qJ8c4VrsZHUIIzWnK4PgOKjFbQOXx8at2LMmbeRHQ@z>
 
 From: Ram Pai <linuxram@us.ibm.com>
 
-Detect write-violation on a page to which access-disabled
-key is associated much after the page is mapped.
+Some platforms hardcode the x86 values for PKEY_DISABLE_ACCESS
+and PKEY_DISABLE_WRITE such as those in:
+ /usr/include/bits/mman-shared.h.
+
+This overrides the definitions with correct values for powerpc.
 
 cc: Dave Hansen <dave.hansen@intel.com>
 cc: Florian Weimer <fweimer@redhat.com>
 Signed-off-by: Ram Pai <linuxram@us.ibm.com>
-Acked-by: Dave Hansen <dave.hansen@intel.com>
 Signed-off-by: Sandipan Das <sandipan@linux.ibm.com>
 ---
- tools/testing/selftests/vm/protection_keys.c | 13 +++++++++++++
- 1 file changed, 13 insertions(+)
+ tools/testing/selftests/vm/pkey-powerpc.h | 6 ++++--
+ 1 file changed, 4 insertions(+), 2 deletions(-)
 
-diff --git a/tools/testing/selftests/vm/protection_keys.c b/tools/testing/selftests/vm/protection_keys.c
-index babe3f6310f2..38ac3211d214 100644
---- a/tools/testing/selftests/vm/protection_keys.c
-+++ b/tools/testing/selftests/vm/protection_keys.c
-@@ -1026,6 +1026,18 @@ void test_write_of_access_disabled_region(int *ptr, u16 pkey)
- 	*ptr = __LINE__;
- 	expected_pkey_fault(pkey);
- }
-+
-+void test_write_of_access_disabled_region_with_page_already_mapped(int *ptr,
-+			u16 pkey)
-+{
-+	*ptr = __LINE__;
-+	dprintf1("disabling access; after accessing the page, "
-+		" to PKEY[%02d], doing write\n", pkey);
-+	pkey_access_deny(pkey);
-+	*ptr = __LINE__;
-+	expected_pkey_fault(pkey);
-+}
-+
- void test_kernel_write_of_access_disabled_region(int *ptr, u16 pkey)
- {
- 	int ret;
-@@ -1422,6 +1434,7 @@ void (*pkey_tests[])(int *ptr, u16 pkey) = {
- 	test_write_of_write_disabled_region,
- 	test_write_of_write_disabled_region_with_page_already_mapped,
- 	test_write_of_access_disabled_region,
-+	test_write_of_access_disabled_region_with_page_already_mapped,
- 	test_kernel_write_of_access_disabled_region,
- 	test_kernel_write_of_write_disabled_region,
- 	test_kernel_gup_of_access_disabled_region,
+diff --git a/tools/testing/selftests/vm/pkey-powerpc.h b/tools/testing/selftests/vm/pkey-powerpc.h
+index 7a4d73400338..1753b01882a7 100644
+--- a/tools/testing/selftests/vm/pkey-powerpc.h
++++ b/tools/testing/selftests/vm/pkey-powerpc.h
+@@ -16,11 +16,13 @@
+ #define fpregs			fp_regs
+ #define si_pkey_offset		0x20
+
+-#ifndef PKEY_DISABLE_ACCESS
++#ifdef PKEY_DISABLE_ACCESS
++#undef PKEY_DISABLE_ACCESS
+ # define PKEY_DISABLE_ACCESS	0x3  /* disable read and write */
+ #endif
+
+-#ifndef PKEY_DISABLE_WRITE
++#ifdef PKEY_DISABLE_WRITE
++#undef PKEY_DISABLE_WRITE
+ # define PKEY_DISABLE_WRITE	0x2
+ #endif
+
 -- 
 2.17.1
