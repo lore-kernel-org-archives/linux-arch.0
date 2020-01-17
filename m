@@ -1,82 +1,83 @@
-From: Sandipan Das <sandipan@linux.ibm.com>
-Subject: [PATCH v16 23/23] selftests: vm: pkeys: Use the correct page size on powerpc
-Date: Fri, 17 Jan 2020 18:20:02 +0530
-Message-ID: <061b9003ae2eeece0eddb02a025d1b4da138ce3c.1579265066.git.sandipan@linux.ibm.com>
-References: <cover.1579265066.git.sandipan@linux.ibm.com>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:40952 "EHLO
-        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
-        by vger.kernel.org with ESMTP id S1726999AbgAQMvQ (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 17 Jan 2020 07:51:16 -0500
-Received: from pps.filterd (m0098413.ppops.net [127.0.0.1])
-        by mx0b-001b2d01.pphosted.com (8.16.0.42/8.16.0.42) with SMTP id 00HClI9o085048
-        for <linux-arch@vger.kernel.org>; Fri, 17 Jan 2020 07:51:15 -0500
-Received: from e06smtp05.uk.ibm.com (e06smtp05.uk.ibm.com [195.75.94.101])
-        by mx0b-001b2d01.pphosted.com with ESMTP id 2xk0qrut7g-1
-        (version=TLSv1.2 cipher=AES256-GCM-SHA384 bits=256 verify=NOT)
-        for <linux-arch@vger.kernel.org>; Fri, 17 Jan 2020 07:51:15 -0500
-Received: from localhost
-        by e06smtp05.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-        for <linux-arch@vger.kernel.org> from <sandipan@linux.ibm.com>;
-        Fri, 17 Jan 2020 12:51:13 -0000
-In-Reply-To: <cover.1579265066.git.sandipan@linux.ibm.com>
-In-Reply-To: <cover.1579265066.git.sandipan@linux.ibm.com>
-References: <cover.1579265066.git.sandipan@linux.ibm.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: shuah@kernel.org, linux-kselftest@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, fweimer@redhat.com, dave.hansen@intel.com, x86@kernel.org, linuxram@us.ibm.com, mhocko@kernel.org, linux-mm@kvack.org, mingo@redhat.com, aneesh.kumar@linux.ibm.com, bauerman@linux.ibm.com, msuchanek@suse.de, mpe@ellerman.id.au, linuxppc-dev@lists.ozlabs.org
+From: Marco Elver <elver@google.com>
+Subject: Re: [PATCH -rcu] asm-generic, kcsan: Add KCSAN instrumentation for bitops
+Date: Fri, 17 Jan 2020 14:14:48 +0100
+Message-ID: <CANpmjNO395-atZXu_yEArZqAQ+ib3Ack-miEhA9msJ6_eJsh4g@mail.gmail.com>
+References: <20200115165749.145649-1-elver@google.com> <CAK8P3a3b=SviUkQw7ZXZF85gS1JO8kzh2HOns5zXoEJGz-+JiQ@mail.gmail.com>
+ <CANpmjNOpTYnF3ssqrE_s+=UA-2MpfzzdrXoyaifb3A55_mc0uA@mail.gmail.com>
+ <CAK8P3a3WywSsahH2vtZ_EOYTWE44YdN+Pj6G8nt_zrL3sckdwQ@mail.gmail.com>
+ <CANpmjNMk2HbuvmN1RaZ=8OV+tx9qZwKyRySONDRQar6RCGM1SA@mail.gmail.com> <CAK8P3a066Knr-KC2v4M8Dr1phr0Gbb2KeZZLQ7Ana0fkrgPDPg@mail.gmail.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="UTF-8"
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <CAK8P3a066Knr-KC2v4M8Dr1phr0Gbb2KeZZLQ7Ana0fkrgPDPg@mail.gmail.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: "Paul E. McKenney" <paulmck@kernel.org>, Andrey Konovalov <andreyknvl@google.com>, Alexander Potapenko <glider@google.com>, Dmitry Vyukov <dvyukov@google.com>, kasan-dev <kasan-dev@googlegroups.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Michael Ellerman <mpe@ellerman.id.au>, christophe leroy <christophe.leroy@c-s.fr>, Daniel Axtens <dja@axtens.net>, linux-arch <linux-arch@vger.kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
-Both 4K and 64K pages are supported on powerpc. Parts of
-the selftest code perform alignment computations based on
-the PAGE_SIZE macro which is currently hardcoded to 64K
-for powerpc. This causes some test failures on kernels
-configured with 4K page size.
+On Fri, 17 Jan 2020 at 13:25, Arnd Bergmann <arnd@arndb.de> wrote:
+>
+> On Wed, Jan 15, 2020 at 9:50 PM Marco Elver <elver@google.com> wrote:
+> > On Wed, 15 Jan 2020 at 20:55, Arnd Bergmann <arnd@arndb.de> wrote:
+> > > On Wed, Jan 15, 2020 at 8:51 PM Marco Elver <elver@google.com> wrote:
+> > > > On Wed, 15 Jan 2020 at 20:27, Arnd Bergmann <arnd@arndb.de> wrote:
+> > > Are there any that really just want kasan_check_write() but not one
+> > > of the kcsan checks?
+> >
+> > If I understood correctly, this suggestion would amount to introducing
+> > a new header, e.g. 'ksan-checks.h', that provides unified generic
+> > checks. For completeness, we will also need to consider reads. Since
+> > KCSAN provides 4 check variants ({read,write} x {plain,atomic}), we
+> > will need 4 generic check variants.
+>
+> Yes, that was the idea.
+>
+> > I certainly do not feel comfortable blindly introducing kcsan_checks
+> > in all places where we have kasan_checks, but it may be worthwhile
+> > adding this infrastructure and starting with atomic-instrumented and
+> > bitops-instrumented wrappers. The other locations you list above would
+> > need to be evaluated on a case-by-case basis to check if we want to
+> > report data races for those accesses.
+>
+> I think the main question to answer is whether it is more likely to go
+> wrong because we are missing checks when one caller accidentally
+> only has one but not the other, or whether they go wrong because
+> we accidentally check both when we should only be checking one.
+>
+> My guess would be that the first one is more likely to happen, but
+> the second one is more likely to cause problems when it happens.
 
-In some cases, we need to enforce function alignment to
-page size. Since this can only be done at build time,
-64K is used as the alignment factor as that ensures 4K
-alignment as well.
+Right, I guess both have trade-offs.
 
-cc: Dave Hansen <dave.hansen@intel.com>
-cc: Florian Weimer <fweimer@redhat.com>
-cc: Ram Pai <linuxram@us.ibm.com>
-Signed-off-by: Sandipan Das <sandipan@linux.ibm.com>
----
- tools/testing/selftests/vm/pkey-powerpc.h    | 2 +-
- tools/testing/selftests/vm/protection_keys.c | 5 +++++
- 2 files changed, 6 insertions(+), 1 deletion(-)
+> > As a minor data point, {READ,WRITE}_ONCE in compiler.h currently only
+> > has kcsan_checks and not kasan_checks.
+>
+> Right. This is because we want an explicit "atomic" check for kcsan
+> but we want to have the function inlined for kasan, right?
 
-diff --git a/tools/testing/selftests/vm/pkey-powerpc.h b/tools/testing/selftests/vm/pkey-powerpc.h
-index 1753b01882a7..7435bf30298d 100644
---- a/tools/testing/selftests/vm/pkey-powerpc.h
-+++ b/tools/testing/selftests/vm/pkey-powerpc.h
-@@ -36,7 +36,7 @@
- 					     pkey-31 and exec-only key */
- #define PKEY_BITS_PER_PKEY	2
- #define HPAGE_SIZE		(1UL << 24)
--#define PAGE_SIZE		(1UL << 16)
-+#define PAGE_SIZE		sysconf(_SC_PAGESIZE)
- 
- static inline u32 pkey_bit_position(int pkey)
- {
-diff --git a/tools/testing/selftests/vm/protection_keys.c b/tools/testing/selftests/vm/protection_keys.c
-index 9e04bfbbd7e6..36fe219c8099 100644
---- a/tools/testing/selftests/vm/protection_keys.c
-+++ b/tools/testing/selftests/vm/protection_keys.c
-@@ -145,7 +145,12 @@ void abort_hooks(void)
-  * will then fault, which makes sure that the fault code handles
-  * execute-only memory properly.
-  */
-+#ifdef __powerpc64__
-+/* This way, both 4K and 64K alignment are maintained */
-+__attribute__((__aligned__(65536)))
-+#else
- __attribute__((__aligned__(PAGE_SIZE)))
-+#endif
- void lots_o_noops_around_write(int *write_to_me)
- {
- 	dprintf3("running %s()\n", __func__);
--- 
-2.17.1
+Yes, correct.
+
+> > My personal preference would be to keep the various checks explicit,
+> > clearly opting into either KCSAN and/or KASAN. Since I do not think
+> > it's obvious if we want both for the existing and potentially new
+> > locations (in future), the potential for error by blindly using a
+> > generic 'ksan_check' appears worse than potentially adding a dozen
+> > lines or so.
+> >
+> > Let me know if you'd like to proceed with 'ksan-checks.h'.
+>
+> Could you have a look at the files I listed and see if there are any
+> other examples that probably a different set of checks between the
+> two, besides the READ_ONCE() example?
+
+All the user-copy related code should probably have kcsan_checks as well.
+
+> If you can't find any, I would prefer having the simpler interface
+> with just one set of annotations.
+
+That's fair enough. I'll prepare a v2 series that first introduces the
+new header, and then applies it to the locations that seem obvious
+candidates for having both checks.
+
+Thanks,
+-- Marco
