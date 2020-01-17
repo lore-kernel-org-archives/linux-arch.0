@@ -1,57 +1,91 @@
-Return-Path: <brendanhiggins@google.com>
-MIME-Version: 1.0
-References: <20191216220555.245089-1-brendanhiggins@google.com>
- <20191216220555.245089-5-brendanhiggins@google.com> <20191217075836.C76942072D@mail.kernel.org>
-In-Reply-To: <20191217075836.C76942072D@mail.kernel.org>
-From: Brendan Higgins <brendanhiggins@google.com>
-Date: Thu, 23 Jan 2020 14:45:43 -0800
-Message-ID: <CAFd5g47=FxbKtm9rA3zKvnipdTdP_VR8zJ3pad-QukL5Ottrjw@mail.gmail.com>
-Subject: Re: [RFC v1 4/6] init: main: add KUnit to kernel init
-Content-Type: text/plain; charset="UTF-8"
-To: Stephen Boyd <sboyd@kernel.org>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Alan Maguire <alan.maguire@oracle.com>, Anton Ivanov <anton.ivanov@cambridgegreys.com>, Arnd Bergmann <arnd@arndb.de>, David Gow <davidgow@google.com>, Jeff Dike <jdike@addtoit.com>, Kees Cook <keescook@chromium.org>, Richard Weinberger <richard@nod.at>, rppt@linux.ibm.com, Shuah Khan <skhan@linuxfoundation.org>, Iurii Zaikin <yzaikin@google.com>, Greg KH <gregkh@linuxfoundation.org>, Logan Gunthorpe <logang@deltatee.com>, Luis Chamberlain <mcgrof@kernel.org>, Knut Omang <knut.omang@oracle.com>, linux-um <linux-um@lists.infradead.org>, linux-arch@vger.kernel.org, "open list:KERNEL SELFTEST FRAMEWORK" <linux-kselftest@vger.kernel.org>, KUnit Development <kunit-dev@googlegroups.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
+Return-Path: <owner-linux-mm@kvack.org>
+From: Sandipan Das <sandipan@linux.ibm.com>
+Subject: [PATCH v16 11/23] selftests: vm: pkeys: Use the correct huge page
+ size
+Date: Fri, 17 Jan 2020 18:19:50 +0530
+In-Reply-To: <cover.1579265066.git.sandipan@linux.ibm.com>
+References: <cover.1579265066.git.sandipan@linux.ibm.com>
+In-Reply-To: <cover.1579265066.git.sandipan@linux.ibm.com>
+References: <cover.1579265066.git.sandipan@linux.ibm.com>
+Message-ID: <2a672ee1256c0e566f6b5da8483efa1f4e93945c.1579265066.git.sandipan@linux.ibm.com>
+Sender: owner-linux-mm@kvack.org
+To: shuah@kernel.org, linux-kselftest@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, fweimer@redhat.com, dave.hansen@intel.com, x86@kernel.org, linuxram@us.ibm.com, mhocko@kernel.org, linux-mm@kvack.org, mingo@redhat.com, aneesh.kumar@linux.ibm.com, bauerman@linux.ibm.com, msuchanek@suse.de, mpe@ellerman.id.au, linuxppc-dev@lists.ozlabs.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200123224543.WsBylWu0wraXgw-1pgYNfrVm5zzUdGs1HQMccyvJoho@z>
+Message-ID: <20200117124950.b4RKg-JQsSPmdXamyEozY-NvfWhkCNpw4_Lj_6FM-9s@z>
 
-Sorry for the late reply. I sent this thinking I would check in over
-vacation, and then didn't.
+The huge page size can vary across architectures. This will
+ensure that the correct huge page size is used when accessing
+the hugetlb controls under sysfs. Instead of using a hardcoded
+page size (i.e. 2MB), this now uses the HPAGE_SIZE macro which
+is arch-specific.
 
-On Mon, Dec 16, 2019 at 11:58 PM Stephen Boyd <sboyd@kernel.org> wrote:
->
-> Quoting Brendan Higgins (2019-12-16 14:05:53)
-> > Remove KUnit from init calls entirely, instead call directly from
-> > kernel_init().
->
-> Yes, but why? Is it desired to run the unit tests earlier than opening
-> the console or something?
+Cc: Dave Hansen <dave.hansen@intel.com>
+Cc: Florian Weimer <fweimer@redhat.com>
+Cc: Ram Pai <linuxram@us.ibm.com>
+Signed-off-by: Sandipan Das <sandipan@linux.ibm.com>
+---
+ tools/testing/selftests/vm/protection_keys.c | 23 ++++++++++++++------
+ 1 file changed, 16 insertions(+), 7 deletions(-)
 
-I want to make sure it is called after late_init is done (so that you
-can test things initialized in late_init). And I want to make sure it
-runs before init*fs is loaded so that there is a mechanism to run
-tests without having to put a userland together.
+diff --git a/tools/testing/selftests/vm/protection_keys.c b/tools/testing/selftests/vm/protection_keys.c
+index 8a69866e92fe..3d80a8783b87 100644
+--- a/tools/testing/selftests/vm/protection_keys.c
++++ b/tools/testing/selftests/vm/protection_keys.c
+@@ -738,12 +738,15 @@ void *malloc_pkey_anon_huge(long size, int prot, u16 pkey)
+ }
 
-> > diff --git a/lib/kunit/executor.c b/lib/kunit/executor.c
-> > index 978086cfd257d..ca880224c0bab 100644
-> > --- a/lib/kunit/executor.c
-> > +++ b/lib/kunit/executor.c
-> > @@ -32,12 +32,10 @@ static bool kunit_run_all_tests(void)
-> >         return !has_test_failed;
-> >  }
-> >
-> > -static int kunit_executor_init(void)
-> > +int kunit_executor_init(void)
->
-> Should be marked __init? Even before this patch presumably.
+ int hugetlb_setup_ok;
++#define SYSFS_FMT_NR_HUGE_PAGES "/sys/kernel/mm/hugepages/hugepages-%ldkB/nr_hugepages"
+ #define GET_NR_HUGE_PAGES 10
+ void setup_hugetlbfs(void)
+ {
+ 	int err;
+ 	int fd;
+-	char buf[] = "123";
++	char buf[256];
++	long hpagesz_kb;
++	long hpagesz_mb;
 
-Just this function? No strong opinion.
+ 	if (geteuid() != 0) {
+ 		fprintf(stderr, "WARNING: not run as root, can not do hugetlb test\n");
+@@ -754,11 +757,16 @@ void setup_hugetlbfs(void)
 
-If by "before this patch" you mean other stuff in this patchset?
+ 	/*
+ 	 * Now go make sure that we got the pages and that they
+-	 * are 2M pages.  Someone might have made 1G the default.
++	 * are PMD-level pages. Someone might have made PUD-level
++	 * pages the default.
+ 	 */
+-	fd = open("/sys/kernel/mm/hugepages/hugepages-2048kB/nr_hugepages", O_RDONLY);
++	hpagesz_kb = HPAGE_SIZE / 1024;
++	hpagesz_mb = hpagesz_kb / 1024;
++	sprintf(buf, SYSFS_FMT_NR_HUGE_PAGES, hpagesz_kb);
++	fd = open(buf, O_RDONLY);
+ 	if (fd < 0) {
+-		perror("opening sysfs 2M hugetlb config");
++		fprintf(stderr, "opening sysfs %ldM hugetlb config: %s\n",
++			hpagesz_mb, strerror(errno));
+ 		return;
+ 	}
 
-> >  {
-> >         if (kunit_run_all_tests())
-> >                 return 0;
-> >         else
-> >                 return -EFAULT;
-> >  }
-> > -
-> > -late_initcall(kunit_executor_init);
+@@ -766,13 +774,14 @@ void setup_hugetlbfs(void)
+ 	err = read(fd, buf, sizeof(buf)-1);
+ 	close(fd);
+ 	if (err <= 0) {
+-		perror("reading sysfs 2M hugetlb config");
++		fprintf(stderr, "reading sysfs %ldM hugetlb config: %s\n",
++			hpagesz_mb, strerror(errno));
+ 		return;
+ 	}
+
+ 	if (atoi(buf) != GET_NR_HUGE_PAGES) {
+-		fprintf(stderr, "could not confirm 2M pages, got: '%s' expected %d\n",
+-			buf, GET_NR_HUGE_PAGES);
++		fprintf(stderr, "could not confirm %ldM pages, got: '%s' expected %d\n",
++			hpagesz_mb, buf, GET_NR_HUGE_PAGES);
+ 		return;
+ 	}
+
+-- 
+2.17.1
