@@ -1,72 +1,155 @@
-Return-Path: <owner-linux-mm@kvack.org>
-Date: Tue, 14 Jan 2020 11:22:20 -0800
-From: "Paul E. McKenney" <paulmck@kernel.org>
-Subject: Re: [PATCH v4 01/10] kcsan: Add Kernel Concurrency Sanitizer
- infrastructure
-Message-ID: <20200114192220.GS2935@paulmck-ThinkPad-P72>
-Reply-To: paulmck@kernel.org
-References: 
- <CANpmjNOC2PYFsE_TK2SYmKcHxyG+2arWc8x_fmeWPOMi0+ot8g@mail.gmail.com>
- <53F6B915-AC53-41BB-BF32-33732515B3A0@lca.pw>
+Return-Path: <linux-arch-owner@vger.kernel.org>
+Received: from ozlabs.org ([203.11.71.1]:47663 "EHLO ozlabs.org"
+ rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP id S1726961AbgARLBN
+ (ORCPT <rfc822;linux-arch@vger.kernel.org>); Sat, 18 Jan 2020 06:01:13 -0500
+From: Michael Ellerman <mpe@ellerman.id.au>
+Subject: Re: [PATCH v4 1/9] powerpc/mmu_gather: Enable RCU_TABLE_FREE even for
+ !SMP case
+In-Reply-To: <20200116064531.483522-2-aneesh.kumar@linux.ibm.com>
+References: <20200116064531.483522-1-aneesh.kumar@linux.ibm.com>
+ <20200116064531.483522-2-aneesh.kumar@linux.ibm.com>
+Date: Sat, 18 Jan 2020 21:01:14 +1000
+Message-ID: <875zh981vp.fsf@mpe.ellerman.id.au>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <53F6B915-AC53-41BB-BF32-33732515B3A0@lca.pw>
-Sender: owner-linux-mm@kvack.org
-To: Qian Cai <cai@lca.pw>
-Cc: Marco Elver <elver@google.com>, LKMM Maintainers -- Akira Yokosawa <akiyks@gmail.com>, Alan Stern <stern@rowland.harvard.edu>, Alexander Potapenko <glider@google.com>, Andrea Parri <parri.andrea@gmail.com>, Andrey Konovalov <andreyknvl@google.com>, Andy Lutomirski <luto@kernel.org>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Arnd Bergmann <arnd@arndb.de>, Boqun Feng <boqun.feng@gmail.com>, Borislav Petkov <bp@alien8.de>, Daniel Axtens <dja@axtens.net>, Daniel Lustig <dlustig@nvidia.com>, Dave Hansen <dave.hansen@linux.intel.com>, David Howells <dhowells@redhat.com>, Dmitry Vyukov <dvyukov@google.com>, "H. Peter Anvin" <hpa@zytor.com>, Ingo Molnar <mingo@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Joel Fernandes <joel@joelfernandes.org>, Jonathan Corbet <corbet@lwn.net>, Josh Poimboeuf <jpoimboe@redhat.com>, Luc Maranget <luc.maranget@inria.fr>, Mark Rutland <Mark.Rutland@arm.com>, Nicholas Piggin <npiggin@gmail.com>, Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, Will Deacon <will@kernel.org>, Eric Dumazet <edumazet@google.com>, kasan-dev <kasan-dev@googlegroups.com>, linux-arch <linux-arch@vger.kernel.org>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>, linux-efi@vger.kernel.org, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Linux Memory Management List <linux-mm@kvack.org>, the arch/x86 maintainers <x86@kernel.org>
+Content-Type: text/plain
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200114192220.0fFcwRU6kPHXKij41yWYOPDMtFQLvZ5tOl4oaMLIxRE@z>
+To: "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>, akpm@linux-foundation.org, peterz@infradead.org, will@kernel.org
+Cc: linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, stable@vger.kernel.org
+Message-ID: <20200118110114.1tcEAU2Pr2HxgayDc1_MCIr1VjdcUqkrDpSMZT_b5Zw@z>
 
-On Tue, Jan 14, 2020 at 06:08:29AM -0500, Qian Cai wrote:
-> 
-> 
-> > On Jan 6, 2020, at 7:47 AM, Marco Elver <elver@google.com> wrote:
-> > 
-> > Thanks, I'll look into KCSAN + lockdep compatibility. It's probably
-> > missing some KCSAN_SANITIZE := n in some Makefile.
-> 
-> Can I have a update on fixing this? It looks like more of a problem that kcsan_setup_watchpoint() will disable IRQs and then dive into the page allocator where it would complain because it might sleep.
-> 
-> BTW, I saw Paul sent a pull request for 5.6 but it is ugly to have everybody could trigger a deadlock (sleep function called in atomic context) like this during boot once this hits the mainline not to mention about only recently it is possible to test this feature (thanks to warning ratelimit) with the existing debugging options because it was unable to boot due to the brokenness with debug_pagealloc as mentioned in this thread, so this does sounds like it needs more soak time for the mainline to me.
+"Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com> writes:
+> A follow up patch is going to make sure we correctly invalidate page walk cache
+> before we free page table pages. In order to keep things simple enable
+> RCU_TABLE_FREE even for !SMP so that we don't have to fixup the !SMP case
+> differently in the followup patch
+>
+> !SMP case is right now broken for radix translation w.r.t page walk cache flush.
+> We can get interrupted in between page table free and that would imply we
+> have page walk cache entries pointing to tables which got freed already.
 
-Just so I understand...  Does this problem happen even in CONFIG_KCSAN=n
-kernels?
+For the archives, both our platforms that run on Power9 force SMP on in
+Kconfig, so the !SMP case is unlikely to be a problem for anyone in
+practice, unless they've hacked their kernel to build it !SMP.
 
-I have been running extensive CONFIG_KSCAN=y rcutorture tests for quite
-awhile now, so even if this only happens for CONFIG_KSCAN=y, it is not
-like it affects everyone.
+> Cc: <stable@vger.kernel.org>
+> Acked-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+> Signed-off-by: Aneesh Kumar K.V <aneesh.kumar@linux.ibm.com>
+> ---
+>  arch/powerpc/Kconfig                         | 2 +-
+>  arch/powerpc/include/asm/book3s/32/pgalloc.h | 8 --------
+>  arch/powerpc/include/asm/book3s/64/pgalloc.h | 2 --
+>  arch/powerpc/include/asm/nohash/pgalloc.h    | 8 --------
+>  arch/powerpc/mm/book3s64/pgtable.c           | 7 -------
+>  5 files changed, 1 insertion(+), 26 deletions(-)
 
-Yes, it should be fixed, and Marco does have a patch on the way.
+Acked-by: Michael Ellerman <mpe@ellerman.id.au>
 
-							Thanx, Paul
+cheers
 
-> 0000000000000400
-> [   13.416814][    T1] Call Trace:
-> [   13.416814][    T1]  lock_is_held_type+0x66/0x160
-> [   13.416814][    T1]  ___might_sleep+0xc1/0x1d0
-> [   13.416814][    T1]  __might_sleep+0x5b/0xa0
-> [   13.416814][    T1]  slab_pre_alloc_hook+0x7b/0xa0
-> [   13.416814][    T1]  __kmalloc_node+0x60/0x300
-> [   13.416814   T1]  ? alloc_cpumask_var_node+0x44/0x70
-> [   13.416814][    T1]  ? topology_phys_to_logical_die+0x7e/0x180
-> [   13.416814][    T1]  alloc_cpumask_var_node+0x44/0x70
-> [   13.416814][    T1]  zalloc_cpumask_var+0x2a/0x40
-> [   13.416814][    T1]  native_smp_prepare_cpus+0x246/0x425
-> [   13.416814][    T1]  kernel_init_freeable+0x1b8/0x496
-> [   13.416814][    T1]  ? rest_init+0x381/0x381
-> [   13.416814][    T1]  kernel_init+0x18/0x17f
-> [   13.416814][    T1]  ? rest_init+0x381/0x381
-> [   13.416814][    T1]  ret_from_fork+0x3a/0x50
-> [   13.416814][    T1] irq event stamp: 910
-> [   13.416814][    T1] hardirqs last  enabled at (909): [<ffffffff8d1240f3>] _raw_write_unlock_irqrestore+0x53/0x57
-> [   13.416814][    T1] hardirqs last disabled at (910): [<ffffffff8c8bba76>] kcsan_setup_watchpoint+0x96/0x460
-> [   13.416814][    T1] softirqs last  enabled at (0): [<ffffffff8c6b697a>] copy_process+0x11fa/0x34f0
-> [   13.416814][    T1] softirqs last disabled at (0): [<0000000000000000>] 0x0
-> [   13.416814][    T1] ---[ end trace 7d1df66da055aa92 ]---
-> [   13.416814][    T1] possible reason: unannotated irqs-on.
-> [   13.416814][ent stamp: 910
-> [   13.416814][    T1] hardirqs last  enabled at (909): [<ffffffff8d1240f3>] _raw_write_unlock_irqrestore+0x53/0x57
-> [   13.416814][    T1] hardirqs last disabled at (910): [<ffffffff8c8bba76>] kcsan_setup_watchpoint+0x96/0x460
-> [   13.416814][    T1] softirqs last  enabled at (0): [<ffffffff8c6b697a>] copy_process+0x11fa/0x34f0
-> [   13.416814][    T1] softirqs last disabled at (0): [<0000000000000000>] 0x0
+> diff --git a/arch/powerpc/Kconfig b/arch/powerpc/Kconfig
+> index 1ec34e16ed65..04240205f38c 100644
+> --- a/arch/powerpc/Kconfig
+> +++ b/arch/powerpc/Kconfig
+> @@ -222,7 +222,7 @@ config PPC
+>  	select HAVE_HARDLOCKUP_DETECTOR_PERF	if PERF_EVENTS && HAVE_PERF_EVENTS_NMI && !HAVE_HARDLOCKUP_DETECTOR_ARCH
+>  	select HAVE_PERF_REGS
+>  	select HAVE_PERF_USER_STACK_DUMP
+> -	select HAVE_RCU_TABLE_FREE		if SMP
+> +	select HAVE_RCU_TABLE_FREE
+>  	select HAVE_RCU_TABLE_NO_INVALIDATE	if HAVE_RCU_TABLE_FREE
+>  	select HAVE_MMU_GATHER_PAGE_SIZE
+>  	select HAVE_REGS_AND_STACK_ACCESS_API
+> diff --git a/arch/powerpc/include/asm/book3s/32/pgalloc.h b/arch/powerpc/include/asm/book3s/32/pgalloc.h
+> index 998317702630..dc5c039eb28e 100644
+> --- a/arch/powerpc/include/asm/book3s/32/pgalloc.h
+> +++ b/arch/powerpc/include/asm/book3s/32/pgalloc.h
+> @@ -49,7 +49,6 @@ static inline void pgtable_free(void *table, unsigned index_size)
+>  
+>  #define get_hugepd_cache_index(x)  (x)
+>  
+> -#ifdef CONFIG_SMP
+>  static inline void pgtable_free_tlb(struct mmu_gather *tlb,
+>  				    void *table, int shift)
+>  {
+> @@ -66,13 +65,6 @@ static inline void __tlb_remove_table(void *_table)
+>  
+>  	pgtable_free(table, shift);
+>  }
+> -#else
+> -static inline void pgtable_free_tlb(struct mmu_gather *tlb,
+> -				    void *table, int shift)
+> -{
+> -	pgtable_free(table, shift);
+> -}
+> -#endif
+>  
+>  static inline void __pte_free_tlb(struct mmu_gather *tlb, pgtable_t table,
+>  				  unsigned long address)
+> diff --git a/arch/powerpc/include/asm/book3s/64/pgalloc.h b/arch/powerpc/include/asm/book3s/64/pgalloc.h
+> index f6968c811026..a41e91bd0580 100644
+> --- a/arch/powerpc/include/asm/book3s/64/pgalloc.h
+> +++ b/arch/powerpc/include/asm/book3s/64/pgalloc.h
+> @@ -19,9 +19,7 @@ extern struct vmemmap_backing *vmemmap_list;
+>  extern pmd_t *pmd_fragment_alloc(struct mm_struct *, unsigned long);
+>  extern void pmd_fragment_free(unsigned long *);
+>  extern void pgtable_free_tlb(struct mmu_gather *tlb, void *table, int shift);
+> -#ifdef CONFIG_SMP
+>  extern void __tlb_remove_table(void *_table);
+> -#endif
+>  void pte_frag_destroy(void *pte_frag);
+>  
+>  static inline pgd_t *radix__pgd_alloc(struct mm_struct *mm)
+> diff --git a/arch/powerpc/include/asm/nohash/pgalloc.h b/arch/powerpc/include/asm/nohash/pgalloc.h
+> index 332b13b4ecdb..29c43665a753 100644
+> --- a/arch/powerpc/include/asm/nohash/pgalloc.h
+> +++ b/arch/powerpc/include/asm/nohash/pgalloc.h
+> @@ -46,7 +46,6 @@ static inline void pgtable_free(void *table, int shift)
+>  
+>  #define get_hugepd_cache_index(x)	(x)
+>  
+> -#ifdef CONFIG_SMP
+>  static inline void pgtable_free_tlb(struct mmu_gather *tlb, void *table, int shift)
+>  {
+>  	unsigned long pgf = (unsigned long)table;
+> @@ -64,13 +63,6 @@ static inline void __tlb_remove_table(void *_table)
+>  	pgtable_free(table, shift);
+>  }
+>  
+> -#else
+> -static inline void pgtable_free_tlb(struct mmu_gather *tlb, void *table, int shift)
+> -{
+> -	pgtable_free(table, shift);
+> -}
+> -#endif
+> -
+>  static inline void __pte_free_tlb(struct mmu_gather *tlb, pgtable_t table,
+>  				  unsigned long address)
+>  {
+> diff --git a/arch/powerpc/mm/book3s64/pgtable.c b/arch/powerpc/mm/book3s64/pgtable.c
+> index 75483b40fcb1..2bf7e1b4fd82 100644
+> --- a/arch/powerpc/mm/book3s64/pgtable.c
+> +++ b/arch/powerpc/mm/book3s64/pgtable.c
+> @@ -378,7 +378,6 @@ static inline void pgtable_free(void *table, int index)
+>  	}
+>  }
+>  
+> -#ifdef CONFIG_SMP
+>  void pgtable_free_tlb(struct mmu_gather *tlb, void *table, int index)
+>  {
+>  	unsigned long pgf = (unsigned long)table;
+> @@ -395,12 +394,6 @@ void __tlb_remove_table(void *_table)
+>  
+>  	return pgtable_free(table, index);
+>  }
+> -#else
+> -void pgtable_free_tlb(struct mmu_gather *tlb, void *table, int index)
+> -{
+> -	return pgtable_free(table, index);
+> -}
+> -#endif
+>  
+>  #ifdef CONFIG_PROC_FS
+>  atomic_long_t direct_pages_count[MMU_PAGE_COUNT];
+> -- 
+> 2.24.1
