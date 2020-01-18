@@ -1,65 +1,54 @@
-From: "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>
-Subject: Re: [PATCH v4 6/9] asm-generic/tlb: Rename HAVE_RCU_TABLE_FREE
-Date: Sat, 18 Jan 2020 11:26:40 +0530
-Message-ID: <87v9p9mhnr.fsf@linux.ibm.com>
-References: <20200116064531.483522-1-aneesh.kumar@linux.ibm.com>
- <20200116064531.483522-7-aneesh.kumar@linux.ibm.com>
+From: Sandipan Das <sandipan@linux.ibm.com>
+Subject: Re: [PATCH v16 00/23] selftests, powerpc, x86: Memory Protection Keys
+Date: Sat, 18 Jan 2020 14:54:51 +0530
+Message-ID: <88abbb6b-8e07-43e5-231f-0e54edcad3f7@linux.ibm.com>
+References: <cover.1579265066.git.sandipan@linux.ibm.com>
+ <3a14815c-b9cb-f5a5-630a-0bfb25356429@intel.com>
 Mime-Version: 1.0
-Content-Type: text/plain
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:52768 "EHLO
-        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
-        by vger.kernel.org with ESMTP id S1725468AbgARF5L (ORCPT
+Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:28170 "EHLO
+        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S1726678AbgARJZH (ORCPT
         <rfc822;linux-arch@vger.kernel.org>);
-        Sat, 18 Jan 2020 00:57:11 -0500
-In-Reply-To: <20200116064531.483522-7-aneesh.kumar@linux.ibm.com>
+        Sat, 18 Jan 2020 04:25:07 -0500
+Received: from pps.filterd (m0098396.ppops.net [127.0.0.1])
+        by mx0a-001b2d01.pphosted.com (8.16.0.42/8.16.0.42) with SMTP id 00I9CZB7011370
+        for <linux-arch@vger.kernel.org>; Sat, 18 Jan 2020 04:25:06 -0500
+Received: from e06smtp04.uk.ibm.com (e06smtp04.uk.ibm.com [195.75.94.100])
+        by mx0a-001b2d01.pphosted.com with ESMTP id 2xkw7gjn13-1
+        (version=TLSv1.2 cipher=AES256-GCM-SHA384 bits=256 verify=NOT)
+        for <linux-arch@vger.kernel.org>; Sat, 18 Jan 2020 04:25:06 -0500
+Received: from localhost
+        by e06smtp04.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+        for <linux-arch@vger.kernel.org> from <sandipan@linux.ibm.com>;
+        Sat, 18 Jan 2020 09:25:04 -0000
+In-Reply-To: <3a14815c-b9cb-f5a5-630a-0bfb25356429@intel.com>
+Content-Language: en-US
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: akpm@linux-foundation.org, peterz@infradead.org, will@kernel.org, mpe@ellerman.id.au, davem@davemloft.net
-Cc: linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org
+To: Dave Hansen <dave.hansen@intel.com>
+Cc: shuah@kernel.org, linux-kselftest@vger.kernel.org, linux-arch@vger.kernel.org, fweimer@redhat.com, x86@kernel.org, linuxram@us.ibm.com, mhocko@kernel.org, linux-mm@kvack.org, mingo@redhat.com, aneesh.kumar@linux.ibm.com, bauerman@linux.ibm.com, msuchanek@suse.de, mpe@ellerman.id.au, linuxppc-dev@lists.ozlabs.org
 
-"Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com> writes:
 
-> From: Peter Zijlstra <peterz@infradead.org>
->
-> Towards a more consistent naming scheme.
->
-> Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
-> Signed-off-by: Aneesh Kumar K.V <aneesh.kumar@linux.ibm.com>
 
-...
+On 17/01/20 11:32 pm, Dave Hansen wrote:
+> I also tested the series.  The 64-bit binary works fine.  But,
+> 
+> This is failing to build the x86 selftests:
+> 
+> make: *** No rule to make target 'protection_keys.c', needed by
+> '/home/daveh/linux/tools/testing/selftests/x86/protection_keys_32'.  Stop.
+> 
+> I think you just forgot to remove the binary from the x86 Makefile.
+> 
+> Which reminds me: This removes the 32-bit binary.  x86 32-bit binaries
+> exercise different paths than the 64-bit ones, so we like to have both.
+>  Although it isn't *essential* it would really be nice to keep the
+> 32-bit binary.
+> 
 
-> diff --git a/arch/sparc/Kconfig b/arch/sparc/Kconfig
-> index 18e9fb6fcf1b..c703eb6b7461 100644
-> --- a/arch/sparc/Kconfig
-> +++ b/arch/sparc/Kconfig
-> @@ -64,7 +64,7 @@ config SPARC64
->  	select HAVE_FUNCTION_GRAPH_TRACER
->  	select HAVE_KRETPROBES
->  	select HAVE_KPROBES
-> -	select HAVE_RCU_TABLE_FREE if SMP
-> +	select MMU_GATHER_RCU_TABLE_FREE
->  	select HAVE_MEMBLOCK_NODE_MAP
->  	select HAVE_ARCH_TRANSPARENT_HUGEPAGE
->  	select HAVE_DYNAMIC_FTRACE
+Oops. Let me fix that. Thanks for testing this.
 
-This resulted in build failure reported by kbuild test robot. Can we
-fold the below change
-
-diff --git a/arch/sparc/Kconfig b/arch/sparc/Kconfig
-index c703eb6b7461..02907584be2d 100644
---- a/arch/sparc/Kconfig
-+++ b/arch/sparc/Kconfig
-@@ -64,7 +64,7 @@ config SPARC64
- 	select HAVE_FUNCTION_GRAPH_TRACER
- 	select HAVE_KRETPROBES
- 	select HAVE_KPROBES
--	select MMU_GATHER_RCU_TABLE_FREE
-+	select MMU_GATHER_RCU_TABLE_FREE if SMP
- 	select HAVE_MEMBLOCK_NODE_MAP
- 	select HAVE_ARCH_TRANSPARENT_HUGEPAGE
- 	select HAVE_DYNAMIC_FTRACE
-
-We should handle that drop of SMP in a separate patch if needed.
-
--aneesh
+- Sandipan
