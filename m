@@ -1,241 +1,436 @@
-Return-Path: <linux-doc-owner@vger.kernel.org>
-Content-Type: text/plain;        charset=us-ascii
-Mime-Version: 1.0 (Mac OS X Mail 13.0 \(3608.40.2.2.4\))
-Subject: Re: [PATCH v4 01/10] kcsan: Add Kernel Concurrency Sanitizer
- infrastructure
-From: Qian Cai <cai@lca.pw>
-In-Reply-To: <20191114180303.66955-2-elver@google.com>
-Date: Fri, 3 Jan 2020 00:13:07 -0500
-Content-Transfer-Encoding: quoted-printable
-Message-ID: <BAB5F853-95FA-4623-A067-4E62B90721D3@lca.pw>
-References: <20191114180303.66955-1-elver@google.com>
- <20191114180303.66955-2-elver@google.com>
-Sender: linux-doc-owner@vger.kernel.org
-To: Marco Elver <elver@google.com>
-Cc: akiyks@gmail.com, stern@rowland.harvard.edu, Alexander Potapenko <glider@google.com>, parri.andrea@gmail.com, andreyknvl@google.com, Andy Lutomirski <luto@kernel.org>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Arnd Bergmann <arnd@arndb.de>, boqun.feng@gmail.com, Borislav Petkov <bp@alien8.de>, Daniel Axtens <dja@axtens.net>, dlustig@nvidia.com, Dave Hansen <dave.hansen@linux.intel.com>, dhowells@redhat.com, Dmitry Vyukov <dvyukov@google.com>, "H. Peter Anvin" <hpa@zytor.com>, Ingo Molnar <mingo@redhat.com>, j.alglave@ucl.ac.uk, joel@joelfernandes.org, corbet@lwn.net, jpoimboe@redhat.com, luc.maranget@inria.fr, mark.rutland@arm.com, npiggin@gmail.com, paulmck@kernel.org, peterz@infradead.org, tglx@linutronix.de, will@kernel.org, edumazet@google.com, kasan-dev@googlegroups.com, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, linux-efi@vger.kernel.org, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, x86@kernel.org
+Return-Path: <linux-arch-owner@vger.kernel.org>
+Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:2144 "EHLO
+ mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+ with ESMTP id S1726130AbgATIiP (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+ Mon, 20 Jan 2020 03:38:15 -0500
+Received: from pps.filterd (m0098421.ppops.net [127.0.0.1]) by
+ mx0a-001b2d01.pphosted.com (8.16.0.42/8.16.0.42) with SMTP id 00K8cD8l104066
+ for <linux-arch@vger.kernel.org>; Mon, 20 Jan 2020 03:38:14 -0500
+Received: from e06smtp04.uk.ibm.com (e06smtp04.uk.ibm.com [195.75.94.100]) by
+ mx0a-001b2d01.pphosted.com with ESMTP id 2xmgh9fru8-1 (version=TLSv1.2
+ cipher=AES256-GCM-SHA384 bits=256 verify=NOT) for
+ <linux-arch@vger.kernel.org>; Mon, 20 Jan 2020 03:36:46 -0500
+Received: from localhost by e06smtp04.uk.ibm.com with IBM ESMTP SMTP Gateway:
+ Authorized Use Only! Violators will be prosecuted for
+ <linux-arch@vger.kernel.org> from <sandipan@linux.ibm.com>; Mon, 20 Jan 2020
+ 08:36:44 -0000
+From: Sandipan Das <sandipan@linux.ibm.com>
+Subject: [PATCH v17 05/24] selftests/vm/pkeys: Move some definitions to
+ arch-specific header
+Date: Mon, 20 Jan 2020 14:06:02 +0530
+In-Reply-To: <cover.1579507768.git.sandipan@linux.ibm.com>
+References: <cover.1579507768.git.sandipan@linux.ibm.com>
+In-Reply-To: <cover.1579507768.git.sandipan@linux.ibm.com>
+References: <cover.1579507768.git.sandipan@linux.ibm.com>
+Message-ID: <c286ccc1a15b8ff21d8238f52d68e63ba69a9580.1579507768.git.sandipan@linux.ibm.com>
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200103051307.EcwpIsr24oqVSWOVfdI1W2L7QDRLC3VUNT1V5HFx_8E@z>
+To: shuah@kernel.org, linux-kselftest@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, fweimer@redhat.com, dave.hansen@intel.com, x86@kernel.org, linuxram@us.ibm.com, mhocko@kernel.org, linux-mm@kvack.org, mingo@redhat.com, aneesh.kumar@linux.ibm.com, bauerman@linux.ibm.com, msuchanek@suse.de, mpe@ellerman.id.au, linuxppc-dev@lists.ozlabs.org
+Message-ID: <20200120083602.t0h4tMFdWsfWRiBRs6yiLl8IwRCYPFQzGqC2cWY8VZI@z>
 
+From: Thiago Jung Bauermann <bauerman@linux.ibm.com>
 
+In preparation for multi-arch support, move definitions which
+have arch-specific values to x86-specific header.
 
-> On Nov 14, 2019, at 1:02 PM, 'Marco Elver' via kasan-dev =
-<kasan-dev@googlegroups.com> wrote:
-> +static noinline void kcsan_setup_watchpoint(const volatile void *ptr,
-> +					    size_t size, bool is_write)
-> +{
-> +	atomic_long_t *watchpoint;
-> +	union {
-> +		u8 _1;
-> +		u16 _2;
-> +		u32 _4;
-> +		u64 _8;
-> +	} expect_value;
-> +	bool value_change =3D false;
-> +	unsigned long ua_flags =3D user_access_save();
-> +	unsigned long irq_flags;
-> +
-> +	/*
-> +	 * Always reset kcsan_skip counter in slow-path to avoid =
-underflow; see
-> +	 * should_watch().
-> +	 */
-> +	reset_kcsan_skip();
-> +
-> +	if (!kcsan_is_enabled())
-> +		goto out;
-> +
-> +	if (!check_encodable((unsigned long)ptr, size)) {
-> +		kcsan_counter_inc(KCSAN_COUNTER_UNENCODABLE_ACCESSES);
-> +		goto out;
-> +	}
-> +
-> +	/*
-> +	 * Disable interrupts & preemptions to avoid another thread on =
-the same
-> +	 * CPU accessing memory locations for the set up watchpoint; =
-this is to
-> +	 * avoid reporting races to e.g. CPU-local data.
-> +	 *
-> +	 * An alternative would be adding the source CPU to the =
-watchpoint
-> +	 * encoding, and checking that watchpoint-CPU !=3D this-CPU. =
-There are
-> +	 * several problems with this:
-> +	 *   1. we should avoid stealing more bits from the watchpoint =
-encoding
-> +	 *      as it would affect accuracy, as well as increase =
-performance
-> +	 *      overhead in the fast-path;
-> +	 *   2. if we are preempted, but there *is* a genuine data race, =
-we
-> +	 *      would *not* report it -- since this is the common case =
-(vs.
-> +	 *      CPU-local data accesses), it makes more sense (from a =
-data race
-> +	 *      detection point of view) to simply disable preemptions =
-to ensure
-> +	 *      as many tasks as possible run on other CPUs.
-> +	 */
-> +	local_irq_save(irq_flags);
+cc: Dave Hansen <dave.hansen@intel.com>
+cc: Florian Weimer <fweimer@redhat.com>
+Signed-off-by: Ram Pai <linuxram@us.ibm.com>
+Signed-off-by: Thiago Jung Bauermann <bauerman@linux.ibm.com>
+Acked-by: Dave Hansen <dave.hansen@intel.com>
+Signed-off-by: Sandipan Das <sandipan@linux.ibm.com>
+---
+ tools/testing/selftests/vm/pkey-helpers.h    | 111 +------------
+ tools/testing/selftests/vm/pkey-x86.h        | 156 +++++++++++++++++++
+ tools/testing/selftests/vm/protection_keys.c |  47 ------
+ 3 files changed, 162 insertions(+), 152 deletions(-)
+ create mode 100644 tools/testing/selftests/vm/pkey-x86.h
 
-Enabling KCSAN will now generate a warning during boot here.
+diff --git a/tools/testing/selftests/vm/pkey-helpers.h b/tools/testing/selftests/vm/pkey-helpers.h
+index 6ad1bd54ef94..3ed2f021bf7a 100644
+--- a/tools/testing/selftests/vm/pkey-helpers.h
++++ b/tools/testing/selftests/vm/pkey-helpers.h
+@@ -21,9 +21,6 @@
 
-Config (need to deselect KASAN and select KCSAN):
+ #define PTR_ERR_ENOTSUP ((void *)-ENOTSUP)
 
-https://raw.githubusercontent.com/cailca/linux-mm/master/x86.config
+-#define NR_PKEYS 16
+-#define PKEY_BITS_PER_PKEY 2
+-
+ #ifndef DEBUG_LEVEL
+ #define DEBUG_LEVEL 0
+ #endif
+@@ -73,19 +70,13 @@ extern void abort_hooks(void);
+ 	}					\
+ } while (0)
 
-[   13.358813][    T0] Spectre V2 : Spectre v2 / SpectreRSB mitigation: =
-Filling RSB on context switch
-[   13.361606][    T0] Speculative Store Bypass: Vulnerable
-[   13.363254][    T0] TAA: Vulnerable: Clear CPU buffers attempted, no =
-microcode
-[   13.366836][    T0] MDS: Vulnerable: Clear CPU buffers attempted, no =
-microcode
-[   13.369877][    T0] debug: unmapping init [mem =
-0xffffffff8dd83000-0xffffffff8dd87fff]
-[   13.415028][    T1] ------------[ cut here ]------------
-[   13.416814][    T1] DEBUG_LOCKS_WARN_ON(!current->hardirqs_enabled)
-[   13.416814][    T1] WARNING: CPU: 0 PID: 1 at =
-kernel/locking/lockdep.c:4406 check_flags.part.26+0x102/0x240
-[   13.416814][    T1] Modules linked in:
-[   13.416814][    T1] CPU: 0 PID: 1 Comm: swapper/0 Not tainted =
-5.5.0-rc2-next-20191220+ #4
-[   13.416814][    T1] Hardware name: HP ProLiant DL580 Gen9/ProLiant =
-DL580 Gen9, BIOS U17 07/21/2016
-[   13.416814][    T1] RIP: 0010:check_flags.part.26+0x102/0x240
-[   13.416814][    T1] Code: bc 8d e8 51 a1 15 00 44 8b 05 2a a0 46 01 =
-45 85 c0 0f 85 57 76 00 00 48 c7 c6 5d fa 7b 8d 48 c7 c7 b1 54 7b 8d e8 =
-10 91 f5 ff <0f> 0b e9 3d 76 00 00 65 48 8b 3c 25 40 7f 01 00 e8 89 f0 =
-ff ff e8
-[   13.416814][    T1] RSP: 0000:ffff9d3206287ce8 EFLAGS: 00010082
-[   13.416814][    T1] RAX: 0000000000000000 RBX: ffff8e5b8541e040 RCX: =
-0000000000000000
-[   13.416814][    T1] RDX: 0000000000000000 RSI: 0000000000000001 RDI: =
-0000000000000000
-[   13.416814][    T1] RBP: ffff9d3206287cf0 R08: 0000000000000000 R09: =
-0000ffff8dbcc254
-[   13.416814][    T1] R10: 0000ffffffffffff R11: 0000ffff8dbcc257 R12: =
-0000000000000235
-[   13.416814][    T1] R13: 0000000000000000 R14: 0000000000000246 R15: =
-000000000000001b
-[   13.416814][    T1] FS:  0000000000000000(0000) =
-GS:ffff8e61e3200000(0000) knlGS:0000000000000000
-[   13.416814][    T1] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
-[   13.416814][    T1] CR2: ffff8e79f07ff000 CR3: 0000001284c0e001 CR4: =
-00000000003606f0
-[   13.416814][    T1] DR0: 0000000000000000 DR1: 0000000000000000 DR2: =
-0000000000000000
-[   13.416814][    T1] DR3: 0000000000000000 DR6: 00000000fffe0ff0 DR7: =
-0000000000000400
-[   13.416814][    T1] Call Trace:
-[   13.416814][    T1]  lock_is_held_type+0x66/0x160
-[   13.416814][    T1]  ___might_sleep+0xc1/0x1d0
-[   13.416814][    T1]  __might_sleep+0x5b/0xa0
-[   13.416814][    T1]  slab_pre_alloc_hook+0x7b/0xa0
-[   13.416814][    T1]  __kmalloc_node+0x60/0x300
-[   13.416814   T1]  ? alloc_cpumask_var_node+0x44/0x70
-[   13.416814][    T1]  ? topology_phys_to_logical_die+0x7e/0x180
-[   13.416814][    T1]  alloc_cpumask_var_node+0x44/0x70
-[   13.416814][    T1]  zalloc_cpumask_var+0x2a/0x40
-[   13.416814][    T1]  native_smp_prepare_cpus+0x246/0x425
-[   13.416814][    T1]  kernel_init_freeable+0x1b8/0x496
-[   13.416814][    T1]  ? rest_init+0x381/0x381
-[   13.416814][    T1]  kernel_init+0x18/0x17f
-[   13.416814][    T1]  ? rest_init+0x381/0x381
-[   13.416814][    T1]  ret_from_fork+0x3a/0x50
-[   13.416814][    T1] irq event stamp: 910
-[   13.416814][    T1] hardirqs last  enabled at (909): =
-[<ffffffff8d1240f3>] _raw_write_unlock_irqrestore+0x53/0x57
-[   13.416814][    T1] hardirqs last disabled at (910): =
-[<ffffffff8c8bba76>] kcsan_setup_watchpoint+0x96/0x460
-[   13.416814][    T1] softirqs last  enabled at (0): =
-[<ffffffff8c6b697a>] copy_process+0x11fa/0x34f0
-[   13.416814][    T1] softirqs last disabled at (0): =
-[<0000000000000000>] 0x0
-[   13.416814][    T1] ---[ end trace 7d1df66da055aa92 ]---
-[   13.416814][    T1] possible reason: unannotated irqs-on.
-[   13.416814][ent stamp: 910
-[   13.416814][    T1] hardirqs last  enabled at (909): =
-[<ffffffff8d1240f3>] _raw_write_unlock_irqrestore+0x53/0x57
-[   13.416814][    T1] hardirqs last disabled at (910): =
-[<ffffffff8c8bba76>] kcsan_setup_watchpoint+0x96/0x460
-[   13.416814][    T1] softirqs last  enabled at (0): =
-[<ffffffff8c6b697a>] copy_process+0x11fa/0x34f0
-[   13.416814][    T1] softirqs last disabled at (0): =
-[<0000000000000000>] 0x0
++#if defined(__i386__) || defined(__x86_64__) /* arch */
++#include "pkey-x86.h"
++#else /* arch */
++#error Architecture not supported
++#endif /* arch */
++
+ extern unsigned int shadow_pkey_reg;
+-static inline unsigned int __read_pkey_reg(void)
+-{
+-	unsigned int eax, edx;
+-	unsigned int ecx = 0;
+-	unsigned int pkey_reg;
+-
+-	asm volatile(".byte 0x0f,0x01,0xee\n\t"
+-		     : "=a" (eax), "=d" (edx)
+-		     : "c" (ecx));
+-	pkey_reg = eax;
+-	return pkey_reg;
+-}
 
+ static inline unsigned int _read_pkey_reg(int line)
+ {
+@@ -100,19 +91,6 @@ static inline unsigned int _read_pkey_reg(int line)
 
-The other issue is that the system is unable to boot due to endless of =
-those messages.
+ #define read_pkey_reg() _read_pkey_reg(__LINE__)
 
-[   17.976814][  T578] Reported by Kernel Concurrency Sanitizer on:
-[   17.976814][  T578] CPU: 12 PID: 578 Comm: pgdatinit1 Tainted: G      =
-  W         5.5.0-rc2-next-20191220+ #4
-[   17.976814][  T578] Hardware name: HP ProLiant DL580 Gen9/ProLiant =
-DL580 Gen9, BIOS U17 07/21/2016
-[   17.976814][  T578] =
-=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
-=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
-=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D
-[   17.976814][  T578] =
-=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
-=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
-=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D
-[   17.976814][  T578] BUG: KCSAN: data-race in __change_page_attr / =
-__change_page_attr
-[   17.976814][  T578]=20
-[   17.976814][  T578] write to 0xffffffff8dda0de0 of 8 bytes by task =
-577 on cpu 2:
-[   17.976814][  T578]  __change_page_attr+0xef7/0x16a0
-[   17.976814][  T578]  __change_page_attr_set_clr+0xec/0x4f0
-[   17.97681pages_np+0xcc/0x100
-[   17.976814][  T578]  __kernel_map_pages+0xd6/0xdb
-[   17.976814][  T578]  __free_pages_ok+0x1a8/0x730
-[   17.976814][  T578]  __free_pages+0x51/0x90
-[   17.976814][  T578]  __free_pages_core+0x1c7/0x2c0
-[   17.976814][  T578]  deferred_free_range+0x59/0x8f
-[   17.976814][  T578]  deferred_init_maxorder+0x1d6/0x21d
-[   17.976814][  T578]  deferred_init_memmap+0x14a/0x1c1
-[   17.976814][  T578]  kthread+0x1e0/0x200
-[   17.976814][  T578]  ret_from_fork+0x3a/0x50
-[   17.976814][  T578]=20
-[   17.976814][  T578] read to 0xffffffff8dda0de0 of 8 bytes by task 578 =
-on cpu 12:
-[   17.976814][  T578]  __change_page_attr+0xed1/0x16a0
-[   17.976814][  T578]  __change_page_attr_set_clr+0xec/0x4f0
-[   17.976814][  T578]  __set_pages_np+0xcc/0x100
-[   17.976814][  T578]  __kernel_map_pages+0xd6/0xdb
-[   17.976814][  T578]  __free_pages_ok+0x1a8/0x730
-[   17.976814][  T578]  __free_pages+0x51/0x90
-[   17.976814][  T578]  __free_pages_core+0x1c7/0x2c0
-[   17.976814][  T578]  deferred_free_range+0x59/0x8f
-[   17.976814][  T578]  deferred_init_maxorder+0x1aa/0x21d
-[   17.976814][  T578]  deferred_init_memmap+0x14a/0x1c1
-[   17.976814][  T578]  kthread+0x1e0/0x200
-[   17.976814][  T578]  ret_from_fork+0x3a/0x50
+-static inline void __write_pkey_reg(unsigned int pkey_reg)
+-{
+-	unsigned int eax = pkey_reg;
+-	unsigned int ecx = 0;
+-	unsigned int edx = 0;
+-
+-	dprintf4("%s() changing %08x to %08x\n", __func__,
+-			__read_pkey_reg(), pkey_reg);
+-	asm volatile(".byte 0x0f,0x01,0xef\n\t"
+-		     : : "a" (eax), "c" (ecx), "d" (edx));
+-	assert(pkey_reg == __read_pkey_reg());
+-}
+-
+ static inline void write_pkey_reg(unsigned int pkey_reg)
+ {
+ 	dprintf4("%s() changing %08x to %08x\n", __func__,
+@@ -157,83 +135,6 @@ static inline void __pkey_write_allow(int pkey, int do_allow_write)
+ 	dprintf4("pkey_reg now: %08x\n", read_pkey_reg());
+ }
 
-# ./scripts/faddr2line vmlinux __change_page_attr+0xef7/0x16a0
-__change_page_attr+0xef7/0x16a0:
-static_protections at arch/x86/mm/pat/set_memory.c:528
-(inlined by) __change_page_attr at arch/x86/mm/pat/set_memory.c:1516
+-#define PAGE_SIZE 4096
+-#define MB	(1<<20)
+-
+-static inline void __cpuid(unsigned int *eax, unsigned int *ebx,
+-		unsigned int *ecx, unsigned int *edx)
+-{
+-	/* ecx is often an input as well as an output. */
+-	asm volatile(
+-		"cpuid;"
+-		: "=a" (*eax),
+-		  "=b" (*ebx),
+-		  "=c" (*ecx),
+-		  "=d" (*edx)
+-		: "0" (*eax), "2" (*ecx));
+-}
+-
+-/* Intel-defined CPU features, CPUID level 0x00000007:0 (ecx) */
+-#define X86_FEATURE_PKU        (1<<3) /* Protection Keys for Userspace */
+-#define X86_FEATURE_OSPKE      (1<<4) /* OS Protection Keys Enable */
+-
+-static inline int cpu_has_pku(void)
+-{
+-	unsigned int eax;
+-	unsigned int ebx;
+-	unsigned int ecx;
+-	unsigned int edx;
+-
+-	eax = 0x7;
+-	ecx = 0x0;
+-	__cpuid(&eax, &ebx, &ecx, &edx);
+-
+-	if (!(ecx & X86_FEATURE_PKU)) {
+-		dprintf2("cpu does not have PKU\n");
+-		return 0;
+-	}
+-	if (!(ecx & X86_FEATURE_OSPKE)) {
+-		dprintf2("cpu does not have OSPKE\n");
+-		return 0;
+-	}
+-	return 1;
+-}
+-
+-#define XSTATE_PKEY_BIT	(9)
+-#define XSTATE_PKEY	0x200
+-
+-int pkey_reg_xstate_offset(void)
+-{
+-	unsigned int eax;
+-	unsigned int ebx;
+-	unsigned int ecx;
+-	unsigned int edx;
+-	int xstate_offset;
+-	int xstate_size;
+-	unsigned long XSTATE_CPUID = 0xd;
+-	int leaf;
+-
+-	/* assume that XSTATE_PKEY is set in XCR0 */
+-	leaf = XSTATE_PKEY_BIT;
+-	{
+-		eax = XSTATE_CPUID;
+-		ecx = leaf;
+-		__cpuid(&eax, &ebx, &ecx, &edx);
+-
+-		if (leaf == XSTATE_PKEY_BIT) {
+-			xstate_offset = ebx;
+-			xstate_size = eax;
+-		}
+-	}
+-
+-	if (xstate_size == 0) {
+-		printf("could not find size/offset of PKEY in xsave state\n");
+-		return 0;
+-	}
+-
+-	return xstate_offset;
+-}
+-
+ #define ARRAY_SIZE(x) (sizeof(x) / sizeof(*(x)))
+ #define ALIGN_UP(x, align_to)	(((x) + ((align_to)-1)) & ~((align_to)-1))
+ #define ALIGN_DOWN(x, align_to) ((x) & ~((align_to)-1))
+diff --git a/tools/testing/selftests/vm/pkey-x86.h b/tools/testing/selftests/vm/pkey-x86.h
+new file mode 100644
+index 000000000000..2f04ade8ca9c
+--- /dev/null
++++ b/tools/testing/selftests/vm/pkey-x86.h
+@@ -0,0 +1,156 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++
++#ifndef _PKEYS_X86_H
++#define _PKEYS_X86_H
++
++#ifdef __i386__
++
++#ifndef SYS_mprotect_key
++# define SYS_mprotect_key	380
++#endif
++
++#ifndef SYS_pkey_alloc
++# define SYS_pkey_alloc		381
++# define SYS_pkey_free		382
++#endif
++
++#define REG_IP_IDX		REG_EIP
++#define si_pkey_offset		0x14
++
++#else
++
++#ifndef SYS_mprotect_key
++# define SYS_mprotect_key	329
++#endif
++
++#ifndef SYS_pkey_alloc
++# define SYS_pkey_alloc		330
++# define SYS_pkey_free		331
++#endif
++
++#define REG_IP_IDX		REG_RIP
++#define si_pkey_offset		0x20
++
++#endif
++
++#ifndef PKEY_DISABLE_ACCESS
++# define PKEY_DISABLE_ACCESS	0x1
++#endif
++
++#ifndef PKEY_DISABLE_WRITE
++# define PKEY_DISABLE_WRITE	0x2
++#endif
++
++#define NR_PKEYS		16
++#define PKEY_BITS_PER_PKEY	2
++#define HPAGE_SIZE		(1UL<<21)
++#define PAGE_SIZE		4096
++#define MB			(1<<20)
++
++static inline void __page_o_noops(void)
++{
++	/* 8-bytes of instruction * 512 bytes = 1 page */
++	asm(".rept 512 ; nopl 0x7eeeeeee(%eax) ; .endr");
++}
++
++static inline unsigned int __read_pkey_reg(void)
++{
++	unsigned int eax, edx;
++	unsigned int ecx = 0;
++	unsigned int pkey_reg;
++
++	asm volatile(".byte 0x0f,0x01,0xee\n\t"
++		     : "=a" (eax), "=d" (edx)
++		     : "c" (ecx));
++	pkey_reg = eax;
++	return pkey_reg;
++}
++
++static inline void __write_pkey_reg(unsigned int pkey_reg)
++{
++	unsigned int eax = pkey_reg;
++	unsigned int ecx = 0;
++	unsigned int edx = 0;
++
++	dprintf4("%s() changing %08x to %08x\n", __func__,
++			__read_pkey_reg(), pkey_reg);
++	asm volatile(".byte 0x0f,0x01,0xef\n\t"
++		     : : "a" (eax), "c" (ecx), "d" (edx));
++	assert(pkey_reg == __read_pkey_reg());
++}
++
++static inline void __cpuid(unsigned int *eax, unsigned int *ebx,
++		unsigned int *ecx, unsigned int *edx)
++{
++	/* ecx is often an input as well as an output. */
++	asm volatile(
++		"cpuid;"
++		: "=a" (*eax),
++		  "=b" (*ebx),
++		  "=c" (*ecx),
++		  "=d" (*edx)
++		: "0" (*eax), "2" (*ecx));
++}
++
++/* Intel-defined CPU features, CPUID level 0x00000007:0 (ecx) */
++#define X86_FEATURE_PKU        (1<<3) /* Protection Keys for Userspace */
++#define X86_FEATURE_OSPKE      (1<<4) /* OS Protection Keys Enable */
++
++static inline int cpu_has_pku(void)
++{
++	unsigned int eax;
++	unsigned int ebx;
++	unsigned int ecx;
++	unsigned int edx;
++
++	eax = 0x7;
++	ecx = 0x0;
++	__cpuid(&eax, &ebx, &ecx, &edx);
++
++	if (!(ecx & X86_FEATURE_PKU)) {
++		dprintf2("cpu does not have PKU\n");
++		return 0;
++	}
++	if (!(ecx & X86_FEATURE_OSPKE)) {
++		dprintf2("cpu does not have OSPKE\n");
++		return 0;
++	}
++	return 1;
++}
++
++#define XSTATE_PKEY_BIT	(9)
++#define XSTATE_PKEY	0x200
++
++int pkey_reg_xstate_offset(void)
++{
++	unsigned int eax;
++	unsigned int ebx;
++	unsigned int ecx;
++	unsigned int edx;
++	int xstate_offset;
++	int xstate_size;
++	unsigned long XSTATE_CPUID = 0xd;
++	int leaf;
++
++	/* assume that XSTATE_PKEY is set in XCR0 */
++	leaf = XSTATE_PKEY_BIT;
++	{
++		eax = XSTATE_CPUID;
++		ecx = leaf;
++		__cpuid(&eax, &ebx, &ecx, &edx);
++
++		if (leaf == XSTATE_PKEY_BIT) {
++			xstate_offset = ebx;
++			xstate_size = eax;
++		}
++	}
++
++	if (xstate_size == 0) {
++		printf("could not find size/offset of PKEY in xsave state\n");
++		return 0;
++	}
++
++	return xstate_offset;
++}
++
++#endif /* _PKEYS_X86_H */
+diff --git a/tools/testing/selftests/vm/protection_keys.c b/tools/testing/selftests/vm/protection_keys.c
+index 42ffb58810f2..2d0e881f109d 100644
+--- a/tools/testing/selftests/vm/protection_keys.c
++++ b/tools/testing/selftests/vm/protection_keys.c
+@@ -49,9 +49,6 @@ int iteration_nr = 1;
+ int test_nr;
 
-# ./scripts/faddr2line vmlinux __change_page_attr+0xed1/0x16a0
-__change_page_attr+0xed1/0x16a0:
-cpa_inc_4k_install at arch/x86/mm/pat/set_memory.c:131
-(inlined by) __change_page_attr at arch/x86/mm/pat/set_memory.c:1514
+ unsigned int shadow_pkey_reg;
+-
+-#define HPAGE_SIZE	(1UL<<21)
+-
+ int dprint_in_signal;
+ char dprint_in_signal_buffer[DPRINT_IN_SIGNAL_BUF_SIZE];
 
-> +
-> +	watchpoint =3D insert_watchpoint((unsigned long)ptr, size, =
-is_write);
-> +	if (watchpoint =3D=3D NULL) {
-> +		/*
-> +		 * Out of capacity: the size of `watchpoints`, and the =
-frequency
-> +		 * with which `should_watch()` returns true should be =
-tweaked so
-> +		 * that this case happens very rarely.
-> +		 */
-> +		kcsan_counter_inc(KCSAN_COUNTER_NO_CAPACITY);
-> +		goto out_unlock;
-> +	}
-> +
+@@ -137,12 +134,6 @@ void abort_hooks(void)
+ #endif
+ }
+
+-static inline void __page_o_noops(void)
+-{
+-	/* 8-bytes of instruction * 512 bytes = 1 page */
+-	asm(".rept 512 ; nopl 0x7eeeeeee(%eax) ; .endr");
+-}
+-
+ /*
+  * This attempts to have roughly a page of instructions followed by a few
+  * instructions that do a write, and another page of instructions.  That
+@@ -165,36 +156,6 @@ void lots_o_noops_around_write(int *write_to_me)
+ 	dprintf3("%s() done\n", __func__);
+ }
+
+-#ifdef __i386__
+-
+-#ifndef SYS_mprotect_key
+-# define SYS_mprotect_key	380
+-#endif
+-
+-#ifndef SYS_pkey_alloc
+-# define SYS_pkey_alloc		381
+-# define SYS_pkey_free		382
+-#endif
+-
+-#define REG_IP_IDX		REG_EIP
+-#define si_pkey_offset		0x14
+-
+-#else
+-
+-#ifndef SYS_mprotect_key
+-# define SYS_mprotect_key	329
+-#endif
+-
+-#ifndef SYS_pkey_alloc
+-# define SYS_pkey_alloc		330
+-# define SYS_pkey_free		331
+-#endif
+-
+-#define REG_IP_IDX		REG_RIP
+-#define si_pkey_offset		0x20
+-
+-#endif
+-
+ void dump_mem(void *dumpme, int len_bytes)
+ {
+ 	char *c = (void *)dumpme;
+@@ -367,14 +328,6 @@ pid_t fork_lazy_child(void)
+ 	return forkret;
+ }
+
+-#ifndef PKEY_DISABLE_ACCESS
+-# define PKEY_DISABLE_ACCESS	0x1
+-#endif
+-
+-#ifndef PKEY_DISABLE_WRITE
+-# define PKEY_DISABLE_WRITE	0x2
+-#endif
+-
+ static u32 hw_pkey_get(int pkey, unsigned long flags)
+ {
+ 	u32 mask = (PKEY_DISABLE_ACCESS|PKEY_DISABLE_WRITE);
+-- 
+2.17.1
