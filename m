@@ -1,100 +1,103 @@
-Return-Path: <brendanhiggins@google.com>
-MIME-Version: 1.0
-References: <20191216220555.245089-1-brendanhiggins@google.com>
- <20200106224022.GX11244@42.do-not-panic.com> <CAFd5g456c2Zs7rCvRPgio83G=SrtPGi25zbqAUyTBHspHwtu4w@mail.gmail.com>
- <594b7815-0611-34ea-beb5-0642114b5d82@gmail.com> <CAFd5g469TWzrLKmQNR2i0HACJ3FEu-=4-Rk005g9szB5UsZAcw@mail.gmail.com>
- <e801e4ac-b7c2-3d0a-71e7-f8153a3dfbc8@gmail.com> <alpine.LRH.2.20.2001291006570.13921@dhcp-10-175-173-43.vpn.oracle.com>
-In-Reply-To: <alpine.LRH.2.20.2001291006570.13921@dhcp-10-175-173-43.vpn.oracle.com>
-From: Brendan Higgins <brendanhiggins@google.com>
-Date: Wed, 29 Jan 2020 13:28:19 -0800
-Message-ID: <CAFd5g477pGY7vkYK7qTtstxpCv0NG9=11Nig=kSo1JX8vczRVA@mail.gmail.com>
-Subject: Re: [RFC v1 0/6] kunit: create a centralized executor to dispatch all
- KUnit tests
-Content-Type: text/plain; charset="UTF-8"
-To: Alan Maguire <alan.maguire@oracle.com>, Luis Chamberlain <mcgrof@kernel.org>
-Cc: Frank Rowand <frowand.list@gmail.com>, Jeff Dike <jdike@addtoit.com>, Richard Weinberger <richard@nod.at>, Anton Ivanov <anton.ivanov@cambridgegreys.com>, Arnd Bergmann <arnd@arndb.de>, Kees Cook <keescook@chromium.org>, Shuah Khan <skhan@linuxfoundation.org>, Iurii Zaikin <yzaikin@google.com>, David Gow <davidgow@google.com>, Andrew Morton <akpm@linux-foundation.org>, rppt@linux.ibm.com, Greg KH <gregkh@linuxfoundation.org>, Stephen Boyd <sboyd@kernel.org>, Logan Gunthorpe <logang@deltatee.com>, Knut Omang <knut.omang@oracle.com>, linux-um <linux-um@lists.infradead.org>, linux-arch@vger.kernel.org, "open list:KERNEL SELFTEST FRAMEWORK" <linux-kselftest@vger.kernel.org>, KUnit Development <kunit-dev@googlegroups.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
+Return-Path: <linux-arch-owner@vger.kernel.org>
+Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:20906 "EHLO
+ mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+ with ESMTP id S1726780AbgATIiY (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+ Mon, 20 Jan 2020 03:38:24 -0500
+Received: from pps.filterd (m0098416.ppops.net [127.0.0.1]) by
+ mx0b-001b2d01.pphosted.com (8.16.0.42/8.16.0.42) with SMTP id 00K8cHvL033485
+ for <linux-arch@vger.kernel.org>; Mon, 20 Jan 2020 03:38:23 -0500
+Received: from e06smtp02.uk.ibm.com (e06smtp02.uk.ibm.com [195.75.94.98]) by
+ mx0b-001b2d01.pphosted.com with ESMTP id 2xmg7xqyx5-1 (version=TLSv1.2
+ cipher=AES256-GCM-SHA384 bits=256 verify=NOT) for
+ <linux-arch@vger.kernel.org>; Mon, 20 Jan 2020 03:38:19 -0500
+Received: from localhost by e06smtp02.uk.ibm.com with IBM ESMTP SMTP Gateway:
+ Authorized Use Only! Violators will be prosecuted for
+ <linux-arch@vger.kernel.org> from <sandipan@linux.ibm.com>; Mon, 20 Jan 2020
+ 08:37:03 -0000
+From: Sandipan Das <sandipan@linux.ibm.com>
+Subject: [PATCH v17 12/24] selftests: vm: pkeys: Use the correct huge page
+ size
+Date: Mon, 20 Jan 2020 14:06:09 +0530
+In-Reply-To: <cover.1579507768.git.sandipan@linux.ibm.com>
+References: <cover.1579507768.git.sandipan@linux.ibm.com>
+In-Reply-To: <cover.1579507768.git.sandipan@linux.ibm.com>
+References: <cover.1579507768.git.sandipan@linux.ibm.com>
+Message-ID: <e24b5ce670a4731b703ca71b9c4d949145ee06d0.1579507768.git.sandipan@linux.ibm.com>
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200129212819.LVu0RFPH_xfJUFt_UiYyzYRSDSJkN7UrQBBGU52-taA@z>
+To: shuah@kernel.org, linux-kselftest@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, fweimer@redhat.com, dave.hansen@intel.com, x86@kernel.org, linuxram@us.ibm.com, mhocko@kernel.org, linux-mm@kvack.org, mingo@redhat.com, aneesh.kumar@linux.ibm.com, bauerman@linux.ibm.com, msuchanek@suse.de, mpe@ellerman.id.au, linuxppc-dev@lists.ozlabs.org
+Message-ID: <20200120083609.ok0yU4LvBGgYx3tBONjMJesBxzV8FYtZJVV5VT1UpQY@z>
 
-On Wed, Jan 29, 2020 at 5:07 AM Alan Maguire <alan.maguire@oracle.com> wrote:
->
-> On Tue, 28 Jan 2020, Frank Rowand wrote:
->
-> > On 1/28/20 1:19 AM, Brendan Higgins wrote:
-> > > On Mon, Jan 27, 2020 at 9:40 AM Frank Rowand <frowand.list@gmail.com> wrote:
-> > >>
-> > >> On 1/23/20 4:40 PM, Brendan Higgins wrote:
-> > >>> Sorry for the late reply. I am still catching up from being on vacation.
-> > >>>>> On Mon, Jan 6, 2020 at 2:40 PM Luis Chamberlain <mcgrof@kernel.org> wrote:
-> > >>>> It does beg the question if this means kunit is happy to not be a tool
-> > >>>> to test pre basic setup stuff (terminology used in init.c, meaning prior
-> > >>>> to running all init levels). I suspect this is the case.
-> > >>>
-> > >>> Not sure. I still haven't seen any cases where this is necessary, so I
-> > >>> am not super worried about it. Regardless, I don't think this patchset
-> > >>> really changes anything in that regard, we are moving from late_init
-> > >>> to after late_init, so it isn't that big of a change for most use
-> > >>> cases.
-> > >>>
-> > >>> Please share if you can think of some things that need to be tested in
-> > >>> early init.
-> > >>
-> > >> I don't have a specific need for this right now.  I had not thought about
-> > >> how the current kunit implementation forces all kunit tests to run at a
-> > >> specific initcall level before reading this email thread.
-> > >>
-> > >> I can see the value of being able to have some tests run at different
-> > >> initcall levels to verify what functionality is available and working
-> > >> at different points in the boot sequence.
-> > >
-> > > Let's cross that bridge when we get there. It should be fairly easy to
-> > > add that functionality.
-> >
-> > Yes. I just wanted to add the thought to the back of your mind so that
-> > it does not get precluded by future changes to the kunit architecture.
-> >
-> > >
-> > >> But more important than early initcall levels, I do not want the
-> > >> framework to prevent using or testing code and data that are marked
-> > >> as '__init'.  So it is important to retain a way to invoke the tests
-> > >> while __init code and data are available, if there is also a change
-> > >> to generally invoke the tests later.
-> > >
-> > > Definitely. For now that still works as long as you don't build KUnit
-> > > as a module, but I think Alan's new patches which allow KUnit to be
-> > > run at runtime via debugfs could cause some difficulty there. Again,
-> >
-> > Yes, Alan's patches are part of what triggered me thinking about the
-> > issues I raised.
-> >
-> >
->
-> As Brendan says, any such tests probably shouldn't be buildable
-> as modules, but I wonder if we need to add some sort of way
-> to ensure execution from debugfs is not allowed for such cases?
-> Even if a test suite is builtin, it can be executed via debugfs
-> in the patches I sent out, allowing suites to be re-run.  Sounds
-> like we need a way to control that behaviour based on the
-> desired test suite execution environment.
+The huge page size can vary across architectures. This will
+ensure that the correct huge page size is used when accessing
+the hugetlb controls under sysfs. Instead of using a hardcoded
+page size (i.e. 2MB), this now uses the HPAGE_SIZE macro which
+is arch-specific.
 
-I think that's true.
+Signed-off-by: Sandipan Das <sandipan@linux.ibm.com>
+---
+ tools/testing/selftests/vm/protection_keys.c | 23 ++++++++++++++------
+ 1 file changed, 16 insertions(+), 7 deletions(-)
 
-> Say, for example, the "struct kunit_suite" definitions associated
-> with the tests was marked as __initdata; are there any handy macros to
-> identify it as being in the __init section? If so, we could simply
-> avoid adding a "run" file to the debugfs representation for such
-> suites.  Failing that, perhaps we need some sort of flags field
-> in "struct kunit_suite" to specify execution environment constraints?
+diff --git a/tools/testing/selftests/vm/protection_keys.c b/tools/testing/selftests/vm/protection_keys.c
+index 9cc82b65f828..535e464e27e9 100644
+--- a/tools/testing/selftests/vm/protection_keys.c
++++ b/tools/testing/selftests/vm/protection_keys.c
+@@ -739,12 +739,15 @@ void *malloc_pkey_anon_huge(long size, int prot, u16 pkey)
+ }
 
-I think the former would be ideal, but the latter is acceptable as
-well, assuming neither results in complaints from the compiler (I
-guess we will find out for sure once we get a hold of the device tree
-KUnit test).
+ int hugetlb_setup_ok;
++#define SYSFS_FMT_NR_HUGE_PAGES "/sys/kernel/mm/hugepages/hugepages-%ldkB/nr_hugepages"
+ #define GET_NR_HUGE_PAGES 10
+ void setup_hugetlbfs(void)
+ {
+ 	int err;
+ 	int fd;
+-	char buf[] = "123";
++	char buf[256];
++	long hpagesz_kb;
++	long hpagesz_mb;
 
-Luis, you mentioned your linker table work might be applicable for
-dynamic post boot configuring of dispatching. Do you think this work
-could help solve this problem?
+ 	if (geteuid() != 0) {
+ 		fprintf(stderr, "WARNING: not run as root, can not do hugetlb test\n");
+@@ -755,11 +758,16 @@ void setup_hugetlbfs(void)
 
-For reference, Alan's debugfs code can be found here:
+ 	/*
+ 	 * Now go make sure that we got the pages and that they
+-	 * are 2M pages.  Someone might have made 1G the default.
++	 * are PMD-level pages. Someone might have made PUD-level
++	 * pages the default.
+ 	 */
+-	fd = open("/sys/kernel/mm/hugepages/hugepages-2048kB/nr_hugepages", O_RDONLY);
++	hpagesz_kb = HPAGE_SIZE / 1024;
++	hpagesz_mb = hpagesz_kb / 1024;
++	sprintf(buf, SYSFS_FMT_NR_HUGE_PAGES, hpagesz_kb);
++	fd = open(buf, O_RDONLY);
+ 	if (fd < 0) {
+-		perror("opening sysfs 2M hugetlb config");
++		fprintf(stderr, "opening sysfs %ldM hugetlb config: %s\n",
++			hpagesz_mb, strerror(errno));
+ 		return;
+ 	}
 
-https://lore.kernel.org/linux-kselftest/CAFd5g46657gZ36PaP8Pi999hPPgBU2Kz94nrMspS-AzGwdBF+g@mail.gmail.com/T/#m210cadbeee267e5c5a9253d83b7b7ca723d1f871
+@@ -767,13 +775,14 @@ void setup_hugetlbfs(void)
+ 	err = read(fd, buf, sizeof(buf)-1);
+ 	close(fd);
+ 	if (err <= 0) {
+-		perror("reading sysfs 2M hugetlb config");
++		fprintf(stderr, "reading sysfs %ldM hugetlb config: %s\n",
++			hpagesz_mb, strerror(errno));
+ 		return;
+ 	}
+
+ 	if (atoi(buf) != GET_NR_HUGE_PAGES) {
+-		fprintf(stderr, "could not confirm 2M pages, got: '%s' expected %d\n",
+-			buf, GET_NR_HUGE_PAGES);
++		fprintf(stderr, "could not confirm %ldM pages, got: '%s' expected %d\n",
++			hpagesz_mb, buf, GET_NR_HUGE_PAGES);
+ 		return;
+ 	}
+
+-- 
+2.17.1
