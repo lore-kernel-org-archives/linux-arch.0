@@ -1,37 +1,44 @@
-Return-Path: <SRS0=L7cK=3G=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail-il1-f194.google.com ([209.85.166.194]:41319 "EHLO
-        mail-il1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1729789AbgAQUle (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 17 Jan 2020 15:41:34 -0500
-Received: by mail-il1-f194.google.com with SMTP id f10so22327145ils.8
-        for <linux-arch@vger.kernel.org>; Fri, 17 Jan 2020 12:41:34 -0800 (PST)
-Date: Fri, 17 Jan 2020 12:41:31 -0800 (PST)
-From: Paul Walmsley <paul.walmsley@sifive.com>
-Subject: Re: [PATCH v2 1/2] asm-generic: Make dma-contiguous.h a mandatory
- include/asm header
-In-Reply-To: <0274919c5e3b134df19d943f99cb7e84e5135ccd.1579248206.git.michal.simek@xilinx.com>
-Message-ID: <alpine.DEB.2.21.9999.2001171241070.98477@viisi.sifive.com>
-References: <cover.1579248206.git.michal.simek@xilinx.com> <0274919c5e3b134df19d943f99cb7e84e5135ccd.1579248206.git.michal.simek@xilinx.com>
+Return-Path: <SRS0=nYHR=3J=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from bombadil.infradead.org ([198.137.202.133]:42570 "EHLO
+        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726642AbgATQxD (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 20 Jan 2020 11:53:03 -0500
+Date: Mon, 20 Jan 2020 17:52:23 +0100
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH 3/5] asm-generic, kcsan: Add KCSAN instrumentation for
+ bitops
+Message-ID: <20200120165223.GC14914@hirez.programming.kicks-ass.net>
+References: <20200120141927.114373-1-elver@google.com>
+ <20200120141927.114373-3-elver@google.com>
+ <20200120144048.GB14914@hirez.programming.kicks-ass.net>
+ <20200120162725.GE2935@paulmck-ThinkPad-P72>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20200120162725.GE2935@paulmck-ThinkPad-P72>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Michal Simek <michal.simek@xilinx.com>
-Cc: linux-kernel@vger.kernel.org, monstr@monstr.eu, git@xilinx.com, Christoph Hellwig <hch@lst.de>, Christoph Hellwig <hch@infradead.org>, Paul Burton <paulburton@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Borislav Petkov <bp@alien8.de>, linux-mips@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>, Catalin Marinas <catalin.marinas@arm.com>, linux-riscv@lists.infradead.org, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, Palmer Dabbelt <palmer@dabbelt.com>, x86@kernel.org, Guo Ren <guoren@kernel.org>, Kate Stewart <kstewart@linuxfoundation.org>, Wesley Terpstra <wesley@sifive.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Ralf Baechle <ralf@linux-mips.org>, Max Filippov <jcmvbkbc@gmail.com>, linux-xtensa@linux-xtensa.org, "H. Peter Anvin" <hpa@zytor.com>, "Peter Zijlstra (Intel)" <peterz@infradead.org>, Will Deacon <will@kernel.org>, Christian Borntraeger <borntraeger@de.ibm.com>, Deepa Dinamani <deepa.kernel@gmail.com>, Chris Zankel <chris@zankel.net>, Ingo Molnar <mingo@redhat.com>, Waiman Long <longman@redhat.com>, linux-arm-kernel@lists.infradead.org, Albert Ou <aou@eecs.berkeley.edu>, Vasily Gorbik <gor@linux.ibm.com>, James Hogan <jhogan@kernel.org>, Masahiro Yamada <yamada.masahiro@socionext.com>, Heiko Carstens <heiko.carstens@de.ibm.com>
-Message-ID: <20200117204131.Lpml43xvDzVRKDCBO-kA9-1mnXJueI2jRyDigMItoDM@z>
+To: "Paul E. McKenney" <paulmck@kernel.org>
+Cc: Marco Elver <elver@google.com>, andreyknvl@google.com, glider@google.com, dvyukov@google.com, kasan-dev@googlegroups.com, linux-kernel@vger.kernel.org, mark.rutland@arm.com, will@kernel.org, boqun.feng@gmail.com, arnd@arndb.de, viro@zeniv.linux.org.uk, christophe.leroy@c-s.fr, dja@axtens.net, mpe@ellerman.id.au, rostedt@goodmis.org, mhiramat@kernel.org, mingo@kernel.org, christian.brauner@ubuntu.com, daniel@iogearbox.net, cyphar@cyphar.com, keescook@chromium.org, linux-arch@vger.kernel.org
+Message-ID: <20200120165223.xqRZwQEMLoOad4ROVV49gVXZap7da9al-Ek_vOt4ptU@z>
 
-On Fri, 17 Jan 2020, Michal Simek wrote:
-
-> dma-continuguous.h is generic for all architectures except arm32 which has
-> its own version.
+On Mon, Jan 20, 2020 at 08:27:25AM -0800, Paul E. McKenney wrote:
+> On Mon, Jan 20, 2020 at 03:40:48PM +0100, Peter Zijlstra wrote:
+> > On Mon, Jan 20, 2020 at 03:19:25PM +0100, Marco Elver wrote:
+> > > Add explicit KCSAN checks for bitops.
+> > > 
+> > > Note that test_bit() is an atomic bitop, and we instrument it as such,
+> > 
+> > Well, it is 'atomic' in the same way that atomic_read() is. Both are
+> > very much not atomic ops, but are part of an interface that facilitates
+> > atomic operations.
 > 
-> Similar change was done for msi.h by commit a1b39bae16a6
-> ("asm-generic: Make msi.h a mandatory include/asm header")
-> 
-> Suggested-by: Christoph Hellwig <hch@infradead.org>
-> Signed-off-by: Michal Simek <michal.simek@xilinx.com>
+> True, but they all are either inline assembly or have either an
+> implicit or explicit cast to volatile, so they could be treated
+> the same as atomic_read(), correct?  If not, what am I missing?
 
-Acked-by: Paul Walmsley <paul.walmsley@sifive.com> # for arch/riscv
+Sure, but that is due to instrumentation requirements, not anything
+else.
 
-
-- Paul
+Also note the distinct lack of __test_bit(), to mirror the non-atomic
+__set_bit() and __clear_bit().
