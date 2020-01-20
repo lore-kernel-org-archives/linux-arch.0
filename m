@@ -1,136 +1,523 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ot1-f67.google.com ([209.85.210.67]:37770 "EHLO
- mail-ot1-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with
- ESMTP id S1728566AbgAaMEI (ORCPT <rfc822;linux-arch@vger.kernel.org>); Fri,
- 31 Jan 2020 07:04:08 -0500
-Received: by mail-ot1-f67.google.com with SMTP id d3so6321827otp.4 for
- <linux-arch@vger.kernel.org>; Fri, 31 Jan 2020 04:04:07 -0800 (PST)
-MIME-Version: 1.0
-References: <201911121313.1097D6EE@keescook> <201911141327.4DE6510@keescook>
- <bfca96db-bbd0-d958-7732-76e36c667c68@suse.cz>
- <202001271519.AA6ADEACF0@keescook>
- <5861936c-1fe1-4c44-d012-26efa0c8b6e7@de.ibm.com>
- <202001281457.FA11CC313A@keescook>
- <alpine.DEB.2.21.2001291640350.1546@www.lameter.com>
- <6844ea47-8e0e-4fb7-d86f-68046995a749@de.ibm.com>
- <20200129170939.GA4277@infradead.org>
- <771c5511-c5ab-3dd1-d938-5dbc40396daa@de.ibm.com>
- <202001300945.7D465B5F5@keescook>
-In-Reply-To: <202001300945.7D465B5F5@keescook>
-From: Jann Horn <jannh@google.com>
-Date: Fri, 31 Jan 2020 13:03:40 +0100
-Message-ID: <CAG48ez1a4waGk9kB0WLaSbs4muSoK0AYAVk8=XYaKj4_+6e6Hg@mail.gmail.com>
-Subject: Re: [kernel-hardening] [PATCH 09/38] usercopy: Mark kmalloc caches as
- usercopy caches
-Content-Type: text/plain; charset="UTF-8"
+Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:10854 "EHLO
+ mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with
+ ESMTP id S1726728AbgATIiJ (ORCPT <rfc822;linux-arch@vger.kernel.org>); Mon,
+ 20 Jan 2020 03:38:09 -0500
+Received: from pps.filterd (m0098410.ppops.net [127.0.0.1]) by
+ mx0a-001b2d01.pphosted.com (8.16.0.42/8.16.0.42) with SMTP id 00K8b3i1068879
+ for <linux-arch@vger.kernel.org>; Mon, 20 Jan 2020 03:38:07 -0500
+Received: from e06smtp03.uk.ibm.com (e06smtp03.uk.ibm.com [195.75.94.99]) by
+ mx0a-001b2d01.pphosted.com with ESMTP id 2xkye9nr9y-1 (version=TLSv1.2
+ cipher=AES256-GCM-SHA384 bits=256 verify=NOT) for
+ <linux-arch@vger.kernel.org>; Mon, 20 Jan 2020 03:38:06 -0500
+Received: from localhost by e06smtp03.uk.ibm.com with IBM ESMTP SMTP Gateway:
+ Authorized Use Only! Violators will be prosecuted for
+ <linux-arch@vger.kernel.org> from <sandipan@linux.ibm.com>; Mon, 20 Jan 2020
+ 08:37:08 -0000
+From: Sandipan Das <sandipan@linux.ibm.com>
+Subject: [PATCH v17 14/24] selftests/vm/pkeys: Introduce powerpc support
+Date: Mon, 20 Jan 2020 14:06:11 +0530
+In-Reply-To: <cover.1579507768.git.sandipan@linux.ibm.com>
+References: <cover.1579507768.git.sandipan@linux.ibm.com>
+In-Reply-To: <cover.1579507768.git.sandipan@linux.ibm.com>
+References: <cover.1579507768.git.sandipan@linux.ibm.com>
+Message-ID: <343cc0ba8c4caad5a0b620ea9f0b19e6a10716c3.1579507768.git.sandipan@linux.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Kees Cook <keescook@chromium.org>
-Cc: Christian Borntraeger <borntraeger@de.ibm.com>, Christoph Hellwig <hch@infradead.org>, Christopher Lameter <cl@linux.com>, Jiri Slaby <jslaby@suse.cz>, Julian Wiedmann <jwi@linux.ibm.com>, Ursula Braun <ubraun@linux.ibm.com>, Alexander Viro <viro@zeniv.linux.org.uk>, kernel list <linux-kernel@vger.kernel.org>, David Windsor <dave@nullcore.net>, Pekka Enberg <penberg@kernel.org>, David Rientjes <rientjes@google.com>, Joonsoo Kim <iamjoonsoo.kim@lge.com>, Andrew Morton <akpm@linux-foundation.org>, Linux-MM <linux-mm@kvack.org>, linux-xfs@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, "David S. Miller" <davem@davemloft.net>, Laura Abbott <labbott@redhat.com>, Mark Rutland <mark.rutland@arm.com>, "Martin K. Petersen" <martin.petersen@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Christoffer Dall <christoffer.dall@linaro.org>, Dave Kleikamp <dave.kleikamp@oracle.com>, Jan Kara <jack@suse.cz>, Luis de Bethencourt <luisbg@kernel.org>, Marc Zyngier <marc.zyngier@arm.com>, Rik van Riel <riel@redhat.com>, Matthew Garrett <mjg59@google.com>, linux-fsdevel <linux-fsdevel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Network Development <netdev@vger.kernel.org>, Kernel Hardening <kernel-hardening@lists.openwall.com>, Vlastimil Babka <vbabka@suse.cz>, Michal Kubecek <mkubecek@suse.cz>
-Message-ID: <20200131120340.i5DuSH6OXpah3u5LqFX5qYHd5JsVGe7gVzM9-vY4gr0@z>
+To: shuah@kernel.org, linux-kselftest@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, fweimer@redhat.com, dave.hansen@intel.com, x86@kernel.org, linuxram@us.ibm.com, mhocko@kernel.org, linux-mm@kvack.org, mingo@redhat.com, aneesh.kumar@linux.ibm.com, bauerman@linux.ibm.com, msuchanek@suse.de, mpe@ellerman.id.au, linuxppc-dev@lists.ozlabs.org
+Message-ID: <20200120083611.rmQ7t4GsprEuzP8zAn-3Nk_lBuirmd8FMxMt_KQj-YM@z>
 
-On Thu, Jan 30, 2020 at 8:23 PM Kees Cook <keescook@chromium.org> wrote:
-> On Wed, Jan 29, 2020 at 06:19:56PM +0100, Christian Borntraeger wrote:
-> > On 29.01.20 18:09, Christoph Hellwig wrote:
-> > > On Wed, Jan 29, 2020 at 06:07:14PM +0100, Christian Borntraeger wrote:
-> > >>> DMA can be done to NORMAL memory as well.
-> > >>
-> > >> Exactly.
-> > >> I think iucv uses GFP_DMA because z/VM needs those buffers to reside below 2GB (which is ZONA_DMA for s390).
-> > >
-> > > The normal way to allocate memory with addressing limits would be to
-> > > use dma_alloc_coherent and friends.  Any chance to switch iucv over to
-> > > that?  Or is there no device associated with it?
-> >
-> > There is not necessarily a device for that. It is a hypervisor interface (an
-> > instruction that is interpreted by z/VM). We do have the netiucv driver that
-> > creates a virtual nic, but there is also AF_IUCV which works without a device.
-> >
-> > But back to the original question: If we mark kmalloc caches as usercopy caches,
-> > we should do the same for DMA kmalloc caches. As outlined by Christoph, this has
-> > nothing to do with device DMA.
->
-> Hm, looks like it's allocated from the low 16MB. Seems like poor naming!
+From: Ram Pai <linuxram@us.ibm.com>
 
-The physical address limit of the DMA zone depends on the architecture
-(and the kernel version); e.g. on Linux 4.4 on arm64 (which is used on
-the Pixel 2), the DMA zone goes up to 4GiB. Later, arm64 started using
-the DMA32 zone for that instead (as was already the case on e.g.
-X86-64); but recently (commit 1a8e1cef7603), arm64 started using the
-DMA zone again, but now for up to 1GiB. (AFAICS the DMA32 zone can't
-be used with kmalloc at all, that only works with the DMA zone.)
+This makes use of the abstractions added earlier and
+introduces support for powerpc.
 
-> :) There seems to be a LOT of stuff using GFP_DMA, and it seems unlikely
-> those are all expecting low addresses?
+For powerpc, after receiving the SIGSEGV, the signal
+handler must explicitly restore access permissions
+for the faulting pkey to allow the test to continue.
+As this makes use of pkey_access_allow(), all of its
+dependencies and other similar functions have been
+moved ahead of the signal handler.
 
-I think there's a bunch of (especially really old) hardware where the
-hardware can only talk to low physical addresses, e.g. stuff that uses
-the ISA bus.
+cc: Dave Hansen <dave.hansen@intel.com>
+cc: Florian Weimer <fweimer@redhat.com>
+Signed-off-by: Ram Pai <linuxram@us.ibm.com>
+Signed-off-by: Sandipan Das <sandipan@linux.ibm.com>
+---
+ tools/testing/selftests/vm/pkey-helpers.h    |   2 +
+ tools/testing/selftests/vm/pkey-powerpc.h    |  90 +++++++
+ tools/testing/selftests/vm/protection_keys.c | 269 ++++++++++---------
+ 3 files changed, 233 insertions(+), 128 deletions(-)
+ create mode 100644 tools/testing/selftests/vm/pkey-powerpc.h
 
-However, there aren't *that* many users of GFP_DMA that actually cause
-kmalloc allocations with GFP_DMA - many of the users of GFP_DMA
-actually just pass that flag to dma_alloc_coherent()/dma_pool_alloc(),
-where it is filtered away and the allocation ultimately doesn't go
-through the slab allocator AFAICS, or they pass it directly to the
-page allocator, where it has no effect on the usercopy stuff. Looking
-on my workstation, there are zero objects allocated in dma-kmalloc-*
-slabs:
+diff --git a/tools/testing/selftests/vm/pkey-helpers.h b/tools/testing/selftests/vm/pkey-helpers.h
+index 621fb2a0a5ef..2f4b1eb3a680 100644
+--- a/tools/testing/selftests/vm/pkey-helpers.h
++++ b/tools/testing/selftests/vm/pkey-helpers.h
+@@ -79,6 +79,8 @@ void expected_pkey_fault(int pkey);
 
-/sys/kernel/slab# for name in dma-kmalloc-*; do echo "$name: $(cat
-$name/objects)"; done
-dma-kmalloc-128: 0
-dma-kmalloc-16: 0
-dma-kmalloc-192: 0
-dma-kmalloc-1k: 0
-dma-kmalloc-256: 0
-dma-kmalloc-2k: 0
-dma-kmalloc-32: 0
-dma-kmalloc-4k: 0
-dma-kmalloc-512: 0
-dma-kmalloc-64: 0
-dma-kmalloc-8: 0
-dma-kmalloc-8k: 0
-dma-kmalloc-96: 0
+ #if defined(__i386__) || defined(__x86_64__) /* arch */
+ #include "pkey-x86.h"
++#elif defined(__powerpc64__) /* arch */
++#include "pkey-powerpc.h"
+ #else /* arch */
+ #error Architecture not supported
+ #endif /* arch */
+diff --git a/tools/testing/selftests/vm/pkey-powerpc.h b/tools/testing/selftests/vm/pkey-powerpc.h
+new file mode 100644
+index 000000000000..c79f4160a6a0
+--- /dev/null
++++ b/tools/testing/selftests/vm/pkey-powerpc.h
+@@ -0,0 +1,90 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++
++#ifndef _PKEYS_POWERPC_H
++#define _PKEYS_POWERPC_H
++
++#ifndef SYS_mprotect_key
++# define SYS_mprotect_key	386
++#endif
++#ifndef SYS_pkey_alloc
++# define SYS_pkey_alloc		384
++# define SYS_pkey_free		385
++#endif
++#define REG_IP_IDX		PT_NIP
++#define REG_TRAPNO		PT_TRAP
++#define gregs			gp_regs
++#define fpregs			fp_regs
++#define si_pkey_offset		0x20
++
++#ifndef PKEY_DISABLE_ACCESS
++# define PKEY_DISABLE_ACCESS	0x3  /* disable read and write */
++#endif
++
++#ifndef PKEY_DISABLE_WRITE
++# define PKEY_DISABLE_WRITE	0x2
++#endif
++
++#define NR_PKEYS		32
++#define NR_RESERVED_PKEYS_4K	27 /* pkey-0, pkey-1, exec-only-pkey
++				      and 24 other keys that cannot be
++				      represented in the PTE */
++#define NR_RESERVED_PKEYS_64K	3  /* pkey-0, pkey-1 and exec-only-pkey */
++#define PKEY_BITS_PER_PKEY	2
++#define HPAGE_SIZE		(1UL << 24)
++#define PAGE_SIZE		(1UL << 16)
++
++static inline u32 pkey_bit_position(int pkey)
++{
++	return (NR_PKEYS - pkey - 1) * PKEY_BITS_PER_PKEY;
++}
++
++static inline u64 __read_pkey_reg(void)
++{
++	u64 pkey_reg;
++
++	asm volatile("mfspr %0, 0xd" : "=r" (pkey_reg));
++
++	return pkey_reg;
++}
++
++static inline void __write_pkey_reg(u64 pkey_reg)
++{
++	u64 amr = pkey_reg;
++
++	dprintf4("%s() changing %016llx to %016llx\n",
++			 __func__, __read_pkey_reg(), pkey_reg);
++
++	asm volatile("mtspr 0xd, %0" : : "r" ((unsigned long)(amr)) : "memory");
++
++	dprintf4("%s() pkey register after changing %016llx to %016llx\n",
++			__func__, __read_pkey_reg(), pkey_reg);
++}
++
++static inline int cpu_has_pku(void)
++{
++	return 1;
++}
++
++static inline int get_arch_reserved_keys(void)
++{
++	if (sysconf(_SC_PAGESIZE) == 4096)
++		return NR_RESERVED_PKEYS_4K;
++	else
++		return NR_RESERVED_PKEYS_64K;
++}
++
++void expect_fault_on_read_execonly_key(void *p1, int pkey)
++{
++	/*
++	 * powerpc does not allow userspace to change permissions of exec-only
++	 * keys since those keys are not allocated by userspace. The signal
++	 * handler wont be able to reset the permissions, which means the code
++	 * will infinitely continue to segfault here.
++	 */
++	return;
++}
++
++/* 4-byte instructions * 16384 = 64K page */
++#define __page_o_noops() asm(".rept 16384 ; nop; .endr")
++
++#endif /* _PKEYS_POWERPC_H */
+diff --git a/tools/testing/selftests/vm/protection_keys.c b/tools/testing/selftests/vm/protection_keys.c
+index 57c71056c93d..e6de078a9196 100644
+--- a/tools/testing/selftests/vm/protection_keys.c
++++ b/tools/testing/selftests/vm/protection_keys.c
+@@ -169,6 +169,125 @@ void dump_mem(void *dumpme, int len_bytes)
+ 	}
+ }
 
-On a Pixel 2, there are a whole five objects allocated across the DMA
-zone kmalloc caches:
++static u32 hw_pkey_get(int pkey, unsigned long flags)
++{
++	u64 pkey_reg = __read_pkey_reg();
++
++	dprintf1("%s(pkey=%d, flags=%lx) = %x / %d\n",
++			__func__, pkey, flags, 0, 0);
++	dprintf2("%s() raw pkey_reg: %016llx\n", __func__, pkey_reg);
++
++	return (u32) get_pkey_bits(pkey_reg, pkey);
++}
++
++static int hw_pkey_set(int pkey, unsigned long rights, unsigned long flags)
++{
++	u32 mask = (PKEY_DISABLE_ACCESS|PKEY_DISABLE_WRITE);
++	u64 old_pkey_reg = __read_pkey_reg();
++	u64 new_pkey_reg;
++
++	/* make sure that 'rights' only contains the bits we expect: */
++	assert(!(rights & ~mask));
++
++	/* modify bits accordingly in old pkey_reg and assign it */
++	new_pkey_reg = set_pkey_bits(old_pkey_reg, pkey, rights);
++
++	__write_pkey_reg(new_pkey_reg);
++
++	dprintf3("%s(pkey=%d, rights=%lx, flags=%lx) = %x"
++		" pkey_reg now: %016llx old_pkey_reg: %016llx\n",
++		__func__, pkey, rights, flags, 0, __read_pkey_reg(),
++		old_pkey_reg);
++	return 0;
++}
++
++void pkey_disable_set(int pkey, int flags)
++{
++	unsigned long syscall_flags = 0;
++	int ret;
++	int pkey_rights;
++	u64 orig_pkey_reg = read_pkey_reg();
++
++	dprintf1("START->%s(%d, 0x%x)\n", __func__,
++		pkey, flags);
++	pkey_assert(flags & (PKEY_DISABLE_ACCESS | PKEY_DISABLE_WRITE));
++
++	pkey_rights = hw_pkey_get(pkey, syscall_flags);
++
++	dprintf1("%s(%d) hw_pkey_get(%d): %x\n", __func__,
++			pkey, pkey, pkey_rights);
++
++	pkey_assert(pkey_rights >= 0);
++
++	pkey_rights |= flags;
++
++	ret = hw_pkey_set(pkey, pkey_rights, syscall_flags);
++	assert(!ret);
++	/* pkey_reg and flags have the same format */
++	shadow_pkey_reg = set_pkey_bits(shadow_pkey_reg, pkey, pkey_rights);
++	dprintf1("%s(%d) shadow: 0x%016llx\n",
++		__func__, pkey, shadow_pkey_reg);
++
++	pkey_assert(ret >= 0);
++
++	pkey_rights = hw_pkey_get(pkey, syscall_flags);
++	dprintf1("%s(%d) hw_pkey_get(%d): %x\n", __func__,
++			pkey, pkey, pkey_rights);
++
++	dprintf1("%s(%d) pkey_reg: 0x%016llx\n",
++		__func__, pkey, read_pkey_reg());
++	if (flags)
++		pkey_assert(read_pkey_reg() >= orig_pkey_reg);
++	dprintf1("END<---%s(%d, 0x%x)\n", __func__,
++		pkey, flags);
++}
++
++void pkey_disable_clear(int pkey, int flags)
++{
++	unsigned long syscall_flags = 0;
++	int ret;
++	int pkey_rights = hw_pkey_get(pkey, syscall_flags);
++	u64 orig_pkey_reg = read_pkey_reg();
++
++	pkey_assert(flags & (PKEY_DISABLE_ACCESS | PKEY_DISABLE_WRITE));
++
++	dprintf1("%s(%d) hw_pkey_get(%d): %x\n", __func__,
++			pkey, pkey, pkey_rights);
++	pkey_assert(pkey_rights >= 0);
++
++	pkey_rights &= ~flags;
++
++	ret = hw_pkey_set(pkey, pkey_rights, 0);
++	shadow_pkey_reg = set_pkey_bits(shadow_pkey_reg, pkey, pkey_rights);
++	pkey_assert(ret >= 0);
++
++	pkey_rights = hw_pkey_get(pkey, syscall_flags);
++	dprintf1("%s(%d) hw_pkey_get(%d): %x\n", __func__,
++			pkey, pkey, pkey_rights);
++
++	dprintf1("%s(%d) pkey_reg: 0x%016llx\n", __func__,
++			pkey, read_pkey_reg());
++	if (flags)
++		assert(read_pkey_reg() <= orig_pkey_reg);
++}
++
++void pkey_write_allow(int pkey)
++{
++	pkey_disable_clear(pkey, PKEY_DISABLE_WRITE);
++}
++void pkey_write_deny(int pkey)
++{
++	pkey_disable_set(pkey, PKEY_DISABLE_WRITE);
++}
++void pkey_access_allow(int pkey)
++{
++	pkey_disable_clear(pkey, PKEY_DISABLE_ACCESS);
++}
++void pkey_access_deny(int pkey)
++{
++	pkey_disable_set(pkey, PKEY_DISABLE_ACCESS);
++}
++
+ /* Failed address bound checks: */
+ #ifndef SEGV_BNDERR
+ # define SEGV_BNDERR		3
+@@ -199,11 +318,12 @@ void signal_handler(int signum, siginfo_t *si, void *vucontext)
+ 	int trapno;
+ 	unsigned long ip;
+ 	char *fpregs;
++#if defined(__i386__) || defined(__x86_64__) /* arch */
+ 	u32 *pkey_reg_ptr;
++	int pkey_reg_offset;
++#endif /* arch */
+ 	u64 siginfo_pkey;
+ 	u32 *si_pkey_ptr;
+-	int pkey_reg_offset;
+-	fpregset_t fpregset;
 
-walleye:/sys/kernel/slab # for name in dma-kmalloc-*; do echo "$name:
-$(cat $name/objects)"; done
-dma-kmalloc-1024: 0
-dma-kmalloc-128: 0
-dma-kmalloc-2048: 2
-dma-kmalloc-256: 0
-dma-kmalloc-4096: 3
-dma-kmalloc-512: 0
-dma-kmalloc-8192: 0
+ 	dprint_in_signal = 1;
+ 	dprintf1(">>>>===============SIGSEGV============================\n");
+@@ -213,12 +333,13 @@ void signal_handler(int signum, siginfo_t *si, void *vucontext)
 
-> Since this has only been a problem on s390, should just s390 gain the
-> weakening of the usercopy restriction?  Something like:
->
->
-> diff --git a/mm/slab_common.c b/mm/slab_common.c
-> index 1907cb2903c7..c5bbc141f20b 100644
-> --- a/mm/slab_common.c
-> +++ b/mm/slab_common.c
-> @@ -1303,7 +1303,9 @@ void __init create_kmalloc_caches(slab_flags_t flags)
->                         kmalloc_caches[KMALLOC_DMA][i] = create_kmalloc_cache(
->                                 kmalloc_info[i].name[KMALLOC_DMA],
->                                 kmalloc_info[i].size,
-> -                               SLAB_CACHE_DMA | flags, 0, 0);
-> +                               SLAB_CACHE_DMA | flags, 0,
-> +                               IS_ENABLED(CONFIG_S390) ?
-> +                                       kmalloc_info[i].size : 0);
->                 }
->         }
->  #endif
+ 	trapno = uctxt->uc_mcontext.gregs[REG_TRAPNO];
+ 	ip = uctxt->uc_mcontext.gregs[REG_IP_IDX];
+-	fpregset = uctxt->uc_mcontext.fpregs;
+-	fpregs = (void *)fpregset;
++	fpregs = (char *) uctxt->uc_mcontext.fpregs;
 
-I think dma-kmalloc slabs should be handled the same way as normal
-kmalloc slabs. When a dma-kmalloc allocation is freshly created, it is
-just normal kernel memory - even if it might later be used for DMA -,
-and it should be perfectly fine to copy_from_user() into such
-allocations at that point, and to copy_to_user() out of them at the
-end. If you look at the places where such allocations are created, you
-can see things like kmemdup(), memcpy() and so on - all normal
-operations that shouldn't conceptually be different from usercopy in
-any relevant way.
+ 	dprintf2("%s() trapno: %d ip: 0x%016lx info->si_code: %s/%d\n",
+ 			__func__, trapno, ip, si_code_str(si->si_code),
+ 			si->si_code);
++
++#if defined(__i386__) || defined(__x86_64__) /* arch */
+ #ifdef __i386__
+ 	/*
+ 	 * 32-bit has some extra padding so that userspace can tell whether
+@@ -226,12 +347,10 @@ void signal_handler(int signum, siginfo_t *si, void *vucontext)
+ 	 * state.  We just assume that it is here.
+ 	 */
+ 	fpregs += 0x70;
+-#endif
++#endif /* i386 */
+ 	pkey_reg_offset = pkey_reg_xstate_offset();
+ 	pkey_reg_ptr = (void *)(&fpregs[pkey_reg_offset]);
+
+-	dprintf1("siginfo: %p\n", si);
+-	dprintf1(" fpregs: %p\n", fpregs);
+ 	/*
+ 	 * If we got a PKEY fault, we *HAVE* to have at least one bit set in
+ 	 * here.
+@@ -240,6 +359,10 @@ void signal_handler(int signum, siginfo_t *si, void *vucontext)
+ 	if (DEBUG_LEVEL > 4)
+ 		dump_mem(pkey_reg_ptr - 128, 256);
+ 	pkey_assert(*pkey_reg_ptr);
++#endif /* arch */
++
++	dprintf1("siginfo: %p\n", si);
++	dprintf1(" fpregs: %p\n", fpregs);
+
+ 	if ((si->si_code == SEGV_MAPERR) ||
+ 	    (si->si_code == SEGV_ACCERR) ||
+@@ -248,14 +371,13 @@ void signal_handler(int signum, siginfo_t *si, void *vucontext)
+ 		exit(4);
+ 	}
+
+-	si_pkey_ptr = (u32 *)(((u8 *)si) + si_pkey_offset);
++	si_pkey_ptr = siginfo_get_pkey_ptr(si);
+ 	dprintf1("si_pkey_ptr: %p\n", si_pkey_ptr);
+ 	dump_mem((u8 *)si_pkey_ptr - 8, 24);
+ 	siginfo_pkey = *si_pkey_ptr;
+ 	pkey_assert(siginfo_pkey < NR_PKEYS);
+ 	last_si_pkey = siginfo_pkey;
+
+-	dprintf1("signal pkey_reg from xsave: %08x\n", *pkey_reg_ptr);
+ 	/*
+ 	 * need __read_pkey_reg() version so we do not do shadow_pkey_reg
+ 	 * checking
+@@ -263,8 +385,14 @@ void signal_handler(int signum, siginfo_t *si, void *vucontext)
+ 	dprintf1("signal pkey_reg from  pkey_reg: %016llx\n",
+ 			__read_pkey_reg());
+ 	dprintf1("pkey from siginfo: %016llx\n", siginfo_pkey);
++#if defined(__i386__) || defined(__x86_64__) /* arch */
++	dprintf1("signal pkey_reg from xsave: %08x\n", *pkey_reg_ptr);
+ 	*(u64 *)pkey_reg_ptr = 0x00000000;
+ 	dprintf1("WARNING: set PKEY_REG=0 to allow faulting instruction to continue\n");
++#elif defined(__powerpc64__) /* arch */
++	/* restore access and let the faulting instruction continue */
++	pkey_access_allow(siginfo_pkey);
++#endif /* arch */
+ 	pkey_faults++;
+ 	dprintf1("<<<<==================================================\n");
+ 	dprint_in_signal = 0;
+@@ -333,125 +461,6 @@ pid_t fork_lazy_child(void)
+ 	return forkret;
+ }
+
+-static u32 hw_pkey_get(int pkey, unsigned long flags)
+-{
+-	u64 pkey_reg = __read_pkey_reg();
+-
+-	dprintf1("%s(pkey=%d, flags=%lx) = %x / %d\n",
+-			__func__, pkey, flags, 0, 0);
+-	dprintf2("%s() raw pkey_reg: %016llx\n", __func__, pkey_reg);
+-
+-	return (u32) get_pkey_bits(pkey_reg, pkey);
+-}
+-
+-static int hw_pkey_set(int pkey, unsigned long rights, unsigned long flags)
+-{
+-	u32 mask = (PKEY_DISABLE_ACCESS|PKEY_DISABLE_WRITE);
+-	u64 old_pkey_reg = __read_pkey_reg();
+-	u64 new_pkey_reg;
+-
+-	/* make sure that 'rights' only contains the bits we expect: */
+-	assert(!(rights & ~mask));
+-
+-	/* modify bits accordingly in old pkey_reg and assign it */
+-	new_pkey_reg = set_pkey_bits(old_pkey_reg, pkey, rights);
+-
+-	__write_pkey_reg(new_pkey_reg);
+-
+-	dprintf3("%s(pkey=%d, rights=%lx, flags=%lx) = %x"
+-		" pkey_reg now: %016llx old_pkey_reg: %016llx\n",
+-		__func__, pkey, rights, flags, 0, __read_pkey_reg(),
+-		old_pkey_reg);
+-	return 0;
+-}
+-
+-void pkey_disable_set(int pkey, int flags)
+-{
+-	unsigned long syscall_flags = 0;
+-	int ret;
+-	int pkey_rights;
+-	u64 orig_pkey_reg = read_pkey_reg();
+-
+-	dprintf1("START->%s(%d, 0x%x)\n", __func__,
+-		pkey, flags);
+-	pkey_assert(flags & (PKEY_DISABLE_ACCESS | PKEY_DISABLE_WRITE));
+-
+-	pkey_rights = hw_pkey_get(pkey, syscall_flags);
+-
+-	dprintf1("%s(%d) hw_pkey_get(%d): %x\n", __func__,
+-			pkey, pkey, pkey_rights);
+-
+-	pkey_assert(pkey_rights >= 0);
+-
+-	pkey_rights |= flags;
+-
+-	ret = hw_pkey_set(pkey, pkey_rights, syscall_flags);
+-	assert(!ret);
+-	/* pkey_reg and flags have the same format */
+-	shadow_pkey_reg = set_pkey_bits(shadow_pkey_reg, pkey, pkey_rights);
+-	dprintf1("%s(%d) shadow: 0x%016llx\n",
+-		__func__, pkey, shadow_pkey_reg);
+-
+-	pkey_assert(ret >= 0);
+-
+-	pkey_rights = hw_pkey_get(pkey, syscall_flags);
+-	dprintf1("%s(%d) hw_pkey_get(%d): %x\n", __func__,
+-			pkey, pkey, pkey_rights);
+-
+-	dprintf1("%s(%d) pkey_reg: 0x%016llx\n",
+-		__func__, pkey, read_pkey_reg());
+-	if (flags)
+-		pkey_assert(read_pkey_reg() >= orig_pkey_reg);
+-	dprintf1("END<---%s(%d, 0x%x)\n", __func__,
+-		pkey, flags);
+-}
+-
+-void pkey_disable_clear(int pkey, int flags)
+-{
+-	unsigned long syscall_flags = 0;
+-	int ret;
+-	int pkey_rights = hw_pkey_get(pkey, syscall_flags);
+-	u64 orig_pkey_reg = read_pkey_reg();
+-
+-	pkey_assert(flags & (PKEY_DISABLE_ACCESS | PKEY_DISABLE_WRITE));
+-
+-	dprintf1("%s(%d) hw_pkey_get(%d): %x\n", __func__,
+-			pkey, pkey, pkey_rights);
+-	pkey_assert(pkey_rights >= 0);
+-
+-	pkey_rights &= ~flags;
+-
+-	ret = hw_pkey_set(pkey, pkey_rights, 0);
+-	shadow_pkey_reg = set_pkey_bits(shadow_pkey_reg, pkey, pkey_rights);
+-	pkey_assert(ret >= 0);
+-
+-	pkey_rights = hw_pkey_get(pkey, syscall_flags);
+-	dprintf1("%s(%d) hw_pkey_get(%d): %x\n", __func__,
+-			pkey, pkey, pkey_rights);
+-
+-	dprintf1("%s(%d) pkey_reg: 0x%016llx\n", __func__,
+-			pkey, read_pkey_reg());
+-	if (flags)
+-		assert(read_pkey_reg() <= orig_pkey_reg);
+-}
+-
+-void pkey_write_allow(int pkey)
+-{
+-	pkey_disable_clear(pkey, PKEY_DISABLE_WRITE);
+-}
+-void pkey_write_deny(int pkey)
+-{
+-	pkey_disable_set(pkey, PKEY_DISABLE_WRITE);
+-}
+-void pkey_access_allow(int pkey)
+-{
+-	pkey_disable_clear(pkey, PKEY_DISABLE_ACCESS);
+-}
+-void pkey_access_deny(int pkey)
+-{
+-	pkey_disable_set(pkey, PKEY_DISABLE_ACCESS);
+-}
+-
+ int sys_mprotect_pkey(void *ptr, size_t size, unsigned long orig_prot,
+ 		unsigned long pkey)
+ {
+@@ -890,11 +899,15 @@ void expected_pkey_fault(int pkey)
+ 	if (pkey != UNKNOWN_PKEY)
+ 		pkey_assert(last_si_pkey == pkey);
+
++#if defined(__i386__) || defined(__x86_64__) /* arch */
+ 	/*
+ 	 * The signal handler shold have cleared out PKEY register to let the
+ 	 * test program continue.  We now have to restore it.
+ 	 */
+ 	if (__read_pkey_reg() != 0)
++#else /* arch */
++	if (__read_pkey_reg() != shadow_pkey_reg)
++#endif /* arch */
+ 		pkey_assert(0);
+
+ 	__write_pkey_reg(shadow_pkey_reg);
+-- 
+2.17.1
