@@ -1,122 +1,85 @@
-Return-Path: <owner-linux-mm@kvack.org>
-From: Xuefeng Wang <wxf.wang@hisilicon.com>
-Subject: [PATCH 1/2] mm: add helpers pmdp_modify_prot_start/commit
-Date: Thu, 16 Jan 2020 11:09:16 +0800
-Message-ID: <1579144157-7736-2-git-send-email-wxf.wang@hisilicon.com>
-In-Reply-To: <1579144157-7736-1-git-send-email-wxf.wang@hisilicon.com>
-References: <1579144157-7736-1-git-send-email-wxf.wang@hisilicon.com>
-MIME-Version: 1.0
-Content-Type: text/plain
-Sender: owner-linux-mm@kvack.org
-To: arnd@arndb.de, akpm@linux-foundation.org, catalin.marinas@arm.com, will@kernel.org, mark.rutland@arm.com
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, linux-arm-kernel@lists.infradead.org, chenzhou10@huawei.com
+Return-Path: <linux-arch-owner@vger.kernel.org>
+Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:16132 "EHLO
+ mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+ with ESMTP id S1726738AbgATIjK (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+ Mon, 20 Jan 2020 03:39:10 -0500
+Received: from pps.filterd (m0098419.ppops.net [127.0.0.1]) by
+ mx0b-001b2d01.pphosted.com (8.16.0.42/8.16.0.42) with SMTP id 00K8cwe7117607
+ for <linux-arch@vger.kernel.org>; Mon, 20 Jan 2020 03:39:09 -0500
+Received: from e06smtp02.uk.ibm.com (e06smtp02.uk.ibm.com [195.75.94.98]) by
+ mx0b-001b2d01.pphosted.com with ESMTP id 2xmg37g1cb-1 (version=TLSv1.2
+ cipher=AES256-GCM-SHA384 bits=256 verify=NOT) for
+ <linux-arch@vger.kernel.org>; Mon, 20 Jan 2020 03:39:04 -0500
+Received: from localhost by e06smtp02.uk.ibm.com with IBM ESMTP SMTP Gateway:
+ Authorized Use Only! Violators will be prosecuted for
+ <linux-arch@vger.kernel.org> from <sandipan@linux.ibm.com>; Mon, 20 Jan 2020
+ 08:37:13 -0000
+From: Sandipan Das <sandipan@linux.ibm.com>
+Subject: [PATCH v17 16/24] selftests/vm/pkeys: Fix assertion in
+ test_pkey_alloc_exhaust()
+Date: Mon, 20 Jan 2020 14:06:13 +0530
+In-Reply-To: <cover.1579507768.git.sandipan@linux.ibm.com>
+References: <cover.1579507768.git.sandipan@linux.ibm.com>
+In-Reply-To: <cover.1579507768.git.sandipan@linux.ibm.com>
+References: <cover.1579507768.git.sandipan@linux.ibm.com>
+Message-ID: <90fcb35c9e185b21b5784a7305ba7933b7cc4ebf.1579507768.git.sandipan@linux.ibm.com>
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200116030916.l0jiqzKAQ-1ls11TiG7vjuRYW2fpwQuU9Y4NBuxVKt4@z>
+To: shuah@kernel.org, linux-kselftest@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, fweimer@redhat.com, dave.hansen@intel.com, x86@kernel.org, linuxram@us.ibm.com, mhocko@kernel.org, linux-mm@kvack.org, mingo@redhat.com, aneesh.kumar@linux.ibm.com, bauerman@linux.ibm.com, msuchanek@suse.de, mpe@ellerman.id.au, linuxppc-dev@lists.ozlabs.org
+Message-ID: <20200120083613.VpUTjJtumGY7rrLS7tEr6xFsYfAvB_unprOWfxn7RME@z>
 
-Introduce helpers pmdp_modify_prot_start/commit to abstract pmdp_modify_prot
-transaction. Helpers pmdp_modify_prot_start/commit are functionally unchanged.
+From: Ram Pai <linuxram@us.ibm.com>
 
-Signed-off-by: Xuefeng Wang <wxf.wang@hisilicon.com>
-Signed-off-by: Chen Zhou <chenzhou10@huawei.com>
+Some pkeys which are valid on the hardware are reserved
+and not available for application use. These keys cannot
+be allocated.
+
+test_pkey_alloc_exhaust() tries to account for these and
+has an assertion which validates if all available pkeys
+have been exahaustively allocated. However, the expression
+that is currently used is only valid for x86. On powerpc,
+a pkey is additionally reserved as compared to x86. Hence,
+the assertion is made to use an arch-specific helper to
+get the correct count of reserved pkeys.
+
+cc: Dave Hansen <dave.hansen@intel.com>
+cc: Florian Weimer <fweimer@redhat.com>
+Signed-off-by: Ram Pai <linuxram@us.ibm.com>
+Signed-off-by: Sandipan Das <sandipan@linux.ibm.com>
 ---
- include/asm-generic/pgtable.h | 35 +++++++++++++++++++++++++++++++++++
- mm/huge_memory.c              | 19 ++++++++-----------
- 2 files changed, 43 insertions(+), 11 deletions(-)
+ tools/testing/selftests/vm/protection_keys.c | 11 ++++++++++-
+ 1 file changed, 10 insertions(+), 1 deletion(-)
 
-diff --git a/include/asm-generic/pgtable.h b/include/asm-generic/pgtable.h
-index 798ea36a0549..e81bd58a9170 100644
---- a/include/asm-generic/pgtable.h
-+++ b/include/asm-generic/pgtable.h
-@@ -673,6 +673,41 @@ static inline void ptep_modify_prot_commit(struct vm_area_struct *vma,
- 	__ptep_modify_prot_commit(vma, addr, ptep, pte);
- }
- #endif /* __HAVE_ARCH_PTEP_MODIFY_PROT_TRANSACTION */
-+
-+static inline pmd_t __pmdp_modify_prot_start(struct vm_area_struct *vma,
-+						unsigned long addr,
-+						pmd_t *pmdp)
-+{
-+	return pmdp_invalidate(vma, addr, pmdp);
-+}
-+
-+static inline void __pmdp_modify_prot_commit(struct vm_area_struct *vma,
-+						unsigned long addr,
-+						pmd_t *pmdp, pmd_t pmd)
-+{
-+	set_pmd_at(vma->vm_mm, addr, pmdp, pmd);
-+}
-+
-+#ifdef CONFIG_TRANSPARENT_HUGEPAGE
-+#ifndef __HAVE_ARCH_PMDP_MODIFY_PROT_TRANSACTION
-+static inline pmd_t pmdp_modify_prot_start(struct vm_area_struct *vma,
-+						unsigned long addr,
-+						pmd_t *pmdp)
-+{
-+	__pmdp_modify_prot_start(vma, addr, pmdp);
-+}
-+#endif /* __HAVE_ARCH_PMDP_MODIFY_PROT_TRANSACTION */
-+
-+/*
-+ * Commit an update to a pmd.
-+ */
-+static inline void pmdp_modify_prot_commit(struct vm_area_struct *vma,
-+						unsigned long addr,
-+						pmd_t *pmdp, pmd_t old_pmd, pmd_t pmd)
-+{
-+	__pmdp_modify_prot_commit(vma, addr, pmdp, pmd);
-+}
-+#endif /* CONFIG_TRANSPARENT_HUGEPAGE */
- #endif /* CONFIG_MMU */
+diff --git a/tools/testing/selftests/vm/protection_keys.c b/tools/testing/selftests/vm/protection_keys.c
+index e6de078a9196..5fcbbc525364 100644
+--- a/tools/testing/selftests/vm/protection_keys.c
++++ b/tools/testing/selftests/vm/protection_keys.c
+@@ -1153,6 +1153,7 @@ void test_pkey_alloc_exhaust(int *ptr, u16 pkey)
+ 	dprintf3("%s()::%d\n", __func__, __LINE__);
 
- /*
-diff --git a/mm/huge_memory.c b/mm/huge_memory.c
-index a88093213674..53515a3c91dd 100644
---- a/mm/huge_memory.c
-+++ b/mm/huge_memory.c
-@@ -1933,9 +1933,8 @@ bool move_huge_pmd(struct vm_area_struct *vma, unsigned long old_addr,
- int change_huge_pmd(struct vm_area_struct *vma, pmd_t *pmd,
- 		unsigned long addr, pgprot_t newprot, int prot_numa)
- {
--	struct mm_struct *mm = vma->vm_mm;
- 	spinlock_t *ptl;
--	pmd_t entry;
-+	pmd_t pmdnt, oldpmd;
- 	bool preserve_write;
- 	int ret;
-
-@@ -1961,7 +1960,7 @@ int change_huge_pmd(struct vm_area_struct *vma, pmd_t *pmd,
- 			newpmd = swp_entry_to_pmd(entry);
- 			if (pmd_swp_soft_dirty(*pmd))
- 				newpmd = pmd_swp_mksoft_dirty(newpmd);
--			set_pmd_at(mm, addr, pmd, newpmd);
-+			set_pmd_at(vma->vm_mm, addr, pmd, newpmd);
- 		}
- 		goto unlock;
- 	}
-@@ -1995,18 +1994,16 @@ int change_huge_pmd(struct vm_area_struct *vma, pmd_t *pmd,
- 	 *
- 	 * The race makes MADV_DONTNEED miss the huge pmd and don't clear it
- 	 * which may break userspace.
--	 *
--	 * pmdp_invalidate() is required to make sure we don't miss
--	 * dirty/young flags set by hardware.
+ 	/*
++	 * On x86:
+ 	 * There are 16 pkeys supported in hardware.  Three are
+ 	 * allocated by the time we get here:
+ 	 *   1. The default key (0)
+@@ -1160,8 +1161,16 @@ void test_pkey_alloc_exhaust(int *ptr, u16 pkey)
+ 	 *   3. One allocated by the test code and passed in via
+ 	 *      'pkey' to this function.
+ 	 * Ensure that we can allocate at least another 13 (16-3).
++	 *
++	 * On powerpc:
++	 * There are either 5, 28, 29 or 32 pkeys supported in
++	 * hardware depending on the page size (4K or 64K) and
++	 * platform (powernv or powervm). Four are allocated by
++	 * the time we get here. These include pkey-0, pkey-1,
++	 * exec-only pkey and the one allocated by the test code.
++	 * Ensure that we can allocate the remaining.
  	 */
--	entry = pmdp_invalidate(vma, addr, pmd);
+-	pkey_assert(i >= NR_PKEYS-3);
++	pkey_assert(i >= (NR_PKEYS - get_arch_reserved_keys() - 1));
 
--	entry = pmd_modify(entry, newprot);
-+	oldpmd = pmdp_modify_prot_start(vma, addr, pmd);
-+	pmdnt = pmd_modify(oldpmd, newprot);
- 	if (preserve_write)
--		entry = pmd_mk_savedwrite(entry);
-+		pmdnt = pmd_mk_savedwrite(pmdnt);
-+	pmdp_modify_prot_commit(vma, addr, pmd, oldpmd, pmdnt);
-+
- 	ret = HPAGE_PMD_NR;
--	set_pmd_at(mm, addr, pmd, entry);
--	BUG_ON(vma_is_anonymous(vma) && !preserve_write && pmd_write(entry));
-+	BUG_ON(vma_is_anonymous(vma) && !preserve_write && pmd_write(pmdnt));
- unlock:
- 	spin_unlock(ptl);
- 	return ret;
+ 	for (i = 0; i < nr_allocated_pkeys; i++) {
+ 		err = sys_pkey_free(allocated_pkeys[i]);
 -- 
 2.17.1
