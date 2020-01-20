@@ -1,72 +1,100 @@
-Return-Path: <SRS0=n+LR=24=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:40876 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1728384AbgAGQx6 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 7 Jan 2020 11:53:58 -0500
-From: Krzysztof Kozlowski <krzk@kernel.org>
-Subject: [RFT 02/13] sh: Constify ioreadX() iomem argument (as in generic implementation)
-Date: Tue,  7 Jan 2020 17:53:00 +0100
-Message-Id: <1578415992-24054-4-git-send-email-krzk@kernel.org>
-In-Reply-To: <1578415992-24054-1-git-send-email-krzk@kernel.org>
-References: <1578415992-24054-1-git-send-email-krzk@kernel.org>
+Return-Path: <SRS0=nYHR=3J=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail-qk1-f193.google.com ([209.85.222.193]:42060 "EHLO
+        mail-qk1-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726982AbgATPJ7 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 20 Jan 2020 10:09:59 -0500
+Received: by mail-qk1-f193.google.com with SMTP id z14so30367056qkg.9
+        for <linux-arch@vger.kernel.org>; Mon, 20 Jan 2020 07:09:58 -0800 (PST)
+MIME-Version: 1.0
+References: <20200120141927.114373-1-elver@google.com> <CACT4Y+bnRoKinPopVqyxj4av6_xa_OUN0wwnidpO3dX3iYq_gg@mail.gmail.com>
+ <CACT4Y+YuTT6kZ-AkgU0c1o09qmQdFWr4_Sds4jaDg-Va6g6jkA@mail.gmail.com>
+In-Reply-To: <CACT4Y+YuTT6kZ-AkgU0c1o09qmQdFWr4_Sds4jaDg-Va6g6jkA@mail.gmail.com>
+From: Dmitry Vyukov <dvyukov@google.com>
+Date: Mon, 20 Jan 2020 16:09:46 +0100
+Message-ID: <CACT4Y+acrXkA-ixjQXqNf1EC=fpgTWf3Rcevxxon0DfrPdD-UQ@mail.gmail.com>
+Subject: Re: [PATCH 1/5] include/linux: Add instrumented.h infrastructure
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Alexey Brodkin <abrodkin@synopsys.com>, Vineet Gupta <vgupta@synopsys.com>, "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>, Helge Deller <deller@gmx.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, Dave Airlie <airlied@redhat.com>, David Airlie <airlied@linux.ie>, Daniel Vetter <daniel@ffwll.ch>, Ben Skeggs <bskeggs@redhat.com>, Mauro Carvalho Chehab <mchehab@kernel.org>, Jiri Slaby <jirislaby@gmail.com>, Nick Kossifidis <mickflemm@gmail.com>, Luis Chamberlain <mcgrof@kernel.org>, Kalle Valo <kvalo@codeaurora.org>, "David S. Miller" <davem@davemloft.net>, Dave Jiang <dave.jiang@intel.com>, Jon Mason <jdmason@kudzu.us>, Allen Hubbe <allenbh@gmail.com>, "Michael S. Tsirkin" <mst@redhat.com>, Jason Wang <jasowang@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, Geert Uytterhoeven <geert@linux-m68k.org>, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-snps-arc@lists.infradead.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org, dri-devel@lists.freedesktop.org, nouveau@lists.freedesktop.org, linux-media@vger.kernel.org, linux-wireless@vger.kernel.org, netdev@vger.kernel.org, linux-ntb@googlegroups.com, virtualization@lists.linux-foundation.org, linux-arch@vger.kernel.org
-Cc: Krzysztof Kozlowski <krzk@kernel.org>
+To: Marco Elver <elver@google.com>
+Cc: paulmck@kernel.org, Andrey Konovalov <andreyknvl@google.com>, Alexander Potapenko <glider@google.com>, kasan-dev <kasan-dev@googlegroups.com>, LKML <linux-kernel@vger.kernel.org>, Mark Rutland <mark.rutland@arm.com>, Will Deacon <will@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Boqun Feng <boqun.feng@gmail.com>, Arnd Bergmann <arnd@arndb.de>, Al Viro <viro@zeniv.linux.org.uk>, Christophe Leroy <christophe.leroy@c-s.fr>, Daniel Axtens <dja@axtens.net>, Michael Ellerman <mpe@ellerman.id.au>, Steven Rostedt <rostedt@goodmis.org>, Masami Hiramatsu <mhiramat@kernel.org>, Ingo Molnar <mingo@kernel.org>, Christian Brauner <christian.brauner@ubuntu.com>, Daniel Borkmann <daniel@iogearbox.net>, cyphar@cyphar.com, Kees Cook <keescook@chromium.org>, linux-arch <linux-arch@vger.kernel.org>
+Message-ID: <20200120150946.vN4wJKJaiu-i8YxdXsEAOenVKojvj8HMV0u8KxKgeaM@z>
 
-The ioreadX() helpers have inconsistent interface.  On some architectures
-void *__iomem address argument is a pointer to const, on some not.
+On Mon, Jan 20, 2020 at 3:58 PM Dmitry Vyukov <dvyukov@google.com> wrote:
+>
+> On Mon, Jan 20, 2020 at 3:45 PM Dmitry Vyukov <dvyukov@google.com> wrote:
+> >
+> > On Mon, Jan 20, 2020 at 3:19 PM Marco Elver <elver@google.com> wrote:
+> > >
+> > > This adds instrumented.h, which provides generic wrappers for memory
+> > > access instrumentation that the compiler cannot emit for various
+> > > sanitizers. Currently this unifies KASAN and KCSAN instrumentation. In
+> > > future this will also include KMSAN instrumentation.
+> > >
+> > > Note that, copy_{to,from}_user require special instrumentation,
+> > > providing hooks before and after the access, since we may need to know
+> > > the actual bytes accessed (currently this is relevant for KCSAN, and is
+> > > also relevant in future for KMSAN).
+> > >
+> > > Suggested-by: Arnd Bergmann <arnd@arndb.de>
+> > > Signed-off-by: Marco Elver <elver@google.com>
+> > > ---
+> > >  include/linux/instrumented.h | 153 +++++++++++++++++++++++++++++++++++
+> > >  1 file changed, 153 insertions(+)
+> > >  create mode 100644 include/linux/instrumented.h
+> > >
+> > > diff --git a/include/linux/instrumented.h b/include/linux/instrumented.h
+> > > new file mode 100644
+> > > index 000000000000..9f83c8520223
+> > > --- /dev/null
+> > > +++ b/include/linux/instrumented.h
+> > > @@ -0,0 +1,153 @@
+> > > +/* SPDX-License-Identifier: GPL-2.0 */
+> > > +
+> > > +/*
+> > > + * This header provides generic wrappers for memory access instrumentation that
+> > > + * the compiler cannot emit for: KASAN, KCSAN.
+> > > + */
+> > > +#ifndef _LINUX_INSTRUMENTED_H
+> > > +#define _LINUX_INSTRUMENTED_H
+> > > +
+> > > +#include <linux/compiler.h>
+> > > +#include <linux/kasan-checks.h>
+> > > +#include <linux/kcsan-checks.h>
+> > > +#include <linux/types.h>
+> > > +
+> > > +/**
+> > > + * instrument_read - instrument regular read access
+> > > + *
+> > > + * Instrument a regular read access. The instrumentation should be inserted
+> > > + * before the actual read happens.
+> > > + *
+> > > + * @ptr address of access
+> > > + * @size size of access
+> > > + */
+> >
+> > Based on offline discussion, that's what we add for KMSAN:
+> >
+> > > +static __always_inline void instrument_read(const volatile void *v, size_t size)
+> > > +{
+> > > +       kasan_check_read(v, size);
+> > > +       kcsan_check_read(v, size);
+> >
+> > KMSAN: nothing
+>
+> KMSAN also has instrumentation in
+> copy_to_user_page/copy_from_user_page. Do we need to do anything for
+> KASAN/KCSAN for these functions?
 
-Implementations of ioreadX() do not modify the memory under the address
-so they can be converted to a "const" version for const-safety and
-consistency among architectures.
 
-Suggested-by: Geert Uytterhoeven <geert@linux-m68k.org>
-Signed-off-by: Krzysztof Kozlowski <krzk@kernel.org>
----
- arch/sh/kernel/iomap.c | 10 +++++-----
- 1 file changed, 5 insertions(+), 5 deletions(-)
+There is also copy_user_highpage.
 
-diff --git a/arch/sh/kernel/iomap.c b/arch/sh/kernel/iomap.c
-index ef9e2c97cbb7..bd5e212c6ea6 100644
---- a/arch/sh/kernel/iomap.c
-+++ b/arch/sh/kernel/iomap.c
-@@ -8,31 +8,31 @@
- #include <linux/module.h>
- #include <linux/io.h>
- 
--unsigned int ioread8(void __iomem *addr)
-+unsigned int ioread8(const void __iomem *addr)
- {
- 	return readb(addr);
- }
- EXPORT_SYMBOL(ioread8);
- 
--unsigned int ioread16(void __iomem *addr)
-+unsigned int ioread16(const void __iomem *addr)
- {
- 	return readw(addr);
- }
- EXPORT_SYMBOL(ioread16);
- 
--unsigned int ioread16be(void __iomem *addr)
-+unsigned int ioread16be(const void __iomem *addr)
- {
- 	return be16_to_cpu(__raw_readw(addr));
- }
- EXPORT_SYMBOL(ioread16be);
- 
--unsigned int ioread32(void __iomem *addr)
-+unsigned int ioread32(const void __iomem *addr)
- {
- 	return readl(addr);
- }
- EXPORT_SYMBOL(ioread32);
- 
--unsigned int ioread32be(void __iomem *addr)
-+unsigned int ioread32be(const void __iomem *addr)
- {
- 	return be32_to_cpu(__raw_readl(addr));
- }
--- 
-2.7.4
+And ioread/write8/16/32_rep: do we need any instrumentation there. It
+seems we want both KSAN and KCSAN too. One may argue that KCSAN
+instrumentation there is to super critical at this point, but KASAN
+instrumentation is important, if anything to prevent silent memory
+corruptions. How do we instrument there? I don't see how it maps to
+any of the existing instrumentation functions.
+
+There is also kmsan_check_skb/kmsan_handle_dma/kmsan_handle_urb that
+does not seem to map to any of the instrumentation functions.
