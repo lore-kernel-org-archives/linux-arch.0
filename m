@@ -1,40 +1,92 @@
-Return-Path: <owner-linux-mm@kvack.org>
-Subject: Re: [PATCH v16 00/23] selftests, powerpc, x86: Memory Protection Keys
-References: <cover.1579265066.git.sandipan@linux.ibm.com>
-From: Dave Hansen <dave.hansen@intel.com>
-Message-ID: <3a14815c-b9cb-f5a5-630a-0bfb25356429@intel.com>
-Date: Fri, 17 Jan 2020 10:02:35 -0800
-MIME-Version: 1.0
-In-Reply-To: <cover.1579265066.git.sandipan@linux.ibm.com>
-Content-Type: text/plain; charset=utf-8
-Content-Language: en-US
-Content-Transfer-Encoding: quoted-printable
-Sender: owner-linux-mm@kvack.org
-To: Sandipan Das <sandipan@linux.ibm.com>, shuah@kernel.org, linux-kselftest@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, fweimer@redhat.com, x86@kernel.org, linuxram@us.ibm.com, mhocko@kernel.org, linux-mm@kvack.org, mingo@redhat.com, aneesh.kumar@linux.ibm.com, bauerman@linux.ibm.com, msuchanek@suse.de, mpe@ellerman.id.au, linuxppc-dev@lists.ozlabs.org
+Return-Path: <linux-arch-owner@vger.kernel.org>
+Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:57440 "EHLO
+ mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+ with ESMTP id S1726125AbgATIjE (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+ Mon, 20 Jan 2020 03:39:04 -0500
+Received: from pps.filterd (m0098420.ppops.net [127.0.0.1]) by
+ mx0b-001b2d01.pphosted.com (8.16.0.42/8.16.0.42) with SMTP id 00K8cuZw121152
+ for <linux-arch@vger.kernel.org>; Mon, 20 Jan 2020 03:39:02 -0500
+Received: from e06smtp05.uk.ibm.com (e06smtp05.uk.ibm.com [195.75.94.101]) by
+ mx0b-001b2d01.pphosted.com with ESMTP id 2xmg39fyu1-1 (version=TLSv1.2
+ cipher=AES256-GCM-SHA384 bits=256 verify=NOT) for
+ <linux-arch@vger.kernel.org>; Mon, 20 Jan 2020 03:39:02 -0500
+Received: from localhost by e06smtp05.uk.ibm.com with IBM ESMTP SMTP Gateway:
+ Authorized Use Only! Violators will be prosecuted for
+ <linux-arch@vger.kernel.org> from <sandipan@linux.ibm.com>; Mon, 20 Jan 2020
+ 08:37:11 -0000
+From: Sandipan Das <sandipan@linux.ibm.com>
+Subject: [PATCH v17 15/24] selftests/vm/pkeys: Fix number of reserved powerpc
+ pkeys
+Date: Mon, 20 Jan 2020 14:06:12 +0530
+In-Reply-To: <cover.1579507768.git.sandipan@linux.ibm.com>
+References: <cover.1579507768.git.sandipan@linux.ibm.com>
+In-Reply-To: <cover.1579507768.git.sandipan@linux.ibm.com>
+References: <cover.1579507768.git.sandipan@linux.ibm.com>
+Message-ID: <7ec3f35788b60da183697f1462ee11dd9d62eef1.1579507768.git.sandipan@linux.ibm.com>
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200117180235.NadlIIAoyyMicFZqeLcHPDoOS-AL5kd-9x5cFtqkZVA@z>
+To: shuah@kernel.org, linux-kselftest@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, fweimer@redhat.com, dave.hansen@intel.com, x86@kernel.org, linuxram@us.ibm.com, mhocko@kernel.org, linux-mm@kvack.org, mingo@redhat.com, aneesh.kumar@linux.ibm.com, bauerman@linux.ibm.com, msuchanek@suse.de, mpe@ellerman.id.au, linuxppc-dev@lists.ozlabs.org, "Desnes A. Nunes do Rosario" <desnesn@linux.vnet.ibm.com>
+Message-ID: <20200120083612.t9xbP11ZNNrcmIm7MEDcJK9t49QnLR70mW8rZSS-pXg@z>
 
-On 1/17/20 4:49 AM, Sandipan Das wrote:
-> Memory protection keys enables an application to protect its address
-> space from inadvertent access by its own code.
->=20
-> This feature is now enabled on powerpc and has been available since
-> 4.16-rc1. The patches move the selftests to arch neutral directory
-> and enhance their test coverage.
->=20
-> Tested on powerpc64 and x86_64 (Skylake-SP).
-I also tested the series.  The 64-bit binary works fine.  But,
+From: "Desnes A. Nunes do Rosario" <desnesn@linux.vnet.ibm.com>
 
-This is failing to build the x86 selftests:
+The number of reserved pkeys in a PowerNV environment is
+different from that on PowerVM or KVM.
 
-make: *** No rule to make target 'protection_keys.c', needed by
-'/home/daveh/linux/tools/testing/selftests/x86/protection_keys_32'.  Stop=
-.
+Tested on PowerVM and PowerNV environments.
 
-I think you just forgot to remove the binary from the x86 Makefile.
+Signed-off-by: "Desnes A. Nunes do Rosario" <desnesn@linux.vnet.ibm.com>
+Signed-off-by: Ram Pai <linuxram@us.ibm.com>
+Signed-off-by: Sandipan Das <sandipan@linux.ibm.com>
+---
+ tools/testing/selftests/vm/pkey-powerpc.h | 22 ++++++++++++++++++++--
+ 1 file changed, 20 insertions(+), 2 deletions(-)
 
-Which reminds me: This removes the 32-bit binary.  x86 32-bit binaries
-exercise different paths than the 64-bit ones, so we like to have both.
- Although it isn't *essential* it would really be nice to keep the
-32-bit binary.
+diff --git a/tools/testing/selftests/vm/pkey-powerpc.h b/tools/testing/selftests/vm/pkey-powerpc.h
+index c79f4160a6a0..319673bbab0b 100644
+--- a/tools/testing/selftests/vm/pkey-powerpc.h
++++ b/tools/testing/selftests/vm/pkey-powerpc.h
+@@ -28,7 +28,10 @@
+ #define NR_RESERVED_PKEYS_4K	27 /* pkey-0, pkey-1, exec-only-pkey
+ 				      and 24 other keys that cannot be
+ 				      represented in the PTE */
+-#define NR_RESERVED_PKEYS_64K	3  /* pkey-0, pkey-1 and exec-only-pkey */
++#define NR_RESERVED_PKEYS_64K_3KEYS	3 /* PowerNV and KVM: pkey-0,
++					     pkey-1 and exec-only key */
++#define NR_RESERVED_PKEYS_64K_4KEYS	4 /* PowerVM: pkey-0, pkey-1,
++					     pkey-31 and exec-only key */
+ #define PKEY_BITS_PER_PKEY	2
+ #define HPAGE_SIZE		(1UL << 24)
+ #define PAGE_SIZE		(1UL << 16)
+@@ -65,12 +68,27 @@ static inline int cpu_has_pku(void)
+ 	return 1;
+ }
+
++static inline bool arch_is_powervm()
++{
++	struct stat buf;
++
++	if ((stat("/sys/firmware/devicetree/base/ibm,partition-name", &buf) == 0) &&
++	    (stat("/sys/firmware/devicetree/base/hmc-managed?", &buf) == 0) &&
++	    (stat("/sys/firmware/devicetree/base/chosen/qemu,graphic-width", &buf) == -1) )
++		return true;
++
++	return false;
++}
++
+ static inline int get_arch_reserved_keys(void)
+ {
+ 	if (sysconf(_SC_PAGESIZE) == 4096)
+ 		return NR_RESERVED_PKEYS_4K;
+ 	else
+-		return NR_RESERVED_PKEYS_64K;
++		if (arch_is_powervm())
++			return NR_RESERVED_PKEYS_64K_4KEYS;
++		else
++			return NR_RESERVED_PKEYS_64K_3KEYS;
+ }
+
+ void expect_fault_on_read_execonly_key(void *p1, int pkey)
+-- 
+2.17.1
