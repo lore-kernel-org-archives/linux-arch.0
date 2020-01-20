@@ -1,57 +1,209 @@
-Return-Path: <SRS0=zjVl=3K=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:44236 "EHLO
-        merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726968AbgAUOsP (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jan 2020 09:48:15 -0500
-Date: Tue, 21 Jan 2020 15:47:16 +0100
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH 3/5] asm-generic, kcsan: Add KCSAN instrumentation for
- bitops
-Message-ID: <20200121144716.GQ14879@hirez.programming.kicks-ass.net>
-References: <20200120141927.114373-1-elver@google.com>
- <20200120141927.114373-3-elver@google.com>
- <20200120144048.GB14914@hirez.programming.kicks-ass.net>
- <20200120162725.GE2935@paulmck-ThinkPad-P72>
- <20200120165223.GC14914@hirez.programming.kicks-ass.net>
- <20200120202359.GF2935@paulmck-ThinkPad-P72>
- <20200121091501.GF14914@hirez.programming.kicks-ass.net>
- <20200121142109.GQ2935@paulmck-ThinkPad-P72>
+Return-Path: <SRS0=nYHR=3J=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail-ot1-f67.google.com ([209.85.210.67]:40373 "EHLO
+        mail-ot1-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1729073AbgATPF4 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 20 Jan 2020 10:05:56 -0500
+Received: by mail-ot1-f67.google.com with SMTP id w21so28906747otj.7
+        for <linux-arch@vger.kernel.org>; Mon, 20 Jan 2020 07:05:55 -0800 (PST)
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20200121142109.GQ2935@paulmck-ThinkPad-P72>
+References: <20200120141927.114373-1-elver@google.com> <20200120141927.114373-5-elver@google.com>
+ <CACT4Y+bUvoePVPV+BqU-cwhF6bR41_eaYkr9WLLMYi-2q11JjQ@mail.gmail.com>
+In-Reply-To: <CACT4Y+bUvoePVPV+BqU-cwhF6bR41_eaYkr9WLLMYi-2q11JjQ@mail.gmail.com>
+From: Marco Elver <elver@google.com>
+Date: Mon, 20 Jan 2020 16:05:42 +0100
+Message-ID: <CANpmjNMZpLfNKLOs7JVxP-S7oWbkvyg=bt=uYGU30bMZXYtUHA@mail.gmail.com>
+Subject: Re: [PATCH 5/5] copy_to_user, copy_from_user: Use generic instrumented.h
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Paul E. McKenney" <paulmck@kernel.org>
-Cc: Marco Elver <elver@google.com>, andreyknvl@google.com, glider@google.com, dvyukov@google.com, kasan-dev@googlegroups.com, linux-kernel@vger.kernel.org, mark.rutland@arm.com, will@kernel.org, boqun.feng@gmail.com, arnd@arndb.de, viro@zeniv.linux.org.uk, christophe.leroy@c-s.fr, dja@axtens.net, mpe@ellerman.id.au, rostedt@goodmis.org, mhiramat@kernel.org, mingo@kernel.org, christian.brauner@ubuntu.com, daniel@iogearbox.net, cyphar@cyphar.com, keescook@chromium.org, linux-arch@vger.kernel.org
-Message-ID: <20200121144716.Bynr_RCixxLJt-TWAJDNmMIARbvZUD8N5uIuAWJB770@z>
+To: Dmitry Vyukov <dvyukov@google.com>
+Cc: "Paul E. McKenney" <paulmck@kernel.org>, Andrey Konovalov <andreyknvl@google.com>, Alexander Potapenko <glider@google.com>, kasan-dev <kasan-dev@googlegroups.com>, LKML <linux-kernel@vger.kernel.org>, Mark Rutland <mark.rutland@arm.com>, Will Deacon <will@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Boqun Feng <boqun.feng@gmail.com>, Arnd Bergmann <arnd@arndb.de>, Al Viro <viro@zeniv.linux.org.uk>, Christophe Leroy <christophe.leroy@c-s.fr>, Daniel Axtens <dja@axtens.net>, Michael Ellerman <mpe@ellerman.id.au>, Steven Rostedt <rostedt@goodmis.org>, Masami Hiramatsu <mhiramat@kernel.org>, Ingo Molnar <mingo@kernel.org>, Christian Brauner <christian.brauner@ubuntu.com>, Daniel Borkmann <daniel@iogearbox.net>, cyphar@cyphar.com, Kees Cook <keescook@chromium.org>, linux-arch <linux-arch@vger.kernel.org>
+Message-ID: <20200120150542.SHpt7omhIgu7VdFIGCy5gze0uWTM_xvyV-fUOs9W0_s@z>
 
-On Tue, Jan 21, 2020 at 06:21:09AM -0800, Paul E. McKenney wrote:
-> On Tue, Jan 21, 2020 at 10:15:01AM +0100, Peter Zijlstra wrote:
-> > On Mon, Jan 20, 2020 at 12:23:59PM -0800, Paul E. McKenney wrote:
-> > > We also don't have __atomic_read() and __atomic_set(), yet atomic_read()
-> > > and atomic_set() are considered to be non-racy, right?
-> > 
-> > What is racy? :-) You can make data races with atomic_{read,set}() just
-> > fine.
-> 
-> Like "fairness", lots of definitions of "racy".  ;-)
-> 
-> > Anyway, traditionally we call the read-modify-write stuff atomic, not
-> > the trivial load-store stuff. The only reason we care about the
-> > load-store stuff in the first place is because C compilers are shit.
-> > 
-> > atomic_read() / test_bit() are just a load, all we need is the C
-> > compiler not to be an ass and split it. Yes, we've invented the term
-> > single-copy atomicity for that, but that doesn't make it more or less of
-> > a load.
-> > 
-> > And exactly because it is just a load, there is no __test_bit(), which
-> > would be the exact same load.
-> 
-> Very good!  Shouldn't KCSAN then define test_bit() as non-racy just as
-> for atomic_read()?
+On Mon, 20 Jan 2020 at 15:52, Dmitry Vyukov <dvyukov@google.com> wrote:
+>
+> On Mon, Jan 20, 2020 at 3:19 PM Marco Elver <elver@google.com> wrote:
+> >
+> > This replaces the KASAN instrumentation with generic instrumentation,
+> > implicitly adding KCSAN instrumentation support.
+> >
+> > For KASAN no functional change is intended.
+> >
+> > Suggested-by: Arnd Bergmann <arnd@arndb.de>
+> > Signed-off-by: Marco Elver <elver@google.com>
+> > ---
+> >  include/linux/uaccess.h | 46 +++++++++++++++++++++++++++++------------
+> >  lib/usercopy.c          | 14 ++++++++-----
+> >  2 files changed, 42 insertions(+), 18 deletions(-)
+> >
+> > diff --git a/include/linux/uaccess.h b/include/linux/uaccess.h
+> > index 67f016010aad..d3f2d9a8cae3 100644
+> > --- a/include/linux/uaccess.h
+> > +++ b/include/linux/uaccess.h
+> > @@ -2,9 +2,9 @@
+> >  #ifndef __LINUX_UACCESS_H__
+> >  #define __LINUX_UACCESS_H__
+> >
+> > +#include <linux/instrumented.h>
+> >  #include <linux/sched.h>
+> >  #include <linux/thread_info.h>
+> > -#include <linux/kasan-checks.h>
+> >
+> >  #define uaccess_kernel() segment_eq(get_fs(), KERNEL_DS)
+> >
+> > @@ -58,18 +58,26 @@
+> >  static __always_inline __must_check unsigned long
+> >  __copy_from_user_inatomic(void *to, const void __user *from, unsigned long n)
+> >  {
+> > -       kasan_check_write(to, n);
+> > +       unsigned long res;
+> > +
+> >         check_object_size(to, n, false);
+> > -       return raw_copy_from_user(to, from, n);
+> > +       instrument_copy_from_user_pre(to, n);
+> > +       res = raw_copy_from_user(to, from, n);
+> > +       instrument_copy_from_user_post(to, n, res);
+> > +       return res;
+> >  }
+>
+> There is also something called strncpy_from_user() that has kasan
+> instrumentation now:
+> https://elixir.bootlin.com/linux/v5.5-rc6/source/lib/strncpy_from_user.c#L117
 
-Sure it does; but my comment was aimed at the gripe that test_bit()
-lives in the non-atomic bitops header. That is arguably entirely
-correct.
+Yes, however, I think it's a special case for KASAN. The
+implementation is already instrumented by the compiler. In the
+original commit it says (1771c6e1a567e):
+
+"Note: Unlike others strncpy_from_user() is written mostly in C and KASAN
+    sees memory accesses in it.  However, it makes sense to add explicit
+    check for all @count bytes that *potentially* could be written to the
+    kernel."
+
+I don't think we want unconditional double-instrumentation here. Let
+me know if you think otherwise.
+
+Thanks,
+-- Marco
+
+> >  static __always_inline __must_check unsigned long
+> >  __copy_from_user(void *to, const void __user *from, unsigned long n)
+> >  {
+> > +       unsigned long res;
+> > +
+> >         might_fault();
+> > -       kasan_check_write(to, n);
+> >         check_object_size(to, n, false);
+> > -       return raw_copy_from_user(to, from, n);
+> > +       instrument_copy_from_user_pre(to, n);
+> > +       res = raw_copy_from_user(to, from, n);
+> > +       instrument_copy_from_user_post(to, n, res);
+> > +       return res;
+> >  }
+> >
+> >  /**
+> > @@ -88,18 +96,26 @@ __copy_from_user(void *to, const void __user *from, unsigned long n)
+> >  static __always_inline __must_check unsigned long
+> >  __copy_to_user_inatomic(void __user *to, const void *from, unsigned long n)
+> >  {
+> > -       kasan_check_read(from, n);
+> > +       unsigned long res;
+> > +
+> >         check_object_size(from, n, true);
+> > -       return raw_copy_to_user(to, from, n);
+> > +       instrument_copy_to_user_pre(from, n);
+> > +       res = raw_copy_to_user(to, from, n);
+> > +       instrument_copy_to_user_post(from, n, res);
+> > +       return res;
+> >  }
+> >
+> >  static __always_inline __must_check unsigned long
+> >  __copy_to_user(void __user *to, const void *from, unsigned long n)
+> >  {
+> > +       unsigned long res;
+> > +
+> >         might_fault();
+> > -       kasan_check_read(from, n);
+> >         check_object_size(from, n, true);
+> > -       return raw_copy_to_user(to, from, n);
+> > +       instrument_copy_to_user_pre(from, n);
+> > +       res = raw_copy_to_user(to, from, n);
+> > +       instrument_copy_to_user_post(from, n, res);
+> > +       return res;
+> >  }
+> >
+> >  #ifdef INLINE_COPY_FROM_USER
+> > @@ -109,8 +125,9 @@ _copy_from_user(void *to, const void __user *from, unsigned long n)
+> >         unsigned long res = n;
+> >         might_fault();
+> >         if (likely(access_ok(from, n))) {
+> > -               kasan_check_write(to, n);
+> > +               instrument_copy_from_user_pre(to, n);
+> >                 res = raw_copy_from_user(to, from, n);
+> > +               instrument_copy_from_user_post(to, n, res);
+> >         }
+> >         if (unlikely(res))
+> >                 memset(to + (n - res), 0, res);
+> > @@ -125,12 +142,15 @@ _copy_from_user(void *, const void __user *, unsigned long);
+> >  static inline __must_check unsigned long
+> >  _copy_to_user(void __user *to, const void *from, unsigned long n)
+> >  {
+> > +       unsigned long res = n;
+> > +
+> >         might_fault();
+> >         if (access_ok(to, n)) {
+> > -               kasan_check_read(from, n);
+> > -               n = raw_copy_to_user(to, from, n);
+> > +               instrument_copy_to_user_pre(from, n);
+> > +               res = raw_copy_to_user(to, from, n);
+> > +               instrument_copy_to_user_post(from, n, res);
+> >         }
+> > -       return n;
+> > +       return res;
+> >  }
+> >  #else
+> >  extern __must_check unsigned long
+> > diff --git a/lib/usercopy.c b/lib/usercopy.c
+> > index cbb4d9ec00f2..1c20d4423b86 100644
+> > --- a/lib/usercopy.c
+> > +++ b/lib/usercopy.c
+> > @@ -1,6 +1,7 @@
+> >  // SPDX-License-Identifier: GPL-2.0
+> > -#include <linux/uaccess.h>
+> >  #include <linux/bitops.h>
+> > +#include <linux/instrumented.h>
+> > +#include <linux/uaccess.h>
+> >
+> >  /* out-of-line parts */
+> >
+> > @@ -10,8 +11,9 @@ unsigned long _copy_from_user(void *to, const void __user *from, unsigned long n
+> >         unsigned long res = n;
+> >         might_fault();
+> >         if (likely(access_ok(from, n))) {
+> > -               kasan_check_write(to, n);
+> > +               instrument_copy_from_user_pre(to, n);
+> >                 res = raw_copy_from_user(to, from, n);
+> > +               instrument_copy_from_user_post(to, n, res);
+> >         }
+> >         if (unlikely(res))
+> >                 memset(to + (n - res), 0, res);
+> > @@ -23,12 +25,14 @@ EXPORT_SYMBOL(_copy_from_user);
+> >  #ifndef INLINE_COPY_TO_USER
+> >  unsigned long _copy_to_user(void __user *to, const void *from, unsigned long n)
+> >  {
+> > +       unsigned long res = n;
+> >         might_fault();
+> >         if (likely(access_ok(to, n))) {
+> > -               kasan_check_read(from, n);
+> > -               n = raw_copy_to_user(to, from, n);
+> > +               instrument_copy_to_user_pre(from, n);
+> > +               res = raw_copy_to_user(to, from, n);
+> > +               instrument_copy_to_user_post(from, n, res);
+> >         }
+> > -       return n;
+> > +       return res;
+> >  }
+> >  EXPORT_SYMBOL(_copy_to_user);
+> >  #endif
+> > --
+> > 2.25.0.341.g760bfbb309-goog
+> >
