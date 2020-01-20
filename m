@@ -1,42 +1,64 @@
-Return-Path: <3weAvXg4KBDoXnajZWjdeccejockkcha.Ykinllphejqt.eXi.Yki@flex--brendanhiggins.bounces.google.com>
-Date: Mon, 27 Jan 2020 23:20:02 -0800
-In-Reply-To: <20200128072002.79250-1-brendanhiggins@google.com>
-Message-ID: <20200128072002.79250-8-brendanhiggins@google.com>
-Mime-Version: 1.0
-References: <20200128072002.79250-1-brendanhiggins@google.com>
-Subject: [PATCH v1 7/7] Documentation: Add kunit_shutdown to kernel-parameters.txt
-From: Brendan Higgins <brendanhiggins@google.com>
-Content-Type: text/plain; charset="UTF-8"
-To: jdike@addtoit.com, richard@nod.at, anton.ivanov@cambridgegreys.com, arnd@arndb.de, keescook@chromium.org, skhan@linuxfoundation.org, alan.maguire@oracle.com, yzaikin@google.com, davidgow@google.com, akpm@linux-foundation.org, rppt@linux.ibm.com, frowand.list@gmail.com
-Cc: gregkh@linuxfoundation.org, sboyd@kernel.org, logang@deltatee.com, mcgrof@kernel.org, knut.omang@oracle.com, linux-um@lists.infradead.org, linux-arch@vger.kernel.org, linux-kselftest@vger.kernel.org, kunit-dev@googlegroups.com, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, Brendan Higgins <brendanhiggins@google.com>
+Return-Path: <owner-linux-mm@kvack.org>
+From: Sandipan Das <sandipan@linux.ibm.com>
+Subject: [PATCH v17 10/24] selftests/vm/pkeys: Fix assertion in
+ pkey_disable_set/clear()
+Date: Mon, 20 Jan 2020 14:06:07 +0530
+In-Reply-To: <cover.1579507768.git.sandipan@linux.ibm.com>
+References: <cover.1579507768.git.sandipan@linux.ibm.com>
+In-Reply-To: <cover.1579507768.git.sandipan@linux.ibm.com>
+References: <cover.1579507768.git.sandipan@linux.ibm.com>
+Message-ID: <ff7a72aa0bc849e8edc79f5e6e5f21bf7e4aff61.1579507768.git.sandipan@linux.ibm.com>
+Sender: owner-linux-mm@kvack.org
+To: shuah@kernel.org, linux-kselftest@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, fweimer@redhat.com, dave.hansen@intel.com, x86@kernel.org, linuxram@us.ibm.com, mhocko@kernel.org, linux-mm@kvack.org, mingo@redhat.com, aneesh.kumar@linux.ibm.com, bauerman@linux.ibm.com, msuchanek@suse.de, mpe@ellerman.id.au, linuxppc-dev@lists.ozlabs.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200128072002.pI4EBrJ1Ci_HZIaNlSXBUx4uGt0iBQz5UUGq1Ux95Lk@z>
+Message-ID: <20200120083607.9KlmjQ7fQOe8ysUMyCTF0ZCMfIl_Z2tmx3-ZLAIxXUs@z>
 
-Add kunit_shutdown, an option to specify that the kernel shutsdown after
-running KUnit tests, to the kernel-parameters.txt documentation.
+From: Ram Pai <linuxram@us.ibm.com>
 
-Signed-off-by: Brendan Higgins <brendanhiggins@google.com>
+In some cases, a pkey's bits need not necessarily change
+in a way that the value of the pkey register increases
+when performing a pkey_disable_set() or decreases when
+performing a pkey_disable_clear().
+
+For example, on powerpc, if a pkey's current state is
+PKEY_DISABLE_ACCESS and we perform a pkey_write_disable()
+on it, the bits still remain the same. We will observe
+something similar when the pkey's current state is 0 and
+a pkey_access_enable() is performed on it.
+
+Either case would cause some assertions to fail. This
+fixes the problem.
+
+cc: Dave Hansen <dave.hansen@intel.com>
+cc: Florian Weimer <fweimer@redhat.com>
+Signed-off-by: Ram Pai <linuxram@us.ibm.com>
+Signed-off-by: Sandipan Das <sandipan@linux.ibm.com>
 ---
- Documentation/admin-guide/kernel-parameters.txt | 7 +++++++
- 1 file changed, 7 insertions(+)
+ tools/testing/selftests/vm/protection_keys.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
 
-diff --git a/Documentation/admin-guide/kernel-parameters.txt b/Documentation/admin-guide/kernel-parameters.txt
-index ade4e6ec23e03..0472b02ce16bb 100644
---- a/Documentation/admin-guide/kernel-parameters.txt
-+++ b/Documentation/admin-guide/kernel-parameters.txt
-@@ -2054,6 +2054,13 @@
- 			0: force disabled
- 			1: force enabled
- 
-+	kunit_shutdown	[KERNEL UNIT TESTING FRAMEWORK] Shutdown kernel after
-+			running tests.
-+			Default:	(flag not present) don't shutdown
-+			poweroff:	poweroff the kernel after running tests.
-+			halt:		halt the kernel after running tests.
-+			reboot:		reboot the kernel after running tests.
-+
- 	kvm.ignore_msrs=[KVM] Ignore guest accesses to unhandled MSRs.
- 			Default is 0 (don't ignore, but inject #GP)
- 
+diff --git a/tools/testing/selftests/vm/protection_keys.c b/tools/testing/selftests/vm/protection_keys.c
+index 4b1ddb526228..7fd52d5c4bfd 100644
+--- a/tools/testing/selftests/vm/protection_keys.c
++++ b/tools/testing/selftests/vm/protection_keys.c
+@@ -400,7 +400,7 @@ void pkey_disable_set(int pkey, int flags)
+ 	dprintf1("%s(%d) pkey_reg: 0x%016llx\n",
+ 		__func__, pkey, read_pkey_reg());
+ 	if (flags)
+-		pkey_assert(read_pkey_reg() > orig_pkey_reg);
++		pkey_assert(read_pkey_reg() >= orig_pkey_reg);
+ 	dprintf1("END<---%s(%d, 0x%x)\n", __func__,
+ 		pkey, flags);
+ }
+@@ -431,7 +431,7 @@ void pkey_disable_clear(int pkey, int flags)
+ 	dprintf1("%s(%d) pkey_reg: 0x%016llx\n", __func__,
+ 			pkey, read_pkey_reg());
+ 	if (flags)
+-		assert(read_pkey_reg() < orig_pkey_reg);
++		assert(read_pkey_reg() <= orig_pkey_reg);
+ }
+
+ void pkey_write_allow(int pkey)
 -- 
-2.25.0.341.g760bfbb309-goog
+2.17.1
