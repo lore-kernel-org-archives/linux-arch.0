@@ -1,101 +1,211 @@
-Return-Path: <SRS0=fNgb=3C=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:59178 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1728843AbgAMPAA (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 13 Jan 2020 10:00:00 -0500
-Date: Mon, 13 Jan 2020 14:59:54 +0000
-From: Will Deacon <will@kernel.org>
-Subject: Re: [RFC PATCH 6/8] READ_ONCE: Drop pointer qualifiers when reading
- from scalar types
-Message-ID: <20200113145954.GB4458@willie-the-truck>
-References: <20200110165636.28035-1-will@kernel.org>
- <20200110165636.28035-7-will@kernel.org>
- <CAHk-=wia5ppBsfHLMx648utCjO01JAZiME0K0eSHmhWuRyL+6w@mail.gmail.com>
+Return-Path: <SRS0=nYHR=3J=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail-qt1-f193.google.com ([209.85.160.193]:39431 "EHLO
+        mail-qt1-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726642AbgATOe7 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 20 Jan 2020 09:34:59 -0500
+Received: by mail-qt1-f193.google.com with SMTP id e5so27803485qtm.6
+        for <linux-arch@vger.kernel.org>; Mon, 20 Jan 2020 06:34:58 -0800 (PST)
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <CAHk-=wia5ppBsfHLMx648utCjO01JAZiME0K0eSHmhWuRyL+6w@mail.gmail.com>
+References: <20200120141927.114373-1-elver@google.com>
+In-Reply-To: <20200120141927.114373-1-elver@google.com>
+From: Dmitry Vyukov <dvyukov@google.com>
+Date: Mon, 20 Jan 2020 15:34:45 +0100
+Message-ID: <CACT4Y+ajkjCzv2adupX9oVKjNppn-AKsGkGqLMExwjHXG37Lxw@mail.gmail.com>
+Subject: Re: [PATCH 1/5] include/linux: Add instrumented.h infrastructure
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Android Kernel Team <kernel-team@android.com>, Michael Ellerman <mpe@ellerman.id.au>, Peter Zijlstra <peterz@infradead.org>, Segher Boessenkool <segher@kernel.crashing.org>, Christian Borntraeger <borntraeger@de.ibm.com>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>, Arnd Bergmann <arnd@arndb.de>
-Message-ID: <20200113145954.3seCGH0jPUcLeQ0qoKUIVa6ZtRQf14bzavdy4Pnj9YQ@z>
+To: Marco Elver <elver@google.com>
+Cc: paulmck@kernel.org, Andrey Konovalov <andreyknvl@google.com>, Alexander Potapenko <glider@google.com>, kasan-dev <kasan-dev@googlegroups.com>, LKML <linux-kernel@vger.kernel.org>, Mark Rutland <mark.rutland@arm.com>, Will Deacon <will@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Boqun Feng <boqun.feng@gmail.com>, Arnd Bergmann <arnd@arndb.de>, Al Viro <viro@zeniv.linux.org.uk>, Christophe Leroy <christophe.leroy@c-s.fr>, Daniel Axtens <dja@axtens.net>, Michael Ellerman <mpe@ellerman.id.au>, Steven Rostedt <rostedt@goodmis.org>, Masami Hiramatsu <mhiramat@kernel.org>, Ingo Molnar <mingo@kernel.org>, Christian Brauner <christian.brauner@ubuntu.com>, Daniel Borkmann <daniel@iogearbox.net>, cyphar@cyphar.com, Kees Cook <keescook@chromium.org>, linux-arch <linux-arch@vger.kernel.org>
+Message-ID: <20200120143445.2-6aSVZCk3P6sZEuAt8lCjs2eo6dgut4a23bViaqywI@z>
 
-On Fri, Jan 10, 2020 at 10:54:27AM -0800, Linus Torvalds wrote:
-> On Fri, Jan 10, 2020 at 8:56 AM Will Deacon <will@kernel.org> wrote:
-> >
-> > +/* Declare an unqualified scalar type. Leaves non-scalar types unchanged. */
-> > +#define __unqual_scalar_typeof(x) typeof(                                      \
-> 
-> Ugh. My eyes. That's horrendous.
-> 
-> I can't see any better alternatives, but it does make me go "Eww".
+On Mon, Jan 20, 2020 at 3:19 PM Marco Elver <elver@google.com> wrote:
+>
+> This adds instrumented.h, which provides generic wrappers for memory
+> access instrumentation that the compiler cannot emit for various
+> sanitizers. Currently this unifies KASAN and KCSAN instrumentation. In
+> future this will also include KMSAN instrumentation.
+>
+> Note that, copy_{to,from}_user require special instrumentation,
+> providing hooks before and after the access, since we may need to know
+> the actual bytes accessed (currently this is relevant for KCSAN, and is
+> also relevant in future for KMSAN).
 
-I can't disagree with that, but the only option we've come up with so far
-that solves this in the READ_ONCE() macro itself is the thing from PeterZ:
+How will KMSAN instrumentation look like?
 
-// Insert big fat comment here
-#define unqual_typeof(x)    typeof(({_Atomic typeof(x) ___x __maybe_unused; ___x; }))
-
-That apparently *requires* GCC 4.8, but I think the question is more about
-whether it's easier to stomach the funny use of _Atomic or the nested
-__builtin_choose_expr() I have here. I'm also worried about how reliable
-the _Atomic thing is, or whether it's just an artifact of how GCC happens
-to work today.
-
-> Well, I do see one possible alternative: just re-write the bitop
-> implementations in terms of "atomic_long_t", and just avoid the issue
-> entirely.
-> 
-> IOW, do something like the attached (but fleshed out and tested - this
-> patch has not seen a compiler, much less any thought at all).
-
-The big downside of this approach in preference to the proposal here is that
-as long as we've got volatile-qualified pointer arguments describing shared
-memory, I fear that we'll be playing a constant game of whack-a-mole adding
-non-volatile casts as you do below. The same problem manifests for the
-acquire/release accessors, which is why having something like
-__unqual_typeof() would be beneficial and at least the awfulness is
-contained in one place.
-
-So I suppose my question is: how ill does this code really make you feel?
-The disassembly is really nice!
-
-Will
-
->  include/asm-generic/bitops/lock.h | 12 +++++++++---
->  1 file changed, 9 insertions(+), 3 deletions(-)
-> 
-> diff --git a/include/asm-generic/bitops/lock.h b/include/asm-generic/bitops/lock.h
-> index 3ae021368f48..071d8bfd86e5 100644
-> --- a/include/asm-generic/bitops/lock.h
-> +++ b/include/asm-generic/bitops/lock.h
-> @@ -6,6 +6,12 @@
->  #include <linux/compiler.h>
->  #include <asm/barrier.h>
->  
-> +/* Drop the volatile, we will be doing READ_ONCE by hand */
-> +static inline atomic_long_t *atomic_long_bit_word(unsigned int nr, volatile unsigned long *p)
+> Suggested-by: Arnd Bergmann <arnd@arndb.de>
+> Signed-off-by: Marco Elver <elver@google.com>
+> ---
+>  include/linux/instrumented.h | 153 +++++++++++++++++++++++++++++++++++
+>  1 file changed, 153 insertions(+)
+>  create mode 100644 include/linux/instrumented.h
+>
+> diff --git a/include/linux/instrumented.h b/include/linux/instrumented.h
+> new file mode 100644
+> index 000000000000..9f83c8520223
+> --- /dev/null
+> +++ b/include/linux/instrumented.h
+> @@ -0,0 +1,153 @@
+> +/* SPDX-License-Identifier: GPL-2.0 */
+> +
+> +/*
+> + * This header provides generic wrappers for memory access instrumentation that
+> + * the compiler cannot emit for: KASAN, KCSAN.
+> + */
+> +#ifndef _LINUX_INSTRUMENTED_H
+> +#define _LINUX_INSTRUMENTED_H
+> +
+> +#include <linux/compiler.h>
+> +#include <linux/kasan-checks.h>
+> +#include <linux/kcsan-checks.h>
+> +#include <linux/types.h>
+> +
+> +/**
+> + * instrument_read - instrument regular read access
+> + *
+> + * Instrument a regular read access. The instrumentation should be inserted
+> + * before the actual read happens.
+> + *
+> + * @ptr address of access
+> + * @size size of access
+> + */
+> +static __always_inline void instrument_read(const volatile void *v, size_t size)
 > +{
-> +	return BIT_WORD(nr) + (atomic_long_t *)p;
+> +       kasan_check_read(v, size);
+> +       kcsan_check_read(v, size);
 > +}
 > +
->  /**
->   * test_and_set_bit_lock - Set a bit and return its old value, for lock
->   * @nr: Bit to set
-> @@ -20,12 +26,12 @@ static inline int test_and_set_bit_lock(unsigned int nr,
->  {
->  	long old;
->  	unsigned long mask = BIT_MASK(nr);
-> +	atomic_long_t *loc = atomic_long_bit_word(nr, p);
->  
-> -	p += BIT_WORD(nr);
-> -	if (READ_ONCE(*p) & mask)
-> +	if (atomic_read(loc) & mask)
->  		return 1;
->  
-> -	old = atomic_long_fetch_or_acquire(mask, (atomic_long_t *)p);
-> +	old = atomic_long_fetch_or_acquire(mask, loc);
->  	return !!(old & mask);
->  }
->  
+> +/**
+> + * instrument_write - instrument regular write access
+> + *
+> + * Instrument a regular write access. The instrumentation should be inserted
+> + * before the actual write happens.
+> + *
+> + * @ptr address of access
+> + * @size size of access
+> + */
+> +static __always_inline void instrument_write(const volatile void *v, size_t size)
+> +{
+> +       kasan_check_write(v, size);
+> +       kcsan_check_write(v, size);
+> +}
+> +
+> +/**
+> + * instrument_atomic_read - instrument atomic read access
+> + *
+> + * Instrument an atomic read access. The instrumentation should be inserted
+> + * before the actual read happens.
+> + *
+> + * @ptr address of access
+> + * @size size of access
+> + */
+> +static __always_inline void instrument_atomic_read(const volatile void *v, size_t size)
+> +{
+> +       kasan_check_read(v, size);
+> +       kcsan_check_atomic_read(v, size);
+> +}
+> +
+> +/**
+> + * instrument_atomic_write - instrument atomic write access
+> + *
+> + * Instrument an atomic write access. The instrumentation should be inserted
+> + * before the actual write happens.
+> + *
+> + * @ptr address of access
+> + * @size size of access
+> + */
+> +static __always_inline void instrument_atomic_write(const volatile void *v, size_t size)
+> +{
+> +       kasan_check_write(v, size);
+> +       kcsan_check_atomic_write(v, size);
+> +}
+> +
+> +/**
+> + * instrument_copy_to_user_pre - instrument reads of copy_to_user
+> + *
+> + * Instrument reads from kernel memory, that are due to copy_to_user (and
+> + * variants).
+> + *
+> + * The instrumentation must be inserted before the accesses. At this point the
+> + * actual number of bytes accessed is not yet known.
+> + *
+> + * @dst destination address
+> + * @size maximum access size
+> + */
+> +static __always_inline void
+> +instrument_copy_to_user_pre(const volatile void *src, size_t size)
+> +{
+> +       /* Check before, to warn before potential memory corruption. */
+> +       kasan_check_read(src, size);
+> +}
+> +
+> +/**
+> + * instrument_copy_to_user_post - instrument reads of copy_to_user
+> + *
+> + * Instrument reads from kernel memory, that are due to copy_to_user (and
+> + * variants).
+> + *
+> + * The instrumentation must be inserted after the accesses. At this point the
+> + * actual number of bytes accessed should be known.
+> + *
+> + * @dst destination address
+> + * @size maximum access size
+> + * @left number of bytes left that were not copied
+> + */
+> +static __always_inline void
+> +instrument_copy_to_user_post(const volatile void *src, size_t size, size_t left)
+> +{
+> +       /* Check after, to avoid false positive if memory was not accessed. */
+> +       kcsan_check_read(src, size - left);
+
+Why don't we check the full range?
+Kernel intending to copy something racy to user already looks like a
+bug to me, even if user-space has that page unmapped. User-space can
+always make the full range succeed. What am I missing?
+
+
+> +}
+> +
+> +/**
+> + * instrument_copy_from_user_pre - instrument writes of copy_from_user
+> + *
+> + * Instrument writes to kernel memory, that are due to copy_from_user (and
+> + * variants).
+> + *
+> + * The instrumentation must be inserted before the accesses. At this point the
+> + * actual number of bytes accessed is not yet known.
+> + *
+> + * @dst destination address
+> + * @size maximum access size
+> + */
+> +static __always_inline void
+> +instrument_copy_from_user_pre(const volatile void *dst, size_t size)
+> +{
+> +       /* Check before, to warn before potential memory corruption. */
+> +       kasan_check_write(dst, size);
+> +}
+> +
+> +/**
+> + * instrument_copy_from_user_post - instrument writes of copy_from_user
+> + *
+> + * Instrument writes to kernel memory, that are due to copy_from_user (and
+> + * variants).
+> + *
+> + * The instrumentation must be inserted after the accesses. At this point the
+> + * actual number of bytes accessed should be known.
+> + *
+> + * @dst destination address
+> + * @size maximum access size
+> + * @left number of bytes left that were not copied
+> + */
+> +static __always_inline void
+> +instrument_copy_from_user_post(const volatile void *dst, size_t size, size_t left)
+> +{
+> +       /* Check after, to avoid false positive if memory was not accessed. */
+> +       kcsan_check_write(dst, size - left);
+> +}
+> +
+> +#endif /* _LINUX_INSTRUMENTED_H */
+> --
+> 2.25.0.341.g760bfbb309-goog
+>
