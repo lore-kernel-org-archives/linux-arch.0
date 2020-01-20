@@ -1,56 +1,49 @@
-From: "Prof, William Roberts" <eco.bank1204@gmail.com>
-Subject: Contact Diplomatic Agent, Mr. Mcclaine John to receive your ATM CARD
- valued the sum of $12.8Million United States Dollars
-Date: Mon, 20 Jan 2020 20:31:57 +0100
-Message-ID: <CAOE+jAB9Cv76tHqc-hO92yWjVshCsALoX=zT1ruNmX+0-Bjyxw__40772.3002297402$1579548729$gmane$org@mail.gmail.com>
-Reply-To: mcclainejohn.13@gmail.com
+From: "Paul E. McKenney" <paulmck@kernel.org>
+Subject: Re: [PATCH 3/5] asm-generic, kcsan: Add KCSAN instrumentation for
+ bitops
+Date: Mon, 20 Jan 2020 12:23:59 -0800
+Message-ID: <20200120202359.GF2935@paulmck-ThinkPad-P72>
+References: <20200120141927.114373-1-elver@google.com>
+ <20200120141927.114373-3-elver@google.com>
+ <20200120144048.GB14914@hirez.programming.kicks-ass.net>
+ <20200120162725.GE2935@paulmck-ThinkPad-P72>
+ <20200120165223.GC14914@hirez.programming.kicks-ass.net>
+Reply-To: paulmck@kernel.org
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ed1-f65.google.com ([209.85.208.65]:41171 "EHLO
-        mail-ed1-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726642AbgATTcA (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 20 Jan 2020 14:32:00 -0500
-Received: by mail-ed1-f65.google.com with SMTP id c26so583451eds.8
-        for <linux-arch@vger.kernel.org>; Mon, 20 Jan 2020 11:31:59 -0800 (PST)
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <20200120165223.GC14914@hirez.programming.kicks-ass.net>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Marco Elver <elver@google.com>, andreyknvl@google.com, glider@google.com, dvyukov@google.com, kasan-dev@googlegroups.com, linux-kernel@vger.kernel.org, mark.rutland@arm.com, will@kernel.org, boqun.feng@gmail.com, arnd@arndb.de, viro@zeniv.linux.org.uk, christophe.leroy@c-s.fr, dja@axtens.net, mpe@ellerman.id.au, rostedt@goodmis.org, mhiramat@kernel.org, mingo@kernel.org, christian.brauner@ubuntu.com, daniel@iogearbox.net, cyphar@cyphar.com, keescook@chromium.org, linux-arch@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-Attn: Dear Beneficiary,
+On Mon, Jan 20, 2020 at 05:52:23PM +0100, Peter Zijlstra wrote:
+> On Mon, Jan 20, 2020 at 08:27:25AM -0800, Paul E. McKenney wrote:
+> > On Mon, Jan 20, 2020 at 03:40:48PM +0100, Peter Zijlstra wrote:
+> > > On Mon, Jan 20, 2020 at 03:19:25PM +0100, Marco Elver wrote:
+> > > > Add explicit KCSAN checks for bitops.
+> > > > 
+> > > > Note that test_bit() is an atomic bitop, and we instrument it as such,
+> > > 
+> > > Well, it is 'atomic' in the same way that atomic_read() is. Both are
+> > > very much not atomic ops, but are part of an interface that facilitates
+> > > atomic operations.
+> > 
+> > True, but they all are either inline assembly or have either an
+> > implicit or explicit cast to volatile, so they could be treated
+> > the same as atomic_read(), correct?  If not, what am I missing?
+> 
+> Sure, but that is due to instrumentation requirements, not anything
+> else.
+> 
+> Also note the distinct lack of __test_bit(), to mirror the non-atomic
+> __set_bit() and __clear_bit().
 
-I wish to inform you that the diplomatic agent conveying your ATM CARD
-valued the sum of $12.8Million United States Dollars has misplaced
-your address and he is currently stranded at (George Bush
-International Airport) Houston Texas USA now
-We required you to reconfirm the following information's below to him
-so that he can deliver your Payment CARD to you today or tomorrow
-morning as information provided with open communications via email and
-telephone for security reasons.
-HERE IS THE DETAILS  HE NEED FROM YOU URGENT
-YOUR FULL NAME:========
-ADDRESS:========
-MOBILE NO:========
-NAME OF YOUR NEAREST AIRPORT:========
-A COPY OF YOUR IDENTIFICATION :========
+OK, I will bite.  ;-)
 
-Note; do contact the diplomatic agent immediately through the
-information's listed below
-Contact Person: Diplomatic Agent, Mr. Mcclaine John
-EMAIL: mcclainejohn.13@gmail.com
-Tel:(223) 777-7518
+We also don't have __atomic_read() and __atomic_set(), yet atomic_read()
+and atomic_set() are considered to be non-racy, right?
 
-Contact the diplomatic agent immediately
-because he is waiting to hear from you today with the needed information's.
-
-NOTE: The Diplomatic agent does not know that the content of the
-consignment box is $12.800,000,00 Million United States Dollars and on
-no circumstances should you let him know the content. The consignment
-was moved from here as family treasures, so never allow him to open
-the box. Please I have paid delivery fees for you but the only money
-you must send to Mcclaine John is your ATM CARD delivery fee $25.00
-only. text Him as you contact Him Immediately
-
-Thanks,
-with Regards.
-Prof, William Roberts
-Director DHL COURIER SERVICES-Benin
+							Thanx, Paul
