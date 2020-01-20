@@ -1,75 +1,128 @@
 Return-Path: <owner-linux-mm@kvack.org>
-Content-Type: text/plain; charset=us-ascii
-Content-Transfer-Encoding: quoted-printable
-From: Qian Cai <cai@lca.pw>
-Mime-Version: 1.0 (1.0)
-Subject: Re: [PATCH v4 01/10] kcsan: Add Kernel Concurrency Sanitizer
- infrastructure
-Date: Tue, 14 Jan 2020 06:08:29 -0500
-Message-ID: <53F6B915-AC53-41BB-BF32-33732515B3A0@lca.pw>
-References: 
- <CANpmjNOC2PYFsE_TK2SYmKcHxyG+2arWc8x_fmeWPOMi0+ot8g@mail.gmail.com>
-In-Reply-To: 
- <CANpmjNOC2PYFsE_TK2SYmKcHxyG+2arWc8x_fmeWPOMi0+ot8g@mail.gmail.com>
+From: Sandipan Das <sandipan@linux.ibm.com>
+Subject: [PATCH v16 00/23] selftests, powerpc, x86: Memory Protection Keys
+Date: Mon, 20 Jan 2020 14:05:28 +0530
+Message-ID: <cover.1579507768.git.sandipan@linux.ibm.com>
 Sender: owner-linux-mm@kvack.org
-To: Marco Elver <elver@google.com>
-Cc: LKMM Maintainers -- Akira Yokosawa <akiyks@gmail.com>, Alan Stern <stern@rowland.harvard.edu>, Alexander Potapenko <glider@google.com>, Andrea Parri <parri.andrea@gmail.com>, Andrey Konovalov <andreyknvl@google.com>, Andy Lutomirski <luto@kernel.org>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Arnd Bergmann <arnd@arndb.de>, Boqun Feng <boqun.feng@gmail.com>, Borislav Petkov <bp@alien8.de>, Daniel Axtens <dja@axtens.net>, Daniel Lustig <dlustig@nvidia.com>, Dave Hansen <dave.hansen@linux.intel.com>, David Howells <dhowells@redhat.com>, Dmitry Vyukov <dvyukov@google.com>, "H. Peter Anvin" <hpa@zytor.com>, Ingo Molnar <mingo@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Joel Fernandes <joel@joelfernandes.org>, Jonathan Corbet <corbet@lwn.net>, Josh Poimboeuf <jpoimboe@redhat.com>, Luc Maranget <luc.maranget@inria.fr>, Mark Rutland <Mark.Rutland@arm.com>, Nicholas Piggin <npiggin@gmail.com>, "Paul E. McKenney" <paulmck@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, Will Deacon <will@kernel.org>, Eric Dumazet <edumazet@google.com>, kasan-dev <kasan-dev@googlegroups.com>, linux-arch <linux-arch@vger.kernel.org>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>, linux-efi@vger.kernel.org, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Linux Memory Management List <linux-mm@kvack.org>, the arch/x86 maintainers <x86@kernel.org>
+To: shuah@kernel.org, linux-kselftest@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, fweimer@redhat.com, dave.hansen@intel.com, x86@kernel.org, linuxram@us.ibm.com, mhocko@kernel.org, linux-mm@kvack.org, mingo@redhat.com, aneesh.kumar@linux.ibm.com, bauerman@linux.ibm.com, msuchanek@suse.de, mpe@ellerman.id.au, linuxppc-dev@lists.ozlabs.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200114110829.pa32ds_evS1m1-PD4M6iLscSiaA13dNMeXIxriBjbXs@z>
+Message-ID: <20200120083528.rl3itu31CetKNAcUYF-EuYApWlzNpHcCu9fAEz5kRc8@z>
 
+Memory protection keys enables an application to protect its address
+space from inadvertent access by its own code.
 
+This feature is now enabled on powerpc and has been available since
+4.16-rc1. The patches move the selftests to arch neutral directory
+and enhance their test coverage.
 
-> On Jan 6, 2020, at 7:47 AM, Marco Elver <elver@google.com> wrote:
->=20
-> Thanks, I'll look into KCSAN + lockdep compatibility. It's probably
-> missing some KCSAN_SANITIZE :=3D n in some Makefile.
+Tested on powerpc64 and x86_64 (Skylake-SP).
 
-Can I have a update on fixing this? It looks like more of a problem that kcs=
-an_setup_watchpoint() will disable IRQs and then dive into the page allocato=
-r where it would complain because it might sleep.
+Link to development branch:
+https://github.com/sandip4n/linux/tree/pkey-selftests
 
-BTW, I saw Paul sent a pull request for 5.6 but it is ugly to have everybody=
- could trigger a deadlock (sleep function called in atomic context) like thi=
-s during boot once this hits the mainline not to mention about only recently=
- it is possible to test this feature (thanks to warning ratelimit) with the e=
-xisting debugging options because it was unable to boot due to the brokennes=
-s with debug_pagealloc as mentioned in this thread, so this does sounds like=
- it needs more soak time for the mainline to me.
+Changelog
+---------
+Link to previous version (v16):
+https://patchwork.ozlabs.org/project/linuxppc-dev/list/?series=153824
 
-0000000000000400
-[   13.416814][    T1] Call Trace:
-[   13.416814][    T1]  lock_is_held_type+0x66/0x160
-[   13.416814][    T1]  ___might_sleep+0xc1/0x1d0
-[   13.416814][    T1]  __might_sleep+0x5b/0xa0
-[   13.416814][    T1]  slab_pre_alloc_hook+0x7b/0xa0
-[   13.416814][    T1]  __kmalloc_node+0x60/0x300
-[   13.416814   T1]  ? alloc_cpumask_var_node+0x44/0x70
-[   13.416814][    T1]  ? topology_phys_to_logical_die+0x7e/0x180
-[   13.416814][    T1]  alloc_cpumask_var_node+0x44/0x70
-[   13.416814][    T1]  zalloc_cpumask_var+0x2a/0x40
-[   13.416814][    T1]  native_smp_prepare_cpus+0x246/0x425
-[   13.416814][    T1]  kernel_init_freeable+0x1b8/0x496
-[   13.416814][    T1]  ? rest_init+0x381/0x381
-[   13.416814][    T1]  kernel_init+0x18/0x17f
-[   13.416814][    T1]  ? rest_init+0x381/0x381
-[   13.416814][    T1]  ret_from_fork+0x3a/0x50
-[   13.416814][    T1] irq event stamp: 910
-[   13.416814][    T1] hardirqs last  enabled at (909): [<ffffffff8d1240f3>]=
- _raw_write_unlock_irqrestore+0x53/0x57
-[   13.416814][    T1] hardirqs last disabled at (910): [<ffffffff8c8bba76>]=
- kcsan_setup_watchpoint+0x96/0x460
-[   13.416814][    T1] softirqs last  enabled at (0): [<ffffffff8c6b697a>] c=
-opy_process+0x11fa/0x34f0
-[   13.416814][    T1] softirqs last disabled at (0): [<0000000000000000>] 0=
-x0
-[   13.416814][    T1] ---[ end trace 7d1df66da055aa92 ]---
-[   13.416814][    T1] possible reason: unannotated irqs-on.
-[   13.416814][ent stamp: 910
-[   13.416814][    T1] hardirqs last  enabled at (909): [<ffffffff8d1240f3>]=
- _raw_write_unlock_irqrestore+0x53/0x57
-[   13.416814][    T1] hardirqs last disabled at (910): [<ffffffff8c8bba76>]=
- kcsan_setup_watchpoint+0x96/0x460
-[   13.416814][    T1] softirqs last  enabled at (0): [<ffffffff8c6b697a>] c=
-opy_process+0x11fa/0x34f0
-[   13.416814][    T1] softirqs last disabled at (0): [<0000000000000000>] 0=
-x0=
+v17:
+	(1) Fixed issues with i386 builds when running on x86_64
+	    based on feedback from Dave.
+	(2) Replaced patch 6 from previous version with patch 7.
+	    This addresses u64 format specifier related concerns
+	    that Michael had raised in v15.
+
+v16:
+	(1) Rebased on top of latest master.
+	(2) Switched to u64 instead of using an arch-dependent
+	    pkey_reg_t type for references to the pkey register
+	    based on suggestions from Dave, Michal and Michael.
+	(3) Removed build time determination of page size based
+	    on suggestion from Michael.
+	(4) Fixed comment before the definition of __page_o_noops()
+	    from patch 13 ("selftests/vm/pkeys: Introduce powerpc
+	    support").
+
+v15:
+	(1) Rebased on top of latest master.
+	(2) Addressed review comments from Dave Hansen.
+	(3) Moved code for getting or setting pkey bits to new
+	    helpers. These changes replace patch 7 of v14.
+	(4) Added a fix which ensures that the correct count of
+	    reserved keys is used across different platforms.
+	(5) Added a fix which ensures that the correct page size
+	    is used as powerpc supports both 4K and 64K pages.
+
+v14:
+	(1) Incorporated another round of comments from Dave Hansen.
+
+v13:
+	(1) Incorporated comments for Dave Hansen.
+	(2) Added one more test for correct pkey-0 behavior.
+
+v12:
+	(1) Fixed the offset of pkey field in the siginfo structure for
+	    x86_64 and powerpc. And tries to use the actual field
+	    if the headers have it defined.
+
+v11:
+	(1) Fixed a deadlock in the ptrace testcase.
+
+v10 and prior:
+	(1) Moved the testcase to arch neutral directory.
+	(2) Split the changes into incremental patches.
+
+Desnes A. Nunes do Rosario (1):
+  selftests/vm/pkeys: Fix number of reserved powerpc pkeys
+
+Ram Pai (16):
+  selftests/x86/pkeys: Move selftests to arch-neutral directory
+  selftests/vm/pkeys: Rename all references to pkru to a generic name
+  selftests/vm/pkeys: Move generic definitions to header file
+  selftests/vm/pkeys: Fix pkey_disable_clear()
+  selftests/vm/pkeys: Fix assertion in pkey_disable_set/clear()
+  selftests/vm/pkeys: Fix alloc_random_pkey() to make it really random
+  selftests/vm/pkeys: Introduce generic pkey abstractions
+  selftests/vm/pkeys: Introduce powerpc support
+  selftests/vm/pkeys: Fix assertion in test_pkey_alloc_exhaust()
+  selftests/vm/pkeys: Improve checks to determine pkey support
+  selftests/vm/pkeys: Associate key on a mapped page and detect access
+    violation
+  selftests/vm/pkeys: Associate key on a mapped page and detect write
+    violation
+  selftests/vm/pkeys: Detect write violation on a mapped
+    access-denied-key page
+  selftests/vm/pkeys: Introduce a sub-page allocator
+  selftests/vm/pkeys: Test correct behaviour of pkey-0
+  selftests/vm/pkeys: Override access right definitions on powerpc
+
+Sandipan Das (5):
+  selftests: vm: pkeys: Fix multilib builds for x86
+  selftests: vm: pkeys: Use sane types for pkey register
+  selftests: vm: pkeys: Add helpers for pkey bits
+  selftests: vm: pkeys: Use the correct huge page size
+  selftests: vm: pkeys: Use the correct page size on powerpc
+
+Thiago Jung Bauermann (2):
+  selftests/vm/pkeys: Move some definitions to arch-specific header
+  selftests/vm/pkeys: Make gcc check arguments of sigsafe_printf()
+
+ tools/testing/selftests/vm/.gitignore         |   1 +
+ tools/testing/selftests/vm/Makefile           |  50 ++
+ tools/testing/selftests/vm/pkey-helpers.h     | 225 ++++++
+ tools/testing/selftests/vm/pkey-powerpc.h     | 136 ++++
+ tools/testing/selftests/vm/pkey-x86.h         | 181 +++++
+ .../selftests/{x86 => vm}/protection_keys.c   | 696 ++++++++++--------
+ tools/testing/selftests/x86/.gitignore        |   1 -
+ tools/testing/selftests/x86/Makefile          |   2 +-
+ tools/testing/selftests/x86/pkey-helpers.h    | 219 ------
+ 9 files changed, 979 insertions(+), 532 deletions(-)
+ create mode 100644 tools/testing/selftests/vm/pkey-helpers.h
+ create mode 100644 tools/testing/selftests/vm/pkey-powerpc.h
+ create mode 100644 tools/testing/selftests/vm/pkey-x86.h
+ rename tools/testing/selftests/{x86 => vm}/protection_keys.c (74%)
+ delete mode 100644 tools/testing/selftests/x86/pkey-helpers.h
+
+-- 
+2.17.1
