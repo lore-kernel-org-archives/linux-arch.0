@@ -1,78 +1,91 @@
 From: Sandipan Das <sandipan@linux.ibm.com>
-Subject: [PATCH v17 10/24] selftests/vm/pkeys: Fix assertion in pkey_disable_set/clear()
-Date: Mon, 20 Jan 2020 14:06:07 +0530
-Message-ID: <ff7a72aa0bc849e8edc79f5e6e5f21bf7e4aff61.1579507768.git.sandipan@linux.ibm.com>
+Subject: [PATCH v17 15/24] selftests/vm/pkeys: Fix number of reserved powerpc pkeys
+Date: Mon, 20 Jan 2020 14:06:12 +0530
+Message-ID: <7ec3f35788b60da183697f1462ee11dd9d62eef1.1579507768.git.sandipan@linux.ibm.com>
 References: <cover.1579507768.git.sandipan@linux.ibm.com>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:64232 "EHLO
+Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:57440 "EHLO
         mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
-        by vger.kernel.org with ESMTP id S1726075AbgATIiw (ORCPT
+        by vger.kernel.org with ESMTP id S1726125AbgATIjE (ORCPT
         <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 20 Jan 2020 03:38:52 -0500
-Received: from pps.filterd (m0098417.ppops.net [127.0.0.1])
-        by mx0a-001b2d01.pphosted.com (8.16.0.42/8.16.0.42) with SMTP id 00K8ceUP027835
-        for <linux-arch@vger.kernel.org>; Mon, 20 Jan 2020 03:38:50 -0500
+        Mon, 20 Jan 2020 03:39:04 -0500
+Received: from pps.filterd (m0098420.ppops.net [127.0.0.1])
+        by mx0b-001b2d01.pphosted.com (8.16.0.42/8.16.0.42) with SMTP id 00K8cuZw121152
+        for <linux-arch@vger.kernel.org>; Mon, 20 Jan 2020 03:39:02 -0500
 Received: from e06smtp05.uk.ibm.com (e06smtp05.uk.ibm.com [195.75.94.101])
-        by mx0a-001b2d01.pphosted.com with ESMTP id 2xmgbnqmxx-1
+        by mx0b-001b2d01.pphosted.com with ESMTP id 2xmg39fyu1-1
         (version=TLSv1.2 cipher=AES256-GCM-SHA384 bits=256 verify=NOT)
-        for <linux-arch@vger.kernel.org>; Mon, 20 Jan 2020 03:38:49 -0500
+        for <linux-arch@vger.kernel.org>; Mon, 20 Jan 2020 03:39:02 -0500
 Received: from localhost
         by e06smtp05.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
         for <linux-arch@vger.kernel.org> from <sandipan@linux.ibm.com>;
-        Mon, 20 Jan 2020 08:36:57 -0000
+        Mon, 20 Jan 2020 08:37:11 -0000
 In-Reply-To: <cover.1579507768.git.sandipan@linux.ibm.com>
 In-Reply-To: <cover.1579507768.git.sandipan@linux.ibm.com>
 References: <cover.1579507768.git.sandipan@linux.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: shuah@kernel.org, linux-kselftest@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, fweimer@redhat.com, dave.hansen@intel.com, x86@kernel.org, linuxram@us.ibm.com, mhocko@kernel.org, linux-mm@kvack.org, mingo@redhat.com, aneesh.kumar@linux.ibm.com, bauerman@linux.ibm.com, msuchanek@suse.de, mpe@ellerman.id.au, linuxppc-dev@lists.ozlabs.org
+Cc: linux-arch@vger.kernel.org, fweimer@redhat.com, dave.hansen@intel.com, x86@kernel.org, linuxram@us.ibm.com, mhocko@kernel.org, linux-mm@kvack.org, mingo@redhat.com, aneesh.kumar@linux.ibm.com, bauerman@linux.ibm.com, msuchanek@suse.de, mpe@ellerman.id.au, linuxppc-dev@lists.ozlabs.org, "Desnes A. Nunes do Rosario" <desnesn@linux.vnet.ibm.com>
 
-From: Ram Pai <linuxram@us.ibm.com>
+From: "Desnes A. Nunes do Rosario" <desnesn@linux.vnet.ibm.com>
 
-In some cases, a pkey's bits need not necessarily change
-in a way that the value of the pkey register increases
-when performing a pkey_disable_set() or decreases when
-performing a pkey_disable_clear().
+The number of reserved pkeys in a PowerNV environment is
+different from that on PowerVM or KVM.
 
-For example, on powerpc, if a pkey's current state is
-PKEY_DISABLE_ACCESS and we perform a pkey_write_disable()
-on it, the bits still remain the same. We will observe
-something similar when the pkey's current state is 0 and
-a pkey_access_enable() is performed on it.
+Tested on PowerVM and PowerNV environments.
 
-Either case would cause some assertions to fail. This
-fixes the problem.
-
-cc: Dave Hansen <dave.hansen@intel.com>
-cc: Florian Weimer <fweimer@redhat.com>
+Signed-off-by: "Desnes A. Nunes do Rosario" <desnesn@linux.vnet.ibm.com>
 Signed-off-by: Ram Pai <linuxram@us.ibm.com>
 Signed-off-by: Sandipan Das <sandipan@linux.ibm.com>
 ---
- tools/testing/selftests/vm/protection_keys.c | 4 ++--
- 1 file changed, 2 insertions(+), 2 deletions(-)
+ tools/testing/selftests/vm/pkey-powerpc.h | 22 ++++++++++++++++++++--
+ 1 file changed, 20 insertions(+), 2 deletions(-)
 
-diff --git a/tools/testing/selftests/vm/protection_keys.c b/tools/testing/selftests/vm/protection_keys.c
-index 4b1ddb526228..7fd52d5c4bfd 100644
---- a/tools/testing/selftests/vm/protection_keys.c
-+++ b/tools/testing/selftests/vm/protection_keys.c
-@@ -400,7 +400,7 @@ void pkey_disable_set(int pkey, int flags)
- 	dprintf1("%s(%d) pkey_reg: 0x%016llx\n",
- 		__func__, pkey, read_pkey_reg());
- 	if (flags)
--		pkey_assert(read_pkey_reg() > orig_pkey_reg);
-+		pkey_assert(read_pkey_reg() >= orig_pkey_reg);
- 	dprintf1("END<---%s(%d, 0x%x)\n", __func__,
- 		pkey, flags);
- }
-@@ -431,7 +431,7 @@ void pkey_disable_clear(int pkey, int flags)
- 	dprintf1("%s(%d) pkey_reg: 0x%016llx\n", __func__,
- 			pkey, read_pkey_reg());
- 	if (flags)
--		assert(read_pkey_reg() < orig_pkey_reg);
-+		assert(read_pkey_reg() <= orig_pkey_reg);
+diff --git a/tools/testing/selftests/vm/pkey-powerpc.h b/tools/testing/selftests/vm/pkey-powerpc.h
+index c79f4160a6a0..319673bbab0b 100644
+--- a/tools/testing/selftests/vm/pkey-powerpc.h
++++ b/tools/testing/selftests/vm/pkey-powerpc.h
+@@ -28,7 +28,10 @@
+ #define NR_RESERVED_PKEYS_4K	27 /* pkey-0, pkey-1, exec-only-pkey
+ 				      and 24 other keys that cannot be
+ 				      represented in the PTE */
+-#define NR_RESERVED_PKEYS_64K	3  /* pkey-0, pkey-1 and exec-only-pkey */
++#define NR_RESERVED_PKEYS_64K_3KEYS	3 /* PowerNV and KVM: pkey-0,
++					     pkey-1 and exec-only key */
++#define NR_RESERVED_PKEYS_64K_4KEYS	4 /* PowerVM: pkey-0, pkey-1,
++					     pkey-31 and exec-only key */
+ #define PKEY_BITS_PER_PKEY	2
+ #define HPAGE_SIZE		(1UL << 24)
+ #define PAGE_SIZE		(1UL << 16)
+@@ -65,12 +68,27 @@ static inline int cpu_has_pku(void)
+ 	return 1;
  }
  
- void pkey_write_allow(int pkey)
++static inline bool arch_is_powervm()
++{
++	struct stat buf;
++
++	if ((stat("/sys/firmware/devicetree/base/ibm,partition-name", &buf) == 0) &&
++	    (stat("/sys/firmware/devicetree/base/hmc-managed?", &buf) == 0) &&
++	    (stat("/sys/firmware/devicetree/base/chosen/qemu,graphic-width", &buf) == -1) )
++		return true;
++
++	return false;
++}
++
+ static inline int get_arch_reserved_keys(void)
+ {
+ 	if (sysconf(_SC_PAGESIZE) == 4096)
+ 		return NR_RESERVED_PKEYS_4K;
+ 	else
+-		return NR_RESERVED_PKEYS_64K;
++		if (arch_is_powervm())
++			return NR_RESERVED_PKEYS_64K_4KEYS;
++		else
++			return NR_RESERVED_PKEYS_64K_3KEYS;
+ }
+ 
+ void expect_fault_on_read_execonly_key(void *p1, int pkey)
 -- 
 2.17.1
