@@ -1,306 +1,47 @@
-Return-Path: <SRS0=lDRc=3L=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:55568 "EHLO
-        merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1725883AbgAVRFh (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 22 Jan 2020 12:05:37 -0500
-Date: Wed, 22 Jan 2020 18:04:56 +0100
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH v7 3/5] locking/qspinlock: Introduce CNA into the slow
- path of qspinlock
-Message-ID: <20200122170456.GY14879@hirez.programming.kicks-ass.net>
-References: <20191125210709.10293-1-alex.kogan@oracle.com>
- <20191125210709.10293-4-alex.kogan@oracle.com>
- <20200121202919.GM11457@worktop.programming.kicks-ass.net>
- <20200122095127.GC14946@hirez.programming.kicks-ass.net>
+Return-Path: <SRS0=nYHR=3J=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mout.kundenserver.de ([212.227.126.130]:48971 "EHLO
+        mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726860AbgATOkn (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 20 Jan 2020 09:40:43 -0500
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20200122095127.GC14946@hirez.programming.kicks-ass.net>
+References: <20200115165749.145649-1-elver@google.com> <CAK8P3a3b=SviUkQw7ZXZF85gS1JO8kzh2HOns5zXoEJGz-+JiQ@mail.gmail.com>
+ <CANpmjNOpTYnF3ssqrE_s+=UA-2MpfzzdrXoyaifb3A55_mc0uA@mail.gmail.com>
+ <CAK8P3a3WywSsahH2vtZ_EOYTWE44YdN+Pj6G8nt_zrL3sckdwQ@mail.gmail.com>
+ <CANpmjNMk2HbuvmN1RaZ=8OV+tx9qZwKyRySONDRQar6RCGM1SA@mail.gmail.com>
+ <CAK8P3a066Knr-KC2v4M8Dr1phr0Gbb2KeZZLQ7Ana0fkrgPDPg@mail.gmail.com>
+ <CANpmjNO395-atZXu_yEArZqAQ+ib3Ack-miEhA9msJ6_eJsh4g@mail.gmail.com> <CANpmjNOH1h=txXnd1aCXTN8THStLTaREcQpzd5QvoXz_3r=8+A@mail.gmail.com>
+In-Reply-To: <CANpmjNOH1h=txXnd1aCXTN8THStLTaREcQpzd5QvoXz_3r=8+A@mail.gmail.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Date: Mon, 20 Jan 2020 15:40:24 +0100
+Message-ID: <CAK8P3a0p9Y8080T-RR2pp-p2_A0FBae7zB-kSq09sMZ_X7AOhw@mail.gmail.com>
+Subject: Re: [PATCH -rcu] asm-generic, kcsan: Add KCSAN instrumentation for bitops
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Alex Kogan <alex.kogan@oracle.com>
-Cc: linux@armlinux.org.uk, mingo@redhat.com, will.deacon@arm.com, arnd@arndb.de, longman@redhat.com, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, bp@alien8.de, hpa@zytor.com, x86@kernel.org, guohanjun@huawei.com, jglauber@marvell.com, steven.sistare@oracle.com, daniel.m.jordan@oracle.com, dave.dice@oracle.com, rahul.x.yadav@oracle.com
-Message-ID: <20200122170456.IbQq87TGBM6R_oee160gvMVt6P5NLXdwSKaOIIV0miM@z>
+To: Marco Elver <elver@google.com>
+Cc: "Paul E. McKenney" <paulmck@kernel.org>, Andrey Konovalov <andreyknvl@google.com>, Alexander Potapenko <glider@google.com>, Dmitry Vyukov <dvyukov@google.com>, kasan-dev <kasan-dev@googlegroups.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Michael Ellerman <mpe@ellerman.id.au>, christophe leroy <christophe.leroy@c-s.fr>, Daniel Axtens <dja@axtens.net>, linux-arch <linux-arch@vger.kernel.org>
+Message-ID: <20200120144024.CPBC8-pJ96bNxMOpVKbio0u4Dwc5HQfoEEks_Z6RYxM@z>
 
-On Wed, Jan 22, 2020 at 10:51:27AM +0100, Peter Zijlstra wrote:
-> On Tue, Jan 21, 2020 at 09:29:19PM +0100, Peter Zijlstra wrote:
-> > 
-> > various notes and changes in the below.
-> 
-> Also, sorry for replying to v7 and v8, I forgot to refresh email on the
-> laptop and had spotty cell service last night and only found v7 in that
-> mailbox.
-> 
-> Afaict none of the things I commented on were fundamentally changed
-> though.
+On Mon, Jan 20, 2020 at 3:23 PM Marco Elver <elver@google.com> wrote:
+> On Fri, 17 Jan 2020 at 14:14, Marco Elver <elver@google.com> wrote:
+> > On Fri, 17 Jan 2020 at 13:25, Arnd Bergmann <arnd@arndb.de> wrote:
+> > > On Wed, Jan 15, 2020 at 9:50 PM Marco Elver <elver@google.com> wrote:
 
-But since I was editing, here is the latest version..
+> > > If you can't find any, I would prefer having the simpler interface
+> > > with just one set of annotations.
+> >
+> > That's fair enough. I'll prepare a v2 series that first introduces the
+> > new header, and then applies it to the locations that seem obvious
+> > candidates for having both checks.
+>
+> I've sent a new patch series which introduces instrumented.h:
+>    http://lkml.kernel.org/r/20200120141927.114373-1-elver@google.com
 
----
+Looks good to me, feel free to add
 
-Index: linux-2.6/kernel/locking/qspinlock_cna.h
-===================================================================
---- /dev/null
-+++ linux-2.6/kernel/locking/qspinlock_cna.h
-@@ -0,0 +1,261 @@
-+/* SPDX-License-Identifier: GPL-2.0 */
-+#ifndef _GEN_CNA_LOCK_SLOWPATH
-+#error "do not include this file"
-+#endif
-+
-+#include <linux/topology.h>
-+
-+/*
-+ * Implement a NUMA-aware version of MCS (aka CNA, or compact NUMA-aware lock).
-+ *
-+ * In CNA, spinning threads are organized in two queues, a primary queue for
-+ * threads running on the same NUMA node as the current lock holder, and a
-+ * secondary queue for threads running on other nodes. Schematically, it looks
-+ * like this:
-+ *
-+ *    cna_node
-+ *   +----------+     +--------+         +--------+
-+ *   |mcs:next  | --> |mcs:next| --> ... |mcs:next| --> NULL  [Primary queue]
-+ *   |mcs:locked| -.  +--------+         +--------+
-+ *   +----------+  |
-+ *                 `----------------------.
-+ *                                        v
-+ *                 +--------+         +--------+
-+ *                 |mcs:next| --> ... |mcs:next|            [Secondary queue]
-+ *                 +--------+         +--------+
-+ *                     ^                    |
-+ *                     `--------------------'
-+ *
-+ * N.B. locked := 1 if secondary queue is absent. Otherwise, it contains the
-+ * encoded pointer to the tail of the secondary queue, which is organized as a
-+ * circular list.
-+ *
-+ * After acquiring the MCS lock and before acquiring the spinlock, the lock
-+ * holder scans the primary queue looking for a thread running on the same node
-+ * (pre-scan). If found (call it thread T), all threads in the primary queue
-+ * between the current lock holder and T are moved to the end of the secondary
-+ * queue.  If such T is not found, we make another scan of the primary queue
-+ * when unlocking the MCS lock (post-scan), starting at the node where pre-scan
-+ * stopped. If both scans fail to find such T, the MCS lock is passed to the
-+ * first thread in the secondary queue. If the secondary queue is empty, the
-+ * lock is passed to the next thread in the primary queue.
-+ *
-+ * For more details, see https://arxiv.org/abs/1810.05600.
-+ *
-+ * Authors: Alex Kogan <alex.kogan@oracle.com>
-+ *          Dave Dice <dave.dice@oracle.com>
-+ */
-+
-+struct cna_node {
-+	struct mcs_spinlock	mcs;
-+	int			numa_node;
-+	u32			encoded_tail;    /* self */
-+	u32			partial_order;
-+};
-+
-+static void __init cna_init_nodes_per_cpu(unsigned int cpu)
-+{
-+	struct mcs_spinlock *base = per_cpu_ptr(&qnodes[0].mcs, cpu);
-+	int numa_node = cpu_to_node(cpu);
-+	int i;
-+
-+	for (i = 0; i < MAX_NODES; i++) {
-+		struct cna_node *cn = (struct cna_node *)grab_mcs_node(base, i);
-+
-+		cn->numa_node = numa_node;
-+		cn->encoded_tail = encode_tail(cpu, i);
-+		/*
-+		 * @encoded_tail has to be larger than 1, so we do not confuse
-+		 * it with other valid values for @locked or @partial_order
-+		 * (0 or 1)
-+		 */
-+		WARN_ON(cn->encoded_tail <= 1);
-+	}
-+}
-+
-+static int __init cna_init_nodes(void)
-+{
-+	unsigned int cpu;
-+
-+	/*
-+	 * this will break on 32bit architectures, so we restrict
-+	 * the use of CNA to 64bit only (see arch/x86/Kconfig)
-+	 */
-+	BUILD_BUG_ON(sizeof(struct cna_node) > sizeof(struct qnode));
-+	/* we store an ecoded tail word in the node's @locked field */
-+	BUILD_BUG_ON(sizeof(u32) > sizeof(unsigned int));
-+
-+	for_each_possible_cpu(cpu)
-+		cna_init_nodes_per_cpu(cpu);
-+
-+	return 0;
-+}
-+early_initcall(cna_init_nodes);
-+
-+/*
-+ * cna_splice_tail -- splice nodes in the primary queue between [first, last]
-+ * onto the secondary queue.
-+ */
-+static void cna_splice_tail(struct mcs_spinlock *node,
-+			    struct mcs_spinlock *first,
-+			    struct mcs_spinlock *last)
-+{
-+	/* remove [first,last] */
-+	node->next = last->next;
-+
-+	/* stick [first,last] on the secondary queue tail */
-+	if (node->locked <= 1) { /* if secondary queue is empty */
-+		/* create secondary queue */
-+		last->next = first;
-+	} else {
-+		/* add to the tail of the secondary queue */
-+		struct mcs_spinlock *tail_2nd = decode_tail(node->locked);
-+		struct mcs_spinlock *head_2nd = tail_2nd->next;
-+
-+		tail_2nd->next = first;
-+		last->next = head_2nd;
-+	}
-+
-+	node->locked = ((struct cna_node *)last)->encoded_tail;
-+}
-+
-+/*
-+ * cna_order_queue - scan the primary queue looking for the first lock node on
-+ * the same NUMA node as the lock holder and move any skipped nodes onto the
-+ * secondary queue.
-+ *
-+ * Returns 0 if a matching node is found; otherwise return the encoded pointer
-+ * to the last element inspected (such that a subsequent scan can continue there).
-+ *
-+ * The worst case complexity of the scan is O(n), where n is the number
-+ * of current waiters. However, the amortized complexity is close to O(1),
-+ * as the immediate successor is likely to be running on the same node once
-+ * threads from other nodes are moved to the secondary queue.
-+ *
-+ * XXX does not compute; given equal contention it should average to O(nr_nodes).
-+ */
-+static u32 cna_order_queue(struct mcs_spinlock *node,
-+			   struct mcs_spinlock *iter)
-+{
-+	struct cna_node *cni = (struct cna_node *)READ_ONCE(iter->next);
-+	struct cna_node *cn = (struct cna_node *)node;
-+	int nid = cn->numa_node;
-+	struct cna_node *last;
-+
-+	/* find any next waiter on 'our' NUMA node */
-+	for (last = cn;
-+	     cni && cni->numa_node != nid;
-+	     last = cni, cni = (struct cna_node *)READ_ONCE(cni->mcs.next))
-+		;
-+
-+	if (!cna)
-+		return last->encoded_tail; /* continue from here */
-+
-+	if (last != cn)	/* did we skip any waiters? */
-+		cna_splice_tail(node, node->next, (struct mcs_spinlock *)last);
-+
-+	return 0;
-+}
-+
-+/*
-+ * cna_splice_head -- splice the entire secondary queue onto the head of the
-+ * primary queue.
-+ */
-+static cna_splice_head(struct qspinlock *lock, u32 val,
-+		       struct mcs_spinlock *node, struct mcs_spinlock *next)
-+{
-+	struct mcs_spinlock *head_2nd, *tail_2nd;
-+
-+	tail_2nd = decode_tail(node->locked);
-+	head_2nd = tail_2nd->next;
-+
-+	if (lock) {
-+		u32 new = ((struct cna_node *)tail_2nd)->encoded_tail | _Q_LOCKED_VAL;
-+		if (!atomic_try_cmpxchg_relaxed(&lock->val, &val, new))
-+			return NULL;
-+
-+		/*
-+		 * The moment we've linked the primary tail we can race with
-+		 * the WRITE_ONCE(prev->next, node) store from new waiters.
-+		 * That store must win.
-+		 */
-+		cmpxchg_relaxed(&tail_2nd->next, head_2nd, next);
-+	} else {
-+		tail_2nd->next = next;
-+	}
-+
-+	return head_2nd;
-+}
-+
-+/* Abuse the pv_wait_head_or_lock() hook to get some work done */
-+static __always_inline u32 cna_wait_head_or_lock(struct qspinlock *lock,
-+						 struct mcs_spinlock *node)
-+{
-+	struct cna_node *cn = (struct cna_node *)node;
-+
-+	/*
-+	 * Try and put the time otherwise spend spin waiting on
-+	 * _Q_LOCKED_PENDING_MASK to use by sorting our lists.
-+	 */
-+	cn->partial_order = cna_order_queue(node, node);
-+
-+	return 0; /* we lied; we didn't wait, go do so now */
-+}
-+
-+static inline bool cna_try_clear_tail(struct qspinlock *lock, u32 val,
-+				      struct mcs_spinlock *node)
-+{
-+	struct mcs_spinlock *next;
-+
-+	/*
-+	 * We're here because the primary queue is empty; check the secondary
-+	 * queue for remote waiters.
-+	 */
-+	if (node->locked > 1) {
-+		/*
-+		 * When there are waiters on the secondary queue move them back
-+		 * onto the primary queue and let them rip.
-+		 */
-+		next = cna_splice_head(lock, val, node, NULL);
-+		if (next) {
-+			arch_mcs_pass_lock(&head_2nd->locked, 1);
-+			return true;
-+		}
-+
-+		return false;
-+	}
-+
-+	/* Both queues empty. */
-+	return __try_clear_tail(lock, val, node);
-+}
-+
-+static inline void cna_pass_lock(struct mcs_spinlock *node,
-+				 struct mcs_spinlock *next)
-+{
-+	struct cna_node *cn = (struct cna_node *)node;
-+	u32 partial_order = cn->partial_order;
-+	u32 val = _Q_LOCKED_VAL;
-+
-+	/* cna_wait_head_or_lock() left work for us. */
-+	if (partial_order) {
-+		partial_order = cna_order_queue(node, decode_tail(partial_order));
-+
-+	if (!partial_order) {
-+		/*
-+		 * We found a local waiter; reload @next in case we called
-+		 * cna_order_queue() above.
-+		 */
-+		next = node->next;
-+		val |= node->locked;	/* preseve secondary queue */
-+
-+	} else if (node->locked > 1) {
-+		/*
-+		 * When there are no local waiters on the primary queue, splice
-+		 * the secondary queue onto the primary queue and pass the lock
-+		 * to the longest waiting remote waiter.
-+		 */
-+		next = cna_splice_head(NULL, 0, node, next);
-+	}
-+
-+	arch_mcs_pass_lock(&next->locked, val);
-+}
+Acked-by: Arnd Bergmann <arnd@arndb.de>
+
+if you are merging this through your own tree or someone else's,
+or let me know if I should put it into the asm-generic git tree.
+
+     Arnd
