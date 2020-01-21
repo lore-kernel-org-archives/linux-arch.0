@@ -1,112 +1,146 @@
-Return-Path: <SRS0=zFKq=3O=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from us-smtp-1.mimecast.com ([205.139.110.61]:29044 "EHLO
-        us-smtp-delivery-1.mimecast.com" rhost-flags-OK-OK-OK-FAIL)
-        by vger.kernel.org with ESMTP id S1729660AbgAYAjA (ORCPT
+Return-Path: <SRS0=zjVl=3K=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mx0b-0016f401.pphosted.com ([67.231.156.173]:55252 "EHLO
+        mx0b-0016f401.pphosted.com" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S1725789AbgAUJV4 (ORCPT
         <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 24 Jan 2020 19:39:00 -0500
-Subject: Re: [PATCH v8 4/5] locking/qspinlock: Introduce starvation avoidance
- into CNA
+        Tue, 21 Jan 2020 04:21:56 -0500
+From: Shijith Thotton <sthotton@marvell.com>
+Subject: Re: [PATCH v8 0/5] Add NUMA-awareness to qspinlock
+Date: Tue, 21 Jan 2020 09:21:00 +0000
+Message-ID: <20200121092034.GA18209@dc5-eodlnx05.marvell.com>
 References: <20191230194042.67789-1-alex.kogan@oracle.com>
- <20191230194042.67789-5-alex.kogan@oracle.com>
- <20200121132949.GL14914@hirez.programming.kicks-ass.net>
- <cfdf635d-be2e-9d4b-c4ca-6bcbddc6868f@redhat.com>
- <3862F8A1-FF9B-40AD-A88E-2C0BA7AF6F58@oracle.com>
- <20200124075235.GX14914@hirez.programming.kicks-ass.net>
- <2c6741c5-d89d-4b2c-cebe-a7c7f6eed884@redhat.com>
- <48ce49e5-98a7-23cd-09f4-8290a65abbb5@redhat.com>
- <8D3AFB47-B595-418C-9568-08780DDC58FF@oracle.com>
- <714892cd-d96f-4d41-ae8b-d7b7642a6e3c@redhat.com>
- <1669BFDE-A1A5-4ED8-B586-035460BBF68A@oracle.com>
- <45660873-731a-a810-8c57-1a5a19d266b4@redhat.com>
- <693E6287-E37C-4C5D-BE33-B3D813BE505D@oracle.com>
- <edc53126-bfe4-5102-d2eb-2332bf3a68e5@redhat.com>
- <D39064BF-6EF3-4C13-B2D1-34C282A20F5E@oracle.com>
-From: Waiman Long <longman@redhat.com>
-Message-ID: <518185c1-c03a-7e8c-9d09-f67e42c9bc82@redhat.com>
-Date: Fri, 24 Jan 2020 19:38:50 -0500
-MIME-Version: 1.0
-In-Reply-To: <D39064BF-6EF3-4C13-B2D1-34C282A20F5E@oracle.com>
-Content-Type: text/plain; charset=utf-8
+ <20200108050847.GA12944@dc5-eodlnx05.marvell.com>
+In-Reply-To: <20200108050847.GA12944@dc5-eodlnx05.marvell.com>
 Content-Language: en-US
+Content-Type: text/plain; charset="us-ascii"
+Content-ID: <ADD514F62B5A6C4680B5DD2D357797CB@namprd18.prod.outlook.com>
 Content-Transfer-Encoding: quoted-printable
+MIME-Version: 1.0
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Alex Kogan <alex.kogan@oracle.com>
-Cc: Peter Zijlstra <peterz@infradead.org>, linux@armlinux.org.uk, Ingo Molnar <mingo@redhat.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-arm-kernel <linux-arm-kernel@lists.infradead.org>, linux-kernel@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>, Borislav Petkov <bp@alien8.de>, hpa@zytor.com, x86@kernel.org, Hanjun Guo <guohanjun@huawei.com>, Jan Glauber <jglauber@marvell.com>, Steven Sistare <steven.sistare@oracle.com>, Daniel Jordan <daniel.m.jordan@oracle.com>, dave.dice@oracle.com
-Message-ID: <20200125003850.Vw9E3VI0LUOXJ7Yq22YH6_ZDP-Dr3tJxKgCiErNMuAA@z>
+To: Alex Kogan <alex.kogan@oracle.com>, "will@kernel.org" <will@kernel.org>, "catalin.marinas@arm.com" <catalin.marinas@arm.com>
+Cc: "linux@armlinux.org.uk" <linux@armlinux.org.uk>, "peterz@infradead.org" <peterz@infradead.org>, "mingo@redhat.com" <mingo@redhat.com>, "arnd@arndb.de" <arnd@arndb.de>, "longman@redhat.com" <longman@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "tglx@linutronix.de" <tglx@linutronix.de>, "bp@alien8.de" <bp@alien8.de>, "hpa@zytor.com" <hpa@zytor.com>, "x86@kernel.org" <x86@kernel.org>, "guohanjun@huawei.com" <guohanjun@huawei.com>, "steven.sistare@oracle.com" <steven.sistare@oracle.com>, "daniel.m.jordan@oracle.com" <daniel.m.jordan@oracle.com>, "dave.dice@oracle.com" <dave.dice@oracle.com>
+Message-ID: <20200121092100.A9gwa7GoRRc7y_3idTR6pCuYJL--m5forC2DuburBGg@z>
 
-On 1/24/20 4:27 PM, Alex Kogan wrote:
->
->> On Jan 24, 2020, at 4:12 PM, Waiman Long <longman@redhat.com> wrote:
->>
->> On 1/24/20 3:09 PM, Alex Kogan wrote:
->>>>> We also probably do not want those =E2=80=9Cprioritized=E2=80=9D th=
-reads to disrupt
->>>>> normal
->>>>> CNA operation. E.g., if the main queue looks like T1_1, P2_1, T1_2,
->>>>> =E2=80=A6, where
->>>>> T1_x is a thread running on node 1 and P2_1 is a prioritized thread
->>>>> running
->>>>> on node 2, we want to pass the lock from T1_1 to P2_1 and then to T=
-1_2
->>>>> (rather than have P2_1 to scan for another thread on node 2).
->>>>>
->>>>> There is a way to achieve that =E2=80=94 when we pass the lock to P=
-2_1,
->>>>> we can set its numa node field to 1. This means that we need to
->>>>> reset the numa
->>>>> node field in cna_init_node(), but AFAICT this is relatively cheap.
->>>>> The rest
->>>>> of the CNA logic should not change.
->>>> I won't recommend doing that. If the lock cacheline has been moved
->>>> from node 1 to 2, I will say it is better to stick with node 2 rathe=
-r
->>>> than switching back to node 1. That will mean that the secondary
->>>> queue may contain lock waiters from the same nodes, but they will
->>>> eventually be flushed back to the primary queue.
->>>>
->>> That=E2=80=99s right, assuming we do not reset intra_node count when
->>> transferring the
->>> lock to a prioritized thread from another node. Otherwise, we may sta=
-rve
->>> waiters in the secondary queue.=20
->>>
->>> Still, that can make the lock even less fair to non-prioritized
->>> threads. When
->>> you flush the secondary queue, the preference may remain with the sam=
+Hi Will/Catalin,
+
+On Wed, Jan 08, 2020 at 05:09:05AM +0000, Shijith Thotton wrote:
+> On Mon, Dec 30, 2019 at 02:40:37PM -0500, Alex Kogan wrote:
+> > Minor changes from v7 based on feedback from Longman:
+> > -----------------------------------------------------
+> >=20
+> > - Move __init functions from alternative.c to qspinlock_cna.h
+> >=20
+> > - Introduce enum for return values from cna_pre_scan(), for better
+> > readability.
+> >=20
+> > - Add/revise a few comments to improve readability.
+> >=20
+> >=20
+> > Summary
+> > -------
+> >=20
+> > Lock throughput can be increased by handing a lock to a waiter on the
+> > same NUMA node as the lock holder, provided care is taken to avoid
+> > starvation of waiters on other NUMA nodes. This patch introduces CNA
+> > (compact NUMA-aware lock) as the slow path for qspinlock. It is
+> > enabled through a configuration option (NUMA_AWARE_SPINLOCKS).
+> >=20
+> > CNA is a NUMA-aware version of the MCS lock. Spinning threads are
+> > organized in two queues, a main queue for threads running on the same
+> > node as the current lock holder, and a secondary queue for threads
+> > running on other nodes. Threads store the ID of the node on which
+> > they are running in their queue nodes. After acquiring the MCS lock and
+> > before acquiring the spinlock, the lock holder scans the main queue
+> > looking for a thread running on the same node (pre-scan). If found (cal=
+l
+> > it thread T), all threads in the main queue between the current lock
+> > holder and T are moved to the end of the secondary queue.  If such T
+> > is not found, we make another scan of the main queue after acquiring=20
+> > the spinlock when unlocking the MCS lock (post-scan), starting at the
+> > node where pre-scan stopped. If both scans fail to find such T, the
+> > MCS lock is passed to the first thread in the secondary queue. If the
+> > secondary queue is empty, the MCS lock is passed to the next thread in =
+the
+> > main queue. To avoid starvation of threads in the secondary queue, thos=
 e
->>> node. This will not happen in the current form of CNA, as we never ge=
-t=20
->>> threads from the preferred node in the secondary queue.
->> That is true.
->>
->> However, it is no different from the current scheme that a waiter from
->> another node may have to wait for 64k other waiters to go first before
->> it has a chance to get it. Now that waiter can be from the same node a=
-s
->> well.
-> The difference is that in the current form of CNA, the preferred node _=
-will
-> change after 64k lock transitions. In the change you propose, this is n=
-o
-> longer the case. It may take another ~64k transitions for that to happe=
-n.
-> More generally, I think this makes the analysis of the lock behavior mo=
-re
-> convoluted.
->
-> I think we should treat those prioritized threads as =E2=80=9Cwild=E2=80=
-=9D cards, passing the=20
-> lock through them, but keeping the preferred node intact. This will pot=
-entially
-> cost one extra lock migration, but will make reasoning about the lock
-> behavior easier.
+> > threads are moved back to the head of the main queue after a certain
+> > number of intra-node lock hand-offs.
+> >=20
+> > More details are available at https://urldefense.proofpoint.com/v2/url?=
+u=3Dhttps-3A__arxiv.org_abs_1810.05600&d=3DDwIDAg&c=3DnKjWec2b6R0mOyPaz7xtf=
+Q&r=3DG9w4KsPaQLACBfGCL35PtiRH996yqJDxAZwrWegU2qQ&m=3DAoOLTQlgNjtdBvY_yWd6V=
+iBXrVM6o2wqXOdFA4B_F2A&s=3DyUjG9gfi3BtLKDEjgki86h52GVXMvDQ6ZClMvoIG034&e=3D=
+ .
+> >=20
+> > The series applies on top of v5.5.0-rc2, commit ea200dec51.
+> > Performance numbers are available in previous revisions
+> > of the series.
+> >=20
+> > Further comments are welcome and appreciated.
+> >=20
+> > Alex Kogan (5):
+> >   locking/qspinlock: Rename mcs lock/unlock macros and make them more
+> >     generic
+> >   locking/qspinlock: Refactor the qspinlock slow path
+> >   locking/qspinlock: Introduce CNA into the slow path of qspinlock
+> >   locking/qspinlock: Introduce starvation avoidance into CNA
+> >   locking/qspinlock: Introduce the shuffle reduction optimization into
+> >     CNA
+> >=20
+> >  .../admin-guide/kernel-parameters.txt         |  18 +
+> >  arch/arm/include/asm/mcs_spinlock.h           |   6 +-
+> >  arch/x86/Kconfig                              |  20 +
+> >  arch/x86/include/asm/qspinlock.h              |   4 +
+> >  arch/x86/kernel/alternative.c                 |   4 +
+> >  include/asm-generic/mcs_spinlock.h            |   4 +-
+> >  kernel/locking/mcs_spinlock.h                 |  20 +-
+> >  kernel/locking/qspinlock.c                    |  82 +++-
+> >  kernel/locking/qspinlock_cna.h                | 400 ++++++++++++++++++
+> >  kernel/locking/qspinlock_paravirt.h           |   2 +-
+> >  10 files changed, 537 insertions(+), 23 deletions(-)
+> >  create mode 100644 kernel/locking/qspinlock_cna.h
+> >=20
+> > --=20
+> > 2.21.0 (Apple Git-122.2)
+> >
+>=20
+> Tried out queued spinlock slowpath improvements on arm64 (ThunderX2) by
+> hardwiring CNA APIs to queued_spin_lock_slowpath() and numbers are pretty
+> good with the CNA changes.
+>=20
+> Speed-up on v5.5-rc4 kernel:
+>=20
+> will-it-scale/open1_threads:
+> #thr    speed-up
+> 1        1.00
+> 2        0.97
+> 4        0.98
+> 8        1.02
+> 16       0.95
+> 32       1.63
+> 64       1.70
+> 128      2.09
+> 224      2.16
+>=20
+> will-it-scale/lock2_threads:
+> #thr    speed-up
+> 1        0.98
+> 2        0.99
+> 4        0.90  =20
+> 8        0.98
+> 16       0.99
+> 32       1.52
+> 64       2.31
+> 128      2.25  =20
+> 224      2.04  =20
+>=20
+> #thr - number of threads
+> speed-up - number with CNA patch / number with stock kernel
+>=20
+> Please share your thoughts on best way to enable this series on arm64.
 
-It seems like you prefer mathematical purity than practical
-consideration. I won't object to that if you insist that is the right
-way to go. Just be mindful that you may need to add a preferred node
-value to do that. It will also complicate the code, but it is your choice=
-.
+Please comment if you got a chance to look at this.=20
 
-Cheers,
-Longman
+Thanks,
+Shijith
