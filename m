@@ -1,40 +1,44 @@
-Return-Path: <SRS0=nYHR=3J=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail.skyhub.de ([5.9.137.197]:49074 "EHLO mail.skyhub.de"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726642AbgATR7I (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 20 Jan 2020 12:59:08 -0500
-Date: Mon, 20 Jan 2020 18:59:01 +0100
-From: Borislav Petkov <bp@alien8.de>
-Subject: Re: [PATCH v2 00/10] Impveovements for random.h/archrandom.h
-Message-ID: <20200120175901.GB576@zn.tnic>
-References: <20200110145422.49141-1-broonie@kernel.org>
- <20200110155153.GG19453@zn.tnic>
- <20200110170559.GA304349@mit.edu>
- <20200120172627.GH6852@sirena.org.uk>
+Return-Path: <SRS0=zjVl=3K=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from merlin.infradead.org ([205.233.59.134]:41306 "EHLO
+        merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1725789AbgAUJQH (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jan 2020 04:16:07 -0500
+Date: Tue, 21 Jan 2020 10:15:01 +0100
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH 3/5] asm-generic, kcsan: Add KCSAN instrumentation for
+ bitops
+Message-ID: <20200121091501.GF14914@hirez.programming.kicks-ass.net>
+References: <20200120141927.114373-1-elver@google.com>
+ <20200120141927.114373-3-elver@google.com>
+ <20200120144048.GB14914@hirez.programming.kicks-ass.net>
+ <20200120162725.GE2935@paulmck-ThinkPad-P72>
+ <20200120165223.GC14914@hirez.programming.kicks-ass.net>
+ <20200120202359.GF2935@paulmck-ThinkPad-P72>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
+Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20200120172627.GH6852@sirena.org.uk>
+In-Reply-To: <20200120202359.GF2935@paulmck-ThinkPad-P72>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Mark Brown <broonie@kernel.org>
-Cc: "Theodore Y. Ts'o" <tytso@mit.edu>, Andrew Morton <akpm@linux-foundation.org>, linux-arch@vger.kernel.org, Richard Henderson <richard.henderson@linaro.org>, linux-s390@vger.kernel.org, herbert@gondor.apana.org.au, x86@kernel.org, linux-crypto@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-arm-kernel@lists.infradead.org
-Message-ID: <20200120175901.XarT4mumt8DnFV116PFkiB4ZSVSqda13D4rZtrW5bsw@z>
+To: "Paul E. McKenney" <paulmck@kernel.org>
+Cc: Marco Elver <elver@google.com>, andreyknvl@google.com, glider@google.com, dvyukov@google.com, kasan-dev@googlegroups.com, linux-kernel@vger.kernel.org, mark.rutland@arm.com, will@kernel.org, boqun.feng@gmail.com, arnd@arndb.de, viro@zeniv.linux.org.uk, christophe.leroy@c-s.fr, dja@axtens.net, mpe@ellerman.id.au, rostedt@goodmis.org, mhiramat@kernel.org, mingo@kernel.org, christian.brauner@ubuntu.com, daniel@iogearbox.net, cyphar@cyphar.com, keescook@chromium.org, linux-arch@vger.kernel.org
+Message-ID: <20200121091501.SZ42_151ZfoJEr8YiwHsMMpE6r_VVXRwcfyn7ZgSE60@z>
 
-On Mon, Jan 20, 2020 at 05:26:27PM +0000, Mark Brown wrote:
-> I think the important thing here is that *someone* takes the patches.
-> We've now got Ted and Borislav both saying they're OK applying the
-> patches, an additional proposal that Andrew takes the patches, nobody
-> saying anything negative about applying the patches and yet the patches
-> are not applied.  The random tree sounds like a sensible enough tree to
-> take this so if Ted picks them up perhaps that's most sensible?
+On Mon, Jan 20, 2020 at 12:23:59PM -0800, Paul E. McKenney wrote:
+> We also don't have __atomic_read() and __atomic_set(), yet atomic_read()
+> and atomic_set() are considered to be non-racy, right?
 
-Yes, Ted, pls pick them up so that we're done with this.
+What is racy? :-) You can make data races with atomic_{read,set}() just
+fine.
 
-Thx.
+Anyway, traditionally we call the read-modify-write stuff atomic, not
+the trivial load-store stuff. The only reason we care about the
+load-store stuff in the first place is because C compilers are shit.
 
--- 
-Regards/Gruss,
-    Boris.
+atomic_read() / test_bit() are just a load, all we need is the C
+compiler not to be an ass and split it. Yes, we've invented the term
+single-copy atomicity for that, but that doesn't make it more or less of
+a load.
 
-https://people.kernel.org/tglx/notes-about-netiquette
+And exactly because it is just a load, there is no __test_bit(), which
+would be the exact same load.
