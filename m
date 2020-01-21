@@ -1,102 +1,64 @@
-Return-Path: <SRS0=XOKs=3M=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:51954 "EHLO mail.kernel.org"
+Return-Path: <SRS0=zjVl=3K=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail.kernel.org ([198.145.29.99]:48542 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1729159AbgAWPeP (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 23 Jan 2020 10:34:15 -0500
-From: Will Deacon <will@kernel.org>
-Subject: [PATCH v2 08/10] arm64: barrier: Use '__unqual_scalar_typeof' for acquire/release macros
-Date: Thu, 23 Jan 2020 15:33:39 +0000
-Message-ID: <20200123153341.19947-9-will@kernel.org>
-In-Reply-To: <20200123153341.19947-1-will@kernel.org>
-References: <20200123153341.19947-1-will@kernel.org>
+        id S1726555AbgAUQQd (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 21 Jan 2020 11:16:33 -0500
+Date: Tue, 21 Jan 2020 08:16:32 -0800
+From: "Paul E. McKenney" <paulmck@kernel.org>
+Subject: Re: [PATCH 3/5] asm-generic, kcsan: Add KCSAN instrumentation for
+ bitops
+Message-ID: <20200121161632.GV2935@paulmck-ThinkPad-P72>
+Reply-To: paulmck@kernel.org
+References: <20200120141927.114373-1-elver@google.com>
+ <20200120141927.114373-3-elver@google.com>
+ <20200120144048.GB14914@hirez.programming.kicks-ass.net>
+ <20200120162725.GE2935@paulmck-ThinkPad-P72>
+ <20200120165223.GC14914@hirez.programming.kicks-ass.net>
+ <20200120202359.GF2935@paulmck-ThinkPad-P72>
+ <20200121091501.GF14914@hirez.programming.kicks-ass.net>
+ <20200121142109.GQ2935@paulmck-ThinkPad-P72>
+ <20200121144716.GQ14879@hirez.programming.kicks-ass.net>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20200121144716.GQ14879@hirez.programming.kicks-ass.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, kernel-team@android.com, Will Deacon <will@kernel.org>, Michael Ellerman <mpe@ellerman.id.au>, Peter Zijlstra <peterz@infradead.org>, Linus Torvalds <torvalds@linux-foundation.org>, Segher Boessenkool <segher@kernel.crashing.org>, Christian Borntraeger <borntraeger@de.ibm.com>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>, Arnd Bergmann <arnd@arndb.de>, Peter Oberparleiter <oberpar@linux.ibm.com>, Masahiro Yamada <masahiroy@kernel.org>, Nick Desaulniers <ndesaulniers@google.com>, Mark Rutland <mark.rutland@arm.com>
-Message-ID: <20200123153339.yddSGx1_1SGk6AcjpNMVLeZ9KWvmSvK7Y6VZc3ADgEw@z>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Marco Elver <elver@google.com>, andreyknvl@google.com, glider@google.com, dvyukov@google.com, kasan-dev@googlegroups.com, linux-kernel@vger.kernel.org, mark.rutland@arm.com, will@kernel.org, boqun.feng@gmail.com, arnd@arndb.de, viro@zeniv.linux.org.uk, christophe.leroy@c-s.fr, dja@axtens.net, mpe@ellerman.id.au, rostedt@goodmis.org, mhiramat@kernel.org, mingo@kernel.org, christian.brauner@ubuntu.com, daniel@iogearbox.net, cyphar@cyphar.com, keescook@chromium.org, linux-arch@vger.kernel.org
+Message-ID: <20200121161632.-XW8An9yJ9HTJjLReguEXC0Mh4qhF6c-OR7MdcotDJY@z>
 
-Passing volatile-qualified pointers to the arm64 implementations of the
-load-acquire/store-release macros results in a re-load from the stack
-and a bunch of associated stack-protector churn due to the temporary
-result variable inheriting the volatile semantics thanks to the use of
-'typeof()'.
+On Tue, Jan 21, 2020 at 03:47:16PM +0100, Peter Zijlstra wrote:
+> On Tue, Jan 21, 2020 at 06:21:09AM -0800, Paul E. McKenney wrote:
+> > On Tue, Jan 21, 2020 at 10:15:01AM +0100, Peter Zijlstra wrote:
+> > > On Mon, Jan 20, 2020 at 12:23:59PM -0800, Paul E. McKenney wrote:
+> > > > We also don't have __atomic_read() and __atomic_set(), yet atomic_read()
+> > > > and atomic_set() are considered to be non-racy, right?
+> > > 
+> > > What is racy? :-) You can make data races with atomic_{read,set}() just
+> > > fine.
+> > 
+> > Like "fairness", lots of definitions of "racy".  ;-)
+> > 
+> > > Anyway, traditionally we call the read-modify-write stuff atomic, not
+> > > the trivial load-store stuff. The only reason we care about the
+> > > load-store stuff in the first place is because C compilers are shit.
+> > > 
+> > > atomic_read() / test_bit() are just a load, all we need is the C
+> > > compiler not to be an ass and split it. Yes, we've invented the term
+> > > single-copy atomicity for that, but that doesn't make it more or less of
+> > > a load.
+> > > 
+> > > And exactly because it is just a load, there is no __test_bit(), which
+> > > would be the exact same load.
+> > 
+> > Very good!  Shouldn't KCSAN then define test_bit() as non-racy just as
+> > for atomic_read()?
+> 
+> Sure it does; but my comment was aimed at the gripe that test_bit()
+> lives in the non-atomic bitops header. That is arguably entirely
+> correct.
 
-Define these temporary variables using 'unqual_scalar_typeof' to drop
-the volatile qualifier in the case that they are scalar types.
+Fair enough!
 
-Cc: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Peter Zijlstra <peterz@infradead.org>
-Cc: Arnd Bergmann <arnd@arndb.de>
-Acked-by: Mark Rutland <mark.rutland@arm.com>
-Signed-off-by: Will Deacon <will@kernel.org>
----
- arch/arm64/include/asm/barrier.h | 16 ++++++++--------
- 1 file changed, 8 insertions(+), 8 deletions(-)
-
-diff --git a/arch/arm64/include/asm/barrier.h b/arch/arm64/include/asm/barrier.h
-index 7d9cc5ec4971..fb4c27506ef4 100644
---- a/arch/arm64/include/asm/barrier.h
-+++ b/arch/arm64/include/asm/barrier.h
-@@ -76,8 +76,8 @@ static inline unsigned long array_index_mask_nospec(unsigned long idx,
- #define __smp_store_release(p, v)					\
- do {									\
- 	typeof(p) __p = (p);						\
--	union { typeof(*p) __val; char __c[1]; } __u =			\
--		{ .__val = (__force typeof(*p)) (v) };			\
-+	union { __unqual_scalar_typeof(*p) __val; char __c[1]; } __u =	\
-+		{ .__val = (__force __unqual_scalar_typeof(*p)) (v) };	\
- 	compiletime_assert_atomic_type(*p);				\
- 	kasan_check_write(__p, sizeof(*p));				\
- 	switch (sizeof(*p)) {						\
-@@ -110,7 +110,7 @@ do {									\
- 
- #define __smp_load_acquire(p)						\
- ({									\
--	union { typeof(*p) __val; char __c[1]; } __u;			\
-+	union { __unqual_scalar_typeof(*p) __val; char __c[1]; } __u;	\
- 	typeof(p) __p = (p);						\
- 	compiletime_assert_atomic_type(*p);				\
- 	kasan_check_read(__p, sizeof(*p));				\
-@@ -136,33 +136,33 @@ do {									\
- 			: "Q" (*__p) : "memory");			\
- 		break;							\
- 	}								\
--	__u.__val;							\
-+	(typeof(*p))__u.__val;						\
- })
- 
- #define smp_cond_load_relaxed(ptr, cond_expr)				\
- ({									\
- 	typeof(ptr) __PTR = (ptr);					\
--	typeof(*ptr) VAL;						\
-+	__unqual_scalar_typeof(*ptr) VAL;				\
- 	for (;;) {							\
- 		VAL = READ_ONCE(*__PTR);				\
- 		if (cond_expr)						\
- 			break;						\
- 		__cmpwait_relaxed(__PTR, VAL);				\
- 	}								\
--	VAL;								\
-+	(typeof(*ptr))VAL;						\
- })
- 
- #define smp_cond_load_acquire(ptr, cond_expr)				\
- ({									\
- 	typeof(ptr) __PTR = (ptr);					\
--	typeof(*ptr) VAL;						\
-+	__unqual_scalar_typeof(*ptr) VAL;				\
- 	for (;;) {							\
- 		VAL = smp_load_acquire(__PTR);				\
- 		if (cond_expr)						\
- 			break;						\
- 		__cmpwait_relaxed(__PTR, VAL);				\
- 	}								\
--	VAL;								\
-+	(typeof(*ptr))VAL;						\
- })
- 
- #include <asm-generic/barrier.h>
--- 
-2.25.0.341.g760bfbb309-goog
+							Thanx, Paul
