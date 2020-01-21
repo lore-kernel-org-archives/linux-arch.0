@@ -1,54 +1,169 @@
-Return-Path: <SRS0=n+LR=24=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:44234 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1728391AbgAGQzn (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 7 Jan 2020 11:55:43 -0500
-From: Krzysztof Kozlowski <krzk@kernel.org>
-Subject: [RFT 13/13] virtio: pci: Constify ioreadX() iomem argument (as in generic implementation)
-Date: Tue,  7 Jan 2020 17:53:12 +0100
-Message-Id: <1578415992-24054-16-git-send-email-krzk@kernel.org>
-In-Reply-To: <1578415992-24054-1-git-send-email-krzk@kernel.org>
-References: <1578415992-24054-1-git-send-email-krzk@kernel.org>
-Sender: linux-arch-owner@vger.kernel.org
+Return-Path: <SRS0=OJmd=3K=lists.infradead.org=linux-riscv-bounces+rppt=kernel.org@kernel.org>
+MIME-Version: 1.0
+References: <cover.1579248206.git.michal.simek@xilinx.com>
+ <0274919c5e3b134df19d943f99cb7e84e5135ccd.1579248206.git.michal.simek@xilinx.com>
+In-Reply-To: <0274919c5e3b134df19d943f99cb7e84e5135ccd.1579248206.git.michal.simek@xilinx.com>
+From: Masahiro Yamada <masahiroy@kernel.org>
+Date: Wed, 22 Jan 2020 00:43:28 +0900
+Message-ID: <CAK7LNARdiTxajZcXH0g7t6nEis-1ebv7Ta6wBdgGgS6O29O7+A@mail.gmail.com>
+Subject: Re: [PATCH v2 1/2] asm-generic: Make dma-contiguous.h a mandatory
+ include/asm header
+Content-Type: text/plain; charset="UTF-8"
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-riscv>,
+ <mailto:linux-riscv-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-riscv/>
+List-Post: <mailto:linux-riscv@lists.infradead.org>
+List-Help: <mailto:linux-riscv-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-riscv>,
+ <mailto:linux-riscv-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-riscv" <linux-riscv-bounces@lists.infradead.org>
+Errors-To: linux-riscv-bounces+rppt=kernel.org@lists.infradead.org
+To: Michal Simek <michal.simek@xilinx.com>
+Cc: Kate Stewart <kstewart@linuxfoundation.org>, "Peter Zijlstra (Intel)" <peterz@infradead.org>, Catalin Marinas <catalin.marinas@arm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, linux-mips@vger.kernel.org, Max Filippov <jcmvbkbc@gmail.com>, Guo Ren <guoren@kernel.org>, Deepa Dinamani <deepa.kernel@gmail.com>, "H. Peter Anvin" <hpa@zytor.com>, "open list:SIFIVE DRIVERS" <linux-riscv@lists.infradead.org>, Will Deacon <will@kernel.org>, Christoph Hellwig <hch@lst.de>, linux-arch <linux-arch@vger.kernel.org>, linux-s390 <linux-s390@vger.kernel.org>, Vasily Gorbik <gor@linux.ibm.com>, Paul Burton <paulburton@kernel.org>, X86 ML <x86@kernel.org>, Christoph Hellwig <hch@infradead.org>, Christian Borntraeger <borntraeger@de.ibm.com>, Ingo Molnar <mingo@redhat.com>, Wesley Terpstra <wesley@sifive.com>, James Hogan <jhogan@kernel.org>, Waiman Long <longman@redhat.com>, linux-xtensa@linux-xtensa.org, Albert Ou <aou@eecs.berkeley.edu>, Arnd Bergmann <arnd@arndb.de>, Borislav Petkov <bp@alien8.de>, git@xilinx.com, Paul Walmsley <paul.walmsley@sifive.com>, Thomas Gleixner <tglx@linutronix.de>, linux-arm-kernel <linux-arm-kernel@lists.infradead.org>, Chris Zankel <chris@zankel.net>, Michal Simek <monstr@monstr.eu>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Ralf Baechle <ralf@linux-mips.org>, Palmer Dabbelt <palmer@dabbelt.com>
 List-ID: <linux-arch.vger.kernel.org>
-To: Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Alexey Brodkin <abrodkin@synopsys.com>, Vineet Gupta <vgupta@synopsys.com>, "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>, Helge Deller <deller@gmx.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, Dave Airlie <airlied@redhat.com>, David Airlie <airlied@linux.ie>, Daniel Vetter <daniel@ffwll.ch>, Ben Skeggs <bskeggs@redhat.com>, Mauro Carvalho Chehab <mchehab@kernel.org>, Jiri Slaby <jirislaby@gmail.com>, Nick Kossifidis <mickflemm@gmail.com>, Luis Chamberlain <mcgrof@kernel.org>, Kalle Valo <kvalo@codeaurora.org>, "David S. Miller" <davem@davemloft.net>, Dave Jiang <dave.jiang@intel.com>, Jon Mason <jdmason@kudzu.us>, Allen Hubbe <allenbh@gmail.com>, "Michael S. Tsirkin" <mst@redhat.com>, Jason Wang <jasowang@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, Geert Uytterhoeven <geert@linux-m68k.org>, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-snps-arc@lists.infradead.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org, dri-devel@lists.freedesktop.org, nouveau@lists.freedesktop.org, linux-media@vger.kernel.org, linux-wireless@vger.kernel.org, netdev@vger.kernel.org, linux-ntb@googlegroups.com, virtualization@lists.linux-foundation.org, linux-arch@vger.kernel.org
-Cc: Krzysztof Kozlowski <krzk@kernel.org>
+Message-ID: <20200121154328.-g4ctqw_TASl7eEjH2EtQnsmA80_heRGw6TOsf-_7sk@z>
 
-The ioreadX() helpers have inconsistent interface.  On some architectures
-void *__iomem address argument is a pointer to const, on some not.
+Hi.
 
-Implementations of ioreadX() do not modify the memory under the address
-so they can be converted to a "const" version for const-safety and
-consistency among architectures.
+On Fri, Jan 17, 2020 at 5:03 PM Michal Simek <michal.simek@xilinx.com> wrote:
+>
+> dma-continuguous.h is generic for all architectures except arm32 which has
+> its own version.
 
-Signed-off-by: Krzysztof Kozlowski <krzk@kernel.org>
----
- drivers/virtio/virtio_pci_modern.c | 6 +++---
- 1 file changed, 3 insertions(+), 3 deletions(-)
 
-diff --git a/drivers/virtio/virtio_pci_modern.c b/drivers/virtio/virtio_pci_modern.c
-index 7abcc50838b8..fc58db4ab6c3 100644
---- a/drivers/virtio/virtio_pci_modern.c
-+++ b/drivers/virtio/virtio_pci_modern.c
-@@ -26,16 +26,16 @@
-  * method, i.e. 32-bit accesses for 32-bit fields, 16-bit accesses
-  * for 16-bit fields and 8-bit accesses for 8-bit fields.
-  */
--static inline u8 vp_ioread8(u8 __iomem *addr)
-+static inline u8 vp_ioread8(const u8 __iomem *addr)
- {
- 	return ioread8(addr);
- }
--static inline u16 vp_ioread16 (__le16 __iomem *addr)
-+static inline u16 vp_ioread16 (const __le16 __iomem *addr)
- {
- 	return ioread16(addr);
- }
- 
--static inline u32 vp_ioread32(__le32 __iomem *addr)
-+static inline u32 vp_ioread32(const __le32 __iomem *addr)
- {
- 	return ioread32(addr);
- }
+
+Currently, <asm/dma-contiguous.h> is present
+for only architectures that select HAVE_DMA_CONTIGUOUS.
+
+After this commit, the other architectures will end
+up with generating the unused header.
+
+That would not be a big deal, but
+it could be mentioned in the commit message?
+
+
+
+> Similar change was done for msi.h by commit a1b39bae16a6
+> ("asm-generic: Make msi.h a mandatory include/asm header")
+>
+> Suggested-by: Christoph Hellwig <hch@infradead.org>
+> Signed-off-by: Michal Simek <michal.simek@xilinx.com>
+> ---
+>
+> Changes in v2:
+> - New patch suggested by Christoph
+>
+>  arch/arm64/include/asm/Kbuild  | 1 -
+>  arch/csky/include/asm/Kbuild   | 1 -
+>  arch/mips/include/asm/Kbuild   | 1 -
+>  arch/riscv/include/asm/Kbuild  | 1 -
+>  arch/s390/include/asm/Kbuild   | 1 -
+>  arch/x86/include/asm/Kbuild    | 1 -
+>  arch/xtensa/include/asm/Kbuild | 1 -
+>
+>  include/asm-generic/Kbuild     | 1 +
+>  8 files changed, 1 insertion(+), 7 deletions(-)
+>
+> diff --git a/arch/arm64/include/asm/Kbuild b/arch/arm64/include/asm/Kbuild
+> index bd23f87d6c55..d3077c991962 100644
+> --- a/arch/arm64/include/asm/Kbuild
+> +++ b/arch/arm64/include/asm/Kbuild
+> @@ -3,7 +3,6 @@ generic-y += bugs.h
+>  generic-y += delay.h
+>  generic-y += div64.h
+>  generic-y += dma.h
+> -generic-y += dma-contiguous.h
+>  generic-y += dma-mapping.h
+>  generic-y += early_ioremap.h
+>  generic-y += emergency-restart.h
+> diff --git a/arch/csky/include/asm/Kbuild b/arch/csky/include/asm/Kbuild
+> index 4d4754e6bf89..bc15a26c782f 100644
+> --- a/arch/csky/include/asm/Kbuild
+> +++ b/arch/csky/include/asm/Kbuild
+> @@ -7,7 +7,6 @@ generic-y += delay.h
+>  generic-y += device.h
+>  generic-y += div64.h
+>  generic-y += dma.h
+> -generic-y += dma-contiguous.h
+>  generic-y += dma-mapping.h
+>  generic-y += emergency-restart.h
+>  generic-y += exec.h
+> diff --git a/arch/mips/include/asm/Kbuild b/arch/mips/include/asm/Kbuild
+> index 61b0fc2026e6..179403ae5837 100644
+> --- a/arch/mips/include/asm/Kbuild
+> +++ b/arch/mips/include/asm/Kbuild
+> @@ -6,7 +6,6 @@ generated-y += syscall_table_64_n64.h
+>  generated-y += syscall_table_64_o32.h
+>  generic-y += current.h
+>  generic-y += device.h
+> -generic-y += dma-contiguous.h
+>  generic-y += emergency-restart.h
+>  generic-y += export.h
+>  generic-y += irq_work.h
+> diff --git a/arch/riscv/include/asm/Kbuild b/arch/riscv/include/asm/Kbuild
+> index 1efaeddf1e4b..ec0ca8c6ab64 100644
+> --- a/arch/riscv/include/asm/Kbuild
+> +++ b/arch/riscv/include/asm/Kbuild
+> @@ -7,7 +7,6 @@ generic-y += div64.h
+>  generic-y += extable.h
+>  generic-y += flat.h
+>  generic-y += dma.h
+> -generic-y += dma-contiguous.h
+>  generic-y += dma-mapping.h
+>  generic-y += emergency-restart.h
+>  generic-y += exec.h
+> diff --git a/arch/s390/include/asm/Kbuild b/arch/s390/include/asm/Kbuild
+> index 2531f673f099..1832ae6442ef 100644
+> --- a/arch/s390/include/asm/Kbuild
+> +++ b/arch/s390/include/asm/Kbuild
+> @@ -7,7 +7,6 @@ generated-y += unistd_nr.h
+>  generic-y += asm-offsets.h
+>  generic-y += cacheflush.h
+>  generic-y += device.h
+> -generic-y += dma-contiguous.h
+>  generic-y += dma-mapping.h
+>  generic-y += div64.h
+>  generic-y += emergency-restart.h
+> diff --git a/arch/x86/include/asm/Kbuild b/arch/x86/include/asm/Kbuild
+> index 8b52bc5ddf69..ea34464d6221 100644
+> --- a/arch/x86/include/asm/Kbuild
+> +++ b/arch/x86/include/asm/Kbuild
+> @@ -7,7 +7,6 @@ generated-y += unistd_32_ia32.h
+>  generated-y += unistd_64_x32.h
+>  generated-y += xen-hypercalls.h
+>
+> -generic-y += dma-contiguous.h
+>  generic-y += early_ioremap.h
+>  generic-y += export.h
+>  generic-y += mcs_spinlock.h
+> diff --git a/arch/xtensa/include/asm/Kbuild b/arch/xtensa/include/asm/Kbuild
+> index 3acc31e55e02..271917c24b7f 100644
+> --- a/arch/xtensa/include/asm/Kbuild
+> +++ b/arch/xtensa/include/asm/Kbuild
+> @@ -4,7 +4,6 @@ generic-y += bug.h
+>  generic-y += compat.h
+>  generic-y += device.h
+>  generic-y += div64.h
+> -generic-y += dma-contiguous.h
+>  generic-y += dma-mapping.h
+>  generic-y += emergency-restart.h
+>  generic-y += exec.h
+> diff --git a/include/asm-generic/Kbuild b/include/asm-generic/Kbuild
+> index ddfee1bd9dc1..cd17d50697cc 100644
+> --- a/include/asm-generic/Kbuild
+> +++ b/include/asm-generic/Kbuild
+> @@ -4,5 +4,6 @@
+>  # (This file is not included when SRCARCH=um since UML borrows several
+>  # asm headers from the host architecutre.)
+>
+> +mandatory-y += dma-contiguous.h
+>  mandatory-y += msi.h
+>  mandatory-y += simd.h
+> --
+> 2.25.0
+>
+
+
 -- 
-2.7.4
+Best Regards
+Masahiro Yamada
