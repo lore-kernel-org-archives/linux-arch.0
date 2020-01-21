@@ -1,66 +1,238 @@
-From: MaJun <majun258@linux.alibaba.com>
-Subject: [PATCH] csky: Fix the compile error when enable ck860
-Date: Tue, 21 Jan 2020 18:50:00 +0800
-Message-ID: <1579603800-25146-1-git-send-email-majun258@linux.alibaba.com>
+From: Dmitry Vyukov <dvyukov@google.com>
+Subject: Re: [PATCH 1/5] include/linux: Add instrumented.h infrastructure
+Date: Tue, 21 Jan 2020 14:01:13 +0100
+Message-ID: <CACT4Y+bjAn0g980ZCxCn4MkgCsg7KrA69CExCeJZ63eRON5fXw@mail.gmail.com>
+References: <20200120141927.114373-1-elver@google.com> <CACT4Y+bnRoKinPopVqyxj4av6_xa_OUN0wwnidpO3dX3iYq_gg@mail.gmail.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <CACT4Y+bnRoKinPopVqyxj4av6_xa_OUN0wwnidpO3dX3iYq_gg@mail.gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: guoren@kernel.org
-Cc: mj145409@alibaba-inc.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, linux-csky@vger.kernel.org, MaJun <majun258@linux.alibaba.com>
+To: Marco Elver <elver@google.com>
+Cc: "Paul E. McKenney" <paulmck@kernel.org>, Andrey Konovalov <andreyknvl@google.com>, Alexander Potapenko <glider@google.com>, kasan-dev <kasan-dev@googlegroups.com>, LKML <linux-kernel@vger.kernel.org>, Mark Rutland <mark.rutland@arm.com>, Will Deacon <will@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Boqun Feng <boqun.feng@gmail.com>, Arnd Bergmann <arnd@arndb.de>, Al Viro <viro@zeniv.linux.org.uk>, Christophe Leroy <christophe.leroy@c-s.fr>, Daniel Axtens <dja@axtens.net>, Michael Ellerman <mpe@ellerman.id.au>, Steven Rostedt <rostedt@goodmis.org>, Masami Hiramatsu <mhiramat@kernel.org>, Ingo Molnar <mingo@kernel.org>, Christian Brauner <christian.brauner@ubuntu.com>, Daniel Borkmann <daniel@iogearbox.net>, cyphar@cyphar.comK
 List-Id: linux-arch.vger.kernel.org
 
-There is a compile error when ck860 processor is choosed.
-To fix this compile error, the FPU config should be disabled.
+On Mon, Jan 20, 2020 at 3:45 PM Dmitry Vyukov <dvyukov@google.com> wrote:
+>
+> On Mon, Jan 20, 2020 at 3:19 PM Marco Elver <elver@google.com> wrote:
+> >
+> > This adds instrumented.h, which provides generic wrappers for memory
+> > access instrumentation that the compiler cannot emit for various
+> > sanitizers. Currently this unifies KASAN and KCSAN instrumentation. In
+> > future this will also include KMSAN instrumentation.
+> >
+> > Note that, copy_{to,from}_user require special instrumentation,
+> > providing hooks before and after the access, since we may need to know
+> > the actual bytes accessed (currently this is relevant for KCSAN, and is
+> > also relevant in future for KMSAN).
+> >
+> > Suggested-by: Arnd Bergmann <arnd@arndb.de>
+> > Signed-off-by: Marco Elver <elver@google.com>
+> > ---
+> >  include/linux/instrumented.h | 153 +++++++++++++++++++++++++++++++++++
+> >  1 file changed, 153 insertions(+)
+> >  create mode 100644 include/linux/instrumented.h
+> >
+> > diff --git a/include/linux/instrumented.h b/include/linux/instrumented.h
+> > new file mode 100644
+> > index 000000000000..9f83c8520223
+> > --- /dev/null
+> > +++ b/include/linux/instrumented.h
+> > @@ -0,0 +1,153 @@
+> > +/* SPDX-License-Identifier: GPL-2.0 */
+> > +
+> > +/*
+> > + * This header provides generic wrappers for memory access instrumentation that
+> > + * the compiler cannot emit for: KASAN, KCSAN.
+> > + */
+> > +#ifndef _LINUX_INSTRUMENTED_H
+> > +#define _LINUX_INSTRUMENTED_H
+> > +
+> > +#include <linux/compiler.h>
+> > +#include <linux/kasan-checks.h>
+> > +#include <linux/kcsan-checks.h>
+> > +#include <linux/types.h>
+> > +
+> > +/**
+> > + * instrument_read - instrument regular read access
+> > + *
+> > + * Instrument a regular read access. The instrumentation should be inserted
+> > + * before the actual read happens.
+> > + *
+> > + * @ptr address of access
+> > + * @size size of access
+> > + */
+>
+> Based on offline discussion, that's what we add for KMSAN:
+>
+> > +static __always_inline void instrument_read(const volatile void *v, size_t size)
+> > +{
+> > +       kasan_check_read(v, size);
+> > +       kcsan_check_read(v, size);
+>
+> KMSAN: nothing
+>
+> > +}
+> > +
+> > +/**
+> > + * instrument_write - instrument regular write access
+> > + *
+> > + * Instrument a regular write access. The instrumentation should be inserted
+> > + * before the actual write happens.
+> > + *
+> > + * @ptr address of access
+> > + * @size size of access
+> > + */
+> > +static __always_inline void instrument_write(const volatile void *v, size_t size)
+> > +{
+> > +       kasan_check_write(v, size);
+> > +       kcsan_check_write(v, size);
+>
+> KMSAN: nothing
+>
+> > +}
+> > +
+> > +/**
+> > + * instrument_atomic_read - instrument atomic read access
+> > + *
+> > + * Instrument an atomic read access. The instrumentation should be inserted
+> > + * before the actual read happens.
+> > + *
+> > + * @ptr address of access
+> > + * @size size of access
+> > + */
+> > +static __always_inline void instrument_atomic_read(const volatile void *v, size_t size)
+> > +{
+> > +       kasan_check_read(v, size);
+> > +       kcsan_check_atomic_read(v, size);
+>
+> KMSAN: nothing
+>
+> > +}
+> > +
+> > +/**
+> > + * instrument_atomic_write - instrument atomic write access
+> > + *
+> > + * Instrument an atomic write access. The instrumentation should be inserted
+> > + * before the actual write happens.
+> > + *
+> > + * @ptr address of access
+> > + * @size size of access
+> > + */
+> > +static __always_inline void instrument_atomic_write(const volatile void *v, size_t size)
+> > +{
+> > +       kasan_check_write(v, size);
+> > +       kcsan_check_atomic_write(v, size);
+>
+> KMSAN: nothing
+>
+> > +}
+> > +
+> > +/**
+> > + * instrument_copy_to_user_pre - instrument reads of copy_to_user
+> > + *
+> > + * Instrument reads from kernel memory, that are due to copy_to_user (and
+> > + * variants).
+> > + *
+> > + * The instrumentation must be inserted before the accesses. At this point the
+> > + * actual number of bytes accessed is not yet known.
+> > + *
+> > + * @dst destination address
+> > + * @size maximum access size
+> > + */
+> > +static __always_inline void
+> > +instrument_copy_to_user_pre(const volatile void *src, size_t size)
+> > +{
+> > +       /* Check before, to warn before potential memory corruption. */
+> > +       kasan_check_read(src, size);
+>
+> KMSAN: check that (src,size) is initialized
+>
+> > +}
+> > +
+> > +/**
+> > + * instrument_copy_to_user_post - instrument reads of copy_to_user
+> > + *
+> > + * Instrument reads from kernel memory, that are due to copy_to_user (and
+> > + * variants).
+> > + *
+> > + * The instrumentation must be inserted after the accesses. At this point the
+> > + * actual number of bytes accessed should be known.
+> > + *
+> > + * @dst destination address
+> > + * @size maximum access size
+> > + * @left number of bytes left that were not copied
+> > + */
+> > +static __always_inline void
+> > +instrument_copy_to_user_post(const volatile void *src, size_t size, size_t left)
+> > +{
+> > +       /* Check after, to avoid false positive if memory was not accessed. */
+> > +       kcsan_check_read(src, size - left);
+>
+> KMSAN: nothing
 
-Signed-off-by: MaJun <majun258@linux.alibaba.com>
----
- arch/csky/Kconfig           | 2 +-
- arch/csky/configs/defconfig | 7 -------
- 2 files changed, 1 insertion(+), 8 deletions(-)
+One detail I noticed for KMSAN is that kmsan_copy_to_user has a
+special case when @to address is in kernel-space (compat syscalls
+doing tricky things), in that case it only copies metadata. We can't
+handle this with existing annotations.
 
-diff --git a/arch/csky/Kconfig b/arch/csky/Kconfig
-index 3973847..f6ad4c6 100644
---- a/arch/csky/Kconfig
-+++ b/arch/csky/Kconfig
-@@ -154,7 +154,7 @@ config CPU_CK860
- 	select CPU_HAS_TLBI
- 	select CPU_HAS_CACHEV2
- 	select CPU_HAS_LDSTEX
--	select CPU_HAS_FPUV2
-+	select CPU_HAS_FPUV2 if CPU_HAS_FPU
- endchoice
- 
- choice
-diff --git a/arch/csky/configs/defconfig b/arch/csky/configs/defconfig
-index 7ef4289..ad9591c 100644
---- a/arch/csky/configs/defconfig
-+++ b/arch/csky/configs/defconfig
-@@ -10,9 +10,6 @@ CONFIG_BSD_PROCESS_ACCT=y
- CONFIG_BSD_PROCESS_ACCT_V3=y
- CONFIG_MODULES=y
- CONFIG_MODULE_UNLOAD=y
--CONFIG_DEFAULT_DEADLINE=y
--CONFIG_CPU_CK807=y
--CONFIG_CPU_HAS_FPU=y
- CONFIG_NET=y
- CONFIG_PACKET=y
- CONFIG_UNIX=y
-@@ -27,10 +24,7 @@ CONFIG_SERIAL_NONSTANDARD=y
- CONFIG_SERIAL_8250=y
- CONFIG_SERIAL_8250_CONSOLE=y
- CONFIG_SERIAL_OF_PLATFORM=y
--CONFIG_TTY_PRINTK=y
- # CONFIG_VGA_CONSOLE is not set
--CONFIG_CSKY_MPTIMER=y
--CONFIG_GX6605S_TIMER=y
- CONFIG_PM_DEVFREQ=y
- CONFIG_DEVFREQ_GOV_SIMPLE_ONDEMAND=y
- CONFIG_DEVFREQ_GOV_PERFORMANCE=y
-@@ -56,6 +50,5 @@ CONFIG_CRAMFS=y
- CONFIG_ROMFS_FS=y
- CONFIG_NFS_FS=y
- CONFIG_PRINTK_TIME=y
--CONFIG_DEBUG_INFO=y
- CONFIG_DEBUG_FS=y
- CONFIG_MAGIC_SYSRQ=y
--- 
-1.8.3.1
+
+ * actually copied to ensure there was no information leak. If @to belongs to
+ * the kernel space (which is possible for compat syscalls), KMSAN just copies
+ * the metadata.
+ */
+void kmsan_copy_to_user(const void *to, const void *from, size_t
+to_copy, size_t left);
+
+
+> > +}
+> > +
+> > +/**
+> > + * instrument_copy_from_user_pre - instrument writes of copy_from_user
+> > + *
+> > + * Instrument writes to kernel memory, that are due to copy_from_user (and
+> > + * variants).
+> > + *
+> > + * The instrumentation must be inserted before the accesses. At this point the
+> > + * actual number of bytes accessed is not yet known.
+> > + *
+> > + * @dst destination address
+> > + * @size maximum access size
+> > + */
+> > +static __always_inline void
+> > +instrument_copy_from_user_pre(const volatile void *dst, size_t size)
+> > +{
+> > +       /* Check before, to warn before potential memory corruption. */
+> > +       kasan_check_write(dst, size);
+>
+> KMSAN: nothing
+>
+> > +}
+> > +
+> > +/**
+> > + * instrument_copy_from_user_post - instrument writes of copy_from_user
+> > + *
+> > + * Instrument writes to kernel memory, that are due to copy_from_user (and
+> > + * variants).
+> > + *
+> > + * The instrumentation must be inserted after the accesses. At this point the
+> > + * actual number of bytes accessed should be known.
+> > + *
+> > + * @dst destination address
+> > + * @size maximum access size
+> > + * @left number of bytes left that were not copied
+> > + */
+> > +static __always_inline void
+> > +instrument_copy_from_user_post(const volatile void *dst, size_t size, size_t left)
+> > +{
+> > +       /* Check after, to avoid false positive if memory was not accessed. */
+> > +       kcsan_check_write(dst, size - left);
+>
+> KMSAN: mark (dst, size-left) as initialized
+>
+> > +}
+> > +
+> > +#endif /* _LINUX_INSTRUMENTED_H */
+> > --
+> > 2.25.0.341.g760bfbb309-goog
+> >
