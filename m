@@ -1,47 +1,73 @@
-Return-Path: <SRS0=fNgb=3C=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:41650 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726567AbgAMQnR (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 13 Jan 2020 11:43:17 -0500
-Date: Mon, 13 Jan 2020 16:43:12 +0000
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [PATCH v4 08/12] arm64: unify native/compat instruction skipping
-Message-ID: <20200113164311.GC1876@arrakis.emea.arm.com>
-References: <20191211154206.46260-1-broonie@kernel.org>
- <20191211154206.46260-9-broonie@kernel.org>
+Return-Path: <SRS0=zjVl=3K=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail-oi1-f193.google.com ([209.85.167.193]:38828 "EHLO
+        mail-oi1-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1729096AbgAUPIJ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jan 2020 10:08:09 -0500
+Received: by mail-oi1-f193.google.com with SMTP id l9so2828144oii.5
+        for <linux-arch@vger.kernel.org>; Tue, 21 Jan 2020 07:08:09 -0800 (PST)
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20191211154206.46260-9-broonie@kernel.org>
+References: <20200120141927.114373-1-elver@google.com> <20200120141927.114373-3-elver@google.com>
+ <20200120144048.GB14914@hirez.programming.kicks-ass.net> <20200120162725.GE2935@paulmck-ThinkPad-P72>
+ <20200120165223.GC14914@hirez.programming.kicks-ass.net> <20200120202359.GF2935@paulmck-ThinkPad-P72>
+ <20200121091501.GF14914@hirez.programming.kicks-ass.net> <20200121142109.GQ2935@paulmck-ThinkPad-P72>
+ <20200121144716.GQ14879@hirez.programming.kicks-ass.net>
+In-Reply-To: <20200121144716.GQ14879@hirez.programming.kicks-ass.net>
+From: Marco Elver <elver@google.com>
+Date: Tue, 21 Jan 2020 16:07:56 +0100
+Message-ID: <CANpmjNNM_5=tBJhPdgGKbG6kaFpniyHZ1RyPypC-7qxEYBBkPA@mail.gmail.com>
+Subject: Re: [PATCH 3/5] asm-generic, kcsan: Add KCSAN instrumentation for bitops
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Mark Brown <broonie@kernel.org>
-Cc: Will Deacon <will@kernel.org>, Paul Elliott <paul.elliott@arm.com>, Peter Zijlstra <peterz@infradead.org>, Yu-cheng Yu <yu-cheng.yu@intel.com>, Amit Kachhap <amit.kachhap@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Marc Zyngier <maz@kernel.org>, Eugene Syromiatnikov <esyr@redhat.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, "H.J. Lu" <hjl.tools@gmail.com>, Andrew Jones <drjones@redhat.com>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Jann Horn <jannh@google.com>, Richard Henderson <richard.henderson@linaro.org>, Kristina =?utf-8?Q?Mart=C5=A1enko?= <kristina.martsenko@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Florian Weimer <fweimer@redhat.com>, Sudakshina Das <sudi.das@arm.com>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Dave Martin <Dave.Martin@arm.com>, Mark Rutland <mark.rutland@arm.com>
-Message-ID: <20200113164312.PcYwiABbahdZJYYTbME849fGjUaBAyGKe04XzdYzT5k@z>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: "Paul E. McKenney" <paulmck@kernel.org>, Andrey Konovalov <andreyknvl@google.com>, Alexander Potapenko <glider@google.com>, Dmitry Vyukov <dvyukov@google.com>, kasan-dev <kasan-dev@googlegroups.com>, LKML <linux-kernel@vger.kernel.org>, Mark Rutland <mark.rutland@arm.com>, Will Deacon <will@kernel.org>, Boqun Feng <boqun.feng@gmail.com>, Arnd Bergmann <arnd@arndb.de>, Al Viro <viro@zeniv.linux.org.uk>, christophe leroy <christophe.leroy@c-s.fr>, Daniel Axtens <dja@axtens.net>, Michael Ellerman <mpe@ellerman.id.au>, Steven Rostedt <rostedt@goodmis.org>, Masami Hiramatsu <mhiramat@kernel.org>, Ingo Molnar <mingo@kernel.org>, Christian Brauner <christian.brauner@ubuntu.com>, Daniel Borkmann <daniel@iogearbox.net>, cyphar@cyphar.com, Kees Cook <keescook@chromium.org>, linux-arch <linux-arch@vger.kernel.org>
+Message-ID: <20200121150756.VNNjUsFfqHPZIkkrjysE5FGK_TP8UdVYk8P1bCkH1pY@z>
 
-On Wed, Dec 11, 2019 at 03:42:02PM +0000, Mark Brown wrote:
-> diff --git a/arch/arm64/kernel/traps.c b/arch/arm64/kernel/traps.c
-> index 84c7a88dd617..de01e5041d4d 100644
-> --- a/arch/arm64/kernel/traps.c
-> +++ b/arch/arm64/kernel/traps.c
-> @@ -269,6 +269,8 @@ void arm64_notify_die(const char *str, struct pt_regs *regs,
->  	}
->  }
->  
-> +static void advance_itstate(struct pt_regs *regs);
-> +
->  void arm64_skip_faulting_instruction(struct pt_regs *regs, unsigned long size)
->  {
->  	regs->pc += size;
-> @@ -279,6 +281,9 @@ void arm64_skip_faulting_instruction(struct pt_regs *regs, unsigned long size)
->  	 */
->  	if (user_mode(regs))
->  		user_fastforward_single_step(current);
-> +
-> +	if (regs->pstate & PSR_MODE32_BIT)
-> +		advance_itstate(regs);
+On Tue, 21 Jan 2020 at 15:47, Peter Zijlstra <peterz@infradead.org> wrote:
+>
+> On Tue, Jan 21, 2020 at 06:21:09AM -0800, Paul E. McKenney wrote:
+> > On Tue, Jan 21, 2020 at 10:15:01AM +0100, Peter Zijlstra wrote:
+> > > On Mon, Jan 20, 2020 at 12:23:59PM -0800, Paul E. McKenney wrote:
+> > > > We also don't have __atomic_read() and __atomic_set(), yet atomic_read()
+> > > > and atomic_set() are considered to be non-racy, right?
+> > >
+> > > What is racy? :-) You can make data races with atomic_{read,set}() just
+> > > fine.
+> >
+> > Like "fairness", lots of definitions of "racy".  ;-)
+> >
+> > > Anyway, traditionally we call the read-modify-write stuff atomic, not
+> > > the trivial load-store stuff. The only reason we care about the
+> > > load-store stuff in the first place is because C compilers are shit.
+> > >
+> > > atomic_read() / test_bit() are just a load, all we need is the C
+> > > compiler not to be an ass and split it. Yes, we've invented the term
+> > > single-copy atomicity for that, but that doesn't make it more or less of
+> > > a load.
+> > >
+> > > And exactly because it is just a load, there is no __test_bit(), which
+> > > would be the exact same load.
+> >
+> > Very good!  Shouldn't KCSAN then define test_bit() as non-racy just as
+> > for atomic_read()?
+>
+> Sure it does; but my comment was aimed at the gripe that test_bit()
+> lives in the non-atomic bitops header. That is arguably entirely
+> correct.
 
-Nitpick: we have a compat_user_mode(regs) you can use here.
+I will also point out that test_bit() is listed in
+Documentation/atomic_bitops.txt.  What I gather from
+atomic_bitops.txt, is that the semantics of test_bit() is simply an
+unordered atomic operation: the interface promises that the load will
+be executed as one indivisible step, i.e. (single-copy) atomically
+(after compiler optimizations etc.).
 
--- 
-Catalin
+Although at this point probably not too important, I checked Alpha's
+implementation of test_bit(), and there is no
+smp_read_barrier_depends(). Is it safe to say that test_bit() should
+then be weaker in terms of ordering than READ_ONCE()?
+
+My assumption was that test_bit() is as strong as READ_ONCE().
+
+Thanks,
+-- Marco
