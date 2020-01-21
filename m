@@ -1,47 +1,27 @@
-Return-Path: <SRS0=nYHR=3J=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mout.kundenserver.de ([212.227.126.130]:48971 "EHLO
-        mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726860AbgATOkn (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 20 Jan 2020 09:40:43 -0500
+Return-Path: <SRS0=zjVl=3K=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from bombadil.infradead.org ([198.137.202.133]:49612 "EHLO
+        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1728708AbgAUNsv (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jan 2020 08:48:51 -0500
+Date: Tue, 21 Jan 2020 14:48:31 +0100
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH v8 3/5] locking/qspinlock: Introduce CNA into the slow
+ path of qspinlock
+Message-ID: <20200121134831.GM14914@hirez.programming.kicks-ass.net>
+References: <20191230194042.67789-1-alex.kogan@oracle.com>
+ <20191230194042.67789-4-alex.kogan@oracle.com>
 MIME-Version: 1.0
-References: <20200115165749.145649-1-elver@google.com> <CAK8P3a3b=SviUkQw7ZXZF85gS1JO8kzh2HOns5zXoEJGz-+JiQ@mail.gmail.com>
- <CANpmjNOpTYnF3ssqrE_s+=UA-2MpfzzdrXoyaifb3A55_mc0uA@mail.gmail.com>
- <CAK8P3a3WywSsahH2vtZ_EOYTWE44YdN+Pj6G8nt_zrL3sckdwQ@mail.gmail.com>
- <CANpmjNMk2HbuvmN1RaZ=8OV+tx9qZwKyRySONDRQar6RCGM1SA@mail.gmail.com>
- <CAK8P3a066Knr-KC2v4M8Dr1phr0Gbb2KeZZLQ7Ana0fkrgPDPg@mail.gmail.com>
- <CANpmjNO395-atZXu_yEArZqAQ+ib3Ack-miEhA9msJ6_eJsh4g@mail.gmail.com> <CANpmjNOH1h=txXnd1aCXTN8THStLTaREcQpzd5QvoXz_3r=8+A@mail.gmail.com>
-In-Reply-To: <CANpmjNOH1h=txXnd1aCXTN8THStLTaREcQpzd5QvoXz_3r=8+A@mail.gmail.com>
-From: Arnd Bergmann <arnd@arndb.de>
-Date: Mon, 20 Jan 2020 15:40:24 +0100
-Message-ID: <CAK8P3a0p9Y8080T-RR2pp-p2_A0FBae7zB-kSq09sMZ_X7AOhw@mail.gmail.com>
-Subject: Re: [PATCH -rcu] asm-generic, kcsan: Add KCSAN instrumentation for bitops
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20191230194042.67789-4-alex.kogan@oracle.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Marco Elver <elver@google.com>
-Cc: "Paul E. McKenney" <paulmck@kernel.org>, Andrey Konovalov <andreyknvl@google.com>, Alexander Potapenko <glider@google.com>, Dmitry Vyukov <dvyukov@google.com>, kasan-dev <kasan-dev@googlegroups.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Michael Ellerman <mpe@ellerman.id.au>, christophe leroy <christophe.leroy@c-s.fr>, Daniel Axtens <dja@axtens.net>, linux-arch <linux-arch@vger.kernel.org>
-Message-ID: <20200120144024.CPBC8-pJ96bNxMOpVKbio0u4Dwc5HQfoEEks_Z6RYxM@z>
+To: Alex Kogan <alex.kogan@oracle.com>
+Cc: linux@armlinux.org.uk, mingo@redhat.com, will.deacon@arm.com, arnd@arndb.de, longman@redhat.com, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, bp@alien8.de, hpa@zytor.com, x86@kernel.org, guohanjun@huawei.com, jglauber@marvell.com, steven.sistare@oracle.com, daniel.m.jordan@oracle.com, dave.dice@oracle.com
+Message-ID: <20200121134831.iJlfTjvOLFd3X5qWvloa28Jmono8uMD-niSKvMVJUfA@z>
 
-On Mon, Jan 20, 2020 at 3:23 PM Marco Elver <elver@google.com> wrote:
-> On Fri, 17 Jan 2020 at 14:14, Marco Elver <elver@google.com> wrote:
-> > On Fri, 17 Jan 2020 at 13:25, Arnd Bergmann <arnd@arndb.de> wrote:
-> > > On Wed, Jan 15, 2020 at 9:50 PM Marco Elver <elver@google.com> wrote:
+On Mon, Dec 30, 2019 at 02:40:40PM -0500, Alex Kogan wrote:
+> +#define try_clear_tail			cna_try_change_tail
 
-> > > If you can't find any, I would prefer having the simpler interface
-> > > with just one set of annotations.
-> >
-> > That's fair enough. I'll prepare a v2 series that first introduces the
-> > new header, and then applies it to the locations that seem obvious
-> > candidates for having both checks.
->
-> I've sent a new patch series which introduces instrumented.h:
->    http://lkml.kernel.org/r/20200120141927.114373-1-elver@google.com
-
-Looks good to me, feel free to add
-
-Acked-by: Arnd Bergmann <arnd@arndb.de>
-
-if you are merging this through your own tree or someone else's,
-or let me know if I should put it into the asm-generic git tree.
-
-     Arnd
+That's inconsistent; please run
+'s/cna_try_change_tail/cna_try_clear_tail/g' on your patch.
