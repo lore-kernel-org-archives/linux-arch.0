@@ -1,194 +1,59 @@
-From: Marco Elver <elver@google.com>
-Subject: Re: [PATCH 1/5] include/linux: Add instrumented.h infrastructure
-Date: Tue, 21 Jan 2020 17:14:05 +0100
-Message-ID: <CANpmjNOQPwn-+iL38RkfsJ6tWj8pZyB_dfh8174FmaYz5tfBTA@mail.gmail.com>
-References: <20200120141927.114373-1-elver@google.com> <CACT4Y+bnRoKinPopVqyxj4av6_xa_OUN0wwnidpO3dX3iYq_gg@mail.gmail.com>
- <CACT4Y+bjAn0g980ZCxCn4MkgCsg7KrA69CExCeJZ63eRON5fXw@mail.gmail.com>
+From: "Paul E. McKenney" <paulmck@kernel.org>
+Subject: Re: [PATCH 3/5] asm-generic, kcsan: Add KCSAN instrumentation for
+ bitops
+Date: Tue, 21 Jan 2020 08:16:32 -0800
+Message-ID: <20200121161632.GV2935@paulmck-ThinkPad-P72>
+References: <20200120141927.114373-1-elver@google.com>
+ <20200120141927.114373-3-elver@google.com>
+ <20200120144048.GB14914@hirez.programming.kicks-ass.net>
+ <20200120162725.GE2935@paulmck-ThinkPad-P72>
+ <20200120165223.GC14914@hirez.programming.kicks-ass.net>
+ <20200120202359.GF2935@paulmck-ThinkPad-P72>
+ <20200121091501.GF14914@hirez.programming.kicks-ass.net>
+ <20200121142109.GQ2935@paulmck-ThinkPad-P72>
+ <20200121144716.GQ14879@hirez.programming.kicks-ass.net>
+Reply-To: paulmck@kernel.org
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <CACT4Y+bjAn0g980ZCxCn4MkgCsg7KrA69CExCeJZ63eRON5fXw@mail.gmail.com>
+Content-Disposition: inline
+In-Reply-To: <20200121144716.GQ14879@hirez.programming.kicks-ass.net>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Dmitry Vyukov <dvyukov@google.com>
-Cc: "Paul E. McKenney" <paulmck@kernel.org>, Andrey Konovalov <andreyknvl@google.com>, Alexander Potapenko <glider@google.com>, kasan-dev <kasan-dev@googlegroups.com>, LKML <linux-kernel@vger.kernel.org>, Mark Rutland <mark.rutland@arm.com>, Will Deacon <will@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Boqun Feng <boqun.feng@gmail.com>, Arnd Bergmann <arnd@arndb.de>, Al Viro <viro@zeniv.linux.org.uk>, Christophe Leroy <christophe.leroy@c-s.fr>, Daniel Axtens <dja@axtens.net>, Michael Ellerman <mpe@ellerman.id.au>, Steven Rostedt <rostedt@goodmis.org>, Masami Hiramatsu <mhiramat@kernel.org>, Ingo Molnar <mingo@kernel.org>, Christian Brauner <christian.brauner@ubuntu.com>, Daniel Borkmann <daniel@iogearbox.net>, cyphar@cyphar.comK
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Marco Elver <elver@google.com>, andreyknvl@google.com, glider@google.com, dvyukov@google.com, kasan-dev@googlegroups.com, linux-kernel@vger.kernel.org, mark.rutland@arm.com, will@kernel.org, boqun.feng@gmail.com, arnd@arndb.de, viro@zeniv.linux.org.uk, christophe.leroy@c-s.fr, dja@axtens.net, mpe@ellerman.id.au, rostedt@goodmis.org, mhiramat@kernel.org, mingo@kernel.org, christian.brauner@ubuntu.com, daniel@iogearbox.net, cyphar@cyphar.com, keescook@chromium.org, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, 21 Jan 2020 at 14:01, Dmitry Vyukov <dvyukov@google.com> wrote:
->
-> On Mon, Jan 20, 2020 at 3:45 PM Dmitry Vyukov <dvyukov@google.com> wrote:
-> >
-> > On Mon, Jan 20, 2020 at 3:19 PM Marco Elver <elver@google.com> wrote:
-> > >
-> > > This adds instrumented.h, which provides generic wrappers for memory
-> > > access instrumentation that the compiler cannot emit for various
-> > > sanitizers. Currently this unifies KASAN and KCSAN instrumentation. In
-> > > future this will also include KMSAN instrumentation.
-> > >
-> > > Note that, copy_{to,from}_user require special instrumentation,
-> > > providing hooks before and after the access, since we may need to know
-> > > the actual bytes accessed (currently this is relevant for KCSAN, and is
-> > > also relevant in future for KMSAN).
-> > >
-> > > Suggested-by: Arnd Bergmann <arnd@arndb.de>
-> > > Signed-off-by: Marco Elver <elver@google.com>
-> > > ---
-> > >  include/linux/instrumented.h | 153 +++++++++++++++++++++++++++++++++++
-> > >  1 file changed, 153 insertions(+)
-> > >  create mode 100644 include/linux/instrumented.h
-> > >
-> > > diff --git a/include/linux/instrumented.h b/include/linux/instrumented.h
-> > > new file mode 100644
-> > > index 000000000000..9f83c8520223
-> > > --- /dev/null
-> > > +++ b/include/linux/instrumented.h
-> > > @@ -0,0 +1,153 @@
-> > > +/* SPDX-License-Identifier: GPL-2.0 */
-> > > +
-> > > +/*
-> > > + * This header provides generic wrappers for memory access instrumentation that
-> > > + * the compiler cannot emit for: KASAN, KCSAN.
-> > > + */
-> > > +#ifndef _LINUX_INSTRUMENTED_H
-> > > +#define _LINUX_INSTRUMENTED_H
-> > > +
-> > > +#include <linux/compiler.h>
-> > > +#include <linux/kasan-checks.h>
-> > > +#include <linux/kcsan-checks.h>
-> > > +#include <linux/types.h>
-> > > +
-> > > +/**
-> > > + * instrument_read - instrument regular read access
-> > > + *
-> > > + * Instrument a regular read access. The instrumentation should be inserted
-> > > + * before the actual read happens.
-> > > + *
-> > > + * @ptr address of access
-> > > + * @size size of access
-> > > + */
-> >
-> > Based on offline discussion, that's what we add for KMSAN:
-> >
-> > > +static __always_inline void instrument_read(const volatile void *v, size_t size)
-> > > +{
-> > > +       kasan_check_read(v, size);
-> > > +       kcsan_check_read(v, size);
-> >
-> > KMSAN: nothing
-> >
-> > > +}
-> > > +
-> > > +/**
-> > > + * instrument_write - instrument regular write access
-> > > + *
-> > > + * Instrument a regular write access. The instrumentation should be inserted
-> > > + * before the actual write happens.
-> > > + *
-> > > + * @ptr address of access
-> > > + * @size size of access
-> > > + */
-> > > +static __always_inline void instrument_write(const volatile void *v, size_t size)
-> > > +{
-> > > +       kasan_check_write(v, size);
-> > > +       kcsan_check_write(v, size);
-> >
-> > KMSAN: nothing
-> >
-> > > +}
-> > > +
-> > > +/**
-> > > + * instrument_atomic_read - instrument atomic read access
-> > > + *
-> > > + * Instrument an atomic read access. The instrumentation should be inserted
-> > > + * before the actual read happens.
-> > > + *
-> > > + * @ptr address of access
-> > > + * @size size of access
-> > > + */
-> > > +static __always_inline void instrument_atomic_read(const volatile void *v, size_t size)
-> > > +{
-> > > +       kasan_check_read(v, size);
-> > > +       kcsan_check_atomic_read(v, size);
-> >
-> > KMSAN: nothing
-> >
-> > > +}
-> > > +
-> > > +/**
-> > > + * instrument_atomic_write - instrument atomic write access
-> > > + *
-> > > + * Instrument an atomic write access. The instrumentation should be inserted
-> > > + * before the actual write happens.
-> > > + *
-> > > + * @ptr address of access
-> > > + * @size size of access
-> > > + */
-> > > +static __always_inline void instrument_atomic_write(const volatile void *v, size_t size)
-> > > +{
-> > > +       kasan_check_write(v, size);
-> > > +       kcsan_check_atomic_write(v, size);
-> >
-> > KMSAN: nothing
-> >
-> > > +}
-> > > +
-> > > +/**
-> > > + * instrument_copy_to_user_pre - instrument reads of copy_to_user
-> > > + *
-> > > + * Instrument reads from kernel memory, that are due to copy_to_user (and
-> > > + * variants).
-> > > + *
-> > > + * The instrumentation must be inserted before the accesses. At this point the
-> > > + * actual number of bytes accessed is not yet known.
-> > > + *
-> > > + * @dst destination address
-> > > + * @size maximum access size
-> > > + */
-> > > +static __always_inline void
-> > > +instrument_copy_to_user_pre(const volatile void *src, size_t size)
-> > > +{
-> > > +       /* Check before, to warn before potential memory corruption. */
-> > > +       kasan_check_read(src, size);
-> >
-> > KMSAN: check that (src,size) is initialized
-> >
-> > > +}
-> > > +
-> > > +/**
-> > > + * instrument_copy_to_user_post - instrument reads of copy_to_user
-> > > + *
-> > > + * Instrument reads from kernel memory, that are due to copy_to_user (and
-> > > + * variants).
-> > > + *
-> > > + * The instrumentation must be inserted after the accesses. At this point the
-> > > + * actual number of bytes accessed should be known.
-> > > + *
-> > > + * @dst destination address
-> > > + * @size maximum access size
-> > > + * @left number of bytes left that were not copied
-> > > + */
-> > > +static __always_inline void
-> > > +instrument_copy_to_user_post(const volatile void *src, size_t size, size_t left)
-> > > +{
-> > > +       /* Check after, to avoid false positive if memory was not accessed. */
-> > > +       kcsan_check_read(src, size - left);
-> >
-> > KMSAN: nothing
->
-> One detail I noticed for KMSAN is that kmsan_copy_to_user has a
-> special case when @to address is in kernel-space (compat syscalls
-> doing tricky things), in that case it only copies metadata. We can't
-> handle this with existing annotations.
->
->
->  * actually copied to ensure there was no information leak. If @to belongs to
->  * the kernel space (which is possible for compat syscalls), KMSAN just copies
->  * the metadata.
->  */
-> void kmsan_copy_to_user(const void *to, const void *from, size_t
-> to_copy, size_t left);
+On Tue, Jan 21, 2020 at 03:47:16PM +0100, Peter Zijlstra wrote:
+> On Tue, Jan 21, 2020 at 06:21:09AM -0800, Paul E. McKenney wrote:
+> > On Tue, Jan 21, 2020 at 10:15:01AM +0100, Peter Zijlstra wrote:
+> > > On Mon, Jan 20, 2020 at 12:23:59PM -0800, Paul E. McKenney wrote:
+> > > > We also don't have __atomic_read() and __atomic_set(), yet atomic_read()
+> > > > and atomic_set() are considered to be non-racy, right?
+> > > 
+> > > What is racy? :-) You can make data races with atomic_{read,set}() just
+> > > fine.
+> > 
+> > Like "fairness", lots of definitions of "racy".  ;-)
+> > 
+> > > Anyway, traditionally we call the read-modify-write stuff atomic, not
+> > > the trivial load-store stuff. The only reason we care about the
+> > > load-store stuff in the first place is because C compilers are shit.
+> > > 
+> > > atomic_read() / test_bit() are just a load, all we need is the C
+> > > compiler not to be an ass and split it. Yes, we've invented the term
+> > > single-copy atomicity for that, but that doesn't make it more or less of
+> > > a load.
+> > > 
+> > > And exactly because it is just a load, there is no __test_bit(), which
+> > > would be the exact same load.
+> > 
+> > Very good!  Shouldn't KCSAN then define test_bit() as non-racy just as
+> > for atomic_read()?
+> 
+> Sure it does; but my comment was aimed at the gripe that test_bit()
+> lives in the non-atomic bitops header. That is arguably entirely
+> correct.
 
-Sent v2: http://lkml.kernel.org/r/20200121160512.70887-1-elver@google.com
-I hope it'll satisfy our various constraints for now.
+Fair enough!
 
-Thanks,
--- Marco
+							Thanx, Paul
