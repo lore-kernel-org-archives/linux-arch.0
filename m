@@ -1,51 +1,53 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH v8 4/5] locking/qspinlock: Introduce starvation avoidance
- into CNA
-Date: Tue, 21 Jan 2020 14:50:34 +0100
-Message-ID: <20200121135034.GA14946@hirez.programming.kicks-ass.net>
-References: <20191230194042.67789-1-alex.kogan@oracle.com>
- <20191230194042.67789-5-alex.kogan@oracle.com>
- <20200121132949.GL14914@hirez.programming.kicks-ass.net>
+From: "Paul E. McKenney" <paulmck@kernel.org>
+Subject: Re: [PATCH 3/5] asm-generic, kcsan: Add KCSAN instrumentation for
+ bitops
+Date: Tue, 21 Jan 2020 06:21:09 -0800
+Message-ID: <20200121142109.GQ2935@paulmck-ThinkPad-P72>
+References: <20200120141927.114373-1-elver@google.com>
+ <20200120141927.114373-3-elver@google.com>
+ <20200120144048.GB14914@hirez.programming.kicks-ass.net>
+ <20200120162725.GE2935@paulmck-ThinkPad-P72>
+ <20200120165223.GC14914@hirez.programming.kicks-ass.net>
+ <20200120202359.GF2935@paulmck-ThinkPad-P72>
+ <20200121091501.GF14914@hirez.programming.kicks-ass.net>
+Reply-To: paulmck@kernel.org
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane-mx.org@lists.infradead.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail.kernel.org ([198.145.29.99]:45332 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1727508AbgAUOVK (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 21 Jan 2020 09:21:10 -0500
 Content-Disposition: inline
-In-Reply-To: <20200121132949.GL14914@hirez.programming.kicks-ass.net>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane-mx.org@lists.infradead.org
-To: Alex Kogan <alex.kogan@oracle.com>
-Cc: linux-arch@vger.kernel.org, guohanjun@huawei.com, arnd@arndb.de, dave.dice@oracle.com, jglauber@marvell.com, x86@kernel.org, will.deacon@arm.com, linux@armlinux.org.uk, steven.sistare@oracle.com, linux-kernel@vger.kernel.org, mingo@redhat.com, bp@alien8.de, hpa@zytor.com, longman@redhat.com, tglx@linutronix.de, daniel.m.jordan@oracle.com, bristot@redhat.com, linux-arm-kernel@lists.infradead.org
-List-Id: linux-arch.vger.kernel.org
+In-Reply-To: <20200121091501.GF14914@hirez.programming.kicks-ass.net>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Marco Elver <elver@google.com>, andreyknvl@google.com, glider@google.com, dvyukov@google.com, kasan-dev@googlegroups.com, linux-kernel@vger.kernel.org, mark.rutland@arm.com, will@kernel.org, boqun.feng@gmail.com, arnd@arndb.de, viro@zeniv.linux.org.uk, christophe.leroy@c-s.fr, dja@axtens.net, mpe@ellerman.id.au, rostedt@goodmis.org, mhiramat@kernel.org, mingo@kernel.org, christian.brauner@ubuntu.com, daniel@iogearbox.net, cyphar@cyphar.com, keescook@chromium.org, linux-arch@vger.kernel.org
 
-On Tue, Jan 21, 2020 at 02:29:49PM +0100, Peter Zijlstra wrote:
-> On Mon, Dec 30, 2019 at 02:40:41PM -0500, Alex Kogan wrote:
+On Tue, Jan 21, 2020 at 10:15:01AM +0100, Peter Zijlstra wrote:
+> On Mon, Jan 20, 2020 at 12:23:59PM -0800, Paul E. McKenney wrote:
+> > We also don't have __atomic_read() and __atomic_set(), yet atomic_read()
+> > and atomic_set() are considered to be non-racy, right?
 > 
-> > +/*
-> > + * Controls the threshold for the number of intra-node lock hand-offs before
-> > + * the NUMA-aware variant of spinlock is forced to be passed to a thread on
-> > + * another NUMA node. By default, the chosen value provides reasonable
-> > + * long-term fairness without sacrificing performance compared to a lock
-> > + * that does not have any fairness guarantees. The default setting can
-> > + * be changed with the "numa_spinlock_threshold" boot option.
-> > + */
-> > +int intra_node_handoff_threshold __ro_after_init = 1 << 16;
-> 
-> There is a distinct lack of quantitative data to back up that
-> 'reasonable' claim there.
-> 
-> Where is the table of inter-node latencies observed for the various
-> values tested, and on what criteria is this number deemed reasonable?
-> 
-> To me, 64k lock hold times seems like a giant number, entirely outside
-> of reasonable.
+> What is racy? :-) You can make data races with atomic_{read,set}() just
+> fine.
 
-Daniel, IIRC you just did a paper on constructing worst case latencies
-from measuring pieces. Do you have data on average lock hold times?
+Like "fairness", lots of definitions of "racy".  ;-)
+
+> Anyway, traditionally we call the read-modify-write stuff atomic, not
+> the trivial load-store stuff. The only reason we care about the
+> load-store stuff in the first place is because C compilers are shit.
+> 
+> atomic_read() / test_bit() are just a load, all we need is the C
+> compiler not to be an ass and split it. Yes, we've invented the term
+> single-copy atomicity for that, but that doesn't make it more or less of
+> a load.
+> 
+> And exactly because it is just a load, there is no __test_bit(), which
+> would be the exact same load.
+
+Very good!  Shouldn't KCSAN then define test_bit() as non-racy just as
+for atomic_read()?
+
+							Thanx, Paul
