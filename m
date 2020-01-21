@@ -1,46 +1,52 @@
 From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH v8 3/5] locking/qspinlock: Introduce CNA into the slow
- path of qspinlock
-Date: Tue, 21 Jan 2020 15:42:29 +0100
-Message-ID: <20200121144229.GN14914@hirez.programming.kicks-ass.net>
-References: <20191230194042.67789-1-alex.kogan@oracle.com>
- <20191230194042.67789-4-alex.kogan@oracle.com>
+Subject: Re: [PATCH 3/5] asm-generic, kcsan: Add KCSAN instrumentation for
+ bitops
+Date: Tue, 21 Jan 2020 15:47:16 +0100
+Message-ID: <20200121144716.GQ14879@hirez.programming.kicks-ass.net>
+References: <20200120141927.114373-1-elver@google.com>
+ <20200120141927.114373-3-elver@google.com>
+ <20200120144048.GB14914@hirez.programming.kicks-ass.net>
+ <20200120162725.GE2935@paulmck-ThinkPad-P72>
+ <20200120165223.GC14914@hirez.programming.kicks-ass.net>
+ <20200120202359.GF2935@paulmck-ThinkPad-P72>
+ <20200121091501.GF14914@hirez.programming.kicks-ass.net>
+ <20200121142109.GQ2935@paulmck-ThinkPad-P72>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane-mx.org@lists.infradead.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <20191230194042.67789-4-alex.kogan@oracle.com>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane-mx.org@lists.infradead.org
-To: Alex Kogan <alex.kogan@oracle.com>
-Cc: linux-arch@vger.kernel.org, guohanjun@huawei.com, arnd@arndb.de, dave.dice@oracle.com, jglauber@marvell.com, x86@kernel.org, will.deacon@arm.com, linux@armlinux.org.uk, steven.sistare@oracle.com, linux-kernel@vger.kernel.org, mingo@redhat.com, bp@alien8.de, hpa@zytor.com, longman@redhat.com, tglx@linutronix.de, daniel.m.jordan@oracle.com, linux-arm-kernel@lists.infradead.org
+In-Reply-To: <20200121142109.GQ2935@paulmck-ThinkPad-P72>
+Sender: linux-kernel-owner@vger.kernel.org
+To: "Paul E. McKenney" <paulmck@kernel.org>
+Cc: Marco Elver <elver@google.com>, andreyknvl@google.com, glider@google.com, dvyukov@google.com, kasan-dev@googlegroups.com, linux-kernel@vger.kernel.org, mark.rutland@arm.com, will@kernel.org, boqun.feng@gmail.com, arnd@arndb.de, viro@zeniv.linux.org.uk, christophe.leroy@c-s.fr, dja@axtens.net, mpe@ellerman.id.au, rostedt@goodmis.org, mhiramat@kernel.org, mingo@kernel.org, christian.brauner@ubuntu.com, daniel@iogearbox.net, cyphar@cyphar.com, keescook@chromium.org, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Mon, Dec 30, 2019 at 02:40:40PM -0500, Alex Kogan wrote:
-> +#define pv_wait_head_or_lock		cna_pre_scan
+On Tue, Jan 21, 2020 at 06:21:09AM -0800, Paul E. McKenney wrote:
+> On Tue, Jan 21, 2020 at 10:15:01AM +0100, Peter Zijlstra wrote:
+> > On Mon, Jan 20, 2020 at 12:23:59PM -0800, Paul E. McKenney wrote:
+> > > We also don't have __atomic_read() and __atomic_set(), yet atomic_read()
+> > > and atomic_set() are considered to be non-racy, right?
+> > 
+> > What is racy? :-) You can make data races with atomic_{read,set}() just
+> > fine.
+> 
+> Like "fairness", lots of definitions of "racy".  ;-)
+> 
+> > Anyway, traditionally we call the read-modify-write stuff atomic, not
+> > the trivial load-store stuff. The only reason we care about the
+> > load-store stuff in the first place is because C compilers are shit.
+> > 
+> > atomic_read() / test_bit() are just a load, all we need is the C
+> > compiler not to be an ass and split it. Yes, we've invented the term
+> > single-copy atomicity for that, but that doesn't make it more or less of
+> > a load.
+> > 
+> > And exactly because it is just a load, there is no __test_bit(), which
+> > would be the exact same load.
+> 
+> Very good!  Shouldn't KCSAN then define test_bit() as non-racy just as
+> for atomic_read()?
 
-Also inconsitent naming.
-
-> +__always_inline u32 cna_pre_scan(struct qspinlock *lock,
-> +				  struct mcs_spinlock *node)
-> +{
-> +	struct cna_node *cn = (struct cna_node *)node;
-> +
-> +	cn->pre_scan_result = cna_scan_main_queue(node, node);
-> +
-> +	return 0;
-> +}
-
-The thinking here is that we're trying to make use of the time otherwise
-spend spinning on atomic_cond_read_acquire(), to search for a potential
-unlock candidate?
-
-Surely that deserves a comment.
+Sure it does; but my comment was aimed at the gripe that test_bit()
+lives in the non-atomic bitops header. That is arguably entirely
+correct.
