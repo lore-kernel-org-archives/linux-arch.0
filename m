@@ -1,49 +1,36 @@
-From: Daniel Bristot de Oliveira <bristot@redhat.com>
-Subject: Re: [PATCH v8 4/5] locking/qspinlock: Introduce starvation avoidance
- into CNA
-Date: Tue, 21 Jan 2020 22:19:32 +0100
-Message-ID: <e10414a6-dbfc-a666-18b8-a0499c93a203@redhat.com>
-References: <20191230194042.67789-1-alex.kogan@oracle.com>
- <20191230194042.67789-5-alex.kogan@oracle.com>
- <20200121132949.GL14914@hirez.programming.kicks-ass.net>
- <20200121135034.GA14946@hirez.programming.kicks-ass.net>
+From: Peter Collingbourne <pcc@google.com>
+Subject: Re: [PATCH 15/22] arm64: mte: Add PROT_MTE support to mmap() and mprotect()
+Date: Tue, 21 Jan 2020 14:06:14 -0800
+Message-ID: <CAMn1gO6dNi-97cG-a8-6PcauLy9xpRvG6JYdU0zyn9a_6tnyvA@mail.gmail.com>
+References: <20191211184027.20130-1-catalin.marinas@arm.com> <20191211184027.20130-16-catalin.marinas@arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20200121135034.GA14946@hirez.programming.kicks-ass.net>
-Content-Language: en-US
-Sender: linux-kernel-owner@vger.kernel.org
-To: Peter Zijlstra <peterz@infradead.org>, Alex Kogan <alex.kogan@oracle.com>
-Cc: linux@armlinux.org.uk, mingo@redhat.com, will.deacon@arm.com, arnd@arndb.de, longman@redhat.com, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, bp@alien8.de, hpa@zytor.com, x86@kernel.org, guohanjun@huawei.com, jglauber@marvell.com, steven.sistare@oracle.com, daniel.m.jordan@oracle.com, dave.dice@oracle.com
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset="UTF-8"
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-wm1-f65.google.com ([209.85.128.65]:51030 "EHLO
+        mail-wm1-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1728205AbgAUWG3 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jan 2020 17:06:29 -0500
+Received: by mail-wm1-f65.google.com with SMTP id a5so4727993wmb.0
+        for <linux-arch@vger.kernel.org>; Tue, 21 Jan 2020 14:06:27 -0800 (PST)
+In-Reply-To: <20191211184027.20130-16-catalin.marinas@arm.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Catalin Marinas <catalin.marinas@arm.com>
+Cc: Linux ARM <linux-arm-kernel@lists.infradead.org>, linux-arch@vger.kernel.org, Richard Earnshaw <Richard.Earnshaw@arm.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Marc Zyngier <maz@kernel.org>, Kevin Brodsky <kevin.brodsky@arm.com>, linux-mm@kvack.org, Andrey Konovalov <andreyknvl@google.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Will Deacon <will@kernel.org>
 
-On 1/21/20 2:50 PM, Peter Zijlstra wrote:
-> On Tue, Jan 21, 2020 at 02:29:49PM +0100, Peter Zijlstra wrote:
->> On Mon, Dec 30, 2019 at 02:40:41PM -0500, Alex Kogan wrote:
->>
->>> +/*
->>> + * Controls the threshold for the number of intra-node lock hand-offs before
->>> + * the NUMA-aware variant of spinlock is forced to be passed to a thread on
->>> + * another NUMA node. By default, the chosen value provides reasonable
->>> + * long-term fairness without sacrificing performance compared to a lock
->>> + * that does not have any fairness guarantees. The default setting can
->>> + * be changed with the "numa_spinlock_threshold" boot option.
->>> + */
->>> +int intra_node_handoff_threshold __ro_after_init = 1 << 16;
->> There is a distinct lack of quantitative data to back up that
->> 'reasonable' claim there.
->>
->> Where is the table of inter-node latencies observed for the various
->> values tested, and on what criteria is this number deemed reasonable?
->>
->> To me, 64k lock hold times seems like a giant number, entirely outside
->> of reasonable.
-> Daniel, IIRC you just did a paper on constructing worst case latencies
-> from measuring pieces. Do you have data on average lock hold times?
-> 
+On Wed, Dec 11, 2019 at 10:44 AM Catalin Marinas
+<catalin.marinas@arm.com> wrote:
+> diff --git a/fs/proc/task_mmu.c b/fs/proc/task_mmu.c
+> index 9442631fd4af..34bc9e0b4896 100644
+> --- a/fs/proc/task_mmu.c
+> +++ b/fs/proc/task_mmu.c
+> @@ -677,6 +677,9 @@ static void show_smap_vma_flags(struct seq_file *m, struct vm_area_struct *vma)
+>                 [ilog2(VM_MERGEABLE)]   = "mg",
+>                 [ilog2(VM_UFFD_MISSING)]= "um",
+>                 [ilog2(VM_UFFD_WP)]     = "uw",
+> +#ifdef CONFIG_ARM64_MTE
+> +               [ilog2(VM_MTE)]         = "mt",
 
-I am still writing the paper, but I do not have the (avg) lock times. It is it
-is in the TODO list, though!
+We should probably add an entry for VM_MTE_ALLOWED here as well.
 
--- Daniel
+Peter
