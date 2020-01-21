@@ -1,194 +1,76 @@
-Return-Path: <SRS0=n+LR=24=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:41738 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1728211AbgAGQyY (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 7 Jan 2020 11:54:24 -0500
-From: Krzysztof Kozlowski <krzk@kernel.org>
-Subject: [RFT 04/13] parisc: Constify ioreadX() iomem argument (as in generic implementation)
-Date: Tue,  7 Jan 2020 17:53:03 +0100
-Message-Id: <1578415992-24054-7-git-send-email-krzk@kernel.org>
-In-Reply-To: <1578415992-24054-1-git-send-email-krzk@kernel.org>
-References: <1578415992-24054-1-git-send-email-krzk@kernel.org>
+Return-Path: <SRS0=zjVl=3K=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from merlin.infradead.org ([205.233.59.134]:43374 "EHLO
+        merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1725890AbgAUNbE (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jan 2020 08:31:04 -0500
+Date: Tue, 21 Jan 2020 14:29:49 +0100
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH v8 4/5] locking/qspinlock: Introduce starvation avoidance
+ into CNA
+Message-ID: <20200121132949.GL14914@hirez.programming.kicks-ass.net>
+References: <20191230194042.67789-1-alex.kogan@oracle.com>
+ <20191230194042.67789-5-alex.kogan@oracle.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20191230194042.67789-5-alex.kogan@oracle.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Alexey Brodkin <abrodkin@synopsys.com>, Vineet Gupta <vgupta@synopsys.com>, "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>, Helge Deller <deller@gmx.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, Dave Airlie <airlied@redhat.com>, David Airlie <airlied@linux.ie>, Daniel Vetter <daniel@ffwll.ch>, Ben Skeggs <bskeggs@redhat.com>, Mauro Carvalho Chehab <mchehab@kernel.org>, Jiri Slaby <jirislaby@gmail.com>, Nick Kossifidis <mickflemm@gmail.com>, Luis Chamberlain <mcgrof@kernel.org>, Kalle Valo <kvalo@codeaurora.org>, "David S. Miller" <davem@davemloft.net>, Dave Jiang <dave.jiang@intel.com>, Jon Mason <jdmason@kudzu.us>, Allen Hubbe <allenbh@gmail.com>, "Michael S. Tsirkin" <mst@redhat.com>, Jason Wang <jasowang@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, Geert Uytterhoeven <geert@linux-m68k.org>, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-snps-arc@lists.infradead.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org, dri-devel@lists.freedesktop.org, nouveau@lists.freedesktop.org, linux-media@vger.kernel.org, linux-wireless@vger.kernel.org, netdev@vger.kernel.org, linux-ntb@googlegroups.com, virtualization@lists.linux-foundation.org, linux-arch@vger.kernel.org
-Cc: Krzysztof Kozlowski <krzk@kernel.org>
+To: Alex Kogan <alex.kogan@oracle.com>
+Cc: linux@armlinux.org.uk, mingo@redhat.com, will.deacon@arm.com, arnd@arndb.de, longman@redhat.com, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, bp@alien8.de, hpa@zytor.com, x86@kernel.org, guohanjun@huawei.com, jglauber@marvell.com, steven.sistare@oracle.com, daniel.m.jordan@oracle.com, dave.dice@oracle.com
+Message-ID: <20200121132949.4K3FN74UbLakPKeOY78ie6s4Z4gLbtLKRfeM8oOcLU4@z>
 
-The ioreadX() helpers have inconsistent interface.  On some architectures
-void *__iomem address argument is a pointer to const, on some not.
+On Mon, Dec 30, 2019 at 02:40:41PM -0500, Alex Kogan wrote:
 
-Implementations of ioreadX() do not modify the memory under the address
-so they can be converted to a "const" version for const-safety and
-consistency among architectures.
+> +/*
+> + * Controls the threshold for the number of intra-node lock hand-offs before
+> + * the NUMA-aware variant of spinlock is forced to be passed to a thread on
+> + * another NUMA node. By default, the chosen value provides reasonable
+> + * long-term fairness without sacrificing performance compared to a lock
+> + * that does not have any fairness guarantees. The default setting can
+> + * be changed with the "numa_spinlock_threshold" boot option.
+> + */
+> +int intra_node_handoff_threshold __ro_after_init = 1 << 16;
 
-Signed-off-by: Krzysztof Kozlowski <krzk@kernel.org>
----
- arch/parisc/include/asm/io.h |  4 ++--
- arch/parisc/lib/iomap.c      | 48 ++++++++++++++++++++++----------------------
- 2 files changed, 26 insertions(+), 26 deletions(-)
+There is a distinct lack of quantitative data to back up that
+'reasonable' claim there.
 
-diff --git a/arch/parisc/include/asm/io.h b/arch/parisc/include/asm/io.h
-index cab8f64ca4a2..f48fb8d76e15 100644
---- a/arch/parisc/include/asm/io.h
-+++ b/arch/parisc/include/asm/io.h
-@@ -303,8 +303,8 @@ extern void outsl (unsigned long port, const void *src, unsigned long count);
- #define ioread64be ioread64be
- #define iowrite64 iowrite64
- #define iowrite64be iowrite64be
--extern u64 ioread64(void __iomem *addr);
--extern u64 ioread64be(void __iomem *addr);
-+extern u64 ioread64(const void __iomem *addr);
-+extern u64 ioread64be(const void __iomem *addr);
- extern void iowrite64(u64 val, void __iomem *addr);
- extern void iowrite64be(u64 val, void __iomem *addr);
- 
-diff --git a/arch/parisc/lib/iomap.c b/arch/parisc/lib/iomap.c
-index 0195aec657e2..e01345d2a7d9 100644
---- a/arch/parisc/lib/iomap.c
-+++ b/arch/parisc/lib/iomap.c
-@@ -43,13 +43,13 @@
- #endif
- 
- struct iomap_ops {
--	unsigned int (*read8)(void __iomem *);
--	unsigned int (*read16)(void __iomem *);
--	unsigned int (*read16be)(void __iomem *);
--	unsigned int (*read32)(void __iomem *);
--	unsigned int (*read32be)(void __iomem *);
--	u64 (*read64)(void __iomem *);
--	u64 (*read64be)(void __iomem *);
-+	unsigned int (*read8)(const void __iomem *);
-+	unsigned int (*read16)(const void __iomem *);
-+	unsigned int (*read16be)(const void __iomem *);
-+	unsigned int (*read32)(const void __iomem *);
-+	unsigned int (*read32be)(const void __iomem *);
-+	u64 (*read64)(const void __iomem *);
-+	u64 (*read64be)(const void __iomem *);
- 	void (*write8)(u8, void __iomem *);
- 	void (*write16)(u16, void __iomem *);
- 	void (*write16be)(u16, void __iomem *);
-@@ -69,17 +69,17 @@ struct iomap_ops {
- 
- #define ADDR2PORT(addr) ((unsigned long __force)(addr) & 0xffffff)
- 
--static unsigned int ioport_read8(void __iomem *addr)
-+static unsigned int ioport_read8(const void __iomem *addr)
- {
- 	return inb(ADDR2PORT(addr));
- }
- 
--static unsigned int ioport_read16(void __iomem *addr)
-+static unsigned int ioport_read16(const void __iomem *addr)
- {
- 	return inw(ADDR2PORT(addr));
- }
- 
--static unsigned int ioport_read32(void __iomem *addr)
-+static unsigned int ioport_read32(const void __iomem *addr)
- {
- 	return inl(ADDR2PORT(addr));
- }
-@@ -150,37 +150,37 @@ static const struct iomap_ops ioport_ops = {
- 
- /* Legacy I/O memory ops */
- 
--static unsigned int iomem_read8(void __iomem *addr)
-+static unsigned int iomem_read8(const void __iomem *addr)
- {
- 	return readb(addr);
- }
- 
--static unsigned int iomem_read16(void __iomem *addr)
-+static unsigned int iomem_read16(const void __iomem *addr)
- {
- 	return readw(addr);
- }
- 
--static unsigned int iomem_read16be(void __iomem *addr)
-+static unsigned int iomem_read16be(const void __iomem *addr)
- {
- 	return __raw_readw(addr);
- }
- 
--static unsigned int iomem_read32(void __iomem *addr)
-+static unsigned int iomem_read32(const void __iomem *addr)
- {
- 	return readl(addr);
- }
- 
--static unsigned int iomem_read32be(void __iomem *addr)
-+static unsigned int iomem_read32be(const void __iomem *addr)
- {
- 	return __raw_readl(addr);
- }
- 
--static u64 iomem_read64(void __iomem *addr)
-+static u64 iomem_read64(const void __iomem *addr)
- {
- 	return readq(addr);
- }
- 
--static u64 iomem_read64be(void __iomem *addr)
-+static u64 iomem_read64be(const void __iomem *addr)
- {
- 	return __raw_readq(addr);
- }
-@@ -297,49 +297,49 @@ static const struct iomap_ops *iomap_ops[8] = {
- };
- 
- 
--unsigned int ioread8(void __iomem *addr)
-+unsigned int ioread8(const void __iomem *addr)
- {
- 	if (unlikely(INDIRECT_ADDR(addr)))
- 		return iomap_ops[ADDR_TO_REGION(addr)]->read8(addr);
- 	return *((u8 *)addr);
- }
- 
--unsigned int ioread16(void __iomem *addr)
-+unsigned int ioread16(const void __iomem *addr)
- {
- 	if (unlikely(INDIRECT_ADDR(addr)))
- 		return iomap_ops[ADDR_TO_REGION(addr)]->read16(addr);
- 	return le16_to_cpup((u16 *)addr);
- }
- 
--unsigned int ioread16be(void __iomem *addr)
-+unsigned int ioread16be(const void __iomem *addr)
- {
- 	if (unlikely(INDIRECT_ADDR(addr)))
- 		return iomap_ops[ADDR_TO_REGION(addr)]->read16be(addr);
- 	return *((u16 *)addr);
- }
- 
--unsigned int ioread32(void __iomem *addr)
-+unsigned int ioread32(const void __iomem *addr)
- {
- 	if (unlikely(INDIRECT_ADDR(addr)))
- 		return iomap_ops[ADDR_TO_REGION(addr)]->read32(addr);
- 	return le32_to_cpup((u32 *)addr);
- }
- 
--unsigned int ioread32be(void __iomem *addr)
-+unsigned int ioread32be(const void __iomem *addr)
- {
- 	if (unlikely(INDIRECT_ADDR(addr)))
- 		return iomap_ops[ADDR_TO_REGION(addr)]->read32be(addr);
- 	return *((u32 *)addr);
- }
- 
--u64 ioread64(void __iomem *addr)
-+u64 ioread64(const void __iomem *addr)
- {
- 	if (unlikely(INDIRECT_ADDR(addr)))
- 		return iomap_ops[ADDR_TO_REGION(addr)]->read64(addr);
- 	return le64_to_cpup((u64 *)addr);
- }
- 
--u64 ioread64be(void __iomem *addr)
-+u64 ioread64be(const void __iomem *addr)
- {
- 	if (unlikely(INDIRECT_ADDR(addr)))
- 		return iomap_ops[ADDR_TO_REGION(addr)]->read64be(addr);
--- 
-2.7.4
+Where is the table of inter-node latencies observed for the various
+values tested, and on what criteria is this number deemed reasonable?
+
+To me, 64k lock hold times seems like a giant number, entirely outside
+of reasonable.
+
+> +
+>  static void __init cna_init_nodes_per_cpu(unsigned int cpu)
+>  {
+>  	struct mcs_spinlock *base = per_cpu_ptr(&qnodes[0].mcs, cpu);
+> @@ -97,6 +109,11 @@ static int __init cna_init_nodes(void)
+>  }
+>  early_initcall(cna_init_nodes);
+>  
+> +static __always_inline void cna_init_node(struct mcs_spinlock *node)
+> +{
+> +	((struct cna_node *)node)->intra_count = 0;
+> +}
+> +
+>  /* this function is called only when the primary queue is empty */
+>  static inline bool cna_try_change_tail(struct qspinlock *lock, u32 val,
+>  				       struct mcs_spinlock *node)
+> @@ -233,7 +250,9 @@ __always_inline u32 cna_pre_scan(struct qspinlock *lock,
+>  {
+>  	struct cna_node *cn = (struct cna_node *)node;
+>  
+> -	cn->pre_scan_result = cna_scan_main_queue(node, node);
+> +	cn->pre_scan_result =
+> +		cn->intra_count == intra_node_handoff_threshold ?
+> +			FLUSH_SECONDARY_QUEUE : cna_scan_main_queue(node, node);
+
+Because:
+
+	if (cn->intra_count < intra_node_handoff_threshold)
+		cn->pre_scan_result = cna_scan_main_queue(node, node);
+	else
+		cn->pre_scan_result = FLUSH_SECONDARY_QUEUE;
+
+was too readable?
