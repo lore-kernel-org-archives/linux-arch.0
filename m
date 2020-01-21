@@ -1,35 +1,168 @@
-Return-Path: <SRS0=XOKs=3M=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail-lf1-f66.google.com ([209.85.167.66]:37842 "EHLO
-        mail-lf1-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727278AbgAWR7Y (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 23 Jan 2020 12:59:24 -0500
-Received: by mail-lf1-f66.google.com with SMTP id b15so3018883lfc.4
-        for <linux-arch@vger.kernel.org>; Thu, 23 Jan 2020 09:59:23 -0800 (PST)
-Received: from mail-lj1-f172.google.com (mail-lj1-f172.google.com. [209.85.208.172])
-        by smtp.gmail.com with ESMTPSA id i1sm1668982lji.71.2020.01.23.09.59.19
-        for <linux-arch@vger.kernel.org>
-        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
-        Thu, 23 Jan 2020 09:59:19 -0800 (PST)
-Received: by mail-lj1-f172.google.com with SMTP id n18so4555946ljo.7
-        for <linux-arch@vger.kernel.org>; Thu, 23 Jan 2020 09:59:19 -0800 (PST)
-MIME-Version: 1.0
-References: <20200123153341.19947-1-will@kernel.org>
-In-Reply-To: <20200123153341.19947-1-will@kernel.org>
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Date: Thu, 23 Jan 2020 09:59:03 -0800
-Message-ID: <CAHk-=wjC2EDquO8_kzc-FHOGGjgODOLKjswYGJAMh58zTkyX3w@mail.gmail.com>
-Subject: Re: [PATCH v2 00/10] Rework READ_ONCE() to improve codegen
+Return-Path: <SRS0=zjVl=3K=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail-wr1-f73.google.com ([209.85.221.73]:47490 "EHLO
+        mail-wr1-f73.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727817AbgAUQF2 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jan 2020 11:05:28 -0500
+Received: by mail-wr1-f73.google.com with SMTP id f10so1514089wro.14
+        for <linux-arch@vger.kernel.org>; Tue, 21 Jan 2020 08:05:27 -0800 (PST)
+Date: Tue, 21 Jan 2020 17:05:08 +0100
+Message-ID: <20200121160512.70887-1-elver@google.com>
+Mime-Version: 1.0
+Subject: [PATCH v2 1/5] include/linux: Add instrumented.h infrastructure
+From: Marco Elver <elver@google.com>
 Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will@kernel.org>
-Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Android Kernel Team <kernel-team@android.com>, Michael Ellerman <mpe@ellerman.id.au>, Peter Zijlstra <peterz@infradead.org>, Segher Boessenkool <segher@kernel.crashing.org>, Christian Borntraeger <borntraeger@de.ibm.com>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>, Arnd Bergmann <arnd@arndb.de>, Peter Oberparleiter <oberpar@linux.ibm.com>, Masahiro Yamada <masahiroy@kernel.org>, Nick Desaulniers <ndesaulniers@google.com>
-Message-ID: <20200123175903.z3AkyHRvm1ZjM4zx1laLr8adc_tniNA9nI32jYQuAO8@z>
+To: elver@google.com
+Cc: paulmck@kernel.org, andreyknvl@google.com, glider@google.com, dvyukov@google.com, kasan-dev@googlegroups.com, linux-kernel@vger.kernel.org, mark.rutland@arm.com, will@kernel.org, peterz@infradead.org, boqun.feng@gmail.com, arnd@arndb.de, viro@zeniv.linux.org.uk, dja@axtens.net, christophe.leroy@c-s.fr, mpe@ellerman.id.au, mhiramat@kernel.org, rostedt@goodmis.org, mingo@kernel.org, christian.brauner@ubuntu.com, daniel@iogearbox.net, keescook@chromium.org, cyphar@cyphar.com, linux-arch@vger.kernel.org
+Message-ID: <20200121160508.l2QU1Eai54gek4RidFnAMDLqCfkJzorJxPMMTL8h__k@z>
 
-On Thu, Jan 23, 2020 at 7:33 AM Will Deacon <will@kernel.org> wrote:
->
-> This is version two of the patches I previously posted as an RFC here:
+This adds instrumented.h, which provides generic wrappers for memory
+access instrumentation that the compiler cannot emit for various
+sanitizers. Currently this unifies KASAN and KCSAN instrumentation. In
+future this will also include KMSAN instrumentation.
 
-Looks fine to me, as far as I can tell,
+Note that, copy_{to,from}_user should use special instrumentation, since
+we should be able to instrument both source and destination memory
+accesses if both are kernel memory.
 
-              Linus
+The current patch only instruments the memory access where the address
+is always in kernel space, however, both may in fact be kernel addresses
+when a compat syscall passes an argument allocated in the kernel to a
+real syscall. In a future change, both KASAN and KCSAN should check both
+addresses in such cases, as well as KMSAN will make use of both
+addresses. [It made more sense to provide the completed function
+signature, rather than updating it and changing all locations again at a
+later time.]
+
+Suggested-by: Arnd Bergmann <arnd@arndb.de>
+Signed-off-by: Marco Elver <elver@google.com>
+Acked-by: Alexander Potapenko <glider@google.com>
+---
+v2:
+* Simplify header, since we currently do not need pre/post user-copy
+  distinction.
+* Make instrument_copy_{to,from}_user function arguments match
+  copy_{to,from}_user and update rationale in commit message.
+---
+ include/linux/instrumented.h | 109 +++++++++++++++++++++++++++++++++++
+ 1 file changed, 109 insertions(+)
+ create mode 100644 include/linux/instrumented.h
+
+diff --git a/include/linux/instrumented.h b/include/linux/instrumented.h
+new file mode 100644
+index 000000000000..43e6ea591975
+--- /dev/null
++++ b/include/linux/instrumented.h
+@@ -0,0 +1,109 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++
++/*
++ * This header provides generic wrappers for memory access instrumentation that
++ * the compiler cannot emit for: KASAN, KCSAN.
++ */
++#ifndef _LINUX_INSTRUMENTED_H
++#define _LINUX_INSTRUMENTED_H
++
++#include <linux/compiler.h>
++#include <linux/kasan-checks.h>
++#include <linux/kcsan-checks.h>
++#include <linux/types.h>
++
++/**
++ * instrument_read - instrument regular read access
++ *
++ * Instrument a regular read access. The instrumentation should be inserted
++ * before the actual read happens.
++ *
++ * @ptr address of access
++ * @size size of access
++ */
++static __always_inline void instrument_read(const volatile void *v, size_t size)
++{
++	kasan_check_read(v, size);
++	kcsan_check_read(v, size);
++}
++
++/**
++ * instrument_write - instrument regular write access
++ *
++ * Instrument a regular write access. The instrumentation should be inserted
++ * before the actual write happens.
++ *
++ * @ptr address of access
++ * @size size of access
++ */
++static __always_inline void instrument_write(const volatile void *v, size_t size)
++{
++	kasan_check_write(v, size);
++	kcsan_check_write(v, size);
++}
++
++/**
++ * instrument_atomic_read - instrument atomic read access
++ *
++ * Instrument an atomic read access. The instrumentation should be inserted
++ * before the actual read happens.
++ *
++ * @ptr address of access
++ * @size size of access
++ */
++static __always_inline void instrument_atomic_read(const volatile void *v, size_t size)
++{
++	kasan_check_read(v, size);
++	kcsan_check_atomic_read(v, size);
++}
++
++/**
++ * instrument_atomic_write - instrument atomic write access
++ *
++ * Instrument an atomic write access. The instrumentation should be inserted
++ * before the actual write happens.
++ *
++ * @ptr address of access
++ * @size size of access
++ */
++static __always_inline void instrument_atomic_write(const volatile void *v, size_t size)
++{
++	kasan_check_write(v, size);
++	kcsan_check_atomic_write(v, size);
++}
++
++/**
++ * instrument_copy_to_user - instrument reads of copy_to_user
++ *
++ * Instrument reads from kernel memory, that are due to copy_to_user (and
++ * variants). The instrumentation must be inserted before the accesses.
++ *
++ * @to destination address
++ * @from source address
++ * @n number of bytes to copy
++ */
++static __always_inline void
++instrument_copy_to_user(void __user *to, const void *from, unsigned long n)
++{
++	kasan_check_read(from, n);
++	kcsan_check_read(from, n);
++}
++
++/**
++ * instrument_copy_from_user - instrument writes of copy_from_user
++ *
++ * Instrument writes to kernel memory, that are due to copy_from_user (and
++ * variants). The instrumentation should be inserted before the accesses.
++ *
++ * @to destination address
++ * @from source address
++ * @n number of bytes to copy
++ */
++static __always_inline void
++instrument_copy_from_user(const void *to, const void __user *from, unsigned long n)
++{
++	kasan_check_write(to, n);
++	kcsan_check_write(to, n);
++}
++
++#endif /* _LINUX_INSTRUMENTED_H */
+-- 
+2.25.0.341.g760bfbb309-goog
