@@ -1,64 +1,88 @@
-Return-Path: <SRS0=XOKs=3M=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:51582 "EHLO mail.kernel.org"
+Return-Path: <SRS0=lDRc=3L=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from foss.arm.com ([217.140.110.172]:60766 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726232AbgAWPd5 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 23 Jan 2020 10:33:57 -0500
-From: Will Deacon <will@kernel.org>
-Subject: [PATCH v2 02/10] netfilter: Avoid assigning 'const' pointer to non-const pointer
-Date: Thu, 23 Jan 2020 15:33:33 +0000
-Message-ID: <20200123153341.19947-3-will@kernel.org>
-In-Reply-To: <20200123153341.19947-1-will@kernel.org>
-References: <20200123153341.19947-1-will@kernel.org>
+        id S1727590AbgAVVVx (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 22 Jan 2020 16:21:53 -0500
+From: Mark Brown <broonie@kernel.org>
+Subject: [PATCH v5 01/12] ELF: UAPI and Kconfig additions for ELF program properties
+Date: Wed, 22 Jan 2020 21:21:33 +0000
+Message-ID: <20200122212144.6409-2-broonie@kernel.org>
+In-Reply-To: <20200122212144.6409-1-broonie@kernel.org>
+References: <20200122212144.6409-1-broonie@kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, kernel-team@android.com, Will Deacon <will@kernel.org>, Michael Ellerman <mpe@ellerman.id.au>, Peter Zijlstra <peterz@infradead.org>, Linus Torvalds <torvalds@linux-foundation.org>, Segher Boessenkool <segher@kernel.crashing.org>, Christian Borntraeger <borntraeger@de.ibm.com>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>, Arnd Bergmann <arnd@arndb.de>, Peter Oberparleiter <oberpar@linux.ibm.com>, Masahiro Yamada <masahiroy@kernel.org>, Nick Desaulniers <ndesaulniers@google.com>, Pablo Neira Ayuso <pablo@netfilter.org>, Jozsef Kadlecsik <kadlec@netfilter.org>, Florian Westphal <fw@strlen.de>, "David S. Miller" <davem@davemloft.net>
-Message-ID: <20200123153333.Fov-UsxfYZQq6qPCnrGF5HIgzqocGpOvXMZAVSNqz1w@z>
+To: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>
+Cc: Alexander Viro <viro@zeniv.linux.org.uk>, Paul Elliott <paul.elliott@arm.com>, Peter Zijlstra <peterz@infradead.org>, Yu-cheng Yu <yu-cheng.yu@intel.com>, Amit Kachhap <amit.kachhap@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Marc Zyngier <maz@kernel.org>, Eugene Syromiatnikov <esyr@redhat.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, "H . J . Lu " <hjl.tools@gmail.com>, Andrew Jones <drjones@redhat.com>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Jann Horn <jannh@google.com>, Richard Henderson <richard.henderson@linaro.org>, =?UTF-8?q?Kristina=20Mart=C5=A1enko?= <kristina.martsenko@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Florian Weimer <fweimer@redhat.com>, Sudakshina Das <sudi.das@arm.com>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, Dave Martin <Dave.Martin@arm.com>, Mark Brown <broonie@kernel.org>
+Message-ID: <20200122212133.v3Kr_nM1KSb0H2Z6CrFant12sOEctcRiLF7Yf7zy-V0@z>
 
-nf_remove_net_hook() uses WRITE_ONCE() to assign a 'const pointer to a
-'non-const' pointer. Cleanups to the implementation of WRITE_ONCE() mean
-that this will give rise to a compiler warning, just like a plain old
-assignment would do:
+From: Dave Martin <Dave.Martin@arm.com>
 
-  | In file included from ./include/linux/export.h:43,
-  |                  from ./include/linux/linkage.h:7,
-  |                  from ./include/linux/kernel.h:8,
-  |                  from net/netfilter/core.c:9:
-  | net/netfilter/core.c: In function ‘nf_remove_net_hook’:
-  | ./include/linux/compiler.h:216:30: warning: assignment discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
-  |   *(volatile typeof(x) *)&(x) = (val);  \
-  |                               ^
-  | net/netfilter/core.c:379:3: note: in expansion of macro ‘WRITE_ONCE’
-  |    WRITE_ONCE(orig_ops[i], &dummy_ops);
-  |    ^~~~~~~~~~
+Pull the basic ELF definitions relating to the
+NT_GNU_PROPERTY_TYPE_0 note from Yu-Cheng Yu's earlier x86 shstk
+series.
 
-Follow the pattern used elsewhere in this file and add a cast to 'void *'
-to squash the warning.
-
-Cc: Pablo Neira Ayuso <pablo@netfilter.org>
-Cc: Jozsef Kadlecsik <kadlec@netfilter.org>
-Cc: Florian Westphal <fw@strlen.de>
-Cc: "David S. Miller" <davem@davemloft.net>
-Signed-off-by: Will Deacon <will@kernel.org>
+Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Signed-off-by: Dave Martin <Dave.Martin@arm.com>
+Reviewed-by: Kees Cook <keescook@chromium.org>
+Reviewed-by: Catalin Marinas <catalin.marinas@arm.com>
+Signed-off-by: Mark Brown <broonie@kernel.org>
 ---
- net/netfilter/core.c | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+ fs/Kconfig.binfmt        | 3 +++
+ include/linux/elf.h      | 8 ++++++++
+ include/uapi/linux/elf.h | 1 +
+ 3 files changed, 12 insertions(+)
 
-diff --git a/net/netfilter/core.c b/net/netfilter/core.c
-index 78f046ec506f..3ac7c8c1548d 100644
---- a/net/netfilter/core.c
-+++ b/net/netfilter/core.c
-@@ -376,7 +376,7 @@ static bool nf_remove_net_hook(struct nf_hook_entries *old,
- 		if (orig_ops[i] != unreg)
- 			continue;
- 		WRITE_ONCE(old->hooks[i].hook, accept_all);
--		WRITE_ONCE(orig_ops[i], &dummy_ops);
-+		WRITE_ONCE(orig_ops[i], (void *)&dummy_ops);
- 		return true;
- 	}
+diff --git a/fs/Kconfig.binfmt b/fs/Kconfig.binfmt
+index 62dc4f577ba1..d2cfe0729a73 100644
+--- a/fs/Kconfig.binfmt
++++ b/fs/Kconfig.binfmt
+@@ -36,6 +36,9 @@ config COMPAT_BINFMT_ELF
+ config ARCH_BINFMT_ELF_STATE
+ 	bool
+ 
++config ARCH_USE_GNU_PROPERTY
++	bool
++
+ config BINFMT_ELF_FDPIC
+ 	bool "Kernel support for FDPIC ELF binaries"
+ 	default y if !BINFMT_ELF
+diff --git a/include/linux/elf.h b/include/linux/elf.h
+index e3649b3e970e..459cddcceaac 100644
+--- a/include/linux/elf.h
++++ b/include/linux/elf.h
+@@ -2,6 +2,7 @@
+ #ifndef _LINUX_ELF_H
+ #define _LINUX_ELF_H
+ 
++#include <linux/types.h>
+ #include <asm/elf.h>
+ #include <uapi/linux/elf.h>
+ 
+@@ -56,4 +57,11 @@ static inline int elf_coredump_extra_notes_write(struct coredump_params *cprm) {
+ extern int elf_coredump_extra_notes_size(void);
+ extern int elf_coredump_extra_notes_write(struct coredump_params *cprm);
+ #endif
++
++/* NT_GNU_PROPERTY_TYPE_0 header */
++struct gnu_property {
++	u32 pr_type;
++	u32 pr_datasz;
++};
++
+ #endif /* _LINUX_ELF_H */
+diff --git a/include/uapi/linux/elf.h b/include/uapi/linux/elf.h
+index 34c02e4290fe..c37731407074 100644
+--- a/include/uapi/linux/elf.h
++++ b/include/uapi/linux/elf.h
+@@ -36,6 +36,7 @@ typedef __s64	Elf64_Sxword;
+ #define PT_LOPROC  0x70000000
+ #define PT_HIPROC  0x7fffffff
+ #define PT_GNU_EH_FRAME		0x6474e550
++#define PT_GNU_PROPERTY		0x6474e553
+ 
+ #define PT_GNU_STACK	(PT_LOOS + 0x474e551)
  
 -- 
-2.25.0.341.g760bfbb309-goog
+2.20.1
