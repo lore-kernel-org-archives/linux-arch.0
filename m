@@ -1,109 +1,45 @@
-Return-Path: <SRS0=XOKs=3M=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail-pf1-f194.google.com ([209.85.210.194]:35137 "EHLO
-        mail-pf1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728709AbgAWTIL (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 23 Jan 2020 14:08:11 -0500
-Received: by mail-pf1-f194.google.com with SMTP id i23so1978879pfo.2
-        for <linux-arch@vger.kernel.org>; Thu, 23 Jan 2020 11:08:11 -0800 (PST)
+Return-Path: <SRS0=lDRc=3L=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from bombadil.infradead.org ([198.137.202.133]:52700 "EHLO
+        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1730479AbgAVJ4l (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 22 Jan 2020 04:56:41 -0500
+Date: Wed, 22 Jan 2020 10:56:22 +0100
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH v8 5/5] locking/qspinlock: Introduce the shuffle
+ reduction optimization into CNA
+Message-ID: <20200122095622.GS14914@hirez.programming.kicks-ass.net>
+References: <20191230194042.67789-1-alex.kogan@oracle.com>
+ <20191230194042.67789-6-alex.kogan@oracle.com>
 MIME-Version: 1.0
-References: <20200123153341.19947-1-will@kernel.org> <20200123153341.19947-3-will@kernel.org>
-In-Reply-To: <20200123153341.19947-3-will@kernel.org>
-From: Nick Desaulniers <ndesaulniers@google.com>
-Date: Thu, 23 Jan 2020 11:07:59 -0800
-Message-ID: <CAKwvOdm2snorniFunMF=0nDH8-RFwm7wtjYK_Tcwkd+JZinYPg@mail.gmail.com>
-Subject: Re: [PATCH v2 02/10] netfilter: Avoid assigning 'const' pointer to
- non-const pointer
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20191230194042.67789-6-alex.kogan@oracle.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will@kernel.org>
-Cc: LKML <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, kernel-team <kernel-team@android.com>, Michael Ellerman <mpe@ellerman.id.au>, Peter Zijlstra <peterz@infradead.org>, Linus Torvalds <torvalds@linux-foundation.org>, Segher Boessenkool <segher@kernel.crashing.org>, Christian Borntraeger <borntraeger@de.ibm.com>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>, Arnd Bergmann <arnd@arndb.de>, Peter Oberparleiter <oberpar@linux.ibm.com>, Masahiro Yamada <masahiroy@kernel.org>, Pablo Neira Ayuso <pablo@netfilter.org>, Jozsef Kadlecsik <kadlec@netfilter.org>, Florian Westphal <fw@strlen.de>, "David S. Miller" <davem@davemloft.net>
-Message-ID: <20200123190759.fvtUl6jc5u635-7lekwk_gczQE5wAS-HkiLQPSjucC4@z>
+To: Alex Kogan <alex.kogan@oracle.com>
+Cc: linux@armlinux.org.uk, mingo@redhat.com, will.deacon@arm.com, arnd@arndb.de, longman@redhat.com, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, bp@alien8.de, hpa@zytor.com, x86@kernel.org, guohanjun@huawei.com, jglauber@marvell.com, steven.sistare@oracle.com, daniel.m.jordan@oracle.com, dave.dice@oracle.com
+Message-ID: <20200122095622.gLio2KI9CdM8WIPeGjHW4TiCOEf3PcY6-VT2qTmNY7Q@z>
 
-On Thu, Jan 23, 2020 at 7:33 AM Will Deacon <will@kernel.org> wrote:
->
-> nf_remove_net_hook() uses WRITE_ONCE() to assign a 'const pointer to a
-> 'non-const' pointer. Cleanups to the implementation of WRITE_ONCE() mean
-> that this will give rise to a compiler warning, just like a plain old
-> assignment would do:
->
->   | In file included from ./include/linux/export.h:43,
->   |                  from ./include/linux/linkage.h:7,
->   |                  from ./include/linux/kernel.h:8,
->   |                  from net/netfilter/core.c:9:
->   | net/netfilter/core.c: In function =E2=80=98nf_remove_net_hook=E2=80=
-=99:
->   | ./include/linux/compiler.h:216:30: warning: assignment discards =E2=
-=80=98const=E2=80=99 qualifier from pointer target type [-Wdiscarded-qualif=
-iers]
->   |   *(volatile typeof(x) *)&(x) =3D (val);  \
->   |                               ^
->   | net/netfilter/core.c:379:3: note: in expansion of macro =E2=80=98WRIT=
-E_ONCE=E2=80=99
->   |    WRITE_ONCE(orig_ops[i], &dummy_ops);
->   |    ^~~~~~~~~~
->
-> Follow the pattern used elsewhere in this file and add a cast to 'void *'
-> to squash the warning.
->
-> Cc: Pablo Neira Ayuso <pablo@netfilter.org>
-> Cc: Jozsef Kadlecsik <kadlec@netfilter.org>
-> Cc: Florian Westphal <fw@strlen.de>
-> Cc: "David S. Miller" <davem@davemloft.net>
-> Signed-off-by: Will Deacon <will@kernel.org>
-> ---
->  net/netfilter/core.c | 2 +-
->  1 file changed, 1 insertion(+), 1 deletion(-)
->
-> diff --git a/net/netfilter/core.c b/net/netfilter/core.c
-> index 78f046ec506f..3ac7c8c1548d 100644
-> --- a/net/netfilter/core.c
-> +++ b/net/netfilter/core.c
-> @@ -376,7 +376,7 @@ static bool nf_remove_net_hook(struct nf_hook_entries=
- *old,
->                 if (orig_ops[i] !=3D unreg)
->                         continue;
->                 WRITE_ONCE(old->hooks[i].hook, accept_all);
-> -               WRITE_ONCE(orig_ops[i], &dummy_ops);
-> +               WRITE_ONCE(orig_ops[i], (void *)&dummy_ops);
+On Mon, Dec 30, 2019 at 02:40:42PM -0500, Alex Kogan wrote:
+> @@ -251,8 +281,11 @@ __always_inline u32 cna_pre_scan(struct qspinlock *lock,
+>  	struct cna_node *cn = (struct cna_node *)node;
+>  
+>  	cn->pre_scan_result =
+> -		cn->intra_count == intra_node_handoff_threshold ?
+> -			FLUSH_SECONDARY_QUEUE : cna_scan_main_queue(node, node);
+> +		(node->locked <= 1 && probably(SHUFFLE_REDUCTION_PROB_ARG)) ?
+> +			PASS_LOCK_IMMEDIATELY :
+> +			cn->intra_count == intra_node_handoff_threshold ?
+> +				FLUSH_SECONDARY_QUEUE :
+> +				cna_scan_main_queue(node, node);
+>  
+>  	return 0;
+>  }
 
-Good thing it's the variable being modified was not declared const; I
-get spooked when I see -Wdiscarded-qualifiers because of Section
-6.7.3.6 of the ISO C11 draft spec:
+Let me just, once again, remind people that the Linux Kernel is not part
+of the Obfuscated C code contest.
 
-```
-If an attempt is made to modify an object defined with a
-const-qualified type through use
-of an lvalue with non-const-qualified type, the behavior is undefined.
-If an attempt is
-made to refer to an object defined with a volatile-qualified type
-through use of an lvalue
-with non-volatile-qualified type, the behavior is undefined.133)
+> Reviewed-by: Steve Sistare <steven.sistare@oracle.com>
 
-133) This applies to those objects that behave as if they were defined
-with qualified types, even if they are
-never actually defined as objects in the program (such as an object at
-a memory-mapped input/output
-address).
-```
-
-Which is about the modification of a const-declared variable (explicit
-UB which Clang actively exploits), and doesn't apply in this case.  I
-agree that this is the best way to fix this due to the use of typeof()
-and it's semantics of dropping qualifiers; declaring `dummy_ops` as
-non-const would be another, but that is worse IMO.  Thanks for the
-patch.
-Reviewed-by: Nick Desaulniers <ndesaulniers@google.com>
-
->                 return true;
->         }
->
-> --
-> 2.25.0.341.g760bfbb309-goog
->
-
-
---=20
-Thanks,
-~Nick Desaulniers
+Seriously, in what universe is that actually readable code? Steve quick,
+say what it does.
