@@ -1,37 +1,40 @@
 From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH v7 3/5] locking/qspinlock: Introduce CNA into the slow
- path of qspinlock
-Date: Wed, 22 Jan 2020 10:51:27 +0100
-Message-ID: <20200122095127.GC14946@hirez.programming.kicks-ass.net>
-References: <20191125210709.10293-1-alex.kogan@oracle.com>
- <20191125210709.10293-4-alex.kogan@oracle.com>
- <20200121202919.GM11457@worktop.programming.kicks-ass.net>
+Subject: Re: [PATCH v8 5/5] locking/qspinlock: Introduce the shuffle
+ reduction optimization into CNA
+Date: Wed, 22 Jan 2020 10:56:22 +0100
+Message-ID: <20200122095622.GS14914@hirez.programming.kicks-ass.net>
+References: <20191230194042.67789-1-alex.kogan@oracle.com>
+ <20191230194042.67789-6-alex.kogan@oracle.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane-mx.org@lists.infradead.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <20200121202919.GM11457@worktop.programming.kicks-ass.net>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane-mx.org@lists.infradead.org
+In-Reply-To: <20191230194042.67789-6-alex.kogan@oracle.com>
+Sender: linux-kernel-owner@vger.kernel.org
 To: Alex Kogan <alex.kogan@oracle.com>
-Cc: linux-arch@vger.kernel.org, guohanjun@huawei.com, arnd@arndb.de, dave.dice@oracle.com, jglauber@marvell.com, x86@kernel.org, will.deacon@arm.com, linux@armlinux.org.uk, steven.sistare@oracle.com, linux-kernel@vger.kernel.org, rahul.x.yadav@oracle.com, mingo@redhat.com, bp@alien8.de, hpa@zytor.com, longman@redhat.com, tglx@linutronix.de, daniel.m.jordan@oracle.com, linux-arm-kernel@lists.infradead.org
+Cc: linux@armlinux.org.uk, mingo@redhat.com, will.deacon@arm.com, arnd@arndb.de, longman@redhat.com, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, bp@alien8.de, hpa@zytor.com, x86@kernel.org, guohanjun@huawei.com, jglauber@marvell.com, steven.sistare@oracle.com, daniel.m.jordan@oracle.com, dave.dice@oracle.com
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, Jan 21, 2020 at 09:29:19PM +0100, Peter Zijlstra wrote:
-> 
-> various notes and changes in the below.
+On Mon, Dec 30, 2019 at 02:40:42PM -0500, Alex Kogan wrote:
+> @@ -251,8 +281,11 @@ __always_inline u32 cna_pre_scan(struct qspinlock *lock,
+>  	struct cna_node *cn = (struct cna_node *)node;
+>  
+>  	cn->pre_scan_result =
+> -		cn->intra_count == intra_node_handoff_threshold ?
+> -			FLUSH_SECONDARY_QUEUE : cna_scan_main_queue(node, node);
+> +		(node->locked <= 1 && probably(SHUFFLE_REDUCTION_PROB_ARG)) ?
+> +			PASS_LOCK_IMMEDIATELY :
+> +			cn->intra_count == intra_node_handoff_threshold ?
+> +				FLUSH_SECONDARY_QUEUE :
+> +				cna_scan_main_queue(node, node);
+>  
+>  	return 0;
+>  }
 
-Also, sorry for replying to v7 and v8, I forgot to refresh email on the
-laptop and had spotty cell service last night and only found v7 in that
-mailbox.
+Let me just, once again, remind people that the Linux Kernel is not part
+of the Obfuscated C code contest.
 
-Afaict none of the things I commented on were fundamentally changed
-though.
+> Reviewed-by: Steve Sistare <steven.sistare@oracle.com>
+
+Seriously, in what universe is that actually readable code? Steve quick,
+say what it does.
