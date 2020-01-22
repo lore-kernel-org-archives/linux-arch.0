@@ -1,59 +1,161 @@
-Return-Path: <SRS0=Pd00=3D=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from us03-smtprelay2.synopsys.com ([149.117.87.133]:58544 "EHLO
-        smtprelay-out1.synopsys.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1726491AbgANWOk (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 14 Jan 2020 17:14:40 -0500
-From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: Re: [RFC 4/4] ARC: uaccess: use optimized generic
- __strnlen_user/__strncpy_from_user
-Date: Tue, 14 Jan 2020 22:14:31 +0000
-Message-ID: <67715aba-fa40-1f46-288d-391d086328ac@synopsys.com>
-References: <20200114200846.29434-1-vgupta@synopsys.com>
- <20200114200846.29434-5-vgupta@synopsys.com>
- <CAK8P3a2GUqmcA_q33=20OrK1+cU4f3mCrgci_bO3ho4B5PRODg@mail.gmail.com>
- <3734021d-1756-3a09-6595-14ca58c64bf9@synopsys.com>
- <CAHk-=wjX-c9YpPhbQ073UPnTvELNQCN49vqK1yY7JGuHSn5-ew@mail.gmail.com>
-In-Reply-To: <CAHk-=wjX-c9YpPhbQ073UPnTvELNQCN49vqK1yY7JGuHSn5-ew@mail.gmail.com>
-Content-Language: en-US
-Content-Type: text/plain; charset="utf-8"
-Content-ID: <482E57B4610060459E6825AB481A2823@namprd12.prod.outlook.com>
-Content-Transfer-Encoding: base64
+Return-Path: <SRS0=lDRc=3L=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from foss.arm.com ([217.140.110.172]:32772 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1729299AbgAVVWS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 22 Jan 2020 16:22:18 -0500
+From: Mark Brown <broonie@kernel.org>
+Subject: [PATCH v5 09/12] arm64: traps: Shuffle code to eliminate forward declarations
+Date: Wed, 22 Jan 2020 21:21:41 +0000
+Message-ID: <20200122212144.6409-10-broonie@kernel.org>
+In-Reply-To: <20200122212144.6409-1-broonie@kernel.org>
+References: <20200122212144.6409-1-broonie@kernel.org>
 MIME-Version: 1.0
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Arnd Bergmann <arnd@arndb.de>, Khalid Aziz <khalid.aziz@oracle.com>, Andrey Konovalov <andreyknvl@google.com>, Andrew Morton <akpm@linux-foundation.org>, Peter Zijlstra <peterz@infradead.org>, Christian Brauner <christian.brauner@ubuntu.com>, Kees Cook <keescook@chromium.org>, Ingo Molnar <mingo@kernel.org>, Aleksa Sarai <cyphar@cyphar.com>, "open list:SYNOPSYS ARC ARCHITECTURE" <linux-snps-arc@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>
-Message-ID: <20200114221431.MMHpEerf0wQHiPU1OOc4X66WmjmvsdHZUId7T970bNc@z>
+To: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>
+Cc: Alexander Viro <viro@zeniv.linux.org.uk>, Paul Elliott <paul.elliott@arm.com>, Peter Zijlstra <peterz@infradead.org>, Yu-cheng Yu <yu-cheng.yu@intel.com>, Amit Kachhap <amit.kachhap@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Marc Zyngier <maz@kernel.org>, Eugene Syromiatnikov <esyr@redhat.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, "H . J . Lu " <hjl.tools@gmail.com>, Andrew Jones <drjones@redhat.com>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Jann Horn <jannh@google.com>, Richard Henderson <richard.henderson@linaro.org>, =?UTF-8?q?Kristina=20Mart=C5=A1enko?= <kristina.martsenko@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Florian Weimer <fweimer@redhat.com>, Sudakshina Das <sudi.das@arm.com>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, Dave Martin <Dave.Martin@arm.com>, Mark Brown <broonie@kernel.org>
+Message-ID: <20200122212141.4Ayudrtgy--zsjqt5udB4owQAij6pwW1sNyabkI0v6o@z>
 
-T24gMS8xNC8yMCAxOjQ5IFBNLCBMaW51cyBUb3J2YWxkcyB3cm90ZToNCj4gT24gVHVlLCBKYW4g
-MTQsIDIwMjAgYXQgMTozNyBQTSBWaW5lZXQgR3VwdGEgPFZpbmVldC5HdXB0YTFAc3lub3BzeXMu
-Y29tPiB3cm90ZToNCj4+DQo+PiBPbiAxLzE0LzIwIDEyOjQyIFBNLCBBcm5kIEJlcmdtYW5uIHdy
-b3RlOg0KPj4+DQo+Pj4gV2hhdCdzIHdyb25nIHdpdGggdGhlIGdlbmVyaWMgdmVyc2lvbiBvbiBs
-aXR0bGUtZW5kaWFuPyBBbnkNCj4+PiBjaGFuY2UgeW91IGNhbiBmaW5kIGEgd2F5IHRvIG1ha2Ug
-aXQgd29yayBhcyB3ZWxsIGZvciB5b3UgYXMNCj4+PiB0aGlzIGNvcHk/DQo+Pg0KPj4gZmluZF96
-ZXJvKCkgYnkgZGVmYXVsdCBkb2Vzbid0IHVzZSBwb3AgY291bnQgaW5zdHJ1Y3Rpb25zLg0KPiAN
-Cj4gRG9uJ3QgeW91IHRoaW5rIHRoZSBnZW5lcmljIGZpbmRfemVybygpIGlzIGxpa2VseSBqdXN0
-IGFzIGZhc3QgYXMgdGhlDQo+IHBvcCBjb3VudCBpbnN0cnVjdGlvbj8gT24gMzItYml0LCBJIHRo
-aW5rIGl0J3MgbGlrZSBhIHNoaWZ0IGFuZCBhIG1hc2sNCj4gYW5kIGEgY291cGxlIG9mIGFkZGl0
-aW9ucy4NCg0KWW91IGFyZSByaWdodCB0aGF0IGluIGdyYW5kIHNjaGVtZSB0aGluZ3MgaXQgbWF5
-IGJlIGxlc3MgdGhhbiBub2lzZS4NCg0KQVJDIHBvcCBjb3VudCB2ZXJzaW9uDQoNCiMgCWJpdHMg
-PSAoYml0cyAtIDEpICYgfmJpdHM7DQojICAJcmV0dXJuIGJpdHMgPj4gNzsNCg0KCXN1YiByMCxy
-NiwxDQoJYmljIHI2LHIwLHI2DQoJbHNyIHIwLHI2LDcNCg0KIyAJcmV0dXJuIGZscyhtYXNrKSA+
-PiAzOw0KDQoJZmxzLmYJcjAsIHIwDQoJYWRkLm56CXIwLCByMCwgMQ0KCWFzciByNSxyMCwzDQoN
-CglqX3MuZCBbYmxpbmtdDQoNCkdlbmVyaWMgdmVyc2lvbg0KDQojIAliaXRzID0gKGJpdHMgLSAx
-KSAmIH5iaXRzOw0KIyAgCXJldHVybiBiaXRzID4+IDc7DQoNCglzdWIgcjUscjYsMQ0KCWJpYyBy
-NixyNSxyNg0KCWxzciByNSxyNiw3DQoNCiMgIAl1bnNpZ25lZCBsb25nIGEgPSAoMHgwZmYwMDAx
-K21hc2spID4+IDIzOw0KIyAJcmV0dXJuIGEgJiBtYXNrOw0KDQoJYWRkIHIwLHI1LDB4MGZmMDAw
-MQk8LS0gdGhpcyBpcyA4IGJ5dGUgaW5zdHJ1Y3Rpb24gdGhvdWdoDQoJbHNyX3MgcjAscjAsMjMN
-CglhbmQgcjUscjUscjANCg0KCWpfcy5kIFtibGlua10NCg0KDQpCdXQgaXRzIHRoZSB1c3VhbCBp
-dGNoL2luY2xpbmF0aW9uIG9mIGFyY2ggcGVvcGxlIHRvIHRyeSBhbmQgdXNlIHRoZSBzcGVjaWZp
-Yw0KaW5zdHJ1Y3Rpb24gaWYgYXZhaWxhYmxlLg0KDQo+IA0KPiBUaGUgNjQtYml0IGNhc2UgaGFz
-IGEgbXVsdGlwbHkgdGhhdCBpcyBsaWtlbHkgZXhwZW5zaXZlIHVubGVzcyB5b3UNCj4gaGF2ZSBh
-IGdvb2QgbXVsdGlwbGljYXRpb24gdW5pdCAoYnV0IHdoYXQgNjQtYml0IGFyY2hpdGVjdHVyZQ0K
-PiBkb2Vzbid0PyksIGJ1dCB0aGUgZ2VuZXJpYyAzMi1iaXQgTEUgY29kZSBzaG91bGQgYWxyZWFk
-eSBiZSBwcmV0dHkNCj4gY2xvc2UgdG8gb3B0aW1hbCwgYW5kIGl0IG1pZ2h0IG5vdCBiZSB3b3J0
-aCBpdCB0byB3b3JyeSBhYm91dCBpdC4NCj4gDQo+IChUaGUgYmlnLWVuZGlhbiBjYXNlIGlzIHZl
-cnkgZGlmZmVyZW50LCBhbmQgYXJjaGl0ZWN0dXJlcyByZWFsbHkgY2FuDQo+IGRvIG11Y2ggYmV0
-dGVyLiBCdXQgTEUgYWxsb3dzIGZvciBiaXQgdHJpY2tzIHVzaW5nIHRoZSBjYXJyeSBjaGFpbikN
-Cg0KLVZpbmVldA0K
+From: Dave Martin <Dave.Martin@arm.com>
+
+Hoist the IT state handling code earlier in traps.c, to avoid
+accumulating forward declarations.
+
+No functional change.
+
+Signed-off-by: Dave Martin <Dave.Martin@arm.com>
+Acked-by: Catalin Marinas <catalin.marinas@arm.com>
+Signed-off-by: Mark Brown <broonie@kernel.org>
+---
+ arch/arm64/kernel/traps.c | 101 ++++++++++++++++++--------------------
+ 1 file changed, 49 insertions(+), 52 deletions(-)
+
+diff --git a/arch/arm64/kernel/traps.c b/arch/arm64/kernel/traps.c
+index d42f0693623a..4fa8b92b8624 100644
+--- a/arch/arm64/kernel/traps.c
++++ b/arch/arm64/kernel/traps.c
+@@ -269,7 +269,55 @@ void arm64_notify_die(const char *str, struct pt_regs *regs,
+ 	}
+ }
+ 
+-static void advance_itstate(struct pt_regs *regs);
++#ifdef CONFIG_COMPAT
++#define PSTATE_IT_1_0_SHIFT	25
++#define PSTATE_IT_1_0_MASK	(0x3 << PSTATE_IT_1_0_SHIFT)
++#define PSTATE_IT_7_2_SHIFT	10
++#define PSTATE_IT_7_2_MASK	(0x3f << PSTATE_IT_7_2_SHIFT)
++
++static u32 compat_get_it_state(struct pt_regs *regs)
++{
++	u32 it, pstate = regs->pstate;
++
++	it  = (pstate & PSTATE_IT_1_0_MASK) >> PSTATE_IT_1_0_SHIFT;
++	it |= ((pstate & PSTATE_IT_7_2_MASK) >> PSTATE_IT_7_2_SHIFT) << 2;
++
++	return it;
++}
++
++static void compat_set_it_state(struct pt_regs *regs, u32 it)
++{
++	u32 pstate_it;
++
++	pstate_it  = (it << PSTATE_IT_1_0_SHIFT) & PSTATE_IT_1_0_MASK;
++	pstate_it |= ((it >> 2) << PSTATE_IT_7_2_SHIFT) & PSTATE_IT_7_2_MASK;
++
++	regs->pstate &= ~PSR_AA32_IT_MASK;
++	regs->pstate |= pstate_it;
++}
++
++static void advance_itstate(struct pt_regs *regs)
++{
++	u32 it;
++
++	/* ARM mode */
++	if (!(regs->pstate & PSR_AA32_T_BIT) ||
++	    !(regs->pstate & PSR_AA32_IT_MASK))
++		return;
++
++	it  = compat_get_it_state(regs);
++
++	/*
++	 * If this is the last instruction of the block, wipe the IT
++	 * state. Otherwise advance it.
++	 */
++	if (!(it & 7))
++		it = 0;
++	else
++		it = (it & 0xe0) | ((it << 1) & 0x1f);
++
++	compat_set_it_state(regs, it);
++}
+ 
+ void arm64_skip_faulting_instruction(struct pt_regs *regs, unsigned long size)
+ {
+@@ -575,34 +623,6 @@ static const struct sys64_hook sys64_hooks[] = {
+ 	{},
+ };
+ 
+-
+-#ifdef CONFIG_COMPAT
+-#define PSTATE_IT_1_0_SHIFT	25
+-#define PSTATE_IT_1_0_MASK	(0x3 << PSTATE_IT_1_0_SHIFT)
+-#define PSTATE_IT_7_2_SHIFT	10
+-#define PSTATE_IT_7_2_MASK	(0x3f << PSTATE_IT_7_2_SHIFT)
+-
+-static u32 compat_get_it_state(struct pt_regs *regs)
+-{
+-	u32 it, pstate = regs->pstate;
+-
+-	it  = (pstate & PSTATE_IT_1_0_MASK) >> PSTATE_IT_1_0_SHIFT;
+-	it |= ((pstate & PSTATE_IT_7_2_MASK) >> PSTATE_IT_7_2_SHIFT) << 2;
+-
+-	return it;
+-}
+-
+-static void compat_set_it_state(struct pt_regs *regs, u32 it)
+-{
+-	u32 pstate_it;
+-
+-	pstate_it  = (it << PSTATE_IT_1_0_SHIFT) & PSTATE_IT_1_0_MASK;
+-	pstate_it |= ((it >> 2) << PSTATE_IT_7_2_SHIFT) & PSTATE_IT_7_2_MASK;
+-
+-	regs->pstate &= ~PSR_AA32_IT_MASK;
+-	regs->pstate |= pstate_it;
+-}
+-
+ static bool cp15_cond_valid(unsigned int esr, struct pt_regs *regs)
+ {
+ 	int cond;
+@@ -623,29 +643,6 @@ static bool cp15_cond_valid(unsigned int esr, struct pt_regs *regs)
+ 	return aarch32_opcode_cond_checks[cond](regs->pstate);
+ }
+ 
+-static void advance_itstate(struct pt_regs *regs)
+-{
+-	u32 it;
+-
+-	/* ARM mode */
+-	if (!(regs->pstate & PSR_AA32_T_BIT) ||
+-	    !(regs->pstate & PSR_AA32_IT_MASK))
+-		return;
+-
+-	it  = compat_get_it_state(regs);
+-
+-	/*
+-	 * If this is the last instruction of the block, wipe the IT
+-	 * state. Otherwise advance it.
+-	 */
+-	if (!(it & 7))
+-		it = 0;
+-	else
+-		it = (it & 0xe0) | ((it << 1) & 0x1f);
+-
+-	compat_set_it_state(regs, it);
+-}
+-
+ static void compat_cntfrq_read_handler(unsigned int esr, struct pt_regs *regs)
+ {
+ 	int reg = (esr & ESR_ELx_CP15_32_ISS_RT_MASK) >> ESR_ELx_CP15_32_ISS_RT_SHIFT;
+-- 
+2.20.1
