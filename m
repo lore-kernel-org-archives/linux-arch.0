@@ -1,253 +1,323 @@
-Return-Path: <SRS0=sIH+=3U=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.133]:39926 "EHLO
-        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728614AbgAaNgP (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 31 Jan 2020 08:36:15 -0500
-Date: Fri, 31 Jan 2020 14:35:43 +0100
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH v7 3/5] locking/qspinlock: Introduce CNA into the slow
- path of qspinlock
-Message-ID: <20200131133543.GD14914@hirez.programming.kicks-ass.net>
-References: <20191125210709.10293-1-alex.kogan@oracle.com>
- <20191125210709.10293-4-alex.kogan@oracle.com>
- <20200121202919.GM11457@worktop.programming.kicks-ass.net>
- <20200122095127.GC14946@hirez.programming.kicks-ass.net>
- <20200122170456.GY14879@hirez.programming.kicks-ass.net>
- <D6ED40A0-E96D-41F6-AA74-0901C2C37476@oracle.com>
+Return-Path: <SRS0=lDRc=3L=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from foss.arm.com ([217.140.110.172]:60790 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1729066AbgAVVV5 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 22 Jan 2020 16:21:57 -0500
+From: Mark Brown <broonie@kernel.org>
+Subject: [PATCH v5 02/12] ELF: Add ELF program property parsing support
+Date: Wed, 22 Jan 2020 21:21:34 +0000
+Message-ID: <20200122212144.6409-3-broonie@kernel.org>
+In-Reply-To: <20200122212144.6409-1-broonie@kernel.org>
+References: <20200122212144.6409-1-broonie@kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
 Content-Transfer-Encoding: 8bit
-In-Reply-To: <D6ED40A0-E96D-41F6-AA74-0901C2C37476@oracle.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Alex Kogan <alex.kogan@oracle.com>
-Cc: linux@armlinux.org.uk, Ingo Molnar <mingo@redhat.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Waiman Long <longman@redhat.com>, linux-arch@vger.kernel.org, linux-arm-kernel <linux-arm-kernel@lists.infradead.org>, linux-kernel@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>, Borislav Petkov <bp@alien8.de>, hpa@zytor.com, x86@kernel.org, Hanjun Guo <guohanjun@huawei.com>, Jan Glauber <jglauber@marvell.com>, Steven Sistare <steven.sistare@oracle.com>, Daniel Jordan <daniel.m.jordan@oracle.com>, dave.dice@oracle.com
-Message-ID: <20200131133543.aGlqdOcHiGVc-Fqhn9BOeiUxXh_qyvuNcZKL2ZDFwfs@z>
+To: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>
+Cc: Alexander Viro <viro@zeniv.linux.org.uk>, Paul Elliott <paul.elliott@arm.com>, Peter Zijlstra <peterz@infradead.org>, Yu-cheng Yu <yu-cheng.yu@intel.com>, Amit Kachhap <amit.kachhap@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Marc Zyngier <maz@kernel.org>, Eugene Syromiatnikov <esyr@redhat.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, "H . J . Lu " <hjl.tools@gmail.com>, Andrew Jones <drjones@redhat.com>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Jann Horn <jannh@google.com>, Richard Henderson <richard.henderson@linaro.org>, =?UTF-8?q?Kristina=20Mart=C5=A1enko?= <kristina.martsenko@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Florian Weimer <fweimer@redhat.com>, Sudakshina Das <sudi.das@arm.com>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, Dave Martin <Dave.Martin@arm.com>, Mark Brown <broonie@kernel.org>
+Message-ID: <20200122212134.9CPtVwdLAEf70ujNljubOQuqBqvQWhaswhAHq7Aw2JA@z>
 
-On Thu, Jan 30, 2020 at 05:01:15PM -0500, Alex Kogan wrote:
+From: Dave Martin <Dave.Martin@arm.com>
 
-> > +/*
-> > + * cna_order_queue - scan the primary queue looking for the first lock node on
-> > + * the same NUMA node as the lock holder and move any skipped nodes onto the
-> > + * secondary queue.
-> Oh man, you took out the ascii figure I was working so hard to put in. Oh well.
+ELF program properties will be needed for detecting whether to
+enable optional architecture or ABI features for a new ELF process.
 
-Right; sorry about that. The reason it's gone is that it was mostly
-identical to the one higher up in the file and didn't consider all
-cases this code deals with.
+For now, there are no generic properties that we care about, so do
+nothing unless CONFIG_ARCH_USE_GNU_PROPERTY=y.
 
-Instead I gifted you cna_splice_head() :-)
+Otherwise, the presence of properties using the PT_PROGRAM_PROPERTY
+phdrs entry (if any), and notify each property to the arch code.
 
-> > + *
-> > + * Returns 0 if a matching node is found; otherwise return the encoded pointer
-> > + * to the last element inspected (such that a subsequent scan can continue there).
-> > + *
-> > + * The worst case complexity of the scan is O(n), where n is the number
-> > + * of current waiters. However, the amortized complexity is close to O(1),
-> > + * as the immediate successor is likely to be running on the same node once
-> > + * threads from other nodes are moved to the secondary queue.
-> > + *
-> > + * XXX does not compute; given equal contention it should average to O(nr_nodes).
-> Let me try to convince you. Under contention, the immediate waiter would be
-> a local one. So the scan would typically take O(1) steps. We need to consider
-> the extra work/steps we take to move nodes to the secondary queue. The
-> number of such nodes is O(n) (to be more precise, it is O(n-m), where m
-> is nr_cpus_per_node), and we spend a constant amount of work, per node, 
-> to scan those nodes and move them to the secondary queue. So in 2^thresholds
-> lock handovers, we scan 2^thresholds x 1 + n-m nodes. Assuming 
-> 2^thresholds > n, the amortized complexity of this function then is O(1).
+For now, the added code is not used.
 
-There is no threshold in this patch. That's the next patch, and
-I've been procrastinating on that one, mostly also because of the
-'reasonable' claim without data.
+Signed-off-by: Dave Martin <Dave.Martin@arm.com>
+Signed-off-by: Mark Brown <broonie@kernel.org>
+---
+ fs/binfmt_elf.c          | 127 +++++++++++++++++++++++++++++++++++++++
+ fs/compat_binfmt_elf.c   |   4 ++
+ include/linux/elf.h      |  19 ++++++
+ include/uapi/linux/elf.h |   4 ++
+ 4 files changed, 154 insertions(+)
 
-But Ah!, I think I see, after nr_cpus tries, all remote waiters are on
-the secondary queue and only local waiters will remain. That will indeed
-depress the average a lot.
-
-> > + */
-> > +static u32 cna_order_queue(struct mcs_spinlock *node,
-> > +			   struct mcs_spinlock *iter)
-> > +{
-> > +	struct cna_node *cni = (struct cna_node *)READ_ONCE(iter->next);
-> > +	struct cna_node *cn = (struct cna_node *)node;
-> > +	int nid = cn->numa_node;
-> > +	struct cna_node *last;
-> > +
-> > +	/* find any next waiter on 'our' NUMA node */
-> > +	for (last = cn;
-> > +	     cni && cni->numa_node != nid;
-> > +	     last = cni, cni = (struct cna_node *)READ_ONCE(cni->mcs.next))
-> > +		;
-> > +
-> > +	if (!cna)
-> Should be ‘cni’
-
-Yeah, I think the build robots told me the same; in any case, that's
-already fixed in the version you can find in my queue.git thing.
-
-> > +		return last->encoded_tail; /* continue from here */
-> > +
-> > +	if (last != cn)	/* did we skip any waiters? */
-> > +		cna_splice_tail(node, node->next, (struct mcs_spinlock *)last);
-> > +
-> > +	return 0;
-> > +}
-> > +
-> > +/*
-> > + * cna_splice_head -- splice the entire secondary queue onto the head of the
-> > + * primary queue.
-> > + */
-> > +static cna_splice_head(struct qspinlock *lock, u32 val,
-> > +		       struct mcs_spinlock *node, struct mcs_spinlock *next)
-> Missing return value type (struct mcs_spinlock *).
-
-Yeah, robots beat you again.
-
-> > +{
-> > +	struct mcs_spinlock *head_2nd, *tail_2nd;
-> > +
-> > +	tail_2nd = decode_tail(node->locked);
-> > +	head_2nd = tail_2nd->next;
-> I understand that you are trying to avoid repeating those two lines
-> in both places this function is called from, but you do it at the cost
-> of adding the following unnecessary if-statement, and in general this function
-> looks clunky.
-
-Let me show you the current form:
-
-/*
- * cna_splice_head -- splice the entire secondary queue onto the head of the
- * primary queue.
- *
- * Returns the new primary head node or NULL on failure.
- */
-static struct mcs_spinlock *
-cna_splice_head(struct qspinlock *lock, u32 val,
-		struct mcs_spinlock *node, struct mcs_spinlock *next)
-{
-	struct mcs_spinlock *head_2nd, *tail_2nd;
-	u32 new;
-
-	tail_2nd = decode_tail(node->locked);
-	head_2nd = tail_2nd->next;
-
-	if (!next) {
-		/*
-		 * When the primary queue is empty; our tail becomes the primary tail.
-		 */
-
-		/*
-		 * Speculatively break the secondary queue's circular link; such that when
-		 * the secondary tail becomes the primary tail it all works out.
-		 */
-		tail_2nd->next = NULL;
-
-		/*
-		 * tail_2nd->next = NULL		xchg_tail(lock, tail)
-		 *
-		 * cmpxchg_release(&lock, val, new)	WRITE_ONCE(prev->next, node);
-		 *
-		 * Such that if the cmpxchg() succeeds, our stores won't collide.
-		 */
-		new = ((struct cna_node *)tail_2nd)->encoded_tail | _Q_LOCKED_VAL;
-		if (!atomic_try_cmpxchg_release(&lock->val, &val, new)) {
-			/*
-			 * Note; when this cmpxchg fails due to concurrent
-			 * queueing of a new waiter, then we'll try again in
-			 * cna_pass_lock() if required.
-			 *
-			 * Restore the secondary queue's circular link.
-			 */
-			tail_2nd->next = head_2nd;
-			return NULL;
-		}
-
-	} else {
-		/*
-		 * If the primary queue is not empty; the primary tail doesn't need
-		 * to change and we can simply link our tail to the old head.
-		 */
-		tail_2nd->next = next;
-	}
-
-	/* That which was the secondary queue head, is now the primary queue head */
-	return head_2nd;
-}
-
-The function as a whole is self-contained and consistent, it deals with
-the splice 2nd to 1st queue, for all possible cases. You only have to
-think about the list splice in one place, here, instead of two places.
-
-I don't think it will actually result in more branches emitted; the
-compiler should be able to use value propagation to eliminate stuff.
-
-> > +static inline bool cna_try_clear_tail(struct qspinlock *lock, u32 val,
-> > +				      struct mcs_spinlock *node)
-> > +{
-> > +	struct mcs_spinlock *next;
-> > +
-> > +	/*
-> > +	 * We're here because the primary queue is empty; check the secondary
-> > +	 * queue for remote waiters.
-> > +	 */
-> > +	if (node->locked > 1) {
-> > +		/*
-> > +		 * When there are waiters on the secondary queue move them back
-> > +		 * onto the primary queue and let them rip.
-> > +		 */
-> > +		next = cna_splice_head(lock, val, node, NULL);
-> > +		if (next) {
-> And, again, this if-statement is here only because you moved the rest of the code
-> into cna_splice_head(). Perhaps, with cna_extract_2dary_head_tail() you can
-> bring that code back?
-
-I don't see the objection, you already had a branch there, from the
-cmpxchg(), this is the same branch, the compiler should fold the lot. We
-can add an __always_inline if you're worried.
-
-> > +			arch_mcs_pass_lock(&head_2nd->locked, 1);
-> Should be next->locked. Better yet, ‘next' should be called ‘head_2nd’.
-
-Yeah, fixed already. Those damn build bots figured it didn't compile.
-
-> > +			return true;
-> > +		}
-> > +
-> > +		return false;
-> > +	}
-> > +
-> > +	/* Both queues empty. */
-> > +	return __try_clear_tail(lock, val, node);
-> > +}
-> > +
-> > +static inline void cna_pass_lock(struct mcs_spinlock *node,
-> > +				 struct mcs_spinlock *next)
-> > +{
-> > +	struct cna_node *cn = (struct cna_node *)node;
-> > +	u32 partial_order = cn->partial_order;
-> > +	u32 val = _Q_LOCKED_VAL;
-> > +
-> > +	/* cna_wait_head_or_lock() left work for us. */
-> > +	if (partial_order) {
-> > +		partial_order = cna_order_queue(node, decode_tail(partial_order));
-> > +
-> > +	if (!partial_order) {
-> > +		/*
-> > +		 * We found a local waiter; reload @next in case we called
-> > +		 * cna_order_queue() above.
-> > +		 */
-> > +		next = node->next;
-> > +		val |= node->locked;	/* preseve secondary queue */
-> This is wrong. node->locked can be 0, 1 or an encoded tail at this point, and
-> the latter case will be handled incorrectly.
-> 
-> Should be 
-> 		  if (node->locked) val = node->locked;
-> instead.
-
-I'm confused, who cares about the locked bit when it has an encoded tail on?
-
-The generic code only cares about it being !0, and the cna code always
-checks if it has a tail (>1 , <=1) first.
+diff --git a/fs/binfmt_elf.c b/fs/binfmt_elf.c
+index ecd8d2698515..00edfc36a584 100644
+--- a/fs/binfmt_elf.c
++++ b/fs/binfmt_elf.c
+@@ -39,12 +39,18 @@
+ #include <linux/sched/coredump.h>
+ #include <linux/sched/task_stack.h>
+ #include <linux/sched/cputime.h>
++#include <linux/sizes.h>
++#include <linux/types.h>
+ #include <linux/cred.h>
+ #include <linux/dax.h>
+ #include <linux/uaccess.h>
+ #include <asm/param.h>
+ #include <asm/page.h>
+ 
++#ifndef ELF_COMPAT
++#define ELF_COMPAT 0
++#endif
++
+ #ifndef user_long_t
+ #define user_long_t long
+ #endif
+@@ -678,6 +684,111 @@ static unsigned long load_elf_interp(struct elfhdr *interp_elf_ex,
+  * libraries.  There is no binary dependent code anywhere else.
+  */
+ 
++static int parse_elf_property(const char *data, size_t *off, size_t datasz,
++			      struct arch_elf_state *arch,
++			      bool have_prev_type, u32 *prev_type)
++{
++	size_t o, step;
++	const struct gnu_property *pr;
++	int ret;
++
++	if (*off == datasz)
++		return -ENOENT;
++
++	if (WARN_ON_ONCE(*off > datasz || *off % ELF_GNU_PROPERTY_ALIGN))
++		return -EIO;
++	o = *off;
++	datasz -= *off;
++
++	if (datasz < sizeof(*pr))
++		return -ENOEXEC;
++	pr = (const struct gnu_property *)(data + o);
++	o += sizeof(*pr);
++	datasz -= sizeof(*pr);
++
++	if (pr->pr_datasz > datasz)
++		return -ENOEXEC;
++
++	WARN_ON_ONCE(o % ELF_GNU_PROPERTY_ALIGN);
++	step = round_up(pr->pr_datasz, ELF_GNU_PROPERTY_ALIGN);
++	if (step > datasz)
++		return -ENOEXEC;
++
++	/* Properties are supposed to be unique and sorted on pr_type: */
++	if (have_prev_type && pr->pr_type <= *prev_type)
++		return -ENOEXEC;
++	*prev_type = pr->pr_type;
++
++	ret = arch_parse_elf_property(pr->pr_type, data + o,
++				      pr->pr_datasz, ELF_COMPAT, arch);
++	if (ret)
++		return ret;
++
++	*off = o + step;
++	return 0;
++}
++
++#define NOTE_DATA_SZ SZ_1K
++#define GNU_PROPERTY_TYPE_0_NAME "GNU"
++#define NOTE_NAME_SZ (sizeof(GNU_PROPERTY_TYPE_0_NAME))
++
++static int parse_elf_properties(struct file *f, const struct elf_phdr *phdr,
++				struct arch_elf_state *arch)
++{
++	union {
++		struct elf_note nhdr;
++		char data[NOTE_DATA_SZ];
++	} note;
++	loff_t pos;
++	ssize_t n;
++	size_t off, datasz;
++	int ret;
++	bool have_prev_type;
++	u32 prev_type;
++
++	if (!IS_ENABLED(CONFIG_ARCH_USE_GNU_PROPERTY) || !phdr)
++		return 0;
++
++	/* load_elf_binary() shouldn't call us unless this is true... */
++	if (WARN_ON_ONCE(phdr->p_type != PT_GNU_PROPERTY))
++		return -ENOEXEC;
++
++	/* If the properties are crazy large, that's too bad (for now): */
++	if (phdr->p_filesz > sizeof(note))
++		return -ENOEXEC;
++
++	pos = phdr->p_offset;
++	n = kernel_read(f, &note, phdr->p_filesz, &pos);
++
++	BUILD_BUG_ON(sizeof(note) < sizeof(note.nhdr) + NOTE_NAME_SZ);
++	if (n < 0 || n < sizeof(note.nhdr) + NOTE_NAME_SZ)
++		return -EIO;
++
++	if (note.nhdr.n_type != NT_GNU_PROPERTY_TYPE_0 ||
++	    note.nhdr.n_namesz != NOTE_NAME_SZ ||
++	    strncmp(note.data + sizeof(note.nhdr),
++		    GNU_PROPERTY_TYPE_0_NAME, n - sizeof(note.nhdr)))
++		return -ENOEXEC;
++
++	off = round_up(sizeof(note.nhdr) + NOTE_NAME_SZ,
++		       ELF_GNU_PROPERTY_ALIGN);
++	if (off > n)
++		return -ENOEXEC;
++
++	if (note.nhdr.n_descsz > n - off)
++		return -ENOEXEC;
++	datasz = off + note.nhdr.n_descsz;
++
++	have_prev_type = false;
++	do {
++		ret = parse_elf_property(note.data, &off, datasz, arch,
++					 have_prev_type, &prev_type);
++		have_prev_type = true;
++	} while (!ret);
++
++	return ret == -ENOENT ? 0 : ret;
++}
++
+ static int load_elf_binary(struct linux_binprm *bprm)
+ {
+ 	struct file *interpreter = NULL; /* to shut gcc up */
+@@ -685,6 +796,7 @@ static int load_elf_binary(struct linux_binprm *bprm)
+ 	int load_addr_set = 0;
+ 	unsigned long error;
+ 	struct elf_phdr *elf_ppnt, *elf_phdata, *interp_elf_phdata = NULL;
++	struct elf_phdr *elf_property_phdata = NULL;
+ 	unsigned long elf_bss, elf_brk;
+ 	int bss_prot = 0;
+ 	int retval, i;
+@@ -731,6 +843,11 @@ static int load_elf_binary(struct linux_binprm *bprm)
+ 	for (i = 0; i < loc->elf_ex.e_phnum; i++, elf_ppnt++) {
+ 		char *elf_interpreter;
+ 
++		if (elf_ppnt->p_type == PT_GNU_PROPERTY) {
++			elf_property_phdata = elf_ppnt;
++			continue;
++		}
++
+ 		if (elf_ppnt->p_type != PT_INTERP)
+ 			continue;
+ 
+@@ -818,9 +935,14 @@ static int load_elf_binary(struct linux_binprm *bprm)
+ 			goto out_free_dentry;
+ 
+ 		/* Pass PT_LOPROC..PT_HIPROC headers to arch code */
++		elf_property_phdata = NULL;
+ 		elf_ppnt = interp_elf_phdata;
+ 		for (i = 0; i < loc->interp_elf_ex.e_phnum; i++, elf_ppnt++)
+ 			switch (elf_ppnt->p_type) {
++			case PT_GNU_PROPERTY:
++				elf_property_phdata = elf_ppnt;
++				break;
++
+ 			case PT_LOPROC ... PT_HIPROC:
+ 				retval = arch_elf_pt_proc(&loc->interp_elf_ex,
+ 							  elf_ppnt, interpreter,
+@@ -831,6 +953,11 @@ static int load_elf_binary(struct linux_binprm *bprm)
+ 			}
+ 	}
+ 
++	retval = parse_elf_properties(interpreter ?: bprm->file,
++				      elf_property_phdata, &arch_state);
++	if (retval)
++		goto out_free_dentry;
++
+ 	/*
+ 	 * Allow arch code to reject the ELF at this point, whilst it's
+ 	 * still possible to return an error to the code that invoked
+diff --git a/fs/compat_binfmt_elf.c b/fs/compat_binfmt_elf.c
+index aaad4ca1217e..13a087bc816b 100644
+--- a/fs/compat_binfmt_elf.c
++++ b/fs/compat_binfmt_elf.c
+@@ -17,6 +17,8 @@
+ #include <linux/elfcore-compat.h>
+ #include <linux/time.h>
+ 
++#define ELF_COMPAT	1
++
+ /*
+  * Rename the basic ELF layout types to refer to the 32-bit class of files.
+  */
+@@ -28,11 +30,13 @@
+ #undef	elf_shdr
+ #undef	elf_note
+ #undef	elf_addr_t
++#undef	ELF_GNU_PROPERTY_ALIGN
+ #define elfhdr		elf32_hdr
+ #define elf_phdr	elf32_phdr
+ #define elf_shdr	elf32_shdr
+ #define elf_note	elf32_note
+ #define elf_addr_t	Elf32_Addr
++#define ELF_GNU_PROPERTY_ALIGN	ELF32_GNU_PROPERTY_ALIGN
+ 
+ /*
+  * Some data types as stored in coredump.
+diff --git a/include/linux/elf.h b/include/linux/elf.h
+index 459cddcceaac..7bdc6da160c7 100644
+--- a/include/linux/elf.h
++++ b/include/linux/elf.h
+@@ -22,6 +22,9 @@
+ 	SET_PERSONALITY(ex)
+ #endif
+ 
++#define ELF32_GNU_PROPERTY_ALIGN	4
++#define ELF64_GNU_PROPERTY_ALIGN	8
++
+ #if ELF_CLASS == ELFCLASS32
+ 
+ extern Elf32_Dyn _DYNAMIC [];
+@@ -32,6 +35,7 @@ extern Elf32_Dyn _DYNAMIC [];
+ #define elf_addr_t	Elf32_Off
+ #define Elf_Half	Elf32_Half
+ #define Elf_Word	Elf32_Word
++#define ELF_GNU_PROPERTY_ALIGN	ELF32_GNU_PROPERTY_ALIGN
+ 
+ #else
+ 
+@@ -43,6 +47,7 @@ extern Elf64_Dyn _DYNAMIC [];
+ #define elf_addr_t	Elf64_Off
+ #define Elf_Half	Elf64_Half
+ #define Elf_Word	Elf64_Word
++#define ELF_GNU_PROPERTY_ALIGN	ELF64_GNU_PROPERTY_ALIGN
+ 
+ #endif
+ 
+@@ -64,4 +69,18 @@ struct gnu_property {
+ 	u32 pr_datasz;
+ };
+ 
++struct arch_elf_state;
++
++#ifndef CONFIG_ARCH_USE_GNU_PROPERTY
++static inline int arch_parse_elf_property(u32 type, const void *data,
++					  size_t datasz, bool compat,
++					  struct arch_elf_state *arch)
++{
++	return 0;
++}
++#else
++extern int arch_parse_elf_property(u32 type, const void *data, size_t datasz,
++				   bool compat, struct arch_elf_state *arch);
++#endif
++
+ #endif /* _LINUX_ELF_H */
+diff --git a/include/uapi/linux/elf.h b/include/uapi/linux/elf.h
+index c37731407074..20900f4496b7 100644
+--- a/include/uapi/linux/elf.h
++++ b/include/uapi/linux/elf.h
+@@ -368,6 +368,7 @@ typedef struct elf64_shdr {
+  * Notes used in ET_CORE. Architectures export some of the arch register sets
+  * using the corresponding note types via the PTRACE_GETREGSET and
+  * PTRACE_SETREGSET requests.
++ * The note name for all these is "LINUX".
+  */
+ #define NT_PRSTATUS	1
+ #define NT_PRFPREG	2
+@@ -430,6 +431,9 @@ typedef struct elf64_shdr {
+ #define NT_MIPS_FP_MODE	0x801		/* MIPS floating-point mode */
+ #define NT_MIPS_MSA	0x802		/* MIPS SIMD registers */
+ 
++/* Note types with note name "GNU" */
++#define NT_GNU_PROPERTY_TYPE_0	5
++
+ /* Note header in a PT_NOTE section */
+ typedef struct elf32_note {
+   Elf32_Word	n_namesz;	/* Name size */
+-- 
+2.20.1
