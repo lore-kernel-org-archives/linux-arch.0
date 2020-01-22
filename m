@@ -1,115 +1,88 @@
-From: Michal Simek <monstr@monstr.eu>
-Subject: Re: [PATCH v2 1/2] asm-generic: Make dma-contiguous.h a mandatory
- include/asm header
-Date: Wed, 22 Jan 2020 07:47:27 +0100
-Message-ID: <5dac2fdd-6e4e-dd16-a149-fbdd8117ac1c@monstr.eu>
-References: <cover.1579248206.git.michal.simek@xilinx.com>
- <0274919c5e3b134df19d943f99cb7e84e5135ccd.1579248206.git.michal.simek@xilinx.com>
- <CAK7LNARdiTxajZcXH0g7t6nEis-1ebv7Ta6wBdgGgS6O29O7+A@mail.gmail.com>
+From: Will Deacon <will@kernel.org>
+Subject: Re: [PATCH v7 3/5] locking/qspinlock: Introduce CNA into the slow
+ path of qspinlock
+Date: Wed, 22 Jan 2020 08:58:17 +0000
+Message-ID: <20200122085816.GB15537@willie-the-truck>
+References: <20191125210709.10293-1-alex.kogan@oracle.com>
+ <20191125210709.10293-4-alex.kogan@oracle.com>
+ <20200121202919.GM11457@worktop.programming.kicks-ass.net>
 Mime-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha1;
- protocol="application/pgp-signature";
- boundary="2dbNcSDggiI5dxMnAV22UCPQ9muiAKI4S"
-Return-path: <linux-mips-owner@vger.kernel.org>
-In-Reply-To: <CAK7LNARdiTxajZcXH0g7t6nEis-1ebv7Ta6wBdgGgS6O29O7+A@mail.gmail.com>
-Sender: linux-mips-owner@vger.kernel.org
-To: Masahiro Yamada <masahiroy@kernel.org>, Michal Simek <michal.simek@xilinx.com>
-Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, git@xilinx.com, Christoph Hellwig <hch@lst.de>, Christoph Hellwig <hch@infradead.org>, Paul Burton <paulburton@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Borislav Petkov <bp@alien8.de>, linux-mips@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>, Catalin Marinas <catalin.marinas@arm.com>, "open list:SIFIVE DRIVERS" <linux-riscv@lists.infradead.org>, linux-arch <linux-arch@vger.kernel.org>, linux-s390 <linux-s390@vger.kernel.org>, Palmer Dabbelt <palmer@dabbelt.com>, X86 ML <x86@kernel.org>, Guo Ren <guoren@kernel.org>, Kate Stewart <kstewart@linuxfoundation.org>, Wesley Terpstra <wesley@sifive.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Ralf Baechle <ralf@linux-mips.org>Paul
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail.kernel.org ([198.145.29.99]:51684 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1725862AbgAVI6Z (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 22 Jan 2020 03:58:25 -0500
+Content-Disposition: inline
+In-Reply-To: <20200121202919.GM11457@worktop.programming.kicks-ass.net>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Alex Kogan <alex.kogan@oracle.com>, linux-arch@vger.kernel.org, guohanjun@huawei.com, arnd@arndb.de, dave.dice@oracle.com, jglauber@marvell.com, x86@kernel.org, will.deacon@arm.com, linux@armlinux.org.uk, steven.sistare@oracle.com, linux-kernel@vger.kernel.org, rahul.x.yadav@oracle.com, mingo@redhat.com, bp@alien8.de, hpa@zytor.com, longman@redhat.com, tglx@linutronix.de, daniel.m.jordan@oracle.com, linux-arm-kernel@lists.infradead.org
 
-This is an OpenPGP/MIME signed message (RFC 4880 and 3156)
---2dbNcSDggiI5dxMnAV22UCPQ9muiAKI4S
-Content-Type: multipart/mixed; boundary="FbunjY3XOg7TLNQEYAVrl68e0gK20Tj5W";
- protected-headers="v1"
-From: Michal Simek <monstr@monstr.eu>
-To: Masahiro Yamada <masahiroy@kernel.org>,
- Michal Simek <michal.simek@xilinx.com>
-Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, git@xilinx.com,
- Christoph Hellwig <hch@lst.de>, Christoph Hellwig <hch@infradead.org>,
- Paul Burton <paulburton@kernel.org>, Arnd Bergmann <arnd@arndb.de>,
- Borislav Petkov <bp@alien8.de>, linux-mips@vger.kernel.org,
- Thomas Gleixner <tglx@linutronix.de>,
- Catalin Marinas <catalin.marinas@arm.com>,
- "open list:SIFIVE DRIVERS" <linux-riscv@lists.infradead.org>,
- linux-arch <linux-arch@vger.kernel.org>,
- linux-s390 <linux-s390@vger.kernel.org>, Palmer Dabbelt
- <palmer@dabbelt.com>, X86 ML <x86@kernel.org>, Guo Ren <guoren@kernel.org>,
- Kate Stewart <kstewart@linuxfoundation.org>,
- Wesley Terpstra <wesley@sifive.com>,
- Greg Kroah-Hartman <gregkh@linuxfoundation.org>,
- Ralf Baechle <ralf@linux-mips.org>, Paul Walmsley
- <paul.walmsley@sifive.com>, Max Filippov <jcmvbkbc@gmail.com>,
- linux-xtensa@linux-xtensa.org, "H. Peter Anvin" <hpa@zytor.com>,
- "Peter Zijlstra (Intel)" <peterz@infradead.org>,
- Will Deacon <will@kernel.org>, Christian Borntraeger
- <borntraeger@de.ibm.com>, Deepa Dinamani <deepa.kernel@gmail.com>,
- Chris Zankel <chris@zankel.net>, Ingo Molnar <mingo@redhat.com>,
- Waiman Long <longman@redhat.com>,
- linux-arm-kernel <linux-arm-kernel@lists.infradead.org>,
- Albert Ou <aou@eecs.berkeley.edu>, Vasily Gorbik <gor@linux.ibm.com>,
- James Hogan <jhogan@kernel.org>, Heiko Carstens <heiko.carstens@de.ibm.com>
-Message-ID: <5dac2fdd-6e4e-dd16-a149-fbdd8117ac1c@monstr.eu>
-Subject: Re: [PATCH v2 1/2] asm-generic: Make dma-contiguous.h a mandatory
- include/asm header
-References: <cover.1579248206.git.michal.simek@xilinx.com>
- <0274919c5e3b134df19d943f99cb7e84e5135ccd.1579248206.git.michal.simek@xilinx.com>
- <CAK7LNARdiTxajZcXH0g7t6nEis-1ebv7Ta6wBdgGgS6O29O7+A@mail.gmail.com>
-In-Reply-To: <CAK7LNARdiTxajZcXH0g7t6nEis-1ebv7Ta6wBdgGgS6O29O7+A@mail.gmail.com>
+On Tue, Jan 21, 2020 at 09:29:19PM +0100, Peter Zijlstra wrote:
+> 
+> various notes and changes in the below.
+> 
+> ---
+> 
+> Index: linux-2.6/kernel/locking/qspinlock.c
+> ===================================================================
+> --- linux-2.6.orig/kernel/locking/qspinlock.c
+> +++ linux-2.6/kernel/locking/qspinlock.c
+> @@ -598,10 +598,10 @@ EXPORT_SYMBOL(queued_spin_lock_slowpath)
+>  #define _GEN_CNA_LOCK_SLOWPATH
+>  
+>  #undef pv_wait_head_or_lock
+> -#define pv_wait_head_or_lock		cna_pre_scan
+> +#define pv_wait_head_or_lock		cna_wait_head_or_lock
+>  
+>  #undef try_clear_tail
+> -#define try_clear_tail			cna_try_change_tail
+> +#define try_clear_tail			cna_try_clear_tail
+>  
+>  #undef mcs_pass_lock
+>  #define mcs_pass_lock			cna_pass_lock
+> Index: linux-2.6/kernel/locking/qspinlock_cna.h
+> ===================================================================
+> --- linux-2.6.orig/kernel/locking/qspinlock_cna.h
+> +++ linux-2.6/kernel/locking/qspinlock_cna.h
+> @@ -8,37 +8,37 @@
+>  /*
+>   * Implement a NUMA-aware version of MCS (aka CNA, or compact NUMA-aware lock).
+>   *
+> - * In CNA, spinning threads are organized in two queues, a main queue for
+> + * In CNA, spinning threads are organized in two queues, a primary queue for
+>   * threads running on the same NUMA node as the current lock holder, and a
+> - * secondary queue for threads running on other nodes. Schematically, it
+> - * looks like this:
+> + * secondary queue for threads running on other nodes. Schematically, it looks
+> + * like this:
+>   *
+>   *    cna_node
+> - *   +----------+    +--------+        +--------+
+> - *   |mcs:next  | -> |mcs:next| -> ... |mcs:next| -> NULL      [Main queue]
+> - *   |mcs:locked| -+ +--------+        +--------+
+> + *   +----------+     +--------+         +--------+
+> + *   |mcs:next  | --> |mcs:next| --> ... |mcs:next| --> NULL  [Primary queue]
+> + *   |mcs:locked| -.  +--------+         +--------+
+>   *   +----------+  |
+> - *                 +----------------------+
+> - *                                        \/
+> + *                 `----------------------.
+> + *                                        v
+>   *                 +--------+         +--------+
+> - *                 |mcs:next| -> ...  |mcs:next|          [Secondary queue]
+> + *                 |mcs:next| --> ... |mcs:next|            [Secondary queue]
+>   *                 +--------+         +--------+
+>   *                     ^                    |
+> - *                     +--------------------+
+> + *                     `--------------------'
+>   *
+> - * N.B. locked = 1 if secondary queue is absent. Othewrise, it contains the
+> + * N.B. locked := 1 if secondary queue is absent. Othewrise, it contains the
 
---FbunjY3XOg7TLNQEYAVrl68e0gK20Tj5W
-Content-Type: text/plain; charset=utf-8
-Content-Language: en-US
-Content-Transfer-Encoding: quoted-printable
+If we're redoing the comment, please can you s/Othewrise/Otherwise/ at the
+same time? It catches me every time I read it!
 
-On 21. 01. 20 16:43, Masahiro Yamada wrote:
-> Hi.
->=20
-> On Fri, Jan 17, 2020 at 5:03 PM Michal Simek <michal.simek@xilinx.com> =
-wrote:
->>
->> dma-continuguous.h is generic for all architectures except arm32 which=
- has
->> its own version.
->=20
->=20
->=20
-> Currently, <asm/dma-contiguous.h> is present
-> for only architectures that select HAVE_DMA_CONTIGUOUS.
->=20
-> After this commit, the other architectures will end
-> up with generating the unused header.
->=20
-> That would not be a big deal, but
-> it could be mentioned in the commit message?
-
-I have not a problem with mentioning it but not sure if this was done in
-past.
-
-Thanks,
-Michal
-
-
---=20
-Michal Simek, Ing. (M.Eng), OpenPGP -> KeyID: FE3D1F91
-w: www.monstr.eu p: +42-0-721842854
-Maintainer of Linux kernel - Xilinx Microblaze
-Maintainer of Linux kernel - Xilinx Zynq ARM and ZynqMP ARM64 SoCs
-U-Boot custodian - Xilinx Microblaze/Zynq/ZynqMP/Versal SoCs
-
-
-
---FbunjY3XOg7TLNQEYAVrl68e0gK20Tj5W--
-
---2dbNcSDggiI5dxMnAV22UCPQ9muiAKI4S
-Content-Type: application/pgp-signature; name="signature.asc"
-Content-Description: OpenPGP digital signature
-Content-Disposition: attachment; filename="signature.asc"
-
------BEGIN PGP SIGNATURE-----
-
-iF0EARECAB0WIQQbPNTMvXmYlBPRwx7KSWXLKUoMIQUCXifv/wAKCRDKSWXLKUoM
-IVUkAJ9gJ/92v49cM3s26jCgIZyQ1BDZJwCggrGUMIoHH0J6KEp9UuM3wHKXoAo=
-=zquH
------END PGP SIGNATURE-----
-
---2dbNcSDggiI5dxMnAV22UCPQ9muiAKI4S--
+Will
