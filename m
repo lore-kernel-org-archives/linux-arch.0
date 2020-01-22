@@ -1,52 +1,86 @@
-Return-Path: <SRS0=n+LR=24=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:42320 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1728391AbgAGQym (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 7 Jan 2020 11:54:42 -0500
-From: Krzysztof Kozlowski <krzk@kernel.org>
-Subject: [RFT 06/13] arc: Constify ioreadX() iomem argument (as in generic implementation)
-Date: Tue,  7 Jan 2020 17:53:05 +0100
-Message-Id: <1578415992-24054-9-git-send-email-krzk@kernel.org>
-In-Reply-To: <1578415992-24054-1-git-send-email-krzk@kernel.org>
-References: <1578415992-24054-1-git-send-email-krzk@kernel.org>
+Return-Path: <SRS0=lDRc=3L=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from us-smtp-delivery-1.mimecast.com ([205.139.110.120]:51466 "EHLO
+        us-smtp-1.mimecast.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+        with ESMTP id S1725883AbgAVRZL (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 22 Jan 2020 12:25:11 -0500
+Subject: Re: [PATCH v9 0/5] Add NUMA-awareness to qspinlock
+References: <20200115035920.54451-1-alex.kogan@oracle.com>
+ <CAC4j=Y8rCeTX9oKKbh+dCdTP8Ud4hW1ybu+iE7t_nxMSYBOR5w@mail.gmail.com>
+From: Waiman Long <longman@redhat.com>
+Message-ID: <4e15fa1d-9540-3274-502a-4195a0d46f63@redhat.com>
+Date: Wed, 22 Jan 2020 12:24:58 -0500
+MIME-Version: 1.0
+In-Reply-To: <CAC4j=Y8rCeTX9oKKbh+dCdTP8Ud4hW1ybu+iE7t_nxMSYBOR5w@mail.gmail.com>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
+Content-Transfer-Encoding: quoted-printable
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Alexey Brodkin <abrodkin@synopsys.com>, Vineet Gupta <vgupta@synopsys.com>, "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>, Helge Deller <deller@gmx.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, Dave Airlie <airlied@redhat.com>, David Airlie <airlied@linux.ie>, Daniel Vetter <daniel@ffwll.ch>, Ben Skeggs <bskeggs@redhat.com>, Mauro Carvalho Chehab <mchehab@kernel.org>, Jiri Slaby <jirislaby@gmail.com>, Nick Kossifidis <mickflemm@gmail.com>, Luis Chamberlain <mcgrof@kernel.org>, Kalle Valo <kvalo@codeaurora.org>, "David S. Miller" <davem@davemloft.net>, Dave Jiang <dave.jiang@intel.com>, Jon Mason <jdmason@kudzu.us>, Allen Hubbe <allenbh@gmail.com>, "Michael S. Tsirkin" <mst@redhat.com>, Jason Wang <jasowang@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, Geert Uytterhoeven <geert@linux-m68k.org>, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-snps-arc@lists.infradead.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org, dri-devel@lists.freedesktop.org, nouveau@lists.freedesktop.org, linux-media@vger.kernel.org, linux-wireless@vger.kernel.org, netdev@vger.kernel.org, linux-ntb@googlegroups.com, virtualization@lists.linux-foundation.org, linux-arch@vger.kernel.org
-Cc: Krzysztof Kozlowski <krzk@kernel.org>
+To: Lihao Liang <lihaoliang@google.com>, Alex Kogan <alex.kogan@oracle.com>
+Cc: linux@armlinux.org.uk, peterz@infradead.org, mingo@redhat.com, will.deacon@arm.com, arnd@arndb.de, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, bp@alien8.de, hpa@zytor.com, x86@kernel.org, guohanjun@huawei.com, jglauber@marvell.com, dave.dice@oracle.com, steven.sistare@oracle.com, daniel.m.jordan@oracle.com, Will Deacon <will@kernel.org>
+Message-ID: <20200122172458.vtFzlBncBzSQ5R-WnsVAvyETf9luvBsOhyMs0yOro8E@z>
 
-The ioreadX() helpers have inconsistent interface.  On some architectures
-void *__iomem address argument is a pointer to const, on some not.
+On 1/22/20 6:45 AM, Lihao Liang wrote:
+> Hi Alex,
+>
+> On Wed, Jan 22, 2020 at 10:28 AM Alex Kogan <alex.kogan@oracle.com> wro=
+te:
+>> Summary
+>> -------
+>>
+>> Lock throughput can be increased by handing a lock to a waiter on the
+>> same NUMA node as the lock holder, provided care is taken to avoid
+>> starvation of waiters on other NUMA nodes. This patch introduces CNA
+>> (compact NUMA-aware lock) as the slow path for qspinlock. It is
+>> enabled through a configuration option (NUMA_AWARE_SPINLOCKS).
+>>
+> Thanks for your patches. The experimental results look promising!
+>
+> I understand that the new CNA qspinlock uses randomization to achieve
+> long-term fairness, and provides the numa_spinlock_threshold parameter
+> for users to tune. As Linux runs extremely diverse workloads, it is not
+> clear how randomization affects its fairness, and how users with
+> different requirements are supposed to tune this parameter.
+>
+> To this end, Will and I consider it beneficial to be able to answer the
+> following question:
+>
+> With different values of numa_spinlock_threshold and
+> SHUFFLE_REDUCTION_PROB_ARG, how long do threads running on different
+> sockets have to wait to acquire the lock? This is particularly relevant
+> in high contention situations when new threads keep arriving on the sam=
+e
+> socket as the lock holder.
+>
+> In this email, I try to provide some formal analysis to address this
+> question. Let's assume the probability for the lock to stay on the
+> same socket is *at least* p, which corresponds to the probability for
+> the function probably(unsigned int num_bits) in the patch to return *fa=
+lse*,
+> where SHUFFLE_REDUCTION_PROB_ARG is passed as the value of num_bits to =
+the
+> function.
 
-Implementations of ioreadX() do not modify the memory under the
-address so they can be converted to a "const" version for const-safety
-and consistency among architectures.
+That is not strictly true from my understanding of the code. The
+probably() function does not come into play if a secondary queue is
+present. Also calling cna_scan_main_queue() doesn't guarantee that a
+waiter in the same node can be found. So the simple mathematical
+analysis isn't that applicable in this case. One will have to do an
+actual simulation to find out what the actual behavior will be.
 
-Signed-off-by: Krzysztof Kozlowski <krzk@kernel.org>
----
- arch/arc/plat-axs10x/axs10x.c | 4 ++--
- 1 file changed, 2 insertions(+), 2 deletions(-)
+The comment in the code states that:
 
-diff --git a/arch/arc/plat-axs10x/axs10x.c b/arch/arc/plat-axs10x/axs10x.c
-index 63ea5a606ecd..180c260a8221 100644
---- a/arch/arc/plat-axs10x/axs10x.c
-+++ b/arch/arc/plat-axs10x/axs10x.c
-@@ -84,7 +84,7 @@ static void __init axs10x_print_board_ver(unsigned int creg, const char *str)
- 		unsigned int val;
- 	} board;
- 
--	board.val = ioread32((void __iomem *)creg);
-+	board.val = ioread32((const void __iomem *)creg);
- 	pr_info("AXS: %s FPGA Date: %u-%u-%u\n", str, board.d, board.m,
- 		board.y);
- }
-@@ -95,7 +95,7 @@ static void __init axs10x_early_init(void)
- 	char mb[32];
- 
- 	/* Determine motherboard version */
--	if (ioread32((void __iomem *) CREG_MB_CONFIG) & (1 << 28))
-+	if (ioread32((const void __iomem *) CREG_MB_CONFIG) & (1 << 28))
- 		mb_rev = 3;	/* HT-3 (rev3.0) */
- 	else
- 		mb_rev = 2;	/* HT-2 (rev2.0) */
--- 
-2.7.4
+/*
+=C2=A0* Controls the probability for enabling the scan of the main queue =
+when
+=C2=A0* the secondary queue is empty. The chosen value reduces the amount=
+ of
+=C2=A0* unnecessary shuffling of threads between the two waiting queues w=
+hen
+=C2=A0* the contention is low, while responding fast enough and enabling
+=C2=A0* the shuffling when the contention is high.
+=C2=A0*/
+#define SHUFFLE_REDUCTION_PROB_ARG=C2=A0 (7)
+
+Cheers,
+Longman
