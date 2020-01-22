@@ -1,71 +1,55 @@
-Return-Path: <SRS0=n+LR=24=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:41466 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1728211AbgAGQyQ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 7 Jan 2020 11:54:16 -0500
-From: Krzysztof Kozlowski <krzk@kernel.org>
-Subject: [RFT 03/13] sh: Constify ioreadX() iomem argument (as in generic implementation)
-Date: Tue,  7 Jan 2020 17:53:02 +0100
-Message-Id: <1578415992-24054-6-git-send-email-krzk@kernel.org>
-In-Reply-To: <1578415992-24054-1-git-send-email-krzk@kernel.org>
-References: <1578415992-24054-1-git-send-email-krzk@kernel.org>
+Return-Path: <SRS0=lDRc=3L=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from merlin.infradead.org ([205.233.59.134]:51022 "EHLO
+        merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1725911AbgAVJQL (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 22 Jan 2020 04:16:11 -0500
+Date: Wed, 22 Jan 2020 10:15:47 +0100
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH v7 1/5] locking/qspinlock: Rename mcs lock/unlock macros
+ and make them more generic
+Message-ID: <20200122091547.GU14879@hirez.programming.kicks-ass.net>
+References: <20191125210709.10293-1-alex.kogan@oracle.com>
+ <20191125210709.10293-2-alex.kogan@oracle.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20191125210709.10293-2-alex.kogan@oracle.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Alexey Brodkin <abrodkin@synopsys.com>, Vineet Gupta <vgupta@synopsys.com>, "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>, Helge Deller <deller@gmx.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, Dave Airlie <airlied@redhat.com>, David Airlie <airlied@linux.ie>, Daniel Vetter <daniel@ffwll.ch>, Ben Skeggs <bskeggs@redhat.com>, Mauro Carvalho Chehab <mchehab@kernel.org>, Jiri Slaby <jirislaby@gmail.com>, Nick Kossifidis <mickflemm@gmail.com>, Luis Chamberlain <mcgrof@kernel.org>, Kalle Valo <kvalo@codeaurora.org>, "David S. Miller" <davem@davemloft.net>, Dave Jiang <dave.jiang@intel.com>, Jon Mason <jdmason@kudzu.us>, Allen Hubbe <allenbh@gmail.com>, "Michael S. Tsirkin" <mst@redhat.com>, Jason Wang <jasowang@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, Geert Uytterhoeven <geert@linux-m68k.org>, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-snps-arc@lists.infradead.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org, dri-devel@lists.freedesktop.org, nouveau@lists.freedesktop.org, linux-media@vger.kernel.org, linux-wireless@vger.kernel.org, netdev@vger.kernel.org, linux-ntb@googlegroups.com, virtualization@lists.linux-foundation.org, linux-arch@vger.kernel.org
-Cc: Krzysztof Kozlowski <krzk@kernel.org>
+To: Alex Kogan <alex.kogan@oracle.com>
+Cc: linux@armlinux.org.uk, mingo@redhat.com, will.deacon@arm.com, arnd@arndb.de, longman@redhat.com, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, bp@alien8.de, hpa@zytor.com, x86@kernel.org, guohanjun@huawei.com, jglauber@marvell.com, steven.sistare@oracle.com, daniel.m.jordan@oracle.com, dave.dice@oracle.com, rahul.x.yadav@oracle.com
+Message-ID: <20200122091547.8TwqnUd3Bc0GqHLviFvT4OhuIJf2dx4Bwrxh7ungXFY@z>
 
-The ioreadX() helpers have inconsistent interface.  On some architectures
-void *__iomem address argument is a pointer to const, on some not.
+On Mon, Nov 25, 2019 at 04:07:05PM -0500, Alex Kogan wrote:
 
-Implementations of ioreadX() do not modify the memory under the address
-so they can be converted to a "const" version for const-safety and
-consistency among architectures.
+> --- a/arch/arm/include/asm/mcs_spinlock.h
+> +++ b/arch/arm/include/asm/mcs_spinlock.h
+> @@ -6,7 +6,7 @@
+>  #include <asm/spinlock.h>
+>  
+>  /* MCS spin-locking. */
+> -#define arch_mcs_spin_lock_contended(lock)				\
+> +#define arch_mcs_spin_lock(lock)				\
+>  do {									\
+>  	/* Ensure prior stores are observed before we enter wfe. */	\
+>  	smp_mb();							\
+> @@ -14,9 +14,9 @@ do {									\
+>  		wfe();							\
+>  } while (0)								\
+>  
+> -#define arch_mcs_spin_unlock_contended(lock)				\
+> +#define arch_mcs_pass_lock(lock, val)					\
+>  do {									\
+> -	smp_store_release(lock, 1);					\
+> +	smp_store_release((lock), (val));				\
+>  	dsb_sev();							\
+>  } while (0)
 
-Signed-off-by: Krzysztof Kozlowski <krzk@kernel.org>
----
- arch/sh/kernel/iomap.c | 10 +++++-----
- 1 file changed, 5 insertions(+), 5 deletions(-)
+So I hate those names; it used to be clear this was the contended path,
+not so anymore. arch_mcs_spin_lock() in particular is grossly misnamed
+now.
 
-diff --git a/arch/sh/kernel/iomap.c b/arch/sh/kernel/iomap.c
-index ef9e2c97cbb7..bd5e212c6ea6 100644
---- a/arch/sh/kernel/iomap.c
-+++ b/arch/sh/kernel/iomap.c
-@@ -8,31 +8,31 @@
- #include <linux/module.h>
- #include <linux/io.h>
- 
--unsigned int ioread8(void __iomem *addr)
-+unsigned int ioread8(const void __iomem *addr)
- {
- 	return readb(addr);
- }
- EXPORT_SYMBOL(ioread8);
- 
--unsigned int ioread16(void __iomem *addr)
-+unsigned int ioread16(const void __iomem *addr)
- {
- 	return readw(addr);
- }
- EXPORT_SYMBOL(ioread16);
- 
--unsigned int ioread16be(void __iomem *addr)
-+unsigned int ioread16be(const void __iomem *addr)
- {
- 	return be16_to_cpu(__raw_readw(addr));
- }
- EXPORT_SYMBOL(ioread16be);
- 
--unsigned int ioread32(void __iomem *addr)
-+unsigned int ioread32(const void __iomem *addr)
- {
- 	return readl(addr);
- }
- EXPORT_SYMBOL(ioread32);
- 
--unsigned int ioread32be(void __iomem *addr)
-+unsigned int ioread32be(const void __iomem *addr)
- {
- 	return be32_to_cpu(__raw_readl(addr));
- }
--- 
-2.7.4
+'s/arch_mcs_spin_lock/arch_mcs_spin_wait/g' could perhaps work, if you
+really want to get rid of the _contended suffix.
+
+Also, pass_lock seems unfortunately named...
