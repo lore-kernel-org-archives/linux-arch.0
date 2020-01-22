@@ -1,36 +1,115 @@
-From: Peter Collingbourne <pcc@google.com>
-Subject: Re: [PATCH 15/22] arm64: mte: Add PROT_MTE support to mmap() and mprotect()
-Date: Tue, 21 Jan 2020 14:06:14 -0800
-Message-ID: <CAMn1gO6dNi-97cG-a8-6PcauLy9xpRvG6JYdU0zyn9a_6tnyvA@mail.gmail.com>
-References: <20191211184027.20130-1-catalin.marinas@arm.com> <20191211184027.20130-16-catalin.marinas@arm.com>
+From: Michal Simek <monstr@monstr.eu>
+Subject: Re: [PATCH v2 1/2] asm-generic: Make dma-contiguous.h a mandatory
+ include/asm header
+Date: Wed, 22 Jan 2020 07:47:27 +0100
+Message-ID: <5dac2fdd-6e4e-dd16-a149-fbdd8117ac1c@monstr.eu>
+References: <cover.1579248206.git.michal.simek@xilinx.com>
+ <0274919c5e3b134df19d943f99cb7e84e5135ccd.1579248206.git.michal.simek@xilinx.com>
+ <CAK7LNARdiTxajZcXH0g7t6nEis-1ebv7Ta6wBdgGgS6O29O7+A@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm1-f65.google.com ([209.85.128.65]:51030 "EHLO
-        mail-wm1-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728205AbgAUWG3 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jan 2020 17:06:29 -0500
-Received: by mail-wm1-f65.google.com with SMTP id a5so4727993wmb.0
-        for <linux-arch@vger.kernel.org>; Tue, 21 Jan 2020 14:06:27 -0800 (PST)
-In-Reply-To: <20191211184027.20130-16-catalin.marinas@arm.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Linux ARM <linux-arm-kernel@lists.infradead.org>, linux-arch@vger.kernel.org, Richard Earnshaw <Richard.Earnshaw@arm.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Marc Zyngier <maz@kernel.org>, Kevin Brodsky <kevin.brodsky@arm.com>, linux-mm@kvack.org, Andrey Konovalov <andreyknvl@google.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Will Deacon <will@kernel.org>
+Content-Type: multipart/signed; micalg=pgp-sha1;
+ protocol="application/pgp-signature";
+ boundary="2dbNcSDggiI5dxMnAV22UCPQ9muiAKI4S"
+Return-path: <linux-mips-owner@vger.kernel.org>
+In-Reply-To: <CAK7LNARdiTxajZcXH0g7t6nEis-1ebv7Ta6wBdgGgS6O29O7+A@mail.gmail.com>
+Sender: linux-mips-owner@vger.kernel.org
+To: Masahiro Yamada <masahiroy@kernel.org>, Michal Simek <michal.simek@xilinx.com>
+Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, git@xilinx.com, Christoph Hellwig <hch@lst.de>, Christoph Hellwig <hch@infradead.org>, Paul Burton <paulburton@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Borislav Petkov <bp@alien8.de>, linux-mips@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>, Catalin Marinas <catalin.marinas@arm.com>, "open list:SIFIVE DRIVERS" <linux-riscv@lists.infradead.org>, linux-arch <linux-arch@vger.kernel.org>, linux-s390 <linux-s390@vger.kernel.org>, Palmer Dabbelt <palmer@dabbelt.com>, X86 ML <x86@kernel.org>, Guo Ren <guoren@kernel.org>, Kate Stewart <kstewart@linuxfoundation.org>, Wesley Terpstra <wesley@sifive.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Ralf Baechle <ralf@linux-mips.org>Paul
+List-Id: linux-arch.vger.kernel.org
 
-On Wed, Dec 11, 2019 at 10:44 AM Catalin Marinas
-<catalin.marinas@arm.com> wrote:
-> diff --git a/fs/proc/task_mmu.c b/fs/proc/task_mmu.c
-> index 9442631fd4af..34bc9e0b4896 100644
-> --- a/fs/proc/task_mmu.c
-> +++ b/fs/proc/task_mmu.c
-> @@ -677,6 +677,9 @@ static void show_smap_vma_flags(struct seq_file *m, struct vm_area_struct *vma)
->                 [ilog2(VM_MERGEABLE)]   = "mg",
->                 [ilog2(VM_UFFD_MISSING)]= "um",
->                 [ilog2(VM_UFFD_WP)]     = "uw",
-> +#ifdef CONFIG_ARM64_MTE
-> +               [ilog2(VM_MTE)]         = "mt",
+This is an OpenPGP/MIME signed message (RFC 4880 and 3156)
+--2dbNcSDggiI5dxMnAV22UCPQ9muiAKI4S
+Content-Type: multipart/mixed; boundary="FbunjY3XOg7TLNQEYAVrl68e0gK20Tj5W";
+ protected-headers="v1"
+From: Michal Simek <monstr@monstr.eu>
+To: Masahiro Yamada <masahiroy@kernel.org>,
+ Michal Simek <michal.simek@xilinx.com>
+Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, git@xilinx.com,
+ Christoph Hellwig <hch@lst.de>, Christoph Hellwig <hch@infradead.org>,
+ Paul Burton <paulburton@kernel.org>, Arnd Bergmann <arnd@arndb.de>,
+ Borislav Petkov <bp@alien8.de>, linux-mips@vger.kernel.org,
+ Thomas Gleixner <tglx@linutronix.de>,
+ Catalin Marinas <catalin.marinas@arm.com>,
+ "open list:SIFIVE DRIVERS" <linux-riscv@lists.infradead.org>,
+ linux-arch <linux-arch@vger.kernel.org>,
+ linux-s390 <linux-s390@vger.kernel.org>, Palmer Dabbelt
+ <palmer@dabbelt.com>, X86 ML <x86@kernel.org>, Guo Ren <guoren@kernel.org>,
+ Kate Stewart <kstewart@linuxfoundation.org>,
+ Wesley Terpstra <wesley@sifive.com>,
+ Greg Kroah-Hartman <gregkh@linuxfoundation.org>,
+ Ralf Baechle <ralf@linux-mips.org>, Paul Walmsley
+ <paul.walmsley@sifive.com>, Max Filippov <jcmvbkbc@gmail.com>,
+ linux-xtensa@linux-xtensa.org, "H. Peter Anvin" <hpa@zytor.com>,
+ "Peter Zijlstra (Intel)" <peterz@infradead.org>,
+ Will Deacon <will@kernel.org>, Christian Borntraeger
+ <borntraeger@de.ibm.com>, Deepa Dinamani <deepa.kernel@gmail.com>,
+ Chris Zankel <chris@zankel.net>, Ingo Molnar <mingo@redhat.com>,
+ Waiman Long <longman@redhat.com>,
+ linux-arm-kernel <linux-arm-kernel@lists.infradead.org>,
+ Albert Ou <aou@eecs.berkeley.edu>, Vasily Gorbik <gor@linux.ibm.com>,
+ James Hogan <jhogan@kernel.org>, Heiko Carstens <heiko.carstens@de.ibm.com>
+Message-ID: <5dac2fdd-6e4e-dd16-a149-fbdd8117ac1c@monstr.eu>
+Subject: Re: [PATCH v2 1/2] asm-generic: Make dma-contiguous.h a mandatory
+ include/asm header
+References: <cover.1579248206.git.michal.simek@xilinx.com>
+ <0274919c5e3b134df19d943f99cb7e84e5135ccd.1579248206.git.michal.simek@xilinx.com>
+ <CAK7LNARdiTxajZcXH0g7t6nEis-1ebv7Ta6wBdgGgS6O29O7+A@mail.gmail.com>
+In-Reply-To: <CAK7LNARdiTxajZcXH0g7t6nEis-1ebv7Ta6wBdgGgS6O29O7+A@mail.gmail.com>
 
-We should probably add an entry for VM_MTE_ALLOWED here as well.
+--FbunjY3XOg7TLNQEYAVrl68e0gK20Tj5W
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
+Content-Transfer-Encoding: quoted-printable
 
-Peter
+On 21. 01. 20 16:43, Masahiro Yamada wrote:
+> Hi.
+>=20
+> On Fri, Jan 17, 2020 at 5:03 PM Michal Simek <michal.simek@xilinx.com> =
+wrote:
+>>
+>> dma-continuguous.h is generic for all architectures except arm32 which=
+ has
+>> its own version.
+>=20
+>=20
+>=20
+> Currently, <asm/dma-contiguous.h> is present
+> for only architectures that select HAVE_DMA_CONTIGUOUS.
+>=20
+> After this commit, the other architectures will end
+> up with generating the unused header.
+>=20
+> That would not be a big deal, but
+> it could be mentioned in the commit message?
+
+I have not a problem with mentioning it but not sure if this was done in
+past.
+
+Thanks,
+Michal
+
+
+--=20
+Michal Simek, Ing. (M.Eng), OpenPGP -> KeyID: FE3D1F91
+w: www.monstr.eu p: +42-0-721842854
+Maintainer of Linux kernel - Xilinx Microblaze
+Maintainer of Linux kernel - Xilinx Zynq ARM and ZynqMP ARM64 SoCs
+U-Boot custodian - Xilinx Microblaze/Zynq/ZynqMP/Versal SoCs
+
+
+
+--FbunjY3XOg7TLNQEYAVrl68e0gK20Tj5W--
+
+--2dbNcSDggiI5dxMnAV22UCPQ9muiAKI4S
+Content-Type: application/pgp-signature; name="signature.asc"
+Content-Description: OpenPGP digital signature
+Content-Disposition: attachment; filename="signature.asc"
+
+-----BEGIN PGP SIGNATURE-----
+
+iF0EARECAB0WIQQbPNTMvXmYlBPRwx7KSWXLKUoMIQUCXifv/wAKCRDKSWXLKUoM
+IVUkAJ9gJ/92v49cM3s26jCgIZyQ1BDZJwCggrGUMIoHH0J6KEp9UuM3wHKXoAo=
+=zquH
+-----END PGP SIGNATURE-----
+
+--2dbNcSDggiI5dxMnAV22UCPQ9muiAKI4S--
