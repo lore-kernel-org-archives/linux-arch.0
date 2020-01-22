@@ -1,8 +1,8 @@
 From: Peter Zijlstra <peterz@infradead.org>
 Subject: Re: [PATCH v7 3/5] locking/qspinlock: Introduce CNA into the slow
  path of qspinlock
-Date: Wed, 22 Jan 2020 10:22:38 +0100
-Message-ID: <20200122092238.GV14879@hirez.programming.kicks-ass.net>
+Date: Wed, 22 Jan 2020 10:51:27 +0100
+Message-ID: <20200122095127.GC14946@hirez.programming.kicks-ass.net>
 References: <20191125210709.10293-1-alex.kogan@oracle.com>
  <20191125210709.10293-4-alex.kogan@oracle.com>
  <20200121202919.GM11457@worktop.programming.kicks-ass.net>
@@ -26,18 +26,12 @@ Cc: linux-arch@vger.kernel.org, guohanjun@huawei.com, arnd@arndb.de, dave.dice@o
 List-Id: linux-arch.vger.kernel.org
 
 On Tue, Jan 21, 2020 at 09:29:19PM +0100, Peter Zijlstra wrote:
-> @@ -92,8 +92,8 @@ static int __init cna_init_nodes(void)
->  }
->  early_initcall(cna_init_nodes);
->  
-> -static inline bool cna_try_change_tail(struct qspinlock *lock, u32 val,
-> -				       struct mcs_spinlock *node)
-> +static inline bool cna_try_clear_tail(struct qspinlock *lock, u32 val,
-> +				      struct mcs_spinlock *node)
->  {
->  	struct mcs_spinlock *head_2nd, *tail_2nd;
->  	u32 new;
+> 
+> various notes and changes in the below.
 
-Also, that whole function is placed wrong; it should be between
-cna_wait_head_or_lock() and cna_pass_lock(), then it's in the order they
-appear in the slow path, ie. the order they actually run.
+Also, sorry for replying to v7 and v8, I forgot to refresh email on the
+laptop and had spotty cell service last night and only found v7 in that
+mailbox.
+
+Afaict none of the things I commented on were fundamentally changed
+though.
