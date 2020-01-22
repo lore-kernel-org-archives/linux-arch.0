@@ -1,68 +1,87 @@
-Return-Path: <SRS0=vo9y=3E=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mout.kundenserver.de ([212.227.126.133]:48347 "EHLO
-        mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1729267AbgAOJIu (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 15 Jan 2020 04:08:50 -0500
+Return-Path: <SRS0=lDRc=3L=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from foss.arm.com ([217.140.110.172]:60946 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1729299AbgAVVWL (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 22 Jan 2020 16:22:11 -0500
+From: Mark Brown <broonie@kernel.org>
+Subject: [PATCH v5 07/12] arm64: BTI: Decode BYTPE bits when printing PSTATE
+Date: Wed, 22 Jan 2020 21:21:39 +0000
+Message-ID: <20200122212144.6409-8-broonie@kernel.org>
+In-Reply-To: <20200122212144.6409-1-broonie@kernel.org>
+References: <20200122212144.6409-1-broonie@kernel.org>
 MIME-Version: 1.0
-References: <20200114200846.29434-1-vgupta@synopsys.com> <20200114200846.29434-2-vgupta@synopsys.com>
- <CAHk-=wjChjfOaDnGygOJpC36R6mtT7=Xf6wWTzD_wLJm=quu0Q@mail.gmail.com>
-In-Reply-To: <CAHk-=wjChjfOaDnGygOJpC36R6mtT7=Xf6wWTzD_wLJm=quu0Q@mail.gmail.com>
-From: Arnd Bergmann <arnd@arndb.de>
-Date: Wed, 15 Jan 2020 10:08:31 +0100
-Message-ID: <CAK8P3a2ao=xBuy3XHBkdo03KEjpMHGe9ahwj-uogtkZBXsMkGw@mail.gmail.com>
-Subject: Re: [RFC 1/4] asm-generic/uaccess: don't define inline functions if
- noinline lib/* in use
-Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Vineet Gupta <Vineet.Gupta1@synopsys.com>, Khalid Aziz <khalid.aziz@oracle.com>, Andrey Konovalov <andreyknvl@google.com>, Andrew Morton <akpm@linux-foundation.org>, Peter Zijlstra <peterz@infradead.org>, Christian Brauner <christian.brauner@ubuntu.com>, Kees Cook <keescook@chromium.org>, Ingo Molnar <mingo@kernel.org>, Aleksa Sarai <cyphar@cyphar.com>, "open list:SYNOPSYS ARC ARCHITECTURE" <linux-snps-arc@lists.infradead.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>
-Message-ID: <20200115090831.6kHrgYKFC37-a0XB4A-ha-pkXis5H2Pb69akeDr6SXo@z>
+To: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>
+Cc: Alexander Viro <viro@zeniv.linux.org.uk>, Paul Elliott <paul.elliott@arm.com>, Peter Zijlstra <peterz@infradead.org>, Yu-cheng Yu <yu-cheng.yu@intel.com>, Amit Kachhap <amit.kachhap@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Marc Zyngier <maz@kernel.org>, Eugene Syromiatnikov <esyr@redhat.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, "H . J . Lu " <hjl.tools@gmail.com>, Andrew Jones <drjones@redhat.com>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Jann Horn <jannh@google.com>, Richard Henderson <richard.henderson@linaro.org>, =?UTF-8?q?Kristina=20Mart=C5=A1enko?= <kristina.martsenko@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Florian Weimer <fweimer@redhat.com>, Sudakshina Das <sudi.das@arm.com>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, Dave Martin <Dave.Martin@arm.com>, Mark Brown <broonie@kernel.org>
+Message-ID: <20200122212139.Vl0Ymx_xlK-iEdIH9O_ADDZjvtANWGeYzLKk2u-cOQU@z>
 
-On Tue, Jan 14, 2020 at 10:33 PM Linus Torvalds
-<torvalds@linux-foundation.org> wrote:
->
-> On Tue, Jan 14, 2020 at 12:09 PM Vineet Gupta
-> <Vineet.Gupta1@synopsys.com> wrote:
-> >
-> > There are 2 generic varaints of strncpy_from_user() / strnlen_user()
-> >  (1). inline version in asm-generic/uaccess.h
->
-> I think we should get rid of this entirely. It's just a buggy garbage
-> implementation that nobody should ever actually use.
->
-> It does just about everything wrong that you *can* do, wrong,
-> including doing the NUL-filling termination of standard strncpy() that
-> "strncpy_from_user()" doesn't actually do.
->
-> So:
->
->  - the asm-generic/uaccess.h __strncpy_from_user() function is just
-> horribly wrong
+From: Dave Martin <Dave.Martin@arm.com>
 
-I checked who is actually using it, and the only ones I found
-are c6x and rv32-nommu. It shouldn't be hard to move them over
-to the generic version.
+The current code to print PSTATE symbolically when generating
+backtraces etc., does not include the BYTPE field used by Branch
+Target Identification.
 
->  - the generic/uaccess.h version of strncpy_from_user() shouldn't be
-> an inline function either, since the only thing it can do inline is
-> the bogus one-byte access check that _barely_ makes security work (you
-> also need to have a guard page to _actually_ make it work, and I'm not
-> atr all convinced that people do).
+So, decode BYTPE and print it too.
 
-That would be arc, hexagon, unicore32, and um. Hexagon already has
-the same bug in strncpy_from_user and should be converted to the
-generic version as you say. For unicore32 the existing asm imlpementation
-may be fine, but it's clearly easier to use the generic code than moving
-the range check in there.
+In the interests of human-readability, print the classes of BTI
+matched.  The symbolic notation, BYTPE (PSTATE[11:10]) and
+permitted classes of subsequent instruction are:
 
-I don't know what the arch/um implementation needs, but since it's in C,
-moving the access_ok() in there is easy enough.
+    -- (BTYPE=0b00): any insn
+    jc (BTYPE=0b01): BTI jc, BTI j, BTI c, PACIxSP
+    -c (BYTPE=0b10): BTI jc, BTI c, PACIxSP
+    j- (BTYPE=0b11): BTI jc, BTI j
 
-> I would suggest that anybody who uses asm-generic/uaccess.h needs to
-> simply use the generic library version.
+Signed-off-by: Dave Martin <Dave.Martin@arm.com>
+Reviewed-by: Catalin Marinas <catalin.marinas@arm.com>
+Signed-off-by: Mark Brown <broonie@kernel.org>
+---
+ arch/arm64/kernel/process.c | 17 +++++++++++++++--
+ 1 file changed, 15 insertions(+), 2 deletions(-)
 
-Or possibly just everybody altogether: the remaining architectures that
-have a custom implementation don't seem to be doing any better either.
-
-     Arnd
+diff --git a/arch/arm64/kernel/process.c b/arch/arm64/kernel/process.c
+index 37c508f409ac..e8eb70cd3fa0 100644
+--- a/arch/arm64/kernel/process.c
++++ b/arch/arm64/kernel/process.c
+@@ -211,6 +211,15 @@ void machine_restart(char *cmd)
+ 	while (1);
+ }
+ 
++#define bstr(suffix, str) [PSR_BTYPE_ ## suffix >> PSR_BTYPE_SHIFT] = str
++static const char *const btypes[] = {
++	bstr(NONE, "--"),
++	bstr(  JC, "jc"),
++	bstr(   C, "-c"),
++	bstr(  J , "j-")
++};
++#undef bstr
++
+ static void print_pstate(struct pt_regs *regs)
+ {
+ 	u64 pstate = regs->pstate;
+@@ -229,7 +238,10 @@ static void print_pstate(struct pt_regs *regs)
+ 			pstate & PSR_AA32_I_BIT ? 'I' : 'i',
+ 			pstate & PSR_AA32_F_BIT ? 'F' : 'f');
+ 	} else {
+-		printk("pstate: %08llx (%c%c%c%c %c%c%c%c %cPAN %cUAO)\n",
++		const char *btype_str = btypes[(pstate & PSR_BTYPE_MASK) >>
++					       PSR_BTYPE_SHIFT];
++
++		printk("pstate: %08llx (%c%c%c%c %c%c%c%c %cPAN %cUAO BTYPE=%s)\n",
+ 			pstate,
+ 			pstate & PSR_N_BIT ? 'N' : 'n',
+ 			pstate & PSR_Z_BIT ? 'Z' : 'z',
+@@ -240,7 +252,8 @@ static void print_pstate(struct pt_regs *regs)
+ 			pstate & PSR_I_BIT ? 'I' : 'i',
+ 			pstate & PSR_F_BIT ? 'F' : 'f',
+ 			pstate & PSR_PAN_BIT ? '+' : '-',
+-			pstate & PSR_UAO_BIT ? '+' : '-');
++			pstate & PSR_UAO_BIT ? '+' : '-',
++			btype_str);
+ 	}
+ }
+ 
+-- 
+2.20.1
