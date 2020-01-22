@@ -1,63 +1,33 @@
-Return-Path: <SRS0=fIL7=27=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:45768 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1728137AbgAJOy2 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 10 Jan 2020 09:54:28 -0500
-From: Mark Brown <broonie@kernel.org>
-Subject: [PATCH v2 00/10] Impveovements for random.h/archrandom.h
-Date: Fri, 10 Jan 2020 14:54:12 +0000
-Message-ID: <20200110145422.49141-1-broonie@kernel.org>
+Return-Path: <SRS0=lDRc=3L=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from merlin.infradead.org ([205.233.59.134]:51800 "EHLO
+        merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1730891AbgAVJwQ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 22 Jan 2020 04:52:16 -0500
+Date: Wed, 22 Jan 2020 10:51:27 +0100
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH v7 3/5] locking/qspinlock: Introduce CNA into the slow
+ path of qspinlock
+Message-ID: <20200122095127.GC14946@hirez.programming.kicks-ass.net>
+References: <20191125210709.10293-1-alex.kogan@oracle.com>
+ <20191125210709.10293-4-alex.kogan@oracle.com>
+ <20200121202919.GM11457@worktop.programming.kicks-ass.net>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20200121202919.GM11457@worktop.programming.kicks-ass.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org
-Cc: Richard Henderson <richard.henderson@linaro.org>, Borislav Petkov <bp@alien8.de>, linux-s390@vger.kernel.org, herbert@gondor.apana.org.au, x86@kernel.org, linux-crypto@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-arm-kernel@lists.infradead.org, Mark Brown <broonie@kernel.org>
-Message-ID: <20200110145412.CTP7oAveQiRNURD8wBtmoBKXKyINgXaR8TZjo5GckkQ@z>
+To: Alex Kogan <alex.kogan@oracle.com>
+Cc: linux@armlinux.org.uk, mingo@redhat.com, will.deacon@arm.com, arnd@arndb.de, longman@redhat.com, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, bp@alien8.de, hpa@zytor.com, x86@kernel.org, guohanjun@huawei.com, jglauber@marvell.com, steven.sistare@oracle.com, daniel.m.jordan@oracle.com, dave.dice@oracle.com, rahul.x.yadav@oracle.com
+Message-ID: <20200122095127.YJnFcJa2OnIIxjkln9SwNLOJXFByq50P2ZELHkzkRlE@z>
 
-This is a resend of a series from Richard Henderson last posted back in
-November:
+On Tue, Jan 21, 2020 at 09:29:19PM +0100, Peter Zijlstra wrote:
+> 
+> various notes and changes in the below.
 
-   https://lore.kernel.org/linux-arm-kernel/20191106141308.30535-1-rth@twiddle.net/
+Also, sorry for replying to v7 and v8, I forgot to refresh email on the
+laptop and had spotty cell service last night and only found v7 in that
+mailbox.
 
-Back then Borislav said they looked good and asked if he should take
-them through the tip tree but things seem to have got lost since then.
-
-Original cover letter:
-
-During patch review for an addition of archrandom.h for arm64, it was
-suggeted that the arch_random_get_* functions should be marked __must_check.
-Which does sound like a good idea, since the by-reference integer output
-may be uninitialized when the boolean result is false.
-
-In addition, it turns out that arch_has_random() and arch_has_random_seed()
-are not used, and not easy to support for arm64.  Rather than cobble
-something together that would not be testable, remove the interfaces
-against some future accidental use.
-
-In addition, I noticed a few other minor inconsistencies between the
-different architectures, e.g. powerpc isn't using bool.
-
-Change since v1:
-   * Remove arch_has_random, arch_has_random_seed.
-
-Richard Henderson (10):
-  x86: Remove arch_has_random, arch_has_random_seed
-  powerpc: Remove arch_has_random, arch_has_random_seed
-  s390: Remove arch_has_random, arch_has_random_seed
-  linux/random.h: Remove arch_has_random, arch_has_random_seed
-  linux/random.h: Use false with bool
-  linux/random.h: Mark CONFIG_ARCH_RANDOM functions __must_check
-  x86: Mark archrandom.h functions __must_check
-  powerpc: Use bool in archrandom.h
-  powerpc: Mark archrandom.h functions __must_check
-  s390x: Mark archrandom.h functions __must_check
-
- arch/powerpc/include/asm/archrandom.h | 27 +++++++++-----------------
- arch/s390/include/asm/archrandom.h    | 20 ++++---------------
- arch/x86/include/asm/archrandom.h     | 28 ++++++++++++---------------
- include/linux/random.h                | 24 ++++++++---------------
- 4 files changed, 33 insertions(+), 66 deletions(-)
-
--- 
-2.20.1
+Afaict none of the things I commented on were fundamentally changed
+though.
