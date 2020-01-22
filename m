@@ -1,28 +1,74 @@
-From: Dave Hansen <dave.hansen@intel.com>
-Subject: Re: [PATCH v16 00/23] selftests, powerpc, x86: Memory Protection Keys
-Date: Wed, 22 Jan 2020 10:45:27 -0800
-Message-ID: <3ceb2814-f8b0-ec6b-3c24-ec72297a99f5@intel.com>
-References: <cover.1579507768.git.sandipan@linux.ibm.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mga14.intel.com ([192.55.52.115]:4667 "EHLO mga14.intel.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1725884AbgAVSp2 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 22 Jan 2020 13:45:28 -0500
-In-Reply-To: <cover.1579507768.git.sandipan@linux.ibm.com>
-Content-Language: en-US
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Sandipan Das <sandipan@linux.ibm.com>, shuah@kernel.org, linux-kselftest@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, fweimer@redhat.com, x86@kernel.org, linuxram@us.ibm.com, mhocko@kernel.org, linux-mm@kvack.org, mingo@redhat.com, aneesh.kumar@linux.ibm.com, bauerman@linux.ibm.com, msuchanek@suse.de, mpe@ellerman.id.au, linuxppc-dev@lists.ozlabs.org
+From: Alex Kogan <alex.kogan@oracle.com>
+Subject: Re: [PATCH v9 0/5] Add NUMA-awareness to qspinlock
+Date: Wed, 22 Jan 2020 14:29:36 -0500
+Message-ID: <4F71A184-42C0-4865-9AAA-79A636743C25@oracle.com>
+References: <20200115035920.54451-1-alex.kogan@oracle.com>
+ <CAC4j=Y8rCeTX9oKKbh+dCdTP8Ud4hW1ybu+iE7t_nxMSYBOR5w@mail.gmail.com>
+Mime-Version: 1.0 (Mac OS X Mail 12.4 \(3445.104.11\))
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane-mx.org@lists.infradead.org>
+In-Reply-To: <CAC4j=Y8rCeTX9oKKbh+dCdTP8Ud4hW1ybu+iE7t_nxMSYBOR5w@mail.gmail.com>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane-mx.org@lists.infradead.org
+To: Lihao Liang <lihaoliang@google.com>
+Cc: linux-arch@vger.kernel.org, guohanjun@huawei.com, arnd@arndb.de, Peter Zijlstra <peterz@infradead.org>, dave.dice@oracle.com, jglauber@marvell.com, x86@kernel.org, will.deacon@arm.com, linux@armlinux.org.uk, steven.sistare@oracle.com, linux-kernel@vger.kernel.org, mingo@redhat.com, bp@alien8.de, hpa@zytor.com, longman@redhat.com, tglx@linutronix.de, daniel.m.jordan@oracle.com, Will Deacon <will@kernel.org>, linux-arm-kernel@lists.infradead.org
+List-Id: linux-arch.vger.kernel.org
 
-Still doesn't build for me:
-
-> # make
-> make --no-builtin-rules ARCH=x86_64 -C ../../../.. headers_install
-> make[1]: Entering directory '/home/dave/linux.git'
->   INSTALL ./usr/include
-> make[1]: Leaving directory '/home/dave/linux.git'
-> make: *** No rule to make target '/home/dave/linux.git/tools/testing/selftests/vm/protection_keys_32', needed by 'all'.  Stop.
+SGksIExpaGFvLgoKPiBPbiBKYW4gMjIsIDIwMjAsIGF0IDY6NDUgQU0sIExpaGFvIExpYW5nIDxs
+aWhhb2xpYW5nQGdvb2dsZS5jb20+IHdyb3RlOgo+IAo+IEhpIEFsZXgsCj4gCj4gT24gV2VkLCBK
+YW4gMjIsIDIwMjAgYXQgMTA6MjggQU0gQWxleCBLb2dhbiA8YWxleC5rb2dhbkBvcmFjbGUuY29t
+PiB3cm90ZToKPj4gCj4+IFN1bW1hcnkKPj4gLS0tLS0tLQo+PiAKPj4gTG9jayB0aHJvdWdocHV0
+IGNhbiBiZSBpbmNyZWFzZWQgYnkgaGFuZGluZyBhIGxvY2sgdG8gYSB3YWl0ZXIgb24gdGhlCj4+
+IHNhbWUgTlVNQSBub2RlIGFzIHRoZSBsb2NrIGhvbGRlciwgcHJvdmlkZWQgY2FyZSBpcyB0YWtl
+biB0byBhdm9pZAo+PiBzdGFydmF0aW9uIG9mIHdhaXRlcnMgb24gb3RoZXIgTlVNQSBub2Rlcy4g
+VGhpcyBwYXRjaCBpbnRyb2R1Y2VzIENOQQo+PiAoY29tcGFjdCBOVU1BLWF3YXJlIGxvY2spIGFz
+IHRoZSBzbG93IHBhdGggZm9yIHFzcGlubG9jay4gSXQgaXMKPj4gZW5hYmxlZCB0aHJvdWdoIGEg
+Y29uZmlndXJhdGlvbiBvcHRpb24gKE5VTUFfQVdBUkVfU1BJTkxPQ0tTKS4KPj4gCj4gCj4gVGhh
+bmtzIGZvciB5b3VyIHBhdGNoZXMuIFRoZSBleHBlcmltZW50YWwgcmVzdWx0cyBsb29rIHByb21p
+c2luZyEKPiAKPiBJIHVuZGVyc3RhbmQgdGhhdCB0aGUgbmV3IENOQSBxc3BpbmxvY2sgdXNlcyBy
+YW5kb21pemF0aW9uIHRvIGFjaGlldmUKPiBsb25nLXRlcm0gZmFpcm5lc3MsIGFuZCBwcm92aWRl
+cyB0aGUgbnVtYV9zcGlubG9ja190aHJlc2hvbGQgcGFyYW1ldGVyCj4gZm9yIHVzZXJzIHRvIHR1
+bmUuClRoaXMgaGFzIGJlZW4gdGhlIGNhc2UgaW4gdGhlIGZpcnN0IHZlcnNpb25zIG9mIHRoZSBz
+ZXJpZXMsIGJ1dCBpcyBub3QgdHJ1ZSBhbnltb3JlLgpUaGF0IGlzLCB0aGUgbG9uZy10ZXJtIGZh
+aXJuZXNzIGlzIGFjaGlldmVkIGRldGVybWluaXN0aWNhbGx5IChhbmQgeW91IGFyZSBjb3JyZWN0
+IAp0aGF0IGl0IGlzIGRvbmUgdGhyb3VnaCB0aGUgbnVtYV9zcGlubG9ja190aHJlc2hvbGQgcGFy
+YW1ldGVyKS4KCj4gQXMgTGludXggcnVucyBleHRyZW1lbHkgZGl2ZXJzZSB3b3JrbG9hZHMsIGl0
+IGlzIG5vdAo+IGNsZWFyIGhvdyByYW5kb21pemF0aW9uIGFmZmVjdHMgaXRzIGZhaXJuZXNzLCBh
+bmQgaG93IHVzZXJzIHdpdGgKPiBkaWZmZXJlbnQgcmVxdWlyZW1lbnRzIGFyZSBzdXBwb3NlZCB0
+byB0dW5lIHRoaXMgcGFyYW1ldGVyLgo+IAo+IFRvIHRoaXMgZW5kLCBXaWxsIGFuZCBJIGNvbnNp
+ZGVyIGl0IGJlbmVmaWNpYWwgdG8gYmUgYWJsZSB0byBhbnN3ZXIgdGhlCj4gZm9sbG93aW5nIHF1
+ZXN0aW9uOgo+IAo+IFdpdGggZGlmZmVyZW50IHZhbHVlcyBvZiBudW1hX3NwaW5sb2NrX3RocmVz
+aG9sZCBhbmQKPiBTSFVGRkxFX1JFRFVDVElPTl9QUk9CX0FSRywgaG93IGxvbmcgZG8gdGhyZWFk
+cyBydW5uaW5nIG9uIGRpZmZlcmVudAo+IHNvY2tldHMgaGF2ZSB0byB3YWl0IHRvIGFjcXVpcmUg
+dGhlIGxvY2s/ClRoZSBTSFVGRkxFX1JFRFVDVElPTl9QUk9CX0FSRyBwYXJhbWV0ZXIgaXMgaW50
+ZW5kZWQgZm9yIHBlcmZvcm1hbmNlCm9wdGltaXphdGlvbiBvbmx5LCBhbmQgKmRvZXMgbm90KiBh
+ZmZlY3QgdGhlIGxvbmctdGVybSBmYWlybmVzcyAob3IsIGF0IHRoZSAKdmVyeSBsZWFzdCwgZG9l
+cyBub3QgbWFrZSBpdCBhbnkgd29yc2UpLiBBcyBMb25nbWFuIGNvcnJlY3RseSBwb2ludGVkIG91
+dCBpbiAKaGlzIHJlc3BvbnNlIHRvIHRoaXMgZW1haWwsIHRoZSBzaHVmZmxlIHJlZHVjdGlvbiBv
+cHRpbWl6YXRpb24gaXMgcmVsZXZhbnQgb25seQp3aGVuIHRoZSBzZWNvbmRhcnkgcXVldWUgaXMg
+ZW1wdHkuIEluIHRoYXQgY2FzZSwgQ05BIGhhbmRzLW9mZiB0aGUgbG9jawpleGFjdGx5IGFzIE1D
+UyBkb2VzLCBpLmUuLCBpbiB0aGUgRklGTyBvcmRlci4gTm90ZSB0aGF0IHdoZW4gdGhlIHNlY29u
+ZGFyeQpxdWV1ZSBpcyBub3QgZW1wdHksIHdlIGRvIG5vdCBjYWxsIHByb2JhYmx5KCkuCgo+IFRo
+aXMgaXMgcGFydGljdWxhcmx5IHJlbGV2YW50Cj4gaW4gaGlnaCBjb250ZW50aW9uIHNpdHVhdGlv
+bnMgd2hlbiBuZXcgdGhyZWFkcyBrZWVwIGFycml2aW5nIG9uIHRoZSBzYW1lCj4gc29ja2V0IGFz
+IHRoZSBsb2NrIGhvbGRlci4KSW4gdGhpcyBjYXNlLCB0aGUgbG9jayB3aWxsIHN0YXkgb24gdGhl
+IHNhbWUgTlVNQSBub2RlL3NvY2tldCBmb3IgCjJebnVtYV9zcGlubG9ja190aHJlc2hvbGQgdGlt
+ZXMsIHdoaWNoIGlzIHRoZSB3b3JzdCBjYXNlIHNjZW5hcmlvIGlmIHdlIApjb25zaWRlciB0aGUg
+bG9uZy10ZXJtIGZhaXJuZXNzLiBBbmQgaWYgd2UgaGF2ZSBtdWx0aXBsZSBub2RlcywgaXQgd2ls
+bCB0YWtlIAp1cCB0byAyXm51bWFfc3BpbmxvY2tfdGhyZXNob2xkIFggKG5yX25vZGVzIC0gMSkg
+KyBucl9jcHVzX3Blcl9ub2RlCmxvY2sgdHJhbnNpdGlvbnMgdW50aWwgYW55IGdpdmVuIHRocmVh
+ZCB3aWxsIGFjcXVpcmUgdGhlIGxvY2sKKGFzc3VtaW5nIDJebnVtYV9zcGlubG9ja190aHJlc2hv
+bGQgPiBucl9jcHVzX3Blcl9ub2RlKS4KCkhvcGVmdWxseSwgaXQgYWRkcmVzc2VzIHlvdXIgY29u
+Y2Vybi4gTGV0IG1lIGtub3cgaWYgeW91IGhhdmUgYW55IGZ1cnRoZXIgCnF1ZXN0aW9ucy4KCkJl
+c3QgcmVnYXJkcywK4oCUIEFsZXgKCgpfX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19f
+X19fX19fX19fX19fXwpsaW51eC1hcm0ta2VybmVsIG1haWxpbmcgbGlzdApsaW51eC1hcm0ta2Vy
+bmVsQGxpc3RzLmluZnJhZGVhZC5vcmcKaHR0cDovL2xpc3RzLmluZnJhZGVhZC5vcmcvbWFpbG1h
+bi9saXN0aW5mby9saW51eC1hcm0ta2VybmVsCg==
