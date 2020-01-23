@@ -1,28 +1,74 @@
-Return-Path: <SRS0=m0Ig=3E=kvack.org=owner-linux-mm@kernel.org>
-Date: Wed, 15 Jan 2020 16:18:38 +0100
-From: Christoph Hellwig <hch@lst.de>
-Subject: Re: Bug 205201 - Booting halts if Dawicontrol DC-2976 UW SCSI
- board installed, unless RAM size limited to 3500M
-Message-ID: <20200115151838.GA30884@lst.de>
-References: <20191204085634.GA25929@lst.de> <533E86ED-00F4-4FB2-9D91-D4705088817D@xenosoft.de>
+Return-Path: <SRS0=XOKs=3M=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail-wr1-f66.google.com ([209.85.221.66]:45231 "EHLO
+        mail-wr1-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1725818AbgAWFoe (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 23 Jan 2020 00:44:34 -0500
+Received: by mail-wr1-f66.google.com with SMTP id j42so1632904wrj.12
+        for <linux-arch@vger.kernel.org>; Wed, 22 Jan 2020 21:44:33 -0800 (PST)
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <533E86ED-00F4-4FB2-9D91-D4705088817D@xenosoft.de>
-Sender: owner-linux-mm@kvack.org
-To: Christian Zigotzky <chzigotzky@xenosoft.de>
-Cc: Christoph Hellwig <hch@lst.de>, Mike Rapoport <rppt@linux.ibm.com>, Robin Murphy <robin.murphy@arm.com>, linux-arch@vger.kernel.org, darren@stevens-zone.net, mad skateman <madskateman@gmail.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, linux-kernel@vger.kernel.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Rob Herring <robh+dt@kernel.org>, paulus@samba.org, rtd2@xtra.co.nz, "contact@a-eon.com" <contact@a-eon.com>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, nsaenzjulienne@suse.de
+References: <20200116143029.31441-1-guoren@kernel.org>
+In-Reply-To: <20200116143029.31441-1-guoren@kernel.org>
+From: Anup Patel <anup@brainfault.org>
+Date: Thu, 23 Jan 2020 11:14:20 +0530
+Message-ID: <CAAhSdy0k2gb1+k214dW1Zk-YwvujNdui5GJE3zPb_NhDS9b_Rw@mail.gmail.com>
+Subject: Re: [PATCH V2 1/4] riscv: Separate patch for cflags and aflags
+Content-Type: text/plain; charset="UTF-8"
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200115151838.AsuUud0J_DLPQGzBKc-jawsdbSrlNisHmFdrXdZTdl4@z>
+To: Guo Ren <guoren@kernel.org>
+Cc: Paul Walmsley <paul.walmsley@sifive.com>, Palmer Dabbelt <palmer@dabbelt.com>, Albert Ou <aou@eecs.berkeley.edu>, Anup Patel <Anup.Patel@wdc.com>, Vincent Chen <vincent.chen@sifive.com>, Zong Li <zong.li@sifive.com>, Greentime Hu <greentime.hu@sifive.com>, Bin Meng <bmeng.cn@gmail.com>, Atish Patra <atish.patra@wdc.com>, Andreas Schwab <schwab@linux-m68k.org>, "linux-kernel@vger.kernel.org List" <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, linux-csky@vger.kernel.org, linux-riscv <linux-riscv@lists.infradead.org>, Guo Ren <ren_guo@c-sky.com>
+Message-ID: <20200123054420.UFPuXsWR3VwlknmZktdASX7vUtHS7Mx-qJ7EPinB97o@z>
 
-On Fri, Jan 10, 2020 at 08:10:28AM +0100, Christian Zigotzky wrote:
-> Hi All,
-> 
-> The SCSI cards work again. [1, 2]
-> 
-> Sorry for bothering you.
+On Thu, Jan 16, 2020 at 8:01 PM <guoren@kernel.org> wrote:
+>
+> From: Guo Ren <ren_guo@c-sky.com>
+>
+> Use "subst fd" in Makefile is a hack way and it's not convenient
+> to add new ISA feature. Just separate them into riscv-march-cflags
+> and riscv-march-aflags.
+>
+> Signed-off-by: Guo Ren <ren_guo@c-sky.com>
+> Cc: Anup Patel <Anup.Patel@wdc.com>
+> ---
+>  arch/riscv/Makefile | 18 ++++++++++++------
+>  1 file changed, 12 insertions(+), 6 deletions(-)
+>
+> diff --git a/arch/riscv/Makefile b/arch/riscv/Makefile
+> index b9009a2fbaf5..6d09b53cf106 100644
+> --- a/arch/riscv/Makefile
+> +++ b/arch/riscv/Makefile
+> @@ -35,12 +35,18 @@ else
+>  endif
+>
+>  # ISA string setting
+> -riscv-march-$(CONFIG_ARCH_RV32I)       := rv32ima
+> -riscv-march-$(CONFIG_ARCH_RV64I)       := rv64ima
+> -riscv-march-$(CONFIG_FPU)              := $(riscv-march-y)fd
+> -riscv-march-$(CONFIG_RISCV_ISA_C)      := $(riscv-march-y)c
+> -KBUILD_CFLAGS += -march=$(subst fd,,$(riscv-march-y))
+> -KBUILD_AFLAGS += -march=$(riscv-march-y)
+> +riscv-march-cflags-$(CONFIG_ARCH_RV32I)                := rv32ima
+> +riscv-march-cflags-$(CONFIG_ARCH_RV64I)                := rv64ima
+> +riscv-march-$(CONFIG_FPU)                      := $(riscv-march-y)fd
+> +riscv-march-cflags-$(CONFIG_RISCV_ISA_C)       := $(riscv-march-cflags-y)c
+> +
+> +riscv-march-aflags-$(CONFIG_ARCH_RV32I)                := rv32ima
+> +riscv-march-aflags-$(CONFIG_ARCH_RV64I)                := rv64ima
+> +riscv-march-aflags-$(CONFIG_FPU)               := $(riscv-march-aflags-y)fd
+> +riscv-march-aflags-$(CONFIG_RISCV_ISA_C)       := $(riscv-march-aflags-y)c
+> +
+> +KBUILD_CFLAGS += -march=$(riscv-march-cflags-y)
+> +KBUILD_AFLAGS += -march=$(riscv-march-aflags-y)
+>
+>  KBUILD_CFLAGS += -mno-save-restore
+>  KBUILD_CFLAGS += -DCONFIG_PAGE_OFFSET=$(CONFIG_PAGE_OFFSET)
+> --
+> 2.17.0
+>
 
-No problem, and sorry for not following up earlier.  The Christmas
-holiday and catch up phase led to a lot of delay.
+LGTM.
 
-Thanks a lot for taking care of these ppc platforms!
+Reviewed-by: Anup Patel <anup@brainfault.org>
+
+Regards,
+Anup
