@@ -1,130 +1,89 @@
-Return-Path: <SRS0=nYHR=3J=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail-qk1-f196.google.com ([209.85.222.196]:35819 "EHLO
-        mail-qk1-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726819AbgATQG3 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 20 Jan 2020 11:06:29 -0500
-Received: by mail-qk1-f196.google.com with SMTP id z76so30569684qka.2
-        for <linux-arch@vger.kernel.org>; Mon, 20 Jan 2020 08:06:28 -0800 (PST)
+Return-Path: <SRS0=XOKs=3M=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail.kernel.org ([198.145.29.99]:42800 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726771AbgAWLW6 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 23 Jan 2020 06:22:58 -0500
+Date: Thu, 23 Jan 2020 11:22:51 +0000
+From: Will Deacon <will@kernel.org>
+Subject: Re: [PATCH v9 3/5] locking/qspinlock: Introduce CNA into the slow
+ path of qspinlock
+Message-ID: <20200123112251.GC18991@willie-the-truck>
+References: <20200115035920.54451-1-alex.kogan@oracle.com>
+ <20200115035920.54451-4-alex.kogan@oracle.com>
+ <20200123092658.GC14879@hirez.programming.kicks-ass.net>
+ <20200123100635.GE14946@hirez.programming.kicks-ass.net>
+ <20200123101649.GF14946@hirez.programming.kicks-ass.net>
 MIME-Version: 1.0
-References: <20200120141927.114373-1-elver@google.com> <CACT4Y+bnRoKinPopVqyxj4av6_xa_OUN0wwnidpO3dX3iYq_gg@mail.gmail.com>
- <CACT4Y+YuTT6kZ-AkgU0c1o09qmQdFWr4_Sds4jaDg-Va6g6jkA@mail.gmail.com>
- <CACT4Y+acrXkA-ixjQXqNf1EC=fpgTWf3Rcevxxon0DfrPdD-UQ@mail.gmail.com> <CANpmjNNcXUF-=Y-hmry9-xEoNpJd0WH+fOcJJM6kv2eRm5v-kg@mail.gmail.com>
-In-Reply-To: <CANpmjNNcXUF-=Y-hmry9-xEoNpJd0WH+fOcJJM6kv2eRm5v-kg@mail.gmail.com>
-From: Dmitry Vyukov <dvyukov@google.com>
-Date: Mon, 20 Jan 2020 17:06:16 +0100
-Message-ID: <CACT4Y+bD3cNxfaWOuhHz338MoVoaHpw-E8+b7v6mo_ir2KD46Q@mail.gmail.com>
-Subject: Re: [PATCH 1/5] include/linux: Add instrumented.h infrastructure
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20200123101649.GF14946@hirez.programming.kicks-ass.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Marco Elver <elver@google.com>
-Cc: "Paul E. McKenney" <paulmck@kernel.org>, Andrey Konovalov <andreyknvl@google.com>, Alexander Potapenko <glider@google.com>, kasan-dev <kasan-dev@googlegroups.com>, LKML <linux-kernel@vger.kernel.org>, Mark Rutland <mark.rutland@arm.com>, Will Deacon <will@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Boqun Feng <boqun.feng@gmail.com>, Arnd Bergmann <arnd@arndb.de>, Al Viro <viro@zeniv.linux.org.uk>, Christophe Leroy <christophe.leroy@c-s.fr>, Daniel Axtens <dja@axtens.net>, Michael Ellerman <mpe@ellerman.id.au>, Steven Rostedt <rostedt@goodmis.org>, Masami Hiramatsu <mhiramat@kernel.org>, Ingo Molnar <mingo@kernel.org>, Christian Brauner <christian.brauner@ubuntu.com>, Daniel Borkmann <daniel@iogearbox.net>, cyphar@cyphar.com, Kees Cook <keescook@chromium.org>, linux-arch <linux-arch@vger.kernel.org>
-Message-ID: <20200120160616.W-Wt_Ocl2lfNALn2vO9ZPvM4274Hfg7kURDHo1kAGkk@z>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Alex Kogan <alex.kogan@oracle.com>, linux-arch@vger.kernel.org, guohanjun@huawei.com, arnd@arndb.de, dave.dice@oracle.com, jglauber@marvell.com, x86@kernel.org, will.deacon@arm.com, linux@armlinux.org.uk, steven.sistare@oracle.com, linux-kernel@vger.kernel.org, mingo@redhat.com, bp@alien8.de, hpa@zytor.com, longman@redhat.com, tglx@linutronix.de, daniel.m.jordan@oracle.com, linux-arm-kernel@lists.infradead.org
+Message-ID: <20200123112251.6bZgWJPraBt030DmeN-6dZUr6C1rAAStHSpuHGLtm_4@z>
 
-On Mon, Jan 20, 2020 at 4:40 PM Marco Elver <elver@google.com> wrote:
-> > > > > This adds instrumented.h, which provides generic wrappers for memory
-> > > > > access instrumentation that the compiler cannot emit for various
-> > > > > sanitizers. Currently this unifies KASAN and KCSAN instrumentation. In
-> > > > > future this will also include KMSAN instrumentation.
-> > > > >
-> > > > > Note that, copy_{to,from}_user require special instrumentation,
-> > > > > providing hooks before and after the access, since we may need to know
-> > > > > the actual bytes accessed (currently this is relevant for KCSAN, and is
-> > > > > also relevant in future for KMSAN).
-> > > > >
-> > > > > Suggested-by: Arnd Bergmann <arnd@arndb.de>
-> > > > > Signed-off-by: Marco Elver <elver@google.com>
-> > > > > ---
-> > > > >  include/linux/instrumented.h | 153 +++++++++++++++++++++++++++++++++++
-> > > > >  1 file changed, 153 insertions(+)
-> > > > >  create mode 100644 include/linux/instrumented.h
-> > > > >
-> > > > > diff --git a/include/linux/instrumented.h b/include/linux/instrumented.h
-> > > > > new file mode 100644
-> > > > > index 000000000000..9f83c8520223
-> > > > > --- /dev/null
-> > > > > +++ b/include/linux/instrumented.h
-> > > > > @@ -0,0 +1,153 @@
-> > > > > +/* SPDX-License-Identifier: GPL-2.0 */
-> > > > > +
-> > > > > +/*
-> > > > > + * This header provides generic wrappers for memory access instrumentation that
-> > > > > + * the compiler cannot emit for: KASAN, KCSAN.
-> > > > > + */
-> > > > > +#ifndef _LINUX_INSTRUMENTED_H
-> > > > > +#define _LINUX_INSTRUMENTED_H
-> > > > > +
-> > > > > +#include <linux/compiler.h>
-> > > > > +#include <linux/kasan-checks.h>
-> > > > > +#include <linux/kcsan-checks.h>
-> > > > > +#include <linux/types.h>
-> > > > > +
-> > > > > +/**
-> > > > > + * instrument_read - instrument regular read access
-> > > > > + *
-> > > > > + * Instrument a regular read access. The instrumentation should be inserted
-> > > > > + * before the actual read happens.
-> > > > > + *
-> > > > > + * @ptr address of access
-> > > > > + * @size size of access
-> > > > > + */
-> > > >
-> > > > Based on offline discussion, that's what we add for KMSAN:
-> > > >
-> > > > > +static __always_inline void instrument_read(const volatile void *v, size_t size)
-> > > > > +{
-> > > > > +       kasan_check_read(v, size);
-> > > > > +       kcsan_check_read(v, size);
-> > > >
-> > > > KMSAN: nothing
-> > >
-> > > KMSAN also has instrumentation in
-> > > copy_to_user_page/copy_from_user_page. Do we need to do anything for
-> > > KASAN/KCSAN for these functions?
->
-> copy_to_user_page/copy_from_user_page can be instrumented with
-> instrument_copy_{to,from}_user_. I prefer keeping this series with no
-> functional change intended for KASAN at least.
->
-> > There is also copy_user_highpage.
-> >
-> > And ioread/write8/16/32_rep: do we need any instrumentation there. It
-> > seems we want both KSAN and KCSAN too. One may argue that KCSAN
-> > instrumentation there is to super critical at this point, but KASAN
-> > instrumentation is important, if anything to prevent silent memory
-> > corruptions. How do we instrument there? I don't see how it maps to
-> > any of the existing instrumentation functions.
->
-> These should be able to use the regular instrument_{read,write}. I
-> prefer keeping this series with no functional change intended for
-> KASAN at least.
+On Thu, Jan 23, 2020 at 11:16:49AM +0100, Peter Zijlstra wrote:
+> On Thu, Jan 23, 2020 at 11:06:35AM +0100, Peter Zijlstra wrote:
+> > On Thu, Jan 23, 2020 at 10:26:58AM +0100, Peter Zijlstra wrote:
+> > > On Tue, Jan 14, 2020 at 10:59:18PM -0500, Alex Kogan wrote:
+> > > > +/* this function is called only when the primary queue is empty */
+> > > > +static inline bool cna_try_change_tail(struct qspinlock *lock, u32 val,
+> > > > +				       struct mcs_spinlock *node)
+> > > > +{
+> > > > +	struct mcs_spinlock *head_2nd, *tail_2nd;
+> > > > +	u32 new;
+> > > > +
+> > > > +	/* If the secondary queue is empty, do what MCS does. */
+> > > > +	if (node->locked <= 1)
+> > > > +		return __try_clear_tail(lock, val, node);
+> > > > +
+> > > > +	/*
+> > > > +	 * Try to update the tail value to the last node in the secondary queue.
+> > > > +	 * If successful, pass the lock to the first thread in the secondary
+> > > > +	 * queue. Doing those two actions effectively moves all nodes from the
+> > > > +	 * secondary queue into the main one.
+> > > > +	 */
+> > > > +	tail_2nd = decode_tail(node->locked);
+> > > > +	head_2nd = tail_2nd->next;
+> > > > +	new = ((struct cna_node *)tail_2nd)->encoded_tail + _Q_LOCKED_VAL;
+> > > > +
+> > > > +	if (atomic_try_cmpxchg_relaxed(&lock->val, &val, new)) {
+> > > > +		/*
+> > > > +		 * Try to reset @next in tail_2nd to NULL, but no need to check
+> > > > +		 * the result - if failed, a new successor has updated it.
+> > > > +		 */
+> > > 
+> > > I think you actually have an ordering bug here; the load of head_2nd
+> > > *must* happen before the atomic_try_cmpxchg(), otherwise it might
+> > > observe the new next and clear a valid next pointer.
+> > > 
+> > > What would be the best fix for that; I'm thinking:
+> > > 
+> > > 	head_2nd = smp_load_acquire(&tail_2nd->next);
+> > > 
+> > > Will?
+> > 
+> > Hmm, given we've not passed the lock around yet; why wouldn't something
+> > like this work:
+> > 
+> > 	smp_store_release(&tail_2nd->next, NULL);
+> 
+> Argh, make that:
+> 
+> 	tail_2nd->next = NULL;
+> 
+> 	smp_wmb();
+> 
+> > 	if (!atomic_try_cmpxchg_relaxed(&lock, &val, new)) {
 
-instrument_{read,write} will not contain any KMSAN instrumentation,
-which means we will effectively remove KMSAN instrumentation, which is
-weird because we instrumented these functions because of KMSAN in the
-first place...
+... or could you drop the smp_wmb() and make this
+atomic_try_cmpxchg_release()?
 
-> > There is also kmsan_check_skb/kmsan_handle_dma/kmsan_handle_urb that
-> > does not seem to map to any of the instrumentation functions.
->
-> For now, I would rather that there are some one-off special
-> instrumentation, like for KMSAN. Coming up with a unified interface
-> here that, without the use-cases even settled, seems hard to justify.
-> Once instrumentation for these have settled, unifying the interface
-> would have better justification.
+To be honest, I've failed to understand the code prior to your changes
+in this area: it appears to reply on a control-dependency from the two
+cmpxchg_relaxed() calls (which isn't sufficient to order the store parts
+afaict) and I also don't get how we deal with a transiently circular primary
+queue.
 
-I would assume they may also require an annotation that checks the
-memory region under all 3 tools and we don't have such annotation
-(same as the previous case and effectively copy_to_user). I would
-expect such annotation will be used in more places once we start
-looking for more opportunities.
-
-> This patch series is merely supposed to introduce instrumented.h and
-> replace the kasan_checks (also implicitly introducing kcsan_checks
-> there), however, with no further functional change intended.
->
-> I propose that adding entirely new instrumentation for both KASAN and
-> KCSAN, we should send a separate patch-series.
->
-> Thanks,
-> -- Marco
+Will
