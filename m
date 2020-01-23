@@ -1,47 +1,103 @@
-Return-Path: <SRS0=vo9y=3E=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from us03-smtprelay2.synopsys.com ([149.117.87.133]:36668 "EHLO
-        smtprelay-out1.synopsys.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1726513AbgAOXCI (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 15 Jan 2020 18:02:08 -0500
-From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: Re: [RFC 1/4] asm-generic/uaccess: don't define inline functions if
- noinline lib/* in use
-Date: Wed, 15 Jan 2020 23:01:48 +0000
-Message-ID: <6eb7587b-c3bc-691d-9d27-d4e687114a42@synopsys.com>
-References: <20200114200846.29434-1-vgupta@synopsys.com>
- <20200114200846.29434-2-vgupta@synopsys.com>
- <CAK8P3a3W0eLK+qypnPwq=PdcF7+ey8OZEhmOoA6Bg7hMGm5hqQ@mail.gmail.com>
-In-Reply-To: <CAK8P3a3W0eLK+qypnPwq=PdcF7+ey8OZEhmOoA6Bg7hMGm5hqQ@mail.gmail.com>
-Content-Language: en-US
-Content-Type: text/plain; charset="utf-8"
-Content-ID: <B676B95FC3FC714FA1FB6336730C5498@namprd12.prod.outlook.com>
-Content-Transfer-Encoding: base64
+Return-Path: <SRS0=XOKs=3M=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail.kernel.org ([198.145.29.99]:51842 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1729143AbgAWPeJ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 23 Jan 2020 10:34:09 -0500
+From: Will Deacon <will@kernel.org>
+Subject: [PATCH v2 06/10] READ_ONCE: Drop pointer qualifiers when reading from scalar types
+Date: Thu, 23 Jan 2020 15:33:37 +0000
+Message-ID: <20200123153341.19947-7-will@kernel.org>
+In-Reply-To: <20200123153341.19947-1-will@kernel.org>
+References: <20200123153341.19947-1-will@kernel.org>
 MIME-Version: 1.0
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>, Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Cc: Khalid Aziz <khalid.aziz@oracle.com>, Andrey Konovalov <andreyknvl@google.com>, Andrew Morton <akpm@linux-foundation.org>, Peter Zijlstra <peterz@infradead.org>, Christian Brauner <christian.brauner@ubuntu.com>, Kees Cook <keescook@chromium.org>, Ingo Molnar <mingo@kernel.org>, Aleksa Sarai <cyphar@cyphar.com>, Linus Torvalds <torvalds@linux-foundation.org>, "open list:SYNOPSYS ARC ARCHITECTURE" <linux-snps-arc@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>
-Message-ID: <20200115230148.FqjTw7TtZB9NjCfid3rDPziV8Xzntcnx3MbniuYmQ4E@z>
+To: linux-kernel@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, kernel-team@android.com, Will Deacon <will@kernel.org>, Michael Ellerman <mpe@ellerman.id.au>, Peter Zijlstra <peterz@infradead.org>, Linus Torvalds <torvalds@linux-foundation.org>, Segher Boessenkool <segher@kernel.crashing.org>, Christian Borntraeger <borntraeger@de.ibm.com>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>, Arnd Bergmann <arnd@arndb.de>, Peter Oberparleiter <oberpar@linux.ibm.com>, Masahiro Yamada <masahiroy@kernel.org>, Nick Desaulniers <ndesaulniers@google.com>
+Message-ID: <20200123153337.yVcJKCGQ4s8CzO4vnQJHQ6jixxYEtLX56TLPv-ANvRQ@z>
 
-T24gMS8xNC8yMCAxMjo1NyBQTSwgQXJuZCBCZXJnbWFubiB3cm90ZToNCj4gT24gVHVlLCBKYW4g
-MTQsIDIwMjAgYXQgOTowOCBQTSBWaW5lZXQgR3VwdGEgPFZpbmVldC5HdXB0YTFAc3lub3BzeXMu
-Y29tPiB3cm90ZToNCj4+IFRoZXJlIGFyZSAyIGdlbmVyaWMgdmFyYWludHMgb2Ygc3RybmNweV9m
-cm9tX3VzZXIoKSAvIHN0cm5sZW5fdXNlcigpDQo+PiAgKDEpLiBpbmxpbmUgdmVyc2lvbiBpbiBh
-c20tZ2VuZXJpYy91YWNjZXNzLmgNCj4+ICAoMikuIG9wdGltaXplZCB3b3JkLWF0LWEtdGltZSB2
-ZXJzaW9uIGluIGxpYi8qDQo+Pg0KPj4gVGhpcyBwYXRjaCBkaXNhYmxlcyAjMSBpZiAjMiBzZWxl
-Y3RlZC4gVGhpcyBhbGxvd3MgYXJjaGVzIHRvIGNvbnRpbnVlDQo+PiByZXVzaW5nIGFzbS1nZW5l
-cmljL3VhY2Nlc3MuaCBmb3IgcmVzdCBvZiBjb2RlDQo+Pg0KPj4gVGhpcyBjYW1lIHVwIHdoZW4g
-c3dpdGNoaW5nIEFSQyB0byBnZW5lcmljIHdvcmQtYXQtYS10aW1lIGludGVyZmFjZQ0KPj4NCj4+
-IFNpZ25lZC1vZmYtYnk6IFZpbmVldCBHdXB0YSA8dmd1cHRhQHN5bm9wc3lzLmNvbT4NCj4gVGhp
-cyBsb29rcyBsaWtlIGEgdXNlZnVsIGNoYW5nZSwgYnV0IEkgdGhpbmsgd2UgY2FuIGRvIGV2ZW4g
-YmV0dGVyOiBJdA0KPiBzZWVtcyB0aGF0DQo+IHRoZXJlIGFyZSBubyAgY2FsbGVycyBvZiBfX3N0
-cm5sZW5fdXNlciBvciBfX3N0cm5jcHlfZnJvbV91c2VyICBpbiB0aGUNCj4ga2VybmVsIHRvZGF5
-LCBzbyB0aGVzZSBzaG91bGQgbm90IGJlIGRlZmluZWQgZWl0aGVyIHdoZW4gdGhlIEtjb25maWcg
-c3ltYm9scw0KPiBhcmUgc2V0LiBBbHNvLCBJIHdvdWxkIHN1Z2dlc3QgbW92aW5nIHRoZSAnZXh0
-ZXJuJyBkZWNsYXJhdGlvbiBmb3IgdGhlIHR3bw0KPiBmdW5jdGlvbnMgaW50byB0aGUgI2Vsc2Ug
-YnJhbmNoIG9mIHRoZSBjb25kaXRpb25hbCBzbyBpdCBkb2VzIG5vdCBuZWVkIHRvIGJlDQo+IGR1
-cGxpY2F0ZWQuDQoNCkdpdmVuIHdoZXJlIHRoaW5ncyBzZWVtIHRvIGJlIGhlYWRpbmcsIGRvIHUg
-c3RpbGwgd2FudCBhbiB1cGRhdGVkIHBhdGNoIGZvciB0aGlzDQpvciBkbyB1IHBsYW4gdG8gZGl0
-Y2ggdGhlIGlubGluZSB2ZXJzaW9uIGluIHNob3J0IHRlcm0gYW55d2F5cy4NCg0KLVZpbmVldA0K
-DQo=
+Passing a volatile-qualified pointer to READ_ONCE() is an absolute
+trainwreck for code generation: the use of 'typeof()' to define a
+temporary variable inside the macro means that the final evaluation in
+macro scope ends up forcing a read back from the stack. When stack
+protector is enabled (the default for arm64, at least), this causes
+the compiler to vomit up all sorts of junk.
+
+Unfortunately, dropping pointer qualifiers inside the macro poses quite
+a challenge, especially since the pointed-to type is permitted to be an
+aggregate, and this is relied upon by mm/ code accessing things like
+'pmd_t'. Based on numerous hacks and discussions on the mailing list,
+this is the best I've managed to come up with.
+
+Introduce '__unqual_scalar_typeof()' which takes an expression and, if
+the expression is an optionally qualified 8, 16, 32 or 64-bit scalar
+type, evaluates to the unqualified type. Other input types, including
+aggregates, remain unchanged. Hopefully READ_ONCE() on volatile aggregate
+pointers isn't something we do on a fast-path.
+
+Cc: Peter Zijlstra <peterz@infradead.org>
+Cc: Arnd Bergmann <arnd@arndb.de>
+Suggested-by: Linus Torvalds <torvalds@linux-foundation.org>
+Reported-by: Michael Ellerman <mpe@ellerman.id.au>
+Signed-off-by: Will Deacon <will@kernel.org>
+---
+ include/linux/compiler.h       |  6 +++---
+ include/linux/compiler_types.h | 21 +++++++++++++++++++++
+ 2 files changed, 24 insertions(+), 3 deletions(-)
+
+diff --git a/include/linux/compiler.h b/include/linux/compiler.h
+index a7b2195f2655..994c35638584 100644
+--- a/include/linux/compiler.h
++++ b/include/linux/compiler.h
+@@ -203,13 +203,13 @@ void ftrace_likely_update(struct ftrace_likely_data *f, int val,
+  * atomicity or dependency ordering guarantees. Note that this may result
+  * in tears!
+  */
+-#define __READ_ONCE(x)	(*(const volatile typeof(x) *)&(x))
++#define __READ_ONCE(x)	(*(const volatile __unqual_scalar_typeof(x) *)&(x))
+ 
+ #define __READ_ONCE_SCALAR(x)						\
+ ({									\
+-	typeof(x) __x = __READ_ONCE(x);					\
++	__unqual_scalar_typeof(x) __x = __READ_ONCE(x);			\
+ 	smp_read_barrier_depends();					\
+-	__x;								\
++	(typeof(x))__x;							\
+ })
+ 
+ /*
+diff --git a/include/linux/compiler_types.h b/include/linux/compiler_types.h
+index 72393a8c1a6c..58361f2d3b98 100644
+--- a/include/linux/compiler_types.h
++++ b/include/linux/compiler_types.h
+@@ -219,6 +219,27 @@ struct ftrace_likely_data {
+ /* Are two types/vars the same type (ignoring qualifiers)? */
+ #define __same_type(a, b) __builtin_types_compatible_p(typeof(a), typeof(b))
+ 
++/*
++ * __unqual_scalar_typeof(x) - Declare an unqualified scalar type, leaving
++ *			       non-scalar types unchanged.
++ *
++ * We build this out of a couple of helper macros in a vain attempt to
++ * help you keep your lunch down while reading it.
++ */
++#define __pick_scalar_type(x, type, otherwise)					\
++	__builtin_choose_expr(__same_type(x, type), (type)0, otherwise)
++
++#define __pick_integer_type(x, type, otherwise)					\
++	__pick_scalar_type(x, unsigned type,					\
++		__pick_scalar_type(x, signed type, otherwise))
++
++#define __unqual_scalar_typeof(x) typeof(					\
++	__pick_integer_type(x, char,						\
++		__pick_integer_type(x, short,					\
++			__pick_integer_type(x, int,				\
++				__pick_integer_type(x, long,			\
++					__pick_integer_type(x, long long, x))))))
++
+ /* Is this type a native word size -- useful for atomic operations */
+ #define __native_word(t) \
+ 	(sizeof(t) == sizeof(char) || sizeof(t) == sizeof(short) || \
+-- 
+2.25.0.341.g760bfbb309-goog
