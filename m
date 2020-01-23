@@ -1,91 +1,70 @@
 From: Will Deacon <will@kernel.org>
-Subject: [PATCH v2 00/10] Rework READ_ONCE() to improve codegen
-Date: Thu, 23 Jan 2020 15:33:31 +0000
-Message-ID: <20200123153341.19947-1-will@kernel.org>
+Subject: [PATCH v2 01/10] compiler/gcc: Emit build-time warning for GCC prior to version 4.8
+Date: Thu, 23 Jan 2020 15:33:32 +0000
+Message-ID: <20200123153341.19947-2-will@kernel.org>
+References: <20200123153341.19947-1-will@kernel.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20200123153341.19947-1-will@kernel.org>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org
 Cc: linux-arch@vger.kernel.org, kernel-team@android.com, Will Deacon <will@kernel.org>, Michael Ellerman <mpe@ellerman.id.au>, Peter Zijlstra <peterz@infradead.org>, Linus Torvalds <torvalds@linux-foundation.org>, Segher Boessenkool <segher@kernel.crashing.org>, Christian Borntraeger <borntraeger@de.ibm.com>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>, Arnd Bergmann <arnd@arndb.de>, Peter Oberparleiter <oberpar@linux.ibm.com>, Masahiro Yamada <masahiroy@kernel.org>, Nick Desaulniers <ndesaulniers@google.com>
 List-Id: linux-arch.vger.kernel.org
 
-Hi folks,
+Prior to version 4.8, GCC may miscompile READ_ONCE() by erroneously
+discarding the 'volatile' qualifier:
 
-This is version two of the patches I previously posted as an RFC here:
+https://gcc.gnu.org/bugzilla/show_bug.cgi?id=58145
 
-https://lore.kernel.org/lkml/20200110165636.28035-1-will@kernel.org
+We've been working around this using some nasty hacks which make
+READ_ONCE() both horribly complicated and also prevent us from enforcing
+that it is only used on scalar types. Since GCC 4.8 is pretty old for
+kernel builds now, emit a warning if we detect it during the build.
 
-Changes since then include:
-
-  * Adopted a less vomit-inducing series of macros for __unqual_scalar_typeof
-
-  * Cast to 'const' in READ_ONCE() to prevent assignment to the resulting
-    expression
-
-  * Only warn once at build-time if GCC prior to 4.8 is detected...
-
-  * ... and then raise the minimum GCC version to 4.8, with an error for
-    older versions of the compiler
-
-  * Remove some dead gcov code so that the resulting diffstat can distract
-    from those less vomit-inducing macros I mentioned earlier on
-
-Failing the build for older compilers is always a contentious topic, so
-I've done that as a separate couple of patches on the end in case we end
-up dropping or reverting them.
-
-Cheers,
-
-Will
-
-Cc: Michael Ellerman <mpe@ellerman.id.au>
+Suggested-by: Linus Torvalds <torvalds@linux-foundation.org>
 Cc: Peter Zijlstra <peterz@infradead.org>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Segher Boessenkool <segher@kernel.crashing.org>
-Cc: Christian Borntraeger <borntraeger@de.ibm.com>
-Cc: Luc Van Oostenryck <luc.vanoostenryck@gmail.com>
+Cc: Michael Ellerman <mpe@ellerman.id.au>
 Cc: Arnd Bergmann <arnd@arndb.de>
-Cc: Peter Oberparleiter <oberpar@linux.ibm.com>
+Cc: Christian Borntraeger <borntraeger@de.ibm.com>
 Cc: Masahiro Yamada <masahiroy@kernel.org>
-Cc: Nick Desaulniers <ndesaulniers@google.com>
+Signed-off-by: Will Deacon <will@kernel.org>
+---
+ init/Kconfig            | 4 ++--
+ scripts/Kconfig.include | 6 ++++++
+ 2 files changed, 8 insertions(+), 2 deletions(-)
 
---->8
-
-Will Deacon (10):
-  compiler/gcc: Emit build-time warning for GCC prior to version 4.8
-  netfilter: Avoid assigning 'const' pointer to non-const pointer
-  fault_inject: Don't rely on "return value" from WRITE_ONCE()
-  READ_ONCE: Simplify implementations of {READ,WRITE}_ONCE()
-  READ_ONCE: Enforce atomicity for {READ,WRITE}_ONCE() memory accesses
-  READ_ONCE: Drop pointer qualifiers when reading from scalar types
-  locking/barriers: Use '__unqual_scalar_typeof' for load-acquire macros
-  arm64: barrier: Use '__unqual_scalar_typeof' for acquire/release
-    macros
-  compiler/gcc: Raise minimum GCC version for kernel builds to 4.8
-  gcov: Remove old GCC 3.4 support
-
- Documentation/process/changes.rst |   2 +-
- arch/arm/crypto/Kconfig           |  12 +-
- arch/arm64/include/asm/barrier.h  |  16 +-
- crypto/Kconfig                    |   1 -
- drivers/xen/time.c                |   2 +-
- include/asm-generic/barrier.h     |  16 +-
- include/linux/compiler-gcc.h      |   5 +-
- include/linux/compiler.h          | 129 +++----
- include/linux/compiler_types.h    |  21 ++
- init/Kconfig                      |   5 +-
- kernel/gcov/Kconfig               |  24 --
- kernel/gcov/Makefile              |   3 +-
- kernel/gcov/gcc_3_4.c             | 573 ------------------------------
- lib/fault-inject.c                |   4 +-
- net/netfilter/core.c              |   2 +-
- net/xdp/xsk_queue.h               |   2 +-
- scripts/Kconfig.include           |   3 +
- scripts/gcc-plugins/Kconfig       |   4 +-
- 18 files changed, 111 insertions(+), 713 deletions(-)
- delete mode 100644 kernel/gcov/gcc_3_4.c
-
+diff --git a/init/Kconfig b/init/Kconfig
+index a34064a031a5..bdc2f1b1667b 100644
+--- a/init/Kconfig
++++ b/init/Kconfig
+@@ -10,11 +10,11 @@ config DEFCONFIG_LIST
+ 	default "arch/$(ARCH)/defconfig"
+ 
+ config CC_IS_GCC
+-	def_bool $(success,$(CC) --version | head -n 1 | grep -q gcc)
++	def_bool $(cc-is-gcc)
+ 
+ config GCC_VERSION
+ 	int
+-	default $(shell,$(srctree)/scripts/gcc-version.sh $(CC)) if CC_IS_GCC
++	default $(gcc-version) if CC_IS_GCC
+ 	default 0
+ 
+ config CC_IS_CLANG
+diff --git a/scripts/Kconfig.include b/scripts/Kconfig.include
+index d4adfbe42690..4e645a798b56 100644
+--- a/scripts/Kconfig.include
++++ b/scripts/Kconfig.include
+@@ -40,3 +40,9 @@ $(error-if,$(success, $(LD) -v | grep -q gold), gold linker '$(LD)' not supporte
+ 
+ # gcc version including patch level
+ gcc-version := $(shell,$(srctree)/scripts/gcc-version.sh $(CC))
++
++# Return y if the compiler is GCC, n otherwise
++cc-is-gcc := $(success,$(CC) --version | head -n 1 | grep -q gcc)
++
++# Warn if the compiler is GCC prior to 4.8
++$(warning-if,$(if-success,[ $(gcc-version) -lt 40800 ],$(cc-is-gcc),n),"Your compiler is old and may miscompile the kernel due to https://gcc.gnu.org/bugzilla/show_bug.cgi?id=58145 - please upgrade it.")
 -- 
 2.25.0.341.g760bfbb309-goog
