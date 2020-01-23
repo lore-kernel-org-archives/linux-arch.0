@@ -1,103 +1,143 @@
-Return-Path: <3_GEzXg4KBIUk0nwmjwqrpprw1pxxpun.lxv0yy2urw36.rkv.lxv@flex--brendanhiggins.bounces.google.com>
-Date: Thu, 30 Jan 2020 15:08:11 -0800
-In-Reply-To: <20200130230812.142642-1-brendanhiggins@google.com>
-Message-ID: <20200130230812.142642-7-brendanhiggins@google.com>
-Mime-Version: 1.0
-References: <20200130230812.142642-1-brendanhiggins@google.com>
-Subject: [PATCH v2 6/7] kunit: Add 'kunit_shutdown' option
+Return-Path: <brendanhiggins@google.com>
+MIME-Version: 1.0
+References: <20191216220555.245089-1-brendanhiggins@google.com> <20200106224022.GX11244@42.do-not-panic.com>
+In-Reply-To: <20200106224022.GX11244@42.do-not-panic.com>
 From: Brendan Higgins <brendanhiggins@google.com>
+Date: Thu, 23 Jan 2020 14:40:31 -0800
+Message-ID: <CAFd5g456c2Zs7rCvRPgio83G=SrtPGi25zbqAUyTBHspHwtu4w@mail.gmail.com>
+Subject: Re: [RFC v1 0/6] kunit: create a centralized executor to dispatch all
+ KUnit tests
 Content-Type: text/plain; charset="UTF-8"
-To: jdike@addtoit.com, richard@nod.at, anton.ivanov@cambridgegreys.com, arnd@arndb.de, keescook@chromium.org, skhan@linuxfoundation.org, alan.maguire@oracle.com, yzaikin@google.com, davidgow@google.com, akpm@linux-foundation.org, rppt@linux.ibm.com, frowand.list@gmail.com
-Cc: gregkh@linuxfoundation.org, sboyd@kernel.org, logang@deltatee.com, mcgrof@kernel.org, knut.omang@oracle.com, linux-um@lists.infradead.org, linux-arch@vger.kernel.org, linux-kselftest@vger.kernel.org, kunit-dev@googlegroups.com, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, Brendan Higgins <brendanhiggins@google.com>
+To: Luis Chamberlain <mcgrof@kernel.org>
+Cc: Jeff Dike <jdike@addtoit.com>, Richard Weinberger <richard@nod.at>, Anton Ivanov <anton.ivanov@cambridgegreys.com>, Arnd Bergmann <arnd@arndb.de>, Kees Cook <keescook@chromium.org>, Shuah Khan <skhan@linuxfoundation.org>, Alan Maguire <alan.maguire@oracle.com>, Iurii Zaikin <yzaikin@google.com>, David Gow <davidgow@google.com>, Andrew Morton <akpm@linux-foundation.org>, rppt@linux.ibm.com, Greg KH <gregkh@linuxfoundation.org>, Stephen Boyd <sboyd@kernel.org>, Logan Gunthorpe <logang@deltatee.com>, Knut Omang <knut.omang@oracle.com>, linux-um <linux-um@lists.infradead.org>, linux-arch@vger.kernel.org, "open list:KERNEL SELFTEST FRAMEWORK" <linux-kselftest@vger.kernel.org>, KUnit Development <kunit-dev@googlegroups.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200130230811.J7eCKKXLE6v4gmSegy7d8xOsh0FWG-6zv-8HrhfiDu4@z>
+Message-ID: <20200123224031.f6tzXKw8ii__q1TeNm78-xOK5pujJD1XRKheYf8avlk@z>
 
-From: David Gow <davidgow@google.com>
+Sorry for the late reply. I am still catching up from being on vacation.
 
-Add a new kernel command-line option, 'kunit_shutdown', which allows the
-user to specify that the kernel poweroff, halt, or reboot after
-completing all KUnit tests; this is very handy for running KUnit tests
-on UML or a VM so that the UML/VM process exits cleanly immediately
-after running all tests without needing a special initramfs.
+On Mon, Jan 6, 2020 at 2:40 PM Luis Chamberlain <mcgrof@kernel.org> wrote:
+>
+> On Mon, Dec 16, 2019 at 02:05:49PM -0800, Brendan Higgins wrote:
+> > ## TL;DR
+> >
+> > This patchset adds a centralized executor to dispatch tests rather than
+> > relying on late_initcall to schedule each test suite separately along
+> > with a couple of new features that depend on it.
+> >
+> > ## What am I trying to do?
+> >
+> > Conceptually, I am trying to provide a mechanism by which test suites
+> > can be grouped together so that they can be reasoned about collectively.
+> > The last two patches in this series add features which depend on this:
+> >
+> > RFC 5/6 Prints out a test plan right before KUnit tests are run[1]; this
+> >         is valuable because it makes it possible for a test harness to
+> >         detect whether the number of tests run matches the number of
+> >         tests expected to be run, ensuring that no tests silently
+> >         failed.
+> >
+> > RFC 6/6 Add a new kernel command-line option which allows the user to
+> >         specify that the kernel poweroff, halt, or reboot after
+> >         completing all KUnit tests; this is very handy for running KUnit
+> >         tests on UML or a VM so that the UML/VM process exits cleanly
+> >         immediately after running all tests without needing a special
+> >         initramfs.
+>
+> The approach seems sensible to me given that it separates from a
+> semantics perspective kernel subsystem init work from *testing*, and
+> so we are sure we'd run the *test* stuff *after* all subsystem init
+> stuff.
 
-Signed-off-by: David Gow <davidgow@google.com>
-Signed-off-by: Brendan Higgins <brendanhiggins@google.com>
-Reviewed-by: Stephen Boyd <sboyd@kernel.org>
----
- lib/kunit/executor.c                | 20 ++++++++++++++++++++
- tools/testing/kunit/kunit_kernel.py |  2 +-
- tools/testing/kunit/kunit_parser.py |  2 +-
- 3 files changed, 22 insertions(+), 2 deletions(-)
+Cool, I thought you would find this interesting.
 
-diff --git a/lib/kunit/executor.c b/lib/kunit/executor.c
-index 7fd16feff157e..a93821116ccec 100644
---- a/lib/kunit/executor.c
-+++ b/lib/kunit/executor.c
-@@ -1,5 +1,6 @@
- // SPDX-License-Identifier: GPL-2.0
- 
-+#include <linux/reboot.h>
- #include <kunit/test.h>
- 
- /*
-@@ -11,6 +12,23 @@ extern struct kunit_suite * const * const __kunit_suites_end[];
- 
- #if IS_BUILTIN(CONFIG_KUNIT)
- 
-+static char *kunit_shutdown;
-+core_param(kunit_shutdown, kunit_shutdown, charp, 0644);
-+
-+static void kunit_handle_shutdown(void)
-+{
-+	if (!kunit_shutdown)
-+		return;
-+
-+	if (!strcmp(kunit_shutdown, "poweroff"))
-+		kernel_power_off();
-+	else if (!strcmp(kunit_shutdown, "halt"))
-+		kernel_halt();
-+	else if (!strcmp(kunit_shutdown, "reboot"))
-+		kernel_restart(NULL);
-+
-+}
-+
- static void kunit_print_tap_header(void)
- {
- 	struct kunit_suite * const * const *suites, * const *subsuite;
-@@ -42,6 +60,8 @@ int kunit_run_all_tests(void)
- 		}
- 	}
- 
-+	kunit_handle_shutdown();
-+
- 	if (has_test_failed)
- 		return -EFAULT;
- 
-diff --git a/tools/testing/kunit/kunit_kernel.py b/tools/testing/kunit/kunit_kernel.py
-index cc5d844ecca13..43314aa537d30 100644
---- a/tools/testing/kunit/kunit_kernel.py
-+++ b/tools/testing/kunit/kunit_kernel.py
-@@ -141,7 +141,7 @@ class LinuxSourceTree(object):
- 		return True
- 
- 	def run_kernel(self, args=[], timeout=None, build_dir=''):
--		args.extend(['mem=256M'])
-+		args.extend(['mem=256M', 'kunit_shutdown=halt'])
- 		process = self._ops.linux_bin(args, timeout, build_dir)
- 		with open(os.path.join(build_dir, 'test.log'), 'w') as f:
- 			for line in process.stdout:
-diff --git a/tools/testing/kunit/kunit_parser.py b/tools/testing/kunit/kunit_parser.py
-index 78b3bdd03b1e4..633811dd9bce8 100644
---- a/tools/testing/kunit/kunit_parser.py
-+++ b/tools/testing/kunit/kunit_parser.py
-@@ -48,7 +48,7 @@ class TestStatus(Enum):
- 	FAILURE_TO_PARSE_TESTS = auto()
- 
- kunit_start_re = re.compile(r'^TAP version [0-9]+$')
--kunit_end_re = re.compile('List of all partitions:')
-+kunit_end_re = re.compile(r'reboot: System halted')
- 
- def isolate_kunit_output(kernel_output):
- 	started = False
--- 
-2.25.0.341.g760bfbb309-goog
+> Dispatching, however is still immediate, and with a bit of work, this
+> dispatcher could be configurable to run at an arbirary time after boot.
+> If there are not immediate use cases for that though, then I suppose
+> this is not a requirement for the dispatcher. But since there exists
+> another modular test framework with its own dispatcher and it seems the
+> goal is to merge the work long term, this might preempt the requirement
+> to define how and when we can dispatch tests post boot.
+>
+> And, if we're going to do that, I can suggest that a data structure
+> instead of just a function init call be used to describe tests to be
+> placed into an ELF section. With my linker table work this would be
+> easy, I define section ranges for code describing only executable
+> routines, but it defines linker tables for when a component in the
+> kernel would define a data structure, part of which can be a callback.
+> Such data structure stuffed into an ELF section could allow dynamic
+> configuration of the dipsatching, even post boot.
+
+The linker table work does sound interesting. Do you have a link?
+
+I was thinking about dynamic dispatching, actually. I thought it would
+be handy to be able to build all tests into a single kernel and then
+run different tests on different invocations.
+
+Also, for post boot dynamic dispatching, you should check out Alan's
+debugfs patches:
+
+https://lore.kernel.org/linux-kselftest/CAFd5g46657gZ36PaP8Pi999hPPgBU2Kz94nrMspS-AzGwdBF+g@mail.gmail.com/T/#m210cadbeee267e5c5a9253d83b7b7ca723d1f871
+
+They look pretty handy!
+
+> I think this is a good stepping stone forward then, and to allow
+> dynamic configuration of the dispatcher could mean eventual extensions
+> to kunit's init stuff to stuff init calls into a data structure which
+> can then allow configuration of the dispatching. One benefit that the
+> linker table work *may* be able to help here with is that it allows
+> an easy way to create kunit specific ordering, at linker time.
+> There is also an example of addressing / generalizing dynamic / run time
+> changes of ordering, by using the x86 IOMMU initialization as an
+> example case. We don't have an easy way to do this today, but if kunit
+> could benefit from such framework, it'd be another use case for
+> the linker table work. That is, the ability to easilly allow
+> dynamically modifying run time ordering of code through ELF sections.
+>
+> > In addition, by dispatching tests from a single location, we can
+> > guarantee that all KUnit tests run after late_init is complete, which
+> > was a concern during the initial KUnit patchset review (this has not
+> > been a problem in practice, but resolving with certainty is nevertheless
+> > desirable).
+>
+> Indeed, the concern is just a real semantics limitations. With the tests
+> *always* running after all subsystem init stuff, we know we'd have a
+> real full kernel ready.
+
+Yep.
+
+> It does beg the question if this means kunit is happy to not be a tool
+> to test pre basic setup stuff (terminology used in init.c, meaning prior
+> to running all init levels). I suspect this is the case.
+
+Not sure. I still haven't seen any cases where this is necessary, so I
+am not super worried about it. Regardless, I don't think this patchset
+really changes anything in that regard, we are moving from late_init
+to after late_init, so it isn't that big of a change for most use
+cases.
+
+Please share if you can think of some things that need to be tested in
+early init.
+
+> > Other use cases for this exist, but the above features should provide an
+> > idea of the value that this could provide.
+> >
+> > ## What work remains to be done?
+> >
+> > These patches were based on patches in our non-upstream branch[2], so we
+> > have a pretty good idea that they are useable as presented;
+> > nevertheless, some of the changes done in this patchset could
+> > *definitely* use some review by subsystem experts (linker scripts, init,
+> > etc), and will likely change a lot after getting feedback.
+> >
+> > The biggest thing that I know will require additional attention is
+> > integrating this patchset with the KUnit module support patchset[3]. I
+> > have not even attempted to build these patches on top of the module
+> > support patches as I would like to get people's initial thoughts first
+> > (especially Alan's :-) ). I think that making these patches work with
+> > module support should be fairly straight forward, nevertheless.
+>
+> Modules just have their own sections too. That's all. So it'd be a
+> matter of extending the linker script for modules too. But a module's
+> init is different than the core kernel's for vmlinux.
+
+Truth. It seems as though Alan has already fixed this for me, however.
