@@ -1,363 +1,659 @@
-Return-Path: <SRS0=n+LR=24=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:41158 "EHLO mail.kernel.org"
+Return-Path: <SRS0=XOKs=3M=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail.kernel.org ([198.145.29.99]:52106 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1728384AbgAGQyH (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 7 Jan 2020 11:54:07 -0500
-From: Krzysztof Kozlowski <krzk@kernel.org>
-Subject: [RFT 03/13] alpha: Constify ioreadX() iomem argument (as in generic implementation)
-Date: Tue,  7 Jan 2020 17:53:01 +0100
-Message-Id: <1578415992-24054-5-git-send-email-krzk@kernel.org>
-In-Reply-To: <1578415992-24054-1-git-send-email-krzk@kernel.org>
-References: <1578415992-24054-1-git-send-email-krzk@kernel.org>
+        id S1729232AbgAWPeV (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 23 Jan 2020 10:34:21 -0500
+From: Will Deacon <will@kernel.org>
+Subject: [PATCH v2 10/10] gcov: Remove old GCC 3.4 support
+Date: Thu, 23 Jan 2020 15:33:41 +0000
+Message-ID: <20200123153341.19947-11-will@kernel.org>
+In-Reply-To: <20200123153341.19947-1-will@kernel.org>
+References: <20200123153341.19947-1-will@kernel.org>
+MIME-Version: 1.0
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Alexey Brodkin <abrodkin@synopsys.com>, Vineet Gupta <vgupta@synopsys.com>, "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>, Helge Deller <deller@gmx.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, Dave Airlie <airlied@redhat.com>, David Airlie <airlied@linux.ie>, Daniel Vetter <daniel@ffwll.ch>, Ben Skeggs <bskeggs@redhat.com>, Mauro Carvalho Chehab <mchehab@kernel.org>, Jiri Slaby <jirislaby@gmail.com>, Nick Kossifidis <mickflemm@gmail.com>, Luis Chamberlain <mcgrof@kernel.org>, Kalle Valo <kvalo@codeaurora.org>, "David S. Miller" <davem@davemloft.net>, Dave Jiang <dave.jiang@intel.com>, Jon Mason <jdmason@kudzu.us>, Allen Hubbe <allenbh@gmail.com>, "Michael S. Tsirkin" <mst@redhat.com>, Jason Wang <jasowang@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, Geert Uytterhoeven <geert@linux-m68k.org>, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-snps-arc@lists.infradead.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org, dri-devel@lists.freedesktop.org, nouveau@lists.freedesktop.org, linux-media@vger.kernel.org, linux-wireless@vger.kernel.org, netdev@vger.kernel.org, linux-ntb@googlegroups.com, virtualization@lists.linux-foundation.org, linux-arch@vger.kernel.org
-Cc: Krzysztof Kozlowski <krzk@kernel.org>
+To: linux-kernel@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, kernel-team@android.com, Will Deacon <will@kernel.org>, Michael Ellerman <mpe@ellerman.id.au>, Peter Zijlstra <peterz@infradead.org>, Linus Torvalds <torvalds@linux-foundation.org>, Segher Boessenkool <segher@kernel.crashing.org>, Christian Borntraeger <borntraeger@de.ibm.com>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>, Arnd Bergmann <arnd@arndb.de>, Peter Oberparleiter <oberpar@linux.ibm.com>, Masahiro Yamada <masahiroy@kernel.org>, Nick Desaulniers <ndesaulniers@google.com>
+Message-ID: <20200123153341.25-KlHSQyV0ddqCy5FQqcJ92e15Ssshld4GRKO7t-Cw@z>
 
-The ioreadX() helpers have inconsistent interface.  On some architectures
-void *__iomem address argument is a pointer to const, on some not.
+The kernel requires at least GCC 4.8 in order to build, and so there is
+no need to cater for the pre-4.7 gcov format.
 
-Implementations of ioreadX() do not modify the memory under the address
-so they can be converted to a "const" version for const-safety and
-consistency among architectures.
+Remove the obsolete code.
 
-Signed-off-by: Krzysztof Kozlowski <krzk@kernel.org>
+Cc: Peter Oberparleiter <oberpar@linux.ibm.com>
+Signed-off-by: Will Deacon <will@kernel.org>
 ---
- arch/alpha/include/asm/core_apecs.h  |  6 +++---
- arch/alpha/include/asm/core_cia.h    |  6 +++---
- arch/alpha/include/asm/core_lca.h    |  6 +++---
- arch/alpha/include/asm/core_marvel.h |  4 ++--
- arch/alpha/include/asm/core_mcpcia.h |  6 +++---
- arch/alpha/include/asm/core_t2.h     |  2 +-
- arch/alpha/include/asm/io.h          | 12 ++++++------
- arch/alpha/include/asm/io_trivial.h  | 16 ++++++++--------
- arch/alpha/include/asm/jensen.h      |  2 +-
- arch/alpha/include/asm/machvec.h     |  6 +++---
- arch/alpha/kernel/core_marvel.c      |  2 +-
- arch/alpha/kernel/io.c               |  6 +++---
- 12 files changed, 37 insertions(+), 37 deletions(-)
+ kernel/gcov/Kconfig   |  24 --
+ kernel/gcov/Makefile  |   3 +-
+ kernel/gcov/gcc_3_4.c | 573 ------------------------------------------
+ 3 files changed, 1 insertion(+), 599 deletions(-)
+ delete mode 100644 kernel/gcov/gcc_3_4.c
 
-diff --git a/arch/alpha/include/asm/core_apecs.h b/arch/alpha/include/asm/core_apecs.h
-index 0a07055bc0fe..2d9726fc02ef 100644
---- a/arch/alpha/include/asm/core_apecs.h
-+++ b/arch/alpha/include/asm/core_apecs.h
-@@ -384,7 +384,7 @@ struct el_apecs_procdata
- 		}						\
- 	} while (0)
+diff --git a/kernel/gcov/Kconfig b/kernel/gcov/Kconfig
+index 060e8e726755..8df7fad82df8 100644
+--- a/kernel/gcov/Kconfig
++++ b/kernel/gcov/Kconfig
+@@ -51,28 +51,4 @@ config GCOV_PROFILE_ALL
+ 	larger and run slower. Also be sure to exclude files from profiling
+ 	which are not linked to the kernel image to prevent linker errors.
  
--__EXTERN_INLINE unsigned int apecs_ioread8(void __iomem *xaddr)
-+__EXTERN_INLINE unsigned int apecs_ioread8(const void __iomem *xaddr)
- {
- 	unsigned long addr = (unsigned long) xaddr;
- 	unsigned long result, base_and_type;
-@@ -420,7 +420,7 @@ __EXTERN_INLINE void apecs_iowrite8(u8 b, void __iomem *xaddr)
- 	*(vuip) ((addr << 5) + base_and_type) = w;
- }
+-choice
+-	prompt "Specify GCOV format"
+-	depends on GCOV_KERNEL
+-	depends on CC_IS_GCC
+-	---help---
+-	The gcov format is usually determined by the GCC version, and the
+-	default is chosen according to your GCC version. However, there are
+-	exceptions where format changes are integrated in lower-version GCCs.
+-	In such a case, change this option to adjust the format used in the
+-	kernel accordingly.
+-
+-config GCOV_FORMAT_3_4
+-	bool "GCC 3.4 format"
+-	depends on GCC_VERSION < 40700
+-	---help---
+-	Select this option to use the format defined by GCC 3.4.
+-
+-config GCOV_FORMAT_4_7
+-	bool "GCC 4.7 format"
+-	---help---
+-	Select this option to use the format defined by GCC 4.7.
+-
+-endchoice
+-
+ endmenu
+diff --git a/kernel/gcov/Makefile b/kernel/gcov/Makefile
+index d66a74b0f100..16f8ecc7d882 100644
+--- a/kernel/gcov/Makefile
++++ b/kernel/gcov/Makefile
+@@ -2,6 +2,5 @@
+ ccflags-y := -DSRCTREE='"$(srctree)"' -DOBJTREE='"$(objtree)"'
  
--__EXTERN_INLINE unsigned int apecs_ioread16(void __iomem *xaddr)
-+__EXTERN_INLINE unsigned int apecs_ioread16(const void __iomem *xaddr)
- {
- 	unsigned long addr = (unsigned long) xaddr;
- 	unsigned long result, base_and_type;
-@@ -456,7 +456,7 @@ __EXTERN_INLINE void apecs_iowrite16(u16 b, void __iomem *xaddr)
- 	*(vuip) ((addr << 5) + base_and_type) = w;
- }
- 
--__EXTERN_INLINE unsigned int apecs_ioread32(void __iomem *xaddr)
-+__EXTERN_INLINE unsigned int apecs_ioread32(const void __iomem *xaddr)
- {
- 	unsigned long addr = (unsigned long) xaddr;
- 	if (addr < APECS_DENSE_MEM)
-diff --git a/arch/alpha/include/asm/core_cia.h b/arch/alpha/include/asm/core_cia.h
-index c706a7f2b061..cb22991f6761 100644
---- a/arch/alpha/include/asm/core_cia.h
-+++ b/arch/alpha/include/asm/core_cia.h
-@@ -342,7 +342,7 @@ struct el_CIA_sysdata_mcheck {
- #define vuip	volatile unsigned int __force *
- #define vulp	volatile unsigned long __force *
- 
--__EXTERN_INLINE unsigned int cia_ioread8(void __iomem *xaddr)
-+__EXTERN_INLINE unsigned int cia_ioread8(const void __iomem *xaddr)
- {
- 	unsigned long addr = (unsigned long) xaddr;
- 	unsigned long result, base_and_type;
-@@ -374,7 +374,7 @@ __EXTERN_INLINE void cia_iowrite8(u8 b, void __iomem *xaddr)
- 	*(vuip) ((addr << 5) + base_and_type) = w;
- }
- 
--__EXTERN_INLINE unsigned int cia_ioread16(void __iomem *xaddr)
-+__EXTERN_INLINE unsigned int cia_ioread16(const void __iomem *xaddr)
- {
- 	unsigned long addr = (unsigned long) xaddr;
- 	unsigned long result, base_and_type;
-@@ -404,7 +404,7 @@ __EXTERN_INLINE void cia_iowrite16(u16 b, void __iomem *xaddr)
- 	*(vuip) ((addr << 5) + base_and_type) = w;
- }
- 
--__EXTERN_INLINE unsigned int cia_ioread32(void __iomem *xaddr)
-+__EXTERN_INLINE unsigned int cia_ioread32(const void __iomem *xaddr)
- {
- 	unsigned long addr = (unsigned long) xaddr;
- 	if (addr < CIA_DENSE_MEM)
-diff --git a/arch/alpha/include/asm/core_lca.h b/arch/alpha/include/asm/core_lca.h
-index 84d5e5b84f4f..ec86314418cb 100644
---- a/arch/alpha/include/asm/core_lca.h
-+++ b/arch/alpha/include/asm/core_lca.h
-@@ -230,7 +230,7 @@ union el_lca {
- 	} while (0)
- 
- 
--__EXTERN_INLINE unsigned int lca_ioread8(void __iomem *xaddr)
-+__EXTERN_INLINE unsigned int lca_ioread8(const void __iomem *xaddr)
- {
- 	unsigned long addr = (unsigned long) xaddr;
- 	unsigned long result, base_and_type;
-@@ -266,7 +266,7 @@ __EXTERN_INLINE void lca_iowrite8(u8 b, void __iomem *xaddr)
- 	*(vuip) ((addr << 5) + base_and_type) = w;
- }
- 
--__EXTERN_INLINE unsigned int lca_ioread16(void __iomem *xaddr)
-+__EXTERN_INLINE unsigned int lca_ioread16(const void __iomem *xaddr)
- {
- 	unsigned long addr = (unsigned long) xaddr;
- 	unsigned long result, base_and_type;
-@@ -302,7 +302,7 @@ __EXTERN_INLINE void lca_iowrite16(u16 b, void __iomem *xaddr)
- 	*(vuip) ((addr << 5) + base_and_type) = w;
- }
- 
--__EXTERN_INLINE unsigned int lca_ioread32(void __iomem *xaddr)
-+__EXTERN_INLINE unsigned int lca_ioread32(const void __iomem *xaddr)
- {
- 	unsigned long addr = (unsigned long) xaddr;
- 	if (addr < LCA_DENSE_MEM)
-diff --git a/arch/alpha/include/asm/core_marvel.h b/arch/alpha/include/asm/core_marvel.h
-index cc6fd92d5fa9..b266e02e284b 100644
---- a/arch/alpha/include/asm/core_marvel.h
-+++ b/arch/alpha/include/asm/core_marvel.h
-@@ -332,10 +332,10 @@ struct io7 {
- #define vucp	volatile unsigned char __force *
- #define vusp	volatile unsigned short __force *
- 
--extern unsigned int marvel_ioread8(void __iomem *);
-+extern unsigned int marvel_ioread8(const void __iomem *);
- extern void marvel_iowrite8(u8 b, void __iomem *);
- 
--__EXTERN_INLINE unsigned int marvel_ioread16(void __iomem *addr)
-+__EXTERN_INLINE unsigned int marvel_ioread16(const void __iomem *addr)
- {
- 	return __kernel_ldwu(*(vusp)addr);
- }
-diff --git a/arch/alpha/include/asm/core_mcpcia.h b/arch/alpha/include/asm/core_mcpcia.h
-index b30dc128210d..cb24d1bd6141 100644
---- a/arch/alpha/include/asm/core_mcpcia.h
-+++ b/arch/alpha/include/asm/core_mcpcia.h
-@@ -267,7 +267,7 @@ extern inline int __mcpcia_is_mmio(unsigned long addr)
- 	return (addr & 0x80000000UL) == 0;
- }
- 
--__EXTERN_INLINE unsigned int mcpcia_ioread8(void __iomem *xaddr)
-+__EXTERN_INLINE unsigned int mcpcia_ioread8(const void __iomem *xaddr)
- {
- 	unsigned long addr = (unsigned long)xaddr & MCPCIA_MEM_MASK;
- 	unsigned long hose = (unsigned long)xaddr & ~MCPCIA_MEM_MASK;
-@@ -291,7 +291,7 @@ __EXTERN_INLINE void mcpcia_iowrite8(u8 b, void __iomem *xaddr)
- 	*(vuip) ((addr << 5) + hose + 0x00) = w;
- }
- 
--__EXTERN_INLINE unsigned int mcpcia_ioread16(void __iomem *xaddr)
-+__EXTERN_INLINE unsigned int mcpcia_ioread16(const void __iomem *xaddr)
- {
- 	unsigned long addr = (unsigned long)xaddr & MCPCIA_MEM_MASK;
- 	unsigned long hose = (unsigned long)xaddr & ~MCPCIA_MEM_MASK;
-@@ -315,7 +315,7 @@ __EXTERN_INLINE void mcpcia_iowrite16(u16 b, void __iomem *xaddr)
- 	*(vuip) ((addr << 5) + hose + 0x08) = w;
- }
- 
--__EXTERN_INLINE unsigned int mcpcia_ioread32(void __iomem *xaddr)
-+__EXTERN_INLINE unsigned int mcpcia_ioread32(const void __iomem *xaddr)
- {
- 	unsigned long addr = (unsigned long)xaddr;
- 
-diff --git a/arch/alpha/include/asm/core_t2.h b/arch/alpha/include/asm/core_t2.h
-index e0b33d09e93a..12bb7addc789 100644
---- a/arch/alpha/include/asm/core_t2.h
-+++ b/arch/alpha/include/asm/core_t2.h
-@@ -572,7 +572,7 @@ __EXTERN_INLINE int t2_is_mmio(const volatile void __iomem *addr)
-    it doesn't make sense to merge the pio and mmio routines.  */
- 
- #define IOPORT(OS, NS)							\
--__EXTERN_INLINE unsigned int t2_ioread##NS(void __iomem *xaddr)		\
-+__EXTERN_INLINE unsigned int t2_ioread##NS(const void __iomem *xaddr)		\
- {									\
- 	if (t2_is_mmio(xaddr))						\
- 		return t2_read##OS(xaddr);				\
-diff --git a/arch/alpha/include/asm/io.h b/arch/alpha/include/asm/io.h
-index d1ed5a8133c5..cc12ec74175c 100644
---- a/arch/alpha/include/asm/io.h
-+++ b/arch/alpha/include/asm/io.h
-@@ -151,9 +151,9 @@ static inline void generic_##NAME(TYPE b, QUAL void __iomem *addr)	\
- 	alpha_mv.mv_##NAME(b, addr);					\
- }
- 
--REMAP1(unsigned int, ioread8, /**/)
--REMAP1(unsigned int, ioread16, /**/)
--REMAP1(unsigned int, ioread32, /**/)
-+REMAP1(unsigned int, ioread8, const)
-+REMAP1(unsigned int, ioread16, const)
-+REMAP1(unsigned int, ioread32, const)
- REMAP1(u8, readb, const volatile)
- REMAP1(u16, readw, const volatile)
- REMAP1(u32, readl, const volatile)
-@@ -308,14 +308,14 @@ static inline int __is_mmio(const volatile void __iomem *addr)
-  */
- 
- #if IO_CONCAT(__IO_PREFIX,trivial_io_bw)
--extern inline unsigned int ioread8(void __iomem *addr)
-+extern inline unsigned int ioread8(const void __iomem *addr)
- {
- 	unsigned int ret = IO_CONCAT(__IO_PREFIX,ioread8)(addr);
- 	mb();
- 	return ret;
- }
- 
--extern inline unsigned int ioread16(void __iomem *addr)
-+extern inline unsigned int ioread16(const void __iomem *addr)
- {
- 	unsigned int ret = IO_CONCAT(__IO_PREFIX,ioread16)(addr);
- 	mb();
-@@ -356,7 +356,7 @@ extern inline void outw(u16 b, unsigned long port)
- #endif
- 
- #if IO_CONCAT(__IO_PREFIX,trivial_io_lq)
--extern inline unsigned int ioread32(void __iomem *addr)
-+extern inline unsigned int ioread32(const void __iomem *addr)
- {
- 	unsigned int ret = IO_CONCAT(__IO_PREFIX,ioread32)(addr);
- 	mb();
-diff --git a/arch/alpha/include/asm/io_trivial.h b/arch/alpha/include/asm/io_trivial.h
-index ba3d8f0cfe0c..a1a29cbe02fa 100644
---- a/arch/alpha/include/asm/io_trivial.h
-+++ b/arch/alpha/include/asm/io_trivial.h
-@@ -7,15 +7,15 @@
- 
- #if IO_CONCAT(__IO_PREFIX,trivial_io_bw)
- __EXTERN_INLINE unsigned int
--IO_CONCAT(__IO_PREFIX,ioread8)(void __iomem *a)
-+IO_CONCAT(__IO_PREFIX,ioread8)(const void __iomem *a)
- {
--	return __kernel_ldbu(*(volatile u8 __force *)a);
-+	return __kernel_ldbu(*(const volatile u8 __force *)a);
- }
- 
- __EXTERN_INLINE unsigned int
--IO_CONCAT(__IO_PREFIX,ioread16)(void __iomem *a)
-+IO_CONCAT(__IO_PREFIX,ioread16)(const void __iomem *a)
- {
--	return __kernel_ldwu(*(volatile u16 __force *)a);
-+	return __kernel_ldwu(*(const volatile u16 __force *)a);
- }
- 
- __EXTERN_INLINE void
-@@ -33,9 +33,9 @@ IO_CONCAT(__IO_PREFIX,iowrite16)(u16 b, void __iomem *a)
- 
- #if IO_CONCAT(__IO_PREFIX,trivial_io_lq)
- __EXTERN_INLINE unsigned int
--IO_CONCAT(__IO_PREFIX,ioread32)(void __iomem *a)
-+IO_CONCAT(__IO_PREFIX,ioread32)(const void __iomem *a)
- {
--	return *(volatile u32 __force *)a;
-+	return *(const volatile u32 __force *)a;
- }
- 
- __EXTERN_INLINE void
-@@ -73,14 +73,14 @@ IO_CONCAT(__IO_PREFIX,writew)(u16 b, volatile void __iomem *a)
- __EXTERN_INLINE u8
- IO_CONCAT(__IO_PREFIX,readb)(const volatile void __iomem *a)
- {
--	void __iomem *addr = (void __iomem *)a;
-+	const void __iomem *addr = (const void __iomem *)a;
- 	return IO_CONCAT(__IO_PREFIX,ioread8)(addr);
- }
- 
- __EXTERN_INLINE u16
- IO_CONCAT(__IO_PREFIX,readw)(const volatile void __iomem *a)
- {
--	void __iomem *addr = (void __iomem *)a;
-+	const void __iomem *addr = (const void __iomem *)a;
- 	return IO_CONCAT(__IO_PREFIX,ioread16)(addr);
- }
- 
-diff --git a/arch/alpha/include/asm/jensen.h b/arch/alpha/include/asm/jensen.h
-index 436dc905b6ad..916895155a88 100644
---- a/arch/alpha/include/asm/jensen.h
-+++ b/arch/alpha/include/asm/jensen.h
-@@ -305,7 +305,7 @@ __EXTERN_INLINE int jensen_is_mmio(const volatile void __iomem *addr)
-    that it doesn't make sense to merge them.  */
- 
- #define IOPORT(OS, NS)							\
--__EXTERN_INLINE unsigned int jensen_ioread##NS(void __iomem *xaddr)	\
-+__EXTERN_INLINE unsigned int jensen_ioread##NS(const void __iomem *xaddr)	\
- {									\
- 	if (jensen_is_mmio(xaddr))					\
- 		return jensen_read##OS(xaddr - 0x100000000ul);		\
-diff --git a/arch/alpha/include/asm/machvec.h b/arch/alpha/include/asm/machvec.h
-index a6b73c6d10ee..a4e96e2bec74 100644
---- a/arch/alpha/include/asm/machvec.h
-+++ b/arch/alpha/include/asm/machvec.h
-@@ -46,9 +46,9 @@ struct alpha_machine_vector
- 	void (*mv_pci_tbi)(struct pci_controller *hose,
- 			   dma_addr_t start, dma_addr_t end);
- 
--	unsigned int (*mv_ioread8)(void __iomem *);
--	unsigned int (*mv_ioread16)(void __iomem *);
--	unsigned int (*mv_ioread32)(void __iomem *);
-+	unsigned int (*mv_ioread8)(const void __iomem *);
-+	unsigned int (*mv_ioread16)(const void __iomem *);
-+	unsigned int (*mv_ioread32)(const void __iomem *);
- 
- 	void (*mv_iowrite8)(u8, void __iomem *);
- 	void (*mv_iowrite16)(u16, void __iomem *);
-diff --git a/arch/alpha/kernel/core_marvel.c b/arch/alpha/kernel/core_marvel.c
-index 1db9d0eb2922..37514422f586 100644
---- a/arch/alpha/kernel/core_marvel.c
-+++ b/arch/alpha/kernel/core_marvel.c
-@@ -807,7 +807,7 @@ void __iomem *marvel_ioportmap (unsigned long addr)
- }
- 
- unsigned int
--marvel_ioread8(void __iomem *xaddr)
-+marvel_ioread8(const void __iomem *xaddr)
- {
- 	unsigned long addr = (unsigned long) xaddr;
- 	if (__marvel_is_port_kbd(addr))
-diff --git a/arch/alpha/kernel/io.c b/arch/alpha/kernel/io.c
-index c025a3e5e357..e49918b91fee 100644
---- a/arch/alpha/kernel/io.c
-+++ b/arch/alpha/kernel/io.c
-@@ -14,21 +14,21 @@
-    "generic", which bumps through the machine vector.  */
- 
- unsigned int
--ioread8(void __iomem *addr)
-+ioread8(const void __iomem *addr)
- {
- 	unsigned int ret = IO_CONCAT(__IO_PREFIX,ioread8)(addr);
- 	mb();
- 	return ret;
- }
- 
--unsigned int ioread16(void __iomem *addr)
-+unsigned int ioread16(const void __iomem *addr)
- {
- 	unsigned int ret = IO_CONCAT(__IO_PREFIX,ioread16)(addr);
- 	mb();
- 	return ret;
- }
- 
--unsigned int ioread32(void __iomem *addr)
-+unsigned int ioread32(const void __iomem *addr)
- {
- 	unsigned int ret = IO_CONCAT(__IO_PREFIX,ioread32)(addr);
- 	mb();
+ obj-y := base.o fs.o
+-obj-$(CONFIG_GCOV_FORMAT_3_4) += gcc_base.o gcc_3_4.o
+-obj-$(CONFIG_GCOV_FORMAT_4_7) += gcc_base.o gcc_4_7.o
++obj-$(CONFIG_CC_IS_GCC) += gcc_base.o gcc_4_7.o
+ obj-$(CONFIG_CC_IS_CLANG) += clang.o
+diff --git a/kernel/gcov/gcc_3_4.c b/kernel/gcov/gcc_3_4.c
+deleted file mode 100644
+index 801ee4b0b969..000000000000
+--- a/kernel/gcov/gcc_3_4.c
++++ /dev/null
+@@ -1,573 +0,0 @@
+-// SPDX-License-Identifier: GPL-2.0
+-/*
+- *  This code provides functions to handle gcc's profiling data format
+- *  introduced with gcc 3.4. Future versions of gcc may change the gcov
+- *  format (as happened before), so all format-specific information needs
+- *  to be kept modular and easily exchangeable.
+- *
+- *  This file is based on gcc-internal definitions. Functions and data
+- *  structures are defined to be compatible with gcc counterparts.
+- *  For a better understanding, refer to gcc source: gcc/gcov-io.h.
+- *
+- *    Copyright IBM Corp. 2009
+- *    Author(s): Peter Oberparleiter <oberpar@linux.vnet.ibm.com>
+- *
+- *    Uses gcc-internal data definitions.
+- */
+-
+-#include <linux/errno.h>
+-#include <linux/slab.h>
+-#include <linux/string.h>
+-#include <linux/seq_file.h>
+-#include <linux/vmalloc.h>
+-#include "gcov.h"
+-
+-#define GCOV_COUNTERS		5
+-
+-static struct gcov_info *gcov_info_head;
+-
+-/**
+- * struct gcov_fn_info - profiling meta data per function
+- * @ident: object file-unique function identifier
+- * @checksum: function checksum
+- * @n_ctrs: number of values per counter type belonging to this function
+- *
+- * This data is generated by gcc during compilation and doesn't change
+- * at run-time.
+- */
+-struct gcov_fn_info {
+-	unsigned int ident;
+-	unsigned int checksum;
+-	unsigned int n_ctrs[0];
+-};
+-
+-/**
+- * struct gcov_ctr_info - profiling data per counter type
+- * @num: number of counter values for this type
+- * @values: array of counter values for this type
+- * @merge: merge function for counter values of this type (unused)
+- *
+- * This data is generated by gcc during compilation and doesn't change
+- * at run-time with the exception of the values array.
+- */
+-struct gcov_ctr_info {
+-	unsigned int	num;
+-	gcov_type	*values;
+-	void		(*merge)(gcov_type *, unsigned int);
+-};
+-
+-/**
+- * struct gcov_info - profiling data per object file
+- * @version: gcov version magic indicating the gcc version used for compilation
+- * @next: list head for a singly-linked list
+- * @stamp: time stamp
+- * @filename: name of the associated gcov data file
+- * @n_functions: number of instrumented functions
+- * @functions: function data
+- * @ctr_mask: mask specifying which counter types are active
+- * @counts: counter data per counter type
+- *
+- * This data is generated by gcc during compilation and doesn't change
+- * at run-time with the exception of the next pointer.
+- */
+-struct gcov_info {
+-	unsigned int			version;
+-	struct gcov_info		*next;
+-	unsigned int			stamp;
+-	const char			*filename;
+-	unsigned int			n_functions;
+-	const struct gcov_fn_info	*functions;
+-	unsigned int			ctr_mask;
+-	struct gcov_ctr_info		counts[0];
+-};
+-
+-/**
+- * gcov_info_filename - return info filename
+- * @info: profiling data set
+- */
+-const char *gcov_info_filename(struct gcov_info *info)
+-{
+-	return info->filename;
+-}
+-
+-/**
+- * gcov_info_version - return info version
+- * @info: profiling data set
+- */
+-unsigned int gcov_info_version(struct gcov_info *info)
+-{
+-	return info->version;
+-}
+-
+-/**
+- * gcov_info_next - return next profiling data set
+- * @info: profiling data set
+- *
+- * Returns next gcov_info following @info or first gcov_info in the chain if
+- * @info is %NULL.
+- */
+-struct gcov_info *gcov_info_next(struct gcov_info *info)
+-{
+-	if (!info)
+-		return gcov_info_head;
+-
+-	return info->next;
+-}
+-
+-/**
+- * gcov_info_link - link/add profiling data set to the list
+- * @info: profiling data set
+- */
+-void gcov_info_link(struct gcov_info *info)
+-{
+-	info->next = gcov_info_head;
+-	gcov_info_head = info;
+-}
+-
+-/**
+- * gcov_info_unlink - unlink/remove profiling data set from the list
+- * @prev: previous profiling data set
+- * @info: profiling data set
+- */
+-void gcov_info_unlink(struct gcov_info *prev, struct gcov_info *info)
+-{
+-	if (prev)
+-		prev->next = info->next;
+-	else
+-		gcov_info_head = info->next;
+-}
+-
+-/**
+- * gcov_info_within_module - check if a profiling data set belongs to a module
+- * @info: profiling data set
+- * @mod: module
+- *
+- * Returns true if profiling data belongs module, false otherwise.
+- */
+-bool gcov_info_within_module(struct gcov_info *info, struct module *mod)
+-{
+-	return within_module((unsigned long)info, mod);
+-}
+-
+-/* Symbolic links to be created for each profiling data file. */
+-const struct gcov_link gcov_link[] = {
+-	{ OBJ_TREE, "gcno" },	/* Link to .gcno file in $(objtree). */
+-	{ 0, NULL},
+-};
+-
+-/*
+- * Determine whether a counter is active. Based on gcc magic. Doesn't change
+- * at run-time.
+- */
+-static int counter_active(struct gcov_info *info, unsigned int type)
+-{
+-	return (1 << type) & info->ctr_mask;
+-}
+-
+-/* Determine number of active counters. Based on gcc magic. */
+-static unsigned int num_counter_active(struct gcov_info *info)
+-{
+-	unsigned int i;
+-	unsigned int result = 0;
+-
+-	for (i = 0; i < GCOV_COUNTERS; i++) {
+-		if (counter_active(info, i))
+-			result++;
+-	}
+-	return result;
+-}
+-
+-/**
+- * gcov_info_reset - reset profiling data to zero
+- * @info: profiling data set
+- */
+-void gcov_info_reset(struct gcov_info *info)
+-{
+-	unsigned int active = num_counter_active(info);
+-	unsigned int i;
+-
+-	for (i = 0; i < active; i++) {
+-		memset(info->counts[i].values, 0,
+-		       info->counts[i].num * sizeof(gcov_type));
+-	}
+-}
+-
+-/**
+- * gcov_info_is_compatible - check if profiling data can be added
+- * @info1: first profiling data set
+- * @info2: second profiling data set
+- *
+- * Returns non-zero if profiling data can be added, zero otherwise.
+- */
+-int gcov_info_is_compatible(struct gcov_info *info1, struct gcov_info *info2)
+-{
+-	return (info1->stamp == info2->stamp);
+-}
+-
+-/**
+- * gcov_info_add - add up profiling data
+- * @dest: profiling data set to which data is added
+- * @source: profiling data set which is added
+- *
+- * Adds profiling counts of @source to @dest.
+- */
+-void gcov_info_add(struct gcov_info *dest, struct gcov_info *source)
+-{
+-	unsigned int i;
+-	unsigned int j;
+-
+-	for (i = 0; i < num_counter_active(dest); i++) {
+-		for (j = 0; j < dest->counts[i].num; j++) {
+-			dest->counts[i].values[j] +=
+-				source->counts[i].values[j];
+-		}
+-	}
+-}
+-
+-/* Get size of function info entry. Based on gcc magic. */
+-static size_t get_fn_size(struct gcov_info *info)
+-{
+-	size_t size;
+-
+-	size = sizeof(struct gcov_fn_info) + num_counter_active(info) *
+-	       sizeof(unsigned int);
+-	if (__alignof__(struct gcov_fn_info) > sizeof(unsigned int))
+-		size = ALIGN(size, __alignof__(struct gcov_fn_info));
+-	return size;
+-}
+-
+-/* Get address of function info entry. Based on gcc magic. */
+-static struct gcov_fn_info *get_fn_info(struct gcov_info *info, unsigned int fn)
+-{
+-	return (struct gcov_fn_info *)
+-		((char *) info->functions + fn * get_fn_size(info));
+-}
+-
+-/**
+- * gcov_info_dup - duplicate profiling data set
+- * @info: profiling data set to duplicate
+- *
+- * Return newly allocated duplicate on success, %NULL on error.
+- */
+-struct gcov_info *gcov_info_dup(struct gcov_info *info)
+-{
+-	struct gcov_info *dup;
+-	unsigned int i;
+-	unsigned int active;
+-
+-	/* Duplicate gcov_info. */
+-	active = num_counter_active(info);
+-	dup = kzalloc(struct_size(dup, counts, active), GFP_KERNEL);
+-	if (!dup)
+-		return NULL;
+-	dup->version		= info->version;
+-	dup->stamp		= info->stamp;
+-	dup->n_functions	= info->n_functions;
+-	dup->ctr_mask		= info->ctr_mask;
+-	/* Duplicate filename. */
+-	dup->filename		= kstrdup(info->filename, GFP_KERNEL);
+-	if (!dup->filename)
+-		goto err_free;
+-	/* Duplicate table of functions. */
+-	dup->functions = kmemdup(info->functions, info->n_functions *
+-				 get_fn_size(info), GFP_KERNEL);
+-	if (!dup->functions)
+-		goto err_free;
+-	/* Duplicate counter arrays. */
+-	for (i = 0; i < active ; i++) {
+-		struct gcov_ctr_info *ctr = &info->counts[i];
+-		size_t size = ctr->num * sizeof(gcov_type);
+-
+-		dup->counts[i].num = ctr->num;
+-		dup->counts[i].merge = ctr->merge;
+-		dup->counts[i].values = vmalloc(size);
+-		if (!dup->counts[i].values)
+-			goto err_free;
+-		memcpy(dup->counts[i].values, ctr->values, size);
+-	}
+-	return dup;
+-
+-err_free:
+-	gcov_info_free(dup);
+-	return NULL;
+-}
+-
+-/**
+- * gcov_info_free - release memory for profiling data set duplicate
+- * @info: profiling data set duplicate to free
+- */
+-void gcov_info_free(struct gcov_info *info)
+-{
+-	unsigned int active = num_counter_active(info);
+-	unsigned int i;
+-
+-	for (i = 0; i < active ; i++)
+-		vfree(info->counts[i].values);
+-	kfree(info->functions);
+-	kfree(info->filename);
+-	kfree(info);
+-}
+-
+-/**
+- * struct type_info - iterator helper array
+- * @ctr_type: counter type
+- * @offset: index of the first value of the current function for this type
+- *
+- * This array is needed to convert the in-memory data format into the in-file
+- * data format:
+- *
+- * In-memory:
+- *   for each counter type
+- *     for each function
+- *       values
+- *
+- * In-file:
+- *   for each function
+- *     for each counter type
+- *       values
+- *
+- * See gcc source gcc/gcov-io.h for more information on data organization.
+- */
+-struct type_info {
+-	int ctr_type;
+-	unsigned int offset;
+-};
+-
+-/**
+- * struct gcov_iterator - specifies current file position in logical records
+- * @info: associated profiling data
+- * @record: record type
+- * @function: function number
+- * @type: counter type
+- * @count: index into values array
+- * @num_types: number of counter types
+- * @type_info: helper array to get values-array offset for current function
+- */
+-struct gcov_iterator {
+-	struct gcov_info *info;
+-
+-	int record;
+-	unsigned int function;
+-	unsigned int type;
+-	unsigned int count;
+-
+-	int num_types;
+-	struct type_info type_info[0];
+-};
+-
+-static struct gcov_fn_info *get_func(struct gcov_iterator *iter)
+-{
+-	return get_fn_info(iter->info, iter->function);
+-}
+-
+-static struct type_info *get_type(struct gcov_iterator *iter)
+-{
+-	return &iter->type_info[iter->type];
+-}
+-
+-/**
+- * gcov_iter_new - allocate and initialize profiling data iterator
+- * @info: profiling data set to be iterated
+- *
+- * Return file iterator on success, %NULL otherwise.
+- */
+-struct gcov_iterator *gcov_iter_new(struct gcov_info *info)
+-{
+-	struct gcov_iterator *iter;
+-
+-	iter = kzalloc(struct_size(iter, type_info, num_counter_active(info)),
+-		       GFP_KERNEL);
+-	if (iter)
+-		iter->info = info;
+-
+-	return iter;
+-}
+-
+-/**
+- * gcov_iter_free - release memory for iterator
+- * @iter: file iterator to free
+- */
+-void gcov_iter_free(struct gcov_iterator *iter)
+-{
+-	kfree(iter);
+-}
+-
+-/**
+- * gcov_iter_get_info - return profiling data set for given file iterator
+- * @iter: file iterator
+- */
+-struct gcov_info *gcov_iter_get_info(struct gcov_iterator *iter)
+-{
+-	return iter->info;
+-}
+-
+-/**
+- * gcov_iter_start - reset file iterator to starting position
+- * @iter: file iterator
+- */
+-void gcov_iter_start(struct gcov_iterator *iter)
+-{
+-	int i;
+-
+-	iter->record = 0;
+-	iter->function = 0;
+-	iter->type = 0;
+-	iter->count = 0;
+-	iter->num_types = 0;
+-	for (i = 0; i < GCOV_COUNTERS; i++) {
+-		if (counter_active(iter->info, i)) {
+-			iter->type_info[iter->num_types].ctr_type = i;
+-			iter->type_info[iter->num_types++].offset = 0;
+-		}
+-	}
+-}
+-
+-/* Mapping of logical record number to actual file content. */
+-#define RECORD_FILE_MAGIC	0
+-#define RECORD_GCOV_VERSION	1
+-#define RECORD_TIME_STAMP	2
+-#define RECORD_FUNCTION_TAG	3
+-#define RECORD_FUNCTON_TAG_LEN	4
+-#define RECORD_FUNCTION_IDENT	5
+-#define RECORD_FUNCTION_CHECK	6
+-#define RECORD_COUNT_TAG	7
+-#define RECORD_COUNT_LEN	8
+-#define RECORD_COUNT		9
+-
+-/**
+- * gcov_iter_next - advance file iterator to next logical record
+- * @iter: file iterator
+- *
+- * Return zero if new position is valid, non-zero if iterator has reached end.
+- */
+-int gcov_iter_next(struct gcov_iterator *iter)
+-{
+-	switch (iter->record) {
+-	case RECORD_FILE_MAGIC:
+-	case RECORD_GCOV_VERSION:
+-	case RECORD_FUNCTION_TAG:
+-	case RECORD_FUNCTON_TAG_LEN:
+-	case RECORD_FUNCTION_IDENT:
+-	case RECORD_COUNT_TAG:
+-		/* Advance to next record */
+-		iter->record++;
+-		break;
+-	case RECORD_COUNT:
+-		/* Advance to next count */
+-		iter->count++;
+-		/* fall through */
+-	case RECORD_COUNT_LEN:
+-		if (iter->count < get_func(iter)->n_ctrs[iter->type]) {
+-			iter->record = 9;
+-			break;
+-		}
+-		/* Advance to next counter type */
+-		get_type(iter)->offset += iter->count;
+-		iter->count = 0;
+-		iter->type++;
+-		/* fall through */
+-	case RECORD_FUNCTION_CHECK:
+-		if (iter->type < iter->num_types) {
+-			iter->record = 7;
+-			break;
+-		}
+-		/* Advance to next function */
+-		iter->type = 0;
+-		iter->function++;
+-		/* fall through */
+-	case RECORD_TIME_STAMP:
+-		if (iter->function < iter->info->n_functions)
+-			iter->record = 3;
+-		else
+-			iter->record = -1;
+-		break;
+-	}
+-	/* Check for EOF. */
+-	if (iter->record == -1)
+-		return -EINVAL;
+-	else
+-		return 0;
+-}
+-
+-/**
+- * seq_write_gcov_u32 - write 32 bit number in gcov format to seq_file
+- * @seq: seq_file handle
+- * @v: value to be stored
+- *
+- * Number format defined by gcc: numbers are recorded in the 32 bit
+- * unsigned binary form of the endianness of the machine generating the
+- * file.
+- */
+-static int seq_write_gcov_u32(struct seq_file *seq, u32 v)
+-{
+-	return seq_write(seq, &v, sizeof(v));
+-}
+-
+-/**
+- * seq_write_gcov_u64 - write 64 bit number in gcov format to seq_file
+- * @seq: seq_file handle
+- * @v: value to be stored
+- *
+- * Number format defined by gcc: numbers are recorded in the 32 bit
+- * unsigned binary form of the endianness of the machine generating the
+- * file. 64 bit numbers are stored as two 32 bit numbers, the low part
+- * first.
+- */
+-static int seq_write_gcov_u64(struct seq_file *seq, u64 v)
+-{
+-	u32 data[2];
+-
+-	data[0] = (v & 0xffffffffUL);
+-	data[1] = (v >> 32);
+-	return seq_write(seq, data, sizeof(data));
+-}
+-
+-/**
+- * gcov_iter_write - write data for current pos to seq_file
+- * @iter: file iterator
+- * @seq: seq_file handle
+- *
+- * Return zero on success, non-zero otherwise.
+- */
+-int gcov_iter_write(struct gcov_iterator *iter, struct seq_file *seq)
+-{
+-	int rc = -EINVAL;
+-
+-	switch (iter->record) {
+-	case RECORD_FILE_MAGIC:
+-		rc = seq_write_gcov_u32(seq, GCOV_DATA_MAGIC);
+-		break;
+-	case RECORD_GCOV_VERSION:
+-		rc = seq_write_gcov_u32(seq, iter->info->version);
+-		break;
+-	case RECORD_TIME_STAMP:
+-		rc = seq_write_gcov_u32(seq, iter->info->stamp);
+-		break;
+-	case RECORD_FUNCTION_TAG:
+-		rc = seq_write_gcov_u32(seq, GCOV_TAG_FUNCTION);
+-		break;
+-	case RECORD_FUNCTON_TAG_LEN:
+-		rc = seq_write_gcov_u32(seq, 2);
+-		break;
+-	case RECORD_FUNCTION_IDENT:
+-		rc = seq_write_gcov_u32(seq, get_func(iter)->ident);
+-		break;
+-	case RECORD_FUNCTION_CHECK:
+-		rc = seq_write_gcov_u32(seq, get_func(iter)->checksum);
+-		break;
+-	case RECORD_COUNT_TAG:
+-		rc = seq_write_gcov_u32(seq,
+-			GCOV_TAG_FOR_COUNTER(get_type(iter)->ctr_type));
+-		break;
+-	case RECORD_COUNT_LEN:
+-		rc = seq_write_gcov_u32(seq,
+-				get_func(iter)->n_ctrs[iter->type] * 2);
+-		break;
+-	case RECORD_COUNT:
+-		rc = seq_write_gcov_u64(seq,
+-			iter->info->counts[iter->type].
+-				values[iter->count + get_type(iter)->offset]);
+-		break;
+-	}
+-	return rc;
+-}
 -- 
-2.7.4
+2.25.0.341.g760bfbb309-goog
