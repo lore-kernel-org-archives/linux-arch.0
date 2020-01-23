@@ -1,45 +1,29 @@
-From: Waiman Long <longman@redhat.com>
-Subject: Re: [PATCH v9 4/5] locking/qspinlock: Introduce starvation avoidance
- into CNA
-Date: Thu, 23 Jan 2020 15:39:00 -0500
-Message-ID: <5f865b62-4867-2c7b-715a-0605759e647f@redhat.com>
-References: <20200115035920.54451-1-alex.kogan@oracle.com>
- <20200115035920.54451-5-alex.kogan@oracle.com>
- <f5e31716-d687-f64c-0fc5-f1c9b539c4ff@redhat.com>
+From: Dave Hansen <dave.hansen@intel.com>
+Subject: Re: [PATCH 0/5] x86: finish the MPX removal process
+Date: Thu, 23 Jan 2020 13:23:35 -0800
+Message-ID: <636d5f4b-c47f-77f6-067f-a6b342db5650@intel.com>
+References: <20200123190456.8E05ADE6@viggo.jf.intel.com>
+ <CAHk-=wgLR5JnaBgCtg0-AAxtdN3=4=LMp6-0212608=vbmCAxg@mail.gmail.com>
+ <20200123202600.GG10328@zn.tnic>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
+Content-Transfer-Encoding: 8bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <f5e31716-d687-f64c-0fc5-f1c9b539c4ff@redhat.com>
+In-Reply-To: <20200123202600.GG10328@zn.tnic>
 Content-Language: en-US
 Sender: linux-kernel-owner@vger.kernel.org
-To: Alex Kogan <alex.kogan@oracle.com>, linux@armlinux.org.uk, peterz@infradead.org, mingo@redhat.com, will.deacon@arm.com, arnd@arndb.de, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, bp@alien8.de, hpa@zytor.com, x86@kernel.org, guohanjun@huawei.com, jglauber@marvell.com
-Cc: steven.sistare@oracle.com, daniel.m.jordan@oracle.com, dave.dice@oracle.com
+To: Borislav Petkov <bp@alien8.de>, Linus Torvalds <torvalds@linux-foundation.org>, Dave Hansen <dave.hansen@linux.intel.com>
+Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, Andrew Lutomirski <luto@kernel.org>, the arch/x86 maintainers <x86@kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Jeff Dike <jdike@addtoit.com>, Richard Weinberger <richard@nod.at>, Anton Ivanov <anton.ivanov@cambridgegreys.com>, Guan Xuetao <gxt@pku.edu.cn>
 List-Id: linux-arch.vger.kernel.org
 
-On 1/23/20 2:55 PM, Waiman Long wrote:
-> Playing with lock event counts, I would like you to change the meaning
-> intra_count parameter that you are tracking. Instead of tracking the
-> number of times a lock is passed to a waiter of the same node
-> consecutively, I would like you to track the number of times the head
-> waiter in the secondary queue has given up its chance to acquire the
-> lock because a later waiter has jumped the queue and acquire the lock
-> before it. This value determines the worst case latency that a secondary
-> queue waiter can experience. So
+On 1/23/20 12:26 PM, Borislav Petkov wrote:
+> On Thu, Jan 23, 2020 at 11:26:38AM -0800, Linus Torvalds wrote:
+>> On Thu, Jan 23, 2020 at 11:23 AM Dave Hansen
+>> <dave.hansen@linux.intel.com> wrote:
+>>> I'd _rather_ this go in via the x86 tree, but I'm not picky.
+> Any particular reason why?
 
-Well, that is not strictly true as a a waiter in the middle of the
-secondary queue can go back and fro between the queues for a number of
-times. Of course, if we can ensure that when a FLUSH_SECONDARY_QUEUE is
-issued, those waiters that were in the secondary queue won't be put back
-into the secondary queue again. The parameter will then really determine
-the worst case latency.
+I'm confident I can send patches to the x86 maintainers and not make
+them too angry.  Sending pull requests to Linus, not so much. :)
 
-One way to do it is to store the tail of the secondary queue into the
-CNA node and passed it down the queue until it matches the current
-encoded tail. That will require changing both numa_node and intra_count
-into u16 to squeeze out space for another u32.
-
-That will also make the code a bit easier to analyze.
-
-Cheers,
-Longman
+I'll just plan to send it to Linus directly.
