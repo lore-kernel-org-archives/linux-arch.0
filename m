@@ -1,70 +1,75 @@
-Return-Path: <SRS0=+omB=25=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:33272 "EHLO mail.kernel.org"
+Return-Path: <SRS0=XOKs=3M=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail.kernel.org ([198.145.29.99]:51508 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726390AbgAHUHK (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 8 Jan 2020 15:07:10 -0500
-From: Krzysztof Kozlowski <krzk@kernel.org>
-Subject: [PATCH v2 9/9] net: wireless: ath5k: Constify ioreadX() iomem argument (as in generic implementation)
-Date: Wed,  8 Jan 2020 21:05:28 +0100
-Message-Id: <20200108200528.4614-10-krzk@kernel.org>
-In-Reply-To: <20200108200528.4614-1-krzk@kernel.org>
-References: <20200108200528.4614-1-krzk@kernel.org>
+        id S1726232AbgAWPdy (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 23 Jan 2020 10:33:54 -0500
+From: Will Deacon <will@kernel.org>
+Subject: [PATCH v2 01/10] compiler/gcc: Emit build-time warning for GCC prior to version 4.8
+Date: Thu, 23 Jan 2020 15:33:32 +0000
+Message-ID: <20200123153341.19947-2-will@kernel.org>
+In-Reply-To: <20200123153341.19947-1-will@kernel.org>
+References: <20200123153341.19947-1-will@kernel.org>
+MIME-Version: 1.0
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Alexey Brodkin <abrodkin@synopsys.com>, Vineet Gupta <vgupta@synopsys.com>, "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>, Helge Deller <deller@gmx.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, Dave Airlie <airlied@redhat.com>, David Airlie <airlied@linux.ie>, Daniel Vetter <daniel@ffwll.ch>, Ben Skeggs <bskeggs@redhat.com>, Mauro Carvalho Chehab <mchehab@kernel.org>, Jiri Slaby <jirislaby@gmail.com>, Nick Kossifidis <mickflemm@gmail.com>, Luis Chamberlain <mcgrof@kernel.org>, Kalle Valo <kvalo@codeaurora.org>, "David S. Miller" <davem@davemloft.net>, Dave Jiang <dave.jiang@intel.com>, Jon Mason <jdmason@kudzu.us>, Allen Hubbe <allenbh@gmail.com>, "Michael S. Tsirkin" <mst@redhat.com>, Jason Wang <jasowang@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Krzysztof Kozlowski <krzk@kernel.org>, Geert Uytterhoeven <geert+renesas@glider.be>, Thomas Gleixner <tglx@linutronix.de>, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-snps-arc@lists.infradead.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org, dri-devel@lists.freedesktop.org, nouveau@lists.freedesktop.org, linux-media@vger.kernel.org, linux-wireless@vger.kernel.org, netdev@vger.kernel.org, linux-ntb@googlegroups.com, virtualization@lists.linux-foundation.org, linux-arch@vger.kernel.org
+To: linux-kernel@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, kernel-team@android.com, Will Deacon <will@kernel.org>, Michael Ellerman <mpe@ellerman.id.au>, Peter Zijlstra <peterz@infradead.org>, Linus Torvalds <torvalds@linux-foundation.org>, Segher Boessenkool <segher@kernel.crashing.org>, Christian Borntraeger <borntraeger@de.ibm.com>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>, Arnd Bergmann <arnd@arndb.de>, Peter Oberparleiter <oberpar@linux.ibm.com>, Masahiro Yamada <masahiroy@kernel.org>, Nick Desaulniers <ndesaulniers@google.com>
+Message-ID: <20200123153332.O49p6S7tYZEChFXK2KmkvyJ_TsdQdQm49dj6qe8VVmo@z>
 
-The ioreadX() helpers have inconsistent interface.  On some architectures
-void *__iomem address argument is a pointer to const, on some not.
+Prior to version 4.8, GCC may miscompile READ_ONCE() by erroneously
+discarding the 'volatile' qualifier:
 
-Implementations of ioreadX() do not modify the memory under the address
-so they can be converted to a "const" version for const-safety and
-consistency among architectures.
+https://gcc.gnu.org/bugzilla/show_bug.cgi?id=58145
 
-Signed-off-by: Krzysztof Kozlowski <krzk@kernel.org>
+We've been working around this using some nasty hacks which make
+READ_ONCE() both horribly complicated and also prevent us from enforcing
+that it is only used on scalar types. Since GCC 4.8 is pretty old for
+kernel builds now, emit a warning if we detect it during the build.
+
+Suggested-by: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Peter Zijlstra <peterz@infradead.org>
+Cc: Michael Ellerman <mpe@ellerman.id.au>
+Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: Christian Borntraeger <borntraeger@de.ibm.com>
+Cc: Masahiro Yamada <masahiroy@kernel.org>
+Signed-off-by: Will Deacon <will@kernel.org>
 ---
- drivers/net/wireless/ath/ath5k/ahb.c | 10 +++++-----
- 1 file changed, 5 insertions(+), 5 deletions(-)
+ init/Kconfig            | 4 ++--
+ scripts/Kconfig.include | 6 ++++++
+ 2 files changed, 8 insertions(+), 2 deletions(-)
 
-diff --git a/drivers/net/wireless/ath/ath5k/ahb.c b/drivers/net/wireless/ath/ath5k/ahb.c
-index 2c9cec8b53d9..8bd01df369fb 100644
---- a/drivers/net/wireless/ath/ath5k/ahb.c
-+++ b/drivers/net/wireless/ath/ath5k/ahb.c
-@@ -138,18 +138,18 @@ static int ath_ahb_probe(struct platform_device *pdev)
+diff --git a/init/Kconfig b/init/Kconfig
+index a34064a031a5..bdc2f1b1667b 100644
+--- a/init/Kconfig
++++ b/init/Kconfig
+@@ -10,11 +10,11 @@ config DEFCONFIG_LIST
+ 	default "arch/$(ARCH)/defconfig"
  
- 	if (bcfg->devid >= AR5K_SREV_AR2315_R6) {
- 		/* Enable WMAC AHB arbitration */
--		reg = ioread32((void __iomem *) AR5K_AR2315_AHB_ARB_CTL);
-+		reg = ioread32((const void __iomem *) AR5K_AR2315_AHB_ARB_CTL);
- 		reg |= AR5K_AR2315_AHB_ARB_CTL_WLAN;
- 		iowrite32(reg, (void __iomem *) AR5K_AR2315_AHB_ARB_CTL);
+ config CC_IS_GCC
+-	def_bool $(success,$(CC) --version | head -n 1 | grep -q gcc)
++	def_bool $(cc-is-gcc)
  
- 		/* Enable global WMAC swapping */
--		reg = ioread32((void __iomem *) AR5K_AR2315_BYTESWAP);
-+		reg = ioread32((const void __iomem *) AR5K_AR2315_BYTESWAP);
- 		reg |= AR5K_AR2315_BYTESWAP_WMAC;
- 		iowrite32(reg, (void __iomem *) AR5K_AR2315_BYTESWAP);
- 	} else {
- 		/* Enable WMAC DMA access (assuming 5312 or 231x*/
- 		/* TODO: check other platforms */
--		reg = ioread32((void __iomem *) AR5K_AR5312_ENABLE);
-+		reg = ioread32((const void __iomem *) AR5K_AR5312_ENABLE);
- 		if (to_platform_device(ah->dev)->id == 0)
- 			reg |= AR5K_AR5312_ENABLE_WLAN0;
- 		else
-@@ -202,12 +202,12 @@ static int ath_ahb_remove(struct platform_device *pdev)
+ config GCC_VERSION
+ 	int
+-	default $(shell,$(srctree)/scripts/gcc-version.sh $(CC)) if CC_IS_GCC
++	default $(gcc-version) if CC_IS_GCC
+ 	default 0
  
- 	if (bcfg->devid >= AR5K_SREV_AR2315_R6) {
- 		/* Disable WMAC AHB arbitration */
--		reg = ioread32((void __iomem *) AR5K_AR2315_AHB_ARB_CTL);
-+		reg = ioread32((const void __iomem *) AR5K_AR2315_AHB_ARB_CTL);
- 		reg &= ~AR5K_AR2315_AHB_ARB_CTL_WLAN;
- 		iowrite32(reg, (void __iomem *) AR5K_AR2315_AHB_ARB_CTL);
- 	} else {
- 		/*Stop DMA access */
--		reg = ioread32((void __iomem *) AR5K_AR5312_ENABLE);
-+		reg = ioread32((const void __iomem *) AR5K_AR5312_ENABLE);
- 		if (to_platform_device(ah->dev)->id == 0)
- 			reg &= ~AR5K_AR5312_ENABLE_WLAN0;
- 		else
+ config CC_IS_CLANG
+diff --git a/scripts/Kconfig.include b/scripts/Kconfig.include
+index d4adfbe42690..4e645a798b56 100644
+--- a/scripts/Kconfig.include
++++ b/scripts/Kconfig.include
+@@ -40,3 +40,9 @@ $(error-if,$(success, $(LD) -v | grep -q gold), gold linker '$(LD)' not supporte
+ 
+ # gcc version including patch level
+ gcc-version := $(shell,$(srctree)/scripts/gcc-version.sh $(CC))
++
++# Return y if the compiler is GCC, n otherwise
++cc-is-gcc := $(success,$(CC) --version | head -n 1 | grep -q gcc)
++
++# Warn if the compiler is GCC prior to 4.8
++$(warning-if,$(if-success,[ $(gcc-version) -lt 40800 ],$(cc-is-gcc),n),"Your compiler is old and may miscompile the kernel due to https://gcc.gnu.org/bugzilla/show_bug.cgi?id=58145 - please upgrade it.")
 -- 
-2.17.1
+2.25.0.341.g760bfbb309-goog
