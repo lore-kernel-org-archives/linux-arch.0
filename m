@@ -1,74 +1,91 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH v9 3/5] locking/qspinlock: Introduce CNA into the slow
- path of qspinlock
-Date: Thu, 23 Jan 2020 16:29:18 +0100
-Message-ID: <20200123152918.GD14879@hirez.programming.kicks-ass.net>
-References: <20200115035920.54451-1-alex.kogan@oracle.com>
- <20200115035920.54451-4-alex.kogan@oracle.com>
- <d751a8ef-aae8-ca70-6a28-79dd8bee2324@redhat.com>
+From: Will Deacon <will@kernel.org>
+Subject: [PATCH v2 00/10] Rework READ_ONCE() to improve codegen
+Date: Thu, 23 Jan 2020 15:33:31 +0000
+Message-ID: <20200123153341.19947-1-will@kernel.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane-mx.org@lists.infradead.org>
-Content-Disposition: inline
-In-Reply-To: <d751a8ef-aae8-ca70-6a28-79dd8bee2324@redhat.com>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane-mx.org@lists.infradead.org
-To: Waiman Long <longman@redhat.com>
-Cc: linux-arch@vger.kernel.org, guohanjun@huawei.com, arnd@arndb.de, dave.dice@oracle.com, jglauber@marvell.com, x86@kernel.org, will.deacon@arm.com, linux@armlinux.org.uk, linux-kernel@vger.kernel.org, mingo@redhat.com, bp@alien8.de, hpa@zytor.com, Alex Kogan <alex.kogan@oracle.com>, steven.sistare@oracle.com, tglx@linutronix.de, daniel.m.jordan@oracle.com, linux-arm-kernel@lists.infradead.org
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: linux-kernel@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, kernel-team@android.com, Will Deacon <will@kernel.org>, Michael Ellerman <mpe@ellerman.id.au>, Peter Zijlstra <peterz@infradead.org>, Linus Torvalds <torvalds@linux-foundation.org>, Segher Boessenkool <segher@kernel.crashing.org>, Christian Borntraeger <borntraeger@de.ibm.com>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>, Arnd Bergmann <arnd@arndb.de>, Peter Oberparleiter <oberpar@linux.ibm.com>, Masahiro Yamada <masahiroy@kernel.org>, Nick Desaulniers <ndesaulniers@google.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, Jan 23, 2020 at 09:15:55AM -0500, Waiman Long wrote:
-> On 1/14/20 10:59 PM, Alex Kogan wrote:
-> > +static int __init cna_init_nodes(void)
-> > +{
-> > +	unsigned int cpu;
-> > +
-> > +	/*
-> > +	 * this will break on 32bit architectures, so we restrict
-> > +	 * the use of CNA to 64bit only (see arch/x86/Kconfig)
-> > +	 */
-> > +	BUILD_BUG_ON(sizeof(struct cna_node) > sizeof(struct qnode));
-> > +	/* we store an ecoded tail word in the node's @locked field */
-> > +	BUILD_BUG_ON(sizeof(u32) > sizeof(unsigned int));
-> > +
-> > +	for_each_possible_cpu(cpu)
-> > +		cna_init_nodes_per_cpu(cpu);
-> > +
-> > +	return 0;
-> > +}
-> > +early_initcall(cna_init_nodes);
-> > +
-> 
-> I just realized that you shouldn't call cna_init_nodes as an
-> early_initcall. Instead,
-> 
-> > +/*
-> > + * Switch to the NUMA-friendly slow path for spinlocks when we have
-> > + * multiple NUMA nodes in native environment, unless the user has
-> > + * overridden this default behavior by setting the numa_spinlock flag.
-> > + */
-> > +void __init cna_configure_spin_lock_slowpath(void)
-> > +{
-> > +	if ((numa_spinlock_flag == 1) ||
-> > +	    (numa_spinlock_flag == 0 && nr_node_ids > 1 &&
-> > +		    pv_ops.lock.queued_spin_lock_slowpath ==
-> > +			native_queued_spin_lock_slowpath)) {
-> > +		pv_ops.lock.queued_spin_lock_slowpath =
-> > +		    __cna_queued_spin_lock_slowpath;
-> > +
-> > +		pr_info("Enabling CNA spinlock\n");
-> > +	}
-> > +}
-> 
-> call it when it is sure that CNA spinlock is going to be used. At this
-> point, the system is still in UP mode and the slowpath will not be called.
+Hi folks,
 
-Indeed, let me go fix that!
+This is version two of the patches I previously posted as an RFC here:
+
+https://lore.kernel.org/lkml/20200110165636.28035-1-will@kernel.org
+
+Changes since then include:
+
+  * Adopted a less vomit-inducing series of macros for __unqual_scalar_typeof
+
+  * Cast to 'const' in READ_ONCE() to prevent assignment to the resulting
+    expression
+
+  * Only warn once at build-time if GCC prior to 4.8 is detected...
+
+  * ... and then raise the minimum GCC version to 4.8, with an error for
+    older versions of the compiler
+
+  * Remove some dead gcov code so that the resulting diffstat can distract
+    from those less vomit-inducing macros I mentioned earlier on
+
+Failing the build for older compilers is always a contentious topic, so
+I've done that as a separate couple of patches on the end in case we end
+up dropping or reverting them.
+
+Cheers,
+
+Will
+
+Cc: Michael Ellerman <mpe@ellerman.id.au>
+Cc: Peter Zijlstra <peterz@infradead.org>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Segher Boessenkool <segher@kernel.crashing.org>
+Cc: Christian Borntraeger <borntraeger@de.ibm.com>
+Cc: Luc Van Oostenryck <luc.vanoostenryck@gmail.com>
+Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: Peter Oberparleiter <oberpar@linux.ibm.com>
+Cc: Masahiro Yamada <masahiroy@kernel.org>
+Cc: Nick Desaulniers <ndesaulniers@google.com>
+
+--->8
+
+Will Deacon (10):
+  compiler/gcc: Emit build-time warning for GCC prior to version 4.8
+  netfilter: Avoid assigning 'const' pointer to non-const pointer
+  fault_inject: Don't rely on "return value" from WRITE_ONCE()
+  READ_ONCE: Simplify implementations of {READ,WRITE}_ONCE()
+  READ_ONCE: Enforce atomicity for {READ,WRITE}_ONCE() memory accesses
+  READ_ONCE: Drop pointer qualifiers when reading from scalar types
+  locking/barriers: Use '__unqual_scalar_typeof' for load-acquire macros
+  arm64: barrier: Use '__unqual_scalar_typeof' for acquire/release
+    macros
+  compiler/gcc: Raise minimum GCC version for kernel builds to 4.8
+  gcov: Remove old GCC 3.4 support
+
+ Documentation/process/changes.rst |   2 +-
+ arch/arm/crypto/Kconfig           |  12 +-
+ arch/arm64/include/asm/barrier.h  |  16 +-
+ crypto/Kconfig                    |   1 -
+ drivers/xen/time.c                |   2 +-
+ include/asm-generic/barrier.h     |  16 +-
+ include/linux/compiler-gcc.h      |   5 +-
+ include/linux/compiler.h          | 129 +++----
+ include/linux/compiler_types.h    |  21 ++
+ init/Kconfig                      |   5 +-
+ kernel/gcov/Kconfig               |  24 --
+ kernel/gcov/Makefile              |   3 +-
+ kernel/gcov/gcc_3_4.c             | 573 ------------------------------
+ lib/fault-inject.c                |   4 +-
+ net/netfilter/core.c              |   2 +-
+ net/xdp/xsk_queue.h               |   2 +-
+ scripts/Kconfig.include           |   3 +
+ scripts/gcc-plugins/Kconfig       |   4 +-
+ 18 files changed, 111 insertions(+), 713 deletions(-)
+ delete mode 100644 kernel/gcov/gcc_3_4.c
+
+-- 
+2.25.0.341.g760bfbb309-goog
