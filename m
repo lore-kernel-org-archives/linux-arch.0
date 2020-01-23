@@ -1,67 +1,65 @@
-From: Anshuman Khandual <anshuman.khandual@arm.com>
-Subject: Re: [PATCH 0/2] mm/thp: rework the pmd protect changing flow
-Date: Thu, 23 Jan 2020 13:54:32 +0530
-Message-ID: <50493410-c44c-7ef0-81f9-d4ce9a525c1f@arm.com>
-References: <20200123075514.15142-1-wxf.wang@hisilicon.com>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH v7 3/5] locking/qspinlock: Introduce CNA into the slow
+ path of qspinlock
+Date: Thu, 23 Jan 2020 10:00:38 +0100
+Message-ID: <20200123090038.GD14946@hirez.programming.kicks-ass.net>
+References: <20191125210709.10293-1-alex.kogan@oracle.com>
+ <20191125210709.10293-4-alex.kogan@oracle.com>
+ <20200121202919.GM11457@worktop.programming.kicks-ass.net>
+ <20200122095127.GC14946@hirez.programming.kicks-ass.net>
+ <20200122170456.GY14879@hirez.programming.kicks-ass.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
+Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:35958 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726061AbgAWIXN (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 23 Jan 2020 03:23:13 -0500
-In-Reply-To: <20200123075514.15142-1-wxf.wang@hisilicon.com>
-Content-Language: en-US
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Xuefeng Wang <wxf.wang@hisilicon.com>, catalin.marinas@arm.com, will@kernel.org, mark.rutland@arm.com, arnd@arndb.de, akpm@linux-foundation.org
-Cc: linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, chenzhou10@huawei.com
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane-mx.org@lists.infradead.org>
+Content-Disposition: inline
+In-Reply-To: <20200122170456.GY14879@hirez.programming.kicks-ass.net>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane-mx.org@lists.infradead.org
+To: Alex Kogan <alex.kogan@oracle.com>
+Cc: linux-arch@vger.kernel.org, guohanjun@huawei.com, arnd@arndb.de, dave.dice@oracle.com, jglauber@marvell.com, x86@kernel.org, will.deacon@arm.com, linux@armlinux.org.uk, steven.sistare@oracle.com, linux-kernel@vger.kernel.org, rahul.x.yadav@oracle.com, mingo@redhat.com, bp@alien8.de, hpa@zytor.com, longman@redhat.com, tglx@linutronix.de, daniel.m.jordan@oracle.com, linux-arm-kernel@lists.infradead.org
+List-Id: linux-arch.vger.kernel.org
 
+On Wed, Jan 22, 2020 at 06:04:56PM +0100, Peter Zijlstra wrote:
+> +/*
+> + * cna_splice_head -- splice the entire secondary queue onto the head of the
+> + * primary queue.
+> + */
+> +static cna_splice_head(struct qspinlock *lock, u32 val,
+> +		       struct mcs_spinlock *node, struct mcs_spinlock *next)
+> +{
+> +	struct mcs_spinlock *head_2nd, *tail_2nd;
+> +
+> +	tail_2nd = decode_tail(node->locked);
+> +	head_2nd = tail_2nd->next;
+> +
+> +	if (lock) {
 
+That should be: if (!next) {
 
-On 01/23/2020 01:25 PM, Xuefeng Wang wrote:
-> On KunPeng920 board. When changing permission of a large range region,
-> pmdp_invalidate() takes about 65% in profile (with hugepages) in JIT tool.
-> Kernel will flush tlb twice: first flush happens in pmdp_invalidate, second
-> flush happens at the end of change_protect_range(). The first pmdp_invalidate
-> is not necessary if the hardware support atomic pmdp changing. The atomic
-> changing pimd to zero can prevent the hardware from update asynchronous.
-> So reconstruct it and remove the first pmdp_invalidate. And the second tlb
-> flush can make sure the new tlb entry valid.
-> 
-> This patch series add a pmdp_modify_prot transaction abstraction firstly.
-> Then add pmdp_modify_prot_start() in arm64, which uses pmdp_huge_get_and_clear()
-> to atomically fetch the pmd and zero the entry.
+> +		u32 new = ((struct cna_node *)tail_2nd)->encoded_tail | _Q_LOCKED_VAL;
+> +		if (!atomic_try_cmpxchg_relaxed(&lock->val, &val, new))
+> +			return NULL;
+> +
+> +		/*
+> +		 * The moment we've linked the primary tail we can race with
+> +		 * the WRITE_ONCE(prev->next, node) store from new waiters.
+> +		 * That store must win.
+> +		 */
 
-There is a comment section in change_huge_pmd() which details how clearing
-the PMD entry there (in prot_numa case) can potentially race with another
-concurrent madvise(MADV_DONTNEED, ..) call. Here is the comment block for
-reference.
+And that still is a shit comment; I'll go try again.
 
-        /*
-         * In case prot_numa, we are under down_read(mmap_sem). It's critical
-         * to not clear pmd intermittently to avoid race with MADV_DONTNEED
-         * which is also under down_read(mmap_sem):
-         *
-         *      CPU0:                           CPU1:
-         *                              change_huge_pmd(prot_numa=1)
-         *                               pmdp_huge_get_and_clear_notify()
-         * madvise_dontneed()
-         *  zap_pmd_range()
-         *   pmd_trans_huge(*pmd) == 0 (without ptl)
-         *   // skip the pmd
-         *                               set_pmd_at();
-         *                               // pmd is re-established
-         *
-         * The race makes MADV_DONTNEED miss the huge pmd and don't clear it
-         * which may break userspace.
-         *
-         * pmdp_invalidate() is required to make sure we don't miss
-         * dirty/young flags set by hardware.
-         */
-
-By defining the new override with pmdp_huge_get_and_clear(), are not we
-now exposed to above race condition ?
-
-- Anshuman
+> +		cmpxchg_relaxed(&tail_2nd->next, head_2nd, next);
+> +	} else {
+> +		tail_2nd->next = next;
+> +	}
+> +
+> +	return head_2nd;
+> +}
