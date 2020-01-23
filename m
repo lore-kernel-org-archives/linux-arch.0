@@ -1,225 +1,109 @@
-Return-Path: <SRS0=zjVl=3K=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail-wm1-f74.google.com ([209.85.128.74]:41262 "EHLO
-        mail-wm1-f74.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1729212AbgAUQFf (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jan 2020 11:05:35 -0500
-Received: by mail-wm1-f74.google.com with SMTP id b9so800815wmj.6
-        for <linux-arch@vger.kernel.org>; Tue, 21 Jan 2020 08:05:33 -0800 (PST)
-Date: Tue, 21 Jan 2020 17:05:10 +0100
-In-Reply-To: <20200121160512.70887-1-elver@google.com>
-Message-ID: <20200121160512.70887-3-elver@google.com>
-Mime-Version: 1.0
-References: <20200121160512.70887-1-elver@google.com>
-Subject: [PATCH v2 3/5] asm-generic, kcsan: Add KCSAN instrumentation for bitops
-From: Marco Elver <elver@google.com>
+Return-Path: <SRS0=XOKs=3M=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail-pf1-f194.google.com ([209.85.210.194]:35137 "EHLO
+        mail-pf1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1728709AbgAWTIL (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 23 Jan 2020 14:08:11 -0500
+Received: by mail-pf1-f194.google.com with SMTP id i23so1978879pfo.2
+        for <linux-arch@vger.kernel.org>; Thu, 23 Jan 2020 11:08:11 -0800 (PST)
+MIME-Version: 1.0
+References: <20200123153341.19947-1-will@kernel.org> <20200123153341.19947-3-will@kernel.org>
+In-Reply-To: <20200123153341.19947-3-will@kernel.org>
+From: Nick Desaulniers <ndesaulniers@google.com>
+Date: Thu, 23 Jan 2020 11:07:59 -0800
+Message-ID: <CAKwvOdm2snorniFunMF=0nDH8-RFwm7wtjYK_Tcwkd+JZinYPg@mail.gmail.com>
+Subject: Re: [PATCH v2 02/10] netfilter: Avoid assigning 'const' pointer to
+ non-const pointer
 Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: elver@google.com
-Cc: paulmck@kernel.org, andreyknvl@google.com, glider@google.com, dvyukov@google.com, kasan-dev@googlegroups.com, linux-kernel@vger.kernel.org, mark.rutland@arm.com, will@kernel.org, peterz@infradead.org, boqun.feng@gmail.com, arnd@arndb.de, viro@zeniv.linux.org.uk, dja@axtens.net, christophe.leroy@c-s.fr, mpe@ellerman.id.au, mhiramat@kernel.org, rostedt@goodmis.org, mingo@kernel.org, christian.brauner@ubuntu.com, daniel@iogearbox.net, keescook@chromium.org, cyphar@cyphar.com, linux-arch@vger.kernel.org
-Message-ID: <20200121160510.hbiBUWahW3vlzKGgrns86IDiQDZRoynrxvwdOaL6aMs@z>
+To: Will Deacon <will@kernel.org>
+Cc: LKML <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, kernel-team <kernel-team@android.com>, Michael Ellerman <mpe@ellerman.id.au>, Peter Zijlstra <peterz@infradead.org>, Linus Torvalds <torvalds@linux-foundation.org>, Segher Boessenkool <segher@kernel.crashing.org>, Christian Borntraeger <borntraeger@de.ibm.com>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>, Arnd Bergmann <arnd@arndb.de>, Peter Oberparleiter <oberpar@linux.ibm.com>, Masahiro Yamada <masahiroy@kernel.org>, Pablo Neira Ayuso <pablo@netfilter.org>, Jozsef Kadlecsik <kadlec@netfilter.org>, Florian Westphal <fw@strlen.de>, "David S. Miller" <davem@davemloft.net>
+Message-ID: <20200123190759.fvtUl6jc5u635-7lekwk_gczQE5wAS-HkiLQPSjucC4@z>
 
-Add explicit KCSAN checks for bitops.
+On Thu, Jan 23, 2020 at 7:33 AM Will Deacon <will@kernel.org> wrote:
+>
+> nf_remove_net_hook() uses WRITE_ONCE() to assign a 'const pointer to a
+> 'non-const' pointer. Cleanups to the implementation of WRITE_ONCE() mean
+> that this will give rise to a compiler warning, just like a plain old
+> assignment would do:
+>
+>   | In file included from ./include/linux/export.h:43,
+>   |                  from ./include/linux/linkage.h:7,
+>   |                  from ./include/linux/kernel.h:8,
+>   |                  from net/netfilter/core.c:9:
+>   | net/netfilter/core.c: In function =E2=80=98nf_remove_net_hook=E2=80=
+=99:
+>   | ./include/linux/compiler.h:216:30: warning: assignment discards =E2=
+=80=98const=E2=80=99 qualifier from pointer target type [-Wdiscarded-qualif=
+iers]
+>   |   *(volatile typeof(x) *)&(x) =3D (val);  \
+>   |                               ^
+>   | net/netfilter/core.c:379:3: note: in expansion of macro =E2=80=98WRIT=
+E_ONCE=E2=80=99
+>   |    WRITE_ONCE(orig_ops[i], &dummy_ops);
+>   |    ^~~~~~~~~~
+>
+> Follow the pattern used elsewhere in this file and add a cast to 'void *'
+> to squash the warning.
+>
+> Cc: Pablo Neira Ayuso <pablo@netfilter.org>
+> Cc: Jozsef Kadlecsik <kadlec@netfilter.org>
+> Cc: Florian Westphal <fw@strlen.de>
+> Cc: "David S. Miller" <davem@davemloft.net>
+> Signed-off-by: Will Deacon <will@kernel.org>
+> ---
+>  net/netfilter/core.c | 2 +-
+>  1 file changed, 1 insertion(+), 1 deletion(-)
+>
+> diff --git a/net/netfilter/core.c b/net/netfilter/core.c
+> index 78f046ec506f..3ac7c8c1548d 100644
+> --- a/net/netfilter/core.c
+> +++ b/net/netfilter/core.c
+> @@ -376,7 +376,7 @@ static bool nf_remove_net_hook(struct nf_hook_entries=
+ *old,
+>                 if (orig_ops[i] !=3D unreg)
+>                         continue;
+>                 WRITE_ONCE(old->hooks[i].hook, accept_all);
+> -               WRITE_ONCE(orig_ops[i], &dummy_ops);
+> +               WRITE_ONCE(orig_ops[i], (void *)&dummy_ops);
 
-Signed-off-by: Marco Elver <elver@google.com>
-Acked-by: Arnd Bergmann <arnd@arndb.de>
----
- include/asm-generic/bitops/instrumented-atomic.h | 14 +++++++-------
- include/asm-generic/bitops/instrumented-lock.h   | 10 +++++-----
- .../asm-generic/bitops/instrumented-non-atomic.h | 16 ++++++++--------
- 3 files changed, 20 insertions(+), 20 deletions(-)
+Good thing it's the variable being modified was not declared const; I
+get spooked when I see -Wdiscarded-qualifiers because of Section
+6.7.3.6 of the ISO C11 draft spec:
 
-diff --git a/include/asm-generic/bitops/instrumented-atomic.h b/include/asm-generic/bitops/instrumented-atomic.h
-index 18ce3c9e8eec..fb2cb33a4013 100644
---- a/include/asm-generic/bitops/instrumented-atomic.h
-+++ b/include/asm-generic/bitops/instrumented-atomic.h
-@@ -11,7 +11,7 @@
- #ifndef _ASM_GENERIC_BITOPS_INSTRUMENTED_ATOMIC_H
- #define _ASM_GENERIC_BITOPS_INSTRUMENTED_ATOMIC_H
- 
--#include <linux/kasan-checks.h>
-+#include <linux/instrumented.h>
- 
- /**
-  * set_bit - Atomically set a bit in memory
-@@ -25,7 +25,7 @@
-  */
- static inline void set_bit(long nr, volatile unsigned long *addr)
- {
--	kasan_check_write(addr + BIT_WORD(nr), sizeof(long));
-+	instrument_atomic_write(addr + BIT_WORD(nr), sizeof(long));
- 	arch_set_bit(nr, addr);
- }
- 
-@@ -38,7 +38,7 @@ static inline void set_bit(long nr, volatile unsigned long *addr)
-  */
- static inline void clear_bit(long nr, volatile unsigned long *addr)
- {
--	kasan_check_write(addr + BIT_WORD(nr), sizeof(long));
-+	instrument_atomic_write(addr + BIT_WORD(nr), sizeof(long));
- 	arch_clear_bit(nr, addr);
- }
- 
-@@ -54,7 +54,7 @@ static inline void clear_bit(long nr, volatile unsigned long *addr)
-  */
- static inline void change_bit(long nr, volatile unsigned long *addr)
- {
--	kasan_check_write(addr + BIT_WORD(nr), sizeof(long));
-+	instrument_atomic_write(addr + BIT_WORD(nr), sizeof(long));
- 	arch_change_bit(nr, addr);
- }
- 
-@@ -67,7 +67,7 @@ static inline void change_bit(long nr, volatile unsigned long *addr)
-  */
- static inline bool test_and_set_bit(long nr, volatile unsigned long *addr)
- {
--	kasan_check_write(addr + BIT_WORD(nr), sizeof(long));
-+	instrument_atomic_write(addr + BIT_WORD(nr), sizeof(long));
- 	return arch_test_and_set_bit(nr, addr);
- }
- 
-@@ -80,7 +80,7 @@ static inline bool test_and_set_bit(long nr, volatile unsigned long *addr)
-  */
- static inline bool test_and_clear_bit(long nr, volatile unsigned long *addr)
- {
--	kasan_check_write(addr + BIT_WORD(nr), sizeof(long));
-+	instrument_atomic_write(addr + BIT_WORD(nr), sizeof(long));
- 	return arch_test_and_clear_bit(nr, addr);
- }
- 
-@@ -93,7 +93,7 @@ static inline bool test_and_clear_bit(long nr, volatile unsigned long *addr)
-  */
- static inline bool test_and_change_bit(long nr, volatile unsigned long *addr)
- {
--	kasan_check_write(addr + BIT_WORD(nr), sizeof(long));
-+	instrument_atomic_write(addr + BIT_WORD(nr), sizeof(long));
- 	return arch_test_and_change_bit(nr, addr);
- }
- 
-diff --git a/include/asm-generic/bitops/instrumented-lock.h b/include/asm-generic/bitops/instrumented-lock.h
-index ec53fdeea9ec..b9bec468ae03 100644
---- a/include/asm-generic/bitops/instrumented-lock.h
-+++ b/include/asm-generic/bitops/instrumented-lock.h
-@@ -11,7 +11,7 @@
- #ifndef _ASM_GENERIC_BITOPS_INSTRUMENTED_LOCK_H
- #define _ASM_GENERIC_BITOPS_INSTRUMENTED_LOCK_H
- 
--#include <linux/kasan-checks.h>
-+#include <linux/instrumented.h>
- 
- /**
-  * clear_bit_unlock - Clear a bit in memory, for unlock
-@@ -22,7 +22,7 @@
-  */
- static inline void clear_bit_unlock(long nr, volatile unsigned long *addr)
- {
--	kasan_check_write(addr + BIT_WORD(nr), sizeof(long));
-+	instrument_atomic_write(addr + BIT_WORD(nr), sizeof(long));
- 	arch_clear_bit_unlock(nr, addr);
- }
- 
-@@ -37,7 +37,7 @@ static inline void clear_bit_unlock(long nr, volatile unsigned long *addr)
-  */
- static inline void __clear_bit_unlock(long nr, volatile unsigned long *addr)
- {
--	kasan_check_write(addr + BIT_WORD(nr), sizeof(long));
-+	instrument_write(addr + BIT_WORD(nr), sizeof(long));
- 	arch___clear_bit_unlock(nr, addr);
- }
- 
-@@ -52,7 +52,7 @@ static inline void __clear_bit_unlock(long nr, volatile unsigned long *addr)
-  */
- static inline bool test_and_set_bit_lock(long nr, volatile unsigned long *addr)
- {
--	kasan_check_write(addr + BIT_WORD(nr), sizeof(long));
-+	instrument_atomic_write(addr + BIT_WORD(nr), sizeof(long));
- 	return arch_test_and_set_bit_lock(nr, addr);
- }
- 
-@@ -71,7 +71,7 @@ static inline bool test_and_set_bit_lock(long nr, volatile unsigned long *addr)
- static inline bool
- clear_bit_unlock_is_negative_byte(long nr, volatile unsigned long *addr)
- {
--	kasan_check_write(addr + BIT_WORD(nr), sizeof(long));
-+	instrument_atomic_write(addr + BIT_WORD(nr), sizeof(long));
- 	return arch_clear_bit_unlock_is_negative_byte(nr, addr);
- }
- /* Let everybody know we have it. */
-diff --git a/include/asm-generic/bitops/instrumented-non-atomic.h b/include/asm-generic/bitops/instrumented-non-atomic.h
-index 95ff28d128a1..20f788a25ef9 100644
---- a/include/asm-generic/bitops/instrumented-non-atomic.h
-+++ b/include/asm-generic/bitops/instrumented-non-atomic.h
-@@ -11,7 +11,7 @@
- #ifndef _ASM_GENERIC_BITOPS_INSTRUMENTED_NON_ATOMIC_H
- #define _ASM_GENERIC_BITOPS_INSTRUMENTED_NON_ATOMIC_H
- 
--#include <linux/kasan-checks.h>
-+#include <linux/instrumented.h>
- 
- /**
-  * __set_bit - Set a bit in memory
-@@ -24,7 +24,7 @@
-  */
- static inline void __set_bit(long nr, volatile unsigned long *addr)
- {
--	kasan_check_write(addr + BIT_WORD(nr), sizeof(long));
-+	instrument_write(addr + BIT_WORD(nr), sizeof(long));
- 	arch___set_bit(nr, addr);
- }
- 
-@@ -39,7 +39,7 @@ static inline void __set_bit(long nr, volatile unsigned long *addr)
-  */
- static inline void __clear_bit(long nr, volatile unsigned long *addr)
- {
--	kasan_check_write(addr + BIT_WORD(nr), sizeof(long));
-+	instrument_write(addr + BIT_WORD(nr), sizeof(long));
- 	arch___clear_bit(nr, addr);
- }
- 
-@@ -54,7 +54,7 @@ static inline void __clear_bit(long nr, volatile unsigned long *addr)
-  */
- static inline void __change_bit(long nr, volatile unsigned long *addr)
- {
--	kasan_check_write(addr + BIT_WORD(nr), sizeof(long));
-+	instrument_write(addr + BIT_WORD(nr), sizeof(long));
- 	arch___change_bit(nr, addr);
- }
- 
-@@ -68,7 +68,7 @@ static inline void __change_bit(long nr, volatile unsigned long *addr)
-  */
- static inline bool __test_and_set_bit(long nr, volatile unsigned long *addr)
- {
--	kasan_check_write(addr + BIT_WORD(nr), sizeof(long));
-+	instrument_write(addr + BIT_WORD(nr), sizeof(long));
- 	return arch___test_and_set_bit(nr, addr);
- }
- 
-@@ -82,7 +82,7 @@ static inline bool __test_and_set_bit(long nr, volatile unsigned long *addr)
-  */
- static inline bool __test_and_clear_bit(long nr, volatile unsigned long *addr)
- {
--	kasan_check_write(addr + BIT_WORD(nr), sizeof(long));
-+	instrument_write(addr + BIT_WORD(nr), sizeof(long));
- 	return arch___test_and_clear_bit(nr, addr);
- }
- 
-@@ -96,7 +96,7 @@ static inline bool __test_and_clear_bit(long nr, volatile unsigned long *addr)
-  */
- static inline bool __test_and_change_bit(long nr, volatile unsigned long *addr)
- {
--	kasan_check_write(addr + BIT_WORD(nr), sizeof(long));
-+	instrument_write(addr + BIT_WORD(nr), sizeof(long));
- 	return arch___test_and_change_bit(nr, addr);
- }
- 
-@@ -107,7 +107,7 @@ static inline bool __test_and_change_bit(long nr, volatile unsigned long *addr)
-  */
- static inline bool test_bit(long nr, const volatile unsigned long *addr)
- {
--	kasan_check_read(addr + BIT_WORD(nr), sizeof(long));
-+	instrument_atomic_read(addr + BIT_WORD(nr), sizeof(long));
- 	return arch_test_bit(nr, addr);
- }
- 
--- 
-2.25.0.341.g760bfbb309-goog
+```
+If an attempt is made to modify an object defined with a
+const-qualified type through use
+of an lvalue with non-const-qualified type, the behavior is undefined.
+If an attempt is
+made to refer to an object defined with a volatile-qualified type
+through use of an lvalue
+with non-volatile-qualified type, the behavior is undefined.133)
+
+133) This applies to those objects that behave as if they were defined
+with qualified types, even if they are
+never actually defined as objects in the program (such as an object at
+a memory-mapped input/output
+address).
+```
+
+Which is about the modification of a const-declared variable (explicit
+UB which Clang actively exploits), and doesn't apply in this case.  I
+agree that this is the best way to fix this due to the use of typeof()
+and it's semantics of dropping qualifiers; declaring `dummy_ops` as
+non-const would be another, but that is worse IMO.  Thanks for the
+patch.
+Reviewed-by: Nick Desaulniers <ndesaulniers@google.com>
+
+>                 return true;
+>         }
+>
+> --
+> 2.25.0.341.g760bfbb309-goog
+>
+
+
+--=20
+Thanks,
+~Nick Desaulniers
