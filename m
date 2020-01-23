@@ -1,211 +1,96 @@
-Return-Path: <SRS0=Pd00=3D=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from smtprelay-out1.synopsys.com ([149.117.73.133]:53206 "EHLO
-        smtprelay-out1.synopsys.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1727285AbgANUI5 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 14 Jan 2020 15:08:57 -0500
-From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: [RFC 4/4] ARC: uaccess: use optimized generic __strnlen_user/__strncpy_from_user
-Date: Tue, 14 Jan 2020 12:08:46 -0800
-Message-ID: <20200114200846.29434-5-vgupta@synopsys.com>
-In-Reply-To: <20200114200846.29434-1-vgupta@synopsys.com>
-References: <20200114200846.29434-1-vgupta@synopsys.com>
+Return-Path: <SRS0=XOKs=3M=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail.kernel.org ([198.145.29.99]:51436 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726232AbgAWPdw (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 23 Jan 2020 10:33:52 -0500
+From: Will Deacon <will@kernel.org>
+Subject: [PATCH v2 00/10] Rework READ_ONCE() to improve codegen
+Date: Thu, 23 Jan 2020 15:33:31 +0000
+Message-ID: <20200123153341.19947-1-will@kernel.org>
 MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>, Khalid Aziz <khalid.aziz@oracle.com>, Andrey Konovalov <andreyknvl@google.com>, Andrew Morton <akpm@linux-foundation.org>, Peter Zijlstra <peterz@infradead.org>, Christian Brauner <christian.brauner@ubuntu.com>, Kees Cook <keescook@chromium.org>, Ingo Molnar <mingo@kernel.org>, Aleksa Sarai <cyphar@cyphar.com>, Linus Torvalds <torvalds@linux-foundation.org>
-Cc: linux-snps-arc@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Message-ID: <20200114200846.fESdewRSYZRiopBdNQ0h24yWzdScNl5wutlakWsY4Vw@z>
+To: linux-kernel@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, kernel-team@android.com, Will Deacon <will@kernel.org>, Michael Ellerman <mpe@ellerman.id.au>, Peter Zijlstra <peterz@infradead.org>, Linus Torvalds <torvalds@linux-foundation.org>, Segher Boessenkool <segher@kernel.crashing.org>, Christian Borntraeger <borntraeger@de.ibm.com>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>, Arnd Bergmann <arnd@arndb.de>, Peter Oberparleiter <oberpar@linux.ibm.com>, Masahiro Yamada <masahiroy@kernel.org>, Nick Desaulniers <ndesaulniers@google.com>
+Message-ID: <20200123153331.jMcuM0ZhTolblbeTg4NADJqGAd2Z5RFv75kR4BhM_P4@z>
 
-These rely on word access rather than byte loop
+Hi folks,
 
-Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
----
- arch/arc/Kconfig                      |  2 +
- arch/arc/include/asm/Kbuild           |  1 -
- arch/arc/include/asm/uaccess.h        | 71 ++-------------------------
- arch/arc/include/asm/word-at-a-time.h | 49 ++++++++++++++++++
- 4 files changed, 56 insertions(+), 67 deletions(-)
- create mode 100644 arch/arc/include/asm/word-at-a-time.h
+This is version two of the patches I previously posted as an RFC here:
 
-diff --git a/arch/arc/Kconfig b/arch/arc/Kconfig
-index 26108ea785c2..3b074c4d31fb 100644
---- a/arch/arc/Kconfig
-+++ b/arch/arc/Kconfig
-@@ -26,6 +26,8 @@ config ARC
- 	select GENERIC_PENDING_IRQ if SMP
- 	select GENERIC_SCHED_CLOCK
- 	select GENERIC_SMP_IDLE_THREAD
-+	select GENERIC_STRNCPY_FROM_USER if MMU
-+	select GENERIC_STRNLEN_USER if MMU
- 	select HAVE_ARCH_KGDB
- 	select HAVE_ARCH_TRACEHOOK
- 	select HAVE_DEBUG_STACKOVERFLOW
-diff --git a/arch/arc/include/asm/Kbuild b/arch/arc/include/asm/Kbuild
-index 1b505694691e..cb8d459b7f56 100644
---- a/arch/arc/include/asm/Kbuild
-+++ b/arch/arc/include/asm/Kbuild
-@@ -24,5 +24,4 @@ generic-y += topology.h
- generic-y += trace_clock.h
- generic-y += user.h
- generic-y += vga.h
--generic-y += word-at-a-time.h
- generic-y += xor.h
-diff --git a/arch/arc/include/asm/uaccess.h b/arch/arc/include/asm/uaccess.h
-index 0b34c152086f..f579e06447a9 100644
---- a/arch/arc/include/asm/uaccess.h
-+++ b/arch/arc/include/asm/uaccess.h
-@@ -23,7 +23,6 @@
- 
- #include <linux/string.h>	/* for generic string functions */
- 
--
- #define __kernel_ok		(uaccess_kernel())
- 
- /*
-@@ -52,6 +51,8 @@
- #define __access_ok(addr, sz)	(unlikely(__kernel_ok) || \
- 				 likely(__user_ok((addr), (sz))))
- 
-+#define user_addr_max() 	(uaccess_kernel() ? ~0UL : get_fs())
-+
- /*********** Single byte/hword/word copies ******************/
- 
- #define __get_user_fn(sz, u, k)					\
-@@ -655,75 +656,13 @@ static inline unsigned long __clear_user(void __user *to, unsigned long n)
- 	return res;
- }
- 
--static inline long
--__strncpy_from_user(char *dst, const char __user *src, long count)
--{
--	long res = 0;
--	char val;
--
--	if (count == 0)
--		return 0;
--
--	__asm__ __volatile__(
--	"	mov	lp_count, %5		\n"
--	"	lp	3f			\n"
--	"1:	ldb.ab  %3, [%2, 1]		\n"
--	"	breq.d	%3, 0, 3f               \n"
--	"	stb.ab  %3, [%1, 1]		\n"
--	"	add	%0, %0, 1	# Num of NON NULL bytes copied	\n"
--	"3:								\n"
--	"	.section .fixup, \"ax\"		\n"
--	"	.align 4			\n"
--	"4:	mov %0, %4		# sets @res as -EFAULT	\n"
--	"	j   3b				\n"
--	"	.previous			\n"
--	"	.section __ex_table, \"a\"	\n"
--	"	.align 4			\n"
--	"	.word   1b, 4b			\n"
--	"	.previous			\n"
--	: "+r"(res), "+r"(dst), "+r"(src), "=r"(val)
--	: "g"(-EFAULT), "r"(count)
--	: "lp_count", "memory");
--
--	return res;
--}
--
--static inline long __strnlen_user(const char __user *s, long n)
--{
--	long res, tmp1, cnt;
--	char val;
--
--	__asm__ __volatile__(
--	"	mov %2, %1			\n"
--	"1:	ldb.ab  %3, [%0, 1]		\n"
--	"	breq.d  %3, 0, 2f		\n"
--	"	sub.f   %2, %2, 1		\n"
--	"	bnz 1b				\n"
--	"	sub %2, %2, 1			\n"
--	"2:	sub %0, %1, %2			\n"
--	"3:	;nop				\n"
--	"	.section .fixup, \"ax\"		\n"
--	"	.align 4			\n"
--	"4:	mov %0, 0			\n"
--	"	j   3b				\n"
--	"	.previous			\n"
--	"	.section __ex_table, \"a\"	\n"
--	"	.align 4			\n"
--	"	.word 1b, 4b			\n"
--	"	.previous			\n"
--	: "=r"(res), "=r"(tmp1), "=r"(cnt), "=r"(val)
--	: "0"(s), "1"(n)
--	: "memory");
--
--	return res;
--}
--
- #define INLINE_COPY_TO_USER
- #define INLINE_COPY_FROM_USER
- 
- #define __clear_user		__clear_user
--#define __strncpy_from_user	__strncpy_from_user
--#define __strnlen_user		__strnlen_user
-+
-+extern long strncpy_from_user(char *dest, const char __user *src, long count);
-+extern __must_check long strnlen_user(const char __user *str, long n);
- 
- #include <asm/segment.h>
- #include <asm-generic/uaccess.h>
-diff --git a/arch/arc/include/asm/word-at-a-time.h b/arch/arc/include/asm/word-at-a-time.h
-new file mode 100644
-index 000000000000..00e92be70987
---- /dev/null
-+++ b/arch/arc/include/asm/word-at-a-time.h
-@@ -0,0 +1,49 @@
-+/* SPDX-License-Identifier: GPL-2.0-only */
-+/*
-+ * Copyright (C) 2020 Synopsys Inc.
-+ */
-+#ifndef __ASM_ARC_WORD_AT_A_TIME_H
-+#define __ASM_ARC_WORD_AT_A_TIME_H
-+
-+#ifdef __LITTLE_ENDIAN__
-+
-+#include <linux/kernel.h>
-+
-+struct word_at_a_time {
-+	const unsigned long one_bits, high_bits;
-+};
-+
-+#define WORD_AT_A_TIME_CONSTANTS { REPEAT_BYTE(0x01), REPEAT_BYTE(0x80) }
-+
-+static inline unsigned long has_zero(unsigned long a, unsigned long *bits,
-+				     const struct word_at_a_time *c)
-+{
-+	unsigned long mask = ((a - c->one_bits) & ~a) & c->high_bits;
-+	*bits = mask;
-+	return mask;
-+}
-+
-+#define prep_zero_mask(a, bits, c) (bits)
-+
-+static inline unsigned long create_zero_mask(unsigned long bits)
-+{
-+	bits = (bits - 1) & ~bits;
-+	return bits >> 7;
-+}
-+
-+static inline unsigned long find_zero(unsigned long mask)
-+{
-+#ifdef CONFIG_64BIT
-+	return fls64(mask) >> 3;
-+#else
-+	return fls(mask) >> 3;
-+#endif
-+}
-+
-+#define zero_bytemask(mask) (mask)
-+
-+#else	/* __BIG_ENDIAN__ */
-+#include <asm-generic/word-at-a-time.h>
-+#endif
-+
-+#endif /* __ASM_WORD_AT_A_TIME_H */
+https://lore.kernel.org/lkml/20200110165636.28035-1-will@kernel.org
+
+Changes since then include:
+
+  * Adopted a less vomit-inducing series of macros for __unqual_scalar_typeof
+
+  * Cast to 'const' in READ_ONCE() to prevent assignment to the resulting
+    expression
+
+  * Only warn once at build-time if GCC prior to 4.8 is detected...
+
+  * ... and then raise the minimum GCC version to 4.8, with an error for
+    older versions of the compiler
+
+  * Remove some dead gcov code so that the resulting diffstat can distract
+    from those less vomit-inducing macros I mentioned earlier on
+
+Failing the build for older compilers is always a contentious topic, so
+I've done that as a separate couple of patches on the end in case we end
+up dropping or reverting them.
+
+Cheers,
+
+Will
+
+Cc: Michael Ellerman <mpe@ellerman.id.au>
+Cc: Peter Zijlstra <peterz@infradead.org>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Segher Boessenkool <segher@kernel.crashing.org>
+Cc: Christian Borntraeger <borntraeger@de.ibm.com>
+Cc: Luc Van Oostenryck <luc.vanoostenryck@gmail.com>
+Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: Peter Oberparleiter <oberpar@linux.ibm.com>
+Cc: Masahiro Yamada <masahiroy@kernel.org>
+Cc: Nick Desaulniers <ndesaulniers@google.com>
+
+--->8
+
+Will Deacon (10):
+  compiler/gcc: Emit build-time warning for GCC prior to version 4.8
+  netfilter: Avoid assigning 'const' pointer to non-const pointer
+  fault_inject: Don't rely on "return value" from WRITE_ONCE()
+  READ_ONCE: Simplify implementations of {READ,WRITE}_ONCE()
+  READ_ONCE: Enforce atomicity for {READ,WRITE}_ONCE() memory accesses
+  READ_ONCE: Drop pointer qualifiers when reading from scalar types
+  locking/barriers: Use '__unqual_scalar_typeof' for load-acquire macros
+  arm64: barrier: Use '__unqual_scalar_typeof' for acquire/release
+    macros
+  compiler/gcc: Raise minimum GCC version for kernel builds to 4.8
+  gcov: Remove old GCC 3.4 support
+
+ Documentation/process/changes.rst |   2 +-
+ arch/arm/crypto/Kconfig           |  12 +-
+ arch/arm64/include/asm/barrier.h  |  16 +-
+ crypto/Kconfig                    |   1 -
+ drivers/xen/time.c                |   2 +-
+ include/asm-generic/barrier.h     |  16 +-
+ include/linux/compiler-gcc.h      |   5 +-
+ include/linux/compiler.h          | 129 +++----
+ include/linux/compiler_types.h    |  21 ++
+ init/Kconfig                      |   5 +-
+ kernel/gcov/Kconfig               |  24 --
+ kernel/gcov/Makefile              |   3 +-
+ kernel/gcov/gcc_3_4.c             | 573 ------------------------------
+ lib/fault-inject.c                |   4 +-
+ net/netfilter/core.c              |   2 +-
+ net/xdp/xsk_queue.h               |   2 +-
+ scripts/Kconfig.include           |   3 +
+ scripts/gcc-plugins/Kconfig       |   4 +-
+ 18 files changed, 111 insertions(+), 713 deletions(-)
+ delete mode 100644 kernel/gcov/gcc_3_4.c
+
 -- 
-2.20.1
+2.25.0.341.g760bfbb309-goog
