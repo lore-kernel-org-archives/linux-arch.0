@@ -1,76 +1,117 @@
-Return-Path: <owner-linux-mm@kvack.org>
-From: Sandipan Das <sandipan@linux.ibm.com>
-Subject: [PATCH v16 01/23] selftests/x86/pkeys: Move selftests to arch-neutral
- directory
-Date: Fri, 17 Jan 2020 18:19:40 +0530
-In-Reply-To: <cover.1579265066.git.sandipan@linux.ibm.com>
-References: <cover.1579265066.git.sandipan@linux.ibm.com>
-In-Reply-To: <cover.1579265066.git.sandipan@linux.ibm.com>
-References: <cover.1579265066.git.sandipan@linux.ibm.com>
-Message-ID: <5bef2b0584a6dc2863874d0e2ccd873cceab98c2.1579265066.git.sandipan@linux.ibm.com>
-Sender: owner-linux-mm@kvack.org
-To: shuah@kernel.org, linux-kselftest@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, fweimer@redhat.com, dave.hansen@intel.com, x86@kernel.org, linuxram@us.ibm.com, mhocko@kernel.org, linux-mm@kvack.org, mingo@redhat.com, aneesh.kumar@linux.ibm.com, bauerman@linux.ibm.com, msuchanek@suse.de, mpe@ellerman.id.au, linuxppc-dev@lists.ozlabs.org
+Return-Path: <brendanhiggins@google.com>
+MIME-Version: 1.0
+References: <20191216220555.245089-1-brendanhiggins@google.com>
+ <20191216220555.245089-4-brendanhiggins@google.com> <20191217080408.0E805207FF@mail.kernel.org>
+In-Reply-To: <20191217080408.0E805207FF@mail.kernel.org>
+From: Brendan Higgins <brendanhiggins@google.com>
+Date: Thu, 23 Jan 2020 14:54:55 -0800
+Message-ID: <CAFd5g44Wh9kwXsY_M4GfMp0+wzN_3HhVfa360J-tF48aQ_KADg@mail.gmail.com>
+Subject: Re: [RFC v1 3/6] kunit: test: create a single centralized executor
+ for all tests
+Content-Type: text/plain; charset="UTF-8"
+To: Stephen Boyd <sboyd@kernel.org>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Alan Maguire <alan.maguire@oracle.com>, Anton Ivanov <anton.ivanov@cambridgegreys.com>, Arnd Bergmann <arnd@arndb.de>, David Gow <davidgow@google.com>, Jeff Dike <jdike@addtoit.com>, Kees Cook <keescook@chromium.org>, Richard Weinberger <richard@nod.at>, rppt@linux.ibm.com, Shuah Khan <skhan@linuxfoundation.org>, Iurii Zaikin <yzaikin@google.com>, Greg KH <gregkh@linuxfoundation.org>, Logan Gunthorpe <logang@deltatee.com>, Luis Chamberlain <mcgrof@kernel.org>, Knut Omang <knut.omang@oracle.com>, linux-um <linux-um@lists.infradead.org>, linux-arch@vger.kernel.org, "open list:KERNEL SELFTEST FRAMEWORK" <linux-kselftest@vger.kernel.org>, KUnit Development <kunit-dev@googlegroups.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200117124940.pvUXG5yV2qOf9LP8p_YYZqw6AH1gyX_Sqix6imWQhI0@z>
+Message-ID: <20200123225455.PkaDXG1UjxnIhrcti6oJWN1QuK5rxvWfupcnWjK8SQo@z>
 
-From: Ram Pai <linuxram@us.ibm.com>
+On Tue, Dec 17, 2019 at 12:04 AM Stephen Boyd <sboyd@kernel.org> wrote:
+>
+> Quoting Brendan Higgins (2019-12-16 14:05:52)
+> > diff --git a/include/kunit/test.h b/include/kunit/test.h
+> > index dba48304b3bd3..c070798ebb765 100644
+> > --- a/include/kunit/test.h
+> > +++ b/include/kunit/test.h
+> > @@ -217,11 +217,8 @@ int kunit_run_tests(struct kunit_suite *suite);
+> >   * everything else is definitely initialized.
+> >   */
+> >  #define kunit_test_suite(suite)                                                       \
+> > -       static int kunit_suite_init##suite(void)                               \
+>
+> Oh this should have been __init before.
 
-cc: Dave Hansen <dave.hansen@intel.com>
-cc: Florian Weimer <fweimer@redhat.com>
-Signed-off-by: Ram Pai <linuxram@us.ibm.com>
-Signed-off-by: Thiago Jung Bauermann <bauerman@linux.ibm.com>
-Acked-by: Ingo Molnar <mingo@kernel.org>
-Acked-by: Dave Hansen <dave.hansen@intel.com>
-Signed-off-by: Sandipan Das <sandipan@linux.ibm.com>
----
- tools/testing/selftests/vm/.gitignore                 | 1 +
- tools/testing/selftests/vm/Makefile                   | 1 +
- tools/testing/selftests/{x86 => vm}/pkey-helpers.h    | 0
- tools/testing/selftests/{x86 => vm}/protection_keys.c | 0
- tools/testing/selftests/x86/.gitignore                | 1 -
- 5 files changed, 2 insertions(+), 1 deletion(-)
- rename tools/testing/selftests/{x86 => vm}/pkey-helpers.h (100%)
- rename tools/testing/selftests/{x86 => vm}/protection_keys.c (100%)
+No, the stuff in this patch shouldn't be init. With the work that Alan
+has been doing (adding support for modules, debugfs); the test code
+can run after booting, so init in any of this code is incorrect.
 
-diff --git a/tools/testing/selftests/vm/.gitignore b/tools/testing/selftests/vm/.gitignore
-index 31b3c98b6d34..c55837bf39fa 100644
---- a/tools/testing/selftests/vm/.gitignore
-+++ b/tools/testing/selftests/vm/.gitignore
-@@ -14,3 +14,4 @@ virtual_address_range
- gup_benchmark
- va_128TBswitch
- map_fixed_noreplace
-+protection_keys
-diff --git a/tools/testing/selftests/vm/Makefile b/tools/testing/selftests/vm/Makefile
-index 7f9a8a8c31da..4e9c741be6af 100644
---- a/tools/testing/selftests/vm/Makefile
-+++ b/tools/testing/selftests/vm/Makefile
-@@ -18,6 +18,7 @@ TEST_GEN_FILES += on-fault-limit
- TEST_GEN_FILES += thuge-gen
- TEST_GEN_FILES += transhuge-stress
- TEST_GEN_FILES += userfaultfd
-+TEST_GEN_FILES += protection_keys
+> > -       {                                                                      \
+> > -               return kunit_run_tests(&suite);                                \
+> > -       }                                                                      \
+> > -       late_initcall(kunit_suite_init##suite)
+> > +       static struct kunit_suite *__kunit_suite_##suite                       \
+> > +       __used __aligned(8) __section(.kunit_test_suites) = &suite
+> >
+> >  /*
+> >   * Like kunit_alloc_resource() below, but returns the struct kunit_resource
+> > diff --git a/lib/kunit/executor.c b/lib/kunit/executor.c
+> > new file mode 100644
+> > index 0000000000000..978086cfd257d
+> > --- /dev/null
+> > +++ b/lib/kunit/executor.c
+> > @@ -0,0 +1,43 @@
+> > +// SPDX-License-Identifier: GPL-2.0
+> > +/*
+> > + * Base unit test (KUnit) API.
+> > + *
+> > + * Copyright (C) 2019, Google LLC.
+> > + * Author: Brendan Higgins <brendanhiggins@google.com>
+> > + */
+> > +
+> > +#include <linux/init.h>
+> > +#include <linux/printk.h>
+> > +#include <kunit/test.h>
+> > +
+> > +/*
+> > + * These symbols point to the .kunit_test_suites section and are defined in
+> > + * include/asm-generic/vmlinux.lds.h, and consequently must be extern.
+> > + */
+> > +extern struct kunit_suite *__kunit_suites_start[];
+> > +extern struct kunit_suite *__kunit_suites_end[];
+> > +
+> > +static bool kunit_run_all_tests(void)
+>
+> Should be __init?
 
- ifneq (,$(filter $(ARCH),arm64 ia64 mips64 parisc64 ppc64 riscv64 s390x sh64 sparc64 x86_64))
- TEST_GEN_FILES += va_128TBswitch
-diff --git a/tools/testing/selftests/x86/pkey-helpers.h b/tools/testing/selftests/vm/pkey-helpers.h
-similarity index 100%
-rename from tools/testing/selftests/x86/pkey-helpers.h
-rename to tools/testing/selftests/vm/pkey-helpers.h
-diff --git a/tools/testing/selftests/x86/protection_keys.c b/tools/testing/selftests/vm/protection_keys.c
-similarity index 100%
-rename from tools/testing/selftests/x86/protection_keys.c
-rename to tools/testing/selftests/vm/protection_keys.c
-diff --git a/tools/testing/selftests/x86/.gitignore b/tools/testing/selftests/x86/.gitignore
-index 7757f73ff9a3..eb30ffd83876 100644
---- a/tools/testing/selftests/x86/.gitignore
-+++ b/tools/testing/selftests/x86/.gitignore
-@@ -11,5 +11,4 @@ ldt_gdt
- iopl
- mpx-mini-test
- ioperm
--protection_keys
- test_vdso
--- 
-2.17.1
+It could be, I think. Alan's code doesn't call this, so for now we
+might as well make it __init.
+
+> > +{
+> > +       struct kunit_suite **suite;
+>
+> Can this be const? And the linker references above too?
+
+Good catch. Will fix.
+
+> > +       bool has_test_failed = false;
+> > +
+> > +       for (suite = __kunit_suites_start;
+> > +            suite < __kunit_suites_end;
+> > +            ++suite) {
+> > +               if (kunit_run_tests(*suite))
+> > +                       has_test_failed = true;
+> > +       }
+> > +
+> > +       return !has_test_failed;
+> > +}
+> > +
+> > +static int kunit_executor_init(void)
+>
+> Should be __init?
+
+Will do.
+
+> > +{
+> > +       if (kunit_run_all_tests())
+> > +               return 0;
+> > +       else
+> > +               return -EFAULT;
+>
+> Why two functions instead of just one that is the target of the
+> late_initcall? Nitpick: deindent that last return and take it out of the
+> else.
+
+Yeah, it probably makes more sense to just call kunit_run_all_tests
+and have it return an int.
+
+> > +}
+> > +
+> > +late_initcall(kunit_executor_init);
