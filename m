@@ -1,64 +1,71 @@
-From: Arvind Sankar <nivedita@alum.mit.edu>
-Subject: Re: [PATCH v2 00/10] Rework READ_ONCE() to improve codegen
-Date: Thu, 23 Jan 2020 14:01:27 -0500
-Message-ID: <20200123190125.GA2683468@rani.riverdale.lan>
-References: <20200123153341.19947-1-will@kernel.org>
- <26ad7a8a975c4e06b44a3184d7c86e5f@AcuMS.aculab.com>
- <20200123171641.GC20126@willie-the-truck>
- <2bfe2be6da484f15b0d229dd02d16ae6@AcuMS.aculab.com>
- <CAKwvOdkFGTeVQPm8Z3Y7mQ-=6d5CFxmEJ+hBb8ns2r2H1cb0hQ@mail.gmail.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
+From: Dave Hansen <dave.hansen@linux.intel.com>
+Subject: [PATCH 0/5] x86: finish the MPX removal process
+Date: Thu, 23 Jan 2020 11:04:56 -0800
+Message-ID: <20200123190456.8E05ADE6@viggo.jf.intel.com>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qk1-f196.google.com ([209.85.222.196]:42014 "EHLO
-        mail-qk1-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727022AbgAWTBa (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 23 Jan 2020 14:01:30 -0500
-Content-Disposition: inline
-In-Reply-To: <CAKwvOdkFGTeVQPm8Z3Y7mQ-=6d5CFxmEJ+hBb8ns2r2H1cb0hQ@mail.gmail.com>
+Received: from mga04.intel.com ([192.55.52.120]:46723 "EHLO mga04.intel.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1727590AbgAWTF7 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 23 Jan 2020 14:05:59 -0500
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Nick Desaulniers <ndesaulniers@google.com>
-Cc: David Laight <David.Laight@aculab.com>, Will Deacon <will@kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "kernel-team@android.com" <kernel-team@android.com>, Michael Ellerman <mpe@ellerman.id.au>, Peter Zijlstra <peterz@infradead.org>, Linus Torvalds <torvalds@linux-foundation.org>, Segher Boessenkool <segher@kernel.crashing.org>, Christian Borntraeger <borntraeger@de.ibm.com>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>, Arnd Bergmann <arnd@arndb.de>, Peter Oberparleiter <oberpar@linux.ibm.com>, Masahiro Yamada <masahiroy@kernel.org>
+To: linux-kernel@vger.kernel.org
+Cc: Dave Hansen <dave.hansen@linux.intel.com>, peterz@infradead.org, luto@kernel.org, x86@kernel.org, torvalds@linux-foundation.org, linux-arch@vger.kernel.org, benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, jdike@addtoit.com, richard@nod.at, anton.ivanov@cambridgegreys.com, gxt@pku.edu.cn
 
-On Thu, Jan 23, 2020 at 10:45:08AM -0800, Nick Desaulniers wrote:
-> On Thu, Jan 23, 2020 at 9:32 AM David Laight <David.Laight@aculab.com> wrote:
-> >
-> > From: Will Deacon
-> > > Sent: 23 January 2020 17:17
-> > >
-> > > I think it depends how much we care about those older compilers. My series
-> > > first moves it to "Good luck mate, you're on your own" and then follows up
-> 
-> I wish the actual warning was worded that way. :P
-> 
-> > > with a "Let me take that off you it's sharp".
-> 
-> > Oh - and I need to find a newer compiler :-(
-> 
-> What distro are you using? Does it have a package for a newer
-> compiler?  I'm honestly curious about what policies if any the kernel
-> has for supporting developer's toolchains from their distributions.
-> (ie. Arnd usually has pretty good stats what distro's use which
-> version of GCC and are still supported; Do we strive to not break
-> them? Is asking kernel devs to compile their own toolchain too much to
-> ask?  Is it still if they're using really old distro's/toolchains that
-> we don't want to support?  Do we survey kernel devs about what they're
-> using?).  Apologies if this is already documented somewhere, but if
-> not I'd eventually like to brainstorm and write it down somewhere in
-> the tree.  Documentation/process/changes.rst doesn't really answer the
-> above questions, I think.
-> 
-> -- 
-> Thanks,
-> ~Nick Desaulniers
+MPX requires recompiling applications, which requires compiler support.
+Unfortunately, GCC 9.1 is expected to be be released without support for
+MPX.  This means that there was only a relatively small window where
+folks could have ever used MPX.  It failed to gain wide adoption in the
+industry, and Linux was the only mainstream OS to ever support it widely.
 
-Reposting Arnd's link
-https://www.spinics.net/lists/linux-kbuild/msg23648.html
+Support for the feature may also disappear on future processors.
 
-Seems like there is nothing still on versions between 4.6 and 4.8. It
-might be useful to put a list of distro's that are running the current
-minimum supported toolchain versions in process/changes.rst?
+This set completes the process that we started during the 5.4 merge window.
 
-I think the issue is not just kernel devs. Users may need to compile a
-custom kernel or at least build a module.
+I'd _rather_ this go in via the x86 tree, but I'm not picky.  I could also
+send a pull request directly to Linus.  This series is also available here
+(mostly for 0day to chew on):
+
+	https://git.kernel.org/pub/scm/linux/kernel/git/daveh/x86-mpx.git/log/?h=mpx-remove-20200123
+
+This posting is mostly an FYI in case any affected maintainers have any
+concerns.
+
+ Documentation/x86/intel_mpx.rst            |  252 -------
+ arch/x86/include/asm/mpx.h                 |  116 ---
+ arch/x86/include/asm/trace/mpx.h           |  134 ----
+ arch/x86/mm/mpx.c                          |  938 -----------------------------
+ b/arch/powerpc/include/asm/mmu_context.h   |    5 
+ b/arch/um/include/asm/mmu_context.h        |    5 
+ b/arch/unicore32/include/asm/mmu_context.h |    5 
+ b/arch/x86/Kconfig                         |   28 
+ b/arch/x86/include/asm/bugs.h              |    6 
+ b/arch/x86/include/asm/disabled-features.h |    8 
+ b/arch/x86/include/asm/mmu.h               |    4 
+ b/arch/x86/include/asm/mmu_context.h       |   26 
+ b/arch/x86/include/asm/processor.h         |   18 
+ b/arch/x86/kernel/alternative.c            |    1 
+ b/arch/x86/kernel/cpu/common.c             |   18 
+ b/arch/x86/kernel/cpu/intel.c              |   36 -
+ b/arch/x86/kernel/setup.c                  |    2 
+ b/arch/x86/kernel/sys_x86_64.c             |    9 
+ b/arch/x86/kernel/traps.c                  |   74 --
+ b/arch/x86/mm/Makefile                     |    1 
+ b/arch/x86/mm/hugetlbpage.c                |    5 
+ b/arch/x86/mm/mmap.c                       |    2 
+ b/fs/exec.c                                |    1 
+ b/include/asm-generic/mm_hooks.h           |    5 
+ 24 files changed, 2 insertions(+), 1697 deletions(-)
+
+Cc: Peter Zijlstra (Intel) <peterz@infradead.org>
+Cc: Andy Lutomirski <luto@kernel.org>
+Cc: x86@kernel.org
+Cc: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: linux-arch@vger.kernel.org
+Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: Paul Mackerras <paulus@samba.org>
+Cc: Michael Ellerman <mpe@ellerman.id.au>
+Cc: Jeff Dike <jdike@addtoit.com>
+Cc: Richard Weinberger <richard@nod.at>
+Cc: Anton Ivanov <anton.ivanov@cambridgegreys.com>
+Cc: Guan Xuetao <gxt@pku.edu.cn>
