@@ -1,45 +1,69 @@
-From: Brendan Higgins <brendanhiggins@google.com>
-Subject: Re: [RFC v1 6/6] kunit: Add 'kunit_shutdown' option
-Date: Thu, 23 Jan 2020 14:56:43 -0800
-Message-ID: <CAFd5g45YJrrOu=kvSF9LhkCy_gxrAa3Sa6UJLRFGQtDtepe9xg@mail.gmail.com>
-References: <20191216220555.245089-1-brendanhiggins@google.com>
- <20191216220555.245089-7-brendanhiggins@google.com> <20191217080653.B672B2082E@mail.kernel.org>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+From: Alex Kogan <alex.kogan@oracle.com>
+Subject: Re: [PATCH v9 4/5] locking/qspinlock: Introduce starvation avoidance
+ into CNA
+Date: Thu, 23 Jan 2020 18:39:36 -0500
+Message-ID: <1B2B46E9-651E-4BA5-988A-924AE3E72C00@oracle.com>
+References: <20200115035920.54451-1-alex.kogan@oracle.com>
+ <20200115035920.54451-5-alex.kogan@oracle.com>
+ <f5e31716-d687-f64c-0fc5-f1c9b539c4ff@redhat.com>
+ <5f865b62-4867-2c7b-715a-0605759e647f@redhat.com>
+Mime-Version: 1.0 (Mac OS X Mail 12.4 \(3445.104.11\))
+Content-Type: text/plain;
+        charset=utf-8
+Content-Transfer-Encoding: quoted-printable
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pg1-f196.google.com ([209.85.215.196]:40133 "EHLO
-        mail-pg1-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1729592AbgAWW4z (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 23 Jan 2020 17:56:55 -0500
-Received: by mail-pg1-f196.google.com with SMTP id k25so2137331pgt.7
-        for <linux-arch@vger.kernel.org>; Thu, 23 Jan 2020 14:56:55 -0800 (PST)
-In-Reply-To: <20191217080653.B672B2082E@mail.kernel.org>
+Received: from aserp2120.oracle.com ([141.146.126.78]:56632 "EHLO
+        aserp2120.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1729288AbgAWXkd (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 23 Jan 2020 18:40:33 -0500
+In-Reply-To: <5f865b62-4867-2c7b-715a-0605759e647f@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Stephen Boyd <sboyd@kernel.org>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Alan Maguire <alan.maguire@oracle.com>, Anton Ivanov <anton.ivanov@cambridgegreys.com>, Arnd Bergmann <arnd@arndb.de>, David Gow <davidgow@google.com>, Jeff Dike <jdike@addtoit.com>, Kees Cook <keescook@chromium.org>, Richard Weinberger <richard@nod.at>, rppt@linux.ibm.com, Shuah Khan <skhan@linuxfoundation.org>, Iurii Zaikin <yzaikin@google.com>, Greg KH <gregkh@linuxfoundation.org>, Logan Gunthorpe <logang@deltatee.com>, Luis Chamberlain <mcgrof@kernel.org>, Knut Omang <knut.omang@oracle.com>, linux-um <linux-um@lists.infradead.org>, linux-arch@vger.kernel.org, "open list:KERNEL SELFTEST FRAMEWORK" <linux-kselftest@vger.kernel.org>, KUnit Development <kunit-dev@googlegroups.com>, Linux
+To: Waiman Long <longman@redhat.com>
+Cc: linux@armlinux.org.uk, peterz@infradead.org, mingo@redhat.com, will.deacon@arm.com, arnd@arndb.de, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, bp@alien8.de, hpa@zytor.com, x86@kernel.org, guohanjun@huawei.com, jglauber@marvell.com, steven.sistare@oracle.com, daniel.m.jordan@oracle.com, dave.dice@oracle.com
 
-On Tue, Dec 17, 2019 at 12:06 AM Stephen Boyd <sboyd@kernel.org> wrote:
->
-> Quoting Brendan Higgins (2019-12-16 14:05:55)
-> > From: David Gow <davidgow@google.com>
-> >
-> > Add a new kernel command-line option, 'kunit_shutdown', which allows the
-> > user to specify that the kernel poweroff, halt, or reboot after
-> > completing all KUnit tests; this is very handy for running KUnit tests
-> > on UML or a VM so that the UML/VM process exits cleanly immediately
-> > after running all tests without needing a special initramfs.
-> >
-> > Signed-off-by: David Gow <davidgow@google.com>
-> > Signed-off-by: Brendan Higgins <brendanhiggins@google.com>
-> > ---
-> >  lib/kunit/executor.c                | 18 ++++++++++++++++++
-> >  tools/testing/kunit/kunit_kernel.py |  2 +-
-> >  tools/testing/kunit/kunit_parser.py |  2 +-
-> >  3 files changed, 20 insertions(+), 2 deletions(-)
->
-> Can you document it in Documentation/admin-guide/kernel-parameters.txt ?
+> On Jan 23, 2020, at 3:39 PM, Waiman Long <longman@redhat.com> wrote:
+>=20
+> On 1/23/20 2:55 PM, Waiman Long wrote:
+>> Playing with lock event counts, I would like you to change the =
+meaning
+>> intra_count parameter that you are tracking. Instead of tracking the
+>> number of times a lock is passed to a waiter of the same node
+>> consecutively, I would like you to track the number of times the head
+>> waiter in the secondary queue has given up its chance to acquire the
+>> lock because a later waiter has jumped the queue and acquire the lock
+>> before it.
+Isn=E2=80=99t that the same thing? Note that we keep track of the number =
+of=20
+intra-node lock transfers only when the secondary queue is not empty.
 
-Ah, yes. That would be a good idea. Sorry, I just expected to be
-shouted at loudly for doing this, and didn't want to expend the effort
-until some people told me that they didn't hate the idea.
+>> This value determines the worst case latency that a secondary
+>> queue waiter can experience. So
+>=20
+> Well, that is not strictly true as a a waiter in the middle of the
+> secondary queue can go back and fro between the queues for a number of
+> times. Of course, if we can ensure that when a FLUSH_SECONDARY_QUEUE =
+is
+> issued, those waiters that were in the secondary queue won't be put =
+back
+> into the secondary queue again.
+This will not work as intended when we have more than 2 nodes. That is, =
+if we
+have threads from node A & B in the secondary queue, and then the queue
+is flushed and its head (say, from node A) gets the lock, we want to =
+push=20
+threads from node B back into the secondary queue, to keep the lock on =
+node A.
+
+And if we have only 2 nodes, a waiter in the middle of the secondary =
+queue will=20
+never go back into the secondary queue, even if the threshold is small.=20=
+
+This is because we flush the secondary queue by putting all its waiters =
+in
+the front of the main queue, and the secondary queue will remain empty =
+at least
+until we reach a thread from another node.
+
+Regards,
+=E2=80=94 Alex=
