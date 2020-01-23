@@ -1,41 +1,67 @@
-From: Jiri Slaby <jslaby@suse.cz>
-Subject: Re: [kernel-hardening] [PATCH 09/38] usercopy: Mark kmalloc caches as
- usercopy caches
-Date: Thu, 23 Jan 2020 09:14:20 +0100
-Message-ID: <bfca96db-bbd0-d958-7732-76e36c667c68@suse.cz>
-References: <1515636190-24061-1-git-send-email-keescook@chromium.org>
- <1515636190-24061-10-git-send-email-keescook@chromium.org>
- <9519edb7-456a-a2fa-659e-3e5a1ff89466@suse.cz>
- <201911121313.1097D6EE@keescook> <201911141327.4DE6510@keescook>
+From: Anshuman Khandual <anshuman.khandual@arm.com>
+Subject: Re: [PATCH 0/2] mm/thp: rework the pmd protect changing flow
+Date: Thu, 23 Jan 2020 13:54:32 +0530
+Message-ID: <50493410-c44c-7ef0-81f9-d4ce9a525c1f@arm.com>
+References: <20200123075514.15142-1-wxf.wang@hisilicon.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-2
+Content-Type: text/plain; charset=utf-8
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm1-f67.google.com ([209.85.128.67]:52446 "EHLO
-        mail-wm1-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1725785AbgAWIO1 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 23 Jan 2020 03:14:27 -0500
-In-Reply-To: <201911141327.4DE6510@keescook>
+Received: from foss.arm.com ([217.140.110.172]:35958 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726061AbgAWIXN (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 23 Jan 2020 03:23:13 -0500
+In-Reply-To: <20200123075514.15142-1-wxf.wang@hisilicon.com>
 Content-Language: en-US
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Kees Cook <keescook@chromium.org>, Alexander Viro <viro@zeniv.linux.org.uk>
-Cc: linux-kernel@vger.kernel.org, David Windsor <dave@nullcore.net>, Pekka Enberg <penberg@kernel.org>, David Rientjes <rientjes@google.com>, Joonsoo Kim <iamjoonsoo.kim@lge.com>, Andrew Morton <akpm@linux-foundation.org>, linux-mm@kvack.org, linux-xfs@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, Christoph Hellwig <hch@infradead.org>, Christoph Lameter <cl@linux.com>, "David S. Miller" <davem@davemloft.net>, Laura Abbott <labbott@redhat.com>, Mark Rutland <mark.rutland@arm.com>, "Martin K. Petersen" <martin.petersen@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Christoffer Dall <christoffer.dall@linaro.org>, Dave Kleikamp <dave.kleikamp@oracle.com>
+To: Xuefeng Wang <wxf.wang@hisilicon.com>, catalin.marinas@arm.com, will@kernel.org, mark.rutland@arm.com, arnd@arndb.de, akpm@linux-foundation.org
+Cc: linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, chenzhou10@huawei.com
 
-On 14. 11. 19, 22:27, Kees Cook wrote:
-> On Tue, Nov 12, 2019 at 01:21:54PM -0800, Kees Cook wrote:
->> How is iucv the only network protocol that has run into this? Do others
->> use a bounce buffer?
+
+
+On 01/23/2020 01:25 PM, Xuefeng Wang wrote:
+> On KunPeng920 board. When changing permission of a large range region,
+> pmdp_invalidate() takes about 65% in profile (with hugepages) in JIT tool.
+> Kernel will flush tlb twice: first flush happens in pmdp_invalidate, second
+> flush happens at the end of change_protect_range(). The first pmdp_invalidate
+> is not necessary if the hardware support atomic pmdp changing. The atomic
+> changing pimd to zero can prevent the hardware from update asynchronous.
+> So reconstruct it and remove the first pmdp_invalidate. And the second tlb
+> flush can make sure the new tlb entry valid.
 > 
-> Another solution would be to use a dedicated kmem cache (instead of the
-> shared kmalloc dma one)?
+> This patch series add a pmdp_modify_prot transaction abstraction firstly.
+> Then add pmdp_modify_prot_start() in arm64, which uses pmdp_huge_get_and_clear()
+> to atomically fetch the pmd and zero the entry.
 
-Has there been any conclusion to this thread yet? For the time being, we
-disabled HARDENED_USERCOPY on s390...
+There is a comment section in change_huge_pmd() which details how clearing
+the PMD entry there (in prot_numa case) can potentially race with another
+concurrent madvise(MADV_DONTNEED, ..) call. Here is the comment block for
+reference.
 
-https://lore.kernel.org/kernel-hardening/9519edb7-456a-a2fa-659e-3e5a1ff89466@suse.cz/
+        /*
+         * In case prot_numa, we are under down_read(mmap_sem). It's critical
+         * to not clear pmd intermittently to avoid race with MADV_DONTNEED
+         * which is also under down_read(mmap_sem):
+         *
+         *      CPU0:                           CPU1:
+         *                              change_huge_pmd(prot_numa=1)
+         *                               pmdp_huge_get_and_clear_notify()
+         * madvise_dontneed()
+         *  zap_pmd_range()
+         *   pmd_trans_huge(*pmd) == 0 (without ptl)
+         *   // skip the pmd
+         *                               set_pmd_at();
+         *                               // pmd is re-established
+         *
+         * The race makes MADV_DONTNEED miss the huge pmd and don't clear it
+         * which may break userspace.
+         *
+         * pmdp_invalidate() is required to make sure we don't miss
+         * dirty/young flags set by hardware.
+         */
 
-thanks,
--- 
-js
-suse labs
+By defining the new override with pmdp_huge_get_and_clear(), are not we
+now exposed to above race condition ?
+
+- Anshuman
