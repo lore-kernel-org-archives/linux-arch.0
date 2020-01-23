@@ -1,166 +1,49 @@
 Return-Path: <owner-linux-mm@kvack.org>
-From: Sandipan Das <sandipan@linux.ibm.com>
-Subject: [PATCH v16 07/23] selftests: vm: pkeys: Add helpers for pkey bits
-Date: Fri, 17 Jan 2020 18:19:46 +0530
-In-Reply-To: <cover.1579265066.git.sandipan@linux.ibm.com>
-References: <cover.1579265066.git.sandipan@linux.ibm.com>
-In-Reply-To: <cover.1579265066.git.sandipan@linux.ibm.com>
-References: <cover.1579265066.git.sandipan@linux.ibm.com>
-Message-ID: <899542624ac1245640966a537599bf9b86077c47.1579265066.git.sandipan@linux.ibm.com>
+From: Xuefeng Wang <wxf.wang@hisilicon.com>
+Subject: [PATCH 0/2] mm/thp: rework the pmd protect changing flow
+Date: Thu, 23 Jan 2020 15:55:11 +0800
+Message-ID: <20200123075514.15142-1-wxf.wang@hisilicon.com>
+MIME-Version: 1.0
+Content-Type: text/plain
 Sender: owner-linux-mm@kvack.org
-To: shuah@kernel.org, linux-kselftest@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, fweimer@redhat.com, dave.hansen@intel.com, x86@kernel.org, linuxram@us.ibm.com, mhocko@kernel.org, linux-mm@kvack.org, mingo@redhat.com, aneesh.kumar@linux.ibm.com, bauerman@linux.ibm.com, msuchanek@suse.de, mpe@ellerman.id.au, linuxppc-dev@lists.ozlabs.org
+To: catalin.marinas@arm.com, will@kernel.org, mark.rutland@arm.com, arnd@arndb.de, akpm@linux-foundation.org
+Cc: linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, chenzhou10@huawei.com, Xuefeng Wang <wxf.wang@hisilicon.com>
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200117124946.MbpaKhhp1OZfdRbE6qOcWbXIzsaHdYEVhH-qw1Wb6Mw@z>
+Message-ID: <20200123075511.2ytfw0FUkB0zJhe4BxLQ0kJ9py5VRC1VsJ_CPKxNYw0@z>
 
-This introduces some functions that help with setting
-or clearing bits of a particular pkey. This also adds
-an abstraction for getting a pkey's bit position in
-the pkey register as this may vary across architectures.
+On KunPeng920 board. When changing permission of a large range region,
+pmdp_invalidate() takes about 65% in profile (with hugepages) in JIT tool.
+Kernel will flush tlb twice: first flush happens in pmdp_invalidate, second
+flush happens at the end of change_protect_range(). The first pmdp_invalidate
+is not necessary if the hardware support atomic pmdp changing. The atomic
+changing pimd to zero can prevent the hardware from update asynchronous.
+So reconstruct it and remove the first pmdp_invalidate. And the second tlb
+flush can make sure the new tlb entry valid.
 
-cc: Dave Hansen <dave.hansen@intel.com>
-cc: Florian Weimer <fweimer@redhat.com>
-cc: Ram Pai <linuxram@us.ibm.com>
-cc: Thiago Jung Bauermann <bauerman@linux.ibm.com>
-Signed-off-by: Sandipan Das <sandipan@linux.ibm.com>
----
- tools/testing/selftests/vm/pkey-helpers.h    | 22 ++++++++++++++
- tools/testing/selftests/vm/pkey-x86.h        |  5 +++
- tools/testing/selftests/vm/protection_keys.c | 32 ++++++--------------
- 3 files changed, 36 insertions(+), 23 deletions(-)
+This patch series add a pmdp_modify_prot transaction abstraction firstly.
+Then add pmdp_modify_prot_start() in arm64, which uses pmdp_huge_get_and_clear()
+to atomically fetch the pmd and zero the entry.
 
-diff --git a/tools/testing/selftests/vm/pkey-helpers.h b/tools/testing/selftests/vm/pkey-helpers.h
-index cc3491a6df2d..df4b46050393 100644
---- a/tools/testing/selftests/vm/pkey-helpers.h
-+++ b/tools/testing/selftests/vm/pkey-helpers.h
-@@ -80,6 +80,28 @@ extern void abort_hooks(void);
- #error Architecture not supported
- #endif /* arch */
+After rework, the mprotect can get 3~13 times performace gain in range
+64M to 512M on KunPeng920:
 
-+#define PKEY_MASK	(PKEY_DISABLE_ACCESS | PKEY_DISABLE_WRITE)
-+
-+static inline u64 set_pkey_bits(u64 reg, int pkey, u64 flags)
-+{
-+	u32 shift = pkey_bit_position(pkey);
-+	/* mask out bits from pkey in old value */
-+	reg &= ~((u64)PKEY_MASK << shift);
-+	/* OR in new bits for pkey */
-+	reg |= (flags & PKEY_MASK) << shift;
-+	return reg;
-+}
-+
-+static inline u64 get_pkey_bits(u64 reg, int pkey)
-+{
-+	u32 shift = pkey_bit_position(pkey);
-+	/*
-+	 * shift down the relevant bits to the lowest two, then
-+	 * mask off all the other higher bits
-+	 */
-+	return ((reg >> shift) & PKEY_MASK);
-+}
-+
- extern u64 shadow_pkey_reg;
+4K granule/THP on
+memory size(M)	64	128	256	320	448	512
+pre-patch	0.77	1.40	2.64	3.23	4.49	5.10
+post-patch	0.20	0.23	0.28	0.31	0.37	0.39
 
- static inline u64 _read_pkey_reg(int line)
-diff --git a/tools/testing/selftests/vm/pkey-x86.h b/tools/testing/selftests/vm/pkey-x86.h
-index dc34ae21e714..f05e45ecaffb 100644
---- a/tools/testing/selftests/vm/pkey-x86.h
-+++ b/tools/testing/selftests/vm/pkey-x86.h
-@@ -118,6 +118,11 @@ static inline int cpu_has_pku(void)
- 	return 1;
- }
+Changes:
+v2:
+ - fix set_pmd_at compile problems
 
-+static inline u32 pkey_bit_position(int pkey)
-+{
-+	return pkey * PKEY_BITS_PER_PKEY;
-+}
-+
- #define XSTATE_PKEY_BIT	(9)
- #define XSTATE_PKEY	0x200
+Xuefeng Wang (2):
+  mm: add helpers pmdp_modify_prot_start/commit
+  arm64: mm: rework the pmd protect changing flow
 
-diff --git a/tools/testing/selftests/vm/protection_keys.c b/tools/testing/selftests/vm/protection_keys.c
-index f36e9e7789ce..3ce5a87804ab 100644
---- a/tools/testing/selftests/vm/protection_keys.c
-+++ b/tools/testing/selftests/vm/protection_keys.c
-@@ -333,25 +333,13 @@ pid_t fork_lazy_child(void)
+ arch/arm64/include/asm/pgtable.h | 14 +++++++++++++
+ include/asm-generic/pgtable.h    | 35 ++++++++++++++++++++++++++++++++
+ mm/huge_memory.c                 | 19 ++++++++---------
+ 3 files changed, 57 insertions(+), 11 deletions(-)
 
- static u32 hw_pkey_get(int pkey, unsigned long flags)
- {
--	u32 mask = (PKEY_DISABLE_ACCESS|PKEY_DISABLE_WRITE);
- 	u64 pkey_reg = __read_pkey_reg();
--	u64 shifted_pkey_reg;
--	u32 masked_pkey_reg;
-
- 	dprintf1("%s(pkey=%d, flags=%lx) = %x / %d\n",
- 			__func__, pkey, flags, 0, 0);
- 	dprintf2("%s() raw pkey_reg: %016lx\n", __func__, pkey_reg);
-
--	shifted_pkey_reg = (pkey_reg >> (pkey * PKEY_BITS_PER_PKEY));
--	dprintf2("%s() shifted_pkey_reg: %016lx\n", __func__,
--			shifted_pkey_reg);
--	masked_pkey_reg = shifted_pkey_reg & mask;
--	dprintf2("%s() masked  pkey_reg: %x\n", __func__, masked_pkey_reg);
--	/*
--	 * shift down the relevant bits to the lowest two, then
--	 * mask off all the other high bits.
--	 */
--	return masked_pkey_reg;
-+	return (u32) get_pkey_bits(pkey_reg, pkey);
- }
-
- static int hw_pkey_set(int pkey, unsigned long rights, unsigned long flags)
-@@ -363,12 +351,8 @@ static int hw_pkey_set(int pkey, unsigned long rights, unsigned long flags)
- 	/* make sure that 'rights' only contains the bits we expect: */
- 	assert(!(rights & ~mask));
-
--	/* copy old pkey_reg */
--	new_pkey_reg = old_pkey_reg;
--	/* mask out bits from pkey in old value: */
--	new_pkey_reg &= ~(mask << (pkey * PKEY_BITS_PER_PKEY));
--	/* OR in new bits for pkey: */
--	new_pkey_reg |= (rights << (pkey * PKEY_BITS_PER_PKEY));
-+	/* modify bits accordingly in old pkey_reg and assign it */
-+	new_pkey_reg = set_pkey_bits(old_pkey_reg, pkey, rights);
-
- 	__write_pkey_reg(new_pkey_reg);
-
-@@ -402,7 +386,7 @@ void pkey_disable_set(int pkey, int flags)
- 	ret = hw_pkey_set(pkey, pkey_rights, syscall_flags);
- 	assert(!ret);
- 	/* pkey_reg and flags have the same format */
--	shadow_pkey_reg |= flags << (pkey * 2);
-+	shadow_pkey_reg = set_pkey_bits(shadow_pkey_reg, pkey, pkey_rights);
- 	dprintf1("%s(%d) shadow: 0x%016lx\n",
- 		__func__, pkey, shadow_pkey_reg);
-
-@@ -436,7 +420,7 @@ void pkey_disable_clear(int pkey, int flags)
- 	pkey_rights |= flags;
-
- 	ret = hw_pkey_set(pkey, pkey_rights, 0);
--	shadow_pkey_reg &= ~(flags << (pkey * 2));
-+	shadow_pkey_reg = set_pkey_bits(shadow_pkey_reg, pkey, pkey_rights);
- 	pkey_assert(ret >= 0);
-
- 	pkey_rights = hw_pkey_get(pkey, syscall_flags);
-@@ -512,7 +496,8 @@ int alloc_pkey(void)
- 			shadow_pkey_reg);
- 	if (ret) {
- 		/* clear both the bits: */
--		shadow_pkey_reg &= ~(0x3      << (ret * 2));
-+		shadow_pkey_reg = set_pkey_bits(shadow_pkey_reg, ret,
-+						~PKEY_MASK);
- 		dprintf4("%s()::%d, ret: %d pkey_reg: 0x%016lx"
- 				" shadow: 0x%016lx\n",
- 				__func__,
-@@ -522,7 +507,8 @@ int alloc_pkey(void)
- 		 * move the new state in from init_val
- 		 * (remember, we cheated and init_val == pkey_reg format)
- 		 */
--		shadow_pkey_reg |=  (init_val << (ret * 2));
-+		shadow_pkey_reg = set_pkey_bits(shadow_pkey_reg, ret,
-+						init_val);
- 	}
- 	dprintf4("%s()::%d, ret: %d pkey_reg: 0x%016lx"
- 			" shadow: 0x%016lx\n",
--- 
+--
 2.17.1
