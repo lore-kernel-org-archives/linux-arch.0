@@ -1,56 +1,45 @@
-From: Borislav Petkov <bp@alien8.de>
-Subject: Re: [PATCH 0/5] x86: finish the MPX removal process
-Date: Thu, 23 Jan 2020 21:26:00 +0100
-Message-ID: <20200123202600.GG10328@zn.tnic>
-References: <20200123190456.8E05ADE6@viggo.jf.intel.com>
- <CAHk-=wgLR5JnaBgCtg0-AAxtdN3=4=LMp6-0212608=vbmCAxg@mail.gmail.com>
+From: Waiman Long <longman@redhat.com>
+Subject: Re: [PATCH v9 4/5] locking/qspinlock: Introduce starvation avoidance
+ into CNA
+Date: Thu, 23 Jan 2020 15:39:00 -0500
+Message-ID: <5f865b62-4867-2c7b-715a-0605759e647f@redhat.com>
+References: <20200115035920.54451-1-alex.kogan@oracle.com>
+ <20200115035920.54451-5-alex.kogan@oracle.com>
+ <f5e31716-d687-f64c-0fc5-f1c9b539c4ff@redhat.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <CAHk-=wgLR5JnaBgCtg0-AAxtdN3=4=LMp6-0212608=vbmCAxg@mail.gmail.com>
+In-Reply-To: <f5e31716-d687-f64c-0fc5-f1c9b539c4ff@redhat.com>
+Content-Language: en-US
 Sender: linux-kernel-owner@vger.kernel.org
-To: Linus Torvalds <torvalds@linux-foundation.org>, Dave Hansen <dave.hansen@linux.intel.com>
-Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, Andrew Lutomirski <luto@kernel.org>, the arch/x86 maintainers <x86@kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Jeff Dike <jdike@addtoit.com>, Richard Weinberger <richard@nod.at>, Anton Ivanov <anton.ivanov@cambridgegreys.com>, Guan Xuetao <gxt@pku.edu.cn>
+To: Alex Kogan <alex.kogan@oracle.com>, linux@armlinux.org.uk, peterz@infradead.org, mingo@redhat.com, will.deacon@arm.com, arnd@arndb.de, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, bp@alien8.de, hpa@zytor.com, x86@kernel.org, guohanjun@huawei.com, jglauber@marvell.com
+Cc: steven.sistare@oracle.com, daniel.m.jordan@oracle.com, dave.dice@oracle.com
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, Jan 23, 2020 at 11:26:38AM -0800, Linus Torvalds wrote:
-> On Thu, Jan 23, 2020 at 11:23 AM Dave Hansen
-> <dave.hansen@linux.intel.com> wrote:
-> >
-> > I'd _rather_ this go in via the x86 tree, but I'm not picky.
+On 1/23/20 2:55 PM, Waiman Long wrote:
+> Playing with lock event counts, I would like you to change the meaning
+> intra_count parameter that you are tracking. Instead of tracking the
+> number of times a lock is passed to a waiter of the same node
+> consecutively, I would like you to track the number of times the head
+> waiter in the secondary queue has given up its chance to acquire the
+> lock because a later waiter has jumped the queue and acquire the lock
+> before it. This value determines the worst case latency that a secondary
+> queue waiter can experience. So
 
-Any particular reason why?
+Well, that is not strictly true as a a waiter in the middle of the
+secondary queue can go back and fro between the queues for a number of
+times. Of course, if we can ensure that when a FLUSH_SECONDARY_QUEUE is
+issued, those waiters that were in the secondary queue won't be put back
+into the secondary queue again. The parameter will then really determine
+the worst case latency.
 
-I mean, I don't care a whole lot either - I just don't see the point,
-see below.
+One way to do it is to store the tail of the secondary queue into the
+CNA node and passed it down the queue until it matches the current
+encoded tail. That will require changing both numa_node and intra_count
+into u16 to squeeze out space for another u32.
 
-> I have no strong feelings either way. I'll happily pull this tree for
-> the 5.6 merge window directly from you, or get it as part of one of
-> the x86 -tip pull requests.
-> 
-> Up to you and the -tip maintainers, really. Thomas/Ingo/Borislav?
+That will also make the code a bit easier to analyze.
 
-My reasoning to suggest to go directly to you is that there's
-practically not a whole lotta sense to add a separate branch to tip,
-merge Dave's tree and have a merge commit of the mpx branch only which
-you then merge into your master.
-
-Or I can apply each patch separately and then send you that branch so
-that there's no pointless merge commit in the history before you merge
-it but we get the same if you merge Dave's branch directly...
-
-Oh and btw: I ran a bunch of build smoke tests today of the mpx removal
-branch with tip/master merged in and except for a trivial include fix,
-there were no issues.
-
-But if someone points out a valid argument why it should go through tip,
-I'll gladly do it.
-
-Thx guys.
-
--- 
-Regards/Gruss,
-    Boris.
-
-https://people.kernel.org/tglx/notes-about-netiquette
+Cheers,
+Longman
