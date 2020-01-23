@@ -1,168 +1,84 @@
-Return-Path: <SRS0=zjVl=3K=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail-wr1-f73.google.com ([209.85.221.73]:47490 "EHLO
-        mail-wr1-f73.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727817AbgAUQF2 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jan 2020 11:05:28 -0500
-Received: by mail-wr1-f73.google.com with SMTP id f10so1514089wro.14
-        for <linux-arch@vger.kernel.org>; Tue, 21 Jan 2020 08:05:27 -0800 (PST)
-Date: Tue, 21 Jan 2020 17:05:08 +0100
-Message-ID: <20200121160512.70887-1-elver@google.com>
-Mime-Version: 1.0
-Subject: [PATCH v2 1/5] include/linux: Add instrumented.h infrastructure
-From: Marco Elver <elver@google.com>
-Content-Type: text/plain; charset="UTF-8"
+Return-Path: <SRS0=XOKs=3M=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from merlin.infradead.org ([205.233.59.134]:60824 "EHLO
+        merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726026AbgAWKHE (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 23 Jan 2020 05:07:04 -0500
+Date: Thu, 23 Jan 2020 11:06:35 +0100
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH v9 3/5] locking/qspinlock: Introduce CNA into the slow
+ path of qspinlock
+Message-ID: <20200123100635.GE14946@hirez.programming.kicks-ass.net>
+References: <20200115035920.54451-1-alex.kogan@oracle.com>
+ <20200115035920.54451-4-alex.kogan@oracle.com>
+ <20200123092658.GC14879@hirez.programming.kicks-ass.net>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20200123092658.GC14879@hirez.programming.kicks-ass.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: elver@google.com
-Cc: paulmck@kernel.org, andreyknvl@google.com, glider@google.com, dvyukov@google.com, kasan-dev@googlegroups.com, linux-kernel@vger.kernel.org, mark.rutland@arm.com, will@kernel.org, peterz@infradead.org, boqun.feng@gmail.com, arnd@arndb.de, viro@zeniv.linux.org.uk, dja@axtens.net, christophe.leroy@c-s.fr, mpe@ellerman.id.au, mhiramat@kernel.org, rostedt@goodmis.org, mingo@kernel.org, christian.brauner@ubuntu.com, daniel@iogearbox.net, keescook@chromium.org, cyphar@cyphar.com, linux-arch@vger.kernel.org
-Message-ID: <20200121160508.l2QU1Eai54gek4RidFnAMDLqCfkJzorJxPMMTL8h__k@z>
+To: Alex Kogan <alex.kogan@oracle.com>
+Cc: linux@armlinux.org.uk, mingo@redhat.com, will.deacon@arm.com, arnd@arndb.de, longman@redhat.com, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, bp@alien8.de, hpa@zytor.com, x86@kernel.org, guohanjun@huawei.com, jglauber@marvell.com, steven.sistare@oracle.com, daniel.m.jordan@oracle.com, dave.dice@oracle.com
+Message-ID: <20200123100635.mT2PgmqZwQAFSBKWSUMU1Ght3g2YwUOzXhXbVyvbOBA@z>
 
-This adds instrumented.h, which provides generic wrappers for memory
-access instrumentation that the compiler cannot emit for various
-sanitizers. Currently this unifies KASAN and KCSAN instrumentation. In
-future this will also include KMSAN instrumentation.
+On Thu, Jan 23, 2020 at 10:26:58AM +0100, Peter Zijlstra wrote:
+> On Tue, Jan 14, 2020 at 10:59:18PM -0500, Alex Kogan wrote:
+> > +/* this function is called only when the primary queue is empty */
+> > +static inline bool cna_try_change_tail(struct qspinlock *lock, u32 val,
+> > +				       struct mcs_spinlock *node)
+> > +{
+> > +	struct mcs_spinlock *head_2nd, *tail_2nd;
+> > +	u32 new;
+> > +
+> > +	/* If the secondary queue is empty, do what MCS does. */
+> > +	if (node->locked <= 1)
+> > +		return __try_clear_tail(lock, val, node);
+> > +
+> > +	/*
+> > +	 * Try to update the tail value to the last node in the secondary queue.
+> > +	 * If successful, pass the lock to the first thread in the secondary
+> > +	 * queue. Doing those two actions effectively moves all nodes from the
+> > +	 * secondary queue into the main one.
+> > +	 */
+> > +	tail_2nd = decode_tail(node->locked);
+> > +	head_2nd = tail_2nd->next;
+> > +	new = ((struct cna_node *)tail_2nd)->encoded_tail + _Q_LOCKED_VAL;
+> > +
+> > +	if (atomic_try_cmpxchg_relaxed(&lock->val, &val, new)) {
+> > +		/*
+> > +		 * Try to reset @next in tail_2nd to NULL, but no need to check
+> > +		 * the result - if failed, a new successor has updated it.
+> > +		 */
+> 
+> I think you actually have an ordering bug here; the load of head_2nd
+> *must* happen before the atomic_try_cmpxchg(), otherwise it might
+> observe the new next and clear a valid next pointer.
+> 
+> What would be the best fix for that; I'm thinking:
+> 
+> 	head_2nd = smp_load_acquire(&tail_2nd->next);
+> 
+> Will?
 
-Note that, copy_{to,from}_user should use special instrumentation, since
-we should be able to instrument both source and destination memory
-accesses if both are kernel memory.
+Hmm, given we've not passed the lock around yet; why wouldn't something
+like this work:
 
-The current patch only instruments the memory access where the address
-is always in kernel space, however, both may in fact be kernel addresses
-when a compat syscall passes an argument allocated in the kernel to a
-real syscall. In a future change, both KASAN and KCSAN should check both
-addresses in such cases, as well as KMSAN will make use of both
-addresses. [It made more sense to provide the completed function
-signature, rather than updating it and changing all locations again at a
-later time.]
+	smp_store_release(&tail_2nd->next, NULL);
 
-Suggested-by: Arnd Bergmann <arnd@arndb.de>
-Signed-off-by: Marco Elver <elver@google.com>
-Acked-by: Alexander Potapenko <glider@google.com>
----
-v2:
-* Simplify header, since we currently do not need pre/post user-copy
-  distinction.
-* Make instrument_copy_{to,from}_user function arguments match
-  copy_{to,from}_user and update rationale in commit message.
----
- include/linux/instrumented.h | 109 +++++++++++++++++++++++++++++++++++
- 1 file changed, 109 insertions(+)
- create mode 100644 include/linux/instrumented.h
+	if (!atomic_try_cmpxchg_relaxed(&lock, &val, new)) {
+		tail_2nd->next = head_2nd;
+		return false;
+	}
 
-diff --git a/include/linux/instrumented.h b/include/linux/instrumented.h
-new file mode 100644
-index 000000000000..43e6ea591975
---- /dev/null
-+++ b/include/linux/instrumented.h
-@@ -0,0 +1,109 @@
-+/* SPDX-License-Identifier: GPL-2.0 */
-+
-+/*
-+ * This header provides generic wrappers for memory access instrumentation that
-+ * the compiler cannot emit for: KASAN, KCSAN.
-+ */
-+#ifndef _LINUX_INSTRUMENTED_H
-+#define _LINUX_INSTRUMENTED_H
-+
-+#include <linux/compiler.h>
-+#include <linux/kasan-checks.h>
-+#include <linux/kcsan-checks.h>
-+#include <linux/types.h>
-+
-+/**
-+ * instrument_read - instrument regular read access
-+ *
-+ * Instrument a regular read access. The instrumentation should be inserted
-+ * before the actual read happens.
-+ *
-+ * @ptr address of access
-+ * @size size of access
-+ */
-+static __always_inline void instrument_read(const volatile void *v, size_t size)
-+{
-+	kasan_check_read(v, size);
-+	kcsan_check_read(v, size);
-+}
-+
-+/**
-+ * instrument_write - instrument regular write access
-+ *
-+ * Instrument a regular write access. The instrumentation should be inserted
-+ * before the actual write happens.
-+ *
-+ * @ptr address of access
-+ * @size size of access
-+ */
-+static __always_inline void instrument_write(const volatile void *v, size_t size)
-+{
-+	kasan_check_write(v, size);
-+	kcsan_check_write(v, size);
-+}
-+
-+/**
-+ * instrument_atomic_read - instrument atomic read access
-+ *
-+ * Instrument an atomic read access. The instrumentation should be inserted
-+ * before the actual read happens.
-+ *
-+ * @ptr address of access
-+ * @size size of access
-+ */
-+static __always_inline void instrument_atomic_read(const volatile void *v, size_t size)
-+{
-+	kasan_check_read(v, size);
-+	kcsan_check_atomic_read(v, size);
-+}
-+
-+/**
-+ * instrument_atomic_write - instrument atomic write access
-+ *
-+ * Instrument an atomic write access. The instrumentation should be inserted
-+ * before the actual write happens.
-+ *
-+ * @ptr address of access
-+ * @size size of access
-+ */
-+static __always_inline void instrument_atomic_write(const volatile void *v, size_t size)
-+{
-+	kasan_check_write(v, size);
-+	kcsan_check_atomic_write(v, size);
-+}
-+
-+/**
-+ * instrument_copy_to_user - instrument reads of copy_to_user
-+ *
-+ * Instrument reads from kernel memory, that are due to copy_to_user (and
-+ * variants). The instrumentation must be inserted before the accesses.
-+ *
-+ * @to destination address
-+ * @from source address
-+ * @n number of bytes to copy
-+ */
-+static __always_inline void
-+instrument_copy_to_user(void __user *to, const void *from, unsigned long n)
-+{
-+	kasan_check_read(from, n);
-+	kcsan_check_read(from, n);
-+}
-+
-+/**
-+ * instrument_copy_from_user - instrument writes of copy_from_user
-+ *
-+ * Instrument writes to kernel memory, that are due to copy_from_user (and
-+ * variants). The instrumentation should be inserted before the accesses.
-+ *
-+ * @to destination address
-+ * @from source address
-+ * @n number of bytes to copy
-+ */
-+static __always_inline void
-+instrument_copy_from_user(const void *to, const void __user *from, unsigned long n)
-+{
-+	kasan_check_write(to, n);
-+	kcsan_check_write(to, n);
-+}
-+
-+#endif /* _LINUX_INSTRUMENTED_H */
--- 
-2.25.0.341.g760bfbb309-goog
+The whole second queue is only ever modified by the lock owner, and that
+is us, so we can pre-terminate the secondary queue (break the circular
+link), try the cmpxchg and fix it back up when it fails.
+
+
+> > +		cmpxchg_relaxed(&tail_2nd->next, head_2nd, NULL);
+> > +		arch_mcs_pass_lock(&head_2nd->locked, 1);
+> > +		return true;
+> > +	}
+> > +
+> > +	return false;
+> > +}
