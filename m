@@ -1,47 +1,70 @@
-Return-Path: <SRS0=fNgb=3C=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:35962 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1728512AbgAMPB5 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 13 Jan 2020 10:01:57 -0500
-Date: Mon, 13 Jan 2020 15:01:52 +0000
-From: Will Deacon <will@kernel.org>
-Subject: Re: [RFC PATCH 7/8] locking/barriers: Use '__unqual_scalar_typeof'
- for load-acquire macros
-Message-ID: <20200113150151.GC4458@willie-the-truck>
-References: <20200110165636.28035-1-will@kernel.org>
- <20200110165636.28035-8-will@kernel.org>
- <CAK8P3a2dBFiu37_YAvpoug-+RkKqq3i+8-Tkv5HPBag3JAEJrA@mail.gmail.com>
+Return-Path: <SRS0=XOKs=3M=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from merlin.infradead.org ([205.233.59.134]:34794 "EHLO
+        merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727847AbgAWP3y (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 23 Jan 2020 10:29:54 -0500
+Date: Thu, 23 Jan 2020 16:29:18 +0100
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH v9 3/5] locking/qspinlock: Introduce CNA into the slow
+ path of qspinlock
+Message-ID: <20200123152918.GD14879@hirez.programming.kicks-ass.net>
+References: <20200115035920.54451-1-alex.kogan@oracle.com>
+ <20200115035920.54451-4-alex.kogan@oracle.com>
+ <d751a8ef-aae8-ca70-6a28-79dd8bee2324@redhat.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <CAK8P3a2dBFiu37_YAvpoug-+RkKqq3i+8-Tkv5HPBag3JAEJrA@mail.gmail.com>
+In-Reply-To: <d751a8ef-aae8-ca70-6a28-79dd8bee2324@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Android Kernel Team <kernel-team@android.com>, Michael Ellerman <mpe@ellerman.id.au>, Peter Zijlstra <peterz@infradead.org>, Linus Torvalds <torvalds@linux-foundation.org>, Segher Boessenkool <segher@kernel.crashing.org>, Christian Borntraeger <borntraeger@de.ibm.com>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>
-Message-ID: <20200113150152.cPwXb3rvYk8b24O0ilnZL2Yi-07PFiPP8gyWXWSuqhM@z>
+To: Waiman Long <longman@redhat.com>
+Cc: Alex Kogan <alex.kogan@oracle.com>, linux@armlinux.org.uk, mingo@redhat.com, will.deacon@arm.com, arnd@arndb.de, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, bp@alien8.de, hpa@zytor.com, x86@kernel.org, guohanjun@huawei.com, jglauber@marvell.com, steven.sistare@oracle.com, daniel.m.jordan@oracle.com, dave.dice@oracle.com
+Message-ID: <20200123152918.xJLugrLfwuja7PT2cqtANSsrWg4HkqGyjbAeaprO1rQ@z>
 
-On Fri, Jan 10, 2020 at 08:42:37PM +0100, Arnd Bergmann wrote:
-> On Fri, Jan 10, 2020 at 5:57 PM Will Deacon <will@kernel.org> wrote:
+On Thu, Jan 23, 2020 at 09:15:55AM -0500, Waiman Long wrote:
+> On 1/14/20 10:59 PM, Alex Kogan wrote:
+> > +static int __init cna_init_nodes(void)
+> > +{
+> > +	unsigned int cpu;
+> > +
+> > +	/*
+> > +	 * this will break on 32bit architectures, so we restrict
+> > +	 * the use of CNA to 64bit only (see arch/x86/Kconfig)
+> > +	 */
+> > +	BUILD_BUG_ON(sizeof(struct cna_node) > sizeof(struct qnode));
+> > +	/* we store an ecoded tail word in the node's @locked field */
+> > +	BUILD_BUG_ON(sizeof(u32) > sizeof(unsigned int));
+> > +
+> > +	for_each_possible_cpu(cpu)
+> > +		cna_init_nodes_per_cpu(cpu);
+> > +
+> > +	return 0;
+> > +}
+> > +early_initcall(cna_init_nodes);
+> > +
 > 
-> > @@ -128,10 +128,10 @@ do {                                                                      \
-> >  #ifndef __smp_load_acquire
-> >  #define __smp_load_acquire(p)                                          \
-> >  ({                                                                     \
-> > -       typeof(*p) ___p1 = READ_ONCE(*p);                               \
-> > +       __unqual_scalar_typeof(*p) ___p1 = READ_ONCE(*p);               \
-> >         compiletime_assert_atomic_type(*p);                             \
-> >         __smp_mb();                                                     \
-> > -       ___p1;                                                          \
-> > +       (typeof(*p))___p1;                                              \
-> >  })
+> I just realized that you shouldn't call cna_init_nodes as an
+> early_initcall. Instead,
 > 
-> Doesn't that last  (typeof(*p))___p1 mean you put the potential
-> 'volatile' back on the assignment after you went through the
-> effort of taking it out?
+> > +/*
+> > + * Switch to the NUMA-friendly slow path for spinlocks when we have
+> > + * multiple NUMA nodes in native environment, unless the user has
+> > + * overridden this default behavior by setting the numa_spinlock flag.
+> > + */
+> > +void __init cna_configure_spin_lock_slowpath(void)
+> > +{
+> > +	if ((numa_spinlock_flag == 1) ||
+> > +	    (numa_spinlock_flag == 0 && nr_node_ids > 1 &&
+> > +		    pv_ops.lock.queued_spin_lock_slowpath ==
+> > +			native_queued_spin_lock_slowpath)) {
+> > +		pv_ops.lock.queued_spin_lock_slowpath =
+> > +		    __cna_queued_spin_lock_slowpath;
+> > +
+> > +		pr_info("Enabling CNA spinlock\n");
+> > +	}
+> > +}
+> 
+> call it when it is sure that CNA spinlock is going to be used. At this
+> point, the system is still in UP mode and the slowpath will not be called.
 
-Yes, but that's ok wrt codegen since the local variable isn't volatile,
-and I definitely ran into issues with 'const' if I returned the unqualified
-type here.
-
-Will
+Indeed, let me go fix that!
