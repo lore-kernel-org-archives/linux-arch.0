@@ -1,65 +1,86 @@
-Return-Path: <SRS0=HZcf=3N=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from us-smtp-delivery-1.mimecast.com ([207.211.31.120]:60869 "EHLO
-        us-smtp-1.mimecast.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-        with ESMTP id S1726173AbgAXPTd (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 24 Jan 2020 10:19:33 -0500
-Subject: Re: [PATCH v8 4/5] locking/qspinlock: Introduce starvation avoidance
- into CNA
-From: Waiman Long <longman@redhat.com>
-References: <20191230194042.67789-1-alex.kogan@oracle.com>
- <20191230194042.67789-5-alex.kogan@oracle.com>
- <20200121132949.GL14914@hirez.programming.kicks-ass.net>
- <cfdf635d-be2e-9d4b-c4ca-6bcbddc6868f@redhat.com>
- <3862F8A1-FF9B-40AD-A88E-2C0BA7AF6F58@oracle.com>
- <20200124075235.GX14914@hirez.programming.kicks-ass.net>
- <2c6741c5-d89d-4b2c-cebe-a7c7f6eed884@redhat.com>
-Message-ID: <48ce49e5-98a7-23cd-09f4-8290a65abbb5@redhat.com>
-Date: Fri, 24 Jan 2020 10:19:14 -0500
+Return-Path: <SRS0=XOKs=3M=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail.kernel.org ([198.145.29.99]:48480 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726191AbgAWLfz (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 23 Jan 2020 06:35:55 -0500
+Date: Thu, 23 Jan 2020 11:35:47 +0000
+From: Will Deacon <will@kernel.org>
+Subject: Re: [PATCH v9 0/5] Add NUMA-awareness to qspinlock
+Message-ID: <20200123113547.GD18991@willie-the-truck>
+References: <20200115035920.54451-1-alex.kogan@oracle.com>
+ <CAC4j=Y8rCeTX9oKKbh+dCdTP8Ud4hW1ybu+iE7t_nxMSYBOR5w@mail.gmail.com>
+ <4e15fa1d-9540-3274-502a-4195a0d46f63@redhat.com>
 MIME-Version: 1.0
-In-Reply-To: <2c6741c5-d89d-4b2c-cebe-a7c7f6eed884@redhat.com>
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
-Content-Language: en-US
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <4e15fa1d-9540-3274-502a-4195a0d46f63@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>, Alex Kogan <alex.kogan@oracle.com>
-Cc: linux@armlinux.org.uk, Ingo Molnar <mingo@redhat.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-arm-kernel <linux-arm-kernel@lists.infradead.org>, linux-kernel@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>, Borislav Petkov <bp@alien8.de>, hpa@zytor.com, x86@kernel.org, Hanjun Guo <guohanjun@huawei.com>, Jan Glauber <jglauber@marvell.com>, Steven Sistare <steven.sistare@oracle.com>, Daniel Jordan <daniel.m.jordan@oracle.com>, dave.dice@oracle.com
-Message-ID: <20200124151914.UAYBAZEgQT0BGyJrmPcMLypw2k33wGrKbb1R4jsN_r8@z>
+To: Waiman Long <longman@redhat.com>
+Cc: Lihao Liang <lihaoliang@google.com>, Alex Kogan <alex.kogan@oracle.com>, linux@armlinux.org.uk, peterz@infradead.org, mingo@redhat.com, will.deacon@arm.com, arnd@arndb.de, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, bp@alien8.de, hpa@zytor.com, x86@kernel.org, guohanjun@huawei.com, jglauber@marvell.com, dave.dice@oracle.com, steven.sistare@oracle.com, daniel.m.jordan@oracle.com
+Message-ID: <20200123113547.rsUjCwEJhL9QxrdS75810Z7HbQkJ2pwSP6VxRi_FSRk@z>
 
-On 1/24/20 9:42 AM, Waiman Long wrote:
-> On 1/24/20 2:52 AM, Peter Zijlstra wrote:
->> On Thu, Jan 23, 2020 at 04:33:54PM -0500, Alex Kogan wrote:
->>> Let me put this question to you. What do you think the number should be?
->> I think it would be very good to keep the inter-node latency below 1ms.
-> It is hard to guarantee that given that lock hold times can vary quite a
-> lot depending on the workload. What we can control is just how many
-> later lock waiters can jump ahead before a given waiter.
->> But to realize that we need data on the lock hold times. Specifically
->> for the heavily contended locks that make CNA worth it in the first
->> place.
->>
->> I don't see that data, so I don't see how we can argue about this let
->> alone call something reasonable.
->>
-> In essence, CNA lock is for improving throughput on NUMA machines at the
-> expense of increasing worst case latency. If low latency is important,
-> it should be disabled. If CONFIG_PREEMPT_RT is on,
-> CONFIG_NUMA_AWARE_SPINLOCKS should be off.
+Hi folks,
 
-Actually, what we are worrying about is the additional latency that can
-be added to important tasks or execution contexts that are waiting for a
-lock. Maybe we can make CNA lock behaves somewhat like qrwlock is that
-requests from interrupt context are giving priority. We could add a
-priority flag in the CNA node. If the flag is set, we will never put it
-into the secondary queue. In fact, we can transfer control next to it
-even if it is not on the same node. We may also set the priority flag if
-it is a RT task that is trying to acquire the lock.
+(I think Lihao is travelling at the moment, so he may be delayed in his
+replies)
 
-In this way, we can guarantee that important tasks or contexts will not
-suffer a delay in acquiring the lock. Those less important tasks,
-however, may need to wait a bit longer before they can get the lock.
+On Wed, Jan 22, 2020 at 12:24:58PM -0500, Waiman Long wrote:
+> On 1/22/20 6:45 AM, Lihao Liang wrote:
+> > On Wed, Jan 22, 2020 at 10:28 AM Alex Kogan <alex.kogan@oracle.com> wrote:
+> >> Summary
+> >> -------
+> >>
+> >> Lock throughput can be increased by handing a lock to a waiter on the
+> >> same NUMA node as the lock holder, provided care is taken to avoid
+> >> starvation of waiters on other NUMA nodes. This patch introduces CNA
+> >> (compact NUMA-aware lock) as the slow path for qspinlock. It is
+> >> enabled through a configuration option (NUMA_AWARE_SPINLOCKS).
+> >>
+> > Thanks for your patches. The experimental results look promising!
+> >
+> > I understand that the new CNA qspinlock uses randomization to achieve
+> > long-term fairness, and provides the numa_spinlock_threshold parameter
+> > for users to tune. As Linux runs extremely diverse workloads, it is not
+> > clear how randomization affects its fairness, and how users with
+> > different requirements are supposed to tune this parameter.
+> >
+> > To this end, Will and I consider it beneficial to be able to answer the
+> > following question:
+> >
+> > With different values of numa_spinlock_threshold and
+> > SHUFFLE_REDUCTION_PROB_ARG, how long do threads running on different
+> > sockets have to wait to acquire the lock? This is particularly relevant
+> > in high contention situations when new threads keep arriving on the same
+> > socket as the lock holder.
+> >
+> > In this email, I try to provide some formal analysis to address this
+> > question. Let's assume the probability for the lock to stay on the
+> > same socket is *at least* p, which corresponds to the probability for
+> > the function probably(unsigned int num_bits) in the patch to return *false*,
+> > where SHUFFLE_REDUCTION_PROB_ARG is passed as the value of num_bits to the
+> > function.
+> 
+> That is not strictly true from my understanding of the code. The
+> probably() function does not come into play if a secondary queue is
+> present. Also calling cna_scan_main_queue() doesn't guarantee that a
+> waiter in the same node can be found. So the simple mathematical
+> analysis isn't that applicable in this case. One will have to do an
+> actual simulation to find out what the actual behavior will be.
 
-What do you guys think about that?
+It's certainly true that the analysis is based on the worst-case scenario,
+but I think it's still worth considering. For example, the secondary queue
+does not exist initially so it seems a bit odd that we only instantiate it
+with < 1% probability.
 
-Regards,
-Longman
+That said, my real concern with any of this is that it makes formal
+modelling and analysis of the qspinlock considerably more challenging. I
+would /really/ like to see an update to the TLA+ model we have of the
+current implementation [1] and preferably also the userspace version I
+hacked together [2] so that we can continue to test and validate changes
+to the code outside of the usual kernel stress-testing.
+
+Will
+
+[1] https://git.kernel.org/pub/scm/linux/kernel/git/cmarinas/kernel-tla.git/
+[2] https://mirrors.edge.kernel.org/pub/linux/kernel/people/will/spinbench/
