@@ -1,67 +1,41 @@
-From: Xuefeng Wang <wxf.wang@hisilicon.com>
-Subject: [PATCH v2 2/2] arm64: mm: rework the pmd protect changing flow
-Date: Thu, 23 Jan 2020 15:55:13 +0800
-Message-ID: <20200123075514.15142-3-wxf.wang@hisilicon.com>
-References: <20200123075514.15142-1-wxf.wang@hisilicon.com>
+From: Jiri Slaby <jslaby@suse.cz>
+Subject: Re: [kernel-hardening] [PATCH 09/38] usercopy: Mark kmalloc caches as
+ usercopy caches
+Date: Thu, 23 Jan 2020 09:14:20 +0100
+Message-ID: <bfca96db-bbd0-d958-7732-76e36c667c68@suse.cz>
+References: <1515636190-24061-1-git-send-email-keescook@chromium.org>
+ <1515636190-24061-10-git-send-email-keescook@chromium.org>
+ <9519edb7-456a-a2fa-659e-3e5a1ff89466@suse.cz>
+ <201911121313.1097D6EE@keescook> <201911141327.4DE6510@keescook>
 Mime-Version: 1.0
-Content-Type: text/plain
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20200123075514.15142-1-wxf.wang@hisilicon.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: catalin.marinas@arm.com, will@kernel.org, mark.rutland@arm.com, arnd@arndb.de, akpm@linux-foundation.org
-Cc: linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, chenzhou10@huawei.com, Xuefeng Wang <wxf.wang@hisilicon.com>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=iso-8859-2
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-wm1-f67.google.com ([209.85.128.67]:52446 "EHLO
+        mail-wm1-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1725785AbgAWIO1 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 23 Jan 2020 03:14:27 -0500
+In-Reply-To: <201911141327.4DE6510@keescook>
+Content-Language: en-US
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Kees Cook <keescook@chromium.org>, Alexander Viro <viro@zeniv.linux.org.uk>
+Cc: linux-kernel@vger.kernel.org, David Windsor <dave@nullcore.net>, Pekka Enberg <penberg@kernel.org>, David Rientjes <rientjes@google.com>, Joonsoo Kim <iamjoonsoo.kim@lge.com>, Andrew Morton <akpm@linux-foundation.org>, linux-mm@kvack.org, linux-xfs@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, Christoph Hellwig <hch@infradead.org>, Christoph Lameter <cl@linux.com>, "David S. Miller" <davem@davemloft.net>, Laura Abbott <labbott@redhat.com>, Mark Rutland <mark.rutland@arm.com>, "Martin K. Petersen" <martin.petersen@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Christoffer Dall <christoffer.dall@linaro.org>, Dave Kleikamp <dave.kleikamp@oracle.com>
 
-On KunPeng920 board. When changing permission of a large range region,
-pmdp_invalidate() takes about 65% in profile (with hugepages) in JIT tool.
-Kernel will flush tlb twice: first flush happens in pmdp_invalidate, second
-flush happens at the end of change_protect_range(). The first pmdp_invalidate
-is not necessary if the hardware support atomic pmdp changing. The atomic
-changing pimd to zero can prevent the hardware from update asynchronous.
-So reconstruct it and remove the first pmdp_invalidate. And the second tlb
-flush can make sure the new tlb entry valid.
+On 14. 11. 19, 22:27, Kees Cook wrote:
+> On Tue, Nov 12, 2019 at 01:21:54PM -0800, Kees Cook wrote:
+>> How is iucv the only network protocol that has run into this? Do others
+>> use a bounce buffer?
+> 
+> Another solution would be to use a dedicated kmem cache (instead of the
+> shared kmalloc dma one)?
 
-Add pmdp_modify_prot_start() in arm64, which uses pmdp_huge_get_and_clear()
-to fetch the pmd and zero entry, preventing racing of any hardware updates.
+Has there been any conclusion to this thread yet? For the time being, we
+disabled HARDENED_USERCOPY on s390...
 
-After rework, the mprotect can get 3~13 times performace gain in range
-64M to 512M.
+https://lore.kernel.org/kernel-hardening/9519edb7-456a-a2fa-659e-3e5a1ff89466@suse.cz/
 
-4K granule/THP on
-memory size(M)	64	128	256	320	448	512
-pre-patch	0.77	1.40	2.64	3.23	4.49	5.10
-post-patch	0.20	0.23	0.28	0.31	0.37	0.39
-
-Signed-off-by: Xuefeng Wang <wxf.wang@hisilicon.com>
-Signed-off-by: Chen Zhou <chenzhou10@huawei.com>
----
- arch/arm64/include/asm/pgtable.h | 14 ++++++++++++++
- 1 file changed, 14 insertions(+)
-
-diff --git a/arch/arm64/include/asm/pgtable.h b/arch/arm64/include/asm/pgtable.h
-index cd5de0e40bfa..bccdaa5bd5f2 100644
---- a/arch/arm64/include/asm/pgtable.h
-+++ b/arch/arm64/include/asm/pgtable.h
-@@ -769,6 +769,20 @@ static inline pmd_t pmdp_huge_get_and_clear(struct mm_struct *mm,
- }
- #endif /* CONFIG_TRANSPARENT_HUGEPAGE */
-
-+#ifdef CONFIG_TRANSPARENT_HUGEPAGE
-+#define __HAVE_ARCH_PMDP_MODIFY_PROT_TRANSACTION
-+static inline pmd_t pmdp_modify_prot_start(struct vm_area_struct *vma,
-+						unsigned long addr,
-+						pmd_t *pmdp)
-+{
-+	/*
-+	 * Atomic change pmd to zero, prevent the hardware from update
-+	 * aynchronously update it.
-+	 */
-+	return pmdp_huge_get_and_clear(vma->vm_mm, addr, pmdp);
-+}
-+#endif /* CONFIG_TRANSPARENT_HUGEPAGE */
-+
- /*
-  * ptep_set_wrprotect - mark read-only while trasferring potential hardware
-  * dirty status (PTE_DBM && !PTE_RDONLY) to the software PTE_DIRTY bit.
---
-2.17.1
+thanks,
+-- 
+js
+suse labs
