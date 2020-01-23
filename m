@@ -1,44 +1,34 @@
-Return-Path: <SRS0=zjVl=3K=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:41306 "EHLO
-        merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1725789AbgAUJQH (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jan 2020 04:16:07 -0500
-Date: Tue, 21 Jan 2020 10:15:01 +0100
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH 3/5] asm-generic, kcsan: Add KCSAN instrumentation for
- bitops
-Message-ID: <20200121091501.GF14914@hirez.programming.kicks-ass.net>
-References: <20200120141927.114373-1-elver@google.com>
- <20200120141927.114373-3-elver@google.com>
- <20200120144048.GB14914@hirez.programming.kicks-ass.net>
- <20200120162725.GE2935@paulmck-ThinkPad-P72>
- <20200120165223.GC14914@hirez.programming.kicks-ass.net>
- <20200120202359.GF2935@paulmck-ThinkPad-P72>
+Return-Path: <SRS0=XOKs=3M=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mga01.intel.com ([192.55.52.88]:39674 "EHLO mga01.intel.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1728765AbgAWVXg (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 23 Jan 2020 16:23:36 -0500
+Subject: Re: [PATCH 0/5] x86: finish the MPX removal process
+References: <20200123190456.8E05ADE6@viggo.jf.intel.com>
+ <CAHk-=wgLR5JnaBgCtg0-AAxtdN3=4=LMp6-0212608=vbmCAxg@mail.gmail.com>
+ <20200123202600.GG10328@zn.tnic>
+From: Dave Hansen <dave.hansen@intel.com>
+Message-ID: <636d5f4b-c47f-77f6-067f-a6b342db5650@intel.com>
+Date: Thu, 23 Jan 2020 13:23:35 -0800
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20200120202359.GF2935@paulmck-ThinkPad-P72>
+In-Reply-To: <20200123202600.GG10328@zn.tnic>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Paul E. McKenney" <paulmck@kernel.org>
-Cc: Marco Elver <elver@google.com>, andreyknvl@google.com, glider@google.com, dvyukov@google.com, kasan-dev@googlegroups.com, linux-kernel@vger.kernel.org, mark.rutland@arm.com, will@kernel.org, boqun.feng@gmail.com, arnd@arndb.de, viro@zeniv.linux.org.uk, christophe.leroy@c-s.fr, dja@axtens.net, mpe@ellerman.id.au, rostedt@goodmis.org, mhiramat@kernel.org, mingo@kernel.org, christian.brauner@ubuntu.com, daniel@iogearbox.net, cyphar@cyphar.com, keescook@chromium.org, linux-arch@vger.kernel.org
-Message-ID: <20200121091501.SZ42_151ZfoJEr8YiwHsMMpE6r_VVXRwcfyn7ZgSE60@z>
+To: Borislav Petkov <bp@alien8.de>, Linus Torvalds <torvalds@linux-foundation.org>, Dave Hansen <dave.hansen@linux.intel.com>
+Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, Andrew Lutomirski <luto@kernel.org>, the arch/x86 maintainers <x86@kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Jeff Dike <jdike@addtoit.com>, Richard Weinberger <richard@nod.at>, Anton Ivanov <anton.ivanov@cambridgegreys.com>, Guan Xuetao <gxt@pku.edu.cn>
+Message-ID: <20200123212335.kv5O-roDp3R1Np2krkYdbledED0H_blRCU5aOVs9VDU@z>
 
-On Mon, Jan 20, 2020 at 12:23:59PM -0800, Paul E. McKenney wrote:
-> We also don't have __atomic_read() and __atomic_set(), yet atomic_read()
-> and atomic_set() are considered to be non-racy, right?
+On 1/23/20 12:26 PM, Borislav Petkov wrote:
+> On Thu, Jan 23, 2020 at 11:26:38AM -0800, Linus Torvalds wrote:
+>> On Thu, Jan 23, 2020 at 11:23 AM Dave Hansen
+>> <dave.hansen@linux.intel.com> wrote:
+>>> I'd _rather_ this go in via the x86 tree, but I'm not picky.
+> Any particular reason why?
 
-What is racy? :-) You can make data races with atomic_{read,set}() just
-fine.
+I'm confident I can send patches to the x86 maintainers and not make
+them too angry.  Sending pull requests to Linus, not so much. :)
 
-Anyway, traditionally we call the read-modify-write stuff atomic, not
-the trivial load-store stuff. The only reason we care about the
-load-store stuff in the first place is because C compilers are shit.
-
-atomic_read() / test_bit() are just a load, all we need is the C
-compiler not to be an ass and split it. Yes, we've invented the term
-single-copy atomicity for that, but that doesn't make it more or less of
-a load.
-
-And exactly because it is just a load, there is no __test_bit(), which
-would be the exact same load.
+I'll just plan to send it to Linus directly.
