@@ -1,46 +1,56 @@
-From: Guo Ren <guoren@linux.alibaba.com>
-Subject: [PATCH] riscv: Use flush_icache_mm for flush_icache_user_range
-Date: Sat, 25 Jan 2020 00:18:10 +0800
-Message-ID: <20200124161810.24322-1-guoren@linux.alibaba.com>
+From: Nick Desaulniers <ndesaulniers@google.com>
+Subject: Re: [PATCH v2 09/10] compiler/gcc: Raise minimum GCC version for
+ kernel builds to 4.8
+Date: Fri, 24 Jan 2020 09:05:27 -0800
+Message-ID: <CAKwvOdmFMnCgr3rP5vNkj_H1SnBJ6drdBP1RSGxzfYzSiWGfLg@mail.gmail.com>
+References: <20200123153341.19947-1-will@kernel.org> <20200123153341.19947-10-will@kernel.org>
+ <CAKwvOd=Bp+FWXHUKZnk+_dN=jTYZGdc_QVhErC3N-Frpk4mssQ@mail.gmail.com> <20200124082637.GZ14914@hirez.programming.kicks-ass.net>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from out30-43.freemail.mail.aliyun.com ([115.124.30.43]:60343 "EHLO
-        out30-43.freemail.mail.aliyun.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S2387404AbgAXQSX (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 24 Jan 2020 11:18:23 -0500
+Received: from mail-pf1-f196.google.com ([209.85.210.196]:45522 "EHLO
+        mail-pf1-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1729543AbgAXRFj (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 24 Jan 2020 12:05:39 -0500
+Received: by mail-pf1-f196.google.com with SMTP id 2so1394813pfg.12
+        for <linux-arch@vger.kernel.org>; Fri, 24 Jan 2020 09:05:39 -0800 (PST)
+In-Reply-To: <20200124082637.GZ14914@hirez.programming.kicks-ass.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-riscv@lists.infradead.org
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-csky@vger.kernel.org, Guo Ren <guoren@linux.alibaba.com>, Andrew Waterman <andrew@sifive.com>, Palmer Dabbelt <palmer@sifive.com>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Will Deacon <will@kernel.org>, LKML <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, kernel-team <kernel-team@android.com>, Michael Ellerman <mpe@ellerman.id.au>, Linus Torvalds <torvalds@linux-foundation.org>, Segher Boessenkool <segher@kernel.crashing.org>, Christian Borntraeger <borntraeger@de.ibm.com>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>, Arnd Bergmann <arnd@arndb.de>, Peter Oberparleiter <oberpar@linux.ibm.com>, Masahiro Yamada <masahiroy@kernel.org>
 
-The only call path is:
+On Fri, Jan 24, 2020 at 12:26 AM Peter Zijlstra <peterz@infradead.org> wrote:
+>
+> On Thu, Jan 23, 2020 at 10:36:37AM -0800, Nick Desaulniers wrote:
+> > On Thu, Jan 23, 2020 at 7:34 AM Will Deacon <will@kernel.org> wrote:
+> > >
+> > > It is very rare to see versions of GCC prior to 4.8 being used to build
+> > > the mainline kernel. These old compilers are also know to have codegen
+> > > issues which can lead to silent miscompilation:
+> > >
+> > > https://gcc.gnu.org/bugzilla/show_bug.cgi?id=58145
+> > >
+> > > Raise the minimum GCC version for kernel build to 4.8 and remove some
+> > > tautological Kconfig dependencies as a consequence.
+> > >
+> > > Cc: Nick Desaulniers <ndesaulniers@google.com>
+> >
+> > Thanks for the patch.
+> > Reviewed-by: Nick Desaulniers <ndesaulniers@google.com>
+> > I wouldn't mind if this patch preceded the earlier one in the series
+> > adding the warning, should the series require a v2 and if folks are
+> > generally ok with bumping the min version.
+>
+> If I hadn't actually read your reply, I would have never spotted that
+> reviewed-by tag, hidden in a blob of text like that.
+>
+> Adding some whitespace before and after, such that it stands out a
+> little more, might avoid such issues.
 
-__access_remote_vm -> copy_to_user_page -> flush_icache_user_range
+Ack. Do maintainers have tools for fetching patch series and
+automating collecting Reviewed-by tags, or is it all extremely manual?
 
-Seems it's ok to use flush_icache_mm instead of flush_icache_all and
-it could reduce flush_icache_all called on other harts.
-
-I think the patch is the fixup for the commit 08f051eda33b.
-
-Signed-off-by: Guo Ren <guoren@linux.alibaba.com>
-Cc: Andrew Waterman <andrew@sifive.com>
-Cc: Palmer Dabbelt <palmer@sifive.com>
----
- arch/riscv/include/asm/cacheflush.h | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
-
-diff --git a/arch/riscv/include/asm/cacheflush.h b/arch/riscv/include/asm/cacheflush.h
-index b69aecbb36d3..26589623fd57 100644
---- a/arch/riscv/include/asm/cacheflush.h
-+++ b/arch/riscv/include/asm/cacheflush.h
-@@ -85,7 +85,7 @@ static inline void flush_dcache_page(struct page *page)
-  * so instead we just flush the whole thing.
-  */
- #define flush_icache_range(start, end) flush_icache_all()
--#define flush_icache_user_range(vma, pg, addr, len) flush_icache_all()
-+#define flush_icache_user_range(vma, pg, addr, len) flush_icache_mm(vma->vm_mm, 0)
- 
- void dma_wbinv_range(unsigned long start, unsigned long end);
- void dma_wb_range(unsigned long start, unsigned long end);
 -- 
-2.17.0
+Thanks,
+~Nick Desaulniers
