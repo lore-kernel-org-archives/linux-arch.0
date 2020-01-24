@@ -1,69 +1,53 @@
-From: Alex Kogan <alex.kogan@oracle.com>
-Subject: Re: [PATCH v9 4/5] locking/qspinlock: Introduce starvation avoidance
- into CNA
-Date: Thu, 23 Jan 2020 18:39:36 -0500
-Message-ID: <1B2B46E9-651E-4BA5-988A-924AE3E72C00@oracle.com>
-References: <20200115035920.54451-1-alex.kogan@oracle.com>
- <20200115035920.54451-5-alex.kogan@oracle.com>
- <f5e31716-d687-f64c-0fc5-f1c9b539c4ff@redhat.com>
- <5f865b62-4867-2c7b-715a-0605759e647f@redhat.com>
-Mime-Version: 1.0 (Mac OS X Mail 12.4 \(3445.104.11\))
-Content-Type: text/plain;
-        charset=utf-8
-Content-Transfer-Encoding: quoted-printable
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Subject: Re: [PATCH 0/5] x86: finish the MPX removal process
+Date: Thu, 23 Jan 2020 16:01:15 -0800
+Message-ID: <CAHk-=wibZoVAzGpO-OssKN8cidpCKrfdDcMaspM6JW-3fbcSmQ@mail.gmail.com>
+References: <20200123190456.8E05ADE6@viggo.jf.intel.com> <CAHk-=wgLR5JnaBgCtg0-AAxtdN3=4=LMp6-0212608=vbmCAxg@mail.gmail.com>
+ <20200123202600.GG10328@zn.tnic> <636d5f4b-c47f-77f6-067f-a6b342db5650@intel.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from aserp2120.oracle.com ([141.146.126.78]:56632 "EHLO
-        aserp2120.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1729288AbgAWXkd (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 23 Jan 2020 18:40:33 -0500
-In-Reply-To: <5f865b62-4867-2c7b-715a-0605759e647f@redhat.com>
+Received: from mail-lf1-f66.google.com ([209.85.167.66]:39504 "EHLO
+        mail-lf1-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1729137AbgAXABf (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 23 Jan 2020 19:01:35 -0500
+Received: by mail-lf1-f66.google.com with SMTP id t23so27115lfk.6
+        for <linux-arch@vger.kernel.org>; Thu, 23 Jan 2020 16:01:34 -0800 (PST)
+Received: from mail-lj1-f173.google.com (mail-lj1-f173.google.com. [209.85.208.173])
+        by smtp.gmail.com with ESMTPSA id m24sm2440560ljb.81.2020.01.23.16.01.31
+        for <linux-arch@vger.kernel.org>
+        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
+        Thu, 23 Jan 2020 16:01:31 -0800 (PST)
+Received: by mail-lj1-f173.google.com with SMTP id r19so398018ljg.3
+        for <linux-arch@vger.kernel.org>; Thu, 23 Jan 2020 16:01:31 -0800 (PST)
+In-Reply-To: <636d5f4b-c47f-77f6-067f-a6b342db5650@intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Waiman Long <longman@redhat.com>
-Cc: linux@armlinux.org.uk, peterz@infradead.org, mingo@redhat.com, will.deacon@arm.com, arnd@arndb.de, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, bp@alien8.de, hpa@zytor.com, x86@kernel.org, guohanjun@huawei.com, jglauber@marvell.com, steven.sistare@oracle.com, daniel.m.jordan@oracle.com, dave.dice@oracle.com
+To: Dave Hansen <dave.hansen@intel.com>
+Cc: Borislav Petkov <bp@alien8.de>, Dave Hansen <dave.hansen@linux.intel.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, Andrew Lutomirski <luto@kernel.org>, the arch/x86 maintainers <x86@kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Jeff Dike <jdike@addtoit.com>, Richard Weinberger <richard@nod.at>, Anton Ivanov <anton.ivanov@cambridgegreys.com>, Guan Xuetao <gxt@pku.edu.cn>
 
-> On Jan 23, 2020, at 3:39 PM, Waiman Long <longman@redhat.com> wrote:
->=20
-> On 1/23/20 2:55 PM, Waiman Long wrote:
->> Playing with lock event counts, I would like you to change the =
-meaning
->> intra_count parameter that you are tracking. Instead of tracking the
->> number of times a lock is passed to a waiter of the same node
->> consecutively, I would like you to track the number of times the head
->> waiter in the secondary queue has given up its chance to acquire the
->> lock because a later waiter has jumped the queue and acquire the lock
->> before it.
-Isn=E2=80=99t that the same thing? Note that we keep track of the number =
-of=20
-intra-node lock transfers only when the secondary queue is not empty.
+On Thu, Jan 23, 2020 at 1:23 PM Dave Hansen <dave.hansen@intel.com> wrote:
+>
+> I'm confident I can send patches to the x86 maintainers and not make
+> them too angry.  Sending pull requests to Linus, not so much. :)
 
->> This value determines the worst case latency that a secondary
->> queue waiter can experience. So
->=20
-> Well, that is not strictly true as a a waiter in the middle of the
-> secondary queue can go back and fro between the queues for a number of
-> times. Of course, if we can ensure that when a FLUSH_SECONDARY_QUEUE =
-is
-> issued, those waiters that were in the secondary queue won't be put =
-back
-> into the secondary queue again.
-This will not work as intended when we have more than 2 nodes. That is, =
-if we
-have threads from node A & B in the secondary queue, and then the queue
-is flushed and its head (say, from node A) gets the lock, we want to =
-push=20
-threads from node B back into the secondary queue, to keep the lock on =
-node A.
+With a diffstat summary like
 
-And if we have only 2 nodes, a waiter in the middle of the secondary =
-queue will=20
-never go back into the secondary queue, even if the threshold is small.=20=
+ 24 files changed, 2 insertions(+), 1697 deletions(-)
 
-This is because we flush the secondary queue by putting all its waiters =
-in
-the front of the main queue, and the secondary queue will remain empty =
-at least
-until we reach a thread from another node.
+there's not a lot I could complain about ;l)
 
-Regards,
-=E2=80=94 Alex=
+> I'll just plan to send it to Linus directly.
+
+I do note that while I've merged patch series from you before, I don't
+seem to have done a git pull from you.
+
+But since you already have a git tree, and the tree looks fine, it
+really is just a git request-pull, and you basically already have the
+cover-letter to add to the email.
+
+In fact, you don't even have to use a signed tag since it's on
+kernel.org - but it's always nice to see, and you can put the cover
+letter explanation into the tag.
+
+             Linus
