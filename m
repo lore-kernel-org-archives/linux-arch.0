@@ -1,106 +1,63 @@
-Return-Path: <SRS0=lDRc=3L=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:60976 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1729299AbgAVVWP (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 22 Jan 2020 16:22:15 -0500
-From: Mark Brown <broonie@kernel.org>
-Subject: [PATCH v5 08/12] arm64: unify native/compat instruction skipping
-Date: Wed, 22 Jan 2020 21:21:40 +0000
-Message-ID: <20200122212144.6409-9-broonie@kernel.org>
-In-Reply-To: <20200122212144.6409-1-broonie@kernel.org>
-References: <20200122212144.6409-1-broonie@kernel.org>
+Return-Path: <SRS0=HZcf=3N=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from bombadil.infradead.org ([198.137.202.133]:48224 "EHLO
+        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726293AbgAXPNt (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 24 Jan 2020 10:13:49 -0500
+Date: Fri, 24 Jan 2020 16:13:09 +0100
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH v8 4/5] locking/qspinlock: Introduce starvation avoidance
+ into CNA
+Message-ID: <20200124151309.GE14879@hirez.programming.kicks-ass.net>
+References: <20191230194042.67789-1-alex.kogan@oracle.com>
+ <20191230194042.67789-5-alex.kogan@oracle.com>
+ <20200121132949.GL14914@hirez.programming.kicks-ass.net>
+ <cfdf635d-be2e-9d4b-c4ca-6bcbddc6868f@redhat.com>
+ <3862F8A1-FF9B-40AD-A88E-2C0BA7AF6F58@oracle.com>
+ <20200124075235.GX14914@hirez.programming.kicks-ass.net>
+ <2c6741c5-d89d-4b2c-cebe-a7c7f6eed884@redhat.com>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <2c6741c5-d89d-4b2c-cebe-a7c7f6eed884@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>
-Cc: Alexander Viro <viro@zeniv.linux.org.uk>, Paul Elliott <paul.elliott@arm.com>, Peter Zijlstra <peterz@infradead.org>, Yu-cheng Yu <yu-cheng.yu@intel.com>, Amit Kachhap <amit.kachhap@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Marc Zyngier <maz@kernel.org>, Eugene Syromiatnikov <esyr@redhat.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, "H . J . Lu " <hjl.tools@gmail.com>, Andrew Jones <drjones@redhat.com>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Jann Horn <jannh@google.com>, Richard Henderson <richard.henderson@linaro.org>, =?UTF-8?q?Kristina=20Mart=C5=A1enko?= <kristina.martsenko@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Florian Weimer <fweimer@redhat.com>, Sudakshina Das <sudi.das@arm.com>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, Dave Martin <Dave.Martin@arm.com>, Mark Rutland <mark.rutland@arm.com>, Mark Brown <broonie@kernel.org>
-Message-ID: <20200122212140.bzRf6XJLgV2-RSVZD9UZyaKf7vQ4FKyhy9gvYN1Hjn4@z>
+To: Waiman Long <longman@redhat.com>
+Cc: Alex Kogan <alex.kogan@oracle.com>, linux@armlinux.org.uk, Ingo Molnar <mingo@redhat.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-arm-kernel <linux-arm-kernel@lists.infradead.org>, linux-kernel@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>, Borislav Petkov <bp@alien8.de>, hpa@zytor.com, x86@kernel.org, Hanjun Guo <guohanjun@huawei.com>, Jan Glauber <jglauber@marvell.com>, Steven Sistare <steven.sistare@oracle.com>, Daniel Jordan <daniel.m.jordan@oracle.com>, dave.dice@oracle.com
+Message-ID: <20200124151309.yNa8xhfIBzzjq1MrL8z6cF83bg3nzNULnESjqY7t2Gs@z>
 
-From: Dave Martin <Dave.Martin@arm.com>
+On Fri, Jan 24, 2020 at 09:42:42AM -0500, Waiman Long wrote:
+> On 1/24/20 2:52 AM, Peter Zijlstra wrote:
+> > On Thu, Jan 23, 2020 at 04:33:54PM -0500, Alex Kogan wrote:
+> >> Let me put this question to you. What do you think the number should be?
+> > I think it would be very good to keep the inter-node latency below 1ms.
+> It is hard to guarantee that given that lock hold times can vary quite a
+> lot depending on the workload. What we can control is just how many
+> later lock waiters can jump ahead before a given waiter.
 
-Skipping of an instruction on AArch32 works a bit differently from
-AArch64, mainly due to the different CPSR/PSTATE semantics.
+We're not into this for easy. And exactly because it depends on a lot we
+need a lot of data.
 
-Currently arm64_skip_faulting_instruction() is only suitable for
-AArch64, and arm64_compat_skip_faulting_instruction() handles the IT
-state machine but is local to traps.c.
+Worst case lock acquisition times directly translate into worst case
+IRQ-off latencies, and even the most die hard throughput oriented
+workloads don't like to experience multiple ticks worth of irq-off
+latencies.
 
-Since manual instruction skipping implies a trap, it's a relatively
-slow path.
+> > But to realize that we need data on the lock hold times. Specifically
+> > for the heavily contended locks that make CNA worth it in the first
+> > place.
+> >
+> > I don't see that data, so I don't see how we can argue about this let
+> > alone call something reasonable.
+> >
+> In essence, CNA lock is for improving throughput on NUMA machines at the
+> expense of increasing worst case latency. If low latency is important,
 
-So, make arm64_skip_faulting_instruction() handle both compat and
-native, and get rid of the arm64_compat_skip_faulting_instruction()
-special case.
+Latency is _always_ important. Otherwise we'd never have put so much
+time and effort into fair locks to begin with. Unbounded latency sucks
+unconditionally.
 
-Signed-off-by: Dave Martin <Dave.Martin@arm.com>
-Reviewed-by: Mark Rutland <mark.rutland@arm.com>
-Signed-off-by: Mark Brown <broonie@kernel.org>
----
- arch/arm64/kernel/traps.c | 18 ++++++++----------
- 1 file changed, 8 insertions(+), 10 deletions(-)
+> it should be disabled. If CONFIG_PREEMPT_RT is on,
+> CONFIG_NUMA_AWARE_SPINLOCKS should be off.
 
-diff --git a/arch/arm64/kernel/traps.c b/arch/arm64/kernel/traps.c
-index 84c7a88dd617..d42f0693623a 100644
---- a/arch/arm64/kernel/traps.c
-+++ b/arch/arm64/kernel/traps.c
-@@ -269,6 +269,8 @@ void arm64_notify_die(const char *str, struct pt_regs *regs,
- 	}
- }
- 
-+static void advance_itstate(struct pt_regs *regs);
-+
- void arm64_skip_faulting_instruction(struct pt_regs *regs, unsigned long size)
- {
- 	regs->pc += size;
-@@ -279,6 +281,9 @@ void arm64_skip_faulting_instruction(struct pt_regs *regs, unsigned long size)
- 	 */
- 	if (user_mode(regs))
- 		user_fastforward_single_step(current);
-+
-+	if (compat_user_mode(regs))
-+		advance_itstate(regs);
- }
- 
- static LIST_HEAD(undef_hook);
-@@ -641,19 +646,12 @@ static void advance_itstate(struct pt_regs *regs)
- 	compat_set_it_state(regs, it);
- }
- 
--static void arm64_compat_skip_faulting_instruction(struct pt_regs *regs,
--						   unsigned int sz)
--{
--	advance_itstate(regs);
--	arm64_skip_faulting_instruction(regs, sz);
--}
--
- static void compat_cntfrq_read_handler(unsigned int esr, struct pt_regs *regs)
- {
- 	int reg = (esr & ESR_ELx_CP15_32_ISS_RT_MASK) >> ESR_ELx_CP15_32_ISS_RT_SHIFT;
- 
- 	pt_regs_write_reg(regs, reg, arch_timer_get_rate());
--	arm64_compat_skip_faulting_instruction(regs, 4);
-+	arm64_skip_faulting_instruction(regs, 4);
- }
- 
- static const struct sys64_hook cp15_32_hooks[] = {
-@@ -673,7 +671,7 @@ static void compat_cntvct_read_handler(unsigned int esr, struct pt_regs *regs)
- 
- 	pt_regs_write_reg(regs, rt, lower_32_bits(val));
- 	pt_regs_write_reg(regs, rt2, upper_32_bits(val));
--	arm64_compat_skip_faulting_instruction(regs, 4);
-+	arm64_skip_faulting_instruction(regs, 4);
- }
- 
- static const struct sys64_hook cp15_64_hooks[] = {
-@@ -694,7 +692,7 @@ void do_cp15instr(unsigned int esr, struct pt_regs *regs)
- 		 * There is no T16 variant of a CP access, so we
- 		 * always advance PC by 4 bytes.
- 		 */
--		arm64_compat_skip_faulting_instruction(regs, 4);
-+		arm64_skip_faulting_instruction(regs, 4);
- 		return;
- 	}
- 
--- 
-2.20.1
+You're spouting nonsense. You cannot claim any random number is
+reasonable without argument.
