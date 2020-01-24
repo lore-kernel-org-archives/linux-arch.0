@@ -1,38 +1,117 @@
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Subject: Re: [PATCH v2 02/10] netfilter: Avoid assigning 'const' pointer to
- non-const pointer
-Date: Fri, 24 Jan 2020 09:36:54 -0800
-Message-ID: <CAHk-=wgbAfG6UZYd3PY3fmh5nCE191gY76Fn_g_D8nO64mdx-A@mail.gmail.com>
-References: <20200123153341.19947-1-will@kernel.org> <20200123153341.19947-3-will@kernel.org>
- <CAKwvOdm2snorniFunMF=0nDH8-RFwm7wtjYK_Tcwkd+JZinYPg@mail.gmail.com> <20200124082443.GY14914@hirez.programming.kicks-ass.net>
+From: Waiman Long <longman@redhat.com>
+Subject: Re: [PATCH v8 4/5] locking/qspinlock: Introduce starvation avoidance
+ into CNA
+Date: Fri, 24 Jan 2020 13:51:34 -0500
+Message-ID: <b26837a9-d0cd-4413-95ec-1deaca184324@redhat.com>
+References: <20191230194042.67789-1-alex.kogan@oracle.com>
+ <20191230194042.67789-5-alex.kogan@oracle.com>
+ <20200121132949.GL14914@hirez.programming.kicks-ass.net>
+ <cfdf635d-be2e-9d4b-c4ca-6bcbddc6868f@redhat.com>
+ <3862F8A1-FF9B-40AD-A88E-2C0BA7AF6F58@oracle.com>
+ <20200124075235.GX14914@hirez.programming.kicks-ass.net>
+ <2c6741c5-d89d-4b2c-cebe-a7c7f6eed884@redhat.com>
+ <48ce49e5-98a7-23cd-09f4-8290a65abbb5@redhat.com>
+ <8D3AFB47-B595-418C-9568-08780DDC58FF@oracle.com>
+ <714892cd-d96f-4d41-ae8b-d7b7642a6e3c@redhat.com>
+ <1669BFDE-A1A5-4ED8-B586-035460BBF68A@oracle.com>
+ <45660873-731a-a810-8c57-1a5a19d266b4@redhat.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: quoted-printable
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20200124082443.GY14914@hirez.programming.kicks-ass.net>
+In-Reply-To: <45660873-731a-a810-8c57-1a5a19d266b4@redhat.com>
+Content-Language: en-US
 Sender: linux-kernel-owner@vger.kernel.org
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Nick Desaulniers <ndesaulniers@google.com>, Will Deacon <will@kernel.org>, LKML <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, kernel-team <kernel-team@android.com>, Michael Ellerman <mpe@ellerman.id.au>, Segher Boessenkool <segher@kernel.crashing.org>, Christian Borntraeger <borntraeger@de.ibm.com>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>, Arnd Bergmann <arnd@arndb.de>, Peter Oberparleiter <oberpar@linux.ibm.com>, Masahiro Yamada <masahiroy@kernel.org>, Pablo Neira Ayuso <pablo@netfilter.org>, Jozsef Kadlecsik <kadlec@netfilter.org>, Florian Westphal <fw@strlen.de>, "David S. Miller" <davem@davemloft.net>
+To: Alex Kogan <alex.kogan@oracle.com>
+Cc: Peter Zijlstra <peterz@infradead.org>, linux@armlinux.org.uk, Ingo Molnar <mingo@redhat.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-arm-kernel <linux-arm-kernel@lists.infradead.org>, linux-kernel@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>, Borislav Petkov <bp@alien8.de>, hpa@zytor.com, x86@kernel.org, Hanjun Guo <guohanjun@huawei.com>, Jan Glauber <jglauber@marvell.com>, Steven Sistare <steven.sistare@oracle.com>, Daniel Jordan <daniel.m.jordan@oracle.com>, dave.dice@oracle.com
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, Jan 24, 2020 at 12:25 AM Peter Zijlstra <peterz@infradead.org> wrote:
+On 1/24/20 1:40 PM, Waiman Long wrote:
+> On 1/24/20 1:19 PM, Alex Kogan wrote:
+>>
+>>
+>>> On Jan 24, 2020, at 11:46 AM, Waiman Long <longman@redhat.com
+>>> <mailto:longman@redhat.com>> wrote:
+>>>
+>>> On 1/24/20 11:29 AM, Alex Kogan wrote:
+>>>>
+>>>>
+>>>>> On Jan 24, 2020, at 10:19 AM, Waiman Long <longman@redhat.com
+>>>>> <mailto:longman@redhat.com>> wrote:
+>>>>>
+>>>>> On 1/24/20 9:42 AM, Waiman Long wrote:
+>>>>>> On 1/24/20 2:52 AM, Peter Zijlstra wrote:
+>>>>>>> On Thu, Jan 23, 2020 at 04:33:54PM -0500, Alex Kogan wrote:
+>>>>>>>> Let me put this question to you. What do you think the number
+>>>>>>>> should be?
+>>>>>>> I think it would be very good to keep the inter-node latency
+>>>>>>> below 1ms.
+>>>>>> It is hard to guarantee that given that lock hold times can vary
+>>>>>> quite a
+>>>>>> lot depending on the workload. What we can control is just how man=
+y
+>>>>>> later lock waiters can jump ahead before a given waiter.
+>>>> I totally agree. I do not think you can guarantee that latency even
+>>>> today.
+>>>> With the existing spinlock, you join the queue and wait for as long
+>>>> as it takes
+>>>> for each and every thread in front of you to execute its critical
+>>>> section.
+>>>>
+>>>>>>> But to realize that we need data on the lock hold times.
+>>>>>>> Specifically
+>>>>>>> for the heavily contended locks that make CNA worth it in the fir=
+st
+>>>>>>> place.
+>>>>>>>
+>>>>>>> I don't see that data, so I don't see how we can argue about
+>>>>>>> this let
+>>>>>>> alone call something reasonable.
+>>>>>>>
+>>>>>> In essence, CNA lock is for improving throughput on NUMA machines
+>>>>>> at the
+>>>>>> expense of increasing worst case latency. If low latency is
+>>>>>> important,
+>>>>>> it should be disabled. If CONFIG_PREEMPT_RT is on,
+>>>>>> CONFIG_NUMA_AWARE_SPINLOCKS should be off.
+>>>>>
+>>>>> Actually, what we are worrying about is the additional latency
+>>>>> that can
+>>>>> be added to important tasks or execution contexts that are waiting
+>>>>> for a
+>>>>> lock. Maybe we can make CNA lock behaves somewhat like qrwlock is t=
+hat
+>>>>> requests from interrupt context are giving priority. We could add a
+>>>>> priority flag in the CNA node. If the flag is set, we will never
+>>>>> put it
+>>>>> into the secondary queue. In fact, we can transfer control next to =
+it
+>>>>> even if it is not on the same node. We may also set the priority
+>>>>> flag if
+>>>>> it is a RT task that is trying to acquire the lock.
+>>>> I think this is possible, and in fact, we have been thinking along
+>>>> those lines
+>>>> about ways to better support RT tasks with CNA. However, this will
+>>>> _probably
+>>>> require changes to API and will _certainly complicate the code
+>>>> quite a bit.
+>>>
+>>> What you need to do is to modify cna_init_node() to check the
+>>> current locking context and set the priority flag accordingly.
+>>>
+>> Is there a lightweight way to identify such a =E2=80=9Cprioritized=E2=80=
+=9D thread?
 >
-> Just for curiosity's sake. What does clang actually do in that case?
+> You can use the in_task() macro in include/linux/preempt.h. This is
+> just a percpu preempt_count read and test. If in_task() is false, it
+> is in a {soft|hard}irq or nmi context. If it is true, you can check
+> the rt_task() macro to see if it is an RT task. That will access to
+> the current task structure. So it may cost a little bit more if you
+> want to handle the RT task the same way.
+>
+We may not need to do that for softIRQ context. If that is the case, you
+can use in_irq() which checks for hardirq and nmi only. Peter, what is
+your thought on that?
 
-This shouldn't necessarily be clang-specific. If the variable itself
-is 'const', it might go into a read-only section. So trying to modify
-it will quite possibly hit a SIGSEGV in user space (and in kernel
-space cause an oops).
-
-Note that that is different from a const pointer to something that
-wasn't originally const. That's just a "error out at compile time if
-somebody tries to write through it", but the const'ness can be cast
-away, because all the 'const' really said was that the object can't be
-modified through _that_ pointer, not in general.
-
-(That also means that the compiler can't necessarily even optimize
-multiple accesses through a const pointer away, because the object
-might be modified through another pointer that aliases the const one -
-you'd need to also mark it "restrict" to tell the compiler that no
-other pointer will alias).
-
-                 Linus
+Cheers,
+Longman
