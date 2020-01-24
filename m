@@ -1,40 +1,48 @@
 From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH v8 4/5] locking/qspinlock: Introduce starvation avoidance
- into CNA
-Date: Fri, 24 Jan 2020 08:52:35 +0100
-Message-ID: <20200124075235.GX14914@hirez.programming.kicks-ass.net>
-References: <20191230194042.67789-1-alex.kogan@oracle.com>
- <20191230194042.67789-5-alex.kogan@oracle.com>
- <20200121132949.GL14914@hirez.programming.kicks-ass.net>
- <cfdf635d-be2e-9d4b-c4ca-6bcbddc6868f@redhat.com>
- <3862F8A1-FF9B-40AD-A88E-2C0BA7AF6F58@oracle.com>
+Subject: Re: [PATCH v2 02/10] netfilter: Avoid assigning 'const' pointer to
+ non-const pointer
+Date: Fri, 24 Jan 2020 09:24:43 +0100
+Message-ID: <20200124082443.GY14914@hirez.programming.kicks-ass.net>
+References: <20200123153341.19947-1-will@kernel.org>
+ <20200123153341.19947-3-will@kernel.org>
+ <CAKwvOdm2snorniFunMF=0nDH8-RFwm7wtjYK_Tcwkd+JZinYPg@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane-mx.org@lists.infradead.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from bombadil.infradead.org ([198.137.202.133]:51026 "EHLO
+        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1725843AbgAXIZB (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 24 Jan 2020 03:25:01 -0500
 Content-Disposition: inline
-In-Reply-To: <3862F8A1-FF9B-40AD-A88E-2C0BA7AF6F58@oracle.com>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane-mx.org@lists.infradead.org
-To: Alex Kogan <alex.kogan@oracle.com>
-Cc: linux-arch@vger.kernel.org, Hanjun Guo <guohanjun@huawei.com>, Arnd Bergmann <arnd@arndb.de>, dave.dice@oracle.com, Jan Glauber <jglauber@marvell.com>, x86@kernel.org, Will Deacon <will.deacon@arm.com>, linux@armlinux.org.uk, Steven Sistare <steven.sistare@oracle.com>, linux-kernel@vger.kernel.org, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, hpa@zytor.com, Waiman Long <longman@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Daniel Jordan <daniel.m.jordan@oracle.com>, linux-arm-kernel <linux-arm-kernel@lists.infradead.org>
-List-Id: linux-arch.vger.kernel.org
+In-Reply-To: <CAKwvOdm2snorniFunMF=0nDH8-RFwm7wtjYK_Tcwkd+JZinYPg@mail.gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Nick Desaulniers <ndesaulniers@google.com>
+Cc: Will Deacon <will@kernel.org>, LKML <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, kernel-team <kernel-team@android.com>, Michael Ellerman <mpe@ellerman.id.au>, Linus Torvalds <torvalds@linux-foundation.org>, Segher Boessenkool <segher@kernel.crashing.org>, Christian Borntraeger <borntraeger@de.ibm.com>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>, Arnd Bergmann <arnd@arndb.de>, Peter Oberparleiter <oberpar@linux.ibm.com>, Masahiro Yamada <masahiroy@kernel.org>, Pablo Neira Ayuso <pablo@netfilter.org>, Jozsef Kadlecsik <kadlec@netfilter.org>, Florian Westphal <fw@strlen.de>, "David S. Miller" <davem@davemloft.net>
 
-On Thu, Jan 23, 2020 at 04:33:54PM -0500, Alex Kogan wrote:
-> Let me put this question to you. What do you think the number should be?
+On Thu, Jan 23, 2020 at 11:07:59AM -0800, Nick Desaulniers wrote:
 
-I think it would be very good to keep the inter-node latency below 1ms.
+> Good thing it's the variable being modified was not declared const; I
+> get spooked when I see -Wdiscarded-qualifiers because of Section
+> 6.7.3.6 of the ISO C11 draft spec:
+> 
+> ```
+> If an attempt is made to modify an object defined with a
+> const-qualified type through use
+> of an lvalue with non-const-qualified type, the behavior is undefined.
+> If an attempt is
+> made to refer to an object defined with a volatile-qualified type
+> through use of an lvalue
+> with non-volatile-qualified type, the behavior is undefined.133)
+> 
+> 133) This applies to those objects that behave as if they were defined
+> with qualified types, even if they are
+> never actually defined as objects in the program (such as an object at
+> a memory-mapped input/output
+> address).
+> ```
+> 
+> Which is about the modification of a const-declared variable (explicit
+> UB which Clang actively exploits), 
 
-But to realize that we need data on the lock hold times. Specifically
-for the heavily contended locks that make CNA worth it in the first
-place.
-
-I don't see that data, so I don't see how we can argue about this let
-alone call something reasonable.
+Just for curiosity's sake. What does clang actually do in that case?
