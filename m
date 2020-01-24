@@ -1,27 +1,39 @@
-Return-Path: <SRS0=zjVl=3K=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.133]:49612 "EHLO
+Return-Path: <SRS0=HZcf=3N=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from bombadil.infradead.org ([198.137.202.133]:48208 "EHLO
         bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728708AbgAUNsv (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jan 2020 08:48:51 -0500
-Date: Tue, 21 Jan 2020 14:48:31 +0100
+        with ESMTP id S1725821AbgAXWAZ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 24 Jan 2020 17:00:25 -0500
+Date: Fri, 24 Jan 2020 23:00:08 +0100
 From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH v8 3/5] locking/qspinlock: Introduce CNA into the slow
- path of qspinlock
-Message-ID: <20200121134831.GM14914@hirez.programming.kicks-ass.net>
-References: <20191230194042.67789-1-alex.kogan@oracle.com>
- <20191230194042.67789-4-alex.kogan@oracle.com>
+Subject: Re: [PATCH v2 02/10] netfilter: Avoid assigning 'const' pointer to
+ non-const pointer
+Message-ID: <20200124220008.GS11457@worktop.programming.kicks-ass.net>
+References: <20200123153341.19947-1-will@kernel.org>
+ <20200123153341.19947-3-will@kernel.org>
+ <CAKwvOdm2snorniFunMF=0nDH8-RFwm7wtjYK_Tcwkd+JZinYPg@mail.gmail.com>
+ <20200124082443.GY14914@hirez.programming.kicks-ass.net>
+ <CAHk-=wgbAfG6UZYd3PY3fmh5nCE191gY76Fn_g_D8nO64mdx-A@mail.gmail.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20191230194042.67789-4-alex.kogan@oracle.com>
+In-Reply-To: <CAHk-=wgbAfG6UZYd3PY3fmh5nCE191gY76Fn_g_D8nO64mdx-A@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Alex Kogan <alex.kogan@oracle.com>
-Cc: linux@armlinux.org.uk, mingo@redhat.com, will.deacon@arm.com, arnd@arndb.de, longman@redhat.com, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, bp@alien8.de, hpa@zytor.com, x86@kernel.org, guohanjun@huawei.com, jglauber@marvell.com, steven.sistare@oracle.com, daniel.m.jordan@oracle.com, dave.dice@oracle.com
-Message-ID: <20200121134831.iJlfTjvOLFd3X5qWvloa28Jmono8uMD-niSKvMVJUfA@z>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Nick Desaulniers <ndesaulniers@google.com>, Will Deacon <will@kernel.org>, LKML <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, kernel-team <kernel-team@android.com>, Michael Ellerman <mpe@ellerman.id.au>, Segher Boessenkool <segher@kernel.crashing.org>, Christian Borntraeger <borntraeger@de.ibm.com>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>, Arnd Bergmann <arnd@arndb.de>, Peter Oberparleiter <oberpar@linux.ibm.com>, Masahiro Yamada <masahiroy@kernel.org>, Pablo Neira Ayuso <pablo@netfilter.org>, Jozsef Kadlecsik <kadlec@netfilter.org>, Florian Westphal <fw@strlen.de>, "David S. Miller" <davem@davemloft.net>
+Message-ID: <20200124220008.XJpLQIcybtqIy7maQe_BRggqnJ3IRJ3KmF0bVLajtJQ@z>
 
-On Mon, Dec 30, 2019 at 02:40:40PM -0500, Alex Kogan wrote:
-> +#define try_clear_tail			cna_try_change_tail
+On Fri, Jan 24, 2020 at 09:36:54AM -0800, Linus Torvalds wrote:
+> On Fri, Jan 24, 2020 at 12:25 AM Peter Zijlstra <peterz@infradead.org> wrote:
+> >
+> > Just for curiosity's sake. What does clang actually do in that case?
+> 
+> This shouldn't necessarily be clang-specific. If the variable itself
+> is 'const', it might go into a read-only section. So trying to modify
+> it will quite possibly hit a SIGSEGV in user space (and in kernel
+> space cause an oops).
 
-That's inconsistent; please run
-'s/cna_try_change_tail/cna_try_clear_tail/g' on your patch.
+Quite; but I worried clang would use the UB to omit the access entirely,
+and therefore rob us of the well deserved crash or something.
+
+Let me go read Nick's email tho, see what it actually does.
