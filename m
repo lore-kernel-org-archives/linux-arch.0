@@ -1,61 +1,180 @@
-Return-Path: <SRS0=fIL7=27=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:45862 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727993AbgAJOyi (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 10 Jan 2020 09:54:38 -0500
-From: Mark Brown <broonie@kernel.org>
-Subject: [PATCH v2 05/10] linux/random.h: Use false with bool
-Date: Fri, 10 Jan 2020 14:54:17 +0000
-Message-ID: <20200110145422.49141-6-broonie@kernel.org>
-In-Reply-To: <20200110145422.49141-1-broonie@kernel.org>
-References: <20200110145422.49141-1-broonie@kernel.org>
+Return-Path: <SRS0=HZcf=3N=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail-qv1-f65.google.com ([209.85.219.65]:44006 "EHLO
+        mail-qv1-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S2391282AbgAXLXJ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 24 Jan 2020 06:23:09 -0500
+Received: by mail-qv1-f65.google.com with SMTP id p2so702515qvo.10
+        for <linux-arch@vger.kernel.org>; Fri, 24 Jan 2020 03:23:08 -0800 (PST)
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+References: <20200121160512.70887-1-elver@google.com>
+In-Reply-To: <20200121160512.70887-1-elver@google.com>
+From: Dmitry Vyukov <dvyukov@google.com>
+Date: Fri, 24 Jan 2020 12:22:56 +0100
+Message-ID: <CACT4Y+aRk5=7UoPb9zmDm5XL9CcJDv9YnzndjXYtt+3FKd8maw@mail.gmail.com>
+Subject: Re: [PATCH v2 1/5] include/linux: Add instrumented.h infrastructure
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org
-Cc: Richard Henderson <richard.henderson@linaro.org>, Borislav Petkov <bp@alien8.de>, linux-s390@vger.kernel.org, herbert@gondor.apana.org.au, x86@kernel.org, linux-crypto@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-arm-kernel@lists.infradead.org, Ard Biesheuvel <ardb@kernel.org>, Richard Henderson <rth@twiddle.net>, Mark Brown <broonie@kernel.org>
-Message-ID: <20200110145417.ZWHHok6ptNTKjbLUlaKRCRgw4GxBe0wY89WEAqc-LD8@z>
+To: Marco Elver <elver@google.com>
+Cc: "Paul E. McKenney" <paulmck@kernel.org>, Andrey Konovalov <andreyknvl@google.com>, Alexander Potapenko <glider@google.com>, kasan-dev <kasan-dev@googlegroups.com>, LKML <linux-kernel@vger.kernel.org>, Mark Rutland <mark.rutland@arm.com>, Will Deacon <will@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Boqun Feng <boqun.feng@gmail.com>, Arnd Bergmann <arnd@arndb.de>, Al Viro <viro@zeniv.linux.org.uk>, Daniel Axtens <dja@axtens.net>, Christophe Leroy <christophe.leroy@c-s.fr>, Michael Ellerman <mpe@ellerman.id.au>, Masami Hiramatsu <mhiramat@kernel.org>, Steven Rostedt <rostedt@goodmis.org>, Ingo Molnar <mingo@kernel.org>, Christian Brauner <christian.brauner@ubuntu.com>, Daniel Borkmann <daniel@iogearbox.net>, Kees Cook <keescook@chromium.org>, cyphar@cyphar.com, linux-arch <linux-arch@vger.kernel.org>
+Message-ID: <20200124112256.REcmVgLejMWcTY25ay_X0VLHixdeBfoklj3HPWsU3m4@z>
 
-From: Richard Henderson <richard.henderson@linaro.org>
+On Tue, Jan 21, 2020 at 5:05 PM 'Marco Elver' via kasan-dev
+<kasan-dev@googlegroups.com> wrote:
+>
+> This adds instrumented.h, which provides generic wrappers for memory
+> access instrumentation that the compiler cannot emit for various
+> sanitizers. Currently this unifies KASAN and KCSAN instrumentation. In
+> future this will also include KMSAN instrumentation.
+>
+> Note that, copy_{to,from}_user should use special instrumentation, since
+> we should be able to instrument both source and destination memory
+> accesses if both are kernel memory.
+>
+> The current patch only instruments the memory access where the address
+> is always in kernel space, however, both may in fact be kernel addresses
+> when a compat syscall passes an argument allocated in the kernel to a
+> real syscall. In a future change, both KASAN and KCSAN should check both
+> addresses in such cases, as well as KMSAN will make use of both
+> addresses. [It made more sense to provide the completed function
+> signature, rather than updating it and changing all locations again at a
+> later time.]
 
-Keep the generic fallback versions in sync with the other architecture
-specific implementations and use the proper name for false.
+Reviewed-by: Dmitry Vyukov <dvyukov@google.com>
 
-Suggested-by: Ard Biesheuvel <ardb@kernel.org>
-Signed-off-by: Richard Henderson <rth@twiddle.net>
-Signed-off-by: Mark Brown <broonie@kernel.org>
----
- include/linux/random.h | 8 ++++----
- 1 file changed, 4 insertions(+), 4 deletions(-)
-
-diff --git a/include/linux/random.h b/include/linux/random.h
-index 7fd0360908d2..ea0e2f5f1ec5 100644
---- a/include/linux/random.h
-+++ b/include/linux/random.h
-@@ -169,19 +169,19 @@ static inline void prandom_seed_state(struct rnd_state *state, u64 seed)
- #else
- static inline bool arch_get_random_long(unsigned long *v)
- {
--	return 0;
-+	return false;
- }
- static inline bool arch_get_random_int(unsigned int *v)
- {
--	return 0;
-+	return false;
- }
- static inline bool arch_get_random_seed_long(unsigned long *v)
- {
--	return 0;
-+	return false;
- }
- static inline bool arch_get_random_seed_int(unsigned int *v)
- {
--	return 0;
-+	return false;
- }
- #endif
- 
--- 
-2.20.1
+> Suggested-by: Arnd Bergmann <arnd@arndb.de>
+> Signed-off-by: Marco Elver <elver@google.com>
+> Acked-by: Alexander Potapenko <glider@google.com>
+> ---
+> v2:
+> * Simplify header, since we currently do not need pre/post user-copy
+>   distinction.
+> * Make instrument_copy_{to,from}_user function arguments match
+>   copy_{to,from}_user and update rationale in commit message.
+> ---
+>  include/linux/instrumented.h | 109 +++++++++++++++++++++++++++++++++++
+>  1 file changed, 109 insertions(+)
+>  create mode 100644 include/linux/instrumented.h
+>
+> diff --git a/include/linux/instrumented.h b/include/linux/instrumented.h
+> new file mode 100644
+> index 000000000000..43e6ea591975
+> --- /dev/null
+> +++ b/include/linux/instrumented.h
+> @@ -0,0 +1,109 @@
+> +/* SPDX-License-Identifier: GPL-2.0 */
+> +
+> +/*
+> + * This header provides generic wrappers for memory access instrumentation that
+> + * the compiler cannot emit for: KASAN, KCSAN.
+> + */
+> +#ifndef _LINUX_INSTRUMENTED_H
+> +#define _LINUX_INSTRUMENTED_H
+> +
+> +#include <linux/compiler.h>
+> +#include <linux/kasan-checks.h>
+> +#include <linux/kcsan-checks.h>
+> +#include <linux/types.h>
+> +
+> +/**
+> + * instrument_read - instrument regular read access
+> + *
+> + * Instrument a regular read access. The instrumentation should be inserted
+> + * before the actual read happens.
+> + *
+> + * @ptr address of access
+> + * @size size of access
+> + */
+> +static __always_inline void instrument_read(const volatile void *v, size_t size)
+> +{
+> +       kasan_check_read(v, size);
+> +       kcsan_check_read(v, size);
+> +}
+> +
+> +/**
+> + * instrument_write - instrument regular write access
+> + *
+> + * Instrument a regular write access. The instrumentation should be inserted
+> + * before the actual write happens.
+> + *
+> + * @ptr address of access
+> + * @size size of access
+> + */
+> +static __always_inline void instrument_write(const volatile void *v, size_t size)
+> +{
+> +       kasan_check_write(v, size);
+> +       kcsan_check_write(v, size);
+> +}
+> +
+> +/**
+> + * instrument_atomic_read - instrument atomic read access
+> + *
+> + * Instrument an atomic read access. The instrumentation should be inserted
+> + * before the actual read happens.
+> + *
+> + * @ptr address of access
+> + * @size size of access
+> + */
+> +static __always_inline void instrument_atomic_read(const volatile void *v, size_t size)
+> +{
+> +       kasan_check_read(v, size);
+> +       kcsan_check_atomic_read(v, size);
+> +}
+> +
+> +/**
+> + * instrument_atomic_write - instrument atomic write access
+> + *
+> + * Instrument an atomic write access. The instrumentation should be inserted
+> + * before the actual write happens.
+> + *
+> + * @ptr address of access
+> + * @size size of access
+> + */
+> +static __always_inline void instrument_atomic_write(const volatile void *v, size_t size)
+> +{
+> +       kasan_check_write(v, size);
+> +       kcsan_check_atomic_write(v, size);
+> +}
+> +
+> +/**
+> + * instrument_copy_to_user - instrument reads of copy_to_user
+> + *
+> + * Instrument reads from kernel memory, that are due to copy_to_user (and
+> + * variants). The instrumentation must be inserted before the accesses.
+> + *
+> + * @to destination address
+> + * @from source address
+> + * @n number of bytes to copy
+> + */
+> +static __always_inline void
+> +instrument_copy_to_user(void __user *to, const void *from, unsigned long n)
+> +{
+> +       kasan_check_read(from, n);
+> +       kcsan_check_read(from, n);
+> +}
+> +
+> +/**
+> + * instrument_copy_from_user - instrument writes of copy_from_user
+> + *
+> + * Instrument writes to kernel memory, that are due to copy_from_user (and
+> + * variants). The instrumentation should be inserted before the accesses.
+> + *
+> + * @to destination address
+> + * @from source address
+> + * @n number of bytes to copy
+> + */
+> +static __always_inline void
+> +instrument_copy_from_user(const void *to, const void __user *from, unsigned long n)
+> +{
+> +       kasan_check_write(to, n);
+> +       kcsan_check_write(to, n);
+> +}
+> +
+> +#endif /* _LINUX_INSTRUMENTED_H */
+> --
+> 2.25.0.341.g760bfbb309-goog
+>
+> --
+> You received this message because you are subscribed to the Google Groups "kasan-dev" group.
+> To unsubscribe from this group and stop receiving emails from it, send an email to kasan-dev+unsubscribe@googlegroups.com.
+> To view this discussion on the web visit https://groups.google.com/d/msgid/kasan-dev/20200121160512.70887-1-elver%40google.com.
