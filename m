@@ -1,53 +1,46 @@
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Subject: Re: [PATCH 0/5] x86: finish the MPX removal process
-Date: Thu, 23 Jan 2020 16:01:15 -0800
-Message-ID: <CAHk-=wibZoVAzGpO-OssKN8cidpCKrfdDcMaspM6JW-3fbcSmQ@mail.gmail.com>
-References: <20200123190456.8E05ADE6@viggo.jf.intel.com> <CAHk-=wgLR5JnaBgCtg0-AAxtdN3=4=LMp6-0212608=vbmCAxg@mail.gmail.com>
- <20200123202600.GG10328@zn.tnic> <636d5f4b-c47f-77f6-067f-a6b342db5650@intel.com>
+From: aderson <adersonadersonmark01@gmail.com>
+Subject: ATTENTION: DEAR BENEFICIARY COMPLIMENTS OF THE SEASON. 2020.
+Date: Fri, 24 Jan 2020 01:29:10 +0000 (UTC)
+Message-ID: <1739355342.10950021.1579829350788__17008.6635671154$1579829361$gmane$org@mail.yahoo.com>
+References: <1739355342.10950021.1579829350788.ref@mail.yahoo.com>
+Reply-To: adersonadersonmark01@gmail.com
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-lf1-f66.google.com ([209.85.167.66]:39504 "EHLO
-        mail-lf1-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1729137AbgAXABf (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 23 Jan 2020 19:01:35 -0500
-Received: by mail-lf1-f66.google.com with SMTP id t23so27115lfk.6
-        for <linux-arch@vger.kernel.org>; Thu, 23 Jan 2020 16:01:34 -0800 (PST)
-Received: from mail-lj1-f173.google.com (mail-lj1-f173.google.com. [209.85.208.173])
-        by smtp.gmail.com with ESMTPSA id m24sm2440560ljb.81.2020.01.23.16.01.31
-        for <linux-arch@vger.kernel.org>
-        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
-        Thu, 23 Jan 2020 16:01:31 -0800 (PST)
-Received: by mail-lj1-f173.google.com with SMTP id r19so398018ljg.3
-        for <linux-arch@vger.kernel.org>; Thu, 23 Jan 2020 16:01:31 -0800 (PST)
-In-Reply-To: <636d5f4b-c47f-77f6-067f-a6b342db5650@intel.com>
+Received: from sonic312-22.consmr.mail.bf2.yahoo.com ([74.6.128.84]:36367 "EHLO
+        sonic312-22.consmr.mail.bf2.yahoo.com" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S1729108AbgAXB3P (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 23 Jan 2020 20:29:15 -0500
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dave Hansen <dave.hansen@intel.com>
-Cc: Borislav Petkov <bp@alien8.de>, Dave Hansen <dave.hansen@linux.intel.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, Andrew Lutomirski <luto@kernel.org>, the arch/x86 maintainers <x86@kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Jeff Dike <jdike@addtoit.com>, Richard Weinberger <richard@nod.at>, Anton Ivanov <anton.ivanov@cambridgegreys.com>, Guan Xuetao <gxt@pku.edu.cn>
 
-On Thu, Jan 23, 2020 at 1:23 PM Dave Hansen <dave.hansen@intel.com> wrote:
->
-> I'm confident I can send patches to the x86 maintainers and not make
-> them too angry.  Sending pull requests to Linus, not so much. :)
+CONGRATULATIONS TO YOU,
 
-With a diffstat summary like
+I RECEIVE YOUR CONTENT OF YOUR EMAIL FROM THIS FEDEX ATM CARD OFFICES
+YOUR FUNDS SUM OF $10.5MILLION DOLLARS, HAS DISCOVER HERE AFTER THE
+BOARD OF DIRECTORS MEETINGS, THE UNITED NATIONS GOVERNMENT HAVE
+DECIDED TO ISSUE YOU YOUR (ATM CARD) VALUED AT $10.5 MILLION UNITED
+STATES DOLLARS.
 
- 24 files changed, 2 insertions(+), 1697 deletions(-)
+THIS IS TO BRING TO YOUR NOTICE THAT YOUR VALUED SUM OF 10.5 MILLION
+DOLLARS HAS BEING CREDITED IN YOUR NAME. AS BENEFICIARY TO THIS (ATM
+CARD), AND HAS BEEN HANDLE TO THE FOREIGN REMITTANCE DEPARTMENT TO
+SEND IT TO YOU IN YOUR FAVOR IMMEDIATELY WITHOUT ANY DELAY.
 
-there's not a lot I could complain about ;l)
+WITH YOUR BELONGING (ATM CARD), YOU WILL HAVE ACCESS TO MAKE DAILY
+WITHDRAWALS OF; $5000 UNITED STATE DOLLARS DAILIES,
 
-> I'll just plan to send it to Linus directly.
+AS SOON AS WE RECEIVE YOUR INFORMATION'S AND YOUR HOME ADDRESS OF YOUR COUNTRY AS ALREADY PROGRAMMED; WE WILL SEND TO YOU YOUR (ATM CARD), WE HAVE RECEIVED A SIGNAL FROM THE SWISS WORLD BANK, BANK OF AMERICA, TO EFFECT YOUR TRANSFER TO YOU WITHIN ONE WEEK, WITHOUT ANY DELAY.
 
-I do note that while I've merged patch series from you before, I don't
-seem to have done a git pull from you.
+WE HAVE JUST FINISHED OUR ANNUAL GENERAL MEETING WITH THE CENTRAL BANK OF AMERICA (BOA). AT THE END OF THE BOARD OF DIRECTORS MEETING.
 
-But since you already have a git tree, and the tree looks fine, it
-really is just a git request-pull, and you basically already have the
-cover-letter to add to the email.
+THE BOARD OF DIRECTORS UNITED NATIONS GOVERNMENT HAS  CONCLUDED TO
+IMMEDIATELY ISSUE YOUR BELONGING (ATM CARD) SUM OF $10.5 MILLION
+DOLLARS.
 
-In fact, you don't even have to use a signed tag since it's on
-kernel.org - but it's always nice to see, and you can put the cover
-letter explanation into the tag.
-
-             Linus
+ONCE AGAIN CONGRATULATIONS TO YOU AND YOUR LOVELY FAMILY'S,
+YOURS
+SINCERELY.
+MR. Aderson Mark
