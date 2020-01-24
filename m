@@ -1,76 +1,65 @@
-Return-Path: <SRS0=fIL7=27=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:45786 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1728239AbgAJOya (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 10 Jan 2020 09:54:30 -0500
-From: Mark Brown <broonie@kernel.org>
-Subject: [PATCH v2 01/10] x86: Remove arch_has_random, arch_has_random_seed
-Date: Fri, 10 Jan 2020 14:54:13 +0000
-Message-ID: <20200110145422.49141-2-broonie@kernel.org>
-In-Reply-To: <20200110145422.49141-1-broonie@kernel.org>
-References: <20200110145422.49141-1-broonie@kernel.org>
+Return-Path: <SRS0=HZcf=3N=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from us-smtp-delivery-1.mimecast.com ([207.211.31.120]:60869 "EHLO
+        us-smtp-1.mimecast.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+        with ESMTP id S1726173AbgAXPTd (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 24 Jan 2020 10:19:33 -0500
+Subject: Re: [PATCH v8 4/5] locking/qspinlock: Introduce starvation avoidance
+ into CNA
+From: Waiman Long <longman@redhat.com>
+References: <20191230194042.67789-1-alex.kogan@oracle.com>
+ <20191230194042.67789-5-alex.kogan@oracle.com>
+ <20200121132949.GL14914@hirez.programming.kicks-ass.net>
+ <cfdf635d-be2e-9d4b-c4ca-6bcbddc6868f@redhat.com>
+ <3862F8A1-FF9B-40AD-A88E-2C0BA7AF6F58@oracle.com>
+ <20200124075235.GX14914@hirez.programming.kicks-ass.net>
+ <2c6741c5-d89d-4b2c-cebe-a7c7f6eed884@redhat.com>
+Message-ID: <48ce49e5-98a7-23cd-09f4-8290a65abbb5@redhat.com>
+Date: Fri, 24 Jan 2020 10:19:14 -0500
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+In-Reply-To: <2c6741c5-d89d-4b2c-cebe-a7c7f6eed884@redhat.com>
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
+Content-Language: en-US
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org
-Cc: Richard Henderson <richard.henderson@linaro.org>, Borislav Petkov <bp@alien8.de>, linux-s390@vger.kernel.org, herbert@gondor.apana.org.au, x86@kernel.org, linux-crypto@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-arm-kernel@lists.infradead.org, Richard Henderson <rth@twiddle.net>, Mark Brown <broonie@kernel.org>
-Message-ID: <20200110145413.k2eLPNlppv-qoOM9ru5xCBHty6tNDymfXDcze33-Kic@z>
+To: Peter Zijlstra <peterz@infradead.org>, Alex Kogan <alex.kogan@oracle.com>
+Cc: linux@armlinux.org.uk, Ingo Molnar <mingo@redhat.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-arm-kernel <linux-arm-kernel@lists.infradead.org>, linux-kernel@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>, Borislav Petkov <bp@alien8.de>, hpa@zytor.com, x86@kernel.org, Hanjun Guo <guohanjun@huawei.com>, Jan Glauber <jglauber@marvell.com>, Steven Sistare <steven.sistare@oracle.com>, Daniel Jordan <daniel.m.jordan@oracle.com>, dave.dice@oracle.com
+Message-ID: <20200124151914.UAYBAZEgQT0BGyJrmPcMLypw2k33wGrKbb1R4jsN_r8@z>
 
-From: Richard Henderson <richard.henderson@linaro.org>
+On 1/24/20 9:42 AM, Waiman Long wrote:
+> On 1/24/20 2:52 AM, Peter Zijlstra wrote:
+>> On Thu, Jan 23, 2020 at 04:33:54PM -0500, Alex Kogan wrote:
+>>> Let me put this question to you. What do you think the number should be?
+>> I think it would be very good to keep the inter-node latency below 1ms.
+> It is hard to guarantee that given that lock hold times can vary quite a
+> lot depending on the workload. What we can control is just how many
+> later lock waiters can jump ahead before a given waiter.
+>> But to realize that we need data on the lock hold times. Specifically
+>> for the heavily contended locks that make CNA worth it in the first
+>> place.
+>>
+>> I don't see that data, so I don't see how we can argue about this let
+>> alone call something reasonable.
+>>
+> In essence, CNA lock is for improving throughput on NUMA machines at the
+> expense of increasing worst case latency. If low latency is important,
+> it should be disabled. If CONFIG_PREEMPT_RT is on,
+> CONFIG_NUMA_AWARE_SPINLOCKS should be off.
 
-Use the expansion of these macros directly in arch_get_random_*.
+Actually, what we are worrying about is the additional latency that can
+be added to important tasks or execution contexts that are waiting for a
+lock. Maybe we can make CNA lock behaves somewhat like qrwlock is that
+requests from interrupt context are giving priority. We could add a
+priority flag in the CNA node. If the flag is set, we will never put it
+into the secondary queue. In fact, we can transfer control next to it
+even if it is not on the same node. We may also set the priority flag if
+it is a RT task that is trying to acquire the lock.
 
-These symbols are currently part of the generic archrandom.h
-interface, but are currently unused and can be removed.
+In this way, we can guarantee that important tasks or contexts will not
+suffer a delay in acquiring the lock. Those less important tasks,
+however, may need to wait a bit longer before they can get the lock.
 
-Signed-off-by: Richard Henderson <rth@twiddle.net>
-Signed-off-by: Mark Brown <broonie@kernel.org>
----
- arch/x86/include/asm/archrandom.h | 12 ++++--------
- 1 file changed, 4 insertions(+), 8 deletions(-)
+What do you guys think about that?
 
-diff --git a/arch/x86/include/asm/archrandom.h b/arch/x86/include/asm/archrandom.h
-index af45e1452f09..feb59461046c 100644
---- a/arch/x86/include/asm/archrandom.h
-+++ b/arch/x86/include/asm/archrandom.h
-@@ -73,10 +73,6 @@ static inline bool rdseed_int(unsigned int *v)
- 	return ok;
- }
- 
--/* Conditional execution based on CPU type */
--#define arch_has_random()	static_cpu_has(X86_FEATURE_RDRAND)
--#define arch_has_random_seed()	static_cpu_has(X86_FEATURE_RDSEED)
--
- /*
-  * These are the generic interfaces; they must not be declared if the
-  * stubs in <linux/random.h> are to be invoked,
-@@ -86,22 +82,22 @@ static inline bool rdseed_int(unsigned int *v)
- 
- static inline bool arch_get_random_long(unsigned long *v)
- {
--	return arch_has_random() ? rdrand_long(v) : false;
-+	return static_cpu_has(X86_FEATURE_RDRAND) ? rdrand_long(v) : false;
- }
- 
- static inline bool arch_get_random_int(unsigned int *v)
- {
--	return arch_has_random() ? rdrand_int(v) : false;
-+	return static_cpu_has(X86_FEATURE_RDRAND) ? rdrand_int(v) : false;
- }
- 
- static inline bool arch_get_random_seed_long(unsigned long *v)
- {
--	return arch_has_random_seed() ? rdseed_long(v) : false;
-+	return static_cpu_has(X86_FEATURE_RDSEED) ? rdseed_long(v) : false;
- }
- 
- static inline bool arch_get_random_seed_int(unsigned int *v)
- {
--	return arch_has_random_seed() ? rdseed_int(v) : false;
-+	return static_cpu_has(X86_FEATURE_RDSEED) ? rdseed_int(v) : false;
- }
- 
- extern void x86_init_rdrand(struct cpuinfo_x86 *c);
--- 
-2.20.1
+Regards,
+Longman
