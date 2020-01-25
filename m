@@ -1,105 +1,34 @@
-Return-Path: <SRS0=GP1c=3Q=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from us-smtp-1.mimecast.com ([205.139.110.61]:30728 "EHLO
-        us-smtp-delivery-1.mimecast.com" rhost-flags-OK-OK-OK-FAIL)
-        by vger.kernel.org with ESMTP id S1726029AbgA0OLz (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 27 Jan 2020 09:11:55 -0500
-Subject: Re: [PATCH v9 0/5] Add NUMA-awareness to qspinlock
-References: <20200115035920.54451-1-alex.kogan@oracle.com>
- <20200124222434.GA7196@paulmck-ThinkPad-P72>
- <6AAE7FC6-F5DE-4067-8BC4-77F27948CD09@oracle.com>
- <20200125005713.GZ2935@paulmck-ThinkPad-P72>
- <02defadb-217d-7803-88a1-ec72a37eda28@redhat.com>
- <adb4fb09-f374-4d64-096b-ba9ad8b35fd5@redhat.com>
- <20200125045844.GC2935@paulmck-ThinkPad-P72>
- <967f99ee-b781-43f4-d8ba-af83786c429c@redhat.com>
- <20200126153535.GL2935@paulmck-ThinkPad-P72>
- <20200126224245.GA22901@paulmck-ThinkPad-P72>
-From: Waiman Long <longman@redhat.com>
-Message-ID: <2e552fad-79c0-ec06-3b8c-d13f1b67f57d@redhat.com>
-Date: Mon, 27 Jan 2020 09:11:43 -0500
+Return-Path: <SRS0=zFKq=3O=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from merlin.infradead.org ([205.233.59.134]:50422 "EHLO
+        merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1725767AbgAYLYC (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 25 Jan 2020 06:24:02 -0500
+Date: Sat, 25 Jan 2020 12:23:41 +0100
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH v7 1/5] locking/qspinlock: Rename mcs lock/unlock macros
+ and make them more generic
+Message-ID: <20200125112341.GY11457@worktop.programming.kicks-ass.net>
+References: <20191125210709.10293-1-alex.kogan@oracle.com>
+ <20191125210709.10293-2-alex.kogan@oracle.com>
+ <20200122091547.GU14879@hirez.programming.kicks-ass.net>
+ <C608A39E-CAFC-4C79-9EB6-3DFD9621E3F6@oracle.com>
 MIME-Version: 1.0
-In-Reply-To: <20200126224245.GA22901@paulmck-ThinkPad-P72>
-Content-Type: text/plain; charset=windows-1252
-Content-Transfer-Encoding: 7bit
-Content-Language: en-US
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+Content-Transfer-Encoding: 8bit
+In-Reply-To: <C608A39E-CAFC-4C79-9EB6-3DFD9621E3F6@oracle.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: paulmck@kernel.org
-Cc: Alex Kogan <alex.kogan@oracle.com>, linux@armlinux.org.uk, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-arm-kernel <linux-arm-kernel@lists.infradead.org>, linux-kernel@vger.kernel.org, tglx@linutronix.de, bp@alien8.de, hpa@zytor.com, x86@kernel.org, guohanjun@huawei.com, jglauber@marvell.com, dave.dice@oracle.com, steven.sistare@oracle.com, daniel.m.jordan@oracle.com
-Message-ID: <20200127141143.92lPQ7rD84KT_yBcLmkU-hAUAmtXlGfUeRREyUCUZq8@z>
+To: Alex Kogan <alex.kogan@oracle.com>
+Cc: linux@armlinux.org.uk, mingo@redhat.com, Will Deacon <will.deacon@arm.com>, arnd@arndb.de, longman@redhat.com, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, bp@alien8.de, hpa@zytor.com, x86@kernel.org, guohanjun@huawei.com, jglauber@marvell.com, steven.sistare@oracle.com, daniel.m.jordan@oracle.com, dave.dice@oracle.com, rahul.x.yadav@oracle.com
+Message-ID: <20200125112341.cSCox4gulD1D6B6xIbXrVS5esTopHB7ffMZIV35E0ik@z>
 
-On 1/26/20 5:42 PM, Paul E. McKenney wrote:
-> On Sun, Jan 26, 2020 at 07:35:35AM -0800, Paul E. McKenney wrote:
->> On Sat, Jan 25, 2020 at 02:41:39PM -0500, Waiman Long wrote:
->>> On 1/24/20 11:58 PM, Paul E. McKenney wrote:
->>>> On Fri, Jan 24, 2020 at 09:17:05PM -0500, Waiman Long wrote:
->>>>> On 1/24/20 8:59 PM, Waiman Long wrote:
->>>>>>> You called it!  I will play with QEMU's -numa argument to see if I can get
->>>>>>> CNA to run for me.  Please accept my apologies for the false alarm.
->>>>>>>
->>>>>>> 							Thanx, Paul
->>>>>>>
->>>>>> CNA is not currently supported in a VM guest simply because the numa
->>>>>> information is not reliable. You will have to run it on baremetal to
->>>>>> test it. Sorry for that.
->>>>> Correction. There is a command line option to force CNA lock to be used
->>>>> in a VM. Use the "numa_spinlock=on" boot command line parameter.
->>>> As I understand it, I need to use a series of -numa arguments to qemu
->>>> combined with the numa_spinlock=on (or =1) on the kernel command line.
->>>> If the kernel thinks that there is only one NUMA node, it appears to
->>>> avoid doing CNA.
->>>>
->>>> Correct?
->>>>
->>>> 							Thanx, Paul
->>>>
->>> In auto-detection mode (the default), CNA will only be turned on when
->>> paravirt qspinlock is not enabled first and there are at least 2 numa
->>> nodes. The "numa_spinlock=on" option will force it on even when both of
->>> the above conditions are false.
->> Hmmm...
->>
->> Here is my kernel command line taken from the console log:
->>
->> console=ttyS0 locktorture.onoff_interval=0 numa_spinlock=on locktorture.stat_interval=15 locktorture.shutdown_secs=1800 locktorture.verbose=1
->>
->> Yet the string "Enabling CNA spinlock" does not appear.
->>
->> Ah, idiot here needs to enable CONFIG_NUMA_AWARE_SPINLOCKS in his build.
->> Trying again with "--kconfig "CONFIG_NUMA_AWARE_SPINLOCKS=y"...
-> And after fixing that, plus adding the other three Kconfig options required
-> to enable this, I really do see "Enabling CNA spinlock" in the console log.
-> Yay!
->
-> At the end of the 30-minute locktorture exclusive-lock run, I see this:
->
-> Writes:  Total: 572176565  Max/Min: 54167704/10878216 ???  Fail: 0
->
-> This is about a five-to-one ratio.  Is this expected behavior, given a
-> single NUMA node on a single-socket system with 12 hardware threads?
-Do you mean within the VM, lscpu showed that the system has one node and
-12 threads per node? If that is the case, it should behave like regular
-qspinlock and be fair.
->
-> I will try reader-writer lock next.
->
-> Again, should I be using qemu's -numa command-line option to create nodes?
-> If so, what would be a sane configuration given 12 CPUs and 512MB of
-> memory for the VM?  If not, what is a good way to exercise CNA's NUMA
-> capabilities within a guest OS?
+On Thu, Jan 23, 2020 at 06:51:11PM -0500, Alex Kogan wrote:
+> > On Jan 22, 2020, at 4:15 AM, Peter Zijlstra <peterz@infradead.org> wrote:
 
-You can certainly play around with CNA in a VM. However, it is generally
-not recommended to use CNA in a VM unless the VM cpu topology matches
-the host with 1-to-1 vcpu pinning and there is no vcpu overcommit. In
-this case, one may see some performance improvement using CNA by using
-the "numa_spinlock=on" option to explicitly turn it on.
+> > Also, pass_lock seems unfortunately named…
 
-Because of the shuffling of queue entries, CNA is inherently less fair
-than the regular qspinlock. However, a ratio of 5 seems excessive to me.
-vcpu preemption may be a factor in contributing to this large variation.
-My testing on bare metal only showed a throughput variation within
-10-20% at most.
+> Well, I know the guy who should be blamed for that one :)
+> https://lkml.org/lkml/2019/7/16/212 <https://lkml.org/lkml/2019/7/16/212>
 
-Cheers,
-Longman
+Ha, yes, that guy is an idiot sometimes ;-)
