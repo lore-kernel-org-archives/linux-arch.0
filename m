@@ -1,116 +1,46 @@
-Return-Path: <SRS0=GP1c=3Q=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from aserp2120.oracle.com ([141.146.126.78]:33634 "EHLO
-        aserp2120.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1729347AbgA0QCr (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 27 Jan 2020 11:02:47 -0500
-Content-Type: text/plain;
-        charset=utf-8
-Mime-Version: 1.0 (Mac OS X Mail 12.4 \(3445.104.11\))
-Subject: Re: [PATCH v9 0/5] Add NUMA-awareness to qspinlock
-From: Alex Kogan <alex.kogan@oracle.com>
-In-Reply-To: <CAC4j=Y--5UQR7Oc5n+sxAwLxd_PKi0Eb-7aiZjDTUW0FTJy8Tw@mail.gmail.com>
-Date: Mon, 27 Jan 2020 11:01:33 -0500
-Content-Transfer-Encoding: quoted-printable
-Message-ID: <25401561-CD1F-4FDC-AED5-256EBE56B9F6@oracle.com>
-References: <20200115035920.54451-1-alex.kogan@oracle.com>
- <CAC4j=Y8rCeTX9oKKbh+dCdTP8Ud4hW1ybu+iE7t_nxMSYBOR5w@mail.gmail.com>
- <4F71A184-42C0-4865-9AAA-79A636743C25@oracle.com>
- <CAC4j=Y_SMHe4WNpaaS0kK1JYfnufM+AAiwwUMBx27L8U6bD8Yg@mail.gmail.com>
- <CAC4j=Y--5UQR7Oc5n+sxAwLxd_PKi0Eb-7aiZjDTUW0FTJy8Tw@mail.gmail.com>
+Return-Path: <SRS0=zFKq=3O=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from bombadil.infradead.org ([198.137.202.133]:52478 "EHLO
+        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1725767AbgAYLU6 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 25 Jan 2020 06:20:58 -0500
+Date: Sat, 25 Jan 2020 12:20:39 +0100
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH v8 4/5] locking/qspinlock: Introduce starvation avoidance
+ into CNA
+Message-ID: <20200125112039.GX11457@worktop.programming.kicks-ass.net>
+References: <cfdf635d-be2e-9d4b-c4ca-6bcbddc6868f@redhat.com>
+ <3862F8A1-FF9B-40AD-A88E-2C0BA7AF6F58@oracle.com>
+ <20200124075235.GX14914@hirez.programming.kicks-ass.net>
+ <2c6741c5-d89d-4b2c-cebe-a7c7f6eed884@redhat.com>
+ <48ce49e5-98a7-23cd-09f4-8290a65abbb5@redhat.com>
+ <8D3AFB47-B595-418C-9568-08780DDC58FF@oracle.com>
+ <714892cd-d96f-4d41-ae8b-d7b7642a6e3c@redhat.com>
+ <1669BFDE-A1A5-4ED8-B586-035460BBF68A@oracle.com>
+ <45660873-731a-a810-8c57-1a5a19d266b4@redhat.com>
+ <b26837a9-d0cd-4413-95ec-1deaca184324@redhat.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <b26837a9-d0cd-4413-95ec-1deaca184324@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Lihao Liang <lihaoliang@google.com>
-Cc: linux@armlinux.org.uk, Peter Zijlstra <peterz@infradead.org>, mingo@redhat.com, will.deacon@arm.com, arnd@arndb.de, longman@redhat.com, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, bp@alien8.de, hpa@zytor.com, x86@kernel.org, guohanjun@huawei.com, jglauber@marvell.com, dave.dice@oracle.com, steven.sistare@oracle.com, daniel.m.jordan@oracle.com, Will Deacon <will@kernel.org>
-Message-ID: <20200127160133.4EZEcQLrdQdf6v0yPQNNUzRuuMef1HVJzLjlfAdw16g@z>
+To: Waiman Long <longman@redhat.com>
+Cc: Alex Kogan <alex.kogan@oracle.com>, linux@armlinux.org.uk, Ingo Molnar <mingo@redhat.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-arm-kernel <linux-arm-kernel@lists.infradead.org>, linux-kernel@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>, Borislav Petkov <bp@alien8.de>, hpa@zytor.com, x86@kernel.org, Hanjun Guo <guohanjun@huawei.com>, Jan Glauber <jglauber@marvell.com>, Steven Sistare <steven.sistare@oracle.com>, Daniel Jordan <daniel.m.jordan@oracle.com>, dave.dice@oracle.com
+Message-ID: <20200125112039.brfK-2UsVG_FYd7iTnMUIc6SD_9YxiunNsRVqntX4ho@z>
 
-Hi, Lihao.
+On Fri, Jan 24, 2020 at 01:51:34PM -0500, Waiman Long wrote:
 
->>>=20
->>>> This is particularly relevant
->>>> in high contention situations when new threads keep arriving on the =
-same
->>>> socket as the lock holder.
->>> In this case, the lock will stay on the same NUMA node/socket for
->>> 2^numa_spinlock_threshold times, which is the worst case scenario if =
-we
->>> consider the long-term fairness. And if we have multiple nodes, it =
-will take
->>> up to 2^numa_spinlock_threshold X (nr_nodes - 1) + nr_cpus_per_node
->>> lock transitions until any given thread will acquire the lock
->>> (assuming 2^numa_spinlock_threshold > nr_cpus_per_node).
->>>=20
->>=20
->> You're right that the latest version of the patch handles long-term =
-fairness
->> deterministically.
->>=20
->> As I understand it, the n-th thread in the main queue is guaranteed =
-to
->> acquire the lock after N lock handovers, where N is bounded by
->>=20
->> n - 1 + 2^numa_spinlock_threshold * (nr_nodes - 1)
->>=20
->> I'm not sure what role the variable nr_cpus_per_node plays in your =
-analysis.
->>=20
->> Do I miss anything?
->>=20
->=20
-> If I understand correctly, there are two phases in the algorithm:
->=20
-> MCS phase: when the secondary queue is empty, as explained in your =
-emails,
-> the algorithm hands the lock to threads in the main queue in an FIFO =
-order.
-> When probably(SHUFFLE_REDUCTION_PROB_ARG) returns false (with default
-> probability 1%), if the algorithm finds the first thread running on =
-the same
-> socket as the lock holder in cna_scan_main_queue(), it enters the =
-following
-> CNA phase
-Yep. When probably() returns false, we scan the main queue. If as the =
-result of
-this scan the secondary queue becomes not empty, we enter what you call
-the CNA phase.
+< 71 lines of garbage >
 
-> .
->=20
-> CNA phase: when the secondary queue is not empty, the algorithm keeps
-> handing the lock to threads in the main queue that run on the same =
-socket as
-> the lock holder. When 2^numa_spinlock_threshold is reached, it splices
-> the secondary queue to the front of the main queue. And we are back to =
-the
-> MCS phase above.
-Correct.
+> > You can use the in_task() macro in include/linux/preempt.h. This is
+> > just a percpu preempt_count read and test. If in_task() is false, it
+> > is in a {soft|hard}irq or nmi context. If it is true, you can check
+> > the rt_task() macro to see if it is an RT task. That will access to
+> > the current task structure. So it may cost a little bit more if you
+> > want to handle the RT task the same way.
+> >
+> We may not need to do that for softIRQ context. If that is the case, you
+> can use in_irq() which checks for hardirq and nmi only. Peter, what is
+> your thought on that?
 
-> For the n-th thread T in the main queue, the MCS phase handles threads =
-that
-> arrived in the main queue before T. In high contention situations, the =
-CNA
-> phase handles two kinds of threads:
->=20
-> 1. Threads ahead of T that run on the same socket as the lock holder =
-when
-> a transition from the MCS to CNA phase was made. Assume there are m =
-such
-> threads.
->=20
-> 2. Threads that keep arriving on the same socket as the lock holder. =
-There
-> are at most 2^numa_spinlock_threshold of them.
->=20
-> Then the number of lock handovers in the CNA phase is max(m,
-> 2^numa_spinlock_threshold). So the total number of lock handovers =
-before T
-> acquires the lock is at most
->=20
-> n - 1 + 2^numa_spinlock_threshold * (nr_nodes - 1)
->=20
-> Please let me know if I misunderstand anything.
-I think you got it right (modulo nr_cpus_per_node instead of n, as =
-mentioned in=20
-my other response).
-
-Regards,
-=E2=80=94 Alex=
+Can you lot please start trimming emails when you reply?
