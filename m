@@ -1,45 +1,48 @@
-Return-Path: <SRS0=+omB=25=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:60438 "EHLO mail.kernel.org"
+Return-Path: <SRS0=zFKq=3O=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail.kernel.org ([198.145.29.99]:56164 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726254AbgAHUGm (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 8 Jan 2020 15:06:42 -0500
-From: Krzysztof Kozlowski <krzk@kernel.org>
-Subject: [PATCH v2 6/9] drm/mgag200: Constify ioreadX() iomem argument (as in generic implementation)
-Date: Wed,  8 Jan 2020 21:05:25 +0100
-Message-Id: <20200108200528.4614-7-krzk@kernel.org>
-In-Reply-To: <20200108200528.4614-1-krzk@kernel.org>
-References: <20200108200528.4614-1-krzk@kernel.org>
+        id S1725821AbgAYE6p (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 24 Jan 2020 23:58:45 -0500
+Date: Fri, 24 Jan 2020 20:58:45 -0800
+From: "Paul E. McKenney" <paulmck@kernel.org>
+Subject: Re: [PATCH v9 0/5] Add NUMA-awareness to qspinlock
+Message-ID: <20200125045844.GC2935@paulmck-ThinkPad-P72>
+Reply-To: paulmck@kernel.org
+References: <20200115035920.54451-1-alex.kogan@oracle.com>
+ <20200124222434.GA7196@paulmck-ThinkPad-P72>
+ <6AAE7FC6-F5DE-4067-8BC4-77F27948CD09@oracle.com>
+ <20200125005713.GZ2935@paulmck-ThinkPad-P72>
+ <02defadb-217d-7803-88a1-ec72a37eda28@redhat.com>
+ <adb4fb09-f374-4d64-096b-ba9ad8b35fd5@redhat.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <adb4fb09-f374-4d64-096b-ba9ad8b35fd5@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Alexey Brodkin <abrodkin@synopsys.com>, Vineet Gupta <vgupta@synopsys.com>, "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>, Helge Deller <deller@gmx.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, Dave Airlie <airlied@redhat.com>, David Airlie <airlied@linux.ie>, Daniel Vetter <daniel@ffwll.ch>, Ben Skeggs <bskeggs@redhat.com>, Mauro Carvalho Chehab <mchehab@kernel.org>, Jiri Slaby <jirislaby@gmail.com>, Nick Kossifidis <mickflemm@gmail.com>, Luis Chamberlain <mcgrof@kernel.org>, Kalle Valo <kvalo@codeaurora.org>, "David S. Miller" <davem@davemloft.net>, Dave Jiang <dave.jiang@intel.com>, Jon Mason <jdmason@kudzu.us>, Allen Hubbe <allenbh@gmail.com>, "Michael S. Tsirkin" <mst@redhat.com>, Jason Wang <jasowang@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Krzysztof Kozlowski <krzk@kernel.org>, Geert Uytterhoeven <geert+renesas@glider.be>, Thomas Gleixner <tglx@linutronix.de>, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-snps-arc@lists.infradead.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org, dri-devel@lists.freedesktop.org, nouveau@lists.freedesktop.org, linux-media@vger.kernel.org, linux-wireless@vger.kernel.org, netdev@vger.kernel.org, linux-ntb@googlegroups.com, virtualization@lists.linux-foundation.org, linux-arch@vger.kernel.org
+To: Waiman Long <longman@redhat.com>
+Cc: Alex Kogan <alex.kogan@oracle.com>, linux@armlinux.org.uk, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-arm-kernel <linux-arm-kernel@lists.infradead.org>, linux-kernel@vger.kernel.org, tglx@linutronix.de, bp@alien8.de, hpa@zytor.com, x86@kernel.org, guohanjun@huawei.com, jglauber@marvell.com, dave.dice@oracle.com, steven.sistare@oracle.com, daniel.m.jordan@oracle.com
+Message-ID: <20200125045845.rUzdzr_RfayrZWouEJCERoFOgOd_1gfCgTJ4ZbNr8_Q@z>
 
-The ioreadX() helpers have inconsistent interface.  On some architectures
-void *__iomem address argument is a pointer to const, on some not.
+On Fri, Jan 24, 2020 at 09:17:05PM -0500, Waiman Long wrote:
+> On 1/24/20 8:59 PM, Waiman Long wrote:
+> >> You called it!  I will play with QEMU's -numa argument to see if I can get
+> >> CNA to run for me.  Please accept my apologies for the false alarm.
+> >>
+> >> 							Thanx, Paul
+> >>
+> > CNA is not currently supported in a VM guest simply because the numa
+> > information is not reliable. You will have to run it on baremetal to
+> > test it. Sorry for that.
+> 
+> Correction. There is a command line option to force CNA lock to be used
+> in a VM. Use the "numa_spinlock=on" boot command line parameter.
 
-Implementations of ioreadX() do not modify the memory under the address
-so they can be converted to a "const" version for const-safety and
-consistency among architectures.
+As I understand it, I need to use a series of -numa arguments to qemu
+combined with the numa_spinlock=on (or =1) on the kernel command line.
+If the kernel thinks that there is only one NUMA node, it appears to
+avoid doing CNA.
 
-Signed-off-by: Krzysztof Kozlowski <krzk@kernel.org>
----
- drivers/gpu/drm/mgag200/mgag200_drv.h | 4 ++--
- 1 file changed, 2 insertions(+), 2 deletions(-)
+Correct?
 
-diff --git a/drivers/gpu/drm/mgag200/mgag200_drv.h b/drivers/gpu/drm/mgag200/mgag200_drv.h
-index aa32aad222c2..6512b3af4fb7 100644
---- a/drivers/gpu/drm/mgag200/mgag200_drv.h
-+++ b/drivers/gpu/drm/mgag200/mgag200_drv.h
-@@ -34,9 +34,9 @@
- 
- #define MGAG200FB_CONN_LIMIT 1
- 
--#define RREG8(reg) ioread8(((void __iomem *)mdev->rmmio) + (reg))
-+#define RREG8(reg) ioread8(((const void __iomem *)mdev->rmmio) + (reg))
- #define WREG8(reg, v) iowrite8(v, ((void __iomem *)mdev->rmmio) + (reg))
--#define RREG32(reg) ioread32(((void __iomem *)mdev->rmmio) + (reg))
-+#define RREG32(reg) ioread32(((const void __iomem *)mdev->rmmio) + (reg))
- #define WREG32(reg, v) iowrite32(v, ((void __iomem *)mdev->rmmio) + (reg))
- 
- #define ATTR_INDEX 0x1fc0
--- 
-2.17.1
+							Thanx, Paul
