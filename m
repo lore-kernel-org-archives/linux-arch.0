@@ -1,78 +1,40 @@
-Return-Path: <SRS0=sBCo=3S=vger.kernel.org=linux-doc-owner@kernel.org>
-Content-Type: text/plain; charset="utf-8"
+Return-Path: <SRS0=zFKq=3O=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from merlin.infradead.org ([205.233.59.134]:50382 "EHLO
+        merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1725767AbgAYLUJ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 25 Jan 2020 06:20:09 -0500
+Date: Sat, 25 Jan 2020 12:19:31 +0100
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH v8 4/5] locking/qspinlock: Introduce starvation avoidance
+ into CNA
+Message-ID: <20200125111931.GW11457@worktop.programming.kicks-ass.net>
+References: <20191230194042.67789-5-alex.kogan@oracle.com>
+ <20200121132949.GL14914@hirez.programming.kicks-ass.net>
+ <cfdf635d-be2e-9d4b-c4ca-6bcbddc6868f@redhat.com>
+ <3862F8A1-FF9B-40AD-A88E-2C0BA7AF6F58@oracle.com>
+ <20200124075235.GX14914@hirez.programming.kicks-ass.net>
+ <2c6741c5-d89d-4b2c-cebe-a7c7f6eed884@redhat.com>
+ <48ce49e5-98a7-23cd-09f4-8290a65abbb5@redhat.com>
+ <8D3AFB47-B595-418C-9568-08780DDC58FF@oracle.com>
+ <714892cd-d96f-4d41-ae8b-d7b7642a6e3c@redhat.com>
+ <1669BFDE-A1A5-4ED8-B586-035460BBF68A@oracle.com>
 MIME-Version: 1.0
-Content-Transfer-Encoding: quoted-printable
-In-Reply-To: <20200128072002.79250-7-brendanhiggins@google.com>
-References: <20200128072002.79250-1-brendanhiggins@google.com> <20200128072002.79250-7-brendanhiggins@google.com>
-From: Stephen Boyd <sboyd@kernel.org>
-Subject: Re: [PATCH v1 6/7] kunit: Add 'kunit_shutdown' option
-Date: Tue, 28 Jan 2020 22:33:06 -0800
-Message-ID: <20200129063307.19CB4206F0@mail.kernel.org>
-Sender: linux-doc-owner@vger.kernel.org
-To: Brendan Higgins <brendanhiggins@google.com>, akpm@linux-foundation.org, alan.maguire@oracle.com, anton.ivanov@cambridgegreys.com, arnd@arndb.de, davidgow@google.com, frowand.list@gmail.com, jdike@addtoit.com, keescook@chromium.org, richard@nod.at, rppt@linux.ibm.com, skhan@linuxfoundation.org, yzaikin@google.com
-Cc: gregkh@linuxfoundation.org, logang@deltatee.com, mcgrof@kernel.org, knut.omang@oracle.com, linux-um@lists.infradead.org, linux-arch@vger.kernel.org, linux-kselftest@vger.kernel.org, kunit-dev@googlegroups.com, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+Content-Transfer-Encoding: 8bit
+In-Reply-To: <1669BFDE-A1A5-4ED8-B586-035460BBF68A@oracle.com>
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200129063306.sxdrL47y_GB1-JoekTwFIMvBQiFrGz2KZ_qNm4Sr4L0@z>
+To: Alex Kogan <alex.kogan@oracle.com>
+Cc: Waiman Long <longman@redhat.com>, linux@armlinux.org.uk, Ingo Molnar <mingo@redhat.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-arm-kernel <linux-arm-kernel@lists.infradead.org>, linux-kernel@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>, Borislav Petkov <bp@alien8.de>, hpa@zytor.com, x86@kernel.org, Hanjun Guo <guohanjun@huawei.com>, Jan Glauber <jglauber@marvell.com>, Steven Sistare <steven.sistare@oracle.com>, Daniel Jordan <daniel.m.jordan@oracle.com>, dave.dice@oracle.com
+Message-ID: <20200125111931.Oko7HgysHgWVZ-48MsqcejEtrUe5TMkAwkNxFdlWfTY@z>
 
-Quoting Brendan Higgins (2020-01-27 23:20:01)
-> From: David Gow <davidgow@google.com>
->=20
-> Add a new kernel command-line option, 'kunit_shutdown', which allows the
-> user to specify that the kernel poweroff, halt, or reboot after
-> completing all KUnit tests; this is very handy for running KUnit tests
-> on UML or a VM so that the UML/VM process exits cleanly immediately
-> after running all tests without needing a special initramfs.
->=20
-> Signed-off-by: David Gow <davidgow@google.com>
-> Signed-off-by: Brendan Higgins <brendanhiggins@google.com>
-> ---
+On Fri, Jan 24, 2020 at 01:19:05PM -0500, Alex Kogan wrote:
 
-Two nitpicks below
+> Is there a lightweight way to identify such a “prioritized” thread?
 
-Reviewed-by: Stephen Boyd <sboyd@kernel.org>
+No; people might for instance care about tail latencies between their
+identically spec'ed worker tasks.
 
-> diff --git a/lib/kunit/executor.c b/lib/kunit/executor.c
-> index 7fd16feff157e..d3ec1265a72fd 100644
-> --- a/lib/kunit/executor.c
-> +++ b/lib/kunit/executor.c
-> @@ -1,6 +1,7 @@
->  // SPDX-License-Identifier: GPL-2.0
-> =20
->  #include <kunit/test.h>
-> +#include <linux/reboot.h>
-
-Should this include come before kunit/test.h? I imagine the order of
-includes would be linux, kunit, local?
-
-> =20
->  /*
->   * These symbols point to the .kunit_test_suites section and are defined=
- in
-> @@ -11,6 +12,23 @@ extern struct kunit_suite * const * const __kunit_suit=
-es_end[];
-> =20
->  #if IS_BUILTIN(CONFIG_KUNIT)
-> =20
-> +static char *kunit_shutdown;
-> +core_param(kunit_shutdown, kunit_shutdown, charp, 0644);
-> +
-> +static void kunit_handle_shutdown(void)
-> +{
-> +       if (!kunit_shutdown)
-> +               return;
-> +
-> +       if (!strcmp(kunit_shutdown, "poweroff")) {
-> +               kernel_power_off();
-> +       } else if (!strcmp(kunit_shutdown, "halt")) {
-> +               kernel_halt();
-> +       } else if (!strcmp(kunit_shutdown, "reboot")) {
-> +               kernel_restart(NULL);
-> +       }
-
-Kernel style would be to not have braces on single line if statements.
-
-> +}
-> +
->  static void kunit_print_tap_header(void)
->  {
->         struct kunit_suite * const * const *suites, * const *subsuite;
+In general it turns out that priority is a dynamic concept, not a static
+one.
