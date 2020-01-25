@@ -1,55 +1,54 @@
 From: Waiman Long <longman@redhat.com>
-Subject: Re: [PATCH v9 0/5] Add NUMA-awareness to qspinlock
-Date: Sat, 25 Jan 2020 14:41:39 -0500
-Message-ID: <967f99ee-b781-43f4-d8ba-af83786c429c@redhat.com>
-References: <20200115035920.54451-1-alex.kogan@oracle.com>
- <20200124222434.GA7196@paulmck-ThinkPad-P72>
- <6AAE7FC6-F5DE-4067-8BC4-77F27948CD09@oracle.com>
- <20200125005713.GZ2935@paulmck-ThinkPad-P72>
- <02defadb-217d-7803-88a1-ec72a37eda28@redhat.com>
- <adb4fb09-f374-4d64-096b-ba9ad8b35fd5@redhat.com>
- <20200125045844.GC2935@paulmck-ThinkPad-P72>
+Subject: Re: [PATCH v8 4/5] locking/qspinlock: Introduce starvation avoidance
+ into CNA
+Date: Sat, 25 Jan 2020 14:57:41 -0500
+Message-ID: <5ffb74f6-c635-cfc8-ab01-fb990f12a93a@redhat.com>
+References: <20191230194042.67789-1-alex.kogan@oracle.com>
+ <20191230194042.67789-5-alex.kogan@oracle.com>
+ <20200121132949.GL14914@hirez.programming.kicks-ass.net>
+ <cfdf635d-be2e-9d4b-c4ca-6bcbddc6868f@redhat.com>
+ <3862F8A1-FF9B-40AD-A88E-2C0BA7AF6F58@oracle.com>
+ <20200124075235.GX14914@hirez.programming.kicks-ass.net>
+ <2c6741c5-d89d-4b2c-cebe-a7c7f6eed884@redhat.com>
+ <48ce49e5-98a7-23cd-09f4-8290a65abbb5@redhat.com>
+ <8D3AFB47-B595-418C-9568-08780DDC58FF@oracle.com>
+ <714892cd-d96f-4d41-ae8b-d7b7642a6e3c@redhat.com>
+ <1669BFDE-A1A5-4ED8-B586-035460BBF68A@oracle.com>
+ <45660873-731a-a810-8c57-1a5a19d266b4@redhat.com>
+ <b26837a9-d0cd-4413-95ec-1deaca184324@redhat.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=windows-1252
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: quoted-printable
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from us-smtp-delivery-1.mimecast.com ([205.139.110.120]:22794 "EHLO
+Received: from us-smtp-delivery-1.mimecast.com ([205.139.110.120]:24827 "EHLO
         us-smtp-1.mimecast.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-        with ESMTP id S1726780AbgAYTlw (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sat, 25 Jan 2020 14:41:52 -0500
-In-Reply-To: <20200125045844.GC2935@paulmck-ThinkPad-P72>
+        with ESMTP id S1726612AbgAYT5y (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 25 Jan 2020 14:57:54 -0500
+In-Reply-To: <b26837a9-d0cd-4413-95ec-1deaca184324@redhat.com>
 Content-Language: en-US
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: paulmck@kernel.org
-Cc: Alex Kogan <alex.kogan@oracle.com>, linux@armlinux.org.uk, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-arm-kernel <linux-arm-kernel@lists.infradead.org>, linux-kernel@vger.kernel.org, tglx@linutronix.de, bp@alien8.de, hpa@zytor.com, x86@kernel.org, guohanjun@huawei.com, jglauber@marvell.com, dave.dice@oracle.com, steven.sistare@oracle.com, daniel.m.jordan@oracle.com
+To: Alex Kogan <alex.kogan@oracle.com>
+Cc: Peter Zijlstra <peterz@infradead.org>, linux@armlinux.org.uk, Ingo Molnar <mingo@redhat.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-arm-kernel <linux-arm-kernel@lists.infradead.org>, linux-kernel@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>, Borislav Petkov <bp@alien8.de>, hpa@zytor.com, x86@kernel.org, Hanjun Guo <guohanjun@huawei.com>, Jan Glauber <jglauber@marvell.com>, Steven Sistare <steven.sistare@oracle.com>, Daniel Jordan <daniel.m.jordan@oracle.com>, dave.dice@oracle.com
 
-On 1/24/20 11:58 PM, Paul E. McKenney wrote:
-> On Fri, Jan 24, 2020 at 09:17:05PM -0500, Waiman Long wrote:
->> On 1/24/20 8:59 PM, Waiman Long wrote:
->>>> You called it!  I will play with QEMU's -numa argument to see if I can get
->>>> CNA to run for me.  Please accept my apologies for the false alarm.
->>>>
->>>> 							Thanx, Paul
->>>>
->>> CNA is not currently supported in a VM guest simply because the numa
->>> information is not reliable. You will have to run it on baremetal to
->>> test it. Sorry for that.
->> Correction. There is a command line option to force CNA lock to be used
->> in a VM. Use the "numa_spinlock=on" boot command line parameter.
-> As I understand it, I need to use a series of -numa arguments to qemu
-> combined with the numa_spinlock=on (or =1) on the kernel command line.
-> If the kernel thinks that there is only one NUMA node, it appears to
-> avoid doing CNA.
->
-> Correct?
->
-> 							Thanx, Paul
->
-In auto-detection mode (the default), CNA will only be turned on when
-paravirt qspinlock is not enabled first and there are at least 2 numa
-nodes. The "numa_spinlock=on" option will force it on even when both of
-the above conditions are false.
+On 1/24/20 1:51 PM, Waiman Long wrote:
+>> You can use the in_task() macro in include/linux/preempt.h. This is
+>> just a percpu preempt_count read and test. If in_task() is false, it
+>> is in a {soft|hard}irq or nmi context. If it is true, you can check
+>> the rt_task() macro to see if it is an RT task. That will access to
+>> the current task structure. So it may cost a little bit more if you
+>> want to handle the RT task the same way.
+>>
+> We may not need to do that for softIRQ context. If that is the case, yo=
+u
+> can use in_irq() which checks for hardirq and nmi only. Peter, what is
+> your thought on that?
+
+In second thought, we should do that for softIRQ as well. Also, we may
+want to also check if irqs_disabled() is true as well by calls like
+spin_lock_irq() or spin_lock_irqsave().=C2=A0 We do not want to unnecessa=
+rily
+prolong the irq off period.
 
 Cheers,
 Longman
