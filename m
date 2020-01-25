@@ -1,18 +1,17 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH v7 1/5] locking/qspinlock: Rename mcs lock/unlock macros
- and make them more generic
-Date: Sat, 25 Jan 2020 12:23:41 +0100
-Message-ID: <20200125112341.GY11457@worktop.programming.kicks-ass.net>
-References: <20191125210709.10293-1-alex.kogan@oracle.com>
- <20191125210709.10293-2-alex.kogan@oracle.com>
- <20200122091547.GU14879@hirez.programming.kicks-ass.net>
- <C608A39E-CAFC-4C79-9EB6-3DFD9621E3F6@oracle.com>
+From: "Theodore Y. Ts'o" <tytso@mit.edu>
+Subject: Re: [PATCH v2 00/10] Impveovements for random.h/archrandom.h
+Date: Sat, 25 Jan 2020 12:46:33 -0500
+Message-ID: <20200125174633.GN1108497@mit.edu>
+References: <20200110145422.49141-1-broonie@kernel.org>
+ <20200110155153.GG19453@zn.tnic> <20200110170559.GA304349@mit.edu>
+ <20200120172627.GH6852@sirena.org.uk>
+ <20200120175901.GB576@zn.tnic>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane-mx.org@lists.infradead.org>
 Content-Disposition: inline
-In-Reply-To: <C608A39E-CAFC-4C79-9EB6-3DFD9621E3F6@oracle.com>
+In-Reply-To: <20200120175901.GB576@zn.tnic>
 List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
  <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
 List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
@@ -22,17 +21,21 @@ List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
  <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
 Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
 Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane-mx.org@lists.infradead.org
-To: Alex Kogan <alex.kogan@oracle.com>
-Cc: linux-arch@vger.kernel.org, guohanjun@huawei.com, arnd@arndb.de, dave.dice@oracle.com, jglauber@marvell.com, x86@kernel.org, Will Deacon <will.deacon@arm.com>, linux@armlinux.org.uk, steven.sistare@oracle.com, linux-kernel@vger.kernel.org, rahul.x.yadav@oracle.com, mingo@redhat.com, bp@alien8.de, hpa@zytor.com, longman@redhat.com, tglx@linutronix.de, daniel.m.jordan@oracle.com, linux-arm-kernel@lists.infradead.org
+To: Borislav Petkov <bp@alien8.de>
+Cc: linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, herbert@gondor.apana.org.au, x86@kernel.org, Richard Henderson <richard.henderson@linaro.org>, Mark Brown <broonie@kernel.org>, linux-crypto@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, linuxppc-dev@lists.ozlabs.org, linux-arm-kernel@lists.infradead.org
 List-Id: linux-arch.vger.kernel.org
 
-T24gVGh1LCBKYW4gMjMsIDIwMjAgYXQgMDY6NTE6MTFQTSAtMDUwMCwgQWxleCBLb2dhbiB3cm90
-ZToKPiA+IE9uIEphbiAyMiwgMjAyMCwgYXQgNDoxNSBBTSwgUGV0ZXIgWmlqbHN0cmEgPHBldGVy
-ekBpbmZyYWRlYWQub3JnPiB3cm90ZToKCj4gPiBBbHNvLCBwYXNzX2xvY2sgc2VlbXMgdW5mb3J0
-dW5hdGVseSBuYW1lZOKApgoKPiBXZWxsLCBJIGtub3cgdGhlIGd1eSB3aG8gc2hvdWxkIGJlIGJs
-YW1lZCBmb3IgdGhhdCBvbmUgOikKPiBodHRwczovL2xrbWwub3JnL2xrbWwvMjAxOS83LzE2LzIx
-MiA8aHR0cHM6Ly9sa21sLm9yZy9sa21sLzIwMTkvNy8xNi8yMTI+CgpIYSwgeWVzLCB0aGF0IGd1
-eSBpcyBhbiBpZGlvdCBzb21ldGltZXMgOy0pCgoKX19fX19fX19fX19fX19fX19fX19fX19fX19f
-X19fX19fX19fX19fX19fX19fX18KbGludXgtYXJtLWtlcm5lbCBtYWlsaW5nIGxpc3QKbGludXgt
-YXJtLWtlcm5lbEBsaXN0cy5pbmZyYWRlYWQub3JnCmh0dHA6Ly9saXN0cy5pbmZyYWRlYWQub3Jn
-L21haWxtYW4vbGlzdGluZm8vbGludXgtYXJtLWtlcm5lbAo=
+On Mon, Jan 20, 2020 at 06:59:01PM +0100, Borislav Petkov wrote:
+> On Mon, Jan 20, 2020 at 05:26:27PM +0000, Mark Brown wrote:
+> > I think the important thing here is that *someone* takes the patches.
+> > We've now got Ted and Borislav both saying they're OK applying the
+> > patches, an additional proposal that Andrew takes the patches, nobody
+> > saying anything negative about applying the patches and yet the patches
+> > are not applied.  The random tree sounds like a sensible enough tree to
+> > take this so if Ted picks them up perhaps that's most sensible?
+> 
+> Yes, Ted, pls pick them up so that we're done with this.
+
+I've picked them up and pushed them to the random tree.
+
+     	    	    	       	       - Ted
