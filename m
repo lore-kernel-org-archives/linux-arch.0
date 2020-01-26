@@ -1,67 +1,56 @@
-From: "Paul E. McKenney" <paulmck@kernel.org>
-Subject: Re: [PATCH v9 0/5] Add NUMA-awareness to qspinlock
-Date: Sun, 26 Jan 2020 07:35:36 -0800
-Message-ID: <20200126153535.GL2935@paulmck-ThinkPad-P72>
-References: <20200115035920.54451-1-alex.kogan@oracle.com>
- <20200124222434.GA7196@paulmck-ThinkPad-P72>
- <6AAE7FC6-F5DE-4067-8BC4-77F27948CD09@oracle.com>
- <20200125005713.GZ2935@paulmck-ThinkPad-P72>
- <02defadb-217d-7803-88a1-ec72a37eda28@redhat.com>
- <adb4fb09-f374-4d64-096b-ba9ad8b35fd5@redhat.com>
- <20200125045844.GC2935@paulmck-ThinkPad-P72>
- <967f99ee-b781-43f4-d8ba-af83786c429c@redhat.com>
-Reply-To: paulmck@kernel.org
+From: Guenter Roeck <linux@roeck-us.net>
+Subject: Re: [PATCH mk-II 08/17] asm-generic/tlb: Provide
+ MMU_GATHER_TABLE_FREE
+Date: Sun, 26 Jan 2020 07:52:05 -0800
+Message-ID: <20200126155205.GA19169@roeck-us.net>
+References: <20191211120713.360281197@infradead.org>
+ <20191211122956.112607298@infradead.org>
+ <20191212093205.GU2827@hirez.programming.kicks-ass.net>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:57562 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1725908AbgAZPfg (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Sun, 26 Jan 2020 10:35:36 -0500
+Received: from mail-yw1-f65.google.com ([209.85.161.65]:33483 "EHLO
+        mail-yw1-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726323AbgAZPwI (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 26 Jan 2020 10:52:08 -0500
 Content-Disposition: inline
-In-Reply-To: <967f99ee-b781-43f4-d8ba-af83786c429c@redhat.com>
+In-Reply-To: <20191212093205.GU2827@hirez.programming.kicks-ass.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Waiman Long <longman@redhat.com>
-Cc: Alex Kogan <alex.kogan@oracle.com>, linux@armlinux.org.uk, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-arm-kernel <linux-arm-kernel@lists.infradead.org>, linux-kernel@vger.kernel.org, tglx@linutronix.de, bp@alien8.de, hpa@zytor.com, x86@kernel.org, guohanjun@huawei.com, jglauber@marvell.com, dave.dice@oracle.com, steven.sistare@oracle.com, daniel.m.jordan@oracle.com
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Will Deacon <will@kernel.org>, "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, Nick Piggin <npiggin@gmail.com>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, "David S. Miller" <davem@davemloft.net>, Helge Deller <deller@gmx.de>, Geert Uytterhoeven <geert@linux-m68k.org>, Paul Burton <paulburton@kernel.org>, Tony Luck <tony.luck@intel.com>, Richard Henderson <rth@twiddle.net>, Nick Hu <nickhu@andestech.com>, Paul Walmsley <paul.walmsley@sifive.com>
 
-On Sat, Jan 25, 2020 at 02:41:39PM -0500, Waiman Long wrote:
-> On 1/24/20 11:58 PM, Paul E. McKenney wrote:
-> > On Fri, Jan 24, 2020 at 09:17:05PM -0500, Waiman Long wrote:
-> >> On 1/24/20 8:59 PM, Waiman Long wrote:
-> >>>> You called it!  I will play with QEMU's -numa argument to see if I can get
-> >>>> CNA to run for me.  Please accept my apologies for the false alarm.
-> >>>>
-> >>>> 							Thanx, Paul
-> >>>>
-> >>> CNA is not currently supported in a VM guest simply because the numa
-> >>> information is not reliable. You will have to run it on baremetal to
-> >>> test it. Sorry for that.
-> >> Correction. There is a command line option to force CNA lock to be used
-> >> in a VM. Use the "numa_spinlock=on" boot command line parameter.
-> > As I understand it, I need to use a series of -numa arguments to qemu
-> > combined with the numa_spinlock=on (or =1) on the kernel command line.
-> > If the kernel thinks that there is only one NUMA node, it appears to
-> > avoid doing CNA.
-> >
-> > Correct?
-> >
-> > 							Thanx, Paul
-> >
-> In auto-detection mode (the default), CNA will only be turned on when
-> paravirt qspinlock is not enabled first and there are at least 2 numa
-> nodes. The "numa_spinlock=on" option will force it on even when both of
-> the above conditions are false.
+On Thu, Dec 12, 2019 at 10:32:05AM +0100, Peter Zijlstra wrote:
+> As described in the comment, the correct order for freeing pages is:
+> 
+>  1) unhook page
+>  2) TLB invalidate page
+>  3) free page
+> 
+> This order equally applies to page directories.
+> 
+> Currently there are two correct options:
+> 
+>  - use tlb_remove_page(), when all page directores are full pages and
+>    there are no futher contraints placed by things like software
+>    walkers (HAVE_FAST_GUP).
+> 
+>  - use MMU_GATHER_RCU_TABLE_FREE and tlb_remove_table() when the
+>    architecture does not do IPI based TLB invalidate and has
+>    HAVE_FAST_GUP (or software TLB fill).
+> 
+> This however leaves architectures that don't have page based
+> directories but don't need RCU in a bind. For those, provide
+> MMU_GATHER_TABLE_FREE, which provides the independent batching for
+> directories without the additional RCU freeing.
+> 
+> Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+> ---
 
-Hmmm...
+Various sparc64 builds (allnoconfig, tinyconfig, as well as builds
+with SMP disabled):
 
-Here is my kernel command line taken from the console log:
+mm/mmu_gather.c: In function '__tlb_remove_table_free':
+mm/mmu_gather.c:101:3: error: implicit declaration of function '__tlb_remove_table'; did you mean 'tlb_remove_table'?
 
-console=ttyS0 locktorture.onoff_interval=0 numa_spinlock=on locktorture.stat_interval=15 locktorture.shutdown_secs=1800 locktorture.verbose=1
-
-Yet the string "Enabling CNA spinlock" does not appear.
-
-Ah, idiot here needs to enable CONFIG_NUMA_AWARE_SPINLOCKS in his build.
-Trying again with "--kconfig "CONFIG_NUMA_AWARE_SPINLOCKS=y"...
-
-							Thanx, Paul
+Guenter
