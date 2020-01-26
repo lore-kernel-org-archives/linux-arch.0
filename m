@@ -1,74 +1,88 @@
-Return-Path: <SRS0=fNgb=3C=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from conssluserg-03.nifty.com ([210.131.2.82]:37266 "EHLO
-        conssluserg-03.nifty.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726163AbgAMPgR (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 13 Jan 2020 10:36:17 -0500
+Return-Path: <SRS0=42Ht=3P=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail.kernel.org ([198.145.29.99]:45326 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726144AbgAZWmq (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Sun, 26 Jan 2020 17:42:46 -0500
+Date: Sun, 26 Jan 2020 14:42:45 -0800
+From: "Paul E. McKenney" <paulmck@kernel.org>
+Subject: Re: [PATCH v9 0/5] Add NUMA-awareness to qspinlock
+Message-ID: <20200126224245.GA22901@paulmck-ThinkPad-P72>
+Reply-To: paulmck@kernel.org
+References: <20200115035920.54451-1-alex.kogan@oracle.com>
+ <20200124222434.GA7196@paulmck-ThinkPad-P72>
+ <6AAE7FC6-F5DE-4067-8BC4-77F27948CD09@oracle.com>
+ <20200125005713.GZ2935@paulmck-ThinkPad-P72>
+ <02defadb-217d-7803-88a1-ec72a37eda28@redhat.com>
+ <adb4fb09-f374-4d64-096b-ba9ad8b35fd5@redhat.com>
+ <20200125045844.GC2935@paulmck-ThinkPad-P72>
+ <967f99ee-b781-43f4-d8ba-af83786c429c@redhat.com>
+ <20200126153535.GL2935@paulmck-ThinkPad-P72>
 MIME-Version: 1.0
-References: <20200110165636.28035-1-will@kernel.org> <20200110165636.28035-2-will@kernel.org>
- <CAK8P3a3ueJ_rQc-1JTg=3N0JSuY9BduJ6FrrPFG1K2FWVzJdfA@mail.gmail.com>
- <8fe4f81699517758b44afbe0e1a53bc080f64a62.camel@perches.com> <CAK8P3a1t9757M5CRKNX_X+T9VuLX+5=z5_845rLJGTG50RogXA@mail.gmail.com>
-In-Reply-To: <CAK8P3a1t9757M5CRKNX_X+T9VuLX+5=z5_845rLJGTG50RogXA@mail.gmail.com>
-From: Masahiro Yamada <masahiroy@kernel.org>
-Date: Tue, 14 Jan 2020 00:35:35 +0900
-Message-ID: <CAK7LNARugZUWNF_1e70ZCyK5t_e4MFXnnw1PkmaRWQioQSPkEA@mail.gmail.com>
-Subject: Re: [RFC PATCH 1/8] compiler/gcc: Emit build-time warning for GCC
- prior to version 4.8
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20200126153535.GL2935@paulmck-ThinkPad-P72>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Joe Perches <joe@perches.com>, Will Deacon <will@kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Android Kernel Team <kernel-team@android.com>, Michael Ellerman <mpe@ellerman.id.au>, Peter Zijlstra <peterz@infradead.org>, Linus Torvalds <torvalds@linux-foundation.org>, Segher Boessenkool <segher@kernel.crashing.org>, Christian Borntraeger <borntraeger@de.ibm.com>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>
-Message-ID: <20200113153535.fqn40WZ5tfXEePQ6ney5aAbTXPoDuPygz13iDYNeKhY@z>
+To: Waiman Long <longman@redhat.com>
+Cc: Alex Kogan <alex.kogan@oracle.com>, linux@armlinux.org.uk, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-arm-kernel <linux-arm-kernel@lists.infradead.org>, linux-kernel@vger.kernel.org, tglx@linutronix.de, bp@alien8.de, hpa@zytor.com, x86@kernel.org, guohanjun@huawei.com, jglauber@marvell.com, dave.dice@oracle.com, steven.sistare@oracle.com, daniel.m.jordan@oracle.com
+Message-ID: <20200126224245.XaGz1cjBW9AcvmyCEC8t2wyNrRENwon0PUXZufXCZec@z>
 
-On Mon, Jan 13, 2020 at 11:40 PM Arnd Bergmann <arnd@arndb.de> wrote:
->
-> On Fri, Jan 10, 2020 at 6:54 PM Joe Perches <joe@perches.com> wrote:
-> >
-> > On Fri, 2020-01-10 at 18:35 +0100, Arnd Bergmann wrote:
-> > > On Fri, Jan 10, 2020 at 5:56 PM Will Deacon <will@kernel.org> wrote:
-> > > > Prior to version 4.8, GCC may miscompile READ_ONCE() by erroneously
-> > > > discarding the 'volatile' qualifier:
-> > > >
-> > > > https://gcc.gnu.org/bugzilla/show_bug.cgi?id=58145
-> > > >
-> > > > We've been working around this using some nasty hacks which make
-> > > > READ_ONCE() both horribly complicated and also prevent us from enforcing
-> > > > that it is only used on scalar types. Since GCC 4.8 is pretty old for
-> > > > kernel builds now, emit a warning if we detect it during the build.
+On Sun, Jan 26, 2020 at 07:35:35AM -0800, Paul E. McKenney wrote:
+> On Sat, Jan 25, 2020 at 02:41:39PM -0500, Waiman Long wrote:
+> > On 1/24/20 11:58 PM, Paul E. McKenney wrote:
+> > > On Fri, Jan 24, 2020 at 09:17:05PM -0500, Waiman Long wrote:
+> > >> On 1/24/20 8:59 PM, Waiman Long wrote:
+> > >>>> You called it!  I will play with QEMU's -numa argument to see if I can get
+> > >>>> CNA to run for me.  Please accept my apologies for the false alarm.
+> > >>>>
+> > >>>> 							Thanx, Paul
+> > >>>>
+> > >>> CNA is not currently supported in a VM guest simply because the numa
+> > >>> information is not reliable. You will have to run it on baremetal to
+> > >>> test it. Sorry for that.
+> > >> Correction. There is a command line option to force CNA lock to be used
+> > >> in a VM. Use the "numa_spinlock=on" boot command line parameter.
+> > > As I understand it, I need to use a series of -numa arguments to qemu
+> > > combined with the numa_spinlock=on (or =1) on the kernel command line.
+> > > If the kernel thinks that there is only one NUMA node, it appears to
+> > > avoid doing CNA.
 > > >
-> > > No objection to recommending gcc-4.8, but I think this should either
-> > > just warn once during the kernel build instead of for every file, or
-> > > it should become a hard requirement.
-> >
-> > It might as well be a hard requirement as
-> > gcc 4.8.0 is already nearly 7 years old.
-> >
-> > gcc 4.6.0 released 2011-03-25
-> > gcc 4.8.0 released 2013-03-22
-> >
-> > Perhaps there are exceedingly few to zero new
-> > instances using gcc compiler versions < 4.8
->
-> The last time we had this discussion, the result was that gcc-4.8 is
-> probably ok as a minimum version, but moving to 5.1+ (from 2015)
-> was not an obvious choice:
->
-> https://www.spinics.net/lists/linux-kbuild/msg23648.html
->
-> If nobody complains about the move to 4.8, we can try moving to
-> gcc-5.1 and GNU99/GNU11 next year  ;-)
->
->        Arnd
+> > > Correct?
+> > >
+> > > 							Thanx, Paul
+> > >
+> > In auto-detection mode (the default), CNA will only be turned on when
+> > paravirt qspinlock is not enabled first and there are at least 2 numa
+> > nodes. The "numa_spinlock=on" option will force it on even when both of
+> > the above conditions are false.
+> 
+> Hmmm...
+> 
+> Here is my kernel command line taken from the console log:
+> 
+> console=ttyS0 locktorture.onoff_interval=0 numa_spinlock=on locktorture.stat_interval=15 locktorture.shutdown_secs=1800 locktorture.verbose=1
+> 
+> Yet the string "Enabling CNA spinlock" does not appear.
+> 
+> Ah, idiot here needs to enable CONFIG_NUMA_AWARE_SPINLOCKS in his build.
+> Trying again with "--kconfig "CONFIG_NUMA_AWARE_SPINLOCKS=y"...
 
+And after fixing that, plus adding the other three Kconfig options required
+to enable this, I really do see "Enabling CNA spinlock" in the console log.
+Yay!
 
-I agree.
+At the end of the 30-minute locktorture exclusive-lock run, I see this:
 
-"Your compiler is old and may miscompile the kernel due to
-https://gcc.gnu.org/bugzilla/show_bug.cgi?id=58145 - please upgrade it."
-sounds like an error rather than a warning.
+Writes:  Total: 572176565  Max/Min: 54167704/10878216 ???  Fail: 0
 
+This is about a five-to-one ratio.  Is this expected behavior, given a
+single NUMA node on a single-socket system with 12 hardware threads?
 
+I will try reader-writer lock next.
 
--- 
-Best Regards
-Masahiro Yamada
+Again, should I be using qemu's -numa command-line option to create nodes?
+If so, what would be a sane configuration given 12 CPUs and 512MB of
+memory for the VM?  If not, what is a good way to exercise CNA's NUMA
+capabilities within a guest OS?
+
+							Thanx, Paul
