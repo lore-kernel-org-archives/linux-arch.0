@@ -1,50 +1,41 @@
-Return-Path: <SRS0=WRhj=3F=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mout.kundenserver.de ([212.227.17.13]:52119 "EHLO
-        mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1725999AbgAPLoA (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 16 Jan 2020 06:44:00 -0500
+Return-Path: <SRS0=42Ht=3P=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail25.static.mailgun.info ([104.130.122.25]:43792 "EHLO
+        mail25.static.mailgun.info" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S1726080AbgAZPLm (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Sun, 26 Jan 2020 10:11:42 -0500
+Content-Type: text/plain; charset="utf-8"
 MIME-Version: 1.0
-References: <20200114200846.29434-1-vgupta@synopsys.com> <20200114200846.29434-2-vgupta@synopsys.com>
- <CAK8P3a3W0eLK+qypnPwq=PdcF7+ey8OZEhmOoA6Bg7hMGm5hqQ@mail.gmail.com> <6eb7587b-c3bc-691d-9d27-d4e687114a42@synopsys.com>
-In-Reply-To: <6eb7587b-c3bc-691d-9d27-d4e687114a42@synopsys.com>
-From: Arnd Bergmann <arnd@arndb.de>
-Date: Thu, 16 Jan 2020 12:43:39 +0100
-Message-ID: <CAK8P3a398-ojtETr9A7YsGTHBnmqyiykcC0YmHQSL5Cw1jy=Ew@mail.gmail.com>
-Subject: Re: [RFC 1/4] asm-generic/uaccess: don't define inline functions if
- noinline lib/* in use
-Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 7bit
+Subject: Re: [PATCH v2 2/9] net: wireless: rtl818x: Constify ioreadX() iomem
+ argument (as in generic implementation)
+From: Kalle Valo <kvalo@codeaurora.org>
+In-Reply-To: <20200108200528.4614-3-krzk@kernel.org>
+References: <20200108200528.4614-3-krzk@kernel.org>
+Message-ID: <20200126151137.C0CA8C43383@smtp.codeaurora.org>
+Date: Sun, 26 Jan 2020 15:11:37 +0000 (UTC)
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Cc: Khalid Aziz <khalid.aziz@oracle.com>, Andrey Konovalov <andreyknvl@google.com>, Andrew Morton <akpm@linux-foundation.org>, Peter Zijlstra <peterz@infradead.org>, Christian Brauner <christian.brauner@ubuntu.com>, Kees Cook <keescook@chromium.org>, Ingo Molnar <mingo@kernel.org>, Aleksa Sarai <cyphar@cyphar.com>, Linus Torvalds <torvalds@linux-foundation.org>, "open list:SYNOPSYS ARC ARCHITECTURE" <linux-snps-arc@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>
-Message-ID: <20200116114339.Ezi0OYGnhdDWQaUov8XDELr2tJcNS30Ka-Y8_lNd1DQ@z>
+To: Krzysztof Kozlowski <krzk@kernel.org>
+Cc: Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Alexey Brodkin <abrodkin@synopsys.com>, Vineet Gupta <vgupta@synopsys.com>, "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>, Helge Deller <deller@gmx.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, Dave Airlie <airlied@redhat.com>, David Airlie <airlied@linux.ie>, Daniel Vetter <daniel@ffwll.ch>, Ben Skeggs <bskeggs@redhat.com>, Mauro Carvalho Chehab <mchehab@kernel.org>, Jiri Slaby <jirislaby@gmail.com>, Nick Kossifidis <mickflemm@gmail.com>, Luis Chamberlain <mcgrof@kernel.org>, "David S. Miller" <davem@davemloft.net>, Dave Jiang <dave.jiang@intel.com>, Jon Mason <jdmason@kudzu.us>, Allen Hubbe <allenbh@gmail.com>, "Michael S. Tsirkin" <mst@redhat.com>, Jason Wang <jasowang@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Geert Uytterhoeven <geert+renesas@glider.be>, Thomas Gleixner <tglx@linutronix.de>, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-snps-arc@lists.infradead.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org, dri-devel@lists.freedesktop.org, nouveau@lists.freedesktop.org, linux-media@vger.kernel.org, linux-wireless@vger.kernel.org, netdev@vger.kernel.org, linux-ntb@googlegroups.com, virtualization@lists.linux-foundation.org, linux-arch@vger.kernel.org
+Message-ID: <20200126151137.hBunCfdWNDXFovSbnmtxRipaeVa-cjO0xfWQUhzdPqk@z>
 
-On Thu, Jan 16, 2020 at 12:02 AM Vineet Gupta
-<Vineet.Gupta1@synopsys.com> wrote:
-> On 1/14/20 12:57 PM, Arnd Bergmann wrote:
-> > On Tue, Jan 14, 2020 at 9:08 PM Vineet Gupta <Vineet.Gupta1@synopsys.com> wrote:
-> >> There are 2 generic varaints of strncpy_from_user() / strnlen_user()
-> >>  (1). inline version in asm-generic/uaccess.h
-> >>  (2). optimized word-at-a-time version in lib/*
-> >>
-> >> This patch disables #1 if #2 selected. This allows arches to continue
-> >> reusing asm-generic/uaccess.h for rest of code
-> >>
-> >> This came up when switching ARC to generic word-at-a-time interface
-> >>
-> >> Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
-> > This looks like a useful change, but I think we can do even better: It
-> > seems that
-> > there are no  callers of __strnlen_user or __strncpy_from_user  in the
-> > kernel today, so these should not be defined either when the Kconfig symbols
-> > are set. Also, I would suggest moving the 'extern' declaration for the two
-> > functions into the #else branch of the conditional so it does not need to be
-> > duplicated.
->
-> Given where things seem to be heading, do u still want an updated patch for this
-> or do u plan to ditch the inline version in short term anyways.
+Krzysztof Kozlowski <krzk@kernel.org> wrote:
 
-I'm trying to come up with a cleanup series now that I'll send you.
-You can base on top of that if you like.
+> The ioreadX() helpers have inconsistent interface.  On some architectures
+> void *__iomem address argument is a pointer to const, on some not.
+> 
+> Implementations of ioreadX() do not modify the memory under the address
+> so they can be converted to a "const" version for const-safety and
+> consistency among architectures.
+> 
+> Signed-off-by: Krzysztof Kozlowski <krzk@kernel.org>
+> Reviewed-by: Geert Uytterhoeven <geert+renesas@glider.be>
 
-     Arnd
+I assume this and patch 9 are going via some other tree so dropping them
+from my patchwork queue.
+
+-- 
+https://patchwork.kernel.org/patch/11324461/
+
+https://wireless.wiki.kernel.org/en/developers/documentation/submittingpatches
