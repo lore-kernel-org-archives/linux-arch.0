@@ -1,70 +1,53 @@
 Return-Path: <owner-linux-mm@kvack.org>
-From: Sandipan Das <sandipan@linux.ibm.com>
-Subject: [PATCH v16 15/23] selftests/vm/pkeys: Fix assertion in
- test_pkey_alloc_exhaust()
-Date: Fri, 17 Jan 2020 18:19:54 +0530
-In-Reply-To: <cover.1579265066.git.sandipan@linux.ibm.com>
-References: <cover.1579265066.git.sandipan@linux.ibm.com>
-In-Reply-To: <cover.1579265066.git.sandipan@linux.ibm.com>
-References: <cover.1579265066.git.sandipan@linux.ibm.com>
-Message-ID: <8f8e01c2885b6b463c4add91b21a82ac25b62603.1579265066.git.sandipan@linux.ibm.com>
+Date: Sun, 26 Jan 2020 07:52:05 -0800
+From: Guenter Roeck <linux@roeck-us.net>
+Subject: Re: [PATCH mk-II 08/17] asm-generic/tlb: Provide
+ MMU_GATHER_TABLE_FREE
+Message-ID: <20200126155205.GA19169@roeck-us.net>
+References: <20191211120713.360281197@infradead.org>
+ <20191211122956.112607298@infradead.org>
+ <20191212093205.GU2827@hirez.programming.kicks-ass.net>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20191212093205.GU2827@hirez.programming.kicks-ass.net>
 Sender: owner-linux-mm@kvack.org
-To: shuah@kernel.org, linux-kselftest@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, fweimer@redhat.com, dave.hansen@intel.com, x86@kernel.org, linuxram@us.ibm.com, mhocko@kernel.org, linux-mm@kvack.org, mingo@redhat.com, aneesh.kumar@linux.ibm.com, bauerman@linux.ibm.com, msuchanek@suse.de, mpe@ellerman.id.au, linuxppc-dev@lists.ozlabs.org
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Will Deacon <will@kernel.org>, "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, Nick Piggin <npiggin@gmail.com>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, "David S. Miller" <davem@davemloft.net>, Helge Deller <deller@gmx.de>, Geert Uytterhoeven <geert@linux-m68k.org>, Paul Burton <paulburton@kernel.org>, Tony Luck <tony.luck@intel.com>, Richard Henderson <rth@twiddle.net>, Nick Hu <nickhu@andestech.com>, Paul Walmsley <paul.walmsley@sifive.com>
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200117124954.FdBHpBV9n6pLdI3GGDU28i5bgUkkECXOzMJhK6tdMrA@z>
+Message-ID: <20200126155205.X-QFRXK5pHxtzYXazA27ATzze2ovAjOjCRqrqaHuT4U@z>
 
-From: Ram Pai <linuxram@us.ibm.com>
+On Thu, Dec 12, 2019 at 10:32:05AM +0100, Peter Zijlstra wrote:
+> As described in the comment, the correct order for freeing pages is:
+> 
+>  1) unhook page
+>  2) TLB invalidate page
+>  3) free page
+> 
+> This order equally applies to page directories.
+> 
+> Currently there are two correct options:
+> 
+>  - use tlb_remove_page(), when all page directores are full pages and
+>    there are no futher contraints placed by things like software
+>    walkers (HAVE_FAST_GUP).
+> 
+>  - use MMU_GATHER_RCU_TABLE_FREE and tlb_remove_table() when the
+>    architecture does not do IPI based TLB invalidate and has
+>    HAVE_FAST_GUP (or software TLB fill).
+> 
+> This however leaves architectures that don't have page based
+> directories but don't need RCU in a bind. For those, provide
+> MMU_GATHER_TABLE_FREE, which provides the independent batching for
+> directories without the additional RCU freeing.
+> 
+> Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+> ---
 
-Some pkeys which are valid on the hardware are reserved
-and not available for application use. These keys cannot
-be allocated.
+Various sparc64 builds (allnoconfig, tinyconfig, as well as builds
+with SMP disabled):
 
-test_pkey_alloc_exhaust() tries to account for these and
-has an assertion which validates if all available pkeys
-have been exahaustively allocated. However, the expression
-that is currently used is only valid for x86. On powerpc,
-a pkey is additionally reserved as compared to x86. Hence,
-the assertion is made to use an arch-specific helper to
-get the correct count of reserved pkeys.
+mm/mmu_gather.c: In function '__tlb_remove_table_free':
+mm/mmu_gather.c:101:3: error: implicit declaration of function '__tlb_remove_table'; did you mean 'tlb_remove_table'?
 
-cc: Dave Hansen <dave.hansen@intel.com>
-cc: Florian Weimer <fweimer@redhat.com>
-Signed-off-by: Ram Pai <linuxram@us.ibm.com>
-Signed-off-by: Sandipan Das <sandipan@linux.ibm.com>
----
- tools/testing/selftests/vm/protection_keys.c | 11 ++++++++++-
- 1 file changed, 10 insertions(+), 1 deletion(-)
-
-diff --git a/tools/testing/selftests/vm/protection_keys.c b/tools/testing/selftests/vm/protection_keys.c
-index 90bb3a8cd78b..a91d11c6a0ec 100644
---- a/tools/testing/selftests/vm/protection_keys.c
-+++ b/tools/testing/selftests/vm/protection_keys.c
-@@ -1152,6 +1152,7 @@ void test_pkey_alloc_exhaust(int *ptr, u16 pkey)
- 	dprintf3("%s()::%d\n", __func__, __LINE__);
-
- 	/*
-+	 * On x86:
- 	 * There are 16 pkeys supported in hardware.  Three are
- 	 * allocated by the time we get here:
- 	 *   1. The default key (0)
-@@ -1159,8 +1160,16 @@ void test_pkey_alloc_exhaust(int *ptr, u16 pkey)
- 	 *   3. One allocated by the test code and passed in via
- 	 *      'pkey' to this function.
- 	 * Ensure that we can allocate at least another 13 (16-3).
-+	 *
-+	 * On powerpc:
-+	 * There are either 5, 28, 29 or 32 pkeys supported in
-+	 * hardware depending on the page size (4K or 64K) and
-+	 * platform (powernv or powervm). Four are allocated by
-+	 * the time we get here. These include pkey-0, pkey-1,
-+	 * exec-only pkey and the one allocated by the test code.
-+	 * Ensure that we can allocate the remaining.
- 	 */
--	pkey_assert(i >= NR_PKEYS-3);
-+	pkey_assert(i >= (NR_PKEYS - get_arch_reserved_keys() - 1));
-
- 	for (i = 0; i < nr_allocated_pkeys; i++) {
- 		err = sys_pkey_free(allocated_pkeys[i]);
--- 
-2.17.1
+Guenter
