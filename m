@@ -1,43 +1,67 @@
-From: Kalle Valo <kvalo@codeaurora.org>
-Subject: Re: [PATCH v2 2/9] net: wireless: rtl818x: Constify ioreadX() iomem
- argument (as in generic implementation)
-Date: Sun, 26 Jan 2020 15:11:37 +0000 (UTC)
-Message-ID: <20200126151137.D33A4C433CB@smtp.codeaurora.org>
-References: <20200108200528.4614-3-krzk@kernel.org>
+From: "Paul E. McKenney" <paulmck@kernel.org>
+Subject: Re: [PATCH v9 0/5] Add NUMA-awareness to qspinlock
+Date: Sun, 26 Jan 2020 07:35:36 -0800
+Message-ID: <20200126153535.GL2935@paulmck-ThinkPad-P72>
+References: <20200115035920.54451-1-alex.kogan@oracle.com>
+ <20200124222434.GA7196@paulmck-ThinkPad-P72>
+ <6AAE7FC6-F5DE-4067-8BC4-77F27948CD09@oracle.com>
+ <20200125005713.GZ2935@paulmck-ThinkPad-P72>
+ <02defadb-217d-7803-88a1-ec72a37eda28@redhat.com>
+ <adb4fb09-f374-4d64-096b-ba9ad8b35fd5@redhat.com>
+ <20200125045844.GC2935@paulmck-ThinkPad-P72>
+ <967f99ee-b781-43f4-d8ba-af83786c429c@redhat.com>
+Reply-To: paulmck@kernel.org
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: 7bit
-Return-path: <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane-mx.org@lists.ozlabs.org>
-In-Reply-To: <20200108200528.4614-3-krzk@kernel.org>
-List-Unsubscribe: <https://lists.ozlabs.org/options/linuxppc-dev>,
- <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=unsubscribe>
-List-Archive: <http://lists.ozlabs.org/pipermail/linuxppc-dev/>
-List-Post: <mailto:linuxppc-dev@lists.ozlabs.org>
-List-Help: <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=help>
-List-Subscribe: <https://lists.ozlabs.org/listinfo/linuxppc-dev>,
- <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=subscribe>
-Errors-To: linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane-mx.org@lists.ozlabs.org
-Sender: "Linuxppc-dev"
- <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane-mx.org@lists.ozlabs.org>
-Cc: Rich Felker <dalias@libc.org>, Jiri Slaby <jirislaby@gmail.com>, Geert Uytterhoeven <geert+renesas@glider.be>, "Michael S. Tsirkin" <mst@redhat.com>, David Airlie <airlied@linux.ie>, Jason Wang <jasowang@redhat.com>, dri-devel@lists.freedesktop.org, virtualization@lists.linux-foundation.org, "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>, netdev@vger.kernel.org, Paul Mackerras <paulus@samba.org>, linux-arch@vger.kernel.org, Dave Jiang <dave.jiang@intel.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Helge Deller <deller@gmx.de>, linux-sh@vger.kernel.org, Alexey Brodkin <abrodkin@synopsys.com>, Krzysztof Kozlowski <krzk@kernel.org>, Ben Skeggs <bskeggs@redhat.com>, nouveau@lists.freedesktop.org, Dave Airlie <airlied@redhat.com>, Matt Turner <mattst88@gmail.com>, linux-snps-arc@lists.infradead.org, Nick Kossifidis <mickflemm@gmail.com>, Allen Hubbe <alle>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail.kernel.org ([198.145.29.99]:57562 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1725908AbgAZPfg (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Sun, 26 Jan 2020 10:35:36 -0500
+Content-Disposition: inline
+In-Reply-To: <967f99ee-b781-43f4-d8ba-af83786c429c@redhat.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Waiman Long <longman@redhat.com>
+Cc: Alex Kogan <alex.kogan@oracle.com>, linux@armlinux.org.uk, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-arm-kernel <linux-arm-kernel@lists.infradead.org>, linux-kernel@vger.kernel.org, tglx@linutronix.de, bp@alien8.de, hpa@zytor.com, x86@kernel.org, guohanjun@huawei.com, jglauber@marvell.com, dave.dice@oracle.com, steven.sistare@oracle.com, daniel.m.jordan@oracle.com
 
-Krzysztof Kozlowski <krzk@kernel.org> wrote:
+On Sat, Jan 25, 2020 at 02:41:39PM -0500, Waiman Long wrote:
+> On 1/24/20 11:58 PM, Paul E. McKenney wrote:
+> > On Fri, Jan 24, 2020 at 09:17:05PM -0500, Waiman Long wrote:
+> >> On 1/24/20 8:59 PM, Waiman Long wrote:
+> >>>> You called it!  I will play with QEMU's -numa argument to see if I can get
+> >>>> CNA to run for me.  Please accept my apologies for the false alarm.
+> >>>>
+> >>>> 							Thanx, Paul
+> >>>>
+> >>> CNA is not currently supported in a VM guest simply because the numa
+> >>> information is not reliable. You will have to run it on baremetal to
+> >>> test it. Sorry for that.
+> >> Correction. There is a command line option to force CNA lock to be used
+> >> in a VM. Use the "numa_spinlock=on" boot command line parameter.
+> > As I understand it, I need to use a series of -numa arguments to qemu
+> > combined with the numa_spinlock=on (or =1) on the kernel command line.
+> > If the kernel thinks that there is only one NUMA node, it appears to
+> > avoid doing CNA.
+> >
+> > Correct?
+> >
+> > 							Thanx, Paul
+> >
+> In auto-detection mode (the default), CNA will only be turned on when
+> paravirt qspinlock is not enabled first and there are at least 2 numa
+> nodes. The "numa_spinlock=on" option will force it on even when both of
+> the above conditions are false.
 
-> The ioreadX() helpers have inconsistent interface.  On some architectures
-> void *__iomem address argument is a pointer to const, on some not.
-> 
-> Implementations of ioreadX() do not modify the memory under the address
-> so they can be converted to a "const" version for const-safety and
-> consistency among architectures.
-> 
-> Signed-off-by: Krzysztof Kozlowski <krzk@kernel.org>
-> Reviewed-by: Geert Uytterhoeven <geert+renesas@glider.be>
+Hmmm...
 
-I assume this and patch 9 are going via some other tree so dropping them
-from my patchwork queue.
+Here is my kernel command line taken from the console log:
 
--- 
-https://patchwork.kernel.org/patch/11324461/
+console=ttyS0 locktorture.onoff_interval=0 numa_spinlock=on locktorture.stat_interval=15 locktorture.shutdown_secs=1800 locktorture.verbose=1
 
-https://wireless.wiki.kernel.org/en/developers/documentation/submittingpatches
+Yet the string "Enabling CNA spinlock" does not appear.
+
+Ah, idiot here needs to enable CONFIG_NUMA_AWARE_SPINLOCKS in his build.
+Trying again with "--kconfig "CONFIG_NUMA_AWARE_SPINLOCKS=y"...
+
+							Thanx, Paul
