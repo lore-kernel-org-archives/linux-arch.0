@@ -1,98 +1,42 @@
-From: Guo Ren <guoren@linux.alibaba.com>
-Subject: Re: [PATCH V2] riscv: Use flush_icache_mm for flush_icache_user_range
-Date: Mon, 27 Jan 2020 23:25:57 +0800
-Message-ID: <20200127152557.GA8980@parallels-Parallels-Virtual-Platform>
-References: <20200127145008.2850-1-guoren@linux.alibaba.com>
+From: Dave Hansen <dave.hansen@intel.com>
+Subject: Re: [PATCH v16 00/23] selftests, powerpc, x86: Memory Protection Keys
+Date: Mon, 27 Jan 2020 07:42:33 -0800
+Message-ID: <3eca7a91-aa3e-cb01-47c8-5d36020993a2@intel.com>
+References: <cover.1579507768.git.sandipan@linux.ibm.com>
+ <3ceb2814-f8b0-ec6b-3c24-ec72297a99f5@intel.com>
+ <8f14bee0-ab1c-fc90-dfdb-5128607b767f@linux.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-riscv-bounces+glpr-linux-riscv=m.gmane-mx.org@lists.infradead.org>
-Content-Disposition: inline
-In-Reply-To: <20200127145008.2850-1-guoren@linux.alibaba.com>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-riscv>,
- <mailto:linux-riscv-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-riscv/>
-List-Post: <mailto:linux-riscv@lists.infradead.org>
-List-Help: <mailto:linux-riscv-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-riscv>,
- <mailto:linux-riscv-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-riscv" <linux-riscv-bounces@lists.infradead.org>
-Errors-To: linux-riscv-bounces+glpr-linux-riscv=m.gmane-mx.org@lists.infradead.org
-To: paul.walmsley@sifive.com, andrew@sifive.com, palmer@dabbelt.com
-Cc: linux-arch@vger.kernel.org, linux-riscv@lists.infradead.org, Albert Ou <aou@eecs.berkeley.edu>, linux-kernel@vger.kernel.org, linux-csky@vger.kernel.org
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
+Return-path: <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane-mx.org@lists.ozlabs.org>
+In-Reply-To: <8f14bee0-ab1c-fc90-dfdb-5128607b767f@linux.ibm.com>
+Content-Language: en-US
+List-Unsubscribe: <https://lists.ozlabs.org/options/linuxppc-dev>,
+ <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=unsubscribe>
+List-Archive: <http://lists.ozlabs.org/pipermail/linuxppc-dev/>
+List-Post: <mailto:linuxppc-dev@lists.ozlabs.org>
+List-Help: <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=help>
+List-Subscribe: <https://lists.ozlabs.org/listinfo/linuxppc-dev>,
+ <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=subscribe>
+Errors-To: linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane-mx.org@lists.ozlabs.org
+Sender: "Linuxppc-dev"
+ <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane-mx.org@lists.ozlabs.org>
+To: Sandipan Das <sandipan@linux.ibm.com>
+Cc: linux-arch@vger.kernel.org, fweimer@redhat.com, aneesh.kumar@linux.ibm.com, x86@kernel.org, linuxram@us.ibm.com, linuxppc-dev@lists.ozlabs.org, mhocko@kernel.org, linux-mm@kvack.org, mingo@redhat.com, linux-kselftest@vger.kernel.org, msuchanek@suse.de, shuah@kernel.org, bauerman@linux.ibm.com
 List-Id: linux-arch.vger.kernel.org
 
-Hi all,
+On 1/27/20 2:11 AM, Sandipan Das wrote:
+> Hi Dave,
+> 
+> On 23/01/20 12:15 am, Dave Hansen wrote:
+>> Still doesn't build for me:
+>>
+> I have this patch that hopefully fixes this. My understanding was
+> that the vm tests are supposed to be generic but this has quite a
+> bit of x86-specific conditional code which complicates things even
+> though it is not used by any of the other tests.
+> 
+> I'm not sure if we should keep x86 multilib build support for these
+> selftests but I'll let the maintainers take a call.
 
-No ARCH_IMPLEMENTS_FLUSH_DCACHE_PAGE 1 in this patch, I'll remove it
-in V3.
-
-The update_mmu_cache() is wrong with sfence.vma and I'll give another
-patch to fixup it with ARCH_IMPLEMENTS_FLUSH_DCACHE_PAGE 1.
-
-Best Regards
- Guo Ren
-
-On Mon, Jan 27, 2020 at 10:50:08PM +0800, Guo Ren wrote:
-> The patch is the fixup for the commit 08f051eda33b by Andrew.
-> 
-> For copy_to_user_page, the only call path is:
-> __access_remote_vm -> copy_to_user_page -> flush_icache_user_range
-> 
-> Seems it's ok to use flush_icache_mm instead of flush_icache_all and
-> it could reduce flush_icache_all called on other harts.
-> 
-> Add (vma->vm_flags & VM_EXEC) condition to flush icache only for
-> executable vma area.
-> 
-> ARCH_IMPLEMENTS_FLUSH_DCACHE_PAGE is used in a lot of fs/block codes.
-> We need it to make their pages dirty and defer sync i/dcache in
-> update_mmu_cache().
-> 
-> Signed-off-by: Guo Ren <guoren@linux.alibaba.com>
-> Cc: Paul Walmsley <paul.walmsley@sifive.com>
-> Cc: Andrew Waterman <andrew@sifive.com>
-> Cc: Palmer Dabbelt <palmer@dabbelt.com>
-> Cc: Albert Ou <aou@eecs.berkeley.edu>
-> 
-> ---
-> Changelog V2:
->  - Add VM_EXEC condition.
->  - Remove flush_icache_user_range definition.
->  - define ARCH_IMPLEMENTS_FLUSH_DCACHE_PAGE 1
-> ---
->  arch/riscv/include/asm/cacheflush.h | 6 +++---
->  1 file changed, 3 insertions(+), 3 deletions(-)
-> 
-> diff --git a/arch/riscv/include/asm/cacheflush.h b/arch/riscv/include/asm/cacheflush.h
-> index b69aecbb36d3..ae57d6ce63a9 100644
-> --- a/arch/riscv/include/asm/cacheflush.h
-> +++ b/arch/riscv/include/asm/cacheflush.h
-> @@ -8,7 +8,7 @@
->  
->  #include <linux/mm.h>
->  
-> -#define ARCH_IMPLEMENTS_FLUSH_DCACHE_PAGE 0
-> +#define ARCH_IMPLEMENTS_FLUSH_DCACHE_PAGE 1
->  
->  /*
->   * The cache doesn't need to be flushed when TLB entries change when
-> @@ -62,7 +62,8 @@ static inline void flush_cache_vunmap(unsigned long start, unsigned long end)
->  #define copy_to_user_page(vma, page, vaddr, dst, src, len) \
->  	do { \
->  		memcpy(dst, src, len); \
-> -		flush_icache_user_range(vma, page, vaddr, len); \
-> +		if (vma->vm_flags & VM_EXEC) \
-> +			flush_icache_mm(vma->vm_mm, 0); \
->  	} while (0)
->  #define copy_from_user_page(vma, page, vaddr, dst, src, len) \
->  	memcpy(dst, src, len)
-> @@ -85,7 +86,6 @@ static inline void flush_dcache_page(struct page *page)
->   * so instead we just flush the whole thing.
->   */
->  #define flush_icache_range(start, end) flush_icache_all()
-> -#define flush_icache_user_range(vma, pg, addr, len) flush_icache_all()
->  
->  void dma_wbinv_range(unsigned long start, unsigned long end);
->  void dma_wb_range(unsigned long start, unsigned long end);
-> -- 
-> 2.17.0
+How have you tested this patch (and the whole series for that matter)?
