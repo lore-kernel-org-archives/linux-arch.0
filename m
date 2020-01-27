@@ -1,55 +1,60 @@
-Return-Path: <3suAvXg4KBCsIYLUKHUOPNNPUZNVVNSL.JVTYWWaSPUbe.PIT.JVT@flex--brendanhiggins.bounces.google.com>
-Date: Mon, 27 Jan 2020 23:19:56 -0800
-In-Reply-To: <20200128072002.79250-1-brendanhiggins@google.com>
-Message-ID: <20200128072002.79250-2-brendanhiggins@google.com>
-Mime-Version: 1.0
-References: <20200128072002.79250-1-brendanhiggins@google.com>
-Subject: [PATCH v1 1/7] vmlinux.lds.h: add linker section for KUnit test suites
-From: Brendan Higgins <brendanhiggins@google.com>
-Content-Type: text/plain; charset="UTF-8"
-To: jdike@addtoit.com, richard@nod.at, anton.ivanov@cambridgegreys.com, arnd@arndb.de, keescook@chromium.org, skhan@linuxfoundation.org, alan.maguire@oracle.com, yzaikin@google.com, davidgow@google.com, akpm@linux-foundation.org, rppt@linux.ibm.com, frowand.list@gmail.com
-Cc: gregkh@linuxfoundation.org, sboyd@kernel.org, logang@deltatee.com, mcgrof@kernel.org, knut.omang@oracle.com, linux-um@lists.infradead.org, linux-arch@vger.kernel.org, linux-kselftest@vger.kernel.org, kunit-dev@googlegroups.com, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, Brendan Higgins <brendanhiggins@google.com>
+Return-Path: <linux-arch-owner@vger.kernel.org>
+Received: from bombadil.infradead.org ([198.137.202.133]:40326 "EHLO
+ bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with
+ ESMTP id S1727093AbgA0IMI (ORCPT <rfc822;linux-arch@vger.kernel.org>); Mon,
+ 27 Jan 2020 03:12:08 -0500
+Date: Mon, 27 Jan 2020 09:11:34 +0100
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH mk-II 08/17] asm-generic/tlb: Provide
+ MMU_GATHER_TABLE_FREE
+Message-ID: <20200127081134.GI14914@hirez.programming.kicks-ass.net>
+References: <20191211120713.360281197@infradead.org>
+ <20191211122956.112607298@infradead.org>
+ <20191212093205.GU2827@hirez.programming.kicks-ass.net>
+ <20200126155205.GA19169@roeck-us.net>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20200126155205.GA19169@roeck-us.net>
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200128071956.gQ8ywf1crW5qPm7siDaazVZxgzbB-u-AuwVXGdAP0Nk@z>
+To: Guenter Roeck <linux@roeck-us.net>
+Cc: Will Deacon <will@kernel.org>, "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, Nick Piggin <npiggin@gmail.com>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, "David S. Miller" <davem@davemloft.net>, Helge Deller <deller@gmx.de>, Geert Uytterhoeven <geert@linux-m68k.org>, Paul Burton <paulburton@kernel.org>, Tony Luck <tony.luck@intel.com>, Richard Henderson <rth@twiddle.net>, Nick Hu <nickhu@andestech.com>, Paul Walmsley <paul.walmsley@sifive.com>
+Message-ID: <20200127081134.fWonNLQpEA98v2F-7G0QKhg4QPgyAJlyvbMop7qt9uY@z>
 
-Add a linker section where KUnit can put references to its test suites.
-This patch is the first step in transitioning to dispatching all KUnit
-tests from a centralized executor rather than having each as its own
-separate late_initcall.
+On Sun, Jan 26, 2020 at 07:52:05AM -0800, Guenter Roeck wrote:
+> On Thu, Dec 12, 2019 at 10:32:05AM +0100, Peter Zijlstra wrote:
+> > As described in the comment, the correct order for freeing pages is:
+> > 
+> >  1) unhook page
+> >  2) TLB invalidate page
+> >  3) free page
+> > 
+> > This order equally applies to page directories.
+> > 
+> > Currently there are two correct options:
+> > 
+> >  - use tlb_remove_page(), when all page directores are full pages and
+> >    there are no futher contraints placed by things like software
+> >    walkers (HAVE_FAST_GUP).
+> > 
+> >  - use MMU_GATHER_RCU_TABLE_FREE and tlb_remove_table() when the
+> >    architecture does not do IPI based TLB invalidate and has
+> >    HAVE_FAST_GUP (or software TLB fill).
+> > 
+> > This however leaves architectures that don't have page based
+> > directories but don't need RCU in a bind. For those, provide
+> > MMU_GATHER_TABLE_FREE, which provides the independent batching for
+> > directories without the additional RCU freeing.
+> > 
+> > Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+> > ---
+> 
+> Various sparc64 builds (allnoconfig, tinyconfig, as well as builds
+> with SMP disabled):
+> 
+> mm/mmu_gather.c: In function '__tlb_remove_table_free':
+> mm/mmu_gather.c:101:3: error: implicit declaration of function '__tlb_remove_table'; did you mean 'tlb_remove_table'?
 
-Co-developed-by: Iurii Zaikin <yzaikin@google.com>
-Signed-off-by: Iurii Zaikin <yzaikin@google.com>
-Signed-off-by: Brendan Higgins <brendanhiggins@google.com>
-Reviewed-by: Stephen Boyd <sboyd@kernel.org>
----
- include/asm-generic/vmlinux.lds.h | 8 ++++++++
- 1 file changed, 8 insertions(+)
-
-diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
-index e00f41aa8ec4f..99a866f49cb3d 100644
---- a/include/asm-generic/vmlinux.lds.h
-+++ b/include/asm-generic/vmlinux.lds.h
-@@ -856,6 +856,13 @@
- 		KEEP(*(.con_initcall.init))				\
- 		__con_initcall_end = .;
- 
-+/* Alignment must be consistent with (kunit_suite *) in include/kunit/test.h */
-+#define KUNIT_TEST_SUITES						\
-+		. = ALIGN(8);						\
-+		__kunit_suites_start = .;				\
-+		KEEP(*(.kunit_test_suites))				\
-+		__kunit_suites_end = .;
-+
- #ifdef CONFIG_BLK_DEV_INITRD
- #define INIT_RAM_FS							\
- 	. = ALIGN(4);							\
-@@ -1024,6 +1031,7 @@
- 		INIT_CALLS						\
- 		CON_INITCALL						\
- 		INIT_RAM_FS						\
-+		KUNIT_TEST_SUITES					\
- 	}
- 
- #define BSS_SECTION(sbss_align, bss_align, stop_align)			\
--- 
-2.25.0.341.g760bfbb309-goog
+Thanks; I'll respin these patches against Aneesh' pile and make sure to
+look into this when I do so.
