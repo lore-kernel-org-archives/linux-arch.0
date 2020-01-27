@@ -1,508 +1,145 @@
 Return-Path: <owner-linux-mm@kvack.org>
 From: Sandipan Das <sandipan@linux.ibm.com>
-Subject: [PATCH v18 13/24] selftests/vm/pkeys: Introduce powerpc support
-Date: Thu, 30 Jan 2020 12:06:55 +0530
-In-Reply-To: <cover.1580365432.git.sandipan@linux.ibm.com>
-References: <cover.1580365432.git.sandipan@linux.ibm.com>
-In-Reply-To: <cover.1580365432.git.sandipan@linux.ibm.com>
-References: <cover.1580365432.git.sandipan@linux.ibm.com>
-Message-ID: <52ea88ea05e7309f442771f949398cb5ea1e9e76.1580365432.git.sandipan@linux.ibm.com>
+Subject: Re: [PATCH v16 00/23] selftests, powerpc, x86: Memory Protection Keys
+References: <cover.1579507768.git.sandipan@linux.ibm.com>
+ <3ceb2814-f8b0-ec6b-3c24-ec72297a99f5@intel.com>
+Date: Mon, 27 Jan 2020 15:41:08 +0530
+MIME-Version: 1.0
+In-Reply-To: <3ceb2814-f8b0-ec6b-3c24-ec72297a99f5@intel.com>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
+Message-ID: <8f14bee0-ab1c-fc90-dfdb-5128607b767f@linux.ibm.com>
 Sender: owner-linux-mm@kvack.org
-To: shuah@kernel.org, skhan@linuxfoundation.org, linux-kselftest@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, x86@kernel.org, linux-mm@kvack.org, fweimer@redhat.com, dave.hansen@intel.com, linuxram@us.ibm.com, mhocko@kernel.org, mingo@redhat.com, aneesh.kumar@linux.ibm.com, bauerman@linux.ibm.com, msuchanek@suse.de, mpe@ellerman.id.au
+To: Dave Hansen <dave.hansen@intel.com>
+Cc: shuah@kernel.org, linux-kselftest@vger.kernel.org, linux-arch@vger.kernel.org, fweimer@redhat.com, x86@kernel.org, linuxram@us.ibm.com, mhocko@kernel.org, linux-mm@kvack.org, mingo@redhat.com, aneesh.kumar@linux.ibm.com, bauerman@linux.ibm.com, msuchanek@suse.de, mpe@ellerman.id.au, linuxppc-dev@lists.ozlabs.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200130063655.atJ0RXxOx4Dzz9lqpUufKAAPFHdqBgrJX06SS5iPUBw@z>
+Message-ID: <20200127101108.V2vXj9MPmDrdrWOUZtxTVbZCRZlwSuM48U1GD45411E@z>
 
-From: Ram Pai <linuxram@us.ibm.com>
+Hi Dave,
 
-This makes use of the abstractions added earlier and
-introduces support for powerpc.
+On 23/01/20 12:15 am, Dave Hansen wrote:
+> Still doesn't build for me:
+> 
 
-For powerpc, after receiving the SIGSEGV, the signal
-handler must explicitly restore access permissions
-for the faulting pkey to allow the test to continue.
-As this makes use of pkey_access_allow(), all of its
-dependencies and other similar functions have been
-moved ahead of the signal handler.
+I have this patch that hopefully fixes this. My understanding was
+that the vm tests are supposed to be generic but this has quite a
+bit of x86-specific conditional code which complicates things even
+though it is not used by any of the other tests.
 
-cc: Dave Hansen <dave.hansen@intel.com>
-cc: Florian Weimer <fweimer@redhat.com>
-Signed-off-by: Ram Pai <linuxram@us.ibm.com>
+I'm not sure if we should keep x86 multilib build support for these
+selftests but I'll let the maintainers take a call.
+
+From a5609f79e5d5164c99c3cb599e14ca620de9c8d4 Mon Sep 17 00:00:00 2001
+From: Sandipan Das <sandipan@linux.ibm.com>
+Date: Sat, 18 Jan 2020 15:59:04 +0530
+Subject: [PATCH] selftests: vm: pkeys: Fix multilib builds for x86
+
+This ensures that both 32-bit and 64-bit binaries are generated
+when this is built on a x86_64 system that has both 32-bit and
+64-bit libraries. Most of the changes have been borrowed from
+tools/testing/selftests/x86/Makefile.
+
 Signed-off-by: Sandipan Das <sandipan@linux.ibm.com>
 ---
- tools/testing/selftests/vm/pkey-helpers.h    |   2 +
- tools/testing/selftests/vm/pkey-powerpc.h    |  90 +++++++
- tools/testing/selftests/vm/protection_keys.c | 269 ++++++++++---------
- 3 files changed, 233 insertions(+), 128 deletions(-)
- create mode 100644 tools/testing/selftests/vm/pkey-powerpc.h
+ tools/testing/selftests/vm/Makefile | 72 +++++++++++++++++++++++++++++
+ 1 file changed, 72 insertions(+)
 
-diff --git a/tools/testing/selftests/vm/pkey-helpers.h b/tools/testing/selftests/vm/pkey-helpers.h
-index 621fb2a0a5ef..2f4b1eb3a680 100644
---- a/tools/testing/selftests/vm/pkey-helpers.h
-+++ b/tools/testing/selftests/vm/pkey-helpers.h
-@@ -79,6 +79,8 @@ void expected_pkey_fault(int pkey);
+diff --git a/tools/testing/selftests/vm/Makefile b/tools/testing/selftests/vm/Makefile
+index 4e9c741be6af..82031f84af21 100644
+--- a/tools/testing/selftests/vm/Makefile
++++ b/tools/testing/selftests/vm/Makefile
+@@ -18,7 +18,30 @@ TEST_GEN_FILES += on-fault-limit
+ TEST_GEN_FILES += thuge-gen
+ TEST_GEN_FILES += transhuge-stress
+ TEST_GEN_FILES += userfaultfd
++
++ifeq ($(ARCH),x86_64)
++CAN_BUILD_I386 := $(shell ./../x86/check_cc.sh $(CC) ../x86/trivial_32bit_program.c -m32)
++CAN_BUILD_X86_64 := $(shell ./../x86/check_cc.sh $(CC) ../x86/trivial_64bit_program.c)
++CAN_BUILD_WITH_NOPIE := $(shell ./../x86/check_cc.sh $(CC) ../x86/trivial_program.c -no-pie)
++
++TARGETS := protection_keys
++BINARIES_32 := $(TARGETS:%=%_32)
++BINARIES_64 := $(TARGETS:%=%_64)
++
++ifeq ($(CAN_BUILD_WITH_NOPIE),1)
++CFLAGS += -no-pie
++endif
++
++ifeq ($(CAN_BUILD_I386),1)
++TEST_GEN_FILES += $(BINARIES_32)
++endif
++
++ifeq ($(CAN_BUILD_X86_64),1)
++TEST_GEN_FILES += $(BINARIES_64)
++endif
++else
+ TEST_GEN_FILES += protection_keys
++endif
 
- #if defined(__i386__) || defined(__x86_64__) /* arch */
- #include "pkey-x86.h"
-+#elif defined(__powerpc64__) /* arch */
-+#include "pkey-powerpc.h"
- #else /* arch */
- #error Architecture not supported
- #endif /* arch */
-diff --git a/tools/testing/selftests/vm/pkey-powerpc.h b/tools/testing/selftests/vm/pkey-powerpc.h
-new file mode 100644
-index 000000000000..c79f4160a6a0
---- /dev/null
-+++ b/tools/testing/selftests/vm/pkey-powerpc.h
-@@ -0,0 +1,90 @@
-+/* SPDX-License-Identifier: GPL-2.0 */
-+
-+#ifndef _PKEYS_POWERPC_H
-+#define _PKEYS_POWERPC_H
-+
-+#ifndef SYS_mprotect_key
-+# define SYS_mprotect_key	386
-+#endif
-+#ifndef SYS_pkey_alloc
-+# define SYS_pkey_alloc		384
-+# define SYS_pkey_free		385
-+#endif
-+#define REG_IP_IDX		PT_NIP
-+#define REG_TRAPNO		PT_TRAP
-+#define gregs			gp_regs
-+#define fpregs			fp_regs
-+#define si_pkey_offset		0x20
-+
-+#ifndef PKEY_DISABLE_ACCESS
-+# define PKEY_DISABLE_ACCESS	0x3  /* disable read and write */
-+#endif
-+
-+#ifndef PKEY_DISABLE_WRITE
-+# define PKEY_DISABLE_WRITE	0x2
-+#endif
-+
-+#define NR_PKEYS		32
-+#define NR_RESERVED_PKEYS_4K	27 /* pkey-0, pkey-1, exec-only-pkey
-+				      and 24 other keys that cannot be
-+				      represented in the PTE */
-+#define NR_RESERVED_PKEYS_64K	3  /* pkey-0, pkey-1 and exec-only-pkey */
-+#define PKEY_BITS_PER_PKEY	2
-+#define HPAGE_SIZE		(1UL << 24)
-+#define PAGE_SIZE		(1UL << 16)
-+
-+static inline u32 pkey_bit_position(int pkey)
-+{
-+	return (NR_PKEYS - pkey - 1) * PKEY_BITS_PER_PKEY;
-+}
-+
-+static inline u64 __read_pkey_reg(void)
-+{
-+	u64 pkey_reg;
-+
-+	asm volatile("mfspr %0, 0xd" : "=r" (pkey_reg));
-+
-+	return pkey_reg;
-+}
-+
-+static inline void __write_pkey_reg(u64 pkey_reg)
-+{
-+	u64 amr = pkey_reg;
-+
-+	dprintf4("%s() changing %016llx to %016llx\n",
-+			 __func__, __read_pkey_reg(), pkey_reg);
-+
-+	asm volatile("mtspr 0xd, %0" : : "r" ((unsigned long)(amr)) : "memory");
-+
-+	dprintf4("%s() pkey register after changing %016llx to %016llx\n",
-+			__func__, __read_pkey_reg(), pkey_reg);
-+}
-+
-+static inline int cpu_has_pku(void)
-+{
-+	return 1;
-+}
-+
-+static inline int get_arch_reserved_keys(void)
-+{
-+	if (sysconf(_SC_PAGESIZE) == 4096)
-+		return NR_RESERVED_PKEYS_4K;
-+	else
-+		return NR_RESERVED_PKEYS_64K;
-+}
-+
-+void expect_fault_on_read_execonly_key(void *p1, int pkey)
-+{
-+	/*
-+	 * powerpc does not allow userspace to change permissions of exec-only
-+	 * keys since those keys are not allocated by userspace. The signal
-+	 * handler wont be able to reset the permissions, which means the code
-+	 * will infinitely continue to segfault here.
-+	 */
-+	return;
-+}
-+
-+/* 4-byte instructions * 16384 = 64K page */
-+#define __page_o_noops() asm(".rept 16384 ; nop; .endr")
-+
-+#endif /* _PKEYS_POWERPC_H */
-diff --git a/tools/testing/selftests/vm/protection_keys.c b/tools/testing/selftests/vm/protection_keys.c
-index 57c71056c93d..e6de078a9196 100644
---- a/tools/testing/selftests/vm/protection_keys.c
-+++ b/tools/testing/selftests/vm/protection_keys.c
-@@ -169,6 +169,125 @@ void dump_mem(void *dumpme, int len_bytes)
- 	}
- }
+ ifneq (,$(filter $(ARCH),arm64 ia64 mips64 parisc64 ppc64 riscv64 s390x sh64 sparc64 x86_64))
+ TEST_GEN_FILES += va_128TBswitch
+@@ -32,6 +55,55 @@ TEST_FILES := test_vmalloc.sh
+ KSFT_KHDR_INSTALL := 1
+ include ../lib.mk
 
-+static u32 hw_pkey_get(int pkey, unsigned long flags)
-+{
-+	u64 pkey_reg = __read_pkey_reg();
++ifeq ($(ARCH),x86_64)
++BINARIES_32 := $(patsubst %,$(OUTPUT)/%,$(BINARIES_32))
++BINARIES_64 := $(patsubst %,$(OUTPUT)/%,$(BINARIES_64))
 +
-+	dprintf1("%s(pkey=%d, flags=%lx) = %x / %d\n",
-+			__func__, pkey, flags, 0, 0);
-+	dprintf2("%s() raw pkey_reg: %016llx\n", __func__, pkey_reg);
++define gen-target-rule-32
++$(1) $(1)_32: $(OUTPUT)/$(1)_32
++.PHONY: $(1) $(1)_32
++endef
 +
-+	return (u32) get_pkey_bits(pkey_reg, pkey);
-+}
++define gen-target-rule-64
++$(1) $(1)_64: $(OUTPUT)/$(1)_64
++.PHONY: $(1) $(1)_64
++endef
 +
-+static int hw_pkey_set(int pkey, unsigned long rights, unsigned long flags)
-+{
-+	u32 mask = (PKEY_DISABLE_ACCESS|PKEY_DISABLE_WRITE);
-+	u64 old_pkey_reg = __read_pkey_reg();
-+	u64 new_pkey_reg;
++ifeq ($(CAN_BUILD_I386),1)
++$(BINARIES_32): CFLAGS += -m32
++$(BINARIES_32): LDLIBS += -lrt -ldl -lm
++$(BINARIES_32): %_32: %.c
++	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) $(notdir $^) $(LDLIBS) -o $@
++$(foreach t,$(TARGETS),$(eval $(call gen-target-rule-32,$(t))))
++endif
 +
-+	/* make sure that 'rights' only contains the bits we expect: */
-+	assert(!(rights & ~mask));
++ifeq ($(CAN_BUILD_X86_64),1)
++$(BINARIES_64): CFLAGS += -m64
++$(BINARIES_64): LDLIBS += -lrt -ldl
++$(BINARIES_64): %_64: %.c
++	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) $(notdir $^) $(LDLIBS) -o $@
++$(foreach t,$(TARGETS),$(eval $(call gen-target-rule-64,$(t))))
++endif
 +
-+	/* modify bits accordingly in old pkey_reg and assign it */
-+	new_pkey_reg = set_pkey_bits(old_pkey_reg, pkey, rights);
++# x86_64 users should be encouraged to install 32-bit libraries
++ifeq ($(CAN_BUILD_I386)$(CAN_BUILD_X86_64),01)
++all: warn_32bit_failure
 +
-+	__write_pkey_reg(new_pkey_reg);
++warn_32bit_failure:
++	@echo "Warning: you seem to have a broken 32-bit build" 2>&1;		\
++	echo  "environment. This will reduce test coverage of 64-bit" 2>&1;	\
++	echo  "kernels. If you are using a Debian-like distribution," 2>&1;	\
++	echo  "try:"; 2>&1;							\
++	echo  "";								\
++	echo  "  apt-get install gcc-multilib libc6-i386 libc6-dev-i386";	\
++	echo  "";								\
++	echo  "If you are using a Fedora-like distribution, try:";		\
++	echo  "";								\
++	echo  "  yum install glibc-devel.*i686";				\
++	exit 0;
++endif
++endif
 +
-+	dprintf3("%s(pkey=%d, rights=%lx, flags=%lx) = %x"
-+		" pkey_reg now: %016llx old_pkey_reg: %016llx\n",
-+		__func__, pkey, rights, flags, 0, __read_pkey_reg(),
-+		old_pkey_reg);
-+	return 0;
-+}
-+
-+void pkey_disable_set(int pkey, int flags)
-+{
-+	unsigned long syscall_flags = 0;
-+	int ret;
-+	int pkey_rights;
-+	u64 orig_pkey_reg = read_pkey_reg();
-+
-+	dprintf1("START->%s(%d, 0x%x)\n", __func__,
-+		pkey, flags);
-+	pkey_assert(flags & (PKEY_DISABLE_ACCESS | PKEY_DISABLE_WRITE));
-+
-+	pkey_rights = hw_pkey_get(pkey, syscall_flags);
-+
-+	dprintf1("%s(%d) hw_pkey_get(%d): %x\n", __func__,
-+			pkey, pkey, pkey_rights);
-+
-+	pkey_assert(pkey_rights >= 0);
-+
-+	pkey_rights |= flags;
-+
-+	ret = hw_pkey_set(pkey, pkey_rights, syscall_flags);
-+	assert(!ret);
-+	/* pkey_reg and flags have the same format */
-+	shadow_pkey_reg = set_pkey_bits(shadow_pkey_reg, pkey, pkey_rights);
-+	dprintf1("%s(%d) shadow: 0x%016llx\n",
-+		__func__, pkey, shadow_pkey_reg);
-+
-+	pkey_assert(ret >= 0);
-+
-+	pkey_rights = hw_pkey_get(pkey, syscall_flags);
-+	dprintf1("%s(%d) hw_pkey_get(%d): %x\n", __func__,
-+			pkey, pkey, pkey_rights);
-+
-+	dprintf1("%s(%d) pkey_reg: 0x%016llx\n",
-+		__func__, pkey, read_pkey_reg());
-+	if (flags)
-+		pkey_assert(read_pkey_reg() >= orig_pkey_reg);
-+	dprintf1("END<---%s(%d, 0x%x)\n", __func__,
-+		pkey, flags);
-+}
-+
-+void pkey_disable_clear(int pkey, int flags)
-+{
-+	unsigned long syscall_flags = 0;
-+	int ret;
-+	int pkey_rights = hw_pkey_get(pkey, syscall_flags);
-+	u64 orig_pkey_reg = read_pkey_reg();
-+
-+	pkey_assert(flags & (PKEY_DISABLE_ACCESS | PKEY_DISABLE_WRITE));
-+
-+	dprintf1("%s(%d) hw_pkey_get(%d): %x\n", __func__,
-+			pkey, pkey, pkey_rights);
-+	pkey_assert(pkey_rights >= 0);
-+
-+	pkey_rights &= ~flags;
-+
-+	ret = hw_pkey_set(pkey, pkey_rights, 0);
-+	shadow_pkey_reg = set_pkey_bits(shadow_pkey_reg, pkey, pkey_rights);
-+	pkey_assert(ret >= 0);
-+
-+	pkey_rights = hw_pkey_get(pkey, syscall_flags);
-+	dprintf1("%s(%d) hw_pkey_get(%d): %x\n", __func__,
-+			pkey, pkey, pkey_rights);
-+
-+	dprintf1("%s(%d) pkey_reg: 0x%016llx\n", __func__,
-+			pkey, read_pkey_reg());
-+	if (flags)
-+		assert(read_pkey_reg() <= orig_pkey_reg);
-+}
-+
-+void pkey_write_allow(int pkey)
-+{
-+	pkey_disable_clear(pkey, PKEY_DISABLE_WRITE);
-+}
-+void pkey_write_deny(int pkey)
-+{
-+	pkey_disable_set(pkey, PKEY_DISABLE_WRITE);
-+}
-+void pkey_access_allow(int pkey)
-+{
-+	pkey_disable_clear(pkey, PKEY_DISABLE_ACCESS);
-+}
-+void pkey_access_deny(int pkey)
-+{
-+	pkey_disable_set(pkey, PKEY_DISABLE_ACCESS);
-+}
-+
- /* Failed address bound checks: */
- #ifndef SEGV_BNDERR
- # define SEGV_BNDERR		3
-@@ -199,11 +318,12 @@ void signal_handler(int signum, siginfo_t *si, void *vucontext)
- 	int trapno;
- 	unsigned long ip;
- 	char *fpregs;
-+#if defined(__i386__) || defined(__x86_64__) /* arch */
- 	u32 *pkey_reg_ptr;
-+	int pkey_reg_offset;
-+#endif /* arch */
- 	u64 siginfo_pkey;
- 	u32 *si_pkey_ptr;
--	int pkey_reg_offset;
--	fpregset_t fpregset;
+ $(OUTPUT)/userfaultfd: LDLIBS += -lpthread
 
- 	dprint_in_signal = 1;
- 	dprintf1(">>>>===============SIGSEGV============================\n");
-@@ -213,12 +333,13 @@ void signal_handler(int signum, siginfo_t *si, void *vucontext)
-
- 	trapno = uctxt->uc_mcontext.gregs[REG_TRAPNO];
- 	ip = uctxt->uc_mcontext.gregs[REG_IP_IDX];
--	fpregset = uctxt->uc_mcontext.fpregs;
--	fpregs = (void *)fpregset;
-+	fpregs = (char *) uctxt->uc_mcontext.fpregs;
-
- 	dprintf2("%s() trapno: %d ip: 0x%016lx info->si_code: %s/%d\n",
- 			__func__, trapno, ip, si_code_str(si->si_code),
- 			si->si_code);
-+
-+#if defined(__i386__) || defined(__x86_64__) /* arch */
- #ifdef __i386__
- 	/*
- 	 * 32-bit has some extra padding so that userspace can tell whether
-@@ -226,12 +347,10 @@ void signal_handler(int signum, siginfo_t *si, void *vucontext)
- 	 * state.  We just assume that it is here.
- 	 */
- 	fpregs += 0x70;
--#endif
-+#endif /* i386 */
- 	pkey_reg_offset = pkey_reg_xstate_offset();
- 	pkey_reg_ptr = (void *)(&fpregs[pkey_reg_offset]);
-
--	dprintf1("siginfo: %p\n", si);
--	dprintf1(" fpregs: %p\n", fpregs);
- 	/*
- 	 * If we got a PKEY fault, we *HAVE* to have at least one bit set in
- 	 * here.
-@@ -240,6 +359,10 @@ void signal_handler(int signum, siginfo_t *si, void *vucontext)
- 	if (DEBUG_LEVEL > 4)
- 		dump_mem(pkey_reg_ptr - 128, 256);
- 	pkey_assert(*pkey_reg_ptr);
-+#endif /* arch */
-+
-+	dprintf1("siginfo: %p\n", si);
-+	dprintf1(" fpregs: %p\n", fpregs);
-
- 	if ((si->si_code == SEGV_MAPERR) ||
- 	    (si->si_code == SEGV_ACCERR) ||
-@@ -248,14 +371,13 @@ void signal_handler(int signum, siginfo_t *si, void *vucontext)
- 		exit(4);
- 	}
-
--	si_pkey_ptr = (u32 *)(((u8 *)si) + si_pkey_offset);
-+	si_pkey_ptr = siginfo_get_pkey_ptr(si);
- 	dprintf1("si_pkey_ptr: %p\n", si_pkey_ptr);
- 	dump_mem((u8 *)si_pkey_ptr - 8, 24);
- 	siginfo_pkey = *si_pkey_ptr;
- 	pkey_assert(siginfo_pkey < NR_PKEYS);
- 	last_si_pkey = siginfo_pkey;
-
--	dprintf1("signal pkey_reg from xsave: %08x\n", *pkey_reg_ptr);
- 	/*
- 	 * need __read_pkey_reg() version so we do not do shadow_pkey_reg
- 	 * checking
-@@ -263,8 +385,14 @@ void signal_handler(int signum, siginfo_t *si, void *vucontext)
- 	dprintf1("signal pkey_reg from  pkey_reg: %016llx\n",
- 			__read_pkey_reg());
- 	dprintf1("pkey from siginfo: %016llx\n", siginfo_pkey);
-+#if defined(__i386__) || defined(__x86_64__) /* arch */
-+	dprintf1("signal pkey_reg from xsave: %08x\n", *pkey_reg_ptr);
- 	*(u64 *)pkey_reg_ptr = 0x00000000;
- 	dprintf1("WARNING: set PKEY_REG=0 to allow faulting instruction to continue\n");
-+#elif defined(__powerpc64__) /* arch */
-+	/* restore access and let the faulting instruction continue */
-+	pkey_access_allow(siginfo_pkey);
-+#endif /* arch */
- 	pkey_faults++;
- 	dprintf1("<<<<==================================================\n");
- 	dprint_in_signal = 0;
-@@ -333,125 +461,6 @@ pid_t fork_lazy_child(void)
- 	return forkret;
- }
-
--static u32 hw_pkey_get(int pkey, unsigned long flags)
--{
--	u64 pkey_reg = __read_pkey_reg();
--
--	dprintf1("%s(pkey=%d, flags=%lx) = %x / %d\n",
--			__func__, pkey, flags, 0, 0);
--	dprintf2("%s() raw pkey_reg: %016llx\n", __func__, pkey_reg);
--
--	return (u32) get_pkey_bits(pkey_reg, pkey);
--}
--
--static int hw_pkey_set(int pkey, unsigned long rights, unsigned long flags)
--{
--	u32 mask = (PKEY_DISABLE_ACCESS|PKEY_DISABLE_WRITE);
--	u64 old_pkey_reg = __read_pkey_reg();
--	u64 new_pkey_reg;
--
--	/* make sure that 'rights' only contains the bits we expect: */
--	assert(!(rights & ~mask));
--
--	/* modify bits accordingly in old pkey_reg and assign it */
--	new_pkey_reg = set_pkey_bits(old_pkey_reg, pkey, rights);
--
--	__write_pkey_reg(new_pkey_reg);
--
--	dprintf3("%s(pkey=%d, rights=%lx, flags=%lx) = %x"
--		" pkey_reg now: %016llx old_pkey_reg: %016llx\n",
--		__func__, pkey, rights, flags, 0, __read_pkey_reg(),
--		old_pkey_reg);
--	return 0;
--}
--
--void pkey_disable_set(int pkey, int flags)
--{
--	unsigned long syscall_flags = 0;
--	int ret;
--	int pkey_rights;
--	u64 orig_pkey_reg = read_pkey_reg();
--
--	dprintf1("START->%s(%d, 0x%x)\n", __func__,
--		pkey, flags);
--	pkey_assert(flags & (PKEY_DISABLE_ACCESS | PKEY_DISABLE_WRITE));
--
--	pkey_rights = hw_pkey_get(pkey, syscall_flags);
--
--	dprintf1("%s(%d) hw_pkey_get(%d): %x\n", __func__,
--			pkey, pkey, pkey_rights);
--
--	pkey_assert(pkey_rights >= 0);
--
--	pkey_rights |= flags;
--
--	ret = hw_pkey_set(pkey, pkey_rights, syscall_flags);
--	assert(!ret);
--	/* pkey_reg and flags have the same format */
--	shadow_pkey_reg = set_pkey_bits(shadow_pkey_reg, pkey, pkey_rights);
--	dprintf1("%s(%d) shadow: 0x%016llx\n",
--		__func__, pkey, shadow_pkey_reg);
--
--	pkey_assert(ret >= 0);
--
--	pkey_rights = hw_pkey_get(pkey, syscall_flags);
--	dprintf1("%s(%d) hw_pkey_get(%d): %x\n", __func__,
--			pkey, pkey, pkey_rights);
--
--	dprintf1("%s(%d) pkey_reg: 0x%016llx\n",
--		__func__, pkey, read_pkey_reg());
--	if (flags)
--		pkey_assert(read_pkey_reg() >= orig_pkey_reg);
--	dprintf1("END<---%s(%d, 0x%x)\n", __func__,
--		pkey, flags);
--}
--
--void pkey_disable_clear(int pkey, int flags)
--{
--	unsigned long syscall_flags = 0;
--	int ret;
--	int pkey_rights = hw_pkey_get(pkey, syscall_flags);
--	u64 orig_pkey_reg = read_pkey_reg();
--
--	pkey_assert(flags & (PKEY_DISABLE_ACCESS | PKEY_DISABLE_WRITE));
--
--	dprintf1("%s(%d) hw_pkey_get(%d): %x\n", __func__,
--			pkey, pkey, pkey_rights);
--	pkey_assert(pkey_rights >= 0);
--
--	pkey_rights &= ~flags;
--
--	ret = hw_pkey_set(pkey, pkey_rights, 0);
--	shadow_pkey_reg = set_pkey_bits(shadow_pkey_reg, pkey, pkey_rights);
--	pkey_assert(ret >= 0);
--
--	pkey_rights = hw_pkey_get(pkey, syscall_flags);
--	dprintf1("%s(%d) hw_pkey_get(%d): %x\n", __func__,
--			pkey, pkey, pkey_rights);
--
--	dprintf1("%s(%d) pkey_reg: 0x%016llx\n", __func__,
--			pkey, read_pkey_reg());
--	if (flags)
--		assert(read_pkey_reg() <= orig_pkey_reg);
--}
--
--void pkey_write_allow(int pkey)
--{
--	pkey_disable_clear(pkey, PKEY_DISABLE_WRITE);
--}
--void pkey_write_deny(int pkey)
--{
--	pkey_disable_set(pkey, PKEY_DISABLE_WRITE);
--}
--void pkey_access_allow(int pkey)
--{
--	pkey_disable_clear(pkey, PKEY_DISABLE_ACCESS);
--}
--void pkey_access_deny(int pkey)
--{
--	pkey_disable_set(pkey, PKEY_DISABLE_ACCESS);
--}
--
- int sys_mprotect_pkey(void *ptr, size_t size, unsigned long orig_prot,
- 		unsigned long pkey)
- {
-@@ -890,11 +899,15 @@ void expected_pkey_fault(int pkey)
- 	if (pkey != UNKNOWN_PKEY)
- 		pkey_assert(last_si_pkey == pkey);
-
-+#if defined(__i386__) || defined(__x86_64__) /* arch */
- 	/*
- 	 * The signal handler shold have cleared out PKEY register to let the
- 	 * test program continue.  We now have to restore it.
- 	 */
- 	if (__read_pkey_reg() != 0)
-+#else /* arch */
-+	if (__read_pkey_reg() != shadow_pkey_reg)
-+#endif /* arch */
- 		pkey_assert(0);
-
- 	__write_pkey_reg(shadow_pkey_reg);
+ $(OUTPUT)/mlock-random-test: LDLIBS += -lcap
 -- 
-2.17.1
+2.24.1
+
+This can also be viewed at:
+https://github.com/sandip4n/linux/commit/a5609f79e5d5164c99c3cb599e14ca620de9c8d4
+
+- Sandipan
