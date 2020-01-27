@@ -1,208 +1,34 @@
-Return-Path: <owner-linux-mm@kvack.org>
-From: "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>
-Subject: [PATCH v3 2/9] mm/mmu_gather: Invalidate TLB correctly on batch
- allocation failure and flush
-Date: Tue, 14 Jan 2020 15:31:38 +0530
-Message-ID: <20200114100145.365527-3-aneesh.kumar@linux.ibm.com>
-In-Reply-To: <20200114100145.365527-1-aneesh.kumar@linux.ibm.com>
-References: <20200114100145.365527-1-aneesh.kumar@linux.ibm.com>
-MIME-Version: 1.0
-Content-Transfer-Encoding: quoted-printable
-Sender: owner-linux-mm@kvack.org
-To: akpm@linux-foundation.org, peterz@infradead.org, will@kernel.org
-Cc: linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, "Aneesh Kumar K . V" <aneesh.kumar@linux.ibm.com>
-List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200114100138.Vy-EIjN84xFqgfPrZk3QP2cOJk03OM1jctDRfwzmkto@z>
-
+Return-Path: <linux-arch-owner@vger.kernel.org>
+Received: from bombadil.infradead.org ([198.137.202.133]:42820 "EHLO
+ bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with
+ ESMTP id S1725907AbgA0NFe (ORCPT <rfc822;linux-arch@vger.kernel.org>); Mon,
+ 27 Jan 2020 08:05:34 -0500
+Date: Mon, 27 Jan 2020 14:05:03 +0100
 From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH mk-II 08/17] asm-generic/tlb: Provide
+ MMU_GATHER_TABLE_FREE
+Message-ID: <20200127130503.GG14879@hirez.programming.kicks-ass.net>
+References: <20191211120713.360281197@infradead.org>
+ <20191211122956.112607298@infradead.org>
+ <20191212093205.GU2827@hirez.programming.kicks-ass.net>
+ <20200126155205.GA19169@roeck-us.net>
+ <20200127081134.GI14914@hirez.programming.kicks-ass.net>
+ <33932bc9-1fca-66ae-8f55-6da2f131c5be@linux.ibm.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <33932bc9-1fca-66ae-8f55-6da2f131c5be@linux.ibm.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>
+Cc: Guenter Roeck <linux@roeck-us.net>, Will Deacon <will@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Nick Piggin <npiggin@gmail.com>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, "David S. Miller" <davem@davemloft.net>, Helge Deller <deller@gmx.de>, Geert Uytterhoeven <geert@linux-m68k.org>, Paul Burton <paulburton@kernel.org>, Tony Luck <tony.luck@intel.com>, Richard Henderson <rth@twiddle.net>, Nick Hu <nickhu@andestech.com>, Paul Walmsley <paul.walmsley@sifive.com>
+Message-ID: <20200127130503.x0L9YeyLHVixplfl8pWjkt1zXu-Y3Y0trHK8WMsIXYc@z>
 
-Architectures for which we have hardware walkers of Linux page table shou=
-ld
-flush TLB on mmu gather batch allocation failures and batch flush. Some
-architectures like POWER supports multiple translation modes (hash and ra=
-dix)
-and in the case of POWER only radix translation mode needs the above TLBI=
-.
-This is because for hash translation mode kernel wants to avoid this extr=
-a
-flush since there are no hardware walkers of linux page table. With radix
-translation, the hardware also walks linux page table and with that, kern=
-el
-needs to make sure to TLB invalidate page walk cache before page table pa=
-ges are
-freed.
+On Mon, Jan 27, 2020 at 01:43:34PM +0530, Aneesh Kumar K.V wrote:
 
-More details in
-commit: d86564a2f085 ("mm/tlb, x86/mm: Support invalidating TLB caches fo=
-r RCU_TABLE_FREE")
+> I did send a change to fix that. it is to drop !SMP change in the patch
+> 
+> https://lore.kernel.org/linux-mm/87v9p9mhnr.fsf@linux.ibm.com
 
-Fixes: a46cc7a90fd8 ("powerpc/mm/radix: Improve TLB/PWC flushes")
-Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org
-Signed-off-by: Aneesh Kumar K.V <aneesh.kumar@linux.ibm.com>
----
- arch/Kconfig                    |  3 ---
- arch/powerpc/Kconfig            |  1 -
- arch/powerpc/include/asm/tlb.h  | 11 +++++++++++
- arch/sparc/Kconfig              |  1 -
- arch/sparc/include/asm/tlb_64.h |  9 +++++++++
- include/asm-generic/tlb.h       | 22 +++++++++++++++-------
- mm/mmu_gather.c                 | 16 ++++++++--------
- 7 files changed, 43 insertions(+), 20 deletions(-)
-
-diff --git a/arch/Kconfig b/arch/Kconfig
-index 48b5e103bdb0..208aad121630 100644
---- a/arch/Kconfig
-+++ b/arch/Kconfig
-@@ -396,9 +396,6 @@ config HAVE_ARCH_JUMP_LABEL_RELATIVE
- config HAVE_RCU_TABLE_FREE
- 	bool
-=20
--config HAVE_RCU_TABLE_NO_INVALIDATE
--	bool
--
- config HAVE_MMU_GATHER_PAGE_SIZE
- 	bool
-=20
-diff --git a/arch/powerpc/Kconfig b/arch/powerpc/Kconfig
-index 04240205f38c..f9970f87612e 100644
---- a/arch/powerpc/Kconfig
-+++ b/arch/powerpc/Kconfig
-@@ -223,7 +223,6 @@ config PPC
- 	select HAVE_PERF_REGS
- 	select HAVE_PERF_USER_STACK_DUMP
- 	select HAVE_RCU_TABLE_FREE
--	select HAVE_RCU_TABLE_NO_INVALIDATE	if HAVE_RCU_TABLE_FREE
- 	select HAVE_MMU_GATHER_PAGE_SIZE
- 	select HAVE_REGS_AND_STACK_ACCESS_API
- 	select HAVE_RELIABLE_STACKTRACE		if PPC_BOOK3S_64 && CPU_LITTLE_ENDIAN
-diff --git a/arch/powerpc/include/asm/tlb.h b/arch/powerpc/include/asm/tl=
-b.h
-index b2c0be93929d..7f3a8b902325 100644
---- a/arch/powerpc/include/asm/tlb.h
-+++ b/arch/powerpc/include/asm/tlb.h
-@@ -26,6 +26,17 @@
-=20
- #define tlb_flush tlb_flush
- extern void tlb_flush(struct mmu_gather *tlb);
-+/*
-+ * book3s:
-+ * Hash does not use the linux page-tables, so we can avoid
-+ * the TLB invalidate for page-table freeing, Radix otoh does use the
-+ * page-tables and needs the TLBI.
-+ *
-+ * nohash:
-+ * We still do TLB invalidate in the __pte_free_tlb routine before we
-+ * add the page table pages to mmu gather table batch.
-+ */
-+#define tlb_needs_table_invalidate()	radix_enabled()
-=20
- /* Get the generic bits... */
- #include <asm-generic/tlb.h>
-diff --git a/arch/sparc/Kconfig b/arch/sparc/Kconfig
-index eb24cb1afc11..18e9fb6fcf1b 100644
---- a/arch/sparc/Kconfig
-+++ b/arch/sparc/Kconfig
-@@ -65,7 +65,6 @@ config SPARC64
- 	select HAVE_KRETPROBES
- 	select HAVE_KPROBES
- 	select HAVE_RCU_TABLE_FREE if SMP
--	select HAVE_RCU_TABLE_NO_INVALIDATE if HAVE_RCU_TABLE_FREE
- 	select HAVE_MEMBLOCK_NODE_MAP
- 	select HAVE_ARCH_TRANSPARENT_HUGEPAGE
- 	select HAVE_DYNAMIC_FTRACE
-diff --git a/arch/sparc/include/asm/tlb_64.h b/arch/sparc/include/asm/tlb=
-_64.h
-index a2f3fa61ee36..8cb8f3833239 100644
---- a/arch/sparc/include/asm/tlb_64.h
-+++ b/arch/sparc/include/asm/tlb_64.h
-@@ -28,6 +28,15 @@ void flush_tlb_pending(void);
- #define __tlb_remove_tlb_entry(tlb, ptep, address) do { } while (0)
- #define tlb_flush(tlb)	flush_tlb_pending()
-=20
-+/*
-+ * SPARC64's hardware TLB fill does not use the Linux page-tables
-+ * and therefore we don't need a TLBI when freeing page-table pages.
-+ */
-+
-+#ifdef CONFIG_HAVE_RCU_TABLE_FREE
-+#define tlb_needs_table_invalidate()	(false)
-+#endif
-+
- #include <asm-generic/tlb.h>
-=20
- #endif /* _SPARC64_TLB_H */
-diff --git a/include/asm-generic/tlb.h b/include/asm-generic/tlb.h
-index 2b10036fefd0..9e22ac369d1d 100644
---- a/include/asm-generic/tlb.h
-+++ b/include/asm-generic/tlb.h
-@@ -137,13 +137,6 @@
-  *  When used, an architecture is expected to provide __tlb_remove_table=
-()
-  *  which does the actual freeing of these pages.
-  *
-- *  HAVE_RCU_TABLE_NO_INVALIDATE
-- *
-- *  This makes HAVE_RCU_TABLE_FREE avoid calling tlb_flush_mmu_tlbonly()=
- before
-- *  freeing the page-table pages. This can be avoided if you use
-- *  HAVE_RCU_TABLE_FREE and your architecture does _NOT_ use the Linux
-- *  page-tables natively.
-- *
-  *  MMU_GATHER_NO_RANGE
-  *
-  *  Use this if your architecture lacks an efficient flush_tlb_range().
-@@ -189,8 +182,23 @@ struct mmu_table_batch {
-=20
- extern void tlb_remove_table(struct mmu_gather *tlb, void *table);
-=20
-+/*
-+ * This allows an architecture that does not use the linux page-tables f=
-or
-+ * hardware to skip the TLBI when freeing page tables.
-+ */
-+#ifndef tlb_needs_table_invalidate
-+#define tlb_needs_table_invalidate() (true)
-+#endif
-+
-+#else
-+
-+#ifdef tlb_needs_table_invalidate
-+#error tlb_needs_table_invalidate() requires HAVE_RCU_TABLE_FREE
- #endif
-=20
-+#endif /* CONFIG_HAVE_RCU_TABLE_FREE */
-+
-+
- #ifndef CONFIG_HAVE_MMU_GATHER_NO_GATHER
- /*
-  * If we can't allocate a page to make a big batch of page pointers
-diff --git a/mm/mmu_gather.c b/mm/mmu_gather.c
-index 7d70e5c78f97..7c1b8f67af7b 100644
---- a/mm/mmu_gather.c
-+++ b/mm/mmu_gather.c
-@@ -102,14 +102,14 @@ bool __tlb_remove_page_size(struct mmu_gather *tlb,=
- struct page *page, int page_
-  */
- static inline void tlb_table_invalidate(struct mmu_gather *tlb)
- {
--#ifndef CONFIG_HAVE_RCU_TABLE_NO_INVALIDATE
--	/*
--	 * Invalidate page-table caches used by hardware walkers. Then we still
--	 * need to RCU-sched wait while freeing the pages because software
--	 * walkers can still be in-flight.
--	 */
--	tlb_flush_mmu_tlbonly(tlb);
--#endif
-+	if (tlb_needs_table_invalidate()) {
-+		/*
-+		 * Invalidate page-table caches used by hardware walkers. Then
-+		 * we still need to RCU-sched wait while freeing the pages
-+		 * because software walkers can still be in-flight.
-+		 */
-+		tlb_flush_mmu_tlbonly(tlb);
-+	}
- }
-=20
- static void tlb_remove_table_smp_sync(void *arg)
---=20
-2.24.1
+Indeed you did. Did those patches land anywhere, or is it all still up
+in the air? (I was hoping to find those patches in a tree somewhere)
