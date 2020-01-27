@@ -1,81 +1,103 @@
-From: Alex Kogan <alex.kogan@oracle.com>
+From: Waiman Long <longman@redhat.com>
 Subject: Re: [PATCH v9 0/5] Add NUMA-awareness to qspinlock
-Date: Mon, 27 Jan 2020 11:01:33 -0500
-Message-ID: <25401561-CD1F-4FDC-AED5-256EBE56B9F6@oracle.com>
-References: <20200115035920.54451-1-alex.kogan@oracle.com>
- <CAC4j=Y8rCeTX9oKKbh+dCdTP8Ud4hW1ybu+iE7t_nxMSYBOR5w@mail.gmail.com>
- <4F71A184-42C0-4865-9AAA-79A636743C25@oracle.com>
- <CAC4j=Y_SMHe4WNpaaS0kK1JYfnufM+AAiwwUMBx27L8U6bD8Yg@mail.gmail.com>
- <CAC4j=Y--5UQR7Oc5n+sxAwLxd_PKi0Eb-7aiZjDTUW0FTJy8Tw@mail.gmail.com>
-Mime-Version: 1.0 (Mac OS X Mail 12.4 \(3445.104.11\))
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane-mx.org@lists.infradead.org>
-In-Reply-To: <CAC4j=Y--5UQR7Oc5n+sxAwLxd_PKi0Eb-7aiZjDTUW0FTJy8Tw@mail.gmail.com>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane-mx.org@lists.infradead.org
-To: Lihao Liang <lihaoliang@google.com>
-Cc: linux-arch@vger.kernel.org, guohanjun@huawei.com, arnd@arndb.de, Peter Zijlstra <peterz@infradead.org>, dave.dice@oracle.com, jglauber@marvell.com, x86@kernel.org, will.deacon@arm.com, linux@armlinux.org.uk, steven.sistare@oracle.com, linux-kernel@vger.kernel.org, mingo@redhat.com, bp@alien8.de, hpa@zytor.com, longman@redhat.com, tglx@linutronix.de, daniel.m.jordan@oracle.com, Will Deacon <will@kernel.org>, linux-arm-kernel@lists.infradead.org
-List-Id: linux-arch.vger.kernel.org
+Date: Mon, 27 Jan 2020 12:17:44 -0500
+Message-ID: <0c2f17ab-7f03-c8b8-168f-2152bb65ca48@redhat.com>
+References: <20200124222434.GA7196@paulmck-ThinkPad-P72>
+ <6AAE7FC6-F5DE-4067-8BC4-77F27948CD09@oracle.com>
+ <20200125005713.GZ2935@paulmck-ThinkPad-P72>
+ <02defadb-217d-7803-88a1-ec72a37eda28@redhat.com>
+ <adb4fb09-f374-4d64-096b-ba9ad8b35fd5@redhat.com>
+ <20200125045844.GC2935@paulmck-ThinkPad-P72>
+ <967f99ee-b781-43f4-d8ba-af83786c429c@redhat.com>
+ <20200126153535.GL2935@paulmck-ThinkPad-P72>
+ <20200126224245.GA22901@paulmck-ThinkPad-P72>
+ <2e552fad-79c0-ec06-3b8c-d13f1b67f57d@redhat.com>
+ <20200127150902.GN2935@paulmck-ThinkPad-P72>
+ <9b3a3f16-5405-b6d1-d023-b85f4aab46dd@redhat.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=windows-1252
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from us-smtp-2.mimecast.com ([205.139.110.61]:50822 "EHLO
+        us-smtp-delivery-1.mimecast.com" rhost-flags-OK-OK-OK-FAIL)
+        by vger.kernel.org with ESMTP id S1725893AbgA0RRz (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 27 Jan 2020 12:17:55 -0500
+In-Reply-To: <9b3a3f16-5405-b6d1-d023-b85f4aab46dd@redhat.com>
+Content-Language: en-US
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: paulmck@kernel.org
+Cc: Alex Kogan <alex.kogan@oracle.com>, linux@armlinux.org.uk, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-arm-kernel <linux-arm-kernel@lists.infradead.org>, linux-kernel@vger.kernel.org, tglx@linutronix.de, bp@alien8.de, hpa@zytor.com, x86@kernel.org, guohanjun@huawei.com, jglauber@marvell.com, dave.dice@oracle.com, steven.sistare@oracle.com, daniel.m.jordan@oracle.com
 
-SGksIExpaGFvLgoKPj4+IAo+Pj4+IFRoaXMgaXMgcGFydGljdWxhcmx5IHJlbGV2YW50Cj4+Pj4g
-aW4gaGlnaCBjb250ZW50aW9uIHNpdHVhdGlvbnMgd2hlbiBuZXcgdGhyZWFkcyBrZWVwIGFycml2
-aW5nIG9uIHRoZSBzYW1lCj4+Pj4gc29ja2V0IGFzIHRoZSBsb2NrIGhvbGRlci4KPj4+IEluIHRo
-aXMgY2FzZSwgdGhlIGxvY2sgd2lsbCBzdGF5IG9uIHRoZSBzYW1lIE5VTUEgbm9kZS9zb2NrZXQg
-Zm9yCj4+PiAyXm51bWFfc3BpbmxvY2tfdGhyZXNob2xkIHRpbWVzLCB3aGljaCBpcyB0aGUgd29y
-c3QgY2FzZSBzY2VuYXJpbyBpZiB3ZQo+Pj4gY29uc2lkZXIgdGhlIGxvbmctdGVybSBmYWlybmVz
-cy4gQW5kIGlmIHdlIGhhdmUgbXVsdGlwbGUgbm9kZXMsIGl0IHdpbGwgdGFrZQo+Pj4gdXAgdG8g
-Ml5udW1hX3NwaW5sb2NrX3RocmVzaG9sZCBYIChucl9ub2RlcyAtIDEpICsgbnJfY3B1c19wZXJf
-bm9kZQo+Pj4gbG9jayB0cmFuc2l0aW9ucyB1bnRpbCBhbnkgZ2l2ZW4gdGhyZWFkIHdpbGwgYWNx
-dWlyZSB0aGUgbG9jawo+Pj4gKGFzc3VtaW5nIDJebnVtYV9zcGlubG9ja190aHJlc2hvbGQgPiBu
-cl9jcHVzX3Blcl9ub2RlKS4KPj4+IAo+PiAKPj4gWW91J3JlIHJpZ2h0IHRoYXQgdGhlIGxhdGVz
-dCB2ZXJzaW9uIG9mIHRoZSBwYXRjaCBoYW5kbGVzIGxvbmctdGVybSBmYWlybmVzcwo+PiBkZXRl
-cm1pbmlzdGljYWxseS4KPj4gCj4+IEFzIEkgdW5kZXJzdGFuZCBpdCwgdGhlIG4tdGggdGhyZWFk
-IGluIHRoZSBtYWluIHF1ZXVlIGlzIGd1YXJhbnRlZWQgdG8KPj4gYWNxdWlyZSB0aGUgbG9jayBh
-ZnRlciBOIGxvY2sgaGFuZG92ZXJzLCB3aGVyZSBOIGlzIGJvdW5kZWQgYnkKPj4gCj4+IG4gLSAx
-ICsgMl5udW1hX3NwaW5sb2NrX3RocmVzaG9sZCAqIChucl9ub2RlcyAtIDEpCj4+IAo+PiBJJ20g
-bm90IHN1cmUgd2hhdCByb2xlIHRoZSB2YXJpYWJsZSBucl9jcHVzX3Blcl9ub2RlIHBsYXlzIGlu
-IHlvdXIgYW5hbHlzaXMuCj4+IAo+PiBEbyBJIG1pc3MgYW55dGhpbmc/Cj4+IAo+IAo+IElmIEkg
-dW5kZXJzdGFuZCBjb3JyZWN0bHksIHRoZXJlIGFyZSB0d28gcGhhc2VzIGluIHRoZSBhbGdvcml0
-aG06Cj4gCj4gTUNTIHBoYXNlOiB3aGVuIHRoZSBzZWNvbmRhcnkgcXVldWUgaXMgZW1wdHksIGFz
-IGV4cGxhaW5lZCBpbiB5b3VyIGVtYWlscywKPiB0aGUgYWxnb3JpdGhtIGhhbmRzIHRoZSBsb2Nr
-IHRvIHRocmVhZHMgaW4gdGhlIG1haW4gcXVldWUgaW4gYW4gRklGTyBvcmRlci4KPiBXaGVuIHBy
-b2JhYmx5KFNIVUZGTEVfUkVEVUNUSU9OX1BST0JfQVJHKSByZXR1cm5zIGZhbHNlICh3aXRoIGRl
-ZmF1bHQKPiBwcm9iYWJpbGl0eSAxJSksIGlmIHRoZSBhbGdvcml0aG0gZmluZHMgdGhlIGZpcnN0
-IHRocmVhZCBydW5uaW5nIG9uIHRoZSBzYW1lCj4gc29ja2V0IGFzIHRoZSBsb2NrIGhvbGRlciBp
-biBjbmFfc2Nhbl9tYWluX3F1ZXVlKCksIGl0IGVudGVycyB0aGUgZm9sbG93aW5nCj4gQ05BIHBo
-YXNlClllcC4gV2hlbiBwcm9iYWJseSgpIHJldHVybnMgZmFsc2UsIHdlIHNjYW4gdGhlIG1haW4g
-cXVldWUuIElmIGFzIHRoZSByZXN1bHQgb2YKdGhpcyBzY2FuIHRoZSBzZWNvbmRhcnkgcXVldWUg
-YmVjb21lcyBub3QgZW1wdHksIHdlIGVudGVyIHdoYXQgeW91IGNhbGwKdGhlIENOQSBwaGFzZS4K
-Cj4gLgo+IAo+IENOQSBwaGFzZTogd2hlbiB0aGUgc2Vjb25kYXJ5IHF1ZXVlIGlzIG5vdCBlbXB0
-eSwgdGhlIGFsZ29yaXRobSBrZWVwcwo+IGhhbmRpbmcgdGhlIGxvY2sgdG8gdGhyZWFkcyBpbiB0
-aGUgbWFpbiBxdWV1ZSB0aGF0IHJ1biBvbiB0aGUgc2FtZSBzb2NrZXQgYXMKPiB0aGUgbG9jayBo
-b2xkZXIuIFdoZW4gMl5udW1hX3NwaW5sb2NrX3RocmVzaG9sZCBpcyByZWFjaGVkLCBpdCBzcGxp
-Y2VzCj4gdGhlIHNlY29uZGFyeSBxdWV1ZSB0byB0aGUgZnJvbnQgb2YgdGhlIG1haW4gcXVldWUu
-IEFuZCB3ZSBhcmUgYmFjayB0byB0aGUKPiBNQ1MgcGhhc2UgYWJvdmUuCkNvcnJlY3QuCgo+IEZv
-ciB0aGUgbi10aCB0aHJlYWQgVCBpbiB0aGUgbWFpbiBxdWV1ZSwgdGhlIE1DUyBwaGFzZSBoYW5k
-bGVzIHRocmVhZHMgdGhhdAo+IGFycml2ZWQgaW4gdGhlIG1haW4gcXVldWUgYmVmb3JlIFQuIElu
-IGhpZ2ggY29udGVudGlvbiBzaXR1YXRpb25zLCB0aGUgQ05BCj4gcGhhc2UgaGFuZGxlcyB0d28g
-a2luZHMgb2YgdGhyZWFkczoKPiAKPiAxLiBUaHJlYWRzIGFoZWFkIG9mIFQgdGhhdCBydW4gb24g
-dGhlIHNhbWUgc29ja2V0IGFzIHRoZSBsb2NrIGhvbGRlciB3aGVuCj4gYSB0cmFuc2l0aW9uIGZy
-b20gdGhlIE1DUyB0byBDTkEgcGhhc2Ugd2FzIG1hZGUuIEFzc3VtZSB0aGVyZSBhcmUgbSBzdWNo
-Cj4gdGhyZWFkcy4KPiAKPiAyLiBUaHJlYWRzIHRoYXQga2VlcCBhcnJpdmluZyBvbiB0aGUgc2Ft
-ZSBzb2NrZXQgYXMgdGhlIGxvY2sgaG9sZGVyLiBUaGVyZQo+IGFyZSBhdCBtb3N0IDJebnVtYV9z
-cGlubG9ja190aHJlc2hvbGQgb2YgdGhlbS4KPiAKPiBUaGVuIHRoZSBudW1iZXIgb2YgbG9jayBo
-YW5kb3ZlcnMgaW4gdGhlIENOQSBwaGFzZSBpcyBtYXgobSwKPiAyXm51bWFfc3BpbmxvY2tfdGhy
-ZXNob2xkKS4gU28gdGhlIHRvdGFsIG51bWJlciBvZiBsb2NrIGhhbmRvdmVycyBiZWZvcmUgVAo+
-IGFjcXVpcmVzIHRoZSBsb2NrIGlzIGF0IG1vc3QKPiAKPiBuIC0gMSArIDJebnVtYV9zcGlubG9j
-a190aHJlc2hvbGQgKiAobnJfbm9kZXMgLSAxKQo+IAo+IFBsZWFzZSBsZXQgbWUga25vdyBpZiBJ
-IG1pc3VuZGVyc3RhbmQgYW55dGhpbmcuCkkgdGhpbmsgeW91IGdvdCBpdCByaWdodCAobW9kdWxv
-IG5yX2NwdXNfcGVyX25vZGUgaW5zdGVhZCBvZiBuLCBhcyBtZW50aW9uZWQgaW4gCm15IG90aGVy
-IHJlc3BvbnNlKS4KClJlZ2FyZHMsCuKAlCBBbGV4Cl9fX19fX19fX19fX19fX19fX19fX19fX19f
-X19fX19fX19fX19fX19fX19fX19fCmxpbnV4LWFybS1rZXJuZWwgbWFpbGluZyBsaXN0CmxpbnV4
-LWFybS1rZXJuZWxAbGlzdHMuaW5mcmFkZWFkLm9yZwpodHRwOi8vbGlzdHMuaW5mcmFkZWFkLm9y
-Zy9tYWlsbWFuL2xpc3RpbmZvL2xpbnV4LWFybS1rZXJuZWwK
+On 1/27/20 12:12 PM, Waiman Long wrote:
+> On 1/27/20 10:09 AM, Paul E. McKenney wrote:
+>>> Do you mean within the VM, lscpu showed that the system has one node and
+>>> 12 threads per node? If that is the case, it should behave like regular
+>>> qspinlock and be fair.
+>> I mean that I saw this in dmesg, which I believe to be telling me the
+>> same thing as lscpu saying that there is one node, but you tell me!
+>>
+>> [    0.007106] No NUMA configuration found
+>> [    0.007107] Faking a node at [mem 0x0000000000000000-0x000000001ffdefff]
+>> [    0.007111] NODE_DATA(0) allocated [mem 0x1ffdb000-0x1ffdefff]
+>> [    0.007126] Zone ranges:
+>> [    0.007127]   DMA      [mem 0x0000000000001000-0x0000000000ffffff]
+>> [    0.007128]   DMA32    [mem 0x0000000001000000-0x000000001ffdefff]
+>> [    0.007128]   Normal   empty
+>> [    0.007129] Movable zone start for each node
+>> [    0.007129] Early memory node ranges
+>> [    0.007130]   node   0: [mem 0x0000000000001000-0x000000000009efff]
+>> [    0.007132]   node   0: [mem 0x0000000000100000-0x000000001ffdefff]
+>> [    0.007227] Zeroed struct page in unavailable ranges: 98 pages
+>> [    0.007227] Initmem setup node 0 [mem 0x0000000000001000-0x000000001ffdefff]
+>> [    0.007228] On node 0 totalpages: 130941
+>> [    0.007231]   DMA zone: 64 pages used for memmap
+>> [    0.007231]   DMA zone: 21 pages reserved
+>> [    0.007232]   DMA zone: 3998 pages, LIFO batch:0
+>> [    0.007266]   DMA32 zone: 1984 pages used for memmap
+>> [    0.007267]   DMA32 zone: 126943 pages, LIFO batch:31
+>>
+> That does look like just one node.
+>>>> I will try reader-writer lock next.
+>>>>
+>>>> Again, should I be using qemu's -numa command-line option to create nodes?
+>>>> If so, what would be a sane configuration given 12 CPUs and 512MB of
+>>>> memory for the VM?  If not, what is a good way to exercise CNA's NUMA
+>>>> capabilities within a guest OS?
+>>> You can certainly play around with CNA in a VM. However, it is generally
+>>> not recommended to use CNA in a VM unless the VM cpu topology matches
+>>> the host with 1-to-1 vcpu pinning and there is no vcpu overcommit. In
+>>> this case, one may see some performance improvement using CNA by using
+>>> the "numa_spinlock=on" option to explicitly turn it on.
+>> Sorry, but I will not be booting this on bare metal on the systems that
+>> I currently have access to.  No more than I run rcutorture on bare metal
+>> on them, especially not with newly modified variants of RCU.  ;-)
+>>
+>>> Because of the shuffling of queue entries, CNA is inherently less fair
+>>> than the regular qspinlock. However, a ratio of 5 seems excessive to me.
+>>> vcpu preemption may be a factor in contributing to this large variation.
+>>> My testing on bare metal only showed a throughput variation within
+>>> 10-20% at most.
+>> OK.  Any guidance on qemu's -numa, or should I just experiment with it?
+>> The latter will take me some time, as I must focus on other things
+>> this week.
+> To really test it, you should have multiple numa nodes, 2 or 4.
+>> Alternatively, would it make sense for you to give it a spin in a VM?
+>> After all, it is entirely possible that I still have some configuration
+>> or another messed up.
+>
+> It all depends on what you want to test. If you want just to make sure
+> that it won't fail any locking test. Yes, you can certainly do that in
+> a VM. If you want to test for performance or fairness of CNA versus
+> regular qspinlock, using a VM is not a proper platform. Even with a
+> single node, you see 5x difference in locking count. I suspect that
+> maybe one or a few vcpus got preempted pretty frequently to perform
+> host activities that it screw up the data.
+>
+BTW, in a VM, the queued_spin_unlock function pointer will still be
+pointing to the paravirt version even if CNA is used for the slowpath.
+That shouldn't impact correctness, but is not optimal for performance.
+
+Cheers,
+Longman
