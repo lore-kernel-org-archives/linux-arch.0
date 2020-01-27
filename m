@@ -1,42 +1,81 @@
-From: Dave Hansen <dave.hansen@intel.com>
-Subject: Re: [PATCH v16 00/23] selftests, powerpc, x86: Memory Protection Keys
-Date: Mon, 27 Jan 2020 07:42:33 -0800
-Message-ID: <3eca7a91-aa3e-cb01-47c8-5d36020993a2@intel.com>
-References: <cover.1579507768.git.sandipan@linux.ibm.com>
- <3ceb2814-f8b0-ec6b-3c24-ec72297a99f5@intel.com>
- <8f14bee0-ab1c-fc90-dfdb-5128607b767f@linux.ibm.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
-Return-path: <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane-mx.org@lists.ozlabs.org>
-In-Reply-To: <8f14bee0-ab1c-fc90-dfdb-5128607b767f@linux.ibm.com>
-Content-Language: en-US
-List-Unsubscribe: <https://lists.ozlabs.org/options/linuxppc-dev>,
- <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=unsubscribe>
-List-Archive: <http://lists.ozlabs.org/pipermail/linuxppc-dev/>
-List-Post: <mailto:linuxppc-dev@lists.ozlabs.org>
-List-Help: <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=help>
-List-Subscribe: <https://lists.ozlabs.org/listinfo/linuxppc-dev>,
- <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=subscribe>
-Errors-To: linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane-mx.org@lists.ozlabs.org
-Sender: "Linuxppc-dev"
- <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane-mx.org@lists.ozlabs.org>
-To: Sandipan Das <sandipan@linux.ibm.com>
-Cc: linux-arch@vger.kernel.org, fweimer@redhat.com, aneesh.kumar@linux.ibm.com, x86@kernel.org, linuxram@us.ibm.com, linuxppc-dev@lists.ozlabs.org, mhocko@kernel.org, linux-mm@kvack.org, mingo@redhat.com, linux-kselftest@vger.kernel.org, msuchanek@suse.de, shuah@kernel.org, bauerman@linux.ibm.com
+From: Alex Kogan <alex.kogan@oracle.com>
+Subject: Re: [PATCH v9 0/5] Add NUMA-awareness to qspinlock
+Date: Mon, 27 Jan 2020 11:01:33 -0500
+Message-ID: <25401561-CD1F-4FDC-AED5-256EBE56B9F6@oracle.com>
+References: <20200115035920.54451-1-alex.kogan@oracle.com>
+ <CAC4j=Y8rCeTX9oKKbh+dCdTP8Ud4hW1ybu+iE7t_nxMSYBOR5w@mail.gmail.com>
+ <4F71A184-42C0-4865-9AAA-79A636743C25@oracle.com>
+ <CAC4j=Y_SMHe4WNpaaS0kK1JYfnufM+AAiwwUMBx27L8U6bD8Yg@mail.gmail.com>
+ <CAC4j=Y--5UQR7Oc5n+sxAwLxd_PKi0Eb-7aiZjDTUW0FTJy8Tw@mail.gmail.com>
+Mime-Version: 1.0 (Mac OS X Mail 12.4 \(3445.104.11\))
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane-mx.org@lists.infradead.org>
+In-Reply-To: <CAC4j=Y--5UQR7Oc5n+sxAwLxd_PKi0Eb-7aiZjDTUW0FTJy8Tw@mail.gmail.com>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane-mx.org@lists.infradead.org
+To: Lihao Liang <lihaoliang@google.com>
+Cc: linux-arch@vger.kernel.org, guohanjun@huawei.com, arnd@arndb.de, Peter Zijlstra <peterz@infradead.org>, dave.dice@oracle.com, jglauber@marvell.com, x86@kernel.org, will.deacon@arm.com, linux@armlinux.org.uk, steven.sistare@oracle.com, linux-kernel@vger.kernel.org, mingo@redhat.com, bp@alien8.de, hpa@zytor.com, longman@redhat.com, tglx@linutronix.de, daniel.m.jordan@oracle.com, Will Deacon <will@kernel.org>, linux-arm-kernel@lists.infradead.org
 List-Id: linux-arch.vger.kernel.org
 
-On 1/27/20 2:11 AM, Sandipan Das wrote:
-> Hi Dave,
-> 
-> On 23/01/20 12:15 am, Dave Hansen wrote:
->> Still doesn't build for me:
->>
-> I have this patch that hopefully fixes this. My understanding was
-> that the vm tests are supposed to be generic but this has quite a
-> bit of x86-specific conditional code which complicates things even
-> though it is not used by any of the other tests.
-> 
-> I'm not sure if we should keep x86 multilib build support for these
-> selftests but I'll let the maintainers take a call.
-
-How have you tested this patch (and the whole series for that matter)?
+SGksIExpaGFvLgoKPj4+IAo+Pj4+IFRoaXMgaXMgcGFydGljdWxhcmx5IHJlbGV2YW50Cj4+Pj4g
+aW4gaGlnaCBjb250ZW50aW9uIHNpdHVhdGlvbnMgd2hlbiBuZXcgdGhyZWFkcyBrZWVwIGFycml2
+aW5nIG9uIHRoZSBzYW1lCj4+Pj4gc29ja2V0IGFzIHRoZSBsb2NrIGhvbGRlci4KPj4+IEluIHRo
+aXMgY2FzZSwgdGhlIGxvY2sgd2lsbCBzdGF5IG9uIHRoZSBzYW1lIE5VTUEgbm9kZS9zb2NrZXQg
+Zm9yCj4+PiAyXm51bWFfc3BpbmxvY2tfdGhyZXNob2xkIHRpbWVzLCB3aGljaCBpcyB0aGUgd29y
+c3QgY2FzZSBzY2VuYXJpbyBpZiB3ZQo+Pj4gY29uc2lkZXIgdGhlIGxvbmctdGVybSBmYWlybmVz
+cy4gQW5kIGlmIHdlIGhhdmUgbXVsdGlwbGUgbm9kZXMsIGl0IHdpbGwgdGFrZQo+Pj4gdXAgdG8g
+Ml5udW1hX3NwaW5sb2NrX3RocmVzaG9sZCBYIChucl9ub2RlcyAtIDEpICsgbnJfY3B1c19wZXJf
+bm9kZQo+Pj4gbG9jayB0cmFuc2l0aW9ucyB1bnRpbCBhbnkgZ2l2ZW4gdGhyZWFkIHdpbGwgYWNx
+dWlyZSB0aGUgbG9jawo+Pj4gKGFzc3VtaW5nIDJebnVtYV9zcGlubG9ja190aHJlc2hvbGQgPiBu
+cl9jcHVzX3Blcl9ub2RlKS4KPj4+IAo+PiAKPj4gWW91J3JlIHJpZ2h0IHRoYXQgdGhlIGxhdGVz
+dCB2ZXJzaW9uIG9mIHRoZSBwYXRjaCBoYW5kbGVzIGxvbmctdGVybSBmYWlybmVzcwo+PiBkZXRl
+cm1pbmlzdGljYWxseS4KPj4gCj4+IEFzIEkgdW5kZXJzdGFuZCBpdCwgdGhlIG4tdGggdGhyZWFk
+IGluIHRoZSBtYWluIHF1ZXVlIGlzIGd1YXJhbnRlZWQgdG8KPj4gYWNxdWlyZSB0aGUgbG9jayBh
+ZnRlciBOIGxvY2sgaGFuZG92ZXJzLCB3aGVyZSBOIGlzIGJvdW5kZWQgYnkKPj4gCj4+IG4gLSAx
+ICsgMl5udW1hX3NwaW5sb2NrX3RocmVzaG9sZCAqIChucl9ub2RlcyAtIDEpCj4+IAo+PiBJJ20g
+bm90IHN1cmUgd2hhdCByb2xlIHRoZSB2YXJpYWJsZSBucl9jcHVzX3Blcl9ub2RlIHBsYXlzIGlu
+IHlvdXIgYW5hbHlzaXMuCj4+IAo+PiBEbyBJIG1pc3MgYW55dGhpbmc/Cj4+IAo+IAo+IElmIEkg
+dW5kZXJzdGFuZCBjb3JyZWN0bHksIHRoZXJlIGFyZSB0d28gcGhhc2VzIGluIHRoZSBhbGdvcml0
+aG06Cj4gCj4gTUNTIHBoYXNlOiB3aGVuIHRoZSBzZWNvbmRhcnkgcXVldWUgaXMgZW1wdHksIGFz
+IGV4cGxhaW5lZCBpbiB5b3VyIGVtYWlscywKPiB0aGUgYWxnb3JpdGhtIGhhbmRzIHRoZSBsb2Nr
+IHRvIHRocmVhZHMgaW4gdGhlIG1haW4gcXVldWUgaW4gYW4gRklGTyBvcmRlci4KPiBXaGVuIHBy
+b2JhYmx5KFNIVUZGTEVfUkVEVUNUSU9OX1BST0JfQVJHKSByZXR1cm5zIGZhbHNlICh3aXRoIGRl
+ZmF1bHQKPiBwcm9iYWJpbGl0eSAxJSksIGlmIHRoZSBhbGdvcml0aG0gZmluZHMgdGhlIGZpcnN0
+IHRocmVhZCBydW5uaW5nIG9uIHRoZSBzYW1lCj4gc29ja2V0IGFzIHRoZSBsb2NrIGhvbGRlciBp
+biBjbmFfc2Nhbl9tYWluX3F1ZXVlKCksIGl0IGVudGVycyB0aGUgZm9sbG93aW5nCj4gQ05BIHBo
+YXNlClllcC4gV2hlbiBwcm9iYWJseSgpIHJldHVybnMgZmFsc2UsIHdlIHNjYW4gdGhlIG1haW4g
+cXVldWUuIElmIGFzIHRoZSByZXN1bHQgb2YKdGhpcyBzY2FuIHRoZSBzZWNvbmRhcnkgcXVldWUg
+YmVjb21lcyBub3QgZW1wdHksIHdlIGVudGVyIHdoYXQgeW91IGNhbGwKdGhlIENOQSBwaGFzZS4K
+Cj4gLgo+IAo+IENOQSBwaGFzZTogd2hlbiB0aGUgc2Vjb25kYXJ5IHF1ZXVlIGlzIG5vdCBlbXB0
+eSwgdGhlIGFsZ29yaXRobSBrZWVwcwo+IGhhbmRpbmcgdGhlIGxvY2sgdG8gdGhyZWFkcyBpbiB0
+aGUgbWFpbiBxdWV1ZSB0aGF0IHJ1biBvbiB0aGUgc2FtZSBzb2NrZXQgYXMKPiB0aGUgbG9jayBo
+b2xkZXIuIFdoZW4gMl5udW1hX3NwaW5sb2NrX3RocmVzaG9sZCBpcyByZWFjaGVkLCBpdCBzcGxp
+Y2VzCj4gdGhlIHNlY29uZGFyeSBxdWV1ZSB0byB0aGUgZnJvbnQgb2YgdGhlIG1haW4gcXVldWUu
+IEFuZCB3ZSBhcmUgYmFjayB0byB0aGUKPiBNQ1MgcGhhc2UgYWJvdmUuCkNvcnJlY3QuCgo+IEZv
+ciB0aGUgbi10aCB0aHJlYWQgVCBpbiB0aGUgbWFpbiBxdWV1ZSwgdGhlIE1DUyBwaGFzZSBoYW5k
+bGVzIHRocmVhZHMgdGhhdAo+IGFycml2ZWQgaW4gdGhlIG1haW4gcXVldWUgYmVmb3JlIFQuIElu
+IGhpZ2ggY29udGVudGlvbiBzaXR1YXRpb25zLCB0aGUgQ05BCj4gcGhhc2UgaGFuZGxlcyB0d28g
+a2luZHMgb2YgdGhyZWFkczoKPiAKPiAxLiBUaHJlYWRzIGFoZWFkIG9mIFQgdGhhdCBydW4gb24g
+dGhlIHNhbWUgc29ja2V0IGFzIHRoZSBsb2NrIGhvbGRlciB3aGVuCj4gYSB0cmFuc2l0aW9uIGZy
+b20gdGhlIE1DUyB0byBDTkEgcGhhc2Ugd2FzIG1hZGUuIEFzc3VtZSB0aGVyZSBhcmUgbSBzdWNo
+Cj4gdGhyZWFkcy4KPiAKPiAyLiBUaHJlYWRzIHRoYXQga2VlcCBhcnJpdmluZyBvbiB0aGUgc2Ft
+ZSBzb2NrZXQgYXMgdGhlIGxvY2sgaG9sZGVyLiBUaGVyZQo+IGFyZSBhdCBtb3N0IDJebnVtYV9z
+cGlubG9ja190aHJlc2hvbGQgb2YgdGhlbS4KPiAKPiBUaGVuIHRoZSBudW1iZXIgb2YgbG9jayBo
+YW5kb3ZlcnMgaW4gdGhlIENOQSBwaGFzZSBpcyBtYXgobSwKPiAyXm51bWFfc3BpbmxvY2tfdGhy
+ZXNob2xkKS4gU28gdGhlIHRvdGFsIG51bWJlciBvZiBsb2NrIGhhbmRvdmVycyBiZWZvcmUgVAo+
+IGFjcXVpcmVzIHRoZSBsb2NrIGlzIGF0IG1vc3QKPiAKPiBuIC0gMSArIDJebnVtYV9zcGlubG9j
+a190aHJlc2hvbGQgKiAobnJfbm9kZXMgLSAxKQo+IAo+IFBsZWFzZSBsZXQgbWUga25vdyBpZiBJ
+IG1pc3VuZGVyc3RhbmQgYW55dGhpbmcuCkkgdGhpbmsgeW91IGdvdCBpdCByaWdodCAobW9kdWxv
+IG5yX2NwdXNfcGVyX25vZGUgaW5zdGVhZCBvZiBuLCBhcyBtZW50aW9uZWQgaW4gCm15IG90aGVy
+IHJlc3BvbnNlKS4KClJlZ2FyZHMsCuKAlCBBbGV4Cl9fX19fX19fX19fX19fX19fX19fX19fX19f
+X19fX19fX19fX19fX19fX19fX19fCmxpbnV4LWFybS1rZXJuZWwgbWFpbGluZyBsaXN0CmxpbnV4
+LWFybS1rZXJuZWxAbGlzdHMuaW5mcmFkZWFkLm9yZwpodHRwOi8vbGlzdHMuaW5mcmFkZWFkLm9y
+Zy9tYWlsbWFuL2xpc3RpbmZvL2xpbnV4LWFybS1rZXJuZWwK
