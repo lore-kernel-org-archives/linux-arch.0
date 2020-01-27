@@ -1,65 +1,53 @@
-From: Alex Kogan <alex.kogan@oracle.com>
-Subject: Re: [PATCH v9 0/5] Add NUMA-awareness to qspinlock
-Date: Mon, 27 Jan 2020 01:16:36 -0500
-Message-ID: <3CBCD208-0859-458E-8A89-96E8E9A98664@oracle.com>
-References: <20200115035920.54451-1-alex.kogan@oracle.com>
- <CAC4j=Y8rCeTX9oKKbh+dCdTP8Ud4hW1ybu+iE7t_nxMSYBOR5w@mail.gmail.com>
- <4F71A184-42C0-4865-9AAA-79A636743C25@oracle.com>
- <CAC4j=Y_SMHe4WNpaaS0kK1JYfnufM+AAiwwUMBx27L8U6bD8Yg@mail.gmail.com>
-Mime-Version: 1.0 (Mac OS X Mail 12.4 \(3445.104.11\))
-Content-Type: text/plain;
-        charset=utf-8
-Content-Transfer-Encoding: quoted-printable
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH v2 00/10] Rework READ_ONCE() to improve codegen
+Date: Mon, 27 Jan 2020 08:26:03 +0100
+Message-ID: <CAK8P3a2P41JjO8=GTSVL9WVEfjA_M+StH7Ons27SqSNK2JOrHg@mail.gmail.com>
+References: <20200123153341.19947-1-will@kernel.org> <26ad7a8a975c4e06b44a3184d7c86e5f@AcuMS.aculab.com>
+ <20200123171641.GC20126@willie-the-truck> <2bfe2be6da484f15b0d229dd02d16ae6@AcuMS.aculab.com>
+ <CAKwvOdkFGTeVQPm8Z3Y7mQ-=6d5CFxmEJ+hBb8ns2r2H1cb0hQ@mail.gmail.com>
+ <20200123190125.GA2683468@rani.riverdale.lan> <20200126010959.vhq7mg4esoq5w26j@e107158-lin.cambridge.arm.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from aserp2120.oracle.com ([141.146.126.78]:56656 "EHLO
-        aserp2120.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1725775AbgA0GRM (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 27 Jan 2020 01:17:12 -0500
-In-Reply-To: <CAC4j=Y_SMHe4WNpaaS0kK1JYfnufM+AAiwwUMBx27L8U6bD8Yg@mail.gmail.com>
+Received: from mout.kundenserver.de ([212.227.126.131]:37505 "EHLO
+        mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1725765AbgA0H0V (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 27 Jan 2020 02:26:21 -0500
+In-Reply-To: <20200126010959.vhq7mg4esoq5w26j@e107158-lin.cambridge.arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Lihao Liang <lihaoliang@google.com>
-Cc: linux@armlinux.org.uk, Peter Zijlstra <peterz@infradead.org>, mingo@redhat.com, will.deacon@arm.com, arnd@arndb.de, longman@redhat.com, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, bp@alien8.de, hpa@zytor.com, x86@kernel.org, guohanjun@huawei.com, jglauber@marvell.com, dave.dice@oracle.com, steven.sistare@oracle.com, daniel.m.jordan@oracle.com, Will Deacon <will@kernel.org>
+To: Qais Yousef <qais.yousef@arm.com>
+Cc: Arvind Sankar <nivedita@alum.mit.edu>, Nick Desaulniers <ndesaulniers@google.com>, David Laight <David.Laight@aculab.com>, Will Deacon <will@kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "kernel-team@android.com" <kernel-team@android.com>, Michael Ellerman <mpe@ellerman.id.au>, Peter Zijlstra <peterz@infradead.org>, Linus Torvalds <torvalds@linux-foundation.org>, Segher Boessenkool <segher@kernel.crashing.org>, Christian Borntraeger <borntraeger@de.ibm.com>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>, Peter Oberparleiter <oberpar@linux.ibm.com>, Masahiro Yamada <masahiroy@kernel.org>
 
+On Sun, Jan 26, 2020 at 2:10 AM Qais Yousef <qais.yousef@arm.com> wrote:
+> On 01/23/20 14:01, Arvind Sankar wrote:
+> > On Thu, Jan 23, 2020 at 10:45:08AM -0800, Nick Desaulniers wrote:
+> > > On Thu, Jan 23, 2020 at 9:32 AM David Laight <David.Laight@aculab.com> wrote:
+> >
+> > Reposting Arnd's link
+> > https://www.spinics.net/lists/linux-kbuild/msg23648.html
+>
+> This list seems to be x86 centric? I remember when the switch to GCC 4.6
+> happened a couple or more archs had to be dropped because they lacked a newer
+> compiler.
 
->>> This is particularly relevant
->>> in high contention situations when new threads keep arriving on the =
-same
->>> socket as the lock holder.
->> In this case, the lock will stay on the same NUMA node/socket for
->> 2^numa_spinlock_threshold times, which is the worst case scenario if =
-we
->> consider the long-term fairness. And if we have multiple nodes, it =
-will take
->> up to 2^numa_spinlock_threshold X (nr_nodes - 1) + nr_cpus_per_node
->> lock transitions until any given thread will acquire the lock
->> (assuming 2^numa_spinlock_threshold > nr_cpus_per_node).
->>=20
->=20
-> You're right that the latest version of the patch handles long-term =
-fairness
-> deterministically.
->=20
-> As I understand it, the n-th thread in the main queue is guaranteed to
-> acquire the lock after N lock handovers, where N is bounded by
->=20
-> n - 1 + 2^numa_spinlock_threshold * (nr_nodes - 1)
->=20
-> I'm not sure what role the variable nr_cpus_per_node plays in your =
-analysis.
+There are two architectures that already had problems last time:
 
-Yeah, that=E2=80=99s a minor point, but let me try to clarify.
+- unicore32 never had any compiler that shipped with sources, only an ancient
+  set of gcc binaries that already had problems building the kernel during the
+  move to gcc-4.6. The maintainer said he'd work on providing support for
+  modern gcc or clang, but I don't think anything came out of that.
 
-The "n-th thread in the main queue=E2=80=9D is (at most) the =
-nr_cpus_per_node-th thread=20
-for some node k. So when the node k gets the preference, that thread =
-will
-get the lock after at most nr_cpus_per_node-1 lock transitions. As we =
-consider
-the upper bound, your analysis is also correct; mine is just a bit =
-tighter.
+- hexagon had an unmaintained gcc-4.5 port, but internally Qualcomm were
+  already using clang to build their kernels, which should now work with the
+  upstream version. I don't think there are any plans to have a more modern
+  gcc.
 
-Makes sense?
+Everything else works with mainline gcc now, openrisc and csky were the
+last to get added in gcc-9.
 
-Regards,
-=E2=80=94 Alex
+Some of the older sub-targets (armv3, s390-g6, powerpcspe) are removed
+in gcc-9, but these have a few more years before we need to worry about
+them.
+
+     Arnd
