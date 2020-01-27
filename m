@@ -1,64 +1,46 @@
-Return-Path: <owner-linux-mm@kvack.org>
-From: Sandipan Das <sandipan@linux.ibm.com>
-Subject: [PATCH v18 09/24] selftests/vm/pkeys: Fix assertion in
- pkey_disable_set/clear()
-Date: Thu, 30 Jan 2020 12:06:51 +0530
-In-Reply-To: <cover.1580365432.git.sandipan@linux.ibm.com>
-References: <cover.1580365432.git.sandipan@linux.ibm.com>
-In-Reply-To: <cover.1580365432.git.sandipan@linux.ibm.com>
-References: <cover.1580365432.git.sandipan@linux.ibm.com>
-Message-ID: <90e6851e1c71696f03cfa2c71377f0542d8dbd8d.1580365432.git.sandipan@linux.ibm.com>
-Sender: owner-linux-mm@kvack.org
-To: shuah@kernel.org, skhan@linuxfoundation.org, linux-kselftest@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, x86@kernel.org, linux-mm@kvack.org, fweimer@redhat.com, dave.hansen@intel.com, linuxram@us.ibm.com, mhocko@kernel.org, mingo@redhat.com, aneesh.kumar@linux.ibm.com, bauerman@linux.ibm.com, msuchanek@suse.de, mpe@ellerman.id.au
+Return-Path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-pg1-f195.google.com ([209.85.215.195]:36515 "EHLO
+ mail-pg1-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with
+ ESMTP id S1726173AbgA0XUB (ORCPT <rfc822;linux-arch@vger.kernel.org>); Mon,
+ 27 Jan 2020 18:20:01 -0500
+Received: by mail-pg1-f195.google.com with SMTP id k3so5939882pgc.3 for
+ <linux-arch@vger.kernel.org>; Mon, 27 Jan 2020 15:20:01 -0800 (PST)
+Date: Mon, 27 Jan 2020 15:19:59 -0800
+From: Kees Cook <keescook@chromium.org>
+Subject: Re: [kernel-hardening] [PATCH 09/38] usercopy: Mark kmalloc caches as
+ usercopy caches
+Message-ID: <202001271519.AA6ADEACF0@keescook>
+References: <1515636190-24061-1-git-send-email-keescook@chromium.org>
+ <1515636190-24061-10-git-send-email-keescook@chromium.org>
+ <9519edb7-456a-a2fa-659e-3e5a1ff89466@suse.cz>
+ <201911121313.1097D6EE@keescook> <201911141327.4DE6510@keescook>
+ <bfca96db-bbd0-d958-7732-76e36c667c68@suse.cz>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <bfca96db-bbd0-d958-7732-76e36c667c68@suse.cz>
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200130063651.Oh1VdAPpYXrbZB8ohciSzuzXrMun0I4wWd54ausW6hk@z>
+To: Jiri Slaby <jslaby@suse.cz>
+Cc: Alexander Viro <viro@zeniv.linux.org.uk>, linux-kernel@vger.kernel.org, David Windsor <dave@nullcore.net>, Pekka Enberg <penberg@kernel.org>, David Rientjes <rientjes@google.com>, Joonsoo Kim <iamjoonsoo.kim@lge.com>, Andrew Morton <akpm@linux-foundation.org>, linux-mm@kvack.org, linux-xfs@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, Christoph Hellwig <hch@infradead.org>, Christoph Lameter <cl@linux.com>, "David S. Miller" <davem@davemloft.net>, Laura Abbott <labbott@redhat.com>, Mark Rutland <mark.rutland@arm.com>, "Martin K. Petersen" <martin.petersen@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Christoffer Dall <christoffer.dall@linaro.org>, Dave Kleikamp <dave.kleikamp@oracle.com>, Jan Kara <jack@suse.cz>, Luis de Bethencourt <luisbg@kernel.org>, Marc Zyngier <marc.zyngier@arm.com>, Rik van Riel <riel@redhat.com>, Matthew Garrett <mjg59@google.com>, linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org, netdev@vger.kernel.org, kernel-hardening@lists.openwall.com, Vlastimil Babka <vbabka@suse.cz>, Michal Kubecek <mkubecek@suse.cz>
+Message-ID: <20200127231959.7-BuPO1CtuvWEwf4eU03SYn6qBmgNUPlCoFmObrgl8c@z>
 
-From: Ram Pai <linuxram@us.ibm.com>
+On Thu, Jan 23, 2020 at 09:14:20AM +0100, Jiri Slaby wrote:
+> On 14. 11. 19, 22:27, Kees Cook wrote:
+> > On Tue, Nov 12, 2019 at 01:21:54PM -0800, Kees Cook wrote:
+> >> How is iucv the only network protocol that has run into this? Do others
+> >> use a bounce buffer?
+> > 
+> > Another solution would be to use a dedicated kmem cache (instead of the
+> > shared kmalloc dma one)?
+> 
+> Has there been any conclusion to this thread yet? For the time being, we
+> disabled HARDENED_USERCOPY on s390...
+> 
+> https://lore.kernel.org/kernel-hardening/9519edb7-456a-a2fa-659e-3e5a1ff89466@suse.cz/
 
-In some cases, a pkey's bits need not necessarily change
-in a way that the value of the pkey register increases
-when performing a pkey_disable_set() or decreases when
-performing a pkey_disable_clear().
+I haven't heard anything new. What did people think of a separate kmem
+cache?
 
-For example, on powerpc, if a pkey's current state is
-PKEY_DISABLE_ACCESS and we perform a pkey_write_disable()
-on it, the bits still remain the same. We will observe
-something similar when the pkey's current state is 0 and
-a pkey_access_enable() is performed on it.
-
-Either case would cause some assertions to fail. This
-fixes the problem.
-
-cc: Dave Hansen <dave.hansen@intel.com>
-cc: Florian Weimer <fweimer@redhat.com>
-Signed-off-by: Ram Pai <linuxram@us.ibm.com>
-Signed-off-by: Sandipan Das <sandipan@linux.ibm.com>
----
- tools/testing/selftests/vm/protection_keys.c | 4 ++--
- 1 file changed, 2 insertions(+), 2 deletions(-)
-
-diff --git a/tools/testing/selftests/vm/protection_keys.c b/tools/testing/selftests/vm/protection_keys.c
-index 4b1ddb526228..7fd52d5c4bfd 100644
---- a/tools/testing/selftests/vm/protection_keys.c
-+++ b/tools/testing/selftests/vm/protection_keys.c
-@@ -400,7 +400,7 @@ void pkey_disable_set(int pkey, int flags)
- 	dprintf1("%s(%d) pkey_reg: 0x%016llx\n",
- 		__func__, pkey, read_pkey_reg());
- 	if (flags)
--		pkey_assert(read_pkey_reg() > orig_pkey_reg);
-+		pkey_assert(read_pkey_reg() >= orig_pkey_reg);
- 	dprintf1("END<---%s(%d, 0x%x)\n", __func__,
- 		pkey, flags);
- }
-@@ -431,7 +431,7 @@ void pkey_disable_clear(int pkey, int flags)
- 	dprintf1("%s(%d) pkey_reg: 0x%016llx\n", __func__,
- 			pkey, read_pkey_reg());
- 	if (flags)
--		assert(read_pkey_reg() < orig_pkey_reg);
-+		assert(read_pkey_reg() <= orig_pkey_reg);
- }
-
- void pkey_write_allow(int pkey)
 -- 
-2.17.1
+Kees Cook
