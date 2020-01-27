@@ -1,58 +1,105 @@
-Return-Path: <SRS0=WRhj=3F=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:33854 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S2388769AbgAPRnj (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 16 Jan 2020 12:43:39 -0500
-From: Sasha Levin <sashal@kernel.org>
-Subject: [PATCH AUTOSEL 4.4 035/174] rtc: cmos: ignore bogus century byte
-Date: Thu, 16 Jan 2020 12:40:32 -0500
-Message-ID: <20200116174251.24326-35-sashal@kernel.org>
-In-Reply-To: <20200116174251.24326-1-sashal@kernel.org>
-References: <20200116174251.24326-1-sashal@kernel.org>
+Return-Path: <SRS0=GP1c=3Q=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from us-smtp-1.mimecast.com ([205.139.110.61]:30728 "EHLO
+        us-smtp-delivery-1.mimecast.com" rhost-flags-OK-OK-OK-FAIL)
+        by vger.kernel.org with ESMTP id S1726029AbgA0OLz (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 27 Jan 2020 09:11:55 -0500
+Subject: Re: [PATCH v9 0/5] Add NUMA-awareness to qspinlock
+References: <20200115035920.54451-1-alex.kogan@oracle.com>
+ <20200124222434.GA7196@paulmck-ThinkPad-P72>
+ <6AAE7FC6-F5DE-4067-8BC4-77F27948CD09@oracle.com>
+ <20200125005713.GZ2935@paulmck-ThinkPad-P72>
+ <02defadb-217d-7803-88a1-ec72a37eda28@redhat.com>
+ <adb4fb09-f374-4d64-096b-ba9ad8b35fd5@redhat.com>
+ <20200125045844.GC2935@paulmck-ThinkPad-P72>
+ <967f99ee-b781-43f4-d8ba-af83786c429c@redhat.com>
+ <20200126153535.GL2935@paulmck-ThinkPad-P72>
+ <20200126224245.GA22901@paulmck-ThinkPad-P72>
+From: Waiman Long <longman@redhat.com>
+Message-ID: <2e552fad-79c0-ec06-3b8c-d13f1b67f57d@redhat.com>
+Date: Mon, 27 Jan 2020 09:11:43 -0500
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+In-Reply-To: <20200126224245.GA22901@paulmck-ThinkPad-P72>
+Content-Type: text/plain; charset=windows-1252
+Content-Transfer-Encoding: 7bit
+Content-Language: en-US
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org, stable@vger.kernel.org
-Cc: Eric Wong <e@80x24.org>, Alexandre Belloni <alexandre.belloni@bootlin.com>, Alessandro Zummo <a.zummo@towertech.it>, Sylvain Chouleur <sylvain.chouleur@intel.com>, Patrick McDermott <patrick.mcdermott@libiquity.com>, linux-rtc@vger.kernel.org, Sasha Levin <sashal@kernel.org>, linux-arch@vger.kernel.org
-Message-ID: <20200116174032.zHtowhV1nOc0pJGhTFisQJmFv3A0EeKnqZZPXAiR0xE@z>
+To: paulmck@kernel.org
+Cc: Alex Kogan <alex.kogan@oracle.com>, linux@armlinux.org.uk, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-arm-kernel <linux-arm-kernel@lists.infradead.org>, linux-kernel@vger.kernel.org, tglx@linutronix.de, bp@alien8.de, hpa@zytor.com, x86@kernel.org, guohanjun@huawei.com, jglauber@marvell.com, dave.dice@oracle.com, steven.sistare@oracle.com, daniel.m.jordan@oracle.com
+Message-ID: <20200127141143.92lPQ7rD84KT_yBcLmkU-hAUAmtXlGfUeRREyUCUZq8@z>
 
-From: Eric Wong <e@80x24.org>
+On 1/26/20 5:42 PM, Paul E. McKenney wrote:
+> On Sun, Jan 26, 2020 at 07:35:35AM -0800, Paul E. McKenney wrote:
+>> On Sat, Jan 25, 2020 at 02:41:39PM -0500, Waiman Long wrote:
+>>> On 1/24/20 11:58 PM, Paul E. McKenney wrote:
+>>>> On Fri, Jan 24, 2020 at 09:17:05PM -0500, Waiman Long wrote:
+>>>>> On 1/24/20 8:59 PM, Waiman Long wrote:
+>>>>>>> You called it!  I will play with QEMU's -numa argument to see if I can get
+>>>>>>> CNA to run for me.  Please accept my apologies for the false alarm.
+>>>>>>>
+>>>>>>> 							Thanx, Paul
+>>>>>>>
+>>>>>> CNA is not currently supported in a VM guest simply because the numa
+>>>>>> information is not reliable. You will have to run it on baremetal to
+>>>>>> test it. Sorry for that.
+>>>>> Correction. There is a command line option to force CNA lock to be used
+>>>>> in a VM. Use the "numa_spinlock=on" boot command line parameter.
+>>>> As I understand it, I need to use a series of -numa arguments to qemu
+>>>> combined with the numa_spinlock=on (or =1) on the kernel command line.
+>>>> If the kernel thinks that there is only one NUMA node, it appears to
+>>>> avoid doing CNA.
+>>>>
+>>>> Correct?
+>>>>
+>>>> 							Thanx, Paul
+>>>>
+>>> In auto-detection mode (the default), CNA will only be turned on when
+>>> paravirt qspinlock is not enabled first and there are at least 2 numa
+>>> nodes. The "numa_spinlock=on" option will force it on even when both of
+>>> the above conditions are false.
+>> Hmmm...
+>>
+>> Here is my kernel command line taken from the console log:
+>>
+>> console=ttyS0 locktorture.onoff_interval=0 numa_spinlock=on locktorture.stat_interval=15 locktorture.shutdown_secs=1800 locktorture.verbose=1
+>>
+>> Yet the string "Enabling CNA spinlock" does not appear.
+>>
+>> Ah, idiot here needs to enable CONFIG_NUMA_AWARE_SPINLOCKS in his build.
+>> Trying again with "--kconfig "CONFIG_NUMA_AWARE_SPINLOCKS=y"...
+> And after fixing that, plus adding the other three Kconfig options required
+> to enable this, I really do see "Enabling CNA spinlock" in the console log.
+> Yay!
+>
+> At the end of the 30-minute locktorture exclusive-lock run, I see this:
+>
+> Writes:  Total: 572176565  Max/Min: 54167704/10878216 ???  Fail: 0
+>
+> This is about a five-to-one ratio.  Is this expected behavior, given a
+> single NUMA node on a single-socket system with 12 hardware threads?
+Do you mean within the VM, lscpu showed that the system has one node and
+12 threads per node? If that is the case, it should behave like regular
+qspinlock and be fair.
+>
+> I will try reader-writer lock next.
+>
+> Again, should I be using qemu's -numa command-line option to create nodes?
+> If so, what would be a sane configuration given 12 CPUs and 512MB of
+> memory for the VM?  If not, what is a good way to exercise CNA's NUMA
+> capabilities within a guest OS?
 
-[ Upstream commit 2a4daadd4d3e507138f8937926e6a4df49c6bfdc ]
+You can certainly play around with CNA in a VM. However, it is generally
+not recommended to use CNA in a VM unless the VM cpu topology matches
+the host with 1-to-1 vcpu pinning and there is no vcpu overcommit. In
+this case, one may see some performance improvement using CNA by using
+the "numa_spinlock=on" option to explicitly turn it on.
 
-Older versions of Libreboot and Coreboot had an invalid value
-(`3' in my case) in the century byte affecting the GM45 in
-the Thinkpad X200.  Not everybody's updated their firmwares,
-and Linux <= 4.2 was able to read the RTC without problems,
-so workaround this by ignoring invalid values.
+Because of the shuffling of queue entries, CNA is inherently less fair
+than the regular qspinlock. However, a ratio of 5 seems excessive to me.
+vcpu preemption may be a factor in contributing to this large variation.
+My testing on bare metal only showed a throughput variation within
+10-20% at most.
 
-Fixes: 3c217e51d8a272b9 ("rtc: cmos: century support")
-
-Cc: Alexandre Belloni <alexandre.belloni@bootlin.com>
-Cc: Alessandro Zummo <a.zummo@towertech.it>
-Cc: Sylvain Chouleur <sylvain.chouleur@intel.com>
-Cc: Patrick McDermott <patrick.mcdermott@libiquity.com>
-Cc: linux-rtc@vger.kernel.org
-Signed-off-by: Eric Wong <e@80x24.org>
-Signed-off-by: Alexandre Belloni <alexandre.belloni@bootlin.com>
-Signed-off-by: Sasha Levin <sashal@kernel.org>
----
- include/asm-generic/rtc.h | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
-
-diff --git a/include/asm-generic/rtc.h b/include/asm-generic/rtc.h
-index 4e3b6558331e..3e457ae2d571 100644
---- a/include/asm-generic/rtc.h
-+++ b/include/asm-generic/rtc.h
-@@ -106,7 +106,7 @@ static inline unsigned int __get_rtc_time(struct rtc_time *time)
- 	time->tm_year += real_year - 72;
- #endif
- 
--	if (century)
-+	if (century > 20)
- 		time->tm_year += (century - 19) * 100;
- 
- 	/*
--- 
-2.20.1
+Cheers,
+Longman
