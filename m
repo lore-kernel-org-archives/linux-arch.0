@@ -1,40 +1,37 @@
-Return-Path: <owner-linux-mm@kvack.org>
+Return-Path: <linux-arch-owner@vger.kernel.org>
+Received: from mga02.intel.com ([134.134.136.20]:17575 "EHLO mga02.intel.com"
+ rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP id S1729518AbgA0Px1
+ (ORCPT <rfc822;linux-arch@vger.kernel.org>); Mon, 27 Jan 2020 10:53:27 -0500
+Subject: Re: [PATCH v16 00/23] selftests, powerpc, x86: Memory Protection Keys
+References: <cover.1579507768.git.sandipan@linux.ibm.com>
+ <3ceb2814-f8b0-ec6b-3c24-ec72297a99f5@intel.com>
+ <8f14bee0-ab1c-fc90-dfdb-5128607b767f@linux.ibm.com>
+From: Dave Hansen <dave.hansen@intel.com>
+Message-ID: <3eca7a91-aa3e-cb01-47c8-5d36020993a2@intel.com>
+Date: Mon, 27 Jan 2020 07:42:33 -0800
 MIME-Version: 1.0
-References: 
- <70f99f7474826883877e84f93224e937d9c974de.1579767339.git.christophe.leroy@c-s.fr>
-In-Reply-To: 
- <70f99f7474826883877e84f93224e937d9c974de.1579767339.git.christophe.leroy@c-s.fr>
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Date: Thu, 23 Jan 2020 10:47:42 -0800
-Message-ID: <CAHk-=wgcm5JzyacekDGQ4Ocoe-F5it-7-sbgU8oPnhwnSH3KAA@mail.gmail.com>
-Subject: Re: [PATCH] lib: Reduce user_access_begin() boundaries in
- strncpy_from_user() and strnlen_user()
-Content-Type: text/plain; charset="UTF-8"
-Sender: owner-linux-mm@kvack.org
-To: Christophe Leroy <christophe.leroy@c-s.fr>, linux-arch <linux-arch@vger.kernel.org>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, Linux-MM <linux-mm@kvack.org>
+In-Reply-To: <8f14bee0-ab1c-fc90-dfdb-5128607b767f@linux.ibm.com>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200123184742.vpvCEbWrL6nwYOq0VHsFd9a953BlKpSFLYoznAe6-2c@z>
+To: Sandipan Das <sandipan@linux.ibm.com>
+Cc: shuah@kernel.org, linux-kselftest@vger.kernel.org, linux-arch@vger.kernel.org, fweimer@redhat.com, x86@kernel.org, linuxram@us.ibm.com, mhocko@kernel.org, linux-mm@kvack.org, mingo@redhat.com, aneesh.kumar@linux.ibm.com, bauerman@linux.ibm.com, msuchanek@suse.de, mpe@ellerman.id.au, linuxppc-dev@lists.ozlabs.org
+Message-ID: <20200127154233.0zpicrDQMtQksGcv3MXZFcqQlox-SYS6_Nj9Nf5adlI@z>
 
-On Thu, Jan 23, 2020 at 12:34 AM Christophe Leroy
-<christophe.leroy@c-s.fr> wrote:
->
-> The range passed to user_access_begin() by strncpy_from_user() and
-> strnlen_user() starts at 'src' and goes up to the limit of userspace
-> allthough reads will be limited by the 'count' param.
->
-> On 32 bits powerpc (book3s/32) access has to be granted for each 256Mbytes
-> segment and the cost increases with the number of segments to unlock.
->
-> Limit the range with 'count' param.
+On 1/27/20 2:11 AM, Sandipan Das wrote:
+> Hi Dave,
+> 
+> On 23/01/20 12:15 am, Dave Hansen wrote:
+>> Still doesn't build for me:
+>>
+> I have this patch that hopefully fixes this. My understanding was
+> that the vm tests are supposed to be generic but this has quite a
+> bit of x86-specific conditional code which complicates things even
+> though it is not used by any of the other tests.
+> 
+> I'm not sure if we should keep x86 multilib build support for these
+> selftests but I'll let the maintainers take a call.
 
-Ack. I'm tempted to take this for 5.5 too, just so that the
-unquestionably trivial fixes are in that baseline, and the
-infrastructure is ready for any architecture that has issues like
-this.
-
-Adding 'linux-arch' to the participants, to see if other architectures
-are at all looking at actually implementing the whole
-user_access_begin/end() dance too..
-
-               Linus
+How have you tested this patch (and the whole series for that matter)?
