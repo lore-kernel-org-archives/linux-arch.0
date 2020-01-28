@@ -1,152 +1,68 @@
 Return-Path: <owner-linux-mm@kvack.org>
-From: "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>
-Subject: [PATCH v3 8/9] asm-generic/tlb: Rename HAVE_MMU_GATHER_NO_GATHER
-Date: Tue, 14 Jan 2020 15:31:44 +0530
-Message-ID: <20200114100145.365527-9-aneesh.kumar@linux.ibm.com>
-In-Reply-To: <20200114100145.365527-1-aneesh.kumar@linux.ibm.com>
-References: <20200114100145.365527-1-aneesh.kumar@linux.ibm.com>
+Date: Tue, 28 Jan 2020 15:01:53 -0800
+From: Kees Cook <keescook@chromium.org>
+Subject: Re: [kernel-hardening] [PATCH 09/38] usercopy: Mark kmalloc caches as
+ usercopy caches
+Message-ID: <202001281457.FA11CC313A@keescook>
+References: <1515636190-24061-1-git-send-email-keescook@chromium.org>
+ <1515636190-24061-10-git-send-email-keescook@chromium.org>
+ <9519edb7-456a-a2fa-659e-3e5a1ff89466@suse.cz>
+ <201911121313.1097D6EE@keescook> <201911141327.4DE6510@keescook>
+ <bfca96db-bbd0-d958-7732-76e36c667c68@suse.cz>
+ <202001271519.AA6ADEACF0@keescook>
+ <5861936c-1fe1-4c44-d012-26efa0c8b6e7@de.ibm.com>
 MIME-Version: 1.0
-Content-Transfer-Encoding: quoted-printable
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <5861936c-1fe1-4c44-d012-26efa0c8b6e7@de.ibm.com>
 Sender: owner-linux-mm@kvack.org
-To: akpm@linux-foundation.org, peterz@infradead.org, will@kernel.org
-Cc: linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, "Aneesh Kumar K . V" <aneesh.kumar@linux.ibm.com>
+To: Christian Borntraeger <borntraeger@de.ibm.com>
+Cc: Jiri Slaby <jslaby@suse.cz>, Julian Wiedmann <jwi@linux.ibm.com>, Ursula Braun <ubraun@linux.ibm.com>, Alexander Viro <viro@zeniv.linux.org.uk>, linux-kernel@vger.kernel.org, David Windsor <dave@nullcore.net>, Pekka Enberg <penberg@kernel.org>, David Rientjes <rientjes@google.com>, Joonsoo Kim <iamjoonsoo.kim@lge.com>, Andrew Morton <akpm@linux-foundation.org>, linux-mm@kvack.org, linux-xfs@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, Christoph Hellwig <hch@infradead.org>, Christoph Lameter <cl@linux.com>, "David S. Miller" <davem@davemloft.net>, Laura Abbott <labbott@redhat.com>, Mark Rutland <mark.rutland@arm.com>, "Martin K. Petersen" <martin.petersen@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Christoffer Dall <christoffer.dall@linaro.org>, Dave Kleikamp <dave.kleikamp@oracle.com>, Jan Kara <jack@suse.cz>, Luis de Bethencourt <luisbg@kernel.org>, Marc Zyngier <marc.zyngier@arm.com>, Rik van Riel <riel@redhat.com>, Matthew Garrett <mjg59@google.com>, linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org, netdev@vger.kernel.org, kernel-hardening@lists.openwall.com, Vlastimil Babka <vbabka@suse.cz>, Michal Kubecek <mkubecek@suse.cz>
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200114100144.5aLYlzjWSij1WhsxKnfFZ6IlYckDEHjPlCHec4EgkAs@z>
+Message-ID: <20200128230153.geJJXSK148WS99rSuGYONM2I93KIOqXaEuNS6iPByBc@z>
 
-From: Peter Zijlstra <peterz@infradead.org>
+On Tue, Jan 28, 2020 at 08:58:31AM +0100, Christian Borntraeger wrote:
+> 
+> 
+> On 28.01.20 00:19, Kees Cook wrote:
+> > On Thu, Jan 23, 2020 at 09:14:20AM +0100, Jiri Slaby wrote:
+> >> On 14. 11. 19, 22:27, Kees Cook wrote:
+> >>> On Tue, Nov 12, 2019 at 01:21:54PM -0800, Kees Cook wrote:
+> >>>> How is iucv the only network protocol that has run into this? Do others
+> >>>> use a bounce buffer?
+> >>>
+> >>> Another solution would be to use a dedicated kmem cache (instead of the
+> >>> shared kmalloc dma one)?
+> >>
+> >> Has there been any conclusion to this thread yet? For the time being, we
+> >> disabled HARDENED_USERCOPY on s390...
+> >>
+> >> https://lore.kernel.org/kernel-hardening/9519edb7-456a-a2fa-659e-3e5a1ff89466@suse.cz/
+> > 
+> > I haven't heard anything new. What did people think of a separate kmem
+> > cache?
+> > 
+> 
+> Adding Julian and Ursula. A separate kmem cache for iucv might be indeed
+> a solution for the user hardening issue.
 
-Towards a more consistent naming scheme.
+It should be very clean -- any existing kmallocs already have to be
+"special" in the sense that they're marked with the DMA flag. So
+converting these to a separate cache should be mostly mechanical.
 
-Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
-Signed-off-by: Aneesh Kumar K.V <aneesh.kumar@linux.ibm.com>
----
- arch/Kconfig              |  2 +-
- arch/s390/Kconfig         |  2 +-
- include/asm-generic/tlb.h | 14 ++++++++++++--
- mm/mmu_gather.c           | 10 +++++-----
- 4 files changed, 19 insertions(+), 9 deletions(-)
+> On the other hand not marking the DMA caches still seems questionable.
 
-diff --git a/arch/Kconfig b/arch/Kconfig
-index e8548211b6a9..c35668fbf4d4 100644
---- a/arch/Kconfig
-+++ b/arch/Kconfig
-@@ -402,7 +402,7 @@ config MMU_GATHER_PAGE_SIZE
- config MMU_GATHER_NO_RANGE
- 	bool
-=20
--config HAVE_MMU_GATHER_NO_GATHER
-+config MMU_GATHER_NO_GATHER
- 	bool
-=20
- config ARCH_HAVE_NMI_SAFE_CMPXCHG
-diff --git a/arch/s390/Kconfig b/arch/s390/Kconfig
-index e2cde82a1a3c..de39c2e92435 100644
---- a/arch/s390/Kconfig
-+++ b/arch/s390/Kconfig
-@@ -163,7 +163,7 @@ config S390
- 	select HAVE_PERF_USER_STACK_DUMP
- 	select HAVE_MEMBLOCK_NODE_MAP
- 	select HAVE_MEMBLOCK_PHYS_MAP
--	select HAVE_MMU_GATHER_NO_GATHER
-+	select MMU_GATHER_NO_GATHER
- 	select HAVE_MOD_ARCH_SPECIFIC
- 	select HAVE_NOP_MCOUNT
- 	select HAVE_OPROFILE
-diff --git a/include/asm-generic/tlb.h b/include/asm-generic/tlb.h
-index 53befa5acb27..ca0fe75b5355 100644
---- a/include/asm-generic/tlb.h
-+++ b/include/asm-generic/tlb.h
-@@ -143,6 +143,16 @@
-  *  MMU_GATHER_NO_RANGE
-  *
-  *  Use this if your architecture lacks an efficient flush_tlb_range().
-+ *
-+ *  MMU_GATHER_NO_GATHER
-+ *
-+ *  If the option is set the mmu_gather will not track individual pages =
-for
-+ *  delayed page free anymore. A platform that enables the option needs =
-to
-+ *  provide its own implementation of the __tlb_remove_page_size() funct=
-ion to
-+ *  free pages.
-+ *
-+ *  This is useful if your architecture already flushes TLB entries in t=
-he
-+ *  various ptep_get_and_clear() functions.
-  */
-=20
- #ifdef CONFIG_MMU_GATHER_RCU_TABLE_FREE
-@@ -202,7 +212,7 @@ extern void tlb_remove_table(struct mmu_gather *tlb, =
-void *table);
- #endif /* CONFIG_MMU_GATHER_RCU_TABLE_FREE */
-=20
-=20
--#ifndef CONFIG_HAVE_MMU_GATHER_NO_GATHER
-+#ifndef CONFIG_MMU_GATHER_NO_GATHER
- /*
-  * If we can't allocate a page to make a big batch of page pointers
-  * to work on, then just handle a few from the on-stack structure.
-@@ -277,7 +287,7 @@ struct mmu_gather {
-=20
- 	unsigned int		batch_count;
-=20
--#ifndef CONFIG_HAVE_MMU_GATHER_NO_GATHER
-+#ifndef CONFIG_MMU_GATHER_NO_GATHER
- 	struct mmu_gather_batch *active;
- 	struct mmu_gather_batch	local;
- 	struct page		*__pages[MMU_GATHER_BUNDLE];
-diff --git a/mm/mmu_gather.c b/mm/mmu_gather.c
-index 297c70307367..a28c74328085 100644
---- a/mm/mmu_gather.c
-+++ b/mm/mmu_gather.c
-@@ -11,7 +11,7 @@
- #include <asm/pgalloc.h>
- #include <asm/tlb.h>
-=20
--#ifndef CONFIG_HAVE_MMU_GATHER_NO_GATHER
-+#ifndef CONFIG_MMU_GATHER_NO_GATHER
-=20
- static bool tlb_next_batch(struct mmu_gather *tlb)
- {
-@@ -89,7 +89,7 @@ bool __tlb_remove_page_size(struct mmu_gather *tlb, str=
-uct page *page, int page_
- 	return false;
- }
-=20
--#endif /* HAVE_MMU_GATHER_NO_GATHER */
-+#endif /* MMU_GATHER_NO_GATHER */
-=20
- #ifdef CONFIG_MMU_GATHER_RCU_TABLE_FREE
-=20
-@@ -180,7 +180,7 @@ static void tlb_flush_mmu_free(struct mmu_gather *tlb=
-)
- #ifdef CONFIG_MMU_GATHER_RCU_TABLE_FREE
- 	tlb_table_flush(tlb);
- #endif
--#ifndef CONFIG_HAVE_MMU_GATHER_NO_GATHER
-+#ifndef CONFIG_MMU_GATHER_NO_GATHER
- 	tlb_batch_pages_flush(tlb);
- #endif
- }
-@@ -211,7 +211,7 @@ void tlb_gather_mmu(struct mmu_gather *tlb, struct mm=
-_struct *mm,
- 	/* Is it from 0 to ~0? */
- 	tlb->fullmm     =3D !(start | (end+1));
-=20
--#ifndef CONFIG_HAVE_MMU_GATHER_NO_GATHER
-+#ifndef CONFIG_MMU_GATHER_NO_GATHER
- 	tlb->need_flush_all =3D 0;
- 	tlb->local.next =3D NULL;
- 	tlb->local.nr   =3D 0;
-@@ -271,7 +271,7 @@ void tlb_finish_mmu(struct mmu_gather *tlb,
-=20
- 	tlb_flush_mmu(tlb);
-=20
--#ifndef CONFIG_HAVE_MMU_GATHER_NO_GATHER
-+#ifndef CONFIG_MMU_GATHER_NO_GATHER
- 	tlb_batch_list_free(tlb);
- #endif
- 	dec_tlb_flush_pending(tlb->mm);
---=20
-2.24.1
+My understanding is that exposing DMA memory to userspace copies can
+lead to unexpected results, especially for misbehaving hardware, so I'm
+not convinced this is a generically bad hardening choice.
+
+-Kees
+
+> 
+> For reference
+> https://bugzilla.suse.com/show_bug.cgi?id=1156053
+> the kernel hardening now triggers a warning.
+> 
+
+-- 
+Kees Cook
