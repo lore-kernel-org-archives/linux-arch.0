@@ -1,59 +1,82 @@
-From: Peter Oberparleiter <oberpar@linux.ibm.com>
-Subject: Re: [PATCH v2 10/10] gcov: Remove old GCC 3.4 support
-Date: Tue, 28 Jan 2020 15:56:06 +0100
-Message-ID: <28e3e35c-1a26-5f87-064e-39f8a1fc9105@linux.ibm.com>
-References: <20200123153341.19947-1-will@kernel.org>
- <20200123153341.19947-11-will@kernel.org>
+From: Frank Rowand <frowand.list@gmail.com>
+Subject: Re: [RFC v1 0/6] kunit: create a centralized executor to dispatch all
+ KUnit tests
+Date: Tue, 28 Jan 2020 12:36:49 -0600
+Message-ID: <e801e4ac-b7c2-3d0a-71e7-f8153a3dfbc8@gmail.com>
+References: <20191216220555.245089-1-brendanhiggins@google.com>
+ <20200106224022.GX11244@42.do-not-panic.com>
+ <CAFd5g456c2Zs7rCvRPgio83G=SrtPGi25zbqAUyTBHspHwtu4w@mail.gmail.com>
+ <594b7815-0611-34ea-beb5-0642114b5d82@gmail.com>
+ <CAFd5g469TWzrLKmQNR2i0HACJ3FEu-=4-Rk005g9szB5UsZAcw@mail.gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=utf-8
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:32490 "EHLO
-        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1726634AbgA1O4Q (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 28 Jan 2020 09:56:16 -0500
-Received: from pps.filterd (m0187473.ppops.net [127.0.0.1])
-        by mx0a-001b2d01.pphosted.com (8.16.0.42/8.16.0.42) with SMTP id 00SEoxJY070370
-        for <linux-arch@vger.kernel.org>; Tue, 28 Jan 2020 09:56:15 -0500
-Received: from e06smtp07.uk.ibm.com (e06smtp07.uk.ibm.com [195.75.94.103])
-        by mx0a-001b2d01.pphosted.com with ESMTP id 2xrj72kug5-1
-        (version=TLSv1.2 cipher=AES256-GCM-SHA384 bits=256 verify=NOT)
-        for <linux-arch@vger.kernel.org>; Tue, 28 Jan 2020 09:56:14 -0500
-Received: from localhost
-        by e06smtp07.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-        for <linux-arch@vger.kernel.org> from <oberpar@linux.ibm.com>;
-        Tue, 28 Jan 2020 14:56:12 -0000
-In-Reply-To: <20200123153341.19947-11-will@kernel.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <CAFd5g469TWzrLKmQNR2i0HACJ3FEu-=4-Rk005g9szB5UsZAcw@mail.gmail.com>
 Content-Language: en-US
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will@kernel.org>, linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, kernel-team@android.com, Michael Ellerman <mpe@ellerman.id.au>, Peter Zijlstra <peterz@infradead.org>, Linus Torvalds <torvalds@linux-foundation.org>, Segher Boessenkool <segher@kernel.crashing.org>, Christian Borntraeger <borntraeger@de.ibm.com>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>, Arnd Bergmann <arnd@arndb.de>, Masahiro Yamada <masahiroy@kernel.org>, Nick Desaulniers <ndesaulniers@google.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Brendan Higgins <brendanhiggins@google.com>
+Cc: Luis Chamberlain <mcgrof@kernel.org>, Jeff Dike <jdike@addtoit.com>, Richard Weinberger <richard@nod.at>, Anton Ivanov <anton.ivanov@cambridgegreys.com>, Arnd Bergmann <arnd@arndb.de>, Kees Cook <keescook@chromium.org>, Shuah Khan <skhan@linuxfoundation.org>, Alan Maguire <alan.maguire@oracle.com>, Iurii Zaikin <yzaikin@google.com>, David Gow <davidgow@google.com>, Andrew Morton <akpm@linux-foundation.org>, rppt@linux.ibm.com, Greg KH <gregkh@linuxfoundation.org>, Stephen Boyd <sboyd@kernel.org>, Logan Gunthorpe <logang@deltatee.com>, Knut Omang <knut.omang@oracle.com>, linux-um <linux-um@lists.infradead.org>, linux-arch@vger.kernel.org, "open list:KERNEL SELFTEST FRAMEWORK" <linux-kselftest@vger.kernel.org>, KUnit Development <kunit>
+List-Id: linux-arch.vger.kernel.org
 
-On 23.01.2020 16:33, Will Deacon wrote:
-> The kernel requires at least GCC 4.8 in order to build, and so there is
-> no need to cater for the pre-4.7 gcov format.
+On 1/28/20 1:19 AM, Brendan Higgins wrote:
+> On Mon, Jan 27, 2020 at 9:40 AM Frank Rowand <frowand.list@gmail.com> wrote:
+>>
+>> On 1/23/20 4:40 PM, Brendan Higgins wrote:
+>>> Sorry for the late reply. I am still catching up from being on vacation.
+>>>>> On Mon, Jan 6, 2020 at 2:40 PM Luis Chamberlain <mcgrof@kernel.org> wrote:
+>>>> It does beg the question if this means kunit is happy to not be a tool
+>>>> to test pre basic setup stuff (terminology used in init.c, meaning prior
+>>>> to running all init levels). I suspect this is the case.
+>>>
+>>> Not sure. I still haven't seen any cases where this is necessary, so I
+>>> am not super worried about it. Regardless, I don't think this patchset
+>>> really changes anything in that regard, we are moving from late_init
+>>> to after late_init, so it isn't that big of a change for most use
+>>> cases.
+>>>
+>>> Please share if you can think of some things that need to be tested in
+>>> early init.
+>>
+>> I don't have a specific need for this right now.  I had not thought about
+>> how the current kunit implementation forces all kunit tests to run at a
+>> specific initcall level before reading this email thread.
+>>
+>> I can see the value of being able to have some tests run at different
+>> initcall levels to verify what functionality is available and working
+>> at different points in the boot sequence.
 > 
-> Remove the obsolete code.
+> Let's cross that bridge when we get there. It should be fairly easy to
+> add that functionality.
+
+Yes. I just wanted to add the thought to the back of your mind so that
+it does not get precluded by future changes to the kunit architecture.
+
 > 
-> Cc: Peter Oberparleiter <oberpar@linux.ibm.com>
-> Signed-off-by: Will Deacon <will@kernel.org>
-> ---
->  kernel/gcov/Kconfig   |  24 --
->  kernel/gcov/Makefile  |   3 +-
->  kernel/gcov/gcc_3_4.c | 573 ------------------------------------------
->  3 files changed, 1 insertion(+), 599 deletions(-)
->  delete mode 100644 kernel/gcov/gcc_3_4.c
+>> But more important than early initcall levels, I do not want the
+>> framework to prevent using or testing code and data that are marked
+>> as '__init'.  So it is important to retain a way to invoke the tests
+>> while __init code and data are available, if there is also a change
+>> to generally invoke the tests later.
+> 
+> Definitely. For now that still works as long as you don't build KUnit
+> as a module, but I think Alan's new patches which allow KUnit to be
+> run at runtime via debugfs could cause some difficulty there. Again,
 
-Acked-by: Peter Oberparleiter <oberpar@linux.ibm.com>
+Yes, Alan's patches are part of what triggered me thinking about the
+issues I raised.
 
-Compiles, boots, produces coverage output on a s390 system with a
-recent-ish GCC version, so that change is fine by me.
 
-There's a final reference to the gcc_3_4.c file in the gcc_4_7.c header
-comment, but its probably not worth the extra effort to adjust that as well.
+> we could add Kconfigs to control this, but the compiler nevertheless
+> complains because it doesn't know what phase KUnit runs in.
+> 
+> Is there any way to tell the compiler that it is okay for non __init
+> code to call __init code? I would prefer not to have a duplicate
+> version of all the KUnit libraries with all the symbols marked __init.
 
--- 
-Peter Oberparleiter
-Linux on Z Development - IBM Germany
+I'm not sure.  The build messages have always been useful and valid in
+my context, so I never thought to consider that possibility.
+
+> Thoughts?
+> .
+> 
