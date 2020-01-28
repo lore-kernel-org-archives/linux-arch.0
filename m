@@ -1,55 +1,74 @@
-From: Brendan Higgins <brendanhiggins@google.com>
-Subject: Re: [RFC v1 0/6] kunit: create a centralized executor to dispatch all
- KUnit tests
-Date: Tue, 28 Jan 2020 11:53:48 -0800
-Message-ID: <CAFd5g46Ut9Suptmp_bBspkp=KKt2GP+=1C5zLu0FXJY9dGJbFQ@mail.gmail.com>
-References: <20191216220555.245089-1-brendanhiggins@google.com>
- <20200106224022.GX11244@42.do-not-panic.com> <CAFd5g456c2Zs7rCvRPgio83G=SrtPGi25zbqAUyTBHspHwtu4w@mail.gmail.com>
- <594b7815-0611-34ea-beb5-0642114b5d82@gmail.com> <CAFd5g469TWzrLKmQNR2i0HACJ3FEu-=4-Rk005g9szB5UsZAcw@mail.gmail.com>
- <e801e4ac-b7c2-3d0a-71e7-f8153a3dfbc8@gmail.com> <ECADFF3FD767C149AD96A924E7EA6EAF982C9840@USCULXMSG17.am.sony.com>
+From: Kees Cook <keescook@chromium.org>
+Subject: Re: [kernel-hardening] [PATCH 09/38] usercopy: Mark kmalloc caches
+ as usercopy caches
+Date: Tue, 28 Jan 2020 15:01:53 -0800
+Message-ID: <202001281457.FA11CC313A@keescook>
+References: <1515636190-24061-1-git-send-email-keescook@chromium.org>
+ <1515636190-24061-10-git-send-email-keescook@chromium.org>
+ <9519edb7-456a-a2fa-659e-3e5a1ff89466@suse.cz>
+ <201911121313.1097D6EE@keescook>
+ <201911141327.4DE6510@keescook>
+ <bfca96db-bbd0-d958-7732-76e36c667c68@suse.cz>
+ <202001271519.AA6ADEACF0@keescook>
+ <5861936c-1fe1-4c44-d012-26efa0c8b6e7@de.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pl1-f193.google.com ([209.85.214.193]:43419 "EHLO
-        mail-pl1-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726143AbgA1TyA (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 28 Jan 2020 14:54:00 -0500
-Received: by mail-pl1-f193.google.com with SMTP id p11so1779893plq.10
-        for <linux-arch@vger.kernel.org>; Tue, 28 Jan 2020 11:54:00 -0800 (PST)
-In-Reply-To: <ECADFF3FD767C149AD96A924E7EA6EAF982C9840@USCULXMSG17.am.sony.com>
+Received: from mail-pf1-f195.google.com ([209.85.210.195]:45595 "EHLO
+        mail-pf1-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726391AbgA1XB4 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 28 Jan 2020 18:01:56 -0500
+Received: by mail-pf1-f195.google.com with SMTP id 2so7407409pfg.12
+        for <linux-arch@vger.kernel.org>; Tue, 28 Jan 2020 15:01:56 -0800 (PST)
+Content-Disposition: inline
+In-Reply-To: <5861936c-1fe1-4c44-d012-26efa0c8b6e7@de.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Bird, Timothy" <Tim.Bird@sony.com>, Frank Rowand <frowand.list@gmail.com>, Alan Maguire <alan.maguire@oracle.com>
-Cc: Luis Chamberlain <mcgrof@kernel.org>, Jeff Dike <jdike@addtoit.com>, Richard Weinberger <richard@nod.at>, Anton Ivanov <anton.ivanov@cambridgegreys.com>, Arnd Bergmann <arnd@arndb.de>, Kees Cook <keescook@chromium.org>, Shuah Khan <skhan@linuxfoundation.org>, Iurii Zaikin <yzaikin@google.com>, David Gow <davidgow@google.com>, Andrew Morton <akpm@linux-foundation.org>, rppt@linux.ibm.com, Greg KH <gregkh@linuxfoundation.org>, Stephen Boyd <sboyd@kernel.org>, Logan Gunthorpe <logang@deltatee.com>, Knut Omang <knut.omang@oracle.com>, linux-um <linux-um@lists.infradead.org>, linux-arch@vger.kernel.org, "open list:KERNEL SELFTEST FRAMEWORK" <linux-kselftest@vger.kernel.org>, KUnit Development <kunit-dev@googlegroups.com>, Linux
+To: Christian Borntraeger <borntraeger@de.ibm.com>
+Cc: Jiri Slaby <jslaby@suse.cz>, Julian Wiedmann <jwi@linux.ibm.com>, Ursula Braun <ubraun@linux.ibm.com>, Alexander Viro <viro@zeniv.linux.org.uk>, linux-kernel@vger.kernel.org, David Windsor <dave@nullcore.net>, Pekka Enberg <penberg@kernel.org>, David Rientjes <rientjes@google.com>, Joonsoo Kim <iamjoonsoo.kim@lge.com>, Andrew Morton <akpm@linux-foundation.org>, linux-mm@kvack.org, linux-xfs@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, Christoph Hellwig <hch@infradead.org>, Christoph Lameter <cl@linux.com>, "David S. Miller" <davem@davemloft.net>, Laura Abbott <labbott@redhat.com>, Mark Rutland <mark.rutland@arm.com>, "Martin K. Petersen" <martin.petersen@oracle.com>, Paolo Bonzini <pbonzini@redha>
 
-On Tue, Jan 28, 2020 at 11:35 AM <Tim.Bird@sony.com> wrote:
->
-> > -----Original Message-----
-> > From:  Frank Rowand on January 28, 2020 11:37 AM
-> >
-> > On 1/28/20 1:19 AM, Brendan Higgins wrote:
-> > > On Mon, Jan 27, 2020 at 9:40 AM Frank Rowand <frowand.list@gmail.com> wrote:
-> ...
-> > > we could add Kconfigs to control this, but the compiler nevertheless
-> > > complains because it doesn't know what phase KUnit runs in.
-> > >
-> > > Is there any way to tell the compiler that it is okay for non __init
-> > > code to call __init code? I would prefer not to have a duplicate
-> > > version of all the KUnit libraries with all the symbols marked __init.
-> >
-> > I'm not sure.  The build messages have always been useful and valid in
-> > my context, so I never thought to consider that possibility.
-> >
-> > > Thoughts?
->
-> I'm not sure there's a restriction on non __init code calling __init
-> code.  In init/main.c arch_call_reset_init() is in __init, and it calls
-> rest_init which is non __init, without any special handling.
->
-> Is the compiler complaint mentioned above related to  calling
-> into __init code, or with some other issue?
+On Tue, Jan 28, 2020 at 08:58:31AM +0100, Christian Borntraeger wrote:
+> 
+> 
+> On 28.01.20 00:19, Kees Cook wrote:
+> > On Thu, Jan 23, 2020 at 09:14:20AM +0100, Jiri Slaby wrote:
+> >> On 14. 11. 19, 22:27, Kees Cook wrote:
+> >>> On Tue, Nov 12, 2019 at 01:21:54PM -0800, Kees Cook wrote:
+> >>>> How is iucv the only network protocol that has run into this? Do others
+> >>>> use a bounce buffer?
+> >>>
+> >>> Another solution would be to use a dedicated kmem cache (instead of the
+> >>> shared kmalloc dma one)?
+> >>
+> >> Has there been any conclusion to this thread yet? For the time being, we
+> >> disabled HARDENED_USERCOPY on s390...
+> >>
+> >> https://lore.kernel.org/kernel-hardening/9519edb7-456a-a2fa-659e-3e5a1ff89466@suse.cz/
+> > 
+> > I haven't heard anything new. What did people think of a separate kmem
+> > cache?
+> > 
+> 
+> Adding Julian and Ursula. A separate kmem cache for iucv might be indeed
+> a solution for the user hardening issue.
 
-I distinctly remember having the compiler complain at me when I was
-messing around with the device tree unit tests because of KUnit
-calling code marked as __init. Maybe it's time to start converting
-those to KUnit to force the issue? Frank, does that work for you?
+It should be very clean -- any existing kmallocs already have to be
+"special" in the sense that they're marked with the DMA flag. So
+converting these to a separate cache should be mostly mechanical.
+
+> On the other hand not marking the DMA caches still seems questionable.
+
+My understanding is that exposing DMA memory to userspace copies can
+lead to unexpected results, especially for misbehaving hardware, so I'm
+not convinced this is a generically bad hardening choice.
+
+-Kees
+
+> 
+> For reference
+> https://bugzilla.suse.com/show_bug.cgi?id=1156053
+> the kernel hardening now triggers a warning.
+> 
+
+-- 
+Kees Cook
