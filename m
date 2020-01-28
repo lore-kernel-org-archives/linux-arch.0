@@ -1,103 +1,50 @@
-From: Brendan Higgins <brendanhiggins@google.com>
-Subject: [PATCH v1 6/7] kunit: Add 'kunit_shutdown' option
-Date: Mon, 27 Jan 2020 23:20:01 -0800
-Message-ID: <20200128072002.79250-7-brendanhiggins@google.com>
-References: <20200128072002.79250-1-brendanhiggins@google.com>
+From: Christian Borntraeger <borntraeger@de.ibm.com>
+Subject: Re: [kernel-hardening] [PATCH 09/38] usercopy: Mark kmalloc caches as
+ usercopy caches
+Date: Tue, 28 Jan 2020 08:58:31 +0100
+Message-ID: <5861936c-1fe1-4c44-d012-26efa0c8b6e7@de.ibm.com>
+References: <1515636190-24061-1-git-send-email-keescook@chromium.org>
+ <1515636190-24061-10-git-send-email-keescook@chromium.org>
+ <9519edb7-456a-a2fa-659e-3e5a1ff89466@suse.cz>
+ <201911121313.1097D6EE@keescook> <201911141327.4DE6510@keescook>
+ <bfca96db-bbd0-d958-7732-76e36c667c68@suse.cz>
+ <202001271519.AA6ADEACF0@keescook>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 8bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20200128072002.79250-1-brendanhiggins@google.com>
+In-Reply-To: <202001271519.AA6ADEACF0@keescook>
+Content-Language: en-US
 Sender: linux-kernel-owner@vger.kernel.org
-To: jdike@addtoit.com, richard@nod.at, anton.ivanov@cambridgegreys.com, arnd@arndb.de, keescook@chromium.org, skhan@linuxfoundation.org, alan.maguire@oracle.com, yzaikin@google.com, davidgow@google.com, akpm@linux-foundation.org, rppt@linux.ibm.com, frowand.list@gmail.com
-Cc: gregkh@linuxfoundation.org, sboyd@kernel.org, logang@deltatee.com, mcgrof@kernel.org, knut.omang@oracle.com, linux-um@lists.infradead.org, linux-arch@vger.kernel.org, linux-kselftest@vger.kernel.org, kunit-dev@googlegroups.com, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, Brendan Higgins <brendanhiggins@google.com>
+To: Kees Cook <keescook@chromium.org>, Jiri Slaby <jslaby@suse.cz>, Julian Wiedmann <jwi@linux.ibm.com>, Ursula Braun <ubraun@linux.ibm.com>
+Cc: Alexander Viro <viro@zeniv.linux.org.uk>, linux-kernel@vger.kernel.org, David Windsor <dave@nullcore.net>, Pekka Enberg <penberg@kernel.org>, David Rientjes <rientjes@google.com>, Joonsoo Kim <iamjoonsoo.kim@lge.com>, Andrew Morton <akpm@linux-foundation.org>, linux-mm@kvack.org, linux-xfs@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, Christoph Hellwig <hch@infradead.org>, Christoph Lameter <cl@linux.com>, "David S. Miller" <davem@davemloft.net>, Laura Abbott <labbott@redhat.com>, Mark Rutland <mark.rutland@arm.com>, "Martin K. Petersen" <martin.petersen@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Christoffer Dall <christoffer.dall@linaro.org>, Dave Kleikamp <dave.kleikamp@oracle.com>
 List-Id: linux-arch.vger.kernel.org
 
-From: David Gow <davidgow@google.com>
 
-Add a new kernel command-line option, 'kunit_shutdown', which allows the
-user to specify that the kernel poweroff, halt, or reboot after
-completing all KUnit tests; this is very handy for running KUnit tests
-on UML or a VM so that the UML/VM process exits cleanly immediately
-after running all tests without needing a special initramfs.
 
-Signed-off-by: David Gow <davidgow@google.com>
-Signed-off-by: Brendan Higgins <brendanhiggins@google.com>
----
- lib/kunit/executor.c                | 20 ++++++++++++++++++++
- tools/testing/kunit/kunit_kernel.py |  2 +-
- tools/testing/kunit/kunit_parser.py |  2 +-
- 3 files changed, 22 insertions(+), 2 deletions(-)
+On 28.01.20 00:19, Kees Cook wrote:
+> On Thu, Jan 23, 2020 at 09:14:20AM +0100, Jiri Slaby wrote:
+>> On 14. 11. 19, 22:27, Kees Cook wrote:
+>>> On Tue, Nov 12, 2019 at 01:21:54PM -0800, Kees Cook wrote:
+>>>> How is iucv the only network protocol that has run into this? Do others
+>>>> use a bounce buffer?
+>>>
+>>> Another solution would be to use a dedicated kmem cache (instead of the
+>>> shared kmalloc dma one)?
+>>
+>> Has there been any conclusion to this thread yet? For the time being, we
+>> disabled HARDENED_USERCOPY on s390...
+>>
+>> https://lore.kernel.org/kernel-hardening/9519edb7-456a-a2fa-659e-3e5a1ff89466@suse.cz/
+> 
+> I haven't heard anything new. What did people think of a separate kmem
+> cache?
+> 
 
-diff --git a/lib/kunit/executor.c b/lib/kunit/executor.c
-index 7fd16feff157e..d3ec1265a72fd 100644
---- a/lib/kunit/executor.c
-+++ b/lib/kunit/executor.c
-@@ -1,6 +1,7 @@
- // SPDX-License-Identifier: GPL-2.0
- 
- #include <kunit/test.h>
-+#include <linux/reboot.h>
- 
- /*
-  * These symbols point to the .kunit_test_suites section and are defined in
-@@ -11,6 +12,23 @@ extern struct kunit_suite * const * const __kunit_suites_end[];
- 
- #if IS_BUILTIN(CONFIG_KUNIT)
- 
-+static char *kunit_shutdown;
-+core_param(kunit_shutdown, kunit_shutdown, charp, 0644);
-+
-+static void kunit_handle_shutdown(void)
-+{
-+	if (!kunit_shutdown)
-+		return;
-+
-+	if (!strcmp(kunit_shutdown, "poweroff")) {
-+		kernel_power_off();
-+	} else if (!strcmp(kunit_shutdown, "halt")) {
-+		kernel_halt();
-+	} else if (!strcmp(kunit_shutdown, "reboot")) {
-+		kernel_restart(NULL);
-+	}
-+}
-+
- static void kunit_print_tap_header(void)
- {
- 	struct kunit_suite * const * const *suites, * const *subsuite;
-@@ -42,6 +60,8 @@ int kunit_run_all_tests(void)
- 		}
- 	}
- 
-+	kunit_handle_shutdown();
-+
- 	if (has_test_failed)
- 		return -EFAULT;
- 
-diff --git a/tools/testing/kunit/kunit_kernel.py b/tools/testing/kunit/kunit_kernel.py
-index cc5d844ecca13..43314aa537d30 100644
---- a/tools/testing/kunit/kunit_kernel.py
-+++ b/tools/testing/kunit/kunit_kernel.py
-@@ -141,7 +141,7 @@ class LinuxSourceTree(object):
- 		return True
- 
- 	def run_kernel(self, args=[], timeout=None, build_dir=''):
--		args.extend(['mem=256M'])
-+		args.extend(['mem=256M', 'kunit_shutdown=halt'])
- 		process = self._ops.linux_bin(args, timeout, build_dir)
- 		with open(os.path.join(build_dir, 'test.log'), 'w') as f:
- 			for line in process.stdout:
-diff --git a/tools/testing/kunit/kunit_parser.py b/tools/testing/kunit/kunit_parser.py
-index 78b3bdd03b1e4..633811dd9bce8 100644
---- a/tools/testing/kunit/kunit_parser.py
-+++ b/tools/testing/kunit/kunit_parser.py
-@@ -48,7 +48,7 @@ class TestStatus(Enum):
- 	FAILURE_TO_PARSE_TESTS = auto()
- 
- kunit_start_re = re.compile(r'^TAP version [0-9]+$')
--kunit_end_re = re.compile('List of all partitions:')
-+kunit_end_re = re.compile(r'reboot: System halted')
- 
- def isolate_kunit_output(kernel_output):
- 	started = False
--- 
-2.25.0.341.g760bfbb309-goog
+Adding Julian and Ursula. A separate kmem cache for iucv might be indeed
+a solution for the user hardening issue.
+On the other hand not marking the DMA caches still seems questionable.
+
+For reference
+https://bugzilla.suse.com/show_bug.cgi?id=1156053
+the kernel hardening now triggers a warning.
