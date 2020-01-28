@@ -1,139 +1,66 @@
-Return-Path: <owner-linux-mm@kvack.org>
-From: Sandipan Das <sandipan@linux.ibm.com>
-Subject: [PATCH v17 17/24] selftests/vm/pkeys: Improve checks to determine
- pkey support
-Date: Mon, 20 Jan 2020 14:06:14 +0530
-In-Reply-To: <cover.1579507768.git.sandipan@linux.ibm.com>
-References: <cover.1579507768.git.sandipan@linux.ibm.com>
-In-Reply-To: <cover.1579507768.git.sandipan@linux.ibm.com>
-References: <cover.1579507768.git.sandipan@linux.ibm.com>
-Message-ID: <6e431417c25b60c0c97a5a4d7ac46c1bbd5b103c.1579507768.git.sandipan@linux.ibm.com>
-Sender: owner-linux-mm@kvack.org
-To: shuah@kernel.org, linux-kselftest@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, fweimer@redhat.com, dave.hansen@intel.com, x86@kernel.org, linuxram@us.ibm.com, mhocko@kernel.org, linux-mm@kvack.org, mingo@redhat.com, aneesh.kumar@linux.ibm.com, bauerman@linux.ibm.com, msuchanek@suse.de, mpe@ellerman.id.au, linuxppc-dev@lists.ozlabs.org
+Return-Path: <linux-arch-owner@vger.kernel.org>
+Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:54310 "EHLO
+ mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+ with ESMTP id S1725810AbgA1H6r (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+ Tue, 28 Jan 2020 02:58:47 -0500
+Received: from pps.filterd (m0098414.ppops.net [127.0.0.1]) by
+ mx0b-001b2d01.pphosted.com (8.16.0.42/8.16.0.42) with SMTP id 00S7s3RV001264
+ for <linux-arch@vger.kernel.org>; Tue, 28 Jan 2020 02:58:45 -0500
+Received: from e06smtp01.uk.ibm.com (e06smtp01.uk.ibm.com [195.75.94.97]) by
+ mx0b-001b2d01.pphosted.com with ESMTP id 2xsqa41m0j-1 (version=TLSv1.2
+ cipher=AES256-GCM-SHA384 bits=256 verify=NOT) for
+ <linux-arch@vger.kernel.org>; Tue, 28 Jan 2020 02:58:45 -0500
+Received: from localhost by e06smtp01.uk.ibm.com with IBM ESMTP SMTP Gateway:
+ Authorized Use Only! Violators will be prosecuted for
+ <linux-arch@vger.kernel.org> from <borntraeger@de.ibm.com>; Tue, 28 Jan 2020
+ 07:58:43 -0000
+Subject: Re: [kernel-hardening] [PATCH 09/38] usercopy: Mark kmalloc caches as
+ usercopy caches
+References: <1515636190-24061-1-git-send-email-keescook@chromium.org>
+ <1515636190-24061-10-git-send-email-keescook@chromium.org>
+ <9519edb7-456a-a2fa-659e-3e5a1ff89466@suse.cz>
+ <201911121313.1097D6EE@keescook> <201911141327.4DE6510@keescook>
+ <bfca96db-bbd0-d958-7732-76e36c667c68@suse.cz>
+ <202001271519.AA6ADEACF0@keescook>
+From: Christian Borntraeger <borntraeger@de.ibm.com>
+Date: Tue, 28 Jan 2020 08:58:31 +0100
+MIME-Version: 1.0
+In-Reply-To: <202001271519.AA6ADEACF0@keescook>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
+Content-Transfer-Encoding: 8bit
+Message-ID: <5861936c-1fe1-4c44-d012-26efa0c8b6e7@de.ibm.com>
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200120083614.vGLmbGXpvNinJGaz4oL_Fk_AiBoxJLog3v9b-mz97C4@z>
+To: Kees Cook <keescook@chromium.org>, Jiri Slaby <jslaby@suse.cz>, Julian Wiedmann <jwi@linux.ibm.com>, Ursula Braun <ubraun@linux.ibm.com>
+Cc: Alexander Viro <viro@zeniv.linux.org.uk>, linux-kernel@vger.kernel.org, David Windsor <dave@nullcore.net>, Pekka Enberg <penberg@kernel.org>, David Rientjes <rientjes@google.com>, Joonsoo Kim <iamjoonsoo.kim@lge.com>, Andrew Morton <akpm@linux-foundation.org>, linux-mm@kvack.org, linux-xfs@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, Christoph Hellwig <hch@infradead.org>, Christoph Lameter <cl@linux.com>, "David S. Miller" <davem@davemloft.net>, Laura Abbott <labbott@redhat.com>, Mark Rutland <mark.rutland@arm.com>, "Martin K. Petersen" <martin.petersen@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Christoffer Dall <christoffer.dall@linaro.org>, Dave Kleikamp <dave.kleikamp@oracle.com>, Jan Kara <jack@suse.cz>, Luis de Bethencourt <luisbg@kernel.org>, Marc Zyngier <marc.zyngier@arm.com>, Rik van Riel <riel@redhat.com>, Matthew Garrett <mjg59@google.com>, linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org, netdev@vger.kernel.org, kernel-hardening@lists.openwall.com, Vlastimil Babka <vbabka@suse.cz>, Michal Kubecek <mkubecek@suse.cz>
+Message-ID: <20200128075831._ivsuGek3YR7hnmOixWd5B_uMBfnclKLrXKNFpm3nAk@z>
 
-From: Ram Pai <linuxram@us.ibm.com>
 
-For the pkeys subsystem to work, both the CPU and the
-kernel need to have support. So, additionally check if
-the kernel supports pkeys apart from the CPU feature
-checks.
 
-cc: Dave Hansen <dave.hansen@intel.com>
-cc: Florian Weimer <fweimer@redhat.com>
-Signed-off-by: Ram Pai <linuxram@us.ibm.com>
-Signed-off-by: Sandipan Das <sandipan@linux.ibm.com>
----
- tools/testing/selftests/vm/pkey-helpers.h    | 30 ++++++++++++++++++++
- tools/testing/selftests/vm/pkey-powerpc.h    |  3 +-
- tools/testing/selftests/vm/pkey-x86.h        |  2 +-
- tools/testing/selftests/vm/protection_keys.c |  7 +++--
- 4 files changed, 37 insertions(+), 5 deletions(-)
+On 28.01.20 00:19, Kees Cook wrote:
+> On Thu, Jan 23, 2020 at 09:14:20AM +0100, Jiri Slaby wrote:
+>> On 14. 11. 19, 22:27, Kees Cook wrote:
+>>> On Tue, Nov 12, 2019 at 01:21:54PM -0800, Kees Cook wrote:
+>>>> How is iucv the only network protocol that has run into this? Do others
+>>>> use a bounce buffer?
+>>>
+>>> Another solution would be to use a dedicated kmem cache (instead of the
+>>> shared kmalloc dma one)?
+>>
+>> Has there been any conclusion to this thread yet? For the time being, we
+>> disabled HARDENED_USERCOPY on s390...
+>>
+>> https://lore.kernel.org/kernel-hardening/9519edb7-456a-a2fa-659e-3e5a1ff89466@suse.cz/
+> 
+> I haven't heard anything new. What did people think of a separate kmem
+> cache?
+> 
 
-diff --git a/tools/testing/selftests/vm/pkey-helpers.h b/tools/testing/selftests/vm/pkey-helpers.h
-index 2f4b1eb3a680..59ccdff18214 100644
---- a/tools/testing/selftests/vm/pkey-helpers.h
-+++ b/tools/testing/selftests/vm/pkey-helpers.h
-@@ -76,6 +76,8 @@ extern void abort_hooks(void);
+Adding Julian and Ursula. A separate kmem cache for iucv might be indeed
+a solution for the user hardening issue.
+On the other hand not marking the DMA caches still seems questionable.
 
- __attribute__((noinline)) int read_ptr(int *ptr);
- void expected_pkey_fault(int pkey);
-+int sys_pkey_alloc(unsigned long flags, unsigned long init_val);
-+int sys_pkey_free(unsigned long pkey);
-
- #if defined(__i386__) || defined(__x86_64__) /* arch */
- #include "pkey-x86.h"
-@@ -186,4 +188,32 @@ static inline u32 *siginfo_get_pkey_ptr(siginfo_t *si)
- #endif
- }
-
-+static inline int kernel_has_pkeys(void)
-+{
-+	/* try allocating a key and see if it succeeds */
-+	int ret = sys_pkey_alloc(0, 0);
-+	if (ret <= 0) {
-+		return 0;
-+	}
-+	sys_pkey_free(ret);
-+	return 1;
-+}
-+
-+static inline int is_pkeys_supported(void)
-+{
-+	/* check if the cpu supports pkeys */
-+	if (!cpu_has_pkeys()) {
-+		dprintf1("SKIP: %s: no CPU support\n", __func__);
-+		return 0;
-+	}
-+
-+	/* check if the kernel supports pkeys */
-+	if (!kernel_has_pkeys()) {
-+		dprintf1("SKIP: %s: no kernel support\n", __func__);
-+		return 0;
-+	}
-+
-+	return 1;
-+}
-+
- #endif /* _PKEYS_HELPER_H */
-diff --git a/tools/testing/selftests/vm/pkey-powerpc.h b/tools/testing/selftests/vm/pkey-powerpc.h
-index 319673bbab0b..7d7c3ffafdd9 100644
---- a/tools/testing/selftests/vm/pkey-powerpc.h
-+++ b/tools/testing/selftests/vm/pkey-powerpc.h
-@@ -63,8 +63,9 @@ static inline void __write_pkey_reg(u64 pkey_reg)
- 			__func__, __read_pkey_reg(), pkey_reg);
- }
-
--static inline int cpu_has_pku(void)
-+static inline int cpu_has_pkeys(void)
- {
-+	/* No simple way to determine this */
- 	return 1;
- }
-
-diff --git a/tools/testing/selftests/vm/pkey-x86.h b/tools/testing/selftests/vm/pkey-x86.h
-index a0c59d4f7af2..6421b846aa16 100644
---- a/tools/testing/selftests/vm/pkey-x86.h
-+++ b/tools/testing/selftests/vm/pkey-x86.h
-@@ -97,7 +97,7 @@ static inline void __cpuid(unsigned int *eax, unsigned int *ebx,
- #define X86_FEATURE_PKU        (1<<3) /* Protection Keys for Userspace */
- #define X86_FEATURE_OSPKE      (1<<4) /* OS Protection Keys Enable */
-
--static inline int cpu_has_pku(void)
-+static inline int cpu_has_pkeys(void)
- {
- 	unsigned int eax;
- 	unsigned int ebx;
-diff --git a/tools/testing/selftests/vm/protection_keys.c b/tools/testing/selftests/vm/protection_keys.c
-index 5fcbbc525364..95f173049f43 100644
---- a/tools/testing/selftests/vm/protection_keys.c
-+++ b/tools/testing/selftests/vm/protection_keys.c
-@@ -1378,7 +1378,7 @@ void test_mprotect_pkey_on_unsupported_cpu(int *ptr, u16 pkey)
- 	int size = PAGE_SIZE;
- 	int sret;
-
--	if (cpu_has_pku()) {
-+	if (cpu_has_pkeys()) {
- 		dprintf1("SKIP: %s: no CPU support\n", __func__);
- 		return;
- 	}
-@@ -1447,12 +1447,13 @@ void pkey_setup_shadow(void)
- int main(void)
- {
- 	int nr_iterations = 22;
-+	int pkeys_supported = is_pkeys_supported();
-
- 	setup_handlers();
-
--	printf("has pku: %d\n", cpu_has_pku());
-+	printf("has pkeys: %d\n", pkeys_supported);
-
--	if (!cpu_has_pku()) {
-+	if (!pkeys_supported) {
- 		int size = PAGE_SIZE;
- 		int *ptr;
-
--- 
-2.17.1
+For reference
+https://bugzilla.suse.com/show_bug.cgi?id=1156053
+the kernel hardening now triggers a warning.
