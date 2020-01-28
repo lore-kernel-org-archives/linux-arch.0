@@ -1,69 +1,42 @@
-Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:62846 "EHLO
- mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
- with ESMTP id S1730643AbgANKHP (ORCPT <rfc822;linux-arch@vger.kernel.org>);
- Tue, 14 Jan 2020 05:07:15 -0500
-From: "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>
-Subject: [PATCH v3 3/9] asm-generic/tlb: Avoid potential double flush
-Date: Tue, 14 Jan 2020 15:31:39 +0530
-Message-ID: <20200114100145.365527-4-aneesh.kumar@linux.ibm.com>
-In-Reply-To: <20200114100145.365527-1-aneesh.kumar@linux.ibm.com>
-References: <20200114100145.365527-1-aneesh.kumar@linux.ibm.com>
-MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
-Sender: linux-arch-owner@vger.kernel.org
+Return-Path: <3tOAvXg4KBC0KaNWMJWQRPPRWbPXXPUN.LXVaYYcURWdg.RKV.LXV@flex--brendanhiggins.bounces.google.com>
+Date: Mon, 27 Jan 2020 23:19:57 -0800
+In-Reply-To: <20200128072002.79250-1-brendanhiggins@google.com>
+Message-ID: <20200128072002.79250-3-brendanhiggins@google.com>
+Mime-Version: 1.0
+References: <20200128072002.79250-1-brendanhiggins@google.com>
+Subject: [PATCH v1 2/7] arch: um: add linker section for KUnit test suites
+From: Brendan Higgins <brendanhiggins@google.com>
+Content-Type: text/plain; charset="UTF-8"
+To: jdike@addtoit.com, richard@nod.at, anton.ivanov@cambridgegreys.com, arnd@arndb.de, keescook@chromium.org, skhan@linuxfoundation.org, alan.maguire@oracle.com, yzaikin@google.com, davidgow@google.com, akpm@linux-foundation.org, rppt@linux.ibm.com, frowand.list@gmail.com
+Cc: gregkh@linuxfoundation.org, sboyd@kernel.org, logang@deltatee.com, mcgrof@kernel.org, knut.omang@oracle.com, linux-um@lists.infradead.org, linux-arch@vger.kernel.org, linux-kselftest@vger.kernel.org, kunit-dev@googlegroups.com, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, Brendan Higgins <brendanhiggins@google.com>
 List-ID: <linux-arch.vger.kernel.org>
-To: akpm@linux-foundation.org, peterz@infradead.org, will@kernel.org
-Cc: linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>
-Message-ID: <20200114100139.24vZ7JGTpQiHnu1IesNcX85215jdCLqfBQBzclXScxw@z>
+Message-ID: <20200128071957.QVpTk2cTFqQcY8uSN5IVRPub2cGYPtHZYEI36r2HCrE@z>
 
-From: Peter Zijlstra <peterz@infradead.org>
+Add a linker section to UML where KUnit can put references to its test
+suites. This patch is an early step in transitioning to dispatching all
+KUnit tests from a centralized executor rather than having each as its
+own separate late_initcall.
 
-Aneesh reported that:
-
-	tlb_flush_mmu()
-	  tlb_flush_mmu_tlbonly()
-	    tlb_flush()			<-- #1
-	  tlb_flush_mmu_free()
-	    tlb_table_flush()
-	      tlb_table_invalidate()
-		tlb_flush_mmu_tlbonly()
-		  tlb_flush()		<-- #2
-
-does two TLBIs when tlb->fullmm, because __tlb_reset_range() will not
-clear tlb->end in that case.
-
-Observe that any caller to __tlb_adjust_range() also sets at least one
-of the tlb->freed_tables || tlb->cleared_p* bits, and those are
-unconditionally cleared by __tlb_reset_range().
-
-Change the condition for actually issuing TLBI to having one of those
-bits set, as opposed to having tlb->end != 0.
-
-Reported-by: "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>
-Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
-Signed-off-by: Aneesh Kumar K.V <aneesh.kumar@linux.ibm.com>
+Signed-off-by: Brendan Higgins <brendanhiggins@google.com>
+Reviewed-by: Stephen Boyd <sboyd@kernel.org>
 ---
- include/asm-generic/tlb.h | 7 ++++++-
- 1 file changed, 6 insertions(+), 1 deletion(-)
+ arch/um/include/asm/common.lds.S | 4 ++++
+ 1 file changed, 4 insertions(+)
 
-diff --git a/include/asm-generic/tlb.h b/include/asm-generic/tlb.h
-index 9e22ac369d1d..b36b3bef5661 100644
---- a/include/asm-generic/tlb.h
-+++ b/include/asm-generic/tlb.h
-@@ -402,7 +402,12 @@ tlb_update_vma_flags(struct mmu_gather *tlb, struct vm_area_struct *vma) { }
-
- static inline void tlb_flush_mmu_tlbonly(struct mmu_gather *tlb)
- {
--	if (!tlb->end)
-+	/*
-+	 * Anything calling __tlb_adjust_range() also sets at least one of
-+	 * these bits.
-+	 */
-+	if (!(tlb->freed_tables || tlb->cleared_ptes || tlb->cleared_pmds ||
-+	      tlb->cleared_puds || tlb->cleared_p4ds))
- 		return;
-
- 	tlb_flush(tlb);
+diff --git a/arch/um/include/asm/common.lds.S b/arch/um/include/asm/common.lds.S
+index 7145ce6999822..eab9ceb450efd 100644
+--- a/arch/um/include/asm/common.lds.S
++++ b/arch/um/include/asm/common.lds.S
+@@ -52,6 +52,10 @@
+ 	CON_INITCALL
+   }
+ 
++  .kunit_test_suites : {
++	KUNIT_TEST_SUITES
++  }
++
+   .exitcall : {
+ 	__exitcall_begin = .;
+ 	*(.exitcall.exit)
 -- 
-2.24.1
+2.25.0.341.g760bfbb309-goog
