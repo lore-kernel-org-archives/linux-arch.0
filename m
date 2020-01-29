@@ -1,63 +1,89 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH v2 05/10] READ_ONCE: Enforce atomicity for
- {READ,WRITE}_ONCE() memory accesses
-Date: Wed, 29 Jan 2020 11:49:17 +0100
-Message-ID: <20200129104917.GN14946@hirez.programming.kicks-ass.net>
-References: <20200123153341.19947-1-will@kernel.org>
- <20200123153341.19947-6-will@kernel.org>
- <20200125082746.GT11457@worktop.programming.kicks-ass.net>
+From: Alan Maguire <alan.maguire@oracle.com>
+Subject: Re: [RFC v1 0/6] kunit: create a centralized executor to dispatch
+ all KUnit tests
+Date: Wed, 29 Jan 2020 13:06:34 +0000 (GMT)
+Message-ID: <alpine.LRH.2.20.2001291006570.13921@dhcp-10-175-173-43.vpn.oracle.com>
+References: <20191216220555.245089-1-brendanhiggins@google.com> <20200106224022.GX11244@42.do-not-panic.com> <CAFd5g456c2Zs7rCvRPgio83G=SrtPGi25zbqAUyTBHspHwtu4w@mail.gmail.com> <594b7815-0611-34ea-beb5-0642114b5d82@gmail.com>
+ <CAFd5g469TWzrLKmQNR2i0HACJ3FEu-=4-Rk005g9szB5UsZAcw@mail.gmail.com> <e801e4ac-b7c2-3d0a-71e7-f8153a3dfbc8@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=US-ASCII
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.133]:60734 "EHLO
-        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726091AbgA2Kt3 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 29 Jan 2020 05:49:29 -0500
-Content-Disposition: inline
-In-Reply-To: <20200125082746.GT11457@worktop.programming.kicks-ass.net>
+Received: from aserp2120.oracle.com ([141.146.126.78]:40160 "EHLO
+        aserp2120.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726069AbgA2NHj (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 29 Jan 2020 08:07:39 -0500
+In-Reply-To: <e801e4ac-b7c2-3d0a-71e7-f8153a3dfbc8@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will@kernel.org>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, kernel-team@android.com, Michael Ellerman <mpe@ellerman.id.au>, Linus Torvalds <torvalds@linux-foundation.org>, Segher Boessenkool <segher@kernel.crashing.org>, Christian Borntraeger <borntraeger@de.ibm.com>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>, Arnd Bergmann <arnd@arndb.de>, Peter Oberparleiter <oberpar@linux.ibm.com>, Masahiro Yamada <masahiroy@kernel.org>, Nick Desaulniers <ndesaulniers@google.com>, ying.huang@intel.com, kirill.shutemov@linux.intel.com
+To: Frank Rowand <frowand.list@gmail.com>
+Cc: Brendan Higgins <brendanhiggins@google.com>, Luis Chamberlain <mcgrof@kernel.org>, Jeff Dike <jdike@addtoit.com>, Richard Weinberger <richard@nod.at>, Anton Ivanov <anton.ivanov@cambridgegreys.com>, Arnd Bergmann <arnd@arndb.de>, Kees Cook <keescook@chromium.org>, Shuah Khan <skhan@linuxfoundation.org>, Alan Maguire <alan.maguire@oracle.com>, Iurii Zaikin <yzaikin@google.com>, David Gow <davidgow@google.com>, Andrew Morton <akpm@linux-foundation.org>, rppt@linux.ibm.com, Greg KH <gregkh@linuxfoundation.org>, Stephen Boyd <sboyd@kernel.org>, Logan Gunthorpe <logang@deltatee.com>, Knut Omang <knut.omang@oracle.com>, linux-um <linux-um@lists.infradead.org>, linux-arch@vger.kernel.org, "open list:KERNEL SELFTEST FRAMEWORK" <linux-kselfte>
 
-On Sat, Jan 25, 2020 at 09:27:46AM +0100, Peter Zijlstra wrote:
-> On Thu, Jan 23, 2020 at 03:33:36PM +0000, Will Deacon wrote:
-> > {READ,WRITE}_ONCE() cannot guarantee atomicity for arbitrary data sizes.
-> > This can be surprising to callers that might incorrectly be expecting
-> > atomicity for accesses to aggregate structures, although there are other
-> > callers where tearing is actually permissable (e.g. if they are using
-> > something akin to sequence locking to protect the access).
+On Tue, 28 Jan 2020, Frank Rowand wrote:
+
+> On 1/28/20 1:19 AM, Brendan Higgins wrote:
+> > On Mon, Jan 27, 2020 at 9:40 AM Frank Rowand <frowand.list@gmail.com> wrote:
+> >>
+> >> On 1/23/20 4:40 PM, Brendan Higgins wrote:
+> >>> Sorry for the late reply. I am still catching up from being on vacation.
+> >>>>> On Mon, Jan 6, 2020 at 2:40 PM Luis Chamberlain <mcgrof@kernel.org> wrote:
+> >>>> It does beg the question if this means kunit is happy to not be a tool
+> >>>> to test pre basic setup stuff (terminology used in init.c, meaning prior
+> >>>> to running all init levels). I suspect this is the case.
+> >>>
+> >>> Not sure. I still haven't seen any cases where this is necessary, so I
+> >>> am not super worried about it. Regardless, I don't think this patchset
+> >>> really changes anything in that regard, we are moving from late_init
+> >>> to after late_init, so it isn't that big of a change for most use
+> >>> cases.
+> >>>
+> >>> Please share if you can think of some things that need to be tested in
+> >>> early init.
+> >>
+> >> I don't have a specific need for this right now.  I had not thought about
+> >> how the current kunit implementation forces all kunit tests to run at a
+> >> specific initcall level before reading this email thread.
+> >>
+> >> I can see the value of being able to have some tests run at different
+> >> initcall levels to verify what functionality is available and working
+> >> at different points in the boot sequence.
 > > 
-> > Linus sayeth:
-> > 
-> >   | We could also look at being stricter for the normal READ/WRITE_ONCE(),
-> >   | and require that they are
-> >   |
-> >   | (a) regular integer types
-> >   |
-> >   | (b) fit in an atomic word
-> >   |
-> >   | We actually did (b) for a while, until we noticed that we do it on
-> >   | loff_t's etc and relaxed the rules. But maybe we could have a
-> >   | "non-atomic" version of READ/WRITE_ONCE() that is used for the
-> >   | questionable cases?
-> > 
-> > The slight snag is that we also have to support 64-bit accesses on 32-bit
-> > architectures, as these appear to be widespread and tend to work out ok
-> > if either the architecture supports atomic 64-bit accesses (x86, armv7)
-> > or if the variable being accesses represents a virtual address and
-> > therefore only requires 32-bit atomicity in practice.
-> > 
-> > Take a step in that direction by introducing a variant of
-> > 'compiletime_assert_atomic_type()' and use it to check the pointer
-> > argument to {READ,WRITE}_ONCE(). Expose __{READ,WRITE_ONCE}() variants
-> > which are allowed to tear and convert the two broken callers over to the
-> > new macros.
+> > Let's cross that bridge when we get there. It should be fairly easy to
+> > add that functionality.
 > 
-> The build robot is telling me we also need this for m68k; they have:
+> Yes. I just wanted to add the thought to the back of your mind so that
+> it does not get precluded by future changes to the kunit architecture.
 > 
->   arch/m68k/include/asm/page.h:typedef struct { unsigned long pmd[16]; } pmd_t;
+> > 
+> >> But more important than early initcall levels, I do not want the
+> >> framework to prevent using or testing code and data that are marked
+> >> as '__init'.  So it is important to retain a way to invoke the tests
+> >> while __init code and data are available, if there is also a change
+> >> to generally invoke the tests later.
+> > 
+> > Definitely. For now that still works as long as you don't build KUnit
+> > as a module, but I think Alan's new patches which allow KUnit to be
+> > run at runtime via debugfs could cause some difficulty there. Again,
+> 
+> Yes, Alan's patches are part of what triggered me thinking about the
+> issues I raised.
+> 
+>
 
-Fixed that with these patches:
+As Brendan says, any such tests probably shouldn't be buildable
+as modules, but I wonder if we need to add some sort of way
+to ensure execution from debugfs is not allowed for such cases?
+Even if a test suite is builtin, it can be executed via debugfs
+in the patches I sent out, allowing suites to be re-run.  Sounds
+like we need a way to control that behaviour based on the
+desired test suite execution environment.
 
-  https://lkml.kernel.org/r/20200129103941.304769381@infradead.org
+Say, for example, the "struct kunit_suite" definitions associated
+with the tests was marked as __initdata; are there any handy macros to 
+identify it as being in the __init section? If so, we could simply
+avoid adding a "run" file to the debugfs representation for such
+suites.  Failing that, perhaps we need some sort of flags field
+in "struct kunit_suite" to specify execution environment constraints?
+
+Thanks!
+
+Alan
