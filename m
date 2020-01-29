@@ -1,42 +1,63 @@
-Return-Path: <3tOAvXg4KBC0KaNWMJWQRPPRWbPXXPUN.LXVaYYcURWdg.RKV.LXV@flex--brendanhiggins.bounces.google.com>
-Date: Mon, 27 Jan 2020 23:19:57 -0800
-In-Reply-To: <20200128072002.79250-1-brendanhiggins@google.com>
-Message-ID: <20200128072002.79250-3-brendanhiggins@google.com>
-Mime-Version: 1.0
-References: <20200128072002.79250-1-brendanhiggins@google.com>
-Subject: [PATCH v1 2/7] arch: um: add linker section for KUnit test suites
-From: Brendan Higgins <brendanhiggins@google.com>
-Content-Type: text/plain; charset="UTF-8"
-To: jdike@addtoit.com, richard@nod.at, anton.ivanov@cambridgegreys.com, arnd@arndb.de, keescook@chromium.org, skhan@linuxfoundation.org, alan.maguire@oracle.com, yzaikin@google.com, davidgow@google.com, akpm@linux-foundation.org, rppt@linux.ibm.com, frowand.list@gmail.com
-Cc: gregkh@linuxfoundation.org, sboyd@kernel.org, logang@deltatee.com, mcgrof@kernel.org, knut.omang@oracle.com, linux-um@lists.infradead.org, linux-arch@vger.kernel.org, linux-kselftest@vger.kernel.org, kunit-dev@googlegroups.com, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, Brendan Higgins <brendanhiggins@google.com>
+Return-Path: <frowand.list@gmail.com>
+Subject: Re: [RFC v1 0/6] kunit: create a centralized executor to dispatch all
+ KUnit tests
+References: <20191216220555.245089-1-brendanhiggins@google.com>
+ <20200106224022.GX11244@42.do-not-panic.com>
+ <CAFd5g456c2Zs7rCvRPgio83G=SrtPGi25zbqAUyTBHspHwtu4w@mail.gmail.com>
+ <594b7815-0611-34ea-beb5-0642114b5d82@gmail.com>
+ <CAFd5g469TWzrLKmQNR2i0HACJ3FEu-=4-Rk005g9szB5UsZAcw@mail.gmail.com>
+ <e801e4ac-b7c2-3d0a-71e7-f8153a3dfbc8@gmail.com>
+ <ECADFF3FD767C149AD96A924E7EA6EAF982C9840@USCULXMSG17.am.sony.com>
+ <CAFd5g46Ut9Suptmp_bBspkp=KKt2GP+=1C5zLu0FXJY9dGJbFQ@mail.gmail.com>
+From: Frank Rowand <frowand.list@gmail.com>
+Message-ID: <dcf2d008-c044-f2d4-63b9-47151157eeb4@gmail.com>
+Date: Tue, 28 Jan 2020 22:24:53 -0600
+MIME-Version: 1.0
+In-Reply-To: <CAFd5g46Ut9Suptmp_bBspkp=KKt2GP+=1C5zLu0FXJY9dGJbFQ@mail.gmail.com>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
+To: Brendan Higgins <brendanhiggins@google.com>, "Bird, Timothy" <Tim.Bird@sony.com>, Alan Maguire <alan.maguire@oracle.com>
+Cc: Luis Chamberlain <mcgrof@kernel.org>, Jeff Dike <jdike@addtoit.com>, Richard Weinberger <richard@nod.at>, Anton Ivanov <anton.ivanov@cambridgegreys.com>, Arnd Bergmann <arnd@arndb.de>, Kees Cook <keescook@chromium.org>, Shuah Khan <skhan@linuxfoundation.org>, Iurii Zaikin <yzaikin@google.com>, David Gow <davidgow@google.com>, Andrew Morton <akpm@linux-foundation.org>, rppt@linux.ibm.com, Greg KH <gregkh@linuxfoundation.org>, Stephen Boyd <sboyd@kernel.org>, Logan Gunthorpe <logang@deltatee.com>, Knut Omang <knut.omang@oracle.com>, linux-um <linux-um@lists.infradead.org>, linux-arch@vger.kernel.org, "open list:KERNEL SELFTEST FRAMEWORK" <linux-kselftest@vger.kernel.org>, KUnit Development <kunit-dev@googlegroups.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200128071957.QVpTk2cTFqQcY8uSN5IVRPub2cGYPtHZYEI36r2HCrE@z>
+Message-ID: <20200129042453.aYvILnkgwtaTVADju7RBOQNmZ4ZdAIyZYld2xoDeJ3E@z>
 
-Add a linker section to UML where KUnit can put references to its test
-suites. This patch is an early step in transitioning to dispatching all
-KUnit tests from a centralized executor rather than having each as its
-own separate late_initcall.
+On 1/28/20 1:53 PM, Brendan Higgins wrote:
+> On Tue, Jan 28, 2020 at 11:35 AM <Tim.Bird@sony.com> wrote:
+>>
+>>> -----Original Message-----
+>>> From:  Frank Rowand on January 28, 2020 11:37 AM
+>>>
+>>> On 1/28/20 1:19 AM, Brendan Higgins wrote:
+>>>> On Mon, Jan 27, 2020 at 9:40 AM Frank Rowand <frowand.list@gmail.com> wrote:
+>> ...
+>>>> we could add Kconfigs to control this, but the compiler nevertheless
+>>>> complains because it doesn't know what phase KUnit runs in.
+>>>>
+>>>> Is there any way to tell the compiler that it is okay for non __init
+>>>> code to call __init code? I would prefer not to have a duplicate
+>>>> version of all the KUnit libraries with all the symbols marked __init.
+>>>
+>>> I'm not sure.  The build messages have always been useful and valid in
+>>> my context, so I never thought to consider that possibility.
+>>>
+>>>> Thoughts?
+>>
+>> I'm not sure there's a restriction on non __init code calling __init
+>> code.  In init/main.c arch_call_reset_init() is in __init, and it calls
+>> rest_init which is non __init, without any special handling.
+>>
+>> Is the compiler complaint mentioned above related to  calling
+>> into __init code, or with some other issue?
+> 
+> I distinctly remember having the compiler complain at me when I was
+> messing around with the device tree unit tests because of KUnit
+> calling code marked as __init. Maybe it's time to start converting
+> those to KUnit to force the issue? Frank, does that work for you?
 
-Signed-off-by: Brendan Higgins <brendanhiggins@google.com>
-Reviewed-by: Stephen Boyd <sboyd@kernel.org>
----
- arch/um/include/asm/common.lds.S | 4 ++++
- 1 file changed, 4 insertions(+)
+I have agreed to try converting the devicetree unittest to KUnit.
 
-diff --git a/arch/um/include/asm/common.lds.S b/arch/um/include/asm/common.lds.S
-index 7145ce6999822..eab9ceb450efd 100644
---- a/arch/um/include/asm/common.lds.S
-+++ b/arch/um/include/asm/common.lds.S
-@@ -52,6 +52,10 @@
- 	CON_INITCALL
-   }
- 
-+  .kunit_test_suites : {
-+	KUNIT_TEST_SUITES
-+  }
-+
-   .exitcall : {
- 	__exitcall_begin = .;
- 	*(.exitcall.exit)
--- 
-2.25.0.341.g760bfbb309-goog
+Now that KUnit is in 5.5, I think there is a solid foundation for
+me to proceed.
+
+-Frank
