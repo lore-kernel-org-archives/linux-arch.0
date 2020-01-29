@@ -1,90 +1,62 @@
-Return-Path: <3ueAvXg4KBDIPfSbRObVWUUWbgUccUZS.QcafddhZWbil.WPa.Qca@flex--brendanhiggins.bounces.google.com>
-Date: Mon, 27 Jan 2020 23:19:59 -0800
-In-Reply-To: <20200128072002.79250-1-brendanhiggins@google.com>
-Message-ID: <20200128072002.79250-5-brendanhiggins@google.com>
-Mime-Version: 1.0
-References: <20200128072002.79250-1-brendanhiggins@google.com>
-Subject: [PATCH v1 4/7] init: main: add KUnit to kernel init
-From: Brendan Higgins <brendanhiggins@google.com>
-Content-Type: text/plain; charset="UTF-8"
-To: jdike@addtoit.com, richard@nod.at, anton.ivanov@cambridgegreys.com, arnd@arndb.de, keescook@chromium.org, skhan@linuxfoundation.org, alan.maguire@oracle.com, yzaikin@google.com, davidgow@google.com, akpm@linux-foundation.org, rppt@linux.ibm.com, frowand.list@gmail.com
-Cc: gregkh@linuxfoundation.org, sboyd@kernel.org, logang@deltatee.com, mcgrof@kernel.org, knut.omang@oracle.com, linux-um@lists.infradead.org, linux-arch@vger.kernel.org, linux-kselftest@vger.kernel.org, kunit-dev@googlegroups.com, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, Brendan Higgins <brendanhiggins@google.com>
+Return-Path: <linux-arch-owner@vger.kernel.org>
+Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:4798 "EHLO
+ mx0b-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with
+ ESMTP id S1726671AbgA2RUN (ORCPT <rfc822;linux-arch@vger.kernel.org>); Wed,
+ 29 Jan 2020 12:20:13 -0500
+Received: from pps.filterd (m0127361.ppops.net [127.0.0.1]) by
+ mx0a-001b2d01.pphosted.com (8.16.0.42/8.16.0.42) with SMTP id 00THJdcL054083
+ for <linux-arch@vger.kernel.org>; Wed, 29 Jan 2020 12:20:12 -0500
+Received: from e06smtp04.uk.ibm.com (e06smtp04.uk.ibm.com [195.75.94.100]) by
+ mx0a-001b2d01.pphosted.com with ESMTP id 2xrvw94eu7-1 (version=TLSv1.2
+ cipher=AES256-GCM-SHA384 bits=256 verify=NOT) for
+ <linux-arch@vger.kernel.org>; Wed, 29 Jan 2020 12:20:11 -0500
+Received: from localhost by e06smtp04.uk.ibm.com with IBM ESMTP SMTP Gateway:
+ Authorized Use Only! Violators will be prosecuted for
+ <linux-arch@vger.kernel.org> from <borntraeger@de.ibm.com>; Wed, 29 Jan 2020
+ 17:20:06 -0000
+Subject: Re: [kernel-hardening] [PATCH 09/38] usercopy: Mark kmalloc caches as
+ usercopy caches
+References: <1515636190-24061-10-git-send-email-keescook@chromium.org>
+ <9519edb7-456a-a2fa-659e-3e5a1ff89466@suse.cz>
+ <201911121313.1097D6EE@keescook> <201911141327.4DE6510@keescook>
+ <bfca96db-bbd0-d958-7732-76e36c667c68@suse.cz>
+ <202001271519.AA6ADEACF0@keescook>
+ <5861936c-1fe1-4c44-d012-26efa0c8b6e7@de.ibm.com>
+ <202001281457.FA11CC313A@keescook>
+ <alpine.DEB.2.21.2001291640350.1546@www.lameter.com>
+ <6844ea47-8e0e-4fb7-d86f-68046995a749@de.ibm.com>
+ <20200129170939.GA4277@infradead.org>
+From: Christian Borntraeger <borntraeger@de.ibm.com>
+Date: Wed, 29 Jan 2020 18:19:56 +0100
+MIME-Version: 1.0
+In-Reply-To: <20200129170939.GA4277@infradead.org>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
+Message-ID: <771c5511-c5ab-3dd1-d938-5dbc40396daa@de.ibm.com>
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200128071959.luuE4WjXP9frDbxaMdjUkv5cW3pRCovh71hcvHNGhTE@z>
+To: Christoph Hellwig <hch@infradead.org>
+Cc: Christopher Lameter <cl@linux.com>, Kees Cook <keescook@chromium.org>, Jiri Slaby <jslaby@suse.cz>, Julian Wiedmann <jwi@linux.ibm.com>, Ursula Braun <ubraun@linux.ibm.com>, Alexander Viro <viro@zeniv.linux.org.uk>, linux-kernel@vger.kernel.org, David Windsor <dave@nullcore.net>, Pekka Enberg <penberg@kernel.org>, David Rientjes <rientjes@google.com>, Joonsoo Kim <iamjoonsoo.kim@lge.com>, Andrew Morton <akpm@linux-foundation.org>, linux-mm@kvack.org, linux-xfs@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, "David S. Miller" <davem@davemloft.net>, Laura Abbott <labbott@redhat.com>, Mark Rutland <mark.rutland@arm.com>, "Martin K. Petersen" <martin.petersen@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Christoffer Dall <christoffer.dall@linaro.org>, Dave Kleikamp <dave.kleikamp@oracle.com>, Jan Kara <jack@suse.cz>, Luis de Bethencourt <luisbg@kernel.org>, Marc Zyngier <marc.zyngier@arm.com>, Rik van Riel <riel@redhat.com>, Matthew Garrett <mjg59@google.com>, linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org, netdev@vger.kernel.org, kernel-hardening@lists.openwall.com, Vlastimil Babka <vbabka@suse.cz>, Michal Kubecek <mkubecek@suse.cz>
+Message-ID: <20200129171956.ONF-qTBqh9M9Ts_E7ZX264olpCKNXOsGjCC7UcOlVbk@z>
 
-Remove KUnit from init calls entirely, instead call directly from
-kernel_init().
 
-Co-developed-by: Alan Maguire <alan.maguire@oracle.com>
-Signed-off-by: Alan Maguire <alan.maguire@oracle.com>
-Signed-off-by: Brendan Higgins <brendanhiggins@google.com>
----
- include/kunit/test.h | 9 +++++++++
- init/main.c          | 4 ++++
- lib/kunit/executor.c | 4 +---
- 3 files changed, 14 insertions(+), 3 deletions(-)
 
-diff --git a/include/kunit/test.h b/include/kunit/test.h
-index 8a02f93a6b505..8689dd1459844 100644
---- a/include/kunit/test.h
-+++ b/include/kunit/test.h
-@@ -197,6 +197,15 @@ void kunit_init_test(struct kunit *test, const char *name);
- 
- int kunit_run_tests(struct kunit_suite *suite);
- 
-+#if IS_BUILTIN(CONFIG_KUNIT)
-+int kunit_run_all_tests(void);
-+#else
-+static inline int kunit_run_all_tests(void)
-+{
-+	return 0;
-+}
-+#endif /* IS_BUILTIN(CONFIG_KUNIT) */
-+
- /*
-  * If a test suite is built-in, module_init() gets translated into
-  * an initcall which we don't want as the idea is that for builtins
-diff --git a/init/main.c b/init/main.c
-index 2cd736059416f..90301d4fbd1bb 100644
---- a/init/main.c
-+++ b/init/main.c
-@@ -103,6 +103,8 @@
- #define CREATE_TRACE_POINTS
- #include <trace/events/initcall.h>
- 
-+#include <kunit/test.h>
-+
- static int kernel_init(void *);
- 
- extern void init_IRQ(void);
-@@ -1201,6 +1203,8 @@ static noinline void __init kernel_init_freeable(void)
- 
- 	do_basic_setup();
- 
-+	kunit_run_all_tests();
-+
- 	console_on_rootfs();
- 
- 	/*
-diff --git a/lib/kunit/executor.c b/lib/kunit/executor.c
-index 6429927d598a5..b75a46c560847 100644
---- a/lib/kunit/executor.c
-+++ b/lib/kunit/executor.c
-@@ -11,7 +11,7 @@ extern struct kunit_suite * const * const __kunit_suites_end[];
- 
- #if IS_BUILTIN(CONFIG_KUNIT)
- 
--static int kunit_run_all_tests(void)
-+int kunit_run_all_tests(void)
- {
- 	struct kunit_suite * const * const *suites, * const *subsuite;
- 	bool has_test_failed = false;
-@@ -31,6 +31,4 @@ static int kunit_run_all_tests(void)
- 	return 0;
- }
- 
--late_initcall(kunit_run_all_tests);
--
- #endif /* IS_BUILTIN(CONFIG_KUNIT) */
--- 
-2.25.0.341.g760bfbb309-goog
+On 29.01.20 18:09, Christoph Hellwig wrote:
+> On Wed, Jan 29, 2020 at 06:07:14PM +0100, Christian Borntraeger wrote:
+>>> DMA can be done to NORMAL memory as well.
+>>
+>> Exactly. 
+>> I think iucv uses GFP_DMA because z/VM needs those buffers to reside below 2GB (which is ZONA_DMA for s390).
+> 
+> The normal way to allocate memory with addressing limits would be to
+> use dma_alloc_coherent and friends.  Any chance to switch iucv over to
+> that?  Or is there no device associated with it?
+
+There is not necessarily a device for that. It is a hypervisor interface (an
+instruction that is interpreted by z/VM). We do have the netiucv driver that
+creates a virtual nic, but there is also AF_IUCV which works without a device.
+
+But back to the original question: If we mark kmalloc caches as usercopy caches,
+we should do the same for DMA kmalloc caches. As outlined by Christoph, this has
+nothing to do with device DMA.
