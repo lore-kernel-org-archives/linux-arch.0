@@ -1,188 +1,64 @@
-Return-Path: <3tuAvXg4KBC8McPYOLYSTRRTYdRZZRWP.NZXcaaeWTYfi.TMX.NZX@flex--brendanhiggins.bounces.google.com>
-Date: Mon, 27 Jan 2020 23:19:58 -0800
-In-Reply-To: <20200128072002.79250-1-brendanhiggins@google.com>
-Message-ID: <20200128072002.79250-4-brendanhiggins@google.com>
-Mime-Version: 1.0
-References: <20200128072002.79250-1-brendanhiggins@google.com>
-Subject: [PATCH v1 3/7] kunit: test: create a single centralized executor for
- all tests
+Return-Path: <brendanhiggins@google.com>
+MIME-Version: 1.0
+References: <20191216220555.245089-1-brendanhiggins@google.com>
+ <20200106224022.GX11244@42.do-not-panic.com> <CAFd5g456c2Zs7rCvRPgio83G=SrtPGi25zbqAUyTBHspHwtu4w@mail.gmail.com>
+ <594b7815-0611-34ea-beb5-0642114b5d82@gmail.com> <CAFd5g469TWzrLKmQNR2i0HACJ3FEu-=4-Rk005g9szB5UsZAcw@mail.gmail.com>
+ <e801e4ac-b7c2-3d0a-71e7-f8153a3dfbc8@gmail.com> <ECADFF3FD767C149AD96A924E7EA6EAF982C9840@USCULXMSG17.am.sony.com>
+ <CAFd5g46Ut9Suptmp_bBspkp=KKt2GP+=1C5zLu0FXJY9dGJbFQ@mail.gmail.com> <dcf2d008-c044-f2d4-63b9-47151157eeb4@gmail.com>
+In-Reply-To: <dcf2d008-c044-f2d4-63b9-47151157eeb4@gmail.com>
 From: Brendan Higgins <brendanhiggins@google.com>
+Date: Wed, 29 Jan 2020 13:18:55 -0800
+Message-ID: <CAFd5g45g7B0HFpcxd-fjpj4h4gaxijSQ+LZb1=6v3t_u_=192w@mail.gmail.com>
+Subject: Re: [RFC v1 0/6] kunit: create a centralized executor to dispatch all
+ KUnit tests
 Content-Type: text/plain; charset="UTF-8"
-To: jdike@addtoit.com, richard@nod.at, anton.ivanov@cambridgegreys.com, arnd@arndb.de, keescook@chromium.org, skhan@linuxfoundation.org, alan.maguire@oracle.com, yzaikin@google.com, davidgow@google.com, akpm@linux-foundation.org, rppt@linux.ibm.com, frowand.list@gmail.com
-Cc: gregkh@linuxfoundation.org, sboyd@kernel.org, logang@deltatee.com, mcgrof@kernel.org, knut.omang@oracle.com, linux-um@lists.infradead.org, linux-arch@vger.kernel.org, linux-kselftest@vger.kernel.org, kunit-dev@googlegroups.com, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, Brendan Higgins <brendanhiggins@google.com>
+To: Frank Rowand <frowand.list@gmail.com>
+Cc: "Bird, Timothy" <Tim.Bird@sony.com>, Alan Maguire <alan.maguire@oracle.com>, Luis Chamberlain <mcgrof@kernel.org>, Jeff Dike <jdike@addtoit.com>, Richard Weinberger <richard@nod.at>, Anton Ivanov <anton.ivanov@cambridgegreys.com>, Arnd Bergmann <arnd@arndb.de>, Kees Cook <keescook@chromium.org>, Shuah Khan <skhan@linuxfoundation.org>, Iurii Zaikin <yzaikin@google.com>, David Gow <davidgow@google.com>, Andrew Morton <akpm@linux-foundation.org>, rppt@linux.ibm.com, Greg KH <gregkh@linuxfoundation.org>, Stephen Boyd <sboyd@kernel.org>, Logan Gunthorpe <logang@deltatee.com>, Knut Omang <knut.omang@oracle.com>, linux-um <linux-um@lists.infradead.org>, linux-arch@vger.kernel.org, "open list:KERNEL SELFTEST FRAMEWORK" <linux-kselftest@vger.kernel.org>, KUnit Development <kunit-dev@googlegroups.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200128071958.LdHwYP-dcpF6sRqmLZt_3geqWEZntoCUo8N1hWlT5lY@z>
+Message-ID: <20200129211855.4imRnEkRs2w3DyUE-3CtRR-27CPWolBDE5VhcHaFL70@z>
 
-From: Alan Maguire <alan.maguire@oracle.com>
+On Tue, Jan 28, 2020 at 8:24 PM Frank Rowand <frowand.list@gmail.com> wrote:
+>
+> On 1/28/20 1:53 PM, Brendan Higgins wrote:
+> > On Tue, Jan 28, 2020 at 11:35 AM <Tim.Bird@sony.com> wrote:
+> >>
+> >>> -----Original Message-----
+> >>> From:  Frank Rowand on January 28, 2020 11:37 AM
+> >>>
+> >>> On 1/28/20 1:19 AM, Brendan Higgins wrote:
+> >>>> On Mon, Jan 27, 2020 at 9:40 AM Frank Rowand <frowand.list@gmail.com> wrote:
+> >> ...
+> >>>> we could add Kconfigs to control this, but the compiler nevertheless
+> >>>> complains because it doesn't know what phase KUnit runs in.
+> >>>>
+> >>>> Is there any way to tell the compiler that it is okay for non __init
+> >>>> code to call __init code? I would prefer not to have a duplicate
+> >>>> version of all the KUnit libraries with all the symbols marked __init.
+> >>>
+> >>> I'm not sure.  The build messages have always been useful and valid in
+> >>> my context, so I never thought to consider that possibility.
+> >>>
+> >>>> Thoughts?
+> >>
+> >> I'm not sure there's a restriction on non __init code calling __init
+> >> code.  In init/main.c arch_call_reset_init() is in __init, and it calls
+> >> rest_init which is non __init, without any special handling.
+> >>
+> >> Is the compiler complaint mentioned above related to  calling
+> >> into __init code, or with some other issue?
+> >
+> > I distinctly remember having the compiler complain at me when I was
+> > messing around with the device tree unit tests because of KUnit
+> > calling code marked as __init. Maybe it's time to start converting
+> > those to KUnit to force the issue? Frank, does that work for you?
+>
+> I have agreed to try converting the devicetree unittest to KUnit.
+>
+> Now that KUnit is in 5.5, I think there is a solid foundation for
+> me to proceed.
 
-Add a centralized executor to dispatch tests rather than relying on
-late_initcall to schedule each test suite separately.  Centralized
-execution is for built-in tests only; modules will execute tests
-when loaded.
-
-Signed-off-by: Alan Maguire <alan.maguire@oracle.com>
-Co-developed-by: Iurii Zaikin <yzaikin@google.com>
-Signed-off-by: Iurii Zaikin <yzaikin@google.com>
-Co-developed-by: Brendan Higgins <brendanhiggins@google.com>
-Signed-off-by: Brendan Higgins <brendanhiggins@google.com>
----
- include/kunit/test.h | 73 +++++++++++++++++++++++++++-----------------
- lib/kunit/Makefile   |  3 +-
- lib/kunit/executor.c | 36 ++++++++++++++++++++++
- 3 files changed, 83 insertions(+), 29 deletions(-)
- create mode 100644 lib/kunit/executor.c
-
-diff --git a/include/kunit/test.h b/include/kunit/test.h
-index 2dfb550c6723a..8a02f93a6b505 100644
---- a/include/kunit/test.h
-+++ b/include/kunit/test.h
-@@ -197,46 +197,63 @@ void kunit_init_test(struct kunit *test, const char *name);
- 
- int kunit_run_tests(struct kunit_suite *suite);
- 
--/**
-- * kunit_test_suites() - used to register one or more &struct kunit_suite
-- *			 with KUnit.
-- *
-- * @suites: a statically allocated list of &struct kunit_suite.
-- *
-- * Registers @suites with the test framework. See &struct kunit_suite for
-- * more information.
-- *
-- * When builtin,  KUnit tests are all run as late_initcalls; this means
-- * that they cannot test anything where tests must run at a different init
-- * phase. One significant restriction resulting from this is that KUnit
-- * cannot reliably test anything that is initialize in the late_init phase;
-- * another is that KUnit is useless to test things that need to be run in
-- * an earlier init phase.
-- *
-- * An alternative is to build the tests as a module.  Because modules
-- * do not support multiple late_initcall()s, we need to initialize an
-- * array of suites for a module.
-- *
-- * TODO(brendanhiggins@google.com): Don't run all KUnit tests as
-- * late_initcalls.  I have some future work planned to dispatch all KUnit
-- * tests from the same place, and at the very least to do so after
-- * everything else is definitely initialized.
-+/*
-+ * If a test suite is built-in, module_init() gets translated into
-+ * an initcall which we don't want as the idea is that for builtins
-+ * the executor will manage execution.  So ensure we do not define
-+ * module_{init|exit} functions for the builtin case when registering
-+ * suites via kunit_test_suites() below.
-  */
--#define kunit_test_suites(...)						\
--	static struct kunit_suite *suites[] = { __VA_ARGS__, NULL};	\
--	static int kunit_test_suites_init(void)				\
-+#ifdef MODULE
-+#define kunit_test_suites_for_module(__suites)				\
-+	static int __init kunit_test_suites_init(void)			\
- 	{								\
-+		struct kunit_suite *suites[] = (__suites);		\
- 		unsigned int i;						\
-+									\
- 		for (i = 0; suites[i] != NULL; i++)			\
- 			kunit_run_tests(suites[i]);			\
- 		return 0;						\
- 	}								\
--	late_initcall(kunit_test_suites_init);				\
-+	module_init(kunit_test_suites_init);				\
-+									\
- 	static void __exit kunit_test_suites_exit(void)			\
- 	{								\
- 		return;							\
- 	}								\
- 	module_exit(kunit_test_suites_exit)
-+#else
-+#define kunit_test_suites_for_module(__suites)
-+#endif /* MODULE */
-+
-+#define __kunit_test_suites(unique_array, unique_suites, ...)		       \
-+	static struct kunit_suite *unique_array[] = { __VA_ARGS__, NULL };     \
-+	kunit_test_suites_for_module(unique_array);			       \
-+	static struct kunit_suite **unique_suites			       \
-+	__used __aligned(8) __section(.kunit_test_suites) = unique_array
-+
-+/**
-+ * kunit_test_suites() - used to register one or more &struct kunit_suite
-+ *			 with KUnit.
-+ *
-+ * @suites: a statically allocated list of &struct kunit_suite.
-+ *
-+ * Registers @suites with the test framework. See &struct kunit_suite for
-+ * more information.
-+ *
-+ * When builtin,  KUnit tests are all run via executor; this is done
-+ * by placing the array of struct kunit_suite * in the .kunit_test_suites
-+ * ELF section.
-+ *
-+ * An alternative is to build the tests as a module.  Because modules do not
-+ * support multiple initcall()s, we need to initialize an array of suites for a
-+ * module.
-+ *
-+ */
-+#define kunit_test_suites(...)						\
-+	__kunit_test_suites(__UNIQUE_ID(array),				\
-+			    __UNIQUE_ID(suites),			\
-+			    __VA_ARGS__)
- 
- #define kunit_test_suite(suite)	kunit_test_suites(&suite)
- 
-diff --git a/lib/kunit/Makefile b/lib/kunit/Makefile
-index fab55649b69a5..c282f02ca066b 100644
---- a/lib/kunit/Makefile
-+++ b/lib/kunit/Makefile
-@@ -3,7 +3,8 @@ obj-$(CONFIG_KUNIT) +=			kunit.o
- kunit-objs +=				test.o \
- 					string-stream.o \
- 					assert.o \
--					try-catch.o
-+					try-catch.o \
-+					executor.o
- 
- obj-$(CONFIG_KUNIT_TEST) +=		kunit-test.o
- 
-diff --git a/lib/kunit/executor.c b/lib/kunit/executor.c
-new file mode 100644
-index 0000000000000..6429927d598a5
---- /dev/null
-+++ b/lib/kunit/executor.c
-@@ -0,0 +1,36 @@
-+// SPDX-License-Identifier: GPL-2.0
-+
-+#include <kunit/test.h>
-+
-+/*
-+ * These symbols point to the .kunit_test_suites section and are defined in
-+ * include/asm-generic/vmlinux.lds.h, and consequently must be extern.
-+ */
-+extern struct kunit_suite * const * const __kunit_suites_start[];
-+extern struct kunit_suite * const * const __kunit_suites_end[];
-+
-+#if IS_BUILTIN(CONFIG_KUNIT)
-+
-+static int kunit_run_all_tests(void)
-+{
-+	struct kunit_suite * const * const *suites, * const *subsuite;
-+	bool has_test_failed = false;
-+
-+	for (suites = __kunit_suites_start;
-+	     suites < __kunit_suites_end;
-+	     suites++) {
-+		for (subsuite = *suites; *subsuite != NULL; subsuite++) {
-+			if (kunit_run_tests(*subsuite))
-+				has_test_failed = true;
-+		}
-+	}
-+
-+	if (has_test_failed)
-+		return -EFAULT;
-+
-+	return 0;
-+}
-+
-+late_initcall(kunit_run_all_tests);
-+
-+#endif /* IS_BUILTIN(CONFIG_KUNIT) */
--- 
-2.25.0.341.g760bfbb309-goog
+Awesome! Last time we talked (offline), it sounded like you had a
+clear idea of what you wanted to do; nevertheless, feel free to reuse
+anything from my attempt at it, if you find anything useful, or
+otherwise rope me in if you have any questions, comments, or
+complaints.
