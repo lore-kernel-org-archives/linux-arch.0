@@ -1,90 +1,46 @@
 Return-Path: <owner-linux-mm@kvack.org>
-From: Sandipan Das <sandipan@linux.ibm.com>
-Subject: [PATCH v17 01/24] selftests/x86/pkeys: Move selftests to arch-neutral
- directory
-Date: Mon, 20 Jan 2020 14:05:29 +0530
-In-Reply-To: <cover.1579507768.git.sandipan@linux.ibm.com>
-References: <cover.1579507768.git.sandipan@linux.ibm.com>
-In-Reply-To: <cover.1579507768.git.sandipan@linux.ibm.com>
-References: <cover.1579507768.git.sandipan@linux.ibm.com>
-Message-ID: <47ac633d2326269960d900bb6cfe1b94bbc52bd3.1579507768.git.sandipan@linux.ibm.com>
+Subject: Re: [kernel-hardening] [PATCH 09/38] usercopy: Mark kmalloc caches as
+ usercopy caches
+References: <1515636190-24061-1-git-send-email-keescook@chromium.org>
+ <1515636190-24061-10-git-send-email-keescook@chromium.org>
+ <9519edb7-456a-a2fa-659e-3e5a1ff89466@suse.cz>
+ <201911121313.1097D6EE@keescook> <201911141327.4DE6510@keescook>
+ <bfca96db-bbd0-d958-7732-76e36c667c68@suse.cz>
+ <202001271519.AA6ADEACF0@keescook>
+ <5861936c-1fe1-4c44-d012-26efa0c8b6e7@de.ibm.com>
+ <202001281457.FA11CC313A@keescook>
+ <alpine.DEB.2.21.2001291640350.1546@www.lameter.com>
+From: Christian Borntraeger <borntraeger@de.ibm.com>
+Date: Wed, 29 Jan 2020 18:07:14 +0100
+MIME-Version: 1.0
+In-Reply-To: <alpine.DEB.2.21.2001291640350.1546@www.lameter.com>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
+Message-ID: <6844ea47-8e0e-4fb7-d86f-68046995a749@de.ibm.com>
 Sender: owner-linux-mm@kvack.org
-To: shuah@kernel.org, linux-kselftest@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, fweimer@redhat.com, dave.hansen@intel.com, x86@kernel.org, linuxram@us.ibm.com, mhocko@kernel.org, linux-mm@kvack.org, mingo@redhat.com, aneesh.kumar@linux.ibm.com, bauerman@linux.ibm.com, msuchanek@suse.de, mpe@ellerman.id.au, linuxppc-dev@lists.ozlabs.org
+To: Christopher Lameter <cl@linux.com>, Kees Cook <keescook@chromium.org>
+Cc: Jiri Slaby <jslaby@suse.cz>, Julian Wiedmann <jwi@linux.ibm.com>, Ursula Braun <ubraun@linux.ibm.com>, Alexander Viro <viro@zeniv.linux.org.uk>, linux-kernel@vger.kernel.org, David Windsor <dave@nullcore.net>, Pekka Enberg <penberg@kernel.org>, David Rientjes <rientjes@google.com>, Joonsoo Kim <iamjoonsoo.kim@lge.com>, Andrew Morton <akpm@linux-foundation.org>, linux-mm@kvack.org, linux-xfs@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, Christoph Hellwig <hch@infradead.org>, "David S. Miller" <davem@davemloft.net>, Laura Abbott <labbott@redhat.com>, Mark Rutland <mark.rutland@arm.com>, "Martin K. Petersen" <martin.petersen@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Christoffer Dall <christoffer.dall@linaro.org>, Dave Kleikamp <dave.kleikamp@oracle.com>, Jan Kara <jack@suse.cz>, Luis de Bethencourt <luisbg@kernel.org>, Marc Zyngier <marc.zyngier@arm.com>, Rik van Riel <riel@redhat.com>, Matthew Garrett <mjg59@google.com>, linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org, netdev@vger.kernel.org, kernel-hardening@lists.openwall.com, Vlastimil Babka <vbabka@suse.cz>, Michal Kubecek <mkubecek@suse.cz>
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200120083529.4nHS18xCuTMdJ2IZulGi5j1cbqMQsTe3ez1iv_ST0KQ@z>
+Message-ID: <20200129170714.H58N13ZWCNFEJU0-_a4tCMABByaNx-GWqq7lkAfvd90@z>
 
-From: Ram Pai <linuxram@us.ibm.com>
 
-cc: Dave Hansen <dave.hansen@intel.com>
-cc: Florian Weimer <fweimer@redhat.com>
-Signed-off-by: Ram Pai <linuxram@us.ibm.com>
-Signed-off-by: Thiago Jung Bauermann <bauerman@linux.ibm.com>
-Acked-by: Ingo Molnar <mingo@kernel.org>
-Acked-by: Dave Hansen <dave.hansen@intel.com>
-Signed-off-by: Sandipan Das <sandipan@linux.ibm.com>
----
- tools/testing/selftests/vm/.gitignore                 | 1 +
- tools/testing/selftests/vm/Makefile                   | 1 +
- tools/testing/selftests/{x86 => vm}/pkey-helpers.h    | 0
- tools/testing/selftests/{x86 => vm}/protection_keys.c | 0
- tools/testing/selftests/x86/.gitignore                | 1 -
- tools/testing/selftests/x86/Makefile                  | 2 +-
- 6 files changed, 3 insertions(+), 2 deletions(-)
- rename tools/testing/selftests/{x86 => vm}/pkey-helpers.h (100%)
- rename tools/testing/selftests/{x86 => vm}/protection_keys.c (100%)
 
-diff --git a/tools/testing/selftests/vm/.gitignore b/tools/testing/selftests/vm/.gitignore
-index 31b3c98b6d34..c55837bf39fa 100644
---- a/tools/testing/selftests/vm/.gitignore
-+++ b/tools/testing/selftests/vm/.gitignore
-@@ -14,3 +14,4 @@ virtual_address_range
- gup_benchmark
- va_128TBswitch
- map_fixed_noreplace
-+protection_keys
-diff --git a/tools/testing/selftests/vm/Makefile b/tools/testing/selftests/vm/Makefile
-index 7f9a8a8c31da..4e9c741be6af 100644
---- a/tools/testing/selftests/vm/Makefile
-+++ b/tools/testing/selftests/vm/Makefile
-@@ -18,6 +18,7 @@ TEST_GEN_FILES += on-fault-limit
- TEST_GEN_FILES += thuge-gen
- TEST_GEN_FILES += transhuge-stress
- TEST_GEN_FILES += userfaultfd
-+TEST_GEN_FILES += protection_keys
+On 29.01.20 17:43, Christopher Lameter wrote:
+> On Tue, 28 Jan 2020, Kees Cook wrote:
+> 
+>>> On the other hand not marking the DMA caches still seems questionable.
+>>
+>> My understanding is that exposing DMA memory to userspace copies can
+>> lead to unexpected results, especially for misbehaving hardware, so I'm
+>> not convinced this is a generically bad hardening choice.
+> 
+> "DMA" memory (and thus DMA caches) have nothing to do with DMA. Its a
+> legacy term. "DMA Memory" is memory limited to a certain
+> physical address boundary (old restrictions on certain devices only
+> supporting a limited number of address bits).
+> 
+> DMA can be done to NORMAL memory as well.
 
- ifneq (,$(filter $(ARCH),arm64 ia64 mips64 parisc64 ppc64 riscv64 s390x sh64 sparc64 x86_64))
- TEST_GEN_FILES += va_128TBswitch
-diff --git a/tools/testing/selftests/x86/pkey-helpers.h b/tools/testing/selftests/vm/pkey-helpers.h
-similarity index 100%
-rename from tools/testing/selftests/x86/pkey-helpers.h
-rename to tools/testing/selftests/vm/pkey-helpers.h
-diff --git a/tools/testing/selftests/x86/protection_keys.c b/tools/testing/selftests/vm/protection_keys.c
-similarity index 100%
-rename from tools/testing/selftests/x86/protection_keys.c
-rename to tools/testing/selftests/vm/protection_keys.c
-diff --git a/tools/testing/selftests/x86/.gitignore b/tools/testing/selftests/x86/.gitignore
-index 7757f73ff9a3..eb30ffd83876 100644
---- a/tools/testing/selftests/x86/.gitignore
-+++ b/tools/testing/selftests/x86/.gitignore
-@@ -11,5 +11,4 @@ ldt_gdt
- iopl
- mpx-mini-test
- ioperm
--protection_keys
- test_vdso
-diff --git a/tools/testing/selftests/x86/Makefile b/tools/testing/selftests/x86/Makefile
-index 5d49bfec1e9a..5f16821c7f63 100644
---- a/tools/testing/selftests/x86/Makefile
-+++ b/tools/testing/selftests/x86/Makefile
-@@ -12,7 +12,7 @@ CAN_BUILD_WITH_NOPIE := $(shell ./check_cc.sh $(CC) trivial_program.c -no-pie)
-
- TARGETS_C_BOTHBITS := single_step_syscall sysret_ss_attrs syscall_nt test_mremap_vdso \
- 			check_initial_reg_state sigreturn iopl ioperm \
--			protection_keys test_vdso test_vsyscall mov_ss_trap \
-+			test_vdso test_vsyscall mov_ss_trap \
- 			syscall_arg_fault
- TARGETS_C_32BIT_ONLY := entry_from_vm86 test_syscall_vdso unwind_vdso \
- 			test_FCMOV test_FCOMI test_FISTTP \
--- 
-2.17.1
+Exactly. 
+I think iucv uses GFP_DMA because z/VM needs those buffers to reside below 2GB (which is ZONA_DMA for s390).
