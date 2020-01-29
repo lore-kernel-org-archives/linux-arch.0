@@ -1,98 +1,37 @@
-Return-Path: <linux-doc-owner@vger.kernel.org>
+Return-Path: <owner-linux-mm@kvack.org>
+Date: Wed, 29 Jan 2020 16:43:30 +0000 (UTC)
+From: Christopher Lameter <cl@linux.com>
+Subject: Re: [kernel-hardening] [PATCH 09/38] usercopy: Mark kmalloc caches as
+ usercopy caches
+In-Reply-To: <202001281457.FA11CC313A@keescook>
+Message-ID: <alpine.DEB.2.21.2001291640350.1546@www.lameter.com>
+References: <1515636190-24061-1-git-send-email-keescook@chromium.org>
+ <1515636190-24061-10-git-send-email-keescook@chromium.org>
+ <9519edb7-456a-a2fa-659e-3e5a1ff89466@suse.cz>
+ <201911121313.1097D6EE@keescook> <201911141327.4DE6510@keescook>
+ <bfca96db-bbd0-d958-7732-76e36c667c68@suse.cz>
+ <202001271519.AA6ADEACF0@keescook>
+ <5861936c-1fe1-4c44-d012-26efa0c8b6e7@de.ibm.com>
+ <202001281457.FA11CC313A@keescook>
 MIME-Version: 1.0
-References: 
- <CANpmjNOC2PYFsE_TK2SYmKcHxyG+2arWc8x_fmeWPOMi0+ot8g@mail.gmail.com>
- <53F6B915-AC53-41BB-BF32-33732515B3A0@lca.pw>
-In-Reply-To: <53F6B915-AC53-41BB-BF32-33732515B3A0@lca.pw>
-From: Marco Elver <elver@google.com>
-Date: Tue, 14 Jan 2020 13:51:01 +0100
-Message-ID: <CANpmjNMXD3Qzj748CXWtmenxx4cC3Q8Fr70L5PWNe6ZSARcZ9w@mail.gmail.com>
-Subject: Re: [PATCH v4 01/10] kcsan: Add Kernel Concurrency Sanitizer
- infrastructure
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
-Sender: linux-doc-owner@vger.kernel.org
-To: Qian Cai <cai@lca.pw>
-Cc: LKMM Maintainers -- Akira Yokosawa <akiyks@gmail.com>, Alan Stern <stern@rowland.harvard.edu>, Alexander Potapenko <glider@google.com>, Andrea Parri <parri.andrea@gmail.com>, Andrey Konovalov <andreyknvl@google.com>, Andy Lutomirski <luto@kernel.org>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Arnd Bergmann <arnd@arndb.de>, Boqun Feng <boqun.feng@gmail.com>, Borislav Petkov <bp@alien8.de>, Daniel Axtens <dja@axtens.net>, Daniel Lustig <dlustig@nvidia.com>, Dave Hansen <dave.hansen@linux.intel.com>, David Howells <dhowells@redhat.com>, Dmitry Vyukov <dvyukov@google.com>, "H. Peter Anvin" <hpa@zytor.com>, Ingo Molnar <mingo@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Joel Fernandes <joel@joelfernandes.org>, Jonathan Corbet <corbet@lwn.net>, Josh Poimboeuf <jpoimboe@redhat.com>, Luc Maranget <luc.maranget@inria.fr>, Mark Rutland <Mark.Rutland@arm.com>, Nicholas Piggin <npiggin@gmail.com>, "Paul E. McKenney" <paulmck@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, Will Deacon <will@kernel.org>, Eric Dumazet <edumazet@google.com>, kasan-dev <kasan-dev@googlegroups.com>, linux-arch <linux-arch@vger.kernel.org>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>, linux-efi@vger.kernel.org, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Linux Memory Management List <linux-mm@kvack.org>, the arch/x86 maintainers <x86@kernel.org>
+Content-Type: text/plain; charset=US-ASCII
+Sender: owner-linux-mm@kvack.org
+To: Kees Cook <keescook@chromium.org>
+Cc: Christian Borntraeger <borntraeger@de.ibm.com>, Jiri Slaby <jslaby@suse.cz>, Julian Wiedmann <jwi@linux.ibm.com>, Ursula Braun <ubraun@linux.ibm.com>, Alexander Viro <viro@zeniv.linux.org.uk>, linux-kernel@vger.kernel.org, David Windsor <dave@nullcore.net>, Pekka Enberg <penberg@kernel.org>, David Rientjes <rientjes@google.com>, Joonsoo Kim <iamjoonsoo.kim@lge.com>, Andrew Morton <akpm@linux-foundation.org>, linux-mm@kvack.org, linux-xfs@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, Christoph Hellwig <hch@infradead.org>, "David S. Miller" <davem@davemloft.net>, Laura Abbott <labbott@redhat.com>, Mark Rutland <mark.rutland@arm.com>, "Martin K. Petersen" <martin.petersen@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Christoffer Dall <christoffer.dall@linaro.org>, Dave Kleikamp <dave.kleikamp@oracle.com>, Jan Kara <jack@suse.cz>, Luis de Bethencourt <luisbg@kernel.org>, Marc Zyngier <marc.zyngier@arm.com>, Rik van Riel <riel@redhat.com>, Matthew Garrett <mjg59@google.com>, linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org, netdev@vger.kernel.org, kernel-hardening@lists.openwall.com, Vlastimil Babka <vbabka@suse.cz>, Michal Kubecek <mkubecek@suse.cz>
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200114125101.mekhCBED5Qlf81D363vT2OxtY45E7o9IoA6HI9sxoBY@z>
+Message-ID: <20200129164330.bqQAO4orT_VFl-OOiUdlkNB8i_yhQ9DKVNPZ-43RXtk@z>
 
-On Tue, 14 Jan 2020 at 12:08, Qian Cai <cai@lca.pw> wrote:
+On Tue, 28 Jan 2020, Kees Cook wrote:
+
+> > On the other hand not marking the DMA caches still seems questionable.
 >
->
->
-> > On Jan 6, 2020, at 7:47 AM, Marco Elver <elver@google.com> wrote:
-> >
-> > Thanks, I'll look into KCSAN + lockdep compatibility. It's probably
-> > missing some KCSAN_SANITIZE :=3D n in some Makefile.
->
-> Can I have a update on fixing this? It looks like more of a problem that =
-kcsan_setup_watchpoint() will disable IRQs and then dive into the page allo=
-cator where it would complain because it might sleep.
+> My understanding is that exposing DMA memory to userspace copies can
+> lead to unexpected results, especially for misbehaving hardware, so I'm
+> not convinced this is a generically bad hardening choice.
 
-KCSAN does *not* keep IRQs disabled (we have a clear irqsave / restore
-pair kcsan_setup_watchpoint).
+"DMA" memory (and thus DMA caches) have nothing to do with DMA. Its a
+legacy term. "DMA Memory" is memory limited to a certain
+physical address boundary (old restrictions on certain devices only
+supporting a limited number of address bits).
 
-If you look closer at the warning you sent in this thread, the warning
-is not generated because IRQs are off when it wants to sleep, but
-rather because IRQs are enabled but IRQ tracing state is inconsistent:
-"DEBUG_LOCKS_WARN_ON(!current->hardirqs_enabled)" in lockdep checks
-that if IRQs are enabled, the trace state matches. These are only
-checked with LOCKDEP_DEBUG and TRACE_IRQFLAGS.
-
-In other words, IRQ trace flags got corrupted somewhere. AFAIK, this
-problem here is only relevant with TRACE_IRQFLAGS -- again, it is
-clear that IRQs are enabled but the IRQ tracing logic somehow ended up
-corrupting hardirqs_enabled (TRACE_IRQFLAGS).
-
-I believe this patch will take care of this issue:
-http://lkml.kernel.org/r/20200114124919.11891-1-elver@google.com
-
-Thanks,
--- Marco
-
-> BTW, I saw Paul sent a pull request for 5.6 but it is ugly to have everyb=
-ody could trigger a deadlock (sleep function called in atomic context) like=
- this during boot once this hits the mainline not to mention about only rec=
-ently it is possible to test this feature (thanks to warning ratelimit) wit=
-h the existing debugging options because it was unable to boot due to the b=
-rokenness with debug_pagealloc as mentioned in this thread, so this does so=
-unds like it needs more soak time for the mainline to me.
->
-> 0000000000000400
-> [   13.416814][    T1] Call Trace:
-> [   13.416814][    T1]  lock_is_held_type+0x66/0x160
-> [   13.416814][    T1]  ___might_sleep+0xc1/0x1d0
-> [   13.416814][    T1]  __might_sleep+0x5b/0xa0
-> [   13.416814][    T1]  slab_pre_alloc_hook+0x7b/0xa0
-> [   13.416814][    T1]  __kmalloc_node+0x60/0x300
-> [   13.416814   T1]  ? alloc_cpumask_var_node+0x44/0x70
-> [   13.416814][    T1]  ? topology_phys_to_logical_die+0x7e/0x180
-> [   13.416814][    T1]  alloc_cpumask_var_node+0x44/0x70
-> [   13.416814][    T1]  zalloc_cpumask_var+0x2a/0x40
-> [   13.416814][    T1]  native_smp_prepare_cpus+0x246/0x425
-> [   13.416814][    T1]  kernel_init_freeable+0x1b8/0x496
-> [   13.416814][    T1]  ? rest_init+0x381/0x381
-> [   13.416814][    T1]  kernel_init+0x18/0x17f
-> [   13.416814][    T1]  ? rest_init+0x381/0x381
-> [   13.416814][    T1]  ret_from_fork+0x3a/0x50
-> [   13.416814][    T1] irq event stamp: 910
-> [   13.416814][    T1] hardirqs last  enabled at (909): [<ffffffff8d1240f=
-3>] _raw_write_unlock_irqrestore+0x53/0x57
-> [   13.416814][    T1] hardirqs last disabled at (910): [<ffffffff8c8bba7=
-6>] kcsan_setup_watchpoint+0x96/0x460
-> [   13.416814][    T1] softirqs last  enabled at (0): [<ffffffff8c6b697a>=
-] copy_process+0x11fa/0x34f0
-> [   13.416814][    T1] softirqs last disabled at (0): [<0000000000000000>=
-] 0x0
-> [   13.416814][    T1] ---[ end trace 7d1df66da055aa92 ]---
-> [   13.416814][    T1] possible reason: unannotated irqs-on.
-> [   13.416814][ent stamp: 910
-> [   13.416814][    T1] hardirqs last  enabled at (909): [<ffffffff8d1240f=
-3>] _raw_write_unlock_irqrestore+0x53/0x57
-> [   13.416814][    T1] hardirqs last disabled at (910): [<ffffffff8c8bba7=
-6>] kcsan_setup_watchpoint+0x96/0x460
-> [   13.416814][    T1] softirqs last  enabled at (0): [<ffffffff8c6b697a>=
-] copy_process+0x11fa/0x34f0
-> [   13.416814][    T1] softirqs last disabled at (0): [<0000000000000000>=
-] 0x0
+DMA can be done to NORMAL memory as well.
