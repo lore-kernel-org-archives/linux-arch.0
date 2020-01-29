@@ -1,46 +1,34 @@
-From: Christian Borntraeger <borntraeger@de.ibm.com>
-Subject: Re: [kernel-hardening] [PATCH 09/38] usercopy: Mark kmalloc caches as
- usercopy caches
-Date: Wed, 29 Jan 2020 18:19:56 +0100
-Message-ID: <771c5511-c5ab-3dd1-d938-5dbc40396daa@de.ibm.com>
-References: <1515636190-24061-10-git-send-email-keescook@chromium.org>
- <9519edb7-456a-a2fa-659e-3e5a1ff89466@suse.cz>
- <201911121313.1097D6EE@keescook> <201911141327.4DE6510@keescook>
- <bfca96db-bbd0-d958-7732-76e36c667c68@suse.cz>
- <202001271519.AA6ADEACF0@keescook>
- <5861936c-1fe1-4c44-d012-26efa0c8b6e7@de.ibm.com>
- <202001281457.FA11CC313A@keescook>
- <alpine.DEB.2.21.2001291640350.1546@www.lameter.com>
- <6844ea47-8e0e-4fb7-d86f-68046995a749@de.ibm.com>
- <20200129170939.GA4277@infradead.org>
+From: Dave Hansen <dave.hansen@intel.com>
+Subject: Re: [PATCH v16 00/23] selftests, powerpc, x86: Memory Protection Keys
+Date: Wed, 29 Jan 2020 10:59:21 -0800
+Message-ID: <ca6cfdeb-00f2-d926-e4e1-c1723cc25445@intel.com>
+References: <cover.1579507768.git.sandipan@linux.ibm.com>
+ <3ceb2814-f8b0-ec6b-3c24-ec72297a99f5@intel.com>
+ <8f14bee0-ab1c-fc90-dfdb-5128607b767f@linux.ibm.com>
+ <3eca7a91-aa3e-cb01-47c8-5d36020993a2@intel.com>
+ <fb83ce52-b92a-ed42-dc06-a86ca8431ff6@linux.ibm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=utf-8
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20200129170939.GA4277@infradead.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mga14.intel.com ([192.55.52.115]:42592 "EHLO mga14.intel.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1727728AbgA2S7W (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 29 Jan 2020 13:59:22 -0500
+In-Reply-To: <fb83ce52-b92a-ed42-dc06-a86ca8431ff6@linux.ibm.com>
 Content-Language: en-US
-Sender: linux-kernel-owner@vger.kernel.org
-To: Christoph Hellwig <hch@infradead.org>
-Cc: Christopher Lameter <cl@linux.com>, Kees Cook <keescook@chromium.org>, Jiri Slaby <jslaby@suse.cz>, Julian Wiedmann <jwi@linux.ibm.com>, Ursula Braun <ubraun@linux.ibm.com>, Alexander Viro <viro@zeniv.linux.org.uk>, linux-kernel@vger.kernel.org, David Windsor <dave@nullcore.net>, Pekka Enberg <penberg@kernel.org>, David Rientjes <rientjes@google.com>, Joonsoo Kim <iamjoonsoo.kim@lge.com>, Andrew Morton <akpm@linux-foundation.org>, linux-mm@kvack.org, linux-xfs@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, "David S. Miller" <davem@davemloft.net>, Laura Abbott <labbott@redhat.com>, Mark Rutland <mark.rutland@arm.com>, "Martin K. Petersen" <martin.petersen@oracle.com>, Paolo Bonzini <pbonzini@redhat.>
-List-Id: linux-arch.vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Sandipan Das <sandipan@linux.ibm.com>
+Cc: shuah@kernel.org, linux-kselftest@vger.kernel.org, linux-arch@vger.kernel.org, fweimer@redhat.com, x86@kernel.org, linuxram@us.ibm.com, mhocko@kernel.org, linux-mm@kvack.org, mingo@redhat.com, aneesh.kumar@linux.ibm.com, bauerman@linux.ibm.com, msuchanek@suse.de, mpe@ellerman.id.au, linuxppc-dev@lists.ozlabs.org
 
-
-
-On 29.01.20 18:09, Christoph Hellwig wrote:
-> On Wed, Jan 29, 2020 at 06:07:14PM +0100, Christian Borntraeger wrote:
->>> DMA can be done to NORMAL memory as well.
+On 1/28/20 1:38 AM, Sandipan Das wrote:
+> On 27/01/20 9:12 pm, Dave Hansen wrote:
+>> How have you tested this patch (and the whole series for that matter)?
 >>
->> Exactly. 
->> I think iucv uses GFP_DMA because z/VM needs those buffers to reside below 2GB (which is ZONA_DMA for s390).
-> 
-> The normal way to allocate memory with addressing limits would be to
-> use dma_alloc_coherent and friends.  Any chance to switch iucv over to
-> that?  Or is there no device associated with it?
+> I replaced the second patch with this one and did a build test.
+> Till v16, I had tested the whole series (build + run) on both a POWER8
+> system (with 4K and 64K page sizes) and a Skylake SP system but for
+> x86_64 only.
 
-There is not necessarily a device for that. It is a hypervisor interface (an
-instruction that is interpreted by z/VM). We do have the netiucv driver that
-creates a virtual nic, but there is also AF_IUCV which works without a device.
-
-But back to the original question: If we mark kmalloc caches as usercopy caches,
-we should do the same for DMA kmalloc caches. As outlined by Christoph, this has
-nothing to do with device DMA.
+Do you have any idea why I was seeing x86 build errors and you were not?
