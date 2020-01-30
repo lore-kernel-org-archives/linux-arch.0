@@ -1,163 +1,92 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:42008 "EHLO
+Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:64632 "EHLO
  mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with
- ESMTP id S1726353AbgA3Ghf (ORCPT <rfc822;linux-arch@vger.kernel.org>); Thu,
- 30 Jan 2020 01:37:35 -0500
-Received: from pps.filterd (m0098394.ppops.net [127.0.0.1]) by
- mx0a-001b2d01.pphosted.com (8.16.0.42/8.16.0.42) with SMTP id 00U6bXf4014756
- for <linux-arch@vger.kernel.org>; Thu, 30 Jan 2020 01:37:34 -0500
+ ESMTP id S1726646AbgA3GiC (ORCPT <rfc822;linux-arch@vger.kernel.org>); Thu,
+ 30 Jan 2020 01:38:02 -0500
+Received: from pps.filterd (m0187473.ppops.net [127.0.0.1]) by
+ mx0a-001b2d01.pphosted.com (8.16.0.42/8.16.0.42) with SMTP id 00U6bNa7173611
+ for <linux-arch@vger.kernel.org>; Thu, 30 Jan 2020 01:38:02 -0500
 Received: from e06smtp02.uk.ibm.com (e06smtp02.uk.ibm.com [195.75.94.98]) by
- mx0a-001b2d01.pphosted.com with ESMTP id 2xueh6txta-1 (version=TLSv1.2
+ mx0a-001b2d01.pphosted.com with ESMTP id 2xrj74gmp6-1 (version=TLSv1.2
  cipher=AES256-GCM-SHA384 bits=256 verify=NOT) for
- <linux-arch@vger.kernel.org>; Thu, 30 Jan 2020 01:37:34 -0500
+ <linux-arch@vger.kernel.org>; Thu, 30 Jan 2020 01:38:01 -0500
 Received: from localhost by e06smtp02.uk.ibm.com with IBM ESMTP SMTP Gateway:
  Authorized Use Only! Violators will be prosecuted for
  <linux-arch@vger.kernel.org> from <sandipan@linux.ibm.com>; Thu, 30 Jan 2020
- 06:37:24 -0000
+ 06:37:54 -0000
 From: Sandipan Das <sandipan@linux.ibm.com>
-Subject: [PATCH v18 03/24] selftests/vm/pkeys: Move generic definitions to
- header file
-Date: Thu, 30 Jan 2020 12:06:45 +0530
+Subject: [PATCH v18 14/24] selftests/vm/pkeys: Fix number of reserved powerpc
+ pkeys
+Date: Thu, 30 Jan 2020 12:06:56 +0530
 In-Reply-To: <cover.1580365432.git.sandipan@linux.ibm.com>
 References: <cover.1580365432.git.sandipan@linux.ibm.com>
 In-Reply-To: <cover.1580365432.git.sandipan@linux.ibm.com>
 References: <cover.1580365432.git.sandipan@linux.ibm.com>
-Message-ID: <e82abb1f9b6e0ea2f28b70e4e5beee66b198f781.1580365432.git.sandipan@linux.ibm.com>
+Message-ID: <ea6bb8c333ecf03073b59668c501a655983f7778.1580365432.git.sandipan@linux.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: shuah@kernel.org, skhan@linuxfoundation.org, linux-kselftest@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, x86@kernel.org, linux-mm@kvack.org, fweimer@redhat.com, dave.hansen@intel.com, linuxram@us.ibm.com, mhocko@kernel.org, mingo@redhat.com, aneesh.kumar@linux.ibm.com, bauerman@linux.ibm.com, msuchanek@suse.de, mpe@ellerman.id.au
-Message-ID: <20200130063645.bQojIgDLhALCIHA4TYYCqSDYE_u7LsX9Vf9DQ8ASVmU@z>
+Cc: linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, x86@kernel.org, linux-mm@kvack.org, fweimer@redhat.com, dave.hansen@intel.com, linuxram@us.ibm.com, mhocko@kernel.org, mingo@redhat.com, aneesh.kumar@linux.ibm.com, bauerman@linux.ibm.com, msuchanek@suse.de, mpe@ellerman.id.au, "Desnes A. Nunes do Rosario" <desnesn@linux.vnet.ibm.com>
+Message-ID: <20200130063656.HonWgRzqtnsLwWu7ZJOaUHriq1ySzbMGh5PJrrIbZSo@z>
 
-From: Ram Pai <linuxram@us.ibm.com>
+From: "Desnes A. Nunes do Rosario" <desnesn@linux.vnet.ibm.com>
 
-Moved all the generic definition and helper functions to the
-header file.
+The number of reserved pkeys in a PowerNV environment is
+different from that on PowerVM or KVM.
 
-cc: Dave Hansen <dave.hansen@intel.com>
-cc: Florian Weimer <fweimer@redhat.com>
+Tested on PowerVM and PowerNV environments.
+
+Signed-off-by: "Desnes A. Nunes do Rosario" <desnesn@linux.vnet.ibm.com>
 Signed-off-by: Ram Pai <linuxram@us.ibm.com>
-Signed-off-by: Thiago Jung Bauermann <bauerman@linux.ibm.com>
-Acked-by: Dave Hansen <dave.hansen@intel.com>
 Signed-off-by: Sandipan Das <sandipan@linux.ibm.com>
 ---
- tools/testing/selftests/vm/pkey-helpers.h    | 35 +++++++++++++++++---
- tools/testing/selftests/vm/protection_keys.c | 27 ---------------
- 2 files changed, 30 insertions(+), 32 deletions(-)
+ tools/testing/selftests/vm/pkey-powerpc.h | 22 ++++++++++++++++++++--
+ 1 file changed, 20 insertions(+), 2 deletions(-)
 
-diff --git a/tools/testing/selftests/vm/pkey-helpers.h b/tools/testing/selftests/vm/pkey-helpers.h
-index d5779be4793f..6ad1bd54ef94 100644
---- a/tools/testing/selftests/vm/pkey-helpers.h
-+++ b/tools/testing/selftests/vm/pkey-helpers.h
-@@ -13,6 +13,14 @@
- #include <ucontext.h>
- #include <sys/mman.h>
+diff --git a/tools/testing/selftests/vm/pkey-powerpc.h b/tools/testing/selftests/vm/pkey-powerpc.h
+index c79f4160a6a0..319673bbab0b 100644
+--- a/tools/testing/selftests/vm/pkey-powerpc.h
++++ b/tools/testing/selftests/vm/pkey-powerpc.h
+@@ -28,7 +28,10 @@
+ #define NR_RESERVED_PKEYS_4K	27 /* pkey-0, pkey-1, exec-only-pkey
+ 				      and 24 other keys that cannot be
+ 				      represented in the PTE */
+-#define NR_RESERVED_PKEYS_64K	3  /* pkey-0, pkey-1 and exec-only-pkey */
++#define NR_RESERVED_PKEYS_64K_3KEYS	3 /* PowerNV and KVM: pkey-0,
++					     pkey-1 and exec-only key */
++#define NR_RESERVED_PKEYS_64K_4KEYS	4 /* PowerVM: pkey-0, pkey-1,
++					     pkey-31 and exec-only key */
+ #define PKEY_BITS_PER_PKEY	2
+ #define HPAGE_SIZE		(1UL << 24)
+ #define PAGE_SIZE		(1UL << 16)
+@@ -65,12 +68,27 @@ static inline int cpu_has_pku(void)
+ 	return 1;
+ }
 
-+/* Define some kernel-like types */
-+#define  u8 uint8_t
-+#define u16 uint16_t
-+#define u32 uint32_t
-+#define u64 uint64_t
++static inline bool arch_is_powervm()
++{
++	struct stat buf;
 +
-+#define PTR_ERR_ENOTSUP ((void *)-ENOTSUP)
++	if ((stat("/sys/firmware/devicetree/base/ibm,partition-name", &buf) == 0) &&
++	    (stat("/sys/firmware/devicetree/base/hmc-managed?", &buf) == 0) &&
++	    (stat("/sys/firmware/devicetree/base/chosen/qemu,graphic-width", &buf) == -1) )
++		return true;
 +
- #define NR_PKEYS 16
- #define PKEY_BITS_PER_PKEY 2
-
-@@ -53,6 +61,18 @@ static inline void sigsafe_printf(const char *format, ...)
- #define dprintf3(args...) dprintf_level(3, args)
- #define dprintf4(args...) dprintf_level(4, args)
-
-+extern void abort_hooks(void);
-+#define pkey_assert(condition) do {		\
-+	if (!(condition)) {			\
-+		dprintf0("assert() at %s::%d test_nr: %d iteration: %d\n", \
-+				__FILE__, __LINE__,	\
-+				test_nr, iteration_nr);	\
-+		dprintf0("errno at assert: %d", errno);	\
-+		abort_hooks();			\
-+		exit(__LINE__);			\
-+	}					\
-+} while (0)
++	return false;
++}
 +
- extern unsigned int shadow_pkey_reg;
- static inline unsigned int __read_pkey_reg(void)
+ static inline int get_arch_reserved_keys(void)
  {
-@@ -137,11 +157,6 @@ static inline void __pkey_write_allow(int pkey, int do_allow_write)
- 	dprintf4("pkey_reg now: %08x\n", read_pkey_reg());
+ 	if (sysconf(_SC_PAGESIZE) == 4096)
+ 		return NR_RESERVED_PKEYS_4K;
+ 	else
+-		return NR_RESERVED_PKEYS_64K;
++		if (arch_is_powervm())
++			return NR_RESERVED_PKEYS_64K_4KEYS;
++		else
++			return NR_RESERVED_PKEYS_64K_3KEYS;
  }
 
--#define PROT_PKEY0     0x10            /* protection key value (bit 0) */
--#define PROT_PKEY1     0x20            /* protection key value (bit 1) */
--#define PROT_PKEY2     0x40            /* protection key value (bit 2) */
--#define PROT_PKEY3     0x80            /* protection key value (bit 3) */
--
- #define PAGE_SIZE 4096
- #define MB	(1<<20)
-
-@@ -219,4 +234,14 @@ int pkey_reg_xstate_offset(void)
- 	return xstate_offset;
- }
-
-+#define ARRAY_SIZE(x) (sizeof(x) / sizeof(*(x)))
-+#define ALIGN_UP(x, align_to)	(((x) + ((align_to)-1)) & ~((align_to)-1))
-+#define ALIGN_DOWN(x, align_to) ((x) & ~((align_to)-1))
-+#define ALIGN_PTR_UP(p, ptr_align_to)	\
-+	((typeof(p))ALIGN_UP((unsigned long)(p), ptr_align_to))
-+#define ALIGN_PTR_DOWN(p, ptr_align_to)	\
-+	((typeof(p))ALIGN_DOWN((unsigned long)(p), ptr_align_to))
-+#define __stringify_1(x...)     #x
-+#define __stringify(x...)       __stringify_1(x)
-+
- #endif /* _PKEYS_HELPER_H */
-diff --git a/tools/testing/selftests/vm/protection_keys.c b/tools/testing/selftests/vm/protection_keys.c
-index 2f4ab81c570d..42ffb58810f2 100644
---- a/tools/testing/selftests/vm/protection_keys.c
-+++ b/tools/testing/selftests/vm/protection_keys.c
-@@ -51,31 +51,10 @@ int test_nr;
- unsigned int shadow_pkey_reg;
-
- #define HPAGE_SIZE	(1UL<<21)
--#define ARRAY_SIZE(x) (sizeof(x) / sizeof(*(x)))
--#define ALIGN_UP(x, align_to)	(((x) + ((align_to)-1)) & ~((align_to)-1))
--#define ALIGN_DOWN(x, align_to) ((x) & ~((align_to)-1))
--#define ALIGN_PTR_UP(p, ptr_align_to)	((typeof(p))ALIGN_UP((unsigned long)(p),	ptr_align_to))
--#define ALIGN_PTR_DOWN(p, ptr_align_to)	((typeof(p))ALIGN_DOWN((unsigned long)(p),	ptr_align_to))
--#define __stringify_1(x...)     #x
--#define __stringify(x...)       __stringify_1(x)
--
--#define PTR_ERR_ENOTSUP ((void *)-ENOTSUP)
-
- int dprint_in_signal;
- char dprint_in_signal_buffer[DPRINT_IN_SIGNAL_BUF_SIZE];
-
--extern void abort_hooks(void);
--#define pkey_assert(condition) do {		\
--	if (!(condition)) {			\
--		dprintf0("assert() at %s::%d test_nr: %d iteration: %d\n", \
--				__FILE__, __LINE__,	\
--				test_nr, iteration_nr);	\
--		dprintf0("errno at assert: %d", errno);	\
--		abort_hooks();			\
--		exit(__LINE__);			\
--	}					\
--} while (0)
--
- void cat_into_file(char *str, char *file)
- {
- 	int fd = open(file, O_RDWR);
-@@ -186,12 +165,6 @@ void lots_o_noops_around_write(int *write_to_me)
- 	dprintf3("%s() done\n", __func__);
- }
-
--/* Define some kernel-like types */
--#define  u8 uint8_t
--#define u16 uint16_t
--#define u32 uint32_t
--#define u64 uint64_t
--
- #ifdef __i386__
-
- #ifndef SYS_mprotect_key
+ void expect_fault_on_read_execonly_key(void *p1, int pkey)
 -- 
 2.17.1
