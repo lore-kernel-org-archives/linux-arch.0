@@ -1,84 +1,79 @@
-Return-Path: <brendanhiggins@google.com>
+Return-Path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-pj1-f68.google.com ([209.85.216.68]:37743 "EHLO
+ mail-pj1-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with
+ ESMTP id S1727456AbgA3TXl (ORCPT <rfc822;linux-arch@vger.kernel.org>); Thu,
+ 30 Jan 2020 14:23:41 -0500
+Received: by mail-pj1-f68.google.com with SMTP id m13so1772538pjb.2 for
+ <linux-arch@vger.kernel.org>; Thu, 30 Jan 2020 11:23:41 -0800 (PST)
+Date: Thu, 30 Jan 2020 11:23:38 -0800
+From: Kees Cook <keescook@chromium.org>
+Subject: Re: [kernel-hardening] [PATCH 09/38] usercopy: Mark kmalloc caches as
+ usercopy caches
+Message-ID: <202001300945.7D465B5F5@keescook>
+References: <201911121313.1097D6EE@keescook> <201911141327.4DE6510@keescook>
+ <bfca96db-bbd0-d958-7732-76e36c667c68@suse.cz>
+ <202001271519.AA6ADEACF0@keescook>
+ <5861936c-1fe1-4c44-d012-26efa0c8b6e7@de.ibm.com>
+ <202001281457.FA11CC313A@keescook>
+ <alpine.DEB.2.21.2001291640350.1546@www.lameter.com>
+ <6844ea47-8e0e-4fb7-d86f-68046995a749@de.ibm.com>
+ <20200129170939.GA4277@infradead.org>
+ <771c5511-c5ab-3dd1-d938-5dbc40396daa@de.ibm.com>
 MIME-Version: 1.0
-References: <20200128072002.79250-1-brendanhiggins@google.com>
- <20200128072002.79250-7-brendanhiggins@google.com> <20200129063307.19CB4206F0@mail.kernel.org>
-In-Reply-To: <20200129063307.19CB4206F0@mail.kernel.org>
-From: Brendan Higgins <brendanhiggins@google.com>
-Date: Thu, 30 Jan 2020 14:56:47 -0800
-Message-ID: <CAFd5g44OO7Lany3U9dn-Axbsf2YBQ4fynvRpkqYYf-N1AhNMQQ@mail.gmail.com>
-Subject: Re: [PATCH v1 6/7] kunit: Add 'kunit_shutdown' option
-Content-Type: text/plain; charset="UTF-8"
-To: Stephen Boyd <sboyd@kernel.org>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Alan Maguire <alan.maguire@oracle.com>, Anton Ivanov <anton.ivanov@cambridgegreys.com>, Arnd Bergmann <arnd@arndb.de>, David Gow <davidgow@google.com>, Frank Rowand <frowand.list@gmail.com>, Jeff Dike <jdike@addtoit.com>, Kees Cook <keescook@chromium.org>, Richard Weinberger <richard@nod.at>, rppt@linux.ibm.com, Shuah Khan <skhan@linuxfoundation.org>, Iurii Zaikin <yzaikin@google.com>, Greg KH <gregkh@linuxfoundation.org>, Logan Gunthorpe <logang@deltatee.com>, Luis Chamberlain <mcgrof@kernel.org>, Knut Omang <knut.omang@oracle.com>, linux-um <linux-um@lists.infradead.org>, linux-arch@vger.kernel.org, "open list:KERNEL SELFTEST FRAMEWORK" <linux-kselftest@vger.kernel.org>, KUnit Development <kunit-dev@googlegroups.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <771c5511-c5ab-3dd1-d938-5dbc40396daa@de.ibm.com>
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200130225647.uFQksajSnuHE26JHAodIIJlxI2T_Am_GiiT3CUw0PNg@z>
+To: Christian Borntraeger <borntraeger@de.ibm.com>
+Cc: Christoph Hellwig <hch@infradead.org>, Christopher Lameter <cl@linux.com>, Jiri Slaby <jslaby@suse.cz>, Julian Wiedmann <jwi@linux.ibm.com>, Ursula Braun <ubraun@linux.ibm.com>, Alexander Viro <viro@zeniv.linux.org.uk>, linux-kernel@vger.kernel.org, David Windsor <dave@nullcore.net>, Pekka Enberg <penberg@kernel.org>, David Rientjes <rientjes@google.com>, Joonsoo Kim <iamjoonsoo.kim@lge.com>, Andrew Morton <akpm@linux-foundation.org>, linux-mm@kvack.org, linux-xfs@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, "David S. Miller" <davem@davemloft.net>, Laura Abbott <labbott@redhat.com>, Mark Rutland <mark.rutland@arm.com>, "Martin K. Petersen" <martin.petersen@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Christoffer Dall <christoffer.dall@linaro.org>, Dave Kleikamp <dave.kleikamp@oracle.com>, Jan Kara <jack@suse.cz>, Luis de Bethencourt <luisbg@kernel.org>, Marc Zyngier <marc.zyngier@arm.com>, Rik van Riel <riel@redhat.com>, Matthew Garrett <mjg59@google.com>, linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org, netdev@vger.kernel.org, kernel-hardening@lists.openwall.com, Vlastimil Babka <vbabka@suse.cz>, Michal Kubecek <mkubecek@suse.cz>
+Message-ID: <20200130192338.jNsotkktoXUoi2_y-PE67eJErmSl4W8B2ztfBBN6snQ@z>
 
-On Tue, Jan 28, 2020 at 10:33 PM Stephen Boyd <sboyd@kernel.org> wrote:
->
-> Quoting Brendan Higgins (2020-01-27 23:20:01)
-> > From: David Gow <davidgow@google.com>
-> >
-> > Add a new kernel command-line option, 'kunit_shutdown', which allows the
-> > user to specify that the kernel poweroff, halt, or reboot after
-> > completing all KUnit tests; this is very handy for running KUnit tests
-> > on UML or a VM so that the UML/VM process exits cleanly immediately
-> > after running all tests without needing a special initramfs.
-> >
-> > Signed-off-by: David Gow <davidgow@google.com>
-> > Signed-off-by: Brendan Higgins <brendanhiggins@google.com>
-> > ---
->
-> Two nitpicks below
->
-> Reviewed-by: Stephen Boyd <sboyd@kernel.org>
->
-> > diff --git a/lib/kunit/executor.c b/lib/kunit/executor.c
-> > index 7fd16feff157e..d3ec1265a72fd 100644
-> > --- a/lib/kunit/executor.c
-> > +++ b/lib/kunit/executor.c
-> > @@ -1,6 +1,7 @@
-> >  // SPDX-License-Identifier: GPL-2.0
-> >
-> >  #include <kunit/test.h>
-> > +#include <linux/reboot.h>
->
-> Should this include come before kunit/test.h? I imagine the order of
-> includes would be linux, kunit, local?
+On Wed, Jan 29, 2020 at 06:19:56PM +0100, Christian Borntraeger wrote:
+> On 29.01.20 18:09, Christoph Hellwig wrote:
+> > On Wed, Jan 29, 2020 at 06:07:14PM +0100, Christian Borntraeger wrote:
+> >>> DMA can be done to NORMAL memory as well.
+> >>
+> >> Exactly. 
+> >> I think iucv uses GFP_DMA because z/VM needs those buffers to reside below 2GB (which is ZONA_DMA for s390).
+> > 
+> > The normal way to allocate memory with addressing limits would be to
+> > use dma_alloc_coherent and friends.  Any chance to switch iucv over to
+> > that?  Or is there no device associated with it?
+> 
+> There is not necessarily a device for that. It is a hypervisor interface (an
+> instruction that is interpreted by z/VM). We do have the netiucv driver that
+> creates a virtual nic, but there is also AF_IUCV which works without a device.
+> 
+> But back to the original question: If we mark kmalloc caches as usercopy caches,
+> we should do the same for DMA kmalloc caches. As outlined by Christoph, this has
+> nothing to do with device DMA.
 
-I think some reviewers/maintainers want them all to be alphabetical.
-So I have probably done it both ways in the past. Will fix.
+Hm, looks like it's allocated from the low 16MB. Seems like poor naming!
+:) There seems to be a LOT of stuff using GFP_DMA, and it seems unlikely
+those are all expecting low addresses?
 
-> >
-> >  /*
-> >   * These symbols point to the .kunit_test_suites section and are defined in
-> > @@ -11,6 +12,23 @@ extern struct kunit_suite * const * const __kunit_suites_end[];
-> >
-> >  #if IS_BUILTIN(CONFIG_KUNIT)
-> >
-> > +static char *kunit_shutdown;
-> > +core_param(kunit_shutdown, kunit_shutdown, charp, 0644);
-> > +
-> > +static void kunit_handle_shutdown(void)
-> > +{
-> > +       if (!kunit_shutdown)
-> > +               return;
-> > +
-> > +       if (!strcmp(kunit_shutdown, "poweroff")) {
-> > +               kernel_power_off();
-> > +       } else if (!strcmp(kunit_shutdown, "halt")) {
-> > +               kernel_halt();
-> > +       } else if (!strcmp(kunit_shutdown, "reboot")) {
-> > +               kernel_restart(NULL);
-> > +       }
->
-> Kernel style would be to not have braces on single line if statements.
+Since this has only been a problem on s390, should just s390 gain the
+weakening of the usercopy restriction?  Something like:
 
-Whoops. Sometimes I forget :-)
 
-> > +}
-> > +
-> >  static void kunit_print_tap_header(void)
-> >  {
-> >         struct kunit_suite * const * const *suites, * const *subsuite;
+diff --git a/mm/slab_common.c b/mm/slab_common.c
+index 1907cb2903c7..c5bbc141f20b 100644
+--- a/mm/slab_common.c
++++ b/mm/slab_common.c
+@@ -1303,7 +1303,9 @@ void __init create_kmalloc_caches(slab_flags_t flags)
+ 			kmalloc_caches[KMALLOC_DMA][i] = create_kmalloc_cache(
+ 				kmalloc_info[i].name[KMALLOC_DMA],
+ 				kmalloc_info[i].size,
+-				SLAB_CACHE_DMA | flags, 0, 0);
++				SLAB_CACHE_DMA | flags, 0,
++				IS_ENABLED(CONFIG_S390) ?
++					kmalloc_info[i].size : 0);
+ 		}
+ 	}
+ #endif
 
-Thanks!
+
+
+-- 
+Kees Cook
