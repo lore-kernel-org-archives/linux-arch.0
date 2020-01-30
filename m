@@ -1,69 +1,69 @@
-Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:10710 "EHLO
- mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
- with ESMTP id S1729774AbgAPGqO (ORCPT <rfc822;linux-arch@vger.kernel.org>);
- Thu, 16 Jan 2020 01:46:14 -0500
-From: "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>
-Subject: [PATCH v4 3/9] asm-generic/tlb: Avoid potential double flush
-Date: Thu, 16 Jan 2020 12:15:25 +0530
-Message-ID: <20200116064531.483522-4-aneesh.kumar@linux.ibm.com>
-In-Reply-To: <20200116064531.483522-1-aneesh.kumar@linux.ibm.com>
-References: <20200116064531.483522-1-aneesh.kumar@linux.ibm.com>
-MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
-Sender: linux-arch-owner@vger.kernel.org
+Return-Path: <owner-linux-mm@kvack.org>
+From: Sandipan Das <sandipan@linux.ibm.com>
+Subject: [PATCH v18 17/24] selftests/vm/pkeys: Associate key on a mapped page
+ and detect access violation
+Date: Thu, 30 Jan 2020 12:06:59 +0530
+In-Reply-To: <cover.1580365432.git.sandipan@linux.ibm.com>
+References: <cover.1580365432.git.sandipan@linux.ibm.com>
+In-Reply-To: <cover.1580365432.git.sandipan@linux.ibm.com>
+References: <cover.1580365432.git.sandipan@linux.ibm.com>
+Message-ID: <fb59263b1716fb095a7a10d0e2b8017e06150402.1580365432.git.sandipan@linux.ibm.com>
+Sender: owner-linux-mm@kvack.org
+To: shuah@kernel.org, skhan@linuxfoundation.org, linux-kselftest@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, x86@kernel.org, linux-mm@kvack.org, fweimer@redhat.com, dave.hansen@intel.com, linuxram@us.ibm.com, mhocko@kernel.org, mingo@redhat.com, aneesh.kumar@linux.ibm.com, bauerman@linux.ibm.com, msuchanek@suse.de, mpe@ellerman.id.au
 List-ID: <linux-arch.vger.kernel.org>
-To: akpm@linux-foundation.org, peterz@infradead.org, will@kernel.org, mpe@ellerman.id.au
-Cc: linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>
-Message-ID: <20200116064525.4c10S7c3F8jxiRJf819pdqJoCPxwmrbg4Jy6Ru4WUIU@z>
+Message-ID: <20200130063659.r6pNfU0fon-Zac9809ShQqZv9EcHOo50pQ9vo115HyU@z>
 
-From: Peter Zijlstra <peterz@infradead.org>
+From: Ram Pai <linuxram@us.ibm.com>
 
-Aneesh reported that:
+Detect access-violation on a page to which access-disabled
+key is associated much after the page is mapped.
 
-	tlb_flush_mmu()
-	  tlb_flush_mmu_tlbonly()
-	    tlb_flush()			<-- #1
-	  tlb_flush_mmu_free()
-	    tlb_table_flush()
-	      tlb_table_invalidate()
-		tlb_flush_mmu_tlbonly()
-		  tlb_flush()		<-- #2
-
-does two TLBIs when tlb->fullmm, because __tlb_reset_range() will not
-clear tlb->end in that case.
-
-Observe that any caller to __tlb_adjust_range() also sets at least one
-of the tlb->freed_tables || tlb->cleared_p* bits, and those are
-unconditionally cleared by __tlb_reset_range().
-
-Change the condition for actually issuing TLBI to having one of those
-bits set, as opposed to having tlb->end != 0.
-
-Reported-by: "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>
-Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
-Signed-off-by: Aneesh Kumar K.V <aneesh.kumar@linux.ibm.com>
+cc: Dave Hansen <dave.hansen@intel.com>
+cc: Florian Weimer <fweimer@redhat.com>
+Signed-off-by: Ram Pai <linuxram@us.ibm.com>
+Acked-by: Dave Hansen <dave.hansen@intel.com>
+Signed-off: Sandipan Das <sandipan@linux.ibm.com>
 ---
- include/asm-generic/tlb.h | 7 ++++++-
- 1 file changed, 6 insertions(+), 1 deletion(-)
+ tools/testing/selftests/vm/protection_keys.c | 19 +++++++++++++++++++
+ 1 file changed, 19 insertions(+)
 
-diff --git a/include/asm-generic/tlb.h b/include/asm-generic/tlb.h
-index 9e22ac369d1d..b36b3bef5661 100644
---- a/include/asm-generic/tlb.h
-+++ b/include/asm-generic/tlb.h
-@@ -402,7 +402,12 @@ tlb_update_vma_flags(struct mmu_gather *tlb, struct vm_area_struct *vma) { }
-
- static inline void tlb_flush_mmu_tlbonly(struct mmu_gather *tlb)
+diff --git a/tools/testing/selftests/vm/protection_keys.c b/tools/testing/selftests/vm/protection_keys.c
+index 95f173049f43..f65d384ef6a0 100644
+--- a/tools/testing/selftests/vm/protection_keys.c
++++ b/tools/testing/selftests/vm/protection_keys.c
+@@ -984,6 +984,24 @@ void test_read_of_access_disabled_region(int *ptr, u16 pkey)
+ 	dprintf1("*ptr: %d\n", ptr_contents);
+ 	expected_pkey_fault(pkey);
+ }
++
++void test_read_of_access_disabled_region_with_page_already_mapped(int *ptr,
++		u16 pkey)
++{
++	int ptr_contents;
++
++	dprintf1("disabling access to PKEY[%02d], doing read @ %p\n",
++				pkey, ptr);
++	ptr_contents = read_ptr(ptr);
++	dprintf1("reading ptr before disabling the read : %d\n",
++			ptr_contents);
++	read_pkey_reg();
++	pkey_access_deny(pkey);
++	ptr_contents = read_ptr(ptr);
++	dprintf1("*ptr: %d\n", ptr_contents);
++	expected_pkey_fault(pkey);
++}
++
+ void test_write_of_write_disabled_region(int *ptr, u16 pkey)
  {
--	if (!tlb->end)
-+	/*
-+	 * Anything calling __tlb_adjust_range() also sets at least one of
-+	 * these bits.
-+	 */
-+	if (!(tlb->freed_tables || tlb->cleared_ptes || tlb->cleared_pmds ||
-+	      tlb->cleared_puds || tlb->cleared_p4ds))
- 		return;
-
- 	tlb_flush(tlb);
+ 	dprintf1("disabling write access to PKEY[%02d], doing write\n", pkey);
+@@ -1390,6 +1408,7 @@ void test_mprotect_pkey_on_unsupported_cpu(int *ptr, u16 pkey)
+ void (*pkey_tests[])(int *ptr, u16 pkey) = {
+ 	test_read_of_write_disabled_region,
+ 	test_read_of_access_disabled_region,
++	test_read_of_access_disabled_region_with_page_already_mapped,
+ 	test_write_of_write_disabled_region,
+ 	test_write_of_access_disabled_region,
+ 	test_kernel_write_of_access_disabled_region,
 -- 
-2.24.1
+2.17.1
