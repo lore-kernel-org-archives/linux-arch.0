@@ -1,52 +1,88 @@
 Return-Path: <owner-linux-mm@kvack.org>
-Subject: Re: [PATCH v3 0/9] Fixup page directory freeing
-References: <20200114100145.365527-1-aneesh.kumar@linux.ibm.com>
- <20200114105002.GD2844@hirez.programming.kicks-ass.net>
-From: "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>
-Date: Tue, 14 Jan 2020 17:58:58 +0530
-MIME-Version: 1.0
-In-Reply-To: <20200114105002.GD2844@hirez.programming.kicks-ass.net>
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Language: en-US
-Content-Transfer-Encoding: 7bit
-Message-ID: <ed2e6567-30db-a3c7-2973-a307bf2dfa7b@linux.ibm.com>
+From: Sandipan Das <sandipan@linux.ibm.com>
+Subject: [PATCH v18 11/24] selftests: vm: pkeys: Use the correct huge page
+ size
+Date: Thu, 30 Jan 2020 12:06:53 +0530
+In-Reply-To: <cover.1580365432.git.sandipan@linux.ibm.com>
+References: <cover.1580365432.git.sandipan@linux.ibm.com>
+In-Reply-To: <cover.1580365432.git.sandipan@linux.ibm.com>
+References: <cover.1580365432.git.sandipan@linux.ibm.com>
+Message-ID: <5f0b309b8fa4879151478a96f8aefa2756d5bc5b.1580365432.git.sandipan@linux.ibm.com>
 Sender: owner-linux-mm@kvack.org
-To: Peter Zijlstra <peterz@infradead.org>, Michael Ellerman <mpe@ellerman.id.au>
-Cc: akpm@linux-foundation.org, will@kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: shuah@kernel.org, skhan@linuxfoundation.org, linux-kselftest@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, x86@kernel.org, linux-mm@kvack.org, fweimer@redhat.com, dave.hansen@intel.com, linuxram@us.ibm.com, mhocko@kernel.org, mingo@redhat.com, aneesh.kumar@linux.ibm.com, bauerman@linux.ibm.com, msuchanek@suse.de, mpe@ellerman.id.au
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200114122858.zRdPLD3DXgsIg8iGS4OHgbif251F7xK4vKxLn1HGv3o@z>
+Message-ID: <20200130063653.0fE6SQ2sVweFI03WXkwAa6POersJXeA-DgLo9Ox0cIo@z>
 
-On 1/14/20 4:20 PM, Peter Zijlstra wrote:
-> On Tue, Jan 14, 2020 at 03:31:36PM +0530, Aneesh Kumar K.V wrote:
->> This is a repost of patch series from Peter with the arch specific changes except ppc64 dropped.
->> ppc64 changes are added here because we are redoing the patch series on top of ppc64 changes. This makes it
->> easy to backport these changes. Only the first 3 patches need to be backported to stable.
->>
->> The thing is, on anything SMP, freeing page directories should observe the
->> exact same order as normal page freeing:
->>
->>   1) unhook page/directory
->>   2) TLB invalidate
->>   3) free page/directory
->>
->> Without this, any concurrent page-table walk could end up with a Use-after-Free.
->> This is esp. trivial for anything that has software page-table walkers
->> (HAVE_FAST_GUP / software TLB fill) or the hardware caches partial page-walks
->> (ie. caches page directories).
->>
->> Even on UP this might give issues since mmu_gather is preemptible these days.
->> An interrupt or preempted task accessing user pages might stumble into the free
->> page if the hardware caches page directories.
->>
->> This patch series fixup ppc64 and add generic MMU_GATHER changes to support the conversion of other architectures.
->> I haven't added patches w.r.t other architecture because they are yet to be acked.
-> 
-> Obviously looks good to me; will you route this through the Power tree
-> since you're in a hurry to see this fixed?
-> 
+The huge page size can vary across architectures. This will
+ensure that the correct huge page size is used when accessing
+the hugetlb controls under sysfs. Instead of using a hardcoded
+page size (i.e. 2MB), this now uses the HPAGE_SIZE macro which
+is arch-specific.
 
-Michael,
+Signed-off-by: Sandipan Das <sandipan@linux.ibm.com>
+---
+ tools/testing/selftests/vm/protection_keys.c | 23 ++++++++++++++------
+ 1 file changed, 16 insertions(+), 7 deletions(-)
 
-Can you take this via your tree?
+diff --git a/tools/testing/selftests/vm/protection_keys.c b/tools/testing/selftests/vm/protection_keys.c
+index 9cc82b65f828..535e464e27e9 100644
+--- a/tools/testing/selftests/vm/protection_keys.c
++++ b/tools/testing/selftests/vm/protection_keys.c
+@@ -739,12 +739,15 @@ void *malloc_pkey_anon_huge(long size, int prot, u16 pkey)
+ }
 
--aneesh
+ int hugetlb_setup_ok;
++#define SYSFS_FMT_NR_HUGE_PAGES "/sys/kernel/mm/hugepages/hugepages-%ldkB/nr_hugepages"
+ #define GET_NR_HUGE_PAGES 10
+ void setup_hugetlbfs(void)
+ {
+ 	int err;
+ 	int fd;
+-	char buf[] = "123";
++	char buf[256];
++	long hpagesz_kb;
++	long hpagesz_mb;
+
+ 	if (geteuid() != 0) {
+ 		fprintf(stderr, "WARNING: not run as root, can not do hugetlb test\n");
+@@ -755,11 +758,16 @@ void setup_hugetlbfs(void)
+
+ 	/*
+ 	 * Now go make sure that we got the pages and that they
+-	 * are 2M pages.  Someone might have made 1G the default.
++	 * are PMD-level pages. Someone might have made PUD-level
++	 * pages the default.
+ 	 */
+-	fd = open("/sys/kernel/mm/hugepages/hugepages-2048kB/nr_hugepages", O_RDONLY);
++	hpagesz_kb = HPAGE_SIZE / 1024;
++	hpagesz_mb = hpagesz_kb / 1024;
++	sprintf(buf, SYSFS_FMT_NR_HUGE_PAGES, hpagesz_kb);
++	fd = open(buf, O_RDONLY);
+ 	if (fd < 0) {
+-		perror("opening sysfs 2M hugetlb config");
++		fprintf(stderr, "opening sysfs %ldM hugetlb config: %s\n",
++			hpagesz_mb, strerror(errno));
+ 		return;
+ 	}
+
+@@ -767,13 +775,14 @@ void setup_hugetlbfs(void)
+ 	err = read(fd, buf, sizeof(buf)-1);
+ 	close(fd);
+ 	if (err <= 0) {
+-		perror("reading sysfs 2M hugetlb config");
++		fprintf(stderr, "reading sysfs %ldM hugetlb config: %s\n",
++			hpagesz_mb, strerror(errno));
+ 		return;
+ 	}
+
+ 	if (atoi(buf) != GET_NR_HUGE_PAGES) {
+-		fprintf(stderr, "could not confirm 2M pages, got: '%s' expected %d\n",
+-			buf, GET_NR_HUGE_PAGES);
++		fprintf(stderr, "could not confirm %ldM pages, got: '%s' expected %d\n",
++			hpagesz_mb, buf, GET_NR_HUGE_PAGES);
+ 		return;
+ 	}
+
+-- 
+2.17.1
