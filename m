@@ -1,133 +1,55 @@
-Return-Path: <owner-linux-mm@kvack.org>
-From: Sandipan Das <sandipan@linux.ibm.com>
-Subject: [PATCH v18 00/24] selftests, powerpc, x86: Memory Protection Keys
-Date: Thu, 30 Jan 2020 12:06:42 +0530
-Message-ID: <cover.1580365432.git.sandipan@linux.ibm.com>
-Sender: owner-linux-mm@kvack.org
-To: shuah@kernel.org, skhan@linuxfoundation.org, linux-kselftest@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, x86@kernel.org, linux-mm@kvack.org, fweimer@redhat.com, dave.hansen@intel.com, linuxram@us.ibm.com, mhocko@kernel.org, mingo@redhat.com, aneesh.kumar@linux.ibm.com, bauerman@linux.ibm.com, msuchanek@suse.de, mpe@ellerman.id.au
+Return-Path: <372EzXg4KBHgXnajZWjdeccejockkcha.Ykinllphejqt.eXi.Yki@flex--brendanhiggins.bounces.google.com>
+Date: Thu, 30 Jan 2020 15:08:06 -0800
+In-Reply-To: <20200130230812.142642-1-brendanhiggins@google.com>
+Message-ID: <20200130230812.142642-2-brendanhiggins@google.com>
+Mime-Version: 1.0
+References: <20200130230812.142642-1-brendanhiggins@google.com>
+Subject: [PATCH v2 1/7] vmlinux.lds.h: add linker section for KUnit test suites
+From: Brendan Higgins <brendanhiggins@google.com>
+Content-Type: text/plain; charset="UTF-8"
+To: jdike@addtoit.com, richard@nod.at, anton.ivanov@cambridgegreys.com, arnd@arndb.de, keescook@chromium.org, skhan@linuxfoundation.org, alan.maguire@oracle.com, yzaikin@google.com, davidgow@google.com, akpm@linux-foundation.org, rppt@linux.ibm.com, frowand.list@gmail.com
+Cc: gregkh@linuxfoundation.org, sboyd@kernel.org, logang@deltatee.com, mcgrof@kernel.org, knut.omang@oracle.com, linux-um@lists.infradead.org, linux-arch@vger.kernel.org, linux-kselftest@vger.kernel.org, kunit-dev@googlegroups.com, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, Brendan Higgins <brendanhiggins@google.com>
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200130063642.xp78e7WfKcy6ab4Ao-ULjTXIlteKilVKcG-WIXDWgzE@z>
+Message-ID: <20200130230806.4bL_SGssRXnBScxBk4pDFISe_KgP-orhM85gF2W1-5Q@z>
 
-Memory protection keys enables an application to protect its address
-space from inadvertent access by its own code.
+Add a linker section where KUnit can put references to its test suites.
+This patch is the first step in transitioning to dispatching all KUnit
+tests from a centralized executor rather than having each as its own
+separate late_initcall.
 
-This feature is now enabled on powerpc and has been available since
-4.16-rc1. The patches move the selftests to arch neutral directory
-and enhance their test coverage.
+Co-developed-by: Iurii Zaikin <yzaikin@google.com>
+Signed-off-by: Iurii Zaikin <yzaikin@google.com>
+Signed-off-by: Brendan Higgins <brendanhiggins@google.com>
+Reviewed-by: Stephen Boyd <sboyd@kernel.org>
+---
+ include/asm-generic/vmlinux.lds.h | 8 ++++++++
+ 1 file changed, 8 insertions(+)
 
-Tested on powerpc64 and x86_64 (Skylake-SP).
-
-Link to development branch:
-https://github.com/sandip4n/linux/tree/pkey-selftests
-
-Changelog
----------
-Link to previous version (v17):
-https://patchwork.ozlabs.org/project/linuxppc-dev/list/?series=154174
-
-v18:
-	(1) Fixed issues with x86 multilib builds based on
-	    feedback from Dave.
-	(2) Moved patch 2 to the end of the series.
-
-v17:
-	(1) Fixed issues with i386 builds when running on x86_64
-	    based on feedback from Dave.
-	(2) Replaced patch 6 from previous version with patch 7.
-	    This addresses u64 format specifier related concerns
-	    that Michael had raised in v15.
-
-v16:
-	(1) Rebased on top of latest master.
-	(2) Switched to u64 instead of using an arch-dependent
-	    pkey_reg_t type for references to the pkey register
-	    based on suggestions from Dave, Michal and Michael.
-	(3) Removed build time determination of page size based
-	    on suggestion from Michael.
-	(4) Fixed comment before the definition of __page_o_noops()
-	    from patch 13 ("selftests/vm/pkeys: Introduce powerpc
-	    support").
-
-v15:
-	(1) Rebased on top of latest master.
-	(2) Addressed review comments from Dave Hansen.
-	(3) Moved code for getting or setting pkey bits to new
-	    helpers. These changes replace patch 7 of v14.
-	(4) Added a fix which ensures that the correct count of
-	    reserved keys is used across different platforms.
-	(5) Added a fix which ensures that the correct page size
-	    is used as powerpc supports both 4K and 64K pages.
-
-v14:
-	(1) Incorporated another round of comments from Dave Hansen.
-
-v13:
-	(1) Incorporated comments for Dave Hansen.
-	(2) Added one more test for correct pkey-0 behavior.
-
-v12:
-	(1) Fixed the offset of pkey field in the siginfo structure for
-	    x86_64 and powerpc. And tries to use the actual field
-	    if the headers have it defined.
-
-v11:
-	(1) Fixed a deadlock in the ptrace testcase.
-
-v10 and prior:
-	(1) Moved the testcase to arch neutral directory.
-	(2) Split the changes into incremental patches.
-
-Desnes A. Nunes do Rosario (1):
-  selftests/vm/pkeys: Fix number of reserved powerpc pkeys
-
-Ram Pai (16):
-  selftests/x86/pkeys: Move selftests to arch-neutral directory
-  selftests/vm/pkeys: Rename all references to pkru to a generic name
-  selftests/vm/pkeys: Move generic definitions to header file
-  selftests/vm/pkeys: Fix pkey_disable_clear()
-  selftests/vm/pkeys: Fix assertion in pkey_disable_set/clear()
-  selftests/vm/pkeys: Fix alloc_random_pkey() to make it really random
-  selftests/vm/pkeys: Introduce generic pkey abstractions
-  selftests/vm/pkeys: Introduce powerpc support
-  selftests/vm/pkeys: Fix assertion in test_pkey_alloc_exhaust()
-  selftests/vm/pkeys: Improve checks to determine pkey support
-  selftests/vm/pkeys: Associate key on a mapped page and detect access
-    violation
-  selftests/vm/pkeys: Associate key on a mapped page and detect write
-    violation
-  selftests/vm/pkeys: Detect write violation on a mapped
-    access-denied-key page
-  selftests/vm/pkeys: Introduce a sub-page allocator
-  selftests/vm/pkeys: Test correct behaviour of pkey-0
-  selftests/vm/pkeys: Override access right definitions on powerpc
-
-Sandipan Das (5):
-  selftests: vm: pkeys: Use sane types for pkey register
-  selftests: vm: pkeys: Add helpers for pkey bits
-  selftests: vm: pkeys: Use the correct huge page size
-  selftests: vm: pkeys: Use the correct page size on powerpc
-  selftests: vm: pkeys: Fix multilib builds for x86
-
-Thiago Jung Bauermann (2):
-  selftests/vm/pkeys: Move some definitions to arch-specific header
-  selftests/vm/pkeys: Make gcc check arguments of sigsafe_printf()
-
- tools/testing/selftests/vm/.gitignore         |   1 +
- tools/testing/selftests/vm/Makefile           |  73 ++
- tools/testing/selftests/vm/pkey-helpers.h     | 225 ++++++
- tools/testing/selftests/vm/pkey-powerpc.h     | 136 ++++
- tools/testing/selftests/vm/pkey-x86.h         | 181 +++++
- .../selftests/{x86 => vm}/protection_keys.c   | 696 ++++++++++--------
- tools/testing/selftests/x86/.gitignore        |   1 -
- tools/testing/selftests/x86/Makefile          |   2 +-
- tools/testing/selftests/x86/pkey-helpers.h    | 219 ------
- 9 files changed, 1002 insertions(+), 532 deletions(-)
- create mode 100644 tools/testing/selftests/vm/pkey-helpers.h
- create mode 100644 tools/testing/selftests/vm/pkey-powerpc.h
- create mode 100644 tools/testing/selftests/vm/pkey-x86.h
- rename tools/testing/selftests/{x86 => vm}/protection_keys.c (74%)
- delete mode 100644 tools/testing/selftests/x86/pkey-helpers.h
-
+diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
+index e00f41aa8ec4f..99a866f49cb3d 100644
+--- a/include/asm-generic/vmlinux.lds.h
++++ b/include/asm-generic/vmlinux.lds.h
+@@ -856,6 +856,13 @@
+ 		KEEP(*(.con_initcall.init))				\
+ 		__con_initcall_end = .;
+ 
++/* Alignment must be consistent with (kunit_suite *) in include/kunit/test.h */
++#define KUNIT_TEST_SUITES						\
++		. = ALIGN(8);						\
++		__kunit_suites_start = .;				\
++		KEEP(*(.kunit_test_suites))				\
++		__kunit_suites_end = .;
++
+ #ifdef CONFIG_BLK_DEV_INITRD
+ #define INIT_RAM_FS							\
+ 	. = ALIGN(4);							\
+@@ -1024,6 +1031,7 @@
+ 		INIT_CALLS						\
+ 		CON_INITCALL						\
+ 		INIT_RAM_FS						\
++		KUNIT_TEST_SUITES					\
+ 	}
+ 
+ #define BSS_SECTION(sbss_align, bss_align, stop_align)			\
 -- 
-2.17.1
+2.25.0.341.g760bfbb309-goog
