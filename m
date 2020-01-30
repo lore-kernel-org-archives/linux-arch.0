@@ -1,47 +1,84 @@
-Return-Path: <owner-linux-mm@kvack.org>
-Subject: Re: [PATCH] lib: Reduce user_access_begin() boundaries in
- strncpy_from_user() and strnlen_user()
-References: 
- <70f99f7474826883877e84f93224e937d9c974de.1579767339.git.christophe.leroy@c-s.fr>
- <CAHk-=wgcm5JzyacekDGQ4Ocoe-F5it-7-sbgU8oPnhwnSH3KAA@mail.gmail.com>
-From: Christophe Leroy <christophe.leroy@c-s.fr>
-Message-ID: <8de7ba48-7bf4-8d43-5dfc-dacf34f80537@c-s.fr>
-Date: Fri, 24 Jan 2020 07:25:51 +0100
+Return-Path: <brendanhiggins@google.com>
 MIME-Version: 1.0
-In-Reply-To: 
- <CAHk-=wgcm5JzyacekDGQ4Ocoe-F5it-7-sbgU8oPnhwnSH3KAA@mail.gmail.com>
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Language: fr
-Content-Transfer-Encoding: quoted-printable
-Sender: owner-linux-mm@kvack.org
-To: Linus Torvalds <torvalds@linux-foundation.org>, linux-arch <linux-arch@vger.kernel.org>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, Linux-MM <linux-mm@kvack.org>
+References: <20200128072002.79250-1-brendanhiggins@google.com>
+ <20200128072002.79250-7-brendanhiggins@google.com> <20200129063307.19CB4206F0@mail.kernel.org>
+In-Reply-To: <20200129063307.19CB4206F0@mail.kernel.org>
+From: Brendan Higgins <brendanhiggins@google.com>
+Date: Thu, 30 Jan 2020 14:56:47 -0800
+Message-ID: <CAFd5g44OO7Lany3U9dn-Axbsf2YBQ4fynvRpkqYYf-N1AhNMQQ@mail.gmail.com>
+Subject: Re: [PATCH v1 6/7] kunit: Add 'kunit_shutdown' option
+Content-Type: text/plain; charset="UTF-8"
+To: Stephen Boyd <sboyd@kernel.org>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Alan Maguire <alan.maguire@oracle.com>, Anton Ivanov <anton.ivanov@cambridgegreys.com>, Arnd Bergmann <arnd@arndb.de>, David Gow <davidgow@google.com>, Frank Rowand <frowand.list@gmail.com>, Jeff Dike <jdike@addtoit.com>, Kees Cook <keescook@chromium.org>, Richard Weinberger <richard@nod.at>, rppt@linux.ibm.com, Shuah Khan <skhan@linuxfoundation.org>, Iurii Zaikin <yzaikin@google.com>, Greg KH <gregkh@linuxfoundation.org>, Logan Gunthorpe <logang@deltatee.com>, Luis Chamberlain <mcgrof@kernel.org>, Knut Omang <knut.omang@oracle.com>, linux-um <linux-um@lists.infradead.org>, linux-arch@vger.kernel.org, "open list:KERNEL SELFTEST FRAMEWORK" <linux-kselftest@vger.kernel.org>, KUnit Development <kunit-dev@googlegroups.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200124062551.uLsajoC9BugBgIOvb4PSAGhjlG1DnQMlHjTXibpsriI@z>
+Message-ID: <20200130225647.uFQksajSnuHE26JHAodIIJlxI2T_Am_GiiT3CUw0PNg@z>
 
+On Tue, Jan 28, 2020 at 10:33 PM Stephen Boyd <sboyd@kernel.org> wrote:
+>
+> Quoting Brendan Higgins (2020-01-27 23:20:01)
+> > From: David Gow <davidgow@google.com>
+> >
+> > Add a new kernel command-line option, 'kunit_shutdown', which allows the
+> > user to specify that the kernel poweroff, halt, or reboot after
+> > completing all KUnit tests; this is very handy for running KUnit tests
+> > on UML or a VM so that the UML/VM process exits cleanly immediately
+> > after running all tests without needing a special initramfs.
+> >
+> > Signed-off-by: David Gow <davidgow@google.com>
+> > Signed-off-by: Brendan Higgins <brendanhiggins@google.com>
+> > ---
+>
+> Two nitpicks below
+>
+> Reviewed-by: Stephen Boyd <sboyd@kernel.org>
+>
+> > diff --git a/lib/kunit/executor.c b/lib/kunit/executor.c
+> > index 7fd16feff157e..d3ec1265a72fd 100644
+> > --- a/lib/kunit/executor.c
+> > +++ b/lib/kunit/executor.c
+> > @@ -1,6 +1,7 @@
+> >  // SPDX-License-Identifier: GPL-2.0
+> >
+> >  #include <kunit/test.h>
+> > +#include <linux/reboot.h>
+>
+> Should this include come before kunit/test.h? I imagine the order of
+> includes would be linux, kunit, local?
 
+I think some reviewers/maintainers want them all to be alphabetical.
+So I have probably done it both ways in the past. Will fix.
 
-Le 23/01/2020 =C3=A0 19:47, Linus Torvalds a =C3=A9crit=C2=A0:
-> On Thu, Jan 23, 2020 at 12:34 AM Christophe Leroy
-> <christophe.leroy@c-s.fr> wrote:
->>
->> The range passed to user_access_begin() by strncpy_from_user() and
->> strnlen_user() starts at 'src' and goes up to the limit of userspace
->> allthough reads will be limited by the 'count' param.
->>
->> On 32 bits powerpc (book3s/32) access has to be granted for each 256Mb=
-ytes
->> segment and the cost increases with the number of segments to unlock.
->>
->> Limit the range with 'count' param.
->=20
-> Ack. I'm tempted to take this for 5.5 too, just so that the
-> unquestionably trivial fixes are in that baseline, and the
-> infrastructure is ready for any architecture that has issues like
-> this.
+> >
+> >  /*
+> >   * These symbols point to the .kunit_test_suites section and are defined in
+> > @@ -11,6 +12,23 @@ extern struct kunit_suite * const * const __kunit_suites_end[];
+> >
+> >  #if IS_BUILTIN(CONFIG_KUNIT)
+> >
+> > +static char *kunit_shutdown;
+> > +core_param(kunit_shutdown, kunit_shutdown, charp, 0644);
+> > +
+> > +static void kunit_handle_shutdown(void)
+> > +{
+> > +       if (!kunit_shutdown)
+> > +               return;
+> > +
+> > +       if (!strcmp(kunit_shutdown, "poweroff")) {
+> > +               kernel_power_off();
+> > +       } else if (!strcmp(kunit_shutdown, "halt")) {
+> > +               kernel_halt();
+> > +       } else if (!strcmp(kunit_shutdown, "reboot")) {
+> > +               kernel_restart(NULL);
+> > +       }
+>
+> Kernel style would be to not have braces on single line if statements.
 
-It would be nice, then the user_access_begin stuff for powerpc could go=20
-for 5.6 without worring about.
+Whoops. Sometimes I forget :-)
 
-Thanks
-Christophe
+> > +}
+> > +
+> >  static void kunit_print_tap_header(void)
+> >  {
+> >         struct kunit_suite * const * const *suites, * const *subsuite;
+
+Thanks!
