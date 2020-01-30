@@ -1,135 +1,133 @@
-Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:30492 "EHLO
- mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with
- ESMTP id S1725872AbgATIhS (ORCPT <rfc822;linux-arch@vger.kernel.org>); Mon,
- 20 Jan 2020 03:37:18 -0500
-Received: from pps.filterd (m0187473.ppops.net [127.0.0.1]) by
- mx0a-001b2d01.pphosted.com (8.16.0.42/8.16.0.42) with SMTP id 00K8b10m181671
- for <linux-arch@vger.kernel.org>; Mon, 20 Jan 2020 03:37:17 -0500
-Received: from e06smtp04.uk.ibm.com (e06smtp04.uk.ibm.com [195.75.94.100]) by
- mx0a-001b2d01.pphosted.com with ESMTP id 2xkxhwp6xq-1 (version=TLSv1.2
- cipher=AES256-GCM-SHA384 bits=256 verify=NOT) for
- <linux-arch@vger.kernel.org>; Mon, 20 Jan 2020 03:37:13 -0500
-Received: from localhost by e06smtp04.uk.ibm.com with IBM ESMTP SMTP Gateway:
- Authorized Use Only! Violators will be prosecuted for
- <linux-arch@vger.kernel.org> from <sandipan@linux.ibm.com>; Mon, 20 Jan 2020
- 08:37:06 -0000
+Return-Path: <owner-linux-mm@kvack.org>
 From: Sandipan Das <sandipan@linux.ibm.com>
-Subject: [PATCH v17 13/24] selftests/vm/pkeys: Introduce generic pkey
- abstractions
-Date: Mon, 20 Jan 2020 14:06:10 +0530
-In-Reply-To: <cover.1579507768.git.sandipan@linux.ibm.com>
-References: <cover.1579507768.git.sandipan@linux.ibm.com>
-In-Reply-To: <cover.1579507768.git.sandipan@linux.ibm.com>
-References: <cover.1579507768.git.sandipan@linux.ibm.com>
-Message-ID: <8c6354acc5ee9f871d378f8f8d644d3fd5ab3471.1579507768.git.sandipan@linux.ibm.com>
-Sender: linux-arch-owner@vger.kernel.org
+Subject: [PATCH v18 00/24] selftests, powerpc, x86: Memory Protection Keys
+Date: Thu, 30 Jan 2020 12:06:42 +0530
+Message-ID: <cover.1580365432.git.sandipan@linux.ibm.com>
+Sender: owner-linux-mm@kvack.org
+To: shuah@kernel.org, skhan@linuxfoundation.org, linux-kselftest@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, x86@kernel.org, linux-mm@kvack.org, fweimer@redhat.com, dave.hansen@intel.com, linuxram@us.ibm.com, mhocko@kernel.org, mingo@redhat.com, aneesh.kumar@linux.ibm.com, bauerman@linux.ibm.com, msuchanek@suse.de, mpe@ellerman.id.au
 List-ID: <linux-arch.vger.kernel.org>
-To: shuah@kernel.org, linux-kselftest@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, fweimer@redhat.com, dave.hansen@intel.com, x86@kernel.org, linuxram@us.ibm.com, mhocko@kernel.org, linux-mm@kvack.org, mingo@redhat.com, aneesh.kumar@linux.ibm.com, bauerman@linux.ibm.com, msuchanek@suse.de, mpe@ellerman.id.au, linuxppc-dev@lists.ozlabs.org
-Message-ID: <20200120083610.YV_c5PQlHkrOlbjKP7baMxm66faUkDB8fKzsZBedhHY@z>
+Message-ID: <20200130063642.xp78e7WfKcy6ab4Ao-ULjTXIlteKilVKcG-WIXDWgzE@z>
 
-From: Ram Pai <linuxram@us.ibm.com>
+Memory protection keys enables an application to protect its address
+space from inadvertent access by its own code.
 
-This introduces some generic abstractions and provides
-the corresponding architecture-specfic implementations
-for these abstractions.
+This feature is now enabled on powerpc and has been available since
+4.16-rc1. The patches move the selftests to arch neutral directory
+and enhance their test coverage.
 
-cc: Dave Hansen <dave.hansen@intel.com>
-cc: Florian Weimer <fweimer@redhat.com>
-Signed-off-by: Ram Pai <linuxram@us.ibm.com>
-Signed-off-by: Thiago Jung Bauermann <bauerman@linux.ibm.com>
-Signed-off-by: Sandipan Das <sandipan@linux.ibm.com>
----
- tools/testing/selftests/vm/pkey-helpers.h    | 12 ++++++++++++
- tools/testing/selftests/vm/pkey-x86.h        | 15 +++++++++++++++
- tools/testing/selftests/vm/protection_keys.c |  8 ++------
- 3 files changed, 29 insertions(+), 6 deletions(-)
+Tested on powerpc64 and x86_64 (Skylake-SP).
 
-diff --git a/tools/testing/selftests/vm/pkey-helpers.h b/tools/testing/selftests/vm/pkey-helpers.h
-index 0e3da7c8d628..621fb2a0a5ef 100644
---- a/tools/testing/selftests/vm/pkey-helpers.h
-+++ b/tools/testing/selftests/vm/pkey-helpers.h
-@@ -74,6 +74,9 @@ extern void abort_hooks(void);
- 	}					\
- } while (0)
+Link to development branch:
+https://github.com/sandip4n/linux/tree/pkey-selftests
 
-+__attribute__((noinline)) int read_ptr(int *ptr);
-+void expected_pkey_fault(int pkey);
-+
- #if defined(__i386__) || defined(__x86_64__) /* arch */
- #include "pkey-x86.h"
- #else /* arch */
-@@ -172,4 +175,13 @@ static inline void __pkey_write_allow(int pkey, int do_allow_write)
- #define __stringify_1(x...)     #x
- #define __stringify(x...)       __stringify_1(x)
+Changelog
+---------
+Link to previous version (v17):
+https://patchwork.ozlabs.org/project/linuxppc-dev/list/?series=154174
 
-+static inline u32 *siginfo_get_pkey_ptr(siginfo_t *si)
-+{
-+#ifdef si_pkey
-+	return &si->si_pkey;
-+#else
-+	return (u32 *)(((u8 *)si) + si_pkey_offset);
-+#endif
-+}
-+
- #endif /* _PKEYS_HELPER_H */
-diff --git a/tools/testing/selftests/vm/pkey-x86.h b/tools/testing/selftests/vm/pkey-x86.h
-index def2a1bcf6a5..a0c59d4f7af2 100644
---- a/tools/testing/selftests/vm/pkey-x86.h
-+++ b/tools/testing/selftests/vm/pkey-x86.h
-@@ -42,6 +42,7 @@
- #endif
+v18:
+	(1) Fixed issues with x86 multilib builds based on
+	    feedback from Dave.
+	(2) Moved patch 2 to the end of the series.
 
- #define NR_PKEYS		16
-+#define NR_RESERVED_PKEYS	2 /* pkey-0 and exec-only-pkey */
- #define PKEY_BITS_PER_PKEY	2
- #define HPAGE_SIZE		(1UL<<21)
- #define PAGE_SIZE		4096
-@@ -158,4 +159,18 @@ int pkey_reg_xstate_offset(void)
- 	return xstate_offset;
- }
+v17:
+	(1) Fixed issues with i386 builds when running on x86_64
+	    based on feedback from Dave.
+	(2) Replaced patch 6 from previous version with patch 7.
+	    This addresses u64 format specifier related concerns
+	    that Michael had raised in v15.
 
-+static inline int get_arch_reserved_keys(void)
-+{
-+	return NR_RESERVED_PKEYS;
-+}
-+
-+void expect_fault_on_read_execonly_key(void *p1, int pkey)
-+{
-+	int ptr_contents;
-+
-+	ptr_contents = read_ptr(p1);
-+	dprintf2("ptr (%p) contents@%d: %x\n", p1, __LINE__, ptr_contents);
-+	expected_pkey_fault(pkey);
-+}
-+
- #endif /* _PKEYS_X86_H */
-diff --git a/tools/testing/selftests/vm/protection_keys.c b/tools/testing/selftests/vm/protection_keys.c
-index 535e464e27e9..57c71056c93d 100644
---- a/tools/testing/selftests/vm/protection_keys.c
-+++ b/tools/testing/selftests/vm/protection_keys.c
-@@ -1307,9 +1307,7 @@ void test_executing_on_unreadable_memory(int *ptr, u16 pkey)
- 	madvise(p1, PAGE_SIZE, MADV_DONTNEED);
- 	lots_o_noops_around_write(&scratch);
- 	do_not_expect_pkey_fault("executing on PROT_EXEC memory");
--	ptr_contents = read_ptr(p1);
--	dprintf2("ptr (%p) contents@%d: %x\n", p1, __LINE__, ptr_contents);
--	expected_pkey_fault(pkey);
-+	expect_fault_on_read_execonly_key(p1, pkey);
- }
+v16:
+	(1) Rebased on top of latest master.
+	(2) Switched to u64 instead of using an arch-dependent
+	    pkey_reg_t type for references to the pkey register
+	    based on suggestions from Dave, Michal and Michael.
+	(3) Removed build time determination of page size based
+	    on suggestion from Michael.
+	(4) Fixed comment before the definition of __page_o_noops()
+	    from patch 13 ("selftests/vm/pkeys: Introduce powerpc
+	    support").
 
- void test_implicit_mprotect_exec_only_memory(int *ptr, u16 pkey)
-@@ -1336,9 +1334,7 @@ void test_implicit_mprotect_exec_only_memory(int *ptr, u16 pkey)
- 	madvise(p1, PAGE_SIZE, MADV_DONTNEED);
- 	lots_o_noops_around_write(&scratch);
- 	do_not_expect_pkey_fault("executing on PROT_EXEC memory");
--	ptr_contents = read_ptr(p1);
--	dprintf2("ptr (%p) contents@%d: %x\n", p1, __LINE__, ptr_contents);
--	expected_pkey_fault(UNKNOWN_PKEY);
-+	expect_fault_on_read_execonly_key(p1, UNKNOWN_PKEY);
+v15:
+	(1) Rebased on top of latest master.
+	(2) Addressed review comments from Dave Hansen.
+	(3) Moved code for getting or setting pkey bits to new
+	    helpers. These changes replace patch 7 of v14.
+	(4) Added a fix which ensures that the correct count of
+	    reserved keys is used across different platforms.
+	(5) Added a fix which ensures that the correct page size
+	    is used as powerpc supports both 4K and 64K pages.
 
- 	/*
- 	 * Put the memory back to non-PROT_EXEC.  Should clear the
+v14:
+	(1) Incorporated another round of comments from Dave Hansen.
+
+v13:
+	(1) Incorporated comments for Dave Hansen.
+	(2) Added one more test for correct pkey-0 behavior.
+
+v12:
+	(1) Fixed the offset of pkey field in the siginfo structure for
+	    x86_64 and powerpc. And tries to use the actual field
+	    if the headers have it defined.
+
+v11:
+	(1) Fixed a deadlock in the ptrace testcase.
+
+v10 and prior:
+	(1) Moved the testcase to arch neutral directory.
+	(2) Split the changes into incremental patches.
+
+Desnes A. Nunes do Rosario (1):
+  selftests/vm/pkeys: Fix number of reserved powerpc pkeys
+
+Ram Pai (16):
+  selftests/x86/pkeys: Move selftests to arch-neutral directory
+  selftests/vm/pkeys: Rename all references to pkru to a generic name
+  selftests/vm/pkeys: Move generic definitions to header file
+  selftests/vm/pkeys: Fix pkey_disable_clear()
+  selftests/vm/pkeys: Fix assertion in pkey_disable_set/clear()
+  selftests/vm/pkeys: Fix alloc_random_pkey() to make it really random
+  selftests/vm/pkeys: Introduce generic pkey abstractions
+  selftests/vm/pkeys: Introduce powerpc support
+  selftests/vm/pkeys: Fix assertion in test_pkey_alloc_exhaust()
+  selftests/vm/pkeys: Improve checks to determine pkey support
+  selftests/vm/pkeys: Associate key on a mapped page and detect access
+    violation
+  selftests/vm/pkeys: Associate key on a mapped page and detect write
+    violation
+  selftests/vm/pkeys: Detect write violation on a mapped
+    access-denied-key page
+  selftests/vm/pkeys: Introduce a sub-page allocator
+  selftests/vm/pkeys: Test correct behaviour of pkey-0
+  selftests/vm/pkeys: Override access right definitions on powerpc
+
+Sandipan Das (5):
+  selftests: vm: pkeys: Use sane types for pkey register
+  selftests: vm: pkeys: Add helpers for pkey bits
+  selftests: vm: pkeys: Use the correct huge page size
+  selftests: vm: pkeys: Use the correct page size on powerpc
+  selftests: vm: pkeys: Fix multilib builds for x86
+
+Thiago Jung Bauermann (2):
+  selftests/vm/pkeys: Move some definitions to arch-specific header
+  selftests/vm/pkeys: Make gcc check arguments of sigsafe_printf()
+
+ tools/testing/selftests/vm/.gitignore         |   1 +
+ tools/testing/selftests/vm/Makefile           |  73 ++
+ tools/testing/selftests/vm/pkey-helpers.h     | 225 ++++++
+ tools/testing/selftests/vm/pkey-powerpc.h     | 136 ++++
+ tools/testing/selftests/vm/pkey-x86.h         | 181 +++++
+ .../selftests/{x86 => vm}/protection_keys.c   | 696 ++++++++++--------
+ tools/testing/selftests/x86/.gitignore        |   1 -
+ tools/testing/selftests/x86/Makefile          |   2 +-
+ tools/testing/selftests/x86/pkey-helpers.h    | 219 ------
+ 9 files changed, 1002 insertions(+), 532 deletions(-)
+ create mode 100644 tools/testing/selftests/vm/pkey-helpers.h
+ create mode 100644 tools/testing/selftests/vm/pkey-powerpc.h
+ create mode 100644 tools/testing/selftests/vm/pkey-x86.h
+ rename tools/testing/selftests/{x86 => vm}/protection_keys.c (74%)
+ delete mode 100644 tools/testing/selftests/x86/pkey-helpers.h
+
 -- 
 2.17.1
