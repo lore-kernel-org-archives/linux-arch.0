@@ -1,71 +1,85 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from szxga04-in.huawei.com ([45.249.212.190]:9626 "EHLO huawei.com"
- rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP id S1729486AbgAPDOM
- (ORCPT <rfc822;linux-arch@vger.kernel.org>); Wed, 15 Jan 2020 22:14:12 -0500
-From: Xuefeng Wang <wxf.wang@hisilicon.com>
-Subject: [PATCH 2/2] arm64: mm: rework the pmd protect changing flow
-Date: Thu, 16 Jan 2020 11:09:17 +0800
-Message-ID: <1579144157-7736-3-git-send-email-wxf.wang@hisilicon.com>
-In-Reply-To: <1579144157-7736-1-git-send-email-wxf.wang@hisilicon.com>
-References: <1579144157-7736-1-git-send-email-wxf.wang@hisilicon.com>
-MIME-Version: 1.0
-Content-Type: text/plain
+Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:27240 "EHLO
+ mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+ with ESMTP id S1726646AbgA3GiB (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+ Thu, 30 Jan 2020 01:38:01 -0500
+Received: from pps.filterd (m0098421.ppops.net [127.0.0.1]) by
+ mx0a-001b2d01.pphosted.com (8.16.0.42/8.16.0.42) with SMTP id 00U6baO3096804
+ for <linux-arch@vger.kernel.org>; Thu, 30 Jan 2020 01:38:00 -0500
+Received: from e06smtp03.uk.ibm.com (e06smtp03.uk.ibm.com [195.75.94.99]) by
+ mx0a-001b2d01.pphosted.com with ESMTP id 2xttnuh6hj-1 (version=TLSv1.2
+ cipher=AES256-GCM-SHA384 bits=256 verify=NOT) for
+ <linux-arch@vger.kernel.org>; Thu, 30 Jan 2020 01:38:00 -0500
+Received: from localhost by e06smtp03.uk.ibm.com with IBM ESMTP SMTP Gateway:
+ Authorized Use Only! Violators will be prosecuted for
+ <linux-arch@vger.kernel.org> from <sandipan@linux.ibm.com>; Thu, 30 Jan 2020
+ 06:37:58 -0000
+From: Sandipan Das <sandipan@linux.ibm.com>
+Subject: [PATCH v18 15/24] selftests/vm/pkeys: Fix assertion in
+ test_pkey_alloc_exhaust()
+Date: Thu, 30 Jan 2020 12:06:57 +0530
+In-Reply-To: <cover.1580365432.git.sandipan@linux.ibm.com>
+References: <cover.1580365432.git.sandipan@linux.ibm.com>
+In-Reply-To: <cover.1580365432.git.sandipan@linux.ibm.com>
+References: <cover.1580365432.git.sandipan@linux.ibm.com>
+Message-ID: <db4520916e4562f7c4b8f032768adf364a571bbb.1580365432.git.sandipan@linux.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: arnd@arndb.de, akpm@linux-foundation.org, catalin.marinas@arm.com, will@kernel.org, mark.rutland@arm.com
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, linux-arm-kernel@lists.infradead.org, chenzhou10@huawei.com
-Message-ID: <20200116030917.LNpJ_XisAWbxojbnpdUhf5bnj3yBq4GaTCcFo1cCsBs@z>
+To: shuah@kernel.org, skhan@linuxfoundation.org, linux-kselftest@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, x86@kernel.org, linux-mm@kvack.org, fweimer@redhat.com, dave.hansen@intel.com, linuxram@us.ibm.com, mhocko@kernel.org, mingo@redhat.com, aneesh.kumar@linux.ibm.com, bauerman@linux.ibm.com, msuchanek@suse.de, mpe@ellerman.id.au
+Message-ID: <20200130063657.YDNYLpJqrfad8xfEyfnGYncxKy-46rGUALvykd-Q5DA@z>
 
-On KunPeng920 board. When changing permission of a large range region,
-pmdp_invalidate() takes about 65% in profile (with hugepages) in JIT tool.
-Kernel will flush tlb twice: first flush happens in pmdp_invalidate, second
-flush happens at the end of change_protect_range(). The first pmdp_invalidate
-is not necessary if the hardware support atomic pmdp changing. The atomic
-changing pimd to zero can prevent the hardware from update asynchronous.
-So reconstruct it and remove the first pmdp_invalidate. And the second tlb
-flush can make sure the new tlb entry valid.
+From: Ram Pai <linuxram@us.ibm.com>
 
-Add pmdp_modify_prot_start() in arm64, which uses pmdp_huge_get_and_clear()
-to fetch the pmd and zero entry, preventing racing of any hardware updates.
+Some pkeys which are valid on the hardware are reserved
+and not available for application use. These keys cannot
+be allocated.
 
-After rework, the mprotect can get 3~13 times performace gain in range
-64M to 512M.
+test_pkey_alloc_exhaust() tries to account for these and
+has an assertion which validates if all available pkeys
+have been exahaustively allocated. However, the expression
+that is currently used is only valid for x86. On powerpc,
+a pkey is additionally reserved as compared to x86. Hence,
+the assertion is made to use an arch-specific helper to
+get the correct count of reserved pkeys.
 
-4K granule/THP on
-memory size(M)	64	128	256	320	448	512
-pre-patch		0.77	1.40	2.64	3.23	4.49	5.10
-post-patch		0.20	0.23	0.28	0.31	0.37	0.39
-
-Signed-off-by: Xuefeng Wang <wxf.wang@hisilicon.com>
-Signed-off-by: Chen Zhou <chenzhou10@huawei.com>
+cc: Dave Hansen <dave.hansen@intel.com>
+cc: Florian Weimer <fweimer@redhat.com>
+Signed-off-by: Ram Pai <linuxram@us.ibm.com>
+Signed-off-by: Sandipan Das <sandipan@linux.ibm.com>
 ---
- arch/arm64/include/asm/pgtable.h | 14 ++++++++++++++
- 1 file changed, 14 insertions(+)
+ tools/testing/selftests/vm/protection_keys.c | 11 ++++++++++-
+ 1 file changed, 10 insertions(+), 1 deletion(-)
 
-diff --git a/arch/arm64/include/asm/pgtable.h b/arch/arm64/include/asm/pgtable.h
-index cd5de0e40bfa..bccdaa5bd5f2 100644
---- a/arch/arm64/include/asm/pgtable.h
-+++ b/arch/arm64/include/asm/pgtable.h
-@@ -769,6 +769,20 @@ static inline pmd_t pmdp_huge_get_and_clear(struct mm_struct *mm,
- }
- #endif /* CONFIG_TRANSPARENT_HUGEPAGE */
+diff --git a/tools/testing/selftests/vm/protection_keys.c b/tools/testing/selftests/vm/protection_keys.c
+index e6de078a9196..5fcbbc525364 100644
+--- a/tools/testing/selftests/vm/protection_keys.c
++++ b/tools/testing/selftests/vm/protection_keys.c
+@@ -1153,6 +1153,7 @@ void test_pkey_alloc_exhaust(int *ptr, u16 pkey)
+ 	dprintf3("%s()::%d\n", __func__, __LINE__);
 
-+#ifdef CONFIG_TRANSPARENT_HUGEPAGE
-+#define __HAVE_ARCH_PMDP_MODIFY_PROT_TRANSACTION
-+static inline pmd_t pmdp_modify_prot_start(struct vm_area_struct *vma,
-+						unsigned long addr,
-+						pmd_t *pmdp)
-+{
-+	/*
-+	 * Atomic change pmd to zero, prevent the hardware from update
-+	 * aynchronously update it.
-+	 */
-+	return pmdp_huge_get_and_clear(vma->vm_mm, addr, pmdp);
-+}
-+#endif /* CONFIG_TRANSPARENT_HUGEPAGE */
-+
- /*
-  * ptep_set_wrprotect - mark read-only while trasferring potential hardware
-  * dirty status (PTE_DBM && !PTE_RDONLY) to the software PTE_DIRTY bit.
+ 	/*
++	 * On x86:
+ 	 * There are 16 pkeys supported in hardware.  Three are
+ 	 * allocated by the time we get here:
+ 	 *   1. The default key (0)
+@@ -1160,8 +1161,16 @@ void test_pkey_alloc_exhaust(int *ptr, u16 pkey)
+ 	 *   3. One allocated by the test code and passed in via
+ 	 *      'pkey' to this function.
+ 	 * Ensure that we can allocate at least another 13 (16-3).
++	 *
++	 * On powerpc:
++	 * There are either 5, 28, 29 or 32 pkeys supported in
++	 * hardware depending on the page size (4K or 64K) and
++	 * platform (powernv or powervm). Four are allocated by
++	 * the time we get here. These include pkey-0, pkey-1,
++	 * exec-only pkey and the one allocated by the test code.
++	 * Ensure that we can allocate the remaining.
+ 	 */
+-	pkey_assert(i >= NR_PKEYS-3);
++	pkey_assert(i >= (NR_PKEYS - get_arch_reserved_keys() - 1));
+
+ 	for (i = 0; i < nr_allocated_pkeys; i++) {
+ 		err = sys_pkey_free(allocated_pkeys[i]);
 -- 
 2.17.1
