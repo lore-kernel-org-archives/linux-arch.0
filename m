@@ -1,155 +1,189 @@
-Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ozlabs.org ([203.11.71.1]:47663 "EHLO ozlabs.org"
- rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP id S1726961AbgARLBN
- (ORCPT <rfc822;linux-arch@vger.kernel.org>); Sat, 18 Jan 2020 06:01:13 -0500
-From: Michael Ellerman <mpe@ellerman.id.au>
-Subject: Re: [PATCH v4 1/9] powerpc/mmu_gather: Enable RCU_TABLE_FREE even for
- !SMP case
-In-Reply-To: <20200116064531.483522-2-aneesh.kumar@linux.ibm.com>
-References: <20200116064531.483522-1-aneesh.kumar@linux.ibm.com>
- <20200116064531.483522-2-aneesh.kumar@linux.ibm.com>
-Date: Sat, 18 Jan 2020 21:01:14 +1000
-Message-ID: <875zh981vp.fsf@mpe.ellerman.id.au>
-MIME-Version: 1.0
-Content-Type: text/plain
-Sender: linux-arch-owner@vger.kernel.org
+Return-Path: <39GEzXg4KBH0csfoeboijhhjothpphmf.dpnsqqumjovy.jcn.dpn@flex--brendanhiggins.bounces.google.com>
+Date: Thu, 30 Jan 2020 15:08:08 -0800
+In-Reply-To: <20200130230812.142642-1-brendanhiggins@google.com>
+Message-ID: <20200130230812.142642-4-brendanhiggins@google.com>
+Mime-Version: 1.0
+References: <20200130230812.142642-1-brendanhiggins@google.com>
+Subject: [PATCH v2 3/7] kunit: test: create a single centralized executor for
+ all tests
+From: Brendan Higgins <brendanhiggins@google.com>
+Content-Type: text/plain; charset="UTF-8"
+To: jdike@addtoit.com, richard@nod.at, anton.ivanov@cambridgegreys.com, arnd@arndb.de, keescook@chromium.org, skhan@linuxfoundation.org, alan.maguire@oracle.com, yzaikin@google.com, davidgow@google.com, akpm@linux-foundation.org, rppt@linux.ibm.com, frowand.list@gmail.com
+Cc: gregkh@linuxfoundation.org, sboyd@kernel.org, logang@deltatee.com, mcgrof@kernel.org, knut.omang@oracle.com, linux-um@lists.infradead.org, linux-arch@vger.kernel.org, linux-kselftest@vger.kernel.org, kunit-dev@googlegroups.com, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, Brendan Higgins <brendanhiggins@google.com>
 List-ID: <linux-arch.vger.kernel.org>
-To: "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>, akpm@linux-foundation.org, peterz@infradead.org, will@kernel.org
-Cc: linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, stable@vger.kernel.org
-Message-ID: <20200118110114.1tcEAU2Pr2HxgayDc1_MCIr1VjdcUqkrDpSMZT_b5Zw@z>
+Message-ID: <20200130230808.Rd74o3_J1C0ZUBoVDBGMmzl8_ThQMlP-JeKbmppKyZg@z>
 
-"Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com> writes:
-> A follow up patch is going to make sure we correctly invalidate page walk cache
-> before we free page table pages. In order to keep things simple enable
-> RCU_TABLE_FREE even for !SMP so that we don't have to fixup the !SMP case
-> differently in the followup patch
->
-> !SMP case is right now broken for radix translation w.r.t page walk cache flush.
-> We can get interrupted in between page table free and that would imply we
-> have page walk cache entries pointing to tables which got freed already.
+From: Alan Maguire <alan.maguire@oracle.com>
 
-For the archives, both our platforms that run on Power9 force SMP on in
-Kconfig, so the !SMP case is unlikely to be a problem for anyone in
-practice, unless they've hacked their kernel to build it !SMP.
+Add a centralized executor to dispatch tests rather than relying on
+late_initcall to schedule each test suite separately.  Centralized
+execution is for built-in tests only; modules will execute tests
+when loaded.
 
-> Cc: <stable@vger.kernel.org>
-> Acked-by: Peter Zijlstra (Intel) <peterz@infradead.org>
-> Signed-off-by: Aneesh Kumar K.V <aneesh.kumar@linux.ibm.com>
-> ---
->  arch/powerpc/Kconfig                         | 2 +-
->  arch/powerpc/include/asm/book3s/32/pgalloc.h | 8 --------
->  arch/powerpc/include/asm/book3s/64/pgalloc.h | 2 --
->  arch/powerpc/include/asm/nohash/pgalloc.h    | 8 --------
->  arch/powerpc/mm/book3s64/pgtable.c           | 7 -------
->  5 files changed, 1 insertion(+), 26 deletions(-)
+Signed-off-by: Alan Maguire <alan.maguire@oracle.com>
+Co-developed-by: Iurii Zaikin <yzaikin@google.com>
+Signed-off-by: Iurii Zaikin <yzaikin@google.com>
+Co-developed-by: Brendan Higgins <brendanhiggins@google.com>
+Signed-off-by: Brendan Higgins <brendanhiggins@google.com>
+Reviewed-by: Stephen Boyd <sboyd@kernel.org>
+---
+ include/kunit/test.h | 73 +++++++++++++++++++++++++++-----------------
+ lib/kunit/Makefile   |  3 +-
+ lib/kunit/executor.c | 36 ++++++++++++++++++++++
+ 3 files changed, 83 insertions(+), 29 deletions(-)
+ create mode 100644 lib/kunit/executor.c
 
-Acked-by: Michael Ellerman <mpe@ellerman.id.au>
-
-cheers
-
-> diff --git a/arch/powerpc/Kconfig b/arch/powerpc/Kconfig
-> index 1ec34e16ed65..04240205f38c 100644
-> --- a/arch/powerpc/Kconfig
-> +++ b/arch/powerpc/Kconfig
-> @@ -222,7 +222,7 @@ config PPC
->  	select HAVE_HARDLOCKUP_DETECTOR_PERF	if PERF_EVENTS && HAVE_PERF_EVENTS_NMI && !HAVE_HARDLOCKUP_DETECTOR_ARCH
->  	select HAVE_PERF_REGS
->  	select HAVE_PERF_USER_STACK_DUMP
-> -	select HAVE_RCU_TABLE_FREE		if SMP
-> +	select HAVE_RCU_TABLE_FREE
->  	select HAVE_RCU_TABLE_NO_INVALIDATE	if HAVE_RCU_TABLE_FREE
->  	select HAVE_MMU_GATHER_PAGE_SIZE
->  	select HAVE_REGS_AND_STACK_ACCESS_API
-> diff --git a/arch/powerpc/include/asm/book3s/32/pgalloc.h b/arch/powerpc/include/asm/book3s/32/pgalloc.h
-> index 998317702630..dc5c039eb28e 100644
-> --- a/arch/powerpc/include/asm/book3s/32/pgalloc.h
-> +++ b/arch/powerpc/include/asm/book3s/32/pgalloc.h
-> @@ -49,7 +49,6 @@ static inline void pgtable_free(void *table, unsigned index_size)
->  
->  #define get_hugepd_cache_index(x)  (x)
->  
-> -#ifdef CONFIG_SMP
->  static inline void pgtable_free_tlb(struct mmu_gather *tlb,
->  				    void *table, int shift)
->  {
-> @@ -66,13 +65,6 @@ static inline void __tlb_remove_table(void *_table)
->  
->  	pgtable_free(table, shift);
->  }
-> -#else
-> -static inline void pgtable_free_tlb(struct mmu_gather *tlb,
-> -				    void *table, int shift)
-> -{
-> -	pgtable_free(table, shift);
-> -}
-> -#endif
->  
->  static inline void __pte_free_tlb(struct mmu_gather *tlb, pgtable_t table,
->  				  unsigned long address)
-> diff --git a/arch/powerpc/include/asm/book3s/64/pgalloc.h b/arch/powerpc/include/asm/book3s/64/pgalloc.h
-> index f6968c811026..a41e91bd0580 100644
-> --- a/arch/powerpc/include/asm/book3s/64/pgalloc.h
-> +++ b/arch/powerpc/include/asm/book3s/64/pgalloc.h
-> @@ -19,9 +19,7 @@ extern struct vmemmap_backing *vmemmap_list;
->  extern pmd_t *pmd_fragment_alloc(struct mm_struct *, unsigned long);
->  extern void pmd_fragment_free(unsigned long *);
->  extern void pgtable_free_tlb(struct mmu_gather *tlb, void *table, int shift);
-> -#ifdef CONFIG_SMP
->  extern void __tlb_remove_table(void *_table);
-> -#endif
->  void pte_frag_destroy(void *pte_frag);
->  
->  static inline pgd_t *radix__pgd_alloc(struct mm_struct *mm)
-> diff --git a/arch/powerpc/include/asm/nohash/pgalloc.h b/arch/powerpc/include/asm/nohash/pgalloc.h
-> index 332b13b4ecdb..29c43665a753 100644
-> --- a/arch/powerpc/include/asm/nohash/pgalloc.h
-> +++ b/arch/powerpc/include/asm/nohash/pgalloc.h
-> @@ -46,7 +46,6 @@ static inline void pgtable_free(void *table, int shift)
->  
->  #define get_hugepd_cache_index(x)	(x)
->  
-> -#ifdef CONFIG_SMP
->  static inline void pgtable_free_tlb(struct mmu_gather *tlb, void *table, int shift)
->  {
->  	unsigned long pgf = (unsigned long)table;
-> @@ -64,13 +63,6 @@ static inline void __tlb_remove_table(void *_table)
->  	pgtable_free(table, shift);
->  }
->  
-> -#else
-> -static inline void pgtable_free_tlb(struct mmu_gather *tlb, void *table, int shift)
-> -{
-> -	pgtable_free(table, shift);
-> -}
-> -#endif
-> -
->  static inline void __pte_free_tlb(struct mmu_gather *tlb, pgtable_t table,
->  				  unsigned long address)
->  {
-> diff --git a/arch/powerpc/mm/book3s64/pgtable.c b/arch/powerpc/mm/book3s64/pgtable.c
-> index 75483b40fcb1..2bf7e1b4fd82 100644
-> --- a/arch/powerpc/mm/book3s64/pgtable.c
-> +++ b/arch/powerpc/mm/book3s64/pgtable.c
-> @@ -378,7 +378,6 @@ static inline void pgtable_free(void *table, int index)
->  	}
->  }
->  
-> -#ifdef CONFIG_SMP
->  void pgtable_free_tlb(struct mmu_gather *tlb, void *table, int index)
->  {
->  	unsigned long pgf = (unsigned long)table;
-> @@ -395,12 +394,6 @@ void __tlb_remove_table(void *_table)
->  
->  	return pgtable_free(table, index);
->  }
-> -#else
-> -void pgtable_free_tlb(struct mmu_gather *tlb, void *table, int index)
-> -{
-> -	return pgtable_free(table, index);
-> -}
-> -#endif
->  
->  #ifdef CONFIG_PROC_FS
->  atomic_long_t direct_pages_count[MMU_PAGE_COUNT];
-> -- 
-> 2.24.1
+diff --git a/include/kunit/test.h b/include/kunit/test.h
+index 2dfb550c6723a..8a02f93a6b505 100644
+--- a/include/kunit/test.h
++++ b/include/kunit/test.h
+@@ -197,46 +197,63 @@ void kunit_init_test(struct kunit *test, const char *name);
+ 
+ int kunit_run_tests(struct kunit_suite *suite);
+ 
+-/**
+- * kunit_test_suites() - used to register one or more &struct kunit_suite
+- *			 with KUnit.
+- *
+- * @suites: a statically allocated list of &struct kunit_suite.
+- *
+- * Registers @suites with the test framework. See &struct kunit_suite for
+- * more information.
+- *
+- * When builtin,  KUnit tests are all run as late_initcalls; this means
+- * that they cannot test anything where tests must run at a different init
+- * phase. One significant restriction resulting from this is that KUnit
+- * cannot reliably test anything that is initialize in the late_init phase;
+- * another is that KUnit is useless to test things that need to be run in
+- * an earlier init phase.
+- *
+- * An alternative is to build the tests as a module.  Because modules
+- * do not support multiple late_initcall()s, we need to initialize an
+- * array of suites for a module.
+- *
+- * TODO(brendanhiggins@google.com): Don't run all KUnit tests as
+- * late_initcalls.  I have some future work planned to dispatch all KUnit
+- * tests from the same place, and at the very least to do so after
+- * everything else is definitely initialized.
++/*
++ * If a test suite is built-in, module_init() gets translated into
++ * an initcall which we don't want as the idea is that for builtins
++ * the executor will manage execution.  So ensure we do not define
++ * module_{init|exit} functions for the builtin case when registering
++ * suites via kunit_test_suites() below.
+  */
+-#define kunit_test_suites(...)						\
+-	static struct kunit_suite *suites[] = { __VA_ARGS__, NULL};	\
+-	static int kunit_test_suites_init(void)				\
++#ifdef MODULE
++#define kunit_test_suites_for_module(__suites)				\
++	static int __init kunit_test_suites_init(void)			\
+ 	{								\
++		struct kunit_suite *suites[] = (__suites);		\
+ 		unsigned int i;						\
++									\
+ 		for (i = 0; suites[i] != NULL; i++)			\
+ 			kunit_run_tests(suites[i]);			\
+ 		return 0;						\
+ 	}								\
+-	late_initcall(kunit_test_suites_init);				\
++	module_init(kunit_test_suites_init);				\
++									\
+ 	static void __exit kunit_test_suites_exit(void)			\
+ 	{								\
+ 		return;							\
+ 	}								\
+ 	module_exit(kunit_test_suites_exit)
++#else
++#define kunit_test_suites_for_module(__suites)
++#endif /* MODULE */
++
++#define __kunit_test_suites(unique_array, unique_suites, ...)		       \
++	static struct kunit_suite *unique_array[] = { __VA_ARGS__, NULL };     \
++	kunit_test_suites_for_module(unique_array);			       \
++	static struct kunit_suite **unique_suites			       \
++	__used __aligned(8) __section(.kunit_test_suites) = unique_array
++
++/**
++ * kunit_test_suites() - used to register one or more &struct kunit_suite
++ *			 with KUnit.
++ *
++ * @suites: a statically allocated list of &struct kunit_suite.
++ *
++ * Registers @suites with the test framework. See &struct kunit_suite for
++ * more information.
++ *
++ * When builtin,  KUnit tests are all run via executor; this is done
++ * by placing the array of struct kunit_suite * in the .kunit_test_suites
++ * ELF section.
++ *
++ * An alternative is to build the tests as a module.  Because modules do not
++ * support multiple initcall()s, we need to initialize an array of suites for a
++ * module.
++ *
++ */
++#define kunit_test_suites(...)						\
++	__kunit_test_suites(__UNIQUE_ID(array),				\
++			    __UNIQUE_ID(suites),			\
++			    __VA_ARGS__)
+ 
+ #define kunit_test_suite(suite)	kunit_test_suites(&suite)
+ 
+diff --git a/lib/kunit/Makefile b/lib/kunit/Makefile
+index fab55649b69a5..c282f02ca066b 100644
+--- a/lib/kunit/Makefile
++++ b/lib/kunit/Makefile
+@@ -3,7 +3,8 @@ obj-$(CONFIG_KUNIT) +=			kunit.o
+ kunit-objs +=				test.o \
+ 					string-stream.o \
+ 					assert.o \
+-					try-catch.o
++					try-catch.o \
++					executor.o
+ 
+ obj-$(CONFIG_KUNIT_TEST) +=		kunit-test.o
+ 
+diff --git a/lib/kunit/executor.c b/lib/kunit/executor.c
+new file mode 100644
+index 0000000000000..6429927d598a5
+--- /dev/null
++++ b/lib/kunit/executor.c
+@@ -0,0 +1,36 @@
++// SPDX-License-Identifier: GPL-2.0
++
++#include <kunit/test.h>
++
++/*
++ * These symbols point to the .kunit_test_suites section and are defined in
++ * include/asm-generic/vmlinux.lds.h, and consequently must be extern.
++ */
++extern struct kunit_suite * const * const __kunit_suites_start[];
++extern struct kunit_suite * const * const __kunit_suites_end[];
++
++#if IS_BUILTIN(CONFIG_KUNIT)
++
++static int kunit_run_all_tests(void)
++{
++	struct kunit_suite * const * const *suites, * const *subsuite;
++	bool has_test_failed = false;
++
++	for (suites = __kunit_suites_start;
++	     suites < __kunit_suites_end;
++	     suites++) {
++		for (subsuite = *suites; *subsuite != NULL; subsuite++) {
++			if (kunit_run_tests(*subsuite))
++				has_test_failed = true;
++		}
++	}
++
++	if (has_test_failed)
++		return -EFAULT;
++
++	return 0;
++}
++
++late_initcall(kunit_run_all_tests);
++
++#endif /* IS_BUILTIN(CONFIG_KUNIT) */
+-- 
+2.25.0.341.g760bfbb309-goog
