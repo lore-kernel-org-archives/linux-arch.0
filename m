@@ -1,25 +1,25 @@
 From: Sandipan Das <sandipan@linux.ibm.com>
-Subject: [PATCH v18 09/24] selftests/vm/pkeys: Fix assertion in pkey_disable_set/clear()
-Date: Thu, 30 Jan 2020 12:06:51 +0530
-Message-ID: <90e6851e1c71696f03cfa2c71377f0542d8dbd8d.1580365432.git.sandipan@linux.ibm.com>
+Subject: [PATCH v18 10/24] selftests/vm/pkeys: Fix alloc_random_pkey() to make it really random
+Date: Thu, 30 Jan 2020 12:06:52 +0530
+Message-ID: <53e402b08ad2fcf161f86e59939108031da784e1.1580365432.git.sandipan@linux.ibm.com>
 References: <cover.1580365432.git.sandipan@linux.ibm.com>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:57066 "EHLO
+Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:15618 "EHLO
         mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
-        by vger.kernel.org with ESMTP id S1725935AbgA3Gho (ORCPT
+        by vger.kernel.org with ESMTP id S1725865AbgA3Ghs (ORCPT
         <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 30 Jan 2020 01:37:44 -0500
-Received: from pps.filterd (m0098413.ppops.net [127.0.0.1])
-        by mx0b-001b2d01.pphosted.com (8.16.0.42/8.16.0.42) with SMTP id 00U6ai4r085309
-        for <linux-arch@vger.kernel.org>; Thu, 30 Jan 2020 01:37:42 -0500
+        Thu, 30 Jan 2020 01:37:48 -0500
+Received: from pps.filterd (m0098416.ppops.net [127.0.0.1])
+        by mx0b-001b2d01.pphosted.com (8.16.0.42/8.16.0.42) with SMTP id 00U6bHRn031840
+        for <linux-arch@vger.kernel.org>; Thu, 30 Jan 2020 01:37:46 -0500
 Received: from e06smtp04.uk.ibm.com (e06smtp04.uk.ibm.com [195.75.94.100])
-        by mx0b-001b2d01.pphosted.com with ESMTP id 2xtmmy1k3g-1
+        by mx0b-001b2d01.pphosted.com with ESMTP id 2xu5x9nt95-1
         (version=TLSv1.2 cipher=AES256-GCM-SHA384 bits=256 verify=NOT)
-        for <linux-arch@vger.kernel.org>; Thu, 30 Jan 2020 01:37:42 -0500
+        for <linux-arch@vger.kernel.org>; Thu, 30 Jan 2020 01:37:46 -0500
 Received: from localhost
         by e06smtp04.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
         for <linux-arch@vger.kernel.org> from <sandipan@linux.ibm.com>;
-        Thu, 30 Jan 2020 06:37:41 -0000
+        Thu, 30 Jan 2020 06:37:44 -0000
 In-Reply-To: <cover.1580365432.git.sandipan@linux.ibm.com>
 In-Reply-To: <cover.1580365432.git.sandipan@linux.ibm.com>
 References: <cover.1580365432.git.sandipan@linux.ibm.com>
@@ -30,49 +30,41 @@ Cc: linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, x86@kernel.org, l
 
 From: Ram Pai <linuxram@us.ibm.com>
 
-In some cases, a pkey's bits need not necessarily change
-in a way that the value of the pkey register increases
-when performing a pkey_disable_set() or decreases when
-performing a pkey_disable_clear().
-
-For example, on powerpc, if a pkey's current state is
-PKEY_DISABLE_ACCESS and we perform a pkey_write_disable()
-on it, the bits still remain the same. We will observe
-something similar when the pkey's current state is 0 and
-a pkey_access_enable() is performed on it.
-
-Either case would cause some assertions to fail. This
-fixes the problem.
+alloc_random_pkey() was allocating the same pkey every
+time. Not all pkeys were geting tested. This fixes it.
 
 cc: Dave Hansen <dave.hansen@intel.com>
 cc: Florian Weimer <fweimer@redhat.com>
 Signed-off-by: Ram Pai <linuxram@us.ibm.com>
+Acked-by: Dave Hansen <dave.hansen@intel.com>
 Signed-off-by: Sandipan Das <sandipan@linux.ibm.com>
 ---
- tools/testing/selftests/vm/protection_keys.c | 4 ++--
- 1 file changed, 2 insertions(+), 2 deletions(-)
+ tools/testing/selftests/vm/protection_keys.c | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
 
 diff --git a/tools/testing/selftests/vm/protection_keys.c b/tools/testing/selftests/vm/protection_keys.c
-index 4b1ddb526228..7fd52d5c4bfd 100644
+index 7fd52d5c4bfd..9cc82b65f828 100644
 --- a/tools/testing/selftests/vm/protection_keys.c
 +++ b/tools/testing/selftests/vm/protection_keys.c
-@@ -400,7 +400,7 @@ void pkey_disable_set(int pkey, int flags)
- 	dprintf1("%s(%d) pkey_reg: 0x%016llx\n",
- 		__func__, pkey, read_pkey_reg());
- 	if (flags)
--		pkey_assert(read_pkey_reg() > orig_pkey_reg);
-+		pkey_assert(read_pkey_reg() >= orig_pkey_reg);
- 	dprintf1("END<---%s(%d, 0x%x)\n", __func__,
- 		pkey, flags);
- }
-@@ -431,7 +431,7 @@ void pkey_disable_clear(int pkey, int flags)
- 	dprintf1("%s(%d) pkey_reg: 0x%016llx\n", __func__,
- 			pkey, read_pkey_reg());
- 	if (flags)
--		assert(read_pkey_reg() < orig_pkey_reg);
-+		assert(read_pkey_reg() <= orig_pkey_reg);
- }
+@@ -25,6 +25,7 @@
+ #define __SANE_USERSPACE_TYPES__
+ #include <errno.h>
+ #include <linux/futex.h>
++#include <time.h>
+ #include <sys/time.h>
+ #include <sys/syscall.h>
+ #include <string.h>
+@@ -546,10 +547,10 @@ int alloc_random_pkey(void)
+ 	int nr_alloced = 0;
+ 	int random_index;
+ 	memset(alloced_pkeys, 0, sizeof(alloced_pkeys));
++	srand((unsigned int)time(NULL));
  
- void pkey_write_allow(int pkey)
+ 	/* allocate every possible key and make a note of which ones we got */
+ 	max_nr_pkey_allocs = NR_PKEYS;
+-	max_nr_pkey_allocs = 1;
+ 	for (i = 0; i < max_nr_pkey_allocs; i++) {
+ 		int new_pkey = alloc_pkey();
+ 		if (new_pkey < 0)
 -- 
 2.17.1
