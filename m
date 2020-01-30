@@ -1,85 +1,79 @@
-Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:16132 "EHLO
- mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
- with ESMTP id S1726738AbgATIjK (ORCPT <rfc822;linux-arch@vger.kernel.org>);
- Mon, 20 Jan 2020 03:39:10 -0500
-Received: from pps.filterd (m0098419.ppops.net [127.0.0.1]) by
- mx0b-001b2d01.pphosted.com (8.16.0.42/8.16.0.42) with SMTP id 00K8cwe7117607
- for <linux-arch@vger.kernel.org>; Mon, 20 Jan 2020 03:39:09 -0500
-Received: from e06smtp02.uk.ibm.com (e06smtp02.uk.ibm.com [195.75.94.98]) by
- mx0b-001b2d01.pphosted.com with ESMTP id 2xmg37g1cb-1 (version=TLSv1.2
- cipher=AES256-GCM-SHA384 bits=256 verify=NOT) for
- <linux-arch@vger.kernel.org>; Mon, 20 Jan 2020 03:39:04 -0500
-Received: from localhost by e06smtp02.uk.ibm.com with IBM ESMTP SMTP Gateway:
- Authorized Use Only! Violators will be prosecuted for
- <linux-arch@vger.kernel.org> from <sandipan@linux.ibm.com>; Mon, 20 Jan 2020
- 08:37:13 -0000
-From: Sandipan Das <sandipan@linux.ibm.com>
-Subject: [PATCH v17 16/24] selftests/vm/pkeys: Fix assertion in
- test_pkey_alloc_exhaust()
-Date: Mon, 20 Jan 2020 14:06:13 +0530
-In-Reply-To: <cover.1579507768.git.sandipan@linux.ibm.com>
-References: <cover.1579507768.git.sandipan@linux.ibm.com>
-In-Reply-To: <cover.1579507768.git.sandipan@linux.ibm.com>
-References: <cover.1579507768.git.sandipan@linux.ibm.com>
-Message-ID: <90fcb35c9e185b21b5784a7305ba7933b7cc4ebf.1579507768.git.sandipan@linux.ibm.com>
-Sender: linux-arch-owner@vger.kernel.org
+Return-Path: <37WEzXg4KBHYVlYhXUhbcaachmaiiafY.Wigljjnfchor.cVg.Wig@flex--brendanhiggins.bounces.google.com>
+Date: Thu, 30 Jan 2020 15:08:05 -0800
+Message-ID: <20200130230812.142642-1-brendanhiggins@google.com>
+Mime-Version: 1.0
+Subject: [PATCH v2 0/7] kunit: create a centralized executor to dispatch all
+ KUnit tests
+From: Brendan Higgins <brendanhiggins@google.com>
+Content-Type: text/plain; charset="UTF-8"
+To: jdike@addtoit.com, richard@nod.at, anton.ivanov@cambridgegreys.com, arnd@arndb.de, keescook@chromium.org, skhan@linuxfoundation.org, alan.maguire@oracle.com, yzaikin@google.com, davidgow@google.com, akpm@linux-foundation.org, rppt@linux.ibm.com, frowand.list@gmail.com
+Cc: gregkh@linuxfoundation.org, sboyd@kernel.org, logang@deltatee.com, mcgrof@kernel.org, knut.omang@oracle.com, linux-um@lists.infradead.org, linux-arch@vger.kernel.org, linux-kselftest@vger.kernel.org, kunit-dev@googlegroups.com, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, Brendan Higgins <brendanhiggins@google.com>
 List-ID: <linux-arch.vger.kernel.org>
-To: shuah@kernel.org, linux-kselftest@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, fweimer@redhat.com, dave.hansen@intel.com, x86@kernel.org, linuxram@us.ibm.com, mhocko@kernel.org, linux-mm@kvack.org, mingo@redhat.com, aneesh.kumar@linux.ibm.com, bauerman@linux.ibm.com, msuchanek@suse.de, mpe@ellerman.id.au, linuxppc-dev@lists.ozlabs.org
-Message-ID: <20200120083613.VpUTjJtumGY7rrLS7tEr6xFsYfAvB_unprOWfxn7RME@z>
+Message-ID: <20200130230805.UP0SmIdxxkA14u0ZTgKqwywvE_p5s_bmy-gIkNWxn0w@z>
 
-From: Ram Pai <linuxram@us.ibm.com>
+## TL;DR
 
-Some pkeys which are valid on the hardware are reserved
-and not available for application use. These keys cannot
-be allocated.
+This patchset adds a centralized executor to dispatch tests rather than
+relying on late_initcall to schedule each test suite separately along
+with a couple of new features that depend on it.
 
-test_pkey_alloc_exhaust() tries to account for these and
-has an assertion which validates if all available pkeys
-have been exahaustively allocated. However, the expression
-that is currently used is only valid for x86. On powerpc,
-a pkey is additionally reserved as compared to x86. Hence,
-the assertion is made to use an arch-specific helper to
-get the correct count of reserved pkeys.
+## What am I trying to do?
 
-cc: Dave Hansen <dave.hansen@intel.com>
-cc: Florian Weimer <fweimer@redhat.com>
-Signed-off-by: Ram Pai <linuxram@us.ibm.com>
-Signed-off-by: Sandipan Das <sandipan@linux.ibm.com>
----
- tools/testing/selftests/vm/protection_keys.c | 11 ++++++++++-
- 1 file changed, 10 insertions(+), 1 deletion(-)
+Conceptually, I am trying to provide a mechanism by which test suites
+can be grouped together so that they can be reasoned about collectively.
+The last two of three patches in this series add features which depend
+on this:
 
-diff --git a/tools/testing/selftests/vm/protection_keys.c b/tools/testing/selftests/vm/protection_keys.c
-index e6de078a9196..5fcbbc525364 100644
---- a/tools/testing/selftests/vm/protection_keys.c
-+++ b/tools/testing/selftests/vm/protection_keys.c
-@@ -1153,6 +1153,7 @@ void test_pkey_alloc_exhaust(int *ptr, u16 pkey)
- 	dprintf3("%s()::%d\n", __func__, __LINE__);
+PATCH 5/7 Prints out a test plan right before KUnit tests are run[1];
+          this is valuable because it makes it possible for a test
+          harness to detect whether the number of tests run matches the
+          number of tests expected to be run, ensuring that no tests
+          silently failed.
 
- 	/*
-+	 * On x86:
- 	 * There are 16 pkeys supported in hardware.  Three are
- 	 * allocated by the time we get here:
- 	 *   1. The default key (0)
-@@ -1160,8 +1161,16 @@ void test_pkey_alloc_exhaust(int *ptr, u16 pkey)
- 	 *   3. One allocated by the test code and passed in via
- 	 *      'pkey' to this function.
- 	 * Ensure that we can allocate at least another 13 (16-3).
-+	 *
-+	 * On powerpc:
-+	 * There are either 5, 28, 29 or 32 pkeys supported in
-+	 * hardware depending on the page size (4K or 64K) and
-+	 * platform (powernv or powervm). Four are allocated by
-+	 * the time we get here. These include pkey-0, pkey-1,
-+	 * exec-only pkey and the one allocated by the test code.
-+	 * Ensure that we can allocate the remaining.
- 	 */
--	pkey_assert(i >= NR_PKEYS-3);
-+	pkey_assert(i >= (NR_PKEYS - get_arch_reserved_keys() - 1));
+PATCH 6/7 Add a new kernel command-line option which allows the user to
+          specify that the kernel poweroff, halt, or reboot after
+          completing all KUnit tests; this is very handy for running
+          KUnit tests on UML or a VM so that the UML/VM process exits
+          cleanly immediately after running all tests without needing a
+          special initramfs.
 
- 	for (i = 0; i < nr_allocated_pkeys; i++) {
- 		err = sys_pkey_free(allocated_pkeys[i]);
+In addition, by dispatching tests from a single location, we can
+guarantee that all KUnit tests run after late_init is complete, which
+was a concern during the initial KUnit patchset review (this has not
+been a problem in practice, but resolving with certainty is nevertheless
+desirable).
+
+Other use cases for this exist, but the above features should provide an
+idea of the value that this could provide.
+
+Alan Maguire (1):
+  kunit: test: create a single centralized executor for all tests
+
+Brendan Higgins (5):
+  vmlinux.lds.h: add linker section for KUnit test suites
+  arch: um: add linker section for KUnit test suites
+  init: main: add KUnit to kernel init
+  kunit: test: add test plan to KUnit TAP format
+  Documentation: Add kunit_shutdown to kernel-parameters.txt
+
+David Gow (1):
+  kunit: Add 'kunit_shutdown' option
+
+ .../admin-guide/kernel-parameters.txt         |  7 ++
+ arch/um/include/asm/common.lds.S              |  4 +
+ include/asm-generic/vmlinux.lds.h             |  8 ++
+ include/kunit/test.h                          | 82 ++++++++++++-------
+ init/main.c                                   |  4 +
+ lib/kunit/Makefile                            |  3 +-
+ lib/kunit/executor.c                          | 71 ++++++++++++++++
+ lib/kunit/test.c                              | 11 ---
+ tools/testing/kunit/kunit_kernel.py           |  2 +-
+ tools/testing/kunit/kunit_parser.py           | 76 ++++++++++++++---
+ .../test_is_test_passed-all_passed.log        |  1 +
+ .../test_data/test_is_test_passed-crash.log   |  1 +
+ .../test_data/test_is_test_passed-failure.log |  1 +
+ 13 files changed, 217 insertions(+), 54 deletions(-)
+ create mode 100644 lib/kunit/executor.c
+
 -- 
-2.17.1
+2.25.0.341.g760bfbb309-goog
