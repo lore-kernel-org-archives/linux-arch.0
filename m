@@ -1,96 +1,41 @@
-Return-Path: <SRS0=HZcf=3N=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from us-smtp-delivery-1.mimecast.com ([207.211.31.120]:41607 "EHLO
-        us-smtp-1.mimecast.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-        with ESMTP id S1725767AbgAXVMl (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 24 Jan 2020 16:12:41 -0500
-Subject: Re: [PATCH v8 4/5] locking/qspinlock: Introduce starvation avoidance
- into CNA
-References: <20191230194042.67789-1-alex.kogan@oracle.com>
- <20191230194042.67789-5-alex.kogan@oracle.com>
- <20200121132949.GL14914@hirez.programming.kicks-ass.net>
- <cfdf635d-be2e-9d4b-c4ca-6bcbddc6868f@redhat.com>
- <3862F8A1-FF9B-40AD-A88E-2C0BA7AF6F58@oracle.com>
- <20200124075235.GX14914@hirez.programming.kicks-ass.net>
- <2c6741c5-d89d-4b2c-cebe-a7c7f6eed884@redhat.com>
- <48ce49e5-98a7-23cd-09f4-8290a65abbb5@redhat.com>
- <8D3AFB47-B595-418C-9568-08780DDC58FF@oracle.com>
- <714892cd-d96f-4d41-ae8b-d7b7642a6e3c@redhat.com>
- <1669BFDE-A1A5-4ED8-B586-035460BBF68A@oracle.com>
- <45660873-731a-a810-8c57-1a5a19d266b4@redhat.com>
- <693E6287-E37C-4C5D-BE33-B3D813BE505D@oracle.com>
-From: Waiman Long <longman@redhat.com>
-Message-ID: <edc53126-bfe4-5102-d2eb-2332bf3a68e5@redhat.com>
-Date: Fri, 24 Jan 2020 16:12:30 -0500
+Return-Path: <SRS0=fdYI=3T=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from Galois.linutronix.de ([193.142.43.55]:52480 "EHLO
+        Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726401AbgA3Hho (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 30 Jan 2020 02:37:44 -0500
+From: Thomas Gleixner <tglx@linutronix.de>
+Subject: Re: [PATCH v6][RESEND] x86/hyperv: Suspend/resume the hypercall page for hibernation
+In-Reply-To: <20200130000552.GD2896@sasha-vm>
+Date: Thu, 30 Jan 2020 08:37:29 +0100
+Message-ID: <877e195r9i.fsf@nanos.tec.linutronix.de>
 MIME-Version: 1.0
-In-Reply-To: <693E6287-E37C-4C5D-BE33-B3D813BE505D@oracle.com>
-Content-Type: text/plain; charset=utf-8
-Content-Language: en-US
-Content-Transfer-Encoding: quoted-printable
+Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Alex Kogan <alex.kogan@oracle.com>
-Cc: Peter Zijlstra <peterz@infradead.org>, linux@armlinux.org.uk, Ingo Molnar <mingo@redhat.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-arm-kernel <linux-arm-kernel@lists.infradead.org>, linux-kernel@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>, Borislav Petkov <bp@alien8.de>, hpa@zytor.com, x86@kernel.org, Hanjun Guo <guohanjun@huawei.com>, Jan Glauber <jglauber@marvell.com>, Steven Sistare <steven.sistare@oracle.com>, Daniel Jordan <daniel.m.jordan@oracle.com>, dave.dice@oracle.com
-Message-ID: <20200124211230.PSNPBfByYko1GRDxu-_8VVSnqDxYsR4lOipriTbtLn0@z>
+To: Sasha Levin <sashal@kernel.org>, Dexuan Cui <decui@microsoft.com>
+Cc: "arnd@arndb.de" <arnd@arndb.de>, "bp@alien8.de" <bp@alien8.de>, "daniel.lezcano@linaro.org" <daniel.lezcano@linaro.org>, Haiyang Zhang <haiyangz@microsoft.com>, "hpa@zytor.com" <hpa@zytor.com>, KY Srinivasan <kys@microsoft.com>, "linux-hyperv@vger.kernel.org" <linux-hyperv@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "mingo@redhat.com" <mingo@redhat.com>, Stephen Hemminger <sthemmin@microsoft.com>, "x86@kernel.org" <x86@kernel.org>, Michael Kelley <mikelley@microsoft.com>, Sasha Levin <Alexander.Levin@microsoft.com>, vkuznets <vkuznets@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+Message-ID: <20200130073729.frgQ_THApDC7LOlKD-h2MO5GfXoZx9vL6KhP-FBeWjs@z>
 
-On 1/24/20 3:09 PM, Alex Kogan wrote:
->>> We also probably do not want those =E2=80=9Cprioritized=E2=80=9D thre=
-ads to disrupt
->>> normal
->>> CNA operation. E.g., if the main queue looks like T1_1, P2_1, T1_2,
->>> =E2=80=A6, where
->>> T1_x is a thread running on node 1 and P2_1 is a prioritized thread
->>> running
->>> on node 2, we want to pass the lock from T1_1 to P2_1 and then to T1_=
-2
->>> (rather than have P2_1 to scan for another thread on node 2).
+Sasha Levin <sashal@kernel.org> writes:
+> On Sat, Jan 25, 2020 at 01:44:31AM +0000, Dexuan Cui wrote:
+>>> This is a RESEND of https://lkml.org/lkml/2019/11/20/68
 >>>
->>> There is a way to achieve that =E2=80=94 when we pass the lock to P2_=
-1,
->>> we can set its numa node field to 1. This means that we need to
->>> reset the numa
->>> node field in cna_init_node(), but AFAICT this is relatively cheap.
->>> The rest
->>> of the CNA logic should not change.
+>>> Please review.
+>>>
+>>> If it looks good, can you please pick it up through the tip.git tree?
+>>>
+>>>  arch/x86/hyperv/hv_init.c | 48
+>>> +++++++++++++++++++++++++++++++++++++++
+>>>  1 file changed, 48 insertions(+)
 >>
->> I won't recommend doing that. If the lock cacheline has been moved
->> from node 1 to 2, I will say it is better to stick with node 2 rather
->> than switching back to node 1. That will mean that the secondary
->> queue may contain lock waiters from the same nodes, but they will
->> eventually be flushed back to the primary queue.
->>
-> That=E2=80=99s right, assuming we do not reset intra_node count when
-> transferring the
-> lock to a prioritized thread from another node. Otherwise, we may starv=
-e
-> waiters in the secondary queue.=C2=A0
+>>Hi, Vitaly and x86 maintainers,
+>>Can you please take a look at this patch?
 >
-> Still, that can make the lock even less fair to non-prioritized
-> threads. When
-> you flush the secondary queue, the preference may remain with the same
-> node. This will not happen in the current form of CNA, as we never get=C2=
-=A0
-> threads from the preferred node in the secondary queue.
-
-That is true.
-
-However, it is no different from the current scheme that a waiter from
-another node may have to wait for 64k other waiters to go first before
-it has a chance to get it. Now that waiter can be from the same node as
-well.
-
+> Ping?
 >
-> Besides, I think that will decrease the benefit of CNA, especially if s=
-uch
-> prioritized threads are frequent, switching the preference from one nod=
-e
-> to another. But this is something I can evaluate, unless
-> there is some fundamental objection to the idea of tweaking the numa
-> node of prioritized threads.
+> This patch has been floating around in it's current form for the past 2
+> months. I'll happily take Hyper-V patches under arch/x86/hyperv/ via the
+> Hyper-V tree rather than tip if the x86 folks don't want to deal with
+> them.
 
-Usually the locks used in interrupt context are not that contended to
-the point that CNA can kick in. Of course, there are exceptions in some
-circumstances and we do not want to introduce additional latency to
-their lock waiting time.
-
-Cheers,
-Longman
+sorry fell through the cracks. Will take care of it.
