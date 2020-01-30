@@ -1,120 +1,63 @@
-Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:53104 "EHLO
- mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
- with ESMTP id S1729966AbgAPGqa (ORCPT <rfc822;linux-arch@vger.kernel.org>);
- Thu, 16 Jan 2020 01:46:30 -0500
-From: "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>
-Subject: [PATCH v4 7/9] asm-generic/tlb: Rename HAVE_MMU_GATHER_PAGE_SIZE
-Date: Thu, 16 Jan 2020 12:15:29 +0530
-Message-ID: <20200116064531.483522-8-aneesh.kumar@linux.ibm.com>
-In-Reply-To: <20200116064531.483522-1-aneesh.kumar@linux.ibm.com>
-References: <20200116064531.483522-1-aneesh.kumar@linux.ibm.com>
-MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
-Sender: linux-arch-owner@vger.kernel.org
+Return-Path: <owner-linux-mm@kvack.org>
+From: Sandipan Das <sandipan@linux.ibm.com>
+Subject: [PATCH v18 19/24] selftests/vm/pkeys: Detect write violation on a
+ mapped access-denied-key page
+Date: Thu, 30 Jan 2020 12:07:01 +0530
+In-Reply-To: <cover.1580365432.git.sandipan@linux.ibm.com>
+References: <cover.1580365432.git.sandipan@linux.ibm.com>
+In-Reply-To: <cover.1580365432.git.sandipan@linux.ibm.com>
+References: <cover.1580365432.git.sandipan@linux.ibm.com>
+Message-ID: <97a1f35cb594830d1046e4440d95e0f7c45795d2.1580365432.git.sandipan@linux.ibm.com>
+Sender: owner-linux-mm@kvack.org
+To: shuah@kernel.org, skhan@linuxfoundation.org, linux-kselftest@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, x86@kernel.org, linux-mm@kvack.org, fweimer@redhat.com, dave.hansen@intel.com, linuxram@us.ibm.com, mhocko@kernel.org, mingo@redhat.com, aneesh.kumar@linux.ibm.com, bauerman@linux.ibm.com, msuchanek@suse.de, mpe@ellerman.id.au
 List-ID: <linux-arch.vger.kernel.org>
-To: akpm@linux-foundation.org, peterz@infradead.org, will@kernel.org, mpe@ellerman.id.au
-Cc: linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, "Aneesh Kumar K . V" <aneesh.kumar@linux.ibm.com>
-Message-ID: <20200116064529.vMRHGmcsMMIdEsPlH1QY_dTI6GMutEZk6rQDFf0wNOE@z>
+Message-ID: <20200130063701.zLSa8Il1wnQjkB8xqrolXuVLnfFFQhcAoe0D7n5nznY@z>
 
-From: Peter Zijlstra <peterz@infradead.org>
+From: Ram Pai <linuxram@us.ibm.com>
 
-Towards a more consistent naming scheme.
+Detect write-violation on a page to which access-disabled
+key is associated much after the page is mapped.
 
-Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
-Signed-off-by: Aneesh Kumar K.V <aneesh.kumar@linux.ibm.com>
+cc: Dave Hansen <dave.hansen@intel.com>
+cc: Florian Weimer <fweimer@redhat.com>
+Signed-off-by: Ram Pai <linuxram@us.ibm.com>
+Acked-by: Dave Hansen <dave.hansen@intel.com>
+Signed-off-by: Sandipan Das <sandipan@linux.ibm.com>
 ---
- arch/Kconfig              | 2 +-
- arch/powerpc/Kconfig      | 2 +-
- include/asm-generic/tlb.h | 9 ++++++---
- mm/mmu_gather.c           | 4 ++--
- 4 files changed, 10 insertions(+), 7 deletions(-)
+ tools/testing/selftests/vm/protection_keys.c | 13 +++++++++++++
+ 1 file changed, 13 insertions(+)
 
-diff --git a/arch/Kconfig b/arch/Kconfig
-index 501d565690b5..e8548211b6a9 100644
---- a/arch/Kconfig
-+++ b/arch/Kconfig
-@@ -396,7 +396,7 @@ config HAVE_ARCH_JUMP_LABEL_RELATIVE
- config MMU_GATHER_RCU_TABLE_FREE
- 	bool
-
--config HAVE_MMU_GATHER_PAGE_SIZE
-+config MMU_GATHER_PAGE_SIZE
- 	bool
-
- config MMU_GATHER_NO_RANGE
-diff --git a/arch/powerpc/Kconfig b/arch/powerpc/Kconfig
-index 955759234776..cefacb9c8f48 100644
---- a/arch/powerpc/Kconfig
-+++ b/arch/powerpc/Kconfig
-@@ -223,7 +223,7 @@ config PPC
- 	select HAVE_PERF_REGS
- 	select HAVE_PERF_USER_STACK_DUMP
- 	select MMU_GATHER_RCU_TABLE_FREE
--	select HAVE_MMU_GATHER_PAGE_SIZE
-+	select MMU_GATHER_PAGE_SIZE
- 	select HAVE_REGS_AND_STACK_ACCESS_API
- 	select HAVE_RELIABLE_STACKTRACE		if PPC_BOOK3S_64 && CPU_LITTLE_ENDIAN
- 	select HAVE_SYSCALL_TRACEPOINTS
-diff --git a/include/asm-generic/tlb.h b/include/asm-generic/tlb.h
-index 04a1b8f08eea..53befa5acb27 100644
---- a/include/asm-generic/tlb.h
-+++ b/include/asm-generic/tlb.h
-@@ -121,11 +121,14 @@
-  *
-  * Additionally there are a few opt-in features:
-  *
-- *  HAVE_MMU_GATHER_PAGE_SIZE
-+ *  MMU_GATHER_PAGE_SIZE
-  *
-  *  This ensures we call tlb_flush() every time tlb_change_page_size() actually
-  *  changes the size and provides mmu_gather::page_size to tlb_flush().
-  *
-+ *  This might be useful if your architecture has size specific TLB
-+ *  invalidation instructions.
-+ *
-  *  MMU_GATHER_RCU_TABLE_FREE
-  *
-  *  This provides tlb_remove_table(), to be used instead of tlb_remove_page()
-@@ -279,7 +282,7 @@ struct mmu_gather {
- 	struct mmu_gather_batch	local;
- 	struct page		*__pages[MMU_GATHER_BUNDLE];
-
--#ifdef CONFIG_HAVE_MMU_GATHER_PAGE_SIZE
-+#ifdef CONFIG_MMU_GATHER_PAGE_SIZE
- 	unsigned int page_size;
- #endif
- #endif
-@@ -435,7 +438,7 @@ static inline void tlb_remove_page(struct mmu_gather *tlb, struct page *page)
- static inline void tlb_change_page_size(struct mmu_gather *tlb,
- 						     unsigned int page_size)
+diff --git a/tools/testing/selftests/vm/protection_keys.c b/tools/testing/selftests/vm/protection_keys.c
+index cb31a5cdf6d9..8bb4de103874 100644
+--- a/tools/testing/selftests/vm/protection_keys.c
++++ b/tools/testing/selftests/vm/protection_keys.c
+@@ -1027,6 +1027,18 @@ void test_write_of_access_disabled_region(int *ptr, u16 pkey)
+ 	*ptr = __LINE__;
+ 	expected_pkey_fault(pkey);
+ }
++
++void test_write_of_access_disabled_region_with_page_already_mapped(int *ptr,
++			u16 pkey)
++{
++	*ptr = __LINE__;
++	dprintf1("disabling access; after accessing the page, "
++		" to PKEY[%02d], doing write\n", pkey);
++	pkey_access_deny(pkey);
++	*ptr = __LINE__;
++	expected_pkey_fault(pkey);
++}
++
+ void test_kernel_write_of_access_disabled_region(int *ptr, u16 pkey)
  {
--#ifdef CONFIG_HAVE_MMU_GATHER_PAGE_SIZE
-+#ifdef CONFIG_MMU_GATHER_PAGE_SIZE
- 	if (tlb->page_size && tlb->page_size != page_size) {
- 		if (!tlb->fullmm && !tlb->need_flush_all)
- 			tlb_flush_mmu(tlb);
-diff --git a/mm/mmu_gather.c b/mm/mmu_gather.c
-index 86bb2176e173..297c70307367 100644
---- a/mm/mmu_gather.c
-+++ b/mm/mmu_gather.c
-@@ -69,7 +69,7 @@ bool __tlb_remove_page_size(struct mmu_gather *tlb, struct page *page, int page_
-
- 	VM_BUG_ON(!tlb->end);
-
--#ifdef CONFIG_HAVE_MMU_GATHER_PAGE_SIZE
-+#ifdef CONFIG_MMU_GATHER_PAGE_SIZE
- 	VM_WARN_ON(tlb->page_size != page_size);
- #endif
-
-@@ -223,7 +223,7 @@ void tlb_gather_mmu(struct mmu_gather *tlb, struct mm_struct *mm,
- #ifdef CONFIG_MMU_GATHER_RCU_TABLE_FREE
- 	tlb->batch = NULL;
- #endif
--#ifdef CONFIG_HAVE_MMU_GATHER_PAGE_SIZE
-+#ifdef CONFIG_MMU_GATHER_PAGE_SIZE
- 	tlb->page_size = 0;
- #endif
-
+ 	int ret;
+@@ -1423,6 +1435,7 @@ void (*pkey_tests[])(int *ptr, u16 pkey) = {
+ 	test_write_of_write_disabled_region,
+ 	test_write_of_write_disabled_region_with_page_already_mapped,
+ 	test_write_of_access_disabled_region,
++	test_write_of_access_disabled_region_with_page_already_mapped,
+ 	test_kernel_write_of_access_disabled_region,
+ 	test_kernel_write_of_write_disabled_region,
+ 	test_kernel_gup_of_access_disabled_region,
 -- 
-2.24.1
+2.17.1
