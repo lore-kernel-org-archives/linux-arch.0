@@ -1,49 +1,139 @@
 Return-Path: <owner-linux-mm@kvack.org>
-From: Xuefeng Wang <wxf.wang@hisilicon.com>
-Subject: [PATCH 0/2] mm/thp: rework the pmd protect changing flow
-Date: Thu, 23 Jan 2020 15:55:11 +0800
-Message-ID: <20200123075514.15142-1-wxf.wang@hisilicon.com>
-MIME-Version: 1.0
-Content-Type: text/plain
+From: Sandipan Das <sandipan@linux.ibm.com>
+Subject: [PATCH v18 16/24] selftests/vm/pkeys: Improve checks to determine
+ pkey support
+Date: Thu, 30 Jan 2020 12:06:58 +0530
+In-Reply-To: <cover.1580365432.git.sandipan@linux.ibm.com>
+References: <cover.1580365432.git.sandipan@linux.ibm.com>
+In-Reply-To: <cover.1580365432.git.sandipan@linux.ibm.com>
+References: <cover.1580365432.git.sandipan@linux.ibm.com>
+Message-ID: <c6fa2460756e22a36fc830a0ccd6e74040fc4ba3.1580365432.git.sandipan@linux.ibm.com>
 Sender: owner-linux-mm@kvack.org
-To: catalin.marinas@arm.com, will@kernel.org, mark.rutland@arm.com, arnd@arndb.de, akpm@linux-foundation.org
-Cc: linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, chenzhou10@huawei.com, Xuefeng Wang <wxf.wang@hisilicon.com>
+To: shuah@kernel.org, skhan@linuxfoundation.org, linux-kselftest@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, x86@kernel.org, linux-mm@kvack.org, fweimer@redhat.com, dave.hansen@intel.com, linuxram@us.ibm.com, mhocko@kernel.org, mingo@redhat.com, aneesh.kumar@linux.ibm.com, bauerman@linux.ibm.com, msuchanek@suse.de, mpe@ellerman.id.au
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200123075511.2ytfw0FUkB0zJhe4BxLQ0kJ9py5VRC1VsJ_CPKxNYw0@z>
+Message-ID: <20200130063658.vlhzSKCPsmsI1GXVbWq4Ifkr0pXTZSjvk78X8It0xi8@z>
 
-On KunPeng920 board. When changing permission of a large range region,
-pmdp_invalidate() takes about 65% in profile (with hugepages) in JIT tool.
-Kernel will flush tlb twice: first flush happens in pmdp_invalidate, second
-flush happens at the end of change_protect_range(). The first pmdp_invalidate
-is not necessary if the hardware support atomic pmdp changing. The atomic
-changing pimd to zero can prevent the hardware from update asynchronous.
-So reconstruct it and remove the first pmdp_invalidate. And the second tlb
-flush can make sure the new tlb entry valid.
+From: Ram Pai <linuxram@us.ibm.com>
 
-This patch series add a pmdp_modify_prot transaction abstraction firstly.
-Then add pmdp_modify_prot_start() in arm64, which uses pmdp_huge_get_and_clear()
-to atomically fetch the pmd and zero the entry.
+For the pkeys subsystem to work, both the CPU and the
+kernel need to have support. So, additionally check if
+the kernel supports pkeys apart from the CPU feature
+checks.
 
-After rework, the mprotect can get 3~13 times performace gain in range
-64M to 512M on KunPeng920:
+cc: Dave Hansen <dave.hansen@intel.com>
+cc: Florian Weimer <fweimer@redhat.com>
+Signed-off-by: Ram Pai <linuxram@us.ibm.com>
+Signed-off-by: Sandipan Das <sandipan@linux.ibm.com>
+---
+ tools/testing/selftests/vm/pkey-helpers.h    | 30 ++++++++++++++++++++
+ tools/testing/selftests/vm/pkey-powerpc.h    |  3 +-
+ tools/testing/selftests/vm/pkey-x86.h        |  2 +-
+ tools/testing/selftests/vm/protection_keys.c |  7 +++--
+ 4 files changed, 37 insertions(+), 5 deletions(-)
 
-4K granule/THP on
-memory size(M)	64	128	256	320	448	512
-pre-patch	0.77	1.40	2.64	3.23	4.49	5.10
-post-patch	0.20	0.23	0.28	0.31	0.37	0.39
+diff --git a/tools/testing/selftests/vm/pkey-helpers.h b/tools/testing/selftests/vm/pkey-helpers.h
+index 2f4b1eb3a680..59ccdff18214 100644
+--- a/tools/testing/selftests/vm/pkey-helpers.h
++++ b/tools/testing/selftests/vm/pkey-helpers.h
+@@ -76,6 +76,8 @@ extern void abort_hooks(void);
 
-Changes:
-v2:
- - fix set_pmd_at compile problems
+ __attribute__((noinline)) int read_ptr(int *ptr);
+ void expected_pkey_fault(int pkey);
++int sys_pkey_alloc(unsigned long flags, unsigned long init_val);
++int sys_pkey_free(unsigned long pkey);
 
-Xuefeng Wang (2):
-  mm: add helpers pmdp_modify_prot_start/commit
-  arm64: mm: rework the pmd protect changing flow
+ #if defined(__i386__) || defined(__x86_64__) /* arch */
+ #include "pkey-x86.h"
+@@ -186,4 +188,32 @@ static inline u32 *siginfo_get_pkey_ptr(siginfo_t *si)
+ #endif
+ }
 
- arch/arm64/include/asm/pgtable.h | 14 +++++++++++++
- include/asm-generic/pgtable.h    | 35 ++++++++++++++++++++++++++++++++
- mm/huge_memory.c                 | 19 ++++++++---------
- 3 files changed, 57 insertions(+), 11 deletions(-)
++static inline int kernel_has_pkeys(void)
++{
++	/* try allocating a key and see if it succeeds */
++	int ret = sys_pkey_alloc(0, 0);
++	if (ret <= 0) {
++		return 0;
++	}
++	sys_pkey_free(ret);
++	return 1;
++}
++
++static inline int is_pkeys_supported(void)
++{
++	/* check if the cpu supports pkeys */
++	if (!cpu_has_pkeys()) {
++		dprintf1("SKIP: %s: no CPU support\n", __func__);
++		return 0;
++	}
++
++	/* check if the kernel supports pkeys */
++	if (!kernel_has_pkeys()) {
++		dprintf1("SKIP: %s: no kernel support\n", __func__);
++		return 0;
++	}
++
++	return 1;
++}
++
+ #endif /* _PKEYS_HELPER_H */
+diff --git a/tools/testing/selftests/vm/pkey-powerpc.h b/tools/testing/selftests/vm/pkey-powerpc.h
+index 319673bbab0b..7d7c3ffafdd9 100644
+--- a/tools/testing/selftests/vm/pkey-powerpc.h
++++ b/tools/testing/selftests/vm/pkey-powerpc.h
+@@ -63,8 +63,9 @@ static inline void __write_pkey_reg(u64 pkey_reg)
+ 			__func__, __read_pkey_reg(), pkey_reg);
+ }
 
---
+-static inline int cpu_has_pku(void)
++static inline int cpu_has_pkeys(void)
+ {
++	/* No simple way to determine this */
+ 	return 1;
+ }
+
+diff --git a/tools/testing/selftests/vm/pkey-x86.h b/tools/testing/selftests/vm/pkey-x86.h
+index a0c59d4f7af2..6421b846aa16 100644
+--- a/tools/testing/selftests/vm/pkey-x86.h
++++ b/tools/testing/selftests/vm/pkey-x86.h
+@@ -97,7 +97,7 @@ static inline void __cpuid(unsigned int *eax, unsigned int *ebx,
+ #define X86_FEATURE_PKU        (1<<3) /* Protection Keys for Userspace */
+ #define X86_FEATURE_OSPKE      (1<<4) /* OS Protection Keys Enable */
+
+-static inline int cpu_has_pku(void)
++static inline int cpu_has_pkeys(void)
+ {
+ 	unsigned int eax;
+ 	unsigned int ebx;
+diff --git a/tools/testing/selftests/vm/protection_keys.c b/tools/testing/selftests/vm/protection_keys.c
+index 5fcbbc525364..95f173049f43 100644
+--- a/tools/testing/selftests/vm/protection_keys.c
++++ b/tools/testing/selftests/vm/protection_keys.c
+@@ -1378,7 +1378,7 @@ void test_mprotect_pkey_on_unsupported_cpu(int *ptr, u16 pkey)
+ 	int size = PAGE_SIZE;
+ 	int sret;
+
+-	if (cpu_has_pku()) {
++	if (cpu_has_pkeys()) {
+ 		dprintf1("SKIP: %s: no CPU support\n", __func__);
+ 		return;
+ 	}
+@@ -1447,12 +1447,13 @@ void pkey_setup_shadow(void)
+ int main(void)
+ {
+ 	int nr_iterations = 22;
++	int pkeys_supported = is_pkeys_supported();
+
+ 	setup_handlers();
+
+-	printf("has pku: %d\n", cpu_has_pku());
++	printf("has pkeys: %d\n", pkeys_supported);
+
+-	if (!cpu_has_pku()) {
++	if (!pkeys_supported) {
+ 		int size = PAGE_SIZE;
+ 		int *ptr;
+
+-- 
 2.17.1
