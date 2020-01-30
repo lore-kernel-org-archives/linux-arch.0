@@ -1,117 +1,103 @@
-Return-Path: <brendanhiggins@google.com>
-MIME-Version: 1.0
-References: <20191216220555.245089-1-brendanhiggins@google.com>
- <20191216220555.245089-4-brendanhiggins@google.com> <20191217080408.0E805207FF@mail.kernel.org>
-In-Reply-To: <20191217080408.0E805207FF@mail.kernel.org>
+Return-Path: <3_GEzXg4KBIUk0nwmjwqrpprw1pxxpun.lxv0yy2urw36.rkv.lxv@flex--brendanhiggins.bounces.google.com>
+Date: Thu, 30 Jan 2020 15:08:11 -0800
+In-Reply-To: <20200130230812.142642-1-brendanhiggins@google.com>
+Message-ID: <20200130230812.142642-7-brendanhiggins@google.com>
+Mime-Version: 1.0
+References: <20200130230812.142642-1-brendanhiggins@google.com>
+Subject: [PATCH v2 6/7] kunit: Add 'kunit_shutdown' option
 From: Brendan Higgins <brendanhiggins@google.com>
-Date: Thu, 23 Jan 2020 14:54:55 -0800
-Message-ID: <CAFd5g44Wh9kwXsY_M4GfMp0+wzN_3HhVfa360J-tF48aQ_KADg@mail.gmail.com>
-Subject: Re: [RFC v1 3/6] kunit: test: create a single centralized executor
- for all tests
 Content-Type: text/plain; charset="UTF-8"
-To: Stephen Boyd <sboyd@kernel.org>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Alan Maguire <alan.maguire@oracle.com>, Anton Ivanov <anton.ivanov@cambridgegreys.com>, Arnd Bergmann <arnd@arndb.de>, David Gow <davidgow@google.com>, Jeff Dike <jdike@addtoit.com>, Kees Cook <keescook@chromium.org>, Richard Weinberger <richard@nod.at>, rppt@linux.ibm.com, Shuah Khan <skhan@linuxfoundation.org>, Iurii Zaikin <yzaikin@google.com>, Greg KH <gregkh@linuxfoundation.org>, Logan Gunthorpe <logang@deltatee.com>, Luis Chamberlain <mcgrof@kernel.org>, Knut Omang <knut.omang@oracle.com>, linux-um <linux-um@lists.infradead.org>, linux-arch@vger.kernel.org, "open list:KERNEL SELFTEST FRAMEWORK" <linux-kselftest@vger.kernel.org>, KUnit Development <kunit-dev@googlegroups.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
+To: jdike@addtoit.com, richard@nod.at, anton.ivanov@cambridgegreys.com, arnd@arndb.de, keescook@chromium.org, skhan@linuxfoundation.org, alan.maguire@oracle.com, yzaikin@google.com, davidgow@google.com, akpm@linux-foundation.org, rppt@linux.ibm.com, frowand.list@gmail.com
+Cc: gregkh@linuxfoundation.org, sboyd@kernel.org, logang@deltatee.com, mcgrof@kernel.org, knut.omang@oracle.com, linux-um@lists.infradead.org, linux-arch@vger.kernel.org, linux-kselftest@vger.kernel.org, kunit-dev@googlegroups.com, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, Brendan Higgins <brendanhiggins@google.com>
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200123225455.PkaDXG1UjxnIhrcti6oJWN1QuK5rxvWfupcnWjK8SQo@z>
+Message-ID: <20200130230811.J7eCKKXLE6v4gmSegy7d8xOsh0FWG-6zv-8HrhfiDu4@z>
 
-On Tue, Dec 17, 2019 at 12:04 AM Stephen Boyd <sboyd@kernel.org> wrote:
->
-> Quoting Brendan Higgins (2019-12-16 14:05:52)
-> > diff --git a/include/kunit/test.h b/include/kunit/test.h
-> > index dba48304b3bd3..c070798ebb765 100644
-> > --- a/include/kunit/test.h
-> > +++ b/include/kunit/test.h
-> > @@ -217,11 +217,8 @@ int kunit_run_tests(struct kunit_suite *suite);
-> >   * everything else is definitely initialized.
-> >   */
-> >  #define kunit_test_suite(suite)                                                       \
-> > -       static int kunit_suite_init##suite(void)                               \
->
-> Oh this should have been __init before.
+From: David Gow <davidgow@google.com>
 
-No, the stuff in this patch shouldn't be init. With the work that Alan
-has been doing (adding support for modules, debugfs); the test code
-can run after booting, so init in any of this code is incorrect.
+Add a new kernel command-line option, 'kunit_shutdown', which allows the
+user to specify that the kernel poweroff, halt, or reboot after
+completing all KUnit tests; this is very handy for running KUnit tests
+on UML or a VM so that the UML/VM process exits cleanly immediately
+after running all tests without needing a special initramfs.
 
-> > -       {                                                                      \
-> > -               return kunit_run_tests(&suite);                                \
-> > -       }                                                                      \
-> > -       late_initcall(kunit_suite_init##suite)
-> > +       static struct kunit_suite *__kunit_suite_##suite                       \
-> > +       __used __aligned(8) __section(.kunit_test_suites) = &suite
-> >
-> >  /*
-> >   * Like kunit_alloc_resource() below, but returns the struct kunit_resource
-> > diff --git a/lib/kunit/executor.c b/lib/kunit/executor.c
-> > new file mode 100644
-> > index 0000000000000..978086cfd257d
-> > --- /dev/null
-> > +++ b/lib/kunit/executor.c
-> > @@ -0,0 +1,43 @@
-> > +// SPDX-License-Identifier: GPL-2.0
-> > +/*
-> > + * Base unit test (KUnit) API.
-> > + *
-> > + * Copyright (C) 2019, Google LLC.
-> > + * Author: Brendan Higgins <brendanhiggins@google.com>
-> > + */
-> > +
-> > +#include <linux/init.h>
-> > +#include <linux/printk.h>
-> > +#include <kunit/test.h>
-> > +
-> > +/*
-> > + * These symbols point to the .kunit_test_suites section and are defined in
-> > + * include/asm-generic/vmlinux.lds.h, and consequently must be extern.
-> > + */
-> > +extern struct kunit_suite *__kunit_suites_start[];
-> > +extern struct kunit_suite *__kunit_suites_end[];
-> > +
-> > +static bool kunit_run_all_tests(void)
->
-> Should be __init?
+Signed-off-by: David Gow <davidgow@google.com>
+Signed-off-by: Brendan Higgins <brendanhiggins@google.com>
+Reviewed-by: Stephen Boyd <sboyd@kernel.org>
+---
+ lib/kunit/executor.c                | 20 ++++++++++++++++++++
+ tools/testing/kunit/kunit_kernel.py |  2 +-
+ tools/testing/kunit/kunit_parser.py |  2 +-
+ 3 files changed, 22 insertions(+), 2 deletions(-)
 
-It could be, I think. Alan's code doesn't call this, so for now we
-might as well make it __init.
-
-> > +{
-> > +       struct kunit_suite **suite;
->
-> Can this be const? And the linker references above too?
-
-Good catch. Will fix.
-
-> > +       bool has_test_failed = false;
-> > +
-> > +       for (suite = __kunit_suites_start;
-> > +            suite < __kunit_suites_end;
-> > +            ++suite) {
-> > +               if (kunit_run_tests(*suite))
-> > +                       has_test_failed = true;
-> > +       }
-> > +
-> > +       return !has_test_failed;
-> > +}
-> > +
-> > +static int kunit_executor_init(void)
->
-> Should be __init?
-
-Will do.
-
-> > +{
-> > +       if (kunit_run_all_tests())
-> > +               return 0;
-> > +       else
-> > +               return -EFAULT;
->
-> Why two functions instead of just one that is the target of the
-> late_initcall? Nitpick: deindent that last return and take it out of the
-> else.
-
-Yeah, it probably makes more sense to just call kunit_run_all_tests
-and have it return an int.
-
-> > +}
-> > +
-> > +late_initcall(kunit_executor_init);
+diff --git a/lib/kunit/executor.c b/lib/kunit/executor.c
+index 7fd16feff157e..a93821116ccec 100644
+--- a/lib/kunit/executor.c
++++ b/lib/kunit/executor.c
+@@ -1,5 +1,6 @@
+ // SPDX-License-Identifier: GPL-2.0
+ 
++#include <linux/reboot.h>
+ #include <kunit/test.h>
+ 
+ /*
+@@ -11,6 +12,23 @@ extern struct kunit_suite * const * const __kunit_suites_end[];
+ 
+ #if IS_BUILTIN(CONFIG_KUNIT)
+ 
++static char *kunit_shutdown;
++core_param(kunit_shutdown, kunit_shutdown, charp, 0644);
++
++static void kunit_handle_shutdown(void)
++{
++	if (!kunit_shutdown)
++		return;
++
++	if (!strcmp(kunit_shutdown, "poweroff"))
++		kernel_power_off();
++	else if (!strcmp(kunit_shutdown, "halt"))
++		kernel_halt();
++	else if (!strcmp(kunit_shutdown, "reboot"))
++		kernel_restart(NULL);
++
++}
++
+ static void kunit_print_tap_header(void)
+ {
+ 	struct kunit_suite * const * const *suites, * const *subsuite;
+@@ -42,6 +60,8 @@ int kunit_run_all_tests(void)
+ 		}
+ 	}
+ 
++	kunit_handle_shutdown();
++
+ 	if (has_test_failed)
+ 		return -EFAULT;
+ 
+diff --git a/tools/testing/kunit/kunit_kernel.py b/tools/testing/kunit/kunit_kernel.py
+index cc5d844ecca13..43314aa537d30 100644
+--- a/tools/testing/kunit/kunit_kernel.py
++++ b/tools/testing/kunit/kunit_kernel.py
+@@ -141,7 +141,7 @@ class LinuxSourceTree(object):
+ 		return True
+ 
+ 	def run_kernel(self, args=[], timeout=None, build_dir=''):
+-		args.extend(['mem=256M'])
++		args.extend(['mem=256M', 'kunit_shutdown=halt'])
+ 		process = self._ops.linux_bin(args, timeout, build_dir)
+ 		with open(os.path.join(build_dir, 'test.log'), 'w') as f:
+ 			for line in process.stdout:
+diff --git a/tools/testing/kunit/kunit_parser.py b/tools/testing/kunit/kunit_parser.py
+index 78b3bdd03b1e4..633811dd9bce8 100644
+--- a/tools/testing/kunit/kunit_parser.py
++++ b/tools/testing/kunit/kunit_parser.py
+@@ -48,7 +48,7 @@ class TestStatus(Enum):
+ 	FAILURE_TO_PARSE_TESTS = auto()
+ 
+ kunit_start_re = re.compile(r'^TAP version [0-9]+$')
+-kunit_end_re = re.compile('List of all partitions:')
++kunit_end_re = re.compile(r'reboot: System halted')
+ 
+ def isolate_kunit_output(kernel_output):
+ 	started = False
+-- 
+2.25.0.341.g760bfbb309-goog
