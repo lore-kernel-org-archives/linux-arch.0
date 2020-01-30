@@ -1,45 +1,119 @@
 Return-Path: <owner-linux-mm@kvack.org>
-From: Xuefeng Wang <wxf.wang@hisilicon.com>
-Subject: [PATCH 0/2] mm/thp: rework the pmd protect changing flow
-Date: Thu, 16 Jan 2020 11:09:15 +0800
-Message-ID: <1579144157-7736-1-git-send-email-wxf.wang@hisilicon.com>
-MIME-Version: 1.0
-Content-Type: text/plain
+From: Sandipan Das <sandipan@linux.ibm.com>
+Subject: [PATCH v18 20/24] selftests/vm/pkeys: Introduce a sub-page allocator
+Date: Thu, 30 Jan 2020 12:07:02 +0530
+In-Reply-To: <cover.1580365432.git.sandipan@linux.ibm.com>
+References: <cover.1580365432.git.sandipan@linux.ibm.com>
+In-Reply-To: <cover.1580365432.git.sandipan@linux.ibm.com>
+References: <cover.1580365432.git.sandipan@linux.ibm.com>
+Message-ID: <beebf605f68d3b594d7ab2ae404d54a7046a6652.1580365432.git.sandipan@linux.ibm.com>
 Sender: owner-linux-mm@kvack.org
-To: arnd@arndb.de, akpm@linux-foundation.org, catalin.marinas@arm.com, will@kernel.org, mark.rutland@arm.com
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, linux-arm-kernel@lists.infradead.org, chenzhou10@huawei.com
+To: shuah@kernel.org, skhan@linuxfoundation.org, linux-kselftest@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, x86@kernel.org, linux-mm@kvack.org, fweimer@redhat.com, dave.hansen@intel.com, linuxram@us.ibm.com, mhocko@kernel.org, mingo@redhat.com, aneesh.kumar@linux.ibm.com, bauerman@linux.ibm.com, msuchanek@suse.de, mpe@ellerman.id.au
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200116030915.2HCBnTZ9iojvzaxgQTiKKbhl9vQ09HV84n-mgdN3tqM@z>
+Message-ID: <20200130063702.BcZELLwJEteQAEHt8O5AQ0wQv_TrPN174Om-d4a__qE@z>
 
-On KunPeng920 board. When changing permission of a large range region,
-pmdp_invalidate() takes about 65% in profile (with hugepages) in JIT tool.
-Kernel will flush tlb twice: first flush happens in pmdp_invalidate, second
-flush happens at the end of change_protect_range(). The first pmdp_invalidate
-is not necessary if the hardware support atomic pmdp changing. The atomic
-changing pimd to zero can prevent the hardware from update asynchronous.
-So reconstruct it and remove the first pmdp_invalidate. And the second tlb
-flush can make sure the new tlb entry valid.
+From: Ram Pai <linuxram@us.ibm.com>
 
-This patch series add a pmdp_modify_prot transaction abstraction firstly.
-Then add pmdp_modify_prot_start() in arm64, which uses pmdp_huge_get_and_clear()
-to atomically fetch the pmd and zero the entry.
+This introduces a new allocator that allocates 4K hardware
+pages to back 64K linux pages. This allocator is available
+only on powerpc.
 
-After rework, the mprotect can get 3~13 times performace gain in range
-64M to 512M on KunPeng920:
+cc: Dave Hansen <dave.hansen@intel.com>
+cc: Florian Weimer <fweimer@redhat.com>
+Signed-off-by: Ram Pai <linuxram@us.ibm.com>
+Signed-off-by: Thiago Jung Bauermann <bauerman@linux.ibm.com>
+Signed-off-by: Sandipan Das <sandipan@linux.ibm.com>
+---
+ tools/testing/selftests/vm/pkey-helpers.h    |  6 +++++
+ tools/testing/selftests/vm/pkey-powerpc.h    | 25 ++++++++++++++++++++
+ tools/testing/selftests/vm/pkey-x86.h        |  5 ++++
+ tools/testing/selftests/vm/protection_keys.c |  1 +
+ 4 files changed, 37 insertions(+)
 
-4K granule/THP on
-memory size(M)	64	128	256	320	448	512
-pre-patch		0.77	1.40	2.64	3.23	4.49	5.10
-post-patch		0.20	0.23	0.28	0.31	0.37	0.39
+diff --git a/tools/testing/selftests/vm/pkey-helpers.h b/tools/testing/selftests/vm/pkey-helpers.h
+index 59ccdff18214..622a85848f61 100644
+--- a/tools/testing/selftests/vm/pkey-helpers.h
++++ b/tools/testing/selftests/vm/pkey-helpers.h
+@@ -28,6 +28,9 @@
+ extern int dprint_in_signal;
+ extern char dprint_in_signal_buffer[DPRINT_IN_SIGNAL_BUF_SIZE];
 
-Xuefeng Wang (2):
-  mm: add helpers pmdp_modify_prot_start/commit
-  arm64: mm: rework the pmd protect changing flow
++extern int test_nr;
++extern int iteration_nr;
++
+ #ifdef __GNUC__
+ __attribute__((format(printf, 1, 2)))
+ #endif
+@@ -78,6 +81,9 @@ __attribute__((noinline)) int read_ptr(int *ptr);
+ void expected_pkey_fault(int pkey);
+ int sys_pkey_alloc(unsigned long flags, unsigned long init_val);
+ int sys_pkey_free(unsigned long pkey);
++int mprotect_pkey(void *ptr, size_t size, unsigned long orig_prot,
++		unsigned long pkey);
++void record_pkey_malloc(void *ptr, long size, int prot);
 
- arch/arm64/include/asm/pgtable.h | 14 +++++++++++++
- include/asm-generic/pgtable.h    | 35 ++++++++++++++++++++++++++++++++
- mm/huge_memory.c                 | 19 ++++++++---------
- 3 files changed, 57 insertions(+), 11 deletions(-)
+ #if defined(__i386__) || defined(__x86_64__) /* arch */
+ #include "pkey-x86.h"
+diff --git a/tools/testing/selftests/vm/pkey-powerpc.h b/tools/testing/selftests/vm/pkey-powerpc.h
+index 7d7c3ffafdd9..d31665c48f5e 100644
+--- a/tools/testing/selftests/vm/pkey-powerpc.h
++++ b/tools/testing/selftests/vm/pkey-powerpc.h
+@@ -106,4 +106,29 @@ void expect_fault_on_read_execonly_key(void *p1, int pkey)
+ /* 4-byte instructions * 16384 = 64K page */
+ #define __page_o_noops() asm(".rept 16384 ; nop; .endr")
 
++void *malloc_pkey_with_mprotect_subpage(long size, int prot, u16 pkey)
++{
++	void *ptr;
++	int ret;
++
++	dprintf1("doing %s(size=%ld, prot=0x%x, pkey=%d)\n", __func__,
++			size, prot, pkey);
++	pkey_assert(pkey < NR_PKEYS);
++	ptr = mmap(NULL, size, prot, MAP_ANONYMOUS|MAP_PRIVATE, -1, 0);
++	pkey_assert(ptr != (void *)-1);
++
++	ret = syscall(__NR_subpage_prot, ptr, size, NULL);
++	if (ret) {
++		perror("subpage_perm");
++		return PTR_ERR_ENOTSUP;
++	}
++
++	ret = mprotect_pkey((void *)ptr, PAGE_SIZE, prot, pkey);
++	pkey_assert(!ret);
++	record_pkey_malloc(ptr, size, prot);
++
++	dprintf1("%s() for pkey %d @ %p\n", __func__, pkey, ptr);
++	return ptr;
++}
++
+ #endif /* _PKEYS_POWERPC_H */
+diff --git a/tools/testing/selftests/vm/pkey-x86.h b/tools/testing/selftests/vm/pkey-x86.h
+index 6421b846aa16..3be20f5d5275 100644
+--- a/tools/testing/selftests/vm/pkey-x86.h
++++ b/tools/testing/selftests/vm/pkey-x86.h
+@@ -173,4 +173,9 @@ void expect_fault_on_read_execonly_key(void *p1, int pkey)
+ 	expected_pkey_fault(pkey);
+ }
+
++void *malloc_pkey_with_mprotect_subpage(long size, int prot, u16 pkey)
++{
++	return PTR_ERR_ENOTSUP;
++}
++
+ #endif /* _PKEYS_X86_H */
+diff --git a/tools/testing/selftests/vm/protection_keys.c b/tools/testing/selftests/vm/protection_keys.c
+index 8bb4de103874..d4952b57cc90 100644
+--- a/tools/testing/selftests/vm/protection_keys.c
++++ b/tools/testing/selftests/vm/protection_keys.c
+@@ -845,6 +845,7 @@ void *malloc_pkey_mmap_dax(long size, int prot, u16 pkey)
+ void *(*pkey_malloc[])(long size, int prot, u16 pkey) = {
+
+ 	malloc_pkey_with_mprotect,
++	malloc_pkey_with_mprotect_subpage,
+ 	malloc_pkey_anon_huge,
+ 	malloc_pkey_hugetlb
+ /* can not do direct with the pkey_mprotect() API:
 -- 
 2.17.1
