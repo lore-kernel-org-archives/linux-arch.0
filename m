@@ -1,46 +1,69 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pg1-f195.google.com ([209.85.215.195]:36515 "EHLO
- mail-pg1-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with
- ESMTP id S1726173AbgA0XUB (ORCPT <rfc822;linux-arch@vger.kernel.org>); Mon,
- 27 Jan 2020 18:20:01 -0500
-Received: by mail-pg1-f195.google.com with SMTP id k3so5939882pgc.3 for
- <linux-arch@vger.kernel.org>; Mon, 27 Jan 2020 15:20:01 -0800 (PST)
-Date: Mon, 27 Jan 2020 15:19:59 -0800
-From: Kees Cook <keescook@chromium.org>
-Subject: Re: [kernel-hardening] [PATCH 09/38] usercopy: Mark kmalloc caches as
- usercopy caches
-Message-ID: <202001271519.AA6ADEACF0@keescook>
-References: <1515636190-24061-1-git-send-email-keescook@chromium.org>
- <1515636190-24061-10-git-send-email-keescook@chromium.org>
- <9519edb7-456a-a2fa-659e-3e5a1ff89466@suse.cz>
- <201911121313.1097D6EE@keescook> <201911141327.4DE6510@keescook>
- <bfca96db-bbd0-d958-7732-76e36c667c68@suse.cz>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <bfca96db-bbd0-d958-7732-76e36c667c68@suse.cz>
+Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:38374 "EHLO
+ mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+ with ESMTP id S1725935AbgA3Gig (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+ Thu, 30 Jan 2020 01:38:36 -0500
+Received: from pps.filterd (m0098413.ppops.net [127.0.0.1]) by
+ mx0b-001b2d01.pphosted.com (8.16.0.42/8.16.0.42) with SMTP id 00U6cYFU088883
+ for <linux-arch@vger.kernel.org>; Thu, 30 Jan 2020 01:38:34 -0500
+Received: from e06smtp07.uk.ibm.com (e06smtp07.uk.ibm.com [195.75.94.103]) by
+ mx0b-001b2d01.pphosted.com with ESMTP id 2xtmmy1kfv-1 (version=TLSv1.2
+ cipher=AES256-GCM-SHA384 bits=256 verify=NOT) for
+ <linux-arch@vger.kernel.org>; Thu, 30 Jan 2020 01:38:34 -0500
+Received: from localhost by e06smtp07.uk.ibm.com with IBM ESMTP SMTP Gateway:
+ Authorized Use Only! Violators will be prosecuted for
+ <linux-arch@vger.kernel.org> from <sandipan@linux.ibm.com>; Thu, 30 Jan 2020
+ 06:38:18 -0000
+From: Sandipan Das <sandipan@linux.ibm.com>
+Subject: [PATCH v18 22/24] selftests/vm/pkeys: Override access right
+ definitions on powerpc
+Date: Thu, 30 Jan 2020 12:07:04 +0530
+In-Reply-To: <cover.1580365432.git.sandipan@linux.ibm.com>
+References: <cover.1580365432.git.sandipan@linux.ibm.com>
+In-Reply-To: <cover.1580365432.git.sandipan@linux.ibm.com>
+References: <cover.1580365432.git.sandipan@linux.ibm.com>
+Message-ID: <71f29be8833f1d24f66fca9ff78871896af9fbf1.1580365432.git.sandipan@linux.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jiri Slaby <jslaby@suse.cz>
-Cc: Alexander Viro <viro@zeniv.linux.org.uk>, linux-kernel@vger.kernel.org, David Windsor <dave@nullcore.net>, Pekka Enberg <penberg@kernel.org>, David Rientjes <rientjes@google.com>, Joonsoo Kim <iamjoonsoo.kim@lge.com>, Andrew Morton <akpm@linux-foundation.org>, linux-mm@kvack.org, linux-xfs@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, Christoph Hellwig <hch@infradead.org>, Christoph Lameter <cl@linux.com>, "David S. Miller" <davem@davemloft.net>, Laura Abbott <labbott@redhat.com>, Mark Rutland <mark.rutland@arm.com>, "Martin K. Petersen" <martin.petersen@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Christoffer Dall <christoffer.dall@linaro.org>, Dave Kleikamp <dave.kleikamp@oracle.com>, Jan Kara <jack@suse.cz>, Luis de Bethencourt <luisbg@kernel.org>, Marc Zyngier <marc.zyngier@arm.com>, Rik van Riel <riel@redhat.com>, Matthew Garrett <mjg59@google.com>, linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org, netdev@vger.kernel.org, kernel-hardening@lists.openwall.com, Vlastimil Babka <vbabka@suse.cz>, Michal Kubecek <mkubecek@suse.cz>
-Message-ID: <20200127231959.7-BuPO1CtuvWEwf4eU03SYn6qBmgNUPlCoFmObrgl8c@z>
+To: shuah@kernel.org, skhan@linuxfoundation.org, linux-kselftest@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, x86@kernel.org, linux-mm@kvack.org, fweimer@redhat.com, dave.hansen@intel.com, linuxram@us.ibm.com, mhocko@kernel.org, mingo@redhat.com, aneesh.kumar@linux.ibm.com, bauerman@linux.ibm.com, msuchanek@suse.de, mpe@ellerman.id.au
+Message-ID: <20200130063704.LQcliPNAXZhwiuUU6_Tcy1RwZRwhk9WeOhwljr4CvCw@z>
 
-On Thu, Jan 23, 2020 at 09:14:20AM +0100, Jiri Slaby wrote:
-> On 14. 11. 19, 22:27, Kees Cook wrote:
-> > On Tue, Nov 12, 2019 at 01:21:54PM -0800, Kees Cook wrote:
-> >> How is iucv the only network protocol that has run into this? Do others
-> >> use a bounce buffer?
-> > 
-> > Another solution would be to use a dedicated kmem cache (instead of the
-> > shared kmalloc dma one)?
-> 
-> Has there been any conclusion to this thread yet? For the time being, we
-> disabled HARDENED_USERCOPY on s390...
-> 
-> https://lore.kernel.org/kernel-hardening/9519edb7-456a-a2fa-659e-3e5a1ff89466@suse.cz/
+From: Ram Pai <linuxram@us.ibm.com>
 
-I haven't heard anything new. What did people think of a separate kmem
-cache?
+Some platforms hardcode the x86 values for PKEY_DISABLE_ACCESS
+and PKEY_DISABLE_WRITE such as those in:
+ /usr/include/bits/mman-shared.h.
+
+This overrides the definitions with correct values for powerpc.
+
+cc: Dave Hansen <dave.hansen@intel.com>
+cc: Florian Weimer <fweimer@redhat.com>
+Signed-off-by: Ram Pai <linuxram@us.ibm.com>
+Signed-off-by: Sandipan Das <sandipan@linux.ibm.com>
+---
+ tools/testing/selftests/vm/pkey-powerpc.h | 6 ++++--
+ 1 file changed, 4 insertions(+), 2 deletions(-)
+
+diff --git a/tools/testing/selftests/vm/pkey-powerpc.h b/tools/testing/selftests/vm/pkey-powerpc.h
+index d31665c48f5e..02bd4dd7d467 100644
+--- a/tools/testing/selftests/vm/pkey-powerpc.h
++++ b/tools/testing/selftests/vm/pkey-powerpc.h
+@@ -16,11 +16,13 @@
+ #define fpregs			fp_regs
+ #define si_pkey_offset		0x20
+
+-#ifndef PKEY_DISABLE_ACCESS
++#ifdef PKEY_DISABLE_ACCESS
++#undef PKEY_DISABLE_ACCESS
+ # define PKEY_DISABLE_ACCESS	0x3  /* disable read and write */
+ #endif
+
+-#ifndef PKEY_DISABLE_WRITE
++#ifdef PKEY_DISABLE_WRITE
++#undef PKEY_DISABLE_WRITE
+ # define PKEY_DISABLE_WRITE	0x2
+ #endif
 
 -- 
-Kees Cook
+2.17.1
