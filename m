@@ -1,44 +1,42 @@
-Return-Path: <owner-linux-mm@kvack.org>
-From: Sandipan Das <sandipan@linux.ibm.com>
-Subject: [PATCH v17 06/24] selftests/vm/pkeys: Make gcc check arguments of
- sigsafe_printf()
-Date: Mon, 20 Jan 2020 14:06:03 +0530
-In-Reply-To: <cover.1579507768.git.sandipan@linux.ibm.com>
-References: <cover.1579507768.git.sandipan@linux.ibm.com>
-In-Reply-To: <cover.1579507768.git.sandipan@linux.ibm.com>
-References: <cover.1579507768.git.sandipan@linux.ibm.com>
-Message-ID: <34d68edb41195ce0c0262ef9ed19c3b4a031abe2.1579507768.git.sandipan@linux.ibm.com>
-Sender: owner-linux-mm@kvack.org
-To: shuah@kernel.org, linux-kselftest@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, fweimer@redhat.com, dave.hansen@intel.com, x86@kernel.org, linuxram@us.ibm.com, mhocko@kernel.org, linux-mm@kvack.org, mingo@redhat.com, aneesh.kumar@linux.ibm.com, bauerman@linux.ibm.com, msuchanek@suse.de, mpe@ellerman.id.au, linuxppc-dev@lists.ozlabs.org
+Return-Path: <38mEzXg4KBHsaqdmcZmghffhmrfnnfkd.bnlqooskhmtw.hal.bnl@flex--brendanhiggins.bounces.google.com>
+Date: Thu, 30 Jan 2020 15:08:07 -0800
+In-Reply-To: <20200130230812.142642-1-brendanhiggins@google.com>
+Message-ID: <20200130230812.142642-3-brendanhiggins@google.com>
+Mime-Version: 1.0
+References: <20200130230812.142642-1-brendanhiggins@google.com>
+Subject: [PATCH v2 2/7] arch: um: add linker section for KUnit test suites
+From: Brendan Higgins <brendanhiggins@google.com>
+Content-Type: text/plain; charset="UTF-8"
+To: jdike@addtoit.com, richard@nod.at, anton.ivanov@cambridgegreys.com, arnd@arndb.de, keescook@chromium.org, skhan@linuxfoundation.org, alan.maguire@oracle.com, yzaikin@google.com, davidgow@google.com, akpm@linux-foundation.org, rppt@linux.ibm.com, frowand.list@gmail.com
+Cc: gregkh@linuxfoundation.org, sboyd@kernel.org, logang@deltatee.com, mcgrof@kernel.org, knut.omang@oracle.com, linux-um@lists.infradead.org, linux-arch@vger.kernel.org, linux-kselftest@vger.kernel.org, kunit-dev@googlegroups.com, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, Brendan Higgins <brendanhiggins@google.com>
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200120083603.lr-A8hRXnksqrESt2V_pfCt2-lr2853RvvtOlR8WvNU@z>
+Message-ID: <20200130230807.aqX6e52Ed9RN-XB4Tcr1jEy8pgsG0C0JzaWdtqMvSGU@z>
 
-From: Thiago Jung Bauermann <bauerman@linux.ibm.com>
+Add a linker section to UML where KUnit can put references to its test
+suites. This patch is an early step in transitioning to dispatching all
+KUnit tests from a centralized executor rather than having each as its
+own separate late_initcall.
 
-This will help us ensure we print pkey_reg_t values correctly in
-different architectures.
-
-Signed-off-by: Thiago Jung Bauermann <bauerman@linux.ibm.com>
-Signed-off-by: Sandipan Das <sandipan@linux.ibm.com>
+Signed-off-by: Brendan Higgins <brendanhiggins@google.com>
+Reviewed-by: Stephen Boyd <sboyd@kernel.org>
 ---
- tools/testing/selftests/vm/pkey-helpers.h | 4 ++++
+ arch/um/include/asm/common.lds.S | 4 ++++
  1 file changed, 4 insertions(+)
 
-diff --git a/tools/testing/selftests/vm/pkey-helpers.h b/tools/testing/selftests/vm/pkey-helpers.h
-index 3ed2f021bf7a..7f18a82e54fc 100644
---- a/tools/testing/selftests/vm/pkey-helpers.h
-+++ b/tools/testing/selftests/vm/pkey-helpers.h
-@@ -27,6 +27,10 @@
- #define DPRINT_IN_SIGNAL_BUF_SIZE 4096
- extern int dprint_in_signal;
- extern char dprint_in_signal_buffer[DPRINT_IN_SIGNAL_BUF_SIZE];
+diff --git a/arch/um/include/asm/common.lds.S b/arch/um/include/asm/common.lds.S
+index 7145ce6999822..eab9ceb450efd 100644
+--- a/arch/um/include/asm/common.lds.S
++++ b/arch/um/include/asm/common.lds.S
+@@ -52,6 +52,10 @@
+ 	CON_INITCALL
+   }
+ 
++  .kunit_test_suites : {
++	KUNIT_TEST_SUITES
++  }
 +
-+#ifdef __GNUC__
-+__attribute__((format(printf, 1, 2)))
-+#endif
- static inline void sigsafe_printf(const char *format, ...)
- {
- 	va_list ap;
+   .exitcall : {
+ 	__exitcall_begin = .;
+ 	*(.exitcall.exit)
 -- 
-2.17.1
+2.25.0.341.g760bfbb309-goog
