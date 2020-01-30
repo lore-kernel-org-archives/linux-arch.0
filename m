@@ -1,141 +1,88 @@
-Return-Path: <SRS0=L7cK=3G=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail-wr1-f66.google.com ([209.85.221.66]:46836 "EHLO
-        mail-wr1-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1729375AbgAQIDj (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 17 Jan 2020 03:03:39 -0500
-Received: by mail-wr1-f66.google.com with SMTP id z7so21653122wrl.13
-        for <linux-arch@vger.kernel.org>; Fri, 17 Jan 2020 00:03:37 -0800 (PST)
-From: Michal Simek <michal.simek@xilinx.com>
-Subject: [PATCH v2 1/2] asm-generic: Make dma-contiguous.h a mandatory include/asm header
-Date: Fri, 17 Jan 2020 09:03:31 +0100
-Message-ID: <0274919c5e3b134df19d943f99cb7e84e5135ccd.1579248206.git.michal.simek@xilinx.com>
-In-Reply-To: <cover.1579248206.git.michal.simek@xilinx.com>
-References: <cover.1579248206.git.michal.simek@xilinx.com>
+Return-Path: <SRS0=fdYI=3T=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail-eopbgr1320123.outbound.protection.outlook.com ([40.107.132.123]:16224
+        "EHLO APC01-PU1-obe.outbound.protection.outlook.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1726671AbgA3BCS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 29 Jan 2020 20:02:18 -0500
+From: Dexuan Cui <decui@microsoft.com>
+Subject: RE: [PATCH v6][RESEND] x86/hyperv: Suspend/resume the hypercall page
+ for hibernation
+Date: Thu, 30 Jan 2020 01:02:06 +0000
+Message-ID: <PU1P153MB01552D8E75E152C3F3FB9C65BF040@PU1P153MB0155.APCP153.PROD.OUTLOOK.COM>
+References: <1578350559-130275-1-git-send-email-decui@microsoft.com>
+ <HK0P153MB0148ED41CE96B637019DF26ABF090@HK0P153MB0148.APCP153.PROD.OUTLOOK.COM>
+ <20200130000552.GD2896@sasha-vm>
+In-Reply-To: <20200130000552.GD2896@sasha-vm>
+Content-Language: en-US
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: quoted-printable
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org, monstr@monstr.eu, michal.simek@xilinx.com, git@xilinx.com, Christoph Hellwig <hch@lst.de>
-Cc: Christoph Hellwig <hch@infradead.org>, Paul Burton <paulburton@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Borislav Petkov <bp@alien8.de>, linux-mips@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>, Catalin Marinas <catalin.marinas@arm.com>, linux-riscv@lists.infradead.org, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, Palmer Dabbelt <palmer@dabbelt.com>, x86@kernel.org, Guo Ren <guoren@kernel.org>, Kate Stewart <kstewart@linuxfoundation.org>, Wesley Terpstra <wesley@sifive.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Ralf Baechle <ralf@linux-mips.org>, Paul Walmsley <paul.walmsley@sifive.com>, Max Filippov <jcmvbkbc@gmail.com>, linux-xtensa@linux-xtensa.org, "H. Peter Anvin" <hpa@zytor.com>, "Peter Zijlstra (Intel)" <peterz@infradead.org>, Will Deacon <will@kernel.org>, Christian Borntraeger <borntraeger@de.ibm.com>, Deepa Dinamani <deepa.kernel@gmail.com>, Chris Zankel <chris@zankel.net>, Ingo Molnar <mingo@redhat.com>, Waiman Long <longman@redhat.com>, linux-arm-kernel@lists.infradead.org, Albert Ou <aou@eecs.berkeley.edu>, Vasily Gorbik <gor@linux.ibm.com>, James Hogan <jhogan@kernel.org>, Masahiro Yamada <yamada.masahiro@socionext.com>, Heiko Carstens <heiko.carstens@de.ibm.com>
-Message-ID: <20200117080331.52ztntyZlweUmcIiNAQCmPhj1s-ILL5QwB79GWD1bt0@z>
+To: Sasha Levin <sashal@kernel.org>, "tglx@linutronix.de" <tglx@linutronix.de>
+Cc: "arnd@arndb.de" <arnd@arndb.de>, "bp@alien8.de" <bp@alien8.de>, "daniel.lezcano@linaro.org" <daniel.lezcano@linaro.org>, Haiyang Zhang <haiyangz@microsoft.com>, "hpa@zytor.com" <hpa@zytor.com>, KY Srinivasan <kys@microsoft.com>, "linux-hyperv@vger.kernel.org" <linux-hyperv@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "mingo@redhat.com" <mingo@redhat.com>, Stephen Hemminger <sthemmin@microsoft.com>, "x86@kernel.org" <x86@kernel.org>, Michael Kelley <mikelley@microsoft.com>, Sasha Levin <Alexander.Levin@microsoft.com>, vkuznets <vkuznets@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+Message-ID: <20200130010206.FrgdXPSsv856u09XsmjA48MX09NoBRNA2-M28OFUYfY@z>
 
-dma-continuguous.h is generic for all architectures except arm32 which has
-its own version.
+> From: linux-hyperv-owner@vger.kernel.org
+> <linux-hyperv-owner@vger.kernel.org> On Behalf Of Sasha Levin
+> Sent: Wednesday, January 29, 2020 4:06 PM
+> To: Dexuan Cui <decui@microsoft.com>
+> Cc: arnd@arndb.de; bp@alien8.de; daniel.lezcano@linaro.org; Haiyang Zhang
+> <haiyangz@microsoft.com>; hpa@zytor.com; KY Srinivasan
+> <kys@microsoft.com>; linux-hyperv@vger.kernel.org;
+> linux-kernel@vger.kernel.org; mingo@redhat.com; Stephen Hemminger
+> <sthemmin@microsoft.com>; tglx@linutronix.de; x86@kernel.org; Michael
+> Kelley <mikelley@microsoft.com>; Sasha Levin
+> <Alexander.Levin@microsoft.com>; vkuznets <vkuznets@redhat.com>;
+> linux-arch@vger.kernel.org
+> Subject: Re: [PATCH v6][RESEND] x86/hyperv: Suspend/resume the hypercall
+> page for hibernation
+>=20
+> On Sat, Jan 25, 2020 at 01:44:31AM +0000, Dexuan Cui wrote:
+> >> From: Dexuan Cui <decui@microsoft.com>
+> >> Sent: Monday, January 6, 2020 2:43 PM
+> >>
+> >> This is needed for hibernation, e.g. when we resume the old kernel, we
+> need
+> >> to disable the "current" kernel's hypercall page and then resume the o=
+ld
+> >> kernel's.
+> >>
+> >> Signed-off-by: Dexuan Cui <decui@microsoft.com>
+> >> Reviewed-by: Michael Kelley <mikelley@microsoft.com>
+> >> ---
+> >>
+> >> This is a RESEND of https://lkml.org/lkml/2019/11/20/68
+> >>
+> >> Please review.
+> >>
+> >> If it looks good, can you please pick it up through the tip.git tree?
+> >>
+> >>  arch/x86/hyperv/hv_init.c | 48
+> >> +++++++++++++++++++++++++++++++++++++++
+> >>  1 file changed, 48 insertions(+)
+> >
+> >Hi, Vitaly and x86 maintainers,
+> >Can you please take a look at this patch?
+>=20
+> Ping?
+>=20
+> This patch has been floating around in it's current form for the past 2
+> months. I'll happily take Hyper-V patches under arch/x86/hyperv/ via the
+> Hyper-V tree rather than tip if the x86 folks don't want to deal with
+> them.
+>=20
+> --
+> Thanks,
+> Sasha
 
-Similar change was done for msi.h by commit a1b39bae16a6
-("asm-generic: Make msi.h a mandatory include/asm header")
+This straightforward patch is the only pending patch for v5.6 for the
+hibernation functionality of Linux VM on Hyper-V. It would be really great
+if we could merge it for v5.6-rc1. The patch is safe in that it only runs w=
+hen=20
+the VM hibernates, and the hibernation functionality of Linux VM on
+Hyper-V never worked before. I'm pretty sure the patch can not cause any
+merge conflict since nobody else tries to modify the file recently.
 
-Suggested-by: Christoph Hellwig <hch@infradead.org>
-Signed-off-by: Michal Simek <michal.simek@xilinx.com>
----
-
-Changes in v2:
-- New patch suggested by Christoph
-
- arch/arm64/include/asm/Kbuild  | 1 -
- arch/csky/include/asm/Kbuild   | 1 -
- arch/mips/include/asm/Kbuild   | 1 -
- arch/riscv/include/asm/Kbuild  | 1 -
- arch/s390/include/asm/Kbuild   | 1 -
- arch/x86/include/asm/Kbuild    | 1 -
- arch/xtensa/include/asm/Kbuild | 1 -
- include/asm-generic/Kbuild     | 1 +
- 8 files changed, 1 insertion(+), 7 deletions(-)
-
-diff --git a/arch/arm64/include/asm/Kbuild b/arch/arm64/include/asm/Kbuild
-index bd23f87d6c55..d3077c991962 100644
---- a/arch/arm64/include/asm/Kbuild
-+++ b/arch/arm64/include/asm/Kbuild
-@@ -3,7 +3,6 @@ generic-y += bugs.h
- generic-y += delay.h
- generic-y += div64.h
- generic-y += dma.h
--generic-y += dma-contiguous.h
- generic-y += dma-mapping.h
- generic-y += early_ioremap.h
- generic-y += emergency-restart.h
-diff --git a/arch/csky/include/asm/Kbuild b/arch/csky/include/asm/Kbuild
-index 4d4754e6bf89..bc15a26c782f 100644
---- a/arch/csky/include/asm/Kbuild
-+++ b/arch/csky/include/asm/Kbuild
-@@ -7,7 +7,6 @@ generic-y += delay.h
- generic-y += device.h
- generic-y += div64.h
- generic-y += dma.h
--generic-y += dma-contiguous.h
- generic-y += dma-mapping.h
- generic-y += emergency-restart.h
- generic-y += exec.h
-diff --git a/arch/mips/include/asm/Kbuild b/arch/mips/include/asm/Kbuild
-index 61b0fc2026e6..179403ae5837 100644
---- a/arch/mips/include/asm/Kbuild
-+++ b/arch/mips/include/asm/Kbuild
-@@ -6,7 +6,6 @@ generated-y += syscall_table_64_n64.h
- generated-y += syscall_table_64_o32.h
- generic-y += current.h
- generic-y += device.h
--generic-y += dma-contiguous.h
- generic-y += emergency-restart.h
- generic-y += export.h
- generic-y += irq_work.h
-diff --git a/arch/riscv/include/asm/Kbuild b/arch/riscv/include/asm/Kbuild
-index 1efaeddf1e4b..ec0ca8c6ab64 100644
---- a/arch/riscv/include/asm/Kbuild
-+++ b/arch/riscv/include/asm/Kbuild
-@@ -7,7 +7,6 @@ generic-y += div64.h
- generic-y += extable.h
- generic-y += flat.h
- generic-y += dma.h
--generic-y += dma-contiguous.h
- generic-y += dma-mapping.h
- generic-y += emergency-restart.h
- generic-y += exec.h
-diff --git a/arch/s390/include/asm/Kbuild b/arch/s390/include/asm/Kbuild
-index 2531f673f099..1832ae6442ef 100644
---- a/arch/s390/include/asm/Kbuild
-+++ b/arch/s390/include/asm/Kbuild
-@@ -7,7 +7,6 @@ generated-y += unistd_nr.h
- generic-y += asm-offsets.h
- generic-y += cacheflush.h
- generic-y += device.h
--generic-y += dma-contiguous.h
- generic-y += dma-mapping.h
- generic-y += div64.h
- generic-y += emergency-restart.h
-diff --git a/arch/x86/include/asm/Kbuild b/arch/x86/include/asm/Kbuild
-index 8b52bc5ddf69..ea34464d6221 100644
---- a/arch/x86/include/asm/Kbuild
-+++ b/arch/x86/include/asm/Kbuild
-@@ -7,7 +7,6 @@ generated-y += unistd_32_ia32.h
- generated-y += unistd_64_x32.h
- generated-y += xen-hypercalls.h
- 
--generic-y += dma-contiguous.h
- generic-y += early_ioremap.h
- generic-y += export.h
- generic-y += mcs_spinlock.h
-diff --git a/arch/xtensa/include/asm/Kbuild b/arch/xtensa/include/asm/Kbuild
-index 3acc31e55e02..271917c24b7f 100644
---- a/arch/xtensa/include/asm/Kbuild
-+++ b/arch/xtensa/include/asm/Kbuild
-@@ -4,7 +4,6 @@ generic-y += bug.h
- generic-y += compat.h
- generic-y += device.h
- generic-y += div64.h
--generic-y += dma-contiguous.h
- generic-y += dma-mapping.h
- generic-y += emergency-restart.h
- generic-y += exec.h
-diff --git a/include/asm-generic/Kbuild b/include/asm-generic/Kbuild
-index ddfee1bd9dc1..cd17d50697cc 100644
---- a/include/asm-generic/Kbuild
-+++ b/include/asm-generic/Kbuild
-@@ -4,5 +4,6 @@
- # (This file is not included when SRCARCH=um since UML borrows several
- # asm headers from the host architecutre.)
- 
-+mandatory-y += dma-contiguous.h
- mandatory-y += msi.h
- mandatory-y += simd.h
--- 
-2.25.0
+Thanks,
+-- Dexuan
