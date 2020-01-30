@@ -1,55 +1,162 @@
-Return-Path: <372EzXg4KBHgXnajZWjdeccejockkcha.Ykinllphejqt.eXi.Yki@flex--brendanhiggins.bounces.google.com>
-Date: Thu, 30 Jan 2020 15:08:06 -0800
-In-Reply-To: <20200130230812.142642-1-brendanhiggins@google.com>
-Message-ID: <20200130230812.142642-2-brendanhiggins@google.com>
-Mime-Version: 1.0
-References: <20200130230812.142642-1-brendanhiggins@google.com>
-Subject: [PATCH v2 1/7] vmlinux.lds.h: add linker section for KUnit test suites
-From: Brendan Higgins <brendanhiggins@google.com>
-Content-Type: text/plain; charset="UTF-8"
-To: jdike@addtoit.com, richard@nod.at, anton.ivanov@cambridgegreys.com, arnd@arndb.de, keescook@chromium.org, skhan@linuxfoundation.org, alan.maguire@oracle.com, yzaikin@google.com, davidgow@google.com, akpm@linux-foundation.org, rppt@linux.ibm.com, frowand.list@gmail.com
-Cc: gregkh@linuxfoundation.org, sboyd@kernel.org, logang@deltatee.com, mcgrof@kernel.org, knut.omang@oracle.com, linux-um@lists.infradead.org, linux-arch@vger.kernel.org, linux-kselftest@vger.kernel.org, kunit-dev@googlegroups.com, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, Brendan Higgins <brendanhiggins@google.com>
+Return-Path: <owner-linux-mm@kvack.org>
+From: Sandipan Das <sandipan@linux.ibm.com>
+Subject: [PATCH v18 07/24] selftests: vm: pkeys: Add helpers for pkey bits
+Date: Thu, 30 Jan 2020 12:06:49 +0530
+In-Reply-To: <cover.1580365432.git.sandipan@linux.ibm.com>
+References: <cover.1580365432.git.sandipan@linux.ibm.com>
+In-Reply-To: <cover.1580365432.git.sandipan@linux.ibm.com>
+References: <cover.1580365432.git.sandipan@linux.ibm.com>
+Message-ID: <38d1f83a8282c76b453e38b11c66d44de851f44a.1580365432.git.sandipan@linux.ibm.com>
+Sender: owner-linux-mm@kvack.org
+To: shuah@kernel.org, skhan@linuxfoundation.org, linux-kselftest@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, x86@kernel.org, linux-mm@kvack.org, fweimer@redhat.com, dave.hansen@intel.com, linuxram@us.ibm.com, mhocko@kernel.org, mingo@redhat.com, aneesh.kumar@linux.ibm.com, bauerman@linux.ibm.com, msuchanek@suse.de, mpe@ellerman.id.au
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200130230806.4bL_SGssRXnBScxBk4pDFISe_KgP-orhM85gF2W1-5Q@z>
+Message-ID: <20200130063649.a_fLu2r27XI0QKGQuuJj2pp4cDMOrPzCqCmtf028nLM@z>
 
-Add a linker section where KUnit can put references to its test suites.
-This patch is the first step in transitioning to dispatching all KUnit
-tests from a centralized executor rather than having each as its own
-separate late_initcall.
+This introduces some functions that help with setting
+or clearing bits of a particular pkey. This also adds
+an abstraction for getting a pkey's bit position in
+the pkey register as this may vary across architectures.
 
-Co-developed-by: Iurii Zaikin <yzaikin@google.com>
-Signed-off-by: Iurii Zaikin <yzaikin@google.com>
-Signed-off-by: Brendan Higgins <brendanhiggins@google.com>
-Reviewed-by: Stephen Boyd <sboyd@kernel.org>
+Signed-off-by: Sandipan Das <sandipan@linux.ibm.com>
 ---
- include/asm-generic/vmlinux.lds.h | 8 ++++++++
- 1 file changed, 8 insertions(+)
+ tools/testing/selftests/vm/pkey-helpers.h    | 22 ++++++++++++++
+ tools/testing/selftests/vm/pkey-x86.h        |  5 +++
+ tools/testing/selftests/vm/protection_keys.c | 32 ++++++--------------
+ 3 files changed, 36 insertions(+), 23 deletions(-)
 
-diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
-index e00f41aa8ec4f..99a866f49cb3d 100644
---- a/include/asm-generic/vmlinux.lds.h
-+++ b/include/asm-generic/vmlinux.lds.h
-@@ -856,6 +856,13 @@
- 		KEEP(*(.con_initcall.init))				\
- 		__con_initcall_end = .;
- 
-+/* Alignment must be consistent with (kunit_suite *) in include/kunit/test.h */
-+#define KUNIT_TEST_SUITES						\
-+		. = ALIGN(8);						\
-+		__kunit_suites_start = .;				\
-+		KEEP(*(.kunit_test_suites))				\
-+		__kunit_suites_end = .;
+diff --git a/tools/testing/selftests/vm/pkey-helpers.h b/tools/testing/selftests/vm/pkey-helpers.h
+index dfbce49269ce..0e3da7c8d628 100644
+--- a/tools/testing/selftests/vm/pkey-helpers.h
++++ b/tools/testing/selftests/vm/pkey-helpers.h
+@@ -80,6 +80,28 @@ extern void abort_hooks(void);
+ #error Architecture not supported
+ #endif /* arch */
+
++#define PKEY_MASK	(PKEY_DISABLE_ACCESS | PKEY_DISABLE_WRITE)
 +
- #ifdef CONFIG_BLK_DEV_INITRD
- #define INIT_RAM_FS							\
- 	. = ALIGN(4);							\
-@@ -1024,6 +1031,7 @@
- 		INIT_CALLS						\
- 		CON_INITCALL						\
- 		INIT_RAM_FS						\
-+		KUNIT_TEST_SUITES					\
++static inline u64 set_pkey_bits(u64 reg, int pkey, u64 flags)
++{
++	u32 shift = pkey_bit_position(pkey);
++	/* mask out bits from pkey in old value */
++	reg &= ~((u64)PKEY_MASK << shift);
++	/* OR in new bits for pkey */
++	reg |= (flags & PKEY_MASK) << shift;
++	return reg;
++}
++
++static inline u64 get_pkey_bits(u64 reg, int pkey)
++{
++	u32 shift = pkey_bit_position(pkey);
++	/*
++	 * shift down the relevant bits to the lowest two, then
++	 * mask off all the other higher bits
++	 */
++	return ((reg >> shift) & PKEY_MASK);
++}
++
+ extern u64 shadow_pkey_reg;
+
+ static inline u64 _read_pkey_reg(int line)
+diff --git a/tools/testing/selftests/vm/pkey-x86.h b/tools/testing/selftests/vm/pkey-x86.h
+index 6ffea27e2d2d..def2a1bcf6a5 100644
+--- a/tools/testing/selftests/vm/pkey-x86.h
++++ b/tools/testing/selftests/vm/pkey-x86.h
+@@ -118,6 +118,11 @@ static inline int cpu_has_pku(void)
+ 	return 1;
+ }
+
++static inline u32 pkey_bit_position(int pkey)
++{
++	return pkey * PKEY_BITS_PER_PKEY;
++}
++
+ #define XSTATE_PKEY_BIT	(9)
+ #define XSTATE_PKEY	0x200
+
+diff --git a/tools/testing/selftests/vm/protection_keys.c b/tools/testing/selftests/vm/protection_keys.c
+index efa35cc6f6b9..bed9d4de12b4 100644
+--- a/tools/testing/selftests/vm/protection_keys.c
++++ b/tools/testing/selftests/vm/protection_keys.c
+@@ -334,25 +334,13 @@ pid_t fork_lazy_child(void)
+
+ static u32 hw_pkey_get(int pkey, unsigned long flags)
+ {
+-	u32 mask = (PKEY_DISABLE_ACCESS|PKEY_DISABLE_WRITE);
+ 	u64 pkey_reg = __read_pkey_reg();
+-	u64 shifted_pkey_reg;
+-	u32 masked_pkey_reg;
+
+ 	dprintf1("%s(pkey=%d, flags=%lx) = %x / %d\n",
+ 			__func__, pkey, flags, 0, 0);
+ 	dprintf2("%s() raw pkey_reg: %016llx\n", __func__, pkey_reg);
+
+-	shifted_pkey_reg = (pkey_reg >> (pkey * PKEY_BITS_PER_PKEY));
+-	dprintf2("%s() shifted_pkey_reg: %016llx\n", __func__,
+-			shifted_pkey_reg);
+-	masked_pkey_reg = shifted_pkey_reg & mask;
+-	dprintf2("%s() masked  pkey_reg: %x\n", __func__, masked_pkey_reg);
+-	/*
+-	 * shift down the relevant bits to the lowest two, then
+-	 * mask off all the other high bits.
+-	 */
+-	return masked_pkey_reg;
++	return (u32) get_pkey_bits(pkey_reg, pkey);
+ }
+
+ static int hw_pkey_set(int pkey, unsigned long rights, unsigned long flags)
+@@ -364,12 +352,8 @@ static int hw_pkey_set(int pkey, unsigned long rights, unsigned long flags)
+ 	/* make sure that 'rights' only contains the bits we expect: */
+ 	assert(!(rights & ~mask));
+
+-	/* copy old pkey_reg */
+-	new_pkey_reg = old_pkey_reg;
+-	/* mask out bits from pkey in old value: */
+-	new_pkey_reg &= ~(mask << (pkey * PKEY_BITS_PER_PKEY));
+-	/* OR in new bits for pkey: */
+-	new_pkey_reg |= (rights << (pkey * PKEY_BITS_PER_PKEY));
++	/* modify bits accordingly in old pkey_reg and assign it */
++	new_pkey_reg = set_pkey_bits(old_pkey_reg, pkey, rights);
+
+ 	__write_pkey_reg(new_pkey_reg);
+
+@@ -403,7 +387,7 @@ void pkey_disable_set(int pkey, int flags)
+ 	ret = hw_pkey_set(pkey, pkey_rights, syscall_flags);
+ 	assert(!ret);
+ 	/* pkey_reg and flags have the same format */
+-	shadow_pkey_reg |= flags << (pkey * 2);
++	shadow_pkey_reg = set_pkey_bits(shadow_pkey_reg, pkey, pkey_rights);
+ 	dprintf1("%s(%d) shadow: 0x%016llx\n",
+ 		__func__, pkey, shadow_pkey_reg);
+
+@@ -437,7 +421,7 @@ void pkey_disable_clear(int pkey, int flags)
+ 	pkey_rights |= flags;
+
+ 	ret = hw_pkey_set(pkey, pkey_rights, 0);
+-	shadow_pkey_reg &= ~(flags << (pkey * 2));
++	shadow_pkey_reg = set_pkey_bits(shadow_pkey_reg, pkey, pkey_rights);
+ 	pkey_assert(ret >= 0);
+
+ 	pkey_rights = hw_pkey_get(pkey, syscall_flags);
+@@ -513,7 +497,8 @@ int alloc_pkey(void)
+ 			shadow_pkey_reg);
+ 	if (ret) {
+ 		/* clear both the bits: */
+-		shadow_pkey_reg &= ~(0x3      << (ret * 2));
++		shadow_pkey_reg = set_pkey_bits(shadow_pkey_reg, ret,
++						~PKEY_MASK);
+ 		dprintf4("%s()::%d, ret: %d pkey_reg: 0x%016llx"
+ 				" shadow: 0x%016llx\n",
+ 				__func__,
+@@ -523,7 +508,8 @@ int alloc_pkey(void)
+ 		 * move the new state in from init_val
+ 		 * (remember, we cheated and init_val == pkey_reg format)
+ 		 */
+-		shadow_pkey_reg |=  (init_val << (ret * 2));
++		shadow_pkey_reg = set_pkey_bits(shadow_pkey_reg, ret,
++						init_val);
  	}
- 
- #define BSS_SECTION(sbss_align, bss_align, stop_align)			\
+ 	dprintf4("%s()::%d, ret: %d pkey_reg: 0x%016llx"
+ 			" shadow: 0x%016llx\n",
 -- 
-2.25.0.341.g760bfbb309-goog
+2.17.1
