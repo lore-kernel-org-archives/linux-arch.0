@@ -1,210 +1,263 @@
-Return-Path: <SRS0=vo9y=3E=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail-qv1-f73.google.com ([209.85.219.73]:53500 "EHLO
-        mail-qv1-f73.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726574AbgAOQ6U (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 15 Jan 2020 11:58:20 -0500
-Received: by mail-qv1-f73.google.com with SMTP id g15so11381909qvq.20
-        for <linux-arch@vger.kernel.org>; Wed, 15 Jan 2020 08:58:19 -0800 (PST)
-Date: Wed, 15 Jan 2020 17:57:49 +0100
-Message-ID: <20200115165749.145649-1-elver@google.com>
-Mime-Version: 1.0
-Subject: [PATCH -rcu] asm-generic, kcsan: Add KCSAN instrumentation for bitops
-From: Marco Elver <elver@google.com>
-Content-Type: text/plain; charset="UTF-8"
+Return-Path: <SRS0=sIH+=3U=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from aserp2120.oracle.com ([141.146.126.78]:39670 "EHLO
+        aserp2120.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1725909AbgAaSer (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 31 Jan 2020 13:34:47 -0500
+Content-Type: text/plain;
+        charset=utf-8
+Mime-Version: 1.0 (Mac OS X Mail 12.4 \(3445.104.11\))
+Subject: Re: [PATCH v7 3/5] locking/qspinlock: Introduce CNA into the slow
+ path of qspinlock
+From: Alex Kogan <alex.kogan@oracle.com>
+In-Reply-To: <20200131133543.GD14914@hirez.programming.kicks-ass.net>
+Date: Fri, 31 Jan 2020 13:33:09 -0500
+Content-Transfer-Encoding: quoted-printable
+Message-ID: <E32F90E2-F00B-423B-A851-336004EF6593@oracle.com>
+References: <20191125210709.10293-1-alex.kogan@oracle.com>
+ <20191125210709.10293-4-alex.kogan@oracle.com>
+ <20200121202919.GM11457@worktop.programming.kicks-ass.net>
+ <20200122095127.GC14946@hirez.programming.kicks-ass.net>
+ <20200122170456.GY14879@hirez.programming.kicks-ass.net>
+ <D6ED40A0-E96D-41F6-AA74-0901C2C37476@oracle.com>
+ <20200131133543.GD14914@hirez.programming.kicks-ass.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: elver@google.com
-Cc: paulmck@kernel.org, andreyknvl@google.com, glider@google.com, dvyukov@google.com, kasan-dev@googlegroups.com, linux-kernel@vger.kernel.org, arnd@arndb.de, mpe@ellerman.id.au, christophe.leroy@c-s.fr, dja@axtens.net, linux-arch@vger.kernel.org
-Message-ID: <20200115165749.ZX5hySCLaSvRk0NvnROICZ-7EUH2DYHKzqdsP13aJz0@z>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: linux@armlinux.org.uk, Ingo Molnar <mingo@redhat.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Waiman Long <longman@redhat.com>, linux-arch@vger.kernel.org, linux-arm-kernel <linux-arm-kernel@lists.infradead.org>, linux-kernel@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>, Borislav Petkov <bp@alien8.de>, hpa@zytor.com, x86@kernel.org, Hanjun Guo <guohanjun@huawei.com>, Jan Glauber <jglauber@marvell.com>, Steven Sistare <steven.sistare@oracle.com>, Daniel Jordan <daniel.m.jordan@oracle.com>, dave.dice@oracle.com
+Message-ID: <20200131183309.rRxR_V4dyFfPs5lNz5Uwgz4-VFjrTLFkHirCgPG6Hxo@z>
 
-Add explicit KCSAN checks for bitops.
 
-Signed-off-by: Marco Elver <elver@google.com>
----
-The same patch was previously sent, but at that point the updated bitops
-instrumented infrastructure was not yet in mainline:
- http://lkml.kernel.org/r/20191115115524.GA77379@google.com
+>>> + *
+>>> + * Returns 0 if a matching node is found; otherwise return the =
+encoded pointer
+>>> + * to the last element inspected (such that a subsequent scan can =
+continue there).
+>>> + *
+>>> + * The worst case complexity of the scan is O(n), where n is the =
+number
+>>> + * of current waiters. However, the amortized complexity is close =
+to O(1),
+>>> + * as the immediate successor is likely to be running on the same =
+node once
+>>> + * threads from other nodes are moved to the secondary queue.
+>>> + *
+>>> + * XXX does not compute; given equal contention it should average =
+to O(nr_nodes).
+>> Let me try to convince you. Under contention, the immediate waiter =
+would be
+>> a local one. So the scan would typically take O(1) steps. We need to =
+consider
+>> the extra work/steps we take to move nodes to the secondary queue. =
+The
+>> number of such nodes is O(n) (to be more precise, it is O(n-m), where =
+m
+>> is nr_cpus_per_node), and we spend a constant amount of work, per =
+node,=20
+>> to scan those nodes and move them to the secondary queue. So in =
+2^thresholds
+>> lock handovers, we scan 2^thresholds x 1 + n-m nodes. Assuming=20
+>> 2^thresholds > n, the amortized complexity of this function then is =
+O(1).
+>=20
+> There is no threshold in this patch.
+This does not change the analysis, though.
 
-Note that test_bit() is an atomic bitop, and KCSAN treats it as such,
-although it is in the non-atomic header. Currently it cannot be moved:
- http://lkml.kernel.org/r/87pnh5dlmn.fsf@dja-thinkpad.axtens.net
----
- include/asm-generic/bitops/instrumented-atomic.h     | 7 +++++++
- include/asm-generic/bitops/instrumented-lock.h       | 5 +++++
- include/asm-generic/bitops/instrumented-non-atomic.h | 8 ++++++++
- 3 files changed, 20 insertions(+)
+> That's the next patch, and
+> I've been procrastinating on that one, mostly also because of the
+> 'reasonable' claim without data.
+>=20
+> But Ah!, I think I see, after nr_cpus tries, all remote waiters are on
+> the secondary queue and only local waiters will remain. That will =
+indeed
+> depress the average a lot.
+Ok, cool.
 
-diff --git a/include/asm-generic/bitops/instrumented-atomic.h b/include/asm-generic/bitops/instrumented-atomic.h
-index 18ce3c9e8eec..eb3abf7e5c08 100644
---- a/include/asm-generic/bitops/instrumented-atomic.h
-+++ b/include/asm-generic/bitops/instrumented-atomic.h
-@@ -12,6 +12,7 @@
- #define _ASM_GENERIC_BITOPS_INSTRUMENTED_ATOMIC_H
- 
- #include <linux/kasan-checks.h>
-+#include <linux/kcsan-checks.h>
- 
- /**
-  * set_bit - Atomically set a bit in memory
-@@ -26,6 +27,7 @@
- static inline void set_bit(long nr, volatile unsigned long *addr)
- {
- 	kasan_check_write(addr + BIT_WORD(nr), sizeof(long));
-+	kcsan_check_atomic_write(addr + BIT_WORD(nr), sizeof(long));
- 	arch_set_bit(nr, addr);
- }
- 
-@@ -39,6 +41,7 @@ static inline void set_bit(long nr, volatile unsigned long *addr)
- static inline void clear_bit(long nr, volatile unsigned long *addr)
- {
- 	kasan_check_write(addr + BIT_WORD(nr), sizeof(long));
-+	kcsan_check_atomic_write(addr + BIT_WORD(nr), sizeof(long));
- 	arch_clear_bit(nr, addr);
- }
- 
-@@ -55,6 +58,7 @@ static inline void clear_bit(long nr, volatile unsigned long *addr)
- static inline void change_bit(long nr, volatile unsigned long *addr)
- {
- 	kasan_check_write(addr + BIT_WORD(nr), sizeof(long));
-+	kcsan_check_atomic_write(addr + BIT_WORD(nr), sizeof(long));
- 	arch_change_bit(nr, addr);
- }
- 
-@@ -68,6 +72,7 @@ static inline void change_bit(long nr, volatile unsigned long *addr)
- static inline bool test_and_set_bit(long nr, volatile unsigned long *addr)
- {
- 	kasan_check_write(addr + BIT_WORD(nr), sizeof(long));
-+	kcsan_check_atomic_write(addr + BIT_WORD(nr), sizeof(long));
- 	return arch_test_and_set_bit(nr, addr);
- }
- 
-@@ -81,6 +86,7 @@ static inline bool test_and_set_bit(long nr, volatile unsigned long *addr)
- static inline bool test_and_clear_bit(long nr, volatile unsigned long *addr)
- {
- 	kasan_check_write(addr + BIT_WORD(nr), sizeof(long));
-+	kcsan_check_atomic_write(addr + BIT_WORD(nr), sizeof(long));
- 	return arch_test_and_clear_bit(nr, addr);
- }
- 
-@@ -94,6 +100,7 @@ static inline bool test_and_clear_bit(long nr, volatile unsigned long *addr)
- static inline bool test_and_change_bit(long nr, volatile unsigned long *addr)
- {
- 	kasan_check_write(addr + BIT_WORD(nr), sizeof(long));
-+	kcsan_check_atomic_write(addr + BIT_WORD(nr), sizeof(long));
- 	return arch_test_and_change_bit(nr, addr);
- }
- 
-diff --git a/include/asm-generic/bitops/instrumented-lock.h b/include/asm-generic/bitops/instrumented-lock.h
-index ec53fdeea9ec..2c80dca31e27 100644
---- a/include/asm-generic/bitops/instrumented-lock.h
-+++ b/include/asm-generic/bitops/instrumented-lock.h
-@@ -12,6 +12,7 @@
- #define _ASM_GENERIC_BITOPS_INSTRUMENTED_LOCK_H
- 
- #include <linux/kasan-checks.h>
-+#include <linux/kcsan-checks.h>
- 
- /**
-  * clear_bit_unlock - Clear a bit in memory, for unlock
-@@ -23,6 +24,7 @@
- static inline void clear_bit_unlock(long nr, volatile unsigned long *addr)
- {
- 	kasan_check_write(addr + BIT_WORD(nr), sizeof(long));
-+	kcsan_check_atomic_write(addr + BIT_WORD(nr), sizeof(long));
- 	arch_clear_bit_unlock(nr, addr);
- }
- 
-@@ -38,6 +40,7 @@ static inline void clear_bit_unlock(long nr, volatile unsigned long *addr)
- static inline void __clear_bit_unlock(long nr, volatile unsigned long *addr)
- {
- 	kasan_check_write(addr + BIT_WORD(nr), sizeof(long));
-+	kcsan_check_write(addr + BIT_WORD(nr), sizeof(long));
- 	arch___clear_bit_unlock(nr, addr);
- }
- 
-@@ -53,6 +56,7 @@ static inline void __clear_bit_unlock(long nr, volatile unsigned long *addr)
- static inline bool test_and_set_bit_lock(long nr, volatile unsigned long *addr)
- {
- 	kasan_check_write(addr + BIT_WORD(nr), sizeof(long));
-+	kcsan_check_atomic_write(addr + BIT_WORD(nr), sizeof(long));
- 	return arch_test_and_set_bit_lock(nr, addr);
- }
- 
-@@ -72,6 +76,7 @@ static inline bool
- clear_bit_unlock_is_negative_byte(long nr, volatile unsigned long *addr)
- {
- 	kasan_check_write(addr + BIT_WORD(nr), sizeof(long));
-+	kcsan_check_atomic_write(addr + BIT_WORD(nr), sizeof(long));
- 	return arch_clear_bit_unlock_is_negative_byte(nr, addr);
- }
- /* Let everybody know we have it. */
-diff --git a/include/asm-generic/bitops/instrumented-non-atomic.h b/include/asm-generic/bitops/instrumented-non-atomic.h
-index 95ff28d128a1..8479af8b3309 100644
---- a/include/asm-generic/bitops/instrumented-non-atomic.h
-+++ b/include/asm-generic/bitops/instrumented-non-atomic.h
-@@ -12,6 +12,7 @@
- #define _ASM_GENERIC_BITOPS_INSTRUMENTED_NON_ATOMIC_H
- 
- #include <linux/kasan-checks.h>
-+#include <linux/kcsan-checks.h>
- 
- /**
-  * __set_bit - Set a bit in memory
-@@ -25,6 +26,7 @@
- static inline void __set_bit(long nr, volatile unsigned long *addr)
- {
- 	kasan_check_write(addr + BIT_WORD(nr), sizeof(long));
-+	kcsan_check_write(addr + BIT_WORD(nr), sizeof(long));
- 	arch___set_bit(nr, addr);
- }
- 
-@@ -40,6 +42,7 @@ static inline void __set_bit(long nr, volatile unsigned long *addr)
- static inline void __clear_bit(long nr, volatile unsigned long *addr)
- {
- 	kasan_check_write(addr + BIT_WORD(nr), sizeof(long));
-+	kcsan_check_write(addr + BIT_WORD(nr), sizeof(long));
- 	arch___clear_bit(nr, addr);
- }
- 
-@@ -55,6 +58,7 @@ static inline void __clear_bit(long nr, volatile unsigned long *addr)
- static inline void __change_bit(long nr, volatile unsigned long *addr)
- {
- 	kasan_check_write(addr + BIT_WORD(nr), sizeof(long));
-+	kcsan_check_write(addr + BIT_WORD(nr), sizeof(long));
- 	arch___change_bit(nr, addr);
- }
- 
-@@ -69,6 +73,7 @@ static inline void __change_bit(long nr, volatile unsigned long *addr)
- static inline bool __test_and_set_bit(long nr, volatile unsigned long *addr)
- {
- 	kasan_check_write(addr + BIT_WORD(nr), sizeof(long));
-+	kcsan_check_write(addr + BIT_WORD(nr), sizeof(long));
- 	return arch___test_and_set_bit(nr, addr);
- }
- 
-@@ -83,6 +88,7 @@ static inline bool __test_and_set_bit(long nr, volatile unsigned long *addr)
- static inline bool __test_and_clear_bit(long nr, volatile unsigned long *addr)
- {
- 	kasan_check_write(addr + BIT_WORD(nr), sizeof(long));
-+	kcsan_check_write(addr + BIT_WORD(nr), sizeof(long));
- 	return arch___test_and_clear_bit(nr, addr);
- }
- 
-@@ -97,6 +103,7 @@ static inline bool __test_and_clear_bit(long nr, volatile unsigned long *addr)
- static inline bool __test_and_change_bit(long nr, volatile unsigned long *addr)
- {
- 	kasan_check_write(addr + BIT_WORD(nr), sizeof(long));
-+	kcsan_check_write(addr + BIT_WORD(nr), sizeof(long));
- 	return arch___test_and_change_bit(nr, addr);
- }
- 
-@@ -108,6 +115,7 @@ static inline bool __test_and_change_bit(long nr, volatile unsigned long *addr)
- static inline bool test_bit(long nr, const volatile unsigned long *addr)
- {
- 	kasan_check_read(addr + BIT_WORD(nr), sizeof(long));
-+	kcsan_check_atomic_read(addr + BIT_WORD(nr), sizeof(long));
- 	return arch_test_bit(nr, addr);
- }
- 
--- 
-2.25.0.rc1.283.g88dfdc4193-goog
+< snip >
+
+>=20
+>>> +{
+>>> +	struct mcs_spinlock *head_2nd, *tail_2nd;
+>>> +
+>>> +	tail_2nd =3D decode_tail(node->locked);
+>>> +	head_2nd =3D tail_2nd->next;
+>> I understand that you are trying to avoid repeating those two lines
+>> in both places this function is called from, but you do it at the =
+cost
+>> of adding the following unnecessary if-statement, and in general this =
+function
+>> looks clunky.
+>=20
+> Let me show you the current form:
+>=20
+> /*
+> * cna_splice_head -- splice the entire secondary queue onto the head =
+of the
+> * primary queue.
+> *
+> * Returns the new primary head node or NULL on failure.
+Maybe explain here why failure can happen? Eg., =E2=80=9CThe latter can =
+happen
+due to a race with a waiter joining an empty primary queue."
+
+> */
+> static struct mcs_spinlock *
+> cna_splice_head(struct qspinlock *lock, u32 val,
+> 		struct mcs_spinlock *node, struct mcs_spinlock *next)
+> {
+> 	struct mcs_spinlock *head_2nd, *tail_2nd;
+> 	u32 new;
+>=20
+> 	tail_2nd =3D decode_tail(node->locked);
+> 	head_2nd =3D tail_2nd->next;
+>=20
+> 	if (!next) {
+> 		/*
+> 		 * When the primary queue is empty; our tail becomes the =
+primary tail.
+> 		 */
+>=20
+> 		/*
+> 		 * Speculatively break the secondary queue's circular =
+link; such that when
+> 		 * the secondary tail becomes the primary tail it all =
+works out.
+> 		 */
+> 		tail_2nd->next =3D NULL;
+>=20
+> 		/*
+> 		 * tail_2nd->next =3D NULL		xchg_tail(lock, =
+tail)
+> 		 *
+> 		 * cmpxchg_release(&lock, val, new)	=
+WRITE_ONCE(prev->next, node);
+> 		 *
+> 		 * Such that if the cmpxchg() succeeds, our stores won't =
+collide.
+> 		 */
+> 		new =3D ((struct cna_node *)tail_2nd)->encoded_tail | =
+_Q_LOCKED_VAL;
+> 		if (!atomic_try_cmpxchg_release(&lock->val, &val, new)) =
+{
+> 			/*
+> 			 * Note; when this cmpxchg fails due to =
+concurrent
+> 			 * queueing of a new waiter, then we'll try =
+again in
+> 			 * cna_pass_lock() if required.
+> 			 *
+> 			 * Restore the secondary queue's circular link.
+> 			 */
+> 			tail_2nd->next =3D head_2nd;
+> 			return NULL;
+> 		}
+>=20
+> 	} else {
+> 		/*
+> 		 * If the primary queue is not empty; the primary tail =
+doesn't need
+> 		 * to change and we can simply link our tail to the old =
+head.
+> 		 */
+> 		tail_2nd->next =3D next;
+> 	}
+>=20
+> 	/* That which was the secondary queue head, is now the primary =
+queue head */
+Rephrase the comment?
+
+> 	return head_2nd;
+> }
+>=20
+> The function as a whole is self-contained and consistent, it deals =
+with
+> the splice 2nd to 1st queue, for all possible cases. You only have to
+> think about the list splice in one place, here, instead of two places.
+>=20
+> I don't think it will actually result in more branches emitted; the
+> compiler should be able to use value propagation to eliminate stuff.
+Ok, I can see your point.
+
+>=20
+>>> +static inline bool cna_try_clear_tail(struct qspinlock *lock, u32 =
+val,
+>>> +				      struct mcs_spinlock *node)
+>>> +{
+>>> +	struct mcs_spinlock *next;
+>>> +
+>>> +	/*
+>>> +	 * We're here because the primary queue is empty; check the =
+secondary
+>>> +	 * queue for remote waiters.
+>>> +	 */
+>>> +	if (node->locked > 1) {
+>>> +		/*
+>>> +		 * When there are waiters on the secondary queue move =
+them back
+>>> +		 * onto the primary queue and let them rip.
+>>> +		 */
+>>> +		next =3D cna_splice_head(lock, val, node, NULL);
+>>> +		if (next) {
+>> And, again, this if-statement is here only because you moved the rest =
+of the code
+>> into cna_splice_head(). Perhaps, with cna_extract_2dary_head_tail() =
+you can
+>> bring that code back?
+>=20
+> I don't see the objection, you already had a branch there, from the
+> cmpxchg(), this is the same branch, the compiler should fold the lot.
+Now you have the branch from cmpxchg(), and another one from "if =
+(next)=E2=80=9D.
+But you are right that the compiler is likely to optimize out the =
+latter.
+
+> We can add an __always_inline if you're worried.
+Let=E2=80=99s do that.
+
+< snip >
+
+>>> +static inline void cna_pass_lock(struct mcs_spinlock *node,
+>>> +				 struct mcs_spinlock *next)
+>>> +{
+>>> +	struct cna_node *cn =3D (struct cna_node *)node;
+>>> +	u32 partial_order =3D cn->partial_order;
+>>> +	u32 val =3D _Q_LOCKED_VAL;
+>>> +
+>>> +	/* cna_wait_head_or_lock() left work for us. */
+>>> +	if (partial_order) {
+>>> +		partial_order =3D cna_order_queue(node, =
+decode_tail(partial_order));
+>>> +
+>>> +	if (!partial_order) {
+>>> +		/*
+>>> +		 * We found a local waiter; reload @next in case we =
+called
+>>> +		 * cna_order_queue() above.
+>>> +		 */
+>>> +		next =3D node->next;
+>>> +		val |=3D node->locked;	/* preseve secondary queue */
+>> This is wrong. node->locked can be 0, 1 or an encoded tail at this =
+point, and
+>> the latter case will be handled incorrectly.
+>>=20
+>> Should be=20
+>> 		  if (node->locked) val =3D node->locked;
+>> instead.
+>=20
+> I'm confused, who cares about the locked bit when it has an encoded =
+tail on?
+>=20
+> The generic code only cares about it being !0, and the cna code always
+> checks if it has a tail (>1 , <=3D1) first.
+Ah, that may actually work, but not sure if this was your intention.
+
+The code above sets val to 1 or encoded tail + 1 (rather than encoded =
+tail),
+decode_tail(tail) does not care about LSB, and will do its calculation =
+correctly.
+IOW, decode_tail( tail ) is the same as decode_tail( tail + 1 ).
+
+I think this is a bit fragile and depends on the implementation of=20
+decode_tail(), but if you are fine with that, no objections here.
+
+Regards,
+=E2=80=94 Alex
