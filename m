@@ -1,103 +1,44 @@
-From: Brendan Higgins <brendanhiggins@google.com>
-Subject: [PATCH v2 6/7] kunit: Add 'kunit_shutdown' option
-Date: Thu, 30 Jan 2020 15:08:11 -0800
-Message-ID: <20200130230812.142642-7-brendanhiggins@google.com>
-References: <20200130230812.142642-1-brendanhiggins@google.com>
+From: David Howells <dhowells@redhat.com>
+Subject: Re: [PATCH v2 00/10] Rework READ_ONCE() to improve codegen
+Date: Fri, 31 Jan 2020 10:20:21 +0000
+Message-ID: <7436.1580466021@warthog.procyon.org.uk>
+References: <CAHk-=wjC2EDquO8_kzc-FHOGGjgODOLKjswYGJAMh58zTkyX3w@mail.gmail.com> <20200123153341.19947-1-will@kernel.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <linux-doc-owner@vger.kernel.org>
-In-Reply-To: <20200130230812.142642-1-brendanhiggins@google.com>
-Sender: linux-doc-owner@vger.kernel.org
-To: jdike@addtoit.com, richard@nod.at, anton.ivanov@cambridgegreys.com, arnd@arndb.de, keescook@chromium.org, skhan@linuxfoundation.org, alan.maguire@oracle.com, yzaikin@google.com, davidgow@google.com, akpm@linux-foundation.org, rppt@linux.ibm.com, frowand.list@gmail.com
-Cc: gregkh@linuxfoundation.org, sboyd@kernel.org, logang@deltatee.com, mcgrof@kernel.org, knut.omang@oracle.com, linux-um@lists.infradead.org, linux-arch@vger.kernel.org, linux-kselftest@vger.kernel.org, kunit-dev@googlegroups.com, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, Brendan Higgins <brendanhiggins@google.com>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset="us-ascii"
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from us-smtp-1.mimecast.com ([207.211.31.81]:39074 "EHLO
+        us-smtp-delivery-1.mimecast.com" rhost-flags-OK-OK-OK-FAIL)
+        by vger.kernel.org with ESMTP id S1728160AbgAaKUh (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 31 Jan 2020 05:20:37 -0500
+In-Reply-To: <CAHk-=wjC2EDquO8_kzc-FHOGGjgODOLKjswYGJAMh58zTkyX3w@mail.gmail.com>
+Content-ID: <7435.1580466021.1@warthog.procyon.org.uk>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: dhowells@redhat.com, Will Deacon <will@kernel.org>, Alexey Dobriyan <adobriyan@gmail.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Android Kernel Team <kernel-team@android.com>, Michael Ellerman <mpe@ellerman.id.au>, Peter Zijlstra <peterz@infradead.org>, Segher Boessenkool <segher@kernel.crashing.org>, Christian Borntraeger <borntraeger@de.ibm.com>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>, Arnd Bergmann <arnd@arndb.de>, Peter Oberparleiter <oberpar@linux.ibm.com>, Masahiro Yamada <masahiroy@kernel.org>, Nick Desaulniers <ndesaulniers@google.com>
 
-From: David Gow <davidgow@google.com>
+Of course, if you're feeling adventurous and willing to at least entertain the
+mere speculation of switching the kernel source to C++, we could then use
+inline template functions:
 
-Add a new kernel command-line option, 'kunit_shutdown', which allows the
-user to specify that the kernel poweroff, halt, or reboot after
-completing all KUnit tests; this is very handy for running KUnit tests
-on UML or a VM so that the UML/VM process exits cleanly immediately
-after running all tests without needing a special initramfs.
+	template <typename T>
+	static inline T __READ_ONCE(T &var)
+	{
+		T val = *(const volatile T *)&var;
+		return val;
+	}
 
-Signed-off-by: David Gow <davidgow@google.com>
-Signed-off-by: Brendan Higgins <brendanhiggins@google.com>
-Reviewed-by: Stephen Boyd <sboyd@kernel.org>
----
- lib/kunit/executor.c                | 20 ++++++++++++++++++++
- tools/testing/kunit/kunit_kernel.py |  2 +-
- tools/testing/kunit/kunit_parser.py |  2 +-
- 3 files changed, 22 insertions(+), 2 deletions(-)
+	template <typename T>
+	static inline T READ_ONCE(T &var)
+	{
+		T val;
+		compiletime_assert_rwonce_type(var);
+		val = __READ_ONCE(var);
+		smp_read_barrier_depends();
+		return val;
+	}
 
-diff --git a/lib/kunit/executor.c b/lib/kunit/executor.c
-index 7fd16feff157e..a93821116ccec 100644
---- a/lib/kunit/executor.c
-+++ b/lib/kunit/executor.c
-@@ -1,5 +1,6 @@
- // SPDX-License-Identifier: GPL-2.0
- 
-+#include <linux/reboot.h>
- #include <kunit/test.h>
- 
- /*
-@@ -11,6 +12,23 @@ extern struct kunit_suite * const * const __kunit_suites_end[];
- 
- #if IS_BUILTIN(CONFIG_KUNIT)
- 
-+static char *kunit_shutdown;
-+core_param(kunit_shutdown, kunit_shutdown, charp, 0644);
-+
-+static void kunit_handle_shutdown(void)
-+{
-+	if (!kunit_shutdown)
-+		return;
-+
-+	if (!strcmp(kunit_shutdown, "poweroff"))
-+		kernel_power_off();
-+	else if (!strcmp(kunit_shutdown, "halt"))
-+		kernel_halt();
-+	else if (!strcmp(kunit_shutdown, "reboot"))
-+		kernel_restart(NULL);
-+
-+}
-+
- static void kunit_print_tap_header(void)
- {
- 	struct kunit_suite * const * const *suites, * const *subsuite;
-@@ -42,6 +60,8 @@ int kunit_run_all_tests(void)
- 		}
- 	}
- 
-+	kunit_handle_shutdown();
-+
- 	if (has_test_failed)
- 		return -EFAULT;
- 
-diff --git a/tools/testing/kunit/kunit_kernel.py b/tools/testing/kunit/kunit_kernel.py
-index cc5d844ecca13..43314aa537d30 100644
---- a/tools/testing/kunit/kunit_kernel.py
-+++ b/tools/testing/kunit/kunit_kernel.py
-@@ -141,7 +141,7 @@ class LinuxSourceTree(object):
- 		return True
- 
- 	def run_kernel(self, args=[], timeout=None, build_dir=''):
--		args.extend(['mem=256M'])
-+		args.extend(['mem=256M', 'kunit_shutdown=halt'])
- 		process = self._ops.linux_bin(args, timeout, build_dir)
- 		with open(os.path.join(build_dir, 'test.log'), 'w') as f:
- 			for line in process.stdout:
-diff --git a/tools/testing/kunit/kunit_parser.py b/tools/testing/kunit/kunit_parser.py
-index 78b3bdd03b1e4..633811dd9bce8 100644
---- a/tools/testing/kunit/kunit_parser.py
-+++ b/tools/testing/kunit/kunit_parser.py
-@@ -48,7 +48,7 @@ class TestStatus(Enum):
- 	FAILURE_TO_PARSE_TESTS = auto()
- 
- kunit_start_re = re.compile(r'^TAP version [0-9]+$')
--kunit_end_re = re.compile('List of all partitions:')
-+kunit_end_re = re.compile(r'reboot: System halted')
- 
- def isolate_kunit_output(kernel_output):
- 	started = False
--- 
-2.25.0.341.g760bfbb309-goog
+Of course, that would mean using C++...
+
+David
