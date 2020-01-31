@@ -1,125 +1,174 @@
-From: Jann Horn <jannh@google.com>
-Subject: Re: [kernel-hardening] [PATCH 09/38] usercopy: Mark kmalloc caches as
- usercopy caches
-Date: Fri, 31 Jan 2020 13:03:40 +0100
-Message-ID: <CAG48ez1a4waGk9kB0WLaSbs4muSoK0AYAVk8=XYaKj4_+6e6Hg@mail.gmail.com>
-References: <201911121313.1097D6EE@keescook> <201911141327.4DE6510@keescook>
- <bfca96db-bbd0-d958-7732-76e36c667c68@suse.cz> <202001271519.AA6ADEACF0@keescook>
- <5861936c-1fe1-4c44-d012-26efa0c8b6e7@de.ibm.com> <202001281457.FA11CC313A@keescook>
- <alpine.DEB.2.21.2001291640350.1546@www.lameter.com> <6844ea47-8e0e-4fb7-d86f-68046995a749@de.ibm.com>
- <20200129170939.GA4277@infradead.org> <771c5511-c5ab-3dd1-d938-5dbc40396daa@de.ibm.com>
- <202001300945.7D465B5F5@keescook>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH v7 3/5] locking/qspinlock: Introduce CNA into the slow
+ path of qspinlock
+Date: Fri, 31 Jan 2020 14:35:43 +0100
+Message-ID: <20200131133543.GD14914@hirez.programming.kicks-ass.net>
+References: <20191125210709.10293-1-alex.kogan@oracle.com>
+ <20191125210709.10293-4-alex.kogan@oracle.com>
+ <20200121202919.GM11457@worktop.programming.kicks-ass.net>
+ <20200122095127.GC14946@hirez.programming.kicks-ass.net>
+ <20200122170456.GY14879@hirez.programming.kicks-ass.net>
+ <D6ED40A0-E96D-41F6-AA74-0901C2C37476@oracle.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <linux-fsdevel-owner@vger.kernel.org>
-In-Reply-To: <202001300945.7D465B5F5@keescook>
-Sender: linux-fsdevel-owner@vger.kernel.org
-To: Kees Cook <keescook@chromium.org>
-Cc: Christian Borntraeger <borntraeger@de.ibm.com>, Christoph Hellwig <hch@infradead.org>, Christopher Lameter <cl@linux.com>, Jiri Slaby <jslaby@suse.cz>, Julian Wiedmann <jwi@linux.ibm.com>, Ursula Braun <ubraun@linux.ibm.com>, Alexander Viro <viro@zeniv.linux.org.uk>, kernel list <linux-kernel@vger.kernel.org>, David Windsor <dave@nullcore.net>, Pekka Enberg <penberg@kernel.org>, David Rientjes <rientjes@google.com>, Joonsoo Kim <iamjoonsoo.kim@lge.com>, Andrew Morton <akpm@linux-foundation.org>, Linux-MM <linux-mm@kvack.org>, linux-xfs@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, "David S. Miller" <davem@davemloft.net>, Laura Abbott <labbott@redhat.com>, Mark Rutland <mark.rutland@arm.com>
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane-mx.org@lists.infradead.org>
+Content-Disposition: inline
+In-Reply-To: <D6ED40A0-E96D-41F6-AA74-0901C2C37476@oracle.com>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane-mx.org@lists.infradead.org
+To: Alex Kogan <alex.kogan@oracle.com>
+Cc: linux-arch@vger.kernel.org, Hanjun Guo <guohanjun@huawei.com>, Arnd Bergmann <arnd@arndb.de>, dave.dice@oracle.com, Jan Glauber <jglauber@marvell.com>, x86@kernel.org, Will Deacon <will.deacon@arm.com>, linux@armlinux.org.uk, Steven Sistare <steven.sistare@oracle.com>, linux-kernel@vger.kernel.org, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, hpa@zytor.com, Waiman Long <longman@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Daniel Jordan <daniel.m.jordan@oracle.com>, linux-arm-kernel <linux-arm-kernel@lists.infradead.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, Jan 30, 2020 at 8:23 PM Kees Cook <keescook@chromium.org> wrote:
-> On Wed, Jan 29, 2020 at 06:19:56PM +0100, Christian Borntraeger wrote:
-> > On 29.01.20 18:09, Christoph Hellwig wrote:
-> > > On Wed, Jan 29, 2020 at 06:07:14PM +0100, Christian Borntraeger wrote:
-> > >>> DMA can be done to NORMAL memory as well.
-> > >>
-> > >> Exactly.
-> > >> I think iucv uses GFP_DMA because z/VM needs those buffers to reside below 2GB (which is ZONA_DMA for s390).
-> > >
-> > > The normal way to allocate memory with addressing limits would be to
-> > > use dma_alloc_coherent and friends.  Any chance to switch iucv over to
-> > > that?  Or is there no device associated with it?
-> >
-> > There is not necessarily a device for that. It is a hypervisor interface (an
-> > instruction that is interpreted by z/VM). We do have the netiucv driver that
-> > creates a virtual nic, but there is also AF_IUCV which works without a device.
-> >
-> > But back to the original question: If we mark kmalloc caches as usercopy caches,
-> > we should do the same for DMA kmalloc caches. As outlined by Christoph, this has
-> > nothing to do with device DMA.
->
-> Hm, looks like it's allocated from the low 16MB. Seems like poor naming!
-
-The physical address limit of the DMA zone depends on the architecture
-(and the kernel version); e.g. on Linux 4.4 on arm64 (which is used on
-the Pixel 2), the DMA zone goes up to 4GiB. Later, arm64 started using
-the DMA32 zone for that instead (as was already the case on e.g.
-X86-64); but recently (commit 1a8e1cef7603), arm64 started using the
-DMA zone again, but now for up to 1GiB. (AFAICS the DMA32 zone can't
-be used with kmalloc at all, that only works with the DMA zone.)
-
-> :) There seems to be a LOT of stuff using GFP_DMA, and it seems unlikely
-> those are all expecting low addresses?
-
-I think there's a bunch of (especially really old) hardware where the
-hardware can only talk to low physical addresses, e.g. stuff that uses
-the ISA bus.
-
-However, there aren't *that* many users of GFP_DMA that actually cause
-kmalloc allocations with GFP_DMA - many of the users of GFP_DMA
-actually just pass that flag to dma_alloc_coherent()/dma_pool_alloc(),
-where it is filtered away and the allocation ultimately doesn't go
-through the slab allocator AFAICS, or they pass it directly to the
-page allocator, where it has no effect on the usercopy stuff. Looking
-on my workstation, there are zero objects allocated in dma-kmalloc-*
-slabs:
-
-/sys/kernel/slab# for name in dma-kmalloc-*; do echo "$name: $(cat
-$name/objects)"; done
-dma-kmalloc-128: 0
-dma-kmalloc-16: 0
-dma-kmalloc-192: 0
-dma-kmalloc-1k: 0
-dma-kmalloc-256: 0
-dma-kmalloc-2k: 0
-dma-kmalloc-32: 0
-dma-kmalloc-4k: 0
-dma-kmalloc-512: 0
-dma-kmalloc-64: 0
-dma-kmalloc-8: 0
-dma-kmalloc-8k: 0
-dma-kmalloc-96: 0
-
-On a Pixel 2, there are a whole five objects allocated across the DMA
-zone kmalloc caches:
-
-walleye:/sys/kernel/slab # for name in dma-kmalloc-*; do echo "$name:
-$(cat $name/objects)"; done
-dma-kmalloc-1024: 0
-dma-kmalloc-128: 0
-dma-kmalloc-2048: 2
-dma-kmalloc-256: 0
-dma-kmalloc-4096: 3
-dma-kmalloc-512: 0
-dma-kmalloc-8192: 0
-
-> Since this has only been a problem on s390, should just s390 gain the
-> weakening of the usercopy restriction?  Something like:
->
->
-> diff --git a/mm/slab_common.c b/mm/slab_common.c
-> index 1907cb2903c7..c5bbc141f20b 100644
-> --- a/mm/slab_common.c
-> +++ b/mm/slab_common.c
-> @@ -1303,7 +1303,9 @@ void __init create_kmalloc_caches(slab_flags_t flags)
->                         kmalloc_caches[KMALLOC_DMA][i] = create_kmalloc_cache(
->                                 kmalloc_info[i].name[KMALLOC_DMA],
->                                 kmalloc_info[i].size,
-> -                               SLAB_CACHE_DMA | flags, 0, 0);
-> +                               SLAB_CACHE_DMA | flags, 0,
-> +                               IS_ENABLED(CONFIG_S390) ?
-> +                                       kmalloc_info[i].size : 0);
->                 }
->         }
->  #endif
-
-I think dma-kmalloc slabs should be handled the same way as normal
-kmalloc slabs. When a dma-kmalloc allocation is freshly created, it is
-just normal kernel memory - even if it might later be used for DMA -,
-and it should be perfectly fine to copy_from_user() into such
-allocations at that point, and to copy_to_user() out of them at the
-end. If you look at the places where such allocations are created, you
-can see things like kmemdup(), memcpy() and so on - all normal
-operations that shouldn't conceptually be different from usercopy in
-any relevant way.
+T24gVGh1LCBKYW4gMzAsIDIwMjAgYXQgMDU6MDE6MTVQTSAtMDUwMCwgQWxleCBLb2dhbiB3cm90
+ZToKCj4gPiArLyoKPiA+ICsgKiBjbmFfb3JkZXJfcXVldWUgLSBzY2FuIHRoZSBwcmltYXJ5IHF1
+ZXVlIGxvb2tpbmcgZm9yIHRoZSBmaXJzdCBsb2NrIG5vZGUgb24KPiA+ICsgKiB0aGUgc2FtZSBO
+VU1BIG5vZGUgYXMgdGhlIGxvY2sgaG9sZGVyIGFuZCBtb3ZlIGFueSBza2lwcGVkIG5vZGVzIG9u
+dG8gdGhlCj4gPiArICogc2Vjb25kYXJ5IHF1ZXVlLgo+IE9oIG1hbiwgeW91IHRvb2sgb3V0IHRo
+ZSBhc2NpaSBmaWd1cmUgSSB3YXMgd29ya2luZyBzbyBoYXJkIHRvIHB1dCBpbi4gT2ggd2VsbC4K
+ClJpZ2h0OyBzb3JyeSBhYm91dCB0aGF0LiBUaGUgcmVhc29uIGl0J3MgZ29uZSBpcyB0aGF0IGl0
+IHdhcyBtb3N0bHkKaWRlbnRpY2FsIHRvIHRoZSBvbmUgaGlnaGVyIHVwIGluIHRoZSBmaWxlIGFu
+ZCBkaWRuJ3QgY29uc2lkZXIgYWxsCmNhc2VzIHRoaXMgY29kZSBkZWFscyB3aXRoLgoKSW5zdGVh
+ZCBJIGdpZnRlZCB5b3UgY25hX3NwbGljZV9oZWFkKCkgOi0pCgo+ID4gKyAqCj4gPiArICogUmV0
+dXJucyAwIGlmIGEgbWF0Y2hpbmcgbm9kZSBpcyBmb3VuZDsgb3RoZXJ3aXNlIHJldHVybiB0aGUg
+ZW5jb2RlZCBwb2ludGVyCj4gPiArICogdG8gdGhlIGxhc3QgZWxlbWVudCBpbnNwZWN0ZWQgKHN1
+Y2ggdGhhdCBhIHN1YnNlcXVlbnQgc2NhbiBjYW4gY29udGludWUgdGhlcmUpLgo+ID4gKyAqCj4g
+PiArICogVGhlIHdvcnN0IGNhc2UgY29tcGxleGl0eSBvZiB0aGUgc2NhbiBpcyBPKG4pLCB3aGVy
+ZSBuIGlzIHRoZSBudW1iZXIKPiA+ICsgKiBvZiBjdXJyZW50IHdhaXRlcnMuIEhvd2V2ZXIsIHRo
+ZSBhbW9ydGl6ZWQgY29tcGxleGl0eSBpcyBjbG9zZSB0byBPKDEpLAo+ID4gKyAqIGFzIHRoZSBp
+bW1lZGlhdGUgc3VjY2Vzc29yIGlzIGxpa2VseSB0byBiZSBydW5uaW5nIG9uIHRoZSBzYW1lIG5v
+ZGUgb25jZQo+ID4gKyAqIHRocmVhZHMgZnJvbSBvdGhlciBub2RlcyBhcmUgbW92ZWQgdG8gdGhl
+IHNlY29uZGFyeSBxdWV1ZS4KPiA+ICsgKgo+ID4gKyAqIFhYWCBkb2VzIG5vdCBjb21wdXRlOyBn
+aXZlbiBlcXVhbCBjb250ZW50aW9uIGl0IHNob3VsZCBhdmVyYWdlIHRvIE8obnJfbm9kZXMpLgo+
+IExldCBtZSB0cnkgdG8gY29udmluY2UgeW91LiBVbmRlciBjb250ZW50aW9uLCB0aGUgaW1tZWRp
+YXRlIHdhaXRlciB3b3VsZCBiZQo+IGEgbG9jYWwgb25lLiBTbyB0aGUgc2NhbiB3b3VsZCB0eXBp
+Y2FsbHkgdGFrZSBPKDEpIHN0ZXBzLiBXZSBuZWVkIHRvIGNvbnNpZGVyCj4gdGhlIGV4dHJhIHdv
+cmsvc3RlcHMgd2UgdGFrZSB0byBtb3ZlIG5vZGVzIHRvIHRoZSBzZWNvbmRhcnkgcXVldWUuIFRo
+ZQo+IG51bWJlciBvZiBzdWNoIG5vZGVzIGlzIE8obikgKHRvIGJlIG1vcmUgcHJlY2lzZSwgaXQg
+aXMgTyhuLW0pLCB3aGVyZSBtCj4gaXMgbnJfY3B1c19wZXJfbm9kZSksIGFuZCB3ZSBzcGVuZCBh
+IGNvbnN0YW50IGFtb3VudCBvZiB3b3JrLCBwZXIgbm9kZSwgCj4gdG8gc2NhbiB0aG9zZSBub2Rl
+cyBhbmQgbW92ZSB0aGVtIHRvIHRoZSBzZWNvbmRhcnkgcXVldWUuIFNvIGluIDJedGhyZXNob2xk
+cwo+IGxvY2sgaGFuZG92ZXJzLCB3ZSBzY2FuIDJedGhyZXNob2xkcyB4IDEgKyBuLW0gbm9kZXMu
+IEFzc3VtaW5nIAo+IDJedGhyZXNob2xkcyA+IG4sIHRoZSBhbW9ydGl6ZWQgY29tcGxleGl0eSBv
+ZiB0aGlzIGZ1bmN0aW9uIHRoZW4gaXMgTygxKS4KClRoZXJlIGlzIG5vIHRocmVzaG9sZCBpbiB0
+aGlzIHBhdGNoLiBUaGF0J3MgdGhlIG5leHQgcGF0Y2gsIGFuZApJJ3ZlIGJlZW4gcHJvY3Jhc3Rp
+bmF0aW5nIG9uIHRoYXQgb25lLCBtb3N0bHkgYWxzbyBiZWNhdXNlIG9mIHRoZQoncmVhc29uYWJs
+ZScgY2xhaW0gd2l0aG91dCBkYXRhLgoKQnV0IEFoISwgSSB0aGluayBJIHNlZSwgYWZ0ZXIgbnJf
+Y3B1cyB0cmllcywgYWxsIHJlbW90ZSB3YWl0ZXJzIGFyZSBvbgp0aGUgc2Vjb25kYXJ5IHF1ZXVl
+IGFuZCBvbmx5IGxvY2FsIHdhaXRlcnMgd2lsbCByZW1haW4uIFRoYXQgd2lsbCBpbmRlZWQKZGVw
+cmVzcyB0aGUgYXZlcmFnZSBhIGxvdC4KCj4gPiArICovCj4gPiArc3RhdGljIHUzMiBjbmFfb3Jk
+ZXJfcXVldWUoc3RydWN0IG1jc19zcGlubG9jayAqbm9kZSwKPiA+ICsJCQkgICBzdHJ1Y3QgbWNz
+X3NwaW5sb2NrICppdGVyKQo+ID4gK3sKPiA+ICsJc3RydWN0IGNuYV9ub2RlICpjbmkgPSAoc3Ry
+dWN0IGNuYV9ub2RlICopUkVBRF9PTkNFKGl0ZXItPm5leHQpOwo+ID4gKwlzdHJ1Y3QgY25hX25v
+ZGUgKmNuID0gKHN0cnVjdCBjbmFfbm9kZSAqKW5vZGU7Cj4gPiArCWludCBuaWQgPSBjbi0+bnVt
+YV9ub2RlOwo+ID4gKwlzdHJ1Y3QgY25hX25vZGUgKmxhc3Q7Cj4gPiArCj4gPiArCS8qIGZpbmQg
+YW55IG5leHQgd2FpdGVyIG9uICdvdXInIE5VTUEgbm9kZSAqLwo+ID4gKwlmb3IgKGxhc3QgPSBj
+bjsKPiA+ICsJICAgICBjbmkgJiYgY25pLT5udW1hX25vZGUgIT0gbmlkOwo+ID4gKwkgICAgIGxh
+c3QgPSBjbmksIGNuaSA9IChzdHJ1Y3QgY25hX25vZGUgKilSRUFEX09OQ0UoY25pLT5tY3MubmV4
+dCkpCj4gPiArCQk7Cj4gPiArCj4gPiArCWlmICghY25hKQo+IFNob3VsZCBiZSDigJhjbmnigJkK
+ClllYWgsIEkgdGhpbmsgdGhlIGJ1aWxkIHJvYm90cyB0b2xkIG1lIHRoZSBzYW1lOyBpbiBhbnkg
+Y2FzZSwgdGhhdCdzCmFscmVhZHkgZml4ZWQgaW4gdGhlIHZlcnNpb24geW91IGNhbiBmaW5kIGlu
+IG15IHF1ZXVlLmdpdCB0aGluZy4KCj4gPiArCQlyZXR1cm4gbGFzdC0+ZW5jb2RlZF90YWlsOyAv
+KiBjb250aW51ZSBmcm9tIGhlcmUgKi8KPiA+ICsKPiA+ICsJaWYgKGxhc3QgIT0gY24pCS8qIGRp
+ZCB3ZSBza2lwIGFueSB3YWl0ZXJzPyAqLwo+ID4gKwkJY25hX3NwbGljZV90YWlsKG5vZGUsIG5v
+ZGUtPm5leHQsIChzdHJ1Y3QgbWNzX3NwaW5sb2NrICopbGFzdCk7Cj4gPiArCj4gPiArCXJldHVy
+biAwOwo+ID4gK30KPiA+ICsKPiA+ICsvKgo+ID4gKyAqIGNuYV9zcGxpY2VfaGVhZCAtLSBzcGxp
+Y2UgdGhlIGVudGlyZSBzZWNvbmRhcnkgcXVldWUgb250byB0aGUgaGVhZCBvZiB0aGUKPiA+ICsg
+KiBwcmltYXJ5IHF1ZXVlLgo+ID4gKyAqLwo+ID4gK3N0YXRpYyBjbmFfc3BsaWNlX2hlYWQoc3Ry
+dWN0IHFzcGlubG9jayAqbG9jaywgdTMyIHZhbCwKPiA+ICsJCSAgICAgICBzdHJ1Y3QgbWNzX3Nw
+aW5sb2NrICpub2RlLCBzdHJ1Y3QgbWNzX3NwaW5sb2NrICpuZXh0KQo+IE1pc3NpbmcgcmV0dXJu
+IHZhbHVlIHR5cGUgKHN0cnVjdCBtY3Nfc3BpbmxvY2sgKikuCgpZZWFoLCByb2JvdHMgYmVhdCB5
+b3UgYWdhaW4uCgo+ID4gK3sKPiA+ICsJc3RydWN0IG1jc19zcGlubG9jayAqaGVhZF8ybmQsICp0
+YWlsXzJuZDsKPiA+ICsKPiA+ICsJdGFpbF8ybmQgPSBkZWNvZGVfdGFpbChub2RlLT5sb2NrZWQp
+Owo+ID4gKwloZWFkXzJuZCA9IHRhaWxfMm5kLT5uZXh0Owo+IEkgdW5kZXJzdGFuZCB0aGF0IHlv
+dSBhcmUgdHJ5aW5nIHRvIGF2b2lkIHJlcGVhdGluZyB0aG9zZSB0d28gbGluZXMKPiBpbiBib3Ro
+IHBsYWNlcyB0aGlzIGZ1bmN0aW9uIGlzIGNhbGxlZCBmcm9tLCBidXQgeW91IGRvIGl0IGF0IHRo
+ZSBjb3N0Cj4gb2YgYWRkaW5nIHRoZSBmb2xsb3dpbmcgdW5uZWNlc3NhcnkgaWYtc3RhdGVtZW50
+LCBhbmQgaW4gZ2VuZXJhbCB0aGlzIGZ1bmN0aW9uCj4gbG9va3MgY2x1bmt5LgoKTGV0IG1lIHNo
+b3cgeW91IHRoZSBjdXJyZW50IGZvcm06CgovKgogKiBjbmFfc3BsaWNlX2hlYWQgLS0gc3BsaWNl
+IHRoZSBlbnRpcmUgc2Vjb25kYXJ5IHF1ZXVlIG9udG8gdGhlIGhlYWQgb2YgdGhlCiAqIHByaW1h
+cnkgcXVldWUuCiAqCiAqIFJldHVybnMgdGhlIG5ldyBwcmltYXJ5IGhlYWQgbm9kZSBvciBOVUxM
+IG9uIGZhaWx1cmUuCiAqLwpzdGF0aWMgc3RydWN0IG1jc19zcGlubG9jayAqCmNuYV9zcGxpY2Vf
+aGVhZChzdHJ1Y3QgcXNwaW5sb2NrICpsb2NrLCB1MzIgdmFsLAoJCXN0cnVjdCBtY3Nfc3Bpbmxv
+Y2sgKm5vZGUsIHN0cnVjdCBtY3Nfc3BpbmxvY2sgKm5leHQpCnsKCXN0cnVjdCBtY3Nfc3Bpbmxv
+Y2sgKmhlYWRfMm5kLCAqdGFpbF8ybmQ7Cgl1MzIgbmV3OwoKCXRhaWxfMm5kID0gZGVjb2RlX3Rh
+aWwobm9kZS0+bG9ja2VkKTsKCWhlYWRfMm5kID0gdGFpbF8ybmQtPm5leHQ7CgoJaWYgKCFuZXh0
+KSB7CgkJLyoKCQkgKiBXaGVuIHRoZSBwcmltYXJ5IHF1ZXVlIGlzIGVtcHR5OyBvdXIgdGFpbCBi
+ZWNvbWVzIHRoZSBwcmltYXJ5IHRhaWwuCgkJICovCgoJCS8qCgkJICogU3BlY3VsYXRpdmVseSBi
+cmVhayB0aGUgc2Vjb25kYXJ5IHF1ZXVlJ3MgY2lyY3VsYXIgbGluazsgc3VjaCB0aGF0IHdoZW4K
+CQkgKiB0aGUgc2Vjb25kYXJ5IHRhaWwgYmVjb21lcyB0aGUgcHJpbWFyeSB0YWlsIGl0IGFsbCB3
+b3JrcyBvdXQuCgkJICovCgkJdGFpbF8ybmQtPm5leHQgPSBOVUxMOwoKCQkvKgoJCSAqIHRhaWxf
+Mm5kLT5uZXh0ID0gTlVMTAkJeGNoZ190YWlsKGxvY2ssIHRhaWwpCgkJICoKCQkgKiBjbXB4Y2hn
+X3JlbGVhc2UoJmxvY2ssIHZhbCwgbmV3KQlXUklURV9PTkNFKHByZXYtPm5leHQsIG5vZGUpOwoJ
+CSAqCgkJICogU3VjaCB0aGF0IGlmIHRoZSBjbXB4Y2hnKCkgc3VjY2VlZHMsIG91ciBzdG9yZXMg
+d29uJ3QgY29sbGlkZS4KCQkgKi8KCQluZXcgPSAoKHN0cnVjdCBjbmFfbm9kZSAqKXRhaWxfMm5k
+KS0+ZW5jb2RlZF90YWlsIHwgX1FfTE9DS0VEX1ZBTDsKCQlpZiAoIWF0b21pY190cnlfY21weGNo
+Z19yZWxlYXNlKCZsb2NrLT52YWwsICZ2YWwsIG5ldykpIHsKCQkJLyoKCQkJICogTm90ZTsgd2hl
+biB0aGlzIGNtcHhjaGcgZmFpbHMgZHVlIHRvIGNvbmN1cnJlbnQKCQkJICogcXVldWVpbmcgb2Yg
+YSBuZXcgd2FpdGVyLCB0aGVuIHdlJ2xsIHRyeSBhZ2FpbiBpbgoJCQkgKiBjbmFfcGFzc19sb2Nr
+KCkgaWYgcmVxdWlyZWQuCgkJCSAqCgkJCSAqIFJlc3RvcmUgdGhlIHNlY29uZGFyeSBxdWV1ZSdz
+IGNpcmN1bGFyIGxpbmsuCgkJCSAqLwoJCQl0YWlsXzJuZC0+bmV4dCA9IGhlYWRfMm5kOwoJCQly
+ZXR1cm4gTlVMTDsKCQl9CgoJfSBlbHNlIHsKCQkvKgoJCSAqIElmIHRoZSBwcmltYXJ5IHF1ZXVl
+IGlzIG5vdCBlbXB0eTsgdGhlIHByaW1hcnkgdGFpbCBkb2Vzbid0IG5lZWQKCQkgKiB0byBjaGFu
+Z2UgYW5kIHdlIGNhbiBzaW1wbHkgbGluayBvdXIgdGFpbCB0byB0aGUgb2xkIGhlYWQuCgkJICov
+CgkJdGFpbF8ybmQtPm5leHQgPSBuZXh0OwoJfQoKCS8qIFRoYXQgd2hpY2ggd2FzIHRoZSBzZWNv
+bmRhcnkgcXVldWUgaGVhZCwgaXMgbm93IHRoZSBwcmltYXJ5IHF1ZXVlIGhlYWQgKi8KCXJldHVy
+biBoZWFkXzJuZDsKfQoKVGhlIGZ1bmN0aW9uIGFzIGEgd2hvbGUgaXMgc2VsZi1jb250YWluZWQg
+YW5kIGNvbnNpc3RlbnQsIGl0IGRlYWxzIHdpdGgKdGhlIHNwbGljZSAybmQgdG8gMXN0IHF1ZXVl
+LCBmb3IgYWxsIHBvc3NpYmxlIGNhc2VzLiBZb3Ugb25seSBoYXZlIHRvCnRoaW5rIGFib3V0IHRo
+ZSBsaXN0IHNwbGljZSBpbiBvbmUgcGxhY2UsIGhlcmUsIGluc3RlYWQgb2YgdHdvIHBsYWNlcy4K
+CkkgZG9uJ3QgdGhpbmsgaXQgd2lsbCBhY3R1YWxseSByZXN1bHQgaW4gbW9yZSBicmFuY2hlcyBl
+bWl0dGVkOyB0aGUKY29tcGlsZXIgc2hvdWxkIGJlIGFibGUgdG8gdXNlIHZhbHVlIHByb3BhZ2F0
+aW9uIHRvIGVsaW1pbmF0ZSBzdHVmZi4KCj4gPiArc3RhdGljIGlubGluZSBib29sIGNuYV90cnlf
+Y2xlYXJfdGFpbChzdHJ1Y3QgcXNwaW5sb2NrICpsb2NrLCB1MzIgdmFsLAo+ID4gKwkJCQkgICAg
+ICBzdHJ1Y3QgbWNzX3NwaW5sb2NrICpub2RlKQo+ID4gK3sKPiA+ICsJc3RydWN0IG1jc19zcGlu
+bG9jayAqbmV4dDsKPiA+ICsKPiA+ICsJLyoKPiA+ICsJICogV2UncmUgaGVyZSBiZWNhdXNlIHRo
+ZSBwcmltYXJ5IHF1ZXVlIGlzIGVtcHR5OyBjaGVjayB0aGUgc2Vjb25kYXJ5Cj4gPiArCSAqIHF1
+ZXVlIGZvciByZW1vdGUgd2FpdGVycy4KPiA+ICsJICovCj4gPiArCWlmIChub2RlLT5sb2NrZWQg
+PiAxKSB7Cj4gPiArCQkvKgo+ID4gKwkJICogV2hlbiB0aGVyZSBhcmUgd2FpdGVycyBvbiB0aGUg
+c2Vjb25kYXJ5IHF1ZXVlIG1vdmUgdGhlbSBiYWNrCj4gPiArCQkgKiBvbnRvIHRoZSBwcmltYXJ5
+IHF1ZXVlIGFuZCBsZXQgdGhlbSByaXAuCj4gPiArCQkgKi8KPiA+ICsJCW5leHQgPSBjbmFfc3Bs
+aWNlX2hlYWQobG9jaywgdmFsLCBub2RlLCBOVUxMKTsKPiA+ICsJCWlmIChuZXh0KSB7Cj4gQW5k
+LCBhZ2FpbiwgdGhpcyBpZi1zdGF0ZW1lbnQgaXMgaGVyZSBvbmx5IGJlY2F1c2UgeW91IG1vdmVk
+IHRoZSByZXN0IG9mIHRoZSBjb2RlCj4gaW50byBjbmFfc3BsaWNlX2hlYWQoKS4gUGVyaGFwcywg
+d2l0aCBjbmFfZXh0cmFjdF8yZGFyeV9oZWFkX3RhaWwoKSB5b3UgY2FuCj4gYnJpbmcgdGhhdCBj
+b2RlIGJhY2s/CgpJIGRvbid0IHNlZSB0aGUgb2JqZWN0aW9uLCB5b3UgYWxyZWFkeSBoYWQgYSBi
+cmFuY2ggdGhlcmUsIGZyb20gdGhlCmNtcHhjaGcoKSwgdGhpcyBpcyB0aGUgc2FtZSBicmFuY2gs
+IHRoZSBjb21waWxlciBzaG91bGQgZm9sZCB0aGUgbG90LiBXZQpjYW4gYWRkIGFuIF9fYWx3YXlz
+X2lubGluZSBpZiB5b3UncmUgd29ycmllZC4KCj4gPiArCQkJYXJjaF9tY3NfcGFzc19sb2NrKCZo
+ZWFkXzJuZC0+bG9ja2VkLCAxKTsKPiBTaG91bGQgYmUgbmV4dC0+bG9ja2VkLiBCZXR0ZXIgeWV0
+LCDigJhuZXh0JyBzaG91bGQgYmUgY2FsbGVkIOKAmGhlYWRfMm5k4oCZLgoKWWVhaCwgZml4ZWQg
+YWxyZWFkeS4gVGhvc2UgZGFtbiBidWlsZCBib3RzIGZpZ3VyZWQgaXQgZGlkbid0IGNvbXBpbGUu
+Cgo+ID4gKwkJCXJldHVybiB0cnVlOwo+ID4gKwkJfQo+ID4gKwo+ID4gKwkJcmV0dXJuIGZhbHNl
+Owo+ID4gKwl9Cj4gPiArCj4gPiArCS8qIEJvdGggcXVldWVzIGVtcHR5LiAqLwo+ID4gKwlyZXR1
+cm4gX190cnlfY2xlYXJfdGFpbChsb2NrLCB2YWwsIG5vZGUpOwo+ID4gK30KPiA+ICsKPiA+ICtz
+dGF0aWMgaW5saW5lIHZvaWQgY25hX3Bhc3NfbG9jayhzdHJ1Y3QgbWNzX3NwaW5sb2NrICpub2Rl
+LAo+ID4gKwkJCQkgc3RydWN0IG1jc19zcGlubG9jayAqbmV4dCkKPiA+ICt7Cj4gPiArCXN0cnVj
+dCBjbmFfbm9kZSAqY24gPSAoc3RydWN0IGNuYV9ub2RlICopbm9kZTsKPiA+ICsJdTMyIHBhcnRp
+YWxfb3JkZXIgPSBjbi0+cGFydGlhbF9vcmRlcjsKPiA+ICsJdTMyIHZhbCA9IF9RX0xPQ0tFRF9W
+QUw7Cj4gPiArCj4gPiArCS8qIGNuYV93YWl0X2hlYWRfb3JfbG9jaygpIGxlZnQgd29yayBmb3Ig
+dXMuICovCj4gPiArCWlmIChwYXJ0aWFsX29yZGVyKSB7Cj4gPiArCQlwYXJ0aWFsX29yZGVyID0g
+Y25hX29yZGVyX3F1ZXVlKG5vZGUsIGRlY29kZV90YWlsKHBhcnRpYWxfb3JkZXIpKTsKPiA+ICsK
+PiA+ICsJaWYgKCFwYXJ0aWFsX29yZGVyKSB7Cj4gPiArCQkvKgo+ID4gKwkJICogV2UgZm91bmQg
+YSBsb2NhbCB3YWl0ZXI7IHJlbG9hZCBAbmV4dCBpbiBjYXNlIHdlIGNhbGxlZAo+ID4gKwkJICog
+Y25hX29yZGVyX3F1ZXVlKCkgYWJvdmUuCj4gPiArCQkgKi8KPiA+ICsJCW5leHQgPSBub2RlLT5u
+ZXh0Owo+ID4gKwkJdmFsIHw9IG5vZGUtPmxvY2tlZDsJLyogcHJlc2V2ZSBzZWNvbmRhcnkgcXVl
+dWUgKi8KPiBUaGlzIGlzIHdyb25nLiBub2RlLT5sb2NrZWQgY2FuIGJlIDAsIDEgb3IgYW4gZW5j
+b2RlZCB0YWlsIGF0IHRoaXMgcG9pbnQsIGFuZAo+IHRoZSBsYXR0ZXIgY2FzZSB3aWxsIGJlIGhh
+bmRsZWQgaW5jb3JyZWN0bHkuCj4gCj4gU2hvdWxkIGJlIAo+IAkJICBpZiAobm9kZS0+bG9ja2Vk
+KSB2YWwgPSBub2RlLT5sb2NrZWQ7Cj4gaW5zdGVhZC4KCkknbSBjb25mdXNlZCwgd2hvIGNhcmVz
+IGFib3V0IHRoZSBsb2NrZWQgYml0IHdoZW4gaXQgaGFzIGFuIGVuY29kZWQgdGFpbCBvbj8KClRo
+ZSBnZW5lcmljIGNvZGUgb25seSBjYXJlcyBhYm91dCBpdCBiZWluZyAhMCwgYW5kIHRoZSBjbmEg
+Y29kZSBhbHdheXMKY2hlY2tzIGlmIGl0IGhhcyBhIHRhaWwgKD4xICwgPD0xKSBmaXJzdC4KCl9f
+X19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fCmxpbnV4LWFybS1r
+ZXJuZWwgbWFpbGluZyBsaXN0CmxpbnV4LWFybS1rZXJuZWxAbGlzdHMuaW5mcmFkZWFkLm9yZwpo
+dHRwOi8vbGlzdHMuaW5mcmFkZWFkLm9yZy9tYWlsbWFuL2xpc3RpbmZvL2xpbnV4LWFybS1rZXJu
+ZWwK
