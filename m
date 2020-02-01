@@ -1,109 +1,132 @@
-Return-Path: <linux-doc-owner@vger.kernel.org>
-From: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Subject: [RFC PATCH v9 15/27] mm: Handle THP/HugeTLB Shadow Stack page fault
-Date: Wed,  5 Feb 2020 10:19:23 -0800
-Message-ID: <20200205181935.3712-16-yu-cheng.yu@intel.com>
-In-Reply-To: <20200205181935.3712-1-yu-cheng.yu@intel.com>
-References: <20200205181935.3712-1-yu-cheng.yu@intel.com>
+Return-Path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-ot1-f66.google.com ([209.85.210.66]:39573 "EHLO
+ mail-ot1-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with
+ ESMTP id S1726335AbgBAT2S (ORCPT <rfc822;linux-arch@vger.kernel.org>); Sat, 1
+ Feb 2020 14:28:18 -0500
+Received: by mail-ot1-f66.google.com with SMTP id 77so9904381oty.6 for
+ <linux-arch@vger.kernel.org>; Sat, 01 Feb 2020 11:28:16 -0800 (PST)
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
-Sender: linux-doc-owner@vger.kernel.org
-To: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>, x86-patch-review@intel.com
-Cc: Yu-cheng Yu <yu-cheng.yu@intel.com>
+References: <bfca96db-bbd0-d958-7732-76e36c667c68@suse.cz>
+ <202001271519.AA6ADEACF0@keescook>
+ <5861936c-1fe1-4c44-d012-26efa0c8b6e7@de.ibm.com>
+ <202001281457.FA11CC313A@keescook>
+ <alpine.DEB.2.21.2001291640350.1546@www.lameter.com>
+ <6844ea47-8e0e-4fb7-d86f-68046995a749@de.ibm.com>
+ <20200129170939.GA4277@infradead.org>
+ <771c5511-c5ab-3dd1-d938-5dbc40396daa@de.ibm.com>
+ <202001300945.7D465B5F5@keescook>
+ <CAG48ez1a4waGk9kB0WLaSbs4muSoK0AYAVk8=XYaKj4_+6e6Hg@mail.gmail.com>
+ <202002010952.ACDA7A81@keescook>
+In-Reply-To: <202002010952.ACDA7A81@keescook>
+From: Jann Horn <jannh@google.com>
+Date: Sat, 1 Feb 2020 20:27:49 +0100
+Message-ID: <CAG48ez2ms+TDEXQdDONuQ1GG0K20E69nV1r_yjKxxYjYKv1VCg@mail.gmail.com>
+Subject: Re: [kernel-hardening] [PATCH 09/38] usercopy: Mark kmalloc caches as
+ usercopy caches
+Content-Type: text/plain; charset="UTF-8"
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200205181923.YeMZitj93IuD-az9MXNieuBsx8bgSujyMB4ZsOKZGiY@z>
+To: Kees Cook <keescook@chromium.org>
+Cc: Christian Borntraeger <borntraeger@de.ibm.com>, Christoph Hellwig <hch@infradead.org>, Christopher Lameter <cl@linux.com>, Jiri Slaby <jslaby@suse.cz>, Julian Wiedmann <jwi@linux.ibm.com>, Ursula Braun <ubraun@linux.ibm.com>, Alexander Viro <viro@zeniv.linux.org.uk>, kernel list <linux-kernel@vger.kernel.org>, David Windsor <dave@nullcore.net>, Pekka Enberg <penberg@kernel.org>, David Rientjes <rientjes@google.com>, Joonsoo Kim <iamjoonsoo.kim@lge.com>, Andrew Morton <akpm@linux-foundation.org>, Linux-MM <linux-mm@kvack.org>, linux-xfs@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, "David S. Miller" <davem@davemloft.net>, Laura Abbott <labbott@redhat.com>, Mark Rutland <mark.rutland@arm.com>, "Martin K. Petersen" <martin.petersen@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Dave Kleikamp <dave.kleikamp@oracle.com>, Jan Kara <jack@suse.cz>, Marc Zyngier <marc.zyngier@arm.com>, Matthew Garrett <mjg59@google.com>, linux-fsdevel <linux-fsdevel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Network Development <netdev@vger.kernel.org>, Kernel Hardening <kernel-hardening@lists.openwall.com>, Vlastimil Babka <vbabka@suse.cz>, Michal Kubecek <mkubecek@suse.cz>
+Message-ID: <20200201192749.91fjTdctEprh8Qa81BaL7DqudfQi7rSjtjug2xh7Qhs@z>
 
-This patch implements THP Shadow Stack (SHSTK) copying in the same way as
-in the previous patch for regular PTE.
+[pruned bogus addresses from recipient list]
 
-In copy_huge_pmd(), clear the dirty bit from the PMD to cause a page fault
-upon the next SHSTK access to the PMD.  At that time, fix the PMD and
-copy/re-use the page.
+On Sat, Feb 1, 2020 at 6:56 PM Kees Cook <keescook@chromium.org> wrote:
+> On Fri, Jan 31, 2020 at 01:03:40PM +0100, Jann Horn wrote:
+> > I think dma-kmalloc slabs should be handled the same way as normal
+> > kmalloc slabs. When a dma-kmalloc allocation is freshly created, it is
+> > just normal kernel memory - even if it might later be used for DMA -,
+> > and it should be perfectly fine to copy_from_user() into such
+> > allocations at that point, and to copy_to_user() out of them at the
+> > end. If you look at the places where such allocations are created, you
+> > can see things like kmemdup(), memcpy() and so on - all normal
+> > operations that shouldn't conceptually be different from usercopy in
+> > any relevant way.
+>
+> I can't find where the address limit for dma-kmalloc is implemented.
 
-Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
----
- arch/x86/mm/pgtable.c         |  8 ++++++++
- include/asm-generic/pgtable.h | 11 +++++++++++
- mm/huge_memory.c              |  4 ++++
- 3 files changed, 23 insertions(+)
+dma-kmalloc is a slab that uses GFP_DMA pages.
 
-diff --git a/arch/x86/mm/pgtable.c b/arch/x86/mm/pgtable.c
-index 2eb33794c08d..3340b1d4e9da 100644
---- a/arch/x86/mm/pgtable.c
-+++ b/arch/x86/mm/pgtable.c
-@@ -886,4 +886,12 @@ inline pte_t pte_set_vma_features(pte_t pte, struct vm_area_struct *vma)
- 	else
- 		return pte;
- }
-+
-+inline pmd_t pmd_set_vma_features(pmd_t pmd, struct vm_area_struct *vma)
-+{
-+	if (vma->vm_flags & VM_SHSTK)
-+		return pmd_mkdirty_shstk(pmd);
-+	else
-+		return pmd;
-+}
- #endif /* CONFIG_X86_INTEL_SHADOW_STACK_USER */
-diff --git a/include/asm-generic/pgtable.h b/include/asm-generic/pgtable.h
-index 9cb2f9ba5895..a9df093fdf45 100644
---- a/include/asm-generic/pgtable.h
-+++ b/include/asm-generic/pgtable.h
-@@ -1201,9 +1201,20 @@ static inline pte_t pte_set_vma_features(pte_t pte, struct vm_area_struct *vma)
- {
- 	return pte;
- }
-+
-+#ifdef CONFIG_TRANSPARENT_HUGEPAGE
-+static inline pmd_t pmd_set_vma_features(pmd_t pmd, struct vm_area_struct *vma)
-+{
-+	return pmd;
-+}
-+#endif
- #else
- bool arch_copy_pte_mapping(vm_flags_t vm_flags);
- pte_t pte_set_vma_features(pte_t pte, struct vm_area_struct *vma);
-+
-+#ifdef CONFIG_TRANSPARENT_HUGEPAGE
-+pmd_t pmd_set_vma_features(pmd_t pmd, struct vm_area_struct *vma);
-+#endif
- #endif
- #endif /* CONFIG_MMU */
+Things have changed a bit through the kernel versions, but in current
+mainline, the zone limit for GFP_DMA is reported from arch code to
+generic code via zone_dma_bits, from where it is used to decide which
+zones should be used for allocations based on the address limit of a
+given device:
 
-diff --git a/mm/huge_memory.c b/mm/huge_memory.c
-index a88093213674..93ef368df2dd 100644
---- a/mm/huge_memory.c
-+++ b/mm/huge_memory.c
-@@ -636,6 +636,7 @@ static vm_fault_t __do_huge_pmd_anonymous_page(struct vm_fault *vmf,
+kernel/dma/direct.c:
+/*
+ * Most architectures use ZONE_DMA for the first 16 Megabytes, but some use it
+ * it for entirely different regions. In that case the arch code needs to
+ * override the variable below for dma-direct to work properly.
+ */
+unsigned int zone_dma_bits __ro_after_init = 24;
+[...]
+static gfp_t __dma_direct_optimal_gfp_mask(struct device *dev, u64 dma_mask,
+                u64 *phys_limit)
+{
+[...]
+        /*
+         * Optimistically try the zone that the physical address mask falls
+         * into first.  If that returns memory that isn't actually addressable
+         * we will fallback to the next lower zone and try again.
+         *
+         * Note that GFP_DMA32 and GFP_DMA are no ops without the corresponding
+         * zones.
+         */
+        if (*phys_limit <= DMA_BIT_MASK(zone_dma_bits))
+                return GFP_DMA;
+        if (*phys_limit <= DMA_BIT_MASK(32))
+                return GFP_DMA32;
+        return 0;
+}
 
- 		entry = mk_huge_pmd(page, vma->vm_page_prot);
- 		entry = maybe_pmd_mkwrite(pmd_mkdirty(entry), vma);
-+		entry = pmd_set_vma_features(entry, vma);
- 		page_add_new_anon_rmap(page, vma, haddr, true);
- 		mem_cgroup_commit_charge(page, memcg, false, true);
- 		lru_cache_add_active_or_unevictable(page, vma);
-@@ -1278,6 +1279,7 @@ static vm_fault_t do_huge_pmd_wp_page_fallback(struct vm_fault *vmf,
- 		pte_t entry;
- 		entry = mk_pte(pages[i], vma->vm_page_prot);
- 		entry = maybe_mkwrite(pte_mkdirty(entry), vma);
-+		entry = pte_set_vma_features(entry, vma);
- 		memcg = (void *)page_private(pages[i]);
- 		set_page_private(pages[i], 0);
- 		page_add_new_anon_rmap(pages[i], vmf->vma, haddr, false);
-@@ -1360,6 +1362,7 @@ vm_fault_t do_huge_pmd_wp_page(struct vm_fault *vmf, pmd_t orig_pmd)
- 		pmd_t entry;
- 		entry = pmd_mkyoung(orig_pmd);
- 		entry = maybe_pmd_mkwrite(pmd_mkdirty(entry), vma);
-+		entry = pmd_set_vma_features(entry, vma);
- 		if (pmdp_set_access_flags(vma, haddr, vmf->pmd, entry,  1))
- 			update_mmu_cache_pmd(vma, vmf->address, vmf->pmd);
- 		ret |= VM_FAULT_WRITE;
-@@ -1432,6 +1435,7 @@ vm_fault_t do_huge_pmd_wp_page(struct vm_fault *vmf, pmd_t orig_pmd)
- 		pmd_t entry;
- 		entry = mk_huge_pmd(new_page, vma->vm_page_prot);
- 		entry = maybe_pmd_mkwrite(pmd_mkdirty(entry), vma);
-+		entry = pmd_set_vma_features(entry, vma);
- 		pmdp_huge_clear_flush_notify(vma, haddr, vmf->pmd);
- 		page_add_new_anon_rmap(new_page, vma, haddr, true);
- 		mem_cgroup_commit_charge(new_page, memcg, false, true);
--- 
-2.21.0
+
+There are only a few architectures that override the limit:
+
+powerpc:
+        /*
+         * Allow 30-bit DMA for very limited Broadcom wifi chips on many
+         * powerbooks.
+         */
+        if (IS_ENABLED(CONFIG_PPC32))
+                zone_dma_bits = 30;
+        else
+                zone_dma_bits = 31;
+
+s390:
+        zone_dma_bits = 31;
+
+and arm64:
+#define ARM64_ZONE_DMA_BITS     30
+[...]
+        if (IS_ENABLED(CONFIG_ZONE_DMA)) {
+                zone_dma_bits = ARM64_ZONE_DMA_BITS;
+                arm64_dma_phys_limit = max_zone_phys(ARM64_ZONE_DMA_BITS);
+        }
+
+
+The actual categorization of page ranges into zones happens via
+free_area_init_nodes() or free_area_init_node(); these are provided
+with arrays of maximum physical addresses or zone sizes (depending on
+which of them is called) by arch-specific code.
+For arm64, the caller is zone_sizes_init(). X86 does it in zone_sizes_init().
+
+> As to whitelisting all of dma-kmalloc -- I guess I can be talked into
+> it. It still seems like the memory used for direct hardware
+> communication shouldn't be exposed to userspace, but it we're dealing
+> with packet data, etc, then it makes sense not to have to have bounce
+> buffers, etc.
+
+FWIW, as far as I understand, usercopy doesn't actually have any
+effect on drivers that use the modern, proper APIs, since those don't
+use the slab allocator at all - as I pointed out in my last mail, the
+dma-kmalloc* slabs are used very rarely. (Which is good, because
+putting objects from less-than-page-size slabs into iommu entries is a
+terrible idea from a security and reliability perspective because it
+gives the hardware access to completely unrelated memory.) Instead,
+they get pages from the page allocator, and these pages may e.g. be
+allocated from the DMA, DMA32 or NORMAL zones depending on the
+restrictions imposed by hardware. So I think the usercopy restriction
+only affects a few oddball drivers (like this s390 stuff), which is
+why you're not seeing more bug reports caused by this.
