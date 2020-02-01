@@ -1,39 +1,54 @@
-Return-Path: <jhubbard@nvidia.com>
-Subject: Re: [PATCH v6 02/11] mm/gup: Use functions to track lockless pgtbl
- walks on gup_pgd_range
-References: <20200206030900.147032-1-leonardo@linux.ibm.com>
- <20200206030900.147032-3-leonardo@linux.ibm.com>
- <760c238043196e0628c8c0eff48a8e938ef539ba.camel@linux.ibm.com>
-From: John Hubbard <jhubbard@nvidia.com>
-Message-ID: <0c2f5a89-4890-fd84-6a6d-e470ba110399@nvidia.com>
-Date: Fri, 7 Feb 2020 14:54:29 -0800
+Return-Path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-pj1-f66.google.com ([209.85.216.66]:50180 "EHLO
+ mail-pj1-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with
+ ESMTP id S1726731AbgBAR4o (ORCPT <rfc822;linux-arch@vger.kernel.org>); Sat, 1
+ Feb 2020 12:56:44 -0500
+Received: by mail-pj1-f66.google.com with SMTP id r67so4402027pjb.0 for
+ <linux-arch@vger.kernel.org>; Sat, 01 Feb 2020 09:56:44 -0800 (PST)
+Date: Sat, 1 Feb 2020 09:56:41 -0800
+From: Kees Cook <keescook@chromium.org>
+Subject: Re: [kernel-hardening] [PATCH 09/38] usercopy: Mark kmalloc caches as
+ usercopy caches
+Message-ID: <202002010952.ACDA7A81@keescook>
+References: <bfca96db-bbd0-d958-7732-76e36c667c68@suse.cz>
+ <202001271519.AA6ADEACF0@keescook>
+ <5861936c-1fe1-4c44-d012-26efa0c8b6e7@de.ibm.com>
+ <202001281457.FA11CC313A@keescook>
+ <alpine.DEB.2.21.2001291640350.1546@www.lameter.com>
+ <6844ea47-8e0e-4fb7-d86f-68046995a749@de.ibm.com>
+ <20200129170939.GA4277@infradead.org>
+ <771c5511-c5ab-3dd1-d938-5dbc40396daa@de.ibm.com>
+ <202001300945.7D465B5F5@keescook>
+ <CAG48ez1a4waGk9kB0WLaSbs4muSoK0AYAVk8=XYaKj4_+6e6Hg@mail.gmail.com>
 MIME-Version: 1.0
-In-Reply-To: <760c238043196e0628c8c0eff48a8e938ef539ba.camel@linux.ibm.com>
-Content-Type: text/plain; charset="utf-8"
-Content-Language: en-US
-Content-Transfer-Encoding: 7bit
-To: Leonardo Bras <leonardo@linux.ibm.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>, Nicholas Piggin <npiggin@gmail.com>, Christophe Leroy <christophe.leroy@c-s.fr>, Steven Price <steven.price@arm.com>, Robin Murphy <robin.murphy@arm.com>, Mahesh Salgaonkar <mahesh@linux.vnet.ibm.com>, Balbir Singh <bsingharora@gmail.com>, Reza Arbab <arbab@linux.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, Allison Randal <allison@lohutok.net>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Mike Rapoport <rppt@linux.ibm.com>, Michal Suchanek <msuchanek@suse.de>
-Cc: linux-arch@vger.kernel.org, linux-mm@kvack.org, linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, kvm-ppc@vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: 
+ <CAG48ez1a4waGk9kB0WLaSbs4muSoK0AYAVk8=XYaKj4_+6e6Hg@mail.gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200207225429.5aCrW_SZh8JFKYhfpWhnTm1PPU_tdcr6-BrdEE9trfo@z>
+To: Jann Horn <jannh@google.com>
+Cc: Christian Borntraeger <borntraeger@de.ibm.com>, Christoph Hellwig <hch@infradead.org>, Christopher Lameter <cl@linux.com>, Jiri Slaby <jslaby@suse.cz>, Julian Wiedmann <jwi@linux.ibm.com>, Ursula Braun <ubraun@linux.ibm.com>, Alexander Viro <viro@zeniv.linux.org.uk>, kernel list <linux-kernel@vger.kernel.org>, David Windsor <dave@nullcore.net>, Pekka Enberg <penberg@kernel.org>, David Rientjes <rientjes@google.com>, Joonsoo Kim <iamjoonsoo.kim@lge.com>, Andrew Morton <akpm@linux-foundation.org>, Linux-MM <linux-mm@kvack.org>, linux-xfs@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, "David S. Miller" <davem@davemloft.net>, Laura Abbott <labbott@redhat.com>, Mark Rutland <mark.rutland@arm.com>, "Martin K. Petersen" <martin.petersen@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Christoffer Dall <christoffer.dall@linaro.org>, Dave Kleikamp <dave.kleikamp@oracle.com>, Jan Kara <jack@suse.cz>, Luis de Bethencourt <luisbg@kernel.org>, Marc Zyngier <marc.zyngier@arm.com>, Rik van Riel <riel@redhat.com>, Matthew Garrett <mjg59@google.com>, linux-fsdevel <linux-fsdevel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Network Development <netdev@vger.kernel.org>, Kernel Hardening <kernel-hardening@lists.openwall.com>, Vlastimil Babka <vbabka@suse.cz>, Michal Kubecek <mkubecek@suse.cz>
+Message-ID: <20200201175641.5WOJ8tHOdn3VfWzwup-taoQjbydAhKrEzJHdn990f8k@z>
 
-On 2/5/20 7:25 PM, Leonardo Bras wrote:
-> On Thu, 2020-02-06 at 00:08 -0300, Leonardo Bras wrote:
->>                 gup_pgd_range(addr, end, gup_flags, pages, &nr);
->> -               local_irq_enable();
->> +               end_lockless_pgtbl_walk(IRQS_ENABLED);
->>                 ret = nr;
->>         }
->>  
-> 
-> Just noticed IRQS_ENABLED is not available on other archs than ppc64.
-> I will fix this for v7.
-> 
+On Fri, Jan 31, 2020 at 01:03:40PM +0100, Jann Horn wrote:
+> I think dma-kmalloc slabs should be handled the same way as normal
+> kmalloc slabs. When a dma-kmalloc allocation is freshly created, it is
+> just normal kernel memory - even if it might later be used for DMA -,
+> and it should be perfectly fine to copy_from_user() into such
+> allocations at that point, and to copy_to_user() out of them at the
+> end. If you look at the places where such allocations are created, you
+> can see things like kmemdup(), memcpy() and so on - all normal
+> operations that shouldn't conceptually be different from usercopy in
+> any relevant way.
 
-What's the fix going to look like, approximately?
+I can't find where the address limit for dma-kmalloc is implemented.
 
+As to whitelisting all of dma-kmalloc -- I guess I can be talked into
+it. It still seems like the memory used for direct hardware
+communication shouldn't be exposed to userspace, but it we're dealing
+with packet data, etc, then it makes sense not to have to have bounce
+buffers, etc.
 
-thanks,
 -- 
-John Hubbard
-NVIDIA
+Kees Cook
