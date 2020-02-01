@@ -1,66 +1,46 @@
-From: Mr usman abu <abuusman121@gmail.com>
-Subject: FROM Mr USMAN ABU
-Date: Sat, 1 Feb 2020 04:57:22 +0100
-Message-ID: <CAKQxASPzpkqkL30JUeX2wKPUK2mHPdTRaoericwb1FCFXdUiTA__43745.9874477767$1580529450$gmane$org@mail.gmail.com>
-Reply-To: usmanabu61@gmail.com
+From: Kees Cook <keescook@chromium.org>
+Subject: Re: [kernel-hardening] [PATCH 09/38] usercopy: Mark kmalloc caches
+ as usercopy caches
+Date: Sat, 1 Feb 2020 09:56:41 -0800
+Message-ID: <202002010952.ACDA7A81@keescook>
+References: <bfca96db-bbd0-d958-7732-76e36c667c68@suse.cz>
+ <202001271519.AA6ADEACF0@keescook>
+ <5861936c-1fe1-4c44-d012-26efa0c8b6e7@de.ibm.com>
+ <202001281457.FA11CC313A@keescook>
+ <alpine.DEB.2.21.2001291640350.1546@www.lameter.com>
+ <6844ea47-8e0e-4fb7-d86f-68046995a749@de.ibm.com>
+ <20200129170939.GA4277@infradead.org>
+ <771c5511-c5ab-3dd1-d938-5dbc40396daa@de.ibm.com>
+ <202001300945.7D465B5F5@keescook>
+ <CAG48ez1a4waGk9kB0WLaSbs4muSoK0AYAVk8=XYaKj4_+6e6Hg@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-vs1-f68.google.com ([209.85.217.68]:34219 "EHLO
-        mail-vs1-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727090AbgBAD5Y (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 31 Jan 2020 22:57:24 -0500
-Received: by mail-vs1-f68.google.com with SMTP id g15so5733442vsf.1
-        for <linux-arch@vger.kernel.org>; Fri, 31 Jan 2020 19:57:23 -0800 (PST)
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-fsdevel-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <CAG48ez1a4waGk9kB0WLaSbs4muSoK0AYAVk8=XYaKj4_+6e6Hg@mail.gmail.com>
+Sender: linux-fsdevel-owner@vger.kernel.org
+To: Jann Horn <jannh@google.com>
+Cc: Christian Borntraeger <borntraeger@de.ibm.com>, Christoph Hellwig <hch@infradead.org>, Christopher Lameter <cl@linux.com>, Jiri Slaby <jslaby@suse.cz>, Julian Wiedmann <jwi@linux.ibm.com>, Ursula Braun <ubraun@linux.ibm.com>, Alexander Viro <viro@zeniv.linux.org.uk>, kernel list <linux-kernel@vger.kernel.org>, David Windsor <dave@nullcore.net>, Pekka Enberg <penberg@kernel.org>, David Rientjes <rientjes@google.com>, Joonsoo Kim <iamjoonsoo.kim@lge.com>, Andrew Morton <akpm@linux-foundation.org>, Linux-MM <linux-mm@kvack.org>, linux-xfs@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, "David S. Miller" <davem@davemloft.net>, Laura Abbott <labbott@redhat.com>, Mark Rutland <mark.rutland@arm.com>
+List-Id: linux-arch.vger.kernel.org
 
-FROM Mr USMAN  ABU
-BILLS AND EXCHANGE MANAGER,
-In BANK OF AFRICA (B.O.A)
-Ouagadougou Burkina Faso, IN WEST AFRCA
+On Fri, Jan 31, 2020 at 01:03:40PM +0100, Jann Horn wrote:
+> I think dma-kmalloc slabs should be handled the same way as normal
+> kmalloc slabs. When a dma-kmalloc allocation is freshly created, it is
+> just normal kernel memory - even if it might later be used for DMA -,
+> and it should be perfectly fine to copy_from_user() into such
+> allocations at that point, and to copy_to_user() out of them at the
+> end. If you look at the places where such allocations are created, you
+> can see things like kmemdup(), memcpy() and so on - all normal
+> operations that shouldn't conceptually be different from usercopy in
+> any relevant way.
 
+I can't find where the address limit for dma-kmalloc is implemented.
 
-Please i want you to read this later very carefully and please do not
-joke with this message. I am Mr USMAN  Abu, the bill and exchange
-manager in the boa bank of Africa Ouagadougou Burkina Faso.
+As to whitelisting all of dma-kmalloc -- I guess I can be talked into
+it. It still seems like the memory used for direct hardware
+communication shouldn't be exposed to userspace, but it we're dealing
+with packet data, etc, then it makes sense not to have to have bounce
+buffers, etc.
 
-In my department, I found the deposited fund amounted ($18.5 million)
-one of my bank clients who died Along with his entire family in air
-crash, On July 31 2000 please go through the
-website.http://news.bbc.co.uk/2/hi/europe/859479.stm
-
-Can you be able and capable to assist me provide your bank account
-where this $18.5 million will transfer into? Because I don=E2=80=99t want t=
-he
-money to go into our bank treasury account as an unclaimed fund, so
-this is the reason why I contacted you so that our bank will release
-this money to you as the nest of kin to the deceased customer. Please
-I would like you to keep this proposal as top secret.
-
-I shall give you 40% of the total fund as soon as this $18.5 million
-transferred into your bank account and I shall visit you in your
-country for the sharing of the funds.
-From banking experience it will take up to ( 7 ) working days to
-conclude this transfer. I want you to also know that this transaction
-will involve a little expense which will be shared among both of us.
-
-Your Urgent response is needed immediately to enable me to send to you
-application later which you have to fill and apply to the bank for the
-transfer of the $18.5 million USA dollars. Before I send to you the
-application later, you have to Fill this form bellow and resend it
-back to me immediately for more trust.
-Your Name....
-Your home addresses ....
-Your country ....
-Your city ....
-Your home telephone ....
-Your private telephone ....
-Your age ....
-Your occupation ....
-Your religion=E2=80=A6
-Your international passport or ID card ....
-
-Thanks and my regards to your family.
-Mr USMAN  ABU
+-- 
+Kees Cook
