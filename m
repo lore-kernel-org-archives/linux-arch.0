@@ -1,97 +1,35 @@
-Return-Path: <linux-doc-owner@vger.kernel.org>
-From: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Subject: [RFC PATCH v9 06/27] mm: Introduce VM_SHSTK for Shadow Stack memory
-Date: Wed,  5 Feb 2020 10:19:14 -0800
-Message-ID: <20200205181935.3712-7-yu-cheng.yu@intel.com>
-In-Reply-To: <20200205181935.3712-1-yu-cheng.yu@intel.com>
-References: <20200205181935.3712-1-yu-cheng.yu@intel.com>
+Return-Path: <owner-linux-mm@kvack.org>
+Date: Mon, 3 Feb 2020 09:38:11 -0800
+From: Christoph Hellwig <hch@infradead.org>
+Subject: Re: [kernel-hardening] [PATCH 09/38] usercopy: Mark kmalloc caches as
+ usercopy caches
+Message-ID: <20200203173811.GB30011@infradead.org>
+References: <201911141327.4DE6510@keescook>
+ <bfca96db-bbd0-d958-7732-76e36c667c68@suse.cz>
+ <202001271519.AA6ADEACF0@keescook>
+ <5861936c-1fe1-4c44-d012-26efa0c8b6e7@de.ibm.com>
+ <202001281457.FA11CC313A@keescook>
+ <alpine.DEB.2.21.2001291640350.1546@www.lameter.com>
+ <6844ea47-8e0e-4fb7-d86f-68046995a749@de.ibm.com>
+ <20200129170939.GA4277@infradead.org>
+ <771c5511-c5ab-3dd1-d938-5dbc40396daa@de.ibm.com>
+ <202001300945.7D465B5F5@keescook>
 MIME-Version: 1.0
-Sender: linux-doc-owner@vger.kernel.org
-Content-Transfer-Encoding: quoted-printable
-To: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>, x86-patch-review@intel.com
-Cc: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <202001300945.7D465B5F5@keescook>
+Sender: owner-linux-mm@kvack.org
+To: Kees Cook <keescook@chromium.org>
+Cc: Christian Borntraeger <borntraeger@de.ibm.com>, Christoph Hellwig <hch@infradead.org>, Christopher Lameter <cl@linux.com>, Jiri Slaby <jslaby@suse.cz>, Julian Wiedmann <jwi@linux.ibm.com>, Ursula Braun <ubraun@linux.ibm.com>, Alexander Viro <viro@zeniv.linux.org.uk>, linux-kernel@vger.kernel.org, David Windsor <dave@nullcore.net>, Pekka Enberg <penberg@kernel.org>, David Rientjes <rientjes@google.com>, Joonsoo Kim <iamjoonsoo.kim@lge.com>, Andrew Morton <akpm@linux-foundation.org>, linux-mm@kvack.org, linux-xfs@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, "David S. Miller" <davem@davemloft.net>, Laura Abbott <labbott@redhat.com>, Mark Rutland <mark.rutland@arm.com>, "Martin K. Petersen" <martin.petersen@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Christoffer Dall <christoffer.dall@linaro.org>, Dave Kleikamp <dave.kleikamp@oracle.com>, Jan Kara <jack@suse.cz>, Luis de Bethencourt <luisbg@kernel.org>, Marc Zyngier <marc.zyngier@arm.com>, Rik van Riel <riel@redhat.com>, Matthew Garrett <mjg59@google.com>, linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org, netdev@vger.kernel.org, kernel-hardening@lists.openwall.com, Vlastimil Babka <vbabka@suse.cz>, Michal Kubecek <mkubecek@suse.cz>
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200205181914._fj-FoFPcOxmS0b7GKdg4F_MF0jQq8OgtsA7lo3FjEM@z>
+Message-ID: <20200203173811.opVZUaRh9iXLWeFFYUETl5ihqfuDEai7-B3OM4oYqpA@z>
 
-A Shadow Stack (SHSTK) PTE must be read-only and have _PAGE_DIRTY set.
-However, read-only and Dirty PTEs also exist for copy-on-write (COW) page=
-s.
-These two cases are handled differently for page faults and a new VM flag
-is necessary for tracking SHSTK VMAs.
+On Thu, Jan 30, 2020 at 11:23:38AM -0800, Kees Cook wrote:
+> Hm, looks like it's allocated from the low 16MB. Seems like poor naming!
+> :) There seems to be a LOT of stuff using GFP_DMA, and it seems unlikely
+> those are all expecting low addresses?
 
-v9:
-- Add VM_SHSTK case to arch_vma_name().
-- Revise the commit log to explain why a new VM flag is needed.
-
-Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
----
- arch/x86/mm/mmap.c | 2 ++
- fs/proc/task_mmu.c | 3 +++
- include/linux/mm.h | 8 ++++++++
- 3 files changed, 13 insertions(+)
-
-diff --git a/arch/x86/mm/mmap.c b/arch/x86/mm/mmap.c
-index aae9a933dfd4..482813b4c659 100644
---- a/arch/x86/mm/mmap.c
-+++ b/arch/x86/mm/mmap.c
-@@ -165,6 +165,8 @@ const char *arch_vma_name(struct vm_area_struct *vma)
- {
- 	if (vma->vm_flags & VM_MPX)
- 		return "[mpx]";
-+	else if (vma->vm_flags & VM_SHSTK)
-+		return "[shadow stack]";
- 	return NULL;
- }
-
-diff --git a/fs/proc/task_mmu.c b/fs/proc/task_mmu.c
-index 9442631fd4af..590b58ee008a 100644
---- a/fs/proc/task_mmu.c
-+++ b/fs/proc/task_mmu.c
-@@ -687,6 +687,9 @@ static void show_smap_vma_flags(struct seq_file *m, s=
-truct vm_area_struct *vma)
- 		[ilog2(VM_PKEY_BIT4)]	=3D "",
- #endif
- #endif /* CONFIG_ARCH_HAS_PKEYS */
-+#ifdef CONFIG_X86_INTEL_SHADOW_STACK_USER
-+		[ilog2(VM_SHSTK)]	=3D "ss",
-+#endif
- 	};
- 	size_t i;
-
-diff --git a/include/linux/mm.h b/include/linux/mm.h
-index cfaa8feecfe8..b5145fbe102e 100644
---- a/include/linux/mm.h
-+++ b/include/linux/mm.h
-@@ -298,11 +298,13 @@ extern unsigned int kobjsize(const void *objp);
- #define VM_HIGH_ARCH_BIT_2	34	/* bit only usable on 64-bit architectures=
- */
- #define VM_HIGH_ARCH_BIT_3	35	/* bit only usable on 64-bit architectures=
- */
- #define VM_HIGH_ARCH_BIT_4	36	/* bit only usable on 64-bit architectures=
- */
-+#define VM_HIGH_ARCH_BIT_5	37	/* bit only usable on 64-bit architectures=
- */
- #define VM_HIGH_ARCH_0	BIT(VM_HIGH_ARCH_BIT_0)
- #define VM_HIGH_ARCH_1	BIT(VM_HIGH_ARCH_BIT_1)
- #define VM_HIGH_ARCH_2	BIT(VM_HIGH_ARCH_BIT_2)
- #define VM_HIGH_ARCH_3	BIT(VM_HIGH_ARCH_BIT_3)
- #define VM_HIGH_ARCH_4	BIT(VM_HIGH_ARCH_BIT_4)
-+#define VM_HIGH_ARCH_5	BIT(VM_HIGH_ARCH_BIT_5)
- #endif /* CONFIG_ARCH_USES_HIGH_VMA_FLAGS */
-
- #ifdef CONFIG_ARCH_HAS_PKEYS
-@@ -340,6 +342,12 @@ extern unsigned int kobjsize(const void *objp);
- # define VM_MPX		VM_NONE
- #endif
-
-+#ifdef CONFIG_X86_INTEL_SHADOW_STACK_USER
-+# define VM_SHSTK	VM_HIGH_ARCH_5
-+#else
-+# define VM_SHSTK	VM_NONE
-+#endif
-+
- #ifndef VM_GROWSUP
- # define VM_GROWSUP	VM_NONE
- #endif
---=20
-2.21.0
+Most of that is either completely or partially bogus.  Besides the
+weird S/390 stuff pretty much everything should be using the dma
+allocators.  A couple really messed up drivers even pass GFP_DMA*
+to the dma allocator, but my patches to fix that up seem to be stuck.
