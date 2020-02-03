@@ -1,52 +1,55 @@
-From: Matthew Wilcox <willy@infradead.org>
-Subject: Re: [kernel-hardening] [PATCH 09/38] usercopy: Mark kmalloc caches
- as usercopy caches
-Date: Sun, 2 Feb 2020 23:46:44 -0800
-Message-ID: <20200203074644.GD8731@bombadil.infradead.org>
-References: <5861936c-1fe1-4c44-d012-26efa0c8b6e7@de.ibm.com>
- <202001281457.FA11CC313A@keescook>
- <alpine.DEB.2.21.2001291640350.1546@www.lameter.com>
- <6844ea47-8e0e-4fb7-d86f-68046995a749@de.ibm.com>
- <20200129170939.GA4277@infradead.org>
- <771c5511-c5ab-3dd1-d938-5dbc40396daa@de.ibm.com>
- <202001300945.7D465B5F5@keescook>
- <CAG48ez1a4waGk9kB0WLaSbs4muSoK0AYAVk8=XYaKj4_+6e6Hg@mail.gmail.com>
- <202002010952.ACDA7A81@keescook>
- <CAG48ez2ms+TDEXQdDONuQ1GG0K20E69nV1r_yjKxxYjYKv1VCg@mail.gmail.com>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH v8 4/5] locking/qspinlock: Introduce starvation avoidance
+ into CNA
+Date: Mon, 3 Feb 2020 14:45:40 +0100
+Message-ID: <20200203134540.GA14879@hirez.programming.kicks-ass.net>
+References: <cfdf635d-be2e-9d4b-c4ca-6bcbddc6868f@redhat.com>
+ <3862F8A1-FF9B-40AD-A88E-2C0BA7AF6F58@oracle.com>
+ <20200124075235.GX14914@hirez.programming.kicks-ass.net>
+ <2c6741c5-d89d-4b2c-cebe-a7c7f6eed884@redhat.com>
+ <48ce49e5-98a7-23cd-09f4-8290a65abbb5@redhat.com>
+ <8D3AFB47-B595-418C-9568-08780DDC58FF@oracle.com>
+ <714892cd-d96f-4d41-ae8b-d7b7642a6e3c@redhat.com>
+ <1669BFDE-A1A5-4ED8-B586-035460BBF68A@oracle.com>
+ <20200125111931.GW11457@worktop.programming.kicks-ass.net>
+ <F32558D8-4ACB-483A-AB4C-F565003A02E7@oracle.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane-mx.org@lists.infradead.org>
 Content-Disposition: inline
-In-Reply-To: <CAG48ez2ms+TDEXQdDONuQ1GG0K20E69nV1r_yjKxxYjYKv1VCg@mail.gmail.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Jann Horn <jannh@google.com>
-Cc: Kees Cook <keescook@chromium.org>, Christian Borntraeger <borntraeger@de.ibm.com>, Christoph Hellwig <hch@infradead.org>, Christopher Lameter <cl@linux.com>, Jiri Slaby <jslaby@suse.cz>, Julian Wiedmann <jwi@linux.ibm.com>, Ursula Braun <ubraun@linux.ibm.com>, Alexander Viro <viro@zeniv.linux.org.uk>, kernel list <linux-kernel@vger.kernel.org>, David Windsor <dave@nullcore.net>, Pekka Enberg <penberg@kernel.org>, David Rientjes <rientjes@google.com>, Joonsoo Kim <iamjoonsoo.kim@lge.com>, Andrew Morton <akpm@linux-foundation.org>, Linux-MM <linux-mm@kvack.org>, linux-xfs@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, "David S. Miller" <davem@davemloft.net>, Laura Abbott <labbott@redhat.com>
+In-Reply-To: <F32558D8-4ACB-483A-AB4C-F565003A02E7@oracle.com>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane-mx.org@lists.infradead.org
+To: Alex Kogan <alex.kogan@oracle.com>
+Cc: linux-arch@vger.kernel.org, Hanjun Guo <guohanjun@huawei.com>, Arnd Bergmann <arnd@arndb.de>, dave.dice@oracle.com, Jan Glauber <jglauber@marvell.com>, x86@kernel.org, Will Deacon <will.deacon@arm.com>, linux@armlinux.org.uk, Steven Sistare <steven.sistare@oracle.com>, linux-kernel@vger.kernel.org, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, hpa@zytor.com, Waiman Long <longman@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Daniel Jordan <daniel.m.jordan@oracle.com>, linux-arm-kernel <linux-arm-kernel@lists.infradead.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Sat, Feb 01, 2020 at 08:27:49PM +0100, Jann Horn wrote:
-> FWIW, as far as I understand, usercopy doesn't actually have any
-> effect on drivers that use the modern, proper APIs, since those don't
-> use the slab allocator at all - as I pointed out in my last mail, the
-> dma-kmalloc* slabs are used very rarely. (Which is good, because
-> putting objects from less-than-page-size slabs into iommu entries is a
-> terrible idea from a security and reliability perspective because it
-> gives the hardware access to completely unrelated memory.) Instead,
-> they get pages from the page allocator, and these pages may e.g. be
-> allocated from the DMA, DMA32 or NORMAL zones depending on the
-> restrictions imposed by hardware. So I think the usercopy restriction
-> only affects a few oddball drivers (like this s390 stuff), which is
-> why you're not seeing more bug reports caused by this.
-
-Getting pages from the page allocator is true for dma_alloc_coherent()
-and friends.  But it's not true for streaming DMA mappings (dma_map_*)
-for which the memory usually comes from kmalloc().  If this is something
-we want to fix (and I have an awful feeling we're going to regret it
-if we say "no, we trust the hardware"), we're going to have to come up
-with a new memory allocation API for these cases.  Or bounce bugger the
-memory for devices we don't trust.
-
-The problem with the dma_map_* API is that memory might end up being
-allocated once and then used multiple times by different drivers.  eg if
-I allocate an NFS packet, it might get sent first to eth0, then (when the
-route fails) sent to eth1.  Similarly in storage, a RAID-5 driver might
-map the same memory several times to send to different disk controllers.
+T24gVGh1LCBKYW4gMzAsIDIwMjAgYXQgMDU6MDU6MjhQTSAtMDUwMCwgQWxleCBLb2dhbiB3cm90
+ZToKPiAKPiA+IE9uIEphbiAyNSwgMjAyMCwgYXQgNjoxOSBBTSwgUGV0ZXIgWmlqbHN0cmEgPHBl
+dGVyekBpbmZyYWRlYWQub3JnPiB3cm90ZToKPiA+IAo+ID4gT24gRnJpLCBKYW4gMjQsIDIwMjAg
+YXQgMDE6MTk6MDVQTSAtMDUwMCwgQWxleCBLb2dhbiB3cm90ZToKPiA+IAo+ID4+IElzIHRoZXJl
+IGEgbGlnaHR3ZWlnaHQgd2F5IHRvIGlkZW50aWZ5IHN1Y2ggYSDigJxwcmlvcml0aXplZOKAnSB0
+aHJlYWQ/Cj4gPiAKPiA+IE5vOyBwZW9wbGUgbWlnaHQgZm9yIGluc3RhbmNlIGNhcmUgYWJvdXQg
+dGFpbCBsYXRlbmNpZXMgYmV0d2VlbiB0aGVpcgo+ID4gaWRlbnRpY2FsbHkgc3BlYydlZCB3b3Jr
+ZXIgdGFza3MuCj4gCj4gSSB3b3VsZCBhcmd1ZSB0aGF0IHRob3NlIHVzZXJzIG5lZWQgdG8gdHVu
+ZS9yZWR1Y2UgdGhlIGludHJhLW5vZGUgaGFuZG9mZgo+IHRocmVzaG9sZCBmb3IgdGhlaXIgbmVl
+ZHMuIE9yIGRpc2FibGUgQ05BIGFsdG9nZXRoZXIuCgpJIHJlYWxseSBkb24ndCBsaWtlIGJvb3Qg
+dGltZSBhcmd1bWVudHMgKG9yIHR1bmFibGVzIGluIGdlbmVyaWMpIGZvciBhCm1hY2hpbmUgdG8g
+d29yayBhcyBpdCBzaG91bGQuCgpUaGUgZGVmYXVsdCByZWFsbHkgc2hvdWxkICdqdXN0IHdvcmsn
+LgoKPiBJbiBnZW5lcmFsLCBQZXRlciwgc2VlbXMgbGlrZSB5b3UgYXJlIG5vdCBvbiBib2FyZCB3
+aXRoIHRoZSB3YXkgTG9uZ21hbgo+IHN1Z2dlc3RlZCB0byBoYW5kbGUgcHJpb3JpdGl6ZWQgdGhy
+ZWFkcy4gQW0gSSByaWdodD8KClJpZ2h0LgoKUHJlc3VtYWJseSB5b3UgaGF2ZSBhIHdvcmtsb2Fk
+IHdoZXJlIENOQSBpcyBhY3R1YWxseSBhIHdpbj8gVGhhdCBpcywKd2hhdCBpbnNwaXJlZCB5b3Ug
+dG8gZ28gZG93biB0aGlzIHJvYWQ/IFdoaWNoIGFjdHVhbCBrZXJuZWwgbG9jayBpcyBzbwpjb250
+ZW5kZWQgb24gTlVNQSBtYWNoaW5lcyB0aGF0IHdlIG5lZWQgdG8gZG8gdGhpcz8KCl9fX19fX19f
+X19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fCmxpbnV4LWFybS1rZXJuZWwg
+bWFpbGluZyBsaXN0CmxpbnV4LWFybS1rZXJuZWxAbGlzdHMuaW5mcmFkZWFkLm9yZwpodHRwOi8v
+bGlzdHMuaW5mcmFkZWFkLm9yZy9tYWlsbWFuL2xpc3RpbmZvL2xpbnV4LWFybS1rZXJuZWwK
