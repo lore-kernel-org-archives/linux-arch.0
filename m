@@ -1,64 +1,85 @@
-From: Waiman Long <longman@redhat.com>
-Subject: Re: [PATCH v8 4/5] locking/qspinlock: Introduce starvation avoidance
- into CNA
-Date: Mon, 3 Feb 2020 10:47:15 -0500
-Message-ID: <15fa978d-bd41-3ecb-83d5-896187e11244@redhat.com>
-References: <20200124075235.GX14914@hirez.programming.kicks-ass.net>
- <2c6741c5-d89d-4b2c-cebe-a7c7f6eed884@redhat.com>
- <48ce49e5-98a7-23cd-09f4-8290a65abbb5@redhat.com>
- <8D3AFB47-B595-418C-9568-08780DDC58FF@oracle.com>
- <714892cd-d96f-4d41-ae8b-d7b7642a6e3c@redhat.com>
- <1669BFDE-A1A5-4ED8-B586-035460BBF68A@oracle.com>
- <20200125111931.GW11457@worktop.programming.kicks-ass.net>
- <F32558D8-4ACB-483A-AB4C-F565003A02E7@oracle.com>
- <20200203134540.GA14879@hirez.programming.kicks-ass.net>
- <6d11b22b-2fb5-7dea-f88b-b32f1576a5e0@redhat.com>
- <20200203152807.GK14914@hirez.programming.kicks-ass.net>
+From: Christopher Lameter <cl@linux.com>
+Subject: Re: [kernel-hardening] [PATCH 09/38] usercopy: Mark kmalloc caches
+ as usercopy caches
+Date: Mon, 3 Feb 2020 17:20:02 +0000 (UTC)
+Message-ID: <alpine.DEB.2.21.2002031716440.1668@www.lameter.com>
+References: <bfca96db-bbd0-d958-7732-76e36c667c68@suse.cz> <202001271519.AA6ADEACF0@keescook> <5861936c-1fe1-4c44-d012-26efa0c8b6e7@de.ibm.com> <202001281457.FA11CC313A@keescook> <alpine.DEB.2.21.2001291640350.1546@www.lameter.com>
+ <6844ea47-8e0e-4fb7-d86f-68046995a749@de.ibm.com> <20200129170939.GA4277@infradead.org> <771c5511-c5ab-3dd1-d938-5dbc40396daa@de.ibm.com> <202001300945.7D465B5F5@keescook> <CAG48ez1a4waGk9kB0WLaSbs4muSoK0AYAVk8=XYaKj4_+6e6Hg@mail.gmail.com>
+ <202002010952.ACDA7A81@keescook>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from us-smtp-delivery-1.mimecast.com ([207.211.31.120]:33872 "EHLO
-        us-smtp-1.mimecast.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-        with ESMTP id S1728034AbgBCPr3 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 3 Feb 2020 10:47:29 -0500
-In-Reply-To: <20200203152807.GK14914@hirez.programming.kicks-ass.net>
-Content-Language: en-US
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Alex Kogan <alex.kogan@oracle.com>, linux@armlinux.org.uk, Ingo Molnar <mingo@redhat.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-arm-kernel <linux-arm-kernel@lists.infradead.org>, linux-kernel@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>, Borislav Petkov <bp@alien8.de>, hpa@zytor.com, x86@kernel.org, Hanjun Guo <guohanjun@huawei.com>, Jan Glauber <jglauber@marvell.com>, Steven Sistare <steven.sistare@oracle.com>, Daniel Jordan <daniel.m.jordan@oracle.com>, dave.dice@oracle.com
+Content-Type: text/plain; charset=US-ASCII
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <202002010952.ACDA7A81@keescook>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Kees Cook <keescook@chromium.org>
+Cc: Jann Horn <jannh@google.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Christoph Hellwig <hch@infradead.org>, Jiri Slaby <jslaby@suse.cz>, Julian Wiedmann <jwi@linux.ibm.com>, Ursula Braun <ubraun@linux.ibm.com>, Alexander Viro <viro@zeniv.linux.org.uk>, kernel list <linux-kernel@vger.kernel.org>, David Windsor <dave@nullcore.net>, Pekka Enberg <penberg@kernel.org>, David Rientjes <rientjes@google.com>, Joonsoo Kim <iamjoonsoo.kim@lge.com>, Andrew Morton <akpm@linux-foundation.org>, Linux-MM <linux-mm@kvack.org>, linux-xfs@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, "David S. Miller" <davem@davemloft.net>, Laura Abbott <labbott@redhat.com>, Mark Rutland <mark.rutland@arm.com>
+List-Id: linux-arch.vger.kernel.org
 
-On 2/3/20 10:28 AM, Peter Zijlstra wrote:
-> On Mon, Feb 03, 2020 at 09:59:12AM -0500, Waiman Long wrote:
->> On 2/3/20 8:45 AM, Peter Zijlstra wrote:
->>> Presumably you have a workload where CNA is actually a win? That is,
->>> what inspired you to go down this road? Which actual kernel lock is so
->>> contended on NUMA machines that we need to do this?
->> Today, a 2-socket Rome server can have 128 cores and 256 threads. If we
->> scale up more, we could easily have more than 1000 threads in a system.
->> With that many logical cpus available, it is easy to envision some heavy
->> spinlock contention can happen fairly regularly. This patch can
->> alleviate the congestion and improve performance under that
->> circumstance. Of course, the specific locks that are contended will
->> depend on the workloads.
-> Not the point. If there isn't an issue today, we don't have anything to
-> fix.
+On Sat, 1 Feb 2020, Kees Cook wrote:
 >
-> Furthermore, we've always adressed specific issues by looking at the
-> locking granularity, first.
+> I can't find where the address limit for dma-kmalloc is implemented.
 
-You are right in that. Unlike ticket spinlock where performance can drop
-precipitately over a cliff when there is heavy contention, qspinlock
-won't have this kind of performance drop. My suspicion is that slowdowns
-caused by heavy spinlock contention in actual workloads are likely to be
-more transient in nature and harder to pinpoint. These days, I seldom
-get bug report that is related to heavy spinlock contention.
+include/linux/mmzones.h
 
->
-> So again, what specific lock inspired all these patches?
->
-Maybe Alex has some data to share.
+enum zone_type {
+        /*
+         * ZONE_DMA and ZONE_DMA32 are used when there are peripherals not able
+         * to DMA to all of the addressable memory (ZONE_NORMAL).
+         * On architectures where this area covers the whole 32 bit address
+         * space ZONE_DMA32 is used. ZONE_DMA is left for the ones with smaller
+         * DMA addressing constraints. This distinction is important as a 32bit
+         * DMA mask is assumed when ZONE_DMA32 is defined. Some 64-bit
+         * platforms may need both zones as they support peripherals with
+         * different DMA addressing limitations.
+         *
+         * Some examples:
+         *
+         *  - i386 and x86_64 have a fixed 16M ZONE_DMA and ZONE_DMA32 for the
+         *    rest of the lower 4G.
+         *
+         *  - arm only uses ZONE_DMA, the size, up to 4G, may vary depending on
+         *    the specific device.
+         *
+         *  - arm64 has a fixed 1G ZONE_DMA and ZONE_DMA32 for the rest of the
+         *    lower 4G.
+         *
+         *  - powerpc only uses ZONE_DMA, the size, up to 2G, may vary
+         *    depending on the specific device.
+         *
+         *  - s390 uses ZONE_DMA fixed to the lower 2G.
+         *
+         *  - ia64 and riscv only use ZONE_DMA32.
+         *
+         *  - parisc uses neither.
+         */
+#ifdef CONFIG_ZONE_DMA
+        ZONE_DMA,
+#endif
+#ifdef CONFIG_ZONE_DMA32
+        ZONE_DMA32,
+#endif
+        /*
+         * Normal addressable memory is in ZONE_NORMAL. DMA operations can
+be
+         * performed on pages in ZONE_NORMAL if the DMA devices support
+         * transfers to all addressable memory.
+         */
+        ZONE_NORMAL,
+#ifdef CONFIG_HIGHMEM
+        /*
+         * A memory area that is only addressable by the kernel through
+         * mapping portions into its own address space. This is for example
+         * used by i386 to allow the kernel to address the memory beyond
+         * 900MB. The kernel will set up special mappings (page
+         * table entries on i386) for each page that the kernel needs to
+         * access.
+         */
+        ZONE_HIGHMEM,
+#endif
+        ZONE_MOVABLE,
+#ifdef CONFIG_ZONE_DEVICE
+        ZONE_DEVICE,
+#endif
+        __MAX_NR_ZONES
 
-Cheers,
-Longman
+};
