@@ -1,8 +1,8 @@
-From: Peter Zijlstra <peterz@infradead.org>
+From: Waiman Long <longman@redhat.com>
 Subject: Re: [PATCH v8 4/5] locking/qspinlock: Introduce starvation avoidance
  into CNA
-Date: Mon, 3 Feb 2020 16:28:07 +0100
-Message-ID: <20200203152807.GK14914@hirez.programming.kicks-ass.net>
+Date: Mon, 3 Feb 2020 10:47:15 -0500
+Message-ID: <15fa978d-bd41-3ecb-83d5-896187e11244@redhat.com>
 References: <20200124075235.GX14914@hirez.programming.kicks-ass.net>
  <2c6741c5-d89d-4b2c-cebe-a7c7f6eed884@redhat.com>
  <48ce49e5-98a7-23cd-09f4-8290a65abbb5@redhat.com>
@@ -13,44 +13,52 @@ References: <20200124075235.GX14914@hirez.programming.kicks-ass.net>
  <F32558D8-4ACB-483A-AB4C-F565003A02E7@oracle.com>
  <20200203134540.GA14879@hirez.programming.kicks-ass.net>
  <6d11b22b-2fb5-7dea-f88b-b32f1576a5e0@redhat.com>
+ <20200203152807.GK14914@hirez.programming.kicks-ass.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
+Content-Type: text/plain; charset=utf-8
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane-mx.org@lists.infradead.org>
-Content-Disposition: inline
-In-Reply-To: <6d11b22b-2fb5-7dea-f88b-b32f1576a5e0@redhat.com>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane-mx.org@lists.infradead.org
-To: Waiman Long <longman@redhat.com>
-Cc: linux-arch@vger.kernel.org, Hanjun Guo <guohanjun@huawei.com>, Arnd Bergmann <arnd@arndb.de>, dave.dice@oracle.com, Jan Glauber <jglauber@marvell.com>, x86@kernel.org, Will Deacon <will.deacon@arm.com>, linux@armlinux.org.uk, linux-kernel@vger.kernel.org, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, hpa@zytor.com, Alex Kogan <alex.kogan@oracle.com>, Steven Sistare <steven.sistare@oracle.com>, Thomas Gleixner <tglx@linutronix.de>, Daniel Jordan <daniel.m.jordan@oracle.com>, linux-arm-kernel <linux-arm-kernel@lists.infradead.org>
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from us-smtp-delivery-1.mimecast.com ([207.211.31.120]:33872 "EHLO
+        us-smtp-1.mimecast.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+        with ESMTP id S1728034AbgBCPr3 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 3 Feb 2020 10:47:29 -0500
+In-Reply-To: <20200203152807.GK14914@hirez.programming.kicks-ass.net>
+Content-Language: en-US
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Alex Kogan <alex.kogan@oracle.com>, linux@armlinux.org.uk, Ingo Molnar <mingo@redhat.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-arm-kernel <linux-arm-kernel@lists.infradead.org>, linux-kernel@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>, Borislav Petkov <bp@alien8.de>, hpa@zytor.com, x86@kernel.org, Hanjun Guo <guohanjun@huawei.com>, Jan Glauber <jglauber@marvell.com>, Steven Sistare <steven.sistare@oracle.com>, Daniel Jordan <daniel.m.jordan@oracle.com>, dave.dice@oracle.com
 
-On Mon, Feb 03, 2020 at 09:59:12AM -0500, Waiman Long wrote:
-> On 2/3/20 8:45 AM, Peter Zijlstra wrote:
+On 2/3/20 10:28 AM, Peter Zijlstra wrote:
+> On Mon, Feb 03, 2020 at 09:59:12AM -0500, Waiman Long wrote:
+>> On 2/3/20 8:45 AM, Peter Zijlstra wrote:
+>>> Presumably you have a workload where CNA is actually a win? That is,
+>>> what inspired you to go down this road? Which actual kernel lock is so
+>>> contended on NUMA machines that we need to do this?
+>> Today, a 2-socket Rome server can have 128 cores and 256 threads. If we
+>> scale up more, we could easily have more than 1000 threads in a system.
+>> With that many logical cpus available, it is easy to envision some heavy
+>> spinlock contention can happen fairly regularly. This patch can
+>> alleviate the congestion and improve performance under that
+>> circumstance. Of course, the specific locks that are contended will
+>> depend on the workloads.
+> Not the point. If there isn't an issue today, we don't have anything to
+> fix.
+>
+> Furthermore, we've always adressed specific issues by looking at the
+> locking granularity, first.
 
-> > Presumably you have a workload where CNA is actually a win? That is,
-> > what inspired you to go down this road? Which actual kernel lock is so
-> > contended on NUMA machines that we need to do this?
-> 
-> Today, a 2-socket Rome server can have 128 cores and 256 threads. If we
-> scale up more, we could easily have more than 1000 threads in a system.
-> With that many logical cpus available, it is easy to envision some heavy
-> spinlock contention can happen fairly regularly. This patch can
-> alleviate the congestion and improve performance under that
-> circumstance. Of course, the specific locks that are contended will
-> depend on the workloads.
+You are right in that. Unlike ticket spinlock where performance can drop
+precipitately over a cliff when there is heavy contention, qspinlock
+won't have this kind of performance drop. My suspicion is that slowdowns
+caused by heavy spinlock contention in actual workloads are likely to be
+more transient in nature and harder to pinpoint. These days, I seldom
+get bug report that is related to heavy spinlock contention.
 
-Not the point. If there isn't an issue today, we don't have anything to
-fix.
+>
+> So again, what specific lock inspired all these patches?
+>
+Maybe Alex has some data to share.
 
-Furthermore, we've always adressed specific issues by looking at the
-locking granularity, first.
-
-So again, what specific lock inspired all these patches?
+Cheers,
+Longman
