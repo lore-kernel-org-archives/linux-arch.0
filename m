@@ -1,123 +1,59 @@
-Return-Path: <monstr@monstr.eu>
-Subject: Re: [PATCH v2 0/2] microblaze: Enable CMA
-References: <cover.1579248206.git.michal.simek@xilinx.com>
-From: Michal Simek <monstr@monstr.eu>
-Message-ID: <5706978d-4c9a-1123-c34b-e19e2b8aa37f@monstr.eu>
-Date: Tue, 4 Feb 2020 11:30:56 +0100
+Return-Path: <linux-arch-owner@vger.kernel.org>
+Received: from bombadil.infradead.org ([198.137.202.133]:49032 "EHLO
+ bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with
+ ESMTP id S1726561AbgBCRll (ORCPT <rfc822;linux-arch@vger.kernel.org>); Mon, 3
+ Feb 2020 12:41:41 -0500
+Date: Mon, 3 Feb 2020 09:41:34 -0800
+From: Christoph Hellwig <hch@infradead.org>
+Subject: Re: [kernel-hardening] [PATCH 09/38] usercopy: Mark kmalloc caches as
+ usercopy caches
+Message-ID: <20200203174134.GC30011@infradead.org>
+References: <202001281457.FA11CC313A@keescook>
+ <alpine.DEB.2.21.2001291640350.1546@www.lameter.com>
+ <6844ea47-8e0e-4fb7-d86f-68046995a749@de.ibm.com>
+ <20200129170939.GA4277@infradead.org>
+ <771c5511-c5ab-3dd1-d938-5dbc40396daa@de.ibm.com>
+ <202001300945.7D465B5F5@keescook>
+ <CAG48ez1a4waGk9kB0WLaSbs4muSoK0AYAVk8=XYaKj4_+6e6Hg@mail.gmail.com>
+ <202002010952.ACDA7A81@keescook>
+ <CAG48ez2ms+TDEXQdDONuQ1GG0K20E69nV1r_yjKxxYjYKv1VCg@mail.gmail.com>
+ <20200203074644.GD8731@bombadil.infradead.org>
 MIME-Version: 1.0
-In-Reply-To: <cover.1579248206.git.michal.simek@xilinx.com>
-Content-Type: multipart/signed; micalg=pgp-sha1;
- protocol="application/pgp-signature";
- boundary="pBOm8rNjCoJTkwKyfl4Ed8HeJH77Ps32T"
-To: Michal Simek <michal.simek@xilinx.com>, linux-kernel@vger.kernel.org, monstr@monstr.eu, git@xilinx.com, Christoph Hellwig <hch@lst.de>
-Cc: Paul Burton <paulburton@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Mike Rapoport <rppt@linux.ibm.com>, Manjukumar Matha <manjukumar.harthikote-matha@xilinx.com>, Borislav Petkov <bp@alien8.de>, Linus Walleij <linus.walleij@linaro.org>, linux-mips@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>, Geert Uytterhoeven <geert@linux-m68k.org>, Catalin Marinas <catalin.marinas@arm.com>, linux-riscv@lists.infradead.org, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, Palmer Dabbelt <palmer@dabbelt.com>, x86@kernel.org, Guo Ren <guoren@kernel.org>, Kate Stewart <kstewart@linuxfoundation.org>, Wesley Terpstra <wesley@sifive.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Ralf Baechle <ralf@linux-mips.org>, Paul Walmsley <paul.walmsley@sifive.com>, Andrew Morton <akpm@linux-foundation.org>, Max Filippov <jcmvbkbc@gmail.com>, linux-xtensa@linux-xtensa.org, "H. Peter Anvin" <hpa@zytor.com>, "Peter Zijlstra (Intel)" <peterz@infradead.org>, Will Deacon <will@kernel.org>, Christian Borntraeger <borntraeger@de.ibm.com>, Deepa Dinamani <deepa.kernel@gmail.com>, Chris Zankel <chris@zankel.net>, Manish Narani <manish.narani@xilinx.com>, Ingo Molnar <mingo@redhat.com>, Waiman Long <longman@redhat.com>, linux-arm-kernel@lists.infradead.org, Albert Ou <aou@eecs.berkeley.edu>, Vasily Gorbik <gor@linux.ibm.com>, James Hogan <jhogan@kernel.org>, Masahiro Yamada <yamada.masahiro@socionext.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Guo Ren <ren_guo@c-sky.com>
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20200203074644.GD8731@bombadil.infradead.org>
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200204103056._sb8TTeZYa0D7v7pObt6ZhW-lGqCaFjKStuvBAgzXCQ@z>
+To: Matthew Wilcox <willy@infradead.org>
+Cc: Jann Horn <jannh@google.com>, Kees Cook <keescook@chromium.org>, Christian Borntraeger <borntraeger@de.ibm.com>, Christoph Hellwig <hch@infradead.org>, Christopher Lameter <cl@linux.com>, Jiri Slaby <jslaby@suse.cz>, Julian Wiedmann <jwi@linux.ibm.com>, Ursula Braun <ubraun@linux.ibm.com>, Alexander Viro <viro@zeniv.linux.org.uk>, kernel list <linux-kernel@vger.kernel.org>, David Windsor <dave@nullcore.net>, Pekka Enberg <penberg@kernel.org>, David Rientjes <rientjes@google.com>, Joonsoo Kim <iamjoonsoo.kim@lge.com>, Andrew Morton <akpm@linux-foundation.org>, Linux-MM <linux-mm@kvack.org>, linux-xfs@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, "David S. Miller" <davem@davemloft.net>, Laura Abbott <labbott@redhat.com>, Mark Rutland <mark.rutland@arm.com>, "Martin K. Petersen" <martin.petersen@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Dave Kleikamp <dave.kleikamp@oracle.com>, Jan Kara <jack@suse.cz>, Marc Zyngier <marc.zyngier@arm.com>, Matthew Garrett <mjg59@google.com>, linux-fsdevel <linux-fsdevel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Network Development <netdev@vger.kernel.org>, Kernel Hardening <kernel-hardening@lists.openwall.com>, Vlastimil Babka <vbabka@suse.cz>, Michal Kubecek <mkubecek@suse.cz>
+Message-ID: <20200203174134.FH1D16Wg437t-rxbMPXqE4pocHgFvbdz6o75X8ESdEs@z>
 
-This is an OpenPGP/MIME signed message (RFC 4880 and 3156)
---pBOm8rNjCoJTkwKyfl4Ed8HeJH77Ps32T
-Content-Type: multipart/mixed; boundary="BbuWsr0XsV2TagfAoYrRnS0Lcvh9jdEaZ";
- protected-headers="v1"
-From: Michal Simek <monstr@monstr.eu>
-To: Michal Simek <michal.simek@xilinx.com>, linux-kernel@vger.kernel.org,
- monstr@monstr.eu, git@xilinx.com, Christoph Hellwig <hch@lst.de>
-Cc: Paul Burton <paulburton@kernel.org>, Arnd Bergmann <arnd@arndb.de>,
- Mike Rapoport <rppt@linux.ibm.com>,
- Manjukumar Matha <manjukumar.harthikote-matha@xilinx.com>,
- Borislav Petkov <bp@alien8.de>, Linus Walleij <linus.walleij@linaro.org>,
- linux-mips@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>,
- Geert Uytterhoeven <geert@linux-m68k.org>,
- Catalin Marinas <catalin.marinas@arm.com>, linux-riscv@lists.infradead.org,
- linux-arch@vger.kernel.org, linux-s390@vger.kernel.org,
- Palmer Dabbelt <palmer@dabbelt.com>, x86@kernel.org,
- Guo Ren <guoren@kernel.org>, Kate Stewart <kstewart@linuxfoundation.org>,
- Wesley Terpstra <wesley@sifive.com>,
- Greg Kroah-Hartman <gregkh@linuxfoundation.org>,
- Ralf Baechle <ralf@linux-mips.org>, Paul Walmsley
- <paul.walmsley@sifive.com>, Andrew Morton <akpm@linux-foundation.org>,
- Max Filippov <jcmvbkbc@gmail.com>, linux-xtensa@linux-xtensa.org,
- "H. Peter Anvin" <hpa@zytor.com>,
- "Peter Zijlstra (Intel)" <peterz@infradead.org>,
- Will Deacon <will@kernel.org>, Christian Borntraeger
- <borntraeger@de.ibm.com>, Deepa Dinamani <deepa.kernel@gmail.com>,
- Chris Zankel <chris@zankel.net>, Manish Narani <manish.narani@xilinx.com>,
- Ingo Molnar <mingo@redhat.com>, Waiman Long <longman@redhat.com>,
- linux-arm-kernel@lists.infradead.org, Albert Ou <aou@eecs.berkeley.edu>,
- Vasily Gorbik <gor@linux.ibm.com>, James Hogan <jhogan@kernel.org>,
- Masahiro Yamada <yamada.masahiro@socionext.com>,
- Heiko Carstens <heiko.carstens@de.ibm.com>, Guo Ren <ren_guo@c-sky.com>
-Message-ID: <5706978d-4c9a-1123-c34b-e19e2b8aa37f@monstr.eu>
-Subject: Re: [PATCH v2 0/2] microblaze: Enable CMA
-References: <cover.1579248206.git.michal.simek@xilinx.com>
-In-Reply-To: <cover.1579248206.git.michal.simek@xilinx.com>
+On Sun, Feb 02, 2020 at 11:46:44PM -0800, Matthew Wilcox wrote:
+> > gives the hardware access to completely unrelated memory.) Instead,
+> > they get pages from the page allocator, and these pages may e.g. be
+> > allocated from the DMA, DMA32 or NORMAL zones depending on the
+> > restrictions imposed by hardware. So I think the usercopy restriction
+> > only affects a few oddball drivers (like this s390 stuff), which is
+> > why you're not seeing more bug reports caused by this.
+> 
+> Getting pages from the page allocator is true for dma_alloc_coherent()
+> and friends.
 
---BbuWsr0XsV2TagfAoYrRnS0Lcvh9jdEaZ
-Content-Type: text/plain; charset=utf-8
-Content-Language: en-US
-Content-Transfer-Encoding: quoted-printable
+dma_alloc_coherent also has a few other memory sources than the page
+allocator..
 
-On 17. 01. 20 9:03, Michal Simek wrote:
-> Hi,
->=20
-> the patchset enable CMA on Microblaze. Based on Christoph request I hav=
-e
-> created the first patch which makes dma-continugous.h mandatory for all=
+> But it's not true for streaming DMA mappings (dma_map_*)
+> for which the memory usually comes from kmalloc().  If this is something
+> we want to fix (and I have an awful feeling we're going to regret it
+> if we say "no, we trust the hardware"), we're going to have to come up
+> with a new memory allocation API for these cases.  Or bounce bugger the
+> memory for devices we don't trust.
 
-> archs before Microblaze wiring.
->=20
-> Thanks,
-> Michal
->=20
-> Changes in v2:
-> - New patch suggested by Christoph
-> - Align commit message
-> - Remove adding dma-contigous.h via Kbuild because it is done by previo=
-us
->   patch
->=20
-> Michal Simek (2):
->   asm-generic: Make dma-contiguous.h a mandatory include/asm header
->   microblaze: Wire CMA allocator
->=20
->  arch/arm64/include/asm/Kbuild         | 1 -
->  arch/csky/include/asm/Kbuild          | 1 -
->  arch/microblaze/Kconfig               | 1 +
->  arch/microblaze/configs/mmu_defconfig | 2 ++
->  arch/microblaze/mm/init.c             | 4 ++++
->  arch/mips/include/asm/Kbuild          | 1 -
->  arch/riscv/include/asm/Kbuild         | 1 -
->  arch/s390/include/asm/Kbuild          | 1 -
->  arch/x86/include/asm/Kbuild           | 1 -
->  arch/xtensa/include/asm/Kbuild        | 1 -
->  include/asm-generic/Kbuild            | 1 +
->  11 files changed, 8 insertions(+), 7 deletions(-)
->=20
+There aren't too many places that use slab allocations for streaming
+mappings, and then do usercopies into them.  But I vaguely remember
+some usb code getting the annotations for that a while ago.
 
-Applied.
-
-Thanks,
-Michal
---=20
-Michal Simek, Ing. (M.Eng), OpenPGP -> KeyID: FE3D1F91
-w: www.monstr.eu p: +42-0-721842854
-Maintainer of Linux kernel - Xilinx Microblaze
-Maintainer of Linux kernel - Xilinx Zynq ARM and ZynqMP ARM64 SoCs
-U-Boot custodian - Xilinx Microblaze/Zynq/ZynqMP/Versal SoCs
-
-
-
---BbuWsr0XsV2TagfAoYrRnS0Lcvh9jdEaZ--
-
---pBOm8rNjCoJTkwKyfl4Ed8HeJH77Ps32T
-Content-Type: application/pgp-signature; name="signature.asc"
-Content-Description: OpenPGP digital signature
-Content-Disposition: attachment; filename="signature.asc"
-
------BEGIN PGP SIGNATURE-----
-
-iF0EARECAB0WIQQbPNTMvXmYlBPRwx7KSWXLKUoMIQUCXjlH4AAKCRDKSWXLKUoM
-IXg5AJ9J98El4wJeR5l37eVkp19mJ5smqwCdGPO/rvmeDwYSeGZMMaNPcnZNHRA=
-=bdA8
------END PGP SIGNATURE-----
-
---pBOm8rNjCoJTkwKyfl4Ed8HeJH77Ps32T--
+But if you don't trust your hardware you will need to use IOMMUs and
+page aligned memory, or IOMMUs plus bounce buffering for the kmalloc
+allocations (we've recently grown code to do that for the intel-iommu
+driver, which needs to be lifted into the generic IOMMU code).
