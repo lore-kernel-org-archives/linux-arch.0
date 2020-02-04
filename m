@@ -1,49 +1,65 @@
-Return-Path: <SRS0=hCVk=4O=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:38166 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1728652AbgBZP5o (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 26 Feb 2020 10:57:44 -0500
-From: Mark Brown <broonie@kernel.org>
-Subject: [PATCH v7 09/11] arm64: BTI: Reset BTYPE when skipping emulated instructions
-Date: Wed, 26 Feb 2020 15:57:12 +0000
-Message-ID: <20200226155714.43937-10-broonie@kernel.org>
-In-Reply-To: <20200226155714.43937-1-broonie@kernel.org>
-References: <20200226155714.43937-1-broonie@kernel.org>
+Return-Path: <SRS0=47z6=3Y=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from bombadil.infradead.org ([198.137.202.133]:43220 "EHLO
+        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727358AbgBDR2W (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 4 Feb 2020 12:28:22 -0500
+Date: Tue, 4 Feb 2020 18:27:58 +0100
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH v8 4/5] locking/qspinlock: Introduce starvation avoidance
+ into CNA
+Message-ID: <20200204172758.GF14879@hirez.programming.kicks-ass.net>
+References: <8D3AFB47-B595-418C-9568-08780DDC58FF@oracle.com>
+ <714892cd-d96f-4d41-ae8b-d7b7642a6e3c@redhat.com>
+ <1669BFDE-A1A5-4ED8-B586-035460BBF68A@oracle.com>
+ <20200125111931.GW11457@worktop.programming.kicks-ass.net>
+ <F32558D8-4ACB-483A-AB4C-F565003A02E7@oracle.com>
+ <20200203134540.GA14879@hirez.programming.kicks-ass.net>
+ <6d11b22b-2fb5-7dea-f88b-b32f1576a5e0@redhat.com>
+ <20200203152807.GK14914@hirez.programming.kicks-ass.net>
+ <15fa978d-bd41-3ecb-83d5-896187e11244@redhat.com>
+ <83762715-F68C-42DF-9B41-C4C48DF6762F@oracle.com>
 MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
 Content-Transfer-Encoding: 8bit
+In-Reply-To: <83762715-F68C-42DF-9B41-C4C48DF6762F@oracle.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>
-Cc: Alexander Viro <viro@zeniv.linux.org.uk>, Paul Elliott <paul.elliott@arm.com>, Peter Zijlstra <peterz@infradead.org>, Yu-cheng Yu <yu-cheng.yu@intel.com>, Amit Kachhap <amit.kachhap@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Marc Zyngier <maz@kernel.org>, Eugene Syromiatnikov <esyr@redhat.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, "H . J . Lu " <hjl.tools@gmail.com>, Andrew Jones <drjones@redhat.com>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Jann Horn <jannh@google.com>, Richard Henderson <richard.henderson@linaro.org>, =?UTF-8?q?Kristina=20Mart=C5=A1enko?= <kristina.martsenko@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Florian Weimer <fweimer@redhat.com>, Sudakshina Das <sudi.das@arm.com>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, Dave Martin <Dave.Martin@arm.com>, Mark Brown <broonie@kernel.org>
-Message-ID: <20200226155712.clP9d3KmuRH_g9Fz95ssIlW6PPf_vmuOU6ENABvzSc8@z>
+To: Alex Kogan <alex.kogan@oracle.com>
+Cc: Waiman Long <longman@redhat.com>, linux@armlinux.org.uk, Ingo Molnar <mingo@redhat.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-arm-kernel <linux-arm-kernel@lists.infradead.org>, linux-kernel@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>, Borislav Petkov <bp@alien8.de>, hpa@zytor.com, x86@kernel.org, Hanjun Guo <guohanjun@huawei.com>, Jan Glauber <jglauber@marvell.com>, Steven Sistare <steven.sistare@oracle.com>, Daniel Jordan <daniel.m.jordan@oracle.com>, dave.dice@oracle.com
+Message-ID: <20200204172758.X02hZCjjFU0Uu1ibfP8yMBI7AzlVJ3E9NFBaa599fRw@z>
 
-From: Dave Martin <Dave.Martin@arm.com>
+On Tue, Feb 04, 2020 at 11:54:02AM -0500, Alex Kogan wrote:
+> > On Feb 3, 2020, at 10:47 AM, Waiman Long <longman@redhat.com> wrote:
+> > 
+> > On 2/3/20 10:28 AM, Peter Zijlstra wrote:
+> >> On Mon, Feb 03, 2020 at 09:59:12AM -0500, Waiman Long wrote:
+> >>> On 2/3/20 8:45 AM, Peter Zijlstra wrote:
+> >>>> Presumably you have a workload where CNA is actually a win? That is,
+> >>>> what inspired you to go down this road? Which actual kernel lock is so
+> >>>> contended on NUMA machines that we need to do this?
 
-Since normal execution of any non-branch instruction resets the
-PSTATE BTYPE field to 0, so do the same thing when emulating a
-trapped instruction.
+> There are quite a few actually. files_struct.file_lock, file_lock_context.flc_lock
+> and lockref.lock are some concrete examples that get very hot in will-it-scale
+> benchmarks. 
 
-Branches don't trap directly, so we should never need to assign a
-non-zero value to BTYPE here.
+Right, that's all a variant of banging on the same resources across
+nodes. I'm not sure there's anything fundamental we can fix there.
 
-Signed-off-by: Dave Martin <Dave.Martin@arm.com>
-Signed-off-by: Mark Brown <broonie@kernel.org>
----
- arch/arm64/kernel/traps.c | 2 ++
- 1 file changed, 2 insertions(+)
+> And then there are spinlocks in __futex_data.queues, 
+> which get hot when applications have contended (pthread) locks — 
+> LevelDB is an example.
 
-diff --git a/arch/arm64/kernel/traps.c b/arch/arm64/kernel/traps.c
-index 3c07a7074145..52ed261e7739 100644
---- a/arch/arm64/kernel/traps.c
-+++ b/arch/arm64/kernel/traps.c
-@@ -335,6 +335,8 @@ void arm64_skip_faulting_instruction(struct pt_regs *regs, unsigned long size)
- 
- 	if (compat_user_mode(regs))
- 		advance_itstate(regs);
-+	else
-+		regs->pstate &= ~PSR_BTYPE_MASK;
- }
- 
- static LIST_HEAD(undef_hook);
--- 
-2.20.1
+A numa aware rework of futexes has been on the todo list for years :/
+
+> Our initial motivation was based on an observation that kernel qspinlock is not 
+> NUMA-aware. So what, you may ask. Much like people realized in the past that
+> global spinning is bad for performance, and they switched from ticket lock to
+> locks with local spinning (e.g., MCS), I think everyone would agree these days that
+> bouncing a lock (and cache lines in general) across numa nodes is similarly bad.
+> And as CNA demonstrates, we are easily leaving 2-3x speedups on the table by
+> doing just that with the current qspinlock.
+
+Actual benchmarks with performance numbers are required. It helps
+motivate the patches as well as gives reviewers clues on how to
+reproduce / inspect the claims made.
