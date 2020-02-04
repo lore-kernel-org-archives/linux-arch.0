@@ -1,168 +1,103 @@
-Return-Path: <leonardo@linux.ibm.com>
-From: Leonardo Bras <leonardo@linux.ibm.com>
-Subject: [PATCH v6 06/11] powerpc/mm/book3s64/hash: Use functions to track lockless pgtbl walks
-Date: Thu,  6 Feb 2020 00:08:55 -0300
-Message-ID: <20200206030900.147032-7-leonardo@linux.ibm.com>
-In-Reply-To: <20200206030900.147032-1-leonardo@linux.ibm.com>
-References: <20200206030900.147032-1-leonardo@linux.ibm.com>
+Return-Path: <brendanhiggins@google.com>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
-To: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>, Nicholas Piggin <npiggin@gmail.com>, Christophe Leroy <christophe.leroy@c-s.fr>, Steven Price <steven.price@arm.com>, Robin Murphy <robin.murphy@arm.com>, Leonardo Bras <leonardo@linux.ibm.com>, Mahesh Salgaonkar <mahesh@linux.vnet.ibm.com>, Balbir Singh <bsingharora@gmail.com>, Reza Arbab <arbab@linux.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, Allison Randal <allison@lohutok.net>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Mike Rapoport <rppt@linux.ibm.com>, Michal Suchanek <msuchanek@suse.de>
-Cc: linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, kvm-ppc@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
+References: <20200130230812.142642-1-brendanhiggins@google.com>
+ <20200130230812.142642-3-brendanhiggins@google.com> <e060bdfc-5cdb-fb62-48b0-cc54c7bc72ce@gmail.com>
+In-Reply-To: <e060bdfc-5cdb-fb62-48b0-cc54c7bc72ce@gmail.com>
+From: Brendan Higgins <brendanhiggins@google.com>
+Date: Tue, 4 Feb 2020 14:30:47 -0800
+Message-ID: <CAFd5g46irbQ7j_DOY+bQPoo1TWjwvu6n9iyQ7abe9pfqydeMYg@mail.gmail.com>
+Subject: Re: [PATCH v2 2/7] arch: um: add linker section for KUnit test suites
+Content-Type: text/plain; charset="UTF-8"
+To: Frank Rowand <frowand.list@gmail.com>
+Cc: Jeff Dike <jdike@addtoit.com>, Richard Weinberger <richard@nod.at>, Anton Ivanov <anton.ivanov@cambridgegreys.com>, Arnd Bergmann <arnd@arndb.de>, Kees Cook <keescook@chromium.org>, Shuah Khan <skhan@linuxfoundation.org>, Alan Maguire <alan.maguire@oracle.com>, Iurii Zaikin <yzaikin@google.com>, David Gow <davidgow@google.com>, Andrew Morton <akpm@linux-foundation.org>, rppt@linux.ibm.com, Greg KH <gregkh@linuxfoundation.org>, Stephen Boyd <sboyd@kernel.org>, Logan Gunthorpe <logang@deltatee.com>, Luis Chamberlain <mcgrof@kernel.org>, Knut Omang <knut.omang@oracle.com>, linux-um <linux-um@lists.infradead.org>, linux-arch@vger.kernel.org, "open list:KERNEL SELFTEST FRAMEWORK" <linux-kselftest@vger.kernel.org>, KUnit Development <kunit-dev@googlegroups.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200206030855.GwC5ORwVAbGXZEuw5EEEskAc-8ibhmSVQgUSM1nFX2Q@z>
+Message-ID: <20200204223047.RShRXRbrsAJe26-vfgY70OL0kMSOZY3fdZzDa7rtQEg@z>
 
-Applies the new tracking functions to all hash-related functions that do
-lockless pagetable walks.
+On Tue, Feb 4, 2020 at 1:59 PM Frank Rowand <frowand.list@gmail.com> wrote:
+>
+> On 1/30/20 5:08 PM, Brendan Higgins wrote:
+> > Add a linker section to UML where KUnit can put references to its test
+> > suites. This patch is an early step in transitioning to dispatching all
+> > KUnit tests from a centralized executor rather than having each as its
+> > own separate late_initcall.
+>
+> All architectures please.
 
-hash_page_mm: Adds comment that explain that there is no need to
-local_int_disable/save given that it is only called from DataAccess
-interrupt, so interrupts are already disabled.
+I *am* supporting all architectures with this patchset.
 
-local_irq_{save,restore} is already inside {begin,end}_lockless_pgtbl_walk,
-so there is no need to repeat it here.
+The first patch in this series adds support to all architectures
+except UML (admittedly I only tried x86 and ARM, 32 bit and 64 bit for
+both, but I am pretty sure someone tried it for POWER and something
+else, so maybe I should try it with others before submission). A patch
+specific for UML, this patch, was needed because UML is a special
+snowflake and has a bunch of special linker scripts that don't make
+the change in vmlinux.lds.h (the previous patch) sufficient.
 
-Variable that saves the	irq mask was renamed from flags to irq_mask so it
-doesn't lose meaning now it's not directly passed to local_irq_* functions.
+> The early versions of Kunit documented reliance on UML.  Discussion lead to
+> the conclusion that real architectures and real hardware would be supported.
 
-Signed-off-by: Leonardo Bras <leonardo@linux.ibm.com>
----
- arch/powerpc/mm/book3s64/hash_tlb.c   |  6 +++---
- arch/powerpc/mm/book3s64/hash_utils.c | 27 +++++++++++++++++----------
- 2 files changed, 20 insertions(+), 13 deletions(-)
+I am *very* aware.
 
-diff --git a/arch/powerpc/mm/book3s64/hash_tlb.c b/arch/powerpc/mm/book3s64/hash_tlb.c
-index 4a70d8dd39cd..86547c4151f6 100644
---- a/arch/powerpc/mm/book3s64/hash_tlb.c
-+++ b/arch/powerpc/mm/book3s64/hash_tlb.c
-@@ -194,7 +194,7 @@ void __flush_hash_table_range(struct mm_struct *mm, unsigned long start,
- {
- 	bool is_thp;
- 	int hugepage_shift;
--	unsigned long flags;
-+	unsigned long irq_mask;
- 
- 	start = _ALIGN_DOWN(start, PAGE_SIZE);
- 	end = _ALIGN_UP(end, PAGE_SIZE);
-@@ -209,7 +209,7 @@ void __flush_hash_table_range(struct mm_struct *mm, unsigned long start,
- 	 * to being hashed). This is not the most performance oriented
- 	 * way to do things but is fine for our needs here.
- 	 */
--	local_irq_save(flags);
-+	irq_mask = begin_lockless_pgtbl_walk();
- 	arch_enter_lazy_mmu_mode();
- 	for (; start < end; start += PAGE_SIZE) {
- 		pte_t *ptep = find_current_mm_pte(mm->pgd, start, &is_thp,
-@@ -229,7 +229,7 @@ void __flush_hash_table_range(struct mm_struct *mm, unsigned long start,
- 			hpte_need_flush(mm, start, ptep, pte, hugepage_shift);
- 	}
- 	arch_leave_lazy_mmu_mode();
--	local_irq_restore(flags);
-+	end_lockless_pgtbl_walk(irq_mask);
- }
- 
- void flush_tlb_pmd_range(struct mm_struct *mm, pmd_t *pmd, unsigned long addr)
-diff --git a/arch/powerpc/mm/book3s64/hash_utils.c b/arch/powerpc/mm/book3s64/hash_utils.c
-index 523d4d39d11e..e6d4ab42173b 100644
---- a/arch/powerpc/mm/book3s64/hash_utils.c
-+++ b/arch/powerpc/mm/book3s64/hash_utils.c
-@@ -1341,12 +1341,16 @@ int hash_page_mm(struct mm_struct *mm, unsigned long ea,
- 		ea &= ~((1ul << mmu_psize_defs[psize].shift) - 1);
- #endif /* CONFIG_PPC_64K_PAGES */
- 
--	/* Get PTE and page size from page tables */
-+	/* Get PTE and page size from page tables :
-+	 * Called in from DataAccess interrupt (data_access_common: 0x300),
-+	 * interrupts are disabled here.
-+	 */
-+	__begin_lockless_pgtbl_walk(false);
- 	ptep = find_linux_pte(pgdir, ea, &is_thp, &hugeshift);
- 	if (ptep == NULL || !pte_present(*ptep)) {
- 		DBG_LOW(" no PTE !\n");
- 		rc = 1;
--		goto bail;
-+		goto bail_pgtbl_walk;
- 	}
- 
- 	/* Add _PAGE_PRESENT to the required access perm */
-@@ -1359,7 +1363,7 @@ int hash_page_mm(struct mm_struct *mm, unsigned long ea,
- 	if (!check_pte_access(access, pte_val(*ptep))) {
- 		DBG_LOW(" no access !\n");
- 		rc = 1;
--		goto bail;
-+		goto bail_pgtbl_walk;
- 	}
- 
- 	if (hugeshift) {
-@@ -1383,7 +1387,7 @@ int hash_page_mm(struct mm_struct *mm, unsigned long ea,
- 		if (current->mm == mm)
- 			check_paca_psize(ea, mm, psize, user_region);
- 
--		goto bail;
-+		goto bail_pgtbl_walk;
- 	}
- 
- #ifndef CONFIG_PPC_64K_PAGES
-@@ -1457,6 +1461,8 @@ int hash_page_mm(struct mm_struct *mm, unsigned long ea,
- #endif
- 	DBG_LOW(" -> rc=%d\n", rc);
- 
-+bail_pgtbl_walk:
-+	__end_lockless_pgtbl_walk(0, false);
- bail:
- 	exception_exit(prev_state);
- 	return rc;
-@@ -1545,7 +1551,7 @@ static void hash_preload(struct mm_struct *mm, unsigned long ea,
- 	unsigned long vsid;
- 	pgd_t *pgdir;
- 	pte_t *ptep;
--	unsigned long flags;
-+	unsigned long irq_mask;
- 	int rc, ssize, update_flags = 0;
- 	unsigned long access = _PAGE_PRESENT | _PAGE_READ | (is_exec ? _PAGE_EXEC : 0);
- 
-@@ -1567,11 +1573,12 @@ static void hash_preload(struct mm_struct *mm, unsigned long ea,
- 	vsid = get_user_vsid(&mm->context, ea, ssize);
- 	if (!vsid)
- 		return;
-+
- 	/*
- 	 * Hash doesn't like irqs. Walking linux page table with irq disabled
- 	 * saves us from holding multiple locks.
- 	 */
--	local_irq_save(flags);
-+	irq_mask = begin_lockless_pgtbl_walk();
- 
- 	/*
- 	 * THP pages use update_mmu_cache_pmd. We don't do
-@@ -1616,7 +1623,7 @@ static void hash_preload(struct mm_struct *mm, unsigned long ea,
- 				   mm_ctx_user_psize(&mm->context),
- 				   pte_val(*ptep));
- out_exit:
--	local_irq_restore(flags);
-+	end_lockless_pgtbl_walk(irq_mask);
- }
- 
- /*
-@@ -1679,16 +1686,16 @@ u16 get_mm_addr_key(struct mm_struct *mm, unsigned long address)
- {
- 	pte_t *ptep;
- 	u16 pkey = 0;
--	unsigned long flags;
-+	unsigned long irq_mask;
- 
- 	if (!mm || !mm->pgd)
- 		return 0;
- 
--	local_irq_save(flags);
-+	irq_mask = begin_lockless_pgtbl_walk();
- 	ptep = find_linux_pte(mm->pgd, address, NULL, NULL);
- 	if (ptep)
- 		pkey = pte_to_pkey_bits(pte_val(READ_ONCE(*ptep)));
--	local_irq_restore(flags);
-+	end_lockless_pgtbl_walk(irq_mask);
- 
- 	return pkey;
- }
--- 
-2.24.1
+I would never intentionally break support for other architectures. I
+know it is very important to you, Alan, and others.
+
+> This like this are what make me reluctant to move devicetree unittests to
+> KUnit.
+
+Hopefully I can reassure you then:
+
+With Alan as a regular contributor who cares very much about non-UML
+architectures, it would be very unlikely for me to accidentally break
+support for other architectures without us finding out before a
+release.
+
+I also periodically test KUnit on linux-next on x86-64. I have gotten
+bugs for other architectures from Arnd Bergmann and one of the m86k
+maintainers who seems to play around with it as well.
+
+So yeah, other people care about this too, and I would really not want
+to make any of them unhappy.
+
+> Can you please add a section to the KUnit documentation that lists things
+> like the expectations, requirements, limitations, etc for a test case that
+> is run by KUnit?  Some examples that pop to mind from recent discussions
+> and my own experiences:
+>
+>   - Each test case is invoked after late_init is complete.
+>       + Exception: the possible value of being able to run a unit test
+>         at a specific runlevel has been expressed.  If an actual unit
+>         test can be shown to require running earlier, this restriction
+>         will be re-visited.
+>
+>   - Each test case must be idempotent.  Each test case may be called
+>     multiple times, and must generate the same result each time it
+>     is called.
+>       + Exception 1: a test case can be declared to not be idempotent
+>         [[ mechanism TBD ]], in which case KUnit will not call the
+>         test case a second time without the kernel rebooting.
+>       + Exception 2: hardware may not be deterministic, so a test that
+>         always passes or fails when run under UML may not always to
+>         so on real hardware.  <--- sentence copied from
+>         Documentation/dev-tools/kunit/usage.rst
+>           [[ This item and 1st exception do not exist yet, but will exist
+>           in some form if the proposed proc filesystem interface is
+>           added. ]]
+>
+>   - KUnit provides a helpful wrapper to simplify building a UML kernel
+>     containing the KUnit test cases, booting the UML kernel, and
+>     formatting the output from the test cases.  This wrapper MUST NOT
+>     be required to run the test cases or to determine a test result.
+>     The formatting may provide additional analysis and improve
+>     readability of a test result.
+>
+>   - .... There is more that belongs here, but I'm getting side tracked
+>     here, when I'm trying to instead convert devicetree unittests to
+>     KUnit and want to get back to that.
+
+Sure, I think that's a great start! Thanks for that. I hope you don't
+mind if I copy and paste some of it.
+
+It kind of sounds like you are talking about more of a requirements
+doc than the design doc I was imagining in my reply to you on the
+cover letter, which is fine. The documentation is primarily for people
+other than me, so whatever you and others think is useful, I will do.
