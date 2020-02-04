@@ -1,214 +1,133 @@
-Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga14.intel.com ([192.55.52.115]:20940 "EHLO mga14.intel.com"
- rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP id S1727764AbgBESU1
- (ORCPT <rfc822;linux-arch@vger.kernel.org>); Wed, 5 Feb 2020 13:20:27 -0500
-From: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Subject: [RFC PATCH v9 03/27] x86/fpu/xstate: Introduce CET MSR XSAVES
- supervisor states
-Date: Wed,  5 Feb 2020 10:19:11 -0800
-Message-ID: <20200205181935.3712-4-yu-cheng.yu@intel.com>
-In-Reply-To: <20200205181935.3712-1-yu-cheng.yu@intel.com>
-References: <20200205181935.3712-1-yu-cheng.yu@intel.com>
+Return-Path: <frowand.list@gmail.com>
+Subject: Re: [PATCH v2 2/7] arch: um: add linker section for KUnit test suites
+References: <20200130230812.142642-1-brendanhiggins@google.com>
+ <20200130230812.142642-3-brendanhiggins@google.com>
+ <e060bdfc-5cdb-fb62-48b0-cc54c7bc72ce@gmail.com>
+ <CAFd5g46irbQ7j_DOY+bQPoo1TWjwvu6n9iyQ7abe9pfqydeMYg@mail.gmail.com>
+From: Frank Rowand <frowand.list@gmail.com>
+Message-ID: <1da1538d-2e4c-0ed0-5fae-6f9033230c46@gmail.com>
+Date: Tue, 4 Feb 2020 17:17:12 -0600
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
-Sender: linux-arch-owner@vger.kernel.org
+In-Reply-To: <CAFd5g46irbQ7j_DOY+bQPoo1TWjwvu6n9iyQ7abe9pfqydeMYg@mail.gmail.com>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
+To: Brendan Higgins <brendanhiggins@google.com>
+Cc: Jeff Dike <jdike@addtoit.com>, Richard Weinberger <richard@nod.at>, Anton Ivanov <anton.ivanov@cambridgegreys.com>, Arnd Bergmann <arnd@arndb.de>, Kees Cook <keescook@chromium.org>, Shuah Khan <skhan@linuxfoundation.org>, Alan Maguire <alan.maguire@oracle.com>, Iurii Zaikin <yzaikin@google.com>, David Gow <davidgow@google.com>, Andrew Morton <akpm@linux-foundation.org>, rppt@linux.ibm.com, Greg KH <gregkh@linuxfoundation.org>, Stephen Boyd <sboyd@kernel.org>, Logan Gunthorpe <logang@deltatee.com>, Luis Chamberlain <mcgrof@kernel.org>, Knut Omang <knut.omang@oracle.com>, linux-um <linux-um@lists.infradead.org>, linux-arch@vger.kernel.org, "open list:KERNEL SELFTEST FRAMEWORK" <linux-kselftest@vger.kernel.org>, KUnit Development <kunit-dev@googlegroups.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>
 List-ID: <linux-arch.vger.kernel.org>
-To: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>, x86-patch-review@intel.com
-Cc: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Message-ID: <20200205181911.sNpNzPOgtrPheZD9L5ioTslYBfbnlBcvLUwtfKwV5bk@z>
+Message-ID: <20200204231712.8V2H3s7QuoO5pE6mprMRzjuL_3pZiAnRTD8_AnlbD9k@z>
 
-Control-flow Enforcement Technology (CET) adds five MSRs.  Introduce them
-and their XSAVES supervisor states:
+On 2/4/20 4:30 PM, Brendan Higgins wrote:
+> On Tue, Feb 4, 2020 at 1:59 PM Frank Rowand <frowand.list@gmail.com> wrote:
+>>
+>> On 1/30/20 5:08 PM, Brendan Higgins wrote:
+>>> Add a linker section to UML where KUnit can put references to its test
+>>> suites. This patch is an early step in transitioning to dispatching all
+>>> KUnit tests from a centralized executor rather than having each as its
+>>> own separate late_initcall.
+>>
+>> All architectures please.
+> 
+> I *am* supporting all architectures with this patchset.
+> 
+> The first patch in this series adds support to all architectures
+> except UML (admittedly I only tried x86 and ARM, 32 bit and 64 bit for
 
-    MSR_IA32_U_CET (user-mode CET settings),
-    MSR_IA32_PL3_SSP (user-mode Shadow Stack pointer),
-    MSR_IA32_PL0_SSP (kernel-mode Shadow Stack pointer),
-    MSR_IA32_PL1_SSP (Privilege Level 1 Shadow Stack pointer),
-    MSR_IA32_PL2_SSP (Privilege Level 2 Shadow Stack pointer).
+Right you are.  My mind did not span from patch 1 to patch 2. Apologies for
+the noise.
 
-v6:
-- Remove __packed from struct cet_user_state, struct cet_kernel_state.
 
-Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
----
- arch/x86/include/asm/fpu/types.h            | 22 ++++++++++++++++++
- arch/x86/include/asm/fpu/xstate.h           |  5 +++--
- arch/x86/include/asm/msr-index.h            | 18 +++++++++++++++
- arch/x86/include/uapi/asm/processor-flags.h |  2 ++
- arch/x86/kernel/fpu/xstate.c                | 25 +++++++++++++++++++--
- 5 files changed, 68 insertions(+), 4 deletions(-)
+> both, but I am pretty sure someone tried it for POWER and something
+> else, so maybe I should try it with others before submission). A patch
+> specific for UML, this patch, was needed because UML is a special
+> snowflake and has a bunch of special linker scripts that don't make
+> the change in vmlinux.lds.h (the previous patch) sufficient.
+> 
+>> The early versions of Kunit documented reliance on UML.  Discussion lead to
+>> the conclusion that real architectures and real hardware would be supported.
+> 
+> I am *very* aware.
+> 
+> I would never intentionally break support for other architectures. I
+> know it is very important to you, Alan, and others.
+> 
+>> This like this are what make me reluctant to move devicetree unittests to
+>> KUnit.
+> 
+> Hopefully I can reassure you then:
+> 
+> With Alan as a regular contributor who cares very much about non-UML
+> architectures, it would be very unlikely for me to accidentally break
+> support for other architectures without us finding out before a
+> release.
+> 
+> I also periodically test KUnit on linux-next on x86-64. I have gotten
+> bugs for other architectures from Arnd Bergmann and one of the m86k
+> maintainers who seems to play around with it as well.
+> 
+> So yeah, other people care about this too, and I would really not want
+> to make any of them unhappy.
 
-diff --git a/arch/x86/include/asm/fpu/types.h b/arch/x86/include/asm/fpu/types.h
-index f098f6cab94b..d7ef4d9c7ad5 100644
---- a/arch/x86/include/asm/fpu/types.h
-+++ b/arch/x86/include/asm/fpu/types.h
-@@ -114,6 +114,9 @@ enum xfeature {
- 	XFEATURE_Hi16_ZMM,
- 	XFEATURE_PT_UNIMPLEMENTED_SO_FAR,
- 	XFEATURE_PKRU,
-+	XFEATURE_RESERVED,
-+	XFEATURE_CET_USER,
-+	XFEATURE_CET_KERNEL,
+Thanks for the extra reassurance.
 
- 	XFEATURE_MAX,
- };
-@@ -128,6 +131,8 @@ enum xfeature {
- #define XFEATURE_MASK_Hi16_ZMM		(1 << XFEATURE_Hi16_ZMM)
- #define XFEATURE_MASK_PT		(1 << XFEATURE_PT_UNIMPLEMENTED_SO_FAR)
- #define XFEATURE_MASK_PKRU		(1 << XFEATURE_PKRU)
-+#define XFEATURE_MASK_CET_USER		(1 << XFEATURE_CET_USER)
-+#define XFEATURE_MASK_CET_KERNEL	(1 << XFEATURE_CET_KERNEL)
 
- #define XFEATURE_MASK_FPSSE		(XFEATURE_MASK_FP | XFEATURE_MASK_SSE)
- #define XFEATURE_MASK_AVX512		(XFEATURE_MASK_OPMASK \
-@@ -229,6 +234,23 @@ struct pkru_state {
- 	u32				pad;
- } __packed;
+> 
+>> Can you please add a section to the KUnit documentation that lists things
+>> like the expectations, requirements, limitations, etc for a test case that
+>> is run by KUnit?  Some examples that pop to mind from recent discussions
+>> and my own experiences:
+>>
+>>   - Each test case is invoked after late_init is complete.
+>>       + Exception: the possible value of being able to run a unit test
+>>         at a specific runlevel has been expressed.  If an actual unit
+>>         test can be shown to require running earlier, this restriction
+>>         will be re-visited.
+>>
+>>   - Each test case must be idempotent.  Each test case may be called
+>>     multiple times, and must generate the same result each time it
+>>     is called.
+>>       + Exception 1: a test case can be declared to not be idempotent
+>>         [[ mechanism TBD ]], in which case KUnit will not call the
+>>         test case a second time without the kernel rebooting.
+>>       + Exception 2: hardware may not be deterministic, so a test that
+>>         always passes or fails when run under UML may not always to
+>>         so on real hardware.  <--- sentence copied from
+>>         Documentation/dev-tools/kunit/usage.rst
+>>           [[ This item and 1st exception do not exist yet, but will exist
+>>           in some form if the proposed proc filesystem interface is
+>>           added. ]]
+>>
+>>   - KUnit provides a helpful wrapper to simplify building a UML kernel
+>>     containing the KUnit test cases, booting the UML kernel, and
+>>     formatting the output from the test cases.  This wrapper MUST NOT
+>>     be required to run the test cases or to determine a test result.
+>>     The formatting may provide additional analysis and improve
+>>     readability of a test result.
+>>
+>>   - .... There is more that belongs here, but I'm getting side tracked
+>>     here, when I'm trying to instead convert devicetree unittests to
+>>     KUnit and want to get back to that.
+> 
+> Sure, I think that's a great start! Thanks for that. I hope you don't
+> mind if I copy and paste some of it.
 
-+/*
-+ * State component 11 is Control-flow Enforcement user states
-+ */
-+struct cet_user_state {
-+	u64 user_cet;			/* user control-flow settings */
-+	u64 user_ssp;			/* user shadow stack pointer */
-+};
-+
-+/*
-+ * State component 12 is Control-flow Enforcement kernel states
-+ */
-+struct cet_kernel_state {
-+	u64 kernel_ssp;			/* kernel shadow stack */
-+	u64 pl1_ssp;			/* privilege level 1 shadow stack */
-+	u64 pl2_ssp;			/* privilege level 2 shadow stack */
-+};
-+
- struct xstate_header {
- 	u64				xfeatures;
- 	u64				xcomp_bv;
-diff --git a/arch/x86/include/asm/fpu/xstate.h b/arch/x86/include/asm/fpu/xstate.h
-index 9ebfdd543576..952d2515dae4 100644
---- a/arch/x86/include/asm/fpu/xstate.h
-+++ b/arch/x86/include/asm/fpu/xstate.h
-@@ -33,13 +33,14 @@
- 				       XFEATURE_MASK_BNDCSR)
+Please do.  And no need to credit me.
 
- /* All currently supported supervisor features */
--#define SUPPORTED_XFEATURES_MASK_SUPERVISOR (0)
-+#define SUPPORTED_XFEATURES_MASK_SUPERVISOR (XFEATURE_MASK_CET_USER)
 
- /*
-  * Unsupported supervisor features. When a supervisor feature in this mask is
-  * supported in the future, move it to the supported supervisor feature mask.
-  */
--#define UNSUPPORTED_XFEATURES_MASK_SUPERVISOR (XFEATURE_MASK_PT)
-+#define UNSUPPORTED_XFEATURES_MASK_SUPERVISOR (XFEATURE_MASK_PT | \
-+					       XFEATURE_MASK_CET_KERNEL)
+> It kind of sounds like you are talking about more of a requirements
+> doc than the design doc I was imagining in my reply to you on the
+> cover letter, which is fine. The documentation is primarily for people
+> other than me, so whatever you and others think is useful, I will do.
+> 
 
- /* All supervisor states including supported and unsupported states. */
- #define ALL_XFEATURES_MASK_SUPERVISOR (SUPPORTED_XFEATURES_MASK_SUPERVISOR | \
-diff --git a/arch/x86/include/asm/msr-index.h b/arch/x86/include/asm/msr-index.h
-index 084e98da04a7..114e77f5bb6b 100644
---- a/arch/x86/include/asm/msr-index.h
-+++ b/arch/x86/include/asm/msr-index.h
-@@ -872,4 +872,22 @@
- #define MSR_VM_IGNNE                    0xc0010115
- #define MSR_VM_HSAVE_PA                 0xc0010117
+I wasn't really sure what to label it as.  My inspiration was based
+a little bit on reading through the Linux 5.5 KUnit source and
+documentation, and trying to understand the expectations of the
+KUnit framework and what the test cases have to either obey or
+can expect.
 
-+/* Control-flow Enforcement Technology MSRs */
-+#define MSR_IA32_U_CET		0x6a0 /* user mode cet setting */
-+#define MSR_IA32_S_CET		0x6a2 /* kernel mode cet setting */
-+#define MSR_IA32_PL0_SSP	0x6a4 /* kernel shstk pointer */
-+#define MSR_IA32_PL1_SSP	0x6a5 /* ring-1 shstk pointer */
-+#define MSR_IA32_PL2_SSP	0x6a6 /* ring-2 shstk pointer */
-+#define MSR_IA32_PL3_SSP	0x6a7 /* user shstk pointer */
-+#define MSR_IA32_INT_SSP_TAB	0x6a8 /* exception shstk table */
-+
-+/* MSR_IA32_U_CET and MSR_IA32_S_CET bits */
-+#define MSR_IA32_CET_SHSTK_EN		0x0000000000000001ULL
-+#define MSR_IA32_CET_WRSS_EN		0x0000000000000002ULL
-+#define MSR_IA32_CET_ENDBR_EN		0x0000000000000004ULL
-+#define MSR_IA32_CET_LEG_IW_EN		0x0000000000000008ULL
-+#define MSR_IA32_CET_NO_TRACK_EN	0x0000000000000010ULL
-+#define MSR_IA32_CET_WAIT_ENDBR	0x00000000000000800UL
-+#define MSR_IA32_CET_BITMAP_MASK	0xfffffffffffff000ULL
-+
- #endif /* _ASM_X86_MSR_INDEX_H */
-diff --git a/arch/x86/include/uapi/asm/processor-flags.h b/arch/x86/include/uapi/asm/processor-flags.h
-index bcba3c643e63..a8df907e8017 100644
---- a/arch/x86/include/uapi/asm/processor-flags.h
-+++ b/arch/x86/include/uapi/asm/processor-flags.h
-@@ -130,6 +130,8 @@
- #define X86_CR4_SMAP		_BITUL(X86_CR4_SMAP_BIT)
- #define X86_CR4_PKE_BIT		22 /* enable Protection Keys support */
- #define X86_CR4_PKE		_BITUL(X86_CR4_PKE_BIT)
-+#define X86_CR4_CET_BIT		23 /* enable Control-flow Enforcement */
-+#define X86_CR4_CET		_BITUL(X86_CR4_CET_BIT)
+I think there is a lot of history that you know, but is only visible
+to test implementors if they read through the past couple of years
+email threads.
 
- /*
-  * x86-64 Task Priority Register, CR8
-diff --git a/arch/x86/kernel/fpu/xstate.c b/arch/x86/kernel/fpu/xstate.c
-index 04f7c6b8dbbc..ec08a2b6feca 100644
---- a/arch/x86/kernel/fpu/xstate.c
-+++ b/arch/x86/kernel/fpu/xstate.c
-@@ -38,6 +38,9 @@ static const char *xfeature_names[] =
- 	"Processor Trace (unused)"	,
- 	"Protection Keys User registers",
- 	"unknown xstate feature"	,
-+	"Control-flow User registers"	,
-+	"Control-flow Kernel registers"	,
-+	"unknown xstate feature"	,
- };
-
- static short xsave_cpuid_features[] __initdata = {
-@@ -51,6 +54,9 @@ static short xsave_cpuid_features[] __initdata = {
- 	X86_FEATURE_AVX512F,
- 	X86_FEATURE_INTEL_PT,
- 	X86_FEATURE_PKU,
-+	-1,		   /* Unused */
-+	X86_FEATURE_SHSTK, /* XFEATURE_CET_USER */
-+	X86_FEATURE_SHSTK, /* XFEATURE_CET_KERNEL */
- };
-
- /*
-@@ -316,6 +322,8 @@ static void __init print_xstate_features(void)
- 	print_xstate_feature(XFEATURE_MASK_ZMM_Hi256);
- 	print_xstate_feature(XFEATURE_MASK_Hi16_ZMM);
- 	print_xstate_feature(XFEATURE_MASK_PKRU);
-+	print_xstate_feature(XFEATURE_MASK_CET_USER);
-+	print_xstate_feature(XFEATURE_MASK_CET_KERNEL);
- }
-
- /*
-@@ -563,6 +571,8 @@ static void check_xstate_against_struct(int nr)
- 	XCHECK_SZ(sz, nr, XFEATURE_ZMM_Hi256, struct avx_512_zmm_uppers_state);
- 	XCHECK_SZ(sz, nr, XFEATURE_Hi16_ZMM,  struct avx_512_hi16_state);
- 	XCHECK_SZ(sz, nr, XFEATURE_PKRU,      struct pkru_state);
-+	XCHECK_SZ(sz, nr, XFEATURE_CET_USER,   struct cet_user_state);
-+	XCHECK_SZ(sz, nr, XFEATURE_CET_KERNEL, struct cet_kernel_state);
-
- 	/*
- 	 * Make *SURE* to add any feature numbers in below if
-@@ -770,8 +780,19 @@ void __init fpu__init_system_xstate(void)
- 	 * Clear XSAVE features that are disabled in the normal CPUID.
- 	 */
- 	for (i = 0; i < ARRAY_SIZE(xsave_cpuid_features); i++) {
--		if (!boot_cpu_has(xsave_cpuid_features[i]))
--			xfeatures_mask_all &= ~BIT_ULL(i);
-+		if (xsave_cpuid_features[i] == X86_FEATURE_SHSTK) {
-+			/*
-+			 * X86_FEATURE_SHSTK and X86_FEATURE_IBT share
-+			 * same states, but can be enabled separately.
-+			 */
-+			if (!boot_cpu_has(X86_FEATURE_SHSTK) &&
-+			    !boot_cpu_has(X86_FEATURE_IBT))
-+				xfeatures_mask_all &= ~BIT_ULL(i);
-+		} else {
-+			if ((xsave_cpuid_features[i] == -1) ||
-+			    !boot_cpu_has(xsave_cpuid_features[i]))
-+				xfeatures_mask_all &= ~BIT_ULL(i);
-+		}
- 	}
-
- 	xfeatures_mask_all &= fpu__get_supported_xfeatures_mask();
--- 
-2.21.0
+-Frank
