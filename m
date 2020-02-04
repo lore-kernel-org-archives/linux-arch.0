@@ -1,93 +1,120 @@
 Return-Path: <frowand.list@gmail.com>
-Subject: Re: [PATCH v2 2/7] arch: um: add linker section for KUnit test suites
-References: <20200130230812.142642-1-brendanhiggins@google.com>
- <20200130230812.142642-3-brendanhiggins@google.com>
+Subject: Re: [PATCH v2 6/7] kunit: Add 'kunit_shutdown' option
 From: Frank Rowand <frowand.list@gmail.com>
-Message-ID: <e060bdfc-5cdb-fb62-48b0-cc54c7bc72ce@gmail.com>
-Date: Tue, 4 Feb 2020 15:59:11 -0600
+References: <20200130230812.142642-1-brendanhiggins@google.com>
+ <20200130230812.142642-7-brendanhiggins@google.com>
+ <143dcdac-b19a-8eff-b441-ba79f1873801@gmail.com>
+Message-ID: <8f7a5e34-d386-abcd-9926-1bd4cab8aeef@gmail.com>
+Date: Tue, 4 Feb 2020 17:05:51 -0600
 MIME-Version: 1.0
-In-Reply-To: <20200130230812.142642-3-brendanhiggins@google.com>
+In-Reply-To: <143dcdac-b19a-8eff-b441-ba79f1873801@gmail.com>
 Content-Type: text/plain; charset=utf-8
 Content-Language: en-US
 Content-Transfer-Encoding: 7bit
 To: Brendan Higgins <brendanhiggins@google.com>, jdike@addtoit.com, richard@nod.at, anton.ivanov@cambridgegreys.com, arnd@arndb.de, keescook@chromium.org, skhan@linuxfoundation.org, alan.maguire@oracle.com, yzaikin@google.com, davidgow@google.com, akpm@linux-foundation.org, rppt@linux.ibm.com
 Cc: gregkh@linuxfoundation.org, sboyd@kernel.org, logang@deltatee.com, mcgrof@kernel.org, knut.omang@oracle.com, linux-um@lists.infradead.org, linux-arch@vger.kernel.org, linux-kselftest@vger.kernel.org, kunit-dev@googlegroups.com, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200204215911.IfaBOcGZ6odscKIpY_Do_fCsb-V3b6u4Zeehhlue-3E@z>
+Message-ID: <20200204230551.IAQE3LQ5cCtytX0bgCIoaQ0vmr4cz5473iuu1RWT_ZA@z>
 
-On 1/30/20 5:08 PM, Brendan Higgins wrote:
-> Add a linker section to UML where KUnit can put references to its test
-> suites. This patch is an early step in transitioning to dispatching all
-> KUnit tests from a centralized executor rather than having each as its
-> own separate late_initcall.
+On 2/4/20 5:05 PM, Frank Rowand wrote:
+> On 1/30/20 5:08 PM, Brendan Higgins wrote:
+>> From: David Gow <davidgow@google.com>
+>>
+>> Add a new kernel command-line option, 'kunit_shutdown', which allows the
+>> user to specify that the kernel poweroff, halt, or reboot after
+>> completing all KUnit tests; this is very handy for running KUnit tests
+>> on UML or a VM so that the UML/VM process exits cleanly immediately
+>> after running all tests without needing a special initramfs.
+> 
+> kunit_shutdown needs to be added to Documentation/admin-guide/kernel-parameters.txt
 
-All architectures please.
-
-The early versions of Kunit documented reliance on UML.  Discussion lead to
-the conclusion that real architectures and real hardware would be supported.
-
-This like this are what make me reluctant to move devicetree unittests to
-KUnit.
-
-Can you please add a section to the KUnit documentation that lists things
-like the expectations, requirements, limitations, etc for a test case that
-is run by KUnit?  Some examples that pop to mind from recent discussions
-and my own experiences:
-
-  - Each test case is invoked after late_init is complete.
-      + Exception: the possible value of being able to run a unit test
-        at a specific runlevel has been expressed.  If an actual unit
-        test can be shown to require running earlier, this restriction
-        will be re-visited.
-
-  - Each test case must be idempotent.  Each test case may be called
-    multiple times, and must generate the same result each time it
-    is called.
-      + Exception 1: a test case can be declared to not be idempotent
-        [[ mechanism TBD ]], in which case KUnit will not call the
-        test case a second time without the kernel rebooting.
-      + Exception 2: hardware may not be deterministic, so a test that
-        always passes or fails when run under UML may not always to
-        so on real hardware.  <--- sentence copied from
-        Documentation/dev-tools/kunit/usage.rst
-          [[ This item and 1st exception do not exist yet, but will exist
-          in some form if the proposed proc filesystem interface is
-          added. ]]
-
-  - KUnit provides a helpful wrapper to simplify building a UML kernel
-    containing the KUnit test cases, booting the UML kernel, and
-    formatting the output from the test cases.  This wrapper MUST NOT
-    be required to run the test cases or to determine a test result.
-    The formatting may provide additional analysis and improve
-    readability of a test result.
-
-  - .... There is more that belongs here, but I'm getting side tracked
-    here, when I'm trying to instead convert devicetree unittests to
-    KUnit and want to get back to that.
-
+Oops, patch 7/7 does exactly that.
 
 -Frank
 
 > 
-> Signed-off-by: Brendan Higgins <brendanhiggins@google.com>
-> Reviewed-by: Stephen Boyd <sboyd@kernel.org>
-> ---
->  arch/um/include/asm/common.lds.S | 4 ++++
->  1 file changed, 4 insertions(+)
+> -Frank
 > 
-> diff --git a/arch/um/include/asm/common.lds.S b/arch/um/include/asm/common.lds.S
-> index 7145ce6999822..eab9ceb450efd 100644
-> --- a/arch/um/include/asm/common.lds.S
-> +++ b/arch/um/include/asm/common.lds.S
-> @@ -52,6 +52,10 @@
->  	CON_INITCALL
->    }
->  
-> +  .kunit_test_suites : {
-> +	KUNIT_TEST_SUITES
-> +  }
-> +
->    .exitcall : {
->  	__exitcall_begin = .;
->  	*(.exitcall.exit)
+>>
+>> Signed-off-by: David Gow <davidgow@google.com>
+>> Signed-off-by: Brendan Higgins <brendanhiggins@google.com>
+>> Reviewed-by: Stephen Boyd <sboyd@kernel.org>
+>> ---
+>>  lib/kunit/executor.c                | 20 ++++++++++++++++++++
+>>  tools/testing/kunit/kunit_kernel.py |  2 +-
+>>  tools/testing/kunit/kunit_parser.py |  2 +-
+>>  3 files changed, 22 insertions(+), 2 deletions(-)
+>>
+>> diff --git a/lib/kunit/executor.c b/lib/kunit/executor.c
+>> index 7fd16feff157e..a93821116ccec 100644
+>> --- a/lib/kunit/executor.c
+>> +++ b/lib/kunit/executor.c
+>> @@ -1,5 +1,6 @@
+>>  // SPDX-License-Identifier: GPL-2.0
+>>  
+>> +#include <linux/reboot.h>
+>>  #include <kunit/test.h>
+>>  
+>>  /*
+>> @@ -11,6 +12,23 @@ extern struct kunit_suite * const * const __kunit_suites_end[];
+>>  
+>>  #if IS_BUILTIN(CONFIG_KUNIT)
+>>  
+>> +static char *kunit_shutdown;
+>> +core_param(kunit_shutdown, kunit_shutdown, charp, 0644);
+>> +
+>> +static void kunit_handle_shutdown(void)
+>> +{
+>> +	if (!kunit_shutdown)
+>> +		return;
+>> +
+>> +	if (!strcmp(kunit_shutdown, "poweroff"))
+>> +		kernel_power_off();
+>> +	else if (!strcmp(kunit_shutdown, "halt"))
+>> +		kernel_halt();
+>> +	else if (!strcmp(kunit_shutdown, "reboot"))
+>> +		kernel_restart(NULL);
+>> +
+>> +}
+>> +
+>>  static void kunit_print_tap_header(void)
+>>  {
+>>  	struct kunit_suite * const * const *suites, * const *subsuite;
+>> @@ -42,6 +60,8 @@ int kunit_run_all_tests(void)
+>>  		}
+>>  	}
+>>  
+>> +	kunit_handle_shutdown();
+>> +
+>>  	if (has_test_failed)
+>>  		return -EFAULT;
+>>  
+>> diff --git a/tools/testing/kunit/kunit_kernel.py b/tools/testing/kunit/kunit_kernel.py
+>> index cc5d844ecca13..43314aa537d30 100644
+>> --- a/tools/testing/kunit/kunit_kernel.py
+>> +++ b/tools/testing/kunit/kunit_kernel.py
+>> @@ -141,7 +141,7 @@ class LinuxSourceTree(object):
+>>  		return True
+>>  
+>>  	def run_kernel(self, args=[], timeout=None, build_dir=''):
+>> -		args.extend(['mem=256M'])
+>> +		args.extend(['mem=256M', 'kunit_shutdown=halt'])
+>>  		process = self._ops.linux_bin(args, timeout, build_dir)
+>>  		with open(os.path.join(build_dir, 'test.log'), 'w') as f:
+>>  			for line in process.stdout:
+>> diff --git a/tools/testing/kunit/kunit_parser.py b/tools/testing/kunit/kunit_parser.py
+>> index 78b3bdd03b1e4..633811dd9bce8 100644
+>> --- a/tools/testing/kunit/kunit_parser.py
+>> +++ b/tools/testing/kunit/kunit_parser.py
+>> @@ -48,7 +48,7 @@ class TestStatus(Enum):
+>>  	FAILURE_TO_PARSE_TESTS = auto()
+>>  
+>>  kunit_start_re = re.compile(r'^TAP version [0-9]+$')
+>> -kunit_end_re = re.compile('List of all partitions:')
+>> +kunit_end_re = re.compile(r'reboot: System halted')
+>>  
+>>  def isolate_kunit_output(kernel_output):
+>>  	started = False
+>>
+> 
 > 
