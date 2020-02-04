@@ -1,51 +1,123 @@
-Return-Path: <owner-linux-mm@kvack.org>
-From: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Subject: [RFC PATCH v9 5/7] x86/cet/ibt: Add arch_prctl functions for Indirect
- Branch Tracking
-Date: Wed,  5 Feb 2020 10:23:06 -0800
-Message-ID: <20200205182308.4028-6-yu-cheng.yu@intel.com>
-In-Reply-To: <20200205182308.4028-1-yu-cheng.yu@intel.com>
-References: <20200205182308.4028-1-yu-cheng.yu@intel.com>
+Return-Path: <monstr@monstr.eu>
+Subject: Re: [PATCH v2 0/2] microblaze: Enable CMA
+References: <cover.1579248206.git.michal.simek@xilinx.com>
+From: Michal Simek <monstr@monstr.eu>
+Message-ID: <5706978d-4c9a-1123-c34b-e19e2b8aa37f@monstr.eu>
+Date: Tue, 4 Feb 2020 11:30:56 +0100
 MIME-Version: 1.0
-Content-Transfer-Encoding: quoted-printable
-Sender: owner-linux-mm@kvack.org
-To: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>, x86-patch-review@intel.com
-Cc: Yu-cheng Yu <yu-cheng.yu@intel.com>
+In-Reply-To: <cover.1579248206.git.michal.simek@xilinx.com>
+Content-Type: multipart/signed; micalg=pgp-sha1;
+ protocol="application/pgp-signature";
+ boundary="pBOm8rNjCoJTkwKyfl4Ed8HeJH77Ps32T"
+To: Michal Simek <michal.simek@xilinx.com>, linux-kernel@vger.kernel.org, monstr@monstr.eu, git@xilinx.com, Christoph Hellwig <hch@lst.de>
+Cc: Paul Burton <paulburton@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Mike Rapoport <rppt@linux.ibm.com>, Manjukumar Matha <manjukumar.harthikote-matha@xilinx.com>, Borislav Petkov <bp@alien8.de>, Linus Walleij <linus.walleij@linaro.org>, linux-mips@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>, Geert Uytterhoeven <geert@linux-m68k.org>, Catalin Marinas <catalin.marinas@arm.com>, linux-riscv@lists.infradead.org, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, Palmer Dabbelt <palmer@dabbelt.com>, x86@kernel.org, Guo Ren <guoren@kernel.org>, Kate Stewart <kstewart@linuxfoundation.org>, Wesley Terpstra <wesley@sifive.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Ralf Baechle <ralf@linux-mips.org>, Paul Walmsley <paul.walmsley@sifive.com>, Andrew Morton <akpm@linux-foundation.org>, Max Filippov <jcmvbkbc@gmail.com>, linux-xtensa@linux-xtensa.org, "H. Peter Anvin" <hpa@zytor.com>, "Peter Zijlstra (Intel)" <peterz@infradead.org>, Will Deacon <will@kernel.org>, Christian Borntraeger <borntraeger@de.ibm.com>, Deepa Dinamani <deepa.kernel@gmail.com>, Chris Zankel <chris@zankel.net>, Manish Narani <manish.narani@xilinx.com>, Ingo Molnar <mingo@redhat.com>, Waiman Long <longman@redhat.com>, linux-arm-kernel@lists.infradead.org, Albert Ou <aou@eecs.berkeley.edu>, Vasily Gorbik <gor@linux.ibm.com>, James Hogan <jhogan@kernel.org>, Masahiro Yamada <yamada.masahiro@socionext.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Guo Ren <ren_guo@c-sky.com>
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200205182306.r3YCSV2FmjG_g7qGeQ0MVFsFacjE8905YzZfnGJmENw@z>
+Message-ID: <20200204103056._sb8TTeZYa0D7v7pObt6ZhW-lGqCaFjKStuvBAgzXCQ@z>
 
-From: "H.J. Lu" <hjl.tools@gmail.com>
+This is an OpenPGP/MIME signed message (RFC 4880 and 3156)
+--pBOm8rNjCoJTkwKyfl4Ed8HeJH77Ps32T
+Content-Type: multipart/mixed; boundary="BbuWsr0XsV2TagfAoYrRnS0Lcvh9jdEaZ";
+ protected-headers="v1"
+From: Michal Simek <monstr@monstr.eu>
+To: Michal Simek <michal.simek@xilinx.com>, linux-kernel@vger.kernel.org,
+ monstr@monstr.eu, git@xilinx.com, Christoph Hellwig <hch@lst.de>
+Cc: Paul Burton <paulburton@kernel.org>, Arnd Bergmann <arnd@arndb.de>,
+ Mike Rapoport <rppt@linux.ibm.com>,
+ Manjukumar Matha <manjukumar.harthikote-matha@xilinx.com>,
+ Borislav Petkov <bp@alien8.de>, Linus Walleij <linus.walleij@linaro.org>,
+ linux-mips@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>,
+ Geert Uytterhoeven <geert@linux-m68k.org>,
+ Catalin Marinas <catalin.marinas@arm.com>, linux-riscv@lists.infradead.org,
+ linux-arch@vger.kernel.org, linux-s390@vger.kernel.org,
+ Palmer Dabbelt <palmer@dabbelt.com>, x86@kernel.org,
+ Guo Ren <guoren@kernel.org>, Kate Stewart <kstewart@linuxfoundation.org>,
+ Wesley Terpstra <wesley@sifive.com>,
+ Greg Kroah-Hartman <gregkh@linuxfoundation.org>,
+ Ralf Baechle <ralf@linux-mips.org>, Paul Walmsley
+ <paul.walmsley@sifive.com>, Andrew Morton <akpm@linux-foundation.org>,
+ Max Filippov <jcmvbkbc@gmail.com>, linux-xtensa@linux-xtensa.org,
+ "H. Peter Anvin" <hpa@zytor.com>,
+ "Peter Zijlstra (Intel)" <peterz@infradead.org>,
+ Will Deacon <will@kernel.org>, Christian Borntraeger
+ <borntraeger@de.ibm.com>, Deepa Dinamani <deepa.kernel@gmail.com>,
+ Chris Zankel <chris@zankel.net>, Manish Narani <manish.narani@xilinx.com>,
+ Ingo Molnar <mingo@redhat.com>, Waiman Long <longman@redhat.com>,
+ linux-arm-kernel@lists.infradead.org, Albert Ou <aou@eecs.berkeley.edu>,
+ Vasily Gorbik <gor@linux.ibm.com>, James Hogan <jhogan@kernel.org>,
+ Masahiro Yamada <yamada.masahiro@socionext.com>,
+ Heiko Carstens <heiko.carstens@de.ibm.com>, Guo Ren <ren_guo@c-sky.com>
+Message-ID: <5706978d-4c9a-1123-c34b-e19e2b8aa37f@monstr.eu>
+Subject: Re: [PATCH v2 0/2] microblaze: Enable CMA
+References: <cover.1579248206.git.michal.simek@xilinx.com>
+In-Reply-To: <cover.1579248206.git.michal.simek@xilinx.com>
 
-Update ARCH_X86_CET_STATUS and ARCH_X86_CET_DISABLE for Indirect Branch
-Tracking.
+--BbuWsr0XsV2TagfAoYrRnS0Lcvh9jdEaZ
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
+Content-Transfer-Encoding: quoted-printable
 
-Signed-off-by: H.J. Lu <hjl.tools@gmail.com>
-Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
----
- arch/x86/kernel/cet_prctl.c | 4 ++++
- 1 file changed, 4 insertions(+)
+On 17. 01. 20 9:03, Michal Simek wrote:
+> Hi,
+>=20
+> the patchset enable CMA on Microblaze. Based on Christoph request I hav=
+e
+> created the first patch which makes dma-continugous.h mandatory for all=
 
-diff --git a/arch/x86/kernel/cet_prctl.c b/arch/x86/kernel/cet_prctl.c
-index 6cf8f87e3d98..2a3170786a3b 100644
---- a/arch/x86/kernel/cet_prctl.c
-+++ b/arch/x86/kernel/cet_prctl.c
-@@ -20,6 +20,8 @@ static int handle_get_status(unsigned long arg2)
-=20
- 	if (cet->shstk_enabled)
- 		features |=3D GNU_PROPERTY_X86_FEATURE_1_SHSTK;
-+	if (cet->ibt_enabled)
-+		features |=3D GNU_PROPERTY_X86_FEATURE_1_IBT;
-=20
- 	buf[0] =3D (unsigned long)features;
- 	buf[1] =3D cet->shstk_base;
-@@ -68,6 +70,8 @@ int prctl_cet(int option, unsigned long arg2)
- 			return -EPERM;
- 		if (arg2 & GNU_PROPERTY_X86_FEATURE_1_SHSTK)
- 			cet_disable_free_shstk(current);
-+		if (arg2 & GNU_PROPERTY_X86_FEATURE_1_IBT)
-+			cet_disable_ibt();
-=20
- 		return 0;
-=20
+> archs before Microblaze wiring.
+>=20
+> Thanks,
+> Michal
+>=20
+> Changes in v2:
+> - New patch suggested by Christoph
+> - Align commit message
+> - Remove adding dma-contigous.h via Kbuild because it is done by previo=
+us
+>   patch
+>=20
+> Michal Simek (2):
+>   asm-generic: Make dma-contiguous.h a mandatory include/asm header
+>   microblaze: Wire CMA allocator
+>=20
+>  arch/arm64/include/asm/Kbuild         | 1 -
+>  arch/csky/include/asm/Kbuild          | 1 -
+>  arch/microblaze/Kconfig               | 1 +
+>  arch/microblaze/configs/mmu_defconfig | 2 ++
+>  arch/microblaze/mm/init.c             | 4 ++++
+>  arch/mips/include/asm/Kbuild          | 1 -
+>  arch/riscv/include/asm/Kbuild         | 1 -
+>  arch/s390/include/asm/Kbuild          | 1 -
+>  arch/x86/include/asm/Kbuild           | 1 -
+>  arch/xtensa/include/asm/Kbuild        | 1 -
+>  include/asm-generic/Kbuild            | 1 +
+>  11 files changed, 8 insertions(+), 7 deletions(-)
+>=20
+
+Applied.
+
+Thanks,
+Michal
 --=20
-2.21.0
+Michal Simek, Ing. (M.Eng), OpenPGP -> KeyID: FE3D1F91
+w: www.monstr.eu p: +42-0-721842854
+Maintainer of Linux kernel - Xilinx Microblaze
+Maintainer of Linux kernel - Xilinx Zynq ARM and ZynqMP ARM64 SoCs
+U-Boot custodian - Xilinx Microblaze/Zynq/ZynqMP/Versal SoCs
+
+
+
+--BbuWsr0XsV2TagfAoYrRnS0Lcvh9jdEaZ--
+
+--pBOm8rNjCoJTkwKyfl4Ed8HeJH77Ps32T
+Content-Type: application/pgp-signature; name="signature.asc"
+Content-Description: OpenPGP digital signature
+Content-Disposition: attachment; filename="signature.asc"
+
+-----BEGIN PGP SIGNATURE-----
+
+iF0EARECAB0WIQQbPNTMvXmYlBPRwx7KSWXLKUoMIQUCXjlH4AAKCRDKSWXLKUoM
+IXg5AJ9J98El4wJeR5l37eVkp19mJ5smqwCdGPO/rvmeDwYSeGZMMaNPcnZNHRA=
+=bdA8
+-----END PGP SIGNATURE-----
+
+--pBOm8rNjCoJTkwKyfl4Ed8HeJH77Ps32T--
