@@ -1,90 +1,92 @@
-Return-Path: <leonardo@linux.ibm.com>
-Message-ID: <ee81338952c474f2bb4c19055105e906ee89ed8f.camel@linux.ibm.com>
-Subject: Re: [PATCH v6 10/11] powerpc/mm: Adds counting method to track
- lockless pagetable walks
-From: Leonardo Bras <leonardo@linux.ibm.com>
-Date: Thu, 06 Feb 2020 22:56:40 -0300
-In-Reply-To: <d9bf6878-43d5-b45a-7abb-cdcb712a0d7a@c-s.fr>
-References: <20200206030900.147032-1-leonardo@linux.ibm.com>
-	 <20200206030900.147032-11-leonardo@linux.ibm.com>
-	 <d9bf6878-43d5-b45a-7abb-cdcb712a0d7a@c-s.fr>
-Content-Type: multipart/signed; micalg="pgp-sha256";
-	protocol="application/pgp-signature"; boundary="=-6qOVo11nuEHoC6blV5gO"
+Return-Path: <frowand.list@gmail.com>
+Subject: Re: [PATCH v2 0/7] kunit: create a centralized executor to dispatch
+ all KUnit tests
+References: <20200130230812.142642-1-brendanhiggins@google.com>
+From: Frank Rowand <frowand.list@gmail.com>
+Message-ID: <9e203718-dcca-3145-bc28-28979d41c278@gmail.com>
+Date: Tue, 4 Feb 2020 15:18:42 -0600
 MIME-Version: 1.0
-To: Christophe Leroy <christophe.leroy@c-s.fr>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>, Nicholas Piggin <npiggin@gmail.com>, Steven Price <steven.price@arm.com>, Robin Murphy <robin.murphy@arm.com>, Mahesh Salgaonkar <mahesh@linux.vnet.ibm.com>, Balbir Singh <bsingharora@gmail.com>, Reza Arbab <arbab@linux.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, Allison Randal <allison@lohutok.net>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Mike Rapoport <rppt@linux.ibm.com>, Michal Suchanek <msuchanek@suse.de>
-Cc: linux-arch@vger.kernel.org, linux-mm@kvack.org, linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, kvm-ppc@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200207015640.qe80eROHJvmxrrtMk5dKAdhjaKVr1EEOaPC39TNdBaU@z>
-
-
---=-6qOVo11nuEHoC6blV5gO
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
-
-Hello Christophe, thanks for the feedback!
-
-On Thu, 2020-02-06 at 07:23 +0100, Christophe Leroy wrote:
-> > Due to not locking nor using atomic variables, the impact on the
-> > lockless pagetable walk is intended to be minimum.
->=20
-> atomic variables have a lot less impact than preempt_enable/disable.
->=20
-> preemt_disable forces a re-scheduling, it really has impact. Why not use=
-=20
-> atomic variables instead ?
-
-In fact, v5 of this patch used atomic variables. But it seems to cause
-contention on a single exclusive cacheline, which had no better
-performance than locking.
-(discussion here: http://patchwork.ozlabs.org/patch/1171012/)
-
-When I try to understand the effect of preempt_disable(), all I can
-see is a barrier() and possibly a preempt_count_inc(), which updates a
-member of current thread struct if CONFIG_PREEMPT_COUNT is enabled.
-
-If CONFIG_PREEMPTION is also enabled, preempt_enable() can run a
-__preempt_schedule() on unlikely(__preempt_count_dec_and_test()).
-
-On most configs available, CONFIG_PREEMPTION is not set, being replaced
-either by CONFIG_PREEMPT_NONE (kernel defconfigs) or
-CONFIG_PREEMPT_VOLUNTARY in most supported distros. With that, most
-probably CONFIG_PREEMPT_COUNT will also not be set, and
-preempt_{en,dis}able() are replaced by a barrier().
-
-Using preempt_disable approach, I intent to get better performance for
-most used cases.
-
-What do you think of it?
-
-I am still new on this subject, and I am still trying to better
-understand how it works. If you notice something I am missing, please
-let me know.
-
-Best regards,
-Leonardo Bras
-
-
-
---=-6qOVo11nuEHoC6blV5gO
-Content-Type: application/pgp-signature; name="signature.asc"
-Content-Description: This is a digitally signed message part
+In-Reply-To: <20200130230812.142642-1-brendanhiggins@google.com>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
 Content-Transfer-Encoding: 7bit
+To: Brendan Higgins <brendanhiggins@google.com>, jdike@addtoit.com, richard@nod.at, anton.ivanov@cambridgegreys.com, arnd@arndb.de, keescook@chromium.org, skhan@linuxfoundation.org, alan.maguire@oracle.com, yzaikin@google.com, davidgow@google.com, akpm@linux-foundation.org, rppt@linux.ibm.com
+Cc: gregkh@linuxfoundation.org, sboyd@kernel.org, logang@deltatee.com, mcgrof@kernel.org, knut.omang@oracle.com, linux-um@lists.infradead.org, linux-arch@vger.kernel.org, linux-kselftest@vger.kernel.org, kunit-dev@googlegroups.com, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+Message-ID: <20200204211842.3ezWJaTG1Qn1cREmJp6d3fHLDLs01oUm6Drg-PPjWhY@z>
 
------BEGIN PGP SIGNATURE-----
+On 1/30/20 5:08 PM, Brendan Higgins wrote:
+> ## TL;DR
+> 
+> This patchset adds a centralized executor to dispatch tests rather than
+> relying on late_initcall to schedule each test suite separately along
+> with a couple of new features that depend on it.
 
-iQIzBAABCAAdFiEEMdeUgIzgjf6YmUyOlQYWtz9SttQFAl48w9kACgkQlQYWtz9S
-ttRVsA/8Dyp6k5thnNgsjEEIsLkY9LPRaOu8UrFjwrcO7oL3UX6WdntMOaUnRM+a
-GcwoCxR10usCnrU8JYA4k00399p28GWHVFIyaDR5wDt2LicdHh9rZvYGcwaedz72
-NKeTy6X9THl2qZMJWg3X3xcGSa60FSXLuSV3e2FKa5pFlDbfm6UNna5Mm073c7Ae
-DaPYoGoMlR8zWVAAaQGSTG8ZceJcRN0rME1bEk3neQqpLKuvcCIp579JQrwwQULF
-kQkqWjNbgUDG4A4n8Z5vQjXBjNBbQ8Yb3iJuwWGfM5Yx4KmKQe8fbObvkvBSqkd6
-c1ySeZ2ovFxg57RRw7qRU/q1BOIM8ZIFr29yFlmxEUuGRqR8YtFcH5QKcWM0d4D4
-sSYbzPUS25Ry5uzTsO8Azjs7d+FTTM11Usb6oN6e/Pahw4YQx9BJgtSvWXIDhqR0
-vKy/tHkiFbXVM4Bmb4Qn13FQZ2IzsnTSVOBFOlC8J7ZHovmIMv7vL+EAHna8YD62
-g7aJzoCtDOm07KIqCwd0E4bP737gq4mNeQIXb+I66cAyMLQ0Z4EawrteB6v6mUFE
-3ns0+J2fbKSnNH6wk2gmzyUe+PpBELf+2z8llAN4Q0uLybM2NVRvE3CgPfYedGX3
-/8haSfnBXwd5K3TfiV6gurXf3zSvs5hal+tgTDOYRZRpsO6iDq8=
-=MmWn
------END PGP SIGNATURE-----
+And the "couple of new features" are .... ?
 
---=-6qOVo11nuEHoC6blV5gO--
+> 
+> ## What am I trying to do?
+> 
+> Conceptually, I am trying to provide a mechanism by which test suites
+> can be grouped together so that they can be reasoned about collectively.
+> The last two of three patches in this series add features which depend
+> on this:
+> 
+> PATCH 5/7 Prints out a test plan right before KUnit tests are run[1];
+>           this is valuable because it makes it possible for a test
+>           harness to detect whether the number of tests run matches the
+>           number of tests expected to be run, ensuring that no tests
+>           silently failed.
+> 
+> PATCH 6/7 Add a new kernel command-line option which allows the user to
+>           specify that the kernel poweroff, halt, or reboot after
+>           completing all KUnit tests; this is very handy for running
+>           KUnit tests on UML or a VM so that the UML/VM process exits
+>           cleanly immediately after running all tests without needing a
+>           special initramfs.
+> 
+
+> In addition, by dispatching tests from a single location, we can
+> guarantee that all KUnit tests run after late_init is complete, which
+
+That the tests will run after late init (and are guaranteed to do such)
+needs to be added to the documentation.
+
+-Frank
+
+> was a concern during the initial KUnit patchset review (this has not
+> been a problem in practice, but resolving with certainty is nevertheless
+> desirable).
+> 
+> Other use cases for this exist, but the above features should provide an
+> idea of the value that this could provide.
+> 
+> Alan Maguire (1):
+>   kunit: test: create a single centralized executor for all tests
+> 
+> Brendan Higgins (5):
+>   vmlinux.lds.h: add linker section for KUnit test suites
+>   arch: um: add linker section for KUnit test suites
+>   init: main: add KUnit to kernel init
+>   kunit: test: add test plan to KUnit TAP format
+>   Documentation: Add kunit_shutdown to kernel-parameters.txt
+> 
+> David Gow (1):
+>   kunit: Add 'kunit_shutdown' option
+> 
+>  .../admin-guide/kernel-parameters.txt         |  7 ++
+>  arch/um/include/asm/common.lds.S              |  4 +
+>  include/asm-generic/vmlinux.lds.h             |  8 ++
+>  include/kunit/test.h                          | 82 ++++++++++++-------
+>  init/main.c                                   |  4 +
+>  lib/kunit/Makefile                            |  3 +-
+>  lib/kunit/executor.c                          | 71 ++++++++++++++++
+>  lib/kunit/test.c                              | 11 ---
+>  tools/testing/kunit/kunit_kernel.py           |  2 +-
+>  tools/testing/kunit/kunit_parser.py           | 76 ++++++++++++++---
+>  .../test_is_test_passed-all_passed.log        |  1 +
+>  .../test_data/test_is_test_passed-crash.log   |  1 +
+>  .../test_data/test_is_test_passed-failure.log |  1 +
+>  13 files changed, 217 insertions(+), 54 deletions(-)
+>  create mode 100644 lib/kunit/executor.c
+> 
