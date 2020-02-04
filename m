@@ -1,51 +1,50 @@
-Return-Path: <anshuman.khandual@arm.com>
-Subject: Re: [PATCH V14] mm/debug: Add tests validating architecture page
- table helpers
-References: <1581909460-19148-1-git-send-email-anshuman.khandual@arm.com>
-From: Anshuman Khandual <anshuman.khandual@arm.com>
-Message-ID: <fac4f03a-0cd3-29ad-b5e2-9aca2dd07b39@arm.com>
-Date: Mon, 24 Feb 2020 07:28:46 +0530
+Return-Path: <frowand.list@gmail.com>
+Subject: Re: [PATCH v2 0/7] kunit: create a centralized executor to dispatch
+ all KUnit tests
+References: <20200130230812.142642-1-brendanhiggins@google.com>
+ <20200204071915.AF32B21582@mail.kernel.org>
+ <CAFd5g44ZG+E==gT24w49oKc6nHv4nBQFeipikKxXJH3oHdO99Q@mail.gmail.com>
+From: Frank Rowand <frowand.list@gmail.com>
+Message-ID: <4d0f42f7-8dbe-3d47-e0df-3e31cc8ebf52@gmail.com>
+Date: Tue, 4 Feb 2020 17:35:18 -0600
 MIME-Version: 1.0
-In-Reply-To: <1581909460-19148-1-git-send-email-anshuman.khandual@arm.com>
+In-Reply-To: <CAFd5g44ZG+E==gT24w49oKc6nHv4nBQFeipikKxXJH3oHdO99Q@mail.gmail.com>
 Content-Type: text/plain; charset=utf-8
 Content-Language: en-US
 Content-Transfer-Encoding: 7bit
-To: linux-mm@kvack.org
-Cc: Andrew Morton <akpm@linux-foundation.org>, Mike Rapoport <rppt@linux.ibm.com>, Vineet Gupta <vgupta@synopsys.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Heiko Carstens <heiko.carstens@de.ibm.com>, Vasily Gorbik <gor@linux.ibm.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, "Kirill A . Shutemov" <kirill@shutemov.name>, Paul Walmsley <paul.walmsley@sifive.com>, Palmer Dabbelt <palmer@dabbelt.com>, linux-snps-arc@lists.infradead.org, linux-arm-kernel@lists.infradead.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-riscv@lists.infradead.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Christophe Leroy <christophe.leroy@c-s.fr>
+To: Brendan Higgins <brendanhiggins@google.com>, Stephen Boyd <sboyd@kernel.org>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Alan Maguire <alan.maguire@oracle.com>, Anton Ivanov <anton.ivanov@cambridgegreys.com>, Arnd Bergmann <arnd@arndb.de>, David Gow <davidgow@google.com>, Jeff Dike <jdike@addtoit.com>, Kees Cook <keescook@chromium.org>, Richard Weinberger <richard@nod.at>, rppt@linux.ibm.com, Shuah Khan <skhan@linuxfoundation.org>, Iurii Zaikin <yzaikin@google.com>, Greg KH <gregkh@linuxfoundation.org>, Logan Gunthorpe <logang@deltatee.com>, Luis Chamberlain <mcgrof@kernel.org>, Knut Omang <knut.omang@oracle.com>, linux-um <linux-um@lists.infradead.org>, linux-arch@vger.kernel.org, "open list:KERNEL SELFTEST FRAMEWORK" <linux-kselftest@vger.kernel.org>, KUnit Development <kunit-dev@googlegroups.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200224015846.bWEOUV9JBiVD7QxQDHrAPJyEU0jdB3P36igi6uYpfk0@z>
+Message-ID: <20200204233518.0shVsCqOzrFJfoFcWkw8hRkMPyzRIzL2wdE91HNKCOM@z>
 
-On 02/17/2020 08:47 AM, Anshuman Khandual wrote:
-> This adds a test validation for architecture exported page table helpers.
-> Patch adds basic transformation tests at various levels of the page table.
+On 2/4/20 1:35 PM, Brendan Higgins wrote:
+> On Mon, Feb 3, 2020 at 11:19 PM Stephen Boyd <sboyd@kernel.org> wrote:
+>>
+>> Quoting Brendan Higgins (2020-01-30 15:08:05)
+>>> ## TL;DR
+>>>
+>>> This patchset adds a centralized executor to dispatch tests rather than
+>>> relying on late_initcall to schedule each test suite separately along
+>>> with a couple of new features that depend on it.
+>>
+>> Is there any diff from v1 to v2? I don't know what changed, but I see
+>> that my Reviewed-by tag has been put on everything, so I guess
+>> everything I said was addressed or discussed in the previous round.
 > 
-> This test was originally suggested by Catalin during arm64 THP migration
-> RFC discussion earlier. Going forward it can include more specific tests
-> with respect to various generic MM functions like THP, HugeTLB etc and
-> platform specific tests.
-> 
-> https://lore.kernel.org/linux-mm/20190628102003.GA56463@arrakis.emea.arm.com/
-> 
-> Needs to be applied on linux V5.6-rc2
-> 
-> Changes in V14:
-> 
-> - Disabled DEBUG_VM_PGFLAGS for IA64 and ARM (32 Bit) per Andrew and Christophe
-> - Updated DEBUG_VM_PGFLAGS documentation wrt EXPERT and disabled platforms
-> - Updated RANDOM_[OR|NZ]VALUE open encodings with GENMASK() per Catalin
-> - Updated s390 constraint bits from 12 to 4 (S390_MASK_BITS) per Gerald
-> - Updated in-code documentation for RANDOM_ORVALUE per Gerald
-> - Updated pxx_basic_tests() to use invert functions first per Catalin
-> - Dropped ARCH_HAS_4LEVEL_HACK check from pud_basic_tests()
-> - Replaced __ARCH_HAS_[4|5]LEVEL_HACK with __PAGETABLE_[PUD|P4D]_FOLDED per Catalin
-> - Trimmed the CC list on the commit message per Catalin
+> Oh yes, sorry about that. I have gotten a bit lazy in regard to
+> changing logs. I noticed that a lot of people don't seem to care. I'll
+> make a note that you do.
 
-Hello Andrew,
+Please ignore those who don't care.  Just always include a change log.
 
-As there are no further comments on this patch from last week, wondering
-if you would possibly consider this patch. But if you feel there is still
-something which need to be taken care here, please do let me know.
+You may encounter bike shedding about where the log belongs (in patch 0,
+in the modified patches, in both locations).  The color of my bike shed
+is simply that they exist somewhere, but my most favorite color is both
+places.
 
-Thank you.
-
-- Anshuman
+> 
+> Changes since last revision:
+> - On patch 6/7, I flipped the include order and removed braces from the if
+>   statements.
+> - On patch 7/7, I removed the periods from the short descriptions.
+> 
