@@ -1,79 +1,93 @@
-Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga09.intel.com ([134.134.136.24]:43402 "EHLO mga09.intel.com"
- rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP id S1727279AbgBESX1
- (ORCPT <rfc822;linux-arch@vger.kernel.org>); Wed, 5 Feb 2020 13:23:27 -0500
-From: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Subject: [RFC PATCH v9 1/7] x86/cet/ibt: Add Kconfig option for user-mode
- Indirect Branch Tracking
-Date: Wed,  5 Feb 2020 10:23:02 -0800
-Message-ID: <20200205182308.4028-2-yu-cheng.yu@intel.com>
-In-Reply-To: <20200205182308.4028-1-yu-cheng.yu@intel.com>
-References: <20200205182308.4028-1-yu-cheng.yu@intel.com>
+Return-Path: <frowand.list@gmail.com>
+Subject: Re: [PATCH v2 2/7] arch: um: add linker section for KUnit test suites
+References: <20200130230812.142642-1-brendanhiggins@google.com>
+ <20200130230812.142642-3-brendanhiggins@google.com>
+From: Frank Rowand <frowand.list@gmail.com>
+Message-ID: <e060bdfc-5cdb-fb62-48b0-cc54c7bc72ce@gmail.com>
+Date: Tue, 4 Feb 2020 15:59:11 -0600
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
-Sender: linux-arch-owner@vger.kernel.org
+In-Reply-To: <20200130230812.142642-3-brendanhiggins@google.com>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
+To: Brendan Higgins <brendanhiggins@google.com>, jdike@addtoit.com, richard@nod.at, anton.ivanov@cambridgegreys.com, arnd@arndb.de, keescook@chromium.org, skhan@linuxfoundation.org, alan.maguire@oracle.com, yzaikin@google.com, davidgow@google.com, akpm@linux-foundation.org, rppt@linux.ibm.com
+Cc: gregkh@linuxfoundation.org, sboyd@kernel.org, logang@deltatee.com, mcgrof@kernel.org, knut.omang@oracle.com, linux-um@lists.infradead.org, linux-arch@vger.kernel.org, linux-kselftest@vger.kernel.org, kunit-dev@googlegroups.com, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>, x86-patch-review@intel.com
-Cc: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Message-ID: <20200205182302.L9Ji9nPHkmYDLUjvPj3VClc0rhSyklXE9P-CbLhjeCs@z>
+Message-ID: <20200204215911.IfaBOcGZ6odscKIpY_Do_fCsb-V3b6u4Zeehhlue-3E@z>
 
-Introduce Kconfig option X86_INTEL_BRANCH_TRACKING_USER.
+On 1/30/20 5:08 PM, Brendan Higgins wrote:
+> Add a linker section to UML where KUnit can put references to its test
+> suites. This patch is an early step in transitioning to dispatching all
+> KUnit tests from a centralized executor rather than having each as its
+> own separate late_initcall.
 
-Indirect Branch Tracking (IBT) provides protection against CALL-/JMP-
-oriented programming attacks.  It is active when the kernel has this
-feature enabled, and the processor and the application support it.
-When this feature is enabled, legacy non-IBT applications continue to
-work, but without IBT protection.
+All architectures please.
 
-Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
----
- arch/x86/Kconfig  | 15 +++++++++++++++
- arch/x86/Makefile |  7 +++++++
- 2 files changed, 22 insertions(+)
+The early versions of Kunit documented reliance on UML.  Discussion lead to
+the conclusion that real architectures and real hardware would be supported.
 
-diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
-index d1447380e02e..563f3c81f323 100644
---- a/arch/x86/Kconfig
-+++ b/arch/x86/Kconfig
-@@ -1998,6 +1998,21 @@ config X86_INTEL_SHADOW_STACK_USER
+This like this are what make me reluctant to move devicetree unittests to
+KUnit.
 
- 	  If unsure, say y.
+Can you please add a section to the KUnit documentation that lists things
+like the expectations, requirements, limitations, etc for a test case that
+is run by KUnit?  Some examples that pop to mind from recent discussions
+and my own experiences:
 
-+config X86_INTEL_BRANCH_TRACKING_USER
-+	prompt "Intel Indirect Branch Tracking for user-mode"
-+	def_bool n
-+	depends on CPU_SUP_INTEL && X86_64
-+	select X86_INTEL_CET
-+	---help---
-+	  Indirect Branch Tracking (IBT) provides protection against
-+	  CALL-/JMP-oriented programming attacks.  It is active when
-+	  the kernel has this feature enabled, and the processor and
-+	  the application support it.  When this feature is enabled,
-+	  legacy non-IBT applications continue to work, but without
-+	  IBT protection.
-+
-+	  If unsure, say y
-+
- config EFI
- 	bool "EFI runtime service support"
- 	depends on ACPI
-diff --git a/arch/x86/Makefile b/arch/x86/Makefile
-index c34f5befa4c8..f97b2c1c4d04 100644
---- a/arch/x86/Makefile
-+++ b/arch/x86/Makefile
-@@ -156,6 +156,13 @@ ifdef CONFIG_X86_INTEL_SHADOW_STACK_USER
-   endif
- endif
+  - Each test case is invoked after late_init is complete.
+      + Exception: the possible value of being able to run a unit test
+        at a specific runlevel has been expressed.  If an actual unit
+        test can be shown to require running earlier, this restriction
+        will be re-visited.
 
-+# Check compiler ibt support
-+ifdef CONFIG_X86_INTEL_BRANCH_TRACKING_USER
-+  ifeq ($(call cc-option-yn, -fcf-protection=branch), n)
-+      $(error CONFIG_X86_INTEL_BRANCH_TRACKING_USER not supported by compiler)
-+  endif
-+endif
-+
- #
- # If the function graph tracer is used with mcount instead of fentry,
- # '-maccumulate-outgoing-args' is needed to prevent a GCC bug
--- 
-2.21.0
+  - Each test case must be idempotent.  Each test case may be called
+    multiple times, and must generate the same result each time it
+    is called.
+      + Exception 1: a test case can be declared to not be idempotent
+        [[ mechanism TBD ]], in which case KUnit will not call the
+        test case a second time without the kernel rebooting.
+      + Exception 2: hardware may not be deterministic, so a test that
+        always passes or fails when run under UML may not always to
+        so on real hardware.  <--- sentence copied from
+        Documentation/dev-tools/kunit/usage.rst
+          [[ This item and 1st exception do not exist yet, but will exist
+          in some form if the proposed proc filesystem interface is
+          added. ]]
+
+  - KUnit provides a helpful wrapper to simplify building a UML kernel
+    containing the KUnit test cases, booting the UML kernel, and
+    formatting the output from the test cases.  This wrapper MUST NOT
+    be required to run the test cases or to determine a test result.
+    The formatting may provide additional analysis and improve
+    readability of a test result.
+
+  - .... There is more that belongs here, but I'm getting side tracked
+    here, when I'm trying to instead convert devicetree unittests to
+    KUnit and want to get back to that.
+
+
+-Frank
+
+> 
+> Signed-off-by: Brendan Higgins <brendanhiggins@google.com>
+> Reviewed-by: Stephen Boyd <sboyd@kernel.org>
+> ---
+>  arch/um/include/asm/common.lds.S | 4 ++++
+>  1 file changed, 4 insertions(+)
+> 
+> diff --git a/arch/um/include/asm/common.lds.S b/arch/um/include/asm/common.lds.S
+> index 7145ce6999822..eab9ceb450efd 100644
+> --- a/arch/um/include/asm/common.lds.S
+> +++ b/arch/um/include/asm/common.lds.S
+> @@ -52,6 +52,10 @@
+>  	CON_INITCALL
+>    }
+>  
+> +  .kunit_test_suites : {
+> +	KUNIT_TEST_SUITES
+> +  }
+> +
+>    .exitcall : {
+>  	__exitcall_begin = .;
+>  	*(.exitcall.exit)
+> 
