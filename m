@@ -1,123 +1,68 @@
-From: Michal Simek <monstr@monstr.eu>
-Subject: Re: [PATCH v2 0/2] microblaze: Enable CMA
-Date: Tue, 4 Feb 2020 11:30:56 +0100
-Message-ID: <5706978d-4c9a-1123-c34b-e19e2b8aa37f@monstr.eu>
-References: <cover.1579248206.git.michal.simek@xilinx.com>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH v8 4/5] locking/qspinlock: Introduce starvation avoidance
+ into CNA
+Date: Tue, 4 Feb 2020 18:27:58 +0100
+Message-ID: <20200204172758.GF14879@hirez.programming.kicks-ass.net>
+References: <8D3AFB47-B595-418C-9568-08780DDC58FF@oracle.com>
+ <714892cd-d96f-4d41-ae8b-d7b7642a6e3c@redhat.com>
+ <1669BFDE-A1A5-4ED8-B586-035460BBF68A@oracle.com>
+ <20200125111931.GW11457@worktop.programming.kicks-ass.net>
+ <F32558D8-4ACB-483A-AB4C-F565003A02E7@oracle.com>
+ <20200203134540.GA14879@hirez.programming.kicks-ass.net>
+ <6d11b22b-2fb5-7dea-f88b-b32f1576a5e0@redhat.com>
+ <20200203152807.GK14914@hirez.programming.kicks-ass.net>
+ <15fa978d-bd41-3ecb-83d5-896187e11244@redhat.com>
+ <83762715-F68C-42DF-9B41-C4C48DF6762F@oracle.com>
 Mime-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha1;
- protocol="application/pgp-signature";
- boundary="pBOm8rNjCoJTkwKyfl4Ed8HeJH77Ps32T"
-Return-path: <linux-mips-owner@vger.kernel.org>
-In-Reply-To: <cover.1579248206.git.michal.simek@xilinx.com>
-Sender: linux-mips-owner@vger.kernel.org
-To: Michal Simek <michal.simek@xilinx.com>, linux-kernel@vger.kernel.org, monstr@monstr.eu, git@xilinx.com, Christoph Hellwig <hch@lst.de>
-Cc: Paul Burton <paulburton@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Mike Rapoport <rppt@linux.ibm.com>, Manjukumar Matha <manjukumar.harthikote-matha@xilinx.com>, Borislav Petkov <bp@alien8.de>, Linus Walleij <linus.walleij@linaro.org>, linux-mips@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>, Geert Uytterhoeven <geert@linux-m68k.org>, Catalin Marinas <catalin.marinas@arm.com>, linux-riscv@lists.infradead.org, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, Palmer Dabbelt <palmer@dabbelt.com>, x86@kernel.org, Guo Ren <guoren@kernel.org>, Kate Stewart <kstewart@linuxfoundation.org>, Wesley Terpstra <wesley@sifive.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Ralf Baechle <ralf@linux-mips.org>, Paul Walmsley <paul.walmsley@sifive.com>
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane-mx.org@lists.infradead.org>
+Content-Disposition: inline
+In-Reply-To: <83762715-F68C-42DF-9B41-C4C48DF6762F@oracle.com>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane-mx.org@lists.infradead.org
+To: Alex Kogan <alex.kogan@oracle.com>
+Cc: linux-arch@vger.kernel.org, Hanjun Guo <guohanjun@huawei.com>, Arnd Bergmann <arnd@arndb.de>, dave.dice@oracle.com, Jan Glauber <jglauber@marvell.com>, x86@kernel.org, Will Deacon <will.deacon@arm.com>, linux@armlinux.org.uk, Steven Sistare <steven.sistare@oracle.com>, linux-kernel@vger.kernel.org, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, hpa@zytor.com, Waiman Long <longman@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Daniel Jordan <daniel.m.jordan@oracle.com>, linux-arm-kernel <linux-arm-kernel@lists.infradead.org>
 List-Id: linux-arch.vger.kernel.org
 
-This is an OpenPGP/MIME signed message (RFC 4880 and 3156)
---pBOm8rNjCoJTkwKyfl4Ed8HeJH77Ps32T
-Content-Type: multipart/mixed; boundary="BbuWsr0XsV2TagfAoYrRnS0Lcvh9jdEaZ";
- protected-headers="v1"
-From: Michal Simek <monstr@monstr.eu>
-To: Michal Simek <michal.simek@xilinx.com>, linux-kernel@vger.kernel.org,
- monstr@monstr.eu, git@xilinx.com, Christoph Hellwig <hch@lst.de>
-Cc: Paul Burton <paulburton@kernel.org>, Arnd Bergmann <arnd@arndb.de>,
- Mike Rapoport <rppt@linux.ibm.com>,
- Manjukumar Matha <manjukumar.harthikote-matha@xilinx.com>,
- Borislav Petkov <bp@alien8.de>, Linus Walleij <linus.walleij@linaro.org>,
- linux-mips@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>,
- Geert Uytterhoeven <geert@linux-m68k.org>,
- Catalin Marinas <catalin.marinas@arm.com>, linux-riscv@lists.infradead.org,
- linux-arch@vger.kernel.org, linux-s390@vger.kernel.org,
- Palmer Dabbelt <palmer@dabbelt.com>, x86@kernel.org,
- Guo Ren <guoren@kernel.org>, Kate Stewart <kstewart@linuxfoundation.org>,
- Wesley Terpstra <wesley@sifive.com>,
- Greg Kroah-Hartman <gregkh@linuxfoundation.org>,
- Ralf Baechle <ralf@linux-mips.org>, Paul Walmsley
- <paul.walmsley@sifive.com>, Andrew Morton <akpm@linux-foundation.org>,
- Max Filippov <jcmvbkbc@gmail.com>, linux-xtensa@linux-xtensa.org,
- "H. Peter Anvin" <hpa@zytor.com>,
- "Peter Zijlstra (Intel)" <peterz@infradead.org>,
- Will Deacon <will@kernel.org>, Christian Borntraeger
- <borntraeger@de.ibm.com>, Deepa Dinamani <deepa.kernel@gmail.com>,
- Chris Zankel <chris@zankel.net>, Manish Narani <manish.narani@xilinx.com>,
- Ingo Molnar <mingo@redhat.com>, Waiman Long <longman@redhat.com>,
- linux-arm-kernel@lists.infradead.org, Albert Ou <aou@eecs.berkeley.edu>,
- Vasily Gorbik <gor@linux.ibm.com>, James Hogan <jhogan@kernel.org>,
- Masahiro Yamada <yamada.masahiro@socionext.com>,
- Heiko Carstens <heiko.carstens@de.ibm.com>, Guo Ren <ren_guo@c-sky.com>
-Message-ID: <5706978d-4c9a-1123-c34b-e19e2b8aa37f@monstr.eu>
-Subject: Re: [PATCH v2 0/2] microblaze: Enable CMA
-References: <cover.1579248206.git.michal.simek@xilinx.com>
-In-Reply-To: <cover.1579248206.git.michal.simek@xilinx.com>
-
---BbuWsr0XsV2TagfAoYrRnS0Lcvh9jdEaZ
-Content-Type: text/plain; charset=utf-8
-Content-Language: en-US
-Content-Transfer-Encoding: quoted-printable
-
-On 17. 01. 20 9:03, Michal Simek wrote:
-> Hi,
->=20
-> the patchset enable CMA on Microblaze. Based on Christoph request I hav=
-e
-> created the first patch which makes dma-continugous.h mandatory for all=
-
-> archs before Microblaze wiring.
->=20
-> Thanks,
-> Michal
->=20
-> Changes in v2:
-> - New patch suggested by Christoph
-> - Align commit message
-> - Remove adding dma-contigous.h via Kbuild because it is done by previo=
-us
->   patch
->=20
-> Michal Simek (2):
->   asm-generic: Make dma-contiguous.h a mandatory include/asm header
->   microblaze: Wire CMA allocator
->=20
->  arch/arm64/include/asm/Kbuild         | 1 -
->  arch/csky/include/asm/Kbuild          | 1 -
->  arch/microblaze/Kconfig               | 1 +
->  arch/microblaze/configs/mmu_defconfig | 2 ++
->  arch/microblaze/mm/init.c             | 4 ++++
->  arch/mips/include/asm/Kbuild          | 1 -
->  arch/riscv/include/asm/Kbuild         | 1 -
->  arch/s390/include/asm/Kbuild          | 1 -
->  arch/x86/include/asm/Kbuild           | 1 -
->  arch/xtensa/include/asm/Kbuild        | 1 -
->  include/asm-generic/Kbuild            | 1 +
->  11 files changed, 8 insertions(+), 7 deletions(-)
->=20
-
-Applied.
-
-Thanks,
-Michal
---=20
-Michal Simek, Ing. (M.Eng), OpenPGP -> KeyID: FE3D1F91
-w: www.monstr.eu p: +42-0-721842854
-Maintainer of Linux kernel - Xilinx Microblaze
-Maintainer of Linux kernel - Xilinx Zynq ARM and ZynqMP ARM64 SoCs
-U-Boot custodian - Xilinx Microblaze/Zynq/ZynqMP/Versal SoCs
-
-
-
---BbuWsr0XsV2TagfAoYrRnS0Lcvh9jdEaZ--
-
---pBOm8rNjCoJTkwKyfl4Ed8HeJH77Ps32T
-Content-Type: application/pgp-signature; name="signature.asc"
-Content-Description: OpenPGP digital signature
-Content-Disposition: attachment; filename="signature.asc"
-
------BEGIN PGP SIGNATURE-----
-
-iF0EARECAB0WIQQbPNTMvXmYlBPRwx7KSWXLKUoMIQUCXjlH4AAKCRDKSWXLKUoM
-IXg5AJ9J98El4wJeR5l37eVkp19mJ5smqwCdGPO/rvmeDwYSeGZMMaNPcnZNHRA=
-=bdA8
------END PGP SIGNATURE-----
-
---pBOm8rNjCoJTkwKyfl4Ed8HeJH77Ps32T--
+T24gVHVlLCBGZWIgMDQsIDIwMjAgYXQgMTE6NTQ6MDJBTSAtMDUwMCwgQWxleCBLb2dhbiB3cm90
+ZToKPiA+IE9uIEZlYiAzLCAyMDIwLCBhdCAxMDo0NyBBTSwgV2FpbWFuIExvbmcgPGxvbmdtYW5A
+cmVkaGF0LmNvbT4gd3JvdGU6Cj4gPiAKPiA+IE9uIDIvMy8yMCAxMDoyOCBBTSwgUGV0ZXIgWmlq
+bHN0cmEgd3JvdGU6Cj4gPj4gT24gTW9uLCBGZWIgMDMsIDIwMjAgYXQgMDk6NTk6MTJBTSAtMDUw
+MCwgV2FpbWFuIExvbmcgd3JvdGU6Cj4gPj4+IE9uIDIvMy8yMCA4OjQ1IEFNLCBQZXRlciBaaWps
+c3RyYSB3cm90ZToKPiA+Pj4+IFByZXN1bWFibHkgeW91IGhhdmUgYSB3b3JrbG9hZCB3aGVyZSBD
+TkEgaXMgYWN0dWFsbHkgYSB3aW4/IFRoYXQgaXMsCj4gPj4+PiB3aGF0IGluc3BpcmVkIHlvdSB0
+byBnbyBkb3duIHRoaXMgcm9hZD8gV2hpY2ggYWN0dWFsIGtlcm5lbCBsb2NrIGlzIHNvCj4gPj4+
+PiBjb250ZW5kZWQgb24gTlVNQSBtYWNoaW5lcyB0aGF0IHdlIG5lZWQgdG8gZG8gdGhpcz8KCj4g
+VGhlcmUgYXJlIHF1aXRlIGEgZmV3IGFjdHVhbGx5LiBmaWxlc19zdHJ1Y3QuZmlsZV9sb2NrLCBm
+aWxlX2xvY2tfY29udGV4dC5mbGNfbG9jawo+IGFuZCBsb2NrcmVmLmxvY2sgYXJlIHNvbWUgY29u
+Y3JldGUgZXhhbXBsZXMgdGhhdCBnZXQgdmVyeSBob3QgaW4gd2lsbC1pdC1zY2FsZQo+IGJlbmNo
+bWFya3MuIAoKUmlnaHQsIHRoYXQncyBhbGwgYSB2YXJpYW50IG9mIGJhbmdpbmcgb24gdGhlIHNh
+bWUgcmVzb3VyY2VzIGFjcm9zcwpub2Rlcy4gSSdtIG5vdCBzdXJlIHRoZXJlJ3MgYW55dGhpbmcg
+ZnVuZGFtZW50YWwgd2UgY2FuIGZpeCB0aGVyZS4KCj4gQW5kIHRoZW4gdGhlcmUgYXJlIHNwaW5s
+b2NrcyBpbiBfX2Z1dGV4X2RhdGEucXVldWVzLCAKPiB3aGljaCBnZXQgaG90IHdoZW4gYXBwbGlj
+YXRpb25zIGhhdmUgY29udGVuZGVkIChwdGhyZWFkKSBsb2NrcyDigJQgCj4gTGV2ZWxEQiBpcyBh
+biBleGFtcGxlLgoKQSBudW1hIGF3YXJlIHJld29yayBvZiBmdXRleGVzIGhhcyBiZWVuIG9uIHRo
+ZSB0b2RvIGxpc3QgZm9yIHllYXJzIDovCgo+IE91ciBpbml0aWFsIG1vdGl2YXRpb24gd2FzIGJh
+c2VkIG9uIGFuIG9ic2VydmF0aW9uIHRoYXQga2VybmVsIHFzcGlubG9jayBpcyBub3QgCj4gTlVN
+QS1hd2FyZS4gU28gd2hhdCwgeW91IG1heSBhc2suIE11Y2ggbGlrZSBwZW9wbGUgcmVhbGl6ZWQg
+aW4gdGhlIHBhc3QgdGhhdAo+IGdsb2JhbCBzcGlubmluZyBpcyBiYWQgZm9yIHBlcmZvcm1hbmNl
+LCBhbmQgdGhleSBzd2l0Y2hlZCBmcm9tIHRpY2tldCBsb2NrIHRvCj4gbG9ja3Mgd2l0aCBsb2Nh
+bCBzcGlubmluZyAoZS5nLiwgTUNTKSwgSSB0aGluayBldmVyeW9uZSB3b3VsZCBhZ3JlZSB0aGVz
+ZSBkYXlzIHRoYXQKPiBib3VuY2luZyBhIGxvY2sgKGFuZCBjYWNoZSBsaW5lcyBpbiBnZW5lcmFs
+KSBhY3Jvc3MgbnVtYSBub2RlcyBpcyBzaW1pbGFybHkgYmFkLgo+IEFuZCBhcyBDTkEgZGVtb25z
+dHJhdGVzLCB3ZSBhcmUgZWFzaWx5IGxlYXZpbmcgMi0zeCBzcGVlZHVwcyBvbiB0aGUgdGFibGUg
+YnkKPiBkb2luZyBqdXN0IHRoYXQgd2l0aCB0aGUgY3VycmVudCBxc3BpbmxvY2suCgpBY3R1YWwg
+YmVuY2htYXJrcyB3aXRoIHBlcmZvcm1hbmNlIG51bWJlcnMgYXJlIHJlcXVpcmVkLiBJdCBoZWxw
+cwptb3RpdmF0ZSB0aGUgcGF0Y2hlcyBhcyB3ZWxsIGFzIGdpdmVzIHJldmlld2VycyBjbHVlcyBv
+biBob3cgdG8KcmVwcm9kdWNlIC8gaW5zcGVjdCB0aGUgY2xhaW1zIG1hZGUuCgpfX19fX19fX19f
+X19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fXwpsaW51eC1hcm0ta2VybmVsIG1h
+aWxpbmcgbGlzdApsaW51eC1hcm0ta2VybmVsQGxpc3RzLmluZnJhZGVhZC5vcmcKaHR0cDovL2xp
+c3RzLmluZnJhZGVhZC5vcmcvbWFpbG1hbi9saXN0aW5mby9saW51eC1hcm0ta2VybmVsCg==
