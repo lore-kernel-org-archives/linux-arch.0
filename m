@@ -1,205 +1,168 @@
-Return-Path: <frowand.list@gmail.com>
-Subject: Re: [PATCH v2 3/7] kunit: test: create a single centralized executor
- for all tests
-References: <20200130230812.142642-1-brendanhiggins@google.com>
- <20200130230812.142642-4-brendanhiggins@google.com>
-From: Frank Rowand <frowand.list@gmail.com>
-Message-ID: <11977708-bb18-e322-db7a-9f21d7cdec54@gmail.com>
-Date: Tue, 4 Feb 2020 16:27:12 -0600
+Return-Path: <linux-doc-owner@vger.kernel.org>
+From: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Subject: [RFC PATCH v9 16/27] mm: Update can_follow_write_pte() for Shadow
+ Stack
+Date: Wed,  5 Feb 2020 10:19:24 -0800
+Message-ID: <20200205181935.3712-17-yu-cheng.yu@intel.com>
+In-Reply-To: <20200205181935.3712-1-yu-cheng.yu@intel.com>
+References: <20200205181935.3712-1-yu-cheng.yu@intel.com>
 MIME-Version: 1.0
-In-Reply-To: <20200130230812.142642-4-brendanhiggins@google.com>
-Content-Type: text/plain; charset=utf-8
-Content-Language: en-US
-Content-Transfer-Encoding: 7bit
-To: Brendan Higgins <brendanhiggins@google.com>, jdike@addtoit.com, richard@nod.at, anton.ivanov@cambridgegreys.com, arnd@arndb.de, keescook@chromium.org, skhan@linuxfoundation.org, alan.maguire@oracle.com, yzaikin@google.com, davidgow@google.com, akpm@linux-foundation.org, rppt@linux.ibm.com
-Cc: gregkh@linuxfoundation.org, sboyd@kernel.org, logang@deltatee.com, mcgrof@kernel.org, knut.omang@oracle.com, linux-um@lists.infradead.org, linux-arch@vger.kernel.org, linux-kselftest@vger.kernel.org, kunit-dev@googlegroups.com, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org
+Content-Transfer-Encoding: 8bit
+Sender: linux-doc-owner@vger.kernel.org
+To: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>, x86-patch-review@intel.com
+Cc: Yu-cheng Yu <yu-cheng.yu@intel.com>
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200204222712.cB_16a-XiHUf2-tMLPPjFev30-UUyNYLNfsRjGa3vYQ@z>
+Message-ID: <20200205181924.SAYy5b8Cgn6G9IJYFt3PsMmbwC2gXO3GZRu5wXiIMos@z>
 
-On 1/30/20 5:08 PM, Brendan Higgins wrote:
-> From: Alan Maguire <alan.maguire@oracle.com>
-> 
-> Add a centralized executor to dispatch tests rather than relying on
-> late_initcall to schedule each test suite separately.  Centralized
-> execution is for built-in tests only; modules will execute tests
-> when loaded.
-> 
-> Signed-off-by: Alan Maguire <alan.maguire@oracle.com>
-> Co-developed-by: Iurii Zaikin <yzaikin@google.com>
-> Signed-off-by: Iurii Zaikin <yzaikin@google.com>
-> Co-developed-by: Brendan Higgins <brendanhiggins@google.com>
-> Signed-off-by: Brendan Higgins <brendanhiggins@google.com>
-> Reviewed-by: Stephen Boyd <sboyd@kernel.org>
-> ---
->  include/kunit/test.h | 73 +++++++++++++++++++++++++++-----------------
->  lib/kunit/Makefile   |  3 +-
->  lib/kunit/executor.c | 36 ++++++++++++++++++++++
->  3 files changed, 83 insertions(+), 29 deletions(-)
->  create mode 100644 lib/kunit/executor.c
-> 
-> diff --git a/include/kunit/test.h b/include/kunit/test.h
-> index 2dfb550c6723a..8a02f93a6b505 100644
-> --- a/include/kunit/test.h
-> +++ b/include/kunit/test.h
+Can_follow_write_pte() verifies that a read-only page is the task's own
+copy by ensuring the page has gone through faultin_page() and the PTE is
+Dirty.
 
-The following fragment does not match the test.h in Linux 5.5 or 5.4-rc1 (as one
-possible earlier version).  And we are not to Linux 5.5-rc1 yet.  (Simple way
-to check for the mis-match - 5.5 has kunit_test_suite() instead of
-kunit_test_suites().)
+A Shadow Stack (SHSTK) PTE must be (read-only + _PAGE_DIRTY_HW).  When a
+task does fork(), its SHSTK PTEs become (read-only + _PAGE_DIRTY_SW).  This
+causes the next SHSTK access (i.e. CALL, RET, INCSSP) to trigger a fault;
+the page is then copied, and (read-only + _PAGE_DIRTY_HW) is restored.
 
-I know that there is an alternate tree where some of the development occurs.
-Can you please add a link in MAINTAINERS?  And please note (at least in
-patch 0) what tree the series is developed against?
+To update can_follow_write_pte() for SHSTK, introduce pte_exclusive().  It
+verifies a data PTE is Dirty and a SHSTK PTE has _PAGE_DIRTY_HW.
 
--Frank
+Also rename can_follow_write_pte() to can_follow_write() to make its
+meaning clear; i.e. "Can we write to the page?", not "Is the PTE writable?"
 
+Also apply same changes to the huge memory case.
 
-> @@ -197,46 +197,63 @@ void kunit_init_test(struct kunit *test, const char *name);
->  
->  int kunit_run_tests(struct kunit_suite *suite);
->  
-> -/**
-> - * kunit_test_suites() - used to register one or more &struct kunit_suite
-> - *			 with KUnit.
-> - *
-> - * @suites: a statically allocated list of &struct kunit_suite.
-> - *
-> - * Registers @suites with the test framework. See &struct kunit_suite for
-> - * more information.
-> - *
-> - * When builtin,  KUnit tests are all run as late_initcalls; this means
-> - * that they cannot test anything where tests must run at a different init
-> - * phase. One significant restriction resulting from this is that KUnit
-> - * cannot reliably test anything that is initialize in the late_init phase;
-> - * another is that KUnit is useless to test things that need to be run in
-> - * an earlier init phase.
-> - *
-> - * An alternative is to build the tests as a module.  Because modules
-> - * do not support multiple late_initcall()s, we need to initialize an
-> - * array of suites for a module.
-> - *
-> - * TODO(brendanhiggins@google.com): Don't run all KUnit tests as
-> - * late_initcalls.  I have some future work planned to dispatch all KUnit
-> - * tests from the same place, and at the very least to do so after
-> - * everything else is definitely initialized.
-> +/*
-> + * If a test suite is built-in, module_init() gets translated into
-> + * an initcall which we don't want as the idea is that for builtins
-> + * the executor will manage execution.  So ensure we do not define
-> + * module_{init|exit} functions for the builtin case when registering
-> + * suites via kunit_test_suites() below.
->   */
-> -#define kunit_test_suites(...)						\
-> -	static struct kunit_suite *suites[] = { __VA_ARGS__, NULL};	\
-> -	static int kunit_test_suites_init(void)				\
-> +#ifdef MODULE
-> +#define kunit_test_suites_for_module(__suites)				\
-> +	static int __init kunit_test_suites_init(void)			\
->  	{								\
-> +		struct kunit_suite *suites[] = (__suites);		\
->  		unsigned int i;						\
-> +									\
->  		for (i = 0; suites[i] != NULL; i++)			\
->  			kunit_run_tests(suites[i]);			\
->  		return 0;						\
->  	}								\
-> -	late_initcall(kunit_test_suites_init);				\
-> +	module_init(kunit_test_suites_init);				\
-> +									\
->  	static void __exit kunit_test_suites_exit(void)			\
->  	{								\
->  		return;							\
->  	}								\
->  	module_exit(kunit_test_suites_exit)
-> +#else
-> +#define kunit_test_suites_for_module(__suites)
-> +#endif /* MODULE */
-> +
-> +#define __kunit_test_suites(unique_array, unique_suites, ...)		       \
-> +	static struct kunit_suite *unique_array[] = { __VA_ARGS__, NULL };     \
-> +	kunit_test_suites_for_module(unique_array);			       \
-> +	static struct kunit_suite **unique_suites			       \
-> +	__used __aligned(8) __section(.kunit_test_suites) = unique_array
-> +
-> +/**
-> + * kunit_test_suites() - used to register one or more &struct kunit_suite
-> + *			 with KUnit.
-> + *
-> + * @suites: a statically allocated list of &struct kunit_suite.
-> + *
-> + * Registers @suites with the test framework. See &struct kunit_suite for
-> + * more information.
-> + *
-> + * When builtin,  KUnit tests are all run via executor; this is done
-> + * by placing the array of struct kunit_suite * in the .kunit_test_suites
-> + * ELF section.
-> + *
-> + * An alternative is to build the tests as a module.  Because modules do not
-> + * support multiple initcall()s, we need to initialize an array of suites for a
-> + * module.
-> + *
-> + */
-> +#define kunit_test_suites(...)						\
-> +	__kunit_test_suites(__UNIQUE_ID(array),				\
-> +			    __UNIQUE_ID(suites),			\
-> +			    __VA_ARGS__)
->  
->  #define kunit_test_suite(suite)	kunit_test_suites(&suite)
->  
-> diff --git a/lib/kunit/Makefile b/lib/kunit/Makefile
-> index fab55649b69a5..c282f02ca066b 100644
-> --- a/lib/kunit/Makefile
-> +++ b/lib/kunit/Makefile
-> @@ -3,7 +3,8 @@ obj-$(CONFIG_KUNIT) +=			kunit.o
->  kunit-objs +=				test.o \
->  					string-stream.o \
->  					assert.o \
-> -					try-catch.o
-> +					try-catch.o \
-> +					executor.o
->  
->  obj-$(CONFIG_KUNIT_TEST) +=		kunit-test.o
->  
-> diff --git a/lib/kunit/executor.c b/lib/kunit/executor.c
-> new file mode 100644
-> index 0000000000000..6429927d598a5
-> --- /dev/null
-> +++ b/lib/kunit/executor.c
-> @@ -0,0 +1,36 @@
-> +// SPDX-License-Identifier: GPL-2.0
-> +
-> +#include <kunit/test.h>
-> +
-> +/*
-> + * These symbols point to the .kunit_test_suites section and are defined in
-> + * include/asm-generic/vmlinux.lds.h, and consequently must be extern.
-> + */
-> +extern struct kunit_suite * const * const __kunit_suites_start[];
-> +extern struct kunit_suite * const * const __kunit_suites_end[];
-> +
-> +#if IS_BUILTIN(CONFIG_KUNIT)
-> +
-> +static int kunit_run_all_tests(void)
-> +{
-> +	struct kunit_suite * const * const *suites, * const *subsuite;
-> +	bool has_test_failed = false;
-> +
-> +	for (suites = __kunit_suites_start;
-> +	     suites < __kunit_suites_end;
-> +	     suites++) {
-> +		for (subsuite = *suites; *subsuite != NULL; subsuite++) {
-> +			if (kunit_run_tests(*subsuite))
-> +				has_test_failed = true;
-> +		}
-> +	}
-> +
-> +	if (has_test_failed)
-> +		return -EFAULT;
-> +
-> +	return 0;
-> +}
-> +
-> +late_initcall(kunit_run_all_tests);
-> +
-> +#endif /* IS_BUILTIN(CONFIG_KUNIT) */
-> 
+Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
+---
+ arch/x86/mm/pgtable.c         | 18 ++++++++++++++++++
+ include/asm-generic/pgtable.h | 12 ++++++++++++
+ mm/gup.c                      |  8 +++++---
+ mm/huge_memory.c              |  8 +++++---
+ 4 files changed, 40 insertions(+), 6 deletions(-)
+
+diff --git a/arch/x86/mm/pgtable.c b/arch/x86/mm/pgtable.c
+index 3340b1d4e9da..fa8133f37918 100644
+--- a/arch/x86/mm/pgtable.c
++++ b/arch/x86/mm/pgtable.c
+@@ -887,6 +887,15 @@ inline pte_t pte_set_vma_features(pte_t pte, struct vm_area_struct *vma)
+ 		return pte;
+ }
+
++inline bool pte_exclusive(pte_t pte, struct vm_area_struct *vma)
++{
++	if (vma->vm_flags & VM_SHSTK)
++		return pte_dirty_hw(pte);
++	else
++		return pte_dirty(pte);
++}
++
++#ifdef CONFIG_TRANSPARENT_HUGEPAGE
+ inline pmd_t pmd_set_vma_features(pmd_t pmd, struct vm_area_struct *vma)
+ {
+ 	if (vma->vm_flags & VM_SHSTK)
+@@ -894,4 +903,13 @@ inline pmd_t pmd_set_vma_features(pmd_t pmd, struct vm_area_struct *vma)
+ 	else
+ 		return pmd;
+ }
++
++inline bool pmd_exclusive(pmd_t pmd, struct vm_area_struct *vma)
++{
++	if (vma->vm_flags & VM_SHSTK)
++		return pmd_dirty_hw(pmd);
++	else
++		return pmd_dirty(pmd);
++}
++#endif /* CONFIG_TRANSPARENT_HUGEPAGE */
+ #endif /* CONFIG_X86_INTEL_SHADOW_STACK_USER */
+diff --git a/include/asm-generic/pgtable.h b/include/asm-generic/pgtable.h
+index a9df093fdf45..ae9a84fffc25 100644
+--- a/include/asm-generic/pgtable.h
++++ b/include/asm-generic/pgtable.h
+@@ -1202,18 +1202,30 @@ static inline pte_t pte_set_vma_features(pte_t pte, struct vm_area_struct *vma)
+ 	return pte;
+ }
+
++static inline bool pte_exclusive(pte_t pte, struct vm_area_struct *vma)
++{
++	return pte_dirty(pte);
++}
++
+ #ifdef CONFIG_TRANSPARENT_HUGEPAGE
+ static inline pmd_t pmd_set_vma_features(pmd_t pmd, struct vm_area_struct *vma)
+ {
+ 	return pmd;
+ }
++
++static inline bool pmd_exclusive(pmd_t pmd, struct vm_area_struct *vma)
++{
++	return pmd_dirty(pmd);
++}
+ #endif
+ #else
+ bool arch_copy_pte_mapping(vm_flags_t vm_flags);
+ pte_t pte_set_vma_features(pte_t pte, struct vm_area_struct *vma);
++bool pte_exclusive(pte_t pte, struct vm_area_struct *vma);
+
+ #ifdef CONFIG_TRANSPARENT_HUGEPAGE
+ pmd_t pmd_set_vma_features(pmd_t pmd, struct vm_area_struct *vma);
++bool pmd_exclusive(pmd_t pmd, struct vm_area_struct *vma);
+ #endif
+ #endif
+ #endif /* CONFIG_MMU */
+diff --git a/mm/gup.c b/mm/gup.c
+index 7646bf993b25..d1dbfbde8443 100644
+--- a/mm/gup.c
++++ b/mm/gup.c
+@@ -164,10 +164,12 @@ static int follow_pfn_pte(struct vm_area_struct *vma, unsigned long address,
+  * FOLL_FORCE can write to even unwritable pte's, but only
+  * after we've gone through a COW cycle and they are dirty.
+  */
+-static inline bool can_follow_write_pte(pte_t pte, unsigned int flags)
++static inline bool can_follow_write(pte_t pte, unsigned int flags,
++				    struct vm_area_struct *vma)
+ {
+ 	return pte_write(pte) ||
+-		((flags & FOLL_FORCE) && (flags & FOLL_COW) && pte_dirty(pte));
++		((flags & FOLL_FORCE) && (flags & FOLL_COW) &&
++		 pte_exclusive(pte, vma));
+ }
+
+ static struct page *follow_page_pte(struct vm_area_struct *vma,
+@@ -205,7 +207,7 @@ static struct page *follow_page_pte(struct vm_area_struct *vma,
+ 	}
+ 	if ((flags & FOLL_NUMA) && pte_protnone(pte))
+ 		goto no_page;
+-	if ((flags & FOLL_WRITE) && !can_follow_write_pte(pte, flags)) {
++	if ((flags & FOLL_WRITE) && !can_follow_write(pte, flags, vma)) {
+ 		pte_unmap_unlock(ptep, ptl);
+ 		return NULL;
+ 	}
+diff --git a/mm/huge_memory.c b/mm/huge_memory.c
+index 93ef368df2dd..baad346e9f4a 100644
+--- a/mm/huge_memory.c
++++ b/mm/huge_memory.c
+@@ -1469,10 +1469,12 @@ vm_fault_t do_huge_pmd_wp_page(struct vm_fault *vmf, pmd_t orig_pmd)
+  * FOLL_FORCE can write to even unwritable pmd's, but only
+  * after we've gone through a COW cycle and they are dirty.
+  */
+-static inline bool can_follow_write_pmd(pmd_t pmd, unsigned int flags)
++static inline bool can_follow_write(pmd_t pmd, unsigned int flags,
++				    struct vm_area_struct *vma)
+ {
+ 	return pmd_write(pmd) ||
+-	       ((flags & FOLL_FORCE) && (flags & FOLL_COW) && pmd_dirty(pmd));
++	       ((flags & FOLL_FORCE) && (flags & FOLL_COW) &&
++		pmd_exclusive(pmd, vma));
+ }
+
+ struct page *follow_trans_huge_pmd(struct vm_area_struct *vma,
+@@ -1485,7 +1487,7 @@ struct page *follow_trans_huge_pmd(struct vm_area_struct *vma,
+
+ 	assert_spin_locked(pmd_lockptr(mm, pmd));
+
+-	if (flags & FOLL_WRITE && !can_follow_write_pmd(*pmd, flags))
++	if (flags & FOLL_WRITE && !can_follow_write(*pmd, flags, vma))
+ 		goto out;
+
+ 	/* Avoid dumping huge zero page */
+-- 
+2.21.0
