@@ -1,311 +1,218 @@
 From: Hajime Tazaki <thehajime@gmail.com>
-Subject: [RFC v3 11/26] um lkl: initialization and cleanup
-Date: Wed,  5 Feb 2020 16:30:20 +0900
-Message-ID: <611a8d177f33e1cf7832e15c72448eb9d87c8f03.1580882335.git.thehajime@gmail.com>
+Subject: [RFC v3 09/26] um lkl: timers, time and delay support
+Date: Wed,  5 Feb 2020 16:30:18 +0900
+Message-ID: <4b9ac9193575112b3f921e5f6087f114569e44d5.1580882335.git.thehajime@gmail.com>
 References: <cover.1580882335.git.thehajime@gmail.com>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pl1-f196.google.com ([209.85.214.196]:37950 "EHLO
-        mail-pl1-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1725468AbgBEHbH (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 5 Feb 2020 02:31:07 -0500
-Received: by mail-pl1-f196.google.com with SMTP id t6so517663plj.5
+Received: from mail-pf1-f195.google.com ([209.85.210.195]:35053 "EHLO
+        mail-pf1-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727003AbgBEHbI (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 5 Feb 2020 02:31:08 -0500
+Received: by mail-pf1-f195.google.com with SMTP id y73so753992pfg.2
         for <linux-arch@vger.kernel.org>; Tue, 04 Feb 2020 23:31:06 -0800 (PST)
 In-Reply-To: <cover.1580882335.git.thehajime@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-um@lists.infradead.org
-Cc: Octavian Purdila <tavi.purdila@gmail.com>, Akira Moroo <retrage01@gmail.com>, linux-kernel-library@freelists.org, linux-arch@vger.kernel.org, Michael Zimmermann <sigmaepsilon92@gmail.com>, Patrick Collins <pscollins@google.com>, Yuan Liu <liuyuan@google.com>, Hajime Tazaki <thehajime@gmail.com>
+Cc: Octavian Purdila <tavi.purdila@gmail.com>, Akira Moroo <retrage01@gmail.com>, linux-kernel-library@freelists.org, linux-arch@vger.kernel.org, Michael Zimmermann <sigmaepsilon92@gmail.com>, Hajime Tazaki <thehajime@gmail.com>
 
 From: Octavian Purdila <tavi.purdila@gmail.com>
 
-Add the lkl_start_kernel and lkl_sys_halt APIs that start and
-respectively stops the Linux kernel.
-
-lkl_start_kernel creates a separate threads that will run the initial
-and idle kernel thread. It waits for the kernel to complete
-initialization before returning, to avoid races with system calls
-issues by the host application.
-
-During the setup phase, we create "/init" in initial ramfs root
-filesystem to avoid mounting the "real" rootfs since ramfs is good
-enough for now.
-
-lkl_sys_halt will shutdown the kernel, terminate all threads and
-free all host resources used by the kernel before returning.
-
-This patch also introduces idle CPU handling since it is closely
-related to the shutdown process. A host semaphore is used to wait for
-new interrupts when the kernel switches the CPU to idle to avoid
-wasting host CPU cycles. When the kernel is shutdown we terminate the
-idle thread at the first CPU idle event.
+Clockevent driver based on host timer operations and clocksource
+driver and udelay support based on host time operations.
 
 Cc: Michael Zimmermann <sigmaepsilon92@gmail.com>
-Cc: Patrick Collins <pscollins@google.com>
-Cc: Yuan Liu <liuyuan@google.com>
 Signed-off-by: Hajime Tazaki <thehajime@gmail.com>
 Signed-off-by: Octavian Purdila <tavi.purdila@gmail.com>
 ---
- arch/um/lkl/include/asm/setup.h         |   7 +
- arch/um/lkl/include/uapi/asm/host_ops.h |  20 +++
- arch/um/lkl/kernel/setup.c              | 189 ++++++++++++++++++++++++
- 3 files changed, 216 insertions(+)
- create mode 100644 arch/um/lkl/include/asm/setup.h
- create mode 100644 arch/um/lkl/kernel/setup.c
+ arch/um/lkl/include/uapi/asm/host_ops.h |  13 +++
+ arch/um/lkl/kernel/time.c               | 145 ++++++++++++++++++++++++
+ 2 files changed, 158 insertions(+)
+ create mode 100644 arch/um/lkl/kernel/time.c
 
-diff --git a/arch/um/lkl/include/asm/setup.h b/arch/um/lkl/include/asm/setup.h
-new file mode 100644
-index 000000000000..b40955208cc6
---- /dev/null
-+++ b/arch/um/lkl/include/asm/setup.h
-@@ -0,0 +1,7 @@
-+/* SPDX-License-Identifier: GPL-2.0 */
-+#ifndef _ASM_LKL_SETUP_H
-+#define _ASM_LKL_SETUP_H
-+
-+#define COMMAND_LINE_SIZE 4096
-+
-+#endif
 diff --git a/arch/um/lkl/include/uapi/asm/host_ops.h b/arch/um/lkl/include/uapi/asm/host_ops.h
-index 986340ba9d8d..fe4382c3050a 100644
+index 1c839d7139f8..c9f77dd7fbe7 100644
 --- a/arch/um/lkl/include/uapi/asm/host_ops.h
 +++ b/arch/um/lkl/include/uapi/asm/host_ops.h
-@@ -19,6 +19,8 @@ struct lkl_jmp_buf {
+@@ -48,6 +48,13 @@ struct lkl_jmp_buf {
+  * @mem_alloc - allocate memory
+  * @mem_free - free memory
   *
-  * @print - optional operation that receives console messages
++ * @timer_create - allocate a host timer that runs fn(arg) when the timer
++ * fires.
++ * @timer_free - disarms and free the timer
++ * @timer_set_oneshot - arm the timer to fire once, after delta ns.
++ * @timer_set_periodic - arm the timer to fire periodically, with a period of
++ * delta ns.
++ *
+  * @gettid - returns the host thread id of the caller, which need not
+  * be the same as the handle returned by thread_create
   *
-+ * @panic - called during a kernel panic
-+ *
-  * @sem_alloc - allocate a host semaphore an initialize it to count
-  * @sem_free - free a host semaphore
-  * @sem_up - perform an up operation on the semaphore
-@@ -73,6 +75,7 @@ struct lkl_jmp_buf {
-  */
- struct lkl_host_operations {
- 	void (*print)(const char *str, int len);
-+	void (*panic)(void);
+@@ -88,6 +95,12 @@ struct lkl_host_operations {
+ 	void *(*mem_alloc)(unsigned long mem);
+ 	void (*mem_free)(void *mem);
  
- 	struct lkl_sem *(*sem_alloc)(int count);
- 	void (*sem_free)(struct lkl_sem *sem);
-@@ -111,6 +114,23 @@ struct lkl_host_operations {
- 	void (*jmp_buf_longjmp)(struct lkl_jmp_buf *jmpb, int val);
- };
- 
-+/**
-+ * lkl_start_kernel - registers the host operations and starts the kernel
-+ *
-+ * The function returns only after the kernel is shutdown with lkl_sys_halt.
-+ *
-+ * @lkl_ops - pointer to host operations
-+ * @cmd_line - format for command line string that is going to be used to
-+ * generate the Linux kernel command line
-+ */
-+int lkl_start_kernel(struct lkl_host_operations *lkl_ops, const char *cmd_line,
-+		     ...);
++	unsigned long long (*time)(void);
 +
-+/**
-+ * lkl_is_running - returns 1 if the kernel is currently running
-+ */
-+int lkl_is_running(void);
++	void *(*timer_alloc)(void (*fn)(void *), void *arg);
++	int (*timer_set_oneshot)(void *timer, unsigned long delta);
++	void (*timer_free)(void *timer);
 +
- int lkl_printf(const char *fmt, ...);
- void lkl_bug(const char *fmt, ...);
+ 	long (*gettid)(void);
  
-diff --git a/arch/um/lkl/kernel/setup.c b/arch/um/lkl/kernel/setup.c
+ 	void (*jmp_buf_set)(struct lkl_jmp_buf *jmpb, void (*f)(void));
+diff --git a/arch/um/lkl/kernel/time.c b/arch/um/lkl/kernel/time.c
 new file mode 100644
-index 000000000000..36c199d3aa22
+index 000000000000..b8320e1bfa53
 --- /dev/null
-+++ b/arch/um/lkl/kernel/setup.c
-@@ -0,0 +1,189 @@
++++ b/arch/um/lkl/kernel/time.c
+@@ -0,0 +1,145 @@
 +// SPDX-License-Identifier: GPL-2.0
-+#include <linux/binfmts.h>
++#include <linux/clocksource.h>
++#include <linux/clockchips.h>
++#include <linux/jiffies.h>
++#include <linux/module.h>
 +#include <linux/init.h>
-+#include <linux/init_task.h>
-+#include <linux/personality.h>
-+#include <linux/reboot.h>
-+#include <linux/fs.h>
-+#include <linux/start_kernel.h>
-+#include <linux/syscalls.h>
-+#include <linux/tick.h>
++#include <linux/interrupt.h>
++#include <linux/irq.h>
 +#include <asm/host_ops.h>
-+#include <asm/irq.h>
-+#include <asm/unistd.h>
-+#include <asm/syscalls.h>
-+#include <asm/cpu.h>
 +
-+struct lkl_host_operations *lkl_ops;
-+static char cmd_line[COMMAND_LINE_SIZE];
-+static void *init_sem;
-+static int is_running;
-+void (*pm_power_off)(void) = NULL;
-+static unsigned long mem_size = 64 * 1024 * 1024;
++static unsigned long long boot_time;
 +
-+static long lkl_panic_blink(int state)
++void __ndelay(unsigned long nsecs)
 +{
-+	lkl_ops->panic();
-+	return 0;
++	unsigned long long start = lkl_ops->time();
++
++	while (lkl_ops->time() < start + nsecs)
++		;
 +}
 +
-+static int __init setup_mem_size(char *str)
++void __udelay(unsigned long usecs)
 +{
-+	mem_size = memparse(str, NULL);
-+	return 0;
-+}
-+early_param("mem", setup_mem_size);
-+
-+void __init setup_arch(char **cl)
-+{
-+	*cl = cmd_line;
-+	panic_blink = lkl_panic_blink;
-+	parse_early_param();
-+	bootmem_init(mem_size);
++	__ndelay(usecs * NSEC_PER_USEC);
 +}
 +
-+static void __init lkl_run_kernel(void *arg)
++void __const_udelay(unsigned long xloops)
 +{
-+	threads_init();
-+	lkl_cpu_get();
-+	start_kernel();
++	__udelay(xloops / 0x10c7ul);
 +}
 +
-+int __init lkl_start_kernel(struct lkl_host_operations *ops, const char *fmt,
-+			    ...)
++void calibrate_delay(void)
 +{
-+	va_list ap;
-+	int ret;
-+
-+	lkl_ops = ops;
-+
-+	va_start(ap, fmt);
-+	ret = vsnprintf(boot_command_line, COMMAND_LINE_SIZE, fmt, ap);
-+	va_end(ap);
-+
-+	memcpy(cmd_line, boot_command_line, COMMAND_LINE_SIZE);
-+
-+	init_sem = lkl_ops->sem_alloc(0);
-+	if (!init_sem)
-+		return -ENOMEM;
-+
-+	ret = lkl_cpu_init();
-+	if (ret)
-+		goto out_free_init_sem;
-+
-+	ret = lkl_ops->thread_create(lkl_run_kernel, NULL);
-+	if (!ret) {
-+		ret = -ENOMEM;
-+		goto out_free_init_sem;
-+	}
-+
-+	lkl_ops->sem_down(init_sem);
-+	lkl_ops->sem_free(init_sem);
-+	current_thread_info()->tid = lkl_ops->thread_self();
-+	lkl_cpu_change_owner(current_thread_info()->tid);
-+
-+	lkl_cpu_put();
-+	is_running = 1;
-+
-+	return 0;
-+
-+out_free_init_sem:
-+	lkl_ops->sem_free(init_sem);
-+
-+	return ret;
 +}
 +
-+int lkl_is_running(void)
++void read_persistent_clock(struct timespec *ts)
 +{
-+	return is_running;
++	*ts = ns_to_timespec(lkl_ops->time());
 +}
 +
-+void machine_halt(void)
++/*
++ * Scheduler clock - returns current time in nanosec units.
++ *
++ */
++unsigned long long sched_clock(void)
 +{
-+	lkl_cpu_shutdown();
++	if (!boot_time)
++		return 0;
++
++	return lkl_ops->time() - boot_time;
 +}
 +
-+void machine_power_off(void)
++static u64 clock_read(struct clocksource *cs)
 +{
-+	machine_halt();
++	return lkl_ops->time();
 +}
 +
-+void machine_restart(char *unused)
-+{
-+	machine_halt();
-+}
-+
-+long lkl_sys_halt(void)
-+{
-+	long err;
-+	long params[6] = {
-+		LINUX_REBOOT_MAGIC1,
-+		LINUX_REBOOT_MAGIC2,
-+		LINUX_REBOOT_CMD_RESTART,
-+	};
-+
-+	err = lkl_syscall(__NR_reboot, params);
-+	if (err < 0)
-+		return err;
-+
-+	is_running = false;
-+
-+	lkl_cpu_wait_shutdown();
-+
-+	syscalls_cleanup();
-+	threads_cleanup();
-+	/* Shutdown the clockevents source. */
-+	tick_suspend_local();
-+	free_mem();
-+	lkl_ops->thread_join(current_thread_info()->tid);
-+
-+	return 0;
-+}
-+
-+static int lkl_run_init(struct linux_binprm *bprm);
-+
-+static struct linux_binfmt lkl_run_init_binfmt = {
-+	.module		= THIS_MODULE,
-+	.load_binary	= lkl_run_init,
++static struct clocksource clocksource = {
++	.name	= "lkl",
++	.rating = 499,
++	.read	= clock_read,
++	.flags	= CLOCK_SOURCE_IS_CONTINUOUS,
++	.mask	= CLOCKSOURCE_MASK(64),
 +};
 +
-+static int lkl_run_init(struct linux_binprm *bprm)
++static void *timer;
++
++static int timer_irq;
++
++static void timer_fn(void *arg)
++{
++	lkl_trigger_irq(timer_irq);
++}
++
++static int clockevent_set_state_shutdown(struct clock_event_device *evt)
++{
++	if (timer) {
++		lkl_ops->timer_free(timer);
++		timer = NULL;
++	}
++
++	return 0;
++}
++
++static int clockevent_set_state_oneshot(struct clock_event_device *evt)
++{
++	timer = lkl_ops->timer_alloc(timer_fn, NULL);
++	if (!timer)
++		return -ENOMEM;
++
++	return 0;
++}
++
++static irqreturn_t timer_irq_handler(int irq, void *dev_id)
++{
++	struct clock_event_device *dev = (struct clock_event_device *)dev_id;
++
++	dev->event_handler(dev);
++
++	return IRQ_HANDLED;
++}
++
++static int clockevent_next_event(unsigned long ns,
++				 struct clock_event_device *evt)
++{
++	return lkl_ops->timer_set_oneshot(timer, ns);
++}
++
++static struct clock_event_device clockevent = {
++	.name			= "lkl",
++	.features		= CLOCK_EVT_FEAT_ONESHOT,
++	.set_state_oneshot	= clockevent_set_state_oneshot,
++	.set_next_event		= clockevent_next_event,
++	.set_state_shutdown	= clockevent_set_state_shutdown,
++};
++
++static struct irqaction irq0  = {
++	.handler	= timer_irq_handler,
++	.flags		= IRQF_NOBALANCING | IRQF_TIMER,
++	.dev_id		= &clockevent,
++	.name		= "timer"
++};
++
++void __init time_init(void)
 +{
 +	int ret;
 +
-+	if (strcmp("/init", bprm->filename) != 0)
-+		return -EINVAL;
++	if (!lkl_ops->timer_alloc || !lkl_ops->timer_free ||
++	    !lkl_ops->timer_set_oneshot || !lkl_ops->time) {
++		pr_err("lkl: no time or timer support provided by host\n");
++		return;
++	}
 +
-+	ret = flush_old_exec(bprm);
++	timer_irq = lkl_get_free_irq("timer");
++	setup_irq(timer_irq, &irq0);
++
++	ret = clocksource_register_khz(&clocksource, 1000000);
 +	if (ret)
-+		return ret;
-+	set_personality(PER_LINUX);
-+	setup_new_exec(bprm);
-+	install_exec_creds(bprm);
++		pr_err("lkl: unable to register clocksource\n");
 +
-+	set_binfmt(&lkl_run_init_binfmt);
++	clockevents_config_and_register(&clockevent, NSEC_PER_SEC, 1,
++					ULONG_MAX);
 +
-+	init_pid_ns.child_reaper = NULL;
-+
-+	syscalls_init();
-+
-+	lkl_ops->sem_up(init_sem);
-+	lkl_ops->thread_exit();
-+
-+	return 0;
++	boot_time = lkl_ops->time();
++	pr_info("lkl: time and timers initialized (irq%d)\n", timer_irq);
 +}
-+
-+/* skip mounting the "real" rootfs. ramfs is good enough. */
-+static int __init fs_setup(void)
-+{
-+	int fd;
-+
-+	fd = sys_open("/init", O_CREAT, 0700);
-+	WARN_ON(fd < 0);
-+	sys_close(fd);
-+
-+	register_binfmt(&lkl_run_init_binfmt);
-+
-+	return 0;
-+}
-+late_initcall(fs_setup);
 -- 
 2.21.0 (Apple Git-122.2)
