@@ -1,120 +1,51 @@
-Return-Path: <frowand.list@gmail.com>
-Subject: Re: [PATCH v2 6/7] kunit: Add 'kunit_shutdown' option
-From: Frank Rowand <frowand.list@gmail.com>
-References: <20200130230812.142642-1-brendanhiggins@google.com>
- <20200130230812.142642-7-brendanhiggins@google.com>
- <143dcdac-b19a-8eff-b441-ba79f1873801@gmail.com>
-Message-ID: <8f7a5e34-d386-abcd-9926-1bd4cab8aeef@gmail.com>
-Date: Tue, 4 Feb 2020 17:05:51 -0600
+Return-Path: <owner-linux-mm@kvack.org>
+From: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Subject: [RFC PATCH v9 5/7] x86/cet/ibt: Add arch_prctl functions for Indirect
+ Branch Tracking
+Date: Wed,  5 Feb 2020 10:23:06 -0800
+Message-ID: <20200205182308.4028-6-yu-cheng.yu@intel.com>
+In-Reply-To: <20200205182308.4028-1-yu-cheng.yu@intel.com>
+References: <20200205182308.4028-1-yu-cheng.yu@intel.com>
 MIME-Version: 1.0
-In-Reply-To: <143dcdac-b19a-8eff-b441-ba79f1873801@gmail.com>
-Content-Type: text/plain; charset=utf-8
-Content-Language: en-US
-Content-Transfer-Encoding: 7bit
-To: Brendan Higgins <brendanhiggins@google.com>, jdike@addtoit.com, richard@nod.at, anton.ivanov@cambridgegreys.com, arnd@arndb.de, keescook@chromium.org, skhan@linuxfoundation.org, alan.maguire@oracle.com, yzaikin@google.com, davidgow@google.com, akpm@linux-foundation.org, rppt@linux.ibm.com
-Cc: gregkh@linuxfoundation.org, sboyd@kernel.org, logang@deltatee.com, mcgrof@kernel.org, knut.omang@oracle.com, linux-um@lists.infradead.org, linux-arch@vger.kernel.org, linux-kselftest@vger.kernel.org, kunit-dev@googlegroups.com, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org
+Content-Transfer-Encoding: quoted-printable
+Sender: owner-linux-mm@kvack.org
+To: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>, x86-patch-review@intel.com
+Cc: Yu-cheng Yu <yu-cheng.yu@intel.com>
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200204230551.IAQE3LQ5cCtytX0bgCIoaQ0vmr4cz5473iuu1RWT_ZA@z>
+Message-ID: <20200205182306.r3YCSV2FmjG_g7qGeQ0MVFsFacjE8905YzZfnGJmENw@z>
 
-On 2/4/20 5:05 PM, Frank Rowand wrote:
-> On 1/30/20 5:08 PM, Brendan Higgins wrote:
->> From: David Gow <davidgow@google.com>
->>
->> Add a new kernel command-line option, 'kunit_shutdown', which allows the
->> user to specify that the kernel poweroff, halt, or reboot after
->> completing all KUnit tests; this is very handy for running KUnit tests
->> on UML or a VM so that the UML/VM process exits cleanly immediately
->> after running all tests without needing a special initramfs.
-> 
-> kunit_shutdown needs to be added to Documentation/admin-guide/kernel-parameters.txt
+From: "H.J. Lu" <hjl.tools@gmail.com>
 
-Oops, patch 7/7 does exactly that.
+Update ARCH_X86_CET_STATUS and ARCH_X86_CET_DISABLE for Indirect Branch
+Tracking.
 
--Frank
+Signed-off-by: H.J. Lu <hjl.tools@gmail.com>
+Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
+---
+ arch/x86/kernel/cet_prctl.c | 4 ++++
+ 1 file changed, 4 insertions(+)
 
-> 
-> -Frank
-> 
->>
->> Signed-off-by: David Gow <davidgow@google.com>
->> Signed-off-by: Brendan Higgins <brendanhiggins@google.com>
->> Reviewed-by: Stephen Boyd <sboyd@kernel.org>
->> ---
->>  lib/kunit/executor.c                | 20 ++++++++++++++++++++
->>  tools/testing/kunit/kunit_kernel.py |  2 +-
->>  tools/testing/kunit/kunit_parser.py |  2 +-
->>  3 files changed, 22 insertions(+), 2 deletions(-)
->>
->> diff --git a/lib/kunit/executor.c b/lib/kunit/executor.c
->> index 7fd16feff157e..a93821116ccec 100644
->> --- a/lib/kunit/executor.c
->> +++ b/lib/kunit/executor.c
->> @@ -1,5 +1,6 @@
->>  // SPDX-License-Identifier: GPL-2.0
->>  
->> +#include <linux/reboot.h>
->>  #include <kunit/test.h>
->>  
->>  /*
->> @@ -11,6 +12,23 @@ extern struct kunit_suite * const * const __kunit_suites_end[];
->>  
->>  #if IS_BUILTIN(CONFIG_KUNIT)
->>  
->> +static char *kunit_shutdown;
->> +core_param(kunit_shutdown, kunit_shutdown, charp, 0644);
->> +
->> +static void kunit_handle_shutdown(void)
->> +{
->> +	if (!kunit_shutdown)
->> +		return;
->> +
->> +	if (!strcmp(kunit_shutdown, "poweroff"))
->> +		kernel_power_off();
->> +	else if (!strcmp(kunit_shutdown, "halt"))
->> +		kernel_halt();
->> +	else if (!strcmp(kunit_shutdown, "reboot"))
->> +		kernel_restart(NULL);
->> +
->> +}
->> +
->>  static void kunit_print_tap_header(void)
->>  {
->>  	struct kunit_suite * const * const *suites, * const *subsuite;
->> @@ -42,6 +60,8 @@ int kunit_run_all_tests(void)
->>  		}
->>  	}
->>  
->> +	kunit_handle_shutdown();
->> +
->>  	if (has_test_failed)
->>  		return -EFAULT;
->>  
->> diff --git a/tools/testing/kunit/kunit_kernel.py b/tools/testing/kunit/kunit_kernel.py
->> index cc5d844ecca13..43314aa537d30 100644
->> --- a/tools/testing/kunit/kunit_kernel.py
->> +++ b/tools/testing/kunit/kunit_kernel.py
->> @@ -141,7 +141,7 @@ class LinuxSourceTree(object):
->>  		return True
->>  
->>  	def run_kernel(self, args=[], timeout=None, build_dir=''):
->> -		args.extend(['mem=256M'])
->> +		args.extend(['mem=256M', 'kunit_shutdown=halt'])
->>  		process = self._ops.linux_bin(args, timeout, build_dir)
->>  		with open(os.path.join(build_dir, 'test.log'), 'w') as f:
->>  			for line in process.stdout:
->> diff --git a/tools/testing/kunit/kunit_parser.py b/tools/testing/kunit/kunit_parser.py
->> index 78b3bdd03b1e4..633811dd9bce8 100644
->> --- a/tools/testing/kunit/kunit_parser.py
->> +++ b/tools/testing/kunit/kunit_parser.py
->> @@ -48,7 +48,7 @@ class TestStatus(Enum):
->>  	FAILURE_TO_PARSE_TESTS = auto()
->>  
->>  kunit_start_re = re.compile(r'^TAP version [0-9]+$')
->> -kunit_end_re = re.compile('List of all partitions:')
->> +kunit_end_re = re.compile(r'reboot: System halted')
->>  
->>  def isolate_kunit_output(kernel_output):
->>  	started = False
->>
-> 
-> 
+diff --git a/arch/x86/kernel/cet_prctl.c b/arch/x86/kernel/cet_prctl.c
+index 6cf8f87e3d98..2a3170786a3b 100644
+--- a/arch/x86/kernel/cet_prctl.c
++++ b/arch/x86/kernel/cet_prctl.c
+@@ -20,6 +20,8 @@ static int handle_get_status(unsigned long arg2)
+=20
+ 	if (cet->shstk_enabled)
+ 		features |=3D GNU_PROPERTY_X86_FEATURE_1_SHSTK;
++	if (cet->ibt_enabled)
++		features |=3D GNU_PROPERTY_X86_FEATURE_1_IBT;
+=20
+ 	buf[0] =3D (unsigned long)features;
+ 	buf[1] =3D cet->shstk_base;
+@@ -68,6 +70,8 @@ int prctl_cet(int option, unsigned long arg2)
+ 			return -EPERM;
+ 		if (arg2 & GNU_PROPERTY_X86_FEATURE_1_SHSTK)
+ 			cet_disable_free_shstk(current);
++		if (arg2 & GNU_PROPERTY_X86_FEATURE_1_IBT)
++			cet_disable_ibt();
+=20
+ 		return 0;
+=20
+--=20
+2.21.0
