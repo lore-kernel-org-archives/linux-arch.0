@@ -1,65 +1,61 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [RFC v3 01/26] asm-generic: atomic64: allow using generic
- atomic64 on 64bit platforms
-Date: Wed, 5 Feb 2020 18:13:06 +0100
-Message-ID: <20200205171306.GP14879@hirez.programming.kicks-ass.net>
-References: <cover.1580882335.git.thehajime@gmail.com>
- <39e1313ff3cf3eab6ceb5ae322fcd3e5d4432167.1580882335.git.thehajime@gmail.com>
- <20200205093454.GG14879@hirez.programming.kicks-ass.net>
- <CAMoF9u3Jhqyvp3SpA3mUqPhS4zDuXP9GCUu_XsYx2etE0KGkcQ@mail.gmail.com>
- <20200205124908.GL14879@hirez.programming.kicks-ass.net>
- <CAMoF9u12nko0rBGT_iOgXtapuRitS9jSMzAoo8tTykn2dZGK7g@mail.gmail.com>
+From: Yu-cheng Yu <yu-cheng.yu-ral2JQCrhuEAvxtiuMwx3w@public.gmane.org>
+Subject: [RFC PATCH v9 02/27] x86/cpufeatures: Add CET CPU feature flags for Control-flow Enforcement Technology (CET)
+Date: Wed,  5 Feb 2020 10:19:10 -0800
+Message-ID: <20200205181935.3712-3-yu-cheng.yu@intel.com>
+References: <20200205181935.3712-1-yu-cheng.yu@intel.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.133]:58252 "EHLO
-        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726678AbgBERNK (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 5 Feb 2020 12:13:10 -0500
-Content-Disposition: inline
-In-Reply-To: <CAMoF9u12nko0rBGT_iOgXtapuRitS9jSMzAoo8tTykn2dZGK7g@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Octavian Purdila <tavi.purdila@gmail.com>
-Cc: Hajime Tazaki <thehajime@gmail.com>, linux-um <linux-um@lists.infradead.org>, Akira Moroo <retrage01@gmail.com>, linux-kernel-library <linux-kernel-library@freelists.org>, linux-arch <linux-arch@vger.kernel.org>, Will Deacon <will@kernel.org>, Boqun Feng <boqun.feng@gmail.com>
+Content-Transfer-Encoding: 8bit
+Return-path: <linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+In-Reply-To: <20200205181935.3712-1-yu-cheng.yu-ral2JQCrhuEAvxtiuMwx3w@public.gmane.org>
+Sender: linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, "H. Peter Anvin" <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>, Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>, Ingo Molnar <mingo-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-doc-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-api-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, Andy Lutomirski <luto-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Balbir Singh <bsingharora-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, Borislav Petkov <bp-Gina5bIWoIWzQB+pC5nmwQ@public.gmane.org>, Cyrill Gorcunov <gorcunov-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, Dave Hansen <dave.hansen-VuQAYsv1563Yd54FQh9/CA@public.gmane.org>, Eugene Syromiatnikov <esyr-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Florian Weimer <fweimer-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, "H.J. Lu" <hjl.tools-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, Jann Horn <jannh-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, Jonathan Corbet <corbet-T1hC0tSOHrs@public.gmane.org>, Kees Cook <keescook-F7+t8E8rja9g9hUCZPvPmw@public.gmane.org>, Mike Kravetz <mike.kravetz-QHcLZuEGTsvQT0dZR+AlfA@public.gmane.org>, Nadav Amit <nadav.amit-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
+Cc: Yu-cheng Yu <yu-cheng.yu-ral2JQCrhuEAvxtiuMwx3w@public.gmane.org>, Borislav Petkov <bp-l3A5Bk7waGM@public.gmane.org>
+List-Id: linux-arch.vger.kernel.org
 
-On Wed, Feb 05, 2020 at 04:00:41PM +0200, Octavian Purdila wrote:
-> On Wed, Feb 5, 2020 at 2:49 PM Peter Zijlstra <peterz@infradead.org> wrote:
-> >
-> > On Wed, Feb 05, 2020 at 02:24:38PM +0200, Octavian Purdila wrote:
-> > > I was not aware that not allowing GENERIC_ATOMIC64 was intentional. I
-> >
-> > It might not have been, but presented with this patch, I feel like it
-> > should've been :-)
-> >
-> > > understand your point that a 64 bit architecture that can't handle 64
-> > > bit atomic operation is broken.
-> >
-> > (sadly they actually exist, I shall name no names)
-> >
-> > > One way to deal with this in LKL would be to use GCC atomic builtins
-> > > or if that doesn't work expose them as host operations. This would
-> > > keep LKL as a meta-arch that can run on multiple physical
-> > > architectures. I'll give it a try.
-> >
-> > What is this LKL you speak of and how does it do the 32bit atomics?
-> >
-> 
-> LKL is a build of the Linux kernel as a library that can run in many
-> environments including multiple architectures and OSes [1]
+Add CPU feature flags for Control-flow Enforcement Technology (CET).
 
-Thanks, I'll put it on the to-read list.
+CPUID.(EAX=7,ECX=0):ECX[bit 7] Shadow stack
+CPUID.(EAX=7,ECX=0):EDX[bit 20] Indirect Branch Tracking
 
-> For 32bit atomics LKL also uses the asm-generic implementation. It is
-> very similar with generic 64bit atomic implementation and it is used
-> by multiple 32bit arches. I think this was my original reasoning for
-> this patch and not going with C11 atomics.
+Signed-off-by: Yu-cheng Yu <yu-cheng.yu-ral2JQCrhuEAvxtiuMwx3w@public.gmane.org>
+Reviewed-by: Borislav Petkov <bp-l3A5Bk7waGM@public.gmane.org>
+---
+ arch/x86/include/asm/cpufeatures.h | 2 ++
+ arch/x86/kernel/cpu/cpuid-deps.c   | 2 ++
+ 2 files changed, 4 insertions(+)
 
-Uh no, asm-generic/atomic.h is radically different from lib/atomic64.c.
-
-asm-generic/atomic.h builds all required atomic operations from
-cmpxchg() (loops), while lib/atomic64.c builds 64bit atomics by using a
-hashed set of spinlocks.
-
-The asm-generic stuff gives you real atomic ops, albeit sub-optimal,
-lib/atomic64.c gives you a turd.
+diff --git a/arch/x86/include/asm/cpufeatures.h b/arch/x86/include/asm/cpufeatures.h
+index e9b62498fe75..a2c6b1b5c026 100644
+--- a/arch/x86/include/asm/cpufeatures.h
++++ b/arch/x86/include/asm/cpufeatures.h
+@@ -336,6 +336,7 @@
+ #define X86_FEATURE_OSPKE		(16*32+ 4) /* OS Protection Keys Enable */
+ #define X86_FEATURE_WAITPKG		(16*32+ 5) /* UMONITOR/UMWAIT/TPAUSE Instructions */
+ #define X86_FEATURE_AVX512_VBMI2	(16*32+ 6) /* Additional AVX512 Vector Bit Manipulation Instructions */
++#define X86_FEATURE_SHSTK		(16*32+ 7) /* Shadow Stack */
+ #define X86_FEATURE_GFNI		(16*32+ 8) /* Galois Field New Instructions */
+ #define X86_FEATURE_VAES		(16*32+ 9) /* Vector AES */
+ #define X86_FEATURE_VPCLMULQDQ		(16*32+10) /* Carry-Less Multiplication Double Quadword */
+@@ -361,6 +362,7 @@
+ #define X86_FEATURE_MD_CLEAR		(18*32+10) /* VERW clears CPU buffers */
+ #define X86_FEATURE_TSX_FORCE_ABORT	(18*32+13) /* "" TSX_FORCE_ABORT */
+ #define X86_FEATURE_PCONFIG		(18*32+18) /* Intel PCONFIG */
++#define X86_FEATURE_IBT			(18*32+20) /* Indirect Branch Tracking */
+ #define X86_FEATURE_SPEC_CTRL		(18*32+26) /* "" Speculation Control (IBRS + IBPB) */
+ #define X86_FEATURE_INTEL_STIBP		(18*32+27) /* "" Single Thread Indirect Branch Predictors */
+ #define X86_FEATURE_FLUSH_L1D		(18*32+28) /* Flush L1D cache */
+diff --git a/arch/x86/kernel/cpu/cpuid-deps.c b/arch/x86/kernel/cpu/cpuid-deps.c
+index 3cbe24ca80ab..fec83cc74b9e 100644
+--- a/arch/x86/kernel/cpu/cpuid-deps.c
++++ b/arch/x86/kernel/cpu/cpuid-deps.c
+@@ -69,6 +69,8 @@ static const struct cpuid_dep cpuid_deps[] = {
+ 	{ X86_FEATURE_CQM_MBM_TOTAL,		X86_FEATURE_CQM_LLC   },
+ 	{ X86_FEATURE_CQM_MBM_LOCAL,		X86_FEATURE_CQM_LLC   },
+ 	{ X86_FEATURE_AVX512_BF16,		X86_FEATURE_AVX512VL  },
++	{ X86_FEATURE_SHSTK,			X86_FEATURE_XSAVES    },
++	{ X86_FEATURE_IBT,			X86_FEATURE_XSAVES    },
+ 	{}
+ };
+ 
+-- 
+2.21.0
