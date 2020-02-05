@@ -1,74 +1,210 @@
-Return-Path: <linux-riscv-bounces+rppt=linux.ibm.com@lists.infradead.org>
-From: Anshuman Khandual <anshuman.khandual@arm.com>
-Subject: Re: [PATCH V14] mm/debug: Add tests validating architecture page
- table helpers
-References: <1581909460-19148-1-git-send-email-anshuman.khandual@arm.com>
- <1582726182.7365.123.camel@lca.pw> <1582726340.7365.124.camel@lca.pw>
- <eb154054-68ab-a659-065b-f4f7dcbb8671@c-s.fr>
-Message-ID: <52db1e9b-83b3-c41f-ef03-0f43e2159a83@arm.com>
-Date: Thu, 27 Feb 2020 08:04:05 +0530
+Return-Path: <owner-linux-mm@kvack.org>
+From: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Subject: [RFC PATCH v9 04/27] x86/cet: Add control-protection fault handler
+Date: Wed,  5 Feb 2020 10:19:12 -0800
+Message-ID: <20200205181935.3712-5-yu-cheng.yu@intel.com>
+In-Reply-To: <20200205181935.3712-1-yu-cheng.yu@intel.com>
+References: <20200205181935.3712-1-yu-cheng.yu@intel.com>
 MIME-Version: 1.0
-In-Reply-To: <eb154054-68ab-a659-065b-f4f7dcbb8671@c-s.fr>
-Content-Type: text/plain; charset=utf-8
-Content-Language: en-US
-Content-Transfer-Encoding: 8bit
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-riscv>,
- <mailto:linux-riscv-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-riscv/>
-List-Post: <mailto:linux-riscv@lists.infradead.org>
-List-Help: <mailto:linux-riscv-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-riscv>,
- <mailto:linux-riscv-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-riscv" <linux-riscv-bounces@lists.infradead.org>
-Errors-To: linux-riscv-bounces+rppt=linux.ibm.com@lists.infradead.org
-To: Christophe Leroy <christophe.leroy@c-s.fr>, Qian Cai <cai@lca.pw>, linux-mm@kvack.org
-Cc: Catalin Marinas <catalin.marinas@arm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Paul Mackerras <paulus@samba.org>, "H. Peter Anvin" <hpa@zytor.com>, linux-riscv@lists.infradead.org, Will Deacon <will@kernel.org>, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, Michael Ellerman <mpe@ellerman.id.au>, x86@kernel.org, Mike Rapoport <rppt@linux.ibm.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Ingo Molnar <mingo@redhat.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, James Morse <james.morse@arm.com>, linux-snps-arc@lists.infradead.org, Vasily Gorbik <gor@linux.ibm.com>, Borislav Petkov <bp@alien8.de>, Paul Walmsley <paul.walmsley@sifive.com>, "Kirill A . Shutemov" <kirill@shutemov.name>, Thomas Gleixner <tglx@linutronix.de>, linux-arm-kernel@lists.infradead.org, Vineet Gupta <vgupta@synopsys.com>, linux-kernel@vger.kernel.org, Palmer Dabbelt <palmer@dabbelt.com>, Andrew Morton <akpm@linux-foundation.org>, linuxppc-dev@lists.ozlabs.org
+Content-Transfer-Encoding: quoted-printable
+Sender: owner-linux-mm@kvack.org
+To: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>, x86-patch-review@intel.com
+Cc: Yu-cheng Yu <yu-cheng.yu@intel.com>
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200227023405.syp--RKaM34QGhMTJh4v81OKNwtBZaLgZOeis3cy258@z>
+Message-ID: <20200205181912.jiqLJVlNgKPrp-iVmjyRkwRimC8UflGk9RCF5GcXMkI@z>
 
-On 02/26/2020 08:14 PM, Christophe Leroy wrote:
-> 
-> 
-> Le 26/02/2020 à 15:12, Qian Cai a écrit :
->> On Wed, 2020-02-26 at 09:09 -0500, Qian Cai wrote:
->>> On Mon, 2020-02-17 at 08:47 +0530, Anshuman Khandual wrote:
->>>
->>> How useful is this that straightly crash the powerpc?
->>
->> And then generate warnings on arm64,
->>
->> [  146.634626][    T1] debug_vm_pgtable: debug_vm_pgtable: Validating
->> architecture page table helpers
->> [  146.643995][    T1] ------------[ cut here ]------------
->> [  146.649350][    T1] virt_to_phys used for non-linear address:
->> (____ptrval____) (start_kernel+0x0/0x580)
-> 
-> Must be something wrong with the following in debug_vm_pgtable()
-> 
->     paddr = __pa(&start_kernel);
-> 
-> Is there any explaination why start_kernel() is not in linear memory on ARM64 ?
+A control-protection fault is triggered when a control-flow transfer
+attempt violates Shadow Stack or Indirect Branch Tracking constraints.
+For example, the return address for a RET instruction differs from the co=
+py
+on the Shadow Stack; or an indirect JMP instruction, without the NOTRACK
+prefix, arrives at a non-ENDBR opcode.
 
+The control-protection fault handler works in a similar way as the genera=
+l
+protection fault handler.  It provides the si_code SEGV_CPERR to the sign=
+al
+handler.
 
-Cc: + James Morse <james.morse@arm.com>
+v9:
+- Add Shadow Stack pointer to the fault printout.
 
-This warning gets exposed with DEBUG_VIRTUAL due to __pa() on a kernel symbol
-i.e 'start_kernel' which might be outside the linear map. This happens due to
-kernel mapping position randomization with KASLR. Adding James here in case he
-might like to add more.
+Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
+---
+ arch/x86/entry/entry_64.S          |  2 +-
+ arch/x86/include/asm/traps.h       |  3 ++
+ arch/x86/kernel/idt.c              |  4 ++
+ arch/x86/kernel/signal_compat.c    |  2 +-
+ arch/x86/kernel/traps.c            | 59 ++++++++++++++++++++++++++++++
+ include/uapi/asm-generic/siginfo.h |  3 +-
+ 6 files changed, 70 insertions(+), 3 deletions(-)
 
-__pa_symbol() should have been used instead, for accessing the physical address
-here. On arm64 __pa() does check for linear address with __is_lm_address() and
-switch accordingly if it is a kernel text symbol. Nevertheless, its much better
-to use __pa_symbol() here rather than __pa().
-
-Rather than respining the patch once more, will just send a fix replacing this
-helper __pa() with __pa_symbol() for Andrew to pick up as this patch is already
-part of linux-next (next-20200226). But can definitely respin if that will be
-preferred.
-
-Thanks Qian for catching this.
-
-> 
-> Christophe
-> 
+diff --git a/arch/x86/entry/entry_64.S b/arch/x86/entry/entry_64.S
+index 76942cbd95a1..6ca77312d008 100644
+--- a/arch/x86/entry/entry_64.S
++++ b/arch/x86/entry/entry_64.S
+@@ -1034,7 +1034,7 @@ idtentry spurious_interrupt_bug		do_spurious_interr=
+upt_bug	has_error_code=3D0
+ idtentry coprocessor_error		do_coprocessor_error		has_error_code=3D0
+ idtentry alignment_check		do_alignment_check		has_error_code=3D1
+ idtentry simd_coprocessor_error		do_simd_coprocessor_error	has_error_cod=
+e=3D0
+-
++idtentry control_protection		do_control_protection		has_error_code=3D1
+=20
+ 	/*
+ 	 * Reload gs selector with exception handling
+diff --git a/arch/x86/include/asm/traps.h b/arch/x86/include/asm/traps.h
+index ffa0dc8a535e..7ac26bbd0bef 100644
+--- a/arch/x86/include/asm/traps.h
++++ b/arch/x86/include/asm/traps.h
+@@ -26,6 +26,7 @@ asmlinkage void invalid_TSS(void);
+ asmlinkage void segment_not_present(void);
+ asmlinkage void stack_segment(void);
+ asmlinkage void general_protection(void);
++asmlinkage void control_protection(void);
+ asmlinkage void page_fault(void);
+ asmlinkage void async_page_fault(void);
+ asmlinkage void spurious_interrupt_bug(void);
+@@ -84,6 +85,7 @@ struct bad_iret_stack *fixup_bad_iret(struct bad_iret_s=
+tack *s);
+ void __init trap_init(void);
+ #endif
+ dotraplinkage void do_general_protection(struct pt_regs *regs, long erro=
+r_code);
++dotraplinkage void do_control_protection(struct pt_regs *regs, long erro=
+r_code);
+ dotraplinkage void do_page_fault(struct pt_regs *regs, unsigned long err=
+or_code, unsigned long address);
+ dotraplinkage void do_spurious_interrupt_bug(struct pt_regs *regs, long =
+error_code);
+ dotraplinkage void do_coprocessor_error(struct pt_regs *regs, long error=
+_code);
+@@ -154,6 +156,7 @@ enum {
+ 	X86_TRAP_AC,		/* 17, Alignment Check */
+ 	X86_TRAP_MC,		/* 18, Machine Check */
+ 	X86_TRAP_XF,		/* 19, SIMD Floating-Point Exception */
++	X86_TRAP_CP =3D 21,	/* 21 Control Protection Fault */
+ 	X86_TRAP_IRET =3D 32,	/* 32, IRET Exception */
+ };
+=20
+diff --git a/arch/x86/kernel/idt.c b/arch/x86/kernel/idt.c
+index 87ef69a72c52..8ed406f469e7 100644
+--- a/arch/x86/kernel/idt.c
++++ b/arch/x86/kernel/idt.c
+@@ -102,6 +102,10 @@ static const __initconst struct idt_data def_idts[] =
+=3D {
+ #elif defined(CONFIG_X86_32)
+ 	SYSG(IA32_SYSCALL_VECTOR,	entry_INT80_32),
+ #endif
++
++#ifdef CONFIG_X86_64
++	INTG(X86_TRAP_CP,		control_protection),
++#endif
+ };
+=20
+ /*
+diff --git a/arch/x86/kernel/signal_compat.c b/arch/x86/kernel/signal_com=
+pat.c
+index 9ccbf0576cd0..c572a3de1037 100644
+--- a/arch/x86/kernel/signal_compat.c
++++ b/arch/x86/kernel/signal_compat.c
+@@ -27,7 +27,7 @@ static inline void signal_compat_build_tests(void)
+ 	 */
+ 	BUILD_BUG_ON(NSIGILL  !=3D 11);
+ 	BUILD_BUG_ON(NSIGFPE  !=3D 15);
+-	BUILD_BUG_ON(NSIGSEGV !=3D 7);
++	BUILD_BUG_ON(NSIGSEGV !=3D 8);
+ 	BUILD_BUG_ON(NSIGBUS  !=3D 5);
+ 	BUILD_BUG_ON(NSIGTRAP !=3D 5);
+ 	BUILD_BUG_ON(NSIGCHLD !=3D 6);
+diff --git a/arch/x86/kernel/traps.c b/arch/x86/kernel/traps.c
+index 05da6b5b167b..99c83ee522ed 100644
+--- a/arch/x86/kernel/traps.c
++++ b/arch/x86/kernel/traps.c
+@@ -570,6 +570,65 @@ do_general_protection(struct pt_regs *regs, long err=
+or_code)
+ }
+ NOKPROBE_SYMBOL(do_general_protection);
+=20
++static const char * const control_protection_err[] =3D {
++	"unknown",
++	"near-ret",
++	"far-ret/iret",
++	"endbranch",
++	"rstorssp",
++	"setssbsy",
++};
++
++/*
++ * When a control protection exception occurs, send a signal
++ * to the responsible application.  Currently, control
++ * protection is only enabled for the user mode.  This
++ * exception should not come from the kernel mode.
++ */
++dotraplinkage void
++do_control_protection(struct pt_regs *regs, long error_code)
++{
++	struct task_struct *tsk;
++
++	RCU_LOCKDEP_WARN(!rcu_is_watching(), "entry code didn't wake RCU");
++	if (notify_die(DIE_TRAP, "control protection fault", regs,
++		       error_code, X86_TRAP_CP, SIGSEGV) =3D=3D NOTIFY_STOP)
++		return;
++	cond_local_irq_enable(regs);
++
++	if (!user_mode(regs))
++		die("kernel control protection fault", regs, error_code);
++
++	if (!static_cpu_has(X86_FEATURE_SHSTK) &&
++	    !static_cpu_has(X86_FEATURE_IBT))
++		WARN_ONCE(1, "CET is disabled but got control protection fault\n");
++
++	tsk =3D current;
++	tsk->thread.error_code =3D error_code;
++	tsk->thread.trap_nr =3D X86_TRAP_CP;
++
++	if (show_unhandled_signals && unhandled_signal(tsk, SIGSEGV) &&
++	    printk_ratelimit()) {
++		unsigned int max_err;
++		unsigned long ssp;
++
++		max_err =3D ARRAY_SIZE(control_protection_err) - 1;
++		if ((error_code < 0) || (error_code > max_err))
++			error_code =3D 0;
++		rdmsrl(MSR_IA32_PL3_SSP, ssp);
++		pr_info("%s[%d] control protection ip:%lx sp:%lx ssp:%lx error:%lx(%s)=
+",
++			tsk->comm, task_pid_nr(tsk),
++			regs->ip, regs->sp, ssp, error_code,
++			control_protection_err[error_code]);
++		print_vma_addr(KERN_CONT " in ", regs->ip);
++		pr_cont("\n");
++	}
++
++	force_sig_fault(SIGSEGV, SEGV_CPERR,
++			(void __user *)uprobe_get_trap_addr(regs));
++}
++NOKPROBE_SYMBOL(do_control_protection);
++
+ dotraplinkage void notrace do_int3(struct pt_regs *regs, long error_code=
+)
+ {
+ #ifdef CONFIG_DYNAMIC_FTRACE
+diff --git a/include/uapi/asm-generic/siginfo.h b/include/uapi/asm-generi=
+c/siginfo.h
+index cb3d6c267181..693071dbe641 100644
+--- a/include/uapi/asm-generic/siginfo.h
++++ b/include/uapi/asm-generic/siginfo.h
+@@ -229,7 +229,8 @@ typedef struct siginfo {
+ #define SEGV_ACCADI	5	/* ADI not enabled for mapped object */
+ #define SEGV_ADIDERR	6	/* Disrupting MCD error */
+ #define SEGV_ADIPERR	7	/* Precise MCD exception */
+-#define NSIGSEGV	7
++#define SEGV_CPERR	8
++#define NSIGSEGV	8
+=20
+ /*
+  * SIGBUS si_codes
+--=20
+2.21.0
