@@ -1,94 +1,69 @@
-Return-Path: <owner-linux-mm@kvack.org>
-Date: Mon, 3 Feb 2020 17:20:02 +0000 (UTC)
-From: Christopher Lameter <cl@linux.com>
-Subject: Re: [kernel-hardening] [PATCH 09/38] usercopy: Mark kmalloc caches as
- usercopy caches
-In-Reply-To: <202002010952.ACDA7A81@keescook>
-Message-ID: <alpine.DEB.2.21.2002031716440.1668@www.lameter.com>
-References: <bfca96db-bbd0-d958-7732-76e36c667c68@suse.cz>
- <202001271519.AA6ADEACF0@keescook>
- <5861936c-1fe1-4c44-d012-26efa0c8b6e7@de.ibm.com>
- <202001281457.FA11CC313A@keescook>
- <alpine.DEB.2.21.2001291640350.1546@www.lameter.com>
- <6844ea47-8e0e-4fb7-d86f-68046995a749@de.ibm.com>
- <20200129170939.GA4277@infradead.org>
- <771c5511-c5ab-3dd1-d938-5dbc40396daa@de.ibm.com>
- <202001300945.7D465B5F5@keescook>
- <CAG48ez1a4waGk9kB0WLaSbs4muSoK0AYAVk8=XYaKj4_+6e6Hg@mail.gmail.com>
- <202002010952.ACDA7A81@keescook>
+Return-Path: <linux-doc-owner@vger.kernel.org>
+From: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Subject: [RFC PATCH v9 0/7] Control-flow Enforcement: Indirect Branch Tracking
+Date: Wed,  5 Feb 2020 10:23:01 -0800
+Message-ID: <20200205182308.4028-1-yu-cheng.yu@intel.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Sender: owner-linux-mm@kvack.org
-To: Kees Cook <keescook@chromium.org>
-Cc: Jann Horn <jannh@google.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Christoph Hellwig <hch@infradead.org>, Jiri Slaby <jslaby@suse.cz>, Julian Wiedmann <jwi@linux.ibm.com>, Ursula Braun <ubraun@linux.ibm.com>, Alexander Viro <viro@zeniv.linux.org.uk>, kernel list <linux-kernel@vger.kernel.org>, David Windsor <dave@nullcore.net>, Pekka Enberg <penberg@kernel.org>, David Rientjes <rientjes@google.com>, Joonsoo Kim <iamjoonsoo.kim@lge.com>, Andrew Morton <akpm@linux-foundation.org>, Linux-MM <linux-mm@kvack.org>, linux-xfs@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, "David S. Miller" <davem@davemloft.net>, Laura Abbott <labbott@redhat.com>, Mark Rutland <mark.rutland@arm.com>, "Martin K. Petersen" <martin.petersen@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Christoffer Dall <christoffer.dall@linaro.org>, Dave Kleikamp <dave.kleikamp@oracle.com>, Jan Kara <jack@suse.cz>, Luis de Bethencourt <luisbg@kernel.org>, Marc Zyngier <marc.zyngier@arm.com>, Rik van Riel <riel@redhat.com>, Matthew Garrett <mjg59@google.com>, linux-fsdevel <linux-fsdevel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Network Development <netdev@vger.kernel.org>, Kernel Hardening <kernel-hardening@lists.openwall.com>, Vlastimil Babka <vbabka@suse.cz>, Michal Kubecek <mkubecek@suse.cz>
+Content-Transfer-Encoding: 8bit
+Sender: linux-doc-owner@vger.kernel.org
+To: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>, x86-patch-review@intel.com
+Cc: Yu-cheng Yu <yu-cheng.yu@intel.com>
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200203172002.NGK_Gn3yJ94U2g_JRQSKP3G8FadbFGWwcvciM8rggic@z>
+Message-ID: <20200205182301.mkLlXwEIHiOF6w-2CGmruRUB9CDWELDs8xw6L2HTOpE@z>
 
-On Sat, 1 Feb 2020, Kees Cook wrote:
->
-> I can't find where the address limit for dma-kmalloc is implemented.
+Control-flow Enforcement (CET) is a new Intel processor feature that blocks
+return/jump-oriented programming attacks.  Details can be found in "Intel
+64 and IA-32 Architectures Software Developer's Manual" [1].
 
-include/linux/mmzones.h
+This is the second half of CET and enables Indirect Branch Tracking (IBT).
 
-enum zone_type {
-        /*
-         * ZONE_DMA and ZONE_DMA32 are used when there are peripherals not able
-         * to DMA to all of the addressable memory (ZONE_NORMAL).
-         * On architectures where this area covers the whole 32 bit address
-         * space ZONE_DMA32 is used. ZONE_DMA is left for the ones with smaller
-         * DMA addressing constraints. This distinction is important as a 32bit
-         * DMA mask is assumed when ZONE_DMA32 is defined. Some 64-bit
-         * platforms may need both zones as they support peripherals with
-         * different DMA addressing limitations.
-         *
-         * Some examples:
-         *
-         *  - i386 and x86_64 have a fixed 16M ZONE_DMA and ZONE_DMA32 for the
-         *    rest of the lower 4G.
-         *
-         *  - arm only uses ZONE_DMA, the size, up to 4G, may vary depending on
-         *    the specific device.
-         *
-         *  - arm64 has a fixed 1G ZONE_DMA and ZONE_DMA32 for the rest of the
-         *    lower 4G.
-         *
-         *  - powerpc only uses ZONE_DMA, the size, up to 2G, may vary
-         *    depending on the specific device.
-         *
-         *  - s390 uses ZONE_DMA fixed to the lower 2G.
-         *
-         *  - ia64 and riscv only use ZONE_DMA32.
-         *
-         *  - parisc uses neither.
-         */
-#ifdef CONFIG_ZONE_DMA
-        ZONE_DMA,
-#endif
-#ifdef CONFIG_ZONE_DMA32
-        ZONE_DMA32,
-#endif
-        /*
-         * Normal addressable memory is in ZONE_NORMAL. DMA operations can
-be
-         * performed on pages in ZONE_NORMAL if the DMA devices support
-         * transfers to all addressable memory.
-         */
-        ZONE_NORMAL,
-#ifdef CONFIG_HIGHMEM
-        /*
-         * A memory area that is only addressable by the kernel through
-         * mapping portions into its own address space. This is for example
-         * used by i386 to allow the kernel to address the memory beyond
-         * 900MB. The kernel will set up special mappings (page
-         * table entries on i386) for each page that the kernel needs to
-         * access.
-         */
-        ZONE_HIGHMEM,
-#endif
-        ZONE_MOVABLE,
-#ifdef CONFIG_ZONE_DEVICE
-        ZONE_DEVICE,
-#endif
-        __MAX_NR_ZONES
+Changes from v8:
 
-};
+- Remove a patch that adds the legacy bitmap size to memory accounting,
+  since the bitmap is now dynamically allocated.
+- Change the legacy bitmap from a pre-defined address to
+  get_unmapped_area().
+- Fix mis-handling of WAIT_ENDBR in signals
+- Split out PTRACE, VDSO, opcode map, and Makefile changes and submit
+  separately.
+
+[1] Intel 64 and IA-32 Architectures Software Developer's Manual:
+
+    https://software.intel.com/en-us/download/intel-64-and-ia-32-
+    architectures-sdm-combined-volumes-1-2a-2b-2c-2d-3a-3b-3c-3d-and-4
+
+[2] CET patches v8:
+
+    https://lkml.kernel.org/r/20190813205225.12032-1-yu-cheng.yu@intel.com/
+    https://lkml.kernel.org/r/20190813205359.12196-1-yu-cheng.yu@intel.com/
+
+H.J. Lu (1):
+  x86/cet/ibt: Add arch_prctl functions for Indirect Branch Tracking
+
+Yu-cheng Yu (6):
+  x86/cet/ibt: Add Kconfig option for user-mode Indirect Branch Tracking
+  x86/cet/ibt: User-mode Indirect Branch Tracking support
+  x86/cet/ibt: Handle signals for Indirect Branch Tracking
+  x86/cet/ibt: ELF header parsing for Indirect Branch Tracking
+  mm: Update alloc_set_pte() for zero page
+  x86/cet/ibt: Introduce arch_prctl(ARCH_X86_CET_MARK_LEGACY_CODE)
+
+ arch/x86/Kconfig                              |  17 ++
+ arch/x86/Makefile                             |   7 +
+ arch/x86/include/asm/cet.h                    |   7 +
+ arch/x86/include/asm/disabled-features.h      |   8 +-
+ arch/x86/include/uapi/asm/prctl.h             |   3 +
+ arch/x86/kernel/Makefile                      |   2 +-
+ arch/x86/kernel/cet.c                         |  58 ++++-
+ arch/x86/kernel/cet_bitmap.c                  | 226 ++++++++++++++++++
+ arch/x86/kernel/cet_prctl.c                   |  19 ++
+ arch/x86/kernel/cpu/common.c                  |  17 ++
+ arch/x86/kernel/fpu/signal.c                  |   8 +-
+ arch/x86/kernel/process_64.c                  |   5 +
+ mm/memory.c                                   |   8 +
+ .../arch/x86/include/asm/disabled-features.h  |   8 +-
+ 14 files changed, 385 insertions(+), 8 deletions(-)
+ create mode 100644 arch/x86/kernel/cet_bitmap.c
+
+-- 
+2.21.0
