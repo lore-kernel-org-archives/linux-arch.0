@@ -1,331 +1,486 @@
 From: Hajime Tazaki <thehajime@gmail.com>
-Subject: [RFC v3 23/26] um lkl: add CI scripts to conduct regression tests
-Date: Wed,  5 Feb 2020 16:30:32 +0900
-Message-ID: <1a518410ecf1b5efe341841931f7d6a913638786.1580882335.git.thehajime@gmail.com>
+Subject: [RFC v3 20/26] lkl tools: fs2tar that converts a filesystem image to tar
+Date: Wed,  5 Feb 2020 16:30:29 +0900
+Message-ID: <a1e18cf58ea683fd920bef01fa17f60898ce4284.1580882335.git.thehajime@gmail.com>
 References: <cover.1580882335.git.thehajime@gmail.com>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pl1-f196.google.com ([209.85.214.196]:39004 "EHLO
-        mail-pl1-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727083AbgBEHbh (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 5 Feb 2020 02:31:37 -0500
-Received: by mail-pl1-f196.google.com with SMTP id g6so516816plp.6
-        for <linux-arch@vger.kernel.org>; Tue, 04 Feb 2020 23:31:36 -0800 (PST)
+Received: from mail-pg1-f193.google.com ([209.85.215.193]:43863 "EHLO
+        mail-pg1-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727930AbgBEHbi (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 5 Feb 2020 02:31:38 -0500
+Received: by mail-pg1-f193.google.com with SMTP id u131so519259pgc.10
+        for <linux-arch@vger.kernel.org>; Tue, 04 Feb 2020 23:31:38 -0800 (PST)
 In-Reply-To: <cover.1580882335.git.thehajime@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-um@lists.infradead.org
-Cc: Octavian Purdila <tavi.purdila@gmail.com>, Akira Moroo <retrage01@gmail.com>, linux-kernel-library@freelists.org, linux-arch@vger.kernel.org, Hajime Tazaki <thehajime@gmail.com>
+Cc: Octavian Purdila <tavi.purdila@gmail.com>, Akira Moroo <retrage01@gmail.com>, linux-kernel-library@freelists.org, linux-arch@vger.kernel.org, Conrad Meyer <cem@FreeBSD.org>, Petros Angelatos <petrosagg@gmail.com>, Hajime Tazaki <thehajime@gmail.com>
 
-For the continuous integration (CI), we use CircleCI with multiple test
-targets triggered with a single commit.  The test also conducts memory
-checks using valgrind in order to prevent enbug.
+From: Octavian Purdila <tavi.purdila@gmail.com>
 
+Simple utility that converts a filesystem image to a tar file,
+preserving file rights and extended attributes.
+
+Cc: Conrad Meyer <cem@FreeBSD.org>
+Cc: Petros Angelatos <petrosagg@gmail.com>
 Signed-off-by: Hajime Tazaki <thehajime@gmail.com>
+Signed-off-by: Octavian Purdila <tavi.purdila@gmail.com>
 ---
- .circleci/config.yml             | 196 +++++++++++++++++++++++++++++++
- tools/lkl/scripts/checkpatch.sh  |  60 ++++++++++
- tools/lkl/scripts/lkl-jenkins.sh |  21 ++++
- 3 files changed, 277 insertions(+)
- create mode 100644 .circleci/config.yml
- create mode 100755 tools/lkl/scripts/checkpatch.sh
- create mode 100755 tools/lkl/scripts/lkl-jenkins.sh
+ tools/lkl/.gitignore |   1 +
+ tools/lkl/Build      |   1 +
+ tools/lkl/Targets    |   4 +
+ tools/lkl/fs2tar.c   | 412 +++++++++++++++++++++++++++++++++++++++++++
+ 4 files changed, 418 insertions(+)
+ create mode 100644 tools/lkl/fs2tar.c
 
-diff --git a/.circleci/config.yml b/.circleci/config.yml
+diff --git a/tools/lkl/.gitignore b/tools/lkl/.gitignore
+index 1a8210f4d9c4..138e65efcad2 100644
+--- a/tools/lkl/.gitignore
++++ b/tools/lkl/.gitignore
+@@ -9,3 +9,4 @@ tests/valgrind*.xml
+ *.pyc
+ cptofs
+ cpfromfs
++fs2tar
+diff --git a/tools/lkl/Build b/tools/lkl/Build
+index a9d12c5ca260..73b37363a6de 100644
+--- a/tools/lkl/Build
++++ b/tools/lkl/Build
+@@ -1,2 +1,3 @@
+ cptofs-$(LKL_HOST_CONFIG_ARCHIVE) += cptofs.o
++fs2tar-$(LKL_HOST_CONFIG_ARCHIVE) += fs2tar.o
+ 
+diff --git a/tools/lkl/Targets b/tools/lkl/Targets
+index 17de965f92b3..3451a1856955 100644
+--- a/tools/lkl/Targets
++++ b/tools/lkl/Targets
+@@ -8,3 +8,7 @@ progs-$(LKL_HOST_CONFIG_ARCHIVE) += cptofs
+ progs-$(LKL_HOST_CONFIG_ARCHIVE) += cpfromfs
+ LDLIBS_cptofs-y := -larchive
+ LDLIBS_cptofs-$(LKL_HOST_CONFIG_NEEDS_LARGP) += -largp
++
++progs-$(LKL_HOST_CONFIG_ARCHIVE) += fs2tar
++LDLIBS_fs2tar-y := -larchive
++LDLIBS_fs2tar-$(LKL_HOST_CONFIG_NEEDS_LARGP) += -largp
+diff --git a/tools/lkl/fs2tar.c b/tools/lkl/fs2tar.c
 new file mode 100644
-index 000000000000..5bdf059014c0
+index 000000000000..b7dbcf2028a3
 --- /dev/null
-+++ b/.circleci/config.yml
-@@ -0,0 +1,196 @@
-+version: 2
-+general:
-+  artifacts:
++++ b/tools/lkl/fs2tar.c
+@@ -0,0 +1,412 @@
++// SPDX-License-Identifier: GPL-2.0
++#ifdef __FreeBSD__
++#include <sys/param.h>
++#endif
 +
-+do_steps: &do_steps
-+ steps:
-+  - run: echo "$CROSS_COMPILE" > ~/_cross_compile
-+  - restore_cache:
-+      key: code-tree-shallow-{{ .Environment.CACHE_VERSION }}
-+  - run:
-+      name: checkout build tree
-+      command: |
-+        mkdir -p ~/.ssh/
-+        ssh-keyscan -H github.com >> ~/.ssh/known_hosts
-+        if ! [ -d .git ]; then
-+          git clone --depth=1 $CIRCLE_REPOSITORY_URL .;
-+        fi
-+        if [[ $CIRCLE_BRANCH == pull/* ]]; then
-+           git fetch --depth=1 origin $CIRCLE_BRANCH/head;
-+        else
-+           git fetch --depth=1 origin $CIRCLE_BRANCH;
-+        fi
-+        git reset --hard $CIRCLE_SHA1
-+  - save_cache:
-+      key: code-tree-shallow-{{ .Environment.CACHE_VERSION }}-{{ epoch }}
-+      paths:
-+        - /home/ubuntu/project/.git
-+  - run:
-+      name: clean
-+      command: |
-+        make mrproper
-+        cd tools/lkl && make clean-conf
-+        rm -rf ~/junit
-+  - run: mkdir -p /home/ubuntu/.ccache
-+  - restore_cache:
-+      key: compiler-cache-{{ checksum "~/_cross_compile" }}-{{ .Environment.CACHE_VERSION }}
-+  - run: cd tools/lkl && make -j8 ${MKARG}
-+  - run: mkdir -p ~/destdir && cd tools/lkl && make DESTDIR=~/destdir
-+  - save_cache:
-+     paths:
-+       - /home/ubuntu/.ccache
-+     key: compiler-cache-{{ checksum "~/_cross_compile" }}-{{ .Environment.CACHE_VERSION }}-{{ epoch }}
-+  - run:
-+      name: run tests
-+      command: |
-+        mkdir -p ~/junit
-+        make -C tools/lkl run-tests tests="--junit-dir ~/junit"
-+      no_output_timeout: "90m"
-+  - run:
-+      name: collecting test results
-+      command: |
-+        find ./tools/lkl/ -type f -name "*.xml" -exec mv {} ~/junit/ \;
-+  - store_test_results:
-+      path: ~/junit
-+  - store_artifacts:
-+      path: ~/junit
++#include <stdio.h>
++#include <time.h>
++#include <argp.h>
++#include <unistd.h>
++#include <string.h>
++#include <stdlib.h>
++#include <libgen.h>
++#include <sys/stat.h>
++#include <fcntl.h>
++#include <archive.h>
++#include <archive_entry.h>
++#include <lkl.h>
++#include <lkl_host.h>
 +
++char doc[] = "";
++char args_doc[] = "-t fstype fsimage_path tar_path";
++static struct argp_option options[] = {
++	{"enable-printk", 'p', 0, 0, "show Linux printks"},
++	{"partition", 'P', "int", 0, "partition number"},
++	{"filesystem-type", 't', "string", 0,
++	 "select filesystem type - mandatory"},
++	{"selinux-contexts", 's', "file", 0,
++	 "export selinux contexts to file"},
++	{0},
++};
 +
-+do_uml_steps: &do_uml_steps
-+ steps:
-+  - run: echo "$CROSS_COMPILE" > ~/_cross_compile
-+  - restore_cache:
-+      key: code-tree-shallow-{{ .Environment.CACHE_VERSION }}
-+  - run:
-+      name: checkout build tree
-+      command: |
-+        mkdir -p ~/.ssh/
-+        ssh-keyscan -H github.com >> ~/.ssh/known_hosts
-+        if ! [ -d .git ]; then
-+          git clone --depth=1 $CIRCLE_REPOSITORY_URL .;
-+        fi
-+        if [[ $CIRCLE_BRANCH == pull/* ]]; then
-+           git fetch --depth=1 origin $CIRCLE_BRANCH/head;
-+        else
-+           git fetch --depth=1 origin $CIRCLE_BRANCH;
-+        fi
-+        git reset --hard $CIRCLE_SHA1
-+  - save_cache:
-+      key: code-tree-shallow-{{ .Environment.CACHE_VERSION }}-{{ epoch }}
-+      paths:
-+        - /home/ubuntu/project/.git
-+  - run: mkdir -p /home/ubuntu/.ccache
-+  - restore_cache:
-+      key: compiler-cache-{{ checksum "~/_cross_compile" }}-{{ .Environment.CACHE_VERSION }}
-+  - run:
-+      name: build
-+      command: |
-+        sudo apt-get update
-+        sudo apt-get install -y gcc-multilib g++-multilib
-+        make defconfig ARCH=um SUBARCH=$SUBARCH
-+        make ARCH=um SUBARCH=$SUBARCH
-+  - save_cache:
-+     paths:
-+       - /home/ubuntu/.ccache
-+     key: compiler-cache-{{ checksum "~/_cross_compile" }}-{{ .Environment.CACHE_VERSION }}-{{ epoch }}
-+  - run:
-+      name: test
-+      command: |
-+        # XXX: i386 build doesn't work with the test
-+        if [ $CIRCLE_STAGE = "i386_uml" ] || [ $CIRCLE_STAGE = "i386_uml_on_x86_64" ]; then
-+          exit 0
-+        fi
-+        ./linux rootfstype=hostfs ro mem=1g loglevel=10 init="/bin/bash -c exit" || export RETVAL=$?
-+        # SIGABRT=6 => 128+6
-+        if [ $RETVAL != "134" ]; then
-+          exit 1
-+        fi
++static struct cl_args {
++	int printk;
++	int part;
++	const char *fsimg_type;
++	const char *fsimg_path;
++	const char *tar_path;
++	FILE *selinux;
++} cla;
 +
-+## Customize the test machine
-+jobs:
-+  x86_64:
-+   docker:
-+     - image: lkldocker/circleci-x86_64:0.7
-+   environment:
-+     CROSS_COMPILE: ""
-+   <<: *do_steps
-+
-+  i386:
-+   docker:
-+     - image: lkldocker/circleci-i386:0.1
-+   environment:
-+     CROSS_COMPILE: ""
-+   <<: *do_steps
-+
-+  x86_64_valgrind:
-+   docker:
-+     - image: lkldocker/circleci-x86_64:0.7
-+   environment:
-+     CROSS_COMPILE: ""
-+     VALGRIND: 1
-+   <<: *do_steps
-+
-+  x86_64_uml:
-+   docker:
-+     - image: lkldocker/circleci-x86_64:0.7
-+   environment:
-+     CROSS_COMPILE: ""
-+     TMPDIR: "/tmp" # required for not using /dev/shm
-+     SUBARCH: "x86_64"
-+   <<: *do_uml_steps
-+
-+  i386_uml:
-+   docker:
-+     - image: lkldocker/circleci-i386:0.1
-+   environment:
-+     CROSS_COMPILE: ""
-+     SUBARCH: "i386"
-+     TMPDIR: "/tmp" # required for not using /dev/shm
-+   <<: *do_uml_steps
-+
-+  i386_uml_on_x86_64:
-+   docker:
-+     - image: lkldocker/circleci-x86_64:0.7
-+   environment:
-+     CROSS_COMPILE: ""
-+     TMPDIR: "/tmp" # required for not using /dev/shm
-+     SUBARCH: "i386"
-+   <<: *do_uml_steps
-+
-+  checkpatch:
-+   docker:
-+     - image: lkldocker/circleci:0.5
-+   environment:
-+   steps:
-+     - restore_cache:
-+        key: code-tree-full-history-{{ .Environment.CACHE_VERSION }}
-+     - checkout
-+     - run: sudo pip install ply
-+     - run: tools/lkl/scripts/checkpatch.sh
-+     - save_cache:
-+        key: code-tree-full-history-{{ .Environment.CACHE_VERSION }}-{{ epoch }}
-+        paths:
-+          - /home/ubuntu/project/.git
-+        when: always
-+
-+workflows:
-+  version: 2
-+  build:
-+    jobs:
-+     - x86_64
-+     - x86_64_valgrind
-+     - checkpatch
-+     - i386
-+     - x86_64_uml
-+     - i386_uml
-+     - i386_uml_on_x86_64
-+  nightly:
-+    triggers:
-+      - schedule:
-+          cron: "0 0 * * *"
-+          filters:
-+            branches:
-+              only:
-+                - master
-+    jobs:
-+      - x86_64_valgrind
-diff --git a/tools/lkl/scripts/checkpatch.sh b/tools/lkl/scripts/checkpatch.sh
-new file mode 100755
-index 000000000000..0c02ca6b21a2
---- /dev/null
-+++ b/tools/lkl/scripts/checkpatch.sh
-@@ -0,0 +1,60 @@
-+#!/bin/sh -ex
-+# SPDX-License-Identifier: GPL-2.0
-+
-+if [ -z "$origin_master" ]; then
-+    origin_master="origin/master"
-+fi
-+
-+UPSTREAM=git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git
-+LKL=github.com:lkl/linux.git
-+
-+upstream=`git remote -v | grep $UPSTREAM | cut -f1 | head -n1`
-+lkl=`git remote -v | grep $LKL | cut -f1 | head -n1`
-+
-+if [ -z "$upstream" ]; then
-+    git fetch --tags --progress git://$UPSTREAM
-+else
-+    git fetch --tags $upstream
-+fi
-+
-+if [ -z "$lkl" ]; then
-+    git remote add lkl-upstream git@$LKL || true
-+    lkl=`git remote -v | grep $LKL | cut -f1 | head -n1`
-+fi
-+
-+if [ -z "$lkl" ]; then
-+    echo "can't find lkl remote, quiting"
-+    exit 1
-+fi
-+
-+git fetch $lkl
-+git fetch --tags $upstream
-+
-+# find the last upstream tag to avoid checking upstream commits during
-+# upstream merges
-+tag=`git tag --sort='-*authordate' | grep ^v | head -n1`
-+tmp=`mktemp -d`
-+
-+commits=$(git log --no-merges --pretty=format:%h HEAD ^$lkl/master ^$tag)
-+for c in $commits; do
-+    git format-patch -1 -o $tmp $c
-+done
-+
-+if [ -z "$c" ]; then
-+    echo "there are not commits/patches to check, quiting."
-+    rmdir $tmp
-+    exit 0
-+fi
-+
-+./scripts/checkpatch.pl --ignore FILE_PATH_CHANGES $tmp/*.patch
-+rm $tmp/*.patch
-+
-+# checkpatch.pl does not know how to deal with 3 way diffs which would
-+# be useful to check the conflict resolutions during merges...
-+#for c in `git log --merges --pretty=format:%h HEAD ^$origin_master ^$tag`; do
-+#    git log --pretty=email $c -1 > $tmp/$c.patch
-+#    git diff $c $c^1 $c^2 >> $tmp/$c.patch
-+#done
-+
-+rmdir $tmp
-+
-diff --git a/tools/lkl/scripts/lkl-jenkins.sh b/tools/lkl/scripts/lkl-jenkins.sh
-new file mode 100755
-index 000000000000..eaadc6e90143
---- /dev/null
-+++ b/tools/lkl/scripts/lkl-jenkins.sh
-@@ -0,0 +1,21 @@
-+#!/bin/bash
-+# SPDX-License-Identifier: GPL-2.0
-+
-+set -e
-+
-+script_dir=$(cd $(dirname ${BASH_SOURCE:-$0}); pwd)
-+basedir=$(cd $script_dir/../../..; pwd)
-+
-+export PATH=$PATH:/sbin
-+
-+build_and_test()
++static error_t parse_opt(int key, char *arg, struct argp_state *state)
 +{
-+    cd $basedir
-+    make mrproper
-+    cd tools/lkl
-+    make clean-conf
-+    make -j4
-+    make run-tests
++	struct cl_args *cla = state->input;
++
++	switch (key) {
++	case 'p':
++		cla->printk = 1;
++		break;
++	case 'P':
++		cla->part = atoi(arg);
++		break;
++	case 't':
++		cla->fsimg_type = arg;
++		break;
++	case 's':
++		cla->selinux = fopen(arg, "w");
++		if (!cla->selinux) {
++			fprintf(stderr,
++				"failed to open selinux contexts file: %s\n",
++				strerror(errno));
++			return -1;
++		}
++		break;
++	case ARGP_KEY_ARG:
++		if (!cla->fsimg_path)
++			cla->fsimg_path = arg;
++		else if (!cla->tar_path)
++			cla->tar_path = arg;
++		else
++			return -1;
++		break;
++	case ARGP_KEY_END:
++		if (state->arg_num < 2 || !cla->fsimg_type)
++			argp_usage(state);
++		break;
++	default:
++		return ARGP_ERR_UNKNOWN;
++	}
++
++	return 0;
 +}
 +
-+build_and_test
++static struct argp argp = { options, parse_opt, args_doc, doc };
++
++static struct archive *tar;
++
++static int searchdir(const char *fsimg_path, const char *path);
++
++static int copy_file(const char *fsimg_path, const char *path)
++{
++	long fsimg_fd;
++	char buff[4096];
++	long len, wrote;
++	int ret = 0;
++
++	fsimg_fd = lkl_sys_open(fsimg_path, LKL_O_RDONLY, 0);
++	if (fsimg_fd < 0) {
++		fprintf(stderr, "fsimg error opening %s: %s\n", fsimg_path,
++			lkl_strerror(fsimg_fd));
++		return fsimg_fd;
++	}
++
++	do {
++		len = lkl_sys_read(fsimg_fd, buff, sizeof(buff));
++		if (len > 0) {
++			wrote = archive_write_data(tar, buff, len);
++			if (wrote != len) {
++				fprintf(stderr,
++					"error writing file %s to archive: %s [%d %ld]\n",
++					path, archive_error_string(tar), ret,
++					len);
++				ret = -archive_errno(tar);
++				break;
++			}
++		}
++
++		if (len < 0) {
++			fprintf(stderr, "error reading fsimg file %s: %s\n",
++				fsimg_path, lkl_strerror(len));
++			ret = len;
++		}
++
++	} while (len > 0);
++
++	lkl_sys_close(fsimg_fd);
++
++	return ret;
++}
++
++static int add_link(const char *fsimg_path, const char *path,
++		    struct archive_entry *entry)
++{
++	char buf[4096] = { 0, };
++	long len;
++
++	len = lkl_sys_readlink(fsimg_path, buf, sizeof(buf));
++	if (len < 0) {
++		fprintf(stderr, "fsimg readlink error %s: %s\n",
++			fsimg_path, lkl_strerror(len));
++		return len;
++	}
++
++	archive_entry_set_symlink(entry, buf);
++
++	return 0;
++}
++
++static inline void fsimg_copy_stat(struct stat *st, struct lkl_stat *fst)
++{
++	st->st_dev = fst->st_dev;
++	st->st_ino = fst->st_ino;
++	st->st_mode = fst->st_mode;
++	st->st_nlink = fst->st_nlink;
++	st->st_uid = fst->st_uid;
++	st->st_gid = fst->st_gid;
++	st->st_rdev = fst->st_rdev;
++	st->st_size = fst->st_size;
++	st->st_blksize = fst->st_blksize;
++	st->st_blocks = fst->st_blocks;
++	st->st_atim.tv_sec = fst->lkl_st_atime;
++	st->st_atim.tv_nsec = fst->st_atime_nsec;
++	st->st_mtim.tv_sec = fst->lkl_st_mtime;
++	st->st_mtim.tv_nsec = fst->st_mtime_nsec;
++	st->st_ctim.tv_sec = fst->lkl_st_ctime;
++	st->st_ctim.tv_nsec = fst->st_ctime_nsec;
++}
++
++static int copy_xattr(const char *fsimg_path, const char *path,
++		      struct archive_entry *entry)
++{
++	long ret;
++	char *xattr_list, *i;
++	long xattr_list_size;
++
++	ret = lkl_sys_llistxattr(fsimg_path, NULL, 0);
++	if (ret < 0) {
++		fprintf(stderr, "fsimg llistxattr(%s) error: %s\n",
++			path, lkl_strerror(ret));
++		return ret;
++	}
++
++	if (!ret)
++		return 0;
++
++	xattr_list = malloc(ret);
++
++	ret = lkl_sys_llistxattr(fsimg_path, xattr_list, ret);
++	if (ret < 0) {
++		fprintf(stderr, "fsimg llistxattr(%s) error: %s\n", path,
++			lkl_strerror(ret));
++		free(xattr_list);
++		return ret;
++	}
++
++	xattr_list_size = ret;
++
++	for (i = xattr_list; i - xattr_list < xattr_list_size;
++	     i += strlen(i) + 1) {
++		void *xattr_buf;
++
++		ret = lkl_sys_lgetxattr(fsimg_path, i, NULL, 0);
++		if (ret < 0) {
++			fprintf(stderr, "fsimg lgetxattr(%s) error: %s\n", path,
++				lkl_strerror(ret));
++			free(xattr_list);
++			return ret;
++		}
++
++		xattr_buf = malloc(ret);
++
++		ret = lkl_sys_lgetxattr(fsimg_path, i, xattr_buf, ret);
++		if (ret < 0) {
++			fprintf(stderr, "fsimg lgetxattr2(%s) error: %s\n",
++				path, lkl_strerror(ret));
++			free(xattr_list);
++			free(xattr_buf);
++			return ret;
++		}
++
++		if (cla.selinux && strcmp(i, "security.selinux") == 0)
++			fprintf(cla.selinux, "%s %s\n", path,
++				(char *)xattr_buf);
++
++		archive_entry_xattr_clear(entry);
++		archive_entry_xattr_add_entry(entry, i, xattr_buf, ret);
++
++		free(xattr_buf);
++	}
++
++	free(xattr_list);
++
++	return 0;
++}
++
++static int do_entry(const char *fsimg_path, const char *path,
++		    const struct lkl_linux_dirent64 *de)
++{
++	char fsimg_new_path[PATH_MAX], new_path[PATH_MAX];
++	struct lkl_stat fsimg_stat;
++	struct stat stat;
++	struct archive_entry *entry;
++	int ftype;
++	long ret;
++
++	snprintf(new_path, sizeof(new_path), "%s/%s", path, de->d_name);
++	snprintf(fsimg_new_path, sizeof(fsimg_new_path), "%s/%s", fsimg_path,
++		 de->d_name);
++
++	ret = lkl_sys_lstat(fsimg_new_path, &fsimg_stat);
++	if (ret) {
++		fprintf(stderr, "fsimg lstat(%s) error: %s\n",
++			path, lkl_strerror(ret));
++		return ret;
++	}
++
++	entry = archive_entry_new();
++
++	archive_entry_set_pathname(entry, new_path);
++	fsimg_copy_stat(&stat, &fsimg_stat);
++	archive_entry_copy_stat(entry, &stat);
++	ret = copy_xattr(fsimg_new_path, new_path, entry);
++	if (ret)
++		return ret;
++	/* TODO: ACLs */
++
++	ftype = stat.st_mode & S_IFMT;
++
++	switch (ftype) {
++	case S_IFREG:
++		archive_write_header(tar, entry);
++		ret = copy_file(fsimg_new_path, new_path);
++		break;
++	case S_IFDIR:
++		archive_write_header(tar, entry);
++		ret = searchdir(fsimg_new_path, new_path);
++		break;
++	case S_IFLNK:
++		ret = add_link(fsimg_new_path, new_path, entry);
++		/* fall through */
++	case S_IFSOCK:
++	case S_IFBLK:
++	case S_IFCHR:
++	case S_IFIFO:
++		if (ret)
++			break;
++		archive_write_header(tar, entry);
++		break;
++	default:
++		printf("skipping %s: unsupported entry type %d\n", new_path,
++		       ftype);
++	}
++
++	archive_entry_free(entry);
++
++	if (ret)
++		printf("error processing entry %s, aborting\n", new_path);
++
++	return ret;
++}
++
++static int searchdir(const char *fsimg_path, const char *path)
++{
++	long ret, fd;
++	char buf[1024], *pos;
++	long buf_len;
++
++	fd = lkl_sys_open(fsimg_path, LKL_O_RDONLY | LKL_O_DIRECTORY, 0);
++	if (fd < 0) {
++		fprintf(stderr, "failed to open dir %s: %s", fsimg_path,
++			lkl_strerror(fd));
++		return fd;
++	}
++
++	do {
++		struct lkl_linux_dirent64 *de;
++
++		de = (struct lkl_linux_dirent64 *) buf;
++		buf_len = lkl_sys_getdents64(fd, de, sizeof(buf));
++		if (buf_len < 0) {
++			fprintf(stderr, "gentdents64 error: %s\n",
++				lkl_strerror(buf_len));
++			break;
++		}
++
++		for (pos = buf; pos - buf < buf_len; pos += de->d_reclen) {
++			de = (struct lkl_linux_dirent64 *)pos;
++
++			if (!strcmp(de->d_name, ".") ||
++			    !strcmp(de->d_name, ".."))
++				continue;
++
++			ret = do_entry(fsimg_path, path, de);
++			if (ret)
++				goto out;
++		}
++
++	} while (buf_len > 0);
++
++out:
++	lkl_sys_close(fd);
++	return ret;
++}
++
++int main(int argc, char **argv)
++{
++	struct lkl_disk disk;
++	long ret;
++	char mpoint[32];
++	unsigned int disk_id;
++
++	if (argp_parse(&argp, argc, argv, 0, 0, &cla) < 0)
++		return -1;
++
++	if (!cla.printk)
++		lkl_host_ops.print = NULL;
++
++	disk.fd = open(cla.fsimg_path, O_RDONLY);
++	if (disk.fd < 0) {
++		fprintf(stderr, "can't open fsimg %s: %s\n", cla.fsimg_path,
++			strerror(errno));
++		ret = 1;
++		goto out;
++	}
++
++	disk.ops = NULL;
++	disk.dev = (char *)cla.fsimg_path;
++
++	ret = lkl_disk_add(&disk);
++	if (ret < 0) {
++		fprintf(stderr, "can't add disk: %s\n", lkl_strerror(ret));
++		goto out_close;
++	}
++	disk_id = ret;
++
++	lkl_start_kernel(&lkl_host_ops, "mem=10M");
++
++	ret = lkl_mount_dev(disk_id, cla.part, cla.fsimg_type, LKL_MS_RDONLY,
++			    NULL, mpoint, sizeof(mpoint));
++	if (ret) {
++		fprintf(stderr, "can't mount disk: %s\n", lkl_strerror(ret));
++		goto out_close;
++	}
++
++	ret = lkl_sys_chdir(mpoint);
++	if (ret) {
++		fprintf(stderr, "can't chdir to %s: %s\n", mpoint,
++			lkl_strerror(ret));
++		goto out_umount;
++	}
++
++	tar = archive_write_new();
++	archive_write_set_format_pax_restricted(tar);
++	archive_write_open_filename(tar, cla.tar_path);
++
++	ret = searchdir(mpoint, "");
++
++	archive_write_free(tar);
++
++	if (cla.selinux)
++		fclose(cla.selinux);
++
++out_umount:
++	lkl_umount_dev(disk_id, cla.part, 0, 1000);
++
++out_close:
++	close(disk.fd);
++
++out:
++	lkl_sys_halt();
++
++	return ret;
++}
 -- 
 2.21.0 (Apple Git-122.2)
