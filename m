@@ -1,50 +1,54 @@
 From: Frank Rowand <frowand.list@gmail.com>
-Subject: Re: [PATCH v2 0/7] kunit: create a centralized executor to dispatch
- all KUnit tests
-Date: Tue, 4 Feb 2020 17:35:18 -0600
-Message-ID: <4d0f42f7-8dbe-3d47-e0df-3e31cc8ebf52@gmail.com>
+Subject: Re: [PATCH v2 7/7] Documentation: Add kunit_shutdown to
+ kernel-parameters.txt
+Date: Tue, 4 Feb 2020 18:19:07 -0600
+Message-ID: <d187686e-a175-e30b-2af9-6e00822fed5c@gmail.com>
 References: <20200130230812.142642-1-brendanhiggins@google.com>
- <20200204071915.AF32B21582@mail.kernel.org>
- <CAFd5g44ZG+E==gT24w49oKc6nHv4nBQFeipikKxXJH3oHdO99Q@mail.gmail.com>
+ <20200130230812.142642-8-brendanhiggins@google.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=utf-8
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-doc-owner@vger.kernel.org>
-In-Reply-To: <CAFd5g44ZG+E==gT24w49oKc6nHv4nBQFeipikKxXJH3oHdO99Q@mail.gmail.com>
+In-Reply-To: <20200130230812.142642-8-brendanhiggins@google.com>
 Content-Language: en-US
 Sender: linux-doc-owner@vger.kernel.org
-To: Brendan Higgins <brendanhiggins@google.com>, Stephen Boyd <sboyd@kernel.org>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Alan Maguire <alan.maguire@oracle.com>, Anton Ivanov <anton.ivanov@cambridgegreys.com>, Arnd Bergmann <arnd@arndb.de>, David Gow <davidgow@google.com>, Jeff Dike <jdike@addtoit.com>, Kees Cook <keescook@chromium.org>, Richard Weinberger <richard@nod.at>, rppt@linux.ibm.com, Shuah Khan <skhan@linuxfoundation.org>, Iurii Zaikin <yzaikin@google.com>, Greg KH <gregkh@linuxfoundation.org>, Logan Gunthorpe <logang@deltatee.com>, Luis Chamberlain <mcgrof@kernel.org>, Knut Omang <knut.omang@oracle.com>, linux-um <linux-um@lists.infradead.org>, linux-arch@vger.kernel.org, "open list:KERNEL SELFTEST FRAMEWORK" <linux-kselftest@vger.kernel.org>, KUnit Development <kunit-dev@googlegroups.com>, Linux
+To: Brendan Higgins <brendanhiggins@google.com>, jdike@addtoit.com, richard@nod.at, anton.ivanov@cambridgegreys.com, arnd@arndb.de, keescook@chromium.org, skhan@linuxfoundation.org, alan.maguire@oracle.com, yzaikin@google.com, davidgow@google.com, akpm@linux-foundation.org, rppt@linux.ibm.com
+Cc: gregkh@linuxfoundation.org, sboyd@kernel.org, logang@deltatee.com, mcgrof@kernel.org, knut.omang@oracle.com, linux-um@lists.infradead.org, linux-arch@vger.kernel.org, linux-kselftest@vger.kernel.org, kunit-dev@googlegroups.com, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On 2/4/20 1:35 PM, Brendan Higgins wrote:
-> On Mon, Feb 3, 2020 at 11:19 PM Stephen Boyd <sboyd@kernel.org> wrote:
->>
->> Quoting Brendan Higgins (2020-01-30 15:08:05)
->>> ## TL;DR
->>>
->>> This patchset adds a centralized executor to dispatch tests rather than
->>> relying on late_initcall to schedule each test suite separately along
->>> with a couple of new features that depend on it.
->>
->> Is there any diff from v1 to v2? I don't know what changed, but I see
->> that my Reviewed-by tag has been put on everything, so I guess
->> everything I said was addressed or discussed in the previous round.
+On 1/30/20 5:08 PM, Brendan Higgins wrote:
+> Add kunit_shutdown, an option to specify that the kernel shutsdown after
+> running KUnit tests, to the kernel-parameters.txt documentation.
 > 
-> Oh yes, sorry about that. I have gotten a bit lazy in regard to
-> changing logs. I noticed that a lot of people don't seem to care. I'll
-> make a note that you do.
-
-Please ignore those who don't care.  Just always include a change log.
-
-You may encounter bike shedding about where the log belongs (in patch 0,
-in the modified patches, in both locations).  The color of my bike shed
-is simply that they exist somewhere, but my most favorite color is both
-places.
-
+> Signed-off-by: Brendan Higgins <brendanhiggins@google.com>
+> Reviewed-by: Stephen Boyd <sboyd@kernel.org>
+> ---
+>  Documentation/admin-guide/kernel-parameters.txt | 7 +++++++
+>  1 file changed, 7 insertions(+)
 > 
-> Changes since last revision:
-> - On patch 6/7, I flipped the include order and removed braces from the if
->   statements.
-> - On patch 7/7, I removed the periods from the short descriptions.
+> diff --git a/Documentation/admin-guide/kernel-parameters.txt b/Documentation/admin-guide/kernel-parameters.txt
+> index ade4e6ec23e03..522fd8bdec949 100644
+> --- a/Documentation/admin-guide/kernel-parameters.txt
+> +++ b/Documentation/admin-guide/kernel-parameters.txt
+> @@ -2054,6 +2054,13 @@
+>  			0: force disabled
+>  			1: force enabled
+>  
+> +	kunit_shutdown	[KERNEL UNIT TESTING FRAMEWORK] Shutdown kernel after
+> +			running tests.
+
+                        running built-in tests.  Tests configured as modules will not be run.
+
+My wording might not be consistent with KUnit terminology regarding "built-in" and "modules".
+Feel free to properly word smith.
+
+
+> +			Default:	(flag not present) don't shutdown
+> +			poweroff:	poweroff the kernel after running tests
+> +			halt:		halt the kernel after running tests
+> +			reboot:		reboot the kernel after running tests
+> +
+>  	kvm.ignore_msrs=[KVM] Ignore guest accesses to unhandled MSRs.
+>  			Default is 0 (don't ignore, but inject #GP)
+>  
 > 
