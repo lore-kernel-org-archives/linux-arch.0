@@ -1,220 +1,334 @@
 From: Hajime Tazaki <thehajime@gmail.com>
-Subject: [RFC v3 05/26] um lkl: memory handling
-Date: Wed,  5 Feb 2020 16:30:14 +0900
-Message-ID: <8b4b2ed333ba55c7e20c680d7daff27fed2192fd.1580882335.git.thehajime@gmail.com>
+Subject: [RFC v3 07/26] um lkl: interrupt support
+Date: Wed,  5 Feb 2020 16:30:16 +0900
+Message-ID: <9d6f93f061b2b248c0fa0a7f1530792936f8e7be.1580882335.git.thehajime@gmail.com>
 References: <cover.1580882335.git.thehajime@gmail.com>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pg1-f194.google.com ([209.85.215.194]:35804 "EHLO
-        mail-pg1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+Received: from mail-pj1-f66.google.com ([209.85.216.66]:37100 "EHLO
+        mail-pj1-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
         with ESMTP id S1726597AbgBEHa4 (ORCPT
         <rfc822;linux-arch@vger.kernel.org>); Wed, 5 Feb 2020 02:30:56 -0500
-Received: by mail-pg1-f194.google.com with SMTP id l24so536676pgk.2
-        for <linux-arch@vger.kernel.org>; Tue, 04 Feb 2020 23:30:55 -0800 (PST)
+Received: by mail-pj1-f66.google.com with SMTP id m13so612476pjb.2
+        for <linux-arch@vger.kernel.org>; Tue, 04 Feb 2020 23:30:56 -0800 (PST)
 In-Reply-To: <cover.1580882335.git.thehajime@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-um@lists.infradead.org
-Cc: Octavian Purdila <tavi.purdila@gmail.com>, Akira Moroo <retrage01@gmail.com>, linux-kernel-library@freelists.org, linux-arch@vger.kernel.org, Levente Kurusa <levex@linux.com>, Yuan Liu <liuyuan@google.com>, Hajime Tazaki <thehajime@gmail.com>
+Cc: Octavian Purdila <tavi.purdila@gmail.com>, Akira Moroo <retrage01@gmail.com>, linux-kernel-library@freelists.org, linux-arch@vger.kernel.org, Michael Zimmermann <sigmaepsilon92@gmail.com>, Hajime Tazaki <thehajime@gmail.com>
 
 From: Octavian Purdila <tavi.purdila@gmail.com>
 
-LKL is a non MMU architecture and hence there is not much work left to
-do other than initializing the boot allocator and providing the page
-and page table definitions.
+Add APIs that allows the host to reserve and free and interrupt number
+and also to trigger an interrupt.
 
-The backstore memory is allocated via a host operation and the memory
-size to be used is specified when the kernel is started, in the
-lkl_start_kernel call.
+The trigger operation will simply store the interrupt data in
+queue. The interrupt handler is run later, at the first opportunity it
+has to avoid races with any kernel threads.
 
-Cc: H.K. Jerry Chu <hkchu@google.com>
-Cc: Levente Kurusa <levex@linux.com>
-Cc: Yuan Liu <liuyuan@google.com>
+Currently, interrupts are run on the first interrupt enable operation
+if interrupts are disabled and if we are not already in interrupt
+context.
+
+When triggering an interrupt, it uses GCC's built-in functions for
+atomic memory access to synchronize and simple boolean flags.
+
+Cc: Michael Zimmermann <sigmaepsilon92@gmail.com>
 Signed-off-by: Hajime Tazaki <thehajime@gmail.com>
 Signed-off-by: Octavian Purdila <tavi.purdila@gmail.com>
 ---
- arch/um/lkl/include/asm/page.h          | 14 ++++++
- arch/um/lkl/include/asm/pgtable.h       | 57 +++++++++++++++++++++
- arch/um/lkl/include/uapi/asm/host_ops.h |  5 ++
- arch/um/lkl/mm/bootmem.c                | 66 +++++++++++++++++++++++++
- 4 files changed, 142 insertions(+)
- create mode 100644 arch/um/lkl/include/asm/page.h
- create mode 100644 arch/um/lkl/include/asm/pgtable.h
- create mode 100644 arch/um/lkl/mm/bootmem.c
+ arch/um/lkl/include/asm/irq.h             |  13 ++
+ arch/um/lkl/include/uapi/asm/irq.h        |  36 ++++
+ arch/um/lkl/include/uapi/asm/sigcontext.h |  16 ++
+ arch/um/lkl/kernel/irq.c                  | 193 ++++++++++++++++++++++
+ 4 files changed, 258 insertions(+)
+ create mode 100644 arch/um/lkl/include/asm/irq.h
+ create mode 100644 arch/um/lkl/include/uapi/asm/irq.h
+ create mode 100644 arch/um/lkl/include/uapi/asm/sigcontext.h
+ create mode 100644 arch/um/lkl/kernel/irq.c
 
-diff --git a/arch/um/lkl/include/asm/page.h b/arch/um/lkl/include/asm/page.h
+diff --git a/arch/um/lkl/include/asm/irq.h b/arch/um/lkl/include/asm/irq.h
 new file mode 100644
-index 000000000000..e77f3da22031
+index 000000000000..948fc54cb76c
 --- /dev/null
-+++ b/arch/um/lkl/include/asm/page.h
-@@ -0,0 +1,14 @@
++++ b/arch/um/lkl/include/asm/irq.h
+@@ -0,0 +1,13 @@
 +/* SPDX-License-Identifier: GPL-2.0 */
-+#ifndef _ASM_LKL_PAGE_H
-+#define _ASM_LKL_PAGE_H
++#ifndef _ASM_LKL_IRQ_H
++#define _ASM_LKL_IRQ_H
 +
-+#define CONFIG_KERNEL_RAM_BASE_ADDRESS memory_start
++#define IRQ_STATUS_BITS		(sizeof(long) * 8)
++#define NR_IRQS			((int)(IRQ_STATUS_BITS * IRQ_STATUS_BITS))
 +
-+#ifndef __ASSEMBLY__
-+void free_mem(void);
-+void bootmem_init(unsigned long mem_size);
-+#endif
++void run_irqs(void);
++void set_irq_pending(int irq);
 +
-+#include <asm-generic/page.h>
-+
-+#endif /* _ASM_LKL_PAGE_H */
-diff --git a/arch/um/lkl/include/asm/pgtable.h b/arch/um/lkl/include/asm/pgtable.h
-new file mode 100644
-index 000000000000..733beb6d53f6
---- /dev/null
-+++ b/arch/um/lkl/include/asm/pgtable.h
-@@ -0,0 +1,57 @@
-+/* SPDX-License-Identifier: GPL-2.0 */
-+#ifndef _LKL_PGTABLE_H
-+#define _LKL_PGTABLE_H
-+
-+#include <asm-generic/pgtable-nopud.h>
-+
-+/*
-+ * (C) Copyright 2000-2002, Greg Ungerer <gerg@snapgear.com>
-+ */
-+
-+#include <linux/slab.h>
-+#include <asm/processor.h>
-+#include <asm/io.h>
-+
-+#define pgd_present(pgd)	(1)
-+#define pgd_none(pgd)		(0)
-+#define pgd_bad(pgd)		(0)
-+#define pgd_clear(pgdp)
-+#define kern_addr_valid(addr)	(1)
-+#define	pmd_offset(a, b)	((void *)0)
-+
-+#define PAGE_NONE		__pgprot(0)
-+#define PAGE_SHARED		__pgprot(0)
-+#define PAGE_COPY		__pgprot(0)
-+#define PAGE_READONLY		__pgprot(0)
-+#define PAGE_KERNEL		__pgprot(0)
-+
-+void paging_init(void);
-+#define swapper_pg_dir		((pgd_t *)0)
-+
-+#define __swp_type(x)		(0)
-+#define __swp_offset(x)		(0)
-+#define __swp_entry(typ, off)	((swp_entry_t) { ((typ) | ((off) << 7)) })
-+#define __pte_to_swp_entry(pte)	((swp_entry_t) { pte_val(pte) })
-+#define __swp_entry_to_pte(x)	((pte_t) { (x).val })
-+
-+/*
-+ * ZERO_PAGE is a global shared page that is always zero: used
-+ * for zero-mapped memory areas etc..
-+ */
-+extern void *empty_zero_page;
-+#define ZERO_PAGE(vaddr)	(virt_to_page(empty_zero_page))
-+
-+/*
-+ * All 32bit addresses are effectively valid for vmalloc...
-+ * Sort of meaningless for non-VM targets.
-+ */
-+#define	VMALLOC_START		0
-+#define	VMALLOC_END		0xffffffff
-+#define	KMAP_START		0
-+#define	KMAP_END		0xffffffff
-+
-+#include <asm-generic/pgtable.h>
-+
-+#define check_pgt_cache()	do { } while (0)
++#include <uapi/asm/irq.h>
 +
 +#endif
-diff --git a/arch/um/lkl/include/uapi/asm/host_ops.h b/arch/um/lkl/include/uapi/asm/host_ops.h
-index 7cfb0a93e6a6..6bbc94c120be 100644
---- a/arch/um/lkl/include/uapi/asm/host_ops.h
-+++ b/arch/um/lkl/include/uapi/asm/host_ops.h
-@@ -17,8 +17,13 @@ struct lkl_jmp_buf {
-  * These operations must be provided by a host library or by the application
-  * itself.
-  *
-+ * @mem_alloc - allocate memory
-+ * @mem_free - free memory
+diff --git a/arch/um/lkl/include/uapi/asm/irq.h b/arch/um/lkl/include/uapi/asm/irq.h
+new file mode 100644
+index 000000000000..666628b233eb
+--- /dev/null
++++ b/arch/um/lkl/include/uapi/asm/irq.h
+@@ -0,0 +1,36 @@
++/* SPDX-License-Identifier: GPL-2.0 WITH Linux-syscall-note */
++#ifndef _ASM_UAPI_LKL_IRQ_H
++#define _ASM_UAPI_LKL_IRQ_H
++
++/**
++ * lkl_trigger_irq - generate an interrupt
 + *
-  */
- struct lkl_host_operations {
-+	void *(*mem_alloc)(unsigned long mem);
-+	void (*mem_free)(void *mem);
- };
- 
- void lkl_bug(const char *fmt, ...);
-diff --git a/arch/um/lkl/mm/bootmem.c b/arch/um/lkl/mm/bootmem.c
++ * This function is used by the device host side to signal its Linux counterpart
++ * that some event happened.
++ *
++ * @irq - the irq number to signal
++ */
++int lkl_trigger_irq(int irq);
++
++/**
++ * lkl_get_free_irq - find and reserve a free IRQ number
++ *
++ * This function is called by the host device code to find an unused IRQ number
++ * and reserved it for its own use.
++ *
++ * @user - a string to identify the user
++ * @returns - and irq number that can be used by request_irq or an negative
++ * value in case of an error
++ */
++int lkl_get_free_irq(const char *user);
++
++/**
++ * lkl_put_irq - release an IRQ number previously obtained with lkl_get_free_irq
++ *
++ * @irq - irq number to release
++ * @user - string identifying the user; should be the same as the one passed to
++ * lkl_get_free_irq when the irq number was obtained
++ */
++void lkl_put_irq(int irq, const char *name);
++
++#endif
+diff --git a/arch/um/lkl/include/uapi/asm/sigcontext.h b/arch/um/lkl/include/uapi/asm/sigcontext.h
 new file mode 100644
-index 000000000000..39dd0d22b44e
+index 000000000000..2f4848843d1d
 --- /dev/null
-+++ b/arch/um/lkl/mm/bootmem.c
-@@ -0,0 +1,66 @@
++++ b/arch/um/lkl/include/uapi/asm/sigcontext.h
+@@ -0,0 +1,16 @@
++/* SPDX-License-Identifier: GPL-2.0 WITH Linux-syscall-note */
++#ifndef _ASM_UAPI_LKL_SIGCONTEXT_H
++#define _ASM_UAPI_LKL_SIGCONTEXT_H
++
++#include <asm/ptrace.h>
++
++struct pt_regs {
++	void *irq_data;
++};
++
++struct sigcontext {
++	struct pt_regs regs;
++	unsigned long oldmask;
++};
++
++#endif
+diff --git a/arch/um/lkl/kernel/irq.c b/arch/um/lkl/kernel/irq.c
+new file mode 100644
+index 000000000000..e3b59e46ca50
+--- /dev/null
++++ b/arch/um/lkl/kernel/irq.c
+@@ -0,0 +1,193 @@
 +// SPDX-License-Identifier: GPL-2.0
-+#include <linux/memblock.h>
-+#include <linux/mm.h>
-+#include <linux/swap.h>
-+
-+unsigned long memory_start, memory_end;
-+static unsigned long _memory_start, mem_size;
-+
-+void *empty_zero_page;
-+
-+void __init bootmem_init(unsigned long mem_sz)
-+{
-+	mem_size = mem_sz;
-+
-+	_memory_start = (unsigned long)lkl_ops->mem_alloc(mem_size);
-+	memory_start = _memory_start;
-+	WARN_ON(!memory_start);
-+	memory_end = memory_start + mem_size;
-+
-+	if (PAGE_ALIGN(memory_start) != memory_start) {
-+		mem_size -= PAGE_ALIGN(memory_start) - memory_start;
-+		memory_start = PAGE_ALIGN(memory_start);
-+		mem_size = (mem_size / PAGE_SIZE) * PAGE_SIZE;
-+	}
-+	pr_info("memblock address range: 0x%lx - 0x%lx\n", memory_start,
-+		memory_start + mem_size);
-+	/*
-+	 * Give all the memory to the bootmap allocator, tell it to put the
-+	 * boot mem_map at the start of memory.
-+	 */
-+	max_low_pfn = virt_to_pfn(memory_end);
-+	min_low_pfn = virt_to_pfn(memory_start);
-+	memblock_add(memory_start, mem_size);
-+
-+	empty_zero_page = memblock_alloc(PAGE_SIZE, PAGE_SIZE);
-+	memset((void *)empty_zero_page, 0, PAGE_SIZE);
-+
-+	{
-+		unsigned long zones_size[MAX_NR_ZONES] = {0, };
-+
-+		zones_size[ZONE_NORMAL] = (mem_size) >> PAGE_SHIFT;
-+		free_area_init(zones_size);
-+	}
-+}
-+
-+void __init mem_init(void)
-+{
-+	max_mapnr = (((unsigned long)high_memory) - PAGE_OFFSET) >> PAGE_SHIFT;
-+	/* this will put all memory onto the freelists */
-+	totalram_pages_add(memblock_free_all());
-+	pr_info("Memory available: %luk/%luk RAM\n",
-+		(nr_free_pages() << PAGE_SHIFT) >> 10, mem_size >> 10);
-+}
++#include <linux/kernel.h>
++#include <linux/init.h>
++#include <linux/irq.h>
++#include <linux/hardirq.h>
++#include <asm/irq_regs.h>
++#include <linux/sched.h>
++#include <linux/seq_file.h>
++#include <linux/tick.h>
++#include <asm/irqflags.h>
++#include <asm/host_ops.h>
++#include <asm/cpu.h>
 +
 +/*
-+ * In our case __init memory is not part of the page allocator so there is
-+ * nothing to free.
++ * To avoid much overhead we use an indirect approach: the irqs are marked using
++ * a bitmap (array of longs) and a summary of the modified bits is kept in a
++ * separate "index" long - one bit for each sizeof(long). Thus we can support
++ * 4096 irqs on 64bit platforms and 1024 irqs on 32bit platforms.
++ *
++ * Whenever an irq is trigger both the array and the index is updated. To find
++ * which irqs were triggered we first search the index and then the
++ * corresponding part of the arrary.
 + */
-+void free_initmem(void)
++static unsigned long irq_status[NR_IRQS / IRQ_STATUS_BITS];
++static unsigned long irq_index_status;
++
++static inline unsigned long test_and_clear_irq_index_status(void)
 +{
++	if (!irq_index_status)
++		return 0;
++	return __sync_fetch_and_and(&irq_index_status, 0);
 +}
 +
-+void free_mem(void)
++static inline unsigned long test_and_clear_irq_status(int index)
 +{
-+	lkl_ops->mem_free((void *)_memory_start);
++	if (!&irq_status[index])
++		return 0;
++	return __sync_fetch_and_and(&irq_status[index], 0);
++}
++
++void set_irq_pending(int irq)
++{
++	int index = irq / IRQ_STATUS_BITS;
++	int bit = irq % IRQ_STATUS_BITS;
++
++	__sync_fetch_and_or(&irq_status[index], BIT(bit));
++	__sync_fetch_and_or(&irq_index_status, BIT(index));
++}
++
++static struct irq_info {
++	const char *user;
++} irqs[NR_IRQS];
++
++static bool irqs_enabled;
++
++static struct pt_regs dummy;
++
++static void run_irq(int irq)
++{
++	unsigned long flags;
++	struct pt_regs *old_regs = set_irq_regs((struct pt_regs *)&dummy);
++
++	/* interrupt handlers need to run with interrupts disabled */
++	local_irq_save(flags);
++	irq_enter();
++	generic_handle_irq(irq);
++	irq_exit();
++	set_irq_regs(old_regs);
++	local_irq_restore(flags);
++}
++
++/**
++ * This function can be called from arbitrary host threads, so do not
++ * issue any Linux calls (e.g. prink) if lkl_cpu_get() was not issued
++ * before.
++ */
++int lkl_trigger_irq(int irq)
++{
++	int ret;
++
++	if (!irq || irq > NR_IRQS)
++		return -EINVAL;
++
++	ret = lkl_cpu_try_run_irq(irq);
++	if (ret <= 0)
++		return ret;
++
++	/*
++	 * Since this can be called from Linux context (e.g. lkl_trigger_irq ->
++	 * IRQ -> softirq -> lkl_trigger_irq) make sure we are actually allowed
++	 * to run irqs at this point
++	 */
++	if (!irqs_enabled) {
++		set_irq_pending(irq);
++		lkl_cpu_put();
++		return 0;
++	}
++
++	run_irq(irq);
++
++	lkl_cpu_put();
++
++	return 0;
++}
++
++static inline void for_each_bit(unsigned long word, void (*f)(int, int), int j)
++{
++	int i = 0;
++
++	while (word) {
++		if (word & 1)
++			f(i, j);
++		word >>= 1;
++		i++;
++	}
++}
++
++static inline void deliver_irq(int bit, int index)
++{
++	run_irq(index * IRQ_STATUS_BITS + bit);
++}
++
++static inline void check_irq_status(int i, int unused)
++{
++	for_each_bit(test_and_clear_irq_status(i), deliver_irq, i);
++}
++
++void run_irqs(void)
++{
++	for_each_bit(test_and_clear_irq_index_status(), check_irq_status, 0);
++}
++
++int show_interrupts(struct seq_file *p, void *v)
++{
++	return 0;
++}
++
++int lkl_get_free_irq(const char *user)
++{
++	int i;
++	int ret = -EBUSY;
++
++	/* 0 is not a valid IRQ */
++	for (i = 1; i < NR_IRQS; i++) {
++		if (!irqs[i].user) {
++			irqs[i].user = user;
++			irq_set_chip_and_handler(i, &dummy_irq_chip,
++						 handle_simple_irq);
++			ret = i;
++			break;
++		}
++	}
++
++	return ret;
++}
++
++void lkl_put_irq(int i, const char *user)
++{
++	if (!irqs[i].user || strcmp(irqs[i].user, user) != 0) {
++		WARN("%s tried to release %s's irq %d", user, irqs[i].user, i);
++		return;
++	}
++
++	irqs[i].user = NULL;
++}
++
++unsigned long arch_local_save_flags(void)
++{
++	return irqs_enabled;
++}
++
++void arch_local_irq_restore(unsigned long flags)
++{
++	if (flags == ARCH_IRQ_ENABLED && irqs_enabled == ARCH_IRQ_DISABLED &&
++	    !in_interrupt())
++		run_irqs();
++	irqs_enabled = flags;
++}
++
++void init_IRQ(void)
++{
++	int i;
++
++	for (i = 0; i < NR_IRQS; i++)
++		irq_set_chip_and_handler(i, &dummy_irq_chip, handle_simple_irq);
++
++	pr_info("lkl: irqs initialized\n");
++}
++
++void cpu_yield_to_irqs(void)
++{
++	cpu_relax();
 +}
 -- 
 2.21.0 (Apple Git-122.2)
