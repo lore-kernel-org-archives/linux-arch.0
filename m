@@ -1,27 +1,54 @@
-Return-Path: <robh@kernel.org>
+Return-Path: <frowand.list@gmail.com>
+Subject: Re: [PATCH v2 7/7] Documentation: Add kunit_shutdown to
+ kernel-parameters.txt
+References: <20200130230812.142642-1-brendanhiggins@google.com>
+ <20200130230812.142642-8-brendanhiggins@google.com>
+From: Frank Rowand <frowand.list@gmail.com>
+Message-ID: <d187686e-a175-e30b-2af9-6e00822fed5c@gmail.com>
+Date: Tue, 4 Feb 2020 18:19:07 -0600
 MIME-Version: 1.0
-References: <cover.1581497860.git.michal.simek@xilinx.com>
-In-Reply-To: <cover.1581497860.git.michal.simek@xilinx.com>
-From: Rob Herring <robh@kernel.org>
-Date: Thu, 13 Feb 2020 17:47:14 -0600
-Message-ID: <CAL_JsqJeXJ6zWvEUi=gyOV0eCcXsvNmkK9EstC9hg9AKfMXnKw@mail.gmail.com>
-Subject: Re: [PATCH 00/10] Hi,
-Content-Type: text/plain; charset="UTF-8"
-To: Michal Simek <michal.simek@xilinx.com>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Michal Simek <monstr@monstr.eu>, git <git@xilinx.com>, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>, Arvind Sankar <nivedita@alum.mit.edu>, Borislav Petkov <bp@suse.de>, Cornelia Huck <cohuck@redhat.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Greg Ungerer <gerg@linux-m68k.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, Kees Cook <keescook@chromium.org>, Masahiro Yamada <yamada.masahiro@socionext.com>, Mike Rapoport <rppt@linux.ibm.com>, Mubin Sayyed <mubinusm@xilinx.com>, Nicholas Piggin <npiggin@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Palmer Dabbelt <palmer@dabbelt.com>, Paolo Bonzini <pbonzini@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, Shubhrajyoti Datta <shubhrajyoti.datta@xilinx.com>, Siva Durga Prasad Paladugu <siva.durga.paladugu@xilinx.com>, Stefan Asserhall <stefan.asserhall@xilinx.com>, Vladimir Murzin <vladimir.murzin@arm.com>, Will Deacon <will@kernel.org>, "open list:GENERIC INCLUDE/ASM HEADER FILES" <linux-arch@vger.kernel.org>, linux-mm@kvack.org
+In-Reply-To: <20200130230812.142642-8-brendanhiggins@google.com>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
+To: Brendan Higgins <brendanhiggins@google.com>, jdike@addtoit.com, richard@nod.at, anton.ivanov@cambridgegreys.com, arnd@arndb.de, keescook@chromium.org, skhan@linuxfoundation.org, alan.maguire@oracle.com, yzaikin@google.com, davidgow@google.com, akpm@linux-foundation.org, rppt@linux.ibm.com
+Cc: gregkh@linuxfoundation.org, sboyd@kernel.org, logang@deltatee.com, mcgrof@kernel.org, knut.omang@oracle.com, linux-um@lists.infradead.org, linux-arch@vger.kernel.org, linux-kselftest@vger.kernel.org, kunit-dev@googlegroups.com, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200213234714.ObTKS-c3EFJ2w_UNa7-dn0ulk7PYNtcvjWxrH9CKW7I@z>
+Message-ID: <20200205001907.J5ItirZf9DtP23N31K4dnBOO0GAspj_4O_L9-v2ppp0@z>
 
-On Wed, Feb 12, 2020 at 2:58 AM Michal Simek <michal.simek@xilinx.com> wrote:
->
->
-> I am sending this series as before SMP support.
-> Most of these patches are clean ups and should be easy to review them. I
-> expect there will be more discussions about SMP support.
+On 1/30/20 5:08 PM, Brendan Higgins wrote:
+> Add kunit_shutdown, an option to specify that the kernel shutsdown after
+> running KUnit tests, to the kernel-parameters.txt documentation.
+> 
+> Signed-off-by: Brendan Higgins <brendanhiggins@google.com>
+> Reviewed-by: Stephen Boyd <sboyd@kernel.org>
+> ---
+>  Documentation/admin-guide/kernel-parameters.txt | 7 +++++++
+>  1 file changed, 7 insertions(+)
+> 
+> diff --git a/Documentation/admin-guide/kernel-parameters.txt b/Documentation/admin-guide/kernel-parameters.txt
+> index ade4e6ec23e03..522fd8bdec949 100644
+> --- a/Documentation/admin-guide/kernel-parameters.txt
+> +++ b/Documentation/admin-guide/kernel-parameters.txt
+> @@ -2054,6 +2054,13 @@
+>  			0: force disabled
+>  			1: force enabled
+>  
+> +	kunit_shutdown	[KERNEL UNIT TESTING FRAMEWORK] Shutdown kernel after
+> +			running tests.
 
-While not really related to adding SMP, any chance you or someone
-could look at moving microblaze PCI support to drivers/pci/? I suspect
-much of the code should drop out as we have common helpers for much of
-it now. That would leave only powerpc and mips for DT+PCI platforms.
+                        running built-in tests.  Tests configured as modules will not be run.
 
-Rob
+My wording might not be consistent with KUnit terminology regarding "built-in" and "modules".
+Feel free to properly word smith.
+
+
+> +			Default:	(flag not present) don't shutdown
+> +			poweroff:	poweroff the kernel after running tests
+> +			halt:		halt the kernel after running tests
+> +			reboot:		reboot the kernel after running tests
+> +
+>  	kvm.ignore_msrs=[KVM] Ignore guest accesses to unhandled MSRs.
+>  			Default is 0 (don't ignore, but inject #GP)
+>  
+> 
