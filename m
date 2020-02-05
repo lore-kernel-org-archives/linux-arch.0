@@ -1,92 +1,56 @@
-From: Anton Ivanov <anton.ivanov@kot-begemot.co.uk>
-Subject: Re: [RFC v2 07/37] lkl: interrupt support
-Date: Wed, 5 Feb 2020 10:49:37 +0000
-Message-ID: <739ada9a-b88a-5192-fb4b-65132a74b4de@kot-begemot.co.uk>
-References: <cover.1573179553.git.thehajime@gmail.com>
- <567fd4d5c395e2279e86ca0bfca544ad2773a31d.1573179553.git.thehajime@gmail.com>
- <CAFLxGvxytmS4WSFj2ibyJKCuR5TbspdNf6MvHNvzh9dtKx2rJg@mail.gmail.com>
- <m2h805qy99.wl-thehajime@gmail.com>
+From: Octavian Purdila <tavi.purdila@gmail.com>
+Subject: Re: [RFC v3 01/26] asm-generic: atomic64: allow using generic
+ atomic64 on 64bit platforms
+Date: Wed, 5 Feb 2020 14:24:38 +0200
+Message-ID: <CAMoF9u3Jhqyvp3SpA3mUqPhS4zDuXP9GCUu_XsYx2etE0KGkcQ@mail.gmail.com>
+References: <cover.1580882335.git.thehajime@gmail.com> <39e1313ff3cf3eab6ceb5ae322fcd3e5d4432167.1580882335.git.thehajime@gmail.com>
+ <20200205093454.GG14879@hirez.programming.kicks-ass.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from ivanoab7.miniserver.com ([37.128.132.42]:57820 "EHLO
-        www.kot-begemot.co.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727231AbgBELUs (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 5 Feb 2020 06:20:48 -0500
-In-Reply-To: <m2h805qy99.wl-thehajime@gmail.com>
-Content-Language: en-US
+Received: from mail-lj1-f193.google.com ([209.85.208.193]:44127 "EHLO
+        mail-lj1-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726597AbgBEMYv (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 5 Feb 2020 07:24:51 -0500
+Received: by mail-lj1-f193.google.com with SMTP id q8so2071953ljj.11
+        for <linux-arch@vger.kernel.org>; Wed, 05 Feb 2020 04:24:50 -0800 (PST)
+In-Reply-To: <20200205093454.GG14879@hirez.programming.kicks-ass.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Hajime Tazaki <thehajime@gmail.com>, richard.weinberger@gmail.com
-Cc: linux-arch@vger.kernel.org, tavi.purdila@gmail.com, linux-um@lists.infradead.org, retrage01@gmail.com, linux-kernel-library@freelists.org, sigmaepsilon92@gmail.com
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Hajime Tazaki <thehajime@gmail.com>, linux-um <linux-um@lists.infradead.org>, Akira Moroo <retrage01@gmail.com>, linux-kernel-library <linux-kernel-library@freelists.org>, linux-arch <linux-arch@vger.kernel.org>, Will Deacon <will@kernel.org>, Boqun Feng <boqun.feng@gmail.com>
 
+On Wed, Feb 5, 2020 at 11:34 AM Peter Zijlstra <peterz@infradead.org> wrote:
+>
+> On Wed, Feb 05, 2020 at 04:30:10PM +0900, Hajime Tazaki wrote:
+> > From: Octavian Purdila <tavi.purdila@gmail.com>
+> >
+> > With CONFIG_64BIT enabled, atomic64 via CONFIG_GENERIC_ATOMIC64 options
+> > are not compiled due to type conflict of atomic64_t defined in
+> > linux/type.h.
+> >
+> > This commit fixes the issue and allow using generic atomic64 ops.
+> >
+> > Currently, LKL is only the user which defines GENERIC_ATOMIC64
+> > (lib/atomic64.c) under CONFIG_64BIT environment.  Thus, there is no
+> > issues before this commit.
+>
+> Uhhhhh, no.
+>
+> Not allowing GENERIC_ATOMIC64 on 64BIT is a *feature*.
+>
+> Any 64bit arch that needs GENERIC_ATOMIC64 is an utter piece of crap.
+>
+> Please explain more.
+>
 
+Hi Peter,
 
-On 05/02/2020 07:38, Hajime Tazaki wrote:
-> 
-> On Tue, 26 Nov 2019 07:13:55 +0900,
-> Richard Weinberger wrote:
->>
->> On Fri, Nov 8, 2019 at 6:03 AM Hajime Tazaki <thehajime@gmail.com> wrote:
->>>
->>> From: Octavian Purdila <tavi.purdila@gmail.com>
->>>
->>> Add APIs that allows the host to reserve and free and interrupt number
->>> and also to trigger an interrupt.
->>>
->>> The trigger operation will simply store the interrupt data in
->>> queue. The interrupt handler is run later, at the first opportunity it
->>> has to avoid races with any kernel threads.
->>>
->>> Currently, interrupts are run on the first interrupt enable operation
->>> if interrupts are disabled and if we are not already in interrupt
->>> context.
->>>
->>> When triggering an interrupt, it uses GCC's built-in functions for
->>> atomic memory access to synchronize and simple boolean flags.
->>>
->>> Signed-off-by: Hajime Tazaki <thehajime@gmail.com>
->>> Signed-off-by: Michael Zimmermann <sigmaepsilon92@gmail.com>
->>> Signed-off-by: Octavian Purdila <tavi.purdila@gmail.com>
->>> ---
->>>   arch/um/lkl/include/asm/irq.h             |  13 ++
->>>   arch/um/lkl/include/uapi/asm/irq.h        |  36 ++++
->>>   arch/um/lkl/include/uapi/asm/sigcontext.h |  16 ++
->>>   arch/um/lkl/kernel/irq.c                  | 193 ++++++++++++++++++++++
->>
->> Like I said before, this also something to unify with UML.
->> I'm aware that this is easily said but we cannot have too much duplication.
->>
->> Feel free to ask if UML internals give you headache. :-)
-> 
-> Same as nommu implementation, I left this part as-is.
-> 
-> Triggering interrupts with fd events (delivered by epoll&co) is a hard
-> part to implement host-independent interrupts of LKL.  OTOH, the v3
-> patchset shows that it is doable to use UML drivers with the LKL
-> interrupt facility.
+I was not aware that not allowing GENERIC_ATOMIC64 was intentional. I
+understand your point that a 64 bit architecture that can't handle 64
+bit atomic operation is broken.
 
-Make sure you are testing with the vector network devices, the legacy ones are scheduled to be obsoleted at some point
-
-I know this will cause a headache on non-Linux, I am happy to write wrappers/emulators for recvmms/sendmmsg so these build on the systems which do not support them.
-
-Brgds,
-
-
-> 
-> I may also need more time to evaluate/find a right direction, though.
-> Your comments are always welcome.
-> 
-> -- Hajime
-> 
-> 
-> _______________________________________________
-> linux-um mailing list
-> linux-um@lists.infradead.org
-> http://lists.infradead.org/mailman/listinfo/linux-um
-> 
-
--- 
-Anton R. Ivanov
-https://www.kot-begemot.co.uk/
+One way to deal with this in LKL would be to use GCC atomic builtins
+or if that doesn't work expose them as host operations. This would
+keep LKL as a meta-arch that can run on multiple physical
+architectures. I'll give it a try.
