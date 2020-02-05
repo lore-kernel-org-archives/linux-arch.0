@@ -1,91 +1,145 @@
-Return-Path: <3AWtYXg4KBDIPfSbRObVWUUWbgUccUZS.QcafddhZWbil.WPa.Qca@flex--brendanhiggins.bounces.google.com>
-Date: Thu, 27 Feb 2020 17:20:33 -0800
-In-Reply-To: <20200228012036.15682-1-brendanhiggins@google.com>
-Message-ID: <20200228012036.15682-5-brendanhiggins@google.com>
-Mime-Version: 1.0
-References: <20200228012036.15682-1-brendanhiggins@google.com>
-Subject: [PATCH v3 4/7] init: main: add KUnit to kernel init
-From: Brendan Higgins <brendanhiggins@google.com>
-Content-Type: text/plain; charset="UTF-8"
-To: jdike@addtoit.com, richard@nod.at, anton.ivanov@cambridgegreys.com, arnd@arndb.de, keescook@chromium.org, skhan@linuxfoundation.org, alan.maguire@oracle.com, yzaikin@google.com, davidgow@google.com, akpm@linux-foundation.org, rppt@linux.ibm.com, frowand.list@gmail.com
-Cc: gregkh@linuxfoundation.org, sboyd@kernel.org, logang@deltatee.com, mcgrof@kernel.org, linux-um@lists.infradead.org, linux-arch@vger.kernel.org, linux-kselftest@vger.kernel.org, kunit-dev@googlegroups.com, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, Brendan Higgins <brendanhiggins@google.com>
+Return-Path: <linux-arch-owner@vger.kernel.org>
+Received: from mga14.intel.com ([192.55.52.115]:20934 "EHLO mga14.intel.com"
+ rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP id S1727790AbgBESU2
+ (ORCPT <rfc822;linux-arch@vger.kernel.org>); Wed, 5 Feb 2020 13:20:28 -0500
+From: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Subject: [RFC PATCH v9 12/27] x86/mm: Modify ptep_set_wrprotect and
+ pmdp_set_wrprotect for _PAGE_DIRTY_SW
+Date: Wed,  5 Feb 2020 10:19:20 -0800
+Message-ID: <20200205181935.3712-13-yu-cheng.yu@intel.com>
+In-Reply-To: <20200205181935.3712-1-yu-cheng.yu@intel.com>
+References: <20200205181935.3712-1-yu-cheng.yu@intel.com>
+MIME-Version: 1.0
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200228012033.1WMbkw-TFGzREjHjCFF3BvsMxgApczz95MLdOPaWYxw@z>
+Content-Transfer-Encoding: quoted-printable
+To: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>, x86-patch-review@intel.com
+Cc: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Message-ID: <20200205181920.M9RY-p6Are7RddZxL1L3a54ZeTnM-nb4CpAHDh_Npfg@z>
 
-Remove KUnit from init calls entirely, instead call directly from
-kernel_init().
+When Shadow Stack (SHSTK) is enabled, the [R/O + PAGE_DIRTY_HW] setting i=
+s
+reserved only for SHSTK.  Non-Shadow Stack R/O PTEs are
+[R/O + PAGE_DIRTY_SW].
 
-Co-developed-by: Alan Maguire <alan.maguire@oracle.com>
-Signed-off-by: Alan Maguire <alan.maguire@oracle.com>
-Signed-off-by: Brendan Higgins <brendanhiggins@google.com>
-Reviewed-by: Stephen Boyd <sboyd@kernel.org>
+When a PTE goes from [R/W + PAGE_DIRTY_HW] to [R/O + PAGE_DIRTY_SW], it
+could become a transient SHSTK PTE in two cases.
+
+The first case is that some processors can start a write but end up seein=
+g
+a read-only PTE by the time they get to the Dirty bit, creating a transie=
+nt
+SHSTK PTE.  However, this will not occur on processors supporting SHSTK
+therefore we don't need a TLB flush here.
+
+The second case is that when the software, without atomic, tests & replac=
+es
+PAGE_DIRTY_HW with PAGE_DIRTY_SW, a transient SHSTK PTE can exist.  This =
+is
+prevented with cmpxchg.
+
+Dave Hansen, Jann Horn, Andy Lutomirski, and Peter Zijlstra provided many
+insights to the issue.  Jann Horn provided the cmpxchg solution.
+
+v9:
+- Change compile-time conditionals to runtime checks.
+- Fix parameters of try_cmpxchg(): change pte_t/pmd_t to
+  pte_t.pte/pmd_t.pmd.
+
+v4:
+- Implement try_cmpxchg().
+
+Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
 ---
- include/kunit/test.h | 9 +++++++++
- init/main.c          | 4 ++++
- lib/kunit/executor.c | 4 +---
- 3 files changed, 14 insertions(+), 3 deletions(-)
+ arch/x86/include/asm/pgtable.h | 66 ++++++++++++++++++++++++++++++++++
+ 1 file changed, 66 insertions(+)
 
-diff --git a/include/kunit/test.h b/include/kunit/test.h
-index 8a02f93a6b505..8689dd1459844 100644
---- a/include/kunit/test.h
-+++ b/include/kunit/test.h
-@@ -197,6 +197,15 @@ void kunit_init_test(struct kunit *test, const char *name);
- 
- int kunit_run_tests(struct kunit_suite *suite);
- 
-+#if IS_BUILTIN(CONFIG_KUNIT)
-+int kunit_run_all_tests(void);
-+#else
-+static inline int kunit_run_all_tests(void)
-+{
-+	return 0;
-+}
-+#endif /* IS_BUILTIN(CONFIG_KUNIT) */
-+
- /*
-  * If a test suite is built-in, module_init() gets translated into
-  * an initcall which we don't want as the idea is that for builtins
-diff --git a/init/main.c b/init/main.c
-index ee4947af823f3..7875a5c486dc4 100644
---- a/init/main.c
-+++ b/init/main.c
-@@ -104,6 +104,8 @@
- #define CREATE_TRACE_POINTS
- #include <trace/events/initcall.h>
- 
-+#include <kunit/test.h>
-+
- static int kernel_init(void *);
- 
- extern void init_IRQ(void);
-@@ -1444,6 +1446,8 @@ static noinline void __init kernel_init_freeable(void)
- 
- 	do_basic_setup();
- 
-+	kunit_run_all_tests();
-+
- 	console_on_rootfs();
- 
- 	/*
-diff --git a/lib/kunit/executor.c b/lib/kunit/executor.c
-index 6429927d598a5..b75a46c560847 100644
---- a/lib/kunit/executor.c
-+++ b/lib/kunit/executor.c
-@@ -11,7 +11,7 @@ extern struct kunit_suite * const * const __kunit_suites_end[];
- 
- #if IS_BUILTIN(CONFIG_KUNIT)
- 
--static int kunit_run_all_tests(void)
-+int kunit_run_all_tests(void)
+diff --git a/arch/x86/include/asm/pgtable.h b/arch/x86/include/asm/pgtabl=
+e.h
+index 2733e7ec16b3..43cb27379208 100644
+--- a/arch/x86/include/asm/pgtable.h
++++ b/arch/x86/include/asm/pgtable.h
+@@ -1253,6 +1253,39 @@ static inline pte_t ptep_get_and_clear_full(struct=
+ mm_struct *mm,
+ static inline void ptep_set_wrprotect(struct mm_struct *mm,
+ 				      unsigned long addr, pte_t *ptep)
  {
- 	struct kunit_suite * const * const *suites, * const *subsuite;
- 	bool has_test_failed = false;
-@@ -31,6 +31,4 @@ static int kunit_run_all_tests(void)
- 	return 0;
++	/*
++	 * Some processors can start a write, but end up seeing a read-only
++	 * PTE by the time they get to the Dirty bit.  In this case, they
++	 * will set the Dirty bit, leaving a read-only, Dirty PTE which
++	 * looks like a Shadow Stack PTE.
++	 *
++	 * However, this behavior has been improved and will not occur on
++	 * processors supporting Shadow Stack.  Without this guarantee, a
++	 * transition to a non-present PTE and flush the TLB would be
++	 * needed.
++	 *
++	 * When changing a writable PTE to read-only and if the PTE has
++	 * _PAGE_DIRTY_HW set, we move that bit to _PAGE_DIRTY_SW so that
++	 * the PTE is not a valid Shadow Stack PTE.
++	 */
++#ifdef CONFIG_X86_64
++	if (static_cpu_has(X86_FEATURE_SHSTK)) {
++		pte_t new_pte, pte =3D READ_ONCE(*ptep);
++
++		do {
++			/*
++			 * This is the same as moving _PAGE_DIRTY_HW
++			 * to _PAGE_DIRTY_SW.
++			 */
++			new_pte =3D pte_wrprotect(pte);
++			new_pte.pte |=3D (new_pte.pte & _PAGE_DIRTY_HW) >>
++					_PAGE_BIT_DIRTY_HW << _PAGE_BIT_DIRTY_SW;
++			new_pte.pte &=3D ~_PAGE_DIRTY_HW;
++		} while (!try_cmpxchg(&ptep->pte, &pte.pte, new_pte.pte));
++
++		return;
++	}
++#endif
+ 	clear_bit(_PAGE_BIT_RW, (unsigned long *)&ptep->pte);
  }
- 
--late_initcall(kunit_run_all_tests);
--
- #endif /* IS_BUILTIN(CONFIG_KUNIT) */
--- 
-2.25.1.481.gfbce0eb801-goog
+
+@@ -1303,6 +1336,39 @@ static inline pud_t pudp_huge_get_and_clear(struct=
+ mm_struct *mm,
+ static inline void pmdp_set_wrprotect(struct mm_struct *mm,
+ 				      unsigned long addr, pmd_t *pmdp)
+ {
++	/*
++	 * Some processors can start a write, but end up seeing a read-only
++	 * PMD by the time they get to the Dirty bit.  In this case, they
++	 * will set the Dirty bit, leaving a read-only, Dirty PMD which
++	 * looks like a Shadow Stack PMD.
++	 *
++	 * However, this behavior has been improved and will not occur on
++	 * processors supporting Shadow Stack.  Without this guarantee, a
++	 * transition to a non-present PMD and flush the TLB would be
++	 * needed.
++	 *
++	 * When changing a writable PMD to read-only and if the PMD has
++	 * _PAGE_DIRTY_HW set, we move that bit to _PAGE_DIRTY_SW so that
++	 * the PMD is not a valid Shadow Stack PMD.
++	 */
++#ifdef CONFIG_X86_64
++	if (static_cpu_has(X86_FEATURE_SHSTK)) {
++		pmd_t new_pmd, pmd =3D READ_ONCE(*pmdp);
++
++		do {
++			/*
++			 * This is the same as moving _PAGE_DIRTY_HW
++			 * to _PAGE_DIRTY_SW.
++			 */
++			new_pmd =3D pmd_wrprotect(pmd);
++			new_pmd.pmd |=3D (new_pmd.pmd & _PAGE_DIRTY_HW) >>
++					_PAGE_BIT_DIRTY_HW << _PAGE_BIT_DIRTY_SW;
++			new_pmd.pmd &=3D ~_PAGE_DIRTY_HW;
++		} while (!try_cmpxchg(&pmdp->pmd, &pmd.pmd, new_pmd.pmd));
++
++		return;
++	}
++#endif
+ 	clear_bit(_PAGE_BIT_RW, (unsigned long *)pmdp);
+ }
+
+--=20
+2.21.0
