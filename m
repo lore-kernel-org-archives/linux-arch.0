@@ -1,55 +1,58 @@
-From: Hajime Tazaki <thehajime-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
-Subject: [RFC v3 02/26] arch: add __SYSCALL_DEFINE_ARCH
-Date: Wed,  5 Feb 2020 16:30:11 +0900
-Message-ID: <67cc975b4ce5aaf1ce0e955d321a7487cf27d6a8.1580882335.git.thehajime@gmail.com>
+From: Hajime Tazaki <thehajime@gmail.com>
+Subject: [RFC v3 01/26] asm-generic: atomic64: allow using generic atomic64 on 64bit platforms
+Date: Wed,  5 Feb 2020 16:30:10 +0900
+Message-ID: <39e1313ff3cf3eab6ceb5ae322fcd3e5d4432167.1580882335.git.thehajime@gmail.com>
 References: <cover.1580882335.git.thehajime@gmail.com>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
-Return-path: <linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-In-Reply-To: <cover.1580882335.git.thehajime-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
-Sender: linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-To: linux-um-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org
-Cc: Octavian Purdila <tavi.purdila-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, Akira Moroo <retrage01-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, linux-kernel-library-uGLqWuYN4qMgsBAKwltoeQ@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-api-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-pg1-f194.google.com ([209.85.215.194]:34535 "EHLO
+        mail-pg1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1725468AbgBEHar (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 5 Feb 2020 02:30:47 -0500
+Received: by mail-pg1-f194.google.com with SMTP id j4so538333pgi.1
+        for <linux-arch@vger.kernel.org>; Tue, 04 Feb 2020 23:30:45 -0800 (PST)
+In-Reply-To: <cover.1580882335.git.thehajime@gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: linux-um@lists.infradead.org
+Cc: Octavian Purdila <tavi.purdila@gmail.com>, Akira Moroo <retrage01@gmail.com>, linux-kernel-library@freelists.org, linux-arch@vger.kernel.org, Will Deacon <will@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Boqun Feng <boqun.feng@gmail.com>
 
-From: Octavian Purdila <tavi.purdila-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
+From: Octavian Purdila <tavi.purdila@gmail.com>
 
-This allows the architecture code to process the system call
-definitions. It is used by LKL to create strong typed function
-definitions for system calls.
+With CONFIG_64BIT enabled, atomic64 via CONFIG_GENERIC_ATOMIC64 options
+are not compiled due to type conflict of atomic64_t defined in
+linux/type.h.
 
-Signed-off-by: Octavian Purdila <tavi.purdila-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
-Cc: linux-api-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+This commit fixes the issue and allow using generic atomic64 ops.
+
+Currently, LKL is only the user which defines GENERIC_ATOMIC64
+(lib/atomic64.c) under CONFIG_64BIT environment.  Thus, there is no
+issues before this commit.
+
+Signed-off-by: Octavian Purdila <tavi.purdila@gmail.com>
+Cc: Will Deacon <will@kernel.org>
+Cc: Peter Zijlstra <peterz@infradead.org>
+Cc: Boqun Feng <boqun.feng@gmail.com>
 ---
- include/linux/syscalls.h | 6 ++++++
- 1 file changed, 6 insertions(+)
+ include/asm-generic/atomic64.h | 2 ++
+ 1 file changed, 2 insertions(+)
 
-diff --git a/include/linux/syscalls.h b/include/linux/syscalls.h
-index 5262b7a76d39..d61069aa869a 100644
---- a/include/linux/syscalls.h
-+++ b/include/linux/syscalls.h
-@@ -203,9 +203,14 @@ static inline int is_syscall_trace_event(struct trace_event_call *tp_event)
- }
- #endif
+diff --git a/include/asm-generic/atomic64.h b/include/asm-generic/atomic64.h
+index 370f01d4450f..9b15847baae5 100644
+--- a/include/asm-generic/atomic64.h
++++ b/include/asm-generic/atomic64.h
+@@ -9,9 +9,11 @@
+ #define _ASM_GENERIC_ATOMIC64_H
+ #include <linux/types.h>
  
-+#ifndef __SYSCALL_DEFINE_ARCH
-+#define __SYSCALL_DEFINE_ARCH(x, sname, ...)
++#ifndef CONFIG_64BIT
+ typedef struct {
+ 	s64 counter;
+ } atomic64_t;
 +#endif
-+
- #ifndef SYSCALL_DEFINE0
- #define SYSCALL_DEFINE0(sname)					\
- 	SYSCALL_METADATA(_##sname, 0);				\
-+	__SYSCALL_DEFINE_ARCH(0, _##sname);			\
- 	asmlinkage long sys_##sname(void);			\
- 	ALLOW_ERROR_INJECTION(sys_##sname, ERRNO);		\
- 	asmlinkage long sys_##sname(void)
-@@ -222,6 +227,7 @@ static inline int is_syscall_trace_event(struct trace_event_call *tp_event)
  
- #define SYSCALL_DEFINEx(x, sname, ...)				\
- 	SYSCALL_METADATA(sname, x, __VA_ARGS__)			\
-+	__SYSCALL_DEFINE_ARCH(x, sname, __VA_ARGS__)		\
- 	__SYSCALL_DEFINEx(x, sname, __VA_ARGS__)
+ #define ATOMIC64_INIT(i)	{ (i) }
  
- #define __PROTECT(...) asmlinkage_protect(__VA_ARGS__)
 -- 
 2.21.0 (Apple Git-122.2)
