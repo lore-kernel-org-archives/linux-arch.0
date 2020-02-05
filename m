@@ -1,54 +1,43 @@
-From: Frank Rowand <frowand.list@gmail.com>
-Subject: Re: [PATCH v2 7/7] Documentation: Add kunit_shutdown to
- kernel-parameters.txt
-Date: Tue, 4 Feb 2020 18:19:07 -0600
-Message-ID: <d187686e-a175-e30b-2af9-6e00822fed5c@gmail.com>
-References: <20200130230812.142642-1-brendanhiggins@google.com>
- <20200130230812.142642-8-brendanhiggins@google.com>
+From: "Isabella Dzsesszika." <mrsisabelladz@gmail.com>
+Subject: From Mrs. Isabella Dzsesszika
+Date: Wed, 5 Feb 2020 02:11:23 +0100
+Message-ID: <CA+0n1ATsvEKQt5SyeqeuaUy5pvy6EOXEYjChHHMx23-vZtNu4g@mail.gmail.com>
+Reply-To: mdzsesszika672@yahoo.com
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-doc-owner@vger.kernel.org>
-In-Reply-To: <20200130230812.142642-8-brendanhiggins@google.com>
-Content-Language: en-US
-Sender: linux-doc-owner@vger.kernel.org
-To: Brendan Higgins <brendanhiggins@google.com>, jdike@addtoit.com, richard@nod.at, anton.ivanov@cambridgegreys.com, arnd@arndb.de, keescook@chromium.org, skhan@linuxfoundation.org, alan.maguire@oracle.com, yzaikin@google.com, davidgow@google.com, akpm@linux-foundation.org, rppt@linux.ibm.com
-Cc: gregkh@linuxfoundation.org, sboyd@kernel.org, logang@deltatee.com, mcgrof@kernel.org, knut.omang@oracle.com, linux-um@lists.infradead.org, linux-arch@vger.kernel.org, linux-kselftest@vger.kernel.org, kunit-dev@googlegroups.com, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset="UTF-8"
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-ed1-f67.google.com ([209.85.208.67]:46754 "EHLO
+        mail-ed1-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727714AbgBEBLZ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 4 Feb 2020 20:11:25 -0500
+Received: by mail-ed1-f67.google.com with SMTP id m8so514537edi.13
+        for <linux-arch@vger.kernel.org>; Tue, 04 Feb 2020 17:11:24 -0800 (PST)
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 
-On 1/30/20 5:08 PM, Brendan Higgins wrote:
-> Add kunit_shutdown, an option to specify that the kernel shutsdown after
-> running KUnit tests, to the kernel-parameters.txt documentation.
-> 
-> Signed-off-by: Brendan Higgins <brendanhiggins@google.com>
-> Reviewed-by: Stephen Boyd <sboyd@kernel.org>
-> ---
->  Documentation/admin-guide/kernel-parameters.txt | 7 +++++++
->  1 file changed, 7 insertions(+)
-> 
-> diff --git a/Documentation/admin-guide/kernel-parameters.txt b/Documentation/admin-guide/kernel-parameters.txt
-> index ade4e6ec23e03..522fd8bdec949 100644
-> --- a/Documentation/admin-guide/kernel-parameters.txt
-> +++ b/Documentation/admin-guide/kernel-parameters.txt
-> @@ -2054,6 +2054,13 @@
->  			0: force disabled
->  			1: force enabled
->  
-> +	kunit_shutdown	[KERNEL UNIT TESTING FRAMEWORK] Shutdown kernel after
-> +			running tests.
+-- 
 
-                        running built-in tests.  Tests configured as modules will not be run.
+By Mrs. Isabella Dzsesszika
 
-My wording might not be consistent with KUnit terminology regarding "built-in" and "modules".
-Feel free to properly word smith.
+I am Ms. Isabella Dzsesszika widow who suffers from long illness
+(cancer), there are funds I have inherited from my late loving husband
+Mr. Mseswa Dzsesszika, the sum of (US $ 1.5 million) that he has in
+the bank before his death, I need an honest and God-fearing person who
+can use these resources for God's work.
 
+I have made this decision because I have no child who inherits this
+money, and I do not want a situation where this money is used in a
+godless way. That is why I make that decision and my doctor has
+confirmed to me that I have less than three weeks to live, knowing
+that I have chosen a charity or a person who uses this money to
+support the poor and who Needy in accordance with my instructions.
 
-> +			Default:	(flag not present) don't shutdown
-> +			poweroff:	poweroff the kernel after running tests
-> +			halt:		halt the kernel after running tests
-> +			reboot:		reboot the kernel after running tests
-> +
->  	kvm.ignore_msrs=[KVM] Ignore guest accesses to unhandled MSRs.
->  			Default is 0 (don't ignore, but inject #GP)
->  
-> 
+I want an organization that will use this fund for orphanages, schools
+and churches, widows, to spread the word and work of God. Please, if
+you could use these resources for the work of the Lord, please answer
+me. As soon as I receive your answer, I will give you further
+instructions on how to meet the requirements of these funds.
+
+Your sister in Christ,
+
+Mrs. Isabella Dzsesszika
