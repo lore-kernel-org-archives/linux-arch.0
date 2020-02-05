@@ -1,107 +1,140 @@
-Return-Path: <linux-riscv-bounces+rppt=linux.ibm.com@lists.infradead.org>
-Subject: Re: [PATCH V14] mm/debug: Add tests validating architecture page
- table helpers
-References: <1581909460-19148-1-git-send-email-anshuman.khandual@arm.com>
- <1582726182.7365.123.camel@lca.pw> <1582726340.7365.124.camel@lca.pw>
- <eb154054-68ab-a659-065b-f4f7dcbb8671@c-s.fr>
- <52db1e9b-83b3-c41f-ef03-0f43e2159a83@arm.com>
- <20200226200353.ea5c8ec2efacfb1192f3f3f4@linux-foundation.org>
-From: Anshuman Khandual <anshuman.khandual@arm.com>
-Message-ID: <6a4518d5-9306-8f84-b676-26a40c594bd9@arm.com>
-Date: Thu, 27 Feb 2020 09:37:07 +0530
+Return-Path: <linux-arch-owner@vger.kernel.org>
+Received: from mga14.intel.com ([192.55.52.115]:20940 "EHLO mga14.intel.com"
+ rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP id S1727798AbgBESU3
+ (ORCPT <rfc822;linux-arch@vger.kernel.org>); Wed, 5 Feb 2020 13:20:29 -0500
+From: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Subject: [RFC PATCH v9 14/27] mm: Handle Shadow Stack page fault
+Date: Wed,  5 Feb 2020 10:19:22 -0800
+Message-ID: <20200205181935.3712-15-yu-cheng.yu@intel.com>
+In-Reply-To: <20200205181935.3712-1-yu-cheng.yu@intel.com>
+References: <20200205181935.3712-1-yu-cheng.yu@intel.com>
 MIME-Version: 1.0
-In-Reply-To: <20200226200353.ea5c8ec2efacfb1192f3f3f4@linux-foundation.org>
-Content-Type: text/plain; charset=utf-8
-Content-Language: en-US
-Content-Transfer-Encoding: 8bit
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-riscv>,
- <mailto:linux-riscv-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-riscv/>
-List-Post: <mailto:linux-riscv@lists.infradead.org>
-List-Help: <mailto:linux-riscv-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-riscv>,
- <mailto:linux-riscv-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-riscv" <linux-riscv-bounces@lists.infradead.org>
-Errors-To: linux-riscv-bounces+rppt=linux.ibm.com@lists.infradead.org
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, linux-mm@kvack.org, Paul Mackerras <paulus@samba.org>, "H. Peter Anvin" <hpa@zytor.com>, linux-riscv@lists.infradead.org, Will Deacon <will@kernel.org>, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, Michael Ellerman <mpe@ellerman.id.au>, x86@kernel.org, Mike Rapoport <rppt@linux.ibm.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Ingo Molnar <mingo@redhat.com>, Catalin Marinas <catalin.marinas@arm.com>, James Morse <james.morse@arm.com>, linux-snps-arc@lists.infradead.org, Vasily Gorbik <gor@linux.ibm.com>, Qian Cai <cai@lca.pw>, Paul Walmsley <paul.walmsley@sifive.com>, "Kirill A . Shutemov" <kirill@shutemov.name>, Thomas Gleixner <tglx@linutronix.de>, linux-arm-kernel@lists.infradead.org, Christophe Leroy <christophe.leroy@c-s.fr>, Vineet Gupta <vgupta@synopsys.com>, linux-kernel@vger.kernel.org, Palmer Dabbelt <palmer@dabbelt.com>, Borislav Petkov <bp@alien8.de>, linuxppc-dev@lists.ozlabs.org
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200227040707.4koIwRiN448BJv7dKb1Nai7ok0JDj9-M8pmEoSQGrng@z>
+Content-Transfer-Encoding: quoted-printable
+To: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>, x86-patch-review@intel.com
+Cc: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Message-ID: <20200205181922.XDbT_iwNlwNWm1fmP2nxEZ9SzhnEh2SGlFD2BD6Ezgc@z>
 
+When a task does fork(), its Shadow Stack (SHSTK) must be duplicated for
+the child.  This patch implements a flow similar to copy-on-write of an
+anonymous page, but for SHSTK.
 
+A SHSTK PTE must be RO and Dirty.  This Dirty bit requirement is used to
+effect the copying.  In copy_one_pte(), clear the Dirty bit from a SHSTK
+PTE to cause a page fault upon the next SHSTK access.  At that time, fix
+the PTE and copy/re-use the page.
 
-On 02/27/2020 09:33 AM, Andrew Morton wrote:
-> On Thu, 27 Feb 2020 08:04:05 +0530 Anshuman Khandual <anshuman.khandual@arm.com> wrote:
-> 
->>> Must be something wrong with the following in debug_vm_pgtable()
->>>
->>>     paddr = __pa(&start_kernel);
->>>
->>> Is there any explaination why start_kernel() is not in linear memory on ARM64 ?
->>
->>
->> Cc: + James Morse <james.morse@arm.com>
->>
->> This warning gets exposed with DEBUG_VIRTUAL due to __pa() on a kernel symbol
->> i.e 'start_kernel' which might be outside the linear map. This happens due to
->> kernel mapping position randomization with KASLR. Adding James here in case he
->> might like to add more.
->>
->> __pa_symbol() should have been used instead, for accessing the physical address
->> here. On arm64 __pa() does check for linear address with __is_lm_address() and
->> switch accordingly if it is a kernel text symbol. Nevertheless, its much better
->> to use __pa_symbol() here rather than __pa().
->>
->> Rather than respining the patch once more, will just send a fix replacing this
->> helper __pa() with __pa_symbol() for Andrew to pick up as this patch is already
->> part of linux-next (next-20200226). But can definitely respin if that will be
->> preferred.
-> 
-> I didn't see this fix?  I assume it's this?  If so, are we sure it's OK to be
-> added to -next without testing??
+Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
+---
+ arch/x86/mm/pgtable.c         | 15 +++++++++++++++
+ include/asm-generic/pgtable.h | 17 +++++++++++++++++
+ mm/memory.c                   |  7 ++++++-
+ 3 files changed, 38 insertions(+), 1 deletion(-)
 
-My patch just missed your response here within a minute :) Please consider this.
-It has been tested on x86 and arm64.
+diff --git a/arch/x86/mm/pgtable.c b/arch/x86/mm/pgtable.c
+index 7bd2c3a52297..2eb33794c08d 100644
+--- a/arch/x86/mm/pgtable.c
++++ b/arch/x86/mm/pgtable.c
+@@ -872,3 +872,18 @@ int pmd_free_pte_page(pmd_t *pmd, unsigned long addr=
+)
 
-https://patchwork.kernel.org/patch/11407715/
+ #endif /* CONFIG_X86_64 */
+ #endif	/* CONFIG_HAVE_ARCH_HUGE_VMAP */
++
++#ifdef CONFIG_X86_INTEL_SHADOW_STACK_USER
++inline bool arch_copy_pte_mapping(vm_flags_t vm_flags)
++{
++	return (vm_flags & VM_SHSTK);
++}
++
++inline pte_t pte_set_vma_features(pte_t pte, struct vm_area_struct *vma)
++{
++	if (vma->vm_flags & VM_SHSTK)
++		return pte_mkdirty_shstk(pte);
++	else
++		return pte;
++}
++#endif /* CONFIG_X86_INTEL_SHADOW_STACK_USER */
+diff --git a/include/asm-generic/pgtable.h b/include/asm-generic/pgtable.=
+h
+index 798ea36a0549..9cb2f9ba5895 100644
+--- a/include/asm-generic/pgtable.h
++++ b/include/asm-generic/pgtable.h
+@@ -1190,6 +1190,23 @@ static inline bool arch_has_pfn_modify_check(void)
+ }
+ #endif /* !_HAVE_ARCH_PFN_MODIFY_ALLOWED */
 
-> 
-> 
-> 
-> From: Andrew Morton <akpm@linux-foundation.org>
-> Subject: mm-debug-add-tests-validating-architecture-page-table-helpers-fix
-> 
-> A warning gets exposed with DEBUG_VIRTUAL due to __pa() on a kernel symbol
-> i.e 'start_kernel' which might be outside the linear map.  This happens
-> due to kernel mapping position randomization with KASLR.
-> 
-> __pa_symbol() should have been used instead, for accessing the physical
-> address here.  On arm64 __pa() does check for linear address with
-> __is_lm_address() and switch accordingly if it is a kernel text symbol. 
-> Nevertheless, its much better to use __pa_symbol() here rather than
-> __pa().
-> 
-> Reported-by: Qian Cai <cai@lca.pw>
-> Cc: Anshuman Khandual <anshuman.khandual@arm.com>
-> Cc: James Morse <james.morse@arm.com>
-> Cc: Christophe Leroy <christophe.leroy@c-s.fr>
-> Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
-> ---
-> 
->  mm/debug_vm_pgtable.c |    2 +-
->  1 file changed, 1 insertion(+), 1 deletion(-)
-> 
-> --- a/mm/debug_vm_pgtable.c~mm-debug-add-tests-validating-architecture-page-table-helpers-fix
-> +++ a/mm/debug_vm_pgtable.c
-> @@ -331,7 +331,7 @@ void __init debug_vm_pgtable(void)
->  	 * helps avoid large memory block allocations to be used for mapping
->  	 * at higher page table levels.
->  	 */
-> -	paddr = __pa(&start_kernel);
-> +	paddr = __pa_symbol(&start_kernel);
->  
->  	pte_aligned = (paddr & PAGE_MASK) >> PAGE_SHIFT;
->  	pmd_aligned = (paddr & PMD_MASK) >> PAGE_SHIFT;
-> _
-> 
-> 
++#ifdef CONFIG_MMU
++#ifndef CONFIG_ARCH_HAS_SHSTK
++static inline bool arch_copy_pte_mapping(vm_flags_t vm_flags)
++{
++	return false;
++}
++
++static inline pte_t pte_set_vma_features(pte_t pte, struct vm_area_struc=
+t *vma)
++{
++	return pte;
++}
++#else
++bool arch_copy_pte_mapping(vm_flags_t vm_flags);
++pte_t pte_set_vma_features(pte_t pte, struct vm_area_struct *vma);
++#endif
++#endif /* CONFIG_MMU */
++
+ /*
+  * Architecture PAGE_KERNEL_* fallbacks
+  *
+diff --git a/mm/memory.c b/mm/memory.c
+index 45442d9a4f52..6daa28614327 100644
+--- a/mm/memory.c
++++ b/mm/memory.c
+@@ -772,7 +772,8 @@ copy_one_pte(struct mm_struct *dst_mm, struct mm_stru=
+ct *src_mm,
+ 	 * If it's a COW mapping, write protect it both
+ 	 * in the parent and the child
+ 	 */
+-	if (is_cow_mapping(vm_flags) && pte_write(pte)) {
++	if ((is_cow_mapping(vm_flags) && pte_write(pte)) ||
++	    arch_copy_pte_mapping(vm_flags)) {
+ 		ptep_set_wrprotect(src_mm, addr, src_pte);
+ 		pte =3D pte_wrprotect(pte);
+ 	}
+@@ -2417,6 +2418,7 @@ static inline void wp_page_reuse(struct vm_fault *v=
+mf)
+ 	flush_cache_page(vma, vmf->address, pte_pfn(vmf->orig_pte));
+ 	entry =3D pte_mkyoung(vmf->orig_pte);
+ 	entry =3D maybe_mkwrite(pte_mkdirty(entry), vma);
++	entry =3D pte_set_vma_features(entry, vma);
+ 	if (ptep_set_access_flags(vma, vmf->address, vmf->pte, entry, 1))
+ 		update_mmu_cache(vma, vmf->address, vmf->pte);
+ 	pte_unmap_unlock(vmf->pte, vmf->ptl);
+@@ -2504,6 +2506,7 @@ static vm_fault_t wp_page_copy(struct vm_fault *vmf=
+)
+ 		flush_cache_page(vma, vmf->address, pte_pfn(vmf->orig_pte));
+ 		entry =3D mk_pte(new_page, vma->vm_page_prot);
+ 		entry =3D maybe_mkwrite(pte_mkdirty(entry), vma);
++		entry =3D pte_set_vma_features(entry, vma);
+ 		/*
+ 		 * Clear the pte entry and flush it first, before updating the
+ 		 * pte with the new entry. This will avoid a race condition
+@@ -3023,6 +3026,7 @@ vm_fault_t do_swap_page(struct vm_fault *vmf)
+ 	pte =3D mk_pte(page, vma->vm_page_prot);
+ 	if ((vmf->flags & FAULT_FLAG_WRITE) && reuse_swap_page(page, NULL)) {
+ 		pte =3D maybe_mkwrite(pte_mkdirty(pte), vma);
++		pte =3D pte_set_vma_features(pte, vma);
+ 		vmf->flags &=3D ~FAULT_FLAG_WRITE;
+ 		ret |=3D VM_FAULT_WRITE;
+ 		exclusive =3D RMAP_EXCLUSIVE;
+@@ -3165,6 +3169,7 @@ static vm_fault_t do_anonymous_page(struct vm_fault=
+ *vmf)
+ 	entry =3D mk_pte(page, vma->vm_page_prot);
+ 	if (vma->vm_flags & VM_WRITE)
+ 		entry =3D pte_mkwrite(pte_mkdirty(entry));
++	entry =3D pte_set_vma_features(entry, vma);
+
+ 	vmf->pte =3D pte_offset_map_lock(vma->vm_mm, vmf->pmd, vmf->address,
+ 			&vmf->ptl);
+--=20
+2.21.0
