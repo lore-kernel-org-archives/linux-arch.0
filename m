@@ -1,714 +1,704 @@
 From: Hajime Tazaki <thehajime@gmail.com>
-Subject: [RFC v3 08/26] um lkl: system call interface and application API
-Date: Wed,  5 Feb 2020 16:30:17 +0900
-Message-ID: <a7c92a709f3b09839e36cbb86b3a8fe771d3e055.1580882335.git.thehajime@gmail.com>
+Subject: [RFC v3 15/26] lkl tools: host lib: filesystem helpers
+Date: Wed,  5 Feb 2020 16:30:24 +0900
+Message-ID: <ea1b8c2c13b3f4b12d8d5920c10311ac6b27e998.1580882335.git.thehajime@gmail.com>
 References: <cover.1580882335.git.thehajime@gmail.com>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pj1-f66.google.com ([209.85.216.66]:38840 "EHLO
-        mail-pj1-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727003AbgBEHbJ (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 5 Feb 2020 02:31:09 -0500
-Received: by mail-pj1-f66.google.com with SMTP id j17so611259pjz.3
-        for <linux-arch@vger.kernel.org>; Tue, 04 Feb 2020 23:31:07 -0800 (PST)
+Received: from mail-pg1-f175.google.com ([209.85.215.175]:39921 "EHLO
+        mail-pg1-f175.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727003AbgBEHbR (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 5 Feb 2020 02:31:17 -0500
+Received: by mail-pg1-f175.google.com with SMTP id j15so528675pgm.6
+        for <linux-arch@vger.kernel.org>; Tue, 04 Feb 2020 23:31:17 -0800 (PST)
 In-Reply-To: <cover.1580882335.git.thehajime@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-um@lists.infradead.org
-Cc: Octavian Purdila <tavi.purdila@gmail.com>, Akira Moroo <retrage01@gmail.com>, linux-kernel-library@freelists.org, linux-arch@vger.kernel.org, Conrad Meyer <cem@FreeBSD.org>, Jens Staal <staal1978@gmail.com>, Lai Jiangshan <jiangshanlai@gmail.com>, Luca Dariz <luca.dariz@gmail.com>, Michael Zimmermann <sigmaepsilon92@gmail.com>, Patrick Collins <pscollins@google.com>, Pierre-Hugues Husson <phh@phh.me>, Yuan Liu <liuyuan@google.com>, Hajime Tazaki <thehajime@gmail.com>
+Cc: Octavian Purdila <tavi.purdila@gmail.com>, Akira Moroo <retrage01@gmail.com>, linux-kernel-library@freelists.org, linux-arch@vger.kernel.org, Hajime Tazaki <thehajime@gmail.com>, Conrad Meyer <cem@FreeBSD.org>, Michael Zimmermann <sigmaepsilon92@gmail.com>, Yuan Liu <liuyuan@google.com>
 
-From: Octavian Purdila <tavi.purdila@gmail.com>
+Add LKL applications APIs to mount and unmount a filesystem from a
+disk added via lkl_disk_add().
 
-The LKL application API is based on the kernel system call interface
-in order to offer a stable API to applications. Note that we can't
-offer the full Linux system call interface due to LKL limitations such
-as lack of virtual memory, signal, user processes, etc.
-
-The host is using the LKL interrupt mechanism (lkl_trigger_irq) to
-initiate a system call. The system call is executed in the context of
-the init process.
-
-To avoid collisions between the Linux API and the LKL API (e.g.  struct
-stat, MKNOD, etc.) we use a python script to modify the user headers
-and to prefix all of the global symbols (structures, typedefs,
-defines) with LKL, lkl, _LKL, _lkl, __LKL or __lkl.
+Also add open/close/read directory wrappers on top of
+lkl_sys_getdents64.
 
 Cc: Conrad Meyer <cem@FreeBSD.org>
-Cc: Jens Staal <staal1978@gmail.com>
-Cc: Lai Jiangshan <jiangshanlai@gmail.com>
-Cc: Luca Dariz <luca.dariz@gmail.com>
 Cc: Michael Zimmermann <sigmaepsilon92@gmail.com>
-Cc: Patrick Collins <pscollins@google.com>
-Cc: Pierre-Hugues Husson <phh@phh.me>
 Cc: Yuan Liu <liuyuan@google.com>
 Signed-off-by: Hajime Tazaki <thehajime@gmail.com>
 Signed-off-by: Octavian Purdila <tavi.purdila@gmail.com>
 ---
- arch/um/lkl/include/asm/unistd.h        |  27 ++++
- arch/um/lkl/include/uapi/asm/host_ops.h |  14 ++
- arch/um/lkl/include/uapi/asm/unistd.h   |  16 ++
- arch/um/lkl/kernel/syscalls.c           | 192 +++++++++++++++++++++++
- arch/um/lkl/kernel/syscalls_32.c        | 159 +++++++++++++++++++
- arch/um/lkl/scripts/headers_install.py  | 196 ++++++++++++++++++++++++
- 6 files changed, 604 insertions(+)
- create mode 100644 arch/um/lkl/include/asm/unistd.h
- create mode 100644 arch/um/lkl/include/uapi/asm/unistd.h
- create mode 100644 arch/um/lkl/kernel/syscalls.c
- create mode 100644 arch/um/lkl/kernel/syscalls_32.c
- create mode 100755 arch/um/lkl/scripts/headers_install.py
+ tools/lkl/include/lkl.h | 165 ++++++++++++++
+ tools/lkl/lib/Build     |   1 +
+ tools/lkl/lib/fs.c      | 471 ++++++++++++++++++++++++++++++++++++++++
+ 3 files changed, 637 insertions(+)
+ create mode 100644 tools/lkl/lib/fs.c
 
-diff --git a/arch/um/lkl/include/asm/unistd.h b/arch/um/lkl/include/asm/unistd.h
-new file mode 100644
-index 000000000000..ca0eac0f2827
---- /dev/null
-+++ b/arch/um/lkl/include/asm/unistd.h
-@@ -0,0 +1,27 @@
-+/* SPDX-License-Identifier: GPL-2.0 */
-+#include <uapi/asm/unistd.h>
+diff --git a/tools/lkl/include/lkl.h b/tools/lkl/include/lkl.h
+index 4b95d0ef8e5b..cdae92300320 100644
+--- a/tools/lkl/include/lkl.h
++++ b/tools/lkl/include/lkl.h
+@@ -350,6 +350,171 @@ const char *lkl_strerror(int err);
+  */
+ void lkl_perror(char *msg, int err);
+ 
++/**
++ * struct lkl_dev_blk_ops - block device host operations, defined in lkl_host.h.
++ */
++struct lkl_dev_blk_ops;
 +
-+#define __SC_ASCII(t, a) #t "," #a
-+
-+#define __ASCII_MAP0(m, ...)
-+#define __ASCII_MAP1(m, t, a) m(t, a)
-+#define __ASCII_MAP2(m, t, a, ...) m(t, a) "," __ASCII_MAP1(m, __VA_ARGS__)
-+#define __ASCII_MAP3(m, t, a, ...) m(t, a) "," __ASCII_MAP2(m, __VA_ARGS__)
-+#define __ASCII_MAP4(m, t, a, ...) m(t, a) "," __ASCII_MAP3(m, __VA_ARGS__)
-+#define __ASCII_MAP5(m, t, a, ...) m(t, a) "," __ASCII_MAP4(m, __VA_ARGS__)
-+#define __ASCII_MAP6(m, t, a, ...) m(t, a) "," __ASCII_MAP5(m, __VA_ARGS__)
-+#define __ASCII_MAP(n, ...) __ASCII_MAP##n(__VA_ARGS__)
-+
-+#ifdef __MINGW32__
-+#define SECTION_ATTRS "n0"
-+#else
-+#define SECTION_ATTRS "a"
-+#endif
-+
-+#define __SYSCALL_DEFINE_ARCH(x, name, ...)				\
-+	asm(".section .syscall_defs,\"" SECTION_ATTRS "\"\n"		\
-+	    ".ascii \"#ifdef __NR" #name "\\n\"\n"			\
-+	    ".ascii \"SYSCALL_DEFINE" #x "(" #name ","			\
-+	    __ASCII_MAP(x, __SC_ASCII, __VA_ARGS__) ")\\n\"\n"		\
-+	    ".ascii \"#endif\\n\"\n"					\
-+	    ".section .text\n");
-diff --git a/arch/um/lkl/include/uapi/asm/host_ops.h b/arch/um/lkl/include/uapi/asm/host_ops.h
-index 19924fc7c718..1c839d7139f8 100644
---- a/arch/um/lkl/include/uapi/asm/host_ops.h
-+++ b/arch/um/lkl/include/uapi/asm/host_ops.h
-@@ -36,6 +36,15 @@ struct lkl_jmp_buf {
-  * @thread_join - wait for the given thread to terminate. Returns 0
-  * for success, -1 otherwise
-  *
-+ * @tls_alloc - allocate a thread local storage key; returns 0 if successful; if
-+ * destructor is not NULL it will be called when a thread terminates with its
-+ * argument set to the current thread local storage value
-+ * @tls_free - frees a thread local storage key; returns 0 if successful
-+ * @tls_set - associate data to the thread local storage key; returns 0 if
-+ * successful
-+ * @tls_get - return data associated with the thread local storage key or NULL
-+ * on error
++/**
++ * lkl_disk - host disk handle
 + *
-  * @mem_alloc - allocate memory
-  * @mem_free - free memory
-  *
-@@ -71,6 +80,11 @@ struct lkl_host_operations {
- 	lkl_thread_t (*thread_self)(void);
- 	int (*thread_equal)(lkl_thread_t a, lkl_thread_t b);
- 
-+	struct lkl_tls_key *(*tls_alloc)(void (*destructor)(void *));
-+	void (*tls_free)(struct lkl_tls_key *key);
-+	int (*tls_set)(struct lkl_tls_key *key, void *data);
-+	void *(*tls_get)(struct lkl_tls_key *key);
-+
- 	void *(*mem_alloc)(unsigned long mem);
- 	void (*mem_free)(void *mem);
- 
-diff --git a/arch/um/lkl/include/uapi/asm/unistd.h b/arch/um/lkl/include/uapi/asm/unistd.h
-new file mode 100644
-index 000000000000..072474a4060d
---- /dev/null
-+++ b/arch/um/lkl/include/uapi/asm/unistd.h
-@@ -0,0 +1,16 @@
-+/* SPDX-License-Identifier: GPL-2.0 WITH Linux-syscall-note */
-+#define __ARCH_WANT_SYSCALL_NO_AT
-+#define __ARCH_WANT_SYSCALL_DEPRECATED
-+#define __ARCH_WANT_SYSCALL_NO_FLAGS
-+#define __ARCH_WANT_RENAMEAT
-+#define __ARCH_WANT_NEW_STAT
-+#define __ARCH_WANT_SET_GET_RLIMIT
-+#define __ARCH_WANT_TIME32_SYSCALLS
-+
-+#include <asm/bitsperlong.h>
-+
-+#if __BITS_PER_LONG == 64
-+#define __ARCH_WANT_SYS_NEWFSTATAT
-+#endif
-+
-+#include <asm-generic/unistd.h>
-diff --git a/arch/um/lkl/kernel/syscalls.c b/arch/um/lkl/kernel/syscalls.c
-new file mode 100644
-index 000000000000..3ab1d776ca4b
---- /dev/null
-+++ b/arch/um/lkl/kernel/syscalls.c
-@@ -0,0 +1,192 @@
-+// SPDX-License-Identifier: GPL-2.0
-+#include <linux/stat.h>
-+#include <linux/irq.h>
-+#include <linux/sched.h>
-+#include <linux/interrupt.h>
-+#include <linux/jhash.h>
-+#include <linux/slab.h>
-+#include <linux/types.h>
-+#include <linux/net.h>
-+#include <linux/task_work.h>
-+#include <linux/syscalls.h>
-+#include <linux/kthread.h>
-+#include <linux/platform_device.h>
-+#include <asm/host_ops.h>
-+#include <asm/syscalls.h>
-+#include <asm/syscalls_32.h>
-+#include <asm/cpu.h>
-+#include <asm/sched.h>
-+
-+typedef long (*syscall_handler_t)(long arg1, ...);
-+
-+#undef __SYSCALL
-+#define __SYSCALL(nr, sym)[nr] = (syscall_handler_t)sym,
-+
-+static syscall_handler_t syscall_table[__NR_syscalls] = {
-+	[0 ... __NR_syscalls - 1] = (syscall_handler_t)sys_ni_syscall,
-+#include <asm/unistd.h>
-+
-+#if __BITS_PER_LONG == 32
-+#include <asm/unistd_32.h>
-+#endif
++ * @dev - a pointer to private information for this disk backend
++ * @fd - a POSIX file descriptor that can be used by preadv/pwritev
++ * @handle - an NT file handle that can be used by ReadFile/WriteFile
++ */
++struct lkl_disk {
++	void *dev;
++	union {
++		int fd;
++		void *handle;
++	};
++	struct lkl_dev_blk_ops *ops;
 +};
 +
-+static long run_syscall(long no, long *params)
++/**
++ * lkl_disk_add - add a new disk
++ *
++ * @disk - the host disk handle
++ * @returns a disk id (0 is valid) or a strictly negative value in case of error
++ */
++int lkl_disk_add(struct lkl_disk *disk);
++
++/**
++ * lkl_disk_remove - remove a disk
++ *
++ * This function makes a cleanup of the @disk's private information
++ * that was initialized by lkl_disk_add before.
++ *
++ * @disk - the host disk handle
++ */
++int lkl_disk_remove(struct lkl_disk disk);
++
++/**
++ * lkl_encode_dev_from_sysfs_blkdev - extract device id from sysfs
++ *
++ * This function returns the device id for the given sysfs dev node.
++ * The content of the node has to be in the form 'MAJOR:MINOR'.
++ * Also, this function expects an absolute path which means that sysfs
++ * already has to be mounted at the given path
++ *
++ * @sysfs_path - absolute path to the sysfs dev node
++ * @pdevid - pointer to memory where dev id will be returned
++ * @returns - 0 on success, a negative value on error
++ */
++int lkl_encode_dev_from_sysfs(const char *sysfs_path, uint32_t *pdevid);
++
++/**
++ * lkl_mount_dev - mount a disk
++ *
++ * This functions creates a device file for the given disk, creates a mount
++ * point and mounts the device over the mount point.
++ *
++ * @disk_id - the disk id identifying the disk to be mounted
++ * @part - disk partition or zero for full disk
++ * @fs_type - filesystem type
++ * @flags - mount flags
++ * @opts - additional filesystem specific mount options
++ * @mnt_str - a string that will be filled by this function with the path where
++ * the filesystem has been mounted
++ * @mnt_str_len - size of mnt_str
++ * @returns - 0 on success, a negative value on error
++ */
++long lkl_mount_dev(unsigned int disk_id, unsigned int part, const char *fs_type,
++		   int flags, const char *opts,
++		   char *mnt_str, unsigned int mnt_str_len);
++
++/**
++ * lkl_umount_dev - umount a disk
++ *
++ * This functions umounts the given disks and removes the device file and the
++ * mount point.
++ *
++ * @disk_id - the disk id identifying the disk to be mounted
++ * @part - disk partition or zero for full disk
++ * @flags - umount flags
++ * @timeout_ms - timeout to wait for the kernel to flush closed files so that
++ * umount can succeed
++ * @returns - 0 on success, a negative value on error
++ */
++long lkl_umount_dev(unsigned int disk_id, unsigned int part, int flags,
++		    long timeout_ms);
++
++/**
++ * lkl_umount_timeout - umount filesystem with timeout
++ *
++ * @path - the path to unmount
++ * @flags - umount flags
++ * @timeout_ms - timeout to wait for the kernel to flush closed files so that
++ * umount can succeed
++ * @returns - 0 on success, a negative value on error
++ */
++long lkl_umount_timeout(char *path, int flags, long timeout_ms);
++
++/**
++ * lkl_opendir - open a directory
++ *
++ * @path - directory path
++ * @err - pointer to store the error in case of failure
++ * @returns - a handle to be used when calling lkl_readdir
++ */
++struct lkl_dir *lkl_opendir(const char *path, int *err);
++
++/**
++ * lkl_fdopendir - open a directory
++ *
++ * @fd - file descriptor
++ * @err - pointer to store the error in case of failure
++ * @returns - a handle to be used when calling lkl_readdir
++ */
++struct lkl_dir *lkl_fdopendir(int fd, int *err);
++
++/**
++ * lkl_rewinddir - reset directory stream
++ *
++ * @dir - the directory handler as returned by lkl_opendir
++ */
++void lkl_rewinddir(struct lkl_dir *dir);
++
++/**
++ * lkl_closedir - close the directory
++ *
++ * @dir - the directory handler as returned by lkl_opendir
++ */
++int lkl_closedir(struct lkl_dir *dir);
++
++/**
++ * lkl_readdir - get the next available entry of the directory
++ *
++ * @dir - the directory handler as returned by lkl_opendir
++ * @returns - a lkl_dirent64 entry or NULL if the end of the directory stream is
++ * reached or if an error occurred; check lkl_errdir() to distinguish between
++ * errors or end of the directory stream
++ */
++struct lkl_linux_dirent64 *lkl_readdir(struct lkl_dir *dir);
++
++/**
++ * lkl_errdir - checks if an error occurred during the last lkl_readdir call
++ *
++ * @dir - the directory handler as returned by lkl_opendir
++ * @returns - 0 if no error occurred, or a negative value otherwise
++ */
++int lkl_errdir(struct lkl_dir *dir);
++
++/**
++ * lkl_dirfd - gets the file descriptor associated with the directory handle
++ *
++ * @dir - the directory handle as returned by lkl_opendir
++ * @returns - a positive value,which is the LKL file descriptor associated with
++ * the directory handle, or a negative value otherwise
++ */
++int lkl_dirfd(struct lkl_dir *dir);
++
++/**
++ * lkl_mount_fs - mount a file system type like proc, sys
++ * @fstype - file system type. e.g. proc, sys
++ * @returns - 0 on success. 1 if it's already mounted. negative on failure.
++ */
++int lkl_mount_fs(char *fstype);
+ 
+ #ifdef __cplusplus
+ }
+diff --git a/tools/lkl/lib/Build b/tools/lkl/lib/Build
+index 658bfa865b9c..4a444337b0e7 100644
+--- a/tools/lkl/lib/Build
++++ b/tools/lkl/lib/Build
+@@ -1,5 +1,6 @@
+ CFLAGS_config.o += -I$(srctree)/tools/perf/pmu-events
+ 
++liblkl-y += fs.o
+ liblkl-y += jmp_buf.o
+ liblkl-y += utils.o
+ liblkl-y += dbg.o
+diff --git a/tools/lkl/lib/fs.c b/tools/lkl/lib/fs.c
+new file mode 100644
+index 000000000000..d51d928c14b6
+--- /dev/null
++++ b/tools/lkl/lib/fs.c
+@@ -0,0 +1,471 @@
++// SPDX-License-Identifier: GPL-2.0
++#include <stdarg.h>
++#include <stdio.h>
++#include <string.h>
++#include <stdlib.h>
++#include <lkl_host.h>
++
++#define MAX_FSTYPE_LEN 50
++
++static struct lkl_disk *lkl_disks[16];
++
++int lkl_disk_add(struct lkl_disk *disk)
 +{
-+	long ret;
++	int ret = -1;
 +
-+	if (no < 0 || no >= __NR_syscalls)
-+		return -ENOSYS;
++	switch (disk->backend) {
++	case BLK_BACKEND_UM:
++		ret = lkl_disk_um_add(disk, disk->dev);
++		break;
++	default:
++		break;
++	}
 +
-+	ret = syscall_table[no](params[0], params[1], params[2], params[3],
-+				params[4], params[5]);
-+
-+	task_work_run();
++	lkl_disks[ret] = disk;
 +
 +	return ret;
 +}
 +
-+
-+#define CLONE_FLAGS (CLONE_VM | CLONE_FS | CLONE_FILES | CLONE_THREAD |	\
-+		     CLONE_SIGHAND | SIGCHLD)
-+
-+static int host_task_id;
-+static struct task_struct *host0;
-+
-+static int new_host_task(struct task_struct **task)
++int lkl_disk_remove(struct lkl_disk disk)
 +{
-+	pid_t pid;
-+
-+	switch_to_host_task(host0);
-+
-+	pid = kernel_thread(host_task_stub, NULL, CLONE_FLAGS);
-+	if (pid < 0)
-+		return pid;
-+
-+	rcu_read_lock();
-+	*task = find_task_by_pid_ns(pid, &init_pid_ns);
-+	rcu_read_unlock();
-+
-+	host_task_id++;
-+
-+	snprintf((*task)->comm, sizeof((*task)->comm), "host%d", host_task_id);
++	switch (disk.backend) {
++	case BLK_BACKEND_UM:
++	default:
++		break;
++	}
 +
 +	return 0;
 +}
-+static void exit_task(void)
++
++int lkl_mount_fs(char *fstype)
 +{
-+	do_exit(0);
++	char dir[MAX_FSTYPE_LEN+2] = "/";
++	int flags = 0, ret = 0;
++
++	strncat(dir, fstype, MAX_FSTYPE_LEN);
++
++	/* Create with regular umask */
++	ret = lkl_sys_mkdir(dir, 0xff);
++	if (ret && ret != -LKL_EEXIST) {
++		lkl_perror("mount_fs mkdir", ret);
++		return ret;
++	}
++
++	/* We have no use for nonzero flags right now */
++	ret = lkl_sys_mount("none", dir, fstype, flags, NULL);
++	if (ret && ret != -LKL_EBUSY) {
++		lkl_sys_rmdir(dir);
++		return ret;
++	}
++
++	if (ret == -LKL_EBUSY)
++		return 1;
++	return 0;
 +}
 +
-+static void del_host_task(void *arg)
++static uint32_t new_encode_dev(unsigned int major, unsigned int minor)
 +{
-+	struct task_struct *task = (struct task_struct *)arg;
-+	struct thread_info *ti = task_thread_info(task);
-+
-+	if (lkl_cpu_get() < 0)
-+		return;
-+
-+	switch_to_host_task(task);
-+	host_task_id--;
-+	set_ti_thread_flag(ti, TIF_SCHED_JB);
-+	lkl_ops->jmp_buf_set(&ti->sched_jb, exit_task);
++	return (minor & 0xff) | (major << 8) | ((minor & ~0xff) << 12);
 +}
 +
-+static struct lkl_tls_key *task_key;
-+
-+long lkl_syscall(long no, long *params)
++static int startswith(const char *str, const char *pre)
 +{
-+	struct task_struct *task = host0;
-+	long ret;
++	return strncmp(pre, str, strlen(pre)) == 0;
++}
 +
-+	ret = lkl_cpu_get();
++static int get_node_with_prefix(const char *path, const char *prefix,
++				char *result, unsigned int result_len)
++{
++	struct lkl_dir *dir = NULL;
++	struct lkl_linux_dirent64 *dirent;
++	int ret;
++
++	dir = lkl_opendir(path, &ret);
++	if (!dir)
++		return ret;
++
++	ret = -LKL_ENOENT;
++
++	while ((dirent = lkl_readdir(dir))) {
++		if (startswith(dirent->d_name, prefix)) {
++			if (strlen(dirent->d_name) + 1 > result_len) {
++				ret = -LKL_ENOMEM;
++				break;
++			}
++			memcpy(result, dirent->d_name, strlen(dirent->d_name));
++			result[strlen(dirent->d_name)] = '\0';
++			ret = 0;
++			break;
++		}
++	}
++
++	lkl_closedir(dir);
++
++	return ret;
++}
++
++int lkl_encode_dev_from_sysfs(const char *sysfs_path, uint32_t *pdevid)
++{
++	int ret;
++	long fd;
++	int major, minor;
++	char buf[16] = { 0, };
++	char *bufptr;
++
++	fd = lkl_sys_open(sysfs_path, LKL_O_RDONLY, 0);
++	if (fd < 0)
++		return fd;
++
++	ret = lkl_sys_read(fd, buf, sizeof(buf));
++	if (ret < 0)
++		goto out_close;
++
++	if (ret == sizeof(buf)) {
++		ret = -LKL_ENOBUFS;
++		goto out_close;
++	}
++
++	bufptr = strchr(buf, ':');
++	if (bufptr == NULL) {
++		ret = -LKL_EINVAL;
++		goto out_close;
++	}
++	bufptr[0] = '\0';
++	bufptr++;
++
++	major = atoi(buf);
++	minor = atoi(bufptr);
++
++	*pdevid = new_encode_dev(major, minor);
++	ret = 0;
++
++out_close:
++	lkl_sys_close(fd);
++
++	return ret;
++}
++
++#define SYSFS_DEV_UMBLK_CMDLINE_PATH \
++	"/sysfs/devices/platform/uml-blkdev.%d"
++
++struct abuf {
++	char *mem, *ptr;
++	unsigned int len;
++};
++
++static int snprintf_append(struct abuf *buf, const char *fmt, ...)
++{
++	int ret;
++	va_list args;
++
++	if (!buf->ptr)
++		buf->ptr = buf->mem;
++
++	va_start(args, fmt);
++	ret = vsnprintf(buf->ptr, buf->len - (buf->ptr - buf->mem), fmt, args);
++	va_end(args);
++
++	if (ret < 0 || (ret >= (int)(buf->len - (buf->ptr - buf->mem))))
++		return -LKL_ENOMEM;
++
++	buf->ptr += ret;
++
++	return 0;
++}
++
++static int __lkl_get_blkdev(int disk_id, unsigned int part, uint32_t *pdevid,
++			    const char *sysfs_path_fmt, const char *drv_prefix,
++			    const char *disk_prefix)
++{
++	char sysfs_path[LKL_PATH_MAX];
++	char drv_name[LKL_PATH_MAX];
++	char disk_name[LKL_PATH_MAX];
++	struct abuf sysfs_path_buf = {
++		.mem = sysfs_path,
++		.len = sizeof(sysfs_path),
++	};
++	int ret;
++
++	if (disk_id < 0)
++		return -LKL_EINVAL;
++
++	ret = lkl_mount_fs("sysfs");
 +	if (ret < 0)
 +		return ret;
 +
-+	if (lkl_ops->tls_get) {
-+		task = lkl_ops->tls_get(task_key);
-+		if (!task) {
-+			ret = new_host_task(&task);
-+			if (ret)
-+				goto out;
-+			lkl_ops->tls_set(task_key, task);
-+		}
-+	}
-+
-+	switch_to_host_task(task);
-+
-+	ret = run_syscall(no, params);
-+
-+	if (no == __NR_reboot) {
-+		thread_sched_jb();
++	ret = snprintf_append(&sysfs_path_buf, sysfs_path_fmt, disk_id);
++	if (ret)
 +		return ret;
-+	}
 +
-+out:
-+	lkl_cpu_put();
++	ret = get_node_with_prefix(sysfs_path, drv_prefix, drv_name,
++				   sizeof(drv_name));
++	if (ret)
++		return ret;
 +
-+	return ret;
++	ret = snprintf_append(&sysfs_path_buf, "/%s/block", drv_name);
++	if (ret)
++		return ret;
++
++	ret = get_node_with_prefix(sysfs_path, disk_prefix, disk_name,
++				   sizeof(disk_name));
++	if (ret)
++		return ret;
++
++	if (!part)
++		ret = snprintf_append(&sysfs_path_buf, "/%s/dev", disk_name);
++	else
++		ret = snprintf_append(&sysfs_path_buf, "/%s/%s%d/dev",
++				      disk_name, disk_name, part);
++	if (ret)
++		return ret;
++
++	return lkl_encode_dev_from_sysfs(sysfs_path, pdevid);
 +}
 +
-+static struct task_struct *idle_host_task;
-+
-+/* called from idle, don't failed, don't block */
-+void wakeup_idle_host_task(void)
++int lkl_get_blkdev(int disk_id, unsigned int part, uint32_t *pdevid)
 +{
-+	if (!need_resched() && idle_host_task)
-+		wake_up_process(idle_host_task);
-+}
++	char *fmt;
++	struct lkl_disk *disk = lkl_disks[disk_id];
 +
-+static int idle_host_task_loop(void *unused)
-+{
-+	struct thread_info *ti = task_thread_info(current);
-+
-+	snprintf(current->comm, sizeof(current->comm), "idle_host_task");
-+	set_thread_flag(TIF_HOST_THREAD);
-+	idle_host_task = current;
-+
-+	for (;;) {
-+		lkl_cpu_put();
-+		lkl_ops->sem_down(ti->sched_sem);
-+		if (idle_host_task == NULL) {
-+			lkl_ops->thread_exit();
-+			return 0;
-+		}
-+		schedule_tail(ti->prev_sched);
-+	}
-+}
-+
-+int syscalls_init(void)
-+{
-+	snprintf(current->comm, sizeof(current->comm), "host0");
-+	set_thread_flag(TIF_HOST_THREAD);
-+	host0 = current;
-+
-+	if (lkl_ops->tls_alloc) {
-+		task_key = lkl_ops->tls_alloc(del_host_task);
-+		if (!task_key)
-+			return -1;
++	switch (disk->backend) {
++	case BLK_BACKEND_UM:
++		fmt = SYSFS_DEV_UMBLK_CMDLINE_PATH;
++		return __lkl_get_blkdev(disk_id, part, pdevid, fmt,
++					"", "ubd");
++	default:
++		break;
 +	}
 +
-+	if (kernel_thread(idle_host_task_loop, NULL, CLONE_FLAGS) < 0) {
-+		if (lkl_ops->tls_free)
-+			lkl_ops->tls_free(task_key);
-+		return -1;
++	return -1;
++}
++
++long lkl_mount_dev(unsigned int disk_id, unsigned int part,
++		   const char *fs_type, int flags,
++		   const char *data, char *mnt_str, unsigned int mnt_str_len)
++{
++	char dev_str[] = { "/dev/xxxxxxxx" };
++	unsigned int dev;
++	int err;
++	char _data[4096]; /* FIXME: PAGE_SIZE is not exported by LKL */
++
++	if (mnt_str_len < sizeof(dev_str))
++		return -LKL_ENOMEM;
++
++	err = lkl_get_blkdev(disk_id, part, &dev);
++	if (err < 0)
++		return err;
++
++	snprintf(dev_str, sizeof(dev_str), "/dev/%08x", dev);
++	snprintf(mnt_str, mnt_str_len, "/mnt/%08x", dev);
++
++	err = lkl_sys_access("/dev", LKL_S_IRWXO);
++	if (err < 0) {
++		if (err == -LKL_ENOENT)
++			err = lkl_sys_mkdir("/dev", 0700);
++		if (err < 0)
++			return err;
++	}
++
++	err = lkl_sys_mknod(dev_str, LKL_S_IFBLK | 0600, dev);
++	if (err < 0)
++		return err;
++
++	err = lkl_sys_access("/mnt", LKL_S_IRWXO);
++	if (err < 0) {
++		if (err == -LKL_ENOENT)
++			err = lkl_sys_mkdir("/mnt", 0700);
++		if (err < 0)
++			return err;
++	}
++
++	err = lkl_sys_mkdir(mnt_str, 0700);
++	if (err < 0) {
++		lkl_sys_unlink(dev_str);
++		return err;
++	}
++
++	/* kernel always copies a full page */
++	if (data) {
++		strncpy(_data, data, sizeof(_data));
++		_data[sizeof(_data) - 1] = 0;
++	} else {
++		_data[0] = 0;
++	}
++
++	err = lkl_sys_mount(dev_str, mnt_str, (char *)fs_type, flags, _data);
++	if (err < 0) {
++		lkl_sys_unlink(dev_str);
++		lkl_sys_rmdir(mnt_str);
++		return err;
 +	}
 +
 +	return 0;
 +}
 +
-+void syscalls_cleanup(void)
++long lkl_umount_timeout(char *path, int flags, long timeout_ms)
 +{
-+	if (idle_host_task) {
-+		struct thread_info *ti = task_thread_info(idle_host_task);
++	long incr = 10000000; /* 10 ms */
++	struct lkl_timespec ts = {
++		.tv_sec = 0,
++		.tv_nsec = incr,
++	};
++	long err;
 +
-+		idle_host_task = NULL;
-+		lkl_ops->sem_up(ti->sched_sem);
-+		lkl_ops->thread_join(ti->tid);
-+	}
++	do {
++		err = lkl_sys_umount(path, flags);
++		if (err == -LKL_EBUSY) {
++			lkl_sys_nanosleep((struct __lkl__kernel_timespec *)&ts,
++					  NULL);
++			timeout_ms -= incr / 1000000;
++		}
++	} while (err == -LKL_EBUSY && timeout_ms > 0);
 +
-+	if (lkl_ops->tls_free)
-+		lkl_ops->tls_free(task_key);
-+}
-diff --git a/arch/um/lkl/kernel/syscalls_32.c b/arch/um/lkl/kernel/syscalls_32.c
-new file mode 100644
-index 000000000000..a4271593c338
---- /dev/null
-+++ b/arch/um/lkl/kernel/syscalls_32.c
-@@ -0,0 +1,159 @@
-+// SPDX-License-Identifier: GPL-2.0
-+/*
-+ * sys_ia32.c: Conversion between 32bit and 64bit native syscalls. Based on
-+ *             sys_sparc32
-+ *
-+ * Copyright (C) 2000		VA Linux Co
-+ * Copyright (C) 2000		Don Dugger <n0ano@valinux.com>
-+ * Copyright (C) 1999		Arun Sharma <arun.sharma@intel.com>
-+ * Copyright (C) 1997,1998	Jakub Jelinek (jj@sunsite.mff.cuni.cz)
-+ * Copyright (C) 1997		David S. Miller (davem@caip.rutgers.edu)
-+ * Copyright (C) 2000		Hewlett-Packard Co.
-+ * Copyright (C) 2000		David Mosberger-Tang <davidm@hpl.hp.com>
-+ * Copyright (C) 2000,2001,2002	Andi Kleen, SuSE Labs (x86-64 port)
-+ *
-+ * These routines maintain argument size conversion between 32bit and 64bit
-+ * environment. In 2.5 most of this should be moved to a generic directory.
-+ *
-+ * This file assumes that there is a hole at the end of user address space.
-+ *
-+ * Some of the functions are LE specific currently. These are
-+ * hopefully all marked.  This should be fixed.
-+ */
-+
-+#include <linux/kernel.h>
-+#include <linux/sched.h>
-+#include <linux/fs.h>
-+#include <linux/file.h>
-+#include <linux/signal.h>
-+#include <linux/syscalls.h>
-+#include <linux/times.h>
-+#include <linux/utsname.h>
-+#include <linux/mm.h>
-+#include <linux/uio.h>
-+#include <linux/poll.h>
-+#include <linux/personality.h>
-+#include <linux/stat.h>
-+#include <linux/rwsem.h>
-+#include <linux/compat.h>
-+#include <linux/vfs.h>
-+#include <linux/ptrace.h>
-+#include <linux/highuid.h>
-+#include <linux/sysctl.h>
-+#include <linux/slab.h>
-+#include <asm/types.h>
-+#include <linux/atomic.h>
-+#include <asm/syscalls_32.h>
-+
-+#define AA(__x)		((unsigned long)(__x))
-+
-+#if __BITS_PER_LONG == 32
-+
-+asmlinkage long sys32_truncate64(const char __user *filename,
-+				 unsigned long offset_low,
-+				 unsigned long offset_high)
-+{
-+	return sys_truncate64(filename,
-+			      ((loff_t)offset_high << 32) | offset_low);
++	return err;
 +}
 +
-+asmlinkage long sys32_ftruncate64(unsigned int fd, unsigned long offset_low,
-+				  unsigned long offset_high)
++long lkl_umount_dev(unsigned int disk_id, unsigned int part, int flags,
++		    long timeout_ms)
 +{
-+	return sys_ftruncate64(fd, ((loff_t)offset_high << 32) | offset_low);
++	char dev_str[] = { "/dev/xxxxxxxx" };
++	char mnt_str[] = { "/mnt/xxxxxxxx" };
++	unsigned int dev;
++	int err;
++
++	err = lkl_get_blkdev(disk_id, part, &dev);
++	if (err < 0)
++		return err;
++
++	snprintf(dev_str, sizeof(dev_str), "/dev/%08x", dev);
++	snprintf(mnt_str, sizeof(mnt_str), "/mnt/%08x", dev);
++
++	err = lkl_umount_timeout(mnt_str, flags, timeout_ms);
++	if (err)
++		return err;
++
++	err = lkl_sys_unlink(dev_str);
++	if (err)
++		return err;
++
++	return lkl_sys_rmdir(mnt_str);
 +}
 +
-+#ifdef CONFIG_MMU
-+/*
-+ * Linux/i386 didn't use to be able to handle more than
-+ * 4 system call parameters, so these system calls used a memory
-+ * block for parameter passing..
-+ */
-+
-+struct mmap_arg_struct32 {
-+	unsigned int addr;
-+	unsigned int len;
-+	unsigned int prot;
-+	unsigned int flags;
-+	unsigned int fd;
-+	unsigned int offset;
++struct lkl_dir {
++	int fd;
++	char buf[1024];
++	char *pos;
++	int len;
 +};
 +
-+asmlinkage long sys32_mmap(struct mmap_arg_struct32 __user *arg)
++static struct lkl_dir *lkl_dir_alloc(int *err)
 +{
-+	struct mmap_arg_struct32 a;
++	struct lkl_dir *dir = lkl_host_ops.mem_alloc(sizeof(struct lkl_dir));
 +
-+	if (copy_from_user(&a, arg, sizeof(a)))
-+		return -EFAULT;
++	if (!dir) {
++		*err = -LKL_ENOMEM;
++		return NULL;
++	}
 +
-+	if (a.offset & ~PAGE_MASK)
-+		return -EINVAL;
++	dir->len = 0;
++	dir->pos = NULL;
 +
-+	return sys_mmap_pgoff(a.addr, a.len, a.prot, a.flags, a.fd,
-+			      a.offset >> PAGE_SHIFT);
-+}
-+#endif
-+
-+asmlinkage long sys32_wait4(pid_t pid, unsigned int __user *stat_addr,
-+			    int options, struct rusage __user *ru)
-+{
-+	return sys_wait4(pid, stat_addr, options, ru);
++	return dir;
 +}
 +
-+asmlinkage long sys32_pread64(unsigned int fd, char __user *ubuf, u32 count,
-+			      u32 poslo, u32 poshi)
++struct lkl_dir *lkl_opendir(const char *path, int *err)
 +{
-+	return sys_pread64(fd, ubuf, count,
-+			   ((loff_t)AA(poshi) << 32) | AA(poslo));
++	struct lkl_dir *dir = lkl_dir_alloc(err);
++
++	if (!dir) {
++		*err = -LKL_ENOMEM;
++		return NULL;
++	}
++
++	dir->fd = lkl_sys_open(path, LKL_O_RDONLY | LKL_O_DIRECTORY, 0);
++	if (dir->fd < 0) {
++		*err = dir->fd;
++		lkl_host_ops.mem_free(dir);
++		return NULL;
++	}
++
++	*err = 0;
++
++	return dir;
 +}
 +
-+asmlinkage long sys32_pwrite64(unsigned int fd, const char __user *ubuf,
-+			       u32 count, u32 poslo, u32 poshi)
++struct lkl_dir *lkl_fdopendir(int fd, int *err)
 +{
-+	return sys_pwrite64(fd, ubuf, count,
-+			    ((loff_t)AA(poshi) << 32) | AA(poslo));
++	struct lkl_dir *dir = lkl_dir_alloc(err);
++
++	if (!dir)
++		return NULL;
++
++	dir->fd = fd;
++
++	return dir;
 +}
 +
-+/*
-+ * Some system calls that need sign extended arguments. This could be
-+ * done by a generic wrapper.
-+ */
-+long sys32_fadvise64_64(int fd, __u32 offset_low, __u32 offset_high,
-+			__u32 len_low, __u32 len_high, int advice)
++void lkl_rewinddir(struct lkl_dir *dir)
 +{
-+	return sys_fadvise64_64(fd, (((u64)offset_high) << 32) | offset_low,
-+				(((u64)len_high) << 32) | len_low, advice);
++	lkl_sys_lseek(dir->fd, 0, LKL_SEEK_SET);
++	dir->len = 0;
++	dir->pos = NULL;
 +}
 +
-+asmlinkage ssize_t sys32_readahead(int fd, unsigned int off_lo,
-+				   unsigned int off_hi, size_t count)
++int lkl_closedir(struct lkl_dir *dir)
 +{
-+	return sys_readahead(fd, ((u64)off_hi << 32) | off_lo, count);
++	int ret;
++
++	ret = lkl_sys_close(dir->fd);
++	lkl_host_ops.mem_free(dir);
++
++	return ret;
 +}
 +
-+asmlinkage long sys32_sync_file_range(int fd, unsigned int off_low,
-+				      unsigned int off_hi, unsigned int n_low,
-+				      unsigned int n_hi, unsigned int flags)
++struct lkl_linux_dirent64 *lkl_readdir(struct lkl_dir *dir)
 +{
-+	return sys_sync_file_range(fd, ((u64)off_hi << 32) | off_low,
-+				   ((u64)n_hi << 32) | n_low, flags);
++	struct lkl_linux_dirent64 *de;
++
++	if (dir->len < 0)
++		return NULL;
++
++	if (!dir->pos || dir->pos - dir->buf >= dir->len)
++		goto read_buf;
++
++return_de:
++	de = (struct lkl_linux_dirent64 *)dir->pos;
++	dir->pos += de->d_reclen;
++
++	return de;
++
++read_buf:
++	dir->pos = NULL;
++	de = (struct lkl_linux_dirent64 *)dir->buf;
++	dir->len = lkl_sys_getdents64(dir->fd, de, sizeof(dir->buf));
++	if (dir->len <= 0)
++		return NULL;
++
++	dir->pos = dir->buf;
++	goto return_de;
 +}
 +
-+asmlinkage long sys32_sync_file_range2(int fd, unsigned int flags,
-+				       unsigned int off_low,
-+				       unsigned int off_hi, unsigned int n_low,
-+				       unsigned int n_hi)
++int lkl_errdir(struct lkl_dir *dir)
 +{
-+	return sys_sync_file_range(fd, ((u64)off_hi << 32) | off_low,
-+				   ((u64)n_hi << 32) | n_low, flags);
++	if (dir->len >= 0)
++		return 0;
++
++	return dir->len;
 +}
 +
-+asmlinkage long sys32_fallocate(int fd, int mode, unsigned int offset_lo,
-+				unsigned int offset_hi, unsigned int len_lo,
-+				unsigned int len_hi)
++int lkl_dirfd(struct lkl_dir *dir)
 +{
-+	return sys_fallocate(fd, mode, ((u64)offset_hi << 32) | offset_lo,
-+			     ((u64)len_hi << 32) | len_lo);
++	return dir->fd;
 +}
 +
-+#endif
-diff --git a/arch/um/lkl/scripts/headers_install.py b/arch/um/lkl/scripts/headers_install.py
-new file mode 100755
-index 000000000000..30101bd1d4bf
---- /dev/null
-+++ b/arch/um/lkl/scripts/headers_install.py
-@@ -0,0 +1,196 @@
-+#!/usr/bin/env python
-+# SPDX-License-Identifier: GPL-2.0
-+import re, os, sys, argparse, multiprocessing, fnmatch
-+
-+srctree = os.environ["srctree"]
-+objtree = os.environ["objtree"]
-+install_hdr_path = os.environ["INSTALL_HDR_PATH"]
-+header_paths = [ install_hdr_path + "/include/",
-+                 "arch/um/lkl/include/generated/uapi/", "include/generated/" ]
-+
-+headers = set()
-+includes = set()
-+
-+def relpath2abspath(relpath):
-+    if "generated" in relpath:
-+        return objtree + "/" + relpath
-+    else:
-+        return objtree + "/" + relpath
-+
-+def find_headers(path):
-+    headers.add(path)
-+    f = open(relpath2abspath(path))
-+    for l in f.readlines():
-+        m = re.search("#include <(.*)>", l)
-+        try:
-+            i = m.group(1)
-+            for p in header_paths:
-+                if os.access(relpath2abspath(p + i), os.R_OK):
-+                    if p + i not in headers:
-+                        includes.add(i)
-+                        headers.add(p + i)
-+                        find_headers(p + i)
-+        except:
-+            pass
-+    f.close()
-+
-+def has_lkl_prefix(w):
-+  return w.startswith("lkl") or w.startswith("_lkl") or w.startswith("__lkl") \
-+         or w.startswith("LKL") or w.startswith("_LKL") or w.startswith("__LKL")
-+
-+def find_symbols(regexp, store):
-+    for h in headers:
-+        f = open(h)
-+        for l in f.readlines():
-+            m = regexp.search(l)
-+            if not m:
-+                continue
-+            for e in reversed(m.groups()):
-+                if e:
-+                    if not has_lkl_prefix(e):
-+                        store.add(e)
-+                    break
-+        f.close()
-+
-+def find_ml_symbols(regexp, store):
-+    for h in headers:
-+        for i in regexp.finditer(open(h).read()):
-+            for j in reversed(i.groups()):
-+                if j:
-+                    if not has_lkl_prefix(j):
-+                        store.add(j)
-+                    break
-+
-+def find_enums(block_regexp, symbol_regexp, store):
-+    for h in headers:
-+        # remove comments
-+        content = re.sub(re.compile("(\/\*(\*(?!\/)|[^*])*\*\/)", re.S|re.M), " ", open(h).read())
-+        # remove preprocesor lines
-+        clean_content = ""
-+        for l in content.split("\n"):
-+            if re.match("\s*#", l):
-+                continue
-+            clean_content += l + "\n"
-+        for i in block_regexp.finditer(clean_content):
-+            for j in reversed(i.groups()):
-+                if j:
-+                    for k in symbol_regexp.finditer(j):
-+                        for l in k.groups():
-+                            if l:
-+                                if not has_lkl_prefix(l):
-+                                    store.add(l)
-+                                break
-+
-+def lkl_prefix(w):
-+    r = ""
-+
-+    if w.startswith("__"):
-+        r = "__"
-+    elif w.startswith("_"):
-+        r = "_"
-+
-+    if w.isupper():
-+        r += "LKL"
-+    else:
-+        r += "lkl"
-+
-+    if not w.startswith("_"):
-+        r += "_"
-+
-+    r += w
-+
-+    return r
-+
-+def replace(h):
-+    content = open(h).read()
-+    for i in includes:
-+        search_str = "(#[ \t]*include[ \t]*[<\"][ \t]*)" + i + "([ \t]*[>\"])"
-+        replace_str = "\\1" + "lkl/" + i + "\\2"
-+        content = re.sub(search_str, replace_str, content)
-+    tmp = ""
-+    for w in re.split("(\W+)", content):
-+        if w in defines:
-+            w = lkl_prefix(w)
-+        tmp += w
-+    content = tmp
-+    for s in structs:
-+        search_str = "(\W?struct\s+)" + s + "(\W)"
-+        replace_str = "\\1" + lkl_prefix(s) + "\\2"
-+        content = re.sub(search_str, replace_str, content, flags = re.MULTILINE)
-+    for s in unions:
-+        search_str = "(\W?union\s+)" + s + "(\W)"
-+        replace_str = "\\1" + lkl_prefix(s) + "\\2"
-+        content = re.sub(search_str, replace_str, content, flags = re.MULTILINE)
-+    open(h, 'w').write(content)
-+
-+parser = argparse.ArgumentParser(description='install lkl headers')
-+parser.add_argument('path', help='path to install to', )
-+parser.add_argument('-j', '--jobs', help='number of parallel jobs', default=1, type=int)
-+args = parser.parse_args()
-+
-+find_headers(install_hdr_path + "/include/asm/syscalls.h")
-+headers.add(install_hdr_path + "/include/asm/host_ops.h")
-+
-+if 'LKL_INSTALL_ADDITIONAL_HEADERS' in os.environ:
-+    with open(os.environ['LKL_INSTALL_ADDITIONAL_HEADERS'], 'rU') as f:
-+        for line in f.readlines():
-+            line = line.split('#', 1)[0].strip()
-+            if line != '':
-+                headers.add(line)
-+
-+new_headers = set()
-+
-+for h in headers:
-+    dir = os.path.dirname(h)
-+    out_dir = args.path + "/" + re.sub("(arch/um/lkl/include/generated/uapi/|include/generated/uapi/|include/generated|" + install_hdr_path + "/include/)(.*)", "lkl/\\2", dir)
-+    try:
-+        os.makedirs(out_dir)
-+    except:
-+        pass
-+    print("  INSTALL\t%s" % (out_dir + "/" + os.path.basename(h)))
-+    os.system(srctree+"/scripts/headers_install.sh %s %s" % (os.path.abspath(h),
-+                                                       out_dir + "/" + os.path.basename(h)))
-+    new_headers.add(out_dir + "/" + os.path.basename(h))
-+
-+headers = new_headers
-+
-+defines = set()
-+structs = set()
-+unions = set()
-+
-+p = re.compile("#[ \t]*define[ \t]*(\w+)")
-+find_symbols(p, defines)
-+p = re.compile("typedef.*(\(\*(\w+)\)\(.*\)\s*|\W+(\w+)\s*|\s+(\w+)\(.*\)\s*);")
-+find_symbols(p, defines)
-+p = re.compile("typedef\s+(struct|union)\s+\w*\s*{[^\\{\}]*}\W*(\w+)\s*;", re.M|re.S)
-+find_ml_symbols(p, defines)
-+defines.add("siginfo_t")
-+defines.add("sigevent_t")
-+p = re.compile("struct\s+(\w+)\s*\{")
-+find_symbols(p, structs)
-+structs.add("iovec")
-+p = re.compile("union\s+(\w+)\s*\{")
-+find_symbols(p, unions)
-+p = re.compile("static\s+__inline__(\s+\w+)+\s+(\w+)\([^)]*\)\s")
-+find_symbols(p, defines)
-+p = re.compile("static\s+__always_inline(\s+\w+)+\s+(\w+)\([^)]*\)\s")
-+find_symbols(p, defines)
-+p = re.compile("enum\s+(\w*)\s*{([^}]*)}", re.M|re.S)
-+q = re.compile("(\w+)\s*(,|=[^,]*|$)", re.M|re.S)
-+find_enums(p, q, defines)
-+
-+# needed for i386
-+defines.add("__NR_stime")
-+
-+def process_header(h):
-+    print("  REPLACE\t%s" % (out_dir + "/" + os.path.basename(h)))
-+    replace(h)
-+
-+p = multiprocessing.Pool(args.jobs)
-+try:
-+    p.map_async(process_header, headers).wait(999999)
-+    p.close()
-+except:
-+    p.terminate()
-+finally:
-+    p.join()
++int lkl_set_fd_limit(unsigned int fd_limit)
++{
++	struct lkl_rlimit rlim = {
++		.rlim_cur = fd_limit,
++		.rlim_max = fd_limit,
++	};
++	return lkl_sys_setrlimit(LKL_RLIMIT_NOFILE, &rlim);
++}
 -- 
 2.21.0 (Apple Git-122.2)
