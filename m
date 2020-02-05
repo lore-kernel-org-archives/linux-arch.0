@@ -1,55 +1,110 @@
-Return-Path: <linux-riscv-bounces+rppt=linux.ibm.com@lists.infradead.org>
-Subject: Re: [PATCH] mm/debug: Add tests validating arch page table helpers
- for core features
-References: <1582799637-11786-1-git-send-email-anshuman.khandual@arm.com>
- <51421bb3-9075-d7e9-1750-0553a1ebe64a@c-s.fr>
-From: Anshuman Khandual <anshuman.khandual@arm.com>
-Message-ID: <f99692be-5d38-fdb7-46f1-205c7cc7481c@arm.com>
-Date: Fri, 28 Feb 2020 14:50:09 +0530
+Return-Path: <linux-arch-owner@vger.kernel.org>
+Received: from mga14.intel.com ([192.55.52.115]:20934 "EHLO mga14.intel.com"
+ rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP id S1727855AbgBESUd
+ (ORCPT <rfc822;linux-arch@vger.kernel.org>); Wed, 5 Feb 2020 13:20:33 -0500
+From: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Subject: [RFC PATCH v9 24/27] x86/cet/shstk: ELF header parsing for Shadow
+ Stack
+Date: Wed,  5 Feb 2020 10:19:32 -0800
+Message-ID: <20200205181935.3712-25-yu-cheng.yu@intel.com>
+In-Reply-To: <20200205181935.3712-1-yu-cheng.yu@intel.com>
+References: <20200205181935.3712-1-yu-cheng.yu@intel.com>
 MIME-Version: 1.0
-In-Reply-To: <51421bb3-9075-d7e9-1750-0553a1ebe64a@c-s.fr>
-Content-Type: text/plain; charset=utf-8
-Content-Language: en-US
 Content-Transfer-Encoding: 8bit
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-riscv>,
- <mailto:linux-riscv-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-riscv/>
-List-Post: <mailto:linux-riscv@lists.infradead.org>
-List-Help: <mailto:linux-riscv-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-riscv>,
- <mailto:linux-riscv-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-riscv" <linux-riscv-bounces@lists.infradead.org>
-Errors-To: linux-riscv-bounces+rppt=linux.ibm.com@lists.infradead.org
-To: Christophe Leroy <christophe.leroy@c-s.fr>, linux-mm@kvack.org
-Cc: Catalin Marinas <catalin.marinas@arm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Paul Mackerras <paulus@samba.org>, "H. Peter Anvin" <hpa@zytor.com>, linux-riscv@lists.infradead.org, Will Deacon <will@kernel.org>, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, x86@kernel.org, Mike Rapoport <rppt@linux.ibm.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Ingo Molnar <mingo@redhat.com>, linux-snps-arc@lists.infradead.org, Vasily Gorbik <gor@linux.ibm.com>, Borislav Petkov <bp@alien8.de>, Paul Walmsley <paul.walmsley@sifive.com>, "Kirill A . Shutemov" <kirill@shutemov.name>, Thomas Gleixner <tglx@linutronix.de>, linux-arm-kernel@lists.infradead.org, Vineet Gupta <vgupta@synopsys.com>, linux-kernel@vger.kernel.org, Palmer Dabbelt <palmer@dabbelt.com>, Andrew Morton <akpm@linux-foundation.org>, linuxppc-dev@lists.ozlabs.org
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200228092009.JgBwVW1pIpCDxBYT894wKcFPurmQm77FUQy9kiXnxsk@z>
+To: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>, x86-patch-review@intel.com
+Cc: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Message-ID: <20200205181932.u_3z8vSNRD4zUv6ZPUJnycbiZMTZx1hxefJnOLuqclY@z>
 
+Check an ELF file's .note.gnu.property, and setup Shadow Stack if the
+application supports it.
 
+v9:
+- Change cpu_feature_enabled() to static_cpu_has().
 
-On 02/27/2020 04:12 PM, Christophe Leroy wrote:
-> 
-> 
-> Le 27/02/2020 à 11:33, Anshuman Khandual a écrit :
->> This adds new tests validating arch page table helpers for these following
->> core memory features. These tests create and test specific mapping types at
->> various page table levels.
->>
->> * SPECIAL mapping
->> * PROTNONE mapping
->> * DEVMAP mapping
->> * SOFTDIRTY mapping
->> * SWAP mapping
->> * MIGRATION mapping
->> * HUGETLB mapping
-> 
-> For testing HUGETLB mappings, you also have to include tests of hugepd functions/helpers. Not all archictures have hugepage size which matches with page tables levels (e.g. powerpc). Those architectures use hugepd_t.
+Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
+---
+ arch/x86/Kconfig             |  2 ++
+ arch/x86/include/asm/elf.h   | 13 +++++++++++++
+ arch/x86/kernel/process_64.c | 31 +++++++++++++++++++++++++++++++
+ 3 files changed, 46 insertions(+)
 
-Dont see much hugepd_t in generic HugeTLB. Just wondering which generic
-hugepd helpers can be tested here. Could you please be bit more specific.
-As we have not yet started looking for arch specific page table helpers
-test requirements, all the test scenarios here need to be generic.
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index 6c34b701c588..d1447380e02e 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -1987,6 +1987,8 @@ config X86_INTEL_SHADOW_STACK_USER
+ 	select ARCH_USES_HIGH_VMA_FLAGS
+ 	select X86_INTEL_CET
+ 	select ARCH_HAS_SHSTK
++	select ARCH_USE_GNU_PROPERTY
++	select ARCH_BINFMT_ELF_STATE
+ 	---help---
+ 	  Shadow Stack (SHSTK) provides protection against program
+ 	  stack corruption.  It is active when the kernel has this
+diff --git a/arch/x86/include/asm/elf.h b/arch/x86/include/asm/elf.h
+index 69c0f892e310..fac79b621e0a 100644
+--- a/arch/x86/include/asm/elf.h
++++ b/arch/x86/include/asm/elf.h
+@@ -367,6 +367,19 @@ extern int compat_arch_setup_additional_pages(struct linux_binprm *bprm,
+ 					      int uses_interp);
+ #define compat_arch_setup_additional_pages compat_arch_setup_additional_pages
 
-> 
-> Christophe
-> 
++#ifdef CONFIG_ARCH_BINFMT_ELF_STATE
++struct arch_elf_state {
++	unsigned int gnu_property;
++};
++
++#define INIT_ARCH_ELF_STATE {	\
++	.gnu_property = 0,	\
++}
++
++#define arch_elf_pt_proc(ehdr, phdr, elf, interp, state) (0)
++#define arch_check_elf(ehdr, interp, interp_ehdr, state) (0)
++#endif
++
+ /* Do not change the values. See get_align_mask() */
+ enum align_flags {
+ 	ALIGN_VA_32	= BIT(0),
+diff --git a/arch/x86/kernel/process_64.c b/arch/x86/kernel/process_64.c
+index 506d66830d4d..99548cde0cc6 100644
+--- a/arch/x86/kernel/process_64.c
++++ b/arch/x86/kernel/process_64.c
+@@ -732,3 +732,34 @@ unsigned long KSTK_ESP(struct task_struct *task)
+ {
+ 	return task_pt_regs(task)->sp;
+ }
++
++#ifdef CONFIG_ARCH_USE_GNU_PROPERTY
++int arch_parse_elf_property(u32 type, const void *data, size_t datasz,
++			     bool compat, struct arch_elf_state *state)
++{
++	if (type != GNU_PROPERTY_X86_FEATURE_1_AND)
++		return 0;
++
++	if (datasz != sizeof(unsigned int))
++		return -ENOEXEC;
++
++	state->gnu_property = *(unsigned int *)data;
++	return 0;
++}
++
++int arch_setup_elf_property(struct arch_elf_state *state)
++{
++	int r = 0;
++
++	memset(&current->thread.cet, 0, sizeof(struct cet_status));
++
++	if (static_cpu_has(X86_FEATURE_SHSTK)) {
++		if (state->gnu_property & GNU_PROPERTY_X86_FEATURE_1_SHSTK)
++			r = cet_setup_shstk();
++		if (r < 0)
++			return r;
++	}
++
++	return r;
++}
++#endif
+-- 
+2.21.0
