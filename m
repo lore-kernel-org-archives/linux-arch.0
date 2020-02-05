@@ -1,67 +1,97 @@
-Return-Path: <brendanhiggins@google.com>
+Return-Path: <linux-doc-owner@vger.kernel.org>
+From: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Subject: [RFC PATCH v9 06/27] mm: Introduce VM_SHSTK for Shadow Stack memory
+Date: Wed,  5 Feb 2020 10:19:14 -0800
+Message-ID: <20200205181935.3712-7-yu-cheng.yu@intel.com>
+In-Reply-To: <20200205181935.3712-1-yu-cheng.yu@intel.com>
+References: <20200205181935.3712-1-yu-cheng.yu@intel.com>
 MIME-Version: 1.0
-References: <20200130230812.142642-1-brendanhiggins@google.com> <9e203718-dcca-3145-bc28-28979d41c278@gmail.com>
-In-Reply-To: <9e203718-dcca-3145-bc28-28979d41c278@gmail.com>
-From: Brendan Higgins <brendanhiggins@google.com>
-Date: Tue, 4 Feb 2020 14:01:33 -0800
-Message-ID: <CAFd5g45MQqGLY2xCjAmJz4-xxHwBo9DBPphZdnQMHDe=d-2K_Q@mail.gmail.com>
-Subject: Re: [PATCH v2 0/7] kunit: create a centralized executor to dispatch
- all KUnit tests
-Content-Type: text/plain; charset="UTF-8"
-To: Frank Rowand <frowand.list@gmail.com>
-Cc: Jeff Dike <jdike@addtoit.com>, Richard Weinberger <richard@nod.at>, Anton Ivanov <anton.ivanov@cambridgegreys.com>, Arnd Bergmann <arnd@arndb.de>, Kees Cook <keescook@chromium.org>, Shuah Khan <skhan@linuxfoundation.org>, Alan Maguire <alan.maguire@oracle.com>, Iurii Zaikin <yzaikin@google.com>, David Gow <davidgow@google.com>, Andrew Morton <akpm@linux-foundation.org>, rppt@linux.ibm.com, Greg KH <gregkh@linuxfoundation.org>, Stephen Boyd <sboyd@kernel.org>, Logan Gunthorpe <logang@deltatee.com>, Luis Chamberlain <mcgrof@kernel.org>, Knut Omang <knut.omang@oracle.com>, linux-um <linux-um@lists.infradead.org>, linux-arch@vger.kernel.org, "open list:KERNEL SELFTEST FRAMEWORK" <linux-kselftest@vger.kernel.org>, KUnit Development <kunit-dev@googlegroups.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>
+Sender: linux-doc-owner@vger.kernel.org
+Content-Transfer-Encoding: quoted-printable
+To: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>, x86-patch-review@intel.com
+Cc: Yu-cheng Yu <yu-cheng.yu@intel.com>
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200204220133.uOk9WIMeYeNSE7ety2wqDiQuF3_Tb_qkgQtddppFr60@z>
+Message-ID: <20200205181914._fj-FoFPcOxmS0b7GKdg4F_MF0jQq8OgtsA7lo3FjEM@z>
 
-On Tue, Feb 4, 2020 at 1:18 PM Frank Rowand <frowand.list@gmail.com> wrote:
->
-> On 1/30/20 5:08 PM, Brendan Higgins wrote:
-> > ## TL;DR
-> >
-> > This patchset adds a centralized executor to dispatch tests rather than
-> > relying on late_initcall to schedule each test suite separately along
-> > with a couple of new features that depend on it.
->
-> And the "couple of new features" are .... ?
+A Shadow Stack (SHSTK) PTE must be read-only and have _PAGE_DIRTY set.
+However, read-only and Dirty PTEs also exist for copy-on-write (COW) page=
+s.
+These two cases are handled differently for page faults and a new VM flag
+is necessary for tracking SHSTK VMAs.
 
-Sorry, I thought I addressed that in the next section, specifically by
-calling out: printing the test plan, and adding the new kernel command
-line option. I will call these out here in any future cover letters.
+v9:
+- Add VM_SHSTK case to arch_vma_name().
+- Revise the commit log to explain why a new VM flag is needed.
 
-> > ## What am I trying to do?
-> >
-> > Conceptually, I am trying to provide a mechanism by which test suites
-> > can be grouped together so that they can be reasoned about collectively.
-> > The last two of three patches in this series add features which depend
-> > on this:
-> >
-> > PATCH 5/7 Prints out a test plan right before KUnit tests are run[1];
-> >           this is valuable because it makes it possible for a test
-> >           harness to detect whether the number of tests run matches the
-> >           number of tests expected to be run, ensuring that no tests
-> >           silently failed.
-> >
-> > PATCH 6/7 Add a new kernel command-line option which allows the user to
-> >           specify that the kernel poweroff, halt, or reboot after
-> >           completing all KUnit tests; this is very handy for running
-> >           KUnit tests on UML or a VM so that the UML/VM process exits
-> >           cleanly immediately after running all tests without needing a
-> >           special initramfs.
-> >
->
-> > In addition, by dispatching tests from a single location, we can
-> > guarantee that all KUnit tests run after late_init is complete, which
->
-> That the tests will run after late init (and are guaranteed to do such)
-> needs to be added to the documentation.
+Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
+---
+ arch/x86/mm/mmap.c | 2 ++
+ fs/proc/task_mmu.c | 3 +++
+ include/linux/mm.h | 8 ++++++++
+ 3 files changed, 13 insertions(+)
 
-Yeah, that's reasonable. I am not sure where I should put this in the
-documentation, however. This seems kind of a technical detail, and all
-the pages I have now are more of how-tos, I think.
+diff --git a/arch/x86/mm/mmap.c b/arch/x86/mm/mmap.c
+index aae9a933dfd4..482813b4c659 100644
+--- a/arch/x86/mm/mmap.c
++++ b/arch/x86/mm/mmap.c
+@@ -165,6 +165,8 @@ const char *arch_vma_name(struct vm_area_struct *vma)
+ {
+ 	if (vma->vm_flags & VM_MPX)
+ 		return "[mpx]";
++	else if (vma->vm_flags & VM_SHSTK)
++		return "[shadow stack]";
+ 	return NULL;
+ }
 
-Maybe I should send a patch which adds a page detailing how KUnit works?
+diff --git a/fs/proc/task_mmu.c b/fs/proc/task_mmu.c
+index 9442631fd4af..590b58ee008a 100644
+--- a/fs/proc/task_mmu.c
++++ b/fs/proc/task_mmu.c
+@@ -687,6 +687,9 @@ static void show_smap_vma_flags(struct seq_file *m, s=
+truct vm_area_struct *vma)
+ 		[ilog2(VM_PKEY_BIT4)]	=3D "",
+ #endif
+ #endif /* CONFIG_ARCH_HAS_PKEYS */
++#ifdef CONFIG_X86_INTEL_SHADOW_STACK_USER
++		[ilog2(VM_SHSTK)]	=3D "ss",
++#endif
+ 	};
+ 	size_t i;
 
-I would like to get some other people's thoughts on this. Such a
-technical guide wouldn't provide me a lot of value, at least not now,
-so I want to make sure that something like that would be valuable to
-others.
+diff --git a/include/linux/mm.h b/include/linux/mm.h
+index cfaa8feecfe8..b5145fbe102e 100644
+--- a/include/linux/mm.h
++++ b/include/linux/mm.h
+@@ -298,11 +298,13 @@ extern unsigned int kobjsize(const void *objp);
+ #define VM_HIGH_ARCH_BIT_2	34	/* bit only usable on 64-bit architectures=
+ */
+ #define VM_HIGH_ARCH_BIT_3	35	/* bit only usable on 64-bit architectures=
+ */
+ #define VM_HIGH_ARCH_BIT_4	36	/* bit only usable on 64-bit architectures=
+ */
++#define VM_HIGH_ARCH_BIT_5	37	/* bit only usable on 64-bit architectures=
+ */
+ #define VM_HIGH_ARCH_0	BIT(VM_HIGH_ARCH_BIT_0)
+ #define VM_HIGH_ARCH_1	BIT(VM_HIGH_ARCH_BIT_1)
+ #define VM_HIGH_ARCH_2	BIT(VM_HIGH_ARCH_BIT_2)
+ #define VM_HIGH_ARCH_3	BIT(VM_HIGH_ARCH_BIT_3)
+ #define VM_HIGH_ARCH_4	BIT(VM_HIGH_ARCH_BIT_4)
++#define VM_HIGH_ARCH_5	BIT(VM_HIGH_ARCH_BIT_5)
+ #endif /* CONFIG_ARCH_USES_HIGH_VMA_FLAGS */
+
+ #ifdef CONFIG_ARCH_HAS_PKEYS
+@@ -340,6 +342,12 @@ extern unsigned int kobjsize(const void *objp);
+ # define VM_MPX		VM_NONE
+ #endif
+
++#ifdef CONFIG_X86_INTEL_SHADOW_STACK_USER
++# define VM_SHSTK	VM_HIGH_ARCH_5
++#else
++# define VM_SHSTK	VM_NONE
++#endif
++
+ #ifndef VM_GROWSUP
+ # define VM_GROWSUP	VM_NONE
+ #endif
+--=20
+2.21.0
