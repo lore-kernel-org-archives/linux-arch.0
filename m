@@ -1,90 +1,168 @@
 Return-Path: <leonardo@linux.ibm.com>
-Message-ID: <d0789485cc353a99e19c2d2ca4b5a628a33a312d.camel@linux.ibm.com>
-Subject: Re: [PATCH v6 02/11] mm/gup: Use functions to track lockless pgtbl
- walks on gup_pgd_range
 From: Leonardo Bras <leonardo@linux.ibm.com>
-Date: Mon, 17 Feb 2020 17:55:49 -0300
-In-Reply-To: <0c2f5a89-4890-fd84-6a6d-e470ba110399@nvidia.com>
+Subject: [PATCH v6 06/11] powerpc/mm/book3s64/hash: Use functions to track lockless pgtbl walks
+Date: Thu,  6 Feb 2020 00:08:55 -0300
+Message-ID: <20200206030900.147032-7-leonardo@linux.ibm.com>
+In-Reply-To: <20200206030900.147032-1-leonardo@linux.ibm.com>
 References: <20200206030900.147032-1-leonardo@linux.ibm.com>
-	 <20200206030900.147032-3-leonardo@linux.ibm.com>
-	 <760c238043196e0628c8c0eff48a8e938ef539ba.camel@linux.ibm.com>
-	 <0c2f5a89-4890-fd84-6a6d-e470ba110399@nvidia.com>
-Content-Type: multipart/signed; micalg="pgp-sha256";
-	protocol="application/pgp-signature"; boundary="=-KK5vvDthaVYFFka5IIPv"
 MIME-Version: 1.0
-To: John Hubbard <jhubbard@nvidia.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>, Nicholas Piggin <npiggin@gmail.com>, Christophe Leroy <christophe.leroy@c-s.fr>, Steven Price <steven.price@arm.com>, Robin Murphy <robin.murphy@arm.com>, Mahesh Salgaonkar <mahesh@linux.vnet.ibm.com>, Balbir Singh <bsingharora@gmail.com>, Reza Arbab <arbab@linux.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, Allison Randal <allison@lohutok.net>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Mike Rapoport <rppt@linux.ibm.com>, Michal Suchanek <msuchanek@suse.de>
-Cc: linux-arch@vger.kernel.org, linux-mm@kvack.org, linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, kvm-ppc@vger.kernel.org
+Content-Transfer-Encoding: 8bit
+To: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>, Nicholas Piggin <npiggin@gmail.com>, Christophe Leroy <christophe.leroy@c-s.fr>, Steven Price <steven.price@arm.com>, Robin Murphy <robin.murphy@arm.com>, Leonardo Bras <leonardo@linux.ibm.com>, Mahesh Salgaonkar <mahesh@linux.vnet.ibm.com>, Balbir Singh <bsingharora@gmail.com>, Reza Arbab <arbab@linux.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, Allison Randal <allison@lohutok.net>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Mike Rapoport <rppt@linux.ibm.com>, Michal Suchanek <msuchanek@suse.de>
+Cc: linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, kvm-ppc@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200217205549.I1xqYPZ6SarsV8mBS-eCT2ktur-Iwl3Jx_BHet9I-1E@z>
+Message-ID: <20200206030855.GwC5ORwVAbGXZEuw5EEEskAc-8ibhmSVQgUSM1nFX2Q@z>
 
+Applies the new tracking functions to all hash-related functions that do
+lockless pagetable walks.
 
---=-KK5vvDthaVYFFka5IIPv
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
+hash_page_mm: Adds comment that explain that there is no need to
+local_int_disable/save given that it is only called from DataAccess
+interrupt, so interrupts are already disabled.
 
-Hello John, comments inline;
+local_irq_{save,restore} is already inside {begin,end}_lockless_pgtbl_walk,
+so there is no need to repeat it here.
 
-On Fri, 2020-02-07 at 14:54 -0800, John Hubbard wrote:
-> On 2/5/20 7:25 PM, Leonardo Bras wrote:
-> > On Thu, 2020-02-06 at 00:08 -0300, Leonardo Bras wrote:
-> > >                 gup_pgd_range(addr, end, gup_flags, pages, &nr);
-> > > -               local_irq_enable();
-> > > +               end_lockless_pgtbl_walk(IRQS_ENABLED);
-> > >                 ret =3D nr;
-> > >         }
-> > > =20
-> >=20
-> > Just noticed IRQS_ENABLED is not available on other archs than ppc64.
-> > I will fix this for v7.
-> >=20
->=20
-> What's the fix going to look like, approximately?
+Variable that saves the	irq mask was renamed from flags to irq_mask so it
+doesn't lose meaning now it's not directly passed to local_irq_* functions.
 
-I am not sure what is the best approach yet.=20
+Signed-off-by: Leonardo Bras <leonardo@linux.ibm.com>
+---
+ arch/powerpc/mm/book3s64/hash_tlb.c   |  6 +++---
+ arch/powerpc/mm/book3s64/hash_utils.c | 27 +++++++++++++++++----------
+ 2 files changed, 20 insertions(+), 13 deletions(-)
 
-1. On irq_mask =3D=3D 0, always enable irq on end_lockless_pgtbl_walk().
-   Not sure how bat would that affect other archs.
-
-2. Add another function like end_lockless_pgtbl_walk_irqen() that
-always enables IRQ.
-
-3. Add another parameter in end_lockless_pgtbl_walk(), so that caller
-can choose ii IRQ must be enabled.
-
-Also, not sure if internal_get_user_pages_fast() can possibly be called
-with IRQ disabled, and then return with it enabled. Maybe just
-saving/restoring should be fine.
-
-Other suggestions are welcome.
-
->=20
->=20
-> thanks,
-
-Best regards,
-
-Leonardo Bras
-
---=-KK5vvDthaVYFFka5IIPv
-Content-Type: application/pgp-signature; name="signature.asc"
-Content-Description: This is a digitally signed message part
-Content-Transfer-Encoding: 7bit
-
------BEGIN PGP SIGNATURE-----
-
-iQIzBAABCAAdFiEEMdeUgIzgjf6YmUyOlQYWtz9SttQFAl5K/dUACgkQlQYWtz9S
-ttSomhAAti45bC0hpcyFr3ix4l0vnXi071xBs+ZLvF+V2qK1wpmBPe1ke3hfm45y
-7rd5whdeNR8cPfsXPKwerT1oB7rJXhiGQa5Vt1pNlvFXVKs+IBZr+S7JAJjIFxW+
-nPHLV4LaOnkRgg8p1tusLTJXXkPD/PYBqVu5vwWk4cI/uXmO6MjQ9ARPpc0bQYUY
-Ds8v/GoaVuGn1kf2YVIUtJlQSF2gdKAxUnTh6hmUXcwpB0Ao3tKeE+4bESkipSRg
-vlJ3aJpi72K160R3b+UwGjHLAixSsRr3pSvkqKU/B2lUEaJO99mu01NWR/X4OtVc
-8h1+tgjwjZSiIa0DJfwn44beonO8oHFTE1VpmZMxpwVMoRxVUvzIrhuDaLfKlSIE
-dlbKs43NjTvwQu5RScWqDR5u2w6q7LLXtCoLbq9JDDOf8kt9GX6SOp3NLopWqY4x
-/BSh0UYIkBlBCAY/LXdNL1C0D8g/h8MpoOyxyKzsmZQmgLJPEtDq/Gqkdsf4jtBq
-E3Ma6KYyl0wTfbQtp7iNERDukt0R2j8+meZ5ad2WUJ7GujVCp/S8ky+88jLB8eNx
-o96tDhPvhT0VBcfIrGsnAnE1CyJFgFiBF4k7Xwi7To6z5teTWfhc5z6mDfBgVH1l
-lhtHrLkT3aJxP48InKKPe7TMb2ghIzHMy9bSC1AaIgEW5zxzr8A=
-=UpXg
------END PGP SIGNATURE-----
-
---=-KK5vvDthaVYFFka5IIPv--
+diff --git a/arch/powerpc/mm/book3s64/hash_tlb.c b/arch/powerpc/mm/book3s64/hash_tlb.c
+index 4a70d8dd39cd..86547c4151f6 100644
+--- a/arch/powerpc/mm/book3s64/hash_tlb.c
++++ b/arch/powerpc/mm/book3s64/hash_tlb.c
+@@ -194,7 +194,7 @@ void __flush_hash_table_range(struct mm_struct *mm, unsigned long start,
+ {
+ 	bool is_thp;
+ 	int hugepage_shift;
+-	unsigned long flags;
++	unsigned long irq_mask;
+ 
+ 	start = _ALIGN_DOWN(start, PAGE_SIZE);
+ 	end = _ALIGN_UP(end, PAGE_SIZE);
+@@ -209,7 +209,7 @@ void __flush_hash_table_range(struct mm_struct *mm, unsigned long start,
+ 	 * to being hashed). This is not the most performance oriented
+ 	 * way to do things but is fine for our needs here.
+ 	 */
+-	local_irq_save(flags);
++	irq_mask = begin_lockless_pgtbl_walk();
+ 	arch_enter_lazy_mmu_mode();
+ 	for (; start < end; start += PAGE_SIZE) {
+ 		pte_t *ptep = find_current_mm_pte(mm->pgd, start, &is_thp,
+@@ -229,7 +229,7 @@ void __flush_hash_table_range(struct mm_struct *mm, unsigned long start,
+ 			hpte_need_flush(mm, start, ptep, pte, hugepage_shift);
+ 	}
+ 	arch_leave_lazy_mmu_mode();
+-	local_irq_restore(flags);
++	end_lockless_pgtbl_walk(irq_mask);
+ }
+ 
+ void flush_tlb_pmd_range(struct mm_struct *mm, pmd_t *pmd, unsigned long addr)
+diff --git a/arch/powerpc/mm/book3s64/hash_utils.c b/arch/powerpc/mm/book3s64/hash_utils.c
+index 523d4d39d11e..e6d4ab42173b 100644
+--- a/arch/powerpc/mm/book3s64/hash_utils.c
++++ b/arch/powerpc/mm/book3s64/hash_utils.c
+@@ -1341,12 +1341,16 @@ int hash_page_mm(struct mm_struct *mm, unsigned long ea,
+ 		ea &= ~((1ul << mmu_psize_defs[psize].shift) - 1);
+ #endif /* CONFIG_PPC_64K_PAGES */
+ 
+-	/* Get PTE and page size from page tables */
++	/* Get PTE and page size from page tables :
++	 * Called in from DataAccess interrupt (data_access_common: 0x300),
++	 * interrupts are disabled here.
++	 */
++	__begin_lockless_pgtbl_walk(false);
+ 	ptep = find_linux_pte(pgdir, ea, &is_thp, &hugeshift);
+ 	if (ptep == NULL || !pte_present(*ptep)) {
+ 		DBG_LOW(" no PTE !\n");
+ 		rc = 1;
+-		goto bail;
++		goto bail_pgtbl_walk;
+ 	}
+ 
+ 	/* Add _PAGE_PRESENT to the required access perm */
+@@ -1359,7 +1363,7 @@ int hash_page_mm(struct mm_struct *mm, unsigned long ea,
+ 	if (!check_pte_access(access, pte_val(*ptep))) {
+ 		DBG_LOW(" no access !\n");
+ 		rc = 1;
+-		goto bail;
++		goto bail_pgtbl_walk;
+ 	}
+ 
+ 	if (hugeshift) {
+@@ -1383,7 +1387,7 @@ int hash_page_mm(struct mm_struct *mm, unsigned long ea,
+ 		if (current->mm == mm)
+ 			check_paca_psize(ea, mm, psize, user_region);
+ 
+-		goto bail;
++		goto bail_pgtbl_walk;
+ 	}
+ 
+ #ifndef CONFIG_PPC_64K_PAGES
+@@ -1457,6 +1461,8 @@ int hash_page_mm(struct mm_struct *mm, unsigned long ea,
+ #endif
+ 	DBG_LOW(" -> rc=%d\n", rc);
+ 
++bail_pgtbl_walk:
++	__end_lockless_pgtbl_walk(0, false);
+ bail:
+ 	exception_exit(prev_state);
+ 	return rc;
+@@ -1545,7 +1551,7 @@ static void hash_preload(struct mm_struct *mm, unsigned long ea,
+ 	unsigned long vsid;
+ 	pgd_t *pgdir;
+ 	pte_t *ptep;
+-	unsigned long flags;
++	unsigned long irq_mask;
+ 	int rc, ssize, update_flags = 0;
+ 	unsigned long access = _PAGE_PRESENT | _PAGE_READ | (is_exec ? _PAGE_EXEC : 0);
+ 
+@@ -1567,11 +1573,12 @@ static void hash_preload(struct mm_struct *mm, unsigned long ea,
+ 	vsid = get_user_vsid(&mm->context, ea, ssize);
+ 	if (!vsid)
+ 		return;
++
+ 	/*
+ 	 * Hash doesn't like irqs. Walking linux page table with irq disabled
+ 	 * saves us from holding multiple locks.
+ 	 */
+-	local_irq_save(flags);
++	irq_mask = begin_lockless_pgtbl_walk();
+ 
+ 	/*
+ 	 * THP pages use update_mmu_cache_pmd. We don't do
+@@ -1616,7 +1623,7 @@ static void hash_preload(struct mm_struct *mm, unsigned long ea,
+ 				   mm_ctx_user_psize(&mm->context),
+ 				   pte_val(*ptep));
+ out_exit:
+-	local_irq_restore(flags);
++	end_lockless_pgtbl_walk(irq_mask);
+ }
+ 
+ /*
+@@ -1679,16 +1686,16 @@ u16 get_mm_addr_key(struct mm_struct *mm, unsigned long address)
+ {
+ 	pte_t *ptep;
+ 	u16 pkey = 0;
+-	unsigned long flags;
++	unsigned long irq_mask;
+ 
+ 	if (!mm || !mm->pgd)
+ 		return 0;
+ 
+-	local_irq_save(flags);
++	irq_mask = begin_lockless_pgtbl_walk();
+ 	ptep = find_linux_pte(mm->pgd, address, NULL, NULL);
+ 	if (ptep)
+ 		pkey = pte_to_pkey_bits(pte_val(READ_ONCE(*ptep)));
+-	local_irq_restore(flags);
++	end_lockless_pgtbl_walk(irq_mask);
+ 
+ 	return pkey;
+ }
+-- 
+2.24.1
