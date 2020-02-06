@@ -1,7 +1,7 @@
 From: Leonardo Bras <leonardo@linux.ibm.com>
-Subject: [PATCH v6 10/11] powerpc/mm: Adds counting method to track lockless pagetable walks
-Date: Thu,  6 Feb 2020 00:08:59 -0300
-Message-ID: <20200206030900.147032-11-leonardo@linux.ibm.com>
+Subject: [PATCH v6 11/11] powerpc/mm/book3s64/pgtable: Uses counting method to skip serializing
+Date: Thu,  6 Feb 2020 00:09:00 -0300
+Message-ID: <20200206030900.147032-12-leonardo@linux.ibm.com>
 References: <20200206030900.147032-1-leonardo@linux.ibm.com>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
@@ -12,72 +12,47 @@ To: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@sa
 Cc: linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, kvm-ppc@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
 List-Id: linux-arch.vger.kernel.org
 
-Implements an additional feature to track lockless pagetable walks,
-using a per-cpu counter: lockless_pgtbl_walk_counter.
+For each cpu in cpumask, checks if it's running a lockless pagetable
+walk. Then, run serialize_against_pte_lookup() only on these cpus.
 
-Before a lockless pagetable walk, preemption is disabled and the
-current cpu's counter is increased.
-When the lockless pagetable walk finishes, the current cpu counter
-is decreased and the preemption is enabled.
+serialize_agains_pte_lookup() can take a long while when there are a
+lot of cpus in cpumask.
 
-With that, it's possible to know in which cpus are happening lockless
-pagetable walks, and optimize serialize_against_pte_lookup().
-
-Implementation notes:
-- Every counter can be changed only by it's CPU
-- It makes use of the original memory barrier in the functions
-- Any counter can be read by any CPU
-
-Due to not locking nor using atomic variables, the impact on the
-lockless pagetable walk is intended to be minimum.
+This method is intended to reduce this waiting, while not impacting
+too much on the lockless pagetable walk.
 
 Signed-off-by: Leonardo Bras <leonardo@linux.ibm.com>
 ---
- arch/powerpc/mm/book3s64/pgtable.c | 18 ++++++++++++++++++
- 1 file changed, 18 insertions(+)
+ arch/powerpc/mm/book3s64/pgtable.c | 16 +++++++++++++++-
+ 1 file changed, 15 insertions(+), 1 deletion(-)
 
 diff --git a/arch/powerpc/mm/book3s64/pgtable.c b/arch/powerpc/mm/book3s64/pgtable.c
-index 535613030363..bb138b628f86 100644
+index bb138b628f86..4822ff1aac4b 100644
 --- a/arch/powerpc/mm/book3s64/pgtable.c
 +++ b/arch/powerpc/mm/book3s64/pgtable.c
-@@ -83,6 +83,7 @@ static void do_nothing(void *unused)
- 
+@@ -96,8 +96,22 @@ static DEFINE_PER_CPU(int, lockless_pgtbl_walk_counter);
+  */
+ void serialize_against_pte_lookup(struct mm_struct *mm)
+ {
++	int cpu;
++	struct cpumask cm;
++
+ 	smp_mb();
+-	smp_call_function_many(mm_cpumask(mm), do_nothing, NULL, 1);
++
++	/*
++	 * Fills a new cpumask only with cpus that are currently doing a
++	 * lockless pagetable walk. This reduces time spent in this function.
++	 */
++	cpumask_clear(&cm);
++	for_each_cpu(cpu, mm_cpumask((mm))) {
++		if (per_cpu(lockless_pgtbl_walk_counter, cpu) > 0)
++			cpumask_set_cpu(cpu, &cm);
++	}
++
++	smp_call_function_many(&cm, do_nothing, NULL, 1);
  }
  
-+static DEFINE_PER_CPU(int, lockless_pgtbl_walk_counter);
- /*
-  * Serialize against find_current_mm_pte which does lock-less
-  * lookup in page tables with local interrupts disabled. For huge pages
-@@ -120,6 +121,15 @@ unsigned long __begin_lockless_pgtbl_walk(bool disable_irq)
- 	if (disable_irq)
- 		local_irq_save(irq_mask);
- 
-+	/*
-+	 * Counts this instance of lockless pagetable walk for this cpu.
-+	 * Disables preempt to make sure there is no cpu change between
-+	 * begin/end lockless pagetable walk, so that percpu counting
-+	 * works fine.
-+	 */
-+	preempt_disable();
-+	(*this_cpu_ptr(&lockless_pgtbl_walk_counter))++;
-+
- 	/*
- 	 * This memory barrier pairs with any code that is either trying to
- 	 * delete page tables, or split huge pages. Without this barrier,
-@@ -158,6 +168,14 @@ inline void __end_lockless_pgtbl_walk(unsigned long irq_mask, bool enable_irq)
- 	 */
- 	smp_mb();
- 
-+	/*
-+	 * Removes this instance of lockless pagetable walk for this cpu.
-+	 * Enables preempt only after end lockless pagetable walk,
-+	 * so that percpu counting works fine.
-+	 */
-+	(*this_cpu_ptr(&lockless_pgtbl_walk_counter))--;
-+	preempt_enable();
-+
- 	/*
- 	 * Interrupts must be disabled during the lockless page table walk.
- 	 * That's because the deleting or splitting involves flushing TLBs,
+ /* begin_lockless_pgtbl_walk: Must be inserted before a function call that does
 -- 
 2.24.1
