@@ -1,55 +1,74 @@
-Return-Path: <linux-doc-owner@vger.kernel.org>
-From: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Subject: [RFC PATCH v9 6/7] mm: Update alloc_set_pte() for zero page
-Date: Wed,  5 Feb 2020 10:23:07 -0800
-Message-ID: <20200205182308.4028-7-yu-cheng.yu@intel.com>
-In-Reply-To: <20200205182308.4028-1-yu-cheng.yu@intel.com>
-References: <20200205182308.4028-1-yu-cheng.yu@intel.com>
+Return-Path: <leonardo@linux.ibm.com>
+From: Leonardo Bras <leonardo@linux.ibm.com>
+Subject: [PATCH v6 07/11] powerpc/kvm/e500: Use functions to track lockless pgtbl walks
+Date: Thu,  6 Feb 2020 00:08:56 -0300
+Message-ID: <20200206030900.147032-8-leonardo@linux.ibm.com>
+In-Reply-To: <20200206030900.147032-1-leonardo@linux.ibm.com>
+References: <20200206030900.147032-1-leonardo@linux.ibm.com>
 MIME-Version: 1.0
-Sender: linux-doc-owner@vger.kernel.org
-Content-Transfer-Encoding: quoted-printable
-To: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>, x86-patch-review@intel.com
-Cc: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Content-Transfer-Encoding: 8bit
+To: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>, Nicholas Piggin <npiggin@gmail.com>, Christophe Leroy <christophe.leroy@c-s.fr>, Steven Price <steven.price@arm.com>, Robin Murphy <robin.murphy@arm.com>, Leonardo Bras <leonardo@linux.ibm.com>, Mahesh Salgaonkar <mahesh@linux.vnet.ibm.com>, Balbir Singh <bsingharora@gmail.com>, Reza Arbab <arbab@linux.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, Allison Randal <allison@lohutok.net>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Mike Rapoport <rppt@linux.ibm.com>, Michal Suchanek <msuchanek@suse.de>
+Cc: linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, kvm-ppc@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200205182307.C6YGWMOLfIDP_6VYWi1wkCkInjLmMlQ-C36R-IbjPdo@z>
+Message-ID: <20200206030856.Hqv5E3YMmnoMvLuek0B06lVCsWLc35MAS0a3GXA0PA0@z>
 
-Update alloc_set_pte() for the zero-page case.  A special mapping can als=
-o
-use a zero page for read.  One use case is the Indirect Branch Tracking
-legacy code page (introduced next).
+Applies the new functions used for tracking lockless pgtable walks on
+kvmppc_e500_shadow_map().
 
-Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Fixes the place where local_irq_restore() is called: previously, if ptep
+was NULL, local_irq_restore() would never be called.
+
+local_irq_{save,restore} is already inside {begin,end}_lockless_pgtbl_walk,
+so there is no need to repeat it here.
+
+Variable that saves the	irq mask was renamed from flags to irq_mask so it
+doesn't lose meaning now it's not directly passed to local_irq_* functions.
+
+Signed-off-by: Leonardo Bras <leonardo@linux.ibm.com>
 ---
- mm/memory.c | 8 ++++++++
- 1 file changed, 8 insertions(+)
+ arch/powerpc/kvm/e500_mmu_host.c | 9 +++++----
+ 1 file changed, 5 insertions(+), 4 deletions(-)
 
-diff --git a/mm/memory.c b/mm/memory.c
-index 6daa28614327..58c1e4b60991 100644
---- a/mm/memory.c
-+++ b/mm/memory.c
-@@ -3447,6 +3447,12 @@ vm_fault_t alloc_set_pte(struct vm_fault *vmf, str=
-uct mem_cgroup *memcg,
-
- 	flush_icache_page(vma, page);
- 	entry =3D mk_pte(page, vma->vm_page_prot);
-+
-+	if (is_zero_pfn(pte_pfn(entry))) {
-+		entry =3D pte_mkspecial(entry);
-+		goto alloc_set_pte_out;
-+	}
-+
- 	if (write)
- 		entry =3D maybe_mkwrite(pte_mkdirty(entry), vma);
- 	/* copy-on-write page */
-@@ -3459,6 +3465,8 @@ vm_fault_t alloc_set_pte(struct vm_fault *vmf, stru=
-ct mem_cgroup *memcg,
- 		inc_mm_counter_fast(vma->vm_mm, mm_counter_file(page));
- 		page_add_file_rmap(page, false);
+diff --git a/arch/powerpc/kvm/e500_mmu_host.c b/arch/powerpc/kvm/e500_mmu_host.c
+index 425d13806645..3dcf11f77256 100644
+--- a/arch/powerpc/kvm/e500_mmu_host.c
++++ b/arch/powerpc/kvm/e500_mmu_host.c
+@@ -336,7 +336,7 @@ static inline int kvmppc_e500_shadow_map(struct kvmppc_vcpu_e500 *vcpu_e500,
+ 	pte_t *ptep;
+ 	unsigned int wimg = 0;
+ 	pgd_t *pgdir;
+-	unsigned long flags;
++	unsigned long irq_mask;
+ 
+ 	/* used to check for invalidations in progress */
+ 	mmu_seq = kvm->mmu_notifier_seq;
+@@ -473,7 +473,7 @@ static inline int kvmppc_e500_shadow_map(struct kvmppc_vcpu_e500 *vcpu_e500,
+ 	 * We are holding kvm->mmu_lock so a notifier invalidate
+ 	 * can't run hence pfn won't change.
+ 	 */
+-	local_irq_save(flags);
++	irq_mask = begin_lockless_pgtbl_walk();
+ 	ptep = find_linux_pte(pgdir, hva, NULL, NULL);
+ 	if (ptep) {
+ 		pte_t pte = READ_ONCE(*ptep);
+@@ -481,15 +481,16 @@ static inline int kvmppc_e500_shadow_map(struct kvmppc_vcpu_e500 *vcpu_e500,
+ 		if (pte_present(pte)) {
+ 			wimg = (pte_val(pte) >> PTE_WIMGE_SHIFT) &
+ 				MAS2_WIMGE_MASK;
+-			local_irq_restore(flags);
+ 		} else {
+-			local_irq_restore(flags);
++			end_lockless_pgtbl_walk(irq_mask);
+ 			pr_err_ratelimited("%s: pte not present: gfn %lx,pfn %lx\n",
+ 					   __func__, (long)gfn, pfn);
+ 			ret = -EINVAL;
+ 			goto out;
+ 		}
  	}
++	end_lockless_pgtbl_walk(irq_mask);
 +
-+alloc_set_pte_out:
- 	set_pte_at(vma->vm_mm, vmf->address, vmf->pte, entry);
-
- 	/* no need to invalidate: a not-present page won't be cached */
---=20
-2.21.0
+ 	kvmppc_e500_ref_setup(ref, gtlbe, pfn, wimg);
+ 
+ 	kvmppc_e500_setup_stlbe(&vcpu_e500->vcpu, gtlbe, tsize,
+-- 
+2.24.1
