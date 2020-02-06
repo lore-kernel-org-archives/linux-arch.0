@@ -1,44 +1,58 @@
-Return-Path: <3CWtYXg4KBDoXnajZWjdeccejockkcha.Ykinllphejqt.eXi.Yki@flex--brendanhiggins.bounces.google.com>
-Date: Thu, 27 Feb 2020 17:20:36 -0800
-In-Reply-To: <20200228012036.15682-1-brendanhiggins@google.com>
-Message-ID: <20200228012036.15682-8-brendanhiggins@google.com>
-Mime-Version: 1.0
-References: <20200228012036.15682-1-brendanhiggins@google.com>
-Subject: [PATCH v3 7/7] Documentation: Add kunit_shutdown to kernel-parameters.txt
-From: Brendan Higgins <brendanhiggins@google.com>
-Content-Type: text/plain; charset="UTF-8"
-To: jdike@addtoit.com, richard@nod.at, anton.ivanov@cambridgegreys.com, arnd@arndb.de, keescook@chromium.org, skhan@linuxfoundation.org, alan.maguire@oracle.com, yzaikin@google.com, davidgow@google.com, akpm@linux-foundation.org, rppt@linux.ibm.com, frowand.list@gmail.com
-Cc: gregkh@linuxfoundation.org, sboyd@kernel.org, logang@deltatee.com, mcgrof@kernel.org, linux-um@lists.infradead.org, linux-arch@vger.kernel.org, linux-kselftest@vger.kernel.org, kunit-dev@googlegroups.com, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, Brendan Higgins <brendanhiggins@google.com>
+Return-Path: <leonardo@linux.ibm.com>
+From: Leonardo Bras <leonardo@linux.ibm.com>
+Subject: [PATCH v6 04/11] powerpc/mce_power: Use functions to track lockless pgtbl walks
+Date: Thu,  6 Feb 2020 00:08:53 -0300
+Message-ID: <20200206030900.147032-5-leonardo@linux.ibm.com>
+In-Reply-To: <20200206030900.147032-1-leonardo@linux.ibm.com>
+References: <20200206030900.147032-1-leonardo@linux.ibm.com>
+MIME-Version: 1.0
+Content-Transfer-Encoding: 8bit
+To: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>, Nicholas Piggin <npiggin@gmail.com>, Christophe Leroy <christophe.leroy@c-s.fr>, Steven Price <steven.price@arm.com>, Robin Murphy <robin.murphy@arm.com>, Leonardo Bras <leonardo@linux.ibm.com>, Mahesh Salgaonkar <mahesh@linux.vnet.ibm.com>, Balbir Singh <bsingharora@gmail.com>, Reza Arbab <arbab@linux.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, Allison Randal <allison@lohutok.net>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Mike Rapoport <rppt@linux.ibm.com>, Michal Suchanek <msuchanek@suse.de>
+Cc: linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, kvm-ppc@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200228012036.LzlzXt7RaJIqGtKUt6IoQj_1pCYJ6Nz8rBjKEQOALu4@z>
+Message-ID: <20200206030853.ykrmRJB6S_taZ4_cNPwZPr8cQcKsc9Dek-TUAWp8lSM@z>
 
-Add kunit_shutdown, an option to specify that the kernel shutsdown after
-running KUnit tests, to the kernel-parameters.txt documentation.
+Applies the new functions used for tracking lockless pgtable walks on
+addr_to_pfn().
 
-Signed-off-by: Brendan Higgins <brendanhiggins@google.com>
-Reviewed-by: Stephen Boyd <sboyd@kernel.org>
+local_irq_{save,restore} is already inside {begin,end}_lockless_pgtbl_walk,
+so there is no need to repeat it here.
+
+Signed-off-by: Leonardo Bras <leonardo@linux.ibm.com>
 ---
- Documentation/admin-guide/kernel-parameters.txt | 8 ++++++++
- 1 file changed, 8 insertions(+)
+ arch/powerpc/kernel/mce_power.c | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
 
-diff --git a/Documentation/admin-guide/kernel-parameters.txt b/Documentation/admin-guide/kernel-parameters.txt
-index dbc22d6846275..6ad63e98916f9 100644
---- a/Documentation/admin-guide/kernel-parameters.txt
-+++ b/Documentation/admin-guide/kernel-parameters.txt
-@@ -2099,6 +2099,14 @@
- 			0: force disabled
- 			1: force enabled
+diff --git a/arch/powerpc/kernel/mce_power.c b/arch/powerpc/kernel/mce_power.c
+index 1cbf7f1a4e3d..a9e38ef4e437 100644
+--- a/arch/powerpc/kernel/mce_power.c
++++ b/arch/powerpc/kernel/mce_power.c
+@@ -29,7 +29,7 @@ unsigned long addr_to_pfn(struct pt_regs *regs, unsigned long addr)
+ {
+ 	pte_t *ptep;
+ 	unsigned int shift;
+-	unsigned long pfn, flags;
++	unsigned long pfn, irq_mask;
+ 	struct mm_struct *mm;
  
-+	kunit_shutdown	[KERNEL UNIT TESTING FRAMEWORK] Shutdown kernel after
-+			running built-in tests. Tests configured as modules will
-+			not be run.
-+			Default:	(flag not present) don't shutdown
-+			poweroff:	poweroff the kernel after running tests
-+			halt:		halt the kernel after running tests
-+			reboot:		reboot the kernel after running tests
-+
- 	kvm.ignore_msrs=[KVM] Ignore guest accesses to unhandled MSRs.
- 			Default is 0 (don't ignore, but inject #GP)
+ 	if (user_mode(regs))
+@@ -37,7 +37,7 @@ unsigned long addr_to_pfn(struct pt_regs *regs, unsigned long addr)
+ 	else
+ 		mm = &init_mm;
+ 
+-	local_irq_save(flags);
++	irq_mask = begin_lockless_pgtbl_walk();
+ 	ptep = __find_linux_pte(mm->pgd, addr, NULL, &shift);
+ 
+ 	if (!ptep || pte_special(*ptep)) {
+@@ -53,7 +53,7 @@ unsigned long addr_to_pfn(struct pt_regs *regs, unsigned long addr)
+ 	}
+ 
+ out:
+-	local_irq_restore(flags);
++	end_lockless_pgtbl_walk(irq_mask);
+ 	return pfn;
+ }
  
 -- 
-2.25.1.481.gfbce0eb801-goog
+2.24.1
