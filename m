@@ -1,58 +1,162 @@
-Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.133]:58872 "EHLO
- bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with
- ESMTP id S1727652AbgBCHqw (ORCPT <rfc822;linux-arch@vger.kernel.org>); Mon, 3
- Feb 2020 02:46:52 -0500
-Date: Sun, 2 Feb 2020 23:46:44 -0800
-From: Matthew Wilcox <willy@infradead.org>
-Subject: Re: [kernel-hardening] [PATCH 09/38] usercopy: Mark kmalloc caches as
- usercopy caches
-Message-ID: <20200203074644.GD8731@bombadil.infradead.org>
-References: <5861936c-1fe1-4c44-d012-26efa0c8b6e7@de.ibm.com>
- <202001281457.FA11CC313A@keescook>
- <alpine.DEB.2.21.2001291640350.1546@www.lameter.com>
- <6844ea47-8e0e-4fb7-d86f-68046995a749@de.ibm.com>
- <20200129170939.GA4277@infradead.org>
- <771c5511-c5ab-3dd1-d938-5dbc40396daa@de.ibm.com>
- <202001300945.7D465B5F5@keescook>
- <CAG48ez1a4waGk9kB0WLaSbs4muSoK0AYAVk8=XYaKj4_+6e6Hg@mail.gmail.com>
- <202002010952.ACDA7A81@keescook>
- <CAG48ez2ms+TDEXQdDONuQ1GG0K20E69nV1r_yjKxxYjYKv1VCg@mail.gmail.com>
+Return-Path: <leonardo@linux.ibm.com>
+From: Leonardo Bras <leonardo@linux.ibm.com>
+Subject: [PATCH v6 03/11] powerpc/mm: Adds arch-specificic functions to track lockless pgtable walks
+Date: Thu,  6 Feb 2020 00:08:52 -0300
+Message-ID: <20200206030900.147032-4-leonardo@linux.ibm.com>
+In-Reply-To: <20200206030900.147032-1-leonardo@linux.ibm.com>
+References: <20200206030900.147032-1-leonardo@linux.ibm.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: 
- <CAG48ez2ms+TDEXQdDONuQ1GG0K20E69nV1r_yjKxxYjYKv1VCg@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
+Content-Transfer-Encoding: 8bit
+To: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>, Nicholas Piggin <npiggin@gmail.com>, Christophe Leroy <christophe.leroy@c-s.fr>, Steven Price <steven.price@arm.com>, Robin Murphy <robin.murphy@arm.com>, Leonardo Bras <leonardo@linux.ibm.com>, Mahesh Salgaonkar <mahesh@linux.vnet.ibm.com>, Balbir Singh <bsingharora@gmail.com>, Reza Arbab <arbab@linux.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, Allison Randal <allison@lohutok.net>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Mike Rapoport <rppt@linux.ibm.com>, Michal Suchanek <msuchanek@suse.de>
+Cc: linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, kvm-ppc@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jann Horn <jannh@google.com>
-Cc: Kees Cook <keescook@chromium.org>, Christian Borntraeger <borntraeger@de.ibm.com>, Christoph Hellwig <hch@infradead.org>, Christopher Lameter <cl@linux.com>, Jiri Slaby <jslaby@suse.cz>, Julian Wiedmann <jwi@linux.ibm.com>, Ursula Braun <ubraun@linux.ibm.com>, Alexander Viro <viro@zeniv.linux.org.uk>, kernel list <linux-kernel@vger.kernel.org>, David Windsor <dave@nullcore.net>, Pekka Enberg <penberg@kernel.org>, David Rientjes <rientjes@google.com>, Joonsoo Kim <iamjoonsoo.kim@lge.com>, Andrew Morton <akpm@linux-foundation.org>, Linux-MM <linux-mm@kvack.org>, linux-xfs@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, "David S. Miller" <davem@davemloft.net>, Laura Abbott <labbott@redhat.com>, Mark Rutland <mark.rutland@arm.com>, "Martin K. Petersen" <martin.petersen@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Dave Kleikamp <dave.kleikamp@oracle.com>, Jan Kara <jack@suse.cz>, Marc Zyngier <marc.zyngier@arm.com>, Matthew Garrett <mjg59@google.com>, linux-fsdevel <linux-fsdevel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Network Development <netdev@vger.kernel.org>, Kernel Hardening <kernel-hardening@lists.openwall.com>, Vlastimil Babka <vbabka@suse.cz>, Michal Kubecek <mkubecek@suse.cz>
-Message-ID: <20200203074644.HbChpfEU-xBRz16CKUXOgzKV5E7oYJm6VukOPkttGGk@z>
+Message-ID: <20200206030852.9DM-Xt2FBimT8jeAHg5YbPlKWWbGfJH92t8zWgQsCyo@z>
 
-On Sat, Feb 01, 2020 at 08:27:49PM +0100, Jann Horn wrote:
-> FWIW, as far as I understand, usercopy doesn't actually have any
-> effect on drivers that use the modern, proper APIs, since those don't
-> use the slab allocator at all - as I pointed out in my last mail, the
-> dma-kmalloc* slabs are used very rarely. (Which is good, because
-> putting objects from less-than-page-size slabs into iommu entries is a
-> terrible idea from a security and reliability perspective because it
-> gives the hardware access to completely unrelated memory.) Instead,
-> they get pages from the page allocator, and these pages may e.g. be
-> allocated from the DMA, DMA32 or NORMAL zones depending on the
-> restrictions imposed by hardware. So I think the usercopy restriction
-> only affects a few oddball drivers (like this s390 stuff), which is
-> why you're not seeing more bug reports caused by this.
+On powerpc, we need to do some lockless pagetable walks from functions
+that already have disabled interrupts, specially from real mode with
+MSR[EE=0].
 
-Getting pages from the page allocator is true for dma_alloc_coherent()
-and friends.  But it's not true for streaming DMA mappings (dma_map_*)
-for which the memory usually comes from kmalloc().  If this is something
-we want to fix (and I have an awful feeling we're going to regret it
-if we say "no, we trust the hardware"), we're going to have to come up
-with a new memory allocation API for these cases.  Or bounce bugger the
-memory for devices we don't trust.
+In these contexts, disabling/enabling interrupts can be very troubling.
 
-The problem with the dma_map_* API is that memory might end up being
-allocated once and then used multiple times by different drivers.  eg if
-I allocate an NFS packet, it might get sent first to eth0, then (when the
-route fails) sent to eth1.  Similarly in storage, a RAID-5 driver might
-map the same memory several times to send to different disk controllers.
+So, this arch-specific implementation features functions with an extra
+argument that allows interrupt enable/disable to be skipped:
+__begin_lockless_pgtbl_walk() and __end_lockless_pgtbl_walk().
+
+Functions similar to the generic ones are also exported, by calling
+the above functions with parameter {en,dis}able_irq = true.
+
+Signed-off-by: Leonardo Bras <leonardo@linux.ibm.com>
+---
+ arch/powerpc/include/asm/book3s/64/pgtable.h |  6 ++
+ arch/powerpc/mm/book3s64/pgtable.c           | 86 +++++++++++++++++++-
+ 2 files changed, 91 insertions(+), 1 deletion(-)
+
+diff --git a/arch/powerpc/include/asm/book3s/64/pgtable.h b/arch/powerpc/include/asm/book3s/64/pgtable.h
+index 201a69e6a355..78f6ffb1bb3e 100644
+--- a/arch/powerpc/include/asm/book3s/64/pgtable.h
++++ b/arch/powerpc/include/asm/book3s/64/pgtable.h
+@@ -1375,5 +1375,11 @@ static inline bool pgd_is_leaf(pgd_t pgd)
+ 	return !!(pgd_raw(pgd) & cpu_to_be64(_PAGE_PTE));
+ }
+ 
++#define __HAVE_ARCH_LOCKLESS_PGTBL_WALK_CONTROL
++unsigned long begin_lockless_pgtbl_walk(void);
++unsigned long __begin_lockless_pgtbl_walk(bool disable_irq);
++void end_lockless_pgtbl_walk(unsigned long irq_mask);
++void __end_lockless_pgtbl_walk(unsigned long irq_mask, bool enable_irq);
++
+ #endif /* __ASSEMBLY__ */
+ #endif /* _ASM_POWERPC_BOOK3S_64_PGTABLE_H_ */
+diff --git a/arch/powerpc/mm/book3s64/pgtable.c b/arch/powerpc/mm/book3s64/pgtable.c
+index 2bf7e1b4fd82..535613030363 100644
+--- a/arch/powerpc/mm/book3s64/pgtable.c
++++ b/arch/powerpc/mm/book3s64/pgtable.c
+@@ -82,6 +82,7 @@ static void do_nothing(void *unused)
+ {
+ 
+ }
++
+ /*
+  * Serialize against find_current_mm_pte which does lock-less
+  * lookup in page tables with local interrupts disabled. For huge pages
+@@ -98,6 +99,89 @@ void serialize_against_pte_lookup(struct mm_struct *mm)
+ 	smp_call_function_many(mm_cpumask(mm), do_nothing, NULL, 1);
+ }
+ 
++/* begin_lockless_pgtbl_walk: Must be inserted before a function call that does
++ *   lockless pagetable walks, such as __find_linux_pte().
++ * This version allows setting disable_irq=false, so irqs are not touched, which
++ *   is quite useful for running when ints are already disabled (like real-mode)
++ */
++inline
++unsigned long __begin_lockless_pgtbl_walk(bool disable_irq)
++{
++	unsigned long irq_mask = 0;
++
++	/*
++	 * Interrupts must be disabled during the lockless page table walk.
++	 * That's because the deleting or splitting involves flushing TLBs,
++	 * which in turn issues interrupts, that will block when disabled.
++	 *
++	 * When this function is called from realmode with MSR[EE=0],
++	 * it's not needed to touch irq, since it's already disabled.
++	 */
++	if (disable_irq)
++		local_irq_save(irq_mask);
++
++	/*
++	 * This memory barrier pairs with any code that is either trying to
++	 * delete page tables, or split huge pages. Without this barrier,
++	 * the page tables could be read speculatively outside of interrupt
++	 * disabling or reference counting.
++	 */
++	smp_mb();
++
++	return irq_mask;
++}
++EXPORT_SYMBOL(__begin_lockless_pgtbl_walk);
++
++/* begin_lockless_pgtbl_walk: Must be inserted before a function call that does
++ *   lockless pagetable walks, such as __find_linux_pte().
++ * This version is used by generic code, and always assume irqs will be disabled
++ */
++unsigned long begin_lockless_pgtbl_walk(void)
++{
++	return __begin_lockless_pgtbl_walk(true);
++}
++EXPORT_SYMBOL(begin_lockless_pgtbl_walk);
++
++/*
++ * __end_lockless_pgtbl_walk: Must be inserted after the last use of a pointer
++ *   returned by a lockless pagetable walk, such as __find_linux_pte()
++ * This version allows setting enable_irq=false, so irqs are not touched, which
++ *   is quite useful for running when ints are already disabled (like real-mode)
++ */
++inline void __end_lockless_pgtbl_walk(unsigned long irq_mask, bool enable_irq)
++{
++	/*
++	 * This memory barrier pairs with any code that is either trying to
++	 * delete page tables, or split huge pages. Without this barrier,
++	 * the page tables could be read speculatively outside of interrupt
++	 * disabling or reference counting.
++	 */
++	smp_mb();
++
++	/*
++	 * Interrupts must be disabled during the lockless page table walk.
++	 * That's because the deleting or splitting involves flushing TLBs,
++	 * which in turn issues interrupts, that will block when disabled.
++	 *
++	 * When this function is called from realmode with MSR[EE=0],
++	 * it's not needed to touch irq, since it's already disabled.
++	 */
++	if (enable_irq)
++		local_irq_restore(irq_mask);
++}
++EXPORT_SYMBOL(__end_lockless_pgtbl_walk);
++
++/*
++ * end_lockless_pgtbl_walk: Must be inserted after the last use of a pointer
++ *   returned by a lockless pagetable walk, such as __find_linux_pte()
++ * This version is used by generic code, and always assume irqs will be enabled
++ */
++void end_lockless_pgtbl_walk(unsigned long irq_mask)
++{
++	__end_lockless_pgtbl_walk(irq_mask, true);
++}
++EXPORT_SYMBOL(end_lockless_pgtbl_walk);
++
+ /*
+  * We use this to invalidate a pmdp entry before switching from a
+  * hugepte to regular pmd entry.
+@@ -487,7 +571,7 @@ static int __init setup_disable_tlbie(char *str)
+ 	tlbie_capable = false;
+ 	tlbie_enabled = false;
+ 
+-        return 1;
++	return 1;
+ }
+ __setup("disable_tlbie", setup_disable_tlbie);
+ 
+-- 
+2.24.1
