@@ -1,168 +1,163 @@
-Return-Path: <linux-doc-owner@vger.kernel.org>
-From: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Subject: [RFC PATCH v9 16/27] mm: Update can_follow_write_pte() for Shadow
- Stack
-Date: Wed,  5 Feb 2020 10:19:24 -0800
-Message-ID: <20200205181935.3712-17-yu-cheng.yu@intel.com>
-In-Reply-To: <20200205181935.3712-1-yu-cheng.yu@intel.com>
-References: <20200205181935.3712-1-yu-cheng.yu@intel.com>
+Return-Path: <leonardo@linux.ibm.com>
+From: Leonardo Bras <leonardo@linux.ibm.com>
+Subject: [PATCH v6 00/11] Introduces new functions for tracking lockless pagetable walks
+Date: Thu,  6 Feb 2020 00:08:49 -0300
+Message-ID: <20200206030900.147032-1-leonardo@linux.ibm.com>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
-Sender: linux-doc-owner@vger.kernel.org
-To: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>, x86-patch-review@intel.com
-Cc: Yu-cheng Yu <yu-cheng.yu@intel.com>
+To: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>, Nicholas Piggin <npiggin@gmail.com>, Christophe Leroy <christophe.leroy@c-s.fr>, Steven Price <steven.price@arm.com>, Robin Murphy <robin.murphy@arm.com>, Leonardo Bras <leonardo@linux.ibm.com>, Mahesh Salgaonkar <mahesh@linux.vnet.ibm.com>, Balbir Singh <bsingharora@gmail.com>, Reza Arbab <arbab@linux.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, Allison Randal <allison@lohutok.net>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Mike Rapoport <rppt@linux.ibm.com>, Michal Suchanek <msuchanek@suse.de>
+Cc: linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, kvm-ppc@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200205181924.SAYy5b8Cgn6G9IJYFt3PsMmbwC2gXO3GZRu5wXiIMos@z>
+Message-ID: <20200206030849.iMKuZyc34NNw4Q_cYULrhAy40MUawZBSBUNuhnq1694@z>
 
-Can_follow_write_pte() verifies that a read-only page is the task's own
-copy by ensuring the page has gone through faultin_page() and the PTE is
-Dirty.
+Patches 1-2: Introduces new arch-generic functions to use before
+and after lockless pagetable walks, instead of local_irq_*, and
+applies them to generic code. It makes lockless pagetable walks
+more explicit and improves documentation about it.
 
-A Shadow Stack (SHSTK) PTE must be (read-only + _PAGE_DIRTY_HW).  When a
-task does fork(), its SHSTK PTEs become (read-only + _PAGE_DIRTY_SW).  This
-causes the next SHSTK access (i.e. CALL, RET, INCSSP) to trigger a fault;
-the page is then copied, and (read-only + _PAGE_DIRTY_HW) is restored.
+Patches 3-9: Introduces a powerpc-specific version of the above
+functions with the option to not touch irq config. Then apply them
+to all powerpc code that do lockless pagetable walks.
 
-To update can_follow_write_pte() for SHSTK, introduce pte_exclusive().  It
-verifies a data PTE is Dirty and a SHSTK PTE has _PAGE_DIRTY_HW.
+Patches 10-11: Introduces a percpu counting method to keep track of
+the lockless page table walks, then uses this info to reduce the
+waiting time on serialize_against_pte_lookup().
 
-Also rename can_follow_write_pte() to can_follow_write() to make its
-meaning clear; i.e. "Can we write to the page?", not "Is the PTE writable?"
+Use case:
 
-Also apply same changes to the huge memory case.
+If a process (qemu) with a lot of CPUs (128) try to munmap() a large
+chunk of memory (496GB) mapped with THP, it takes an average of 275
+seconds, which can cause a lot of problems to the load (in qemu case,
+the guest will lock for this time).
 
-Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
----
- arch/x86/mm/pgtable.c         | 18 ++++++++++++++++++
- include/asm-generic/pgtable.h | 12 ++++++++++++
- mm/gup.c                      |  8 +++++---
- mm/huge_memory.c              |  8 +++++---
- 4 files changed, 40 insertions(+), 6 deletions(-)
+Trying to find the source of this bug, I found out most of this time is
+spent on serialize_against_pte_lookup(). This function will take a lot
+of time in smp_call_function_many() if there is more than a couple CPUs
+running the user process. Since it has to happen to all THP mapped, it
+will take a very long time for large amounts of memory.
 
-diff --git a/arch/x86/mm/pgtable.c b/arch/x86/mm/pgtable.c
-index 3340b1d4e9da..fa8133f37918 100644
---- a/arch/x86/mm/pgtable.c
-+++ b/arch/x86/mm/pgtable.c
-@@ -887,6 +887,15 @@ inline pte_t pte_set_vma_features(pte_t pte, struct vm_area_struct *vma)
- 		return pte;
- }
+By the docs, serialize_against_pte_lookup() is needed in order to avoid
+pmd_t to pte_t casting inside find_current_mm_pte(), or any lockless
+pagetable walk, to happen concurrently with THP splitting/collapsing.
 
-+inline bool pte_exclusive(pte_t pte, struct vm_area_struct *vma)
-+{
-+	if (vma->vm_flags & VM_SHSTK)
-+		return pte_dirty_hw(pte);
-+	else
-+		return pte_dirty(pte);
-+}
-+
-+#ifdef CONFIG_TRANSPARENT_HUGEPAGE
- inline pmd_t pmd_set_vma_features(pmd_t pmd, struct vm_area_struct *vma)
- {
- 	if (vma->vm_flags & VM_SHSTK)
-@@ -894,4 +903,13 @@ inline pmd_t pmd_set_vma_features(pmd_t pmd, struct vm_area_struct *vma)
- 	else
- 		return pmd;
- }
-+
-+inline bool pmd_exclusive(pmd_t pmd, struct vm_area_struct *vma)
-+{
-+	if (vma->vm_flags & VM_SHSTK)
-+		return pmd_dirty_hw(pmd);
-+	else
-+		return pmd_dirty(pmd);
-+}
-+#endif /* CONFIG_TRANSPARENT_HUGEPAGE */
- #endif /* CONFIG_X86_INTEL_SHADOW_STACK_USER */
-diff --git a/include/asm-generic/pgtable.h b/include/asm-generic/pgtable.h
-index a9df093fdf45..ae9a84fffc25 100644
---- a/include/asm-generic/pgtable.h
-+++ b/include/asm-generic/pgtable.h
-@@ -1202,18 +1202,30 @@ static inline pte_t pte_set_vma_features(pte_t pte, struct vm_area_struct *vma)
- 	return pte;
- }
+It does so by calling a do_nothing() on each CPU in mm->cpu_bitmap[],
+after interrupts are re-enabled.
+Since, interrupts are (usually) disabled during lockless pagetable
+walk, and serialize_against_pte_lookup will only return after
+interrupts are enabled, it is protected.
 
-+static inline bool pte_exclusive(pte_t pte, struct vm_area_struct *vma)
-+{
-+	return pte_dirty(pte);
-+}
-+
- #ifdef CONFIG_TRANSPARENT_HUGEPAGE
- static inline pmd_t pmd_set_vma_features(pmd_t pmd, struct vm_area_struct *vma)
- {
- 	return pmd;
- }
-+
-+static inline bool pmd_exclusive(pmd_t pmd, struct vm_area_struct *vma)
-+{
-+	return pmd_dirty(pmd);
-+}
- #endif
- #else
- bool arch_copy_pte_mapping(vm_flags_t vm_flags);
- pte_t pte_set_vma_features(pte_t pte, struct vm_area_struct *vma);
-+bool pte_exclusive(pte_t pte, struct vm_area_struct *vma);
+Percpu count-based method:
 
- #ifdef CONFIG_TRANSPARENT_HUGEPAGE
- pmd_t pmd_set_vma_features(pmd_t pmd, struct vm_area_struct *vma);
-+bool pmd_exclusive(pmd_t pmd, struct vm_area_struct *vma);
- #endif
- #endif
- #endif /* CONFIG_MMU */
-diff --git a/mm/gup.c b/mm/gup.c
-index 7646bf993b25..d1dbfbde8443 100644
---- a/mm/gup.c
-+++ b/mm/gup.c
-@@ -164,10 +164,12 @@ static int follow_pfn_pte(struct vm_area_struct *vma, unsigned long address,
-  * FOLL_FORCE can write to even unwritable pte's, but only
-  * after we've gone through a COW cycle and they are dirty.
-  */
--static inline bool can_follow_write_pte(pte_t pte, unsigned int flags)
-+static inline bool can_follow_write(pte_t pte, unsigned int flags,
-+				    struct vm_area_struct *vma)
- {
- 	return pte_write(pte) ||
--		((flags & FOLL_FORCE) && (flags & FOLL_COW) && pte_dirty(pte));
-+		((flags & FOLL_FORCE) && (flags & FOLL_COW) &&
-+		 pte_exclusive(pte, vma));
- }
+So, by what I could understand, if there is no lockless pagetable walk
+running on given cpu, there is no need to call
+serialize_against_pte_lookup() there.
 
- static struct page *follow_page_pte(struct vm_area_struct *vma,
-@@ -205,7 +207,7 @@ static struct page *follow_page_pte(struct vm_area_struct *vma,
- 	}
- 	if ((flags & FOLL_NUMA) && pte_protnone(pte))
- 		goto no_page;
--	if ((flags & FOLL_WRITE) && !can_follow_write_pte(pte, flags)) {
-+	if ((flags & FOLL_WRITE) && !can_follow_write(pte, flags, vma)) {
- 		pte_unmap_unlock(ptep, ptl);
- 		return NULL;
- 	}
-diff --git a/mm/huge_memory.c b/mm/huge_memory.c
-index 93ef368df2dd..baad346e9f4a 100644
---- a/mm/huge_memory.c
-+++ b/mm/huge_memory.c
-@@ -1469,10 +1469,12 @@ vm_fault_t do_huge_pmd_wp_page(struct vm_fault *vmf, pmd_t orig_pmd)
-  * FOLL_FORCE can write to even unwritable pmd's, but only
-  * after we've gone through a COW cycle and they are dirty.
-  */
--static inline bool can_follow_write_pmd(pmd_t pmd, unsigned int flags)
-+static inline bool can_follow_write(pmd_t pmd, unsigned int flags,
-+				    struct vm_area_struct *vma)
- {
- 	return pmd_write(pmd) ||
--	       ((flags & FOLL_FORCE) && (flags & FOLL_COW) && pmd_dirty(pmd));
-+	       ((flags & FOLL_FORCE) && (flags & FOLL_COW) &&
-+		pmd_exclusive(pmd, vma));
- }
+To reduce the cost of running serialize_against_pte_lookup(), I
+propose a percpu-counter that keeps track of how many
+lockless pagetable walks are currently running on each cpu, and if there
+is none, just skip smp_call_function_many() for that cpu.
 
- struct page *follow_trans_huge_pmd(struct vm_area_struct *vma,
-@@ -1485,7 +1487,7 @@ struct page *follow_trans_huge_pmd(struct vm_area_struct *vma,
+- Every percpu-counter can be changed only by it's own CPU
+- It makes use of the original memory barrier in the functions
+- Any counter can be read by any CPU
 
- 	assert_spin_locked(pmd_lockptr(mm, pmd));
+Due to not locking nor using atomic variables, the impact on the
+lockless pagetable walk is intended to be minimum.
 
--	if (flags & FOLL_WRITE && !can_follow_write_pmd(*pmd, flags))
-+	if (flags & FOLL_WRITE && !can_follow_write(*pmd, flags, vma))
- 		goto out;
+The related functions are:
+begin_lockless_pgtbl_walk()
+        Insert before starting any lockless pgtable walk
+end_lockless_pgtbl_walk()
+        Insert after the end of any lockless pgtable walk
+        (Mostly after the ptep is last used)
 
- 	/* Avoid dumping huge zero page */
+Results:
+
+On my workload (qemu), I could see munmap's time reduction from 275
+seconds to 430ms.
+
+Bonus:
+
+I documented some lockless pagetable walks in which it's not
+necessary to keep track, given they work on init_mm or guest pgd.
+
+Also fixed some misplaced local_irq_{restore, enable}.
+
+Changes since v5:
+ Changed counting approach from atomic variables to percpu variables
+ Counting method only affects powepc, arch-generic only toggle irqs
+ Changed commit order, so the counting method is introduced at the end
+ Removed config option, always enabled in powerpc
+ Rebased on top of v5.5
+ Link: http://patchwork.ozlabs.org/project/linuxppc-dev/list/?series=133907
+
+Changes since v4:
+ Rebased on top of v5.4-rc1
+ Declared real generic functions instead of dummies
+ start_lockless_pgtbl_walk renamed to begin_lockless_pgtbl_walk
+ Interrupt {dis,en}able is now inside of {begin,end}_lockless_pgtbl_walk
+ Power implementation has option to not {dis,en}able interrupt
+ More documentation inside the funtions.
+ Some irq masks variables renamed
+ Removed some proxy mm_structs
+ Few typos fixed
+ Link: http://patchwork.ozlabs.org/project/linuxppc-dev/list/?series=133015
+
+Changes since v3:
+ Explain (comments) why some lockless pgtbl walks don't need
+	local_irq_disable (real mode + MSR_EE=0)
+ Explain (comments) places where counting method is not needed (guest pgd,
+	which is not touched by THP)
+ Fixes some misplaced local_irq_restore()
+ Link: http://patchwork.ozlabs.org/project/linuxppc-dev/list/?series=132417
+
+Changes since v2:
+ Rebased to v5.3
+ Adds support on __get_user_pages_fast
+ Adds usage decription to *_lockless_pgtbl_walk()
+ Better style to dummy functions
+ Link: http://patchwork.ozlabs.org/project/linuxppc-dev/list/?series=131839
+
+Changes since v1:
+ Isolated atomic operations in functions *_lockless_pgtbl_walk()
+ Fixed behavior of decrementing before last ptep was used
+ Link: http://patchwork.ozlabs.org/patch/1163093/
+
+Special thanks for:
+Aneesh Kumar, Nick Piggin, Paul Mackerras, Michael Ellerman, Fabiano Rosas,
+Dipankar Sarma and Oliver O'Halloran.
+
+
+Leonardo Bras (11):
+  asm-generic/pgtable: Adds generic functions to track lockless pgtable
+    walks
+  mm/gup: Use functions to track lockless pgtbl walks on gup_pgd_range
+  powerpc/mm: Adds arch-specificic functions to track lockless pgtable
+    walks
+  powerpc/mce_power: Use functions to track lockless pgtbl walks
+  powerpc/perf: Use functions to track lockless pgtbl walks
+  powerpc/mm/book3s64/hash: Use functions to track lockless pgtbl walks
+  powerpc/kvm/e500: Use functions to track lockless pgtbl walks
+  powerpc/kvm/book3s_hv: Use functions to track lockless pgtbl walks
+  powerpc/kvm/book3s_64: Use functions to track lockless pgtbl walks
+  powerpc/mm: Adds counting method to track lockless pagetable walks
+  powerpc/mm/book3s64/pgtable: Uses counting method to skip serializing
+
+ arch/powerpc/include/asm/book3s/64/pgtable.h |   6 +
+ arch/powerpc/kernel/mce_power.c              |   6 +-
+ arch/powerpc/kvm/book3s_64_mmu_hv.c          |   6 +-
+ arch/powerpc/kvm/book3s_64_mmu_radix.c       |  34 +++++-
+ arch/powerpc/kvm/book3s_64_vio_hv.c          |   6 +-
+ arch/powerpc/kvm/book3s_hv_nested.c          |  22 +++-
+ arch/powerpc/kvm/book3s_hv_rm_mmu.c          |  28 +++--
+ arch/powerpc/kvm/e500_mmu_host.c             |   9 +-
+ arch/powerpc/mm/book3s64/hash_tlb.c          |   6 +-
+ arch/powerpc/mm/book3s64/hash_utils.c        |  27 +++--
+ arch/powerpc/mm/book3s64/pgtable.c           | 120 ++++++++++++++++++-
+ arch/powerpc/perf/callchain.c                |   6 +-
+ include/asm-generic/pgtable.h                |  51 ++++++++
+ mm/gup.c                                     |  10 +-
+ 14 files changed, 288 insertions(+), 49 deletions(-)
+
 -- 
-2.21.0
+2.24.1
