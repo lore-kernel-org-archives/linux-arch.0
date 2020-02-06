@@ -1,229 +1,216 @@
-Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga14.intel.com ([192.55.52.115]:20937 "EHLO mga14.intel.com"
- rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP id S1727778AbgBESU2
- (ORCPT <rfc822;linux-arch@vger.kernel.org>); Wed, 5 Feb 2020 13:20:28 -0500
-From: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Subject: [RFC PATCH v9 08/27] x86/mm: Change _PAGE_DIRTY to _PAGE_DIRTY_HW
-Date: Wed,  5 Feb 2020 10:19:16 -0800
-Message-ID: <20200205181935.3712-9-yu-cheng.yu@intel.com>
-In-Reply-To: <20200205181935.3712-1-yu-cheng.yu@intel.com>
+Return-Path: <owner-linux-mm@kvack.org>
+Subject: Re: [RFC PATCH v9 01/27] Documentation/x86: Add CET description
 References: <20200205181935.3712-1-yu-cheng.yu@intel.com>
+ <20200205181935.3712-2-yu-cheng.yu@intel.com>
+From: Randy Dunlap <rdunlap@infradead.org>
+Message-ID: <af5ee976-3b57-4afe-6304-fcab8de45c77@infradead.org>
+Date: Wed, 5 Feb 2020 16:16:05 -0800
 MIME-Version: 1.0
-Sender: linux-arch-owner@vger.kernel.org
+In-Reply-To: <20200205181935.3712-2-yu-cheng.yu@intel.com>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
+Sender: owner-linux-mm@kvack.org
+To: Yu-cheng Yu <yu-cheng.yu@intel.com>, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>, x86-patch-review@intel.com
 List-ID: <linux-arch.vger.kernel.org>
-Content-Transfer-Encoding: quoted-printable
-To: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>, x86-patch-review@intel.com
-Cc: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Message-ID: <20200205181916.Ll5tJY9dTVz9vQ48pNe9h1aMf_I8E83LsMq2SWMLzao@z>
+Message-ID: <20200206001605.EDR_3TWh-oaaddvUSQlgehi0EuXc-RiSMn19R6miiYU@z>
 
-Before introducing _PAGE_DIRTY_SW for non-hardware memory management
-purposes in the next patch, rename _PAGE_DIRTY to _PAGE_DIRTY_HW and
-_PAGE_BIT_DIRTY to _PAGE_BIT_DIRTY_HW to make these PTE dirty bits
-more clear.  There are no functional changes from this patch.
+Hi,
 
-v9:
-- At some places _PAGE_DIRTY were not changed to _PAGE_DIRTY_HW, because
-  they will be changed again in the next patch to _PAGE_DIRTY_BITS.
-  However, this causes compile issues if the next patch is not yet applie=
-d.
-  Fix it by changing all _PAGE_DIRTY to _PAGE_DRITY_HW.
-
-Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
----
- arch/x86/include/asm/pgtable.h       | 18 +++++++++---------
- arch/x86/include/asm/pgtable_types.h | 17 +++++++++--------
- arch/x86/kernel/relocate_kernel_64.S |  2 +-
- arch/x86/kvm/vmx/vmx.c               |  2 +-
- 4 files changed, 20 insertions(+), 19 deletions(-)
-
-diff --git a/arch/x86/include/asm/pgtable.h b/arch/x86/include/asm/pgtabl=
-e.h
-index ad97dc155195..ab50d25f9afc 100644
---- a/arch/x86/include/asm/pgtable.h
-+++ b/arch/x86/include/asm/pgtable.h
-@@ -122,7 +122,7 @@ extern pmdval_t early_pmd_flags;
-  */
- static inline int pte_dirty(pte_t pte)
- {
--	return pte_flags(pte) & _PAGE_DIRTY;
-+	return pte_flags(pte) & _PAGE_DIRTY_HW;
- }
+I have a few comments and a question (please see inline below).
 
 
-@@ -161,7 +161,7 @@ static inline int pte_young(pte_t pte)
+On 2/5/20 10:19 AM, Yu-cheng Yu wrote:
+> Explain no_cet_shstk/no_cet_ibt kernel parameters, and introduce a new
+> document on Control-flow Enforcement Technology (CET).
+> 
+> Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
+> ---
+>  .../admin-guide/kernel-parameters.txt         |   6 +
+>  Documentation/x86/index.rst                   |   1 +
+>  Documentation/x86/intel_cet.rst               | 294 ++++++++++++++++++
+>  3 files changed, 301 insertions(+)
+>  create mode 100644 Documentation/x86/intel_cet.rst
+> 
 
- static inline int pmd_dirty(pmd_t pmd)
- {
--	return pmd_flags(pmd) & _PAGE_DIRTY;
-+	return pmd_flags(pmd) & _PAGE_DIRTY_HW;
- }
+> diff --git a/Documentation/x86/intel_cet.rst b/Documentation/x86/intel_cet.rst
+> new file mode 100644
+> index 000000000000..71e2462fea5c
+> --- /dev/null
+> +++ b/Documentation/x86/intel_cet.rst
+> @@ -0,0 +1,294 @@
+> +.. SPDX-License-Identifier: GPL-2.0
+> +
+> +=========================================
+> +Control-flow Enforcement Technology (CET)
+> +=========================================
+> +
 
- static inline int pmd_young(pmd_t pmd)
-@@ -171,7 +171,7 @@ static inline int pmd_young(pmd_t pmd)
+...
 
- static inline int pud_dirty(pud_t pud)
- {
--	return pud_flags(pud) & _PAGE_DIRTY;
-+	return pud_flags(pud) & _PAGE_DIRTY_HW;
- }
+> +
+> +[5] CET system calls
+> +====================
+> +
+> +The following arch_prctl() system calls are added for CET:
+> +
+> +arch_prctl(ARCH_X86_CET_STATUS, unsigned long *addr)
+> +    Return CET feature status.
+> +
+> +    The parameter 'addr' is a pointer to a user buffer.
+> +    On returning to the caller, the kernel fills the following
+> +    information::
+> +
+> +        *addr       = SHSTK/IBT status
+> +        *(addr + 1) = SHSTK base address
+> +        *(addr + 2) = SHSTK size
+> +
+> +arch_prctl(ARCH_X86_CET_DISABLE, unsigned long features)
+> +    Disable SHSTK and/or IBT specified in 'features'.  Return -EPERM
+> +    if CET is locked.
+> +
+> +arch_prctl(ARCH_X86_CET_LOCK)
+> +    Lock in CET feature.
 
- static inline int pud_young(pud_t pud)
-@@ -312,7 +312,7 @@ static inline pte_t pte_clear_flags(pte_t pte, pteval=
-_t clear)
+which feature?
 
- static inline pte_t pte_mkclean(pte_t pte)
- {
--	return pte_clear_flags(pte, _PAGE_DIRTY);
-+	return pte_clear_flags(pte, _PAGE_DIRTY_HW);
- }
+> +
+> +arch_prctl(ARCH_X86_CET_ALLOC_SHSTK, unsigned long *addr)
+> +    Allocate a new SHSTK and put a restore token at top.
+> +
+> +    The parameter 'addr' is a pointer to a user buffer and indicates
+> +    the desired SHSTK size to allocate.  On returning to the caller,
+> +    the kernel fills '*addr' with the base address of the new SHSTK.
+> +
+> +arch_prctl(ARCH_X86_CET_MARK_LEGACY_CODE, unsigned long *addr)
+> +    Mark an address range as IBT legacy code.
+> +
+> +    The parameter 'addr' is a pointer to a user buffer that has the
+> +    following information::
+> +
+> +        *addr       = starting linear address of the legacy code
+> +        *(addr + 1) = size of the legacy code
+> +        *(addr + 2) = set (1); clear (0)
+> +
+> +Note:
+> +  There is no CET-enabling arch_prctl function.  By design, CET is
+> +  enabled automatically if the binary and the system can support it.
+> +
+> +  The parameters passed are always unsigned 64-bit.  When an IA32
+> +  application passing pointers, it should only use the lower 32 bits.
+> +
+> +[6] The implementation of the SHSTK
+> +===================================
+> +
+> +SHSTK size
+> +----------
+> +
+> +A task's SHSTK is allocated from memory to a fixed size of
+> +RLIMIT_STACK.  A compat-mode thread's SHSTK size is 1/4 of
+> +RLIMIT_STACK.  The smaller 32-bit thread SHSTK allows more threads to
+> +share a 32-bit address space.
+> +
+> +Signal
+> +------
+> +
+> +The main program and its signal handlers use the same SHSTK.  Because
+> +the SHSTK stores only return addresses, a large SHSTK will cover the
+> +condition that both the program stack and the sigaltstack run out.
+> +
+> +The kernel creates a restore token at the SHSTK restoring address and
+> +verifies that token when restoring from the signal handler.
+> +
+> +IBT for signal delivering and sigreturn is the same as the main
+> +program's setup; except for WAIT_ENDBR status, which can be read from
 
- static inline pte_t pte_mkold(pte_t pte)
-@@ -332,7 +332,7 @@ static inline pte_t pte_mkexec(pte_t pte)
+s/;/,/
 
- static inline pte_t pte_mkdirty(pte_t pte)
- {
--	return pte_set_flags(pte, _PAGE_DIRTY | _PAGE_SOFT_DIRTY);
-+	return pte_set_flags(pte, _PAGE_DIRTY_HW | _PAGE_SOFT_DIRTY);
- }
+> +MSR_IA32_U_CET.  In general, a task is in WAIT_ENDBR after an
+> +indirect CALL/JMP and before the next instruction starts.
+> +
+> +A task's WAIT_ENDBR is reset for its signal handler, but preserved on
+> +the task's stack; and then restored from sigreturn.
 
- static inline pte_t pte_mkyoung(pte_t pte)
-@@ -396,7 +396,7 @@ static inline pmd_t pmd_mkold(pmd_t pmd)
+s/;/,/
 
- static inline pmd_t pmd_mkclean(pmd_t pmd)
- {
--	return pmd_clear_flags(pmd, _PAGE_DIRTY);
-+	return pmd_clear_flags(pmd, _PAGE_DIRTY_HW);
- }
+> +
+> +Fork
+> +----
+> +
+> +The SHSTK's vma has VM_SHSTK flag set; its PTEs are required to be
+> +read-only and dirty.  When a SHSTK PTE is not present, RO, and dirty,
+> +a SHSTK access triggers a page fault with an additional SHSTK bit set
+> +in the page fault error code.
+> +
+> +When a task forks a child, its SHSTK PTEs are copied and both the
+> +parent's and the child's SHSTK PTEs are cleared of the dirty bit.
+> +Upon the next SHSTK access, the resulting SHSTK page fault is handled
+> +by page copy/re-use.
+> +
+> +When a pthread child is created, the kernel allocates a new SHSTK for
+> +the new thread.
+> +
+> +Setjmp/Longjmp
+> +--------------
+> +
+> +Longjmp unwinds SHSTK until it matches the program stack.
+> +
+> +Ucontext
+> +--------
+> +
+> +In GLIBC, getcontext/setcontext is implemented in similar way as
+> +setjmp/longjmp.
+> +
+> +When makecontext creates a new ucontext, a new SHSTK is allocated for
+> +that context with ARCH_X86_CET_ALLOC_SHSTK syscall.  The kernel
+> +creates a restore token at the top of the new SHSTK and the user-mode
+> +code switches to the new SHSTK with the RSTORSSP instruction.
+> +
+> +[7] The management of read-only & dirty PTEs for SHSTK
+> +======================================================
+> +
+> +A RO and dirty PTE exists in the following cases:
+> +
+> +(a) A page is modified and then shared with a fork()'ed child;
+> +(b) A R/O page that has been COW'ed;
+> +(c) A SHSTK page.
+> +
+> +The processor only checks the dirty bit for (c).  To prevent the use
+> +of non-SHSTK memory as SHSTK, we use a spare bit of the 64-bit PTE as
+> +DIRTY_SW for (a) and (b) above.  This results to the following PTE
+> +settings::
+> +
+> +    Modified PTE:             (R/W + DIRTY_HW)
+> +    Modified and shared PTE:  (R/O + DIRTY_SW)
+> +    R/O PTE, COW'ed:          (R/O + DIRTY_SW)
+> +    SHSTK PTE:                (R/O + DIRTY_HW)
+> +    SHSTK PTE, COW'ed:        (R/O + DIRTY_HW)
+> +    SHSTK PTE, shared:        (R/O + DIRTY_SW)
+> +
+> +Note that DIRTY_SW is only used in R/O PTEs but not R/W PTEs.
+> +
+> +[8] The implementation of IBT legacy bitmap
+> +===========================================
+> +
+> +When IBT is active, a non-IBT-capable legacy library can be executed
+> +if its address ranges are specified in the legacy code bitmap.  The
+> +bitmap covers the whole user-space address, which is TASK_SIZE_MAX
+> +for 64-bit and TASK_SIZE for IA32, and its each bit indicates a 4-KB
 
- static inline pmd_t pmd_wrprotect(pmd_t pmd)
-@@ -406,7 +406,7 @@ static inline pmd_t pmd_wrprotect(pmd_t pmd)
+confusing:
+                                          its each bit
 
- static inline pmd_t pmd_mkdirty(pmd_t pmd)
- {
--	return pmd_set_flags(pmd, _PAGE_DIRTY | _PAGE_SOFT_DIRTY);
-+	return pmd_set_flags(pmd, _PAGE_DIRTY_HW | _PAGE_SOFT_DIRTY);
- }
+> +legacy code page.  It is read-only from an application, and setup by
+> +the kernel as a special mapping when the first time the application
 
- static inline pmd_t pmd_mkdevmap(pmd_t pmd)
-@@ -450,7 +450,7 @@ static inline pud_t pud_mkold(pud_t pud)
+                           drop:   when
 
- static inline pud_t pud_mkclean(pud_t pud)
- {
--	return pud_clear_flags(pud, _PAGE_DIRTY);
-+	return pud_clear_flags(pud, _PAGE_DIRTY_HW);
- }
+> +calls arch_prctl(ARCH_X86_CET_MARK_LEGACY_CODE).  The application
+> +manages the bitmap through the arch_prctl.
 
- static inline pud_t pud_wrprotect(pud_t pud)
-@@ -460,7 +460,7 @@ static inline pud_t pud_wrprotect(pud_t pud)
+                      through the arch_prctl() interface.
 
- static inline pud_t pud_mkdirty(pud_t pud)
- {
--	return pud_set_flags(pud, _PAGE_DIRTY | _PAGE_SOFT_DIRTY);
-+	return pud_set_flags(pud, _PAGE_DIRTY_HW | _PAGE_SOFT_DIRTY);
- }
 
- static inline pud_t pud_mkdevmap(pud_t pud)
-diff --git a/arch/x86/include/asm/pgtable_types.h b/arch/x86/include/asm/=
-pgtable_types.h
-index b5e49e6bac63..e647e3c75578 100644
---- a/arch/x86/include/asm/pgtable_types.h
-+++ b/arch/x86/include/asm/pgtable_types.h
-@@ -15,7 +15,7 @@
- #define _PAGE_BIT_PWT		3	/* page write through */
- #define _PAGE_BIT_PCD		4	/* page cache disabled */
- #define _PAGE_BIT_ACCESSED	5	/* was accessed (raised by CPU) */
--#define _PAGE_BIT_DIRTY		6	/* was written to (raised by CPU) */
-+#define _PAGE_BIT_DIRTY_HW	6	/* was written to (raised by CPU) */
- #define _PAGE_BIT_PSE		7	/* 4 MB (or 2MB) page */
- #define _PAGE_BIT_PAT		7	/* on 4KB pages */
- #define _PAGE_BIT_GLOBAL	8	/* Global TLB entry PPro+ */
-@@ -45,7 +45,7 @@
- #define _PAGE_PWT	(_AT(pteval_t, 1) << _PAGE_BIT_PWT)
- #define _PAGE_PCD	(_AT(pteval_t, 1) << _PAGE_BIT_PCD)
- #define _PAGE_ACCESSED	(_AT(pteval_t, 1) << _PAGE_BIT_ACCESSED)
--#define _PAGE_DIRTY	(_AT(pteval_t, 1) << _PAGE_BIT_DIRTY)
-+#define _PAGE_DIRTY_HW	(_AT(pteval_t, 1) << _PAGE_BIT_DIRTY_HW)
- #define _PAGE_PSE	(_AT(pteval_t, 1) << _PAGE_BIT_PSE)
- #define _PAGE_GLOBAL	(_AT(pteval_t, 1) << _PAGE_BIT_GLOBAL)
- #define _PAGE_SOFTW1	(_AT(pteval_t, 1) << _PAGE_BIT_SOFTW1)
-@@ -73,7 +73,7 @@
- 			 _PAGE_PKEY_BIT3)
-
- #if defined(CONFIG_X86_64) || defined(CONFIG_X86_PAE)
--#define _PAGE_KNL_ERRATUM_MASK (_PAGE_DIRTY | _PAGE_ACCESSED)
-+#define _PAGE_KNL_ERRATUM_MASK (_PAGE_DIRTY_HW | _PAGE_ACCESSED)
- #else
- #define _PAGE_KNL_ERRATUM_MASK 0
- #endif
-@@ -111,9 +111,9 @@
- #define _PAGE_PROTNONE	(_AT(pteval_t, 1) << _PAGE_BIT_PROTNONE)
-
- #define _PAGE_TABLE_NOENC	(_PAGE_PRESENT | _PAGE_RW | _PAGE_USER |\
--				 _PAGE_ACCESSED | _PAGE_DIRTY)
-+				 _PAGE_ACCESSED | _PAGE_DIRTY_HW)
- #define _KERNPG_TABLE_NOENC	(_PAGE_PRESENT | _PAGE_RW |		\
--				 _PAGE_ACCESSED | _PAGE_DIRTY)
-+				 _PAGE_ACCESSED | _PAGE_DIRTY_HW)
-
- /*
-  * Set of bits not changed in pte_modify.  The pte's
-@@ -122,7 +122,7 @@
-  * pte_modify() does modify it.
-  */
- #define _PAGE_CHG_MASK	(PTE_PFN_MASK | _PAGE_PCD | _PAGE_PWT |		\
--			 _PAGE_SPECIAL | _PAGE_ACCESSED | _PAGE_DIRTY |	\
-+			 _PAGE_SPECIAL | _PAGE_ACCESSED | _PAGE_DIRTY_HW |	\
- 			 _PAGE_SOFT_DIRTY | _PAGE_DEVMAP)
- #define _HPAGE_CHG_MASK (_PAGE_CHG_MASK | _PAGE_PSE)
-
-@@ -167,7 +167,8 @@ enum page_cache_mode {
- 					 _PAGE_ACCESSED)
-
- #define __PAGE_KERNEL_EXEC						\
--	(_PAGE_PRESENT | _PAGE_RW | _PAGE_DIRTY | _PAGE_ACCESSED | _PAGE_GLOBAL=
-)
-+	(_PAGE_PRESENT | _PAGE_RW | _PAGE_DIRTY_HW | _PAGE_ACCESSED | \
-+	 _PAGE_GLOBAL)
- #define __PAGE_KERNEL		(__PAGE_KERNEL_EXEC | _PAGE_NX)
-
- #define __PAGE_KERNEL_RO		(__PAGE_KERNEL & ~_PAGE_RW)
-@@ -186,7 +187,7 @@ enum page_cache_mode {
- #define _PAGE_ENC	(_AT(pteval_t, sme_me_mask))
-
- #define _KERNPG_TABLE	(_PAGE_PRESENT | _PAGE_RW | _PAGE_ACCESSED |	\
--			 _PAGE_DIRTY | _PAGE_ENC)
-+			 _PAGE_DIRTY_HW | _PAGE_ENC)
- #define _PAGE_TABLE	(_KERNPG_TABLE | _PAGE_USER)
-
- #define __PAGE_KERNEL_ENC	(__PAGE_KERNEL | _PAGE_ENC)
-diff --git a/arch/x86/kernel/relocate_kernel_64.S b/arch/x86/kernel/reloc=
-ate_kernel_64.S
-index ef3ba99068d3..3acd75f97b61 100644
---- a/arch/x86/kernel/relocate_kernel_64.S
-+++ b/arch/x86/kernel/relocate_kernel_64.S
-@@ -15,7 +15,7 @@
-  */
-
- #define PTR(x) (x << 3)
--#define PAGE_ATTR (_PAGE_PRESENT | _PAGE_RW | _PAGE_ACCESSED | _PAGE_DIR=
-TY)
-+#define PAGE_ATTR (_PAGE_PRESENT | _PAGE_RW | _PAGE_ACCESSED | _PAGE_DIR=
-TY_HW)
-
- /*
-  * control_page + KEXEC_CONTROL_CODE_MAX_SIZE
-diff --git a/arch/x86/kvm/vmx/vmx.c b/arch/x86/kvm/vmx/vmx.c
-index e3394c839dea..fbbbf621b0d9 100644
---- a/arch/x86/kvm/vmx/vmx.c
-+++ b/arch/x86/kvm/vmx/vmx.c
-@@ -3503,7 +3503,7 @@ static int init_rmode_identity_map(struct kvm *kvm)
- 	/* Set up identity-mapping pagetable for EPT in real mode */
- 	for (i =3D 0; i < PT32_ENT_PER_PAGE; i++) {
- 		tmp =3D (i << 22) + (_PAGE_PRESENT | _PAGE_RW | _PAGE_USER |
--			_PAGE_ACCESSED | _PAGE_DIRTY | _PAGE_PSE);
-+			_PAGE_ACCESSED | _PAGE_DIRTY_HW | _PAGE_PSE);
- 		r =3D kvm_write_guest_page(kvm, identity_map_pfn,
- 				&tmp, i * sizeof(tmp), sizeof(tmp));
- 		if (r < 0)
---=20
-2.21.0
+cheers.
+-- 
+~Randy
