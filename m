@@ -1,274 +1,205 @@
-Return-Path: <3BGtYXg4KBDUSiVeUReYZXXZejXffXcV.TfdiggkcZelo.ZSd.Tfd@flex--brendanhiggins.bounces.google.com>
-Date: Thu, 27 Feb 2020 17:20:34 -0800
-In-Reply-To: <20200228012036.15682-1-brendanhiggins@google.com>
-Message-ID: <20200228012036.15682-6-brendanhiggins@google.com>
-Mime-Version: 1.0
-References: <20200228012036.15682-1-brendanhiggins@google.com>
-Subject: [PATCH v3 5/7] kunit: test: add test plan to KUnit TAP format
-From: Brendan Higgins <brendanhiggins@google.com>
-Content-Type: text/plain; charset="UTF-8"
-To: jdike@addtoit.com, richard@nod.at, anton.ivanov@cambridgegreys.com, arnd@arndb.de, keescook@chromium.org, skhan@linuxfoundation.org, alan.maguire@oracle.com, yzaikin@google.com, davidgow@google.com, akpm@linux-foundation.org, rppt@linux.ibm.com, frowand.list@gmail.com
-Cc: gregkh@linuxfoundation.org, sboyd@kernel.org, logang@deltatee.com, mcgrof@kernel.org, linux-um@lists.infradead.org, linux-arch@vger.kernel.org, linux-kselftest@vger.kernel.org, kunit-dev@googlegroups.com, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, Brendan Higgins <brendanhiggins@google.com>
+Return-Path: <christophe.leroy@c-s.fr>
+Subject: Re: [PATCH v6 06/11] powerpc/mm/book3s64/hash: Use functions to track
+ lockless pgtbl walks
+References: <20200206030900.147032-1-leonardo@linux.ibm.com>
+ <20200206030900.147032-7-leonardo@linux.ibm.com>
+From: Christophe Leroy <christophe.leroy@c-s.fr>
+Message-ID: <1b65f1a8-42a8-6ffc-3a06-08fbb34edab5@c-s.fr>
+Date: Thu, 6 Feb 2020 07:06:07 +0100
+MIME-Version: 1.0
+In-Reply-To: <20200206030900.147032-7-leonardo@linux.ibm.com>
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Language: fr
+Content-Transfer-Encoding: 8bit
+To: Leonardo Bras <leonardo@linux.ibm.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>, Nicholas Piggin <npiggin@gmail.com>, Steven Price <steven.price@arm.com>, Robin Murphy <robin.murphy@arm.com>, Mahesh Salgaonkar <mahesh@linux.vnet.ibm.com>, Balbir Singh <bsingharora@gmail.com>, Reza Arbab <arbab@linux.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, Allison Randal <allison@lohutok.net>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Mike Rapoport <rppt@linux.ibm.com>, Michal Suchanek <msuchanek@suse.de>
+Cc: linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, kvm-ppc@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200228012034.GuO0Sl0AftRnT7uWS459YjK8mJ3H0qUa640qCVLXr_Y@z>
+Message-ID: <20200206060607.nD1hhiOWAn_wnyuFeiAtB2SaKJ_oVLt5ABPRGkUaY68@z>
 
-TAP 14 allows an optional test plan to be emitted before the start of
-the start of testing[1]; this is valuable because it makes it possible
-for a test harness to detect whether the number of tests run matches the
-number of tests expected to be run, ensuring that no tests silently
-failed.
 
-Link[1]: https://github.com/isaacs/testanything.github.io/blob/tap14/tap-version-14-specification.md#the-plan
-Signed-off-by: Brendan Higgins <brendanhiggins@google.com>
-Reviewed-by: Stephen Boyd <sboyd@kernel.org>
----
- lib/kunit/executor.c                          | 17 +++++
- lib/kunit/test.c                              | 11 ---
- tools/testing/kunit/kunit_parser.py           | 74 ++++++++++++++++---
- .../test_is_test_passed-all_passed.log        |  1 +
- .../test_data/test_is_test_passed-crash.log   |  1 +
- .../test_data/test_is_test_passed-failure.log |  1 +
- 6 files changed, 82 insertions(+), 23 deletions(-)
 
-diff --git a/lib/kunit/executor.c b/lib/kunit/executor.c
-index b75a46c560847..7fd16feff157e 100644
---- a/lib/kunit/executor.c
-+++ b/lib/kunit/executor.c
-@@ -11,11 +11,28 @@ extern struct kunit_suite * const * const __kunit_suites_end[];
- 
- #if IS_BUILTIN(CONFIG_KUNIT)
- 
-+static void kunit_print_tap_header(void)
-+{
-+	struct kunit_suite * const * const *suites, * const *subsuite;
-+	int num_of_suites = 0;
-+
-+	for (suites = __kunit_suites_start;
-+	     suites < __kunit_suites_end;
-+	     suites++)
-+		for (subsuite = *suites; *subsuite != NULL; subsuite++)
-+			num_of_suites++;
-+
-+	pr_info("TAP version 14\n");
-+	pr_info("1..%d\n", num_of_suites);
-+}
-+
- int kunit_run_all_tests(void)
- {
- 	struct kunit_suite * const * const *suites, * const *subsuite;
- 	bool has_test_failed = false;
- 
-+	kunit_print_tap_header();
-+
- 	for (suites = __kunit_suites_start;
- 	     suites < __kunit_suites_end;
- 	     suites++) {
-diff --git a/lib/kunit/test.c b/lib/kunit/test.c
-index 9242f932896c7..da56b94261b43 100644
---- a/lib/kunit/test.c
-+++ b/lib/kunit/test.c
-@@ -18,16 +18,6 @@ static void kunit_set_failure(struct kunit *test)
- 	WRITE_ONCE(test->success, false);
- }
- 
--static void kunit_print_tap_version(void)
--{
--	static bool kunit_has_printed_tap_version;
--
--	if (!kunit_has_printed_tap_version) {
--		pr_info("TAP version 14\n");
--		kunit_has_printed_tap_version = true;
--	}
--}
--
- static size_t kunit_test_cases_len(struct kunit_case *test_cases)
- {
- 	struct kunit_case *test_case;
-@@ -41,7 +31,6 @@ static size_t kunit_test_cases_len(struct kunit_case *test_cases)
- 
- static void kunit_print_subtest_start(struct kunit_suite *suite)
- {
--	kunit_print_tap_version();
- 	pr_info("\t# Subtest: %s\n", suite->name);
- 	pr_info("\t1..%zd\n", kunit_test_cases_len(suite->test_cases));
- }
-diff --git a/tools/testing/kunit/kunit_parser.py b/tools/testing/kunit/kunit_parser.py
-index 4ffbae0f67325..78b3bdd03b1e4 100644
---- a/tools/testing/kunit/kunit_parser.py
-+++ b/tools/testing/kunit/kunit_parser.py
-@@ -45,6 +45,7 @@ class TestStatus(Enum):
- 	FAILURE = auto()
- 	TEST_CRASHED = auto()
- 	NO_TESTS = auto()
-+	FAILURE_TO_PARSE_TESTS = auto()
- 
- kunit_start_re = re.compile(r'^TAP version [0-9]+$')
- kunit_end_re = re.compile('List of all partitions:')
-@@ -106,7 +107,7 @@ OkNotOkResult = namedtuple('OkNotOkResult', ['is_ok','description', 'text'])
- 
- OK_NOT_OK_SUBTEST = re.compile(r'^\t(ok|not ok) [0-9]+ - (.*)$')
- 
--OK_NOT_OK_MODULE = re.compile(r'^(ok|not ok) [0-9]+ - (.*)$')
-+OK_NOT_OK_MODULE = re.compile(r'^(ok|not ok) ([0-9]+) - (.*)$')
- 
- def parse_ok_not_ok_test_case(lines: List[str],
- 			      test_case: TestCase,
-@@ -196,7 +197,9 @@ def max_status(left: TestStatus, right: TestStatus) -> TestStatus:
- 	else:
- 		return TestStatus.SUCCESS
- 
--def parse_ok_not_ok_test_suite(lines: List[str], test_suite: TestSuite) -> bool:
-+def parse_ok_not_ok_test_suite(lines: List[str],
-+			       test_suite: TestSuite,
-+			       expected_suite_index: int) -> bool:
- 	consume_non_diagnositic(lines)
- 	if not lines:
- 		test_suite.status = TestStatus.TEST_CRASHED
-@@ -209,6 +212,12 @@ def parse_ok_not_ok_test_suite(lines: List[str], test_suite: TestSuite) -> bool:
- 			test_suite.status = TestStatus.SUCCESS
- 		else:
- 			test_suite.status = TestStatus.FAILURE
-+		suite_index = int(match.group(2))
-+		if suite_index != expected_suite_index:
-+			print_with_timestamp(
-+				red('[ERROR] ') + 'expected_suite_index ' +
-+				str(expected_suite_index) + ', but got ' +
-+				str(suite_index))
- 		return True
- 	else:
- 		return False
-@@ -221,7 +230,7 @@ def bubble_up_test_case_errors(test_suite: TestSuite) -> TestStatus:
- 	max_test_case_status = bubble_up_errors(lambda x: x.status, test_suite.cases)
- 	return max_status(max_test_case_status, test_suite.status)
- 
--def parse_test_suite(lines: List[str]) -> TestSuite:
-+def parse_test_suite(lines: List[str], expected_suite_index: int) -> TestSuite:
- 	if not lines:
- 		return None
- 	consume_non_diagnositic(lines)
-@@ -240,7 +249,7 @@ def parse_test_suite(lines: List[str]) -> TestSuite:
- 		test_suite.cases.append(test_case)
- 		test_case = parse_test_case(lines, expected_test_case_num > 0)
- 		expected_test_case_num -= 1
--	if parse_ok_not_ok_test_suite(lines, test_suite):
-+	if parse_ok_not_ok_test_suite(lines, test_suite, expected_suite_index):
- 		test_suite.status = bubble_up_test_case_errors(test_suite)
- 		return test_suite
- 	elif not lines:
-@@ -260,6 +269,17 @@ def parse_tap_header(lines: List[str]) -> bool:
- 	else:
- 		return False
- 
-+TEST_PLAN = re.compile(r'[0-9]+\.\.([0-9]+)')
-+
-+def parse_test_plan(lines: List[str]) -> int:
-+	consume_non_diagnositic(lines)
-+	match = TEST_PLAN.match(lines[0])
-+	if match:
-+		lines.pop(0)
-+		return int(match.group(1))
-+	else:
-+		return None
-+
- def bubble_up_suite_errors(test_suite_list: List[TestSuite]) -> TestStatus:
- 	return bubble_up_errors(lambda x: x.status, test_suite_list)
- 
-@@ -268,19 +288,34 @@ def parse_test_result(lines: List[str]) -> TestResult:
- 		return TestResult(TestStatus.NO_TESTS, [], lines)
- 	consume_non_diagnositic(lines)
- 	if not parse_tap_header(lines):
--		return None
-+		return TestResult(TestStatus.NO_TESTS, [], lines)
-+	expected_test_suite_num = parse_test_plan(lines)
-+	if not expected_test_suite_num:
-+		return TestResult(TestStatus.FAILURE_TO_PARSE_TESTS, [], lines)
- 	test_suites = []
--	test_suite = parse_test_suite(lines)
--	while test_suite:
--		test_suites.append(test_suite)
--		test_suite = parse_test_suite(lines)
--	return TestResult(bubble_up_suite_errors(test_suites), test_suites, lines)
-+	for i in range(1, expected_test_suite_num + 1):
-+		test_suite = parse_test_suite(lines, i)
-+		if test_suite:
-+			test_suites.append(test_suite)
-+		else:
-+			print_with_timestamp(
-+				red('[ERROR] ') + ' expected ' +
-+				str(expected_test_suite_num) +
-+				' test suites, but got ' + str(i - 2))
-+			break
-+	test_suite = parse_test_suite(lines, -1)
-+	if test_suite:
-+		print_with_timestamp(red('[ERROR] ') +
-+			'got unexpected test suite: ' + test_suite.name)
-+	if test_suites:
-+		return TestResult(bubble_up_suite_errors(test_suites), test_suites, lines)
-+	else:
-+		return TestResult(TestStatus.NO_TESTS, [], lines)
- 
--def parse_run_tests(kernel_output) -> TestResult:
-+def print_and_count_results(test_result: TestResult) -> None:
- 	total_tests = 0
- 	failed_tests = 0
- 	crashed_tests = 0
--	test_result = parse_test_result(list(isolate_kunit_output(kernel_output)))
- 	for test_suite in test_result.suites:
- 		if test_suite.status == TestStatus.SUCCESS:
- 			print_suite_divider(green('[PASSED] ') + test_suite.name)
-@@ -302,6 +337,21 @@ def parse_run_tests(kernel_output) -> TestResult:
- 				print_with_timestamp(red('[FAILED] ') + test_case.name)
- 				print_log(map(yellow, test_case.log))
- 				print_with_timestamp('')
-+	return total_tests, failed_tests, crashed_tests
-+
-+def parse_run_tests(kernel_output) -> TestResult:
-+	total_tests = 0
-+	failed_tests = 0
-+	crashed_tests = 0
-+	test_result = parse_test_result(list(isolate_kunit_output(kernel_output)))
-+	if test_result.status == TestStatus.NO_TESTS:
-+		print(red('[ERROR] ') + yellow('no tests run!'))
-+	elif test_result.status == TestStatus.FAILURE_TO_PARSE_TESTS:
-+		print(red('[ERROR] ') + yellow('could not parse test results!'))
-+	else:
-+		(total_tests,
-+		 failed_tests,
-+		 crashed_tests) = print_and_count_results(test_result)
- 	print_with_timestamp(DIVIDER)
- 	fmt = green if test_result.status == TestStatus.SUCCESS else red
- 	print_with_timestamp(
-diff --git a/tools/testing/kunit/test_data/test_is_test_passed-all_passed.log b/tools/testing/kunit/test_data/test_is_test_passed-all_passed.log
-index 62ebc0288355c..bc0dc8fe35b76 100644
---- a/tools/testing/kunit/test_data/test_is_test_passed-all_passed.log
-+++ b/tools/testing/kunit/test_data/test_is_test_passed-all_passed.log
-@@ -1,4 +1,5 @@
- TAP version 14
-+1..2
- 	# Subtest: sysctl_test
- 	1..8
- 	# sysctl_test_dointvec_null_tbl_data: sysctl_test_dointvec_null_tbl_data passed
-diff --git a/tools/testing/kunit/test_data/test_is_test_passed-crash.log b/tools/testing/kunit/test_data/test_is_test_passed-crash.log
-index 0b249870c8be4..4d97f6708c4a5 100644
---- a/tools/testing/kunit/test_data/test_is_test_passed-crash.log
-+++ b/tools/testing/kunit/test_data/test_is_test_passed-crash.log
-@@ -1,6 +1,7 @@
- printk: console [tty0] enabled
- printk: console [mc-1] enabled
- TAP version 14
-+1..2
- 	# Subtest: sysctl_test
- 	1..8
- 	# sysctl_test_dointvec_null_tbl_data: sysctl_test_dointvec_null_tbl_data passed
-diff --git a/tools/testing/kunit/test_data/test_is_test_passed-failure.log b/tools/testing/kunit/test_data/test_is_test_passed-failure.log
-index 9e89d32d5667a..7a416497e3bec 100644
---- a/tools/testing/kunit/test_data/test_is_test_passed-failure.log
-+++ b/tools/testing/kunit/test_data/test_is_test_passed-failure.log
-@@ -1,4 +1,5 @@
- TAP version 14
-+1..2
- 	# Subtest: sysctl_test
- 	1..8
- 	# sysctl_test_dointvec_null_tbl_data: sysctl_test_dointvec_null_tbl_data passed
--- 
-2.25.1.481.gfbce0eb801-goog
+Le 06/02/2020 à 04:08, Leonardo Bras a écrit :
+> Applies the new tracking functions to all hash-related functions that do
+> lockless pagetable walks.
+> 
+> hash_page_mm: Adds comment that explain that there is no need to
+> local_int_disable/save given that it is only called from DataAccess
+> interrupt, so interrupts are already disabled.
+> 
+> local_irq_{save,restore} is already inside {begin,end}_lockless_pgtbl_walk,
+> so there is no need to repeat it here.
+> 
+> Variable that saves the	irq mask was renamed from flags to irq_mask so it
+> doesn't lose meaning now it's not directly passed to local_irq_* functions.
+> 
+> Signed-off-by: Leonardo Bras <leonardo@linux.ibm.com>
+> ---
+>   arch/powerpc/mm/book3s64/hash_tlb.c   |  6 +++---
+>   arch/powerpc/mm/book3s64/hash_utils.c | 27 +++++++++++++++++----------
+>   2 files changed, 20 insertions(+), 13 deletions(-)
+> 
+> diff --git a/arch/powerpc/mm/book3s64/hash_tlb.c b/arch/powerpc/mm/book3s64/hash_tlb.c
+> index 4a70d8dd39cd..86547c4151f6 100644
+> --- a/arch/powerpc/mm/book3s64/hash_tlb.c
+> +++ b/arch/powerpc/mm/book3s64/hash_tlb.c
+> @@ -194,7 +194,7 @@ void __flush_hash_table_range(struct mm_struct *mm, unsigned long start,
+>   {
+>   	bool is_thp;
+>   	int hugepage_shift;
+> -	unsigned long flags;
+> +	unsigned long irq_mask;
+>   
+>   	start = _ALIGN_DOWN(start, PAGE_SIZE);
+>   	end = _ALIGN_UP(end, PAGE_SIZE);
+> @@ -209,7 +209,7 @@ void __flush_hash_table_range(struct mm_struct *mm, unsigned long start,
+>   	 * to being hashed). This is not the most performance oriented
+>   	 * way to do things but is fine for our needs here.
+>   	 */
+> -	local_irq_save(flags);
+> +	irq_mask = begin_lockless_pgtbl_walk();
+>   	arch_enter_lazy_mmu_mode();
+>   	for (; start < end; start += PAGE_SIZE) {
+>   		pte_t *ptep = find_current_mm_pte(mm->pgd, start, &is_thp,
+> @@ -229,7 +229,7 @@ void __flush_hash_table_range(struct mm_struct *mm, unsigned long start,
+>   			hpte_need_flush(mm, start, ptep, pte, hugepage_shift);
+>   	}
+>   	arch_leave_lazy_mmu_mode();
+> -	local_irq_restore(flags);
+> +	end_lockless_pgtbl_walk(irq_mask);
+>   }
+>   
+>   void flush_tlb_pmd_range(struct mm_struct *mm, pmd_t *pmd, unsigned long addr)
+> diff --git a/arch/powerpc/mm/book3s64/hash_utils.c b/arch/powerpc/mm/book3s64/hash_utils.c
+> index 523d4d39d11e..e6d4ab42173b 100644
+> --- a/arch/powerpc/mm/book3s64/hash_utils.c
+> +++ b/arch/powerpc/mm/book3s64/hash_utils.c
+> @@ -1341,12 +1341,16 @@ int hash_page_mm(struct mm_struct *mm, unsigned long ea,
+>   		ea &= ~((1ul << mmu_psize_defs[psize].shift) - 1);
+>   #endif /* CONFIG_PPC_64K_PAGES */
+>   
+> -	/* Get PTE and page size from page tables */
+> +	/* Get PTE and page size from page tables :
+> +	 * Called in from DataAccess interrupt (data_access_common: 0x300),
+> +	 * interrupts are disabled here.
+> +	 */
+
+Comments formatting is not in line with Linux kernel rules. Should be no 
+text on the first /* line.
+
+> +	__begin_lockless_pgtbl_walk(false);
+
+I think it would be better to not use __begin_lockless_pgtbl_walk() 
+directly but keep it in a single place, and define something like 
+begin_lockless_pgtbl_walk_noirq() similar to begin_lockless_pgtbl_walk()
+
+>   	ptep = find_linux_pte(pgdir, ea, &is_thp, &hugeshift);
+>   	if (ptep == NULL || !pte_present(*ptep)) {
+>   		DBG_LOW(" no PTE !\n");
+>   		rc = 1;
+> -		goto bail;
+> +		goto bail_pgtbl_walk;
+
+What's the point in changing the name of this label ? There is only one 
+label, why polute the function with so huge name ?
+
+For me, everyone understand what 'bail' means. Unneccessary changes 
+should be avoided. If you really really want to do it, it should be 
+another patch.
+
+See kernel codying style, chapter 'naming':
+"LOCAL variable names should be short". This also applies to labels.
+
+"C is a Spartan language, and so should your naming be. Unlike Modula-2 
+and Pascal programmers, C programmers do not use cute names like 
+ThisVariableIsATemporaryCounter. A C programmer would call that variable 
+tmp, which is much easier to write, and not the least more difficult to 
+understand."
+
+>   	}
+>   
+>   	/* Add _PAGE_PRESENT to the required access perm */
+> @@ -1359,7 +1363,7 @@ int hash_page_mm(struct mm_struct *mm, unsigned long ea,
+>   	if (!check_pte_access(access, pte_val(*ptep))) {
+>   		DBG_LOW(" no access !\n");
+>   		rc = 1;
+> -		goto bail;
+> +		goto bail_pgtbl_walk;
+>   	}
+>   
+>   	if (hugeshift) {
+> @@ -1383,7 +1387,7 @@ int hash_page_mm(struct mm_struct *mm, unsigned long ea,
+>   		if (current->mm == mm)
+>   			check_paca_psize(ea, mm, psize, user_region);
+>   
+> -		goto bail;
+> +		goto bail_pgtbl_walk;
+>   	}
+>   
+>   #ifndef CONFIG_PPC_64K_PAGES
+> @@ -1457,6 +1461,8 @@ int hash_page_mm(struct mm_struct *mm, unsigned long ea,
+>   #endif
+>   	DBG_LOW(" -> rc=%d\n", rc);
+>   
+> +bail_pgtbl_walk:
+> +	__end_lockless_pgtbl_walk(0, false);
+>   bail:
+>   	exception_exit(prev_state);
+>   	return rc;
+> @@ -1545,7 +1551,7 @@ static void hash_preload(struct mm_struct *mm, unsigned long ea,
+>   	unsigned long vsid;
+>   	pgd_t *pgdir;
+>   	pte_t *ptep;
+> -	unsigned long flags;
+> +	unsigned long irq_mask;
+>   	int rc, ssize, update_flags = 0;
+>   	unsigned long access = _PAGE_PRESENT | _PAGE_READ | (is_exec ? _PAGE_EXEC : 0);
+>   
+> @@ -1567,11 +1573,12 @@ static void hash_preload(struct mm_struct *mm, unsigned long ea,
+>   	vsid = get_user_vsid(&mm->context, ea, ssize);
+>   	if (!vsid)
+>   		return;
+> +
+
+Is this new line related to the patch ?
+
+>   	/*
+>   	 * Hash doesn't like irqs. Walking linux page table with irq disabled
+>   	 * saves us from holding multiple locks.
+>   	 */
+> -	local_irq_save(flags);
+> +	irq_mask = begin_lockless_pgtbl_walk();
+>   
+>   	/*
+>   	 * THP pages use update_mmu_cache_pmd. We don't do
+> @@ -1616,7 +1623,7 @@ static void hash_preload(struct mm_struct *mm, unsigned long ea,
+>   				   mm_ctx_user_psize(&mm->context),
+>   				   pte_val(*ptep));
+>   out_exit:
+> -	local_irq_restore(flags);
+> +	end_lockless_pgtbl_walk(irq_mask);
+>   }
+>   
+>   /*
+> @@ -1679,16 +1686,16 @@ u16 get_mm_addr_key(struct mm_struct *mm, unsigned long address)
+>   {
+>   	pte_t *ptep;
+>   	u16 pkey = 0;
+> -	unsigned long flags;
+> +	unsigned long irq_mask;
+>   
+>   	if (!mm || !mm->pgd)
+>   		return 0;
+>   
+> -	local_irq_save(flags);
+> +	irq_mask = begin_lockless_pgtbl_walk();
+>   	ptep = find_linux_pte(mm->pgd, address, NULL, NULL);
+>   	if (ptep)
+>   		pkey = pte_to_pkey_bits(pte_val(READ_ONCE(*ptep)));
+> -	local_irq_restore(flags);
+> +	end_lockless_pgtbl_walk(irq_mask);
+>   
+>   	return pkey;
+>   }
+> 
+
+Christophe
