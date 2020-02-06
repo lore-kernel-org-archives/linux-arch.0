@@ -1,8 +1,8 @@
 Return-Path: <leonardo@linux.ibm.com>
 From: Leonardo Bras <leonardo@linux.ibm.com>
-Subject: [PATCH v6 04/11] powerpc/mce_power: Use functions to track lockless pgtbl walks
-Date: Thu,  6 Feb 2020 00:08:53 -0300
-Message-ID: <20200206030900.147032-5-leonardo@linux.ibm.com>
+Subject: [PATCH v6 02/11] mm/gup: Use functions to track lockless pgtbl walks on gup_pgd_range
+Date: Thu,  6 Feb 2020 00:08:51 -0300
+Message-ID: <20200206030900.147032-3-leonardo@linux.ibm.com>
 In-Reply-To: <20200206030900.147032-1-leonardo@linux.ibm.com>
 References: <20200206030900.147032-1-leonardo@linux.ibm.com>
 MIME-Version: 1.0
@@ -10,49 +10,59 @@ Content-Transfer-Encoding: 8bit
 To: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>, Nicholas Piggin <npiggin@gmail.com>, Christophe Leroy <christophe.leroy@c-s.fr>, Steven Price <steven.price@arm.com>, Robin Murphy <robin.murphy@arm.com>, Leonardo Bras <leonardo@linux.ibm.com>, Mahesh Salgaonkar <mahesh@linux.vnet.ibm.com>, Balbir Singh <bsingharora@gmail.com>, Reza Arbab <arbab@linux.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, Allison Randal <allison@lohutok.net>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Mike Rapoport <rppt@linux.ibm.com>, Michal Suchanek <msuchanek@suse.de>
 Cc: linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, kvm-ppc@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200206030853.ykrmRJB6S_taZ4_cNPwZPr8cQcKsc9Dek-TUAWp8lSM@z>
+Message-ID: <20200206030851.YQqX8F9xrIX4WA55C5yV-a0r95y-8eC9h08i3KJ8Mz8@z>
 
-Applies the new functions used for tracking lockless pgtable walks on
-addr_to_pfn().
+As described, gup_pgd_range is a lockless pagetable walk. So, in order to
+track against THP split/collapse, it disables/enables irq around it.
 
-local_irq_{save,restore} is already inside {begin,end}_lockless_pgtbl_walk,
-so there is no need to repeat it here.
+To make use of the new tracking functions, it replaces irq disable/enable
+by {begin,end}_lockless_pgtbl_walk().
+
+As local_irq_{save,restore} is present inside
+{begin,end}_lockless_pgtbl_walk, there should be no change in the
+workings.
 
 Signed-off-by: Leonardo Bras <leonardo@linux.ibm.com>
 ---
- arch/powerpc/kernel/mce_power.c | 6 +++---
- 1 file changed, 3 insertions(+), 3 deletions(-)
+ mm/gup.c | 10 +++++-----
+ 1 file changed, 5 insertions(+), 5 deletions(-)
 
-diff --git a/arch/powerpc/kernel/mce_power.c b/arch/powerpc/kernel/mce_power.c
-index 1cbf7f1a4e3d..a9e38ef4e437 100644
---- a/arch/powerpc/kernel/mce_power.c
-+++ b/arch/powerpc/kernel/mce_power.c
-@@ -29,7 +29,7 @@ unsigned long addr_to_pfn(struct pt_regs *regs, unsigned long addr)
+diff --git a/mm/gup.c b/mm/gup.c
+index 1b521e0ac1de..04e6f46993b6 100644
+--- a/mm/gup.c
++++ b/mm/gup.c
+@@ -2369,7 +2369,7 @@ int __get_user_pages_fast(unsigned long start, int nr_pages, int write,
+ 			  struct page **pages)
  {
- 	pte_t *ptep;
- 	unsigned int shift;
--	unsigned long pfn, flags;
-+	unsigned long pfn, irq_mask;
- 	struct mm_struct *mm;
+ 	unsigned long len, end;
+-	unsigned long flags;
++	unsigned long irq_mask;
+ 	int nr = 0;
  
- 	if (user_mode(regs))
-@@ -37,7 +37,7 @@ unsigned long addr_to_pfn(struct pt_regs *regs, unsigned long addr)
- 	else
- 		mm = &init_mm;
+ 	start = untagged_addr(start) & PAGE_MASK;
+@@ -2395,9 +2395,9 @@ int __get_user_pages_fast(unsigned long start, int nr_pages, int write,
  
--	local_irq_save(flags);
-+	irq_mask = begin_lockless_pgtbl_walk();
- 	ptep = __find_linux_pte(mm->pgd, addr, NULL, &shift);
- 
- 	if (!ptep || pte_special(*ptep)) {
-@@ -53,7 +53,7 @@ unsigned long addr_to_pfn(struct pt_regs *regs, unsigned long addr)
+ 	if (IS_ENABLED(CONFIG_HAVE_FAST_GUP) &&
+ 	    gup_fast_permitted(start, end)) {
+-		local_irq_save(flags);
++		irq_mask = begin_lockless_pgtbl_walk();
+ 		gup_pgd_range(start, end, write ? FOLL_WRITE : 0, pages, &nr);
+-		local_irq_restore(flags);
++		end_lockless_pgtbl_walk(irq_mask);
  	}
  
- out:
--	local_irq_restore(flags);
-+	end_lockless_pgtbl_walk(irq_mask);
- 	return pfn;
- }
+ 	return nr;
+@@ -2450,9 +2450,9 @@ static int internal_get_user_pages_fast(unsigned long start, int nr_pages,
+ 
+ 	if (IS_ENABLED(CONFIG_HAVE_FAST_GUP) &&
+ 	    gup_fast_permitted(start, end)) {
+-		local_irq_disable();
++		begin_lockless_pgtbl_walk();
+ 		gup_pgd_range(addr, end, gup_flags, pages, &nr);
+-		local_irq_enable();
++		end_lockless_pgtbl_walk(IRQS_ENABLED);
+ 		ret = nr;
+ 	}
  
 -- 
 2.24.1
