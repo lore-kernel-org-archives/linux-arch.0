@@ -1,86 +1,188 @@
-Return-Path: <linux-doc-owner@vger.kernel.org>
-From: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Subject: [RFC PATCH v9 05/27] x86/cet/shstk: Add Kconfig option for user-mode
- Shadow Stack protection
-Date: Wed,  5 Feb 2020 10:19:13 -0800
-Message-ID: <20200205181935.3712-6-yu-cheng.yu@intel.com>
-In-Reply-To: <20200205181935.3712-1-yu-cheng.yu@intel.com>
-References: <20200205181935.3712-1-yu-cheng.yu@intel.com>
+Return-Path: <christophe.leroy@c-s.fr>
+Subject: Re: [PATCH v6 03/11] powerpc/mm: Adds arch-specificic functions to
+ track lockless pgtable walks
+References: <20200206030900.147032-1-leonardo@linux.ibm.com>
+ <20200206030900.147032-4-leonardo@linux.ibm.com>
+From: Christophe Leroy <christophe.leroy@c-s.fr>
+Message-ID: <1311ce1c-7e5a-f7c4-2ab2-c03e124ca1c1@c-s.fr>
+Date: Thu, 6 Feb 2020 06:46:18 +0100
 MIME-Version: 1.0
+In-Reply-To: <20200206030900.147032-4-leonardo@linux.ibm.com>
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Language: fr
 Content-Transfer-Encoding: 8bit
-Sender: linux-doc-owner@vger.kernel.org
-To: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>, x86-patch-review@intel.com
-Cc: Yu-cheng Yu <yu-cheng.yu@intel.com>
+To: Leonardo Bras <leonardo@linux.ibm.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>, Nicholas Piggin <npiggin@gmail.com>, Steven Price <steven.price@arm.com>, Robin Murphy <robin.murphy@arm.com>, Mahesh Salgaonkar <mahesh@linux.vnet.ibm.com>, Balbir Singh <bsingharora@gmail.com>, Reza Arbab <arbab@linux.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, Allison Randal <allison@lohutok.net>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Mike Rapoport <rppt@linux.ibm.com>, Michal Suchanek <msuchanek@suse.de>
+Cc: linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, kvm-ppc@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200205181913.ktG-RyS8qRGj6BnkQXjE4X7-UHTKKN7h_DORNYEM6J0@z>
+Message-ID: <20200206054618.wY9kBVXDIBtaPdn_sVKO5Ar5kNsEwOP3dxJY9veW4VU@z>
 
-Introduce Kconfig option: X86_INTEL_SHADOW_STACK_USER.
 
-Shadow Stack (SHSTK) provides protection against function return address
-corruption.  It is active when the kernel has this feature enabled, and
-both the processor and the application support it.  When this feature is
-enabled, legacy non-SHSTK applications continue to work, but without SHSTK
-protection.
 
-The user-mode SHSTK protection is only implemented for the 64-bit kernel.
-IA32 applications are supported under the compatibility mode.
+Le 06/02/2020 à 04:08, Leonardo Bras a écrit :
+> On powerpc, we need to do some lockless pagetable walks from functions
+> that already have disabled interrupts, specially from real mode with
+> MSR[EE=0].
+> 
+> In these contexts, disabling/enabling interrupts can be very troubling.
 
-Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
----
- arch/x86/Kconfig  | 22 ++++++++++++++++++++++
- arch/x86/Makefile |  7 +++++++
- 2 files changed, 29 insertions(+)
+When interrupts are already disabled, the flag returned when disabling 
+it will be such that when we restore it later, interrupts remain 
+disabled, so what's the problem ?
 
-diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
-index 5e8949953660..6c34b701c588 100644
---- a/arch/x86/Kconfig
-+++ b/arch/x86/Kconfig
-@@ -1974,6 +1974,28 @@ config X86_INTEL_TSX_MODE_AUTO
- 	  side channel attacks- equals the tsx=auto command line parameter.
- endchoice
+> 
+> So, this arch-specific implementation features functions with an extra
+> argument that allows interrupt enable/disable to be skipped:
+> __begin_lockless_pgtbl_walk() and __end_lockless_pgtbl_walk().
+> 
+> Functions similar to the generic ones are also exported, by calling
+> the above functions with parameter {en,dis}able_irq = true.
+> 
+> Signed-off-by: Leonardo Bras <leonardo@linux.ibm.com>
+> ---
+>   arch/powerpc/include/asm/book3s/64/pgtable.h |  6 ++
+>   arch/powerpc/mm/book3s64/pgtable.c           | 86 +++++++++++++++++++-
+>   2 files changed, 91 insertions(+), 1 deletion(-)
+> 
+> diff --git a/arch/powerpc/include/asm/book3s/64/pgtable.h b/arch/powerpc/include/asm/book3s/64/pgtable.h
+> index 201a69e6a355..78f6ffb1bb3e 100644
+> --- a/arch/powerpc/include/asm/book3s/64/pgtable.h
+> +++ b/arch/powerpc/include/asm/book3s/64/pgtable.h
+> @@ -1375,5 +1375,11 @@ static inline bool pgd_is_leaf(pgd_t pgd)
+>   	return !!(pgd_raw(pgd) & cpu_to_be64(_PAGE_PTE));
+>   }
+>   
+> +#define __HAVE_ARCH_LOCKLESS_PGTBL_WALK_CONTROL
+> +unsigned long begin_lockless_pgtbl_walk(void);
+> +unsigned long __begin_lockless_pgtbl_walk(bool disable_irq);
+> +void end_lockless_pgtbl_walk(unsigned long irq_mask);
+> +void __end_lockless_pgtbl_walk(unsigned long irq_mask, bool enable_irq);
+> +
 
-+config X86_INTEL_CET
-+	def_bool n
-+
-+config ARCH_HAS_SHSTK
-+	def_bool n
-+
-+config X86_INTEL_SHADOW_STACK_USER
-+	prompt "Intel Shadow Stack for user-mode"
-+	def_bool n
-+	depends on CPU_SUP_INTEL && X86_64
-+	select ARCH_USES_HIGH_VMA_FLAGS
-+	select X86_INTEL_CET
-+	select ARCH_HAS_SHSTK
-+	---help---
-+	  Shadow Stack (SHSTK) provides protection against program
-+	  stack corruption.  It is active when the kernel has this
-+	  feature enabled, and the processor and the application
-+	  support it.  When this feature is enabled, legacy non-SHSTK
-+	  applications continue to work, but without SHSTK protection.
-+
-+	  If unsure, say y.
-+
- config EFI
- 	bool "EFI runtime service support"
- 	depends on ACPI
-diff --git a/arch/x86/Makefile b/arch/x86/Makefile
-index 94df0868804b..c34f5befa4c8 100644
---- a/arch/x86/Makefile
-+++ b/arch/x86/Makefile
-@@ -149,6 +149,13 @@ ifdef CONFIG_X86_X32
- endif
- export CONFIG_X86_X32_ABI
+Why not make them static inline just like the generic ones ?
 
-+# Check assembler Shadow Stack suppot
-+ifdef CONFIG_X86_INTEL_SHADOW_STACK_USER
-+  ifeq ($(call as-instr, saveprevssp, y),)
-+      $(error CONFIG_X86_INTEL_SHADOW_STACK_USER not supported by the assembler)
-+  endif
-+endif
-+
- #
- # If the function graph tracer is used with mcount instead of fentry,
- # '-maccumulate-outgoing-args' is needed to prevent a GCC bug
--- 
-2.21.0
+>   #endif /* __ASSEMBLY__ */
+>   #endif /* _ASM_POWERPC_BOOK3S_64_PGTABLE_H_ */
+> diff --git a/arch/powerpc/mm/book3s64/pgtable.c b/arch/powerpc/mm/book3s64/pgtable.c
+> index 2bf7e1b4fd82..535613030363 100644
+> --- a/arch/powerpc/mm/book3s64/pgtable.c
+> +++ b/arch/powerpc/mm/book3s64/pgtable.c
+> @@ -82,6 +82,7 @@ static void do_nothing(void *unused)
+>   {
+>   
+>   }
+> +
+
+Is this blank line related to the patch ?
+
+>   /*
+>    * Serialize against find_current_mm_pte which does lock-less
+>    * lookup in page tables with local interrupts disabled. For huge pages
+> @@ -98,6 +99,89 @@ void serialize_against_pte_lookup(struct mm_struct *mm)
+>   	smp_call_function_many(mm_cpumask(mm), do_nothing, NULL, 1);
+>   }
+>   
+> +/* begin_lockless_pgtbl_walk: Must be inserted before a function call that does
+> + *   lockless pagetable walks, such as __find_linux_pte().
+> + * This version allows setting disable_irq=false, so irqs are not touched, which
+> + *   is quite useful for running when ints are already disabled (like real-mode)
+> + */
+> +inline
+> +unsigned long __begin_lockless_pgtbl_walk(bool disable_irq)
+> +{
+> +	unsigned long irq_mask = 0;
+> +
+> +	/*
+> +	 * Interrupts must be disabled during the lockless page table walk.
+> +	 * That's because the deleting or splitting involves flushing TLBs,
+> +	 * which in turn issues interrupts, that will block when disabled.
+> +	 *
+> +	 * When this function is called from realmode with MSR[EE=0],
+> +	 * it's not needed to touch irq, since it's already disabled.
+> +	 */
+> +	if (disable_irq)
+> +		local_irq_save(irq_mask);
+> +
+> +	/*
+> +	 * This memory barrier pairs with any code that is either trying to
+> +	 * delete page tables, or split huge pages. Without this barrier,
+> +	 * the page tables could be read speculatively outside of interrupt
+> +	 * disabling or reference counting.
+> +	 */
+> +	smp_mb();
+> +
+> +	return irq_mask;
+> +}
+> +EXPORT_SYMBOL(__begin_lockless_pgtbl_walk);
+> +
+> +/* begin_lockless_pgtbl_walk: Must be inserted before a function call that does
+> + *   lockless pagetable walks, such as __find_linux_pte().
+> + * This version is used by generic code, and always assume irqs will be disabled
+> + */
+> +unsigned long begin_lockless_pgtbl_walk(void)
+> +{
+> +	return __begin_lockless_pgtbl_walk(true);
+> +}
+> +EXPORT_SYMBOL(begin_lockless_pgtbl_walk);
+
+Even more than begin_lockless_pgtbl_walk(), this one is worth being 
+static inline in the H file.
+
+> +
+> +/*
+> + * __end_lockless_pgtbl_walk: Must be inserted after the last use of a pointer
+> + *   returned by a lockless pagetable walk, such as __find_linux_pte()
+> + * This version allows setting enable_irq=false, so irqs are not touched, which
+> + *   is quite useful for running when ints are already disabled (like real-mode)
+> + */
+> +inline void __end_lockless_pgtbl_walk(unsigned long irq_mask, bool enable_irq)
+> +{
+> +	/*
+> +	 * This memory barrier pairs with any code that is either trying to
+> +	 * delete page tables, or split huge pages. Without this barrier,
+> +	 * the page tables could be read speculatively outside of interrupt
+> +	 * disabling or reference counting.
+> +	 */
+> +	smp_mb();
+> +
+> +	/*
+> +	 * Interrupts must be disabled during the lockless page table walk.
+> +	 * That's because the deleting or splitting involves flushing TLBs,
+> +	 * which in turn issues interrupts, that will block when disabled.
+> +	 *
+> +	 * When this function is called from realmode with MSR[EE=0],
+> +	 * it's not needed to touch irq, since it's already disabled.
+> +	 */
+> +	if (enable_irq)
+> +		local_irq_restore(irq_mask);
+> +}
+> +EXPORT_SYMBOL(__end_lockless_pgtbl_walk);
+> +
+> +/*
+> + * end_lockless_pgtbl_walk: Must be inserted after the last use of a pointer
+> + *   returned by a lockless pagetable walk, such as __find_linux_pte()
+> + * This version is used by generic code, and always assume irqs will be enabled
+> + */
+> +void end_lockless_pgtbl_walk(unsigned long irq_mask)
+> +{
+> +	__end_lockless_pgtbl_walk(irq_mask, true);
+> +}
+> +EXPORT_SYMBOL(end_lockless_pgtbl_walk);
+> +
+>   /*
+>    * We use this to invalidate a pmdp entry before switching from a
+>    * hugepte to regular pmd entry.
+> @@ -487,7 +571,7 @@ static int __init setup_disable_tlbie(char *str)
+>   	tlbie_capable = false;
+>   	tlbie_enabled = false;
+>   
+> -        return 1;
+> +	return 1;
+
+Is that related to this patch at all ?
+
+>   }
+>   __setup("disable_tlbie", setup_disable_tlbie);
+>   
+> 
+
+Christophe
