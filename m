@@ -1,128 +1,193 @@
-Return-Path: <davidgow@google.com>
+Return-Path: <leonardo@linux.ibm.com>
+From: Leonardo Bras <leonardo@linux.ibm.com>
+Subject: [PATCH v6 09/11] powerpc/kvm/book3s_64: Use functions to track lockless pgtbl walks
+Date: Thu,  6 Feb 2020 00:08:58 -0300
+Message-ID: <20200206030900.147032-10-leonardo@linux.ibm.com>
+In-Reply-To: <20200206030900.147032-1-leonardo@linux.ibm.com>
+References: <20200206030900.147032-1-leonardo@linux.ibm.com>
 MIME-Version: 1.0
-References: <20200130230812.142642-1-brendanhiggins@google.com>
- <20200130230812.142642-3-brendanhiggins@google.com> <e060bdfc-5cdb-fb62-48b0-cc54c7bc72ce@gmail.com>
- <CAFd5g46irbQ7j_DOY+bQPoo1TWjwvu6n9iyQ7abe9pfqydeMYg@mail.gmail.com>
- <1da1538d-2e4c-0ed0-5fae-6f9033230c46@gmail.com> <CAFd5g45=m9Rvqf__5FW6HXjSytHJwX=mue-BO+TZMg0JP-BGmw@mail.gmail.com>
-In-Reply-To: <CAFd5g45=m9Rvqf__5FW6HXjSytHJwX=mue-BO+TZMg0JP-BGmw@mail.gmail.com>
-From: David Gow <davidgow@google.com>
-Date: Thu, 6 Feb 2020 11:22:51 -0800
-Message-ID: <CABVgOSkiLi0UNijH1xTSvmsJEE5+ocCZ7nkzmKzxDLzzfqBSzQ@mail.gmail.com>
-Subject: Re: [PATCH v2 2/7] arch: um: add linker section for KUnit test suites
-Content-Type: text/plain; charset="UTF-8"
-To: Brendan Higgins <brendanhiggins@google.com>
-Cc: Frank Rowand <frowand.list@gmail.com>, Jeff Dike <jdike@addtoit.com>, Richard Weinberger <richard@nod.at>, Anton Ivanov <anton.ivanov@cambridgegreys.com>, Arnd Bergmann <arnd@arndb.de>, Kees Cook <keescook@chromium.org>, Shuah Khan <skhan@linuxfoundation.org>, Alan Maguire <alan.maguire@oracle.com>, Iurii Zaikin <yzaikin@google.com>, Andrew Morton <akpm@linux-foundation.org>, rppt@linux.ibm.com, Greg KH <gregkh@linuxfoundation.org>, Stephen Boyd <sboyd@kernel.org>, Logan Gunthorpe <logang@deltatee.com>, Luis Chamberlain <mcgrof@kernel.org>, Knut Omang <knut.omang@oracle.com>, linux-um <linux-um@lists.infradead.org>, linux-arch@vger.kernel.org, "open list:KERNEL SELFTEST FRAMEWORK" <linux-kselftest@vger.kernel.org>, KUnit Development <kunit-dev@googlegroups.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>
+Content-Transfer-Encoding: 8bit
+To: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>, Nicholas Piggin <npiggin@gmail.com>, Christophe Leroy <christophe.leroy@c-s.fr>, Steven Price <steven.price@arm.com>, Robin Murphy <robin.murphy@arm.com>, Leonardo Bras <leonardo@linux.ibm.com>, Mahesh Salgaonkar <mahesh@linux.vnet.ibm.com>, Balbir Singh <bsingharora@gmail.com>, Reza Arbab <arbab@linux.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, Allison Randal <allison@lohutok.net>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Mike Rapoport <rppt@linux.ibm.com>, Michal Suchanek <msuchanek@suse.de>
+Cc: linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, kvm-ppc@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200206192251.HPZKE_e0f5VQgXIsJB9vrQu85VnMjOJISM98Ndfd6k0@z>
+Message-ID: <20200206030858.jwNHx-_DQNwpvo9qCSvx8dA4WPsheyCPeUvB-98BloU@z>
 
-On Tue, Feb 4, 2020 at 5:17 PM 'Brendan Higgins' via KUnit Development
-<kunit-dev@googlegroups.com> wrote:
->
-> On Tue, Feb 4, 2020 at 3:17 PM Frank Rowand <frowand.list@gmail.com> wrote:
-> >
-> > On 2/4/20 4:30 PM, Brendan Higgins wrote:
-> > > On Tue, Feb 4, 2020 at 1:59 PM Frank Rowand <frowand.list@gmail.com> wrote:
-> > >>
-> > >> Can you please add a section to the KUnit documentation that lists things
-> > >> like the expectations, requirements, limitations, etc for a test case that
-> > >> is run by KUnit?  Some examples that pop to mind from recent discussions
-> > >> and my own experiences:
-> > >>
-> > >>   - Each test case is invoked after late_init is complete.
-> > >>       + Exception: the possible value of being able to run a unit test
-> > >>         at a specific runlevel has been expressed.  If an actual unit
-> > >>         test can be shown to require running earlier, this restriction
-> > >>         will be re-visited.
-> > >>
-> > >>   - Each test case must be idempotent.  Each test case may be called
-> > >>     multiple times, and must generate the same result each time it
-> > >>     is called.
-> > >>       + Exception 1: a test case can be declared to not be idempotent
-> > >>         [[ mechanism TBD ]], in which case KUnit will not call the
-> > >>         test case a second time without the kernel rebooting.
-> > >>       + Exception 2: hardware may not be deterministic, so a test that
-> > >>         always passes or fails when run under UML may not always to
-> > >>         so on real hardware.  <--- sentence copied from
-> > >>         Documentation/dev-tools/kunit/usage.rst
-> > >>           [[ This item and 1st exception do not exist yet, but will exist
-> > >>           in some form if the proposed proc filesystem interface is
-> > >>           added. ]]
-> > >>
-> > >>   - KUnit provides a helpful wrapper to simplify building a UML kernel
-> > >>     containing the KUnit test cases, booting the UML kernel, and
-> > >>     formatting the output from the test cases.  This wrapper MUST NOT
-> > >>     be required to run the test cases or to determine a test result.
-> > >>     The formatting may provide additional analysis and improve
-> > >>     readability of a test result.
-> > >>
-> > >>   - .... There is more that belongs here, but I'm getting side tracked
-> > >>     here, when I'm trying to instead convert devicetree unittests to
-> > >>     KUnit and want to get back to that.
-> > >
-> > > Sure, I think that's a great start! Thanks for that. I hope you don't
-> > > mind if I copy and paste some of it.
-> >
-> > Please do.  And no need to credit me.
-> >
-> >
-> > > It kind of sounds like you are talking about more of a requirements
-> > > doc than the design doc I was imagining in my reply to you on the
-> > > cover letter, which is fine. The documentation is primarily for people
-> > > other than me, so whatever you and others think is useful, I will do.
-> > >
-> >
-> > I wasn't really sure what to label it as.  My inspiration was based
-> > a little bit on reading through the Linux 5.5 KUnit source and
-> > documentation, and trying to understand the expectations of the
-> > KUnit framework and what the test cases have to either obey or
-> > can expect.
-> >
-> > I think there is a lot of history that you know, but is only visible
-> > to test implementors if they read through the past couple of years
-> > email threads.
->
-> Yeah, that's no good. We need to provide a better experience than
-> that. David has gotten deeply involved relatively recently: I suspect
-> that he might have some good insight on this.
->
-> David, you mentioned offline that there are some philosophical changes
-> in how we think about KUnit that has happened that you feel have never
-> quite been captured in the docs. Do you think this is part of what
-> Frank has pointed out here? If not, do you have any thoughts about
-> what we should call this documentation section?
->
-> Shuah's first KUnit PR seemed to imply that KUnit was primarily for
-> UML, or only fully supported under UML. So I think I might be the odd
-> one out thinking that that has changed and the documentation properly
-> conveys that.
+Applies the new tracking functions to all book3s_64 related
+functions that do lockless pagetable walks.
 
-Yeah: I think the documentation could do with some improvements on
-these fronts: there are a few places which imply that KUnit requires
-UML, which is definitely not the case. We still want to encourage
-people to try UML: it's usually the quickest way of running tests, but
-KUnit itself should remain architecture-independent, as should as many
-tests as possible.
+Adds comments explaining that some lockless pagetable walks don't need
+protection due to guest pgd not being a target of THP collapse/split, or
+due to being called from Realmode + MSR_EE = 0.
 
-I think there are probably (at least) two different things that need
-doing to make these sorts of miscommunications less likely. The bulk
-of the documentation needs to stop referring to KUnit as something
-built upon or using UML (while still making it clear that some of our
-tooling defaults to or requires UML at the moment). This shows up in a
-lot of the "What is KUnit/Why use KUnit" sections in both the kernel
-docs and the KUnit website.
+Given that some of these functions always are called in realmode,  we use
+__{begin,end}_lockless_pgtbl_walk so we can decide when to disable
+interrupts.
 
-Secondly, we need to document the test environment (possibly alongside
-some test style best practises, possibly separately). Given that work
-like the debugfs stuff and how to support tests which need __init data
-or need to only run once is still ongoing, I'm not sure if we can
-definitively state what the solutions there will be yet, but noting
-that tests should not depend on a specific architecture like UML
-(unless they're testing architecture-specific code in a way that can't
-reasonably be made architecture independent) is worth doing sooner
-rather than later.
+local_irq_{save,restore} is already inside {begin,end}_lockless_pgtbl_walk,
+so there is no need to repeat it here.
 
-I'll see if I can put a few doc patches together to update/fix at
-least some of the most egregious examples.
+Variable that saves the	irq mask was renamed from flags to irq_mask so it
+doesn't lose meaning now it's not directly passed to local_irq_* functions.
 
-Cheers,
--- David
+There are also a function that uses local_irq_{en,dis}able, so the return
+value of begin_lockless_pgtbl_walk() is ignored and we pass IRQS_ENABLED to
+end_lockless_pgtbl_walk() to mimic the effect of local_irq_enable().
+
+Signed-off-by: Leonardo Bras <leonardo@linux.ibm.com>
+---
+ arch/powerpc/kvm/book3s_64_mmu_hv.c    |  6 ++---
+ arch/powerpc/kvm/book3s_64_mmu_radix.c | 34 +++++++++++++++++++++++---
+ arch/powerpc/kvm/book3s_64_vio_hv.c    |  6 ++++-
+ 3 files changed, 39 insertions(+), 7 deletions(-)
+
+diff --git a/arch/powerpc/kvm/book3s_64_mmu_hv.c b/arch/powerpc/kvm/book3s_64_mmu_hv.c
+index 6c372f5c61b6..e7ce29a5df60 100644
+--- a/arch/powerpc/kvm/book3s_64_mmu_hv.c
++++ b/arch/powerpc/kvm/book3s_64_mmu_hv.c
+@@ -605,19 +605,19 @@ int kvmppc_book3s_hv_page_fault(struct kvm_run *run, struct kvm_vcpu *vcpu,
+ 		/* if the guest wants write access, see if that is OK */
+ 		if (!writing && hpte_is_writable(r)) {
+ 			pte_t *ptep, pte;
+-			unsigned long flags;
++			unsigned long irq_mask;
+ 			/*
+ 			 * We need to protect against page table destruction
+ 			 * hugepage split and collapse.
+ 			 */
+-			local_irq_save(flags);
++			irq_mask = begin_lockless_pgtbl_walk();
+ 			ptep = find_current_mm_pte(mm->pgd, hva, NULL, NULL);
+ 			if (ptep) {
+ 				pte = kvmppc_read_update_linux_pte(ptep, 1);
+ 				if (__pte_write(pte))
+ 					write_ok = 1;
+ 			}
+-			local_irq_restore(flags);
++			end_lockless_pgtbl_walk(irq_mask);
+ 		}
+ 	}
+ 
+diff --git a/arch/powerpc/kvm/book3s_64_mmu_radix.c b/arch/powerpc/kvm/book3s_64_mmu_radix.c
+index 803940d79b73..cda2e455baf2 100644
+--- a/arch/powerpc/kvm/book3s_64_mmu_radix.c
++++ b/arch/powerpc/kvm/book3s_64_mmu_radix.c
+@@ -813,20 +813,20 @@ int kvmppc_book3s_instantiate_page(struct kvm_vcpu *vcpu,
+ 	 * Read the PTE from the process' radix tree and use that
+ 	 * so we get the shift and attribute bits.
+ 	 */
+-	local_irq_disable();
++	begin_lockless_pgtbl_walk();
+ 	ptep = __find_linux_pte(vcpu->arch.pgdir, hva, NULL, &shift);
+ 	/*
+ 	 * If the PTE disappeared temporarily due to a THP
+ 	 * collapse, just return and let the guest try again.
+ 	 */
+ 	if (!ptep) {
+-		local_irq_enable();
++		end_lockless_pgtbl_walk(IRQS_ENABLED);
+ 		if (page)
+ 			put_page(page);
+ 		return RESUME_GUEST;
+ 	}
+ 	pte = *ptep;
+-	local_irq_enable();
++	end_lockless_pgtbl_walk(IRQS_ENABLED);
+ 
+ 	/* If we're logging dirty pages, always map single pages */
+ 	large_enable = !(memslot->flags & KVM_MEM_LOG_DIRTY_PAGES);
+@@ -980,10 +980,16 @@ int kvm_unmap_radix(struct kvm *kvm, struct kvm_memory_slot *memslot,
+ 		return 0;
+ 	}
+ 
++	/*
++	 * We are walking the secondary (partition-scoped) page table here.
++	 * We can do this without disabling irq because the Linux MM
++	 * subsystem doesn't do THP splits and collapses on this tree.
++	 */
+ 	ptep = __find_linux_pte(kvm->arch.pgtable, gpa, NULL, &shift);
+ 	if (ptep && pte_present(*ptep))
+ 		kvmppc_unmap_pte(kvm, ptep, gpa, shift, memslot,
+ 				 kvm->arch.lpid);
++
+ 	return 0;				
+ }
+ 
+@@ -1000,6 +1006,11 @@ int kvm_age_radix(struct kvm *kvm, struct kvm_memory_slot *memslot,
+ 	if (kvm->arch.secure_guest & KVMPPC_SECURE_INIT_DONE)
+ 		return ref;
+ 
++	/*
++	 * We are walking the secondary (partition-scoped) page table here.
++	 * We can do this without disabling irq because the Linux MM
++	 * subsystem doesn't do THP splits and collapses on this tree.
++	 */
+ 	ptep = __find_linux_pte(kvm->arch.pgtable, gpa, NULL, &shift);
+ 	if (ptep && pte_present(*ptep) && pte_young(*ptep)) {
+ 		old = kvmppc_radix_update_pte(kvm, ptep, _PAGE_ACCESSED, 0,
+@@ -1027,6 +1038,11 @@ int kvm_test_age_radix(struct kvm *kvm, struct kvm_memory_slot *memslot,
+ 	if (kvm->arch.secure_guest & KVMPPC_SECURE_INIT_DONE)
+ 		return ref;
+ 
++	/*
++	 * We are walking the secondary (partition-scoped) page table here.
++	 * We can do this without disabling irq because the Linux MM
++	 * subsystem doesn't do THP splits and collapses on this tree.
++	 */
+ 	ptep = __find_linux_pte(kvm->arch.pgtable, gpa, NULL, &shift);
+ 	if (ptep && pte_present(*ptep) && pte_young(*ptep))
+ 		ref = 1;
+@@ -1047,6 +1063,11 @@ static int kvm_radix_test_clear_dirty(struct kvm *kvm,
+ 	if (kvm->arch.secure_guest & KVMPPC_SECURE_INIT_DONE)
+ 		return ret;
+ 
++	/*
++	 * We are walking the secondary (partition-scoped) page table here.
++	 * We can do this without disabling irq because the Linux MM
++	 * subsystem doesn't do THP splits and collapses on this tree.
++	 */
+ 	ptep = __find_linux_pte(kvm->arch.pgtable, gpa, NULL, &shift);
+ 	if (ptep && pte_present(*ptep) && pte_dirty(*ptep)) {
+ 		ret = 1;
+@@ -1063,6 +1084,7 @@ static int kvm_radix_test_clear_dirty(struct kvm *kvm,
+ 					       1UL << shift);
+ 		spin_unlock(&kvm->mmu_lock);
+ 	}
++
+ 	return ret;
+ }
+ 
+@@ -1108,6 +1130,12 @@ void kvmppc_radix_flush_memslot(struct kvm *kvm,
+ 	gpa = memslot->base_gfn << PAGE_SHIFT;
+ 	spin_lock(&kvm->mmu_lock);
+ 	for (n = memslot->npages; n; --n) {
++		/*
++		 * We are walking the secondary (partition-scoped) page table
++		 * here.
++		 * We can do this without disabling irq because the Linux MM
++		 * subsystem doesn't do THP splits and collapses on this tree.
++		 */
+ 		ptep = __find_linux_pte(kvm->arch.pgtable, gpa, NULL, &shift);
+ 		if (ptep && pte_present(*ptep))
+ 			kvmppc_unmap_pte(kvm, ptep, gpa, shift, memslot,
+diff --git a/arch/powerpc/kvm/book3s_64_vio_hv.c b/arch/powerpc/kvm/book3s_64_vio_hv.c
+index ab6eeb8e753e..83c70c1557e4 100644
+--- a/arch/powerpc/kvm/book3s_64_vio_hv.c
++++ b/arch/powerpc/kvm/book3s_64_vio_hv.c
+@@ -453,10 +453,14 @@ static long kvmppc_rm_ua_to_hpa(struct kvm_vcpu *vcpu,
+ 	 * to exit which will agains result in the below page table walk
+ 	 * to finish.
+ 	 */
++	__begin_lockless_pgtbl_walk(false);
+ 	ptep = __find_linux_pte(vcpu->arch.pgdir, ua, NULL, &shift);
+-	if (!ptep || !pte_present(*ptep))
++	if (!ptep || !pte_present(*ptep)) {
++		__end_lockless_pgtbl_walk(0, false);
+ 		return -ENXIO;
++	}
+ 	pte = *ptep;
++	__end_lockless_pgtbl_walk(0, false);
+ 
+ 	if (!shift)
+ 		shift = PAGE_SHIFT;
+-- 
+2.24.1
