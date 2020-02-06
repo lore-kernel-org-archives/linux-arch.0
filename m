@@ -1,42 +1,60 @@
-Return-Path: <3_GpYXg4KBC0KaNWMJWQRPPRWbPXXPUN.LXVaYYcURWdg.RKV.LXV@flex--brendanhiggins.bounces.google.com>
-Date: Thu, 27 Feb 2020 17:20:31 -0800
-In-Reply-To: <20200228012036.15682-1-brendanhiggins@google.com>
-Message-ID: <20200228012036.15682-3-brendanhiggins@google.com>
-Mime-Version: 1.0
-References: <20200228012036.15682-1-brendanhiggins@google.com>
-Subject: [PATCH v3 2/7] arch: um: add linker section for KUnit test suites
-From: Brendan Higgins <brendanhiggins@google.com>
-Content-Type: text/plain; charset="UTF-8"
-To: jdike@addtoit.com, richard@nod.at, anton.ivanov@cambridgegreys.com, arnd@arndb.de, keescook@chromium.org, skhan@linuxfoundation.org, alan.maguire@oracle.com, yzaikin@google.com, davidgow@google.com, akpm@linux-foundation.org, rppt@linux.ibm.com, frowand.list@gmail.com
-Cc: gregkh@linuxfoundation.org, sboyd@kernel.org, logang@deltatee.com, mcgrof@kernel.org, linux-um@lists.infradead.org, linux-arch@vger.kernel.org, linux-kselftest@vger.kernel.org, kunit-dev@googlegroups.com, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, Brendan Higgins <brendanhiggins@google.com>
+Return-Path: <leonardo@linux.ibm.com>
+From: Leonardo Bras <leonardo@linux.ibm.com>
+Subject: [PATCH v6 05/11] powerpc/perf: Use functions to track lockless pgtbl walks
+Date: Thu,  6 Feb 2020 00:08:54 -0300
+Message-ID: <20200206030900.147032-6-leonardo@linux.ibm.com>
+In-Reply-To: <20200206030900.147032-1-leonardo@linux.ibm.com>
+References: <20200206030900.147032-1-leonardo@linux.ibm.com>
+MIME-Version: 1.0
+Content-Transfer-Encoding: 8bit
+To: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>, Nicholas Piggin <npiggin@gmail.com>, Christophe Leroy <christophe.leroy@c-s.fr>, Steven Price <steven.price@arm.com>, Robin Murphy <robin.murphy@arm.com>, Leonardo Bras <leonardo@linux.ibm.com>, Mahesh Salgaonkar <mahesh@linux.vnet.ibm.com>, Balbir Singh <bsingharora@gmail.com>, Reza Arbab <arbab@linux.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, Allison Randal <allison@lohutok.net>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Mike Rapoport <rppt@linux.ibm.com>, Michal Suchanek <msuchanek@suse.de>
+Cc: linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, kvm-ppc@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200228012031.97RjLswY4rYm2DnmdKQqZF3GW-Ej5ItdLSaHaFvsOsk@z>
+Message-ID: <20200206030854.Dv3VOq9VBkAXFuhRKL3QoD_CNKWRF958Ojs9SaS8spc@z>
 
-Add a linker section to UML where KUnit can put references to its test
-suites. This patch is an early step in transitioning to dispatching all
-KUnit tests from a centralized executor rather than having each as its
-own separate late_initcall.
+Applies the new functions used for tracking lockless pgtable walks on
+read_user_stack_slow.
 
-Signed-off-by: Brendan Higgins <brendanhiggins@google.com>
-Reviewed-by: Stephen Boyd <sboyd@kernel.org>
+local_irq_{save,restore} is already inside {begin,end}_lockless_pgtbl_walk,
+so there is no need to repeat it here.
+
+Variable that saves the irq mask was renamed from flags to irq_mask so it
+doesn't lose meaning now it's not directly passed to local_irq_* functions.
+
+Signed-off-by: Leonardo Bras <leonardo@linux.ibm.com>
 ---
- arch/um/include/asm/common.lds.S | 4 ++++
- 1 file changed, 4 insertions(+)
+ arch/powerpc/perf/callchain.c | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
 
-diff --git a/arch/um/include/asm/common.lds.S b/arch/um/include/asm/common.lds.S
-index eca6c452a41bd..9a9c97f45694c 100644
---- a/arch/um/include/asm/common.lds.S
-+++ b/arch/um/include/asm/common.lds.S
-@@ -52,6 +52,10 @@
- 	CON_INITCALL
-   }
+diff --git a/arch/powerpc/perf/callchain.c b/arch/powerpc/perf/callchain.c
+index cbc251981209..fd9979e69f36 100644
+--- a/arch/powerpc/perf/callchain.c
++++ b/arch/powerpc/perf/callchain.c
+@@ -116,14 +116,14 @@ static int read_user_stack_slow(void __user *ptr, void *buf, int nb)
+ 	unsigned shift;
+ 	unsigned long addr = (unsigned long) ptr;
+ 	unsigned long offset;
+-	unsigned long pfn, flags;
++	unsigned long pfn, irq_mask;
+ 	void *kaddr;
  
-+  .kunit_test_suites : {
-+	KUNIT_TEST_SUITES
-+  }
-+
-   .exitcall : {
- 	__exitcall_begin = .;
- 	*(.exitcall.exit)
+ 	pgdir = current->mm->pgd;
+ 	if (!pgdir)
+ 		return -EFAULT;
+ 
+-	local_irq_save(flags);
++	irq_mask = begin_lockless_pgtbl_walk();
+ 	ptep = find_current_mm_pte(pgdir, addr, NULL, &shift);
+ 	if (!ptep)
+ 		goto err_out;
+@@ -145,7 +145,7 @@ static int read_user_stack_slow(void __user *ptr, void *buf, int nb)
+ 	memcpy(buf, kaddr + offset, nb);
+ 	ret = 0;
+ err_out:
+-	local_irq_restore(flags);
++	end_lockless_pgtbl_walk(irq_mask);
+ 	return ret;
+ }
+ 
 -- 
-2.25.1.481.gfbce0eb801-goog
+2.24.1
