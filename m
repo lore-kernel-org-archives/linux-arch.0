@@ -1,90 +1,79 @@
 From: Leonardo Bras <leonardo@linux.ibm.com>
-Subject: Re: [PATCH v6 01/11] asm-generic/pgtable: Adds generic functions to
- track lockless pgtable walks
-Date: Thu, 06 Feb 2020 23:19:45 -0300
-Message-ID: <e7f183cc19815ed07822707508d0caf4f7530216.camel@linux.ibm.com>
+Subject: Re: [PATCH v6 07/11] powerpc/kvm/e500: Use functions to track
+ lockless pgtbl walks
+Date: Fri, 07 Feb 2020 00:10:02 -0300
+Message-ID: <34c67571bf366886aa8298373f3887f476b811a2.camel@linux.ibm.com>
 References: <20200206030900.147032-1-leonardo@linux.ibm.com>
-         <20200206030900.147032-2-leonardo@linux.ibm.com>
-         <f55e593c-27d5-df12-602f-ea217f62c5a1@c-s.fr>
+         <20200206030900.147032-8-leonardo@linux.ibm.com>
+         <fae235d5-78b6-87aa-ed3f-1a908d61abf4@c-s.fr>
 Mime-Version: 1.0
 Content-Type: multipart/signed; micalg="pgp-sha256";
-        protocol="application/pgp-signature"; boundary="=-A/nJhzVPw0FwclUgBET/"
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:47878 "EHLO
-        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
-        by vger.kernel.org with ESMTP id S1726597AbgBGCUw (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 6 Feb 2020 21:20:52 -0500
-In-Reply-To: <f55e593c-27d5-df12-602f-ea217f62c5a1@c-s.fr>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+        protocol="application/pgp-signature"; boundary="=-XtWHJcJJjtE0nWIZHITR"
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <fae235d5-78b6-87aa-ed3f-1a908d61abf4@c-s.fr>
+Sender: linux-kernel-owner@vger.kernel.org
 To: Christophe Leroy <christophe.leroy@c-s.fr>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>, Nicholas Piggin <npiggin@gmail.com>, Steven Price <steven.price@arm.com>, Robin Murphy <robin.murphy@arm.com>, Mahesh Salgaonkar <mahesh@linux.vnet.ibm.com>, Balbir Singh <bsingharora@gmail.com>, Reza Arbab <arbab@linux.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, Allison Randal <allison@lohutok.net>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Mike Rapoport <rppt@linux.ibm.com>, Michal Suchanek <msuchanek@suse.de>
 Cc: linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, kvm-ppc@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
+List-Id: linux-arch.vger.kernel.org
 
 
---=-A/nJhzVPw0FwclUgBET/
+--=-XtWHJcJJjtE0nWIZHITR
 Content-Type: text/plain; charset="UTF-8"
 Content-Transfer-Encoding: quoted-printable
 
-Hello Christophe, thanks for the feedback!
+Hello Christophe,=20
 
-On Thu, 2020-02-06 at 06:54 +0100, Christophe Leroy wrote:
-> > A memory barrier was also added just to make sure there is no speculati=
-ve
-> > read outside the interrupt disabled area. Other than that, it is not
-> > supposed to have any change of behavior from current code.
+On Thu, 2020-02-06 at 07:18 +0100, Christophe Leroy wrote:
 >=20
-> Is that speculative barrier necessary for all architectures ? Does it=20
-> impact performance ? Shouldn't this be another patch ?
-
-It makes sense, better keep the code as much as possible as it was. If
-any arch finds this barrier needed, it can implement it's own version
-of this function (or another patch to add this to generic, if proved to
-be needed in every arch).
-
-> > +#ifndef __HAVE_ARCH_LOCKLESS_PGTBL_WALK_CONTROL
-> > +/*
-> > + * begin_lockless_pgtbl_walk: Must be inserted before a function call =
-that does
-> > + *   lockless pagetable walks, such as __find_linux_pte()
-> > + */
-> > +static inline
-> > +unsigned long begin_lockless_pgtbl_walk(void)
+> I don't really like unbalanced begin/end.
 >=20
-> What about keeping the same syntax as local_irq_save(), something like:
+> Something like the following would be cleaner:
 >=20
-> #define begin_lockless_pgtbl_walk(flags) \
-> do {
-> 	local_irq_save(flags);
-> 	smp_mb();
-> } while (0)
+>=20
+> begin_lockless_pgtbl_walk()
+> ptep =3D find()
+> if (ptep) {
+> 	pte =3D READ_ONCE()
+> 	if (pte_present(pte))
+> 		wing=3D
+> 	else
+> 		ret =3D -EINVAL;
+> }
+> end_lockless_pgtbl_walk()
+>=20
+> if (ret) {
+> 	pr_err_rate...()
+> 	goto out;
+> }
+>=20
 >=20
 
-Makes sense. But wouldn't inlining have the same code output?=20
+Sure, looks better that way. I will change that for v7.
 
-Best regards,
+Thanks for the feedback,
+
 Leonardo Bras
 
-
---=-A/nJhzVPw0FwclUgBET/
+--=-XtWHJcJJjtE0nWIZHITR
 Content-Type: application/pgp-signature; name="signature.asc"
 Content-Description: This is a digitally signed message part
 Content-Transfer-Encoding: 7bit
 
 -----BEGIN PGP SIGNATURE-----
 
-iQIzBAABCAAdFiEEMdeUgIzgjf6YmUyOlQYWtz9SttQFAl48yUEACgkQlQYWtz9S
-ttRXxxAAhPXA0Cd48ZAtBfcOadiRsa1Amc03sprshQLV/+pQx2/U47Nl7YqtozUl
-pxTnysv8mkdxPHoYnQk5XDRSxTLewF+w3F9hTFAfOM6F3UIA2bUsby0SPIR/04a0
-1enrJ6U1qElB8wk/8Ncur2YVPzFgKmgpQI+i1n7NrGIuN2mHmmzrM3OLZf3H0BpL
-3jKzZWwIoa3waO81mtVyij8gctwpk2bzoUJGs6XsvBKZMCbZdiZVyWedn5kEpM5m
-an0wmHQdta85iK9XysKm55Oe0PYhmm0K9pH4sNYFWuMcC2oKtyizbiV3wq3sjpau
-XSg/9koTmUowiQzTIUoCYut0UxuLjD0WfzzoR1EKcb07dFCMwkjn9jDHOQW9eSMo
-9PhMEgZ2i1n463YUxhpUYXbZkqML+IQ6VLc4ZgyJdj7c+RVJSbT4GOwxBABnN58p
-iEFNVDmoS1+CVUq3Ysvsw2KtM2oGxsn7sx/69KesxEHXiytgs7afyOYacGV0fx5R
-OXuNlW3g5ODGdayMcXbEXY0C492e07CnMvTZvbMhwGs7YeIZUb+JfMwFpQAeSP1w
-XOYl4h9YxS1sgB2gUSZc0ETfXDeeOxB9RZ1j817ySEMfn/XCUjyexOnsqBnNGbpM
-AcWwHPwmdCYOKyWFTcej/u/8fxGkYgYZldd/GxcYTGaFy8IudyM=
-=E/z0
+iQIzBAABCAAdFiEEMdeUgIzgjf6YmUyOlQYWtz9SttQFAl481QoACgkQlQYWtz9S
+ttTcdA//Xke6/twgyWIan1bRF0vWJ3qSy+yFDyf4csKImVLRQqAa/asW4bIBwGZS
+re3EzPV46Nuq6ZAg64yxwOokHEfwY1cdOmSCVmxZf0SUGViqZ2whL/CCED2H+f7f
+Lt+hw1ibONlzz8AvDLtplxj18Uc58G9mrXOOxLEz2LzqXrsL1AU/15R+NiDPaK1N
+lW5kxUsb8jHHzIOXem9B2aQRFDoCCx0uJzhNJn13ft30PZeaanSUNYqSuEa67tlA
+7iFqrtoLCD7KKXLNbvAh+43w+lvpEqRf9MBt7SoCXJQWCVrIXhj4yI3dbRaePyf3
+jY3vXrk/TapcfQQceptI47oaOtptRJ2MBntJYdh/kUYhLpy61px3q1mJvy4qZOrO
+gm9Y2YfVGf23zkcc9/YzOfOm0t+tf5VKUQj4a0rCIuSj/EgHW2vj3pq85Vt2PUB/
+aGp88Aosd2Wz3pqQ7aGsasy7vKlSc/nVOgItr/9Y8q51y3DdYkw+rUqqqZK4JH1h
+4qRGpb4jp2mZZdzvxxCklhHdqXNwLdSW+d6ZBYEww0N6T5aNCPp1hAAY16I9ZmYF
+AE/ZMZjVc9UNYqA9bHE29IETN0vuv8AIaREvwoK27Oip8cnhLpf8FA2uMWW80AcL
+7yw4v3Cojj76UcRoZkMRNCutFnPeIr7EUc5Po2GqKSMXQAYLLu8=
+=ZwdP
 -----END PGP SIGNATURE-----
 
---=-A/nJhzVPw0FwclUgBET/--
+--=-XtWHJcJJjtE0nWIZHITR--
