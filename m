@@ -1,79 +1,189 @@
 From: Leonardo Bras <leonardo@linux.ibm.com>
-Subject: Re: [PATCH v6 07/11] powerpc/kvm/e500: Use functions to track
- lockless pgtbl walks
-Date: Fri, 07 Feb 2020 00:10:02 -0300
-Message-ID: <34c67571bf366886aa8298373f3887f476b811a2.camel@linux.ibm.com>
+Subject: Re: [PATCH v6 06/11] powerpc/mm/book3s64/hash: Use functions to
+ track lockless pgtbl walks
+Date: Fri, 07 Feb 2020 00:49:56 -0300
+Message-ID: <31b7229b979da2b0bdec041724dd1698cf76298c.camel@linux.ibm.com>
 References: <20200206030900.147032-1-leonardo@linux.ibm.com>
-         <20200206030900.147032-8-leonardo@linux.ibm.com>
-         <fae235d5-78b6-87aa-ed3f-1a908d61abf4@c-s.fr>
+         <20200206030900.147032-7-leonardo@linux.ibm.com>
+         <1b65f1a8-42a8-6ffc-3a06-08fbb34edab5@c-s.fr>
 Mime-Version: 1.0
 Content-Type: multipart/signed; micalg="pgp-sha256";
-        protocol="application/pgp-signature"; boundary="=-XtWHJcJJjtE0nWIZHITR"
+        protocol="application/pgp-signature"; boundary="=-CBJiDJxhT4An72p6WJMR"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <fae235d5-78b6-87aa-ed3f-1a908d61abf4@c-s.fr>
+In-Reply-To: <1b65f1a8-42a8-6ffc-3a06-08fbb34edab5@c-s.fr>
 Sender: linux-kernel-owner@vger.kernel.org
 To: Christophe Leroy <christophe.leroy@c-s.fr>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>, Nicholas Piggin <npiggin@gmail.com>, Steven Price <steven.price@arm.com>, Robin Murphy <robin.murphy@arm.com>, Mahesh Salgaonkar <mahesh@linux.vnet.ibm.com>, Balbir Singh <bsingharora@gmail.com>, Reza Arbab <arbab@linux.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, Allison Randal <allison@lohutok.net>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Mike Rapoport <rppt@linux.ibm.com>, Michal Suchanek <msuchanek@suse.de>
 Cc: linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, kvm-ppc@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
 List-Id: linux-arch.vger.kernel.org
 
 
---=-XtWHJcJJjtE0nWIZHITR
+--=-CBJiDJxhT4An72p6WJMR
 Content-Type: text/plain; charset="UTF-8"
 Content-Transfer-Encoding: quoted-printable
 
-Hello Christophe,=20
+On Thu, 2020-02-06 at 07:06 +0100, Christophe Leroy wrote:
+> > -	/* Get PTE and page size from page tables */
+> > +	/* Get PTE and page size from page tables :
+> > +	 * Called in from DataAccess interrupt (data_access_common: 0x300),
+> > +	 * interrupts are disabled here.
+> > +	 */
+>=20
+> Comments formatting is not in line with Linux kernel rules. Should be no=
+=20
+> text on the first /* line.
 
-On Thu, 2020-02-06 at 07:18 +0100, Christophe Leroy wrote:
+My mistake. Will be corrected in v7.
+
+> > +	__begin_lockless_pgtbl_walk(false);
 >=20
-> I don't really like unbalanced begin/end.
+> I think it would be better to not use __begin_lockless_pgtbl_walk()=20
+> directly but keep it in a single place, and define something like=20
+> begin_lockless_pgtbl_walk_noirq() similar to begin_lockless_pgtbl_walk()
+
+There are places where touching irq is decided by a boolean, like in
+patch 8: http://patchwork.ozlabs.org/patch/1234130/
+
+If I were to change this, I would have to place ifs and decide to call
+either normal or *_noirq() versions in every function.
+
+What you suggest?
+
+> >   	ptep =3D find_linux_pte(pgdir, ea, &is_thp, &hugeshift);
+> >   	if (ptep =3D=3D NULL || !pte_present(*ptep)) {
+> >   		DBG_LOW(" no PTE !\n");
+> >   		rc =3D 1;
+> > -		goto bail;
+> > +		goto bail_pgtbl_walk;
 >=20
-> Something like the following would be cleaner:
+> What's the point in changing the name of this label ? There is only one=
+=20
+> label, why polute the function with so huge name ?
 >=20
+> For me, everyone understand what 'bail' means. Unneccessary changes=20
+> should be avoided. If you really really want to do it, it should be=20
+> another patch.
 >=20
-> begin_lockless_pgtbl_walk()
-> ptep =3D find()
-> if (ptep) {
-> 	pte =3D READ_ONCE()
-> 	if (pte_present(pte))
-> 		wing=3D
-> 	else
-> 		ret =3D -EINVAL;
-> }
-> end_lockless_pgtbl_walk()
+> See kernel codying style, chapter 'naming':
+> "LOCAL variable names should be short". This also applies to labels.
 >=20
-> if (ret) {
-> 	pr_err_rate...()
-> 	goto out;
-> }
->=20
+> "C is a Spartan language, and so should your naming be. Unlike Modula-2=
+=20
+> and Pascal programmers, C programmers do not use cute names like=20
+> ThisVariableIsATemporaryCounter. A C programmer would call that variable=
+=20
+> tmp, which is much easier to write, and not the least more difficult to=
+=20
+> understand."
 >=20
 
-Sure, looks better that way. I will change that for v7.
+It's not label name changing. There are two possible bails in
+hash_page_mm(): one for before __begin_lockless_pagetable_walk() and
+other for after it. The new one also runs __end_lockless_pgtbl_walk()
+before running what the previous did:
 
-Thanks for the feedback,
+> > +bail_pgtbl_walk:
+> > +	__end_lockless_pgtbl_walk(0, false);
+> >   bail:
+> >   	exception_exit(prev_state);
+> >   	return rc;
+
+As for the label name lengh, I see no problem changing it to something
+like bail_ptw.=20
+
+
+> > @@ -1545,7 +1551,7 @@ static void hash_preload(struct mm_struct *mm, un=
+signed long ea,
+> >   	unsigned long vsid;
+> >   	pgd_t *pgdir;
+> >   	pte_t *ptep;
+> > -	unsigned long flags;
+> > +	unsigned long irq_mask;
+> >   	int rc, ssize, update_flags =3D 0;
+> >   	unsigned long access =3D _PAGE_PRESENT | _PAGE_READ | (is_exec ? _PA=
+GE_EXEC : 0);
+> >  =20
+> > @@ -1567,11 +1573,12 @@ static void hash_preload(struct mm_struct *mm, =
+unsigned long ea,
+> >   	vsid =3D get_user_vsid(&mm->context, ea, ssize);
+> >   	if (!vsid)
+> >   		return;
+> > +
+>=20
+> Is this new line related to the patch ?
+
+Nope. I have added while reading code and it just went trough my pre-
+sending revision. I can remove it, if it bothers.
+
+>=20
+> >   	/*
+> >   	 * Hash doesn't like irqs. Walking linux page table with irq disable=
+d
+> >   	 * saves us from holding multiple locks.
+> >   	 */
+> > -	local_irq_save(flags);
+> > +	irq_mask =3D begin_lockless_pgtbl_walk();
+> >  =20
+> >   	/*
+> >   	 * THP pages use update_mmu_cache_pmd. We don't do
+> > @@ -1616,7 +1623,7 @@ static void hash_preload(struct mm_struct *mm, un=
+signed long ea,
+> >   				   mm_ctx_user_psize(&mm->context),
+> >   				   pte_val(*ptep));
+> >   out_exit:
+> > -	local_irq_restore(flags);
+> > +	end_lockless_pgtbl_walk(irq_mask);
+> >   }
+> >  =20
+> >   /*
+> > @@ -1679,16 +1686,16 @@ u16 get_mm_addr_key(struct mm_struct *mm, unsig=
+ned long address)
+> >   {
+> >   	pte_t *ptep;
+> >   	u16 pkey =3D 0;
+> > -	unsigned long flags;
+> > +	unsigned long irq_mask;
+> >  =20
+> >   	if (!mm || !mm->pgd)
+> >   		return 0;
+> >  =20
+> > -	local_irq_save(flags);
+> > +	irq_mask =3D begin_lockless_pgtbl_walk();
+> >   	ptep =3D find_linux_pte(mm->pgd, address, NULL, NULL);
+> >   	if (ptep)
+> >   		pkey =3D pte_to_pkey_bits(pte_val(READ_ONCE(*ptep)));
+> > -	local_irq_restore(flags);
+> > +	end_lockless_pgtbl_walk(irq_mask);
+> >  =20
+> >   	return pkey;
+> >   }
+> >=20
+>=20
+> Christophe
+
+Thanks for giving feedback,
 
 Leonardo Bras
 
---=-XtWHJcJJjtE0nWIZHITR
+--=-CBJiDJxhT4An72p6WJMR
 Content-Type: application/pgp-signature; name="signature.asc"
 Content-Description: This is a digitally signed message part
 Content-Transfer-Encoding: 7bit
 
 -----BEGIN PGP SIGNATURE-----
 
-iQIzBAABCAAdFiEEMdeUgIzgjf6YmUyOlQYWtz9SttQFAl481QoACgkQlQYWtz9S
-ttTcdA//Xke6/twgyWIan1bRF0vWJ3qSy+yFDyf4csKImVLRQqAa/asW4bIBwGZS
-re3EzPV46Nuq6ZAg64yxwOokHEfwY1cdOmSCVmxZf0SUGViqZ2whL/CCED2H+f7f
-Lt+hw1ibONlzz8AvDLtplxj18Uc58G9mrXOOxLEz2LzqXrsL1AU/15R+NiDPaK1N
-lW5kxUsb8jHHzIOXem9B2aQRFDoCCx0uJzhNJn13ft30PZeaanSUNYqSuEa67tlA
-7iFqrtoLCD7KKXLNbvAh+43w+lvpEqRf9MBt7SoCXJQWCVrIXhj4yI3dbRaePyf3
-jY3vXrk/TapcfQQceptI47oaOtptRJ2MBntJYdh/kUYhLpy61px3q1mJvy4qZOrO
-gm9Y2YfVGf23zkcc9/YzOfOm0t+tf5VKUQj4a0rCIuSj/EgHW2vj3pq85Vt2PUB/
-aGp88Aosd2Wz3pqQ7aGsasy7vKlSc/nVOgItr/9Y8q51y3DdYkw+rUqqqZK4JH1h
-4qRGpb4jp2mZZdzvxxCklhHdqXNwLdSW+d6ZBYEww0N6T5aNCPp1hAAY16I9ZmYF
-AE/ZMZjVc9UNYqA9bHE29IETN0vuv8AIaREvwoK27Oip8cnhLpf8FA2uMWW80AcL
-7yw4v3Cojj76UcRoZkMRNCutFnPeIr7EUc5Po2GqKSMXQAYLLu8=
-=ZwdP
+iQIzBAABCAAdFiEEMdeUgIzgjf6YmUyOlQYWtz9SttQFAl483mQACgkQlQYWtz9S
+ttT0RhAA0oKi/2XxY/SIX1F2r5GCR1RED6qxY0qr3xnxzpM3v721Eauf6gu1qqn+
+mLHWCjePDMZExodUEzcikEKxWX8xKJremMeTtKb9NsWunyDeBJsc/DZYjfgrbV06
+gIolgdRivEhBdPxuy1PuDVgkw1wbtWXIcbOV38cZUK5nPplruTem+BgpHUey7B9P
+X4FMTaZS4I4FLTxW21HLzr8finjGCD/Te4UeStnFaf5CWDb1rHhYmfVS6d0sVs7d
+yX97lrw9TkiQdwiCVv7ubcdyyJzP7ZJvhYvikVx2R+S2QZU2sSy9omWp14kAmmDS
+fBou25w24OyCphm2MD+cHl+i51aCOVhRwM4SmxFtUhDdoSTzSwJpLr4W+iyTOQGE
+DghnMCnPNN8f+zdJG+cofT0SxIPq8M2qvUyppRximtgc8C2mlLNgrm1dmcDj+/He
+cR0V5zvcCUNpGEQFZ7McZYh3iYkyKOOgWDbnf9NCWCO7wxKaFJm/OuRE3QnI1R1L
+wK/1YkmxJYw+e2ighyOrsIc95aezgjWO1ErqrbUr8slXMu7cj26MAFHCwa/2apCO
+gbieqVCJc80O47JXNXW9hTiTcyly25oGR98Mowr8k+C4tcRtFwFwaG8yEz1nyoUV
+54GtadMwB6OFVlSJdalc+p/GPxVPFwYyWVXGs15Y6g0DdXVkQbc=
+=D0Zg
 -----END PGP SIGNATURE-----
 
---=-XtWHJcJJjtE0nWIZHITR--
+--=-CBJiDJxhT4An72p6WJMR--
