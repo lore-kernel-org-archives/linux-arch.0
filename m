@@ -1,21 +1,34 @@
-From: "manuel franco" <ivan.gallegos@urcuqui.gob.ec>
-Subject: Spende von 2 Millionen Euro
-Date: Fri, 07 Feb 2020 20:32:51 +0200
-Message-ID: <20200207183310.47FBD34FF4A4C@mail.urcuqui.gob.ec>
-Reply-To: manuelfrancospende1@gmail.com
+From: "Mr. Theophilus Odadudu" <cristinamedina0010@gmail.com>
+Subject: LETTER OF INQUIRY
+Date: Fri, 7 Feb 2020 15:40:20 -0500
+Message-ID: <CAPNvSTib=Bg9sRNNHErSAmBj=QFzRMn8DZQEN5XBwkcVkSHcMw__2089.74543945573$1581108031$gmane$org@mail.gmail.com>
+Reply-To: auch197722@gmail.com
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: 8BIT
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from 27.137.46.186.static.anycast.cnt-grms.ec ([186.46.137.27]:53506
-        "EHLO mail.urcuqui.gob.ec" rhost-flags-OK-FAIL-OK-OK)
-        by vger.kernel.org with ESMTP id S1726988AbgBGTsR (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 7 Feb 2020 14:48:17 -0500
-Content-Description: Mail message body
+Received: from mail-oi1-f194.google.com ([209.85.167.194]:40000 "EHLO
+        mail-oi1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727071AbgBGUkX (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 7 Feb 2020 15:40:23 -0500
+Received: by mail-oi1-f194.google.com with SMTP id a142so3289240oii.7
+        for <linux-arch@vger.kernel.org>; Fri, 07 Feb 2020 12:40:21 -0800 (PST)
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Recipients <ivan.gallegos@urcuqui.gob.ec>
 
-Hallo
+Good Day,
 
-Sie wurden ausgewählt, um die Summe von € 2.000.000,00 (zwei Millionen Euro) in meinem laufenden Wohltätigkeitsprogramm zu erhalten. Für weitere Informationen senden Sie bitte ein Email an: manuelfrancospende@gmail.com
+I work as a clerk in a Bank here in Nigeria, I have a very
+confidential Business Proposition for you. There is a said amount of
+money floating in the bank unclaimed, belonging to the bank Foreign
+customer who die with his family in the Ethiopian Airline crash of
+March 11, 2019.
+
+I seek your good collaboration to move the fund for our benefit. we
+have agreed that 40% be yours once you help claim.
+
+Do get back to with 1) Your Full Name: (2) Residential Address: (3)
+Phone, Mobile  (4) Scan Copy of Your ID. to apply for claims of the
+funds.
+
+Regards
+Theophilus Odadudu
