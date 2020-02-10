@@ -1,56 +1,43 @@
-Return-Path: <SRS0=3gME=4F=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:36308 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1725958AbgBQGX7 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 17 Feb 2020 01:23:59 -0500
-Date: Mon, 17 Feb 2020 08:23:44 +0200
-From: Mike Rapoport <rppt@kernel.org>
-Subject: Re: [PATCH v2 00/13] mm: remove __ARCH_HAS_5LEVEL_HACK
-Message-ID: <20200217062344.GA4729@hump>
-References: <20200216081843.28670-1-rppt@kernel.org>
- <20200216082230.GV25745@shell.armlinux.org.uk>
+Return-Path: <SRS0=eIS7=36=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from conssluserg-03.nifty.com ([210.131.2.82]:38851 "EHLO
+        conssluserg-03.nifty.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726796AbgBJJvd (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 10 Feb 2020 04:51:33 -0500
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20200216082230.GV25745@shell.armlinux.org.uk>
+References: <20200123153341.19947-1-will@kernel.org> <CAHk-=wjC2EDquO8_kzc-FHOGGjgODOLKjswYGJAMh58zTkyX3w@mail.gmail.com>
+ <20200124083307.GA14914@hirez.programming.kicks-ass.net>
+In-Reply-To: <20200124083307.GA14914@hirez.programming.kicks-ass.net>
+From: Masahiro Yamada <masahiroy@kernel.org>
+Date: Mon, 10 Feb 2020 18:50:53 +0900
+Message-ID: <CAK7LNAS=er+Vkvx+vurYMCHS2u1_Vj0zV+tvUzDkSwop3XP1gg@mail.gmail.com>
+Subject: Re: [PATCH v2 00/10] Rework READ_ONCE() to improve codegen
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Russell King - ARM Linux admin <linux@armlinux.org.uk>
-Cc: linux-kernel@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Brian Cain <bcain@codeaurora.org>, Catalin Marinas <catalin.marinas@arm.com>, Christophe Leroy <christophe.leroy@c-s.fr>, Fenghua Yu <fenghua.yu@intel.com>, Geert Uytterhoeven <geert+renesas@glider.be>, Guan Xuetao <gxt@pku.edu.cn>, James Morse <james.morse@arm.com>, Jonas Bonn <jonas@southpole.se>, Julien Thierry <julien.thierry.kdev@gmail.com>, Ley Foon Tan <ley.foon.tan@intel.com>, Marc Zyngier <maz@kernel.org>, Michael Ellerman <mpe@ellerman.id.au>, Paul Mackerras <paulus@samba.org>, Rich Felker <dalias@libc.org>, Stafford Horne <shorne@gmail.com>, Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>, Suzuki K Poulose <suzuki.poulose@arm.com>, Tony Luck <tony.luck@intel.com>, Will Deacon <will@kernel.org>, Yoshinori Sato <ysato@users.sourceforge.jp>, kvmarm@lists.cs.columbia.edu, kvm-ppc@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-mm@kvack.org, linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org, nios2-dev@lists.rocketboards.org, openrisc@lists.librecores.org, uclinux-h8-devel@lists.sourceforge.jp, Mike Rapoport <rppt@linux.ibm.com>
-Message-ID: <20200217062344.HOMiZpkS2N4QsgAhZ31aCWvxynEdggarTiL2E4rKDkE@z>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Will Deacon <will@kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Android Kernel Team <kernel-team@android.com>, Michael Ellerman <mpe@ellerman.id.au>, Segher Boessenkool <segher@kernel.crashing.org>, Christian Borntraeger <borntraeger@de.ibm.com>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>, Arnd Bergmann <arnd@arndb.de>, Peter Oberparleiter <oberpar@linux.ibm.com>, Nick Desaulniers <ndesaulniers@google.com>
+Message-ID: <20200210095053.rSf7BA4_Gp3KTN2eEnI0NJ6KmVYtUxxjQtSst_0wQmc@z>
 
-On Sun, Feb 16, 2020 at 08:22:30AM +0000, Russell King - ARM Linux admin wrote:
-> On Sun, Feb 16, 2020 at 10:18:30AM +0200, Mike Rapoport wrote:
-> > From: Mike Rapoport <rppt@linux.ibm.com>
-> > 
-> > Hi,
-> > 
-> > These patches convert several architectures to use page table folding and
-> > remove __ARCH_HAS_5LEVEL_HACK along with include/asm-generic/5level-fixup.h.
-> > 
-> > The changes are mostly about mechanical replacement of pgd accessors with p4d
-> > ones and the addition of higher levels to page table traversals.
-> > 
-> > All the patches were sent separately to the respective arch lists and
-> > maintainers hence the "v2" prefix.
-> 
-> You fail to explain why this change which adds 488 additional lines of
-> code is desirable.
+On Fri, Jan 24, 2020 at 5:33 PM Peter Zijlstra <peterz@infradead.org> wrote:
+>
+> On Thu, Jan 23, 2020 at 09:59:03AM -0800, Linus Torvalds wrote:
+> > On Thu, Jan 23, 2020 at 7:33 AM Will Deacon <will@kernel.org> wrote:
+> > >
+> > > This is version two of the patches I previously posted as an RFC here:
+> >
+> > Looks fine to me, as far as I can tell,
+>
+> Awesome, I've picked them up with a target for tip/locking/core.
 
-Right, I should have been more explicit about it.
+Were they really picked up?
 
-As Christophe mentioned in his reply, removing 'HACK' and 'fixup' is an
-improvement.
-Another thing is that when all architectures behave the same it opens
-opportunities for cleaning up repeating definitions of page table
-manipulation primitives.
+The MW is closed now, but I do not them in Linus' tree.
+I do not see them even in linux-next.
 
- 
-> -- 
-> RMK's Patch system: https://www.armlinux.org.uk/developer/patches/
-> FTTC broadband for 0.8mile line in suburbia: sync at 12.1Mbps down 622kbps up
-> According to speedtest.net: 11.9Mbps down 500kbps up
 
--- 
-Sincerely yours,
-Mike.
+
+
+--
+Best Regards
+
+Masahiro Yamada
