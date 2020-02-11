@@ -1,81 +1,64 @@
-From: Guo Ren <guoren@linux.alibaba.com>
-Subject: [PATCH] csky: Add PCI support
-Date: Tue, 11 Feb 2020 11:41:07 +0800
-Message-ID: <20200211034107.11192-1-guoren@linux.alibaba.com>
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Sender: linux-kernel-owner@vger.kernel.org
-To: linux-csky@vger.kernel.org, majun258@linux.alibaba.com
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Guo Ren <guoren@linux.alibaba.com>
-List-Id: linux-arch.vger.kernel.org
+From: Masahiro Yamada <masahiroy@kernel.org>
+Subject: Re: [PATCH] asm-generic: make more kernel-space headers mandatory
+Date: Tue, 11 Feb 2020 23:59:08 +0900
+Message-ID: <CAK7LNARZnyj7pynscGtz+hQF2LPvzxW5YjHAOivjYZhT8Yq7VQ@mail.gmail.com>
+References: <20200210175452.5030-1-masahiroy@kernel.org> <20200210143052.1d89f7e26c9bd115d617cc92@linux-foundation.org>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="UTF-8"
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from conssluserg-01.nifty.com ([210.131.2.80]:59870 "EHLO
+        conssluserg-01.nifty.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1728759AbgBKPAC (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 11 Feb 2020 10:00:02 -0500
+In-Reply-To: <20200210143052.1d89f7e26c9bd115d617cc92@linux-foundation.org>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: linux-arch <linux-arch@vger.kernel.org>, linux-arm-kernel <linux-arm-kernel@lists.infradead.org>, X86 ML <x86@kernel.org>, Michal Simek <michal.simek@xilinx.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, Christoph Hellwig <hch@lst.de>, Arnd Bergmann <arnd@arndb.de>
 
-From: MaJun <majun258@linux.alibaba.com>
+Hi Andrew,
 
-Add the pci related code for csky arch to support basic pci virtual
-function, such as qemu virt-pci-9pfs.
+On Tue, Feb 11, 2020 at 7:30 AM Andrew Morton <akpm@linux-foundation.org> wrote:
+>
+> On Tue, 11 Feb 2020 02:54:52 +0900 Masahiro Yamada <masahiroy@kernel.org> wrote:
+>
+> > Change a header to mandatory-y if both of the following are met:
+> >
+> > [1] At least one architecture (except um) specifies it as generic-y in
+> >     arch/*/include/asm/Kbuild
+> >
+> > [2] Every architecture (except um) either has its own implementation
+> >     (arch/*/include/asm/*.h) or specifies it as generic-y in
+> >     arch/*/include/asm/Kbuild
+>
+> (reads Documentation/kbuild/makefiles.rst to remember what these things
+> do).
+>
+> Why are we making this change?  What's the benefit?
 
-Signed-off-by: MaJun <majun258@linux.alibaba.com>
-Signed-off-by: Guo Ren <guoren@linux.alibaba.com>
----
- arch/csky/Kconfig           |  5 +++++
- arch/csky/include/asm/pci.h | 34 ++++++++++++++++++++++++++++++++++
- 2 files changed, 39 insertions(+)
- create mode 100644 arch/csky/include/asm/pci.h
 
-diff --git a/arch/csky/Kconfig b/arch/csky/Kconfig
-index bf246b036dee..72b2999a889a 100644
---- a/arch/csky/Kconfig
-+++ b/arch/csky/Kconfig
-@@ -58,6 +58,11 @@ config CSKY
- 	select TIMER_OF
- 	select USB_ARCH_HAS_EHCI
- 	select USB_ARCH_HAS_OHCI
-+	select GENERIC_PCI_IOMAP
-+	select HAVE_PCI
-+	select PCI_DOMAINS_GENERIC if PCI
-+	select PCI_SYSCALL if PCI
-+	select PCI_MSI if PCI
- 
- config CPU_HAS_CACHEV2
- 	bool
-diff --git a/arch/csky/include/asm/pci.h b/arch/csky/include/asm/pci.h
-new file mode 100644
-index 000000000000..ebc765b1f78b
---- /dev/null
-+++ b/arch/csky/include/asm/pci.h
-@@ -0,0 +1,34 @@
-+/* SPDX-License-Identifier: GPL-2.0-only */
-+
-+#ifndef __ASM_CSKY_PCI_H
-+#define __ASM_CSKY_PCI_H
-+
-+#include <linux/types.h>
-+#include <linux/slab.h>
-+#include <linux/dma-mapping.h>
-+
-+#include <asm/io.h>
-+
-+#define PCIBIOS_MIN_IO		0
-+#define PCIBIOS_MIN_MEM		0
-+
-+/* C-SKY shim does not initialize PCI bus */
-+#define pcibios_assign_all_busses() 1
-+
-+extern int isa_dma_bridge_buggy;
-+
-+#ifdef CONFIG_PCI
-+static inline int pci_get_legacy_ide_irq(struct pci_dev *dev, int channel)
-+{
-+	/* no legacy IRQ on csky */
-+	return -ENODEV;
-+}
-+
-+static inline int pci_proc_domain(struct pci_bus *bus)
-+{
-+	/* always show the domain in /proc */
-+	return 1;
-+}
-+#endif  /* CONFIG_PCI */
-+
-+#endif  /* __ASM_CSKY_PCI_H */
+One obvious benefit is the diff stat:
+
+ 25 files changed, 52 insertions(+), 557 deletions(-)
+
+
+It is tedious to list generic-y for each arch
+that needs it.
+
+So, mandatory-y works like a fallback default
+(by just wrapping asm-generic one)
+when arch does not have a specific header implementation.
+
+See the following commits:
+
+def3f7cefe4e81c296090e1722a76551142c227c
+a1b39bae16a62ce4aae02d958224f19316d98b24
+
+
+It is tedious to convert headers one by one,
+so I processed by a shell script.
+
+
 -- 
-2.17.0
+Best Regards
+Masahiro Yamada
