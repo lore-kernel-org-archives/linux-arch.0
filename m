@@ -1,120 +1,87 @@
-Return-Path: <SRS0=e/bK=4N=vger.kernel.org=linux-doc-owner@kernel.org>
-Date: Tue, 25 Feb 2020 13:22:47 -0800
-From: Kees Cook <keescook@chromium.org>
-Subject: Re: [RFC PATCH v9 24/27] x86/cet/shstk: ELF header parsing for
- Shadow Stack
-Message-ID: <202002251321.6C21B71F@keescook>
-References: <20200205181935.3712-1-yu-cheng.yu@intel.com>
- <20200205181935.3712-25-yu-cheng.yu@intel.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20200205181935.3712-25-yu-cheng.yu@intel.com>
-Sender: linux-doc-owner@vger.kernel.org
-To: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Cc: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>, x86-patch-review@intel.com
+Return-Path: <SRS0=DwsV=37=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from out30-45.freemail.mail.aliyun.com ([115.124.30.45]:60918 "EHLO
+        out30-45.freemail.mail.aliyun.com" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S1727831AbgBKDlM (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 10 Feb 2020 22:41:12 -0500
+From: Guo Ren <guoren@linux.alibaba.com>
+Subject: [PATCH] csky: Add PCI support
+Date: Tue, 11 Feb 2020 11:41:07 +0800
+Message-ID: <20200211034107.11192-1-guoren@linux.alibaba.com>
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200225212247.raqVX9G50pwQa_OKgU0JMS9DaXlg3DDfWRr5_ic_yMo@z>
+To: linux-csky@vger.kernel.org, majun258@linux.alibaba.com
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Guo Ren <guoren@linux.alibaba.com>
+Message-ID: <20200211034107.7DI1H3xChQ5pzmVhQx4tbuoTXUpVpBXLlRW50xl5Ugc@z>
 
-On Wed, Feb 05, 2020 at 10:19:32AM -0800, Yu-cheng Yu wrote:
-> Check an ELF file's .note.gnu.property, and setup Shadow Stack if the
-> application supports it.
-> 
-> v9:
-> - Change cpu_feature_enabled() to static_cpu_has().
-> 
-> Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
-> ---
->  arch/x86/Kconfig             |  2 ++
->  arch/x86/include/asm/elf.h   | 13 +++++++++++++
->  arch/x86/kernel/process_64.c | 31 +++++++++++++++++++++++++++++++
->  3 files changed, 46 insertions(+)
-> 
-> diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
-> index 6c34b701c588..d1447380e02e 100644
-> --- a/arch/x86/Kconfig
-> +++ b/arch/x86/Kconfig
-> @@ -1987,6 +1987,8 @@ config X86_INTEL_SHADOW_STACK_USER
->  	select ARCH_USES_HIGH_VMA_FLAGS
->  	select X86_INTEL_CET
->  	select ARCH_HAS_SHSTK
-> +	select ARCH_USE_GNU_PROPERTY
-> +	select ARCH_BINFMT_ELF_STATE
->  	---help---
->  	  Shadow Stack (SHSTK) provides protection against program
->  	  stack corruption.  It is active when the kernel has this
-> diff --git a/arch/x86/include/asm/elf.h b/arch/x86/include/asm/elf.h
-> index 69c0f892e310..fac79b621e0a 100644
-> --- a/arch/x86/include/asm/elf.h
-> +++ b/arch/x86/include/asm/elf.h
-> @@ -367,6 +367,19 @@ extern int compat_arch_setup_additional_pages(struct linux_binprm *bprm,
->  					      int uses_interp);
->  #define compat_arch_setup_additional_pages compat_arch_setup_additional_pages
->  
-> +#ifdef CONFIG_ARCH_BINFMT_ELF_STATE
-> +struct arch_elf_state {
-> +	unsigned int gnu_property;
-> +};
-> +
-> +#define INIT_ARCH_ELF_STATE {	\
-> +	.gnu_property = 0,	\
-> +}
-> +
-> +#define arch_elf_pt_proc(ehdr, phdr, elf, interp, state) (0)
-> +#define arch_check_elf(ehdr, interp, interp_ehdr, state) (0)
-> +#endif
-> +
->  /* Do not change the values. See get_align_mask() */
->  enum align_flags {
->  	ALIGN_VA_32	= BIT(0),
-> diff --git a/arch/x86/kernel/process_64.c b/arch/x86/kernel/process_64.c
-> index 506d66830d4d..99548cde0cc6 100644
-> --- a/arch/x86/kernel/process_64.c
-> +++ b/arch/x86/kernel/process_64.c
-> @@ -732,3 +732,34 @@ unsigned long KSTK_ESP(struct task_struct *task)
->  {
->  	return task_pt_regs(task)->sp;
->  }
-> +
-> +#ifdef CONFIG_ARCH_USE_GNU_PROPERTY
-> +int arch_parse_elf_property(u32 type, const void *data, size_t datasz,
-> +			     bool compat, struct arch_elf_state *state)
-> +{
-> +	if (type != GNU_PROPERTY_X86_FEATURE_1_AND)
-> +		return 0;
-> +
-> +	if (datasz != sizeof(unsigned int))
-> +		return -ENOEXEC;
-> +
-> +	state->gnu_property = *(unsigned int *)data;
-> +	return 0;
-> +}
-> +
-> +int arch_setup_elf_property(struct arch_elf_state *state)
-> +{
-> +	int r = 0;
-> +
-> +	memset(&current->thread.cet, 0, sizeof(struct cet_status));
-> +
-> +	if (static_cpu_has(X86_FEATURE_SHSTK)) {
-> +		if (state->gnu_property & GNU_PROPERTY_X86_FEATURE_1_SHSTK)
-> +			r = cet_setup_shstk();
-> +		if (r < 0)
-> +			return r;
+From: MaJun <majun258@linux.alibaba.com>
 
-This test is redundant; there's no loop. This can just fall through to
-the final return.
+Add the pci related code for csky arch to support basic pci virtual
+function, such as qemu virt-pci-9pfs.
 
--Kees
+Signed-off-by: MaJun <majun258@linux.alibaba.com>
+Signed-off-by: Guo Ren <guoren@linux.alibaba.com>
+---
+ arch/csky/Kconfig           |  5 +++++
+ arch/csky/include/asm/pci.h | 34 ++++++++++++++++++++++++++++++++++
+ 2 files changed, 39 insertions(+)
+ create mode 100644 arch/csky/include/asm/pci.h
 
-> +	}
-> +
-> +	return r;
-> +}
-> +#endif
-> -- 
-> 2.21.0
-> 
-
+diff --git a/arch/csky/Kconfig b/arch/csky/Kconfig
+index bf246b036dee..72b2999a889a 100644
+--- a/arch/csky/Kconfig
++++ b/arch/csky/Kconfig
+@@ -58,6 +58,11 @@ config CSKY
+ 	select TIMER_OF
+ 	select USB_ARCH_HAS_EHCI
+ 	select USB_ARCH_HAS_OHCI
++	select GENERIC_PCI_IOMAP
++	select HAVE_PCI
++	select PCI_DOMAINS_GENERIC if PCI
++	select PCI_SYSCALL if PCI
++	select PCI_MSI if PCI
+ 
+ config CPU_HAS_CACHEV2
+ 	bool
+diff --git a/arch/csky/include/asm/pci.h b/arch/csky/include/asm/pci.h
+new file mode 100644
+index 000000000000..ebc765b1f78b
+--- /dev/null
++++ b/arch/csky/include/asm/pci.h
+@@ -0,0 +1,34 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++
++#ifndef __ASM_CSKY_PCI_H
++#define __ASM_CSKY_PCI_H
++
++#include <linux/types.h>
++#include <linux/slab.h>
++#include <linux/dma-mapping.h>
++
++#include <asm/io.h>
++
++#define PCIBIOS_MIN_IO		0
++#define PCIBIOS_MIN_MEM		0
++
++/* C-SKY shim does not initialize PCI bus */
++#define pcibios_assign_all_busses() 1
++
++extern int isa_dma_bridge_buggy;
++
++#ifdef CONFIG_PCI
++static inline int pci_get_legacy_ide_irq(struct pci_dev *dev, int channel)
++{
++	/* no legacy IRQ on csky */
++	return -ENODEV;
++}
++
++static inline int pci_proc_domain(struct pci_bus *bus)
++{
++	/* always show the domain in /proc */
++	return 1;
++}
++#endif  /* CONFIG_PCI */
++
++#endif  /* __ASM_CSKY_PCI_H */
 -- 
-Kees Cook
+2.17.0
