@@ -1,30 +1,81 @@
-From: Andrew Morton <akpm@linux-foundation.org>
-Subject: Re: [PATCH] asm-generic: make more kernel-space headers mandatory
-Date: Mon, 10 Feb 2020 14:30:52 -0800
-Message-ID: <20200210143052.1d89f7e26c9bd115d617cc92@linux-foundation.org>
-References: <20200210175452.5030-1-masahiroy@kernel.org>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-kbuild-owner@vger.kernel.org>
-In-Reply-To: <20200210175452.5030-1-masahiroy@kernel.org>
-Sender: linux-kbuild-owner@vger.kernel.org
-To: Masahiro Yamada <masahiroy@kernel.org>
-Cc: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, x86@kernel.org, Michal Simek <michal.simek@xilinx.com>, linux-kernel@vger.kernel.org, linux-kbuild@vger.kernel.org, Christoph Hellwig <hch@lst.de>, Arnd Bergmann <arnd@arndb.de>
+From: Guo Ren <guoren@linux.alibaba.com>
+Subject: [PATCH] csky: Add PCI support
+Date: Tue, 11 Feb 2020 11:41:07 +0800
+Message-ID: <20200211034107.11192-1-guoren@linux.alibaba.com>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: linux-csky@vger.kernel.org, majun258@linux.alibaba.com
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Guo Ren <guoren@linux.alibaba.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, 11 Feb 2020 02:54:52 +0900 Masahiro Yamada <masahiroy@kernel.org> wrote:
+From: MaJun <majun258@linux.alibaba.com>
 
-> Change a header to mandatory-y if both of the following are met:
-> 
-> [1] At least one architecture (except um) specifies it as generic-y in
->     arch/*/include/asm/Kbuild
-> 
-> [2] Every architecture (except um) either has its own implementation
->     (arch/*/include/asm/*.h) or specifies it as generic-y in
->     arch/*/include/asm/Kbuild
+Add the pci related code for csky arch to support basic pci virtual
+function, such as qemu virt-pci-9pfs.
 
-(reads Documentation/kbuild/makefiles.rst to remember what these things
-do).
+Signed-off-by: MaJun <majun258@linux.alibaba.com>
+Signed-off-by: Guo Ren <guoren@linux.alibaba.com>
+---
+ arch/csky/Kconfig           |  5 +++++
+ arch/csky/include/asm/pci.h | 34 ++++++++++++++++++++++++++++++++++
+ 2 files changed, 39 insertions(+)
+ create mode 100644 arch/csky/include/asm/pci.h
 
-Why are we making this change?  What's the benefit?
+diff --git a/arch/csky/Kconfig b/arch/csky/Kconfig
+index bf246b036dee..72b2999a889a 100644
+--- a/arch/csky/Kconfig
++++ b/arch/csky/Kconfig
+@@ -58,6 +58,11 @@ config CSKY
+ 	select TIMER_OF
+ 	select USB_ARCH_HAS_EHCI
+ 	select USB_ARCH_HAS_OHCI
++	select GENERIC_PCI_IOMAP
++	select HAVE_PCI
++	select PCI_DOMAINS_GENERIC if PCI
++	select PCI_SYSCALL if PCI
++	select PCI_MSI if PCI
+ 
+ config CPU_HAS_CACHEV2
+ 	bool
+diff --git a/arch/csky/include/asm/pci.h b/arch/csky/include/asm/pci.h
+new file mode 100644
+index 000000000000..ebc765b1f78b
+--- /dev/null
++++ b/arch/csky/include/asm/pci.h
+@@ -0,0 +1,34 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++
++#ifndef __ASM_CSKY_PCI_H
++#define __ASM_CSKY_PCI_H
++
++#include <linux/types.h>
++#include <linux/slab.h>
++#include <linux/dma-mapping.h>
++
++#include <asm/io.h>
++
++#define PCIBIOS_MIN_IO		0
++#define PCIBIOS_MIN_MEM		0
++
++/* C-SKY shim does not initialize PCI bus */
++#define pcibios_assign_all_busses() 1
++
++extern int isa_dma_bridge_buggy;
++
++#ifdef CONFIG_PCI
++static inline int pci_get_legacy_ide_irq(struct pci_dev *dev, int channel)
++{
++	/* no legacy IRQ on csky */
++	return -ENODEV;
++}
++
++static inline int pci_proc_domain(struct pci_bus *bus)
++{
++	/* always show the domain in /proc */
++	return 1;
++}
++#endif  /* CONFIG_PCI */
++
++#endif  /* __ASM_CSKY_PCI_H */
+-- 
+2.17.0
