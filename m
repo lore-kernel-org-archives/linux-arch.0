@@ -1,67 +1,95 @@
-From: guoren@kernel.org
-Subject: [PATCH] csky: Implement copy_thread_tls
-Date: Wed, 12 Feb 2020 10:26:51 +0800
-Message-ID: <20200212022651.11169-1-guoren@kernel.org>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:58648 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727535AbgBLC1A (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 11 Feb 2020 21:27:00 -0500
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: linux-csky@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Guo Ren <guoren@linux.alibaba.com>, Amanieu d'Antras <amanieu@gmail.com>
+From: Michal Simek <michal.simek@xilinx.com>
+Subject: [PATCH 00/10] Hi,
+Date: Wed, 12 Feb 2020 09:57:57 +0100
+Message-ID: <cover.1581497860.git.michal.simek@xilinx.com>
+Mime-Version: 1.0
+Content-Transfer-Encoding: 8bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: linux-kernel@vger.kernel.org, monstr@monstr.eu, michal.simek@xilinx.com, git@xilinx.com, arnd@arndb.de
+Cc: Andrew Morton <akpm@linux-foundation.org>, "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>, Arvind Sankar <nivedita@alum.mit.edu>, Borislav Petkov <bp@suse.de>, Cornelia Huck <cohuck@redhat.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Greg Ungerer <gerg@linux-m68k.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, Kees Cook <keescook@chromium.org>, Masahiro Yamada <yamada.masahiro@socionext.com>, Mike Rapoport <rppt@linux.ibm.com>, Mubin Sayyed <mubinusm@xilinx.com>, Nicholas Piggin <npiggin@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Palmer Dabbelt <palmer@dabbelt.com>, Paolo Bonzini <pbonzini@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>
+List-Id: linux-arch.vger.kernel.org
 
-From: Guo Ren <guoren@linux.alibaba.com>
 
-This is required for clone3 which passes the TLS value through a
-struct rather than a register.
+I am sending this series as before SMP support.
+Most of these patches are clean ups and should be easy to review them. I
+expect there will be more discussions about SMP support.
 
-Cc: Amanieu d'Antras <amanieu@gmail.com>
-Signed-off-by: Guo Ren <guoren@linux.alibaba.com>
----
- arch/csky/Kconfig          | 1 +
- arch/csky/kernel/process.c | 7 ++++---
- 2 files changed, 5 insertions(+), 3 deletions(-)
+There could be some optimization added based on
+https://lkml.org/lkml/2020/2/10/1528
 
-diff --git a/arch/csky/Kconfig b/arch/csky/Kconfig
-index 72b2999a889a..047427f71d83 100644
---- a/arch/csky/Kconfig
-+++ b/arch/csky/Kconfig
-@@ -36,6 +36,7 @@ config CSKY
- 	select GX6605S_TIMER if CPU_CK610
- 	select HAVE_ARCH_TRACEHOOK
- 	select HAVE_ARCH_AUDITSYSCALL
-+	select HAVE_COPY_THREAD_TLS
- 	select HAVE_DYNAMIC_FTRACE
- 	select HAVE_FUNCTION_TRACER
- 	select HAVE_FUNCTION_GRAPH_TRACER
-diff --git a/arch/csky/kernel/process.c b/arch/csky/kernel/process.c
-index 5349cd8c0f30..f7b231ca269a 100644
---- a/arch/csky/kernel/process.c
-+++ b/arch/csky/kernel/process.c
-@@ -40,10 +40,11 @@ unsigned long thread_saved_pc(struct task_struct *tsk)
- 	return sw->r15;
- }
- 
--int copy_thread(unsigned long clone_flags,
-+int copy_thread_tls(unsigned long clone_flags,
- 		unsigned long usp,
- 		unsigned long kthread_arg,
--		struct task_struct *p)
-+		struct task_struct *p,
-+		unsigned long tls)
- {
- 	struct switch_stack *childstack;
- 	struct pt_regs *childregs = task_pt_regs(p);
-@@ -70,7 +71,7 @@ int copy_thread(unsigned long clone_flags,
- 			childregs->usp = usp;
- 		if (clone_flags & CLONE_SETTLS)
- 			task_thread_info(p)->tp_value = childregs->tls
--						      = childregs->regs[0];
-+						      = tls;
- 
- 		childregs->a0 = 0;
- 		childstack->r15 = (unsigned long) ret_from_fork;
+Thanks,
+Michal
+
+
+Michal Simek (6):
+  microblaze: Convert headers to SPDX license
+  microblaze: Remove architecture tlb.h and use generic one
+  microblaze: Remove early printk setup
+  microblaze: Remove empty headers
+  microblaze: Remove unused boot_cpuid variable
+  microblaze: Use asm generic cmpxchg.h for !SMP case
+
+Stefan Asserhall (4):
+  microblaze: Define microblaze barrier
+  microblaze: Add sync to tlb operations
+  microblaze: Add missing irqflags.h header
+  microblaze: Define percpu sestion in linker file
+
+ arch/microblaze/include/asm/Kbuild            |  4 +-
+ arch/microblaze/include/asm/barrier.h         | 13 ++++++
+ arch/microblaze/include/asm/cache.h           |  5 +--
+ arch/microblaze/include/asm/cacheflush.h      |  6 +--
+ arch/microblaze/include/asm/checksum.h        |  5 +--
+ arch/microblaze/include/asm/cmpxchg.h         | 40 ++-----------------
+ arch/microblaze/include/asm/cpuinfo.h         |  5 +--
+ arch/microblaze/include/asm/cputable.h        |  1 -
+ arch/microblaze/include/asm/current.h         |  5 +--
+ arch/microblaze/include/asm/delay.h           |  7 +---
+ arch/microblaze/include/asm/dma.h             |  5 +--
+ arch/microblaze/include/asm/elf.h             |  5 +--
+ arch/microblaze/include/asm/entry.h           |  5 +--
+ arch/microblaze/include/asm/exceptions.h      |  5 +--
+ arch/microblaze/include/asm/fixmap.h          |  5 +--
+ arch/microblaze/include/asm/flat.h            |  5 +--
+ arch/microblaze/include/asm/hw_irq.h          |  1 -
+ arch/microblaze/include/asm/io.h              |  5 +--
+ arch/microblaze/include/asm/irq.h             |  5 +--
+ arch/microblaze/include/asm/irqflags.h        |  5 +--
+ arch/microblaze/include/asm/mmu.h             |  5 +--
+ arch/microblaze/include/asm/mmu_context_mm.h  |  5 +--
+ arch/microblaze/include/asm/module.h          |  5 +--
+ arch/microblaze/include/asm/page.h            |  5 +--
+ arch/microblaze/include/asm/pgalloc.h         |  5 +--
+ arch/microblaze/include/asm/pgtable.h         |  5 +--
+ arch/microblaze/include/asm/processor.h       |  5 +--
+ arch/microblaze/include/asm/ptrace.h          |  5 +--
+ arch/microblaze/include/asm/pvr.h             |  5 +--
+ arch/microblaze/include/asm/registers.h       |  5 +--
+ arch/microblaze/include/asm/sections.h        |  5 +--
+ arch/microblaze/include/asm/setup.h           |  7 +---
+ arch/microblaze/include/asm/string.h          |  5 +--
+ arch/microblaze/include/asm/switch_to.h       |  5 +--
+ arch/microblaze/include/asm/thread_info.h     |  5 +--
+ arch/microblaze/include/asm/timex.h           |  5 +--
+ arch/microblaze/include/asm/tlb.h             | 17 --------
+ arch/microblaze/include/asm/tlbflush.h        |  5 +--
+ arch/microblaze/include/asm/uaccess.h         |  5 +--
+ arch/microblaze/include/asm/unaligned.h       |  5 +--
+ arch/microblaze/include/asm/unistd.h          |  5 +--
+ arch/microblaze/include/asm/unwind.h          |  5 +--
+ arch/microblaze/include/asm/user.h            |  1 -
+ arch/microblaze/kernel/cpu/cpuinfo-pvr-full.c |  7 +---
+ arch/microblaze/kernel/cpu/pvr.c              |  1 +
+ arch/microblaze/kernel/misc.S                 |  3 +-
+ arch/microblaze/kernel/setup.c                |  1 -
+ arch/microblaze/kernel/vmlinux.lds.S          |  3 ++
+ 48 files changed, 62 insertions(+), 215 deletions(-)
+ create mode 100644 arch/microblaze/include/asm/barrier.h
+ delete mode 100644 arch/microblaze/include/asm/cputable.h
+ delete mode 100644 arch/microblaze/include/asm/hw_irq.h
+ delete mode 100644 arch/microblaze/include/asm/tlb.h
+ delete mode 100644 arch/microblaze/include/asm/user.h
+
 -- 
-2.17.0
+2.25.0
