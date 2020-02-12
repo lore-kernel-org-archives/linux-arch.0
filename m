@@ -1,38 +1,65 @@
-From: Michal Simek <michal.simek@xilinx.com>
-Subject: Re: [PATCH 00/10] Hi,
-Date: Wed, 12 Feb 2020 14:32:12 +0100
-Message-ID: <a05bbd70-9531-9445-c842-5bb8336d273a@xilinx.com>
-References: <cover.1581497860.git.michal.simek@xilinx.com>
- <CAK8P3a1NymovoUxYBF8Ok8Rfke7ECW49bmc+K-=vtH_Bz8_7jQ@mail.gmail.com>
+From: Steven Rostedt <rostedt@goodmis.org>
+Subject: Re: [PATCH 4/8] sched,rcu,tracing: Mark preempt_count_{add,sub}()
+ notrace
+Date: Wed, 12 Feb 2020 09:24:17 -0500
+Message-ID: <20200212092417.04c3da8c@gandalf.local.home>
+References: <20200212093210.468391728@infradead.org>
+        <20200212094107.838108888@infradead.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
+Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-dm6nam11on2079.outbound.protection.outlook.com ([40.107.223.79]:39942
-        "EHLO NAM11-DM6-obe.outbound.protection.outlook.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1726728AbgBLNch (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 12 Feb 2020 08:32:37 -0500
-In-Reply-To: <CAK8P3a1NymovoUxYBF8Ok8Rfke7ECW49bmc+K-=vtH_Bz8_7jQ@mail.gmail.com>
-Content-Language: en-US
+Received: from mail.kernel.org ([198.145.29.99]:42764 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1727988AbgBLOYV (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 12 Feb 2020 09:24:21 -0500
+In-Reply-To: <20200212094107.838108888@infradead.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>, Michal Simek <michal.simek@xilinx.com>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Michal Simek <monstr@monstr.eu>, git@xilinx.com, Andrew Morton <akpm@linux-foundation.org>, "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>, Arvind Sankar <nivedita@alum.mit.edu>, Borislav Petkov <bp@suse.de>, Cornelia Huck <cohuck@redhat.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Greg Ungerer <gerg@linux-m68k.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, Kees Cook <keescook@chromium.org>, Masahiro Yamada <yamada.masahiro@socionext.com>, Mike Rapoport <rppt@linux.ibm.com>, Mubin Sayyed <mubinusm@xilinx.com>, Nicholas Piggin <npiggin@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Palmer Dabbelt <palmer@dabbelt.com>, Paolo
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org, joel@joelfernandes.org, gregkh@linuxfoundation.org, gustavo@embeddedor.com, tglx@linutronix.de, paulmck@kernel.org, josh@joshtriplett.org, mathieu.desnoyers@efficios.com, jiangshanlai@gmail.com
 
-On 12. 02. 20 14:02, Arnd Bergmann wrote:
-> On Wed, Feb 12, 2020 at 9:58 AM Michal Simek <michal.simek@xilinx.com> wrote:
->>
->>
->> I am sending this series as before SMP support.
->> Most of these patches are clean ups and should be easy to review them. I
->> expect there will be more discussions about SMP support.
-> 
-> Agreed.
-> 
-> I had one question about a detail, other than that:
-> 
-> Reviewed-by: Arnd Bergmann <arnd@arndb.de>
+On Wed, 12 Feb 2020 10:32:14 +0100
+Peter Zijlstra <peterz@infradead.org> wrote:
 
-Thanks,
-Michal
+> Because of the requirement that no tracing happens until after we've
+> incremented preempt_count, see nmi_enter() / trace_rcu_enter(), mark
+> these functions as notrace.
+
+I actually depend on these function being traced. We do have
+"preempt_enable_notrace()" and "preempt_disable_notrace()" for places
+that shouldn't be traced. Can't we use those? (or simply
+__preempt_count_add()) in the nmi_enter() code instead? (perhaps create
+a preempt_count_add_notrace()).
+
+-- Steve
+
+
+
+> 
+> Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+> ---
+>  kernel/sched/core.c |    4 ++--
+>  1 file changed, 2 insertions(+), 2 deletions(-)
+> 
+> --- a/kernel/sched/core.c
+> +++ b/kernel/sched/core.c
+> @@ -3781,7 +3781,7 @@ static inline void preempt_latency_start
+>  	}
+>  }
+>  
+> -void preempt_count_add(int val)
+> +void notrace preempt_count_add(int val)
+>  {
+>  #ifdef CONFIG_DEBUG_PREEMPT
+>  	/*
+> @@ -3813,7 +3813,7 @@ static inline void preempt_latency_stop(
+>  		trace_preempt_on(CALLER_ADDR0, get_lock_parent_ip());
+>  }
+>  
+> -void preempt_count_sub(int val)
+> +void notrace preempt_count_sub(int val)
+>  {
+>  #ifdef CONFIG_DEBUG_PREEMPT
+>  	/*
+> 
