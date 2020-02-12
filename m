@@ -1,69 +1,54 @@
-From: Michal Simek <michal.simek@xilinx.com>
-Subject: [PATCH 02/10] microblaze: Remove architecture tlb.h and use generic one
-Date: Wed, 12 Feb 2020 09:57:59 +0100
-Message-ID: <1243cf3b894f81b728011621b2fd3d40b8935e99.1581497860.git.michal.simek@xilinx.com>
-References: <cover.1581497860.git.michal.simek@xilinx.com>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: [PATCH 6/8] perf,tracing: Prepare the perf-trace interface for RCU changes
+Date: Wed, 12 Feb 2020 10:32:16 +0100
+Message-ID: <20200212094107.951346701@infradead.org>
+References: <20200212093210.468391728@infradead.org>
 Mime-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=UTF-8
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wr1-f65.google.com ([209.85.221.65]:42907 "EHLO
-        mail-wr1-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728426AbgBLI6P (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 12 Feb 2020 03:58:15 -0500
-Received: by mail-wr1-f65.google.com with SMTP id k11so1178597wrd.9
-        for <linux-arch@vger.kernel.org>; Wed, 12 Feb 2020 00:58:13 -0800 (PST)
-In-Reply-To: <cover.1581497860.git.michal.simek@xilinx.com>
+Received: from bombadil.infradead.org ([198.137.202.133]:46596 "EHLO
+        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1728637AbgBLJno (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 12 Feb 2020 04:43:44 -0500
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org, monstr@monstr.eu, michal.simek@xilinx.com, git@xilinx.com, arnd@arndb.de
-Cc: Stefan Asserhall <stefan.asserhall@xilinx.com>, Andrew Morton <akpm@linux-foundation.org>, "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>, Cornelia Huck <cohuck@redhat.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Masahiro Yamada <yamada.masahiro@socionext.com>, Nick Piggin <npiggin@gmail.com>, Paolo Bonzini <pbonzini@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Will Deacon <will@kernel.org>, linux-arch@vger.kernel.org, linux-mm@kvack.org
+To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, rostedt@goodmis.org
+Cc: peterz@infradead.org, mingo@kernel.org, joel@joelfernandes.org, gregkh@linuxfoundation.org, gustavo@embeddedor.com, tglx@linutronix.de, paulmck@kernel.org, josh@joshtriplett.org, mathieu.desnoyers@efficios.com, jiangshanlai@gmail.com
 
-There is no reason to have this empty file if it is just link to
-asm-generic/tlb.h.
+The tracepoint interface will stop providing regular RCU context; make
+sure we do it ourselves, since perf makes use of regular RCU protected
+data.
 
-Signed-off-by: Michal Simek <michal.simek@xilinx.com>
-Reviewed-by: Stefan Asserhall <stefan.asserhall@xilinx.com>
+Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
 ---
+ kernel/events/core.c |    5 +++++
+ 1 file changed, 5 insertions(+)
 
- arch/microblaze/include/asm/Kbuild |  1 +
- arch/microblaze/include/asm/tlb.h  | 17 -----------------
- 2 files changed, 1 insertion(+), 17 deletions(-)
- delete mode 100644 arch/microblaze/include/asm/tlb.h
-
-diff --git a/arch/microblaze/include/asm/Kbuild b/arch/microblaze/include/asm/Kbuild
-index e5c9170a07fc..7ae427f73105 100644
---- a/arch/microblaze/include/asm/Kbuild
-+++ b/arch/microblaze/include/asm/Kbuild
-@@ -31,6 +31,7 @@ generic-y += preempt.h
- generic-y += serial.h
- generic-y += shmparam.h
- generic-y += syscalls.h
-+generic-y += tlb.h
- generic-y += topology.h
- generic-y += trace_clock.h
- generic-y += vga.h
-diff --git a/arch/microblaze/include/asm/tlb.h b/arch/microblaze/include/asm/tlb.h
-deleted file mode 100644
-index 628a78ee0a72..000000000000
---- a/arch/microblaze/include/asm/tlb.h
-+++ /dev/null
-@@ -1,17 +0,0 @@
--/*
-- * Copyright (C) 2008-2009 Michal Simek <monstr@monstr.eu>
-- * Copyright (C) 2008-2009 PetaLogix
-- * Copyright (C) 2006 Atmark Techno, Inc.
-- *
-- * This file is subject to the terms and conditions of the GNU General Public
-- * License. See the file "COPYING" in the main directory of this archive
-- * for more details.
-- */
--
--#ifndef _ASM_MICROBLAZE_TLB_H
--#define _ASM_MICROBLAZE_TLB_H
--
--#include <linux/pagemap.h>
--#include <asm-generic/tlb.h>
--
--#endif /* _ASM_MICROBLAZE_TLB_H */
--- 
-2.25.0
+--- a/kernel/events/core.c
++++ b/kernel/events/core.c
+@@ -8950,6 +8950,7 @@ void perf_tp_event(u16 event_type, u64 c
+ {
+ 	struct perf_sample_data data;
+ 	struct perf_event *event;
++	unsigned long rcu_flags;
+ 
+ 	struct perf_raw_record raw = {
+ 		.frag = {
+@@ -8961,6 +8962,8 @@ void perf_tp_event(u16 event_type, u64 c
+ 	perf_sample_data_init(&data, 0, 0);
+ 	data.raw = &raw;
+ 
++	rcu_flags = trace_rcu_enter();
++
+ 	perf_trace_buf_update(record, event_type);
+ 
+ 	hlist_for_each_entry_rcu(event, head, hlist_entry) {
+@@ -8996,6 +8999,8 @@ void perf_tp_event(u16 event_type, u64 c
+ 	}
+ 
+ 	perf_swevent_put_recursion_context(rctx);
++
++	trace_rcu_exit(rcu_flags);
+ }
+ EXPORT_SYMBOL_GPL(perf_tp_event);
+ 
