@@ -1,47 +1,30 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH 0/8] tracing vs rcu vs nmi
-Date: Wed, 12 Feb 2020 12:58:20 +0100
-Message-ID: <20200212115820.GQ14897@hirez.programming.kicks-ass.net>
-References: <20200212093210.468391728@infradead.org>
- <20200212100106.GA14914@hirez.programming.kicks-ass.net>
- <20200212105646.GA4017@willie-the-truck>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH 00/10] Hi,
+Date: Wed, 12 Feb 2020 14:02:45 +0100
+Message-ID: <CAK8P3a1NymovoUxYBF8Ok8Rfke7ECW49bmc+K-=vtH_Bz8_7jQ@mail.gmail.com>
+References: <cover.1581497860.git.michal.simek@xilinx.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20200212105646.GA4017@willie-the-truck>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Will Deacon <will@kernel.org>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, rostedt@goodmis.org, james.morse@arm.com, catalin.marinas@arm.com, mingo@kernel.org, joel@joelfernandes.org, gregkh@linuxfoundation.org, gustavo@embeddedor.com, tglx@linutronix.de, paulmck@kernel.org, josh@joshtriplett.org, mathieu.desnoyers@efficios.com, jiangshanlai@gmail.com
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset="UTF-8"
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mout.kundenserver.de ([212.227.126.135]:58959 "EHLO
+        mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1725887AbgBLNDE (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 12 Feb 2020 08:03:04 -0500
+In-Reply-To: <cover.1581497860.git.michal.simek@xilinx.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Michal Simek <michal.simek@xilinx.com>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Michal Simek <monstr@monstr.eu>, git@xilinx.com, Andrew Morton <akpm@linux-foundation.org>, "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>, Arvind Sankar <nivedita@alum.mit.edu>, Borislav Petkov <bp@suse.de>, Cornelia Huck <cohuck@redhat.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Greg Ungerer <gerg@linux-m68k.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, Kees Cook <keescook@chromium.org>, Masahiro Yamada <yamada.masahiro@socionext.com>, Mike Rapoport <rppt@linux.ibm.com>, Mubin Sayyed <mubinusm@xilinx.com>, Nicholas Piggin <npiggin@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Palmer Dabbelt <palmer@dabbelt.com>, Paolo
 
-On Wed, Feb 12, 2020 at 10:56:46AM +0000, Will Deacon wrote:
-> On Wed, Feb 12, 2020 at 11:01:06AM +0100, Peter Zijlstra wrote:
-> > On Wed, Feb 12, 2020 at 10:32:10AM +0100, Peter Zijlstra wrote:
-> > > Hi all,
-> > > 
-> > > These here patches are the result of Mathieu and Steve trying to get commit
-> > > 865e63b04e9b2 ("tracing: Add back in rcu_irq_enter/exit_irqson() for rcuidle
-> > > tracepoints") reverted again.
-> > > 
-> > > One of the things discovered is that tracing MUST NOT happen before nmi_enter()
-> > > or after nmi_exit(). I've only fixed x86, but quickly gone through other
-> > > architectures and there is definitely more stuff to be fixed (simply grep for
-> > > nmi_enter in your arch).
-> > 
-> > For ARM64:
-> > 
-> >  - apei_claim_sea()
-> >  - __sdei_handler()
-> >  - do_serror()
-> >  - debug_exception_enter() / do_debug_exception()
-> > 
-> > all look dodgy.
-> 
-> Hmm, so looks like we need to spinkle some 'notrace' annotations around
-> these. Are there are scenarios where you would want NOKPROBE_SYMBOL() but
-> *not* 'notrace'? We've already got the former for the debug exception
-> handlers and we probably (?) want it for the SDEI stuff too...
+On Wed, Feb 12, 2020 at 9:58 AM Michal Simek <michal.simek@xilinx.com> wrote:
+>
+>
+> I am sending this series as before SMP support.
+> Most of these patches are clean ups and should be easy to review them. I
+> expect there will be more discussions about SMP support.
 
-I'm not sure. In fact, I asked Steve on IRC if we'd want to teach
-objtool to report such inconsitencies.
+Agreed.
+
+I had one question about a detail, other than that:
+
+Reviewed-by: Arnd Bergmann <arnd@arndb.de>
