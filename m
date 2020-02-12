@@ -1,45 +1,32 @@
-From: Steven Rostedt <rostedt@goodmis.org>
-Subject: Re: [PATCH 5/8] x86,tracing: Mark debug_stack_{set_zero,reset)()
- notrace
-Date: Wed, 12 Feb 2020 10:18:26 -0500
-Message-ID: <20200212101826.23d394eb@gandalf.local.home>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH 0/8] tracing vs rcu vs nmi
+Date: Wed, 12 Feb 2020 16:21:00 +0100
+Message-ID: <20200212152100.GV14897@hirez.programming.kicks-ass.net>
 References: <20200212093210.468391728@infradead.org>
-        <20200212094107.894657838@infradead.org>
-        <20200212092539.135934e1@gandalf.local.home>
-        <20200212150440.GT14897@hirez.programming.kicks-ass.net>
+ <20200212100106.GA14914@hirez.programming.kicks-ass.net>
+ <20200212105646.GA4017@willie-the-truck>
+ <20200212093235.2be06208@gandalf.local.home>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:38552 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727519AbgBLPS3 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 12 Feb 2020 10:18:29 -0500
-In-Reply-To: <20200212150440.GT14897@hirez.programming.kicks-ass.net>
+Received: from bombadil.infradead.org ([198.137.202.133]:48376 "EHLO
+        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727519AbgBLPV3 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 12 Feb 2020 10:21:29 -0500
+Content-Disposition: inline
+In-Reply-To: <20200212093235.2be06208@gandalf.local.home>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org, joel@joelfernandes.org, gregkh@linuxfoundation.org, gustavo@embeddedor.com, tglx@linutronix.de, paulmck@kernel.org, josh@joshtriplett.org, mathieu.desnoyers@efficios.com, jiangshanlai@gmail.com
+To: Steven Rostedt <rostedt@goodmis.org>
+Cc: Will Deacon <will@kernel.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, james.morse@arm.com, catalin.marinas@arm.com, mingo@kernel.org, joel@joelfernandes.org, gregkh@linuxfoundation.org, gustavo@embeddedor.com, tglx@linutronix.de, paulmck@kernel.org, josh@joshtriplett.org, mathieu.desnoyers@efficios.com, jiangshanlai@gmail.com
 
-On Wed, 12 Feb 2020 16:04:40 +0100
-Peter Zijlstra <peterz@infradead.org> wrote:
+On Wed, Feb 12, 2020 at 09:32:34AM -0500, Steven Rostedt wrote:
+> I've been trying to get rid of notrace around the kernel, not add more.
 
-> > This entire file is notrace:
-> > 
-> >  arch/x86/kernel/cpu/Makefile:
-> > 
-> >    CFLAGS_REMOVE_common.o = -pg  
-> 
-> Urgh, I hate it that that annotation is so hard to find :/ Also, there
-> seem to be various flavours of that Makefile magic around.
-> 
->   CFLAGS_REMOVE_lockdep.o = $(CC_FLAGS_FTRACE)
-> 
-> is another variant I encountered.
+As is abundantly clear, I hope, we really need more this time.
 
-Actually, that should be the only variant. That was added for various
-archs, and should be used consistently throughout.
+You want to trace RCU itself, the concequence is we _MUST_NOT_ trace the
+early NMI code until we can distinguish we're *in* NMI code.
 
-There's a clean up series for you ;-) (or whoever)
-
--- Steve
+There really is no 2 way about it; and I'm not going to wait until some
+poor sucker trips over it.
