@@ -1,20 +1,52 @@
 From: Peter Zijlstra <peterz@infradead.org>
-Subject: [PATCH 0/8] tracing vs rcu vs nmi
-Date: Wed, 12 Feb 2020 10:32:10 +0100
-Message-ID: <20200212093210.468391728@infradead.org>
+Subject: [PATCH 7/8] tracing: Employ trace_rcu_{enter,exit}()
+Date: Wed, 12 Feb 2020 10:32:17 +0100
+Message-ID: <20200212094108.007700525@infradead.org>
+References: <20200212093210.468391728@infradead.org>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
 Return-path: <linux-kernel-owner@vger.kernel.org>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, rostedt@goodmis.org
 Cc: peterz@infradead.org, mingo@kernel.org, joel@joelfernandes.org, gregkh@linuxfoundation.org, gustavo@embeddedor.com, tglx@linutronix.de, paulmck@kernel.org, josh@joshtriplett.org, mathieu.desnoyers@efficios.com, jiangshanlai@gmail.com
 List-Id: linux-arch.vger.kernel.org
 
-Hi all,
+Replace the opencoded (and incomplete) RCU manipulations with the new
+helpers to ensure a regular RCU context when calling into
+__ftrace_trace_stack().
 
-These here patches are the result of Mathieu and Steve trying to get commit
-865e63b04e9b2 ("tracing: Add back in rcu_irq_enter/exit_irqson() for rcuidle
-tracepoints") reverted again.
+Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+---
+ kernel/trace/trace.c |   19 +++----------------
+ 1 file changed, 3 insertions(+), 16 deletions(-)
 
-One of the things discovered is that tracing MUST NOT happen before nmi_enter()
-or after nmi_exit(). I've only fixed x86, but quickly gone through other
-architectures and there is definitely more stuff to be fixed (simply grep for
-nmi_enter in your arch).
+--- a/kernel/trace/trace.c
++++ b/kernel/trace/trace.c
+@@ -2989,24 +2989,11 @@ void __trace_stack(struct trace_array *t
+ 		   int pc)
+ {
+ 	struct trace_buffer *buffer = tr->array_buffer.buffer;
++	unsigned long rcu_flags;
+ 
+-	if (rcu_is_watching()) {
+-		__ftrace_trace_stack(buffer, flags, skip, pc, NULL);
+-		return;
+-	}
+-
+-	/*
+-	 * When an NMI triggers, RCU is enabled via rcu_nmi_enter(),
+-	 * but if the above rcu_is_watching() failed, then the NMI
+-	 * triggered someplace critical, and rcu_irq_enter() should
+-	 * not be called from NMI.
+-	 */
+-	if (unlikely(in_nmi()))
+-		return;
+-
+-	rcu_irq_enter_irqsave();
++	rcu_flags = trace_rcu_enter();
+ 	__ftrace_trace_stack(buffer, flags, skip, pc, NULL);
+-	rcu_irq_exit_irqsave();
++	trace_rcu_exit(rcu_flags);
+ }
+ 
+ /**
