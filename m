@@ -1,20 +1,20 @@
 From: Peter Zijlstra <peterz@infradead.org>
 Subject: Re: [PATCH 0/8] tracing vs rcu vs nmi
-Date: Wed, 12 Feb 2020 11:07:49 +0100
-Message-ID: <20200212100749.GC14914@hirez.programming.kicks-ass.net>
+Date: Wed, 12 Feb 2020 11:09:40 +0100
+Message-ID: <20200212100940.GD14914@hirez.programming.kicks-ass.net>
 References: <20200212093210.468391728@infradead.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:33590 "EHLO
+Received: from merlin.infradead.org ([205.233.59.134]:33876 "EHLO
         merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728152AbgBLKIZ (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 12 Feb 2020 05:08:25 -0500
+        with ESMTP id S1728809AbgBLKKU (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 12 Feb 2020 05:10:20 -0500
 Content-Disposition: inline
 In-Reply-To: <20200212093210.468391728@infradead.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, rostedt@goodmis.org, dalias@libc.org, jcmvbkbc@gmail.com
+To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, rostedt@goodmis.org, linux@armlinux.org.uk
 Cc: mingo@kernel.org, joel@joelfernandes.org, gregkh@linuxfoundation.org, gustavo@embeddedor.com, tglx@linutronix.de, paulmck@kernel.org, josh@joshtriplett.org, mathieu.desnoyers@efficios.com, jiangshanlai@gmail.com
 
 On Wed, Feb 12, 2020 at 10:32:10AM +0100, Peter Zijlstra wrote:
@@ -29,4 +29,6 @@ On Wed, Feb 12, 2020 at 10:32:10AM +0100, Peter Zijlstra wrote:
 > architectures and there is definitely more stuff to be fixed (simply grep for
 > nmi_enter in your arch).
 
-Xtensa and SuperH need to mark their NMI C handler notrace.
+Someone should probably look at the whole ARM FiQ stuff, I got a little
+lost, but probably handle_fiq_as_nmi() wants notrace and everything
+using set_fiq_handler() wants looking at.
