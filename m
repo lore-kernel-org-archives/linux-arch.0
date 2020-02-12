@@ -1,39 +1,42 @@
-From: Steven Rostedt <rostedt@goodmis.org>
-Subject: Re: [PATCH 0/8] tracing vs rcu vs nmi
-Date: Wed, 12 Feb 2020 09:32:34 -0500
-Message-ID: <20200212093235.2be06208@gandalf.local.home>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH 4/8] sched,rcu,tracing: Mark preempt_count_{add,sub}()
+ notrace
+Date: Wed, 12 Feb 2020 16:02:11 +0100
+Message-ID: <20200212150211.GS14897@hirez.programming.kicks-ass.net>
 References: <20200212093210.468391728@infradead.org>
-        <20200212100106.GA14914@hirez.programming.kicks-ass.net>
-        <20200212105646.GA4017@willie-the-truck>
+ <20200212094107.838108888@infradead.org>
+ <20200212092417.04c3da8c@gandalf.local.home>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:46844 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727662AbgBLOci (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 12 Feb 2020 09:32:38 -0500
-In-Reply-To: <20200212105646.GA4017@willie-the-truck>
+Received: from bombadil.infradead.org ([198.137.202.133]:43304 "EHLO
+        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727231AbgBLPCh (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 12 Feb 2020 10:02:37 -0500
+Content-Disposition: inline
+In-Reply-To: <20200212092417.04c3da8c@gandalf.local.home>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will@kernel.org>
-Cc: Peter Zijlstra <peterz@infradead.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, james.morse@arm.com, catalin.marinas@arm.com, mingo@kernel.org, joel@joelfernandes.org, gregkh@linuxfoundation.org, gustavo@embeddedor.com, tglx@linutronix.de, paulmck@kernel.org, josh@joshtriplett.org, mathieu.desnoyers@efficios.com, jiangshanlai@gmail.com
+To: Steven Rostedt <rostedt@goodmis.org>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org, joel@joelfernandes.org, gregkh@linuxfoundation.org, gustavo@embeddedor.com, tglx@linutronix.de, paulmck@kernel.org, josh@joshtriplett.org, mathieu.desnoyers@efficios.com, jiangshanlai@gmail.com
 
-On Wed, 12 Feb 2020 10:56:46 +0000
-Will Deacon <will@kernel.org> wrote:
+On Wed, Feb 12, 2020 at 09:24:17AM -0500, Steven Rostedt wrote:
+> On Wed, 12 Feb 2020 10:32:14 +0100
+> Peter Zijlstra <peterz@infradead.org> wrote:
+> 
+> > Because of the requirement that no tracing happens until after we've
+> > incremented preempt_count, see nmi_enter() / trace_rcu_enter(), mark
+> > these functions as notrace.
+> 
+> I actually depend on these function being traced.
 
-> Hmm, so looks like we need to spinkle some 'notrace' annotations around
-> these. Are there are scenarios where you would want NOKPROBE_SYMBOL() but
-> *not* 'notrace'? We've already got the former for the debug exception
-> handlers and we probably (?) want it for the SDEI stuff too...
+Why? They already have a tracepoint inside.
 
-Note, function tracing has a lot of recursion detection, and when
-something registers with the function tracer it needs to state if it
-can be called when rcu is not watching, or it wont be called then.
+> We do have
+> "preempt_enable_notrace()" and "preempt_disable_notrace()" for places
+> that shouldn't be traced. Can't we use those? (or simply
+> __preempt_count_add()) in the nmi_enter() code instead? (perhaps create
+> a preempt_count_add_notrace()).
 
-And yes, there's plenty of places that we have "nokprobe" but allow
-tracing.
-
-I've been trying to get rid of notrace around the kernel, not add more.
-
--- Steve
+My initial patch has __preempt_count_add/sub() in, but then I figured
+someone would go complain the tracepoint would go missing.
