@@ -1,38 +1,57 @@
-Return-Path: <SRS0=ZbOS=4O=kvack.org=owner-linux-mm@kernel.org>
-Subject: Re: [RFC PATCH v9 11/27] drm/i915/gvt: Change _PAGE_DIRTY to
- _PAGE_DIRTY_BITS
-References: <20200205181935.3712-1-yu-cheng.yu@intel.com>
- <20200205181935.3712-12-yu-cheng.yu@intel.com>
-From: Dave Hansen <dave.hansen@intel.com>
-Message-ID: <34c83f97-f206-1b43-db40-7e6a7d0f6bb7@intel.com>
-Date: Wed, 26 Feb 2020 14:04:43 -0800
+Return-Path: <SRS0=bqXs=4A=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from merlin.infradead.org ([205.233.59.134]:33538 "EHLO
+        merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1729205AbgBLVOT (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 12 Feb 2020 16:14:19 -0500
+Message-ID: <20200212210750.199269033@infradead.org>
+Date: Wed, 12 Feb 2020 22:01:46 +0100
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: [PATCH v2 7/9] tracing: Employ trace_rcu_{enter,exit}()
+References: <20200212210139.382424693@infradead.org>
 MIME-Version: 1.0
-In-Reply-To: <20200205181935.3712-12-yu-cheng.yu@intel.com>
-Content-Type: text/plain; charset=utf-8
-Content-Language: en-US
-Content-Transfer-Encoding: quoted-printable
-Sender: owner-linux-mm@kvack.org
-To: Yu-cheng Yu <yu-cheng.yu@intel.com>, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>, x86-patch-review@intel.com
+Content-Type: text/plain; charset=UTF-8
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200226220443.QtYP1FFqieLQ5zily5ZmWJT0MFsO1bgkfN9SojNf1_c@z>
+To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, rostedt@goodmis.org
+Cc: peterz@infradead.org, mingo@kernel.org, joel@joelfernandes.org, gregkh@linuxfoundation.org, gustavo@embeddedor.com, tglx@linutronix.de, paulmck@kernel.org, josh@joshtriplett.org, mathieu.desnoyers@efficios.com, jiangshanlai@gmail.com
+Message-ID: <20200212210146.vweHi-Nf2V-NRn2cwAeZwQigLcUTv6-eVtkYCq6udtk@z>
 
-On 2/5/20 10:19 AM, Yu-cheng Yu wrote:
-> diff --git a/drivers/gpu/drm/i915/gvt/gtt.c b/drivers/gpu/drm/i915/gvt/=
-gtt.c
-> index 4b04af569c05..e467ca182633 100644
-> --- a/drivers/gpu/drm/i915/gvt/gtt.c
-> +++ b/drivers/gpu/drm/i915/gvt/gtt.c
-> @@ -1201,7 +1201,7 @@ static int split_2MB_gtt_entry(struct intel_vgpu =
-*vgpu,
->  	}
-> =20
->  	/* Clear dirty field. */
-> -	se->val64 &=3D ~_PAGE_DIRTY;
-> +	se->val64 &=3D ~_PAGE_DIRTY_BITS;
-> =20
->  	ops->clear_pse(se);
->  	ops->clear_ips(se);
+Replace the opencoded (and incomplete) RCU manipulations with the new
+helpers to ensure a regular RCU context when calling into
+__ftrace_trace_stack().
 
-Are the i915 maintainers on cc?
+Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+---
+ kernel/trace/trace.c |   19 +++----------------
+ 1 file changed, 3 insertions(+), 16 deletions(-)
 
-Shouldn't this use pte_mkclean() instead of open-coding?
+--- a/kernel/trace/trace.c
++++ b/kernel/trace/trace.c
+@@ -2989,24 +2989,11 @@ void __trace_stack(struct trace_array *t
+ 		   int pc)
+ {
+ 	struct trace_buffer *buffer = tr->array_buffer.buffer;
++	unsigned long rcu_flags;
+ 
+-	if (rcu_is_watching()) {
+-		__ftrace_trace_stack(buffer, flags, skip, pc, NULL);
+-		return;
+-	}
+-
+-	/*
+-	 * When an NMI triggers, RCU is enabled via rcu_nmi_enter(),
+-	 * but if the above rcu_is_watching() failed, then the NMI
+-	 * triggered someplace critical, and rcu_irq_enter() should
+-	 * not be called from NMI.
+-	 */
+-	if (unlikely(in_nmi()))
+-		return;
+-
+-	rcu_irq_enter_irqsave();
++	rcu_flags = trace_rcu_enter();
+ 	__ftrace_trace_stack(buffer, flags, skip, pc, NULL);
+-	rcu_irq_exit_irqsave();
++	trace_rcu_exit(rcu_flags);
+ }
+ 
+ /**
