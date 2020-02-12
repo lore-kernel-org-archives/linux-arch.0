@@ -1,46 +1,79 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH 5/8] x86,tracing: Mark debug_stack_{set_zero,reset)()
- notrace
-Date: Wed, 12 Feb 2020 16:04:40 +0100
-Message-ID: <20200212150440.GT14897@hirez.programming.kicks-ass.net>
-References: <20200212093210.468391728@infradead.org>
- <20200212094107.894657838@infradead.org>
- <20200212092539.135934e1@gandalf.local.home>
+From: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
+Subject: Re: [PATCH 6/8] perf,tracing: Prepare the perf-trace interface for
+ RCU changes
+Date: Wed, 12 Feb 2020 10:07:51 -0500 (EST)
+Message-ID: <736090577.117.1581520071732.JavaMail.zimbra@efficios.com>
+References: <20200212093210.468391728@infradead.org> <20200212094107.951346701@infradead.org> <20200212092655.4ba6cd79@gandalf.local.home>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20200212092539.135934e1@gandalf.local.home>
+In-Reply-To: <20200212092655.4ba6cd79@gandalf.local.home>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Steven Rostedt <rostedt@goodmis.org>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org, joel@joelfernandes.org, gregkh@linuxfoundation.org, gustavo@embeddedor.com, tglx@linutronix.de, paulmck@kernel.org, josh@joshtriplett.org, mathieu.desnoyers@efficios.com, jiangshanlai@gmail.com
+To: rostedt <rostedt@goodmis.org>, Peter Zijlstra <peterz@infradead.org>
+Cc: linux-kernel <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Ingo Molnar <mingo@kernel.org>, "Joel Fernandes, Google" <joel@joelfernandes.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, "Gustavo A. R. Silva" <gustavo@embeddedor.com>, Thomas Gleixner <tglx@linutronix.de>, paulmck <paulmck@kernel.org>, Josh Triplett <josh@joshtriplett.org>, Lai Jiangshan <jiangshanlai@gmail.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Feb 12, 2020 at 09:25:39AM -0500, Steven Rostedt wrote:
-> On Wed, 12 Feb 2020 10:32:15 +0100
+----- On Feb 12, 2020, at 9:26 AM, rostedt rostedt@goodmis.org wrote:
+
+> On Wed, 12 Feb 2020 10:32:16 +0100
 > Peter Zijlstra <peterz@infradead.org> wrote:
 > 
-> > Because do_nmi() must not call into tracing outside of
-> > nmi_enter()/nmi_exit(), these functions must be notrace.
-> > 
-> > Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
-> > ---
-> >  arch/x86/kernel/cpu/common.c |    4 ++--
-> >  arch/x86/kernel/nmi.c        |    6 ++++++
-> >  2 files changed, 8 insertions(+), 2 deletions(-)
-> > 
-> > --- a/arch/x86/kernel/cpu/common.c
-> > +++ b/arch/x86/kernel/cpu/common.c
+>> The tracepoint interface will stop providing regular RCU context; make
+>> sure we do it ourselves, since perf makes use of regular RCU protected
+>> data.
+>> 
 > 
-> This entire file is notrace:
+> Suggested-by: Steven Rostedt (VMware) <rosted@goodmis.org>
+
+and
+
+Suggested-by: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
+
+Thanks :)
+
+Mathieu
+
 > 
->  arch/x86/kernel/cpu/Makefile:
+>  ;-)
 > 
->    CFLAGS_REMOVE_common.o = -pg
+> -- Steve
+> 
+>> Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+>> ---
+>>  kernel/events/core.c |    5 +++++
+>>  1 file changed, 5 insertions(+)
+>> 
+>> --- a/kernel/events/core.c
+>> +++ b/kernel/events/core.c
+>> @@ -8950,6 +8950,7 @@ void perf_tp_event(u16 event_type, u64 c
+>>  {
+>>  	struct perf_sample_data data;
+>>  	struct perf_event *event;
+>> +	unsigned long rcu_flags;
+>>  
+>>  	struct perf_raw_record raw = {
+>>  		.frag = {
+>> @@ -8961,6 +8962,8 @@ void perf_tp_event(u16 event_type, u64 c
+>>  	perf_sample_data_init(&data, 0, 0);
+>>  	data.raw = &raw;
+>>  
+>> +	rcu_flags = trace_rcu_enter();
+>> +
+>>  	perf_trace_buf_update(record, event_type);
+>>  
+>>  	hlist_for_each_entry_rcu(event, head, hlist_entry) {
+>> @@ -8996,6 +8999,8 @@ void perf_tp_event(u16 event_type, u64 c
+>>  	}
+>>  
+>>  	perf_swevent_put_recursion_context(rctx);
+>> +
+>> +	trace_rcu_exit(rcu_flags);
+>>  }
+>>  EXPORT_SYMBOL_GPL(perf_tp_event);
+>>  
 
-Urgh, I hate it that that annotation is so hard to find :/ Also, there
-seem to be various flavours of that Makefile magic around.
-
-  CFLAGS_REMOVE_lockdep.o = $(CC_FLAGS_FTRACE)
-
-is another variant I encountered.
+-- 
+Mathieu Desnoyers
+EfficiOS Inc.
+http://www.efficios.com
