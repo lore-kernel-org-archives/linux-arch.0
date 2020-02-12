@@ -1,38 +1,47 @@
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [PATCH 19/22] arm64: mte: Allow user control of the tag check
- mode via prctl()
-Date: Wed, 12 Feb 2020 11:45:17 +0000
-Message-ID: <20200212114517.GF488264@arrakis.emea.arm.com>
-References: <20191211184027.20130-1-catalin.marinas@arm.com>
- <20191211184027.20130-20-catalin.marinas@arm.com>
- <cdd9d203-00c8-0a63-69b5-66234c0e9d9a@arm.com>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH 0/8] tracing vs rcu vs nmi
+Date: Wed, 12 Feb 2020 12:58:20 +0100
+Message-ID: <20200212115820.GQ14897@hirez.programming.kicks-ass.net>
+References: <20200212093210.468391728@infradead.org>
+ <20200212100106.GA14914@hirez.programming.kicks-ass.net>
+ <20200212105646.GA4017@willie-the-truck>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:59952 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1728247AbgBLLpV (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 12 Feb 2020 06:45:21 -0500
+Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <cdd9d203-00c8-0a63-69b5-66234c0e9d9a@arm.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Kevin Brodsky <kevin.brodsky@arm.com>
-Cc: linux-arm-kernel@lists.infradead.org, Will Deacon <will@kernel.org>, Marc Zyngier <maz@kernel.org>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Richard Earnshaw <Richard.Earnshaw@arm.com>, Andrey Konovalov <andreyknvl@google.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org
+In-Reply-To: <20200212105646.GA4017@willie-the-truck>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Will Deacon <will@kernel.org>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, rostedt@goodmis.org, james.morse@arm.com, catalin.marinas@arm.com, mingo@kernel.org, joel@joelfernandes.org, gregkh@linuxfoundation.org, gustavo@embeddedor.com, tglx@linutronix.de, paulmck@kernel.org, josh@joshtriplett.org, mathieu.desnoyers@efficios.com, jiangshanlai@gmail.com
+List-Id: linux-arch.vger.kernel.org
 
-On Fri, Dec 27, 2019 at 02:34:32PM +0000, Kevin Brodsky wrote:
-> Not just related to this patch, but here goes. While trying to debug an
-> MTE-enabled process, I realised that there's no way to tell the tagged addr
-> / MTE thread configuration from outside of the thread. At this point I
-> thought it'd be really nice if this were to be exposed in /proc/pid, maybe
-> in /proc/pid/status. Unfortunately there seems to be no precedent for an
-> arch-specific feature to be exposed there. I guess a ptrace call would work
-> as well, although it wouldn't be as practical without using a debugger.
+On Wed, Feb 12, 2020 at 10:56:46AM +0000, Will Deacon wrote:
+> On Wed, Feb 12, 2020 at 11:01:06AM +0100, Peter Zijlstra wrote:
+> > On Wed, Feb 12, 2020 at 10:32:10AM +0100, Peter Zijlstra wrote:
+> > > Hi all,
+> > > 
+> > > These here patches are the result of Mathieu and Steve trying to get commit
+> > > 865e63b04e9b2 ("tracing: Add back in rcu_irq_enter/exit_irqson() for rcuidle
+> > > tracepoints") reverted again.
+> > > 
+> > > One of the things discovered is that tracing MUST NOT happen before nmi_enter()
+> > > or after nmi_exit(). I've only fixed x86, but quickly gone through other
+> > > architectures and there is definitely more stuff to be fixed (simply grep for
+> > > nmi_enter in your arch).
+> > 
+> > For ARM64:
+> > 
+> >  - apei_claim_sea()
+> >  - __sdei_handler()
+> >  - do_serror()
+> >  - debug_exception_enter() / do_debug_exception()
+> > 
+> > all look dodgy.
+> 
+> Hmm, so looks like we need to spinkle some 'notrace' annotations around
+> these. Are there are scenarios where you would want NOKPROBE_SYMBOL() but
+> *not* 'notrace'? We've already got the former for the debug exception
+> handlers and we probably (?) want it for the SDEI stuff too...
 
-There is proc_pid_arch_status(), currently only used by x86 to report
-the avx512 status. We could do the same on arm64 and provide information
-information on the MTE status, SVE configuration, ptrauth. I think this
-can be a separate patch covering all these.
-
--- 
-Catalin
+I'm not sure. In fact, I asked Steve on IRC if we'd want to teach
+objtool to report such inconsitencies.
