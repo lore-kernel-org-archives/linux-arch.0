@@ -1,24 +1,18 @@
 From: Joel Fernandes <joel@joelfernandes.org>
 Subject: Re: [PATCH v2 3/9] rcu,tracing: Create trace_rcu_{enter,exit}()
-Date: Wed, 12 Feb 2020 18:20:05 -0500
-Message-ID: <20200212232005.GC115917@google.com>
+Date: Wed, 12 Feb 2020 18:27:02 -0500
+Message-ID: <20200212232702.GA170680@google.com>
 References: <20200212210139.382424693@infradead.org>
  <20200212210749.971717428@infradead.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qk1-f193.google.com ([209.85.222.193]:33943 "EHLO
-        mail-qk1-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1729103AbgBLXUH (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 12 Feb 2020 18:20:07 -0500
-Received: by mail-qk1-f193.google.com with SMTP id c20so3911304qkm.1
-        for <linux-arch@vger.kernel.org>; Wed, 12 Feb 2020 15:20:06 -0800 (PST)
+Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
 In-Reply-To: <20200212210749.971717428@infradead.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: Peter Zijlstra <peterz@infradead.org>
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, rostedt@goodmis.org, mingo@kernel.org, gregkh@linuxfoundation.org, gustavo@embeddedor.com, tglx@linutronix.de, paulmck@kernel.org, josh@joshtriplett.org, mathieu.desnoyers@efficios.com, jiangshanlai@gmail.com
+List-Id: linux-arch.vger.kernel.org
 
 On Wed, Feb 12, 2020 at 10:01:42PM +0100, Peter Zijlstra wrote:
 > To facilitate tracers that need RCU, add some helpers to wrap the
@@ -76,21 +70,12 @@ On Wed, Feb 12, 2020 at 10:01:42PM +0100, Peter Zijlstra wrote:
 > +			state = __TR_IRQ;			\
 > +			rcu_irq_enter_irqsave();		\
 
-I think this can be simplified. You don't need to rely on in_nmi() here. I
-believe for NMI's, you can just call rcu_irq_enter_irqsave() and that should
-be sufficient to get RCU watching. Paul can correct me if I'm wrong, but I am
-pretty sure that would work.
-
-In fact, I think a better naming for rcu_irq_enter_irqsave() pair could be
-(in the first patch):
-
-rcu_ensure_watching_begin();
-rcu_ensure_watching_end();
+Since rcu_irq_enter_irqsave can be called from a tracer context, should those
+be marked with notrace as well? AFAICS, there's no notrace marking on them.
 
 thanks,
 
  - Joel
-
 
 
 > +		}						\
