@@ -1,101 +1,153 @@
-Return-Path: <SRS0=hmIl=4B=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:45060 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1728690AbgBMVi2 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 13 Feb 2020 16:38:28 -0500
-Date: Thu, 13 Feb 2020 16:38:25 -0500
-From: Steven Rostedt <rostedt@goodmis.org>
-Subject: Re: [PATCH v2 3/9] rcu,tracing: Create trace_rcu_{enter,exit}()
-Message-ID: <20200213163800.5c51a5f1@gandalf.local.home>
-In-Reply-To: <20200213211930.GG170680@google.com>
+Return-Path: <SRS0=bqXs=4A=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from bombadil.infradead.org ([198.137.202.133]:45052 "EHLO
+        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1729103AbgBLVOF (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 12 Feb 2020 16:14:05 -0500
+Message-ID: <20200212210749.858223764@infradead.org>
+Date: Wed, 12 Feb 2020 22:01:40 +0100
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: [PATCH v2 1/9] rcu: Rename rcu_irq_{enter,exit}_irqson()
 References: <20200212210139.382424693@infradead.org>
-        <20200212210749.971717428@infradead.org>
-        <20200212232005.GC115917@google.com>
-        <20200213082716.GI14897@hirez.programming.kicks-ass.net>
-        <20200213135138.GB2935@paulmck-ThinkPad-P72>
-        <20200213164031.GH14914@hirez.programming.kicks-ass.net>
-        <20200213185612.GG2935@paulmck-ThinkPad-P72>
-        <20200213204444.GA94647@google.com>
-        <20200213205442.GK2935@paulmck-ThinkPad-P72>
-        <20200213211930.GG170680@google.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Joel Fernandes <joel@joelfernandes.org>
-Cc: "Paul E. McKenney" <paulmck@kernel.org>, Peter Zijlstra <peterz@infradead.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org, gregkh@linuxfoundation.org, gustavo@embeddedor.com, tglx@linutronix.de, josh@joshtriplett.org, mathieu.desnoyers@efficios.com, jiangshanlai@gmail.com, Masami Hiramatsu <mhiramat@kernel.org>
-Message-ID: <20200213213825.Xtkd_uVWImMHBkKmNgZiccmoijwBRbfb1blh4a7Zwww@z>
+To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, rostedt@goodmis.org
+Cc: peterz@infradead.org, mingo@kernel.org, joel@joelfernandes.org, gregkh@linuxfoundation.org, gustavo@embeddedor.com, tglx@linutronix.de, paulmck@kernel.org, josh@joshtriplett.org, mathieu.desnoyers@efficios.com, jiangshanlai@gmail.com
+Message-ID: <20200212210140.R4ufHr2nC0Qi19fJI4AzkXTAHmCk82Cw9jMo8ftkzRY@z>
 
-[ Added Masami ]
+The functions do in fact use local_irq_{save,restore}() and can
+therefore be used when IRQs are in fact disabled. Worse, they are
+already used in places where IRQs are disabled, leading to great
+confusion when reading the code.
 
-On Thu, 13 Feb 2020 16:19:30 -0500
-Joel Fernandes <joel@joelfernandes.org> wrote:
+Rename them to fix this confusion.
 
-> On Thu, Feb 13, 2020 at 12:54:42PM -0800, Paul E. McKenney wrote:
-> > On Thu, Feb 13, 2020 at 03:44:44PM -0500, Joel Fernandes wrote:  
-> > > On Thu, Feb 13, 2020 at 10:56:12AM -0800, Paul E. McKenney wrote:
-> > > [...]   
-> > > > > > It might well be that I could make these functions be NMI-safe, but
-> > > > > > rcu_prepare_for_idle() in particular would be a bit ugly at best.
-> > > > > > So, before looking into that, I have a question.  Given these proposed
-> > > > > > changes, will rcu_nmi_exit_common() and rcu_nmi_enter_common() be able
-> > > > > > to just use in_nmi()?  
-> > > > > 
-> > > > > That _should_ already be the case today. That is, if we end up in a
-> > > > > tracer and in_nmi() is unreliable we're already screwed anyway.  
-> > > > 
-> > > > So something like this, then?  This is untested, probably doesn't even
-> > > > build, and could use some careful review from both Peter and Steve,
-> > > > at least.  As in the below is the second version of the patch, the first
-> > > > having been missing a couple of important "!" characters.  
-> > > 
-> > > I removed the static from rcu_nmi_enter()/exit() as it is called from
-> > > outside, that makes it build now. Updated below is Paul's diff. I also added
-> > > NOKPROBE_SYMBOL() to rcu_nmi_exit() to match rcu_nmi_enter() since it seemed
-> > > asymmetric.  
-> > 
-> > My compiler complained about the static and the __always_inline, so I
-> > fixed those.  But please help me out on adding the NOKPROBE_SYMBOL()
-> > to rcu_nmi_exit().  What bad thing happens if we leave this on only
-> > rcu_nmi_enter()?  
-> 
-> It seemed odd to me we were not allowing kprobe on the rcu_nmi_enter() but
-> allowing it on exit (from a code reading standpoint) so my reaction was to
-> add it to both, but we could probably keep that as a separate
-> patch/discussion since it is slightly unrelated to the patch.. Sorry to
-> confuse the topic.
->
+Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+---
+ include/linux/rcupdate.h   |    4 ++--
+ include/linux/rcutiny.h    |    4 ++--
+ include/linux/rcutree.h    |    4 ++--
+ include/linux/tracepoint.h |    4 ++--
+ kernel/cpu_pm.c            |    4 ++--
+ kernel/rcu/tree.c          |    8 ++++----
+ kernel/trace/trace.c       |    4 ++--
+ 7 files changed, 16 insertions(+), 16 deletions(-)
 
-rcu_nmi_enter() was marked NOKPROBE or other reasons. See commit
-c13324a505c77 ("x86/kprobes: Prohibit probing on functions before
-kprobe_int3_handler()")
-
-The issue was that we must not allow anything in do_int3() call kprobe
-code before kprobe_int3_handler() is called. Because ist_enter() (in
-do_int3()) calls rcu_nmi_enter() it had to be marked NOKPROBE. It had
-nothing to do with it being RCU nor NMI, but because it was simply
-called in do_int3().
-
-Thus, there's no reason to make rcu_nmi_exit() NOKPROBE. But a commont
-to why rcu_nmi_enter() would probably be useful, like below:
-
--- Steve
-
-diff --git a/kernel/rcu/tree.c b/kernel/rcu/tree.c
-index 1694a6b57ad8..e2c9e3e2f480 100644
+--- a/include/linux/rcupdate.h
++++ b/include/linux/rcupdate.h
+@@ -120,9 +120,9 @@ static inline void rcu_init_nohz(void) {
+  */
+ #define RCU_NONIDLE(a) \
+ 	do { \
+-		rcu_irq_enter_irqson(); \
++		rcu_irq_enter_irqsave(); \
+ 		do { a; } while (0); \
+-		rcu_irq_exit_irqson(); \
++		rcu_irq_exit_irqsave(); \
+ 	} while (0)
+ 
+ /*
+--- a/include/linux/rcutiny.h
++++ b/include/linux/rcutiny.h
+@@ -68,8 +68,8 @@ static inline int rcu_jiffies_till_stall
+ static inline void rcu_idle_enter(void) { }
+ static inline void rcu_idle_exit(void) { }
+ static inline void rcu_irq_enter(void) { }
+-static inline void rcu_irq_exit_irqson(void) { }
+-static inline void rcu_irq_enter_irqson(void) { }
++static inline void rcu_irq_exit_irqsave(void) { }
++static inline void rcu_irq_enter_irqsave(void) { }
+ static inline void rcu_irq_exit(void) { }
+ static inline void exit_rcu(void) { }
+ static inline bool rcu_preempt_need_deferred_qs(struct task_struct *t)
+--- a/include/linux/rcutree.h
++++ b/include/linux/rcutree.h
+@@ -46,8 +46,8 @@ void rcu_idle_enter(void);
+ void rcu_idle_exit(void);
+ void rcu_irq_enter(void);
+ void rcu_irq_exit(void);
+-void rcu_irq_enter_irqson(void);
+-void rcu_irq_exit_irqson(void);
++void rcu_irq_enter_irqsave(void);
++void rcu_irq_exit_irqsave(void);
+ 
+ void exit_rcu(void);
+ 
+--- a/include/linux/tracepoint.h
++++ b/include/linux/tracepoint.h
+@@ -181,7 +181,7 @@ static inline struct tracepoint *tracepo
+ 		 */							\
+ 		if (rcuidle) {						\
+ 			__idx = srcu_read_lock_notrace(&tracepoint_srcu);\
+-			rcu_irq_enter_irqson();				\
++			rcu_irq_enter_irqsave();			\
+ 		}							\
+ 									\
+ 		it_func_ptr = rcu_dereference_raw((tp)->funcs);		\
+@@ -195,7 +195,7 @@ static inline struct tracepoint *tracepo
+ 		}							\
+ 									\
+ 		if (rcuidle) {						\
+-			rcu_irq_exit_irqson();				\
++			rcu_irq_exit_irqsave();				\
+ 			srcu_read_unlock_notrace(&tracepoint_srcu, __idx);\
+ 		}							\
+ 									\
+--- a/kernel/cpu_pm.c
++++ b/kernel/cpu_pm.c
+@@ -24,10 +24,10 @@ static int cpu_pm_notify(enum cpu_pm_eve
+ 	 * could be disfunctional in cpu idle. Copy RCU_NONIDLE code to let
+ 	 * RCU know this.
+ 	 */
+-	rcu_irq_enter_irqson();
++	rcu_irq_enter_irqsave();
+ 	ret = __atomic_notifier_call_chain(&cpu_pm_notifier_chain, event, NULL,
+ 		nr_to_call, nr_calls);
+-	rcu_irq_exit_irqson();
++	rcu_irq_exit_irqsave();
+ 
+ 	return notifier_to_errno(ret);
+ }
 --- a/kernel/rcu/tree.c
 +++ b/kernel/rcu/tree.c
-@@ -846,6 +846,12 @@ void rcu_nmi_enter(void)
+@@ -699,10 +699,10 @@ void rcu_irq_exit(void)
+ /*
+  * Wrapper for rcu_irq_exit() where interrupts are enabled.
+  *
+- * If you add or remove a call to rcu_irq_exit_irqson(), be sure to test
++ * If you add or remove a call to rcu_irq_exit_irqsave(), be sure to test
+  * with CONFIG_RCU_EQS_DEBUG=y.
+  */
+-void rcu_irq_exit_irqson(void)
++void rcu_irq_exit_irqsave(void)
  {
- 	rcu_nmi_enter_common(false);
+ 	unsigned long flags;
+ 
+@@ -875,10 +875,10 @@ void rcu_irq_enter(void)
+ /*
+  * Wrapper for rcu_irq_enter() where interrupts are enabled.
+  *
+- * If you add or remove a call to rcu_irq_enter_irqson(), be sure to test
++ * If you add or remove a call to rcu_irq_enter_irqsave(), be sure to test
+  * with CONFIG_RCU_EQS_DEBUG=y.
+  */
+-void rcu_irq_enter_irqson(void)
++void rcu_irq_enter_irqsave(void)
+ {
+ 	unsigned long flags;
+ 
+--- a/kernel/trace/trace.c
++++ b/kernel/trace/trace.c
+@@ -3004,9 +3004,9 @@ void __trace_stack(struct trace_array *t
+ 	if (unlikely(in_nmi()))
+ 		return;
+ 
+-	rcu_irq_enter_irqson();
++	rcu_irq_enter_irqsave();
+ 	__ftrace_trace_stack(buffer, flags, skip, pc, NULL);
+-	rcu_irq_exit_irqson();
++	rcu_irq_exit_irqsave();
  }
-+/*
-+ * On x86, All functions in do_int3() must be marked NOKPROBE before
-+ * kprobe_int3_handler() is called. ist_enter() which is called in do_int3()
-+ * before kprobe_int3_handle() happens to call rcu_nmi_enter() in which case
-+ * rcu_nmi_enter() must be marked NOKRPOBE.
-+ */
- NOKPROBE_SYMBOL(rcu_nmi_enter);
  
  /**
