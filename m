@@ -1,46 +1,57 @@
-Return-Path: <SRS0=0XgO=4J=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:45354 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1729397AbgBUSTD (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 21 Feb 2020 13:19:03 -0500
-From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Subject: [PATCH v2 2/3] arm64: clocksource: Add VDSO default clockmode
-Date: Fri, 21 Feb 2020 18:18:48 +0000
-Message-ID: <20200221181849.40351-3-vincenzo.frascino@arm.com>
-In-Reply-To: <20200221181849.40351-1-vincenzo.frascino@arm.com>
-References: <20200221181849.40351-1-vincenzo.frascino@arm.com>
+Return-Path: <SRS0=bqXs=4A=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from merlin.infradead.org ([205.233.59.134]:33480 "EHLO
+        merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1729198AbgBLVOO (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 12 Feb 2020 16:14:14 -0500
+Message-ID: <20200212210750.142334759@infradead.org>
+Date: Wed, 12 Feb 2020 22:01:45 +0100
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: [PATCH v2 6/9] perf,tracing: Prepare the perf-trace interface for RCU changes
+References: <20200212210139.382424693@infradead.org>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org
-Cc: catalin.marinas@arm.com, will.deacon@arm.com, linux@armlinux.org.uk, tglx@linutronix.de, luto@kernel.org, m.szyprowski@samsung.com, Mark.Rutland@arm.com, maz@kernel.org, vincenzo.frascino@arm.com
-Message-ID: <20200221181848.KslPLbK2b67l_NQoArmyWwMI_F3-wHQ9UWy4lYqwHFU@z>
+To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, rostedt@goodmis.org
+Cc: peterz@infradead.org, mingo@kernel.org, joel@joelfernandes.org, gregkh@linuxfoundation.org, gustavo@embeddedor.com, tglx@linutronix.de, paulmck@kernel.org, josh@joshtriplett.org, mathieu.desnoyers@efficios.com, jiangshanlai@gmail.com, "Steven Rostedt (VMware)" <rosted@goodmis.org>
+Message-ID: <20200212210145.bjKdK83fBgc5b_yxqKFZ3Ef7skvHoAkEb3A5R74Ge5E@z>
 
-Define VDSO_CLOCKMODE_ARCH_DEFAULT to represent the default vDSO
-clockmode for arm_arch_timer.
+The tracepoint interface will stop providing regular RCU context; make
+sure we do it ourselves, since perf makes use of regular RCU protected
+data.
 
-The change to arm_arch_timer will be in the next patch of this
-series.
-
-Cc: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Will Deacon <will.deacon@arm.com>
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
+Suggested-by: Steven Rostedt (VMware) <rosted@goodmis.org>
+Suggested-by: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
+Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
 ---
- arch/arm64/include/asm/clocksource.h | 1 +
- 1 file changed, 1 insertion(+)
+ kernel/events/core.c |    5 +++++
+ 1 file changed, 5 insertions(+)
 
-diff --git a/arch/arm64/include/asm/clocksource.h b/arch/arm64/include/asm/clocksource.h
-index eb82e9d95c5d..36a2cca213ae 100644
---- a/arch/arm64/include/asm/clocksource.h
-+++ b/arch/arm64/include/asm/clocksource.h
-@@ -4,5 +4,6 @@
+--- a/kernel/events/core.c
++++ b/kernel/events/core.c
+@@ -8950,6 +8950,7 @@ void perf_tp_event(u16 event_type, u64 c
+ {
+ 	struct perf_sample_data data;
+ 	struct perf_event *event;
++	unsigned long rcu_flags;
  
- #define VDSO_ARCH_CLOCKMODES	\
- 	VDSO_CLOCKMODE_ARCHTIMER
-+#define VDSO_CLOCKMODE_ARCH_DEFAULT	VDSO_CLOCKMODE_ARCHTIMER
+ 	struct perf_raw_record raw = {
+ 		.frag = {
+@@ -8961,6 +8962,8 @@ void perf_tp_event(u16 event_type, u64 c
+ 	perf_sample_data_init(&data, 0, 0);
+ 	data.raw = &raw;
  
- #endif
--- 
-2.25.0
++	rcu_flags = trace_rcu_enter();
++
+ 	perf_trace_buf_update(record, event_type);
+ 
+ 	hlist_for_each_entry_rcu(event, head, hlist_entry) {
+@@ -8996,6 +8999,8 @@ void perf_tp_event(u16 event_type, u64 c
+ 	}
+ 
+ 	perf_swevent_put_recursion_context(rctx);
++
++	trace_rcu_exit(rcu_flags);
+ }
+ EXPORT_SYMBOL_GPL(perf_tp_event);
+ 
