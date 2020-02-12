@@ -1,58 +1,118 @@
-Return-Path: <SRS0=LzcT=4H=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:51228 "EHLO mail.kernel.org"
+Return-Path: <SRS0=bqXs=4A=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from foss.arm.com ([217.140.110.172]:36884 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726634AbgBSRv7 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 19 Feb 2020 12:51:59 -0500
-From: Krzysztof Kozlowski <krzk@kernel.org>
-Subject: [RESEND PATCH v2 5/9] arc: Constify ioreadX() iomem argument (as in generic implementation)
-Date: Wed, 19 Feb 2020 18:50:03 +0100
-Message-Id: <20200219175007.13627-6-krzk@kernel.org>
-In-Reply-To: <20200219175007.13627-1-krzk@kernel.org>
-References: <20200219175007.13627-1-krzk@kernel.org>
+        id S1727361AbgBLT3M (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 12 Feb 2020 14:29:12 -0500
+From: Mark Brown <broonie@kernel.org>
+Subject: [PATCH v6 00/11] arm64: Branch Target Identification support
+Date: Wed, 12 Feb 2020 19:28:55 +0000
+Message-ID: <20200212192906.53366-1-broonie@kernel.org>
+MIME-Version: 1.0
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Alexey Brodkin <abrodkin@synopsys.com>, Vineet Gupta <vgupta@synopsys.com>, "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>, Helge Deller <deller@gmx.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, Dave Airlie <airlied@redhat.com>, David Airlie <airlied@linux.ie>, Daniel Vetter <daniel@ffwll.ch>, Ben Skeggs <bskeggs@redhat.com>, Mauro Carvalho Chehab <mchehab@kernel.org>, Jiri Slaby <jirislaby@gmail.com>, Nick Kossifidis <mickflemm@gmail.com>, Luis Chamberlain <mcgrof@kernel.org>, Kalle Valo <kvalo@codeaurora.org>, "David S. Miller" <davem@davemloft.net>, Dave Jiang <dave.jiang@intel.com>, Jon Mason <jdmason@kudzu.us>, Allen Hubbe <allenbh@gmail.com>, "Michael S. Tsirkin" <mst@redhat.com>, Jason Wang <jasowang@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Geert Uytterhoeven <geert+renesas@glider.be>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-snps-arc@lists.infradead.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org, dri-devel@lists.freedesktop.org, nouveau@lists.freedesktop.org, linux-media@vger.kernel.org, linux-wireless@vger.kernel.org, netdev@vger.kernel.org, linux-ntb@googlegroups.com, virtualization@lists.linux-foundation.org, linux-arch@vger.kernel.org
-Cc: Krzysztof Kozlowski <krzk@kernel.org>
+To: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>
+Cc: Alexander Viro <viro@zeniv.linux.org.uk>, Paul Elliott <paul.elliott@arm.com>, Peter Zijlstra <peterz@infradead.org>, Yu-cheng Yu <yu-cheng.yu@intel.com>, Amit Kachhap <amit.kachhap@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Marc Zyngier <maz@kernel.org>, Eugene Syromiatnikov <esyr@redhat.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, "H . J . Lu " <hjl.tools@gmail.com>, Andrew Jones <drjones@redhat.com>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Jann Horn <jannh@google.com>, Richard Henderson <richard.henderson@linaro.org>, =?UTF-8?q?Kristina=20Mart=C5=A1enko?= <kristina.martsenko@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Florian Weimer <fweimer@redhat.com>, Sudakshina Das <sudi.das@arm.com>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, Mark Brown <broonie@kernel.org>
+Message-ID: <20200212192855.DdJPhjNr37TcdZ5v4p8kYGuj_TznzhcJKLVJmWBfaqY@z>
 
-The ioreadX() helpers have inconsistent interface.  On some architectures
-void *__iomem address argument is a pointer to const, on some not.
+This patch implements support for ARMv8.5-A Branch Target Identification
+(BTI), which is a control flow integrity protection feature introduced
+as part of the ARMv8.5-A extensions.
 
-Implementations of ioreadX() do not modify the memory under the
-address so they can be converted to a "const" version for const-safety
-and consistency among architectures.
+Changes:
 
-Signed-off-by: Krzysztof Kozlowski <krzk@kernel.org>
-Acked-by: Alexey Brodkin <abrodkin@synopsys.com>
+v6:
+ - Rebase onto v5.6-rc1.
+ - Fix typos s/BYTPE/BTYPE/ in commit log for "arm64: BTI: Decode BYTPE
+   bits when printing PSTATE".
+v5:
+ - Changed a bunch of -EIO to -ENOEXEC in the ELF parsing code.
+ - Move PSR_BTYPE defines to UAPI.
+ - Use compat_user_mode() rather than open coding.
+ - Fix a typo s/BYTPE/BTYPE/ in syscall.c
+v4:
+ - Dropped patch fixing existing documentation as it has already been merged.
+ - Convert WARN_ON() to WARN_ON_ONCE() in "ELF: Add ELF program property
+   parsing support".
+ - Added display of guarded pages to ptdump.
+ - Updated for conversion of exception handling from assembler to C.
 
----
+Notes:
 
-Changes since v1:
-1. Add Alexey's ack.
----
- arch/arc/plat-axs10x/axs10x.c | 4 ++--
- 1 file changed, 2 insertions(+), 2 deletions(-)
+ * GCC 9 can compile backwards-compatible BTI-enabled code with
+   -mbranch-protection=bti or -mbranch-protection=standard.
 
-diff --git a/arch/arc/plat-axs10x/axs10x.c b/arch/arc/plat-axs10x/axs10x.c
-index 63ea5a606ecd..180c260a8221 100644
---- a/arch/arc/plat-axs10x/axs10x.c
-+++ b/arch/arc/plat-axs10x/axs10x.c
-@@ -84,7 +84,7 @@ static void __init axs10x_print_board_ver(unsigned int creg, const char *str)
- 		unsigned int val;
- 	} board;
- 
--	board.val = ioread32((void __iomem *)creg);
-+	board.val = ioread32((const void __iomem *)creg);
- 	pr_info("AXS: %s FPGA Date: %u-%u-%u\n", str, board.d, board.m,
- 		board.y);
- }
-@@ -95,7 +95,7 @@ static void __init axs10x_early_init(void)
- 	char mb[32];
- 
- 	/* Determine motherboard version */
--	if (ioread32((void __iomem *) CREG_MB_CONFIG) & (1 << 28))
-+	if (ioread32((const void __iomem *) CREG_MB_CONFIG) & (1 << 28))
- 		mb_rev = 3;	/* HT-3 (rev3.0) */
- 	else
- 		mb_rev = 2;	/* HT-2 (rev2.0) */
+ * Binutils trunk supports the new ELF note, but this wasn't in a release
+   the last time I posted this series.  (The situation _might_ have changed
+   in the meantime...)
+
+   Creation of a BTI-enabled binary requires _everything_ linked in to
+   be BTI-enabled.  For now ld --force-bti can be used to override this,
+   but some things may break until the required C library support is in
+   place.
+
+   There is no straightforward way to mark a .s file as BTI-enabled:
+   scraping the output from gcc -S works as a quick hack for now.
+
+   readelf -n can be used to examing the program properties in an ELF
+   file.
+
+ * Runtime mmap() and mprotect() can be used to enable BTI on a
+   page-by-page basis using the new PROT_BTI, but the code in the
+   affected pages still needs to be written or compiled to contain the
+   appopriate BTI landing pads.
+
+Dave Martin (10):
+  ELF: UAPI and Kconfig additions for ELF program properties
+  ELF: Add ELF program property parsing support
+  arm64: Basic Branch Target Identification support
+  elf: Allow arch to tweak initial mmap prot flags
+  arm64: elf: Enable BTI at exec based on ELF program properties
+  arm64: BTI: Decode BTYPE bits when printing PSTATE
+  arm64: unify native/compat instruction skipping
+  arm64: traps: Shuffle code to eliminate forward declarations
+  arm64: BTI: Reset BTYPE when skipping emulated instructions
+  KVM: arm64: BTI: Reset BTYPE when skipping emulated instructions
+
+Mark Brown (1):
+  arm64: mm: Display guarded pages in ptdump
+
+ Documentation/arm64/cpu-feature-registers.rst |   2 +
+ Documentation/arm64/elf_hwcaps.rst            |   5 +
+ arch/arm64/Kconfig                            |  25 +++
+ arch/arm64/include/asm/cpucaps.h              |   3 +-
+ arch/arm64/include/asm/cpufeature.h           |   6 +
+ arch/arm64/include/asm/elf.h                  |  50 ++++++
+ arch/arm64/include/asm/esr.h                  |   2 +-
+ arch/arm64/include/asm/exception.h            |   1 +
+ arch/arm64/include/asm/hwcap.h                |   1 +
+ arch/arm64/include/asm/kvm_emulate.h          |   6 +-
+ arch/arm64/include/asm/mman.h                 |  37 +++++
+ arch/arm64/include/asm/pgtable-hwdef.h        |   1 +
+ arch/arm64/include/asm/pgtable.h              |   2 +-
+ arch/arm64/include/asm/ptrace.h               |   1 +
+ arch/arm64/include/asm/sysreg.h               |   4 +
+ arch/arm64/include/uapi/asm/hwcap.h           |   1 +
+ arch/arm64/include/uapi/asm/mman.h            |   9 ++
+ arch/arm64/include/uapi/asm/ptrace.h          |   9 ++
+ arch/arm64/kernel/cpufeature.c                |  33 ++++
+ arch/arm64/kernel/cpuinfo.c                   |   1 +
+ arch/arm64/kernel/entry-common.c              |  11 ++
+ arch/arm64/kernel/process.c                   |  36 ++++-
+ arch/arm64/kernel/ptrace.c                    |   2 +-
+ arch/arm64/kernel/signal.c                    |  16 ++
+ arch/arm64/kernel/syscall.c                   |  18 +++
+ arch/arm64/kernel/traps.c                     | 127 +++++++--------
+ arch/arm64/mm/dump.c                          |   5 +
+ fs/Kconfig.binfmt                             |   6 +
+ fs/binfmt_elf.c                               | 145 +++++++++++++++++-
+ fs/compat_binfmt_elf.c                        |   4 +
+ include/linux/elf.h                           |  43 ++++++
+ include/linux/mm.h                            |   3 +
+ include/uapi/linux/elf.h                      |  11 ++
+ 33 files changed, 551 insertions(+), 75 deletions(-)
+ create mode 100644 arch/arm64/include/asm/mman.h
+ create mode 100644 arch/arm64/include/uapi/asm/mman.h
+
 -- 
-2.17.1
+2.20.1
