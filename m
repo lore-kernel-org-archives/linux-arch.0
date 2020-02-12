@@ -1,74 +1,70 @@
-Return-Path: <SRS0=WXCa=4P=vger.kernel.org=linux-doc-owner@kernel.org>
-From: Luc Maranget <luc.maranget@inria.fr>
-Date: Thu, 27 Feb 2020 17:49:02 +0100
-Subject: Re: [PATCH v3 1/5] tools/memory-model: Add an exception for
- limitations on _unless() family
-Message-ID: <20200227164901.jxwk26ey3i2n2yhu@yquem.inria.fr>
-References: <20200227004049.6853-2-boqun.feng@gmail.com>
- <Pine.LNX.4.44L0.2002271129370.1730-100000@iolanthe.rowland.org>
+Return-Path: <SRS0=bqXs=4A=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail.kernel.org ([198.145.29.99]:44260 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1727963AbgBLO06 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 12 Feb 2020 09:26:58 -0500
+Date: Wed, 12 Feb 2020 09:26:55 -0500
+From: Steven Rostedt <rostedt@goodmis.org>
+Subject: Re: [PATCH 6/8] perf,tracing: Prepare the perf-trace interface for
+ RCU changes
+Message-ID: <20200212092655.4ba6cd79@gandalf.local.home>
+In-Reply-To: <20200212094107.951346701@infradead.org>
+References: <20200212093210.468391728@infradead.org>
+        <20200212094107.951346701@infradead.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-In-Reply-To: <Pine.LNX.4.44L0.2002271129370.1730-100000@iolanthe.rowland.org>
-Sender: linux-doc-owner@vger.kernel.org
-To: Alan Stern <stern@rowland.harvard.edu>
-Cc: Boqun Feng <boqun.feng@gmail.com>, linux-kernel@vger.kernel.org, Andrea Parri <parri.andrea@gmail.com>, Will Deacon <will@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Nicholas Piggin <npiggin@gmail.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, "Paul E. McKenney" <paulmck@kernel.org>, Akira Yokosawa <akiyks@gmail.com>, Daniel Lustig <dlustig@nvidia.com>, Jonathan Corbet <corbet@lwn.net>, Mauro Carvalho Chehab <mchehab+samsung@kernel.org>, "David S. Miller" <davem@davemloft.net>, Rob Herring <robh@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jonathan Cameron <Jonathan.Cameron@huawei.com>, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200227164902.qTdjVVz1_R4wO2KLLfkOQZSuDkdUoysZBDX6FQ8kAfA@z>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org, joel@joelfernandes.org, gregkh@linuxfoundation.org, gustavo@embeddedor.com, tglx@linutronix.de, paulmck@kernel.org, josh@joshtriplett.org, mathieu.desnoyers@efficios.com, jiangshanlai@gmail.com
+Message-ID: <20200212142655.mZqKmjmy-lZHOudnCOjMyHLKJXxwZTzW0SOg0SCfQp0@z>
 
-> On Thu, 27 Feb 2020, Boqun Feng wrote:
-> 
-> > According to Luc, atomic_add_unless() is directly provided by herd7,
-> > therefore it can be used in litmus tests. So change the limitation
-> > section in README to unlimit the use of atomic_add_unless().
-> 
-> Is this really true?  Why does herd treat atomic_add_unless() different
-> from all the other atomic RMS ops?  All the other ones we support do
-> have entries in linux-kernel.def.
+On Wed, 12 Feb 2020 10:32:16 +0100
+Peter Zijlstra <peterz@infradead.org> wrote:
 
-I think this to be true :)
-
-As far as I remember atomic_add_unless is quite different fron other atomic
-RMW ops and called for a specific all-OCaml implementation, without an
-entry in linux-kernel.def. As to  atomic_long_add_unless, I was not aware
-of its existence.
-
---Luc
-
+> The tracepoint interface will stop providing regular RCU context; make
+> sure we do it ourselves, since perf makes use of regular RCU protected
+> data.
 > 
-> Alan
+
+Suggested-by: Steven Rostedt (VMware) <rosted@goodmis.org>
+
+  ;-)
+
+-- Steve
+
+> Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+> ---
+>  kernel/events/core.c |    5 +++++
+>  1 file changed, 5 insertions(+)
 > 
-> PS: It seems strange to support atomic_add_unless but not 
-> atomic_long_add_unless.  The difference between the two is trivial.
+> --- a/kernel/events/core.c
+> +++ b/kernel/events/core.c
+> @@ -8950,6 +8950,7 @@ void perf_tp_event(u16 event_type, u64 c
+>  {
+>  	struct perf_sample_data data;
+>  	struct perf_event *event;
+> +	unsigned long rcu_flags;
+>  
+>  	struct perf_raw_record raw = {
+>  		.frag = {
+> @@ -8961,6 +8962,8 @@ void perf_tp_event(u16 event_type, u64 c
+>  	perf_sample_data_init(&data, 0, 0);
+>  	data.raw = &raw;
+>  
+> +	rcu_flags = trace_rcu_enter();
+> +
+>  	perf_trace_buf_update(record, event_type);
+>  
+>  	hlist_for_each_entry_rcu(event, head, hlist_entry) {
+> @@ -8996,6 +8999,8 @@ void perf_tp_event(u16 event_type, u64 c
+>  	}
+>  
+>  	perf_swevent_put_recursion_context(rctx);
+> +
+> +	trace_rcu_exit(rcu_flags);
+>  }
+>  EXPORT_SYMBOL_GPL(perf_tp_event);
+>  
 > 
-> > 
-> > Cc: Luc Maranget <luc.maranget@inria.fr>
-> > Signed-off-by: Boqun Feng <boqun.feng@gmail.com>
-> > ---
-> >  tools/memory-model/README | 10 +++++++---
-> >  1 file changed, 7 insertions(+), 3 deletions(-)
-> > 
-> > diff --git a/tools/memory-model/README b/tools/memory-model/README
-> > index fc07b52f2028..409211b1c544 100644
-> > --- a/tools/memory-model/README
-> > +++ b/tools/memory-model/README
-> > @@ -207,11 +207,15 @@ The Linux-kernel memory model (LKMM) has the following limitations:
-> >  		case as a store release.
-> >  
-> >  	b.	The "unless" RMW operations are not currently modeled:
-> > -		atomic_long_add_unless(), atomic_add_unless(),
-> > -		atomic_inc_unless_negative(), and
-> > -		atomic_dec_unless_positive().  These can be emulated
-> > +		atomic_long_add_unless(), atomic_inc_unless_negative(),
-> > +		and atomic_dec_unless_positive().  These can be emulated
-> >  		in litmus tests, for example, by using atomic_cmpxchg().
-> >  
-> > +		One exception of this limitation is atomic_add_unless(),
-> > +		which is provided directly by herd7 (so no corresponding
-> > +		definition in linux-kernel.def). atomic_add_unless() is
-> > +		modeled by herd7 therefore it can be used in litmus tests.
-> > +
-> >  	c.	The call_rcu() function is not modeled.  It can be
-> >  		emulated in litmus tests by adding another process that
-> >  		invokes synchronize_rcu() and the body of the callback
-> > 
