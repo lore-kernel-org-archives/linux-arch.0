@@ -1,27 +1,52 @@
-Return-Path: <SRS0=sPo6=4I=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.133]:33378 "EHLO
-        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726959AbgBTRB7 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 20 Feb 2020 12:01:59 -0500
-From: Christoph Hellwig <hch@lst.de>
-Subject: provide in-place uncached remapping for dma-direct (resend)
-Date: Thu, 20 Feb 2020 09:01:37 -0800
-Message-ID: <20200220170139.387354-1-hch@lst.de>
+Return-Path: <SRS0=bqXs=4A=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from merlin.infradead.org ([205.233.59.134]:42966 "EHLO
+        merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1725874AbgBLL7B (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 12 Feb 2020 06:59:01 -0500
+Date: Wed, 12 Feb 2020 12:58:20 +0100
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH 0/8] tracing vs rcu vs nmi
+Message-ID: <20200212115820.GQ14897@hirez.programming.kicks-ass.net>
+References: <20200212093210.468391728@infradead.org>
+ <20200212100106.GA14914@hirez.programming.kicks-ass.net>
+ <20200212105646.GA4017@willie-the-truck>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20200212105646.GA4017@willie-the-truck>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jonas Bonn <jonas@southpole.se>, Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>, Stafford Horne <shorne@gmail.com>
-Cc: Marek Szyprowski <m.szyprowski@samsung.com>, Robin Murphy <robin.murphy@arm.com>, Will Deacon <will@kernel.org>, Mark Rutland <mark.rutland@arm.com>, openrisc@lists.librecores.org, iommu@lists.linux-foundation.org, linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20200220170137.OD5h1aCdhGAhHTLczzpbNA6uitPJRfpRL47AKgmCbzQ@z>
+To: Will Deacon <will@kernel.org>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, rostedt@goodmis.org, james.morse@arm.com, catalin.marinas@arm.com, mingo@kernel.org, joel@joelfernandes.org, gregkh@linuxfoundation.org, gustavo@embeddedor.com, tglx@linutronix.de, paulmck@kernel.org, josh@joshtriplett.org, mathieu.desnoyers@efficios.com, jiangshanlai@gmail.com
+Message-ID: <20200212115820.iVNAeUppublIInRvNNft-T_MeA6r-nQEjvlaqAHeF6k@z>
 
-Hi all,
+On Wed, Feb 12, 2020 at 10:56:46AM +0000, Will Deacon wrote:
+> On Wed, Feb 12, 2020 at 11:01:06AM +0100, Peter Zijlstra wrote:
+> > On Wed, Feb 12, 2020 at 10:32:10AM +0100, Peter Zijlstra wrote:
+> > > Hi all,
+> > > 
+> > > These here patches are the result of Mathieu and Steve trying to get commit
+> > > 865e63b04e9b2 ("tracing: Add back in rcu_irq_enter/exit_irqson() for rcuidle
+> > > tracepoints") reverted again.
+> > > 
+> > > One of the things discovered is that tracing MUST NOT happen before nmi_enter()
+> > > or after nmi_exit(). I've only fixed x86, but quickly gone through other
+> > > architectures and there is definitely more stuff to be fixed (simply grep for
+> > > nmi_enter in your arch).
+> > 
+> > For ARM64:
+> > 
+> >  - apei_claim_sea()
+> >  - __sdei_handler()
+> >  - do_serror()
+> >  - debug_exception_enter() / do_debug_exception()
+> > 
+> > all look dodgy.
+> 
+> Hmm, so looks like we need to spinkle some 'notrace' annotations around
+> these. Are there are scenarios where you would want NOKPROBE_SYMBOL() but
+> *not* 'notrace'? We've already got the former for the debug exception
+> handlers and we probably (?) want it for the SDEI stuff too...
 
-this series provides support for remapping places uncached in-place in
-the generic dma-direct code, and moves openrisc over from its own
-in-place remapping scheme.  The arm64 folks also had interest in such
-a scheme to avoid problems with speculating into cache aliases.
-
-Also all architectures that always use small page mappings for the
-kernel and have non-coherent DMA should look into enabling this
-scheme, as it is much more efficient than the vmap remapping.
+I'm not sure. In fact, I asked Steve on IRC if we'd want to teach
+objtool to report such inconsitencies.
