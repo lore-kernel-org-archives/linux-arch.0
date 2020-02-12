@@ -1,337 +1,323 @@
-Return-Path: <rppt@kernel.org>
-From: Mike Rapoport <rppt@kernel.org>
-Subject: [PATCH v2 10/13] sh: add support for folded p4d page tables
-Date: Sun, 16 Feb 2020 10:18:40 +0200
-Message-ID: <20200216081843.28670-11-rppt@kernel.org>
-In-Reply-To: <20200216081843.28670-1-rppt@kernel.org>
-References: <20200216081843.28670-1-rppt@kernel.org>
+Return-Path: <SRS0=bqXs=4A=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from foss.arm.com ([217.140.110.172]:36942 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1727361AbgBLT3Q (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 12 Feb 2020 14:29:16 -0500
+From: Mark Brown <broonie@kernel.org>
+Subject: [PATCH v6 02/11] ELF: Add ELF program property parsing support
+Date: Wed, 12 Feb 2020 19:28:57 +0000
+Message-ID: <20200212192906.53366-3-broonie@kernel.org>
+In-Reply-To: <20200212192906.53366-1-broonie@kernel.org>
+References: <20200212192906.53366-1-broonie@kernel.org>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
-To: linux-kernel@vger.kernel.org
-Cc: Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Brian Cain <bcain@codeaurora.org>, Catalin Marinas <catalin.marinas@arm.com>, Christophe Leroy <christophe.leroy@c-s.fr>, Fenghua Yu <fenghua.yu@intel.com>, Geert Uytterhoeven <geert+renesas@glider.be>, Guan Xuetao <gxt@pku.edu.cn>, James Morse <james.morse@arm.com>, Jonas Bonn <jonas@southpole.se>, Julien Thierry <julien.thierry.kdev@gmail.com>, Ley Foon Tan <ley.foon.tan@intel.com>, Marc Zyngier <maz@kernel.org>, Michael Ellerman <mpe@ellerman.id.au>, Paul Mackerras <paulus@samba.org>, Rich Felker <dalias@libc.org>, Russell King <linux@armlinux.org.uk>, Stafford Horne <shorne@gmail.com>, Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>, Suzuki K Poulose <suzuki.poulose@arm.com>, Tony Luck <tony.luck@intel.com>, Will Deacon <will@kernel.org>, Yoshinori Sato <ysato@users.sourceforge.jp>, kvmarm@lists.cs.columbia.edu, kvm-ppc@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-mm@kvack.org, linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org, nios2-dev@lists.rocketboards.org, openrisc@lists.librecores.org, uclinux-h8-devel@lists.sourceforge.jp, Mike Rapoport <rppt@kernel.org>, Mike Rapoport <rppt@linux.ibm.com>
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200216081840.1NGtCQOfLrq5oX7AOJgSOUSrUh9OmoQrPttX33B3BO4@z>
+To: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>
+Cc: Alexander Viro <viro@zeniv.linux.org.uk>, Paul Elliott <paul.elliott@arm.com>, Peter Zijlstra <peterz@infradead.org>, Yu-cheng Yu <yu-cheng.yu@intel.com>, Amit Kachhap <amit.kachhap@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Marc Zyngier <maz@kernel.org>, Eugene Syromiatnikov <esyr@redhat.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, "H . J . Lu " <hjl.tools@gmail.com>, Andrew Jones <drjones@redhat.com>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Jann Horn <jannh@google.com>, Richard Henderson <richard.henderson@linaro.org>, =?UTF-8?q?Kristina=20Mart=C5=A1enko?= <kristina.martsenko@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Florian Weimer <fweimer@redhat.com>, Sudakshina Das <sudi.das@arm.com>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, Dave Martin <Dave.Martin@arm.com>, Mark Brown <broonie@kernel.org>
+Message-ID: <20200212192857.NHsSt71wLI7c5rmweiZSTnh1h9z-mHR21Ca_HfEEVNE@z>
 
-From: Mike Rapoport <rppt@linux.ibm.com>
+From: Dave Martin <Dave.Martin@arm.com>
 
-Implement primitives necessary for the 4th level folding, add walks of p4d
-level where appropriate and remove usage of __ARCH_USE_5LEVEL_HACK.
+ELF program properties will be needed for detecting whether to
+enable optional architecture or ABI features for a new ELF process.
 
-Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
+For now, there are no generic properties that we care about, so do
+nothing unless CONFIG_ARCH_USE_GNU_PROPERTY=y.
+
+Otherwise, the presence of properties using the PT_PROGRAM_PROPERTY
+phdrs entry (if any), and notify each property to the arch code.
+
+For now, the added code is not used.
+
+Signed-off-by: Dave Martin <Dave.Martin@arm.com>
+Signed-off-by: Mark Brown <broonie@kernel.org>
 ---
- arch/sh/include/asm/pgtable-2level.h |  1 -
- arch/sh/include/asm/pgtable-3level.h |  1 -
- arch/sh/kernel/io_trapped.c          |  7 ++++++-
- arch/sh/mm/cache-sh4.c               |  4 +++-
- arch/sh/mm/cache-sh5.c               |  7 ++++++-
- arch/sh/mm/fault.c                   | 26 +++++++++++++++++++++++---
- arch/sh/mm/hugetlbpage.c             | 28 ++++++++++++++++++----------
- arch/sh/mm/init.c                    |  9 ++++++++-
- arch/sh/mm/kmap.c                    |  2 +-
- arch/sh/mm/tlbex_32.c                |  6 +++++-
- arch/sh/mm/tlbex_64.c                |  7 ++++++-
- 11 files changed, 76 insertions(+), 22 deletions(-)
+ fs/binfmt_elf.c          | 127 +++++++++++++++++++++++++++++++++++++++
+ fs/compat_binfmt_elf.c   |   4 ++
+ include/linux/elf.h      |  19 ++++++
+ include/uapi/linux/elf.h |   4 ++
+ 4 files changed, 154 insertions(+)
 
-diff --git a/arch/sh/include/asm/pgtable-2level.h b/arch/sh/include/asm/pgtable-2level.h
-index bf1eb51c3ee5..08bff93927ff 100644
---- a/arch/sh/include/asm/pgtable-2level.h
-+++ b/arch/sh/include/asm/pgtable-2level.h
-@@ -2,7 +2,6 @@
- #ifndef __ASM_SH_PGTABLE_2LEVEL_H
- #define __ASM_SH_PGTABLE_2LEVEL_H
+diff --git a/fs/binfmt_elf.c b/fs/binfmt_elf.c
+index f4713ea76e82..1fb67e506b68 100644
+--- a/fs/binfmt_elf.c
++++ b/fs/binfmt_elf.c
+@@ -39,12 +39,18 @@
+ #include <linux/sched/coredump.h>
+ #include <linux/sched/task_stack.h>
+ #include <linux/sched/cputime.h>
++#include <linux/sizes.h>
++#include <linux/types.h>
+ #include <linux/cred.h>
+ #include <linux/dax.h>
+ #include <linux/uaccess.h>
+ #include <asm/param.h>
+ #include <asm/page.h>
  
--#define __ARCH_USE_5LEVEL_HACK
- #include <asm-generic/pgtable-nopmd.h>
++#ifndef ELF_COMPAT
++#define ELF_COMPAT 0
++#endif
++
+ #ifndef user_long_t
+ #define user_long_t long
+ #endif
+@@ -681,6 +687,111 @@ static unsigned long load_elf_interp(struct elfhdr *interp_elf_ex,
+  * libraries.  There is no binary dependent code anywhere else.
+  */
  
- /*
-diff --git a/arch/sh/include/asm/pgtable-3level.h b/arch/sh/include/asm/pgtable-3level.h
-index 779260b721ca..0f80097e5c9c 100644
---- a/arch/sh/include/asm/pgtable-3level.h
-+++ b/arch/sh/include/asm/pgtable-3level.h
-@@ -2,7 +2,6 @@
- #ifndef __ASM_SH_PGTABLE_3LEVEL_H
- #define __ASM_SH_PGTABLE_3LEVEL_H
- 
--#define __ARCH_USE_5LEVEL_HACK
- #include <asm-generic/pgtable-nopud.h>
- 
- /*
-diff --git a/arch/sh/kernel/io_trapped.c b/arch/sh/kernel/io_trapped.c
-index 60c828a2b8a2..037aab2708b7 100644
---- a/arch/sh/kernel/io_trapped.c
-+++ b/arch/sh/kernel/io_trapped.c
-@@ -136,6 +136,7 @@ EXPORT_SYMBOL_GPL(match_trapped_io_handler);
- static struct trapped_io *lookup_tiop(unsigned long address)
++static int parse_elf_property(const char *data, size_t *off, size_t datasz,
++			      struct arch_elf_state *arch,
++			      bool have_prev_type, u32 *prev_type)
++{
++	size_t o, step;
++	const struct gnu_property *pr;
++	int ret;
++
++	if (*off == datasz)
++		return -ENOENT;
++
++	if (WARN_ON_ONCE(*off > datasz || *off % ELF_GNU_PROPERTY_ALIGN))
++		return -EIO;
++	o = *off;
++	datasz -= *off;
++
++	if (datasz < sizeof(*pr))
++		return -ENOEXEC;
++	pr = (const struct gnu_property *)(data + o);
++	o += sizeof(*pr);
++	datasz -= sizeof(*pr);
++
++	if (pr->pr_datasz > datasz)
++		return -ENOEXEC;
++
++	WARN_ON_ONCE(o % ELF_GNU_PROPERTY_ALIGN);
++	step = round_up(pr->pr_datasz, ELF_GNU_PROPERTY_ALIGN);
++	if (step > datasz)
++		return -ENOEXEC;
++
++	/* Properties are supposed to be unique and sorted on pr_type: */
++	if (have_prev_type && pr->pr_type <= *prev_type)
++		return -ENOEXEC;
++	*prev_type = pr->pr_type;
++
++	ret = arch_parse_elf_property(pr->pr_type, data + o,
++				      pr->pr_datasz, ELF_COMPAT, arch);
++	if (ret)
++		return ret;
++
++	*off = o + step;
++	return 0;
++}
++
++#define NOTE_DATA_SZ SZ_1K
++#define GNU_PROPERTY_TYPE_0_NAME "GNU"
++#define NOTE_NAME_SZ (sizeof(GNU_PROPERTY_TYPE_0_NAME))
++
++static int parse_elf_properties(struct file *f, const struct elf_phdr *phdr,
++				struct arch_elf_state *arch)
++{
++	union {
++		struct elf_note nhdr;
++		char data[NOTE_DATA_SZ];
++	} note;
++	loff_t pos;
++	ssize_t n;
++	size_t off, datasz;
++	int ret;
++	bool have_prev_type;
++	u32 prev_type;
++
++	if (!IS_ENABLED(CONFIG_ARCH_USE_GNU_PROPERTY) || !phdr)
++		return 0;
++
++	/* load_elf_binary() shouldn't call us unless this is true... */
++	if (WARN_ON_ONCE(phdr->p_type != PT_GNU_PROPERTY))
++		return -ENOEXEC;
++
++	/* If the properties are crazy large, that's too bad (for now): */
++	if (phdr->p_filesz > sizeof(note))
++		return -ENOEXEC;
++
++	pos = phdr->p_offset;
++	n = kernel_read(f, &note, phdr->p_filesz, &pos);
++
++	BUILD_BUG_ON(sizeof(note) < sizeof(note.nhdr) + NOTE_NAME_SZ);
++	if (n < 0 || n < sizeof(note.nhdr) + NOTE_NAME_SZ)
++		return -EIO;
++
++	if (note.nhdr.n_type != NT_GNU_PROPERTY_TYPE_0 ||
++	    note.nhdr.n_namesz != NOTE_NAME_SZ ||
++	    strncmp(note.data + sizeof(note.nhdr),
++		    GNU_PROPERTY_TYPE_0_NAME, n - sizeof(note.nhdr)))
++		return -ENOEXEC;
++
++	off = round_up(sizeof(note.nhdr) + NOTE_NAME_SZ,
++		       ELF_GNU_PROPERTY_ALIGN);
++	if (off > n)
++		return -ENOEXEC;
++
++	if (note.nhdr.n_descsz > n - off)
++		return -ENOEXEC;
++	datasz = off + note.nhdr.n_descsz;
++
++	have_prev_type = false;
++	do {
++		ret = parse_elf_property(note.data, &off, datasz, arch,
++					 have_prev_type, &prev_type);
++		have_prev_type = true;
++	} while (!ret);
++
++	return ret == -ENOENT ? 0 : ret;
++}
++
+ static int load_elf_binary(struct linux_binprm *bprm)
  {
- 	pgd_t *pgd_k;
-+	p4d_t *p4d_k;
- 	pud_t *pud_k;
- 	pmd_t *pmd_k;
- 	pte_t *pte_k;
-@@ -145,7 +146,11 @@ static struct trapped_io *lookup_tiop(unsigned long address)
- 	if (!pgd_present(*pgd_k))
- 		return NULL;
+ 	struct file *interpreter = NULL; /* to shut gcc up */
+@@ -688,6 +799,7 @@ static int load_elf_binary(struct linux_binprm *bprm)
+ 	int load_addr_set = 0;
+ 	unsigned long error;
+ 	struct elf_phdr *elf_ppnt, *elf_phdata, *interp_elf_phdata = NULL;
++	struct elf_phdr *elf_property_phdata = NULL;
+ 	unsigned long elf_bss, elf_brk;
+ 	int bss_prot = 0;
+ 	int retval, i;
+@@ -733,6 +845,11 @@ static int load_elf_binary(struct linux_binprm *bprm)
+ 	for (i = 0; i < elf_ex->e_phnum; i++, elf_ppnt++) {
+ 		char *elf_interpreter;
  
--	pud_k = pud_offset(pgd_k, address);
-+	p4d_k = p4d_offset(pgd_k, address);
-+	if (!p4d_present(*p4d_k))
-+		return NULL;
-+
-+	pud_k = pud_offset(p4d_k, address);
- 	if (!pud_present(*pud_k))
- 		return NULL;
- 
-diff --git a/arch/sh/mm/cache-sh4.c b/arch/sh/mm/cache-sh4.c
-index eee911422cf9..45943bcb7042 100644
---- a/arch/sh/mm/cache-sh4.c
-+++ b/arch/sh/mm/cache-sh4.c
-@@ -209,6 +209,7 @@ static void sh4_flush_cache_page(void *args)
- 	unsigned long address, pfn, phys;
- 	int map_coherent = 0;
- 	pgd_t *pgd;
-+	p4d_t *p4d;
- 	pud_t *pud;
- 	pmd_t *pmd;
- 	pte_t *pte;
-@@ -224,7 +225,8 @@ static void sh4_flush_cache_page(void *args)
- 		return;
- 
- 	pgd = pgd_offset(vma->vm_mm, address);
--	pud = pud_offset(pgd, address);
-+	p4d = p4d_offset(pgd, address);
-+	pud = pud_offset(p4d, address);
- 	pmd = pmd_offset(pud, address);
- 	pte = pte_offset_kernel(pmd, address);
- 
-diff --git a/arch/sh/mm/cache-sh5.c b/arch/sh/mm/cache-sh5.c
-index 445b5e69b73c..442a77cc2957 100644
---- a/arch/sh/mm/cache-sh5.c
-+++ b/arch/sh/mm/cache-sh5.c
-@@ -383,6 +383,7 @@ static void sh64_dcache_purge_user_pages(struct mm_struct *mm,
- 				unsigned long addr, unsigned long end)
- {
- 	pgd_t *pgd;
-+	p4d_t *p4d;
- 	pud_t *pud;
- 	pmd_t *pmd;
- 	pte_t *pte;
-@@ -397,7 +398,11 @@ static void sh64_dcache_purge_user_pages(struct mm_struct *mm,
- 	if (pgd_bad(*pgd))
- 		return;
- 
--	pud = pud_offset(pgd, addr);
-+	p4d = p4d_offset(pgd, addr);
-+	if (p4d_none(*p4d) || p4d_bad(*p4d))
-+		return;
-+
-+	pud = pud_offset(p4d, addr);
- 	if (pud_none(*pud) || pud_bad(*pud))
- 		return;
- 
-diff --git a/arch/sh/mm/fault.c b/arch/sh/mm/fault.c
-index a2b0275413e8..ebd30003fd06 100644
---- a/arch/sh/mm/fault.c
-+++ b/arch/sh/mm/fault.c
-@@ -53,6 +53,7 @@ static void show_pte(struct mm_struct *mm, unsigned long addr)
- 		 (u64)pgd_val(*pgd));
- 
- 	do {
-+		p4d_t *p4d;
- 		pud_t *pud;
- 		pmd_t *pmd;
- 		pte_t *pte;
-@@ -65,7 +66,20 @@ static void show_pte(struct mm_struct *mm, unsigned long addr)
- 			break;
- 		}
- 
--		pud = pud_offset(pgd, addr);
-+		p4d = p4d_offset(pgd, addr);
-+		if (PTRS_PER_P4D != 1)
-+			pr_cont(", *p4d=%0*Lx", (u32)(sizeof(*p4d) * 2),
-+			        (u64)p4d_val(*p4d));
-+
-+		if (p4d_none(*p4d))
-+			break;
-+
-+		if (p4d_bad(*p4d)) {
-+			pr_cont("(bad)");
-+			break;
++		if (elf_ppnt->p_type == PT_GNU_PROPERTY) {
++			elf_property_phdata = elf_ppnt;
++			continue;
 +		}
 +
-+		pud = pud_offset(p4d, addr);
- 		if (PTRS_PER_PUD != 1)
- 			pr_cont(", *pud=%0*llx", (u32)(sizeof(*pud) * 2),
- 				(u64)pud_val(*pud));
-@@ -107,6 +121,7 @@ static inline pmd_t *vmalloc_sync_one(pgd_t *pgd, unsigned long address)
- {
- 	unsigned index = pgd_index(address);
- 	pgd_t *pgd_k;
-+	p4d_t *p4d, *p4d_k;
- 	pud_t *pud, *pud_k;
- 	pmd_t *pmd, *pmd_k;
+ 		if (elf_ppnt->p_type != PT_INTERP)
+ 			continue;
  
-@@ -116,8 +131,13 @@ static inline pmd_t *vmalloc_sync_one(pgd_t *pgd, unsigned long address)
- 	if (!pgd_present(*pgd_k))
- 		return NULL;
+@@ -820,9 +937,14 @@ static int load_elf_binary(struct linux_binprm *bprm)
+ 			goto out_free_dentry;
  
--	pud = pud_offset(pgd, address);
--	pud_k = pud_offset(pgd_k, address);
-+	p4d = p4d_offset(pgd, address);
-+	p4d_k = p4d_offset(pgd_k, address);
-+	if (!p4d_present(*p4d_k))
-+		return NULL;
+ 		/* Pass PT_LOPROC..PT_HIPROC headers to arch code */
++		elf_property_phdata = NULL;
+ 		elf_ppnt = interp_elf_phdata;
+ 		for (i = 0; i < loc->interp_elf_ex.e_phnum; i++, elf_ppnt++)
+ 			switch (elf_ppnt->p_type) {
++			case PT_GNU_PROPERTY:
++				elf_property_phdata = elf_ppnt;
++				break;
 +
-+	pud = pud_offset(p4d, address);
-+	pud_k = pud_offset(p4d_k, address);
- 	if (!pud_present(*pud_k))
- 		return NULL;
- 
-diff --git a/arch/sh/mm/hugetlbpage.c b/arch/sh/mm/hugetlbpage.c
-index 960deb1f24a1..acd5652a0de3 100644
---- a/arch/sh/mm/hugetlbpage.c
-+++ b/arch/sh/mm/hugetlbpage.c
-@@ -26,17 +26,21 @@ pte_t *huge_pte_alloc(struct mm_struct *mm,
- 			unsigned long addr, unsigned long sz)
- {
- 	pgd_t *pgd;
-+	p4d_t *p4d;
- 	pud_t *pud;
- 	pmd_t *pmd;
- 	pte_t *pte = NULL;
- 
- 	pgd = pgd_offset(mm, addr);
- 	if (pgd) {
--		pud = pud_alloc(mm, pgd, addr);
--		if (pud) {
--			pmd = pmd_alloc(mm, pud, addr);
--			if (pmd)
--				pte = pte_alloc_map(mm, pmd, addr);
-+		p4d = p4d_alloc(mm, pgd, addr);
-+		if (p4d) {
-+			pud = pud_alloc(mm, p4d, addr);
-+			if (pud) {
-+				pmd = pmd_alloc(mm, pud, addr);
-+				if (pmd)
-+					pte = pte_alloc_map(mm, pmd, addr);
-+			}
- 		}
+ 			case PT_LOPROC ... PT_HIPROC:
+ 				retval = arch_elf_pt_proc(&loc->interp_elf_ex,
+ 							  elf_ppnt, interpreter,
+@@ -833,6 +955,11 @@ static int load_elf_binary(struct linux_binprm *bprm)
+ 			}
  	}
  
-@@ -47,17 +51,21 @@ pte_t *huge_pte_offset(struct mm_struct *mm,
- 		       unsigned long addr, unsigned long sz)
- {
- 	pgd_t *pgd;
-+	p4d_t *p4d;
- 	pud_t *pud;
- 	pmd_t *pmd;
- 	pte_t *pte = NULL;
- 
- 	pgd = pgd_offset(mm, addr);
- 	if (pgd) {
--		pud = pud_offset(pgd, addr);
--		if (pud) {
--			pmd = pmd_offset(pud, addr);
--			if (pmd)
--				pte = pte_offset_map(pmd, addr);
-+		p4d = p4d_offset(pgd, addr);
-+		if (p4d) {
-+			pud = pud_offset(p4d, addr);
-+			if (pud) {
-+				pmd = pmd_offset(pud, addr);
-+				if (pmd)
-+					pte = pte_offset_map(pmd, addr);
-+			}
- 		}
- 	}
- 
-diff --git a/arch/sh/mm/init.c b/arch/sh/mm/init.c
-index 4bab79baee75..594203530d43 100644
---- a/arch/sh/mm/init.c
-+++ b/arch/sh/mm/init.c
-@@ -45,6 +45,7 @@ void __init __weak plat_mem_setup(void)
- static pte_t *__get_pte_phys(unsigned long addr)
- {
- 	pgd_t *pgd;
-+	p4d_t *p4d;
- 	pud_t *pud;
- 	pmd_t *pmd;
- 
-@@ -54,7 +55,13 @@ static pte_t *__get_pte_phys(unsigned long addr)
- 		return NULL;
- 	}
- 
--	pud = pud_alloc(NULL, pgd, addr);
-+	p4d = p4d_alloc(NULL, pgd, addr);
-+	if (unlikely(!p4d)) {
-+		p4d_ERROR(*p4d);
-+		return NULL;
-+	}
++	retval = parse_elf_properties(interpreter ?: bprm->file,
++				      elf_property_phdata, &arch_state);
++	if (retval)
++		goto out_free_dentry;
 +
-+	pud = pud_alloc(NULL, p4d, addr);
- 	if (unlikely(!pud)) {
- 		pud_ERROR(*pud);
- 		return NULL;
-diff --git a/arch/sh/mm/kmap.c b/arch/sh/mm/kmap.c
-index 9e6b38b03cf7..0e7039137f5a 100644
---- a/arch/sh/mm/kmap.c
-+++ b/arch/sh/mm/kmap.c
-@@ -15,7 +15,7 @@
- #include <asm/cacheflush.h>
+ 	/*
+ 	 * Allow arch code to reject the ELF at this point, whilst it's
+ 	 * still possible to return an error to the code that invoked
+diff --git a/fs/compat_binfmt_elf.c b/fs/compat_binfmt_elf.c
+index aaad4ca1217e..13a087bc816b 100644
+--- a/fs/compat_binfmt_elf.c
++++ b/fs/compat_binfmt_elf.c
+@@ -17,6 +17,8 @@
+ #include <linux/elfcore-compat.h>
+ #include <linux/time.h>
  
- #define kmap_get_fixmap_pte(vaddr)                                     \
--	pte_offset_kernel(pmd_offset(pud_offset(pgd_offset_k(vaddr), (vaddr)), (vaddr)), (vaddr))
-+	pte_offset_kernel(pmd_offset(pud_offset(p4d_offset(pgd_offset_k(vaddr), (vaddr)), (vaddr)), (vaddr)), vaddr)
- 
- static pte_t *kmap_coherent_pte;
- 
-diff --git a/arch/sh/mm/tlbex_32.c b/arch/sh/mm/tlbex_32.c
-index 382262dc0c4b..1c53868632ee 100644
---- a/arch/sh/mm/tlbex_32.c
-+++ b/arch/sh/mm/tlbex_32.c
-@@ -23,6 +23,7 @@ handle_tlbmiss(struct pt_regs *regs, unsigned long error_code,
- 	       unsigned long address)
- {
- 	pgd_t *pgd;
-+	p4d_t *p4d;
- 	pud_t *pud;
- 	pmd_t *pmd;
- 	pte_t *pte;
-@@ -42,7 +43,10 @@ handle_tlbmiss(struct pt_regs *regs, unsigned long error_code,
- 		pgd = pgd_offset(current->mm, address);
- 	}
- 
--	pud = pud_offset(pgd, address);
-+	p4d = p4d_offset(pgd, address);
-+	if (p4d_none_or_clear_bad(p4d))
-+		return 1;
-+	pud = pud_offset(p4d, address);
- 	if (pud_none_or_clear_bad(pud))
- 		return 1;
- 	pmd = pmd_offset(pud, address);
-diff --git a/arch/sh/mm/tlbex_64.c b/arch/sh/mm/tlbex_64.c
-index 8ff966dd0c74..0d015f7556fa 100644
---- a/arch/sh/mm/tlbex_64.c
-+++ b/arch/sh/mm/tlbex_64.c
-@@ -44,6 +44,7 @@ static int handle_tlbmiss(unsigned long long protection_flags,
- 			  unsigned long address)
- {
- 	pgd_t *pgd;
-+	p4d_t *p4d;
- 	pud_t *pud;
- 	pmd_t *pmd;
- 	pte_t *pte;
-@@ -58,7 +59,11 @@ static int handle_tlbmiss(unsigned long long protection_flags,
- 		pgd = pgd_offset(current->mm, address);
- 	}
- 
--	pud = pud_offset(pgd, address);
-+	p4d = p4d_offset(pgd, address);
-+	if (p4d_none(*p4d) || !p4d_present(*p4d))
-+		return 1;
++#define ELF_COMPAT	1
 +
-+	pud = pud_offset(p4d, address);
- 	if (pud_none(*pud) || !pud_present(*pud))
- 		return 1;
+ /*
+  * Rename the basic ELF layout types to refer to the 32-bit class of files.
+  */
+@@ -28,11 +30,13 @@
+ #undef	elf_shdr
+ #undef	elf_note
+ #undef	elf_addr_t
++#undef	ELF_GNU_PROPERTY_ALIGN
+ #define elfhdr		elf32_hdr
+ #define elf_phdr	elf32_phdr
+ #define elf_shdr	elf32_shdr
+ #define elf_note	elf32_note
+ #define elf_addr_t	Elf32_Addr
++#define ELF_GNU_PROPERTY_ALIGN	ELF32_GNU_PROPERTY_ALIGN
  
+ /*
+  * Some data types as stored in coredump.
+diff --git a/include/linux/elf.h b/include/linux/elf.h
+index 459cddcceaac..7bdc6da160c7 100644
+--- a/include/linux/elf.h
++++ b/include/linux/elf.h
+@@ -22,6 +22,9 @@
+ 	SET_PERSONALITY(ex)
+ #endif
+ 
++#define ELF32_GNU_PROPERTY_ALIGN	4
++#define ELF64_GNU_PROPERTY_ALIGN	8
++
+ #if ELF_CLASS == ELFCLASS32
+ 
+ extern Elf32_Dyn _DYNAMIC [];
+@@ -32,6 +35,7 @@ extern Elf32_Dyn _DYNAMIC [];
+ #define elf_addr_t	Elf32_Off
+ #define Elf_Half	Elf32_Half
+ #define Elf_Word	Elf32_Word
++#define ELF_GNU_PROPERTY_ALIGN	ELF32_GNU_PROPERTY_ALIGN
+ 
+ #else
+ 
+@@ -43,6 +47,7 @@ extern Elf64_Dyn _DYNAMIC [];
+ #define elf_addr_t	Elf64_Off
+ #define Elf_Half	Elf64_Half
+ #define Elf_Word	Elf64_Word
++#define ELF_GNU_PROPERTY_ALIGN	ELF64_GNU_PROPERTY_ALIGN
+ 
+ #endif
+ 
+@@ -64,4 +69,18 @@ struct gnu_property {
+ 	u32 pr_datasz;
+ };
+ 
++struct arch_elf_state;
++
++#ifndef CONFIG_ARCH_USE_GNU_PROPERTY
++static inline int arch_parse_elf_property(u32 type, const void *data,
++					  size_t datasz, bool compat,
++					  struct arch_elf_state *arch)
++{
++	return 0;
++}
++#else
++extern int arch_parse_elf_property(u32 type, const void *data, size_t datasz,
++				   bool compat, struct arch_elf_state *arch);
++#endif
++
+ #endif /* _LINUX_ELF_H */
+diff --git a/include/uapi/linux/elf.h b/include/uapi/linux/elf.h
+index c37731407074..20900f4496b7 100644
+--- a/include/uapi/linux/elf.h
++++ b/include/uapi/linux/elf.h
+@@ -368,6 +368,7 @@ typedef struct elf64_shdr {
+  * Notes used in ET_CORE. Architectures export some of the arch register sets
+  * using the corresponding note types via the PTRACE_GETREGSET and
+  * PTRACE_SETREGSET requests.
++ * The note name for all these is "LINUX".
+  */
+ #define NT_PRSTATUS	1
+ #define NT_PRFPREG	2
+@@ -430,6 +431,9 @@ typedef struct elf64_shdr {
+ #define NT_MIPS_FP_MODE	0x801		/* MIPS floating-point mode */
+ #define NT_MIPS_MSA	0x802		/* MIPS SIMD registers */
+ 
++/* Note types with note name "GNU" */
++#define NT_GNU_PROPERTY_TYPE_0	5
++
+ /* Note header in a PT_NOTE section */
+ typedef struct elf32_note {
+   Elf32_Word	n_namesz;	/* Name size */
 -- 
-2.24.0
+2.20.1
