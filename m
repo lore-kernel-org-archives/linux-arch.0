@@ -1,42 +1,46 @@
 From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH 4/8] sched,rcu,tracing: Mark preempt_count_{add,sub}()
+Subject: Re: [PATCH 5/8] x86,tracing: Mark debug_stack_{set_zero,reset)()
  notrace
-Date: Wed, 12 Feb 2020 16:02:11 +0100
-Message-ID: <20200212150211.GS14897@hirez.programming.kicks-ass.net>
+Date: Wed, 12 Feb 2020 16:04:40 +0100
+Message-ID: <20200212150440.GT14897@hirez.programming.kicks-ass.net>
 References: <20200212093210.468391728@infradead.org>
- <20200212094107.838108888@infradead.org>
- <20200212092417.04c3da8c@gandalf.local.home>
+ <20200212094107.894657838@infradead.org>
+ <20200212092539.135934e1@gandalf.local.home>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.133]:43304 "EHLO
-        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727231AbgBLPCh (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 12 Feb 2020 10:02:37 -0500
+Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <20200212092417.04c3da8c@gandalf.local.home>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+In-Reply-To: <20200212092539.135934e1@gandalf.local.home>
+Sender: linux-kernel-owner@vger.kernel.org
 To: Steven Rostedt <rostedt@goodmis.org>
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org, joel@joelfernandes.org, gregkh@linuxfoundation.org, gustavo@embeddedor.com, tglx@linutronix.de, paulmck@kernel.org, josh@joshtriplett.org, mathieu.desnoyers@efficios.com, jiangshanlai@gmail.com
+List-Id: linux-arch.vger.kernel.org
 
-On Wed, Feb 12, 2020 at 09:24:17AM -0500, Steven Rostedt wrote:
-> On Wed, 12 Feb 2020 10:32:14 +0100
+On Wed, Feb 12, 2020 at 09:25:39AM -0500, Steven Rostedt wrote:
+> On Wed, 12 Feb 2020 10:32:15 +0100
 > Peter Zijlstra <peterz@infradead.org> wrote:
 > 
-> > Because of the requirement that no tracing happens until after we've
-> > incremented preempt_count, see nmi_enter() / trace_rcu_enter(), mark
-> > these functions as notrace.
+> > Because do_nmi() must not call into tracing outside of
+> > nmi_enter()/nmi_exit(), these functions must be notrace.
+> > 
+> > Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+> > ---
+> >  arch/x86/kernel/cpu/common.c |    4 ++--
+> >  arch/x86/kernel/nmi.c        |    6 ++++++
+> >  2 files changed, 8 insertions(+), 2 deletions(-)
+> > 
+> > --- a/arch/x86/kernel/cpu/common.c
+> > +++ b/arch/x86/kernel/cpu/common.c
 > 
-> I actually depend on these function being traced.
+> This entire file is notrace:
+> 
+>  arch/x86/kernel/cpu/Makefile:
+> 
+>    CFLAGS_REMOVE_common.o = -pg
 
-Why? They already have a tracepoint inside.
+Urgh, I hate it that that annotation is so hard to find :/ Also, there
+seem to be various flavours of that Makefile magic around.
 
-> We do have
-> "preempt_enable_notrace()" and "preempt_disable_notrace()" for places
-> that shouldn't be traced. Can't we use those? (or simply
-> __preempt_count_add()) in the nmi_enter() code instead? (perhaps create
-> a preempt_count_add_notrace()).
+  CFLAGS_REMOVE_lockdep.o = $(CC_FLAGS_FTRACE)
 
-My initial patch has __preempt_count_add/sub() in, but then I figured
-someone would go complain the tracepoint would go missing.
+is another variant I encountered.
