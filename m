@@ -1,72 +1,67 @@
-Return-Path: <SRS0=bqXs=4A=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:33476 "EHLO
-        merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728674AbgBLVON (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 12 Feb 2020 16:14:13 -0500
-Message-ID: <20200212210750.028161469@infradead.org>
-Date: Wed, 12 Feb 2020 22:01:43 +0100
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: [PATCH v2 4/9] sched,rcu,tracing: Avoid tracing before in_nmi() is correct
-References: <20200212210139.382424693@infradead.org>
+Return-Path: <SRS0=LM+d=4A=kvack.org=owner-linux-mm@kernel.org>
+From: Michal Simek <michal.simek@xilinx.com>
+Subject: [PATCH 02/10] microblaze: Remove architecture tlb.h and use generic one
+Date: Wed, 12 Feb 2020 09:57:59 +0100
+Message-ID: <1243cf3b894f81b728011621b2fd3d40b8935e99.1581497860.git.michal.simek@xilinx.com>
+In-Reply-To: <cover.1581497860.git.michal.simek@xilinx.com>
+References: <cover.1581497860.git.michal.simek@xilinx.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Sender: linux-arch-owner@vger.kernel.org
+Content-Transfer-Encoding: quoted-printable
+Sender: owner-linux-mm@kvack.org
+To: linux-kernel@vger.kernel.org, monstr@monstr.eu, michal.simek@xilinx.com, git@xilinx.com, arnd@arndb.de
+Cc: Stefan Asserhall <stefan.asserhall@xilinx.com>, Andrew Morton <akpm@linux-foundation.org>, "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>, Cornelia Huck <cohuck@redhat.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Masahiro Yamada <yamada.masahiro@socionext.com>, Nick Piggin <npiggin@gmail.com>, Paolo Bonzini <pbonzini@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Will Deacon <will@kernel.org>, linux-arch@vger.kernel.org, linux-mm@kvack.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, rostedt@goodmis.org
-Cc: peterz@infradead.org, mingo@kernel.org, joel@joelfernandes.org, gregkh@linuxfoundation.org, gustavo@embeddedor.com, tglx@linutronix.de, paulmck@kernel.org, josh@joshtriplett.org, mathieu.desnoyers@efficios.com, jiangshanlai@gmail.com, "Steven Rostedt (VMware)" <rosted@goodmis.org>
-Message-ID: <20200212210143.6OmqGhx6jWEbp0cQPaCiWwNEL6xux_Zoi4Cbykz-neI@z>
+Message-ID: <20200212085759.iXDBFtEtFEfoY0MMDcXa7xNwtcgaRR1mQwlAG7EOt40@z>
 
-If we call into a tracer before in_nmi() becomes true, the tracer can
-no longer detect it is called from NMI context and behave correctly.
+There is no reason to have this empty file if it is just link to
+asm-generic/tlb.h.
 
-Therefore change nmi_{enter,exit}() to use __preempt_count_{add,sub}()
-as the normal preempt_count_{add,sub}() have a (desired) function
-trace entry.
-
-This fixes a potential issue with current code; AFAICT when the
-function-tracer has stack-tracing enabled __trace_stack() will
-malfunction when it hits the preempt_count_add() function entry from
-NMI context.
-
-Suggested-by: Steven Rostedt (VMware) <rosted@goodmis.org>
-Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+Signed-off-by: Michal Simek <michal.simek@xilinx.com>
+Reviewed-by: Stefan Asserhall <stefan.asserhall@xilinx.com>
 ---
- include/linux/hardirq.h |   13 +++++++++++--
- 1 file changed, 11 insertions(+), 2 deletions(-)
 
---- a/include/linux/hardirq.h
-+++ b/include/linux/hardirq.h
-@@ -65,6 +65,15 @@ extern void irq_exit(void);
- #define arch_nmi_exit()		do { } while (0)
- #endif
- 
-+/*
-+ * NMI vs Tracing
-+ * --------------
-+ *
-+ * We must not land in a tracer until (or after) we've changed preempt_count
-+ * such that in_nmi() becomes true. To that effect all NMI C entry points must
-+ * be marked 'notrace' and call nmi_enter() as soon as possible.
-+ */
-+
- #define nmi_enter()						\
- 	do {							\
- 		arch_nmi_enter();				\
-@@ -72,7 +81,7 @@ extern void irq_exit(void);
- 		lockdep_off();					\
- 		ftrace_nmi_enter();				\
- 		BUG_ON(in_nmi());				\
--		preempt_count_add(NMI_OFFSET + HARDIRQ_OFFSET);	\
-+		__preempt_count_add(NMI_OFFSET + HARDIRQ_OFFSET); \
- 		rcu_nmi_enter();				\
- 		trace_hardirq_enter();				\
- 	} while (0)
-@@ -82,7 +91,7 @@ extern void irq_exit(void);
- 		trace_hardirq_exit();				\
- 		rcu_nmi_exit();					\
- 		BUG_ON(!in_nmi());				\
--		preempt_count_sub(NMI_OFFSET + HARDIRQ_OFFSET);	\
-+		__preempt_count_sub(NMI_OFFSET + HARDIRQ_OFFSET); \
- 		ftrace_nmi_exit();				\
- 		lockdep_on();					\
- 		printk_nmi_exit();				\
+ arch/microblaze/include/asm/Kbuild |  1 +
+ arch/microblaze/include/asm/tlb.h  | 17 -----------------
+ 2 files changed, 1 insertion(+), 17 deletions(-)
+ delete mode 100644 arch/microblaze/include/asm/tlb.h
+
+diff --git a/arch/microblaze/include/asm/Kbuild b/arch/microblaze/include=
+/asm/Kbuild
+index e5c9170a07fc..7ae427f73105 100644
+--- a/arch/microblaze/include/asm/Kbuild
++++ b/arch/microblaze/include/asm/Kbuild
+@@ -31,6 +31,7 @@ generic-y +=3D preempt.h
+ generic-y +=3D serial.h
+ generic-y +=3D shmparam.h
+ generic-y +=3D syscalls.h
++generic-y +=3D tlb.h
+ generic-y +=3D topology.h
+ generic-y +=3D trace_clock.h
+ generic-y +=3D vga.h
+diff --git a/arch/microblaze/include/asm/tlb.h b/arch/microblaze/include/=
+asm/tlb.h
+deleted file mode 100644
+index 628a78ee0a72..000000000000
+--- a/arch/microblaze/include/asm/tlb.h
++++ /dev/null
+@@ -1,17 +0,0 @@
+-/*
+- * Copyright (C) 2008-2009 Michal Simek <monstr@monstr.eu>
+- * Copyright (C) 2008-2009 PetaLogix
+- * Copyright (C) 2006 Atmark Techno, Inc.
+- *
+- * This file is subject to the terms and conditions of the GNU General P=
+ublic
+- * License. See the file "COPYING" in the main directory of this archive
+- * for more details.
+- */
+-
+-#ifndef _ASM_MICROBLAZE_TLB_H
+-#define _ASM_MICROBLAZE_TLB_H
+-
+-#include <linux/pagemap.h>
+-#include <asm-generic/tlb.h>
+-
+-#endif /* _ASM_MICROBLAZE_TLB_H */
+--=20
+2.25.0
