@@ -1,49 +1,48 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH v2 6/9] perf,tracing: Prepare the perf-trace interface
- for RCU changes
-Date: Thu, 13 Feb 2020 09:29:51 +0100
-Message-ID: <20200213082951.GK14897@hirez.programming.kicks-ass.net>
-References: <20200212210139.382424693@infradead.org>
- <20200212210750.142334759@infradead.org>
- <20200212232830.GB170680@google.com>
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: Re: [PATCH 00/22] arm64: Memory Tagging Extension user-space support
+Date: Thu, 13 Feb 2020 11:23:46 +0000
+Message-ID: <20200213112346.GA639258@arrakis.emea.arm.com>
+References: <20191211184027.20130-1-catalin.marinas@arm.com>
+ <CAMn1gO6f4UUdhBe1sfiAPBW=zr-C3ypUv-Pwgx=wvmJjp4xfyA@mail.gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.133]:47938 "EHLO
-        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726232AbgBMIaM (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 13 Feb 2020 03:30:12 -0500
+Received: from foss.arm.com ([217.140.110.172]:45242 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1729428AbgBMLXu (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 13 Feb 2020 06:23:50 -0500
 Content-Disposition: inline
-In-Reply-To: <20200212232830.GB170680@google.com>
+In-Reply-To: <CAMn1gO6f4UUdhBe1sfiAPBW=zr-C3ypUv-Pwgx=wvmJjp4xfyA@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Joel Fernandes <joel@joelfernandes.org>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, rostedt@goodmis.org, mingo@kernel.org, gregkh@linuxfoundation.org, gustavo@embeddedor.com, tglx@linutronix.de, paulmck@kernel.org, josh@joshtriplett.org, mathieu.desnoyers@efficios.com, jiangshanlai@gmail.com, "Steven Rostedt (VMware)" <rosted@goodmis.org>
+To: Peter Collingbourne <pcc@google.com>
+Cc: Linux ARM <linux-arm-kernel@lists.infradead.org>, linux-arch@vger.kernel.org, Richard Earnshaw <Richard.Earnshaw@arm.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Marc Zyngier <maz@kernel.org>, Kevin Brodsky <kevin.brodsky@arm.com>, linux-mm@kvack.org, Andrey Konovalov <andreyknvl@google.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Will Deacon <will@kernel.org>, Evgenii Stepanov <eugenis@google.com>, Kostya Kortchinsky <kostyak@google.com>, Kostya Serebryany <kcc@google.com>
 
-On Wed, Feb 12, 2020 at 06:28:30PM -0500, Joel Fernandes wrote:
-> On Wed, Feb 12, 2020 at 10:01:45PM +0100, Peter Zijlstra wrote:
-> > The tracepoint interface will stop providing regular RCU context; make
-> > sure we do it ourselves, since perf makes use of regular RCU protected
-> > data.
-> > 
-> > Suggested-by: Steven Rostedt (VMware) <rosted@goodmis.org>
-> > Suggested-by: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
-> > Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
-> > ---
-> >  kernel/events/core.c |    5 +++++
-> >  1 file changed, 5 insertions(+)
-> > 
-> > --- a/kernel/events/core.c
-> > +++ b/kernel/events/core.c
-> > @@ -8950,6 +8950,7 @@ void perf_tp_event(u16 event_type, u64 c
-> >  {
-> >  	struct perf_sample_data data;
-> >  	struct perf_event *event;
-> > +	unsigned long rcu_flags;
+On Fri, Dec 13, 2019 at 10:05:10AM -0800, Peter Collingbourne wrote:
+> On Wed, Dec 11, 2019 at 10:40 AM Catalin Marinas
+> <catalin.marinas@arm.com> wrote:
+> > This series proposes the initial user-space support for the ARMv8.5
+> > Memory Tagging Extension [1].
 > 
-> The flags are not needed I guess, if you agree on not using in_nmi() in
-> trace_rcu_enter().
+> Thanks for sending out this series. I have been testing it on Android
+> with the FVP model and my in-development scudo changes that add memory
+> tagging support [1], and have not noticed any problems so far.
 
-Even then we need to store the state: 'didn't do nothing' vs 'did call
-rcu_needs_to_wake_up_and_pay_attention_noaw'. That is, we only need to
-do something (expensive!) when !rcu_is_watching().
+Thanks for the comments so far and the testing. I'll post a v2 next
+week.
+
+> > - Clarify whether mmap(tagged_addr, PROT_MTE) pre-tags the memory with
+> >   the tag given in the tagged_addr hint. Strong justification is
+> >   required for this as it would force arm64 to disable the zero page.
+> 
+> We would like to use this feature in scudo to tag large (>128KB on
+> Android) allocations, which are currently allocated via mmap rather
+> than from an allocation pool. Otherwise we would need to pay the cost
+> (perf and RSS) of faulting all of their pages at allocation time
+> instead of on demand, if we want to tag them.
+
+Would the default tag of 0 be sufficient here? We disable match-all for
+user-space already, so 0 is not a wildcard.
+
+-- 
+Catalin
