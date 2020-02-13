@@ -1,36 +1,63 @@
-Return-Path: <SRS0=as/e=4M=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from verein.lst.de ([213.95.11.211]:40011 "EHLO verein.lst.de"
+Return-Path: <SRS0=hmIl=4B=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from foss.arm.com ([217.140.110.172]:50116 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727306AbgBXTpf (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 24 Feb 2020 14:45:35 -0500
-Date: Mon, 24 Feb 2020 20:45:28 +0100
-From: Christoph Hellwig <hch@lst.de>
-Subject: Re: [PATCH 2/2] openrisc: use the generic in-place uncached DMA
- allocator
-Message-ID: <20200224194528.GA10155@lst.de>
-References: <20200220170139.387354-1-hch@lst.de> <20200220170139.387354-3-hch@lst.de> <20200221221447.GA7926@lianli.shorne-pla.net>
+        id S1730434AbgBMQRV (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 13 Feb 2020 11:17:21 -0500
+From: Vincenzo Frascino <vincenzo.frascino@arm.com>
+Subject: [PATCH 14/19] arm64: vdso32: Include common headers in the vdso library
+Date: Thu, 13 Feb 2020 16:16:09 +0000
+Message-ID: <20200213161614.23246-15-vincenzo.frascino@arm.com>
+In-Reply-To: <20200213161614.23246-1-vincenzo.frascino@arm.com>
+References: <20200213161614.23246-1-vincenzo.frascino@arm.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20200221221447.GA7926@lianli.shorne-pla.net>
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Stafford Horne <shorne@gmail.com>
-Cc: Christoph Hellwig <hch@lst.de>, Jonas Bonn <jonas@southpole.se>, Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>, Marek Szyprowski <m.szyprowski@samsung.com>, Robin Murphy <robin.murphy@arm.com>, Will Deacon <will@kernel.org>, Mark Rutland <mark.rutland@arm.com>, openrisc@lists.librecores.org, iommu@lists.linux-foundation.org, linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20200224194528.5miaE6wza75juwR1yi5EbzhTkfb2Hi8O3_0RLrMC3qA@z>
+To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org, clang-built-linux@googlegroups.com, x86@kernel.org
+Cc: catalin.marinas@arm.com, will.deacon@arm.com, arnd@arndb.de, linux@armlinux.org.uk, paul.burton@mips.com, tglx@linutronix.de, luto@kernel.org, mingo@redhat.com, bp@alien8.de, sboyd@kernel.org, salyzyn@android.com, pcc@google.com, 0x7f454c46@gmail.com, ndesaulniers@google.com, avagin@openvz.org
+Message-ID: <20200213161609.8jFKPmsNDW7E5fIUVWlfQ4KPnUFE103ZlVtVbjRX9nY@z>
 
-On Sat, Feb 22, 2020 at 07:14:47AM +0900, Stafford Horne wrote:
-> On Thu, Feb 20, 2020 at 09:01:39AM -0800, Christoph Hellwig wrote:
-> > Switch openrisc to use the dma-direct allocator and just provide the
-> > hooks for setting memory uncached or cached.
-> > 
-> > Signed-off-by: Christoph Hellwig <hch@lst.de>
-> 
-> Reviewed-by: Stafford Horne <shorne@gmail.com>
-> 
-> Also, I test booted openrisc with linux 5.5 + these patches.  Thanks for
-> continuing to shrink my code base.
+The vDSO library should only include the necessary headers required for
+a userspace library (UAPI and a minimal set of kernel headers). To make
+this possible it is necessary to isolate from the kernel headers the
+common parts that are strictly necessary to build the library.
 
-I just resent a new version that changes how the hooks work based on
-feedback from Robin.  Everything should work as-is, but if you have
-some time to retest that would be great.
+Refactor the vdso32 implementation to include common headers.
+
+Cc: Catalin Marinas <catalin.marinas@arm.com>
+Cc: Will Deacon <will@kernel.org>
+Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
+---
+ arch/arm64/include/asm/vdso/compat_gettimeofday.h | 2 +-
+ arch/arm64/kernel/vdso32/vgettimeofday.c          | 3 ---
+ 2 files changed, 1 insertion(+), 4 deletions(-)
+
+diff --git a/arch/arm64/include/asm/vdso/compat_gettimeofday.h b/arch/arm64/include/asm/vdso/compat_gettimeofday.h
+index 537b1e695365..a1f21474f11f 100644
+--- a/arch/arm64/include/asm/vdso/compat_gettimeofday.h
++++ b/arch/arm64/include/asm/vdso/compat_gettimeofday.h
+@@ -8,7 +8,7 @@
+ #ifndef __ASSEMBLY__
+ 
+ #include <asm/unistd.h>
+-#include <uapi/linux/time.h>
++#include <asm/errno.h>
+ 
+ #include <asm/vdso/compat_barrier.h>
+ 
+diff --git a/arch/arm64/kernel/vdso32/vgettimeofday.c b/arch/arm64/kernel/vdso32/vgettimeofday.c
+index 54fc1c2ce93f..9366ceb635a1 100644
+--- a/arch/arm64/kernel/vdso32/vgettimeofday.c
++++ b/arch/arm64/kernel/vdso32/vgettimeofday.c
+@@ -5,9 +5,6 @@
+  * Copyright (C) 2018 ARM Limited
+  *
+  */
+-#include <linux/time.h>
+-#include <linux/types.h>
+-
+ int __vdso_clock_gettime(clockid_t clock,
+ 			 struct old_timespec32 *ts)
+ {
+-- 
+2.25.0
