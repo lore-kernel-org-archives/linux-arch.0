@@ -1,72 +1,69 @@
-Return-Path: <SRS0=LzcT=4H=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:52088 "EHLO mail.kernel.org"
+Return-Path: <SRS0=hmIl=4B=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from foss.arm.com ([217.140.110.172]:49822 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726558AbgBSRwt (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 19 Feb 2020 12:52:49 -0500
-From: Krzysztof Kozlowski <krzk@kernel.org>
-Subject: [RESEND PATCH v2 9/9] ath5k: Constify ioreadX() iomem argument (as in generic implementation)
-Date: Wed, 19 Feb 2020 18:50:07 +0100
-Message-Id: <20200219175007.13627-10-krzk@kernel.org>
-In-Reply-To: <20200219175007.13627-1-krzk@kernel.org>
-References: <20200219175007.13627-1-krzk@kernel.org>
+        id S1728267AbgBMQQ5 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 13 Feb 2020 11:16:57 -0500
+From: Vincenzo Frascino <vincenzo.frascino@arm.com>
+Subject: [PATCH 05/19] linux/time.h: Extract common header for vDSO
+Date: Thu, 13 Feb 2020 16:16:00 +0000
+Message-ID: <20200213161614.23246-6-vincenzo.frascino@arm.com>
+In-Reply-To: <20200213161614.23246-1-vincenzo.frascino@arm.com>
+References: <20200213161614.23246-1-vincenzo.frascino@arm.com>
+MIME-Version: 1.0
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Alexey Brodkin <abrodkin@synopsys.com>, Vineet Gupta <vgupta@synopsys.com>, "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>, Helge Deller <deller@gmx.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, Dave Airlie <airlied@redhat.com>, David Airlie <airlied@linux.ie>, Daniel Vetter <daniel@ffwll.ch>, Ben Skeggs <bskeggs@redhat.com>, Mauro Carvalho Chehab <mchehab@kernel.org>, Jiri Slaby <jirislaby@gmail.com>, Nick Kossifidis <mickflemm@gmail.com>, Luis Chamberlain <mcgrof@kernel.org>, Kalle Valo <kvalo@codeaurora.org>, "David S. Miller" <davem@davemloft.net>, Dave Jiang <dave.jiang@intel.com>, Jon Mason <jdmason@kudzu.us>, Allen Hubbe <allenbh@gmail.com>, "Michael S. Tsirkin" <mst@redhat.com>, Jason Wang <jasowang@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Geert Uytterhoeven <geert+renesas@glider.be>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-snps-arc@lists.infradead.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org, dri-devel@lists.freedesktop.org, nouveau@lists.freedesktop.org, linux-media@vger.kernel.org, linux-wireless@vger.kernel.org, netdev@vger.kernel.org, linux-ntb@googlegroups.com, virtualization@lists.linux-foundation.org, linux-arch@vger.kernel.org
-Cc: Krzysztof Kozlowski <krzk@kernel.org>
+To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org, clang-built-linux@googlegroups.com, x86@kernel.org
+Cc: catalin.marinas@arm.com, will.deacon@arm.com, arnd@arndb.de, linux@armlinux.org.uk, paul.burton@mips.com, tglx@linutronix.de, luto@kernel.org, mingo@redhat.com, bp@alien8.de, sboyd@kernel.org, salyzyn@android.com, pcc@google.com, 0x7f454c46@gmail.com, ndesaulniers@google.com, avagin@openvz.org
+Message-ID: <20200213161600.LYJpajYJ-8XLndMRBpO6zUdJeYjssK8ML7pua4kXwtE@z>
 
-The ioreadX() helpers have inconsistent interface.  On some architectures
-void *__iomem address argument is a pointer to const, on some not.
+The vDSO library should only include the necessary headers required for
+a userspace library (UAPI and a minimal set of kernel headers). To make
+this possible it is necessary to isolate from the kernel headers the
+common parts that are strictly necessary to build the library.
 
-Implementations of ioreadX() do not modify the memory under the address
-so they can be converted to a "const" version for const-safety and
-consistency among architectures.
+Split time.h into linux and common headers to make the latter suitable
+for inclusion in the vDSO library.
 
-Signed-off-by: Krzysztof Kozlowski <krzk@kernel.org>
-Acked-by: Kalle Valo <kvalo@codeaurora.org>
+Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
 ---
- drivers/net/wireless/ath/ath5k/ahb.c | 10 +++++-----
- 1 file changed, 5 insertions(+), 5 deletions(-)
+ include/common/time.h | 12 ++++++++++++
+ include/linux/time.h  |  5 +----
+ 2 files changed, 13 insertions(+), 4 deletions(-)
+ create mode 100644 include/common/time.h
 
-diff --git a/drivers/net/wireless/ath/ath5k/ahb.c b/drivers/net/wireless/ath/ath5k/ahb.c
-index 2c9cec8b53d9..8bd01df369fb 100644
---- a/drivers/net/wireless/ath/ath5k/ahb.c
-+++ b/drivers/net/wireless/ath/ath5k/ahb.c
-@@ -138,18 +138,18 @@ static int ath_ahb_probe(struct platform_device *pdev)
+diff --git a/include/common/time.h b/include/common/time.h
+new file mode 100644
+index 000000000000..90eb9bdb40ec
+--- /dev/null
++++ b/include/common/time.h
+@@ -0,0 +1,12 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++#ifndef __COMMON_TIME_H
++#define __COMMON_TIME_H
++
++#include <uapi/linux/types.h>
++
++struct timens_offset {
++	s64	sec;
++	u64	nsec;
++};
++
++#endif /* __COMMON_TIME_H */
+diff --git a/include/linux/time.h b/include/linux/time.h
+index 8ef5e5cc9f57..617a01e2c8bb 100644
+--- a/include/linux/time.h
++++ b/include/linux/time.h
+@@ -111,9 +111,6 @@ static inline bool itimerspec64_valid(const struct itimerspec64 *its)
+  */
+ #define time_between32(t, l, h) ((u32)(h) - (u32)(l) >= (u32)(t) - (u32)(l))
  
- 	if (bcfg->devid >= AR5K_SREV_AR2315_R6) {
- 		/* Enable WMAC AHB arbitration */
--		reg = ioread32((void __iomem *) AR5K_AR2315_AHB_ARB_CTL);
-+		reg = ioread32((const void __iomem *) AR5K_AR2315_AHB_ARB_CTL);
- 		reg |= AR5K_AR2315_AHB_ARB_CTL_WLAN;
- 		iowrite32(reg, (void __iomem *) AR5K_AR2315_AHB_ARB_CTL);
+-struct timens_offset {
+-	s64	sec;
+-	u64	nsec;
+-};
++# include <common/time.h>
  
- 		/* Enable global WMAC swapping */
--		reg = ioread32((void __iomem *) AR5K_AR2315_BYTESWAP);
-+		reg = ioread32((const void __iomem *) AR5K_AR2315_BYTESWAP);
- 		reg |= AR5K_AR2315_BYTESWAP_WMAC;
- 		iowrite32(reg, (void __iomem *) AR5K_AR2315_BYTESWAP);
- 	} else {
- 		/* Enable WMAC DMA access (assuming 5312 or 231x*/
- 		/* TODO: check other platforms */
--		reg = ioread32((void __iomem *) AR5K_AR5312_ENABLE);
-+		reg = ioread32((const void __iomem *) AR5K_AR5312_ENABLE);
- 		if (to_platform_device(ah->dev)->id == 0)
- 			reg |= AR5K_AR5312_ENABLE_WLAN0;
- 		else
-@@ -202,12 +202,12 @@ static int ath_ahb_remove(struct platform_device *pdev)
- 
- 	if (bcfg->devid >= AR5K_SREV_AR2315_R6) {
- 		/* Disable WMAC AHB arbitration */
--		reg = ioread32((void __iomem *) AR5K_AR2315_AHB_ARB_CTL);
-+		reg = ioread32((const void __iomem *) AR5K_AR2315_AHB_ARB_CTL);
- 		reg &= ~AR5K_AR2315_AHB_ARB_CTL_WLAN;
- 		iowrite32(reg, (void __iomem *) AR5K_AR2315_AHB_ARB_CTL);
- 	} else {
- 		/*Stop DMA access */
--		reg = ioread32((void __iomem *) AR5K_AR5312_ENABLE);
-+		reg = ioread32((const void __iomem *) AR5K_AR5312_ENABLE);
- 		if (to_platform_device(ah->dev)->id == 0)
- 			reg &= ~AR5K_AR5312_ENABLE_WLAN0;
- 		else
+ #endif
 -- 
-2.17.1
+2.25.0
