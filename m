@@ -1,40 +1,59 @@
-From: Steven Rostedt <rostedt@goodmis.org>
-Subject: Re: [PATCH v2 2/9] rcu: Mark rcu_dynticks_curr_cpu_in_eqs() inline
-Date: Wed, 12 Feb 2020 20:41:28 -0500
-Message-ID: <20200212204128.20f5e8ba@oasis.local.home>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH v2 3/9] rcu,tracing: Create trace_rcu_{enter,exit}()
+Date: Thu, 13 Feb 2020 09:27:16 +0100
+Message-ID: <20200213082716.GI14897@hirez.programming.kicks-ass.net>
 References: <20200212210139.382424693@infradead.org>
-        <20200212210749.915180520@infradead.org>
-        <20200212223818.GA115917@google.com>
+ <20200212210749.971717428@infradead.org>
+ <20200212232005.GC115917@google.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:50778 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1729285AbgBMBlb (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 12 Feb 2020 20:41:31 -0500
-In-Reply-To: <20200212223818.GA115917@google.com>
+Received: from merlin.infradead.org ([205.233.59.134]:37828 "EHLO
+        merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1729401AbgBMI15 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 13 Feb 2020 03:27:57 -0500
+Content-Disposition: inline
+In-Reply-To: <20200212232005.GC115917@google.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Joel Fernandes <joel@joelfernandes.org>
-Cc: Peter Zijlstra <peterz@infradead.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org, gregkh@linuxfoundation.org, gustavo@embeddedor.com, tglx@linutronix.de, paulmck@kernel.org, josh@joshtriplett.org, mathieu.desnoyers@efficios.com, jiangshanlai@gmail.com
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, rostedt@goodmis.org, mingo@kernel.org, gregkh@linuxfoundation.org, gustavo@embeddedor.com, tglx@linutronix.de, paulmck@kernel.org, josh@joshtriplett.org, mathieu.desnoyers@efficios.com, jiangshanlai@gmail.com
 
-On Wed, 12 Feb 2020 17:38:18 -0500
-Joel Fernandes <joel@joelfernandes.org> wrote:
+On Wed, Feb 12, 2020 at 06:20:05PM -0500, Joel Fernandes wrote:
+> On Wed, Feb 12, 2020 at 10:01:42PM +0100, Peter Zijlstra wrote:
 
-> I think there are ways to turn off function inlining, such as gcc's:
-> -fkeep-inline-functions
+> > +#define trace_rcu_enter()					\
+> > +({								\
+> > +	unsigned long state = 0;				\
+> > +	if (!rcu_is_watching())	{				\
+> > +		if (in_nmi()) {					\
+> > +			state = __TR_NMI;			\
+> > +			rcu_nmi_enter();			\
+> > +		} else {					\
+> > +			state = __TR_IRQ;			\
+> > +			rcu_irq_enter_irqsave();		\
 > 
-> And just to be sure weird compilers (clang *cough*) don't screw this up,
-> could we make it static inline notrace?
+> I think this can be simplified. You don't need to rely on in_nmi() here. I
+> believe for NMI's, you can just call rcu_irq_enter_irqsave() and that should
+> be sufficient to get RCU watching. Paul can correct me if I'm wrong, but I am
+> pretty sure that would work.
+> 
+> In fact, I think a better naming for rcu_irq_enter_irqsave() pair could be
+> (in the first patch):
+> 
+> rcu_ensure_watching_begin();
+> rcu_ensure_watching_end();
 
-inline is defined as notrace, so not needed.
+So I hadn't looked deeply into rcu_irq_enter(), it seems to call
+rcu_nmi_enter_common(), but with @irq=true.
 
-I did that because of surprises when functions marked as inline
-suddenly became non inlined and traced, which caused issues with
-function tracing (before I finally got recursion protection working).
-But even then, I figured, if something is inlined and gcc actually
-inlines it, it wont be traced. For consistency, if something is marked
-inline, it should not be traced.
+What exactly is the purpose of that @irq argument, and how much will it
+hurt to lie there? Will it come apart if we have @irq != !in_nmi()
+for example?
 
--- Steve
+There is a comment in there that says ->dynticks_nmi_nesting ought to be
+odd only if we're in NMI. The only place that seems to care is
+rcu_nmi_exit_common(), and that does indeed do something different for
+IRQs vs NMIs.
+
+So I don't think we can blindly unify this. But perhaps Paul sees a way?
