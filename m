@@ -1,103 +1,27 @@
-Return-Path: <392pYXg4KBCgFVIRHERLMKKMRWKSSKPI.GSQVTTXPMRYb.MFQ.GSQ@flex--brendanhiggins.bounces.google.com>
-Date: Thu, 27 Feb 2020 17:20:29 -0800
-Message-ID: <20200228012036.15682-1-brendanhiggins@google.com>
-Mime-Version: 1.0
-Subject: [PATCH v3 0/7] kunit: create a centralized executor to dispatch all
- KUnit tests
-From: Brendan Higgins <brendanhiggins@google.com>
+Return-Path: <robh@kernel.org>
+MIME-Version: 1.0
+References: <cover.1581497860.git.michal.simek@xilinx.com>
+In-Reply-To: <cover.1581497860.git.michal.simek@xilinx.com>
+From: Rob Herring <robh@kernel.org>
+Date: Thu, 13 Feb 2020 17:47:14 -0600
+Message-ID: <CAL_JsqJeXJ6zWvEUi=gyOV0eCcXsvNmkK9EstC9hg9AKfMXnKw@mail.gmail.com>
+Subject: Re: [PATCH 00/10] Hi,
 Content-Type: text/plain; charset="UTF-8"
-To: jdike@addtoit.com, richard@nod.at, anton.ivanov@cambridgegreys.com, arnd@arndb.de, keescook@chromium.org, skhan@linuxfoundation.org, alan.maguire@oracle.com, yzaikin@google.com, davidgow@google.com, akpm@linux-foundation.org, rppt@linux.ibm.com, frowand.list@gmail.com
-Cc: gregkh@linuxfoundation.org, sboyd@kernel.org, logang@deltatee.com, mcgrof@kernel.org, linux-um@lists.infradead.org, linux-arch@vger.kernel.org, linux-kselftest@vger.kernel.org, kunit-dev@googlegroups.com, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, Brendan Higgins <brendanhiggins@google.com>
+To: Michal Simek <michal.simek@xilinx.com>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Michal Simek <monstr@monstr.eu>, git <git@xilinx.com>, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>, Arvind Sankar <nivedita@alum.mit.edu>, Borislav Petkov <bp@suse.de>, Cornelia Huck <cohuck@redhat.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Greg Ungerer <gerg@linux-m68k.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, Kees Cook <keescook@chromium.org>, Masahiro Yamada <yamada.masahiro@socionext.com>, Mike Rapoport <rppt@linux.ibm.com>, Mubin Sayyed <mubinusm@xilinx.com>, Nicholas Piggin <npiggin@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Palmer Dabbelt <palmer@dabbelt.com>, Paolo Bonzini <pbonzini@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, Shubhrajyoti Datta <shubhrajyoti.datta@xilinx.com>, Siva Durga Prasad Paladugu <siva.durga.paladugu@xilinx.com>, Stefan Asserhall <stefan.asserhall@xilinx.com>, Vladimir Murzin <vladimir.murzin@arm.com>, Will Deacon <will@kernel.org>, "open list:GENERIC INCLUDE/ASM HEADER FILES" <linux-arch@vger.kernel.org>, linux-mm@kvack.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200228012029.HbxYG16hwjBZ2bPzrccl21azxo4IQfOkF9cXqBxWsPc@z>
+Message-ID: <20200213234714.ObTKS-c3EFJ2w_UNa7-dn0ulk7PYNtcvjWxrH9CKW7I@z>
 
-## TL;DR
+On Wed, Feb 12, 2020 at 2:58 AM Michal Simek <michal.simek@xilinx.com> wrote:
+>
+>
+> I am sending this series as before SMP support.
+> Most of these patches are clean ups and should be easy to review them. I
+> expect there will be more discussions about SMP support.
 
-This patchset adds a centralized executor to dispatch tests rather than
-relying on late_initcall to schedule each test suite separately along
-with a couple of new features that depend on it.
+While not really related to adding SMP, any chance you or someone
+could look at moving microblaze PCI support to drivers/pci/? I suspect
+much of the code should drop out as we have common helpers for much of
+it now. That would leave only powerpc and mips for DT+PCI platforms.
 
-Also, sorry for the delay in getting this new revision out. I have been
-really busy for the past couple weeks.
-
-## What am I trying to do?
-
-Conceptually, I am trying to provide a mechanism by which test suites
-can be grouped together so that they can be reasoned about collectively.
-The last two of three patches in this series add features which depend
-on this:
-
-PATCH 5/7 Prints out a test plan[1] right before KUnit tests are run;
-          this is valuable because it makes it possible for a test
-          harness to detect whether the number of tests run matches the
-          number of tests expected to be run, ensuring that no tests
-          silently failed. The test plan includes a count of tests that
-          will run. With the centralized executor, the tests are located
-          in a single data structure and thus can be counted.
-
-PATCH 6/7 Add a new kernel command-line option which allows the user to
-          specify that the kernel poweroff, halt, or reboot after
-          completing all KUnit tests; this is very handy for running
-          KUnit tests on UML or a VM so that the UML/VM process exits
-          cleanly immediately after running all tests without needing a
-          special initramfs. The centralized executor provides a
-          definitive point when all tests have completed and the
-          poweroff, halt, or reboot could occur.
-
-In addition, by dispatching tests from a single location, we can
-guarantee that all KUnit tests run after late_init is complete, which
-was a concern during the initial KUnit patchset review (this has not
-been a problem in practice, but resolving with certainty is nevertheless
-desirable).
-
-Other use cases for this exist, but the above features should provide an
-idea of the value that this could provide.
-
-## Changes since last revision:
-- On patch 7/7, I added some additional wording around the
-  kunit_shutdown command line option explaining that it runs after
-  built-in tests as suggested by Frank.
-- On the coverletter, I improved some wording and added a missing link.
-  I also specified the base-commit for the series.
-- Frank asked for some changes to the documentation; however, David is
-  taking care of that in a separate patch[2], so I did not make those
-  changes here. There will be some additional changes necessary
-  after David's patch is applied.
-
-Alan Maguire (1):
-  kunit: test: create a single centralized executor for all tests
-
-Brendan Higgins (5):
-  vmlinux.lds.h: add linker section for KUnit test suites
-  arch: um: add linker section for KUnit test suites
-  init: main: add KUnit to kernel init
-  kunit: test: add test plan to KUnit TAP format
-  Documentation: Add kunit_shutdown to kernel-parameters.txt
-
-David Gow (1):
-  kunit: Add 'kunit_shutdown' option
-
- .../admin-guide/kernel-parameters.txt         |  8 ++
- arch/um/include/asm/common.lds.S              |  4 +
- include/asm-generic/vmlinux.lds.h             |  8 ++
- include/kunit/test.h                          | 82 ++++++++++++-------
- init/main.c                                   |  4 +
- lib/kunit/Makefile                            |  3 +-
- lib/kunit/executor.c                          | 71 ++++++++++++++++
- lib/kunit/test.c                              | 11 ---
- tools/testing/kunit/kunit_kernel.py           |  2 +-
- tools/testing/kunit/kunit_parser.py           | 76 ++++++++++++++---
- .../test_is_test_passed-all_passed.log        |  1 +
- .../test_data/test_is_test_passed-crash.log   |  1 +
- .../test_data/test_is_test_passed-failure.log |  1 +
- 13 files changed, 218 insertions(+), 54 deletions(-)
- create mode 100644 lib/kunit/executor.c
-
-
-base-commit: a2f0b878c3ca531a1706cb2a8b079cea3b17bafc
-
-[1] https://github.com/isaacs/testanything.github.io/blob/tap14/tap-version-14-specification.md#the-plan
-[2] https://patchwork.kernel.org/patch/11383635/
-
--- 
-2.25.1.481.gfbce0eb801-goog
+Rob
