@@ -1,70 +1,184 @@
-Return-Path: <SRS0=as/e=4M=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:57634 "EHLO foss.arm.com"
+Return-Path: <SRS0=hmIl=4B=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from foss.arm.com ([217.140.110.172]:50208 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1725535AbgBXFDh (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 24 Feb 2020 00:03:37 -0500
-From: Anshuman Khandual <anshuman.khandual@arm.com>
-Subject: [PATCH V2 0/4] mm/vma: Use all available wrappers when possible
-Date: Mon, 24 Feb 2020 10:33:09 +0530
-Message-ID: <1582520593-30704-1-git-send-email-anshuman.khandual@arm.com>
+        id S1730478AbgBMQRa (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 13 Feb 2020 11:17:30 -0500
+From: Vincenzo Frascino <vincenzo.frascino@arm.com>
+Subject: [PATCH 17/19] arm: vdso: Enable arm to use common headers
+Date: Thu, 13 Feb 2020 16:16:12 +0000
+Message-ID: <20200213161614.23246-18-vincenzo.frascino@arm.com>
+In-Reply-To: <20200213161614.23246-1-vincenzo.frascino@arm.com>
+References: <20200213161614.23246-1-vincenzo.frascino@arm.com>
+MIME-Version: 1.0
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-mm@kvack.org, linux-kernel@vger.kernel.org
-Cc: Anshuman Khandual <anshuman.khandual@arm.com>, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org, kvm-ppc@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20200224050309.hBzLfdpqTYl7YnU44ibWeqn_XaTmAl-rqyT-dReXUJA@z>
+To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org, clang-built-linux@googlegroups.com, x86@kernel.org
+Cc: catalin.marinas@arm.com, will.deacon@arm.com, arnd@arndb.de, linux@armlinux.org.uk, paul.burton@mips.com, tglx@linutronix.de, luto@kernel.org, mingo@redhat.com, bp@alien8.de, sboyd@kernel.org, salyzyn@android.com, pcc@google.com, 0x7f454c46@gmail.com, ndesaulniers@google.com, avagin@openvz.org
+Message-ID: <20200213161612.9vGJybKaMh2DSUZMLtLrepFUHjM-XcarVy79vFPjkI4@z>
 
-Apart from adding a VMA flag readable name for trace purpose, this series
-does some open encoding replacements with availabe VMA specific wrappers.
-This skips VM_HUGETLB check in vma_migratable() as its already being done
-with another patch (https://patchwork.kernel.org/patch/11347831/) which
-is yet to be merged.
+Enable arm to use only the common headers in the implementation
+of the vDSO library.
 
-This series applies on 5.6-rc3. This has been build tested on multiple
-platforms, though boot and runtime testing was limited to arm64 and x86.
+Cc: Russell King <linux@armlinux.org.uk>
+Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
+---
+ arch/arm/include/asm/common/cp15.h       | 38 ++++++++++++++++++++++++
+ arch/arm/include/asm/common/processor.h  | 22 ++++++++++++++
+ arch/arm/include/asm/cp15.h              | 20 +------------
+ arch/arm/include/asm/processor.h         | 11 +------
+ arch/arm/include/asm/vdso/gettimeofday.h |  4 +--
+ 5 files changed, 64 insertions(+), 31 deletions(-)
+ create mode 100644 arch/arm/include/asm/common/cp15.h
+ create mode 100644 arch/arm/include/asm/common/processor.h
 
-Cc: linux-kernel@vger.kernel.org
-Cc: linux-m68k@lists.linux-m68k.org
-Cc: linux-mips@vger.kernel.org
-Cc: linuxppc-dev@lists.ozlabs.org
-Cc: linux-sh@vger.kernel.org
-Cc: kvm-ppc@vger.kernel.org
-Cc: linux-fsdevel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org
-Cc: linux-mm@kvack.org
-
-Changes in V2:
-
-- Dropped patch [PATCH 4/5] mm/vma: Replace....vma_set_anonymous() per Kirril
-- Dropped braces around is_vm_hugetlb_page() in kvmppc_e500_shadow_map()
-- Replaced two open encodings in mm/mmap.c with vma_is_accessible()
-- Added hugetlb headers to prevent build failures wrt is_vm_hugetlb_page()
-
-Changes in V1: (https://patchwork.kernel.org/cover/11385219/)
-
-Anshuman Khandual (4):
-  mm/vma: Add missing VMA flag readable name for VM_SYNC
-  mm/vma: Make vma_is_accessible() available for general use
-  mm/vma: Replace all remaining open encodings with is_vm_hugetlb_page()
-  mm/vma: Replace all remaining open encodings with vma_is_anonymous()
-
- arch/csky/mm/fault.c             | 2 +-
- arch/m68k/mm/fault.c             | 2 +-
- arch/mips/mm/fault.c             | 2 +-
- arch/powerpc/kvm/e500_mmu_host.c | 2 +-
- arch/powerpc/mm/fault.c          | 2 +-
- arch/sh/mm/fault.c               | 2 +-
- arch/x86/mm/fault.c              | 2 +-
- fs/binfmt_elf.c                  | 3 ++-
- include/asm-generic/tlb.h        | 3 ++-
- include/linux/mm.h               | 5 +++++
- include/trace/events/mmflags.h   | 1 +
- kernel/events/core.c             | 3 ++-
- kernel/sched/fair.c              | 2 +-
- mm/gup.c                         | 5 +++--
- mm/memory.c                      | 5 -----
- mm/mempolicy.c                   | 3 +--
- mm/mmap.c                        | 5 ++---
- 17 files changed, 26 insertions(+), 23 deletions(-)
-
+diff --git a/arch/arm/include/asm/common/cp15.h b/arch/arm/include/asm/common/cp15.h
+new file mode 100644
+index 000000000000..d1412c80120f
+--- /dev/null
++++ b/arch/arm/include/asm/common/cp15.h
+@@ -0,0 +1,38 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++/*
++ * Copyright (C) 2020 ARM Ltd.
++ */
++#ifndef __ASM_COMMON_CP15_H
++#define __ASM_COMMON_CP15_H
++
++#ifndef __ASSEMBLY__
++
++#ifdef CONFIG_CPU_CP15
++
++#include <linux/stringify.h>
++
++#define __ACCESS_CP15(CRn, Op1, CRm, Op2)	\
++	"mrc", "mcr", __stringify(p15, Op1, %0, CRn, CRm, Op2), u32
++#define __ACCESS_CP15_64(Op1, CRm)		\
++	"mrrc", "mcrr", __stringify(p15, Op1, %Q0, %R0, CRm), u64
++
++#define __read_sysreg(r, w, c, t) ({				\
++	t __val;						\
++	asm volatile(r " " c : "=r" (__val));			\
++	__val;							\
++})
++#define read_sysreg(...)		__read_sysreg(__VA_ARGS__)
++
++#define __write_sysreg(v, r, w, c, t)	asm volatile(w " " c : : "r" ((t)(v)))
++#define write_sysreg(v, ...)		__write_sysreg(v, __VA_ARGS__)
++
++#define BPIALL				__ACCESS_CP15(c7, 0, c5, 6)
++#define ICIALLU				__ACCESS_CP15(c7, 0, c5, 0)
++
++#define CNTVCT				__ACCESS_CP15_64(1, c14)
++
++#endif /* CONFIG_CPU_CP15 */
++
++#endif /* __ASSEMBLY__ */
++
++#endif /* __ASM_COMMON_CP15_H */
+diff --git a/arch/arm/include/asm/common/processor.h b/arch/arm/include/asm/common/processor.h
+new file mode 100644
+index 000000000000..0e76f3cb0d0d
+--- /dev/null
++++ b/arch/arm/include/asm/common/processor.h
+@@ -0,0 +1,22 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++/*
++ * Copyright (C) 2020 ARM Ltd.
++ */
++#ifndef __ASM_COMMON_PROCESSOR_H
++#define __ASM_COMMON_PROCESSOR_H
++
++#ifndef __ASSEMBLY__
++
++#if __LINUX_ARM_ARCH__ == 6 || defined(CONFIG_ARM_ERRATA_754327)
++#define cpu_relax()						\
++	do {							\
++		smp_mb();					\
++		__asm__ __volatile__("nop; nop; nop; nop; nop; nop; nop; nop; nop; nop;");	\
++	} while (0)
++#else
++#define cpu_relax()			barrier()
++#endif
++
++#endif /* __ASSEMBLY__ */
++
++#endif /* __ASM_COMMON_PROCESSOR_H */
+diff --git a/arch/arm/include/asm/cp15.h b/arch/arm/include/asm/cp15.h
+index d2453e2d3f1f..fe47a65130ab 100644
+--- a/arch/arm/include/asm/cp15.h
++++ b/arch/arm/include/asm/cp15.h
+@@ -50,25 +50,7 @@
+ 
+ #ifdef CONFIG_CPU_CP15
+ 
+-#define __ACCESS_CP15(CRn, Op1, CRm, Op2)	\
+-	"mrc", "mcr", __stringify(p15, Op1, %0, CRn, CRm, Op2), u32
+-#define __ACCESS_CP15_64(Op1, CRm)		\
+-	"mrrc", "mcrr", __stringify(p15, Op1, %Q0, %R0, CRm), u64
+-
+-#define __read_sysreg(r, w, c, t) ({				\
+-	t __val;						\
+-	asm volatile(r " " c : "=r" (__val));			\
+-	__val;							\
+-})
+-#define read_sysreg(...)		__read_sysreg(__VA_ARGS__)
+-
+-#define __write_sysreg(v, r, w, c, t)	asm volatile(w " " c : : "r" ((t)(v)))
+-#define write_sysreg(v, ...)		__write_sysreg(v, __VA_ARGS__)
+-
+-#define BPIALL				__ACCESS_CP15(c7, 0, c5, 6)
+-#define ICIALLU				__ACCESS_CP15(c7, 0, c5, 0)
+-
+-#define CNTVCT				__ACCESS_CP15_64(1, c14)
++#include <asm/common/cp15.h>
+ 
+ extern unsigned long cr_alignment;	/* defined in entry-armv.S */
+ 
+diff --git a/arch/arm/include/asm/processor.h b/arch/arm/include/asm/processor.h
+index 614bf829e454..c098d95a88fa 100644
+--- a/arch/arm/include/asm/processor.h
++++ b/arch/arm/include/asm/processor.h
+@@ -14,6 +14,7 @@
+ #include <asm/ptrace.h>
+ #include <asm/types.h>
+ #include <asm/unified.h>
++#include <asm/common/processor.h>
+ 
+ #ifdef __KERNEL__
+ #define STACK_TOP	((current->personality & ADDR_LIMIT_32BIT) ? \
+@@ -85,16 +86,6 @@ extern void release_thread(struct task_struct *);
+ 
+ unsigned long get_wchan(struct task_struct *p);
+ 
+-#if __LINUX_ARM_ARCH__ == 6 || defined(CONFIG_ARM_ERRATA_754327)
+-#define cpu_relax()						\
+-	do {							\
+-		smp_mb();					\
+-		__asm__ __volatile__("nop; nop; nop; nop; nop; nop; nop; nop; nop; nop;");	\
+-	} while (0)
+-#else
+-#define cpu_relax()			barrier()
+-#endif
+-
+ #define task_pt_regs(p) \
+ 	((struct pt_regs *)(THREAD_START_SP + task_stack_page(p)) - 1)
+ 
+diff --git a/arch/arm/include/asm/vdso/gettimeofday.h b/arch/arm/include/asm/vdso/gettimeofday.h
+index fe6e1f65932d..ffb88cef8cbb 100644
+--- a/arch/arm/include/asm/vdso/gettimeofday.h
++++ b/arch/arm/include/asm/vdso/gettimeofday.h
+@@ -7,9 +7,9 @@
+ 
+ #ifndef __ASSEMBLY__
+ 
+-#include <asm/barrier.h>
+-#include <asm/cp15.h>
++#include <asm/errno.h>
+ #include <asm/unistd.h>
++#include <asm/common/cp15.h>
+ #include <uapi/linux/time.h>
+ 
+ #define VDSO_HAS_CLOCK_GETRES		1
 -- 
-2.20.1
+2.25.0
