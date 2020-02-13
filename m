@@ -1,73 +1,40 @@
-From: Joel Fernandes <joel@joelfernandes.org>
-Subject: Re: [PATCH v2 6/9] perf,tracing: Prepare the perf-trace interface
- for RCU changes
-Date: Wed, 12 Feb 2020 18:28:30 -0500
-Message-ID: <20200212232830.GB170680@google.com>
+From: Steven Rostedt <rostedt@goodmis.org>
+Subject: Re: [PATCH v2 2/9] rcu: Mark rcu_dynticks_curr_cpu_in_eqs() inline
+Date: Wed, 12 Feb 2020 20:41:28 -0500
+Message-ID: <20200212204128.20f5e8ba@oasis.local.home>
 References: <20200212210139.382424693@infradead.org>
- <20200212210750.142334759@infradead.org>
+        <20200212210749.915180520@infradead.org>
+        <20200212223818.GA115917@google.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qk1-f193.google.com ([209.85.222.193]:41901 "EHLO
-        mail-qk1-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1729194AbgBLX2o (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 12 Feb 2020 18:28:44 -0500
-Received: by mail-qk1-f193.google.com with SMTP id d11so3881537qko.8
-        for <linux-arch@vger.kernel.org>; Wed, 12 Feb 2020 15:28:43 -0800 (PST)
-Content-Disposition: inline
-In-Reply-To: <20200212210750.142334759@infradead.org>
+Received: from mail.kernel.org ([198.145.29.99]:50778 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1729285AbgBMBlb (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 12 Feb 2020 20:41:31 -0500
+In-Reply-To: <20200212223818.GA115917@google.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, rostedt@goodmis.org, mingo@kernel.org, gregkh@linuxfoundation.org, gustavo@embeddedor.com, tglx@linutronix.de, paulmck@kernel.org, josh@joshtriplett.org, mathieu.desnoyers@efficios.com, jiangshanlai@gmail.com, "Steven Rostedt (VMware)" <rosted@goodmis.org>
+To: Joel Fernandes <joel@joelfernandes.org>
+Cc: Peter Zijlstra <peterz@infradead.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org, gregkh@linuxfoundation.org, gustavo@embeddedor.com, tglx@linutronix.de, paulmck@kernel.org, josh@joshtriplett.org, mathieu.desnoyers@efficios.com, jiangshanlai@gmail.com
 
-On Wed, Feb 12, 2020 at 10:01:45PM +0100, Peter Zijlstra wrote:
-> The tracepoint interface will stop providing regular RCU context; make
-> sure we do it ourselves, since perf makes use of regular RCU protected
-> data.
+On Wed, 12 Feb 2020 17:38:18 -0500
+Joel Fernandes <joel@joelfernandes.org> wrote:
+
+> I think there are ways to turn off function inlining, such as gcc's:
+> -fkeep-inline-functions
 > 
-> Suggested-by: Steven Rostedt (VMware) <rosted@goodmis.org>
-> Suggested-by: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
-> Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
-> ---
->  kernel/events/core.c |    5 +++++
->  1 file changed, 5 insertions(+)
-> 
-> --- a/kernel/events/core.c
-> +++ b/kernel/events/core.c
-> @@ -8950,6 +8950,7 @@ void perf_tp_event(u16 event_type, u64 c
->  {
->  	struct perf_sample_data data;
->  	struct perf_event *event;
-> +	unsigned long rcu_flags;
+> And just to be sure weird compilers (clang *cough*) don't screw this up,
+> could we make it static inline notrace?
 
-The flags are not needed I guess, if you agree on not using in_nmi() in
-trace_rcu_enter().
+inline is defined as notrace, so not needed.
 
-thanks,
+I did that because of surprises when functions marked as inline
+suddenly became non inlined and traced, which caused issues with
+function tracing (before I finally got recursion protection working).
+But even then, I figured, if something is inlined and gcc actually
+inlines it, it wont be traced. For consistency, if something is marked
+inline, it should not be traced.
 
- - Joel
-
-
->  	struct perf_raw_record raw = {
->  		.frag = {
-> @@ -8961,6 +8962,8 @@ void perf_tp_event(u16 event_type, u64 c
->  	perf_sample_data_init(&data, 0, 0);
->  	data.raw = &raw;
->  
-> +	rcu_flags = trace_rcu_enter();
-> +
->  	perf_trace_buf_update(record, event_type);
->  
->  	hlist_for_each_entry_rcu(event, head, hlist_entry) {
-> @@ -8996,6 +8999,8 @@ void perf_tp_event(u16 event_type, u64 c
->  	}
->  
->  	perf_swevent_put_recursion_context(rctx);
-> +
-> +	trace_rcu_exit(rcu_flags);
->  }
->  EXPORT_SYMBOL_GPL(perf_tp_event);
->  
-> 
-> 
+-- Steve
