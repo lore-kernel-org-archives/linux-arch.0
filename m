@@ -1,102 +1,176 @@
-Return-Path: <SRS0=sPo6=4I=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail-lj1-f194.google.com ([209.85.208.194]:33641 "EHLO
-        mail-lj1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1729130AbgBTW4t (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 20 Feb 2020 17:56:49 -0500
-Received: by mail-lj1-f194.google.com with SMTP id y6so221620lji.0
-        for <linux-arch@vger.kernel.org>; Thu, 20 Feb 2020 14:56:46 -0800 (PST)
-Received: from mail-lf1-f42.google.com (mail-lf1-f42.google.com. [209.85.167.42])
-        by smtp.gmail.com with ESMTPSA id f9sm434946ljp.62.2020.02.20.14.56.44
-        for <linux-arch@vger.kernel.org>
-        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
-        Thu, 20 Feb 2020 14:56:44 -0800 (PST)
-Received: by mail-lf1-f42.google.com with SMTP id c23so29738lfi.7
-        for <linux-arch@vger.kernel.org>; Thu, 20 Feb 2020 14:56:44 -0800 (PST)
+Return-Path: <SRS0=hmIl=4B=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail-qk1-f195.google.com ([209.85.222.195]:46697 "EHLO
+        mail-qk1-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727905AbgBMUor (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 13 Feb 2020 15:44:47 -0500
+Received: by mail-qk1-f195.google.com with SMTP id u124so6546594qkh.13
+        for <linux-arch@vger.kernel.org>; Thu, 13 Feb 2020 12:44:46 -0800 (PST)
+Date: Thu, 13 Feb 2020 15:44:44 -0500
+From: Joel Fernandes <joel@joelfernandes.org>
+Subject: Re: [PATCH v2 3/9] rcu,tracing: Create trace_rcu_{enter,exit}()
+Message-ID: <20200213204444.GA94647@google.com>
+References: <20200212210139.382424693@infradead.org>
+ <20200212210749.971717428@infradead.org>
+ <20200212232005.GC115917@google.com>
+ <20200213082716.GI14897@hirez.programming.kicks-ass.net>
+ <20200213135138.GB2935@paulmck-ThinkPad-P72>
+ <20200213164031.GH14914@hirez.programming.kicks-ass.net>
+ <20200213185612.GG2935@paulmck-ThinkPad-P72>
 MIME-Version: 1.0
-References: <20200217183340.GI23230@ZenIV.linux.org.uk> <CAHk-=wivKU1eP8ir4q5xEwOV0hsomFz7DMtiAot__X2zU-yGog@mail.gmail.com>
- <20200220224707.GQ23230@ZenIV.linux.org.uk>
-In-Reply-To: <20200220224707.GQ23230@ZenIV.linux.org.uk>
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Date: Thu, 20 Feb 2020 14:56:28 -0800
-Message-ID: <CAHk-=wiKs7Q2DbP6kk8JQksb0nhUvAs2wO5cNdWirNEc3CM-YQ@mail.gmail.com>
-Subject: Re: [RFC] regset ->get() API
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20200213185612.GG2935@paulmck-ThinkPad-P72>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Al Viro <viro@zeniv.linux.org.uk>
-Cc: linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>
-Message-ID: <20200220225628.yvgbFDef9y3FEFG4kq9ipcLDoBUkLzwPxn4z13hXA1Q@z>
+To: "Paul E. McKenney" <paulmck@kernel.org>
+Cc: Peter Zijlstra <peterz@infradead.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, rostedt@goodmis.org, mingo@kernel.org, gregkh@linuxfoundation.org, gustavo@embeddedor.com, tglx@linutronix.de, josh@joshtriplett.org, mathieu.desnoyers@efficios.com, jiangshanlai@gmail.com
+Message-ID: <20200213204444._CXMQABQYm8uIta0OMc-tkmo-O7OzksmAbbjpb-BLDQ@z>
 
-On Thu, Feb 20, 2020 at 2:47 PM Al Viro <viro@zeniv.linux.org.uk> wrote:
->
-> On Wed, Feb 19, 2020 at 12:01:54PM -0800, Linus Torvalds wrote:
->
-> > I don't mind it, but some of those buffers are big, and the generic
-> > code generally doesn't know how big.
->
-> That's what regset_size() returns...
+On Thu, Feb 13, 2020 at 10:56:12AM -0800, Paul E. McKenney wrote:
+[...] 
+> > > It might well be that I could make these functions be NMI-safe, but
+> > > rcu_prepare_for_idle() in particular would be a bit ugly at best.
+> > > So, before looking into that, I have a question.  Given these proposed
+> > > changes, will rcu_nmi_exit_common() and rcu_nmi_enter_common() be able
+> > > to just use in_nmi()?
+> > 
+> > That _should_ already be the case today. That is, if we end up in a
+> > tracer and in_nmi() is unreliable we're already screwed anyway.
+> 
+> So something like this, then?  This is untested, probably doesn't even
+> build, and could use some careful review from both Peter and Steve,
+> at least.  As in the below is the second version of the patch, the first
+> having been missing a couple of important "!" characters.
 
-Yes, but the code ends up being disgusting. You first have to call
-that indirect function just to get the size, then do a kmalloc, and
-then call another indirect function to actually fill it.
+I removed the static from rcu_nmi_enter()/exit() as it is called from
+outside, that makes it build now. Updated below is Paul's diff. I also added
+NOKPROBE_SYMBOL() to rcu_nmi_exit() to match rcu_nmi_enter() since it seemed
+asymmetric.
 
-Don't do that. Not since we know how retpoline is a bad thing.
+---8<-----------------------
 
-And since the size isn't always some trivial constant (ie for x86 PFU
-it depends on the register state!), I think the only sane model is to
-change the interface even more, and just have the "get()" function not
-only get the data, but allocate the backing store too.
-
-So you'd never pass in the result pointer - you'd get a result area
-that you can then free.
-
-Hmm?
-
-The alternative is to pick a constant size that is "big enough", and
-just assume that one page (or whatever) is sufficient:
-
-> > Maybe even more. I'm not sure how big the FPU regset can get on x86...
->
-> amd64:
->         REGSET_GENERAL  =>      sizeof(struct user_regs_struct) (216)
->         REGSET_FP       =>      sizeof(struct user_i387_struct) (512)
->         REGSET_XSTATE   =>      sizeof(struct swregs_state) or
->                                 sizeof(struct fxregs_state) or
->                                 sizeof(struct fregs_state) or
->                                 XSAVE insn buffer size (max about 2.5Kb, AFAICS)
->         REGSET_IOPERM64 =>      IO_BITMAP_BYTES (8Kb, that is)
-
-Yeah, so apparently one page isn't sufficient.
-
-
-> FWIW, what I have in mind is to start with making copy_regset_to_user() do
->         buf = kmalloc(size, GFP_KERNEL);
->         if (!buf)
->                 return -ENOMEM;
->         err = regset->get(target, regset, offset, size, buf, NULL);
-
-See above. This doesn't work. You don't know the size. And we don't
-have a known maximum size either.
-
->         if (!err && copy_to_user(data, buf, size))
->                 err = -EFAULT;
->         kfree(buf);
->         return err;
-
-But if you change "->get()" to just return a kmalloc'ed buffer, I'd be
-ok with that.
-
-IOW, something like
-
-        buf = regset->get(target, regset, &size);
-        if (IS_ERR(buf))
-                return PTR_ERR(bug);
-        err = copy_to_user(data, buf, size);
-        kfree(buf);
-        return err;
-
-or something like that. Just get rid of the "ubuf" entirely.
-
-Wouldn't that be nicer?
-
-            Linus
+diff --git a/kernel/rcu/tree.c b/kernel/rcu/tree.c
+index d91c9156fab2e..bbcc7767f18ee 100644
+--- a/kernel/rcu/tree.c
++++ b/kernel/rcu/tree.c
+@@ -614,16 +614,18 @@ void rcu_user_enter(void)
+ }
+ #endif /* CONFIG_NO_HZ_FULL */
+ 
+-/*
++/**
++ * rcu_nmi_exit - inform RCU of exit from NMI context
++ *
+  * If we are returning from the outermost NMI handler that interrupted an
+  * RCU-idle period, update rdp->dynticks and rdp->dynticks_nmi_nesting
+  * to let the RCU grace-period handling know that the CPU is back to
+  * being RCU-idle.
+  *
+- * If you add or remove a call to rcu_nmi_exit_common(), be sure to test
++ * If you add or remove a call to rcu_nmi_exit(), be sure to test
+  * with CONFIG_RCU_EQS_DEBUG=y.
+  */
+-static __always_inline void rcu_nmi_exit_common(bool irq)
++__always_inline void rcu_nmi_exit(void)
+ {
+ 	struct rcu_data *rdp = this_cpu_ptr(&rcu_data);
+ 
+@@ -651,25 +653,15 @@ static __always_inline void rcu_nmi_exit_common(bool irq)
+ 	trace_rcu_dyntick(TPS("Startirq"), rdp->dynticks_nmi_nesting, 0, atomic_read(&rdp->dynticks));
+ 	WRITE_ONCE(rdp->dynticks_nmi_nesting, 0); /* Avoid store tearing. */
+ 
+-	if (irq)
++	if (!in_nmi())
+ 		rcu_prepare_for_idle();
+ 
+ 	rcu_dynticks_eqs_enter();
+ 
+-	if (irq)
++	if (!in_nmi())
+ 		rcu_dynticks_task_enter();
+ }
+-
+-/**
+- * rcu_nmi_exit - inform RCU of exit from NMI context
+- *
+- * If you add or remove a call to rcu_nmi_exit(), be sure to test
+- * with CONFIG_RCU_EQS_DEBUG=y.
+- */
+-void rcu_nmi_exit(void)
+-{
+-	rcu_nmi_exit_common(false);
+-}
++NOKPROBE_SYMBOL(rcu_nmi_exit);
+ 
+ /**
+  * rcu_irq_exit - inform RCU that current CPU is exiting irq towards idle
+@@ -693,7 +685,7 @@ void rcu_nmi_exit(void)
+ void rcu_irq_exit(void)
+ {
+ 	lockdep_assert_irqs_disabled();
+-	rcu_nmi_exit_common(true);
++	rcu_nmi_exit();
+ }
+ 
+ /*
+@@ -777,7 +769,7 @@ void rcu_user_exit(void)
+ #endif /* CONFIG_NO_HZ_FULL */
+ 
+ /**
+- * rcu_nmi_enter_common - inform RCU of entry to NMI context
++ * rcu_nmi_enter - inform RCU of entry to NMI context
+  * @irq: Is this call from rcu_irq_enter?
+  *
+  * If the CPU was idle from RCU's viewpoint, update rdp->dynticks and
+@@ -786,10 +778,10 @@ void rcu_user_exit(void)
+  * long as the nesting level does not overflow an int.  (You will probably
+  * run out of stack space first.)
+  *
+- * If you add or remove a call to rcu_nmi_enter_common(), be sure to test
++ * If you add or remove a call to rcu_nmi_enter(), be sure to test
+  * with CONFIG_RCU_EQS_DEBUG=y.
+  */
+-static __always_inline void rcu_nmi_enter_common(bool irq)
++__always_inline void rcu_nmi_enter(void)
+ {
+ 	long incby = 2;
+ 	struct rcu_data *rdp = this_cpu_ptr(&rcu_data);
+@@ -807,12 +799,12 @@ static __always_inline void rcu_nmi_enter_common(bool irq)
+ 	 */
+ 	if (rcu_dynticks_curr_cpu_in_eqs()) {
+ 
+-		if (irq)
++		if (!in_nmi())
+ 			rcu_dynticks_task_exit();
+ 
+ 		rcu_dynticks_eqs_exit();
+ 
+-		if (irq)
++		if (!in_nmi())
+ 			rcu_cleanup_after_idle();
+ 
+ 		incby = 1;
+@@ -834,14 +826,6 @@ static __always_inline void rcu_nmi_enter_common(bool irq)
+ 		   rdp->dynticks_nmi_nesting + incby);
+ 	barrier();
+ }
+-
+-/**
+- * rcu_nmi_enter - inform RCU of entry to NMI context
+- */
+-void rcu_nmi_enter(void)
+-{
+-	rcu_nmi_enter_common(false);
+-}
+ NOKPROBE_SYMBOL(rcu_nmi_enter);
+ 
+ /**
+@@ -869,7 +853,7 @@ NOKPROBE_SYMBOL(rcu_nmi_enter);
+ void rcu_irq_enter(void)
+ {
+ 	lockdep_assert_irqs_disabled();
+-	rcu_nmi_enter_common(true);
++	rcu_nmi_enter();
+ }
+ 
+ /*
