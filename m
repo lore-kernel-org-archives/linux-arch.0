@@ -1,169 +1,104 @@
-Return-Path: <SRS0=bqXs=4A=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail-qk1-f193.google.com ([209.85.222.193]:42547 "EHLO
-        mail-qk1-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727692AbgBLWip (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 12 Feb 2020 17:38:45 -0500
-Received: by mail-qk1-f193.google.com with SMTP id o28so2432124qkj.9
-        for <linux-arch@vger.kernel.org>; Wed, 12 Feb 2020 14:38:44 -0800 (PST)
-Date: Wed, 12 Feb 2020 17:38:37 -0500
-From: Joel Fernandes <joel@joelfernandes.org>
-Subject: Re: [PATCH v2 1/9] rcu: Rename rcu_irq_{enter,exit}_irqson()
-Message-ID: <20200212223837.GB115917@google.com>
-References: <20200212210139.382424693@infradead.org>
- <20200212210749.858223764@infradead.org>
+Return-Path: <SRS0=hmIl=4B=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from foss.arm.com ([217.140.110.172]:49788 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1728267AbgBMQQy (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 13 Feb 2020 11:16:54 -0500
+From: Vincenzo Frascino <vincenzo.frascino@arm.com>
+Subject: [PATCH 04/19] linux/math64.h: Extract common header for vDSO
+Date: Thu, 13 Feb 2020 16:15:59 +0000
+Message-ID: <20200213161614.23246-5-vincenzo.frascino@arm.com>
+In-Reply-To: <20200213161614.23246-1-vincenzo.frascino@arm.com>
+References: <20200213161614.23246-1-vincenzo.frascino@arm.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20200212210749.858223764@infradead.org>
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, rostedt@goodmis.org, mingo@kernel.org, gregkh@linuxfoundation.org, gustavo@embeddedor.com, tglx@linutronix.de, paulmck@kernel.org, josh@joshtriplett.org, mathieu.desnoyers@efficios.com, jiangshanlai@gmail.com
-Message-ID: <20200212223837.Qo3RH3ia_NECSR5aVwNIUrdlIeAsEaUQqzCrkYSplu4@z>
+To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org, clang-built-linux@googlegroups.com, x86@kernel.org
+Cc: catalin.marinas@arm.com, will.deacon@arm.com, arnd@arndb.de, linux@armlinux.org.uk, paul.burton@mips.com, tglx@linutronix.de, luto@kernel.org, mingo@redhat.com, bp@alien8.de, sboyd@kernel.org, salyzyn@android.com, pcc@google.com, 0x7f454c46@gmail.com, ndesaulniers@google.com, avagin@openvz.org
+Message-ID: <20200213161559.CuB3LVxfQvE8UPzIV5HNSnkiMjp01PiAJx7NmlloTOo@z>
 
-On Wed, Feb 12, 2020 at 10:01:40PM +0100, Peter Zijlstra wrote:
-> The functions do in fact use local_irq_{save,restore}() and can
-> therefore be used when IRQs are in fact disabled. Worse, they are
-> already used in places where IRQs are disabled, leading to great
-> confusion when reading the code.
-> 
-> Rename them to fix this confusion.
+The vDSO library should only include the necessary headers required for
+a userspace library (UAPI and a minimal set of kernel headers). To make
+this possible it is necessary to isolate from the kernel headers the
+common parts that are strictly necessary to build the library.
 
+Split math64.h into linux and common headers to make the latter suitable
+for inclusion in the vDSO library.
 
-Reviewed-by: Joel Fernandes (Google) <joel@joelfernandes.org>
+Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
+---
+ include/common/math64.h | 24 ++++++++++++++++++++++++
+ include/linux/math64.h  | 20 +-------------------
+ 2 files changed, 25 insertions(+), 19 deletions(-)
+ create mode 100644 include/common/math64.h
 
-thanks,
-
- - Joel
-
-> 
-> Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
-> ---
->  include/linux/rcupdate.h   |    4 ++--
->  include/linux/rcutiny.h    |    4 ++--
->  include/linux/rcutree.h    |    4 ++--
->  include/linux/tracepoint.h |    4 ++--
->  kernel/cpu_pm.c            |    4 ++--
->  kernel/rcu/tree.c          |    8 ++++----
->  kernel/trace/trace.c       |    4 ++--
->  7 files changed, 16 insertions(+), 16 deletions(-)
-> 
-> --- a/include/linux/rcupdate.h
-> +++ b/include/linux/rcupdate.h
-> @@ -120,9 +120,9 @@ static inline void rcu_init_nohz(void) {
->   */
->  #define RCU_NONIDLE(a) \
->  	do { \
-> -		rcu_irq_enter_irqson(); \
-> +		rcu_irq_enter_irqsave(); \
->  		do { a; } while (0); \
-> -		rcu_irq_exit_irqson(); \
-> +		rcu_irq_exit_irqsave(); \
->  	} while (0)
->  
->  /*
-> --- a/include/linux/rcutiny.h
-> +++ b/include/linux/rcutiny.h
-> @@ -68,8 +68,8 @@ static inline int rcu_jiffies_till_stall
->  static inline void rcu_idle_enter(void) { }
->  static inline void rcu_idle_exit(void) { }
->  static inline void rcu_irq_enter(void) { }
-> -static inline void rcu_irq_exit_irqson(void) { }
-> -static inline void rcu_irq_enter_irqson(void) { }
-> +static inline void rcu_irq_exit_irqsave(void) { }
-> +static inline void rcu_irq_enter_irqsave(void) { }
->  static inline void rcu_irq_exit(void) { }
->  static inline void exit_rcu(void) { }
->  static inline bool rcu_preempt_need_deferred_qs(struct task_struct *t)
-> --- a/include/linux/rcutree.h
-> +++ b/include/linux/rcutree.h
-> @@ -46,8 +46,8 @@ void rcu_idle_enter(void);
->  void rcu_idle_exit(void);
->  void rcu_irq_enter(void);
->  void rcu_irq_exit(void);
-> -void rcu_irq_enter_irqson(void);
-> -void rcu_irq_exit_irqson(void);
-> +void rcu_irq_enter_irqsave(void);
-> +void rcu_irq_exit_irqsave(void);
->  
->  void exit_rcu(void);
->  
-> --- a/include/linux/tracepoint.h
-> +++ b/include/linux/tracepoint.h
-> @@ -181,7 +181,7 @@ static inline struct tracepoint *tracepo
->  		 */							\
->  		if (rcuidle) {						\
->  			__idx = srcu_read_lock_notrace(&tracepoint_srcu);\
-> -			rcu_irq_enter_irqson();				\
-> +			rcu_irq_enter_irqsave();			\
->  		}							\
->  									\
->  		it_func_ptr = rcu_dereference_raw((tp)->funcs);		\
-> @@ -195,7 +195,7 @@ static inline struct tracepoint *tracepo
->  		}							\
->  									\
->  		if (rcuidle) {						\
-> -			rcu_irq_exit_irqson();				\
-> +			rcu_irq_exit_irqsave();				\
->  			srcu_read_unlock_notrace(&tracepoint_srcu, __idx);\
->  		}							\
->  									\
-> --- a/kernel/cpu_pm.c
-> +++ b/kernel/cpu_pm.c
-> @@ -24,10 +24,10 @@ static int cpu_pm_notify(enum cpu_pm_eve
->  	 * could be disfunctional in cpu idle. Copy RCU_NONIDLE code to let
->  	 * RCU know this.
->  	 */
-> -	rcu_irq_enter_irqson();
-> +	rcu_irq_enter_irqsave();
->  	ret = __atomic_notifier_call_chain(&cpu_pm_notifier_chain, event, NULL,
->  		nr_to_call, nr_calls);
-> -	rcu_irq_exit_irqson();
-> +	rcu_irq_exit_irqsave();
->  
->  	return notifier_to_errno(ret);
->  }
-> --- a/kernel/rcu/tree.c
-> +++ b/kernel/rcu/tree.c
-> @@ -699,10 +699,10 @@ void rcu_irq_exit(void)
->  /*
->   * Wrapper for rcu_irq_exit() where interrupts are enabled.
->   *
-> - * If you add or remove a call to rcu_irq_exit_irqson(), be sure to test
-> + * If you add or remove a call to rcu_irq_exit_irqsave(), be sure to test
->   * with CONFIG_RCU_EQS_DEBUG=y.
->   */
-> -void rcu_irq_exit_irqson(void)
-> +void rcu_irq_exit_irqsave(void)
->  {
->  	unsigned long flags;
->  
-> @@ -875,10 +875,10 @@ void rcu_irq_enter(void)
->  /*
->   * Wrapper for rcu_irq_enter() where interrupts are enabled.
->   *
-> - * If you add or remove a call to rcu_irq_enter_irqson(), be sure to test
-> + * If you add or remove a call to rcu_irq_enter_irqsave(), be sure to test
->   * with CONFIG_RCU_EQS_DEBUG=y.
->   */
-> -void rcu_irq_enter_irqson(void)
-> +void rcu_irq_enter_irqsave(void)
->  {
->  	unsigned long flags;
->  
-> --- a/kernel/trace/trace.c
-> +++ b/kernel/trace/trace.c
-> @@ -3004,9 +3004,9 @@ void __trace_stack(struct trace_array *t
->  	if (unlikely(in_nmi()))
->  		return;
->  
-> -	rcu_irq_enter_irqson();
-> +	rcu_irq_enter_irqsave();
->  	__ftrace_trace_stack(buffer, flags, skip, pc, NULL);
-> -	rcu_irq_exit_irqson();
-> +	rcu_irq_exit_irqsave();
->  }
->  
->  /**
-> 
-> 
+diff --git a/include/common/math64.h b/include/common/math64.h
+new file mode 100644
+index 000000000000..4e1870e40182
+--- /dev/null
++++ b/include/common/math64.h
+@@ -0,0 +1,24 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++#ifndef __COMMON_MATH64_H
++#define __COMMON_MATH64_H
++
++static __always_inline u32
++__iter_div_u64_rem(u64 dividend, u32 divisor, u64 *remainder)
++{
++	u32 ret = 0;
++
++	while (dividend >= divisor) {
++		/* The following asm() prevents the compiler from
++		   optimising this loop into a modulo operation.  */
++		asm("" : "+rm"(dividend));
++
++		dividend -= divisor;
++		ret++;
++	}
++
++	*remainder = dividend;
++
++	return ret;
++}
++
++#endif /* __COMMON_MATH64_H */
+diff --git a/include/linux/math64.h b/include/linux/math64.h
+index 65bef21cdddb..54eb486b5d1a 100644
+--- a/include/linux/math64.h
++++ b/include/linux/math64.h
+@@ -3,6 +3,7 @@
+ #define _LINUX_MATH64_H
+ 
+ #include <linux/types.h>
++#include <common/math64.h>
+ #include <asm/div64.h>
+ 
+ #if BITS_PER_LONG == 64
+@@ -142,25 +143,6 @@ static inline s64 div_s64(s64 dividend, s32 divisor)
+ 
+ u32 iter_div_u64_rem(u64 dividend, u32 divisor, u64 *remainder);
+ 
+-static __always_inline u32
+-__iter_div_u64_rem(u64 dividend, u32 divisor, u64 *remainder)
+-{
+-	u32 ret = 0;
+-
+-	while (dividend >= divisor) {
+-		/* The following asm() prevents the compiler from
+-		   optimising this loop into a modulo operation.  */
+-		asm("" : "+rm"(dividend));
+-
+-		dividend -= divisor;
+-		ret++;
+-	}
+-
+-	*remainder = dividend;
+-
+-	return ret;
+-}
+-
+ #ifndef mul_u32_u32
+ /*
+  * Many a GCC version messes this up and generates a 64x64 mult :-(
+-- 
+2.25.0
