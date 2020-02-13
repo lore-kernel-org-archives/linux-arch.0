@@ -1,82 +1,78 @@
-Return-Path: <SRS0=Q9dx=4E=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail-qv1-f66.google.com ([209.85.219.66]:42329 "EHLO
-        mail-qv1-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1725858AbgBPFnv (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sun, 16 Feb 2020 00:43:51 -0500
-Date: Sun, 16 Feb 2020 13:43:45 +0800
-From: Boqun Feng <boqun.feng@gmail.com>
-Subject: Re: [RFC 0/3] tools/memory-model: Add litmus tests for atomic APIs
-Message-ID: <20200216054345.GA69864@debian-boqun.qqnc3lrjykvubdpftowmye0fmh.lx.internal.cloudapp.net>
-References: <20200214040132.91934-1-boqun.feng@gmail.com>
- <Pine.LNX.4.44L0.2002141024141.1579-100000@iolanthe.rowland.org>
- <20200215152550.GA13636@paulmck-ThinkPad-P72>
+Return-Path: <SRS0=hmIl=4B=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from foss.arm.com ([217.140.110.172]:49954 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1729355AbgBMQRI (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 13 Feb 2020 11:17:08 -0500
+From: Vincenzo Frascino <vincenzo.frascino@arm.com>
+Subject: [PATCH 09/19] linux/ktime.h: Extract common header for vDSO
+Date: Thu, 13 Feb 2020 16:16:04 +0000
+Message-ID: <20200213161614.23246-10-vincenzo.frascino@arm.com>
+In-Reply-To: <20200213161614.23246-1-vincenzo.frascino@arm.com>
+References: <20200213161614.23246-1-vincenzo.frascino@arm.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20200215152550.GA13636@paulmck-ThinkPad-P72>
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Paul E. McKenney" <paulmck@kernel.org>
-Cc: Alan Stern <stern@rowland.harvard.edu>, linux-kernel@vger.kernel.org, Andrea Parri <parri.andrea@gmail.com>, Will Deacon <will@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Nicholas Piggin <npiggin@gmail.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, Akira Yokosawa <akiyks@gmail.com>, Daniel Lustig <dlustig@nvidia.com>, Jonathan Corbet <corbet@lwn.net>, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org
-Message-ID: <20200216054345.VzLlHP1_W4nQ-csCCC6EKXTakYgwU11om-xaBR3iGgc@z>
+To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org, clang-built-linux@googlegroups.com, x86@kernel.org
+Cc: catalin.marinas@arm.com, will.deacon@arm.com, arnd@arndb.de, linux@armlinux.org.uk, paul.burton@mips.com, tglx@linutronix.de, luto@kernel.org, mingo@redhat.com, bp@alien8.de, sboyd@kernel.org, salyzyn@android.com, pcc@google.com, 0x7f454c46@gmail.com, ndesaulniers@google.com, avagin@openvz.org
+Message-ID: <20200213161604.KFxumunWDOlUolGueVM9406Xx8s1qcMqDKVC_Wdwk4g@z>
 
-On Sat, Feb 15, 2020 at 07:25:50AM -0800, Paul E. McKenney wrote:
-> On Fri, Feb 14, 2020 at 10:27:44AM -0500, Alan Stern wrote:
-> > On Fri, 14 Feb 2020, Boqun Feng wrote:
-> > 
-> > > A recent discussion raises up the requirement for having test cases for
-> > > atomic APIs:
-> > > 
-> > > 	https://lore.kernel.org/lkml/20200213085849.GL14897@hirez.programming.kicks-ass.net/
-> > > 
-> > > , and since we already have a way to generate a test module from a
-> > > litmus test with klitmus[1]. It makes sense that we add more litmus
-> > > tests for atomic APIs into memory-model.
-> > 
-> > It might be worth discussing this point a little more fully.  The 
-> > set of tests in tools/memory-model/litmus-tests/ is deliberately rather 
-> > limited.  Paul has a vastly more expansive set of litmus tests in a 
-> > GitHub repository, and I am doubtful about how many new tests we want 
-> > to keep in the kernel source.
-> 
-> Indeed, the current view is that the litmus tests in the kernel source
-> tree are intended to provide examples of C-litmus-test-language features
-> and functions, as opposed to exercising the full cross-product of
-> Linux-kernel synchronization primitives.
-> 
-> For a semi-reasonable subset of that cross-product, as Alan says, please
-> see https://github.com/paulmckrcu/litmus.
-> 
-> For a list of the Linux-kernel synchronization primitives currently
-> supported by LKMM, please see tools/memory-model/linux-kernel.def.
-> 
+The vDSO library should only include the necessary headers required for
+a userspace library (UAPI and a minimal set of kernel headers). To make
+this possible it is necessary to isolate from the kernel headers the
+common parts that are strictly necessary to build the library.
 
-So how about I put those atomic API tests into a separate directory, say
-Documentation/atomic/ ?
+Split ktime.h into linux and common headers to make the latter suitable
+for inclusion in the vDSO library.
 
-The problem I want to solve here is that people (usually who implements
-the atomic APIs for new archs) may want some examples, which can help
-them understand the API requirements and test the implementation. And
-litmus tests are the perfect tool here (given that them can be
-translated to test modules with klitmus). And I personally really think
-this is something the LKMM group should maintain, that's why I put them
-in the tools/memory-model/litmus-tests/. But I'm OK if we end up
-deciding those should be put outside that directory.
+Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
+---
+ include/common/ktime.h | 16 ++++++++++++++++
+ include/linux/ktime.h  |  9 +--------
+ 2 files changed, 17 insertions(+), 8 deletions(-)
+ create mode 100644 include/common/ktime.h
 
-Regards,
-Boqun
-
-> > Perhaps it makes sense to have tests corresponding to all the examples
-> > in Documentation/, perhaps not.  How do people feel about this?
-> 
-> Agreed, we don't want to say that the set of litmus tests in the kernel
-> source tree is limited for all time to the set currently present, but
-> rather that the justification for adding more would involve useful and
-> educational examples of litmus-test features and techniques rather than
-> being a full-up LKMM test suite.
-> 
-> I would guess that there are litmus-test tricks that could usefully
-> be added to tools/memory-model/litmus-tests.  Any nomination?  Perhaps
-> handling CAS loops while maintaining finite state space?  Something else?
-> 
-> 							Thanx, Paul
+diff --git a/include/common/ktime.h b/include/common/ktime.h
+new file mode 100644
+index 000000000000..4dd6c6762ad4
+--- /dev/null
++++ b/include/common/ktime.h
+@@ -0,0 +1,16 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++#ifndef __COMMON_KTIME_H
++#define __COMMON_KTIME_H
++
++#include <common/jiffies.h>
++
++/*
++ * The resolution of the clocks. The resolution value is returned in
++ * the clock_getres() system call to give application programmers an
++ * idea of the (in)accuracy of timers. Timer values are rounded up to
++ * this resolution values.
++ */
++#define LOW_RES_NSEC		TICK_NSEC
++#define KTIME_LOW_RES		(LOW_RES_NSEC)
++
++#endif /* __COMMON_KTIME_H */
+diff --git a/include/linux/ktime.h b/include/linux/ktime.h
+index b2bb44f87f5a..0e1fadeb23c3 100644
+--- a/include/linux/ktime.h
++++ b/include/linux/ktime.h
+@@ -253,14 +253,7 @@ static inline __must_check bool ktime_to_timespec64_cond(const ktime_t kt,
+ 	}
+ }
+ 
+-/*
+- * The resolution of the clocks. The resolution value is returned in
+- * the clock_getres() system call to give application programmers an
+- * idea of the (in)accuracy of timers. Timer values are rounded up to
+- * this resolution values.
+- */
+-#define LOW_RES_NSEC		TICK_NSEC
+-#define KTIME_LOW_RES		(LOW_RES_NSEC)
++#include <common/ktime.h>
+ 
+ static inline ktime_t ns_to_ktime(u64 ns)
+ {
+-- 
+2.25.0
