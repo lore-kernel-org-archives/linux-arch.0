@@ -1,49 +1,42 @@
-From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Subject: [PATCH 19/19] arm64: vdso32: Enable Clang Compilation
-Date: Thu, 13 Feb 2020 16:16:14 +0000
-Message-ID: <20200213161614.23246-20-vincenzo.frascino@arm.com>
-References: <20200213161614.23246-1-vincenzo.frascino@arm.com>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH v2 3/9] rcu,tracing: Create trace_rcu_{enter,exit}()
+Date: Thu, 13 Feb 2020 17:40:31 +0100
+Message-ID: <20200213164031.GH14914@hirez.programming.kicks-ass.net>
+References: <20200212210139.382424693@infradead.org>
+ <20200212210749.971717428@infradead.org>
+ <20200212232005.GC115917@google.com>
+ <20200213082716.GI14897@hirez.programming.kicks-ass.net>
+ <20200213135138.GB2935@paulmck-ThinkPad-P72>
 Mime-Version: 1.0
-Content-Transfer-Encoding: 8bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20200213161614.23246-1-vincenzo.frascino@arm.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org, clang-built-linux@googlegroups.com, x86@kernel.org
-Cc: catalin.marinas@arm.com, will.deacon@arm.com, arnd@arndb.de, linux@armlinux.org.uk, paul.burton@mips.com, tglx@linutronix.de, luto@kernel.org, mingo@redhat.com, bp@alien8.de, sboyd@kernel.org, salyzyn@android.com, pcc@google.com, 0x7f454c46@gmail.com, ndesaulniers@google.com, avagin@openvz.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from bombadil.infradead.org ([198.137.202.133]:36710 "EHLO
+        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727671AbgBMQk4 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 13 Feb 2020 11:40:56 -0500
+Content-Disposition: inline
+In-Reply-To: <20200213135138.GB2935@paulmck-ThinkPad-P72>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: "Paul E. McKenney" <paulmck@kernel.org>
+Cc: Joel Fernandes <joel@joelfernandes.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, rostedt@goodmis.org, mingo@kernel.org, gregkh@linuxfoundation.org, gustavo@embeddedor.com, tglx@linutronix.de, josh@joshtriplett.org, mathieu.desnoyers@efficios.com, jiangshanlai@gmail.com
 
-Enable Clang Compilation for the vdso32 library.
+On Thu, Feb 13, 2020 at 05:51:38AM -0800, Paul E. McKenney wrote:
 
-Cc: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Will Deacon <will@kernel.org>
-Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
----
- arch/arm64/kernel/vdso32/Makefile | 4 +++-
- 1 file changed, 3 insertions(+), 1 deletion(-)
+> The reason for the irq argument is to avoid invoking
+> rcu_prepare_for_idle() and rcu_dynticks_task_enter() from NMI context
+> from rcu_nmi_exit_common().  Similarly, we need to avoid invoking
+> rcu_dynticks_task_exit() and rcu_cleanup_after_idle() from NMI context
+> from rcu_nmi_enter_common().
 
-diff --git a/arch/arm64/kernel/vdso32/Makefile b/arch/arm64/kernel/vdso32/Makefile
-index 04df57b43cb1..209639101044 100644
---- a/arch/arm64/kernel/vdso32/Makefile
-+++ b/arch/arm64/kernel/vdso32/Makefile
-@@ -11,8 +11,10 @@ include $(srctree)/lib/vdso/Makefile
- # Same as cc-*option, but using CC_COMPAT instead of CC
- ifeq ($(CONFIG_CC_IS_CLANG), y)
- CC_COMPAT ?= $(CC)
-+LD_COMPAT ?= $(CROSS_COMPILE_COMPAT)gcc
- else
- CC_COMPAT ?= $(CROSS_COMPILE_COMPAT)gcc
-+LD_COMPAT ?= $(CC_COMPAT)
- endif
- 
- cc32-option = $(call try-run,\
-@@ -171,7 +173,7 @@ quiet_cmd_vdsold_and_vdso_check = LD32    $@
-       cmd_vdsold_and_vdso_check = $(cmd_vdsold); $(cmd_vdso_check)
- 
- quiet_cmd_vdsold = LD32    $@
--      cmd_vdsold = $(CC_COMPAT) -Wp,-MD,$(depfile) $(VDSO_LDFLAGS) \
-+      cmd_vdsold = $(LD_COMPAT) -Wp,-MD,$(depfile) $(VDSO_LDFLAGS) \
-                    -Wl,-T $(filter %.lds,$^) $(filter %.o,$^) -o $@
- quiet_cmd_vdsocc = CC32    $@
-       cmd_vdsocc = $(CC_COMPAT) -Wp,-MD,$(depfile) $(VDSO_CFLAGS) -c -o $@ $<
--- 
-2.25.0
+Aaah, I see. I didn't grep hard enough earlier today (I only found
+stubs). Yes, those take locks, we mustn't call them from NMI context.
+
+> It might well be that I could make these functions be NMI-safe, but
+> rcu_prepare_for_idle() in particular would be a bit ugly at best.
+> So, before looking into that, I have a question.  Given these proposed
+> changes, will rcu_nmi_exit_common() and rcu_nmi_enter_common() be able
+> to just use in_nmi()?
+
+That _should_ already be the case today. That is, if we end up in a
+tracer and in_nmi() is unreliable we're already screwed anyway.
