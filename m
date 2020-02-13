@@ -1,7 +1,7 @@
 From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Subject: [PATCH 05/19] linux/time.h: Extract common header for vDSO
-Date: Thu, 13 Feb 2020 16:16:00 +0000
-Message-ID: <20200213161614.23246-6-vincenzo.frascino@arm.com>
+Subject: [PATCH 06/19] linux/time32.h: Extract common header for vDSO
+Date: Thu, 13 Feb 2020 16:16:01 +0000
+Message-ID: <20200213161614.23246-7-vincenzo.frascino@arm.com>
 References: <20200213161614.23246-1-vincenzo.frascino@arm.com>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
@@ -17,48 +17,59 @@ a userspace library (UAPI and a minimal set of kernel headers). To make
 this possible it is necessary to isolate from the kernel headers the
 common parts that are strictly necessary to build the library.
 
-Split time.h into linux and common headers to make the latter suitable
+Split time32.h into linux and common headers to make the latter suitable
 for inclusion in the vDSO library.
 
 Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
 ---
- include/common/time.h | 12 ++++++++++++
- include/linux/time.h  |  5 +----
- 2 files changed, 13 insertions(+), 4 deletions(-)
- create mode 100644 include/common/time.h
+ include/common/time32.h | 17 +++++++++++++++++
+ include/linux/time32.h  | 13 +------------
+ 2 files changed, 18 insertions(+), 12 deletions(-)
+ create mode 100644 include/common/time32.h
 
-diff --git a/include/common/time.h b/include/common/time.h
+diff --git a/include/common/time32.h b/include/common/time32.h
 new file mode 100644
-index 000000000000..90eb9bdb40ec
+index 000000000000..d5b85abdfaf1
 --- /dev/null
-+++ b/include/common/time.h
-@@ -0,0 +1,12 @@
++++ b/include/common/time32.h
+@@ -0,0 +1,17 @@
 +/* SPDX-License-Identifier: GPL-2.0 */
-+#ifndef __COMMON_TIME_H
-+#define __COMMON_TIME_H
++#ifndef __COMMON_TIME32_H
++#define __COMMON_TIME32_H
 +
-+#include <uapi/linux/types.h>
++typedef s32		old_time32_t;
 +
-+struct timens_offset {
-+	s64	sec;
-+	u64	nsec;
++struct old_timespec32 {
++	old_time32_t	tv_sec;
++	s32		tv_nsec;
 +};
 +
-+#endif /* __COMMON_TIME_H */
-diff --git a/include/linux/time.h b/include/linux/time.h
-index 8ef5e5cc9f57..617a01e2c8bb 100644
---- a/include/linux/time.h
-+++ b/include/linux/time.h
-@@ -111,9 +111,6 @@ static inline bool itimerspec64_valid(const struct itimerspec64 *its)
-  */
- #define time_between32(t, l, h) ((u32)(h) - (u32)(l) >= (u32)(t) - (u32)(l))
++struct old_timeval32 {
++	old_time32_t	tv_sec;
++	s32		tv_usec;
++};
++
++#endif /* __COMMON_TIME32_H */
+diff --git a/include/linux/time32.h b/include/linux/time32.h
+index cad4c3186002..39ff2f55e8d7 100644
+--- a/include/linux/time32.h
++++ b/include/linux/time32.h
+@@ -11,21 +11,10 @@
  
--struct timens_offset {
--	s64	sec;
--	u64	nsec;
+ #include <linux/time64.h>
+ #include <linux/timex.h>
++#include <common/time32.h>
+ 
+ #define TIME_T_MAX	(__kernel_old_time_t)((1UL << ((sizeof(__kernel_old_time_t) << 3) - 1)) - 1)
+ 
+-typedef s32		old_time32_t;
+-
+-struct old_timespec32 {
+-	old_time32_t	tv_sec;
+-	s32		tv_nsec;
 -};
-+# include <common/time.h>
- 
- #endif
--- 
-2.25.0
+-
+-struct old_timeval32 {
+-	old_time32_t	tv_sec;
+-	s32		tv_usec;
+-};
