@@ -1,46 +1,101 @@
-Return-Path: <SRS0=WXCa=4P=vger.kernel.org=linux-doc-owner@kernel.org>
+Return-Path: <SRS0=hmIl=4B=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail.kernel.org ([198.145.29.99]:45060 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1728690AbgBMVi2 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 13 Feb 2020 16:38:28 -0500
+Date: Thu, 13 Feb 2020 16:38:25 -0500
+From: Steven Rostedt <rostedt@goodmis.org>
+Subject: Re: [PATCH v2 3/9] rcu,tracing: Create trace_rcu_{enter,exit}()
+Message-ID: <20200213163800.5c51a5f1@gandalf.local.home>
+In-Reply-To: <20200213211930.GG170680@google.com>
+References: <20200212210139.382424693@infradead.org>
+        <20200212210749.971717428@infradead.org>
+        <20200212232005.GC115917@google.com>
+        <20200213082716.GI14897@hirez.programming.kicks-ass.net>
+        <20200213135138.GB2935@paulmck-ThinkPad-P72>
+        <20200213164031.GH14914@hirez.programming.kicks-ass.net>
+        <20200213185612.GG2935@paulmck-ThinkPad-P72>
+        <20200213204444.GA94647@google.com>
+        <20200213205442.GK2935@paulmck-ThinkPad-P72>
+        <20200213211930.GG170680@google.com>
 MIME-Version: 1.0
-References: <20200205181935.3712-1-yu-cheng.yu@intel.com> <20200205181935.3712-6-yu-cheng.yu@intel.com>
- <d4dabb84-5636-2657-c45e-795f3f2dcbbc@intel.com> <CAMe9rOouOwNC873v=LOv5rJWcbe9Zvg+od8229J33V=ZfrB1rg@mail.gmail.com>
- <71791bbf-7ee3-fa70-b569-ae643151646e@intel.com>
-In-Reply-To: <71791bbf-7ee3-fa70-b569-ae643151646e@intel.com>
-From: "H.J. Lu" <hjl.tools@gmail.com>
-Date: Wed, 26 Feb 2020 18:11:17 -0800
-Message-ID: <CAMe9rOqhf4y+e6h8i7P8+70pwLSg8n=ise6LEqABNPKarECdeA@mail.gmail.com>
-Subject: Re: [RFC PATCH v9 05/27] x86/cet/shstk: Add Kconfig option for
- user-mode Shadow Stack protection
-Content-Type: text/plain; charset="UTF-8"
-Sender: linux-doc-owner@vger.kernel.org
-To: Dave Hansen <dave.hansen@intel.com>
-Cc: Yu-cheng Yu <yu-cheng.yu@intel.com>, the arch/x86 maintainers <x86@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, LKML <linux-kernel@vger.kernel.org>, linux-doc@vger.kernel.org, Linux-MM <linux-mm@kvack.org>, linux-arch <linux-arch@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>, x86-patch-review@intel.com
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200227021117.Q7fHvJq0OrPu02IIiMSeGt7uQlrqJcZ3WHTe3jMKMSY@z>
+To: Joel Fernandes <joel@joelfernandes.org>
+Cc: "Paul E. McKenney" <paulmck@kernel.org>, Peter Zijlstra <peterz@infradead.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org, gregkh@linuxfoundation.org, gustavo@embeddedor.com, tglx@linutronix.de, josh@joshtriplett.org, mathieu.desnoyers@efficios.com, jiangshanlai@gmail.com, Masami Hiramatsu <mhiramat@kernel.org>
+Message-ID: <20200213213825.Xtkd_uVWImMHBkKmNgZiccmoijwBRbfb1blh4a7Zwww@z>
 
-On Wed, Feb 26, 2020 at 5:16 PM Dave Hansen <dave.hansen@intel.com> wrote:
+[ Added Masami ]
+
+On Thu, 13 Feb 2020 16:19:30 -0500
+Joel Fernandes <joel@joelfernandes.org> wrote:
+
+> On Thu, Feb 13, 2020 at 12:54:42PM -0800, Paul E. McKenney wrote:
+> > On Thu, Feb 13, 2020 at 03:44:44PM -0500, Joel Fernandes wrote:  
+> > > On Thu, Feb 13, 2020 at 10:56:12AM -0800, Paul E. McKenney wrote:
+> > > [...]   
+> > > > > > It might well be that I could make these functions be NMI-safe, but
+> > > > > > rcu_prepare_for_idle() in particular would be a bit ugly at best.
+> > > > > > So, before looking into that, I have a question.  Given these proposed
+> > > > > > changes, will rcu_nmi_exit_common() and rcu_nmi_enter_common() be able
+> > > > > > to just use in_nmi()?  
+> > > > > 
+> > > > > That _should_ already be the case today. That is, if we end up in a
+> > > > > tracer and in_nmi() is unreliable we're already screwed anyway.  
+> > > > 
+> > > > So something like this, then?  This is untested, probably doesn't even
+> > > > build, and could use some careful review from both Peter and Steve,
+> > > > at least.  As in the below is the second version of the patch, the first
+> > > > having been missing a couple of important "!" characters.  
+> > > 
+> > > I removed the static from rcu_nmi_enter()/exit() as it is called from
+> > > outside, that makes it build now. Updated below is Paul's diff. I also added
+> > > NOKPROBE_SYMBOL() to rcu_nmi_exit() to match rcu_nmi_enter() since it seemed
+> > > asymmetric.  
+> > 
+> > My compiler complained about the static and the __always_inline, so I
+> > fixed those.  But please help me out on adding the NOKPROBE_SYMBOL()
+> > to rcu_nmi_exit().  What bad thing happens if we leave this on only
+> > rcu_nmi_enter()?  
+> 
+> It seemed odd to me we were not allowing kprobe on the rcu_nmi_enter() but
+> allowing it on exit (from a code reading standpoint) so my reaction was to
+> add it to both, but we could probably keep that as a separate
+> patch/discussion since it is slightly unrelated to the patch.. Sorry to
+> confuse the topic.
 >
-> On 2/26/20 5:02 PM, H.J. Lu wrote:
-> >> That way everybody with old toolchains can still build the kernel (and
-> >> run/test code with your config option on, btw...).
-> > CET requires a complete new OS image from kernel, toolchain, run-time.
-> > CET enabled kernel without the rest of updated OS won't give you CET
-> > at all.
->
-> If you require a new toolchain, nobody even builds your fancy feature.
-> Probably including 0day and all of the lazy maintainers with crufty old
-> distros.
 
-GCC 8 or above is needed since vDSO must be compiled with
---fcf-protection=branch.
+rcu_nmi_enter() was marked NOKPROBE or other reasons. See commit
+c13324a505c77 ("x86/kprobes: Prohibit probing on functions before
+kprobe_int3_handler()")
 
-> The point isn't to actually run CET at all.  The point is to get as many
-> people as possible testing as much of it as possible.  Testing includes
-> compile testing, static analysis and bloat watching.  It also includes
-> functional and performance testing when you've got the feature compiled
-> in but unavailable at runtime.  Did this hurt anything even when I'm not
-> using it?
->
+The issue was that we must not allow anything in do_int3() call kprobe
+code before kprobe_int3_handler() is called. Because ist_enter() (in
+do_int3()) calls rcu_nmi_enter() it had to be marked NOKPROBE. It had
+nothing to do with it being RCU nor NMI, but because it was simply
+called in do_int3().
 
-I will leave the CET toolchain issue to Yu-cheng.
+Thus, there's no reason to make rcu_nmi_exit() NOKPROBE. But a commont
+to why rcu_nmi_enter() would probably be useful, like below:
 
--- 
-H.J.
+-- Steve
+
+diff --git a/kernel/rcu/tree.c b/kernel/rcu/tree.c
+index 1694a6b57ad8..e2c9e3e2f480 100644
+--- a/kernel/rcu/tree.c
++++ b/kernel/rcu/tree.c
+@@ -846,6 +846,12 @@ void rcu_nmi_enter(void)
+ {
+ 	rcu_nmi_enter_common(false);
+ }
++/*
++ * On x86, All functions in do_int3() must be marked NOKPROBE before
++ * kprobe_int3_handler() is called. ist_enter() which is called in do_int3()
++ * before kprobe_int3_handle() happens to call rcu_nmi_enter() in which case
++ * rcu_nmi_enter() must be marked NOKRPOBE.
++ */
+ NOKPROBE_SYMBOL(rcu_nmi_enter);
+ 
+ /**
