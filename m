@@ -1,15 +1,15 @@
 From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Subject: [PATCH 08/19] linux/jiffies.h: Extract common header for vDSO
-Date: Thu, 13 Feb 2020 16:16:03 +0000
-Message-ID: <20200213161614.23246-9-vincenzo.frascino@arm.com>
+Subject: [PATCH 10/19] common: Introduce processor.h
+Date: Thu, 13 Feb 2020 16:16:05 +0000
+Message-ID: <20200213161614.23246-11-vincenzo.frascino@arm.com>
 References: <20200213161614.23246-1-vincenzo.frascino@arm.com>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:49922 "EHLO foss.arm.com"
+Received: from foss.arm.com ([217.140.110.172]:49988 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1728514AbgBMQRF (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 13 Feb 2020 11:17:05 -0500
+        id S1730145AbgBMQRL (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 13 Feb 2020 11:17:11 -0500
 In-Reply-To: <20200213161614.23246-1-vincenzo.frascino@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
@@ -21,54 +21,34 @@ a userspace library (UAPI and a minimal set of kernel headers). To make
 this possible it is necessary to isolate from the kernel headers the
 common parts that are strictly necessary to build the library.
 
-Split jiffies.h into linux and common headers to make the latter suitable
-for inclusion in the vDSO library.
+Introduce processor.h to contain all the processor specific functions
+that are suitable for vDSO inclusion.
 
 Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
 ---
- include/common/jiffies.h | 11 +++++++++++
- include/linux/jiffies.h  |  4 +---
- 2 files changed, 12 insertions(+), 3 deletions(-)
- create mode 100644 include/common/jiffies.h
+ include/common/processor.h | 14 ++++++++++++++
+ 1 file changed, 14 insertions(+)
+ create mode 100644 include/common/processor.h
 
-diff --git a/include/common/jiffies.h b/include/common/jiffies.h
+diff --git a/include/common/processor.h b/include/common/processor.h
 new file mode 100644
-index 000000000000..ff0207f00550
+index 000000000000..f9f971cb4235
 --- /dev/null
-+++ b/include/common/jiffies.h
-@@ -0,0 +1,11 @@
-+/* SPDX-License-Identifier: GPL-2.0 */
-+#ifndef __COMMON_JIFFIES_H
-+#define __COMMON_JIFFIES_H
++++ b/include/common/processor.h
+@@ -0,0 +1,14 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++/*
++ * Copyright (C) 2020 ARM Ltd.
++ */
++#ifndef __COMMON_PROCESSOR_H
++#define __COMMON_PROCESSOR_H
 +
-+#include <asm/param.h>			/* for HZ */
-+#include <common/time64.h>
++#ifndef __ASSEMBLY__
 +
-+/* TICK_NSEC is the time between ticks in nsec assuming SHIFTED_HZ */
-+#define TICK_NSEC ((NSEC_PER_SEC+HZ/2)/HZ)
++#include <asm/common/processor.h>
 +
-+#endif /* __COMMON_JIFFIES_H */
-diff --git a/include/linux/jiffies.h b/include/linux/jiffies.h
-index e3279ef24d28..710539d1e39b 100644
---- a/include/linux/jiffies.h
-+++ b/include/linux/jiffies.h
-@@ -8,6 +8,7 @@
- #include <linux/types.h>
- #include <linux/time.h>
- #include <linux/timex.h>
-+#include <common/jiffies.h>
- #include <asm/param.h>			/* for HZ */
- #include <generated/timeconst.h>
- 
-@@ -59,9 +60,6 @@
- 
- extern int register_refined_jiffies(long clock_tick_rate);
- 
--/* TICK_NSEC is the time between ticks in nsec assuming SHIFTED_HZ */
--#define TICK_NSEC ((NSEC_PER_SEC+HZ/2)/HZ)
--
- /* TICK_USEC is the time between ticks in usec assuming SHIFTED_HZ */
- #define TICK_USEC ((USEC_PER_SEC + HZ/2) / HZ)
- 
++#endif /* __ASSEMBLY__ */
++
++#endif /* __COMMON_PROCESSOR_H */
 -- 
 2.25.0
