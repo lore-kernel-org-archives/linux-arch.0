@@ -1,61 +1,115 @@
-Return-Path: <SRS0=hmIl=4B=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:50082 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1730278AbgBMQRT (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 13 Feb 2020 11:17:19 -0500
-From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Subject: [PATCH 13/19] arm64: vdso: Include common headers in the vdso library
-Date: Thu, 13 Feb 2020 16:16:08 +0000
-Message-ID: <20200213161614.23246-14-vincenzo.frascino@arm.com>
-In-Reply-To: <20200213161614.23246-1-vincenzo.frascino@arm.com>
-References: <20200213161614.23246-1-vincenzo.frascino@arm.com>
+Return-Path: <SRS0=xqSd=4C=vger.kernel.org=linux-doc-owner@kernel.org>
+From: Boqun Feng <boqun.feng@gmail.com>
+Subject: [RFC 3/3] tools/memory-model: Add litmus test for RMW + smp_mb__after_atomic()
+Date: Fri, 14 Feb 2020 12:01:32 +0800
+Message-ID: <20200214040132.91934-4-boqun.feng@gmail.com>
+In-Reply-To: <20200214040132.91934-1-boqun.feng@gmail.com>
+References: <20200214040132.91934-1-boqun.feng@gmail.com>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
-Sender: linux-arch-owner@vger.kernel.org
+Sender: linux-doc-owner@vger.kernel.org
+To: linux-kernel@vger.kernel.org
+Cc: Alan Stern <stern@rowland.harvard.edu>, Andrea Parri <parri.andrea@gmail.com>, Will Deacon <will@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Boqun Feng <boqun.feng@gmail.com>, Nicholas Piggin <npiggin@gmail.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, "Paul E. McKenney" <paulmck@kernel.org>, Akira Yokosawa <akiyks@gmail.com>, Daniel Lustig <dlustig@nvidia.com>, Jonathan Corbet <corbet@lwn.net>, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org, clang-built-linux@googlegroups.com, x86@kernel.org
-Cc: catalin.marinas@arm.com, will.deacon@arm.com, arnd@arndb.de, linux@armlinux.org.uk, paul.burton@mips.com, tglx@linutronix.de, luto@kernel.org, mingo@redhat.com, bp@alien8.de, sboyd@kernel.org, salyzyn@android.com, pcc@google.com, 0x7f454c46@gmail.com, ndesaulniers@google.com, avagin@openvz.org
-Message-ID: <20200213161608.rMdMMIUl7IHkARj8g4Afu-EecAD5Z5AUyNDhkzxilpk@z>
+Message-ID: <20200214040132.pMnEHHYnoQNNwo2A2g9E6y7XDChdw5wqPtx6PwjUbJY@z>
 
-The vDSO library should only include the necessary headers required for
-a userspace library (UAPI and a minimal set of kernel headers). To make
-this possible it is necessary to isolate from the kernel headers the
-common parts that are strictly necessary to build the library.
+We already use a litmus test in atomic_t.txt to describe atomic RMW +
+smp_mb__after_atomic() is "strong acquire" (both the read and the write
+part is ordered). So make it a litmus test in memory-model litmus-tests
+directory, so that people can access the litmus easily.
 
-Refactor the vdso implementation to include common headers.
+Additionally, change the processor numbers "P1, P2" to "P0, P1" in
+atomic_t.txt for the consistency with the processor numbers in the
+litmus test, which herd can handle.
 
-Cc: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Will Deacon <will@kernel.org>
-Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
+Signed-off-by: Boqun Feng <boqun.feng@gmail.com>
 ---
- arch/arm64/include/asm/vdso/gettimeofday.h | 1 -
- arch/arm64/kernel/vdso/vgettimeofday.c     | 2 --
- 2 files changed, 3 deletions(-)
+ Documentation/atomic_t.txt                    |  6 ++--
+ ...+mb__after_atomic-is-strong-acquire.litmus | 29 +++++++++++++++++++
+ tools/memory-model/litmus-tests/README        |  5 ++++
+ 3 files changed, 37 insertions(+), 3 deletions(-)
+ create mode 100644 tools/memory-model/litmus-tests/Atomic-RMW+mb__after_atomic-is-strong-acquire.litmus
 
-diff --git a/arch/arm64/include/asm/vdso/gettimeofday.h b/arch/arm64/include/asm/vdso/gettimeofday.h
-index b08f476b72b4..cc3456416096 100644
---- a/arch/arm64/include/asm/vdso/gettimeofday.h
-+++ b/arch/arm64/include/asm/vdso/gettimeofday.h
-@@ -8,7 +8,6 @@
- #ifndef __ASSEMBLY__
+diff --git a/Documentation/atomic_t.txt b/Documentation/atomic_t.txt
+index ceb85ada378e..e3ad4e4cd9ed 100644
+--- a/Documentation/atomic_t.txt
++++ b/Documentation/atomic_t.txt
+@@ -238,14 +238,14 @@ strictly stronger than ACQUIRE. As illustrated:
+   {
+   }
  
- #include <asm/unistd.h>
--#include <uapi/linux/time.h>
+-  P1(int *x, atomic_t *y)
++  P0(int *x, atomic_t *y)
+   {
+     r0 = READ_ONCE(*x);
+     smp_rmb();
+     r1 = atomic_read(y);
+   }
  
- #define __VDSO_USE_SYSCALL		ULLONG_MAX
+-  P2(int *x, atomic_t *y)
++  P1(int *x, atomic_t *y)
+   {
+     atomic_inc(y);
+     smp_mb__after_atomic();
+@@ -260,7 +260,7 @@ This should not happen; but a hypothetical atomic_inc_acquire() --
+ because it would not order the W part of the RMW against the following
+ WRITE_ONCE.  Thus:
  
-diff --git a/arch/arm64/kernel/vdso/vgettimeofday.c b/arch/arm64/kernel/vdso/vgettimeofday.c
-index 747635501a14..4236cf34d7d9 100644
---- a/arch/arm64/kernel/vdso/vgettimeofday.c
-+++ b/arch/arm64/kernel/vdso/vgettimeofday.c
-@@ -5,8 +5,6 @@
-  * Copyright (C) 2018 ARM Limited
-  *
-  */
--#include <linux/time.h>
--#include <linux/types.h>
+-  P1			P2
++  P0			P1
  
- int __kernel_clock_gettime(clockid_t clock,
- 			   struct __kernel_timespec *ts)
+ 			t = LL.acq *y (0)
+ 			t++;
+diff --git a/tools/memory-model/litmus-tests/Atomic-RMW+mb__after_atomic-is-strong-acquire.litmus b/tools/memory-model/litmus-tests/Atomic-RMW+mb__after_atomic-is-strong-acquire.litmus
+new file mode 100644
+index 000000000000..e7216cf9d92a
+--- /dev/null
++++ b/tools/memory-model/litmus-tests/Atomic-RMW+mb__after_atomic-is-strong-acquire.litmus
+@@ -0,0 +1,29 @@
++C Atomic-RMW+mb__after_atomic-is-strong-acquire
++
++(*
++ * Result: Never
++ *
++ * Test of an atomic RMW followed by a smp_mb__after_atomic() is
++ * "strong-acquire": both the read and write part of the RMW is ordered before
++ * the subsequential memory accesses.
++ *)
++
++{
++}
++
++P0(int *x, atomic_t *y)
++{
++	r0 = READ_ONCE(*x);
++	smp_rmb();
++	r1 = atomic_read(y);
++}
++
++P1(int *x, atomic_t *y)
++{
++	atomic_inc(y);
++	smp_mb__after_atomic();
++	WRITE_ONCE(*x, 1);
++}
++
++exists
++(r0=1 /\ r1=0)
+diff --git a/tools/memory-model/litmus-tests/README b/tools/memory-model/litmus-tests/README
+index 81eeacebd160..774e10058c72 100644
+--- a/tools/memory-model/litmus-tests/README
++++ b/tools/memory-model/litmus-tests/README
+@@ -2,6 +2,11 @@
+ LITMUS TESTS
+ ============
+ 
++Atomic-RMW+mb__after_atomic-is-strong-acquire
++	Test of an atomic RMW followed by a smp_mb__after_atomic() is
++	"strong-acquire": both the read and write part of the RMW is ordered
++	before the subsequential memory accesses.
++
+ Atomic-set-observable-to-RMW.litmus
+ 	Test of the result of atomic_set() must be observable to atomic RMWs.
+ 
 -- 
 2.25.0
