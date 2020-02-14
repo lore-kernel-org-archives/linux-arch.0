@@ -1,107 +1,39 @@
-From: Boqun Feng <boqun.feng@gmail.com>
-Subject: Re: [RFC 2/3] tools/memory-model: Add a litmus test for atomic_set()
-Date: Fri, 14 Feb 2020 18:40:03 +0800
-Message-ID: <20200214104003.GC20408@debian-boqun.qqnc3lrjykvubdpftowmye0fmh.lx.internal.cloudapp.net>
+From: Alan Stern <stern@rowland.harvard.edu>
+Subject: Re: [RFC 0/3] tools/memory-model: Add litmus tests for atomic APIs
+Date: Fri, 14 Feb 2020 10:27:44 -0500 (EST)
+Message-ID: <Pine.LNX.4.44L0.2002141024141.1579-100000@iolanthe.rowland.org>
 References: <20200214040132.91934-1-boqun.feng@gmail.com>
- <20200214040132.91934-3-boqun.feng@gmail.com>
- <20200214081213.GA17708@andrea>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qk1-f193.google.com ([209.85.222.193]:44588 "EHLO
-        mail-qk1-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S2387397AbgBNKkL (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 14 Feb 2020 05:40:11 -0500
-Content-Disposition: inline
-In-Reply-To: <20200214081213.GA17708@andrea>
+Received: from iolanthe.rowland.org ([192.131.102.54]:39726 "HELO
+        iolanthe.rowland.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with SMTP id S2387401AbgBNP1q (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 14 Feb 2020 10:27:46 -0500
+In-Reply-To: <20200214040132.91934-1-boqun.feng@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrea Parri <parri.andrea@gmail.com>
-Cc: linux-kernel@vger.kernel.org, Alan Stern <stern@rowland.harvard.edu>, Will Deacon <will@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Nicholas Piggin <npiggin@gmail.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, "Paul E. McKenney" <paulmck@kernel.org>, Akira Yokosawa <akiyks@gmail.com>, Daniel Lustig <dlustig@nvidia.com>, Jonathan Corbet <corbet@lwn.net>, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org
+To: Boqun Feng <boqun.feng@gmail.com>
+Cc: linux-kernel@vger.kernel.org, Andrea Parri <parri.andrea@gmail.com>, Will Deacon <will@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Nicholas Piggin <npiggin@gmail.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, "Paul E. McKenney" <paulmck@kernel.org>, Akira Yokosawa <akiyks@gmail.com>, Daniel Lustig <dlustig@nvidia.com>, Jonathan Corbet <corbet@lwn.net>, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org
 
-On Fri, Feb 14, 2020 at 09:12:13AM +0100, Andrea Parri wrote:
-> > @@ -0,0 +1,24 @@
-> > +C Atomic-set-observable-to-RMW
-> > +
-> > +(*
-> > + * Result: Never
-> > + *
-> > + * Test of the result of atomic_set() must be observable to atomic RMWs.
-> > + *)
-> > +
-> > +{
-> > +	atomic_t v = ATOMIC_INIT(1);
-> > +}
-> > +
-> > +P0(atomic_t *v)
-> > +{
-> > +	(void)atomic_add_unless(v,1,0);
+On Fri, 14 Feb 2020, Boqun Feng wrote:
+
+> A recent discussion raises up the requirement for having test cases for
+> atomic APIs:
 > 
-> We blacklisted this primitive some time ago, cf. section "LIMITATIONS",
-> entry (6b) in tools/memory-model/README; the discussion was here:
+> 	https://lore.kernel.org/lkml/20200213085849.GL14897@hirez.programming.kicks-ass.net/
 > 
->   https://lkml.kernel.org/r/20180829211053.20531-3-paulmck@linux.vnet.ibm.com
-> 
+> , and since we already have a way to generate a test module from a
+> litmus test with klitmus[1]. It makes sense that we add more litmus
+> tests for atomic APIs into memory-model.
 
-And in an email replying to that email, you just tried and seemed
-atomic_add_unless() works ;-)
+It might be worth discussing this point a little more fully.  The 
+set of tests in tools/memory-model/litmus-tests/ is deliberately rather 
+limited.  Paul has a vastly more expansive set of litmus tests in a 
+GitHub repository, and I am doubtful about how many new tests we want 
+to keep in the kernel source.
 
-> but unfortunately I can't remember other details at the moment: maybe
-> it is just a matter of or the proper time to update that section.
-> 
+Perhaps it makes sense to have tests corresponding to all the examples
+in Documentation/, perhaps not.  How do people feel about this?
 
-I spend a few time looking into the changes in herd, the dependency
-problem seems to be as follow:
-
-For atomic_add_unless(ptr, a, u), the return value (true or false)
-depends on both *ptr and u, this is different than other atomic RMW,
-whose return value only depends on *ptr. Considering the following
-litmus test:
-
-	C atomic_add_unless-dependency
-
-	{
-		int y = 1;
-	}
-
-	P0(int *x, int *y, int *z)
-	{
-		int r0;
-		int r1;
-		int r2;
-
-		r0 = READ_ONCE(*x);
-		if (atomic_add_unless(y, 2, r0))
-			WRITE_ONCE(*z, 42);
-		else
-			WRITE_ONCE(*z, 1);
-	}
-
-	P1(int *x, int *y, int *z)
-	{
-		int r0;
-
-		r0 = smp_load_acquire(z);
-
-		WRITE_ONCE(*x, 1);
-	}
-
-	exists
-	(1:r0 = 1 /\ 0:r0 = 1)
-
-, the exist-clause will never trigger, however if we replace
-"atomic_add_unless(y, 2, r0)" with "atomic_add_unless(y, 2, 1)", the
-write on *z and the read from *x on CPU 0 are not ordered, so we could
-observe the exist-clause triggered.
-
-I just tried with the latest herd, and herd can work out this
-dependency. So I think we are good now and can change the limitation
-section in the document. But I will wait for Luc's input for this. Luc,
-did I get this correct? Is there any other limitation on
-atomic_add_unless() now?
-
-Regards,
-Boqun
-
-> Thanks,
->   Andrea
+Alan
