@@ -1,44 +1,70 @@
-Return-Path: <SRS0=PuGS=4H=kvack.org=owner-linux-mm@kernel.org>
-Date: Wed, 19 Feb 2020 15:54:24 -0400
-From: Jason Gunthorpe <jgg@ziepe.ca>
-Subject: Re: [PATCH 3/6] tracing: Wrap section comparison in
- tracer_alloc_buffers with COMPARE_SECTIONS
-Message-ID: <20200219195424.GW31668@ziepe.ca>
-References: <20200219045423.54190-1-natechancellor@gmail.com>
- <20200219045423.54190-4-natechancellor@gmail.com>
- <20200219093445.386f1c09@gandalf.local.home>
- <CAKwvOdm-N1iX0SMxGDV5Vf=qS5uHPdH3S-TRs-065BuSOdKt1w@mail.gmail.com>
- <20200219181619.GV31668@ziepe.ca>
- <CAKwvOd=8vb5eOjiLg96zr25Xsq_Xge_Ym7RsNqKK8g+ZR9KWzA@mail.gmail.com>
+Return-Path: <SRS0=li4v=4C=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail-qt1-f194.google.com ([209.85.160.194]:41088 "EHLO
+        mail-qt1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1728508AbgBNXjg (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 14 Feb 2020 18:39:36 -0500
+Date: Sat, 15 Feb 2020 07:39:21 +0800
+From: Boqun Feng <boqun.feng@gmail.com>
+Subject: Re: [RFC 0/3] tools/memory-model: Add litmus tests for atomic APIs
+Message-ID: <20200214233921.GA110915@debian-boqun.qqnc3lrjykvubdpftowmye0fmh.lx.internal.cloudapp.net>
+References: <20200214040132.91934-1-boqun.feng@gmail.com>
+ <Pine.LNX.4.44L0.2002141024141.1579-100000@iolanthe.rowland.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <CAKwvOd=8vb5eOjiLg96zr25Xsq_Xge_Ym7RsNqKK8g+ZR9KWzA@mail.gmail.com>
-Sender: owner-linux-mm@kvack.org
-To: Nick Desaulniers <ndesaulniers@google.com>
-Cc: Nathan Chancellor <natechancellor@gmail.com>, Steven Rostedt <rostedt@goodmis.org>, Masahiro Yamada <masahiroy@kernel.org>, Michal Marek <michal.lkml@markovi.net>, Arnd Bergmann <arnd@arndb.de>, Ingo Molnar <mingo@redhat.com>, Jason Baron <jbaron@akamai.com>, Catalin Marinas <catalin.marinas@arm.com>, Andrew Morton <akpm@linux-foundation.org>, LKML <linux-kernel@vger.kernel.org>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Linux Memory Management List <linux-mm@kvack.org>, clang-built-linux <clang-built-linux@googlegroups.com>
+In-Reply-To: <Pine.LNX.4.44L0.2002141024141.1579-100000@iolanthe.rowland.org>
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200219195424.oljxqPeeSmOIZxyG1YbOBBhmiv7PygWK1CWd0hdaL2k@z>
+To: Alan Stern <stern@rowland.harvard.edu>
+Cc: linux-kernel@vger.kernel.org, Andrea Parri <parri.andrea@gmail.com>, Will Deacon <will@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Nicholas Piggin <npiggin@gmail.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, "Paul E. McKenney" <paulmck@kernel.org>, Akira Yokosawa <akiyks@gmail.com>, Daniel Lustig <dlustig@nvidia.com>, Jonathan Corbet <corbet@lwn.net>, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org
+Message-ID: <20200214233921.ZrjDwPiLqOygcBSzIV8IdFBhMytw7yVqOyLdhB3hXUU@z>
 
-On Wed, Feb 19, 2020 at 11:11:19AM -0800, Nick Desaulniers wrote:
-> > Godbolt says clang is happy if it is written as:
-> >
-> >   if (&__stop___trace_bprintk_fmt[0] != &__start___trace_bprintk_fmt[0])
-> >
-> > Which is probably the best compromise. The type here is const char
-> > *[], so it would be a shame to see it go.
+On Fri, Feb 14, 2020 at 10:27:44AM -0500, Alan Stern wrote:
+> On Fri, 14 Feb 2020, Boqun Feng wrote:
 > 
-> If the "address" is never dereferenced, but only used for arithmetic
-> (in a way that the the pointed to type is irrelevant), does the
-> pointed to type matter? 
+> > A recent discussion raises up the requirement for having test cases for
+> > atomic APIs:
+> > 
+> > 	https://lore.kernel.org/lkml/20200213085849.GL14897@hirez.programming.kicks-ass.net/
+> > 
+> > , and since we already have a way to generate a test module from a
+> > litmus test with klitmus[1]. It makes sense that we add more litmus
+> > tests for atomic APIs into memory-model.
+> 
+> It might be worth discussing this point a little more fully.  The 
 
-The type is used here:
+I'm open to any suggestion, and ...
 
-        if (*pos < start_index)
-                return __start___trace_bprintk_fmt + *pos;
+> set of tests in tools/memory-model/litmus-tests/ is deliberately rather 
+> limited.  Paul has a vastly more expansive set of litmus tests in a 
 
-The return expression should be a const char **
+I'm OK if we want to limit the number of litmus tests in
+tools/memory-model/litmus-tests directory. But ...
 
-Presumably the caller of find_next derferences it.
+> GitHub repository, and I am doubtful about how many new tests we want 
+> to keep in the kernel source.
+> 
 
-Jason
+I think we all agree we want to use litmus tests as much as possbile for
+discussing locking/parallel programming/memory model related problems,
+right? This is benefical for both kernel and the herd tool, as they can
+improve each other.
+
+Atomic APIs (perhaps even {READ,WRITE}_ONCE(), smp_load_acquire() and
+smp_store_release()) have been longing for some more concrete examples
+as a complement for the semantics description in the docs, so that
+people can check their understandings. Further, with the help of
+klitmus, the litmus tests can be a useful tool for testing if a new arch
+support is added to kernel. That's why I plan to add litmus tests into
+kernel source.
+
+Thoughts?
+
+Regards,
+Boqun
+
+> Perhaps it makes sense to have tests corresponding to all the examples
+> in Documentation/, perhaps not.  How do people feel about this?
+> 
+> Alan
+> 
