@@ -1,115 +1,43 @@
-From: Masami Hiramatsu <mhiramat@kernel.org>
-Subject: Re: [PATCH v2 3/9] rcu,tracing: Create trace_rcu_{enter,exit}()
-Date: Fri, 14 Feb 2020 15:19:06 +0900
-Message-ID: <20200214151906.b1354a7ed6b01fc3bf2de862@kernel.org>
-References: <20200213082716.GI14897@hirez.programming.kicks-ass.net>
-        <20200213135138.GB2935@paulmck-ThinkPad-P72>
-        <20200213164031.GH14914@hirez.programming.kicks-ass.net>
-        <20200213185612.GG2935@paulmck-ThinkPad-P72>
-        <20200213204444.GA94647@google.com>
-        <20200213205442.GK2935@paulmck-ThinkPad-P72>
-        <20200213211930.GG170680@google.com>
-        <20200213163800.5c51a5f1@gandalf.local.home>
-        <20200213215004.GM2935@paulmck-ThinkPad-P72>
-        <20200213170451.690c4e5c@gandalf.local.home>
-        <20200213223918.GN2935@paulmck-ThinkPad-P72>
+From: Andrea Parri <parri.andrea@gmail.com>
+Subject: Re: [RFC 2/3] tools/memory-model: Add a litmus test for atomic_set()
+Date: Fri, 14 Feb 2020 09:12:13 +0100
+Message-ID: <20200214081213.GA17708@andrea>
+References: <20200214040132.91934-1-boqun.feng@gmail.com>
+ <20200214040132.91934-3-boqun.feng@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:60900 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1725828AbgBNGTN (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 14 Feb 2020 01:19:13 -0500
-In-Reply-To: <20200213223918.GN2935@paulmck-ThinkPad-P72>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: paulmck@kernel.org
-Cc: Steven Rostedt <rostedt@goodmis.org>, Joel Fernandes <joel@joelfernandes.org>, Peter Zijlstra <peterz@infradead.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org, gregkh@linuxfoundation.org, gustavo@embeddedor.com, tglx@linutronix.de, josh@joshtriplett.org, mathieu.desnoyers@efficios.com, jiangshanlai@gmail.com, Masami Hiramatsu <mhiramat@kernel.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-doc-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <20200214040132.91934-3-boqun.feng@gmail.com>
+Sender: linux-doc-owner@vger.kernel.org
+To: Boqun Feng <boqun.feng@gmail.com>
+Cc: linux-kernel@vger.kernel.org, Alan Stern <stern@rowland.harvard.edu>, Will Deacon <will@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Nicholas Piggin <npiggin@gmail.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, "Paul E. McKenney" <paulmck@kernel.org>, Akira Yokosawa <akiyks@gmail.com>, Daniel Lustig <dlustig@nvidia.com>, Jonathan Corbet <corbet@lwn.net>, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On Thu, 13 Feb 2020 14:39:18 -0800
-"Paul E. McKenney" <paulmck@kernel.org> wrote:
+> @@ -0,0 +1,24 @@
+> +C Atomic-set-observable-to-RMW
+> +
+> +(*
+> + * Result: Never
+> + *
+> + * Test of the result of atomic_set() must be observable to atomic RMWs.
+> + *)
+> +
+> +{
+> +	atomic_t v = ATOMIC_INIT(1);
+> +}
+> +
+> +P0(atomic_t *v)
+> +{
+> +	(void)atomic_add_unless(v,1,0);
 
-> On Thu, Feb 13, 2020 at 05:04:51PM -0500, Steven Rostedt wrote:
-> > On Thu, 13 Feb 2020 13:50:04 -0800
-> > "Paul E. McKenney" <paulmck@kernel.org> wrote:
-> > 
-> > > On Thu, Feb 13, 2020 at 04:38:25PM -0500, Steven Rostedt wrote:
-> > > > [ Added Masami ]
-> > > > 
-> > > > On Thu, 13 Feb 2020 16:19:30 -0500
-> > > > Joel Fernandes <joel@joelfernandes.org> wrote:
-> > > >   
-> > > > > On Thu, Feb 13, 2020 at 12:54:42PM -0800, Paul E. McKenney wrote:  
-> > > > > > On Thu, Feb 13, 2020 at 03:44:44PM -0500, Joel Fernandes wrote:    
-> > > > > > > On Thu, Feb 13, 2020 at 10:56:12AM -0800, Paul E. McKenney wrote:
-> > > > > > > [...]     
-> > > > > > > > > > It might well be that I could make these functions be NMI-safe, but
-> > > > > > > > > > rcu_prepare_for_idle() in particular would be a bit ugly at best.
-> > > > > > > > > > So, before looking into that, I have a question.  Given these proposed
-> > > > > > > > > > changes, will rcu_nmi_exit_common() and rcu_nmi_enter_common() be able
-> > > > > > > > > > to just use in_nmi()?    
-> > > > > > > > > 
-> > > > > > > > > That _should_ already be the case today. That is, if we end up in a
-> > > > > > > > > tracer and in_nmi() is unreliable we're already screwed anyway.    
-> > > > > > > > 
-> > > > > > > > So something like this, then?  This is untested, probably doesn't even
-> > > > > > > > build, and could use some careful review from both Peter and Steve,
-> > > > > > > > at least.  As in the below is the second version of the patch, the first
-> > > > > > > > having been missing a couple of important "!" characters.    
-> > > > > > > 
-> > > > > > > I removed the static from rcu_nmi_enter()/exit() as it is called from
-> > > > > > > outside, that makes it build now. Updated below is Paul's diff. I also added
-> > > > > > > NOKPROBE_SYMBOL() to rcu_nmi_exit() to match rcu_nmi_enter() since it seemed
-> > > > > > > asymmetric.    
-> > > > > > 
-> > > > > > My compiler complained about the static and the __always_inline, so I
-> > > > > > fixed those.  But please help me out on adding the NOKPROBE_SYMBOL()
-> > > > > > to rcu_nmi_exit().  What bad thing happens if we leave this on only
-> > > > > > rcu_nmi_enter()?    
-> > > > > 
-> > > > > It seemed odd to me we were not allowing kprobe on the rcu_nmi_enter() but
-> > > > > allowing it on exit (from a code reading standpoint) so my reaction was to
-> > > > > add it to both, but we could probably keep that as a separate
-> > > > > patch/discussion since it is slightly unrelated to the patch.. Sorry to
-> > > > > confuse the topic.
-> > > > >  
-> > > > 
-> > > > rcu_nmi_enter() was marked NOKPROBE or other reasons. See commit
-> > > > c13324a505c77 ("x86/kprobes: Prohibit probing on functions before
-> > > > kprobe_int3_handler()")
-> > > > 
-> > > > The issue was that we must not allow anything in do_int3() call kprobe
-> > > > code before kprobe_int3_handler() is called. Because ist_enter() (in
-> > > > do_int3()) calls rcu_nmi_enter() it had to be marked NOKPROBE. It had
-> > > > nothing to do with it being RCU nor NMI, but because it was simply
-> > > > called in do_int3().
-> > > > 
-> > > > Thus, there's no reason to make rcu_nmi_exit() NOKPROBE. But a commont
-> > > > to why rcu_nmi_enter() would probably be useful, like below:  
-> > > 
-> > > Thank you, Steve!  Could I please have your Signed-off-by for this?
-> > 
-> > Sure, but it was untested ;-)
-> 
-> No problem!  I will fire up rcutorture on it.  ;-)
-> 
-> But experience indicates that you cannot even make a joke around here.
-> There is probably already someone out there somewhere building a
-> comment-checker based on deep semantic analysis and machine learning.  :-/
-> 
-> > Signed-off-by: Steven Rostedt (VMware) <rostedt@goodmis.org>
-> > 
-> > I'd like a Reviewed-by from Masami though.
-> 
-> Sounds good!  Masami, would you be willing to review?
+We blacklisted this primitive some time ago, cf. section "LIMITATIONS",
+entry (6b) in tools/memory-model/README; the discussion was here:
 
-Yes, the functions before calling kprobe_int3_handler() must not
-be kprobed. It can cause an infinite recursive int3 trapping.
+  https://lkml.kernel.org/r/20180829211053.20531-3-paulmck@linux.vnet.ibm.com
 
-Reviewed-by: Masami Hiramatsu <mhiramat@kernel.org>
+but unfortunately I can't remember other details at the moment: maybe
+it is just a matter of or the proper time to update that section.
 
-Thank you!
-
--- 
-Masami Hiramatsu <mhiramat@kernel.org>
+Thanks,
+  Andrea
