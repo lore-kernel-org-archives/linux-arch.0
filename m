@@ -1,101 +1,77 @@
-Return-Path: <SRS0=2OaM=4Q=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail-pj1-f68.google.com ([209.85.216.68]:53968 "EHLO
-        mail-pj1-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1730474AbgB1AW5 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 27 Feb 2020 19:22:57 -0500
-Received: by mail-pj1-f68.google.com with SMTP id i11so435887pju.3
-        for <linux-arch@vger.kernel.org>; Thu, 27 Feb 2020 16:22:56 -0800 (PST)
-From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH 9/9] arm/boot: Warn on orphan section placement
-Date: Thu, 27 Feb 2020 16:22:44 -0800
-Message-ID: <20200228002244.15240-10-keescook@chromium.org>
-In-Reply-To: <20200228002244.15240-1-keescook@chromium.org>
-References: <20200228002244.15240-1-keescook@chromium.org>
+Return-Path: <SRS0=li4v=4C=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail-qk1-f196.google.com ([209.85.222.196]:38123 "EHLO
+        mail-qk1-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1728309AbgBNEBw (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 13 Feb 2020 23:01:52 -0500
+From: Boqun Feng <boqun.feng@gmail.com>
+Subject: [RFC 2/3] tools/memory-model: Add a litmus test for atomic_set()
+Date: Fri, 14 Feb 2020 12:01:31 +0800
+Message-ID: <20200214040132.91934-3-boqun.feng@gmail.com>
+In-Reply-To: <20200214040132.91934-1-boqun.feng@gmail.com>
+References: <20200214040132.91934-1-boqun.feng@gmail.com>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Borislav Petkov <bp@suse.de>
-Cc: Kees Cook <keescook@chromium.org>, "H.J. Lu" <hjl.tools@gmail.com>, Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Mark Rutland <mark.rutland@arm.com>, Peter Collingbourne <pcc@google.com>, James Morse <james.morse@arm.com>, Arnd Bergmann <arnd@arndb.de>, Masahiro Yamada <masahiroy@kernel.org>, x86@kernel.org, linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, linux-kbuild@vger.kernel.org, clang-built-linux@googlegroups.com, linux-kernel@vger.kernel.org
-Message-ID: <20200228002244.wU0IoJdchFxPooDoiayOPtfGcMnq3PghjT4DqtWYEEg@z>
+To: linux-kernel@vger.kernel.org
+Cc: Alan Stern <stern@rowland.harvard.edu>, Andrea Parri <parri.andrea@gmail.com>, Will Deacon <will@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Boqun Feng <boqun.feng@gmail.com>, Nicholas Piggin <npiggin@gmail.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, "Paul E. McKenney" <paulmck@kernel.org>, Akira Yokosawa <akiyks@gmail.com>, Daniel Lustig <dlustig@nvidia.com>, Jonathan Corbet <corbet@lwn.net>, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org
+Message-ID: <20200214040131.9wVg-u0uY_EpkAo0ztjl8ZO_yPis3KpjLEujo-j9EIA@z>
 
-We don't want to depend on the linker's orphan section placement
-heuristics as these can vary between linkers, and may change between
-versions. All sections need to be explicitly named in the linker
-script.
+We already use a litmus test in atomic_t.txt to describe the behavior of
+an atomic_set() with the an atomic RMW, so add it into the litmus-tests
+directory to make it easily accessible for anyone who cares about the
+semantics of our atomic APIs.
 
-Use common macros for debug sections, discards, and text stubs. Add
-discards for unwanted .note, and .rel sections. Finally, enable orphan
-section warning.
-
-Signed-off-by: Kees Cook <keescook@chromium.org>
+Signed-off-by: Boqun Feng <boqun.feng@gmail.com>
 ---
- arch/arm/boot/compressed/Makefile      |  2 ++
- arch/arm/boot/compressed/vmlinux.lds.S | 17 +++++++----------
- 2 files changed, 9 insertions(+), 10 deletions(-)
+ .../Atomic-set-observable-to-RMW.litmus       | 24 +++++++++++++++++++
+ tools/memory-model/litmus-tests/README        |  3 +++
+ 2 files changed, 27 insertions(+)
+ create mode 100644 tools/memory-model/litmus-tests/Atomic-set-observable-to-RMW.litmus
 
-diff --git a/arch/arm/boot/compressed/Makefile b/arch/arm/boot/compressed/Makefile
-index da599c3a1193..7faa2b5e7e16 100644
---- a/arch/arm/boot/compressed/Makefile
-+++ b/arch/arm/boot/compressed/Makefile
-@@ -136,6 +136,8 @@ endif
- LDFLAGS_vmlinux += --no-undefined
- # Delete all temporary local symbols
- LDFLAGS_vmlinux += -X
-+# Report orphan sections
-+LDFLAGS_vmlinux += --orphan-handling=warn
- # Next argument is a linker script
- LDFLAGS_vmlinux += -T
+diff --git a/tools/memory-model/litmus-tests/Atomic-set-observable-to-RMW.litmus b/tools/memory-model/litmus-tests/Atomic-set-observable-to-RMW.litmus
+new file mode 100644
+index 000000000000..4326f56f2c1a
+--- /dev/null
++++ b/tools/memory-model/litmus-tests/Atomic-set-observable-to-RMW.litmus
+@@ -0,0 +1,24 @@
++C Atomic-set-observable-to-RMW
++
++(*
++ * Result: Never
++ *
++ * Test of the result of atomic_set() must be observable to atomic RMWs.
++ *)
++
++{
++	atomic_t v = ATOMIC_INIT(1);
++}
++
++P0(atomic_t *v)
++{
++	(void)atomic_add_unless(v,1,0);
++}
++
++P1(atomic_t *v)
++{
++	atomic_set(v, 0);
++}
++
++exists
++(v=2)
+diff --git a/tools/memory-model/litmus-tests/README b/tools/memory-model/litmus-tests/README
+index 681f9067fa9e..81eeacebd160 100644
+--- a/tools/memory-model/litmus-tests/README
++++ b/tools/memory-model/litmus-tests/README
+@@ -2,6 +2,9 @@
+ LITMUS TESTS
+ ============
  
-diff --git a/arch/arm/boot/compressed/vmlinux.lds.S b/arch/arm/boot/compressed/vmlinux.lds.S
-index fc7ed03d8b93..a6a51b5d2328 100644
---- a/arch/arm/boot/compressed/vmlinux.lds.S
-+++ b/arch/arm/boot/compressed/vmlinux.lds.S
-@@ -2,6 +2,7 @@
- /*
-  *  Copyright (C) 2000 Russell King
-  */
-+#include <asm/vmlinux.lds.h>
- 
- #ifdef CONFIG_CPU_ENDIAN_BE8
- #define ZIMAGE_MAGIC(x) ( (((x) >> 24) & 0x000000ff) | \
-@@ -17,8 +18,11 @@ ENTRY(_start)
- SECTIONS
- {
-   /DISCARD/ : {
-+    ARM_COMMON_DISCARD
-     *(.ARM.exidx*)
-     *(.ARM.extab*)
-+    *(.note.*)
-+    *(.rel.*)
-     /*
-      * Discard any r/w data - this produces a link error if we have any,
-      * which is required for PIC decompression.  Local data generates
-@@ -37,9 +41,7 @@ SECTIONS
-     *(.text)
-     *(.text.*)
-     *(.fixup)
--    *(.gnu.warning)
--    *(.glue_7t)
--    *(.glue_7)
-+    ARM_STUBS_TEXT
-   }
-   .table : ALIGN(4) {
-     _table_start = .;
-@@ -124,12 +126,7 @@ SECTIONS
-   PROVIDE(__pecoff_data_size = ALIGN(512) - ADDR(.data));
-   PROVIDE(__pecoff_end = ALIGN(512));
- 
--  .stab 0		: { *(.stab) }
--  .stabstr 0		: { *(.stabstr) }
--  .stab.excl 0		: { *(.stab.excl) }
--  .stab.exclstr 0	: { *(.stab.exclstr) }
--  .stab.index 0		: { *(.stab.index) }
--  .stab.indexstr 0	: { *(.stab.indexstr) }
--  .comment 0		: { *(.comment) }
-+  STABS_DEBUG
-+  DWARF_DEBUG
- }
- ASSERT(_edata_real == _edata, "error: zImage file size is incorrect");
++Atomic-set-observable-to-RMW.litmus
++	Test of the result of atomic_set() must be observable to atomic RMWs.
++
+ CoRR+poonceonce+Once.litmus
+ 	Test of read-read coherence, that is, whether or not two
+ 	successive reads from the same variable are ordered.
 -- 
-2.20.1
+2.25.0
