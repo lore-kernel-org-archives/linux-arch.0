@@ -1,179 +1,42 @@
-Return-Path: <SRS0=hCVk=4O=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:52134 "EHLO
-        merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726425AbgBZK2p (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 26 Feb 2020 05:28:45 -0500
-Date: Wed, 26 Feb 2020 11:27:58 +0100
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH v4 05/27] x86: Replace ist_enter() with nmi_enter()
-Message-ID: <20200226102758.GV18400@hirez.programming.kicks-ass.net>
-References: <20200221133416.777099322@infradead.org>
- <20200221134215.328642621@infradead.org>
- <CALCETrU7nezN7d3GEZ8h8HbRfvZ0+F9+Ahb7fLvZ9FVaHN9x2w@mail.gmail.com>
- <20200221202246.GA14897@hirez.programming.kicks-ass.net>
- <20200224104346.GJ14946@hirez.programming.kicks-ass.net>
- <20200224112708.4f307ba3@gandalf.local.home>
- <20200224163409.GJ18400@hirez.programming.kicks-ass.net>
- <20200224114754.0fb798c1@gandalf.local.home>
- <20200224213139.GO11457@worktop.programming.kicks-ass.net>
- <20200224170231.3807931d@gandalf.local.home>
+Return-Path: <SRS0=c96G=4D=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail.kernel.org ([198.145.29.99]:42718 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1725965AbgBOL42 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Sat, 15 Feb 2020 06:56:28 -0500
+Date: Sat, 15 Feb 2020 11:56:24 +0000
+From: Marc Zyngier <maz@kernel.org>
+Subject: Re: [PATCH v6 10/11] KVM: arm64: BTI: Reset BTYPE when skipping
+ emulated instructions
+Message-ID: <20200215115624.2afbf55c@why>
+In-Reply-To: <20200212192906.53366-11-broonie@kernel.org>
+References: <20200212192906.53366-1-broonie@kernel.org>
+        <20200212192906.53366-11-broonie@kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20200224170231.3807931d@gandalf.local.home>
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Steven Rostedt <rostedt@goodmis.org>
-Cc: Andy Lutomirski <luto@kernel.org>, LKML <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Ingo Molnar <mingo@kernel.org>, Joel Fernandes <joel@joelfernandes.org>, Greg KH <gregkh@linuxfoundation.org>, gustavo@embeddedor.com, Thomas Gleixner <tglx@linutronix.de>, paulmck@kernel.org, Josh Triplett <josh@joshtriplett.org>, Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, Lai Jiangshan <jiangshanlai@gmail.com>, Tony Luck <tony.luck@intel.com>, Frederic Weisbecker <frederic@kernel.org>, Dan Carpenter <dan.carpenter@oracle.com>, Masami Hiramatsu <mhiramat@kernel.org>
-Message-ID: <20200226102758.JgO0kKWak5SFuyOxl2swRUxcXMTh7bwxAnetHWQ4Sl4@z>
+To: Mark Brown <broonie@kernel.org>
+Cc: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Alexander Viro <viro@zeniv.linux.org.uk>, Paul Elliott <paul.elliott@arm.com>, Peter Zijlstra <peterz@infradead.org>, Yu-cheng Yu <yu-cheng.yu@intel.com>, Amit Kachhap <amit.kachhap@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Eugene Syromiatnikov <esyr@redhat.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, "H . J . Lu " <hjl.tools@gmail.com>, Andrew Jones <drjones@redhat.com>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Jann Horn <jannh@google.com>, Richard Henderson <richard.henderson@linaro.org>, Kristina =?UTF-8?Q?Mart=C5=A1enko?= <kristina.martsenko@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Florian Weimer <fweimer@redhat.com>, Sudakshina Das <sudi.das@arm.com>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, Dave Martin <Dave.Martin@arm.com>
+Message-ID: <20200215115624.y9bkbVTfkd4v0uFJdSisflzIYLa_kqfE0QBOizl6tmE@z>
 
-On Mon, Feb 24, 2020 at 05:02:31PM -0500, Steven Rostedt wrote:
+On Wed, 12 Feb 2020 19:29:05 +0000
+Mark Brown <broonie@kernel.org> wrote:
 
-> The other is for the hwlat detector that measures the time it was in an
-> NMI, as NMIs appear as a hardware latency too.
+> From: Dave Martin <Dave.Martin@arm.com>
+> 
+> Since normal execution of any non-branch instruction resets the
+> PSTATE BTYPE field to 0, so do the same thing when emulating a
+> trapped instruction.
+> 
+> Branches don't trap directly, so we should never need to assign a
+> non-zero value to BTYPE here.
+> 
+> Signed-off-by: Dave Martin <Dave.Martin@arm.com>
+> Signed-off-by: Mark Brown <broonie@kernel.org>
 
-Yeah,.. I hate that one. But I ended up with this patch.
+Acked-by: Marc Zyngier <maz@kernel.org>
 
-And yes, I know some of those notrace annotations are strictly
-unnessecary due to Makefile crap, but having them is _SO_ much easier.
-
----
-Subject: x86,tracing: Robustify ftrace_nmi_enter()
-From: Peter Zijlstra <peterz@infradead.org>
-Date: Mon Feb 24 23:40:29 CET 2020
-
-  ftrace_nmi_enter()
-     trace_hwlat_callback()
-       trace_clock_local()
-         sched_clock()
-           paravirt_sched_clock()
-           native_sched_clock()
-
-All must not be traced or kprobed, it will be called from do_debug()
-before the kprobe handler.
-
-Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
----
- arch/x86/include/asm/paravirt.h |    2 +-
- arch/x86/kernel/tsc.c           |    7 +++++--
- include/linux/ftrace_irq.h      |    4 ++--
- kernel/trace/trace_clock.c      |    2 ++
- kernel/trace/trace_hwlat.c      |    4 +++-
- 5 files changed, 13 insertions(+), 6 deletions(-)
-
---- a/arch/x86/include/asm/paravirt.h
-+++ b/arch/x86/include/asm/paravirt.h
-@@ -17,7 +17,7 @@
- #include <linux/cpumask.h>
- #include <asm/frame.h>
- 
--static inline unsigned long long paravirt_sched_clock(void)
-+static __always_inline unsigned long long paravirt_sched_clock(void)
- {
- 	return PVOP_CALL0(unsigned long long, time.sched_clock);
- }
---- a/arch/x86/kernel/tsc.c
-+++ b/arch/x86/kernel/tsc.c
-@@ -14,6 +14,7 @@
- #include <linux/percpu.h>
- #include <linux/timex.h>
- #include <linux/static_key.h>
-+#include <linux/kprobes.h>
- 
- #include <asm/hpet.h>
- #include <asm/timer.h>
-@@ -207,7 +208,7 @@ static void __init cyc2ns_init_secondary
- /*
-  * Scheduler clock - returns current time in nanosec units.
-  */
--u64 native_sched_clock(void)
-+notrace u64 native_sched_clock(void)
- {
- 	if (static_branch_likely(&__use_tsc)) {
- 		u64 tsc_now = rdtsc();
-@@ -228,6 +229,7 @@ u64 native_sched_clock(void)
- 	/* No locking but a rare wrong value is not a big deal: */
- 	return (jiffies_64 - INITIAL_JIFFIES) * (1000000000 / HZ);
- }
-+NOKPROBE_SYMBOL(native_sched_clock);
- 
- /*
-  * Generate a sched_clock if you already have a TSC value.
-@@ -240,10 +242,11 @@ u64 native_sched_clock_from_tsc(u64 tsc)
- /* We need to define a real function for sched_clock, to override the
-    weak default version */
- #ifdef CONFIG_PARAVIRT
--unsigned long long sched_clock(void)
-+notrace unsigned long long sched_clock(void)
- {
- 	return paravirt_sched_clock();
- }
-+NOKPROBE_SYMBOL(sched_clock);
- 
- bool using_native_sched_clock(void)
- {
---- a/include/linux/ftrace_irq.h
-+++ b/include/linux/ftrace_irq.h
-@@ -7,7 +7,7 @@ extern bool trace_hwlat_callback_enabled
- extern void trace_hwlat_callback(bool enter);
- #endif
- 
--static inline void ftrace_nmi_enter(void)
-+static __always_inline void ftrace_nmi_enter(void)
- {
- #ifdef CONFIG_HWLAT_TRACER
- 	if (trace_hwlat_callback_enabled)
-@@ -15,7 +15,7 @@ static inline void ftrace_nmi_enter(void
- #endif
- }
- 
--static inline void ftrace_nmi_exit(void)
-+static __always_inline void ftrace_nmi_exit(void)
- {
- #ifdef CONFIG_HWLAT_TRACER
- 	if (trace_hwlat_callback_enabled)
---- a/kernel/trace/trace_clock.c
-+++ b/kernel/trace/trace_clock.c
-@@ -22,6 +22,7 @@
- #include <linux/sched/clock.h>
- #include <linux/ktime.h>
- #include <linux/trace_clock.h>
-+#include <linux/kprobes.h>
- 
- /*
-  * trace_clock_local(): the simplest and least coherent tracing clock.
-@@ -44,6 +45,7 @@ u64 notrace trace_clock_local(void)
- 
- 	return clock;
- }
-+NOKPROBE_SYMBOL(trace_clock_local);
- EXPORT_SYMBOL_GPL(trace_clock_local);
- 
- /*
---- a/kernel/trace/trace_hwlat.c
-+++ b/kernel/trace/trace_hwlat.c
-@@ -43,6 +43,7 @@
- #include <linux/cpumask.h>
- #include <linux/delay.h>
- #include <linux/sched/clock.h>
-+#include <linux/kprobes.h>
- #include "trace.h"
- 
- static struct trace_array	*hwlat_trace;
-@@ -137,7 +138,7 @@ static void trace_hwlat_sample(struct hw
- #define init_time(a, b)	(a = b)
- #define time_u64(a)	a
- 
--void trace_hwlat_callback(bool enter)
-+notrace void trace_hwlat_callback(bool enter)
- {
- 	if (smp_processor_id() != nmi_cpu)
- 		return;
-@@ -156,6 +157,7 @@ void trace_hwlat_callback(bool enter)
- 	if (enter)
- 		nmi_count++;
- }
-+NOKPROBE_SYMBOL(trace_hwlat_callback);
- 
- /**
-  * get_sample - sample the CPU TSC and look for likely hardware latencies
+	M.
+-- 
+Jazz is not dead. It just smells funny...
