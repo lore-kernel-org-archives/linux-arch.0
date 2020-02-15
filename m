@@ -1,124 +1,157 @@
-Return-Path: <SRS0=e/bK=4N=vger.kernel.org=linux-doc-owner@kernel.org>
-Date: Tue, 25 Feb 2020 12:59:00 -0800
-From: Kees Cook <keescook@chromium.org>
-Subject: Re: [RFC PATCH v9 15/27] mm: Handle THP/HugeTLB Shadow Stack page
- fault
-Message-ID: <202002251258.7D6DA92@keescook>
-References: <20200205181935.3712-1-yu-cheng.yu@intel.com>
- <20200205181935.3712-16-yu-cheng.yu@intel.com>
+Return-Path: <SRS0=c96G=4D=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail.kernel.org ([198.145.29.99]:55254 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726143AbgBORNc (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Sat, 15 Feb 2020 12:13:32 -0500
+Date: Sat, 15 Feb 2020 06:59:34 -0800
+From: "Paul E. McKenney" <paulmck@kernel.org>
+Subject: Re: [PATCH v2 3/9] rcu,tracing: Create trace_rcu_{enter,exit}()
+Message-ID: <20200215145934.GD2935@paulmck-ThinkPad-P72>
+Reply-To: paulmck@kernel.org
+References: <20200213164031.GH14914@hirez.programming.kicks-ass.net>
+ <20200213185612.GG2935@paulmck-ThinkPad-P72>
+ <20200213204444.GA94647@google.com>
+ <20200213205442.GK2935@paulmck-ThinkPad-P72>
+ <20200213211930.GG170680@google.com>
+ <20200213163800.5c51a5f1@gandalf.local.home>
+ <20200213215004.GM2935@paulmck-ThinkPad-P72>
+ <20200213170451.690c4e5c@gandalf.local.home>
+ <20200213223918.GN2935@paulmck-ThinkPad-P72>
+ <20200214151906.b1354a7ed6b01fc3bf2de862@kernel.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20200205181935.3712-16-yu-cheng.yu@intel.com>
-Sender: linux-doc-owner@vger.kernel.org
-To: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Cc: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>, x86-patch-review@intel.com
+In-Reply-To: <20200214151906.b1354a7ed6b01fc3bf2de862@kernel.org>
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200225205900.zgc8qNMhXH2e0m83eg5hHhjdcYR6_9FDA9K7IsPTtfo@z>
+To: Masami Hiramatsu <mhiramat@kernel.org>
+Cc: Steven Rostedt <rostedt@goodmis.org>, Joel Fernandes <joel@joelfernandes.org>, Peter Zijlstra <peterz@infradead.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org, gregkh@linuxfoundation.org, gustavo@embeddedor.com, tglx@linutronix.de, josh@joshtriplett.org, mathieu.desnoyers@efficios.com, jiangshanlai@gmail.com
+Message-ID: <20200215145934.qKWm7Z1ONWJFjYr-xYAIy6ac1MqVcsG8twSn-4OP0L0@z>
 
-On Wed, Feb 05, 2020 at 10:19:23AM -0800, Yu-cheng Yu wrote:
-> This patch implements THP Shadow Stack (SHSTK) copying in the same way as
-> in the previous patch for regular PTE.
+On Fri, Feb 14, 2020 at 03:19:06PM +0900, Masami Hiramatsu wrote:
+> On Thu, 13 Feb 2020 14:39:18 -0800
+> "Paul E. McKenney" <paulmck@kernel.org> wrote:
 > 
-> In copy_huge_pmd(), clear the dirty bit from the PMD to cause a page fault
-> upon the next SHSTK access to the PMD.  At that time, fix the PMD and
-> copy/re-use the page.
-
-Now is as good a time as any to ask: do you have selftests for all this?
-It seems like it would be really nice to have a way to verify SHSTK is
-working correctly.
-
--Kees
-
+> > On Thu, Feb 13, 2020 at 05:04:51PM -0500, Steven Rostedt wrote:
+> > > On Thu, 13 Feb 2020 13:50:04 -0800
+> > > "Paul E. McKenney" <paulmck@kernel.org> wrote:
+> > > 
+> > > > On Thu, Feb 13, 2020 at 04:38:25PM -0500, Steven Rostedt wrote:
+> > > > > [ Added Masami ]
+> > > > > 
+> > > > > On Thu, 13 Feb 2020 16:19:30 -0500
+> > > > > Joel Fernandes <joel@joelfernandes.org> wrote:
+> > > > >   
+> > > > > > On Thu, Feb 13, 2020 at 12:54:42PM -0800, Paul E. McKenney wrote:  
+> > > > > > > On Thu, Feb 13, 2020 at 03:44:44PM -0500, Joel Fernandes wrote:    
+> > > > > > > > On Thu, Feb 13, 2020 at 10:56:12AM -0800, Paul E. McKenney wrote:
+> > > > > > > > [...]     
+> > > > > > > > > > > It might well be that I could make these functions be NMI-safe, but
+> > > > > > > > > > > rcu_prepare_for_idle() in particular would be a bit ugly at best.
+> > > > > > > > > > > So, before looking into that, I have a question.  Given these proposed
+> > > > > > > > > > > changes, will rcu_nmi_exit_common() and rcu_nmi_enter_common() be able
+> > > > > > > > > > > to just use in_nmi()?    
+> > > > > > > > > > 
+> > > > > > > > > > That _should_ already be the case today. That is, if we end up in a
+> > > > > > > > > > tracer and in_nmi() is unreliable we're already screwed anyway.    
+> > > > > > > > > 
+> > > > > > > > > So something like this, then?  This is untested, probably doesn't even
+> > > > > > > > > build, and could use some careful review from both Peter and Steve,
+> > > > > > > > > at least.  As in the below is the second version of the patch, the first
+> > > > > > > > > having been missing a couple of important "!" characters.    
+> > > > > > > > 
+> > > > > > > > I removed the static from rcu_nmi_enter()/exit() as it is called from
+> > > > > > > > outside, that makes it build now. Updated below is Paul's diff. I also added
+> > > > > > > > NOKPROBE_SYMBOL() to rcu_nmi_exit() to match rcu_nmi_enter() since it seemed
+> > > > > > > > asymmetric.    
+> > > > > > > 
+> > > > > > > My compiler complained about the static and the __always_inline, so I
+> > > > > > > fixed those.  But please help me out on adding the NOKPROBE_SYMBOL()
+> > > > > > > to rcu_nmi_exit().  What bad thing happens if we leave this on only
+> > > > > > > rcu_nmi_enter()?    
+> > > > > > 
+> > > > > > It seemed odd to me we were not allowing kprobe on the rcu_nmi_enter() but
+> > > > > > allowing it on exit (from a code reading standpoint) so my reaction was to
+> > > > > > add it to both, but we could probably keep that as a separate
+> > > > > > patch/discussion since it is slightly unrelated to the patch.. Sorry to
+> > > > > > confuse the topic.
+> > > > > >  
+> > > > > 
+> > > > > rcu_nmi_enter() was marked NOKPROBE or other reasons. See commit
+> > > > > c13324a505c77 ("x86/kprobes: Prohibit probing on functions before
+> > > > > kprobe_int3_handler()")
+> > > > > 
+> > > > > The issue was that we must not allow anything in do_int3() call kprobe
+> > > > > code before kprobe_int3_handler() is called. Because ist_enter() (in
+> > > > > do_int3()) calls rcu_nmi_enter() it had to be marked NOKPROBE. It had
+> > > > > nothing to do with it being RCU nor NMI, but because it was simply
+> > > > > called in do_int3().
+> > > > > 
+> > > > > Thus, there's no reason to make rcu_nmi_exit() NOKPROBE. But a commont
+> > > > > to why rcu_nmi_enter() would probably be useful, like below:  
+> > > > 
+> > > > Thank you, Steve!  Could I please have your Signed-off-by for this?
+> > > 
+> > > Sure, but it was untested ;-)
+> > 
+> > No problem!  I will fire up rcutorture on it.  ;-)
+> > 
+> > But experience indicates that you cannot even make a joke around here.
+> > There is probably already someone out there somewhere building a
+> > comment-checker based on deep semantic analysis and machine learning.  :-/
+> > 
+> > > Signed-off-by: Steven Rostedt (VMware) <rostedt@goodmis.org>
+> > > 
+> > > I'd like a Reviewed-by from Masami though.
+> > 
+> > Sounds good!  Masami, would you be willing to review?
 > 
-> Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
-> ---
->  arch/x86/mm/pgtable.c         |  8 ++++++++
->  include/asm-generic/pgtable.h | 11 +++++++++++
->  mm/huge_memory.c              |  4 ++++
->  3 files changed, 23 insertions(+)
+> Yes, the functions before calling kprobe_int3_handler() must not
+> be kprobed. It can cause an infinite recursive int3 trapping.
 > 
-> diff --git a/arch/x86/mm/pgtable.c b/arch/x86/mm/pgtable.c
-> index 2eb33794c08d..3340b1d4e9da 100644
-> --- a/arch/x86/mm/pgtable.c
-> +++ b/arch/x86/mm/pgtable.c
-> @@ -886,4 +886,12 @@ inline pte_t pte_set_vma_features(pte_t pte, struct vm_area_struct *vma)
->  	else
->  		return pte;
->  }
-> +
-> +inline pmd_t pmd_set_vma_features(pmd_t pmd, struct vm_area_struct *vma)
-> +{
-> +	if (vma->vm_flags & VM_SHSTK)
-> +		return pmd_mkdirty_shstk(pmd);
-> +	else
-> +		return pmd;
-> +}
->  #endif /* CONFIG_X86_INTEL_SHADOW_STACK_USER */
-> diff --git a/include/asm-generic/pgtable.h b/include/asm-generic/pgtable.h
-> index 9cb2f9ba5895..a9df093fdf45 100644
-> --- a/include/asm-generic/pgtable.h
-> +++ b/include/asm-generic/pgtable.h
-> @@ -1201,9 +1201,20 @@ static inline pte_t pte_set_vma_features(pte_t pte, struct vm_area_struct *vma)
->  {
->  	return pte;
->  }
-> +
-> +#ifdef CONFIG_TRANSPARENT_HUGEPAGE
-> +static inline pmd_t pmd_set_vma_features(pmd_t pmd, struct vm_area_struct *vma)
-> +{
-> +	return pmd;
-> +}
-> +#endif
->  #else
->  bool arch_copy_pte_mapping(vm_flags_t vm_flags);
->  pte_t pte_set_vma_features(pte_t pte, struct vm_area_struct *vma);
-> +
-> +#ifdef CONFIG_TRANSPARENT_HUGEPAGE
-> +pmd_t pmd_set_vma_features(pmd_t pmd, struct vm_area_struct *vma);
-> +#endif
->  #endif
->  #endif /* CONFIG_MMU */
->  
-> diff --git a/mm/huge_memory.c b/mm/huge_memory.c
-> index a88093213674..93ef368df2dd 100644
-> --- a/mm/huge_memory.c
-> +++ b/mm/huge_memory.c
-> @@ -636,6 +636,7 @@ static vm_fault_t __do_huge_pmd_anonymous_page(struct vm_fault *vmf,
->  
->  		entry = mk_huge_pmd(page, vma->vm_page_prot);
->  		entry = maybe_pmd_mkwrite(pmd_mkdirty(entry), vma);
-> +		entry = pmd_set_vma_features(entry, vma);
->  		page_add_new_anon_rmap(page, vma, haddr, true);
->  		mem_cgroup_commit_charge(page, memcg, false, true);
->  		lru_cache_add_active_or_unevictable(page, vma);
-> @@ -1278,6 +1279,7 @@ static vm_fault_t do_huge_pmd_wp_page_fallback(struct vm_fault *vmf,
->  		pte_t entry;
->  		entry = mk_pte(pages[i], vma->vm_page_prot);
->  		entry = maybe_mkwrite(pte_mkdirty(entry), vma);
-> +		entry = pte_set_vma_features(entry, vma);
->  		memcg = (void *)page_private(pages[i]);
->  		set_page_private(pages[i], 0);
->  		page_add_new_anon_rmap(pages[i], vmf->vma, haddr, false);
-> @@ -1360,6 +1362,7 @@ vm_fault_t do_huge_pmd_wp_page(struct vm_fault *vmf, pmd_t orig_pmd)
->  		pmd_t entry;
->  		entry = pmd_mkyoung(orig_pmd);
->  		entry = maybe_pmd_mkwrite(pmd_mkdirty(entry), vma);
-> +		entry = pmd_set_vma_features(entry, vma);
->  		if (pmdp_set_access_flags(vma, haddr, vmf->pmd, entry,  1))
->  			update_mmu_cache_pmd(vma, vmf->address, vmf->pmd);
->  		ret |= VM_FAULT_WRITE;
-> @@ -1432,6 +1435,7 @@ vm_fault_t do_huge_pmd_wp_page(struct vm_fault *vmf, pmd_t orig_pmd)
->  		pmd_t entry;
->  		entry = mk_huge_pmd(new_page, vma->vm_page_prot);
->  		entry = maybe_pmd_mkwrite(pmd_mkdirty(entry), vma);
-> +		entry = pmd_set_vma_features(entry, vma);
->  		pmdp_huge_clear_flush_notify(vma, haddr, vmf->pmd);
->  		page_add_new_anon_rmap(new_page, vma, haddr, true);
->  		mem_cgroup_commit_charge(new_page, memcg, false, true);
-> -- 
-> 2.21.0
-> 
+> Reviewed-by: Masami Hiramatsu <mhiramat@kernel.org>
 
--- 
-Kees Cook
+Thank you both!
+
+Like this?
+
+							Thanx, Paul
+
+------------------------------------------------------------------------
+
+commit 1817fdc8f4e4bd18c76305c9b937fb0dccbb1583
+Author: Steven Rostedt <rostedt@goodmis.org>
+Date:   Sat Feb 15 06:54:50 2020 -0800
+
+    rcu: Provide comment for NOKPROBE() on rcu_nmi_enter()
+    
+    The rcu_nmi_enter() function was marked NOKPROBE() by commit
+    c13324a505c77 ("x86/kprobes: Prohibit probing on functions before
+    kprobe_int3_handler()") because the do_int3() call kprobe code must
+    not be invoked before kprobe_int3_handler() is called.  It turns out
+    that ist_enter() (in do_int3()) calls rcu_nmi_enter(), hence the
+    marking NOKPROBE() being added to rcu_nmi_enter().
+    
+    This commit therefore adds a comment documenting this line of reasoning.
+    
+    Signed-off-by: Steven Rostedt <rostedt@goodmis.org>
+    Reviewed-by: Masami Hiramatsu <mhiramat@kernel.org>
+    Signed-off-by: Paul E. McKenney <paulmck@kernel.org>
+
+diff --git a/kernel/rcu/tree.c b/kernel/rcu/tree.c
+index 132b53e..4a885af 100644
+--- a/kernel/rcu/tree.c
++++ b/kernel/rcu/tree.c
+@@ -835,6 +835,12 @@ void rcu_nmi_enter(void)
+ 		   rdp->dynticks_nmi_nesting + incby);
+ 	barrier();
+ }
++/*
++ * On x86, All functions in do_int3() must be marked NOKPROBE before
++ * kprobe_int3_handler() is called. ist_enter() which is called in do_int3()
++ * before kprobe_int3_handle() happens to call rcu_nmi_enter() which means
++ * that rcu_nmi_enter() must be marked NOKRPOBE.
++ */
+ NOKPROBE_SYMBOL(rcu_nmi_enter);
+ 
+ /**
