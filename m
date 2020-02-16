@@ -1,73 +1,93 @@
-From: Christophe Leroy <christophe.leroy@c-s.fr>
-Subject: Re: [PATCH v2 00/13] mm: remove __ARCH_HAS_5LEVEL_HACK
-Date: Sun, 16 Feb 2020 11:45:59 +0100
-Message-ID: <d6691709-30ce-4d28-0b7b-34f1fa3b4e6f@c-s.fr>
-References: <20200216081843.28670-1-rppt@kernel.org>
- <20200216082230.GV25745@shell.armlinux.org.uk>
+From: "Paul E. McKenney" <paulmck@kernel.org>
+Subject: Re: [RFC 0/3] tools/memory-model: Add litmus tests for atomic APIs
+Date: Sun, 16 Feb 2020 04:06:25 -0800
+Message-ID: <20200216120625.GF2935@paulmck-ThinkPad-P72>
+References: <20200214040132.91934-1-boqun.feng@gmail.com>
+ <Pine.LNX.4.44L0.2002141024141.1579-100000@iolanthe.rowland.org>
+ <20200215152550.GA13636@paulmck-ThinkPad-P72>
+ <20200216054345.GA69864@debian-boqun.qqnc3lrjykvubdpftowmye0fmh.lx.internal.cloudapp.net>
+Reply-To: paulmck@kernel.org
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Transfer-Encoding: 8bit
-Return-path: <linux-ia64-owner@vger.kernel.org>
-In-Reply-To: <20200216082230.GV25745@shell.armlinux.org.uk>
-Content-Language: fr
-Sender: linux-ia64-owner@vger.kernel.org
-To: Russell King - ARM Linux admin <linux@armlinux.org.uk>, Mike Rapoport <rppt@kernel.org>
-Cc: linux-kernel@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Brian Cain <bcain@codeaurora.org>, Catalin Marinas <catalin.marinas@arm.com>, Fenghua Yu <fenghua.yu@intel.com>, Geert Uytterhoeven <geert+renesas@glider.be>, Guan Xuetao <gxt@pku.edu.cn>, James Morse <james.morse@arm.com>, Jonas Bonn <jonas@southpole.se>, Julien Thierry <julien.thierry.kdev@gmail.com>, Ley Foon Tan <ley.foon.tan@intel.com>, Marc Zyngier <maz@kernel.org>, Michael Ellerman <mpe@ellerman.id.au>, Paul Mackerras <paulus@samba.org>, Rich Felker <dalias@libc.org>, Stafford Horne <shorne@gmail.com>, Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>, Suzuki
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-doc-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <20200216054345.GA69864@debian-boqun.qqnc3lrjykvubdpftowmye0fmh.lx.internal.cloudapp.net>
+Sender: linux-doc-owner@vger.kernel.org
+To: Boqun Feng <boqun.feng@gmail.com>
+Cc: Alan Stern <stern@rowland.harvard.edu>, linux-kernel@vger.kernel.org, Andrea Parri <parri.andrea@gmail.com>, Will Deacon <will@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Nicholas Piggin <npiggin@gmail.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, Akira Yokosawa <akiyks@gmail.com>, Daniel Lustig <dlustig@nvidia.com>, Jonathan Corbet <corbet@lwn.net>, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-
-
-Le 16/02/2020 à 09:22, Russell King - ARM Linux admin a écrit :
-> On Sun, Feb 16, 2020 at 10:18:30AM +0200, Mike Rapoport wrote:
->> From: Mike Rapoport <rppt@linux.ibm.com>
->>
->> Hi,
->>
->> These patches convert several architectures to use page table folding and
->> remove __ARCH_HAS_5LEVEL_HACK along with include/asm-generic/5level-fixup.h.
->>
->> The changes are mostly about mechanical replacement of pgd accessors with p4d
->> ones and the addition of higher levels to page table traversals.
->>
->> All the patches were sent separately to the respective arch lists and
->> maintainers hence the "v2" prefix.
+On Sun, Feb 16, 2020 at 01:43:45PM +0800, Boqun Feng wrote:
+> On Sat, Feb 15, 2020 at 07:25:50AM -0800, Paul E. McKenney wrote:
+> > On Fri, Feb 14, 2020 at 10:27:44AM -0500, Alan Stern wrote:
+> > > On Fri, 14 Feb 2020, Boqun Feng wrote:
+> > > 
+> > > > A recent discussion raises up the requirement for having test cases for
+> > > > atomic APIs:
+> > > > 
+> > > > 	https://lore.kernel.org/lkml/20200213085849.GL14897@hirez.programming.kicks-ass.net/
+> > > > 
+> > > > , and since we already have a way to generate a test module from a
+> > > > litmus test with klitmus[1]. It makes sense that we add more litmus
+> > > > tests for atomic APIs into memory-model.
+> > > 
+> > > It might be worth discussing this point a little more fully.  The 
+> > > set of tests in tools/memory-model/litmus-tests/ is deliberately rather 
+> > > limited.  Paul has a vastly more expansive set of litmus tests in a 
+> > > GitHub repository, and I am doubtful about how many new tests we want 
+> > > to keep in the kernel source.
+> > 
+> > Indeed, the current view is that the litmus tests in the kernel source
+> > tree are intended to provide examples of C-litmus-test-language features
+> > and functions, as opposed to exercising the full cross-product of
+> > Linux-kernel synchronization primitives.
+> > 
+> > For a semi-reasonable subset of that cross-product, as Alan says, please
+> > see https://github.com/paulmckrcu/litmus.
+> > 
+> > For a list of the Linux-kernel synchronization primitives currently
+> > supported by LKMM, please see tools/memory-model/linux-kernel.def.
+> > 
 > 
-> You fail to explain why this change which adds 488 additional lines of
-> code is desirable.
+> So how about I put those atomic API tests into a separate directory, say
+> Documentation/atomic/ ?
 > 
+> The problem I want to solve here is that people (usually who implements
+> the atomic APIs for new archs) may want some examples, which can help
+> them understand the API requirements and test the implementation. And
+> litmus tests are the perfect tool here (given that them can be
+> translated to test modules with klitmus). And I personally really think
+> this is something the LKMM group should maintain, that's why I put them
+> in the tools/memory-model/litmus-tests/. But I'm OK if we end up
+> deciding those should be put outside that directory.
 
-The purpose of the series, ie droping a HACK, is worth it.
+Good point!
 
-However looking at the powerpc patch I have the feeling that this series 
-goes behind its purpose.
+However, we should dicuss this with the proposed beneficiaries, namely
+the architecture maintainers.  Do they want it?  If so, where would
+they like it to be?  How should it be organized?
 
-The number additional lines could be deeply reduced I think if we limit 
-the patches to the strict minimum, ie just do things like below instead 
-of adding lots of handling of useless levels.
+In the meantime, I am more than happy to accept litmus tests into the
+github archive.
 
-Instead of doing things like:
+So how would you like to proceed?
 
--	pud = NULL;
-+	p4d = NULL;
-  	if (pgd_present(*pgd))
--		pud = pud_offset(pgd, gpa);
-+		p4d = p4d_offset(pgd, gpa);
-+	else
-+		new_p4d = p4d_alloc_one(kvm->mm, gpa);
-+
-+	pud = NULL;
-+	if (p4d_present(*p4d))
-+		pud = pud_offset(p4d, gpa);
-  	else
-  		new_pud = pud_alloc_one(kvm->mm, gpa);
+							Thanx, Paul
 
-It could be limited to:
-
-  	if (pgd_present(*pgd))
--		pud = pud_offset(pgd, gpa);
-+		pud = pud_offset(p4d_offset(pgd, gpa), gpa);
-  	else
-  		new_pud = pud_alloc_one(kvm->mm, gpa);
-
-
-Christophe
+> Regards,
+> Boqun
+> 
+> > > Perhaps it makes sense to have tests corresponding to all the examples
+> > > in Documentation/, perhaps not.  How do people feel about this?
+> > 
+> > Agreed, we don't want to say that the set of litmus tests in the kernel
+> > source tree is limited for all time to the set currently present, but
+> > rather that the justification for adding more would involve useful and
+> > educational examples of litmus-test features and techniques rather than
+> > being a full-up LKMM test suite.
+> > 
+> > I would guess that there are litmus-test tricks that could usefully
+> > be added to tools/memory-model/litmus-tests.  Any nomination?  Perhaps
+> > handling CAS loops while maintaining finite state space?  Something else?
+> > 
+> > 							Thanx, Paul
