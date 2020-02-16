@@ -1,107 +1,241 @@
-Return-Path: <SRS0=hmIl=4B=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:47512 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727778AbgBMVuG (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 13 Feb 2020 16:50:06 -0500
-Date: Thu, 13 Feb 2020 13:50:04 -0800
-From: "Paul E. McKenney" <paulmck@kernel.org>
-Subject: Re: [PATCH v2 3/9] rcu,tracing: Create trace_rcu_{enter,exit}()
-Message-ID: <20200213215004.GM2935@paulmck-ThinkPad-P72>
-Reply-To: paulmck@kernel.org
-References: <20200212210749.971717428@infradead.org>
- <20200212232005.GC115917@google.com>
- <20200213082716.GI14897@hirez.programming.kicks-ass.net>
- <20200213135138.GB2935@paulmck-ThinkPad-P72>
- <20200213164031.GH14914@hirez.programming.kicks-ass.net>
- <20200213185612.GG2935@paulmck-ThinkPad-P72>
- <20200213204444.GA94647@google.com>
- <20200213205442.GK2935@paulmck-ThinkPad-P72>
- <20200213211930.GG170680@google.com>
- <20200213163800.5c51a5f1@gandalf.local.home>
+Return-Path: <rppt@kernel.org>
+From: Mike Rapoport <rppt@kernel.org>
+Subject: [PATCH v2 04/13] ia64: add support for folded p4d page tables
+Date: Sun, 16 Feb 2020 10:18:34 +0200
+Message-ID: <20200216081843.28670-5-rppt@kernel.org>
+In-Reply-To: <20200216081843.28670-1-rppt@kernel.org>
+References: <20200216081843.28670-1-rppt@kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20200213163800.5c51a5f1@gandalf.local.home>
-Sender: linux-arch-owner@vger.kernel.org
+Content-Transfer-Encoding: 8bit
+To: linux-kernel@vger.kernel.org
+Cc: Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Brian Cain <bcain@codeaurora.org>, Catalin Marinas <catalin.marinas@arm.com>, Christophe Leroy <christophe.leroy@c-s.fr>, Fenghua Yu <fenghua.yu@intel.com>, Geert Uytterhoeven <geert+renesas@glider.be>, Guan Xuetao <gxt@pku.edu.cn>, James Morse <james.morse@arm.com>, Jonas Bonn <jonas@southpole.se>, Julien Thierry <julien.thierry.kdev@gmail.com>, Ley Foon Tan <ley.foon.tan@intel.com>, Marc Zyngier <maz@kernel.org>, Michael Ellerman <mpe@ellerman.id.au>, Paul Mackerras <paulus@samba.org>, Rich Felker <dalias@libc.org>, Russell King <linux@armlinux.org.uk>, Stafford Horne <shorne@gmail.com>, Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>, Suzuki K Poulose <suzuki.poulose@arm.com>, Tony Luck <tony.luck@intel.com>, Will Deacon <will@kernel.org>, Yoshinori Sato <ysato@users.sourceforge.jp>, kvmarm@lists.cs.columbia.edu, kvm-ppc@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-mm@kvack.org, linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org, nios2-dev@lists.rocketboards.org, openrisc@lists.librecores.org, uclinux-h8-devel@lists.sourceforge.jp, Mike Rapoport <rppt@kernel.org>, Mike Rapoport <rppt@linux.ibm.com>
 List-ID: <linux-arch.vger.kernel.org>
-To: Steven Rostedt <rostedt@goodmis.org>
-Cc: Joel Fernandes <joel@joelfernandes.org>, Peter Zijlstra <peterz@infradead.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org, gregkh@linuxfoundation.org, gustavo@embeddedor.com, tglx@linutronix.de, josh@joshtriplett.org, mathieu.desnoyers@efficios.com, jiangshanlai@gmail.com, Masami Hiramatsu <mhiramat@kernel.org>
-Message-ID: <20200213215004.Zx1dIjBhYK1alYsayBOjvHt_ZqfFLtChJ0Xc3Fpub-E@z>
+Message-ID: <20200216081834.nHkn8fmcmfEZ7G3UUiq8JTKGExr5mFu-hu0TJUlEm9g@z>
 
-On Thu, Feb 13, 2020 at 04:38:25PM -0500, Steven Rostedt wrote:
-> [ Added Masami ]
-> 
-> On Thu, 13 Feb 2020 16:19:30 -0500
-> Joel Fernandes <joel@joelfernandes.org> wrote:
-> 
-> > On Thu, Feb 13, 2020 at 12:54:42PM -0800, Paul E. McKenney wrote:
-> > > On Thu, Feb 13, 2020 at 03:44:44PM -0500, Joel Fernandes wrote:  
-> > > > On Thu, Feb 13, 2020 at 10:56:12AM -0800, Paul E. McKenney wrote:
-> > > > [...]   
-> > > > > > > It might well be that I could make these functions be NMI-safe, but
-> > > > > > > rcu_prepare_for_idle() in particular would be a bit ugly at best.
-> > > > > > > So, before looking into that, I have a question.  Given these proposed
-> > > > > > > changes, will rcu_nmi_exit_common() and rcu_nmi_enter_common() be able
-> > > > > > > to just use in_nmi()?  
-> > > > > > 
-> > > > > > That _should_ already be the case today. That is, if we end up in a
-> > > > > > tracer and in_nmi() is unreliable we're already screwed anyway.  
-> > > > > 
-> > > > > So something like this, then?  This is untested, probably doesn't even
-> > > > > build, and could use some careful review from both Peter and Steve,
-> > > > > at least.  As in the below is the second version of the patch, the first
-> > > > > having been missing a couple of important "!" characters.  
-> > > > 
-> > > > I removed the static from rcu_nmi_enter()/exit() as it is called from
-> > > > outside, that makes it build now. Updated below is Paul's diff. I also added
-> > > > NOKPROBE_SYMBOL() to rcu_nmi_exit() to match rcu_nmi_enter() since it seemed
-> > > > asymmetric.  
-> > > 
-> > > My compiler complained about the static and the __always_inline, so I
-> > > fixed those.  But please help me out on adding the NOKPROBE_SYMBOL()
-> > > to rcu_nmi_exit().  What bad thing happens if we leave this on only
-> > > rcu_nmi_enter()?  
-> > 
-> > It seemed odd to me we were not allowing kprobe on the rcu_nmi_enter() but
-> > allowing it on exit (from a code reading standpoint) so my reaction was to
-> > add it to both, but we could probably keep that as a separate
-> > patch/discussion since it is slightly unrelated to the patch.. Sorry to
-> > confuse the topic.
-> >
-> 
-> rcu_nmi_enter() was marked NOKPROBE or other reasons. See commit
-> c13324a505c77 ("x86/kprobes: Prohibit probing on functions before
-> kprobe_int3_handler()")
-> 
-> The issue was that we must not allow anything in do_int3() call kprobe
-> code before kprobe_int3_handler() is called. Because ist_enter() (in
-> do_int3()) calls rcu_nmi_enter() it had to be marked NOKPROBE. It had
-> nothing to do with it being RCU nor NMI, but because it was simply
-> called in do_int3().
-> 
-> Thus, there's no reason to make rcu_nmi_exit() NOKPROBE. But a commont
-> to why rcu_nmi_enter() would probably be useful, like below:
+From: Mike Rapoport <rppt@linux.ibm.com>
 
-Thank you, Steve!  Could I please have your Signed-off-by for this?
+Implement primitives necessary for the 4th level folding, add walks of p4d
+level where appropriate, remove usage of __ARCH_USE_5LEVEL_HACK and replace
+5level-fixup.h with pgtable-nop4d.h
 
-							Thanx, Paul
+Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
+---
+ arch/ia64/include/asm/pgalloc.h |  4 ++--
+ arch/ia64/include/asm/pgtable.h | 17 ++++++++---------
+ arch/ia64/mm/fault.c            |  7 ++++++-
+ arch/ia64/mm/hugetlbpage.c      | 18 ++++++++++++------
+ arch/ia64/mm/init.c             | 28 ++++++++++++++++++++++++----
+ 5 files changed, 52 insertions(+), 22 deletions(-)
 
-> -- Steve
-> 
-> diff --git a/kernel/rcu/tree.c b/kernel/rcu/tree.c
-> index 1694a6b57ad8..e2c9e3e2f480 100644
-> --- a/kernel/rcu/tree.c
-> +++ b/kernel/rcu/tree.c
-> @@ -846,6 +846,12 @@ void rcu_nmi_enter(void)
->  {
->  	rcu_nmi_enter_common(false);
->  }
-> +/*
-> + * On x86, All functions in do_int3() must be marked NOKPROBE before
-> + * kprobe_int3_handler() is called. ist_enter() which is called in do_int3()
-> + * before kprobe_int3_handle() happens to call rcu_nmi_enter() in which case
-> + * rcu_nmi_enter() must be marked NOKRPOBE.
-> + */
->  NOKPROBE_SYMBOL(rcu_nmi_enter);
->  
->  /**
+diff --git a/arch/ia64/include/asm/pgalloc.h b/arch/ia64/include/asm/pgalloc.h
+index f4c491044882..2a3050345099 100644
+--- a/arch/ia64/include/asm/pgalloc.h
++++ b/arch/ia64/include/asm/pgalloc.h
+@@ -36,9 +36,9 @@ static inline void pgd_free(struct mm_struct *mm, pgd_t *pgd)
+ 
+ #if CONFIG_PGTABLE_LEVELS == 4
+ static inline void
+-pgd_populate(struct mm_struct *mm, pgd_t * pgd_entry, pud_t * pud)
++p4d_populate(struct mm_struct *mm, p4d_t * p4d_entry, pud_t * pud)
+ {
+-	pgd_val(*pgd_entry) = __pa(pud);
++	p4d_val(*p4d_entry) = __pa(pud);
+ }
+ 
+ static inline pud_t *pud_alloc_one(struct mm_struct *mm, unsigned long addr)
+diff --git a/arch/ia64/include/asm/pgtable.h b/arch/ia64/include/asm/pgtable.h
+index d602e7c622db..c87f789bc914 100644
+--- a/arch/ia64/include/asm/pgtable.h
++++ b/arch/ia64/include/asm/pgtable.h
+@@ -283,12 +283,12 @@ extern unsigned long VMALLOC_END;
+ #define pud_page(pud)			virt_to_page((pud_val(pud) + PAGE_OFFSET))
+ 
+ #if CONFIG_PGTABLE_LEVELS == 4
+-#define pgd_none(pgd)			(!pgd_val(pgd))
+-#define pgd_bad(pgd)			(!ia64_phys_addr_valid(pgd_val(pgd)))
+-#define pgd_present(pgd)		(pgd_val(pgd) != 0UL)
+-#define pgd_clear(pgdp)			(pgd_val(*(pgdp)) = 0UL)
+-#define pgd_page_vaddr(pgd)		((unsigned long) __va(pgd_val(pgd) & _PFN_MASK))
+-#define pgd_page(pgd)			virt_to_page((pgd_val(pgd) + PAGE_OFFSET))
++#define p4d_none(p4d)			(!p4d_val(p4d))
++#define p4d_bad(p4d)			(!ia64_phys_addr_valid(p4d_val(p4d)))
++#define p4d_present(p4d)		(p4d_val(p4d) != 0UL)
++#define p4d_clear(p4dp)			(p4d_val(*(p4dp)) = 0UL)
++#define p4d_page_vaddr(p4d)		((unsigned long) __va(p4d_val(p4d) & _PFN_MASK))
++#define p4d_page(p4d)			virt_to_page((p4d_val(p4d) + PAGE_OFFSET))
+ #endif
+ 
+ /*
+@@ -388,7 +388,7 @@ pgd_offset (const struct mm_struct *mm, unsigned long address)
+ #if CONFIG_PGTABLE_LEVELS == 4
+ /* Find an entry in the second-level page table.. */
+ #define pud_offset(dir,addr) \
+-	((pud_t *) pgd_page_vaddr(*(dir)) + (((addr) >> PUD_SHIFT) & (PTRS_PER_PUD - 1)))
++	((pud_t *) p4d_page_vaddr(*(dir)) + (((addr) >> PUD_SHIFT) & (PTRS_PER_PUD - 1)))
+ #endif
+ 
+ /* Find an entry in the third-level page table.. */
+@@ -582,10 +582,9 @@ extern struct page *zero_page_memmap_ptr;
+ 
+ 
+ #if CONFIG_PGTABLE_LEVELS == 3
+-#define __ARCH_USE_5LEVEL_HACK
+ #include <asm-generic/pgtable-nopud.h>
+ #endif
+-#include <asm-generic/5level-fixup.h>
++#include <asm-generic/pgtable-nop4d.h>
+ #include <asm-generic/pgtable.h>
+ 
+ #endif /* _ASM_IA64_PGTABLE_H */
+diff --git a/arch/ia64/mm/fault.c b/arch/ia64/mm/fault.c
+index c2f299fe9e04..ec994135cb74 100644
+--- a/arch/ia64/mm/fault.c
++++ b/arch/ia64/mm/fault.c
+@@ -29,6 +29,7 @@ static int
+ mapped_kernel_page_is_present (unsigned long address)
+ {
+ 	pgd_t *pgd;
++	p4d_t *p4d;
+ 	pud_t *pud;
+ 	pmd_t *pmd;
+ 	pte_t *ptep, pte;
+@@ -37,7 +38,11 @@ mapped_kernel_page_is_present (unsigned long address)
+ 	if (pgd_none(*pgd) || pgd_bad(*pgd))
+ 		return 0;
+ 
+-	pud = pud_offset(pgd, address);
++	p4d = p4d_offset(pgd, address);
++	if (p4d_none(*p4d) || p4d_bad(*p4d))
++		return 0;
++
++	pud = pud_offset(p4d, address);
+ 	if (pud_none(*pud) || pud_bad(*pud))
+ 		return 0;
+ 
+diff --git a/arch/ia64/mm/hugetlbpage.c b/arch/ia64/mm/hugetlbpage.c
+index d16e419fd712..32352a73df0c 100644
+--- a/arch/ia64/mm/hugetlbpage.c
++++ b/arch/ia64/mm/hugetlbpage.c
+@@ -30,12 +30,14 @@ huge_pte_alloc(struct mm_struct *mm, unsigned long addr, unsigned long sz)
+ {
+ 	unsigned long taddr = htlbpage_to_page(addr);
+ 	pgd_t *pgd;
++	p4d_t *p4d;
+ 	pud_t *pud;
+ 	pmd_t *pmd;
+ 	pte_t *pte = NULL;
+ 
+ 	pgd = pgd_offset(mm, taddr);
+-	pud = pud_alloc(mm, pgd, taddr);
++	p4d = p4d_offset(pgd, taddr);
++	pud = pud_alloc(mm, p4d, taddr);
+ 	if (pud) {
+ 		pmd = pmd_alloc(mm, pud, taddr);
+ 		if (pmd)
+@@ -49,17 +51,21 @@ huge_pte_offset (struct mm_struct *mm, unsigned long addr, unsigned long sz)
+ {
+ 	unsigned long taddr = htlbpage_to_page(addr);
+ 	pgd_t *pgd;
++	p4d_t *p4d;
+ 	pud_t *pud;
+ 	pmd_t *pmd;
+ 	pte_t *pte = NULL;
+ 
+ 	pgd = pgd_offset(mm, taddr);
+ 	if (pgd_present(*pgd)) {
+-		pud = pud_offset(pgd, taddr);
+-		if (pud_present(*pud)) {
+-			pmd = pmd_offset(pud, taddr);
+-			if (pmd_present(*pmd))
+-				pte = pte_offset_map(pmd, taddr);
++		p4d = p4d_offset(pgd, addr);
++		if (p4d_present(*p4d)) {
++			pud = pud_offset(p4d, taddr);
++			if (pud_present(*pud)) {
++				pmd = pmd_offset(pud, taddr);
++				if (pmd_present(*pmd))
++					pte = pte_offset_map(pmd, taddr);
++			}
+ 		}
+ 	}
+ 
+diff --git a/arch/ia64/mm/init.c b/arch/ia64/mm/init.c
+index b01d68a2d5d9..4808f58220ac 100644
+--- a/arch/ia64/mm/init.c
++++ b/arch/ia64/mm/init.c
+@@ -208,6 +208,7 @@ static struct page * __init
+ put_kernel_page (struct page *page, unsigned long address, pgprot_t pgprot)
+ {
+ 	pgd_t *pgd;
++	p4d_t *p4d;
+ 	pud_t *pud;
+ 	pmd_t *pmd;
+ 	pte_t *pte;
+@@ -215,7 +216,10 @@ put_kernel_page (struct page *page, unsigned long address, pgprot_t pgprot)
+ 	pgd = pgd_offset_k(address);		/* note: this is NOT pgd_offset()! */
+ 
+ 	{
+-		pud = pud_alloc(&init_mm, pgd, address);
++		p4d = p4d_alloc(&init_mm, pgd, address);
++		if (!p4d)
++			goto out;
++		pud = pud_alloc(&init_mm, p4d, address);
+ 		if (!pud)
+ 			goto out;
+ 		pmd = pmd_alloc(&init_mm, pud, address);
+@@ -382,6 +386,7 @@ int vmemmap_find_next_valid_pfn(int node, int i)
+ 
+ 	do {
+ 		pgd_t *pgd;
++		p4d_t *p4d;
+ 		pud_t *pud;
+ 		pmd_t *pmd;
+ 		pte_t *pte;
+@@ -392,7 +397,13 @@ int vmemmap_find_next_valid_pfn(int node, int i)
+ 			continue;
+ 		}
+ 
+-		pud = pud_offset(pgd, end_address);
++		p4d = p4d_offset(pgd, end_address);
++		if (p4d_none(*p4d)) {
++			end_address += P4D_SIZE;
++			continue;
++		}
++
++		pud = pud_offset(p4d, end_address);
+ 		if (pud_none(*pud)) {
+ 			end_address += PUD_SIZE;
+ 			continue;
+@@ -430,6 +441,7 @@ int __init create_mem_map_page_table(u64 start, u64 end, void *arg)
+ 	struct page *map_start, *map_end;
+ 	int node;
+ 	pgd_t *pgd;
++	p4d_t *p4d;
+ 	pud_t *pud;
+ 	pmd_t *pmd;
+ 	pte_t *pte;
+@@ -444,12 +456,20 @@ int __init create_mem_map_page_table(u64 start, u64 end, void *arg)
+ 	for (address = start_page; address < end_page; address += PAGE_SIZE) {
+ 		pgd = pgd_offset_k(address);
+ 		if (pgd_none(*pgd)) {
++			p4d = memblock_alloc_node(PAGE_SIZE, PAGE_SIZE, node);
++			if (!p4d)
++				goto err_alloc;
++			pgd_populate(&init_mm, pgd, p4d);
++		}
++		p4d = p4d_offset(pgd, address);
++
++		if (p4d_none(*p4d)) {
+ 			pud = memblock_alloc_node(PAGE_SIZE, PAGE_SIZE, node);
+ 			if (!pud)
+ 				goto err_alloc;
+-			pgd_populate(&init_mm, pgd, pud);
++			p4d_populate(&init_mm, p4d, pud);
+ 		}
+-		pud = pud_offset(pgd, address);
++		pud = pud_offset(p4d, address);
+ 
+ 		if (pud_none(*pud)) {
+ 			pmd = memblock_alloc_node(PAGE_SIZE, PAGE_SIZE, node);
+-- 
+2.24.0
