@@ -1,52 +1,97 @@
-Return-Path: <SRS0=bqXs=4A=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:42966 "EHLO
-        merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1725874AbgBLL7B (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 12 Feb 2020 06:59:01 -0500
-Date: Wed, 12 Feb 2020 12:58:20 +0100
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH 0/8] tracing vs rcu vs nmi
-Message-ID: <20200212115820.GQ14897@hirez.programming.kicks-ass.net>
-References: <20200212093210.468391728@infradead.org>
- <20200212100106.GA14914@hirez.programming.kicks-ass.net>
- <20200212105646.GA4017@willie-the-truck>
+Return-Path: <rppt@kernel.org>
+From: Mike Rapoport <rppt@kernel.org>
+Subject: [PATCH v2 05/13] nios2: add support for folded p4d page tables
+Date: Sun, 16 Feb 2020 10:18:35 +0200
+Message-ID: <20200216081843.28670-6-rppt@kernel.org>
+In-Reply-To: <20200216081843.28670-1-rppt@kernel.org>
+References: <20200216081843.28670-1-rppt@kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20200212105646.GA4017@willie-the-truck>
-Sender: linux-arch-owner@vger.kernel.org
+Content-Transfer-Encoding: 8bit
+To: linux-kernel@vger.kernel.org
+Cc: Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Brian Cain <bcain@codeaurora.org>, Catalin Marinas <catalin.marinas@arm.com>, Christophe Leroy <christophe.leroy@c-s.fr>, Fenghua Yu <fenghua.yu@intel.com>, Geert Uytterhoeven <geert+renesas@glider.be>, Guan Xuetao <gxt@pku.edu.cn>, James Morse <james.morse@arm.com>, Jonas Bonn <jonas@southpole.se>, Julien Thierry <julien.thierry.kdev@gmail.com>, Ley Foon Tan <ley.foon.tan@intel.com>, Marc Zyngier <maz@kernel.org>, Michael Ellerman <mpe@ellerman.id.au>, Paul Mackerras <paulus@samba.org>, Rich Felker <dalias@libc.org>, Russell King <linux@armlinux.org.uk>, Stafford Horne <shorne@gmail.com>, Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>, Suzuki K Poulose <suzuki.poulose@arm.com>, Tony Luck <tony.luck@intel.com>, Will Deacon <will@kernel.org>, Yoshinori Sato <ysato@users.sourceforge.jp>, kvmarm@lists.cs.columbia.edu, kvm-ppc@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-mm@kvack.org, linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org, nios2-dev@lists.rocketboards.org, openrisc@lists.librecores.org, uclinux-h8-devel@lists.sourceforge.jp, Mike Rapoport <rppt@kernel.org>, Mike Rapoport <rppt@linux.ibm.com>
 List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will@kernel.org>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, rostedt@goodmis.org, james.morse@arm.com, catalin.marinas@arm.com, mingo@kernel.org, joel@joelfernandes.org, gregkh@linuxfoundation.org, gustavo@embeddedor.com, tglx@linutronix.de, paulmck@kernel.org, josh@joshtriplett.org, mathieu.desnoyers@efficios.com, jiangshanlai@gmail.com
-Message-ID: <20200212115820.iVNAeUppublIInRvNNft-T_MeA6r-nQEjvlaqAHeF6k@z>
+Message-ID: <20200216081835.pXe4I_C937mZp71OIW_UZpQlZmLVDEQSBTC90X1ZXUw@z>
 
-On Wed, Feb 12, 2020 at 10:56:46AM +0000, Will Deacon wrote:
-> On Wed, Feb 12, 2020 at 11:01:06AM +0100, Peter Zijlstra wrote:
-> > On Wed, Feb 12, 2020 at 10:32:10AM +0100, Peter Zijlstra wrote:
-> > > Hi all,
-> > > 
-> > > These here patches are the result of Mathieu and Steve trying to get commit
-> > > 865e63b04e9b2 ("tracing: Add back in rcu_irq_enter/exit_irqson() for rcuidle
-> > > tracepoints") reverted again.
-> > > 
-> > > One of the things discovered is that tracing MUST NOT happen before nmi_enter()
-> > > or after nmi_exit(). I've only fixed x86, but quickly gone through other
-> > > architectures and there is definitely more stuff to be fixed (simply grep for
-> > > nmi_enter in your arch).
-> > 
-> > For ARM64:
-> > 
-> >  - apei_claim_sea()
-> >  - __sdei_handler()
-> >  - do_serror()
-> >  - debug_exception_enter() / do_debug_exception()
-> > 
-> > all look dodgy.
-> 
-> Hmm, so looks like we need to spinkle some 'notrace' annotations around
-> these. Are there are scenarios where you would want NOKPROBE_SYMBOL() but
-> *not* 'notrace'? We've already got the former for the debug exception
-> handlers and we probably (?) want it for the SDEI stuff too...
+From: Mike Rapoport <rppt@linux.ibm.com>
 
-I'm not sure. In fact, I asked Steve on IRC if we'd want to teach
-objtool to report such inconsitencies.
+Implement primitives necessary for the 4th level folding, add walks of p4d
+level where appropriate and remove usage of __ARCH_USE_5LEVEL_HACK.
+
+Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
+---
+ arch/nios2/include/asm/pgtable.h | 3 +--
+ arch/nios2/mm/fault.c            | 9 +++++++--
+ arch/nios2/mm/ioremap.c          | 6 +++++-
+ 3 files changed, 13 insertions(+), 5 deletions(-)
+
+diff --git a/arch/nios2/include/asm/pgtable.h b/arch/nios2/include/asm/pgtable.h
+index 99985d8b7166..54305aa09b74 100644
+--- a/arch/nios2/include/asm/pgtable.h
++++ b/arch/nios2/include/asm/pgtable.h
+@@ -22,7 +22,6 @@
+ #include <asm/tlbflush.h>
+ 
+ #include <asm/pgtable-bits.h>
+-#define __ARCH_USE_5LEVEL_HACK
+ #include <asm-generic/pgtable-nopmd.h>
+ 
+ #define FIRST_USER_ADDRESS	0UL
+@@ -100,7 +99,7 @@ extern pte_t invalid_pte_table[PAGE_SIZE/sizeof(pte_t)];
+  */
+ static inline void set_pmd(pmd_t *pmdptr, pmd_t pmdval)
+ {
+-	pmdptr->pud.pgd.pgd = pmdval.pud.pgd.pgd;
++	*pmdptr = pmdval;
+ }
+ 
+ /* to find an entry in a page-table-directory */
+diff --git a/arch/nios2/mm/fault.c b/arch/nios2/mm/fault.c
+index 6a2e716b959f..d3da995665c3 100644
+--- a/arch/nios2/mm/fault.c
++++ b/arch/nios2/mm/fault.c
+@@ -245,6 +245,7 @@ asmlinkage void do_page_fault(struct pt_regs *regs, unsigned long cause,
+ 		 */
+ 		int offset = pgd_index(address);
+ 		pgd_t *pgd, *pgd_k;
++		p4d_t *p4d, *p4d_k;
+ 		pud_t *pud, *pud_k;
+ 		pmd_t *pmd, *pmd_k;
+ 		pte_t *pte_k;
+@@ -256,8 +257,12 @@ asmlinkage void do_page_fault(struct pt_regs *regs, unsigned long cause,
+ 			goto no_context;
+ 		set_pgd(pgd, *pgd_k);
+ 
+-		pud = pud_offset(pgd, address);
+-		pud_k = pud_offset(pgd_k, address);
++		p4d = p4d_offset(pgd, address);
++		p4d_k = p4d_offset(pgd_k, address);
++		if (!p4d_present(*p4d_k))
++			goto no_context;
++		pud = pud_offset(p4d, address);
++		pud_k = pud_offset(p4d_k, address);
+ 		if (!pud_present(*pud_k))
+ 			goto no_context;
+ 		pmd = pmd_offset(pud, address);
+diff --git a/arch/nios2/mm/ioremap.c b/arch/nios2/mm/ioremap.c
+index 819bdfcc2e71..fe821efb9a99 100644
+--- a/arch/nios2/mm/ioremap.c
++++ b/arch/nios2/mm/ioremap.c
+@@ -86,11 +86,15 @@ static int remap_area_pages(unsigned long address, unsigned long phys_addr,
+ 	if (address >= end)
+ 		BUG();
+ 	do {
++		p4d_t *p4d;
+ 		pud_t *pud;
+ 		pmd_t *pmd;
+ 
+ 		error = -ENOMEM;
+-		pud = pud_alloc(&init_mm, dir, address);
++		p4d = p4d_alloc(&init_mm, dir, address);
++		if (!p4d)
++			break;
++		pud = pud_alloc(&init_mm, p4d, address);
+ 		if (!pud)
+ 			break;
+ 		pmd = pmd_alloc(&init_mm, pud, address);
+-- 
+2.24.0
