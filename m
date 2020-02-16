@@ -1,56 +1,60 @@
-Return-Path: <SRS0=WXCa=4P=vger.kernel.org=linux-doc-owner@kernel.org>
-Subject: Re: [RFC PATCH v9 16/27] mm: Update can_follow_write_pte() for Shadow
- Stack
-References: <20200205181935.3712-1-yu-cheng.yu@intel.com>
- <20200205181935.3712-17-yu-cheng.yu@intel.com>
-From: Dave Hansen <dave.hansen@intel.com>
-Message-ID: <fc4f65ef-ce4b-9410-5586-5f4637c249bc@intel.com>
-Date: Wed, 26 Feb 2020 16:34:49 -0800
+Return-Path: <rppt@kernel.org>
+From: Mike Rapoport <rppt@kernel.org>
+Subject: [PATCH v2 11/13] unicore32: remove __ARCH_USE_5LEVEL_HACK
+Date: Sun, 16 Feb 2020 10:18:41 +0200
+Message-ID: <20200216081843.28670-12-rppt@kernel.org>
+In-Reply-To: <20200216081843.28670-1-rppt@kernel.org>
+References: <20200216081843.28670-1-rppt@kernel.org>
 MIME-Version: 1.0
-In-Reply-To: <20200205181935.3712-17-yu-cheng.yu@intel.com>
-Content-Type: text/plain; charset=utf-8
-Content-Language: en-US
 Content-Transfer-Encoding: 8bit
-Sender: linux-doc-owner@vger.kernel.org
-To: Yu-cheng Yu <yu-cheng.yu@intel.com>, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>, x86-patch-review@intel.com
+To: linux-kernel@vger.kernel.org
+Cc: Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Brian Cain <bcain@codeaurora.org>, Catalin Marinas <catalin.marinas@arm.com>, Christophe Leroy <christophe.leroy@c-s.fr>, Fenghua Yu <fenghua.yu@intel.com>, Geert Uytterhoeven <geert+renesas@glider.be>, Guan Xuetao <gxt@pku.edu.cn>, James Morse <james.morse@arm.com>, Jonas Bonn <jonas@southpole.se>, Julien Thierry <julien.thierry.kdev@gmail.com>, Ley Foon Tan <ley.foon.tan@intel.com>, Marc Zyngier <maz@kernel.org>, Michael Ellerman <mpe@ellerman.id.au>, Paul Mackerras <paulus@samba.org>, Rich Felker <dalias@libc.org>, Russell King <linux@armlinux.org.uk>, Stafford Horne <shorne@gmail.com>, Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>, Suzuki K Poulose <suzuki.poulose@arm.com>, Tony Luck <tony.luck@intel.com>, Will Deacon <will@kernel.org>, Yoshinori Sato <ysato@users.sourceforge.jp>, kvmarm@lists.cs.columbia.edu, kvm-ppc@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-mm@kvack.org, linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org, nios2-dev@lists.rocketboards.org, openrisc@lists.librecores.org, uclinux-h8-devel@lists.sourceforge.jp, Mike Rapoport <rppt@kernel.org>, Mike Rapoport <rppt@linux.ibm.com>
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200227003449.m1Odq6o8r3KR37ipT3MkvMz3SJImfb7OirrHMixQ7xQ@z>
+Message-ID: <20200216081841.xUEritmh6DxfkcKokADl-GH58qREmwhG3DJZP8MdGfI@z>
 
-> +inline bool pte_exclusive(pte_t pte, struct vm_area_struct *vma)
-> +{
-> +	if (vma->vm_flags & VM_SHSTK)
-> +		return pte_dirty_hw(pte);
-> +	else
-> +		return pte_dirty(pte);
-> +}
+From: Mike Rapoport <rppt@linux.ibm.com>
 
-I'm not really getting the naming.  What is exclusive?
+The unicore32 architecture has 2 level page tables and
+asm-generic/pgtable-nopmd.h and explicit casts from pud_t to pgd_t for page
+table folding.
 
-> diff --git a/mm/gup.c b/mm/gup.c
-> index 7646bf993b25..d1dbfbde8443 100644
-> --- a/mm/gup.c
-> +++ b/mm/gup.c
-> @@ -164,10 +164,12 @@ static int follow_pfn_pte(struct vm_area_struct *vma, unsigned long address,
->   * FOLL_FORCE can write to even unwritable pte's, but only
->   * after we've gone through a COW cycle and they are dirty.
->   */
-> -static inline bool can_follow_write_pte(pte_t pte, unsigned int flags)
-> +static inline bool can_follow_write(pte_t pte, unsigned int flags,
-> +				    struct vm_area_struct *vma)
+Add p4d walk in the only place that actually unfolds the pud level and
+remove __ARCH_USE_5LEVEL_HACK.
 
-Having two identically named functions in two files in the same
-subsystem seems like a recipe for confusion when I grep or cscope for
-things.  It hardly seems worth the 4 characters of space savings IMNHO.
+Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
+---
+ arch/unicore32/include/asm/pgtable.h | 1 -
+ arch/unicore32/kernel/hibernate.c    | 4 +++-
+ 2 files changed, 3 insertions(+), 2 deletions(-)
 
->  {
->  	return pte_write(pte) ||
-> -		((flags & FOLL_FORCE) && (flags & FOLL_COW) && pte_dirty(pte));
-> +		((flags & FOLL_FORCE) && (flags & FOLL_COW) &&
-> +		 pte_exclusive(pte, vma));
->  }
-
-FWIW, this is the hunk that fixed DirtyCOW.
-
-The least this deserves is acknowledgement of that in the changelog and
-a missive about how you're sure you didn't just introduce
-ShadowDirtyCOW.  Don't bother.  I already registered the domain. ;)
+diff --git a/arch/unicore32/include/asm/pgtable.h b/arch/unicore32/include/asm/pgtable.h
+index c8f7ba12f309..82030c32fc05 100644
+--- a/arch/unicore32/include/asm/pgtable.h
++++ b/arch/unicore32/include/asm/pgtable.h
+@@ -9,7 +9,6 @@
+ #ifndef __UNICORE_PGTABLE_H__
+ #define __UNICORE_PGTABLE_H__
+ 
+-#define __ARCH_USE_5LEVEL_HACK
+ #include <asm-generic/pgtable-nopmd.h>
+ #include <asm/cpu-single.h>
+ 
+diff --git a/arch/unicore32/kernel/hibernate.c b/arch/unicore32/kernel/hibernate.c
+index f3812245cc00..ccad051a79b6 100644
+--- a/arch/unicore32/kernel/hibernate.c
++++ b/arch/unicore32/kernel/hibernate.c
+@@ -33,9 +33,11 @@ struct swsusp_arch_regs swsusp_arch_regs_cpu0;
+ static pmd_t *resume_one_md_table_init(pgd_t *pgd)
+ {
+ 	pud_t *pud;
++	p4d_t *p4d;
+ 	pmd_t *pmd_table;
+ 
+-	pud = pud_offset(pgd, 0);
++	p4d = p4d_offset(pgd, 0);
++	pud = pud_offset(p4d, 0);
+ 	pmd_table = pmd_offset(pud, 0);
+ 
+ 	return pmd_table;
+-- 
+2.24.0
