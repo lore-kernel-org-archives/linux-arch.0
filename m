@@ -1,58 +1,82 @@
-Return-Path: <SRS0=LzcT=4H=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.133]:36000 "EHLO
-        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727636AbgBSPO1 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 19 Feb 2020 10:14:27 -0500
-Message-ID: <20200219150744.945913022@infradead.org>
-Date: Wed, 19 Feb 2020 15:47:34 +0100
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: [PATCH v3 10/22] x86,tracing: Add comments to do_nmi()
-References: <20200219144724.800607165@infradead.org>
+Return-Path: <SRS0=Q9dx=4E=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail-qv1-f66.google.com ([209.85.219.66]:42329 "EHLO
+        mail-qv1-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1725858AbgBPFnv (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 16 Feb 2020 00:43:51 -0500
+Date: Sun, 16 Feb 2020 13:43:45 +0800
+From: Boqun Feng <boqun.feng@gmail.com>
+Subject: Re: [RFC 0/3] tools/memory-model: Add litmus tests for atomic APIs
+Message-ID: <20200216054345.GA69864@debian-boqun.qqnc3lrjykvubdpftowmye0fmh.lx.internal.cloudapp.net>
+References: <20200214040132.91934-1-boqun.feng@gmail.com>
+ <Pine.LNX.4.44L0.2002141024141.1579-100000@iolanthe.rowland.org>
+ <20200215152550.GA13636@paulmck-ThinkPad-P72>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20200215152550.GA13636@paulmck-ThinkPad-P72>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, rostedt@goodmis.org
-Cc: peterz@infradead.org, mingo@kernel.org, joel@joelfernandes.org, gregkh@linuxfoundation.org, gustavo@embeddedor.com, tglx@linutronix.de, paulmck@kernel.org, josh@joshtriplett.org, mathieu.desnoyers@efficios.com, jiangshanlai@gmail.com, luto@kernel.org, tony.luck@intel.com, frederic@kernel.org, dan.carpenter@oracle.com, mhiramat@kernel.org
-Message-ID: <20200219144734.YEiiwdsfhNuKMDt_KniVig0GQycdoEjdKb_x2papkmE@z>
+To: "Paul E. McKenney" <paulmck@kernel.org>
+Cc: Alan Stern <stern@rowland.harvard.edu>, linux-kernel@vger.kernel.org, Andrea Parri <parri.andrea@gmail.com>, Will Deacon <will@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Nicholas Piggin <npiggin@gmail.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, Akira Yokosawa <akiyks@gmail.com>, Daniel Lustig <dlustig@nvidia.com>, Jonathan Corbet <corbet@lwn.net>, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org
+Message-ID: <20200216054345.VzLlHP1_W4nQ-csCCC6EKXTakYgwU11om-xaBR3iGgc@z>
 
-Add a few comments to do_nmi() as a result of the audit.
+On Sat, Feb 15, 2020 at 07:25:50AM -0800, Paul E. McKenney wrote:
+> On Fri, Feb 14, 2020 at 10:27:44AM -0500, Alan Stern wrote:
+> > On Fri, 14 Feb 2020, Boqun Feng wrote:
+> > 
+> > > A recent discussion raises up the requirement for having test cases for
+> > > atomic APIs:
+> > > 
+> > > 	https://lore.kernel.org/lkml/20200213085849.GL14897@hirez.programming.kicks-ass.net/
+> > > 
+> > > , and since we already have a way to generate a test module from a
+> > > litmus test with klitmus[1]. It makes sense that we add more litmus
+> > > tests for atomic APIs into memory-model.
+> > 
+> > It might be worth discussing this point a little more fully.  The 
+> > set of tests in tools/memory-model/litmus-tests/ is deliberately rather 
+> > limited.  Paul has a vastly more expansive set of litmus tests in a 
+> > GitHub repository, and I am doubtful about how many new tests we want 
+> > to keep in the kernel source.
+> 
+> Indeed, the current view is that the litmus tests in the kernel source
+> tree are intended to provide examples of C-litmus-test-language features
+> and functions, as opposed to exercising the full cross-product of
+> Linux-kernel synchronization primitives.
+> 
+> For a semi-reasonable subset of that cross-product, as Alan says, please
+> see https://github.com/paulmckrcu/litmus.
+> 
+> For a list of the Linux-kernel synchronization primitives currently
+> supported by LKMM, please see tools/memory-model/linux-kernel.def.
+> 
 
-Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
----
- arch/x86/kernel/nmi.c |   10 ++++++++--
- 1 file changed, 8 insertions(+), 2 deletions(-)
+So how about I put those atomic API tests into a separate directory, say
+Documentation/atomic/ ?
 
---- a/arch/x86/kernel/nmi.c
-+++ b/arch/x86/kernel/nmi.c
-@@ -529,11 +529,14 @@ do_nmi(struct pt_regs *regs, long error_
- 	 * continue to use the NMI stack.
- 	 */
- 	if (unlikely(is_debug_stack(regs->sp))) {
--		debug_stack_set_zero();
-+		debug_stack_set_zero(); /* notrace due to Makefile */
- 		this_cpu_write(update_debug_stack, 1);
- 	}
- #endif
- 
-+	/*
-+	 * It is important that no tracing happens before nmi_enter()!
-+	 */
- 	nmi_enter();
- 
- 	inc_irq_stat(__nmi_count);
-@@ -542,10 +545,13 @@ do_nmi(struct pt_regs *regs, long error_
- 		default_do_nmi(regs);
- 
- 	nmi_exit();
-+	/*
-+	 * No tracing after nmi_exit()!
-+	 */
- 
- #ifdef CONFIG_X86_64
- 	if (unlikely(this_cpu_read(update_debug_stack))) {
--		debug_stack_reset();
-+		debug_stack_reset(); /* notrace due to Makefile */
- 		this_cpu_write(update_debug_stack, 0);
- 	}
- #endif
+The problem I want to solve here is that people (usually who implements
+the atomic APIs for new archs) may want some examples, which can help
+them understand the API requirements and test the implementation. And
+litmus tests are the perfect tool here (given that them can be
+translated to test modules with klitmus). And I personally really think
+this is something the LKMM group should maintain, that's why I put them
+in the tools/memory-model/litmus-tests/. But I'm OK if we end up
+deciding those should be put outside that directory.
+
+Regards,
+Boqun
+
+> > Perhaps it makes sense to have tests corresponding to all the examples
+> > in Documentation/, perhaps not.  How do people feel about this?
+> 
+> Agreed, we don't want to say that the set of litmus tests in the kernel
+> source tree is limited for all time to the set currently present, but
+> rather that the justification for adding more would involve useful and
+> educational examples of litmus-test features and techniques rather than
+> being a full-up LKMM test suite.
+> 
+> I would guess that there are litmus-test tricks that could usefully
+> be added to tools/memory-model/litmus-tests.  Any nomination?  Perhaps
+> handling CAS loops while maintaining finite state space?  Something else?
+> 
+> 							Thanx, Paul
