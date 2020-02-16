@@ -1,231 +1,88 @@
-Return-Path: <SRS0=as/e=4M=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from smtp-1908.mail.infomaniak.ch ([185.125.25.8]:44415 "EHLO
-        smtp-1908.mail.infomaniak.ch" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1727711AbgBXQNB (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 24 Feb 2020 11:13:01 -0500
-From: =?UTF-8?q?Micka=C3=ABl=20Sala=C3=BCn?= <mic@digikod.net>
-Subject: [RFC PATCH v14 04/10] landlock: Add ptrace restrictions
-Date: Mon, 24 Feb 2020 17:02:09 +0100
-Message-ID: <20200224160215.4136-5-mic@digikod.net>
-In-Reply-To: <20200224160215.4136-1-mic@digikod.net>
-References: <20200224160215.4136-1-mic@digikod.net>
+Return-Path: <rppt@kernel.org>
+From: Mike Rapoport <rppt@kernel.org>
+Subject: [PATCH v2 09/13] sh: drop __pXd_offset() macros that duplicate pXd_index() ones
+Date: Sun, 16 Feb 2020 10:18:39 +0200
+Message-ID: <20200216081843.28670-10-rppt@kernel.org>
+In-Reply-To: <20200216081843.28670-1-rppt@kernel.org>
+References: <20200216081843.28670-1-rppt@kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: =?UTF-8?q?Micka=C3=ABl=20Sala=C3=BCn?= <mic@digikod.net>, Al Viro <viro@zeniv.linux.org.uk>, Andy Lutomirski <luto@amacapital.net>, Arnd Bergmann <arnd@arndb.de>, Casey Schaufler <casey@schaufler-ca.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, James Morris <jmorris@namei.org>, Jann Horn <jann@thejh.net>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Michael Kerrisk <mtk.manpages@gmail.com>, =?UTF-8?q?Micka=C3=ABl=20Sala=C3=BCn?= <mickael.salaun@ssi.gouv.fr>, "Serge E . Hallyn" <serge@hallyn.com>, Shuah Khan <shuah@kernel.org>, Vincent Dagonneau <vincent.dagonneau@ssi.gouv.fr>, kernel-hardening@lists.openwall.com, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-security-module@vger.kernel.org, x86@kernel.org
-Message-ID: <20200224160209.b64qYDTD0u3mG1p0UQXt4OfvtwPtBsADm4ECyO06K9A@z>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Brian Cain <bcain@codeaurora.org>, Catalin Marinas <catalin.marinas@arm.com>, Christophe Leroy <christophe.leroy@c-s.fr>, Fenghua Yu <fenghua.yu@intel.com>, Geert Uytterhoeven <geert+renesas@glider.be>, Guan Xuetao <gxt@pku.edu.cn>, James Morse <james.morse@arm.com>, Jonas Bonn <jonas@southpole.se>, Julien Thierry <julien.thierry.kdev@gmail.com>, Ley Foon Tan <ley.foon.tan@intel.com>, Marc Zyngier <maz@kernel.org>, Michael Ellerman <mpe@ellerman.id.au>, Paul Mackerras <paulus@samba.org>, Rich Felker <dalias@libc.org>, Russell King <linux@armlinux.org.uk>, Stafford Horne <shorne@gmail.com>, Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>, Suzuki K Poulose <suzuki.poulose@arm.com>, Tony Luck <tony.luck@intel.com>, Will Deacon <will@kernel.org>, Yoshinori Sato <ysato@users.sourceforge.jp>, kvmarm@lists.cs.columbia.edu, kvm-ppc@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-mm@kvack.org, linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org, nios2-dev@lists.rocketboards.org, openrisc@lists.librecores.org, uclinux-h8-devel@lists.sourceforge.jp, Mike Rapoport <rppt@kernel.org>, Mike Rapoport <rppt@linux.ibm.com>
+List-ID: <linux-arch.vger.kernel.org>
+Message-ID: <20200216081839.281OGkQkvm85WWQ5d4XioVIsVc8LyojIOmYLO4Yv_Tw@z>
 
-Using ptrace(2) and related debug features on a target process can lead
-to a privilege escalation.  Indeed, ptrace(2) can be used by an attacker
-to impersonate another task and to remain undetected while performing
-malicious activities.  Thanks to  ptrace_may_access(), various part of
-the kernel can check if a tracer is more privileged than a tracee.
+From: Mike Rapoport <rppt@linux.ibm.com>
 
-A landlocked process has fewer privileges than a non-landlocked process
-and must then be subject to additional restrictions when manipulating
-processes. To be allowed to use ptrace(2) and related syscalls on a
-target process, a landlocked process must have a subset of the target
-process' rules (i.e. the tracee must be in a sub-domain of the tracer).
+The __pXd_offset() macros are identical to the pXd_index() macros and there
+is no point to keep both of them. All architectures define and use
+pXd_index() so let's keep only those to make mips consistent with the rest
+of the kernel.
 
-Signed-off-by: Mickaël Salaün <mic@digikod.net>
-Cc: Andy Lutomirski <luto@amacapital.net>
-Cc: James Morris <jmorris@namei.org>
-Cc: Kees Cook <keescook@chromium.org>
-Cc: Serge E. Hallyn <serge@hallyn.com>
+Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
 ---
+ arch/sh/include/asm/pgtable_32.h | 5 ++---
+ arch/sh/include/asm/pgtable_64.h | 5 ++---
+ arch/sh/mm/init.c                | 6 +++---
+ 3 files changed, 7 insertions(+), 9 deletions(-)
 
-Changes since v13:
-* Make the ptrace restriction mandatory, like in the v10.
-* Remove the eBPF dependency.
-
-Previous version:
-https://lore.kernel.org/lkml/20191104172146.30797-5-mic@digikod.net/
----
- security/landlock/Makefile |   2 +-
- security/landlock/ptrace.c | 118 +++++++++++++++++++++++++++++++++++++
- security/landlock/ptrace.h |  14 +++++
- security/landlock/setup.c  |   2 +
- 4 files changed, 135 insertions(+), 1 deletion(-)
- create mode 100644 security/landlock/ptrace.c
- create mode 100644 security/landlock/ptrace.h
-
-diff --git a/security/landlock/Makefile b/security/landlock/Makefile
-index 041ea242e627..f1d1eb72fa76 100644
---- a/security/landlock/Makefile
-+++ b/security/landlock/Makefile
-@@ -1,4 +1,4 @@
- obj-$(CONFIG_SECURITY_LANDLOCK) := landlock.o
+diff --git a/arch/sh/include/asm/pgtable_32.h b/arch/sh/include/asm/pgtable_32.h
+index 29274f0e428e..4acce5f2cbf9 100644
+--- a/arch/sh/include/asm/pgtable_32.h
++++ b/arch/sh/include/asm/pgtable_32.h
+@@ -407,13 +407,12 @@ static inline pte_t pte_modify(pte_t pte, pgprot_t newprot)
+ /* to find an entry in a page-table-directory. */
+ #define pgd_index(address)	(((address) >> PGDIR_SHIFT) & (PTRS_PER_PGD-1))
+ #define pgd_offset(mm, address)	((mm)->pgd + pgd_index(address))
+-#define __pgd_offset(address)	pgd_index(address)
  
- landlock-y := setup.o object.o ruleset.o \
--	cred.o
-+	cred.o ptrace.o
-diff --git a/security/landlock/ptrace.c b/security/landlock/ptrace.c
-new file mode 100644
-index 000000000000..6c7326788c46
---- /dev/null
-+++ b/security/landlock/ptrace.c
-@@ -0,0 +1,118 @@
-+// SPDX-License-Identifier: GPL-2.0-only
-+/*
-+ * Landlock LSM - Ptrace hooks
-+ *
-+ * Copyright © 2017-2020 Mickaël Salaün <mic@digikod.net>
-+ * Copyright © 2020 ANSSI
-+ */
-+
-+#include <asm/current.h>
-+#include <linux/cred.h>
-+#include <linux/errno.h>
-+#include <linux/kernel.h>
-+#include <linux/lsm_hooks.h>
-+#include <linux/rcupdate.h>
-+#include <linux/sched.h>
-+
-+#include "cred.h"
-+#include "ptrace.h"
-+#include "ruleset.h"
-+#include "setup.h"
-+
-+/**
-+ * domain_scope_le - Checks domain ordering for scoped ptrace
-+ *
-+ * @parent: Parent domain.
-+ * @child: Potential child of @parent.
-+ *
-+ * Checks if the @parent domain is less or equal to (i.e. an ancestor, which
-+ * means a subset of) the @child domain.
-+ */
-+static bool domain_scope_le(const struct landlock_ruleset *parent,
-+		const struct landlock_ruleset *child)
-+{
-+	const struct landlock_hierarchy *walker;
-+
-+	if (!parent)
-+		return true;
-+	if (!child)
-+		return false;
-+	for (walker = child->hierarchy; walker; walker = walker->parent) {
-+		if (walker == parent->hierarchy)
-+			/* @parent is in the scoped hierarchy of @child. */
-+			return true;
-+	}
-+	/* There is no relationship between @parent and @child. */
-+	return false;
-+}
-+
-+static bool task_is_scoped(struct task_struct *parent,
-+		struct task_struct *child)
-+{
-+	bool is_scoped;
-+	const struct landlock_ruleset *dom_parent, *dom_child;
-+
-+	rcu_read_lock();
-+	dom_parent = landlock_get_task_domain(parent);
-+	dom_child = landlock_get_task_domain(child);
-+	is_scoped = domain_scope_le(dom_parent, dom_child);
-+	rcu_read_unlock();
-+	return is_scoped;
-+}
-+
-+static int task_ptrace(struct task_struct *parent, struct task_struct *child)
-+{
-+	/* Quick return for non-landlocked tasks. */
-+	if (!landlocked(parent))
-+		return 0;
-+	if (task_is_scoped(parent, child))
-+		return 0;
-+	return -EPERM;
-+}
-+
-+/**
-+ * hook_ptrace_access_check - Determines whether the current process may access
-+ *			      another
-+ *
-+ * @child: Process to be accessed.
-+ * @mode: Mode of attachment.
-+ *
-+ * If the current task has Landlock rules, then the child must have at least
-+ * the same rules.  Else denied.
-+ *
-+ * Determines whether a process may access another, returning 0 if permission
-+ * granted, -errno if denied.
-+ */
-+static int hook_ptrace_access_check(struct task_struct *child,
-+		unsigned int mode)
-+{
-+	return task_ptrace(current, child);
-+}
-+
-+/**
-+ * hook_ptrace_traceme - Determines whether another process may trace the
-+ *			 current one
-+ *
-+ * @parent: Task proposed to be the tracer.
-+ *
-+ * If the parent has Landlock rules, then the current task must have the same
-+ * or more rules.  Else denied.
-+ *
-+ * Determines whether the nominated task is permitted to trace the current
-+ * process, returning 0 if permission is granted, -errno if denied.
-+ */
-+static int hook_ptrace_traceme(struct task_struct *parent)
-+{
-+	return task_ptrace(parent, current);
-+}
-+
-+static struct security_hook_list landlock_hooks[] __lsm_ro_after_init = {
-+	LSM_HOOK_INIT(ptrace_access_check, hook_ptrace_access_check),
-+	LSM_HOOK_INIT(ptrace_traceme, hook_ptrace_traceme),
-+};
-+
-+__init void landlock_add_hooks_ptrace(void)
-+{
-+	security_add_hooks(landlock_hooks, ARRAY_SIZE(landlock_hooks),
-+			LANDLOCK_NAME);
-+}
-diff --git a/security/landlock/ptrace.h b/security/landlock/ptrace.h
-new file mode 100644
-index 000000000000..6740c6a723de
---- /dev/null
-+++ b/security/landlock/ptrace.h
-@@ -0,0 +1,14 @@
-+/* SPDX-License-Identifier: GPL-2.0-only */
-+/*
-+ * Landlock LSM - Ptrace hooks
-+ *
-+ * Copyright © 2017-2019 Mickaël Salaün <mic@digikod.net>
-+ * Copyright © 2019 ANSSI
-+ */
-+
-+#ifndef _SECURITY_LANDLOCK_PTRACE_H
-+#define _SECURITY_LANDLOCK_PTRACE_H
-+
-+__init void landlock_add_hooks_ptrace(void);
-+
-+#endif /* _SECURITY_LANDLOCK_PTRACE_H */
-diff --git a/security/landlock/setup.c b/security/landlock/setup.c
-index fca5fa185465..117afb344da6 100644
---- a/security/landlock/setup.c
-+++ b/security/landlock/setup.c
-@@ -10,6 +10,7 @@
- #include <linux/lsm_hooks.h>
+ /* to find an entry in a kernel page-table-directory */
+ #define pgd_offset_k(address)	pgd_offset(&init_mm, address)
  
- #include "cred.h"
-+#include "ptrace.h"
- #include "setup.h"
+-#define __pud_offset(address)	(((address) >> PUD_SHIFT) & (PTRS_PER_PUD-1))
+-#define __pmd_offset(address)	(((address) >> PMD_SHIFT) & (PTRS_PER_PMD-1))
++#define pud_index(address)	(((address) >> PUD_SHIFT) & (PTRS_PER_PUD-1))
++#define pmd_index(address)	(((address) >> PMD_SHIFT) & (PTRS_PER_PMD-1))
  
- struct lsm_blob_sizes landlock_blob_sizes __lsm_ro_after_init = {
-@@ -20,6 +21,7 @@ static int __init landlock_init(void)
- {
- 	pr_info(LANDLOCK_NAME ": Registering hooks\n");
- 	landlock_add_hooks_cred();
-+	landlock_add_hooks_ptrace();
- 	return 0;
- }
+ /* Find an entry in the third-level page table.. */
+ #define pte_index(address)	((address >> PAGE_SHIFT) & (PTRS_PER_PTE - 1))
+diff --git a/arch/sh/include/asm/pgtable_64.h b/arch/sh/include/asm/pgtable_64.h
+index 1778bc5971e7..27cc282ec6c0 100644
+--- a/arch/sh/include/asm/pgtable_64.h
++++ b/arch/sh/include/asm/pgtable_64.h
+@@ -46,14 +46,13 @@ static __inline__ void set_pte(pte_t *pteptr, pte_t pteval)
  
+ /* To find an entry in a generic PGD. */
+ #define pgd_index(address) (((address) >> PGDIR_SHIFT) & (PTRS_PER_PGD-1))
+-#define __pgd_offset(address) pgd_index(address)
+ #define pgd_offset(mm, address) ((mm)->pgd+pgd_index(address))
+ 
+ /* To find an entry in a kernel PGD. */
+ #define pgd_offset_k(address) pgd_offset(&init_mm, address)
+ 
+-#define __pud_offset(address)	(((address) >> PUD_SHIFT) & (PTRS_PER_PUD-1))
+-#define __pmd_offset(address)	(((address) >> PMD_SHIFT) & (PTRS_PER_PMD-1))
++#define pud_index(address)	(((address) >> PUD_SHIFT) & (PTRS_PER_PUD-1))
++/* #define pmd_index(address)	(((address) >> PMD_SHIFT) & (PTRS_PER_PMD-1)) */
+ 
+ /*
+  * PMD level access routines. Same notes as above.
+diff --git a/arch/sh/mm/init.c b/arch/sh/mm/init.c
+index d1b1ff2be17a..4bab79baee75 100644
+--- a/arch/sh/mm/init.c
++++ b/arch/sh/mm/init.c
+@@ -172,9 +172,9 @@ void __init page_table_range_init(unsigned long start, unsigned long end,
+ 	unsigned long vaddr;
+ 
+ 	vaddr = start;
+-	i = __pgd_offset(vaddr);
+-	j = __pud_offset(vaddr);
+-	k = __pmd_offset(vaddr);
++	i = pgd_index(vaddr);
++	j = pud_index(vaddr);
++	k = pmd_index(vaddr);
+ 	pgd = pgd_base + i;
+ 
+ 	for ( ; (i < PTRS_PER_PGD) && (vaddr != end); pgd++, i++) {
 -- 
-2.25.0
+2.24.0
