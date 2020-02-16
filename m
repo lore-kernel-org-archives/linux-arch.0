@@ -1,20 +1,16 @@
 From: Mike Rapoport <rppt@kernel.org>
-Subject: [PATCH v2 05/13] nios2: add support for folded p4d page tables
-Date: Sun, 16 Feb 2020 10:18:35 +0200
-Message-ID: <20200216081843.28670-6-rppt@kernel.org>
+Subject: [PATCH v2 06/13] openrisc: add support for folded p4d page tables
+Date: Sun, 16 Feb 2020 10:18:36 +0200
+Message-ID: <20200216081843.28670-7-rppt@kernel.org>
 References: <20200216081843.28670-1-rppt@kernel.org>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:56800 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726020AbgBPITm (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Sun, 16 Feb 2020 03:19:42 -0500
+Return-path: <linux-ia64-owner@vger.kernel.org>
 In-Reply-To: <20200216081843.28670-1-rppt@kernel.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-ia64-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org
 Cc: Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Brian Cain <bcain@codeaurora.org>, Catalin Marinas <catalin.marinas@arm.com>, Christophe Leroy <christophe.leroy@c-s.fr>, Fenghua Yu <fenghua.yu@intel.com>, Geert Uytterhoeven <geert+renesas@glider.be>, Guan Xuetao <gxt@pku.edu.cn>, James Morse <james.morse@arm.com>, Jonas Bonn <jonas@southpole.se>, Julien Thierry <julien.thierry.kdev@gmail.com>, Ley Foon Tan <ley.foon.tan@intel.com>, Marc Zyngier <maz@kernel.org>, Michael Ellerman <mpe@ellerman.id.au>, Paul Mackerras <paulus@samba.org>, Rich Felker <dalias@libc.org>, Russell King <linux@armlinux.org.uk>, Stafford Horne <shorne@gmail.com>Stefan Kristiansson <s>
+List-Id: linux-arch.vger.kernel.org
 
 From: Mike Rapoport <rppt@linux.ibm.com>
 
@@ -23,47 +19,38 @@ level where appropriate and remove usage of __ARCH_USE_5LEVEL_HACK.
 
 Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
 ---
- arch/nios2/include/asm/pgtable.h | 3 +--
- arch/nios2/mm/fault.c            | 9 +++++++--
- arch/nios2/mm/ioremap.c          | 6 +++++-
- 3 files changed, 13 insertions(+), 5 deletions(-)
+ arch/openrisc/include/asm/pgtable.h |  1 -
+ arch/openrisc/mm/fault.c            | 10 ++++++++--
+ arch/openrisc/mm/init.c             |  4 +++-
+ 3 files changed, 11 insertions(+), 4 deletions(-)
 
-diff --git a/arch/nios2/include/asm/pgtable.h b/arch/nios2/include/asm/pgtable.h
-index 99985d8b7166..54305aa09b74 100644
---- a/arch/nios2/include/asm/pgtable.h
-+++ b/arch/nios2/include/asm/pgtable.h
-@@ -22,7 +22,6 @@
- #include <asm/tlbflush.h>
+diff --git a/arch/openrisc/include/asm/pgtable.h b/arch/openrisc/include/asm/pgtable.h
+index 248d22d8faa7..c072943fc721 100644
+--- a/arch/openrisc/include/asm/pgtable.h
++++ b/arch/openrisc/include/asm/pgtable.h
+@@ -21,7 +21,6 @@
+ #ifndef __ASM_OPENRISC_PGTABLE_H
+ #define __ASM_OPENRISC_PGTABLE_H
  
- #include <asm/pgtable-bits.h>
 -#define __ARCH_USE_5LEVEL_HACK
  #include <asm-generic/pgtable-nopmd.h>
  
- #define FIRST_USER_ADDRESS	0UL
-@@ -100,7 +99,7 @@ extern pte_t invalid_pte_table[PAGE_SIZE/sizeof(pte_t)];
-  */
- static inline void set_pmd(pmd_t *pmdptr, pmd_t pmdval)
- {
--	pmdptr->pud.pgd.pgd = pmdval.pud.pgd.pgd;
-+	*pmdptr = pmdval;
- }
+ #ifndef __ASSEMBLY__
+diff --git a/arch/openrisc/mm/fault.c b/arch/openrisc/mm/fault.c
+index 5d4d3a9691d0..44aa04545de3 100644
+--- a/arch/openrisc/mm/fault.c
++++ b/arch/openrisc/mm/fault.c
+@@ -296,6 +296,7 @@ asmlinkage void do_page_fault(struct pt_regs *regs, unsigned long address,
  
- /* to find an entry in a page-table-directory */
-diff --git a/arch/nios2/mm/fault.c b/arch/nios2/mm/fault.c
-index 6a2e716b959f..d3da995665c3 100644
---- a/arch/nios2/mm/fault.c
-+++ b/arch/nios2/mm/fault.c
-@@ -245,6 +245,7 @@ asmlinkage void do_page_fault(struct pt_regs *regs, unsigned long cause,
- 		 */
  		int offset = pgd_index(address);
  		pgd_t *pgd, *pgd_k;
 +		p4d_t *p4d, *p4d_k;
  		pud_t *pud, *pud_k;
  		pmd_t *pmd, *pmd_k;
  		pte_t *pte_k;
-@@ -256,8 +257,12 @@ asmlinkage void do_page_fault(struct pt_regs *regs, unsigned long cause,
- 			goto no_context;
- 		set_pgd(pgd, *pgd_k);
+@@ -322,8 +323,13 @@ asmlinkage void do_page_fault(struct pt_regs *regs, unsigned long address,
+ 		 * it exists.
+ 		 */
  
 -		pud = pud_offset(pgd, address);
 -		pud_k = pud_offset(pgd_k, address);
@@ -71,31 +58,33 @@ index 6a2e716b959f..d3da995665c3 100644
 +		p4d_k = p4d_offset(pgd_k, address);
 +		if (!p4d_present(*p4d_k))
 +			goto no_context;
++
 +		pud = pud_offset(p4d, address);
 +		pud_k = pud_offset(p4d_k, address);
  		if (!pud_present(*pud_k))
  			goto no_context;
- 		pmd = pmd_offset(pud, address);
-diff --git a/arch/nios2/mm/ioremap.c b/arch/nios2/mm/ioremap.c
-index 819bdfcc2e71..fe821efb9a99 100644
---- a/arch/nios2/mm/ioremap.c
-+++ b/arch/nios2/mm/ioremap.c
-@@ -86,11 +86,15 @@ static int remap_area_pages(unsigned long address, unsigned long phys_addr,
- 	if (address >= end)
- 		BUG();
- 	do {
-+		p4d_t *p4d;
- 		pud_t *pud;
- 		pmd_t *pmd;
  
- 		error = -ENOMEM;
--		pud = pud_alloc(&init_mm, dir, address);
-+		p4d = p4d_alloc(&init_mm, dir, address);
-+		if (!p4d)
-+			break;
-+		pud = pud_alloc(&init_mm, p4d, address);
- 		if (!pud)
- 			break;
- 		pmd = pmd_alloc(&init_mm, pud, address);
+diff --git a/arch/openrisc/mm/init.c b/arch/openrisc/mm/init.c
+index 1f87b524db78..2536aeae0975 100644
+--- a/arch/openrisc/mm/init.c
++++ b/arch/openrisc/mm/init.c
+@@ -71,6 +71,7 @@ static void __init map_ram(void)
+ 	unsigned long v, p, e;
+ 	pgprot_t prot;
+ 	pgd_t *pge;
++	p4d_t *p4e;
+ 	pud_t *pue;
+ 	pmd_t *pme;
+ 	pte_t *pte;
+@@ -90,7 +91,8 @@ static void __init map_ram(void)
+ 
+ 		while (p < e) {
+ 			int j;
+-			pue = pud_offset(pge, v);
++			p4e = p4d_offset(pge, v);
++			pue = pud_offset(p4e, v);
+ 			pme = pmd_offset(pue, v);
+ 
+ 			if ((u32) pue != (u32) pge || (u32) pme != (u32) pge) {
 -- 
 2.24.0
