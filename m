@@ -1,150 +1,47 @@
-From: Al Viro <viro@zeniv.linux.org.uk>
-Subject: [RFC] regset ->get() API
-Date: Mon, 17 Feb 2020 18:33:40 +0000
-Message-ID: <20200217183340.GI23230@ZenIV.linux.org.uk>
+From: "Paul E. McKenney" <paulmck@kernel.org>
+Subject: Re: [PATCH memory-model] Add recent references
+Date: Mon, 17 Feb 2020 11:12:45 -0800
+Message-ID: <20200217191245.GV2935@paulmck-ThinkPad-P72>
+References: <20200214233139.GA12521@paulmck-ThinkPad-P72>
+ <Pine.LNX.4.44L0.2002161158140.30459-100000@netrider.rowland.org>
+Reply-To: paulmck@kernel.org
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from zeniv.linux.org.uk ([195.92.253.2]:37422 "EHLO
-        ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727179AbgBQSdm (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 17 Feb 2020 13:33:42 -0500
+Received: from mail.kernel.org ([198.145.29.99]:36716 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1728467AbgBQTMq (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 17 Feb 2020 14:12:46 -0500
 Content-Disposition: inline
+In-Reply-To: <Pine.LNX.4.44L0.2002161158140.30459-100000@netrider.rowland.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org
-Cc: linux-kernel@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>
+To: Alan Stern <stern@rowland.harvard.edu>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, kernel-team@fb.com, mingo@kernel.org, parri.andrea@gmail.com, will@kernel.org, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com
 
-	Looking at the regset guts, I really wonder if the interface
-is right.  What happens goes along the lines of
+On Sun, Feb 16, 2020 at 12:01:14PM -0500, Alan Stern wrote:
+> On Fri, 14 Feb 2020, Paul E. McKenney wrote:
+> 
+> > This commit updates the list of LKMM-related publications in
+> > Documentation/references.txt.
+> > 
+> > Signed-off-by: Paul E. McKenney <paulmck@kernel.org>
+> 
+> >  o	Paul E. McKenney, Ulrich Weigand, Andrea Parri, and Boqun
+> > -	Feng. 2016. "Linux-Kernel Memory Model". (6 June 2016).
+> > -	http://open-std.org/JTC1/SC22/WG21/docs/papers/2016/p0124r2.html.
+> > +	Feng. 2018. "Linux-Kernel Memory Model". (27 September 2018).
+> > +	http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2018/p0124r6.html.
+> 
+> Even though this is an update, the new version referenced here is
+> already out-of-date (in particular, with regard to its discussions of 
+> the ordering properties of unlock-lock sequences as viewed by threads 
+> not holding the lock).  And it contains a few typos scattered 
+> throughout.
 
-ptrace(PTRACE_GETREGS, pid, whatever, buf)
-  arch_ptrace(task, PTRACE_GETREGS, whatever, buf)
-    copy_regset_to_user(task, task_user_regset_view(current),
-		REGSET_GENERAL, 0, sizeof(struct user_regs_struct), buf);
-     check access_ok(buf, sizeof(...)
-     genregs_get(task, regset, 0, sizeof(...), NULL, buf);
-and we hit
-static int genregs_get(struct task_struct *target,
-                       const struct user_regset *regset,
-                       unsigned int pos, unsigned int count,
-                       void *kbuf, void __user *ubuf)
-{
-        if (kbuf) {
-                unsigned long *k = kbuf;
-                while (count >= sizeof(*k)) {
-                        *k++ = getreg(target, pos);
-                        count -= sizeof(*k);
-                        pos += sizeof(*k);
-                }
-        } else {
-                unsigned long __user *u = ubuf;
-                while (count >= sizeof(*u)) {
-                        if (__put_user(getreg(target, pos), u++))
-                                return -EFAULT;
-                        count -= sizeof(*u);
-                        pos += sizeof(*u);
-                }
-        }
+Indeed, 18 months is a long time for LKMM, isn't it?  ;-)
 
-        return 0;
-}
- 
-IOW, we call getreg() in a loop, with separate __put_user() for each
-value.  For one thing, it's going to be painful on any recent x86 -
-the cost of stac/clac on each of those is not going to be cheap.
-And we obviously can't extend stac/clac area over the entire loop
-there - getreg() is not trivial.
+Sounds like time to update it for the next meeting.  I of course would
+welcome any notes you might have taken while going through it.
 
-For another, the calling conventions are too generic - the callers
-of ->get() always pass zero for pos, for example.  And this "pass
-kbuf and ubuf separately" wart does not make it any prettier.
-
-Other instances (e.g. powerpc gpr_get()) do not use __put_user() -
-they make a series of user_regset_copyout()/user_regset_copyout_zero()
-calls (4 in this case):
-static inline int user_regset_copyout(unsigned int *pos, unsigned int *count,
-                                      void **kbuf,
-                                      void __user **ubuf, const void *data,
-                                      const int start_pos, const int end_pos)
-{
-        if (*count == 0)
-                return 0;
-        BUG_ON(*pos < start_pos);
-        if (end_pos < 0 || *pos < end_pos) {
-                unsigned int copy = (end_pos < 0 ? *count
-                                     : min(*count, end_pos - *pos));
-                data += *pos - start_pos;
-                if (*kbuf) {
-                        memcpy(*kbuf, data, copy);
-                        *kbuf += copy;
-                } else if (__copy_to_user(*ubuf, data, copy))
-                        return -EFAULT;
-                else
-                        *ubuf += copy;
-                *pos += copy;
-                *count -= copy;
-        }
-        return 0;
-}
-
-The caller obviously needs to check if the damn thing has failed, and the
-calling conventions are still over-generic (grep and you'll see).  The
-actual calls of __copy_to_user()/__clear_user() have destinations back-to-back.
-And while in case of ppc their number is not too large, for e.g.
-arch/arc/kernel/ptrace.c:genregs_get() we get 39 calls of those things -
-basically, back to the __put_user-inna-loop-and-thats-cuttin-me-own-throat
-situation we have on x86, only with more overhead per register.
-
-And too convoluted calling conventions come with the usual price - they
-are too easy to get wrong.  Example:
-arch/x86/math-emu/fpu_entry.c:fpregs_soft_get() is
-{
-        struct swregs_state *s387 = &target->thread.fpu.state.soft;
-        const void *space = s387->st_space;
-        int ret;
-        int offset = (S387->ftop & 7) * 10, other = 80 - offset;
-
-        RE_ENTRANT_CHECK_OFF;
-
-#ifdef PECULIAR_486
-        S387->cwd &= ~0xe080;
-        /* An 80486 sets nearly all of the reserved bits to 1. */
-        S387->cwd |= 0xffff0040;
-        S387->swd = sstatus_word() | 0xffff0000;
-        S387->twd |= 0xffff0000;
-        S387->fcs &= ~0xf8000000;
-        S387->fos |= 0xffff0000;
-#endif /* PECULIAR_486 */
-
-        ret = user_regset_copyout(&pos, &count, &kbuf, &ubuf, s387, 0,
-                                  offsetof(struct swregs_state, st_space));
-
-OK, here we copy everything in s387 up to the beginning of s387->st_space.
-Fair enough.  Now pos is offsetof(struct swregs_state, st_space)), and...
-        /* Copy all registers in stack order. */
-        if (!ret)
-                ret = user_regset_copyout(&pos, &count, &kbuf, &ubuf,
-                                          space + offset, 0, other);
-        if (!ret)
-                ret = user_regset_copyout(&pos, &count, &kbuf, &ubuf,
-                                          space, 0, offset);
-We _intend_ to copy stack entries, top..7, then 0..top-1, out of
-s387->st_space.  What we actually do is different - pos is updated
-by each call, so the last two arguments in these calls are wrong.
-They should've been offsetof(struct swregs_state, st_space)) and
-offsetof(struct swregs_state, st_space)) + other in the first
-one and offsetof(struct swregs_state, st_space)) + other and
-offsetof(struct swregs_state, st_space)) + 80 in the second one.
-
-It's not hard to fix, and nobody really uses !CONFIG_FPU setups
-on x86 anyway; the point is that this is really easy to get wrong.
-
-What I really wonder is whether it's actually worth bothering - the
-life would be much simpler if we *always* passed a kernel buffer to
-->get() instances and did all copyout at once.  Sure, it results in
-double copies, but... would that really cost more than all the complexity
-we have there?
-
-What are the typical amounts of data copied in such ptrace() calls
-and how hot they normally are?
+							Thanx, Paul
