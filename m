@@ -1,68 +1,62 @@
 Return-Path: <leonardo@linux.ibm.com>
+Message-ID: <e09b8921d1aade7b9d2aace43fc357bdcd1001bd.camel@linux.ibm.com>
+Subject: Re: [PATCH v6 03/11] powerpc/mm: Adds arch-specificic functions to
+ track lockless pgtable walks
 From: Leonardo Bras <leonardo@linux.ibm.com>
-Subject: [PATCH v6 02/11] mm/gup: Use functions to track lockless pgtbl walks on gup_pgd_range
-Date: Thu,  6 Feb 2020 00:08:51 -0300
-Message-ID: <20200206030900.147032-3-leonardo@linux.ibm.com>
-In-Reply-To: <20200206030900.147032-1-leonardo@linux.ibm.com>
+Date: Mon, 17 Feb 2020 17:32:33 -0300
+In-Reply-To: <efcf780cee767d0f4b06b56e216725c6bd8d60d4.camel@linux.ibm.com>
 References: <20200206030900.147032-1-leonardo@linux.ibm.com>
+	 <20200206030900.147032-4-leonardo@linux.ibm.com>
+	 <1311ce1c-7e5a-f7c4-2ab2-c03e124ca1c1@c-s.fr>
+	 <efcf780cee767d0f4b06b56e216725c6bd8d60d4.camel@linux.ibm.com>
+Content-Type: multipart/signed; micalg="pgp-sha256";
+	protocol="application/pgp-signature"; boundary="=-rjDDfaEpQyTkTpCEQ2uL"
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
-To: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>, Nicholas Piggin <npiggin@gmail.com>, Christophe Leroy <christophe.leroy@c-s.fr>, Steven Price <steven.price@arm.com>, Robin Murphy <robin.murphy@arm.com>, Leonardo Bras <leonardo@linux.ibm.com>, Mahesh Salgaonkar <mahesh@linux.vnet.ibm.com>, Balbir Singh <bsingharora@gmail.com>, Reza Arbab <arbab@linux.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, Allison Randal <allison@lohutok.net>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Mike Rapoport <rppt@linux.ibm.com>, Michal Suchanek <msuchanek@suse.de>
+To: Christophe Leroy <christophe.leroy@c-s.fr>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>, Nicholas Piggin <npiggin@gmail.com>, Steven Price <steven.price@arm.com>, Robin Murphy <robin.murphy@arm.com>, Mahesh Salgaonkar <mahesh@linux.vnet.ibm.com>, Balbir Singh <bsingharora@gmail.com>, Reza Arbab <arbab@linux.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, Allison Randal <allison@lohutok.net>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Mike Rapoport <rppt@linux.ibm.com>, Michal Suchanek <msuchanek@suse.de>
 Cc: linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, kvm-ppc@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200206030851.YQqX8F9xrIX4WA55C5yV-a0r95y-8eC9h08i3KJ8Mz8@z>
+Message-ID: <20200217203233.CB0_KvtBe4i-3p9BwlUS4o-8_Omjz2OvY-cOyRnzeFc@z>
 
-As described, gup_pgd_range is a lockless pagetable walk. So, in order to
-track against THP split/collapse, it disables/enables irq around it.
 
-To make use of the new tracking functions, it replaces irq disable/enable
-by {begin,end}_lockless_pgtbl_walk().
+--=-rjDDfaEpQyTkTpCEQ2uL
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
 
-As local_irq_{save,restore} is present inside
-{begin,end}_lockless_pgtbl_walk, there should be no change in the
-workings.
+On Fri, 2020-02-07 at 01:38 -0300, Leonardo Bras wrote:
+> > Why not make them static inline just like the generic ones ?
+> >=20
+>=20
+> Sure, can be done.  It would save some function calls.
+> For that I will define the per-cpu variable in .c and declare it in .h
+> All new function can be moved to .h, while changing adding the inline
+> modifier.
 
-Signed-off-by: Leonardo Bras <leonardo@linux.ibm.com>
----
- mm/gup.c | 10 +++++-----
- 1 file changed, 5 insertions(+), 5 deletions(-)
+Just tried doing that, but percpu stuff relies in paca definitions, and
+this ends up creating some cyclic dependencies.
 
-diff --git a/mm/gup.c b/mm/gup.c
-index 1b521e0ac1de..04e6f46993b6 100644
---- a/mm/gup.c
-+++ b/mm/gup.c
-@@ -2369,7 +2369,7 @@ int __get_user_pages_fast(unsigned long start, int nr_pages, int write,
- 			  struct page **pages)
- {
- 	unsigned long len, end;
--	unsigned long flags;
-+	unsigned long irq_mask;
- 	int nr = 0;
- 
- 	start = untagged_addr(start) & PAGE_MASK;
-@@ -2395,9 +2395,9 @@ int __get_user_pages_fast(unsigned long start, int nr_pages, int write,
- 
- 	if (IS_ENABLED(CONFIG_HAVE_FAST_GUP) &&
- 	    gup_fast_permitted(start, end)) {
--		local_irq_save(flags);
-+		irq_mask = begin_lockless_pgtbl_walk();
- 		gup_pgd_range(start, end, write ? FOLL_WRITE : 0, pages, &nr);
--		local_irq_restore(flags);
-+		end_lockless_pgtbl_walk(irq_mask);
- 	}
- 
- 	return nr;
-@@ -2450,9 +2450,9 @@ static int internal_get_user_pages_fast(unsigned long start, int nr_pages,
- 
- 	if (IS_ENABLED(CONFIG_HAVE_FAST_GUP) &&
- 	    gup_fast_permitted(start, end)) {
--		local_irq_disable();
-+		begin_lockless_pgtbl_walk();
- 		gup_pgd_range(addr, end, gup_flags, pages, &nr);
--		local_irq_enable();
-+		end_lockless_pgtbl_walk(IRQS_ENABLED);
- 		ret = nr;
- 	}
- 
--- 
-2.24.1
+I could try to change that, but the amount of change is big and
+probably should be dealt in another patchset.
+
+--=-rjDDfaEpQyTkTpCEQ2uL
+Content-Type: application/pgp-signature; name="signature.asc"
+Content-Description: This is a digitally signed message part
+Content-Transfer-Encoding: 7bit
+
+-----BEGIN PGP SIGNATURE-----
+
+iQIzBAABCAAdFiEEMdeUgIzgjf6YmUyOlQYWtz9SttQFAl5K+GEACgkQlQYWtz9S
+ttRsOg//QbdkYtnYqYavQzv828W7A3KiHEHqK77HtlTbJXOE5Vj9aU05HPZJp9XT
+ck/HXYupAIcMq+qJ8tNQKbu0zHCHxQ4dk7BPRM8RP4dp/bDOGGXqmvJG0toVtumX
+mTiJKUSaq7JeacS8xsx7hNZvLvHea/zagFha49BvLj6QajY+GU+CrpMJoaX1o/pc
+2mWKJfpLvacLQBQGfKC+t81VKHZC2K2BWpGyS7/MLEw120/n+KQHqaekMcgSaqVU
+lngRVDm4dHEZUZbOXjM3tyceMCTp5xTNv9+pS2friqkfXTomMS5ZuSW1O0i/A28m
+0TBWXC+kcQq+Bi1IxIqEPYQ3xab6/Xoba11GWD1qzBiUwd/3Xg30bAB9LYJXMwiD
+outVyh5BO6w8oSp1q5iHmt3raJLNTYYlG/SZzZCsCKXHr3EALNZvByETJ2j/oGdJ
+dbpPDOxmE2jbWMtIBhdjRFBmfmAGCTgRLpCq0hngNPm2sdQTmr9+B5UcWNzJjuks
+j1lDiMHOle78bT7GTYifJjVZrgBiB/JuToqBVzBIEgOBcGXiUXGUaDHgpNjKtH9d
+MtbmDODl9st9czyK/edN39eHlz4jfK+Z87ZJQVZz93bEjaRI6pRbqgiTVudWGdMN
+TISNtFVMgBbLWmgi8HOfs0zz4naMfcorqOhsTIi95qM8ygfs98s=
+=rEX5
+-----END PGP SIGNATURE-----
+
+--=-rjDDfaEpQyTkTpCEQ2uL--
