@@ -1,47 +1,62 @@
-From: "Paul E. McKenney" <paulmck@kernel.org>
-Subject: Re: [PATCH memory-model] Add recent references
-Date: Mon, 17 Feb 2020 11:12:45 -0800
-Message-ID: <20200217191245.GV2935@paulmck-ThinkPad-P72>
-References: <20200214233139.GA12521@paulmck-ThinkPad-P72>
- <Pine.LNX.4.44L0.2002161158140.30459-100000@netrider.rowland.org>
-Reply-To: paulmck@kernel.org
+From: Leonardo Bras <leonardo@linux.ibm.com>
+Subject: Re: [PATCH v6 03/11] powerpc/mm: Adds arch-specificic functions to
+ track lockless pgtable walks
+Date: Mon, 17 Feb 2020 17:32:33 -0300
+Message-ID: <e09b8921d1aade7b9d2aace43fc357bdcd1001bd.camel@linux.ibm.com>
+References: <20200206030900.147032-1-leonardo@linux.ibm.com>
+         <20200206030900.147032-4-leonardo@linux.ibm.com>
+         <1311ce1c-7e5a-f7c4-2ab2-c03e124ca1c1@c-s.fr>
+         <efcf780cee767d0f4b06b56e216725c6bd8d60d4.camel@linux.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:36716 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1728467AbgBQTMq (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 17 Feb 2020 14:12:46 -0500
-Content-Disposition: inline
-In-Reply-To: <Pine.LNX.4.44L0.2002161158140.30459-100000@netrider.rowland.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Alan Stern <stern@rowland.harvard.edu>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, kernel-team@fb.com, mingo@kernel.org, parri.andrea@gmail.com, will@kernel.org, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com
+Content-Type: multipart/signed; micalg="pgp-sha256";
+        protocol="application/pgp-signature"; boundary="=-rjDDfaEpQyTkTpCEQ2uL"
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <efcf780cee767d0f4b06b56e216725c6bd8d60d4.camel@linux.ibm.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Christophe Leroy <christophe.leroy@c-s.fr>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>, Nicholas Piggin <npiggin@gmail.com>, Steven Price <steven.price@arm.com>, Robin Murphy <robin.murphy@arm.com>, Mahesh Salgaonkar <mahesh@linux.vnet.ibm.com>, Balbir Singh <bsingharora@gmail.com>, Reza Arbab <arbab@linux.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, Allison Randal <allison@lohutok.net>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Mike Rapoport <rppt@linux.ibm.com>, Michal Suchanek <msuchanek@suse.de>
+Cc: linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, kvm-ppc@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
+List-Id: linux-arch.vger.kernel.org
 
-On Sun, Feb 16, 2020 at 12:01:14PM -0500, Alan Stern wrote:
-> On Fri, 14 Feb 2020, Paul E. McKenney wrote:
-> 
-> > This commit updates the list of LKMM-related publications in
-> > Documentation/references.txt.
-> > 
-> > Signed-off-by: Paul E. McKenney <paulmck@kernel.org>
-> 
-> >  o	Paul E. McKenney, Ulrich Weigand, Andrea Parri, and Boqun
-> > -	Feng. 2016. "Linux-Kernel Memory Model". (6 June 2016).
-> > -	http://open-std.org/JTC1/SC22/WG21/docs/papers/2016/p0124r2.html.
-> > +	Feng. 2018. "Linux-Kernel Memory Model". (27 September 2018).
-> > +	http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2018/p0124r6.html.
-> 
-> Even though this is an update, the new version referenced here is
-> already out-of-date (in particular, with regard to its discussions of 
-> the ordering properties of unlock-lock sequences as viewed by threads 
-> not holding the lock).  And it contains a few typos scattered 
-> throughout.
 
-Indeed, 18 months is a long time for LKMM, isn't it?  ;-)
+--=-rjDDfaEpQyTkTpCEQ2uL
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
 
-Sounds like time to update it for the next meeting.  I of course would
-welcome any notes you might have taken while going through it.
+On Fri, 2020-02-07 at 01:38 -0300, Leonardo Bras wrote:
+> > Why not make them static inline just like the generic ones ?
+> >=20
+>=20
+> Sure, can be done.  It would save some function calls.
+> For that I will define the per-cpu variable in .c and declare it in .h
+> All new function can be moved to .h, while changing adding the inline
+> modifier.
 
-							Thanx, Paul
+Just tried doing that, but percpu stuff relies in paca definitions, and
+this ends up creating some cyclic dependencies.
+
+I could try to change that, but the amount of change is big and
+probably should be dealt in another patchset.
+
+--=-rjDDfaEpQyTkTpCEQ2uL
+Content-Type: application/pgp-signature; name="signature.asc"
+Content-Description: This is a digitally signed message part
+Content-Transfer-Encoding: 7bit
+
+-----BEGIN PGP SIGNATURE-----
+
+iQIzBAABCAAdFiEEMdeUgIzgjf6YmUyOlQYWtz9SttQFAl5K+GEACgkQlQYWtz9S
+ttRsOg//QbdkYtnYqYavQzv828W7A3KiHEHqK77HtlTbJXOE5Vj9aU05HPZJp9XT
+ck/HXYupAIcMq+qJ8tNQKbu0zHCHxQ4dk7BPRM8RP4dp/bDOGGXqmvJG0toVtumX
+mTiJKUSaq7JeacS8xsx7hNZvLvHea/zagFha49BvLj6QajY+GU+CrpMJoaX1o/pc
+2mWKJfpLvacLQBQGfKC+t81VKHZC2K2BWpGyS7/MLEw120/n+KQHqaekMcgSaqVU
+lngRVDm4dHEZUZbOXjM3tyceMCTp5xTNv9+pS2friqkfXTomMS5ZuSW1O0i/A28m
+0TBWXC+kcQq+Bi1IxIqEPYQ3xab6/Xoba11GWD1qzBiUwd/3Xg30bAB9LYJXMwiD
+outVyh5BO6w8oSp1q5iHmt3raJLNTYYlG/SZzZCsCKXHr3EALNZvByETJ2j/oGdJ
+dbpPDOxmE2jbWMtIBhdjRFBmfmAGCTgRLpCq0hngNPm2sdQTmr9+B5UcWNzJjuks
+j1lDiMHOle78bT7GTYifJjVZrgBiB/JuToqBVzBIEgOBcGXiUXGUaDHgpNjKtH9d
+MtbmDODl9st9czyK/edN39eHlz4jfK+Z87ZJQVZz93bEjaRI6pRbqgiTVudWGdMN
+TISNtFVMgBbLWmgi8HOfs0zz4naMfcorqOhsTIi95qM8ygfs98s=
+=rEX5
+-----END PGP SIGNATURE-----
+
+--=-rjDDfaEpQyTkTpCEQ2uL--
