@@ -1,55 +1,60 @@
-Return-Path: <SRS0=bqXs=4A=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:37170 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1729182AbgBLT3e (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 12 Feb 2020 14:29:34 -0500
-From: Mark Brown <broonie@kernel.org>
-Subject: [PATCH v6 10/11] KVM: arm64: BTI: Reset BTYPE when skipping emulated instructions
-Date: Wed, 12 Feb 2020 19:29:05 +0000
-Message-ID: <20200212192906.53366-11-broonie@kernel.org>
-In-Reply-To: <20200212192906.53366-1-broonie@kernel.org>
-References: <20200212192906.53366-1-broonie@kernel.org>
+Return-Path: <SRS0=n14h=4F=kvack.org=owner-linux-mm@kernel.org>
+From: Anshuman Khandual <anshuman.khandual@arm.com>
+Subject: Re: [PATCH 3/5] mm/vma: Replace all remaining open encodings with
+ is_vm_hugetlb_page()
+References: <1581915833-21984-1-git-send-email-anshuman.khandual@arm.com>
+ <1581915833-21984-4-git-send-email-anshuman.khandual@arm.com>
+Message-ID: <50a93384-7a97-6a8e-9c46-c82d47330c06@arm.com>
+Date: Mon, 17 Feb 2020 14:51:45 +0530
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
-Sender: linux-arch-owner@vger.kernel.org
+In-Reply-To: <1581915833-21984-4-git-send-email-anshuman.khandual@arm.com>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
+Sender: owner-linux-mm@kvack.org
+To: linux-mm@kvack.org, linux-kernel@vger.kernel.org
+Cc: Paul Mackerras <paulus@ozlabs.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Michael Ellerman <mpe@ellerman.id.au>, Alexander Viro <viro@zeniv.linux.org.uk>, Will Deacon <will@kernel.org>, "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, Nick Piggin <npiggin@gmail.com>, Peter Zijlstra <peterz@infradead.org>, Arnd Bergmann <arnd@arndb.de>, Ingo Molnar <mingo@redhat.com>, Arnaldo Carvalho de Melo <acme@kernel.org>, kvm-ppc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>
-Cc: Alexander Viro <viro@zeniv.linux.org.uk>, Paul Elliott <paul.elliott@arm.com>, Peter Zijlstra <peterz@infradead.org>, Yu-cheng Yu <yu-cheng.yu@intel.com>, Amit Kachhap <amit.kachhap@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Marc Zyngier <maz@kernel.org>, Eugene Syromiatnikov <esyr@redhat.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, "H . J . Lu " <hjl.tools@gmail.com>, Andrew Jones <drjones@redhat.com>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Jann Horn <jannh@google.com>, Richard Henderson <richard.henderson@linaro.org>, =?UTF-8?q?Kristina=20Mart=C5=A1enko?= <kristina.martsenko@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Florian Weimer <fweimer@redhat.com>, Sudakshina Das <sudi.das@arm.com>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, Dave Martin <Dave.Martin@arm.com>, Mark Brown <broonie@kernel.org>
-Message-ID: <20200212192905.5ropkBK4dlAG1RUx8SuahfR6Ee8dAYYVD2JYhh-1GaM@z>
+Message-ID: <20200217092145.GVRQDgNHFhpaWMCI9I8gS_3Ms2nNeg5WnG41ootbBLM@z>
 
-From: Dave Martin <Dave.Martin@arm.com>
+On 02/17/2020 10:33 AM, Anshuman Khandual wrote:
+> This replaces all remaining open encodings with is_vm_hugetlb_page().
+> 
+> Cc: Paul Mackerras <paulus@ozlabs.org>
+> Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+> Cc: Michael Ellerman <mpe@ellerman.id.au>
+> Cc: Alexander Viro <viro@zeniv.linux.org.uk>
+> Cc: Will Deacon <will@kernel.org>
+> Cc: "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>
+> Cc: Andrew Morton <akpm@linux-foundation.org>
+> Cc: Nick Piggin <npiggin@gmail.com>
+> Cc: Peter Zijlstra <peterz@infradead.org>
+> Cc: Arnd Bergmann <arnd@arndb.de>
+> Cc: Ingo Molnar <mingo@redhat.com>
+> Cc: Arnaldo Carvalho de Melo <acme@kernel.org>
+> Cc: kvm-ppc@vger.kernel.org
+> Cc: linuxppc-dev@lists.ozlabs.org
+> Cc: linux-kernel@vger.kernel.org
+> Cc: linux-fsdevel@vger.kernel.org
+> Cc: linux-arch@vger.kernel.org
+> Cc: linux-mm@kvack.org
+> Signed-off-by: Anshuman Khandual <anshuman.khandual@arm.com>
+> ---
+>  arch/powerpc/kvm/e500_mmu_host.c | 2 +-
+>  fs/binfmt_elf.c                  | 2 +-
+>  include/asm-generic/tlb.h        | 2 +-
+>  kernel/events/core.c             | 3 ++-
+>  4 files changed, 5 insertions(+), 4 deletions(-)
+> 
+> diff --git a/arch/powerpc/kvm/e500_mmu_host.c b/arch/powerpc/kvm/e500_mmu_host.c
+> index 425d13806645..3922575a1c31 100644
+> --- a/arch/powerpc/kvm/e500_mmu_host.c
+> +++ b/arch/powerpc/kvm/e500_mmu_host.c
+> @@ -422,7 +422,7 @@ static inline int kvmppc_e500_shadow_map(struct kvmppc_vcpu_e500 *vcpu_e500,
+>  				break;
+>  			}
+>  		} else if (vma && hva >= vma->vm_start &&
+> -			   (vma->vm_flags & VM_HUGETLB)) {
+> +			   (is_vm_hugetlb_page(vma))) {
 
-Since normal execution of any non-branch instruction resets the
-PSTATE BTYPE field to 0, so do the same thing when emulating a
-trapped instruction.
-
-Branches don't trap directly, so we should never need to assign a
-non-zero value to BTYPE here.
-
-Signed-off-by: Dave Martin <Dave.Martin@arm.com>
-Signed-off-by: Mark Brown <broonie@kernel.org>
----
- arch/arm64/include/asm/kvm_emulate.h | 6 ++++--
- 1 file changed, 4 insertions(+), 2 deletions(-)
-
-diff --git a/arch/arm64/include/asm/kvm_emulate.h b/arch/arm64/include/asm/kvm_emulate.h
-index 688c63412cc2..dee51c1dcb93 100644
---- a/arch/arm64/include/asm/kvm_emulate.h
-+++ b/arch/arm64/include/asm/kvm_emulate.h
-@@ -506,10 +506,12 @@ static inline unsigned long vcpu_data_host_to_guest(struct kvm_vcpu *vcpu,
- 
- static inline void kvm_skip_instr(struct kvm_vcpu *vcpu, bool is_wide_instr)
- {
--	if (vcpu_mode_is_32bit(vcpu))
-+	if (vcpu_mode_is_32bit(vcpu)) {
- 		kvm_skip_instr32(vcpu, is_wide_instr);
--	else
-+	} else {
- 		*vcpu_pc(vcpu) += 4;
-+		*vcpu_cpsr(vcpu) &= ~PSR_BTYPE_MASK;
-+	}
- 
- 	/* advance the singlestep state machine */
- 	*vcpu_cpsr(vcpu) &= ~DBG_SPSR_SS;
--- 
-2.20.1
+Additional braces around is_vm_hugetlb_page() can be dropped here.
