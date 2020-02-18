@@ -1,106 +1,72 @@
-Return-Path: <SRS0=ZEfg=4N=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail-pj1-f67.google.com ([209.85.216.67]:39085 "EHLO
-        mail-pj1-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1731330AbgBYUQH (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 25 Feb 2020 15:16:07 -0500
-Received: by mail-pj1-f67.google.com with SMTP id e9so203771pjr.4
-        for <linux-arch@vger.kernel.org>; Tue, 25 Feb 2020 12:16:07 -0800 (PST)
-Date: Tue, 25 Feb 2020 12:16:04 -0800
-From: Kees Cook <keescook@chromium.org>
-Subject: Re: [RFC PATCH v9 13/27] x86/mm: Shadow Stack page fault error
- checking
-Message-ID: <202002251216.EB9BEDD9D0@keescook>
-References: <20200205181935.3712-1-yu-cheng.yu@intel.com>
- <20200205181935.3712-14-yu-cheng.yu@intel.com>
+Return-Path: <SRS0=ZivQ=4G=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from bombadil.infradead.org ([198.137.202.133]:33422 "EHLO
+        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1728337AbgBRT65 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 18 Feb 2020 14:58:57 -0500
+Date: Tue, 18 Feb 2020 20:58:31 +0100
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH v2 3/9] rcu,tracing: Create trace_rcu_{enter,exit}()
+Message-ID: <20200218195831.GD11457@worktop.programming.kicks-ass.net>
+References: <20200212210139.382424693@infradead.org>
+ <20200212210749.971717428@infradead.org>
+ <20200212232005.GC115917@google.com>
+ <20200213082716.GI14897@hirez.programming.kicks-ass.net>
+ <20200213135138.GB2935@paulmck-ThinkPad-P72>
+ <20200213164031.GH14914@hirez.programming.kicks-ass.net>
+ <20200213185612.GG2935@paulmck-ThinkPad-P72>
+ <20200213204444.GA94647@google.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20200205181935.3712-14-yu-cheng.yu@intel.com>
+In-Reply-To: <20200213204444.GA94647@google.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Cc: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>, x86-patch-review@intel.com
-Message-ID: <20200225201604.y4LiNLceKpJSEjaUwCPK1d3m0emxzJh3kw9ty4kFHFA@z>
+To: Joel Fernandes <joel@joelfernandes.org>
+Cc: "Paul E. McKenney" <paulmck@kernel.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, rostedt@goodmis.org, mingo@kernel.org, gregkh@linuxfoundation.org, gustavo@embeddedor.com, tglx@linutronix.de, josh@joshtriplett.org, mathieu.desnoyers@efficios.com, jiangshanlai@gmail.com
+Message-ID: <20200218195831.uv31Q-L70Zx6xlCzMZxXD92f2Saus2RKuIkx0mzNls0@z>
 
-On Wed, Feb 05, 2020 at 10:19:21AM -0800, Yu-cheng Yu wrote:
-> If a page fault is triggered by a Shadow Stack (SHSTK) access
-> (e.g. CALL/RET) or SHSTK management instructions (e.g. WRUSSQ), then bit[6]
-> of the page fault error code is set.
-> 
-> In access_error(), verify a SHSTK page fault is within a SHSTK memory area.
-> It is always an error otherwise.
-> 
-> For a valid SHSTK access, set FAULT_FLAG_WRITE to effect copy-on-write.
-> 
-> Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
+On Thu, Feb 13, 2020 at 03:44:44PM -0500, Joel Fernandes wrote:
 
-Reviewed-by: Kees Cook <keescook@chromium.org>
+> > > That _should_ already be the case today. That is, if we end up in a
+> > > tracer and in_nmi() is unreliable we're already screwed anyway.
 
--Kees
+> I removed the static from rcu_nmi_enter()/exit() as it is called from
+> outside, that makes it build now. Updated below is Paul's diff. I also added
+> NOKPROBE_SYMBOL() to rcu_nmi_exit() to match rcu_nmi_enter() since it seemed
+> asymmetric.
 
-> ---
->  arch/x86/include/asm/traps.h |  2 ++
->  arch/x86/mm/fault.c          | 18 ++++++++++++++++++
->  2 files changed, 20 insertions(+)
-> 
-> diff --git a/arch/x86/include/asm/traps.h b/arch/x86/include/asm/traps.h
-> index 7ac26bbd0bef..8023d177fcd8 100644
-> --- a/arch/x86/include/asm/traps.h
-> +++ b/arch/x86/include/asm/traps.h
-> @@ -169,6 +169,7 @@ enum {
->   *   bit 3 ==				1: use of reserved bit detected
->   *   bit 4 ==				1: fault was an instruction fetch
->   *   bit 5 ==				1: protection keys block access
-> + *   bit 6 ==				1: shadow stack access fault
->   */
->  enum x86_pf_error_code {
->  	X86_PF_PROT	=		1 << 0,
-> @@ -177,5 +178,6 @@ enum x86_pf_error_code {
->  	X86_PF_RSVD	=		1 << 3,
->  	X86_PF_INSTR	=		1 << 4,
->  	X86_PF_PK	=		1 << 5,
-> +	X86_PF_SHSTK	=		1 << 6,
->  };
->  #endif /* _ASM_X86_TRAPS_H */
-> diff --git a/arch/x86/mm/fault.c b/arch/x86/mm/fault.c
-> index 304d31d8cbbc..9c1243302663 100644
-> --- a/arch/x86/mm/fault.c
-> +++ b/arch/x86/mm/fault.c
-> @@ -1187,6 +1187,17 @@ access_error(unsigned long error_code, struct vm_area_struct *vma)
->  				       (error_code & X86_PF_INSTR), foreign))
->  		return 1;
+> +__always_inline void rcu_nmi_exit(void)
+>  {
+>  	struct rcu_data *rdp = this_cpu_ptr(&rcu_data);
 >  
-> +	/*
-> +	 * Verify X86_PF_SHSTK is within a Shadow Stack VMA.
-> +	 * It is always an error if there is a Shadow Stack
-> +	 * fault outside a Shadow Stack VMA.
-> +	 */
-> +	if (error_code & X86_PF_SHSTK) {
-> +		if (!(vma->vm_flags & VM_SHSTK))
-> +			return 1;
-> +		return 0;
-> +	}
-> +
->  	if (error_code & X86_PF_WRITE) {
->  		/* write, present and write, not present: */
->  		if (unlikely(!(vma->vm_flags & VM_WRITE)))
-> @@ -1344,6 +1355,13 @@ void do_user_addr_fault(struct pt_regs *regs,
+> @@ -651,25 +653,15 @@ static __always_inline void rcu_nmi_exit_common(bool irq)
+>  	trace_rcu_dyntick(TPS("Startirq"), rdp->dynticks_nmi_nesting, 0, atomic_read(&rdp->dynticks));
+>  	WRITE_ONCE(rdp->dynticks_nmi_nesting, 0); /* Avoid store tearing. */
 >  
->  	perf_sw_event(PERF_COUNT_SW_PAGE_FAULTS, 1, regs, address);
+> -	if (irq)
+> +	if (!in_nmi())
+>  		rcu_prepare_for_idle();
 >  
-> +	/*
-> +	 * If the fault is caused by a Shadow Stack access,
-> +	 * i.e. CALL/RET/SAVEPREVSSP/RSTORSSP, then set
-> +	 * FAULT_FLAG_WRITE to effect copy-on-write.
-> +	 */
-> +	if (hw_error_code & X86_PF_SHSTK)
-> +		flags |= FAULT_FLAG_WRITE;
->  	if (hw_error_code & X86_PF_WRITE)
->  		flags |= FAULT_FLAG_WRITE;
->  	if (hw_error_code & X86_PF_INSTR)
-> -- 
-> 2.21.0
-> 
+>  	rcu_dynticks_eqs_enter();
+>  
+> -	if (irq)
+> +	if (!in_nmi())
+>  		rcu_dynticks_task_enter();
+>  }
 
--- 
-Kees Cook
+Boris and me have been going over the #MC code (and finding loads of
+'interesting' code) and ran into ist_enter(), whish has the following
+code:
+
+                /*
+                 * We might have interrupted pretty much anything.  In
+                 * fact, if we're a machine check, we can even interrupt
+                 * NMI processing.  We don't want in_nmi() to return true,
+                 * but we need to notify RCU.
+                 */
+                rcu_nmi_enter();
+
+
+Which, to me, sounds all sorts of broken. The IST (be it #DB or #MC) can
+happen while we're holding all sorts of locks. This must be an NMI-like
+context.
