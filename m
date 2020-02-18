@@ -1,60 +1,72 @@
-Return-Path: <SRS0=2Kba=3Z=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail-pf1-f195.google.com ([209.85.210.195]:40813 "EHLO
-        mail-pf1-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1725468AbgBEHar (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 5 Feb 2020 02:30:47 -0500
-From: Hajime Tazaki <thehajime@gmail.com>
-Subject: [RFC v3 02/26] arch: add __SYSCALL_DEFINE_ARCH
-Date: Wed,  5 Feb 2020 16:30:11 +0900
-Message-ID: <67cc975b4ce5aaf1ce0e955d321a7487cf27d6a8.1580882335.git.thehajime@gmail.com>
-In-Reply-To: <cover.1580882335.git.thehajime@gmail.com>
-References: <cover.1580882335.git.thehajime@gmail.com>
+Return-Path: <SRS0=ZivQ=4G=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail.kernel.org ([198.145.29.99]:32942 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726411AbgBRRqM (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 18 Feb 2020 12:46:12 -0500
+Date: Tue, 18 Feb 2020 12:46:09 -0500
+From: Steven Rostedt <rostedt@goodmis.org>
+Subject: Re: [PATCH v2 3/9] rcu,tracing: Create trace_rcu_{enter,exit}()
+Message-ID: <20200218124609.1a33f868@gandalf.local.home>
+In-Reply-To: <20200218133335.c87d7b2399ee6532bf28b74a@kernel.org>
+References: <20200213204444.GA94647@google.com>
+        <20200213205442.GK2935@paulmck-ThinkPad-P72>
+        <20200213211930.GG170680@google.com>
+        <20200213163800.5c51a5f1@gandalf.local.home>
+        <20200213215004.GM2935@paulmck-ThinkPad-P72>
+        <20200213170451.690c4e5c@gandalf.local.home>
+        <20200213223918.GN2935@paulmck-ThinkPad-P72>
+        <20200214151906.b1354a7ed6b01fc3bf2de862@kernel.org>
+        <20200215145934.GD2935@paulmck-ThinkPad-P72>
+        <20200217175519.12a694a969c1a8fb2e49905e@kernel.org>
+        <20200217163112.GM2935@paulmck-ThinkPad-P72>
+        <20200218133335.c87d7b2399ee6532bf28b74a@kernel.org>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-um@lists.infradead.org
-Cc: Octavian Purdila <tavi.purdila@gmail.com>, Akira Moroo <retrage01@gmail.com>, linux-kernel-library@freelists.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org
-Message-ID: <20200205073011.xY8TFhJA7hxC1BOCFBqDKkUr-kxyTI6ITmgflsD1ZtE@z>
+To: Masami Hiramatsu <mhiramat@kernel.org>
+Cc: paulmck@kernel.org, Joel Fernandes <joel@joelfernandes.org>, Peter Zijlstra <peterz@infradead.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org, gregkh@linuxfoundation.org, gustavo@embeddedor.com, tglx@linutronix.de, josh@joshtriplett.org, mathieu.desnoyers@efficios.com, jiangshanlai@gmail.com
+Message-ID: <20200218174609.3xlIHE0nZFwWizjOQgKEr4cXUvsLvyBEANLQpw9lKCw@z>
 
-From: Octavian Purdila <tavi.purdila@gmail.com>
+On Tue, 18 Feb 2020 13:33:35 +0900
+Masami Hiramatsu <mhiramat@kernel.org> wrote:
 
-This allows the architecture code to process the system call
-definitions. It is used by LKL to create strong typed function
-definitions for system calls.
+> On Mon, 17 Feb 2020 08:31:12 -0800
+> "Paul E. McKenney" <paulmck@kernel.org> wrote:
+> >   
+> > > BTW, if you consider the x86 specific code is in the generic file,
+> > > we can move NOKPROBE_SYMBOL() in arch/x86/kernel/traps.c.
+> > > (Sorry, I've hit this idea right now)  
+> > 
+> > Might this affect other architectures with NMIs and probe-like things?
+> > If so, it might make sense to leave it where it is.  
+> 
+> Yes, git grep shows that arm64 is using rcu_nmi_enter() in
+> debug_exception_enter().
+> OK, let's keep it, but maybe it is good to update the comment for
+> arm64 too. What about following?
+> 
+> +/*
+> + * All functions in do_int3() on x86, do_debug_exception() on arm64 must be
+> + * marked NOKPROBE before kprobes handler is called.
+> + * ist_enter() on x86 and debug_exception_enter() on arm64 which is called
+> + * before kprobes handle happens to call rcu_nmi_enter() which means
+> + * that rcu_nmi_enter() must be marked NOKRPOBE.
+> + */
+> 
 
-Signed-off-by: Octavian Purdila <tavi.purdila@gmail.com>
-Cc: linux-api@vger.kernel.org
----
- include/linux/syscalls.h | 6 ++++++
- 1 file changed, 6 insertions(+)
+Ah, why don't we just say...
 
-diff --git a/include/linux/syscalls.h b/include/linux/syscalls.h
-index 5262b7a76d39..d61069aa869a 100644
---- a/include/linux/syscalls.h
-+++ b/include/linux/syscalls.h
-@@ -203,9 +203,14 @@ static inline int is_syscall_trace_event(struct trace_event_call *tp_event)
- }
- #endif
- 
-+#ifndef __SYSCALL_DEFINE_ARCH
-+#define __SYSCALL_DEFINE_ARCH(x, sname, ...)
-+#endif
-+
- #ifndef SYSCALL_DEFINE0
- #define SYSCALL_DEFINE0(sname)					\
- 	SYSCALL_METADATA(_##sname, 0);				\
-+	__SYSCALL_DEFINE_ARCH(0, _##sname);			\
- 	asmlinkage long sys_##sname(void);			\
- 	ALLOW_ERROR_INJECTION(sys_##sname, ERRNO);		\
- 	asmlinkage long sys_##sname(void)
-@@ -222,6 +227,7 @@ static inline int is_syscall_trace_event(struct trace_event_call *tp_event)
- 
- #define SYSCALL_DEFINEx(x, sname, ...)				\
- 	SYSCALL_METADATA(sname, x, __VA_ARGS__)			\
-+	__SYSCALL_DEFINE_ARCH(x, sname, __VA_ARGS__)		\
- 	__SYSCALL_DEFINEx(x, sname, __VA_ARGS__)
- 
- #define __PROTECT(...) asmlinkage_protect(__VA_ARGS__)
--- 
-2.21.0 (Apple Git-122.2)
+/*
+ * All functions called in the breakpoint trap handler (e.g. do_int3()
+ * on x86), must not allow kprobes until the kprobe breakpoint handler
+ * is called, otherwise it can cause an infinite recursion.
+ * On some archs, rcu_nmi_enter() is called in the breakpoint handler
+ * before the kprobe breakpoint handler is called, thus it must be
+ * marked as NOKPROBE.
+ */
+
+And that way we don't make this an arch specific comment.
+
+-- Steve
