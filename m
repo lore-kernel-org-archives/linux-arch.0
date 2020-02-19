@@ -1,56 +1,82 @@
 From: "Paul E. McKenney" <paulmck@kernel.org>
-Subject: Re: [PATCH] rcu/kprobes: Comment why rcu_nmi_enter() is marked
- NOKPROBE
-Date: Wed, 19 Feb 2020 09:41:33 -0800
-Message-ID: <20200219174133.GK2935@paulmck-ThinkPad-P72>
+Subject: Re: [PATCH v3 05/22] rcu: Make RCU IRQ enter/exit functions rely on
+ in_nmi()
+Date: Wed, 19 Feb 2020 09:42:11 -0800
+Message-ID: <20200219174211.GL2935@paulmck-ThinkPad-P72>
 References: <20200219144724.800607165@infradead.org>
  <20200219150744.661923520@infradead.org>
  <20200219163156.GY2935@paulmck-ThinkPad-P72>
- <20200219121609.45548925@gandalf.local.home>
+ <20200219163700.GK18400@hirez.programming.kicks-ass.net>
+ <20200219170304.GG14946@hirez.programming.kicks-ass.net>
 Reply-To: paulmck@kernel.org
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:48232 "EHLO mail.kernel.org"
+Received: from mail.kernel.org ([198.145.29.99]:48352 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726518AbgBSRld (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 19 Feb 2020 12:41:33 -0500
+        id S1726518AbgBSRmM (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 19 Feb 2020 12:42:12 -0500
 Content-Disposition: inline
-In-Reply-To: <20200219121609.45548925@gandalf.local.home>
+In-Reply-To: <20200219170304.GG14946@hirez.programming.kicks-ass.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Steven Rostedt <rostedt@goodmis.org>
-Cc: Peter Zijlstra <peterz@infradead.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org, joel@joelfernandes.org, gregkh@linuxfoundation.org, gustavo@embeddedor.com, tglx@linutronix.de, josh@joshtriplett.org, mathieu.desnoyers@efficios.com, jiangshanlai@gmail.com, luto@kernel.org, tony.luck@intel.com, frederic@kernel.org, dan.carpenter@oracle.com, mhiramat@kernel.org
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, rostedt@goodmis.org, mingo@kernel.org, joel@joelfernandes.org, gregkh@linuxfoundation.org, gustavo@embeddedor.com, tglx@linutronix.de, josh@joshtriplett.org, mathieu.desnoyers@efficios.com, jiangshanlai@gmail.com, luto@kernel.org, tony.luck@intel.com, frederic@kernel.org, dan.carpenter@oracle.com, mhiramat@kernel.org
 
-On Wed, Feb 19, 2020 at 12:16:09PM -0500, Steven Rostedt wrote:
-> From: Steven Rostedt (VMware) <rostedt@goodmis.org>
+On Wed, Feb 19, 2020 at 06:03:04PM +0100, Peter Zijlstra wrote:
+> On Wed, Feb 19, 2020 at 05:37:00PM +0100, Peter Zijlstra wrote:
+> > On Wed, Feb 19, 2020 at 08:31:56AM -0800, Paul E. McKenney wrote:
 > 
-> It's confusing that rcu_nmi_enter() is marked NOKPROBE and
-> rcu_nmi_exit() is not. One may think that the exit needs to be marked
-> for the same reason the enter is, as rcu_nmi_exit() reverts the RCU
-> state back to what it was before rcu_nmi_enter(). But the reason has
-> nothing to do with the state of RCU.
+> > > Here is the latest version of that comment, posted by Steve Rostedt.
+> > > 
+> > > 							Thanx, Paul
+> > > 
+> > > /*
+> > >  * All functions called in the breakpoint trap handler (e.g. do_int3()
+> > >  * on x86), must not allow kprobes until the kprobe breakpoint handler
+> > >  * is called, otherwise it can cause an infinite recursion.
+> > >  * On some archs, rcu_nmi_enter() is called in the breakpoint handler
+> > >  * before the kprobe breakpoint handler is called, thus it must be
+> > >  * marked as NOKPROBE.
+> > >  */
+> > 
+> > Oh right, let me stick that in a separate patch. Best we not loose that
+> > I suppose ;-)
 > 
-> The breakpoint handler (int3 on x86) must not have any kprobe on it
-> until the kprobe handler is called. Otherwise, it can cause an infinite
-> recursion and crash the machine. It just so happens that
-> rcu_nmi_enter() is called by the int3 handler before the kprobe handler
-> can run, and therefore needs to be marked as NOKPROBE.
-> 
-> Comment this to remove the confusion to why rcu_nmi_enter() is marked
-> NOKPROBE but rcu_nmi_exit() is not.
-> 
-> Link: https://lore.kernel.org/r/20200213163800.5c51a5f1@gandalf.local.home
-> Signed-off-by: Steven Rostedt (VMware) <rostedt@goodmis.org>
+> Having gone over the old thread, I ended up with the below. Anyone
+> holler if I got it wrong somehow.
 
-Reviewed-by: Paul E. McKenney <paulmck@kernel.org>
+Looks good to me!
+
+							Thanx, Paul
 
 > ---
-> diff --git a/kernel/rcu/tree.c b/kernel/rcu/tree.c
-> index 1694a6b57ad8..ada7b2b638fb 100644
+> Subject: rcu: Provide comment for NOKPROBE() on rcu_nmi_enter()
+> From: Steven Rostedt <rostedt@goodmis.org>
+> 
+> From: Steven Rostedt <rostedt@goodmis.org>
+> 
+> The rcu_nmi_enter() function was marked NOKPROBE() by commit
+> c13324a505c77 ("x86/kprobes: Prohibit probing on functions before
+> kprobe_int3_handler()") because the do_int3() call kprobe code must
+> not be invoked before kprobe_int3_handler() is called.  It turns out
+> that ist_enter() (in do_int3()) calls rcu_nmi_enter(), hence the
+> marking NOKPROBE() being added to rcu_nmi_enter().
+> 
+> This commit therefore adds a comment documenting this line of
+> reasoning.
+> 
+> Signed-off-by: Steven Rostedt <rostedt@goodmis.org>
+> Reviewed-by: Masami Hiramatsu <mhiramat@kernel.org>
+> Signed-off-by: Paul E. McKenney <paulmck@kernel.org>
+> Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+> ---
+>  kernel/rcu/tree.c |    8 ++++++++
+>  1 file changed, 8 insertions(+)
+> 
 > --- a/kernel/rcu/tree.c
 > +++ b/kernel/rcu/tree.c
-> @@ -846,6 +846,14 @@ void rcu_nmi_enter(void)
+> @@ -842,6 +842,14 @@ void rcu_nmi_enter(void)
 >  {
 >  	rcu_nmi_enter_common(false);
 >  }
