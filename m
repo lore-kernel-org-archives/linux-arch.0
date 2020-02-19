@@ -1,82 +1,69 @@
-From: Masami Hiramatsu <mhiramat@kernel.org>
-Subject: Re: [PATCH v2 3/9] rcu,tracing: Create trace_rcu_{enter,exit}()
-Date: Wed, 19 Feb 2020 11:45:10 +0900
-Message-ID: <20200219114510.6f942b56868a97e06352738c@kernel.org>
-References: <20200213163800.5c51a5f1@gandalf.local.home>
-        <20200213215004.GM2935@paulmck-ThinkPad-P72>
-        <20200213170451.690c4e5c@gandalf.local.home>
-        <20200213223918.GN2935@paulmck-ThinkPad-P72>
-        <20200214151906.b1354a7ed6b01fc3bf2de862@kernel.org>
-        <20200215145934.GD2935@paulmck-ThinkPad-P72>
-        <20200217175519.12a694a969c1a8fb2e49905e@kernel.org>
-        <20200217163112.GM2935@paulmck-ThinkPad-P72>
-        <20200218133335.c87d7b2399ee6532bf28b74a@kernel.org>
-        <20200218124609.1a33f868@gandalf.local.home>
-        <20200218201806.GI2935@paulmck-ThinkPad-P72>
+From: Nathan Chancellor <natechancellor@gmail.com>
+Subject: [PATCH 0/6] Silence some instances of -Wtautological-compare and enable globally
+Date: Tue, 18 Feb 2020 21:54:17 -0700
+Message-ID: <20200219045423.54190-1-natechancellor@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:32942 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727187AbgBSCpR (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 18 Feb 2020 21:45:17 -0500
-In-Reply-To: <20200218201806.GI2935@paulmck-ThinkPad-P72>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: paulmck@kernel.org
-Cc: Steven Rostedt <rostedt@goodmis.org>, Masami Hiramatsu <mhiramat@kernel.org>, Joel Fernandes <joel@joelfernandes.org>, Peter Zijlstra <peterz@infradead.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org, gregkh@linuxfoundation.org, gustavo@embeddedor.com, tglx@linutronix.de, josh@joshtriplett.org, mathieu.desnoyers@efficios.com, jiangshanlai@gmail.com
+Content-Transfer-Encoding: 8bit
+Return-path: <linux-kbuild-owner@vger.kernel.org>
+Sender: linux-kbuild-owner@vger.kernel.org
+To: Masahiro Yamada <masahiroy@kernel.org>, Michal Marek <michal.lkml@markovi.net>, Arnd Bergmann <arnd@arndb.de>, Steven Rostedt <rostedt@goodmis.org>, Ingo Molnar <mingo@redhat.com>, Jason Baron <jbaron@akamai.com>, Catalin Marinas <catalin.marinas@arm.com>, Andrew Morton <akpm@linux-foundation.org>
+Cc: linux-kernel@vger.kernel.org, linux-kbuild@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, clang-built-linux@googlegroups.com, Nathan Chancellor <natechancellor@gmail.com>
+List-Id: linux-arch.vger.kernel.org
 
-On Tue, 18 Feb 2020 12:18:06 -0800
-"Paul E. McKenney" <paulmck@kernel.org> wrote:
+Hi everyone,
 
-> On Tue, Feb 18, 2020 at 12:46:09PM -0500, Steven Rostedt wrote:
-> > On Tue, 18 Feb 2020 13:33:35 +0900
-> > Masami Hiramatsu <mhiramat@kernel.org> wrote:
-> > 
-> > > On Mon, 17 Feb 2020 08:31:12 -0800
-> > > "Paul E. McKenney" <paulmck@kernel.org> wrote:
-> > > >   
-> > > > > BTW, if you consider the x86 specific code is in the generic file,
-> > > > > we can move NOKPROBE_SYMBOL() in arch/x86/kernel/traps.c.
-> > > > > (Sorry, I've hit this idea right now)  
-> > > > 
-> > > > Might this affect other architectures with NMIs and probe-like things?
-> > > > If so, it might make sense to leave it where it is.  
-> > > 
-> > > Yes, git grep shows that arm64 is using rcu_nmi_enter() in
-> > > debug_exception_enter().
-> > > OK, let's keep it, but maybe it is good to update the comment for
-> > > arm64 too. What about following?
-> > > 
-> > > +/*
-> > > + * All functions in do_int3() on x86, do_debug_exception() on arm64 must be
-> > > + * marked NOKPROBE before kprobes handler is called.
-> > > + * ist_enter() on x86 and debug_exception_enter() on arm64 which is called
-> > > + * before kprobes handle happens to call rcu_nmi_enter() which means
-> > > + * that rcu_nmi_enter() must be marked NOKRPOBE.
-> > > + */
-> > > 
-> > 
-> > Ah, why don't we just say...
-> > 
-> > /*
-> >  * All functions called in the breakpoint trap handler (e.g. do_int3()
-> >  * on x86), must not allow kprobes until the kprobe breakpoint handler
-> >  * is called, otherwise it can cause an infinite recursion.
-> >  * On some archs, rcu_nmi_enter() is called in the breakpoint handler
-> >  * before the kprobe breakpoint handler is called, thus it must be
-> >  * marked as NOKPROBE.
-> >  */
-> > 
-> > And that way we don't make this an arch specific comment.
-> 
-> That looks good to me.  Masami, does this work for you?
+This patch series aims to silence some instances of clang's
+-Wtautological-compare that are not problematic and enable it globally
+for the kernel because it has a bunch of subwarnings that can find real
+bugs in the kernel such as
+https://lore.kernel.org/lkml/20200116222658.5285-1-natechancellor@gmail.com/
+and https://bugs.llvm.org/show_bug.cgi?id=42666, which was specifically
+requested by Dmitry.
 
-Yes, that looks good to me too :)
+The first patch adds a macro that casts the section variables to
+unsigned long (uintptr_t), which silences the warning and adds
+documentation.
 
-Thank you!
+Patches two through four silence the warning in the places I have
+noticed it across all of my builds with -Werror, including arm, arm64,
+and x86_64 defconfig/allmodconfig/allyesconfig. There might still be
+more lurking but those will have to be teased out over time.
+
+Patch six finally enables the warning, while leaving one of the
+subwarnings disabled because it is rather noisy and somewhat pointless
+for the kernel, where core kernel code is expected to build and run with
+many different configurations where variable types can be different
+sizes.
+
+A slight meta comment: This is the first treewide patchset that I have
+sent. I pray I did everything right but please let me know if I did not.
+I assume someone like Andrew will pick this up with acks from everyone
+but let me know if there is someone better.
+
+Cheers,
+Nathan
+
+Nathan Chancellor (6):
+  asm/sections: Add COMPARE_SECTIONS macro
+  kernel/extable: Wrap section comparison in sort_main_extable with
+    COMPARE_SECTIONS
+  tracing: Wrap section comparison in tracer_alloc_buffers with
+    COMPARE_SECTIONS
+  dynamic_debug: Wrap section comparison in dynamic_debug_init with
+    COMPARE_SECTIONS
+  mm: kmemleak: Wrap section comparison in kmemleak_init with
+    COMPARE_SECTIONS
+  kbuild: Enable -Wtautological-compare
+
+ Makefile                       | 3 +--
+ include/asm-generic/sections.h | 7 +++++++
+ kernel/extable.c               | 3 ++-
+ kernel/trace/trace.c           | 2 +-
+ lib/dynamic_debug.c            | 2 +-
+ mm/kmemleak.c                  | 3 ++-
+ 6 files changed, 14 insertions(+), 6 deletions(-)
 
 
+base-commit: 02815e777db630e3c183718cab73752b48a5053e
 -- 
-Masami Hiramatsu <mhiramat@kernel.org>
+2.25.1
