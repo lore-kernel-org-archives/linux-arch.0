@@ -1,3140 +1,2759 @@
 From: Peter Zijlstra <peterz@infradead.org>
-Subject: [PATCH v3 20/22] locking/atomics: Flip fallbacks and instrumentation
-Date: Wed, 19 Feb 2020 15:47:44 +0100
-Message-ID: <20200219150745.533118817@infradead.org>
+Subject: [PATCH v3 17/22] asm-generic/atomic: Use __always_inline for pure wrappers
+Date: Wed, 19 Feb 2020 15:47:41 +0100
+Message-ID: <20200219150745.357784675@infradead.org>
 References: <20200219144724.800607165@infradead.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:52064 "EHLO
-        merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727874AbgBSPOm (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 19 Feb 2020 10:14:42 -0500
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, rostedt@goodmis.org
-Cc: peterz@infradead.org, mingo@kernel.org, joel@joelfernandes.org, gregkh@linuxfoundation.org, gustavo@embeddedor.com, tglx@linutronix.de, paulmck@kernel.org, josh@joshtriplett.org, mathieu.desnoyers@efficios.com, jiangshanlai@gmail.com, luto@kernel.org, tony.luck@intel.com, frederic@kernel.org, dan.carpenter@oracle.com, mhiramat@kernel.org, Mark Rutland <mark.rutland@arm.com>
+Cc: peterz@infradead.org, mingo@kernel.org, joel@joelfernandes.org, gregkh@linuxfoundation.org, gustavo@embeddedor.com, tglx@linutronix.de, paulmck@kernel.org, josh@joshtriplett.org, mathieu.desnoyers@efficios.com, jiangshanlai@gmail.com, luto@kernel.org, tony.luck@intel.com, frederic@kernel.org, dan.carpenter@oracle.com, mhiramat@kernel.org, Randy Dunlap <rdunlap@infradead.org>, Marco Elver <elver@google.com>, Mark Rutland <mark.rutland@arm.com>
+List-Id: linux-arch.vger.kernel.org
 
-Currently instrumentation of atomic primitives is done at the
-architecture level, while composites or fallbacks are provided at the
-generic level.
+From: Marco Elver <elver@google.com>
 
-The result is that there are no uninstrumented variants of the
-fallbacks. Since there is now need of such (see the next patch),
-invert this ordering.
+Prefer __always_inline for atomic wrappers. When building for size
+(CC_OPTIMIZE_FOR_SIZE), some compilers appear to be less inclined to
+inline even relatively small static inline functions that are assumed to
+be inlinable such as atomic ops. This can cause problems, for example in
+UACCESS regions.
 
-Doing this means moving the instrumentation into the generic code as
-well as having (for now) two variants of the fallbacks.
+By using __always_inline, we let the real implementation and not the
+wrapper determine the final inlining preference.
 
-Notes:
+For x86 tinyconfig we observe:
+ - vmlinux baseline: 1316204
+ - vmlinux with patch: 1315988 (-216 bytes)
 
- - the various *cond_read* primitives are not proper fallbacks
-   and got moved into linux/atomic.c. No arch_ variants are
-   generated because the base primitives smp_cond_load*()
-   are instrumented.
+This came up when addressing UACCESS warnings with CC_OPTIMIZE_FOR_SIZE
+in the KCSAN runtime:
+http://lkml.kernel.org/r/58708908-84a0-0a81-a836-ad97e33dbb62@infradead.org
 
- - once all architectures are moved over to arch_atomic_ we can remove
-   one of the fallback variants and reclaim some 2300 lines.
-
- - atomic_{read,set}*() are no longer double-instrumented
-
-Cc: Mark Rutland <mark.rutland@arm.com>
-Reported-by: Thomas Gleixner <tglx@linutronix.de>
+Reported-by: Randy Dunlap <rdunlap@infradead.org>
+Signed-off-by: Paul E. McKenney <paulmck@kernel.org>
+Signed-off-by: Marco Elver <elver@google.com>
 Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+Acked-by: Mark Rutland <mark.rutland@arm.com>
 ---
- arch/arm64/include/asm/atomic.h              |    6 
- arch/x86/include/asm/atomic.h                |   17 
- arch/x86/include/asm/atomic64_32.h           |    9 
- arch/x86/include/asm/atomic64_64.h           |   15 
- include/linux/atomic-arch-fallback.h         | 2291 +++++++++++++++++++++++++++
- include/linux/atomic-fallback.h              |    8 
- include/linux/atomic.h                       |   11 
- scripts/atomic/fallbacks/acquire             |    4 
- scripts/atomic/fallbacks/add_negative        |    6 
- scripts/atomic/fallbacks/add_unless          |    6 
- scripts/atomic/fallbacks/andnot              |    4 
- scripts/atomic/fallbacks/dec                 |    4 
- scripts/atomic/fallbacks/dec_and_test        |    6 
- scripts/atomic/fallbacks/dec_if_positive     |    6 
- scripts/atomic/fallbacks/dec_unless_positive |    6 
- scripts/atomic/fallbacks/fence               |    4 
- scripts/atomic/fallbacks/fetch_add_unless    |    8 
- scripts/atomic/fallbacks/inc                 |    4 
- scripts/atomic/fallbacks/inc_and_test        |    6 
- scripts/atomic/fallbacks/inc_not_zero        |    6 
- scripts/atomic/fallbacks/inc_unless_negative |    6 
- scripts/atomic/fallbacks/read_acquire        |    2 
- scripts/atomic/fallbacks/release             |    4 
- scripts/atomic/fallbacks/set_release         |    2 
- scripts/atomic/fallbacks/sub_and_test        |    6 
- scripts/atomic/fallbacks/try_cmpxchg         |    4 
- scripts/atomic/gen-atomic-fallback.sh        |   29 
- scripts/atomic/gen-atomics.sh                |    5 
- 28 files changed, 2403 insertions(+), 82 deletions(-)
+ include/asm-generic/atomic-instrumented.h |  335 +++++++++++++++---------------
+ include/asm-generic/atomic-long.h         |  331 ++++++++++++++---------------
+ scripts/atomic/gen-atomic-instrumented.sh |    7 
+ scripts/atomic/gen-atomic-long.sh         |    3 
+ 4 files changed, 340 insertions(+), 336 deletions(-)
 
---- a/arch/arm64/include/asm/atomic.h
-+++ b/arch/arm64/include/asm/atomic.h
-@@ -101,8 +101,8 @@ static inline long arch_atomic64_dec_if_
+--- a/include/asm-generic/atomic-instrumented.h
++++ b/include/asm-generic/atomic-instrumented.h
+@@ -18,19 +18,20 @@
+ #define _ASM_GENERIC_ATOMIC_INSTRUMENTED_H
  
- #define ATOMIC_INIT(i)	{ (i) }
+ #include <linux/build_bug.h>
++#include <linux/compiler.h>
+ #include <linux/kasan-checks.h>
  
--#define arch_atomic_read(v)			READ_ONCE((v)->counter)
--#define arch_atomic_set(v, i)			WRITE_ONCE(((v)->counter), (i))
-+#define arch_atomic_read(v)			__READ_ONCE_SCALAR((v)->counter)
-+#define arch_atomic_set(v, i)			__WRITE_ONCE_SCALAR(((v)->counter), (i))
- 
- #define arch_atomic_add_return_relaxed		arch_atomic_add_return_relaxed
- #define arch_atomic_add_return_acquire		arch_atomic_add_return_acquire
-@@ -225,6 +225,6 @@ static inline long arch_atomic64_dec_if_
- 
- #define arch_atomic64_dec_if_positive		arch_atomic64_dec_if_positive
- 
--#include <asm-generic/atomic-instrumented.h>
-+#define ARCH_ATOMIC
- 
- #endif /* __ASM_ATOMIC_H */
---- a/arch/x86/include/asm/atomic.h
-+++ b/arch/x86/include/asm/atomic.h
-@@ -28,7 +28,7 @@ static __always_inline int arch_atomic_r
- 	 * Note for KASAN: we deliberately don't use READ_ONCE_NOCHECK() here,
- 	 * it's non-inlined function that increases binary size and stack usage.
- 	 */
--	return READ_ONCE((v)->counter);
-+	return __READ_ONCE_SCALAR((v)->counter);
- }
- 
- /**
-@@ -40,7 +40,7 @@ static __always_inline int arch_atomic_r
-  */
- static __always_inline void arch_atomic_set(atomic_t *v, int i)
+-static inline void __atomic_check_read(const volatile void *v, size_t size)
++static __always_inline void __atomic_check_read(const volatile void *v, size_t size)
  {
--	WRITE_ONCE(v->counter, i);
-+	__WRITE_ONCE_SCALAR(v->counter, i);
+ 	kasan_check_read(v, size);
  }
  
- /**
-@@ -166,6 +166,7 @@ static __always_inline int arch_atomic_a
+-static inline void __atomic_check_write(const volatile void *v, size_t size)
++static __always_inline void __atomic_check_write(const volatile void *v, size_t size)
  {
- 	return i + xadd(&v->counter, i);
+ 	kasan_check_write(v, size);
  }
-+#define arch_atomic_add_return arch_atomic_add_return
  
- /**
-  * arch_atomic_sub_return - subtract integer and return
-@@ -178,32 +179,37 @@ static __always_inline int arch_atomic_s
+-static inline int
++static __always_inline int
+ atomic_read(const atomic_t *v)
  {
- 	return arch_atomic_add_return(-i, v);
- }
-+#define arch_atomic_sub_return arch_atomic_sub_return
+ 	__atomic_check_read(v, sizeof(*v));
+@@ -39,7 +40,7 @@ atomic_read(const atomic_t *v)
+ #define atomic_read atomic_read
  
- static __always_inline int arch_atomic_fetch_add(int i, atomic_t *v)
+ #if defined(arch_atomic_read_acquire)
+-static inline int
++static __always_inline int
+ atomic_read_acquire(const atomic_t *v)
  {
- 	return xadd(&v->counter, i);
- }
-+#define arch_atomic_fetch_add arch_atomic_fetch_add
- 
- static __always_inline int arch_atomic_fetch_sub(int i, atomic_t *v)
- {
- 	return xadd(&v->counter, -i);
- }
-+#define arch_atomic_fetch_sub arch_atomic_fetch_sub
- 
- static __always_inline int arch_atomic_cmpxchg(atomic_t *v, int old, int new)
- {
- 	return arch_cmpxchg(&v->counter, old, new);
- }
-+#define arch_atomic_cmpxchg arch_atomic_cmpxchg
- 
--#define arch_atomic_try_cmpxchg arch_atomic_try_cmpxchg
- static __always_inline bool arch_atomic_try_cmpxchg(atomic_t *v, int *old, int new)
- {
- 	return try_cmpxchg(&v->counter, old, new);
- }
-+#define arch_atomic_try_cmpxchg arch_atomic_try_cmpxchg
- 
- static inline int arch_atomic_xchg(atomic_t *v, int new)
- {
- 	return arch_xchg(&v->counter, new);
- }
-+#define arch_atomic_xchg arch_atomic_xchg
- 
- static inline void arch_atomic_and(int i, atomic_t *v)
- {
-@@ -221,6 +227,7 @@ static inline int arch_atomic_fetch_and(
- 
- 	return val;
- }
-+#define arch_atomic_fetch_and arch_atomic_fetch_and
- 
- static inline void arch_atomic_or(int i, atomic_t *v)
- {
-@@ -238,6 +245,7 @@ static inline int arch_atomic_fetch_or(i
- 
- 	return val;
- }
-+#define arch_atomic_fetch_or arch_atomic_fetch_or
- 
- static inline void arch_atomic_xor(int i, atomic_t *v)
- {
-@@ -255,6 +263,7 @@ static inline int arch_atomic_fetch_xor(
- 
- 	return val;
- }
-+#define arch_atomic_fetch_xor arch_atomic_fetch_xor
- 
- #ifdef CONFIG_X86_32
- # include <asm/atomic64_32.h>
-@@ -262,6 +271,6 @@ static inline int arch_atomic_fetch_xor(
- # include <asm/atomic64_64.h>
+ 	__atomic_check_read(v, sizeof(*v));
+@@ -48,7 +49,7 @@ atomic_read_acquire(const atomic_t *v)
+ #define atomic_read_acquire atomic_read_acquire
  #endif
  
--#include <asm-generic/atomic-instrumented.h>
-+#define ARCH_ATOMIC
- 
- #endif /* _ASM_X86_ATOMIC_H */
---- a/arch/x86/include/asm/atomic64_32.h
-+++ b/arch/x86/include/asm/atomic64_32.h
-@@ -75,6 +75,7 @@ static inline s64 arch_atomic64_cmpxchg(
- {
- 	return arch_cmpxchg64(&v->counter, o, n);
- }
-+#define arch_atomic64_cmpxchg arch_atomic64_cmpxchg
- 
- /**
-  * arch_atomic64_xchg - xchg atomic64 variable
-@@ -94,6 +95,7 @@ static inline s64 arch_atomic64_xchg(ato
- 			     : "memory");
- 	return o;
- }
-+#define arch_atomic64_xchg arch_atomic64_xchg
- 
- /**
-  * arch_atomic64_set - set atomic64 variable
-@@ -138,6 +140,7 @@ static inline s64 arch_atomic64_add_retu
- 			     ASM_NO_INPUT_CLOBBER("memory"));
- 	return i;
- }
-+#define arch_atomic64_add_return arch_atomic64_add_return
- 
- /*
-  * Other variants with different arithmetic operators:
-@@ -149,6 +152,7 @@ static inline s64 arch_atomic64_sub_retu
- 			     ASM_NO_INPUT_CLOBBER("memory"));
- 	return i;
- }
-+#define arch_atomic64_sub_return arch_atomic64_sub_return
- 
- static inline s64 arch_atomic64_inc_return(atomic64_t *v)
- {
-@@ -242,6 +246,7 @@ static inline int arch_atomic64_add_unle
- 			     "S" (v) : "memory");
- 	return (int)a;
- }
-+#define arch_atomic64_add_unless arch_atomic64_add_unless
- 
- static inline int arch_atomic64_inc_not_zero(atomic64_t *v)
- {
-@@ -281,6 +286,7 @@ static inline s64 arch_atomic64_fetch_an
- 
- 	return old;
- }
-+#define arch_atomic64_fetch_and arch_atomic64_fetch_and
- 
- static inline void arch_atomic64_or(s64 i, atomic64_t *v)
- {
-@@ -299,6 +305,7 @@ static inline s64 arch_atomic64_fetch_or
- 
- 	return old;
- }
-+#define arch_atomic64_fetch_or arch_atomic64_fetch_or
- 
- static inline void arch_atomic64_xor(s64 i, atomic64_t *v)
- {
-@@ -317,6 +324,7 @@ static inline s64 arch_atomic64_fetch_xo
- 
- 	return old;
- }
-+#define arch_atomic64_fetch_xor arch_atomic64_fetch_xor
- 
- static inline s64 arch_atomic64_fetch_add(s64 i, atomic64_t *v)
- {
-@@ -327,6 +335,7 @@ static inline s64 arch_atomic64_fetch_ad
- 
- 	return old;
- }
-+#define arch_atomic64_fetch_add arch_atomic64_fetch_add
- 
- #define arch_atomic64_fetch_sub(i, v)	arch_atomic64_fetch_add(-(i), (v))
- 
---- a/arch/x86/include/asm/atomic64_64.h
-+++ b/arch/x86/include/asm/atomic64_64.h
-@@ -19,7 +19,7 @@
-  */
- static inline s64 arch_atomic64_read(const atomic64_t *v)
- {
--	return READ_ONCE((v)->counter);
-+	return __READ_ONCE_SCALAR((v)->counter);
- }
- 
- /**
-@@ -31,7 +31,7 @@ static inline s64 arch_atomic64_read(con
-  */
- static inline void arch_atomic64_set(atomic64_t *v, s64 i)
- {
--	WRITE_ONCE(v->counter, i);
-+	__WRITE_ONCE_SCALAR(v->counter, i);
- }
- 
- /**
-@@ -159,37 +159,43 @@ static __always_inline s64 arch_atomic64
- {
- 	return i + xadd(&v->counter, i);
- }
-+#define arch_atomic64_add_return arch_atomic64_add_return
- 
- static inline s64 arch_atomic64_sub_return(s64 i, atomic64_t *v)
- {
- 	return arch_atomic64_add_return(-i, v);
- }
-+#define arch_atomic64_sub_return arch_atomic64_sub_return
- 
- static inline s64 arch_atomic64_fetch_add(s64 i, atomic64_t *v)
- {
- 	return xadd(&v->counter, i);
- }
-+#define arch_atomic64_fetch_add arch_atomic64_fetch_add
- 
- static inline s64 arch_atomic64_fetch_sub(s64 i, atomic64_t *v)
- {
- 	return xadd(&v->counter, -i);
- }
-+#define arch_atomic64_fetch_sub arch_atomic64_fetch_sub
- 
- static inline s64 arch_atomic64_cmpxchg(atomic64_t *v, s64 old, s64 new)
- {
- 	return arch_cmpxchg(&v->counter, old, new);
- }
-+#define arch_atomic64_cmpxchg arch_atomic64_cmpxchg
- 
--#define arch_atomic64_try_cmpxchg arch_atomic64_try_cmpxchg
- static __always_inline bool arch_atomic64_try_cmpxchg(atomic64_t *v, s64 *old, s64 new)
- {
- 	return try_cmpxchg(&v->counter, old, new);
- }
-+#define arch_atomic64_try_cmpxchg arch_atomic64_try_cmpxchg
- 
- static inline s64 arch_atomic64_xchg(atomic64_t *v, s64 new)
- {
- 	return arch_xchg(&v->counter, new);
- }
-+#define arch_atomic64_xchg arch_atomic64_xchg
- 
- static inline void arch_atomic64_and(s64 i, atomic64_t *v)
- {
-@@ -207,6 +213,7 @@ static inline s64 arch_atomic64_fetch_an
- 	} while (!arch_atomic64_try_cmpxchg(v, &val, val & i));
- 	return val;
- }
-+#define arch_atomic64_fetch_and arch_atomic64_fetch_and
- 
- static inline void arch_atomic64_or(s64 i, atomic64_t *v)
- {
-@@ -224,6 +231,7 @@ static inline s64 arch_atomic64_fetch_or
- 	} while (!arch_atomic64_try_cmpxchg(v, &val, val | i));
- 	return val;
- }
-+#define arch_atomic64_fetch_or arch_atomic64_fetch_or
- 
- static inline void arch_atomic64_xor(s64 i, atomic64_t *v)
- {
-@@ -241,5 +249,6 @@ static inline s64 arch_atomic64_fetch_xo
- 	} while (!arch_atomic64_try_cmpxchg(v, &val, val ^ i));
- 	return val;
- }
-+#define arch_atomic64_fetch_xor arch_atomic64_fetch_xor
- 
- #endif /* _ASM_X86_ATOMIC64_64_H */
---- /dev/null
-+++ b/include/linux/atomic-arch-fallback.h
-@@ -0,0 +1,2291 @@
-+// SPDX-License-Identifier: GPL-2.0
-+
-+// Generated by scripts/atomic/gen-atomic-fallback.sh
-+// DO NOT MODIFY THIS FILE DIRECTLY
-+
-+#ifndef _LINUX_ATOMIC_FALLBACK_H
-+#define _LINUX_ATOMIC_FALLBACK_H
-+
-+#include <linux/compiler.h>
-+
-+#ifndef arch_xchg_relaxed
-+#define arch_xchg_relaxed		arch_xchg
-+#define arch_xchg_acquire		arch_xchg
-+#define arch_xchg_release		arch_xchg
-+#else /* arch_xchg_relaxed */
-+
-+#ifndef arch_xchg_acquire
-+#define arch_xchg_acquire(...) \
-+	__atomic_op_acquire(arch_xchg, __VA_ARGS__)
-+#endif
-+
-+#ifndef arch_xchg_release
-+#define arch_xchg_release(...) \
-+	__atomic_op_release(arch_xchg, __VA_ARGS__)
-+#endif
-+
-+#ifndef arch_xchg
-+#define arch_xchg(...) \
-+	__atomic_op_fence(arch_xchg, __VA_ARGS__)
-+#endif
-+
-+#endif /* arch_xchg_relaxed */
-+
-+#ifndef arch_cmpxchg_relaxed
-+#define arch_cmpxchg_relaxed		arch_cmpxchg
-+#define arch_cmpxchg_acquire		arch_cmpxchg
-+#define arch_cmpxchg_release		arch_cmpxchg
-+#else /* arch_cmpxchg_relaxed */
-+
-+#ifndef arch_cmpxchg_acquire
-+#define arch_cmpxchg_acquire(...) \
-+	__atomic_op_acquire(arch_cmpxchg, __VA_ARGS__)
-+#endif
-+
-+#ifndef arch_cmpxchg_release
-+#define arch_cmpxchg_release(...) \
-+	__atomic_op_release(arch_cmpxchg, __VA_ARGS__)
-+#endif
-+
-+#ifndef arch_cmpxchg
-+#define arch_cmpxchg(...) \
-+	__atomic_op_fence(arch_cmpxchg, __VA_ARGS__)
-+#endif
-+
-+#endif /* arch_cmpxchg_relaxed */
-+
-+#ifndef arch_cmpxchg64_relaxed
-+#define arch_cmpxchg64_relaxed		arch_cmpxchg64
-+#define arch_cmpxchg64_acquire		arch_cmpxchg64
-+#define arch_cmpxchg64_release		arch_cmpxchg64
-+#else /* arch_cmpxchg64_relaxed */
-+
-+#ifndef arch_cmpxchg64_acquire
-+#define arch_cmpxchg64_acquire(...) \
-+	__atomic_op_acquire(arch_cmpxchg64, __VA_ARGS__)
-+#endif
-+
-+#ifndef arch_cmpxchg64_release
-+#define arch_cmpxchg64_release(...) \
-+	__atomic_op_release(arch_cmpxchg64, __VA_ARGS__)
-+#endif
-+
-+#ifndef arch_cmpxchg64
-+#define arch_cmpxchg64(...) \
-+	__atomic_op_fence(arch_cmpxchg64, __VA_ARGS__)
-+#endif
-+
-+#endif /* arch_cmpxchg64_relaxed */
-+
-+#ifndef arch_atomic_read_acquire
-+static __always_inline int
-+arch_atomic_read_acquire(const atomic_t *v)
-+{
-+	return smp_load_acquire(&(v)->counter);
-+}
-+#define arch_atomic_read_acquire arch_atomic_read_acquire
-+#endif
-+
-+#ifndef arch_atomic_set_release
+-static inline void
 +static __always_inline void
-+arch_atomic_set_release(atomic_t *v, int i)
-+{
-+	smp_store_release(&(v)->counter, i);
-+}
-+#define arch_atomic_set_release arch_atomic_set_release
-+#endif
-+
-+#ifndef arch_atomic_add_return_relaxed
-+#define arch_atomic_add_return_acquire arch_atomic_add_return
-+#define arch_atomic_add_return_release arch_atomic_add_return
-+#define arch_atomic_add_return_relaxed arch_atomic_add_return
-+#else /* arch_atomic_add_return_relaxed */
-+
-+#ifndef arch_atomic_add_return_acquire
-+static __always_inline int
-+arch_atomic_add_return_acquire(int i, atomic_t *v)
-+{
-+	int ret = arch_atomic_add_return_relaxed(i, v);
-+	__atomic_acquire_fence();
-+	return ret;
-+}
-+#define arch_atomic_add_return_acquire arch_atomic_add_return_acquire
-+#endif
-+
-+#ifndef arch_atomic_add_return_release
-+static __always_inline int
-+arch_atomic_add_return_release(int i, atomic_t *v)
-+{
-+	__atomic_release_fence();
-+	return arch_atomic_add_return_relaxed(i, v);
-+}
-+#define arch_atomic_add_return_release arch_atomic_add_return_release
-+#endif
-+
-+#ifndef arch_atomic_add_return
-+static __always_inline int
-+arch_atomic_add_return(int i, atomic_t *v)
-+{
-+	int ret;
-+	__atomic_pre_full_fence();
-+	ret = arch_atomic_add_return_relaxed(i, v);
-+	__atomic_post_full_fence();
-+	return ret;
-+}
-+#define arch_atomic_add_return arch_atomic_add_return
-+#endif
-+
-+#endif /* arch_atomic_add_return_relaxed */
-+
-+#ifndef arch_atomic_fetch_add_relaxed
-+#define arch_atomic_fetch_add_acquire arch_atomic_fetch_add
-+#define arch_atomic_fetch_add_release arch_atomic_fetch_add
-+#define arch_atomic_fetch_add_relaxed arch_atomic_fetch_add
-+#else /* arch_atomic_fetch_add_relaxed */
-+
-+#ifndef arch_atomic_fetch_add_acquire
-+static __always_inline int
-+arch_atomic_fetch_add_acquire(int i, atomic_t *v)
-+{
-+	int ret = arch_atomic_fetch_add_relaxed(i, v);
-+	__atomic_acquire_fence();
-+	return ret;
-+}
-+#define arch_atomic_fetch_add_acquire arch_atomic_fetch_add_acquire
-+#endif
-+
-+#ifndef arch_atomic_fetch_add_release
-+static __always_inline int
-+arch_atomic_fetch_add_release(int i, atomic_t *v)
-+{
-+	__atomic_release_fence();
-+	return arch_atomic_fetch_add_relaxed(i, v);
-+}
-+#define arch_atomic_fetch_add_release arch_atomic_fetch_add_release
-+#endif
-+
-+#ifndef arch_atomic_fetch_add
-+static __always_inline int
-+arch_atomic_fetch_add(int i, atomic_t *v)
-+{
-+	int ret;
-+	__atomic_pre_full_fence();
-+	ret = arch_atomic_fetch_add_relaxed(i, v);
-+	__atomic_post_full_fence();
-+	return ret;
-+}
-+#define arch_atomic_fetch_add arch_atomic_fetch_add
-+#endif
-+
-+#endif /* arch_atomic_fetch_add_relaxed */
-+
-+#ifndef arch_atomic_sub_return_relaxed
-+#define arch_atomic_sub_return_acquire arch_atomic_sub_return
-+#define arch_atomic_sub_return_release arch_atomic_sub_return
-+#define arch_atomic_sub_return_relaxed arch_atomic_sub_return
-+#else /* arch_atomic_sub_return_relaxed */
-+
-+#ifndef arch_atomic_sub_return_acquire
-+static __always_inline int
-+arch_atomic_sub_return_acquire(int i, atomic_t *v)
-+{
-+	int ret = arch_atomic_sub_return_relaxed(i, v);
-+	__atomic_acquire_fence();
-+	return ret;
-+}
-+#define arch_atomic_sub_return_acquire arch_atomic_sub_return_acquire
-+#endif
-+
-+#ifndef arch_atomic_sub_return_release
-+static __always_inline int
-+arch_atomic_sub_return_release(int i, atomic_t *v)
-+{
-+	__atomic_release_fence();
-+	return arch_atomic_sub_return_relaxed(i, v);
-+}
-+#define arch_atomic_sub_return_release arch_atomic_sub_return_release
-+#endif
-+
-+#ifndef arch_atomic_sub_return
-+static __always_inline int
-+arch_atomic_sub_return(int i, atomic_t *v)
-+{
-+	int ret;
-+	__atomic_pre_full_fence();
-+	ret = arch_atomic_sub_return_relaxed(i, v);
-+	__atomic_post_full_fence();
-+	return ret;
-+}
-+#define arch_atomic_sub_return arch_atomic_sub_return
-+#endif
-+
-+#endif /* arch_atomic_sub_return_relaxed */
-+
-+#ifndef arch_atomic_fetch_sub_relaxed
-+#define arch_atomic_fetch_sub_acquire arch_atomic_fetch_sub
-+#define arch_atomic_fetch_sub_release arch_atomic_fetch_sub
-+#define arch_atomic_fetch_sub_relaxed arch_atomic_fetch_sub
-+#else /* arch_atomic_fetch_sub_relaxed */
-+
-+#ifndef arch_atomic_fetch_sub_acquire
-+static __always_inline int
-+arch_atomic_fetch_sub_acquire(int i, atomic_t *v)
-+{
-+	int ret = arch_atomic_fetch_sub_relaxed(i, v);
-+	__atomic_acquire_fence();
-+	return ret;
-+}
-+#define arch_atomic_fetch_sub_acquire arch_atomic_fetch_sub_acquire
-+#endif
-+
-+#ifndef arch_atomic_fetch_sub_release
-+static __always_inline int
-+arch_atomic_fetch_sub_release(int i, atomic_t *v)
-+{
-+	__atomic_release_fence();
-+	return arch_atomic_fetch_sub_relaxed(i, v);
-+}
-+#define arch_atomic_fetch_sub_release arch_atomic_fetch_sub_release
-+#endif
-+
-+#ifndef arch_atomic_fetch_sub
-+static __always_inline int
-+arch_atomic_fetch_sub(int i, atomic_t *v)
-+{
-+	int ret;
-+	__atomic_pre_full_fence();
-+	ret = arch_atomic_fetch_sub_relaxed(i, v);
-+	__atomic_post_full_fence();
-+	return ret;
-+}
-+#define arch_atomic_fetch_sub arch_atomic_fetch_sub
-+#endif
-+
-+#endif /* arch_atomic_fetch_sub_relaxed */
-+
-+#ifndef arch_atomic_inc
+ atomic_set(atomic_t *v, int i)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -57,7 +58,7 @@ atomic_set(atomic_t *v, int i)
+ #define atomic_set atomic_set
+ 
+ #if defined(arch_atomic_set_release)
+-static inline void
 +static __always_inline void
-+arch_atomic_inc(atomic_t *v)
-+{
-+	arch_atomic_add(1, v);
-+}
-+#define arch_atomic_inc arch_atomic_inc
-+#endif
-+
-+#ifndef arch_atomic_inc_return_relaxed
-+#ifdef arch_atomic_inc_return
-+#define arch_atomic_inc_return_acquire arch_atomic_inc_return
-+#define arch_atomic_inc_return_release arch_atomic_inc_return
-+#define arch_atomic_inc_return_relaxed arch_atomic_inc_return
-+#endif /* arch_atomic_inc_return */
-+
-+#ifndef arch_atomic_inc_return
-+static __always_inline int
-+arch_atomic_inc_return(atomic_t *v)
-+{
-+	return arch_atomic_add_return(1, v);
-+}
-+#define arch_atomic_inc_return arch_atomic_inc_return
-+#endif
-+
-+#ifndef arch_atomic_inc_return_acquire
-+static __always_inline int
-+arch_atomic_inc_return_acquire(atomic_t *v)
-+{
-+	return arch_atomic_add_return_acquire(1, v);
-+}
-+#define arch_atomic_inc_return_acquire arch_atomic_inc_return_acquire
-+#endif
-+
-+#ifndef arch_atomic_inc_return_release
-+static __always_inline int
-+arch_atomic_inc_return_release(atomic_t *v)
-+{
-+	return arch_atomic_add_return_release(1, v);
-+}
-+#define arch_atomic_inc_return_release arch_atomic_inc_return_release
-+#endif
-+
-+#ifndef arch_atomic_inc_return_relaxed
-+static __always_inline int
-+arch_atomic_inc_return_relaxed(atomic_t *v)
-+{
-+	return arch_atomic_add_return_relaxed(1, v);
-+}
-+#define arch_atomic_inc_return_relaxed arch_atomic_inc_return_relaxed
-+#endif
-+
-+#else /* arch_atomic_inc_return_relaxed */
-+
-+#ifndef arch_atomic_inc_return_acquire
-+static __always_inline int
-+arch_atomic_inc_return_acquire(atomic_t *v)
-+{
-+	int ret = arch_atomic_inc_return_relaxed(v);
-+	__atomic_acquire_fence();
-+	return ret;
-+}
-+#define arch_atomic_inc_return_acquire arch_atomic_inc_return_acquire
-+#endif
-+
-+#ifndef arch_atomic_inc_return_release
-+static __always_inline int
-+arch_atomic_inc_return_release(atomic_t *v)
-+{
-+	__atomic_release_fence();
-+	return arch_atomic_inc_return_relaxed(v);
-+}
-+#define arch_atomic_inc_return_release arch_atomic_inc_return_release
-+#endif
-+
-+#ifndef arch_atomic_inc_return
-+static __always_inline int
-+arch_atomic_inc_return(atomic_t *v)
-+{
-+	int ret;
-+	__atomic_pre_full_fence();
-+	ret = arch_atomic_inc_return_relaxed(v);
-+	__atomic_post_full_fence();
-+	return ret;
-+}
-+#define arch_atomic_inc_return arch_atomic_inc_return
-+#endif
-+
-+#endif /* arch_atomic_inc_return_relaxed */
-+
-+#ifndef arch_atomic_fetch_inc_relaxed
-+#ifdef arch_atomic_fetch_inc
-+#define arch_atomic_fetch_inc_acquire arch_atomic_fetch_inc
-+#define arch_atomic_fetch_inc_release arch_atomic_fetch_inc
-+#define arch_atomic_fetch_inc_relaxed arch_atomic_fetch_inc
-+#endif /* arch_atomic_fetch_inc */
-+
-+#ifndef arch_atomic_fetch_inc
-+static __always_inline int
-+arch_atomic_fetch_inc(atomic_t *v)
-+{
-+	return arch_atomic_fetch_add(1, v);
-+}
-+#define arch_atomic_fetch_inc arch_atomic_fetch_inc
-+#endif
-+
-+#ifndef arch_atomic_fetch_inc_acquire
-+static __always_inline int
-+arch_atomic_fetch_inc_acquire(atomic_t *v)
-+{
-+	return arch_atomic_fetch_add_acquire(1, v);
-+}
-+#define arch_atomic_fetch_inc_acquire arch_atomic_fetch_inc_acquire
-+#endif
-+
-+#ifndef arch_atomic_fetch_inc_release
-+static __always_inline int
-+arch_atomic_fetch_inc_release(atomic_t *v)
-+{
-+	return arch_atomic_fetch_add_release(1, v);
-+}
-+#define arch_atomic_fetch_inc_release arch_atomic_fetch_inc_release
-+#endif
-+
-+#ifndef arch_atomic_fetch_inc_relaxed
-+static __always_inline int
-+arch_atomic_fetch_inc_relaxed(atomic_t *v)
-+{
-+	return arch_atomic_fetch_add_relaxed(1, v);
-+}
-+#define arch_atomic_fetch_inc_relaxed arch_atomic_fetch_inc_relaxed
-+#endif
-+
-+#else /* arch_atomic_fetch_inc_relaxed */
-+
-+#ifndef arch_atomic_fetch_inc_acquire
-+static __always_inline int
-+arch_atomic_fetch_inc_acquire(atomic_t *v)
-+{
-+	int ret = arch_atomic_fetch_inc_relaxed(v);
-+	__atomic_acquire_fence();
-+	return ret;
-+}
-+#define arch_atomic_fetch_inc_acquire arch_atomic_fetch_inc_acquire
-+#endif
-+
-+#ifndef arch_atomic_fetch_inc_release
-+static __always_inline int
-+arch_atomic_fetch_inc_release(atomic_t *v)
-+{
-+	__atomic_release_fence();
-+	return arch_atomic_fetch_inc_relaxed(v);
-+}
-+#define arch_atomic_fetch_inc_release arch_atomic_fetch_inc_release
-+#endif
-+
-+#ifndef arch_atomic_fetch_inc
-+static __always_inline int
-+arch_atomic_fetch_inc(atomic_t *v)
-+{
-+	int ret;
-+	__atomic_pre_full_fence();
-+	ret = arch_atomic_fetch_inc_relaxed(v);
-+	__atomic_post_full_fence();
-+	return ret;
-+}
-+#define arch_atomic_fetch_inc arch_atomic_fetch_inc
-+#endif
-+
-+#endif /* arch_atomic_fetch_inc_relaxed */
-+
-+#ifndef arch_atomic_dec
+ atomic_set_release(atomic_t *v, int i)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -66,7 +67,7 @@ atomic_set_release(atomic_t *v, int i)
+ #define atomic_set_release atomic_set_release
+ #endif
+ 
+-static inline void
 +static __always_inline void
-+arch_atomic_dec(atomic_t *v)
-+{
-+	arch_atomic_sub(1, v);
-+}
-+#define arch_atomic_dec arch_atomic_dec
-+#endif
-+
-+#ifndef arch_atomic_dec_return_relaxed
-+#ifdef arch_atomic_dec_return
-+#define arch_atomic_dec_return_acquire arch_atomic_dec_return
-+#define arch_atomic_dec_return_release arch_atomic_dec_return
-+#define arch_atomic_dec_return_relaxed arch_atomic_dec_return
-+#endif /* arch_atomic_dec_return */
-+
-+#ifndef arch_atomic_dec_return
+ atomic_add(int i, atomic_t *v)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -75,7 +76,7 @@ atomic_add(int i, atomic_t *v)
+ #define atomic_add atomic_add
+ 
+ #if !defined(arch_atomic_add_return_relaxed) || defined(arch_atomic_add_return)
+-static inline int
 +static __always_inline int
-+arch_atomic_dec_return(atomic_t *v)
-+{
-+	return arch_atomic_sub_return(1, v);
-+}
-+#define arch_atomic_dec_return arch_atomic_dec_return
-+#endif
-+
-+#ifndef arch_atomic_dec_return_acquire
+ atomic_add_return(int i, atomic_t *v)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -85,7 +86,7 @@ atomic_add_return(int i, atomic_t *v)
+ #endif
+ 
+ #if defined(arch_atomic_add_return_acquire)
+-static inline int
 +static __always_inline int
-+arch_atomic_dec_return_acquire(atomic_t *v)
-+{
-+	return arch_atomic_sub_return_acquire(1, v);
-+}
-+#define arch_atomic_dec_return_acquire arch_atomic_dec_return_acquire
-+#endif
-+
-+#ifndef arch_atomic_dec_return_release
+ atomic_add_return_acquire(int i, atomic_t *v)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -95,7 +96,7 @@ atomic_add_return_acquire(int i, atomic_
+ #endif
+ 
+ #if defined(arch_atomic_add_return_release)
+-static inline int
 +static __always_inline int
-+arch_atomic_dec_return_release(atomic_t *v)
-+{
-+	return arch_atomic_sub_return_release(1, v);
-+}
-+#define arch_atomic_dec_return_release arch_atomic_dec_return_release
-+#endif
-+
-+#ifndef arch_atomic_dec_return_relaxed
+ atomic_add_return_release(int i, atomic_t *v)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -105,7 +106,7 @@ atomic_add_return_release(int i, atomic_
+ #endif
+ 
+ #if defined(arch_atomic_add_return_relaxed)
+-static inline int
 +static __always_inline int
-+arch_atomic_dec_return_relaxed(atomic_t *v)
-+{
-+	return arch_atomic_sub_return_relaxed(1, v);
-+}
-+#define arch_atomic_dec_return_relaxed arch_atomic_dec_return_relaxed
-+#endif
-+
-+#else /* arch_atomic_dec_return_relaxed */
-+
-+#ifndef arch_atomic_dec_return_acquire
+ atomic_add_return_relaxed(int i, atomic_t *v)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -115,7 +116,7 @@ atomic_add_return_relaxed(int i, atomic_
+ #endif
+ 
+ #if !defined(arch_atomic_fetch_add_relaxed) || defined(arch_atomic_fetch_add)
+-static inline int
 +static __always_inline int
-+arch_atomic_dec_return_acquire(atomic_t *v)
-+{
-+	int ret = arch_atomic_dec_return_relaxed(v);
-+	__atomic_acquire_fence();
-+	return ret;
-+}
-+#define arch_atomic_dec_return_acquire arch_atomic_dec_return_acquire
-+#endif
-+
-+#ifndef arch_atomic_dec_return_release
+ atomic_fetch_add(int i, atomic_t *v)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -125,7 +126,7 @@ atomic_fetch_add(int i, atomic_t *v)
+ #endif
+ 
+ #if defined(arch_atomic_fetch_add_acquire)
+-static inline int
 +static __always_inline int
-+arch_atomic_dec_return_release(atomic_t *v)
-+{
-+	__atomic_release_fence();
-+	return arch_atomic_dec_return_relaxed(v);
-+}
-+#define arch_atomic_dec_return_release arch_atomic_dec_return_release
-+#endif
-+
-+#ifndef arch_atomic_dec_return
+ atomic_fetch_add_acquire(int i, atomic_t *v)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -135,7 +136,7 @@ atomic_fetch_add_acquire(int i, atomic_t
+ #endif
+ 
+ #if defined(arch_atomic_fetch_add_release)
+-static inline int
 +static __always_inline int
-+arch_atomic_dec_return(atomic_t *v)
-+{
-+	int ret;
-+	__atomic_pre_full_fence();
-+	ret = arch_atomic_dec_return_relaxed(v);
-+	__atomic_post_full_fence();
-+	return ret;
-+}
-+#define arch_atomic_dec_return arch_atomic_dec_return
-+#endif
-+
-+#endif /* arch_atomic_dec_return_relaxed */
-+
-+#ifndef arch_atomic_fetch_dec_relaxed
-+#ifdef arch_atomic_fetch_dec
-+#define arch_atomic_fetch_dec_acquire arch_atomic_fetch_dec
-+#define arch_atomic_fetch_dec_release arch_atomic_fetch_dec
-+#define arch_atomic_fetch_dec_relaxed arch_atomic_fetch_dec
-+#endif /* arch_atomic_fetch_dec */
-+
-+#ifndef arch_atomic_fetch_dec
+ atomic_fetch_add_release(int i, atomic_t *v)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -145,7 +146,7 @@ atomic_fetch_add_release(int i, atomic_t
+ #endif
+ 
+ #if defined(arch_atomic_fetch_add_relaxed)
+-static inline int
 +static __always_inline int
-+arch_atomic_fetch_dec(atomic_t *v)
-+{
-+	return arch_atomic_fetch_sub(1, v);
-+}
-+#define arch_atomic_fetch_dec arch_atomic_fetch_dec
-+#endif
-+
-+#ifndef arch_atomic_fetch_dec_acquire
-+static __always_inline int
-+arch_atomic_fetch_dec_acquire(atomic_t *v)
-+{
-+	return arch_atomic_fetch_sub_acquire(1, v);
-+}
-+#define arch_atomic_fetch_dec_acquire arch_atomic_fetch_dec_acquire
-+#endif
-+
-+#ifndef arch_atomic_fetch_dec_release
-+static __always_inline int
-+arch_atomic_fetch_dec_release(atomic_t *v)
-+{
-+	return arch_atomic_fetch_sub_release(1, v);
-+}
-+#define arch_atomic_fetch_dec_release arch_atomic_fetch_dec_release
-+#endif
-+
-+#ifndef arch_atomic_fetch_dec_relaxed
-+static __always_inline int
-+arch_atomic_fetch_dec_relaxed(atomic_t *v)
-+{
-+	return arch_atomic_fetch_sub_relaxed(1, v);
-+}
-+#define arch_atomic_fetch_dec_relaxed arch_atomic_fetch_dec_relaxed
-+#endif
-+
-+#else /* arch_atomic_fetch_dec_relaxed */
-+
-+#ifndef arch_atomic_fetch_dec_acquire
-+static __always_inline int
-+arch_atomic_fetch_dec_acquire(atomic_t *v)
-+{
-+	int ret = arch_atomic_fetch_dec_relaxed(v);
-+	__atomic_acquire_fence();
-+	return ret;
-+}
-+#define arch_atomic_fetch_dec_acquire arch_atomic_fetch_dec_acquire
-+#endif
-+
-+#ifndef arch_atomic_fetch_dec_release
-+static __always_inline int
-+arch_atomic_fetch_dec_release(atomic_t *v)
-+{
-+	__atomic_release_fence();
-+	return arch_atomic_fetch_dec_relaxed(v);
-+}
-+#define arch_atomic_fetch_dec_release arch_atomic_fetch_dec_release
-+#endif
-+
-+#ifndef arch_atomic_fetch_dec
-+static __always_inline int
-+arch_atomic_fetch_dec(atomic_t *v)
-+{
-+	int ret;
-+	__atomic_pre_full_fence();
-+	ret = arch_atomic_fetch_dec_relaxed(v);
-+	__atomic_post_full_fence();
-+	return ret;
-+}
-+#define arch_atomic_fetch_dec arch_atomic_fetch_dec
-+#endif
-+
-+#endif /* arch_atomic_fetch_dec_relaxed */
-+
-+#ifndef arch_atomic_fetch_and_relaxed
-+#define arch_atomic_fetch_and_acquire arch_atomic_fetch_and
-+#define arch_atomic_fetch_and_release arch_atomic_fetch_and
-+#define arch_atomic_fetch_and_relaxed arch_atomic_fetch_and
-+#else /* arch_atomic_fetch_and_relaxed */
-+
-+#ifndef arch_atomic_fetch_and_acquire
-+static __always_inline int
-+arch_atomic_fetch_and_acquire(int i, atomic_t *v)
-+{
-+	int ret = arch_atomic_fetch_and_relaxed(i, v);
-+	__atomic_acquire_fence();
-+	return ret;
-+}
-+#define arch_atomic_fetch_and_acquire arch_atomic_fetch_and_acquire
-+#endif
-+
-+#ifndef arch_atomic_fetch_and_release
-+static __always_inline int
-+arch_atomic_fetch_and_release(int i, atomic_t *v)
-+{
-+	__atomic_release_fence();
-+	return arch_atomic_fetch_and_relaxed(i, v);
-+}
-+#define arch_atomic_fetch_and_release arch_atomic_fetch_and_release
-+#endif
-+
-+#ifndef arch_atomic_fetch_and
-+static __always_inline int
-+arch_atomic_fetch_and(int i, atomic_t *v)
-+{
-+	int ret;
-+	__atomic_pre_full_fence();
-+	ret = arch_atomic_fetch_and_relaxed(i, v);
-+	__atomic_post_full_fence();
-+	return ret;
-+}
-+#define arch_atomic_fetch_and arch_atomic_fetch_and
-+#endif
-+
-+#endif /* arch_atomic_fetch_and_relaxed */
-+
-+#ifndef arch_atomic_andnot
+ atomic_fetch_add_relaxed(int i, atomic_t *v)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -154,7 +155,7 @@ atomic_fetch_add_relaxed(int i, atomic_t
+ #define atomic_fetch_add_relaxed atomic_fetch_add_relaxed
+ #endif
+ 
+-static inline void
 +static __always_inline void
-+arch_atomic_andnot(int i, atomic_t *v)
-+{
-+	arch_atomic_and(~i, v);
-+}
-+#define arch_atomic_andnot arch_atomic_andnot
-+#endif
-+
-+#ifndef arch_atomic_fetch_andnot_relaxed
-+#ifdef arch_atomic_fetch_andnot
-+#define arch_atomic_fetch_andnot_acquire arch_atomic_fetch_andnot
-+#define arch_atomic_fetch_andnot_release arch_atomic_fetch_andnot
-+#define arch_atomic_fetch_andnot_relaxed arch_atomic_fetch_andnot
-+#endif /* arch_atomic_fetch_andnot */
-+
-+#ifndef arch_atomic_fetch_andnot
+ atomic_sub(int i, atomic_t *v)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -163,7 +164,7 @@ atomic_sub(int i, atomic_t *v)
+ #define atomic_sub atomic_sub
+ 
+ #if !defined(arch_atomic_sub_return_relaxed) || defined(arch_atomic_sub_return)
+-static inline int
 +static __always_inline int
-+arch_atomic_fetch_andnot(int i, atomic_t *v)
-+{
-+	return arch_atomic_fetch_and(~i, v);
-+}
-+#define arch_atomic_fetch_andnot arch_atomic_fetch_andnot
-+#endif
-+
-+#ifndef arch_atomic_fetch_andnot_acquire
+ atomic_sub_return(int i, atomic_t *v)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -173,7 +174,7 @@ atomic_sub_return(int i, atomic_t *v)
+ #endif
+ 
+ #if defined(arch_atomic_sub_return_acquire)
+-static inline int
 +static __always_inline int
-+arch_atomic_fetch_andnot_acquire(int i, atomic_t *v)
-+{
-+	return arch_atomic_fetch_and_acquire(~i, v);
-+}
-+#define arch_atomic_fetch_andnot_acquire arch_atomic_fetch_andnot_acquire
-+#endif
-+
-+#ifndef arch_atomic_fetch_andnot_release
+ atomic_sub_return_acquire(int i, atomic_t *v)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -183,7 +184,7 @@ atomic_sub_return_acquire(int i, atomic_
+ #endif
+ 
+ #if defined(arch_atomic_sub_return_release)
+-static inline int
 +static __always_inline int
-+arch_atomic_fetch_andnot_release(int i, atomic_t *v)
-+{
-+	return arch_atomic_fetch_and_release(~i, v);
-+}
-+#define arch_atomic_fetch_andnot_release arch_atomic_fetch_andnot_release
-+#endif
-+
-+#ifndef arch_atomic_fetch_andnot_relaxed
+ atomic_sub_return_release(int i, atomic_t *v)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -193,7 +194,7 @@ atomic_sub_return_release(int i, atomic_
+ #endif
+ 
+ #if defined(arch_atomic_sub_return_relaxed)
+-static inline int
 +static __always_inline int
-+arch_atomic_fetch_andnot_relaxed(int i, atomic_t *v)
-+{
-+	return arch_atomic_fetch_and_relaxed(~i, v);
-+}
-+#define arch_atomic_fetch_andnot_relaxed arch_atomic_fetch_andnot_relaxed
-+#endif
-+
-+#else /* arch_atomic_fetch_andnot_relaxed */
-+
-+#ifndef arch_atomic_fetch_andnot_acquire
+ atomic_sub_return_relaxed(int i, atomic_t *v)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -203,7 +204,7 @@ atomic_sub_return_relaxed(int i, atomic_
+ #endif
+ 
+ #if !defined(arch_atomic_fetch_sub_relaxed) || defined(arch_atomic_fetch_sub)
+-static inline int
 +static __always_inline int
-+arch_atomic_fetch_andnot_acquire(int i, atomic_t *v)
-+{
-+	int ret = arch_atomic_fetch_andnot_relaxed(i, v);
-+	__atomic_acquire_fence();
-+	return ret;
-+}
-+#define arch_atomic_fetch_andnot_acquire arch_atomic_fetch_andnot_acquire
-+#endif
-+
-+#ifndef arch_atomic_fetch_andnot_release
+ atomic_fetch_sub(int i, atomic_t *v)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -213,7 +214,7 @@ atomic_fetch_sub(int i, atomic_t *v)
+ #endif
+ 
+ #if defined(arch_atomic_fetch_sub_acquire)
+-static inline int
 +static __always_inline int
-+arch_atomic_fetch_andnot_release(int i, atomic_t *v)
-+{
-+	__atomic_release_fence();
-+	return arch_atomic_fetch_andnot_relaxed(i, v);
-+}
-+#define arch_atomic_fetch_andnot_release arch_atomic_fetch_andnot_release
-+#endif
-+
-+#ifndef arch_atomic_fetch_andnot
+ atomic_fetch_sub_acquire(int i, atomic_t *v)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -223,7 +224,7 @@ atomic_fetch_sub_acquire(int i, atomic_t
+ #endif
+ 
+ #if defined(arch_atomic_fetch_sub_release)
+-static inline int
 +static __always_inline int
-+arch_atomic_fetch_andnot(int i, atomic_t *v)
-+{
-+	int ret;
-+	__atomic_pre_full_fence();
-+	ret = arch_atomic_fetch_andnot_relaxed(i, v);
-+	__atomic_post_full_fence();
-+	return ret;
-+}
-+#define arch_atomic_fetch_andnot arch_atomic_fetch_andnot
-+#endif
-+
-+#endif /* arch_atomic_fetch_andnot_relaxed */
-+
-+#ifndef arch_atomic_fetch_or_relaxed
-+#define arch_atomic_fetch_or_acquire arch_atomic_fetch_or
-+#define arch_atomic_fetch_or_release arch_atomic_fetch_or
-+#define arch_atomic_fetch_or_relaxed arch_atomic_fetch_or
-+#else /* arch_atomic_fetch_or_relaxed */
-+
-+#ifndef arch_atomic_fetch_or_acquire
+ atomic_fetch_sub_release(int i, atomic_t *v)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -233,7 +234,7 @@ atomic_fetch_sub_release(int i, atomic_t
+ #endif
+ 
+ #if defined(arch_atomic_fetch_sub_relaxed)
+-static inline int
 +static __always_inline int
-+arch_atomic_fetch_or_acquire(int i, atomic_t *v)
-+{
-+	int ret = arch_atomic_fetch_or_relaxed(i, v);
-+	__atomic_acquire_fence();
-+	return ret;
-+}
-+#define arch_atomic_fetch_or_acquire arch_atomic_fetch_or_acquire
-+#endif
-+
-+#ifndef arch_atomic_fetch_or_release
-+static __always_inline int
-+arch_atomic_fetch_or_release(int i, atomic_t *v)
-+{
-+	__atomic_release_fence();
-+	return arch_atomic_fetch_or_relaxed(i, v);
-+}
-+#define arch_atomic_fetch_or_release arch_atomic_fetch_or_release
-+#endif
-+
-+#ifndef arch_atomic_fetch_or
-+static __always_inline int
-+arch_atomic_fetch_or(int i, atomic_t *v)
-+{
-+	int ret;
-+	__atomic_pre_full_fence();
-+	ret = arch_atomic_fetch_or_relaxed(i, v);
-+	__atomic_post_full_fence();
-+	return ret;
-+}
-+#define arch_atomic_fetch_or arch_atomic_fetch_or
-+#endif
-+
-+#endif /* arch_atomic_fetch_or_relaxed */
-+
-+#ifndef arch_atomic_fetch_xor_relaxed
-+#define arch_atomic_fetch_xor_acquire arch_atomic_fetch_xor
-+#define arch_atomic_fetch_xor_release arch_atomic_fetch_xor
-+#define arch_atomic_fetch_xor_relaxed arch_atomic_fetch_xor
-+#else /* arch_atomic_fetch_xor_relaxed */
-+
-+#ifndef arch_atomic_fetch_xor_acquire
-+static __always_inline int
-+arch_atomic_fetch_xor_acquire(int i, atomic_t *v)
-+{
-+	int ret = arch_atomic_fetch_xor_relaxed(i, v);
-+	__atomic_acquire_fence();
-+	return ret;
-+}
-+#define arch_atomic_fetch_xor_acquire arch_atomic_fetch_xor_acquire
-+#endif
-+
-+#ifndef arch_atomic_fetch_xor_release
-+static __always_inline int
-+arch_atomic_fetch_xor_release(int i, atomic_t *v)
-+{
-+	__atomic_release_fence();
-+	return arch_atomic_fetch_xor_relaxed(i, v);
-+}
-+#define arch_atomic_fetch_xor_release arch_atomic_fetch_xor_release
-+#endif
-+
-+#ifndef arch_atomic_fetch_xor
-+static __always_inline int
-+arch_atomic_fetch_xor(int i, atomic_t *v)
-+{
-+	int ret;
-+	__atomic_pre_full_fence();
-+	ret = arch_atomic_fetch_xor_relaxed(i, v);
-+	__atomic_post_full_fence();
-+	return ret;
-+}
-+#define arch_atomic_fetch_xor arch_atomic_fetch_xor
-+#endif
-+
-+#endif /* arch_atomic_fetch_xor_relaxed */
-+
-+#ifndef arch_atomic_xchg_relaxed
-+#define arch_atomic_xchg_acquire arch_atomic_xchg
-+#define arch_atomic_xchg_release arch_atomic_xchg
-+#define arch_atomic_xchg_relaxed arch_atomic_xchg
-+#else /* arch_atomic_xchg_relaxed */
-+
-+#ifndef arch_atomic_xchg_acquire
-+static __always_inline int
-+arch_atomic_xchg_acquire(atomic_t *v, int i)
-+{
-+	int ret = arch_atomic_xchg_relaxed(v, i);
-+	__atomic_acquire_fence();
-+	return ret;
-+}
-+#define arch_atomic_xchg_acquire arch_atomic_xchg_acquire
-+#endif
-+
-+#ifndef arch_atomic_xchg_release
-+static __always_inline int
-+arch_atomic_xchg_release(atomic_t *v, int i)
-+{
-+	__atomic_release_fence();
-+	return arch_atomic_xchg_relaxed(v, i);
-+}
-+#define arch_atomic_xchg_release arch_atomic_xchg_release
-+#endif
-+
-+#ifndef arch_atomic_xchg
-+static __always_inline int
-+arch_atomic_xchg(atomic_t *v, int i)
-+{
-+	int ret;
-+	__atomic_pre_full_fence();
-+	ret = arch_atomic_xchg_relaxed(v, i);
-+	__atomic_post_full_fence();
-+	return ret;
-+}
-+#define arch_atomic_xchg arch_atomic_xchg
-+#endif
-+
-+#endif /* arch_atomic_xchg_relaxed */
-+
-+#ifndef arch_atomic_cmpxchg_relaxed
-+#define arch_atomic_cmpxchg_acquire arch_atomic_cmpxchg
-+#define arch_atomic_cmpxchg_release arch_atomic_cmpxchg
-+#define arch_atomic_cmpxchg_relaxed arch_atomic_cmpxchg
-+#else /* arch_atomic_cmpxchg_relaxed */
-+
-+#ifndef arch_atomic_cmpxchg_acquire
-+static __always_inline int
-+arch_atomic_cmpxchg_acquire(atomic_t *v, int old, int new)
-+{
-+	int ret = arch_atomic_cmpxchg_relaxed(v, old, new);
-+	__atomic_acquire_fence();
-+	return ret;
-+}
-+#define arch_atomic_cmpxchg_acquire arch_atomic_cmpxchg_acquire
-+#endif
-+
-+#ifndef arch_atomic_cmpxchg_release
-+static __always_inline int
-+arch_atomic_cmpxchg_release(atomic_t *v, int old, int new)
-+{
-+	__atomic_release_fence();
-+	return arch_atomic_cmpxchg_relaxed(v, old, new);
-+}
-+#define arch_atomic_cmpxchg_release arch_atomic_cmpxchg_release
-+#endif
-+
-+#ifndef arch_atomic_cmpxchg
-+static __always_inline int
-+arch_atomic_cmpxchg(atomic_t *v, int old, int new)
-+{
-+	int ret;
-+	__atomic_pre_full_fence();
-+	ret = arch_atomic_cmpxchg_relaxed(v, old, new);
-+	__atomic_post_full_fence();
-+	return ret;
-+}
-+#define arch_atomic_cmpxchg arch_atomic_cmpxchg
-+#endif
-+
-+#endif /* arch_atomic_cmpxchg_relaxed */
-+
-+#ifndef arch_atomic_try_cmpxchg_relaxed
-+#ifdef arch_atomic_try_cmpxchg
-+#define arch_atomic_try_cmpxchg_acquire arch_atomic_try_cmpxchg
-+#define arch_atomic_try_cmpxchg_release arch_atomic_try_cmpxchg
-+#define arch_atomic_try_cmpxchg_relaxed arch_atomic_try_cmpxchg
-+#endif /* arch_atomic_try_cmpxchg */
-+
-+#ifndef arch_atomic_try_cmpxchg
-+static __always_inline bool
-+arch_atomic_try_cmpxchg(atomic_t *v, int *old, int new)
-+{
-+	int r, o = *old;
-+	r = arch_atomic_cmpxchg(v, o, new);
-+	if (unlikely(r != o))
-+		*old = r;
-+	return likely(r == o);
-+}
-+#define arch_atomic_try_cmpxchg arch_atomic_try_cmpxchg
-+#endif
-+
-+#ifndef arch_atomic_try_cmpxchg_acquire
-+static __always_inline bool
-+arch_atomic_try_cmpxchg_acquire(atomic_t *v, int *old, int new)
-+{
-+	int r, o = *old;
-+	r = arch_atomic_cmpxchg_acquire(v, o, new);
-+	if (unlikely(r != o))
-+		*old = r;
-+	return likely(r == o);
-+}
-+#define arch_atomic_try_cmpxchg_acquire arch_atomic_try_cmpxchg_acquire
-+#endif
-+
-+#ifndef arch_atomic_try_cmpxchg_release
-+static __always_inline bool
-+arch_atomic_try_cmpxchg_release(atomic_t *v, int *old, int new)
-+{
-+	int r, o = *old;
-+	r = arch_atomic_cmpxchg_release(v, o, new);
-+	if (unlikely(r != o))
-+		*old = r;
-+	return likely(r == o);
-+}
-+#define arch_atomic_try_cmpxchg_release arch_atomic_try_cmpxchg_release
-+#endif
-+
-+#ifndef arch_atomic_try_cmpxchg_relaxed
-+static __always_inline bool
-+arch_atomic_try_cmpxchg_relaxed(atomic_t *v, int *old, int new)
-+{
-+	int r, o = *old;
-+	r = arch_atomic_cmpxchg_relaxed(v, o, new);
-+	if (unlikely(r != o))
-+		*old = r;
-+	return likely(r == o);
-+}
-+#define arch_atomic_try_cmpxchg_relaxed arch_atomic_try_cmpxchg_relaxed
-+#endif
-+
-+#else /* arch_atomic_try_cmpxchg_relaxed */
-+
-+#ifndef arch_atomic_try_cmpxchg_acquire
-+static __always_inline bool
-+arch_atomic_try_cmpxchg_acquire(atomic_t *v, int *old, int new)
-+{
-+	bool ret = arch_atomic_try_cmpxchg_relaxed(v, old, new);
-+	__atomic_acquire_fence();
-+	return ret;
-+}
-+#define arch_atomic_try_cmpxchg_acquire arch_atomic_try_cmpxchg_acquire
-+#endif
-+
-+#ifndef arch_atomic_try_cmpxchg_release
-+static __always_inline bool
-+arch_atomic_try_cmpxchg_release(atomic_t *v, int *old, int new)
-+{
-+	__atomic_release_fence();
-+	return arch_atomic_try_cmpxchg_relaxed(v, old, new);
-+}
-+#define arch_atomic_try_cmpxchg_release arch_atomic_try_cmpxchg_release
-+#endif
-+
-+#ifndef arch_atomic_try_cmpxchg
-+static __always_inline bool
-+arch_atomic_try_cmpxchg(atomic_t *v, int *old, int new)
-+{
-+	bool ret;
-+	__atomic_pre_full_fence();
-+	ret = arch_atomic_try_cmpxchg_relaxed(v, old, new);
-+	__atomic_post_full_fence();
-+	return ret;
-+}
-+#define arch_atomic_try_cmpxchg arch_atomic_try_cmpxchg
-+#endif
-+
-+#endif /* arch_atomic_try_cmpxchg_relaxed */
-+
-+#ifndef arch_atomic_sub_and_test
-+/**
-+ * arch_atomic_sub_and_test - subtract value from variable and test result
-+ * @i: integer value to subtract
-+ * @v: pointer of type atomic_t
-+ *
-+ * Atomically subtracts @i from @v and returns
-+ * true if the result is zero, or false for all
-+ * other cases.
-+ */
-+static __always_inline bool
-+arch_atomic_sub_and_test(int i, atomic_t *v)
-+{
-+	return arch_atomic_sub_return(i, v) == 0;
-+}
-+#define arch_atomic_sub_and_test arch_atomic_sub_and_test
-+#endif
-+
-+#ifndef arch_atomic_dec_and_test
-+/**
-+ * arch_atomic_dec_and_test - decrement and test
-+ * @v: pointer of type atomic_t
-+ *
-+ * Atomically decrements @v by 1 and
-+ * returns true if the result is 0, or false for all other
-+ * cases.
-+ */
-+static __always_inline bool
-+arch_atomic_dec_and_test(atomic_t *v)
-+{
-+	return arch_atomic_dec_return(v) == 0;
-+}
-+#define arch_atomic_dec_and_test arch_atomic_dec_and_test
-+#endif
-+
-+#ifndef arch_atomic_inc_and_test
-+/**
-+ * arch_atomic_inc_and_test - increment and test
-+ * @v: pointer of type atomic_t
-+ *
-+ * Atomically increments @v by 1
-+ * and returns true if the result is zero, or false for all
-+ * other cases.
-+ */
-+static __always_inline bool
-+arch_atomic_inc_and_test(atomic_t *v)
-+{
-+	return arch_atomic_inc_return(v) == 0;
-+}
-+#define arch_atomic_inc_and_test arch_atomic_inc_and_test
-+#endif
-+
-+#ifndef arch_atomic_add_negative
-+/**
-+ * arch_atomic_add_negative - add and test if negative
-+ * @i: integer value to add
-+ * @v: pointer of type atomic_t
-+ *
-+ * Atomically adds @i to @v and returns true
-+ * if the result is negative, or false when
-+ * result is greater than or equal to zero.
-+ */
-+static __always_inline bool
-+arch_atomic_add_negative(int i, atomic_t *v)
-+{
-+	return arch_atomic_add_return(i, v) < 0;
-+}
-+#define arch_atomic_add_negative arch_atomic_add_negative
-+#endif
-+
-+#ifndef arch_atomic_fetch_add_unless
-+/**
-+ * arch_atomic_fetch_add_unless - add unless the number is already a given value
-+ * @v: pointer of type atomic_t
-+ * @a: the amount to add to v...
-+ * @u: ...unless v is equal to u.
-+ *
-+ * Atomically adds @a to @v, so long as @v was not already @u.
-+ * Returns original value of @v
-+ */
-+static __always_inline int
-+arch_atomic_fetch_add_unless(atomic_t *v, int a, int u)
-+{
-+	int c = arch_atomic_read(v);
-+
-+	do {
-+		if (unlikely(c == u))
-+			break;
-+	} while (!arch_atomic_try_cmpxchg(v, &c, c + a));
-+
-+	return c;
-+}
-+#define arch_atomic_fetch_add_unless arch_atomic_fetch_add_unless
-+#endif
-+
-+#ifndef arch_atomic_add_unless
-+/**
-+ * arch_atomic_add_unless - add unless the number is already a given value
-+ * @v: pointer of type atomic_t
-+ * @a: the amount to add to v...
-+ * @u: ...unless v is equal to u.
-+ *
-+ * Atomically adds @a to @v, if @v was not already @u.
-+ * Returns true if the addition was done.
-+ */
-+static __always_inline bool
-+arch_atomic_add_unless(atomic_t *v, int a, int u)
-+{
-+	return arch_atomic_fetch_add_unless(v, a, u) != u;
-+}
-+#define arch_atomic_add_unless arch_atomic_add_unless
-+#endif
-+
-+#ifndef arch_atomic_inc_not_zero
-+/**
-+ * arch_atomic_inc_not_zero - increment unless the number is zero
-+ * @v: pointer of type atomic_t
-+ *
-+ * Atomically increments @v by 1, if @v is non-zero.
-+ * Returns true if the increment was done.
-+ */
-+static __always_inline bool
-+arch_atomic_inc_not_zero(atomic_t *v)
-+{
-+	return arch_atomic_add_unless(v, 1, 0);
-+}
-+#define arch_atomic_inc_not_zero arch_atomic_inc_not_zero
-+#endif
-+
-+#ifndef arch_atomic_inc_unless_negative
-+static __always_inline bool
-+arch_atomic_inc_unless_negative(atomic_t *v)
-+{
-+	int c = arch_atomic_read(v);
-+
-+	do {
-+		if (unlikely(c < 0))
-+			return false;
-+	} while (!arch_atomic_try_cmpxchg(v, &c, c + 1));
-+
-+	return true;
-+}
-+#define arch_atomic_inc_unless_negative arch_atomic_inc_unless_negative
-+#endif
-+
-+#ifndef arch_atomic_dec_unless_positive
-+static __always_inline bool
-+arch_atomic_dec_unless_positive(atomic_t *v)
-+{
-+	int c = arch_atomic_read(v);
-+
-+	do {
-+		if (unlikely(c > 0))
-+			return false;
-+	} while (!arch_atomic_try_cmpxchg(v, &c, c - 1));
-+
-+	return true;
-+}
-+#define arch_atomic_dec_unless_positive arch_atomic_dec_unless_positive
-+#endif
-+
-+#ifndef arch_atomic_dec_if_positive
-+static __always_inline int
-+arch_atomic_dec_if_positive(atomic_t *v)
-+{
-+	int dec, c = arch_atomic_read(v);
-+
-+	do {
-+		dec = c - 1;
-+		if (unlikely(dec < 0))
-+			break;
-+	} while (!arch_atomic_try_cmpxchg(v, &c, dec));
-+
-+	return dec;
-+}
-+#define arch_atomic_dec_if_positive arch_atomic_dec_if_positive
-+#endif
-+
-+#ifdef CONFIG_GENERIC_ATOMIC64
-+#include <asm-generic/atomic64.h>
-+#endif
-+
-+#ifndef arch_atomic64_read_acquire
-+static __always_inline s64
-+arch_atomic64_read_acquire(const atomic64_t *v)
-+{
-+	return smp_load_acquire(&(v)->counter);
-+}
-+#define arch_atomic64_read_acquire arch_atomic64_read_acquire
-+#endif
-+
-+#ifndef arch_atomic64_set_release
+ atomic_fetch_sub_relaxed(int i, atomic_t *v)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -243,7 +244,7 @@ atomic_fetch_sub_relaxed(int i, atomic_t
+ #endif
+ 
+ #if defined(arch_atomic_inc)
+-static inline void
 +static __always_inline void
-+arch_atomic64_set_release(atomic64_t *v, s64 i)
-+{
-+	smp_store_release(&(v)->counter, i);
-+}
-+#define arch_atomic64_set_release arch_atomic64_set_release
-+#endif
-+
-+#ifndef arch_atomic64_add_return_relaxed
-+#define arch_atomic64_add_return_acquire arch_atomic64_add_return
-+#define arch_atomic64_add_return_release arch_atomic64_add_return
-+#define arch_atomic64_add_return_relaxed arch_atomic64_add_return
-+#else /* arch_atomic64_add_return_relaxed */
-+
-+#ifndef arch_atomic64_add_return_acquire
-+static __always_inline s64
-+arch_atomic64_add_return_acquire(s64 i, atomic64_t *v)
-+{
-+	s64 ret = arch_atomic64_add_return_relaxed(i, v);
-+	__atomic_acquire_fence();
-+	return ret;
-+}
-+#define arch_atomic64_add_return_acquire arch_atomic64_add_return_acquire
-+#endif
-+
-+#ifndef arch_atomic64_add_return_release
-+static __always_inline s64
-+arch_atomic64_add_return_release(s64 i, atomic64_t *v)
-+{
-+	__atomic_release_fence();
-+	return arch_atomic64_add_return_relaxed(i, v);
-+}
-+#define arch_atomic64_add_return_release arch_atomic64_add_return_release
-+#endif
-+
-+#ifndef arch_atomic64_add_return
-+static __always_inline s64
-+arch_atomic64_add_return(s64 i, atomic64_t *v)
-+{
-+	s64 ret;
-+	__atomic_pre_full_fence();
-+	ret = arch_atomic64_add_return_relaxed(i, v);
-+	__atomic_post_full_fence();
-+	return ret;
-+}
-+#define arch_atomic64_add_return arch_atomic64_add_return
-+#endif
-+
-+#endif /* arch_atomic64_add_return_relaxed */
-+
-+#ifndef arch_atomic64_fetch_add_relaxed
-+#define arch_atomic64_fetch_add_acquire arch_atomic64_fetch_add
-+#define arch_atomic64_fetch_add_release arch_atomic64_fetch_add
-+#define arch_atomic64_fetch_add_relaxed arch_atomic64_fetch_add
-+#else /* arch_atomic64_fetch_add_relaxed */
-+
-+#ifndef arch_atomic64_fetch_add_acquire
-+static __always_inline s64
-+arch_atomic64_fetch_add_acquire(s64 i, atomic64_t *v)
-+{
-+	s64 ret = arch_atomic64_fetch_add_relaxed(i, v);
-+	__atomic_acquire_fence();
-+	return ret;
-+}
-+#define arch_atomic64_fetch_add_acquire arch_atomic64_fetch_add_acquire
-+#endif
-+
-+#ifndef arch_atomic64_fetch_add_release
-+static __always_inline s64
-+arch_atomic64_fetch_add_release(s64 i, atomic64_t *v)
-+{
-+	__atomic_release_fence();
-+	return arch_atomic64_fetch_add_relaxed(i, v);
-+}
-+#define arch_atomic64_fetch_add_release arch_atomic64_fetch_add_release
-+#endif
-+
-+#ifndef arch_atomic64_fetch_add
-+static __always_inline s64
-+arch_atomic64_fetch_add(s64 i, atomic64_t *v)
-+{
-+	s64 ret;
-+	__atomic_pre_full_fence();
-+	ret = arch_atomic64_fetch_add_relaxed(i, v);
-+	__atomic_post_full_fence();
-+	return ret;
-+}
-+#define arch_atomic64_fetch_add arch_atomic64_fetch_add
-+#endif
-+
-+#endif /* arch_atomic64_fetch_add_relaxed */
-+
-+#ifndef arch_atomic64_sub_return_relaxed
-+#define arch_atomic64_sub_return_acquire arch_atomic64_sub_return
-+#define arch_atomic64_sub_return_release arch_atomic64_sub_return
-+#define arch_atomic64_sub_return_relaxed arch_atomic64_sub_return
-+#else /* arch_atomic64_sub_return_relaxed */
-+
-+#ifndef arch_atomic64_sub_return_acquire
-+static __always_inline s64
-+arch_atomic64_sub_return_acquire(s64 i, atomic64_t *v)
-+{
-+	s64 ret = arch_atomic64_sub_return_relaxed(i, v);
-+	__atomic_acquire_fence();
-+	return ret;
-+}
-+#define arch_atomic64_sub_return_acquire arch_atomic64_sub_return_acquire
-+#endif
-+
-+#ifndef arch_atomic64_sub_return_release
-+static __always_inline s64
-+arch_atomic64_sub_return_release(s64 i, atomic64_t *v)
-+{
-+	__atomic_release_fence();
-+	return arch_atomic64_sub_return_relaxed(i, v);
-+}
-+#define arch_atomic64_sub_return_release arch_atomic64_sub_return_release
-+#endif
-+
-+#ifndef arch_atomic64_sub_return
-+static __always_inline s64
-+arch_atomic64_sub_return(s64 i, atomic64_t *v)
-+{
-+	s64 ret;
-+	__atomic_pre_full_fence();
-+	ret = arch_atomic64_sub_return_relaxed(i, v);
-+	__atomic_post_full_fence();
-+	return ret;
-+}
-+#define arch_atomic64_sub_return arch_atomic64_sub_return
-+#endif
-+
-+#endif /* arch_atomic64_sub_return_relaxed */
-+
-+#ifndef arch_atomic64_fetch_sub_relaxed
-+#define arch_atomic64_fetch_sub_acquire arch_atomic64_fetch_sub
-+#define arch_atomic64_fetch_sub_release arch_atomic64_fetch_sub
-+#define arch_atomic64_fetch_sub_relaxed arch_atomic64_fetch_sub
-+#else /* arch_atomic64_fetch_sub_relaxed */
-+
-+#ifndef arch_atomic64_fetch_sub_acquire
-+static __always_inline s64
-+arch_atomic64_fetch_sub_acquire(s64 i, atomic64_t *v)
-+{
-+	s64 ret = arch_atomic64_fetch_sub_relaxed(i, v);
-+	__atomic_acquire_fence();
-+	return ret;
-+}
-+#define arch_atomic64_fetch_sub_acquire arch_atomic64_fetch_sub_acquire
-+#endif
-+
-+#ifndef arch_atomic64_fetch_sub_release
-+static __always_inline s64
-+arch_atomic64_fetch_sub_release(s64 i, atomic64_t *v)
-+{
-+	__atomic_release_fence();
-+	return arch_atomic64_fetch_sub_relaxed(i, v);
-+}
-+#define arch_atomic64_fetch_sub_release arch_atomic64_fetch_sub_release
-+#endif
-+
-+#ifndef arch_atomic64_fetch_sub
-+static __always_inline s64
-+arch_atomic64_fetch_sub(s64 i, atomic64_t *v)
-+{
-+	s64 ret;
-+	__atomic_pre_full_fence();
-+	ret = arch_atomic64_fetch_sub_relaxed(i, v);
-+	__atomic_post_full_fence();
-+	return ret;
-+}
-+#define arch_atomic64_fetch_sub arch_atomic64_fetch_sub
-+#endif
-+
-+#endif /* arch_atomic64_fetch_sub_relaxed */
-+
-+#ifndef arch_atomic64_inc
+ atomic_inc(atomic_t *v)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -253,7 +254,7 @@ atomic_inc(atomic_t *v)
+ #endif
+ 
+ #if defined(arch_atomic_inc_return)
+-static inline int
++static __always_inline int
+ atomic_inc_return(atomic_t *v)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -263,7 +264,7 @@ atomic_inc_return(atomic_t *v)
+ #endif
+ 
+ #if defined(arch_atomic_inc_return_acquire)
+-static inline int
++static __always_inline int
+ atomic_inc_return_acquire(atomic_t *v)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -273,7 +274,7 @@ atomic_inc_return_acquire(atomic_t *v)
+ #endif
+ 
+ #if defined(arch_atomic_inc_return_release)
+-static inline int
++static __always_inline int
+ atomic_inc_return_release(atomic_t *v)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -283,7 +284,7 @@ atomic_inc_return_release(atomic_t *v)
+ #endif
+ 
+ #if defined(arch_atomic_inc_return_relaxed)
+-static inline int
++static __always_inline int
+ atomic_inc_return_relaxed(atomic_t *v)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -293,7 +294,7 @@ atomic_inc_return_relaxed(atomic_t *v)
+ #endif
+ 
+ #if defined(arch_atomic_fetch_inc)
+-static inline int
++static __always_inline int
+ atomic_fetch_inc(atomic_t *v)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -303,7 +304,7 @@ atomic_fetch_inc(atomic_t *v)
+ #endif
+ 
+ #if defined(arch_atomic_fetch_inc_acquire)
+-static inline int
++static __always_inline int
+ atomic_fetch_inc_acquire(atomic_t *v)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -313,7 +314,7 @@ atomic_fetch_inc_acquire(atomic_t *v)
+ #endif
+ 
+ #if defined(arch_atomic_fetch_inc_release)
+-static inline int
++static __always_inline int
+ atomic_fetch_inc_release(atomic_t *v)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -323,7 +324,7 @@ atomic_fetch_inc_release(atomic_t *v)
+ #endif
+ 
+ #if defined(arch_atomic_fetch_inc_relaxed)
+-static inline int
++static __always_inline int
+ atomic_fetch_inc_relaxed(atomic_t *v)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -333,7 +334,7 @@ atomic_fetch_inc_relaxed(atomic_t *v)
+ #endif
+ 
+ #if defined(arch_atomic_dec)
+-static inline void
 +static __always_inline void
-+arch_atomic64_inc(atomic64_t *v)
-+{
-+	arch_atomic64_add(1, v);
-+}
-+#define arch_atomic64_inc arch_atomic64_inc
-+#endif
-+
-+#ifndef arch_atomic64_inc_return_relaxed
-+#ifdef arch_atomic64_inc_return
-+#define arch_atomic64_inc_return_acquire arch_atomic64_inc_return
-+#define arch_atomic64_inc_return_release arch_atomic64_inc_return
-+#define arch_atomic64_inc_return_relaxed arch_atomic64_inc_return
-+#endif /* arch_atomic64_inc_return */
-+
-+#ifndef arch_atomic64_inc_return
-+static __always_inline s64
-+arch_atomic64_inc_return(atomic64_t *v)
-+{
-+	return arch_atomic64_add_return(1, v);
-+}
-+#define arch_atomic64_inc_return arch_atomic64_inc_return
-+#endif
-+
-+#ifndef arch_atomic64_inc_return_acquire
-+static __always_inline s64
-+arch_atomic64_inc_return_acquire(atomic64_t *v)
-+{
-+	return arch_atomic64_add_return_acquire(1, v);
-+}
-+#define arch_atomic64_inc_return_acquire arch_atomic64_inc_return_acquire
-+#endif
-+
-+#ifndef arch_atomic64_inc_return_release
-+static __always_inline s64
-+arch_atomic64_inc_return_release(atomic64_t *v)
-+{
-+	return arch_atomic64_add_return_release(1, v);
-+}
-+#define arch_atomic64_inc_return_release arch_atomic64_inc_return_release
-+#endif
-+
-+#ifndef arch_atomic64_inc_return_relaxed
-+static __always_inline s64
-+arch_atomic64_inc_return_relaxed(atomic64_t *v)
-+{
-+	return arch_atomic64_add_return_relaxed(1, v);
-+}
-+#define arch_atomic64_inc_return_relaxed arch_atomic64_inc_return_relaxed
-+#endif
-+
-+#else /* arch_atomic64_inc_return_relaxed */
-+
-+#ifndef arch_atomic64_inc_return_acquire
-+static __always_inline s64
-+arch_atomic64_inc_return_acquire(atomic64_t *v)
-+{
-+	s64 ret = arch_atomic64_inc_return_relaxed(v);
-+	__atomic_acquire_fence();
-+	return ret;
-+}
-+#define arch_atomic64_inc_return_acquire arch_atomic64_inc_return_acquire
-+#endif
-+
-+#ifndef arch_atomic64_inc_return_release
-+static __always_inline s64
-+arch_atomic64_inc_return_release(atomic64_t *v)
-+{
-+	__atomic_release_fence();
-+	return arch_atomic64_inc_return_relaxed(v);
-+}
-+#define arch_atomic64_inc_return_release arch_atomic64_inc_return_release
-+#endif
-+
-+#ifndef arch_atomic64_inc_return
-+static __always_inline s64
-+arch_atomic64_inc_return(atomic64_t *v)
-+{
-+	s64 ret;
-+	__atomic_pre_full_fence();
-+	ret = arch_atomic64_inc_return_relaxed(v);
-+	__atomic_post_full_fence();
-+	return ret;
-+}
-+#define arch_atomic64_inc_return arch_atomic64_inc_return
-+#endif
-+
-+#endif /* arch_atomic64_inc_return_relaxed */
-+
-+#ifndef arch_atomic64_fetch_inc_relaxed
-+#ifdef arch_atomic64_fetch_inc
-+#define arch_atomic64_fetch_inc_acquire arch_atomic64_fetch_inc
-+#define arch_atomic64_fetch_inc_release arch_atomic64_fetch_inc
-+#define arch_atomic64_fetch_inc_relaxed arch_atomic64_fetch_inc
-+#endif /* arch_atomic64_fetch_inc */
-+
-+#ifndef arch_atomic64_fetch_inc
-+static __always_inline s64
-+arch_atomic64_fetch_inc(atomic64_t *v)
-+{
-+	return arch_atomic64_fetch_add(1, v);
-+}
-+#define arch_atomic64_fetch_inc arch_atomic64_fetch_inc
-+#endif
-+
-+#ifndef arch_atomic64_fetch_inc_acquire
-+static __always_inline s64
-+arch_atomic64_fetch_inc_acquire(atomic64_t *v)
-+{
-+	return arch_atomic64_fetch_add_acquire(1, v);
-+}
-+#define arch_atomic64_fetch_inc_acquire arch_atomic64_fetch_inc_acquire
-+#endif
-+
-+#ifndef arch_atomic64_fetch_inc_release
-+static __always_inline s64
-+arch_atomic64_fetch_inc_release(atomic64_t *v)
-+{
-+	return arch_atomic64_fetch_add_release(1, v);
-+}
-+#define arch_atomic64_fetch_inc_release arch_atomic64_fetch_inc_release
-+#endif
-+
-+#ifndef arch_atomic64_fetch_inc_relaxed
-+static __always_inline s64
-+arch_atomic64_fetch_inc_relaxed(atomic64_t *v)
-+{
-+	return arch_atomic64_fetch_add_relaxed(1, v);
-+}
-+#define arch_atomic64_fetch_inc_relaxed arch_atomic64_fetch_inc_relaxed
-+#endif
-+
-+#else /* arch_atomic64_fetch_inc_relaxed */
-+
-+#ifndef arch_atomic64_fetch_inc_acquire
-+static __always_inline s64
-+arch_atomic64_fetch_inc_acquire(atomic64_t *v)
-+{
-+	s64 ret = arch_atomic64_fetch_inc_relaxed(v);
-+	__atomic_acquire_fence();
-+	return ret;
-+}
-+#define arch_atomic64_fetch_inc_acquire arch_atomic64_fetch_inc_acquire
-+#endif
-+
-+#ifndef arch_atomic64_fetch_inc_release
-+static __always_inline s64
-+arch_atomic64_fetch_inc_release(atomic64_t *v)
-+{
-+	__atomic_release_fence();
-+	return arch_atomic64_fetch_inc_relaxed(v);
-+}
-+#define arch_atomic64_fetch_inc_release arch_atomic64_fetch_inc_release
-+#endif
-+
-+#ifndef arch_atomic64_fetch_inc
-+static __always_inline s64
-+arch_atomic64_fetch_inc(atomic64_t *v)
-+{
-+	s64 ret;
-+	__atomic_pre_full_fence();
-+	ret = arch_atomic64_fetch_inc_relaxed(v);
-+	__atomic_post_full_fence();
-+	return ret;
-+}
-+#define arch_atomic64_fetch_inc arch_atomic64_fetch_inc
-+#endif
-+
-+#endif /* arch_atomic64_fetch_inc_relaxed */
-+
-+#ifndef arch_atomic64_dec
+ atomic_dec(atomic_t *v)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -343,7 +344,7 @@ atomic_dec(atomic_t *v)
+ #endif
+ 
+ #if defined(arch_atomic_dec_return)
+-static inline int
++static __always_inline int
+ atomic_dec_return(atomic_t *v)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -353,7 +354,7 @@ atomic_dec_return(atomic_t *v)
+ #endif
+ 
+ #if defined(arch_atomic_dec_return_acquire)
+-static inline int
++static __always_inline int
+ atomic_dec_return_acquire(atomic_t *v)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -363,7 +364,7 @@ atomic_dec_return_acquire(atomic_t *v)
+ #endif
+ 
+ #if defined(arch_atomic_dec_return_release)
+-static inline int
++static __always_inline int
+ atomic_dec_return_release(atomic_t *v)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -373,7 +374,7 @@ atomic_dec_return_release(atomic_t *v)
+ #endif
+ 
+ #if defined(arch_atomic_dec_return_relaxed)
+-static inline int
++static __always_inline int
+ atomic_dec_return_relaxed(atomic_t *v)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -383,7 +384,7 @@ atomic_dec_return_relaxed(atomic_t *v)
+ #endif
+ 
+ #if defined(arch_atomic_fetch_dec)
+-static inline int
++static __always_inline int
+ atomic_fetch_dec(atomic_t *v)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -393,7 +394,7 @@ atomic_fetch_dec(atomic_t *v)
+ #endif
+ 
+ #if defined(arch_atomic_fetch_dec_acquire)
+-static inline int
++static __always_inline int
+ atomic_fetch_dec_acquire(atomic_t *v)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -403,7 +404,7 @@ atomic_fetch_dec_acquire(atomic_t *v)
+ #endif
+ 
+ #if defined(arch_atomic_fetch_dec_release)
+-static inline int
++static __always_inline int
+ atomic_fetch_dec_release(atomic_t *v)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -413,7 +414,7 @@ atomic_fetch_dec_release(atomic_t *v)
+ #endif
+ 
+ #if defined(arch_atomic_fetch_dec_relaxed)
+-static inline int
++static __always_inline int
+ atomic_fetch_dec_relaxed(atomic_t *v)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -422,7 +423,7 @@ atomic_fetch_dec_relaxed(atomic_t *v)
+ #define atomic_fetch_dec_relaxed atomic_fetch_dec_relaxed
+ #endif
+ 
+-static inline void
 +static __always_inline void
-+arch_atomic64_dec(atomic64_t *v)
-+{
-+	arch_atomic64_sub(1, v);
-+}
-+#define arch_atomic64_dec arch_atomic64_dec
-+#endif
-+
-+#ifndef arch_atomic64_dec_return_relaxed
-+#ifdef arch_atomic64_dec_return
-+#define arch_atomic64_dec_return_acquire arch_atomic64_dec_return
-+#define arch_atomic64_dec_return_release arch_atomic64_dec_return
-+#define arch_atomic64_dec_return_relaxed arch_atomic64_dec_return
-+#endif /* arch_atomic64_dec_return */
-+
-+#ifndef arch_atomic64_dec_return
-+static __always_inline s64
-+arch_atomic64_dec_return(atomic64_t *v)
-+{
-+	return arch_atomic64_sub_return(1, v);
-+}
-+#define arch_atomic64_dec_return arch_atomic64_dec_return
-+#endif
-+
-+#ifndef arch_atomic64_dec_return_acquire
-+static __always_inline s64
-+arch_atomic64_dec_return_acquire(atomic64_t *v)
-+{
-+	return arch_atomic64_sub_return_acquire(1, v);
-+}
-+#define arch_atomic64_dec_return_acquire arch_atomic64_dec_return_acquire
-+#endif
-+
-+#ifndef arch_atomic64_dec_return_release
-+static __always_inline s64
-+arch_atomic64_dec_return_release(atomic64_t *v)
-+{
-+	return arch_atomic64_sub_return_release(1, v);
-+}
-+#define arch_atomic64_dec_return_release arch_atomic64_dec_return_release
-+#endif
-+
-+#ifndef arch_atomic64_dec_return_relaxed
-+static __always_inline s64
-+arch_atomic64_dec_return_relaxed(atomic64_t *v)
-+{
-+	return arch_atomic64_sub_return_relaxed(1, v);
-+}
-+#define arch_atomic64_dec_return_relaxed arch_atomic64_dec_return_relaxed
-+#endif
-+
-+#else /* arch_atomic64_dec_return_relaxed */
-+
-+#ifndef arch_atomic64_dec_return_acquire
-+static __always_inline s64
-+arch_atomic64_dec_return_acquire(atomic64_t *v)
-+{
-+	s64 ret = arch_atomic64_dec_return_relaxed(v);
-+	__atomic_acquire_fence();
-+	return ret;
-+}
-+#define arch_atomic64_dec_return_acquire arch_atomic64_dec_return_acquire
-+#endif
-+
-+#ifndef arch_atomic64_dec_return_release
-+static __always_inline s64
-+arch_atomic64_dec_return_release(atomic64_t *v)
-+{
-+	__atomic_release_fence();
-+	return arch_atomic64_dec_return_relaxed(v);
-+}
-+#define arch_atomic64_dec_return_release arch_atomic64_dec_return_release
-+#endif
-+
-+#ifndef arch_atomic64_dec_return
-+static __always_inline s64
-+arch_atomic64_dec_return(atomic64_t *v)
-+{
-+	s64 ret;
-+	__atomic_pre_full_fence();
-+	ret = arch_atomic64_dec_return_relaxed(v);
-+	__atomic_post_full_fence();
-+	return ret;
-+}
-+#define arch_atomic64_dec_return arch_atomic64_dec_return
-+#endif
-+
-+#endif /* arch_atomic64_dec_return_relaxed */
-+
-+#ifndef arch_atomic64_fetch_dec_relaxed
-+#ifdef arch_atomic64_fetch_dec
-+#define arch_atomic64_fetch_dec_acquire arch_atomic64_fetch_dec
-+#define arch_atomic64_fetch_dec_release arch_atomic64_fetch_dec
-+#define arch_atomic64_fetch_dec_relaxed arch_atomic64_fetch_dec
-+#endif /* arch_atomic64_fetch_dec */
-+
-+#ifndef arch_atomic64_fetch_dec
-+static __always_inline s64
-+arch_atomic64_fetch_dec(atomic64_t *v)
-+{
-+	return arch_atomic64_fetch_sub(1, v);
-+}
-+#define arch_atomic64_fetch_dec arch_atomic64_fetch_dec
-+#endif
-+
-+#ifndef arch_atomic64_fetch_dec_acquire
-+static __always_inline s64
-+arch_atomic64_fetch_dec_acquire(atomic64_t *v)
-+{
-+	return arch_atomic64_fetch_sub_acquire(1, v);
-+}
-+#define arch_atomic64_fetch_dec_acquire arch_atomic64_fetch_dec_acquire
-+#endif
-+
-+#ifndef arch_atomic64_fetch_dec_release
-+static __always_inline s64
-+arch_atomic64_fetch_dec_release(atomic64_t *v)
-+{
-+	return arch_atomic64_fetch_sub_release(1, v);
-+}
-+#define arch_atomic64_fetch_dec_release arch_atomic64_fetch_dec_release
-+#endif
-+
-+#ifndef arch_atomic64_fetch_dec_relaxed
-+static __always_inline s64
-+arch_atomic64_fetch_dec_relaxed(atomic64_t *v)
-+{
-+	return arch_atomic64_fetch_sub_relaxed(1, v);
-+}
-+#define arch_atomic64_fetch_dec_relaxed arch_atomic64_fetch_dec_relaxed
-+#endif
-+
-+#else /* arch_atomic64_fetch_dec_relaxed */
-+
-+#ifndef arch_atomic64_fetch_dec_acquire
-+static __always_inline s64
-+arch_atomic64_fetch_dec_acquire(atomic64_t *v)
-+{
-+	s64 ret = arch_atomic64_fetch_dec_relaxed(v);
-+	__atomic_acquire_fence();
-+	return ret;
-+}
-+#define arch_atomic64_fetch_dec_acquire arch_atomic64_fetch_dec_acquire
-+#endif
-+
-+#ifndef arch_atomic64_fetch_dec_release
-+static __always_inline s64
-+arch_atomic64_fetch_dec_release(atomic64_t *v)
-+{
-+	__atomic_release_fence();
-+	return arch_atomic64_fetch_dec_relaxed(v);
-+}
-+#define arch_atomic64_fetch_dec_release arch_atomic64_fetch_dec_release
-+#endif
-+
-+#ifndef arch_atomic64_fetch_dec
-+static __always_inline s64
-+arch_atomic64_fetch_dec(atomic64_t *v)
-+{
-+	s64 ret;
-+	__atomic_pre_full_fence();
-+	ret = arch_atomic64_fetch_dec_relaxed(v);
-+	__atomic_post_full_fence();
-+	return ret;
-+}
-+#define arch_atomic64_fetch_dec arch_atomic64_fetch_dec
-+#endif
-+
-+#endif /* arch_atomic64_fetch_dec_relaxed */
-+
-+#ifndef arch_atomic64_fetch_and_relaxed
-+#define arch_atomic64_fetch_and_acquire arch_atomic64_fetch_and
-+#define arch_atomic64_fetch_and_release arch_atomic64_fetch_and
-+#define arch_atomic64_fetch_and_relaxed arch_atomic64_fetch_and
-+#else /* arch_atomic64_fetch_and_relaxed */
-+
-+#ifndef arch_atomic64_fetch_and_acquire
-+static __always_inline s64
-+arch_atomic64_fetch_and_acquire(s64 i, atomic64_t *v)
-+{
-+	s64 ret = arch_atomic64_fetch_and_relaxed(i, v);
-+	__atomic_acquire_fence();
-+	return ret;
-+}
-+#define arch_atomic64_fetch_and_acquire arch_atomic64_fetch_and_acquire
-+#endif
-+
-+#ifndef arch_atomic64_fetch_and_release
-+static __always_inline s64
-+arch_atomic64_fetch_and_release(s64 i, atomic64_t *v)
-+{
-+	__atomic_release_fence();
-+	return arch_atomic64_fetch_and_relaxed(i, v);
-+}
-+#define arch_atomic64_fetch_and_release arch_atomic64_fetch_and_release
-+#endif
-+
-+#ifndef arch_atomic64_fetch_and
-+static __always_inline s64
-+arch_atomic64_fetch_and(s64 i, atomic64_t *v)
-+{
-+	s64 ret;
-+	__atomic_pre_full_fence();
-+	ret = arch_atomic64_fetch_and_relaxed(i, v);
-+	__atomic_post_full_fence();
-+	return ret;
-+}
-+#define arch_atomic64_fetch_and arch_atomic64_fetch_and
-+#endif
-+
-+#endif /* arch_atomic64_fetch_and_relaxed */
-+
-+#ifndef arch_atomic64_andnot
+ atomic_and(int i, atomic_t *v)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -431,7 +432,7 @@ atomic_and(int i, atomic_t *v)
+ #define atomic_and atomic_and
+ 
+ #if !defined(arch_atomic_fetch_and_relaxed) || defined(arch_atomic_fetch_and)
+-static inline int
++static __always_inline int
+ atomic_fetch_and(int i, atomic_t *v)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -441,7 +442,7 @@ atomic_fetch_and(int i, atomic_t *v)
+ #endif
+ 
+ #if defined(arch_atomic_fetch_and_acquire)
+-static inline int
++static __always_inline int
+ atomic_fetch_and_acquire(int i, atomic_t *v)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -451,7 +452,7 @@ atomic_fetch_and_acquire(int i, atomic_t
+ #endif
+ 
+ #if defined(arch_atomic_fetch_and_release)
+-static inline int
++static __always_inline int
+ atomic_fetch_and_release(int i, atomic_t *v)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -461,7 +462,7 @@ atomic_fetch_and_release(int i, atomic_t
+ #endif
+ 
+ #if defined(arch_atomic_fetch_and_relaxed)
+-static inline int
++static __always_inline int
+ atomic_fetch_and_relaxed(int i, atomic_t *v)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -471,7 +472,7 @@ atomic_fetch_and_relaxed(int i, atomic_t
+ #endif
+ 
+ #if defined(arch_atomic_andnot)
+-static inline void
 +static __always_inline void
-+arch_atomic64_andnot(s64 i, atomic64_t *v)
-+{
-+	arch_atomic64_and(~i, v);
-+}
-+#define arch_atomic64_andnot arch_atomic64_andnot
-+#endif
-+
-+#ifndef arch_atomic64_fetch_andnot_relaxed
-+#ifdef arch_atomic64_fetch_andnot
-+#define arch_atomic64_fetch_andnot_acquire arch_atomic64_fetch_andnot
-+#define arch_atomic64_fetch_andnot_release arch_atomic64_fetch_andnot
-+#define arch_atomic64_fetch_andnot_relaxed arch_atomic64_fetch_andnot
-+#endif /* arch_atomic64_fetch_andnot */
-+
-+#ifndef arch_atomic64_fetch_andnot
-+static __always_inline s64
-+arch_atomic64_fetch_andnot(s64 i, atomic64_t *v)
-+{
-+	return arch_atomic64_fetch_and(~i, v);
-+}
-+#define arch_atomic64_fetch_andnot arch_atomic64_fetch_andnot
-+#endif
-+
-+#ifndef arch_atomic64_fetch_andnot_acquire
-+static __always_inline s64
-+arch_atomic64_fetch_andnot_acquire(s64 i, atomic64_t *v)
-+{
-+	return arch_atomic64_fetch_and_acquire(~i, v);
-+}
-+#define arch_atomic64_fetch_andnot_acquire arch_atomic64_fetch_andnot_acquire
-+#endif
-+
-+#ifndef arch_atomic64_fetch_andnot_release
-+static __always_inline s64
-+arch_atomic64_fetch_andnot_release(s64 i, atomic64_t *v)
-+{
-+	return arch_atomic64_fetch_and_release(~i, v);
-+}
-+#define arch_atomic64_fetch_andnot_release arch_atomic64_fetch_andnot_release
-+#endif
-+
-+#ifndef arch_atomic64_fetch_andnot_relaxed
-+static __always_inline s64
-+arch_atomic64_fetch_andnot_relaxed(s64 i, atomic64_t *v)
-+{
-+	return arch_atomic64_fetch_and_relaxed(~i, v);
-+}
-+#define arch_atomic64_fetch_andnot_relaxed arch_atomic64_fetch_andnot_relaxed
-+#endif
-+
-+#else /* arch_atomic64_fetch_andnot_relaxed */
-+
-+#ifndef arch_atomic64_fetch_andnot_acquire
-+static __always_inline s64
-+arch_atomic64_fetch_andnot_acquire(s64 i, atomic64_t *v)
-+{
-+	s64 ret = arch_atomic64_fetch_andnot_relaxed(i, v);
-+	__atomic_acquire_fence();
-+	return ret;
-+}
-+#define arch_atomic64_fetch_andnot_acquire arch_atomic64_fetch_andnot_acquire
-+#endif
-+
-+#ifndef arch_atomic64_fetch_andnot_release
-+static __always_inline s64
-+arch_atomic64_fetch_andnot_release(s64 i, atomic64_t *v)
-+{
-+	__atomic_release_fence();
-+	return arch_atomic64_fetch_andnot_relaxed(i, v);
-+}
-+#define arch_atomic64_fetch_andnot_release arch_atomic64_fetch_andnot_release
-+#endif
-+
-+#ifndef arch_atomic64_fetch_andnot
-+static __always_inline s64
-+arch_atomic64_fetch_andnot(s64 i, atomic64_t *v)
-+{
-+	s64 ret;
-+	__atomic_pre_full_fence();
-+	ret = arch_atomic64_fetch_andnot_relaxed(i, v);
-+	__atomic_post_full_fence();
-+	return ret;
-+}
-+#define arch_atomic64_fetch_andnot arch_atomic64_fetch_andnot
-+#endif
-+
-+#endif /* arch_atomic64_fetch_andnot_relaxed */
-+
-+#ifndef arch_atomic64_fetch_or_relaxed
-+#define arch_atomic64_fetch_or_acquire arch_atomic64_fetch_or
-+#define arch_atomic64_fetch_or_release arch_atomic64_fetch_or
-+#define arch_atomic64_fetch_or_relaxed arch_atomic64_fetch_or
-+#else /* arch_atomic64_fetch_or_relaxed */
-+
-+#ifndef arch_atomic64_fetch_or_acquire
-+static __always_inline s64
-+arch_atomic64_fetch_or_acquire(s64 i, atomic64_t *v)
-+{
-+	s64 ret = arch_atomic64_fetch_or_relaxed(i, v);
-+	__atomic_acquire_fence();
-+	return ret;
-+}
-+#define arch_atomic64_fetch_or_acquire arch_atomic64_fetch_or_acquire
-+#endif
-+
-+#ifndef arch_atomic64_fetch_or_release
-+static __always_inline s64
-+arch_atomic64_fetch_or_release(s64 i, atomic64_t *v)
-+{
-+	__atomic_release_fence();
-+	return arch_atomic64_fetch_or_relaxed(i, v);
-+}
-+#define arch_atomic64_fetch_or_release arch_atomic64_fetch_or_release
-+#endif
-+
-+#ifndef arch_atomic64_fetch_or
-+static __always_inline s64
-+arch_atomic64_fetch_or(s64 i, atomic64_t *v)
-+{
-+	s64 ret;
-+	__atomic_pre_full_fence();
-+	ret = arch_atomic64_fetch_or_relaxed(i, v);
-+	__atomic_post_full_fence();
-+	return ret;
-+}
-+#define arch_atomic64_fetch_or arch_atomic64_fetch_or
-+#endif
-+
-+#endif /* arch_atomic64_fetch_or_relaxed */
-+
-+#ifndef arch_atomic64_fetch_xor_relaxed
-+#define arch_atomic64_fetch_xor_acquire arch_atomic64_fetch_xor
-+#define arch_atomic64_fetch_xor_release arch_atomic64_fetch_xor
-+#define arch_atomic64_fetch_xor_relaxed arch_atomic64_fetch_xor
-+#else /* arch_atomic64_fetch_xor_relaxed */
-+
-+#ifndef arch_atomic64_fetch_xor_acquire
-+static __always_inline s64
-+arch_atomic64_fetch_xor_acquire(s64 i, atomic64_t *v)
-+{
-+	s64 ret = arch_atomic64_fetch_xor_relaxed(i, v);
-+	__atomic_acquire_fence();
-+	return ret;
-+}
-+#define arch_atomic64_fetch_xor_acquire arch_atomic64_fetch_xor_acquire
-+#endif
-+
-+#ifndef arch_atomic64_fetch_xor_release
-+static __always_inline s64
-+arch_atomic64_fetch_xor_release(s64 i, atomic64_t *v)
-+{
-+	__atomic_release_fence();
-+	return arch_atomic64_fetch_xor_relaxed(i, v);
-+}
-+#define arch_atomic64_fetch_xor_release arch_atomic64_fetch_xor_release
-+#endif
-+
-+#ifndef arch_atomic64_fetch_xor
-+static __always_inline s64
-+arch_atomic64_fetch_xor(s64 i, atomic64_t *v)
-+{
-+	s64 ret;
-+	__atomic_pre_full_fence();
-+	ret = arch_atomic64_fetch_xor_relaxed(i, v);
-+	__atomic_post_full_fence();
-+	return ret;
-+}
-+#define arch_atomic64_fetch_xor arch_atomic64_fetch_xor
-+#endif
-+
-+#endif /* arch_atomic64_fetch_xor_relaxed */
-+
-+#ifndef arch_atomic64_xchg_relaxed
-+#define arch_atomic64_xchg_acquire arch_atomic64_xchg
-+#define arch_atomic64_xchg_release arch_atomic64_xchg
-+#define arch_atomic64_xchg_relaxed arch_atomic64_xchg
-+#else /* arch_atomic64_xchg_relaxed */
-+
-+#ifndef arch_atomic64_xchg_acquire
-+static __always_inline s64
-+arch_atomic64_xchg_acquire(atomic64_t *v, s64 i)
-+{
-+	s64 ret = arch_atomic64_xchg_relaxed(v, i);
-+	__atomic_acquire_fence();
-+	return ret;
-+}
-+#define arch_atomic64_xchg_acquire arch_atomic64_xchg_acquire
-+#endif
-+
-+#ifndef arch_atomic64_xchg_release
-+static __always_inline s64
-+arch_atomic64_xchg_release(atomic64_t *v, s64 i)
-+{
-+	__atomic_release_fence();
-+	return arch_atomic64_xchg_relaxed(v, i);
-+}
-+#define arch_atomic64_xchg_release arch_atomic64_xchg_release
-+#endif
-+
-+#ifndef arch_atomic64_xchg
-+static __always_inline s64
-+arch_atomic64_xchg(atomic64_t *v, s64 i)
-+{
-+	s64 ret;
-+	__atomic_pre_full_fence();
-+	ret = arch_atomic64_xchg_relaxed(v, i);
-+	__atomic_post_full_fence();
-+	return ret;
-+}
-+#define arch_atomic64_xchg arch_atomic64_xchg
-+#endif
-+
-+#endif /* arch_atomic64_xchg_relaxed */
-+
-+#ifndef arch_atomic64_cmpxchg_relaxed
-+#define arch_atomic64_cmpxchg_acquire arch_atomic64_cmpxchg
-+#define arch_atomic64_cmpxchg_release arch_atomic64_cmpxchg
-+#define arch_atomic64_cmpxchg_relaxed arch_atomic64_cmpxchg
-+#else /* arch_atomic64_cmpxchg_relaxed */
-+
-+#ifndef arch_atomic64_cmpxchg_acquire
-+static __always_inline s64
-+arch_atomic64_cmpxchg_acquire(atomic64_t *v, s64 old, s64 new)
-+{
-+	s64 ret = arch_atomic64_cmpxchg_relaxed(v, old, new);
-+	__atomic_acquire_fence();
-+	return ret;
-+}
-+#define arch_atomic64_cmpxchg_acquire arch_atomic64_cmpxchg_acquire
-+#endif
-+
-+#ifndef arch_atomic64_cmpxchg_release
-+static __always_inline s64
-+arch_atomic64_cmpxchg_release(atomic64_t *v, s64 old, s64 new)
-+{
-+	__atomic_release_fence();
-+	return arch_atomic64_cmpxchg_relaxed(v, old, new);
-+}
-+#define arch_atomic64_cmpxchg_release arch_atomic64_cmpxchg_release
-+#endif
-+
-+#ifndef arch_atomic64_cmpxchg
-+static __always_inline s64
-+arch_atomic64_cmpxchg(atomic64_t *v, s64 old, s64 new)
-+{
-+	s64 ret;
-+	__atomic_pre_full_fence();
-+	ret = arch_atomic64_cmpxchg_relaxed(v, old, new);
-+	__atomic_post_full_fence();
-+	return ret;
-+}
-+#define arch_atomic64_cmpxchg arch_atomic64_cmpxchg
-+#endif
-+
-+#endif /* arch_atomic64_cmpxchg_relaxed */
-+
-+#ifndef arch_atomic64_try_cmpxchg_relaxed
-+#ifdef arch_atomic64_try_cmpxchg
-+#define arch_atomic64_try_cmpxchg_acquire arch_atomic64_try_cmpxchg
-+#define arch_atomic64_try_cmpxchg_release arch_atomic64_try_cmpxchg
-+#define arch_atomic64_try_cmpxchg_relaxed arch_atomic64_try_cmpxchg
-+#endif /* arch_atomic64_try_cmpxchg */
-+
-+#ifndef arch_atomic64_try_cmpxchg
+ atomic_andnot(int i, atomic_t *v)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -481,7 +482,7 @@ atomic_andnot(int i, atomic_t *v)
+ #endif
+ 
+ #if defined(arch_atomic_fetch_andnot)
+-static inline int
++static __always_inline int
+ atomic_fetch_andnot(int i, atomic_t *v)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -491,7 +492,7 @@ atomic_fetch_andnot(int i, atomic_t *v)
+ #endif
+ 
+ #if defined(arch_atomic_fetch_andnot_acquire)
+-static inline int
++static __always_inline int
+ atomic_fetch_andnot_acquire(int i, atomic_t *v)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -501,7 +502,7 @@ atomic_fetch_andnot_acquire(int i, atomi
+ #endif
+ 
+ #if defined(arch_atomic_fetch_andnot_release)
+-static inline int
++static __always_inline int
+ atomic_fetch_andnot_release(int i, atomic_t *v)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -511,7 +512,7 @@ atomic_fetch_andnot_release(int i, atomi
+ #endif
+ 
+ #if defined(arch_atomic_fetch_andnot_relaxed)
+-static inline int
++static __always_inline int
+ atomic_fetch_andnot_relaxed(int i, atomic_t *v)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -520,7 +521,7 @@ atomic_fetch_andnot_relaxed(int i, atomi
+ #define atomic_fetch_andnot_relaxed atomic_fetch_andnot_relaxed
+ #endif
+ 
+-static inline void
++static __always_inline void
+ atomic_or(int i, atomic_t *v)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -529,7 +530,7 @@ atomic_or(int i, atomic_t *v)
+ #define atomic_or atomic_or
+ 
+ #if !defined(arch_atomic_fetch_or_relaxed) || defined(arch_atomic_fetch_or)
+-static inline int
++static __always_inline int
+ atomic_fetch_or(int i, atomic_t *v)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -539,7 +540,7 @@ atomic_fetch_or(int i, atomic_t *v)
+ #endif
+ 
+ #if defined(arch_atomic_fetch_or_acquire)
+-static inline int
++static __always_inline int
+ atomic_fetch_or_acquire(int i, atomic_t *v)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -549,7 +550,7 @@ atomic_fetch_or_acquire(int i, atomic_t
+ #endif
+ 
+ #if defined(arch_atomic_fetch_or_release)
+-static inline int
++static __always_inline int
+ atomic_fetch_or_release(int i, atomic_t *v)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -559,7 +560,7 @@ atomic_fetch_or_release(int i, atomic_t
+ #endif
+ 
+ #if defined(arch_atomic_fetch_or_relaxed)
+-static inline int
++static __always_inline int
+ atomic_fetch_or_relaxed(int i, atomic_t *v)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -568,7 +569,7 @@ atomic_fetch_or_relaxed(int i, atomic_t
+ #define atomic_fetch_or_relaxed atomic_fetch_or_relaxed
+ #endif
+ 
+-static inline void
++static __always_inline void
+ atomic_xor(int i, atomic_t *v)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -577,7 +578,7 @@ atomic_xor(int i, atomic_t *v)
+ #define atomic_xor atomic_xor
+ 
+ #if !defined(arch_atomic_fetch_xor_relaxed) || defined(arch_atomic_fetch_xor)
+-static inline int
++static __always_inline int
+ atomic_fetch_xor(int i, atomic_t *v)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -587,7 +588,7 @@ atomic_fetch_xor(int i, atomic_t *v)
+ #endif
+ 
+ #if defined(arch_atomic_fetch_xor_acquire)
+-static inline int
++static __always_inline int
+ atomic_fetch_xor_acquire(int i, atomic_t *v)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -597,7 +598,7 @@ atomic_fetch_xor_acquire(int i, atomic_t
+ #endif
+ 
+ #if defined(arch_atomic_fetch_xor_release)
+-static inline int
++static __always_inline int
+ atomic_fetch_xor_release(int i, atomic_t *v)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -607,7 +608,7 @@ atomic_fetch_xor_release(int i, atomic_t
+ #endif
+ 
+ #if defined(arch_atomic_fetch_xor_relaxed)
+-static inline int
++static __always_inline int
+ atomic_fetch_xor_relaxed(int i, atomic_t *v)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -617,7 +618,7 @@ atomic_fetch_xor_relaxed(int i, atomic_t
+ #endif
+ 
+ #if !defined(arch_atomic_xchg_relaxed) || defined(arch_atomic_xchg)
+-static inline int
++static __always_inline int
+ atomic_xchg(atomic_t *v, int i)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -627,7 +628,7 @@ atomic_xchg(atomic_t *v, int i)
+ #endif
+ 
+ #if defined(arch_atomic_xchg_acquire)
+-static inline int
++static __always_inline int
+ atomic_xchg_acquire(atomic_t *v, int i)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -637,7 +638,7 @@ atomic_xchg_acquire(atomic_t *v, int i)
+ #endif
+ 
+ #if defined(arch_atomic_xchg_release)
+-static inline int
++static __always_inline int
+ atomic_xchg_release(atomic_t *v, int i)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -647,7 +648,7 @@ atomic_xchg_release(atomic_t *v, int i)
+ #endif
+ 
+ #if defined(arch_atomic_xchg_relaxed)
+-static inline int
++static __always_inline int
+ atomic_xchg_relaxed(atomic_t *v, int i)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -657,7 +658,7 @@ atomic_xchg_relaxed(atomic_t *v, int i)
+ #endif
+ 
+ #if !defined(arch_atomic_cmpxchg_relaxed) || defined(arch_atomic_cmpxchg)
+-static inline int
++static __always_inline int
+ atomic_cmpxchg(atomic_t *v, int old, int new)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -667,7 +668,7 @@ atomic_cmpxchg(atomic_t *v, int old, int
+ #endif
+ 
+ #if defined(arch_atomic_cmpxchg_acquire)
+-static inline int
++static __always_inline int
+ atomic_cmpxchg_acquire(atomic_t *v, int old, int new)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -677,7 +678,7 @@ atomic_cmpxchg_acquire(atomic_t *v, int
+ #endif
+ 
+ #if defined(arch_atomic_cmpxchg_release)
+-static inline int
++static __always_inline int
+ atomic_cmpxchg_release(atomic_t *v, int old, int new)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -687,7 +688,7 @@ atomic_cmpxchg_release(atomic_t *v, int
+ #endif
+ 
+ #if defined(arch_atomic_cmpxchg_relaxed)
+-static inline int
++static __always_inline int
+ atomic_cmpxchg_relaxed(atomic_t *v, int old, int new)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -697,7 +698,7 @@ atomic_cmpxchg_relaxed(atomic_t *v, int
+ #endif
+ 
+ #if defined(arch_atomic_try_cmpxchg)
+-static inline bool
 +static __always_inline bool
-+arch_atomic64_try_cmpxchg(atomic64_t *v, s64 *old, s64 new)
-+{
-+	s64 r, o = *old;
-+	r = arch_atomic64_cmpxchg(v, o, new);
-+	if (unlikely(r != o))
-+		*old = r;
-+	return likely(r == o);
-+}
-+#define arch_atomic64_try_cmpxchg arch_atomic64_try_cmpxchg
-+#endif
-+
-+#ifndef arch_atomic64_try_cmpxchg_acquire
+ atomic_try_cmpxchg(atomic_t *v, int *old, int new)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -708,7 +709,7 @@ atomic_try_cmpxchg(atomic_t *v, int *old
+ #endif
+ 
+ #if defined(arch_atomic_try_cmpxchg_acquire)
+-static inline bool
 +static __always_inline bool
-+arch_atomic64_try_cmpxchg_acquire(atomic64_t *v, s64 *old, s64 new)
-+{
-+	s64 r, o = *old;
-+	r = arch_atomic64_cmpxchg_acquire(v, o, new);
-+	if (unlikely(r != o))
-+		*old = r;
-+	return likely(r == o);
-+}
-+#define arch_atomic64_try_cmpxchg_acquire arch_atomic64_try_cmpxchg_acquire
-+#endif
-+
-+#ifndef arch_atomic64_try_cmpxchg_release
+ atomic_try_cmpxchg_acquire(atomic_t *v, int *old, int new)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -719,7 +720,7 @@ atomic_try_cmpxchg_acquire(atomic_t *v,
+ #endif
+ 
+ #if defined(arch_atomic_try_cmpxchg_release)
+-static inline bool
 +static __always_inline bool
-+arch_atomic64_try_cmpxchg_release(atomic64_t *v, s64 *old, s64 new)
-+{
-+	s64 r, o = *old;
-+	r = arch_atomic64_cmpxchg_release(v, o, new);
-+	if (unlikely(r != o))
-+		*old = r;
-+	return likely(r == o);
-+}
-+#define arch_atomic64_try_cmpxchg_release arch_atomic64_try_cmpxchg_release
-+#endif
-+
-+#ifndef arch_atomic64_try_cmpxchg_relaxed
+ atomic_try_cmpxchg_release(atomic_t *v, int *old, int new)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -730,7 +731,7 @@ atomic_try_cmpxchg_release(atomic_t *v,
+ #endif
+ 
+ #if defined(arch_atomic_try_cmpxchg_relaxed)
+-static inline bool
 +static __always_inline bool
-+arch_atomic64_try_cmpxchg_relaxed(atomic64_t *v, s64 *old, s64 new)
-+{
-+	s64 r, o = *old;
-+	r = arch_atomic64_cmpxchg_relaxed(v, o, new);
-+	if (unlikely(r != o))
-+		*old = r;
-+	return likely(r == o);
-+}
-+#define arch_atomic64_try_cmpxchg_relaxed arch_atomic64_try_cmpxchg_relaxed
-+#endif
-+
-+#else /* arch_atomic64_try_cmpxchg_relaxed */
-+
-+#ifndef arch_atomic64_try_cmpxchg_acquire
+ atomic_try_cmpxchg_relaxed(atomic_t *v, int *old, int new)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -741,7 +742,7 @@ atomic_try_cmpxchg_relaxed(atomic_t *v,
+ #endif
+ 
+ #if defined(arch_atomic_sub_and_test)
+-static inline bool
 +static __always_inline bool
-+arch_atomic64_try_cmpxchg_acquire(atomic64_t *v, s64 *old, s64 new)
-+{
-+	bool ret = arch_atomic64_try_cmpxchg_relaxed(v, old, new);
-+	__atomic_acquire_fence();
-+	return ret;
-+}
-+#define arch_atomic64_try_cmpxchg_acquire arch_atomic64_try_cmpxchg_acquire
-+#endif
-+
-+#ifndef arch_atomic64_try_cmpxchg_release
+ atomic_sub_and_test(int i, atomic_t *v)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -751,7 +752,7 @@ atomic_sub_and_test(int i, atomic_t *v)
+ #endif
+ 
+ #if defined(arch_atomic_dec_and_test)
+-static inline bool
 +static __always_inline bool
-+arch_atomic64_try_cmpxchg_release(atomic64_t *v, s64 *old, s64 new)
-+{
-+	__atomic_release_fence();
-+	return arch_atomic64_try_cmpxchg_relaxed(v, old, new);
-+}
-+#define arch_atomic64_try_cmpxchg_release arch_atomic64_try_cmpxchg_release
-+#endif
-+
-+#ifndef arch_atomic64_try_cmpxchg
+ atomic_dec_and_test(atomic_t *v)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -761,7 +762,7 @@ atomic_dec_and_test(atomic_t *v)
+ #endif
+ 
+ #if defined(arch_atomic_inc_and_test)
+-static inline bool
 +static __always_inline bool
-+arch_atomic64_try_cmpxchg(atomic64_t *v, s64 *old, s64 new)
-+{
-+	bool ret;
-+	__atomic_pre_full_fence();
-+	ret = arch_atomic64_try_cmpxchg_relaxed(v, old, new);
-+	__atomic_post_full_fence();
-+	return ret;
-+}
-+#define arch_atomic64_try_cmpxchg arch_atomic64_try_cmpxchg
-+#endif
-+
-+#endif /* arch_atomic64_try_cmpxchg_relaxed */
-+
-+#ifndef arch_atomic64_sub_and_test
-+/**
-+ * arch_atomic64_sub_and_test - subtract value from variable and test result
-+ * @i: integer value to subtract
-+ * @v: pointer of type atomic64_t
-+ *
-+ * Atomically subtracts @i from @v and returns
-+ * true if the result is zero, or false for all
-+ * other cases.
-+ */
+ atomic_inc_and_test(atomic_t *v)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -771,7 +772,7 @@ atomic_inc_and_test(atomic_t *v)
+ #endif
+ 
+ #if defined(arch_atomic_add_negative)
+-static inline bool
 +static __always_inline bool
-+arch_atomic64_sub_and_test(s64 i, atomic64_t *v)
-+{
-+	return arch_atomic64_sub_return(i, v) == 0;
-+}
-+#define arch_atomic64_sub_and_test arch_atomic64_sub_and_test
-+#endif
-+
-+#ifndef arch_atomic64_dec_and_test
-+/**
-+ * arch_atomic64_dec_and_test - decrement and test
-+ * @v: pointer of type atomic64_t
-+ *
-+ * Atomically decrements @v by 1 and
-+ * returns true if the result is 0, or false for all other
-+ * cases.
-+ */
+ atomic_add_negative(int i, atomic_t *v)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -781,7 +782,7 @@ atomic_add_negative(int i, atomic_t *v)
+ #endif
+ 
+ #if defined(arch_atomic_fetch_add_unless)
+-static inline int
++static __always_inline int
+ atomic_fetch_add_unless(atomic_t *v, int a, int u)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -791,7 +792,7 @@ atomic_fetch_add_unless(atomic_t *v, int
+ #endif
+ 
+ #if defined(arch_atomic_add_unless)
+-static inline bool
 +static __always_inline bool
-+arch_atomic64_dec_and_test(atomic64_t *v)
-+{
-+	return arch_atomic64_dec_return(v) == 0;
-+}
-+#define arch_atomic64_dec_and_test arch_atomic64_dec_and_test
-+#endif
-+
-+#ifndef arch_atomic64_inc_and_test
-+/**
-+ * arch_atomic64_inc_and_test - increment and test
-+ * @v: pointer of type atomic64_t
-+ *
-+ * Atomically increments @v by 1
-+ * and returns true if the result is zero, or false for all
-+ * other cases.
-+ */
+ atomic_add_unless(atomic_t *v, int a, int u)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -801,7 +802,7 @@ atomic_add_unless(atomic_t *v, int a, in
+ #endif
+ 
+ #if defined(arch_atomic_inc_not_zero)
+-static inline bool
 +static __always_inline bool
-+arch_atomic64_inc_and_test(atomic64_t *v)
-+{
-+	return arch_atomic64_inc_return(v) == 0;
-+}
-+#define arch_atomic64_inc_and_test arch_atomic64_inc_and_test
-+#endif
-+
-+#ifndef arch_atomic64_add_negative
-+/**
-+ * arch_atomic64_add_negative - add and test if negative
-+ * @i: integer value to add
-+ * @v: pointer of type atomic64_t
-+ *
-+ * Atomically adds @i to @v and returns true
-+ * if the result is negative, or false when
-+ * result is greater than or equal to zero.
-+ */
+ atomic_inc_not_zero(atomic_t *v)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -811,7 +812,7 @@ atomic_inc_not_zero(atomic_t *v)
+ #endif
+ 
+ #if defined(arch_atomic_inc_unless_negative)
+-static inline bool
 +static __always_inline bool
-+arch_atomic64_add_negative(s64 i, atomic64_t *v)
-+{
-+	return arch_atomic64_add_return(i, v) < 0;
-+}
-+#define arch_atomic64_add_negative arch_atomic64_add_negative
-+#endif
-+
-+#ifndef arch_atomic64_fetch_add_unless
-+/**
-+ * arch_atomic64_fetch_add_unless - add unless the number is already a given value
-+ * @v: pointer of type atomic64_t
-+ * @a: the amount to add to v...
-+ * @u: ...unless v is equal to u.
-+ *
-+ * Atomically adds @a to @v, so long as @v was not already @u.
-+ * Returns original value of @v
-+ */
-+static __always_inline s64
-+arch_atomic64_fetch_add_unless(atomic64_t *v, s64 a, s64 u)
-+{
-+	s64 c = arch_atomic64_read(v);
-+
-+	do {
-+		if (unlikely(c == u))
-+			break;
-+	} while (!arch_atomic64_try_cmpxchg(v, &c, c + a));
-+
-+	return c;
-+}
-+#define arch_atomic64_fetch_add_unless arch_atomic64_fetch_add_unless
-+#endif
-+
-+#ifndef arch_atomic64_add_unless
-+/**
-+ * arch_atomic64_add_unless - add unless the number is already a given value
-+ * @v: pointer of type atomic64_t
-+ * @a: the amount to add to v...
-+ * @u: ...unless v is equal to u.
-+ *
-+ * Atomically adds @a to @v, if @v was not already @u.
-+ * Returns true if the addition was done.
-+ */
+ atomic_inc_unless_negative(atomic_t *v)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -821,7 +822,7 @@ atomic_inc_unless_negative(atomic_t *v)
+ #endif
+ 
+ #if defined(arch_atomic_dec_unless_positive)
+-static inline bool
 +static __always_inline bool
-+arch_atomic64_add_unless(atomic64_t *v, s64 a, s64 u)
-+{
-+	return arch_atomic64_fetch_add_unless(v, a, u) != u;
-+}
-+#define arch_atomic64_add_unless arch_atomic64_add_unless
-+#endif
-+
-+#ifndef arch_atomic64_inc_not_zero
-+/**
-+ * arch_atomic64_inc_not_zero - increment unless the number is zero
-+ * @v: pointer of type atomic64_t
-+ *
-+ * Atomically increments @v by 1, if @v is non-zero.
-+ * Returns true if the increment was done.
-+ */
-+static __always_inline bool
-+arch_atomic64_inc_not_zero(atomic64_t *v)
-+{
-+	return arch_atomic64_add_unless(v, 1, 0);
-+}
-+#define arch_atomic64_inc_not_zero arch_atomic64_inc_not_zero
-+#endif
-+
-+#ifndef arch_atomic64_inc_unless_negative
-+static __always_inline bool
-+arch_atomic64_inc_unless_negative(atomic64_t *v)
-+{
-+	s64 c = arch_atomic64_read(v);
-+
-+	do {
-+		if (unlikely(c < 0))
-+			return false;
-+	} while (!arch_atomic64_try_cmpxchg(v, &c, c + 1));
-+
-+	return true;
-+}
-+#define arch_atomic64_inc_unless_negative arch_atomic64_inc_unless_negative
-+#endif
-+
-+#ifndef arch_atomic64_dec_unless_positive
-+static __always_inline bool
-+arch_atomic64_dec_unless_positive(atomic64_t *v)
-+{
-+	s64 c = arch_atomic64_read(v);
-+
-+	do {
-+		if (unlikely(c > 0))
-+			return false;
-+	} while (!arch_atomic64_try_cmpxchg(v, &c, c - 1));
-+
-+	return true;
-+}
-+#define arch_atomic64_dec_unless_positive arch_atomic64_dec_unless_positive
-+#endif
-+
-+#ifndef arch_atomic64_dec_if_positive
-+static __always_inline s64
-+arch_atomic64_dec_if_positive(atomic64_t *v)
-+{
-+	s64 dec, c = arch_atomic64_read(v);
-+
-+	do {
-+		dec = c - 1;
-+		if (unlikely(dec < 0))
-+			break;
-+	} while (!arch_atomic64_try_cmpxchg(v, &c, dec));
-+
-+	return dec;
-+}
-+#define arch_atomic64_dec_if_positive arch_atomic64_dec_if_positive
-+#endif
-+
-+#endif /* _LINUX_ATOMIC_FALLBACK_H */
-+// 90cd26cfd69d2250303d654955a0cc12620fb91b
---- a/include/linux/atomic-fallback.h
-+++ b/include/linux/atomic-fallback.h
-@@ -1180,9 +1180,6 @@ atomic_dec_if_positive(atomic_t *v)
+ atomic_dec_unless_positive(atomic_t *v)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -831,7 +832,7 @@ atomic_dec_unless_positive(atomic_t *v)
+ #endif
+ 
+ #if defined(arch_atomic_dec_if_positive)
+-static inline int
++static __always_inline int
+ atomic_dec_if_positive(atomic_t *v)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -840,7 +841,7 @@ atomic_dec_if_positive(atomic_t *v)
  #define atomic_dec_if_positive atomic_dec_if_positive
  #endif
  
--#define atomic_cond_read_acquire(v, c) smp_cond_load_acquire(&(v)->counter, (c))
--#define atomic_cond_read_relaxed(v, c) smp_cond_load_relaxed(&(v)->counter, (c))
--
- #ifdef CONFIG_GENERIC_ATOMIC64
- #include <asm-generic/atomic64.h>
- #endif
-@@ -2290,8 +2287,5 @@ atomic64_dec_if_positive(atomic64_t *v)
- #define atomic64_dec_if_positive atomic64_dec_if_positive
+-static inline s64
++static __always_inline s64
+ atomic64_read(const atomic64_t *v)
+ {
+ 	__atomic_check_read(v, sizeof(*v));
+@@ -849,7 +850,7 @@ atomic64_read(const atomic64_t *v)
+ #define atomic64_read atomic64_read
+ 
+ #if defined(arch_atomic64_read_acquire)
+-static inline s64
++static __always_inline s64
+ atomic64_read_acquire(const atomic64_t *v)
+ {
+ 	__atomic_check_read(v, sizeof(*v));
+@@ -858,7 +859,7 @@ atomic64_read_acquire(const atomic64_t *
+ #define atomic64_read_acquire atomic64_read_acquire
  #endif
  
--#define atomic64_cond_read_acquire(v, c) smp_cond_load_acquire(&(v)->counter, (c))
--#define atomic64_cond_read_relaxed(v, c) smp_cond_load_relaxed(&(v)->counter, (c))
--
- #endif /* _LINUX_ATOMIC_FALLBACK_H */
--// baaf45f4c24ed88ceae58baca39d7fd80bb8101b
-+// 1fac0941c79bf0ae100723cc2ac9b94061f0b67a
---- a/include/linux/atomic.h
-+++ b/include/linux/atomic.h
-@@ -25,6 +25,12 @@
-  * See Documentation/memory-barriers.txt for ACQUIRE/RELEASE definitions.
-  */
+-static inline void
++static __always_inline void
+ atomic64_set(atomic64_t *v, s64 i)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -867,7 +868,7 @@ atomic64_set(atomic64_t *v, s64 i)
+ #define atomic64_set atomic64_set
  
-+#define atomic_cond_read_acquire(v, c) smp_cond_load_acquire(&(v)->counter, (c))
-+#define atomic_cond_read_relaxed(v, c) smp_cond_load_relaxed(&(v)->counter, (c))
-+
-+#define atomic64_cond_read_acquire(v, c) smp_cond_load_acquire(&(v)->counter, (c))
-+#define atomic64_cond_read_relaxed(v, c) smp_cond_load_relaxed(&(v)->counter, (c))
-+
- /*
-  * The idea here is to build acquire/release variants by adding explicit
-  * barriers on top of the relaxed variant. In the case where the relaxed
-@@ -71,7 +77,12 @@
- 	__ret;								\
+ #if defined(arch_atomic64_set_release)
+-static inline void
++static __always_inline void
+ atomic64_set_release(atomic64_t *v, s64 i)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -876,7 +877,7 @@ atomic64_set_release(atomic64_t *v, s64
+ #define atomic64_set_release atomic64_set_release
+ #endif
+ 
+-static inline void
++static __always_inline void
+ atomic64_add(s64 i, atomic64_t *v)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -885,7 +886,7 @@ atomic64_add(s64 i, atomic64_t *v)
+ #define atomic64_add atomic64_add
+ 
+ #if !defined(arch_atomic64_add_return_relaxed) || defined(arch_atomic64_add_return)
+-static inline s64
++static __always_inline s64
+ atomic64_add_return(s64 i, atomic64_t *v)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -895,7 +896,7 @@ atomic64_add_return(s64 i, atomic64_t *v
+ #endif
+ 
+ #if defined(arch_atomic64_add_return_acquire)
+-static inline s64
++static __always_inline s64
+ atomic64_add_return_acquire(s64 i, atomic64_t *v)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -905,7 +906,7 @@ atomic64_add_return_acquire(s64 i, atomi
+ #endif
+ 
+ #if defined(arch_atomic64_add_return_release)
+-static inline s64
++static __always_inline s64
+ atomic64_add_return_release(s64 i, atomic64_t *v)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -915,7 +916,7 @@ atomic64_add_return_release(s64 i, atomi
+ #endif
+ 
+ #if defined(arch_atomic64_add_return_relaxed)
+-static inline s64
++static __always_inline s64
+ atomic64_add_return_relaxed(s64 i, atomic64_t *v)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -925,7 +926,7 @@ atomic64_add_return_relaxed(s64 i, atomi
+ #endif
+ 
+ #if !defined(arch_atomic64_fetch_add_relaxed) || defined(arch_atomic64_fetch_add)
+-static inline s64
++static __always_inline s64
+ atomic64_fetch_add(s64 i, atomic64_t *v)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -935,7 +936,7 @@ atomic64_fetch_add(s64 i, atomic64_t *v)
+ #endif
+ 
+ #if defined(arch_atomic64_fetch_add_acquire)
+-static inline s64
++static __always_inline s64
+ atomic64_fetch_add_acquire(s64 i, atomic64_t *v)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -945,7 +946,7 @@ atomic64_fetch_add_acquire(s64 i, atomic
+ #endif
+ 
+ #if defined(arch_atomic64_fetch_add_release)
+-static inline s64
++static __always_inline s64
+ atomic64_fetch_add_release(s64 i, atomic64_t *v)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -955,7 +956,7 @@ atomic64_fetch_add_release(s64 i, atomic
+ #endif
+ 
+ #if defined(arch_atomic64_fetch_add_relaxed)
+-static inline s64
++static __always_inline s64
+ atomic64_fetch_add_relaxed(s64 i, atomic64_t *v)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -964,7 +965,7 @@ atomic64_fetch_add_relaxed(s64 i, atomic
+ #define atomic64_fetch_add_relaxed atomic64_fetch_add_relaxed
+ #endif
+ 
+-static inline void
++static __always_inline void
+ atomic64_sub(s64 i, atomic64_t *v)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -973,7 +974,7 @@ atomic64_sub(s64 i, atomic64_t *v)
+ #define atomic64_sub atomic64_sub
+ 
+ #if !defined(arch_atomic64_sub_return_relaxed) || defined(arch_atomic64_sub_return)
+-static inline s64
++static __always_inline s64
+ atomic64_sub_return(s64 i, atomic64_t *v)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -983,7 +984,7 @@ atomic64_sub_return(s64 i, atomic64_t *v
+ #endif
+ 
+ #if defined(arch_atomic64_sub_return_acquire)
+-static inline s64
++static __always_inline s64
+ atomic64_sub_return_acquire(s64 i, atomic64_t *v)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -993,7 +994,7 @@ atomic64_sub_return_acquire(s64 i, atomi
+ #endif
+ 
+ #if defined(arch_atomic64_sub_return_release)
+-static inline s64
++static __always_inline s64
+ atomic64_sub_return_release(s64 i, atomic64_t *v)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -1003,7 +1004,7 @@ atomic64_sub_return_release(s64 i, atomi
+ #endif
+ 
+ #if defined(arch_atomic64_sub_return_relaxed)
+-static inline s64
++static __always_inline s64
+ atomic64_sub_return_relaxed(s64 i, atomic64_t *v)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -1013,7 +1014,7 @@ atomic64_sub_return_relaxed(s64 i, atomi
+ #endif
+ 
+ #if !defined(arch_atomic64_fetch_sub_relaxed) || defined(arch_atomic64_fetch_sub)
+-static inline s64
++static __always_inline s64
+ atomic64_fetch_sub(s64 i, atomic64_t *v)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -1023,7 +1024,7 @@ atomic64_fetch_sub(s64 i, atomic64_t *v)
+ #endif
+ 
+ #if defined(arch_atomic64_fetch_sub_acquire)
+-static inline s64
++static __always_inline s64
+ atomic64_fetch_sub_acquire(s64 i, atomic64_t *v)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -1033,7 +1034,7 @@ atomic64_fetch_sub_acquire(s64 i, atomic
+ #endif
+ 
+ #if defined(arch_atomic64_fetch_sub_release)
+-static inline s64
++static __always_inline s64
+ atomic64_fetch_sub_release(s64 i, atomic64_t *v)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -1043,7 +1044,7 @@ atomic64_fetch_sub_release(s64 i, atomic
+ #endif
+ 
+ #if defined(arch_atomic64_fetch_sub_relaxed)
+-static inline s64
++static __always_inline s64
+ atomic64_fetch_sub_relaxed(s64 i, atomic64_t *v)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -1053,7 +1054,7 @@ atomic64_fetch_sub_relaxed(s64 i, atomic
+ #endif
+ 
+ #if defined(arch_atomic64_inc)
+-static inline void
++static __always_inline void
+ atomic64_inc(atomic64_t *v)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -1063,7 +1064,7 @@ atomic64_inc(atomic64_t *v)
+ #endif
+ 
+ #if defined(arch_atomic64_inc_return)
+-static inline s64
++static __always_inline s64
+ atomic64_inc_return(atomic64_t *v)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -1073,7 +1074,7 @@ atomic64_inc_return(atomic64_t *v)
+ #endif
+ 
+ #if defined(arch_atomic64_inc_return_acquire)
+-static inline s64
++static __always_inline s64
+ atomic64_inc_return_acquire(atomic64_t *v)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -1083,7 +1084,7 @@ atomic64_inc_return_acquire(atomic64_t *
+ #endif
+ 
+ #if defined(arch_atomic64_inc_return_release)
+-static inline s64
++static __always_inline s64
+ atomic64_inc_return_release(atomic64_t *v)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -1093,7 +1094,7 @@ atomic64_inc_return_release(atomic64_t *
+ #endif
+ 
+ #if defined(arch_atomic64_inc_return_relaxed)
+-static inline s64
++static __always_inline s64
+ atomic64_inc_return_relaxed(atomic64_t *v)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -1103,7 +1104,7 @@ atomic64_inc_return_relaxed(atomic64_t *
+ #endif
+ 
+ #if defined(arch_atomic64_fetch_inc)
+-static inline s64
++static __always_inline s64
+ atomic64_fetch_inc(atomic64_t *v)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -1113,7 +1114,7 @@ atomic64_fetch_inc(atomic64_t *v)
+ #endif
+ 
+ #if defined(arch_atomic64_fetch_inc_acquire)
+-static inline s64
++static __always_inline s64
+ atomic64_fetch_inc_acquire(atomic64_t *v)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -1123,7 +1124,7 @@ atomic64_fetch_inc_acquire(atomic64_t *v
+ #endif
+ 
+ #if defined(arch_atomic64_fetch_inc_release)
+-static inline s64
++static __always_inline s64
+ atomic64_fetch_inc_release(atomic64_t *v)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -1133,7 +1134,7 @@ atomic64_fetch_inc_release(atomic64_t *v
+ #endif
+ 
+ #if defined(arch_atomic64_fetch_inc_relaxed)
+-static inline s64
++static __always_inline s64
+ atomic64_fetch_inc_relaxed(atomic64_t *v)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -1143,7 +1144,7 @@ atomic64_fetch_inc_relaxed(atomic64_t *v
+ #endif
+ 
+ #if defined(arch_atomic64_dec)
+-static inline void
++static __always_inline void
+ atomic64_dec(atomic64_t *v)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -1153,7 +1154,7 @@ atomic64_dec(atomic64_t *v)
+ #endif
+ 
+ #if defined(arch_atomic64_dec_return)
+-static inline s64
++static __always_inline s64
+ atomic64_dec_return(atomic64_t *v)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -1163,7 +1164,7 @@ atomic64_dec_return(atomic64_t *v)
+ #endif
+ 
+ #if defined(arch_atomic64_dec_return_acquire)
+-static inline s64
++static __always_inline s64
+ atomic64_dec_return_acquire(atomic64_t *v)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -1173,7 +1174,7 @@ atomic64_dec_return_acquire(atomic64_t *
+ #endif
+ 
+ #if defined(arch_atomic64_dec_return_release)
+-static inline s64
++static __always_inline s64
+ atomic64_dec_return_release(atomic64_t *v)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -1183,7 +1184,7 @@ atomic64_dec_return_release(atomic64_t *
+ #endif
+ 
+ #if defined(arch_atomic64_dec_return_relaxed)
+-static inline s64
++static __always_inline s64
+ atomic64_dec_return_relaxed(atomic64_t *v)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -1193,7 +1194,7 @@ atomic64_dec_return_relaxed(atomic64_t *
+ #endif
+ 
+ #if defined(arch_atomic64_fetch_dec)
+-static inline s64
++static __always_inline s64
+ atomic64_fetch_dec(atomic64_t *v)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -1203,7 +1204,7 @@ atomic64_fetch_dec(atomic64_t *v)
+ #endif
+ 
+ #if defined(arch_atomic64_fetch_dec_acquire)
+-static inline s64
++static __always_inline s64
+ atomic64_fetch_dec_acquire(atomic64_t *v)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -1213,7 +1214,7 @@ atomic64_fetch_dec_acquire(atomic64_t *v
+ #endif
+ 
+ #if defined(arch_atomic64_fetch_dec_release)
+-static inline s64
++static __always_inline s64
+ atomic64_fetch_dec_release(atomic64_t *v)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -1223,7 +1224,7 @@ atomic64_fetch_dec_release(atomic64_t *v
+ #endif
+ 
+ #if defined(arch_atomic64_fetch_dec_relaxed)
+-static inline s64
++static __always_inline s64
+ atomic64_fetch_dec_relaxed(atomic64_t *v)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -1232,7 +1233,7 @@ atomic64_fetch_dec_relaxed(atomic64_t *v
+ #define atomic64_fetch_dec_relaxed atomic64_fetch_dec_relaxed
+ #endif
+ 
+-static inline void
++static __always_inline void
+ atomic64_and(s64 i, atomic64_t *v)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -1241,7 +1242,7 @@ atomic64_and(s64 i, atomic64_t *v)
+ #define atomic64_and atomic64_and
+ 
+ #if !defined(arch_atomic64_fetch_and_relaxed) || defined(arch_atomic64_fetch_and)
+-static inline s64
++static __always_inline s64
+ atomic64_fetch_and(s64 i, atomic64_t *v)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -1251,7 +1252,7 @@ atomic64_fetch_and(s64 i, atomic64_t *v)
+ #endif
+ 
+ #if defined(arch_atomic64_fetch_and_acquire)
+-static inline s64
++static __always_inline s64
+ atomic64_fetch_and_acquire(s64 i, atomic64_t *v)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -1261,7 +1262,7 @@ atomic64_fetch_and_acquire(s64 i, atomic
+ #endif
+ 
+ #if defined(arch_atomic64_fetch_and_release)
+-static inline s64
++static __always_inline s64
+ atomic64_fetch_and_release(s64 i, atomic64_t *v)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -1271,7 +1272,7 @@ atomic64_fetch_and_release(s64 i, atomic
+ #endif
+ 
+ #if defined(arch_atomic64_fetch_and_relaxed)
+-static inline s64
++static __always_inline s64
+ atomic64_fetch_and_relaxed(s64 i, atomic64_t *v)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -1281,7 +1282,7 @@ atomic64_fetch_and_relaxed(s64 i, atomic
+ #endif
+ 
+ #if defined(arch_atomic64_andnot)
+-static inline void
++static __always_inline void
+ atomic64_andnot(s64 i, atomic64_t *v)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -1291,7 +1292,7 @@ atomic64_andnot(s64 i, atomic64_t *v)
+ #endif
+ 
+ #if defined(arch_atomic64_fetch_andnot)
+-static inline s64
++static __always_inline s64
+ atomic64_fetch_andnot(s64 i, atomic64_t *v)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -1301,7 +1302,7 @@ atomic64_fetch_andnot(s64 i, atomic64_t
+ #endif
+ 
+ #if defined(arch_atomic64_fetch_andnot_acquire)
+-static inline s64
++static __always_inline s64
+ atomic64_fetch_andnot_acquire(s64 i, atomic64_t *v)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -1311,7 +1312,7 @@ atomic64_fetch_andnot_acquire(s64 i, ato
+ #endif
+ 
+ #if defined(arch_atomic64_fetch_andnot_release)
+-static inline s64
++static __always_inline s64
+ atomic64_fetch_andnot_release(s64 i, atomic64_t *v)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -1321,7 +1322,7 @@ atomic64_fetch_andnot_release(s64 i, ato
+ #endif
+ 
+ #if defined(arch_atomic64_fetch_andnot_relaxed)
+-static inline s64
++static __always_inline s64
+ atomic64_fetch_andnot_relaxed(s64 i, atomic64_t *v)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -1330,7 +1331,7 @@ atomic64_fetch_andnot_relaxed(s64 i, ato
+ #define atomic64_fetch_andnot_relaxed atomic64_fetch_andnot_relaxed
+ #endif
+ 
+-static inline void
++static __always_inline void
+ atomic64_or(s64 i, atomic64_t *v)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -1339,7 +1340,7 @@ atomic64_or(s64 i, atomic64_t *v)
+ #define atomic64_or atomic64_or
+ 
+ #if !defined(arch_atomic64_fetch_or_relaxed) || defined(arch_atomic64_fetch_or)
+-static inline s64
++static __always_inline s64
+ atomic64_fetch_or(s64 i, atomic64_t *v)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -1349,7 +1350,7 @@ atomic64_fetch_or(s64 i, atomic64_t *v)
+ #endif
+ 
+ #if defined(arch_atomic64_fetch_or_acquire)
+-static inline s64
++static __always_inline s64
+ atomic64_fetch_or_acquire(s64 i, atomic64_t *v)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -1359,7 +1360,7 @@ atomic64_fetch_or_acquire(s64 i, atomic6
+ #endif
+ 
+ #if defined(arch_atomic64_fetch_or_release)
+-static inline s64
++static __always_inline s64
+ atomic64_fetch_or_release(s64 i, atomic64_t *v)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -1369,7 +1370,7 @@ atomic64_fetch_or_release(s64 i, atomic6
+ #endif
+ 
+ #if defined(arch_atomic64_fetch_or_relaxed)
+-static inline s64
++static __always_inline s64
+ atomic64_fetch_or_relaxed(s64 i, atomic64_t *v)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -1378,7 +1379,7 @@ atomic64_fetch_or_relaxed(s64 i, atomic6
+ #define atomic64_fetch_or_relaxed atomic64_fetch_or_relaxed
+ #endif
+ 
+-static inline void
++static __always_inline void
+ atomic64_xor(s64 i, atomic64_t *v)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -1387,7 +1388,7 @@ atomic64_xor(s64 i, atomic64_t *v)
+ #define atomic64_xor atomic64_xor
+ 
+ #if !defined(arch_atomic64_fetch_xor_relaxed) || defined(arch_atomic64_fetch_xor)
+-static inline s64
++static __always_inline s64
+ atomic64_fetch_xor(s64 i, atomic64_t *v)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -1397,7 +1398,7 @@ atomic64_fetch_xor(s64 i, atomic64_t *v)
+ #endif
+ 
+ #if defined(arch_atomic64_fetch_xor_acquire)
+-static inline s64
++static __always_inline s64
+ atomic64_fetch_xor_acquire(s64 i, atomic64_t *v)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -1407,7 +1408,7 @@ atomic64_fetch_xor_acquire(s64 i, atomic
+ #endif
+ 
+ #if defined(arch_atomic64_fetch_xor_release)
+-static inline s64
++static __always_inline s64
+ atomic64_fetch_xor_release(s64 i, atomic64_t *v)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -1417,7 +1418,7 @@ atomic64_fetch_xor_release(s64 i, atomic
+ #endif
+ 
+ #if defined(arch_atomic64_fetch_xor_relaxed)
+-static inline s64
++static __always_inline s64
+ atomic64_fetch_xor_relaxed(s64 i, atomic64_t *v)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -1427,7 +1428,7 @@ atomic64_fetch_xor_relaxed(s64 i, atomic
+ #endif
+ 
+ #if !defined(arch_atomic64_xchg_relaxed) || defined(arch_atomic64_xchg)
+-static inline s64
++static __always_inline s64
+ atomic64_xchg(atomic64_t *v, s64 i)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -1437,7 +1438,7 @@ atomic64_xchg(atomic64_t *v, s64 i)
+ #endif
+ 
+ #if defined(arch_atomic64_xchg_acquire)
+-static inline s64
++static __always_inline s64
+ atomic64_xchg_acquire(atomic64_t *v, s64 i)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -1447,7 +1448,7 @@ atomic64_xchg_acquire(atomic64_t *v, s64
+ #endif
+ 
+ #if defined(arch_atomic64_xchg_release)
+-static inline s64
++static __always_inline s64
+ atomic64_xchg_release(atomic64_t *v, s64 i)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -1457,7 +1458,7 @@ atomic64_xchg_release(atomic64_t *v, s64
+ #endif
+ 
+ #if defined(arch_atomic64_xchg_relaxed)
+-static inline s64
++static __always_inline s64
+ atomic64_xchg_relaxed(atomic64_t *v, s64 i)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -1467,7 +1468,7 @@ atomic64_xchg_relaxed(atomic64_t *v, s64
+ #endif
+ 
+ #if !defined(arch_atomic64_cmpxchg_relaxed) || defined(arch_atomic64_cmpxchg)
+-static inline s64
++static __always_inline s64
+ atomic64_cmpxchg(atomic64_t *v, s64 old, s64 new)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -1477,7 +1478,7 @@ atomic64_cmpxchg(atomic64_t *v, s64 old,
+ #endif
+ 
+ #if defined(arch_atomic64_cmpxchg_acquire)
+-static inline s64
++static __always_inline s64
+ atomic64_cmpxchg_acquire(atomic64_t *v, s64 old, s64 new)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -1487,7 +1488,7 @@ atomic64_cmpxchg_acquire(atomic64_t *v,
+ #endif
+ 
+ #if defined(arch_atomic64_cmpxchg_release)
+-static inline s64
++static __always_inline s64
+ atomic64_cmpxchg_release(atomic64_t *v, s64 old, s64 new)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -1497,7 +1498,7 @@ atomic64_cmpxchg_release(atomic64_t *v,
+ #endif
+ 
+ #if defined(arch_atomic64_cmpxchg_relaxed)
+-static inline s64
++static __always_inline s64
+ atomic64_cmpxchg_relaxed(atomic64_t *v, s64 old, s64 new)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -1507,7 +1508,7 @@ atomic64_cmpxchg_relaxed(atomic64_t *v,
+ #endif
+ 
+ #if defined(arch_atomic64_try_cmpxchg)
+-static inline bool
++static __always_inline bool
+ atomic64_try_cmpxchg(atomic64_t *v, s64 *old, s64 new)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -1518,7 +1519,7 @@ atomic64_try_cmpxchg(atomic64_t *v, s64
+ #endif
+ 
+ #if defined(arch_atomic64_try_cmpxchg_acquire)
+-static inline bool
++static __always_inline bool
+ atomic64_try_cmpxchg_acquire(atomic64_t *v, s64 *old, s64 new)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -1529,7 +1530,7 @@ atomic64_try_cmpxchg_acquire(atomic64_t
+ #endif
+ 
+ #if defined(arch_atomic64_try_cmpxchg_release)
+-static inline bool
++static __always_inline bool
+ atomic64_try_cmpxchg_release(atomic64_t *v, s64 *old, s64 new)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -1540,7 +1541,7 @@ atomic64_try_cmpxchg_release(atomic64_t
+ #endif
+ 
+ #if defined(arch_atomic64_try_cmpxchg_relaxed)
+-static inline bool
++static __always_inline bool
+ atomic64_try_cmpxchg_relaxed(atomic64_t *v, s64 *old, s64 new)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -1551,7 +1552,7 @@ atomic64_try_cmpxchg_relaxed(atomic64_t
+ #endif
+ 
+ #if defined(arch_atomic64_sub_and_test)
+-static inline bool
++static __always_inline bool
+ atomic64_sub_and_test(s64 i, atomic64_t *v)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -1561,7 +1562,7 @@ atomic64_sub_and_test(s64 i, atomic64_t
+ #endif
+ 
+ #if defined(arch_atomic64_dec_and_test)
+-static inline bool
++static __always_inline bool
+ atomic64_dec_and_test(atomic64_t *v)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -1571,7 +1572,7 @@ atomic64_dec_and_test(atomic64_t *v)
+ #endif
+ 
+ #if defined(arch_atomic64_inc_and_test)
+-static inline bool
++static __always_inline bool
+ atomic64_inc_and_test(atomic64_t *v)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -1581,7 +1582,7 @@ atomic64_inc_and_test(atomic64_t *v)
+ #endif
+ 
+ #if defined(arch_atomic64_add_negative)
+-static inline bool
++static __always_inline bool
+ atomic64_add_negative(s64 i, atomic64_t *v)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -1591,7 +1592,7 @@ atomic64_add_negative(s64 i, atomic64_t
+ #endif
+ 
+ #if defined(arch_atomic64_fetch_add_unless)
+-static inline s64
++static __always_inline s64
+ atomic64_fetch_add_unless(atomic64_t *v, s64 a, s64 u)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -1601,7 +1602,7 @@ atomic64_fetch_add_unless(atomic64_t *v,
+ #endif
+ 
+ #if defined(arch_atomic64_add_unless)
+-static inline bool
++static __always_inline bool
+ atomic64_add_unless(atomic64_t *v, s64 a, s64 u)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -1611,7 +1612,7 @@ atomic64_add_unless(atomic64_t *v, s64 a
+ #endif
+ 
+ #if defined(arch_atomic64_inc_not_zero)
+-static inline bool
++static __always_inline bool
+ atomic64_inc_not_zero(atomic64_t *v)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -1621,7 +1622,7 @@ atomic64_inc_not_zero(atomic64_t *v)
+ #endif
+ 
+ #if defined(arch_atomic64_inc_unless_negative)
+-static inline bool
++static __always_inline bool
+ atomic64_inc_unless_negative(atomic64_t *v)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -1631,7 +1632,7 @@ atomic64_inc_unless_negative(atomic64_t
+ #endif
+ 
+ #if defined(arch_atomic64_dec_unless_positive)
+-static inline bool
++static __always_inline bool
+ atomic64_dec_unless_positive(atomic64_t *v)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -1641,7 +1642,7 @@ atomic64_dec_unless_positive(atomic64_t
+ #endif
+ 
+ #if defined(arch_atomic64_dec_if_positive)
+-static inline s64
++static __always_inline s64
+ atomic64_dec_if_positive(atomic64_t *v)
+ {
+ 	__atomic_check_write(v, sizeof(*v));
+@@ -1795,4 +1796,4 @@ atomic64_dec_if_positive(atomic64_t *v)
  })
  
-+#ifdef ARCH_ATOMIC
-+#include <linux/atomic-arch-fallback.h>
-+#include <asm-generic/atomic-instrumented.h>
-+#else
- #include <linux/atomic-fallback.h>
-+#endif
+ #endif /* _ASM_GENERIC_ATOMIC_INSTRUMENTED_H */
+-// aa929c117bdd954a0957b91fe509f118ca8b9707
++// 6c1b0b614b55b76c258f89e205622e8f004871af
+--- a/include/asm-generic/atomic-long.h
++++ b/include/asm-generic/atomic-long.h
+@@ -6,6 +6,7 @@
+ #ifndef _ASM_GENERIC_ATOMIC_LONG_H
+ #define _ASM_GENERIC_ATOMIC_LONG_H
  
- #include <asm-generic/atomic-long.h>
++#include <linux/compiler.h>
+ #include <asm/types.h>
  
---- a/scripts/atomic/fallbacks/acquire
-+++ b/scripts/atomic/fallbacks/acquire
-@@ -1,8 +1,8 @@
- cat <<EOF
- static __always_inline ${ret}
--${atomic}_${pfx}${name}${sfx}_acquire(${params})
-+${arch}${atomic}_${pfx}${name}${sfx}_acquire(${params})
- {
--	${ret} ret = ${atomic}_${pfx}${name}${sfx}_relaxed(${args});
-+	${ret} ret = ${arch}${atomic}_${pfx}${name}${sfx}_relaxed(${args});
- 	__atomic_acquire_fence();
- 	return ret;
- }
---- a/scripts/atomic/fallbacks/add_negative
-+++ b/scripts/atomic/fallbacks/add_negative
-@@ -1,6 +1,6 @@
- cat <<EOF
- /**
-- * ${atomic}_add_negative - add and test if negative
-+ * ${arch}${atomic}_add_negative - add and test if negative
-  * @i: integer value to add
-  * @v: pointer of type ${atomic}_t
-  *
-@@ -9,8 +9,8 @@ cat <<EOF
-  * result is greater than or equal to zero.
-  */
- static __always_inline bool
--${atomic}_add_negative(${int} i, ${atomic}_t *v)
-+${arch}${atomic}_add_negative(${int} i, ${atomic}_t *v)
- {
--	return ${atomic}_add_return(i, v) < 0;
-+	return ${arch}${atomic}_add_return(i, v) < 0;
- }
- EOF
---- a/scripts/atomic/fallbacks/add_unless
-+++ b/scripts/atomic/fallbacks/add_unless
-@@ -1,6 +1,6 @@
- cat << EOF
- /**
-- * ${atomic}_add_unless - add unless the number is already a given value
-+ * ${arch}${atomic}_add_unless - add unless the number is already a given value
-  * @v: pointer of type ${atomic}_t
-  * @a: the amount to add to v...
-  * @u: ...unless v is equal to u.
-@@ -9,8 +9,8 @@ cat << EOF
-  * Returns true if the addition was done.
-  */
- static __always_inline bool
--${atomic}_add_unless(${atomic}_t *v, ${int} a, ${int} u)
-+${arch}${atomic}_add_unless(${atomic}_t *v, ${int} a, ${int} u)
- {
--	return ${atomic}_fetch_add_unless(v, a, u) != u;
-+	return ${arch}${atomic}_fetch_add_unless(v, a, u) != u;
- }
- EOF
---- a/scripts/atomic/fallbacks/andnot
-+++ b/scripts/atomic/fallbacks/andnot
-@@ -1,7 +1,7 @@
- cat <<EOF
- static __always_inline ${ret}
--${atomic}_${pfx}andnot${sfx}${order}(${int} i, ${atomic}_t *v)
-+${arch}${atomic}_${pfx}andnot${sfx}${order}(${int} i, ${atomic}_t *v)
- {
--	${retstmt}${atomic}_${pfx}and${sfx}${order}(~i, v);
-+	${retstmt}${arch}${atomic}_${pfx}and${sfx}${order}(~i, v);
- }
- EOF
---- a/scripts/atomic/fallbacks/dec
-+++ b/scripts/atomic/fallbacks/dec
-@@ -1,7 +1,7 @@
- cat <<EOF
- static __always_inline ${ret}
--${atomic}_${pfx}dec${sfx}${order}(${atomic}_t *v)
-+${arch}${atomic}_${pfx}dec${sfx}${order}(${atomic}_t *v)
- {
--	${retstmt}${atomic}_${pfx}sub${sfx}${order}(1, v);
-+	${retstmt}${arch}${atomic}_${pfx}sub${sfx}${order}(1, v);
- }
- EOF
---- a/scripts/atomic/fallbacks/dec_and_test
-+++ b/scripts/atomic/fallbacks/dec_and_test
-@@ -1,6 +1,6 @@
- cat <<EOF
- /**
-- * ${atomic}_dec_and_test - decrement and test
-+ * ${arch}${atomic}_dec_and_test - decrement and test
-  * @v: pointer of type ${atomic}_t
-  *
-  * Atomically decrements @v by 1 and
-@@ -8,8 +8,8 @@ cat <<EOF
-  * cases.
-  */
- static __always_inline bool
--${atomic}_dec_and_test(${atomic}_t *v)
-+${arch}${atomic}_dec_and_test(${atomic}_t *v)
- {
--	return ${atomic}_dec_return(v) == 0;
-+	return ${arch}${atomic}_dec_return(v) == 0;
- }
- EOF
---- a/scripts/atomic/fallbacks/dec_if_positive
-+++ b/scripts/atomic/fallbacks/dec_if_positive
-@@ -1,14 +1,14 @@
- cat <<EOF
- static __always_inline ${ret}
--${atomic}_dec_if_positive(${atomic}_t *v)
-+${arch}${atomic}_dec_if_positive(${atomic}_t *v)
- {
--	${int} dec, c = ${atomic}_read(v);
-+	${int} dec, c = ${arch}${atomic}_read(v);
+ #ifdef CONFIG_64BIT
+@@ -22,493 +23,493 @@ typedef atomic_t atomic_long_t;
  
- 	do {
- 		dec = c - 1;
- 		if (unlikely(dec < 0))
- 			break;
--	} while (!${atomic}_try_cmpxchg(v, &c, dec));
-+	} while (!${arch}${atomic}_try_cmpxchg(v, &c, dec));
+ #ifdef CONFIG_64BIT
  
- 	return dec;
+-static inline long
++static __always_inline long
+ atomic_long_read(const atomic_long_t *v)
+ {
+ 	return atomic64_read(v);
  }
---- a/scripts/atomic/fallbacks/dec_unless_positive
-+++ b/scripts/atomic/fallbacks/dec_unless_positive
-@@ -1,13 +1,13 @@
+ 
+-static inline long
++static __always_inline long
+ atomic_long_read_acquire(const atomic_long_t *v)
+ {
+ 	return atomic64_read_acquire(v);
+ }
+ 
+-static inline void
++static __always_inline void
+ atomic_long_set(atomic_long_t *v, long i)
+ {
+ 	atomic64_set(v, i);
+ }
+ 
+-static inline void
++static __always_inline void
+ atomic_long_set_release(atomic_long_t *v, long i)
+ {
+ 	atomic64_set_release(v, i);
+ }
+ 
+-static inline void
++static __always_inline void
+ atomic_long_add(long i, atomic_long_t *v)
+ {
+ 	atomic64_add(i, v);
+ }
+ 
+-static inline long
++static __always_inline long
+ atomic_long_add_return(long i, atomic_long_t *v)
+ {
+ 	return atomic64_add_return(i, v);
+ }
+ 
+-static inline long
++static __always_inline long
+ atomic_long_add_return_acquire(long i, atomic_long_t *v)
+ {
+ 	return atomic64_add_return_acquire(i, v);
+ }
+ 
+-static inline long
++static __always_inline long
+ atomic_long_add_return_release(long i, atomic_long_t *v)
+ {
+ 	return atomic64_add_return_release(i, v);
+ }
+ 
+-static inline long
++static __always_inline long
+ atomic_long_add_return_relaxed(long i, atomic_long_t *v)
+ {
+ 	return atomic64_add_return_relaxed(i, v);
+ }
+ 
+-static inline long
++static __always_inline long
+ atomic_long_fetch_add(long i, atomic_long_t *v)
+ {
+ 	return atomic64_fetch_add(i, v);
+ }
+ 
+-static inline long
++static __always_inline long
+ atomic_long_fetch_add_acquire(long i, atomic_long_t *v)
+ {
+ 	return atomic64_fetch_add_acquire(i, v);
+ }
+ 
+-static inline long
++static __always_inline long
+ atomic_long_fetch_add_release(long i, atomic_long_t *v)
+ {
+ 	return atomic64_fetch_add_release(i, v);
+ }
+ 
+-static inline long
++static __always_inline long
+ atomic_long_fetch_add_relaxed(long i, atomic_long_t *v)
+ {
+ 	return atomic64_fetch_add_relaxed(i, v);
+ }
+ 
+-static inline void
++static __always_inline void
+ atomic_long_sub(long i, atomic_long_t *v)
+ {
+ 	atomic64_sub(i, v);
+ }
+ 
+-static inline long
++static __always_inline long
+ atomic_long_sub_return(long i, atomic_long_t *v)
+ {
+ 	return atomic64_sub_return(i, v);
+ }
+ 
+-static inline long
++static __always_inline long
+ atomic_long_sub_return_acquire(long i, atomic_long_t *v)
+ {
+ 	return atomic64_sub_return_acquire(i, v);
+ }
+ 
+-static inline long
++static __always_inline long
+ atomic_long_sub_return_release(long i, atomic_long_t *v)
+ {
+ 	return atomic64_sub_return_release(i, v);
+ }
+ 
+-static inline long
++static __always_inline long
+ atomic_long_sub_return_relaxed(long i, atomic_long_t *v)
+ {
+ 	return atomic64_sub_return_relaxed(i, v);
+ }
+ 
+-static inline long
++static __always_inline long
+ atomic_long_fetch_sub(long i, atomic_long_t *v)
+ {
+ 	return atomic64_fetch_sub(i, v);
+ }
+ 
+-static inline long
++static __always_inline long
+ atomic_long_fetch_sub_acquire(long i, atomic_long_t *v)
+ {
+ 	return atomic64_fetch_sub_acquire(i, v);
+ }
+ 
+-static inline long
++static __always_inline long
+ atomic_long_fetch_sub_release(long i, atomic_long_t *v)
+ {
+ 	return atomic64_fetch_sub_release(i, v);
+ }
+ 
+-static inline long
++static __always_inline long
+ atomic_long_fetch_sub_relaxed(long i, atomic_long_t *v)
+ {
+ 	return atomic64_fetch_sub_relaxed(i, v);
+ }
+ 
+-static inline void
++static __always_inline void
+ atomic_long_inc(atomic_long_t *v)
+ {
+ 	atomic64_inc(v);
+ }
+ 
+-static inline long
++static __always_inline long
+ atomic_long_inc_return(atomic_long_t *v)
+ {
+ 	return atomic64_inc_return(v);
+ }
+ 
+-static inline long
++static __always_inline long
+ atomic_long_inc_return_acquire(atomic_long_t *v)
+ {
+ 	return atomic64_inc_return_acquire(v);
+ }
+ 
+-static inline long
++static __always_inline long
+ atomic_long_inc_return_release(atomic_long_t *v)
+ {
+ 	return atomic64_inc_return_release(v);
+ }
+ 
+-static inline long
++static __always_inline long
+ atomic_long_inc_return_relaxed(atomic_long_t *v)
+ {
+ 	return atomic64_inc_return_relaxed(v);
+ }
+ 
+-static inline long
++static __always_inline long
+ atomic_long_fetch_inc(atomic_long_t *v)
+ {
+ 	return atomic64_fetch_inc(v);
+ }
+ 
+-static inline long
++static __always_inline long
+ atomic_long_fetch_inc_acquire(atomic_long_t *v)
+ {
+ 	return atomic64_fetch_inc_acquire(v);
+ }
+ 
+-static inline long
++static __always_inline long
+ atomic_long_fetch_inc_release(atomic_long_t *v)
+ {
+ 	return atomic64_fetch_inc_release(v);
+ }
+ 
+-static inline long
++static __always_inline long
+ atomic_long_fetch_inc_relaxed(atomic_long_t *v)
+ {
+ 	return atomic64_fetch_inc_relaxed(v);
+ }
+ 
+-static inline void
++static __always_inline void
+ atomic_long_dec(atomic_long_t *v)
+ {
+ 	atomic64_dec(v);
+ }
+ 
+-static inline long
++static __always_inline long
+ atomic_long_dec_return(atomic_long_t *v)
+ {
+ 	return atomic64_dec_return(v);
+ }
+ 
+-static inline long
++static __always_inline long
+ atomic_long_dec_return_acquire(atomic_long_t *v)
+ {
+ 	return atomic64_dec_return_acquire(v);
+ }
+ 
+-static inline long
++static __always_inline long
+ atomic_long_dec_return_release(atomic_long_t *v)
+ {
+ 	return atomic64_dec_return_release(v);
+ }
+ 
+-static inline long
++static __always_inline long
+ atomic_long_dec_return_relaxed(atomic_long_t *v)
+ {
+ 	return atomic64_dec_return_relaxed(v);
+ }
+ 
+-static inline long
++static __always_inline long
+ atomic_long_fetch_dec(atomic_long_t *v)
+ {
+ 	return atomic64_fetch_dec(v);
+ }
+ 
+-static inline long
++static __always_inline long
+ atomic_long_fetch_dec_acquire(atomic_long_t *v)
+ {
+ 	return atomic64_fetch_dec_acquire(v);
+ }
+ 
+-static inline long
++static __always_inline long
+ atomic_long_fetch_dec_release(atomic_long_t *v)
+ {
+ 	return atomic64_fetch_dec_release(v);
+ }
+ 
+-static inline long
++static __always_inline long
+ atomic_long_fetch_dec_relaxed(atomic_long_t *v)
+ {
+ 	return atomic64_fetch_dec_relaxed(v);
+ }
+ 
+-static inline void
++static __always_inline void
+ atomic_long_and(long i, atomic_long_t *v)
+ {
+ 	atomic64_and(i, v);
+ }
+ 
+-static inline long
++static __always_inline long
+ atomic_long_fetch_and(long i, atomic_long_t *v)
+ {
+ 	return atomic64_fetch_and(i, v);
+ }
+ 
+-static inline long
++static __always_inline long
+ atomic_long_fetch_and_acquire(long i, atomic_long_t *v)
+ {
+ 	return atomic64_fetch_and_acquire(i, v);
+ }
+ 
+-static inline long
++static __always_inline long
+ atomic_long_fetch_and_release(long i, atomic_long_t *v)
+ {
+ 	return atomic64_fetch_and_release(i, v);
+ }
+ 
+-static inline long
++static __always_inline long
+ atomic_long_fetch_and_relaxed(long i, atomic_long_t *v)
+ {
+ 	return atomic64_fetch_and_relaxed(i, v);
+ }
+ 
+-static inline void
++static __always_inline void
+ atomic_long_andnot(long i, atomic_long_t *v)
+ {
+ 	atomic64_andnot(i, v);
+ }
+ 
+-static inline long
++static __always_inline long
+ atomic_long_fetch_andnot(long i, atomic_long_t *v)
+ {
+ 	return atomic64_fetch_andnot(i, v);
+ }
+ 
+-static inline long
++static __always_inline long
+ atomic_long_fetch_andnot_acquire(long i, atomic_long_t *v)
+ {
+ 	return atomic64_fetch_andnot_acquire(i, v);
+ }
+ 
+-static inline long
++static __always_inline long
+ atomic_long_fetch_andnot_release(long i, atomic_long_t *v)
+ {
+ 	return atomic64_fetch_andnot_release(i, v);
+ }
+ 
+-static inline long
++static __always_inline long
+ atomic_long_fetch_andnot_relaxed(long i, atomic_long_t *v)
+ {
+ 	return atomic64_fetch_andnot_relaxed(i, v);
+ }
+ 
+-static inline void
++static __always_inline void
+ atomic_long_or(long i, atomic_long_t *v)
+ {
+ 	atomic64_or(i, v);
+ }
+ 
+-static inline long
++static __always_inline long
+ atomic_long_fetch_or(long i, atomic_long_t *v)
+ {
+ 	return atomic64_fetch_or(i, v);
+ }
+ 
+-static inline long
++static __always_inline long
+ atomic_long_fetch_or_acquire(long i, atomic_long_t *v)
+ {
+ 	return atomic64_fetch_or_acquire(i, v);
+ }
+ 
+-static inline long
++static __always_inline long
+ atomic_long_fetch_or_release(long i, atomic_long_t *v)
+ {
+ 	return atomic64_fetch_or_release(i, v);
+ }
+ 
+-static inline long
++static __always_inline long
+ atomic_long_fetch_or_relaxed(long i, atomic_long_t *v)
+ {
+ 	return atomic64_fetch_or_relaxed(i, v);
+ }
+ 
+-static inline void
++static __always_inline void
+ atomic_long_xor(long i, atomic_long_t *v)
+ {
+ 	atomic64_xor(i, v);
+ }
+ 
+-static inline long
++static __always_inline long
+ atomic_long_fetch_xor(long i, atomic_long_t *v)
+ {
+ 	return atomic64_fetch_xor(i, v);
+ }
+ 
+-static inline long
++static __always_inline long
+ atomic_long_fetch_xor_acquire(long i, atomic_long_t *v)
+ {
+ 	return atomic64_fetch_xor_acquire(i, v);
+ }
+ 
+-static inline long
++static __always_inline long
+ atomic_long_fetch_xor_release(long i, atomic_long_t *v)
+ {
+ 	return atomic64_fetch_xor_release(i, v);
+ }
+ 
+-static inline long
++static __always_inline long
+ atomic_long_fetch_xor_relaxed(long i, atomic_long_t *v)
+ {
+ 	return atomic64_fetch_xor_relaxed(i, v);
+ }
+ 
+-static inline long
++static __always_inline long
+ atomic_long_xchg(atomic_long_t *v, long i)
+ {
+ 	return atomic64_xchg(v, i);
+ }
+ 
+-static inline long
++static __always_inline long
+ atomic_long_xchg_acquire(atomic_long_t *v, long i)
+ {
+ 	return atomic64_xchg_acquire(v, i);
+ }
+ 
+-static inline long
++static __always_inline long
+ atomic_long_xchg_release(atomic_long_t *v, long i)
+ {
+ 	return atomic64_xchg_release(v, i);
+ }
+ 
+-static inline long
++static __always_inline long
+ atomic_long_xchg_relaxed(atomic_long_t *v, long i)
+ {
+ 	return atomic64_xchg_relaxed(v, i);
+ }
+ 
+-static inline long
++static __always_inline long
+ atomic_long_cmpxchg(atomic_long_t *v, long old, long new)
+ {
+ 	return atomic64_cmpxchg(v, old, new);
+ }
+ 
+-static inline long
++static __always_inline long
+ atomic_long_cmpxchg_acquire(atomic_long_t *v, long old, long new)
+ {
+ 	return atomic64_cmpxchg_acquire(v, old, new);
+ }
+ 
+-static inline long
++static __always_inline long
+ atomic_long_cmpxchg_release(atomic_long_t *v, long old, long new)
+ {
+ 	return atomic64_cmpxchg_release(v, old, new);
+ }
+ 
+-static inline long
++static __always_inline long
+ atomic_long_cmpxchg_relaxed(atomic_long_t *v, long old, long new)
+ {
+ 	return atomic64_cmpxchg_relaxed(v, old, new);
+ }
+ 
+-static inline bool
++static __always_inline bool
+ atomic_long_try_cmpxchg(atomic_long_t *v, long *old, long new)
+ {
+ 	return atomic64_try_cmpxchg(v, (s64 *)old, new);
+ }
+ 
+-static inline bool
++static __always_inline bool
+ atomic_long_try_cmpxchg_acquire(atomic_long_t *v, long *old, long new)
+ {
+ 	return atomic64_try_cmpxchg_acquire(v, (s64 *)old, new);
+ }
+ 
+-static inline bool
++static __always_inline bool
+ atomic_long_try_cmpxchg_release(atomic_long_t *v, long *old, long new)
+ {
+ 	return atomic64_try_cmpxchg_release(v, (s64 *)old, new);
+ }
+ 
+-static inline bool
++static __always_inline bool
+ atomic_long_try_cmpxchg_relaxed(atomic_long_t *v, long *old, long new)
+ {
+ 	return atomic64_try_cmpxchg_relaxed(v, (s64 *)old, new);
+ }
+ 
+-static inline bool
++static __always_inline bool
+ atomic_long_sub_and_test(long i, atomic_long_t *v)
+ {
+ 	return atomic64_sub_and_test(i, v);
+ }
+ 
+-static inline bool
++static __always_inline bool
+ atomic_long_dec_and_test(atomic_long_t *v)
+ {
+ 	return atomic64_dec_and_test(v);
+ }
+ 
+-static inline bool
++static __always_inline bool
+ atomic_long_inc_and_test(atomic_long_t *v)
+ {
+ 	return atomic64_inc_and_test(v);
+ }
+ 
+-static inline bool
++static __always_inline bool
+ atomic_long_add_negative(long i, atomic_long_t *v)
+ {
+ 	return atomic64_add_negative(i, v);
+ }
+ 
+-static inline long
++static __always_inline long
+ atomic_long_fetch_add_unless(atomic_long_t *v, long a, long u)
+ {
+ 	return atomic64_fetch_add_unless(v, a, u);
+ }
+ 
+-static inline bool
++static __always_inline bool
+ atomic_long_add_unless(atomic_long_t *v, long a, long u)
+ {
+ 	return atomic64_add_unless(v, a, u);
+ }
+ 
+-static inline bool
++static __always_inline bool
+ atomic_long_inc_not_zero(atomic_long_t *v)
+ {
+ 	return atomic64_inc_not_zero(v);
+ }
+ 
+-static inline bool
++static __always_inline bool
+ atomic_long_inc_unless_negative(atomic_long_t *v)
+ {
+ 	return atomic64_inc_unless_negative(v);
+ }
+ 
+-static inline bool
++static __always_inline bool
+ atomic_long_dec_unless_positive(atomic_long_t *v)
+ {
+ 	return atomic64_dec_unless_positive(v);
+ }
+ 
+-static inline long
++static __always_inline long
+ atomic_long_dec_if_positive(atomic_long_t *v)
+ {
+ 	return atomic64_dec_if_positive(v);
+@@ -516,493 +517,493 @@ atomic_long_dec_if_positive(atomic_long_
+ 
+ #else /* CONFIG_64BIT */
+ 
+-static inline long
++static __always_inline long
+ atomic_long_read(const atomic_long_t *v)
+ {
+ 	return atomic_read(v);
+ }
+ 
+-static inline long
++static __always_inline long
+ atomic_long_read_acquire(const atomic_long_t *v)
+ {
+ 	return atomic_read_acquire(v);
+ }
+ 
+-static inline void
++static __always_inline void
+ atomic_long_set(atomic_long_t *v, long i)
+ {
+ 	atomic_set(v, i);
+ }
+ 
+-static inline void
++static __always_inline void
+ atomic_long_set_release(atomic_long_t *v, long i)
+ {
+ 	atomic_set_release(v, i);
+ }
+ 
+-static inline void
++static __always_inline void
+ atomic_long_add(long i, atomic_long_t *v)
+ {
+ 	atomic_add(i, v);
+ }
+ 
+-static inline long
++static __always_inline long
+ atomic_long_add_return(long i, atomic_long_t *v)
+ {
+ 	return atomic_add_return(i, v);
+ }
+ 
+-static inline long
++static __always_inline long
+ atomic_long_add_return_acquire(long i, atomic_long_t *v)
+ {
+ 	return atomic_add_return_acquire(i, v);
+ }
+ 
+-static inline long
++static __always_inline long
+ atomic_long_add_return_release(long i, atomic_long_t *v)
+ {
+ 	return atomic_add_return_release(i, v);
+ }
+ 
+-static inline long
++static __always_inline long
+ atomic_long_add_return_relaxed(long i, atomic_long_t *v)
+ {
+ 	return atomic_add_return_relaxed(i, v);
+ }
+ 
+-static inline long
++static __always_inline long
+ atomic_long_fetch_add(long i, atomic_long_t *v)
+ {
+ 	return atomic_fetch_add(i, v);
+ }
+ 
+-static inline long
++static __always_inline long
+ atomic_long_fetch_add_acquire(long i, atomic_long_t *v)
+ {
+ 	return atomic_fetch_add_acquire(i, v);
+ }
+ 
+-static inline long
++static __always_inline long
+ atomic_long_fetch_add_release(long i, atomic_long_t *v)
+ {
+ 	return atomic_fetch_add_release(i, v);
+ }
+ 
+-static inline long
++static __always_inline long
+ atomic_long_fetch_add_relaxed(long i, atomic_long_t *v)
+ {
+ 	return atomic_fetch_add_relaxed(i, v);
+ }
+ 
+-static inline void
++static __always_inline void
+ atomic_long_sub(long i, atomic_long_t *v)
+ {
+ 	atomic_sub(i, v);
+ }
+ 
+-static inline long
++static __always_inline long
+ atomic_long_sub_return(long i, atomic_long_t *v)
+ {
+ 	return atomic_sub_return(i, v);
+ }
+ 
+-static inline long
++static __always_inline long
+ atomic_long_sub_return_acquire(long i, atomic_long_t *v)
+ {
+ 	return atomic_sub_return_acquire(i, v);
+ }
+ 
+-static inline long
++static __always_inline long
+ atomic_long_sub_return_release(long i, atomic_long_t *v)
+ {
+ 	return atomic_sub_return_release(i, v);
+ }
+ 
+-static inline long
++static __always_inline long
+ atomic_long_sub_return_relaxed(long i, atomic_long_t *v)
+ {
+ 	return atomic_sub_return_relaxed(i, v);
+ }
+ 
+-static inline long
++static __always_inline long
+ atomic_long_fetch_sub(long i, atomic_long_t *v)
+ {
+ 	return atomic_fetch_sub(i, v);
+ }
+ 
+-static inline long
++static __always_inline long
+ atomic_long_fetch_sub_acquire(long i, atomic_long_t *v)
+ {
+ 	return atomic_fetch_sub_acquire(i, v);
+ }
+ 
+-static inline long
++static __always_inline long
+ atomic_long_fetch_sub_release(long i, atomic_long_t *v)
+ {
+ 	return atomic_fetch_sub_release(i, v);
+ }
+ 
+-static inline long
++static __always_inline long
+ atomic_long_fetch_sub_relaxed(long i, atomic_long_t *v)
+ {
+ 	return atomic_fetch_sub_relaxed(i, v);
+ }
+ 
+-static inline void
++static __always_inline void
+ atomic_long_inc(atomic_long_t *v)
+ {
+ 	atomic_inc(v);
+ }
+ 
+-static inline long
++static __always_inline long
+ atomic_long_inc_return(atomic_long_t *v)
+ {
+ 	return atomic_inc_return(v);
+ }
+ 
+-static inline long
++static __always_inline long
+ atomic_long_inc_return_acquire(atomic_long_t *v)
+ {
+ 	return atomic_inc_return_acquire(v);
+ }
+ 
+-static inline long
++static __always_inline long
+ atomic_long_inc_return_release(atomic_long_t *v)
+ {
+ 	return atomic_inc_return_release(v);
+ }
+ 
+-static inline long
++static __always_inline long
+ atomic_long_inc_return_relaxed(atomic_long_t *v)
+ {
+ 	return atomic_inc_return_relaxed(v);
+ }
+ 
+-static inline long
++static __always_inline long
+ atomic_long_fetch_inc(atomic_long_t *v)
+ {
+ 	return atomic_fetch_inc(v);
+ }
+ 
+-static inline long
++static __always_inline long
+ atomic_long_fetch_inc_acquire(atomic_long_t *v)
+ {
+ 	return atomic_fetch_inc_acquire(v);
+ }
+ 
+-static inline long
++static __always_inline long
+ atomic_long_fetch_inc_release(atomic_long_t *v)
+ {
+ 	return atomic_fetch_inc_release(v);
+ }
+ 
+-static inline long
++static __always_inline long
+ atomic_long_fetch_inc_relaxed(atomic_long_t *v)
+ {
+ 	return atomic_fetch_inc_relaxed(v);
+ }
+ 
+-static inline void
++static __always_inline void
+ atomic_long_dec(atomic_long_t *v)
+ {
+ 	atomic_dec(v);
+ }
+ 
+-static inline long
++static __always_inline long
+ atomic_long_dec_return(atomic_long_t *v)
+ {
+ 	return atomic_dec_return(v);
+ }
+ 
+-static inline long
++static __always_inline long
+ atomic_long_dec_return_acquire(atomic_long_t *v)
+ {
+ 	return atomic_dec_return_acquire(v);
+ }
+ 
+-static inline long
++static __always_inline long
+ atomic_long_dec_return_release(atomic_long_t *v)
+ {
+ 	return atomic_dec_return_release(v);
+ }
+ 
+-static inline long
++static __always_inline long
+ atomic_long_dec_return_relaxed(atomic_long_t *v)
+ {
+ 	return atomic_dec_return_relaxed(v);
+ }
+ 
+-static inline long
++static __always_inline long
+ atomic_long_fetch_dec(atomic_long_t *v)
+ {
+ 	return atomic_fetch_dec(v);
+ }
+ 
+-static inline long
++static __always_inline long
+ atomic_long_fetch_dec_acquire(atomic_long_t *v)
+ {
+ 	return atomic_fetch_dec_acquire(v);
+ }
+ 
+-static inline long
++static __always_inline long
+ atomic_long_fetch_dec_release(atomic_long_t *v)
+ {
+ 	return atomic_fetch_dec_release(v);
+ }
+ 
+-static inline long
++static __always_inline long
+ atomic_long_fetch_dec_relaxed(atomic_long_t *v)
+ {
+ 	return atomic_fetch_dec_relaxed(v);
+ }
+ 
+-static inline void
++static __always_inline void
+ atomic_long_and(long i, atomic_long_t *v)
+ {
+ 	atomic_and(i, v);
+ }
+ 
+-static inline long
++static __always_inline long
+ atomic_long_fetch_and(long i, atomic_long_t *v)
+ {
+ 	return atomic_fetch_and(i, v);
+ }
+ 
+-static inline long
++static __always_inline long
+ atomic_long_fetch_and_acquire(long i, atomic_long_t *v)
+ {
+ 	return atomic_fetch_and_acquire(i, v);
+ }
+ 
+-static inline long
++static __always_inline long
+ atomic_long_fetch_and_release(long i, atomic_long_t *v)
+ {
+ 	return atomic_fetch_and_release(i, v);
+ }
+ 
+-static inline long
++static __always_inline long
+ atomic_long_fetch_and_relaxed(long i, atomic_long_t *v)
+ {
+ 	return atomic_fetch_and_relaxed(i, v);
+ }
+ 
+-static inline void
++static __always_inline void
+ atomic_long_andnot(long i, atomic_long_t *v)
+ {
+ 	atomic_andnot(i, v);
+ }
+ 
+-static inline long
++static __always_inline long
+ atomic_long_fetch_andnot(long i, atomic_long_t *v)
+ {
+ 	return atomic_fetch_andnot(i, v);
+ }
+ 
+-static inline long
++static __always_inline long
+ atomic_long_fetch_andnot_acquire(long i, atomic_long_t *v)
+ {
+ 	return atomic_fetch_andnot_acquire(i, v);
+ }
+ 
+-static inline long
++static __always_inline long
+ atomic_long_fetch_andnot_release(long i, atomic_long_t *v)
+ {
+ 	return atomic_fetch_andnot_release(i, v);
+ }
+ 
+-static inline long
++static __always_inline long
+ atomic_long_fetch_andnot_relaxed(long i, atomic_long_t *v)
+ {
+ 	return atomic_fetch_andnot_relaxed(i, v);
+ }
+ 
+-static inline void
++static __always_inline void
+ atomic_long_or(long i, atomic_long_t *v)
+ {
+ 	atomic_or(i, v);
+ }
+ 
+-static inline long
++static __always_inline long
+ atomic_long_fetch_or(long i, atomic_long_t *v)
+ {
+ 	return atomic_fetch_or(i, v);
+ }
+ 
+-static inline long
++static __always_inline long
+ atomic_long_fetch_or_acquire(long i, atomic_long_t *v)
+ {
+ 	return atomic_fetch_or_acquire(i, v);
+ }
+ 
+-static inline long
++static __always_inline long
+ atomic_long_fetch_or_release(long i, atomic_long_t *v)
+ {
+ 	return atomic_fetch_or_release(i, v);
+ }
+ 
+-static inline long
++static __always_inline long
+ atomic_long_fetch_or_relaxed(long i, atomic_long_t *v)
+ {
+ 	return atomic_fetch_or_relaxed(i, v);
+ }
+ 
+-static inline void
++static __always_inline void
+ atomic_long_xor(long i, atomic_long_t *v)
+ {
+ 	atomic_xor(i, v);
+ }
+ 
+-static inline long
++static __always_inline long
+ atomic_long_fetch_xor(long i, atomic_long_t *v)
+ {
+ 	return atomic_fetch_xor(i, v);
+ }
+ 
+-static inline long
++static __always_inline long
+ atomic_long_fetch_xor_acquire(long i, atomic_long_t *v)
+ {
+ 	return atomic_fetch_xor_acquire(i, v);
+ }
+ 
+-static inline long
++static __always_inline long
+ atomic_long_fetch_xor_release(long i, atomic_long_t *v)
+ {
+ 	return atomic_fetch_xor_release(i, v);
+ }
+ 
+-static inline long
++static __always_inline long
+ atomic_long_fetch_xor_relaxed(long i, atomic_long_t *v)
+ {
+ 	return atomic_fetch_xor_relaxed(i, v);
+ }
+ 
+-static inline long
++static __always_inline long
+ atomic_long_xchg(atomic_long_t *v, long i)
+ {
+ 	return atomic_xchg(v, i);
+ }
+ 
+-static inline long
++static __always_inline long
+ atomic_long_xchg_acquire(atomic_long_t *v, long i)
+ {
+ 	return atomic_xchg_acquire(v, i);
+ }
+ 
+-static inline long
++static __always_inline long
+ atomic_long_xchg_release(atomic_long_t *v, long i)
+ {
+ 	return atomic_xchg_release(v, i);
+ }
+ 
+-static inline long
++static __always_inline long
+ atomic_long_xchg_relaxed(atomic_long_t *v, long i)
+ {
+ 	return atomic_xchg_relaxed(v, i);
+ }
+ 
+-static inline long
++static __always_inline long
+ atomic_long_cmpxchg(atomic_long_t *v, long old, long new)
+ {
+ 	return atomic_cmpxchg(v, old, new);
+ }
+ 
+-static inline long
++static __always_inline long
+ atomic_long_cmpxchg_acquire(atomic_long_t *v, long old, long new)
+ {
+ 	return atomic_cmpxchg_acquire(v, old, new);
+ }
+ 
+-static inline long
++static __always_inline long
+ atomic_long_cmpxchg_release(atomic_long_t *v, long old, long new)
+ {
+ 	return atomic_cmpxchg_release(v, old, new);
+ }
+ 
+-static inline long
++static __always_inline long
+ atomic_long_cmpxchg_relaxed(atomic_long_t *v, long old, long new)
+ {
+ 	return atomic_cmpxchg_relaxed(v, old, new);
+ }
+ 
+-static inline bool
++static __always_inline bool
+ atomic_long_try_cmpxchg(atomic_long_t *v, long *old, long new)
+ {
+ 	return atomic_try_cmpxchg(v, (int *)old, new);
+ }
+ 
+-static inline bool
++static __always_inline bool
+ atomic_long_try_cmpxchg_acquire(atomic_long_t *v, long *old, long new)
+ {
+ 	return atomic_try_cmpxchg_acquire(v, (int *)old, new);
+ }
+ 
+-static inline bool
++static __always_inline bool
+ atomic_long_try_cmpxchg_release(atomic_long_t *v, long *old, long new)
+ {
+ 	return atomic_try_cmpxchg_release(v, (int *)old, new);
+ }
+ 
+-static inline bool
++static __always_inline bool
+ atomic_long_try_cmpxchg_relaxed(atomic_long_t *v, long *old, long new)
+ {
+ 	return atomic_try_cmpxchg_relaxed(v, (int *)old, new);
+ }
+ 
+-static inline bool
++static __always_inline bool
+ atomic_long_sub_and_test(long i, atomic_long_t *v)
+ {
+ 	return atomic_sub_and_test(i, v);
+ }
+ 
+-static inline bool
++static __always_inline bool
+ atomic_long_dec_and_test(atomic_long_t *v)
+ {
+ 	return atomic_dec_and_test(v);
+ }
+ 
+-static inline bool
++static __always_inline bool
+ atomic_long_inc_and_test(atomic_long_t *v)
+ {
+ 	return atomic_inc_and_test(v);
+ }
+ 
+-static inline bool
++static __always_inline bool
+ atomic_long_add_negative(long i, atomic_long_t *v)
+ {
+ 	return atomic_add_negative(i, v);
+ }
+ 
+-static inline long
++static __always_inline long
+ atomic_long_fetch_add_unless(atomic_long_t *v, long a, long u)
+ {
+ 	return atomic_fetch_add_unless(v, a, u);
+ }
+ 
+-static inline bool
++static __always_inline bool
+ atomic_long_add_unless(atomic_long_t *v, long a, long u)
+ {
+ 	return atomic_add_unless(v, a, u);
+ }
+ 
+-static inline bool
++static __always_inline bool
+ atomic_long_inc_not_zero(atomic_long_t *v)
+ {
+ 	return atomic_inc_not_zero(v);
+ }
+ 
+-static inline bool
++static __always_inline bool
+ atomic_long_inc_unless_negative(atomic_long_t *v)
+ {
+ 	return atomic_inc_unless_negative(v);
+ }
+ 
+-static inline bool
++static __always_inline bool
+ atomic_long_dec_unless_positive(atomic_long_t *v)
+ {
+ 	return atomic_dec_unless_positive(v);
+ }
+ 
+-static inline long
++static __always_inline long
+ atomic_long_dec_if_positive(atomic_long_t *v)
+ {
+ 	return atomic_dec_if_positive(v);
+@@ -1010,4 +1011,4 @@ atomic_long_dec_if_positive(atomic_long_
+ 
+ #endif /* CONFIG_64BIT */
+ #endif /* _ASM_GENERIC_ATOMIC_LONG_H */
+-// 77558968132ce4f911ad53f6f52ce423006f6268
++// a624200981f552b2c6be4f32fe44da8289f30d87
+--- a/scripts/atomic/gen-atomic-instrumented.sh
++++ b/scripts/atomic/gen-atomic-instrumented.sh
+@@ -84,7 +84,7 @@ gen_proto_order_variant()
+ 	[ ! -z "${guard}" ] && printf "#if ${guard}\n"
+ 
  cat <<EOF
- static __always_inline bool
--${atomic}_dec_unless_positive(${atomic}_t *v)
-+${arch}${atomic}_dec_unless_positive(${atomic}_t *v)
+-static inline ${ret}
++static __always_inline ${ret}
+ ${atomicname}(${params})
  {
--	${int} c = ${atomic}_read(v);
-+	${int} c = ${arch}${atomic}_read(v);
+ ${checks}
+@@ -147,14 +147,15 @@ cat << EOF
+ #define _ASM_GENERIC_ATOMIC_INSTRUMENTED_H
  
- 	do {
- 		if (unlikely(c > 0))
- 			return false;
--	} while (!${atomic}_try_cmpxchg(v, &c, c - 1));
-+	} while (!${arch}${atomic}_try_cmpxchg(v, &c, c - 1));
+ #include <linux/build_bug.h>
++#include <linux/compiler.h>
+ #include <linux/kasan-checks.h>
  
- 	return true;
- }
---- a/scripts/atomic/fallbacks/fence
-+++ b/scripts/atomic/fallbacks/fence
-@@ -1,10 +1,10 @@
- cat <<EOF
- static __always_inline ${ret}
--${atomic}_${pfx}${name}${sfx}(${params})
-+${arch}${atomic}_${pfx}${name}${sfx}(${params})
+-static inline void __atomic_check_read(const volatile void *v, size_t size)
++static __always_inline void __atomic_check_read(const volatile void *v, size_t size)
  {
- 	${ret} ret;
- 	__atomic_pre_full_fence();
--	ret = ${atomic}_${pfx}${name}${sfx}_relaxed(${args});
-+	ret = ${arch}${atomic}_${pfx}${name}${sfx}_relaxed(${args});
- 	__atomic_post_full_fence();
- 	return ret;
+ 	kasan_check_read(v, size);
  }
---- a/scripts/atomic/fallbacks/fetch_add_unless
-+++ b/scripts/atomic/fallbacks/fetch_add_unless
-@@ -1,6 +1,6 @@
- cat << EOF
- /**
-- * ${atomic}_fetch_add_unless - add unless the number is already a given value
-+ * ${arch}${atomic}_fetch_add_unless - add unless the number is already a given value
-  * @v: pointer of type ${atomic}_t
-  * @a: the amount to add to v...
-  * @u: ...unless v is equal to u.
-@@ -9,14 +9,14 @@ cat << EOF
-  * Returns original value of @v
-  */
- static __always_inline ${int}
--${atomic}_fetch_add_unless(${atomic}_t *v, ${int} a, ${int} u)
-+${arch}${atomic}_fetch_add_unless(${atomic}_t *v, ${int} a, ${int} u)
- {
--	${int} c = ${atomic}_read(v);
-+	${int} c = ${arch}${atomic}_read(v);
  
- 	do {
- 		if (unlikely(c == u))
- 			break;
--	} while (!${atomic}_try_cmpxchg(v, &c, c + a));
-+	} while (!${arch}${atomic}_try_cmpxchg(v, &c, c + a));
- 
- 	return c;
+-static inline void __atomic_check_write(const volatile void *v, size_t size)
++static __always_inline void __atomic_check_write(const volatile void *v, size_t size)
+ {
+ 	kasan_check_write(v, size);
  }
---- a/scripts/atomic/fallbacks/inc
-+++ b/scripts/atomic/fallbacks/inc
-@@ -1,7 +1,7 @@
- cat <<EOF
- static __always_inline ${ret}
--${atomic}_${pfx}inc${sfx}${order}(${atomic}_t *v)
-+${arch}${atomic}_${pfx}inc${sfx}${order}(${atomic}_t *v)
- {
--	${retstmt}${atomic}_${pfx}add${sfx}${order}(1, v);
-+	${retstmt}${arch}${atomic}_${pfx}add${sfx}${order}(1, v);
- }
- EOF
---- a/scripts/atomic/fallbacks/inc_and_test
-+++ b/scripts/atomic/fallbacks/inc_and_test
-@@ -1,6 +1,6 @@
- cat <<EOF
- /**
-- * ${atomic}_inc_and_test - increment and test
-+ * ${arch}${atomic}_inc_and_test - increment and test
-  * @v: pointer of type ${atomic}_t
-  *
-  * Atomically increments @v by 1
-@@ -8,8 +8,8 @@ cat <<EOF
-  * other cases.
-  */
- static __always_inline bool
--${atomic}_inc_and_test(${atomic}_t *v)
-+${arch}${atomic}_inc_and_test(${atomic}_t *v)
- {
--	return ${atomic}_inc_return(v) == 0;
-+	return ${arch}${atomic}_inc_return(v) == 0;
- }
- EOF
---- a/scripts/atomic/fallbacks/inc_not_zero
-+++ b/scripts/atomic/fallbacks/inc_not_zero
-@@ -1,14 +1,14 @@
- cat <<EOF
- /**
-- * ${atomic}_inc_not_zero - increment unless the number is zero
-+ * ${arch}${atomic}_inc_not_zero - increment unless the number is zero
-  * @v: pointer of type ${atomic}_t
-  *
-  * Atomically increments @v by 1, if @v is non-zero.
-  * Returns true if the increment was done.
-  */
- static __always_inline bool
--${atomic}_inc_not_zero(${atomic}_t *v)
-+${arch}${atomic}_inc_not_zero(${atomic}_t *v)
- {
--	return ${atomic}_add_unless(v, 1, 0);
-+	return ${arch}${atomic}_add_unless(v, 1, 0);
- }
- EOF
---- a/scripts/atomic/fallbacks/inc_unless_negative
-+++ b/scripts/atomic/fallbacks/inc_unless_negative
-@@ -1,13 +1,13 @@
- cat <<EOF
- static __always_inline bool
--${atomic}_inc_unless_negative(${atomic}_t *v)
-+${arch}${atomic}_inc_unless_negative(${atomic}_t *v)
- {
--	${int} c = ${atomic}_read(v);
-+	${int} c = ${arch}${atomic}_read(v);
- 
- 	do {
- 		if (unlikely(c < 0))
- 			return false;
--	} while (!${atomic}_try_cmpxchg(v, &c, c + 1));
-+	} while (!${arch}${atomic}_try_cmpxchg(v, &c, c + 1));
- 
- 	return true;
- }
---- a/scripts/atomic/fallbacks/read_acquire
-+++ b/scripts/atomic/fallbacks/read_acquire
-@@ -1,6 +1,6 @@
- cat <<EOF
- static __always_inline ${ret}
--${atomic}_read_acquire(const ${atomic}_t *v)
-+${arch}${atomic}_read_acquire(const ${atomic}_t *v)
- {
- 	return smp_load_acquire(&(v)->counter);
- }
---- a/scripts/atomic/fallbacks/release
-+++ b/scripts/atomic/fallbacks/release
-@@ -1,8 +1,8 @@
- cat <<EOF
- static __always_inline ${ret}
--${atomic}_${pfx}${name}${sfx}_release(${params})
-+${arch}${atomic}_${pfx}${name}${sfx}_release(${params})
- {
- 	__atomic_release_fence();
--	${retstmt}${atomic}_${pfx}${name}${sfx}_relaxed(${args});
-+	${retstmt}${arch}${atomic}_${pfx}${name}${sfx}_relaxed(${args});
- }
- EOF
---- a/scripts/atomic/fallbacks/set_release
-+++ b/scripts/atomic/fallbacks/set_release
-@@ -1,6 +1,6 @@
- cat <<EOF
- static __always_inline void
--${atomic}_set_release(${atomic}_t *v, ${int} i)
-+${arch}${atomic}_set_release(${atomic}_t *v, ${int} i)
- {
- 	smp_store_release(&(v)->counter, i);
- }
---- a/scripts/atomic/fallbacks/sub_and_test
-+++ b/scripts/atomic/fallbacks/sub_and_test
-@@ -1,6 +1,6 @@
- cat <<EOF
- /**
-- * ${atomic}_sub_and_test - subtract value from variable and test result
-+ * ${arch}${atomic}_sub_and_test - subtract value from variable and test result
-  * @i: integer value to subtract
-  * @v: pointer of type ${atomic}_t
-  *
-@@ -9,8 +9,8 @@ cat <<EOF
-  * other cases.
-  */
- static __always_inline bool
--${atomic}_sub_and_test(${int} i, ${atomic}_t *v)
-+${arch}${atomic}_sub_and_test(${int} i, ${atomic}_t *v)
- {
--	return ${atomic}_sub_return(i, v) == 0;
-+	return ${arch}${atomic}_sub_return(i, v) == 0;
- }
- EOF
---- a/scripts/atomic/fallbacks/try_cmpxchg
-+++ b/scripts/atomic/fallbacks/try_cmpxchg
-@@ -1,9 +1,9 @@
- cat <<EOF
- static __always_inline bool
--${atomic}_try_cmpxchg${order}(${atomic}_t *v, ${int} *old, ${int} new)
-+${arch}${atomic}_try_cmpxchg${order}(${atomic}_t *v, ${int} *old, ${int} new)
- {
- 	${int} r, o = *old;
--	r = ${atomic}_cmpxchg${order}(v, o, new);
-+	r = ${arch}${atomic}_cmpxchg${order}(v, o, new);
- 	if (unlikely(r != o))
- 		*old = r;
- 	return likely(r == o);
---- a/scripts/atomic/gen-atomic-fallback.sh
-+++ b/scripts/atomic/gen-atomic-fallback.sh
-@@ -2,10 +2,11 @@
- # SPDX-License-Identifier: GPL-2.0
- 
- ATOMICDIR=$(dirname $0)
-+ARCH=$2
- 
- . ${ATOMICDIR}/atomic-tbl.sh
- 
--#gen_template_fallback(template, meta, pfx, name, sfx, order, atomic, int, args...)
-+#gen_template_fallback(template, meta, pfx, name, sfx, order, arch, atomic, int, args...)
- gen_template_fallback()
- {
- 	local template="$1"; shift
-@@ -14,10 +15,11 @@ gen_template_fallback()
- 	local name="$1"; shift
- 	local sfx="$1"; shift
- 	local order="$1"; shift
-+	local arch="$1"; shift
- 	local atomic="$1"; shift
- 	local int="$1"; shift
- 
--	local atomicname="${atomic}_${pfx}${name}${sfx}${order}"
-+	local atomicname="${arch}${atomic}_${pfx}${name}${sfx}${order}"
- 
- 	local ret="$(gen_ret_type "${meta}" "${int}")"
+--- a/scripts/atomic/gen-atomic-long.sh
++++ b/scripts/atomic/gen-atomic-long.sh
+@@ -46,7 +46,7 @@ gen_proto_order_variant()
  	local retstmt="$(gen_ret_stmt "${meta}")"
-@@ -32,7 +34,7 @@ gen_template_fallback()
- 	fi
- }
- 
--#gen_proto_fallback(meta, pfx, name, sfx, order, atomic, int, args...)
-+#gen_proto_fallback(meta, pfx, name, sfx, order, arch, atomic, int, args...)
- gen_proto_fallback()
- {
- 	local meta="$1"; shift
-@@ -56,16 +58,17 @@ cat << EOF
- EOF
- }
- 
--#gen_proto_order_variants(meta, pfx, name, sfx, atomic, int, args...)
-+#gen_proto_order_variants(meta, pfx, name, sfx, arch, atomic, int, args...)
- gen_proto_order_variants()
- {
- 	local meta="$1"; shift
- 	local pfx="$1"; shift
- 	local name="$1"; shift
- 	local sfx="$1"; shift
--	local atomic="$1"
-+	local arch="$1"
-+	local atomic="$2"
- 
--	local basename="${atomic}_${pfx}${name}${sfx}"
-+	local basename="${arch}${atomic}_${pfx}${name}${sfx}"
- 
- 	local template="$(find_fallback_template "${pfx}" "${name}" "${sfx}" "${order}")"
- 
-@@ -94,7 +97,7 @@ gen_proto_order_variants()
- 	gen_basic_fallbacks "${basename}"
- 
- 	if [ ! -z "${template}" ]; then
--		printf "#endif /* ${atomic}_${pfx}${name}${sfx} */\n\n"
-+		printf "#endif /* ${arch}${atomic}_${pfx}${name}${sfx} */\n\n"
- 		gen_proto_fallback "${meta}" "${pfx}" "${name}" "${sfx}" "" "$@"
- 		gen_proto_fallback "${meta}" "${pfx}" "${name}" "${sfx}" "_acquire" "$@"
- 		gen_proto_fallback "${meta}" "${pfx}" "${name}" "${sfx}" "_release" "$@"
-@@ -153,18 +156,15 @@ cat << EOF
- 
- EOF
- 
--for xchg in "xchg" "cmpxchg" "cmpxchg64"; do
-+for xchg in "${ARCH}xchg" "${ARCH}cmpxchg" "${ARCH}cmpxchg64"; do
- 	gen_xchg_fallbacks "${xchg}"
- done
- 
- grep '^[a-z]' "$1" | while read name meta args; do
--	gen_proto "${meta}" "${name}" "atomic" "int" ${args}
-+	gen_proto "${meta}" "${name}" "${ARCH}" "atomic" "int" ${args}
- done
  
  cat <<EOF
--#define atomic_cond_read_acquire(v, c) smp_cond_load_acquire(&(v)->counter, (c))
--#define atomic_cond_read_relaxed(v, c) smp_cond_load_relaxed(&(v)->counter, (c))
--
- #ifdef CONFIG_GENERIC_ATOMIC64
- #include <asm-generic/atomic64.h>
- #endif
-@@ -172,12 +172,9 @@ cat <<EOF
- EOF
+-static inline ${ret}
++static __always_inline ${ret}
+ atomic_long_${name}(${params})
+ {
+ 	${retstmt}${atomic}_${name}(${argscast});
+@@ -64,6 +64,7 @@ cat << EOF
+ #ifndef _ASM_GENERIC_ATOMIC_LONG_H
+ #define _ASM_GENERIC_ATOMIC_LONG_H
  
- grep '^[a-z]' "$1" | while read name meta args; do
--	gen_proto "${meta}" "${name}" "atomic64" "s64" ${args}
-+	gen_proto "${meta}" "${name}" "${ARCH}" "atomic64" "s64" ${args}
- done
++#include <linux/compiler.h>
+ #include <asm/types.h>
  
- cat <<EOF
--#define atomic64_cond_read_acquire(v, c) smp_cond_load_acquire(&(v)->counter, (c))
--#define atomic64_cond_read_relaxed(v, c) smp_cond_load_relaxed(&(v)->counter, (c))
--
- #endif /* _LINUX_ATOMIC_FALLBACK_H */
- EOF
---- a/scripts/atomic/gen-atomics.sh
-+++ b/scripts/atomic/gen-atomics.sh
-@@ -10,10 +10,11 @@ LINUXDIR=${ATOMICDIR}/../..
- cat <<EOF |
- gen-atomic-instrumented.sh      asm-generic/atomic-instrumented.h
- gen-atomic-long.sh              asm-generic/atomic-long.h
-+gen-atomic-fallback.sh          linux/atomic-arch-fallback.h		arch_
- gen-atomic-fallback.sh          linux/atomic-fallback.h
- EOF
--while read script header; do
--	/bin/sh ${ATOMICDIR}/${script} ${ATOMICTBL} > ${LINUXDIR}/include/${header}
-+while read script header args; do
-+	/bin/sh ${ATOMICDIR}/${script} ${ATOMICTBL} ${args} > ${LINUXDIR}/include/${header}
- 	HASH="$(sha1sum ${LINUXDIR}/include/${header})"
- 	HASH="${HASH%% *}"
- 	printf "// %s\n" "${HASH}" >> ${LINUXDIR}/include/${header}
+ #ifdef CONFIG_64BIT
