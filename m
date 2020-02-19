@@ -1,34 +1,86 @@
-Return-Path: <SRS0=ZEfg=4N=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail-pg1-f196.google.com ([209.85.215.196]:33849 "EHLO
-        mail-pg1-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726421AbgBYVba (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 25 Feb 2020 16:31:30 -0500
-Received: by mail-pg1-f196.google.com with SMTP id j4so196944pgi.1
-        for <linux-arch@vger.kernel.org>; Tue, 25 Feb 2020 13:31:29 -0800 (PST)
-Date: Tue, 25 Feb 2020 13:31:27 -0800
-From: Kees Cook <keescook@chromium.org>
-Subject: Re: [RFC PATCH v9 00/27] Control-flow Enforcement: Shadow Stack
-Message-ID: <202002251330.7CD5EEFA2@keescook>
-References: <20200205181935.3712-1-yu-cheng.yu@intel.com>
+Return-Path: <SRS0=LzcT=4H=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail.kernel.org ([198.145.29.99]:33228 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726671AbgBSNYm (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 19 Feb 2020 08:24:42 -0500
+Date: Wed, 19 Feb 2020 14:24:20 +0100
+From: Mike Rapoport <rppt@kernel.org>
+Subject: Re: [PATCH v2 07/13] powerpc: add support for folded p4d page tables
+Message-ID: <20200219132420.GA5559@hump>
+References: <20200216081843.28670-1-rppt@kernel.org>
+ <20200216081843.28670-8-rppt@kernel.org>
+ <5b7c3929-5833-8ceb-85c8-a8e92e6a138e@c-s.fr>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=iso-8859-1
 Content-Disposition: inline
-In-Reply-To: <20200205181935.3712-1-yu-cheng.yu@intel.com>
+Content-Transfer-Encoding: 8bit
+In-Reply-To: <5b7c3929-5833-8ceb-85c8-a8e92e6a138e@c-s.fr>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Cc: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>, x86-patch-review@intel.com
-Message-ID: <20200225213127.Ajr2tZ1iSRWrVrA2LNnF6k3yF-8mabRKxLb5QZG2RoI@z>
+To: Christophe Leroy <christophe.leroy@c-s.fr>
+Cc: linux-kernel@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Brian Cain <bcain@codeaurora.org>, Catalin Marinas <catalin.marinas@arm.com>, Fenghua Yu <fenghua.yu@intel.com>, Geert Uytterhoeven <geert+renesas@glider.be>, Guan Xuetao <gxt@pku.edu.cn>, James Morse <james.morse@arm.com>, Jonas Bonn <jonas@southpole.se>, Julien Thierry <julien.thierry.kdev@gmail.com>, Ley Foon Tan <ley.foon.tan@intel.com>, Marc Zyngier <maz@kernel.org>, Michael Ellerman <mpe@ellerman.id.au>, Paul Mackerras <paulus@samba.org>, Rich Felker <dalias@libc.org>, Russell King <linux@armlinux.org.uk>, Stafford Horne <shorne@gmail.com>, Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>, Suzuki K Poulose <suzuki.poulose@arm.com>, Tony Luck <tony.luck@intel.com>, Will Deacon <will@kernel.org>, Yoshinori Sato <ysato@users.sourceforge.jp>, kvmarm@lists.cs.columbia.edu, kvm-ppc@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-mm@kvack.org, linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org, nios2-dev@lists.rocketboards.org, openrisc@lists.librecores.org, uclinux-h8-devel@lists.sourceforge.jp, Mike Rapoport <rppt@linux.ibm.com>
+Message-ID: <20200219132420.XjCfv8g4feW0lVLCIe33Dgs-2QSn3fkN_1TVw9vKKeQ@z>
 
-On Wed, Feb 05, 2020 at 10:19:08AM -0800, Yu-cheng Yu wrote:
-> Control-flow Enforcement (CET) is a new Intel processor feature that blocks
-> return/jump-oriented programming attacks.  Details can be found in "Intel
-> 64 and IA-32 Architectures Software Developer's Manual" [1].
+On Wed, Feb 19, 2020 at 01:07:55PM +0100, Christophe Leroy wrote:
+> 
+> Le 16/02/2020 à 09:18, Mike Rapoport a écrit :
+> > diff --git a/arch/powerpc/mm/ptdump/ptdump.c b/arch/powerpc/mm/ptdump/ptdump.c
+> > index 206156255247..7bd4b81d5b5d 100644
+> > --- a/arch/powerpc/mm/ptdump/ptdump.c
+> > +++ b/arch/powerpc/mm/ptdump/ptdump.c
+> > @@ -277,9 +277,9 @@ static void walk_pmd(struct pg_state *st, pud_t *pud, unsigned long start)
+> >   	}
+> >   }
+> > -static void walk_pud(struct pg_state *st, pgd_t *pgd, unsigned long start)
+> > +static void walk_pud(struct pg_state *st, p4d_t *p4d, unsigned long start)
+> >   {
+> > -	pud_t *pud = pud_offset(pgd, 0);
+> > +	pud_t *pud = pud_offset(p4d, 0);
+> >   	unsigned long addr;
+> >   	unsigned int i;
+> > @@ -293,6 +293,22 @@ static void walk_pud(struct pg_state *st, pgd_t *pgd, unsigned long start)
+> >   	}
+> >   }
+> > +static void walk_p4d(struct pg_state *st, pgd_t *pgd, unsigned long start)
+> > +{
+> > +	p4d_t *p4d = p4d_offset(pgd, 0);
+> > +	unsigned long addr;
+> > +	unsigned int i;
+> > +
+> > +	for (i = 0; i < PTRS_PER_P4D; i++, p4d++) {
+> > +		addr = start + i * P4D_SIZE;
+> > +		if (!p4d_none(*p4d) && !p4d_is_leaf(*p4d))
+> > +			/* p4d exists */
+> > +			walk_pud(st, p4d, addr);
+> > +		else
+> > +			note_page(st, addr, 2, p4d_val(*p4d));
+> 
+> Level 2 is already used by walk_pud().
+> 
+> I think you have to increment the level used in walk_pud() and walk_pmd()
+> and walk_pte()
 
-At v9, this probably isn't RFC any more. :)
-
-As mentioned in another patch, I'd really like to see some self tests
-for this feature. It's relatively complex...
+Thanks for catching this!
+I'll fix the numbers in the next version.
+ 
+> > +	}
+> > +}
+> > +
+> >   static void walk_pagetables(struct pg_state *st)
+> >   {
+> >   	unsigned int i;
+> > @@ -306,7 +322,7 @@ static void walk_pagetables(struct pg_state *st)
+> >   	for (i = pgd_index(addr); i < PTRS_PER_PGD; i++, pgd++, addr += PGDIR_SIZE) {
+> >   		if (!pgd_none(*pgd) && !pgd_is_leaf(*pgd))
+> >   			/* pgd exists */
+> > -			walk_pud(st, pgd, addr);
+> > +			walk_p4d(st, pgd, addr);
+> >   		else
+> >   			note_page(st, addr, 1, pgd_val(*pgd));
+> >   	}
+> 
+> Christophe
 
 -- 
-Kees Cook
+Sincerely yours,
+Mike.
