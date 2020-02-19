@@ -1,56 +1,47 @@
-From: Steven Rostedt <rostedt@goodmis.org>
-Subject: Re: [PATCH v3 13/22] tracing: Remove regular RCU context for
- _rcuidle tracepoints (again)
-Date: Wed, 19 Feb 2020 12:21:16 -0500
-Message-ID: <20200219122116.7aeaf230@gandalf.local.home>
-References: <20200219144724.800607165@infradead.org>
-        <20200219150745.125119627@infradead.org>
-        <20200219164356.GB2935@paulmck-ThinkPad-P72>
-        <20200219164736.GL18400@hirez.programming.kicks-ass.net>
-        <20200219170507.GH14946@hirez.programming.kicks-ass.net>
+From: Andy Lutomirski <luto@kernel.org>
+Subject: Re: [PATCH v3 02/22] x86,mce: Delete ist_begin_non_atomic()
+Date: Wed, 19 Feb 2020 09:21:48 -0800
+Message-ID: <CALCETrWBEDjenqze3wVc6TkUt_g+OFx9TQbYysLH+6fku=aWjQ@mail.gmail.com>
+References: <20200219144724.800607165@infradead.org> <20200219150744.488895196@infradead.org>
+ <20200219171309.GC32346@zn.tnic>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:43542 "EHLO mail.kernel.org"
+Received: from mail.kernel.org ([198.145.29.99]:43924 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726518AbgBSRVT (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 19 Feb 2020 12:21:19 -0500
-In-Reply-To: <20200219170507.GH14946@hirez.programming.kicks-ass.net>
+        id S1726518AbgBSRWC (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 19 Feb 2020 12:22:02 -0500
+Received: from mail-wm1-f48.google.com (mail-wm1-f48.google.com [209.85.128.48])
+        (using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+        (No client certificate requested)
+        by mail.kernel.org (Postfix) with ESMTPSA id 6113A24677
+        for <linux-arch@vger.kernel.org>; Wed, 19 Feb 2020 17:22:01 +0000 (UTC)
+Received: by mail-wm1-f48.google.com with SMTP id p9so1555339wmc.2
+        for <linux-arch@vger.kernel.org>; Wed, 19 Feb 2020 09:22:01 -0800 (PST)
+In-Reply-To: <20200219171309.GC32346@zn.tnic>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: "Paul E. McKenney" <paulmck@kernel.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org, joel@joelfernandes.org, gregkh@linuxfoundation.org, gustavo@embeddedor.com, tglx@linutronix.de, josh@joshtriplett.org, mathieu.desnoyers@efficios.com, jiangshanlai@gmail.com, luto@kernel.org, tony.luck@intel.com, frederic@kernel.org, dan.carpenter@oracle.com, mhiramat@kernel.org
+To: Borislav Petkov <bp@alien8.de>
+Cc: Peter Zijlstra <peterz@infradead.org>, LKML <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Steven Rostedt <rostedt@goodmis.org>, Ingo Molnar <mingo@kernel.org>, Joel Fernandes <joel@joelfernandes.org>, Greg KH <gregkh@linuxfoundation.org>, gustavo@embeddedor.com, Thomas Gleixner <tglx@linutronix.de>, paulmck@kernel.org, Josh Triplett <josh@joshtriplett.org>, Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, Lai Jiangshan <jiangshanlai@gmail.com>, Andrew Lutomirski <luto@kernel.org>, Tony Luck <tony.luck@intel.com>, Frederic Weisbecker <frederic@kernel.org>, Dan Carpenter <dan.carpenter@oracle.com>, Masami Hiramatsu <mhiramat@kernel.org>
 
-On Wed, 19 Feb 2020 18:05:07 +0100
-Peter Zijlstra <peterz@infradead.org> wrote:
+On Wed, Feb 19, 2020 at 9:13 AM Borislav Petkov <bp@alien8.de> wrote:
+>
+> On Wed, Feb 19, 2020 at 03:47:26PM +0100, Peter Zijlstra wrote:
+> > Subject: Re: [PATCH v3 02/22] x86,mce: Delete ist_begin_non_atomic()
+>
+> x86/mce: ...
+>
+> > It is an abomination; and in prepration of removing the whole
+> > ist_enter() thing, it needs to go.
+> >
+> > Convert #MC over to using task_work_add() instead; it will run the
+> > same code slightly later, on the return to user path of the same
+> > exception.
+>
+> That's fine because the error happened in userspace.
 
-> On Wed, Feb 19, 2020 at 05:47:36PM +0100, Peter Zijlstra wrote:
-> > On Wed, Feb 19, 2020 at 08:43:56AM -0800, Paul E. McKenney wrote:  
-> > > On Wed, Feb 19, 2020 at 03:47:37PM +0100, Peter Zijlstra wrote:  
-> > > > Effectively revert commit 865e63b04e9b2 ("tracing: Add back in
-> > > > rcu_irq_enter/exit_irqson() for rcuidle tracepoints") now that we've
-> > > > taught perf how to deal with not having an RCU context provided.
-> > > > 
-> > > > Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
-> > > > ---
-> > > >  include/linux/tracepoint.h |    8 ++------
-> > > >  1 file changed, 2 insertions(+), 6 deletions(-)
-> > > > 
-> > > > --- a/include/linux/tracepoint.h
-> > > > +++ b/include/linux/tracepoint.h
-> > > > @@ -179,10 +179,8 @@ static inline struct tracepoint *tracepo  
-> > > 
-> > > Shouldn't we also get rid of this line above?
-> > > 
-> > > 		int __maybe_unused __idx = 0;				\
-> > >   
-> > 
-> > Probably makes a lot of sense, lemme fix that!  
-> 
-> Oh wait, no! SRCU is the one that remains !
+Unless there is a signal pending and the signal setup code is about to
+hit the same failed memory.  I suppose we can just treat cases like
+this as "oh well, time to kill the whole system".
 
-Correct, and if rcuidle is not set, and this is a macro, the SRCU
-portion is compiled out.
-
--- Steve
+But we should genuinely agree that we're okay with deferring this handling.
