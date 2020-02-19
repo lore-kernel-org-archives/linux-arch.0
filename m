@@ -1,77 +1,169 @@
-Return-Path: <SRS0=li4v=4C=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail-qk1-f196.google.com ([209.85.222.196]:38123 "EHLO
+Return-Path: <SRS0=LzcT=4H=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail-qk1-f196.google.com ([209.85.222.196]:33207 "EHLO
         mail-qk1-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728309AbgBNEBw (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 13 Feb 2020 23:01:52 -0500
-From: Boqun Feng <boqun.feng@gmail.com>
-Subject: [RFC 2/3] tools/memory-model: Add a litmus test for atomic_set()
-Date: Fri, 14 Feb 2020 12:01:31 +0800
-Message-ID: <20200214040132.91934-3-boqun.feng@gmail.com>
-In-Reply-To: <20200214040132.91934-1-boqun.feng@gmail.com>
-References: <20200214040132.91934-1-boqun.feng@gmail.com>
+        with ESMTP id S1726528AbgBSQGQ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 19 Feb 2020 11:06:16 -0500
+Received: by mail-qk1-f196.google.com with SMTP id h4so616523qkm.0
+        for <linux-arch@vger.kernel.org>; Wed, 19 Feb 2020 08:06:15 -0800 (PST)
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+References: <20200219144724.800607165@infradead.org> <20200219150745.651901321@infradead.org>
+In-Reply-To: <20200219150745.651901321@infradead.org>
+From: Dmitry Vyukov <dvyukov@google.com>
+Date: Wed, 19 Feb 2020 17:06:03 +0100
+Message-ID: <CACT4Y+Y+nPcnbb8nXGQA1=9p8BQYrnzab_4SvuPwbAJkTGgKOQ@mail.gmail.com>
+Subject: Re: [PATCH v3 22/22] x86/int3: Ensure that poke_int3_handler() is not sanitized
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: Alan Stern <stern@rowland.harvard.edu>, Andrea Parri <parri.andrea@gmail.com>, Will Deacon <will@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Boqun Feng <boqun.feng@gmail.com>, Nicholas Piggin <npiggin@gmail.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, "Paul E. McKenney" <paulmck@kernel.org>, Akira Yokosawa <akiyks@gmail.com>, Daniel Lustig <dlustig@nvidia.com>, Jonathan Corbet <corbet@lwn.net>, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org
-Message-ID: <20200214040131.9wVg-u0uY_EpkAo0ztjl8ZO_yPis3KpjLEujo-j9EIA@z>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: LKML <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Steven Rostedt <rostedt@goodmis.org>, Ingo Molnar <mingo@kernel.org>, Joel Fernandes <joel@joelfernandes.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, "Gustavo A. R. Silva" <gustavo@embeddedor.com>, Thomas Gleixner <tglx@linutronix.de>, "Paul E. McKenney" <paulmck@kernel.org>, Josh Triplett <josh@joshtriplett.org>, Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, Lai Jiangshan <jiangshanlai@gmail.com>, Andy Lutomirski <luto@kernel.org>, tony.luck@intel.com, Frederic Weisbecker <frederic@kernel.org>, Dan Carpenter <dan.carpenter@oracle.com>, Masami Hiramatsu <mhiramat@kernel.org>, Andrey Ryabinin <aryabinin@virtuozzo.com>, kasan-dev <kasan-dev@googlegroups.com>
+Message-ID: <20200219160603.vANftcksaRMkYjN9YIrJORmCaNdkpYi1pnzn5geB7xg@z>
 
-We already use a litmus test in atomic_t.txt to describe the behavior of
-an atomic_set() with the an atomic RMW, so add it into the litmus-tests
-directory to make it easily accessible for anyone who cares about the
-semantics of our atomic APIs.
+On Wed, Feb 19, 2020 at 4:14 PM Peter Zijlstra <peterz@infradead.org> wrote:
+>
+> In order to ensure poke_int3_handler() is completely self contained --
+> we call this while we're modifying other text, imagine the fun of
+> hitting another INT3 -- ensure that everything is without sanitize
+> crud.
 
-Signed-off-by: Boqun Feng <boqun.feng@gmail.com>
----
- .../Atomic-set-observable-to-RMW.litmus       | 24 +++++++++++++++++++
- tools/memory-model/litmus-tests/README        |  3 +++
- 2 files changed, 27 insertions(+)
- create mode 100644 tools/memory-model/litmus-tests/Atomic-set-observable-to-RMW.litmus
++kasan-dev
 
-diff --git a/tools/memory-model/litmus-tests/Atomic-set-observable-to-RMW.litmus b/tools/memory-model/litmus-tests/Atomic-set-observable-to-RMW.litmus
-new file mode 100644
-index 000000000000..4326f56f2c1a
---- /dev/null
-+++ b/tools/memory-model/litmus-tests/Atomic-set-observable-to-RMW.litmus
-@@ -0,0 +1,24 @@
-+C Atomic-set-observable-to-RMW
-+
-+(*
-+ * Result: Never
-+ *
-+ * Test of the result of atomic_set() must be observable to atomic RMWs.
-+ *)
-+
-+{
-+	atomic_t v = ATOMIC_INIT(1);
-+}
-+
-+P0(atomic_t *v)
-+{
-+	(void)atomic_add_unless(v,1,0);
-+}
-+
-+P1(atomic_t *v)
-+{
-+	atomic_set(v, 0);
-+}
-+
-+exists
-+(v=2)
-diff --git a/tools/memory-model/litmus-tests/README b/tools/memory-model/litmus-tests/README
-index 681f9067fa9e..81eeacebd160 100644
---- a/tools/memory-model/litmus-tests/README
-+++ b/tools/memory-model/litmus-tests/README
-@@ -2,6 +2,9 @@
- LITMUS TESTS
- ============
- 
-+Atomic-set-observable-to-RMW.litmus
-+	Test of the result of atomic_set() must be observable to atomic RMWs.
-+
- CoRR+poonceonce+Once.litmus
- 	Test of read-read coherence, that is, whether or not two
- 	successive reads from the same variable are ordered.
--- 
-2.25.0
+Hi Peter,
+
+How do we hit another INT3 here? Does the code do
+out-of-bounds/use-after-free writes?
+Debugging later silent memory corruption may be no less fun :)
+
+Not sanitizing bsearch entirely is a bit unfortunate. We won't find
+any bugs in it when called from other sites too.
+It may deserve a comment at least. Tomorrow I may want to remove
+__no_sanitize, just because sanitizing more is better, and no int3
+test will fail to stop me from doing that...
+
+It's quite fragile. Tomorrow poke_int3_handler handler calls more of
+fewer functions, and both ways it's not detected by anything. And if
+we ignore all by one function, it is still not helpful, right?
+Depending on failure cause/mode, using kasan_disable/enable_current
+may be a better option.
+
+
+> Cc: Dmitry Vyukov <dvyukov@google.com>
+> Cc: Andrey Ryabinin <aryabinin@virtuozzo.com>
+> Reported-by: Thomas Gleixner <tglx@linutronix.de>
+> Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+> ---
+>  arch/x86/kernel/alternative.c       |    4 ++--
+>  arch/x86/kernel/traps.c             |    2 +-
+>  include/linux/compiler-clang.h      |    7 +++++++
+>  include/linux/compiler-gcc.h        |    6 ++++++
+>  include/linux/compiler.h            |    5 +++++
+>  include/linux/compiler_attributes.h |    1 +
+>  lib/bsearch.c                       |    2 +-
+>  7 files changed, 23 insertions(+), 4 deletions(-)
+>
+> --- a/arch/x86/kernel/alternative.c
+> +++ b/arch/x86/kernel/alternative.c
+> @@ -979,7 +979,7 @@ static __always_inline void *text_poke_a
+>         return _stext + tp->rel_addr;
+>  }
+>
+> -static int notrace patch_cmp(const void *key, const void *elt)
+> +static int notrace __no_sanitize patch_cmp(const void *key, const void *elt)
+>  {
+>         struct text_poke_loc *tp = (struct text_poke_loc *) elt;
+>
+> @@ -991,7 +991,7 @@ static int notrace patch_cmp(const void
+>  }
+>  NOKPROBE_SYMBOL(patch_cmp);
+>
+> -int notrace poke_int3_handler(struct pt_regs *regs)
+> +int notrace __no_sanitize poke_int3_handler(struct pt_regs *regs)
+>  {
+>         struct bp_patching_desc *desc;
+>         struct text_poke_loc *tp;
+> --- a/arch/x86/kernel/traps.c
+> +++ b/arch/x86/kernel/traps.c
+> @@ -496,7 +496,7 @@ dotraplinkage void do_general_protection
+>  }
+>  NOKPROBE_SYMBOL(do_general_protection);
+>
+> -dotraplinkage void notrace do_int3(struct pt_regs *regs, long error_code)
+> +dotraplinkage void notrace __no_sanitize do_int3(struct pt_regs *regs, long error_code)
+>  {
+>         if (poke_int3_handler(regs))
+>                 return;
+> --- a/include/linux/compiler-clang.h
+> +++ b/include/linux/compiler-clang.h
+> @@ -24,6 +24,13 @@
+>  #define __no_sanitize_address
+>  #endif
+>
+> +#if __has_feature(undefined_sanitizer)
+> +#define __no_sanitize_undefined \
+> +               __atribute__((no_sanitize("undefined")))
+> +#else
+> +#define __no_sanitize_undefined
+> +#endif
+> +
+>  /*
+>   * Not all versions of clang implement the the type-generic versions
+>   * of the builtin overflow checkers. Fortunately, clang implements
+> --- a/include/linux/compiler-gcc.h
+> +++ b/include/linux/compiler-gcc.h
+> @@ -145,6 +145,12 @@
+>  #define __no_sanitize_address
+>  #endif
+>
+> +#if __has_attribute(__no_sanitize_undefined__)
+> +#define __no_sanitize_undefined __attribute__((no_sanitize_undefined))
+> +#else
+> +#define __no_sanitize_undefined
+> +#endif
+> +
+>  #if GCC_VERSION >= 50100
+>  #define COMPILER_HAS_GENERIC_BUILTIN_OVERFLOW 1
+>  #endif
+> --- a/include/linux/compiler.h
+> +++ b/include/linux/compiler.h
+> @@ -199,6 +199,7 @@ void __read_once_size(const volatile voi
+>         __READ_ONCE_SIZE;
+>  }
+>
+> +#define __no_kasan __no_sanitize_address
+>  #ifdef CONFIG_KASAN
+>  /*
+>   * We can't declare function 'inline' because __no_sanitize_address confilcts
+> @@ -274,6 +275,10 @@ static __always_inline void __write_once
+>   */
+>  #define READ_ONCE_NOCHECK(x) __READ_ONCE(x, 0)
+>
+> +#define __no_ubsan __no_sanitize_undefined
+> +
+> +#define __no_sanitize __no_kasan __no_ubsan
+> +
+>  static __no_kasan_or_inline
+>  unsigned long read_word_at_a_time(const void *addr)
+>  {
+> --- a/include/linux/compiler_attributes.h
+> +++ b/include/linux/compiler_attributes.h
+> @@ -41,6 +41,7 @@
+>  # define __GCC4_has_attribute___nonstring__           0
+>  # define __GCC4_has_attribute___no_sanitize_address__ (__GNUC_MINOR__ >= 8)
+>  # define __GCC4_has_attribute___fallthrough__         0
+> +# define __GCC4_has_attribute___no_sanitize_undefined__ (__GNUC_MINOR__ >= 9)
+>  #endif
+>
+>  /*
+> --- a/lib/bsearch.c
+> +++ b/lib/bsearch.c
+> @@ -28,7 +28,7 @@
+>   * the key and elements in the array are of the same type, you can use
+>   * the same comparison function for both sort() and bsearch().
+>   */
+> -void *bsearch(const void *key, const void *base, size_t num, size_t size,
+> +void __no_sanitize *bsearch(const void *key, const void *base, size_t num, size_t size,
+>               cmp_func_t cmp)
+>  {
+>         const char *pivot;
+>
+>
