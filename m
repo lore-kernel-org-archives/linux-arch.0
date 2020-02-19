@@ -1,45 +1,71 @@
-From: Alan Stern <stern@rowland.harvard.edu>
-Subject: Re: [RFC v2 3/4] Documentation/locking/atomic: Add a litmus test
- for atomic_set()
-Date: Wed, 19 Feb 2020 10:07:09 -0500 (EST)
-Message-ID: <Pine.LNX.4.44L0.2002191004420.1514-100000@iolanthe.rowland.org>
-References: <20200219062627.104736-4-boqun.feng@gmail.com>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: [PATCH v3 09/22] sched,rcu,tracing: Avoid tracing before in_nmi() is correct
+Date: Wed, 19 Feb 2020 15:47:33 +0100
+Message-ID: <20200219150744.888917422@infradead.org>
+References: <20200219144724.800607165@infradead.org>
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
-Return-path: <linux-doc-owner@vger.kernel.org>
-In-Reply-To: <20200219062627.104736-4-boqun.feng@gmail.com>
-Sender: linux-doc-owner@vger.kernel.org
-To: Boqun Feng <boqun.feng@gmail.com>
-Cc: linux-kernel@vger.kernel.org, Andrea Parri <parri.andrea@gmail.com>, Will Deacon <will@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Nicholas Piggin <npiggin@gmail.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, "Paul E. McKenney" <paulmck@kernel.org>, Akira Yokosawa <akiyks@gmail.com>, Daniel Lustig <dlustig@nvidia.com>, Jonathan Corbet <corbet@lwn.net>, Mauro Carvalho Chehab <mchehab+samsung@kernel.org>, "David S. Miller" <davem@davemloft.net>, Rob Herring <robh@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jonathan Cameron <Jonathan.Cameron@huawei.com>, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=UTF-8
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from bombadil.infradead.org ([198.137.202.133]:35888 "EHLO
+        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726682AbgBSPOS (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 19 Feb 2020 10:14:18 -0500
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, rostedt@goodmis.org
+Cc: peterz@infradead.org, mingo@kernel.org, joel@joelfernandes.org, gregkh@linuxfoundation.org, gustavo@embeddedor.com, tglx@linutronix.de, paulmck@kernel.org, josh@joshtriplett.org, mathieu.desnoyers@efficios.com, jiangshanlai@gmail.com, luto@kernel.org, tony.luck@intel.com, frederic@kernel.org, dan.carpenter@oracle.com, mhiramat@kernel.org, "Steven Rostedt (VMware)" <rosted@goodmis.org>
 
-On Wed, 19 Feb 2020, Boqun Feng wrote:
+If we call into a tracer before in_nmi() becomes true, the tracer can
+no longer detect it is called from NMI context and behave correctly.
 
-> We already use a litmus test in atomic_t.txt to describe the behavior of
-> an atomic_set() with the an atomic RMW, so add it into atomic-tests
-> directory to make it easily accessible for anyone who cares about the
-> semantics of our atomic APIs.
-> 
-> Additionally, change the sentences describing the test in atomic_t.txt
-> with better wording.
+Therefore change nmi_{enter,exit}() to use __preempt_count_{add,sub}()
+as the normal preempt_count_{add,sub}() have a (desired) function
+trace entry.
 
-One very minor point about the new working in atomic_t.txt:
+This fixes a potential issue with current code; AFAICT when the
+function-tracer has stack-tracing enabled __trace_stack() will
+malfunction when it hits the preempt_count_add() function entry from
+NMI context.
 
-> diff --git a/Documentation/atomic_t.txt b/Documentation/atomic_t.txt
-> index ceb85ada378e..d30cb3d87375 100644
-> --- a/Documentation/atomic_t.txt
-> +++ b/Documentation/atomic_t.txt
-> @@ -85,10 +85,10 @@ smp_store_release() respectively. Therefore, if you find yourself only using
->  the Non-RMW operations of atomic_t, you do not in fact need atomic_t at all
->  and are doing it wrong.
->  
-> -A subtle detail of atomic_set{}() is that it should be observable to the RMW
-> -ops. That is:
-> +A note for the implementation of atomic_set{}() is that it cannot break the
-> +atomicity of the RMW ops. That is:
+Suggested-by: Steven Rostedt (VMware) <rosted@goodmis.org>
+Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+---
+ include/linux/hardirq.h |   13 +++++++++++--
+ 1 file changed, 11 insertions(+), 2 deletions(-)
 
-This would be slightly better if you changed it to: "it must not break".
-
-The comments in the litmus test and README file are okay as they stand.
-
-Alan
+--- a/include/linux/hardirq.h
++++ b/include/linux/hardirq.h
+@@ -65,6 +65,15 @@ extern void irq_exit(void);
+ #define arch_nmi_exit()		do { } while (0)
+ #endif
+ 
++/*
++ * NMI vs Tracing
++ * --------------
++ *
++ * We must not land in a tracer until (or after) we've changed preempt_count
++ * such that in_nmi() becomes true. To that effect all NMI C entry points must
++ * be marked 'notrace' and call nmi_enter() as soon as possible.
++ */
++
+ #define nmi_enter()						\
+ 	do {							\
+ 		arch_nmi_enter();				\
+@@ -72,7 +81,7 @@ extern void irq_exit(void);
+ 		lockdep_off();					\
+ 		ftrace_nmi_enter();				\
+ 		BUG_ON(in_nmi() == NMI_MASK);			\
+-		preempt_count_add(NMI_OFFSET + HARDIRQ_OFFSET);	\
++		__preempt_count_add(NMI_OFFSET + HARDIRQ_OFFSET); \
+ 		rcu_nmi_enter();				\
+ 		trace_hardirq_enter();				\
+ 	} while (0)
+@@ -82,7 +91,7 @@ extern void irq_exit(void);
+ 		trace_hardirq_exit();				\
+ 		rcu_nmi_exit();					\
+ 		BUG_ON(!in_nmi());				\
+-		preempt_count_sub(NMI_OFFSET + HARDIRQ_OFFSET);	\
++		__preempt_count_sub(NMI_OFFSET + HARDIRQ_OFFSET); \
+ 		ftrace_nmi_exit();				\
+ 		lockdep_on();					\
+ 		printk_nmi_exit();				\
