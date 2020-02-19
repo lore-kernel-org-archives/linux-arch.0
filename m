@@ -1,53 +1,64 @@
 From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH v3 04/22] x86/doublefault: Make memmove() notrace/NOKPROBE
-Date: Wed, 19 Feb 2020 17:34:09 +0100
-Message-ID: <20200219163409.GI18400@hirez.programming.kicks-ass.net>
+Subject: Re: [PATCH v3 08/22] rcu,tracing: Create trace_rcu_{enter,exit}()
+Date: Wed, 19 Feb 2020 17:35:35 +0100
+Message-ID: <20200219163535.GJ18400@hirez.programming.kicks-ass.net>
 References: <20200219144724.800607165@infradead.org>
- <20200219150744.604459293@infradead.org>
- <20200219103614.2299ff61@gandalf.local.home>
- <20200219154031.GE18400@hirez.programming.kicks-ass.net>
- <20200219155715.GD14946@hirez.programming.kicks-ass.net>
- <20200219160442.GE14946@hirez.programming.kicks-ass.net>
- <20200219111228.44c2999b@gandalf.local.home>
- <20200219162747.GX2935@paulmck-ThinkPad-P72>
+ <20200219150744.832297480@infradead.org>
+ <20200219104903.46686b81@gandalf.local.home>
+ <20200219155828.GF18400@hirez.programming.kicks-ass.net>
+ <20200219111532.719c0a6b@gandalf.local.home>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <20200219162747.GX2935@paulmck-ThinkPad-P72>
+In-Reply-To: <20200219111532.719c0a6b@gandalf.local.home>
 Sender: linux-kernel-owner@vger.kernel.org
-To: "Paul E. McKenney" <paulmck@kernel.org>
-Cc: Steven Rostedt <rostedt@goodmis.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org, joel@joelfernandes.org, gregkh@linuxfoundation.org, gustavo@embeddedor.com, tglx@linutronix.de, josh@joshtriplett.org, mathieu.desnoyers@efficios.com, jiangshanlai@gmail.com, luto@kernel.org, tony.luck@intel.com, frederic@kernel.org, dan.carpenter@oracle.com, mhiramat@kernel.org
+To: Steven Rostedt <rostedt@goodmis.org>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org, joel@joelfernandes.org, gregkh@linuxfoundation.org, gustavo@embeddedor.com, tglx@linutronix.de, paulmck@kernel.org, josh@joshtriplett.org, mathieu.desnoyers@efficios.com, jiangshanlai@gmail.com, luto@kernel.org, tony.luck@intel.com, frederic@kernel.org, dan.carpenter@oracle.com, mhiramat@kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Feb 19, 2020 at 08:27:47AM -0800, Paul E. McKenney wrote:
-> On Wed, Feb 19, 2020 at 11:12:28AM -0500, Steven Rostedt wrote:
-> > On Wed, 19 Feb 2020 17:04:42 +0100
-> > Peter Zijlstra <peterz@infradead.org> wrote:
+On Wed, Feb 19, 2020 at 11:15:32AM -0500, Steven Rostedt wrote:
+> On Wed, 19 Feb 2020 16:58:28 +0100
+> Peter Zijlstra <peterz@infradead.org> wrote:
+> 
+> > On Wed, Feb 19, 2020 at 10:49:03AM -0500, Steven Rostedt wrote:
+> > > On Wed, 19 Feb 2020 15:47:32 +0100
+> > > Peter Zijlstra <peterz@infradead.org> wrote:  
 > > 
-> > > > -		memmove(&gpregs->ip, (void *)regs->sp, 5*8);
-> > > > +		for (i = 0; i < count; i++) {
-> > > > +			int idx = (dst <= src) ? i : count - i;  
+> > > > These helpers are macros because of header-hell; they're placed here
+> > > > because of the proximity to nmi_{enter,exit{().  
+> > 
+> > ^^^^
+> 
+> Bah I can't read, because I even went looking for this!
+> 
+> > 
+> > > > +#define trace_rcu_enter()					\
+> > > > +({								\
+> > > > +	unsigned long state = 0;				\
+> > > > +	if (!rcu_is_watching())	{				\
+> > > > +		rcu_irq_enter_irqsave();			\
+> > > > +		state = 1;					\
+> > > > +	}							\
+> > > > +	state;							\
+> > > > +})
+> > > > +
+> > > > +#define trace_rcu_exit(state)					\
+> > > > +do {								\
+> > > > +	if (state)						\
+> > > > +		rcu_irq_exit_irqsave();				\
+> > > > +} while (0)
+> > > > +  
 > > > 
-> > > That's an off-by-one for going backward; 'count - 1 - i' should work
-> > > better, or I should just stop typing for today ;-)
+> > > Is there a reason that these can't be static __always_inline functions?  
 > > 
-> > Or, we could just cut and paste the current memmove and make a notrace
-> > version too. Then we don't need to worry bout bugs like this.
+> > It can be done, but then we need fwd declarations of those RCU functions
+> > somewhere outside of rcupdate.h. It's all a bit of a mess.
 > 
-> OK, I will bite...
-> 
-> Can we just make the core be an inline function and make a notrace and
-> a trace caller?  Possibly going one step further and having one call
-> the other?  (Presumably the traceable version invoking the notrace
-> version, but it has been one good long time since I have looked at
-> function preambles.)
+> Maybe this belongs in the rcupdate.h file then?
 
-One complication is that GCC (and others) are prone to stick their own
-implementation of memmove() (and other string functions) in at 'random'.
-That is, it is up to the compiler's discretion wether or not to put a
-call to memmove() in or just emit some random giberish they feel has the
-same effect.
+Possibly, and I suppose the current version is less obviously dependent
+on the in_nmi() functionality as was the previous, seeing how Paul
+frobbed that all the way into the rcu_irq_enter*() implementation.
 
-So if we go play silly games like that, we need be careful (or just call
-__memmove I suppose, which is supposed to avoid that IIRC).
+So sure, I can go move it I suppose.
