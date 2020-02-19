@@ -1,114 +1,114 @@
-Return-Path: <SRS0=2OaM=4Q=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail-pl1-f196.google.com ([209.85.214.196]:32876 "EHLO
-        mail-pl1-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1730569AbgB1DLV (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 27 Feb 2020 22:11:21 -0500
-From: Nicholas Piggin <npiggin@gmail.com>
-Subject: [PATCH 1/2] kallsyms: architecture specific symbol lookups
-Date: Fri, 28 Feb 2020 13:10:26 +1000
-Message-ID: <20200228031027.271510-1-npiggin@gmail.com>
+Return-Path: <christophe.leroy@c-s.fr>
+Subject: Re: [PATCH v2 07/13] powerpc: add support for folded p4d page tables
+References: <20200216081843.28670-1-rppt@kernel.org>
+ <20200216081843.28670-8-rppt@kernel.org>
+From: Christophe Leroy <christophe.leroy@c-s.fr>
+Message-ID: <5b7c3929-5833-8ceb-85c8-a8e92e6a138e@c-s.fr>
+Date: Wed, 19 Feb 2020 13:07:55 +0100
 MIME-Version: 1.0
+In-Reply-To: <20200216081843.28670-8-rppt@kernel.org>
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Language: fr
 Content-Transfer-Encoding: 8bit
-Sender: linux-arch-owner@vger.kernel.org
+To: Mike Rapoport <rppt@kernel.org>
+Cc: linux-kernel@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Brian Cain <bcain@codeaurora.org>, Catalin Marinas <catalin.marinas@arm.com>, Fenghua Yu <fenghua.yu@intel.com>, Geert Uytterhoeven <geert+renesas@glider.be>, Guan Xuetao <gxt@pku.edu.cn>, James Morse <james.morse@arm.com>, Jonas Bonn <jonas@southpole.se>, Julien Thierry <julien.thierry.kdev@gmail.com>, Ley Foon Tan <ley.foon.tan@intel.com>, Marc Zyngier <maz@kernel.org>, Michael Ellerman <mpe@ellerman.id.au>, Paul Mackerras <paulus@samba.org>, Rich Felker <dalias@libc.org>, Russell King <linux@armlinux.org.uk>, Stafford Horne <shorne@gmail.com>, Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>, Suzuki K Poulose <suzuki.poulose@arm.com>, Tony Luck <tony.luck@intel.com>, Will Deacon <will@kernel.org>, Yoshinori Sato <ysato@users.sourceforge.jp>, kvmarm@lists.cs.columbia.edu, kvm-ppc@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-mm@kvack.org, linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org, nios2-dev@lists.rocketboards.org, openrisc@lists.librecores.org, uclinux-h8-devel@lists.sourceforge.jp, Mike Rapoport <rppt@linux.ibm.com>
 List-ID: <linux-arch.vger.kernel.org>
-To: linuxppc-dev@lists.ozlabs.org
-Cc: Nicholas Piggin <npiggin@gmail.com>, skiboot@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20200228031026.yW726XtfEaS5G1Fj6OoyUgXnC5jtzgGw64y-lDlqJS4@z>
+Message-ID: <20200219120755.mt9n_H9s321z7XHosgVjK7OMUkds25_o2a5FnRUPiU4@z>
 
-Provide CONFIG_ARCH_HAS_ADDRESS_LOOKUP which allows architectures to
-do their own symbol/address lookup if kernel and module lookups miss.
 
-powerpc will use this to deal with firmware symbols.
 
-Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
----
- include/linux/kallsyms.h | 20 ++++++++++++++++++++
- kernel/kallsyms.c        | 13 ++++++++++++-
- lib/Kconfig              |  3 +++
- 3 files changed, 35 insertions(+), 1 deletion(-)
+Le 16/02/2020 à 09:18, Mike Rapoport a écrit :
+> From: Mike Rapoport <rppt@linux.ibm.com>
+> 
+> Implement primitives necessary for the 4th level folding, add walks of p4d
+> level where appropriate and replace 5level-fixup.h with pgtable-nop4d.h.
+> 
+> Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
+> Tested-by: Christophe Leroy <christophe.leroy@c-s.fr> # 8xx and 83xx
+> ---
+>   arch/powerpc/include/asm/book3s/32/pgtable.h  |  1 -
+>   arch/powerpc/include/asm/book3s/64/hash.h     |  4 +-
+>   arch/powerpc/include/asm/book3s/64/pgalloc.h  |  4 +-
+>   arch/powerpc/include/asm/book3s/64/pgtable.h  | 58 ++++++++++--------
+>   arch/powerpc/include/asm/book3s/64/radix.h    |  6 +-
+>   arch/powerpc/include/asm/nohash/32/pgtable.h  |  1 -
+>   arch/powerpc/include/asm/nohash/64/pgalloc.h  |  2 +-
+>   .../include/asm/nohash/64/pgtable-4k.h        | 32 +++++-----
+>   arch/powerpc/include/asm/nohash/64/pgtable.h  |  6 +-
+>   arch/powerpc/include/asm/pgtable.h            |  8 +++
+>   arch/powerpc/kvm/book3s_64_mmu_radix.c        | 59 ++++++++++++++++---
+>   arch/powerpc/lib/code-patching.c              |  7 ++-
+>   arch/powerpc/mm/book3s32/mmu.c                |  2 +-
+>   arch/powerpc/mm/book3s32/tlb.c                |  4 +-
+>   arch/powerpc/mm/book3s64/hash_pgtable.c       |  4 +-
+>   arch/powerpc/mm/book3s64/radix_pgtable.c      | 19 ++++--
+>   arch/powerpc/mm/book3s64/subpage_prot.c       |  6 +-
+>   arch/powerpc/mm/hugetlbpage.c                 | 28 +++++----
+>   arch/powerpc/mm/kasan/kasan_init_32.c         |  8 +--
+>   arch/powerpc/mm/mem.c                         |  4 +-
+>   arch/powerpc/mm/nohash/40x.c                  |  4 +-
+>   arch/powerpc/mm/nohash/book3e_pgtable.c       | 15 +++--
+>   arch/powerpc/mm/pgtable.c                     | 25 +++++++-
+>   arch/powerpc/mm/pgtable_32.c                  | 28 +++++----
+>   arch/powerpc/mm/pgtable_64.c                  | 10 ++--
+>   arch/powerpc/mm/ptdump/hashpagetable.c        | 20 ++++++-
+>   arch/powerpc/mm/ptdump/ptdump.c               | 22 ++++++-
+>   arch/powerpc/xmon/xmon.c                      | 17 +++++-
+>   28 files changed, 284 insertions(+), 120 deletions(-)
+> 
+> diff --git a/arch/powerpc/mm/ptdump/ptdump.c b/arch/powerpc/mm/ptdump/ptdump.c
+> index 206156255247..7bd4b81d5b5d 100644
+> --- a/arch/powerpc/mm/ptdump/ptdump.c
+> +++ b/arch/powerpc/mm/ptdump/ptdump.c
+> @@ -277,9 +277,9 @@ static void walk_pmd(struct pg_state *st, pud_t *pud, unsigned long start)
+>   	}
+>   }
+>   
+> -static void walk_pud(struct pg_state *st, pgd_t *pgd, unsigned long start)
+> +static void walk_pud(struct pg_state *st, p4d_t *p4d, unsigned long start)
+>   {
+> -	pud_t *pud = pud_offset(pgd, 0);
+> +	pud_t *pud = pud_offset(p4d, 0);
+>   	unsigned long addr;
+>   	unsigned int i;
+>   
+> @@ -293,6 +293,22 @@ static void walk_pud(struct pg_state *st, pgd_t *pgd, unsigned long start)
+>   	}
+>   }
+>   
+> +static void walk_p4d(struct pg_state *st, pgd_t *pgd, unsigned long start)
+> +{
+> +	p4d_t *p4d = p4d_offset(pgd, 0);
+> +	unsigned long addr;
+> +	unsigned int i;
+> +
+> +	for (i = 0; i < PTRS_PER_P4D; i++, p4d++) {
+> +		addr = start + i * P4D_SIZE;
+> +		if (!p4d_none(*p4d) && !p4d_is_leaf(*p4d))
+> +			/* p4d exists */
+> +			walk_pud(st, p4d, addr);
+> +		else
+> +			note_page(st, addr, 2, p4d_val(*p4d));
 
-diff --git a/include/linux/kallsyms.h b/include/linux/kallsyms.h
-index 657a83b943f0..8fdd44873373 100644
---- a/include/linux/kallsyms.h
-+++ b/include/linux/kallsyms.h
-@@ -83,6 +83,26 @@ extern int kallsyms_lookup_size_offset(unsigned long addr,
- 				  unsigned long *symbolsize,
- 				  unsigned long *offset);
- 
-+#ifdef CONFIG_ARCH_HAS_ADDRESS_LOOKUP
-+const char *arch_address_lookup(unsigned long addr,
-+			    unsigned long *symbolsize,
-+			    unsigned long *offset,
-+			    char **modname, char *namebuf);
-+unsigned long arch_address_lookup_name(const char *name);
-+#else
-+static inline const char *arch_address_lookup(unsigned long addr,
-+			    unsigned long *symbolsize,
-+			    unsigned long *offset,
-+			    char **modname, char *namebuf)
-+{
-+	return NULL;
-+}
-+static inline unsigned long arch_address_lookup_name(const char *name)
-+{
-+	return 0;
-+}
-+#endif
-+
- /* Lookup an address.  modname is set to NULL if it's in the kernel. */
- const char *kallsyms_lookup(unsigned long addr,
- 			    unsigned long *symbolsize,
-diff --git a/kernel/kallsyms.c b/kernel/kallsyms.c
-index a9b3f660dee7..580c762fadd8 100644
---- a/kernel/kallsyms.c
-+++ b/kernel/kallsyms.c
-@@ -164,6 +164,7 @@ static unsigned long kallsyms_sym_address(int idx)
- unsigned long kallsyms_lookup_name(const char *name)
- {
- 	char namebuf[KSYM_NAME_LEN];
-+	unsigned long ret;
- 	unsigned long i;
- 	unsigned int off;
- 
-@@ -173,7 +174,12 @@ unsigned long kallsyms_lookup_name(const char *name)
- 		if (strcmp(namebuf, name) == 0)
- 			return kallsyms_sym_address(i);
- 	}
--	return module_kallsyms_lookup_name(name);
-+
-+	ret = module_kallsyms_lookup_name(name);
-+	if (ret)
-+		return ret;
-+
-+	return arch_address_lookup_name(name);
- }
- EXPORT_SYMBOL_GPL(kallsyms_lookup_name);
- 
-@@ -311,6 +317,11 @@ const char *kallsyms_lookup(unsigned long addr,
- 	if (!ret)
- 		ret = ftrace_mod_address_lookup(addr, symbolsize,
- 						offset, modname, namebuf);
-+
-+	if (!ret)
-+		ret = arch_address_lookup(addr, symbolsize,
-+						offset, modname, namebuf);
-+
- 	return ret;
- }
- 
-diff --git a/lib/Kconfig b/lib/Kconfig
-index bc7e56370129..16d3b8dbcadf 100644
---- a/lib/Kconfig
-+++ b/lib/Kconfig
-@@ -80,6 +80,9 @@ config ARCH_USE_CMPXCHG_LOCKREF
- config ARCH_HAS_FAST_MULTIPLIER
- 	bool
- 
-+config ARCH_HAS_ADDRESS_LOOKUP
-+	bool
-+
- config INDIRECT_PIO
- 	bool "Access I/O in non-MMIO mode"
- 	depends on ARM64
--- 
-2.23.0
+Level 2 is already used by walk_pud().
+
+I think you have to increment the level used in walk_pud() and 
+walk_pmd() and walk_pte()
+
+> +	}
+> +}
+> +
+>   static void walk_pagetables(struct pg_state *st)
+>   {
+>   	unsigned int i;
+> @@ -306,7 +322,7 @@ static void walk_pagetables(struct pg_state *st)
+>   	for (i = pgd_index(addr); i < PTRS_PER_PGD; i++, pgd++, addr += PGDIR_SIZE) {
+>   		if (!pgd_none(*pgd) && !pgd_is_leaf(*pgd))
+>   			/* pgd exists */
+> -			walk_pud(st, pgd, addr);
+> +			walk_p4d(st, pgd, addr);
+>   		else
+>   			note_page(st, addr, 1, pgd_val(*pgd));
+>   	}
+
+Christophe
