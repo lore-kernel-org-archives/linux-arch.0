@@ -1,114 +1,39 @@
-From: Christophe Leroy <christophe.leroy@c-s.fr>
-Subject: Re: [PATCH v2 07/13] powerpc: add support for folded p4d page tables
-Date: Wed, 19 Feb 2020 13:07:55 +0100
-Message-ID: <5b7c3929-5833-8ceb-85c8-a8e92e6a138e@c-s.fr>
-References: <20200216081843.28670-1-rppt@kernel.org>
- <20200216081843.28670-8-rppt@kernel.org>
+From: "Paul E. McKenney" <paulmck@kernel.org>
+Subject: Re: [PATCH v2 3/9] rcu,tracing: Create trace_rcu_{enter,exit}()
+Date: Wed, 19 Feb 2020 04:46:14 -0800
+Message-ID: <20200219124614.GT2935@paulmck-ThinkPad-P72>
+References: <20200213082716.GI14897@hirez.programming.kicks-ass.net>
+ <20200213135138.GB2935@paulmck-ThinkPad-P72>
+ <20200213164031.GH14914@hirez.programming.kicks-ass.net>
+ <20200213185612.GG2935@paulmck-ThinkPad-P72>
+ <20200213204444.GA94647@google.com>
+ <20200218195831.GD11457@worktop.programming.kicks-ass.net>
+ <20200218201728.GH2935@paulmck-ThinkPad-P72>
+ <20200218204021.GJ11457@worktop.programming.kicks-ass.net>
+ <20200218213925.GL2935@paulmck-ThinkPad-P72>
+ <20200219095743.GA18400@hirez.programming.kicks-ass.net>
+Reply-To: paulmck@kernel.org
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Transfer-Encoding: 8bit
-Return-path: <linux-hexagon-owner@vger.kernel.org>
-In-Reply-To: <20200216081843.28670-8-rppt@kernel.org>
-Content-Language: fr
-Sender: linux-hexagon-owner@vger.kernel.org
-To: Mike Rapoport <rppt@kernel.org>
-Cc: linux-kernel@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Brian Cain <bcain@codeaurora.org>, Catalin Marinas <catalin.marinas@arm.com>, Fenghua Yu <fenghua.yu@intel.com>, Geert Uytterhoeven <geert+renesas@glider.be>, Guan Xuetao <gxt@pku.edu.cn>, James Morse <james.morse@arm.com>, Jonas Bonn <jonas@southpole.se>, Julien Thierry <julien.thierry.kdev@gmail.com>, Ley Foon Tan <ley.foon.tan@intel.com>, Marc Zyngier <maz@kernel.org>, Michael Ellerman <mpe@ellerman.id.au>, Paul Mackerras <paulus@samba.org>, Rich Felker <dalias@libc.org>, Russell King <linux@armlinux.org.uk>, Stafford Horne <shorne@gmail.com>, Stefan Kristiansson <stefan.kristian>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail.kernel.org ([198.145.29.99]:50120 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726491AbgBSMqO (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 19 Feb 2020 07:46:14 -0500
+Content-Disposition: inline
+In-Reply-To: <20200219095743.GA18400@hirez.programming.kicks-ass.net>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Joel Fernandes <joel@joelfernandes.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, rostedt@goodmis.org, mingo@kernel.org, gregkh@linuxfoundation.org, gustavo@embeddedor.com, tglx@linutronix.de, josh@joshtriplett.org, mathieu.desnoyers@efficios.com, jiangshanlai@gmail.com
 
-
-
-Le 16/02/2020 à 09:18, Mike Rapoport a écrit :
-> From: Mike Rapoport <rppt@linux.ibm.com>
+On Wed, Feb 19, 2020 at 10:57:43AM +0100, Peter Zijlstra wrote:
+> On Tue, Feb 18, 2020 at 01:39:25PM -0800, Paul E. McKenney wrote:
+> > OK.  I will drop it later today, but leave tag in_nmi.2020.02.18a
+> > pointing at it for future reference.
 > 
-> Implement primitives necessary for the 4th level folding, add walks of p4d
-> level where appropriate and replace 5level-fixup.h with pgtable-nop4d.h.
-> 
-> Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
-> Tested-by: Christophe Leroy <christophe.leroy@c-s.fr> # 8xx and 83xx
-> ---
->   arch/powerpc/include/asm/book3s/32/pgtable.h  |  1 -
->   arch/powerpc/include/asm/book3s/64/hash.h     |  4 +-
->   arch/powerpc/include/asm/book3s/64/pgalloc.h  |  4 +-
->   arch/powerpc/include/asm/book3s/64/pgtable.h  | 58 ++++++++++--------
->   arch/powerpc/include/asm/book3s/64/radix.h    |  6 +-
->   arch/powerpc/include/asm/nohash/32/pgtable.h  |  1 -
->   arch/powerpc/include/asm/nohash/64/pgalloc.h  |  2 +-
->   .../include/asm/nohash/64/pgtable-4k.h        | 32 +++++-----
->   arch/powerpc/include/asm/nohash/64/pgtable.h  |  6 +-
->   arch/powerpc/include/asm/pgtable.h            |  8 +++
->   arch/powerpc/kvm/book3s_64_mmu_radix.c        | 59 ++++++++++++++++---
->   arch/powerpc/lib/code-patching.c              |  7 ++-
->   arch/powerpc/mm/book3s32/mmu.c                |  2 +-
->   arch/powerpc/mm/book3s32/tlb.c                |  4 +-
->   arch/powerpc/mm/book3s64/hash_pgtable.c       |  4 +-
->   arch/powerpc/mm/book3s64/radix_pgtable.c      | 19 ++++--
->   arch/powerpc/mm/book3s64/subpage_prot.c       |  6 +-
->   arch/powerpc/mm/hugetlbpage.c                 | 28 +++++----
->   arch/powerpc/mm/kasan/kasan_init_32.c         |  8 +--
->   arch/powerpc/mm/mem.c                         |  4 +-
->   arch/powerpc/mm/nohash/40x.c                  |  4 +-
->   arch/powerpc/mm/nohash/book3e_pgtable.c       | 15 +++--
->   arch/powerpc/mm/pgtable.c                     | 25 +++++++-
->   arch/powerpc/mm/pgtable_32.c                  | 28 +++++----
->   arch/powerpc/mm/pgtable_64.c                  | 10 ++--
->   arch/powerpc/mm/ptdump/hashpagetable.c        | 20 ++++++-
->   arch/powerpc/mm/ptdump/ptdump.c               | 22 ++++++-
->   arch/powerpc/xmon/xmon.c                      | 17 +++++-
->   28 files changed, 284 insertions(+), 120 deletions(-)
-> 
-> diff --git a/arch/powerpc/mm/ptdump/ptdump.c b/arch/powerpc/mm/ptdump/ptdump.c
-> index 206156255247..7bd4b81d5b5d 100644
-> --- a/arch/powerpc/mm/ptdump/ptdump.c
-> +++ b/arch/powerpc/mm/ptdump/ptdump.c
-> @@ -277,9 +277,9 @@ static void walk_pmd(struct pg_state *st, pud_t *pud, unsigned long start)
->   	}
->   }
->   
-> -static void walk_pud(struct pg_state *st, pgd_t *pgd, unsigned long start)
-> +static void walk_pud(struct pg_state *st, p4d_t *p4d, unsigned long start)
->   {
-> -	pud_t *pud = pud_offset(pgd, 0);
-> +	pud_t *pud = pud_offset(p4d, 0);
->   	unsigned long addr;
->   	unsigned int i;
->   
-> @@ -293,6 +293,22 @@ static void walk_pud(struct pg_state *st, pgd_t *pgd, unsigned long start)
->   	}
->   }
->   
-> +static void walk_p4d(struct pg_state *st, pgd_t *pgd, unsigned long start)
-> +{
-> +	p4d_t *p4d = p4d_offset(pgd, 0);
-> +	unsigned long addr;
-> +	unsigned int i;
-> +
-> +	for (i = 0; i < PTRS_PER_P4D; i++, p4d++) {
-> +		addr = start + i * P4D_SIZE;
-> +		if (!p4d_none(*p4d) && !p4d_is_leaf(*p4d))
-> +			/* p4d exists */
-> +			walk_pud(st, p4d, addr);
-> +		else
-> +			note_page(st, addr, 2, p4d_val(*p4d));
+> Thanks, I've picked it up in my series.
 
-Level 2 is already used by walk_pud().
+Very good, thank you!
 
-I think you have to increment the level used in walk_pud() and 
-walk_pmd() and walk_pte()
-
-> +	}
-> +}
-> +
->   static void walk_pagetables(struct pg_state *st)
->   {
->   	unsigned int i;
-> @@ -306,7 +322,7 @@ static void walk_pagetables(struct pg_state *st)
->   	for (i = pgd_index(addr); i < PTRS_PER_PGD; i++, pgd++, addr += PGDIR_SIZE) {
->   		if (!pgd_none(*pgd) && !pgd_is_leaf(*pgd))
->   			/* pgd exists */
-> -			walk_pud(st, pgd, addr);
-> +			walk_p4d(st, pgd, addr);
->   		else
->   			note_page(st, addr, 1, pgd_val(*pgd));
->   	}
-
-Christophe
+							Thanx, Paul
