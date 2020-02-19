@@ -1,15 +1,15 @@
 From: Nathan Chancellor <natechancellor@gmail.com>
-Subject: [PATCH 3/6] tracing: Wrap section comparison in tracer_alloc_buffers with COMPARE_SECTIONS
-Date: Tue, 18 Feb 2020 21:54:20 -0700
-Message-ID: <20200219045423.54190-4-natechancellor@gmail.com>
+Subject: [PATCH 4/6] dynamic_debug: Wrap section comparison in dynamic_debug_init with COMPARE_SECTIONS
+Date: Tue, 18 Feb 2020 21:54:21 -0700
+Message-ID: <20200219045423.54190-5-natechancellor@gmail.com>
 References: <20200219045423.54190-1-natechancellor@gmail.com>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-oi1-f193.google.com ([209.85.167.193]:40622 "EHLO
-        mail-oi1-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726623AbgBSEyf (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 18 Feb 2020 23:54:35 -0500
+Received: from mail-ot1-f66.google.com ([209.85.210.66]:46808 "EHLO
+        mail-ot1-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726715AbgBSEyg (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 18 Feb 2020 23:54:36 -0500
 In-Reply-To: <20200219045423.54190-1-natechancellor@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
@@ -18,10 +18,10 @@ Cc: linux-kernel@vger.kernel.org, linux-kbuild@vger.kernel.org, linux-arch@vger.
 
 Clang warns:
 
-../kernel/trace/trace.c:9335:33: warning: array comparison always
-evaluates to true [-Wtautological-compare]
-        if (__stop___trace_bprintk_fmt != __start___trace_bprintk_fmt)
-                                       ^
+../lib/dynamic_debug.c:1016:24: warning: array comparison always
+evaluates to false [-Wtautological-compare]
+        if (__start___verbose == __stop___verbose) {
+                              ^
 1 warning generated.
 
 These are not true arrays, they are linker defined symbols, which are
@@ -32,21 +32,21 @@ defined symbols to unsigned long, which keeps the logic the same.
 Link: https://github.com/ClangBuiltLinux/linux/issues/765
 Signed-off-by: Nathan Chancellor <natechancellor@gmail.com>
 ---
- kernel/trace/trace.c | 2 +-
+ lib/dynamic_debug.c | 2 +-
  1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/kernel/trace/trace.c b/kernel/trace/trace.c
-index c797a15a1fc7..e1f3b16e457b 100644
---- a/kernel/trace/trace.c
-+++ b/kernel/trace/trace.c
-@@ -9332,7 +9332,7 @@ __init static int tracer_alloc_buffers(void)
- 		goto out_free_buffer_mask;
+diff --git a/lib/dynamic_debug.c b/lib/dynamic_debug.c
+index aae17d9522e5..c7350aa6e853 100644
+--- a/lib/dynamic_debug.c
++++ b/lib/dynamic_debug.c
+@@ -1031,7 +1031,7 @@ static int __init dynamic_debug_init(void)
+ 	int n = 0, entries = 0, modct = 0;
+ 	int verbose_bytes = 0;
  
- 	/* Only allocate trace_printk buffers if a trace_printk exists */
--	if (__stop___trace_bprintk_fmt != __start___trace_bprintk_fmt)
-+	if (COMPARE_SECTIONS(__stop___trace_bprintk_fmt, !=, __start___trace_bprintk_fmt))
- 		/* Must be called before global_trace.buffer is allocated */
- 		trace_printk_init_buffers();
- 
+-	if (__start___verbose == __stop___verbose) {
++	if (COMPARE_SECTIONS(__start___verbose, ==, __stop___verbose)) {
+ 		pr_warn("_ddebug table is empty in a CONFIG_DYNAMIC_DEBUG build\n");
+ 		return 1;
+ 	}
 -- 
 2.25.1
