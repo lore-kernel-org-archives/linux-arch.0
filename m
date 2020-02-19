@@ -1,57 +1,60 @@
-From: Borislav Petkov <bp@alien8.de>
-Subject: Re: [PATCH v3 02/22] x86,mce: Delete ist_begin_non_atomic()
-Date: Wed, 19 Feb 2020 18:13:09 +0100
-Message-ID: <20200219171309.GC32346@zn.tnic>
+From: Steven Rostedt <rostedt@goodmis.org>
+Subject: [PATCH] rcu/kprobes: Comment why rcu_nmi_enter() is marked NOKPROBE
+Date: Wed, 19 Feb 2020 12:16:09 -0500
+Message-ID: <20200219121609.45548925@gandalf.local.home>
 References: <20200219144724.800607165@infradead.org>
- <20200219150744.488895196@infradead.org>
+        <20200219150744.661923520@infradead.org>
+        <20200219163156.GY2935@paulmck-ThinkPad-P72>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.skyhub.de ([5.9.137.197]:57462 "EHLO mail.skyhub.de"
+Received: from mail.kernel.org ([198.145.29.99]:41658 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726514AbgBSRNQ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 19 Feb 2020 12:13:16 -0500
-Content-Disposition: inline
-In-Reply-To: <20200219150744.488895196@infradead.org>
+        id S1726539AbgBSRQN (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 19 Feb 2020 12:16:13 -0500
+In-Reply-To: <20200219163156.GY2935@paulmck-ThinkPad-P72>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, rostedt@goodmis.org, mingo@kernel.org, joel@joelfernandes.org, gregkh@linuxfoundation.org, gustavo@embeddedor.com, tglx@linutronix.de, paulmck@kernel.org, josh@joshtriplett.org, mathieu.desnoyers@efficios.com, jiangshanlai@gmail.com, luto@kernel.org, tony.luck@intel.com, frederic@kernel.org, dan.carpenter@oracle.com, mhiramat@kernel.org
+To: "Paul E. McKenney" <paulmck@kernel.org>
+Cc: Peter Zijlstra <peterz@infradead.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org, joel@joelfernandes.org, gregkh@linuxfoundation.org, gustavo@embeddedor.com, tglx@linutronix.de, josh@joshtriplett.org, mathieu.desnoyers@efficios.com, jiangshanlai@gmail.com, luto@kernel.org, tony.luck@intel.com, frederic@kernel.org, dan.carpenter@oracle.com, mhiramat@kernel.org
 
-On Wed, Feb 19, 2020 at 03:47:26PM +0100, Peter Zijlstra wrote:
-> Subject: Re: [PATCH v3 02/22] x86,mce: Delete ist_begin_non_atomic()
+From: Steven Rostedt (VMware) <rostedt@goodmis.org>
 
-x86/mce: ...
+It's confusing that rcu_nmi_enter() is marked NOKPROBE and
+rcu_nmi_exit() is not. One may think that the exit needs to be marked
+for the same reason the enter is, as rcu_nmi_exit() reverts the RCU
+state back to what it was before rcu_nmi_enter(). But the reason has
+nothing to do with the state of RCU.
 
-> It is an abomination; and in prepration of removing the whole
-> ist_enter() thing, it needs to go.
-> 
-> Convert #MC over to using task_work_add() instead; it will run the
-> same code slightly later, on the return to user path of the same
-> exception.
+The breakpoint handler (int3 on x86) must not have any kprobe on it
+until the kprobe handler is called. Otherwise, it can cause an infinite
+recursion and crash the machine. It just so happens that
+rcu_nmi_enter() is called by the int3 handler before the kprobe handler
+can run, and therefore needs to be marked as NOKPROBE.
 
-That's fine because the error happened in userspace.
+Comment this to remove the confusion to why rcu_nmi_enter() is marked
+NOKPROBE but rcu_nmi_exit() is not.
 
-...
-
-> @@ -1202,6 +1186,29 @@ static void __mc_scan_banks(struct mce *
->  	*m = *final;
->  }
->  
-> +static void mce_kill_me_now(struct callback_head *ch)
-> +{
-> +	force_sig(SIGBUS);
-> +}
-> +
-> +static void mce_kill_me_maybe(struct callback_head *cb)
-
-You don't even need the "mce_" prefixes - those are static functions and
-in mce-land.
-
-Change looks good otherwise.
-
--- 
-Regards/Gruss,
-    Boris.
-
-https://people.kernel.org/tglx/notes-about-netiquette
+Link: https://lore.kernel.org/r/20200213163800.5c51a5f1@gandalf.local.home
+Signed-off-by: Steven Rostedt (VMware) <rostedt@goodmis.org>
+---
+diff --git a/kernel/rcu/tree.c b/kernel/rcu/tree.c
+index 1694a6b57ad8..ada7b2b638fb 100644
+--- a/kernel/rcu/tree.c
++++ b/kernel/rcu/tree.c
+@@ -846,6 +846,14 @@ void rcu_nmi_enter(void)
+ {
+ 	rcu_nmi_enter_common(false);
+ }
++/*
++ * All functions called in the breakpoint trap handler (e.g. do_int3()
++ * on x86), must not allow kprobes until the kprobe breakpoint handler
++ * is called, otherwise it can cause an infinite recursion.
++ * On some archs, rcu_nmi_enter() is called in the breakpoint handler
++ * before the kprobe breakpoint handler is called, thus it must be
++ * marked as NOKPROBE.
++ */
+ NOKPROBE_SYMBOL(rcu_nmi_enter);
+ 
+ /**
