@@ -1,64 +1,45 @@
-From: Steven Rostedt <rostedt@goodmis.org>
-Subject: Re: [PATCH 3/6] tracing: Wrap section comparison in
- tracer_alloc_buffers with COMPARE_SECTIONS
-Date: Wed, 19 Feb 2020 09:34:45 -0500
-Message-ID: <20200219093445.386f1c09@gandalf.local.home>
-References: <20200219045423.54190-1-natechancellor@gmail.com>
-        <20200219045423.54190-4-natechancellor@gmail.com>
+From: Alan Stern <stern@rowland.harvard.edu>
+Subject: Re: [RFC v2 3/4] Documentation/locking/atomic: Add a litmus test
+ for atomic_set()
+Date: Wed, 19 Feb 2020 10:07:09 -0500 (EST)
+Message-ID: <Pine.LNX.4.44L0.2002191004420.1514-100000@iolanthe.rowland.org>
+References: <20200219062627.104736-4-boqun.feng@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:53776 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727720AbgBSOet (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 19 Feb 2020 09:34:49 -0500
-In-Reply-To: <20200219045423.54190-4-natechancellor@gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Nathan Chancellor <natechancellor@gmail.com>
-Cc: Masahiro Yamada <masahiroy@kernel.org>, Michal Marek <michal.lkml@markovi.net>, Arnd Bergmann <arnd@arndb.de>, Ingo Molnar <mingo@redhat.com>, Jason Baron <jbaron@akamai.com>, Catalin Marinas <catalin.marinas@arm.com>, Andrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-kbuild@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, clang-built-linux@googlegroups.com
+Content-Type: TEXT/PLAIN; charset=US-ASCII
+Return-path: <linux-doc-owner@vger.kernel.org>
+In-Reply-To: <20200219062627.104736-4-boqun.feng@gmail.com>
+Sender: linux-doc-owner@vger.kernel.org
+To: Boqun Feng <boqun.feng@gmail.com>
+Cc: linux-kernel@vger.kernel.org, Andrea Parri <parri.andrea@gmail.com>, Will Deacon <will@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Nicholas Piggin <npiggin@gmail.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, "Paul E. McKenney" <paulmck@kernel.org>, Akira Yokosawa <akiyks@gmail.com>, Daniel Lustig <dlustig@nvidia.com>, Jonathan Corbet <corbet@lwn.net>, Mauro Carvalho Chehab <mchehab+samsung@kernel.org>, "David S. Miller" <davem@davemloft.net>, Rob Herring <robh@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jonathan Cameron <Jonathan.Cameron@huawei.com>, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On Tue, 18 Feb 2020 21:54:20 -0700
-Nathan Chancellor <natechancellor@gmail.com> wrote:
+On Wed, 19 Feb 2020, Boqun Feng wrote:
 
-> Clang warns:
+> We already use a litmus test in atomic_t.txt to describe the behavior of
+> an atomic_set() with the an atomic RMW, so add it into atomic-tests
+> directory to make it easily accessible for anyone who cares about the
+> semantics of our atomic APIs.
 > 
-> ../kernel/trace/trace.c:9335:33: warning: array comparison always
-> evaluates to true [-Wtautological-compare]
->         if (__stop___trace_bprintk_fmt != __start___trace_bprintk_fmt)
->                                        ^
-> 1 warning generated.
-> 
-> These are not true arrays, they are linker defined symbols, which are
-> just addresses so there is not a real issue here. Use the
-> COMPARE_SECTIONS macro to silence this warning by casting the linker
-> defined symbols to unsigned long, which keeps the logic the same.
-> 
-> Link: https://github.com/ClangBuiltLinux/linux/issues/765
-> Signed-off-by: Nathan Chancellor <natechancellor@gmail.com>
-> ---
->  kernel/trace/trace.c | 2 +-
->  1 file changed, 1 insertion(+), 1 deletion(-)
-> 
-> diff --git a/kernel/trace/trace.c b/kernel/trace/trace.c
-> index c797a15a1fc7..e1f3b16e457b 100644
-> --- a/kernel/trace/trace.c
-> +++ b/kernel/trace/trace.c
-> @@ -9332,7 +9332,7 @@ __init static int tracer_alloc_buffers(void)
->  		goto out_free_buffer_mask;
+> Additionally, change the sentences describing the test in atomic_t.txt
+> with better wording.
+
+One very minor point about the new working in atomic_t.txt:
+
+> diff --git a/Documentation/atomic_t.txt b/Documentation/atomic_t.txt
+> index ceb85ada378e..d30cb3d87375 100644
+> --- a/Documentation/atomic_t.txt
+> +++ b/Documentation/atomic_t.txt
+> @@ -85,10 +85,10 @@ smp_store_release() respectively. Therefore, if you find yourself only using
+>  the Non-RMW operations of atomic_t, you do not in fact need atomic_t at all
+>  and are doing it wrong.
 >  
->  	/* Only allocate trace_printk buffers if a trace_printk exists */
-> -	if (__stop___trace_bprintk_fmt != __start___trace_bprintk_fmt)
-> +	if (COMPARE_SECTIONS(__stop___trace_bprintk_fmt, !=, __start___trace_bprintk_fmt))
+> -A subtle detail of atomic_set{}() is that it should be observable to the RMW
+> -ops. That is:
+> +A note for the implementation of atomic_set{}() is that it cannot break the
+> +atomicity of the RMW ops. That is:
 
-Sorry, but this is really ugly and unreadable. Please find some other
-solution to fix this.
+This would be slightly better if you changed it to: "it must not break".
 
-NAK-by: Steven Rostedt
+The comments in the litmus test and README file are okay as they stand.
 
--- Steve
-
->  		/* Must be called before global_trace.buffer is allocated */
->  		trace_printk_init_buffers();
->  
+Alan
