@@ -1,36 +1,53 @@
-Return-Path: <SRS0=bqXs=4A=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:33512 "EHLO
-        merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727026AbgBLPjE (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 12 Feb 2020 10:39:04 -0500
-Date: Wed, 12 Feb 2020 16:38:23 +0100
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH 4/8] sched,rcu,tracing: Mark preempt_count_{add,sub}()
- notrace
-Message-ID: <20200212153823.GW14897@hirez.programming.kicks-ass.net>
-References: <20200212093210.468391728@infradead.org>
- <20200212094107.838108888@infradead.org>
- <20200212092417.04c3da8c@gandalf.local.home>
- <20200212150211.GS14897@hirez.programming.kicks-ass.net>
- <20200212101415.3615d66c@gandalf.local.home>
+Return-Path: <SRS0=PuGS=4H=kvack.org=owner-linux-mm@kernel.org>
+From: Nathan Chancellor <natechancellor@gmail.com>
+Subject: [PATCH 2/6] kernel/extable: Wrap section comparison in sort_main_extable with COMPARE_SECTIONS
+Date: Tue, 18 Feb 2020 21:54:19 -0700
+Message-ID: <20200219045423.54190-3-natechancellor@gmail.com>
+In-Reply-To: <20200219045423.54190-1-natechancellor@gmail.com>
+References: <20200219045423.54190-1-natechancellor@gmail.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20200212101415.3615d66c@gandalf.local.home>
-Sender: linux-arch-owner@vger.kernel.org
+Content-Transfer-Encoding: quoted-printable
+Sender: owner-linux-mm@kvack.org
+To: Masahiro Yamada <masahiroy@kernel.org>, Michal Marek <michal.lkml@markovi.net>, Arnd Bergmann <arnd@arndb.de>, Steven Rostedt <rostedt@goodmis.org>, Ingo Molnar <mingo@redhat.com>, Jason Baron <jbaron@akamai.com>, Catalin Marinas <catalin.marinas@arm.com>, Andrew Morton <akpm@linux-foundation.org>
+Cc: linux-kernel@vger.kernel.org, linux-kbuild@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, clang-built-linux@googlegroups.com, Nathan Chancellor <natechancellor@gmail.com>
 List-ID: <linux-arch.vger.kernel.org>
-To: Steven Rostedt <rostedt@goodmis.org>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org, joel@joelfernandes.org, gregkh@linuxfoundation.org, gustavo@embeddedor.com, tglx@linutronix.de, paulmck@kernel.org, josh@joshtriplett.org, mathieu.desnoyers@efficios.com, jiangshanlai@gmail.com
-Message-ID: <20200212153823.iEpWIlgGbCYSlFY3hlZPUyRBIZhs8zbqfBMT0jmeYEU@z>
+Message-ID: <20200219045419.PP4452DeROJfsO58UIKzOBNjVZ3KyfdLhD9QWQ6hDqg@z>
 
-On Wed, Feb 12, 2020 at 10:14:15AM -0500, Steven Rostedt wrote:
-> > My initial patch has __preempt_count_add/sub() in, but then I figured
-> > someone would go complain the tracepoint would go missing.
-> 
-> Fine, but what bug are you trying to fix? I haven't seen one mentioned
-> yet. Function tracing has recursion protection, and tracing
-> preempt_count in nmi_enter() causes no problems. What's the problem you
-> are trying to solve?
+Clang warns:
 
-The same one as yesterday; if we hit a tracer in NMI context, when
-!rcu_is_watching() and in_nmi() is still 0, we're fucked.
+../kernel/extable.c:37:52: warning: array comparison always evaluates to
+a constant [-Wtautological-compare]
+        if (main_extable_sort_needed && __stop___ex_table > __start___ex_=
+table) {
+                                                          ^
+1 warning generated.
+
+These are not true arrays, they are linker defined symbols, which are
+just addresses so there is not a real issue here. Use the
+COMPARE_SECTIONS macro to silence this warning by casting the linker
+defined symbols to unsigned long, which keeps the logic the same.
+
+Link: https://github.com/ClangBuiltLinux/linux/issues/765
+Signed-off-by: Nathan Chancellor <natechancellor@gmail.com>
+---
+ kernel/extable.c | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/kernel/extable.c b/kernel/extable.c
+index a0024f27d3a1..17bf4ccb9de9 100644
+--- a/kernel/extable.c
++++ b/kernel/extable.c
+@@ -34,7 +34,8 @@ u32 __initdata __visible main_extable_sort_needed =3D 1=
+;
+ /* Sort the kernel's built-in exception table */
+ void __init sort_main_extable(void)
+ {
+-	if (main_extable_sort_needed && __stop___ex_table > __start___ex_table)=
+ {
++	if (main_extable_sort_needed &&
++	    COMPARE_SECTIONS(__stop___ex_table, >, __start___ex_table)) {
+ 		pr_notice("Sorting __ex_table...\n");
+ 		sort_extable(__start___ex_table, __stop___ex_table);
+ 	}
+--=20
+2.25.1
