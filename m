@@ -1,13 +1,13 @@
 From: Krzysztof Kozlowski <krzk@kernel.org>
-Subject: [RESEND PATCH v2 6/9] drm/mgag200: Constify ioreadX() iomem argument (as in generic implementation)
-Date: Wed, 19 Feb 2020 18:50:04 +0100
-Message-ID: <20200219175007.13627-7-krzk__11277.4745955662$1582134750$gmane$org@kernel.org>
+Subject: [RESEND PATCH v2 7/9] drm/nouveau: Constify ioreadX() iomem argument (as in generic implementation)
+Date: Wed, 19 Feb 2020 18:50:05 +0100
+Message-ID: <20200219175007.13627-8-krzk__20749.0386486583$1582134759$gmane$org@kernel.org>
 References: <20200219175007.13627-1-krzk@kernel.org>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:51468 "EHLO mail.kernel.org"
+Received: from mail.kernel.org ([198.145.29.99]:51650 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726634AbgBSRwK (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 19 Feb 2020 12:52:10 -0500
+        id S1726539AbgBSRwX (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 19 Feb 2020 12:52:23 -0500
 In-Reply-To: <20200219175007.13627-1-krzk@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
@@ -22,31 +22,22 @@ so they can be converted to a "const" version for const-safety and
 consistency among architectures.
 
 Signed-off-by: Krzysztof Kozlowski <krzk@kernel.org>
-Reviewed-by: Thomas Zimmermann <tzimmermann@suse.de>
-
 ---
+ drivers/gpu/drm/nouveau/nouveau_bo.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-Changes since v1:
-1. Add Thomas' review.
----
- drivers/gpu/drm/mgag200/mgag200_drv.h | 4 ++--
- 1 file changed, 2 insertions(+), 2 deletions(-)
-
-diff --git a/drivers/gpu/drm/mgag200/mgag200_drv.h b/drivers/gpu/drm/mgag200/mgag200_drv.h
-index aa32aad222c2..6512b3af4fb7 100644
---- a/drivers/gpu/drm/mgag200/mgag200_drv.h
-+++ b/drivers/gpu/drm/mgag200/mgag200_drv.h
-@@ -34,9 +34,9 @@
+diff --git a/drivers/gpu/drm/nouveau/nouveau_bo.c b/drivers/gpu/drm/nouveau/nouveau_bo.c
+index 1b62ccc57aef..d95bdd65dbca 100644
+--- a/drivers/gpu/drm/nouveau/nouveau_bo.c
++++ b/drivers/gpu/drm/nouveau/nouveau_bo.c
+@@ -613,7 +613,7 @@ nouveau_bo_rd32(struct nouveau_bo *nvbo, unsigned index)
+ 	mem += index;
  
- #define MGAG200FB_CONN_LIMIT 1
- 
--#define RREG8(reg) ioread8(((void __iomem *)mdev->rmmio) + (reg))
-+#define RREG8(reg) ioread8(((const void __iomem *)mdev->rmmio) + (reg))
- #define WREG8(reg, v) iowrite8(v, ((void __iomem *)mdev->rmmio) + (reg))
--#define RREG32(reg) ioread32(((void __iomem *)mdev->rmmio) + (reg))
-+#define RREG32(reg) ioread32(((const void __iomem *)mdev->rmmio) + (reg))
- #define WREG32(reg, v) iowrite32(v, ((void __iomem *)mdev->rmmio) + (reg))
- 
- #define ATTR_INDEX 0x1fc0
+ 	if (is_iomem)
+-		return ioread32_native((void __force __iomem *)mem);
++		return ioread32_native((const void __force __iomem *)mem);
+ 	else
+ 		return *mem;
+ }
 -- 
 2.17.1
