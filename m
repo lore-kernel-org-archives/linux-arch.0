@@ -1,120 +1,43 @@
-Return-Path: <rppt@kernel.org>
-From: Mike Rapoport <rppt@kernel.org>
-Subject: [PATCH v3 13/14] asm-generic: remove pgtable-nop4d-hack.h
-Date: Thu, 27 Feb 2020 10:46:07 +0200
-Message-ID: <20200227084608.18223-14-rppt@kernel.org>
-In-Reply-To: <20200227084608.18223-1-rppt@kernel.org>
-References: <20200227084608.18223-1-rppt@kernel.org>
-MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
-To: linux-kernel@vger.kernel.org
-Cc: Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Brian Cain <bcain@codeaurora.org>, Catalin Marinas <catalin.marinas@arm.com>, Christophe Leroy <christophe.leroy@c-s.fr>, Fenghua Yu <fenghua.yu@intel.com>, Geert Uytterhoeven <geert+renesas@glider.be>, Guan Xuetao <gxt@pku.edu.cn>, James Morse <james.morse@arm.com>, Jonas Bonn <jonas@southpole.se>, Julien Thierry <julien.thierry.kdev@gmail.com>, Ley Foon Tan <ley.foon.tan@intel.com>, Marc Zyngier <maz@kernel.org>, Michael Ellerman <mpe@ellerman.id.au>, Paul Mackerras <paulus@samba.org>, Rich Felker <dalias@libc.org>, Russell King <linux@armlinux.org.uk>, Stafford Horne <shorne@gmail.com>, Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>, Suzuki K Poulose <suzuki.poulose@arm.com>, Tony Luck <tony.luck@intel.com>, Will Deacon <will@kernel.org>, Yoshinori Sato <ysato@users.sourceforge.jp>, kvmarm@lists.cs.columbia.edu, kvm-ppc@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-mm@kvack.org, linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org, nios2-dev@lists.rocketboards.org, openrisc@lists.librecores.org, uclinux-h8-devel@lists.sourceforge.jp, Mike Rapoport <rppt@kernel.org>, Mike Rapoport <rppt@linux.ibm.com>
+Return-Path: <SRS0=LzcT=4H=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail.kernel.org ([198.145.29.99]:51650 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726539AbgBSRwX (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 19 Feb 2020 12:52:23 -0500
+From: Krzysztof Kozlowski <krzk@kernel.org>
+Subject: [RESEND PATCH v2 7/9] drm/nouveau: Constify ioreadX() iomem argument (as in generic implementation)
+Date: Wed, 19 Feb 2020 18:50:05 +0100
+Message-Id: <20200219175007.13627-8-krzk@kernel.org>
+In-Reply-To: <20200219175007.13627-1-krzk@kernel.org>
+References: <20200219175007.13627-1-krzk@kernel.org>
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200227084607.mhwwL4DMxTO3368X0E7MEhG-CSrJpgsvbCqcjhTNXoA@z>
+To: Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Alexey Brodkin <abrodkin@synopsys.com>, Vineet Gupta <vgupta@synopsys.com>, "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>, Helge Deller <deller@gmx.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, Dave Airlie <airlied@redhat.com>, David Airlie <airlied@linux.ie>, Daniel Vetter <daniel@ffwll.ch>, Ben Skeggs <bskeggs@redhat.com>, Mauro Carvalho Chehab <mchehab@kernel.org>, Jiri Slaby <jirislaby@gmail.com>, Nick Kossifidis <mickflemm@gmail.com>, Luis Chamberlain <mcgrof@kernel.org>, Kalle Valo <kvalo@codeaurora.org>, "David S. Miller" <davem@davemloft.net>, Dave Jiang <dave.jiang@intel.com>, Jon Mason <jdmason@kudzu.us>, Allen Hubbe <allenbh@gmail.com>, "Michael S. Tsirkin" <mst@redhat.com>, Jason Wang <jasowang@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Geert Uytterhoeven <geert+renesas@glider.be>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-snps-arc@lists.infradead.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org, dri-devel@lists.freedesktop.org, nouveau@lists.freedesktop.org, linux-media@vger.kernel.org, linux-wireless@vger.kernel.org, netdev@vger.kernel.org, linux-ntb@googlegroups.com, virtualization@lists.linux-foundation.org, linux-arch@vger.kernel.org
+Cc: Krzysztof Kozlowski <krzk@kernel.org>
 
-From: Mike Rapoport <rppt@linux.ibm.com>
+The ioreadX() helpers have inconsistent interface.  On some architectures
+void *__iomem address argument is a pointer to const, on some not.
 
-No architecture defines __ARCH_USE_5LEVEL_HACK and therefore
-pgtable-nop4d-hack.h will be never actually included.
+Implementations of ioreadX() do not modify the memory under the address
+so they can be converted to a "const" version for const-safety and
+consistency among architectures.
 
-Remove it.
-
-Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
+Signed-off-by: Krzysztof Kozlowski <krzk@kernel.org>
 ---
- include/asm-generic/pgtable-nop4d-hack.h | 64 ------------------------
- include/asm-generic/pgtable-nopud.h      |  4 --
- 2 files changed, 68 deletions(-)
- delete mode 100644 include/asm-generic/pgtable-nop4d-hack.h
+ drivers/gpu/drm/nouveau/nouveau_bo.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/include/asm-generic/pgtable-nop4d-hack.h b/include/asm-generic/pgtable-nop4d-hack.h
-deleted file mode 100644
-index 829bdb0d6327..000000000000
---- a/include/asm-generic/pgtable-nop4d-hack.h
-+++ /dev/null
-@@ -1,64 +0,0 @@
--/* SPDX-License-Identifier: GPL-2.0 */
--#ifndef _PGTABLE_NOP4D_HACK_H
--#define _PGTABLE_NOP4D_HACK_H
--
--#ifndef __ASSEMBLY__
--#include <asm-generic/5level-fixup.h>
--
--#define __PAGETABLE_PUD_FOLDED 1
--
--/*
-- * Having the pud type consist of a pgd gets the size right, and allows
-- * us to conceptually access the pgd entry that this pud is folded into
-- * without casting.
-- */
--typedef struct { pgd_t pgd; } pud_t;
--
--#define PUD_SHIFT	PGDIR_SHIFT
--#define PTRS_PER_PUD	1
--#define PUD_SIZE	(1UL << PUD_SHIFT)
--#define PUD_MASK	(~(PUD_SIZE-1))
--
--/*
-- * The "pgd_xxx()" functions here are trivial for a folded two-level
-- * setup: the pud is never bad, and a pud always exists (as it's folded
-- * into the pgd entry)
-- */
--static inline int pgd_none(pgd_t pgd)		{ return 0; }
--static inline int pgd_bad(pgd_t pgd)		{ return 0; }
--static inline int pgd_present(pgd_t pgd)	{ return 1; }
--static inline void pgd_clear(pgd_t *pgd)	{ }
--#define pud_ERROR(pud)				(pgd_ERROR((pud).pgd))
--
--#define pgd_populate(mm, pgd, pud)		do { } while (0)
--#define pgd_populate_safe(mm, pgd, pud)		do { } while (0)
--/*
-- * (puds are folded into pgds so this doesn't get actually called,
-- * but the define is needed for a generic inline function.)
-- */
--#define set_pgd(pgdptr, pgdval)	set_pud((pud_t *)(pgdptr), (pud_t) { pgdval })
--
--static inline pud_t *pud_offset(pgd_t *pgd, unsigned long address)
--{
--	return (pud_t *)pgd;
--}
--
--#define pud_val(x)				(pgd_val((x).pgd))
--#define __pud(x)				((pud_t) { __pgd(x) })
--
--#define pgd_page(pgd)				(pud_page((pud_t){ pgd }))
--#define pgd_page_vaddr(pgd)			(pud_page_vaddr((pud_t){ pgd }))
--
--/*
-- * allocating and freeing a pud is trivial: the 1-entry pud is
-- * inside the pgd, so has no extra memory associated with it.
-- */
--#define pud_alloc_one(mm, address)		NULL
--#define pud_free(mm, x)				do { } while (0)
--#define __pud_free_tlb(tlb, x, a)		do { } while (0)
--
--#undef  pud_addr_end
--#define pud_addr_end(addr, end)			(end)
--
--#endif /* __ASSEMBLY__ */
--#endif /* _PGTABLE_NOP4D_HACK_H */
-diff --git a/include/asm-generic/pgtable-nopud.h b/include/asm-generic/pgtable-nopud.h
-index d3776cb494c0..ad05c1684bfc 100644
---- a/include/asm-generic/pgtable-nopud.h
-+++ b/include/asm-generic/pgtable-nopud.h
-@@ -4,9 +4,6 @@
+diff --git a/drivers/gpu/drm/nouveau/nouveau_bo.c b/drivers/gpu/drm/nouveau/nouveau_bo.c
+index 1b62ccc57aef..d95bdd65dbca 100644
+--- a/drivers/gpu/drm/nouveau/nouveau_bo.c
++++ b/drivers/gpu/drm/nouveau/nouveau_bo.c
+@@ -613,7 +613,7 @@ nouveau_bo_rd32(struct nouveau_bo *nvbo, unsigned index)
+ 	mem += index;
  
- #ifndef __ASSEMBLY__
- 
--#ifdef __ARCH_USE_5LEVEL_HACK
--#include <asm-generic/pgtable-nop4d-hack.h>
--#else
- #include <asm-generic/pgtable-nop4d.h>
- 
- #define __PAGETABLE_PUD_FOLDED 1
-@@ -65,5 +62,4 @@ static inline pud_t *pud_offset(p4d_t *p4d, unsigned long address)
- #define pud_addr_end(addr, end)			(end)
- 
- #endif /* __ASSEMBLY__ */
--#endif /* !__ARCH_USE_5LEVEL_HACK */
- #endif /* _PGTABLE_NOPUD_H */
+ 	if (is_iomem)
+-		return ioread32_native((void __force __iomem *)mem);
++		return ioread32_native((const void __force __iomem *)mem);
+ 	else
+ 		return *mem;
+ }
 -- 
-2.24.0
+2.17.1
