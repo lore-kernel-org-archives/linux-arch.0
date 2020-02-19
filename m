@@ -1,7 +1,7 @@
 From: Nathan Chancellor <natechancellor@gmail.com>
-Subject: [PATCH 2/6] kernel/extable: Wrap section comparison in sort_main_extable with COMPARE_SECTIONS
-Date: Tue, 18 Feb 2020 21:54:19 -0700
-Message-ID: <20200219045423.54190-3-natechancellor@gmail.com>
+Subject: [PATCH 5/6] mm: kmemleak: Wrap section comparison in kmemleak_init with COMPARE_SECTIONS
+Date: Tue, 18 Feb 2020 21:54:22 -0700
+Message-ID: <20200219045423.54190-6-natechancellor@gmail.com>
 References: <20200219045423.54190-1-natechancellor@gmail.com>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
@@ -14,11 +14,15 @@ List-Id: linux-arch.vger.kernel.org
 
 Clang warns:
 
-../kernel/extable.c:37:52: warning: array comparison always evaluates to
+../mm/kmemleak.c:1950:28: warning: array comparison always evaluates to
 a constant [-Wtautological-compare]
-        if (main_extable_sort_needed && __stop___ex_table > __start___ex_table) {
-                                                          ^
-1 warning generated.
+        if (__start_ro_after_init < _sdata || __end_ro_after_init > _edata)
+                                  ^
+../mm/kmemleak.c:1950:60: warning: array comparison always evaluates to
+a constant [-Wtautological-compare]
+        if (__start_ro_after_init < _sdata || __end_ro_after_init > _edata)
+                                                                  ^
+2 warnings generated.
 
 These are not true arrays, they are linker defined symbols, which are
 just addresses so there is not a real issue here. Use the
@@ -28,22 +32,22 @@ defined symbols to unsigned long, which keeps the logic the same.
 Link: https://github.com/ClangBuiltLinux/linux/issues/765
 Signed-off-by: Nathan Chancellor <natechancellor@gmail.com>
 ---
- kernel/extable.c | 3 ++-
+ mm/kmemleak.c | 3 ++-
  1 file changed, 2 insertions(+), 1 deletion(-)
 
-diff --git a/kernel/extable.c b/kernel/extable.c
-index a0024f27d3a1..17bf4ccb9de9 100644
---- a/kernel/extable.c
-+++ b/kernel/extable.c
-@@ -34,7 +34,8 @@ u32 __initdata __visible main_extable_sort_needed = 1;
- /* Sort the kernel's built-in exception table */
- void __init sort_main_extable(void)
- {
--	if (main_extable_sort_needed && __stop___ex_table > __start___ex_table) {
-+	if (main_extable_sort_needed &&
-+	    COMPARE_SECTIONS(__stop___ex_table, >, __start___ex_table)) {
- 		pr_notice("Sorting __ex_table...\n");
- 		sort_extable(__start___ex_table, __stop___ex_table);
- 	}
+diff --git a/mm/kmemleak.c b/mm/kmemleak.c
+index aa6832432d6a..e27655526ba7 100644
+--- a/mm/kmemleak.c
++++ b/mm/kmemleak.c
+@@ -1952,7 +1952,8 @@ void __init kmemleak_init(void)
+ 	create_object((unsigned long)__bss_start, __bss_stop - __bss_start,
+ 		      KMEMLEAK_GREY, GFP_ATOMIC);
+ 	/* only register .data..ro_after_init if not within .data */
+-	if (__start_ro_after_init < _sdata || __end_ro_after_init > _edata)
++	if (COMPARE_SECTIONS(__start_ro_after_init, <, _sdata) ||
++	    COMPARE_SECTIONS(__end_ro_after_init, >, _edata))
+ 		create_object((unsigned long)__start_ro_after_init,
+ 			      __end_ro_after_init - __start_ro_after_init,
+ 			      KMEMLEAK_GREY, GFP_ATOMIC);
 -- 
 2.25.1
