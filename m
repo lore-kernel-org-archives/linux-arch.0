@@ -1,372 +1,141 @@
-Return-Path: <SRS0=e/bK=4N=vger.kernel.org=linux-doc-owner@kernel.org>
-Date: Tue, 25 Feb 2020 12:02:37 -0800
-From: Kees Cook <keescook@chromium.org>
-Subject: Re: [RFC PATCH v9 01/27] Documentation/x86: Add CET description
-Message-ID: <202002251159.939AA6A@keescook>
-References: <20200205181935.3712-1-yu-cheng.yu@intel.com>
- <20200205181935.3712-2-yu-cheng.yu@intel.com>
+Return-Path: <SRS0=LzcT=4H=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from bombadil.infradead.org ([198.137.202.133]:35918 "EHLO
+        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726682AbgBSPOV (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 19 Feb 2020 10:14:21 -0500
+Message-ID: <20200219150745.651901321@infradead.org>
+Date: Wed, 19 Feb 2020 15:47:46 +0100
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: [PATCH v3 22/22] x86/int3: Ensure that poke_int3_handler() is not sanitized
+References: <20200219144724.800607165@infradead.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20200205181935.3712-2-yu-cheng.yu@intel.com>
-Sender: linux-doc-owner@vger.kernel.org
-To: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Cc: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>, x86-patch-review@intel.com
+Content-Type: text/plain; charset=UTF-8
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200225200237.nb-L6ZONp3F4-s6SHVbJunDnyUnXx4ju42bnRCdX84Q@z>
+To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, rostedt@goodmis.org
+Cc: peterz@infradead.org, mingo@kernel.org, joel@joelfernandes.org, gregkh@linuxfoundation.org, gustavo@embeddedor.com, tglx@linutronix.de, paulmck@kernel.org, josh@joshtriplett.org, mathieu.desnoyers@efficios.com, jiangshanlai@gmail.com, luto@kernel.org, tony.luck@intel.com, frederic@kernel.org, dan.carpenter@oracle.com, mhiramat@kernel.org, Dmitry Vyukov <dvyukov@google.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>
+Message-ID: <20200219144746.sR-uo22edIdn5emUuNbk7AqLGZjAkFth4xasvIra02o@z>
 
-On Wed, Feb 05, 2020 at 10:19:09AM -0800, Yu-cheng Yu wrote:
-> Explain no_cet_shstk/no_cet_ibt kernel parameters, and introduce a new
-> document on Control-flow Enforcement Technology (CET).
-> 
-> Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
+In order to ensure poke_int3_handler() is completely self contained --
+we call this while we're modifying other text, imagine the fun of
+hitting another INT3 -- ensure that everything is without sanitize
+crud.
 
-I'm not a huge fan of the boot param names, but I can't suggest anything
-better. ;) I love the extensive docs!
+Cc: Dmitry Vyukov <dvyukov@google.com>
+Cc: Andrey Ryabinin <aryabinin@virtuozzo.com>
+Reported-by: Thomas Gleixner <tglx@linutronix.de>
+Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+---
+ arch/x86/kernel/alternative.c       |    4 ++--
+ arch/x86/kernel/traps.c             |    2 +-
+ include/linux/compiler-clang.h      |    7 +++++++
+ include/linux/compiler-gcc.h        |    6 ++++++
+ include/linux/compiler.h            |    5 +++++
+ include/linux/compiler_attributes.h |    1 +
+ lib/bsearch.c                       |    2 +-
+ 7 files changed, 23 insertions(+), 4 deletions(-)
 
-Reviewed-by: Kees Cook <keescook@chromium.org>
-
--Kees
-
-> ---
->  .../admin-guide/kernel-parameters.txt         |   6 +
->  Documentation/x86/index.rst                   |   1 +
->  Documentation/x86/intel_cet.rst               | 294 ++++++++++++++++++
->  3 files changed, 301 insertions(+)
->  create mode 100644 Documentation/x86/intel_cet.rst
-> 
-> diff --git a/Documentation/admin-guide/kernel-parameters.txt b/Documentation/admin-guide/kernel-parameters.txt
-> index ade4e6ec23e0..8b69ebf0baed 100644
-> --- a/Documentation/admin-guide/kernel-parameters.txt
-> +++ b/Documentation/admin-guide/kernel-parameters.txt
-> @@ -3001,6 +3001,12 @@
->  			noexec=on: enable non-executable mappings (default)
->  			noexec=off: disable non-executable mappings
->  
-> +	no_cet_shstk	[X86-64] Disable Shadow Stack for user-mode
-> +			applications
-> +
-> +	no_cet_ibt	[X86-64] Disable Indirect Branch Tracking for user-mode
-> +			applications
-> +
->  	nosmap		[X86,PPC]
->  			Disable SMAP (Supervisor Mode Access Prevention)
->  			even if it is supported by processor.
-> diff --git a/Documentation/x86/index.rst b/Documentation/x86/index.rst
-> index a8de2fbc1caa..81f919801765 100644
-> --- a/Documentation/x86/index.rst
-> +++ b/Documentation/x86/index.rst
-> @@ -19,6 +19,7 @@ x86-specific Documentation
->     tlb
->     mtrr
->     pat
-> +   intel_cet
->     intel_mpx
->     intel-iommu
->     intel_txt
-> diff --git a/Documentation/x86/intel_cet.rst b/Documentation/x86/intel_cet.rst
-> new file mode 100644
-> index 000000000000..71e2462fea5c
-> --- /dev/null
-> +++ b/Documentation/x86/intel_cet.rst
-> @@ -0,0 +1,294 @@
-> +.. SPDX-License-Identifier: GPL-2.0
-> +
-> +=========================================
-> +Control-flow Enforcement Technology (CET)
-> +=========================================
-> +
-> +[1] Overview
-> +============
-> +
-> +Control-flow Enforcement Technology (CET) provides protection against
-> +return/jump-oriented programming (ROP) attacks.  It can be setup to
-> +protect both applications and the kernel.  In the first phase, only
-> +user-mode protection is implemented in the 64-bit kernel; 32-bit
-> +applications are supported in compatibility mode.
-> +
-> +CET introduces Shadow Stack (SHSTK) and Indirect Branch Tracking
-> +(IBT).  SHSTK is a secondary stack allocated from memory and cannot
-> +be directly modified by applications.  When executing a CALL, the
-> +processor pushes a copy of the return address to SHSTK.  Upon
-> +function return, the processor pops the SHSTK copy and compares it
-> +to the one from the program stack.  If the two copies differ, the
-> +processor raises a control-protection fault.  IBT verifies indirect
-> +CALL/JMP targets are intended as marked by the compiler with 'ENDBR'
-> +opcodes (see CET instructions below).
-> +
-> +There are two kernel configuration options:
-> +
-> +    X86_INTEL_SHADOW_STACK_USER, and
-> +    X86_INTEL_BRANCH_TRACKING_USER.
-> +
-> +To build a CET-enabled kernel, Binutils v2.31 and GCC v8.1 or later
-> +are required.  To build a CET-enabled application, GLIBC v2.28 or
-> +later is also required.
-> +
-> +There are two command-line options for disabling CET features::
-> +
-> +    no_cet_shstk - disables SHSTK, and
-> +    no_cet_ibt   - disables IBT.
-> +
-> +At run time, /proc/cpuinfo shows the availability of SHSTK and IBT.
-> +
-> +[2] CET assembly instructions
-> +=============================
-> +
-> +RDSSP %r
-> +    Read the SHSTK pointer into %r.
-> +
-> +INCSSP %r
-> +    Unwind (increment) the SHSTK pointer (0 ~ 255) steps as indicated
-> +    in the operand register.  The GLIBC longjmp uses INCSSP to unwind
-> +    the SHSTK until that matches the program stack.  When it is
-> +    necessary to unwind beyond 255 steps, longjmp divides and repeats
-> +    the process.
-> +
-> +RSTORSSP (%r)
-> +    Switch to the SHSTK indicated in the 'restore token' pointed by
-> +    the operand register and replace the 'restore token' with a new
-> +    token to be saved (with SAVEPREVSSP) for the outgoing SHSTK.
-> +
-> +::
-> +
-> +                                Before RSTORSSP
-> +
-> +               Incoming SHSTK                 Current/Outgoing SHSTK
-> +
-> +          |----------------------|           |----------------------|
-> +   addr=x |                      |     ssp-> |                      |
-> +          |----------------------|           |----------------------|
-> +   (%r)-> | rstor_token=(x|Lg)   |  addr=y-8 |                      |
-> +          |----------------------|           |----------------------|
-> +
-> +                                After RSTORSSP
-> +
-> +          |----------------------|           |----------------------|
-> +   addr=x |                      |           |                      |
-> +          |----------------------|           |----------------------|
-> +    ssp-> | rstor_token=(y|Pv|Lg)|  addr=y-8 |                      |
-> +          |----------------------|           |----------------------|
-> +
-> +    note:
-> +        1. Only valid addresses and restore tokens can be on the
-> +           user-mode SHSTK.
-> +        2. A token is always of type u64 and must align to u64.
-> +        3. The incoming SHSTK pointer in a rstor_token must point to
-> +           immediately above the token.
-> +        4. 'Lg' is bit[0] of a rstor_token indicating a 64-bit SHSTK.
-> +        5. 'Pv' is bit[1] of a rstor_token indicating the token is to
-> +           be used only for the next SAVEPREVSSP and invalid for
-> +           RSTORSSP.
-> +
-> +SAVEPREVSSP
-> +    Pop the SHSTK 'restore token' pointed by current SHSTK pointer
-> +    and store it at (previous SHSTK pointer - 8).
-> +
-> +::
-> +
-> +                               After SAVEPREVSSP
-> +
-> +          |----------------------|           |----------------------|
-> +    ssp-> |                      |           |                      |
-> +          |----------------------|           |----------------------|
-> + addr=x-8 | rstor_token=(y|Pv|Lg)|  addr=y-8 | rstor_token(y|Lg)    |
-> +          |----------------------|           |----------------------|
-> +
-> +WRUSS %r0, (%r1)
-> +    Write the value in %r0 to the SHSTK address pointed by (%r1).
-> +    This is a kernel-mode only instruction.
-> +
-> +ENDBR and NOTRACK prefix
-> +    When IBT is enabled, an indirect CALL/JMP must either::
-> +
-> +        have a NOTRACK prefix,
-> +        reach an ENDBR, or
-> +        reach an address within a legacy code page;
-> +
-> +    or it results in a control-protection fault.
-> +
-> +    When the target address is derived from information that cannot
-> +    be modified, the compiler uses the NOTRACK prefix.  In other
-> +    cases, the compiler inserts an ENDBR at the target address.
-> +
-> +    A legacy code page is designated in the legacy code bitmap, which
-> +    is explained below in section [8].
-> +
-> +[3] Application Enabling
-> +========================
-> +
-> +An application's CET capability is marked in its ELF header and can
-> +be verified from the following command output, in the
-> +NT_GNU_PROPERTY_TYPE_0 field:
-> +
-> +    readelf -n <application>
-> +
-> +If an application supports CET and is statically linked, it will run
-> +with CET protection.  If the application needs any shared libraries,
-> +the loader checks all dependencies and enables CET only when all
-> +requirements are met.
-> +
-> +[4] Legacy Libraries
-> +====================
-> +
-> +GLIBC provides a few tunables for backward compatibility.
-> +
-> +GLIBC_TUNABLES=glibc.tune.hwcaps=-SHSTK,-IBT
-> +    Turn off SHSTK/IBT for the current shell.
-> +
-> +GLIBC_TUNABLES=glibc.tune.x86_shstk=<on, permissive>
-> +    This controls how dlopen() handles SHSTK legacy libraries::
-> +
-> +        on         - continue with SHSTK enabled;
-> +        permissive - continue with SHSTK off.
-> +
-> +[5] CET system calls
-> +====================
-> +
-> +The following arch_prctl() system calls are added for CET:
-> +
-> +arch_prctl(ARCH_X86_CET_STATUS, unsigned long *addr)
-> +    Return CET feature status.
-> +
-> +    The parameter 'addr' is a pointer to a user buffer.
-> +    On returning to the caller, the kernel fills the following
-> +    information::
-> +
-> +        *addr       = SHSTK/IBT status
-> +        *(addr + 1) = SHSTK base address
-> +        *(addr + 2) = SHSTK size
-> +
-> +arch_prctl(ARCH_X86_CET_DISABLE, unsigned long features)
-> +    Disable SHSTK and/or IBT specified in 'features'.  Return -EPERM
-> +    if CET is locked.
-> +
-> +arch_prctl(ARCH_X86_CET_LOCK)
-> +    Lock in CET feature.
-> +
-> +arch_prctl(ARCH_X86_CET_ALLOC_SHSTK, unsigned long *addr)
-> +    Allocate a new SHSTK and put a restore token at top.
-> +
-> +    The parameter 'addr' is a pointer to a user buffer and indicates
-> +    the desired SHSTK size to allocate.  On returning to the caller,
-> +    the kernel fills '*addr' with the base address of the new SHSTK.
-> +
-> +arch_prctl(ARCH_X86_CET_MARK_LEGACY_CODE, unsigned long *addr)
-> +    Mark an address range as IBT legacy code.
-> +
-> +    The parameter 'addr' is a pointer to a user buffer that has the
-> +    following information::
-> +
-> +        *addr       = starting linear address of the legacy code
-> +        *(addr + 1) = size of the legacy code
-> +        *(addr + 2) = set (1); clear (0)
-> +
-> +Note:
-> +  There is no CET-enabling arch_prctl function.  By design, CET is
-> +  enabled automatically if the binary and the system can support it.
-> +
-> +  The parameters passed are always unsigned 64-bit.  When an IA32
-> +  application passing pointers, it should only use the lower 32 bits.
-> +
-> +[6] The implementation of the SHSTK
-> +===================================
-> +
-> +SHSTK size
-> +----------
-> +
-> +A task's SHSTK is allocated from memory to a fixed size of
-> +RLIMIT_STACK.  A compat-mode thread's SHSTK size is 1/4 of
-> +RLIMIT_STACK.  The smaller 32-bit thread SHSTK allows more threads to
-> +share a 32-bit address space.
-> +
-> +Signal
-> +------
-> +
-> +The main program and its signal handlers use the same SHSTK.  Because
-> +the SHSTK stores only return addresses, a large SHSTK will cover the
-> +condition that both the program stack and the sigaltstack run out.
-> +
-> +The kernel creates a restore token at the SHSTK restoring address and
-> +verifies that token when restoring from the signal handler.
-> +
-> +IBT for signal delivering and sigreturn is the same as the main
-> +program's setup; except for WAIT_ENDBR status, which can be read from
-> +MSR_IA32_U_CET.  In general, a task is in WAIT_ENDBR after an
-> +indirect CALL/JMP and before the next instruction starts.
-> +
-> +A task's WAIT_ENDBR is reset for its signal handler, but preserved on
-> +the task's stack; and then restored from sigreturn.
-> +
-> +Fork
-> +----
-> +
-> +The SHSTK's vma has VM_SHSTK flag set; its PTEs are required to be
-> +read-only and dirty.  When a SHSTK PTE is not present, RO, and dirty,
-> +a SHSTK access triggers a page fault with an additional SHSTK bit set
-> +in the page fault error code.
-> +
-> +When a task forks a child, its SHSTK PTEs are copied and both the
-> +parent's and the child's SHSTK PTEs are cleared of the dirty bit.
-> +Upon the next SHSTK access, the resulting SHSTK page fault is handled
-> +by page copy/re-use.
-> +
-> +When a pthread child is created, the kernel allocates a new SHSTK for
-> +the new thread.
-> +
-> +Setjmp/Longjmp
-> +--------------
-> +
-> +Longjmp unwinds SHSTK until it matches the program stack.
-> +
-> +Ucontext
-> +--------
-> +
-> +In GLIBC, getcontext/setcontext is implemented in similar way as
-> +setjmp/longjmp.
-> +
-> +When makecontext creates a new ucontext, a new SHSTK is allocated for
-> +that context with ARCH_X86_CET_ALLOC_SHSTK syscall.  The kernel
-> +creates a restore token at the top of the new SHSTK and the user-mode
-> +code switches to the new SHSTK with the RSTORSSP instruction.
-> +
-> +[7] The management of read-only & dirty PTEs for SHSTK
-> +======================================================
-> +
-> +A RO and dirty PTE exists in the following cases:
-> +
-> +(a) A page is modified and then shared with a fork()'ed child;
-> +(b) A R/O page that has been COW'ed;
-> +(c) A SHSTK page.
-> +
-> +The processor only checks the dirty bit for (c).  To prevent the use
-> +of non-SHSTK memory as SHSTK, we use a spare bit of the 64-bit PTE as
-> +DIRTY_SW for (a) and (b) above.  This results to the following PTE
-> +settings::
-> +
-> +    Modified PTE:             (R/W + DIRTY_HW)
-> +    Modified and shared PTE:  (R/O + DIRTY_SW)
-> +    R/O PTE, COW'ed:          (R/O + DIRTY_SW)
-> +    SHSTK PTE:                (R/O + DIRTY_HW)
-> +    SHSTK PTE, COW'ed:        (R/O + DIRTY_HW)
-> +    SHSTK PTE, shared:        (R/O + DIRTY_SW)
-> +
-> +Note that DIRTY_SW is only used in R/O PTEs but not R/W PTEs.
-> +
-> +[8] The implementation of IBT legacy bitmap
-> +===========================================
-> +
-> +When IBT is active, a non-IBT-capable legacy library can be executed
-> +if its address ranges are specified in the legacy code bitmap.  The
-> +bitmap covers the whole user-space address, which is TASK_SIZE_MAX
-> +for 64-bit and TASK_SIZE for IA32, and its each bit indicates a 4-KB
-> +legacy code page.  It is read-only from an application, and setup by
-> +the kernel as a special mapping when the first time the application
-> +calls arch_prctl(ARCH_X86_CET_MARK_LEGACY_CODE).  The application
-> +manages the bitmap through the arch_prctl.
-> -- 
-> 2.21.0
-> 
-
--- 
-Kees Cook
+--- a/arch/x86/kernel/alternative.c
++++ b/arch/x86/kernel/alternative.c
+@@ -979,7 +979,7 @@ static __always_inline void *text_poke_a
+ 	return _stext + tp->rel_addr;
+ }
+ 
+-static int notrace patch_cmp(const void *key, const void *elt)
++static int notrace __no_sanitize patch_cmp(const void *key, const void *elt)
+ {
+ 	struct text_poke_loc *tp = (struct text_poke_loc *) elt;
+ 
+@@ -991,7 +991,7 @@ static int notrace patch_cmp(const void
+ }
+ NOKPROBE_SYMBOL(patch_cmp);
+ 
+-int notrace poke_int3_handler(struct pt_regs *regs)
++int notrace __no_sanitize poke_int3_handler(struct pt_regs *regs)
+ {
+ 	struct bp_patching_desc *desc;
+ 	struct text_poke_loc *tp;
+--- a/arch/x86/kernel/traps.c
++++ b/arch/x86/kernel/traps.c
+@@ -496,7 +496,7 @@ dotraplinkage void do_general_protection
+ }
+ NOKPROBE_SYMBOL(do_general_protection);
+ 
+-dotraplinkage void notrace do_int3(struct pt_regs *regs, long error_code)
++dotraplinkage void notrace __no_sanitize do_int3(struct pt_regs *regs, long error_code)
+ {
+ 	if (poke_int3_handler(regs))
+ 		return;
+--- a/include/linux/compiler-clang.h
++++ b/include/linux/compiler-clang.h
+@@ -24,6 +24,13 @@
+ #define __no_sanitize_address
+ #endif
+ 
++#if __has_feature(undefined_sanitizer)
++#define __no_sanitize_undefined \
++		__atribute__((no_sanitize("undefined")))
++#else
++#define __no_sanitize_undefined
++#endif
++
+ /*
+  * Not all versions of clang implement the the type-generic versions
+  * of the builtin overflow checkers. Fortunately, clang implements
+--- a/include/linux/compiler-gcc.h
++++ b/include/linux/compiler-gcc.h
+@@ -145,6 +145,12 @@
+ #define __no_sanitize_address
+ #endif
+ 
++#if __has_attribute(__no_sanitize_undefined__)
++#define __no_sanitize_undefined __attribute__((no_sanitize_undefined))
++#else
++#define __no_sanitize_undefined
++#endif
++
+ #if GCC_VERSION >= 50100
+ #define COMPILER_HAS_GENERIC_BUILTIN_OVERFLOW 1
+ #endif
+--- a/include/linux/compiler.h
++++ b/include/linux/compiler.h
+@@ -199,6 +199,7 @@ void __read_once_size(const volatile voi
+ 	__READ_ONCE_SIZE;
+ }
+ 
++#define __no_kasan __no_sanitize_address
+ #ifdef CONFIG_KASAN
+ /*
+  * We can't declare function 'inline' because __no_sanitize_address confilcts
+@@ -274,6 +275,10 @@ static __always_inline void __write_once
+  */
+ #define READ_ONCE_NOCHECK(x) __READ_ONCE(x, 0)
+ 
++#define __no_ubsan __no_sanitize_undefined
++
++#define __no_sanitize __no_kasan __no_ubsan
++
+ static __no_kasan_or_inline
+ unsigned long read_word_at_a_time(const void *addr)
+ {
+--- a/include/linux/compiler_attributes.h
++++ b/include/linux/compiler_attributes.h
+@@ -41,6 +41,7 @@
+ # define __GCC4_has_attribute___nonstring__           0
+ # define __GCC4_has_attribute___no_sanitize_address__ (__GNUC_MINOR__ >= 8)
+ # define __GCC4_has_attribute___fallthrough__         0
++# define __GCC4_has_attribute___no_sanitize_undefined__ (__GNUC_MINOR__ >= 9)
+ #endif
+ 
+ /*
+--- a/lib/bsearch.c
++++ b/lib/bsearch.c
+@@ -28,7 +28,7 @@
+  * the key and elements in the array are of the same type, you can use
+  * the same comparison function for both sort() and bsearch().
+  */
+-void *bsearch(const void *key, const void *base, size_t num, size_t size,
++void __no_sanitize *bsearch(const void *key, const void *base, size_t num, size_t size,
+ 	      cmp_func_t cmp)
+ {
+ 	const char *pivot;
