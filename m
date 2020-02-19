@@ -1,85 +1,114 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH v3 02/22] x86,mce: Delete ist_begin_non_atomic()
-Date: Wed, 19 Feb 2020 18:46:23 +0100
-Message-ID: <20200219174623.GQ18400@hirez.programming.kicks-ass.net>
-References: <20200219144724.800607165@infradead.org>
- <20200219150744.488895196@infradead.org>
- <20200219171309.GC32346@zn.tnic>
- <CALCETrWBEDjenqze3wVc6TkUt_g+OFx9TQbYysLH+6fku=aWjQ@mail.gmail.com>
- <20200219174223.GE30966@zn.tnic>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+From: Krzysztof Kozlowski <krzk@kernel.org>
+Subject: [RESEND PATCH v2 0/9] iomap: Constify ioreadX() iomem argument
+Date: Wed, 19 Feb 2020 18:49:58 +0100
+Message-ID: <20200219175007.13627-1-krzk__7303.73294079385$1582134680$gmane$org@kernel.org>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.133]:49768 "EHLO
-        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726634AbgBSRqx (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 19 Feb 2020 12:46:53 -0500
-Content-Disposition: inline
-In-Reply-To: <20200219174223.GE30966@zn.tnic>
+Received: from mail.kernel.org ([198.145.29.99]:49980 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726539AbgBSRvF (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 19 Feb 2020 12:51:05 -0500
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Borislav Petkov <bp@alien8.de>
-Cc: Andy Lutomirski <luto@kernel.org>, LKML <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Steven Rostedt <rostedt@goodmis.org>, Ingo Molnar <mingo@kernel.org>, Joel Fernandes <joel@joelfernandes.org>, Greg KH <gregkh@linuxfoundation.org>, gustavo@embeddedor.com, Thomas Gleixner <tglx@linutronix.de>, paulmck@kernel.org, Josh Triplett <josh@joshtriplett.org>, Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, Lai Jiangshan <jiangshanlai@gmail.com>, Tony Luck <tony.luck@intel.com>, Frederic Weisbecker <frederic@kernel.org>, Dan Carpenter <dan.carpenter@oracle.com>, Masami Hiramatsu <mhiramat@kernel.org>
+To: Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Alexey Brodkin <abrodkin@synopsys.com>, Vineet Gupta <vgupta@synopsys.com>, "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>, Helge Deller <deller@gmx.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, Dave Airlie <airlied@redhat.com>, David Airlie <airlied@linux.ie>, Daniel Vetter <daniel@ffwll.ch>, Ben Skeggs <bskeggs@redhat.com>, Mauro Carvalho Chehab <mchehab@kernel.org>, Jiri Slaby <jirislaby@gmail.com>, Nick Kossifidis <mickflemm@gmail.com>, Luis
+Cc: Krzysztof Kozlowski <krzk@kernel.org>
 
-On Wed, Feb 19, 2020 at 06:42:23PM +0100, Borislav Petkov wrote:
-> On Wed, Feb 19, 2020 at 09:21:48AM -0800, Andy Lutomirski wrote:
-> > Unless there is a signal pending and the signal setup code is about to
-> > hit the same failed memory.  I suppose we can just treat cases like
-> > this as "oh well, time to kill the whole system".
-> >
-> > But we should genuinely agree that we're okay with deferring this handling.
-> 
-> Good catch!
-> 
-> static void exit_to_usermode_loop(struct pt_regs *regs, u32 cached_flags)
-> {
-> 
-> 	...
-> 
-> 		/* deal with pending signal delivery */
->                 if (cached_flags & _TIF_SIGPENDING)
->                         do_signal(regs);
-> 
->                 if (cached_flags & _TIF_NOTIFY_RESUME) {
->                         clear_thread_flag(TIF_NOTIFY_RESUME);
->                         tracehook_notify_resume(regs);
->                         rseq_handle_notify_resume(NULL, regs);
->                 }
-> 
-> 
-> Err, can we make task_work run before we handle signals? Or there's a
-> reason it is run in this order?
-> 
-> Comment over task_work_add() says:
-> 
->  * This is like the signal handler which runs in kernel mode, but it doesn't
->  * try to wake up the @task.
-> 
-> which sounds to me like this should really run before the signal
-> handlers...
+Hi,
 
-here goes...
 
---- a/arch/x86/entry/common.c
-+++ b/arch/x86/entry/common.c
-@@ -155,16 +155,16 @@ static void exit_to_usermode_loop(struct
- 		if (cached_flags & _TIF_PATCH_PENDING)
- 			klp_update_patch_state(current);
- 
--		/* deal with pending signal delivery */
--		if (cached_flags & _TIF_SIGPENDING)
--			do_signal(regs);
--
- 		if (cached_flags & _TIF_NOTIFY_RESUME) {
- 			clear_thread_flag(TIF_NOTIFY_RESUME);
- 			tracehook_notify_resume(regs);
- 			rseq_handle_notify_resume(NULL, regs);
- 		}
- 
-+		/* deal with pending signal delivery */
-+		if (cached_flags & _TIF_SIGPENDING)
-+			do_signal(regs);
-+
- 		if (cached_flags & _TIF_USER_RETURN_NOTIFY)
- 			fire_user_return_notifiers();
- 
+Changes since v1
+================
+https://lore.kernel.org/lkml/1578415992-24054-1-git-send-email-krzk@kernel.org/
+1. Constify also ioreadX_rep() and mmio_insX(),
+2. Squash lib+alpha+powerpc+parisc+sh into one patch for bisectability,
+3. Add acks and reviews,
+4. Re-order patches so all optional driver changes are at the end.
+
+
+Description
+===========
+The ioread8/16/32() and others have inconsistent interface among the
+architectures: some taking address as const, some not.
+
+It seems there is nothing really stopping all of them to take
+pointer to const.
+
+Patchset was only compile tested on affected architectures.  No real
+testing.
+
+
+volatile
+========
+There is still interface inconsistency between architectures around
+"volatile" qualifier:
+ - include/asm-generic/io.h:static inline u32 ioread32(const volatile void __iomem *addr)
+ - include/asm-generic/iomap.h:extern unsigned int ioread32(const void __iomem *);
+
+This is still discussed and out of scope of this patchset.
+
+
+Merging
+=======
+Multiple architectures are affected in first patch so acks are welcomed.
+
+1. All patches depend on first patch,
+2. Patches 2-4 unify the interface also in few drivers,
+3. PAtches 5-9 are optional cleanup, without actual impact.
+
+
+Best regards,
+Krzysztof
+
+
+Krzysztof Kozlowski (9):
+  iomap: Constify ioreadX() iomem argument (as in generic
+    implementation)
+  rtl818x: Constify ioreadX() iomem argument (as in generic
+    implementation)
+  ntb: intel: Constify ioreadX() iomem argument (as in generic
+    implementation)
+  virtio: pci: Constify ioreadX() iomem argument (as in generic
+    implementation)
+  arc: Constify ioreadX() iomem argument (as in generic implementation)
+  drm/mgag200: Constify ioreadX() iomem argument (as in generic
+    implementation)
+  drm/nouveau: Constify ioreadX() iomem argument (as in generic
+    implementation)
+  media: fsl-viu: Constify ioreadX() iomem argument (as in generic
+    implementation)
+  ath5k: Constify ioreadX() iomem argument (as in generic
+    implementation)
+
+ arch/alpha/include/asm/core_apecs.h           |  6 +-
+ arch/alpha/include/asm/core_cia.h             |  6 +-
+ arch/alpha/include/asm/core_lca.h             |  6 +-
+ arch/alpha/include/asm/core_marvel.h          |  4 +-
+ arch/alpha/include/asm/core_mcpcia.h          |  6 +-
+ arch/alpha/include/asm/core_t2.h              |  2 +-
+ arch/alpha/include/asm/io.h                   | 12 ++--
+ arch/alpha/include/asm/io_trivial.h           | 16 ++---
+ arch/alpha/include/asm/jensen.h               |  2 +-
+ arch/alpha/include/asm/machvec.h              |  6 +-
+ arch/alpha/kernel/core_marvel.c               |  2 +-
+ arch/alpha/kernel/io.c                        | 12 ++--
+ arch/arc/plat-axs10x/axs10x.c                 |  4 +-
+ arch/parisc/include/asm/io.h                  |  4 +-
+ arch/parisc/lib/iomap.c                       | 72 +++++++++----------
+ arch/powerpc/kernel/iomap.c                   | 28 ++++----
+ arch/sh/kernel/iomap.c                        | 22 +++---
+ drivers/gpu/drm/mgag200/mgag200_drv.h         |  4 +-
+ drivers/gpu/drm/nouveau/nouveau_bo.c          |  2 +-
+ drivers/media/platform/fsl-viu.c              |  2 +-
+ drivers/net/wireless/ath/ath5k/ahb.c          | 10 +--
+ .../realtek/rtl818x/rtl8180/rtl8180.h         |  6 +-
+ drivers/ntb/hw/intel/ntb_hw_gen1.c            |  2 +-
+ drivers/ntb/hw/intel/ntb_hw_gen3.h            |  2 +-
+ drivers/ntb/hw/intel/ntb_hw_intel.h           |  2 +-
+ drivers/virtio/virtio_pci_modern.c            |  6 +-
+ include/asm-generic/iomap.h                   | 28 ++++----
+ include/linux/io-64-nonatomic-hi-lo.h         |  4 +-
+ include/linux/io-64-nonatomic-lo-hi.h         |  4 +-
+ lib/iomap.c                                   | 30 ++++----
+ 30 files changed, 156 insertions(+), 156 deletions(-)
+
+-- 
+2.17.1
