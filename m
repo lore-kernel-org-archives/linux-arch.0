@@ -1,53 +1,51 @@
-From: Nick Desaulniers <ndesaulniers@google.com>
-Subject: Re: [PATCH 3/6] tracing: Wrap section comparison in
- tracer_alloc_buffers with COMPARE_SECTIONS
-Date: Wed, 19 Feb 2020 13:32:38 -0800
-Message-ID: <CAKwvOdktG0vZOZVtNJBk1COhOnLYv3MU5KNQ8Z40L4ph5QcnRg@mail.gmail.com>
-References: <20200219045423.54190-1-natechancellor@gmail.com>
- <20200219045423.54190-4-natechancellor@gmail.com> <20200219093445.386f1c09@gandalf.local.home>
- <CAKwvOdm-N1iX0SMxGDV5Vf=qS5uHPdH3S-TRs-065BuSOdKt1w@mail.gmail.com>
- <20200219181619.GV31668@ziepe.ca> <CAKwvOd=8vb5eOjiLg96zr25Xsq_Xge_Ym7RsNqKK8g+ZR9KWzA@mail.gmail.com>
- <20200219195424.GW31668@ziepe.ca>
+From: Andrew Morton <akpm@linux-foundation.org>
+Subject: Re: [RFC PATCH] memory_hotplug: disable the functionality for 32b
+ (was: Re: [Bug 206401] kernel panic on Hyper-V after 5 minutes due to)
+ memory hot-add
+Date: Wed, 19 Feb 2020 13:46:45 -0800
+Message-ID: <20200219134645.7430db57e0e59f69e7386f46@linux-foundation.org>
+References: <20200218084700.GD21113@dhcp22.suse.cz>
+        <200218181900.M0115079@vega.pgw.jp>
+        <20200218100532.GA4151@dhcp22.suse.cz>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20200219195424.GW31668@ziepe.ca>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Jason Gunthorpe <jgg@ziepe.ca>
-Cc: Nathan Chancellor <natechancellor@gmail.com>, Steven Rostedt <rostedt@goodmis.org>, Masahiro Yamada <masahiroy@kernel.org>, Michal Marek <michal.lkml@markovi.net>, Arnd Bergmann <arnd@arndb.de>, Ingo Molnar <mingo@redhat.com>, Jason Baron <jbaron@akamai.com>, Catalin Marinas <catalin.marinas@arm.com>, Andrew Morton <akpm@linux-foundation.org>, LKML <linux-kernel@vger.kernel.org>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Linux Memory Management List <linux-mm@kvack.org>, clang-built-linux <clang-built-linux@googlegroups.com>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail.kernel.org ([198.145.29.99]:47890 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726760AbgBSVqr (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 19 Feb 2020 16:46:47 -0500
+In-Reply-To: <20200218100532.GA4151@dhcp22.suse.cz>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Michal Hocko <mhocko@kernel.org>
+Cc: kkabe@vega.pgw.jp, bhe@redhat.com, david@redhat.com, osalvador@suse.de, bugzilla-daemon@bugzilla.kernel.org, richardw.yang@linux.intel.com, n-horiguchi@ah.jp.nec.com, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org
 
-On Wed, Feb 19, 2020 at 11:54 AM Jason Gunthorpe <jgg@ziepe.ca> wrote:
->
-> On Wed, Feb 19, 2020 at 11:11:19AM -0800, Nick Desaulniers wrote:
-> > > Godbolt says clang is happy if it is written as:
-> > >
-> > >   if (&__stop___trace_bprintk_fmt[0] != &__start___trace_bprintk_fmt[0])
-> > >
-> > > Which is probably the best compromise. The type here is const char
-> > > *[], so it would be a shame to see it go.
-> >
-> > If the "address" is never dereferenced, but only used for arithmetic
-> > (in a way that the the pointed to type is irrelevant), does the
-> > pointed to type matter?
->
-> The type is used here:
->
->         if (*pos < start_index)
->                 return __start___trace_bprintk_fmt + *pos;
->
-> The return expression should be a const char **
->
-> Presumably the caller of find_next derferences it.
->
-> Jason
+On Tue, 18 Feb 2020 11:05:32 +0100 Michal Hocko <mhocko@kernel.org> wrote:
 
-And the callers of find_next just return the return value from
-find_next, but suddenly as `void*` (find_next()'s return type is
-`char**`).  So it doesn't seem like the pointed to type matters, hence
-the recommendation of `void` and then address-of (&) used in
-comparison+arithmetic.
+> Subject: [PATCH] memory_hotplug: disable the functionality for 32b
+> 
+> Memory hotlug is broken for 32b systems at least since c6f03e2903c9
+> ("mm, memory_hotplug: remove zone restrictions") which has considerably
+> reworked how can be memory associated with movable/kernel zones. The
+> same is not really trivial to achieve in 32b where only lowmem is the
+> kernel zone. While we can tweak this immediate problem around there are
+> likely other land mines hidden at other places.
+> 
+> It is also quite dubious that there is a real usecase for the memory
+> hotplug on 32b in the first place. Low memory is just too small to be
+> hotplugable (for hot add) and generally unusable for hotremove. Adding
+> more memory to highmem is also dubious because it would increase the
+> low mem or vmalloc space pressure for memmaps.
+> 
+> Restrict the functionality to 64b systems. This will help future
+> development to focus on usecases that have real life application.  We
+> can remove this restriction in future in presence of a real life usecase
+> of course but until then make it explicit that hotplug on 32b is broken
+> and requires a non trivial amount of work to fix.
 
--- 
-Thanks,
-~Nick Desaulniers
+(cc linux-arch)
+
+(and linux-arm-kernel, as ARM is a major 32-bit user)
+
+Does anyone see a problem with disabling memory hotplug on 32-bit builds?
