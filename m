@@ -1,53 +1,51 @@
-Return-Path: <SRS0=0XgO=4J=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:45540 "EHLO
-        merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728841AbgBUNuk (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 21 Feb 2020 08:50:40 -0500
-Message-ID: <20200221134216.690116768@infradead.org>
-Date: Fri, 21 Feb 2020 14:34:40 +0100
+Return-Path: <SRS0=LzcT=4H=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from bombadil.infradead.org ([198.137.202.133]:47548 "EHLO
+        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726651AbgBSQDp (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 19 Feb 2020 11:03:45 -0500
+Date: Wed, 19 Feb 2020 17:03:18 +0100
 From: Peter Zijlstra <peterz@infradead.org>
-Subject: [PATCH v4 24/27] x86/int3: Avoid atomic instrumentation
-References: <20200221133416.777099322@infradead.org>
+Subject: Re: [PATCH v3 16/22] locking/atomics, kcsan: Add KCSAN
+ instrumentation
+Message-ID: <20200219160318.GG18400@hirez.programming.kicks-ass.net>
+References: <20200219144724.800607165@infradead.org>
+ <20200219150745.299217979@infradead.org>
+ <20200219104626.633f0650@gandalf.local.home>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20200219104626.633f0650@gandalf.local.home>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, rostedt@goodmis.org
-Cc: peterz@infradead.org, mingo@kernel.org, joel@joelfernandes.org, gregkh@linuxfoundation.org, gustavo@embeddedor.com, tglx@linutronix.de, paulmck@kernel.org, josh@joshtriplett.org, mathieu.desnoyers@efficios.com, jiangshanlai@gmail.com, luto@kernel.org, tony.luck@intel.com, frederic@kernel.org, dan.carpenter@oracle.com, mhiramat@kernel.org
-Message-ID: <20200221133440.0NbcY0ejkCbgBaVIQhkYU3lQ5dPoDdQqVlpK6UtQfk4@z>
+To: Steven Rostedt <rostedt@goodmis.org>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org, joel@joelfernandes.org, gregkh@linuxfoundation.org, gustavo@embeddedor.com, tglx@linutronix.de, paulmck@kernel.org, josh@joshtriplett.org, mathieu.desnoyers@efficios.com, jiangshanlai@gmail.com, luto@kernel.org, tony.luck@intel.com, frederic@kernel.org, dan.carpenter@oracle.com, mhiramat@kernel.org, Marco Elver <elver@google.com>, Mark Rutland <mark.rutland@arm.com>
+Message-ID: <20200219160318.bTSKSH3iNlQ2IUEta6J0XmQaSUOdBtpDETq28ZK6r8U@z>
 
-Use arch_atomic_*() and READ_ONCE_NOCHECK() to ensure nothing untoward
-creeps in and ruins things.
+On Wed, Feb 19, 2020 at 10:46:26AM -0500, Steven Rostedt wrote:
+> On Wed, 19 Feb 2020 15:47:40 +0100
+> Peter Zijlstra <peterz@infradead.org> wrote:
+> 
+> > From: Marco Elver <elver@google.com>
+> > 
+> > This adds KCSAN instrumentation to atomic-instrumented.h.
+> > 
+> > Signed-off-by: Marco Elver <elver@google.com>
+> > Signed-off-by: Paul E. McKenney <paulmck@kernel.org>
+> > [peterz: removed the actual kcsan hooks]
+> > Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+> > Reviewed-by: Mark Rutland <mark.rutland@arm.com>
+> > ---
+> >  include/asm-generic/atomic-instrumented.h |  390 +++++++++++++++---------------
+> >  scripts/atomic/gen-atomic-instrumented.sh |   14 -
+> >  2 files changed, 212 insertions(+), 192 deletions(-)
+> > 
+> 
+> 
+> Does this and the rest of the series depend on the previous patches in
+> the series? Or can this be a series on to itself (patches 16-22)?
 
-That is; this is the INT3 text poke handler, strictly limit the code
-that runs in it, lest we inadvertenly hit yet another INT3.
+It can probably stand on its own, but it very much is related in so far
+that it's fallout from staring at all this nonsense.
 
-Reported-by: Thomas Gleixner <tglx@linutronix.de>
-Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
----
- arch/x86/kernel/alternative.c |    6 +++---
- 1 file changed, 3 insertions(+), 3 deletions(-)
-
---- a/arch/x86/kernel/alternative.c
-+++ b/arch/x86/kernel/alternative.c
-@@ -960,9 +960,9 @@ static struct bp_patching_desc *bp_desc;
- static __always_inline
- struct bp_patching_desc *try_get_desc(struct bp_patching_desc **descp)
- {
--	struct bp_patching_desc *desc = READ_ONCE(*descp); /* rcu_dereference */
-+	struct bp_patching_desc *desc = READ_ONCE_NOCHECK(*descp); /* rcu_dereference */
- 
--	if (!desc || !atomic_inc_not_zero(&desc->refs))
-+	if (!desc || !arch_atomic_inc_not_zero(&desc->refs))
- 		return NULL;
- 
- 	return desc;
-@@ -971,7 +971,7 @@ struct bp_patching_desc *try_get_desc(st
- static __always_inline void put_desc(struct bp_patching_desc *desc)
- {
- 	smp_mb__before_atomic();
--	atomic_dec(&desc->refs);
-+	arch_atomic_dec(&desc->refs);
- }
- 
- static __always_inline void *text_poke_addr(struct text_poke_loc *tp)
+Without these the do_int3() can actually have accidental tracing before
+reaching it's nmi_enter().
