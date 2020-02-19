@@ -1,64 +1,33 @@
-From: Boqun Feng <boqun.feng@gmail.com>
-Subject: [RFC v2 2/4] Documentation/locking/atomic: Introduce atomic-tests directory
-Date: Wed, 19 Feb 2020 14:26:25 +0800
-Message-ID: <20200219062627.104736-3-boqun.feng@gmail.com>
-References: <20200219062627.104736-1-boqun.feng@gmail.com>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH v2 3/9] rcu,tracing: Create trace_rcu_{enter,exit}()
+Date: Wed, 19 Feb 2020 10:57:43 +0100
+Message-ID: <20200219095743.GA18400@hirez.programming.kicks-ass.net>
+References: <20200212232005.GC115917@google.com>
+ <20200213082716.GI14897@hirez.programming.kicks-ass.net>
+ <20200213135138.GB2935@paulmck-ThinkPad-P72>
+ <20200213164031.GH14914@hirez.programming.kicks-ass.net>
+ <20200213185612.GG2935@paulmck-ThinkPad-P72>
+ <20200213204444.GA94647@google.com>
+ <20200218195831.GD11457@worktop.programming.kicks-ass.net>
+ <20200218201728.GH2935@paulmck-ThinkPad-P72>
+ <20200218204021.GJ11457@worktop.programming.kicks-ass.net>
+ <20200218213925.GL2935@paulmck-ThinkPad-P72>
 Mime-Version: 1.0
-Content-Transfer-Encoding: 8bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20200219062627.104736-1-boqun.feng@gmail.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: linux-kernel@vger.kernel.org
-Cc: Alan Stern <stern@rowland.harvard.edu>, Andrea Parri <parri.andrea@gmail.com>, Will Deacon <will@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Boqun Feng <boqun.feng@gmail.com>, Nicholas Piggin <npiggin@gmail.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, "Paul E. McKenney" <paulmck@kernel.org>, Akira Yokosawa <akiyks@gmail.com>, Daniel Lustig <dlustig@nvidia.com>, Jonathan Corbet <corbet@lwn.net>, Mauro Carvalho Chehab <mchehab+samsung@kernel.org>, "David S. Miller" <davem@davemloft.net>, Rob Herring <robh@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jonathan Cameron <Jonathan.Cameron@huawei.com>, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from merlin.infradead.org ([205.233.59.134]:53244 "EHLO
+        merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726453AbgBSJ6W (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 19 Feb 2020 04:58:22 -0500
+Content-Disposition: inline
+In-Reply-To: <20200218213925.GL2935@paulmck-ThinkPad-P72>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: "Paul E. McKenney" <paulmck@kernel.org>
+Cc: Joel Fernandes <joel@joelfernandes.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, rostedt@goodmis.org, mingo@kernel.org, gregkh@linuxfoundation.org, gustavo@embeddedor.com, tglx@linutronix.de, josh@joshtriplett.org, mathieu.desnoyers@efficios.com, jiangshanlai@gmail.com
 
-Although we have atomic_t.txt and its friends to describe the semantics
-of atomic APIs and lib/atomic64_test.c for build testing and testing in
-UP mode, the tests for our atomic APIs in real SMP mode are still
-missing. Since now we have the LKMM tool in kernel and litmus tests can
-be used to generate kernel modules for testing purpose with "klitmus" (a
-tool from the LKMM toolset), it makes sense to put a few typical litmus
-tests into kernel so that
+On Tue, Feb 18, 2020 at 01:39:25PM -0800, Paul E. McKenney wrote:
+> OK.  I will drop it later today, but leave tag in_nmi.2020.02.18a
+> pointing at it for future reference.
 
-1)	they are the examples to describe the conceptual mode of the
-	semantics of atomic APIs, and
-
-2)	they can be used to generate kernel test modules for anyone
-	who is interested to test the atomic APIs implementation (in
-	most cases, is the one who implements the APIs for a new arch)
-
-Therefore, introduce the atomic-tests directory for this purpose. The
-directory is maintained by the LKMM group to make sure the litmus tests
-are always aligned with our memory model.
-
-Signed-off-by: Boqun Feng <boqun.feng@gmail.com>
----
- Documentation/atomic-tests/README | 4 ++++
- MAINTAINERS                       | 1 +
- 2 files changed, 5 insertions(+)
- create mode 100644 Documentation/atomic-tests/README
-
-diff --git a/Documentation/atomic-tests/README b/Documentation/atomic-tests/README
-new file mode 100644
-index 000000000000..ae61201a4271
---- /dev/null
-+++ b/Documentation/atomic-tests/README
-@@ -0,0 +1,4 @@
-+This directory contains litmus tests that are typical to describe the semantics
-+of our atomic APIs. For more information about how to "run" a litmus test or
-+how to generate a kernel test module based on a litmus test, please see
-+tools/memory-model/README.
-diff --git a/MAINTAINERS b/MAINTAINERS
-index ffc7d5712735..ebca5f6263bb 100644
---- a/MAINTAINERS
-+++ b/MAINTAINERS
-@@ -9718,6 +9718,7 @@ T:	git git://git.kernel.org/pub/scm/linux/kernel/git/paulmck/linux-rcu.git dev
- F:	tools/memory-model/
- F:	Documentation/atomic_bitops.txt
- F:	Documentation/atomic_t.txt
-+F:	Documentation/atomic-tests/
- F:	Documentation/core-api/atomic_ops.rst
- F:	Documentation/core-api/refcount-vs-atomic.rst
- F:	Documentation/memory-barriers.txt
--- 
-2.25.0
+Thanks, I've picked it up in my series.
