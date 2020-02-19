@@ -1,7 +1,7 @@
 From: Boqun Feng <boqun.feng@gmail.com>
-Subject: [RFC v2 4/4] Documentation/locking/atomic: Add a litmus test smp_mb__after_atomic()
-Date: Wed, 19 Feb 2020 14:26:27 +0800
-Message-ID: <20200219062627.104736-5-boqun.feng@gmail.com>
+Subject: [RFC v2 2/4] Documentation/locking/atomic: Introduce atomic-tests directory
+Date: Wed, 19 Feb 2020 14:26:25 +0800
+Message-ID: <20200219062627.104736-3-boqun.feng@gmail.com>
 References: <20200219062627.104736-1-boqun.feng@gmail.com>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
@@ -12,119 +12,53 @@ To: linux-kernel@vger.kernel.org
 Cc: Alan Stern <stern@rowland.harvard.edu>, Andrea Parri <parri.andrea@gmail.com>, Will Deacon <will@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Boqun Feng <boqun.feng@gmail.com>, Nicholas Piggin <npiggin@gmail.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, "Paul E. McKenney" <paulmck@kernel.org>, Akira Yokosawa <akiyks@gmail.com>, Daniel Lustig <dlustig@nvidia.com>, Jonathan Corbet <corbet@lwn.net>, Mauro Carvalho Chehab <mchehab+samsung@kernel.org>, "David S. Miller" <davem@davemloft.net>, Rob Herring <robh@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jonathan Cameron <Jonathan.Cameron@huawei.com>, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-We already use a litmus test in atomic_t.txt to describe atomic RMW +
-smp_mb__after_atomic() is stronger than acquire (both the read and the
-write parts are ordered). So make it a litmus test in atomic-tests
-directory, so that people can access the litmus easily.
+Although we have atomic_t.txt and its friends to describe the semantics
+of atomic APIs and lib/atomic64_test.c for build testing and testing in
+UP mode, the tests for our atomic APIs in real SMP mode are still
+missing. Since now we have the LKMM tool in kernel and litmus tests can
+be used to generate kernel modules for testing purpose with "klitmus" (a
+tool from the LKMM toolset), it makes sense to put a few typical litmus
+tests into kernel so that
 
-Additionally, change the processor numbers "P1, P2" to "P0, P1" in
-atomic_t.txt for the consistency with the processor numbers in the
-litmus test, which herd can handle.
+1)	they are the examples to describe the conceptual mode of the
+	semantics of atomic APIs, and
+
+2)	they can be used to generate kernel test modules for anyone
+	who is interested to test the atomic APIs implementation (in
+	most cases, is the one who implements the APIs for a new arch)
+
+Therefore, introduce the atomic-tests directory for this purpose. The
+directory is maintained by the LKMM group to make sure the litmus tests
+are always aligned with our memory model.
 
 Signed-off-by: Boqun Feng <boqun.feng@gmail.com>
 ---
- ...ter_atomic-is-stronger-than-acquire.litmus | 32 +++++++++++++++++++
- Documentation/atomic-tests/README             |  5 +++
- Documentation/atomic_t.txt                    | 10 +++---
- 3 files changed, 42 insertions(+), 5 deletions(-)
- create mode 100644 Documentation/atomic-tests/Atomic-RMW+mb__after_atomic-is-stronger-than-acquire.litmus
+ Documentation/atomic-tests/README | 4 ++++
+ MAINTAINERS                       | 1 +
+ 2 files changed, 5 insertions(+)
+ create mode 100644 Documentation/atomic-tests/README
 
-diff --git a/Documentation/atomic-tests/Atomic-RMW+mb__after_atomic-is-stronger-than-acquire.litmus b/Documentation/atomic-tests/Atomic-RMW+mb__after_atomic-is-stronger-than-acquire.litmus
-new file mode 100644
-index 000000000000..9a8e31a44b28
---- /dev/null
-+++ b/Documentation/atomic-tests/Atomic-RMW+mb__after_atomic-is-stronger-than-acquire.litmus
-@@ -0,0 +1,32 @@
-+C Atomic-RMW+mb__after_atomic-is-stronger-than-acquire
-+
-+(*
-+ * Result: Never
-+ *
-+ * Test that an atomic RMW followed by a smp_mb__after_atomic() is
-+ * stronger than a normal acquire: both the read and write parts of
-+ * the RMW are ordered before the subsequential memory accesses.
-+ *)
-+
-+{
-+}
-+
-+P0(int *x, atomic_t *y)
-+{
-+	int r0;
-+	int r1;
-+
-+	r0 = READ_ONCE(*x);
-+	smp_rmb();
-+	r1 = atomic_read(y);
-+}
-+
-+P1(int *x, atomic_t *y)
-+{
-+	atomic_inc(y);
-+	smp_mb__after_atomic();
-+	WRITE_ONCE(*x, 1);
-+}
-+
-+exists
-+(0:r0=1 /\ 0:r1=0)
 diff --git a/Documentation/atomic-tests/README b/Documentation/atomic-tests/README
-index a1b72410b539..714cf93816ea 100644
---- a/Documentation/atomic-tests/README
+new file mode 100644
+index 000000000000..ae61201a4271
+--- /dev/null
 +++ b/Documentation/atomic-tests/README
-@@ -7,5 +7,10 @@ tools/memory-model/README.
- LITMUS TESTS
- ============
- 
-+Atomic-RMW+mb__after_atomic-is-stronger-than-acquire
-+	Test that an atomic RMW followed by a smp_mb__after_atomic() is
-+	stronger than a normal acquire: both the read and write parts of
-+	the RMW are ordered before the subsequential memory accesses.
-+
- Atomic-RMW-ops-are-atomic-WRT-atomic_set.litmus
- 	Test that atomic_set() cannot break the atomicity of atomic RMWs.
-diff --git a/Documentation/atomic_t.txt b/Documentation/atomic_t.txt
-index d30cb3d87375..a455328443eb 100644
---- a/Documentation/atomic_t.txt
-+++ b/Documentation/atomic_t.txt
-@@ -233,19 +233,19 @@ as well. Similarly, something like:
- is an ACQUIRE pattern (though very much not typical), but again the barrier is
- strictly stronger than ACQUIRE. As illustrated:
- 
--  C strong-acquire
-+  C Atomic-RMW+mb__after_atomic-is-stronger-than-acquire
- 
-   {
-   }
- 
--  P1(int *x, atomic_t *y)
-+  P0(int *x, atomic_t *y)
-   {
-     r0 = READ_ONCE(*x);
-     smp_rmb();
-     r1 = atomic_read(y);
-   }
- 
--  P2(int *x, atomic_t *y)
-+  P1(int *x, atomic_t *y)
-   {
-     atomic_inc(y);
-     smp_mb__after_atomic();
-@@ -253,14 +253,14 @@ strictly stronger than ACQUIRE. As illustrated:
-   }
- 
-   exists
--  (r0=1 /\ r1=0)
-+  (0:r0=1 /\ 0:r1=0)
- 
- This should not happen; but a hypothetical atomic_inc_acquire() --
- (void)atomic_fetch_inc_acquire() for instance -- would allow the outcome,
- because it would not order the W part of the RMW against the following
- WRITE_ONCE.  Thus:
- 
--  P1			P2
-+  P0			P1
- 
- 			t = LL.acq *y (0)
- 			t++;
+@@ -0,0 +1,4 @@
++This directory contains litmus tests that are typical to describe the semantics
++of our atomic APIs. For more information about how to "run" a litmus test or
++how to generate a kernel test module based on a litmus test, please see
++tools/memory-model/README.
+diff --git a/MAINTAINERS b/MAINTAINERS
+index ffc7d5712735..ebca5f6263bb 100644
+--- a/MAINTAINERS
++++ b/MAINTAINERS
+@@ -9718,6 +9718,7 @@ T:	git git://git.kernel.org/pub/scm/linux/kernel/git/paulmck/linux-rcu.git dev
+ F:	tools/memory-model/
+ F:	Documentation/atomic_bitops.txt
+ F:	Documentation/atomic_t.txt
++F:	Documentation/atomic-tests/
+ F:	Documentation/core-api/atomic_ops.rst
+ F:	Documentation/core-api/refcount-vs-atomic.rst
+ F:	Documentation/memory-barriers.txt
 -- 
 2.25.0
