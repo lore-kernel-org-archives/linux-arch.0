@@ -1,111 +1,279 @@
-Return-Path: <SRS0=oITL=4O=vger.kernel.org=linux-doc-owner@kernel.org>
-Subject: Re: [RFC PATCH v9 12/27] x86/mm: Modify ptep_set_wrprotect and
- pmdp_set_wrprotect for _PAGE_DIRTY_SW
-References: <20200205181935.3712-1-yu-cheng.yu@intel.com>
- <20200205181935.3712-13-yu-cheng.yu@intel.com>
-From: Dave Hansen <dave.hansen@intel.com>
-Message-ID: <c8ad93b2-878f-1d90-e054-970f251efc71@intel.com>
-Date: Wed, 26 Feb 2020 14:20:38 -0800
+Return-Path: <SRS0=LzcT=4H=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from merlin.infradead.org ([205.233.59.134]:52018 "EHLO
+        merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727797AbgBSPOh (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 19 Feb 2020 10:14:37 -0500
+Message-ID: <20200219150744.547288232@infradead.org>
+Date: Wed, 19 Feb 2020 15:47:27 +0100
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: [PATCH v3 03/22] x86: Replace ist_enter() with nmi_enter()
+References: <20200219144724.800607165@infradead.org>
 MIME-Version: 1.0
-In-Reply-To: <20200205181935.3712-13-yu-cheng.yu@intel.com>
-Content-Type: text/plain; charset=utf-8
-Content-Language: en-US
-Content-Transfer-Encoding: 8bit
-Sender: linux-doc-owner@vger.kernel.org
-To: Yu-cheng Yu <yu-cheng.yu@intel.com>, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>, x86-patch-review@intel.com
+Content-Type: text/plain; charset=UTF-8
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200226222038.Ulp1o9nBAj3h18O-Uw2XG01fWNhKJQWEyGNqXSHc5xA@z>
+To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, rostedt@goodmis.org
+Cc: peterz@infradead.org, mingo@kernel.org, joel@joelfernandes.org, gregkh@linuxfoundation.org, gustavo@embeddedor.com, tglx@linutronix.de, paulmck@kernel.org, josh@joshtriplett.org, mathieu.desnoyers@efficios.com, jiangshanlai@gmail.com, luto@kernel.org, tony.luck@intel.com, frederic@kernel.org, dan.carpenter@oracle.com, mhiramat@kernel.org
+Message-ID: <20200219144727.4HHfB2RHxPn6bHr6Gf40TlCaRqIErIJcwHze8_1n70c@z>
 
-On 2/5/20 10:19 AM, Yu-cheng Yu wrote:
-> When Shadow Stack (SHSTK) is enabled, the [R/O + PAGE_DIRTY_HW] setting is
-> reserved only for SHSTK.
+A few exceptions (like #DB and #BP) can happen at any location in the
+code, this then means that tracers should treat events from these
+exceptions as NMI-like. We could be holding locks with interrupts
+disabled for instance.
 
-Got it.
+Similarly, #MC is an actual NMI-like exception.
 
-> Non-Shadow Stack R/O PTEs are [R/O + PAGE_DIRTY_SW].
+All of them use ist_enter() which only concerns itself with RCU, but
+does not do any of the other setup that NMI's need. This means things
+like:
 
-This is only true for *dirty* PTEs, right?
+	printk()
+	  raw_spin_lock(&logbuf_lock);
+	  <#DB/#BP/#MC>
+	     printk()
+	       raw_spin_lock(&logbuf_lock);
 
-> When a PTE goes from [R/W + PAGE_DIRTY_HW] to [R/O + PAGE_DIRTY_SW], it
-> could become a transient SHSTK PTE in two cases.
-> 
-> The first case is that some processors can start a write but end up seeing
-> a read-only PTE by the time they get to the Dirty bit, creating a transient
-> SHSTK PTE.  However, this will not occur on processors supporting SHSTK
-> therefore we don't need a TLB flush here.
-> 
-> The second case is that when the software, without atomic, tests & replaces
-> PAGE_DIRTY_HW with PAGE_DIRTY_SW, a transient SHSTK PTE can exist.  This is
-> prevented with cmpxchg.
-> 
-> Dave Hansen, Jann Horn, Andy Lutomirski, and Peter Zijlstra provided many
-> insights to the issue.  Jann Horn provided the cmpxchg solution.
-> 
-> v9:
-> - Change compile-time conditionals to runtime checks.
-> - Fix parameters of try_cmpxchg(): change pte_t/pmd_t to
->   pte_t.pte/pmd_t.pmd.
-> 
-> v4:
-> - Implement try_cmpxchg().
-> 
-> Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
-> ---
->  arch/x86/include/asm/pgtable.h | 66 ++++++++++++++++++++++++++++++++++
->  1 file changed, 66 insertions(+)
-> 
-> diff --git a/arch/x86/include/asm/pgtable.h b/arch/x86/include/asm/pgtable.h
-> index 2733e7ec16b3..43cb27379208 100644
-> --- a/arch/x86/include/asm/pgtable.h
-> +++ b/arch/x86/include/asm/pgtable.h
-> @@ -1253,6 +1253,39 @@ static inline pte_t ptep_get_and_clear_full(struct mm_struct *mm,
->  static inline void ptep_set_wrprotect(struct mm_struct *mm,
->  				      unsigned long addr, pte_t *ptep)
->  {
-> +	/*
-> +	 * Some processors can start a write, but end up seeing a read-only
-> +	 * PTE by the time they get to the Dirty bit.  In this case, they
-> +	 * will set the Dirty bit, leaving a read-only, Dirty PTE which
-> +	 * looks like a Shadow Stack PTE.
-> +	 *
-> +	 * However, this behavior has been improved and will not occur on
-> +	 * processors supporting Shadow Stack.  Without this guarantee, a
-> +	 * transition to a non-present PTE and flush the TLB would be
-> +	 * needed.
-> +	 *
-> +	 * When changing a writable PTE to read-only and if the PTE has
-> +	 * _PAGE_DIRTY_HW set, we move that bit to _PAGE_DIRTY_SW so that
-> +	 * the PTE is not a valid Shadow Stack PTE.
-> +	 */
-> +#ifdef CONFIG_X86_64
-> +	if (static_cpu_has(X86_FEATURE_SHSTK)) {
+are entirely possible.
 
-Judicious application of arch/x86/include/asm/disabled-features.h should
-be able to get rid of the #ifdef.  See pkeys in there for another example.
+So replace ist_enter() with nmi_enter(). Also observe that any
+nmi_enter() caller must be both notrace and NOKPROBE.
 
-> +		pte_t new_pte, pte = READ_ONCE(*ptep);
-> +
-> +		do {
-> +			/*
-> +			 * This is the same as moving _PAGE_DIRTY_HW
-> +			 * to _PAGE_DIRTY_SW.
-> +			 */
-> +			new_pte = pte_wrprotect(pte);
-> +			new_pte.pte |= (new_pte.pte & _PAGE_DIRTY_HW) >>
-> +					_PAGE_BIT_DIRTY_HW << _PAGE_BIT_DIRTY_SW;
-> +			new_pte.pte &= ~_PAGE_DIRTY_HW;
-> +		} while (!try_cmpxchg(&ptep->pte, &pte.pte, new_pte.pte));
+Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+---
+ arch/x86/include/asm/traps.h      |    3 --
+ arch/x86/kernel/cpu/mce/core.c    |   15 +++++-----
+ arch/x86/kernel/cpu/mce/p5.c      |    7 ++--
+ arch/x86/kernel/cpu/mce/winchip.c |    7 ++--
+ arch/x86/kernel/traps.c           |   57 +++++---------------------------------
+ 5 files changed, 24 insertions(+), 65 deletions(-)
 
-Have you tried to test this code?
-
-This is trying to transition the value at '&ptep->pte' from the
-'pte.pte' value to 'new_pte.pte'.  If the value at '&ptep->pte' does not
-match 'pte.pte', the cmpxchg will fail and we'll run through the loop again.
-
-What terminates that loop?
-
-The "old" value (pte.pte) never gets updated since it is read outside
-the loop.  There's no guarantee that the contents (&ptep->pte) will ever
-match pte.pte.
-
-Doesn't the READ_ONCE() need to be inside the loop?
+--- a/arch/x86/include/asm/traps.h
++++ b/arch/x86/include/asm/traps.h
+@@ -121,9 +121,6 @@ void smp_spurious_interrupt(struct pt_re
+ void smp_error_interrupt(struct pt_regs *regs);
+ asmlinkage void smp_irq_move_cleanup_interrupt(void);
+ 
+-extern void ist_enter(struct pt_regs *regs);
+-extern void ist_exit(struct pt_regs *regs);
+-
+ #ifdef CONFIG_VMAP_STACK
+ void __noreturn handle_stack_overflow(const char *message,
+ 				      struct pt_regs *regs,
+--- a/arch/x86/kernel/cpu/mce/core.c
++++ b/arch/x86/kernel/cpu/mce/core.c
+@@ -1220,7 +1220,7 @@ static void mce_kill_me_maybe(struct cal
+  * MCE broadcast. However some CPUs might be broken beyond repair,
+  * so be always careful when synchronizing with others.
+  */
+-void do_machine_check(struct pt_regs *regs, long error_code)
++notrace void do_machine_check(struct pt_regs *regs, long error_code)
+ {
+ 	DECLARE_BITMAP(valid_banks, MAX_NR_BANKS);
+ 	DECLARE_BITMAP(toclear, MAX_NR_BANKS);
+@@ -1254,10 +1254,10 @@ void do_machine_check(struct pt_regs *re
+ 	 */
+ 	int lmce = 1;
+ 
+-	if (__mc_check_crashing_cpu(cpu))
+-		return;
++	nmi_enter();
+ 
+-	ist_enter(regs);
++	if (__mc_check_crashing_cpu(cpu))
++		goto out;
+ 
+ 	this_cpu_inc(mce_exception_count);
+ 
+@@ -1346,7 +1346,7 @@ void do_machine_check(struct pt_regs *re
+ 	sync_core();
+ 
+ 	if (worst != MCE_AR_SEVERITY && !kill_it)
+-		goto out_ist;
++		goto out;
+ 
+ 	/* Fault was in user mode and we need to take some action */
+ 	if ((m.cs & 3) == 3) {
+@@ -1362,10 +1362,11 @@ void do_machine_check(struct pt_regs *re
+ 			mce_panic("Failed kernel mode recovery", &m, msg);
+ 	}
+ 
+-out_ist:
+-	ist_exit(regs);
++out:
++	nmi_exit();
+ }
+ EXPORT_SYMBOL_GPL(do_machine_check);
++NOKPROBE_SYMBOL(do_machine_check);
+ 
+ #ifndef CONFIG_MEMORY_FAILURE
+ int memory_failure(unsigned long pfn, int flags)
+--- a/arch/x86/kernel/cpu/mce/p5.c
++++ b/arch/x86/kernel/cpu/mce/p5.c
+@@ -20,11 +20,11 @@
+ int mce_p5_enabled __read_mostly;
+ 
+ /* Machine check handler for Pentium class Intel CPUs: */
+-static void pentium_machine_check(struct pt_regs *regs, long error_code)
++static notrace void pentium_machine_check(struct pt_regs *regs, long error_code)
+ {
+ 	u32 loaddr, hi, lotype;
+ 
+-	ist_enter(regs);
++	nmi_enter();
+ 
+ 	rdmsr(MSR_IA32_P5_MC_ADDR, loaddr, hi);
+ 	rdmsr(MSR_IA32_P5_MC_TYPE, lotype, hi);
+@@ -39,8 +39,9 @@ static void pentium_machine_check(struct
+ 
+ 	add_taint(TAINT_MACHINE_CHECK, LOCKDEP_NOW_UNRELIABLE);
+ 
+-	ist_exit(regs);
++	nmi_exit();
+ }
++NOKPROBE_SYMBOL(pentium_machine_check);
+ 
+ /* Set up machine check reporting for processors with Intel style MCE: */
+ void intel_p5_mcheck_init(struct cpuinfo_x86 *c)
+--- a/arch/x86/kernel/cpu/mce/winchip.c
++++ b/arch/x86/kernel/cpu/mce/winchip.c
+@@ -16,15 +16,16 @@
+ #include "internal.h"
+ 
+ /* Machine check handler for WinChip C6: */
+-static void winchip_machine_check(struct pt_regs *regs, long error_code)
++static notrace void winchip_machine_check(struct pt_regs *regs, long error_code)
+ {
+-	ist_enter(regs);
++	nmi_enter();
+ 
+ 	pr_emerg("CPU0: Machine Check Exception.\n");
+ 	add_taint(TAINT_MACHINE_CHECK, LOCKDEP_NOW_UNRELIABLE);
+ 
+-	ist_exit(regs);
++	nmi_exit();
+ }
++NOKPROBE_SYMBOL(winchip_machine_check);
+ 
+ /* Set up machine check reporting on the Winchip C6 series */
+ void winchip_mcheck_init(struct cpuinfo_x86 *c)
+--- a/arch/x86/kernel/traps.c
++++ b/arch/x86/kernel/traps.c
+@@ -81,41 +81,6 @@ static inline void cond_local_irq_disabl
+ 		local_irq_disable();
+ }
+ 
+-/*
+- * In IST context, we explicitly disable preemption.  This serves two
+- * purposes: it makes it much less likely that we would accidentally
+- * schedule in IST context and it will force a warning if we somehow
+- * manage to schedule by accident.
+- */
+-void ist_enter(struct pt_regs *regs)
+-{
+-	if (user_mode(regs)) {
+-		RCU_LOCKDEP_WARN(!rcu_is_watching(), "entry code didn't wake RCU");
+-	} else {
+-		/*
+-		 * We might have interrupted pretty much anything.  In
+-		 * fact, if we're a machine check, we can even interrupt
+-		 * NMI processing.  We don't want in_nmi() to return true,
+-		 * but we need to notify RCU.
+-		 */
+-		rcu_nmi_enter();
+-	}
+-
+-	preempt_disable();
+-
+-	/* This code is a bit fragile.  Test it. */
+-	RCU_LOCKDEP_WARN(!rcu_is_watching(), "ist_enter didn't work");
+-}
+-NOKPROBE_SYMBOL(ist_enter);
+-
+-void ist_exit(struct pt_regs *regs)
+-{
+-	preempt_enable_no_resched();
+-
+-	if (!user_mode(regs))
+-		rcu_nmi_exit();
+-}
+-
+ int is_valid_bugaddr(unsigned long addr)
+ {
+ 	unsigned short ud;
+@@ -306,7 +271,7 @@ dotraplinkage void do_double_fault(struc
+ 	 * The net result is that our #GP handler will think that we
+ 	 * entered from usermode with the bad user context.
+ 	 *
+-	 * No need for ist_enter here because we don't use RCU.
++	 * No need for nmi_enter() here because we don't use RCU.
+ 	 */
+ 	if (((long)regs->sp >> P4D_SHIFT) == ESPFIX_PGD_ENTRY &&
+ 		regs->cs == __KERNEL_CS &&
+@@ -341,7 +306,7 @@ dotraplinkage void do_double_fault(struc
+ 	}
+ #endif
+ 
+-	ist_enter(regs);
++	nmi_enter();
+ 	notify_die(DIE_TRAP, str, regs, error_code, X86_TRAP_DF, SIGSEGV);
+ 
+ 	tsk->thread.error_code = error_code;
+@@ -393,6 +358,7 @@ dotraplinkage void do_double_fault(struc
+ 	die("double fault", regs, error_code);
+ 	panic("Machine halted.");
+ }
++NOKPROBE_SYMBOL(do_double_fault)
+ #endif
+ 
+ dotraplinkage void do_bounds(struct pt_regs *regs, long error_code)
+@@ -534,14 +500,7 @@ dotraplinkage void notrace do_int3(struc
+ 	if (poke_int3_handler(regs))
+ 		return;
+ 
+-	/*
+-	 * Use ist_enter despite the fact that we don't use an IST stack.
+-	 * We can be called from a kprobe in non-CONTEXT_KERNEL kernel
+-	 * mode or even during context tracking state changes.
+-	 *
+-	 * This means that we can't schedule.  That's okay.
+-	 */
+-	ist_enter(regs);
++	nmi_enter();
+ 	RCU_LOCKDEP_WARN(!rcu_is_watching(), "entry code didn't wake RCU");
+ #ifdef CONFIG_KGDB_LOW_LEVEL_TRAP
+ 	if (kgdb_ll_trap(DIE_INT3, "int3", regs, error_code, X86_TRAP_BP,
+@@ -563,7 +522,7 @@ dotraplinkage void notrace do_int3(struc
+ 	cond_local_irq_disable(regs);
+ 
+ exit:
+-	ist_exit(regs);
++	nmi_exit();
+ }
+ NOKPROBE_SYMBOL(do_int3);
+ 
+@@ -660,14 +619,14 @@ static bool is_sysenter_singlestep(struc
+  *
+  * May run on IST stack.
+  */
+-dotraplinkage void do_debug(struct pt_regs *regs, long error_code)
++dotraplinkage notrace void do_debug(struct pt_regs *regs, long error_code)
+ {
+ 	struct task_struct *tsk = current;
+ 	int user_icebp = 0;
+ 	unsigned long dr6;
+ 	int si_code;
+ 
+-	ist_enter(regs);
++	nmi_enter();
+ 
+ 	get_debugreg(dr6, 6);
+ 	/*
+@@ -760,7 +719,7 @@ dotraplinkage void do_debug(struct pt_re
+ 	debug_stack_usage_dec();
+ 
+ exit:
+-	ist_exit(regs);
++	nmi_exit();
+ }
+ NOKPROBE_SYMBOL(do_debug);
+ 
