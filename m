@@ -1,34 +1,38 @@
 From: Steven Rostedt <rostedt@goodmis.org>
-Subject: Re: [PATCH v3 13/22] tracing: Remove regular RCU context for
- _rcuidle tracepoints (again)
-Date: Wed, 19 Feb 2020 10:53:35 -0500
-Message-ID: <20200219105335.0396fb55@gandalf.local.home>
+Subject: Re: [PATCH v3 04/22] x86/doublefault: Make memmove()
+ notrace/NOKPROBE
+Date: Wed, 19 Feb 2020 10:55:13 -0500
+Message-ID: <20200219105513.4b0b7f29@gandalf.local.home>
 References: <20200219144724.800607165@infradead.org>
-        <20200219150745.125119627@infradead.org>
+        <20200219150744.604459293@infradead.org>
+        <20200219103614.2299ff61@gandalf.local.home>
+        <20200219154031.GE18400@hirez.programming.kicks-ass.net>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:47100 "EHLO mail.kernel.org"
+Received: from mail.kernel.org ([198.145.29.99]:47408 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726528AbgBSPxj (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 19 Feb 2020 10:53:39 -0500
-In-Reply-To: <20200219150745.125119627@infradead.org>
+        id S1726604AbgBSPzR (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 19 Feb 2020 10:55:17 -0500
+In-Reply-To: <20200219154031.GE18400@hirez.programming.kicks-ass.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Peter Zijlstra <peterz@infradead.org>
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org, joel@joelfernandes.org, gregkh@linuxfoundation.org, gustavo@embeddedor.com, tglx@linutronix.de, paulmck@kernel.org, josh@joshtriplett.org, mathieu.desnoyers@efficios.com, jiangshanlai@gmail.com, luto@kernel.org, tony.luck@intel.com, frederic@kernel.org, dan.carpenter@oracle.com, mhiramat@kernel.org
 
-On Wed, 19 Feb 2020 15:47:37 +0100
+On Wed, 19 Feb 2020 16:40:31 +0100
 Peter Zijlstra <peterz@infradead.org> wrote:
 
-> Effectively revert commit 865e63b04e9b2 ("tracing: Add back in
-> rcu_irq_enter/exit_irqson() for rcuidle tracepoints") now that we've
-> taught perf how to deal with not having an RCU context provided.
+> > Hmm, for things like this, which is adding notrace because of a single
+> > instance of it (although it is fine to trace in any other instance), it
+> > would be nice to have a gcc helper that could call "memmove+5" which
+> > would skip the tracing portion.  
 > 
-> Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
-> ---
+> Or just open-code the memmove() in do_double_fault() I suppose. I don't
+> think we care about super optimized code there. It's the bloody ESPFIX
+> trainwreck.
 
-Reviewed-by: Steven Rostedt (VMware) <rostedt@goodmis.org>
+Or just create a memmove_notrace() version and use that.
 
 -- Steve
