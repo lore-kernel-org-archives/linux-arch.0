@@ -1,87 +1,60 @@
-Return-Path: <SRS0=DwsV=37=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from out30-45.freemail.mail.aliyun.com ([115.124.30.45]:60918 "EHLO
-        out30-45.freemail.mail.aliyun.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1727831AbgBKDlM (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 10 Feb 2020 22:41:12 -0500
-From: Guo Ren <guoren@linux.alibaba.com>
-Subject: [PATCH] csky: Add PCI support
-Date: Tue, 11 Feb 2020 11:41:07 +0800
-Message-ID: <20200211034107.11192-1-guoren@linux.alibaba.com>
+Return-Path: <SRS0=LzcT=4H=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail-pf1-f194.google.com ([209.85.210.194]:42867 "EHLO
+        mail-pf1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726760AbgBSVcu (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 19 Feb 2020 16:32:50 -0500
+Received: by mail-pf1-f194.google.com with SMTP id 4so720662pfz.9
+        for <linux-arch@vger.kernel.org>; Wed, 19 Feb 2020 13:32:50 -0800 (PST)
+MIME-Version: 1.0
+References: <20200219045423.54190-1-natechancellor@gmail.com>
+ <20200219045423.54190-4-natechancellor@gmail.com> <20200219093445.386f1c09@gandalf.local.home>
+ <CAKwvOdm-N1iX0SMxGDV5Vf=qS5uHPdH3S-TRs-065BuSOdKt1w@mail.gmail.com>
+ <20200219181619.GV31668@ziepe.ca> <CAKwvOd=8vb5eOjiLg96zr25Xsq_Xge_Ym7RsNqKK8g+ZR9KWzA@mail.gmail.com>
+ <20200219195424.GW31668@ziepe.ca>
+In-Reply-To: <20200219195424.GW31668@ziepe.ca>
+From: Nick Desaulniers <ndesaulniers@google.com>
+Date: Wed, 19 Feb 2020 13:32:38 -0800
+Message-ID: <CAKwvOdktG0vZOZVtNJBk1COhOnLYv3MU5KNQ8Z40L4ph5QcnRg@mail.gmail.com>
+Subject: Re: [PATCH 3/6] tracing: Wrap section comparison in
+ tracer_alloc_buffers with COMPARE_SECTIONS
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-csky@vger.kernel.org, majun258@linux.alibaba.com
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Guo Ren <guoren@linux.alibaba.com>
-Message-ID: <20200211034107.7DI1H3xChQ5pzmVhQx4tbuoTXUpVpBXLlRW50xl5Ugc@z>
+To: Jason Gunthorpe <jgg@ziepe.ca>
+Cc: Nathan Chancellor <natechancellor@gmail.com>, Steven Rostedt <rostedt@goodmis.org>, Masahiro Yamada <masahiroy@kernel.org>, Michal Marek <michal.lkml@markovi.net>, Arnd Bergmann <arnd@arndb.de>, Ingo Molnar <mingo@redhat.com>, Jason Baron <jbaron@akamai.com>, Catalin Marinas <catalin.marinas@arm.com>, Andrew Morton <akpm@linux-foundation.org>, LKML <linux-kernel@vger.kernel.org>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Linux Memory Management List <linux-mm@kvack.org>, clang-built-linux <clang-built-linux@googlegroups.com>
+Message-ID: <20200219213238.M5ghFy4o7i5sM5Syx_qMSFKqDT990yIORmKVGqU7S8U@z>
 
-From: MaJun <majun258@linux.alibaba.com>
+On Wed, Feb 19, 2020 at 11:54 AM Jason Gunthorpe <jgg@ziepe.ca> wrote:
+>
+> On Wed, Feb 19, 2020 at 11:11:19AM -0800, Nick Desaulniers wrote:
+> > > Godbolt says clang is happy if it is written as:
+> > >
+> > >   if (&__stop___trace_bprintk_fmt[0] != &__start___trace_bprintk_fmt[0])
+> > >
+> > > Which is probably the best compromise. The type here is const char
+> > > *[], so it would be a shame to see it go.
+> >
+> > If the "address" is never dereferenced, but only used for arithmetic
+> > (in a way that the the pointed to type is irrelevant), does the
+> > pointed to type matter?
+>
+> The type is used here:
+>
+>         if (*pos < start_index)
+>                 return __start___trace_bprintk_fmt + *pos;
+>
+> The return expression should be a const char **
+>
+> Presumably the caller of find_next derferences it.
+>
+> Jason
 
-Add the pci related code for csky arch to support basic pci virtual
-function, such as qemu virt-pci-9pfs.
+And the callers of find_next just return the return value from
+find_next, but suddenly as `void*` (find_next()'s return type is
+`char**`).  So it doesn't seem like the pointed to type matters, hence
+the recommendation of `void` and then address-of (&) used in
+comparison+arithmetic.
 
-Signed-off-by: MaJun <majun258@linux.alibaba.com>
-Signed-off-by: Guo Ren <guoren@linux.alibaba.com>
----
- arch/csky/Kconfig           |  5 +++++
- arch/csky/include/asm/pci.h | 34 ++++++++++++++++++++++++++++++++++
- 2 files changed, 39 insertions(+)
- create mode 100644 arch/csky/include/asm/pci.h
-
-diff --git a/arch/csky/Kconfig b/arch/csky/Kconfig
-index bf246b036dee..72b2999a889a 100644
---- a/arch/csky/Kconfig
-+++ b/arch/csky/Kconfig
-@@ -58,6 +58,11 @@ config CSKY
- 	select TIMER_OF
- 	select USB_ARCH_HAS_EHCI
- 	select USB_ARCH_HAS_OHCI
-+	select GENERIC_PCI_IOMAP
-+	select HAVE_PCI
-+	select PCI_DOMAINS_GENERIC if PCI
-+	select PCI_SYSCALL if PCI
-+	select PCI_MSI if PCI
- 
- config CPU_HAS_CACHEV2
- 	bool
-diff --git a/arch/csky/include/asm/pci.h b/arch/csky/include/asm/pci.h
-new file mode 100644
-index 000000000000..ebc765b1f78b
---- /dev/null
-+++ b/arch/csky/include/asm/pci.h
-@@ -0,0 +1,34 @@
-+/* SPDX-License-Identifier: GPL-2.0-only */
-+
-+#ifndef __ASM_CSKY_PCI_H
-+#define __ASM_CSKY_PCI_H
-+
-+#include <linux/types.h>
-+#include <linux/slab.h>
-+#include <linux/dma-mapping.h>
-+
-+#include <asm/io.h>
-+
-+#define PCIBIOS_MIN_IO		0
-+#define PCIBIOS_MIN_MEM		0
-+
-+/* C-SKY shim does not initialize PCI bus */
-+#define pcibios_assign_all_busses() 1
-+
-+extern int isa_dma_bridge_buggy;
-+
-+#ifdef CONFIG_PCI
-+static inline int pci_get_legacy_ide_irq(struct pci_dev *dev, int channel)
-+{
-+	/* no legacy IRQ on csky */
-+	return -ENODEV;
-+}
-+
-+static inline int pci_proc_domain(struct pci_bus *bus)
-+{
-+	/* always show the domain in /proc */
-+	return 1;
-+}
-+#endif  /* CONFIG_PCI */
-+
-+#endif  /* __ASM_CSKY_PCI_H */
 -- 
-2.17.0
+Thanks,
+~Nick Desaulniers
