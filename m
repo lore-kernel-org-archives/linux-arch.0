@@ -1,93 +1,63 @@
-From: "Paul E. McKenney" <paulmck@kernel.org>
-Subject: Re: [PATCH v3 05/22] rcu: Make RCU IRQ enter/exit functions rely on
- in_nmi()
-Date: Wed, 19 Feb 2020 09:42:11 -0800
-Message-ID: <20200219174211.GL2935@paulmck-ThinkPad-P72>
+From: Borislav Petkov <bp@alien8.de>
+Subject: Re: [PATCH v3 02/22] x86,mce: Delete ist_begin_non_atomic()
+Date: Wed, 19 Feb 2020 18:42:23 +0100
+Message-ID: <20200219174223.GE30966@zn.tnic>
 References: <20200219144724.800607165@infradead.org>
- <20200219150744.661923520@infradead.org>
- <20200219163156.GY2935@paulmck-ThinkPad-P72>
- <20200219163700.GK18400@hirez.programming.kicks-ass.net>
- <20200219170304.GG14946@hirez.programming.kicks-ass.net>
-Reply-To: paulmck@kernel.org
+ <20200219150744.488895196@infradead.org>
+ <20200219171309.GC32346@zn.tnic>
+ <CALCETrWBEDjenqze3wVc6TkUt_g+OFx9TQbYysLH+6fku=aWjQ@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=utf-8
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:48352 "EHLO mail.kernel.org"
+Received: from mail.skyhub.de ([5.9.137.197]:33670 "EHLO mail.skyhub.de"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726518AbgBSRmM (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 19 Feb 2020 12:42:12 -0500
+        id S1726518AbgBSRmc (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 19 Feb 2020 12:42:32 -0500
 Content-Disposition: inline
-In-Reply-To: <20200219170304.GG14946@hirez.programming.kicks-ass.net>
+In-Reply-To: <CALCETrWBEDjenqze3wVc6TkUt_g+OFx9TQbYysLH+6fku=aWjQ@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, rostedt@goodmis.org, mingo@kernel.org, joel@joelfernandes.org, gregkh@linuxfoundation.org, gustavo@embeddedor.com, tglx@linutronix.de, josh@joshtriplett.org, mathieu.desnoyers@efficios.com, jiangshanlai@gmail.com, luto@kernel.org, tony.luck@intel.com, frederic@kernel.org, dan.carpenter@oracle.com, mhiramat@kernel.org
+To: Andy Lutomirski <luto@kernel.org>
+Cc: Peter Zijlstra <peterz@infradead.org>, LKML <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Steven Rostedt <rostedt@goodmis.org>, Ingo Molnar <mingo@kernel.org>, Joel Fernandes <joel@joelfernandes.org>, Greg KH <gregkh@linuxfoundation.org>, gustavo@embeddedor.com, Thomas Gleixner <tglx@linutronix.de>, paulmck@kernel.org, Josh Triplett <josh@joshtriplett.org>, Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, Lai Jiangshan <jiangshanlai@gmail.com>, Tony Luck <tony.luck@intel.com>, Frederic Weisbecker <frederic@kernel.org>, Dan Carpenter <dan.carpenter@oracle.com>, Masami Hiramatsu <mhiramat@kernel.org>
 
-On Wed, Feb 19, 2020 at 06:03:04PM +0100, Peter Zijlstra wrote:
-> On Wed, Feb 19, 2020 at 05:37:00PM +0100, Peter Zijlstra wrote:
-> > On Wed, Feb 19, 2020 at 08:31:56AM -0800, Paul E. McKenney wrote:
-> 
-> > > Here is the latest version of that comment, posted by Steve Rostedt.
-> > > 
-> > > 							Thanx, Paul
-> > > 
-> > > /*
-> > >  * All functions called in the breakpoint trap handler (e.g. do_int3()
-> > >  * on x86), must not allow kprobes until the kprobe breakpoint handler
-> > >  * is called, otherwise it can cause an infinite recursion.
-> > >  * On some archs, rcu_nmi_enter() is called in the breakpoint handler
-> > >  * before the kprobe breakpoint handler is called, thus it must be
-> > >  * marked as NOKPROBE.
-> > >  */
-> > 
-> > Oh right, let me stick that in a separate patch. Best we not loose that
-> > I suppose ;-)
-> 
-> Having gone over the old thread, I ended up with the below. Anyone
-> holler if I got it wrong somehow.
+On Wed, Feb 19, 2020 at 09:21:48AM -0800, Andy Lutomirski wrote:
+> Unless there is a signal pending and the signal setup code is about to
+> hit the same failed memory.  I suppose we can just treat cases like
+> this as "oh well, time to kill the whole system".
+>
+> But we should genuinely agree that we're okay with deferring this handling.
 
-Looks good to me!
+Good catch!
 
-							Thanx, Paul
+static void exit_to_usermode_loop(struct pt_regs *regs, u32 cached_flags)
+{
 
-> ---
-> Subject: rcu: Provide comment for NOKPROBE() on rcu_nmi_enter()
-> From: Steven Rostedt <rostedt@goodmis.org>
-> 
-> From: Steven Rostedt <rostedt@goodmis.org>
-> 
-> The rcu_nmi_enter() function was marked NOKPROBE() by commit
-> c13324a505c77 ("x86/kprobes: Prohibit probing on functions before
-> kprobe_int3_handler()") because the do_int3() call kprobe code must
-> not be invoked before kprobe_int3_handler() is called.  It turns out
-> that ist_enter() (in do_int3()) calls rcu_nmi_enter(), hence the
-> marking NOKPROBE() being added to rcu_nmi_enter().
-> 
-> This commit therefore adds a comment documenting this line of
-> reasoning.
-> 
-> Signed-off-by: Steven Rostedt <rostedt@goodmis.org>
-> Reviewed-by: Masami Hiramatsu <mhiramat@kernel.org>
-> Signed-off-by: Paul E. McKenney <paulmck@kernel.org>
-> Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
-> ---
->  kernel/rcu/tree.c |    8 ++++++++
->  1 file changed, 8 insertions(+)
-> 
-> --- a/kernel/rcu/tree.c
-> +++ b/kernel/rcu/tree.c
-> @@ -842,6 +842,14 @@ void rcu_nmi_enter(void)
->  {
->  	rcu_nmi_enter_common(false);
->  }
-> +/*
-> + * All functions called in the breakpoint trap handler (e.g. do_int3()
-> + * on x86), must not allow kprobes until the kprobe breakpoint handler
-> + * is called, otherwise it can cause an infinite recursion.
-> + * On some archs, rcu_nmi_enter() is called in the breakpoint handler
-> + * before the kprobe breakpoint handler is called, thus it must be
-> + * marked as NOKPROBE.
-> + */
->  NOKPROBE_SYMBOL(rcu_nmi_enter);
->  
->  /**
+	...
+
+		/* deal with pending signal delivery */
+                if (cached_flags & _TIF_SIGPENDING)
+                        do_signal(regs);
+
+                if (cached_flags & _TIF_NOTIFY_RESUME) {
+                        clear_thread_flag(TIF_NOTIFY_RESUME);
+                        tracehook_notify_resume(regs);
+                        rseq_handle_notify_resume(NULL, regs);
+                }
+
+
+Err, can we make task_work run before we handle signals? Or there's a
+reason it is run in this order?
+
+Comment over task_work_add() says:
+
+ * This is like the signal handler which runs in kernel mode, but it doesn't
+ * try to wake up the @task.
+
+which sounds to me like this should really run before the signal
+handlers...
+
+-- 
+Regards/Gruss,
+    Boris.
+
+https://people.kernel.org/tglx/notes-about-netiquette
