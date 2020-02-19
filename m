@@ -1,66 +1,56 @@
-Return-Path: <SRS0=sPo6=4I=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:52392 "EHLO
-        merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726885AbgBTMid (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 20 Feb 2020 07:38:33 -0500
-Date: Thu, 20 Feb 2020 13:37:42 +0100
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH v3 04/22] x86/doublefault: Make memmove() notrace/NOKPROBE
-Message-ID: <20200220123742.GZ18400@hirez.programming.kicks-ass.net>
-References: <20200219144724.800607165@infradead.org>
- <20200219150744.604459293@infradead.org>
- <20200219103614.2299ff61@gandalf.local.home>
- <20200219154031.GE18400@hirez.programming.kicks-ass.net>
- <20200219155715.GD14946@hirez.programming.kicks-ass.net>
- <20200220121727.GB507@zn.tnic>
+Return-Path: <SRS0=PuGS=4H=kvack.org=owner-linux-mm@kernel.org>
+From: Nathan Chancellor <natechancellor@gmail.com>
+Subject: [PATCH 5/6] mm: kmemleak: Wrap section comparison in kmemleak_init with COMPARE_SECTIONS
+Date: Tue, 18 Feb 2020 21:54:22 -0700
+Message-ID: <20200219045423.54190-6-natechancellor@gmail.com>
+In-Reply-To: <20200219045423.54190-1-natechancellor@gmail.com>
+References: <20200219045423.54190-1-natechancellor@gmail.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20200220121727.GB507@zn.tnic>
-Sender: linux-arch-owner@vger.kernel.org
+Content-Transfer-Encoding: quoted-printable
+Sender: owner-linux-mm@kvack.org
+To: Masahiro Yamada <masahiroy@kernel.org>, Michal Marek <michal.lkml@markovi.net>, Arnd Bergmann <arnd@arndb.de>, Steven Rostedt <rostedt@goodmis.org>, Ingo Molnar <mingo@redhat.com>, Jason Baron <jbaron@akamai.com>, Catalin Marinas <catalin.marinas@arm.com>, Andrew Morton <akpm@linux-foundation.org>
+Cc: linux-kernel@vger.kernel.org, linux-kbuild@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, clang-built-linux@googlegroups.com, Nathan Chancellor <natechancellor@gmail.com>
 List-ID: <linux-arch.vger.kernel.org>
-To: Borislav Petkov <bp@alien8.de>
-Cc: Steven Rostedt <rostedt@goodmis.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org, joel@joelfernandes.org, gregkh@linuxfoundation.org, gustavo@embeddedor.com, tglx@linutronix.de, paulmck@kernel.org, josh@joshtriplett.org, mathieu.desnoyers@efficios.com, jiangshanlai@gmail.com, luto@kernel.org, tony.luck@intel.com, frederic@kernel.org, dan.carpenter@oracle.com, mhiramat@kernel.org
-Message-ID: <20200220123742.3OmdksXuFh01hkWaIEqYkrkeLHFrdq997iOUb0q8xeM@z>
+Message-ID: <20200219045422.YmwFswRwMLT3_2W2hZVWnzk9isZsE09kwOrCwqZAsMs@z>
 
-On Thu, Feb 20, 2020 at 01:17:27PM +0100, Borislav Petkov wrote:
-> On Wed, Feb 19, 2020 at 04:57:15PM +0100, Peter Zijlstra wrote:
-> > -		memmove(&gpregs->ip, (void *)regs->sp, 5*8);
-> > +		for (i = 0; i < count; i++) {
-> > +			int idx = (dst <= src) ? i : count - i;
-> > +			dst[idx] = src[idx];
-> > +		}
-> 
-> Or, you can actually unroll it. This way it even documents clearly what
-> it does:
-> 
-> diff --git a/arch/x86/kernel/traps.c b/arch/x86/kernel/traps.c
-> index fe38015ed50a..2b790a574ba5 100644
-> --- a/arch/x86/kernel/traps.c
-> +++ b/arch/x86/kernel/traps.c
-> @@ -298,6 +298,7 @@ dotraplinkage void do_double_fault(struct pt_regs *regs, long error_code, unsign
->  		regs->ip == (unsigned long)native_irq_return_iret)
->  	{
->  		struct pt_regs *gpregs = (struct pt_regs *)this_cpu_read(cpu_tss_rw.x86_tss.sp0) - 1;
-> +		unsigned long *p = (unsigned long *)regs->sp;
->  
->  		/*
->  		 * regs->sp points to the failing IRET frame on the
-> @@ -305,7 +306,11 @@ dotraplinkage void do_double_fault(struct pt_regs *regs, long error_code, unsign
->  		 * in gpregs->ss through gpregs->ip.
->  		 *
->  		 */
-> -		memmove(&gpregs->ip, (void *)regs->sp, 5*8);
-> +		gpregs->ip	= *p;
-> +		gpregs->cs	= *(p + 1);
-> +		gpregs->flags	= *(p + 2);
-> +		gpregs->sp	= *(p + 3);
-> +		gpregs->ss	= *(p + 4);
->  		gpregs->orig_ax = 0;  /* Missing (lost) #GP error code */
->  
->  		/*
+Clang warns:
 
-While I love that; is that actually correct? This is an unroll of
-memcpy() not memmove(). IFF the ranges overlap, the above is buggered.
+../mm/kmemleak.c:1950:28: warning: array comparison always evaluates to
+a constant [-Wtautological-compare]
+        if (__start_ro_after_init < _sdata || __end_ro_after_init > _edat=
+a)
+                                  ^
+../mm/kmemleak.c:1950:60: warning: array comparison always evaluates to
+a constant [-Wtautological-compare]
+        if (__start_ro_after_init < _sdata || __end_ro_after_init > _edat=
+a)
+                                                                  ^
+2 warnings generated.
 
-Was the original memmove() really needed?
+These are not true arrays, they are linker defined symbols, which are
+just addresses so there is not a real issue here. Use the
+COMPARE_SECTIONS macro to silence this warning by casting the linker
+defined symbols to unsigned long, which keeps the logic the same.
+
+Link: https://github.com/ClangBuiltLinux/linux/issues/765
+Signed-off-by: Nathan Chancellor <natechancellor@gmail.com>
+---
+ mm/kmemleak.c | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/mm/kmemleak.c b/mm/kmemleak.c
+index aa6832432d6a..e27655526ba7 100644
+--- a/mm/kmemleak.c
++++ b/mm/kmemleak.c
+@@ -1952,7 +1952,8 @@ void __init kmemleak_init(void)
+ 	create_object((unsigned long)__bss_start, __bss_stop - __bss_start,
+ 		      KMEMLEAK_GREY, GFP_ATOMIC);
+ 	/* only register .data..ro_after_init if not within .data */
+-	if (__start_ro_after_init < _sdata || __end_ro_after_init > _edata)
++	if (COMPARE_SECTIONS(__start_ro_after_init, <, _sdata) ||
++	    COMPARE_SECTIONS(__end_ro_after_init, >, _edata))
+ 		create_object((unsigned long)__start_ro_after_init,
+ 			      __end_ro_after_init - __start_ro_after_init,
+ 			      KMEMLEAK_GREY, GFP_ATOMIC);
+--=20
+2.25.1
