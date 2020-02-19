@@ -1,46 +1,57 @@
 From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH v3 16/22] locking/atomics, kcsan: Add KCSAN
- instrumentation
-Date: Wed, 19 Feb 2020 17:03:18 +0100
-Message-ID: <20200219160318.GG18400@hirez.programming.kicks-ass.net>
+Subject: Re: [PATCH v3 04/22] x86/doublefault: Make memmove() notrace/NOKPROBE
+Date: Wed, 19 Feb 2020 17:04:42 +0100
+Message-ID: <20200219160442.GE14946@hirez.programming.kicks-ass.net>
 References: <20200219144724.800607165@infradead.org>
- <20200219150745.299217979@infradead.org>
- <20200219104626.633f0650@gandalf.local.home>
+ <20200219150744.604459293@infradead.org>
+ <20200219103614.2299ff61@gandalf.local.home>
+ <20200219154031.GE18400@hirez.programming.kicks-ass.net>
+ <20200219155715.GD14946@hirez.programming.kicks-ass.net>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from bombadil.infradead.org ([198.137.202.133]:47622 "EHLO
+        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726645AbgBSQFC (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 19 Feb 2020 11:05:02 -0500
 Content-Disposition: inline
-In-Reply-To: <20200219104626.633f0650@gandalf.local.home>
-Sender: linux-kernel-owner@vger.kernel.org
+In-Reply-To: <20200219155715.GD14946@hirez.programming.kicks-ass.net>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: Steven Rostedt <rostedt@goodmis.org>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org, joel@joelfernandes.org, gregkh@linuxfoundation.org, gustavo@embeddedor.com, tglx@linutronix.de, paulmck@kernel.org, josh@joshtriplett.org, mathieu.desnoyers@efficios.com, jiangshanlai@gmail.com, luto@kernel.org, tony.luck@intel.com, frederic@kernel.org, dan.carpenter@oracle.com, mhiramat@kernel.org, Marco Elver <elver@google.com>, Mark Rutland <mark.rutland@arm.com>
-List-Id: linux-arch.vger.kernel.org
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org, joel@joelfernandes.org, gregkh@linuxfoundation.org, gustavo@embeddedor.com, tglx@linutronix.de, paulmck@kernel.org, josh@joshtriplett.org, mathieu.desnoyers@efficios.com, jiangshanlai@gmail.com, luto@kernel.org, tony.luck@intel.com, frederic@kernel.org, dan.carpenter@oracle.com, mhiramat@kernel.org
 
-On Wed, Feb 19, 2020 at 10:46:26AM -0500, Steven Rostedt wrote:
-> On Wed, 19 Feb 2020 15:47:40 +0100
-> Peter Zijlstra <peterz@infradead.org> wrote:
+On Wed, Feb 19, 2020 at 04:57:15PM +0100, Peter Zijlstra wrote:
+> Something like so, I suppose...
 > 
-> > From: Marco Elver <elver@google.com>
-> > 
-> > This adds KCSAN instrumentation to atomic-instrumented.h.
-> > 
-> > Signed-off-by: Marco Elver <elver@google.com>
-> > Signed-off-by: Paul E. McKenney <paulmck@kernel.org>
-> > [peterz: removed the actual kcsan hooks]
-> > Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
-> > Reviewed-by: Mark Rutland <mark.rutland@arm.com>
-> > ---
-> >  include/asm-generic/atomic-instrumented.h |  390 +++++++++++++++---------------
-> >  scripts/atomic/gen-atomic-instrumented.sh |   14 -
-> >  2 files changed, 212 insertions(+), 192 deletions(-)
-> > 
-> 
-> 
-> Does this and the rest of the series depend on the previous patches in
-> the series? Or can this be a series on to itself (patches 16-22)?
+> diff --git a/arch/x86/kernel/traps.c b/arch/x86/kernel/traps.c
+> index 6ef00eb6fbb9..543de932dc7c 100644
+> --- a/arch/x86/kernel/traps.c
+> +++ b/arch/x86/kernel/traps.c
+> @@ -350,14 +350,20 @@ dotraplinkage void do_double_fault(struct pt_regs *regs, long error_code, unsign
+>  		regs->ip == (unsigned long)native_irq_return_iret)
+>  	{
+>  		struct pt_regs *gpregs = (struct pt_regs *)this_cpu_read(cpu_tss_rw.x86_tss.sp0) - 1;
+> +		unsigned long *dst = &gpregs->ip;
+> +		unsigned long *src = (void *)regs->dp;
+> +		int i, count = 5;
+>  
+>  		/*
+>  		 * regs->sp points to the failing IRET frame on the
+>  		 * ESPFIX64 stack.  Copy it to the entry stack.  This fills
+>  		 * in gpregs->ss through gpregs->ip.
+> -		 *
+>  		 */
+> -		memmove(&gpregs->ip, (void *)regs->sp, 5*8);
+> +		for (i = 0; i < count; i++) {
+> +			int idx = (dst <= src) ? i : count - i;
 
-It can probably stand on its own, but it very much is related in so far
-that it's fallout from staring at all this nonsense.
+That's an off-by-one for going backward; 'count - 1 - i' should work
+better, or I should just stop typing for today ;-)
 
-Without these the do_int3() can actually have accidental tracing before
-reaching it's nmi_enter().
+> +			dst[idx] = src[idx];
+> +		}
+> +
+>  		gpregs->orig_ax = 0;  /* Missing (lost) #GP error code */
+>  
+>  		/*
