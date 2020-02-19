@@ -1,40 +1,28 @@
 From: Steven Rostedt <rostedt@goodmis.org>
-Subject: Re: [PATCH v3 09/22] sched,rcu,tracing: Avoid tracing before
- in_nmi() is correct
-Date: Wed, 19 Feb 2020 10:50:58 -0500
-Message-ID: <20200219105058.3b844e10@gandalf.local.home>
+Subject: Re: [PATCH v3 10/22] x86,tracing: Add comments to do_nmi()
+Date: Wed, 19 Feb 2020 10:51:27 -0500
+Message-ID: <20200219105127.0351096b@gandalf.local.home>
 References: <20200219144724.800607165@infradead.org>
-        <20200219150744.888917422@infradead.org>
+        <20200219150744.945913022@infradead.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:46448 "EHLO mail.kernel.org"
+Received: from mail.kernel.org ([198.145.29.99]:46592 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726569AbgBSPvB (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 19 Feb 2020 10:51:01 -0500
-In-Reply-To: <20200219150744.888917422@infradead.org>
+        id S1726528AbgBSPva (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 19 Feb 2020 10:51:30 -0500
+In-Reply-To: <20200219150744.945913022@infradead.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Peter Zijlstra <peterz@infradead.org>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org, joel@joelfernandes.org, gregkh@linuxfoundation.org, gustavo@embeddedor.com, tglx@linutronix.de, paulmck@kernel.org, josh@joshtriplett.org, mathieu.desnoyers@efficios.com, jiangshanlai@gmail.com, luto@kernel.org, tony.luck@intel.com, frederic@kernel.org, dan.carpenter@oracle.com, mhiramat@kernel.org, "Steven Rostedt (VMware)" <rosted@goodmis.org>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org, joel@joelfernandes.org, gregkh@linuxfoundation.org, gustavo@embeddedor.com, tglx@linutronix.de, paulmck@kernel.org, josh@joshtriplett.org, mathieu.desnoyers@efficios.com, jiangshanlai@gmail.com, luto@kernel.org, tony.luck@intel.com, frederic@kernel.org, dan.carpenter@oracle.com, mhiramat@kernel.org
 
-On Wed, 19 Feb 2020 15:47:33 +0100
+On Wed, 19 Feb 2020 15:47:34 +0100
 Peter Zijlstra <peterz@infradead.org> wrote:
 
-> If we call into a tracer before in_nmi() becomes true, the tracer can
-> no longer detect it is called from NMI context and behave correctly.
+> Add a few comments to do_nmi() as a result of the audit.
 > 
-> Therefore change nmi_{enter,exit}() to use __preempt_count_{add,sub}()
-> as the normal preempt_count_{add,sub}() have a (desired) function
-> trace entry.
-> 
-> This fixes a potential issue with current code; AFAICT when the
-> function-tracer has stack-tracing enabled __trace_stack() will
-> malfunction when it hits the preempt_count_add() function entry from
-> NMI context.
-> 
-> Suggested-by: Steven Rostedt (VMware) <rosted@goodmis.org>
 > Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
 > ---
 
