@@ -1,51 +1,46 @@
 From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH v3 08/22] rcu,tracing: Create trace_rcu_{enter,exit}()
-Date: Wed, 19 Feb 2020 16:58:28 +0100
-Message-ID: <20200219155828.GF18400@hirez.programming.kicks-ass.net>
+Subject: Re: [PATCH v3 16/22] locking/atomics, kcsan: Add KCSAN
+ instrumentation
+Date: Wed, 19 Feb 2020 17:03:18 +0100
+Message-ID: <20200219160318.GG18400@hirez.programming.kicks-ass.net>
 References: <20200219144724.800607165@infradead.org>
- <20200219150744.832297480@infradead.org>
- <20200219104903.46686b81@gandalf.local.home>
+ <20200219150745.299217979@infradead.org>
+ <20200219104626.633f0650@gandalf.local.home>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.133]:44750 "EHLO
-        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726645AbgBSP6t (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 19 Feb 2020 10:58:49 -0500
+Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <20200219104903.46686b81@gandalf.local.home>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+In-Reply-To: <20200219104626.633f0650@gandalf.local.home>
+Sender: linux-kernel-owner@vger.kernel.org
 To: Steven Rostedt <rostedt@goodmis.org>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org, joel@joelfernandes.org, gregkh@linuxfoundation.org, gustavo@embeddedor.com, tglx@linutronix.de, paulmck@kernel.org, josh@joshtriplett.org, mathieu.desnoyers@efficios.com, jiangshanlai@gmail.com, luto@kernel.org, tony.luck@intel.com, frederic@kernel.org, dan.carpenter@oracle.com, mhiramat@kernel.org
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org, joel@joelfernandes.org, gregkh@linuxfoundation.org, gustavo@embeddedor.com, tglx@linutronix.de, paulmck@kernel.org, josh@joshtriplett.org, mathieu.desnoyers@efficios.com, jiangshanlai@gmail.com, luto@kernel.org, tony.luck@intel.com, frederic@kernel.org, dan.carpenter@oracle.com, mhiramat@kernel.org, Marco Elver <elver@google.com>, Mark Rutland <mark.rutland@arm.com>
+List-Id: linux-arch.vger.kernel.org
 
-On Wed, Feb 19, 2020 at 10:49:03AM -0500, Steven Rostedt wrote:
-> On Wed, 19 Feb 2020 15:47:32 +0100
+On Wed, Feb 19, 2020 at 10:46:26AM -0500, Steven Rostedt wrote:
+> On Wed, 19 Feb 2020 15:47:40 +0100
 > Peter Zijlstra <peterz@infradead.org> wrote:
-
-> > These helpers are macros because of header-hell; they're placed here
-> > because of the proximity to nmi_{enter,exit{().
-
-^^^^
-
-> > +#define trace_rcu_enter()					\
-> > +({								\
-> > +	unsigned long state = 0;				\
-> > +	if (!rcu_is_watching())	{				\
-> > +		rcu_irq_enter_irqsave();			\
-> > +		state = 1;					\
-> > +	}							\
-> > +	state;							\
-> > +})
-> > +
-> > +#define trace_rcu_exit(state)					\
-> > +do {								\
-> > +	if (state)						\
-> > +		rcu_irq_exit_irqsave();				\
-> > +} while (0)
-> > +
 > 
-> Is there a reason that these can't be static __always_inline functions?
+> > From: Marco Elver <elver@google.com>
+> > 
+> > This adds KCSAN instrumentation to atomic-instrumented.h.
+> > 
+> > Signed-off-by: Marco Elver <elver@google.com>
+> > Signed-off-by: Paul E. McKenney <paulmck@kernel.org>
+> > [peterz: removed the actual kcsan hooks]
+> > Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+> > Reviewed-by: Mark Rutland <mark.rutland@arm.com>
+> > ---
+> >  include/asm-generic/atomic-instrumented.h |  390 +++++++++++++++---------------
+> >  scripts/atomic/gen-atomic-instrumented.sh |   14 -
+> >  2 files changed, 212 insertions(+), 192 deletions(-)
+> > 
+> 
+> 
+> Does this and the rest of the series depend on the previous patches in
+> the series? Or can this be a series on to itself (patches 16-22)?
 
-It can be done, but then we need fwd declarations of those RCU functions
-somewhere outside of rcupdate.h. It's all a bit of a mess.
+It can probably stand on its own, but it very much is related in so far
+that it's fallout from staring at all this nonsense.
+
+Without these the do_int3() can actually have accidental tracing before
+reaching it's nmi_enter().
