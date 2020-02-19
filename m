@@ -1,50 +1,47 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH v3 02/22] x86,mce: Delete ist_begin_non_atomic()
-Date: Wed, 19 Feb 2020 18:33:58 +0100
-Message-ID: <20200219173358.GP18400@hirez.programming.kicks-ass.net>
+From: "Paul E. McKenney" <paulmck@kernel.org>
+Subject: Re: [PATCH v3 18/22] asm-generic/atomic: Use __always_inline for
+ fallback wrappers
+Date: Wed, 19 Feb 2020 09:35:50 -0800
+Message-ID: <20200219173550.GH2935@paulmck-ThinkPad-P72>
 References: <20200219144724.800607165@infradead.org>
- <20200219150744.488895196@infradead.org>
- <20200219171309.GC32346@zn.tnic>
- <CALCETrWBEDjenqze3wVc6TkUt_g+OFx9TQbYysLH+6fku=aWjQ@mail.gmail.com>
+ <20200219150745.416854783@infradead.org>
+ <20200219165521.GG2935@paulmck-ThinkPad-P72>
+ <20200219170609.GN18400@hirez.programming.kicks-ass.net>
+Reply-To: paulmck@kernel.org
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.133]:45108 "EHLO
-        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726551AbgBSReX (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 19 Feb 2020 12:34:23 -0500
+Received: from mail.kernel.org ([198.145.29.99]:46370 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726598AbgBSRfv (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 19 Feb 2020 12:35:51 -0500
 Content-Disposition: inline
-In-Reply-To: <CALCETrWBEDjenqze3wVc6TkUt_g+OFx9TQbYysLH+6fku=aWjQ@mail.gmail.com>
+In-Reply-To: <20200219170609.GN18400@hirez.programming.kicks-ass.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andy Lutomirski <luto@kernel.org>
-Cc: Borislav Petkov <bp@alien8.de>, LKML <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Steven Rostedt <rostedt@goodmis.org>, Ingo Molnar <mingo@kernel.org>, Joel Fernandes <joel@joelfernandes.org>, Greg KH <gregkh@linuxfoundation.org>, gustavo@embeddedor.com, Thomas Gleixner <tglx@linutronix.de>, paulmck@kernel.org, Josh Triplett <josh@joshtriplett.org>, Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, Lai Jiangshan <jiangshanlai@gmail.com>, Tony Luck <tony.luck@intel.com>, Frederic Weisbecker <frederic@kernel.org>, Dan Carpenter <dan.carpenter@oracle.com>, Masami Hiramatsu <mhiramat@kernel.org>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, rostedt@goodmis.org, mingo@kernel.org, joel@joelfernandes.org, gregkh@linuxfoundation.org, gustavo@embeddedor.com, tglx@linutronix.de, josh@joshtriplett.org, mathieu.desnoyers@efficios.com, jiangshanlai@gmail.com, luto@kernel.org, tony.luck@intel.com, frederic@kernel.org, dan.carpenter@oracle.com, mhiramat@kernel.org, Mark Rutland <mark.rutland@arm.com>, Marco Elver <elver@google.com>
 
-On Wed, Feb 19, 2020 at 09:21:48AM -0800, Andy Lutomirski wrote:
-> On Wed, Feb 19, 2020 at 9:13 AM Borislav Petkov <bp@alien8.de> wrote:
-> >
-> > On Wed, Feb 19, 2020 at 03:47:26PM +0100, Peter Zijlstra wrote:
-> > > Subject: Re: [PATCH v3 02/22] x86,mce: Delete ist_begin_non_atomic()
-> >
-> > x86/mce: ...
-> >
-> > > It is an abomination; and in prepration of removing the whole
-> > > ist_enter() thing, it needs to go.
-> > >
-> > > Convert #MC over to using task_work_add() instead; it will run the
-> > > same code slightly later, on the return to user path of the same
-> > > exception.
-> >
-> > That's fine because the error happened in userspace.
+On Wed, Feb 19, 2020 at 06:06:09PM +0100, Peter Zijlstra wrote:
+> On Wed, Feb 19, 2020 at 08:55:21AM -0800, Paul E. McKenney wrote:
+> > On Wed, Feb 19, 2020 at 03:47:42PM +0100, Peter Zijlstra wrote:
+> > > While the fallback wrappers aren't pure wrappers, they are trivial
+> > > nonetheless, and the function they wrap should determine the final
+> > > inlining policy.
+> > > 
+> > > For x86 tinyconfig we observe:
+> > >  - vmlinux baseline: 1315988
+> > >  - vmlinux with patch: 1315928 (-60 bytes)
+> > > 
+> > > Suggested-by: Mark Rutland <mark.rutland@arm.com>
+> > > Signed-off-by: Marco Elver <elver@google.com>
+> > > Acked-by: Mark Rutland <mark.rutland@arm.com>
+> > > Signed-off-by: Paul E. McKenney <paulmck@kernel.org>
+> > 
+> > And this one and the previous one are also already in -tip, FYI.
 > 
-> Unless there is a signal pending and the signal setup code is about to
-> hit the same failed memory.  I suppose we can just treat cases like
-> this as "oh well, time to kill the whole system".
-> 
-> But we should genuinely agree that we're okay with deferring this handling.
+> That's where I found them ;-) Stole them from tip/locking/kcsan.
 
-It doesn't delay much. The moment it does that local_irq_enable() it's
-subject to preemption, just like it is on the return to user path.
+As long as the heist is official, then.  ;-)
 
-Do you really want to create code that unwinds enough of nmi_enter() to
-get you to a preemptible context? *shudder*
+							Thanx, Paul
