@@ -1,47 +1,113 @@
 From: Peter Zijlstra <peterz@infradead.org>
-Subject: [PATCH v3 00/22] tracing vs world
-Date: Wed, 19 Feb 2020 15:47:24 +0100
-Message-ID: <20200219144724.800607165@infradead.org>
+Subject: [PATCH v3 15/22] x86/int3: Ensure that poke_int3_handler() is not traced
+Date: Wed, 19 Feb 2020 15:47:39 +0100
+Message-ID: <20200219150745.241364074@infradead.org>
+References: <20200219144724.800607165@infradead.org>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
 Return-path: <linux-kernel-owner@vger.kernel.org>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, rostedt@goodmis.org
 Cc: peterz@infradead.org, mingo@kernel.org, joel@joelfernandes.org, gregkh@linuxfoundation.org, gustavo@embeddedor.com, tglx@linutronix.de, paulmck@kernel.org, josh@joshtriplett.org, mathieu.desnoyers@efficios.com, jiangshanlai@gmail.com, luto@kernel.org, tony.luck@intel.com, frederic@kernel.org, dan.carpenter@oracle.com, mhiramat@kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-Hi all,
+From: Thomas Gleixner <tglx@linutronix.de>
 
+In order to ensure poke_int3_handler() is completely self contained --
+we call this while we're modifying other text, imagine the fun of
+hitting another INT3 -- ensure that everything it uses is not traced.
 
-These here patches are the result of Mathieu and Steve trying to get commit
-865e63b04e9b2 ("tracing: Add back in rcu_irq_enter/exit_irqson() for rcuidle
-tracepoints") reverted again.
+The primary means here is to force inlining; bsearch() is notrace
+because all of lib/ is.
 
-One of the things discovered is that tracing MUST NOT happen before nmi_enter()
-or after nmi_exit(). Audit results of the previous version are still valid.
+Not-Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
+Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+---
+ arch/x86/include/asm/ptrace.h        |    2 +-
+ arch/x86/include/asm/text-patching.h |   11 +++++++----
+ arch/x86/kernel/alternative.c        |   11 +++++++----
+ 3 files changed, 15 insertions(+), 9 deletions(-)
 
-This then snowballed into auditing other exceptions, notably #MC, and #BP. Lots
-of patches came out of that.
-
-I would love for some tooling in this area. Dan, smatch has full callchains
-right? Would it be possible to have an __assert_no_tracing__() marker of sorts
-that validates that no possible callchain reaching that assertion has hit
-tracing before that point?
-
-It would mean you have to handle the various means of 'notrace' annotation
-(both the function attribute as well as the Makefile rules), recognising
-tracepoints and ideally handling NOKPROBE annotations.
-
-Changes since -v2:
-
- - #MC / ist_enter() audit -- first 4 patches. After this in_nmi() should
-   always be set 'correctly'.
- - RCU IRQ enter/exit function simplification
- - #BP / poke_int3_handler() audit -- last many patches.
- - pulled in some locking/kcsan patches
-
-Changes since -v1:
-
- - Added tags
- - Changed #4; changed nmi_enter() to use __preempt_count_add() vs
-   marking preempt_count_add() notrace.
- - Changed #5; confusion on which functions are notrace due to Makefile
- - Added #9; remove limitation on the perf-function-trace coupling
+Index: linux-2.6/arch/x86/include/asm/ptrace.h
+===================================================================
+--- linux-2.6.orig/arch/x86/include/asm/ptrace.h
++++ linux-2.6/arch/x86/include/asm/ptrace.h
+@@ -123,7 +123,7 @@ static inline void regs_set_return_value
+  * On x86_64, vm86 mode is mercifully nonexistent, and we don't need
+  * the extra check.
+  */
+-static inline int user_mode(struct pt_regs *regs)
++static __always_inline int user_mode(struct pt_regs *regs)
+ {
+ #ifdef CONFIG_X86_32
+ 	return ((regs->cs & SEGMENT_RPL_MASK) | (regs->flags & X86_VM_MASK)) >= USER_RPL;
+Index: linux-2.6/arch/x86/include/asm/text-patching.h
+===================================================================
+--- linux-2.6.orig/arch/x86/include/asm/text-patching.h
++++ linux-2.6/arch/x86/include/asm/text-patching.h
+@@ -64,7 +64,7 @@ extern void text_poke_finish(void);
+ 
+ #define DISP32_SIZE		4
+ 
+-static inline int text_opcode_size(u8 opcode)
++static __always_inline int text_opcode_size(u8 opcode)
+ {
+ 	int size = 0;
+ 
+@@ -118,12 +118,14 @@ extern __ro_after_init struct mm_struct
+ extern __ro_after_init unsigned long poking_addr;
+ 
+ #ifndef CONFIG_UML_X86
+-static inline void int3_emulate_jmp(struct pt_regs *regs, unsigned long ip)
++static __always_inline
++void int3_emulate_jmp(struct pt_regs *regs, unsigned long ip)
+ {
+ 	regs->ip = ip;
+ }
+ 
+-static inline void int3_emulate_push(struct pt_regs *regs, unsigned long val)
++static __always_inline
++void int3_emulate_push(struct pt_regs *regs, unsigned long val)
+ {
+ 	/*
+ 	 * The int3 handler in entry_64.S adds a gap between the
+@@ -138,7 +140,8 @@ static inline void int3_emulate_push(str
+ 	*(unsigned long *)regs->sp = val;
+ }
+ 
+-static inline void int3_emulate_call(struct pt_regs *regs, unsigned long func)
++static __always_inline
++void int3_emulate_call(struct pt_regs *regs, unsigned long func)
+ {
+ 	int3_emulate_push(regs, regs->ip - INT3_INSN_SIZE + CALL_INSN_SIZE);
+ 	int3_emulate_jmp(regs, func);
+Index: linux-2.6/arch/x86/kernel/alternative.c
+===================================================================
+--- linux-2.6.orig/arch/x86/kernel/alternative.c
++++ linux-2.6/arch/x86/kernel/alternative.c
+@@ -956,7 +956,8 @@ struct bp_patching_desc {
+ 
+ static struct bp_patching_desc *bp_desc;
+ 
+-static inline struct bp_patching_desc *try_get_desc(struct bp_patching_desc **descp)
++static __always_inline
++struct bp_patching_desc *try_get_desc(struct bp_patching_desc **descp)
+ {
+ 	struct bp_patching_desc *desc = READ_ONCE(*descp); /* rcu_dereference */
+ 
+@@ -966,13 +967,13 @@ static inline struct bp_patching_desc *t
+ 	return desc;
+ }
+ 
+-static inline void put_desc(struct bp_patching_desc *desc)
++static __always_inline void put_desc(struct bp_patching_desc *desc)
+ {
+ 	smp_mb__before_atomic();
+ 	atomic_dec(&desc->refs);
+ }
+ 
+-static inline void *text_poke_addr(struct text_poke_loc *tp)
++static __always_inline void *text_poke_addr(struct text_poke_loc *tp)
+ {
+ 	return _stext + tp->rel_addr;
+ }
