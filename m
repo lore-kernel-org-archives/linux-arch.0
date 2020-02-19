@@ -1,120 +1,114 @@
-Return-Path: <SRS0=hCVk=4O=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail-pl1-f194.google.com ([209.85.214.194]:45710 "EHLO
-        mail-pl1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727581AbgBZVlW (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 26 Feb 2020 16:41:22 -0500
-Received: by mail-pl1-f194.google.com with SMTP id b22so211505pls.12
-        for <linux-arch@vger.kernel.org>; Wed, 26 Feb 2020 13:41:20 -0800 (PST)
-Date: Wed, 26 Feb 2020 13:41:18 -0800
-From: Kees Cook <keescook@chromium.org>
-Subject: Re: [PATCH v7 07/11] arm64: unify native/compat instruction skipping
-Message-ID: <202002261341.17C9BC2222@keescook>
-References: <20200226155714.43937-1-broonie@kernel.org>
- <20200226155714.43937-8-broonie@kernel.org>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20200226155714.43937-8-broonie@kernel.org>
+Return-Path: <SRS0=LzcT=4H=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail.kernel.org ([198.145.29.99]:49980 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726539AbgBSRvF (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 19 Feb 2020 12:51:05 -0500
+From: Krzysztof Kozlowski <krzk@kernel.org>
+Subject: [RESEND PATCH v2 0/9] iomap: Constify ioreadX() iomem argument
+Date: Wed, 19 Feb 2020 18:49:58 +0100
+Message-Id: <20200219175007.13627-1-krzk@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Mark Brown <broonie@kernel.org>
-Cc: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Alexander Viro <viro@zeniv.linux.org.uk>, Paul Elliott <paul.elliott@arm.com>, Peter Zijlstra <peterz@infradead.org>, Yu-cheng Yu <yu-cheng.yu@intel.com>, Amit Kachhap <amit.kachhap@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Marc Zyngier <maz@kernel.org>, Eugene Syromiatnikov <esyr@redhat.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, "H . J . Lu " <hjl.tools@gmail.com>, Andrew Jones <drjones@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Jann Horn <jannh@google.com>, Richard Henderson <richard.henderson@linaro.org>, Kristina =?utf-8?Q?Mart=C5=A1enko?= <kristina.martsenko@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Florian Weimer <fweimer@redhat.com>, Sudakshina Das <sudi.das@arm.com>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, Dave Martin <Dave.Martin@arm.com>, Mark Rutland <mark.rutland@arm.com>
-Message-ID: <20200226214118.K2HCVZnZldebIkaE8LUnpEi3WJXyzaRruxQocDOc6bY@z>
+To: Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Alexey Brodkin <abrodkin@synopsys.com>, Vineet Gupta <vgupta@synopsys.com>, "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>, Helge Deller <deller@gmx.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, Dave Airlie <airlied@redhat.com>, David Airlie <airlied@linux.ie>, Daniel Vetter <daniel@ffwll.ch>, Ben Skeggs <bskeggs@redhat.com>, Mauro Carvalho Chehab <mchehab@kernel.org>, Jiri Slaby <jirislaby@gmail.com>, Nick Kossifidis <mickflemm@gmail.com>, Luis Chamberlain <mcgrof@kernel.org>, Kalle Valo <kvalo@codeaurora.org>, "David S. Miller" <davem@davemloft.net>, Dave Jiang <dave.jiang@intel.com>, Jon Mason <jdmason@kudzu.us>, Allen Hubbe <allenbh@gmail.com>, "Michael S. Tsirkin" <mst@redhat.com>, Jason Wang <jasowang@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Geert Uytterhoeven <geert+renesas@glider.be>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-snps-arc@lists.infradead.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org, dri-devel@lists.freedesktop.org, nouveau@lists.freedesktop.org, linux-media@vger.kernel.org, linux-wireless@vger.kernel.org, netdev@vger.kernel.org, linux-ntb@googlegroups.com, virtualization@lists.linux-foundation.org, linux-arch@vger.kernel.org
+Cc: Krzysztof Kozlowski <krzk@kernel.org>
 
-On Wed, Feb 26, 2020 at 03:57:10PM +0000, Mark Brown wrote:
-> From: Dave Martin <Dave.Martin@arm.com>
-> 
-> Skipping of an instruction on AArch32 works a bit differently from
-> AArch64, mainly due to the different CPSR/PSTATE semantics.
-> 
-> Currently arm64_skip_faulting_instruction() is only suitable for
-> AArch64, and arm64_compat_skip_faulting_instruction() handles the IT
-> state machine but is local to traps.c.
-> 
-> Since manual instruction skipping implies a trap, it's a relatively
-> slow path.
-> 
-> So, make arm64_skip_faulting_instruction() handle both compat and
-> native, and get rid of the arm64_compat_skip_faulting_instruction()
-> special case.
-> 
-> Signed-off-by: Dave Martin <Dave.Martin@arm.com>
+Hi,
 
-Reviewed-by: Kees Cook <keescook@chromium.org>
 
--Kees
+Changes since v1
+================
+https://lore.kernel.org/lkml/1578415992-24054-1-git-send-email-krzk@kernel.org/
+1. Constify also ioreadX_rep() and mmio_insX(),
+2. Squash lib+alpha+powerpc+parisc+sh into one patch for bisectability,
+3. Add acks and reviews,
+4. Re-order patches so all optional driver changes are at the end.
 
-> Reviewed-by: Mark Rutland <mark.rutland@arm.com>
-> Signed-off-by: Mark Brown <broonie@kernel.org>
-> ---
->  arch/arm64/kernel/traps.c | 18 ++++++++----------
->  1 file changed, 8 insertions(+), 10 deletions(-)
-> 
-> diff --git a/arch/arm64/kernel/traps.c b/arch/arm64/kernel/traps.c
-> index b8c714dda851..bc9f4292bfc3 100644
-> --- a/arch/arm64/kernel/traps.c
-> +++ b/arch/arm64/kernel/traps.c
-> @@ -272,6 +272,8 @@ void arm64_notify_die(const char *str, struct pt_regs *regs,
->  	}
->  }
->  
-> +static void advance_itstate(struct pt_regs *regs);
-> +
->  void arm64_skip_faulting_instruction(struct pt_regs *regs, unsigned long size)
->  {
->  	regs->pc += size;
-> @@ -282,6 +284,9 @@ void arm64_skip_faulting_instruction(struct pt_regs *regs, unsigned long size)
->  	 */
->  	if (user_mode(regs))
->  		user_fastforward_single_step(current);
-> +
-> +	if (regs->pstate & PSR_MODE32_BIT)
-> +		advance_itstate(regs);
->  }
->  
->  static LIST_HEAD(undef_hook);
-> @@ -644,19 +649,12 @@ static void advance_itstate(struct pt_regs *regs)
->  	compat_set_it_state(regs, it);
->  }
->  
-> -static void arm64_compat_skip_faulting_instruction(struct pt_regs *regs,
-> -						   unsigned int sz)
-> -{
-> -	advance_itstate(regs);
-> -	arm64_skip_faulting_instruction(regs, sz);
-> -}
-> -
->  static void compat_cntfrq_read_handler(unsigned int esr, struct pt_regs *regs)
->  {
->  	int reg = (esr & ESR_ELx_CP15_32_ISS_RT_MASK) >> ESR_ELx_CP15_32_ISS_RT_SHIFT;
->  
->  	pt_regs_write_reg(regs, reg, arch_timer_get_rate());
-> -	arm64_compat_skip_faulting_instruction(regs, 4);
-> +	arm64_skip_faulting_instruction(regs, 4);
->  }
->  
->  static const struct sys64_hook cp15_32_hooks[] = {
-> @@ -676,7 +674,7 @@ static void compat_cntvct_read_handler(unsigned int esr, struct pt_regs *regs)
->  
->  	pt_regs_write_reg(regs, rt, lower_32_bits(val));
->  	pt_regs_write_reg(regs, rt2, upper_32_bits(val));
-> -	arm64_compat_skip_faulting_instruction(regs, 4);
-> +	arm64_skip_faulting_instruction(regs, 4);
->  }
->  
->  static const struct sys64_hook cp15_64_hooks[] = {
-> @@ -697,7 +695,7 @@ void do_cp15instr(unsigned int esr, struct pt_regs *regs)
->  		 * There is no T16 variant of a CP access, so we
->  		 * always advance PC by 4 bytes.
->  		 */
-> -		arm64_compat_skip_faulting_instruction(regs, 4);
-> +		arm64_skip_faulting_instruction(regs, 4);
->  		return;
->  	}
->  
-> -- 
-> 2.20.1
-> 
+
+Description
+===========
+The ioread8/16/32() and others have inconsistent interface among the
+architectures: some taking address as const, some not.
+
+It seems there is nothing really stopping all of them to take
+pointer to const.
+
+Patchset was only compile tested on affected architectures.  No real
+testing.
+
+
+volatile
+========
+There is still interface inconsistency between architectures around
+"volatile" qualifier:
+ - include/asm-generic/io.h:static inline u32 ioread32(const volatile void __iomem *addr)
+ - include/asm-generic/iomap.h:extern unsigned int ioread32(const void __iomem *);
+
+This is still discussed and out of scope of this patchset.
+
+
+Merging
+=======
+Multiple architectures are affected in first patch so acks are welcomed.
+
+1. All patches depend on first patch,
+2. Patches 2-4 unify the interface also in few drivers,
+3. PAtches 5-9 are optional cleanup, without actual impact.
+
+
+Best regards,
+Krzysztof
+
+
+Krzysztof Kozlowski (9):
+  iomap: Constify ioreadX() iomem argument (as in generic
+    implementation)
+  rtl818x: Constify ioreadX() iomem argument (as in generic
+    implementation)
+  ntb: intel: Constify ioreadX() iomem argument (as in generic
+    implementation)
+  virtio: pci: Constify ioreadX() iomem argument (as in generic
+    implementation)
+  arc: Constify ioreadX() iomem argument (as in generic implementation)
+  drm/mgag200: Constify ioreadX() iomem argument (as in generic
+    implementation)
+  drm/nouveau: Constify ioreadX() iomem argument (as in generic
+    implementation)
+  media: fsl-viu: Constify ioreadX() iomem argument (as in generic
+    implementation)
+  ath5k: Constify ioreadX() iomem argument (as in generic
+    implementation)
+
+ arch/alpha/include/asm/core_apecs.h           |  6 +-
+ arch/alpha/include/asm/core_cia.h             |  6 +-
+ arch/alpha/include/asm/core_lca.h             |  6 +-
+ arch/alpha/include/asm/core_marvel.h          |  4 +-
+ arch/alpha/include/asm/core_mcpcia.h          |  6 +-
+ arch/alpha/include/asm/core_t2.h              |  2 +-
+ arch/alpha/include/asm/io.h                   | 12 ++--
+ arch/alpha/include/asm/io_trivial.h           | 16 ++---
+ arch/alpha/include/asm/jensen.h               |  2 +-
+ arch/alpha/include/asm/machvec.h              |  6 +-
+ arch/alpha/kernel/core_marvel.c               |  2 +-
+ arch/alpha/kernel/io.c                        | 12 ++--
+ arch/arc/plat-axs10x/axs10x.c                 |  4 +-
+ arch/parisc/include/asm/io.h                  |  4 +-
+ arch/parisc/lib/iomap.c                       | 72 +++++++++----------
+ arch/powerpc/kernel/iomap.c                   | 28 ++++----
+ arch/sh/kernel/iomap.c                        | 22 +++---
+ drivers/gpu/drm/mgag200/mgag200_drv.h         |  4 +-
+ drivers/gpu/drm/nouveau/nouveau_bo.c          |  2 +-
+ drivers/media/platform/fsl-viu.c              |  2 +-
+ drivers/net/wireless/ath/ath5k/ahb.c          | 10 +--
+ .../realtek/rtl818x/rtl8180/rtl8180.h         |  6 +-
+ drivers/ntb/hw/intel/ntb_hw_gen1.c            |  2 +-
+ drivers/ntb/hw/intel/ntb_hw_gen3.h            |  2 +-
+ drivers/ntb/hw/intel/ntb_hw_intel.h           |  2 +-
+ drivers/virtio/virtio_pci_modern.c            |  6 +-
+ include/asm-generic/iomap.h                   | 28 ++++----
+ include/linux/io-64-nonatomic-hi-lo.h         |  4 +-
+ include/linux/io-64-nonatomic-lo-hi.h         |  4 +-
+ lib/iomap.c                                   | 30 ++++----
+ 30 files changed, 156 insertions(+), 156 deletions(-)
 
 -- 
-Kees Cook
+2.17.1
