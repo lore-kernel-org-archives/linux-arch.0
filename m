@@ -1,53 +1,62 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: [PATCH v3 10/22] x86,tracing: Add comments to do_nmi()
-Date: Wed, 19 Feb 2020 15:47:34 +0100
-Message-ID: <20200219150744.945913022@infradead.org>
+From: Steven Rostedt <rostedt@goodmis.org>
+Subject: Re: [PATCH v3 01/22] hardirq/nmi: Allow nested nmi_enter()
+Date: Wed, 19 Feb 2020 10:31:26 -0500
+Message-ID: <20200219103126.33f67cf3@gandalf.local.home>
 References: <20200219144724.800607165@infradead.org>
+        <20200219150744.428764577@infradead.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Sender: linux-kernel-owner@vger.kernel.org
-To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, rostedt@goodmis.org
-Cc: peterz@infradead.org, mingo@kernel.org, joel@joelfernandes.org, gregkh@linuxfoundation.org, gustavo@embeddedor.com, tglx@linutronix.de, paulmck@kernel.org, josh@joshtriplett.org, mathieu.desnoyers@efficios.com, jiangshanlai@gmail.com, luto@kernel.org, tony.luck@intel.com, frederic@kernel.org, dan.carpenter@oracle.com, mhiramat@kernel.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail.kernel.org ([198.145.29.99]:41066 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726664AbgBSPba (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 19 Feb 2020 10:31:30 -0500
+In-Reply-To: <20200219150744.428764577@infradead.org>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org, joel@joelfernandes.org, gregkh@linuxfoundation.org, gustavo@embeddedor.com, tglx@linutronix.de, paulmck@kernel.org, josh@joshtriplett.org, mathieu.desnoyers@efficios.com, jiangshanlai@gmail.com, luto@kernel.org, tony.luck@intel.com, frederic@kernel.org, dan.carpenter@oracle.com, mhiramat@kernel.org, Will Deacon <will@kernel.org>, Marc Zyngier <maz@kernel.org>, Michael Ellerman <mpe@ellerman.id.au>, Petr Mladek <pmladek@suse.com>
 
-Add a few comments to do_nmi() as a result of the audit.
+On Wed, 19 Feb 2020 15:47:25 +0100
+Peter Zijlstra <peterz@infradead.org> wrote:
 
-Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
----
- arch/x86/kernel/nmi.c |   10 ++++++++--
- 1 file changed, 8 insertions(+), 2 deletions(-)
+> Since there are already a number of sites (ARM64, PowerPC) that
+> effectively nest nmi_enter(), lets make the primitive support this
+> before adding even more.
+> 
 
---- a/arch/x86/kernel/nmi.c
-+++ b/arch/x86/kernel/nmi.c
-@@ -529,11 +529,14 @@ do_nmi(struct pt_regs *regs, long error_
- 	 * continue to use the NMI stack.
- 	 */
- 	if (unlikely(is_debug_stack(regs->sp))) {
--		debug_stack_set_zero();
-+		debug_stack_set_zero(); /* notrace due to Makefile */
- 		this_cpu_write(update_debug_stack, 1);
- 	}
- #endif
- 
-+	/*
-+	 * It is important that no tracing happens before nmi_enter()!
-+	 */
- 	nmi_enter();
- 
- 	inc_irq_stat(__nmi_count);
-@@ -542,10 +545,13 @@ do_nmi(struct pt_regs *regs, long error_
- 		default_do_nmi(regs);
- 
- 	nmi_exit();
-+	/*
-+	 * No tracing after nmi_exit()!
-+	 */
- 
- #ifdef CONFIG_X86_64
- 	if (unlikely(this_cpu_read(update_debug_stack))) {
--		debug_stack_reset();
-+		debug_stack_reset(); /* notrace due to Makefile */
- 		this_cpu_write(update_debug_stack, 0);
- 	}
- #endif
+
+>  void SMIException(struct pt_regs *regs)
+> --- a/include/linux/hardirq.h
+> +++ b/include/linux/hardirq.h
+> @@ -71,7 +71,7 @@ extern void irq_exit(void);
+>  		printk_nmi_enter();				\
+>  		lockdep_off();					\
+>  		ftrace_nmi_enter();				\
+> -		BUG_ON(in_nmi());				\
+> +		BUG_ON(in_nmi() == NMI_MASK);			\
+>  		preempt_count_add(NMI_OFFSET + HARDIRQ_OFFSET);	\
+>  		rcu_nmi_enter();				\
+>  		trace_hardirq_enter();				\
+> --- a/include/linux/preempt.h
+> +++ b/include/linux/preempt.h
+> @@ -26,13 +26,13 @@
+>   *         PREEMPT_MASK:	0x000000ff
+>   *         SOFTIRQ_MASK:	0x0000ff00
+>   *         HARDIRQ_MASK:	0x000f0000
+> - *             NMI_MASK:	0x00100000
+> + *             NMI_MASK:	0x00f00000
+>   * PREEMPT_NEED_RESCHED:	0x80000000
+>   */
+>  #define PREEMPT_BITS	8
+>  #define SOFTIRQ_BITS	8
+>  #define HARDIRQ_BITS	4
+> -#define NMI_BITS	1
+> +#define NMI_BITS	4
+>  
+
+Probably should document somewhere (in a comment above nmi_enter()?)
+that we allow nmi_enter() to nest up to 15 times.
+
+-- Steve
