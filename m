@@ -1,88 +1,53 @@
-Return-Path: <SRS0=bqXs=4A=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:36912 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727361AbgBLT3P (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 12 Feb 2020 14:29:15 -0500
-From: Mark Brown <broonie@kernel.org>
-Subject: [PATCH v6 01/11] ELF: UAPI and Kconfig additions for ELF program properties
-Date: Wed, 12 Feb 2020 19:28:56 +0000
-Message-ID: <20200212192906.53366-2-broonie@kernel.org>
-In-Reply-To: <20200212192906.53366-1-broonie@kernel.org>
-References: <20200212192906.53366-1-broonie@kernel.org>
+Return-Path: <SRS0=LzcT=4H=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from bombadil.infradead.org ([198.137.202.133]:36036 "EHLO
+        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726682AbgBSPOe (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 19 Feb 2020 10:14:34 -0500
+Message-ID: <20200219150745.593809490@infradead.org>
+Date: Wed, 19 Feb 2020 15:47:45 +0100
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: [PATCH v3 21/22] x86/int3: Avoid atomic instrumentation
+References: <20200219144724.800607165@infradead.org>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>
-Cc: Alexander Viro <viro@zeniv.linux.org.uk>, Paul Elliott <paul.elliott@arm.com>, Peter Zijlstra <peterz@infradead.org>, Yu-cheng Yu <yu-cheng.yu@intel.com>, Amit Kachhap <amit.kachhap@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Marc Zyngier <maz@kernel.org>, Eugene Syromiatnikov <esyr@redhat.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, "H . J . Lu " <hjl.tools@gmail.com>, Andrew Jones <drjones@redhat.com>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Jann Horn <jannh@google.com>, Richard Henderson <richard.henderson@linaro.org>, =?UTF-8?q?Kristina=20Mart=C5=A1enko?= <kristina.martsenko@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Florian Weimer <fweimer@redhat.com>, Sudakshina Das <sudi.das@arm.com>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, Dave Martin <Dave.Martin@arm.com>, Mark Brown <broonie@kernel.org>
-Message-ID: <20200212192856.JUf_AdgzyzQxrTlqrLgDEkutpT2fANsRzDjJQzjxd2E@z>
+To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, rostedt@goodmis.org
+Cc: peterz@infradead.org, mingo@kernel.org, joel@joelfernandes.org, gregkh@linuxfoundation.org, gustavo@embeddedor.com, tglx@linutronix.de, paulmck@kernel.org, josh@joshtriplett.org, mathieu.desnoyers@efficios.com, jiangshanlai@gmail.com, luto@kernel.org, tony.luck@intel.com, frederic@kernel.org, dan.carpenter@oracle.com, mhiramat@kernel.org
+Message-ID: <20200219144745.qYu35cLA4NBdMoy2glnQ8yCqQ_fp0SUUBFwWOvAo1FI@z>
 
-From: Dave Martin <Dave.Martin@arm.com>
+Use arch_atomic_*() and READ_ONCE_NOCHECK() to ensure nothing untoward
+creeps in and ruins things.
 
-Pull the basic ELF definitions relating to the
-NT_GNU_PROPERTY_TYPE_0 note from Yu-Cheng Yu's earlier x86 shstk
-series.
+That is; this is the INT3 text poke handler, strictly limit the code
+that runs in it, lest we inadvertenly hit yet another INT3.
 
-Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Signed-off-by: Dave Martin <Dave.Martin@arm.com>
-Reviewed-by: Kees Cook <keescook@chromium.org>
-Reviewed-by: Catalin Marinas <catalin.marinas@arm.com>
-Signed-off-by: Mark Brown <broonie@kernel.org>
+Reported-by: Thomas Gleixner <tglx@linutronix.de>
+Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
 ---
- fs/Kconfig.binfmt        | 3 +++
- include/linux/elf.h      | 8 ++++++++
- include/uapi/linux/elf.h | 1 +
- 3 files changed, 12 insertions(+)
+ arch/x86/kernel/alternative.c |    6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
 
-diff --git a/fs/Kconfig.binfmt b/fs/Kconfig.binfmt
-index 62dc4f577ba1..d2cfe0729a73 100644
---- a/fs/Kconfig.binfmt
-+++ b/fs/Kconfig.binfmt
-@@ -36,6 +36,9 @@ config COMPAT_BINFMT_ELF
- config ARCH_BINFMT_ELF_STATE
- 	bool
+--- a/arch/x86/kernel/alternative.c
++++ b/arch/x86/kernel/alternative.c
+@@ -960,9 +960,9 @@ static struct bp_patching_desc *bp_desc;
+ static __always_inline
+ struct bp_patching_desc *try_get_desc(struct bp_patching_desc **descp)
+ {
+-	struct bp_patching_desc *desc = READ_ONCE(*descp); /* rcu_dereference */
++	struct bp_patching_desc *desc = READ_ONCE_NOCHECK(*descp); /* rcu_dereference */
  
-+config ARCH_USE_GNU_PROPERTY
-+	bool
-+
- config BINFMT_ELF_FDPIC
- 	bool "Kernel support for FDPIC ELF binaries"
- 	default y if !BINFMT_ELF
-diff --git a/include/linux/elf.h b/include/linux/elf.h
-index e3649b3e970e..459cddcceaac 100644
---- a/include/linux/elf.h
-+++ b/include/linux/elf.h
-@@ -2,6 +2,7 @@
- #ifndef _LINUX_ELF_H
- #define _LINUX_ELF_H
+-	if (!desc || !atomic_inc_not_zero(&desc->refs))
++	if (!desc || !arch_atomic_inc_not_zero(&desc->refs))
+ 		return NULL;
  
-+#include <linux/types.h>
- #include <asm/elf.h>
- #include <uapi/linux/elf.h>
+ 	return desc;
+@@ -971,7 +971,7 @@ struct bp_patching_desc *try_get_desc(st
+ static __always_inline void put_desc(struct bp_patching_desc *desc)
+ {
+ 	smp_mb__before_atomic();
+-	atomic_dec(&desc->refs);
++	arch_atomic_dec(&desc->refs);
+ }
  
-@@ -56,4 +57,11 @@ static inline int elf_coredump_extra_notes_write(struct coredump_params *cprm) {
- extern int elf_coredump_extra_notes_size(void);
- extern int elf_coredump_extra_notes_write(struct coredump_params *cprm);
- #endif
-+
-+/* NT_GNU_PROPERTY_TYPE_0 header */
-+struct gnu_property {
-+	u32 pr_type;
-+	u32 pr_datasz;
-+};
-+
- #endif /* _LINUX_ELF_H */
-diff --git a/include/uapi/linux/elf.h b/include/uapi/linux/elf.h
-index 34c02e4290fe..c37731407074 100644
---- a/include/uapi/linux/elf.h
-+++ b/include/uapi/linux/elf.h
-@@ -36,6 +36,7 @@ typedef __s64	Elf64_Sxword;
- #define PT_LOPROC  0x70000000
- #define PT_HIPROC  0x7fffffff
- #define PT_GNU_EH_FRAME		0x6474e550
-+#define PT_GNU_PROPERTY		0x6474e553
- 
- #define PT_GNU_STACK	(PT_LOOS + 0x474e551)
- 
--- 
-2.20.1
+ static __always_inline void *text_poke_addr(struct text_poke_loc *tp)
