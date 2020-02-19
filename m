@@ -1,170 +1,52 @@
-Return-Path: <SRS0=ZEfg=4N=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail-wr1-f66.google.com ([209.85.221.66]:45592 "EHLO
-        mail-wr1-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1729994AbgBYLfQ (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 25 Feb 2020 06:35:16 -0500
-Received: by mail-wr1-f66.google.com with SMTP id g3so14261919wrs.12
-        for <linux-arch@vger.kernel.org>; Tue, 25 Feb 2020 03:35:13 -0800 (PST)
-Subject: Re: [PATCH 00/10] Hi,
-References: <cover.1581497860.git.michal.simek@xilinx.com>
-From: Michal Simek <monstr@monstr.eu>
-Message-ID: <bb01ba1d-49a4-6827-b2ef-18475cea18f7@monstr.eu>
-Date: Tue, 25 Feb 2020 12:34:54 +0100
-MIME-Version: 1.0
-In-Reply-To: <cover.1581497860.git.michal.simek@xilinx.com>
-Content-Type: multipart/signed; micalg=pgp-sha1;
- protocol="application/pgp-signature";
- boundary="LZHPN2jpshxJTPpehPN2oomZ5ViUkpu3G"
+Return-Path: <SRS0=LzcT=4H=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail.kernel.org ([198.145.29.99]:51468 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726634AbgBSRwK (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 19 Feb 2020 12:52:10 -0500
+From: Krzysztof Kozlowski <krzk@kernel.org>
+Subject: [RESEND PATCH v2 6/9] drm/mgag200: Constify ioreadX() iomem argument (as in generic implementation)
+Date: Wed, 19 Feb 2020 18:50:04 +0100
+Message-Id: <20200219175007.13627-7-krzk@kernel.org>
+In-Reply-To: <20200219175007.13627-1-krzk@kernel.org>
+References: <20200219175007.13627-1-krzk@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Michal Simek <michal.simek@xilinx.com>, linux-kernel@vger.kernel.org, git@xilinx.com, arnd@arndb.de
-Cc: Andrew Morton <akpm@linux-foundation.org>, "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>, Arvind Sankar <nivedita@alum.mit.edu>, Borislav Petkov <bp@suse.de>, Cornelia Huck <cohuck@redhat.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Greg Ungerer <gerg@linux-m68k.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, Kees Cook <keescook@chromium.org>, Masahiro Yamada <yamada.masahiro@socionext.com>, Mike Rapoport <rppt@linux.ibm.com>, Mubin Sayyed <mubinusm@xilinx.com>, Nicholas Piggin <npiggin@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Palmer Dabbelt <palmer@dabbelt.com>, Paolo Bonzini <pbonzini@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, Rob Herring <robh@kernel.org>, Shubhrajyoti Datta <shubhrajyoti.datta@xilinx.com>, Siva Durga Prasad Paladugu <siva.durga.paladugu@xilinx.com>, Stefan Asserhall <stefan.asserhall@xilinx.com>, Vladimir Murzin <vladimir.murzin@arm.com>, Will Deacon <will@kernel.org>, linux-arch@vger.kernel.org, linux-mm@kvack.org
-Message-ID: <20200225113454.lexIyzyYhiNZYknMMl7sOKfZmqw1FM14qC3lqCQHbsU@z>
+To: Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Alexey Brodkin <abrodkin@synopsys.com>, Vineet Gupta <vgupta@synopsys.com>, "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>, Helge Deller <deller@gmx.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, Dave Airlie <airlied@redhat.com>, David Airlie <airlied@linux.ie>, Daniel Vetter <daniel@ffwll.ch>, Ben Skeggs <bskeggs@redhat.com>, Mauro Carvalho Chehab <mchehab@kernel.org>, Jiri Slaby <jirislaby@gmail.com>, Nick Kossifidis <mickflemm@gmail.com>, Luis Chamberlain <mcgrof@kernel.org>, Kalle Valo <kvalo@codeaurora.org>, "David S. Miller" <davem@davemloft.net>, Dave Jiang <dave.jiang@intel.com>, Jon Mason <jdmason@kudzu.us>, Allen Hubbe <allenbh@gmail.com>, "Michael S. Tsirkin" <mst@redhat.com>, Jason Wang <jasowang@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Geert Uytterhoeven <geert+renesas@glider.be>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-snps-arc@lists.infradead.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org, dri-devel@lists.freedesktop.org, nouveau@lists.freedesktop.org, linux-media@vger.kernel.org, linux-wireless@vger.kernel.org, netdev@vger.kernel.org, linux-ntb@googlegroups.com, virtualization@lists.linux-foundation.org, linux-arch@vger.kernel.org
+Cc: Krzysztof Kozlowski <krzk@kernel.org>
 
-This is an OpenPGP/MIME signed message (RFC 4880 and 3156)
---LZHPN2jpshxJTPpehPN2oomZ5ViUkpu3G
-Content-Type: multipart/mixed; boundary="c2rUlmsk1qexDFpBjgpaV7Nn62sVlDOPV";
- protected-headers="v1"
-From: Michal Simek <monstr@monstr.eu>
-To: Michal Simek <michal.simek@xilinx.com>, linux-kernel@vger.kernel.org,
- git@xilinx.com, arnd@arndb.de
-Cc: Andrew Morton <akpm@linux-foundation.org>,
- "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>,
- Arvind Sankar <nivedita@alum.mit.edu>, Borislav Petkov <bp@suse.de>,
- Cornelia Huck <cohuck@redhat.com>, Geert Uytterhoeven
- <geert@linux-m68k.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>,
- Greg Ungerer <gerg@linux-m68k.org>,
- Heiko Carstens <heiko.carstens@de.ibm.com>, Kees Cook
- <keescook@chromium.org>, Masahiro Yamada <yamada.masahiro@socionext.com>,
- Mike Rapoport <rppt@linux.ibm.com>, Mubin Sayyed <mubinusm@xilinx.com>,
- Nicholas Piggin <npiggin@gmail.com>, Oleg Nesterov <oleg@redhat.com>,
- Palmer Dabbelt <palmer@dabbelt.com>, Paolo Bonzini <pbonzini@redhat.com>,
- Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>,
- Rob Herring <robh@kernel.org>,
- Shubhrajyoti Datta <shubhrajyoti.datta@xilinx.com>,
- Siva Durga Prasad Paladugu <siva.durga.paladugu@xilinx.com>,
- Stefan Asserhall <stefan.asserhall@xilinx.com>,
- Vladimir Murzin <vladimir.murzin@arm.com>, Will Deacon <will@kernel.org>,
- linux-arch@vger.kernel.org, linux-mm@kvack.org
-Message-ID: <bb01ba1d-49a4-6827-b2ef-18475cea18f7@monstr.eu>
-Subject: Re: [PATCH 00/10] Hi,
-References: <cover.1581497860.git.michal.simek@xilinx.com>
-In-Reply-To: <cover.1581497860.git.michal.simek@xilinx.com>
+The ioreadX() helpers have inconsistent interface.  On some architectures
+void *__iomem address argument is a pointer to const, on some not.
 
---c2rUlmsk1qexDFpBjgpaV7Nn62sVlDOPV
-Content-Type: text/plain; charset=utf-8
-Content-Language: en-US
-Content-Transfer-Encoding: quoted-printable
+Implementations of ioreadX() do not modify the memory under the address
+so they can be converted to a "const" version for const-safety and
+consistency among architectures.
 
-On 12. 02. 20 9:57, Michal Simek wrote:
->=20
-> I am sending this series as before SMP support.
-> Most of these patches are clean ups and should be easy to review them. =
-I
-> expect there will be more discussions about SMP support.
->=20
-> There could be some optimization added based on
-> https://lkml.org/lkml/2020/2/10/1528
->=20
-> Thanks,
-> Michal
->=20
->=20
-> Michal Simek (6):
->   microblaze: Convert headers to SPDX license
->   microblaze: Remove architecture tlb.h and use generic one
->   microblaze: Remove early printk setup
->   microblaze: Remove empty headers
->   microblaze: Remove unused boot_cpuid variable
->   microblaze: Use asm generic cmpxchg.h for !SMP case
->=20
-> Stefan Asserhall (4):
->   microblaze: Define microblaze barrier
->   microblaze: Add sync to tlb operations
->   microblaze: Add missing irqflags.h header
->   microblaze: Define percpu sestion in linker file
->=20
->  arch/microblaze/include/asm/Kbuild            |  4 +-
->  arch/microblaze/include/asm/barrier.h         | 13 ++++++
->  arch/microblaze/include/asm/cache.h           |  5 +--
->  arch/microblaze/include/asm/cacheflush.h      |  6 +--
->  arch/microblaze/include/asm/checksum.h        |  5 +--
->  arch/microblaze/include/asm/cmpxchg.h         | 40 ++-----------------=
+Signed-off-by: Krzysztof Kozlowski <krzk@kernel.org>
+Reviewed-by: Thomas Zimmermann <tzimmermann@suse.de>
 
->  arch/microblaze/include/asm/cpuinfo.h         |  5 +--
->  arch/microblaze/include/asm/cputable.h        |  1 -
->  arch/microblaze/include/asm/current.h         |  5 +--
->  arch/microblaze/include/asm/delay.h           |  7 +---
->  arch/microblaze/include/asm/dma.h             |  5 +--
->  arch/microblaze/include/asm/elf.h             |  5 +--
->  arch/microblaze/include/asm/entry.h           |  5 +--
->  arch/microblaze/include/asm/exceptions.h      |  5 +--
->  arch/microblaze/include/asm/fixmap.h          |  5 +--
->  arch/microblaze/include/asm/flat.h            |  5 +--
->  arch/microblaze/include/asm/hw_irq.h          |  1 -
->  arch/microblaze/include/asm/io.h              |  5 +--
->  arch/microblaze/include/asm/irq.h             |  5 +--
->  arch/microblaze/include/asm/irqflags.h        |  5 +--
->  arch/microblaze/include/asm/mmu.h             |  5 +--
->  arch/microblaze/include/asm/mmu_context_mm.h  |  5 +--
->  arch/microblaze/include/asm/module.h          |  5 +--
->  arch/microblaze/include/asm/page.h            |  5 +--
->  arch/microblaze/include/asm/pgalloc.h         |  5 +--
->  arch/microblaze/include/asm/pgtable.h         |  5 +--
->  arch/microblaze/include/asm/processor.h       |  5 +--
->  arch/microblaze/include/asm/ptrace.h          |  5 +--
->  arch/microblaze/include/asm/pvr.h             |  5 +--
->  arch/microblaze/include/asm/registers.h       |  5 +--
->  arch/microblaze/include/asm/sections.h        |  5 +--
->  arch/microblaze/include/asm/setup.h           |  7 +---
->  arch/microblaze/include/asm/string.h          |  5 +--
->  arch/microblaze/include/asm/switch_to.h       |  5 +--
->  arch/microblaze/include/asm/thread_info.h     |  5 +--
->  arch/microblaze/include/asm/timex.h           |  5 +--
->  arch/microblaze/include/asm/tlb.h             | 17 --------
->  arch/microblaze/include/asm/tlbflush.h        |  5 +--
->  arch/microblaze/include/asm/uaccess.h         |  5 +--
->  arch/microblaze/include/asm/unaligned.h       |  5 +--
->  arch/microblaze/include/asm/unistd.h          |  5 +--
->  arch/microblaze/include/asm/unwind.h          |  5 +--
->  arch/microblaze/include/asm/user.h            |  1 -
->  arch/microblaze/kernel/cpu/cpuinfo-pvr-full.c |  7 +---
->  arch/microblaze/kernel/cpu/pvr.c              |  1 +
->  arch/microblaze/kernel/misc.S                 |  3 +-
->  arch/microblaze/kernel/setup.c                |  1 -
->  arch/microblaze/kernel/vmlinux.lds.S          |  3 ++
->  48 files changed, 62 insertions(+), 215 deletions(-)
->  create mode 100644 arch/microblaze/include/asm/barrier.h
->  delete mode 100644 arch/microblaze/include/asm/cputable.h
->  delete mode 100644 arch/microblaze/include/asm/hw_irq.h
->  delete mode 100644 arch/microblaze/include/asm/tlb.h
->  delete mode 100644 arch/microblaze/include/asm/user.h
->=20
+---
 
-applied all.
-M
+Changes since v1:
+1. Add Thomas' review.
+---
+ drivers/gpu/drm/mgag200/mgag200_drv.h | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
 
---=20
-Michal Simek, Ing. (M.Eng), OpenPGP -> KeyID: FE3D1F91
-w: www.monstr.eu p: +42-0-721842854
-Maintainer of Linux kernel - Xilinx Microblaze
-Maintainer of Linux kernel - Xilinx Zynq ARM and ZynqMP ARM64 SoCs
-U-Boot custodian - Xilinx Microblaze/Zynq/ZynqMP/Versal SoCs
-
-
-
---c2rUlmsk1qexDFpBjgpaV7Nn62sVlDOPV--
-
---LZHPN2jpshxJTPpehPN2oomZ5ViUkpu3G
-Content-Type: application/pgp-signature; name="signature.asc"
-Content-Description: OpenPGP digital signature
-Content-Disposition: attachment; filename="signature.asc"
-
------BEGIN PGP SIGNATURE-----
-
-iF0EARECAB0WIQQbPNTMvXmYlBPRwx7KSWXLKUoMIQUCXlUGXwAKCRDKSWXLKUoM
-IWakAKCB1Nf50wQlkY3QmenLnoFwU1bVRQCfXM644R24pTsD+kEK+7AWWzPDUeE=
-=6NRI
------END PGP SIGNATURE-----
-
---LZHPN2jpshxJTPpehPN2oomZ5ViUkpu3G--
+diff --git a/drivers/gpu/drm/mgag200/mgag200_drv.h b/drivers/gpu/drm/mgag200/mgag200_drv.h
+index aa32aad222c2..6512b3af4fb7 100644
+--- a/drivers/gpu/drm/mgag200/mgag200_drv.h
++++ b/drivers/gpu/drm/mgag200/mgag200_drv.h
+@@ -34,9 +34,9 @@
+ 
+ #define MGAG200FB_CONN_LIMIT 1
+ 
+-#define RREG8(reg) ioread8(((void __iomem *)mdev->rmmio) + (reg))
++#define RREG8(reg) ioread8(((const void __iomem *)mdev->rmmio) + (reg))
+ #define WREG8(reg, v) iowrite8(v, ((void __iomem *)mdev->rmmio) + (reg))
+-#define RREG32(reg) ioread32(((void __iomem *)mdev->rmmio) + (reg))
++#define RREG32(reg) ioread32(((const void __iomem *)mdev->rmmio) + (reg))
+ #define WREG32(reg, v) iowrite32(v, ((void __iomem *)mdev->rmmio) + (reg))
+ 
+ #define ATTR_INDEX 0x1fc0
+-- 
+2.17.1
