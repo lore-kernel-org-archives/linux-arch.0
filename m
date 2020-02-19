@@ -1,63 +1,111 @@
-From: Borislav Petkov <bp@alien8.de>
-Subject: Re: [PATCH v3 02/22] x86,mce: Delete ist_begin_non_atomic()
-Date: Wed, 19 Feb 2020 18:42:23 +0100
-Message-ID: <20200219174223.GE30966@zn.tnic>
-References: <20200219144724.800607165@infradead.org>
- <20200219150744.488895196@infradead.org>
- <20200219171309.GC32346@zn.tnic>
- <CALCETrWBEDjenqze3wVc6TkUt_g+OFx9TQbYysLH+6fku=aWjQ@mail.gmail.com>
+From: Nick Desaulniers <ndesaulniers@google.com>
+Subject: Re: [PATCH 3/6] tracing: Wrap section comparison in
+ tracer_alloc_buffers with COMPARE_SECTIONS
+Date: Wed, 19 Feb 2020 09:44:31 -0800
+Message-ID: <CAKwvOdm-N1iX0SMxGDV5Vf=qS5uHPdH3S-TRs-065BuSOdKt1w@mail.gmail.com>
+References: <20200219045423.54190-1-natechancellor@gmail.com>
+ <20200219045423.54190-4-natechancellor@gmail.com> <20200219093445.386f1c09@gandalf.local.home>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.skyhub.de ([5.9.137.197]:33670 "EHLO mail.skyhub.de"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726518AbgBSRmc (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 19 Feb 2020 12:42:32 -0500
-Content-Disposition: inline
-In-Reply-To: <CALCETrWBEDjenqze3wVc6TkUt_g+OFx9TQbYysLH+6fku=aWjQ@mail.gmail.com>
+Received: from mail-pj1-f67.google.com ([209.85.216.67]:36862 "EHLO
+        mail-pj1-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726652AbgBSRoo (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 19 Feb 2020 12:44:44 -0500
+Received: by mail-pj1-f67.google.com with SMTP id gv17so372031pjb.1
+        for <linux-arch@vger.kernel.org>; Wed, 19 Feb 2020 09:44:43 -0800 (PST)
+In-Reply-To: <20200219093445.386f1c09@gandalf.local.home>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andy Lutomirski <luto@kernel.org>
-Cc: Peter Zijlstra <peterz@infradead.org>, LKML <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Steven Rostedt <rostedt@goodmis.org>, Ingo Molnar <mingo@kernel.org>, Joel Fernandes <joel@joelfernandes.org>, Greg KH <gregkh@linuxfoundation.org>, gustavo@embeddedor.com, Thomas Gleixner <tglx@linutronix.de>, paulmck@kernel.org, Josh Triplett <josh@joshtriplett.org>, Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, Lai Jiangshan <jiangshanlai@gmail.com>, Tony Luck <tony.luck@intel.com>, Frederic Weisbecker <frederic@kernel.org>, Dan Carpenter <dan.carpenter@oracle.com>, Masami Hiramatsu <mhiramat@kernel.org>
+To: Steven Rostedt <rostedt@goodmis.org>, Nathan Chancellor <natechancellor@gmail.com>
+Cc: Masahiro Yamada <masahiroy@kernel.org>, Michal Marek <michal.lkml@markovi.net>, Arnd Bergmann <arnd@arndb.de>, Ingo Molnar <mingo@redhat.com>, Jason Baron <jbaron@akamai.com>, Catalin Marinas <catalin.marinas@arm.com>, Andrew Morton <akpm@linux-foundation.org>, LKML <linux-kernel@vger.kernel.org>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Linux Memory Management List <linux-mm@kvack.org>, clang-built-linux <clang-built-linux@googlegroups.com>
 
-On Wed, Feb 19, 2020 at 09:21:48AM -0800, Andy Lutomirski wrote:
-> Unless there is a signal pending and the signal setup code is about to
-> hit the same failed memory.  I suppose we can just treat cases like
-> this as "oh well, time to kill the whole system".
+On Wed, Feb 19, 2020 at 6:34 AM Steven Rostedt <rostedt@goodmis.org> wrote:
 >
-> But we should genuinely agree that we're okay with deferring this handling.
+> On Tue, 18 Feb 2020 21:54:20 -0700
+> Nathan Chancellor <natechancellor@gmail.com> wrote:
+>
+> > Clang warns:
+> >
+> > ../kernel/trace/trace.c:9335:33: warning: array comparison always
+> > evaluates to true [-Wtautological-compare]
+> >         if (__stop___trace_bprintk_fmt != __start___trace_bprintk_fmt)
+> >                                        ^
+> > 1 warning generated.
+> >
+> > These are not true arrays, they are linker defined symbols, which are
+> > just addresses so there is not a real issue here. Use the
+> > COMPARE_SECTIONS macro to silence this warning by casting the linker
+> > defined symbols to unsigned long, which keeps the logic the same.
+> >
+> > Link: https://github.com/ClangBuiltLinux/linux/issues/765
+> > Signed-off-by: Nathan Chancellor <natechancellor@gmail.com>
+> > ---
+> >  kernel/trace/trace.c | 2 +-
+> >  1 file changed, 1 insertion(+), 1 deletion(-)
+> >
+> > diff --git a/kernel/trace/trace.c b/kernel/trace/trace.c
+> > index c797a15a1fc7..e1f3b16e457b 100644
+> > --- a/kernel/trace/trace.c
+> > +++ b/kernel/trace/trace.c
+> > @@ -9332,7 +9332,7 @@ __init static int tracer_alloc_buffers(void)
+> >               goto out_free_buffer_mask;
+> >
+> >       /* Only allocate trace_printk buffers if a trace_printk exists */
+> > -     if (__stop___trace_bprintk_fmt != __start___trace_bprintk_fmt)
+> > +     if (COMPARE_SECTIONS(__stop___trace_bprintk_fmt, !=, __start___trace_bprintk_fmt))
+>
+> Sorry, but this is really ugly and unreadable. Please find some other
+> solution to fix this.
+>
+> NAK-by: Steven Rostedt
+>
 
-Good catch!
+Hey Nathan,
+Thanks for the series; enabling the warning will help us find more
+bugs.  Revisiting what the warning is about, I checked on this
+"referring to symbols defined in linker scripts from C" pattern.  This
+document [0] (by no means definitive, but I think it has a good idea)
+says:
 
-static void exit_to_usermode_loop(struct pt_regs *regs, u32 cached_flags)
-{
+Linker symbols that represent a data address: In C code, declare the
+variable as an extern variable. Then, refer to the value of the linker
+symbol using the & operator. Because the variable is at a valid data
+address, we know that a data pointer can represent the value.
+Linker symbols for an arbitrary address: In C code, declare this as an
+extern symbol. The type does not matter. If you are using GCC
+extensions, declare it as "extern void".
 
-	...
+Indeed, it seems that Clang is happier with that pattern:
+https://godbolt.org/z/sW3t5W
 
-		/* deal with pending signal delivery */
-                if (cached_flags & _TIF_SIGPENDING)
-                        do_signal(regs);
+Looking at __stop___trace_bprintk_fmt in particular:
 
-                if (cached_flags & _TIF_NOTIFY_RESUME) {
-                        clear_thread_flag(TIF_NOTIFY_RESUME);
-                        tracehook_notify_resume(regs);
-                        rseq_handle_notify_resume(NULL, regs);
-                }
+kernel/trace/trace.h
+1923:extern const char *__stop___trace_bprintk_fmt[];
 
+(Should be `extern const void __stop___trace_bprintk_fmt;` void since
+we don't access any data or function from that symbol, just compare
+its address)
 
-Err, can we make task_work run before we handle signals? Or there's a
-reason it is run in this order?
+kernel/trace/trace_printk.c
+260: start_index = __stop___trace_bprintk_fmt - __start___trace_bprintk_fmt;
 
-Comment over task_work_add() says:
+(Should be `start_index = (uintptr_t)__stop___trace_bprintk_fmt -
+(uintptr_t)__start___trace_bprintk_fmt;`) (storing the result in an
+int worries me a little, but maybe that refactoring can be saved for
+another day)
 
- * This is like the signal handler which runs in kernel mode, but it doesn't
- * try to wake up the @task.
+kernel/trace/trace.c
+9335: if (__stop___trace_bprintk_fmt != __start___trace_bprintk_fmt)
 
-which sounds to me like this should really run before the signal
-handlers...
+(Should be `if (&__stop___trace_bprintk_fmt -
+&__start___trace_bprintk_fmt)`.  That's not a significant change to
+the existing code, and is quite legible IMO)
 
+Steven, thoughts?
+
+[0] http://downloads.ti.com/docs/esd/SPRUI03/using-linker-symbols-in-c-c-applications-slau1318080.html
 -- 
-Regards/Gruss,
-    Boris.
-
-https://people.kernel.org/tglx/notes-about-netiquette
+Thanks,
+~Nick Desaulniers
