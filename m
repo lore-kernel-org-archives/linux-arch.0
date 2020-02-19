@@ -1,57 +1,38 @@
-From: "Paul E. McKenney" <paulmck@kernel.org>
-Subject: Re: [PATCH v3 16/22] locking/atomics, kcsan: Add KCSAN
- instrumentation
-Date: Wed, 19 Feb 2020 08:50:20 -0800
-Message-ID: <20200219165020.GF2935@paulmck-ThinkPad-P72>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH v3 22/22] x86/int3: Ensure that poke_int3_handler() is
+ not sanitized
+Date: Wed, 19 Feb 2020 17:51:27 +0100
+Message-ID: <20200219165127.GF14946@hirez.programming.kicks-ass.net>
 References: <20200219144724.800607165@infradead.org>
- <20200219150745.299217979@infradead.org>
- <20200219104626.633f0650@gandalf.local.home>
- <20200219160318.GG18400@hirez.programming.kicks-ass.net>
-Reply-To: paulmck@kernel.org
+ <20200219150745.651901321@infradead.org>
+ <CACT4Y+Y+nPcnbb8nXGQA1=9p8BQYrnzab_4SvuPwbAJkTGgKOQ@mail.gmail.com>
+ <20200219163025.GH18400@hirez.programming.kicks-ass.net>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:35442 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726551AbgBSQuV (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 19 Feb 2020 11:50:21 -0500
+Received: from merlin.infradead.org ([205.233.59.134]:35476 "EHLO
+        merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726450AbgBSQv6 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 19 Feb 2020 11:51:58 -0500
 Content-Disposition: inline
-In-Reply-To: <20200219160318.GG18400@hirez.programming.kicks-ass.net>
+In-Reply-To: <20200219163025.GH18400@hirez.programming.kicks-ass.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Steven Rostedt <rostedt@goodmis.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org, joel@joelfernandes.org, gregkh@linuxfoundation.org, gustavo@embeddedor.com, tglx@linutronix.de, josh@joshtriplett.org, mathieu.desnoyers@efficios.com, jiangshanlai@gmail.com, luto@kernel.org, tony.luck@intel.com, frederic@kernel.org, dan.carpenter@oracle.com, mhiramat@kernel.org, Marco Elver <elver@google.com>, Mark Rutland <mark.rutland@arm.com>
+To: Dmitry Vyukov <dvyukov@google.com>
+Cc: LKML <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Steven Rostedt <rostedt@goodmis.org>, Ingo Molnar <mingo@kernel.org>, Joel Fernandes <joel@joelfernandes.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, "Gustavo A. R. Silva" <gustavo@embeddedor.com>, Thomas Gleixner <tglx@linutronix.de>, "Paul E. McKenney" <paulmck@kernel.org>, Josh Triplett <josh@joshtriplett.org>, Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, Lai Jiangshan <jiangshanlai@gmail.com>, Andy Lutomirski <luto@kernel.org>, tony.luck@intel.com, Frederic Weisbecker <frederic@kernel.org>, Dan Carpenter <dan.carpenter@oracle.com>, Masami Hiramatsu <mhiramat@kernel.org>, Andrey Ryabinin <aryabinin@virtuozzo.com>, kasan-dev <kasan-dev@googlegroups.com>
 
-On Wed, Feb 19, 2020 at 05:03:18PM +0100, Peter Zijlstra wrote:
-> On Wed, Feb 19, 2020 at 10:46:26AM -0500, Steven Rostedt wrote:
-> > On Wed, 19 Feb 2020 15:47:40 +0100
-> > Peter Zijlstra <peterz@infradead.org> wrote:
-> > 
-> > > From: Marco Elver <elver@google.com>
-> > > 
-> > > This adds KCSAN instrumentation to atomic-instrumented.h.
-> > > 
-> > > Signed-off-by: Marco Elver <elver@google.com>
-> > > Signed-off-by: Paul E. McKenney <paulmck@kernel.org>
-> > > [peterz: removed the actual kcsan hooks]
-> > > Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
-> > > Reviewed-by: Mark Rutland <mark.rutland@arm.com>
-> > > ---
-> > >  include/asm-generic/atomic-instrumented.h |  390 +++++++++++++++---------------
-> > >  scripts/atomic/gen-atomic-instrumented.sh |   14 -
-> > >  2 files changed, 212 insertions(+), 192 deletions(-)
-> > > 
-> > 
-> > 
-> > Does this and the rest of the series depend on the previous patches in
-> > the series? Or can this be a series on to itself (patches 16-22)?
+On Wed, Feb 19, 2020 at 05:30:25PM +0100, Peter Zijlstra wrote:
+> > It's quite fragile. Tomorrow poke_int3_handler handler calls more of
+> > fewer functions, and both ways it's not detected by anything.
 > 
-> It can probably stand on its own, but it very much is related in so far
-> that it's fallout from staring at all this nonsense.
+> Yes; not having tools for this is pretty annoying. In 0/n I asked Dan if
+> smatch could do at least the normal tracing stuff, the compiler
+> instrumentation bits are going to be far more difficult because smatch
+> doesn't work at that level :/
 > 
-> Without these the do_int3() can actually have accidental tracing before
-> reaching it's nmi_enter().
+> (I actually have
 
-The original is already in -tip, so some merge magic will be required.
+... and I stopped typing ...
 
-							Thanx, Paul
+I think I mean to say something like: ... more changes to
+poke_int3_handler() pending, but they're all quite simple).
