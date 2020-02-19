@@ -1,136 +1,204 @@
 From: Peter Zijlstra <peterz@infradead.org>
-Subject: [PATCH v3 22/22] x86/int3: Ensure that poke_int3_handler() is not sanitized
-Date: Wed, 19 Feb 2020 15:47:46 +0100
-Message-ID: <20200219150745.651901321@infradead.org>
+Subject: [PATCH v3 01/22] hardirq/nmi: Allow nested nmi_enter()
+Date: Wed, 19 Feb 2020 15:47:25 +0100
+Message-ID: <20200219150744.428764577@infradead.org>
 References: <20200219144724.800607165@infradead.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Sender: linux-kernel-owner@vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from bombadil.infradead.org ([198.137.202.133]:35970 "EHLO
+        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726682AbgBSPOY (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 19 Feb 2020 10:14:24 -0500
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, rostedt@goodmis.org
-Cc: peterz@infradead.org, mingo@kernel.org, joel@joelfernandes.org, gregkh@linuxfoundation.org, gustavo@embeddedor.com, tglx@linutronix.de, paulmck@kernel.org, josh@joshtriplett.org, mathieu.desnoyers@efficios.com, jiangshanlai@gmail.com, luto@kernel.org, tony.luck@intel.com, frederic@kernel.org, dan.carpenter@oracle.com, mhiramat@kernel.org, Dmitry Vyukov <dvyukov@google.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>
-List-Id: linux-arch.vger.kernel.org
+Cc: peterz@infradead.org, mingo@kernel.org, joel@joelfernandes.org, gregkh@linuxfoundation.org, gustavo@embeddedor.com, tglx@linutronix.de, paulmck@kernel.org, josh@joshtriplett.org, mathieu.desnoyers@efficios.com, jiangshanlai@gmail.com, luto@kernel.org, tony.luck@intel.com, frederic@kernel.org, dan.carpenter@oracle.com, mhiramat@kernel.org, Will Deacon <will@kernel.org>, Marc Zyngier <maz@kernel.org>, Michael Ellerman <mpe@ellerman.id.au>, Petr Mladek <pmladek@suse.com>
 
-In order to ensure poke_int3_handler() is completely self contained --
-we call this while we're modifying other text, imagine the fun of
-hitting another INT3 -- ensure that everything is without sanitize
-crud.
+Since there are already a number of sites (ARM64, PowerPC) that
+effectively nest nmi_enter(), lets make the primitive support this
+before adding even more.
 
-Cc: Dmitry Vyukov <dvyukov@google.com>
-Cc: Andrey Ryabinin <aryabinin@virtuozzo.com>
-Reported-by: Thomas Gleixner <tglx@linutronix.de>
+Cc: Will Deacon <will@kernel.org>
+Cc: Marc Zyngier <maz@kernel.org>
+Cc: Michael Ellerman <mpe@ellerman.id.au>
+Cc: Petr Mladek <pmladek@suse.com>
 Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
 ---
- arch/x86/kernel/alternative.c       |    4 ++--
- arch/x86/kernel/traps.c             |    2 +-
- include/linux/compiler-clang.h      |    7 +++++++
- include/linux/compiler-gcc.h        |    6 ++++++
- include/linux/compiler.h            |    5 +++++
- include/linux/compiler_attributes.h |    1 +
- lib/bsearch.c                       |    2 +-
- 7 files changed, 23 insertions(+), 4 deletions(-)
+ arch/arm64/include/asm/hardirq.h |    4 ++--
+ arch/arm64/kernel/sdei.c         |   14 ++------------
+ arch/arm64/kernel/traps.c        |    8 ++------
+ arch/powerpc/kernel/traps.c      |   19 +++++--------------
+ include/linux/hardirq.h          |    2 +-
+ include/linux/preempt.h          |    4 ++--
+ kernel/printk/printk_safe.c      |    6 ++++--
+ 7 files changed, 18 insertions(+), 39 deletions(-)
 
---- a/arch/x86/kernel/alternative.c
-+++ b/arch/x86/kernel/alternative.c
-@@ -979,7 +979,7 @@ static __always_inline void *text_poke_a
- 	return _stext + tp->rel_addr;
+--- a/arch/arm64/include/asm/hardirq.h
++++ b/arch/arm64/include/asm/hardirq.h
+@@ -38,7 +38,7 @@ DECLARE_PER_CPU(struct nmi_ctx, nmi_cont
+ 
+ #define arch_nmi_enter()							\
+ 	do {									\
+-		if (is_kernel_in_hyp_mode()) {					\
++		if (is_kernel_in_hyp_mode() && !in_nmi()) {			\
+ 			struct nmi_ctx *nmi_ctx = this_cpu_ptr(&nmi_contexts);	\
+ 			nmi_ctx->hcr = read_sysreg(hcr_el2);			\
+ 			if (!(nmi_ctx->hcr & HCR_TGE)) {			\
+@@ -50,7 +50,7 @@ DECLARE_PER_CPU(struct nmi_ctx, nmi_cont
+ 
+ #define arch_nmi_exit()								\
+ 	do {									\
+-		if (is_kernel_in_hyp_mode()) {					\
++		if (is_kernel_in_hyp_mode() && !in_nmi()) {			\
+ 			struct nmi_ctx *nmi_ctx = this_cpu_ptr(&nmi_contexts);	\
+ 			if (!(nmi_ctx->hcr & HCR_TGE))				\
+ 				write_sysreg(nmi_ctx->hcr, hcr_el2);		\
+--- a/arch/arm64/kernel/sdei.c
++++ b/arch/arm64/kernel/sdei.c
+@@ -251,22 +251,12 @@ asmlinkage __kprobes notrace unsigned lo
+ __sdei_handler(struct pt_regs *regs, struct sdei_registered_event *arg)
+ {
+ 	unsigned long ret;
+-	bool do_nmi_exit = false;
+ 
+-	/*
+-	 * nmi_enter() deals with printk() re-entrance and use of RCU when
+-	 * RCU believed this CPU was idle. Because critical events can
+-	 * interrupt normal events, we may already be in_nmi().
+-	 */
+-	if (!in_nmi()) {
+-		nmi_enter();
+-		do_nmi_exit = true;
+-	}
++	nmi_enter();
+ 
+ 	ret = _sdei_handler(regs, arg);
+ 
+-	if (do_nmi_exit)
+-		nmi_exit();
++	nmi_exit();
+ 
+ 	return ret;
+ }
+--- a/arch/arm64/kernel/traps.c
++++ b/arch/arm64/kernel/traps.c
+@@ -906,17 +906,13 @@ bool arm64_is_fatal_ras_serror(struct pt
+ 
+ asmlinkage void do_serror(struct pt_regs *regs, unsigned int esr)
+ {
+-	const bool was_in_nmi = in_nmi();
+-
+-	if (!was_in_nmi)
+-		nmi_enter();
++	nmi_enter();
+ 
+ 	/* non-RAS errors are not containable */
+ 	if (!arm64_is_ras_serror(esr) || arm64_is_fatal_ras_serror(regs, esr))
+ 		arm64_serror_panic(regs, esr);
+ 
+-	if (!was_in_nmi)
+-		nmi_exit();
++	nmi_exit();
  }
  
--static int notrace patch_cmp(const void *key, const void *elt)
-+static int notrace __no_sanitize patch_cmp(const void *key, const void *elt)
+ asmlinkage void enter_from_user_mode(void)
+--- a/arch/powerpc/kernel/traps.c
++++ b/arch/powerpc/kernel/traps.c
+@@ -441,15 +441,9 @@ void hv_nmi_check_nonrecoverable(struct
+ void system_reset_exception(struct pt_regs *regs)
  {
- 	struct text_poke_loc *tp = (struct text_poke_loc *) elt;
+ 	unsigned long hsrr0, hsrr1;
+-	bool nested = in_nmi();
+ 	bool saved_hsrrs = false;
  
-@@ -991,7 +991,7 @@ static int notrace patch_cmp(const void
+-	/*
+-	 * Avoid crashes in case of nested NMI exceptions. Recoverability
+-	 * is determined by RI and in_nmi
+-	 */
+-	if (!nested)
+-		nmi_enter();
++	nmi_enter();
+ 
+ 	/*
+ 	 * System reset can interrupt code where HSRRs are live and MSR[RI]=1.
+@@ -521,8 +515,7 @@ void system_reset_exception(struct pt_re
+ 		mtspr(SPRN_HSRR1, hsrr1);
+ 	}
+ 
+-	if (!nested)
+-		nmi_exit();
++	nmi_exit();
+ 
+ 	/* What should we do here? We could issue a shutdown or hard reset. */
  }
- NOKPROBE_SYMBOL(patch_cmp);
- 
--int notrace poke_int3_handler(struct pt_regs *regs)
-+int notrace __no_sanitize poke_int3_handler(struct pt_regs *regs)
+@@ -823,9 +816,8 @@ int machine_check_generic(struct pt_regs
+ void machine_check_exception(struct pt_regs *regs)
  {
- 	struct bp_patching_desc *desc;
- 	struct text_poke_loc *tp;
---- a/arch/x86/kernel/traps.c
-+++ b/arch/x86/kernel/traps.c
-@@ -496,7 +496,7 @@ dotraplinkage void do_general_protection
- }
- NOKPROBE_SYMBOL(do_general_protection);
- 
--dotraplinkage void notrace do_int3(struct pt_regs *regs, long error_code)
-+dotraplinkage void notrace __no_sanitize do_int3(struct pt_regs *regs, long error_code)
- {
- 	if (poke_int3_handler(regs))
- 		return;
---- a/include/linux/compiler-clang.h
-+++ b/include/linux/compiler-clang.h
-@@ -24,6 +24,13 @@
- #define __no_sanitize_address
- #endif
- 
-+#if __has_feature(undefined_sanitizer)
-+#define __no_sanitize_undefined \
-+		__atribute__((no_sanitize("undefined")))
-+#else
-+#define __no_sanitize_undefined
-+#endif
+ 	int recover = 0;
+-	bool nested = in_nmi();
+-	if (!nested)
+-		nmi_enter();
 +
- /*
-  * Not all versions of clang implement the the type-generic versions
-  * of the builtin overflow checkers. Fortunately, clang implements
---- a/include/linux/compiler-gcc.h
-+++ b/include/linux/compiler-gcc.h
-@@ -145,6 +145,12 @@
- #define __no_sanitize_address
- #endif
++	nmi_enter();
  
-+#if __has_attribute(__no_sanitize_undefined__)
-+#define __no_sanitize_undefined __attribute__((no_sanitize_undefined))
-+#else
-+#define __no_sanitize_undefined
-+#endif
-+
- #if GCC_VERSION >= 50100
- #define COMPILER_HAS_GENERIC_BUILTIN_OVERFLOW 1
- #endif
---- a/include/linux/compiler.h
-+++ b/include/linux/compiler.h
-@@ -199,6 +199,7 @@ void __read_once_size(const volatile voi
- 	__READ_ONCE_SIZE;
+ 	__this_cpu_inc(irq_stat.mce_exceptions);
+ 
+@@ -863,8 +855,7 @@ void machine_check_exception(struct pt_r
+ 	return;
+ 
+ bail:
+-	if (!nested)
+-		nmi_exit();
++	nmi_exit();
  }
  
-+#define __no_kasan __no_sanitize_address
- #ifdef CONFIG_KASAN
- /*
-  * We can't declare function 'inline' because __no_sanitize_address confilcts
-@@ -274,6 +275,10 @@ static __always_inline void __write_once
+ void SMIException(struct pt_regs *regs)
+--- a/include/linux/hardirq.h
++++ b/include/linux/hardirq.h
+@@ -71,7 +71,7 @@ extern void irq_exit(void);
+ 		printk_nmi_enter();				\
+ 		lockdep_off();					\
+ 		ftrace_nmi_enter();				\
+-		BUG_ON(in_nmi());				\
++		BUG_ON(in_nmi() == NMI_MASK);			\
+ 		preempt_count_add(NMI_OFFSET + HARDIRQ_OFFSET);	\
+ 		rcu_nmi_enter();				\
+ 		trace_hardirq_enter();				\
+--- a/include/linux/preempt.h
++++ b/include/linux/preempt.h
+@@ -26,13 +26,13 @@
+  *         PREEMPT_MASK:	0x000000ff
+  *         SOFTIRQ_MASK:	0x0000ff00
+  *         HARDIRQ_MASK:	0x000f0000
+- *             NMI_MASK:	0x00100000
++ *             NMI_MASK:	0x00f00000
+  * PREEMPT_NEED_RESCHED:	0x80000000
   */
- #define READ_ONCE_NOCHECK(x) __READ_ONCE(x, 0)
+ #define PREEMPT_BITS	8
+ #define SOFTIRQ_BITS	8
+ #define HARDIRQ_BITS	4
+-#define NMI_BITS	1
++#define NMI_BITS	4
  
-+#define __no_ubsan __no_sanitize_undefined
-+
-+#define __no_sanitize __no_kasan __no_ubsan
-+
- static __no_kasan_or_inline
- unsigned long read_word_at_a_time(const void *addr)
+ #define PREEMPT_SHIFT	0
+ #define SOFTIRQ_SHIFT	(PREEMPT_SHIFT + PREEMPT_BITS)
+--- a/kernel/printk/printk_safe.c
++++ b/kernel/printk/printk_safe.c
+@@ -296,12 +296,14 @@ static __printf(1, 0) int vprintk_nmi(co
+ 
+ void notrace printk_nmi_enter(void)
  {
---- a/include/linux/compiler_attributes.h
-+++ b/include/linux/compiler_attributes.h
-@@ -41,6 +41,7 @@
- # define __GCC4_has_attribute___nonstring__           0
- # define __GCC4_has_attribute___no_sanitize_address__ (__GNUC_MINOR__ >= 8)
- # define __GCC4_has_attribute___fallthrough__         0
-+# define __GCC4_has_attribute___no_sanitize_undefined__ (__GNUC_MINOR__ >= 9)
- #endif
+-	this_cpu_or(printk_context, PRINTK_NMI_CONTEXT_MASK);
++	if (!in_nmi())
++		this_cpu_or(printk_context, PRINTK_NMI_CONTEXT_MASK);
+ }
+ 
+ void notrace printk_nmi_exit(void)
+ {
+-	this_cpu_and(printk_context, ~PRINTK_NMI_CONTEXT_MASK);
++	if (!in_nmi())
++		this_cpu_and(printk_context, ~PRINTK_NMI_CONTEXT_MASK);
+ }
  
  /*
---- a/lib/bsearch.c
-+++ b/lib/bsearch.c
-@@ -28,7 +28,7 @@
-  * the key and elements in the array are of the same type, you can use
-  * the same comparison function for both sort() and bsearch().
-  */
--void *bsearch(const void *key, const void *base, size_t num, size_t size,
-+void __no_sanitize *bsearch(const void *key, const void *base, size_t num, size_t size,
- 	      cmp_func_t cmp)
- {
- 	const char *pivot;
