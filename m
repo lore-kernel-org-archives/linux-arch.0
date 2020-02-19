@@ -1,18 +1,18 @@
 From: Steven Rostedt <rostedt@goodmis.org>
 Subject: Re: [PATCH v3 09/22] sched,rcu,tracing: Avoid tracing before
  in_nmi() is correct
-Date: Wed, 19 Feb 2020 10:50:34 -0500
-Message-ID: <20200219105034.40915c50@gandalf.local.home>
+Date: Wed, 19 Feb 2020 10:50:58 -0500
+Message-ID: <20200219105058.3b844e10@gandalf.local.home>
 References: <20200219144724.800607165@infradead.org>
         <20200219150744.888917422@infradead.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:46268 "EHLO mail.kernel.org"
+Received: from mail.kernel.org ([198.145.29.99]:46448 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726569AbgBSPuh (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 19 Feb 2020 10:50:37 -0500
+        id S1726569AbgBSPvB (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 19 Feb 2020 10:51:01 -0500
 In-Reply-To: <20200219150744.888917422@infradead.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
@@ -37,7 +37,6 @@ Peter Zijlstra <peterz@infradead.org> wrote:
 > Suggested-by: Steven Rostedt (VMware) <rosted@goodmis.org>
 > Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
 > ---
->
 
 Reviewed-by: Steven Rostedt (VMware) <rostedt@goodmis.org>
 
