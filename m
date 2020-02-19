@@ -1,86 +1,79 @@
-Return-Path: <SRS0=hCVk=4O=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:38080 "EHLO foss.arm.com"
+Return-Path: <SRS0=LzcT=4H=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail.kernel.org ([198.145.29.99]:50816 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1728681AbgBZP5g (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 26 Feb 2020 10:57:36 -0500
-From: Mark Brown <broonie@kernel.org>
-Subject: [PATCH v7 06/11] arm64: BTI: Decode BYTPE bits when printing PSTATE
-Date: Wed, 26 Feb 2020 15:57:09 +0000
-Message-ID: <20200226155714.43937-7-broonie@kernel.org>
-In-Reply-To: <20200226155714.43937-1-broonie@kernel.org>
-References: <20200226155714.43937-1-broonie@kernel.org>
-MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+        id S1726539AbgBSRvh (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 19 Feb 2020 12:51:37 -0500
+From: Krzysztof Kozlowski <krzk@kernel.org>
+Subject: [RESEND PATCH v2 3/9] ntb: intel: Constify ioreadX() iomem argument (as in generic implementation)
+Date: Wed, 19 Feb 2020 18:50:01 +0100
+Message-Id: <20200219175007.13627-4-krzk@kernel.org>
+In-Reply-To: <20200219175007.13627-1-krzk@kernel.org>
+References: <20200219175007.13627-1-krzk@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>
-Cc: Alexander Viro <viro@zeniv.linux.org.uk>, Paul Elliott <paul.elliott@arm.com>, Peter Zijlstra <peterz@infradead.org>, Yu-cheng Yu <yu-cheng.yu@intel.com>, Amit Kachhap <amit.kachhap@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Marc Zyngier <maz@kernel.org>, Eugene Syromiatnikov <esyr@redhat.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, "H . J . Lu " <hjl.tools@gmail.com>, Andrew Jones <drjones@redhat.com>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Jann Horn <jannh@google.com>, Richard Henderson <richard.henderson@linaro.org>, =?UTF-8?q?Kristina=20Mart=C5=A1enko?= <kristina.martsenko@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Florian Weimer <fweimer@redhat.com>, Sudakshina Das <sudi.das@arm.com>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, Dave Martin <Dave.Martin@arm.com>, Mark Brown <broonie@kernel.org>
-Message-ID: <20200226155709.JM9DddnnWwa4isPaBu-9DobsK5_LkT2NR7NtnBe7_SY@z>
+To: Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Alexey Brodkin <abrodkin@synopsys.com>, Vineet Gupta <vgupta@synopsys.com>, "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>, Helge Deller <deller@gmx.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, Dave Airlie <airlied@redhat.com>, David Airlie <airlied@linux.ie>, Daniel Vetter <daniel@ffwll.ch>, Ben Skeggs <bskeggs@redhat.com>, Mauro Carvalho Chehab <mchehab@kernel.org>, Jiri Slaby <jirislaby@gmail.com>, Nick Kossifidis <mickflemm@gmail.com>, Luis Chamberlain <mcgrof@kernel.org>, Kalle Valo <kvalo@codeaurora.org>, "David S. Miller" <davem@davemloft.net>, Dave Jiang <dave.jiang@intel.com>, Jon Mason <jdmason@kudzu.us>, Allen Hubbe <allenbh@gmail.com>, "Michael S. Tsirkin" <mst@redhat.com>, Jason Wang <jasowang@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Geert Uytterhoeven <geert+renesas@glider.be>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-snps-arc@lists.infradead.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org, dri-devel@lists.freedesktop.org, nouveau@lists.freedesktop.org, linux-media@vger.kernel.org, linux-wireless@vger.kernel.org, netdev@vger.kernel.org, linux-ntb@googlegroups.com, virtualization@lists.linux-foundation.org, linux-arch@vger.kernel.org
+Cc: Krzysztof Kozlowski <krzk@kernel.org>
 
-From: Dave Martin <Dave.Martin@arm.com>
+The ioreadX() helpers have inconsistent interface.  On some architectures
+void *__iomem address argument is a pointer to const, on some not.
 
-The current code to print PSTATE symbolically when generating
-backtraces etc., does not include the BYTPE field used by Branch
-Target Identification.
+Implementations of ioreadX() do not modify the memory under the address
+so they can be converted to a "const" version for const-safety and
+consistency among architectures.
 
-So, decode BYTPE and print it too.
+Signed-off-by: Krzysztof Kozlowski <krzk@kernel.org>
+Reviewed-by: Geert Uytterhoeven <geert+renesas@glider.be>
+Acked-by: Dave Jiang <dave.jiang@intel.com>
 
-In the interests of human-readability, print the classes of BTI
-matched.  The symbolic notation, BYTPE (PSTATE[11:10]) and
-permitted classes of subsequent instruction are:
-
-    -- (BTYPE=0b00): any insn
-    jc (BTYPE=0b01): BTI jc, BTI j, BTI c, PACIxSP
-    -c (BYTPE=0b10): BTI jc, BTI c, PACIxSP
-    j- (BTYPE=0b11): BTI jc, BTI j
-
-Signed-off-by: Dave Martin <Dave.Martin@arm.com>
-Signed-off-by: Mark Brown <broonie@kernel.org>
 ---
- arch/arm64/kernel/process.c | 17 +++++++++++++++--
- 1 file changed, 15 insertions(+), 2 deletions(-)
 
-diff --git a/arch/arm64/kernel/process.c b/arch/arm64/kernel/process.c
-index b8e3faa8d406..24af13d7bde6 100644
---- a/arch/arm64/kernel/process.c
-+++ b/arch/arm64/kernel/process.c
-@@ -211,6 +211,15 @@ void machine_restart(char *cmd)
- 	while (1);
+Changes since v1:
+1. Add Geert's review.
+2. Add Dave's ack.
+---
+ drivers/ntb/hw/intel/ntb_hw_gen1.c  | 2 +-
+ drivers/ntb/hw/intel/ntb_hw_gen3.h  | 2 +-
+ drivers/ntb/hw/intel/ntb_hw_intel.h | 2 +-
+ 3 files changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/drivers/ntb/hw/intel/ntb_hw_gen1.c b/drivers/ntb/hw/intel/ntb_hw_gen1.c
+index bb57ec239029..9202502a9787 100644
+--- a/drivers/ntb/hw/intel/ntb_hw_gen1.c
++++ b/drivers/ntb/hw/intel/ntb_hw_gen1.c
+@@ -1202,7 +1202,7 @@ int intel_ntb_peer_spad_write(struct ntb_dev *ntb, int pidx, int sidx,
+ 			       ndev->peer_reg->spad);
  }
  
-+#define bstr(suffix, str) [PSR_BTYPE_ ## suffix >> PSR_BTYPE_SHIFT] = str
-+static const char *const btypes[] = {
-+	bstr(NONE, "--"),
-+	bstr(  JC, "jc"),
-+	bstr(   C, "-c"),
-+	bstr(  J , "j-")
-+};
-+#undef bstr
-+
- static void print_pstate(struct pt_regs *regs)
+-static u64 xeon_db_ioread(void __iomem *mmio)
++static u64 xeon_db_ioread(const void __iomem *mmio)
  {
- 	u64 pstate = regs->pstate;
-@@ -229,7 +238,10 @@ static void print_pstate(struct pt_regs *regs)
- 			pstate & PSR_AA32_I_BIT ? 'I' : 'i',
- 			pstate & PSR_AA32_F_BIT ? 'F' : 'f');
- 	} else {
--		printk("pstate: %08llx (%c%c%c%c %c%c%c%c %cPAN %cUAO)\n",
-+		const char *btype_str = btypes[(pstate & PSR_BTYPE_MASK) >>
-+					       PSR_BTYPE_SHIFT];
-+
-+		printk("pstate: %08llx (%c%c%c%c %c%c%c%c %cPAN %cUAO BTYPE=%s)\n",
- 			pstate,
- 			pstate & PSR_N_BIT ? 'N' : 'n',
- 			pstate & PSR_Z_BIT ? 'Z' : 'z',
-@@ -240,7 +252,8 @@ static void print_pstate(struct pt_regs *regs)
- 			pstate & PSR_I_BIT ? 'I' : 'i',
- 			pstate & PSR_F_BIT ? 'F' : 'f',
- 			pstate & PSR_PAN_BIT ? '+' : '-',
--			pstate & PSR_UAO_BIT ? '+' : '-');
-+			pstate & PSR_UAO_BIT ? '+' : '-',
-+			btype_str);
- 	}
+ 	return (u64)ioread16(mmio);
  }
+diff --git a/drivers/ntb/hw/intel/ntb_hw_gen3.h b/drivers/ntb/hw/intel/ntb_hw_gen3.h
+index 75fb86ca27bb..d1455f24ec99 100644
+--- a/drivers/ntb/hw/intel/ntb_hw_gen3.h
++++ b/drivers/ntb/hw/intel/ntb_hw_gen3.h
+@@ -91,7 +91,7 @@
+ #define GEN3_DB_TOTAL_SHIFT		33
+ #define GEN3_SPAD_COUNT			16
  
+-static inline u64 gen3_db_ioread(void __iomem *mmio)
++static inline u64 gen3_db_ioread(const void __iomem *mmio)
+ {
+ 	return ioread64(mmio);
+ }
+diff --git a/drivers/ntb/hw/intel/ntb_hw_intel.h b/drivers/ntb/hw/intel/ntb_hw_intel.h
+index e071e28bca3f..3c0a5a2da241 100644
+--- a/drivers/ntb/hw/intel/ntb_hw_intel.h
++++ b/drivers/ntb/hw/intel/ntb_hw_intel.h
+@@ -102,7 +102,7 @@ struct intel_ntb_dev;
+ struct intel_ntb_reg {
+ 	int (*poll_link)(struct intel_ntb_dev *ndev);
+ 	int (*link_is_up)(struct intel_ntb_dev *ndev);
+-	u64 (*db_ioread)(void __iomem *mmio);
++	u64 (*db_ioread)(const void __iomem *mmio);
+ 	void (*db_iowrite)(u64 db_bits, void __iomem *mmio);
+ 	unsigned long			ntb_ctl;
+ 	resource_size_t			db_size;
 -- 
-2.20.1
+2.17.1
