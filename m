@@ -1,60 +1,62 @@
 From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH v3 22/22] x86/int3: Ensure that poke_int3_handler() is
- not sanitized
-Date: Thu, 20 Feb 2020 13:06:31 +0100
-Message-ID: <20200220120631.GX18400@hirez.programming.kicks-ass.net>
+Subject: Re: [PATCH v3 03/22] x86: Replace ist_enter() with nmi_enter()
+Date: Thu, 20 Feb 2020 13:11:13 +0100
+Message-ID: <20200220121113.GY18400@hirez.programming.kicks-ass.net>
 References: <20200219144724.800607165@infradead.org>
- <20200219150745.651901321@infradead.org>
- <CACT4Y+Y+nPcnbb8nXGQA1=9p8BQYrnzab_4SvuPwbAJkTGgKOQ@mail.gmail.com>
- <20200219163025.GH18400@hirez.programming.kicks-ass.net>
- <20200219172014.GI14946@hirez.programming.kicks-ass.net>
- <CACT4Y+ZfxqMuiL_UF+rCku628hirJwp3t3vW5WGM8DWG6OaCeg@mail.gmail.com>
+ <20200219150744.547288232@infradead.org>
+ <20200220105439.GA507@zn.tnic>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.133]:48830 "EHLO
+Received: from bombadil.infradead.org ([198.137.202.133]:50318 "EHLO
         bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727298AbgBTMHH (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 20 Feb 2020 07:07:07 -0500
+        with ESMTP id S1726959AbgBTMLh (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 20 Feb 2020 07:11:37 -0500
 Content-Disposition: inline
-In-Reply-To: <CACT4Y+ZfxqMuiL_UF+rCku628hirJwp3t3vW5WGM8DWG6OaCeg@mail.gmail.com>
+In-Reply-To: <20200220105439.GA507@zn.tnic>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dmitry Vyukov <dvyukov@google.com>
-Cc: LKML <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Steven Rostedt <rostedt@goodmis.org>, Ingo Molnar <mingo@kernel.org>, Joel Fernandes <joel@joelfernandes.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, "Gustavo A. R. Silva" <gustavo@embeddedor.com>, Thomas Gleixner <tglx@linutronix.de>, "Paul E. McKenney" <paulmck@kernel.org>, Josh Triplett <josh@joshtriplett.org>, Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, Lai Jiangshan <jiangshanlai@gmail.com>, Andy Lutomirski <luto@kernel.org>, tony.luck@intel.com, Frederic Weisbecker <frederic@kernel.org>, Dan Carpenter <dan.carpenter@oracle.com>, Masami Hiramatsu <mhiramat@kernel.org>, Andrey Ryabinin <aryabinin@virtuozzo.com>, kasan-dev <kasan-dev@googlegroups.com>
+To: Borislav Petkov <bp@alien8.de>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, rostedt@goodmis.org, mingo@kernel.org, joel@joelfernandes.org, gregkh@linuxfoundation.org, gustavo@embeddedor.com, tglx@linutronix.de, paulmck@kernel.org, josh@joshtriplett.org, mathieu.desnoyers@efficios.com, jiangshanlai@gmail.com, luto@kernel.org, tony.luck@intel.com, frederic@kernel.org, dan.carpenter@oracle.com, mhiramat@kernel.org
 
-On Thu, Feb 20, 2020 at 11:37:32AM +0100, Dmitry Vyukov wrote:
-> On Wed, Feb 19, 2020 at 6:20 PM Peter Zijlstra <peterz@infradead.org> wrote:
-> >
-> > On Wed, Feb 19, 2020 at 05:30:25PM +0100, Peter Zijlstra wrote:
-> >
-> > > By inlining everything in poke_int3_handler() (except bsearch :/) we can
-> > > mark the whole function off limits to everything and call it a day. That
-> > > simplicity has been the guiding principle so far.
-> > >
-> > > Alternatively we can provide an __always_inline variant of bsearch().
-> >
-> > This reduces the __no_sanitize usage to just the exception entry
-> > (do_int3) and the critical function: poke_int3_handler().
-> >
-> > Is this more acceptible?
+On Thu, Feb 20, 2020 at 11:54:39AM +0100, Borislav Petkov wrote:
+> On Wed, Feb 19, 2020 at 03:47:27PM +0100, Peter Zijlstra wrote:
+> > @@ -1220,7 +1220,7 @@ static void mce_kill_me_maybe(struct cal
+> >   * MCE broadcast. However some CPUs might be broken beyond repair,
+> >   * so be always careful when synchronizing with others.
+> >   */
+> > -void do_machine_check(struct pt_regs *regs, long error_code)
+> > +notrace void do_machine_check(struct pt_regs *regs, long error_code)
 > 
-> Let's say it's more acceptable.
+> Is there a convention where the notrace marker should come in the
+> function signature? I see all possible combinations while grepping...
+
+Same place as inline I think.
+
+> >  {
+> >  	DECLARE_BITMAP(valid_banks, MAX_NR_BANKS);
+> >  	DECLARE_BITMAP(toclear, MAX_NR_BANKS);
+> > @@ -1254,10 +1254,10 @@ void do_machine_check(struct pt_regs *re
+> >  	 */
+> >  	int lmce = 1;
+> >  
+> > -	if (__mc_check_crashing_cpu(cpu))
+> > -		return;
+> > +	nmi_enter();
+> >  
+> > -	ist_enter(regs);
+> > +	if (__mc_check_crashing_cpu(cpu))
+> > +		goto out;
+> >  
+> >  	this_cpu_inc(mce_exception_count);
+> >  
 > 
-> Acked-by: Dmitry Vyukov <dvyukov@google.com>
+> Should that __mc_check_crashing_cpu() happen before nmi_enter? The
+> function is doing only a bunch of checks and clearing MSRs for bystander
+> CPUs...
 
-Thanks, I'll go make it happen.
+You'll note the lack of notrace on that function, and we must not call
+into tracers before nmi_enter().
 
-> I guess there is no ideal solution here.
-> 
-> Just a straw man proposal: expected number of elements is large enough
-> to make bsearch profitable, right? I see 1 is a common case, but the
-> other case has multiple entries.
-
-Latency was the consideration; the linear search would dramatically
-increase the runtime of the exception.
-
-The current limit is 256 entries and we're hitting that quite often.
-
-(we can trivially increase, but nobody has been able to show significant
-benefits for that -- as of yet)
+AFAICT there really is no benefit to trying to lift it before
+nmi_enter().
