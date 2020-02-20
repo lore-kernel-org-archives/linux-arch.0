@@ -1,88 +1,90 @@
-From: Linus Torvalds <torvalds@linux-foundation.org>
+From: Al Viro <viro@zeniv.linux.org.uk>
 Subject: Re: [RFC] regset ->get() API
-Date: Thu, 20 Feb 2020 14:56:28 -0800
-Message-ID: <CAHk-=wiKs7Q2DbP6kk8JQksb0nhUvAs2wO5cNdWirNEc3CM-YQ@mail.gmail.com>
-References: <20200217183340.GI23230@ZenIV.linux.org.uk> <CAHk-=wivKU1eP8ir4q5xEwOV0hsomFz7DMtiAot__X2zU-yGog@mail.gmail.com>
+Date: Thu, 20 Feb 2020 23:29:29 +0000
+Message-ID: <20200220232929.GU23230@ZenIV.linux.org.uk>
+References: <20200217183340.GI23230@ZenIV.linux.org.uk>
+ <CAHk-=wivKU1eP8ir4q5xEwOV0hsomFz7DMtiAot__X2zU-yGog@mail.gmail.com>
  <20200220224707.GQ23230@ZenIV.linux.org.uk>
+ <CAHk-=wiKs7Q2DbP6kk8JQksb0nhUvAs2wO5cNdWirNEc3CM-YQ@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20200220224707.GQ23230@ZenIV.linux.org.uk>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Al Viro <viro@zeniv.linux.org.uk>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from zeniv.linux.org.uk ([195.92.253.2]:41814 "EHLO
+        ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727135AbgBTX3c (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 20 Feb 2020 18:29:32 -0500
+Content-Disposition: inline
+In-Reply-To: <CAHk-=wiKs7Q2DbP6kk8JQksb0nhUvAs2wO5cNdWirNEc3CM-YQ@mail.gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Linus Torvalds <torvalds@linux-foundation.org>
 Cc: linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>
-List-Id: linux-arch.vger.kernel.org
 
-On Thu, Feb 20, 2020 at 2:47 PM Al Viro <viro@zeniv.linux.org.uk> wrote:
->
-> On Wed, Feb 19, 2020 at 12:01:54PM -0800, Linus Torvalds wrote:
->
-> > I don't mind it, but some of those buffers are big, and the generic
-> > code generally doesn't know how big.
->
-> That's what regset_size() returns...
+On Thu, Feb 20, 2020 at 02:56:28PM -0800, Linus Torvalds wrote:
+> On Thu, Feb 20, 2020 at 2:47 PM Al Viro <viro@zeniv.linux.org.uk> wrote:
+> >
+> > On Wed, Feb 19, 2020 at 12:01:54PM -0800, Linus Torvalds wrote:
+> >
+> > > I don't mind it, but some of those buffers are big, and the generic
+> > > code generally doesn't know how big.
+> >
+> > That's what regset_size() returns...
+> 
+> Yes, but the code ends up being disgusting. You first have to call
+> that indirect function just to get the size, then do a kmalloc, and
+> then call another indirect function to actually fill it.
 
-Yes, but the code ends up being disgusting. You first have to call
-that indirect function just to get the size, then do a kmalloc, and
-then call another indirect function to actually fill it.
+Umm...  You do realize that this indirect function is a pathological
+case, right?  It has exactly one user - REGSET_SVE on arm64.  Everything
+else uses regset->n * regset->size.
 
-Don't do that. Not since we know how retpoline is a bad thing.
+> Don't do that. Not since we know how retpoline is a bad thing.
+> 
+> And since the size isn't always some trivial constant (ie for x86 PFU
+> it depends on the register state!), I think the only sane model is to
+> change the interface even more, and just have the "get()" function not
+> only get the data, but allocate the backing store too.
+> 
+> So you'd never pass in the result pointer - you'd get a result area
+> that you can then free.
+> 
+> Hmm?
 
-And since the size isn't always some trivial constant (ie for x86 PFU
-it depends on the register state!), I think the only sane model is to
-change the interface even more, and just have the "get()" function not
-only get the data, but allocate the backing store too.
+Do you want such allocations done in each ->get() instance?  We have
+a plenty of those instances...
 
-So you'd never pass in the result pointer - you'd get a result area
-that you can then free.
+> > FWIW, what I have in mind is to start with making copy_regset_to_user() do
+> >         buf = kmalloc(size, GFP_KERNEL);
+> >         if (!buf)
+> >                 return -ENOMEM;
+> >         err = regset->get(target, regset, offset, size, buf, NULL);
+> 
+> See above. This doesn't work. You don't know the size. And we don't
+> have a known maximum size either.
 
-Hmm?
+We do know that caller does not want more than the value it has passed in
+'size' argument, though.  For existing ptrace requests it's either
+min(iov->iov_len, regset->n * regset->size) (in ptrace_regset())
+or an explicit constant (usually in arch_ptrace()).  Note, BTW, that
+regset_size() is used only by coredump - that's how much we allocate
+there.  Everybody else either looks like
+        case PTRACE_GETFPREGS:  /* Get the child FPU state. */
+                return copy_regset_to_user(child,
+                                           task_user_regset_view(current),
+                                           REGSET_FP,
+                                           0, sizeof(struct user_i387_struct),
+                                           datap);
+or does regset->n * regset->size.
 
-The alternative is to pick a constant size that is "big enough", and
-just assume that one page (or whatever) is sufficient:
+FWIW, the real need to know the size is not in "how much do we allocated" -
+it's "how much do we copy"; I _think_ everyone except that arm64 thing
+fills exactly regset->n * regset->size (or we have a nasty infoleak in
+coredumps) and we can switch coredump to "allocate regset->n * regset->size,
+call ->get(), copy all of that into coredump unless ->get_size is there,
+copy ->get_size() bytes to coredump if ->get_size exists" as the first
+step.
 
-> > Maybe even more. I'm not sure how big the FPU regset can get on x86...
->
-> amd64:
->         REGSET_GENERAL  =>      sizeof(struct user_regs_struct) (216)
->         REGSET_FP       =>      sizeof(struct user_i387_struct) (512)
->         REGSET_XSTATE   =>      sizeof(struct swregs_state) or
->                                 sizeof(struct fxregs_state) or
->                                 sizeof(struct fregs_state) or
->                                 XSAVE insn buffer size (max about 2.5Kb, AFAICS)
->         REGSET_IOPERM64 =>      IO_BITMAP_BYTES (8Kb, that is)
-
-Yeah, so apparently one page isn't sufficient.
-
-
-> FWIW, what I have in mind is to start with making copy_regset_to_user() do
->         buf = kmalloc(size, GFP_KERNEL);
->         if (!buf)
->                 return -ENOMEM;
->         err = regset->get(target, regset, offset, size, buf, NULL);
-
-See above. This doesn't work. You don't know the size. And we don't
-have a known maximum size either.
-
->         if (!err && copy_to_user(data, buf, size))
->                 err = -EFAULT;
->         kfree(buf);
->         return err;
-
-But if you change "->get()" to just return a kmalloc'ed buffer, I'd be
-ok with that.
-
-IOW, something like
-
-        buf = regset->get(target, regset, &size);
-        if (IS_ERR(buf))
-                return PTR_ERR(bug);
-        err = copy_to_user(data, buf, size);
-        kfree(buf);
-        return err;
-
-or something like that. Just get rid of the "ubuf" entirely.
-
-Wouldn't that be nicer?
-
-            Linus
+Longer term I would have ->get() tell how much has it filled and killed
+->get_size().  Again, there's only one user.  But I'd prefer to do that
+in the end of series, when the bodies of ->get() instances are cleaned
+up...
