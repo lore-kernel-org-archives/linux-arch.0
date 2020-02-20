@@ -1,79 +1,157 @@
-Return-Path: <SRS0=LzcT=4H=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:50816 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726539AbgBSRvh (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 19 Feb 2020 12:51:37 -0500
-From: Krzysztof Kozlowski <krzk@kernel.org>
-Subject: [RESEND PATCH v2 3/9] ntb: intel: Constify ioreadX() iomem argument (as in generic implementation)
-Date: Wed, 19 Feb 2020 18:50:01 +0100
-Message-Id: <20200219175007.13627-4-krzk@kernel.org>
-In-Reply-To: <20200219175007.13627-1-krzk@kernel.org>
-References: <20200219175007.13627-1-krzk@kernel.org>
+Return-Path: <SRS0=sPo6=4I=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from bombadil.infradead.org ([198.137.202.133]:33526 "EHLO
+        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1728703AbgBTRCB (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 20 Feb 2020 12:02:01 -0500
+From: Christoph Hellwig <hch@lst.de>
+Subject: [PATCH 1/2] dma-mapping: support setting memory uncached in place
+Date: Thu, 20 Feb 2020 09:01:38 -0800
+Message-ID: <20200220170139.387354-2-hch@lst.de>
+In-Reply-To: <20200220170139.387354-1-hch@lst.de>
+References: <20200220170139.387354-1-hch@lst.de>
+MIME-Version: 1.0
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Alexey Brodkin <abrodkin@synopsys.com>, Vineet Gupta <vgupta@synopsys.com>, "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>, Helge Deller <deller@gmx.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, Dave Airlie <airlied@redhat.com>, David Airlie <airlied@linux.ie>, Daniel Vetter <daniel@ffwll.ch>, Ben Skeggs <bskeggs@redhat.com>, Mauro Carvalho Chehab <mchehab@kernel.org>, Jiri Slaby <jirislaby@gmail.com>, Nick Kossifidis <mickflemm@gmail.com>, Luis Chamberlain <mcgrof@kernel.org>, Kalle Valo <kvalo@codeaurora.org>, "David S. Miller" <davem@davemloft.net>, Dave Jiang <dave.jiang@intel.com>, Jon Mason <jdmason@kudzu.us>, Allen Hubbe <allenbh@gmail.com>, "Michael S. Tsirkin" <mst@redhat.com>, Jason Wang <jasowang@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Geert Uytterhoeven <geert+renesas@glider.be>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-snps-arc@lists.infradead.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org, dri-devel@lists.freedesktop.org, nouveau@lists.freedesktop.org, linux-media@vger.kernel.org, linux-wireless@vger.kernel.org, netdev@vger.kernel.org, linux-ntb@googlegroups.com, virtualization@lists.linux-foundation.org, linux-arch@vger.kernel.org
-Cc: Krzysztof Kozlowski <krzk@kernel.org>
+To: Jonas Bonn <jonas@southpole.se>, Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>, Stafford Horne <shorne@gmail.com>
+Cc: Marek Szyprowski <m.szyprowski@samsung.com>, Robin Murphy <robin.murphy@arm.com>, Will Deacon <will@kernel.org>, Mark Rutland <mark.rutland@arm.com>, openrisc@lists.librecores.org, iommu@lists.linux-foundation.org, linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20200220170138.fyWDxX6gZZgfJb13cAYRWvxS5_sMuo4kN1cmlka55Rw@z>
 
-The ioreadX() helpers have inconsistent interface.  On some architectures
-void *__iomem address argument is a pointer to const, on some not.
+We currently only support remapping memory as uncached through vmap
+or a magic uncached segment provided by some architectures.  But there
+is a simpler and much better way available on some architectures where
+we can just remap the memory in place.  The advantages are:
 
-Implementations of ioreadX() do not modify the memory under the address
-so they can be converted to a "const" version for const-safety and
-consistency among architectures.
+ 1) no aliasing is possible, which prevents speculating into the
+    cached alias
+ 2) there is no need to allocate new ptes and thus no need for a special
+    pre-allocated pool of memory that can be used with GFP_ATOMIC DMA
+    allocations
 
-Signed-off-by: Krzysztof Kozlowski <krzk@kernel.org>
-Reviewed-by: Geert Uytterhoeven <geert+renesas@glider.be>
-Acked-by: Dave Jiang <dave.jiang@intel.com>
+The downside is that architectures must provide a way to set arbitrary
+pages uncached in the kernel mapping, which might not be possible on
+architecture that have a special implicit kernel mapping, and requires
+splitting of huge page kernel mappings where they exist.
 
+Signed-off-by: Christoph Hellwig <hch@lst.de>
 ---
+ include/linux/dma-noncoherent.h |  3 +++
+ kernel/dma/Kconfig              |  8 ++++++++
+ kernel/dma/direct.c             | 28 ++++++++++++++++++----------
+ 3 files changed, 29 insertions(+), 10 deletions(-)
 
-Changes since v1:
-1. Add Geert's review.
-2. Add Dave's ack.
----
- drivers/ntb/hw/intel/ntb_hw_gen1.c  | 2 +-
- drivers/ntb/hw/intel/ntb_hw_gen3.h  | 2 +-
- drivers/ntb/hw/intel/ntb_hw_intel.h | 2 +-
- 3 files changed, 3 insertions(+), 3 deletions(-)
-
-diff --git a/drivers/ntb/hw/intel/ntb_hw_gen1.c b/drivers/ntb/hw/intel/ntb_hw_gen1.c
-index bb57ec239029..9202502a9787 100644
---- a/drivers/ntb/hw/intel/ntb_hw_gen1.c
-+++ b/drivers/ntb/hw/intel/ntb_hw_gen1.c
-@@ -1202,7 +1202,7 @@ int intel_ntb_peer_spad_write(struct ntb_dev *ntb, int pidx, int sidx,
- 			       ndev->peer_reg->spad);
+diff --git a/include/linux/dma-noncoherent.h b/include/linux/dma-noncoherent.h
+index ca9b5770caee..0820ec58f119 100644
+--- a/include/linux/dma-noncoherent.h
++++ b/include/linux/dma-noncoherent.h
+@@ -111,4 +111,7 @@ static inline void arch_dma_prep_coherent(struct page *page, size_t size)
+ void *uncached_kernel_address(void *addr);
+ void *cached_kernel_address(void *addr);
+ 
++int arch_dma_set_uncached(void *cpu_addr, size_t size);
++void arch_dma_clear_uncached(void *cpu_addr, size_t size);
++
+ #endif /* _LINUX_DMA_NONCOHERENT_H */
+diff --git a/kernel/dma/Kconfig b/kernel/dma/Kconfig
+index 4c103a24e380..7bc0b77f1243 100644
+--- a/kernel/dma/Kconfig
++++ b/kernel/dma/Kconfig
+@@ -83,6 +83,14 @@ config DMA_DIRECT_REMAP
+ 	bool
+ 	select DMA_REMAP
+ 
++#
++# Should be selected if the architecture can remap memory from the page
++# allocator and CMA as uncached and provides the arch_dma_set_uncached and
++# arch_dma_clear_uncached helpers
++#
++config ARCH_HAS_DMA_SET_UNCACHED
++	bool
++
+ config DMA_CMA
+ 	bool "DMA Contiguous Memory Allocator"
+ 	depends on HAVE_DMA_CONTIGUOUS && CMA
+diff --git a/kernel/dma/direct.c b/kernel/dma/direct.c
+index 6af7ae83c4ad..73fe65a4cbc0 100644
+--- a/kernel/dma/direct.c
++++ b/kernel/dma/direct.c
+@@ -169,11 +169,8 @@ void *dma_direct_alloc_pages(struct device *dev, size_t size,
+ 		ret = dma_common_contiguous_remap(page, PAGE_ALIGN(size),
+ 				dma_pgprot(dev, PAGE_KERNEL, attrs),
+ 				__builtin_return_address(0));
+-		if (!ret) {
+-			dma_free_contiguous(dev, page, size);
+-			return ret;
+-		}
+-
++		if (!ret)
++			goto out_free_pages;
+ 		memset(ret, 0, size);
+ 		goto done;
+ 	}
+@@ -186,8 +183,7 @@ void *dma_direct_alloc_pages(struct device *dev, size_t size,
+ 		 * so log an error and fail.
+ 		 */
+ 		dev_info(dev, "Rejecting highmem page from CMA.\n");
+-		dma_free_contiguous(dev, page, size);
+-		return NULL;
++		goto out_free_pages;
+ 	}
+ 
+ 	ret = page_address(page);
+@@ -196,10 +192,15 @@ void *dma_direct_alloc_pages(struct device *dev, size_t size,
+ 
+ 	memset(ret, 0, size);
+ 
+-	if (IS_ENABLED(CONFIG_ARCH_HAS_UNCACHED_SEGMENT) &&
+-	    dma_alloc_need_uncached(dev, attrs)) {
++	if (dma_alloc_need_uncached(dev, attrs)) {
+ 		arch_dma_prep_coherent(page, size);
+-		ret = uncached_kernel_address(ret);
++
++		if (IS_ENABLED(CONFIG_ARCH_HAS_DMA_SET_UNCACHED)) {
++			if (!arch_dma_set_uncached(ret, size))
++				goto out_free_pages;
++		} else if (IS_ENABLED(CONFIG_ARCH_HAS_UNCACHED_SEGMENT)) {
++			ret = uncached_kernel_address(ret);
++		}
+ 	}
+ done:
+ 	if (force_dma_unencrypted(dev))
+@@ -207,6 +208,9 @@ void *dma_direct_alloc_pages(struct device *dev, size_t size,
+ 	else
+ 		*dma_handle = phys_to_dma(dev, page_to_phys(page));
+ 	return ret;
++out_free_pages:
++	dma_free_contiguous(dev, page, size);
++	return NULL;
  }
  
--static u64 xeon_db_ioread(void __iomem *mmio)
-+static u64 xeon_db_ioread(const void __iomem *mmio)
- {
- 	return (u64)ioread16(mmio);
- }
-diff --git a/drivers/ntb/hw/intel/ntb_hw_gen3.h b/drivers/ntb/hw/intel/ntb_hw_gen3.h
-index 75fb86ca27bb..d1455f24ec99 100644
---- a/drivers/ntb/hw/intel/ntb_hw_gen3.h
-+++ b/drivers/ntb/hw/intel/ntb_hw_gen3.h
-@@ -91,7 +91,7 @@
- #define GEN3_DB_TOTAL_SHIFT		33
- #define GEN3_SPAD_COUNT			16
+ void dma_direct_free_pages(struct device *dev, size_t size, void *cpu_addr,
+@@ -230,6 +234,8 @@ void dma_direct_free_pages(struct device *dev, size_t size, void *cpu_addr,
  
--static inline u64 gen3_db_ioread(void __iomem *mmio)
-+static inline u64 gen3_db_ioread(const void __iomem *mmio)
- {
- 	return ioread64(mmio);
+ 	if (IS_ENABLED(CONFIG_DMA_REMAP) && is_vmalloc_addr(cpu_addr))
+ 		vunmap(cpu_addr);
++	else if (IS_ENABLED(CONFIG_ARCH_HAS_DMA_SET_UNCACHED))
++		arch_dma_clear_uncached(cpu_addr, size);
+ 
+ 	dma_free_contiguous(dev, dma_direct_to_page(dev, dma_addr), size);
  }
-diff --git a/drivers/ntb/hw/intel/ntb_hw_intel.h b/drivers/ntb/hw/intel/ntb_hw_intel.h
-index e071e28bca3f..3c0a5a2da241 100644
---- a/drivers/ntb/hw/intel/ntb_hw_intel.h
-+++ b/drivers/ntb/hw/intel/ntb_hw_intel.h
-@@ -102,7 +102,7 @@ struct intel_ntb_dev;
- struct intel_ntb_reg {
- 	int (*poll_link)(struct intel_ntb_dev *ndev);
- 	int (*link_is_up)(struct intel_ntb_dev *ndev);
--	u64 (*db_ioread)(void __iomem *mmio);
-+	u64 (*db_ioread)(const void __iomem *mmio);
- 	void (*db_iowrite)(u64 db_bits, void __iomem *mmio);
- 	unsigned long			ntb_ctl;
- 	resource_size_t			db_size;
+@@ -238,6 +244,7 @@ void *dma_direct_alloc(struct device *dev, size_t size,
+ 		dma_addr_t *dma_handle, gfp_t gfp, unsigned long attrs)
+ {
+ 	if (!IS_ENABLED(CONFIG_ARCH_HAS_UNCACHED_SEGMENT) &&
++	    !IS_ENABLED(CONFIG_ARCH_HAS_DMA_SET_UNCACHED) &&
+ 	    !IS_ENABLED(CONFIG_DMA_DIRECT_REMAP) &&
+ 	    dma_alloc_need_uncached(dev, attrs))
+ 		return arch_dma_alloc(dev, size, dma_handle, gfp, attrs);
+@@ -248,6 +255,7 @@ void dma_direct_free(struct device *dev, size_t size,
+ 		void *cpu_addr, dma_addr_t dma_addr, unsigned long attrs)
+ {
+ 	if (!IS_ENABLED(CONFIG_ARCH_HAS_UNCACHED_SEGMENT) &&
++	    !IS_ENABLED(CONFIG_ARCH_HAS_DMA_SET_UNCACHED) &&
+ 	    !IS_ENABLED(CONFIG_DMA_DIRECT_REMAP) &&
+ 	    dma_alloc_need_uncached(dev, attrs))
+ 		arch_dma_free(dev, size, cpu_addr, dma_addr, attrs);
 -- 
-2.17.1
+2.24.1
