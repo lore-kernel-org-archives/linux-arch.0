@@ -1,42 +1,93 @@
-From: "Mrs. Susan S. Cage" <drgoodluckebelejonathan061@gmail.com>
-Subject: Attention:Beneficiary
-Date: Thu, 20 Feb 2020 02:01:33 -0800
-Message-ID: <CALjo5=_Qzpm_i5UJy7LMJE8NVZzGGYrSOv06nwaUP2YmDSDYAg__42068.475722202$1582192900$gmane$org@mail.gmail.com>
-Reply-To: cagesusan199@gmail.com
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH v3 08/22] rcu,tracing: Create trace_rcu_{enter,exit}()
+Date: Thu, 20 Feb 2020 11:34:21 +0100
+Message-ID: <20200220103421.GV18400@hirez.programming.kicks-ass.net>
+References: <20200219144724.800607165@infradead.org>
+ <20200219150744.832297480@infradead.org>
+ <20200219104903.46686b81@gandalf.local.home>
+ <20200219155828.GF18400@hirez.programming.kicks-ass.net>
+ <20200219111532.719c0a6b@gandalf.local.home>
+ <20200219163535.GJ18400@hirez.programming.kicks-ass.net>
+ <20200219164449.GC2935@paulmck-ThinkPad-P72>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pg1-f195.google.com ([209.85.215.195]:38847 "EHLO
-        mail-pg1-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726801AbgBTKBe (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 20 Feb 2020 05:01:34 -0500
-Received: by mail-pg1-f195.google.com with SMTP id d6so1691812pgn.5
-        for <linux-arch@vger.kernel.org>; Thu, 20 Feb 2020 02:01:34 -0800 (PST)
+Received: from bombadil.infradead.org ([198.137.202.133]:54182 "EHLO
+        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727088AbgBTKet (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 20 Feb 2020 05:34:49 -0500
+Content-Disposition: inline
+In-Reply-To: <20200219164449.GC2935@paulmck-ThinkPad-P72>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
+To: "Paul E. McKenney" <paulmck@kernel.org>
+Cc: Steven Rostedt <rostedt@goodmis.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org, joel@joelfernandes.org, gregkh@linuxfoundation.org, gustavo@embeddedor.com, tglx@linutronix.de, josh@joshtriplett.org, mathieu.desnoyers@efficios.com, jiangshanlai@gmail.com, luto@kernel.org, tony.luck@intel.com, frederic@kernel.org, dan.carpenter@oracle.com, mhiramat@kernel.org
 
--- 
-Dearest Friend,
+On Wed, Feb 19, 2020 at 08:44:50AM -0800, Paul E. McKenney wrote:
+> On Wed, Feb 19, 2020 at 05:35:35PM +0100, Peter Zijlstra wrote:
 
-Sorry for invading your privacy, my name is Susan S. Cage I am 81
-years, citizen of United States and presently in hospital undergoing
-chromatography for bronchogenic carcinomas (Lung cancer) which
-affected both Lungs. The doctors said I have few days to live because
-the cancer has now affected my brain.
+> > Possibly, and I suppose the current version is less obviously dependent
+> > on the in_nmi() functionality as was the previous, seeing how Paul
+> > frobbed that all the way into the rcu_irq_enter*() implementation.
+> > 
+> > So sure, I can go move it I suppose.
+> 
+> No objections here.
 
-My late husband left Fifteen Million, Five Hundred British Pounds
-Sterling in my account, I want to transfer the money to you and I want
-you to use it as a donate for charitable and help the needy,
-motherless, less privileged and widows within your location.
+It now looks like so:
 
-I need your assurance that you will use the fund for charity, once I a
-favorable reply from you, will inform my Bank through my lawyer to
-transfer the fund to you as my Next of Kin and Sole Beneficiary. Once
-I receive your response, I will inform my bank in writing through my
-lawyer.
+---
+Subject: rcu,tracing: Create trace_rcu_{enter,exit}()
+From: Peter Zijlstra <peterz@infradead.org>
+Date: Wed Feb 12 09:18:57 CET 2020
 
+To facilitate tracers that need RCU, add some helpers to wrap the
+magic required.
 
+The problem is that we can call into tracers (trace events and
+function tracing) while RCU isn't watching and this can happen from
+any context, including NMI.
 
-Thank you and God bless you.
+Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+---
+ include/linux/rcupdate.h |   29 +++++++++++++++++++++++++++++
+ 1 file changed, 29 insertions(+)
 
-Mrs. Susan S. Cage
+--- a/include/linux/rcupdate.h
++++ b/include/linux/rcupdate.h
+@@ -175,6 +175,35 @@ do { \
+ #error "Unknown RCU implementation specified to kernel configuration"
+ #endif
+ 
++/**
++ * trace_rcu_enter - Force RCU to be active, for code that needs RCU readers
++ *
++ * Very similar to RCU_NONIDLE() above.
++ *
++ * Tracing can happen while RCU isn't active yet, for instance in the idle loop
++ * between rcu_idle_enter() and rcu_idle_exit(), or early in exception entry.
++ * RCU will happily ignore any read-side critical sections in this case.
++ *
++ * This function ensures that RCU is aware hereafter and the code can readily
++ * rely on RCU read-side critical sections working as expected.
++ *
++ * This function is NMI safe -- provided in_nmi() is correct and will nest up-to
++ * INT_MAX/2 times.
++ */
++static inline int trace_rcu_enter(void)
++{
++	int state = !rcu_is_watching();
++	if (state)
++		rcu_irq_enter_irqsave();
++	return state;
++}
++
++static inline void trace_rcu_exit(int state)
++{
++	if (state)
++		rcu_irq_exit_irqsave();
++}
++
+ /*
+  * The init_rcu_head_on_stack() and destroy_rcu_head_on_stack() calls
+  * are needed for dynamic initialization and destruction of rcu_head
