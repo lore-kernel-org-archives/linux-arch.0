@@ -1,93 +1,145 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH v3 08/22] rcu,tracing: Create trace_rcu_{enter,exit}()
-Date: Thu, 20 Feb 2020 11:34:21 +0100
-Message-ID: <20200220103421.GV18400@hirez.programming.kicks-ass.net>
-References: <20200219144724.800607165@infradead.org>
- <20200219150744.832297480@infradead.org>
- <20200219104903.46686b81@gandalf.local.home>
- <20200219155828.GF18400@hirez.programming.kicks-ass.net>
- <20200219111532.719c0a6b@gandalf.local.home>
- <20200219163535.GJ18400@hirez.programming.kicks-ass.net>
- <20200219164449.GC2935@paulmck-ThinkPad-P72>
+From: Dmitry Vyukov <dvyukov@google.com>
+Subject: Re: [PATCH v3 22/22] x86/int3: Ensure that poke_int3_handler() is not sanitized
+Date: Thu, 20 Feb 2020 11:37:32 +0100
+Message-ID: <CACT4Y+ZfxqMuiL_UF+rCku628hirJwp3t3vW5WGM8DWG6OaCeg@mail.gmail.com>
+References: <20200219144724.800607165@infradead.org> <20200219150745.651901321@infradead.org>
+ <CACT4Y+Y+nPcnbb8nXGQA1=9p8BQYrnzab_4SvuPwbAJkTGgKOQ@mail.gmail.com>
+ <20200219163025.GH18400@hirez.programming.kicks-ass.net> <20200219172014.GI14946@hirez.programming.kicks-ass.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.133]:54182 "EHLO
-        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727088AbgBTKet (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 20 Feb 2020 05:34:49 -0500
-Content-Disposition: inline
-In-Reply-To: <20200219164449.GC2935@paulmck-ThinkPad-P72>
+Received: from mail-qt1-f195.google.com ([209.85.160.195]:34323 "EHLO
+        mail-qt1-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726837AbgBTKhp (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 20 Feb 2020 05:37:45 -0500
+Received: by mail-qt1-f195.google.com with SMTP id l16so2517822qtq.1
+        for <linux-arch@vger.kernel.org>; Thu, 20 Feb 2020 02:37:44 -0800 (PST)
+In-Reply-To: <20200219172014.GI14946@hirez.programming.kicks-ass.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Paul E. McKenney" <paulmck@kernel.org>
-Cc: Steven Rostedt <rostedt@goodmis.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org, joel@joelfernandes.org, gregkh@linuxfoundation.org, gustavo@embeddedor.com, tglx@linutronix.de, josh@joshtriplett.org, mathieu.desnoyers@efficios.com, jiangshanlai@gmail.com, luto@kernel.org, tony.luck@intel.com, frederic@kernel.org, dan.carpenter@oracle.com, mhiramat@kernel.org
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: LKML <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Steven Rostedt <rostedt@goodmis.org>, Ingo Molnar <mingo@kernel.org>, Joel Fernandes <joel@joelfernandes.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, "Gustavo A. R. Silva" <gustavo@embeddedor.com>, Thomas Gleixner <tglx@linutronix.de>, "Paul E. McKenney" <paulmck@kernel.org>, Josh Triplett <josh@joshtriplett.org>, Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, Lai Jiangshan <jiangshanlai@gmail.com>, Andy Lutomirski <luto@kernel.org>, tony.luck@intel.com, Frederic Weisbecker <frederic@kernel.org>, Dan Carpenter <dan.carpenter@oracle.com>, Masami Hiramatsu <mhiramat@kernel.org>, Andrey Ryabinin <aryabinin@virtuozzo.com>, kasan-dev <kasan-dev@googlegroups.com>
 
-On Wed, Feb 19, 2020 at 08:44:50AM -0800, Paul E. McKenney wrote:
-> On Wed, Feb 19, 2020 at 05:35:35PM +0100, Peter Zijlstra wrote:
+On Wed, Feb 19, 2020 at 6:20 PM Peter Zijlstra <peterz@infradead.org> wrote:
+>
+> On Wed, Feb 19, 2020 at 05:30:25PM +0100, Peter Zijlstra wrote:
+>
+> > By inlining everything in poke_int3_handler() (except bsearch :/) we can
+> > mark the whole function off limits to everything and call it a day. That
+> > simplicity has been the guiding principle so far.
+> >
+> > Alternatively we can provide an __always_inline variant of bsearch().
+>
+> This reduces the __no_sanitize usage to just the exception entry
+> (do_int3) and the critical function: poke_int3_handler().
+>
+> Is this more acceptible?
 
-> > Possibly, and I suppose the current version is less obviously dependent
-> > on the in_nmi() functionality as was the previous, seeing how Paul
-> > frobbed that all the way into the rcu_irq_enter*() implementation.
-> > 
-> > So sure, I can go move it I suppose.
-> 
-> No objections here.
+Let's say it's more acceptable.
 
-It now looks like so:
+Acked-by: Dmitry Vyukov <dvyukov@google.com>
 
----
-Subject: rcu,tracing: Create trace_rcu_{enter,exit}()
-From: Peter Zijlstra <peterz@infradead.org>
-Date: Wed Feb 12 09:18:57 CET 2020
+I guess there is no ideal solution here.
 
-To facilitate tracers that need RCU, add some helpers to wrap the
-magic required.
+Just a straw man proposal: expected number of elements is large enough
+to make bsearch profitable, right? I see 1 is a common case, but the
+other case has multiple entries.
 
-The problem is that we can call into tracers (trace events and
-function tracing) while RCU isn't watching and this can happen from
-any context, including NMI.
-
-Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
----
- include/linux/rcupdate.h |   29 +++++++++++++++++++++++++++++
- 1 file changed, 29 insertions(+)
-
---- a/include/linux/rcupdate.h
-+++ b/include/linux/rcupdate.h
-@@ -175,6 +175,35 @@ do { \
- #error "Unknown RCU implementation specified to kernel configuration"
- #endif
- 
-+/**
-+ * trace_rcu_enter - Force RCU to be active, for code that needs RCU readers
-+ *
-+ * Very similar to RCU_NONIDLE() above.
-+ *
-+ * Tracing can happen while RCU isn't active yet, for instance in the idle loop
-+ * between rcu_idle_enter() and rcu_idle_exit(), or early in exception entry.
-+ * RCU will happily ignore any read-side critical sections in this case.
-+ *
-+ * This function ensures that RCU is aware hereafter and the code can readily
-+ * rely on RCU read-side critical sections working as expected.
-+ *
-+ * This function is NMI safe -- provided in_nmi() is correct and will nest up-to
-+ * INT_MAX/2 times.
-+ */
-+static inline int trace_rcu_enter(void)
-+{
-+	int state = !rcu_is_watching();
-+	if (state)
-+		rcu_irq_enter_irqsave();
-+	return state;
-+}
-+
-+static inline void trace_rcu_exit(int state)
-+{
-+	if (state)
-+		rcu_irq_exit_irqsave();
-+}
-+
- /*
-  * The init_rcu_head_on_stack() and destroy_rcu_head_on_stack() calls
-  * are needed for dynamic initialization and destruction of rcu_head
+> --- a/arch/x86/kernel/alternative.c
+> +++ b/arch/x86/kernel/alternative.c
+> @@ -979,7 +979,7 @@ static __always_inline void *text_poke_a
+>         return _stext + tp->rel_addr;
+>  }
+>
+> -static int notrace __no_sanitize patch_cmp(const void *key, const void *elt)
+> +static __always_inline int patch_cmp(const void *key, const void *elt)
+>  {
+>         struct text_poke_loc *tp = (struct text_poke_loc *) elt;
+>
+> @@ -989,7 +989,6 @@ static int notrace __no_sanitize patch_c
+>                 return 1;
+>         return 0;
+>  }
+> -NOKPROBE_SYMBOL(patch_cmp);
+>
+>  int notrace __no_sanitize poke_int3_handler(struct pt_regs *regs)
+>  {
+> @@ -1024,9 +1023,9 @@ int notrace __no_sanitize poke_int3_hand
+>          * Skip the binary search if there is a single member in the vector.
+>          */
+>         if (unlikely(desc->nr_entries > 1)) {
+> -               tp = bsearch(ip, desc->vec, desc->nr_entries,
+> -                            sizeof(struct text_poke_loc),
+> -                            patch_cmp);
+> +               tp = __bsearch(ip, desc->vec, desc->nr_entries,
+> +                              sizeof(struct text_poke_loc),
+> +                              patch_cmp);
+>                 if (!tp)
+>                         goto out_put;
+>         } else {
+> --- a/include/linux/bsearch.h
+> +++ b/include/linux/bsearch.h
+> @@ -4,7 +4,29 @@
+>
+>  #include <linux/types.h>
+>
+> -void *bsearch(const void *key, const void *base, size_t num, size_t size,
+> -             cmp_func_t cmp);
+> +static __always_inline
+> +void *__bsearch(const void *key, const void *base, size_t num, size_t size, cmp_func_t cmp)
+> +{
+> +       const char *pivot;
+> +       int result;
+> +
+> +       while (num > 0) {
+> +               pivot = base + (num >> 1) * size;
+> +               result = cmp(key, pivot);
+> +
+> +               if (result == 0)
+> +                       return (void *)pivot;
+> +
+> +               if (result > 0) {
+> +                       base = pivot + size;
+> +                       num--;
+> +               }
+> +               num >>= 1;
+> +       }
+> +
+> +       return NULL;
+> +}
+> +
+> +extern void *bsearch(const void *key, const void *base, size_t num, size_t size, cmp_func_t cmp);
+>
+>  #endif /* _LINUX_BSEARCH_H */
+> --- a/lib/bsearch.c
+> +++ b/lib/bsearch.c
+> @@ -28,27 +28,9 @@
+>   * the key and elements in the array are of the same type, you can use
+>   * the same comparison function for both sort() and bsearch().
+>   */
+> -void __no_sanitize *bsearch(const void *key, const void *base, size_t num, size_t size,
+> -             cmp_func_t cmp)
+> +void *bsearch(const void *key, const void *base, size_t num, size_t size, cmp_func_t cmp)
+>  {
+> -       const char *pivot;
+> -       int result;
+> -
+> -       while (num > 0) {
+> -               pivot = base + (num >> 1) * size;
+> -               result = cmp(key, pivot);
+> -
+> -               if (result == 0)
+> -                       return (void *)pivot;
+> -
+> -               if (result > 0) {
+> -                       base = pivot + size;
+> -                       num--;
+> -               }
+> -               num >>= 1;
+> -       }
+> -
+> -       return NULL;
+> +       __bsearch(key, base, num, size, cmp);
+>  }
+>  EXPORT_SYMBOL(bsearch);
+>  NOKPROBE_SYMBOL(bsearch);
