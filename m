@@ -1,76 +1,62 @@
-From: Masami Hiramatsu <mhiramat@kernel.org>
-Subject: Re: [PATCH] rcu/kprobes: Comment why rcu_nmi_enter() is marked
- NOKPROBE
-Date: Thu, 20 Feb 2020 14:54:39 +0900
-Message-ID: <20200220145439.983987683f7d5fd08832d8a1@kernel.org>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH v3 02/22] x86,mce: Delete ist_begin_non_atomic()
+Date: Thu, 20 Feb 2020 08:39:18 +0100
+Message-ID: <20200220073918.GR18400@hirez.programming.kicks-ass.net>
 References: <20200219144724.800607165@infradead.org>
-        <20200219150744.661923520@infradead.org>
-        <20200219163156.GY2935@paulmck-ThinkPad-P72>
-        <20200219121609.45548925@gandalf.local.home>
+ <20200219150744.488895196@infradead.org>
+ <20200219171309.GC32346@zn.tnic>
+ <CALCETrWBEDjenqze3wVc6TkUt_g+OFx9TQbYysLH+6fku=aWjQ@mail.gmail.com>
+ <20200219173358.GP18400@hirez.programming.kicks-ass.net>
+ <CALCETrVdNCRoToO2-mxhPxO2zaRU6urTffBn7iSTgHaGpB523Q@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:37316 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726027AbgBTFyr (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 20 Feb 2020 00:54:47 -0500
-In-Reply-To: <20200219121609.45548925@gandalf.local.home>
+Received: from merlin.infradead.org ([205.233.59.134]:32872 "EHLO
+        merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726756AbgBTHkS (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 20 Feb 2020 02:40:18 -0500
+Content-Disposition: inline
+In-Reply-To: <CALCETrVdNCRoToO2-mxhPxO2zaRU6urTffBn7iSTgHaGpB523Q@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Steven Rostedt <rostedt@goodmis.org>
-Cc: "Paul E. McKenney" <paulmck@kernel.org>, Peter Zijlstra <peterz@infradead.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org, joel@joelfernandes.org, gregkh@linuxfoundation.org, gustavo@embeddedor.com, tglx@linutronix.de, josh@joshtriplett.org, mathieu.desnoyers@efficios.com, jiangshanlai@gmail.com, luto@kernel.org, tony.luck@intel.com, frederic@kernel.org, dan.carpenter@oracle.com, mhiramat@kernel.org
+To: Andy Lutomirski <luto@kernel.org>
+Cc: Borislav Petkov <bp@alien8.de>, LKML <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Steven Rostedt <rostedt@goodmis.org>, Ingo Molnar <mingo@kernel.org>, Joel Fernandes <joel@joelfernandes.org>, Greg KH <gregkh@linuxfoundation.org>, gustavo@embeddedor.com, Thomas Gleixner <tglx@linutronix.de>, paulmck@kernel.org, Josh Triplett <josh@joshtriplett.org>, Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, Lai Jiangshan <jiangshanlai@gmail.com>, Tony Luck <tony.luck@intel.com>, Frederic Weisbecker <frederic@kernel.org>, Dan Carpenter <dan.carpenter@oracle.com>, Masami Hiramatsu <mhiramat@kernel.org>
 
-On Wed, 19 Feb 2020 12:16:09 -0500
-Steven Rostedt <rostedt@goodmis.org> wrote:
+On Wed, Feb 19, 2020 at 02:12:13PM -0800, Andy Lutomirski wrote:
+> On Wed, Feb 19, 2020 at 9:34 AM Peter Zijlstra <peterz@infradead.org> wrote:
 
-> From: Steven Rostedt (VMware) <rostedt@goodmis.org>
+> > Do you really want to create code that unwinds enough of nmi_enter() to
+> > get you to a preemptible context? *shudder*
 > 
-> It's confusing that rcu_nmi_enter() is marked NOKPROBE and
-> rcu_nmi_exit() is not. One may think that the exit needs to be marked
-> for the same reason the enter is, as rcu_nmi_exit() reverts the RCU
-> state back to what it was before rcu_nmi_enter(). But the reason has
-> nothing to do with the state of RCU.
+> Well, there's another way to approach this:
 > 
-> The breakpoint handler (int3 on x86) must not have any kprobe on it
-> until the kprobe handler is called. Otherwise, it can cause an infinite
-> recursion and crash the machine. It just so happens that
-> rcu_nmi_enter() is called by the int3 handler before the kprobe handler
-> can run, and therefore needs to be marked as NOKPROBE.
+> void notrace nonothing do_machine_check(struct pt_regs *regs)
+> {
+>   if (user_mode(regs))
+>     do_sane_machine_check(regs);
+>   else
+>     do_awful_machine_check(regs);
+> }
 > 
-> Comment this to remove the confusion to why rcu_nmi_enter() is marked
-> NOKPROBE but rcu_nmi_exit() is not.
-
-Looks good to me.
-
-Reviewed-by: Masami Hiramatsu <mhiramat@kernel.org>
-
-Thanks,
-
+> void do_sane_machine_check(regs)
+> {
+>   nothing special here.  just a regular exception, more or less.
+> }
 > 
-> Link: https://lore.kernel.org/r/20200213163800.5c51a5f1@gandalf.local.home
-> Signed-off-by: Steven Rostedt (VMware) <rostedt@goodmis.org>
-> ---
-> diff --git a/kernel/rcu/tree.c b/kernel/rcu/tree.c
-> index 1694a6b57ad8..ada7b2b638fb 100644
-> --- a/kernel/rcu/tree.c
-> +++ b/kernel/rcu/tree.c
-> @@ -846,6 +846,14 @@ void rcu_nmi_enter(void)
->  {
->  	rcu_nmi_enter_common(false);
->  }
-> +/*
-> + * All functions called in the breakpoint trap handler (e.g. do_int3()
-> + * on x86), must not allow kprobes until the kprobe breakpoint handler
-> + * is called, otherwise it can cause an infinite recursion.
-> + * On some archs, rcu_nmi_enter() is called in the breakpoint handler
-> + * before the kprobe breakpoint handler is called, thus it must be
-> + * marked as NOKPROBE.
-> + */
->  NOKPROBE_SYMBOL(rcu_nmi_enter);
->  
->  /**
+> void do_awful_macine_check(regs)
+> {
+>   basically an NMI.  No funny business, no recovery possible.
+> task_work_add() not allowed.
+> }
 
+Right, that looks like major surgery to the current code though; I'd
+much prefer someone that knows that code do that.
 
--- 
-Masami Hiramatsu <mhiramat@kernel.org>
+> I suppose the general consideration I'm trying to get at is: is
+> task_work_add() actually useful at all here?  For the case when a
+> kernel thread does memcpy_mcsafe() or similar, task work registered
+> using task_work_add() will never run.
+
+task_work isn't at all useful when we didn't come from userspace. In
+that case irq_work is the best option, but that doesn't provide a
+preemptible context.
