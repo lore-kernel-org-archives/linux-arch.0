@@ -1,52 +1,100 @@
-Return-Path: <SRS0=LzcT=4H=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.133]:36044 "EHLO
-        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727815AbgBSPOg (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 19 Feb 2020 10:14:36 -0500
-Message-ID: <20200219144724.800607165@infradead.org>
-Date: Wed, 19 Feb 2020 15:47:24 +0100
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: [PATCH v3 00/22] tracing vs world
+Return-Path: <SRS0=sPo6=4I=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail.kernel.org ([198.145.29.99]:38830 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1727943AbgBTN6C (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 20 Feb 2020 08:58:02 -0500
+Date: Thu, 20 Feb 2020 05:58:00 -0800
+From: "Paul E. McKenney" <paulmck@kernel.org>
+Subject: Re: [PATCH v3 08/22] rcu,tracing: Create trace_rcu_{enter,exit}()
+Message-ID: <20200220135800.GT2935@paulmck-ThinkPad-P72>
+Reply-To: paulmck@kernel.org
+References: <20200219144724.800607165@infradead.org>
+ <20200219150744.832297480@infradead.org>
+ <20200219104903.46686b81@gandalf.local.home>
+ <20200219155828.GF18400@hirez.programming.kicks-ass.net>
+ <20200219111532.719c0a6b@gandalf.local.home>
+ <20200219163535.GJ18400@hirez.programming.kicks-ass.net>
+ <20200219164449.GC2935@paulmck-ThinkPad-P72>
+ <20200220103421.GV18400@hirez.programming.kicks-ass.net>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20200220103421.GV18400@hirez.programming.kicks-ass.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, rostedt@goodmis.org
-Cc: peterz@infradead.org, mingo@kernel.org, joel@joelfernandes.org, gregkh@linuxfoundation.org, gustavo@embeddedor.com, tglx@linutronix.de, paulmck@kernel.org, josh@joshtriplett.org, mathieu.desnoyers@efficios.com, jiangshanlai@gmail.com, luto@kernel.org, tony.luck@intel.com, frederic@kernel.org, dan.carpenter@oracle.com, mhiramat@kernel.org
-Message-ID: <20200219144724.vKmy1xoUcXgEmwgsmQkbG45EVj_tiFPy1ehnht5H7Ac@z>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Steven Rostedt <rostedt@goodmis.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org, joel@joelfernandes.org, gregkh@linuxfoundation.org, gustavo@embeddedor.com, tglx@linutronix.de, josh@joshtriplett.org, mathieu.desnoyers@efficios.com, jiangshanlai@gmail.com, luto@kernel.org, tony.luck@intel.com, frederic@kernel.org, dan.carpenter@oracle.com, mhiramat@kernel.org
+Message-ID: <20200220135800.7P3LjzC4pVRsFLVh1mMN8hcfi266xUSLXY6RkFV8SaY@z>
 
-Hi all,
+On Thu, Feb 20, 2020 at 11:34:21AM +0100, Peter Zijlstra wrote:
+> On Wed, Feb 19, 2020 at 08:44:50AM -0800, Paul E. McKenney wrote:
+> > On Wed, Feb 19, 2020 at 05:35:35PM +0100, Peter Zijlstra wrote:
+> 
+> > > Possibly, and I suppose the current version is less obviously dependent
+> > > on the in_nmi() functionality as was the previous, seeing how Paul
+> > > frobbed that all the way into the rcu_irq_enter*() implementation.
+> > > 
+> > > So sure, I can go move it I suppose.
+> > 
+> > No objections here.
+> 
+> It now looks like so:
+> 
+> ---
+> Subject: rcu,tracing: Create trace_rcu_{enter,exit}()
+> From: Peter Zijlstra <peterz@infradead.org>
+> Date: Wed Feb 12 09:18:57 CET 2020
+> 
+> To facilitate tracers that need RCU, add some helpers to wrap the
+> magic required.
+> 
+> The problem is that we can call into tracers (trace events and
+> function tracing) while RCU isn't watching and this can happen from
+> any context, including NMI.
+> 
+> Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
 
+Reviewed-by: Paul E. McKenney <paulmck@kernel.org>
 
-These here patches are the result of Mathieu and Steve trying to get commit
-865e63b04e9b2 ("tracing: Add back in rcu_irq_enter/exit_irqson() for rcuidle
-tracepoints") reverted again.
-
-One of the things discovered is that tracing MUST NOT happen before nmi_enter()
-or after nmi_exit(). Audit results of the previous version are still valid.
-
-This then snowballed into auditing other exceptions, notably #MC, and #BP. Lots
-of patches came out of that.
-
-I would love for some tooling in this area. Dan, smatch has full callchains
-right? Would it be possible to have an __assert_no_tracing__() marker of sorts
-that validates that no possible callchain reaching that assertion has hit
-tracing before that point?
-
-It would mean you have to handle the various means of 'notrace' annotation
-(both the function attribute as well as the Makefile rules), recognising
-tracepoints and ideally handling NOKPROBE annotations.
-
-Changes since -v2:
-
- - #MC / ist_enter() audit -- first 4 patches. After this in_nmi() should
-   always be set 'correctly'.
- - RCU IRQ enter/exit function simplification
- - #BP / poke_int3_handler() audit -- last many patches.
- - pulled in some locking/kcsan patches
-
-Changes since -v1:
-
- - Added tags
- - Changed #4; changed nmi_enter() to use __preempt_count_add() vs
-   marking preempt_count_add() notrace.
- - Changed #5; confusion on which functions are notrace due to Makefile
- - Added #9; remove limitation on the perf-function-trace coupling
+> ---
+>  include/linux/rcupdate.h |   29 +++++++++++++++++++++++++++++
+>  1 file changed, 29 insertions(+)
+> 
+> --- a/include/linux/rcupdate.h
+> +++ b/include/linux/rcupdate.h
+> @@ -175,6 +175,35 @@ do { \
+>  #error "Unknown RCU implementation specified to kernel configuration"
+>  #endif
+>  
+> +/**
+> + * trace_rcu_enter - Force RCU to be active, for code that needs RCU readers
+> + *
+> + * Very similar to RCU_NONIDLE() above.
+> + *
+> + * Tracing can happen while RCU isn't active yet, for instance in the idle loop
+> + * between rcu_idle_enter() and rcu_idle_exit(), or early in exception entry.
+> + * RCU will happily ignore any read-side critical sections in this case.
+> + *
+> + * This function ensures that RCU is aware hereafter and the code can readily
+> + * rely on RCU read-side critical sections working as expected.
+> + *
+> + * This function is NMI safe -- provided in_nmi() is correct and will nest up-to
+> + * INT_MAX/2 times.
+> + */
+> +static inline int trace_rcu_enter(void)
+> +{
+> +	int state = !rcu_is_watching();
+> +	if (state)
+> +		rcu_irq_enter_irqsave();
+> +	return state;
+> +}
+> +
+> +static inline void trace_rcu_exit(int state)
+> +{
+> +	if (state)
+> +		rcu_irq_exit_irqsave();
+> +}
+> +
+>  /*
+>   * The init_rcu_head_on_stack() and destroy_rcu_head_on_stack() calls
+>   * are needed for dynamic initialization and destruction of rcu_head
