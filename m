@@ -1,63 +1,128 @@
-From: Dmitry Vyukov <dvyukov@google.com>
-Subject: Re: [PATCH v3 22/22] x86/int3: Ensure that poke_int3_handler() is not sanitized
-Date: Thu, 20 Feb 2020 17:22:14 +0100
-Message-ID: <CACT4Y+bj_Onff8jUP97AVRhmdeN0QRrGcd9KRPSfnFTHAHyxtA@mail.gmail.com>
-References: <20200219144724.800607165@infradead.org> <20200219150745.651901321@infradead.org>
- <CACT4Y+Y+nPcnbb8nXGQA1=9p8BQYrnzab_4SvuPwbAJkTGgKOQ@mail.gmail.com>
- <20200219163025.GH18400@hirez.programming.kicks-ass.net> <20200219172014.GI14946@hirez.programming.kicks-ass.net>
- <CACT4Y+ZfxqMuiL_UF+rCku628hirJwp3t3vW5WGM8DWG6OaCeg@mail.gmail.com> <20200220120631.GX18400@hirez.programming.kicks-ass.net>
+From: Christoph Hellwig <hch@lst.de>
+Subject: [PATCH 2/2] openrisc: use the generic in-place uncached DMA allocator
+Date: Thu, 20 Feb 2020 09:01:39 -0800
+Message-ID: <20200220170139.387354-3-hch@lst.de>
+References: <20200220170139.387354-1-hch@lst.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qt1-f193.google.com ([209.85.160.193]:41690 "EHLO
-        mail-qt1-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728021AbgBTQW0 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 20 Feb 2020 11:22:26 -0500
-Received: by mail-qt1-f193.google.com with SMTP id l21so3257950qtr.8
-        for <linux-arch@vger.kernel.org>; Thu, 20 Feb 2020 08:22:25 -0800 (PST)
-In-Reply-To: <20200220120631.GX18400@hirez.programming.kicks-ass.net>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: LKML <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Steven Rostedt <rostedt@goodmis.org>, Ingo Molnar <mingo@kernel.org>, Joel Fernandes <joel@joelfernandes.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, "Gustavo A. R. Silva" <gustavo@embeddedor.com>, Thomas Gleixner <tglx@linutronix.de>, "Paul E. McKenney" <paulmck@kernel.org>, Josh Triplett <josh@joshtriplett.org>, Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, Lai Jiangshan <jiangshanlai@gmail.com>, Andy Lutomirski <luto@kernel.org>, tony.luck@intel.com, Frederic Weisbecker <frederic@kernel.org>, Dan Carpenter <dan.carpenter@oracle.com>, Masami Hiramatsu <mhiramat@kernel.org>, Andrey Ryabinin <aryabinin@virtuozzo.com>, kasan-dev <kasan-dev@googlegroups.com>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane-mx.org@lists.infradead.org>
+In-Reply-To: <20200220170139.387354-1-hch@lst.de>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane-mx.org@lists.infradead.org
+To: Jonas Bonn <jonas@southpole.se>, Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>, Stafford Horne <shorne@gmail.com>
+Cc: Mark Rutland <mark.rutland@arm.com>, linux-arch@vger.kernel.org, Robin Murphy <robin.murphy@arm.com>, linux-kernel@vger.kernel.org, iommu@lists.linux-foundation.org, openrisc@lists.librecores.org, Will Deacon <will@kernel.org>, linux-arm-kernel@lists.infradead.org, Marek Szyprowski <m.szyprowski@samsung.com>
+List-Id: linux-arch.vger.kernel.org
 
-On Thu, Feb 20, 2020 at 1:06 PM Peter Zijlstra <peterz@infradead.org> wrote:
->
-> On Thu, Feb 20, 2020 at 11:37:32AM +0100, Dmitry Vyukov wrote:
-> > On Wed, Feb 19, 2020 at 6:20 PM Peter Zijlstra <peterz@infradead.org> wrote:
-> > >
-> > > On Wed, Feb 19, 2020 at 05:30:25PM +0100, Peter Zijlstra wrote:
-> > >
-> > > > By inlining everything in poke_int3_handler() (except bsearch :/) we can
-> > > > mark the whole function off limits to everything and call it a day. That
-> > > > simplicity has been the guiding principle so far.
-> > > >
-> > > > Alternatively we can provide an __always_inline variant of bsearch().
-> > >
-> > > This reduces the __no_sanitize usage to just the exception entry
-> > > (do_int3) and the critical function: poke_int3_handler().
-> > >
-> > > Is this more acceptible?
-> >
-> > Let's say it's more acceptable.
-> >
-> > Acked-by: Dmitry Vyukov <dvyukov@google.com>
->
-> Thanks, I'll go make it happen.
->
-> > I guess there is no ideal solution here.
-> >
-> > Just a straw man proposal: expected number of elements is large enough
-> > to make bsearch profitable, right? I see 1 is a common case, but the
-> > other case has multiple entries.
->
-> Latency was the consideration; the linear search would dramatically
-> increase the runtime of the exception.
->
-> The current limit is 256 entries and we're hitting that quite often.
->
-> (we can trivially increase, but nobody has been able to show significant
-> benefits for that -- as of yet)
+Switch openrisc to use the dma-direct allocator and just provide the
+hooks for setting memory uncached or cached.
 
-I see. Thanks for explaining. Just wanted to check because inlining a
-linear search would free us from all these unpleasant problems.
+Signed-off-by: Christoph Hellwig <hch@lst.de>
+---
+ arch/openrisc/Kconfig      |  1 +
+ arch/openrisc/kernel/dma.c | 51 +++++---------------------------------
+ 2 files changed, 7 insertions(+), 45 deletions(-)
+
+diff --git a/arch/openrisc/Kconfig b/arch/openrisc/Kconfig
+index 1928e061ff96..041fff4326dc 100644
+--- a/arch/openrisc/Kconfig
++++ b/arch/openrisc/Kconfig
+@@ -7,6 +7,7 @@
+ config OPENRISC
+ 	def_bool y
+ 	select ARCH_32BIT_OFF_T
++	select ARCH_HAS_DMA_SET_UNCACHED
+ 	select ARCH_HAS_SYNC_DMA_FOR_DEVICE
+ 	select OF
+ 	select OF_EARLY_FLATTREE
+diff --git a/arch/openrisc/kernel/dma.c b/arch/openrisc/kernel/dma.c
+index adec711ad39d..c73d2b3ae267 100644
+--- a/arch/openrisc/kernel/dma.c
++++ b/arch/openrisc/kernel/dma.c
+@@ -11,8 +11,6 @@
+  * Copyright (C) 2010-2011 Jonas Bonn <jonas@southpole.se>
+  *
+  * DMA mapping callbacks...
+- * As alloc_coherent is the only DMA callback being used currently, that's
+- * the only thing implemented properly.  The rest need looking into...
+  */
+ 
+ #include <linux/dma-noncoherent.h>
+@@ -67,62 +65,25 @@ static const struct mm_walk_ops clear_nocache_walk_ops = {
+ 	.pte_entry		= page_clear_nocache,
+ };
+ 
+-/*
+- * Alloc "coherent" memory, which for OpenRISC means simply uncached.
+- *
+- * This function effectively just calls __get_free_pages, sets the
+- * cache-inhibit bit on those pages, and makes sure that the pages are
+- * flushed out of the cache before they are used.
+- *
+- * If the NON_CONSISTENT attribute is set, then this function just
+- * returns "normal", cachable memory.
+- *
+- * There are additional flags WEAK_ORDERING and WRITE_COMBINE to take
+- * into consideration here, too.  All current known implementations of
+- * the OR1K support only strongly ordered memory accesses, so that flag
+- * is being ignored for now; uncached but write-combined memory is a
+- * missing feature of the OR1K.
+- */
+-void *
+-arch_dma_alloc(struct device *dev, size_t size, dma_addr_t *dma_handle,
+-		gfp_t gfp, unsigned long attrs)
++int arch_dma_set_uncached(void *cpu_addr, size_t size)
+ {
+-	unsigned long va;
+-	void *page;
+-
+-	page = alloc_pages_exact(size, gfp | __GFP_ZERO);
+-	if (!page)
+-		return NULL;
+-
+-	/* This gives us the real physical address of the first page. */
+-	*dma_handle = __pa(page);
+-
+-	va = (unsigned long)page;
++	unsigned long va = (unsigned long)cpu_addr;
+ 
+ 	/*
+ 	 * We need to iterate through the pages, clearing the dcache for
+ 	 * them and setting the cache-inhibit bit.
+ 	 */
+-	if (walk_page_range(&init_mm, va, va + size, &set_nocache_walk_ops,
+-			NULL)) {
+-		free_pages_exact(page, size);
+-		return NULL;
+-	}
+-
+-	return (void *)va;
++	return walk_page_range(&init_mm, va, va + size, &set_nocache_walk_ops,
++			NULL);
+ }
+ 
+-void
+-arch_dma_free(struct device *dev, size_t size, void *vaddr,
+-		dma_addr_t dma_handle, unsigned long attrs)
++void arch_dma_clear_uncached(void *cpu_addr, size_t size)
+ {
+-	unsigned long va = (unsigned long)vaddr;
++	unsigned long va = (unsigned long)cpu_addr;
+ 
+ 	/* walk_page_range shouldn't be able to fail here */
+ 	WARN_ON(walk_page_range(&init_mm, va, va + size,
+ 			&clear_nocache_walk_ops, NULL));
+-
+-	free_pages_exact(vaddr, size);
+ }
+ 
+ void arch_sync_dma_for_device(phys_addr_t addr, size_t size,
+-- 
+2.24.1
