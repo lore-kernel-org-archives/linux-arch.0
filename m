@@ -1,145 +1,83 @@
-From: Dmitry Vyukov <dvyukov@google.com>
-Subject: Re: [PATCH v3 22/22] x86/int3: Ensure that poke_int3_handler() is not sanitized
-Date: Thu, 20 Feb 2020 11:37:32 +0100
-Message-ID: <CACT4Y+ZfxqMuiL_UF+rCku628hirJwp3t3vW5WGM8DWG6OaCeg@mail.gmail.com>
-References: <20200219144724.800607165@infradead.org> <20200219150745.651901321@infradead.org>
- <CACT4Y+Y+nPcnbb8nXGQA1=9p8BQYrnzab_4SvuPwbAJkTGgKOQ@mail.gmail.com>
- <20200219163025.GH18400@hirez.programming.kicks-ass.net> <20200219172014.GI14946@hirez.programming.kicks-ass.net>
+From: Borislav Petkov <bp@alien8.de>
+Subject: Re: [PATCH v3 03/22] x86: Replace ist_enter() with nmi_enter()
+Date: Thu, 20 Feb 2020 11:54:39 +0100
+Message-ID: <20200220105439.GA507@zn.tnic>
+References: <20200219144724.800607165@infradead.org>
+ <20200219150744.547288232@infradead.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=utf-8
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qt1-f195.google.com ([209.85.160.195]:34323 "EHLO
-        mail-qt1-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726837AbgBTKhp (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 20 Feb 2020 05:37:45 -0500
-Received: by mail-qt1-f195.google.com with SMTP id l16so2517822qtq.1
-        for <linux-arch@vger.kernel.org>; Thu, 20 Feb 2020 02:37:44 -0800 (PST)
-In-Reply-To: <20200219172014.GI14946@hirez.programming.kicks-ass.net>
+Received: from mail.skyhub.de ([5.9.137.197]:34572 "EHLO mail.skyhub.de"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726501AbgBTKyt (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 20 Feb 2020 05:54:49 -0500
+Content-Disposition: inline
+In-Reply-To: <20200219150744.547288232@infradead.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Peter Zijlstra <peterz@infradead.org>
-Cc: LKML <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Steven Rostedt <rostedt@goodmis.org>, Ingo Molnar <mingo@kernel.org>, Joel Fernandes <joel@joelfernandes.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, "Gustavo A. R. Silva" <gustavo@embeddedor.com>, Thomas Gleixner <tglx@linutronix.de>, "Paul E. McKenney" <paulmck@kernel.org>, Josh Triplett <josh@joshtriplett.org>, Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, Lai Jiangshan <jiangshanlai@gmail.com>, Andy Lutomirski <luto@kernel.org>, tony.luck@intel.com, Frederic Weisbecker <frederic@kernel.org>, Dan Carpenter <dan.carpenter@oracle.com>, Masami Hiramatsu <mhiramat@kernel.org>, Andrey Ryabinin <aryabinin@virtuozzo.com>, kasan-dev <kasan-dev@googlegroups.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, rostedt@goodmis.org, mingo@kernel.org, joel@joelfernandes.org, gregkh@linuxfoundation.org, gustavo@embeddedor.com, tglx@linutronix.de, paulmck@kernel.org, josh@joshtriplett.org, mathieu.desnoyers@efficios.com, jiangshanlai@gmail.com, luto@kernel.org, tony.luck@intel.com, frederic@kernel.org, dan.carpenter@oracle.com, mhiramat@kernel.org
 
-On Wed, Feb 19, 2020 at 6:20 PM Peter Zijlstra <peterz@infradead.org> wrote:
->
-> On Wed, Feb 19, 2020 at 05:30:25PM +0100, Peter Zijlstra wrote:
->
-> > By inlining everything in poke_int3_handler() (except bsearch :/) we can
-> > mark the whole function off limits to everything and call it a day. That
-> > simplicity has been the guiding principle so far.
-> >
-> > Alternatively we can provide an __always_inline variant of bsearch().
->
-> This reduces the __no_sanitize usage to just the exception entry
-> (do_int3) and the critical function: poke_int3_handler().
->
-> Is this more acceptible?
-
-Let's say it's more acceptable.
-
-Acked-by: Dmitry Vyukov <dvyukov@google.com>
-
-I guess there is no ideal solution here.
-
-Just a straw man proposal: expected number of elements is large enough
-to make bsearch profitable, right? I see 1 is a common case, but the
-other case has multiple entries.
-
-> --- a/arch/x86/kernel/alternative.c
-> +++ b/arch/x86/kernel/alternative.c
-> @@ -979,7 +979,7 @@ static __always_inline void *text_poke_a
->         return _stext + tp->rel_addr;
->  }
->
-> -static int notrace __no_sanitize patch_cmp(const void *key, const void *elt)
-> +static __always_inline int patch_cmp(const void *key, const void *elt)
->  {
->         struct text_poke_loc *tp = (struct text_poke_loc *) elt;
->
-> @@ -989,7 +989,6 @@ static int notrace __no_sanitize patch_c
->                 return 1;
->         return 0;
->  }
-> -NOKPROBE_SYMBOL(patch_cmp);
->
->  int notrace __no_sanitize poke_int3_handler(struct pt_regs *regs)
->  {
-> @@ -1024,9 +1023,9 @@ int notrace __no_sanitize poke_int3_hand
->          * Skip the binary search if there is a single member in the vector.
->          */
->         if (unlikely(desc->nr_entries > 1)) {
-> -               tp = bsearch(ip, desc->vec, desc->nr_entries,
-> -                            sizeof(struct text_poke_loc),
-> -                            patch_cmp);
-> +               tp = __bsearch(ip, desc->vec, desc->nr_entries,
-> +                              sizeof(struct text_poke_loc),
-> +                              patch_cmp);
->                 if (!tp)
->                         goto out_put;
->         } else {
-> --- a/include/linux/bsearch.h
-> +++ b/include/linux/bsearch.h
-> @@ -4,7 +4,29 @@
->
->  #include <linux/types.h>
->
-> -void *bsearch(const void *key, const void *base, size_t num, size_t size,
-> -             cmp_func_t cmp);
-> +static __always_inline
-> +void *__bsearch(const void *key, const void *base, size_t num, size_t size, cmp_func_t cmp)
-> +{
-> +       const char *pivot;
-> +       int result;
-> +
-> +       while (num > 0) {
-> +               pivot = base + (num >> 1) * size;
-> +               result = cmp(key, pivot);
-> +
-> +               if (result == 0)
-> +                       return (void *)pivot;
-> +
-> +               if (result > 0) {
-> +                       base = pivot + size;
-> +                       num--;
-> +               }
-> +               num >>= 1;
-> +       }
-> +
-> +       return NULL;
-> +}
-> +
-> +extern void *bsearch(const void *key, const void *base, size_t num, size_t size, cmp_func_t cmp);
->
->  #endif /* _LINUX_BSEARCH_H */
-> --- a/lib/bsearch.c
-> +++ b/lib/bsearch.c
-> @@ -28,27 +28,9 @@
->   * the key and elements in the array are of the same type, you can use
->   * the same comparison function for both sort() and bsearch().
+On Wed, Feb 19, 2020 at 03:47:27PM +0100, Peter Zijlstra wrote:
+> @@ -1220,7 +1220,7 @@ static void mce_kill_me_maybe(struct cal
+>   * MCE broadcast. However some CPUs might be broken beyond repair,
+>   * so be always careful when synchronizing with others.
 >   */
-> -void __no_sanitize *bsearch(const void *key, const void *base, size_t num, size_t size,
-> -             cmp_func_t cmp)
-> +void *bsearch(const void *key, const void *base, size_t num, size_t size, cmp_func_t cmp)
+> -void do_machine_check(struct pt_regs *regs, long error_code)
+> +notrace void do_machine_check(struct pt_regs *regs, long error_code)
+
+Is there a convention where the notrace marker should come in the
+function signature? I see all possible combinations while grepping...
+
 >  {
-> -       const char *pivot;
-> -       int result;
-> -
-> -       while (num > 0) {
-> -               pivot = base + (num >> 1) * size;
-> -               result = cmp(key, pivot);
-> -
-> -               if (result == 0)
-> -                       return (void *)pivot;
-> -
-> -               if (result > 0) {
-> -                       base = pivot + size;
-> -                       num--;
-> -               }
-> -               num >>= 1;
-> -       }
-> -
-> -       return NULL;
-> +       __bsearch(key, base, num, size, cmp);
+>  	DECLARE_BITMAP(valid_banks, MAX_NR_BANKS);
+>  	DECLARE_BITMAP(toclear, MAX_NR_BANKS);
+> @@ -1254,10 +1254,10 @@ void do_machine_check(struct pt_regs *re
+>  	 */
+>  	int lmce = 1;
+>  
+> -	if (__mc_check_crashing_cpu(cpu))
+> -		return;
+> +	nmi_enter();
+>  
+> -	ist_enter(regs);
+> +	if (__mc_check_crashing_cpu(cpu))
+> +		goto out;
+>  
+>  	this_cpu_inc(mce_exception_count);
+>  
+
+Should that __mc_check_crashing_cpu() happen before nmi_enter? The
+function is doing only a bunch of checks and clearing MSRs for bystander
+CPUs...
+
+> @@ -1346,7 +1346,7 @@ void do_machine_check(struct pt_regs *re
+>  	sync_core();
+>  
+>  	if (worst != MCE_AR_SEVERITY && !kill_it)
+> -		goto out_ist;
+> +		goto out;
+>  
+>  	/* Fault was in user mode and we need to take some action */
+>  	if ((m.cs & 3) == 3) {
+> @@ -1362,10 +1362,11 @@ void do_machine_check(struct pt_regs *re
+>  			mce_panic("Failed kernel mode recovery", &m, msg);
+>  	}
+>  
+> -out_ist:
+> -	ist_exit(regs);
+> +out:
+> +	nmi_exit();
 >  }
->  EXPORT_SYMBOL(bsearch);
->  NOKPROBE_SYMBOL(bsearch);
+>  EXPORT_SYMBOL_GPL(do_machine_check);
+> +NOKPROBE_SYMBOL(do_machine_check);
+
+Yah, that's a good idea regardless.
+
+Thx.
+
+-- 
+Regards/Gruss,
+    Boris.
+
+https://people.kernel.org/tglx/notes-about-netiquette
