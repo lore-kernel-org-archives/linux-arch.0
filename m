@@ -1,68 +1,158 @@
 From: Peter Zijlstra <peterz@infradead.org>
-Subject: [PATCH v4 11/27] rcu,tracing: Create trace_rcu_{enter,exit}()
-Date: Fri, 21 Feb 2020 14:34:27 +0100
-Message-ID: <20200221134215.673793889@infradead.org>
+Subject: [PATCH v4 07/27] rcu: Make RCU IRQ enter/exit functions rely on in_nmi()
+Date: Fri, 21 Feb 2020 14:34:23 +0100
+Message-ID: <20200221134215.443368893@infradead.org>
 References: <20200221133416.777099322@infradead.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:45624 "EHLO
-        merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728908AbgBUNup (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 21 Feb 2020 08:50:45 -0500
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, rostedt@goodmis.org
 Cc: peterz@infradead.org, mingo@kernel.org, joel@joelfernandes.org, gregkh@linuxfoundation.org, gustavo@embeddedor.com, tglx@linutronix.de, paulmck@kernel.org, josh@joshtriplett.org, mathieu.desnoyers@efficios.com, jiangshanlai@gmail.com, luto@kernel.org, tony.luck@intel.com, frederic@kernel.org, dan.carpenter@oracle.com, mhiramat@kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-To facilitate tracers that need RCU, add some helpers to wrap the
-magic required.
+From: Paul E. McKenney <paulmck@kernel.org>
 
-The problem is that we can call into tracers (trace events and
-function tracing) while RCU isn't watching and this can happen from
-any context, including NMI.
+The rcu_nmi_enter_common() and rcu_nmi_exit_common() functions take an
+"irq" parameter that indicates whether these functions are invoked from
+an irq handler (irq==true) or an NMI handler (irq==false).  However,
+recent changes have applied notrace to a few critical functions such
+that rcu_nmi_enter_common() and rcu_nmi_exit_common() many now rely
+on in_nmi().  Note that in_nmi() works no differently than before,
+but rather that tracing is now prohibited in code regions where in_nmi()
+would incorrectly report NMI state.
 
+This commit therefore removes the "irq" parameter and inlines
+rcu_nmi_enter_common() and rcu_nmi_exit_common() into rcu_nmi_enter()
+and rcu_nmi_exit(), respectively.
+
+Signed-off-by: Paul E. McKenney <paulmck@kernel.org>
 Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
-Reviewed-by: Paul E. McKenney <paulmck@kernel.org>
 ---
- include/linux/rcupdate.h |   29 +++++++++++++++++++++++++++++
- 1 file changed, 29 insertions(+)
+ kernel/rcu/tree.c |   45 ++++++++++++++-------------------------------
+ 1 file changed, 14 insertions(+), 31 deletions(-)
 
---- a/include/linux/rcupdate.h
-+++ b/include/linux/rcupdate.h
-@@ -175,6 +175,35 @@ do { \
- #error "Unknown RCU implementation specified to kernel configuration"
- #endif
+--- a/kernel/rcu/tree.c
++++ b/kernel/rcu/tree.c
+@@ -614,16 +614,18 @@ void rcu_user_enter(void)
+ }
+ #endif /* CONFIG_NO_HZ_FULL */
  
+-/*
 +/**
-+ * trace_rcu_enter - Force RCU to be active, for code that needs RCU readers
++ * rcu_nmi_exit - inform RCU of exit from NMI context
 + *
-+ * Very similar to RCU_NONIDLE() above.
-+ *
-+ * Tracing can happen while RCU isn't active yet, for instance in the idle loop
-+ * between rcu_idle_enter() and rcu_idle_exit(), or early in exception entry.
-+ * RCU will happily ignore any read-side critical sections in this case.
-+ *
-+ * This function ensures that RCU is aware hereafter and the code can readily
-+ * rely on RCU read-side critical sections working as expected.
-+ *
-+ * This function is NMI safe -- provided in_nmi() is correct and will nest up-to
-+ * INT_MAX/2 times.
-+ */
-+static inline int trace_rcu_enter(void)
-+{
-+	int state = !rcu_is_watching();
-+	if (state)
-+		rcu_irq_enter_irqsave();
-+	return state;
-+}
-+
-+static inline void trace_rcu_exit(int state)
-+{
-+	if (state)
-+		rcu_irq_exit_irqsave();
-+}
-+
+  * If we are returning from the outermost NMI handler that interrupted an
+  * RCU-idle period, update rdp->dynticks and rdp->dynticks_nmi_nesting
+  * to let the RCU grace-period handling know that the CPU is back to
+  * being RCU-idle.
+  *
+- * If you add or remove a call to rcu_nmi_exit_common(), be sure to test
++ * If you add or remove a call to rcu_nmi_exit(), be sure to test
+  * with CONFIG_RCU_EQS_DEBUG=y.
+  */
+-static __always_inline void rcu_nmi_exit_common(bool irq)
++void rcu_nmi_exit(void)
+ {
+ 	struct rcu_data *rdp = this_cpu_ptr(&rcu_data);
+ 
+@@ -651,27 +653,16 @@ static __always_inline void rcu_nmi_exit
+ 	trace_rcu_dyntick(TPS("Startirq"), rdp->dynticks_nmi_nesting, 0, atomic_read(&rdp->dynticks));
+ 	WRITE_ONCE(rdp->dynticks_nmi_nesting, 0); /* Avoid store tearing. */
+ 
+-	if (irq)
++	if (!in_nmi())
+ 		rcu_prepare_for_idle();
+ 
+ 	rcu_dynticks_eqs_enter();
+ 
+-	if (irq)
++	if (!in_nmi())
+ 		rcu_dynticks_task_enter();
+ }
+ 
+ /**
+- * rcu_nmi_exit - inform RCU of exit from NMI context
+- *
+- * If you add or remove a call to rcu_nmi_exit(), be sure to test
+- * with CONFIG_RCU_EQS_DEBUG=y.
+- */
+-void rcu_nmi_exit(void)
+-{
+-	rcu_nmi_exit_common(false);
+-}
+-
+-/**
+  * rcu_irq_exit - inform RCU that current CPU is exiting irq towards idle
+  *
+  * Exit from an interrupt handler, which might possibly result in entering
+@@ -693,7 +684,7 @@ void rcu_nmi_exit(void)
+ void rcu_irq_exit(void)
+ {
+ 	lockdep_assert_irqs_disabled();
+-	rcu_nmi_exit_common(true);
++	rcu_nmi_exit();
+ }
+ 
  /*
-  * The init_rcu_head_on_stack() and destroy_rcu_head_on_stack() calls
-  * are needed for dynamic initialization and destruction of rcu_head
+@@ -777,7 +768,7 @@ void rcu_user_exit(void)
+ #endif /* CONFIG_NO_HZ_FULL */
+ 
+ /**
+- * rcu_nmi_enter_common - inform RCU of entry to NMI context
++ * rcu_nmi_enter - inform RCU of entry to NMI context
+  * @irq: Is this call from rcu_irq_enter?
+  *
+  * If the CPU was idle from RCU's viewpoint, update rdp->dynticks and
+@@ -786,10 +777,10 @@ void rcu_user_exit(void)
+  * long as the nesting level does not overflow an int.  (You will probably
+  * run out of stack space first.)
+  *
+- * If you add or remove a call to rcu_nmi_enter_common(), be sure to test
++ * If you add or remove a call to rcu_nmi_enter(), be sure to test
+  * with CONFIG_RCU_EQS_DEBUG=y.
+  */
+-static __always_inline void rcu_nmi_enter_common(bool irq)
++void rcu_nmi_enter(void)
+ {
+ 	long incby = 2;
+ 	struct rcu_data *rdp = this_cpu_ptr(&rcu_data);
+@@ -807,12 +798,12 @@ static __always_inline void rcu_nmi_ente
+ 	 */
+ 	if (rcu_dynticks_curr_cpu_in_eqs()) {
+ 
+-		if (irq)
++		if (!in_nmi())
+ 			rcu_dynticks_task_exit();
+ 
+ 		rcu_dynticks_eqs_exit();
+ 
+-		if (irq)
++		if (!in_nmi())
+ 			rcu_cleanup_after_idle();
+ 
+ 		incby = 1;
+@@ -834,14 +825,6 @@ static __always_inline void rcu_nmi_ente
+ 		   rdp->dynticks_nmi_nesting + incby);
+ 	barrier();
+ }
+-
+-/**
+- * rcu_nmi_enter - inform RCU of entry to NMI context
+- */
+-void rcu_nmi_enter(void)
+-{
+-	rcu_nmi_enter_common(false);
+-}
+ NOKPROBE_SYMBOL(rcu_nmi_enter);
+ 
+ /**
+@@ -869,7 +852,7 @@ NOKPROBE_SYMBOL(rcu_nmi_enter);
+ void rcu_irq_enter(void)
+ {
+ 	lockdep_assert_irqs_disabled();
+-	rcu_nmi_enter_common(true);
++	rcu_nmi_enter();
+ }
+ 
+ /*
