@@ -1,7 +1,7 @@
 From: Peter Zijlstra <peterz@infradead.org>
-Subject: [PATCH v4 01/27] lockdep: Teach lockdep about "USED" <- "IN-NMI" inversions
-Date: Fri, 21 Feb 2020 14:34:17 +0100
-Message-ID: <20200221134215.090538203@infradead.org>
+Subject: [PATCH v4 06/27] x86/doublefault: Remove memmove() call
+Date: Fri, 21 Feb 2020 14:34:22 +0100
+Message-ID: <20200221134215.385886177@infradead.org>
 References: <20200221133416.777099322@infradead.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
@@ -11,116 +11,42 @@ To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, rostedt@goodmis.or
 Cc: peterz@infradead.org, mingo@kernel.org, joel@joelfernandes.org, gregkh@linuxfoundation.org, gustavo@embeddedor.com, tglx@linutronix.de, paulmck@kernel.org, josh@joshtriplett.org, mathieu.desnoyers@efficios.com, jiangshanlai@gmail.com, luto@kernel.org, tony.luck@intel.com, frederic@kernel.org, dan.carpenter@oracle.com, mhiramat@kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-nmi_enter() does lockdep_off() and hence lockdep ignores everything.
+Use of memmove() in #DF is problematic when you consider tracing and
+other instrumentation.
 
-And NMI context makes it impossible to do full IN-NMI tracking like we
-do IN-HARDIRQ, that could result in graph_lock recursion.
+Remove the memmove() call and simply write out what need doing; Boris
+argues the ranges should not overlap.
 
-However, since look_up_lock_class() is lockless, we can find the class
-of a lock that has prior use and detect IN-NMI after USED, just not
-USED after IN-NMI.
+Survives selftests/x86, specifically sigreturn_64.
 
-NOTE: By shifting the lockdep_off() recursion count to bit-16, we can
-easily differentiate between actual recursion and off.
+(Andy ?!)
 
 Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+Link: https://lkml.kernel.org/r/20200220121727.GB507@zn.tnic
 ---
- kernel/locking/lockdep.c |   53 ++++++++++++++++++++++++++++++++++++++++++++---
- 1 file changed, 50 insertions(+), 3 deletions(-)
+ arch/x86/kernel/traps.c |    7 ++++++-
+ 1 file changed, 6 insertions(+), 1 deletion(-)
 
---- a/kernel/locking/lockdep.c
-+++ b/kernel/locking/lockdep.c
-@@ -379,13 +379,13 @@ void lockdep_init_task(struct task_struc
+--- a/arch/x86/kernel/traps.c
++++ b/arch/x86/kernel/traps.c
+@@ -278,6 +278,7 @@ dotraplinkage void do_double_fault(struc
+ 		regs->ip == (unsigned long)native_irq_return_iret)
+ 	{
+ 		struct pt_regs *gpregs = (struct pt_regs *)this_cpu_read(cpu_tss_rw.x86_tss.sp0) - 1;
++		unsigned long *p = (unsigned long *)regs->sp;
  
- void lockdep_off(void)
- {
--	current->lockdep_recursion++;
-+	current->lockdep_recursion += BIT(16);
- }
- EXPORT_SYMBOL(lockdep_off);
+ 		/*
+ 		 * regs->sp points to the failing IRET frame on the
+@@ -285,7 +286,11 @@ dotraplinkage void do_double_fault(struc
+ 		 * in gpregs->ss through gpregs->ip.
+ 		 *
+ 		 */
+-		memmove(&gpregs->ip, (void *)regs->sp, 5*8);
++		gpregs->ip	= p[0];
++		gpregs->cs	= p[1];
++		gpregs->flags	= p[2];
++		gpregs->sp	= p[3];
++		gpregs->ss	= p[4];
+ 		gpregs->orig_ax = 0;  /* Missing (lost) #GP error code */
  
- void lockdep_on(void)
- {
--	current->lockdep_recursion--;
-+	current->lockdep_recursion -= BIT(16);
- }
- EXPORT_SYMBOL(lockdep_on);
- 
-@@ -575,6 +575,7 @@ static const char *usage_str[] =
- #include "lockdep_states.h"
- #undef LOCKDEP_STATE
- 	[LOCK_USED] = "INITIAL USE",
-+	[LOCK_USAGE_STATES] = "IN-NMI",
- };
- #endif
- 
-@@ -787,6 +788,7 @@ static int count_matching_names(struct l
- 	return count + 1;
- }
- 
-+/* used from NMI context -- must be lockless */
- static inline struct lock_class *
- look_up_lock_class(const struct lockdep_map *lock, unsigned int subclass)
- {
-@@ -4463,6 +4465,34 @@ void lock_downgrade(struct lockdep_map *
- }
- EXPORT_SYMBOL_GPL(lock_downgrade);
- 
-+/* NMI context !!! */
-+static void verify_lock_unused(struct lockdep_map *lock, struct held_lock *hlock, int subclass)
-+{
-+	struct lock_class *class = look_up_lock_class(lock, subclass);
-+
-+	/* if it doesn't have a class (yet), it certainly hasn't been used yet */
-+	if (!class)
-+		return;
-+
-+	if (!(class->usage_mask & LOCK_USED))
-+		return;
-+
-+	hlock->class_idx = class - lock_classes;
-+
-+	print_usage_bug(current, hlock, LOCK_USED, LOCK_USAGE_STATES);
-+}
-+
-+static bool lockdep_nmi(void)
-+{
-+	if (current->lockdep_recursion & 0xFFFF)
-+		return false;
-+
-+	if (!in_nmi())
-+		return false;
-+
-+	return true;
-+}
-+
- /*
-  * We are not always called with irqs disabled - do that here,
-  * and also avoid lockdep recursion:
-@@ -4473,8 +4503,25 @@ void lock_acquire(struct lockdep_map *lo
- {
- 	unsigned long flags;
- 
--	if (unlikely(current->lockdep_recursion))
-+	if (unlikely(current->lockdep_recursion)) {
-+		/* XXX allow trylock from NMI ?!? */
-+		if (lockdep_nmi() && !trylock) {
-+			struct held_lock hlock;
-+
-+			hlock.acquire_ip = ip;
-+			hlock.instance = lock;
-+			hlock.nest_lock = nest_lock;
-+			hlock.irq_context = 2; // XXX
-+			hlock.trylock = trylock;
-+			hlock.read = read;
-+			hlock.check = check;
-+			hlock.hardirqs_off = true;
-+			hlock.references = 0;
-+
-+			verify_lock_unused(lock, &hlock, subclass);
-+		}
- 		return;
-+	}
- 
- 	raw_local_irq_save(flags);
- 	check_flags(flags);
+ 		/*
