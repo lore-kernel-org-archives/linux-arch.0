@@ -1,158 +1,218 @@
 From: Peter Zijlstra <peterz@infradead.org>
-Subject: [PATCH v4 07/27] rcu: Make RCU IRQ enter/exit functions rely on in_nmi()
-Date: Fri, 21 Feb 2020 14:34:23 +0100
-Message-ID: <20200221134215.443368893@infradead.org>
+Subject: [PATCH v4 02/27] hardirq/nmi: Allow nested nmi_enter()
+Date: Fri, 21 Feb 2020 14:34:18 +0100
+Message-ID: <20200221134215.149193474@infradead.org>
 References: <20200221133416.777099322@infradead.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Return-path: <linux-kernel-owner@vger.kernel.org>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, rostedt@goodmis.org
-Cc: peterz@infradead.org, mingo@kernel.org, joel@joelfernandes.org, gregkh@linuxfoundation.org, gustavo@embeddedor.com, tglx@linutronix.de, paulmck@kernel.org, josh@joshtriplett.org, mathieu.desnoyers@efficios.com, jiangshanlai@gmail.com, luto@kernel.org, tony.luck@intel.com, frederic@kernel.org, dan.carpenter@oracle.com, mhiramat@kernel.org
+Cc: peterz@infradead.org, mingo@kernel.org, joel@joelfernandes.org, gregkh@linuxfoundation.org, gustavo@embeddedor.com, tglx@linutronix.de, paulmck@kernel.org, josh@joshtriplett.org, mathieu.desnoyers@efficios.com, jiangshanlai@gmail.com, luto@kernel.org, tony.luck@intel.com, frederic@kernel.org, dan.carpenter@oracle.com, mhiramat@kernel.org, Will Deacon <will@kernel.org>, Petr Mladek <pmladek@suse.com>, Marc Zyngier <maz@kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-From: Paul E. McKenney <paulmck@kernel.org>
+Since there are already a number of sites (ARM64, PowerPC) that
+effectively nest nmi_enter(), lets make the primitive support this
+before adding even more.
 
-The rcu_nmi_enter_common() and rcu_nmi_exit_common() functions take an
-"irq" parameter that indicates whether these functions are invoked from
-an irq handler (irq==true) or an NMI handler (irq==false).  However,
-recent changes have applied notrace to a few critical functions such
-that rcu_nmi_enter_common() and rcu_nmi_exit_common() many now rely
-on in_nmi().  Note that in_nmi() works no differently than before,
-but rather that tracing is now prohibited in code regions where in_nmi()
-would incorrectly report NMI state.
-
-This commit therefore removes the "irq" parameter and inlines
-rcu_nmi_enter_common() and rcu_nmi_exit_common() into rcu_nmi_enter()
-and rcu_nmi_exit(), respectively.
-
-Signed-off-by: Paul E. McKenney <paulmck@kernel.org>
 Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+Reviewed-by: Petr Mladek <pmladek@suse.com>
+Acked-by: Will Deacon <will@kernel.org>
+Acked-by: Marc Zyngier <maz@kernel.org>
 ---
- kernel/rcu/tree.c |   45 ++++++++++++++-------------------------------
- 1 file changed, 14 insertions(+), 31 deletions(-)
+ arch/arm64/include/asm/hardirq.h |    4 ++--
+ arch/arm64/kernel/sdei.c         |   14 ++------------
+ arch/arm64/kernel/traps.c        |    8 ++------
+ arch/powerpc/kernel/traps.c      |   22 ++++++----------------
+ include/linux/hardirq.h          |    5 ++++-
+ include/linux/preempt.h          |    4 ++--
+ kernel/printk/printk_safe.c      |    6 ++++--
+ 7 files changed, 22 insertions(+), 41 deletions(-)
 
---- a/kernel/rcu/tree.c
-+++ b/kernel/rcu/tree.c
-@@ -614,16 +614,18 @@ void rcu_user_enter(void)
- }
- #endif /* CONFIG_NO_HZ_FULL */
+--- a/arch/arm64/include/asm/hardirq.h
++++ b/arch/arm64/include/asm/hardirq.h
+@@ -38,7 +38,7 @@ DECLARE_PER_CPU(struct nmi_ctx, nmi_cont
  
--/*
-+/**
-+ * rcu_nmi_exit - inform RCU of exit from NMI context
-+ *
-  * If we are returning from the outermost NMI handler that interrupted an
-  * RCU-idle period, update rdp->dynticks and rdp->dynticks_nmi_nesting
-  * to let the RCU grace-period handling know that the CPU is back to
-  * being RCU-idle.
-  *
-- * If you add or remove a call to rcu_nmi_exit_common(), be sure to test
-+ * If you add or remove a call to rcu_nmi_exit(), be sure to test
-  * with CONFIG_RCU_EQS_DEBUG=y.
-  */
--static __always_inline void rcu_nmi_exit_common(bool irq)
-+void rcu_nmi_exit(void)
+ #define arch_nmi_enter()							\
+ 	do {									\
+-		if (is_kernel_in_hyp_mode()) {					\
++		if (is_kernel_in_hyp_mode() && !in_nmi()) {			\
+ 			struct nmi_ctx *nmi_ctx = this_cpu_ptr(&nmi_contexts);	\
+ 			nmi_ctx->hcr = read_sysreg(hcr_el2);			\
+ 			if (!(nmi_ctx->hcr & HCR_TGE)) {			\
+@@ -50,7 +50,7 @@ DECLARE_PER_CPU(struct nmi_ctx, nmi_cont
+ 
+ #define arch_nmi_exit()								\
+ 	do {									\
+-		if (is_kernel_in_hyp_mode()) {					\
++		if (is_kernel_in_hyp_mode() && !in_nmi()) {			\
+ 			struct nmi_ctx *nmi_ctx = this_cpu_ptr(&nmi_contexts);	\
+ 			if (!(nmi_ctx->hcr & HCR_TGE))				\
+ 				write_sysreg(nmi_ctx->hcr, hcr_el2);		\
+--- a/arch/arm64/kernel/sdei.c
++++ b/arch/arm64/kernel/sdei.c
+@@ -251,22 +251,12 @@ asmlinkage __kprobes notrace unsigned lo
+ __sdei_handler(struct pt_regs *regs, struct sdei_registered_event *arg)
  {
- 	struct rcu_data *rdp = this_cpu_ptr(&rcu_data);
+ 	unsigned long ret;
+-	bool do_nmi_exit = false;
  
-@@ -651,27 +653,16 @@ static __always_inline void rcu_nmi_exit
- 	trace_rcu_dyntick(TPS("Startirq"), rdp->dynticks_nmi_nesting, 0, atomic_read(&rdp->dynticks));
- 	WRITE_ONCE(rdp->dynticks_nmi_nesting, 0); /* Avoid store tearing. */
+-	/*
+-	 * nmi_enter() deals with printk() re-entrance and use of RCU when
+-	 * RCU believed this CPU was idle. Because critical events can
+-	 * interrupt normal events, we may already be in_nmi().
+-	 */
+-	if (!in_nmi()) {
+-		nmi_enter();
+-		do_nmi_exit = true;
+-	}
++	nmi_enter();
  
--	if (irq)
-+	if (!in_nmi())
- 		rcu_prepare_for_idle();
+ 	ret = _sdei_handler(regs, arg);
  
- 	rcu_dynticks_eqs_enter();
+-	if (do_nmi_exit)
+-		nmi_exit();
++	nmi_exit();
  
--	if (irq)
-+	if (!in_nmi())
- 		rcu_dynticks_task_enter();
+ 	return ret;
  }
+--- a/arch/arm64/kernel/traps.c
++++ b/arch/arm64/kernel/traps.c
+@@ -906,17 +906,13 @@ bool arm64_is_fatal_ras_serror(struct pt
  
- /**
-- * rcu_nmi_exit - inform RCU of exit from NMI context
-- *
-- * If you add or remove a call to rcu_nmi_exit(), be sure to test
-- * with CONFIG_RCU_EQS_DEBUG=y.
-- */
--void rcu_nmi_exit(void)
--{
--	rcu_nmi_exit_common(false);
--}
+ asmlinkage void do_serror(struct pt_regs *regs, unsigned int esr)
+ {
+-	const bool was_in_nmi = in_nmi();
 -
--/**
-  * rcu_irq_exit - inform RCU that current CPU is exiting irq towards idle
-  *
-  * Exit from an interrupt handler, which might possibly result in entering
-@@ -693,7 +684,7 @@ void rcu_nmi_exit(void)
- void rcu_irq_exit(void)
- {
- 	lockdep_assert_irqs_disabled();
--	rcu_nmi_exit_common(true);
-+	rcu_nmi_exit();
+-	if (!was_in_nmi)
+-		nmi_enter();
++	nmi_enter();
+ 
+ 	/* non-RAS errors are not containable */
+ 	if (!arm64_is_ras_serror(esr) || arm64_is_fatal_ras_serror(regs, esr))
+ 		arm64_serror_panic(regs, esr);
+ 
+-	if (!was_in_nmi)
+-		nmi_exit();
++	nmi_exit();
  }
  
- /*
-@@ -777,7 +768,7 @@ void rcu_user_exit(void)
- #endif /* CONFIG_NO_HZ_FULL */
+ asmlinkage void enter_from_user_mode(void)
+--- a/arch/powerpc/kernel/traps.c
++++ b/arch/powerpc/kernel/traps.c
+@@ -441,15 +441,9 @@ void hv_nmi_check_nonrecoverable(struct
+ void system_reset_exception(struct pt_regs *regs)
+ {
+ 	unsigned long hsrr0, hsrr1;
+-	bool nested = in_nmi();
+ 	bool saved_hsrrs = false;
  
- /**
-- * rcu_nmi_enter_common - inform RCU of entry to NMI context
-+ * rcu_nmi_enter - inform RCU of entry to NMI context
-  * @irq: Is this call from rcu_irq_enter?
-  *
-  * If the CPU was idle from RCU's viewpoint, update rdp->dynticks and
-@@ -786,10 +777,10 @@ void rcu_user_exit(void)
-  * long as the nesting level does not overflow an int.  (You will probably
-  * run out of stack space first.)
-  *
-- * If you add or remove a call to rcu_nmi_enter_common(), be sure to test
-+ * If you add or remove a call to rcu_nmi_enter(), be sure to test
-  * with CONFIG_RCU_EQS_DEBUG=y.
+-	/*
+-	 * Avoid crashes in case of nested NMI exceptions. Recoverability
+-	 * is determined by RI and in_nmi
+-	 */
+-	if (!nested)
+-		nmi_enter();
++	nmi_enter();
+ 
+ 	/*
+ 	 * System reset can interrupt code where HSRRs are live and MSR[RI]=1.
+@@ -521,8 +515,7 @@ void system_reset_exception(struct pt_re
+ 		mtspr(SPRN_HSRR1, hsrr1);
+ 	}
+ 
+-	if (!nested)
+-		nmi_exit();
++	nmi_exit();
+ 
+ 	/* What should we do here? We could issue a shutdown or hard reset. */
+ }
+@@ -823,9 +816,8 @@ int machine_check_generic(struct pt_regs
+ void machine_check_exception(struct pt_regs *regs)
+ {
+ 	int recover = 0;
+-	bool nested = in_nmi();
+-	if (!nested)
+-		nmi_enter();
++
++	nmi_enter();
+ 
+ 	__this_cpu_inc(irq_stat.mce_exceptions);
+ 
+@@ -851,8 +843,7 @@ void machine_check_exception(struct pt_r
+ 	if (check_io_access(regs))
+ 		goto bail;
+ 
+-	if (!nested)
+-		nmi_exit();
++	nmi_exit();
+ 
+ 	die("Machine check", regs, SIGBUS);
+ 
+@@ -863,8 +854,7 @@ void machine_check_exception(struct pt_r
+ 	return;
+ 
+ bail:
+-	if (!nested)
+-		nmi_exit();
++	nmi_exit();
+ }
+ 
+ void SMIException(struct pt_regs *regs)
+--- a/include/linux/hardirq.h
++++ b/include/linux/hardirq.h
+@@ -65,13 +65,16 @@ extern void irq_exit(void);
+ #define arch_nmi_exit()		do { } while (0)
+ #endif
+ 
++/*
++ * nmi_enter() can nest up to 15 times; see NMI_BITS.
++ */
+ #define nmi_enter()						\
+ 	do {							\
+ 		arch_nmi_enter();				\
+ 		printk_nmi_enter();				\
+ 		lockdep_off();					\
+ 		ftrace_nmi_enter();				\
+-		BUG_ON(in_nmi());				\
++		BUG_ON(in_nmi() == NMI_MASK);			\
+ 		preempt_count_add(NMI_OFFSET + HARDIRQ_OFFSET);	\
+ 		rcu_nmi_enter();				\
+ 		trace_hardirq_enter();				\
+--- a/include/linux/preempt.h
++++ b/include/linux/preempt.h
+@@ -26,13 +26,13 @@
+  *         PREEMPT_MASK:	0x000000ff
+  *         SOFTIRQ_MASK:	0x0000ff00
+  *         HARDIRQ_MASK:	0x000f0000
+- *             NMI_MASK:	0x00100000
++ *             NMI_MASK:	0x00f00000
+  * PREEMPT_NEED_RESCHED:	0x80000000
   */
--static __always_inline void rcu_nmi_enter_common(bool irq)
-+void rcu_nmi_enter(void)
+ #define PREEMPT_BITS	8
+ #define SOFTIRQ_BITS	8
+ #define HARDIRQ_BITS	4
+-#define NMI_BITS	1
++#define NMI_BITS	4
+ 
+ #define PREEMPT_SHIFT	0
+ #define SOFTIRQ_SHIFT	(PREEMPT_SHIFT + PREEMPT_BITS)
+--- a/kernel/printk/printk_safe.c
++++ b/kernel/printk/printk_safe.c
+@@ -296,12 +296,14 @@ static __printf(1, 0) int vprintk_nmi(co
+ 
+ void notrace printk_nmi_enter(void)
  {
- 	long incby = 2;
- 	struct rcu_data *rdp = this_cpu_ptr(&rcu_data);
-@@ -807,12 +798,12 @@ static __always_inline void rcu_nmi_ente
- 	 */
- 	if (rcu_dynticks_curr_cpu_in_eqs()) {
- 
--		if (irq)
-+		if (!in_nmi())
- 			rcu_dynticks_task_exit();
- 
- 		rcu_dynticks_eqs_exit();
- 
--		if (irq)
-+		if (!in_nmi())
- 			rcu_cleanup_after_idle();
- 
- 		incby = 1;
-@@ -834,14 +825,6 @@ static __always_inline void rcu_nmi_ente
- 		   rdp->dynticks_nmi_nesting + incby);
- 	barrier();
+-	this_cpu_or(printk_context, PRINTK_NMI_CONTEXT_MASK);
++	if (!in_nmi())
++		this_cpu_or(printk_context, PRINTK_NMI_CONTEXT_MASK);
  }
--
--/**
-- * rcu_nmi_enter - inform RCU of entry to NMI context
-- */
--void rcu_nmi_enter(void)
--{
--	rcu_nmi_enter_common(false);
--}
- NOKPROBE_SYMBOL(rcu_nmi_enter);
  
- /**
-@@ -869,7 +852,7 @@ NOKPROBE_SYMBOL(rcu_nmi_enter);
- void rcu_irq_enter(void)
+ void notrace printk_nmi_exit(void)
  {
- 	lockdep_assert_irqs_disabled();
--	rcu_nmi_enter_common(true);
-+	rcu_nmi_enter();
+-	this_cpu_and(printk_context, ~PRINTK_NMI_CONTEXT_MASK);
++	if (!in_nmi())
++		this_cpu_and(printk_context, ~PRINTK_NMI_CONTEXT_MASK);
  }
  
  /*
