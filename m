@@ -1,62 +1,68 @@
 From: Peter Zijlstra <peterz@infradead.org>
-Subject: [PATCH v4 08/27] rcu/kprobes: Comment why rcu_nmi_enter() is marked NOKPROBE
-Date: Fri, 21 Feb 2020 14:34:24 +0100
-Message-ID: <20200221134215.501225981@infradead.org>
+Subject: [PATCH v4 12/27] sched,rcu,tracing: Avoid tracing before in_nmi() is correct
+Date: Fri, 21 Feb 2020 14:34:28 +0100
+Message-ID: <20200221134215.730523211@infradead.org>
 References: <20200221133416.777099322@infradead.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:45510 "EHLO
-        merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728828AbgBUNui (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 21 Feb 2020 08:50:38 -0500
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, rostedt@goodmis.org
-Cc: peterz@infradead.org, mingo@kernel.org, joel@joelfernandes.org, gregkh@linuxfoundation.org, gustavo@embeddedor.com, tglx@linutronix.de, paulmck@kernel.org, josh@joshtriplett.org, mathieu.desnoyers@efficios.com, jiangshanlai@gmail.com, luto@kernel.org, tony.luck@intel.com, frederic@kernel.org, dan.carpenter@oracle.com, mhiramat@kernel.org
+Cc: peterz@infradead.org, mingo@kernel.org, joel@joelfernandes.org, gregkh@linuxfoundation.org, gustavo@embeddedor.com, tglx@linutronix.de, paulmck@kernel.org, josh@joshtriplett.org, mathieu.desnoyers@efficios.com, jiangshanlai@gmail.com, luto@kernel.org, tony.luck@intel.com, frederic@kernel.org, dan.carpenter@oracle.com, mhiramat@kernel.org, "Steven Rostedt (VMware)" <rosted@goodmis.org>
+List-Id: linux-arch.vger.kernel.org
 
-From: Steven Rostedt (VMware) <rostedt@goodmis.org>
+If we call into a tracer before in_nmi() becomes true, the tracer can
+no longer detect it is called from NMI context and behave correctly.
 
-It's confusing that rcu_nmi_enter() is marked NOKPROBE and
-rcu_nmi_exit() is not. One may think that the exit needs to be marked
-for the same reason the enter is, as rcu_nmi_exit() reverts the RCU
-state back to what it was before rcu_nmi_enter(). But the reason has
-nothing to do with the state of RCU.
+Therefore change nmi_{enter,exit}() to use __preempt_count_{add,sub}()
+as the normal preempt_count_{add,sub}() have a (desired) function
+trace entry.
 
-The breakpoint handler (int3 on x86) must not have any kprobe on it
-until the kprobe handler is called. Otherwise, it can cause an infinite
-recursion and crash the machine. It just so happens that
-rcu_nmi_enter() is called by the int3 handler before the kprobe handler
-can run, and therefore needs to be marked as NOKPROBE.
+This fixes a potential issue with current code; AFAICT when the
+function-tracer has stack-tracing enabled __trace_stack() will
+malfunction when it hits the preempt_count_add() function entry from
+NMI context.
 
-Comment this to remove the confusion to why rcu_nmi_enter() is marked
-NOKPROBE but rcu_nmi_exit() is not.
-
-Reported-by: Joel Fernandes (Google) <joel@joelfernandes.org>
-Signed-off-by: Steven Rostedt (VMware) <rostedt@goodmis.org>
+Suggested-by: Steven Rostedt (VMware) <rosted@goodmis.org>
 Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
-Reviewed-by: Paul E. McKenney <paulmck@kernel.org>
-Reviewed-by: Masami Hiramatsu <mhiramat@kernel.org>
-Acked-by: Joel Fernandes (Google) <joel@joelfernandes.org>
-Link: https://lore.kernel.org/r/20200213163800.5c51a5f1@gandalf.local.home
+Reviewed-by: Steven Rostedt (VMware) <rostedt@goodmis.org>
 ---
- kernel/rcu/tree.c |    8 ++++++++
- 1 file changed, 8 insertions(+)
+ include/linux/hardirq.h |   13 +++++++++++--
+ 1 file changed, 11 insertions(+), 2 deletions(-)
 
---- a/kernel/rcu/tree.c
-+++ b/kernel/rcu/tree.c
-@@ -825,6 +825,14 @@ void rcu_nmi_enter(void)
- 		   rdp->dynticks_nmi_nesting + incby);
- 	barrier();
- }
-+/*
-+ * All functions called in the breakpoint trap handler (e.g. do_int3()
-+ * on x86), must not allow kprobes until the kprobe breakpoint handler
-+ * is called, otherwise it can cause an infinite recursion.
-+ * On some archs, rcu_nmi_enter() is called in the breakpoint handler
-+ * before the kprobe breakpoint handler is called, thus it must be
-+ * marked as NOKPROBE.
-+ */
- NOKPROBE_SYMBOL(rcu_nmi_enter);
+--- a/include/linux/hardirq.h
++++ b/include/linux/hardirq.h
+@@ -66,6 +66,15 @@ extern void irq_exit(void);
+ #endif
  
- /**
+ /*
++ * NMI vs Tracing
++ * --------------
++ *
++ * We must not land in a tracer until (or after) we've changed preempt_count
++ * such that in_nmi() becomes true. To that effect all NMI C entry points must
++ * be marked 'notrace' and call nmi_enter() as soon as possible.
++ */
++
++/*
+  * nmi_enter() can nest up to 15 times; see NMI_BITS.
+  */
+ #define nmi_enter()						\
+@@ -75,7 +84,7 @@ extern void irq_exit(void);
+ 		lockdep_off();					\
+ 		ftrace_nmi_enter();				\
+ 		BUG_ON(in_nmi() == NMI_MASK);			\
+-		preempt_count_add(NMI_OFFSET + HARDIRQ_OFFSET);	\
++		__preempt_count_add(NMI_OFFSET + HARDIRQ_OFFSET); \
+ 		rcu_nmi_enter();				\
+ 		trace_hardirq_enter();				\
+ 	} while (0)
+@@ -85,7 +94,7 @@ extern void irq_exit(void);
+ 		trace_hardirq_exit();				\
+ 		rcu_nmi_exit();					\
+ 		BUG_ON(!in_nmi());				\
+-		preempt_count_sub(NMI_OFFSET + HARDIRQ_OFFSET);	\
++		__preempt_count_sub(NMI_OFFSET + HARDIRQ_OFFSET); \
+ 		ftrace_nmi_exit();				\
+ 		lockdep_on();					\
+ 		printk_nmi_exit();				\
