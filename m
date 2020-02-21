@@ -1,64 +1,32 @@
-From: Frederic Weisbecker <frederic@kernel.org>
-Subject: Re: [PATCH v4 01/27] lockdep: Teach lockdep about "USED" <- "IN-NMI"
- inversions
-Date: Fri, 21 Feb 2020 23:01:37 +0100
-Message-ID: <20200221220136.GA28251@lenoir>
-References: <20200221133416.777099322@infradead.org>
- <20200221134215.090538203@infradead.org>
- <20200221100855.2f9bec3a@gandalf.local.home>
- <20200221202511.GB14897@hirez.programming.kicks-ass.net>
+From: Stafford Horne <shorne@gmail.com>
+Subject: Re: [PATCH 2/2] openrisc: use the generic in-place uncached DMA
+ allocator
+Date: Sat, 22 Feb 2020 07:14:47 +0900
+Message-ID: <20200221221447.GA7926@lianli.shorne-pla.net>
+References: <20200220170139.387354-1-hch@lst.de>
+ <20200220170139.387354-3-hch@lst.de>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:49232 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1728723AbgBUWBl (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 21 Feb 2020 17:01:41 -0500
+Received: from mail-pf1-f194.google.com ([209.85.210.194]:45435 "EHLO
+        mail-pf1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726725AbgBUWOw (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 21 Feb 2020 17:14:52 -0500
 Content-Disposition: inline
-In-Reply-To: <20200221202511.GB14897@hirez.programming.kicks-ass.net>
+In-Reply-To: <20200220170139.387354-3-hch@lst.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Steven Rostedt <rostedt@goodmis.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org, joel@joelfernandes.org, gregkh@linuxfoundation.org, gustavo@embeddedor.com, tglx@linutronix.de, paulmck@kernel.org, josh@joshtriplett.org, mathieu.desnoyers@efficios.com, jiangshanlai@gmail.com, luto@kernel.org, tony.luck@intel.com, dan.carpenter@oracle.com, mhiramat@kernel.org
+To: Christoph Hellwig <hch@lst.de>
+Cc: Jonas Bonn <jonas@southpole.se>, Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>, Marek Szyprowski <m.szyprowski@samsung.com>, Robin Murphy <robin.murphy@arm.com>, Will Deacon <will@kernel.org>, Mark Rutland <mark.rutland@arm.com>, openrisc@lists.librecores.org, iommu@lists.linux-foundation.org, linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 
-On Fri, Feb 21, 2020 at 09:25:11PM +0100, Peter Zijlstra wrote:
-> On Fri, Feb 21, 2020 at 10:08:55AM -0500, Steven Rostedt wrote:
-> > On Fri, 21 Feb 2020 14:34:17 +0100
-> > Peter Zijlstra <peterz@infradead.org> wrote:
-> > 
-> > > --- a/kernel/locking/lockdep.c
-> > > +++ b/kernel/locking/lockdep.c
-> > > @@ -379,13 +379,13 @@ void lockdep_init_task(struct task_struc
-> > >  
-> > >  void lockdep_off(void)
-> > >  {
-> > > -	current->lockdep_recursion++;
-> > > +	current->lockdep_recursion += BIT(16);
-> > >  }
-> > >  EXPORT_SYMBOL(lockdep_off);
-> > >  
-> > >  void lockdep_on(void)
-> > >  {
-> > > -	current->lockdep_recursion--;
-> > > +	current->lockdep_recursion -= BIT(16);
-> > >  }
-> > >  EXPORT_SYMBOL(lockdep_on);
-> > >  
-> > 
-> > > +
-> > > +static bool lockdep_nmi(void)
-> > > +{
-> > > +	if (current->lockdep_recursion & 0xFFFF)
-> > 
-> > Nitpick, but the association with bit 16 and this mask really should be
-> > defined as a macro somewhere and not have hard coded numbers.
+On Thu, Feb 20, 2020 at 09:01:39AM -0800, Christoph Hellwig wrote:
+> Switch openrisc to use the dma-direct allocator and just provide the
+> hooks for setting memory uncached or cached.
 > 
-> Right, I suppose I can do something like:
-> 
-> #define LOCKDEP_RECURSION_BITS	16
-> #define LOCKDEP_OFF (1U << LOCKDEP_RECURSION_BITS)
-> #define LOCKDEP_RECURSION_MASK (LOCKDEP_OFF - 1)
+> Signed-off-by: Christoph Hellwig <hch@lst.de>
 
-With that I'd say
+Reviewed-by: Stafford Horne <shorne@gmail.com>
 
-Reviewed-by: Frederic Weisbecker <frederic@kernel.org>
+Also, I test booted openrisc with linux 5.5 + these patches.  Thanks for
+continuing to shrink my code base.
+ 
