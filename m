@@ -1,52 +1,62 @@
 From: Peter Zijlstra <peterz@infradead.org>
-Subject: [PATCH v4 06/27] x86/doublefault: Remove memmove() call
-Date: Fri, 21 Feb 2020 14:34:22 +0100
-Message-ID: <20200221134215.385886177@infradead.org>
+Subject: [PATCH v4 08/27] rcu/kprobes: Comment why rcu_nmi_enter() is marked NOKPROBE
+Date: Fri, 21 Feb 2020 14:34:24 +0100
+Message-ID: <20200221134215.501225981@infradead.org>
 References: <20200221133416.777099322@infradead.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Sender: linux-kernel-owner@vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from merlin.infradead.org ([205.233.59.134]:45510 "EHLO
+        merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1728828AbgBUNui (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 21 Feb 2020 08:50:38 -0500
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, rostedt@goodmis.org
 Cc: peterz@infradead.org, mingo@kernel.org, joel@joelfernandes.org, gregkh@linuxfoundation.org, gustavo@embeddedor.com, tglx@linutronix.de, paulmck@kernel.org, josh@joshtriplett.org, mathieu.desnoyers@efficios.com, jiangshanlai@gmail.com, luto@kernel.org, tony.luck@intel.com, frederic@kernel.org, dan.carpenter@oracle.com, mhiramat@kernel.org
-List-Id: linux-arch.vger.kernel.org
 
-Use of memmove() in #DF is problematic when you consider tracing and
-other instrumentation.
+From: Steven Rostedt (VMware) <rostedt@goodmis.org>
 
-Remove the memmove() call and simply write out what need doing; Boris
-argues the ranges should not overlap.
+It's confusing that rcu_nmi_enter() is marked NOKPROBE and
+rcu_nmi_exit() is not. One may think that the exit needs to be marked
+for the same reason the enter is, as rcu_nmi_exit() reverts the RCU
+state back to what it was before rcu_nmi_enter(). But the reason has
+nothing to do with the state of RCU.
 
-Survives selftests/x86, specifically sigreturn_64.
+The breakpoint handler (int3 on x86) must not have any kprobe on it
+until the kprobe handler is called. Otherwise, it can cause an infinite
+recursion and crash the machine. It just so happens that
+rcu_nmi_enter() is called by the int3 handler before the kprobe handler
+can run, and therefore needs to be marked as NOKPROBE.
 
-(Andy ?!)
+Comment this to remove the confusion to why rcu_nmi_enter() is marked
+NOKPROBE but rcu_nmi_exit() is not.
 
+Reported-by: Joel Fernandes (Google) <joel@joelfernandes.org>
+Signed-off-by: Steven Rostedt (VMware) <rostedt@goodmis.org>
 Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
-Link: https://lkml.kernel.org/r/20200220121727.GB507@zn.tnic
+Reviewed-by: Paul E. McKenney <paulmck@kernel.org>
+Reviewed-by: Masami Hiramatsu <mhiramat@kernel.org>
+Acked-by: Joel Fernandes (Google) <joel@joelfernandes.org>
+Link: https://lore.kernel.org/r/20200213163800.5c51a5f1@gandalf.local.home
 ---
- arch/x86/kernel/traps.c |    7 ++++++-
- 1 file changed, 6 insertions(+), 1 deletion(-)
+ kernel/rcu/tree.c |    8 ++++++++
+ 1 file changed, 8 insertions(+)
 
---- a/arch/x86/kernel/traps.c
-+++ b/arch/x86/kernel/traps.c
-@@ -278,6 +278,7 @@ dotraplinkage void do_double_fault(struc
- 		regs->ip == (unsigned long)native_irq_return_iret)
- 	{
- 		struct pt_regs *gpregs = (struct pt_regs *)this_cpu_read(cpu_tss_rw.x86_tss.sp0) - 1;
-+		unsigned long *p = (unsigned long *)regs->sp;
+--- a/kernel/rcu/tree.c
++++ b/kernel/rcu/tree.c
+@@ -825,6 +825,14 @@ void rcu_nmi_enter(void)
+ 		   rdp->dynticks_nmi_nesting + incby);
+ 	barrier();
+ }
++/*
++ * All functions called in the breakpoint trap handler (e.g. do_int3()
++ * on x86), must not allow kprobes until the kprobe breakpoint handler
++ * is called, otherwise it can cause an infinite recursion.
++ * On some archs, rcu_nmi_enter() is called in the breakpoint handler
++ * before the kprobe breakpoint handler is called, thus it must be
++ * marked as NOKPROBE.
++ */
+ NOKPROBE_SYMBOL(rcu_nmi_enter);
  
- 		/*
- 		 * regs->sp points to the failing IRET frame on the
-@@ -285,7 +286,11 @@ dotraplinkage void do_double_fault(struc
- 		 * in gpregs->ss through gpregs->ip.
- 		 *
- 		 */
--		memmove(&gpregs->ip, (void *)regs->sp, 5*8);
-+		gpregs->ip	= p[0];
-+		gpregs->cs	= p[1];
-+		gpregs->flags	= p[2];
-+		gpregs->sp	= p[3];
-+		gpregs->ss	= p[4];
- 		gpregs->orig_ax = 0;  /* Missing (lost) #GP error code */
- 
- 		/*
+ /**
