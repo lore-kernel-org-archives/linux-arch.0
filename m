@@ -1,59 +1,39 @@
-From: Steven Rostedt <rostedt@goodmis.org>
-Subject: Re: [PATCH v4 09/27] rcu: Rename rcu_irq_{enter,exit}_irqson()
-Date: Fri, 21 Feb 2020 15:21:53 -0500
-Message-ID: <20200221152153.15b3cf36@gandalf.local.home>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH v4 05/27] x86: Replace ist_enter() with nmi_enter()
+Date: Fri, 21 Feb 2020 21:22:46 +0100
+Message-ID: <20200221202246.GA14897@hirez.programming.kicks-ass.net>
 References: <20200221133416.777099322@infradead.org>
-        <20200221134215.559644596@infradead.org>
+ <20200221134215.328642621@infradead.org>
+ <CALCETrU7nezN7d3GEZ8h8HbRfvZ0+F9+Ahb7fLvZ9FVaHN9x2w@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:51934 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726483AbgBUUV5 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 21 Feb 2020 15:21:57 -0500
-In-Reply-To: <20200221134215.559644596@infradead.org>
+Received: from bombadil.infradead.org ([198.137.202.133]:40184 "EHLO
+        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726483AbgBUUXP (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 21 Feb 2020 15:23:15 -0500
+Content-Disposition: inline
+In-Reply-To: <CALCETrU7nezN7d3GEZ8h8HbRfvZ0+F9+Ahb7fLvZ9FVaHN9x2w@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org, joel@joelfernandes.org, gregkh@linuxfoundation.org, gustavo@embeddedor.com, tglx@linutronix.de, paulmck@kernel.org, josh@joshtriplett.org, mathieu.desnoyers@efficios.com, jiangshanlai@gmail.com, luto@kernel.org, tony.luck@intel.com, frederic@kernel.org, dan.carpenter@oracle.com, mhiramat@kernel.org
+To: Andy Lutomirski <luto@kernel.org>
+Cc: LKML <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Steven Rostedt <rostedt@goodmis.org>, Ingo Molnar <mingo@kernel.org>, Joel Fernandes <joel@joelfernandes.org>, Greg KH <gregkh@linuxfoundation.org>, gustavo@embeddedor.com, Thomas Gleixner <tglx@linutronix.de>, paulmck@kernel.org, Josh Triplett <josh@joshtriplett.org>, Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, Lai Jiangshan <jiangshanlai@gmail.com>, Tony Luck <tony.luck@intel.com>, Frederic Weisbecker <frederic@kernel.org>, Dan Carpenter <dan.carpenter@oracle.com>, Masami Hiramatsu <mhiramat@kernel.org>
 
-On Fri, 21 Feb 2020 14:34:25 +0100
-Peter Zijlstra <peterz@infradead.org> wrote:
+On Fri, Feb 21, 2020 at 11:05:36AM -0800, Andy Lutomirski wrote:
 
-> --- a/kernel/rcu/tree.c
-> +++ b/kernel/rcu/tree.c
-> @@ -699,10 +699,10 @@ void rcu_irq_exit(void)
->  /*
->   * Wrapper for rcu_irq_exit() where interrupts are enabled.
+> > -       /*
+> > -        * Use ist_enter despite the fact that we don't use an IST stack.
+> > -        * We can be called from a kprobe in non-CONTEXT_KERNEL kernel
+> > -        * mode or even during context tracking state changes.
+> > -        *
+> > -        * This means that we can't schedule.  That's okay.
+> > -        */
+> > -       ist_enter(regs);
+> > +       nmi_enter();
+> 
+> I agree with the change, but some commentary might be nice.  Maybe
+> copy from here:
+> 
+> https://git.kernel.org/pub/scm/linux/kernel/git/luto/linux.git/commit/?h=x86/idtentry&id=061eaa900b4f63601ab6381ab431fcef8dfd84be
 
-			where interrupts may be enabled.
-
->   *
-> - * If you add or remove a call to rcu_irq_exit_irqson(), be sure to test
-> + * If you add or remove a call to rcu_irq_exit_irqsave(), be sure to test
->   * with CONFIG_RCU_EQS_DEBUG=y.
->   */
-> -void rcu_irq_exit_irqson(void)
-> +void rcu_irq_exit_irqsave(void)
->  {
->  	unsigned long flags;
->  
-> @@ -875,10 +875,10 @@ void rcu_irq_enter(void)
->  /*
->   * Wrapper for rcu_irq_enter() where interrupts are enabled.
-
-			where interrupts may be enabled.
-
--- Steve
-
->   *
-> - * If you add or remove a call to rcu_irq_enter_irqson(), be sure to test
-> + * If you add or remove a call to rcu_irq_enter_irqsave(), be sure to test
->   * with CONFIG_RCU_EQS_DEBUG=y.
->   */
-> -void rcu_irq_enter_irqson(void)
-> +void rcu_irq_enter_irqsave(void)
->  {
->  	unsigned long flags;
->  
+Fair enough; I'll add something to #DB and #BP for that.
