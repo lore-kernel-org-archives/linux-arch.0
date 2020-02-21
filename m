@@ -1,23 +1,23 @@
 From: Andy Lutomirski <luto@kernel.org>
-Subject: Re: [PATCH v4 05/27] x86: Replace ist_enter() with nmi_enter()
-Date: Fri, 21 Feb 2020 11:05:36 -0800
-Message-ID: <CALCETrU7nezN7d3GEZ8h8HbRfvZ0+F9+Ahb7fLvZ9FVaHN9x2w@mail.gmail.com>
-References: <20200221133416.777099322@infradead.org> <20200221134215.328642621@infradead.org>
+Subject: Re: [PATCH v4 04/27] x86/mce: Delete ist_begin_non_atomic()
+Date: Fri, 21 Feb 2020 11:07:10 -0800
+Message-ID: <CALCETrWTbSC1cKgfP_v5LCE1-FQ6bF6E+nA5UmB0SphCCCt1vA@mail.gmail.com>
+References: <20200221133416.777099322@infradead.org> <20200221134215.264229755@infradead.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:48408 "EHLO mail.kernel.org"
+Received: from mail.kernel.org ([198.145.29.99]:49044 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727966AbgBUTFu (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 21 Feb 2020 14:05:50 -0500
-Received: from mail-wr1-f42.google.com (mail-wr1-f42.google.com [209.85.221.42])
+        id S1726423AbgBUTHY (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 21 Feb 2020 14:07:24 -0500
+Received: from mail-wr1-f48.google.com (mail-wr1-f48.google.com [209.85.221.48])
         (using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
         (No client certificate requested)
-        by mail.kernel.org (Postfix) with ESMTPSA id A964E2467A
-        for <linux-arch@vger.kernel.org>; Fri, 21 Feb 2020 19:05:49 +0000 (UTC)
-Received: by mail-wr1-f42.google.com with SMTP id z7so3192477wrl.13
-        for <linux-arch@vger.kernel.org>; Fri, 21 Feb 2020 11:05:49 -0800 (PST)
-In-Reply-To: <20200221134215.328642621@infradead.org>
+        by mail.kernel.org (Postfix) with ESMTPSA id A115E2467D
+        for <linux-arch@vger.kernel.org>; Fri, 21 Feb 2020 19:07:23 +0000 (UTC)
+Received: by mail-wr1-f48.google.com with SMTP id w15so3226606wru.4
+        for <linux-arch@vger.kernel.org>; Fri, 21 Feb 2020 11:07:23 -0800 (PST)
+In-Reply-To: <20200221134215.264229755@infradead.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Peter Zijlstra <peterz@infradead.org>
@@ -25,31 +25,11 @@ Cc: LKML <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>
 
 On Fri, Feb 21, 2020 at 5:50 AM Peter Zijlstra <peterz@infradead.org> wrote:
 >
-> A few exceptions (like #DB and #BP) can happen at any location in the
-> code, this then means that tracers should treat events from these
-> exceptions as NMI-like. We could be holding locks with interrupts
-> disabled for instance.
+> It is an abomination; and in prepration of removing the whole
+> ist_enter() thing, it needs to go.
 >
-> Similarly, #MC is an actual NMI-like exception.
->
+> Convert #MC over to using task_work_add() instead; it will run the
+> same code slightly later, on the return to user path of the same
+> exception.
 
-> -dotraplinkage void notrace do_int3(struct pt_regs *regs, long error_code)
-> +dotraplinkage notrace void do_int3(struct pt_regs *regs, long error_code)
->  {
->         if (poke_int3_handler(regs))
->                 return;
->
-> -       /*
-> -        * Use ist_enter despite the fact that we don't use an IST stack.
-> -        * We can be called from a kprobe in non-CONTEXT_KERNEL kernel
-> -        * mode or even during context tracking state changes.
-> -        *
-> -        * This means that we can't schedule.  That's okay.
-> -        */
-> -       ist_enter(regs);
-> +       nmi_enter();
-
-I agree with the change, but some commentary might be nice.  Maybe
-copy from here:
-
-https://git.kernel.org/pub/scm/linux/kernel/git/luto/linux.git/commit/?h=x86/idtentry&id=061eaa900b4f63601ab6381ab431fcef8dfd84be
+This looks correct to me.
