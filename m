@@ -1,78 +1,57 @@
-Return-Path: <SRS0=hmIl=4B=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:49954 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1729355AbgBMQRI (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 13 Feb 2020 11:17:08 -0500
-From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Subject: [PATCH 09/19] linux/ktime.h: Extract common header for vDSO
-Date: Thu, 13 Feb 2020 16:16:04 +0000
-Message-ID: <20200213161614.23246-10-vincenzo.frascino@arm.com>
-In-Reply-To: <20200213161614.23246-1-vincenzo.frascino@arm.com>
-References: <20200213161614.23246-1-vincenzo.frascino@arm.com>
+Return-Path: <SRS0=0XgO=4J=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from merlin.infradead.org ([205.233.59.134]:45512 "EHLO
+        merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1728829AbgBUNui (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 21 Feb 2020 08:50:38 -0500
+Message-ID: <20200221134215.385886177@infradead.org>
+Date: Fri, 21 Feb 2020 14:34:22 +0100
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: [PATCH v4 06/27] x86/doublefault: Remove memmove() call
+References: <20200221133416.777099322@infradead.org>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org, clang-built-linux@googlegroups.com, x86@kernel.org
-Cc: catalin.marinas@arm.com, will.deacon@arm.com, arnd@arndb.de, linux@armlinux.org.uk, paul.burton@mips.com, tglx@linutronix.de, luto@kernel.org, mingo@redhat.com, bp@alien8.de, sboyd@kernel.org, salyzyn@android.com, pcc@google.com, 0x7f454c46@gmail.com, ndesaulniers@google.com, avagin@openvz.org
-Message-ID: <20200213161604.KFxumunWDOlUolGueVM9406Xx8s1qcMqDKVC_Wdwk4g@z>
+To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, rostedt@goodmis.org
+Cc: peterz@infradead.org, mingo@kernel.org, joel@joelfernandes.org, gregkh@linuxfoundation.org, gustavo@embeddedor.com, tglx@linutronix.de, paulmck@kernel.org, josh@joshtriplett.org, mathieu.desnoyers@efficios.com, jiangshanlai@gmail.com, luto@kernel.org, tony.luck@intel.com, frederic@kernel.org, dan.carpenter@oracle.com, mhiramat@kernel.org
+Message-ID: <20200221133422.hsg9ivZFutXwMAXjN8q6iVeCDOZsTD6lp6zpl-VjI6k@z>
 
-The vDSO library should only include the necessary headers required for
-a userspace library (UAPI and a minimal set of kernel headers). To make
-this possible it is necessary to isolate from the kernel headers the
-common parts that are strictly necessary to build the library.
+Use of memmove() in #DF is problematic when you consider tracing and
+other instrumentation.
 
-Split ktime.h into linux and common headers to make the latter suitable
-for inclusion in the vDSO library.
+Remove the memmove() call and simply write out what need doing; Boris
+argues the ranges should not overlap.
 
-Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
+Survives selftests/x86, specifically sigreturn_64.
+
+(Andy ?!)
+
+Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+Link: https://lkml.kernel.org/r/20200220121727.GB507@zn.tnic
 ---
- include/common/ktime.h | 16 ++++++++++++++++
- include/linux/ktime.h  |  9 +--------
- 2 files changed, 17 insertions(+), 8 deletions(-)
- create mode 100644 include/common/ktime.h
+ arch/x86/kernel/traps.c |    7 ++++++-
+ 1 file changed, 6 insertions(+), 1 deletion(-)
 
-diff --git a/include/common/ktime.h b/include/common/ktime.h
-new file mode 100644
-index 000000000000..4dd6c6762ad4
---- /dev/null
-+++ b/include/common/ktime.h
-@@ -0,0 +1,16 @@
-+/* SPDX-License-Identifier: GPL-2.0 */
-+#ifndef __COMMON_KTIME_H
-+#define __COMMON_KTIME_H
-+
-+#include <common/jiffies.h>
-+
-+/*
-+ * The resolution of the clocks. The resolution value is returned in
-+ * the clock_getres() system call to give application programmers an
-+ * idea of the (in)accuracy of timers. Timer values are rounded up to
-+ * this resolution values.
-+ */
-+#define LOW_RES_NSEC		TICK_NSEC
-+#define KTIME_LOW_RES		(LOW_RES_NSEC)
-+
-+#endif /* __COMMON_KTIME_H */
-diff --git a/include/linux/ktime.h b/include/linux/ktime.h
-index b2bb44f87f5a..0e1fadeb23c3 100644
---- a/include/linux/ktime.h
-+++ b/include/linux/ktime.h
-@@ -253,14 +253,7 @@ static inline __must_check bool ktime_to_timespec64_cond(const ktime_t kt,
- 	}
- }
+--- a/arch/x86/kernel/traps.c
++++ b/arch/x86/kernel/traps.c
+@@ -278,6 +278,7 @@ dotraplinkage void do_double_fault(struc
+ 		regs->ip == (unsigned long)native_irq_return_iret)
+ 	{
+ 		struct pt_regs *gpregs = (struct pt_regs *)this_cpu_read(cpu_tss_rw.x86_tss.sp0) - 1;
++		unsigned long *p = (unsigned long *)regs->sp;
  
--/*
-- * The resolution of the clocks. The resolution value is returned in
-- * the clock_getres() system call to give application programmers an
-- * idea of the (in)accuracy of timers. Timer values are rounded up to
-- * this resolution values.
-- */
--#define LOW_RES_NSEC		TICK_NSEC
--#define KTIME_LOW_RES		(LOW_RES_NSEC)
-+#include <common/ktime.h>
+ 		/*
+ 		 * regs->sp points to the failing IRET frame on the
+@@ -285,7 +286,11 @@ dotraplinkage void do_double_fault(struc
+ 		 * in gpregs->ss through gpregs->ip.
+ 		 *
+ 		 */
+-		memmove(&gpregs->ip, (void *)regs->sp, 5*8);
++		gpregs->ip	= p[0];
++		gpregs->cs	= p[1];
++		gpregs->flags	= p[2];
++		gpregs->sp	= p[3];
++		gpregs->ss	= p[4];
+ 		gpregs->orig_ax = 0;  /* Missing (lost) #GP error code */
  
- static inline ktime_t ns_to_ktime(u64 ns)
- {
--- 
-2.25.0
+ 		/*
