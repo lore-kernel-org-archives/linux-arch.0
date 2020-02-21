@@ -1,61 +1,73 @@
-Return-Path: <SRS0=hCVk=4O=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail-pl1-f194.google.com ([209.85.214.194]:34866 "EHLO
-        mail-pl1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727550AbgBZViz (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 26 Feb 2020 16:38:55 -0500
-Received: by mail-pl1-f194.google.com with SMTP id g6so229684plt.2
-        for <linux-arch@vger.kernel.org>; Wed, 26 Feb 2020 13:38:55 -0800 (PST)
-Date: Wed, 26 Feb 2020 13:38:53 -0800
-From: Kees Cook <keescook@chromium.org>
-Subject: Re: [PATCH v7 11/11] arm64: mm: Display guarded pages in ptdump
-Message-ID: <202002261338.9890367C@keescook>
-References: <20200226155714.43937-1-broonie@kernel.org>
- <20200226155714.43937-12-broonie@kernel.org>
+Return-Path: <SRS0=0XgO=4J=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from merlin.infradead.org ([205.233.59.134]:45508 "EHLO
+        merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1728777AbgBUNui (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 21 Feb 2020 08:50:38 -0500
+Message-ID: <20200221134215.730523211@infradead.org>
+Date: Fri, 21 Feb 2020 14:34:28 +0100
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: [PATCH v4 12/27] sched,rcu,tracing: Avoid tracing before in_nmi() is correct
+References: <20200221133416.777099322@infradead.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20200226155714.43937-12-broonie@kernel.org>
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Mark Brown <broonie@kernel.org>
-Cc: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Alexander Viro <viro@zeniv.linux.org.uk>, Paul Elliott <paul.elliott@arm.com>, Peter Zijlstra <peterz@infradead.org>, Yu-cheng Yu <yu-cheng.yu@intel.com>, Amit Kachhap <amit.kachhap@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Marc Zyngier <maz@kernel.org>, Eugene Syromiatnikov <esyr@redhat.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, "H . J . Lu " <hjl.tools@gmail.com>, Andrew Jones <drjones@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Jann Horn <jannh@google.com>, Richard Henderson <richard.henderson@linaro.org>, Kristina =?utf-8?Q?Mart=C5=A1enko?= <kristina.martsenko@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Florian Weimer <fweimer@redhat.com>, Sudakshina Das <sudi.das@arm.com>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org
-Message-ID: <20200226213853.tai05mkZaNB2TMyJFbxfragGREb5FGANsURbJ8vf7yg@z>
+To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, rostedt@goodmis.org
+Cc: peterz@infradead.org, mingo@kernel.org, joel@joelfernandes.org, gregkh@linuxfoundation.org, gustavo@embeddedor.com, tglx@linutronix.de, paulmck@kernel.org, josh@joshtriplett.org, mathieu.desnoyers@efficios.com, jiangshanlai@gmail.com, luto@kernel.org, tony.luck@intel.com, frederic@kernel.org, dan.carpenter@oracle.com, mhiramat@kernel.org, "Steven Rostedt (VMware)" <rosted@goodmis.org>
+Message-ID: <20200221133428.KbQJjwFJct00E4oveEIwWPGz5kdF9NBpg5dI7xGC184@z>
 
-On Wed, Feb 26, 2020 at 03:57:14PM +0000, Mark Brown wrote:
-> v8.5-BTI introduces the GP field in stage 1 translation tables which
-> indicates that blocks and pages with it set are guarded pages for which
-> branch target identification checks should be performed. Decode this
-> when dumping the page tables to aid debugging.
-> 
-> Signed-off-by: Mark Brown <broonie@kernel.org>
+If we call into a tracer before in_nmi() becomes true, the tracer can
+no longer detect it is called from NMI context and behave correctly.
 
-Reviewed-by: Kees Cook <keescook@chromium.org>
+Therefore change nmi_{enter,exit}() to use __preempt_count_{add,sub}()
+as the normal preempt_count_{add,sub}() have a (desired) function
+trace entry.
 
--Kees
+This fixes a potential issue with current code; AFAICT when the
+function-tracer has stack-tracing enabled __trace_stack() will
+malfunction when it hits the preempt_count_add() function entry from
+NMI context.
 
-> ---
->  arch/arm64/mm/dump.c | 5 +++++
->  1 file changed, 5 insertions(+)
-> 
-> diff --git a/arch/arm64/mm/dump.c b/arch/arm64/mm/dump.c
-> index 860c00ec8bd3..78163b7a7dde 100644
-> --- a/arch/arm64/mm/dump.c
-> +++ b/arch/arm64/mm/dump.c
-> @@ -145,6 +145,11 @@ static const struct prot_bits pte_bits[] = {
->  		.val	= PTE_UXN,
->  		.set	= "UXN",
->  		.clear	= "   ",
-> +	}, {
-> +		.mask	= PTE_GP,
-> +		.val	= PTE_GP,
-> +		.set	= "GP",
-> +		.clear	= "  ",
->  	}, {
->  		.mask	= PTE_ATTRINDX_MASK,
->  		.val	= PTE_ATTRINDX(MT_DEVICE_nGnRnE),
-> -- 
-> 2.20.1
-> 
+Suggested-by: Steven Rostedt (VMware) <rosted@goodmis.org>
+Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+Reviewed-by: Steven Rostedt (VMware) <rostedt@goodmis.org>
+---
+ include/linux/hardirq.h |   13 +++++++++++--
+ 1 file changed, 11 insertions(+), 2 deletions(-)
 
--- 
-Kees Cook
+--- a/include/linux/hardirq.h
++++ b/include/linux/hardirq.h
+@@ -66,6 +66,15 @@ extern void irq_exit(void);
+ #endif
+ 
+ /*
++ * NMI vs Tracing
++ * --------------
++ *
++ * We must not land in a tracer until (or after) we've changed preempt_count
++ * such that in_nmi() becomes true. To that effect all NMI C entry points must
++ * be marked 'notrace' and call nmi_enter() as soon as possible.
++ */
++
++/*
+  * nmi_enter() can nest up to 15 times; see NMI_BITS.
+  */
+ #define nmi_enter()						\
+@@ -75,7 +84,7 @@ extern void irq_exit(void);
+ 		lockdep_off();					\
+ 		ftrace_nmi_enter();				\
+ 		BUG_ON(in_nmi() == NMI_MASK);			\
+-		preempt_count_add(NMI_OFFSET + HARDIRQ_OFFSET);	\
++		__preempt_count_add(NMI_OFFSET + HARDIRQ_OFFSET); \
+ 		rcu_nmi_enter();				\
+ 		trace_hardirq_enter();				\
+ 	} while (0)
+@@ -85,7 +94,7 @@ extern void irq_exit(void);
+ 		trace_hardirq_exit();				\
+ 		rcu_nmi_exit();					\
+ 		BUG_ON(!in_nmi());				\
+-		preempt_count_sub(NMI_OFFSET + HARDIRQ_OFFSET);	\
++		__preempt_count_sub(NMI_OFFSET + HARDIRQ_OFFSET); \
+ 		ftrace_nmi_exit();				\
+ 		lockdep_on();					\
+ 		printk_nmi_exit();				\
