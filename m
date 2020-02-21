@@ -1,39 +1,58 @@
 From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH v4 05/27] x86: Replace ist_enter() with nmi_enter()
-Date: Fri, 21 Feb 2020 21:22:46 +0100
-Message-ID: <20200221202246.GA14897@hirez.programming.kicks-ass.net>
+Subject: Re: [PATCH v4 01/27] lockdep: Teach lockdep about "USED" <- "IN-NMI"
+ inversions
+Date: Fri, 21 Feb 2020 21:25:11 +0100
+Message-ID: <20200221202511.GB14897@hirez.programming.kicks-ass.net>
 References: <20200221133416.777099322@infradead.org>
- <20200221134215.328642621@infradead.org>
- <CALCETrU7nezN7d3GEZ8h8HbRfvZ0+F9+Ahb7fLvZ9FVaHN9x2w@mail.gmail.com>
+ <20200221134215.090538203@infradead.org>
+ <20200221100855.2f9bec3a@gandalf.local.home>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.133]:40184 "EHLO
+Received: from bombadil.infradead.org ([198.137.202.133]:40262 "EHLO
         bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726483AbgBUUXP (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 21 Feb 2020 15:23:15 -0500
+        with ESMTP id S1726483AbgBUUZi (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 21 Feb 2020 15:25:38 -0500
 Content-Disposition: inline
-In-Reply-To: <CALCETrU7nezN7d3GEZ8h8HbRfvZ0+F9+Ahb7fLvZ9FVaHN9x2w@mail.gmail.com>
+In-Reply-To: <20200221100855.2f9bec3a@gandalf.local.home>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andy Lutomirski <luto@kernel.org>
-Cc: LKML <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Steven Rostedt <rostedt@goodmis.org>, Ingo Molnar <mingo@kernel.org>, Joel Fernandes <joel@joelfernandes.org>, Greg KH <gregkh@linuxfoundation.org>, gustavo@embeddedor.com, Thomas Gleixner <tglx@linutronix.de>, paulmck@kernel.org, Josh Triplett <josh@joshtriplett.org>, Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, Lai Jiangshan <jiangshanlai@gmail.com>, Tony Luck <tony.luck@intel.com>, Frederic Weisbecker <frederic@kernel.org>, Dan Carpenter <dan.carpenter@oracle.com>, Masami Hiramatsu <mhiramat@kernel.org>
+To: Steven Rostedt <rostedt@goodmis.org>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org, joel@joelfernandes.org, gregkh@linuxfoundation.org, gustavo@embeddedor.com, tglx@linutronix.de, paulmck@kernel.org, josh@joshtriplett.org, mathieu.desnoyers@efficios.com, jiangshanlai@gmail.com, luto@kernel.org, tony.luck@intel.com, frederic@kernel.org, dan.carpenter@oracle.com, mhiramat@kernel.org
 
-On Fri, Feb 21, 2020 at 11:05:36AM -0800, Andy Lutomirski wrote:
-
-> > -       /*
-> > -        * Use ist_enter despite the fact that we don't use an IST stack.
-> > -        * We can be called from a kprobe in non-CONTEXT_KERNEL kernel
-> > -        * mode or even during context tracking state changes.
-> > -        *
-> > -        * This means that we can't schedule.  That's okay.
-> > -        */
-> > -       ist_enter(regs);
-> > +       nmi_enter();
+On Fri, Feb 21, 2020 at 10:08:55AM -0500, Steven Rostedt wrote:
+> On Fri, 21 Feb 2020 14:34:17 +0100
+> Peter Zijlstra <peterz@infradead.org> wrote:
 > 
-> I agree with the change, but some commentary might be nice.  Maybe
-> copy from here:
+> > --- a/kernel/locking/lockdep.c
+> > +++ b/kernel/locking/lockdep.c
+> > @@ -379,13 +379,13 @@ void lockdep_init_task(struct task_struc
+> >  
+> >  void lockdep_off(void)
+> >  {
+> > -	current->lockdep_recursion++;
+> > +	current->lockdep_recursion += BIT(16);
+> >  }
+> >  EXPORT_SYMBOL(lockdep_off);
+> >  
+> >  void lockdep_on(void)
+> >  {
+> > -	current->lockdep_recursion--;
+> > +	current->lockdep_recursion -= BIT(16);
+> >  }
+> >  EXPORT_SYMBOL(lockdep_on);
+> >  
 > 
-> https://git.kernel.org/pub/scm/linux/kernel/git/luto/linux.git/commit/?h=x86/idtentry&id=061eaa900b4f63601ab6381ab431fcef8dfd84be
+> > +
+> > +static bool lockdep_nmi(void)
+> > +{
+> > +	if (current->lockdep_recursion & 0xFFFF)
+> 
+> Nitpick, but the association with bit 16 and this mask really should be
+> defined as a macro somewhere and not have hard coded numbers.
 
-Fair enough; I'll add something to #DB and #BP for that.
+Right, I suppose I can do something like:
+
+#define LOCKDEP_RECURSION_BITS	16
+#define LOCKDEP_OFF (1U << LOCKDEP_RECURSION_BITS)
+#define LOCKDEP_RECURSION_MASK (LOCKDEP_OFF - 1)
