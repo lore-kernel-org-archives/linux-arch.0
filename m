@@ -1,204 +1,163 @@
-Return-Path: <SRS0=as/e=4M=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from smtp-sh.infomaniak.ch ([128.65.195.4]:51414 "EHLO
-        smtp-sh.infomaniak.ch" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727090AbgBXQKk (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 24 Feb 2020 11:10:40 -0500
-From: =?UTF-8?q?Micka=C3=ABl=20Sala=C3=BCn?= <mic@digikod.net>
-Subject: [RFC PATCH v14 00/10] Landlock LSM
-Date: Mon, 24 Feb 2020 17:02:05 +0100
-Message-ID: <20200224160215.4136-1-mic@digikod.net>
+Return-Path: <SRS0=0XgO=4J=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from merlin.infradead.org ([205.233.59.134]:45614 "EHLO
+        merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1728897AbgBUNuo (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 21 Feb 2020 08:50:44 -0500
+Message-ID: <20200221134215.443368893@infradead.org>
+Date: Fri, 21 Feb 2020 14:34:23 +0100
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: [PATCH v4 07/27] rcu: Make RCU IRQ enter/exit functions rely on in_nmi()
+References: <20200221133416.777099322@infradead.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: =?UTF-8?q?Micka=C3=ABl=20Sala=C3=BCn?= <mic@digikod.net>, Al Viro <viro@zeniv.linux.org.uk>, Andy Lutomirski <luto@amacapital.net>, Arnd Bergmann <arnd@arndb.de>, Casey Schaufler <casey@schaufler-ca.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, James Morris <jmorris@namei.org>, Jann Horn <jann@thejh.net>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Michael Kerrisk <mtk.manpages@gmail.com>, =?UTF-8?q?Micka=C3=ABl=20Sala=C3=BCn?= <mickael.salaun@ssi.gouv.fr>, "Serge E . Hallyn" <serge@hallyn.com>, Shuah Khan <shuah@kernel.org>, Vincent Dagonneau <vincent.dagonneau@ssi.gouv.fr>, kernel-hardening@lists.openwall.com, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-security-module@vger.kernel.org, x86@kernel.org
-Message-ID: <20200224160205.SWzfCwq7m-J5wKBEYUVWyNUh4brETCGZveH6m2yyz94@z>
+To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, rostedt@goodmis.org
+Cc: peterz@infradead.org, mingo@kernel.org, joel@joelfernandes.org, gregkh@linuxfoundation.org, gustavo@embeddedor.com, tglx@linutronix.de, paulmck@kernel.org, josh@joshtriplett.org, mathieu.desnoyers@efficios.com, jiangshanlai@gmail.com, luto@kernel.org, tony.luck@intel.com, frederic@kernel.org, dan.carpenter@oracle.com, mhiramat@kernel.org
+Message-ID: <20200221133423.gXO1fH50PKF_TmFAEgQrUK6NIiJLh1hh6NQ9Oytjwbc@z>
 
-Hi,
+From: Paul E. McKenney <paulmck@kernel.org>
 
-This new version of Landlock is a major revamp of the previous series
-[1], hence the RFC tag.  The three main changes are the replacement of
-eBPF with a dedicated safe management of access rules, the replacement
-of the use of seccomp(2) with a dedicated syscall, and the management of
-filesystem access-control (back from the v10).
+The rcu_nmi_enter_common() and rcu_nmi_exit_common() functions take an
+"irq" parameter that indicates whether these functions are invoked from
+an irq handler (irq==true) or an NMI handler (irq==false).  However,
+recent changes have applied notrace to a few critical functions such
+that rcu_nmi_enter_common() and rcu_nmi_exit_common() many now rely
+on in_nmi().  Note that in_nmi() works no differently than before,
+but rather that tracing is now prohibited in code regions where in_nmi()
+would incorrectly report NMI state.
 
-As discussed in [2], eBPF may be too powerful and dangerous to be put in
-the hand of unprivileged and potentially malicious processes, especially
-because of side-channel attacks against access-controls or other parts
-of the kernel.
+This commit therefore removes the "irq" parameter and inlines
+rcu_nmi_enter_common() and rcu_nmi_exit_common() into rcu_nmi_enter()
+and rcu_nmi_exit(), respectively.
 
-Thanks to this new implementation (1540 SLOC), designed from the ground
-to be used by unprivileged processes, this series enables a process to
-sandbox itself without requiring CAP_SYS_ADMIN, but only the
-no_new_privs constraint (like seccomp).  Not relying on eBPF also
-enables to improve performances, especially for stacked security
-policies thanks to mergeable rulesets.
+Signed-off-by: Paul E. McKenney <paulmck@kernel.org>
+Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+---
+ kernel/rcu/tree.c |   45 ++++++++++++++-------------------------------
+ 1 file changed, 14 insertions(+), 31 deletions(-)
 
-The compiled documentation is available here:
-https://landlock.io/linux-doc/landlock-v14/security/landlock/index.html
-
-This series can be applied on top of v5.6-rc3.  This can be tested with
-CONFIG_SECURITY_LANDLOCK and CONFIG_SAMPLE_LANDLOCK.  This patch series
-can be found in a Git repository here:
-https://github.com/landlock-lsm/linux/commits/landlock-v14
-I would really appreciate constructive comments on the design and the code.
-
-
-# Landlock LSM
-
-The goal of Landlock is to enable to restrict ambient rights (e.g.
-global filesystem access) for a set of processes.  Because Landlock is a
-stackable LSM [3], it makes possible to create safe security sandboxes
-as new security layers in addition to the existing system-wide
-access-controls. This kind of sandbox is expected to help mitigate the
-security impact of bugs or unexpected/malicious behaviors in user-space
-applications. Landlock empower any process, including unprivileged ones,
-to securely restrict themselves.
-
-Landlock is inspired by seccomp-bpf but instead of filtering syscalls
-and their raw arguments, a Landlock rule can restrict the use of kernel
-objects like file hierarchies, according to the kernel semantic.
-Landlock also takes inspiration from other OS sandbox mechanisms: XNU
-Sandbox, FreeBSD Capsicum or OpenBSD Pledge/Unveil.
-
-
-# Current limitations
-
-## Path walk
-
-Landlock need to use dentries to identify a file hierarchy, which is
-needed for composable and unprivileged access-controls. This means that
-path resolution/walking (handled with inode_permission()) is not
-supported, yet. This could be filled with a future extension first of
-the LSM framework. The Landlock userspace ABI can handle such change
-with new option (e.g. to the struct landlock_ruleset).
-
-## UnionFS
-
-An UnionFS super-block use a set of upper and lower directories. An
-access request to a file in one of these hierarchy trigger a call to
-ovl_path_real() which generate another access request according to the
-matching hierarchy. Because such super-block is not aware of its current
-mount point, OverlayFS can't create a dedicated mnt_parent for each of
-the upper and lower directories mount clones. It is then not currently
-possible to track the source of such indirect access-request, and then
-not possible to identify a unified OverlayFS hierarchy.
-
-## Syscall
-
-Because it is only tested on x86_64, the syscall is only wired up for
-this architecture.  The whole x86 family (and probably all the others)
-will be supported in the next patch series.
-
-
-## Memory limits
-
-There is currently no limit on the memory usage.  Any idea to leverage
-an existing mechanism (e.g. rlimit)?
-
-
-# Changes since v13
-
-* Revamp of the LSM: remove the need for eBPF and seccomp(2).
-* Implement a full filesystem access-control.
-* Take care of the backward compatibility issues, especially for
-  this security features.
-
-Previous version:
-https://lore.kernel.org/lkml/20191104172146.30797-1-mic@digikod.net/
-
-[1] https://lore.kernel.org/lkml/20191104172146.30797-1-mic@digikod.net/
-[2] https://lore.kernel.org/lkml/a6b61f33-82dc-0c1c-7a6c-1926343ef63e@digikod.net/
-[3] https://lore.kernel.org/lkml/50db058a-7dde-441b-a7f9-f6837fe8b69f@schaufler-ca.com/
-
-Regards,
-
-Mickaël Salaün (10):
-  landlock: Add object and rule management
-  landlock: Add ruleset and domain management
-  landlock: Set up the security framework and manage credentials
-  landlock: Add ptrace restrictions
-  fs,landlock: Support filesystem access-control
-  landlock: Add syscall implementation
-  arch: Wire up landlock() syscall
-  selftests/landlock: Add initial tests
-  samples/landlock: Add a sandbox manager example
-  landlock: Add user and kernel documentation
-
- Documentation/security/index.rst              |   1 +
- Documentation/security/landlock/index.rst     |  18 +
- Documentation/security/landlock/kernel.rst    |  44 ++
- Documentation/security/landlock/user.rst      | 233 +++++++
- MAINTAINERS                                   |  12 +
- arch/x86/entry/syscalls/syscall_64.tbl        |   1 +
- fs/super.c                                    |   2 +
- include/linux/landlock.h                      |  22 +
- include/linux/syscalls.h                      |   3 +
- include/uapi/asm-generic/unistd.h             |   4 +-
- include/uapi/linux/landlock.h                 | 315 +++++++++
- samples/Kconfig                               |   7 +
- samples/Makefile                              |   1 +
- samples/landlock/.gitignore                   |   1 +
- samples/landlock/Makefile                     |  15 +
- samples/landlock/sandboxer.c                  | 226 +++++++
- security/Kconfig                              |  11 +-
- security/Makefile                             |   2 +
- security/landlock/Kconfig                     |  16 +
- security/landlock/Makefile                    |   4 +
- security/landlock/cred.c                      |  47 ++
- security/landlock/cred.h                      |  55 ++
- security/landlock/fs.c                        | 591 +++++++++++++++++
- security/landlock/fs.h                        |  42 ++
- security/landlock/object.c                    | 341 ++++++++++
- security/landlock/object.h                    | 134 ++++
- security/landlock/ptrace.c                    | 118 ++++
- security/landlock/ptrace.h                    |  14 +
- security/landlock/ruleset.c                   | 463 +++++++++++++
- security/landlock/ruleset.h                   | 106 +++
- security/landlock/setup.c                     |  38 ++
- security/landlock/setup.h                     |  20 +
- security/landlock/syscall.c                   | 470 +++++++++++++
- tools/testing/selftests/Makefile              |   1 +
- tools/testing/selftests/landlock/.gitignore   |   3 +
- tools/testing/selftests/landlock/Makefile     |  13 +
- tools/testing/selftests/landlock/config       |   4 +
- tools/testing/selftests/landlock/test.h       |  40 ++
- tools/testing/selftests/landlock/test_base.c  |  80 +++
- tools/testing/selftests/landlock/test_fs.c    | 624 ++++++++++++++++++
- .../testing/selftests/landlock/test_ptrace.c  | 293 ++++++++
- 41 files changed, 4429 insertions(+), 6 deletions(-)
- create mode 100644 Documentation/security/landlock/index.rst
- create mode 100644 Documentation/security/landlock/kernel.rst
- create mode 100644 Documentation/security/landlock/user.rst
- create mode 100644 include/linux/landlock.h
- create mode 100644 include/uapi/linux/landlock.h
- create mode 100644 samples/landlock/.gitignore
- create mode 100644 samples/landlock/Makefile
- create mode 100644 samples/landlock/sandboxer.c
- create mode 100644 security/landlock/Kconfig
- create mode 100644 security/landlock/Makefile
- create mode 100644 security/landlock/cred.c
- create mode 100644 security/landlock/cred.h
- create mode 100644 security/landlock/fs.c
- create mode 100644 security/landlock/fs.h
- create mode 100644 security/landlock/object.c
- create mode 100644 security/landlock/object.h
- create mode 100644 security/landlock/ptrace.c
- create mode 100644 security/landlock/ptrace.h
- create mode 100644 security/landlock/ruleset.c
- create mode 100644 security/landlock/ruleset.h
- create mode 100644 security/landlock/setup.c
- create mode 100644 security/landlock/setup.h
- create mode 100644 security/landlock/syscall.c
- create mode 100644 tools/testing/selftests/landlock/.gitignore
- create mode 100644 tools/testing/selftests/landlock/Makefile
- create mode 100644 tools/testing/selftests/landlock/config
- create mode 100644 tools/testing/selftests/landlock/test.h
- create mode 100644 tools/testing/selftests/landlock/test_base.c
- create mode 100644 tools/testing/selftests/landlock/test_fs.c
- create mode 100644 tools/testing/selftests/landlock/test_ptrace.c
-
--- 
-2.25.0
+--- a/kernel/rcu/tree.c
++++ b/kernel/rcu/tree.c
+@@ -614,16 +614,18 @@ void rcu_user_enter(void)
+ }
+ #endif /* CONFIG_NO_HZ_FULL */
+ 
+-/*
++/**
++ * rcu_nmi_exit - inform RCU of exit from NMI context
++ *
+  * If we are returning from the outermost NMI handler that interrupted an
+  * RCU-idle period, update rdp->dynticks and rdp->dynticks_nmi_nesting
+  * to let the RCU grace-period handling know that the CPU is back to
+  * being RCU-idle.
+  *
+- * If you add or remove a call to rcu_nmi_exit_common(), be sure to test
++ * If you add or remove a call to rcu_nmi_exit(), be sure to test
+  * with CONFIG_RCU_EQS_DEBUG=y.
+  */
+-static __always_inline void rcu_nmi_exit_common(bool irq)
++void rcu_nmi_exit(void)
+ {
+ 	struct rcu_data *rdp = this_cpu_ptr(&rcu_data);
+ 
+@@ -651,27 +653,16 @@ static __always_inline void rcu_nmi_exit
+ 	trace_rcu_dyntick(TPS("Startirq"), rdp->dynticks_nmi_nesting, 0, atomic_read(&rdp->dynticks));
+ 	WRITE_ONCE(rdp->dynticks_nmi_nesting, 0); /* Avoid store tearing. */
+ 
+-	if (irq)
++	if (!in_nmi())
+ 		rcu_prepare_for_idle();
+ 
+ 	rcu_dynticks_eqs_enter();
+ 
+-	if (irq)
++	if (!in_nmi())
+ 		rcu_dynticks_task_enter();
+ }
+ 
+ /**
+- * rcu_nmi_exit - inform RCU of exit from NMI context
+- *
+- * If you add or remove a call to rcu_nmi_exit(), be sure to test
+- * with CONFIG_RCU_EQS_DEBUG=y.
+- */
+-void rcu_nmi_exit(void)
+-{
+-	rcu_nmi_exit_common(false);
+-}
+-
+-/**
+  * rcu_irq_exit - inform RCU that current CPU is exiting irq towards idle
+  *
+  * Exit from an interrupt handler, which might possibly result in entering
+@@ -693,7 +684,7 @@ void rcu_nmi_exit(void)
+ void rcu_irq_exit(void)
+ {
+ 	lockdep_assert_irqs_disabled();
+-	rcu_nmi_exit_common(true);
++	rcu_nmi_exit();
+ }
+ 
+ /*
+@@ -777,7 +768,7 @@ void rcu_user_exit(void)
+ #endif /* CONFIG_NO_HZ_FULL */
+ 
+ /**
+- * rcu_nmi_enter_common - inform RCU of entry to NMI context
++ * rcu_nmi_enter - inform RCU of entry to NMI context
+  * @irq: Is this call from rcu_irq_enter?
+  *
+  * If the CPU was idle from RCU's viewpoint, update rdp->dynticks and
+@@ -786,10 +777,10 @@ void rcu_user_exit(void)
+  * long as the nesting level does not overflow an int.  (You will probably
+  * run out of stack space first.)
+  *
+- * If you add or remove a call to rcu_nmi_enter_common(), be sure to test
++ * If you add or remove a call to rcu_nmi_enter(), be sure to test
+  * with CONFIG_RCU_EQS_DEBUG=y.
+  */
+-static __always_inline void rcu_nmi_enter_common(bool irq)
++void rcu_nmi_enter(void)
+ {
+ 	long incby = 2;
+ 	struct rcu_data *rdp = this_cpu_ptr(&rcu_data);
+@@ -807,12 +798,12 @@ static __always_inline void rcu_nmi_ente
+ 	 */
+ 	if (rcu_dynticks_curr_cpu_in_eqs()) {
+ 
+-		if (irq)
++		if (!in_nmi())
+ 			rcu_dynticks_task_exit();
+ 
+ 		rcu_dynticks_eqs_exit();
+ 
+-		if (irq)
++		if (!in_nmi())
+ 			rcu_cleanup_after_idle();
+ 
+ 		incby = 1;
+@@ -834,14 +825,6 @@ static __always_inline void rcu_nmi_ente
+ 		   rdp->dynticks_nmi_nesting + incby);
+ 	barrier();
+ }
+-
+-/**
+- * rcu_nmi_enter - inform RCU of entry to NMI context
+- */
+-void rcu_nmi_enter(void)
+-{
+-	rcu_nmi_enter_common(false);
+-}
+ NOKPROBE_SYMBOL(rcu_nmi_enter);
+ 
+ /**
+@@ -869,7 +852,7 @@ NOKPROBE_SYMBOL(rcu_nmi_enter);
+ void rcu_irq_enter(void)
+ {
+ 	lockdep_assert_irqs_disabled();
+-	rcu_nmi_enter_common(true);
++	rcu_nmi_enter();
+ }
+ 
+ /*
