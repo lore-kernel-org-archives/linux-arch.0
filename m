@@ -1,66 +1,70 @@
-Return-Path: <SRS0=as/e=4M=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.133]:47658 "EHLO
-        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726628AbgBXTpK (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 24 Feb 2020 14:45:10 -0500
-From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 2/5] dma-direct: consolidate the error handling in dma_direct_alloc_pages
-Date: Mon, 24 Feb 2020 11:44:42 -0800
-Message-ID: <20200224194446.690816-3-hch@lst.de>
-In-Reply-To: <20200224194446.690816-1-hch@lst.de>
-References: <20200224194446.690816-1-hch@lst.de>
+Return-Path: <SRS0=0XgO=4J=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from foss.arm.com ([217.140.110.172]:45342 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1725947AbgBUSTC (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 21 Feb 2020 13:19:02 -0500
+From: Vincenzo Frascino <vincenzo.frascino@arm.com>
+Subject: [PATCH v2 1/3] arm: clocksource: Add VDSO default clockmode
+Date: Fri, 21 Feb 2020 18:18:47 +0000
+Message-ID: <20200221181849.40351-2-vincenzo.frascino@arm.com>
+In-Reply-To: <20200221181849.40351-1-vincenzo.frascino@arm.com>
+References: <20200221181849.40351-1-vincenzo.frascino@arm.com>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jonas Bonn <jonas@southpole.se>, Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>, Stafford Horne <shorne@gmail.com>
-Cc: Marek Szyprowski <m.szyprowski@samsung.com>, Robin Murphy <robin.murphy@arm.com>, Will Deacon <will@kernel.org>, Mark Rutland <mark.rutland@arm.com>, openrisc@lists.librecores.org, iommu@lists.linux-foundation.org, linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20200224194442.Si_eJymVOGLGFvThBSMR-Iod0GW6cEIgfdBlfHGR5eo@z>
+To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org
+Cc: catalin.marinas@arm.com, will.deacon@arm.com, linux@armlinux.org.uk, tglx@linutronix.de, luto@kernel.org, m.szyprowski@samsung.com, Mark.Rutland@arm.com, maz@kernel.org, vincenzo.frascino@arm.com
+Message-ID: <20200221181847.wFeoMwWj7z_78Y0Ixvg02XYj9-3hDAWKycAAC4WCNT0@z>
 
-Use a goto label to merge two error return cases.
+The arm_arch_timer requires that VDSO_CLOCKMODE_ARCHTIMER to be
+defined to compile correctly. On arm the vDSO can be disabled and when
+this is the case the compilation ends prematurely with an error.
 
-Signed-off-by: Christoph Hellwig <hch@lst.de>
+Define VDSO_CLOCKMODE_ARCH_DEFAULT to represent the default vDSO
+clockmode for arm_arch_timer.
+
+Cc: Russell King <linux@armlinux.org.uk>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
 ---
- kernel/dma/direct.c | 13 ++++++-------
- 1 file changed, 6 insertions(+), 7 deletions(-)
+ arch/arm/Kconfig                   |  1 +
+ arch/arm/include/asm/clocksource.h | 10 ++++++++++
+ 2 files changed, 11 insertions(+)
 
-diff --git a/kernel/dma/direct.c b/kernel/dma/direct.c
-index ac7956c38f69..9dfcc7be4903 100644
---- a/kernel/dma/direct.c
-+++ b/kernel/dma/direct.c
-@@ -157,11 +157,8 @@ void *dma_direct_alloc_pages(struct device *dev, size_t size,
- 		ret = dma_common_contiguous_remap(page, PAGE_ALIGN(size),
- 				dma_pgprot(dev, PAGE_KERNEL, attrs),
- 				__builtin_return_address(0));
--		if (!ret) {
--			dma_free_contiguous(dev, page, size);
--			return ret;
--		}
--
-+		if (!ret)
-+			goto out_free_pages;
- 		memset(ret, 0, size);
- 		goto done;
- 	}
-@@ -174,8 +171,7 @@ void *dma_direct_alloc_pages(struct device *dev, size_t size,
- 		 * so log an error and fail.
- 		 */
- 		dev_info(dev, "Rejecting highmem page from CMA.\n");
--		dma_free_contiguous(dev, page, size);
--		return NULL;
-+		goto out_free_pages;
- 	}
+diff --git a/arch/arm/Kconfig b/arch/arm/Kconfig
+index 03bbfc312fe7..97864aabc2a6 100644
+--- a/arch/arm/Kconfig
++++ b/arch/arm/Kconfig
+@@ -3,6 +3,7 @@ config ARM
+ 	bool
+ 	default y
+ 	select ARCH_32BIT_OFF_T
++	select ARCH_CLOCKSOURCE_DATA
+ 	select ARCH_HAS_BINFMT_FLAT
+ 	select ARCH_HAS_DEBUG_VIRTUAL if MMU
+ 	select ARCH_HAS_DEVMEM_IS_ALLOWED
+diff --git a/arch/arm/include/asm/clocksource.h b/arch/arm/include/asm/clocksource.h
+index 73beb7f131de..3f7812d5764f 100644
+--- a/arch/arm/include/asm/clocksource.h
++++ b/arch/arm/include/asm/clocksource.h
+@@ -1,7 +1,17 @@
+ #ifndef _ASM_CLOCKSOURCE_H
+ #define _ASM_CLOCKSOURCE_H
  
- 	ret = page_address(page);
-@@ -195,6 +191,9 @@ void *dma_direct_alloc_pages(struct device *dev, size_t size,
- 	else
- 		*dma_handle = phys_to_dma(dev, page_to_phys(page));
- 	return ret;
-+out_free_pages:
-+	dma_free_contiguous(dev, page, size);
-+	return NULL;
- }
++struct arch_clocksource_data {
++	/* Empty on purpose */
++};
++
++#ifdef CONFIG_GENERIC_GETTIMEOFDAY
+ #define VDSO_ARCH_CLOCKMODES	\
+ 	VDSO_CLOCKMODE_ARCHTIMER
++#define VDSO_CLOCKMODE_ARCH_DEFAULT	VDSO_CLOCKMODE_ARCHTIMER
++#else
++/* The define below is required because on arm the VDSOs can be disabled */
++#define VDSO_CLOCKMODE_ARCH_DEFAULT	VDSO_CLOCKMODE_NONE
++#endif
  
- void dma_direct_free_pages(struct device *dev, size_t size, void *cpu_addr,
+ #endif
 -- 
-2.24.1
+2.25.0
