@@ -1,23 +1,23 @@
 From: Andy Lutomirski <luto@kernel.org>
-Subject: Re: [PATCH v4 04/27] x86/mce: Delete ist_begin_non_atomic()
-Date: Fri, 21 Feb 2020 11:07:10 -0800
-Message-ID: <CALCETrWTbSC1cKgfP_v5LCE1-FQ6bF6E+nA5UmB0SphCCCt1vA@mail.gmail.com>
-References: <20200221133416.777099322@infradead.org> <20200221134215.264229755@infradead.org>
+Subject: Re: [PATCH v4 06/27] x86/doublefault: Remove memmove() call
+Date: Fri, 21 Feb 2020 11:10:05 -0800
+Message-ID: <CALCETrWmnkrHi1FYFLvj5G7SrmN+BrwLgKyt=NBtd-EOoRyeSQ@mail.gmail.com>
+References: <20200221133416.777099322@infradead.org> <20200221134215.385886177@infradead.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:49044 "EHLO mail.kernel.org"
+Received: from mail.kernel.org ([198.145.29.99]:50220 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726423AbgBUTHY (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 21 Feb 2020 14:07:24 -0500
-Received: from mail-wr1-f48.google.com (mail-wr1-f48.google.com [209.85.221.48])
+        id S1729407AbgBUTKU (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 21 Feb 2020 14:10:20 -0500
+Received: from mail-wm1-f51.google.com (mail-wm1-f51.google.com [209.85.128.51])
         (using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
         (No client certificate requested)
-        by mail.kernel.org (Postfix) with ESMTPSA id A115E2467D
-        for <linux-arch@vger.kernel.org>; Fri, 21 Feb 2020 19:07:23 +0000 (UTC)
-Received: by mail-wr1-f48.google.com with SMTP id w15so3226606wru.4
-        for <linux-arch@vger.kernel.org>; Fri, 21 Feb 2020 11:07:23 -0800 (PST)
-In-Reply-To: <20200221134215.264229755@infradead.org>
+        by mail.kernel.org (Postfix) with ESMTPSA id 8CD122467E
+        for <linux-arch@vger.kernel.org>; Fri, 21 Feb 2020 19:10:19 +0000 (UTC)
+Received: by mail-wm1-f51.google.com with SMTP id a5so2887530wmb.0
+        for <linux-arch@vger.kernel.org>; Fri, 21 Feb 2020 11:10:19 -0800 (PST)
+In-Reply-To: <20200221134215.385886177@infradead.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Peter Zijlstra <peterz@infradead.org>
@@ -25,11 +25,16 @@ Cc: LKML <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>
 
 On Fri, Feb 21, 2020 at 5:50 AM Peter Zijlstra <peterz@infradead.org> wrote:
 >
-> It is an abomination; and in prepration of removing the whole
-> ist_enter() thing, it needs to go.
+> Use of memmove() in #DF is problematic when you consider tracing and
+> other instrumentation.
 >
-> Convert #MC over to using task_work_add() instead; it will run the
-> same code slightly later, on the return to user path of the same
-> exception.
+> Remove the memmove() call and simply write out what need doing; Boris
+> argues the ranges should not overlap.
+>
+> Survives selftests/x86, specifically sigreturn_64.
+>
+> (Andy ?!)
 
-This looks correct to me.
+Acked-by: Andy Lutomirski <luto@kernel.org>
+
+Even ignoring the tracing issue, I think this is nicer than the original code.
