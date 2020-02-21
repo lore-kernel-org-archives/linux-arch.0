@@ -1,36 +1,59 @@
-From: David Miller <davem@davemloft.net>
-Subject: Re: [RFC] regset ->get() API
-Date: Fri, 21 Feb 2020 11:22:44 -0800 (PST)
-Message-ID: <20200221.112244.1426580944977593272.davem@davemloft.net>
-References: <CAHk-=whdat=wfwKh5rF3MuCbTxhcFwaGqmdsCXXv=H=kDERTOw@mail.gmail.com>
-        <20200221033016.GV23230@ZenIV.linux.org.uk>
-        <20200221185903.GA3929948@ZenIV.linux.org.uk>
+From: Steven Rostedt <rostedt@goodmis.org>
+Subject: Re: [PATCH v4 09/27] rcu: Rename rcu_irq_{enter,exit}_irqson()
+Date: Fri, 21 Feb 2020 15:21:53 -0500
+Message-ID: <20200221152153.15b3cf36@gandalf.local.home>
+References: <20200221133416.777099322@infradead.org>
+        <20200221134215.559644596@infradead.org>
 Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
+Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from shards.monkeyblade.net ([23.128.96.9]:40284 "EHLO
-        shards.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726423AbgBUTWr (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 21 Feb 2020 14:22:47 -0500
-In-Reply-To: <20200221185903.GA3929948@ZenIV.linux.org.uk>
+Received: from mail.kernel.org ([198.145.29.99]:51934 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726483AbgBUUV5 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 21 Feb 2020 15:21:57 -0500
+In-Reply-To: <20200221134215.559644596@infradead.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: viro@zeniv.linux.org.uk
-Cc: torvalds@linux-foundation.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, arnd@arndb.de
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org, joel@joelfernandes.org, gregkh@linuxfoundation.org, gustavo@embeddedor.com, tglx@linutronix.de, paulmck@kernel.org, josh@joshtriplett.org, mathieu.desnoyers@efficios.com, jiangshanlai@gmail.com, luto@kernel.org, tony.luck@intel.com, frederic@kernel.org, dan.carpenter@oracle.com, mhiramat@kernel.org
 
-From: Al Viro <viro@zeniv.linux.org.uk>
-Date: Fri, 21 Feb 2020 18:59:03 +0000
+On Fri, 21 Feb 2020 14:34:25 +0100
+Peter Zijlstra <peterz@infradead.org> wrote:
 
-> Again, a couple of copy_regset_to_user(), but there's an additional
-> twist - GETREGSET of 32bit task on sparc64 will use access_process_vm()
-> when trying to fetch L0..L7/I0..I7 of other task, using copy_from_user()
-> only when the target is equal to current.  For sparc32 this is not
-> true - it's always copy_from_user() there, so the values it reports
-> for those registers have nothing to do with the target process.  That
-> part smells like a bug; by the time GETREGSET had been introduced
-> sparc32 was not getting much attention, GETREGS worked just fine
-> (not reporting L*/I* anyway) and for coredump it was accessing the
-> caller's memory.  Not sure if anyone cares at that point...
+> --- a/kernel/rcu/tree.c
+> +++ b/kernel/rcu/tree.c
+> @@ -699,10 +699,10 @@ void rcu_irq_exit(void)
+>  /*
+>   * Wrapper for rcu_irq_exit() where interrupts are enabled.
 
-That's definitely a bug and sparc64 is doing it correctly.
+			where interrupts may be enabled.
+
+>   *
+> - * If you add or remove a call to rcu_irq_exit_irqson(), be sure to test
+> + * If you add or remove a call to rcu_irq_exit_irqsave(), be sure to test
+>   * with CONFIG_RCU_EQS_DEBUG=y.
+>   */
+> -void rcu_irq_exit_irqson(void)
+> +void rcu_irq_exit_irqsave(void)
+>  {
+>  	unsigned long flags;
+>  
+> @@ -875,10 +875,10 @@ void rcu_irq_enter(void)
+>  /*
+>   * Wrapper for rcu_irq_enter() where interrupts are enabled.
+
+			where interrupts may be enabled.
+
+-- Steve
+
+>   *
+> - * If you add or remove a call to rcu_irq_enter_irqson(), be sure to test
+> + * If you add or remove a call to rcu_irq_enter_irqsave(), be sure to test
+>   * with CONFIG_RCU_EQS_DEBUG=y.
+>   */
+> -void rcu_irq_enter_irqson(void)
+> +void rcu_irq_enter_irqsave(void)
+>  {
+>  	unsigned long flags;
+>  
