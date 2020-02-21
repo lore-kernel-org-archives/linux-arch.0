@@ -1,73 +1,118 @@
 Return-Path: <SRS0=0XgO=4J=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:45508 "EHLO
-        merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728777AbgBUNui (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 21 Feb 2020 08:50:38 -0500
-Message-ID: <20200221134215.730523211@infradead.org>
-Date: Fri, 21 Feb 2020 14:34:28 +0100
+Received: from bombadil.infradead.org ([198.137.202.133]:56342 "EHLO
+        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1728496AbgBUNu3 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 21 Feb 2020 08:50:29 -0500
+Message-ID: <20200221134216.251192105@infradead.org>
+Date: Fri, 21 Feb 2020 14:34:34 +0100
 From: Peter Zijlstra <peterz@infradead.org>
-Subject: [PATCH v4 12/27] sched,rcu,tracing: Avoid tracing before in_nmi() is correct
+Subject: [PATCH v4 18/27] x86/int3: Ensure that poke_int3_handler() is not traced
 References: <20200221133416.777099322@infradead.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, rostedt@goodmis.org
-Cc: peterz@infradead.org, mingo@kernel.org, joel@joelfernandes.org, gregkh@linuxfoundation.org, gustavo@embeddedor.com, tglx@linutronix.de, paulmck@kernel.org, josh@joshtriplett.org, mathieu.desnoyers@efficios.com, jiangshanlai@gmail.com, luto@kernel.org, tony.luck@intel.com, frederic@kernel.org, dan.carpenter@oracle.com, mhiramat@kernel.org, "Steven Rostedt (VMware)" <rosted@goodmis.org>
-Message-ID: <20200221133428.KbQJjwFJct00E4oveEIwWPGz5kdF9NBpg5dI7xGC184@z>
+Cc: peterz@infradead.org, mingo@kernel.org, joel@joelfernandes.org, gregkh@linuxfoundation.org, gustavo@embeddedor.com, tglx@linutronix.de, paulmck@kernel.org, josh@joshtriplett.org, mathieu.desnoyers@efficios.com, jiangshanlai@gmail.com, luto@kernel.org, tony.luck@intel.com, frederic@kernel.org, dan.carpenter@oracle.com, mhiramat@kernel.org
+Message-ID: <20200221133434.3OoBEsctUjFknwWDt5uYIgGcKMvZsNB58TnEjGn25iQ@z>
 
-If we call into a tracer before in_nmi() becomes true, the tracer can
-no longer detect it is called from NMI context and behave correctly.
+From: Thomas Gleixner <tglx@linutronix.de>
 
-Therefore change nmi_{enter,exit}() to use __preempt_count_{add,sub}()
-as the normal preempt_count_{add,sub}() have a (desired) function
-trace entry.
+In order to ensure poke_int3_handler() is completely self contained --
+we call this while we're modifying other text, imagine the fun of
+hitting another INT3 -- ensure that everything it uses is not traced.
 
-This fixes a potential issue with current code; AFAICT when the
-function-tracer has stack-tracing enabled __trace_stack() will
-malfunction when it hits the preempt_count_add() function entry from
-NMI context.
+The primary means here is to force inlining; bsearch() is notrace
+because all of lib/ is.
 
-Suggested-by: Steven Rostedt (VMware) <rosted@goodmis.org>
+Not-Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
 Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
-Reviewed-by: Steven Rostedt (VMware) <rostedt@goodmis.org>
 ---
- include/linux/hardirq.h |   13 +++++++++++--
- 1 file changed, 11 insertions(+), 2 deletions(-)
+ arch/x86/include/asm/ptrace.h        |    2 +-
+ arch/x86/include/asm/text-patching.h |   11 +++++++----
+ arch/x86/kernel/alternative.c        |   11 +++++++----
+ 3 files changed, 15 insertions(+), 9 deletions(-)
 
---- a/include/linux/hardirq.h
-+++ b/include/linux/hardirq.h
-@@ -66,6 +66,15 @@ extern void irq_exit(void);
- #endif
- 
- /*
-+ * NMI vs Tracing
-+ * --------------
-+ *
-+ * We must not land in a tracer until (or after) we've changed preempt_count
-+ * such that in_nmi() becomes true. To that effect all NMI C entry points must
-+ * be marked 'notrace' and call nmi_enter() as soon as possible.
-+ */
-+
-+/*
-  * nmi_enter() can nest up to 15 times; see NMI_BITS.
+Index: linux-2.6/arch/x86/include/asm/ptrace.h
+===================================================================
+--- linux-2.6.orig/arch/x86/include/asm/ptrace.h
++++ linux-2.6/arch/x86/include/asm/ptrace.h
+@@ -123,7 +123,7 @@ static inline void regs_set_return_value
+  * On x86_64, vm86 mode is mercifully nonexistent, and we don't need
+  * the extra check.
   */
- #define nmi_enter()						\
-@@ -75,7 +84,7 @@ extern void irq_exit(void);
- 		lockdep_off();					\
- 		ftrace_nmi_enter();				\
- 		BUG_ON(in_nmi() == NMI_MASK);			\
--		preempt_count_add(NMI_OFFSET + HARDIRQ_OFFSET);	\
-+		__preempt_count_add(NMI_OFFSET + HARDIRQ_OFFSET); \
- 		rcu_nmi_enter();				\
- 		trace_hardirq_enter();				\
- 	} while (0)
-@@ -85,7 +94,7 @@ extern void irq_exit(void);
- 		trace_hardirq_exit();				\
- 		rcu_nmi_exit();					\
- 		BUG_ON(!in_nmi());				\
--		preempt_count_sub(NMI_OFFSET + HARDIRQ_OFFSET);	\
-+		__preempt_count_sub(NMI_OFFSET + HARDIRQ_OFFSET); \
- 		ftrace_nmi_exit();				\
- 		lockdep_on();					\
- 		printk_nmi_exit();				\
+-static inline int user_mode(struct pt_regs *regs)
++static __always_inline int user_mode(struct pt_regs *regs)
+ {
+ #ifdef CONFIG_X86_32
+ 	return ((regs->cs & SEGMENT_RPL_MASK) | (regs->flags & X86_VM_MASK)) >= USER_RPL;
+Index: linux-2.6/arch/x86/include/asm/text-patching.h
+===================================================================
+--- linux-2.6.orig/arch/x86/include/asm/text-patching.h
++++ linux-2.6/arch/x86/include/asm/text-patching.h
+@@ -64,7 +64,7 @@ extern void text_poke_finish(void);
+ 
+ #define DISP32_SIZE		4
+ 
+-static inline int text_opcode_size(u8 opcode)
++static __always_inline int text_opcode_size(u8 opcode)
+ {
+ 	int size = 0;
+ 
+@@ -118,12 +118,14 @@ extern __ro_after_init struct mm_struct
+ extern __ro_after_init unsigned long poking_addr;
+ 
+ #ifndef CONFIG_UML_X86
+-static inline void int3_emulate_jmp(struct pt_regs *regs, unsigned long ip)
++static __always_inline
++void int3_emulate_jmp(struct pt_regs *regs, unsigned long ip)
+ {
+ 	regs->ip = ip;
+ }
+ 
+-static inline void int3_emulate_push(struct pt_regs *regs, unsigned long val)
++static __always_inline
++void int3_emulate_push(struct pt_regs *regs, unsigned long val)
+ {
+ 	/*
+ 	 * The int3 handler in entry_64.S adds a gap between the
+@@ -138,7 +140,8 @@ static inline void int3_emulate_push(str
+ 	*(unsigned long *)regs->sp = val;
+ }
+ 
+-static inline void int3_emulate_call(struct pt_regs *regs, unsigned long func)
++static __always_inline
++void int3_emulate_call(struct pt_regs *regs, unsigned long func)
+ {
+ 	int3_emulate_push(regs, regs->ip - INT3_INSN_SIZE + CALL_INSN_SIZE);
+ 	int3_emulate_jmp(regs, func);
+Index: linux-2.6/arch/x86/kernel/alternative.c
+===================================================================
+--- linux-2.6.orig/arch/x86/kernel/alternative.c
++++ linux-2.6/arch/x86/kernel/alternative.c
+@@ -956,7 +956,8 @@ struct bp_patching_desc {
+ 
+ static struct bp_patching_desc *bp_desc;
+ 
+-static inline struct bp_patching_desc *try_get_desc(struct bp_patching_desc **descp)
++static __always_inline
++struct bp_patching_desc *try_get_desc(struct bp_patching_desc **descp)
+ {
+ 	struct bp_patching_desc *desc = READ_ONCE(*descp); /* rcu_dereference */
+ 
+@@ -966,13 +967,13 @@ static inline struct bp_patching_desc *t
+ 	return desc;
+ }
+ 
+-static inline void put_desc(struct bp_patching_desc *desc)
++static __always_inline void put_desc(struct bp_patching_desc *desc)
+ {
+ 	smp_mb__before_atomic();
+ 	atomic_dec(&desc->refs);
+ }
+ 
+-static inline void *text_poke_addr(struct text_poke_loc *tp)
++static __always_inline void *text_poke_addr(struct text_poke_loc *tp)
+ {
+ 	return _stext + tp->rel_addr;
+ }
