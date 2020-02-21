@@ -1,71 +1,119 @@
-Return-Path: <SRS0=PuGS=4H=kvack.org=owner-linux-mm@kernel.org>
-From: Nathan Chancellor <natechancellor@gmail.com>
-Subject: [PATCH 0/6] Silence some instances of -Wtautological-compare and enable globally
-Date: Tue, 18 Feb 2020 21:54:17 -0700
-Message-ID: <20200219045423.54190-1-natechancellor@gmail.com>
+Return-Path: <SRS0=0XgO=4J=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from bombadil.infradead.org ([198.137.202.133]:56306 "EHLO
+        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727352AbgBUNu0 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 21 Feb 2020 08:50:26 -0500
+Message-ID: <20200221134216.860887691@infradead.org>
+Date: Fri, 21 Feb 2020 14:34:43 +0100
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: [PATCH v4 27/27] x86/int3: Ensure that poke_int3_handler() is not sanitized
+References: <20200221133416.777099322@infradead.org>
 MIME-Version: 1.0
-Content-Transfer-Encoding: quoted-printable
-Sender: owner-linux-mm@kvack.org
-To: Masahiro Yamada <masahiroy@kernel.org>, Michal Marek <michal.lkml@markovi.net>, Arnd Bergmann <arnd@arndb.de>, Steven Rostedt <rostedt@goodmis.org>, Ingo Molnar <mingo@redhat.com>, Jason Baron <jbaron@akamai.com>, Catalin Marinas <catalin.marinas@arm.com>, Andrew Morton <akpm@linux-foundation.org>
-Cc: linux-kernel@vger.kernel.org, linux-kbuild@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, clang-built-linux@googlegroups.com, Nathan Chancellor <natechancellor@gmail.com>
+Content-Type: text/plain; charset=UTF-8
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200219045417.GAI92utjPUsFHi9f6sGu2N7I0PFnwh7hfZJ5rc6PXA8@z>
+To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, rostedt@goodmis.org
+Cc: peterz@infradead.org, mingo@kernel.org, joel@joelfernandes.org, gregkh@linuxfoundation.org, gustavo@embeddedor.com, tglx@linutronix.de, paulmck@kernel.org, josh@joshtriplett.org, mathieu.desnoyers@efficios.com, jiangshanlai@gmail.com, luto@kernel.org, tony.luck@intel.com, frederic@kernel.org, dan.carpenter@oracle.com, mhiramat@kernel.org, Dmitry Vyukov <dvyukov@google.com>
+Message-ID: <20200221133443.2BzYNtbqli11lbdJTvouMOwLn6yOLH8nVURklbknRz4@z>
 
-Hi everyone,
+In order to ensure poke_int3_handler() is completely self contained --
+we call this while we're modifying other text, imagine the fun of
+hitting another INT3 -- ensure that everything is without sanitize
+instrumentation.
 
-This patch series aims to silence some instances of clang's
--Wtautological-compare that are not problematic and enable it globally
-for the kernel because it has a bunch of subwarnings that can find real
-bugs in the kernel such as
-https://lore.kernel.org/lkml/20200116222658.5285-1-natechancellor@gmail.c=
-om/
-and https://bugs.llvm.org/show_bug.cgi?id=3D42666, which was specifically
-requested by Dmitry.
+Reported-by: Thomas Gleixner <tglx@linutronix.de>
+Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+Acked-by: Dmitry Vyukov <dvyukov@google.com>
+---
+ arch/x86/kernel/alternative.c       |    2 +-
+ arch/x86/kernel/traps.c             |    2 +-
+ include/linux/compiler-clang.h      |    7 +++++++
+ include/linux/compiler-gcc.h        |    6 ++++++
+ include/linux/compiler.h            |    5 +++++
+ include/linux/compiler_attributes.h |    1 +
+ 6 files changed, 21 insertions(+), 2 deletions(-)
 
-The first patch adds a macro that casts the section variables to
-unsigned long (uintptr_t), which silences the warning and adds
-documentation.
-
-Patches two through four silence the warning in the places I have
-noticed it across all of my builds with -Werror, including arm, arm64,
-and x86_64 defconfig/allmodconfig/allyesconfig. There might still be
-more lurking but those will have to be teased out over time.
-
-Patch six finally enables the warning, while leaving one of the
-subwarnings disabled because it is rather noisy and somewhat pointless
-for the kernel, where core kernel code is expected to build and run with
-many different configurations where variable types can be different
-sizes.
-
-A slight meta comment: This is the first treewide patchset that I have
-sent. I pray I did everything right but please let me know if I did not.
-I assume someone like Andrew will pick this up with acks from everyone
-but let me know if there is someone better.
-
-Cheers,
-Nathan
-
-Nathan Chancellor (6):
-  asm/sections: Add COMPARE_SECTIONS macro
-  kernel/extable: Wrap section comparison in sort_main_extable with
-    COMPARE_SECTIONS
-  tracing: Wrap section comparison in tracer_alloc_buffers with
-    COMPARE_SECTIONS
-  dynamic_debug: Wrap section comparison in dynamic_debug_init with
-    COMPARE_SECTIONS
-  mm: kmemleak: Wrap section comparison in kmemleak_init with
-    COMPARE_SECTIONS
-  kbuild: Enable -Wtautological-compare
-
- Makefile                       | 3 +--
- include/asm-generic/sections.h | 7 +++++++
- kernel/extable.c               | 3 ++-
- kernel/trace/trace.c           | 2 +-
- lib/dynamic_debug.c            | 2 +-
- mm/kmemleak.c                  | 3 ++-
- 6 files changed, 14 insertions(+), 6 deletions(-)
-
-
-base-commit: 02815e777db630e3c183718cab73752b48a5053e
---=20
-2.25.1
+--- a/arch/x86/kernel/alternative.c
++++ b/arch/x86/kernel/alternative.c
+@@ -990,7 +990,7 @@ static __always_inline int patch_cmp(con
+ 	return 0;
+ }
+ 
+-int notrace poke_int3_handler(struct pt_regs *regs)
++notrace __no_sanitize int poke_int3_handler(struct pt_regs *regs)
+ {
+ 	struct bp_patching_desc *desc;
+ 	struct text_poke_loc *tp;
+--- a/arch/x86/kernel/traps.c
++++ b/arch/x86/kernel/traps.c
+@@ -502,7 +502,7 @@ dotraplinkage void do_general_protection
+ }
+ NOKPROBE_SYMBOL(do_general_protection);
+ 
+-dotraplinkage notrace void do_int3(struct pt_regs *regs, long error_code)
++dotraplinkage notrace __no_sanitize void do_int3(struct pt_regs *regs, long error_code)
+ {
+ 	if (poke_int3_handler(regs))
+ 		return;
+--- a/include/linux/compiler-clang.h
++++ b/include/linux/compiler-clang.h
+@@ -24,6 +24,13 @@
+ #define __no_sanitize_address
+ #endif
+ 
++#if __has_feature(undefined_sanitizer)
++#define __no_sanitize_undefined \
++		__atribute__((no_sanitize("undefined")))
++#else
++#define __no_sanitize_undefined
++#endif
++
+ /*
+  * Not all versions of clang implement the the type-generic versions
+  * of the builtin overflow checkers. Fortunately, clang implements
+--- a/include/linux/compiler-gcc.h
++++ b/include/linux/compiler-gcc.h
+@@ -145,6 +145,12 @@
+ #define __no_sanitize_address
+ #endif
+ 
++#if __has_attribute(__no_sanitize_undefined__)
++#define __no_sanitize_undefined __attribute__((no_sanitize_undefined))
++#else
++#define __no_sanitize_undefined
++#endif
++
+ #if GCC_VERSION >= 50100
+ #define COMPILER_HAS_GENERIC_BUILTIN_OVERFLOW 1
+ #endif
+--- a/include/linux/compiler.h
++++ b/include/linux/compiler.h
+@@ -199,6 +199,7 @@ void __read_once_size(const volatile voi
+ 	__READ_ONCE_SIZE;
+ }
+ 
++#define __no_kasan __no_sanitize_address
+ #ifdef CONFIG_KASAN
+ /*
+  * We can't declare function 'inline' because __no_sanitize_address confilcts
+@@ -274,6 +275,10 @@ static __always_inline void __write_once
+  */
+ #define READ_ONCE_NOCHECK(x) __READ_ONCE(x, 0)
+ 
++#define __no_ubsan __no_sanitize_undefined
++
++#define __no_sanitize __no_kasan __no_ubsan
++
+ static __no_kasan_or_inline
+ unsigned long read_word_at_a_time(const void *addr)
+ {
+--- a/include/linux/compiler_attributes.h
++++ b/include/linux/compiler_attributes.h
+@@ -41,6 +41,7 @@
+ # define __GCC4_has_attribute___nonstring__           0
+ # define __GCC4_has_attribute___no_sanitize_address__ (__GNUC_MINOR__ >= 8)
+ # define __GCC4_has_attribute___fallthrough__         0
++# define __GCC4_has_attribute___no_sanitize_undefined__ (__GNUC_MINOR__ >= 9)
+ #endif
+ 
+ /*
