@@ -1,35 +1,53 @@
-Return-Path: <SRS0=ZEfg=4N=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail-pl1-f194.google.com ([209.85.214.194]:44042 "EHLO
-        mail-pl1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1730634AbgBYSt5 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 25 Feb 2020 13:49:57 -0500
-Subject: Re: [RFC PATCH v14 00/10] Landlock LSM
-References: <20200224160215.4136-1-mic@digikod.net>
-From: J Freyensee <why2jjj.linux@gmail.com>
-Message-ID: <6df3e6b1-ffd1-dacf-2f2d-7df8e5aca668@gmail.com>
-Date: Tue, 25 Feb 2020 10:49:52 -0800
+Return-Path: <SRS0=0XgO=4J=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from merlin.infradead.org ([205.233.59.134]:45540 "EHLO
+        merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1728841AbgBUNuk (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 21 Feb 2020 08:50:40 -0500
+Message-ID: <20200221134216.690116768@infradead.org>
+Date: Fri, 21 Feb 2020 14:34:40 +0100
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: [PATCH v4 24/27] x86/int3: Avoid atomic instrumentation
+References: <20200221133416.777099322@infradead.org>
 MIME-Version: 1.0
-In-Reply-To: <20200224160215.4136-1-mic@digikod.net>
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Transfer-Encoding: 8bit
-Content-Language: en-GB
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: =?UTF-8?Q?Micka=c3=abl_Sala=c3=bcn?= <mic@digikod.net>, linux-kernel@vger.kernel.org
-Cc: Al Viro <viro@zeniv.linux.org.uk>, Andy Lutomirski <luto@amacapital.net>, Arnd Bergmann <arnd@arndb.de>, Casey Schaufler <casey@schaufler-ca.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, James Morris <jmorris@namei.org>, Jann Horn <jann@thejh.net>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Michael Kerrisk <mtk.manpages@gmail.com>, =?UTF-8?Q?Micka=c3=abl_Sala=c3=bcn?= <mickael.salaun@ssi.gouv.fr>, "Serge E . Hallyn" <serge@hallyn.com>, Shuah Khan <shuah@kernel.org>, Vincent Dagonneau <vincent.dagonneau@ssi.gouv.fr>, kernel-hardening@lists.openwall.com, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-security-module@vger.kernel.org, x86@kernel.org
-Message-ID: <20200225184952.C1MKnHMGEFPdXRLQyh-SbiiZuZWHmXSHoXbYEUsAPvk@z>
+To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, rostedt@goodmis.org
+Cc: peterz@infradead.org, mingo@kernel.org, joel@joelfernandes.org, gregkh@linuxfoundation.org, gustavo@embeddedor.com, tglx@linutronix.de, paulmck@kernel.org, josh@joshtriplett.org, mathieu.desnoyers@efficios.com, jiangshanlai@gmail.com, luto@kernel.org, tony.luck@intel.com, frederic@kernel.org, dan.carpenter@oracle.com, mhiramat@kernel.org
+Message-ID: <20200221133440.0NbcY0ejkCbgBaVIQhkYU3lQ5dPoDdQqVlpK6UtQfk4@z>
 
+Use arch_atomic_*() and READ_ONCE_NOCHECK() to ensure nothing untoward
+creeps in and ruins things.
 
+That is; this is the INT3 text poke handler, strictly limit the code
+that runs in it, lest we inadvertenly hit yet another INT3.
 
-On 2/24/20 8:02 AM, Mickaël Salaün wrote:
+Reported-by: Thomas Gleixner <tglx@linutronix.de>
+Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+---
+ arch/x86/kernel/alternative.c |    6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
 
-> ## Syscall
->
-> Because it is only tested on x86_64, the syscall is only wired up for
-> this architecture.  The whole x86 family (and probably all the others)
-> will be supported in the next patch series.
-General question for u.  What is it meant "whole x86 family will be 
-supported".  32-bit x86 will be supported?
-
-Thanks,
-Jay
+--- a/arch/x86/kernel/alternative.c
++++ b/arch/x86/kernel/alternative.c
+@@ -960,9 +960,9 @@ static struct bp_patching_desc *bp_desc;
+ static __always_inline
+ struct bp_patching_desc *try_get_desc(struct bp_patching_desc **descp)
+ {
+-	struct bp_patching_desc *desc = READ_ONCE(*descp); /* rcu_dereference */
++	struct bp_patching_desc *desc = READ_ONCE_NOCHECK(*descp); /* rcu_dereference */
+ 
+-	if (!desc || !atomic_inc_not_zero(&desc->refs))
++	if (!desc || !arch_atomic_inc_not_zero(&desc->refs))
+ 		return NULL;
+ 
+ 	return desc;
+@@ -971,7 +971,7 @@ struct bp_patching_desc *try_get_desc(st
+ static __always_inline void put_desc(struct bp_patching_desc *desc)
+ {
+ 	smp_mb__before_atomic();
+-	atomic_dec(&desc->refs);
++	arch_atomic_dec(&desc->refs);
+ }
+ 
+ static __always_inline void *text_poke_addr(struct text_poke_loc *tp)
