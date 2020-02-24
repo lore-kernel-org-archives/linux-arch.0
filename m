@@ -1,168 +1,123 @@
-Return-Path: <rppt@kernel.org>
-From: Mike Rapoport <rppt@kernel.org>
-Subject: [PATCH v3 14/14] mm: remove __ARCH_HAS_5LEVEL_HACK and include/asm-generic/5level-fixup.h
-Date: Thu, 27 Feb 2020 10:46:08 +0200
-Message-ID: <20200227084608.18223-15-rppt@kernel.org>
-In-Reply-To: <20200227084608.18223-1-rppt@kernel.org>
-References: <20200227084608.18223-1-rppt@kernel.org>
-MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
-To: linux-kernel@vger.kernel.org
-Cc: Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Brian Cain <bcain@codeaurora.org>, Catalin Marinas <catalin.marinas@arm.com>, Christophe Leroy <christophe.leroy@c-s.fr>, Fenghua Yu <fenghua.yu@intel.com>, Geert Uytterhoeven <geert+renesas@glider.be>, Guan Xuetao <gxt@pku.edu.cn>, James Morse <james.morse@arm.com>, Jonas Bonn <jonas@southpole.se>, Julien Thierry <julien.thierry.kdev@gmail.com>, Ley Foon Tan <ley.foon.tan@intel.com>, Marc Zyngier <maz@kernel.org>, Michael Ellerman <mpe@ellerman.id.au>, Paul Mackerras <paulus@samba.org>, Rich Felker <dalias@libc.org>, Russell King <linux@armlinux.org.uk>, Stafford Horne <shorne@gmail.com>, Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>, Suzuki K Poulose <suzuki.poulose@arm.com>, Tony Luck <tony.luck@intel.com>, Will Deacon <will@kernel.org>, Yoshinori Sato <ysato@users.sourceforge.jp>, kvmarm@lists.cs.columbia.edu, kvm-ppc@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-mm@kvack.org, linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org, nios2-dev@lists.rocketboards.org, openrisc@lists.librecores.org, uclinux-h8-devel@lists.sourceforge.jp, Mike Rapoport <rppt@kernel.org>, Mike Rapoport <rppt@linux.ibm.com>
+Return-Path: <SRS0=as/e=4M=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from foss.arm.com ([217.140.110.172]:57724 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1725535AbgBXFDv (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 24 Feb 2020 00:03:51 -0500
+From: Anshuman Khandual <anshuman.khandual@arm.com>
+Subject: [PATCH V2 3/4] mm/vma: Replace all remaining open encodings with is_vm_hugetlb_page()
+Date: Mon, 24 Feb 2020 10:33:12 +0530
+Message-ID: <1582520593-30704-4-git-send-email-anshuman.khandual@arm.com>
+In-Reply-To: <1582520593-30704-1-git-send-email-anshuman.khandual@arm.com>
+References: <1582520593-30704-1-git-send-email-anshuman.khandual@arm.com>
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200227084608.qQEnwWlqzJ1Map1kWe_eTBU959FU774CpZ0r2wjjUBE@z>
+To: linux-mm@kvack.org, linux-kernel@vger.kernel.org
+Cc: Anshuman Khandual <anshuman.khandual@arm.com>, Paul Mackerras <paulus@ozlabs.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Michael Ellerman <mpe@ellerman.id.au>, Alexander Viro <viro@zeniv.linux.org.uk>, Will Deacon <will@kernel.org>, "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, Nick Piggin <npiggin@gmail.com>, Peter Zijlstra <peterz@infradead.org>, Arnd Bergmann <arnd@arndb.de>, Ingo Molnar <mingo@redhat.com>, Arnaldo Carvalho de Melo <acme@kernel.org>, kvm-ppc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20200224050312.N4Byh9STG3J3WFw6asizVh_MP-J0bvU1ZFP69A3toBI@z>
 
-From: Mike Rapoport <rppt@linux.ibm.com>
+This replaces all remaining open encodings with is_vm_hugetlb_page().
 
-There are no architectures that use include/asm-generic/5level-fixup.h
-therefore it can be removed along with __ARCH_HAS_5LEVEL_HACK define and
-the code it surrounds
-
-Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
+Cc: Paul Mackerras <paulus@ozlabs.org>
+Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: Michael Ellerman <mpe@ellerman.id.au>
+Cc: Alexander Viro <viro@zeniv.linux.org.uk>
+Cc: Will Deacon <will@kernel.org>
+Cc: "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>
+Cc: Nick Piggin <npiggin@gmail.com>
+Cc: Peter Zijlstra <peterz@infradead.org>
+Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: Ingo Molnar <mingo@redhat.com>
+Cc: Arnaldo Carvalho de Melo <acme@kernel.org>
+Cc: kvm-ppc@vger.kernel.org
+Cc: linuxppc-dev@lists.ozlabs.org
+Cc: linux-kernel@vger.kernel.org
+Cc: linux-fsdevel@vger.kernel.org
+Cc: linux-arch@vger.kernel.org
+Cc: linux-mm@kvack.org
+Signed-off-by: Anshuman Khandual <anshuman.khandual@arm.com>
 ---
- include/asm-generic/5level-fixup.h | 58 ------------------------------
- include/linux/mm.h                 |  6 ----
- mm/kasan/init.c                    | 11 ------
- mm/memory.c                        |  8 -----
- 4 files changed, 83 deletions(-)
- delete mode 100644 include/asm-generic/5level-fixup.h
+ arch/powerpc/kvm/e500_mmu_host.c | 2 +-
+ fs/binfmt_elf.c                  | 3 ++-
+ include/asm-generic/tlb.h        | 3 ++-
+ kernel/events/core.c             | 3 ++-
+ 4 files changed, 7 insertions(+), 4 deletions(-)
 
-diff --git a/include/asm-generic/5level-fixup.h b/include/asm-generic/5level-fixup.h
-deleted file mode 100644
-index 4c74b1c1d13b..000000000000
---- a/include/asm-generic/5level-fixup.h
-+++ /dev/null
-@@ -1,58 +0,0 @@
--/* SPDX-License-Identifier: GPL-2.0 */
--#ifndef _5LEVEL_FIXUP_H
--#define _5LEVEL_FIXUP_H
--
--#define __ARCH_HAS_5LEVEL_HACK
--#define __PAGETABLE_P4D_FOLDED 1
--
--#define P4D_SHIFT			PGDIR_SHIFT
--#define P4D_SIZE			PGDIR_SIZE
--#define P4D_MASK			PGDIR_MASK
--#define MAX_PTRS_PER_P4D		1
--#define PTRS_PER_P4D			1
--
--#define p4d_t				pgd_t
--
--#define pud_alloc(mm, p4d, address) \
--	((unlikely(pgd_none(*(p4d))) && __pud_alloc(mm, p4d, address)) ? \
--		NULL : pud_offset(p4d, address))
--
--#define p4d_alloc(mm, pgd, address)	(pgd)
--#define p4d_offset(pgd, start)		(pgd)
--
--#ifndef __ASSEMBLY__
--static inline int p4d_none(p4d_t p4d)
--{
--	return 0;
--}
--
--static inline int p4d_bad(p4d_t p4d)
--{
--	return 0;
--}
--
--static inline int p4d_present(p4d_t p4d)
--{
--	return 1;
--}
--#endif
--
--#define p4d_ERROR(p4d)			do { } while (0)
--#define p4d_clear(p4d)			pgd_clear(p4d)
--#define p4d_val(p4d)			pgd_val(p4d)
--#define p4d_populate(mm, p4d, pud)	pgd_populate(mm, p4d, pud)
--#define p4d_populate_safe(mm, p4d, pud)	pgd_populate(mm, p4d, pud)
--#define p4d_page(p4d)			pgd_page(p4d)
--#define p4d_page_vaddr(p4d)		pgd_page_vaddr(p4d)
--
--#define __p4d(x)			__pgd(x)
--#define set_p4d(p4dp, p4d)		set_pgd(p4dp, p4d)
--
--#undef p4d_free_tlb
--#define p4d_free_tlb(tlb, x, addr)	do { } while (0)
--#define p4d_free(mm, x)			do { } while (0)
--
--#undef  p4d_addr_end
--#define p4d_addr_end(addr, end)		(end)
--
--#endif
-diff --git a/include/linux/mm.h b/include/linux/mm.h
-index 52269e56c514..69fb46e1d91b 100644
---- a/include/linux/mm.h
-+++ b/include/linux/mm.h
-@@ -1841,11 +1841,6 @@ int __pte_alloc_kernel(pmd_t *pmd);
+diff --git a/arch/powerpc/kvm/e500_mmu_host.c b/arch/powerpc/kvm/e500_mmu_host.c
+index 425d13806645..df9989cf7ba3 100644
+--- a/arch/powerpc/kvm/e500_mmu_host.c
++++ b/arch/powerpc/kvm/e500_mmu_host.c
+@@ -422,7 +422,7 @@ static inline int kvmppc_e500_shadow_map(struct kvmppc_vcpu_e500 *vcpu_e500,
+ 				break;
+ 			}
+ 		} else if (vma && hva >= vma->vm_start &&
+-			   (vma->vm_flags & VM_HUGETLB)) {
++			   is_vm_hugetlb_page(vma)) {
+ 			unsigned long psize = vma_kernel_pagesize(vma);
  
- #if defined(CONFIG_MMU)
+ 			tsize = (gtlbe->mas1 & MAS1_TSIZE_MASK) >>
+diff --git a/fs/binfmt_elf.c b/fs/binfmt_elf.c
+index f4713ea76e82..1eb63867e266 100644
+--- a/fs/binfmt_elf.c
++++ b/fs/binfmt_elf.c
+@@ -27,6 +27,7 @@
+ #include <linux/highuid.h>
+ #include <linux/compiler.h>
+ #include <linux/highmem.h>
++#include <linux/hugetlb.h>
+ #include <linux/pagemap.h>
+ #include <linux/vmalloc.h>
+ #include <linux/security.h>
+@@ -1317,7 +1318,7 @@ static unsigned long vma_dump_size(struct vm_area_struct *vma,
+ 	}
  
--/*
-- * The following ifdef needed to get the 5level-fixup.h header to work.
-- * Remove it when 5level-fixup.h has been removed.
-- */
--#ifndef __ARCH_HAS_5LEVEL_HACK
- static inline p4d_t *p4d_alloc(struct mm_struct *mm, pgd_t *pgd,
- 		unsigned long address)
- {
-@@ -1859,7 +1854,6 @@ static inline pud_t *pud_alloc(struct mm_struct *mm, p4d_t *p4d,
- 	return (unlikely(p4d_none(*p4d)) && __pud_alloc(mm, p4d, address)) ?
- 		NULL : pud_offset(p4d, address);
+ 	/* Hugetlb memory check */
+-	if (vma->vm_flags & VM_HUGETLB) {
++	if (is_vm_hugetlb_page(vma)) {
+ 		if ((vma->vm_flags & VM_SHARED) && FILTER(HUGETLB_SHARED))
+ 			goto whole;
+ 		if (!(vma->vm_flags & VM_SHARED) && FILTER(HUGETLB_PRIVATE))
+diff --git a/include/asm-generic/tlb.h b/include/asm-generic/tlb.h
+index f391f6b500b4..3f1649a8cf55 100644
+--- a/include/asm-generic/tlb.h
++++ b/include/asm-generic/tlb.h
+@@ -13,6 +13,7 @@
+ 
+ #include <linux/mmu_notifier.h>
+ #include <linux/swap.h>
++#include <linux/hugetlb_inline.h>
+ #include <asm/pgalloc.h>
+ #include <asm/tlbflush.h>
+ #include <asm/cacheflush.h>
+@@ -398,7 +399,7 @@ tlb_update_vma_flags(struct mmu_gather *tlb, struct vm_area_struct *vma)
+ 	 * We rely on tlb_end_vma() to issue a flush, such that when we reset
+ 	 * these values the batch is empty.
+ 	 */
+-	tlb->vma_huge = !!(vma->vm_flags & VM_HUGETLB);
++	tlb->vma_huge = is_vm_hugetlb_page(vma);
+ 	tlb->vma_exec = !!(vma->vm_flags & VM_EXEC);
  }
--#endif /* !__ARCH_HAS_5LEVEL_HACK */
  
- static inline pmd_t *pmd_alloc(struct mm_struct *mm, pud_t *pud, unsigned long address)
- {
-diff --git a/mm/kasan/init.c b/mm/kasan/init.c
-index ce45c491ebcd..fe6be0be1f76 100644
---- a/mm/kasan/init.c
-+++ b/mm/kasan/init.c
-@@ -250,20 +250,9 @@ int __ref kasan_populate_early_shadow(const void *shadow_start,
- 			 * 3,2 - level page tables where we don't have
- 			 * puds,pmds, so pgd_populate(), pud_populate()
- 			 * is noops.
--			 *
--			 * The ifndef is required to avoid build breakage.
--			 *
--			 * With 5level-fixup.h, pgd_populate() is not nop and
--			 * we reference kasan_early_shadow_p4d. It's not defined
--			 * unless 5-level paging enabled.
--			 *
--			 * The ifndef can be dropped once all KASAN-enabled
--			 * architectures will switch to pgtable-nop4d.h.
- 			 */
--#ifndef __ARCH_HAS_5LEVEL_HACK
- 			pgd_populate(&init_mm, pgd,
- 					lm_alias(kasan_early_shadow_p4d));
--#endif
- 			p4d = p4d_offset(pgd, addr);
- 			p4d_populate(&init_mm, p4d,
- 					lm_alias(kasan_early_shadow_pud));
-diff --git a/mm/memory.c b/mm/memory.c
-index 0bccc622e482..10cc147db1b8 100644
---- a/mm/memory.c
-+++ b/mm/memory.c
-@@ -4252,19 +4252,11 @@ int __pud_alloc(struct mm_struct *mm, p4d_t *p4d, unsigned long address)
- 	smp_wmb(); /* See comment in __pte_alloc */
+diff --git a/kernel/events/core.c b/kernel/events/core.c
+index e453589da97c..ef5be3ed0580 100644
+--- a/kernel/events/core.c
++++ b/kernel/events/core.c
+@@ -28,6 +28,7 @@
+ #include <linux/export.h>
+ #include <linux/vmalloc.h>
+ #include <linux/hardirq.h>
++#include <linux/hugetlb.h>
+ #include <linux/rculist.h>
+ #include <linux/uaccess.h>
+ #include <linux/syscalls.h>
+@@ -7693,7 +7694,7 @@ static void perf_event_mmap_event(struct perf_mmap_event *mmap_event)
+ 		flags |= MAP_EXECUTABLE;
+ 	if (vma->vm_flags & VM_LOCKED)
+ 		flags |= MAP_LOCKED;
+-	if (vma->vm_flags & VM_HUGETLB)
++	if (is_vm_hugetlb_page(vma))
+ 		flags |= MAP_HUGETLB;
  
- 	spin_lock(&mm->page_table_lock);
--#ifndef __ARCH_HAS_5LEVEL_HACK
- 	if (!p4d_present(*p4d)) {
- 		mm_inc_nr_puds(mm);
- 		p4d_populate(mm, p4d, new);
- 	} else	/* Another has populated it */
- 		pud_free(mm, new);
--#else
--	if (!pgd_present(*p4d)) {
--		mm_inc_nr_puds(mm);
--		pgd_populate(mm, p4d, new);
--	} else	/* Another has populated it */
--		pud_free(mm, new);
--#endif /* __ARCH_HAS_5LEVEL_HACK */
- 	spin_unlock(&mm->page_table_lock);
- 	return 0;
- }
+ 	if (file) {
 -- 
-2.24.0
+2.20.1
