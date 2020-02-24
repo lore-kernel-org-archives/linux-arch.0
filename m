@@ -1,57 +1,83 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH v4 05/27] x86: Replace ist_enter() with nmi_enter()
-Date: Mon, 24 Feb 2020 22:31:39 +0100
-Message-ID: <20200224213139.GO11457@worktop.programming.kicks-ass.net>
-References: <20200221133416.777099322@infradead.org>
- <20200221134215.328642621@infradead.org>
- <CALCETrU7nezN7d3GEZ8h8HbRfvZ0+F9+Ahb7fLvZ9FVaHN9x2w@mail.gmail.com>
- <20200221202246.GA14897@hirez.programming.kicks-ass.net>
- <20200224104346.GJ14946@hirez.programming.kicks-ass.net>
- <20200224112708.4f307ba3@gandalf.local.home>
- <20200224163409.GJ18400@hirez.programming.kicks-ass.net>
- <20200224114754.0fb798c1@gandalf.local.home>
+From: Ira Weiny <ira.weiny@intel.com>
+Subject: Re: [PATCH 4/5] dma-direct: provide a arch_dma_clear_uncached hook
+Date: Mon, 24 Feb 2020 13:53:28 -0800
+Message-ID: <20200224215327.GB11565@iweiny-DESK2.sc.intel.com>
+References: <20200224194446.690816-1-hch@lst.de>
+ <20200224194446.690816-5-hch@lst.de>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:42534 "EHLO
-        merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726980AbgBXVc1 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 24 Feb 2020 16:32:27 -0500
+Received: from mga06.intel.com ([134.134.136.31]:21809 "EHLO mga06.intel.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726980AbgBXVx3 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 24 Feb 2020 16:53:29 -0500
 Content-Disposition: inline
-In-Reply-To: <20200224114754.0fb798c1@gandalf.local.home>
+In-Reply-To: <20200224194446.690816-5-hch@lst.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Steven Rostedt <rostedt@goodmis.org>
-Cc: Andy Lutomirski <luto@kernel.org>, LKML <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Ingo Molnar <mingo@kernel.org>, Joel Fernandes <joel@joelfernandes.org>, Greg KH <gregkh@linuxfoundation.org>, gustavo@embeddedor.com, Thomas Gleixner <tglx@linutronix.de>, paulmck@kernel.org, Josh Triplett <josh@joshtriplett.org>, Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, Lai Jiangshan <jiangshanlai@gmail.com>, Tony Luck <tony.luck@intel.com>, Frederic Weisbecker <frederic@kernel.org>, Dan Carpenter <dan.carpenter@oracle.com>, Masami Hiramatsu <mhiramat@kernel.org>
+To: Christoph Hellwig <hch@lst.de>
+Cc: Jonas Bonn <jonas@southpole.se>, Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>, Stafford Horne <shorne@gmail.com>, Marek Szyprowski <m.szyprowski@samsung.com>, Robin Murphy <robin.murphy@arm.com>, Will Deacon <will@kernel.org>, Mark Rutland <mark.rutland@arm.com>, openrisc@lists.librecores.org, iommu@lists.linux-foundation.org, linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 
-On Mon, Feb 24, 2020 at 11:47:54AM -0500, Steven Rostedt wrote:
-> On Mon, 24 Feb 2020 17:34:09 +0100
-> Peter Zijlstra <peterz@infradead.org> wrote:
+On Mon, Feb 24, 2020 at 11:44:44AM -0800, Christoph Hellwig wrote:
+> This allows the arch code to reset the page tables to cached access when
+> freeing a dma coherent allocation that was set to uncached using
+> arch_dma_set_uncached.
 > 
-> > Looking at nmi_enter(), that leaves trace_hardirq_enter(), since we know
-> > we marked rcu_nmi_enter() as NOKPROBES, per the patches elsewhere in
-> > this series.
+> Signed-off-by: Christoph Hellwig <hch@lst.de>
+> ---
+>  arch/Kconfig                    | 7 +++++++
+>  include/linux/dma-noncoherent.h | 1 +
+>  kernel/dma/direct.c             | 2 ++
+>  3 files changed, 10 insertions(+)
 > 
-> Maybe this was addressed already in the series, but I'm just looking at
-> Linus's master branch we have:
-> 
-> #define nmi_enter()                                             \
->         do {                                                    \
->                 arch_nmi_enter();                               \
->                 printk_nmi_enter();                             \
->                 lockdep_off();                                  \
->                 ftrace_nmi_enter();                             \
->                 BUG_ON(in_nmi());                               \
->                 preempt_count_add(NMI_OFFSET + HARDIRQ_OFFSET); \
->                 rcu_nmi_enter();                                \
->                 trace_hardirq_enter();                          \
->         } while (0)
-> 
-> 
-> Just want to confirm that printk_nmi_enter(), lockdep_off(),
-> and ftrace_nmi_enter() are all marked fully with NOKPROBE.
+> diff --git a/arch/Kconfig b/arch/Kconfig
+> index 090cfe0c82a7..c26302f90c96 100644
+> --- a/arch/Kconfig
+> +++ b/arch/Kconfig
+> @@ -255,6 +255,13 @@ config ARCH_HAS_SET_DIRECT_MAP
+>  config ARCH_HAS_DMA_SET_UNCACHED
+>  	bool
+>  
+> +#
+> +# Select if the architectures provides the arch_dma_clear_uncached symbol
+> +# to undo an in-place page table remap for uncached access.
+> +#
+> +config ARCH_HAS_DMA_CLEAR_UNCACHED
+> +	bool
+> +
+>  # Select if arch init_task must go in the __init_task_data section
+>  config ARCH_TASK_STRUCT_ON_STACK
+>  	bool
+> diff --git a/include/linux/dma-noncoherent.h b/include/linux/dma-noncoherent.h
+> index 1a4039506673..b59f1b6be3e9 100644
+> --- a/include/linux/dma-noncoherent.h
+> +++ b/include/linux/dma-noncoherent.h
+> @@ -109,5 +109,6 @@ static inline void arch_dma_prep_coherent(struct page *page, size_t size)
+>  #endif /* CONFIG_ARCH_HAS_DMA_PREP_COHERENT */
+>  
+>  void *arch_dma_set_uncached(void *addr, size_t size);
+> +void arch_dma_clear_uncached(void *addr, size_t size);
+>  
+>  #endif /* _LINUX_DMA_NONCOHERENT_H */
+> diff --git a/kernel/dma/direct.c b/kernel/dma/direct.c
+> index f01a8191fd59..a8560052a915 100644
+> --- a/kernel/dma/direct.c
+> +++ b/kernel/dma/direct.c
+> @@ -219,6 +219,8 @@ void dma_direct_free_pages(struct device *dev, size_t size, void *cpu_addr,
+>  
+>  	if (IS_ENABLED(CONFIG_DMA_REMAP) && is_vmalloc_addr(cpu_addr))
+>  		vunmap(cpu_addr);
+> +	else if (IS_ENABLED(CONFIG_ARCH_HAS_DMA_CLEAR_UNCACHED))
+> +		arch_dma_clear_uncached(cpu_addr, size);
 
-*sigh*, right you are, I only looked at notrace, not nokprobe.
+Isn't using arch_dma_clear_uncached() before patch 5 going to break
+bisectability?
 
-In particular the ftrace one is a bit off a mess, let me sort through
-that.
+Ira
+
+>  
+>  	dma_free_contiguous(dev, dma_direct_to_page(dev, dma_addr), size);
+>  }
+> -- 
+> 2.24.1
+> 
