@@ -1,60 +1,66 @@
-Return-Path: <SRS0=LzcT=4H=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:51016 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726634AbgBSRvt (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 19 Feb 2020 12:51:49 -0500
-From: Krzysztof Kozlowski <krzk@kernel.org>
-Subject: [RESEND PATCH v2 4/9] virtio: pci: Constify ioreadX() iomem argument (as in generic implementation)
-Date: Wed, 19 Feb 2020 18:50:02 +0100
-Message-Id: <20200219175007.13627-5-krzk@kernel.org>
-In-Reply-To: <20200219175007.13627-1-krzk@kernel.org>
-References: <20200219175007.13627-1-krzk@kernel.org>
+Return-Path: <SRS0=as/e=4M=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from bombadil.infradead.org ([198.137.202.133]:47658 "EHLO
+        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726628AbgBXTpK (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 24 Feb 2020 14:45:10 -0500
+From: Christoph Hellwig <hch@lst.de>
+Subject: [PATCH 2/5] dma-direct: consolidate the error handling in dma_direct_alloc_pages
+Date: Mon, 24 Feb 2020 11:44:42 -0800
+Message-ID: <20200224194446.690816-3-hch@lst.de>
+In-Reply-To: <20200224194446.690816-1-hch@lst.de>
+References: <20200224194446.690816-1-hch@lst.de>
+MIME-Version: 1.0
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Alexey Brodkin <abrodkin@synopsys.com>, Vineet Gupta <vgupta@synopsys.com>, "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>, Helge Deller <deller@gmx.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, Dave Airlie <airlied@redhat.com>, David Airlie <airlied@linux.ie>, Daniel Vetter <daniel@ffwll.ch>, Ben Skeggs <bskeggs@redhat.com>, Mauro Carvalho Chehab <mchehab@kernel.org>, Jiri Slaby <jirislaby@gmail.com>, Nick Kossifidis <mickflemm@gmail.com>, Luis Chamberlain <mcgrof@kernel.org>, Kalle Valo <kvalo@codeaurora.org>, "David S. Miller" <davem@davemloft.net>, Dave Jiang <dave.jiang@intel.com>, Jon Mason <jdmason@kudzu.us>, Allen Hubbe <allenbh@gmail.com>, "Michael S. Tsirkin" <mst@redhat.com>, Jason Wang <jasowang@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Geert Uytterhoeven <geert+renesas@glider.be>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-snps-arc@lists.infradead.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org, dri-devel@lists.freedesktop.org, nouveau@lists.freedesktop.org, linux-media@vger.kernel.org, linux-wireless@vger.kernel.org, netdev@vger.kernel.org, linux-ntb@googlegroups.com, virtualization@lists.linux-foundation.org, linux-arch@vger.kernel.org
-Cc: Krzysztof Kozlowski <krzk@kernel.org>
+To: Jonas Bonn <jonas@southpole.se>, Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>, Stafford Horne <shorne@gmail.com>
+Cc: Marek Szyprowski <m.szyprowski@samsung.com>, Robin Murphy <robin.murphy@arm.com>, Will Deacon <will@kernel.org>, Mark Rutland <mark.rutland@arm.com>, openrisc@lists.librecores.org, iommu@lists.linux-foundation.org, linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20200224194442.Si_eJymVOGLGFvThBSMR-Iod0GW6cEIgfdBlfHGR5eo@z>
 
-The ioreadX() helpers have inconsistent interface.  On some architectures
-void *__iomem address argument is a pointer to const, on some not.
+Use a goto label to merge two error return cases.
 
-Implementations of ioreadX() do not modify the memory under the address
-so they can be converted to a "const" version for const-safety and
-consistency among architectures.
-
-Signed-off-by: Krzysztof Kozlowski <krzk@kernel.org>
-Reviewed-by: Geert Uytterhoeven <geert+renesas@glider.be>
-
+Signed-off-by: Christoph Hellwig <hch@lst.de>
 ---
+ kernel/dma/direct.c | 13 ++++++-------
+ 1 file changed, 6 insertions(+), 7 deletions(-)
 
-Changes since v1:
-1. Add Geert's review.
----
- drivers/virtio/virtio_pci_modern.c | 6 +++---
- 1 file changed, 3 insertions(+), 3 deletions(-)
-
-diff --git a/drivers/virtio/virtio_pci_modern.c b/drivers/virtio/virtio_pci_modern.c
-index 7abcc50838b8..fc58db4ab6c3 100644
---- a/drivers/virtio/virtio_pci_modern.c
-+++ b/drivers/virtio/virtio_pci_modern.c
-@@ -26,16 +26,16 @@
-  * method, i.e. 32-bit accesses for 32-bit fields, 16-bit accesses
-  * for 16-bit fields and 8-bit accesses for 8-bit fields.
-  */
--static inline u8 vp_ioread8(u8 __iomem *addr)
-+static inline u8 vp_ioread8(const u8 __iomem *addr)
- {
- 	return ioread8(addr);
- }
--static inline u16 vp_ioread16 (__le16 __iomem *addr)
-+static inline u16 vp_ioread16 (const __le16 __iomem *addr)
- {
- 	return ioread16(addr);
+diff --git a/kernel/dma/direct.c b/kernel/dma/direct.c
+index ac7956c38f69..9dfcc7be4903 100644
+--- a/kernel/dma/direct.c
++++ b/kernel/dma/direct.c
+@@ -157,11 +157,8 @@ void *dma_direct_alloc_pages(struct device *dev, size_t size,
+ 		ret = dma_common_contiguous_remap(page, PAGE_ALIGN(size),
+ 				dma_pgprot(dev, PAGE_KERNEL, attrs),
+ 				__builtin_return_address(0));
+-		if (!ret) {
+-			dma_free_contiguous(dev, page, size);
+-			return ret;
+-		}
+-
++		if (!ret)
++			goto out_free_pages;
+ 		memset(ret, 0, size);
+ 		goto done;
+ 	}
+@@ -174,8 +171,7 @@ void *dma_direct_alloc_pages(struct device *dev, size_t size,
+ 		 * so log an error and fail.
+ 		 */
+ 		dev_info(dev, "Rejecting highmem page from CMA.\n");
+-		dma_free_contiguous(dev, page, size);
+-		return NULL;
++		goto out_free_pages;
+ 	}
+ 
+ 	ret = page_address(page);
+@@ -195,6 +191,9 @@ void *dma_direct_alloc_pages(struct device *dev, size_t size,
+ 	else
+ 		*dma_handle = phys_to_dma(dev, page_to_phys(page));
+ 	return ret;
++out_free_pages:
++	dma_free_contiguous(dev, page, size);
++	return NULL;
  }
  
--static inline u32 vp_ioread32(__le32 __iomem *addr)
-+static inline u32 vp_ioread32(const __le32 __iomem *addr)
- {
- 	return ioread32(addr);
- }
+ void dma_direct_free_pages(struct device *dev, size_t size, void *cpu_addr,
 -- 
-2.17.1
+2.24.1
