@@ -1,116 +1,57 @@
-From: Petr Mladek <pmladek@suse.com>
-Subject: Re: [PATCH v4 02/27] hardirq/nmi: Allow nested nmi_enter()
-Date: Mon, 24 Feb 2020 13:13:31 +0100
-Message-ID: <20200224121331.tnkvp6mmjchm4s2i@pathway.suse.cz>
-References: <20200221133416.777099322@infradead.org>
- <20200221134215.149193474@infradead.org>
- <20200221222129.GB28251@lenoir>
+From: Krzysztof Kozlowski <krzk@kernel.org>
+Subject: Re: [RESEND PATCH v2 9/9] ath5k: Constify ioreadX() iomem argument
+ (as in generic implementation)
+Date: Mon, 24 Feb 2020 13:47:44 +0100
+Message-ID: <20200224124744.GA1949@pi3>
+References: <20200219175007.13627-1-krzk@kernel.org>
+ <20200219175007.13627-10-krzk@kernel.org>
+ <518a9023-f802-17b3-fca5-582400bc34ae@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.suse.de ([195.135.220.15]:57982 "EHLO mx2.suse.de"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727183AbgBXMNg (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 24 Feb 2020 07:13:36 -0500
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 8BIT
+Return-path: <linux-alpha-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <20200221222129.GB28251@lenoir>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Frederic Weisbecker <frederic@kernel.org>
-Cc: Peter Zijlstra <peterz@infradead.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, rostedt@goodmis.org, mingo@kernel.org, joel@joelfernandes.org, gregkh@linuxfoundation.org, gustavo@embeddedor.com, tglx@linutronix.de, paulmck@kernel.org, josh@joshtriplett.org, mathieu.desnoyers@efficios.com, jiangshanlai@gmail.com, luto@kernel.org, tony.luck@intel.com, dan.carpenter@oracle.com, mhiramat@kernel.org, Will Deacon <will@kernel.org>, Marc Zyngier <maz@kernel.org>
+In-Reply-To: <518a9023-f802-17b3-fca5-582400bc34ae@gmail.com>
+Sender: linux-alpha-owner@vger.kernel.org
+To: Jiri Slaby <jirislaby@gmail.com>
+Cc: Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Alexey Brodkin <abrodkin@synopsys.com>, Vineet Gupta <vgupta@synopsys.com>, "James E.J. Bottomley" <James.Bottomley@hansenpartnership.com>, Helge Deller <deller@gmx.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, Dave Airlie <airlied@redhat.com>, David Airlie <airlied@linux.ie>, Daniel Vetter <daniel@ffwll.ch>, Ben Skeggs <bskeggs@redhat.com>, Mauro Carvalho Chehab <mchehab@kernel.org>, Nick Kossifidis <mickflemm@gmail.com>, Luis Chamberlain <mcgrof@kernel.org>, Kall
+List-Id: linux-arch.vger.kernel.org
 
-On Fri 2020-02-21 23:21:30, Frederic Weisbecker wrote:
-> On Fri, Feb 21, 2020 at 02:34:18PM +0100, Peter Zijlstra wrote:
-> > Since there are already a number of sites (ARM64, PowerPC) that
-> > effectively nest nmi_enter(), lets make the primitive support this
-> > before adding even more.
+On Thu, Feb 20, 2020 at 10:48:33AM +0100, Jiri Slaby wrote:
+> On 19. 02. 20, 18:50, Krzysztof Kozlowski wrote:
+> > The ioreadX() helpers have inconsistent interface.  On some architectures
+> > void *__iomem address argument is a pointer to const, on some not.
 > > 
-> > Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
-> > Reviewed-by: Petr Mladek <pmladek@suse.com>
-> > Acked-by: Will Deacon <will@kernel.org>
-> > Acked-by: Marc Zyngier <maz@kernel.org>
+> > Implementations of ioreadX() do not modify the memory under the address
+> > so they can be converted to a "const" version for const-safety and
+> > consistency among architectures.
+> > 
+> > Signed-off-by: Krzysztof Kozlowski <krzk@kernel.org>
+> > Acked-by: Kalle Valo <kvalo@codeaurora.org>
 > > ---
-> >  arch/arm64/include/asm/hardirq.h |    4 ++--
-> >  arch/arm64/kernel/sdei.c         |   14 ++------------
-> >  arch/arm64/kernel/traps.c        |    8 ++------
-> >  arch/powerpc/kernel/traps.c      |   22 ++++++----------------
-> >  include/linux/hardirq.h          |    5 ++++-
-> >  include/linux/preempt.h          |    4 ++--
-> >  kernel/printk/printk_safe.c      |    6 ++++--
-> >  7 files changed, 22 insertions(+), 41 deletions(-)
+> >  drivers/net/wireless/ath/ath5k/ahb.c | 10 +++++-----
+> >  1 file changed, 5 insertions(+), 5 deletions(-)
 > > 
-> > --- a/kernel/printk/printk_safe.c
-> > +++ b/kernel/printk/printk_safe.c
-> > @@ -296,12 +296,14 @@ static __printf(1, 0) int vprintk_nmi(co
+> > diff --git a/drivers/net/wireless/ath/ath5k/ahb.c b/drivers/net/wireless/ath/ath5k/ahb.c
+> > index 2c9cec8b53d9..8bd01df369fb 100644
+> > --- a/drivers/net/wireless/ath/ath5k/ahb.c
+> > +++ b/drivers/net/wireless/ath/ath5k/ahb.c
+> > @@ -138,18 +138,18 @@ static int ath_ahb_probe(struct platform_device *pdev)
 > >  
-> >  void notrace printk_nmi_enter(void)
-> >  {
-> > -	this_cpu_or(printk_context, PRINTK_NMI_CONTEXT_MASK);
-> > +	if (!in_nmi())
-> > +		this_cpu_or(printk_context, PRINTK_NMI_CONTEXT_MASK);
-> >  }
-> >  
-> >  void notrace printk_nmi_exit(void)
-> >  {
-> > -	this_cpu_and(printk_context, ~PRINTK_NMI_CONTEXT_MASK);
-> > +	if (!in_nmi())
-> > +		this_cpu_and(printk_context, ~PRINTK_NMI_CONTEXT_MASK);
-> >  }
+> >  	if (bcfg->devid >= AR5K_SREV_AR2315_R6) {
+> >  		/* Enable WMAC AHB arbitration */
+> > -		reg = ioread32((void __iomem *) AR5K_AR2315_AHB_ARB_CTL);
+> > +		reg = ioread32((const void __iomem *) AR5K_AR2315_AHB_ARB_CTL);
 > 
-> If the outermost NMI is interrupted while between printk_nmi_enter()
-> and preempt_count_add(), there is still a risk that we race and clear?
+> While I understand why the parameter of ioread32 should be const, I
+> don't see a reason for these casts on the users' side. What does it
+> bring except longer code to read?
 
-Great catch!
+Because the argument is an int:
 
-There is plenty of space in the printk_context variable. I would
-reserve one byte there for the NMI context to be on the safe side
-and be done with it.
+drivers/net/wireless/ath/ath5k/ahb.c: In function ‘ath_ahb_probe’:
+drivers/net/wireless/ath/ath5k/ahb.c:141:18: warning: passing argument 1 of ‘ioread32’ makes pointer from integer without a cast [-Wint-conversion]
+   reg = ioread32(AR5K_AR2315_AHB_ARB_CTL);
 
-It should never overflow. The BUG_ON(in_nmi() == NMI_MASK)
-in nmi_enter() will trigger much earlier.
-
-Also I hope that printk_context will get removed with
-the lockless printk() implementation soon anyway.
-
-
-diff --git a/kernel/printk/internal.h b/kernel/printk/internal.h
-index c8e6ab689d42..109c5ab70a0c 100644
---- a/kernel/printk/internal.h
-+++ b/kernel/printk/internal.h
-@@ -6,9 +6,11 @@
- 
- #ifdef CONFIG_PRINTK
- 
--#define PRINTK_SAFE_CONTEXT_MASK	 0x3fffffff
--#define PRINTK_NMI_DIRECT_CONTEXT_MASK	 0x40000000
--#define PRINTK_NMI_CONTEXT_MASK		 0x80000000
-+#define PRINTK_SAFE_CONTEXT_MASK	0x007ffffff
-+#define PRINTK_NMI_DIRECT_CONTEXT_MASK	0x008000000
-+#define PRINTK_NMI_CONTEXT_MASK		0xff0000000
-+
-+#define PRINTK_NMI_CONTEXT_OFFSET	0x010000000
- 
- extern raw_spinlock_t logbuf_lock;
- 
-diff --git a/kernel/printk/printk_safe.c b/kernel/printk/printk_safe.c
-index b4045e782743..e8989418a139 100644
---- a/kernel/printk/printk_safe.c
-+++ b/kernel/printk/printk_safe.c
-@@ -296,12 +296,12 @@ static __printf(1, 0) int vprintk_nmi(const char *fmt, va_list args)
- 
- void notrace printk_nmi_enter(void)
- {
--	this_cpu_or(printk_context, PRINTK_NMI_CONTEXT_MASK);
-+	this_cpu_add(printk_context, PRINTK_NMI_CONTEXT_OFFSET);
- }
- 
- void notrace printk_nmi_exit(void)
- {
--	this_cpu_and(printk_context, ~PRINTK_NMI_CONTEXT_MASK);
-+	this_cpu_sub(printk_context, PRINTK_NMI_CONTEXT_OFFSET);
- }
- 
- /*
-
-Best Regards,
-Petr
+Best regards,
+Krzysztof
