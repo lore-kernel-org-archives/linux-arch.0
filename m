@@ -1,60 +1,70 @@
-Return-Path: <SRS0=LzcT=4H=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail-pf1-f194.google.com ([209.85.210.194]:42867 "EHLO
-        mail-pf1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726760AbgBSVcu (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 19 Feb 2020 16:32:50 -0500
-Received: by mail-pf1-f194.google.com with SMTP id 4so720662pfz.9
-        for <linux-arch@vger.kernel.org>; Wed, 19 Feb 2020 13:32:50 -0800 (PST)
-MIME-Version: 1.0
-References: <20200219045423.54190-1-natechancellor@gmail.com>
- <20200219045423.54190-4-natechancellor@gmail.com> <20200219093445.386f1c09@gandalf.local.home>
- <CAKwvOdm-N1iX0SMxGDV5Vf=qS5uHPdH3S-TRs-065BuSOdKt1w@mail.gmail.com>
- <20200219181619.GV31668@ziepe.ca> <CAKwvOd=8vb5eOjiLg96zr25Xsq_Xge_Ym7RsNqKK8g+ZR9KWzA@mail.gmail.com>
- <20200219195424.GW31668@ziepe.ca>
-In-Reply-To: <20200219195424.GW31668@ziepe.ca>
-From: Nick Desaulniers <ndesaulniers@google.com>
-Date: Wed, 19 Feb 2020 13:32:38 -0800
-Message-ID: <CAKwvOdktG0vZOZVtNJBk1COhOnLYv3MU5KNQ8Z40L4ph5QcnRg@mail.gmail.com>
-Subject: Re: [PATCH 3/6] tracing: Wrap section comparison in
- tracer_alloc_buffers with COMPARE_SECTIONS
-Content-Type: text/plain; charset="UTF-8"
+Return-Path: <SRS0=as/e=4M=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from foss.arm.com ([217.140.110.172]:57634 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1725535AbgBXFDh (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 24 Feb 2020 00:03:37 -0500
+From: Anshuman Khandual <anshuman.khandual@arm.com>
+Subject: [PATCH V2 0/4] mm/vma: Use all available wrappers when possible
+Date: Mon, 24 Feb 2020 10:33:09 +0530
+Message-ID: <1582520593-30704-1-git-send-email-anshuman.khandual@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jason Gunthorpe <jgg@ziepe.ca>
-Cc: Nathan Chancellor <natechancellor@gmail.com>, Steven Rostedt <rostedt@goodmis.org>, Masahiro Yamada <masahiroy@kernel.org>, Michal Marek <michal.lkml@markovi.net>, Arnd Bergmann <arnd@arndb.de>, Ingo Molnar <mingo@redhat.com>, Jason Baron <jbaron@akamai.com>, Catalin Marinas <catalin.marinas@arm.com>, Andrew Morton <akpm@linux-foundation.org>, LKML <linux-kernel@vger.kernel.org>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Linux Memory Management List <linux-mm@kvack.org>, clang-built-linux <clang-built-linux@googlegroups.com>
-Message-ID: <20200219213238.M5ghFy4o7i5sM5Syx_qMSFKqDT990yIORmKVGqU7S8U@z>
+To: linux-mm@kvack.org, linux-kernel@vger.kernel.org
+Cc: Anshuman Khandual <anshuman.khandual@arm.com>, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org, kvm-ppc@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20200224050309.hBzLfdpqTYl7YnU44ibWeqn_XaTmAl-rqyT-dReXUJA@z>
 
-On Wed, Feb 19, 2020 at 11:54 AM Jason Gunthorpe <jgg@ziepe.ca> wrote:
->
-> On Wed, Feb 19, 2020 at 11:11:19AM -0800, Nick Desaulniers wrote:
-> > > Godbolt says clang is happy if it is written as:
-> > >
-> > >   if (&__stop___trace_bprintk_fmt[0] != &__start___trace_bprintk_fmt[0])
-> > >
-> > > Which is probably the best compromise. The type here is const char
-> > > *[], so it would be a shame to see it go.
-> >
-> > If the "address" is never dereferenced, but only used for arithmetic
-> > (in a way that the the pointed to type is irrelevant), does the
-> > pointed to type matter?
->
-> The type is used here:
->
->         if (*pos < start_index)
->                 return __start___trace_bprintk_fmt + *pos;
->
-> The return expression should be a const char **
->
-> Presumably the caller of find_next derferences it.
->
-> Jason
+Apart from adding a VMA flag readable name for trace purpose, this series
+does some open encoding replacements with availabe VMA specific wrappers.
+This skips VM_HUGETLB check in vma_migratable() as its already being done
+with another patch (https://patchwork.kernel.org/patch/11347831/) which
+is yet to be merged.
 
-And the callers of find_next just return the return value from
-find_next, but suddenly as `void*` (find_next()'s return type is
-`char**`).  So it doesn't seem like the pointed to type matters, hence
-the recommendation of `void` and then address-of (&) used in
-comparison+arithmetic.
+This series applies on 5.6-rc3. This has been build tested on multiple
+platforms, though boot and runtime testing was limited to arm64 and x86.
+
+Cc: linux-kernel@vger.kernel.org
+Cc: linux-m68k@lists.linux-m68k.org
+Cc: linux-mips@vger.kernel.org
+Cc: linuxppc-dev@lists.ozlabs.org
+Cc: linux-sh@vger.kernel.org
+Cc: kvm-ppc@vger.kernel.org
+Cc: linux-fsdevel@vger.kernel.org
+Cc: linux-arch@vger.kernel.org
+Cc: linux-mm@kvack.org
+
+Changes in V2:
+
+- Dropped patch [PATCH 4/5] mm/vma: Replace....vma_set_anonymous() per Kirril
+- Dropped braces around is_vm_hugetlb_page() in kvmppc_e500_shadow_map()
+- Replaced two open encodings in mm/mmap.c with vma_is_accessible()
+- Added hugetlb headers to prevent build failures wrt is_vm_hugetlb_page()
+
+Changes in V1: (https://patchwork.kernel.org/cover/11385219/)
+
+Anshuman Khandual (4):
+  mm/vma: Add missing VMA flag readable name for VM_SYNC
+  mm/vma: Make vma_is_accessible() available for general use
+  mm/vma: Replace all remaining open encodings with is_vm_hugetlb_page()
+  mm/vma: Replace all remaining open encodings with vma_is_anonymous()
+
+ arch/csky/mm/fault.c             | 2 +-
+ arch/m68k/mm/fault.c             | 2 +-
+ arch/mips/mm/fault.c             | 2 +-
+ arch/powerpc/kvm/e500_mmu_host.c | 2 +-
+ arch/powerpc/mm/fault.c          | 2 +-
+ arch/sh/mm/fault.c               | 2 +-
+ arch/x86/mm/fault.c              | 2 +-
+ fs/binfmt_elf.c                  | 3 ++-
+ include/asm-generic/tlb.h        | 3 ++-
+ include/linux/mm.h               | 5 +++++
+ include/trace/events/mmflags.h   | 1 +
+ kernel/events/core.c             | 3 ++-
+ kernel/sched/fair.c              | 2 +-
+ mm/gup.c                         | 5 +++--
+ mm/memory.c                      | 5 -----
+ mm/mempolicy.c                   | 3 +--
+ mm/mmap.c                        | 5 ++---
+ 17 files changed, 26 insertions(+), 23 deletions(-)
 
 -- 
-Thanks,
-~Nick Desaulniers
+2.20.1
