@@ -1,69 +1,36 @@
-Return-Path: <SRS0=0XgO=4J=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:45370 "EHLO foss.arm.com"
+Return-Path: <SRS0=as/e=4M=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from verein.lst.de ([213.95.11.211]:40011 "EHLO verein.lst.de"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1729430AbgBUSTF (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 21 Feb 2020 13:19:05 -0500
-From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Subject: [PATCH v2 3/3] clocksource: Fix arm_arch_timer clockmode when vDSO disabled
-Date: Fri, 21 Feb 2020 18:18:49 +0000
-Message-ID: <20200221181849.40351-4-vincenzo.frascino@arm.com>
-In-Reply-To: <20200221181849.40351-1-vincenzo.frascino@arm.com>
-References: <20200221181849.40351-1-vincenzo.frascino@arm.com>
+        id S1727306AbgBXTpf (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 24 Feb 2020 14:45:35 -0500
+Date: Mon, 24 Feb 2020 20:45:28 +0100
+From: Christoph Hellwig <hch@lst.de>
+Subject: Re: [PATCH 2/2] openrisc: use the generic in-place uncached DMA
+ allocator
+Message-ID: <20200224194528.GA10155@lst.de>
+References: <20200220170139.387354-1-hch@lst.de> <20200220170139.387354-3-hch@lst.de> <20200221221447.GA7926@lianli.shorne-pla.net>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20200221221447.GA7926@lianli.shorne-pla.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org
-Cc: catalin.marinas@arm.com, will.deacon@arm.com, linux@armlinux.org.uk, tglx@linutronix.de, luto@kernel.org, m.szyprowski@samsung.com, Mark.Rutland@arm.com, maz@kernel.org, vincenzo.frascino@arm.com
-Message-ID: <20200221181849.Bez5bk4DB1TEKAhQz6uvZ6GcECGEuffW7aJMzkA3HIg@z>
+To: Stafford Horne <shorne@gmail.com>
+Cc: Christoph Hellwig <hch@lst.de>, Jonas Bonn <jonas@southpole.se>, Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>, Marek Szyprowski <m.szyprowski@samsung.com>, Robin Murphy <robin.murphy@arm.com>, Will Deacon <will@kernel.org>, Mark Rutland <mark.rutland@arm.com>, openrisc@lists.librecores.org, iommu@lists.linux-foundation.org, linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20200224194528.5miaE6wza75juwR1yi5EbzhTkfb2Hi8O3_0RLrMC3qA@z>
 
-The arm_arch_timer requires that VDSO_CLOCKMODE_ARCHTIMER to be
-defined to compile correctly. On arm the vDSO can be disabled and when
-this is the case the compilation ends prematurely with an error:
+On Sat, Feb 22, 2020 at 07:14:47AM +0900, Stafford Horne wrote:
+> On Thu, Feb 20, 2020 at 09:01:39AM -0800, Christoph Hellwig wrote:
+> > Switch openrisc to use the dma-direct allocator and just provide the
+> > hooks for setting memory uncached or cached.
+> > 
+> > Signed-off-by: Christoph Hellwig <hch@lst.de>
+> 
+> Reviewed-by: Stafford Horne <shorne@gmail.com>
+> 
+> Also, I test booted openrisc with linux 5.5 + these patches.  Thanks for
+> continuing to shrink my code base.
 
- $ make ARCH=arm multi_v7_defconfig
- $ ./scripts/config -d VDSO
- $ make
-
-drivers/clocksource/arm_arch_timer.c:73:44: error:
-‘VDSO_CLOCKMODE_ARCHTIMER’ undeclared here (not in a function)
-  static enum vdso_clock_mode vdso_default = VDSO_CLOCKMODE_ARCHTIMER;
-                                             ^
-scripts/Makefile.build:267: recipe for target
-'drivers/clocksource/arm_arch_timer.o' failed
-make[2]: *** [drivers/clocksource/arm_arch_timer.o] Error 1
-make[2]: *** Waiting for unfinished jobs....
-scripts/Makefile.build:505: recipe for target 'drivers/clocksource' failed
-make[1]: *** [drivers/clocksource] Error 2
-make[1]: *** Waiting for unfinished jobs....
-Makefile:1683: recipe for target 'drivers' failed
-make: *** [drivers] Error 2
-
-Set vdso_default to VDSO_CLOCKMODE_ARCH_DEFAULT to address the issue.
-
-Fixes: 5e3c6a312a09 ("ARM/arm64: vdso: Use common vdso clock mode storage")
-Cc: Marc Zyngier <maz@kernel.org>
-Cc: Mark Rutland <Mark.Rutland@arm.com>
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Reported-by: Marek Szyprowski <m.szyprowski@samsung.com>
-Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
----
- drivers/clocksource/arm_arch_timer.c | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
-
-diff --git a/drivers/clocksource/arm_arch_timer.c b/drivers/clocksource/arm_arch_timer.c
-index ee2420d56f67..eadc99973fe1 100644
---- a/drivers/clocksource/arm_arch_timer.c
-+++ b/drivers/clocksource/arm_arch_timer.c
-@@ -69,7 +69,7 @@ static enum arch_timer_ppi_nr arch_timer_uses_ppi = ARCH_TIMER_VIRT_PPI;
- static bool arch_timer_c3stop;
- static bool arch_timer_mem_use_virtual;
- static bool arch_counter_suspend_stop;
--static enum vdso_clock_mode vdso_default = VDSO_CLOCKMODE_ARCHTIMER;
-+static enum vdso_clock_mode vdso_default = VDSO_CLOCKMODE_ARCH_DEFAULT;
- 
- static cpumask_t evtstrm_available = CPU_MASK_NONE;
- static bool evtstrm_enable = IS_ENABLED(CONFIG_ARM_ARCH_TIMER_EVTSTREAM);
--- 
-2.25.0
+I just resent a new version that changes how the hooks work based on
+feedback from Robin.  Everything should work as-is, but if you have
+some time to retest that would be great.
