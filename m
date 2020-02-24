@@ -1,107 +1,62 @@
-Return-Path: <SRS0=BIEI=4P=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from iolanthe.rowland.org ([192.131.102.54]:38964 "HELO
-        iolanthe.rowland.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with SMTP id S1730194AbgB0Qha (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 27 Feb 2020 11:37:30 -0500
-Date: Thu, 27 Feb 2020 11:37:29 -0500 (EST)
-From: Alan Stern <stern@rowland.harvard.edu>
-Subject: Re: [PATCH v3 4/5] Documentation/locking/atomic: Add a litmus test
- for atomic_set()
-In-Reply-To: <20200227004049.6853-5-boqun.feng@gmail.com>
-Message-ID: <Pine.LNX.4.44L0.2002271136110.1730-100000@iolanthe.rowland.org>
+Return-Path: <SRS0=as/e=4M=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail-ed1-f67.google.com ([209.85.208.67]:36492 "EHLO
+        mail-ed1-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726778AbgBXMrw (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 24 Feb 2020 07:47:52 -0500
+Date: Mon, 24 Feb 2020 13:47:44 +0100
+From: Krzysztof Kozlowski <krzk@kernel.org>
+Subject: Re: [RESEND PATCH v2 9/9] ath5k: Constify ioreadX() iomem argument
+ (as in generic implementation)
+Message-ID: <20200224124744.GA1949@pi3>
+References: <20200219175007.13627-1-krzk@kernel.org>
+ <20200219175007.13627-10-krzk@kernel.org>
+ <518a9023-f802-17b3-fca5-582400bc34ae@gmail.com>
 MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+Content-Transfer-Encoding: 8BIT
+In-Reply-To: <518a9023-f802-17b3-fca5-582400bc34ae@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Boqun Feng <boqun.feng@gmail.com>
-Cc: linux-kernel@vger.kernel.org, Andrea Parri <parri.andrea@gmail.com>, Will Deacon <will@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Nicholas Piggin <npiggin@gmail.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, "Paul E. McKenney" <paulmck@kernel.org>, Akira Yokosawa <akiyks@gmail.com>, Daniel Lustig <dlustig@nvidia.com>, Jonathan Corbet <corbet@lwn.net>, Mauro Carvalho Chehab <mchehab+samsung@kernel.org>, "David S. Miller" <davem@davemloft.net>, Rob Herring <robh@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jonathan Cameron <Jonathan.Cameron@huawei.com>, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org
-Message-ID: <20200227163729.vvihlvKqvpc7ldr916Zx6TWtBMZlETv2JIAqT290vaM@z>
+To: Jiri Slaby <jirislaby@gmail.com>
+Cc: Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Alexey Brodkin <abrodkin@synopsys.com>, Vineet Gupta <vgupta@synopsys.com>, "James E.J. Bottomley" <James.Bottomley@hansenpartnership.com>, Helge Deller <deller@gmx.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, Dave Airlie <airlied@redhat.com>, David Airlie <airlied@linux.ie>, Daniel Vetter <daniel@ffwll.ch>, Ben Skeggs <bskeggs@redhat.com>, Mauro Carvalho Chehab <mchehab@kernel.org>, Nick Kossifidis <mickflemm@gmail.com>, Luis Chamberlain <mcgrof@kernel.org>, Kalle Valo <kvalo@codeaurora.org>, "David S. Miller" <davem@davemloft.net>, Dave Jiang <dave.jiang@intel.com>, Jon Mason <jdmason@kudzu.us>, Allen Hubbe <allenbh@gmail.com>, "Michael S. Tsirkin" <mst@redhat.com>, Jason Wang <jasowang@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Geert Uytterhoeven <geert+renesas@glider.be>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-snps-arc@lists.infradead.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org, dri-devel@lists.freedesktop.org, nouveau@lists.freedesktop.org, linux-media@vger.kernel.org, linux-wireless@vger.kernel.org, netdev@vger.kernel.org, linux-ntb@googlegroups.com, virtualization@lists.linux-foundation.org, linux-arch@vger.kernel.org
+Message-ID: <20200224124744.gT8cItfy0yNtuANvZs71lKEE2ZBg_BuzuFBb9WxSOqE@z>
 
-On Thu, 27 Feb 2020, Boqun Feng wrote:
-
-> We already use a litmus test in atomic_t.txt to describe the behavior of
-> an atomic_set() with the an atomic RMW, so add it into atomic-tests
-> directory to make it easily accessible for anyone who cares about the
-> semantics of our atomic APIs.
+On Thu, Feb 20, 2020 at 10:48:33AM +0100, Jiri Slaby wrote:
+> On 19. 02. 20, 18:50, Krzysztof Kozlowski wrote:
+> > The ioreadX() helpers have inconsistent interface.  On some architectures
+> > void *__iomem address argument is a pointer to const, on some not.
+> > 
+> > Implementations of ioreadX() do not modify the memory under the address
+> > so they can be converted to a "const" version for const-safety and
+> > consistency among architectures.
+> > 
+> > Signed-off-by: Krzysztof Kozlowski <krzk@kernel.org>
+> > Acked-by: Kalle Valo <kvalo@codeaurora.org>
+> > ---
+> >  drivers/net/wireless/ath/ath5k/ahb.c | 10 +++++-----
+> >  1 file changed, 5 insertions(+), 5 deletions(-)
+> > 
+> > diff --git a/drivers/net/wireless/ath/ath5k/ahb.c b/drivers/net/wireless/ath/ath5k/ahb.c
+> > index 2c9cec8b53d9..8bd01df369fb 100644
+> > --- a/drivers/net/wireless/ath/ath5k/ahb.c
+> > +++ b/drivers/net/wireless/ath/ath5k/ahb.c
+> > @@ -138,18 +138,18 @@ static int ath_ahb_probe(struct platform_device *pdev)
+> >  
+> >  	if (bcfg->devid >= AR5K_SREV_AR2315_R6) {
+> >  		/* Enable WMAC AHB arbitration */
+> > -		reg = ioread32((void __iomem *) AR5K_AR2315_AHB_ARB_CTL);
+> > +		reg = ioread32((const void __iomem *) AR5K_AR2315_AHB_ARB_CTL);
 > 
-> Additionally, change the sentences describing the test in atomic_t.txt
-> with better wording.
-> 
-> Signed-off-by: Boqun Feng <boqun.feng@gmail.com>
-> ---
->  ...c-RMW-ops-are-atomic-WRT-atomic_set.litmus | 24 +++++++++++++++++++
->  Documentation/atomic-tests/README             |  7 ++++++
->  Documentation/atomic_t.txt                    |  6 ++---
->  3 files changed, 34 insertions(+), 3 deletions(-)
->  create mode 100644 Documentation/atomic-tests/Atomic-RMW-ops-are-atomic-WRT-atomic_set.litmus
-> 
-> diff --git a/Documentation/atomic-tests/Atomic-RMW-ops-are-atomic-WRT-atomic_set.litmus b/Documentation/atomic-tests/Atomic-RMW-ops-are-atomic-WRT-atomic_set.litmus
-> new file mode 100644
-> index 000000000000..5dd7f04e504a
-> --- /dev/null
-> +++ b/Documentation/atomic-tests/Atomic-RMW-ops-are-atomic-WRT-atomic_set.litmus
-> @@ -0,0 +1,24 @@
-> +C Atomic-set-observable-to-RMW
+> While I understand why the parameter of ioread32 should be const, I
+> don't see a reason for these casts on the users' side. What does it
+> bring except longer code to read?
 
-This line needs to match the filename.  Aside from that,
+Because the argument is an int:
 
-Acked-by: Alan Stern <stern@rowland.harvard.edu>
+drivers/net/wireless/ath/ath5k/ahb.c: In function ‘ath_ahb_probe’:
+drivers/net/wireless/ath/ath5k/ahb.c:141:18: warning: passing argument 1 of ‘ioread32’ makes pointer from integer without a cast [-Wint-conversion]
+   reg = ioread32(AR5K_AR2315_AHB_ARB_CTL);
 
-
-> +
-> +(*
-> + * Result: Never
-> + *
-> + * Test that atomic_set() cannot break the atomicity of atomic RMWs.
-> + *)
-> +
-> +{
-> +	atomic_t v = ATOMIC_INIT(1);
-> +}
-> +
-> +P0(atomic_t *v)
-> +{
-> +	(void)atomic_add_unless(v,1,0);
-> +}
-> +
-> +P1(atomic_t *v)
-> +{
-> +	atomic_set(v, 0);
-> +}
-> +
-> +exists
-> +(v=2)
-> diff --git a/Documentation/atomic-tests/README b/Documentation/atomic-tests/README
-> index ae61201a4271..a1b72410b539 100644
-> --- a/Documentation/atomic-tests/README
-> +++ b/Documentation/atomic-tests/README
-> @@ -2,3 +2,10 @@ This directory contains litmus tests that are typical to describe the semantics
->  of our atomic APIs. For more information about how to "run" a litmus test or
->  how to generate a kernel test module based on a litmus test, please see
->  tools/memory-model/README.
-> +
-> +============
-> +LITMUS TESTS
-> +============
-> +
-> +Atomic-RMW-ops-are-atomic-WRT-atomic_set.litmus
-> +	Test that atomic_set() cannot break the atomicity of atomic RMWs.
-> diff --git a/Documentation/atomic_t.txt b/Documentation/atomic_t.txt
-> index ceb85ada378e..67d1d99f8589 100644
-> --- a/Documentation/atomic_t.txt
-> +++ b/Documentation/atomic_t.txt
-> @@ -85,10 +85,10 @@ smp_store_release() respectively. Therefore, if you find yourself only using
->  the Non-RMW operations of atomic_t, you do not in fact need atomic_t at all
->  and are doing it wrong.
->  
-> -A subtle detail of atomic_set{}() is that it should be observable to the RMW
-> -ops. That is:
-> +A note for the implementation of atomic_set{}() is that it must not break the
-> +atomicity of the RMW ops. That is:
->  
-> -  C atomic-set
-> +  C Atomic-RMW-ops-are-atomic-WRT-atomic_set
->  
->    {
->      atomic_t v = ATOMIC_INIT(1);
-> 
+Best regards,
+Krzysztof
