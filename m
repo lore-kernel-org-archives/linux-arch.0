@@ -1,1729 +1,762 @@
-Return-Path: <SRS0=LzcT=4H=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:52032 "EHLO
-        merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727809AbgBSPOi (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 19 Feb 2020 10:14:38 -0500
-Message-ID: <20200219150745.299217979@infradead.org>
-Date: Wed, 19 Feb 2020 15:47:40 +0100
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: [PATCH v3 16/22] locking/atomics, kcsan: Add KCSAN instrumentation
-References: <20200219144724.800607165@infradead.org>
+Return-Path: <SRS0=jiAz=4M=vger.kernel.org=linux-doc-owner@kernel.org>
+From: =?UTF-8?q?Micka=C3=ABl=20Sala=C3=BCn?= <mic@digikod.net>
+Subject: [RFC PATCH v14 02/10] landlock: Add ruleset and domain management
+Date: Mon, 24 Feb 2020 17:02:07 +0100
+Message-ID: <20200224160215.4136-3-mic@digikod.net>
+In-Reply-To: <20200224160215.4136-1-mic@digikod.net>
+References: <20200224160215.4136-1-mic@digikod.net>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
-Sender: linux-arch-owner@vger.kernel.org
+Content-Transfer-Encoding: 8bit
+Sender: linux-doc-owner@vger.kernel.org
+To: linux-kernel@vger.kernel.org
+Cc: =?UTF-8?q?Micka=C3=ABl=20Sala=C3=BCn?= <mic@digikod.net>, Al Viro <viro@zeniv.linux.org.uk>, Andy Lutomirski <luto@amacapital.net>, Arnd Bergmann <arnd@arndb.de>, Casey Schaufler <casey@schaufler-ca.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, James Morris <jmorris@namei.org>, Jann Horn <jann@thejh.net>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Michael Kerrisk <mtk.manpages@gmail.com>, =?UTF-8?q?Micka=C3=ABl=20Sala=C3=BCn?= <mickael.salaun@ssi.gouv.fr>, "Serge E . Hallyn" <serge@hallyn.com>, Shuah Khan <shuah@kernel.org>, Vincent Dagonneau <vincent.dagonneau@ssi.gouv.fr>, kernel-hardening@lists.openwall.com, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-security-module@vger.kernel.org, x86@kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, rostedt@goodmis.org
-Cc: peterz@infradead.org, mingo@kernel.org, joel@joelfernandes.org, gregkh@linuxfoundation.org, gustavo@embeddedor.com, tglx@linutronix.de, paulmck@kernel.org, josh@joshtriplett.org, mathieu.desnoyers@efficios.com, jiangshanlai@gmail.com, luto@kernel.org, tony.luck@intel.com, frederic@kernel.org, dan.carpenter@oracle.com, mhiramat@kernel.org, Marco Elver <elver@google.com>, Mark Rutland <mark.rutland@arm.com>
-Message-ID: <20200219144740.iZl13cnJ3nIS4vo4rj95hIC90nTCc_HZJq__gX2XW2Y@z>
+Message-ID: <20200224160207.EVm_um4mT8W9Qc5CiTc3-0sJ4P2WxtHGDGwGxURsSHQ@z>
 
-From: Marco Elver <elver@google.com>
+A Landlock ruleset is mainly a red-black tree with Landlock rules as
+nodes.  This enables quick update and lookup to match a requested access
+e.g., to a file.  A ruleset is usable through a dedicated file
+descriptor (cf. following commit adding the syscall) which enables a
+process to build it by adding new rules.
 
-This adds KCSAN instrumentation to atomic-instrumented.h.
+A domain is a ruleset tied to a set of processes.  This group of rules
+defined the security policy enforced on these processes and their future
+children.  A domain can transition to a new domain which is the merge of
+itself with a ruleset provided by the current process.  This merge is
+the intersection of all the constraints, which means that a process can
+only gain more constraints over time.
 
-Signed-off-by: Marco Elver <elver@google.com>
-Signed-off-by: Paul E. McKenney <paulmck@kernel.org>
-[peterz: removed the actual kcsan hooks]
-Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
-Reviewed-by: Mark Rutland <mark.rutland@arm.com>
+Signed-off-by: Mickaël Salaün <mic@digikod.net>
+Cc: Andy Lutomirski <luto@amacapital.net>
+Cc: James Morris <jmorris@namei.org>
+Cc: Kees Cook <keescook@chromium.org>
+Cc: Serge E. Hallyn <serge@hallyn.com>
 ---
- include/asm-generic/atomic-instrumented.h |  390 +++++++++++++++---------------
- scripts/atomic/gen-atomic-instrumented.sh |   14 -
- 2 files changed, 212 insertions(+), 192 deletions(-)
 
---- a/include/asm-generic/atomic-instrumented.h
-+++ b/include/asm-generic/atomic-instrumented.h
-@@ -20,10 +20,20 @@
- #include <linux/build_bug.h>
- #include <linux/kasan-checks.h>
+Changes since v13:
+* New implementation, inspired by the previous inode eBPF map, but
+  agnostic to the underlying kernel object.
+
+Previous version:
+https://lore.kernel.org/lkml/20190721213116.23476-7-mic@digikod.net/
+---
+ MAINTAINERS                   |   1 +
+ include/uapi/linux/landlock.h | 102 ++++++++
+ security/landlock/Makefile    |   2 +-
+ security/landlock/ruleset.c   | 460 ++++++++++++++++++++++++++++++++++
+ security/landlock/ruleset.h   | 106 ++++++++
+ 5 files changed, 670 insertions(+), 1 deletion(-)
+ create mode 100644 include/uapi/linux/landlock.h
+ create mode 100644 security/landlock/ruleset.c
+ create mode 100644 security/landlock/ruleset.h
+
+diff --git a/MAINTAINERS b/MAINTAINERS
+index 206f85768cd9..937257925e65 100644
+--- a/MAINTAINERS
++++ b/MAINTAINERS
+@@ -9366,6 +9366,7 @@ L:	linux-security-module@vger.kernel.org
+ W:	https://landlock.io
+ T:	git https://github.com/landlock-lsm/linux.git
+ S:	Supported
++F:	include/uapi/linux/landlock.h
+ F:	security/landlock/
+ K:	landlock
+ K:	LANDLOCK
+diff --git a/include/uapi/linux/landlock.h b/include/uapi/linux/landlock.h
+new file mode 100644
+index 000000000000..92760aca3645
+--- /dev/null
++++ b/include/uapi/linux/landlock.h
+@@ -0,0 +1,102 @@
++/* SPDX-License-Identifier: GPL-2.0 WITH Linux-syscall-note */
++/*
++ * Landlock - UAPI headers
++ *
++ * Copyright © 2017-2020 Mickaël Salaün <mic@digikod.net>
++ * Copyright © 2018-2020 ANSSI
++ */
++
++#ifndef _UAPI__LINUX_LANDLOCK_H__
++#define _UAPI__LINUX_LANDLOCK_H__
++
++/**
++ * DOC: fs_access
++ *
++ * A set of actions on kernel objects may be defined by an attribute (e.g.
++ * &struct landlock_attr_path_beneath) and a bitmask of access.
++ *
++ * Filesystem flags
++ * ~~~~~~~~~~~~~~~~
++ *
++ * These flags enable to restrict a sandbox process to a set of of actions on
++ * files and directories.  Files or directories opened before the sandboxing
++ * are not subject to these restrictions.
++ *
++ * - %LANDLOCK_ACCESS_FS_READ: Open or map a file with read access.
++ * - %LANDLOCK_ACCESS_FS_READDIR: List the content of a directory.
++ * - %LANDLOCK_ACCESS_FS_GETATTR: Read metadata of a file or a directory.
++ * - %LANDLOCK_ACCESS_FS_WRITE: Write to a file.
++ * - %LANDLOCK_ACCESS_FS_TRUNCATE: Truncate a file.
++ * - %LANDLOCK_ACCESS_FS_LOCK: Lock a file.
++ * - %LANDLOCK_ACCESS_FS_CHMOD: Change DAC permissions on a file or a
++ *   directory.
++ * - %LANDLOCK_ACCESS_FS_CHOWN: Change the owner of a file or a directory.
++ * - %LANDLOCK_ACCESS_FS_CHGRP: Change the group of a file or a directory.
++ * - %LANDLOCK_ACCESS_FS_IOCTL: Send various command to a special file, cf.
++ *   :manpage:`ioctl(2)`.
++ * - %LANDLOCK_ACCESS_FS_LINK_TO: Link a file into a directory.
++ * - %LANDLOCK_ACCESS_FS_RENAME_FROM: Rename a file or a directory.
++ * - %LANDLOCK_ACCESS_FS_RENAME_TO: Rename a file or a directory.
++ * - %LANDLOCK_ACCESS_FS_RMDIR: Remove an empty directory.
++ * - %LANDLOCK_ACCESS_FS_UNLINK: Remove a file.
++ * - %LANDLOCK_ACCESS_FS_MAKE_CHAR: Create a character device.
++ * - %LANDLOCK_ACCESS_FS_MAKE_DIR: Create a directory.
++ * - %LANDLOCK_ACCESS_FS_MAKE_REG: Create a regular file.
++ * - %LANDLOCK_ACCESS_FS_MAKE_SOCK: Create a UNIX domain socket.
++ * - %LANDLOCK_ACCESS_FS_MAKE_FIFO: Create a named pipe.
++ * - %LANDLOCK_ACCESS_FS_MAKE_BLOCK: Create a block device.
++ * - %LANDLOCK_ACCESS_FS_MAKE_SYM: Create a symbolic link.
++ * - %LANDLOCK_ACCESS_FS_EXECUTE: Execute a file.
++ * - %LANDLOCK_ACCESS_FS_CHROOT: Change the root directory of the current
++ *   process.
++ * - %LANDLOCK_ACCESS_FS_OPEN: Open a file or a directory.  This flag is set
++ *   for any actions (e.g. read, write, execute) requested to open a file or
++ *   directory.
++ * - %LANDLOCK_ACCESS_FS_MAP: Map a file.  This flag is set for any actions
++ *   (e.g. read, write, execute) requested to map a file.
++ *
++ * There is currently no restriction for directory walking e.g.,
++ * :manpage:`chdir(2)`.
++ */
++#define LANDLOCK_ACCESS_FS_READ			(1ULL << 0)
++#define LANDLOCK_ACCESS_FS_READDIR		(1ULL << 1)
++#define LANDLOCK_ACCESS_FS_GETATTR		(1ULL << 2)
++#define LANDLOCK_ACCESS_FS_WRITE		(1ULL << 3)
++#define LANDLOCK_ACCESS_FS_TRUNCATE		(1ULL << 4)
++#define LANDLOCK_ACCESS_FS_LOCK			(1ULL << 5)
++#define LANDLOCK_ACCESS_FS_CHMOD		(1ULL << 6)
++#define LANDLOCK_ACCESS_FS_CHOWN		(1ULL << 7)
++#define LANDLOCK_ACCESS_FS_CHGRP		(1ULL << 8)
++#define LANDLOCK_ACCESS_FS_IOCTL		(1ULL << 9)
++#define LANDLOCK_ACCESS_FS_LINK_TO		(1ULL << 10)
++#define LANDLOCK_ACCESS_FS_RENAME_FROM		(1ULL << 11)
++#define LANDLOCK_ACCESS_FS_RENAME_TO		(1ULL << 12)
++#define LANDLOCK_ACCESS_FS_RMDIR		(1ULL << 13)
++#define LANDLOCK_ACCESS_FS_UNLINK		(1ULL << 14)
++#define LANDLOCK_ACCESS_FS_MAKE_CHAR		(1ULL << 15)
++#define LANDLOCK_ACCESS_FS_MAKE_DIR		(1ULL << 16)
++#define LANDLOCK_ACCESS_FS_MAKE_REG		(1ULL << 17)
++#define LANDLOCK_ACCESS_FS_MAKE_SOCK		(1ULL << 18)
++#define LANDLOCK_ACCESS_FS_MAKE_FIFO		(1ULL << 19)
++#define LANDLOCK_ACCESS_FS_MAKE_BLOCK		(1ULL << 20)
++#define LANDLOCK_ACCESS_FS_MAKE_SYM		(1ULL << 21)
++#define LANDLOCK_ACCESS_FS_EXECUTE		(1ULL << 22)
++#define LANDLOCK_ACCESS_FS_CHROOT		(1ULL << 23)
++#define LANDLOCK_ACCESS_FS_OPEN			(1ULL << 24)
++#define LANDLOCK_ACCESS_FS_MAP			(1ULL << 25)
++
++/*
++ * Potential future access:
++ * - %LANDLOCK_ACCESS_FS_SETATTR
++ * - %LANDLOCK_ACCESS_FS_APPEND
++ * - %LANDLOCK_ACCESS_FS_LINK_FROM
++ * - %LANDLOCK_ACCESS_FS_MOUNT_FROM
++ * - %LANDLOCK_ACCESS_FS_MOUNT_TO
++ * - %LANDLOCK_ACCESS_FS_UNMOUNT
++ * - %LANDLOCK_ACCESS_FS_TRANSFER
++ * - %LANDLOCK_ACCESS_FS_RECEIVE
++ * - %LANDLOCK_ACCESS_FS_CHDIR
++ * - %LANDLOCK_ACCESS_FS_FCNTL
++ */
++
++#endif /* _UAPI__LINUX_LANDLOCK_H__ */
+diff --git a/security/landlock/Makefile b/security/landlock/Makefile
+index cb6deefbf4c0..d846eba445bb 100644
+--- a/security/landlock/Makefile
++++ b/security/landlock/Makefile
+@@ -1,3 +1,3 @@
+ obj-$(CONFIG_SECURITY_LANDLOCK) := landlock.o
  
-+static inline void __atomic_check_read(const volatile void *v, size_t size)
+-landlock-y := object.o
++landlock-y := object.o ruleset.o
+diff --git a/security/landlock/ruleset.c b/security/landlock/ruleset.c
+new file mode 100644
+index 000000000000..5ec013a4188d
+--- /dev/null
++++ b/security/landlock/ruleset.c
+@@ -0,0 +1,460 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/*
++ * Landlock LSM - Ruleset management
++ *
++ * Copyright © 2016-2020 Mickaël Salaün <mic@digikod.net>
++ * Copyright © 2018-2020 ANSSI
++ */
++
++#include <linux/bug.h>
++#include <linux/err.h>
++#include <linux/errno.h>
++#include <linux/kernel.h>
++#include <linux/list.h>
++#include <linux/rbtree.h>
++#include <linux/rcupdate.h>
++#include <linux/refcount.h>
++#include <linux/slab.h>
++#include <linux/spinlock.h>
++#include <linux/workqueue.h>
++
++#include "object.h"
++#include "ruleset.h"
++
++static struct landlock_ruleset *create_ruleset(void)
 +{
-+	kasan_check_read(v, size);
++	struct landlock_ruleset *ruleset;
++
++	ruleset = kzalloc(sizeof(*ruleset), GFP_KERNEL);
++	if (!ruleset)
++		return ERR_PTR(-ENOMEM);
++	refcount_set(&ruleset->usage, 1);
++	mutex_init(&ruleset->lock);
++	atomic_set(&ruleset->nb_rules, 0);
++	ruleset->root = RB_ROOT;
++	return ruleset;
 +}
 +
-+static inline void __atomic_check_write(const volatile void *v, size_t size)
++struct landlock_ruleset *landlock_create_ruleset(u64 fs_access_mask)
 +{
-+	kasan_check_write(v, size);
++	struct landlock_ruleset *ruleset;
++
++	/* Safely handles 32-bits conversion. */
++	BUILD_BUG_ON(!__same_type(fs_access_mask, _LANDLOCK_ACCESS_FS_LAST));
++
++	/* Checks content. */
++	if ((fs_access_mask | _LANDLOCK_ACCESS_FS_MASK) !=
++			_LANDLOCK_ACCESS_FS_MASK)
++		return ERR_PTR(-EINVAL);
++	/* Informs about useless ruleset. */
++	if (!fs_access_mask)
++		return ERR_PTR(-ENOMSG);
++	ruleset = create_ruleset();
++	if (!IS_ERR(ruleset))
++		ruleset->fs_access_mask = fs_access_mask;
++	return ruleset;
 +}
 +
- static inline int
- atomic_read(const atomic_t *v)
- {
--	kasan_check_read(v, sizeof(*v));
-+	__atomic_check_read(v, sizeof(*v));
- 	return arch_atomic_read(v);
- }
- #define atomic_read atomic_read
-@@ -32,7 +42,7 @@ atomic_read(const atomic_t *v)
- static inline int
- atomic_read_acquire(const atomic_t *v)
- {
--	kasan_check_read(v, sizeof(*v));
-+	__atomic_check_read(v, sizeof(*v));
- 	return arch_atomic_read_acquire(v);
- }
- #define atomic_read_acquire atomic_read_acquire
-@@ -41,7 +51,7 @@ atomic_read_acquire(const atomic_t *v)
- static inline void
- atomic_set(atomic_t *v, int i)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	arch_atomic_set(v, i);
- }
- #define atomic_set atomic_set
-@@ -50,7 +60,7 @@ atomic_set(atomic_t *v, int i)
- static inline void
- atomic_set_release(atomic_t *v, int i)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	arch_atomic_set_release(v, i);
- }
- #define atomic_set_release atomic_set_release
-@@ -59,7 +69,7 @@ atomic_set_release(atomic_t *v, int i)
- static inline void
- atomic_add(int i, atomic_t *v)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	arch_atomic_add(i, v);
- }
- #define atomic_add atomic_add
-@@ -68,7 +78,7 @@ atomic_add(int i, atomic_t *v)
- static inline int
- atomic_add_return(int i, atomic_t *v)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	return arch_atomic_add_return(i, v);
- }
- #define atomic_add_return atomic_add_return
-@@ -78,7 +88,7 @@ atomic_add_return(int i, atomic_t *v)
- static inline int
- atomic_add_return_acquire(int i, atomic_t *v)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	return arch_atomic_add_return_acquire(i, v);
- }
- #define atomic_add_return_acquire atomic_add_return_acquire
-@@ -88,7 +98,7 @@ atomic_add_return_acquire(int i, atomic_
- static inline int
- atomic_add_return_release(int i, atomic_t *v)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	return arch_atomic_add_return_release(i, v);
- }
- #define atomic_add_return_release atomic_add_return_release
-@@ -98,7 +108,7 @@ atomic_add_return_release(int i, atomic_
- static inline int
- atomic_add_return_relaxed(int i, atomic_t *v)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	return arch_atomic_add_return_relaxed(i, v);
- }
- #define atomic_add_return_relaxed atomic_add_return_relaxed
-@@ -108,7 +118,7 @@ atomic_add_return_relaxed(int i, atomic_
- static inline int
- atomic_fetch_add(int i, atomic_t *v)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	return arch_atomic_fetch_add(i, v);
- }
- #define atomic_fetch_add atomic_fetch_add
-@@ -118,7 +128,7 @@ atomic_fetch_add(int i, atomic_t *v)
- static inline int
- atomic_fetch_add_acquire(int i, atomic_t *v)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	return arch_atomic_fetch_add_acquire(i, v);
- }
- #define atomic_fetch_add_acquire atomic_fetch_add_acquire
-@@ -128,7 +138,7 @@ atomic_fetch_add_acquire(int i, atomic_t
- static inline int
- atomic_fetch_add_release(int i, atomic_t *v)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	return arch_atomic_fetch_add_release(i, v);
- }
- #define atomic_fetch_add_release atomic_fetch_add_release
-@@ -138,7 +148,7 @@ atomic_fetch_add_release(int i, atomic_t
- static inline int
- atomic_fetch_add_relaxed(int i, atomic_t *v)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	return arch_atomic_fetch_add_relaxed(i, v);
- }
- #define atomic_fetch_add_relaxed atomic_fetch_add_relaxed
-@@ -147,7 +157,7 @@ atomic_fetch_add_relaxed(int i, atomic_t
- static inline void
- atomic_sub(int i, atomic_t *v)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	arch_atomic_sub(i, v);
- }
- #define atomic_sub atomic_sub
-@@ -156,7 +166,7 @@ atomic_sub(int i, atomic_t *v)
- static inline int
- atomic_sub_return(int i, atomic_t *v)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	return arch_atomic_sub_return(i, v);
- }
- #define atomic_sub_return atomic_sub_return
-@@ -166,7 +176,7 @@ atomic_sub_return(int i, atomic_t *v)
- static inline int
- atomic_sub_return_acquire(int i, atomic_t *v)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	return arch_atomic_sub_return_acquire(i, v);
- }
- #define atomic_sub_return_acquire atomic_sub_return_acquire
-@@ -176,7 +186,7 @@ atomic_sub_return_acquire(int i, atomic_
- static inline int
- atomic_sub_return_release(int i, atomic_t *v)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	return arch_atomic_sub_return_release(i, v);
- }
- #define atomic_sub_return_release atomic_sub_return_release
-@@ -186,7 +196,7 @@ atomic_sub_return_release(int i, atomic_
- static inline int
- atomic_sub_return_relaxed(int i, atomic_t *v)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	return arch_atomic_sub_return_relaxed(i, v);
- }
- #define atomic_sub_return_relaxed atomic_sub_return_relaxed
-@@ -196,7 +206,7 @@ atomic_sub_return_relaxed(int i, atomic_
- static inline int
- atomic_fetch_sub(int i, atomic_t *v)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	return arch_atomic_fetch_sub(i, v);
- }
- #define atomic_fetch_sub atomic_fetch_sub
-@@ -206,7 +216,7 @@ atomic_fetch_sub(int i, atomic_t *v)
- static inline int
- atomic_fetch_sub_acquire(int i, atomic_t *v)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	return arch_atomic_fetch_sub_acquire(i, v);
- }
- #define atomic_fetch_sub_acquire atomic_fetch_sub_acquire
-@@ -216,7 +226,7 @@ atomic_fetch_sub_acquire(int i, atomic_t
- static inline int
- atomic_fetch_sub_release(int i, atomic_t *v)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	return arch_atomic_fetch_sub_release(i, v);
- }
- #define atomic_fetch_sub_release atomic_fetch_sub_release
-@@ -226,7 +236,7 @@ atomic_fetch_sub_release(int i, atomic_t
- static inline int
- atomic_fetch_sub_relaxed(int i, atomic_t *v)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	return arch_atomic_fetch_sub_relaxed(i, v);
- }
- #define atomic_fetch_sub_relaxed atomic_fetch_sub_relaxed
-@@ -236,7 +246,7 @@ atomic_fetch_sub_relaxed(int i, atomic_t
- static inline void
- atomic_inc(atomic_t *v)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	arch_atomic_inc(v);
- }
- #define atomic_inc atomic_inc
-@@ -246,7 +256,7 @@ atomic_inc(atomic_t *v)
- static inline int
- atomic_inc_return(atomic_t *v)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	return arch_atomic_inc_return(v);
- }
- #define atomic_inc_return atomic_inc_return
-@@ -256,7 +266,7 @@ atomic_inc_return(atomic_t *v)
- static inline int
- atomic_inc_return_acquire(atomic_t *v)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	return arch_atomic_inc_return_acquire(v);
- }
- #define atomic_inc_return_acquire atomic_inc_return_acquire
-@@ -266,7 +276,7 @@ atomic_inc_return_acquire(atomic_t *v)
- static inline int
- atomic_inc_return_release(atomic_t *v)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	return arch_atomic_inc_return_release(v);
- }
- #define atomic_inc_return_release atomic_inc_return_release
-@@ -276,7 +286,7 @@ atomic_inc_return_release(atomic_t *v)
- static inline int
- atomic_inc_return_relaxed(atomic_t *v)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	return arch_atomic_inc_return_relaxed(v);
- }
- #define atomic_inc_return_relaxed atomic_inc_return_relaxed
-@@ -286,7 +296,7 @@ atomic_inc_return_relaxed(atomic_t *v)
- static inline int
- atomic_fetch_inc(atomic_t *v)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	return arch_atomic_fetch_inc(v);
- }
- #define atomic_fetch_inc atomic_fetch_inc
-@@ -296,7 +306,7 @@ atomic_fetch_inc(atomic_t *v)
- static inline int
- atomic_fetch_inc_acquire(atomic_t *v)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	return arch_atomic_fetch_inc_acquire(v);
- }
- #define atomic_fetch_inc_acquire atomic_fetch_inc_acquire
-@@ -306,7 +316,7 @@ atomic_fetch_inc_acquire(atomic_t *v)
- static inline int
- atomic_fetch_inc_release(atomic_t *v)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	return arch_atomic_fetch_inc_release(v);
- }
- #define atomic_fetch_inc_release atomic_fetch_inc_release
-@@ -316,7 +326,7 @@ atomic_fetch_inc_release(atomic_t *v)
- static inline int
- atomic_fetch_inc_relaxed(atomic_t *v)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	return arch_atomic_fetch_inc_relaxed(v);
- }
- #define atomic_fetch_inc_relaxed atomic_fetch_inc_relaxed
-@@ -326,7 +336,7 @@ atomic_fetch_inc_relaxed(atomic_t *v)
- static inline void
- atomic_dec(atomic_t *v)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	arch_atomic_dec(v);
- }
- #define atomic_dec atomic_dec
-@@ -336,7 +346,7 @@ atomic_dec(atomic_t *v)
- static inline int
- atomic_dec_return(atomic_t *v)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	return arch_atomic_dec_return(v);
- }
- #define atomic_dec_return atomic_dec_return
-@@ -346,7 +356,7 @@ atomic_dec_return(atomic_t *v)
- static inline int
- atomic_dec_return_acquire(atomic_t *v)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	return arch_atomic_dec_return_acquire(v);
- }
- #define atomic_dec_return_acquire atomic_dec_return_acquire
-@@ -356,7 +366,7 @@ atomic_dec_return_acquire(atomic_t *v)
- static inline int
- atomic_dec_return_release(atomic_t *v)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	return arch_atomic_dec_return_release(v);
- }
- #define atomic_dec_return_release atomic_dec_return_release
-@@ -366,7 +376,7 @@ atomic_dec_return_release(atomic_t *v)
- static inline int
- atomic_dec_return_relaxed(atomic_t *v)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	return arch_atomic_dec_return_relaxed(v);
- }
- #define atomic_dec_return_relaxed atomic_dec_return_relaxed
-@@ -376,7 +386,7 @@ atomic_dec_return_relaxed(atomic_t *v)
- static inline int
- atomic_fetch_dec(atomic_t *v)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	return arch_atomic_fetch_dec(v);
- }
- #define atomic_fetch_dec atomic_fetch_dec
-@@ -386,7 +396,7 @@ atomic_fetch_dec(atomic_t *v)
- static inline int
- atomic_fetch_dec_acquire(atomic_t *v)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	return arch_atomic_fetch_dec_acquire(v);
- }
- #define atomic_fetch_dec_acquire atomic_fetch_dec_acquire
-@@ -396,7 +406,7 @@ atomic_fetch_dec_acquire(atomic_t *v)
- static inline int
- atomic_fetch_dec_release(atomic_t *v)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	return arch_atomic_fetch_dec_release(v);
- }
- #define atomic_fetch_dec_release atomic_fetch_dec_release
-@@ -406,7 +416,7 @@ atomic_fetch_dec_release(atomic_t *v)
- static inline int
- atomic_fetch_dec_relaxed(atomic_t *v)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	return arch_atomic_fetch_dec_relaxed(v);
- }
- #define atomic_fetch_dec_relaxed atomic_fetch_dec_relaxed
-@@ -415,7 +425,7 @@ atomic_fetch_dec_relaxed(atomic_t *v)
- static inline void
- atomic_and(int i, atomic_t *v)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	arch_atomic_and(i, v);
- }
- #define atomic_and atomic_and
-@@ -424,7 +434,7 @@ atomic_and(int i, atomic_t *v)
- static inline int
- atomic_fetch_and(int i, atomic_t *v)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	return arch_atomic_fetch_and(i, v);
- }
- #define atomic_fetch_and atomic_fetch_and
-@@ -434,7 +444,7 @@ atomic_fetch_and(int i, atomic_t *v)
- static inline int
- atomic_fetch_and_acquire(int i, atomic_t *v)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	return arch_atomic_fetch_and_acquire(i, v);
- }
- #define atomic_fetch_and_acquire atomic_fetch_and_acquire
-@@ -444,7 +454,7 @@ atomic_fetch_and_acquire(int i, atomic_t
- static inline int
- atomic_fetch_and_release(int i, atomic_t *v)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	return arch_atomic_fetch_and_release(i, v);
- }
- #define atomic_fetch_and_release atomic_fetch_and_release
-@@ -454,7 +464,7 @@ atomic_fetch_and_release(int i, atomic_t
- static inline int
- atomic_fetch_and_relaxed(int i, atomic_t *v)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	return arch_atomic_fetch_and_relaxed(i, v);
- }
- #define atomic_fetch_and_relaxed atomic_fetch_and_relaxed
-@@ -464,7 +474,7 @@ atomic_fetch_and_relaxed(int i, atomic_t
- static inline void
- atomic_andnot(int i, atomic_t *v)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	arch_atomic_andnot(i, v);
- }
- #define atomic_andnot atomic_andnot
-@@ -474,7 +484,7 @@ atomic_andnot(int i, atomic_t *v)
- static inline int
- atomic_fetch_andnot(int i, atomic_t *v)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	return arch_atomic_fetch_andnot(i, v);
- }
- #define atomic_fetch_andnot atomic_fetch_andnot
-@@ -484,7 +494,7 @@ atomic_fetch_andnot(int i, atomic_t *v)
- static inline int
- atomic_fetch_andnot_acquire(int i, atomic_t *v)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	return arch_atomic_fetch_andnot_acquire(i, v);
- }
- #define atomic_fetch_andnot_acquire atomic_fetch_andnot_acquire
-@@ -494,7 +504,7 @@ atomic_fetch_andnot_acquire(int i, atomi
- static inline int
- atomic_fetch_andnot_release(int i, atomic_t *v)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	return arch_atomic_fetch_andnot_release(i, v);
- }
- #define atomic_fetch_andnot_release atomic_fetch_andnot_release
-@@ -504,7 +514,7 @@ atomic_fetch_andnot_release(int i, atomi
- static inline int
- atomic_fetch_andnot_relaxed(int i, atomic_t *v)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	return arch_atomic_fetch_andnot_relaxed(i, v);
- }
- #define atomic_fetch_andnot_relaxed atomic_fetch_andnot_relaxed
-@@ -513,7 +523,7 @@ atomic_fetch_andnot_relaxed(int i, atomi
- static inline void
- atomic_or(int i, atomic_t *v)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	arch_atomic_or(i, v);
- }
- #define atomic_or atomic_or
-@@ -522,7 +532,7 @@ atomic_or(int i, atomic_t *v)
- static inline int
- atomic_fetch_or(int i, atomic_t *v)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	return arch_atomic_fetch_or(i, v);
- }
- #define atomic_fetch_or atomic_fetch_or
-@@ -532,7 +542,7 @@ atomic_fetch_or(int i, atomic_t *v)
- static inline int
- atomic_fetch_or_acquire(int i, atomic_t *v)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	return arch_atomic_fetch_or_acquire(i, v);
- }
- #define atomic_fetch_or_acquire atomic_fetch_or_acquire
-@@ -542,7 +552,7 @@ atomic_fetch_or_acquire(int i, atomic_t
- static inline int
- atomic_fetch_or_release(int i, atomic_t *v)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	return arch_atomic_fetch_or_release(i, v);
- }
- #define atomic_fetch_or_release atomic_fetch_or_release
-@@ -552,7 +562,7 @@ atomic_fetch_or_release(int i, atomic_t
- static inline int
- atomic_fetch_or_relaxed(int i, atomic_t *v)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	return arch_atomic_fetch_or_relaxed(i, v);
- }
- #define atomic_fetch_or_relaxed atomic_fetch_or_relaxed
-@@ -561,7 +571,7 @@ atomic_fetch_or_relaxed(int i, atomic_t
- static inline void
- atomic_xor(int i, atomic_t *v)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	arch_atomic_xor(i, v);
- }
- #define atomic_xor atomic_xor
-@@ -570,7 +580,7 @@ atomic_xor(int i, atomic_t *v)
- static inline int
- atomic_fetch_xor(int i, atomic_t *v)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	return arch_atomic_fetch_xor(i, v);
- }
- #define atomic_fetch_xor atomic_fetch_xor
-@@ -580,7 +590,7 @@ atomic_fetch_xor(int i, atomic_t *v)
- static inline int
- atomic_fetch_xor_acquire(int i, atomic_t *v)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	return arch_atomic_fetch_xor_acquire(i, v);
- }
- #define atomic_fetch_xor_acquire atomic_fetch_xor_acquire
-@@ -590,7 +600,7 @@ atomic_fetch_xor_acquire(int i, atomic_t
- static inline int
- atomic_fetch_xor_release(int i, atomic_t *v)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	return arch_atomic_fetch_xor_release(i, v);
- }
- #define atomic_fetch_xor_release atomic_fetch_xor_release
-@@ -600,7 +610,7 @@ atomic_fetch_xor_release(int i, atomic_t
- static inline int
- atomic_fetch_xor_relaxed(int i, atomic_t *v)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	return arch_atomic_fetch_xor_relaxed(i, v);
- }
- #define atomic_fetch_xor_relaxed atomic_fetch_xor_relaxed
-@@ -610,7 +620,7 @@ atomic_fetch_xor_relaxed(int i, atomic_t
- static inline int
- atomic_xchg(atomic_t *v, int i)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	return arch_atomic_xchg(v, i);
- }
- #define atomic_xchg atomic_xchg
-@@ -620,7 +630,7 @@ atomic_xchg(atomic_t *v, int i)
- static inline int
- atomic_xchg_acquire(atomic_t *v, int i)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	return arch_atomic_xchg_acquire(v, i);
- }
- #define atomic_xchg_acquire atomic_xchg_acquire
-@@ -630,7 +640,7 @@ atomic_xchg_acquire(atomic_t *v, int i)
- static inline int
- atomic_xchg_release(atomic_t *v, int i)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	return arch_atomic_xchg_release(v, i);
- }
- #define atomic_xchg_release atomic_xchg_release
-@@ -640,7 +650,7 @@ atomic_xchg_release(atomic_t *v, int i)
- static inline int
- atomic_xchg_relaxed(atomic_t *v, int i)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	return arch_atomic_xchg_relaxed(v, i);
- }
- #define atomic_xchg_relaxed atomic_xchg_relaxed
-@@ -650,7 +660,7 @@ atomic_xchg_relaxed(atomic_t *v, int i)
- static inline int
- atomic_cmpxchg(atomic_t *v, int old, int new)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	return arch_atomic_cmpxchg(v, old, new);
- }
- #define atomic_cmpxchg atomic_cmpxchg
-@@ -660,7 +670,7 @@ atomic_cmpxchg(atomic_t *v, int old, int
- static inline int
- atomic_cmpxchg_acquire(atomic_t *v, int old, int new)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	return arch_atomic_cmpxchg_acquire(v, old, new);
- }
- #define atomic_cmpxchg_acquire atomic_cmpxchg_acquire
-@@ -670,7 +680,7 @@ atomic_cmpxchg_acquire(atomic_t *v, int
- static inline int
- atomic_cmpxchg_release(atomic_t *v, int old, int new)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	return arch_atomic_cmpxchg_release(v, old, new);
- }
- #define atomic_cmpxchg_release atomic_cmpxchg_release
-@@ -680,7 +690,7 @@ atomic_cmpxchg_release(atomic_t *v, int
- static inline int
- atomic_cmpxchg_relaxed(atomic_t *v, int old, int new)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	return arch_atomic_cmpxchg_relaxed(v, old, new);
- }
- #define atomic_cmpxchg_relaxed atomic_cmpxchg_relaxed
-@@ -690,8 +700,8 @@ atomic_cmpxchg_relaxed(atomic_t *v, int
- static inline bool
- atomic_try_cmpxchg(atomic_t *v, int *old, int new)
- {
--	kasan_check_write(v, sizeof(*v));
--	kasan_check_write(old, sizeof(*old));
-+	__atomic_check_write(v, sizeof(*v));
-+	__atomic_check_write(old, sizeof(*old));
- 	return arch_atomic_try_cmpxchg(v, old, new);
- }
- #define atomic_try_cmpxchg atomic_try_cmpxchg
-@@ -701,8 +711,8 @@ atomic_try_cmpxchg(atomic_t *v, int *old
- static inline bool
- atomic_try_cmpxchg_acquire(atomic_t *v, int *old, int new)
- {
--	kasan_check_write(v, sizeof(*v));
--	kasan_check_write(old, sizeof(*old));
-+	__atomic_check_write(v, sizeof(*v));
-+	__atomic_check_write(old, sizeof(*old));
- 	return arch_atomic_try_cmpxchg_acquire(v, old, new);
- }
- #define atomic_try_cmpxchg_acquire atomic_try_cmpxchg_acquire
-@@ -712,8 +722,8 @@ atomic_try_cmpxchg_acquire(atomic_t *v,
- static inline bool
- atomic_try_cmpxchg_release(atomic_t *v, int *old, int new)
- {
--	kasan_check_write(v, sizeof(*v));
--	kasan_check_write(old, sizeof(*old));
-+	__atomic_check_write(v, sizeof(*v));
-+	__atomic_check_write(old, sizeof(*old));
- 	return arch_atomic_try_cmpxchg_release(v, old, new);
- }
- #define atomic_try_cmpxchg_release atomic_try_cmpxchg_release
-@@ -723,8 +733,8 @@ atomic_try_cmpxchg_release(atomic_t *v,
- static inline bool
- atomic_try_cmpxchg_relaxed(atomic_t *v, int *old, int new)
- {
--	kasan_check_write(v, sizeof(*v));
--	kasan_check_write(old, sizeof(*old));
-+	__atomic_check_write(v, sizeof(*v));
-+	__atomic_check_write(old, sizeof(*old));
- 	return arch_atomic_try_cmpxchg_relaxed(v, old, new);
- }
- #define atomic_try_cmpxchg_relaxed atomic_try_cmpxchg_relaxed
-@@ -734,7 +744,7 @@ atomic_try_cmpxchg_relaxed(atomic_t *v,
- static inline bool
- atomic_sub_and_test(int i, atomic_t *v)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	return arch_atomic_sub_and_test(i, v);
- }
- #define atomic_sub_and_test atomic_sub_and_test
-@@ -744,7 +754,7 @@ atomic_sub_and_test(int i, atomic_t *v)
- static inline bool
- atomic_dec_and_test(atomic_t *v)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	return arch_atomic_dec_and_test(v);
- }
- #define atomic_dec_and_test atomic_dec_and_test
-@@ -754,7 +764,7 @@ atomic_dec_and_test(atomic_t *v)
- static inline bool
- atomic_inc_and_test(atomic_t *v)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	return arch_atomic_inc_and_test(v);
- }
- #define atomic_inc_and_test atomic_inc_and_test
-@@ -764,7 +774,7 @@ atomic_inc_and_test(atomic_t *v)
- static inline bool
- atomic_add_negative(int i, atomic_t *v)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	return arch_atomic_add_negative(i, v);
- }
- #define atomic_add_negative atomic_add_negative
-@@ -774,7 +784,7 @@ atomic_add_negative(int i, atomic_t *v)
- static inline int
- atomic_fetch_add_unless(atomic_t *v, int a, int u)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	return arch_atomic_fetch_add_unless(v, a, u);
- }
- #define atomic_fetch_add_unless atomic_fetch_add_unless
-@@ -784,7 +794,7 @@ atomic_fetch_add_unless(atomic_t *v, int
- static inline bool
- atomic_add_unless(atomic_t *v, int a, int u)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	return arch_atomic_add_unless(v, a, u);
- }
- #define atomic_add_unless atomic_add_unless
-@@ -794,7 +804,7 @@ atomic_add_unless(atomic_t *v, int a, in
- static inline bool
- atomic_inc_not_zero(atomic_t *v)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	return arch_atomic_inc_not_zero(v);
- }
- #define atomic_inc_not_zero atomic_inc_not_zero
-@@ -804,7 +814,7 @@ atomic_inc_not_zero(atomic_t *v)
- static inline bool
- atomic_inc_unless_negative(atomic_t *v)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	return arch_atomic_inc_unless_negative(v);
- }
- #define atomic_inc_unless_negative atomic_inc_unless_negative
-@@ -814,7 +824,7 @@ atomic_inc_unless_negative(atomic_t *v)
- static inline bool
- atomic_dec_unless_positive(atomic_t *v)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	return arch_atomic_dec_unless_positive(v);
- }
- #define atomic_dec_unless_positive atomic_dec_unless_positive
-@@ -824,7 +834,7 @@ atomic_dec_unless_positive(atomic_t *v)
- static inline int
- atomic_dec_if_positive(atomic_t *v)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	return arch_atomic_dec_if_positive(v);
- }
- #define atomic_dec_if_positive atomic_dec_if_positive
-@@ -833,7 +843,7 @@ atomic_dec_if_positive(atomic_t *v)
- static inline s64
- atomic64_read(const atomic64_t *v)
- {
--	kasan_check_read(v, sizeof(*v));
-+	__atomic_check_read(v, sizeof(*v));
- 	return arch_atomic64_read(v);
- }
- #define atomic64_read atomic64_read
-@@ -842,7 +852,7 @@ atomic64_read(const atomic64_t *v)
- static inline s64
- atomic64_read_acquire(const atomic64_t *v)
- {
--	kasan_check_read(v, sizeof(*v));
-+	__atomic_check_read(v, sizeof(*v));
- 	return arch_atomic64_read_acquire(v);
- }
- #define atomic64_read_acquire atomic64_read_acquire
-@@ -851,7 +861,7 @@ atomic64_read_acquire(const atomic64_t *
- static inline void
- atomic64_set(atomic64_t *v, s64 i)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	arch_atomic64_set(v, i);
- }
- #define atomic64_set atomic64_set
-@@ -860,7 +870,7 @@ atomic64_set(atomic64_t *v, s64 i)
- static inline void
- atomic64_set_release(atomic64_t *v, s64 i)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	arch_atomic64_set_release(v, i);
- }
- #define atomic64_set_release atomic64_set_release
-@@ -869,7 +879,7 @@ atomic64_set_release(atomic64_t *v, s64
- static inline void
- atomic64_add(s64 i, atomic64_t *v)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	arch_atomic64_add(i, v);
- }
- #define atomic64_add atomic64_add
-@@ -878,7 +888,7 @@ atomic64_add(s64 i, atomic64_t *v)
- static inline s64
- atomic64_add_return(s64 i, atomic64_t *v)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	return arch_atomic64_add_return(i, v);
- }
- #define atomic64_add_return atomic64_add_return
-@@ -888,7 +898,7 @@ atomic64_add_return(s64 i, atomic64_t *v
- static inline s64
- atomic64_add_return_acquire(s64 i, atomic64_t *v)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	return arch_atomic64_add_return_acquire(i, v);
- }
- #define atomic64_add_return_acquire atomic64_add_return_acquire
-@@ -898,7 +908,7 @@ atomic64_add_return_acquire(s64 i, atomi
- static inline s64
- atomic64_add_return_release(s64 i, atomic64_t *v)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	return arch_atomic64_add_return_release(i, v);
- }
- #define atomic64_add_return_release atomic64_add_return_release
-@@ -908,7 +918,7 @@ atomic64_add_return_release(s64 i, atomi
- static inline s64
- atomic64_add_return_relaxed(s64 i, atomic64_t *v)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	return arch_atomic64_add_return_relaxed(i, v);
- }
- #define atomic64_add_return_relaxed atomic64_add_return_relaxed
-@@ -918,7 +928,7 @@ atomic64_add_return_relaxed(s64 i, atomi
- static inline s64
- atomic64_fetch_add(s64 i, atomic64_t *v)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	return arch_atomic64_fetch_add(i, v);
- }
- #define atomic64_fetch_add atomic64_fetch_add
-@@ -928,7 +938,7 @@ atomic64_fetch_add(s64 i, atomic64_t *v)
- static inline s64
- atomic64_fetch_add_acquire(s64 i, atomic64_t *v)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	return arch_atomic64_fetch_add_acquire(i, v);
- }
- #define atomic64_fetch_add_acquire atomic64_fetch_add_acquire
-@@ -938,7 +948,7 @@ atomic64_fetch_add_acquire(s64 i, atomic
- static inline s64
- atomic64_fetch_add_release(s64 i, atomic64_t *v)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	return arch_atomic64_fetch_add_release(i, v);
- }
- #define atomic64_fetch_add_release atomic64_fetch_add_release
-@@ -948,7 +958,7 @@ atomic64_fetch_add_release(s64 i, atomic
- static inline s64
- atomic64_fetch_add_relaxed(s64 i, atomic64_t *v)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	return arch_atomic64_fetch_add_relaxed(i, v);
- }
- #define atomic64_fetch_add_relaxed atomic64_fetch_add_relaxed
-@@ -957,7 +967,7 @@ atomic64_fetch_add_relaxed(s64 i, atomic
- static inline void
- atomic64_sub(s64 i, atomic64_t *v)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	arch_atomic64_sub(i, v);
- }
- #define atomic64_sub atomic64_sub
-@@ -966,7 +976,7 @@ atomic64_sub(s64 i, atomic64_t *v)
- static inline s64
- atomic64_sub_return(s64 i, atomic64_t *v)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	return arch_atomic64_sub_return(i, v);
- }
- #define atomic64_sub_return atomic64_sub_return
-@@ -976,7 +986,7 @@ atomic64_sub_return(s64 i, atomic64_t *v
- static inline s64
- atomic64_sub_return_acquire(s64 i, atomic64_t *v)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	return arch_atomic64_sub_return_acquire(i, v);
- }
- #define atomic64_sub_return_acquire atomic64_sub_return_acquire
-@@ -986,7 +996,7 @@ atomic64_sub_return_acquire(s64 i, atomi
- static inline s64
- atomic64_sub_return_release(s64 i, atomic64_t *v)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	return arch_atomic64_sub_return_release(i, v);
- }
- #define atomic64_sub_return_release atomic64_sub_return_release
-@@ -996,7 +1006,7 @@ atomic64_sub_return_release(s64 i, atomi
- static inline s64
- atomic64_sub_return_relaxed(s64 i, atomic64_t *v)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	return arch_atomic64_sub_return_relaxed(i, v);
- }
- #define atomic64_sub_return_relaxed atomic64_sub_return_relaxed
-@@ -1006,7 +1016,7 @@ atomic64_sub_return_relaxed(s64 i, atomi
- static inline s64
- atomic64_fetch_sub(s64 i, atomic64_t *v)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	return arch_atomic64_fetch_sub(i, v);
- }
- #define atomic64_fetch_sub atomic64_fetch_sub
-@@ -1016,7 +1026,7 @@ atomic64_fetch_sub(s64 i, atomic64_t *v)
- static inline s64
- atomic64_fetch_sub_acquire(s64 i, atomic64_t *v)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	return arch_atomic64_fetch_sub_acquire(i, v);
- }
- #define atomic64_fetch_sub_acquire atomic64_fetch_sub_acquire
-@@ -1026,7 +1036,7 @@ atomic64_fetch_sub_acquire(s64 i, atomic
- static inline s64
- atomic64_fetch_sub_release(s64 i, atomic64_t *v)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	return arch_atomic64_fetch_sub_release(i, v);
- }
- #define atomic64_fetch_sub_release atomic64_fetch_sub_release
-@@ -1036,7 +1046,7 @@ atomic64_fetch_sub_release(s64 i, atomic
- static inline s64
- atomic64_fetch_sub_relaxed(s64 i, atomic64_t *v)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	return arch_atomic64_fetch_sub_relaxed(i, v);
- }
- #define atomic64_fetch_sub_relaxed atomic64_fetch_sub_relaxed
-@@ -1046,7 +1056,7 @@ atomic64_fetch_sub_relaxed(s64 i, atomic
- static inline void
- atomic64_inc(atomic64_t *v)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	arch_atomic64_inc(v);
- }
- #define atomic64_inc atomic64_inc
-@@ -1056,7 +1066,7 @@ atomic64_inc(atomic64_t *v)
- static inline s64
- atomic64_inc_return(atomic64_t *v)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	return arch_atomic64_inc_return(v);
- }
- #define atomic64_inc_return atomic64_inc_return
-@@ -1066,7 +1076,7 @@ atomic64_inc_return(atomic64_t *v)
- static inline s64
- atomic64_inc_return_acquire(atomic64_t *v)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	return arch_atomic64_inc_return_acquire(v);
- }
- #define atomic64_inc_return_acquire atomic64_inc_return_acquire
-@@ -1076,7 +1086,7 @@ atomic64_inc_return_acquire(atomic64_t *
- static inline s64
- atomic64_inc_return_release(atomic64_t *v)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	return arch_atomic64_inc_return_release(v);
- }
- #define atomic64_inc_return_release atomic64_inc_return_release
-@@ -1086,7 +1096,7 @@ atomic64_inc_return_release(atomic64_t *
- static inline s64
- atomic64_inc_return_relaxed(atomic64_t *v)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	return arch_atomic64_inc_return_relaxed(v);
- }
- #define atomic64_inc_return_relaxed atomic64_inc_return_relaxed
-@@ -1096,7 +1106,7 @@ atomic64_inc_return_relaxed(atomic64_t *
- static inline s64
- atomic64_fetch_inc(atomic64_t *v)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	return arch_atomic64_fetch_inc(v);
- }
- #define atomic64_fetch_inc atomic64_fetch_inc
-@@ -1106,7 +1116,7 @@ atomic64_fetch_inc(atomic64_t *v)
- static inline s64
- atomic64_fetch_inc_acquire(atomic64_t *v)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	return arch_atomic64_fetch_inc_acquire(v);
- }
- #define atomic64_fetch_inc_acquire atomic64_fetch_inc_acquire
-@@ -1116,7 +1126,7 @@ atomic64_fetch_inc_acquire(atomic64_t *v
- static inline s64
- atomic64_fetch_inc_release(atomic64_t *v)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	return arch_atomic64_fetch_inc_release(v);
- }
- #define atomic64_fetch_inc_release atomic64_fetch_inc_release
-@@ -1126,7 +1136,7 @@ atomic64_fetch_inc_release(atomic64_t *v
- static inline s64
- atomic64_fetch_inc_relaxed(atomic64_t *v)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	return arch_atomic64_fetch_inc_relaxed(v);
- }
- #define atomic64_fetch_inc_relaxed atomic64_fetch_inc_relaxed
-@@ -1136,7 +1146,7 @@ atomic64_fetch_inc_relaxed(atomic64_t *v
- static inline void
- atomic64_dec(atomic64_t *v)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	arch_atomic64_dec(v);
- }
- #define atomic64_dec atomic64_dec
-@@ -1146,7 +1156,7 @@ atomic64_dec(atomic64_t *v)
- static inline s64
- atomic64_dec_return(atomic64_t *v)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	return arch_atomic64_dec_return(v);
- }
- #define atomic64_dec_return atomic64_dec_return
-@@ -1156,7 +1166,7 @@ atomic64_dec_return(atomic64_t *v)
- static inline s64
- atomic64_dec_return_acquire(atomic64_t *v)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	return arch_atomic64_dec_return_acquire(v);
- }
- #define atomic64_dec_return_acquire atomic64_dec_return_acquire
-@@ -1166,7 +1176,7 @@ atomic64_dec_return_acquire(atomic64_t *
- static inline s64
- atomic64_dec_return_release(atomic64_t *v)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	return arch_atomic64_dec_return_release(v);
- }
- #define atomic64_dec_return_release atomic64_dec_return_release
-@@ -1176,7 +1186,7 @@ atomic64_dec_return_release(atomic64_t *
- static inline s64
- atomic64_dec_return_relaxed(atomic64_t *v)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	return arch_atomic64_dec_return_relaxed(v);
- }
- #define atomic64_dec_return_relaxed atomic64_dec_return_relaxed
-@@ -1186,7 +1196,7 @@ atomic64_dec_return_relaxed(atomic64_t *
- static inline s64
- atomic64_fetch_dec(atomic64_t *v)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	return arch_atomic64_fetch_dec(v);
- }
- #define atomic64_fetch_dec atomic64_fetch_dec
-@@ -1196,7 +1206,7 @@ atomic64_fetch_dec(atomic64_t *v)
- static inline s64
- atomic64_fetch_dec_acquire(atomic64_t *v)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	return arch_atomic64_fetch_dec_acquire(v);
- }
- #define atomic64_fetch_dec_acquire atomic64_fetch_dec_acquire
-@@ -1206,7 +1216,7 @@ atomic64_fetch_dec_acquire(atomic64_t *v
- static inline s64
- atomic64_fetch_dec_release(atomic64_t *v)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	return arch_atomic64_fetch_dec_release(v);
- }
- #define atomic64_fetch_dec_release atomic64_fetch_dec_release
-@@ -1216,7 +1226,7 @@ atomic64_fetch_dec_release(atomic64_t *v
- static inline s64
- atomic64_fetch_dec_relaxed(atomic64_t *v)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	return arch_atomic64_fetch_dec_relaxed(v);
- }
- #define atomic64_fetch_dec_relaxed atomic64_fetch_dec_relaxed
-@@ -1225,7 +1235,7 @@ atomic64_fetch_dec_relaxed(atomic64_t *v
- static inline void
- atomic64_and(s64 i, atomic64_t *v)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	arch_atomic64_and(i, v);
- }
- #define atomic64_and atomic64_and
-@@ -1234,7 +1244,7 @@ atomic64_and(s64 i, atomic64_t *v)
- static inline s64
- atomic64_fetch_and(s64 i, atomic64_t *v)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	return arch_atomic64_fetch_and(i, v);
- }
- #define atomic64_fetch_and atomic64_fetch_and
-@@ -1244,7 +1254,7 @@ atomic64_fetch_and(s64 i, atomic64_t *v)
- static inline s64
- atomic64_fetch_and_acquire(s64 i, atomic64_t *v)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	return arch_atomic64_fetch_and_acquire(i, v);
- }
- #define atomic64_fetch_and_acquire atomic64_fetch_and_acquire
-@@ -1254,7 +1264,7 @@ atomic64_fetch_and_acquire(s64 i, atomic
- static inline s64
- atomic64_fetch_and_release(s64 i, atomic64_t *v)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	return arch_atomic64_fetch_and_release(i, v);
- }
- #define atomic64_fetch_and_release atomic64_fetch_and_release
-@@ -1264,7 +1274,7 @@ atomic64_fetch_and_release(s64 i, atomic
- static inline s64
- atomic64_fetch_and_relaxed(s64 i, atomic64_t *v)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	return arch_atomic64_fetch_and_relaxed(i, v);
- }
- #define atomic64_fetch_and_relaxed atomic64_fetch_and_relaxed
-@@ -1274,7 +1284,7 @@ atomic64_fetch_and_relaxed(s64 i, atomic
- static inline void
- atomic64_andnot(s64 i, atomic64_t *v)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	arch_atomic64_andnot(i, v);
- }
- #define atomic64_andnot atomic64_andnot
-@@ -1284,7 +1294,7 @@ atomic64_andnot(s64 i, atomic64_t *v)
- static inline s64
- atomic64_fetch_andnot(s64 i, atomic64_t *v)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	return arch_atomic64_fetch_andnot(i, v);
- }
- #define atomic64_fetch_andnot atomic64_fetch_andnot
-@@ -1294,7 +1304,7 @@ atomic64_fetch_andnot(s64 i, atomic64_t
- static inline s64
- atomic64_fetch_andnot_acquire(s64 i, atomic64_t *v)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	return arch_atomic64_fetch_andnot_acquire(i, v);
- }
- #define atomic64_fetch_andnot_acquire atomic64_fetch_andnot_acquire
-@@ -1304,7 +1314,7 @@ atomic64_fetch_andnot_acquire(s64 i, ato
- static inline s64
- atomic64_fetch_andnot_release(s64 i, atomic64_t *v)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	return arch_atomic64_fetch_andnot_release(i, v);
- }
- #define atomic64_fetch_andnot_release atomic64_fetch_andnot_release
-@@ -1314,7 +1324,7 @@ atomic64_fetch_andnot_release(s64 i, ato
- static inline s64
- atomic64_fetch_andnot_relaxed(s64 i, atomic64_t *v)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	return arch_atomic64_fetch_andnot_relaxed(i, v);
- }
- #define atomic64_fetch_andnot_relaxed atomic64_fetch_andnot_relaxed
-@@ -1323,7 +1333,7 @@ atomic64_fetch_andnot_relaxed(s64 i, ato
- static inline void
- atomic64_or(s64 i, atomic64_t *v)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	arch_atomic64_or(i, v);
- }
- #define atomic64_or atomic64_or
-@@ -1332,7 +1342,7 @@ atomic64_or(s64 i, atomic64_t *v)
- static inline s64
- atomic64_fetch_or(s64 i, atomic64_t *v)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	return arch_atomic64_fetch_or(i, v);
- }
- #define atomic64_fetch_or atomic64_fetch_or
-@@ -1342,7 +1352,7 @@ atomic64_fetch_or(s64 i, atomic64_t *v)
- static inline s64
- atomic64_fetch_or_acquire(s64 i, atomic64_t *v)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	return arch_atomic64_fetch_or_acquire(i, v);
- }
- #define atomic64_fetch_or_acquire atomic64_fetch_or_acquire
-@@ -1352,7 +1362,7 @@ atomic64_fetch_or_acquire(s64 i, atomic6
- static inline s64
- atomic64_fetch_or_release(s64 i, atomic64_t *v)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	return arch_atomic64_fetch_or_release(i, v);
- }
- #define atomic64_fetch_or_release atomic64_fetch_or_release
-@@ -1362,7 +1372,7 @@ atomic64_fetch_or_release(s64 i, atomic6
- static inline s64
- atomic64_fetch_or_relaxed(s64 i, atomic64_t *v)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	return arch_atomic64_fetch_or_relaxed(i, v);
- }
- #define atomic64_fetch_or_relaxed atomic64_fetch_or_relaxed
-@@ -1371,7 +1381,7 @@ atomic64_fetch_or_relaxed(s64 i, atomic6
- static inline void
- atomic64_xor(s64 i, atomic64_t *v)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	arch_atomic64_xor(i, v);
- }
- #define atomic64_xor atomic64_xor
-@@ -1380,7 +1390,7 @@ atomic64_xor(s64 i, atomic64_t *v)
- static inline s64
- atomic64_fetch_xor(s64 i, atomic64_t *v)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	return arch_atomic64_fetch_xor(i, v);
- }
- #define atomic64_fetch_xor atomic64_fetch_xor
-@@ -1390,7 +1400,7 @@ atomic64_fetch_xor(s64 i, atomic64_t *v)
- static inline s64
- atomic64_fetch_xor_acquire(s64 i, atomic64_t *v)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	return arch_atomic64_fetch_xor_acquire(i, v);
- }
- #define atomic64_fetch_xor_acquire atomic64_fetch_xor_acquire
-@@ -1400,7 +1410,7 @@ atomic64_fetch_xor_acquire(s64 i, atomic
- static inline s64
- atomic64_fetch_xor_release(s64 i, atomic64_t *v)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	return arch_atomic64_fetch_xor_release(i, v);
- }
- #define atomic64_fetch_xor_release atomic64_fetch_xor_release
-@@ -1410,7 +1420,7 @@ atomic64_fetch_xor_release(s64 i, atomic
- static inline s64
- atomic64_fetch_xor_relaxed(s64 i, atomic64_t *v)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	return arch_atomic64_fetch_xor_relaxed(i, v);
- }
- #define atomic64_fetch_xor_relaxed atomic64_fetch_xor_relaxed
-@@ -1420,7 +1430,7 @@ atomic64_fetch_xor_relaxed(s64 i, atomic
- static inline s64
- atomic64_xchg(atomic64_t *v, s64 i)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	return arch_atomic64_xchg(v, i);
- }
- #define atomic64_xchg atomic64_xchg
-@@ -1430,7 +1440,7 @@ atomic64_xchg(atomic64_t *v, s64 i)
- static inline s64
- atomic64_xchg_acquire(atomic64_t *v, s64 i)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	return arch_atomic64_xchg_acquire(v, i);
- }
- #define atomic64_xchg_acquire atomic64_xchg_acquire
-@@ -1440,7 +1450,7 @@ atomic64_xchg_acquire(atomic64_t *v, s64
- static inline s64
- atomic64_xchg_release(atomic64_t *v, s64 i)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	return arch_atomic64_xchg_release(v, i);
- }
- #define atomic64_xchg_release atomic64_xchg_release
-@@ -1450,7 +1460,7 @@ atomic64_xchg_release(atomic64_t *v, s64
- static inline s64
- atomic64_xchg_relaxed(atomic64_t *v, s64 i)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	return arch_atomic64_xchg_relaxed(v, i);
- }
- #define atomic64_xchg_relaxed atomic64_xchg_relaxed
-@@ -1460,7 +1470,7 @@ atomic64_xchg_relaxed(atomic64_t *v, s64
- static inline s64
- atomic64_cmpxchg(atomic64_t *v, s64 old, s64 new)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	return arch_atomic64_cmpxchg(v, old, new);
- }
- #define atomic64_cmpxchg atomic64_cmpxchg
-@@ -1470,7 +1480,7 @@ atomic64_cmpxchg(atomic64_t *v, s64 old,
- static inline s64
- atomic64_cmpxchg_acquire(atomic64_t *v, s64 old, s64 new)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	return arch_atomic64_cmpxchg_acquire(v, old, new);
- }
- #define atomic64_cmpxchg_acquire atomic64_cmpxchg_acquire
-@@ -1480,7 +1490,7 @@ atomic64_cmpxchg_acquire(atomic64_t *v,
- static inline s64
- atomic64_cmpxchg_release(atomic64_t *v, s64 old, s64 new)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	return arch_atomic64_cmpxchg_release(v, old, new);
- }
- #define atomic64_cmpxchg_release atomic64_cmpxchg_release
-@@ -1490,7 +1500,7 @@ atomic64_cmpxchg_release(atomic64_t *v,
- static inline s64
- atomic64_cmpxchg_relaxed(atomic64_t *v, s64 old, s64 new)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	return arch_atomic64_cmpxchg_relaxed(v, old, new);
- }
- #define atomic64_cmpxchg_relaxed atomic64_cmpxchg_relaxed
-@@ -1500,8 +1510,8 @@ atomic64_cmpxchg_relaxed(atomic64_t *v,
- static inline bool
- atomic64_try_cmpxchg(atomic64_t *v, s64 *old, s64 new)
- {
--	kasan_check_write(v, sizeof(*v));
--	kasan_check_write(old, sizeof(*old));
-+	__atomic_check_write(v, sizeof(*v));
-+	__atomic_check_write(old, sizeof(*old));
- 	return arch_atomic64_try_cmpxchg(v, old, new);
- }
- #define atomic64_try_cmpxchg atomic64_try_cmpxchg
-@@ -1511,8 +1521,8 @@ atomic64_try_cmpxchg(atomic64_t *v, s64
- static inline bool
- atomic64_try_cmpxchg_acquire(atomic64_t *v, s64 *old, s64 new)
- {
--	kasan_check_write(v, sizeof(*v));
--	kasan_check_write(old, sizeof(*old));
-+	__atomic_check_write(v, sizeof(*v));
-+	__atomic_check_write(old, sizeof(*old));
- 	return arch_atomic64_try_cmpxchg_acquire(v, old, new);
- }
- #define atomic64_try_cmpxchg_acquire atomic64_try_cmpxchg_acquire
-@@ -1522,8 +1532,8 @@ atomic64_try_cmpxchg_acquire(atomic64_t
- static inline bool
- atomic64_try_cmpxchg_release(atomic64_t *v, s64 *old, s64 new)
- {
--	kasan_check_write(v, sizeof(*v));
--	kasan_check_write(old, sizeof(*old));
-+	__atomic_check_write(v, sizeof(*v));
-+	__atomic_check_write(old, sizeof(*old));
- 	return arch_atomic64_try_cmpxchg_release(v, old, new);
- }
- #define atomic64_try_cmpxchg_release atomic64_try_cmpxchg_release
-@@ -1533,8 +1543,8 @@ atomic64_try_cmpxchg_release(atomic64_t
- static inline bool
- atomic64_try_cmpxchg_relaxed(atomic64_t *v, s64 *old, s64 new)
- {
--	kasan_check_write(v, sizeof(*v));
--	kasan_check_write(old, sizeof(*old));
-+	__atomic_check_write(v, sizeof(*v));
-+	__atomic_check_write(old, sizeof(*old));
- 	return arch_atomic64_try_cmpxchg_relaxed(v, old, new);
- }
- #define atomic64_try_cmpxchg_relaxed atomic64_try_cmpxchg_relaxed
-@@ -1544,7 +1554,7 @@ atomic64_try_cmpxchg_relaxed(atomic64_t
- static inline bool
- atomic64_sub_and_test(s64 i, atomic64_t *v)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	return arch_atomic64_sub_and_test(i, v);
- }
- #define atomic64_sub_and_test atomic64_sub_and_test
-@@ -1554,7 +1564,7 @@ atomic64_sub_and_test(s64 i, atomic64_t
- static inline bool
- atomic64_dec_and_test(atomic64_t *v)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	return arch_atomic64_dec_and_test(v);
- }
- #define atomic64_dec_and_test atomic64_dec_and_test
-@@ -1564,7 +1574,7 @@ atomic64_dec_and_test(atomic64_t *v)
- static inline bool
- atomic64_inc_and_test(atomic64_t *v)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	return arch_atomic64_inc_and_test(v);
- }
- #define atomic64_inc_and_test atomic64_inc_and_test
-@@ -1574,7 +1584,7 @@ atomic64_inc_and_test(atomic64_t *v)
- static inline bool
- atomic64_add_negative(s64 i, atomic64_t *v)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	return arch_atomic64_add_negative(i, v);
- }
- #define atomic64_add_negative atomic64_add_negative
-@@ -1584,7 +1594,7 @@ atomic64_add_negative(s64 i, atomic64_t
- static inline s64
- atomic64_fetch_add_unless(atomic64_t *v, s64 a, s64 u)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	return arch_atomic64_fetch_add_unless(v, a, u);
- }
- #define atomic64_fetch_add_unless atomic64_fetch_add_unless
-@@ -1594,7 +1604,7 @@ atomic64_fetch_add_unless(atomic64_t *v,
- static inline bool
- atomic64_add_unless(atomic64_t *v, s64 a, s64 u)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	return arch_atomic64_add_unless(v, a, u);
- }
- #define atomic64_add_unless atomic64_add_unless
-@@ -1604,7 +1614,7 @@ atomic64_add_unless(atomic64_t *v, s64 a
- static inline bool
- atomic64_inc_not_zero(atomic64_t *v)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	return arch_atomic64_inc_not_zero(v);
- }
- #define atomic64_inc_not_zero atomic64_inc_not_zero
-@@ -1614,7 +1624,7 @@ atomic64_inc_not_zero(atomic64_t *v)
- static inline bool
- atomic64_inc_unless_negative(atomic64_t *v)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	return arch_atomic64_inc_unless_negative(v);
- }
- #define atomic64_inc_unless_negative atomic64_inc_unless_negative
-@@ -1624,7 +1634,7 @@ atomic64_inc_unless_negative(atomic64_t
- static inline bool
- atomic64_dec_unless_positive(atomic64_t *v)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	return arch_atomic64_dec_unless_positive(v);
- }
- #define atomic64_dec_unless_positive atomic64_dec_unless_positive
-@@ -1634,7 +1644,7 @@ atomic64_dec_unless_positive(atomic64_t
- static inline s64
- atomic64_dec_if_positive(atomic64_t *v)
- {
--	kasan_check_write(v, sizeof(*v));
-+	__atomic_check_write(v, sizeof(*v));
- 	return arch_atomic64_dec_if_positive(v);
- }
- #define atomic64_dec_if_positive atomic64_dec_if_positive
-@@ -1644,7 +1654,7 @@ atomic64_dec_if_positive(atomic64_t *v)
- #define xchg(ptr, ...)						\
- ({									\
- 	typeof(ptr) __ai_ptr = (ptr);					\
--	kasan_check_write(__ai_ptr, sizeof(*__ai_ptr));		\
-+	__atomic_check_write(__ai_ptr, sizeof(*__ai_ptr));		\
- 	arch_xchg(__ai_ptr, __VA_ARGS__);				\
- })
- #endif
-@@ -1653,7 +1663,7 @@ atomic64_dec_if_positive(atomic64_t *v)
- #define xchg_acquire(ptr, ...)						\
- ({									\
- 	typeof(ptr) __ai_ptr = (ptr);					\
--	kasan_check_write(__ai_ptr, sizeof(*__ai_ptr));		\
-+	__atomic_check_write(__ai_ptr, sizeof(*__ai_ptr));		\
- 	arch_xchg_acquire(__ai_ptr, __VA_ARGS__);				\
- })
- #endif
-@@ -1662,7 +1672,7 @@ atomic64_dec_if_positive(atomic64_t *v)
- #define xchg_release(ptr, ...)						\
- ({									\
- 	typeof(ptr) __ai_ptr = (ptr);					\
--	kasan_check_write(__ai_ptr, sizeof(*__ai_ptr));		\
-+	__atomic_check_write(__ai_ptr, sizeof(*__ai_ptr));		\
- 	arch_xchg_release(__ai_ptr, __VA_ARGS__);				\
- })
- #endif
-@@ -1671,7 +1681,7 @@ atomic64_dec_if_positive(atomic64_t *v)
- #define xchg_relaxed(ptr, ...)						\
- ({									\
- 	typeof(ptr) __ai_ptr = (ptr);					\
--	kasan_check_write(__ai_ptr, sizeof(*__ai_ptr));		\
-+	__atomic_check_write(__ai_ptr, sizeof(*__ai_ptr));		\
- 	arch_xchg_relaxed(__ai_ptr, __VA_ARGS__);				\
- })
- #endif
-@@ -1680,7 +1690,7 @@ atomic64_dec_if_positive(atomic64_t *v)
- #define cmpxchg(ptr, ...)						\
- ({									\
- 	typeof(ptr) __ai_ptr = (ptr);					\
--	kasan_check_write(__ai_ptr, sizeof(*__ai_ptr));		\
-+	__atomic_check_write(__ai_ptr, sizeof(*__ai_ptr));		\
- 	arch_cmpxchg(__ai_ptr, __VA_ARGS__);				\
- })
- #endif
-@@ -1689,7 +1699,7 @@ atomic64_dec_if_positive(atomic64_t *v)
- #define cmpxchg_acquire(ptr, ...)						\
- ({									\
- 	typeof(ptr) __ai_ptr = (ptr);					\
--	kasan_check_write(__ai_ptr, sizeof(*__ai_ptr));		\
-+	__atomic_check_write(__ai_ptr, sizeof(*__ai_ptr));		\
- 	arch_cmpxchg_acquire(__ai_ptr, __VA_ARGS__);				\
- })
- #endif
-@@ -1698,7 +1708,7 @@ atomic64_dec_if_positive(atomic64_t *v)
- #define cmpxchg_release(ptr, ...)						\
- ({									\
- 	typeof(ptr) __ai_ptr = (ptr);					\
--	kasan_check_write(__ai_ptr, sizeof(*__ai_ptr));		\
-+	__atomic_check_write(__ai_ptr, sizeof(*__ai_ptr));		\
- 	arch_cmpxchg_release(__ai_ptr, __VA_ARGS__);				\
- })
- #endif
-@@ -1707,7 +1717,7 @@ atomic64_dec_if_positive(atomic64_t *v)
- #define cmpxchg_relaxed(ptr, ...)						\
- ({									\
- 	typeof(ptr) __ai_ptr = (ptr);					\
--	kasan_check_write(__ai_ptr, sizeof(*__ai_ptr));		\
-+	__atomic_check_write(__ai_ptr, sizeof(*__ai_ptr));		\
- 	arch_cmpxchg_relaxed(__ai_ptr, __VA_ARGS__);				\
- })
- #endif
-@@ -1716,7 +1726,7 @@ atomic64_dec_if_positive(atomic64_t *v)
- #define cmpxchg64(ptr, ...)						\
- ({									\
- 	typeof(ptr) __ai_ptr = (ptr);					\
--	kasan_check_write(__ai_ptr, sizeof(*__ai_ptr));		\
-+	__atomic_check_write(__ai_ptr, sizeof(*__ai_ptr));		\
- 	arch_cmpxchg64(__ai_ptr, __VA_ARGS__);				\
- })
- #endif
-@@ -1725,7 +1735,7 @@ atomic64_dec_if_positive(atomic64_t *v)
- #define cmpxchg64_acquire(ptr, ...)						\
- ({									\
- 	typeof(ptr) __ai_ptr = (ptr);					\
--	kasan_check_write(__ai_ptr, sizeof(*__ai_ptr));		\
-+	__atomic_check_write(__ai_ptr, sizeof(*__ai_ptr));		\
- 	arch_cmpxchg64_acquire(__ai_ptr, __VA_ARGS__);				\
- })
- #endif
-@@ -1734,7 +1744,7 @@ atomic64_dec_if_positive(atomic64_t *v)
- #define cmpxchg64_release(ptr, ...)						\
- ({									\
- 	typeof(ptr) __ai_ptr = (ptr);					\
--	kasan_check_write(__ai_ptr, sizeof(*__ai_ptr));		\
-+	__atomic_check_write(__ai_ptr, sizeof(*__ai_ptr));		\
- 	arch_cmpxchg64_release(__ai_ptr, __VA_ARGS__);				\
- })
- #endif
-@@ -1743,7 +1753,7 @@ atomic64_dec_if_positive(atomic64_t *v)
- #define cmpxchg64_relaxed(ptr, ...)						\
- ({									\
- 	typeof(ptr) __ai_ptr = (ptr);					\
--	kasan_check_write(__ai_ptr, sizeof(*__ai_ptr));		\
-+	__atomic_check_write(__ai_ptr, sizeof(*__ai_ptr));		\
- 	arch_cmpxchg64_relaxed(__ai_ptr, __VA_ARGS__);				\
- })
- #endif
-@@ -1751,28 +1761,28 @@ atomic64_dec_if_positive(atomic64_t *v)
- #define cmpxchg_local(ptr, ...)						\
- ({									\
- 	typeof(ptr) __ai_ptr = (ptr);					\
--	kasan_check_write(__ai_ptr, sizeof(*__ai_ptr));		\
-+	__atomic_check_write(__ai_ptr, sizeof(*__ai_ptr));		\
- 	arch_cmpxchg_local(__ai_ptr, __VA_ARGS__);				\
- })
- 
- #define cmpxchg64_local(ptr, ...)						\
- ({									\
- 	typeof(ptr) __ai_ptr = (ptr);					\
--	kasan_check_write(__ai_ptr, sizeof(*__ai_ptr));		\
-+	__atomic_check_write(__ai_ptr, sizeof(*__ai_ptr));		\
- 	arch_cmpxchg64_local(__ai_ptr, __VA_ARGS__);				\
- })
- 
- #define sync_cmpxchg(ptr, ...)						\
- ({									\
- 	typeof(ptr) __ai_ptr = (ptr);					\
--	kasan_check_write(__ai_ptr, sizeof(*__ai_ptr));		\
-+	__atomic_check_write(__ai_ptr, sizeof(*__ai_ptr));		\
- 	arch_sync_cmpxchg(__ai_ptr, __VA_ARGS__);				\
- })
- 
- #define cmpxchg_double(ptr, ...)						\
- ({									\
- 	typeof(ptr) __ai_ptr = (ptr);					\
--	kasan_check_write(__ai_ptr, 2 * sizeof(*__ai_ptr));		\
-+	__atomic_check_write(__ai_ptr, 2 * sizeof(*__ai_ptr));		\
- 	arch_cmpxchg_double(__ai_ptr, __VA_ARGS__);				\
- })
- 
-@@ -1780,9 +1790,9 @@ atomic64_dec_if_positive(atomic64_t *v)
- #define cmpxchg_double_local(ptr, ...)						\
- ({									\
- 	typeof(ptr) __ai_ptr = (ptr);					\
--	kasan_check_write(__ai_ptr, 2 * sizeof(*__ai_ptr));		\
-+	__atomic_check_write(__ai_ptr, 2 * sizeof(*__ai_ptr));		\
- 	arch_cmpxchg_double_local(__ai_ptr, __VA_ARGS__);				\
- })
- 
- #endif /* _ASM_GENERIC_ATOMIC_INSTRUMENTED_H */
--// b29b625d5de9280f680e42c7be859b55b15e5f6a
-+// aa929c117bdd954a0957b91fe509f118ca8b9707
---- a/scripts/atomic/gen-atomic-instrumented.sh
-+++ b/scripts/atomic/gen-atomic-instrumented.sh
-@@ -20,7 +20,7 @@ gen_param_check()
- 	# We don't write to constant parameters
- 	[ ${type#c} != ${type} ] && rw="read"
- 
--	printf "\tkasan_check_${rw}(${name}, sizeof(*${name}));\n"
-+	printf "\t__atomic_check_${rw}(${name}, sizeof(*${name}));\n"
- }
- 
- #gen_param_check(arg...)
-@@ -107,7 +107,7 @@ cat <<EOF
- #define ${xchg}(ptr, ...)						\\
- ({									\\
- 	typeof(ptr) __ai_ptr = (ptr);					\\
--	kasan_check_write(__ai_ptr, ${mult}sizeof(*__ai_ptr));		\\
-+	__atomic_check_write(__ai_ptr, ${mult}sizeof(*__ai_ptr));		\\
- 	arch_${xchg}(__ai_ptr, __VA_ARGS__);				\\
- })
- EOF
-@@ -149,6 +149,16 @@ cat << EOF
- #include <linux/build_bug.h>
- #include <linux/kasan-checks.h>
- 
-+static inline void __atomic_check_read(const volatile void *v, size_t size)
++/*
++ * The underlying kernel object must be held by the caller.
++ */
++static struct landlock_ruleset_elem *create_ruleset_elem(
++		struct landlock_object *object)
 +{
-+	kasan_check_read(v, size);
++	struct landlock_ruleset_elem *ruleset_elem;
++
++	ruleset_elem = kzalloc(sizeof(*ruleset_elem), GFP_KERNEL);
++	if (!ruleset_elem)
++		return ERR_PTR(-ENOMEM);
++	RB_CLEAR_NODE(&ruleset_elem->node);
++	RCU_INIT_POINTER(ruleset_elem->ref.object, object);
++	return ruleset_elem;
 +}
 +
-+static inline void __atomic_check_write(const volatile void *v, size_t size)
++static struct landlock_rule *create_rule(struct landlock_object *object,
++		struct landlock_access *access)
 +{
-+	kasan_check_write(v, size);
++	struct landlock_rule *new_rule;
++
++	if (WARN_ON_ONCE(!object))
++		return ERR_PTR(-EFAULT);
++	if (WARN_ON_ONCE(!access))
++		return ERR_PTR(-EFAULT);
++	new_rule = kzalloc(sizeof(*new_rule), GFP_KERNEL);
++	if (!new_rule)
++		return ERR_PTR(-ENOMEM);
++	refcount_set(&new_rule->usage, 1);
++	INIT_LIST_HEAD(&new_rule->list);
++	new_rule->access = *access;
++
++	spin_lock(&object->lock);
++	list_add_tail(&new_rule->list, &object->rules);
++	spin_unlock(&object->lock);
++	return new_rule;
 +}
 +
- EOF
- 
- grep '^[a-z]' "$1" | while read name meta args; do
++/*
++ * An inserted rule can not be removed, only disabled (cf. struct
++ * landlock_ruleset_elem).
++ *
++ * The underlying kernel object must be held by the caller.
++ *
++ * @rule: Allocated struct owned by this function. The caller must hold the
++ * underlying kernel object (e.g., with a FD).
++ */
++int landlock_insert_ruleset_rule(struct landlock_ruleset *ruleset,
++		struct landlock_object *object, struct landlock_access *access,
++		struct landlock_rule *rule)
++{
++	struct rb_node **new;
++	struct rb_node *parent = NULL;
++	struct landlock_ruleset_elem *ruleset_elem;
++	struct landlock_rule *new_rule;
++
++	might_sleep();
++	/* Accesses may be set when creating a new rule. */
++	if (rule) {
++		if (WARN_ON_ONCE(access))
++			return -EINVAL;
++	} else {
++		if (WARN_ON_ONCE(!access))
++			return -EFAULT;
++	}
++
++	lockdep_assert_held(&ruleset->lock);
++	new = &(ruleset->root.rb_node);
++	while (*new) {
++		struct landlock_ruleset_elem *this = rb_entry(*new,
++				struct landlock_ruleset_elem, node);
++		uintptr_t this_object;
++		struct landlock_rule *this_rule;
++		struct landlock_access new_access;
++
++		this_object = (uintptr_t)rcu_access_pointer(this->ref.object);
++		if (this_object != (uintptr_t)object) {
++			parent = *new;
++			if (this_object < (uintptr_t)object)
++				new = &((*new)->rb_right);
++			else
++				new = &((*new)->rb_left);
++			continue;
++		}
++
++		/* Do not increment ruleset->nb_rules. */
++		this_rule = rcu_dereference_protected(this->ref.rule,
++				lockdep_is_held(&ruleset->lock));
++		/*
++		 * Checks if it is a new object with the same address as a
++		 * previously disabled one.  There is no possible race
++		 * condition because an object can not be disabled/deleted
++		 * while being inserted in this tree.
++		 */
++		if (landlock_rule_is_disabled(this_rule)) {
++			if (rule) {
++				refcount_inc(&rule->usage);
++				new_rule = rule;
++			} else {
++				/* Replace the previous rule with a new one. */
++				new_rule = create_rule(object, access);
++				if (IS_ERR(new_rule))
++					return PTR_ERR(new_rule);
++			}
++			rcu_assign_pointer(this->ref.rule, new_rule);
++			landlock_put_rule(object, this_rule);
++			return 0;
++		}
++
++		/* this_rule is potentially enabled. */
++		if (refcount_read(&this_rule->usage) == 1) {
++			if (rule) {
++				/* merge rule: intersection of access rights */
++				this_rule->access.self &= rule->access.self;
++				this_rule->access.beneath &=
++					rule->access.beneath;
++			} else {
++				/* extend rule: union of access rights */
++				this_rule->access.self |= access->self;
++				this_rule->access.beneath |= access->beneath;
++			}
++			return 0;
++		}
++
++		/*
++		 * If this_rule is shared with another ruleset, then create a
++		 * new object rule.
++		 */
++		if (rule) {
++			/* Merging a rule means an intersection of access. */
++			new_access.self = this_rule->access.self &
++				rule->access.self;
++			new_access.beneath = this_rule->access.beneath &
++				rule->access.beneath;
++		} else {
++			/* Extending a rule means a union of access. */
++			new_access.self = this_rule->access.self |
++				access->self;
++			new_access.beneath = this_rule->access.self |
++				access->beneath;
++		}
++		new_rule = create_rule(object, &new_access);
++		if (IS_ERR(new_rule))
++			return PTR_ERR(new_rule);
++		rcu_assign_pointer(this->ref.rule, new_rule);
++		landlock_put_rule(object, this_rule);
++		return 0;
++	}
++
++	/* There is no match for @object. */
++	ruleset_elem = create_ruleset_elem(object);
++	if (IS_ERR(ruleset_elem))
++		return PTR_ERR(ruleset_elem);
++	if (rule) {
++		refcount_inc(&rule->usage);
++		new_rule = rule;
++	} else {
++		new_rule = create_rule(object, access);
++		if (IS_ERR(new_rule)) {
++			kfree(ruleset_elem);
++			return PTR_ERR(new_rule);
++		}
++	}
++	RCU_INIT_POINTER(ruleset_elem->ref.rule, new_rule);
++	/*
++	 * Because of the missing RCU context annotation in struct rb_node,
++	 * Sparse emits a warning when encountering rb_link_node_rcu(), but
++	 * this function call is still safe.
++	 */
++	rb_link_node_rcu(&ruleset_elem->node, parent, new);
++	rb_insert_color(&ruleset_elem->node, &ruleset->root);
++	atomic_inc(&ruleset->nb_rules);
++	return 0;
++}
++
++static int merge_ruleset(struct landlock_ruleset *dst,
++		struct landlock_ruleset *src)
++{
++	struct rb_node *node;
++	int err = 0;
++
++	might_sleep();
++	if (!src)
++		return 0;
++	if (WARN_ON_ONCE(!dst))
++		return -EFAULT;
++	if (WARN_ON_ONCE(!dst->hierarchy))
++		return -EINVAL;
++
++	mutex_lock(&dst->lock);
++	mutex_lock_nested(&src->lock, 1);
++	dst->fs_access_mask |= src->fs_access_mask;
++	for (node = rb_first(&src->root); node; node = rb_next(node)) {
++		struct landlock_ruleset_elem *elem = rb_entry(node,
++				struct landlock_ruleset_elem, node);
++		struct landlock_object *object =
++			rcu_dereference_protected(elem->ref.object,
++					lockdep_is_held(&src->lock));
++		struct landlock_rule *rule =
++			rcu_dereference_protected(elem->ref.rule,
++					lockdep_is_held(&src->lock));
++
++		err = landlock_insert_ruleset_rule(dst, object, NULL, rule);
++		if (err)
++			goto out_unlock;
++	}
++
++out_unlock:
++	mutex_unlock(&src->lock);
++	mutex_unlock(&dst->lock);
++	return err;
++}
++
++void landlock_get_ruleset(struct landlock_ruleset *ruleset)
++{
++	if (!ruleset)
++		return;
++	refcount_inc(&ruleset->usage);
++}
++
++static void put_hierarchy(struct landlock_hierarchy *hierarchy)
++{
++	if (hierarchy && refcount_dec_and_test(&hierarchy->usage))
++		kfree(hierarchy);
++}
++
++static void put_ruleset(struct landlock_ruleset *ruleset)
++{
++	struct rb_node *orig;
++
++	might_sleep();
++	for (orig = rb_first(&ruleset->root); orig; orig = rb_next(orig)) {
++		struct landlock_ruleset_elem *freeme;
++		struct landlock_object *object;
++		struct landlock_rule *rule;
++
++		freeme = rb_entry(orig, struct landlock_ruleset_elem, node);
++		object = rcu_dereference_protected(freeme->ref.object,
++				refcount_read(&ruleset->usage) == 0);
++		rule = rcu_dereference_protected(freeme->ref.rule,
++				refcount_read(&ruleset->usage) == 0);
++		landlock_put_rule(object, rule);
++		kfree_rcu(freeme, rcu_free);
++	}
++	put_hierarchy(ruleset->hierarchy);
++	kfree_rcu(ruleset, rcu_free);
++}
++
++void landlock_put_ruleset(struct landlock_ruleset *ruleset)
++{
++	might_sleep();
++	if (ruleset && refcount_dec_and_test(&ruleset->usage))
++		put_ruleset(ruleset);
++}
++
++static void put_ruleset_work(struct work_struct *work)
++{
++	struct landlock_ruleset *ruleset;
++
++	ruleset = container_of(work, struct landlock_ruleset, work_put);
++	/*
++	 * Clean up rcu_free because of previous use through union work_put.
++	 * ruleset->rcu_free.func is already NULLed by __rcu_reclaim().
++	 */
++	ruleset->rcu_free.next = NULL;
++	put_ruleset(ruleset);
++}
++
++void landlock_put_ruleset_enqueue(struct landlock_ruleset *ruleset)
++{
++	if (ruleset && refcount_dec_and_test(&ruleset->usage)) {
++		INIT_WORK(&ruleset->work_put, put_ruleset_work);
++		schedule_work(&ruleset->work_put);
++	}
++}
++
++static bool clean_ref(struct landlock_ref *ref)
++{
++	struct landlock_rule *rule;
++
++	rule = rcu_dereference(ref->rule);
++	if (!rule)
++		return false;
++	if (!landlock_rule_is_disabled(rule))
++		return false;
++	rcu_assign_pointer(ref->rule, NULL);
++	/*
++	 * landlock_put_rule() will not sleep because we already checked
++	 * !landlock_rule_is_disabled(rule).
++	 */
++	landlock_put_rule(rcu_dereference(ref->object), rule);
++	return true;
++}
++
++static void clean_ruleset(struct landlock_ruleset *ruleset)
++{
++	struct rb_node *node;
++
++	if (!ruleset)
++		return;
++	/* We must lock the ruleset to not have a wrong nb_rules counter. */
++	mutex_lock(&ruleset->lock);
++	rcu_read_lock();
++	for (node = rb_first(&ruleset->root); node; node = rb_next(node)) {
++		struct landlock_ruleset_elem *elem = rb_entry(node,
++				struct landlock_ruleset_elem, node);
++
++		if (clean_ref(&elem->ref)) {
++			rb_erase(&elem->node, &ruleset->root);
++			kfree_rcu(elem, rcu_free);
++			atomic_dec(&ruleset->nb_rules);
++		}
++	}
++	rcu_read_unlock();
++	mutex_unlock(&ruleset->lock);
++}
++
++/*
++ * Creates a new ruleset, merged of @parent and @ruleset, or return @parent if
++ * @ruleset is empty.  If @parent is empty, return a duplicate of @ruleset.
++ *
++ * @parent: Must not be modified (i.e. locked or read-only).
++ */
++struct landlock_ruleset *landlock_merge_ruleset(
++		struct landlock_ruleset *parent,
++		struct landlock_ruleset *ruleset)
++{
++	struct landlock_ruleset *new_dom;
++	int err;
++
++	might_sleep();
++	/* Opportunistically put disabled rules. */
++	clean_ruleset(ruleset);
++
++	if (parent && WARN_ON_ONCE(!parent->hierarchy))
++		return ERR_PTR(-EINVAL);
++	if (!ruleset || atomic_read(&ruleset->nb_rules) == 0 ||
++			parent == ruleset) {
++		landlock_get_ruleset(parent);
++		return parent;
++	}
++
++	new_dom = create_ruleset();
++	if (IS_ERR(new_dom))
++		return new_dom;
++	new_dom->hierarchy = kzalloc(sizeof(*new_dom->hierarchy), GFP_KERNEL);
++	if (!new_dom->hierarchy) {
++		landlock_put_ruleset(new_dom);
++		return ERR_PTR(-ENOMEM);
++	}
++	refcount_set(&new_dom->hierarchy->usage, 1);
++
++	if (parent) {
++		new_dom->hierarchy->parent = parent->hierarchy;
++		refcount_inc(&parent->hierarchy->usage);
++		err = merge_ruleset(new_dom, parent);
++		if (err) {
++			landlock_put_ruleset(new_dom);
++			return ERR_PTR(err);
++		}
++	}
++	err = merge_ruleset(new_dom, ruleset);
++	if (err) {
++		landlock_put_ruleset(new_dom);
++		return ERR_PTR(err);
++	}
++	return new_dom;
++}
++
++/*
++ * The return pointer must only be used in a RCU-read block.
++ */
++const struct landlock_access *landlock_find_access(
++		const struct landlock_ruleset *ruleset,
++		const struct landlock_object *object)
++{
++	struct rb_node *node;
++
++	WARN_ON_ONCE(!rcu_read_lock_held());
++	if (!object)
++		return NULL;
++	node = ruleset->root.rb_node;
++	while (node) {
++		struct landlock_ruleset_elem *this = rb_entry(node,
++				struct landlock_ruleset_elem, node);
++		uintptr_t this_object =
++			(uintptr_t)rcu_access_pointer(this->ref.object);
++
++		if (this_object == (uintptr_t)object) {
++			struct landlock_rule *rule;
++
++			rule = rcu_dereference(this->ref.rule);
++			if (!landlock_rule_is_disabled(rule))
++				return &rule->access;
++			return NULL;
++		}
++		if (this_object < (uintptr_t)object)
++			node = node->rb_right;
++		else
++			node = node->rb_left;
++	}
++	return NULL;
++}
+diff --git a/security/landlock/ruleset.h b/security/landlock/ruleset.h
+new file mode 100644
+index 000000000000..afc88dbb8b4b
+--- /dev/null
++++ b/security/landlock/ruleset.h
+@@ -0,0 +1,106 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++/*
++ * Landlock LSM - Ruleset management
++ *
++ * Copyright © 2016-2020 Mickaël Salaün <mic@digikod.net>
++ * Copyright © 2018-2020 ANSSI
++ */
++
++#ifndef _SECURITY_LANDLOCK_RULESET_H
++#define _SECURITY_LANDLOCK_RULESET_H
++
++#include <linux/compiler.h>
++#include <linux/mutex.h>
++#include <linux/poison.h>
++#include <linux/rbtree.h>
++#include <linux/rcupdate.h>
++#include <linux/refcount.h>
++#include <linux/types.h>
++#include <linux/workqueue.h>
++#include <uapi/linux/landlock.h>
++
++#include "object.h"
++
++#define _LANDLOCK_ACCESS_FS_LAST	LANDLOCK_ACCESS_FS_MAP
++#define _LANDLOCK_ACCESS_FS_MASK	((_LANDLOCK_ACCESS_FS_LAST << 1) - 1)
++
++struct landlock_ref {
++	/*
++	 * @object: Identify a kernel object (e.g. an inode).  This is used as
++	 * a key for a ruleset tree (cf. struct landlock_ruleset_elem).  This
++	 * pointer is set once and never modified.  It may point to a deleted
++	 * object and should then be dereferenced with great care, thanks to a
++	 * call to landlock_rule_is_disabled(@rule) from inside an RCU-read
++	 * block, cf. landlock_put_rule().
++	 */
++	struct landlock_object __rcu *object;
++	/*
++	 * @rule: Ties a rule to an object. Set once with an allocated rule,
++	 * but can be NULLed if the rule is disabled.
++	 */
++	struct landlock_rule __rcu *rule;
++};
++
++/*
++ * Red-black tree element used in a landlock_ruleset.
++ */
++struct landlock_ruleset_elem {
++	struct landlock_ref ref;
++	struct rb_node node;
++	struct rcu_head rcu_free;
++};
++
++/*
++ * Enable hierarchy identification even when a parent domain vanishes.  This is
++ * needed for the ptrace protection.
++ */
++struct landlock_hierarchy {
++	struct landlock_hierarchy *parent;
++	refcount_t usage;
++};
++
++/*
++ * Kernel representation of a ruleset.  This data structure must contains
++ * unique entries, be updatable, and quick to match an object.
++ */
++struct landlock_ruleset {
++	/*
++	 * @fs_access_mask: Contains the subset of filesystem actions which are
++	 * restricted by a ruleset.  This is used when merging rulesets and for
++	 * userspace backward compatibility (i.e. future-proof).  Set once and
++	 * never changed for the lifetime of the ruleset.
++	 */
++	u32 fs_access_mask;
++	struct landlock_hierarchy *hierarchy;
++	refcount_t usage;
++	union {
++		struct rcu_head	rcu_free;
++		struct work_struct work_put;
++	};
++	struct mutex lock;
++	atomic_t nb_rules;
++	/*
++	 * @root: Red-black tree containing landlock_ruleset_elem nodes.
++	 */
++	struct rb_root root;
++};
++
++struct landlock_ruleset *landlock_create_ruleset(u64 fs_access_mask);
++
++void landlock_get_ruleset(struct landlock_ruleset *ruleset);
++void landlock_put_ruleset(struct landlock_ruleset *ruleset);
++void landlock_put_ruleset_enqueue(struct landlock_ruleset *ruleset);
++
++int landlock_insert_ruleset_rule(struct landlock_ruleset *ruleset,
++		struct landlock_object *object, struct landlock_access *access,
++		struct landlock_rule *rule);
++
++struct landlock_ruleset *landlock_merge_ruleset(
++		struct landlock_ruleset *domain,
++		struct landlock_ruleset *ruleset);
++
++const struct landlock_access *landlock_find_access(
++		const struct landlock_ruleset *ruleset,
++		const struct landlock_object *object);
++
++#endif /* _SECURITY_LANDLOCK_RULESET_H */
+-- 
+2.25.0
