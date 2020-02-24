@@ -1,69 +1,51 @@
-Return-Path: <christophe.leroy@c-s.fr>
-Subject: Re: [PATCH v6 04/11] powerpc/mce_power: Use functions to track
- lockless pgtbl walks
-References: <20200206030900.147032-1-leonardo@linux.ibm.com>
- <20200206030900.147032-5-leonardo@linux.ibm.com>
-From: Christophe Leroy <christophe.leroy@c-s.fr>
-Message-ID: <e8a5db5a-d1a5-ef25-af46-c44949750e8a@c-s.fr>
-Date: Thu, 6 Feb 2020 06:48:12 +0100
+Return-Path: <anshuman.khandual@arm.com>
+Subject: Re: [PATCH V14] mm/debug: Add tests validating architecture page
+ table helpers
+References: <1581909460-19148-1-git-send-email-anshuman.khandual@arm.com>
+From: Anshuman Khandual <anshuman.khandual@arm.com>
+Message-ID: <fac4f03a-0cd3-29ad-b5e2-9aca2dd07b39@arm.com>
+Date: Mon, 24 Feb 2020 07:28:46 +0530
 MIME-Version: 1.0
-In-Reply-To: <20200206030900.147032-5-leonardo@linux.ibm.com>
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Language: fr
-Content-Transfer-Encoding: 8bit
-To: Leonardo Bras <leonardo@linux.ibm.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>, Nicholas Piggin <npiggin@gmail.com>, Steven Price <steven.price@arm.com>, Robin Murphy <robin.murphy@arm.com>, Mahesh Salgaonkar <mahesh@linux.vnet.ibm.com>, Balbir Singh <bsingharora@gmail.com>, Reza Arbab <arbab@linux.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, Allison Randal <allison@lohutok.net>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Mike Rapoport <rppt@linux.ibm.com>, Michal Suchanek <msuchanek@suse.de>
-Cc: linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, kvm-ppc@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
+In-Reply-To: <1581909460-19148-1-git-send-email-anshuman.khandual@arm.com>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
+To: linux-mm@kvack.org
+Cc: Andrew Morton <akpm@linux-foundation.org>, Mike Rapoport <rppt@linux.ibm.com>, Vineet Gupta <vgupta@synopsys.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Heiko Carstens <heiko.carstens@de.ibm.com>, Vasily Gorbik <gor@linux.ibm.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, "Kirill A . Shutemov" <kirill@shutemov.name>, Paul Walmsley <paul.walmsley@sifive.com>, Palmer Dabbelt <palmer@dabbelt.com>, linux-snps-arc@lists.infradead.org, linux-arm-kernel@lists.infradead.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-riscv@lists.infradead.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Christophe Leroy <christophe.leroy@c-s.fr>
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200206054812.htc_UzC53VfXNiyEJiTot54-TiDEwJHr4LtotZxge5A@z>
+Message-ID: <20200224015846.bWEOUV9JBiVD7QxQDHrAPJyEU0jdB3P36igi6uYpfk0@z>
 
-
-
-Le 06/02/2020 à 04:08, Leonardo Bras a écrit :
-> Applies the new functions used for tracking lockless pgtable walks on
-> addr_to_pfn().
+On 02/17/2020 08:47 AM, Anshuman Khandual wrote:
+> This adds a test validation for architecture exported page table helpers.
+> Patch adds basic transformation tests at various levels of the page table.
 > 
-> local_irq_{save,restore} is already inside {begin,end}_lockless_pgtbl_walk,
-> so there is no need to repeat it here.
+> This test was originally suggested by Catalin during arm64 THP migration
+> RFC discussion earlier. Going forward it can include more specific tests
+> with respect to various generic MM functions like THP, HugeTLB etc and
+> platform specific tests.
 > 
-> Signed-off-by: Leonardo Bras <leonardo@linux.ibm.com>
-> ---
->   arch/powerpc/kernel/mce_power.c | 6 +++---
->   1 file changed, 3 insertions(+), 3 deletions(-)
+> https://lore.kernel.org/linux-mm/20190628102003.GA56463@arrakis.emea.arm.com/
 > 
-> diff --git a/arch/powerpc/kernel/mce_power.c b/arch/powerpc/kernel/mce_power.c
-> index 1cbf7f1a4e3d..a9e38ef4e437 100644
-> --- a/arch/powerpc/kernel/mce_power.c
-> +++ b/arch/powerpc/kernel/mce_power.c
-> @@ -29,7 +29,7 @@ unsigned long addr_to_pfn(struct pt_regs *regs, unsigned long addr)
->   {
->   	pte_t *ptep;
->   	unsigned int shift;
-> -	unsigned long pfn, flags;
-> +	unsigned long pfn, irq_mask;
-
-Why change the name ? flags is a well known historical name.
-
->   	struct mm_struct *mm;
->   
->   	if (user_mode(regs))
-> @@ -37,7 +37,7 @@ unsigned long addr_to_pfn(struct pt_regs *regs, unsigned long addr)
->   	else
->   		mm = &init_mm;
->   
-> -	local_irq_save(flags);
-> +	irq_mask = begin_lockless_pgtbl_walk();
->   	ptep = __find_linux_pte(mm->pgd, addr, NULL, &shift);
->   
->   	if (!ptep || pte_special(*ptep)) {
-> @@ -53,7 +53,7 @@ unsigned long addr_to_pfn(struct pt_regs *regs, unsigned long addr)
->   	}
->   
->   out:
-> -	local_irq_restore(flags);
-> +	end_lockless_pgtbl_walk(irq_mask);
->   	return pfn;
->   }
->   
+> Needs to be applied on linux V5.6-rc2
 > 
+> Changes in V14:
+> 
+> - Disabled DEBUG_VM_PGFLAGS for IA64 and ARM (32 Bit) per Andrew and Christophe
+> - Updated DEBUG_VM_PGFLAGS documentation wrt EXPERT and disabled platforms
+> - Updated RANDOM_[OR|NZ]VALUE open encodings with GENMASK() per Catalin
+> - Updated s390 constraint bits from 12 to 4 (S390_MASK_BITS) per Gerald
+> - Updated in-code documentation for RANDOM_ORVALUE per Gerald
+> - Updated pxx_basic_tests() to use invert functions first per Catalin
+> - Dropped ARCH_HAS_4LEVEL_HACK check from pud_basic_tests()
+> - Replaced __ARCH_HAS_[4|5]LEVEL_HACK with __PAGETABLE_[PUD|P4D]_FOLDED per Catalin
+> - Trimmed the CC list on the commit message per Catalin
 
-Christophe
+Hello Andrew,
+
+As there are no further comments on this patch from last week, wondering
+if you would possibly consider this patch. But if you feel there is still
+something which need to be taken care here, please do let me know.
+
+Thank you.
+
+- Anshuman
