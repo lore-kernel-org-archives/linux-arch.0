@@ -1,118 +1,134 @@
-Return-Path: <SRS0=LzcT=4H=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:52028 "EHLO
-        merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727802AbgBSPOg (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 19 Feb 2020 10:14:36 -0500
-Message-ID: <20200219150745.241364074@infradead.org>
-Date: Wed, 19 Feb 2020 15:47:39 +0100
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: [PATCH v3 15/22] x86/int3: Ensure that poke_int3_handler() is not traced
-References: <20200219144724.800607165@infradead.org>
+Return-Path: <SRS0=as/e=4M=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from bombadil.infradead.org ([198.137.202.133]:47694 "EHLO
+        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726593AbgBXTpL (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 24 Feb 2020 14:45:11 -0500
+From: Christoph Hellwig <hch@lst.de>
+Subject: [PATCH 1/5] dma-direct: remove the cached_kernel_address hook
+Date: Mon, 24 Feb 2020 11:44:41 -0800
+Message-ID: <20200224194446.690816-2-hch@lst.de>
+In-Reply-To: <20200224194446.690816-1-hch@lst.de>
+References: <20200224194446.690816-1-hch@lst.de>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, rostedt@goodmis.org
-Cc: peterz@infradead.org, mingo@kernel.org, joel@joelfernandes.org, gregkh@linuxfoundation.org, gustavo@embeddedor.com, tglx@linutronix.de, paulmck@kernel.org, josh@joshtriplett.org, mathieu.desnoyers@efficios.com, jiangshanlai@gmail.com, luto@kernel.org, tony.luck@intel.com, frederic@kernel.org, dan.carpenter@oracle.com, mhiramat@kernel.org
-Message-ID: <20200219144739.tCKqtH1vFr3ehM58TgtoXHQv_DAdl5noB33he7c0Lmc@z>
+To: Jonas Bonn <jonas@southpole.se>, Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>, Stafford Horne <shorne@gmail.com>
+Cc: Marek Szyprowski <m.szyprowski@samsung.com>, Robin Murphy <robin.murphy@arm.com>, Will Deacon <will@kernel.org>, Mark Rutland <mark.rutland@arm.com>, openrisc@lists.librecores.org, iommu@lists.linux-foundation.org, linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20200224194441.rNMsZLfz2R6Z-4eBOpQeT_Z_f1nbVIRytFFywmEKgyQ@z>
 
-From: Thomas Gleixner <tglx@linutronix.de>
+dma-direct now finds the kernel address for coherent allocations based
+on the dma address, so the cached_kernel_address hooks is unused and
+can be removed entirely.
 
-In order to ensure poke_int3_handler() is completely self contained --
-we call this while we're modifying other text, imagine the fun of
-hitting another INT3 -- ensure that everything it uses is not traced.
-
-The primary means here is to force inlining; bsearch() is notrace
-because all of lib/ is.
-
-Not-Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
-Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+Signed-off-by: Christoph Hellwig <hch@lst.de>
 ---
- arch/x86/include/asm/ptrace.h        |    2 +-
- arch/x86/include/asm/text-patching.h |   11 +++++++----
- arch/x86/kernel/alternative.c        |   11 +++++++----
- 3 files changed, 15 insertions(+), 9 deletions(-)
+ arch/Kconfig                    |  2 +-
+ arch/microblaze/mm/consistent.c |  7 -------
+ arch/mips/mm/dma-noncoherent.c  |  5 -----
+ arch/nios2/mm/dma-mapping.c     | 10 ----------
+ arch/xtensa/kernel/pci-dma.c    | 10 ++--------
+ include/linux/dma-noncoherent.h |  1 -
+ 6 files changed, 3 insertions(+), 32 deletions(-)
 
-Index: linux-2.6/arch/x86/include/asm/ptrace.h
-===================================================================
---- linux-2.6.orig/arch/x86/include/asm/ptrace.h
-+++ linux-2.6/arch/x86/include/asm/ptrace.h
-@@ -123,7 +123,7 @@ static inline void regs_set_return_value
-  * On x86_64, vm86 mode is mercifully nonexistent, and we don't need
-  * the extra check.
+diff --git a/arch/Kconfig b/arch/Kconfig
+index 98de654b79b3..7994b239f155 100644
+--- a/arch/Kconfig
++++ b/arch/Kconfig
+@@ -249,7 +249,7 @@ config ARCH_HAS_SET_DIRECT_MAP
+ 
+ #
+ # Select if arch has an uncached kernel segment and provides the
+-# uncached_kernel_address / cached_kernel_address symbols to use it
++# uncached_kernel_address symbol to use it
+ #
+ config ARCH_HAS_UNCACHED_SEGMENT
+ 	select ARCH_HAS_DMA_PREP_COHERENT
+diff --git a/arch/microblaze/mm/consistent.c b/arch/microblaze/mm/consistent.c
+index 8c5f0c332d8b..cede7c5e8135 100644
+--- a/arch/microblaze/mm/consistent.c
++++ b/arch/microblaze/mm/consistent.c
+@@ -49,11 +49,4 @@ void *uncached_kernel_address(void *ptr)
+ 		pr_warn("ERROR: Your cache coherent area is CACHED!!!\n");
+ 	return (void *)addr;
+ }
+-
+-void *cached_kernel_address(void *ptr)
+-{
+-	unsigned long addr = (unsigned long)ptr;
+-
+-	return (void *)(addr & ~UNCACHED_SHADOW_MASK);
+-}
+ #endif /* CONFIG_MMU */
+diff --git a/arch/mips/mm/dma-noncoherent.c b/arch/mips/mm/dma-noncoherent.c
+index dc42ffc83825..77dce28ad0a0 100644
+--- a/arch/mips/mm/dma-noncoherent.c
++++ b/arch/mips/mm/dma-noncoherent.c
+@@ -54,11 +54,6 @@ void *uncached_kernel_address(void *addr)
+ 	return (void *)(__pa(addr) + UNCAC_BASE);
+ }
+ 
+-void *cached_kernel_address(void *addr)
+-{
+-	return __va(addr) - UNCAC_BASE;
+-}
+-
+ static inline void dma_sync_virt(void *addr, size_t size,
+ 		enum dma_data_direction dir)
+ {
+diff --git a/arch/nios2/mm/dma-mapping.c b/arch/nios2/mm/dma-mapping.c
+index 0ed711e37902..f30f2749257c 100644
+--- a/arch/nios2/mm/dma-mapping.c
++++ b/arch/nios2/mm/dma-mapping.c
+@@ -75,13 +75,3 @@ void *uncached_kernel_address(void *ptr)
+ 
+ 	return (void *)ptr;
+ }
+-
+-void *cached_kernel_address(void *ptr)
+-{
+-	unsigned long addr = (unsigned long)ptr;
+-
+-	addr &= ~CONFIG_NIOS2_IO_REGION_BASE;
+-	addr |= CONFIG_NIOS2_KERNEL_REGION_BASE;
+-
+-	return (void *)ptr;
+-}
+diff --git a/arch/xtensa/kernel/pci-dma.c b/arch/xtensa/kernel/pci-dma.c
+index 72b6222daa0b..6a685545d5c9 100644
+--- a/arch/xtensa/kernel/pci-dma.c
++++ b/arch/xtensa/kernel/pci-dma.c
+@@ -88,18 +88,12 @@ void arch_dma_prep_coherent(struct page *page, size_t size)
+ 
+ /*
+  * Memory caching is platform-dependent in noMMU xtensa configurations.
+- * The following two functions should be implemented in platform code
+- * in order to enable coherent DMA memory operations when CONFIG_MMU is not
+- * enabled.
++ * This function should be implemented in platform code in order to enable
++ * coherent DMA memory operations when CONFIG_MMU is not enabled.
   */
--static inline int user_mode(struct pt_regs *regs)
-+static __always_inline int user_mode(struct pt_regs *regs)
+ #ifdef CONFIG_MMU
+ void *uncached_kernel_address(void *p)
  {
- #ifdef CONFIG_X86_32
- 	return ((regs->cs & SEGMENT_RPL_MASK) | (regs->flags & X86_VM_MASK)) >= USER_RPL;
-Index: linux-2.6/arch/x86/include/asm/text-patching.h
-===================================================================
---- linux-2.6.orig/arch/x86/include/asm/text-patching.h
-+++ linux-2.6/arch/x86/include/asm/text-patching.h
-@@ -64,7 +64,7 @@ extern void text_poke_finish(void);
- 
- #define DISP32_SIZE		4
- 
--static inline int text_opcode_size(u8 opcode)
-+static __always_inline int text_opcode_size(u8 opcode)
- {
- 	int size = 0;
- 
-@@ -118,12 +118,14 @@ extern __ro_after_init struct mm_struct
- extern __ro_after_init unsigned long poking_addr;
- 
- #ifndef CONFIG_UML_X86
--static inline void int3_emulate_jmp(struct pt_regs *regs, unsigned long ip)
-+static __always_inline
-+void int3_emulate_jmp(struct pt_regs *regs, unsigned long ip)
- {
- 	regs->ip = ip;
+ 	return p + XCHAL_KSEG_BYPASS_VADDR - XCHAL_KSEG_CACHED_VADDR;
  }
+-
+-void *cached_kernel_address(void *p)
+-{
+-	return p + XCHAL_KSEG_CACHED_VADDR - XCHAL_KSEG_BYPASS_VADDR;
+-}
+ #endif /* CONFIG_MMU */
+diff --git a/include/linux/dma-noncoherent.h b/include/linux/dma-noncoherent.h
+index ca9b5770caee..b6b72e19b0cd 100644
+--- a/include/linux/dma-noncoherent.h
++++ b/include/linux/dma-noncoherent.h
+@@ -109,6 +109,5 @@ static inline void arch_dma_prep_coherent(struct page *page, size_t size)
+ #endif /* CONFIG_ARCH_HAS_DMA_PREP_COHERENT */
  
--static inline void int3_emulate_push(struct pt_regs *regs, unsigned long val)
-+static __always_inline
-+void int3_emulate_push(struct pt_regs *regs, unsigned long val)
- {
- 	/*
- 	 * The int3 handler in entry_64.S adds a gap between the
-@@ -138,7 +140,8 @@ static inline void int3_emulate_push(str
- 	*(unsigned long *)regs->sp = val;
- }
+ void *uncached_kernel_address(void *addr);
+-void *cached_kernel_address(void *addr);
  
--static inline void int3_emulate_call(struct pt_regs *regs, unsigned long func)
-+static __always_inline
-+void int3_emulate_call(struct pt_regs *regs, unsigned long func)
- {
- 	int3_emulate_push(regs, regs->ip - INT3_INSN_SIZE + CALL_INSN_SIZE);
- 	int3_emulate_jmp(regs, func);
-Index: linux-2.6/arch/x86/kernel/alternative.c
-===================================================================
---- linux-2.6.orig/arch/x86/kernel/alternative.c
-+++ linux-2.6/arch/x86/kernel/alternative.c
-@@ -956,7 +956,8 @@ struct bp_patching_desc {
- 
- static struct bp_patching_desc *bp_desc;
- 
--static inline struct bp_patching_desc *try_get_desc(struct bp_patching_desc **descp)
-+static __always_inline
-+struct bp_patching_desc *try_get_desc(struct bp_patching_desc **descp)
- {
- 	struct bp_patching_desc *desc = READ_ONCE(*descp); /* rcu_dereference */
- 
-@@ -966,13 +967,13 @@ static inline struct bp_patching_desc *t
- 	return desc;
- }
- 
--static inline void put_desc(struct bp_patching_desc *desc)
-+static __always_inline void put_desc(struct bp_patching_desc *desc)
- {
- 	smp_mb__before_atomic();
- 	atomic_dec(&desc->refs);
- }
- 
--static inline void *text_poke_addr(struct text_poke_loc *tp)
-+static __always_inline void *text_poke_addr(struct text_poke_loc *tp)
- {
- 	return _stext + tp->rel_addr;
- }
+ #endif /* _LINUX_DMA_NONCOHERENT_H */
+-- 
+2.24.1
