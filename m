@@ -1,142 +1,66 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH v4 02/27] hardirq/nmi: Allow nested nmi_enter()
-Date: Mon, 24 Feb 2020 17:13:18 +0100
-Message-ID: <20200224161318.GG14897@hirez.programming.kicks-ass.net>
+From: Steven Rostedt <rostedt@goodmis.org>
+Subject: Re: [PATCH v4 05/27] x86: Replace ist_enter() with nmi_enter()
+Date: Mon, 24 Feb 2020 11:27:08 -0500
+Message-ID: <20200224112708.4f307ba3@gandalf.local.home>
 References: <20200221133416.777099322@infradead.org>
- <20200221134215.149193474@infradead.org>
- <20200221222129.GB28251@lenoir>
+        <20200221134215.328642621@infradead.org>
+        <CALCETrU7nezN7d3GEZ8h8HbRfvZ0+F9+Ahb7fLvZ9FVaHN9x2w@mail.gmail.com>
+        <20200221202246.GA14897@hirez.programming.kicks-ass.net>
+        <20200224104346.GJ14946@hirez.programming.kicks-ass.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.133]:52752 "EHLO
-        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727673AbgBXQNv (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 24 Feb 2020 11:13:51 -0500
-Content-Disposition: inline
-In-Reply-To: <20200221222129.GB28251@lenoir>
+Received: from mail.kernel.org ([198.145.29.99]:37454 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1727160AbgBXQ1L (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 24 Feb 2020 11:27:11 -0500
+In-Reply-To: <20200224104346.GJ14946@hirez.programming.kicks-ass.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Frederic Weisbecker <frederic@kernel.org>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, rostedt@goodmis.org, mingo@kernel.org, joel@joelfernandes.org, gregkh@linuxfoundation.org, gustavo@embeddedor.com, tglx@linutronix.de, paulmck@kernel.org, josh@joshtriplett.org, mathieu.desnoyers@efficios.com, jiangshanlai@gmail.com, luto@kernel.org, tony.luck@intel.com, dan.carpenter@oracle.com, mhiramat@kernel.org, Will Deacon <will@kernel.org>, Petr Mladek <pmladek@suse.com>, Marc Zyngier <maz@kernel.org>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Andy Lutomirski <luto@kernel.org>, LKML <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Ingo Molnar <mingo@kernel.org>, Joel Fernandes <joel@joelfernandes.org>, Greg KH <gregkh@linuxfoundation.org>, gustavo@embeddedor.com, Thomas Gleixner <tglx@linutronix.de>, paulmck@kernel.org, Josh Triplett <josh@joshtriplett.org>, Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, Lai Jiangshan <jiangshanlai@gmail.com>, Tony Luck <tony.luck@intel.com>, Frederic Weisbecker <frederic@kernel.org>, Dan Carpenter <dan.carpenter@oracle.com>, Masami Hiramatsu <mhiramat@kernel.org>
 
-On Fri, Feb 21, 2020 at 11:21:30PM +0100, Frederic Weisbecker wrote:
-> On Fri, Feb 21, 2020 at 02:34:18PM +0100, Peter Zijlstra wrote:
-> > Since there are already a number of sites (ARM64, PowerPC) that
-> > effectively nest nmi_enter(), lets make the primitive support this
-> > before adding even more.
-> > 
-> > Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
-> > Reviewed-by: Petr Mladek <pmladek@suse.com>
-> > Acked-by: Will Deacon <will@kernel.org>
-> > Acked-by: Marc Zyngier <maz@kernel.org>
-> > ---
-> >  arch/arm64/include/asm/hardirq.h |    4 ++--
-> >  arch/arm64/kernel/sdei.c         |   14 ++------------
-> >  arch/arm64/kernel/traps.c        |    8 ++------
-> >  arch/powerpc/kernel/traps.c      |   22 ++++++----------------
-> >  include/linux/hardirq.h          |    5 ++++-
-> >  include/linux/preempt.h          |    4 ++--
-> >  kernel/printk/printk_safe.c      |    6 ++++--
-> >  7 files changed, 22 insertions(+), 41 deletions(-)
-> > 
-> > --- a/kernel/printk/printk_safe.c
-> > +++ b/kernel/printk/printk_safe.c
-> > @@ -296,12 +296,14 @@ static __printf(1, 0) int vprintk_nmi(co
-> >  
-> >  void notrace printk_nmi_enter(void)
-> >  {
-> > -	this_cpu_or(printk_context, PRINTK_NMI_CONTEXT_MASK);
-> > +	if (!in_nmi())
-> > +		this_cpu_or(printk_context, PRINTK_NMI_CONTEXT_MASK);
-> >  }
-> >  
-> >  void notrace printk_nmi_exit(void)
-> >  {
-> > -	this_cpu_and(printk_context, ~PRINTK_NMI_CONTEXT_MASK);
-> > +	if (!in_nmi())
-> > +		this_cpu_and(printk_context, ~PRINTK_NMI_CONTEXT_MASK);
-> >  }
-> 
-> If the outermost NMI is interrupted while between printk_nmi_enter()
-> and preempt_count_add(), there is still a risk that we race and clear?
+On Mon, 24 Feb 2020 11:43:46 +0100
+Peter Zijlstra <peterz@infradead.org> wrote:
 
-Damn, true. That also means I need to fix the arm64 bits, and that's a
-little more tricky.
+> -dotraplinkage void notrace do_int3(struct pt_regs *regs, long error_code)
+> +dotraplinkage notrace void do_int3(struct pt_regs *regs, long error_code)
+>  {
+>  	if (poke_int3_handler(regs))
+>  		return;
+>  
+>  	/*
+> -	 * Use ist_enter despite the fact that we don't use an IST stack.
+> -	 * We can be called from a kprobe in non-CONTEXT_KERNEL kernel
+> -	 * mode or even during context tracking state changes.
+> -	 *
+> -	 * This means that we can't schedule.  That's okay.
+> +	 * Unlike any other non-IST entry, we can be called from pretty much
+> +	 * any location in the kernel through kprobes -- text_poke() will most
+> +	 * likely be handled by poke_int3_handler() above. This means this
+> +	 * handler is effectively NMI-like.
+>  	 */
+> -	ist_enter(regs);
+> +	nmi_enter();
 
-Something like so perhaps.. hmm?
+Hmm, note that nmi_enter() calls other functions. Did you make sure
+all of them are not able to be kprobed. This is different than just
+being "NMI like", it's that if they are kprobed, then this will go into
+an infinite loop because nothing can have a kprobe before the kprobe
+int3 handler is called here.
 
----
---- a/arch/arm64/include/asm/hardirq.h
-+++ b/arch/arm64/include/asm/hardirq.h
-@@ -32,30 +32,52 @@ u64 smp_irq_stat_cpu(unsigned int cpu);
- 
- struct nmi_ctx {
- 	u64 hcr;
-+	unsigned int cnt;
- };
- 
- DECLARE_PER_CPU(struct nmi_ctx, nmi_contexts);
- 
--#define arch_nmi_enter()							\
--	do {									\
--		if (is_kernel_in_hyp_mode() && !in_nmi()) {			\
--			struct nmi_ctx *nmi_ctx = this_cpu_ptr(&nmi_contexts);	\
--			nmi_ctx->hcr = read_sysreg(hcr_el2);			\
--			if (!(nmi_ctx->hcr & HCR_TGE)) {			\
--				write_sysreg(nmi_ctx->hcr | HCR_TGE, hcr_el2);	\
--				isb();						\
--			}							\
--		}								\
--	} while (0)
-+#define arch_nmi_enter()						\
-+do {									\
-+	struct nmi_ctx *___ctx;						\
-+	unsigned int ___cnt;						\
-+									\
-+	if (!is_kernel_in_hyp_mode() || in_nmi())			\
-+		break;							\
-+									\
-+	___ctx = this_cpu_ptr(&nmi_contexts);				\
-+	___cnt = ___ctx->cnt;						\
-+	if (!(___cnt & 1) && __cnt) {					\
-+		___ctx->cnt += 2;					\
-+		break;							\
-+	}								\
-+									\
-+	___ctx->cnt |= 1;						\
-+	barrier();							\
-+	nmi_ctx->hcr = read_sysreg(hcr_el2);				\
-+	if (!(nmi_ctx->hcr & HCR_TGE)) {				\
-+		write_sysreg(nmi_ctx->hcr | HCR_TGE, hcr_el2);		\
-+		isb();							\
-+	}								\
-+	barrier();							\
-+	if (!(___cnt & 1))						\
-+		___ctx->cnt++;						\
-+} while (0)
- 
--#define arch_nmi_exit()								\
--	do {									\
--		if (is_kernel_in_hyp_mode() && !in_nmi()) {			\
--			struct nmi_ctx *nmi_ctx = this_cpu_ptr(&nmi_contexts);	\
--			if (!(nmi_ctx->hcr & HCR_TGE))				\
--				write_sysreg(nmi_ctx->hcr, hcr_el2);		\
--		}								\
--	} while (0)
-+#define arch_nmi_exit()							\
-+do {									\
-+	struct nmi_ctx *___ctx;						\
-+									\
-+	if (!is_kernel_in_hyp_mode() || in_nmi())			\
-+		break;							\
-+									\
-+	___ctx = this_cpu_ptr(&nmi_contexts);				\
-+	if ((___ctx->cnt & 1) || (___ctx->cnt -= 2))			\
-+		break;							\
-+									\
-+	if (!(nmi_ctx->hcr & HCR_TGE))					\
-+		write_sysreg(nmi_ctx->hcr, hcr_el2);			\
-+} while (0)
- 
- static inline void ack_bad_irq(unsigned int irq)
- {
+-- Steve
+
+
+>  	RCU_LOCKDEP_WARN(!rcu_is_watching(), "entry code didn't wake RCU");
+>  #ifdef CONFIG_KGDB_LOW_LEVEL_TRAP
+>  	if (kgdb_ll_trap(DIE_INT3, "int3", regs, error_code, X86_TRAP_BP,
+> @@ -563,7 +530,7 @@ dotraplinkage void notrace do_int3(struc
+>  	cond_local_irq_disable(regs);
+>  
+>  exit:
+> -	ist_exit(regs);
+> +	nmi_exit();
+>  }
+>  NOKPROBE_SYMBOL(do_int3);
