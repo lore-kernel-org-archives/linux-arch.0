@@ -1,61 +1,48 @@
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: Re: [PATCH v2 0/3] Fix arm_arch_timer clockmode when vDSO disabled
-Date: Mon, 24 Feb 2020 10:12:11 +0100
-Message-ID: <87h7zg4adw.fsf@nanos.tec.linutronix.de>
-References: <20200221181849.40351-1-vincenzo.frascino@arm.com> <20200222104005.6fc4019d@why>
+From: Federico Vaga <federico.vaga@cern.ch>
+Subject: Re: [PATCH 3/7] docs: fix broken references to text files
+Date: Mon, 24 Feb 2020 10:26:39 +0100
+Message-ID: <3929512.qvrp2sLpzG@pcbe13614>
+References: <cover.1582361737.git.mchehab+huawei@kernel.org> <5cfeed6df208b74913312a1c97235ee615180f91.1582361737.git.mchehab+huawei@kernel.org>
+Reply-To: <federico.vaga@cern.ch>
 Mime-Version: 1.0
-Content-Type: text/plain
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from Galois.linutronix.de ([193.142.43.55]:48928 "EHLO
-        Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728297AbgBXJM3 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 24 Feb 2020 04:12:29 -0500
-In-Reply-To: <20200222104005.6fc4019d@why>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Marc Zyngier <maz@kernel.org>, Vincenzo Frascino <vincenzo.frascino@arm.com>
-Cc: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, catalin.marinas@arm.com, will.deacon@arm.com, linux@armlinux.org.uk, luto@kernel.org, m.szyprowski@samsung.com, Mark.Rutland@arm.com
+Content-Type: text/plain; charset="iso-8859-1"
+Content-Transfer-Encoding: quoted-printable
+Return-path: <linux-doc-owner@vger.kernel.org>
+In-Reply-To: <5cfeed6df208b74913312a1c97235ee615180f91.1582361737.git.mchehab+huawei@kernel.org>
+Sender: linux-doc-owner@vger.kernel.org
+To: Mauro Carvalho Chehab <mchehab+huawei@kernel.org>
+Cc: Linux Doc Mailing List <linux-doc@vger.kernel.org>, Jonathan Corbet <corbet@lwn.net>, linux-arch@vger.kernel.org, kvm@vger.kernel.org, kvm-ppc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, dri-devel@lists.freedesktop.org, linux-arm-kernel@lists.infradead.org, linux-fsdevel@vger.kernel.org, linux-nfs@vger.kernel.org, linux-unionfs@vger.kernel.org, linux-mm@kvack.org, linux-rdma@vger.kernel.org, netdev@vger.kernel.org, kvmarm@lists.cs.columbia.edu
+List-Id: linux-arch.vger.kernel.org
 
-Marc Zyngier <maz@kernel.org> writes:
-> On Fri, 21 Feb 2020 18:18:46 +0000
-> Vincenzo Frascino <vincenzo.frascino@arm.com> wrote:
->> 
->> This patch series addresses the issue defining a default arch clockmode
->> for arm and arm64 and using it to initialize the arm_arch_timer.
->
-> arm only. arm64 is just fine.
+On Saturday, February 22, 2020 10:00:03 AM CET Mauro Carvalho Chehab wrote:
+> Several references got broken due to txt to ReST conversion.
+>=20
+> Several of them can be automatically fixed with:
+>=20
+> 	scripts/documentation-file-ref-check --fix
+>=20
+> Signed-off-by: Mauro Carvalho Chehab <mchehab+huawei@kernel.org>
+> ---
 
-Right. ARM64 unconditionaly enables VDSO
 
->
-> This doesn't apply to -rc2, and is rather against next.
+>  26) If any ioctl's are added by the patch, then also update
+> -    ``Documentation/ioctl/ioctl-number.rst``.
+> +    ``Documentation/userspace-api/ioctl/ioctl-number.rst``.
+>=20
+>  27) If your modified source code depends on or uses any of the kernel
+>      APIs or features that are related to the following ``Kconfig`` symbo=
+ls,
+> diff --git a/Documentation/translations/it_IT/process/submit-checklist.rst
+> b/Documentation/translations/it_IT/process/submit-checklist.rst index
+> 995ee69fab11..3e575502690f 100644
+> --- a/Documentation/translations/it_IT/process/submit-checklist.rst
+> +++ b/Documentation/translations/it_IT/process/submit-checklist.rst
+> @@ -117,7 +117,7 @@ sottomissione delle patch, in particolare
+>      sorgenti che ne spieghi la logica: cosa fanno e perch=E9.
+>=20
+>  25) Se la patch aggiunge nuove chiamate ioctl, allora aggiornate
+> -    ``Documentation/ioctl/ioctl-number.rst``.
+> +    ``Documentation/userspace-api/ioctl/ioctl-number.rst``.
 
-More precise it's against tip timers/core which has the VDSO changes
-which caused this fallout.
 
->> Vincenzo Frascino (3):
->>   arm: clocksource: Add VDSO default clockmode
->>   arm64: clocksource: Add VDSO default clockmode
->>   clocksource: Fix arm_arch_timer clockmode when vDSO disabled
->
-> Please squash the three patches into a single one. There is zero point
-> in having 3 patches for something that small.
-
-I really don't see why we need all this redefine foo. What's wrong with
-the obvious?
-
---- a/drivers/clocksource/arm_arch_timer.c
-+++ b/drivers/clocksource/arm_arch_timer.c
-@@ -69,7 +69,12 @@ static enum arch_timer_ppi_nr arch_timer
- static bool arch_timer_c3stop;
- static bool arch_timer_mem_use_virtual;
- static bool arch_counter_suspend_stop;
-+
-+#ifdef CONFIG_GENERIC_GETTIMEOFDAY
- static enum vdso_clock_mode vdso_default = VDSO_CLOCKMODE_ARCHTIMER;
-+#else
-+static enum vdso_clock_mode vdso_default = VDSO_CLOCKMODE_NONE;
-+#endif
- 
- static cpumask_t evtstrm_available = CPU_MASK_NONE;
- static bool evtstrm_enable = IS_ENABLED(CONFIG_ARM_ARCH_TIMER_EVTSTREAM);
+Acked-By: Federico Vaga <federico.vaga@vaga.pv.it>
