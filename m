@@ -1,118 +1,34 @@
-From: Boqun Feng <boqun.feng@gmail.com>
-Subject: Re: [RFC 2/3] tools/memory-model: Add a litmus test for atomic_set()
-Date: Tue, 25 Feb 2020 15:34:51 +0800
-Message-ID: <20200225073451.GP69864@debian-boqun.qqnc3lrjykvubdpftowmye0fmh.lx.internal.cloudapp.net>
-References: <20200214040132.91934-1-boqun.feng@gmail.com>
- <20200214040132.91934-3-boqun.feng@gmail.com>
- <20200214081213.GA17708@andrea>
- <20200214104003.GC20408@debian-boqun.qqnc3lrjykvubdpftowmye0fmh.lx.internal.cloudapp.net>
+From: Stafford Horne <shorne@gmail.com>
+Subject: Re: [PATCH 5/5] openrisc: use the generic in-place uncached DMA
+ allocator
+Date: Tue, 25 Feb 2020 19:09:42 +0900
+Message-ID: <20200225100942.GB7926@lianli.shorne-pla.net>
+References: <20200224194446.690816-1-hch@lst.de>
+ <20200224194446.690816-6-hch@lst.de>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-doc-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-pf1-f193.google.com ([209.85.210.193]:38167 "EHLO
+        mail-pf1-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1729981AbgBYKJr (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 25 Feb 2020 05:09:47 -0500
 Content-Disposition: inline
-In-Reply-To: <20200214104003.GC20408@debian-boqun.qqnc3lrjykvubdpftowmye0fmh.lx.internal.cloudapp.net>
-Sender: linux-doc-owner@vger.kernel.org
-To: Andrea Parri <parri.andrea@gmail.com>
-Cc: linux-kernel@vger.kernel.org, Alan Stern <stern@rowland.harvard.edu>, Will Deacon <will@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Nicholas Piggin <npiggin@gmail.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, "Paul E. McKenney" <paulmck@kernel.org>, Akira Yokosawa <akiyks@gmail.com>, Daniel Lustig <dlustig@nvidia.com>, Jonathan Corbet <corbet@lwn.net>, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+In-Reply-To: <20200224194446.690816-6-hch@lst.de>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Christoph Hellwig <hch@lst.de>
+Cc: Jonas Bonn <jonas@southpole.se>, Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>, Marek Szyprowski <m.szyprowski@samsung.com>, Robin Murphy <robin.murphy@arm.com>, Will Deacon <will@kernel.org>, Mark Rutland <mark.rutland@arm.com>, openrisc@lists.librecores.org, iommu@lists.linux-foundation.org, linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 
-Luc,
+On Mon, Feb 24, 2020 at 11:44:45AM -0800, Christoph Hellwig wrote:
+> Switch openrisc to use the dma-direct allocator and just provide the
+> hooks for setting memory uncached or cached.
+> 
+> Signed-off-by: Christoph Hellwig <hch@lst.de>
 
-Could you have a look at the problem Andrea and I discuss here? It seems
-that you have done a few things in herd for atomic_add_unless() in
-particular, and based on the experiments of Andrea and me, seems
-atomic_add_unless() works correctly. So can you confirm that herd now
-can handle atomic_add_unless() or there is still something missing?
+Reviewed-by: Stafford Horne <shorne@gmail.com>
 
-Thanks!
+I also test booted this series with linux 5.5 on my OpenRISC target.  There are
+no issues.  Note, I had an issue with patch 3/5 not cleanly applying with 'git am'
+but it worked fine using just patch, I didn't get any other details.
 
-Regards,
-Boqun
-
-On Fri, Feb 14, 2020 at 06:40:03PM +0800, Boqun Feng wrote:
-> On Fri, Feb 14, 2020 at 09:12:13AM +0100, Andrea Parri wrote:
-> > > @@ -0,0 +1,24 @@
-> > > +C Atomic-set-observable-to-RMW
-> > > +
-> > > +(*
-> > > + * Result: Never
-> > > + *
-> > > + * Test of the result of atomic_set() must be observable to atomic RMWs.
-> > > + *)
-> > > +
-> > > +{
-> > > +	atomic_t v = ATOMIC_INIT(1);
-> > > +}
-> > > +
-> > > +P0(atomic_t *v)
-> > > +{
-> > > +	(void)atomic_add_unless(v,1,0);
-> > 
-> > We blacklisted this primitive some time ago, cf. section "LIMITATIONS",
-> > entry (6b) in tools/memory-model/README; the discussion was here:
-> > 
-> >   https://lkml.kernel.org/r/20180829211053.20531-3-paulmck@linux.vnet.ibm.com
-> > 
-> 
-> And in an email replying to that email, you just tried and seemed
-> atomic_add_unless() works ;-)
-> 
-> > but unfortunately I can't remember other details at the moment: maybe
-> > it is just a matter of or the proper time to update that section.
-> > 
-> 
-> I spend a few time looking into the changes in herd, the dependency
-> problem seems to be as follow:
-> 
-> For atomic_add_unless(ptr, a, u), the return value (true or false)
-> depends on both *ptr and u, this is different than other atomic RMW,
-> whose return value only depends on *ptr. Considering the following
-> litmus test:
-> 
-> 	C atomic_add_unless-dependency
-> 
-> 	{
-> 		int y = 1;
-> 	}
-> 
-> 	P0(int *x, int *y, int *z)
-> 	{
-> 		int r0;
-> 		int r1;
-> 		int r2;
-> 
-> 		r0 = READ_ONCE(*x);
-> 		if (atomic_add_unless(y, 2, r0))
-> 			WRITE_ONCE(*z, 42);
-> 		else
-> 			WRITE_ONCE(*z, 1);
-> 	}
-> 
-> 	P1(int *x, int *y, int *z)
-> 	{
-> 		int r0;
-> 
-> 		r0 = smp_load_acquire(z);
-> 
-> 		WRITE_ONCE(*x, 1);
-> 	}
-> 
-> 	exists
-> 	(1:r0 = 1 /\ 0:r0 = 1)
-> 
-> , the exist-clause will never trigger, however if we replace
-> "atomic_add_unless(y, 2, r0)" with "atomic_add_unless(y, 2, 1)", the
-> write on *z and the read from *x on CPU 0 are not ordered, so we could
-> observe the exist-clause triggered.
-> 
-> I just tried with the latest herd, and herd can work out this
-> dependency. So I think we are good now and can change the limitation
-> section in the document. But I will wait for Luc's input for this. Luc,
-> did I get this correct? Is there any other limitation on
-> atomic_add_unless() now?
-> 
-> Regards,
-> Boqun
-> 
-> > Thanks,
-> >   Andrea
+-Stafford
