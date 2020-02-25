@@ -1,121 +1,90 @@
-From: Frederic Weisbecker <frederic@kernel.org>
-Subject: Re: [PATCH v4 02/27] hardirq/nmi: Allow nested nmi_enter()
-Date: Tue, 25 Feb 2020 04:09:06 +0100
-Message-ID: <20200225030905.GB28329@lenoir>
-References: <20200221133416.777099322@infradead.org>
- <20200221134215.149193474@infradead.org>
- <20200221222129.GB28251@lenoir>
- <20200224161318.GG14897@hirez.programming.kicks-ass.net>
+From: Marek Szyprowski <m.szyprowski@samsung.com>
+Subject: Re: [PATCH v3] clocksource: Fix arm_arch_timer clockmode when vDSO
+ disabled
+Date: Tue, 25 Feb 2020 08:17:09 +0100
+Message-ID: <368f9cf7-5d9c-c671-8355-82f0f6e549aa@samsung.com>
+References: <CGME20200224151611eucas1p2d5e9492e4497edd18a322fdfc33547bf@eucas1p2.samsung.com>
+        <20200224151552.57274-1-vincenzo.frascino@arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 8bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:47632 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1728011AbgBYDJJ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 24 Feb 2020 22:09:09 -0500
-Content-Disposition: inline
-In-Reply-To: <20200224161318.GG14897@hirez.programming.kicks-ass.net>
+Received: from mailout2.w1.samsung.com ([210.118.77.12]:36855 "EHLO
+        mailout2.w1.samsung.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1729282AbgBYHRN (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 25 Feb 2020 02:17:13 -0500
+Received: from eucas1p2.samsung.com (unknown [182.198.249.207])
+        by mailout2.w1.samsung.com (KnoxPortal) with ESMTP id 20200225071711euoutp02393390631d833d25542a782d0275abc2~2k-yDj4o22728027280euoutp024
+        for <linux-arch@vger.kernel.org>; Tue, 25 Feb 2020 07:17:11 +0000 (GMT)
+In-Reply-To: <20200224151552.57274-1-vincenzo.frascino@arm.com>
+Content-Language: en-US
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, rostedt@goodmis.org, mingo@kernel.org, joel@joelfernandes.org, gregkh@linuxfoundation.org, gustavo@embeddedor.com, tglx@linutronix.de, paulmck@kernel.org, josh@joshtriplett.org, mathieu.desnoyers@efficios.com, jiangshanlai@gmail.com, luto@kernel.org, tony.luck@intel.com, dan.carpenter@oracle.com, mhiramat@kernel.org, Will Deacon <will@kernel.org>, Petr Mladek <pmladek@suse.com>, Marc Zyngier <maz@kernel.org>
+To: Vincenzo Frascino <vincenzo.frascino@arm.com>, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org
+Cc: catalin.marinas@arm.com, will.deacon@arm.com, linux@armlinux.org.uk, tglx@linutronix.de, luto@kernel.org, maz@kernel.org, Mark.Rutland@arm.com
 
-On Mon, Feb 24, 2020 at 05:13:18PM +0100, Peter Zijlstra wrote:
-> Damn, true. That also means I need to fix the arm64 bits, and that's a
-> little more tricky.
-> 
-> Something like so perhaps.. hmm?
-> 
+Hi,
+
+On 24.02.2020 16:15, Vincenzo Frascino wrote:
+> The arm_arch_timer requires that VDSO_CLOCKMODE_ARCHTIMER to be
+> defined to compile correctly. On arm the vDSO can be disabled and when
+> this is the case the compilation ends prematurely with an error:
+>
+>   $ make ARCH=arm multi_v7_defconfig
+>   $ ./scripts/config -d VDSO
+>   $ make
+>
+> drivers/clocksource/arm_arch_timer.c:73:44: error:
+> ‘VDSO_CLOCKMODE_ARCHTIMER’ undeclared here (not in a function)
+>    static enum vdso_clock_mode vdso_default = VDSO_CLOCKMODE_ARCHTIMER;
+>                                               ^
+> scripts/Makefile.build:267: recipe for target
+> 'drivers/clocksource/arm_arch_timer.o' failed
+> make[2]: *** [drivers/clocksource/arm_arch_timer.o] Error 1
+> make[2]: *** Waiting for unfinished jobs....
+> scripts/Makefile.build:505: recipe for target 'drivers/clocksource' failed
+> make[1]: *** [drivers/clocksource] Error 2
+> make[1]: *** Waiting for unfinished jobs....
+> Makefile:1683: recipe for target 'drivers' failed
+> make: *** [drivers] Error 2
+>
+> Define VDSO_CLOCKMODE_ARCHTIMER as VDSO_CLOCKMODE_NONE when the vDSOs are
+> not enabled to address the issue.
+>
+> Fixes: 5e3c6a312a09 ("ARM/arm64: vdso: Use common vdso clock mode storage")
+> Cc: Marc Zyngier <maz@kernel.org>
+> Cc: Mark Rutland <Mark.Rutland@arm.com>
+> Cc: Russell King <linux@armlinux.org.uk>
+> Cc: Thomas Gleixner <tglx@linutronix.de>
+> Reported-by: Marek Szyprowski <m.szyprowski@samsung.com>
+> Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
+
+Tested-by: Marek Szyprowski <m.szyprowski@samsung.com>
+
 > ---
-> --- a/arch/arm64/include/asm/hardirq.h
-> +++ b/arch/arm64/include/asm/hardirq.h
-> @@ -32,30 +32,52 @@ u64 smp_irq_stat_cpu(unsigned int cpu);
->  
->  struct nmi_ctx {
->  	u64 hcr;
-> +	unsigned int cnt;
->  };
->  
->  DECLARE_PER_CPU(struct nmi_ctx, nmi_contexts);
->  
-> -#define arch_nmi_enter()							\
-> -	do {									\
-> -		if (is_kernel_in_hyp_mode() && !in_nmi()) {			\
-> -			struct nmi_ctx *nmi_ctx = this_cpu_ptr(&nmi_contexts);	\
-> -			nmi_ctx->hcr = read_sysreg(hcr_el2);			\
-> -			if (!(nmi_ctx->hcr & HCR_TGE)) {			\
-> -				write_sysreg(nmi_ctx->hcr | HCR_TGE, hcr_el2);	\
-> -				isb();						\
-> -			}							\
-> -		}								\
-> -	} while (0)
-> +#define arch_nmi_enter()						\
-> +do {									\
-> +	struct nmi_ctx *___ctx;						\
-> +	unsigned int ___cnt;						\
-> +									\
-> +	if (!is_kernel_in_hyp_mode() || in_nmi())			\
-> +		break;							\
-> +									\
-> +	___ctx = this_cpu_ptr(&nmi_contexts);				\
-> +	___cnt = ___ctx->cnt;						\
-> +	if (!(___cnt & 1) && __cnt) {					\
-> +		___ctx->cnt += 2;					\
-> +		break;							\
-> +	}								\
-> +									\
-> +	___ctx->cnt |= 1;						\
-> +	barrier();							\
-> +	nmi_ctx->hcr = read_sysreg(hcr_el2);				\
-> +	if (!(nmi_ctx->hcr & HCR_TGE)) {				\
-> +		write_sysreg(nmi_ctx->hcr | HCR_TGE, hcr_el2);		\
-> +		isb();							\
-> +	}								\
-> +	barrier();							\
+>   drivers/clocksource/arm_arch_timer.c | 4 ++++
+>   1 file changed, 4 insertions(+)
+>
+> This patch has been rebased and tested on tip/timers/core.
+>
+> diff --git a/drivers/clocksource/arm_arch_timer.c b/drivers/clocksource/arm_arch_timer.c
+> index ee2420d56f67..d53f4c7ccaae 100644
+> --- a/drivers/clocksource/arm_arch_timer.c
+> +++ b/drivers/clocksource/arm_arch_timer.c
+> @@ -69,7 +69,11 @@ static enum arch_timer_ppi_nr arch_timer_uses_ppi = ARCH_TIMER_VIRT_PPI;
+>   static bool arch_timer_c3stop;
+>   static bool arch_timer_mem_use_virtual;
+>   static bool arch_counter_suspend_stop;
+> +#ifdef CONFIG_GENERIC_GETTIMEOFDAY
+>   static enum vdso_clock_mode vdso_default = VDSO_CLOCKMODE_ARCHTIMER;
+> +#else
+> +static enum vdso_clock_mode vdso_default = VDSO_CLOCKMODE_NONE;
+> +#endif /* CONFIG_GENERIC_GETTIMEOFDAY */
+>   
+>   static cpumask_t evtstrm_available = CPU_MASK_NONE;
+>   static bool evtstrm_enable = IS_ENABLED(CONFIG_ARM_ARCH_TIMER_EVTSTREAM);
 
-Suppose the first NMI is interrupted here. nmi_ctx->hcr has HCR_TGE unset.
-The new NMI is going to overwrite nmi_ctx->hcr with HCR_TGE set. Then the
-first NMI will not restore the correct value upon arch_nmi_exit().
-
-So perhaps the below, but I bet I overlooked something obvious.
-
-#define arch_nmi_enter()                                             \
-do {                                                                 \
-     struct nmi_ctx *___ctx;                                         \
-     u64 ___hcr;                                                     \
-                                                                     \
-     if (!is_kernel_in_hyp_mode())                                   \
-             break;                                                  \
-                                                                     \
-     ___ctx = this_cpu_ptr(&nmi_contexts);                           \
-     if (___ctx->cnt) {                                              \
-             ___ctx->cnt++;                                          \
-             break;                                                  \
-     }                                                               \
-                                                                     \
-     ___hcr = read_sysreg(hcr_el2);                                  \
-     if (!(___hcr & HCR_TGE)) {                                      \
-             write_sysreg(___hcr | HCR_TGE, hcr_el2);                \
-             isb();                                                  \
-     }                                                               \
-     ___ctx->cnt = 1;                                                \
-     barrier();                                                      \
-     ___ctx->hcr = ___hcr;                                           \
-} while (0)
-
-#define arch_nmi_exit()                                         \
-do {                                                            \
-        struct nmi_ctx *___ctx;                                 \
-        u64 ___hcr;                                             \
-                                                                \
-        if (!is_kernel_in_hyp_mode())                           \
-            break;                                              \
-                                                                \
-        ___ctx = this_cpu_ptr(&nmi_contexts);                   \
-	___hcr = nmi_ctx->hcr;                                  \
-        barrier();                                              \
-        --___ctx->cnt;                                          \
-	barrier();                                              \
-	if (!___ctx->cnt && !(___hcr & HCR_TGE))                  \
-            write_sysreg(___hcr, hcr_el2);                       \
-} while (0)
+Best regards
+-- 
+Marek Szyprowski, PhD
+Samsung R&D Institute Poland
