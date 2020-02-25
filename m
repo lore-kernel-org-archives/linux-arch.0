@@ -1,114 +1,170 @@
-Return-Path: <SRS0=oITL=4O=vger.kernel.org=linux-doc-owner@kernel.org>
-Subject: Re: [RFC PATCH v9 13/27] x86/mm: Shadow Stack page fault error
- checking
-References: <20200205181935.3712-1-yu-cheng.yu@intel.com>
- <20200205181935.3712-14-yu-cheng.yu@intel.com>
-From: Dave Hansen <dave.hansen@intel.com>
-Message-ID: <1c8946d0-7934-3485-aa82-d37d41021dc7@intel.com>
-Date: Wed, 26 Feb 2020 14:47:16 -0800
+Return-Path: <SRS0=ZEfg=4N=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail-wr1-f66.google.com ([209.85.221.66]:45592 "EHLO
+        mail-wr1-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1729994AbgBYLfQ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 25 Feb 2020 06:35:16 -0500
+Received: by mail-wr1-f66.google.com with SMTP id g3so14261919wrs.12
+        for <linux-arch@vger.kernel.org>; Tue, 25 Feb 2020 03:35:13 -0800 (PST)
+Subject: Re: [PATCH 00/10] Hi,
+References: <cover.1581497860.git.michal.simek@xilinx.com>
+From: Michal Simek <monstr@monstr.eu>
+Message-ID: <bb01ba1d-49a4-6827-b2ef-18475cea18f7@monstr.eu>
+Date: Tue, 25 Feb 2020 12:34:54 +0100
 MIME-Version: 1.0
-In-Reply-To: <20200205181935.3712-14-yu-cheng.yu@intel.com>
+In-Reply-To: <cover.1581497860.git.michal.simek@xilinx.com>
+Content-Type: multipart/signed; micalg=pgp-sha1;
+ protocol="application/pgp-signature";
+ boundary="LZHPN2jpshxJTPpehPN2oomZ5ViUkpu3G"
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Michal Simek <michal.simek@xilinx.com>, linux-kernel@vger.kernel.org, git@xilinx.com, arnd@arndb.de
+Cc: Andrew Morton <akpm@linux-foundation.org>, "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>, Arvind Sankar <nivedita@alum.mit.edu>, Borislav Petkov <bp@suse.de>, Cornelia Huck <cohuck@redhat.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Greg Ungerer <gerg@linux-m68k.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, Kees Cook <keescook@chromium.org>, Masahiro Yamada <yamada.masahiro@socionext.com>, Mike Rapoport <rppt@linux.ibm.com>, Mubin Sayyed <mubinusm@xilinx.com>, Nicholas Piggin <npiggin@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Palmer Dabbelt <palmer@dabbelt.com>, Paolo Bonzini <pbonzini@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, Rob Herring <robh@kernel.org>, Shubhrajyoti Datta <shubhrajyoti.datta@xilinx.com>, Siva Durga Prasad Paladugu <siva.durga.paladugu@xilinx.com>, Stefan Asserhall <stefan.asserhall@xilinx.com>, Vladimir Murzin <vladimir.murzin@arm.com>, Will Deacon <will@kernel.org>, linux-arch@vger.kernel.org, linux-mm@kvack.org
+Message-ID: <20200225113454.lexIyzyYhiNZYknMMl7sOKfZmqw1FM14qC3lqCQHbsU@z>
+
+This is an OpenPGP/MIME signed message (RFC 4880 and 3156)
+--LZHPN2jpshxJTPpehPN2oomZ5ViUkpu3G
+Content-Type: multipart/mixed; boundary="c2rUlmsk1qexDFpBjgpaV7Nn62sVlDOPV";
+ protected-headers="v1"
+From: Michal Simek <monstr@monstr.eu>
+To: Michal Simek <michal.simek@xilinx.com>, linux-kernel@vger.kernel.org,
+ git@xilinx.com, arnd@arndb.de
+Cc: Andrew Morton <akpm@linux-foundation.org>,
+ "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>,
+ Arvind Sankar <nivedita@alum.mit.edu>, Borislav Petkov <bp@suse.de>,
+ Cornelia Huck <cohuck@redhat.com>, Geert Uytterhoeven
+ <geert@linux-m68k.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>,
+ Greg Ungerer <gerg@linux-m68k.org>,
+ Heiko Carstens <heiko.carstens@de.ibm.com>, Kees Cook
+ <keescook@chromium.org>, Masahiro Yamada <yamada.masahiro@socionext.com>,
+ Mike Rapoport <rppt@linux.ibm.com>, Mubin Sayyed <mubinusm@xilinx.com>,
+ Nicholas Piggin <npiggin@gmail.com>, Oleg Nesterov <oleg@redhat.com>,
+ Palmer Dabbelt <palmer@dabbelt.com>, Paolo Bonzini <pbonzini@redhat.com>,
+ Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>,
+ Rob Herring <robh@kernel.org>,
+ Shubhrajyoti Datta <shubhrajyoti.datta@xilinx.com>,
+ Siva Durga Prasad Paladugu <siva.durga.paladugu@xilinx.com>,
+ Stefan Asserhall <stefan.asserhall@xilinx.com>,
+ Vladimir Murzin <vladimir.murzin@arm.com>, Will Deacon <will@kernel.org>,
+ linux-arch@vger.kernel.org, linux-mm@kvack.org
+Message-ID: <bb01ba1d-49a4-6827-b2ef-18475cea18f7@monstr.eu>
+Subject: Re: [PATCH 00/10] Hi,
+References: <cover.1581497860.git.michal.simek@xilinx.com>
+In-Reply-To: <cover.1581497860.git.michal.simek@xilinx.com>
+
+--c2rUlmsk1qexDFpBjgpaV7Nn62sVlDOPV
 Content-Type: text/plain; charset=utf-8
 Content-Language: en-US
-Content-Transfer-Encoding: 8bit
-Sender: linux-doc-owner@vger.kernel.org
-To: Yu-cheng Yu <yu-cheng.yu@intel.com>, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>, x86-patch-review@intel.com
-List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200226224716.3-B1mjDrQgXSbi7_jOnXDJ8FS5ka4nhYOB837MFzalk@z>
+Content-Transfer-Encoding: quoted-printable
 
-On 2/5/20 10:19 AM, Yu-cheng Yu wrote:
-> If a page fault is triggered by a Shadow Stack (SHSTK) access
-> (e.g. CALL/RET) or SHSTK management instructions (e.g. WRUSSQ), then bit[6]
-> of the page fault error code is set.
+On 12. 02. 20 9:57, Michal Simek wrote:
+>=20
+> I am sending this series as before SMP support.
+> Most of these patches are clean ups and should be easy to review them. =
+I
+> expect there will be more discussions about SMP support.
+>=20
+> There could be some optimization added based on
+> https://lkml.org/lkml/2020/2/10/1528
+>=20
+> Thanks,
+> Michal
+>=20
+>=20
+> Michal Simek (6):
+>   microblaze: Convert headers to SPDX license
+>   microblaze: Remove architecture tlb.h and use generic one
+>   microblaze: Remove early printk setup
+>   microblaze: Remove empty headers
+>   microblaze: Remove unused boot_cpuid variable
+>   microblaze: Use asm generic cmpxchg.h for !SMP case
+>=20
+> Stefan Asserhall (4):
+>   microblaze: Define microblaze barrier
+>   microblaze: Add sync to tlb operations
+>   microblaze: Add missing irqflags.h header
+>   microblaze: Define percpu sestion in linker file
+>=20
+>  arch/microblaze/include/asm/Kbuild            |  4 +-
+>  arch/microblaze/include/asm/barrier.h         | 13 ++++++
+>  arch/microblaze/include/asm/cache.h           |  5 +--
+>  arch/microblaze/include/asm/cacheflush.h      |  6 +--
+>  arch/microblaze/include/asm/checksum.h        |  5 +--
+>  arch/microblaze/include/asm/cmpxchg.h         | 40 ++-----------------=
 
-How about starting with a definition:
+>  arch/microblaze/include/asm/cpuinfo.h         |  5 +--
+>  arch/microblaze/include/asm/cputable.h        |  1 -
+>  arch/microblaze/include/asm/current.h         |  5 +--
+>  arch/microblaze/include/asm/delay.h           |  7 +---
+>  arch/microblaze/include/asm/dma.h             |  5 +--
+>  arch/microblaze/include/asm/elf.h             |  5 +--
+>  arch/microblaze/include/asm/entry.h           |  5 +--
+>  arch/microblaze/include/asm/exceptions.h      |  5 +--
+>  arch/microblaze/include/asm/fixmap.h          |  5 +--
+>  arch/microblaze/include/asm/flat.h            |  5 +--
+>  arch/microblaze/include/asm/hw_irq.h          |  1 -
+>  arch/microblaze/include/asm/io.h              |  5 +--
+>  arch/microblaze/include/asm/irq.h             |  5 +--
+>  arch/microblaze/include/asm/irqflags.h        |  5 +--
+>  arch/microblaze/include/asm/mmu.h             |  5 +--
+>  arch/microblaze/include/asm/mmu_context_mm.h  |  5 +--
+>  arch/microblaze/include/asm/module.h          |  5 +--
+>  arch/microblaze/include/asm/page.h            |  5 +--
+>  arch/microblaze/include/asm/pgalloc.h         |  5 +--
+>  arch/microblaze/include/asm/pgtable.h         |  5 +--
+>  arch/microblaze/include/asm/processor.h       |  5 +--
+>  arch/microblaze/include/asm/ptrace.h          |  5 +--
+>  arch/microblaze/include/asm/pvr.h             |  5 +--
+>  arch/microblaze/include/asm/registers.h       |  5 +--
+>  arch/microblaze/include/asm/sections.h        |  5 +--
+>  arch/microblaze/include/asm/setup.h           |  7 +---
+>  arch/microblaze/include/asm/string.h          |  5 +--
+>  arch/microblaze/include/asm/switch_to.h       |  5 +--
+>  arch/microblaze/include/asm/thread_info.h     |  5 +--
+>  arch/microblaze/include/asm/timex.h           |  5 +--
+>  arch/microblaze/include/asm/tlb.h             | 17 --------
+>  arch/microblaze/include/asm/tlbflush.h        |  5 +--
+>  arch/microblaze/include/asm/uaccess.h         |  5 +--
+>  arch/microblaze/include/asm/unaligned.h       |  5 +--
+>  arch/microblaze/include/asm/unistd.h          |  5 +--
+>  arch/microblaze/include/asm/unwind.h          |  5 +--
+>  arch/microblaze/include/asm/user.h            |  1 -
+>  arch/microblaze/kernel/cpu/cpuinfo-pvr-full.c |  7 +---
+>  arch/microblaze/kernel/cpu/pvr.c              |  1 +
+>  arch/microblaze/kernel/misc.S                 |  3 +-
+>  arch/microblaze/kernel/setup.c                |  1 -
+>  arch/microblaze/kernel/vmlinux.lds.S          |  3 ++
+>  48 files changed, 62 insertions(+), 215 deletions(-)
+>  create mode 100644 arch/microblaze/include/asm/barrier.h
+>  delete mode 100644 arch/microblaze/include/asm/cputable.h
+>  delete mode 100644 arch/microblaze/include/asm/hw_irq.h
+>  delete mode 100644 arch/microblaze/include/asm/tlb.h
+>  delete mode 100644 arch/microblaze/include/asm/user.h
+>=20
 
-	Shadow stack accesses are those that are performed by the CPU
-	where it expects to encounter a shadow stack mapping.  These
-	accesses are performed implicitly by CALL/RET at the site of the
-	shadow stack pointer.  These accesses are made explicitly by
-	shadow stack management instructions like WRUSSQ.
+applied all.
+M
 
-> In access_error(), verify a SHSTK page fault is within a SHSTK memory area.
-> It is always an error otherwise.
+--=20
+Michal Simek, Ing. (M.Eng), OpenPGP -> KeyID: FE3D1F91
+w: www.monstr.eu p: +42-0-721842854
+Maintainer of Linux kernel - Xilinx Microblaze
+Maintainer of Linux kernel - Xilinx Zynq ARM and ZynqMP ARM64 SoCs
+U-Boot custodian - Xilinx Microblaze/Zynq/ZynqMP/Versal SoCs
 
-How about: Shadow stacks accesses to shadow-stack mapping can see faults
-in normal, valid operation just like regular accesses to regular
-mappings.  Shadow stacks need some of the same features like delayed
-allocation, swap and copy-on-write.
 
-Shadow stack accesses can also result in errors, such as when a shadow
-stack overflows, or if a shadow stack access occurs to a
-non-shadow-stack mapping.
 
-> For a valid SHSTK access, set FAULT_FLAG_WRITE to effect copy-on-write.
+--c2rUlmsk1qexDFpBjgpaV7Nn62sVlDOPV--
 
-It seems rather odd to want copy-on-write behavior for read faults.
-Could you elaborate on why, please?
+--LZHPN2jpshxJTPpehPN2oomZ5ViUkpu3G
+Content-Type: application/pgp-signature; name="signature.asc"
+Content-Description: OpenPGP digital signature
+Content-Disposition: attachment; filename="signature.asc"
 
-> diff --git a/arch/x86/include/asm/traps.h b/arch/x86/include/asm/traps.h
-> index 7ac26bbd0bef..8023d177fcd8 100644
-> --- a/arch/x86/include/asm/traps.h
-> +++ b/arch/x86/include/asm/traps.h
-> @@ -169,6 +169,7 @@ enum {
->   *   bit 3 ==				1: use of reserved bit detected
->   *   bit 4 ==				1: fault was an instruction fetch
->   *   bit 5 ==				1: protection keys block access
-> + *   bit 6 ==				1: shadow stack access fault
->   */
->  enum x86_pf_error_code {
->  	X86_PF_PROT	=		1 << 0,
-> @@ -177,5 +178,6 @@ enum x86_pf_error_code {
->  	X86_PF_RSVD	=		1 << 3,
->  	X86_PF_INSTR	=		1 << 4,
->  	X86_PF_PK	=		1 << 5,
-> +	X86_PF_SHSTK	=		1 << 6,
->  };
->  #endif /* _ASM_X86_TRAPS_H */
-> diff --git a/arch/x86/mm/fault.c b/arch/x86/mm/fault.c
-> index 304d31d8cbbc..9c1243302663 100644
-> --- a/arch/x86/mm/fault.c
-> +++ b/arch/x86/mm/fault.c
-> @@ -1187,6 +1187,17 @@ access_error(unsigned long error_code, struct vm_area_struct *vma)
->  				       (error_code & X86_PF_INSTR), foreign))
->  		return 1;
->  
-> +	/*
-> +	 * Verify X86_PF_SHSTK is within a Shadow Stack VMA.
-> +	 * It is always an error if there is a Shadow Stack
-> +	 * fault outside a Shadow Stack VMA.
-> +	 */
+-----BEGIN PGP SIGNATURE-----
 
-Nit: there was an access that caused the fault.  We can be a bit more
-broad in the implications from the comment if we say "access" instead of
-"fault".
+iF0EARECAB0WIQQbPNTMvXmYlBPRwx7KSWXLKUoMIQUCXlUGXwAKCRDKSWXLKUoM
+IWakAKCB1Nf50wQlkY3QmenLnoFwU1bVRQCfXM644R24pTsD+kEK+7AWWzPDUeE=
+=6NRI
+-----END PGP SIGNATURE-----
 
-> +	if (error_code & X86_PF_SHSTK) {
-> +		if (!(vma->vm_flags & VM_SHSTK))
-> +			return 1;
-> +		return 0;
-> +	}
-> +
->  	if (error_code & X86_PF_WRITE) {
->  		/* write, present and write, not present: */
->  		if (unlikely(!(vma->vm_flags & VM_WRITE)))
-
-Is there an analogous check for !X86_PF_SHSTK faults to VM_SHSTK VMAs?
-
-> @@ -1344,6 +1355,13 @@ void do_user_addr_fault(struct pt_regs *regs,
->  
->  	perf_sw_event(PERF_COUNT_SW_PAGE_FAULTS, 1, regs, address);
->  
-> +	/*
-> +	 * If the fault is caused by a Shadow Stack access,
-> +	 * i.e. CALL/RET/SAVEPREVSSP/RSTORSSP, then set
-> +	 * FAULT_FLAG_WRITE to effect copy-on-write.
-> +	 */
-> +	if (hw_error_code & X86_PF_SHSTK)
-> +		flags |= FAULT_FLAG_WRITE;
->  	if (hw_error_code & X86_PF_WRITE)
->  		flags |= FAULT_FLAG_WRITE;
->  	if (hw_error_code & X86_PF_INSTR)
-
-It would be great if you could also include the *why*.  *Why* do read
-faults need copy-on-write semantics?
+--LZHPN2jpshxJTPpehPN2oomZ5ViUkpu3G--
