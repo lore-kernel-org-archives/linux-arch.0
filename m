@@ -1,95 +1,106 @@
 From: Kees Cook <keescook@chromium.org>
-Subject: Re: [RFC PATCH v9 05/27] x86/cet/shstk: Add Kconfig option for
- user-mode Shadow Stack protection
-Date: Tue, 25 Feb 2020 12:07:07 -0800
-Message-ID: <202002251206.43C6B6DA@keescook>
+Subject: Re: [RFC PATCH v9 06/27] mm: Introduce VM_SHSTK for Shadow Stack
+ memory
+Date: Tue, 25 Feb 2020 12:07:50 -0800
+Message-ID: <202002251207.8EB036A712@keescook>
 References: <20200205181935.3712-1-yu-cheng.yu@intel.com>
- <20200205181935.3712-6-yu-cheng.yu@intel.com>
+ <20200205181935.3712-7-yu-cheng.yu@intel.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-doc-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-pg1-f193.google.com ([209.85.215.193]:40809 "EHLO
+        mail-pg1-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1731398AbgBYUHx (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 25 Feb 2020 15:07:53 -0500
+Received: by mail-pg1-f193.google.com with SMTP id t24so78612pgj.7
+        for <linux-arch@vger.kernel.org>; Tue, 25 Feb 2020 12:07:53 -0800 (PST)
 Content-Disposition: inline
-In-Reply-To: <20200205181935.3712-6-yu-cheng.yu@intel.com>
-Sender: linux-doc-owner@vger.kernel.org
+In-Reply-To: <20200205181935.3712-7-yu-cheng.yu@intel.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: Yu-cheng Yu <yu-cheng.yu@intel.com>
 Cc: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel
-List-Id: linux-arch.vger.kernel.org
 
-On Wed, Feb 05, 2020 at 10:19:13AM -0800, Yu-cheng Yu wrote:
-> Introduce Kconfig option: X86_INTEL_SHADOW_STACK_USER.
+On Wed, Feb 05, 2020 at 10:19:14AM -0800, Yu-cheng Yu wrote:
+> A Shadow Stack (SHSTK) PTE must be read-only and have _PAGE_DIRTY set.
+> However, read-only and Dirty PTEs also exist for copy-on-write (COW) pages.
+> These two cases are handled differently for page faults and a new VM flag
+> is necessary for tracking SHSTK VMAs.
 > 
-> Shadow Stack (SHSTK) provides protection against function return address
-> corruption.  It is active when the kernel has this feature enabled, and
-> both the processor and the application support it.  When this feature is
-> enabled, legacy non-SHSTK applications continue to work, but without SHSTK
-> protection.
-> 
-> The user-mode SHSTK protection is only implemented for the 64-bit kernel.
-> IA32 applications are supported under the compatibility mode.
+> v9:
+> - Add VM_SHSTK case to arch_vma_name().
+> - Revise the commit log to explain why a new VM flag is needed.
 > 
 > Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
-> ---
->  arch/x86/Kconfig  | 22 ++++++++++++++++++++++
->  arch/x86/Makefile |  7 +++++++
->  2 files changed, 29 insertions(+)
-> 
-> diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
-> index 5e8949953660..6c34b701c588 100644
-> --- a/arch/x86/Kconfig
-> +++ b/arch/x86/Kconfig
-> @@ -1974,6 +1974,28 @@ config X86_INTEL_TSX_MODE_AUTO
->  	  side channel attacks- equals the tsx=auto command line parameter.
->  endchoice
->  
-> +config X86_INTEL_CET
-> +	def_bool n
-> +
-> +config ARCH_HAS_SHSTK
-> +	def_bool n
-> +
-> +config X86_INTEL_SHADOW_STACK_USER
-> +	prompt "Intel Shadow Stack for user-mode"
-> +	def_bool n
-> +	depends on CPU_SUP_INTEL && X86_64
-> +	select ARCH_USES_HIGH_VMA_FLAGS
-> +	select X86_INTEL_CET
-> +	select ARCH_HAS_SHSTK
-> +	---help---
-> +	  Shadow Stack (SHSTK) provides protection against program
-> +	  stack corruption.  It is active when the kernel has this
-> +	  feature enabled, and the processor and the application
-> +	  support it.  When this feature is enabled, legacy non-SHSTK
-> +	  applications continue to work, but without SHSTK protection.
-> +
-> +	  If unsure, say y.
-> +
->  config EFI
->  	bool "EFI runtime service support"
->  	depends on ACPI
-> diff --git a/arch/x86/Makefile b/arch/x86/Makefile
-> index 94df0868804b..c34f5befa4c8 100644
-> --- a/arch/x86/Makefile
-> +++ b/arch/x86/Makefile
-> @@ -149,6 +149,13 @@ ifdef CONFIG_X86_X32
->  endif
->  export CONFIG_X86_X32_ABI
->  
-> +# Check assembler Shadow Stack suppot
-> +ifdef CONFIG_X86_INTEL_SHADOW_STACK_USER
-> +  ifeq ($(call as-instr, saveprevssp, y),)
 
-This test needs to happen in the Kconfig rather than the Makefile; the
-CONFIG should be unavailable if AS doesn't support the feature.
+Reviewed-by: Kees Cook <keescook@chromium.org>
 
 -Kees
 
-> +      $(error CONFIG_X86_INTEL_SHADOW_STACK_USER not supported by the assembler)
-> +  endif
-> +endif
+> ---
+>  arch/x86/mm/mmap.c | 2 ++
+>  fs/proc/task_mmu.c | 3 +++
+>  include/linux/mm.h | 8 ++++++++
+>  3 files changed, 13 insertions(+)
+> 
+> diff --git a/arch/x86/mm/mmap.c b/arch/x86/mm/mmap.c
+> index aae9a933dfd4..482813b4c659 100644
+> --- a/arch/x86/mm/mmap.c
+> +++ b/arch/x86/mm/mmap.c
+> @@ -165,6 +165,8 @@ const char *arch_vma_name(struct vm_area_struct *vma)
+>  {
+>  	if (vma->vm_flags & VM_MPX)
+>  		return "[mpx]";
+> +	else if (vma->vm_flags & VM_SHSTK)
+> +		return "[shadow stack]";
+>  	return NULL;
+>  }
+>  
+> diff --git a/fs/proc/task_mmu.c b/fs/proc/task_mmu.c
+> index 9442631fd4af..590b58ee008a 100644
+> --- a/fs/proc/task_mmu.c
+> +++ b/fs/proc/task_mmu.c
+> @@ -687,6 +687,9 @@ static void show_smap_vma_flags(struct seq_file *m, struct vm_area_struct *vma)
+>  		[ilog2(VM_PKEY_BIT4)]	= "",
+>  #endif
+>  #endif /* CONFIG_ARCH_HAS_PKEYS */
+> +#ifdef CONFIG_X86_INTEL_SHADOW_STACK_USER
+> +		[ilog2(VM_SHSTK)]	= "ss",
+> +#endif
+>  	};
+>  	size_t i;
+>  
+> diff --git a/include/linux/mm.h b/include/linux/mm.h
+> index cfaa8feecfe8..b5145fbe102e 100644
+> --- a/include/linux/mm.h
+> +++ b/include/linux/mm.h
+> @@ -298,11 +298,13 @@ extern unsigned int kobjsize(const void *objp);
+>  #define VM_HIGH_ARCH_BIT_2	34	/* bit only usable on 64-bit architectures */
+>  #define VM_HIGH_ARCH_BIT_3	35	/* bit only usable on 64-bit architectures */
+>  #define VM_HIGH_ARCH_BIT_4	36	/* bit only usable on 64-bit architectures */
+> +#define VM_HIGH_ARCH_BIT_5	37	/* bit only usable on 64-bit architectures */
+>  #define VM_HIGH_ARCH_0	BIT(VM_HIGH_ARCH_BIT_0)
+>  #define VM_HIGH_ARCH_1	BIT(VM_HIGH_ARCH_BIT_1)
+>  #define VM_HIGH_ARCH_2	BIT(VM_HIGH_ARCH_BIT_2)
+>  #define VM_HIGH_ARCH_3	BIT(VM_HIGH_ARCH_BIT_3)
+>  #define VM_HIGH_ARCH_4	BIT(VM_HIGH_ARCH_BIT_4)
+> +#define VM_HIGH_ARCH_5	BIT(VM_HIGH_ARCH_BIT_5)
+>  #endif /* CONFIG_ARCH_USES_HIGH_VMA_FLAGS */
+>  
+>  #ifdef CONFIG_ARCH_HAS_PKEYS
+> @@ -340,6 +342,12 @@ extern unsigned int kobjsize(const void *objp);
+>  # define VM_MPX		VM_NONE
+>  #endif
+>  
+> +#ifdef CONFIG_X86_INTEL_SHADOW_STACK_USER
+> +# define VM_SHSTK	VM_HIGH_ARCH_5
+> +#else
+> +# define VM_SHSTK	VM_NONE
+> +#endif
 > +
->  #
->  # If the function graph tracer is used with mcount instead of fentry,
->  # '-maccumulate-outgoing-args' is needed to prevent a GCC bug
+>  #ifndef VM_GROWSUP
+>  # define VM_GROWSUP	VM_NONE
+>  #endif
 > -- 
 > 2.21.0
 > 
