@@ -1,46 +1,91 @@
-From: Steven Rostedt <rostedt@goodmis.org>
-Subject: Re: [PATCH v4 05/27] x86: Replace ist_enter() with nmi_enter()
-Date: Mon, 24 Feb 2020 17:02:31 -0500
-Message-ID: <20200224170231.3807931d@gandalf.local.home>
+From: Frederic Weisbecker <frederic@kernel.org>
+Subject: Re: [PATCH v4 02/27] hardirq/nmi: Allow nested nmi_enter()
+Date: Tue, 25 Feb 2020 02:30:14 +0100
+Message-ID: <20200225013013.GA28329@lenoir>
 References: <20200221133416.777099322@infradead.org>
-        <20200221134215.328642621@infradead.org>
-        <CALCETrU7nezN7d3GEZ8h8HbRfvZ0+F9+Ahb7fLvZ9FVaHN9x2w@mail.gmail.com>
-        <20200221202246.GA14897@hirez.programming.kicks-ass.net>
-        <20200224104346.GJ14946@hirez.programming.kicks-ass.net>
-        <20200224112708.4f307ba3@gandalf.local.home>
-        <20200224163409.GJ18400@hirez.programming.kicks-ass.net>
-        <20200224114754.0fb798c1@gandalf.local.home>
-        <20200224213139.GO11457@worktop.programming.kicks-ass.net>
+ <20200221134215.149193474@infradead.org>
+ <20200221222129.GB28251@lenoir>
+ <20200224121331.tnkvp6mmjchm4s2i@pathway.suse.cz>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:43188 "EHLO mail.kernel.org"
+Received: from mail.kernel.org ([198.145.29.99]:52956 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726980AbgBXWCf (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 24 Feb 2020 17:02:35 -0500
-In-Reply-To: <20200224213139.GO11457@worktop.programming.kicks-ass.net>
+        id S1728523AbgBYBaR (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 24 Feb 2020 20:30:17 -0500
+Content-Disposition: inline
+In-Reply-To: <20200224121331.tnkvp6mmjchm4s2i@pathway.suse.cz>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Andy Lutomirski <luto@kernel.org>, LKML <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Ingo Molnar <mingo@kernel.org>, Joel Fernandes <joel@joelfernandes.org>, Greg KH <gregkh@linuxfoundation.org>, gustavo@embeddedor.com, Thomas Gleixner <tglx@linutronix.de>, paulmck@kernel.org, Josh Triplett <josh@joshtriplett.org>, Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, Lai Jiangshan <jiangshanlai@gmail.com>, Tony Luck <tony.luck@intel.com>, Frederic Weisbecker <frederic@kernel.org>, Dan Carpenter <dan.carpenter@oracle.com>, Masami Hiramatsu <mhiramat@kernel.org>
+To: Petr Mladek <pmladek@suse.com>
+Cc: Peter Zijlstra <peterz@infradead.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, rostedt@goodmis.org, mingo@kernel.org, joel@joelfernandes.org, gregkh@linuxfoundation.org, gustavo@embeddedor.com, tglx@linutronix.de, paulmck@kernel.org, josh@joshtriplett.org, mathieu.desnoyers@efficios.com, jiangshanlai@gmail.com, luto@kernel.org, tony.luck@intel.com, dan.carpenter@oracle.com, mhiramat@kernel.org, Will Deacon <will@kernel.org>, Marc Zyngier <maz@kernel.org>
 
-On Mon, 24 Feb 2020 22:31:39 +0100
-Peter Zijlstra <peterz@infradead.org> wrote:
-
-> > Just want to confirm that printk_nmi_enter(), lockdep_off(),
-> > and ftrace_nmi_enter() are all marked fully with NOKPROBE.  
+On Mon, Feb 24, 2020 at 01:13:31PM +0100, Petr Mladek wrote:
+> On Fri 2020-02-21 23:21:30, Frederic Weisbecker wrote:
+> > If the outermost NMI is interrupted while between printk_nmi_enter()
+> > and preempt_count_add(), there is still a risk that we race and clear?
 > 
-> *sigh*, right you are, I only looked at notrace, not nokprobe.
+> Great catch!
 > 
-> In particular the ftrace one is a bit off a mess, let me sort through
-> that.
+> There is plenty of space in the printk_context variable. I would
+> reserve one byte there for the NMI context to be on the safe side
+> and be done with it.
+> 
+> It should never overflow. The BUG_ON(in_nmi() == NMI_MASK)
+> in nmi_enter() will trigger much earlier.
+> 
+> Also I hope that printk_context will get removed with
+> the lockless printk() implementation soon anyway.
 
-ftrace_nmi_enter() has two purposes. One, for archs that need to deal with
-NMIs while they still use stop machine. Although, it appears sh is the only
-arch that does that. I can look to see if it can be ripped out.
+Cool, because it's sad that we have to mimic/mirror the preempt count
+with printk_context just for the sake of debugging preempt_count_add()
+and other early code in nmi_enter().
 
-The other is for the hwlat detector that measures the time it was in an
-NMI, as NMIs appear as a hardware latency too.
+The diff below looks good, thanks!
 
--- Steve
+Reviewed-by: Frederic Weisbecker <frederic@kernel.org>
+
+
+> 
+> 
+> diff --git a/kernel/printk/internal.h b/kernel/printk/internal.h
+> index c8e6ab689d42..109c5ab70a0c 100644
+> --- a/kernel/printk/internal.h
+> +++ b/kernel/printk/internal.h
+> @@ -6,9 +6,11 @@
+>  
+>  #ifdef CONFIG_PRINTK
+>  
+> -#define PRINTK_SAFE_CONTEXT_MASK	 0x3fffffff
+> -#define PRINTK_NMI_DIRECT_CONTEXT_MASK	 0x40000000
+> -#define PRINTK_NMI_CONTEXT_MASK		 0x80000000
+> +#define PRINTK_SAFE_CONTEXT_MASK	0x007ffffff
+> +#define PRINTK_NMI_DIRECT_CONTEXT_MASK	0x008000000
+> +#define PRINTK_NMI_CONTEXT_MASK		0xff0000000
+> +
+> +#define PRINTK_NMI_CONTEXT_OFFSET	0x010000000
+>  
+>  extern raw_spinlock_t logbuf_lock;
+>  
+> diff --git a/kernel/printk/printk_safe.c b/kernel/printk/printk_safe.c
+> index b4045e782743..e8989418a139 100644
+> --- a/kernel/printk/printk_safe.c
+> +++ b/kernel/printk/printk_safe.c
+> @@ -296,12 +296,12 @@ static __printf(1, 0) int vprintk_nmi(const char *fmt, va_list args)
+>  
+>  void notrace printk_nmi_enter(void)
+>  {
+> -	this_cpu_or(printk_context, PRINTK_NMI_CONTEXT_MASK);
+> +	this_cpu_add(printk_context, PRINTK_NMI_CONTEXT_OFFSET);
+>  }
+>  
+>  void notrace printk_nmi_exit(void)
+>  {
+> -	this_cpu_and(printk_context, ~PRINTK_NMI_CONTEXT_MASK);
+> +	this_cpu_sub(printk_context, PRINTK_NMI_CONTEXT_OFFSET);
+>  }
+>  
+>  /*
+> 
+> Best Regards,
+> Petr
