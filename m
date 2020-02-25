@@ -1,76 +1,88 @@
-Return-Path: <SRS0=hCVk=4O=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail-qk1-f195.google.com ([209.85.222.195]:34922 "EHLO
-        mail-qk1-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728035AbgBZX7u (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 26 Feb 2020 18:59:50 -0500
-Date: Thu, 27 Feb 2020 07:59:42 +0800
-From: Boqun Feng <boqun.feng@gmail.com>
-Subject: Re: [PATCH] tools/memory-model: Remove lock-final checking in
- lock.cat
-Message-ID: <20200226235942.GR69864@debian-boqun.qqnc3lrjykvubdpftowmye0fmh.lx.internal.cloudapp.net>
-References: <20200226032142.89424-1-boqun.feng@gmail.com>
- <Pine.LNX.4.44L0.2002260953110.3674-100000@netrider.rowland.org>
+Return-Path: <SRS0=e/bK=4N=vger.kernel.org=linux-doc-owner@kernel.org>
+Date: Tue, 25 Feb 2020 13:10:14 -0800
+From: Kees Cook <keescook@chromium.org>
+Subject: Re: [RFC PATCH v9 18/27] x86/cet/shstk: Introduce WRUSS instruction
+Message-ID: <202002251309.E238DFEEB4@keescook>
+References: <20200205181935.3712-1-yu-cheng.yu@intel.com>
+ <20200205181935.3712-19-yu-cheng.yu@intel.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <Pine.LNX.4.44L0.2002260953110.3674-100000@netrider.rowland.org>
-Sender: linux-arch-owner@vger.kernel.org
+In-Reply-To: <20200205181935.3712-19-yu-cheng.yu@intel.com>
+Sender: linux-doc-owner@vger.kernel.org
+To: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Cc: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>, x86-patch-review@intel.com
 List-ID: <linux-arch.vger.kernel.org>
-To: Alan Stern <stern@rowland.harvard.edu>
-Cc: linux-kernel@vger.kernel.org, rcu@vger.kernel.org, Andrea Parri <parri.andrea@gmail.com>, Will Deacon <will@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Nicholas Piggin <npiggin@gmail.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, "Paul E. McKenney" <paulmck@kernel.org>, Akira Yokosawa <akiyks@gmail.com>, Daniel Lustig <dlustig@nvidia.com>, linux-arch@vger.kernel.org
-Message-ID: <20200226235942.cEioYHOQm682y6mzLj15i58sSORhppLzKhtmjHZOoEY@z>
+Message-ID: <20200225211014.Hr0z8e6QPzlrCptI9GFcgydjLDEBXb8lPeJRpCoc8qI@z>
 
-On Wed, Feb 26, 2020 at 09:58:12AM -0500, Alan Stern wrote:
-> On Wed, 26 Feb 2020, Boqun Feng wrote:
+On Wed, Feb 05, 2020 at 10:19:26AM -0800, Yu-cheng Yu wrote:
+> WRUSS is a new kernel-mode instruction but writes directly to user Shadow
+> Stack (SHSTK) memory.  This is used to construct a return address on SHSTK
+> for the signal handler.
 > 
-> > In commit 30b795df11a1 ("tools/memory-model: Improve mixed-access
-> > checking in lock.cat"), we have added the checking to disallow any
-> > normal memory access to lock variables, and this checking is stronger
-> > than lock-final. So remove the lock-final checking as it's unnecessary
-> > now.
+> This instruction can fault if the user SHSTK is not valid SHSTK memory.
+> In that case, the kernel does a fixup.
+
+Since these functions aren't used in this patch, should this get merged
+with patch 19?
+
+-Kees
+
 > 
-> I don't understand this description.  Why do you say that the
-> normal-access checking is stronger than the lock-final check?
+> v4:
+> - Change to asm goto.
 > 
-> > Signed-off-by: Boqun Feng <boqun.feng@gmail.com>
-> > ---
-> >  tools/memory-model/lock.cat | 3 ---
-> >  1 file changed, 3 deletions(-)
-> > 
-> > diff --git a/tools/memory-model/lock.cat b/tools/memory-model/lock.cat
-> > index 6b52f365d73a..827a3646607c 100644
-> > --- a/tools/memory-model/lock.cat
-> > +++ b/tools/memory-model/lock.cat
-> > @@ -54,9 +54,6 @@ flag ~empty LKR \ domain(lk-rmw) as unpaired-LKR
-> >   *)
-> >  empty ([LKW] ; po-loc ; [LKR]) \ (po-loc ; [UL] ; po-loc) as lock-nest
-> >  
-> > -(* The final value of a spinlock should not be tested *)
-> > -flag ~empty [FW] ; loc ; [ALL-LOCKS] as lock-final
-> > -
-> >  (*
-> >   * Put lock operations in their appropriate classes, but leave UL out of W
-> >   * until after the co relation has been generated.
+> Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
+> ---
+>  arch/x86/include/asm/special_insns.h | 32 ++++++++++++++++++++++++++++
+>  1 file changed, 32 insertions(+)
 > 
-> With this check removed, what will prevent people from writing litmus 
-> tests like this?
+> diff --git a/arch/x86/include/asm/special_insns.h b/arch/x86/include/asm/special_insns.h
+> index 6d37b8fcfc77..1b9b2e79c353 100644
+> --- a/arch/x86/include/asm/special_insns.h
+> +++ b/arch/x86/include/asm/special_insns.h
+> @@ -222,6 +222,38 @@ static inline void clwb(volatile void *__p)
+>  		: [pax] "a" (p));
+>  }
+>  
+> +#ifdef CONFIG_X86_INTEL_CET
+> +#if defined(CONFIG_IA32_EMULATION) || defined(CONFIG_X86_X32)
+> +static inline int write_user_shstk_32(unsigned long addr, unsigned int val)
+> +{
+> +	asm_volatile_goto("1: wrussd %1, (%0)\n"
+> +			  _ASM_EXTABLE(1b, %l[fail])
+> +			  :: "r" (addr), "r" (val)
+> +			  :: fail);
+> +	return 0;
+> +fail:
+> +	return -EPERM;
+> +}
+> +#else
+> +static inline int write_user_shstk_32(unsigned long addr, unsigned int val)
+> +{
+> +	WARN_ONCE(1, "%s used but not supported.\n", __func__);
+> +	return -EFAULT;
+> +}
+> +#endif
+> +
+> +static inline int write_user_shstk_64(unsigned long addr, unsigned long val)
+> +{
+> +	asm_volatile_goto("1: wrussq %1, (%0)\n"
+> +			  _ASM_EXTABLE(1b, %l[fail])
+> +			  :: "r" (addr), "r" (val)
+> +			  :: fail);
+> +	return 0;
+> +fail:
+> +	return -EPERM;
+> +}
+> +#endif /* CONFIG_X86_INTEL_CET */
+> +
+>  #define nop() asm volatile ("nop")
+>  
+>  
+> -- 
+> 2.21.0
 > 
 
-You are right, one thing I was missing is although FW is a subset of M,
-however FW & IW is not empty. Thanks! I will drop this.
-
-Regards,
-Boqun
-
-> C test
-> 
-> {
-> 	spinlock_t s;
-> }
-> 
-> ...
-> 
-> exists (s=0)
-> 
-> Alan
-> 
+-- 
+Kees Cook
