@@ -1,52 +1,70 @@
-From: Rob Herring <robh@kernel.org>
-Subject: Re: [PATCH 00/10] Hi,
-Date: Tue, 25 Feb 2020 10:32:05 -0600
-Message-ID: <CAL_JsqLf2e3z+m14264WFcsQgiwKR35Rs9Rw0c_MgoFvKwO2Xg@mail.gmail.com>
-References: <cover.1581497860.git.michal.simek@xilinx.com> <CAL_JsqJeXJ6zWvEUi=gyOV0eCcXsvNmkK9EstC9hg9AKfMXnKw@mail.gmail.com>
- <0f8140c1-da6f-ef04-0809-252d6de6a5d7@xilinx.com>
+From: Mark Brown <broonie@kernel.org>
+Subject: Re: [PATCH v6 05/11] arm64: elf: Enable BTI at exec based on ELF
+ program properties
+Date: Tue, 25 Feb 2020 17:27:23 +0000
+Message-ID: <20200225172723.GG4633@sirena.org.uk>
+References: <20200212192906.53366-1-broonie@kernel.org>
+ <20200212192906.53366-6-broonie@kernel.org>
+ <275b9cdb-7835-0dfe-9bea-acb0d8301e36@arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: multipart/signed; micalg=pgp-sha512;
+        protocol="application/pgp-signature"; boundary="TmwHKJoIRFM7Mu/A"
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:38122 "EHLO mail.kernel.org"
+Received: from foss.arm.com ([217.140.110.172]:53552 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1730628AbgBYQcS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 25 Feb 2020 11:32:18 -0500
-In-Reply-To: <0f8140c1-da6f-ef04-0809-252d6de6a5d7@xilinx.com>
+        id S1728200AbgBYR1Z (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 25 Feb 2020 12:27:25 -0500
+Content-Disposition: inline
+In-Reply-To: <275b9cdb-7835-0dfe-9bea-acb0d8301e36@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Michal Simek <michal.simek@xilinx.com>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Michal Simek <monstr@monstr.eu>, git <git@xilinx.com>, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>, Arvind Sankar <nivedita@alum.mit.edu>, Borislav Petkov <bp@suse.de>, Cornelia Huck <cohuck@redhat.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Greg Ungerer <gerg@linux-m68k.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, Kees Cook <keescook@chromium.org>, Masahiro Yamada <yamada.masahiro@socionext.com>, Mike Rapoport <rppt@linux.ibm.com>, Mubin Sayyed <mubinusm@xilinx.com>, Nicholas Piggin <npiggin@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Palmer
+To: Amit Kachhap <amit.kachhap@arm.com>
+Cc: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Alexander Viro <viro@zeniv.linux.org.uk>, Paul Elliott <paul.elliott@arm.com>, Peter Zijlstra <peterz@infradead.org>, Yu-cheng Yu <yu-cheng.yu@intel.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Marc Zyngier <maz@kernel.org>, Eugene Syromiatnikov <esyr@redhat.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, "H . J . Lu" <hjl.tools@gmail.com>, Andrew Jones <drjones@redhat.com>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Jann Horn <jannh@google.com>, Richard Henderson <richard.henderson@linaro.org>, Kristina =?utf-8?Q?Mart=C5=A1enko?= <kristina.martsenko@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Florian Weimer <fweimer@redhat.com>, Sudakshi
 
-On Mon, Feb 17, 2020 at 8:28 AM Michal Simek <michal.simek@xilinx.com> wrote:
->
-> Hi Rob,
->
-> On 14. 02. 20 0:47, Rob Herring wrote:
-> > On Wed, Feb 12, 2020 at 2:58 AM Michal Simek <michal.simek@xilinx.com> wrote:
-> >>
-> >>
-> >> I am sending this series as before SMP support.
-> >> Most of these patches are clean ups and should be easy to review them. I
-> >> expect there will be more discussions about SMP support.
-> >
-> > While not really related to adding SMP, any chance you or someone
-> > could look at moving microblaze PCI support to drivers/pci/? I suspect
-> > much of the code should drop out as we have common helpers for much of
-> > it now. That would leave only powerpc and mips for DT+PCI platforms.
->
-> can you please suggest changes which could be done?
-> I have CC Bharat and he could look at it.
 
-Look at the host controller drivers in drivers/pci/controller/.
-pci-host-{generic,common}.c is a good template to start with as that's
-a controller with standard config space accesses and no h/w setup
-needed. Essentially you need to call devm_pci_alloc_host_bridge(),
-pci_parse_request_of_pci_ranges() and pci_host_probe() with whatever
-h/w setup you need in between those calls.
+--TmwHKJoIRFM7Mu/A
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
 
-Looking at the microblaze PCI code, looks like you may need custom
-config space accessors which is quite common. Probably all the
-resource and device scanning can be removed. If you look at arm64, all
-the arch PCI code is just for ACPI.
+On Tue, Feb 25, 2020 at 06:58:50PM +0530, Amit Kachhap wrote:
+> On 2/13/20 12:59 AM, Mark Brown wrote:
 
-Rob
+> > +static inline int arch_parse_elf_property(u32 type, const void *data,
+> > +					  size_t datasz, bool compat,
+> > +					  struct arch_elf_state *arch)
+> > +{
+
+> Does this check here make sense to skip running extra code?
+>     if (!system_supports_bti())
+>              return 0;
+
+This specifically is the wrong place for such a test since we didn't
+even figure out if we're looking at the BTI property yet so it'd need to
+be moved if any further properties are added.
+
+> Although this check is there in arch_validate_prot.
+
+And more importantly in arch_calc_vm_prot_bits() so we never actually
+create guarded pages on a system that doesn't support BTI.  That said I
+do agree that it seems reasonable to add an explicit check in the
+parsing of the actual BTI property for robustness and clarity, I'll do a
+patch for that and roll it into any future versions or send it
+incrementally if this one is applied but it doesn't seem sensible to
+spin the whole series with the very broad CC list it has.
+
+--TmwHKJoIRFM7Mu/A
+Content-Type: application/pgp-signature; name="signature.asc"
+
+-----BEGIN PGP SIGNATURE-----
+
+iQEzBAABCgAdFiEEreZoqmdXGLWf4p/qJNaLcl1Uh9AFAl5VWPoACgkQJNaLcl1U
+h9Bq6Af/XISIHfTbIdVWLIy9cav1xBGoNheQB8U8jrd370PqkAtHsvZwnq9aDdt3
+IxSWEuRVgj4bCprzm7gRSiLT5DSxNEqraVfT9GtbAy2Yi/ErLTSHRTCafCelguRv
+guxddwpmSo/yyNcyW0xen19YAhFjJ+VAKjlPdO0ApbplIBWPzwX7cvO7db6qnH9m
+k0GBhysZIXjhJW9KtjmFjdeiJxWGkjTXMDiC5O+Lq0/PL5MIWzrALmT45mFq4Ojf
+1rHAkV6H/8HqU7hSGxnKegK5uwx/gPT2JjhKVYoXXnTIogDeFmnBuz4ZlWMaVD0P
+3T4W1JDe639jb8v2EqZNxjdsU2XPFA==
+=os2p
+-----END PGP SIGNATURE-----
+
+--TmwHKJoIRFM7Mu/A--
