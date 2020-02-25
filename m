@@ -1,157 +1,228 @@
-Return-Path: <SRS0=c96G=4D=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:55254 "EHLO mail.kernel.org"
+Return-Path: <SRS0=ZEfg=4N=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from foss.arm.com ([217.140.110.172]:50816 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726143AbgBORNc (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Sat, 15 Feb 2020 12:13:32 -0500
-Date: Sat, 15 Feb 2020 06:59:34 -0800
-From: "Paul E. McKenney" <paulmck@kernel.org>
-Subject: Re: [PATCH v2 3/9] rcu,tracing: Create trace_rcu_{enter,exit}()
-Message-ID: <20200215145934.GD2935@paulmck-ThinkPad-P72>
-Reply-To: paulmck@kernel.org
-References: <20200213164031.GH14914@hirez.programming.kicks-ass.net>
- <20200213185612.GG2935@paulmck-ThinkPad-P72>
- <20200213204444.GA94647@google.com>
- <20200213205442.GK2935@paulmck-ThinkPad-P72>
- <20200213211930.GG170680@google.com>
- <20200213163800.5c51a5f1@gandalf.local.home>
- <20200213215004.GM2935@paulmck-ThinkPad-P72>
- <20200213170451.690c4e5c@gandalf.local.home>
- <20200213223918.GN2935@paulmck-ThinkPad-P72>
- <20200214151906.b1354a7ed6b01fc3bf2de862@kernel.org>
+        id S1725788AbgBYN27 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 25 Feb 2020 08:28:59 -0500
+Subject: Re: [PATCH v6 05/11] arm64: elf: Enable BTI at exec based on ELF
+ program properties
+References: <20200212192906.53366-1-broonie@kernel.org>
+ <20200212192906.53366-6-broonie@kernel.org>
+From: Amit Kachhap <amit.kachhap@arm.com>
+Message-ID: <275b9cdb-7835-0dfe-9bea-acb0d8301e36@arm.com>
+Date: Tue, 25 Feb 2020 18:58:50 +0530
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20200214151906.b1354a7ed6b01fc3bf2de862@kernel.org>
+In-Reply-To: <20200212192906.53366-6-broonie@kernel.org>
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Masami Hiramatsu <mhiramat@kernel.org>
-Cc: Steven Rostedt <rostedt@goodmis.org>, Joel Fernandes <joel@joelfernandes.org>, Peter Zijlstra <peterz@infradead.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org, gregkh@linuxfoundation.org, gustavo@embeddedor.com, tglx@linutronix.de, josh@joshtriplett.org, mathieu.desnoyers@efficios.com, jiangshanlai@gmail.com
-Message-ID: <20200215145934.qKWm7Z1ONWJFjYr-xYAIy6ac1MqVcsG8twSn-4OP0L0@z>
+To: Mark Brown <broonie@kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>
+Cc: Alexander Viro <viro@zeniv.linux.org.uk>, Paul Elliott <paul.elliott@arm.com>, Peter Zijlstra <peterz@infradead.org>, Yu-cheng Yu <yu-cheng.yu@intel.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Marc Zyngier <maz@kernel.org>, Eugene Syromiatnikov <esyr@redhat.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, "H . J . Lu" <hjl.tools@gmail.com>, Andrew Jones <drjones@redhat.com>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Jann Horn <jannh@google.com>, Richard Henderson <richard.henderson@linaro.org>, =?UTF-8?Q?Kristina_Mart=c5=a1enko?= <kristina.martsenko@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Florian Weimer <fweimer@redhat.com>, Sudakshina Das <sudi.das@arm.com>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, Dave Martin <Dave.Martin@arm.com>
+Message-ID: <20200225132850.8nij0QDc4zJ-TOhvT4R0YEg8sZKmIyE7FXVq_d1BEtc@z>
 
-On Fri, Feb 14, 2020 at 03:19:06PM +0900, Masami Hiramatsu wrote:
-> On Thu, 13 Feb 2020 14:39:18 -0800
-> "Paul E. McKenney" <paulmck@kernel.org> wrote:
+
+
+On 2/13/20 12:59 AM, Mark Brown wrote:
+> From: Dave Martin <Dave.Martin@arm.com>
 > 
-> > On Thu, Feb 13, 2020 at 05:04:51PM -0500, Steven Rostedt wrote:
-> > > On Thu, 13 Feb 2020 13:50:04 -0800
-> > > "Paul E. McKenney" <paulmck@kernel.org> wrote:
-> > > 
-> > > > On Thu, Feb 13, 2020 at 04:38:25PM -0500, Steven Rostedt wrote:
-> > > > > [ Added Masami ]
-> > > > > 
-> > > > > On Thu, 13 Feb 2020 16:19:30 -0500
-> > > > > Joel Fernandes <joel@joelfernandes.org> wrote:
-> > > > >   
-> > > > > > On Thu, Feb 13, 2020 at 12:54:42PM -0800, Paul E. McKenney wrote:  
-> > > > > > > On Thu, Feb 13, 2020 at 03:44:44PM -0500, Joel Fernandes wrote:    
-> > > > > > > > On Thu, Feb 13, 2020 at 10:56:12AM -0800, Paul E. McKenney wrote:
-> > > > > > > > [...]     
-> > > > > > > > > > > It might well be that I could make these functions be NMI-safe, but
-> > > > > > > > > > > rcu_prepare_for_idle() in particular would be a bit ugly at best.
-> > > > > > > > > > > So, before looking into that, I have a question.  Given these proposed
-> > > > > > > > > > > changes, will rcu_nmi_exit_common() and rcu_nmi_enter_common() be able
-> > > > > > > > > > > to just use in_nmi()?    
-> > > > > > > > > > 
-> > > > > > > > > > That _should_ already be the case today. That is, if we end up in a
-> > > > > > > > > > tracer and in_nmi() is unreliable we're already screwed anyway.    
-> > > > > > > > > 
-> > > > > > > > > So something like this, then?  This is untested, probably doesn't even
-> > > > > > > > > build, and could use some careful review from both Peter and Steve,
-> > > > > > > > > at least.  As in the below is the second version of the patch, the first
-> > > > > > > > > having been missing a couple of important "!" characters.    
-> > > > > > > > 
-> > > > > > > > I removed the static from rcu_nmi_enter()/exit() as it is called from
-> > > > > > > > outside, that makes it build now. Updated below is Paul's diff. I also added
-> > > > > > > > NOKPROBE_SYMBOL() to rcu_nmi_exit() to match rcu_nmi_enter() since it seemed
-> > > > > > > > asymmetric.    
-> > > > > > > 
-> > > > > > > My compiler complained about the static and the __always_inline, so I
-> > > > > > > fixed those.  But please help me out on adding the NOKPROBE_SYMBOL()
-> > > > > > > to rcu_nmi_exit().  What bad thing happens if we leave this on only
-> > > > > > > rcu_nmi_enter()?    
-> > > > > > 
-> > > > > > It seemed odd to me we were not allowing kprobe on the rcu_nmi_enter() but
-> > > > > > allowing it on exit (from a code reading standpoint) so my reaction was to
-> > > > > > add it to both, but we could probably keep that as a separate
-> > > > > > patch/discussion since it is slightly unrelated to the patch.. Sorry to
-> > > > > > confuse the topic.
-> > > > > >  
-> > > > > 
-> > > > > rcu_nmi_enter() was marked NOKPROBE or other reasons. See commit
-> > > > > c13324a505c77 ("x86/kprobes: Prohibit probing on functions before
-> > > > > kprobe_int3_handler()")
-> > > > > 
-> > > > > The issue was that we must not allow anything in do_int3() call kprobe
-> > > > > code before kprobe_int3_handler() is called. Because ist_enter() (in
-> > > > > do_int3()) calls rcu_nmi_enter() it had to be marked NOKPROBE. It had
-> > > > > nothing to do with it being RCU nor NMI, but because it was simply
-> > > > > called in do_int3().
-> > > > > 
-> > > > > Thus, there's no reason to make rcu_nmi_exit() NOKPROBE. But a commont
-> > > > > to why rcu_nmi_enter() would probably be useful, like below:  
-> > > > 
-> > > > Thank you, Steve!  Could I please have your Signed-off-by for this?
-> > > 
-> > > Sure, but it was untested ;-)
-> > 
-> > No problem!  I will fire up rcutorture on it.  ;-)
-> > 
-> > But experience indicates that you cannot even make a joke around here.
-> > There is probably already someone out there somewhere building a
-> > comment-checker based on deep semantic analysis and machine learning.  :-/
-> > 
-> > > Signed-off-by: Steven Rostedt (VMware) <rostedt@goodmis.org>
-> > > 
-> > > I'd like a Reviewed-by from Masami though.
-> > 
-> > Sounds good!  Masami, would you be willing to review?
+> For BTI protection to be as comprehensive as possible, it is
+> desirable to have BTI enabled from process startup.  If this is not
+> done, the process must use mprotect() to enable BTI for each of its
+> executable mappings, but this is painful to do in the libc startup
+> code.  It's simpler and more sound to have the kernel do it
+> instead.
 > 
-> Yes, the functions before calling kprobe_int3_handler() must not
-> be kprobed. It can cause an infinite recursive int3 trapping.
+> To this end, detect BTI support in the executable (or ELF
+> interpreter, as appropriate), via the
+> NT_GNU_PROGRAM_PROPERTY_TYPE_0 note, and tweak the initial prot
+> flags for the process' executable pages to include PROT_BTI as
+> appropriate.
 > 
-> Reviewed-by: Masami Hiramatsu <mhiramat@kernel.org>
+> Signed-off-by: Dave Martin <Dave.Martin@arm.com>
+> Signed-off-by: Mark Brown <broonie@kernel.org>
+> ---
+>   arch/arm64/Kconfig           |  3 +++
+>   arch/arm64/include/asm/elf.h | 50 ++++++++++++++++++++++++++++++++++++
+>   arch/arm64/kernel/process.c  | 19 ++++++++++++++
+>   include/linux/elf.h          |  6 ++++-
+>   include/uapi/linux/elf.h     |  6 +++++
+>   5 files changed, 83 insertions(+), 1 deletion(-)
+> 
+> diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
+> index e37f4f07b990..d65d226a77ec 100644
+> --- a/arch/arm64/Kconfig
+> +++ b/arch/arm64/Kconfig
+> @@ -9,6 +9,7 @@ config ARM64
+>   	select ACPI_MCFG if (ACPI && PCI)
+>   	select ACPI_SPCR_TABLE if ACPI
+>   	select ACPI_PPTT if ACPI
+> +	select ARCH_BINFMT_ELF_STATE
+>   	select ARCH_CLOCKSOURCE_DATA
+>   	select ARCH_HAS_DEBUG_VIRTUAL
+>   	select ARCH_HAS_DEVMEM_IS_ALLOWED
+> @@ -33,6 +34,7 @@ config ARM64
+>   	select ARCH_HAS_SYSCALL_WRAPPER
+>   	select ARCH_HAS_TEARDOWN_DMA_OPS if IOMMU_SUPPORT
+>   	select ARCH_HAS_TICK_BROADCAST if GENERIC_CLOCKEVENTS_BROADCAST
+> +	select ARCH_HAVE_ELF_PROT
+>   	select ARCH_HAVE_NMI_SAFE_CMPXCHG
+>   	select ARCH_INLINE_READ_LOCK if !PREEMPTION
+>   	select ARCH_INLINE_READ_LOCK_BH if !PREEMPTION
+> @@ -62,6 +64,7 @@ config ARM64
+>   	select ARCH_INLINE_SPIN_UNLOCK_IRQRESTORE if !PREEMPTION
+>   	select ARCH_KEEP_MEMBLOCK
+>   	select ARCH_USE_CMPXCHG_LOCKREF
+> +	select ARCH_USE_GNU_PROPERTY if BINFMT_ELF
+>   	select ARCH_USE_QUEUED_RWLOCKS
+>   	select ARCH_USE_QUEUED_SPINLOCKS
+>   	select ARCH_SUPPORTS_MEMORY_FAILURE
+> diff --git a/arch/arm64/include/asm/elf.h b/arch/arm64/include/asm/elf.h
+> index b618017205a3..fca3a48e9db5 100644
+> --- a/arch/arm64/include/asm/elf.h
+> +++ b/arch/arm64/include/asm/elf.h
+> @@ -114,7 +114,11 @@
+>   
+>   #ifndef __ASSEMBLY__
+>   
+> +#include <uapi/linux/elf.h>
+>   #include <linux/bug.h>
+> +#include <linux/errno.h>
+> +#include <linux/fs.h>
+> +#include <linux/types.h>
+>   #include <asm/processor.h> /* for signal_minsigstksz, used by ARCH_DLINFO */
+>   
+>   typedef unsigned long elf_greg_t;
+> @@ -224,6 +228,52 @@ extern int aarch32_setup_additional_pages(struct linux_binprm *bprm,
+>   
+>   #endif /* CONFIG_COMPAT */
+>   
+> +struct arch_elf_state {
+> +	int flags;
+> +};
+> +
+> +#define ARM64_ELF_BTI		(1 << 0)
+> +
+> +#define INIT_ARCH_ELF_STATE {			\
+> +	.flags = 0,				\
+> +}
+> +
+> +static inline int arch_parse_elf_property(u32 type, const void *data,
+> +					  size_t datasz, bool compat,
+> +					  struct arch_elf_state *arch)
+> +{
 
-Thank you both!
+Does this check here make sense to skip running extra code?
+     if (!system_supports_bti())
+              return 0;
+Although this check is there in arch_validate_prot.
 
-Like this?
-
-							Thanx, Paul
-
-------------------------------------------------------------------------
-
-commit 1817fdc8f4e4bd18c76305c9b937fb0dccbb1583
-Author: Steven Rostedt <rostedt@goodmis.org>
-Date:   Sat Feb 15 06:54:50 2020 -0800
-
-    rcu: Provide comment for NOKPROBE() on rcu_nmi_enter()
-    
-    The rcu_nmi_enter() function was marked NOKPROBE() by commit
-    c13324a505c77 ("x86/kprobes: Prohibit probing on functions before
-    kprobe_int3_handler()") because the do_int3() call kprobe code must
-    not be invoked before kprobe_int3_handler() is called.  It turns out
-    that ist_enter() (in do_int3()) calls rcu_nmi_enter(), hence the
-    marking NOKPROBE() being added to rcu_nmi_enter().
-    
-    This commit therefore adds a comment documenting this line of reasoning.
-    
-    Signed-off-by: Steven Rostedt <rostedt@goodmis.org>
-    Reviewed-by: Masami Hiramatsu <mhiramat@kernel.org>
-    Signed-off-by: Paul E. McKenney <paulmck@kernel.org>
-
-diff --git a/kernel/rcu/tree.c b/kernel/rcu/tree.c
-index 132b53e..4a885af 100644
---- a/kernel/rcu/tree.c
-+++ b/kernel/rcu/tree.c
-@@ -835,6 +835,12 @@ void rcu_nmi_enter(void)
- 		   rdp->dynticks_nmi_nesting + incby);
- 	barrier();
- }
-+/*
-+ * On x86, All functions in do_int3() must be marked NOKPROBE before
-+ * kprobe_int3_handler() is called. ist_enter() which is called in do_int3()
-+ * before kprobe_int3_handle() happens to call rcu_nmi_enter() which means
-+ * that rcu_nmi_enter() must be marked NOKRPOBE.
-+ */
- NOKPROBE_SYMBOL(rcu_nmi_enter);
- 
- /**
+> +	/* No known properties for AArch32 yet */
+> +	if (IS_ENABLED(CONFIG_COMPAT) && compat)
+> +		return 0;
+> +
+> +	if (type == GNU_PROPERTY_AARCH64_FEATURE_1_AND) {
+> +		const u32 *p = data;
+> +
+> +		if (datasz != sizeof(*p))
+> +			return -ENOEXEC;
+> +
+> +		if (IS_ENABLED(CONFIG_ARM64_BTI) &&
+> +		    (*p & GNU_PROPERTY_AARCH64_FEATURE_1_BTI))
+> +			arch->flags |= ARM64_ELF_BTI;
+> +	}
+> +
+> +	return 0;
+> +}
+> +
+> +static inline int arch_elf_pt_proc(void *ehdr, void *phdr,
+> +				   struct file *f, bool is_interp,
+> +				   struct arch_elf_state *state)
+> +{
+> +	return 0;
+> +}
+> +
+> +static inline int arch_check_elf(void *ehdr, bool has_interp,
+> +				 void *interp_ehdr,
+> +				 struct arch_elf_state *state)
+> +{
+> +	return 0;
+> +}
+> +
+>   #endif /* !__ASSEMBLY__ */
+>   
+>   #endif
+> diff --git a/arch/arm64/kernel/process.c b/arch/arm64/kernel/process.c
+> index bbb0f0c145f6..7545a3f743c4 100644
+> --- a/arch/arm64/kernel/process.c
+> +++ b/arch/arm64/kernel/process.c
+> @@ -11,6 +11,7 @@
+>   
+>   #include <linux/compat.h>
+>   #include <linux/efi.h>
+> +#include <linux/elf.h>
+>   #include <linux/export.h>
+>   #include <linux/sched.h>
+>   #include <linux/sched/debug.h>
+> @@ -18,6 +19,7 @@
+>   #include <linux/sched/task_stack.h>
+>   #include <linux/kernel.h>
+>   #include <linux/lockdep.h>
+> +#include <linux/mman.h>
+>   #include <linux/mm.h>
+>   #include <linux/stddef.h>
+>   #include <linux/sysctl.h>
+> @@ -649,3 +651,20 @@ asmlinkage void __sched arm64_preempt_schedule_irq(void)
+>   	if (system_capabilities_finalized())
+>   		preempt_schedule_irq();
+>   }
+> +
+> +#ifdef CONFIG_BINFMT_ELF
+> +int arch_elf_adjust_prot(int prot, const struct arch_elf_state *state,
+> +			 bool has_interp, bool is_interp)
+> +{
+> +	if (is_interp != has_interp)
+> +		return prot;
+> +
+> +	if (!(state->flags & ARM64_ELF_BTI))
+> +		return prot;
+> +
+> +	if (prot & PROT_EXEC)
+> +		prot |= PROT_BTI;
+> +
+> +	return prot;
+> +}
+> +#endif
+> diff --git a/include/linux/elf.h b/include/linux/elf.h
+> index 1b6e8955c597..5d5b0321da0b 100644
+> --- a/include/linux/elf.h
+> +++ b/include/linux/elf.h
+> @@ -63,7 +63,11 @@ extern int elf_coredump_extra_notes_size(void);
+>   extern int elf_coredump_extra_notes_write(struct coredump_params *cprm);
+>   #endif
+>   
+> -/* NT_GNU_PROPERTY_TYPE_0 header */
+> +/*
+> + * NT_GNU_PROPERTY_TYPE_0 header:
+> + * Keep this internal until/unless there is an agreed UAPI definition.
+> + * pr_type values (GNU_PROPERTY_*) are public and defined in the UAPI header.
+> + */
+>   struct gnu_property {
+>   	u32 pr_type;
+>   	u32 pr_datasz;
+> diff --git a/include/uapi/linux/elf.h b/include/uapi/linux/elf.h
+> index 20900f4496b7..c6dd0215482e 100644
+> --- a/include/uapi/linux/elf.h
+> +++ b/include/uapi/linux/elf.h
+> @@ -448,4 +448,10 @@ typedef struct elf64_note {
+>     Elf64_Word n_type;	/* Content type */
+>   } Elf64_Nhdr;
+>   
+> +/* .note.gnu.property types for EM_AARCH64: */
+> +#define GNU_PROPERTY_AARCH64_FEATURE_1_AND	0xc0000000
+> +
+> +/* Bits for GNU_PROPERTY_AARCH64_FEATURE_1_BTI */
+> +#define GNU_PROPERTY_AARCH64_FEATURE_1_BTI	(1U << 0)
+> +
+>   #endif /* _UAPI_LINUX_ELF_H */
+> 
