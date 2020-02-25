@@ -1,91 +1,49 @@
-From: Frederic Weisbecker <frederic@kernel.org>
-Subject: Re: [PATCH v4 02/27] hardirq/nmi: Allow nested nmi_enter()
-Date: Tue, 25 Feb 2020 02:30:14 +0100
-Message-ID: <20200225013013.GA28329@lenoir>
+From: Joel Fernandes <joel@joelfernandes.org>
+Subject: Re: [PATCH v4 01/27] lockdep: Teach lockdep about "USED" <- "IN-NMI"
+ inversions
+Date: Mon, 24 Feb 2020 21:12:20 -0500
+Message-ID: <20200225021220.GD253171@google.com>
 References: <20200221133416.777099322@infradead.org>
- <20200221134215.149193474@infradead.org>
- <20200221222129.GB28251@lenoir>
- <20200224121331.tnkvp6mmjchm4s2i@pathway.suse.cz>
+ <20200221134215.090538203@infradead.org>
+ <20200222030843.GA191380@google.com>
+ <20200224101050.GE14897@hirez.programming.kicks-ass.net>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:52956 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1728523AbgBYBaR (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 24 Feb 2020 20:30:17 -0500
+Received: from mail-qk1-f196.google.com ([209.85.222.196]:41586 "EHLO
+        mail-qk1-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1728489AbgBYCMW (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 24 Feb 2020 21:12:22 -0500
+Received: by mail-qk1-f196.google.com with SMTP id b5so3491520qkh.8
+        for <linux-arch@vger.kernel.org>; Mon, 24 Feb 2020 18:12:21 -0800 (PST)
 Content-Disposition: inline
-In-Reply-To: <20200224121331.tnkvp6mmjchm4s2i@pathway.suse.cz>
+In-Reply-To: <20200224101050.GE14897@hirez.programming.kicks-ass.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Petr Mladek <pmladek@suse.com>
-Cc: Peter Zijlstra <peterz@infradead.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, rostedt@goodmis.org, mingo@kernel.org, joel@joelfernandes.org, gregkh@linuxfoundation.org, gustavo@embeddedor.com, tglx@linutronix.de, paulmck@kernel.org, josh@joshtriplett.org, mathieu.desnoyers@efficios.com, jiangshanlai@gmail.com, luto@kernel.org, tony.luck@intel.com, dan.carpenter@oracle.com, mhiramat@kernel.org, Will Deacon <will@kernel.org>, Marc Zyngier <maz@kernel.org>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, rostedt@goodmis.org, mingo@kernel.org, gregkh@linuxfoundation.org, gustavo@embeddedor.com, tglx@linutronix.de, paulmck@kernel.org, josh@joshtriplett.org, mathieu.desnoyers@efficios.com, jiangshanlai@gmail.com, luto@kernel.org, tony.luck@intel.com, frederic@kernel.org, dan.carpenter@oracle.com, mhiramat@kernel.org
 
-On Mon, Feb 24, 2020 at 01:13:31PM +0100, Petr Mladek wrote:
-> On Fri 2020-02-21 23:21:30, Frederic Weisbecker wrote:
-> > If the outermost NMI is interrupted while between printk_nmi_enter()
-> > and preempt_count_add(), there is still a risk that we race and clear?
+On Mon, Feb 24, 2020 at 11:10:50AM +0100, Peter Zijlstra wrote:
+> On Fri, Feb 21, 2020 at 10:08:43PM -0500, Joel Fernandes wrote:
+> > On Fri, Feb 21, 2020 at 02:34:17PM +0100, Peter Zijlstra wrote:
+> > > nmi_enter() does lockdep_off() and hence lockdep ignores everything.
+> > > 
+> > > And NMI context makes it impossible to do full IN-NMI tracking like we
+> > > do IN-HARDIRQ, that could result in graph_lock recursion.
+> > 
+> > The patch makes sense to me.
+> > 
+> > Reviewed-by: Joel Fernandes (Google) <joel@joelfernandes.org>
+> > 
+> > NOTE:
+> > Also, I was wondering if we can detect the graph_lock recursion case and
+> > avoid doing anything bad, that way we enable more of the lockdep
+> > functionality for NMI where possible. Not sure if the suggestion makes sense
+> > though!
 > 
-> Great catch!
-> 
-> There is plenty of space in the printk_context variable. I would
-> reserve one byte there for the NMI context to be on the safe side
-> and be done with it.
-> 
-> It should never overflow. The BUG_ON(in_nmi() == NMI_MASK)
-> in nmi_enter() will trigger much earlier.
-> 
-> Also I hope that printk_context will get removed with
-> the lockless printk() implementation soon anyway.
+> Yeah, I considered playing trylock games, but figured I shouldn't make
+> it more complicated that it needs to be.
 
-Cool, because it's sad that we have to mimic/mirror the preempt count
-with printk_context just for the sake of debugging preempt_count_add()
-and other early code in nmi_enter().
+Yes, I agree with you. Thanks.
 
-The diff below looks good, thanks!
-
-Reviewed-by: Frederic Weisbecker <frederic@kernel.org>
-
-
-> 
-> 
-> diff --git a/kernel/printk/internal.h b/kernel/printk/internal.h
-> index c8e6ab689d42..109c5ab70a0c 100644
-> --- a/kernel/printk/internal.h
-> +++ b/kernel/printk/internal.h
-> @@ -6,9 +6,11 @@
->  
->  #ifdef CONFIG_PRINTK
->  
-> -#define PRINTK_SAFE_CONTEXT_MASK	 0x3fffffff
-> -#define PRINTK_NMI_DIRECT_CONTEXT_MASK	 0x40000000
-> -#define PRINTK_NMI_CONTEXT_MASK		 0x80000000
-> +#define PRINTK_SAFE_CONTEXT_MASK	0x007ffffff
-> +#define PRINTK_NMI_DIRECT_CONTEXT_MASK	0x008000000
-> +#define PRINTK_NMI_CONTEXT_MASK		0xff0000000
-> +
-> +#define PRINTK_NMI_CONTEXT_OFFSET	0x010000000
->  
->  extern raw_spinlock_t logbuf_lock;
->  
-> diff --git a/kernel/printk/printk_safe.c b/kernel/printk/printk_safe.c
-> index b4045e782743..e8989418a139 100644
-> --- a/kernel/printk/printk_safe.c
-> +++ b/kernel/printk/printk_safe.c
-> @@ -296,12 +296,12 @@ static __printf(1, 0) int vprintk_nmi(const char *fmt, va_list args)
->  
->  void notrace printk_nmi_enter(void)
->  {
-> -	this_cpu_or(printk_context, PRINTK_NMI_CONTEXT_MASK);
-> +	this_cpu_add(printk_context, PRINTK_NMI_CONTEXT_OFFSET);
->  }
->  
->  void notrace printk_nmi_exit(void)
->  {
-> -	this_cpu_and(printk_context, ~PRINTK_NMI_CONTEXT_MASK);
-> +	this_cpu_sub(printk_context, PRINTK_NMI_CONTEXT_OFFSET);
->  }
->  
->  /*
-> 
-> Best Regards,
-> Petr
+ - Joel
