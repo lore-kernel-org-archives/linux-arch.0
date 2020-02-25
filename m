@@ -1,637 +1,377 @@
-Return-Path: <SRS0=as/e=4M=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from smtp-sh2.infomaniak.ch ([128.65.195.6]:51329 "EHLO
-        smtp-sh2.infomaniak.ch" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726806AbgBXRDH (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 24 Feb 2020 12:03:07 -0500
-From: =?UTF-8?q?Micka=C3=ABl=20Sala=C3=BCn?= <mic@digikod.net>
-Subject: [RFC PATCH v14 01/10] landlock: Add object and rule management
-Date: Mon, 24 Feb 2020 17:02:06 +0100
-Message-ID: <20200224160215.4136-2-mic@digikod.net>
-In-Reply-To: <20200224160215.4136-1-mic@digikod.net>
-References: <20200224160215.4136-1-mic@digikod.net>
+Return-Path: <SRS0=e/bK=4N=vger.kernel.org=linux-doc-owner@kernel.org>
+Date: Tue, 25 Feb 2020 13:07:44 -0800
+From: Kees Cook <keescook@chromium.org>
+Subject: Re: [RFC PATCH v9 17/27] x86/cet/shstk: User-mode Shadow Stack
+ support
+Message-ID: <202002251306.2011C9374@keescook>
+References: <20200205181935.3712-1-yu-cheng.yu@intel.com>
+ <20200205181935.3712-18-yu-cheng.yu@intel.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
-Sender: linux-arch-owner@vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20200205181935.3712-18-yu-cheng.yu@intel.com>
+Sender: linux-doc-owner@vger.kernel.org
+To: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Cc: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>, x86-patch-review@intel.com
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: =?UTF-8?q?Micka=C3=ABl=20Sala=C3=BCn?= <mic@digikod.net>, Al Viro <viro@zeniv.linux.org.uk>, Andy Lutomirski <luto@amacapital.net>, Arnd Bergmann <arnd@arndb.de>, Casey Schaufler <casey@schaufler-ca.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, James Morris <jmorris@namei.org>, Jann Horn <jann@thejh.net>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Michael Kerrisk <mtk.manpages@gmail.com>, =?UTF-8?q?Micka=C3=ABl=20Sala=C3=BCn?= <mickael.salaun@ssi.gouv.fr>, "Serge E . Hallyn" <serge@hallyn.com>, Shuah Khan <shuah@kernel.org>, Vincent Dagonneau <vincent.dagonneau@ssi.gouv.fr>, kernel-hardening@lists.openwall.com, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-security-module@vger.kernel.org, x86@kernel.org
-Message-ID: <20200224160206.B8e38mssWGnSR5ZzE8pMitDJ6hBOMc--hruwT_KEViE@z>
+Message-ID: <20200225210744.bA9Ta9Sbo36PT7t07XB-rxRMY3qyJ4NsSL7gscopucQ@z>
 
-A Landlock object enables to identify a kernel object (e.g. an inode).
-A Landlock rule is a set of access rights allowed on an object.  Rules
-are grouped in rulesets that may be tied to a set of processes (i.e.
-subjects) to enforce a scoped access-control (i.e. a domain).
+On Wed, Feb 05, 2020 at 10:19:25AM -0800, Yu-cheng Yu wrote:
+> This patch adds basic Shadow Stack (SHSTK) enabling/disabling routines.
+> A task's SHSTK is allocated from memory with VM_SHSTK flag and read-only
+> protection.  It has a fixed size of RLIMIT_STACK.
+> 
+> v9:
+> - Change cpu_feature_enabled() to static_cpu_has().
+> - Merge cet_disable_shstk to cet_disable_free_shstk.
+> - Remove the empty slot at the top of the SHSTK, as it is not needed.
+> - Move do_mmap_locked() to alloc_shstk(), which is a static function.
+> 
+> v6:
+> - Create a function do_mmap_locked() for SHSTK allocation.
+> 
+> v2:
+> - Change noshstk to no_cet_shstk.
+> 
+> Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
+> ---
+>  arch/x86/include/asm/cet.h                    |  31 +++++
+>  arch/x86/include/asm/disabled-features.h      |   8 +-
+>  arch/x86/include/asm/processor.h              |   5 +
+>  arch/x86/kernel/Makefile                      |   2 +
+>  arch/x86/kernel/cet.c                         | 121 ++++++++++++++++++
+>  arch/x86/kernel/cpu/common.c                  |  25 ++++
+>  arch/x86/kernel/process.c                     |   1 +
+>  .../arch/x86/include/asm/disabled-features.h  |   8 +-
+>  8 files changed, 199 insertions(+), 2 deletions(-)
+>  create mode 100644 arch/x86/include/asm/cet.h
+>  create mode 100644 arch/x86/kernel/cet.c
+> 
+> diff --git a/arch/x86/include/asm/cet.h b/arch/x86/include/asm/cet.h
+> new file mode 100644
+> index 000000000000..c44c991ca91f
+> --- /dev/null
+> +++ b/arch/x86/include/asm/cet.h
+> @@ -0,0 +1,31 @@
+> +/* SPDX-License-Identifier: GPL-2.0 */
+> +#ifndef _ASM_X86_CET_H
+> +#define _ASM_X86_CET_H
+> +
+> +#ifndef __ASSEMBLY__
+> +#include <linux/types.h>
+> +
+> +struct task_struct;
+> +/*
+> + * Per-thread CET status
+> + */
+> +struct cet_status {
+> +	unsigned long	shstk_base;
+> +	unsigned long	shstk_size;
+> +	unsigned int	shstk_enabled:1;
+> +};
+> +
+> +#ifdef CONFIG_X86_INTEL_CET
+> +int cet_setup_shstk(void);
+> +void cet_disable_free_shstk(struct task_struct *p);
+> +#else
+> +static inline void cet_disable_free_shstk(struct task_struct *p) {}
+> +#endif
+> +
+> +#define cpu_x86_cet_enabled() \
+> +	(static_cpu_has(X86_FEATURE_SHSTK) || \
+> +	 static_cpu_has(X86_FEATURE_IBT))
+> +
+> +#endif /* __ASSEMBLY__ */
+> +
+> +#endif /* _ASM_X86_CET_H */
+> diff --git a/arch/x86/include/asm/disabled-features.h b/arch/x86/include/asm/disabled-features.h
+> index 8e1d0bb46361..e1454509ad83 100644
+> --- a/arch/x86/include/asm/disabled-features.h
+> +++ b/arch/x86/include/asm/disabled-features.h
+> @@ -62,6 +62,12 @@
+>  # define DISABLE_PTI		(1 << (X86_FEATURE_PTI & 31))
+>  #endif
+>  
+> +#ifdef CONFIG_X86_INTEL_SHADOW_STACK_USER
+> +#define DISABLE_SHSTK	0
+> +#else
+> +#define DISABLE_SHSTK	(1<<(X86_FEATURE_SHSTK & 31))
+> +#endif
+> +
+>  /*
+>   * Make sure to add features to the correct mask
+>   */
+> @@ -81,7 +87,7 @@
+>  #define DISABLED_MASK13	0
+>  #define DISABLED_MASK14	0
+>  #define DISABLED_MASK15	0
+> -#define DISABLED_MASK16	(DISABLE_PKU|DISABLE_OSPKE|DISABLE_LA57|DISABLE_UMIP)
+> +#define DISABLED_MASK16	(DISABLE_PKU|DISABLE_OSPKE|DISABLE_LA57|DISABLE_UMIP|DISABLE_SHSTK)
+>  #define DISABLED_MASK17	0
+>  #define DISABLED_MASK18	0
+>  #define DISABLED_MASK_CHECK BUILD_BUG_ON_ZERO(NCAPINTS != 19)
+> diff --git a/arch/x86/include/asm/processor.h b/arch/x86/include/asm/processor.h
+> index 0340aad3f2fc..793d210e64da 100644
+> --- a/arch/x86/include/asm/processor.h
+> +++ b/arch/x86/include/asm/processor.h
+> @@ -25,6 +25,7 @@ struct vm86;
+>  #include <asm/special_insns.h>
+>  #include <asm/fpu/types.h>
+>  #include <asm/unwind_hints.h>
+> +#include <asm/cet.h>
+>  
+>  #include <linux/personality.h>
+>  #include <linux/cache.h>
+> @@ -539,6 +540,10 @@ struct thread_struct {
+>  	unsigned int		sig_on_uaccess_err:1;
+>  	unsigned int		uaccess_err:1;	/* uaccess failed */
+>  
+> +#ifdef CONFIG_X86_INTEL_CET
+> +	struct cet_status	cet;
+> +#endif
+> +
+>  	/* Floating point and extended processor state */
+>  	struct fpu		fpu;
+>  	/*
+> diff --git a/arch/x86/kernel/Makefile b/arch/x86/kernel/Makefile
+> index 6175e370ee4a..b8c1ea4ab7eb 100644
+> --- a/arch/x86/kernel/Makefile
+> +++ b/arch/x86/kernel/Makefile
+> @@ -142,6 +142,8 @@ obj-$(CONFIG_UNWINDER_ORC)		+= unwind_orc.o
+>  obj-$(CONFIG_UNWINDER_FRAME_POINTER)	+= unwind_frame.o
+>  obj-$(CONFIG_UNWINDER_GUESS)		+= unwind_guess.o
+>  
+> +obj-$(CONFIG_X86_INTEL_CET)		+= cet.o
+> +
+>  ###
+>  # 64 bit specific files
+>  ifeq ($(CONFIG_X86_64),y)
+> diff --git a/arch/x86/kernel/cet.c b/arch/x86/kernel/cet.c
+> new file mode 100644
+> index 000000000000..b4c7d88e9a8f
+> --- /dev/null
+> +++ b/arch/x86/kernel/cet.c
+> @@ -0,0 +1,121 @@
+> +/* SPDX-License-Identifier: GPL-2.0 */
+> +/*
+> + * cet.c - Control-flow Enforcement (CET)
+> + *
+> + * Copyright (c) 2019, Intel Corporation.
+> + * Yu-cheng Yu <yu-cheng.yu@intel.com>
+> + */
+> +
+> +#include <linux/types.h>
+> +#include <linux/mm.h>
+> +#include <linux/mman.h>
+> +#include <linux/slab.h>
+> +#include <linux/uaccess.h>
+> +#include <linux/sched/signal.h>
+> +#include <linux/compat.h>
+> +#include <asm/msr.h>
+> +#include <asm/user.h>
+> +#include <asm/fpu/internal.h>
+> +#include <asm/fpu/xstate.h>
+> +#include <asm/fpu/types.h>
+> +#include <asm/cet.h>
+> +
+> +static void start_update_msrs(void)
+> +{
+> +	fpregs_lock();
+> +	if (test_thread_flag(TIF_NEED_FPU_LOAD))
+> +		__fpregs_load_activate();
+> +}
+> +
+> +static void end_update_msrs(void)
+> +{
+> +	fpregs_unlock();
+> +}
+> +
+> +static unsigned long cet_get_shstk_addr(void)
+> +{
+> +	struct fpu *fpu = &current->thread.fpu;
+> +	unsigned long ssp = 0;
+> +
+> +	fpregs_lock();
+> +
+> +	if (fpregs_state_valid(fpu, smp_processor_id())) {
+> +		rdmsrl(MSR_IA32_PL3_SSP, ssp);
+> +	} else {
+> +		struct cet_user_state *p;
+> +
+> +		p = get_xsave_addr(&fpu->state.xsave, XFEATURE_CET_USER);
+> +		if (p)
+> +			ssp = p->user_ssp;
+> +	}
+> +
+> +	fpregs_unlock();
+> +	return ssp;
+> +}
+> +
+> +static unsigned long alloc_shstk(unsigned long size)
+> +{
+> +	struct mm_struct *mm = current->mm;
+> +	unsigned long addr, populate;
+> +
+> +	down_write(&mm->mmap_sem);
+> +	addr = do_mmap(NULL, 0, size, PROT_READ, MAP_ANONYMOUS | MAP_PRIVATE,
+> +		       VM_SHSTK, 0, &populate, NULL);
+> +	up_write(&mm->mmap_sem);
+> +
+> +	if (populate)
+> +		mm_populate(addr, populate);
+> +
+> +	return addr;
+> +}
+> +
+> +int cet_setup_shstk(void)
+> +{
+> +	unsigned long addr, size;
+> +	struct cet_status *cet = &current->thread.cet;
+> +
+> +	if (!static_cpu_has(X86_FEATURE_SHSTK))
+> +		return -EOPNOTSUPP;
+> +
+> +	size = rlimit(RLIMIT_STACK);
+> +	addr = alloc_shstk(size);
+> +
+> +	if (IS_ERR((void *)addr))
+> +		return PTR_ERR((void *)addr);
+> +
+> +	cet->shstk_base = addr;
+> +	cet->shstk_size = size;
+> +	cet->shstk_enabled = 1;
+> +
+> +	start_update_msrs();
+> +	wrmsrl(MSR_IA32_PL3_SSP, addr + size);
+> +	wrmsrl(MSR_IA32_U_CET, MSR_IA32_CET_SHSTK_EN);
+> +	end_update_msrs();
+> +	return 0;
+> +}
+> +
+> +void cet_disable_free_shstk(struct task_struct *tsk)
+> +{
+> +	struct cet_status *cet = &tsk->thread.cet;
+> +
+> +	if (!static_cpu_has(X86_FEATURE_SHSTK) ||
+> +	    !cet->shstk_enabled || !cet->shstk_base)
+> +		return;
+> +
+> +	if (!tsk->mm || (tsk->mm != current->mm))
+> +		return;
+> +
+> +	if (tsk == current) {
+> +		u64 msr_val;
+> +
+> +		start_update_msrs();
+> +		rdmsrl(MSR_IA32_U_CET, msr_val);
+> +		wrmsrl(MSR_IA32_U_CET, msr_val & ~MSR_IA32_CET_SHSTK_EN);
+> +		end_update_msrs();
+> +	}
+> +
+> +	vm_munmap(cet->shstk_base, cet->shstk_size);
+> +	cet->shstk_base = 0;
+> +	cet->shstk_size = 0;
+> +	cet->shstk_enabled = 0;
+> +}
+> diff --git a/arch/x86/kernel/cpu/common.c b/arch/x86/kernel/cpu/common.c
+> index 2e4d90294fe6..40498ec72fda 100644
+> --- a/arch/x86/kernel/cpu/common.c
+> +++ b/arch/x86/kernel/cpu/common.c
+> @@ -54,6 +54,7 @@
+>  #include <asm/microcode_intel.h>
+>  #include <asm/intel-family.h>
+>  #include <asm/cpu_device_id.h>
+> +#include <asm/cet.h>
+>  #include <asm/uv/uv.h>
+>  
+>  #include "cpu.h"
+> @@ -486,6 +487,29 @@ static __init int setup_disable_pku(char *arg)
+>  __setup("nopku", setup_disable_pku);
+>  #endif /* CONFIG_X86_64 */
+>  
+> +static __always_inline void setup_cet(struct cpuinfo_x86 *c)
+> +{
+> +	if (cpu_x86_cet_enabled())
+> +		cr4_set_bits(X86_CR4_CET);
+> +}
+> +
+> +#ifdef CONFIG_X86_INTEL_SHADOW_STACK_USER
+> +static __init int setup_disable_shstk(char *s)
+> +{
+> +	/* require an exact match without trailing characters */
+> +	if (s[0] != '\0')
+> +		return 0;
+> +
+> +	if (!boot_cpu_has(X86_FEATURE_SHSTK))
+> +		return 1;
+> +
+> +	setup_clear_cpu_cap(X86_FEATURE_SHSTK);
+> +	pr_info("x86: 'no_cet_shstk' specified, disabling Shadow Stack\n");
+> +	return 1;
+> +}
+> +__setup("no_cet_shstk", setup_disable_shstk);
+> +#endif
 
-Because Landlock's goal is to empower any process (especially
-unprivileged ones) to sandbox themselves, we can't rely on a system-wide
-object identification such as file extended attributes.  Indeed, we need
-innocuous, composable and modular access-controls.
+I wonder if this should be "cet_shstk=..." instead? Will it always be a
+giant knob like this? Will we want to disable it for userspace but keep
+it for kernel space, etc?
 
-The main challenge with this constraints is to identify kernel objects
-while this identification is useful (i.e. when a security policy makes
-use of this object).  But this identification data should be freed once
-no policy is using it.  This ephemeral tagging should not and may not be
-written in the filesystem.  We then need to manage the lifetime of a
-rule according to the lifetime of its object.  To avoid a global lock,
-this implementation make use of RCU and counters to safely reference
-objects.
+> +
+>  /*
+>   * Some CPU features depend on higher CPUID levels, which may not always
+>   * be available due to CPUID level capping or broken virtualization
+> @@ -1510,6 +1534,7 @@ static void identify_cpu(struct cpuinfo_x86 *c)
+>  	x86_init_rdrand(c);
+>  	x86_init_cache_qos(c);
+>  	setup_pku(c);
+> +	setup_cet(c);
+>  
+>  	/*
+>  	 * Clear/Set all flags overridden by options, need do it
+> diff --git a/arch/x86/kernel/process.c b/arch/x86/kernel/process.c
+> index 8d0b9442202e..e102e63de641 100644
+> --- a/arch/x86/kernel/process.c
+> +++ b/arch/x86/kernel/process.c
+> @@ -43,6 +43,7 @@
+>  #include <asm/spec-ctrl.h>
+>  #include <asm/io_bitmap.h>
+>  #include <asm/proto.h>
+> +#include <asm/cet.h>
+>  
+>  #include "process.h"
+>  
+> diff --git a/tools/arch/x86/include/asm/disabled-features.h b/tools/arch/x86/include/asm/disabled-features.h
+> index 8e1d0bb46361..e1454509ad83 100644
+> --- a/tools/arch/x86/include/asm/disabled-features.h
+> +++ b/tools/arch/x86/include/asm/disabled-features.h
+> @@ -62,6 +62,12 @@
+>  # define DISABLE_PTI		(1 << (X86_FEATURE_PTI & 31))
+>  #endif
+>  
+> +#ifdef CONFIG_X86_INTEL_SHADOW_STACK_USER
+> +#define DISABLE_SHSTK	0
+> +#else
+> +#define DISABLE_SHSTK	(1<<(X86_FEATURE_SHSTK & 31))
+> +#endif
+> +
+>  /*
+>   * Make sure to add features to the correct mask
+>   */
+> @@ -81,7 +87,7 @@
+>  #define DISABLED_MASK13	0
+>  #define DISABLED_MASK14	0
+>  #define DISABLED_MASK15	0
+> -#define DISABLED_MASK16	(DISABLE_PKU|DISABLE_OSPKE|DISABLE_LA57|DISABLE_UMIP)
+> +#define DISABLED_MASK16	(DISABLE_PKU|DISABLE_OSPKE|DISABLE_LA57|DISABLE_UMIP|DISABLE_SHSTK)
+>  #define DISABLED_MASK17	0
+>  #define DISABLED_MASK18	0
+>  #define DISABLED_MASK_CHECK BUILD_BUG_ON_ZERO(NCAPINTS != 19)
+> -- 
+> 2.21.0
+> 
+> 
 
-A following commit uses this generic object management for inodes.
+Otherwise, looks good to me. :)
 
-Signed-off-by: Mickaël Salaün <mic@digikod.net>
-Cc: Andy Lutomirski <luto@amacapital.net>
-Cc: James Morris <jmorris@namei.org>
-Cc: Kees Cook <keescook@chromium.org>
-Cc: Serge E. Hallyn <serge@hallyn.com>
----
-
-Changes since v13:
-* New dedicated implementation, removing the need for eBPF.
-
-Previous version:
-https://lore.kernel.org/lkml/20190721213116.23476-6-mic@digikod.net/
----
- MAINTAINERS                |  10 ++
- security/Kconfig           |   1 +
- security/Makefile          |   2 +
- security/landlock/Kconfig  |  15 ++
- security/landlock/Makefile |   3 +
- security/landlock/object.c | 339 +++++++++++++++++++++++++++++++++++++
- security/landlock/object.h | 134 +++++++++++++++
- 7 files changed, 504 insertions(+)
- create mode 100644 security/landlock/Kconfig
- create mode 100644 security/landlock/Makefile
- create mode 100644 security/landlock/object.c
- create mode 100644 security/landlock/object.h
-
-diff --git a/MAINTAINERS b/MAINTAINERS
-index fcd79fc38928..206f85768cd9 100644
---- a/MAINTAINERS
-+++ b/MAINTAINERS
-@@ -9360,6 +9360,16 @@ F:	net/core/skmsg.c
- F:	net/core/sock_map.c
- F:	net/ipv4/tcp_bpf.c
- 
-+LANDLOCK SECURITY MODULE
-+M:	Mickaël Salaün <mic@digikod.net>
-+L:	linux-security-module@vger.kernel.org
-+W:	https://landlock.io
-+T:	git https://github.com/landlock-lsm/linux.git
-+S:	Supported
-+F:	security/landlock/
-+K:	landlock
-+K:	LANDLOCK
-+
- LANTIQ / INTEL Ethernet drivers
- M:	Hauke Mehrtens <hauke@hauke-m.de>
- L:	netdev@vger.kernel.org
-diff --git a/security/Kconfig b/security/Kconfig
-index 2a1a2d396228..9d9981394fb0 100644
---- a/security/Kconfig
-+++ b/security/Kconfig
-@@ -238,6 +238,7 @@ source "security/loadpin/Kconfig"
- source "security/yama/Kconfig"
- source "security/safesetid/Kconfig"
- source "security/lockdown/Kconfig"
-+source "security/landlock/Kconfig"
- 
- source "security/integrity/Kconfig"
- 
-diff --git a/security/Makefile b/security/Makefile
-index 746438499029..2472ef96d40a 100644
---- a/security/Makefile
-+++ b/security/Makefile
-@@ -12,6 +12,7 @@ subdir-$(CONFIG_SECURITY_YAMA)		+= yama
- subdir-$(CONFIG_SECURITY_LOADPIN)	+= loadpin
- subdir-$(CONFIG_SECURITY_SAFESETID)    += safesetid
- subdir-$(CONFIG_SECURITY_LOCKDOWN_LSM)	+= lockdown
-+subdir-$(CONFIG_SECURITY_LANDLOCK)		+= landlock
- 
- # always enable default capabilities
- obj-y					+= commoncap.o
-@@ -29,6 +30,7 @@ obj-$(CONFIG_SECURITY_YAMA)		+= yama/
- obj-$(CONFIG_SECURITY_LOADPIN)		+= loadpin/
- obj-$(CONFIG_SECURITY_SAFESETID)       += safesetid/
- obj-$(CONFIG_SECURITY_LOCKDOWN_LSM)	+= lockdown/
-+obj-$(CONFIG_SECURITY_LANDLOCK)	+= landlock/
- obj-$(CONFIG_CGROUP_DEVICE)		+= device_cgroup.o
- 
- # Object integrity file lists
-diff --git a/security/landlock/Kconfig b/security/landlock/Kconfig
-new file mode 100644
-index 000000000000..4a321d5b3f67
---- /dev/null
-+++ b/security/landlock/Kconfig
-@@ -0,0 +1,15 @@
-+# SPDX-License-Identifier: GPL-2.0-only
-+
-+config SECURITY_LANDLOCK
-+	bool "Landlock support"
-+	depends on SECURITY
-+	default n
-+	help
-+	  This selects Landlock, a safe sandboxing mechanism.  It enables to
-+	  restrict processes on the fly (i.e. enforce an access control policy),
-+	  which can complement seccomp-bpf.  The security policy is a set of access
-+	  rights tied to an object, which could be a file, a socket or a process.
-+
-+	  See Documentation/security/landlock/ for further information.
-+
-+	  If you are unsure how to answer this question, answer N.
-diff --git a/security/landlock/Makefile b/security/landlock/Makefile
-new file mode 100644
-index 000000000000..cb6deefbf4c0
---- /dev/null
-+++ b/security/landlock/Makefile
-@@ -0,0 +1,3 @@
-+obj-$(CONFIG_SECURITY_LANDLOCK) := landlock.o
-+
-+landlock-y := object.o
-diff --git a/security/landlock/object.c b/security/landlock/object.c
-new file mode 100644
-index 000000000000..38fbbb108120
---- /dev/null
-+++ b/security/landlock/object.c
-@@ -0,0 +1,339 @@
-+// SPDX-License-Identifier: GPL-2.0-only
-+/*
-+ * Landlock LSM - Object and rule management
-+ *
-+ * Copyright © 2016-2020 Mickaël Salaün <mic@digikod.net>
-+ * Copyright © 2018-2020 ANSSI
-+ *
-+ * Principles and constraints of the object and rule management:
-+ * - Do not leak memory.
-+ * - Try as much as possible to free a memory allocation as soon as it is
-+ *   unused.
-+ * - Do not use global lock.
-+ * - Do not charge processes other than the one requesting a Landlock
-+ *   operation.
-+ */
-+
-+#include <linux/bug.h>
-+#include <linux/compiler.h>
-+#include <linux/compiler_types.h>
-+#include <linux/err.h>
-+#include <linux/errno.h>
-+#include <linux/fs.h>
-+#include <linux/kernel.h>
-+#include <linux/list.h>
-+#include <linux/rbtree.h>
-+#include <linux/rcupdate.h>
-+#include <linux/refcount.h>
-+#include <linux/slab.h>
-+#include <linux/spinlock.h>
-+#include <linux/workqueue.h>
-+
-+#include "object.h"
-+
-+struct landlock_object *landlock_create_object(
-+		const enum landlock_object_type type, void *underlying_object)
-+{
-+	struct landlock_object *object;
-+
-+	if (WARN_ON_ONCE(!underlying_object))
-+		return NULL;
-+	object = kzalloc(sizeof(*object), GFP_KERNEL);
-+	if (!object)
-+		return NULL;
-+	refcount_set(&object->usage, 1);
-+	refcount_set(&object->cleaners, 1);
-+	spin_lock_init(&object->lock);
-+	INIT_LIST_HEAD(&object->rules);
-+	object->type = type;
-+	WRITE_ONCE(object->underlying_object, underlying_object);
-+	return object;
-+}
-+
-+struct landlock_object *landlock_get_object(struct landlock_object *object)
-+	__acquires(object->usage)
-+{
-+	__acquire(object->usage);
-+	/*
-+	 * If @object->usage equal 0, then it will be ignored by writers, and
-+	 * underlying_object->object may be replaced, but this is not an issue
-+	 * for release_object().
-+	 */
-+	if (object && refcount_inc_not_zero(&object->usage)) {
-+		/*
-+		 * It should not be possible to get a reference to an object if
-+		 * its underlying object is being terminated (e.g. with
-+		 * landlock_release_object()), because an object is only
-+		 * modifiable through such underlying object.  This is not the
-+		 * case with landlock_get_object_cleaner().
-+		 */
-+		WARN_ON_ONCE(!READ_ONCE(object->underlying_object));
-+		return object;
-+	}
-+	return NULL;
-+}
-+
-+static struct landlock_object *get_object_cleaner(
-+		struct landlock_object *object)
-+	__acquires(object->cleaners)
-+{
-+	__acquire(object->cleaners);
-+	if (object && refcount_inc_not_zero(&object->cleaners))
-+		return object;
-+	return NULL;
-+}
-+
-+/*
-+ * There is two cases when an object should be free and the reference to the
-+ * underlying object should be put:
-+ * - when the last rule tied to this object is removed, which is handled by
-+ *   landlock_put_rule() and then release_object();
-+ * - when the object is being terminated (e.g. no more reference to an inode),
-+ *   which is handled by landlock_put_object().
-+ */
-+static void put_object_free(struct landlock_object *object)
-+	__releases(object->cleaners)
-+{
-+	__release(object->cleaners);
-+	if (!refcount_dec_and_test(&object->cleaners))
-+		return;
-+	WARN_ON_ONCE(refcount_read(&object->usage));
-+	/*
-+	 * Ensures a safe use of @object in the RCU block from
-+	 * landlock_put_rule().
-+	 */
-+	kfree_rcu(object, rcu_free);
-+}
-+
-+/*
-+ * Destroys a newly created and useless object.
-+ */
-+void landlock_drop_object(struct landlock_object *object)
-+{
-+	if (WARN_ON_ONCE(!refcount_dec_and_test(&object->usage)))
-+		return;
-+	__acquire(object->cleaners);
-+	put_object_free(object);
-+}
-+
-+/*
-+ * Puts the underlying object (e.g. inode) if it is the first request to
-+ * release @object, without calling landlock_put_object().
-+ *
-+ * Return true if this call effectively marks @object as released, false
-+ * otherwise.
-+ */
-+static bool release_object(struct landlock_object *object)
-+	__releases(&object->lock)
-+{
-+	void *underlying_object;
-+
-+	lockdep_assert_held(&object->lock);
-+
-+	underlying_object = xchg(&object->underlying_object, NULL);
-+	spin_unlock(&object->lock);
-+	might_sleep();
-+	if (!underlying_object)
-+		return false;
-+
-+	switch (object->type) {
-+	case LANDLOCK_OBJECT_INODE:
-+		break;
-+	default:
-+		WARN_ON_ONCE(1);
-+	}
-+	return true;
-+}
-+
-+static void put_object_cleaner(struct landlock_object *object)
-+	__releases(object->cleaners)
-+{
-+	/* Let's try an early lockless check. */
-+	if (list_empty(&object->rules) &&
-+			READ_ONCE(object->underlying_object)) {
-+		/*
-+		 * Puts @object if there is no rule tied to it and the
-+		 * remaining user is the underlying object.  This check is
-+		 * atomic because @object->rules and @object->underlying_object
-+		 * are protected by @object->lock.
-+		 */
-+		spin_lock(&object->lock);
-+		if (list_empty(&object->rules) &&
-+				READ_ONCE(object->underlying_object) &&
-+				refcount_dec_if_one(&object->usage)) {
-+			/*
-+			 * Releases @object, in place of
-+			 * landlock_release_object().
-+			 *
-+			 * @object is already empty, implying that all its
-+			 * previous rules are already disabled.
-+			 *
-+			 * Unbalance the @object->cleaners counter to reflect
-+			 * the underlying object release.
-+			 */
-+			if (!WARN_ON_ONCE(!release_object(object))) {
-+				__acquire(object->cleaners);
-+				put_object_free(object);
-+			}
-+		} else {
-+			spin_unlock(&object->lock);
-+		}
-+	}
-+	put_object_free(object);
-+}
-+
-+/*
-+ * Putting an object is easy when the object is being terminated, but it is
-+ * much more tricky when the reason is that there is no more rule tied to this
-+ * object.  Indeed, new rules could be added at the same time.
-+ */
-+void landlock_put_object(struct landlock_object *object)
-+	__releases(object->usage)
-+{
-+	struct landlock_object *object_cleaner;
-+
-+	__release(object->usage);
-+	might_sleep();
-+	if (!object)
-+		return;
-+	/*
-+	 * Guards against concurrent termination to be able to terminate
-+	 * @object if it is empty and not referenced by another rule-appender
-+	 * other than the underlying object.
-+	 */
-+	object_cleaner = get_object_cleaner(object);
-+	if (WARN_ON_ONCE(!object_cleaner)) {
-+		__release(object->cleaners);
-+		return;
-+	}
-+	/*
-+	 * Decrements @object->usage and if it reach zero, also decrement
-+	 * @object->cleaners.  If both reach zero, then release and free
-+	 * @object.
-+	 */
-+	if (refcount_dec_and_test(&object->usage)) {
-+		struct landlock_rule *rule_walker, *rule_walker2;
-+
-+		spin_lock(&object->lock);
-+		/*
-+		 * Disables all the rules tied to @object when it is forbidden
-+		 * to add new rule but still allowed to remove them with
-+		 * landlock_put_rule().  This is crucial to be able to safely
-+		 * free a rule according to landlock_rule_is_disabled().
-+		 */
-+		list_for_each_entry_safe(rule_walker, rule_walker2,
-+				&object->rules, list)
-+			list_del_rcu(&rule_walker->list);
-+
-+		/*
-+		 * Releases @object if it is not already released (e.g. with
-+		 * landlock_release_object()).
-+		 */
-+		release_object(object);
-+		/*
-+		 * Unbalances the @object->cleaners counter to reflect the
-+		 * underlying object release.
-+		 */
-+		__acquire(object->cleaners);
-+		put_object_free(object);
-+	}
-+	put_object_cleaner(object_cleaner);
-+}
-+
-+void landlock_put_rule(struct landlock_object *object,
-+		struct landlock_rule *rule)
-+{
-+	if (!rule)
-+		return;
-+	WARN_ON_ONCE(!object);
-+	/*
-+	 * Guards against a concurrent @object self-destruction with
-+	 * landlock_put_object() or put_object_cleaner().
-+	 */
-+	rcu_read_lock();
-+	if (landlock_rule_is_disabled(rule)) {
-+		rcu_read_unlock();
-+		if (refcount_dec_and_test(&rule->usage))
-+			kfree_rcu(rule, rcu_free);
-+		return;
-+	}
-+	if (refcount_dec_and_test(&rule->usage)) {
-+		struct landlock_object *safe_object;
-+
-+		/*
-+		 * Now, @rule may still be enabled, or in the process of being
-+		 * untied to @object by put_object_cleaner().  However, we know
-+		 * that @object will not be freed until rcu_read_unlock() and
-+		 * until @object->cleaners reach zero.  Furthermore, we may not
-+		 * be the only one willing to free a @rule linked with @object.
-+		 * If we succeed to hold @object with get_object_cleaner(), we
-+		 * know that until put_object_cleaner(), we can safely use
-+		 * @object to remove @rule.
-+		 */
-+		safe_object = get_object_cleaner(object);
-+		rcu_read_unlock();
-+		if (!safe_object) {
-+			__release(safe_object->cleaners);
-+			/*
-+			 * We can safely free @rule because it is already
-+			 * removed from @object's list.
-+			 */
-+			WARN_ON_ONCE(!landlock_rule_is_disabled(rule));
-+			kfree_rcu(rule, rcu_free);
-+		} else {
-+			spin_lock(&safe_object->lock);
-+			if (!landlock_rule_is_disabled(rule))
-+				list_del(&rule->list);
-+			spin_unlock(&safe_object->lock);
-+			kfree_rcu(rule, rcu_free);
-+			put_object_cleaner(safe_object);
-+		}
-+	} else {
-+		rcu_read_unlock();
-+	}
-+	/*
-+	 * put_object_cleaner() might sleep, but it is only reachable if
-+	 * !landlock_rule_is_disabled().  Therefore, clean_ref() can not sleep.
-+	 */
-+	might_sleep();
-+}
-+
-+void landlock_release_object(struct landlock_object __rcu *rcu_object)
-+{
-+	struct landlock_object *object;
-+
-+	if (!rcu_object)
-+		return;
-+	rcu_read_lock();
-+	object = get_object_cleaner(rcu_dereference(rcu_object));
-+	rcu_read_unlock();
-+	if (unlikely(!object)) {
-+		__release(object->cleaners);
-+		return;
-+	}
-+	/*
-+	 * Makes sure that the underlying object never point to a freed object
-+	 * by firstly releasing the object (i.e. NULL the reference to it) to
-+	 * be sure no one could get a new reference to it while it is being
-+	 * terminated.  Secondly, put the object globally (e.g. for the
-+	 * super-block).
-+	 *
-+	 * This can run concurrently with put_object_cleaner(), which may try
-+	 * to release @object as well.
-+	 */
-+	spin_lock(&object->lock);
-+	if (release_object(object)) {
-+		/*
-+		 * Unbalances the object to reflect the underlying object
-+		 * release.
-+		 */
-+		__acquire(object->usage);
-+		landlock_put_object(object);
-+	}
-+	/*
-+	 * If a concurrent thread is adding a new rule, the object will be free
-+	 * at the end of this rule addition, otherwise it will be free with the
-+	 * following put_object_cleaner() or a remaining one.
-+	 */
-+	put_object_cleaner(object);
-+}
-diff --git a/security/landlock/object.h b/security/landlock/object.h
-new file mode 100644
-index 000000000000..15dfc9a75a82
---- /dev/null
-+++ b/security/landlock/object.h
-@@ -0,0 +1,134 @@
-+/* SPDX-License-Identifier: GPL-2.0-only */
-+/*
-+ * Landlock LSM - Object and rule management
-+ *
-+ * Copyright © 2016-2020 Mickaël Salaün <mic@digikod.net>
-+ * Copyright © 2018-2020 ANSSI
-+ */
-+
-+#ifndef _SECURITY_LANDLOCK_OBJECT_H
-+#define _SECURITY_LANDLOCK_OBJECT_H
-+
-+#include <linux/compiler_types.h>
-+#include <linux/list.h>
-+#include <linux/poison.h>
-+#include <linux/rcupdate.h>
-+#include <linux/refcount.h>
-+#include <linux/spinlock.h>
-+
-+struct landlock_access {
-+	/*
-+	 * @self: Bitfield of allowed actions on the kernel object.  They are
-+	 * relative to the object type (e.g. LANDLOCK_ACTION_FS_READ).
-+	 */
-+	u32 self;
-+	/*
-+	 * @beneath: Same as @self, but for the child objects (e.g. a file in a
-+	 * directory).
-+	 */
-+	u32 beneath;
-+};
-+
-+struct landlock_rule {
-+	struct landlock_access access;
-+	/*
-+	 * @list: Linked list with other rules tied to the same object, which
-+	 * enable to manage their lifetimes.  This is also used to identify if
-+	 * a rule is still valid, thanks to landlock_rule_is_disabled(), which
-+	 * is important in the matching process because the original object
-+	 * address might have been recycled.
-+	 */
-+	struct list_head list;
-+	union {
-+		/*
-+		 * @usage: Number of rulesets pointing to this rule.  This
-+		 * field is never used by RCU readers.
-+		 */
-+		refcount_t usage;
-+		struct rcu_head rcu_free;
-+	};
-+};
-+
-+enum landlock_object_type {
-+	LANDLOCK_OBJECT_INODE = 1,
-+};
-+
-+struct landlock_object {
-+	/*
-+	 * @usage: Main usage counter, used to tie an object to it's underlying
-+	 * object (i.e. create a lifetime) and potentially add new rules.
-+	 */
-+	refcount_t usage;
-+	/*
-+	 * @cleaners: Usage counter used to free a rule from @rules (thanks to
-+	 * put_rule()).  Enables to get a reference to this object until it
-+	 * really become freed.  Cf. put_object().
-+	 */
-+	refcount_t cleaners;
-+	union {
-+		/*
-+		 * The use of this struct is controlled by @usage and
-+		 * @cleaners, which makes it safe to union it with @rcu_free.
-+		 */
-+		struct {
-+			/*
-+			 * @underlying_object: Used when cleaning up an object
-+			 * and to mark an object as tied to its underlying
-+			 * kernel structure.  It must then be atomically read
-+			 * using READ_ONCE().
-+			 *
-+			 * The one who clear @underlying_object must:
-+			 * 1. clear the object self-reference and
-+			 * 2. decrement @usage (and potentially free the
-+			 *    object).
-+			 *
-+			 * Cf. clean_object().
-+			 */
-+			void *underlying_object;
-+			/*
-+			 * @type: Only used when cleaning up an object.
-+			 */
-+			enum landlock_object_type type;
-+			spinlock_t lock;
-+			/*
-+			 * @rules: List of struct landlock_rule linked with
-+			 * their "list" field.  This list is only accessed when
-+			 * updating the list (to be able to clean up later)
-+			 * while holding @lock.
-+			 */
-+			struct list_head rules;
-+		};
-+		struct rcu_head rcu_free;
-+	};
-+};
-+
-+void landlock_put_rule(struct landlock_object *object,
-+		struct landlock_rule *rule);
-+
-+void landlock_release_object(struct landlock_object __rcu *rcu_object);
-+
-+struct landlock_object *landlock_create_object(
-+		const enum landlock_object_type type, void *underlying_object);
-+
-+struct landlock_object *landlock_get_object(struct landlock_object *object)
-+	__acquires(object->usage);
-+
-+void landlock_put_object(struct landlock_object *object)
-+	__releases(object->usage);
-+
-+void landlock_drop_object(struct landlock_object *object);
-+
-+static inline bool landlock_rule_is_disabled(
-+		struct landlock_rule *rule)
-+{
-+	/*
-+	 * Disabling (i.e. unlinking) a landlock_rule is a one-way operation.
-+	 * It is not possible to re-enable such a rule, then there is no need
-+	 * for smp_load_acquire().
-+	 *
-+	 * LIST_POISON2 is set by list_del() and list_del_rcu().
-+	 */
-+	return !rule || READ_ONCE(rule->list.prev) == LIST_POISON2;
-+}
-+
-+#endif /* _SECURITY_LANDLOCK_OBJECT_H */
 -- 
-2.25.0
+Kees Cook
