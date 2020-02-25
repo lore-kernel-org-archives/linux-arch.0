@@ -1,53 +1,71 @@
-Return-Path: <SRS0=PuGS=4H=kvack.org=owner-linux-mm@kernel.org>
-Date: Wed, 19 Feb 2020 14:43:33 -0500
-From: Steven Rostedt <rostedt@goodmis.org>
-Subject: Re: [PATCH 3/6] tracing: Wrap section comparison in
- tracer_alloc_buffers with COMPARE_SECTIONS
-Message-ID: <20200219144333.1ce3f9ea@gandalf.local.home>
-In-Reply-To: <20200219192249.GA8840@ubuntu-m2-xlarge-x86>
-References: <20200219045423.54190-1-natechancellor@gmail.com>
-	<20200219045423.54190-4-natechancellor@gmail.com>
-	<20200219093445.386f1c09@gandalf.local.home>
-	<CAKwvOdm-N1iX0SMxGDV5Vf=qS5uHPdH3S-TRs-065BuSOdKt1w@mail.gmail.com>
-	<20200219181619.GV31668@ziepe.ca>
-	<CAKwvOd=8vb5eOjiLg96zr25Xsq_Xge_Ym7RsNqKK8g+ZR9KWzA@mail.gmail.com>
-	<20200219192249.GA8840@ubuntu-m2-xlarge-x86>
+Return-Path: <SRS0=ZEfg=4N=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from foss.arm.com ([217.140.110.172]:53552 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1728200AbgBYR1Z (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 25 Feb 2020 12:27:25 -0500
+Date: Tue, 25 Feb 2020 17:27:23 +0000
+From: Mark Brown <broonie@kernel.org>
+Subject: Re: [PATCH v6 05/11] arm64: elf: Enable BTI at exec based on ELF
+ program properties
+Message-ID: <20200225172723.GG4633@sirena.org.uk>
+References: <20200212192906.53366-1-broonie@kernel.org>
+ <20200212192906.53366-6-broonie@kernel.org>
+ <275b9cdb-7835-0dfe-9bea-acb0d8301e36@arm.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
-Sender: owner-linux-mm@kvack.org
-To: Nathan Chancellor <natechancellor@gmail.com>
-Cc: Nick Desaulniers <ndesaulniers@google.com>, Jason Gunthorpe <jgg@ziepe.ca>, Masahiro Yamada <masahiroy@kernel.org>, Michal Marek <michal.lkml@markovi.net>, Arnd Bergmann <arnd@arndb.de>, Ingo Molnar <mingo@redhat.com>, Jason Baron <jbaron@akamai.com>, Catalin Marinas <catalin.marinas@arm.com>, Andrew Morton <akpm@linux-foundation.org>, LKML <linux-kernel@vger.kernel.org>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Linux Memory Management List <linux-mm@kvack.org>, clang-built-linux <clang-built-linux@googlegroups.com>
+Content-Type: multipart/signed; micalg=pgp-sha512;
+        protocol="application/pgp-signature"; boundary="TmwHKJoIRFM7Mu/A"
+Content-Disposition: inline
+In-Reply-To: <275b9cdb-7835-0dfe-9bea-acb0d8301e36@arm.com>
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200219194333.hHSZ-0cSvUysYeFhLCbSjlRn7VqpDJLtOXTEtYB29j4@z>
+To: Amit Kachhap <amit.kachhap@arm.com>
+Cc: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Alexander Viro <viro@zeniv.linux.org.uk>, Paul Elliott <paul.elliott@arm.com>, Peter Zijlstra <peterz@infradead.org>, Yu-cheng Yu <yu-cheng.yu@intel.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Marc Zyngier <maz@kernel.org>, Eugene Syromiatnikov <esyr@redhat.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, "H . J . Lu" <hjl.tools@gmail.com>, Andrew Jones <drjones@redhat.com>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Jann Horn <jannh@google.com>, Richard Henderson <richard.henderson@linaro.org>, Kristina =?utf-8?Q?Mart=C5=A1enko?= <kristina.martsenko@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Florian Weimer <fweimer@redhat.com>, Sudakshina Das <sudi.das@arm.com>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, Dave Martin <Dave.Martin@arm.com>
+Message-ID: <20200225172723.icuWpTiCkkjS9t_v4lauYMuYM7NTyncuKz3LLDAoB9M@z>
 
-On Wed, 19 Feb 2020 12:22:49 -0700
-Nathan Chancellor <natechancellor@gmail.com> wrote:
 
-> Yes, thank you for the analysis and further discussion! I have done some
-> rudimentary printk debugging in QEMU and it looks like these are produce
-> the same value:
-> 
-> __stop___trace_bprintk_fmt
-> &__stop___trace_bprintk_fmt
-> &__start___trace_bprintk_fmt[0]
-> 
-> as well as
-> 
-> __stop___trace_bprintk_fmt != __start___trace_bprintk_fmt
-> &__stop___trace_bprintk_fmt != &__start___trace_bprintk_fmt
-> &__stop___trace_bprintk_fmt[0] != &__start___trace_bprintk_fmt[0]
-> 
-> I'll use the second one once I confirm this is true in all callspots
-> with both Clang and GCC, since it looks cleaner. Let me know if there
-> are any objections to that.
+--TmwHKJoIRFM7Mu/A
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
 
-Myself and I'm sure others would be fine with this approach as it is
-still readable. I was just against the encapsulating the logic in a
-strange macro that killed readability.
+On Tue, Feb 25, 2020 at 06:58:50PM +0530, Amit Kachhap wrote:
+> On 2/13/20 12:59 AM, Mark Brown wrote:
 
-I haven't looked at the resulting assembly from these, and will
-currently take your word for it ;-)  Of course, I will thoroughly test
-any patches to this code to make sure it does not hurt functionality.
+> > +static inline int arch_parse_elf_property(u32 type, const void *data,
+> > +					  size_t datasz, bool compat,
+> > +					  struct arch_elf_state *arch)
+> > +{
 
--- Steve
+> Does this check here make sense to skip running extra code?
+>     if (!system_supports_bti())
+>              return 0;
+
+This specifically is the wrong place for such a test since we didn't
+even figure out if we're looking at the BTI property yet so it'd need to
+be moved if any further properties are added.
+
+> Although this check is there in arch_validate_prot.
+
+And more importantly in arch_calc_vm_prot_bits() so we never actually
+create guarded pages on a system that doesn't support BTI.  That said I
+do agree that it seems reasonable to add an explicit check in the
+parsing of the actual BTI property for robustness and clarity, I'll do a
+patch for that and roll it into any future versions or send it
+incrementally if this one is applied but it doesn't seem sensible to
+spin the whole series with the very broad CC list it has.
+
+--TmwHKJoIRFM7Mu/A
+Content-Type: application/pgp-signature; name="signature.asc"
+
+-----BEGIN PGP SIGNATURE-----
+
+iQEzBAABCgAdFiEEreZoqmdXGLWf4p/qJNaLcl1Uh9AFAl5VWPoACgkQJNaLcl1U
+h9Bq6Af/XISIHfTbIdVWLIy9cav1xBGoNheQB8U8jrd370PqkAtHsvZwnq9aDdt3
+IxSWEuRVgj4bCprzm7gRSiLT5DSxNEqraVfT9GtbAy2Yi/ErLTSHRTCafCelguRv
+guxddwpmSo/yyNcyW0xen19YAhFjJ+VAKjlPdO0ApbplIBWPzwX7cvO7db6qnH9m
+k0GBhysZIXjhJW9KtjmFjdeiJxWGkjTXMDiC5O+Lq0/PL5MIWzrALmT45mFq4Ojf
+1rHAkV6H/8HqU7hSGxnKegK5uwx/gPT2JjhKVYoXXnTIogDeFmnBuz4ZlWMaVD0P
+3T4W1JDe639jb8v2EqZNxjdsU2XPFA==
+=os2p
+-----END PGP SIGNATURE-----
+
+--TmwHKJoIRFM7Mu/A--
