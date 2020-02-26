@@ -1,37 +1,76 @@
-Return-Path: <SRS0=LzcT=4H=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.133]:36046 "EHLO
-        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727857AbgBSPOh (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 19 Feb 2020 10:14:37 -0500
-Message-ID: <20200219150745.183988025@infradead.org>
-Date: Wed, 19 Feb 2020 15:47:38 +0100
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: [PATCH v3 14/22] perf,tracing: Allow function tracing when !RCU
-References: <20200219144724.800607165@infradead.org>
+Return-Path: <SRS0=hCVk=4O=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail-qk1-f195.google.com ([209.85.222.195]:34922 "EHLO
+        mail-qk1-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1728035AbgBZX7u (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 26 Feb 2020 18:59:50 -0500
+Date: Thu, 27 Feb 2020 07:59:42 +0800
+From: Boqun Feng <boqun.feng@gmail.com>
+Subject: Re: [PATCH] tools/memory-model: Remove lock-final checking in
+ lock.cat
+Message-ID: <20200226235942.GR69864@debian-boqun.qqnc3lrjykvubdpftowmye0fmh.lx.internal.cloudapp.net>
+References: <20200226032142.89424-1-boqun.feng@gmail.com>
+ <Pine.LNX.4.44L0.2002260953110.3674-100000@netrider.rowland.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <Pine.LNX.4.44L0.2002260953110.3674-100000@netrider.rowland.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, rostedt@goodmis.org
-Cc: peterz@infradead.org, mingo@kernel.org, joel@joelfernandes.org, gregkh@linuxfoundation.org, gustavo@embeddedor.com, tglx@linutronix.de, paulmck@kernel.org, josh@joshtriplett.org, mathieu.desnoyers@efficios.com, jiangshanlai@gmail.com, luto@kernel.org, tony.luck@intel.com, frederic@kernel.org, dan.carpenter@oracle.com, mhiramat@kernel.org
-Message-ID: <20200219144738.FPHZ-hgtz9enNND96mo0v7425-p6zYEjRm81YWxPOtM@z>
+To: Alan Stern <stern@rowland.harvard.edu>
+Cc: linux-kernel@vger.kernel.org, rcu@vger.kernel.org, Andrea Parri <parri.andrea@gmail.com>, Will Deacon <will@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Nicholas Piggin <npiggin@gmail.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, "Paul E. McKenney" <paulmck@kernel.org>, Akira Yokosawa <akiyks@gmail.com>, Daniel Lustig <dlustig@nvidia.com>, linux-arch@vger.kernel.org
+Message-ID: <20200226235942.cEioYHOQm682y6mzLj15i58sSORhppLzKhtmjHZOoEY@z>
 
-Since perf is now able to deal with !rcu_is_watching() contexts,
-remove the restraint.
+On Wed, Feb 26, 2020 at 09:58:12AM -0500, Alan Stern wrote:
+> On Wed, 26 Feb 2020, Boqun Feng wrote:
+> 
+> > In commit 30b795df11a1 ("tools/memory-model: Improve mixed-access
+> > checking in lock.cat"), we have added the checking to disallow any
+> > normal memory access to lock variables, and this checking is stronger
+> > than lock-final. So remove the lock-final checking as it's unnecessary
+> > now.
+> 
+> I don't understand this description.  Why do you say that the
+> normal-access checking is stronger than the lock-final check?
+> 
+> > Signed-off-by: Boqun Feng <boqun.feng@gmail.com>
+> > ---
+> >  tools/memory-model/lock.cat | 3 ---
+> >  1 file changed, 3 deletions(-)
+> > 
+> > diff --git a/tools/memory-model/lock.cat b/tools/memory-model/lock.cat
+> > index 6b52f365d73a..827a3646607c 100644
+> > --- a/tools/memory-model/lock.cat
+> > +++ b/tools/memory-model/lock.cat
+> > @@ -54,9 +54,6 @@ flag ~empty LKR \ domain(lk-rmw) as unpaired-LKR
+> >   *)
+> >  empty ([LKW] ; po-loc ; [LKR]) \ (po-loc ; [UL] ; po-loc) as lock-nest
+> >  
+> > -(* The final value of a spinlock should not be tested *)
+> > -flag ~empty [FW] ; loc ; [ALL-LOCKS] as lock-final
+> > -
+> >  (*
+> >   * Put lock operations in their appropriate classes, but leave UL out of W
+> >   * until after the co relation has been generated.
+> 
+> With this check removed, what will prevent people from writing litmus 
+> tests like this?
+> 
 
-Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
----
- kernel/trace/trace_event_perf.c |    2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+You are right, one thing I was missing is although FW is a subset of M,
+however FW & IW is not empty. Thanks! I will drop this.
 
---- a/kernel/trace/trace_event_perf.c
-+++ b/kernel/trace/trace_event_perf.c
-@@ -477,7 +477,7 @@ static int perf_ftrace_function_register
- {
- 	struct ftrace_ops *ops = &event->ftrace_ops;
- 
--	ops->flags   = FTRACE_OPS_FL_RCU;
-+	ops->flags   = 0;
- 	ops->func    = perf_ftrace_function_call;
- 	ops->private = (void *)(unsigned long)nr_cpu_ids;
- 
+Regards,
+Boqun
+
+> C test
+> 
+> {
+> 	spinlock_t s;
+> }
+> 
+> ...
+> 
+> exists (s=0)
+> 
+> Alan
+> 
