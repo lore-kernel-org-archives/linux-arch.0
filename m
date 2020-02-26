@@ -1,35 +1,34 @@
-Return-Path: <SRS0=eIS7=36=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:60706 "EHLO mail.kernel.org"
+Return-Path: <SRS0=hCVk=4O=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mga01.intel.com ([192.55.52.88]:36691 "EHLO mga01.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727385AbgBJWax (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 10 Feb 2020 17:30:53 -0500
-Date: Mon, 10 Feb 2020 14:30:52 -0800
-From: Andrew Morton <akpm@linux-foundation.org>
-Subject: Re: [PATCH] asm-generic: make more kernel-space headers mandatory
-Message-ID: <20200210143052.1d89f7e26c9bd115d617cc92@linux-foundation.org>
-In-Reply-To: <20200210175452.5030-1-masahiroy@kernel.org>
-References: <20200210175452.5030-1-masahiroy@kernel.org>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+        id S1726787AbgBZSH5 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 26 Feb 2020 13:07:57 -0500
+Subject: Re: [RFC PATCH v9 06/27] mm: Introduce VM_SHSTK for Shadow Stack
+ memory
+References: <20200205181935.3712-1-yu-cheng.yu@intel.com>
+ <20200205181935.3712-7-yu-cheng.yu@intel.com>
+From: Dave Hansen <dave.hansen@intel.com>
+Message-ID: <021394ef-e552-0639-0294-472e32e0d3fc@intel.com>
+Date: Wed, 26 Feb 2020 10:07:54 -0800
+MIME-Version: 1.0
+In-Reply-To: <20200205181935.3712-7-yu-cheng.yu@intel.com>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Masahiro Yamada <masahiroy@kernel.org>
-Cc: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, x86@kernel.org, Michal Simek <michal.simek@xilinx.com>, linux-kernel@vger.kernel.org, linux-kbuild@vger.kernel.org, Christoph Hellwig <hch@lst.de>, Arnd Bergmann <arnd@arndb.de>
-Message-ID: <20200210223052.jiY54IN-yXvXrtBfuYh0AR0wjyM2eXPE0b16iD15vcU@z>
+To: Yu-cheng Yu <yu-cheng.yu@intel.com>, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>, x86-patch-review@intel.com
+Message-ID: <20200226180754.7F5zQOP29WHHu9YR6Ois_NpQeOjVe_A4z_DLIqBCIkg@z>
 
-On Tue, 11 Feb 2020 02:54:52 +0900 Masahiro Yamada <masahiroy@kernel.org> wrote:
-
-> Change a header to mandatory-y if both of the following are met:
+On 2/5/20 10:19 AM, Yu-cheng Yu wrote:
+> A Shadow Stack (SHSTK) PTE must be read-only and have _PAGE_DIRTY set.
+> However, read-only and Dirty PTEs also exist for copy-on-write (COW) pages.
+> These two cases are handled differently for page faults and a new VM flag
+> is necessary for tracking SHSTK VMAs.
 > 
-> [1] At least one architecture (except um) specifies it as generic-y in
->     arch/*/include/asm/Kbuild
-> 
-> [2] Every architecture (except um) either has its own implementation
->     (arch/*/include/asm/*.h) or specifies it as generic-y in
->     arch/*/include/asm/Kbuild
+> v9:
+> - Add VM_SHSTK case to arch_vma_name().
+> - Revise the commit log to explain why a new VM flag is needed.
 
-(reads Documentation/kbuild/makefiles.rst to remember what these things
-do).
-
-Why are we making this change?  What's the benefit?
+To be honest, a flag is not strictly *needed*.  It is certainly
+convenient and straightforward, but it's far from being truly necessary.
