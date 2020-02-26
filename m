@@ -1,192 +1,179 @@
-Return-Path: <SRS0=ZEfg=4N=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail-pg1-f193.google.com ([209.85.215.193]:42937 "EHLO
-        mail-pg1-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726465AbgBYV3P (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 25 Feb 2020 16:29:15 -0500
-Received: by mail-pg1-f193.google.com with SMTP id h8so172666pgs.9
-        for <linux-arch@vger.kernel.org>; Tue, 25 Feb 2020 13:29:15 -0800 (PST)
-Date: Tue, 25 Feb 2020 13:29:12 -0800
-From: Kees Cook <keescook@chromium.org>
-Subject: Re: [RFC PATCH v9 25/27] x86/cet/shstk: Handle thread Shadow Stack
-Message-ID: <202002251324.5D515260@keescook>
-References: <20200205181935.3712-1-yu-cheng.yu@intel.com>
- <20200205181935.3712-26-yu-cheng.yu@intel.com>
+Return-Path: <SRS0=hCVk=4O=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from merlin.infradead.org ([205.233.59.134]:52134 "EHLO
+        merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726425AbgBZK2p (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 26 Feb 2020 05:28:45 -0500
+Date: Wed, 26 Feb 2020 11:27:58 +0100
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH v4 05/27] x86: Replace ist_enter() with nmi_enter()
+Message-ID: <20200226102758.GV18400@hirez.programming.kicks-ass.net>
+References: <20200221133416.777099322@infradead.org>
+ <20200221134215.328642621@infradead.org>
+ <CALCETrU7nezN7d3GEZ8h8HbRfvZ0+F9+Ahb7fLvZ9FVaHN9x2w@mail.gmail.com>
+ <20200221202246.GA14897@hirez.programming.kicks-ass.net>
+ <20200224104346.GJ14946@hirez.programming.kicks-ass.net>
+ <20200224112708.4f307ba3@gandalf.local.home>
+ <20200224163409.GJ18400@hirez.programming.kicks-ass.net>
+ <20200224114754.0fb798c1@gandalf.local.home>
+ <20200224213139.GO11457@worktop.programming.kicks-ass.net>
+ <20200224170231.3807931d@gandalf.local.home>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20200205181935.3712-26-yu-cheng.yu@intel.com>
+In-Reply-To: <20200224170231.3807931d@gandalf.local.home>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Cc: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>, x86-patch-review@intel.com
-Message-ID: <20200225212912.KvnMPugtesYBf1pI5dJRm37uKLWZJf-B7ne0fSP8Eq8@z>
+To: Steven Rostedt <rostedt@goodmis.org>
+Cc: Andy Lutomirski <luto@kernel.org>, LKML <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Ingo Molnar <mingo@kernel.org>, Joel Fernandes <joel@joelfernandes.org>, Greg KH <gregkh@linuxfoundation.org>, gustavo@embeddedor.com, Thomas Gleixner <tglx@linutronix.de>, paulmck@kernel.org, Josh Triplett <josh@joshtriplett.org>, Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, Lai Jiangshan <jiangshanlai@gmail.com>, Tony Luck <tony.luck@intel.com>, Frederic Weisbecker <frederic@kernel.org>, Dan Carpenter <dan.carpenter@oracle.com>, Masami Hiramatsu <mhiramat@kernel.org>
+Message-ID: <20200226102758.JgO0kKWak5SFuyOxl2swRUxcXMTh7bwxAnetHWQ4Sl4@z>
 
-On Wed, Feb 05, 2020 at 10:19:33AM -0800, Yu-cheng Yu wrote:
-> The Shadow Stack (SHSTK) for clone/fork is handled as the following:
-> 
-> (1) If ((clone_flags & (CLONE_VFORK | CLONE_VM)) == CLONE_VM),
->     the kernel allocates (and frees on thread exit) a new SHSTK for the
->     child.
-> 
->     It is possible for the kernel to complete the clone syscall and set the
->     child's SHSTK pointer to NULL and let the child thread allocate a SHSTK
->     for itself.  There are two issues in this approach: It is not
->     compatible with existing code that does inline syscall and it cannot
->     handle signals before the child can successfully allocate a SHSTK.
-> 
-> (2) For (clone_flags & CLONE_VFORK), the child uses the existing SHSTK.
-> 
-> (3) For all other cases, the SHSTK is copied/reused whenever the parent or
->     the child does a call/ret.
-> 
-> This patch handles cases (1) & (2).  Case (3) is handled in the SHSTK page
-> fault patches.
-> 
-> A 64-bit SHSTK has a fixed size of RLIMIT_STACK. A compat-mode thread SHSTK
-> has a fixed size of 1/4 RLIMIT_STACK.  This allows more threads to share a
-> 32-bit address space.
+On Mon, Feb 24, 2020 at 05:02:31PM -0500, Steven Rostedt wrote:
 
-I am not understanding this part. :) Entries are sizeof(unsigned long),
-yes? A 1/2 RLIMIT_STACK would cover 32-bit, but 1/4 is less, so why does
-that provide for more threads?
+> The other is for the hwlat detector that measures the time it was in an
+> NMI, as NMIs appear as a hardware latency too.
 
-> 
-> Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
-> ---
->  arch/x86/include/asm/cet.h         |  2 ++
->  arch/x86/include/asm/mmu_context.h |  3 +++
->  arch/x86/kernel/cet.c              | 41 ++++++++++++++++++++++++++++++
->  arch/x86/kernel/process.c          |  7 +++++
->  4 files changed, 53 insertions(+)
-> 
-> diff --git a/arch/x86/include/asm/cet.h b/arch/x86/include/asm/cet.h
-> index 409d4f91a0dc..9a3e2da9c1c4 100644
-> --- a/arch/x86/include/asm/cet.h
-> +++ b/arch/x86/include/asm/cet.h
-> @@ -19,10 +19,12 @@ struct cet_status {
->  
->  #ifdef CONFIG_X86_INTEL_CET
->  int cet_setup_shstk(void);
-> +int cet_setup_thread_shstk(struct task_struct *p);
->  void cet_disable_free_shstk(struct task_struct *p);
->  int cet_restore_signal(bool ia32, struct sc_ext *sc);
->  int cet_setup_signal(bool ia32, unsigned long rstor, struct sc_ext *sc);
->  #else
-> +static inline int cet_setup_thread_shstk(struct task_struct *p) { return 0; }
->  static inline void cet_disable_free_shstk(struct task_struct *p) {}
->  static inline int cet_restore_signal(bool ia32, struct sc_ext *sc) { return -EINVAL; }
->  static inline int cet_setup_signal(bool ia32, unsigned long rstor,
-> diff --git a/arch/x86/include/asm/mmu_context.h b/arch/x86/include/asm/mmu_context.h
-> index 5f33924e200f..6a8189308823 100644
-> --- a/arch/x86/include/asm/mmu_context.h
-> +++ b/arch/x86/include/asm/mmu_context.h
-> @@ -13,6 +13,7 @@
->  #include <asm/tlbflush.h>
->  #include <asm/paravirt.h>
->  #include <asm/mpx.h>
-> +#include <asm/cet.h>
->  #include <asm/debugreg.h>
->  
->  extern atomic64_t last_mm_ctx_id;
-> @@ -230,6 +231,8 @@ do {						\
->  #else
->  #define deactivate_mm(tsk, mm)			\
->  do {						\
-> +	if (!tsk->vfork_done)			\
-> +		cet_disable_free_shstk(tsk);	\
->  	load_gs_index(0);			\
->  	loadsegment(fs, 0);			\
->  } while (0)
-> diff --git a/arch/x86/kernel/cet.c b/arch/x86/kernel/cet.c
-> index cba5c7656aab..5b45abda80a1 100644
-> --- a/arch/x86/kernel/cet.c
-> +++ b/arch/x86/kernel/cet.c
-> @@ -170,6 +170,47 @@ int cet_setup_shstk(void)
->  	return 0;
->  }
->  
-> +int cet_setup_thread_shstk(struct task_struct *tsk)
-> +{
-> +	unsigned long addr, size;
-> +	struct cet_user_state *state;
-> +	struct cet_status *cet = &tsk->thread.cet;
-> +
-> +	if (!cet->shstk_enabled)
-> +		return 0;
-> +
-> +	state = get_xsave_addr(&tsk->thread.fpu.state.xsave,
-> +			       XFEATURE_CET_USER);
-> +
-> +	if (!state)
-> +		return -EINVAL;
-> +
-> +	size = rlimit(RLIMIT_STACK);
+Yeah,.. I hate that one. But I ended up with this patch.
 
-Is SHSTK incompatible with RLIM_INFINITY stack rlimits?
+And yes, I know some of those notrace annotations are strictly
+unnessecary due to Makefile crap, but having them is _SO_ much easier.
 
-> +
-> +	/*
-> +	 * Compat-mode pthreads share a limited address space.
-> +	 * If each function call takes an average of four slots
-> +	 * stack space, we need 1/4 of stack size for shadow stack.
-> +	 */
-> +	if (in_compat_syscall())
-> +		size /= 4;
-> +
-> +	addr = alloc_shstk(size);
+---
+Subject: x86,tracing: Robustify ftrace_nmi_enter()
+From: Peter Zijlstra <peterz@infradead.org>
+Date: Mon Feb 24 23:40:29 CET 2020
 
-I assume it'd fail here, but I worry about Stack Clash style attacks.
-I'd like to see test cases that make sure the SHSTK gap is working
-correctly.
+  ftrace_nmi_enter()
+     trace_hwlat_callback()
+       trace_clock_local()
+         sched_clock()
+           paravirt_sched_clock()
+           native_sched_clock()
 
--Kees
+All must not be traced or kprobed, it will be called from do_debug()
+before the kprobe handler.
 
-> +
-> +	if (IS_ERR((void *)addr)) {
-> +		cet->shstk_base = 0;
-> +		cet->shstk_size = 0;
-> +		cet->shstk_enabled = 0;
-> +		return PTR_ERR((void *)addr);
-> +	}
-> +
-> +	fpu__prepare_write(&tsk->thread.fpu);
-> +	state->user_ssp = (u64)(addr + size);
-> +	cet->shstk_base = addr;
-> +	cet->shstk_size = size;
-> +	return 0;
-> +}
-> +
->  void cet_disable_free_shstk(struct task_struct *tsk)
->  {
->  	struct cet_status *cet = &tsk->thread.cet;
-> diff --git a/arch/x86/kernel/process.c b/arch/x86/kernel/process.c
-> index e102e63de641..7098618142f2 100644
-> --- a/arch/x86/kernel/process.c
-> +++ b/arch/x86/kernel/process.c
-> @@ -110,6 +110,7 @@ void exit_thread(struct task_struct *tsk)
->  
->  	free_vm86(t);
->  
-> +	cet_disable_free_shstk(tsk);
->  	fpu__drop(fpu);
->  }
->  
-> @@ -180,6 +181,12 @@ int copy_thread_tls(unsigned long clone_flags, unsigned long sp,
->  	if (clone_flags & CLONE_SETTLS)
->  		ret = set_new_tls(p, tls);
->  
-> +#ifdef CONFIG_X86_64
-> +	/* Allocate a new shadow stack for pthread */
-> +	if (!ret && (clone_flags & (CLONE_VFORK | CLONE_VM)) == CLONE_VM)
-> +		ret = cet_setup_thread_shstk(p);
-> +#endif
-> +
->  	if (!ret && unlikely(test_tsk_thread_flag(current, TIF_IO_BITMAP)))
->  		io_bitmap_share(p);
->  
-> -- 
-> 2.21.0
-> 
+Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+---
+ arch/x86/include/asm/paravirt.h |    2 +-
+ arch/x86/kernel/tsc.c           |    7 +++++--
+ include/linux/ftrace_irq.h      |    4 ++--
+ kernel/trace/trace_clock.c      |    2 ++
+ kernel/trace/trace_hwlat.c      |    4 +++-
+ 5 files changed, 13 insertions(+), 6 deletions(-)
 
--- 
-Kees Cook
+--- a/arch/x86/include/asm/paravirt.h
++++ b/arch/x86/include/asm/paravirt.h
+@@ -17,7 +17,7 @@
+ #include <linux/cpumask.h>
+ #include <asm/frame.h>
+ 
+-static inline unsigned long long paravirt_sched_clock(void)
++static __always_inline unsigned long long paravirt_sched_clock(void)
+ {
+ 	return PVOP_CALL0(unsigned long long, time.sched_clock);
+ }
+--- a/arch/x86/kernel/tsc.c
++++ b/arch/x86/kernel/tsc.c
+@@ -14,6 +14,7 @@
+ #include <linux/percpu.h>
+ #include <linux/timex.h>
+ #include <linux/static_key.h>
++#include <linux/kprobes.h>
+ 
+ #include <asm/hpet.h>
+ #include <asm/timer.h>
+@@ -207,7 +208,7 @@ static void __init cyc2ns_init_secondary
+ /*
+  * Scheduler clock - returns current time in nanosec units.
+  */
+-u64 native_sched_clock(void)
++notrace u64 native_sched_clock(void)
+ {
+ 	if (static_branch_likely(&__use_tsc)) {
+ 		u64 tsc_now = rdtsc();
+@@ -228,6 +229,7 @@ u64 native_sched_clock(void)
+ 	/* No locking but a rare wrong value is not a big deal: */
+ 	return (jiffies_64 - INITIAL_JIFFIES) * (1000000000 / HZ);
+ }
++NOKPROBE_SYMBOL(native_sched_clock);
+ 
+ /*
+  * Generate a sched_clock if you already have a TSC value.
+@@ -240,10 +242,11 @@ u64 native_sched_clock_from_tsc(u64 tsc)
+ /* We need to define a real function for sched_clock, to override the
+    weak default version */
+ #ifdef CONFIG_PARAVIRT
+-unsigned long long sched_clock(void)
++notrace unsigned long long sched_clock(void)
+ {
+ 	return paravirt_sched_clock();
+ }
++NOKPROBE_SYMBOL(sched_clock);
+ 
+ bool using_native_sched_clock(void)
+ {
+--- a/include/linux/ftrace_irq.h
++++ b/include/linux/ftrace_irq.h
+@@ -7,7 +7,7 @@ extern bool trace_hwlat_callback_enabled
+ extern void trace_hwlat_callback(bool enter);
+ #endif
+ 
+-static inline void ftrace_nmi_enter(void)
++static __always_inline void ftrace_nmi_enter(void)
+ {
+ #ifdef CONFIG_HWLAT_TRACER
+ 	if (trace_hwlat_callback_enabled)
+@@ -15,7 +15,7 @@ static inline void ftrace_nmi_enter(void
+ #endif
+ }
+ 
+-static inline void ftrace_nmi_exit(void)
++static __always_inline void ftrace_nmi_exit(void)
+ {
+ #ifdef CONFIG_HWLAT_TRACER
+ 	if (trace_hwlat_callback_enabled)
+--- a/kernel/trace/trace_clock.c
++++ b/kernel/trace/trace_clock.c
+@@ -22,6 +22,7 @@
+ #include <linux/sched/clock.h>
+ #include <linux/ktime.h>
+ #include <linux/trace_clock.h>
++#include <linux/kprobes.h>
+ 
+ /*
+  * trace_clock_local(): the simplest and least coherent tracing clock.
+@@ -44,6 +45,7 @@ u64 notrace trace_clock_local(void)
+ 
+ 	return clock;
+ }
++NOKPROBE_SYMBOL(trace_clock_local);
+ EXPORT_SYMBOL_GPL(trace_clock_local);
+ 
+ /*
+--- a/kernel/trace/trace_hwlat.c
++++ b/kernel/trace/trace_hwlat.c
+@@ -43,6 +43,7 @@
+ #include <linux/cpumask.h>
+ #include <linux/delay.h>
+ #include <linux/sched/clock.h>
++#include <linux/kprobes.h>
+ #include "trace.h"
+ 
+ static struct trace_array	*hwlat_trace;
+@@ -137,7 +138,7 @@ static void trace_hwlat_sample(struct hw
+ #define init_time(a, b)	(a = b)
+ #define time_u64(a)	a
+ 
+-void trace_hwlat_callback(bool enter)
++notrace void trace_hwlat_callback(bool enter)
+ {
+ 	if (smp_processor_id() != nmi_cpu)
+ 		return;
+@@ -156,6 +157,7 @@ void trace_hwlat_callback(bool enter)
+ 	if (enter)
+ 		nmi_count++;
+ }
++NOKPROBE_SYMBOL(trace_hwlat_callback);
+ 
+ /**
+  * get_sample - sample the CPU TSC and look for likely hardware latencies
