@@ -1,51 +1,85 @@
-Return-Path: <SRS0=LzcT=4H=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.133]:47548 "EHLO
-        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726651AbgBSQDp (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 19 Feb 2020 11:03:45 -0500
-Date: Wed, 19 Feb 2020 17:03:18 +0100
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH v3 16/22] locking/atomics, kcsan: Add KCSAN
- instrumentation
-Message-ID: <20200219160318.GG18400@hirez.programming.kicks-ass.net>
-References: <20200219144724.800607165@infradead.org>
- <20200219150745.299217979@infradead.org>
- <20200219104626.633f0650@gandalf.local.home>
+Return-Path: <SRS0=oITL=4O=vger.kernel.org=linux-doc-owner@kernel.org>
+Subject: Re: [RFC PATCH v9 05/27] x86/cet/shstk: Add Kconfig option for
+ user-mode Shadow Stack protection
+References: <20200205181935.3712-1-yu-cheng.yu@intel.com>
+ <20200205181935.3712-6-yu-cheng.yu@intel.com>
+From: Dave Hansen <dave.hansen@intel.com>
+Message-ID: <597fb45a-cb94-e8e7-8e80-45a26766d32a@intel.com>
+Date: Wed, 26 Feb 2020 09:03:08 -0800
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20200219104626.633f0650@gandalf.local.home>
-Sender: linux-arch-owner@vger.kernel.org
+In-Reply-To: <20200205181935.3712-6-yu-cheng.yu@intel.com>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
+Content-Transfer-Encoding: 8bit
+Sender: linux-doc-owner@vger.kernel.org
+To: Yu-cheng Yu <yu-cheng.yu@intel.com>, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>, x86-patch-review@intel.com
 List-ID: <linux-arch.vger.kernel.org>
-To: Steven Rostedt <rostedt@goodmis.org>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org, joel@joelfernandes.org, gregkh@linuxfoundation.org, gustavo@embeddedor.com, tglx@linutronix.de, paulmck@kernel.org, josh@joshtriplett.org, mathieu.desnoyers@efficios.com, jiangshanlai@gmail.com, luto@kernel.org, tony.luck@intel.com, frederic@kernel.org, dan.carpenter@oracle.com, mhiramat@kernel.org, Marco Elver <elver@google.com>, Mark Rutland <mark.rutland@arm.com>
-Message-ID: <20200219160318.bTSKSH3iNlQ2IUEta6J0XmQaSUOdBtpDETq28ZK6r8U@z>
+Message-ID: <20200226170308.TP0MNI5d_EarlSanLi3b6FRliCO6FKwA51gnHL7BjRg@z>
 
-On Wed, Feb 19, 2020 at 10:46:26AM -0500, Steven Rostedt wrote:
-> On Wed, 19 Feb 2020 15:47:40 +0100
-> Peter Zijlstra <peterz@infradead.org> wrote:
+On 2/5/20 10:19 AM, Yu-cheng Yu wrote:
+> Introduce Kconfig option: X86_INTEL_SHADOW_STACK_USER.
 > 
-> > From: Marco Elver <elver@google.com>
-> > 
-> > This adds KCSAN instrumentation to atomic-instrumented.h.
-> > 
-> > Signed-off-by: Marco Elver <elver@google.com>
-> > Signed-off-by: Paul E. McKenney <paulmck@kernel.org>
-> > [peterz: removed the actual kcsan hooks]
-> > Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
-> > Reviewed-by: Mark Rutland <mark.rutland@arm.com>
-> > ---
-> >  include/asm-generic/atomic-instrumented.h |  390 +++++++++++++++---------------
-> >  scripts/atomic/gen-atomic-instrumented.sh |   14 -
-> >  2 files changed, 212 insertions(+), 192 deletions(-)
-> > 
+> Shadow Stack (SHSTK) provides protection against function return address
+> corruption.  It is active when the kernel has this feature enabled, and
+> both the processor and the application support it.  When this feature is
+> enabled, legacy non-SHSTK applications continue to work, but without SHSTK
+> protection.
 > 
-> 
-> Does this and the rest of the series depend on the previous patches in
-> the series? Or can this be a series on to itself (patches 16-22)?
+> The user-mode SHSTK protection is only implemented for the 64-bit kernel.
+> IA32 applications are supported under the compatibility mode.
 
-It can probably stand on its own, but it very much is related in so far
-that it's fallout from staring at all this nonsense.
+I think what you're trying to say here is that the hardware supports
+shadow stacks with 32-bit kernels.  However, this series does not
+include that support and we have no plans to add it.
 
-Without these the do_int3() can actually have accidental tracing before
-reaching it's nmi_enter().
+Right?
+
+I'll let others weigh in, but I rather dislike the use of acronyms here.
+ I'd much rather see the english "shadow stack" everywhere than SHSTK.
+
+> diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+> index 5e8949953660..6c34b701c588 100644
+> --- a/arch/x86/Kconfig
+> +++ b/arch/x86/Kconfig
+> @@ -1974,6 +1974,28 @@ config X86_INTEL_TSX_MODE_AUTO
+>  	  side channel attacks- equals the tsx=auto command line parameter.
+>  endchoice
+>  
+> +config X86_INTEL_CET
+> +	def_bool n
+> +
+> +config ARCH_HAS_SHSTK
+> +	def_bool n
+> +
+> +config X86_INTEL_SHADOW_STACK_USER
+> +	prompt "Intel Shadow Stack for user-mode"
+
+Nit: this whole thing is to support more than a single stack.  I'd make
+this plural at least in the text: "shadow stacks".
+
+> +	def_bool n
+> +	depends on CPU_SUP_INTEL && X86_64
+> +	select ARCH_USES_HIGH_VMA_FLAGS
+> +	select X86_INTEL_CET
+> +	select ARCH_HAS_SHSTK
+> +	---help---
+> +	  Shadow Stack (SHSTK) provides protection against program
+> +	  stack corruption.  It is active when the kernel has this
+> +	  feature enabled, and the processor and the application
+> +	  support it.  When this feature is enabled, legacy non-SHSTK
+> +	  applications continue to work, but without SHSTK protection.
+> +
+> +	  If unsure, say y.
+
+This is missing a *lot* of information.
+
+What matters to someone turning this on?
+
+1. It's a hardware feature.  This only matters if you have the right
+   hardware
+2. It's a security hardening feature.  You dance around this, but need
+   to come out and say it.
+3. Apps must be enabled to use it.  You get no protection "for free" on
+   old userspace.
+4. The hardware supports user and kernel, but this option is for
+   userspace only.
