@@ -1,7 +1,7 @@
 From: Mark Brown <broonie@kernel.org>
-Subject: [PATCH v7 09/11] arm64: BTI: Reset BTYPE when skipping emulated instructions
-Date: Wed, 26 Feb 2020 15:57:12 +0000
-Message-ID: <20200226155714.43937-10-broonie@kernel.org>
+Subject: [PATCH v7 06/11] arm64: BTI: Decode BYTPE bits when printing PSTATE
+Date: Wed, 26 Feb 2020 15:57:09 +0000
+Message-ID: <20200226155714.43937-7-broonie@kernel.org>
 References: <20200226155714.43937-1-broonie@kernel.org>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
@@ -14,31 +14,68 @@ List-Id: linux-arch.vger.kernel.org
 
 From: Dave Martin <Dave.Martin@arm.com>
 
-Since normal execution of any non-branch instruction resets the
-PSTATE BTYPE field to 0, so do the same thing when emulating a
-trapped instruction.
+The current code to print PSTATE symbolically when generating
+backtraces etc., does not include the BYTPE field used by Branch
+Target Identification.
 
-Branches don't trap directly, so we should never need to assign a
-non-zero value to BTYPE here.
+So, decode BYTPE and print it too.
+
+In the interests of human-readability, print the classes of BTI
+matched.  The symbolic notation, BYTPE (PSTATE[11:10]) and
+permitted classes of subsequent instruction are:
+
+    -- (BTYPE=0b00): any insn
+    jc (BTYPE=0b01): BTI jc, BTI j, BTI c, PACIxSP
+    -c (BYTPE=0b10): BTI jc, BTI c, PACIxSP
+    j- (BTYPE=0b11): BTI jc, BTI j
 
 Signed-off-by: Dave Martin <Dave.Martin@arm.com>
 Signed-off-by: Mark Brown <broonie@kernel.org>
 ---
- arch/arm64/kernel/traps.c | 2 ++
- 1 file changed, 2 insertions(+)
+ arch/arm64/kernel/process.c | 17 +++++++++++++++--
+ 1 file changed, 15 insertions(+), 2 deletions(-)
 
-diff --git a/arch/arm64/kernel/traps.c b/arch/arm64/kernel/traps.c
-index 3c07a7074145..52ed261e7739 100644
---- a/arch/arm64/kernel/traps.c
-+++ b/arch/arm64/kernel/traps.c
-@@ -335,6 +335,8 @@ void arm64_skip_faulting_instruction(struct pt_regs *regs, unsigned long size)
- 
- 	if (compat_user_mode(regs))
- 		advance_itstate(regs);
-+	else
-+		regs->pstate &= ~PSR_BTYPE_MASK;
+diff --git a/arch/arm64/kernel/process.c b/arch/arm64/kernel/process.c
+index b8e3faa8d406..24af13d7bde6 100644
+--- a/arch/arm64/kernel/process.c
++++ b/arch/arm64/kernel/process.c
+@@ -211,6 +211,15 @@ void machine_restart(char *cmd)
+ 	while (1);
  }
  
- static LIST_HEAD(undef_hook);
++#define bstr(suffix, str) [PSR_BTYPE_ ## suffix >> PSR_BTYPE_SHIFT] = str
++static const char *const btypes[] = {
++	bstr(NONE, "--"),
++	bstr(  JC, "jc"),
++	bstr(   C, "-c"),
++	bstr(  J , "j-")
++};
++#undef bstr
++
+ static void print_pstate(struct pt_regs *regs)
+ {
+ 	u64 pstate = regs->pstate;
+@@ -229,7 +238,10 @@ static void print_pstate(struct pt_regs *regs)
+ 			pstate & PSR_AA32_I_BIT ? 'I' : 'i',
+ 			pstate & PSR_AA32_F_BIT ? 'F' : 'f');
+ 	} else {
+-		printk("pstate: %08llx (%c%c%c%c %c%c%c%c %cPAN %cUAO)\n",
++		const char *btype_str = btypes[(pstate & PSR_BTYPE_MASK) >>
++					       PSR_BTYPE_SHIFT];
++
++		printk("pstate: %08llx (%c%c%c%c %c%c%c%c %cPAN %cUAO BTYPE=%s)\n",
+ 			pstate,
+ 			pstate & PSR_N_BIT ? 'N' : 'n',
+ 			pstate & PSR_Z_BIT ? 'Z' : 'z',
+@@ -240,7 +252,8 @@ static void print_pstate(struct pt_regs *regs)
+ 			pstate & PSR_I_BIT ? 'I' : 'i',
+ 			pstate & PSR_F_BIT ? 'F' : 'f',
+ 			pstate & PSR_PAN_BIT ? '+' : '-',
+-			pstate & PSR_UAO_BIT ? '+' : '-');
++			pstate & PSR_UAO_BIT ? '+' : '-',
++			btype_str);
+ 	}
+ }
+ 
 -- 
 2.20.1
