@@ -1,67 +1,38 @@
-Return-Path: <SRS0=LM+d=4A=kvack.org=owner-linux-mm@kernel.org>
-From: Michal Simek <michal.simek@xilinx.com>
-Subject: [PATCH 02/10] microblaze: Remove architecture tlb.h and use generic one
-Date: Wed, 12 Feb 2020 09:57:59 +0100
-Message-ID: <1243cf3b894f81b728011621b2fd3d40b8935e99.1581497860.git.michal.simek@xilinx.com>
-In-Reply-To: <cover.1581497860.git.michal.simek@xilinx.com>
-References: <cover.1581497860.git.michal.simek@xilinx.com>
+Return-Path: <SRS0=ZbOS=4O=kvack.org=owner-linux-mm@kernel.org>
+Subject: Re: [RFC PATCH v9 11/27] drm/i915/gvt: Change _PAGE_DIRTY to
+ _PAGE_DIRTY_BITS
+References: <20200205181935.3712-1-yu-cheng.yu@intel.com>
+ <20200205181935.3712-12-yu-cheng.yu@intel.com>
+From: Dave Hansen <dave.hansen@intel.com>
+Message-ID: <34c83f97-f206-1b43-db40-7e6a7d0f6bb7@intel.com>
+Date: Wed, 26 Feb 2020 14:04:43 -0800
 MIME-Version: 1.0
+In-Reply-To: <20200205181935.3712-12-yu-cheng.yu@intel.com>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
 Content-Transfer-Encoding: quoted-printable
 Sender: owner-linux-mm@kvack.org
-To: linux-kernel@vger.kernel.org, monstr@monstr.eu, michal.simek@xilinx.com, git@xilinx.com, arnd@arndb.de
-Cc: Stefan Asserhall <stefan.asserhall@xilinx.com>, Andrew Morton <akpm@linux-foundation.org>, "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>, Cornelia Huck <cohuck@redhat.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Masahiro Yamada <yamada.masahiro@socionext.com>, Nick Piggin <npiggin@gmail.com>, Paolo Bonzini <pbonzini@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Will Deacon <will@kernel.org>, linux-arch@vger.kernel.org, linux-mm@kvack.org
+To: Yu-cheng Yu <yu-cheng.yu@intel.com>, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>, x86-patch-review@intel.com
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200212085759.iXDBFtEtFEfoY0MMDcXa7xNwtcgaRR1mQwlAG7EOt40@z>
+Message-ID: <20200226220443.QtYP1FFqieLQ5zily5ZmWJT0MFsO1bgkfN9SojNf1_c@z>
 
-There is no reason to have this empty file if it is just link to
-asm-generic/tlb.h.
+On 2/5/20 10:19 AM, Yu-cheng Yu wrote:
+> diff --git a/drivers/gpu/drm/i915/gvt/gtt.c b/drivers/gpu/drm/i915/gvt/=
+gtt.c
+> index 4b04af569c05..e467ca182633 100644
+> --- a/drivers/gpu/drm/i915/gvt/gtt.c
+> +++ b/drivers/gpu/drm/i915/gvt/gtt.c
+> @@ -1201,7 +1201,7 @@ static int split_2MB_gtt_entry(struct intel_vgpu =
+*vgpu,
+>  	}
+> =20
+>  	/* Clear dirty field. */
+> -	se->val64 &=3D ~_PAGE_DIRTY;
+> +	se->val64 &=3D ~_PAGE_DIRTY_BITS;
+> =20
+>  	ops->clear_pse(se);
+>  	ops->clear_ips(se);
 
-Signed-off-by: Michal Simek <michal.simek@xilinx.com>
-Reviewed-by: Stefan Asserhall <stefan.asserhall@xilinx.com>
----
+Are the i915 maintainers on cc?
 
- arch/microblaze/include/asm/Kbuild |  1 +
- arch/microblaze/include/asm/tlb.h  | 17 -----------------
- 2 files changed, 1 insertion(+), 17 deletions(-)
- delete mode 100644 arch/microblaze/include/asm/tlb.h
-
-diff --git a/arch/microblaze/include/asm/Kbuild b/arch/microblaze/include=
-/asm/Kbuild
-index e5c9170a07fc..7ae427f73105 100644
---- a/arch/microblaze/include/asm/Kbuild
-+++ b/arch/microblaze/include/asm/Kbuild
-@@ -31,6 +31,7 @@ generic-y +=3D preempt.h
- generic-y +=3D serial.h
- generic-y +=3D shmparam.h
- generic-y +=3D syscalls.h
-+generic-y +=3D tlb.h
- generic-y +=3D topology.h
- generic-y +=3D trace_clock.h
- generic-y +=3D vga.h
-diff --git a/arch/microblaze/include/asm/tlb.h b/arch/microblaze/include/=
-asm/tlb.h
-deleted file mode 100644
-index 628a78ee0a72..000000000000
---- a/arch/microblaze/include/asm/tlb.h
-+++ /dev/null
-@@ -1,17 +0,0 @@
--/*
-- * Copyright (C) 2008-2009 Michal Simek <monstr@monstr.eu>
-- * Copyright (C) 2008-2009 PetaLogix
-- * Copyright (C) 2006 Atmark Techno, Inc.
-- *
-- * This file is subject to the terms and conditions of the GNU General P=
-ublic
-- * License. See the file "COPYING" in the main directory of this archive
-- * for more details.
-- */
--
--#ifndef _ASM_MICROBLAZE_TLB_H
--#define _ASM_MICROBLAZE_TLB_H
--
--#include <linux/pagemap.h>
--#include <asm-generic/tlb.h>
--
--#endif /* _ASM_MICROBLAZE_TLB_H */
---=20
-2.25.0
+Shouldn't this use pte_mkclean() instead of open-coding?
