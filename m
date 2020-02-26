@@ -1,291 +1,367 @@
-Return-Path: <SRS0=ZivQ=4G=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:35726 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726327AbgBRKyx (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 18 Feb 2020 05:54:53 -0500
-Date: Tue, 18 Feb 2020 12:54:40 +0200
-From: Mike Rapoport <rppt@kernel.org>
-Subject: Re: [PATCH v2 07/13] powerpc: add support for folded p4d page tables
-Message-ID: <20200218105440.GA1698@hump>
-References: <20200216081843.28670-1-rppt@kernel.org>
- <20200216081843.28670-8-rppt@kernel.org>
- <c79b363c-a111-389a-5752-51cf85fa8c44@c-s.fr>
+Return-Path: <SRS0=oITL=4O=vger.kernel.org=linux-doc-owner@kernel.org>
+Subject: Re: [RFC PATCH v9 01/27] Documentation/x86: Add CET description
+References: <20200205181935.3712-1-yu-cheng.yu@intel.com>
+ <20200205181935.3712-2-yu-cheng.yu@intel.com>
+From: Dave Hansen <dave.hansen@intel.com>
+Message-ID: <9ae1cf84-1d84-1d34-c0ce-48b0d70b8f3f@intel.com>
+Date: Wed, 26 Feb 2020 09:57:19 -0800
 MIME-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-1
-Content-Disposition: inline
+In-Reply-To: <20200205181935.3712-2-yu-cheng.yu@intel.com>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
 Content-Transfer-Encoding: 8bit
-In-Reply-To: <c79b363c-a111-389a-5752-51cf85fa8c44@c-s.fr>
-Sender: linux-arch-owner@vger.kernel.org
+Sender: linux-doc-owner@vger.kernel.org
+To: Yu-cheng Yu <yu-cheng.yu@intel.com>, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>, x86-patch-review@intel.com
 List-ID: <linux-arch.vger.kernel.org>
-To: Christophe Leroy <christophe.leroy@c-s.fr>
-Cc: linux-kernel@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Brian Cain <bcain@codeaurora.org>, Catalin Marinas <catalin.marinas@arm.com>, Fenghua Yu <fenghua.yu@intel.com>, Geert Uytterhoeven <geert+renesas@glider.be>, Guan Xuetao <gxt@pku.edu.cn>, James Morse <james.morse@arm.com>, Jonas Bonn <jonas@southpole.se>, Julien Thierry <julien.thierry.kdev@gmail.com>, Ley Foon Tan <ley.foon.tan@intel.com>, Marc Zyngier <maz@kernel.org>, Michael Ellerman <mpe@ellerman.id.au>, Paul Mackerras <paulus@samba.org>, Rich Felker <dalias@libc.org>, Russell King <linux@armlinux.org.uk>, Stafford Horne <shorne@gmail.com>, Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>, Suzuki K Poulose <suzuki.poulose@arm.com>, Tony Luck <tony.luck@intel.com>, Will Deacon <will@kernel.org>, Yoshinori Sato <ysato@users.sourceforge.jp>, kvmarm@lists.cs.columbia.edu, kvm-ppc@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-mm@kvack.org, linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org, nios2-dev@lists.rocketboards.org, openrisc@lists.librecores.org, uclinux-h8-devel@lists.sourceforge.jp, Mike Rapoport <rppt@linux.ibm.com>
-Message-ID: <20200218105440.8jcHhfPWz0KlbQXfAFWr66N6QxKYxXEJb3BzPOVw2o4@z>
+Message-ID: <20200226175719.W3EtU245QWpLOUoV-g60N6_yOOcyRivLzriJTAaun9Q@z>
 
-On Sun, Feb 16, 2020 at 11:41:07AM +0100, Christophe Leroy wrote:
-> 
-> 
-> Le 16/02/2020 à 09:18, Mike Rapoport a écrit :
-> > From: Mike Rapoport <rppt@linux.ibm.com>
-> > 
-> > Implement primitives necessary for the 4th level folding, add walks of p4d
-> > level where appropriate and replace 5level-fixup.h with pgtable-nop4d.h.
-> 
-> I don't think it is worth adding all this additionnals walks of p4d, this
-> patch could be limited to changes like:
-> 
-> -		pud = pud_offset(pgd, gpa);
-> +		pud = pud_offset(p4d_offset(pgd, gpa), gpa);
-> 
-> The additionnal walks should be added through another patch the day powerpc
-> need them.
+> index ade4e6ec23e0..8b69ebf0baed 100644
+> --- a/Documentation/admin-guide/kernel-parameters.txt
+> +++ b/Documentation/admin-guide/kernel-parameters.txt
+> @@ -3001,6 +3001,12 @@
+>  			noexec=on: enable non-executable mappings (default)
+>  			noexec=off: disable non-executable mappings
+>  
+> +	no_cet_shstk	[X86-64] Disable Shadow Stack for user-mode
+> +			applications
 
-Ok, I'll update the patch to reduce walking the p4d.
- 
-> See below for more comments.
-> 
-> > 
-> > Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
-> > Tested-by: Christophe Leroy <christophe.leroy@c-s.fr> # 8xx and 83xx
-> > ---
+If we ever add kernel support, "no_cet_shstk" will mean "no cet shstk
+for userspace"?
 
-...
+> +	no_cet_ibt	[X86-64] Disable Indirect Branch Tracking for user-mode
+> +			applications
+> +
+>  	nosmap		[X86,PPC]
+>  			Disable SMAP (Supervisor Mode Access Prevention)
+>  			even if it is supported by processor.
 
-> > diff --git a/arch/powerpc/include/asm/book3s/64/pgtable.h b/arch/powerpc/include/asm/book3s/64/pgtable.h
-> > index 201a69e6a355..ddddbafff0ab 100644
-> > --- a/arch/powerpc/include/asm/book3s/64/pgtable.h
-> > +++ b/arch/powerpc/include/asm/book3s/64/pgtable.h
-> > @@ -2,7 +2,7 @@
-> >   #ifndef _ASM_POWERPC_BOOK3S_64_PGTABLE_H_
-> >   #define _ASM_POWERPC_BOOK3S_64_PGTABLE_H_
-> > -#include <asm-generic/5level-fixup.h>
-> > +#include <asm-generic/pgtable-nop4d.h>
-> >   #ifndef __ASSEMBLY__
-> >   #include <linux/mmdebug.h>
-> > @@ -251,7 +251,7 @@ extern unsigned long __pmd_frag_size_shift;
-> >   /* Bits to mask out from a PUD to get to the PMD page */
-> >   #define PUD_MASKED_BITS		0xc0000000000000ffUL
-> >   /* Bits to mask out from a PGD to get to the PUD page */
-> > -#define PGD_MASKED_BITS		0xc0000000000000ffUL
-> > +#define P4D_MASKED_BITS		0xc0000000000000ffUL
-> >   /*
-> >    * Used as an indicator for rcu callback functions
-> > @@ -949,54 +949,60 @@ static inline bool pud_access_permitted(pud_t pud, bool write)
-> >   	return pte_access_permitted(pud_pte(pud), write);
-> >   }
-> > -#define pgd_write(pgd)		pte_write(pgd_pte(pgd))
-> > +#define __p4d_raw(x)	((p4d_t) { __pgd_raw(x) })
-> > +static inline __be64 p4d_raw(p4d_t x)
-> > +{
-> > +	return pgd_raw(x.pgd);
-> > +}
-> > +
-> 
-> Shouldn't this be defined in asm/pgtable-be-types.h, just like other
-> __pxx_raw() ?
+BTW, this documentation is misplaced.  It needs to go to the spot where
+you introduce the code for these options.
 
-Ideally yes, but this creates weird header file dependencies and untangling
-them would generate way too much churn.
- 
-> > +#define p4d_write(p4d)		pte_write(p4d_pte(p4d))
-> > -static inline void pgd_clear(pgd_t *pgdp)
-> > +static inline void p4d_clear(p4d_t *p4dp)
-> >   {
-> > -	*pgdp = __pgd(0);
-> > +	*p4dp = __p4d(0);
-> >   }
+> diff --git a/Documentation/x86/index.rst b/Documentation/x86/index.rst
+> index a8de2fbc1caa..81f919801765 100644
+> --- a/Documentation/x86/index.rst
+> +++ b/Documentation/x86/index.rst
+> @@ -19,6 +19,7 @@ x86-specific Documentation
+>     tlb
+>     mtrr
+>     pat
+> +   intel_cet
+>     intel_mpx
+>     intel-iommu
+>     intel_txt
+> diff --git a/Documentation/x86/intel_cet.rst b/Documentation/x86/intel_cet.rst
+> new file mode 100644
+> index 000000000000..71e2462fea5c
+> --- /dev/null
+> +++ b/Documentation/x86/intel_cet.rst
+> @@ -0,0 +1,294 @@
+> +.. SPDX-License-Identifier: GPL-2.0
+> +
+> +=========================================
+> +Control-flow Enforcement Technology (CET)
+> +=========================================
+> +
+> +[1] Overview
+> +============
+> +
+> +Control-flow Enforcement Technology (CET) provides protection against
+> +return/jump-oriented programming (ROP) attacks.  It can be setup to
 
-...
+							      ^ set up
 
-> > @@ -573,9 +596,15 @@ int kvmppc_create_pte(struct kvm *kvm, pgd_t *pgtable, pte_t pte,
-> >   	/* Traverse the guest's 2nd-level tree, allocate new levels needed */
-> >   	pgd = pgtable + pgd_index(gpa);
-> > -	pud = NULL;
-> > +	p4d = NULL;
-> >   	if (pgd_present(*pgd))
-> > -		pud = pud_offset(pgd, gpa);
-> > +		p4d = p4d_offset(pgd, gpa);
-> > +	else
-> > +		new_p4d = p4d_alloc_one(kvm->mm, gpa);
-> > +
-> > +	pud = NULL;
-> > +	if (p4d_present(*p4d))
-> > +		pud = pud_offset(p4d, gpa);
-> 
-> Is it worth adding all this new code ?
-> 
-> My understanding is that the series objective is to get rid of
-> __ARCH_HAS_5LEVEL_HACK, to to add support for 5 levels to an architecture
-> that not need it (at least for now).
-> If we want to add support for 5 levels, it can be done later in another
-> patch.
-> 
-> Here I think your change could be limited to:
-> 
-> -		pud = pud_offset(pgd, gpa);
-> +		pud = pud_offset(p4d_offset(pgd, gpa), gpa);
+> +protect both applications and the kernel.  In the first phase, only
+> +user-mode protection is implemented in the 64-bit kernel; 32-bit
+> +applications are supported in compatibility mode.
 
-This won't work. Without __ARCH_USE_5LEVEL_HACK defined pgd_present() is
-hardwired to 1 and the actual check for the top level is performed with
-p4d_present(). The 'else' clause that allocates p4d will never be taken and
-it could be removed, but I prefer to keep it for consistency.
- 
-> >   	else
-> >   		new_pud = pud_alloc_one(kvm->mm, gpa);
-> > @@ -597,12 +626,18 @@ int kvmppc_create_pte(struct kvm *kvm, pgd_t *pgtable, pte_t pte,
-> >   	/* Now traverse again under the lock and change the tree */
-> >   	ret = -ENOMEM;
-> >   	if (pgd_none(*pgd)) {
-> > +		if (!new_p4d)
-> > +			goto out_unlock;
-> > +		pgd_populate(kvm->mm, pgd, new_p4d);
-> > +		new_p4d = NULL;
-> > +	}
-> > +	if (p4d_none(*p4d)) {
-> >   		if (!new_pud)
-> >   			goto out_unlock;
-> > -		pgd_populate(kvm->mm, pgd, new_pud);
-> > +		p4d_populate(kvm->mm, p4d, new_pud);
-> >   		new_pud = NULL;
-> >   	}
-> > -	pud = pud_offset(pgd, gpa);
-> > +	pud = pud_offset(p4d, gpa);
-> >   	if (pud_is_leaf(*pud)) {
-> >   		unsigned long hgpa = gpa & PUD_MASK;
-> > @@ -1220,6 +1255,7 @@ static ssize_t debugfs_radix_read(struct file *file, char __user *buf,
-> >   	pgd_t *pgt;
-> >   	struct kvm_nested_guest *nested;
-> >   	pgd_t pgd, *pgdp;
-> > +	p4d_t p4d, *p4dp;
-> >   	pud_t pud, *pudp;
-> >   	pmd_t pmd, *pmdp;
-> >   	pte_t *ptep;
-> > @@ -1298,7 +1334,14 @@ static ssize_t debugfs_radix_read(struct file *file, char __user *buf,
-> >   			continue;
-> >   		}
-> > -		pudp = pud_offset(&pgd, gpa);
-> > +		p4dp = p4d_offset(&pgd, gpa);
-> > +		p4d = READ_ONCE(*p4dp);
-> > +		if (!(p4d_val(p4d) & _PAGE_PRESENT)) {
-> > +			gpa = (gpa & P4D_MASK) + P4D_SIZE;
-> > +			continue;
-> > +		}
-> > +
-> > +		pudp = pud_offset(&p4d, gpa);
-> 
-> Same, here you are forcing a useless read with READ_ONCE().
-> 
-> Your change could be limited to
-> 
-> -		pudp = pud_offset(&pgd, gpa);
-> +		pudp = pud_offset(p4d_offset(&pgd, gpa), gpa);
+Please just say what *is* at the time of the writing.  We don't need to
+talk about "phases".
 
-Here again the actual check must be done against p4d rather than pgd. We
-could skip READ_ONCE() for pgd, but since it is a debugfs method I don't
-think it is more important than code consistency.
- 
-> This comment applies to many other places.
+Also, you haven't mentioned that this is a *hardware* feature and that
+it's only on Intel CPUs at the moment.  That's kinda essential.  If I've
+got an AMD CPU, I can just stop reading. :)
 
-I'll make another pass to see where we can take the shortcut and use 
+The hardware supports shadow stacks for both userspace and the kernel in
+both 32 and 64-bit modes.  32-bit kernel support is not implemented.
+Both 32-bit and 64-bit user applications can run on 64-bit kernels.
 
-	pudp = pud_offset(p4d_offset(...))
- 
-> >   		pud = READ_ONCE(*pudp);
-> >   		if (!(pud_val(pud) & _PAGE_PRESENT)) {
-> >   			gpa = (gpa & PUD_MASK) + PUD_SIZE;
-> > diff --git a/arch/powerpc/lib/code-patching.c b/arch/powerpc/lib/code-patching.c
-> > index 3345f039a876..7a59f6863cec 100644
-> > --- a/arch/powerpc/lib/code-patching.c
-> > +++ b/arch/powerpc/lib/code-patching.c
-> > @@ -107,13 +107,18 @@ static inline int unmap_patch_area(unsigned long addr)
-> >   	pte_t *ptep;
-> >   	pmd_t *pmdp;
-> >   	pud_t *pudp;
-> > +	p4d_t *p4dp;
-> >   	pgd_t *pgdp;
-> >   	pgdp = pgd_offset_k(addr);
-> >   	if (unlikely(!pgdp))
-> >   		return -EINVAL;
-> > -	pudp = pud_offset(pgdp, addr);
-> > +	p4dp = p4d_offset(pgdp, addr);
-> > +	if (unlikely(!p4dp))
-> > +		return -EINVAL;
-> > +
-> > +	pudp = pud_offset(p4dp, addr);
-> >   	if (unlikely(!pudp))
-> >   		return -EINVAL;
-> > diff --git a/arch/powerpc/mm/book3s32/mmu.c b/arch/powerpc/mm/book3s32/mmu.c
-> > index 0a1c65a2c565..b2fc3e71165c 100644
-> > --- a/arch/powerpc/mm/book3s32/mmu.c
-> > +++ b/arch/powerpc/mm/book3s32/mmu.c
-> > @@ -312,7 +312,7 @@ void hash_preload(struct mm_struct *mm, unsigned long ea)
-> >   	if (!Hash)
-> >   		return;
-> > -	pmd = pmd_offset(pud_offset(pgd_offset(mm, ea), ea), ea);
-> > +	pmd = pmd_offset(pud_offset(p4d_offset(pgd_offset(mm, ea), ea), ea), ea);
-> 
-> If we continue like this, in ten years this like is going to be many
-> kilometers long.
-> 
-> I think the above would be worth a generic helper.
+This is also missing the same key points about enabling as the Kconfig
+text: apps don't get this for free and must be specifically enabled.
 
-Agree. My plan was to first unify all the architectures and then start
-introducing the generic helpers, like e.g. pmd_offset_mm().
- 
-> >   	if (!pmd_none(*pmd))
-> >   		add_hash_page(mm->context.id, ea, pmd_val(*pmd));
-> >   }
-> > diff --git a/arch/powerpc/mm/book3s32/tlb.c b/arch/powerpc/mm/book3s32/tlb.c
-> > index 2fcd321040ff..175bc33b41b7 100644
-> > --- a/arch/powerpc/mm/book3s32/tlb.c
-> > +++ b/arch/powerpc/mm/book3s32/tlb.c
-> > @@ -87,7 +87,7 @@ static void flush_range(struct mm_struct *mm, unsigned long start,
-> >   	if (start >= end)
-> >   		return;
-> >   	end = (end - 1) | ~PAGE_MASK;
-> > -	pmd = pmd_offset(pud_offset(pgd_offset(mm, start), start), start);
-> > +	pmd = pmd_offset(pud_offset(p4d_offset(pgd_offset(mm, start), start), start), start);
-> >   	for (;;) {
-> >   		pmd_end = ((start + PGDIR_SIZE) & PGDIR_MASK) - 1;
-> >   		if (pmd_end > end)
-> > @@ -145,7 +145,7 @@ void flush_tlb_page(struct vm_area_struct *vma, unsigned long vmaddr)
-> >   		return;
-> >   	}
-> >   	mm = (vmaddr < TASK_SIZE)? vma->vm_mm: &init_mm;
-> > -	pmd = pmd_offset(pud_offset(pgd_offset(mm, vmaddr), vmaddr), vmaddr);
-> > +	pmd = pmd_offset(pud_offset(p4d_offset(pgd_offset(mm, vmaddr), vmaddr), vmaddr), vmaddr);
-> >   	if (!pmd_none(*pmd))
-> >   		flush_hash_pages(mm->context.id, vmaddr, pmd_val(*pmd), 1);
-> >   }
-> > diff --git a/arch/powerpc/mm/book3s64/hash_pgtable.c b/arch/powerpc/mm/book3s64/hash_pgtable.c
-> > index 64733b9cb20a..9cd15937e88a 100644
-> > --- a/arch/powerpc/mm/book3s64/hash_pgtable.c
-> > +++ b/arch/powerpc/mm/book3s64/hash_pgtable.c
-> > @@ -148,6 +148,7 @@ void hash__vmemmap_remove_mapping(unsigned long start,
-> >   int hash__map_kernel_page(unsigned long ea, unsigned long pa, pgprot_t prot)
-> >   {
-> >   	pgd_t *pgdp;
-> > +	p4d_t *p4dp;
-> >   	pud_t *pudp;
-> >   	pmd_t *pmdp;
-> >   	pte_t *ptep;
-> > @@ -155,7 +156,8 @@ int hash__map_kernel_page(unsigned long ea, unsigned long pa, pgprot_t prot)
-> >   	BUILD_BUG_ON(TASK_SIZE_USER64 > H_PGTABLE_RANGE);
-> >   	if (slab_is_available()) {
-> >   		pgdp = pgd_offset_k(ea);
-> > -		pudp = pud_alloc(&init_mm, pgdp, ea);
-> > +		p4dp = p4d_offset(pgdp, ea);
-> > +		pudp = pud_alloc(&init_mm, p4dp, ea);
-> 
-> Could be a single line, without a new var.
-> 
-> -		pudp = pud_alloc(&init_mm, pgdp, ea);
-> +		pudp = pud_alloc(&init_mm, p4d_offset(pgdp, ea), ea);
-> 
-> 
-> Same kind of comments as already done apply to the rest.
-> 
-> Christophe
+> +CET introduces Shadow Stack (SHSTK) and Indirect Branch Tracking
+> +(IBT).  SHSTK is a secondary stack allocated from memory and cannot
+> +be directly modified by applications.  When executing a CALL, the
+> +processor pushes a copy of the return address to SHSTK. 
 
--- 
-Sincerely yours,
-Mike.
+... and to the normal stack
+
+>  Upon
+> +function return, the processor pops the SHSTK copy and compares it
+> +to the one from the program stack.  If the two copies differ, the
+> +processor raises a control-protection fault.  IBT verifies indirect
+> +CALL/JMP targets are intended as marked by the compiler with 'ENDBR'
+> +opcodes (see CET instructions below).
+> +
+> +There are two kernel configuration options:
+> +
+> +    X86_INTEL_SHADOW_STACK_USER, and
+> +    X86_INTEL_BRANCH_TRACKING_USER.
+> +
+> +To build a CET-enabled kernel, Binutils v2.31 and GCC v8.1 or later
+> +are required.
+
+Why are these needed to build a CET-enabled kernel?
+
+>  To build a CET-enabled application, GLIBC v2.28 or
+> +later is also required.
+> +
+> +There are two command-line options for disabling CET features::
+> +
+> +    no_cet_shstk - disables SHSTK, and
+> +    no_cet_ibt   - disables IBT.
+> +
+> +At run time, /proc/cpuinfo shows the availability of SHSTK and IBT.
+
+Availability of what?
+
+If I set X86_INTEL_SHADOW_STACK_USER=n, I'll still see the cpuinfo
+flags, but I won't have runtime support.
+
+Probably best to say that cpuinfo tells you about processor support only.
+
+> +[2] CET assembly instructions
+> +=============================
+
+Why do we need this in the kernel?  What is specific to Linux or the
+kernel?  Why wouldn't I just go read the SDM if I want to know how the
+instructions work?
+
+> +[3] Application Enabling
+> +========================
+> +
+> +An application's CET capability is marked in its ELF header and can
+> +be verified from the following command output, in the
+> +NT_GNU_PROPERTY_TYPE_0 field:
+> +
+> +    readelf -n <application>
+> +
+> +If an application supports CET and is statically linked, it will run
+> +with CET protection.  If the application needs any shared libraries,
+> +the loader checks all dependencies and enables CET only when all
+> +requirements are met.
+
+What about shared libraries loaded after the program starts?
+
+> +[4] Legacy Libraries
+> +====================
+> +
+> +GLIBC provides a few tunables for backward compatibility.
+> +
+> +GLIBC_TUNABLES=glibc.tune.hwcaps=-SHSTK,-IBT
+> +    Turn off SHSTK/IBT for the current shell.
+> +
+> +GLIBC_TUNABLES=glibc.tune.x86_shstk=<on, permissive>
+> +    This controls how dlopen() handles SHSTK legacy libraries::
+> +
+> +        on         - continue with SHSTK enabled;
+> +        permissive - continue with SHSTK off.
+
+This seems like manpage fodder more than kernel documentation to me.
+
+> +[5] CET system calls
+> +====================
+> +
+> +The following arch_prctl() system calls are added for CET:
+
+FWIW, I wouldn't call each of these a "system call".
+
+"Several arch_prctl()'s have been added for CET:"
+
+> +arch_prctl(ARCH_X86_CET_STATUS, unsigned long *addr)
+> +    Return CET feature status.
+> +
+> +    The parameter 'addr' is a pointer to a user buffer.
+> +    On returning to the caller, the kernel fills the following
+> +    information::
+> +
+> +        *addr       = SHSTK/IBT status
+> +        *(addr + 1) = SHSTK base address
+> +        *(addr + 2) = SHSTK size
+> +
+> +arch_prctl(ARCH_X86_CET_DISABLE, unsigned long features)
+> +    Disable SHSTK and/or IBT specified in 'features'.  Return -EPERM
+> +    if CET is locked.
+> +
+> +arch_prctl(ARCH_X86_CET_LOCK)
+> +    Lock in CET feature.
+
+Shouldn't this say what "locking" means?
+
+> +arch_prctl(ARCH_X86_CET_ALLOC_SHSTK, unsigned long *addr)
+> +    Allocate a new SHSTK and put a restore token at top.
+> +
+> +    The parameter 'addr' is a pointer to a user buffer and indicates
+> +    the desired SHSTK size to allocate.  On returning to the caller,
+> +    the kernel fills '*addr' with the base address of the new SHSTK.
+
+
+
+> +arch_prctl(ARCH_X86_CET_MARK_LEGACY_CODE, unsigned long *addr)
+> +    Mark an address range as IBT legacy code.
+> +
+> +    The parameter 'addr' is a pointer to a user buffer that has the
+> +    following information::
+> +
+> +        *addr       = starting linear address of the legacy code
+> +        *(addr + 1) = size of the legacy code
+> +        *(addr + 2) = set (1); clear (0)
+> +
+> +Note:
+> +  There is no CET-enabling arch_prctl function.  By design, CET is
+> +  enabled automatically if the binary and the system can support it.
+
+This is kinda interesting.  It means that a JIT couldn't choose to
+protect the code it generates and have different rules from itself?
+
+> +  The parameters passed are always unsigned 64-bit.  When an IA32
+> +  application passing pointers, it should only use the lower 32 bits.
+
+Won't a 32-bit app calling prctl() use the 32-bit ABI?  How would it
+even know it's running on a 64-bit kernel?
+
+> +[6] The implementation of the SHSTK
+> +===================================
+> +
+> +SHSTK size
+> +----------
+> +
+> +A task's SHSTK is allocated from memory to a fixed size of
+> +RLIMIT_STACK.
+
+I can't really parse that sentence.  Is this saying that shadow stacks
+are limited by and share space with normal stacks via RLIMIT_STACK?
+
+>  A compat-mode thread's SHSTK size is 1/4 of
+> +RLIMIT_STACK.  The smaller 32-bit thread SHSTK allows more threads to
+> +share a 32-bit address space.
+
+I thought the size was passed in from userspace?  Where does this sizing
+take place?  Is this a convention or is it being enforced?
+
+> +Signal
+> +------
+> +
+> +The main program and its signal handlers use the same SHSTK.  Because
+> +the SHSTK stores only return addresses, a large SHSTK will cover the
+> +condition that both the program stack and the sigaltstack run out.
+
+						 ^ typo?
+
+I'm not sure what this is trying to say.
+
+> +The kernel creates a restore token at the SHSTK restoring address and
+> +verifies that token when restoring from the signal handler.
+
+I think there's a sentence or two of background missing here.  I'm
+really lost as to what this is trying to tell me.
+
+> +IBT for signal delivering and sigreturn is the same as the main
+> +program's setup; except for WAIT_ENDBR status, which can be read from
+> +MSR_IA32_U_CET.  In general, a task is in WAIT_ENDBR after an
+> +indirect CALL/JMP and before the next instruction starts.
+
+I'm 100% lost.  I have no idea what this is trying to tell me or why it
+is relevant to the kernel.
+
+> +Fork
+> +----
+> +
+> +The SHSTK's vma has VM_SHSTK flag set; its PTEs are required to be
+> +read-only and dirty.  When a SHSTK PTE is not present, RO, and dirty,
+> +a SHSTK access triggers a page fault with an additional SHSTK bit set
+> +in the page fault error code.
+> +
+> +When a task forks a child, its SHSTK PTEs are copied and both the
+> +parent's and the child's SHSTK PTEs are cleared of the dirty bit.
+> +Upon the next SHSTK access, the resulting SHSTK page fault is handled
+> +by page copy/re-use.
+
+What's the most important thing about shadow stacks and fork()?  Does
+this documentation tell that to the reader?
+
+> +When a pthread child is created, the kernel allocates a new SHSTK for
+> +the new thread.
+
+Why is this here?  Are pthread children created work fork()?
+
+> +Setjmp/Longjmp
+> +--------------
+> +
+> +Longjmp unwinds SHSTK until it matches the program stack.
+
+I'm missing what this has to do with the kernel.
+
+> +Ucontext
+> +--------
+> +
+> +In GLIBC, getcontext/setcontext is implemented in similar way as
+> +setjmp/longjmp.
+> +
+> +When makecontext creates a new ucontext, a new SHSTK is allocated for
+> +that context with ARCH_X86_CET_ALLOC_SHSTK syscall.  The kernel
+
+Nit: ARCH_X86_CET_ALLOC_SHSTK is not a syscall.
+
+> +creates a restore token at the top of the new SHSTK and the user-mode
+> +code switches to the new SHSTK with the RSTORSSP instruction.
+
+This seems like a howto for doing user-level threading.  It seems like
+it could be replaced by a single sentence in the
+ARCH_X86_CET_ALLOC_SHSTK documentation explaining that new shadow stacks
+are generally (always??) allocated along with new stacks.  Since new
+clone() threads need a new stack, they also need a new shadow stack.
+User-level threads that need a new stack are also expected to allocate a
+new shadow stack.
+
+Right?
+
+> +[7] The management of read-only & dirty PTEs for SHSTK
+> +======================================================
+> +
+> +A RO and dirty PTE exists in the following cases:
+> +
+> +(a) A page is modified and then shared with a fork()'ed child;
+> +(b) A R/O page that has been COW'ed;
+> +(c) A SHSTK page.
+> +
+> +The processor only checks the dirty bit for (c).  To prevent the use
+> +of non-SHSTK memory as SHSTK, we use a spare bit of the 64-bit PTE as
+> +DIRTY_SW for (a) and (b) above.  This results to the following PTE
+> +settings::
+> +
+> +    Modified PTE:             (R/W + DIRTY_HW)
+> +    Modified and shared PTE:  (R/O + DIRTY_SW)
+> +    R/O PTE, COW'ed:          (R/O + DIRTY_SW)
+> +    SHSTK PTE:                (R/O + DIRTY_HW)
+> +    SHSTK PTE, COW'ed:        (R/O + DIRTY_HW)
+> +    SHSTK PTE, shared:        (R/O + DIRTY_SW)
+> +
+> +Note that DIRTY_SW is only used in R/O PTEs but not R/W PTEs.
+
+I really don't think this belongs in the documentation, especially since
+it's duplicated almost verbatim in code comments.
+
+> +[8] The implementation of IBT legacy bitmap
+> +===========================================
+> +
+> +When IBT is active, a non-IBT-capable legacy library can be executed
+> +if its address ranges are specified in the legacy code bitmap.  The
+> +bitmap covers the whole user-space address, which is TASK_SIZE_MAX
+> +for 64-bit and TASK_SIZE for IA32, and its each bit indicates a 4-KB
+> +legacy code page.  It is read-only from an application, and setup by
+
+								^ set up
+
+> +the kernel as a special mapping when the first time the application
+> +calls arch_prctl(ARCH_X86_CET_MARK_LEGACY_CODE).  The application
+> +manages the bitmap through the arch_prctl.
