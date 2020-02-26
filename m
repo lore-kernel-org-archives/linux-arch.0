@@ -1,36 +1,65 @@
-From: =?UTF-8?Q?Micka=c3=abl_Sala=c3=bcn?= <mic@digikod.net>
-Subject: Re: [RFC PATCH v14 00/10] Landlock LSM
-Date: Wed, 26 Feb 2020 16:34:59 +0100
-Message-ID: <5ec24e38-1a6f-590a-3b30-50caae177e9b@digikod.net>
-References: <20200224160215.4136-1-mic@digikod.net>
- <6df3e6b1-ffd1-dacf-2f2d-7df8e5aca668@gmail.com>
+From: Qian Cai <cai@lca.pw>
+Subject: Re: [PATCH V14] mm/debug: Add tests validating architecture page
+ table helpers
+Date: Wed, 26 Feb 2020 10:51:58 -0500
+Message-ID: <1582732318.7365.129.camel@lca.pw>
+References: <1581909460-19148-1-git-send-email-anshuman.khandual@arm.com>
+         <1582726182.7365.123.camel@lca.pw>
+         <7c707b7f-ce3d-993b-8042-44fdc1ed28bf@c-s.fr>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
+Content-Type: text/plain; charset="UTF-8"
 Content-Transfer-Encoding: 8bit
-Return-path: <kernel-hardening-return-17960-glkh-kernel-hardening=m.gmane-mx.org@lists.openwall.com>
-List-Post: <mailto:kernel-hardening@lists.openwall.com>
-List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
-List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
-List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
-In-Reply-To: <6df3e6b1-ffd1-dacf-2f2d-7df8e5aca668@gmail.com>
-Content-Language: en-US
-To: J Freyensee <why2jjj.linux@gmail.com>, linux-kernel@vger.kernel.org
-Cc: Al Viro <viro@zeniv.linux.org.uk>, Andy Lutomirski <luto@amacapital.net>, Arnd Bergmann <arnd@arndb.de>, Casey Schaufler <casey@schaufler-ca.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, James Morris <jmorris@namei.org>, Jann Horn <jann@thejh.net>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Michael Kerrisk <mtk.manpages@gmail.com>, =?UTF-8?Q?Micka=c3=abl_Sala=c3=bcn?= <mickael.salaun@ssi.gouv.fr>, "Serge E . Hallyn" <serge@hallyn.com>, Shuah Khan <shuah@kernel.org>, Vincent Dagonneau <vincent.dagonneau@ssi.gouv.fr>, kernel-hardening@lists.openwall.com, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-security-module@vger.kernel.org, x86@kernel.or
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <7c707b7f-ce3d-993b-8042-44fdc1ed28bf@c-s.fr>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Christophe Leroy <christophe.leroy@c-s.fr>, Anshuman Khandual <anshuman.khandual@arm.com>, linux-mm@kvack.org
+Cc: Andrew Morton <akpm@linux-foundation.org>, Mike Rapoport <rppt@linux.ibm.com>, Vineet Gupta <vgupta@synopsys.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Heiko Carstens <heiko.carstens@de.ibm.com>, Vasily Gorbik <gor@linux.ibm.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, "Kirill A . Shutemov" <kirill@shutemov.name>, Paul Walmsley <paul.walmsley@sifive.com>, Palmer Dabbelt <palmer@dabbelt.com>, linux-snps-arc@lists.infradead.org, linux-arm-kern
 List-Id: linux-arch.vger.kernel.org
 
+On Wed, 2020-02-26 at 15:45 +0100, Christophe Leroy wrote:
+> 
+> Le 26/02/2020 à 15:09, Qian Cai a écrit :
+> > On Mon, 2020-02-17 at 08:47 +0530, Anshuman Khandual wrote:
+> > > This adds tests which will validate architecture page table helpers and
+> > > other accessors in their compliance with expected generic MM semantics.
+> > > This will help various architectures in validating changes to existing
+> > > page table helpers or addition of new ones.
+> > > 
+> > > This test covers basic page table entry transformations including but not
+> > > limited to old, young, dirty, clean, write, write protect etc at various
+> > > level along with populating intermediate entries with next page table page
+> > > and validating them.
+> > > 
+> > > Test page table pages are allocated from system memory with required size
+> > > and alignments. The mapped pfns at page table levels are derived from a
+> > > real pfn representing a valid kernel text symbol. This test gets called
+> > > inside kernel_init() right after async_synchronize_full().
+> > > 
+> > > This test gets built and run when CONFIG_DEBUG_VM_PGTABLE is selected. Any
+> > > architecture, which is willing to subscribe this test will need to select
+> > > ARCH_HAS_DEBUG_VM_PGTABLE. For now this is limited to arc, arm64, x86, s390
+> > > and ppc32 platforms where the test is known to build and run successfully.
+> > > Going forward, other architectures too can subscribe the test after fixing
+> > > any build or runtime problems with their page table helpers. Meanwhile for
+> > > better platform coverage, the test can also be enabled with CONFIG_EXPERT
+> > > even without ARCH_HAS_DEBUG_VM_PGTABLE.
+> > > 
+> > > Folks interested in making sure that a given platform's page table helpers
+> > > conform to expected generic MM semantics should enable the above config
+> > > which will just trigger this test during boot. Any non conformity here will
+> > > be reported as an warning which would need to be fixed. This test will help
+> > > catch any changes to the agreed upon semantics expected from generic MM and
+> > > enable platforms to accommodate it thereafter.
+> > 
+> > How useful is this that straightly crash the powerpc?
+> > 
+> > [   23.263425][    T1] debug_vm_pgtable: debug_vm_pgtable: Validating
+> > architecture page table helpers
+> > [   23.263625][    T1] ------------[ cut here ]------------
+> > [   23.263649][    T1] kernel BUG at arch/powerpc/mm/pgtable.c:274!
+> 
+> The problem on PPC64 is known and has to be investigated and fixed.
 
-On 25/02/2020 19:49, J Freyensee wrote:
-> 
-> 
-> On 2/24/20 8:02 AM, Mickaël Salaün wrote:
-> 
->> ## Syscall
->>
->> Because it is only tested on x86_64, the syscall is only wired up for
->> this architecture.  The whole x86 family (and probably all the others)
->> will be supported in the next patch series.
-> General question for u.  What is it meant "whole x86 family will be
-> supported".  32-bit x86 will be supported?
-
-Yes, I was referring to x86_32, x86_64 and x32, but all architectures
-should be supported.
+It might be interesting to hear what powerpc64 maintainers would say about it
+and if it is actually worth "fixing" in the arch code, but that BUG_ON() was
+there since 2009 and had not been exposed until this patch comes alone?
