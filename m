@@ -1,86 +1,112 @@
-Return-Path: <SRS0=LzcT=4H=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:33228 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726671AbgBSNYm (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 19 Feb 2020 08:24:42 -0500
-Date: Wed, 19 Feb 2020 14:24:20 +0100
-From: Mike Rapoport <rppt@kernel.org>
-Subject: Re: [PATCH v2 07/13] powerpc: add support for folded p4d page tables
-Message-ID: <20200219132420.GA5559@hump>
-References: <20200216081843.28670-1-rppt@kernel.org>
- <20200216081843.28670-8-rppt@kernel.org>
- <5b7c3929-5833-8ceb-85c8-a8e92e6a138e@c-s.fr>
+Return-Path: <SRS0=ZbOS=4O=kvack.org=owner-linux-mm@kernel.org>
+Subject: Re: [RFC PATCH v9 10/27] x86/mm: Update pte_modify, pmd_modify, and
+ _PAGE_CHG_MASK for _PAGE_DIRTY_SW
+References: <20200205181935.3712-1-yu-cheng.yu@intel.com>
+ <20200205181935.3712-11-yu-cheng.yu@intel.com>
+From: Dave Hansen <dave.hansen@intel.com>
+Message-ID: <c215a795-1411-9ab0-10a6-520dd4771016@intel.com>
+Date: Wed, 26 Feb 2020 14:02:06 -0800
 MIME-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-1
-Content-Disposition: inline
-Content-Transfer-Encoding: 8bit
-In-Reply-To: <5b7c3929-5833-8ceb-85c8-a8e92e6a138e@c-s.fr>
-Sender: linux-arch-owner@vger.kernel.org
+In-Reply-To: <20200205181935.3712-11-yu-cheng.yu@intel.com>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
+Content-Transfer-Encoding: quoted-printable
+Sender: owner-linux-mm@kvack.org
+To: Yu-cheng Yu <yu-cheng.yu@intel.com>, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>, x86-patch-review@intel.com
 List-ID: <linux-arch.vger.kernel.org>
-To: Christophe Leroy <christophe.leroy@c-s.fr>
-Cc: linux-kernel@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Brian Cain <bcain@codeaurora.org>, Catalin Marinas <catalin.marinas@arm.com>, Fenghua Yu <fenghua.yu@intel.com>, Geert Uytterhoeven <geert+renesas@glider.be>, Guan Xuetao <gxt@pku.edu.cn>, James Morse <james.morse@arm.com>, Jonas Bonn <jonas@southpole.se>, Julien Thierry <julien.thierry.kdev@gmail.com>, Ley Foon Tan <ley.foon.tan@intel.com>, Marc Zyngier <maz@kernel.org>, Michael Ellerman <mpe@ellerman.id.au>, Paul Mackerras <paulus@samba.org>, Rich Felker <dalias@libc.org>, Russell King <linux@armlinux.org.uk>, Stafford Horne <shorne@gmail.com>, Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>, Suzuki K Poulose <suzuki.poulose@arm.com>, Tony Luck <tony.luck@intel.com>, Will Deacon <will@kernel.org>, Yoshinori Sato <ysato@users.sourceforge.jp>, kvmarm@lists.cs.columbia.edu, kvm-ppc@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-mm@kvack.org, linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org, nios2-dev@lists.rocketboards.org, openrisc@lists.librecores.org, uclinux-h8-devel@lists.sourceforge.jp, Mike Rapoport <rppt@linux.ibm.com>
-Message-ID: <20200219132420.XjCfv8g4feW0lVLCIe33Dgs-2QSn3fkN_1TVw9vKKeQ@z>
+Message-ID: <20200226220206.jwj1249DQNNvdPCYzVWsCpRs-KwlehQe4PLPIpZq730@z>
 
-On Wed, Feb 19, 2020 at 01:07:55PM +0100, Christophe Leroy wrote:
-> 
-> Le 16/02/2020 à 09:18, Mike Rapoport a écrit :
-> > diff --git a/arch/powerpc/mm/ptdump/ptdump.c b/arch/powerpc/mm/ptdump/ptdump.c
-> > index 206156255247..7bd4b81d5b5d 100644
-> > --- a/arch/powerpc/mm/ptdump/ptdump.c
-> > +++ b/arch/powerpc/mm/ptdump/ptdump.c
-> > @@ -277,9 +277,9 @@ static void walk_pmd(struct pg_state *st, pud_t *pud, unsigned long start)
-> >   	}
-> >   }
-> > -static void walk_pud(struct pg_state *st, pgd_t *pgd, unsigned long start)
-> > +static void walk_pud(struct pg_state *st, p4d_t *p4d, unsigned long start)
-> >   {
-> > -	pud_t *pud = pud_offset(pgd, 0);
-> > +	pud_t *pud = pud_offset(p4d, 0);
-> >   	unsigned long addr;
-> >   	unsigned int i;
-> > @@ -293,6 +293,22 @@ static void walk_pud(struct pg_state *st, pgd_t *pgd, unsigned long start)
-> >   	}
-> >   }
-> > +static void walk_p4d(struct pg_state *st, pgd_t *pgd, unsigned long start)
-> > +{
-> > +	p4d_t *p4d = p4d_offset(pgd, 0);
-> > +	unsigned long addr;
-> > +	unsigned int i;
-> > +
-> > +	for (i = 0; i < PTRS_PER_P4D; i++, p4d++) {
-> > +		addr = start + i * P4D_SIZE;
-> > +		if (!p4d_none(*p4d) && !p4d_is_leaf(*p4d))
-> > +			/* p4d exists */
-> > +			walk_pud(st, p4d, addr);
-> > +		else
-> > +			note_page(st, addr, 2, p4d_val(*p4d));
-> 
-> Level 2 is already used by walk_pud().
-> 
-> I think you have to increment the level used in walk_pud() and walk_pmd()
-> and walk_pte()
+The subject really needs work.  Could you think of a way to summarize
+the changes here in english as opposed to just listing the symbols you
+modified?
 
-Thanks for catching this!
-I'll fix the numbers in the next version.
- 
-> > +	}
-> > +}
-> > +
-> >   static void walk_pagetables(struct pg_state *st)
-> >   {
-> >   	unsigned int i;
-> > @@ -306,7 +322,7 @@ static void walk_pagetables(struct pg_state *st)
-> >   	for (i = pgd_index(addr); i < PTRS_PER_PGD; i++, pgd++, addr += PGDIR_SIZE) {
-> >   		if (!pgd_none(*pgd) && !pgd_is_leaf(*pgd))
-> >   			/* pgd exists */
-> > -			walk_pud(st, pgd, addr);
-> > +			walk_p4d(st, pgd, addr);
-> >   		else
-> >   			note_page(st, addr, 1, pgd_val(*pgd));
-> >   	}
-> 
-> Christophe
+I think we could probably just auto-generate subjects for patches if the
+existing one were sufficient.
 
--- 
-Sincerely yours,
-Mike.
+On 2/5/20 10:19 AM, Yu-cheng Yu wrote:
+> After the introduction of _PAGE_DIRTY_SW, pte_modify and pmd_modify nee=
+d to
+> set the Dirty bit accordingly: if Shadow Stack is enabled and _PAGE_RW =
+is
+> cleared, use _PAGE_DIRTY_SW; otherwise _PAGE_DIRTY_HW.
+
+You've basically gone and written the code's if() statement in english
+here.  That doesn't really help me understand the patch.
+
+> Since the Dirty bit is modify by pte_modify(), remove _PAGE_DIRTY_HW fr=
+om
+> PAGE_CHG_MASK.
+
+			 ^ modified
+
+This is a great example of a changelog that adds very little value.
+It's following the comments and doing what they say, but it's pretty
+obvious that the analysis stopped there.
+
+What *kinds* of bits are in _PAGE_CHG_MASK or not?  What changed about
+_PAGE_DIRTY_HW.  By this definition, shouldn't _PAGE_DIRTY_SW have
+technically been in this mask before this patch?
+
+> diff --git a/arch/x86/include/asm/pgtable.h b/arch/x86/include/asm/pgta=
+ble.h
+> index 62aeb118bc36..2733e7ec16b3 100644
+> --- a/arch/x86/include/asm/pgtable.h
+> +++ b/arch/x86/include/asm/pgtable.h
+> @@ -702,6 +702,14 @@ static inline pte_t pte_modify(pte_t pte, pgprot_t=
+ newprot)
+>  	val &=3D _PAGE_CHG_MASK;
+>  	val |=3D check_pgprot(newprot) & ~_PAGE_CHG_MASK;
+>  	val =3D flip_protnone_guard(oldval, val, PTE_PFN_MASK);
+> +
+> +	if (pte_dirty(pte)) {
+> +		if (static_cpu_has(X86_FEATURE_SHSTK) && !(val & _PAGE_RW))
+> +			val |=3D _PAGE_DIRTY_SW;
+> +		else
+> +			val |=3D _PAGE_DIRTY_HW;
+> +	}
+> +
+>  	return __pte(val);
+>  }
+
+OK, so this is a path we use for changing bunches of PTEs to 'newprot'.
+ It doesn't use the pte_*() helpers that the previous patch fixed up, so
+we need a new site.
+
+Right?
+
+Maybe that would make good changelog text.
+
+Also, couldn't we just have a pte_fixup() function or something that did
+this logic and could be shared?
+
+> @@ -712,6 +720,14 @@ static inline pmd_t pmd_modify(pmd_t pmd, pgprot_t=
+ newprot)
+>  	val &=3D _HPAGE_CHG_MASK;
+>  	val |=3D check_pgprot(newprot) & ~_HPAGE_CHG_MASK;
+>  	val =3D flip_protnone_guard(oldval, val, PHYSICAL_PMD_PAGE_MASK);
+> +
+> +	if (pmd_dirty(pmd)) {
+> +		if (static_cpu_has(X86_FEATURE_SHSTK) && !(val & _PAGE_RW))
+> +			val |=3D _PAGE_DIRTY_SW;
+> +		else
+> +			val |=3D _PAGE_DIRTY_HW;
+> +	}
+> +
+>  	return __pmd(val);
+>  }
+> =20
+> diff --git a/arch/x86/include/asm/pgtable_types.h b/arch/x86/include/as=
+m/pgtable_types.h
+> index 826823df917f..e7e28bf7e919 100644
+> --- a/arch/x86/include/asm/pgtable_types.h
+> +++ b/arch/x86/include/asm/pgtable_types.h
+> @@ -150,8 +150,8 @@
+>   * instance, and is *not* included in this mask since
+>   * pte_modify() does modify it.
+>   */
+> -#define _PAGE_CHG_MASK	(PTE_PFN_MASK | _PAGE_PCD | _PAGE_PWT |		\
+> -			 _PAGE_SPECIAL | _PAGE_ACCESSED | _PAGE_DIRTY_HW |	\
+> +#define _PAGE_CHG_MASK	(PTE_PFN_MASK | _PAGE_PCD | _PAGE_PWT |	\
+> +			 _PAGE_SPECIAL | _PAGE_ACCESSED |	\
+>  			 _PAGE_SOFT_DIRTY | _PAGE_DEVMAP)
+>  #define _HPAGE_CHG_MASK (_PAGE_CHG_MASK | _PAGE_PSE)
