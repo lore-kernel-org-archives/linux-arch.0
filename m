@@ -1,50 +1,49 @@
-Return-Path: <SRS0=ZbOS=4O=kvack.org=owner-linux-mm@kernel.org>
-Subject: Re: [RFC PATCH v9 04/27] x86/cet: Add control-protection fault
- handler
-References: <20200205181935.3712-1-yu-cheng.yu@intel.com>
- <20200205181935.3712-5-yu-cheng.yu@intel.com>
-From: Dave Hansen <dave.hansen@intel.com>
-Message-ID: <0bc74a85-7058-0cca-62b8-949c8a881c62@intel.com>
-Date: Wed, 26 Feb 2020 09:10:41 -0800
+Return-Path: <SRS0=oITL=4O=vger.kernel.org=linux-doc-owner@kernel.org>
 MIME-Version: 1.0
-In-Reply-To: <20200205181935.3712-5-yu-cheng.yu@intel.com>
-Content-Type: text/plain; charset=utf-8
-Content-Language: en-US
+References: <20200224160215.4136-1-mic@digikod.net> <20200224160215.4136-6-mic@digikod.net>
+In-Reply-To: <20200224160215.4136-6-mic@digikod.net>
+From: Jann Horn <jannh@google.com>
+Date: Wed, 26 Feb 2020 21:29:18 +0100
+Message-ID: <CAG48ez36SMrPPgsj0omcVukRLwOzBzqWOQjuGCmmmrmsGiNukw@mail.gmail.com>
+Subject: Re: [RFC PATCH v14 05/10] fs,landlock: Support filesystem access-control
+Content-Type: text/plain; charset="UTF-8"
 Content-Transfer-Encoding: quoted-printable
-Sender: owner-linux-mm@kvack.org
-To: Yu-cheng Yu <yu-cheng.yu@intel.com>, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>, x86-patch-review@intel.com
+Sender: linux-doc-owner@vger.kernel.org
+To: =?UTF-8?B?TWlja2HDq2wgU2FsYcO8bg==?= <mic@digikod.net>
+Cc: kernel list <linux-kernel@vger.kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, Andy Lutomirski <luto@amacapital.net>, Arnd Bergmann <arnd@arndb.de>, Casey Schaufler <casey@schaufler-ca.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, James Morris <jmorris@namei.org>, Jann Horn <jann@thejh.net>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Michael Kerrisk <mtk.manpages@gmail.com>, =?UTF-8?B?TWlja2HDq2wgU2FsYcO8bg==?= <mickael.salaun@ssi.gouv.fr>, "Serge E . Hallyn" <serge@hallyn.com>, Shuah Khan <shuah@kernel.org>, Vincent Dagonneau <vincent.dagonneau@ssi.gouv.fr>, Kernel Hardening <kernel-hardening@lists.openwall.com>, Linux API <linux-api@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, linux-doc@vger.kernel.org, linux-fsdevel <linux-fsdevel@vger.kernel.org>, "open list:KERNEL SELFTEST FRAMEWORK" <linux-kselftest@vger.kernel.org>, linux-security-module <linux-security-module@vger.kernel.org>, the arch/x86 maintainers <x86@kernel.org>
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200226171041.6dbT7gJRlIATUvonZqQ4YGpr4nR5MgC7biJVqJg-OII@z>
+Message-ID: <20200226202918.z9XW7ovmRlgFUA0YsXqdac1F3N2Is2Q3Zof4NOclS5k@z>
 
-On 2/5/20 10:19 AM, Yu-cheng Yu wrote:
-> diff --git a/arch/x86/kernel/idt.c b/arch/x86/kernel/idt.c
-> index 87ef69a72c52..8ed406f469e7 100644
-> --- a/arch/x86/kernel/idt.c
-> +++ b/arch/x86/kernel/idt.c
-> @@ -102,6 +102,10 @@ static const __initconst struct idt_data def_idts[=
-] =3D {
->  #elif defined(CONFIG_X86_32)
->  	SYSG(IA32_SYSCALL_VECTOR,	entry_INT80_32),
->  #endif
+On Mon, Feb 24, 2020 at 5:03 PM Micka=C3=ABl Sala=C3=BCn <mic@digikod.net> =
+wrote:
+> +static inline u32 get_mem_access(unsigned long prot, bool private)
+> +{
+> +       u32 access =3D LANDLOCK_ACCESS_FS_MAP;
 > +
-> +#ifdef CONFIG_X86_64
-> +	INTG(X86_TRAP_CP,		control_protection),
-> +#endif
->  };
+> +       /* Private mapping do not write to files. */
+> +       if (!private && (prot & PROT_WRITE))
+> +               access |=3D LANDLOCK_ACCESS_FS_WRITE;
+> +       if (prot & PROT_READ)
+> +               access |=3D LANDLOCK_ACCESS_FS_READ;
+> +       if (prot & PROT_EXEC)
+> +               access |=3D LANDLOCK_ACCESS_FS_EXECUTE;
+> +       return access;
+> +}
 
-This patch in particular appears to have all of its code unconditionally
-compiled in.  That's in contrast to things that have Kconfig options, lik=
-e:
+When I do the following, is landlock going to detect that the mmap()
+is a read access, or is it incorrectly going to think that it's
+neither read nor write?
 
-#ifdef CONFIG_X86_MCE
-        INTG(X86_TRAP_MC,               &machine_check),
-#endif
-
-or:
-
-#ifdef CONFIG_X86_THERMAL_VECTOR
-        INTG(THERMAL_APIC_VECTOR,       thermal_interrupt),
-#endif
-
-Is there a reason this code is always compiled in on 64-bit even when
-the config option is off?
+$ cat write-only.c
+#include <fcntl.h>
+#include <sys/mman.h>
+#include <stdio.h>
+int main(void) {
+  int fd =3D open("/etc/passwd", O_RDONLY);
+  char *ptr =3D mmap(NULL, 0x1000, PROT_WRITE, MAP_PRIVATE, fd, 0);
+  printf("'%.*s'\n", 4, ptr);
+}
+$ gcc -o write-only write-only.c -Wall
+$ ./write-only
+'root'
+$
