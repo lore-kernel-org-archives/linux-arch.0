@@ -1,63 +1,63 @@
-From: Christophe Leroy <christophe.leroy@c-s.fr>
-Subject: Re: [PATCH V14] mm/debug: Add tests validating architecture page
- table helpers
-Date: Wed, 26 Feb 2020 15:45:44 +0100
-Message-ID: <7c707b7f-ce3d-993b-8042-44fdc1ed28bf@c-s.fr>
-References: <1581909460-19148-1-git-send-email-anshuman.khandual@arm.com>
- <1582726182.7365.123.camel@lca.pw>
+From: Alan Stern <stern@rowland.harvard.edu>
+Subject: Re: [PATCH] tools/memory-model: Remove lock-final checking in lock.cat
+Date: Wed, 26 Feb 2020 09:58:12 -0500 (EST)
+Message-ID: <Pine.LNX.4.44L0.2002260953110.3674-100000@netrider.rowland.org>
+References: <20200226032142.89424-1-boqun.feng@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Transfer-Encoding: 8bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1582726182.7365.123.camel@lca.pw>
-Content-Language: fr
-Sender: linux-kernel-owner@vger.kernel.org
-To: Qian Cai <cai@lca.pw>, Anshuman Khandual <anshuman.khandual@arm.com>, linux-mm@kvack.org
-Cc: Andrew Morton <akpm@linux-foundation.org>, Mike Rapoport <rppt@linux.ibm.com>, Vineet Gupta <vgupta@synopsys.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Heiko Carstens <heiko.carstens@de.ibm.com>, Vasily Gorbik <gor@linux.ibm.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, "Kirill A . Shutemov" <kirill@shutemov.name>, Paul Walmsley <paul.walmsley@sifive.com>, Palmer Dabbelt <palmer@dabbelt.com>, linux-snps-arc@lists.infradead.org, linux-arm-kern
-List-Id: linux-arch.vger.kernel.org
+Content-Type: TEXT/PLAIN; charset=US-ASCII
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from netrider.rowland.org ([192.131.102.5]:36455 "HELO
+        netrider.rowland.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with SMTP id S1727249AbgBZO6N (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 26 Feb 2020 09:58:13 -0500
+In-Reply-To: <20200226032142.89424-1-boqun.feng@gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Boqun Feng <boqun.feng@gmail.com>
+Cc: linux-kernel@vger.kernel.org, rcu@vger.kernel.org, Andrea Parri <parri.andrea@gmail.com>, Will Deacon <will@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Nicholas Piggin <npiggin@gmail.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, "Paul E. McKenney" <paulmck@kernel.org>, Akira Yokosawa <akiyks@gmail.com>, Daniel Lustig <dlustig@nvidia.com>, linux-arch@vger.kernel.org
 
+On Wed, 26 Feb 2020, Boqun Feng wrote:
 
+> In commit 30b795df11a1 ("tools/memory-model: Improve mixed-access
+> checking in lock.cat"), we have added the checking to disallow any
+> normal memory access to lock variables, and this checking is stronger
+> than lock-final. So remove the lock-final checking as it's unnecessary
+> now.
 
-Le 26/02/2020 à 15:09, Qian Cai a écrit :
-> On Mon, 2020-02-17 at 08:47 +0530, Anshuman Khandual wrote:
->> This adds tests which will validate architecture page table helpers and
->> other accessors in their compliance with expected generic MM semantics.
->> This will help various architectures in validating changes to existing
->> page table helpers or addition of new ones.
->>
->> This test covers basic page table entry transformations including but not
->> limited to old, young, dirty, clean, write, write protect etc at various
->> level along with populating intermediate entries with next page table page
->> and validating them.
->>
->> Test page table pages are allocated from system memory with required size
->> and alignments. The mapped pfns at page table levels are derived from a
->> real pfn representing a valid kernel text symbol. This test gets called
->> inside kernel_init() right after async_synchronize_full().
->>
->> This test gets built and run when CONFIG_DEBUG_VM_PGTABLE is selected. Any
->> architecture, which is willing to subscribe this test will need to select
->> ARCH_HAS_DEBUG_VM_PGTABLE. For now this is limited to arc, arm64, x86, s390
->> and ppc32 platforms where the test is known to build and run successfully.
->> Going forward, other architectures too can subscribe the test after fixing
->> any build or runtime problems with their page table helpers. Meanwhile for
->> better platform coverage, the test can also be enabled with CONFIG_EXPERT
->> even without ARCH_HAS_DEBUG_VM_PGTABLE.
->>
->> Folks interested in making sure that a given platform's page table helpers
->> conform to expected generic MM semantics should enable the above config
->> which will just trigger this test during boot. Any non conformity here will
->> be reported as an warning which would need to be fixed. This test will help
->> catch any changes to the agreed upon semantics expected from generic MM and
->> enable platforms to accommodate it thereafter.
+I don't understand this description.  Why do you say that the
+normal-access checking is stronger than the lock-final check?
+
+> Signed-off-by: Boqun Feng <boqun.feng@gmail.com>
+> ---
+>  tools/memory-model/lock.cat | 3 ---
+>  1 file changed, 3 deletions(-)
 > 
-> How useful is this that straightly crash the powerpc?
-> 
-> [   23.263425][    T1] debug_vm_pgtable: debug_vm_pgtable: Validating
-> architecture page table helpers
-> [   23.263625][    T1] ------------[ cut here ]------------
-> [   23.263649][    T1] kernel BUG at arch/powerpc/mm/pgtable.c:274!
+> diff --git a/tools/memory-model/lock.cat b/tools/memory-model/lock.cat
+> index 6b52f365d73a..827a3646607c 100644
+> --- a/tools/memory-model/lock.cat
+> +++ b/tools/memory-model/lock.cat
+> @@ -54,9 +54,6 @@ flag ~empty LKR \ domain(lk-rmw) as unpaired-LKR
+>   *)
+>  empty ([LKW] ; po-loc ; [LKR]) \ (po-loc ; [UL] ; po-loc) as lock-nest
+>  
+> -(* The final value of a spinlock should not be tested *)
+> -flag ~empty [FW] ; loc ; [ALL-LOCKS] as lock-final
+> -
+>  (*
+>   * Put lock operations in their appropriate classes, but leave UL out of W
+>   * until after the co relation has been generated.
 
-The problem on PPC64 is known and has to be investigated and fixed.
+With this check removed, what will prevent people from writing litmus 
+tests like this?
 
-Christophe
+C test
+
+{
+	spinlock_t s;
+}
+
+...
+
+exists (s=0)
+
+Alan
