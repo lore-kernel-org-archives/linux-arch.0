@@ -1,141 +1,41 @@
-Return-Path: <SRS0=LzcT=4H=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.133]:35918 "EHLO
-        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726682AbgBSPOV (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 19 Feb 2020 10:14:21 -0500
-Message-ID: <20200219150745.651901321@infradead.org>
-Date: Wed, 19 Feb 2020 15:47:46 +0100
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: [PATCH v3 22/22] x86/int3: Ensure that poke_int3_handler() is not sanitized
-References: <20200219144724.800607165@infradead.org>
+Return-Path: <SRS0=oITL=4O=vger.kernel.org=linux-doc-owner@kernel.org>
+Date: Wed, 26 Feb 2020 20:57:10 +0100
+From: Pavel Machek <pavel@ucw.cz>
+Subject: Re: [RFC PATCH v9 05/27] x86/cet/shstk: Add Kconfig option for
+ user-mode Shadow Stack protection
+Message-ID: <20200226195710.6sma4whvs3o76oux@ucw.cz>
+References: <20200205181935.3712-1-yu-cheng.yu@intel.com>
+ <20200205181935.3712-6-yu-cheng.yu@intel.com>
+ <597fb45a-cb94-e8e7-8e80-45a26766d32a@intel.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Sender: linux-arch-owner@vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <597fb45a-cb94-e8e7-8e80-45a26766d32a@intel.com>
+Sender: linux-doc-owner@vger.kernel.org
+To: Dave Hansen <dave.hansen@intel.com>
+Cc: Yu-cheng Yu <yu-cheng.yu@intel.com>, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>, x86-patch-review@intel.com
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, rostedt@goodmis.org
-Cc: peterz@infradead.org, mingo@kernel.org, joel@joelfernandes.org, gregkh@linuxfoundation.org, gustavo@embeddedor.com, tglx@linutronix.de, paulmck@kernel.org, josh@joshtriplett.org, mathieu.desnoyers@efficios.com, jiangshanlai@gmail.com, luto@kernel.org, tony.luck@intel.com, frederic@kernel.org, dan.carpenter@oracle.com, mhiramat@kernel.org, Dmitry Vyukov <dvyukov@google.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>
-Message-ID: <20200219144746.sR-uo22edIdn5emUuNbk7AqLGZjAkFth4xasvIra02o@z>
+Message-ID: <20200226195710.-SdTzbZg8JvnhbeS_JUDNh7fYmyItSC-ANEBSU1LWQc@z>
 
-In order to ensure poke_int3_handler() is completely self contained --
-we call this while we're modifying other text, imagine the fun of
-hitting another INT3 -- ensure that everything is without sanitize
-crud.
+> On 2/5/20 10:19 AM, Yu-cheng Yu wrote:
+> > Introduce Kconfig option: X86_INTEL_SHADOW_STACK_USER.
+> > 
+> > Shadow Stack (SHSTK) provides protection against function return address
+> > corruption.  It is active when the kernel has this feature enabled, and
+> > both the processor and the application support it.  When this feature is
+> > enabled, legacy non-SHSTK applications continue to work, but without SHSTK
+> > protection.
+> > 
+> > The user-mode SHSTK protection is only implemented for the 64-bit kernel.
+> > IA32 applications are supported under the compatibility mode.
+> 
+> I think what you're trying to say here is that the hardware supports
+> shadow stacks with 32-bit kernels.  However, this series does not
+> include that support and we have no plans to add it.
+> 
+> Right?
+> 
+> I'll let others weigh in, but I rather dislike the use of acronyms here.
+>  I'd much rather see the english "shadow stack" everywhere than SHSTK.
 
-Cc: Dmitry Vyukov <dvyukov@google.com>
-Cc: Andrey Ryabinin <aryabinin@virtuozzo.com>
-Reported-by: Thomas Gleixner <tglx@linutronix.de>
-Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
----
- arch/x86/kernel/alternative.c       |    4 ++--
- arch/x86/kernel/traps.c             |    2 +-
- include/linux/compiler-clang.h      |    7 +++++++
- include/linux/compiler-gcc.h        |    6 ++++++
- include/linux/compiler.h            |    5 +++++
- include/linux/compiler_attributes.h |    1 +
- lib/bsearch.c                       |    2 +-
- 7 files changed, 23 insertions(+), 4 deletions(-)
-
---- a/arch/x86/kernel/alternative.c
-+++ b/arch/x86/kernel/alternative.c
-@@ -979,7 +979,7 @@ static __always_inline void *text_poke_a
- 	return _stext + tp->rel_addr;
- }
- 
--static int notrace patch_cmp(const void *key, const void *elt)
-+static int notrace __no_sanitize patch_cmp(const void *key, const void *elt)
- {
- 	struct text_poke_loc *tp = (struct text_poke_loc *) elt;
- 
-@@ -991,7 +991,7 @@ static int notrace patch_cmp(const void
- }
- NOKPROBE_SYMBOL(patch_cmp);
- 
--int notrace poke_int3_handler(struct pt_regs *regs)
-+int notrace __no_sanitize poke_int3_handler(struct pt_regs *regs)
- {
- 	struct bp_patching_desc *desc;
- 	struct text_poke_loc *tp;
---- a/arch/x86/kernel/traps.c
-+++ b/arch/x86/kernel/traps.c
-@@ -496,7 +496,7 @@ dotraplinkage void do_general_protection
- }
- NOKPROBE_SYMBOL(do_general_protection);
- 
--dotraplinkage void notrace do_int3(struct pt_regs *regs, long error_code)
-+dotraplinkage void notrace __no_sanitize do_int3(struct pt_regs *regs, long error_code)
- {
- 	if (poke_int3_handler(regs))
- 		return;
---- a/include/linux/compiler-clang.h
-+++ b/include/linux/compiler-clang.h
-@@ -24,6 +24,13 @@
- #define __no_sanitize_address
- #endif
- 
-+#if __has_feature(undefined_sanitizer)
-+#define __no_sanitize_undefined \
-+		__atribute__((no_sanitize("undefined")))
-+#else
-+#define __no_sanitize_undefined
-+#endif
-+
- /*
-  * Not all versions of clang implement the the type-generic versions
-  * of the builtin overflow checkers. Fortunately, clang implements
---- a/include/linux/compiler-gcc.h
-+++ b/include/linux/compiler-gcc.h
-@@ -145,6 +145,12 @@
- #define __no_sanitize_address
- #endif
- 
-+#if __has_attribute(__no_sanitize_undefined__)
-+#define __no_sanitize_undefined __attribute__((no_sanitize_undefined))
-+#else
-+#define __no_sanitize_undefined
-+#endif
-+
- #if GCC_VERSION >= 50100
- #define COMPILER_HAS_GENERIC_BUILTIN_OVERFLOW 1
- #endif
---- a/include/linux/compiler.h
-+++ b/include/linux/compiler.h
-@@ -199,6 +199,7 @@ void __read_once_size(const volatile voi
- 	__READ_ONCE_SIZE;
- }
- 
-+#define __no_kasan __no_sanitize_address
- #ifdef CONFIG_KASAN
- /*
-  * We can't declare function 'inline' because __no_sanitize_address confilcts
-@@ -274,6 +275,10 @@ static __always_inline void __write_once
-  */
- #define READ_ONCE_NOCHECK(x) __READ_ONCE(x, 0)
- 
-+#define __no_ubsan __no_sanitize_undefined
-+
-+#define __no_sanitize __no_kasan __no_ubsan
-+
- static __no_kasan_or_inline
- unsigned long read_word_at_a_time(const void *addr)
- {
---- a/include/linux/compiler_attributes.h
-+++ b/include/linux/compiler_attributes.h
-@@ -41,6 +41,7 @@
- # define __GCC4_has_attribute___nonstring__           0
- # define __GCC4_has_attribute___no_sanitize_address__ (__GNUC_MINOR__ >= 8)
- # define __GCC4_has_attribute___fallthrough__         0
-+# define __GCC4_has_attribute___no_sanitize_undefined__ (__GNUC_MINOR__ >= 9)
- #endif
- 
- /*
---- a/lib/bsearch.c
-+++ b/lib/bsearch.c
-@@ -28,7 +28,7 @@
-  * the key and elements in the array are of the same type, you can use
-  * the same comparison function for both sort() and bsearch().
-  */
--void *bsearch(const void *key, const void *base, size_t num, size_t size,
-+void __no_sanitize *bsearch(const void *key, const void *base, size_t num, size_t size,
- 	      cmp_func_t cmp)
- {
- 	const char *pivot;
+For the record, I like "shadow stack" better, too.
