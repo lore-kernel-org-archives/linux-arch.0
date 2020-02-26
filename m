@@ -1,63 +1,62 @@
-Return-Path: <SRS0=hmIl=4B=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:50116 "EHLO foss.arm.com"
+Return-Path: <SRS0=hCVk=4O=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from foss.arm.com ([217.140.110.172]:34128 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1730434AbgBMQRV (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 13 Feb 2020 11:17:21 -0500
-From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Subject: [PATCH 14/19] arm64: vdso32: Include common headers in the vdso library
-Date: Thu, 13 Feb 2020 16:16:09 +0000
-Message-ID: <20200213161614.23246-15-vincenzo.frascino@arm.com>
-In-Reply-To: <20200213161614.23246-1-vincenzo.frascino@arm.com>
-References: <20200213161614.23246-1-vincenzo.frascino@arm.com>
+        id S1728073AbgBZLU3 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 26 Feb 2020 06:20:29 -0500
+Date: Wed, 26 Feb 2020 11:20:27 +0000
+From: Mark Brown <broonie@kernel.org>
+Subject: Re: [PATCH v6 01/11] ELF: UAPI and Kconfig additions for ELF program
+ properties
+Message-ID: <20200226112027.GA4136@sirena.org.uk>
+References: <20200212192906.53366-1-broonie@kernel.org>
+ <20200212192906.53366-2-broonie@kernel.org>
+ <202002252147.7BFF9EE@keescook>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: multipart/signed; micalg=pgp-sha512;
+        protocol="application/pgp-signature"; boundary="liOOAslEiF7prFVr"
+Content-Disposition: inline
+In-Reply-To: <202002252147.7BFF9EE@keescook>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org, clang-built-linux@googlegroups.com, x86@kernel.org
-Cc: catalin.marinas@arm.com, will.deacon@arm.com, arnd@arndb.de, linux@armlinux.org.uk, paul.burton@mips.com, tglx@linutronix.de, luto@kernel.org, mingo@redhat.com, bp@alien8.de, sboyd@kernel.org, salyzyn@android.com, pcc@google.com, 0x7f454c46@gmail.com, ndesaulniers@google.com, avagin@openvz.org
-Message-ID: <20200213161609.8jFKPmsNDW7E5fIUVWlfQ4KPnUFE103ZlVtVbjRX9nY@z>
+To: Kees Cook <keescook@chromium.org>
+Cc: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Alexander Viro <viro@zeniv.linux.org.uk>, Paul Elliott <paul.elliott@arm.com>, Peter Zijlstra <peterz@infradead.org>, Yu-cheng Yu <yu-cheng.yu@intel.com>, Amit Kachhap <amit.kachhap@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Marc Zyngier <maz@kernel.org>, Eugene Syromiatnikov <esyr@redhat.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, "H . J . Lu " <hjl.tools@gmail.com>, Andrew Jones <drjones@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Jann Horn <jannh@google.com>, Richard Henderson <richard.henderson@linaro.org>, Kristina =?utf-8?Q?Mart=C5=A1enko?= <kristina.martsenko@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Florian Weimer <fweimer@redhat.com>, Sudakshina Das <sudi.das@arm.com>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, Dave Martin <Dave.Martin@arm.com>
+Message-ID: <20200226112027.Gl2wbNlsDs6nS0qfPUnH13cMoV0JO22eD_IucTDI9HQ@z>
 
-The vDSO library should only include the necessary headers required for
-a userspace library (UAPI and a minimal set of kernel headers). To make
-this possible it is necessary to isolate from the kernel headers the
-common parts that are strictly necessary to build the library.
 
-Refactor the vdso32 implementation to include common headers.
+--liOOAslEiF7prFVr
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
 
-Cc: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Will Deacon <will@kernel.org>
-Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
----
- arch/arm64/include/asm/vdso/compat_gettimeofday.h | 2 +-
- arch/arm64/kernel/vdso32/vgettimeofday.c          | 3 ---
- 2 files changed, 1 insertion(+), 4 deletions(-)
+On Tue, Feb 25, 2020 at 09:49:35PM -0800, Kees Cook wrote:
 
-diff --git a/arch/arm64/include/asm/vdso/compat_gettimeofday.h b/arch/arm64/include/asm/vdso/compat_gettimeofday.h
-index 537b1e695365..a1f21474f11f 100644
---- a/arch/arm64/include/asm/vdso/compat_gettimeofday.h
-+++ b/arch/arm64/include/asm/vdso/compat_gettimeofday.h
-@@ -8,7 +8,7 @@
- #ifndef __ASSEMBLY__
- 
- #include <asm/unistd.h>
--#include <uapi/linux/time.h>
-+#include <asm/errno.h>
- 
- #include <asm/vdso/compat_barrier.h>
- 
-diff --git a/arch/arm64/kernel/vdso32/vgettimeofday.c b/arch/arm64/kernel/vdso32/vgettimeofday.c
-index 54fc1c2ce93f..9366ceb635a1 100644
---- a/arch/arm64/kernel/vdso32/vgettimeofday.c
-+++ b/arch/arm64/kernel/vdso32/vgettimeofday.c
-@@ -5,9 +5,6 @@
-  * Copyright (C) 2018 ARM Limited
-  *
-  */
--#include <linux/time.h>
--#include <linux/types.h>
--
- int __vdso_clock_gettime(clockid_t clock,
- 			 struct old_timespec32 *ts)
- {
--- 
-2.25.0
+> Both BTI and SHSTK depend on this. If BTI doesn't land soon, can this
+> and patch 2 land separately? I don't like seeing the older version in
+> the SHSTK series -- I worry there will be confusion and the BTI version
+> (which is more up to date) will get missed.
+
+Please.
+
+> What's left to land BTI support?
+
+As far as I'm aware it's basically good to go, there's been no really
+substantial feedback in the months I've been pushing it, just fairly
+trivial stuff and rebases - it's going to need another resend for your
+comment just now about moving a hunk forward to a different patch for
+example.
+
+--liOOAslEiF7prFVr
+Content-Type: application/pgp-signature; name="signature.asc"
+
+-----BEGIN PGP SIGNATURE-----
+
+iQEzBAABCgAdFiEEreZoqmdXGLWf4p/qJNaLcl1Uh9AFAl5WVHcACgkQJNaLcl1U
+h9AcDwf9GZxAN5rdZOpKz4dNmbfGRCoB9nc9O6lSiDkP2JOEtG8pbkeX6TMI39Hm
++x/8gudWU6oq2Yg4KpIdz4QyZ8guZTRdoEsg9e7NJJaYC/JppbOBEsk8tR8qGRDQ
+2ryYp2atIxhfcBQ+KuDEPP9/qMOhCNrDZHwfNe1jI+LtTc3aZ94XgbloqFvno9+B
+2fpH28bHWi8iL+Kk5K7wN78O1dyb+8EkWz/2WXjo2hz5mfEJsAnIR2QnaY2HoJSO
+9t6fLU/TJ21XcOExtnjTB19nWEScEcIltEWCGjWlAGJRxSQyWnlXZaPc4cDjyN+x
+iGx9ujR4FphdpqhQNmWrZOccbdTqwQ==
+=QAgA
+-----END PGP SIGNATURE-----
+
+--liOOAslEiF7prFVr--
