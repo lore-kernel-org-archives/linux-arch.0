@@ -1,106 +1,236 @@
-Return-Path: <SRS0=bqXs=4A=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:37082 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1729099AbgBLT32 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 12 Feb 2020 14:29:28 -0500
-From: Mark Brown <broonie@kernel.org>
-Subject: [PATCH v6 07/11] arm64: unify native/compat instruction skipping
-Date: Wed, 12 Feb 2020 19:29:02 +0000
-Message-ID: <20200212192906.53366-8-broonie@kernel.org>
-In-Reply-To: <20200212192906.53366-1-broonie@kernel.org>
-References: <20200212192906.53366-1-broonie@kernel.org>
+Return-Path: <SRS0=oITL=4O=vger.kernel.org=linux-doc-owner@kernel.org>
+Subject: Re: [RFC PATCH v9 09/27] x86/mm: Introduce _PAGE_DIRTY_SW
+References: <20200205181935.3712-1-yu-cheng.yu@intel.com>
+ <20200205181935.3712-10-yu-cheng.yu@intel.com>
+From: Dave Hansen <dave.hansen@intel.com>
+Message-ID: <325d3a25-0016-ea19-c0c9-7958066fc94e@intel.com>
+Date: Wed, 26 Feb 2020 13:35:15 -0800
 MIME-Version: 1.0
+In-Reply-To: <20200205181935.3712-10-yu-cheng.yu@intel.com>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
 Content-Transfer-Encoding: 8bit
-Sender: linux-arch-owner@vger.kernel.org
+Sender: linux-doc-owner@vger.kernel.org
+To: Yu-cheng Yu <yu-cheng.yu@intel.com>, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>, x86-patch-review@intel.com
 List-ID: <linux-arch.vger.kernel.org>
-To: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>
-Cc: Alexander Viro <viro@zeniv.linux.org.uk>, Paul Elliott <paul.elliott@arm.com>, Peter Zijlstra <peterz@infradead.org>, Yu-cheng Yu <yu-cheng.yu@intel.com>, Amit Kachhap <amit.kachhap@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Marc Zyngier <maz@kernel.org>, Eugene Syromiatnikov <esyr@redhat.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, "H . J . Lu " <hjl.tools@gmail.com>, Andrew Jones <drjones@redhat.com>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Jann Horn <jannh@google.com>, Richard Henderson <richard.henderson@linaro.org>, =?UTF-8?q?Kristina=20Mart=C5=A1enko?= <kristina.martsenko@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Florian Weimer <fweimer@redhat.com>, Sudakshina Das <sudi.das@arm.com>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, Dave Martin <Dave.Martin@arm.com>, Mark Rutland <mark.rutland@arm.com>, Mark Brown <broonie@kernel.org>
-Message-ID: <20200212192902.CrTtKnr7rrhgO35rTNVCM_aZc64Hjl4boIhC6IHmGm4@z>
+Message-ID: <20200226213515.RifGumj13TTQFYmxfN-BxL5a_mtOpaa25CoVfPvWJnQ@z>
 
-From: Dave Martin <Dave.Martin@arm.com>
+On 2/5/20 10:19 AM, Yu-cheng Yu wrote:
+> When Shadow Stack (SHSTK) is introduced, a R/O and Dirty PTE exists in the
+> following cases:
+> 
+> (a) A modified, copy-on-write (COW) page;
+> (b) A R/O page that has been COW'ed;
+> (c) A SHSTK page.
 
-Skipping of an instruction on AArch32 works a bit differently from
-AArch64, mainly due to the different CPSR/PSTATE semantics.
+I really like to begin these patches with a problem statement:
 
-Currently arm64_skip_faulting_instruction() is only suitable for
-AArch64, and arm64_compat_skip_faulting_instruction() handles the IT
-state machine but is local to traps.c.
+	There is essentially no room left in the x86 hardware PTEs on
+	some OSes (not Linux).  That left the hardware architects
+	looking for a way to represent a new memory type (shadow stack)
+	within the existing bits.  They chose to repurpose a lightly-
+	used state: Write=0,Dirty=1.
 
-Since manual instruction skipping implies a trap, it's a relatively
-slow path.
+	The reason it's lightly used is that Dirty=1 is normally set by
+	hardware and can not normally be set by hardware on a Write=0
+	PTE.  Software must normally be involved to create one of these
+	PTEs, so software can simply opt to not create them.
 
-So, make arm64_skip_faulting_instruction() handle both compat and
-native, and get rid of the arm64_compat_skip_faulting_instruction()
-special case.
+But that leaves us with a Linux problem: we need to ensure we never
+create Write=0,Dirty=1 PTEs.  In places where we do create them, we need
+to find an alternative way to represent them _without_ using the same
+hardware bit combination.  Thus, enter _PAGE_DIRTY_SW.
 
-Signed-off-by: Dave Martin <Dave.Martin@arm.com>
-Reviewed-by: Mark Rutland <mark.rutland@arm.com>
-Signed-off-by: Mark Brown <broonie@kernel.org>
----
- arch/arm64/kernel/traps.c | 18 ++++++++----------
- 1 file changed, 8 insertions(+), 10 deletions(-)
+... back to the list:
+> (a) A modified, copy-on-write (COW) page;
+> (b) A R/O page that has been COW'ed;
 
-diff --git a/arch/arm64/kernel/traps.c b/arch/arm64/kernel/traps.c
-index b8c714dda851..bc9f4292bfc3 100644
---- a/arch/arm64/kernel/traps.c
-+++ b/arch/arm64/kernel/traps.c
-@@ -272,6 +272,8 @@ void arm64_notify_die(const char *str, struct pt_regs *regs,
- 	}
- }
- 
-+static void advance_itstate(struct pt_regs *regs);
-+
- void arm64_skip_faulting_instruction(struct pt_regs *regs, unsigned long size)
- {
- 	regs->pc += size;
-@@ -282,6 +284,9 @@ void arm64_skip_faulting_instruction(struct pt_regs *regs, unsigned long size)
- 	 */
- 	if (user_mode(regs))
- 		user_fastforward_single_step(current);
-+
-+	if (regs->pstate & PSR_MODE32_BIT)
-+		advance_itstate(regs);
- }
- 
- static LIST_HEAD(undef_hook);
-@@ -644,19 +649,12 @@ static void advance_itstate(struct pt_regs *regs)
- 	compat_set_it_state(regs, it);
- }
- 
--static void arm64_compat_skip_faulting_instruction(struct pt_regs *regs,
--						   unsigned int sz)
--{
--	advance_itstate(regs);
--	arm64_skip_faulting_instruction(regs, sz);
--}
--
- static void compat_cntfrq_read_handler(unsigned int esr, struct pt_regs *regs)
- {
- 	int reg = (esr & ESR_ELx_CP15_32_ISS_RT_MASK) >> ESR_ELx_CP15_32_ISS_RT_SHIFT;
- 
- 	pt_regs_write_reg(regs, reg, arch_timer_get_rate());
--	arm64_compat_skip_faulting_instruction(regs, 4);
-+	arm64_skip_faulting_instruction(regs, 4);
- }
- 
- static const struct sys64_hook cp15_32_hooks[] = {
-@@ -676,7 +674,7 @@ static void compat_cntvct_read_handler(unsigned int esr, struct pt_regs *regs)
- 
- 	pt_regs_write_reg(regs, rt, lower_32_bits(val));
- 	pt_regs_write_reg(regs, rt2, upper_32_bits(val));
--	arm64_compat_skip_faulting_instruction(regs, 4);
-+	arm64_skip_faulting_instruction(regs, 4);
- }
- 
- static const struct sys64_hook cp15_64_hooks[] = {
-@@ -697,7 +695,7 @@ void do_cp15instr(unsigned int esr, struct pt_regs *regs)
- 		 * There is no T16 variant of a CP access, so we
- 		 * always advance PC by 4 bytes.
- 		 */
--		arm64_compat_skip_faulting_instruction(regs, 4);
-+		arm64_skip_faulting_instruction(regs, 4);
- 		return;
- 	}
- 
--- 
-2.20.1
+(a) is pretty clear to me.  We had a Write=1,Dirty=1 PTE and fork()'d.
+The fork() code set Write=0, but left Dirty=1.  In this case, we have a
+read-only PTE underneath a VM_WRITE VMA.
+
+(b) is not clear to me.  Could you please differentiate between the
+permissions of the PTE and the permissions of the VMA, and also include
+the steps needed to create it?
+
+I think you also forgot a state:
+
+(d) a page where the processor observed a Write=1 PTE, started a write,
+    set Dirty=1, but then observed a Write=0 PTE.
+
+That's possible today.
+
+> To separate non-SHSTK memory from SHSTK, introduce a spare bit of the
+> 64-bit PTE as _PAGE_BIT_DIRTY_SW and use that for case (a) and (b).
+> This results in the following possible settings:
+> 
+> Modified PTE:         (R/W + DIRTY_HW)
+> Modified and COW PTE: (R/O + DIRTY_SW)
+> R/O PTE COW'ed:       (R/O + DIRTY_SW)
+> SHSTK PTE:            (R/O + DIRTY_HW)
+> SHSTK shared PTE[1]:  (R/O + DIRTY_SW)
+> SHSTK PTE COW'ed:     (R/O + DIRTY_HW)
+> 
+> [1] When a SHSTK page is being shared among threads,
+
+I think you mean processes.  You can probably even mention here that
+this happens at fork().
+
+>     its PTE is cleared of
+>     _PAGE_DIRTY_HW, so the next SHSTK access causes a fault, and the page
+>     is duplicated and _PAGE_DIRTY_HW is set again.
+
+It's worth noting here that this is the COW equivalent for shadow stack
+pages, even though it's copy-on-any-access rather than copy-on-write.
+
+
+>  static inline pte_t pte_mkold(pte_t pte)
+> @@ -322,6 +322,17 @@ static inline pte_t pte_mkold(pte_t pte)
+>  
+>  static inline pte_t pte_wrprotect(pte_t pte)
+>  {
+> +	/*
+> +	 * Use _PAGE_DIRTY_SW on a R/O PTE to set it apart from
+> +	 * a Shadow Stack PTE, which is R/O + _PAGE_DIRTY_HW.
+> +	 */
+
+I think we can do better here than this comment.  Maybe:
+
+	/*
+	 * Blindly clearing _PAGE_RW might accidentally create
+	 * A shadow stack PTE (RW=0,Dirty=1).  Move the hardware
+	 * dirty value to the software bit.
+	 */
+	
+
+> +	if (static_cpu_has(X86_FEATURE_SHSTK)) {
+
+Do we need to check cpuid, or do we need to check whether shadow stacks
+are enabled?  What if X86_FEATURE_SHSTK is set, but cr4.X86_CR4_CET=0?
+
+I think you've gone and tried to clear X86_FEATURE_SHSTK whenever the
+feature is not enabled.  That's a _bit_ funky, but I guess it works.  I
+think I'd rather have some common helper like: shadow_stacks_enabled()
+that gets called so that you at least have a single place in the code to
+point out this convention.
+
+> +		if (pte_flags(pte) & _PAGE_DIRTY_HW) {
+> +			pte = pte_clear_flags(pte, _PAGE_DIRTY_HW);
+> +			pte = pte_set_flags(pte, _PAGE_DIRTY_SW);
+> +		}
+> +	}
+> +
+>  	return pte_clear_flags(pte, _PAGE_RW);
+>  }
+
+Just curious, but how clean does the assembly look after this change?
+Does this really blow up the code?
+
+This code is used in fork() which we care deeply about.  Did you go
+looking for any performance impact from this?
+
+> @@ -332,9 +343,25 @@ static inline pte_t pte_mkexec(pte_t pte)
+>  
+>  static inline pte_t pte_mkdirty(pte_t pte)
+>  {
+> +	pteval_t dirty = _PAGE_DIRTY_HW;
+> +
+> +	if (static_cpu_has(X86_FEATURE_SHSTK) && !pte_write(pte))
+> +		dirty = _PAGE_DIRTY_SW;
+> +
+> +	return pte_set_flags(pte, dirty | _PAGE_SOFT_DIRTY);
+> +}
+
+Comment, please.
+
+	/* Avoid creating (HW)Dirty=1,Write=0 PTEs */
+
+> +static inline pte_t pte_mkdirty_shstk(pte_t pte)
+> +{
+> +	pte = pte_clear_flags(pte, _PAGE_DIRTY_SW);
+>  	return pte_set_flags(pte, _PAGE_DIRTY_HW | _PAGE_SOFT_DIRTY);
+>  }
+
+I've already forgotten what the right thing here is and why you _need_
+_PAGE_DIRTY_SW clear.  That's a bad sign. :)
+
+Could you please enlighten us by adding a comment?
+
+> +static inline bool pte_dirty_hw(pte_t pte)
+> +{
+> +	return pte_flags(pte) & _PAGE_DIRTY_HW;
+> +}
+
+There's at least one open-coded instance of this above.  Why not just
+move this up so you can use it?
+...
+
+All of those comments pretty much go for the pmd and pud variants too,
+of course.
+
+> diff --git a/arch/x86/include/asm/pgtable_types.h b/arch/x86/include/asm/pgtable_types.h
+> index e647e3c75578..826823df917f 100644
+> --- a/arch/x86/include/asm/pgtable_types.h
+> +++ b/arch/x86/include/asm/pgtable_types.h
+> @@ -23,7 +23,8 @@
+>  #define _PAGE_BIT_SOFTW2	10	/* " */
+>  #define _PAGE_BIT_SOFTW3	11	/* " */
+>  #define _PAGE_BIT_PAT_LARGE	12	/* On 2MB or 1GB pages */
+> -#define _PAGE_BIT_SOFTW4	58	/* available for programmer */
+> +#define _PAGE_BIT_SOFTW4	57	/* available for programmer */
+> +#define _PAGE_BIT_SOFTW5	58	/* available for programmer */
+>  #define _PAGE_BIT_PKEY_BIT0	59	/* Protection Keys, bit 1/4 */
+>  #define _PAGE_BIT_PKEY_BIT1	60	/* Protection Keys, bit 2/4 */
+>  #define _PAGE_BIT_PKEY_BIT2	61	/* Protection Keys, bit 3/4 */
+> @@ -35,6 +36,12 @@
+>  #define _PAGE_BIT_SOFT_DIRTY	_PAGE_BIT_SOFTW3 /* software dirty tracking */
+>  #define _PAGE_BIT_DEVMAP	_PAGE_BIT_SOFTW4
+>  
+> +/*
+> + * This bit indicates a copy-on-write page, and is different from
+> + * _PAGE_BIT_SOFT_DIRTY, which tracks which pages a task writes to.
+> + */
+> +#define _PAGE_BIT_DIRTY_SW	_PAGE_BIT_SOFTW5 /* was written to */
+
+Does it *only* indicate a copy-on-write (or copy-on-access) page?  If
+so, haven't we misnamed it?
+
+>  /* If _PAGE_BIT_PRESENT is clear, we use these: */
+>  /* - if the user mapped it with PROT_NONE; pte_present gives true */
+>  #define _PAGE_BIT_PROTNONE	_PAGE_BIT_GLOBAL
+> @@ -108,6 +115,28 @@
+>  #define _PAGE_DEVMAP	(_AT(pteval_t, 0))
+>  #endif
+>  
+> +/* A R/O and dirty PTE exists in the following cases:
+
+Which dirty is this talking about?  DIRTY_HW?  DIRTY_SW?
+
+> + *	(a) A modified, copy-on-write (COW) page;
+> + *	(b) A R/O page that has been COW'ed;
+> + *	(c) A SHSTK page.
+
+Don't forget (d).
+
+> + * _PAGE_DIRTY_SW is used to separate case (c) from others.
+> + * This results in the following settings:
+> + *
+> + *	Modified PTE:         (R/W + DIRTY_HW)
+> + *	Modified and COW PTE: (R/O + DIRTY_SW)
+> + *	R/O PTE COW'ed:       (R/O + DIRTY_SW)
+> + *	SHSTK PTE:            (R/O + DIRTY_HW)
+> + *	SHSTK PTE COW'ed:     (R/O + DIRTY_HW)
+> + *	SHSTK PTE being shared among threads: (R/O + DIRTY_SW)
+> + */
+> +#ifdef CONFIG_X86_INTEL_SHADOW_STACK_USER
+> +#define _PAGE_DIRTY_SW	(_AT(pteval_t, 1) << _PAGE_BIT_DIRTY_SW)
+> +#else
+> +#define _PAGE_DIRTY_SW	(_AT(pteval_t, 0))
+> +#endif
+> +
+> +#define _PAGE_DIRTY_BITS (_PAGE_DIRTY_HW | _PAGE_DIRTY_SW)
+> +
+>  #define _PAGE_PROTNONE	(_AT(pteval_t, 1) << _PAGE_BIT_PROTNONE)
+>  
+>  #define _PAGE_TABLE_NOENC	(_PAGE_PRESENT | _PAGE_RW | _PAGE_USER |\
+> 
