@@ -1,61 +1,75 @@
-From: Mark Brown <broonie@kernel.org>
-Subject: Re: [PATCH v6 01/11] ELF: UAPI and Kconfig additions for ELF program
- properties
-Date: Wed, 26 Feb 2020 11:20:27 +0000
-Message-ID: <20200226112027.GA4136@sirena.org.uk>
-References: <20200212192906.53366-1-broonie@kernel.org>
- <20200212192906.53366-2-broonie@kernel.org>
- <202002252147.7BFF9EE@keescook>
+From: Christophe Leroy <christophe.leroy@c-s.fr>
+Subject: Re: [PATCH v2 07/13] powerpc: add support for folded p4d page tables
+Date: Wed, 26 Feb 2020 12:20:49 +0100
+Message-ID: <7a008227-433c-73d7-b01a-1c6c7c66f04e@c-s.fr>
+References: <20200216081843.28670-1-rppt@kernel.org>
+ <20200216081843.28670-8-rppt@kernel.org>
+ <c79b363c-a111-389a-5752-51cf85fa8c44@c-s.fr> <20200218105440.GA1698@hump>
+ <20200226091315.GA11803@hump> <f881f732-729b-a098-f520-b30e44dc10c8@c-s.fr>
+ <20200226105615.GB11803@hump>
 Mime-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha512;
-        protocol="application/pgp-signature"; boundary="liOOAslEiF7prFVr"
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:34128 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1728073AbgBZLU3 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 26 Feb 2020 06:20:29 -0500
-Content-Disposition: inline
-In-Reply-To: <202002252147.7BFF9EE@keescook>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Kees Cook <keescook@chromium.org>
-Cc: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Alexander Viro <viro@zeniv.linux.org.uk>, Paul Elliott <paul.elliott@arm.com>, Peter Zijlstra <peterz@infradead.org>, Yu-cheng Yu <yu-cheng.yu@intel.com>, Amit Kachhap <amit.kachhap@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Marc Zyngier <maz@kernel.org>, Eugene Syromiatnikov <esyr@redhat.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, "H . J . Lu " <hjl.tools@gmail.com>, Andrew Jones <drjones@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Jann Horn <jannh@google.com>, Richard Henderson <richard.henderson@linaro.org>, Kristina =?utf-8?Q?Mart=C5=A1enko?= <kristina.martsenko@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Florian Weimer <fweimer@redhat.com>, Sudak
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Transfer-Encoding: 8bit
+Return-path: <linux-ia64-owner@vger.kernel.org>
+In-Reply-To: <20200226105615.GB11803@hump>
+Content-Language: fr
+Sender: linux-ia64-owner@vger.kernel.org
+To: Mike Rapoport <rppt@kernel.org>
+Cc: linux-kernel@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Brian Cain <bcain@codeaurora.org>, Catalin Marinas <catalin.marinas@arm.com>, Fenghua Yu <fenghua.yu@intel.com>, Geert Uytterhoeven <geert+renesas@glider.be>, Guan Xuetao <gxt@pku.edu.cn>, James Morse <james.morse@arm.com>, Jonas Bonn <jonas@southpole.se>, Julien Thierry <julien.thierry.kdev@gmail.com>, Ley Foon Tan <ley.foon.tan@intel.com>, Marc Zyngier <maz@kernel.org>, Michael Ellerman <mpe@ellerman.id.au>, Paul Mackerras <paulus@samba.org>, Rich Felker <dalias@libc.org>, Russell King <linux@armlinux.org.uk>, Stafford Horne <shorne@gmail.com>, Stefan Kristiansson <stefan.kristian>
+List-Id: linux-arch.vger.kernel.org
 
 
---liOOAslEiF7prFVr
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
 
-On Tue, Feb 25, 2020 at 09:49:35PM -0800, Kees Cook wrote:
+Le 26/02/2020 à 11:56, Mike Rapoport a écrit :
+> On Wed, Feb 26, 2020 at 10:46:13AM +0100, Christophe Leroy wrote:
+>>
+>>
+>> Le 26/02/2020 à 10:13, Mike Rapoport a écrit :
+>>> On Tue, Feb 18, 2020 at 12:54:40PM +0200, Mike Rapoport wrote:
+>>>> On Sun, Feb 16, 2020 at 11:41:07AM +0100, Christophe Leroy wrote:
+>>>>>
+>>>>>
+>>>>> Le 16/02/2020 à 09:18, Mike Rapoport a écrit :
+>>>>>> From: Mike Rapoport <rppt@linux.ibm.com>
+>>>>>>
+>>>>>> Implement primitives necessary for the 4th level folding, add walks of p4d
+>>>>>> level where appropriate and replace 5level-fixup.h with pgtable-nop4d.h.
+>>>>>
+>>>>> I don't think it is worth adding all this additionnals walks of p4d, this
+>>>>> patch could be limited to changes like:
+>>>>>
+>>>>> -		pud = pud_offset(pgd, gpa);
+>>>>> +		pud = pud_offset(p4d_offset(pgd, gpa), gpa);
+>>>>>
+>>>>> The additionnal walks should be added through another patch the day powerpc
+>>>>> need them.
+>>>>
+>>>> Ok, I'll update the patch to reduce walking the p4d.
+>>>
+>>> Here's what I have with more direct acceses from pgd to pud.
+>>
+>> I went quickly through. This looks promising.
+>>
+>> Do we need the walk_p4d() in arch/powerpc/mm/ptdump/hashpagetable.c ?
+>> Can't we just do
+>>
+>> @@ -445,7 +459,7 @@ static void walk_pagetables(struct pg_state *st)
+>>   		addr = KERN_VIRT_START + i * PGDIR_SIZE;
+>>   		if (!pgd_none(*pgd))
+>>   			/* pgd exists */
+>> -			walk_pud(st, pgd, addr);
+>> +			walk_pud(st, p4d_offset(pgd, addr), addr);
+> 
+> We can do
+> 
+> 	addr = KERN_VIRT_START + i * PGDIR_SIZE;
+> 	p4d = p4d_offset(pgd, addr);
+> 	if (!p4d_none(*pgd))
+> 		walk_pud()
+> 
+> But I don't think this is really essential. Again, we are trading off code
+> consistency vs line count. I don't think line count is that important.
 
-> Both BTI and SHSTK depend on this. If BTI doesn't land soon, can this
-> and patch 2 land separately? I don't like seeing the older version in
-> the SHSTK series -- I worry there will be confusion and the BTI version
-> (which is more up to date) will get missed.
+Ok.
 
-Please.
-
-> What's left to land BTI support?
-
-As far as I'm aware it's basically good to go, there's been no really
-substantial feedback in the months I've been pushing it, just fairly
-trivial stuff and rebases - it's going to need another resend for your
-comment just now about moving a hunk forward to a different patch for
-example.
-
---liOOAslEiF7prFVr
-Content-Type: application/pgp-signature; name="signature.asc"
-
------BEGIN PGP SIGNATURE-----
-
-iQEzBAABCgAdFiEEreZoqmdXGLWf4p/qJNaLcl1Uh9AFAl5WVHcACgkQJNaLcl1U
-h9AcDwf9GZxAN5rdZOpKz4dNmbfGRCoB9nc9O6lSiDkP2JOEtG8pbkeX6TMI39Hm
-+x/8gudWU6oq2Yg4KpIdz4QyZ8guZTRdoEsg9e7NJJaYC/JppbOBEsk8tR8qGRDQ
-2ryYp2atIxhfcBQ+KuDEPP9/qMOhCNrDZHwfNe1jI+LtTc3aZ94XgbloqFvno9+B
-2fpH28bHWi8iL+Kk5K7wN78O1dyb+8EkWz/2WXjo2hz5mfEJsAnIR2QnaY2HoJSO
-9t6fLU/TJ21XcOExtnjTB19nWEScEcIltEWCGjWlAGJRxSQyWnlXZaPc4cDjyN+x
-iGx9ujR4FphdpqhQNmWrZOccbdTqwQ==
-=QAgA
------END PGP SIGNATURE-----
-
---liOOAslEiF7prFVr--
+Christophe
