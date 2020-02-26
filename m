@@ -1,46 +1,33 @@
 From: Kees Cook <keescook@chromium.org>
-Subject: Re: [PATCH v6 05/11] arm64: elf: Enable BTI at exec based on ELF
- program properties
-Date: Tue, 25 Feb 2020 21:47:32 -0800
-Message-ID: <202002252146.7230873E@keescook>
+Subject: Re: [PATCH v6 01/11] ELF: UAPI and Kconfig additions for ELF program
+ properties
+Date: Tue, 25 Feb 2020 21:49:35 -0800
+Message-ID: <202002252147.7BFF9EE@keescook>
 References: <20200212192906.53366-1-broonie@kernel.org>
- <20200212192906.53366-6-broonie@kernel.org>
+ <20200212192906.53366-2-broonie@kernel.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pg1-f196.google.com ([209.85.215.196]:46862 "EHLO
-        mail-pg1-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726112AbgBZFrf (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 26 Feb 2020 00:47:35 -0500
-Received: by mail-pg1-f196.google.com with SMTP id y30so730953pga.13
-        for <linux-arch@vger.kernel.org>; Tue, 25 Feb 2020 21:47:35 -0800 (PST)
+Return-path: <linux-fsdevel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <20200212192906.53366-6-broonie@kernel.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+In-Reply-To: <20200212192906.53366-2-broonie@kernel.org>
+Sender: linux-fsdevel-owner@vger.kernel.org
 To: Mark Brown <broonie@kernel.org>
 Cc: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Alexander Viro <viro@zeniv.linux.org.uk>, Paul Elliott <paul.elliott@arm.com>, Peter Zijlstra <peterz@infradead.org>, Yu-cheng Yu <yu-cheng.yu@intel.com>, Amit Kachhap <amit.kachhap@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Marc Zyngier <maz@kernel.org>, Eugene Syromiatnikov <esyr@redhat.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, "H . J . Lu " <hjl.tools@gmail.com>, Andrew Jones <drjones@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Jann Horn <jannh@google.com>, Richard Henderson <richard.henderson@linaro.org>, Kristina =?utf-8?Q?Mart=C5=A1enko?= <kristina.martsenko@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Florian Weimer <fweimer@redhat.com>, Sudak
+List-Id: linux-arch.vger.kernel.org
 
-On Wed, Feb 12, 2020 at 07:29:00PM +0000, Mark Brown wrote:
-> diff --git a/include/linux/elf.h b/include/linux/elf.h
-> index 1b6e8955c597..5d5b0321da0b 100644
-> --- a/include/linux/elf.h
-> +++ b/include/linux/elf.h
-> @@ -63,7 +63,11 @@ extern int elf_coredump_extra_notes_size(void);
->  extern int elf_coredump_extra_notes_write(struct coredump_params *cprm);
->  #endif
->  
-> -/* NT_GNU_PROPERTY_TYPE_0 header */
-> +/*
-> + * NT_GNU_PROPERTY_TYPE_0 header:
-> + * Keep this internal until/unless there is an agreed UAPI definition.
-> + * pr_type values (GNU_PROPERTY_*) are public and defined in the UAPI header.
-> + */
->  struct gnu_property {
->  	u32 pr_type;
->  	u32 pr_datasz;
+On Wed, Feb 12, 2020 at 07:28:56PM +0000, Mark Brown wrote:
+> From: Dave Martin <Dave.Martin@arm.com>
+> 
+> Pull the basic ELF definitions relating to the
+> NT_GNU_PROPERTY_TYPE_0 note from Yu-Cheng Yu's earlier x86 shstk
+> series.
 
-I think this hunk should be in patch 1.
+Both BTI and SHSTK depend on this. If BTI doesn't land soon, can this
+and patch 2 land separately? I don't like seeing the older version in
+the SHSTK series -- I worry there will be confusion and the BTI version
+(which is more up to date) will get missed.
+
+What's left to land BTI support?
 
 -- 
 Kees Cook
