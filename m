@@ -1,63 +1,71 @@
-From: Alan Stern <stern@rowland.harvard.edu>
-Subject: Re: [PATCH] tools/memory-model: Remove lock-final checking in lock.cat
-Date: Wed, 26 Feb 2020 09:58:12 -0500 (EST)
-Message-ID: <Pine.LNX.4.44L0.2002260953110.3674-100000@netrider.rowland.org>
-References: <20200226032142.89424-1-boqun.feng@gmail.com>
+From: Steven Rostedt <rostedt@goodmis.org>
+Subject: Re: [PATCH v4 05/27] x86: Replace ist_enter() with nmi_enter()
+Date: Wed, 26 Feb 2020 10:20:31 -0500
+Message-ID: <20200226102031.15664d19@gandalf.local.home>
+References: <20200221133416.777099322@infradead.org>
+        <20200221134215.328642621@infradead.org>
+        <CALCETrU7nezN7d3GEZ8h8HbRfvZ0+F9+Ahb7fLvZ9FVaHN9x2w@mail.gmail.com>
+        <20200221202246.GA14897@hirez.programming.kicks-ass.net>
+        <20200224104346.GJ14946@hirez.programming.kicks-ass.net>
+        <20200224112708.4f307ba3@gandalf.local.home>
+        <20200224163409.GJ18400@hirez.programming.kicks-ass.net>
+        <20200224114754.0fb798c1@gandalf.local.home>
+        <20200224213139.GO11457@worktop.programming.kicks-ass.net>
+        <20200224170231.3807931d@gandalf.local.home>
+        <20200226102758.GV18400@hirez.programming.kicks-ass.net>
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from netrider.rowland.org ([192.131.102.5]:36455 "HELO
-        netrider.rowland.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with SMTP id S1727249AbgBZO6N (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 26 Feb 2020 09:58:13 -0500
-In-Reply-To: <20200226032142.89424-1-boqun.feng@gmail.com>
+Received: from mail.kernel.org ([198.145.29.99]:58338 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1727023AbgBZPUe (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 26 Feb 2020 10:20:34 -0500
+In-Reply-To: <20200226102758.GV18400@hirez.programming.kicks-ass.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Boqun Feng <boqun.feng@gmail.com>
-Cc: linux-kernel@vger.kernel.org, rcu@vger.kernel.org, Andrea Parri <parri.andrea@gmail.com>, Will Deacon <will@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Nicholas Piggin <npiggin@gmail.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, "Paul E. McKenney" <paulmck@kernel.org>, Akira Yokosawa <akiyks@gmail.com>, Daniel Lustig <dlustig@nvidia.com>, linux-arch@vger.kernel.org
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Andy Lutomirski <luto@kernel.org>, LKML <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Ingo Molnar <mingo@kernel.org>, Joel Fernandes <joel@joelfernandes.org>, Greg KH <gregkh@linuxfoundation.org>, gustavo@embeddedor.com, Thomas Gleixner <tglx@linutronix.de>, paulmck@kernel.org, Josh Triplett <josh@joshtriplett.org>, Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, Lai Jiangshan <jiangshanlai@gmail.com>, Tony Luck <tony.luck@intel.com>, Frederic Weisbecker <frederic@kernel.org>, Dan Carpenter <dan.carpenter@oracle.com>, Masami Hiramatsu <mhiramat@kernel.org>
 
-On Wed, 26 Feb 2020, Boqun Feng wrote:
+On Wed, 26 Feb 2020 11:27:58 +0100
+Peter Zijlstra <peterz@infradead.org> wrote:
 
-> In commit 30b795df11a1 ("tools/memory-model: Improve mixed-access
-> checking in lock.cat"), we have added the checking to disallow any
-> normal memory access to lock variables, and this checking is stronger
-> than lock-final. So remove the lock-final checking as it's unnecessary
-> now.
-
-I don't understand this description.  Why do you say that the
-normal-access checking is stronger than the lock-final check?
-
-> Signed-off-by: Boqun Feng <boqun.feng@gmail.com>
-> ---
->  tools/memory-model/lock.cat | 3 ---
->  1 file changed, 3 deletions(-)
+> On Mon, Feb 24, 2020 at 05:02:31PM -0500, Steven Rostedt wrote:
 > 
-> diff --git a/tools/memory-model/lock.cat b/tools/memory-model/lock.cat
-> index 6b52f365d73a..827a3646607c 100644
-> --- a/tools/memory-model/lock.cat
-> +++ b/tools/memory-model/lock.cat
-> @@ -54,9 +54,6 @@ flag ~empty LKR \ domain(lk-rmw) as unpaired-LKR
->   *)
->  empty ([LKW] ; po-loc ; [LKR]) \ (po-loc ; [UL] ; po-loc) as lock-nest
->  
-> -(* The final value of a spinlock should not be tested *)
-> -flag ~empty [FW] ; loc ; [ALL-LOCKS] as lock-final
-> -
->  (*
->   * Put lock operations in their appropriate classes, but leave UL out of W
->   * until after the co relation has been generated.
+> > The other is for the hwlat detector that measures the time it was in an
+> > NMI, as NMIs appear as a hardware latency too.  
+> 
+> Yeah,.. I hate that one. But I ended up with this patch.
+> 
+> And yes, I know some of those notrace annotations are strictly
+> unnessecary due to Makefile crap, but having them is _SO_ much easier.
+> 
+> ---
+> Subject: x86,tracing: Robustify ftrace_nmi_enter()
+> From: Peter Zijlstra <peterz@infradead.org>
+> Date: Mon Feb 24 23:40:29 CET 2020
+> 
+>   ftrace_nmi_enter()
+>      trace_hwlat_callback()
+>        trace_clock_local()
+>          sched_clock()
+>            paravirt_sched_clock()
+>            native_sched_clock()
+> 
+> All must not be traced or kprobed, it will be called from do_debug()
+> before the kprobe handler.
+> 
 
-With this check removed, what will prevent people from writing litmus 
-tests like this?
+Acked-by: Steven Rostedt (VMware) <rostedt@goodmis.org>
 
-C test
+-- Steve
 
-{
-	spinlock_t s;
-}
-
-...
-
-exists (s=0)
-
-Alan
+> Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+> ---
+>  arch/x86/include/asm/paravirt.h |    2 +-
+>  arch/x86/kernel/tsc.c           |    7 +++++--
+>  include/linux/ftrace_irq.h      |    4 ++--
+>  kernel/trace/trace_clock.c      |    2 ++
+>  kernel/trace/trace_hwlat.c      |    4 +++-
+>  5 files changed, 13 insertions(+), 6 deletions(-)
+> 
