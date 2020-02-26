@@ -1,39 +1,46 @@
-From: Boqun Feng <boqun.feng@gmail.com>
-Subject: [PATCH] tools/memory-model: Remove lock-final checking in lock.cat
-Date: Wed, 26 Feb 2020 11:21:40 +0800
-Message-ID: <20200226032142.89424-1-boqun.feng@gmail.com>
+From: Kees Cook <keescook@chromium.org>
+Subject: Re: [PATCH v6 05/11] arm64: elf: Enable BTI at exec based on ELF
+ program properties
+Date: Tue, 25 Feb 2020 21:47:32 -0800
+Message-ID: <202002252146.7230873E@keescook>
+References: <20200212192906.53366-1-broonie@kernel.org>
+ <20200212192906.53366-6-broonie@kernel.org>
 Mime-Version: 1.0
-Content-Transfer-Encoding: 8bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Sender: linux-kernel-owner@vger.kernel.org
-To: linux-kernel@vger.kernel.org, rcu@vger.kernel.org
-Cc: Boqun Feng <boqun.feng@gmail.com>, Alan Stern <stern@rowland.harvard.edu>, Andrea Parri <parri.andrea@gmail.com>, Will Deacon <will@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Nicholas Piggin <npiggin@gmail.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, "Paul E. McKenney" <paulmck@kernel.org>, Akira Yokosawa <akiyks@gmail.com>, Daniel Lustig <dlustig@nvidia.com>, linux-arch@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-pg1-f196.google.com ([209.85.215.196]:46862 "EHLO
+        mail-pg1-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726112AbgBZFrf (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 26 Feb 2020 00:47:35 -0500
+Received: by mail-pg1-f196.google.com with SMTP id y30so730953pga.13
+        for <linux-arch@vger.kernel.org>; Tue, 25 Feb 2020 21:47:35 -0800 (PST)
+Content-Disposition: inline
+In-Reply-To: <20200212192906.53366-6-broonie@kernel.org>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Mark Brown <broonie@kernel.org>
+Cc: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Alexander Viro <viro@zeniv.linux.org.uk>, Paul Elliott <paul.elliott@arm.com>, Peter Zijlstra <peterz@infradead.org>, Yu-cheng Yu <yu-cheng.yu@intel.com>, Amit Kachhap <amit.kachhap@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Marc Zyngier <maz@kernel.org>, Eugene Syromiatnikov <esyr@redhat.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, "H . J . Lu " <hjl.tools@gmail.com>, Andrew Jones <drjones@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Jann Horn <jannh@google.com>, Richard Henderson <richard.henderson@linaro.org>, Kristina =?utf-8?Q?Mart=C5=A1enko?= <kristina.martsenko@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Florian Weimer <fweimer@redhat.com>, Sudak
 
-In commit 30b795df11a1 ("tools/memory-model: Improve mixed-access
-checking in lock.cat"), we have added the checking to disallow any
-normal memory access to lock variables, and this checking is stronger
-than lock-final. So remove the lock-final checking as it's unnecessary
-now.
+On Wed, Feb 12, 2020 at 07:29:00PM +0000, Mark Brown wrote:
+> diff --git a/include/linux/elf.h b/include/linux/elf.h
+> index 1b6e8955c597..5d5b0321da0b 100644
+> --- a/include/linux/elf.h
+> +++ b/include/linux/elf.h
+> @@ -63,7 +63,11 @@ extern int elf_coredump_extra_notes_size(void);
+>  extern int elf_coredump_extra_notes_write(struct coredump_params *cprm);
+>  #endif
+>  
+> -/* NT_GNU_PROPERTY_TYPE_0 header */
+> +/*
+> + * NT_GNU_PROPERTY_TYPE_0 header:
+> + * Keep this internal until/unless there is an agreed UAPI definition.
+> + * pr_type values (GNU_PROPERTY_*) are public and defined in the UAPI header.
+> + */
+>  struct gnu_property {
+>  	u32 pr_type;
+>  	u32 pr_datasz;
 
-Signed-off-by: Boqun Feng <boqun.feng@gmail.com>
----
- tools/memory-model/lock.cat | 3 ---
- 1 file changed, 3 deletions(-)
+I think this hunk should be in patch 1.
 
-diff --git a/tools/memory-model/lock.cat b/tools/memory-model/lock.cat
-index 6b52f365d73a..827a3646607c 100644
---- a/tools/memory-model/lock.cat
-+++ b/tools/memory-model/lock.cat
-@@ -54,9 +54,6 @@ flag ~empty LKR \ domain(lk-rmw) as unpaired-LKR
-  *)
- empty ([LKW] ; po-loc ; [LKR]) \ (po-loc ; [UL] ; po-loc) as lock-nest
- 
--(* The final value of a spinlock should not be tested *)
--flag ~empty [FW] ; loc ; [ALL-LOCKS] as lock-final
--
- (*
-  * Put lock operations in their appropriate classes, but leave UL out of W
-  * until after the co relation has been generated.
 -- 
-2.25.0
+Kees Cook
