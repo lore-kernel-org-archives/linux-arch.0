@@ -1,92 +1,51 @@
-Return-Path: <frowand.list@gmail.com>
-Subject: Re: [PATCH v2 0/7] kunit: create a centralized executor to dispatch
- all KUnit tests
-References: <20200130230812.142642-1-brendanhiggins@google.com>
-From: Frank Rowand <frowand.list@gmail.com>
-Message-ID: <9e203718-dcca-3145-bc28-28979d41c278@gmail.com>
-Date: Tue, 4 Feb 2020 15:18:42 -0600
+Return-Path: <linux-riscv-bounces+rppt=linux.ibm.com@lists.infradead.org>
+Subject: Re: [PATCH V14] mm/debug: Add tests validating architecture page
+ table helpers
+References: <1581909460-19148-1-git-send-email-anshuman.khandual@arm.com>
+ <1582726182.7365.123.camel@lca.pw> <1582726340.7365.124.camel@lca.pw>
+From: Christophe Leroy <christophe.leroy@c-s.fr>
+Message-ID: <eb154054-68ab-a659-065b-f4f7dcbb8671@c-s.fr>
+Date: Wed, 26 Feb 2020 15:44:23 +0100
 MIME-Version: 1.0
-In-Reply-To: <20200130230812.142642-1-brendanhiggins@google.com>
-Content-Type: text/plain; charset=utf-8
-Content-Language: en-US
-Content-Transfer-Encoding: 7bit
-To: Brendan Higgins <brendanhiggins@google.com>, jdike@addtoit.com, richard@nod.at, anton.ivanov@cambridgegreys.com, arnd@arndb.de, keescook@chromium.org, skhan@linuxfoundation.org, alan.maguire@oracle.com, yzaikin@google.com, davidgow@google.com, akpm@linux-foundation.org, rppt@linux.ibm.com
-Cc: gregkh@linuxfoundation.org, sboyd@kernel.org, logang@deltatee.com, mcgrof@kernel.org, knut.omang@oracle.com, linux-um@lists.infradead.org, linux-arch@vger.kernel.org, linux-kselftest@vger.kernel.org, kunit-dev@googlegroups.com, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org
+In-Reply-To: <1582726340.7365.124.camel@lca.pw>
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Language: fr
+Content-Transfer-Encoding: 8bit
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-riscv>,
+ <mailto:linux-riscv-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-riscv/>
+List-Post: <mailto:linux-riscv@lists.infradead.org>
+List-Help: <mailto:linux-riscv-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-riscv>,
+ <mailto:linux-riscv-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-riscv" <linux-riscv-bounces@lists.infradead.org>
+Errors-To: linux-riscv-bounces+rppt=linux.ibm.com@lists.infradead.org
+To: Qian Cai <cai@lca.pw>, Anshuman Khandual <anshuman.khandual@arm.com>, linux-mm@kvack.org
+Cc: Catalin Marinas <catalin.marinas@arm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Paul Mackerras <paulus@samba.org>, "H. Peter Anvin" <hpa@zytor.com>, linux-riscv@lists.infradead.org, Will Deacon <will@kernel.org>, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, Michael Ellerman <mpe@ellerman.id.au>, x86@kernel.org, Mike Rapoport <rppt@linux.ibm.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Ingo Molnar <mingo@redhat.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, linux-snps-arc@lists.infradead.org, Vasily Gorbik <gor@linux.ibm.com>, Borislav Petkov <bp@alien8.de>, Paul Walmsley <paul.walmsley@sifive.com>, "Kirill A . Shutemov" <kirill@shutemov.name>, Thomas Gleixner <tglx@linutronix.de>, linux-arm-kernel@lists.infradead.org, Vineet Gupta <vgupta@synopsys.com>, linux-kernel@vger.kernel.org, Palmer Dabbelt <palmer@dabbelt.com>, Andrew Morton <akpm@linux-foundation.org>, linuxppc-dev@lists.ozlabs.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200204211842.3ezWJaTG1Qn1cREmJp6d3fHLDLs01oUm6Drg-PPjWhY@z>
+Message-ID: <20200226144423.d9OMA7h1SDh12s9IJ1C7y1QjB5EbBtpL-mkXpk5MxT0@z>
 
-On 1/30/20 5:08 PM, Brendan Higgins wrote:
-> ## TL;DR
-> 
-> This patchset adds a centralized executor to dispatch tests rather than
-> relying on late_initcall to schedule each test suite separately along
-> with a couple of new features that depend on it.
 
-And the "couple of new features" are .... ?
 
+Le 26/02/2020 à 15:12, Qian Cai a écrit :
+> On Wed, 2020-02-26 at 09:09 -0500, Qian Cai wrote:
+>> On Mon, 2020-02-17 at 08:47 +0530, Anshuman Khandual wrote:
+>>
+>> How useful is this that straightly crash the powerpc?
 > 
-> ## What am I trying to do?
+> And then generate warnings on arm64,
 > 
-> Conceptually, I am trying to provide a mechanism by which test suites
-> can be grouped together so that they can be reasoned about collectively.
-> The last two of three patches in this series add features which depend
-> on this:
-> 
-> PATCH 5/7 Prints out a test plan right before KUnit tests are run[1];
->           this is valuable because it makes it possible for a test
->           harness to detect whether the number of tests run matches the
->           number of tests expected to be run, ensuring that no tests
->           silently failed.
-> 
-> PATCH 6/7 Add a new kernel command-line option which allows the user to
->           specify that the kernel poweroff, halt, or reboot after
->           completing all KUnit tests; this is very handy for running
->           KUnit tests on UML or a VM so that the UML/VM process exits
->           cleanly immediately after running all tests without needing a
->           special initramfs.
-> 
+> [  146.634626][    T1] debug_vm_pgtable: debug_vm_pgtable: Validating
+> architecture page table helpers
+> [  146.643995][    T1] ------------[ cut here ]------------
+> [  146.649350][    T1] virt_to_phys used for non-linear address:
+> (____ptrval____) (start_kernel+0x0/0x580)
 
-> In addition, by dispatching tests from a single location, we can
-> guarantee that all KUnit tests run after late_init is complete, which
+Must be something wrong with the following in debug_vm_pgtable()
 
-That the tests will run after late init (and are guaranteed to do such)
-needs to be added to the documentation.
+	paddr = __pa(&start_kernel);
 
--Frank
+Is there any explaination why start_kernel() is not in linear memory on 
+ARM64 ?
 
-> was a concern during the initial KUnit patchset review (this has not
-> been a problem in practice, but resolving with certainty is nevertheless
-> desirable).
-> 
-> Other use cases for this exist, but the above features should provide an
-> idea of the value that this could provide.
-> 
-> Alan Maguire (1):
->   kunit: test: create a single centralized executor for all tests
-> 
-> Brendan Higgins (5):
->   vmlinux.lds.h: add linker section for KUnit test suites
->   arch: um: add linker section for KUnit test suites
->   init: main: add KUnit to kernel init
->   kunit: test: add test plan to KUnit TAP format
->   Documentation: Add kunit_shutdown to kernel-parameters.txt
-> 
-> David Gow (1):
->   kunit: Add 'kunit_shutdown' option
-> 
->  .../admin-guide/kernel-parameters.txt         |  7 ++
->  arch/um/include/asm/common.lds.S              |  4 +
->  include/asm-generic/vmlinux.lds.h             |  8 ++
->  include/kunit/test.h                          | 82 ++++++++++++-------
->  init/main.c                                   |  4 +
->  lib/kunit/Makefile                            |  3 +-
->  lib/kunit/executor.c                          | 71 ++++++++++++++++
->  lib/kunit/test.c                              | 11 ---
->  tools/testing/kunit/kunit_kernel.py           |  2 +-
->  tools/testing/kunit/kunit_parser.py           | 76 ++++++++++++++---
->  .../test_is_test_passed-all_passed.log        |  1 +
->  .../test_data/test_is_test_passed-crash.log   |  1 +
->  .../test_data/test_is_test_passed-failure.log |  1 +
->  13 files changed, 217 insertions(+), 54 deletions(-)
->  create mode 100644 lib/kunit/executor.c
-> 
+Christophe
