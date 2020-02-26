@@ -1,114 +1,56 @@
-Return-Path: <christophe.leroy@c-s.fr>
-Subject: Re: [PATCH v2 07/13] powerpc: add support for folded p4d page tables
-References: <20200216081843.28670-1-rppt@kernel.org>
- <20200216081843.28670-8-rppt@kernel.org>
-From: Christophe Leroy <christophe.leroy@c-s.fr>
-Message-ID: <5b7c3929-5833-8ceb-85c8-a8e92e6a138e@c-s.fr>
-Date: Wed, 19 Feb 2020 13:07:55 +0100
+Return-Path: <SRS0=hCVk=4O=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from foss.arm.com ([217.140.110.172]:38192 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1728893AbgBZP5q (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 26 Feb 2020 10:57:46 -0500
+From: Mark Brown <broonie@kernel.org>
+Subject: [PATCH v7 10/11] KVM: arm64: BTI: Reset BTYPE when skipping emulated instructions
+Date: Wed, 26 Feb 2020 15:57:13 +0000
+Message-ID: <20200226155714.43937-11-broonie@kernel.org>
+In-Reply-To: <20200226155714.43937-1-broonie@kernel.org>
+References: <20200226155714.43937-1-broonie@kernel.org>
 MIME-Version: 1.0
-In-Reply-To: <20200216081843.28670-8-rppt@kernel.org>
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Language: fr
 Content-Transfer-Encoding: 8bit
-To: Mike Rapoport <rppt@kernel.org>
-Cc: linux-kernel@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Brian Cain <bcain@codeaurora.org>, Catalin Marinas <catalin.marinas@arm.com>, Fenghua Yu <fenghua.yu@intel.com>, Geert Uytterhoeven <geert+renesas@glider.be>, Guan Xuetao <gxt@pku.edu.cn>, James Morse <james.morse@arm.com>, Jonas Bonn <jonas@southpole.se>, Julien Thierry <julien.thierry.kdev@gmail.com>, Ley Foon Tan <ley.foon.tan@intel.com>, Marc Zyngier <maz@kernel.org>, Michael Ellerman <mpe@ellerman.id.au>, Paul Mackerras <paulus@samba.org>, Rich Felker <dalias@libc.org>, Russell King <linux@armlinux.org.uk>, Stafford Horne <shorne@gmail.com>, Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>, Suzuki K Poulose <suzuki.poulose@arm.com>, Tony Luck <tony.luck@intel.com>, Will Deacon <will@kernel.org>, Yoshinori Sato <ysato@users.sourceforge.jp>, kvmarm@lists.cs.columbia.edu, kvm-ppc@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-mm@kvack.org, linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org, nios2-dev@lists.rocketboards.org, openrisc@lists.librecores.org, uclinux-h8-devel@lists.sourceforge.jp, Mike Rapoport <rppt@linux.ibm.com>
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200219120755.mt9n_H9s321z7XHosgVjK7OMUkds25_o2a5FnRUPiU4@z>
+To: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>
+Cc: Alexander Viro <viro@zeniv.linux.org.uk>, Paul Elliott <paul.elliott@arm.com>, Peter Zijlstra <peterz@infradead.org>, Yu-cheng Yu <yu-cheng.yu@intel.com>, Amit Kachhap <amit.kachhap@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Marc Zyngier <maz@kernel.org>, Eugene Syromiatnikov <esyr@redhat.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, "H . J . Lu " <hjl.tools@gmail.com>, Andrew Jones <drjones@redhat.com>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Jann Horn <jannh@google.com>, Richard Henderson <richard.henderson@linaro.org>, =?UTF-8?q?Kristina=20Mart=C5=A1enko?= <kristina.martsenko@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Florian Weimer <fweimer@redhat.com>, Sudakshina Das <sudi.das@arm.com>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, Dave Martin <Dave.Martin@arm.com>, Mark Brown <broonie@kernel.org>
+Message-ID: <20200226155713.5XKHY9pESYUgzL2REbZ6WEN7UZ-283KQbIITm_JfFqQ@z>
 
+From: Dave Martin <Dave.Martin@arm.com>
 
+Since normal execution of any non-branch instruction resets the
+PSTATE BTYPE field to 0, so do the same thing when emulating a
+trapped instruction.
 
-Le 16/02/2020 à 09:18, Mike Rapoport a écrit :
-> From: Mike Rapoport <rppt@linux.ibm.com>
-> 
-> Implement primitives necessary for the 4th level folding, add walks of p4d
-> level where appropriate and replace 5level-fixup.h with pgtable-nop4d.h.
-> 
-> Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
-> Tested-by: Christophe Leroy <christophe.leroy@c-s.fr> # 8xx and 83xx
-> ---
->   arch/powerpc/include/asm/book3s/32/pgtable.h  |  1 -
->   arch/powerpc/include/asm/book3s/64/hash.h     |  4 +-
->   arch/powerpc/include/asm/book3s/64/pgalloc.h  |  4 +-
->   arch/powerpc/include/asm/book3s/64/pgtable.h  | 58 ++++++++++--------
->   arch/powerpc/include/asm/book3s/64/radix.h    |  6 +-
->   arch/powerpc/include/asm/nohash/32/pgtable.h  |  1 -
->   arch/powerpc/include/asm/nohash/64/pgalloc.h  |  2 +-
->   .../include/asm/nohash/64/pgtable-4k.h        | 32 +++++-----
->   arch/powerpc/include/asm/nohash/64/pgtable.h  |  6 +-
->   arch/powerpc/include/asm/pgtable.h            |  8 +++
->   arch/powerpc/kvm/book3s_64_mmu_radix.c        | 59 ++++++++++++++++---
->   arch/powerpc/lib/code-patching.c              |  7 ++-
->   arch/powerpc/mm/book3s32/mmu.c                |  2 +-
->   arch/powerpc/mm/book3s32/tlb.c                |  4 +-
->   arch/powerpc/mm/book3s64/hash_pgtable.c       |  4 +-
->   arch/powerpc/mm/book3s64/radix_pgtable.c      | 19 ++++--
->   arch/powerpc/mm/book3s64/subpage_prot.c       |  6 +-
->   arch/powerpc/mm/hugetlbpage.c                 | 28 +++++----
->   arch/powerpc/mm/kasan/kasan_init_32.c         |  8 +--
->   arch/powerpc/mm/mem.c                         |  4 +-
->   arch/powerpc/mm/nohash/40x.c                  |  4 +-
->   arch/powerpc/mm/nohash/book3e_pgtable.c       | 15 +++--
->   arch/powerpc/mm/pgtable.c                     | 25 +++++++-
->   arch/powerpc/mm/pgtable_32.c                  | 28 +++++----
->   arch/powerpc/mm/pgtable_64.c                  | 10 ++--
->   arch/powerpc/mm/ptdump/hashpagetable.c        | 20 ++++++-
->   arch/powerpc/mm/ptdump/ptdump.c               | 22 ++++++-
->   arch/powerpc/xmon/xmon.c                      | 17 +++++-
->   28 files changed, 284 insertions(+), 120 deletions(-)
-> 
-> diff --git a/arch/powerpc/mm/ptdump/ptdump.c b/arch/powerpc/mm/ptdump/ptdump.c
-> index 206156255247..7bd4b81d5b5d 100644
-> --- a/arch/powerpc/mm/ptdump/ptdump.c
-> +++ b/arch/powerpc/mm/ptdump/ptdump.c
-> @@ -277,9 +277,9 @@ static void walk_pmd(struct pg_state *st, pud_t *pud, unsigned long start)
->   	}
->   }
->   
-> -static void walk_pud(struct pg_state *st, pgd_t *pgd, unsigned long start)
-> +static void walk_pud(struct pg_state *st, p4d_t *p4d, unsigned long start)
->   {
-> -	pud_t *pud = pud_offset(pgd, 0);
-> +	pud_t *pud = pud_offset(p4d, 0);
->   	unsigned long addr;
->   	unsigned int i;
->   
-> @@ -293,6 +293,22 @@ static void walk_pud(struct pg_state *st, pgd_t *pgd, unsigned long start)
->   	}
->   }
->   
-> +static void walk_p4d(struct pg_state *st, pgd_t *pgd, unsigned long start)
-> +{
-> +	p4d_t *p4d = p4d_offset(pgd, 0);
-> +	unsigned long addr;
-> +	unsigned int i;
-> +
-> +	for (i = 0; i < PTRS_PER_P4D; i++, p4d++) {
-> +		addr = start + i * P4D_SIZE;
-> +		if (!p4d_none(*p4d) && !p4d_is_leaf(*p4d))
-> +			/* p4d exists */
-> +			walk_pud(st, p4d, addr);
-> +		else
-> +			note_page(st, addr, 2, p4d_val(*p4d));
+Branches don't trap directly, so we should never need to assign a
+non-zero value to BTYPE here.
 
-Level 2 is already used by walk_pud().
+Signed-off-by: Dave Martin <Dave.Martin@arm.com>
+Acked-by: Marc Zyngier <maz@kernel.org>
+Signed-off-by: Mark Brown <broonie@kernel.org>
+---
+ arch/arm64/include/asm/kvm_emulate.h | 6 ++++--
+ 1 file changed, 4 insertions(+), 2 deletions(-)
 
-I think you have to increment the level used in walk_pud() and 
-walk_pmd() and walk_pte()
-
-> +	}
-> +}
-> +
->   static void walk_pagetables(struct pg_state *st)
->   {
->   	unsigned int i;
-> @@ -306,7 +322,7 @@ static void walk_pagetables(struct pg_state *st)
->   	for (i = pgd_index(addr); i < PTRS_PER_PGD; i++, pgd++, addr += PGDIR_SIZE) {
->   		if (!pgd_none(*pgd) && !pgd_is_leaf(*pgd))
->   			/* pgd exists */
-> -			walk_pud(st, pgd, addr);
-> +			walk_p4d(st, pgd, addr);
->   		else
->   			note_page(st, addr, 1, pgd_val(*pgd));
->   	}
-
-Christophe
+diff --git a/arch/arm64/include/asm/kvm_emulate.h b/arch/arm64/include/asm/kvm_emulate.h
+index 688c63412cc2..dee51c1dcb93 100644
+--- a/arch/arm64/include/asm/kvm_emulate.h
++++ b/arch/arm64/include/asm/kvm_emulate.h
+@@ -506,10 +506,12 @@ static inline unsigned long vcpu_data_host_to_guest(struct kvm_vcpu *vcpu,
+ 
+ static inline void kvm_skip_instr(struct kvm_vcpu *vcpu, bool is_wide_instr)
+ {
+-	if (vcpu_mode_is_32bit(vcpu))
++	if (vcpu_mode_is_32bit(vcpu)) {
+ 		kvm_skip_instr32(vcpu, is_wide_instr);
+-	else
++	} else {
+ 		*vcpu_pc(vcpu) += 4;
++		*vcpu_cpsr(vcpu) &= ~PSR_BTYPE_MASK;
++	}
+ 
+ 	/* advance the singlestep state machine */
+ 	*vcpu_cpsr(vcpu) &= ~DBG_SPSR_SS;
+-- 
+2.20.1
