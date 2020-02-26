@@ -1,57 +1,34 @@
-Return-Path: <SRS0=0XgO=4J=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:45512 "EHLO
-        merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728829AbgBUNui (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 21 Feb 2020 08:50:38 -0500
-Message-ID: <20200221134215.385886177@infradead.org>
-Date: Fri, 21 Feb 2020 14:34:22 +0100
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: [PATCH v4 06/27] x86/doublefault: Remove memmove() call
-References: <20200221133416.777099322@infradead.org>
+Return-Path: <SRS0=oITL=4O=vger.kernel.org=linux-doc-owner@kernel.org>
+Subject: Re: [RFC PATCH v14 00/10] Landlock LSM
+References: <20200224160215.4136-1-mic@digikod.net>
+ <6df3e6b1-ffd1-dacf-2f2d-7df8e5aca668@gmail.com>
+From: =?UTF-8?Q?Micka=c3=abl_Sala=c3=bcn?= <mic@digikod.net>
+Message-ID: <5ec24e38-1a6f-590a-3b30-50caae177e9b@digikod.net>
+Date: Wed, 26 Feb 2020 16:34:59 +0100
 MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Sender: linux-arch-owner@vger.kernel.org
+In-Reply-To: <6df3e6b1-ffd1-dacf-2f2d-7df8e5aca668@gmail.com>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
+Content-Transfer-Encoding: 8bit
+Sender: linux-doc-owner@vger.kernel.org
+To: J Freyensee <why2jjj.linux@gmail.com>, linux-kernel@vger.kernel.org
+Cc: Al Viro <viro@zeniv.linux.org.uk>, Andy Lutomirski <luto@amacapital.net>, Arnd Bergmann <arnd@arndb.de>, Casey Schaufler <casey@schaufler-ca.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, James Morris <jmorris@namei.org>, Jann Horn <jann@thejh.net>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Michael Kerrisk <mtk.manpages@gmail.com>, =?UTF-8?Q?Micka=c3=abl_Sala=c3=bcn?= <mickael.salaun@ssi.gouv.fr>, "Serge E . Hallyn" <serge@hallyn.com>, Shuah Khan <shuah@kernel.org>, Vincent Dagonneau <vincent.dagonneau@ssi.gouv.fr>, kernel-hardening@lists.openwall.com, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-security-module@vger.kernel.org, x86@kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, rostedt@goodmis.org
-Cc: peterz@infradead.org, mingo@kernel.org, joel@joelfernandes.org, gregkh@linuxfoundation.org, gustavo@embeddedor.com, tglx@linutronix.de, paulmck@kernel.org, josh@joshtriplett.org, mathieu.desnoyers@efficios.com, jiangshanlai@gmail.com, luto@kernel.org, tony.luck@intel.com, frederic@kernel.org, dan.carpenter@oracle.com, mhiramat@kernel.org
-Message-ID: <20200221133422.hsg9ivZFutXwMAXjN8q6iVeCDOZsTD6lp6zpl-VjI6k@z>
+Message-ID: <20200226153459.7AKCJwH8JMECF1NRWVU24YMzHcYwVwebmosvaYVuzVg@z>
 
-Use of memmove() in #DF is problematic when you consider tracing and
-other instrumentation.
 
-Remove the memmove() call and simply write out what need doing; Boris
-argues the ranges should not overlap.
+On 25/02/2020 19:49, J Freyensee wrote:
+> 
+> 
+> On 2/24/20 8:02 AM, Mickaël Salaün wrote:
+> 
+>> ## Syscall
+>>
+>> Because it is only tested on x86_64, the syscall is only wired up for
+>> this architecture.  The whole x86 family (and probably all the others)
+>> will be supported in the next patch series.
+> General question for u.  What is it meant "whole x86 family will be
+> supported".  32-bit x86 will be supported?
 
-Survives selftests/x86, specifically sigreturn_64.
-
-(Andy ?!)
-
-Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
-Link: https://lkml.kernel.org/r/20200220121727.GB507@zn.tnic
----
- arch/x86/kernel/traps.c |    7 ++++++-
- 1 file changed, 6 insertions(+), 1 deletion(-)
-
---- a/arch/x86/kernel/traps.c
-+++ b/arch/x86/kernel/traps.c
-@@ -278,6 +278,7 @@ dotraplinkage void do_double_fault(struc
- 		regs->ip == (unsigned long)native_irq_return_iret)
- 	{
- 		struct pt_regs *gpregs = (struct pt_regs *)this_cpu_read(cpu_tss_rw.x86_tss.sp0) - 1;
-+		unsigned long *p = (unsigned long *)regs->sp;
- 
- 		/*
- 		 * regs->sp points to the failing IRET frame on the
-@@ -285,7 +286,11 @@ dotraplinkage void do_double_fault(struc
- 		 * in gpregs->ss through gpregs->ip.
- 		 *
- 		 */
--		memmove(&gpregs->ip, (void *)regs->sp, 5*8);
-+		gpregs->ip	= p[0];
-+		gpregs->cs	= p[1];
-+		gpregs->flags	= p[2];
-+		gpregs->sp	= p[3];
-+		gpregs->ss	= p[4];
- 		gpregs->orig_ax = 0;  /* Missing (lost) #GP error code */
- 
- 		/*
+Yes, I was referring to x86_32, x86_64 and x32, but all architectures
+should be supported.
