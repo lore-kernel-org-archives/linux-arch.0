@@ -1,104 +1,45 @@
-Return-Path: <SRS0=hmIl=4B=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:49788 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1728267AbgBMQQy (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 13 Feb 2020 11:16:54 -0500
-From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Subject: [PATCH 04/19] linux/math64.h: Extract common header for vDSO
-Date: Thu, 13 Feb 2020 16:15:59 +0000
-Message-ID: <20200213161614.23246-5-vincenzo.frascino@arm.com>
-In-Reply-To: <20200213161614.23246-1-vincenzo.frascino@arm.com>
-References: <20200213161614.23246-1-vincenzo.frascino@arm.com>
+Return-Path: <SRS0=hCVk=4O=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail-pg1-f196.google.com ([209.85.215.196]:41285 "EHLO
+        mail-pg1-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727550AbgBZVpB (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 26 Feb 2020 16:45:01 -0500
+Received: by mail-pg1-f196.google.com with SMTP id b1so299055pgm.8
+        for <linux-arch@vger.kernel.org>; Wed, 26 Feb 2020 13:45:01 -0800 (PST)
+Date: Wed, 26 Feb 2020 13:44:59 -0800
+From: Kees Cook <keescook@chromium.org>
+Subject: Re: [PATCH v7 00/11] arm64: Branch Target Identification support
+Message-ID: <202002261343.3B2ECE90@keescook>
+References: <20200226155714.43937-1-broonie@kernel.org>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20200226155714.43937-1-broonie@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org, clang-built-linux@googlegroups.com, x86@kernel.org
-Cc: catalin.marinas@arm.com, will.deacon@arm.com, arnd@arndb.de, linux@armlinux.org.uk, paul.burton@mips.com, tglx@linutronix.de, luto@kernel.org, mingo@redhat.com, bp@alien8.de, sboyd@kernel.org, salyzyn@android.com, pcc@google.com, 0x7f454c46@gmail.com, ndesaulniers@google.com, avagin@openvz.org
-Message-ID: <20200213161559.CuB3LVxfQvE8UPzIV5HNSnkiMjp01PiAJx7NmlloTOo@z>
+To: Mark Brown <broonie@kernel.org>
+Cc: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Alexander Viro <viro@zeniv.linux.org.uk>, Paul Elliott <paul.elliott@arm.com>, Peter Zijlstra <peterz@infradead.org>, Yu-cheng Yu <yu-cheng.yu@intel.com>, Amit Kachhap <amit.kachhap@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Marc Zyngier <maz@kernel.org>, Eugene Syromiatnikov <esyr@redhat.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, "H . J . Lu " <hjl.tools@gmail.com>, Andrew Jones <drjones@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Jann Horn <jannh@google.com>, Richard Henderson <richard.henderson@linaro.org>, Kristina =?utf-8?Q?Mart=C5=A1enko?= <kristina.martsenko@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Florian Weimer <fweimer@redhat.com>, Sudakshina Das <sudi.das@arm.com>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org
+Message-ID: <20200226214459.2dpq2rZ63lPjGra9LdX07QjBsx93kgYRXAhTQUj-ZXE@z>
 
-The vDSO library should only include the necessary headers required for
-a userspace library (UAPI and a minimal set of kernel headers). To make
-this possible it is necessary to isolate from the kernel headers the
-common parts that are strictly necessary to build the library.
+On Wed, Feb 26, 2020 at 03:57:03PM +0000, Mark Brown wrote:
+> This patch series implements support for ARMv8.5-A Branch Target
+> Identification (BTI), which is a control flow integrity protection
+> feature introduced as part of the ARMv8.5-A extensions.
+> 
+> Changes:
+> 
+> v7:
+>  - Rebase onto v5.6-rc3.
+>  - Move comment about keeping NT_GNU_PROPERTY_TYPE_0 internal into first
+>    patch.
+>  - Add an explicit check for system_supports_bti() when parsing BTI ELF
+>    property for improved robustness.
 
-Split math64.h into linux and common headers to make the latter suitable
-for inclusion in the vDSO library.
+Looks good. I sent a few more Reviewed-bys where I could. Who is
+expected to pick this up? Catalin? Will?
 
-Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
----
- include/common/math64.h | 24 ++++++++++++++++++++++++
- include/linux/math64.h  | 20 +-------------------
- 2 files changed, 25 insertions(+), 19 deletions(-)
- create mode 100644 include/common/math64.h
+I'm excited to have both the ELF parser and BTI landed. :)
 
-diff --git a/include/common/math64.h b/include/common/math64.h
-new file mode 100644
-index 000000000000..4e1870e40182
---- /dev/null
-+++ b/include/common/math64.h
-@@ -0,0 +1,24 @@
-+/* SPDX-License-Identifier: GPL-2.0 */
-+#ifndef __COMMON_MATH64_H
-+#define __COMMON_MATH64_H
-+
-+static __always_inline u32
-+__iter_div_u64_rem(u64 dividend, u32 divisor, u64 *remainder)
-+{
-+	u32 ret = 0;
-+
-+	while (dividend >= divisor) {
-+		/* The following asm() prevents the compiler from
-+		   optimising this loop into a modulo operation.  */
-+		asm("" : "+rm"(dividend));
-+
-+		dividend -= divisor;
-+		ret++;
-+	}
-+
-+	*remainder = dividend;
-+
-+	return ret;
-+}
-+
-+#endif /* __COMMON_MATH64_H */
-diff --git a/include/linux/math64.h b/include/linux/math64.h
-index 65bef21cdddb..54eb486b5d1a 100644
---- a/include/linux/math64.h
-+++ b/include/linux/math64.h
-@@ -3,6 +3,7 @@
- #define _LINUX_MATH64_H
- 
- #include <linux/types.h>
-+#include <common/math64.h>
- #include <asm/div64.h>
- 
- #if BITS_PER_LONG == 64
-@@ -142,25 +143,6 @@ static inline s64 div_s64(s64 dividend, s32 divisor)
- 
- u32 iter_div_u64_rem(u64 dividend, u32 divisor, u64 *remainder);
- 
--static __always_inline u32
--__iter_div_u64_rem(u64 dividend, u32 divisor, u64 *remainder)
--{
--	u32 ret = 0;
--
--	while (dividend >= divisor) {
--		/* The following asm() prevents the compiler from
--		   optimising this loop into a modulo operation.  */
--		asm("" : "+rm"(dividend));
--
--		dividend -= divisor;
--		ret++;
--	}
--
--	*remainder = dividend;
--
--	return ret;
--}
--
- #ifndef mul_u32_u32
- /*
-  * Many a GCC version messes this up and generates a 64x64 mult :-(
+-Kees
+
 -- 
-2.25.0
+Kees Cook
