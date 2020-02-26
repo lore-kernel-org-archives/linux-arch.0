@@ -1,113 +1,71 @@
-From: Dave Hansen <dave.hansen@intel.com>
-Subject: Re: [RFC PATCH v9 13/27] x86/mm: Shadow Stack page fault error
- checking
-Date: Wed, 26 Feb 2020 14:47:16 -0800
-Message-ID: <1c8946d0-7934-3485-aa82-d37d41021dc7@intel.com>
-References: <20200205181935.3712-1-yu-cheng.yu@intel.com>
- <20200205181935.3712-14-yu-cheng.yu@intel.com>
+From: Boqun Feng <boqun.feng@gmail.com>
+Subject: Re: [PATCH] tools/memory-model: Remove lock-final checking in
+ lock.cat
+Date: Thu, 27 Feb 2020 07:59:42 +0800
+Message-ID: <20200226235942.GR69864@debian-boqun.qqnc3lrjykvubdpftowmye0fmh.lx.internal.cloudapp.net>
+References: <20200226032142.89424-1-boqun.feng@gmail.com>
+ <Pine.LNX.4.44L0.2002260953110.3674-100000@netrider.rowland.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 8bit
-Return-path: <linux-doc-owner@vger.kernel.org>
-In-Reply-To: <20200205181935.3712-14-yu-cheng.yu@intel.com>
-Content-Language: en-US
-Sender: linux-doc-owner@vger.kernel.org
-To: Yu-cheng Yu <yu-cheng.yu@intel.com>, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <Pine.LNX.4.44L0.2002260953110.3674-100000@netrider.rowland.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Alan Stern <stern@rowland.harvard.edu>
+Cc: linux-kernel@vger.kernel.org, rcu@vger.kernel.org, Andrea Parri <parri.andrea@gmail.com>, Will Deacon <will@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Nicholas Piggin <npiggin@gmail.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, "Paul E. McKenney" <paulmck@kernel.org>, Akira Yokosawa <akiyks@gmail.com>, Daniel Lustig <dlustig@nvidia.com>, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On 2/5/20 10:19 AM, Yu-cheng Yu wrote:
-> If a page fault is triggered by a Shadow Stack (SHSTK) access
-> (e.g. CALL/RET) or SHSTK management instructions (e.g. WRUSSQ), then bit[6]
-> of the page fault error code is set.
+On Wed, Feb 26, 2020 at 09:58:12AM -0500, Alan Stern wrote:
+> On Wed, 26 Feb 2020, Boqun Feng wrote:
+> 
+> > In commit 30b795df11a1 ("tools/memory-model: Improve mixed-access
+> > checking in lock.cat"), we have added the checking to disallow any
+> > normal memory access to lock variables, and this checking is stronger
+> > than lock-final. So remove the lock-final checking as it's unnecessary
+> > now.
+> 
+> I don't understand this description.  Why do you say that the
+> normal-access checking is stronger than the lock-final check?
+> 
+> > Signed-off-by: Boqun Feng <boqun.feng@gmail.com>
+> > ---
+> >  tools/memory-model/lock.cat | 3 ---
+> >  1 file changed, 3 deletions(-)
+> > 
+> > diff --git a/tools/memory-model/lock.cat b/tools/memory-model/lock.cat
+> > index 6b52f365d73a..827a3646607c 100644
+> > --- a/tools/memory-model/lock.cat
+> > +++ b/tools/memory-model/lock.cat
+> > @@ -54,9 +54,6 @@ flag ~empty LKR \ domain(lk-rmw) as unpaired-LKR
+> >   *)
+> >  empty ([LKW] ; po-loc ; [LKR]) \ (po-loc ; [UL] ; po-loc) as lock-nest
+> >  
+> > -(* The final value of a spinlock should not be tested *)
+> > -flag ~empty [FW] ; loc ; [ALL-LOCKS] as lock-final
+> > -
+> >  (*
+> >   * Put lock operations in their appropriate classes, but leave UL out of W
+> >   * until after the co relation has been generated.
+> 
+> With this check removed, what will prevent people from writing litmus 
+> tests like this?
+> 
 
-How about starting with a definition:
+You are right, one thing I was missing is although FW is a subset of M,
+however FW & IW is not empty. Thanks! I will drop this.
 
-	Shadow stack accesses are those that are performed by the CPU
-	where it expects to encounter a shadow stack mapping.  These
-	accesses are performed implicitly by CALL/RET at the site of the
-	shadow stack pointer.  These accesses are made explicitly by
-	shadow stack management instructions like WRUSSQ.
+Regards,
+Boqun
 
-> In access_error(), verify a SHSTK page fault is within a SHSTK memory area.
-> It is always an error otherwise.
-
-How about: Shadow stacks accesses to shadow-stack mapping can see faults
-in normal, valid operation just like regular accesses to regular
-mappings.  Shadow stacks need some of the same features like delayed
-allocation, swap and copy-on-write.
-
-Shadow stack accesses can also result in errors, such as when a shadow
-stack overflows, or if a shadow stack access occurs to a
-non-shadow-stack mapping.
-
-> For a valid SHSTK access, set FAULT_FLAG_WRITE to effect copy-on-write.
-
-It seems rather odd to want copy-on-write behavior for read faults.
-Could you elaborate on why, please?
-
-> diff --git a/arch/x86/include/asm/traps.h b/arch/x86/include/asm/traps.h
-> index 7ac26bbd0bef..8023d177fcd8 100644
-> --- a/arch/x86/include/asm/traps.h
-> +++ b/arch/x86/include/asm/traps.h
-> @@ -169,6 +169,7 @@ enum {
->   *   bit 3 ==				1: use of reserved bit detected
->   *   bit 4 ==				1: fault was an instruction fetch
->   *   bit 5 ==				1: protection keys block access
-> + *   bit 6 ==				1: shadow stack access fault
->   */
->  enum x86_pf_error_code {
->  	X86_PF_PROT	=		1 << 0,
-> @@ -177,5 +178,6 @@ enum x86_pf_error_code {
->  	X86_PF_RSVD	=		1 << 3,
->  	X86_PF_INSTR	=		1 << 4,
->  	X86_PF_PK	=		1 << 5,
-> +	X86_PF_SHSTK	=		1 << 6,
->  };
->  #endif /* _ASM_X86_TRAPS_H */
-> diff --git a/arch/x86/mm/fault.c b/arch/x86/mm/fault.c
-> index 304d31d8cbbc..9c1243302663 100644
-> --- a/arch/x86/mm/fault.c
-> +++ b/arch/x86/mm/fault.c
-> @@ -1187,6 +1187,17 @@ access_error(unsigned long error_code, struct vm_area_struct *vma)
->  				       (error_code & X86_PF_INSTR), foreign))
->  		return 1;
->  
-> +	/*
-> +	 * Verify X86_PF_SHSTK is within a Shadow Stack VMA.
-> +	 * It is always an error if there is a Shadow Stack
-> +	 * fault outside a Shadow Stack VMA.
-> +	 */
-
-Nit: there was an access that caused the fault.  We can be a bit more
-broad in the implications from the comment if we say "access" instead of
-"fault".
-
-> +	if (error_code & X86_PF_SHSTK) {
-> +		if (!(vma->vm_flags & VM_SHSTK))
-> +			return 1;
-> +		return 0;
-> +	}
-> +
->  	if (error_code & X86_PF_WRITE) {
->  		/* write, present and write, not present: */
->  		if (unlikely(!(vma->vm_flags & VM_WRITE)))
-
-Is there an analogous check for !X86_PF_SHSTK faults to VM_SHSTK VMAs?
-
-> @@ -1344,6 +1355,13 @@ void do_user_addr_fault(struct pt_regs *regs,
->  
->  	perf_sw_event(PERF_COUNT_SW_PAGE_FAULTS, 1, regs, address);
->  
-> +	/*
-> +	 * If the fault is caused by a Shadow Stack access,
-> +	 * i.e. CALL/RET/SAVEPREVSSP/RSTORSSP, then set
-> +	 * FAULT_FLAG_WRITE to effect copy-on-write.
-> +	 */
-> +	if (hw_error_code & X86_PF_SHSTK)
-> +		flags |= FAULT_FLAG_WRITE;
->  	if (hw_error_code & X86_PF_WRITE)
->  		flags |= FAULT_FLAG_WRITE;
->  	if (hw_error_code & X86_PF_INSTR)
-
-It would be great if you could also include the *why*.  *Why* do read
-faults need copy-on-write semantics?
+> C test
+> 
+> {
+> 	spinlock_t s;
+> }
+> 
+> ...
+> 
+> exists (s=0)
+> 
+> Alan
+> 
