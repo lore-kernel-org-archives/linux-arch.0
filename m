@@ -1,109 +1,49 @@
-Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:20732 "EHLO
- mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with
- ESMTP id S1726322AbgA2J0X (ORCPT <rfc822;linux-arch@vger.kernel.org>); Wed,
- 29 Jan 2020 04:26:23 -0500
-Received: from pps.filterd (m0098399.ppops.net [127.0.0.1]) by
- mx0a-001b2d01.pphosted.com (8.16.0.42/8.16.0.42) with SMTP id 00T9DgXa052264
- for <linux-arch@vger.kernel.org>; Wed, 29 Jan 2020 04:26:22 -0500
-Received: from e06smtp03.uk.ibm.com (e06smtp03.uk.ibm.com [195.75.94.99]) by
- mx0a-001b2d01.pphosted.com with ESMTP id 2xrjq8kr3h-1 (version=TLSv1.2
- cipher=AES256-GCM-SHA384 bits=256 verify=NOT) for
- <linux-arch@vger.kernel.org>; Wed, 29 Jan 2020 04:26:22 -0500
-Received: from localhost by e06smtp03.uk.ibm.com with IBM ESMTP SMTP Gateway:
- Authorized Use Only! Violators will be prosecuted for
- <linux-arch@vger.kernel.org> from <ubraun@linux.ibm.com>; Wed, 29 Jan 2020
- 09:26:19 -0000
-Subject: Re: [kernel-hardening] [PATCH 09/38] usercopy: Mark kmalloc caches as
- usercopy caches
-References: <1515636190-24061-1-git-send-email-keescook@chromium.org>
- <1515636190-24061-10-git-send-email-keescook@chromium.org>
- <9519edb7-456a-a2fa-659e-3e5a1ff89466@suse.cz>
- <201911121313.1097D6EE@keescook> <201911141327.4DE6510@keescook>
- <bfca96db-bbd0-d958-7732-76e36c667c68@suse.cz>
- <202001271519.AA6ADEACF0@keescook>
- <5861936c-1fe1-4c44-d012-26efa0c8b6e7@de.ibm.com>
- <202001281457.FA11CC313A@keescook>
-From: Ursula Braun <ubraun@linux.ibm.com>
-Date: Wed, 29 Jan 2020 10:26:07 +0100
+Return-Path: <SRS0=hCVk=4O=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from foss.arm.com ([217.140.110.172]:38166 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1728652AbgBZP5o (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 26 Feb 2020 10:57:44 -0500
+From: Mark Brown <broonie@kernel.org>
+Subject: [PATCH v7 09/11] arm64: BTI: Reset BTYPE when skipping emulated instructions
+Date: Wed, 26 Feb 2020 15:57:12 +0000
+Message-ID: <20200226155714.43937-10-broonie@kernel.org>
+In-Reply-To: <20200226155714.43937-1-broonie@kernel.org>
+References: <20200226155714.43937-1-broonie@kernel.org>
 MIME-Version: 1.0
-In-Reply-To: <202001281457.FA11CC313A@keescook>
-Content-Type: text/plain; charset=utf-8
-Content-Language: en-US
-Content-Transfer-Encoding: 7bit
-Message-ID: <009da641-175c-4a50-d658-a40ac0ca7bc6@linux.ibm.com>
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Kees Cook <keescook@chromium.org>, Christian Borntraeger <borntraeger@de.ibm.com>
-Cc: Jiri Slaby <jslaby@suse.cz>, Julian Wiedmann <jwi@linux.ibm.com>, Alexander Viro <viro@zeniv.linux.org.uk>, linux-kernel@vger.kernel.org, David Windsor <dave@nullcore.net>, Pekka Enberg <penberg@kernel.org>, David Rientjes <rientjes@google.com>, Joonsoo Kim <iamjoonsoo.kim@lge.com>, Andrew Morton <akpm@linux-foundation.org>, linux-mm@kvack.org, linux-xfs@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, Christoph Hellwig <hch@infradead.org>, Christoph Lameter <cl@linux.com>, "David S. Miller" <davem@davemloft.net>, Laura Abbott <labbott@redhat.com>, Mark Rutland <mark.rutland@arm.com>, "Martin K. Petersen" <martin.petersen@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Christoffer Dall <christoffer.dall@linaro.org>, Dave Kleikamp <dave.kleikamp@oracle.com>, Jan Kara <jack@suse.cz>, Luis de Bethencourt <luisbg@kernel.org>, Marc Zyngier <marc.zyngier@arm.com>, Rik van Riel <riel@redhat.com>, Matthew Garrett <mjg59@google.com>, linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org, netdev@vger.kernel.org, kernel-hardening@lists.openwall.com, Vlastimil Babka <vbabka@suse.cz>, Michal Kubecek <mkubecek@suse.cz>
-Message-ID: <20200129092607.h6tE2on-_xuTne8rZJVN4oZ8Is1lJaPtjEbZTSlGWgA@z>
+To: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>
+Cc: Alexander Viro <viro@zeniv.linux.org.uk>, Paul Elliott <paul.elliott@arm.com>, Peter Zijlstra <peterz@infradead.org>, Yu-cheng Yu <yu-cheng.yu@intel.com>, Amit Kachhap <amit.kachhap@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Marc Zyngier <maz@kernel.org>, Eugene Syromiatnikov <esyr@redhat.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, "H . J . Lu " <hjl.tools@gmail.com>, Andrew Jones <drjones@redhat.com>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Jann Horn <jannh@google.com>, Richard Henderson <richard.henderson@linaro.org>, =?UTF-8?q?Kristina=20Mart=C5=A1enko?= <kristina.martsenko@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Florian Weimer <fweimer@redhat.com>, Sudakshina Das <sudi.das@arm.com>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, Dave Martin <Dave.Martin@arm.com>, Mark Brown <broonie@kernel.org>
+Message-ID: <20200226155712.clP9d3KmuRH_g9Fz95ssIlW6PPf_vmuOU6ENABvzSc8@z>
 
+From: Dave Martin <Dave.Martin@arm.com>
 
+Since normal execution of any non-branch instruction resets the
+PSTATE BTYPE field to 0, so do the same thing when emulating a
+trapped instruction.
 
-On 1/29/20 12:01 AM, Kees Cook wrote:
-> On Tue, Jan 28, 2020 at 08:58:31AM +0100, Christian Borntraeger wrote:
->>
->>
->> On 28.01.20 00:19, Kees Cook wrote:
->>> On Thu, Jan 23, 2020 at 09:14:20AM +0100, Jiri Slaby wrote:
->>>> On 14. 11. 19, 22:27, Kees Cook wrote:
->>>>> On Tue, Nov 12, 2019 at 01:21:54PM -0800, Kees Cook wrote:
->>>>>> How is iucv the only network protocol that has run into this? Do others
->>>>>> use a bounce buffer?
->>>>>
->>>>> Another solution would be to use a dedicated kmem cache (instead of the
->>>>> shared kmalloc dma one)?
->>>>
->>>> Has there been any conclusion to this thread yet? For the time being, we
->>>> disabled HARDENED_USERCOPY on s390...
->>>>
->>>> https://lore.kernel.org/kernel-hardening/9519edb7-456a-a2fa-659e-3e5a1ff89466@suse.cz/
->>>
->>> I haven't heard anything new. What did people think of a separate kmem
->>> cache?
->>>
->>
->> Adding Julian and Ursula. A separate kmem cache for iucv might be indeed
->> a solution for the user hardening issue.
-> 
-> It should be very clean -- any existing kmallocs already have to be
-> "special" in the sense that they're marked with the DMA flag. So
-> converting these to a separate cache should be mostly mechanical.
-> 
+Branches don't trap directly, so we should never need to assign a
+non-zero value to BTYPE here.
 
-Linux on System z can run within a guest hosted by the IBM mainframe operating system
-z/VM. z/VM offers a transport called Inter-User Communications Vehicle (short IUCV).
-It is limited to 4-byte-addresses when sending and receiving data.
-One base transport for AF_IUCV sockets in the Linux kernel is this Inter-User
-Communications Vehicle of z/VM. AF_IUCV sockets exist for s390 only. 
+Signed-off-by: Dave Martin <Dave.Martin@arm.com>
+Signed-off-by: Mark Brown <broonie@kernel.org>
+---
+ arch/arm64/kernel/traps.c | 2 ++
+ 1 file changed, 2 insertions(+)
 
-AF_IUCV sockets make use of the base socket layer, and work with sk_buffs for sending
-and receiving data of variable length.
-Storage for sk_buffs is allocated with __alloc_skb(), which invokes
-   data = kmalloc_reserve(size, gfp_mask, node, &pfmemalloc);
-For IUCV transport the "data"-address should fit into 4 bytes. That's the reason why
-we work with GFP_DMA here.
-
-kmem_caches manage memory of fixed size. This does not fit well for sk_buff memory
-of variable length. Do you propose to add a kmem_cache solution for sk_buff memory here?
-
->> On the other hand not marking the DMA caches still seems questionable.
-> 
-> My understanding is that exposing DMA memory to userspace copies can
-> lead to unexpected results, especially for misbehaving hardware, so I'm
-> not convinced this is a generically bad hardening choice.
-> 
-
-We have not yet been reported a memory problem here. Do you have more details, if
-this is really a problem for the s390 architecture?
-
-Kind regards, Ursula 
-
-> -Kees
-> 
->>
->> For reference
->> https://bugzilla.suse.com/show_bug.cgi?id=1156053
->> the kernel hardening now triggers a warning.
->>
-> 
+diff --git a/arch/arm64/kernel/traps.c b/arch/arm64/kernel/traps.c
+index 3c07a7074145..52ed261e7739 100644
+--- a/arch/arm64/kernel/traps.c
++++ b/arch/arm64/kernel/traps.c
+@@ -335,6 +335,8 @@ void arm64_skip_faulting_instruction(struct pt_regs *regs, unsigned long size)
+ 
+ 	if (compat_user_mode(regs))
+ 		advance_itstate(regs);
++	else
++		regs->pstate &= ~PSR_BTYPE_MASK;
+ }
+ 
+ static LIST_HEAD(undef_hook);
+-- 
+2.20.1
