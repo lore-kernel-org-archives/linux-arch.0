@@ -1,68 +1,46 @@
-Return-Path: <SRS0=BIEI=4P=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from smtp-sh2.infomaniak.ch ([128.65.195.6]:54545 "EHLO
-        smtp-sh2.infomaniak.ch" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1729165AbgB0QvO (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 27 Feb 2020 11:51:14 -0500
-Subject: Re: [RFC PATCH v14 05/10] fs,landlock: Support filesystem
- access-control
-References: <20200224160215.4136-1-mic@digikod.net>
- <20200224160215.4136-6-mic@digikod.net>
- <CAG48ez36SMrPPgsj0omcVukRLwOzBzqWOQjuGCmmmrmsGiNukw@mail.gmail.com>
-From: =?UTF-8?Q?Micka=c3=abl_Sala=c3=bcn?= <mic@digikod.net>
-Message-ID: <34319b76-44bd-8915-fd7c-5147f901615e@digikod.net>
-Date: Thu, 27 Feb 2020 17:50:31 +0100
+Return-Path: <SRS0=ZbOS=4O=kvack.org=owner-linux-mm@kernel.org>
+Subject: Re: [PATCH V2 3/4] mm/vma: Replace all remaining open encodings with
+ is_vm_hugetlb_page()
+References: <1582520593-30704-1-git-send-email-anshuman.khandual@arm.com>
+ <1582520593-30704-4-git-send-email-anshuman.khandual@arm.com>
+From: Vlastimil Babka <vbabka@suse.cz>
+Message-ID: <79d454cb-9b7e-4fc2-6381-3da93f17ddc1@suse.cz>
+Date: Wed, 26 Feb 2020 18:40:41 +0100
 MIME-Version: 1.0
-In-Reply-To: <CAG48ez36SMrPPgsj0omcVukRLwOzBzqWOQjuGCmmmrmsGiNukw@mail.gmail.com>
+In-Reply-To: <1582520593-30704-4-git-send-email-anshuman.khandual@arm.com>
 Content-Type: text/plain; charset=utf-8
 Content-Language: en-US
-Content-Transfer-Encoding: 8bit
-Sender: linux-arch-owner@vger.kernel.org
+Content-Transfer-Encoding: 7bit
+Sender: owner-linux-mm@kvack.org
+To: Anshuman Khandual <anshuman.khandual@arm.com>, linux-mm@kvack.org, linux-kernel@vger.kernel.org
+Cc: Paul Mackerras <paulus@ozlabs.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Michael Ellerman <mpe@ellerman.id.au>, Alexander Viro <viro@zeniv.linux.org.uk>, Will Deacon <will@kernel.org>, "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, Nick Piggin <npiggin@gmail.com>, Peter Zijlstra <peterz@infradead.org>, Arnd Bergmann <arnd@arndb.de>, Ingo Molnar <mingo@redhat.com>, Arnaldo Carvalho de Melo <acme@kernel.org>, kvm-ppc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jann Horn <jannh@google.com>
-Cc: kernel list <linux-kernel@vger.kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, Andy Lutomirski <luto@amacapital.net>, Arnd Bergmann <arnd@arndb.de>, Casey Schaufler <casey@schaufler-ca.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, James Morris <jmorris@namei.org>, Jann Horn <jann@thejh.net>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Michael Kerrisk <mtk.manpages@gmail.com>, =?UTF-8?Q?Micka=c3=abl_Sala=c3=bcn?= <mickael.salaun@ssi.gouv.fr>, "Serge E . Hallyn" <serge@hallyn.com>, Shuah Khan <shuah@kernel.org>, Vincent Dagonneau <vincent.dagonneau@ssi.gouv.fr>, Kernel Hardening <kernel-hardening@lists.openwall.com>, Linux API <linux-api@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, linux-doc@vger.kernel.org, linux-fsdevel <linux-fsdevel@vger.kernel.org>, "open list:KERNEL SELFTEST FRAMEWORK" <linux-kselftest@vger.kernel.org>, linux-security-module <linux-security-module@vger.kernel.org>, the arch/x86 maintainers <x86@kernel.org>
-Message-ID: <20200227165031.iMhqt6TXkNEWSaQ2gCao239FxffpsJkQCa8bx5wBfjY@z>
+Message-ID: <20200226174041.yoHWuIpNG_I1VWG-mGZbjENcJF-CYhkxkucSnCAivOo@z>
 
-
-
-On 26/02/2020 21:29, Jann Horn wrote:
-> On Mon, Feb 24, 2020 at 5:03 PM Mickaël Salaün <mic@digikod.net> wrote:
->> +static inline u32 get_mem_access(unsigned long prot, bool private)
->> +{
->> +       u32 access = LANDLOCK_ACCESS_FS_MAP;
->> +
->> +       /* Private mapping do not write to files. */
->> +       if (!private && (prot & PROT_WRITE))
->> +               access |= LANDLOCK_ACCESS_FS_WRITE;
->> +       if (prot & PROT_READ)
->> +               access |= LANDLOCK_ACCESS_FS_READ;
->> +       if (prot & PROT_EXEC)
->> +               access |= LANDLOCK_ACCESS_FS_EXECUTE;
->> +       return access;
->> +}
+On 2/24/20 6:03 AM, Anshuman Khandual wrote:
+> This replaces all remaining open encodings with is_vm_hugetlb_page().
 > 
-> When I do the following, is landlock going to detect that the mmap()
-> is a read access, or is it incorrectly going to think that it's
-> neither read nor write?
-> 
-> $ cat write-only.c
-> #include <fcntl.h>
-> #include <sys/mman.h>
-> #include <stdio.h>
-> int main(void) {
->   int fd = open("/etc/passwd", O_RDONLY);
->   char *ptr = mmap(NULL, 0x1000, PROT_WRITE, MAP_PRIVATE, fd, 0);
->   printf("'%.*s'\n", 4, ptr);
-> }
-> $ gcc -o write-only write-only.c -Wall
-> $ ./write-only
-> 'root'
-> $
-> 
+> Cc: Paul Mackerras <paulus@ozlabs.org>
+> Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+> Cc: Michael Ellerman <mpe@ellerman.id.au>
+> Cc: Alexander Viro <viro@zeniv.linux.org.uk>
+> Cc: Will Deacon <will@kernel.org>
+> Cc: "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>
+> Cc: Andrew Morton <akpm@linux-foundation.org>
+> Cc: Nick Piggin <npiggin@gmail.com>
+> Cc: Peter Zijlstra <peterz@infradead.org>
+> Cc: Arnd Bergmann <arnd@arndb.de>
+> Cc: Ingo Molnar <mingo@redhat.com>
+> Cc: Arnaldo Carvalho de Melo <acme@kernel.org>
+> Cc: kvm-ppc@vger.kernel.org
+> Cc: linuxppc-dev@lists.ozlabs.org
+> Cc: linux-kernel@vger.kernel.org
+> Cc: linux-fsdevel@vger.kernel.org
+> Cc: linux-arch@vger.kernel.org
+> Cc: linux-mm@kvack.org
+> Signed-off-by: Anshuman Khandual <anshuman.khandual@arm.com>
 
-Thanks to the "if (!private && (prot & PROT_WRITE))", Landlock allows
-this private mmap (as intended) even if there is no write access to this
-file, but not with a shared mmap (and a file opened with O_RDWR). I just
-added a test for this to be sure.
+Meh, why is there _page in the function's name... but too many users to bother
+changing it now, I guess.
 
-However, I'm not sure this hook is useful for now. Indeed, the process
-still need to have a file descriptor open with the right accesses.
+Acked-by: Vlastimil Babka <vbabka@suse.cz
