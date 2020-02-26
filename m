@@ -1,46 +1,40 @@
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [PATCH v2 09/19] arm64: mte: Add specific SIGSEGV codes
-Date: Wed, 26 Feb 2020 19:26:59 +0000
-Message-ID: <20200226192658.GA4109@mbp>
-References: <20200226180526.3272848-1-catalin.marinas@arm.com>
- <20200226180526.3272848-10-catalin.marinas@arm.com>
- <874kvdxj73.fsf@x220.int.ebiederm.org>
+From: Pavel Machek <pavel@ucw.cz>
+Subject: Re: [RFC PATCH v9 05/27] x86/cet/shstk: Add Kconfig option for
+ user-mode Shadow Stack protection
+Date: Wed, 26 Feb 2020 20:57:10 +0100
+Message-ID: <20200226195710.6sma4whvs3o76oux@ucw.cz>
+References: <20200205181935.3712-1-yu-cheng.yu@intel.com>
+ <20200205181935.3712-6-yu-cheng.yu@intel.com>
+ <597fb45a-cb94-e8e7-8e80-45a26766d32a@intel.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:41800 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727035AbgBZT1E (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 26 Feb 2020 14:27:04 -0500
+Return-path: <linux-doc-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <874kvdxj73.fsf@x220.int.ebiederm.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: "Eric W. Biederman" <ebiederm@xmission.com>
-Cc: linux-arm-kernel@lists.infradead.org, Will Deacon <will@kernel.org>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Richard Earnshaw <Richard.Earnshaw@arm.com>, Kevin Brodsky <kevin.brodsky@arm.com>, Andrey Konovalov <andreyknvl@google.com>, Peter Collingbourne <pcc@google.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>
+In-Reply-To: <597fb45a-cb94-e8e7-8e80-45a26766d32a@intel.com>
+Sender: linux-doc-owner@vger.kernel.org
+To: Dave Hansen <dave.hansen@intel.com>
+Cc: Yu-cheng Yu <yu-cheng.yu@intel.com>, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>
+List-Id: linux-arch.vger.kernel.org
 
-On Wed, Feb 26, 2020 at 01:05:52PM -0600, Eric W. Biederman wrote:
-> Catalin Marinas <catalin.marinas@arm.com> writes:
+> On 2/5/20 10:19 AM, Yu-cheng Yu wrote:
+> > Introduce Kconfig option: X86_INTEL_SHADOW_STACK_USER.
+> > 
+> > Shadow Stack (SHSTK) provides protection against function return address
+> > corruption.  It is active when the kernel has this feature enabled, and
+> > both the processor and the application support it.  When this feature is
+> > enabled, legacy non-SHSTK applications continue to work, but without SHSTK
+> > protection.
+> > 
+> > The user-mode SHSTK protection is only implemented for the 64-bit kernel.
+> > IA32 applications are supported under the compatibility mode.
 > 
-> > From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-> >
-> > Add MTE-specific SIGSEGV codes to siginfo.h.
-> >
-> > Note that the for MTE we are reusing the same SPARC ADI codes because
-> > the two functionalities are similar and they cannot coexist on the same
-> > system.
+> I think what you're trying to say here is that the hardware supports
+> shadow stacks with 32-bit kernels.  However, this series does not
+> include that support and we have no plans to add it.
 > 
-> Any chance you can move the v2 notes up into the description or
-> otherwise fix it.  The description talks about reusing the ADI codes
-> which is no longer happening.
-
-Oh, I forgot to check the patch description. I will fix it.
-
-> Otherwise the patch looks good.
+> Right?
 > 
-> Acked-by: "Eric W. Biederman" <ebiederm@xmission.com>
+> I'll let others weigh in, but I rather dislike the use of acronyms here.
+>  I'd much rather see the english "shadow stack" everywhere than SHSTK.
 
-Thanks.
-
--- 
-Catalin
+For the record, I like "shadow stack" better, too.
