@@ -1,42 +1,39 @@
-Return-Path: <SRS0=c96G=4D=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:42718 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1725965AbgBOL42 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Sat, 15 Feb 2020 06:56:28 -0500
-Date: Sat, 15 Feb 2020 11:56:24 +0000
-From: Marc Zyngier <maz@kernel.org>
-Subject: Re: [PATCH v6 10/11] KVM: arm64: BTI: Reset BTYPE when skipping
- emulated instructions
-Message-ID: <20200215115624.2afbf55c@why>
-In-Reply-To: <20200212192906.53366-11-broonie@kernel.org>
-References: <20200212192906.53366-1-broonie@kernel.org>
-        <20200212192906.53366-11-broonie@kernel.org>
+Return-Path: <SRS0=oITL=4O=vger.kernel.org=linux-doc-owner@kernel.org>
+Subject: Re: [RFC PATCH v9 05/27] x86/cet/shstk: Add Kconfig option for
+ user-mode Shadow Stack protection
+References: <20200205181935.3712-1-yu-cheng.yu@intel.com>
+ <20200205181935.3712-6-yu-cheng.yu@intel.com>
+From: Dave Hansen <dave.hansen@intel.com>
+Message-ID: <d4dabb84-5636-2657-c45e-795f3f2dcbbc@intel.com>
+Date: Wed, 26 Feb 2020 10:05:50 -0800
 MIME-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
-Sender: linux-arch-owner@vger.kernel.org
+In-Reply-To: <20200205181935.3712-6-yu-cheng.yu@intel.com>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
+Content-Transfer-Encoding: 8bit
+Sender: linux-doc-owner@vger.kernel.org
+To: Yu-cheng Yu <yu-cheng.yu@intel.com>, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>, x86-patch-review@intel.com
 List-ID: <linux-arch.vger.kernel.org>
-To: Mark Brown <broonie@kernel.org>
-Cc: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Alexander Viro <viro@zeniv.linux.org.uk>, Paul Elliott <paul.elliott@arm.com>, Peter Zijlstra <peterz@infradead.org>, Yu-cheng Yu <yu-cheng.yu@intel.com>, Amit Kachhap <amit.kachhap@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Eugene Syromiatnikov <esyr@redhat.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, "H . J . Lu " <hjl.tools@gmail.com>, Andrew Jones <drjones@redhat.com>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Jann Horn <jannh@google.com>, Richard Henderson <richard.henderson@linaro.org>, Kristina =?UTF-8?Q?Mart=C5=A1enko?= <kristina.martsenko@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Florian Weimer <fweimer@redhat.com>, Sudakshina Das <sudi.das@arm.com>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, Dave Martin <Dave.Martin@arm.com>
-Message-ID: <20200215115624.y9bkbVTfkd4v0uFJdSisflzIYLa_kqfE0QBOizl6tmE@z>
+Message-ID: <20200226180550.GyrEX--diSKE-QZyx2t6P72bwvDVhVM0qPhLeZ-7zvU@z>
 
-On Wed, 12 Feb 2020 19:29:05 +0000
-Mark Brown <broonie@kernel.org> wrote:
+On 2/5/20 10:19 AM, Yu-cheng Yu wrote:
+> +# Check assembler Shadow Stack suppot
 
-> From: Dave Martin <Dave.Martin@arm.com>
-> 
-> Since normal execution of any non-branch instruction resets the
-> PSTATE BTYPE field to 0, so do the same thing when emulating a
-> trapped instruction.
-> 
-> Branches don't trap directly, so we should never need to assign a
-> non-zero value to BTYPE here.
-> 
-> Signed-off-by: Dave Martin <Dave.Martin@arm.com>
-> Signed-off-by: Mark Brown <broonie@kernel.org>
+				  ^ support
 
-Acked-by: Marc Zyngier <maz@kernel.org>
+> +ifdef CONFIG_X86_INTEL_SHADOW_STACK_USER
+> +  ifeq ($(call as-instr, saveprevssp, y),)
+> +      $(error CONFIG_X86_INTEL_SHADOW_STACK_USER not supported by the assembler)
+> +  endif
+> +endif
 
-	M.
--- 
-Jazz is not dead. It just smells funny...
+Is this *just* looking for instruction support in the assembler?
+
+We usually just .byte them, like this for pkeys:
+
+        asm volatile(".byte 0x0f,0x01,0xee\n\t"
+                     : "=a" (pkru), "=d" (edx)
+                     : "c" (ecx));
+
+That way everybody with old toolchains can still build the kernel (and
+run/test code with your config option on, btw...).
