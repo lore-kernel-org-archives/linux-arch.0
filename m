@@ -1,57 +1,38 @@
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: [PATCH v2 09/19] arm64: mte: Add specific SIGSEGV codes
-Date: Wed, 26 Feb 2020 18:05:16 +0000
-Message-ID: <20200226180526.3272848-10-catalin.marinas@arm.com>
-References: <20200226180526.3272848-1-catalin.marinas@arm.com>
+From: Dave Hansen <dave.hansen@intel.com>
+Subject: Re: [RFC PATCH v9 05/27] x86/cet/shstk: Add Kconfig option for
+ user-mode Shadow Stack protection
+Date: Wed, 26 Feb 2020 10:05:50 -0800
+Message-ID: <d4dabb84-5636-2657-c45e-795f3f2dcbbc@intel.com>
+References: <20200205181935.3712-1-yu-cheng.yu@intel.com>
+ <20200205181935.3712-6-yu-cheng.yu@intel.com>
 Mime-Version: 1.0
+Content-Type: text/plain; charset=utf-8
 Content-Transfer-Encoding: 8bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:40160 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726787AbgBZSFw (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 26 Feb 2020 13:05:52 -0500
-In-Reply-To: <20200226180526.3272848-1-catalin.marinas@arm.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: linux-arm-kernel@lists.infradead.org
-Cc: Will Deacon <will@kernel.org>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Richard Earnshaw <Richard.Earnshaw@arm.com>, Kevin Brodsky <kevin.brodsky@arm.com>, Andrey Konovalov <andreyknvl@google.com>, Peter Collingbourne <pcc@google.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, "Eric W. Biederman" <ebiederm@xmission.com>
+Return-path: <linux-doc-owner@vger.kernel.org>
+In-Reply-To: <20200205181935.3712-6-yu-cheng.yu@intel.com>
+Content-Language: en-US
+Sender: linux-doc-owner@vger.kernel.org
+To: Yu-cheng Yu <yu-cheng.yu@intel.com>, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>
+List-Id: linux-arch.vger.kernel.org
 
-From: Vincenzo Frascino <vincenzo.frascino@arm.com>
+On 2/5/20 10:19 AM, Yu-cheng Yu wrote:
+> +# Check assembler Shadow Stack suppot
 
-Add MTE-specific SIGSEGV codes to siginfo.h.
+				  ^ support
 
-Note that the for MTE we are reusing the same SPARC ADI codes because
-the two functionalities are similar and they cannot coexist on the same
-system.
+> +ifdef CONFIG_X86_INTEL_SHADOW_STACK_USER
+> +  ifeq ($(call as-instr, saveprevssp, y),)
+> +      $(error CONFIG_X86_INTEL_SHADOW_STACK_USER not supported by the assembler)
+> +  endif
+> +endif
 
-Cc: Arnd Bergmann <arnd@arndb.de>
-Cc: Eric W. Biederman <ebiederm@xmission.com>
-Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
-[catalin.marinas@arm.com: renamed precise/imprecise to sync/async]
-[catalin.marinas@arm.com: dropped #ifdef __aarch64__, renumbered]
-Signed-off-by: Catalin Marinas <catalin.marinas@arm.com>
----
+Is this *just* looking for instruction support in the assembler?
 
-Notes:
-    v2:
-    - Dropped the #ifdef __aarch64__.
-    - Renumbered the SEGV_MTE* values to avoid clash with ADI.
+We usually just .byte them, like this for pkeys:
 
- include/uapi/asm-generic/siginfo.h | 4 +++-
- 1 file changed, 3 insertions(+), 1 deletion(-)
+        asm volatile(".byte 0x0f,0x01,0xee\n\t"
+                     : "=a" (pkru), "=d" (edx)
+                     : "c" (ecx));
 
-diff --git a/include/uapi/asm-generic/siginfo.h b/include/uapi/asm-generic/siginfo.h
-index cb3d6c267181..7aacf9389010 100644
---- a/include/uapi/asm-generic/siginfo.h
-+++ b/include/uapi/asm-generic/siginfo.h
-@@ -229,7 +229,9 @@ typedef struct siginfo {
- #define SEGV_ACCADI	5	/* ADI not enabled for mapped object */
- #define SEGV_ADIDERR	6	/* Disrupting MCD error */
- #define SEGV_ADIPERR	7	/* Precise MCD exception */
--#define NSIGSEGV	7
-+#define SEGV_MTEAERR	8	/* Asynchronous ARM MTE error */
-+#define SEGV_MTESERR	9	/* Synchronous ARM MTE exception */
-+#define NSIGSEGV	9
- 
- /*
-  * SIGBUS si_codes
+That way everybody with old toolchains can still build the kernel (and
+run/test code with your config option on, btw...).
