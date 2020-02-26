@@ -1,75 +1,55 @@
-From: Christophe Leroy <christophe.leroy@c-s.fr>
-Subject: Re: [PATCH v2 07/13] powerpc: add support for folded p4d page tables
-Date: Wed, 26 Feb 2020 12:20:49 +0100
-Message-ID: <7a008227-433c-73d7-b01a-1c6c7c66f04e@c-s.fr>
-References: <20200216081843.28670-1-rppt@kernel.org>
- <20200216081843.28670-8-rppt@kernel.org>
- <c79b363c-a111-389a-5752-51cf85fa8c44@c-s.fr> <20200218105440.GA1698@hump>
- <20200226091315.GA11803@hump> <f881f732-729b-a098-f520-b30e44dc10c8@c-s.fr>
- <20200226105615.GB11803@hump>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH v4 05/27] x86: Replace ist_enter() with nmi_enter()
+Date: Wed, 26 Feb 2020 14:16:06 +0100
+Message-ID: <20200226131606.GL14946@hirez.programming.kicks-ass.net>
+References: <20200221134215.328642621@infradead.org>
+ <CALCETrU7nezN7d3GEZ8h8HbRfvZ0+F9+Ahb7fLvZ9FVaHN9x2w@mail.gmail.com>
+ <20200221202246.GA14897@hirez.programming.kicks-ass.net>
+ <20200224104346.GJ14946@hirez.programming.kicks-ass.net>
+ <20200224112708.4f307ba3@gandalf.local.home>
+ <20200224163409.GJ18400@hirez.programming.kicks-ass.net>
+ <20200224114754.0fb798c1@gandalf.local.home>
+ <20200224213139.GO11457@worktop.programming.kicks-ass.net>
+ <20200224170231.3807931d@gandalf.local.home>
+ <20200226102509.GU18400@hirez.programming.kicks-ass.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Transfer-Encoding: 8bit
-Return-path: <linux-ia64-owner@vger.kernel.org>
-In-Reply-To: <20200226105615.GB11803@hump>
-Content-Language: fr
-Sender: linux-ia64-owner@vger.kernel.org
-To: Mike Rapoport <rppt@kernel.org>
-Cc: linux-kernel@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Brian Cain <bcain@codeaurora.org>, Catalin Marinas <catalin.marinas@arm.com>, Fenghua Yu <fenghua.yu@intel.com>, Geert Uytterhoeven <geert+renesas@glider.be>, Guan Xuetao <gxt@pku.edu.cn>, James Morse <james.morse@arm.com>, Jonas Bonn <jonas@southpole.se>, Julien Thierry <julien.thierry.kdev@gmail.com>, Ley Foon Tan <ley.foon.tan@intel.com>, Marc Zyngier <maz@kernel.org>, Michael Ellerman <mpe@ellerman.id.au>, Paul Mackerras <paulus@samba.org>, Rich Felker <dalias@libc.org>, Russell King <linux@armlinux.org.uk>, Stafford Horne <shorne@gmail.com>, Stefan Kristiansson <stefan.kristian>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from merlin.infradead.org ([205.233.59.134]:39704 "EHLO
+        merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726878AbgBZNQx (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 26 Feb 2020 08:16:53 -0500
+Content-Disposition: inline
+In-Reply-To: <20200226102509.GU18400@hirez.programming.kicks-ass.net>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Steven Rostedt <rostedt@goodmis.org>
+Cc: Andy Lutomirski <luto@kernel.org>, LKML <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Ingo Molnar <mingo@kernel.org>, Joel Fernandes <joel@joelfernandes.org>, Greg KH <gregkh@linuxfoundation.org>, gustavo@embeddedor.com, Thomas Gleixner <tglx@linutronix.de>, paulmck@kernel.org, Josh Triplett <josh@joshtriplett.org>, Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, Lai Jiangshan <jiangshanlai@gmail.com>, Tony Luck <tony.luck@intel.com>, Frederic Weisbecker <frederic@kernel.org>, Dan Carpenter <dan.carpenter@oracle.com>, Masami Hiramatsu <mhiramat@kernel.org>
 
-
-
-Le 26/02/2020 à 11:56, Mike Rapoport a écrit :
-> On Wed, Feb 26, 2020 at 10:46:13AM +0100, Christophe Leroy wrote:
->>
->>
->> Le 26/02/2020 à 10:13, Mike Rapoport a écrit :
->>> On Tue, Feb 18, 2020 at 12:54:40PM +0200, Mike Rapoport wrote:
->>>> On Sun, Feb 16, 2020 at 11:41:07AM +0100, Christophe Leroy wrote:
->>>>>
->>>>>
->>>>> Le 16/02/2020 à 09:18, Mike Rapoport a écrit :
->>>>>> From: Mike Rapoport <rppt@linux.ibm.com>
->>>>>>
->>>>>> Implement primitives necessary for the 4th level folding, add walks of p4d
->>>>>> level where appropriate and replace 5level-fixup.h with pgtable-nop4d.h.
->>>>>
->>>>> I don't think it is worth adding all this additionnals walks of p4d, this
->>>>> patch could be limited to changes like:
->>>>>
->>>>> -		pud = pud_offset(pgd, gpa);
->>>>> +		pud = pud_offset(p4d_offset(pgd, gpa), gpa);
->>>>>
->>>>> The additionnal walks should be added through another patch the day powerpc
->>>>> need them.
->>>>
->>>> Ok, I'll update the patch to reduce walking the p4d.
->>>
->>> Here's what I have with more direct acceses from pgd to pud.
->>
->> I went quickly through. This looks promising.
->>
->> Do we need the walk_p4d() in arch/powerpc/mm/ptdump/hashpagetable.c ?
->> Can't we just do
->>
->> @@ -445,7 +459,7 @@ static void walk_pagetables(struct pg_state *st)
->>   		addr = KERN_VIRT_START + i * PGDIR_SIZE;
->>   		if (!pgd_none(*pgd))
->>   			/* pgd exists */
->> -			walk_pud(st, pgd, addr);
->> +			walk_pud(st, p4d_offset(pgd, addr), addr);
+On Wed, Feb 26, 2020 at 11:25:09AM +0100, Peter Zijlstra wrote:
+> Subject: sh/ftrace: Move arch_ftrace_nmi_{enter,exit} into nmi exception
+> From: Peter Zijlstra <peterz@infradead.org>
+> Date: Mon Feb 24 22:26:21 CET 2020
 > 
-> We can do
+> SuperH is the last remaining user of arch_ftrace_nmi_{enter,exit}(),
+> remove it from the generic code and into the SuperH code.
 > 
-> 	addr = KERN_VIRT_START + i * PGDIR_SIZE;
-> 	p4d = p4d_offset(pgd, addr);
-> 	if (!p4d_none(*pgd))
-> 		walk_pud()
-> 
-> But I don't think this is really essential. Again, we are trading off code
-> consistency vs line count. I don't think line count is that important.
+> Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+> ---
 
-Ok.
+> --- a/arch/sh/kernel/traps.c
+> +++ b/arch/sh/kernel/traps.c
+> @@ -170,11 +170,21 @@ BUILD_TRAP_HANDLER(bug)
+>  	force_sig(SIGTRAP);
+>  }
+>  
+> +#ifdef CONFIG_HAVE_DYNAMIC_FTRACE
 
-Christophe
+build robot just informed me that this ought to s/HAVE_//
+
+> +extern void arch_ftrace_nmi_enter(void);
+> +extern void arch_ftrace_nmi_exit(void);
+> +#else
+> +static inline void arch_ftrace_nmi_enter(void) { }
+> +static inline void arch_ftrace_nmi_exit(void) { }
+> +#endif
