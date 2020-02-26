@@ -1,177 +1,622 @@
-Return-Path: <SRS0=2OaM=4Q=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail-pf1-f194.google.com ([209.85.210.194]:43590 "EHLO
-        mail-pf1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1730478AbgB1AW6 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 27 Feb 2020 19:22:58 -0500
-Received: by mail-pf1-f194.google.com with SMTP id s1so720949pfh.10
-        for <linux-arch@vger.kernel.org>; Thu, 27 Feb 2020 16:22:55 -0800 (PST)
-From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH 8/9] arm/build: Warn on orphan section placement
-Date: Thu, 27 Feb 2020 16:22:43 -0800
-Message-ID: <20200228002244.15240-9-keescook@chromium.org>
-In-Reply-To: <20200228002244.15240-1-keescook@chromium.org>
-References: <20200228002244.15240-1-keescook@chromium.org>
+Return-Path: <SRS0=hCVk=4O=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from smtp-42aa.mail.infomaniak.ch ([84.16.66.170]:40421 "EHLO
+        smtp-42aa.mail.infomaniak.ch" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S1728200AbgBZPcH (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 26 Feb 2020 10:32:07 -0500
+Subject: Re: [RFC PATCH v14 01/10] landlock: Add object and rule management
+References: <20200224160215.4136-1-mic@digikod.net>
+ <20200224160215.4136-2-mic@digikod.net>
+ <CAG48ez1FN0B05r35c-EDuQNoW=5ZTy1iBzksbkt+toqs+_tdqg@mail.gmail.com>
+From: =?UTF-8?Q?Micka=c3=abl_Sala=c3=bcn?= <mic@digikod.net>
+Message-ID: <67465638-e22c-5d1a-df37-862b31d999a1@digikod.net>
+Date: Wed, 26 Feb 2020 16:31:47 +0100
 MIME-Version: 1.0
+In-Reply-To: <CAG48ez1FN0B05r35c-EDuQNoW=5ZTy1iBzksbkt+toqs+_tdqg@mail.gmail.com>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
 Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Borislav Petkov <bp@suse.de>
-Cc: Kees Cook <keescook@chromium.org>, "H.J. Lu" <hjl.tools@gmail.com>, Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Mark Rutland <mark.rutland@arm.com>, Peter Collingbourne <pcc@google.com>, James Morse <james.morse@arm.com>, Arnd Bergmann <arnd@arndb.de>, Masahiro Yamada <masahiroy@kernel.org>, x86@kernel.org, linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, linux-kbuild@vger.kernel.org, clang-built-linux@googlegroups.com, linux-kernel@vger.kernel.org
-Message-ID: <20200228002243.F-z01lCPn3qTdJLpv3Jdczj-ZERcSDh-dHibowzNjGE@z>
+To: Jann Horn <jannh@google.com>
+Cc: kernel list <linux-kernel@vger.kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, Andy Lutomirski <luto@amacapital.net>, Arnd Bergmann <arnd@arndb.de>, Casey Schaufler <casey@schaufler-ca.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, James Morris <jmorris@namei.org>, Jann Horn <jann@thejh.net>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Michael Kerrisk <mtk.manpages@gmail.com>, =?UTF-8?Q?Micka=c3=abl_Sala=c3=bcn?= <mickael.salaun@ssi.gouv.fr>, "Serge E . Hallyn" <serge@hallyn.com>, Shuah Khan <shuah@kernel.org>, Vincent Dagonneau <vincent.dagonneau@ssi.gouv.fr>, Kernel Hardening <kernel-hardening@lists.openwall.com>, Linux API <linux-api@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, linux-doc@vger.kernel.org, linux-fsdevel <linux-fsdevel@vger.kernel.org>, "open list:KERNEL SELFTEST FRAMEWORK" <linux-kselftest@vger.kernel.org>, linux-security-module <linux-security-module@vger.kernel.org>, the arch/x86 maintainers <x86@kernel.org>
+Message-ID: <20200226153147.n7PyYu7lGftd686YGmWcLXZqoJHxor-4htPUo6hQKFM@z>
 
-We don't want to depend on the linker's orphan section placement
-heuristics as these can vary between linkers, and may change between
-versions. All sections need to be explicitly named in the linker
-script.
 
-Specifically, this would have made a recently fixed bug very obvious:
+On 25/02/2020 21:49, Jann Horn wrote:
+> On Mon, Feb 24, 2020 at 5:05 PM Mickaël Salaün <mic@digikod.net> wrote:
+>> A Landlock object enables to identify a kernel object (e.g. an inode).
+>> A Landlock rule is a set of access rights allowed on an object.  Rules
+>> are grouped in rulesets that may be tied to a set of processes (i.e.
+>> subjects) to enforce a scoped access-control (i.e. a domain).
+>>
+>> Because Landlock's goal is to empower any process (especially
+>> unprivileged ones) to sandbox themselves, we can't rely on a system-wide
+>> object identification such as file extended attributes.  Indeed, we need
+>> innocuous, composable and modular access-controls.
+>>
+>> The main challenge with this constraints is to identify kernel objects
+>> while this identification is useful (i.e. when a security policy makes
+>> use of this object).  But this identification data should be freed once
+>> no policy is using it.  This ephemeral tagging should not and may not be
+>> written in the filesystem.  We then need to manage the lifetime of a
+>> rule according to the lifetime of its object.  To avoid a global lock,
+>> this implementation make use of RCU and counters to safely reference
+>> objects.
+>>
+>> A following commit uses this generic object management for inodes.
+> [...]
+>> diff --git a/security/landlock/Kconfig b/security/landlock/Kconfig
+>> new file mode 100644
+>> index 000000000000..4a321d5b3f67
+>> --- /dev/null
+>> +++ b/security/landlock/Kconfig
+>> @@ -0,0 +1,15 @@
+>> +# SPDX-License-Identifier: GPL-2.0-only
+>> +
+>> +config SECURITY_LANDLOCK
+>> +       bool "Landlock support"
+>> +       depends on SECURITY
+>> +       default n
+> 
+> (I think "default n" is implicit?)
 
-ld: warning: orphan section `.fixup' from `arch/arm/lib/copy_from_user.o' being placed in section `.fixup'
+It seems that most (all?) Kconfig are written like this.
 
-Refactor linker script include file for use in standard and XIP linker
-scripts, as well as in the coming boot linker script changes. Add debug
-sections explicitly. Create ARM_COMMON_DISCARD macro with unneeded
-sections .ARM.attributes, .iplt, .rel.iplt, .igot.plt, and .modinfo.
-Create ARM_STUBS_TEXT macro with missed text stub sections .vfp11_veneer,
-and .v4_bx. Finally enable orphan section warning.
+> 
+>> +       help
+>> +         This selects Landlock, a safe sandboxing mechanism.  It enables to
+>> +         restrict processes on the fly (i.e. enforce an access control policy),
+>> +         which can complement seccomp-bpf.  The security policy is a set of access
+>> +         rights tied to an object, which could be a file, a socket or a process.
+>> +
+>> +         See Documentation/security/landlock/ for further information.
+>> +
+>> +         If you are unsure how to answer this question, answer N.
+> [...]
+>> diff --git a/security/landlock/object.c b/security/landlock/object.c
+>> new file mode 100644
+>> index 000000000000..38fbbb108120
+>> --- /dev/null
+>> +++ b/security/landlock/object.c
+>> @@ -0,0 +1,339 @@
+>> +// SPDX-License-Identifier: GPL-2.0-only
+>> +/*
+>> + * Landlock LSM - Object and rule management
+>> + *
+>> + * Copyright © 2016-2020 Mickaël Salaün <mic@digikod.net>
+>> + * Copyright © 2018-2020 ANSSI
+>> + *
+>> + * Principles and constraints of the object and rule management:
+>> + * - Do not leak memory.
+>> + * - Try as much as possible to free a memory allocation as soon as it is
+>> + *   unused.
+>> + * - Do not use global lock.
+>> + * - Do not charge processes other than the one requesting a Landlock
+>> + *   operation.
+>> + */
+>> +
+>> +#include <linux/bug.h>
+>> +#include <linux/compiler.h>
+>> +#include <linux/compiler_types.h>
+>> +#include <linux/err.h>
+>> +#include <linux/errno.h>
+>> +#include <linux/fs.h>
+>> +#include <linux/kernel.h>
+>> +#include <linux/list.h>
+>> +#include <linux/rbtree.h>
+>> +#include <linux/rcupdate.h>
+>> +#include <linux/refcount.h>
+>> +#include <linux/slab.h>
+>> +#include <linux/spinlock.h>
+>> +#include <linux/workqueue.h>
+>> +
+>> +#include "object.h"
+>> +
+>> +struct landlock_object *landlock_create_object(
+>> +               const enum landlock_object_type type, void *underlying_object)
+>> +{
+>> +       struct landlock_object *object;
+>> +
+>> +       if (WARN_ON_ONCE(!underlying_object))
+>> +               return NULL;
+>> +       object = kzalloc(sizeof(*object), GFP_KERNEL);
+>> +       if (!object)
+>> +               return NULL;
+>> +       refcount_set(&object->usage, 1);
+>> +       refcount_set(&object->cleaners, 1);
+>> +       spin_lock_init(&object->lock);
+>> +       INIT_LIST_HEAD(&object->rules);
+>> +       object->type = type;
+>> +       WRITE_ONCE(object->underlying_object, underlying_object);
+> 
+> `object` is not globally visible at this point, so WRITE_ONCE() is unnecessary.
 
-Signed-off-by: Kees Cook <keescook@chromium.org>
----
- arch/arm/Makefile                             |  4 ++++
- .../arm/{kernel => include/asm}/vmlinux.lds.h | 22 ++++++++++++++-----
- arch/arm/kernel/vmlinux-xip.lds.S             |  5 ++---
- arch/arm/kernel/vmlinux.lds.S                 |  5 ++---
- 4 files changed, 25 insertions(+), 11 deletions(-)
- rename arch/arm/{kernel => include/asm}/vmlinux.lds.h (92%)
+Right. It was written like this to have a uniform use of this pointer,
+but I'll remove it.
 
-diff --git a/arch/arm/Makefile b/arch/arm/Makefile
-index db857d07114f..f1622bea987a 100644
---- a/arch/arm/Makefile
-+++ b/arch/arm/Makefile
-@@ -16,6 +16,10 @@ LDFLAGS_vmlinux	+= --be8
- KBUILD_LDFLAGS_MODULE	+= --be8
- endif
- 
-+# We never want expected sections to be placed heuristically by the
-+# linker. All sections should be explicitly named in the linker script.
-+LDFLAGS_vmlinux += --orphan-handling=warn
-+
- ifeq ($(CONFIG_ARM_MODULE_PLTS),y)
- KBUILD_LDS_MODULE	+= $(srctree)/arch/arm/kernel/module.lds
- endif
-diff --git a/arch/arm/kernel/vmlinux.lds.h b/arch/arm/include/asm/vmlinux.lds.h
-similarity index 92%
-rename from arch/arm/kernel/vmlinux.lds.h
-rename to arch/arm/include/asm/vmlinux.lds.h
-index 8247bc15addc..3ae2cf2e351b 100644
---- a/arch/arm/kernel/vmlinux.lds.h
-+++ b/arch/arm/include/asm/vmlinux.lds.h
-@@ -1,4 +1,5 @@
- /* SPDX-License-Identifier: GPL-2.0 */
-+#include <asm-generic/vmlinux.lds.h>
- 
- #ifdef CONFIG_HOTPLUG_CPU
- #define ARM_CPU_DISCARD(x)
-@@ -46,6 +47,13 @@
- 		*(.hyp.idmap.text)					\
- 		__hyp_idmap_text_end = .;
- 
-+#define ARM_COMMON_DISCARD						\
-+		*(.ARM.attributes)					\
-+		*(.iplt) *(.rel.iplt) *(.igot.plt)			\
-+		*(.modinfo)						\
-+		*(.discard)						\
-+		*(.discard.*)
-+
- #define ARM_DISCARD							\
- 		*(.ARM.exidx.exit.text)					\
- 		*(.ARM.extab.exit.text)					\
-@@ -58,8 +66,14 @@
- 		EXIT_CALL						\
- 		ARM_MMU_DISCARD(*(.text.fixup))				\
- 		ARM_MMU_DISCARD(*(__ex_table))				\
--		*(.discard)						\
--		*(.discard.*)
-+		ARM_COMMON_DISCARD
-+
-+#define ARM_STUBS_TEXT							\
-+		*(.gnu.warning)						\
-+		*(.glue_7t)						\
-+		*(.glue_7)						\
-+		*(.vfp11_veneer)					\
-+		*(.v4_bx)
- 
- #define ARM_TEXT							\
- 		IDMAP_TEXT						\
-@@ -74,9 +88,7 @@
- 		LOCK_TEXT						\
- 		HYPERVISOR_TEXT						\
- 		KPROBES_TEXT						\
--		*(.gnu.warning)						\
--		*(.glue_7)						\
--		*(.glue_7t)						\
-+		ARM_STUBS_TEXT						\
- 		. = ALIGN(4);						\
- 		*(.got)			/* Global offset table */	\
- 		ARM_CPU_KEEP(PROC_INFO)
-diff --git a/arch/arm/kernel/vmlinux-xip.lds.S b/arch/arm/kernel/vmlinux-xip.lds.S
-index 21b8b271c80d..8e9ac99a4335 100644
---- a/arch/arm/kernel/vmlinux-xip.lds.S
-+++ b/arch/arm/kernel/vmlinux-xip.lds.S
-@@ -9,15 +9,13 @@
- 
- #include <linux/sizes.h>
- 
--#include <asm-generic/vmlinux.lds.h>
-+#include <asm/vmlinux.lds.h>
- #include <asm/cache.h>
- #include <asm/thread_info.h>
- #include <asm/memory.h>
- #include <asm/mpu.h>
- #include <asm/page.h>
- 
--#include "vmlinux.lds.h"
--
- OUTPUT_ARCH(arm)
- ENTRY(stext)
- 
-@@ -152,6 +150,7 @@ SECTIONS
- 	_end = .;
- 
- 	STABS_DEBUG
-+	DWARF_DEBUG
+> 
+>> +       return object;
+>> +}
+>> +
+>> +struct landlock_object *landlock_get_object(struct landlock_object *object)
+>> +       __acquires(object->usage)
+>> +{
+>> +       __acquire(object->usage);
+>> +       /*
+>> +        * If @object->usage equal 0, then it will be ignored by writers, and
+>> +        * underlying_object->object may be replaced, but this is not an issue
+>> +        * for release_object().
+>> +        */
+>> +       if (object && refcount_inc_not_zero(&object->usage)) {
+>> +               /*
+>> +                * It should not be possible to get a reference to an object if
+>> +                * its underlying object is being terminated (e.g. with
+>> +                * landlock_release_object()), because an object is only
+>> +                * modifiable through such underlying object.  This is not the
+>> +                * case with landlock_get_object_cleaner().
+>> +                */
+>> +               WARN_ON_ONCE(!READ_ONCE(object->underlying_object));
+>> +               return object;
+>> +       }
+>> +       return NULL;
+>> +}
+>> +
+>> +static struct landlock_object *get_object_cleaner(
+>> +               struct landlock_object *object)
+>> +       __acquires(object->cleaners)
+>> +{
+>> +       __acquire(object->cleaners);
+>> +       if (object && refcount_inc_not_zero(&object->cleaners))
+>> +               return object;
+>> +       return NULL;
+>> +}
+> 
+> I don't get this whole "cleaners" thing. Can you give a quick
+> description of why this is necessary, and what benefits it has over a
+> standard refcounting+RCU scheme? I don't immediately see anything that
+> requires this.
+
+This indeed needs more documentation here. Here is a comment I'll add to
+get_object_cleaner():
+
+This enables to safely get a reference to an object to potentially free
+it if it is not already being freed by a concurrent thread. Indeed, the
+object's address may still be read and dereferenced while a concurrent
+thread is attempting to clean the object. Cf. &struct
+landlock_object->usage and &struct landlock_object->cleaners.
+
+See below the explanation about "usage" and "cleaners".
+
+> 
+>> +/*
+>> + * There is two cases when an object should be free and the reference to the
+>> + * underlying object should be put:
+>> + * - when the last rule tied to this object is removed, which is handled by
+>> + *   landlock_put_rule() and then release_object();
+>> + * - when the object is being terminated (e.g. no more reference to an inode),
+>> + *   which is handled by landlock_put_object().
+>> + */
+>> +static void put_object_free(struct landlock_object *object)
+>> +       __releases(object->cleaners)
+>> +{
+>> +       __release(object->cleaners);
+>> +       if (!refcount_dec_and_test(&object->cleaners))
+>> +               return;
+>> +       WARN_ON_ONCE(refcount_read(&object->usage));
+>> +       /*
+>> +        * Ensures a safe use of @object in the RCU block from
+>> +        * landlock_put_rule().
+>> +        */
+>> +       kfree_rcu(object, rcu_free);
+>> +}
+>> +
+>> +/*
+>> + * Destroys a newly created and useless object.
+>> + */
+>> +void landlock_drop_object(struct landlock_object *object)
+>> +{
+>> +       if (WARN_ON_ONCE(!refcount_dec_and_test(&object->usage)))
+>> +               return;
+>> +       __acquire(object->cleaners);
+>> +       put_object_free(object);
+>> +}
+>> +
+>> +/*
+>> + * Puts the underlying object (e.g. inode) if it is the first request to
+>> + * release @object, without calling landlock_put_object().
+>> + *
+>> + * Return true if this call effectively marks @object as released, false
+>> + * otherwise.
+>> + */
+>> +static bool release_object(struct landlock_object *object)
+>> +       __releases(&object->lock)
+>> +{
+>> +       void *underlying_object;
+>> +
+>> +       lockdep_assert_held(&object->lock);
+>> +
+>> +       underlying_object = xchg(&object->underlying_object, NULL);
+>> +       spin_unlock(&object->lock);
+>> +       might_sleep();
+>> +       if (!underlying_object)
+>> +               return false;
+>> +
+>> +       switch (object->type) {
+>> +       case LANDLOCK_OBJECT_INODE:
+>> +               break;
+>> +       default:
+>> +               WARN_ON_ONCE(1);
+>> +       }
+>> +       return true;
+>> +}
+>> +
+>> +static void put_object_cleaner(struct landlock_object *object)
+>> +       __releases(object->cleaners)
+>> +{
+>> +       /* Let's try an early lockless check. */
+>> +       if (list_empty(&object->rules) &&
+>> +                       READ_ONCE(object->underlying_object)) {
+>> +               /*
+>> +                * Puts @object if there is no rule tied to it and the
+>> +                * remaining user is the underlying object.  This check is
+>> +                * atomic because @object->rules and @object->underlying_object
+>> +                * are protected by @object->lock.
+>> +                */
+>> +               spin_lock(&object->lock);
+>> +               if (list_empty(&object->rules) &&
+>> +                               READ_ONCE(object->underlying_object) &&
+>> +                               refcount_dec_if_one(&object->usage)) {
+>> +                       /*
+>> +                        * Releases @object, in place of
+>> +                        * landlock_release_object().
+>> +                        *
+>> +                        * @object is already empty, implying that all its
+>> +                        * previous rules are already disabled.
+>> +                        *
+>> +                        * Unbalance the @object->cleaners counter to reflect
+>> +                        * the underlying object release.
+>> +                        */
+>> +                       if (!WARN_ON_ONCE(!release_object(object))) {
+>> +                               __acquire(object->cleaners);
+>> +                               put_object_free(object);
+>> +                       }
+>> +               } else {
+>> +                       spin_unlock(&object->lock);
+>> +               }
+>> +       }
+>> +       put_object_free(object);
+>> +}
+>> +
+>> +/*
+>> + * Putting an object is easy when the object is being terminated, but it is
+>> + * much more tricky when the reason is that there is no more rule tied to this
+>> + * object.  Indeed, new rules could be added at the same time.
+>> + */
+>> +void landlock_put_object(struct landlock_object *object)
+>> +       __releases(object->usage)
+>> +{
+>> +       struct landlock_object *object_cleaner;
+>> +
+>> +       __release(object->usage);
+>> +       might_sleep();
+>> +       if (!object)
+>> +               return;
+>> +       /*
+>> +        * Guards against concurrent termination to be able to terminate
+>> +        * @object if it is empty and not referenced by another rule-appender
+>> +        * other than the underlying object.
+>> +        */
+>> +       object_cleaner = get_object_cleaner(object);
+>> +       if (WARN_ON_ONCE(!object_cleaner)) {
+>> +               __release(object->cleaners);
+>> +               return;
+>> +       }
+>> +       /*
+>> +        * Decrements @object->usage and if it reach zero, also decrement
+>> +        * @object->cleaners.  If both reach zero, then release and free
+>> +        * @object.
+>> +        */
+>> +       if (refcount_dec_and_test(&object->usage)) {
+>> +               struct landlock_rule *rule_walker, *rule_walker2;
+>> +
+>> +               spin_lock(&object->lock);
+>> +               /*
+>> +                * Disables all the rules tied to @object when it is forbidden
+>> +                * to add new rule but still allowed to remove them with
+>> +                * landlock_put_rule().  This is crucial to be able to safely
+>> +                * free a rule according to landlock_rule_is_disabled().
+>> +                */
+>> +               list_for_each_entry_safe(rule_walker, rule_walker2,
+>> +                               &object->rules, list)
+>> +                       list_del_rcu(&rule_walker->list);
+>> +
+>> +               /*
+>> +                * Releases @object if it is not already released (e.g. with
+>> +                * landlock_release_object()).
+>> +                */
+>> +               release_object(object);
+>> +               /*
+>> +                * Unbalances the @object->cleaners counter to reflect the
+>> +                * underlying object release.
+>> +                */
+>> +               __acquire(object->cleaners);
+>> +               put_object_free(object);
+>> +       }
+>> +       put_object_cleaner(object_cleaner);
+>> +}
+>> +
+>> +void landlock_put_rule(struct landlock_object *object,
+>> +               struct landlock_rule *rule)
+>> +{
+>> +       if (!rule)
+>> +               return;
+>> +       WARN_ON_ONCE(!object);
+>> +       /*
+>> +        * Guards against a concurrent @object self-destruction with
+>> +        * landlock_put_object() or put_object_cleaner().
+>> +        */
+>> +       rcu_read_lock();
+>> +       if (landlock_rule_is_disabled(rule)) {
+>> +               rcu_read_unlock();
+>> +               if (refcount_dec_and_test(&rule->usage))
+>> +                       kfree_rcu(rule, rcu_free);
+>> +               return;
+>> +       }
+>> +       if (refcount_dec_and_test(&rule->usage)) {
+>> +               struct landlock_object *safe_object;
+>> +
+>> +               /*
+>> +                * Now, @rule may still be enabled, or in the process of being
+>> +                * untied to @object by put_object_cleaner().  However, we know
+>> +                * that @object will not be freed until rcu_read_unlock() and
+>> +                * until @object->cleaners reach zero.  Furthermore, we may not
+>> +                * be the only one willing to free a @rule linked with @object.
+>> +                * If we succeed to hold @object with get_object_cleaner(), we
+>> +                * know that until put_object_cleaner(), we can safely use
+>> +                * @object to remove @rule.
+>> +                */
+>> +               safe_object = get_object_cleaner(object);
+>> +               rcu_read_unlock();
+>> +               if (!safe_object) {
+>> +                       __release(safe_object->cleaners);
+>> +                       /*
+>> +                        * We can safely free @rule because it is already
+>> +                        * removed from @object's list.
+>> +                        */
+>> +                       WARN_ON_ONCE(!landlock_rule_is_disabled(rule));
+>> +                       kfree_rcu(rule, rcu_free);
+>> +               } else {
+>> +                       spin_lock(&safe_object->lock);
+>> +                       if (!landlock_rule_is_disabled(rule))
+>> +                               list_del(&rule->list);
+>> +                       spin_unlock(&safe_object->lock);
+>> +                       kfree_rcu(rule, rcu_free);
+>> +                       put_object_cleaner(safe_object);
+>> +               }
+>> +       } else {
+>> +               rcu_read_unlock();
+>> +       }
+>> +       /*
+>> +        * put_object_cleaner() might sleep, but it is only reachable if
+>> +        * !landlock_rule_is_disabled().  Therefore, clean_ref() can not sleep.
+>> +        */
+>> +       might_sleep();
+>> +}
+>> +
+>> +void landlock_release_object(struct landlock_object __rcu *rcu_object)
+>> +{
+>> +       struct landlock_object *object;
+>> +
+>> +       if (!rcu_object)
+>> +               return;
+>> +       rcu_read_lock();
+>> +       object = get_object_cleaner(rcu_dereference(rcu_object));
+> 
+> This is not how RCU works. You need the rcu annotation on the access
+> to the data structure member (or global variable) that's actually
+> being accessed. A "struct foo __rcu *foo" argument is essentially
+> always wrong.
+
+Absolutely! I fixed this with the following patch:
+
+diff --git a/security/landlock/fs.c b/security/landlock/fs.c
+index 7f3bd4fd04bb..01a48c75f210 100644
+--- a/security/landlock/fs.c
++++ b/security/landlock/fs.c
+@@ -98,7 +98,9 @@ void landlock_release_inodes(struct super_block *sb)
+ 		if (iput_inode)
+ 			iput(iput_inode);
+
+-		landlock_release_object(inode_landlock(inode)->object);
++		rcu_read_lock();
++		landlock_release_object(rcu_dereference(
++					inode_landlock(inode)->object));
+
+ 		iput_inode = inode;
+ 		spin_lock(&sb->s_inode_list_lock);
+diff --git a/security/landlock/object.c b/security/landlock/object.c
+index 2d373f224989..a0e65a78068d 100644
+--- a/security/landlock/object.c
++++ b/security/landlock/object.c
+@@ -300,14 +300,16 @@ void landlock_put_rule(struct landlock_object *object,
+ 	might_sleep();
  }
- 
- /*
-diff --git a/arch/arm/kernel/vmlinux.lds.S b/arch/arm/kernel/vmlinux.lds.S
-index 319ccb10846a..f1c6f66e8e6c 100644
---- a/arch/arm/kernel/vmlinux.lds.S
-+++ b/arch/arm/kernel/vmlinux.lds.S
-@@ -8,7 +8,7 @@
- #include "vmlinux-xip.lds.S"
- #else
- 
--#include <asm-generic/vmlinux.lds.h>
-+#include <asm/vmlinux.lds.h>
- #include <asm/cache.h>
- #include <asm/thread_info.h>
- #include <asm/memory.h>
-@@ -16,8 +16,6 @@
- #include <asm/page.h>
- #include <asm/pgtable.h>
- 
--#include "vmlinux.lds.h"
--
- OUTPUT_ARCH(arm)
- ENTRY(stext)
- 
-@@ -151,6 +149,7 @@ SECTIONS
- 	_end = .;
- 
- 	STABS_DEBUG
-+	DWARF_DEBUG
- }
- 
- #ifdef CONFIG_STRICT_KERNEL_RWX
--- 
-2.20.1
+
+-void landlock_release_object(struct landlock_object __rcu *rcu_object)
++void landlock_release_object(struct landlock_object *rcu_object)
++	__releases(RCU)
+ {
+ 	struct landlock_object *object;
+
+-	if (!rcu_object)
++	if (!rcu_object) {
++		rcu_read_unlock();
+ 		return;
+-	rcu_read_lock();
+-	object = get_object_cleaner(rcu_dereference(rcu_object));
++	}
++	object = get_object_cleaner(rcu_object);
+ 	rcu_read_unlock();
+ 	if (unlikely(!object)) {
+ 		__release(object->cleaners);
+diff --git a/security/landlock/object.h b/security/landlock/object.h
+index 15dfc9a75a82..78bfb25d4bcc 100644
+--- a/security/landlock/object.h
++++ b/security/landlock/object.h
+@@ -12,9 +12,9 @@
+ #include <linux/compiler_types.h>
+ #include <linux/list.h>
+ #include <linux/poison.h>
+-#include <linux/rcupdate.h>
+ #include <linux/refcount.h>
+ #include <linux/spinlock.h>
++#include <linux/types.h>
+
+ struct landlock_access {
+ 	/*
+@@ -105,7 +105,8 @@ struct landlock_object {
+ void landlock_put_rule(struct landlock_object *object,
+ 		struct landlock_rule *rule);
+
+-void landlock_release_object(struct landlock_object __rcu *rcu_object);
++void landlock_release_object(struct landlock_object *object)
++	__releases(RCU);
+
+ struct landlock_object *landlock_create_object(
+ 		const enum landlock_object_type type, void *underlying_object);
+
+
+> 
+>> +struct landlock_rule {
+>> +       struct landlock_access access;
+>> +       /*
+>> +        * @list: Linked list with other rules tied to the same object, which
+>> +        * enable to manage their lifetimes.  This is also used to identify if
+>> +        * a rule is still valid, thanks to landlock_rule_is_disabled(), which
+>> +        * is important in the matching process because the original object
+>> +        * address might have been recycled.
+>> +        */
+>> +       struct list_head list;
+>> +       union {
+>> +               /*
+>> +                * @usage: Number of rulesets pointing to this rule.  This
+>> +                * field is never used by RCU readers.
+>> +                */
+>> +               refcount_t usage;
+>> +               struct rcu_head rcu_free;
+>> +       };
+>> +};
+> 
+> An object that is subject to RCU but whose refcount must not be
+> accessed from RCU context? That seems a weird.
+
+The fields "access" and "list" are read (in a RCU-read block) by
+ruleset.c:landlock_find_access() (cf. patch 2). The use of the "usage"
+counter is in landlock_insert_ruleset_rule() and landlock_put_rule(),
+but in these cases the rule is always owned/held by the caller. I should
+say something like "This field must only be used when already holding
+the rule."
+
+> 
+>> +enum landlock_object_type {
+>> +       LANDLOCK_OBJECT_INODE = 1,
+>> +};
+>> +
+>> +struct landlock_object {
+>> +       /*
+>> +        * @usage: Main usage counter, used to tie an object to it's underlying
+>> +        * object (i.e. create a lifetime) and potentially add new rules.
+> 
+> I can't really follow this by reading this patch on its own. As one
+> suggestion to make things at least a bit better, how about documenting
+> here that `usage` always reaches zero before `cleaners` does?
+
+What about this?
+
+This counter is used to tie an object to its underlying object (e.g. an
+inode) and to modify it (e.g. add or remove a rule). If this counter
+reaches zero, the object must not be modified, but it may still be used
+from within an RCU-read block. When adding a new rule to an object with
+a usage counter of zero, the underlying object must be locked and its
+object pointer can then be replaced with a new empty object (while
+ignoring the disabled object which is being handled by another thread).
+This counter always reaches zero before @cleaners does.
+
+
+> 
+>> +        */
+>> +       refcount_t usage;
+>> +       /*
+>> +        * @cleaners: Usage counter used to free a rule from @rules (thanks to
+>> +        * put_rule()).  Enables to get a reference to this object until it
+>> +        * really become freed.  Cf. put_object().
+> 
+> Maybe add: @usage being non-zero counts as one reference to @cleaners.
+> Once @cleaners has become zero, the object is freed after an RCU grace
+> period.
+
+What about this?
+
+This counter can only reach zero if the @usage counter already reached
+zero. Indeed, @usage being non-zero counts as one reference to
+@cleaners. Once @cleaners has become zero, the object is freed after an
+RCU grace period. This enables concurrent threads to safely get an
+object reference to terminate it if there is no more concurrent cleaners
+for this object. This mechanism is required to enable concurrent threads
+to safely dereference an object from potentially different pointers
+(e.g. the underlying object, or a rule tied to this object), to
+potentially terminate and free it (i.e. if there is no more rules tied
+to it, or if the underlying object is being terminated).
+
+> 
+>> +        */
+>> +       refcount_t cleaners;
+>> +       union {
+>> +               /*
+>> +                * The use of this struct is controlled by @usage and
+>> +                * @cleaners, which makes it safe to union it with @rcu_free.
+>> +                */
+> [...]
+>> +               struct rcu_head rcu_free;
+>> +       };
+>> +};
+> [...]
+>> +static inline bool landlock_rule_is_disabled(
+>> +               struct landlock_rule *rule)
+>> +{
+>> +       /*
+>> +        * Disabling (i.e. unlinking) a landlock_rule is a one-way operation.
+>> +        * It is not possible to re-enable such a rule, then there is no need
+>> +        * for smp_load_acquire().
+>> +        *
+>> +        * LIST_POISON2 is set by list_del() and list_del_rcu().
+>> +        */
+>> +       return !rule || READ_ONCE(rule->list.prev) == LIST_POISON2;
+> 
+> You're not allowed to do this, the comment above list_del() states:
+> 
+>  * Note: list_empty() on entry does not return true after this, the entry is
+>  * in an undefined state.
+
+list_del() checks READ_ONCE(head->next) == head, but
+landlock_rule_is_disabled() checks READ_ONCE(rule->list.prev) ==
+LIST_POISON2.
+The comment about LIST_POISON2 is right but may be misleading. There is
+no use of list_empty() with a landlock_rule->list, only
+landlock_object->rules. The only list_del() is in landlock_put_rule()
+when there is a guarantee that there is no other reference to it, hence
+no possible use of landlock_rule_is_disabled() with this rule. I could
+replace it with a call to list_del_rcu() to make it more consistent.
+
+> 
+> If you want to be able to test whether the element is on a list
+> afterwards, use stuff like list_del_init().
+
+There is no need to re-initialize the list but using list_del_init() and
+list_empty() could work too. However, there is no list_del_init_rcu()
+helper. Moreover, resetting the list's pointer with LIST_POISON2 might
+help to detect bugs.
+
+
+Thanks for this review!
