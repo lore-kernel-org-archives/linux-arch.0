@@ -1,66 +1,44 @@
-Return-Path: <SRS0=hmIl=4B=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:49722 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1725781AbgBMQQs (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 13 Feb 2020 11:16:48 -0500
-From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Subject: [PATCH 02/19] linux/bits.h: Extract common header for vDSO
-Date: Thu, 13 Feb 2020 16:15:57 +0000
-Message-ID: <20200213161614.23246-3-vincenzo.frascino@arm.com>
-In-Reply-To: <20200213161614.23246-1-vincenzo.frascino@arm.com>
-References: <20200213161614.23246-1-vincenzo.frascino@arm.com>
+Return-Path: <SRS0=hCVk=4O=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail-qv1-f68.google.com ([209.85.219.68]:36793 "EHLO
+        mail-qv1-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1729558AbgBZDV7 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 25 Feb 2020 22:21:59 -0500
+From: Boqun Feng <boqun.feng@gmail.com>
+Subject: [PATCH] tools/memory-model: Remove lock-final checking in lock.cat
+Date: Wed, 26 Feb 2020 11:21:40 +0800
+Message-ID: <20200226032142.89424-1-boqun.feng@gmail.com>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org, clang-built-linux@googlegroups.com, x86@kernel.org
-Cc: catalin.marinas@arm.com, will.deacon@arm.com, arnd@arndb.de, linux@armlinux.org.uk, paul.burton@mips.com, tglx@linutronix.de, luto@kernel.org, mingo@redhat.com, bp@alien8.de, sboyd@kernel.org, salyzyn@android.com, pcc@google.com, 0x7f454c46@gmail.com, ndesaulniers@google.com, avagin@openvz.org
-Message-ID: <20200213161557.vfclCmNgUc9lnbY9vImN-6HAWd2S1pNoXFXFCQda8gQ@z>
+To: linux-kernel@vger.kernel.org, rcu@vger.kernel.org
+Cc: Boqun Feng <boqun.feng@gmail.com>, Alan Stern <stern@rowland.harvard.edu>, Andrea Parri <parri.andrea@gmail.com>, Will Deacon <will@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Nicholas Piggin <npiggin@gmail.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, "Paul E. McKenney" <paulmck@kernel.org>, Akira Yokosawa <akiyks@gmail.com>, Daniel Lustig <dlustig@nvidia.com>, linux-arch@vger.kernel.org
+Message-ID: <20200226032140.VVXYYoi9VjZkU9Ba-S1vUNbD7MFLlkYo80eE8XMAKbg@z>
 
-The vDSO library should only include the necessary headers required for
-a userspace library (UAPI and a minimal set of kernel headers). To make
-this possible it is necessary to isolate from the kernel headers the
-common parts that are strictly necessary to build the library.
+In commit 30b795df11a1 ("tools/memory-model: Improve mixed-access
+checking in lock.cat"), we have added the checking to disallow any
+normal memory access to lock variables, and this checking is stronger
+than lock-final. So remove the lock-final checking as it's unnecessary
+now.
 
-Split bits.h into linux and common headers to make the latter suitable
-for inclusion in the vDSO library.
-
-Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
+Signed-off-by: Boqun Feng <boqun.feng@gmail.com>
 ---
- include/common/bits.h | 9 +++++++++
- include/linux/bits.h  | 2 +-
- 2 files changed, 10 insertions(+), 1 deletion(-)
- create mode 100644 include/common/bits.h
+ tools/memory-model/lock.cat | 3 ---
+ 1 file changed, 3 deletions(-)
 
-diff --git a/include/common/bits.h b/include/common/bits.h
-new file mode 100644
-index 000000000000..6da493992e52
---- /dev/null
-+++ b/include/common/bits.h
-@@ -0,0 +1,9 @@
-+/* SPDX-License-Identifier: GPL-2.0 */
-+#ifndef __COMMON_BITS_H
-+#define __COMMON_BITS_H
-+
-+#include <common/const.h>
-+
-+#define BIT(nr)			(UL(1) << (nr))
-+
-+#endif	/* __COMMON_BITS_H */
-diff --git a/include/linux/bits.h b/include/linux/bits.h
-index 669d69441a62..aeb76fede77a 100644
---- a/include/linux/bits.h
-+++ b/include/linux/bits.h
-@@ -3,9 +3,9 @@
- #define __LINUX_BITS_H
+diff --git a/tools/memory-model/lock.cat b/tools/memory-model/lock.cat
+index 6b52f365d73a..827a3646607c 100644
+--- a/tools/memory-model/lock.cat
++++ b/tools/memory-model/lock.cat
+@@ -54,9 +54,6 @@ flag ~empty LKR \ domain(lk-rmw) as unpaired-LKR
+  *)
+ empty ([LKW] ; po-loc ; [LKR]) \ (po-loc ; [UL] ; po-loc) as lock-nest
  
- #include <linux/const.h>
-+#include <common/bits.h>
- #include <asm/bitsperlong.h>
- 
--#define BIT(nr)			(UL(1) << (nr))
- #define BIT_ULL(nr)		(ULL(1) << (nr))
- #define BIT_MASK(nr)		(UL(1) << ((nr) % BITS_PER_LONG))
- #define BIT_WORD(nr)		((nr) / BITS_PER_LONG)
+-(* The final value of a spinlock should not be tested *)
+-flag ~empty [FW] ; loc ; [ALL-LOCKS] as lock-final
+-
+ (*
+  * Put lock operations in their appropriate classes, but leave UL out of W
+  * until after the co relation has been generated.
 -- 
 2.25.0
