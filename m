@@ -1,97 +1,107 @@
-Return-Path: <rppt@kernel.org>
-From: Mike Rapoport <rppt@kernel.org>
-Subject: [PATCH v2 05/13] nios2: add support for folded p4d page tables
-Date: Sun, 16 Feb 2020 10:18:35 +0200
-Message-ID: <20200216081843.28670-6-rppt@kernel.org>
-In-Reply-To: <20200216081843.28670-1-rppt@kernel.org>
-References: <20200216081843.28670-1-rppt@kernel.org>
+Return-Path: <SRS0=BIEI=4P=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from iolanthe.rowland.org ([192.131.102.54]:38964 "HELO
+        iolanthe.rowland.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with SMTP id S1730194AbgB0Qha (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 27 Feb 2020 11:37:30 -0500
+Date: Thu, 27 Feb 2020 11:37:29 -0500 (EST)
+From: Alan Stern <stern@rowland.harvard.edu>
+Subject: Re: [PATCH v3 4/5] Documentation/locking/atomic: Add a litmus test
+ for atomic_set()
+In-Reply-To: <20200227004049.6853-5-boqun.feng@gmail.com>
+Message-ID: <Pine.LNX.4.44L0.2002271136110.1730-100000@iolanthe.rowland.org>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
-To: linux-kernel@vger.kernel.org
-Cc: Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Brian Cain <bcain@codeaurora.org>, Catalin Marinas <catalin.marinas@arm.com>, Christophe Leroy <christophe.leroy@c-s.fr>, Fenghua Yu <fenghua.yu@intel.com>, Geert Uytterhoeven <geert+renesas@glider.be>, Guan Xuetao <gxt@pku.edu.cn>, James Morse <james.morse@arm.com>, Jonas Bonn <jonas@southpole.se>, Julien Thierry <julien.thierry.kdev@gmail.com>, Ley Foon Tan <ley.foon.tan@intel.com>, Marc Zyngier <maz@kernel.org>, Michael Ellerman <mpe@ellerman.id.au>, Paul Mackerras <paulus@samba.org>, Rich Felker <dalias@libc.org>, Russell King <linux@armlinux.org.uk>, Stafford Horne <shorne@gmail.com>, Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>, Suzuki K Poulose <suzuki.poulose@arm.com>, Tony Luck <tony.luck@intel.com>, Will Deacon <will@kernel.org>, Yoshinori Sato <ysato@users.sourceforge.jp>, kvmarm@lists.cs.columbia.edu, kvm-ppc@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-mm@kvack.org, linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org, nios2-dev@lists.rocketboards.org, openrisc@lists.librecores.org, uclinux-h8-devel@lists.sourceforge.jp, Mike Rapoport <rppt@kernel.org>, Mike Rapoport <rppt@linux.ibm.com>
+Content-Type: TEXT/PLAIN; charset=US-ASCII
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200216081835.pXe4I_C937mZp71OIW_UZpQlZmLVDEQSBTC90X1ZXUw@z>
+To: Boqun Feng <boqun.feng@gmail.com>
+Cc: linux-kernel@vger.kernel.org, Andrea Parri <parri.andrea@gmail.com>, Will Deacon <will@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Nicholas Piggin <npiggin@gmail.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, "Paul E. McKenney" <paulmck@kernel.org>, Akira Yokosawa <akiyks@gmail.com>, Daniel Lustig <dlustig@nvidia.com>, Jonathan Corbet <corbet@lwn.net>, Mauro Carvalho Chehab <mchehab+samsung@kernel.org>, "David S. Miller" <davem@davemloft.net>, Rob Herring <robh@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jonathan Cameron <Jonathan.Cameron@huawei.com>, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org
+Message-ID: <20200227163729.vvihlvKqvpc7ldr916Zx6TWtBMZlETv2JIAqT290vaM@z>
 
-From: Mike Rapoport <rppt@linux.ibm.com>
+On Thu, 27 Feb 2020, Boqun Feng wrote:
 
-Implement primitives necessary for the 4th level folding, add walks of p4d
-level where appropriate and remove usage of __ARCH_USE_5LEVEL_HACK.
+> We already use a litmus test in atomic_t.txt to describe the behavior of
+> an atomic_set() with the an atomic RMW, so add it into atomic-tests
+> directory to make it easily accessible for anyone who cares about the
+> semantics of our atomic APIs.
+> 
+> Additionally, change the sentences describing the test in atomic_t.txt
+> with better wording.
+> 
+> Signed-off-by: Boqun Feng <boqun.feng@gmail.com>
+> ---
+>  ...c-RMW-ops-are-atomic-WRT-atomic_set.litmus | 24 +++++++++++++++++++
+>  Documentation/atomic-tests/README             |  7 ++++++
+>  Documentation/atomic_t.txt                    |  6 ++---
+>  3 files changed, 34 insertions(+), 3 deletions(-)
+>  create mode 100644 Documentation/atomic-tests/Atomic-RMW-ops-are-atomic-WRT-atomic_set.litmus
+> 
+> diff --git a/Documentation/atomic-tests/Atomic-RMW-ops-are-atomic-WRT-atomic_set.litmus b/Documentation/atomic-tests/Atomic-RMW-ops-are-atomic-WRT-atomic_set.litmus
+> new file mode 100644
+> index 000000000000..5dd7f04e504a
+> --- /dev/null
+> +++ b/Documentation/atomic-tests/Atomic-RMW-ops-are-atomic-WRT-atomic_set.litmus
+> @@ -0,0 +1,24 @@
+> +C Atomic-set-observable-to-RMW
 
-Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
----
- arch/nios2/include/asm/pgtable.h | 3 +--
- arch/nios2/mm/fault.c            | 9 +++++++--
- arch/nios2/mm/ioremap.c          | 6 +++++-
- 3 files changed, 13 insertions(+), 5 deletions(-)
+This line needs to match the filename.  Aside from that,
 
-diff --git a/arch/nios2/include/asm/pgtable.h b/arch/nios2/include/asm/pgtable.h
-index 99985d8b7166..54305aa09b74 100644
---- a/arch/nios2/include/asm/pgtable.h
-+++ b/arch/nios2/include/asm/pgtable.h
-@@ -22,7 +22,6 @@
- #include <asm/tlbflush.h>
- 
- #include <asm/pgtable-bits.h>
--#define __ARCH_USE_5LEVEL_HACK
- #include <asm-generic/pgtable-nopmd.h>
- 
- #define FIRST_USER_ADDRESS	0UL
-@@ -100,7 +99,7 @@ extern pte_t invalid_pte_table[PAGE_SIZE/sizeof(pte_t)];
-  */
- static inline void set_pmd(pmd_t *pmdptr, pmd_t pmdval)
- {
--	pmdptr->pud.pgd.pgd = pmdval.pud.pgd.pgd;
-+	*pmdptr = pmdval;
- }
- 
- /* to find an entry in a page-table-directory */
-diff --git a/arch/nios2/mm/fault.c b/arch/nios2/mm/fault.c
-index 6a2e716b959f..d3da995665c3 100644
---- a/arch/nios2/mm/fault.c
-+++ b/arch/nios2/mm/fault.c
-@@ -245,6 +245,7 @@ asmlinkage void do_page_fault(struct pt_regs *regs, unsigned long cause,
- 		 */
- 		int offset = pgd_index(address);
- 		pgd_t *pgd, *pgd_k;
-+		p4d_t *p4d, *p4d_k;
- 		pud_t *pud, *pud_k;
- 		pmd_t *pmd, *pmd_k;
- 		pte_t *pte_k;
-@@ -256,8 +257,12 @@ asmlinkage void do_page_fault(struct pt_regs *regs, unsigned long cause,
- 			goto no_context;
- 		set_pgd(pgd, *pgd_k);
- 
--		pud = pud_offset(pgd, address);
--		pud_k = pud_offset(pgd_k, address);
-+		p4d = p4d_offset(pgd, address);
-+		p4d_k = p4d_offset(pgd_k, address);
-+		if (!p4d_present(*p4d_k))
-+			goto no_context;
-+		pud = pud_offset(p4d, address);
-+		pud_k = pud_offset(p4d_k, address);
- 		if (!pud_present(*pud_k))
- 			goto no_context;
- 		pmd = pmd_offset(pud, address);
-diff --git a/arch/nios2/mm/ioremap.c b/arch/nios2/mm/ioremap.c
-index 819bdfcc2e71..fe821efb9a99 100644
---- a/arch/nios2/mm/ioremap.c
-+++ b/arch/nios2/mm/ioremap.c
-@@ -86,11 +86,15 @@ static int remap_area_pages(unsigned long address, unsigned long phys_addr,
- 	if (address >= end)
- 		BUG();
- 	do {
-+		p4d_t *p4d;
- 		pud_t *pud;
- 		pmd_t *pmd;
- 
- 		error = -ENOMEM;
--		pud = pud_alloc(&init_mm, dir, address);
-+		p4d = p4d_alloc(&init_mm, dir, address);
-+		if (!p4d)
-+			break;
-+		pud = pud_alloc(&init_mm, p4d, address);
- 		if (!pud)
- 			break;
- 		pmd = pmd_alloc(&init_mm, pud, address);
--- 
-2.24.0
+Acked-by: Alan Stern <stern@rowland.harvard.edu>
+
+
+> +
+> +(*
+> + * Result: Never
+> + *
+> + * Test that atomic_set() cannot break the atomicity of atomic RMWs.
+> + *)
+> +
+> +{
+> +	atomic_t v = ATOMIC_INIT(1);
+> +}
+> +
+> +P0(atomic_t *v)
+> +{
+> +	(void)atomic_add_unless(v,1,0);
+> +}
+> +
+> +P1(atomic_t *v)
+> +{
+> +	atomic_set(v, 0);
+> +}
+> +
+> +exists
+> +(v=2)
+> diff --git a/Documentation/atomic-tests/README b/Documentation/atomic-tests/README
+> index ae61201a4271..a1b72410b539 100644
+> --- a/Documentation/atomic-tests/README
+> +++ b/Documentation/atomic-tests/README
+> @@ -2,3 +2,10 @@ This directory contains litmus tests that are typical to describe the semantics
+>  of our atomic APIs. For more information about how to "run" a litmus test or
+>  how to generate a kernel test module based on a litmus test, please see
+>  tools/memory-model/README.
+> +
+> +============
+> +LITMUS TESTS
+> +============
+> +
+> +Atomic-RMW-ops-are-atomic-WRT-atomic_set.litmus
+> +	Test that atomic_set() cannot break the atomicity of atomic RMWs.
+> diff --git a/Documentation/atomic_t.txt b/Documentation/atomic_t.txt
+> index ceb85ada378e..67d1d99f8589 100644
+> --- a/Documentation/atomic_t.txt
+> +++ b/Documentation/atomic_t.txt
+> @@ -85,10 +85,10 @@ smp_store_release() respectively. Therefore, if you find yourself only using
+>  the Non-RMW operations of atomic_t, you do not in fact need atomic_t at all
+>  and are doing it wrong.
+>  
+> -A subtle detail of atomic_set{}() is that it should be observable to the RMW
+> -ops. That is:
+> +A note for the implementation of atomic_set{}() is that it must not break the
+> +atomicity of the RMW ops. That is:
+>  
+> -  C atomic-set
+> +  C Atomic-RMW-ops-are-atomic-WRT-atomic_set
+>  
+>    {
+>      atomic_t v = ATOMIC_INIT(1);
+> 
