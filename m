@@ -1,72 +1,48 @@
-Return-Path: <SRS0=ZivQ=4G=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.133]:33422 "EHLO
-        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728337AbgBRT65 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 18 Feb 2020 14:58:57 -0500
-Date: Tue, 18 Feb 2020 20:58:31 +0100
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH v2 3/9] rcu,tracing: Create trace_rcu_{enter,exit}()
-Message-ID: <20200218195831.GD11457@worktop.programming.kicks-ass.net>
-References: <20200212210139.382424693@infradead.org>
- <20200212210749.971717428@infradead.org>
- <20200212232005.GC115917@google.com>
- <20200213082716.GI14897@hirez.programming.kicks-ass.net>
- <20200213135138.GB2935@paulmck-ThinkPad-P72>
- <20200213164031.GH14914@hirez.programming.kicks-ass.net>
- <20200213185612.GG2935@paulmck-ThinkPad-P72>
- <20200213204444.GA94647@google.com>
+Return-Path: <SRS0=BIEI=4P=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from foss.arm.com ([217.140.110.172]:55724 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1730705AbgB0Ros (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 27 Feb 2020 12:44:48 -0500
+From: Mark Brown <broonie@kernel.org>
+Subject: [PATCH v8 11/11] arm64: mm: Display guarded pages in ptdump
+Date: Thu, 27 Feb 2020 17:44:17 +0000
+Message-ID: <20200227174417.23722-12-broonie@kernel.org>
+In-Reply-To: <20200227174417.23722-1-broonie@kernel.org>
+References: <20200227174417.23722-1-broonie@kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20200213204444.GA94647@google.com>
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Joel Fernandes <joel@joelfernandes.org>
-Cc: "Paul E. McKenney" <paulmck@kernel.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, rostedt@goodmis.org, mingo@kernel.org, gregkh@linuxfoundation.org, gustavo@embeddedor.com, tglx@linutronix.de, josh@joshtriplett.org, mathieu.desnoyers@efficios.com, jiangshanlai@gmail.com
-Message-ID: <20200218195831.uv31Q-L70Zx6xlCzMZxXD92f2Saus2RKuIkx0mzNls0@z>
+To: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>
+Cc: Alexander Viro <viro@zeniv.linux.org.uk>, Paul Elliott <paul.elliott@arm.com>, Peter Zijlstra <peterz@infradead.org>, Yu-cheng Yu <yu-cheng.yu@intel.com>, Amit Kachhap <amit.kachhap@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Marc Zyngier <maz@kernel.org>, Eugene Syromiatnikov <esyr@redhat.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, "H . J . Lu " <hjl.tools@gmail.com>, Andrew Jones <drjones@redhat.com>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Jann Horn <jannh@google.com>, Richard Henderson <richard.henderson@linaro.org>, =?UTF-8?q?Kristina=20Mart=C5=A1enko?= <kristina.martsenko@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Florian Weimer <fweimer@redhat.com>, Sudakshina Das <sudi.das@arm.com>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, Mark Brown <broonie@kernel.org>
+Message-ID: <20200227174417.24s2NZJkuUGA0v_fmVkJt8WoZ6heKwEQ5MjSMhO0p6w@z>
 
-On Thu, Feb 13, 2020 at 03:44:44PM -0500, Joel Fernandes wrote:
+v8.5-BTI introduces the GP field in stage 1 translation tables which
+indicates that blocks and pages with it set are guarded pages for which
+branch target identification checks should be performed. Decode this
+when dumping the page tables to aid debugging.
 
-> > > That _should_ already be the case today. That is, if we end up in a
-> > > tracer and in_nmi() is unreliable we're already screwed anyway.
+Signed-off-by: Mark Brown <broonie@kernel.org>
+Reviewed-by: Kees Cook <keescook@chromium.org>
+---
+ arch/arm64/mm/dump.c | 5 +++++
+ 1 file changed, 5 insertions(+)
 
-> I removed the static from rcu_nmi_enter()/exit() as it is called from
-> outside, that makes it build now. Updated below is Paul's diff. I also added
-> NOKPROBE_SYMBOL() to rcu_nmi_exit() to match rcu_nmi_enter() since it seemed
-> asymmetric.
-
-> +__always_inline void rcu_nmi_exit(void)
->  {
->  	struct rcu_data *rdp = this_cpu_ptr(&rcu_data);
->  
-> @@ -651,25 +653,15 @@ static __always_inline void rcu_nmi_exit_common(bool irq)
->  	trace_rcu_dyntick(TPS("Startirq"), rdp->dynticks_nmi_nesting, 0, atomic_read(&rdp->dynticks));
->  	WRITE_ONCE(rdp->dynticks_nmi_nesting, 0); /* Avoid store tearing. */
->  
-> -	if (irq)
-> +	if (!in_nmi())
->  		rcu_prepare_for_idle();
->  
->  	rcu_dynticks_eqs_enter();
->  
-> -	if (irq)
-> +	if (!in_nmi())
->  		rcu_dynticks_task_enter();
->  }
-
-Boris and me have been going over the #MC code (and finding loads of
-'interesting' code) and ran into ist_enter(), whish has the following
-code:
-
-                /*
-                 * We might have interrupted pretty much anything.  In
-                 * fact, if we're a machine check, we can even interrupt
-                 * NMI processing.  We don't want in_nmi() to return true,
-                 * but we need to notify RCU.
-                 */
-                rcu_nmi_enter();
-
-
-Which, to me, sounds all sorts of broken. The IST (be it #DB or #MC) can
-happen while we're holding all sorts of locks. This must be an NMI-like
-context.
+diff --git a/arch/arm64/mm/dump.c b/arch/arm64/mm/dump.c
+index 860c00ec8bd3..78163b7a7dde 100644
+--- a/arch/arm64/mm/dump.c
++++ b/arch/arm64/mm/dump.c
+@@ -145,6 +145,11 @@ static const struct prot_bits pte_bits[] = {
+ 		.val	= PTE_UXN,
+ 		.set	= "UXN",
+ 		.clear	= "   ",
++	}, {
++		.mask	= PTE_GP,
++		.val	= PTE_GP,
++		.set	= "GP",
++		.clear	= "  ",
+ 	}, {
+ 		.mask	= PTE_ATTRINDX_MASK,
+ 		.val	= PTE_ATTRINDX(MT_DEVICE_nGnRnE),
+-- 
+2.20.1
