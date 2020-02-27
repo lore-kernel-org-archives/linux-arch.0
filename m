@@ -1,69 +1,84 @@
-From: ebiederm@xmission.com (Eric W. Biederman)
-Subject: Re: [PATCH v2 09/19] arm64: mte: Add specific SIGSEGV codes
-Date: Thu, 27 Feb 2020 09:20:23 -0600
-Message-ID: <87tv3cvyyw.fsf@x220.int.ebiederm.org>
-References: <20200226180526.3272848-10-catalin.marinas@arm.com>
-        <202002270627.YYGOStB9%lkp@intel.com>
-        <20200227110558.GB3281767@arrakis.emea.arm.com>
+From: "Paul E. McKenney" <paulmck@kernel.org>
+Subject: Re: [PATCH v3 0/5] Documentation/locking/atomic: Add litmus tests
+ for atomic APIs
+Date: Thu, 27 Feb 2020 07:47:55 -0800
+Message-ID: <20200227154755.GJ2935@paulmck-ThinkPad-P72>
+References: <20200227004049.6853-1-boqun.feng@gmail.com>
+Reply-To: paulmck@kernel.org
 Mime-Version: 1.0
-Content-Type: text/plain
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from out01.mta.xmission.com ([166.70.13.231]:40872 "EHLO
-        out01.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1729471AbgB0PWb (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 27 Feb 2020 10:22:31 -0500
-In-Reply-To: <20200227110558.GB3281767@arrakis.emea.arm.com> (Catalin
-        Marinas's message of "Thu, 27 Feb 2020 11:05:58 +0000")
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Catalin Marinas <catalin.marinas@arm.com>
-Cc: kbuild test robot <lkp@intel.com>, kbuild-all@lists.01.org, linux-arm-kernel@lists.infradead.org, Will Deacon <will@kernel.org>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Richard Earnshaw <Richard.Earnshaw@arm.com>, Kevin Brodsky <kevin.brodsky@arm.com>, Andrey Konovalov <andreyknvl@google.com>, Peter Collingbourne <pcc@google.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-doc-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <20200227004049.6853-1-boqun.feng@gmail.com>
+Sender: linux-doc-owner@vger.kernel.org
+To: Boqun Feng <boqun.feng@gmail.com>
+Cc: linux-kernel@vger.kernel.org, Alan Stern <stern@rowland.harvard.edu>, Andrea Parri <parri.andrea@gmail.com>, Will Deacon <will@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Nicholas Piggin <npiggin@gmail.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, Akira Yokosawa <akiyks@gmail.com>, Daniel Lustig <dlustig@nvidia.com>, Jonathan Corbet <corbet@lwn.net>, Mauro Carvalho Chehab <mchehab+samsung@kernel.org>, "David S. Miller" <davem@davemloft.net>, Rob Herring <robh@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jonathan Cameron <Jonathan.Cameron@huawei.com>, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-Catalin Marinas <catalin.marinas@arm.com> writes:
+On Thu, Feb 27, 2020 at 08:40:44AM +0800, Boqun Feng wrote:
+> A recent discussion raises up the requirement for having test cases for
+> atomic APIs:
+> 
+> 	https://lore.kernel.org/lkml/20200213085849.GL14897@hirez.programming.kicks-ass.net/
+> 
+> , and since we already have a way to generate a test module from a
+> litmus test with klitmus[1]. It makes sense that we add more litmus
+> tests for atomic APIs. And based on the previous discussion, I create a
+> new directory Documentation/atomic-tests and put these litmus tests
+> here.
+> 
+> This patchset starts the work by adding the litmus tests which are
+> already used in atomic_t.txt, and also improve the atomic_t.txt to make
+> it consistent with the litmus tests.
+> 
+> Previous version:
+> v1: https://lore.kernel.org/linux-doc/20200214040132.91934-1-boqun.feng@gmail.com/
+> v2: https://lore.kernel.org/lkml/20200219062627.104736-1-boqun.feng@gmail.com/
+> 
+> Changes since v2:
+> 
+> *	Change from "RFC" to "PATCH".
+> 
+> *	Wording improvement in atomic_t.txt as per Alan's suggestion.
+> 
+> *	Add a new patch describing the usage of atomic_add_unless() is
+> 	not limited anymore for LKMM litmus tests.
+> 
+> My PR on supporting "(void) expr;" statement has been merged by Luc
+> (Thank you, Luc). So all the litmus tests in this patchset can be
+> handled by the herdtools compiled from latest master branch of the
+> source code.
+> 
+> Comments and suggestions are welcome!
+> 
+> Regards,
+> Boqun
 
-> On Thu, Feb 27, 2020 at 06:33:14AM +0800, kbuild test robot wrote:
->> url:    https://github.com/0day-ci/linux/commits/Catalin-Marinas/arm64-Memory-Tagging-Extension-user-space-support/20200227-041230
->> base:   https://git.kernel.org/pub/scm/linux/kernel/git/arm/arm-soc.git for-next
->> config: x86_64-defconfig (attached as .config)
->> compiler: gcc-7 (Debian 7.5.0-5) 7.5.0
->> reproduce:
->>         # save the attached .config to linux build tree
->>         make ARCH=x86_64 
->> 
->> If you fix the issue, kindly add following tag
->> Reported-by: kbuild test robot <lkp@intel.com>
->> 
->> All error/warnings (new ones prefixed by >>):
->> 
->>    In file included from include/linux/export.h:43:0,
->>                     from include/linux/linkage.h:7,
->>                     from arch/x86/include/asm/cache.h:5,
->>                     from include/linux/cache.h:6,
->>                     from include/linux/time.h:5,
->>                     from include/linux/compat.h:10,
->>                     from arch/x86/kernel/signal_compat.c:2:
->>    In function 'signal_compat_build_tests',
->>        inlined from 'sigaction_compat_abi' at arch/x86/kernel/signal_compat.c:166:2:
->> >> include/linux/compiler.h:350:38: error: call to '__compiletime_assert_30' declared with attribute error: BUILD_BUG_ON failed: NSIGSEGV != 7
->
-> I haven't realised that x86 has a build check for NSIGSEGV. I'll fold in
-> the diff below (there are no new fields added to siginfo, so no other
-> changes necessary):
+Queued for further review, thank you, Boqun!
 
-Yes.  That looks good.
+							Thanx, Paul
 
-Acked-by: "Eric W. Biederman" <ebiederm@xmission.com>
-
-> diff --git a/arch/x86/kernel/signal_compat.c b/arch/x86/kernel/signal_compat.c
-> index 9ccbf0576cd0..a7f3e12cfbdb 100644
-> --- a/arch/x86/kernel/signal_compat.c
-> +++ b/arch/x86/kernel/signal_compat.c
-> @@ -27,7 +27,7 @@ static inline void signal_compat_build_tests(void)
->  	 */
->  	BUILD_BUG_ON(NSIGILL  != 11);
->  	BUILD_BUG_ON(NSIGFPE  != 15);
-> -	BUILD_BUG_ON(NSIGSEGV != 7);
-> +	BUILD_BUG_ON(NSIGSEGV != 9);
->  	BUILD_BUG_ON(NSIGBUS  != 5);
->  	BUILD_BUG_ON(NSIGTRAP != 5);
->  	BUILD_BUG_ON(NSIGCHLD != 6);
+> [1]: http://diy.inria.fr/doc/litmus.html#klitmus
+> 
+> Boqun Feng (5):
+>   tools/memory-model: Add an exception for limitations on _unless()
+>     family
+>   Documentation/locking/atomic: Fix atomic-set litmus test
+>   Documentation/locking/atomic: Introduce atomic-tests directory
+>   Documentation/locking/atomic: Add a litmus test for atomic_set()
+>   Documentation/locking/atomic: Add a litmus test smp_mb__after_atomic()
+> 
+>  ...ter_atomic-is-stronger-than-acquire.litmus | 32 +++++++++++++++++++
+>  ...c-RMW-ops-are-atomic-WRT-atomic_set.litmus | 24 ++++++++++++++
+>  Documentation/atomic-tests/README             | 16 ++++++++++
+>  Documentation/atomic_t.txt                    | 24 +++++++-------
+>  MAINTAINERS                                   |  1 +
+>  tools/memory-model/README                     | 10 ++++--
+>  6 files changed, 92 insertions(+), 15 deletions(-)
+>  create mode 100644 Documentation/atomic-tests/Atomic-RMW+mb__after_atomic-is-stronger-than-acquire.litmus
+>  create mode 100644 Documentation/atomic-tests/Atomic-RMW-ops-are-atomic-WRT-atomic_set.litmus
+>  create mode 100644 Documentation/atomic-tests/README
+> 
+> -- 
+> 2.25.0
+> 
