@@ -1,77 +1,235 @@
-From: Boqun Feng <boqun.feng@gmail.com>
-Subject: [PATCH v3 0/5] Documentation/locking/atomic: Add litmus tests for atomic APIs
-Date: Thu, 27 Feb 2020 08:40:44 +0800
-Message-ID: <20200227004049.6853-1-boqun.feng@gmail.com>
+From: Dave Hansen <dave.hansen@intel.com>
+Subject: Re: [RFC PATCH v9 17/27] x86/cet/shstk: User-mode Shadow Stack
+ support
+Date: Wed, 26 Feb 2020 16:55:56 -0800
+Message-ID: <9847845a-749d-47a3-2a1d-bcc7c35f1bdd@intel.com>
+References: <20200205181935.3712-1-yu-cheng.yu@intel.com>
+ <20200205181935.3712-18-yu-cheng.yu@intel.com>
 Mime-Version: 1.0
+Content-Type: text/plain; charset=utf-8
 Content-Transfer-Encoding: 8bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qk1-f194.google.com ([209.85.222.194]:32884 "EHLO
-        mail-qk1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728066AbgB0AsL (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 26 Feb 2020 19:48:11 -0500
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: Alan Stern <stern@rowland.harvard.edu>, Andrea Parri <parri.andrea@gmail.com>, Will Deacon <will@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Boqun Feng <boqun.feng@gmail.com>, Nicholas Piggin <npiggin@gmail.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, "Paul E. McKenney" <paulmck@kernel.org>, Akira Yokosawa <akiyks@gmail.com>, Daniel Lustig <dlustig@nvidia.com>, Jonathan Corbet <corbet@lwn.net>, Mauro Carvalho Chehab <mchehab+samsung@kernel.org>, "David S. Miller" <davem@davemloft.net>, Rob Herring <robh@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jonathan Cameron <Jonathan.Cameron@huawei.com>, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org
+Return-path: <linux-doc-owner@vger.kernel.org>
+In-Reply-To: <20200205181935.3712-18-yu-cheng.yu@intel.com>
+Content-Language: en-US
+Sender: linux-doc-owner@vger.kernel.org
+To: Yu-cheng Yu <yu-cheng.yu@intel.com>, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>
+List-Id: linux-arch.vger.kernel.org
 
-A recent discussion raises up the requirement for having test cases for
-atomic APIs:
+On 2/5/20 10:19 AM, Yu-cheng Yu wrote:
+> This patch adds basic Shadow Stack (SHSTK) enabling/disabling routines.
+> A task's SHSTK is allocated from memory with VM_SHSTK flag and read-only
+> protection.  It has a fixed size of RLIMIT_STACK.
+> 
+> v9:
+> - Change cpu_feature_enabled() to static_cpu_has().
+> - Merge cet_disable_shstk to cet_disable_free_shstk.
+> - Remove the empty slot at the top of the SHSTK, as it is not needed.
+> - Move do_mmap_locked() to alloc_shstk(), which is a static function.
+> 
+> v6:
+> - Create a function do_mmap_locked() for SHSTK allocation.
+> 
+> v2:
+> - Change noshstk to no_cet_shstk.
+> 
+> Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
+> ---
+>  arch/x86/include/asm/cet.h                    |  31 +++++
+>  arch/x86/include/asm/disabled-features.h      |   8 +-
+>  arch/x86/include/asm/processor.h              |   5 +
+>  arch/x86/kernel/Makefile                      |   2 +
+>  arch/x86/kernel/cet.c                         | 121 ++++++++++++++++++
+>  arch/x86/kernel/cpu/common.c                  |  25 ++++
+>  arch/x86/kernel/process.c                     |   1 +
+>  .../arch/x86/include/asm/disabled-features.h  |   8 +-
+>  8 files changed, 199 insertions(+), 2 deletions(-)
+>  create mode 100644 arch/x86/include/asm/cet.h
+>  create mode 100644 arch/x86/kernel/cet.c
+> 
+> diff --git a/arch/x86/include/asm/cet.h b/arch/x86/include/asm/cet.h
+> new file mode 100644
+> index 000000000000..c44c991ca91f
+> --- /dev/null
+> +++ b/arch/x86/include/asm/cet.h
+> @@ -0,0 +1,31 @@
+> +/* SPDX-License-Identifier: GPL-2.0 */
+> +#ifndef _ASM_X86_CET_H
+> +#define _ASM_X86_CET_H
+> +
+> +#ifndef __ASSEMBLY__
+> +#include <linux/types.h>
+> +
+> +struct task_struct;
+> +/*
+> + * Per-thread CET status
+> + */
+> +struct cet_status {
+> +	unsigned long	shstk_base;
+> +	unsigned long	shstk_size;
+> +	unsigned int	shstk_enabled:1;
+> +};
 
-	https://lore.kernel.org/lkml/20200213085849.GL14897@hirez.programming.kicks-ass.net/
+Just out of curiosity, what's the theoretical size limit of shadow
+stacks?  Is there one?
 
-, and since we already have a way to generate a test module from a
-litmus test with klitmus[1]. It makes sense that we add more litmus
-tests for atomic APIs. And based on the previous discussion, I create a
-new directory Documentation/atomic-tests and put these litmus tests
-here.
+Also, not to nitpick too much, but you could pretty easily save the
+storage of shstk_enabled by using 0 for the size.
 
-This patchset starts the work by adding the litmus tests which are
-already used in atomic_t.txt, and also improve the atomic_t.txt to make
-it consistent with the litmus tests.
+> +#ifdef CONFIG_X86_INTEL_CET
+> +int cet_setup_shstk(void);
+> +void cet_disable_free_shstk(struct task_struct *p);
+> +#else
+> +static inline void cet_disable_free_shstk(struct task_struct *p) {}
+> +#endif
+> +
+> +#define cpu_x86_cet_enabled() \
+> +	(static_cpu_has(X86_FEATURE_SHSTK) || \
+> +	 static_cpu_has(X86_FEATURE_IBT))
+> +
+> +#endif /* __ASSEMBLY__ */
 
-Previous version:
-v1: https://lore.kernel.org/linux-doc/20200214040132.91934-1-boqun.feng@gmail.com/
-v2: https://lore.kernel.org/lkml/20200219062627.104736-1-boqun.feng@gmail.com/
+You don't need the #ifdef if you stick the X86_FEATUREs in
+disabled-features.h properly.
 
-Changes since v2:
+> diff --git a/arch/x86/kernel/cet.c b/arch/x86/kernel/cet.c
+> new file mode 100644
+> index 000000000000..b4c7d88e9a8f
+> --- /dev/null
+> +++ b/arch/x86/kernel/cet.c
+> @@ -0,0 +1,121 @@
+> +/* SPDX-License-Identifier: GPL-2.0 */
+> +/*
+> + * cet.c - Control-flow Enforcement (CET)
+> + *
+> + * Copyright (c) 2019, Intel Corporation.
+> + * Yu-cheng Yu <yu-cheng.yu@intel.com>
+> + */
+> +
+> +#include <linux/types.h>
+> +#include <linux/mm.h>
+> +#include <linux/mman.h>
+> +#include <linux/slab.h>
+> +#include <linux/uaccess.h>
+> +#include <linux/sched/signal.h>
+> +#include <linux/compat.h>
+> +#include <asm/msr.h>
+> +#include <asm/user.h>
+> +#include <asm/fpu/internal.h>
+> +#include <asm/fpu/xstate.h>
+> +#include <asm/fpu/types.h>
+> +#include <asm/cet.h>
+> +
+> +static void start_update_msrs(void)
+> +{
+> +	fpregs_lock();
+> +	if (test_thread_flag(TIF_NEED_FPU_LOAD))
+> +		__fpregs_load_activate();
+> +}
+> +
+> +static void end_update_msrs(void)
+> +{
+> +	fpregs_unlock();
+> +}
+> +
+> +static unsigned long cet_get_shstk_addr(void)
+> +{
+> +	struct fpu *fpu = &current->thread.fpu;
+> +	unsigned long ssp = 0;
+> +
+> +	fpregs_lock();
+> +
+> +	if (fpregs_state_valid(fpu, smp_processor_id())) {
+> +		rdmsrl(MSR_IA32_PL3_SSP, ssp);
+> +	} else {
+> +		struct cet_user_state *p;
+> +
+> +		p = get_xsave_addr(&fpu->state.xsave, XFEATURE_CET_USER);
+> +		if (p)
+> +			ssp = p->user_ssp;
+> +	}
+> +
+> +	fpregs_unlock();
+> +	return ssp;
+> +}
+> +
+> +static unsigned long alloc_shstk(unsigned long size)
+> +{
+> +	struct mm_struct *mm = current->mm;
+> +	unsigned long addr, populate;
+> +
+> +	down_write(&mm->mmap_sem);
+> +	addr = do_mmap(NULL, 0, size, PROT_READ, MAP_ANONYMOUS | MAP_PRIVATE,
+> +		       VM_SHSTK, 0, &populate, NULL);
+> +	up_write(&mm->mmap_sem);
+> +
+> +	if (populate)
+> +		mm_populate(addr, populate);
+> +
+> +	return addr;
+> +}
+> +
+> +int cet_setup_shstk(void)
+> +{
+> +	unsigned long addr, size;
+> +	struct cet_status *cet = &current->thread.cet;
+> +
+> +	if (!static_cpu_has(X86_FEATURE_SHSTK))
+> +		return -EOPNOTSUPP;
+> +
+> +	size = rlimit(RLIMIT_STACK);
 
-*	Change from "RFC" to "PATCH".
+This doesn't seem right.  In general, I thought you could have disabled
+rlimits, which would mean a size of -1:
+	
+	#define RLIM64_INFINITY         (~0ULL)
 
-*	Wording improvement in atomic_t.txt as per Alan's suggestion.
+Or is there something special about stacks that I'm missing?
 
-*	Add a new patch describing the usage of atomic_add_unless() is
-	not limited anymore for LKMM litmus tests.
+Also, does size need to be page aligned?
 
-My PR on supporting "(void) expr;" statement has been merged by Luc
-(Thank you, Luc). So all the litmus tests in this patchset can be
-handled by the herdtools compiled from latest master branch of the
-source code.
+> +	addr = alloc_shstk(size);
+> +
+> +	if (IS_ERR((void *)addr))
+> +		return PTR_ERR((void *)addr);
+> +
+> +	cet->shstk_base = addr;
+> +	cet->shstk_size = size;
+> +	cet->shstk_enabled = 1;
+> +
+> +	start_update_msrs();
+> +	wrmsrl(MSR_IA32_PL3_SSP, addr + size);
+> +	wrmsrl(MSR_IA32_U_CET, MSR_IA32_CET_SHSTK_EN);
 
-Comments and suggestions are welcome!
+Doesn't MSR_IA32_U_CET have lots of bits?  Won't this blow away other bits?
 
-Regards,
-Boqun
+> +	end_update_msrs();
+> +	return 0;
+> +}
+> +
+> +void cet_disable_free_shstk(struct task_struct *tsk)
+> +{
+> +	struct cet_status *cet = &tsk->thread.cet;
+> +
+> +	if (!static_cpu_has(X86_FEATURE_SHSTK) ||
+> +	    !cet->shstk_enabled || !cet->shstk_base)
+> +		return;
 
-[1]: http://diy.inria.fr/doc/litmus.html#klitmus
+This seems to indicate that you can have ->shstk_base set without it
+being enabled.  But I don't see any spots in the code that do that.
+Confused.
 
-Boqun Feng (5):
-  tools/memory-model: Add an exception for limitations on _unless()
-    family
-  Documentation/locking/atomic: Fix atomic-set litmus test
-  Documentation/locking/atomic: Introduce atomic-tests directory
-  Documentation/locking/atomic: Add a litmus test for atomic_set()
-  Documentation/locking/atomic: Add a litmus test smp_mb__after_atomic()
+> +	if (!tsk->mm || (tsk->mm != current->mm))
+> +		return;
+> +
+> +	if (tsk == current) {
+> +		u64 msr_val;
+> +
+> +		start_update_msrs();
+> +		rdmsrl(MSR_IA32_U_CET, msr_val);
+> +		wrmsrl(MSR_IA32_U_CET, msr_val & ~MSR_IA32_CET_SHSTK_EN);
+> +		end_update_msrs();
+> +	}
+> +
+> +	vm_munmap(cet->shstk_base, cet->shstk_size);
 
- ...ter_atomic-is-stronger-than-acquire.litmus | 32 +++++++++++++++++++
- ...c-RMW-ops-are-atomic-WRT-atomic_set.litmus | 24 ++++++++++++++
- Documentation/atomic-tests/README             | 16 ++++++++++
- Documentation/atomic_t.txt                    | 24 +++++++-------
- MAINTAINERS                                   |  1 +
- tools/memory-model/README                     | 10 ++++--
- 6 files changed, 92 insertions(+), 15 deletions(-)
- create mode 100644 Documentation/atomic-tests/Atomic-RMW+mb__after_atomic-is-stronger-than-acquire.litmus
- create mode 100644 Documentation/atomic-tests/Atomic-RMW-ops-are-atomic-WRT-atomic_set.litmus
- create mode 100644 Documentation/atomic-tests/README
-
--- 
-2.25.0
+What about vm_munmap() failure?
