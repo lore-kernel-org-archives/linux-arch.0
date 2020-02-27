@@ -1,92 +1,72 @@
-Return-Path: <SRS0=ZEfg=4N=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail-pf1-f196.google.com ([209.85.210.196]:46685 "EHLO
-        mail-pf1-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1729007AbgBYULN (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 25 Feb 2020 15:11:13 -0500
-Received: by mail-pf1-f196.google.com with SMTP id k29so114336pfp.13
-        for <linux-arch@vger.kernel.org>; Tue, 25 Feb 2020 12:11:13 -0800 (PST)
-Date: Tue, 25 Feb 2020 12:11:11 -0800
-From: Kees Cook <keescook@chromium.org>
-Subject: Re: [RFC PATCH v9 07/27] Add guard pages around a Shadow Stack.
-Message-ID: <202002251209.A2079ECA4@keescook>
-References: <20200205181935.3712-1-yu-cheng.yu@intel.com>
- <20200205181935.3712-8-yu-cheng.yu@intel.com>
+Return-Path: <SRS0=BIEI=4P=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail-qk1-f193.google.com ([209.85.222.193]:33965 "EHLO
+        mail-qk1-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727987AbgB0AlI (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 26 Feb 2020 19:41:08 -0500
+From: Boqun Feng <boqun.feng@gmail.com>
+Subject: [PATCH v3 2/5] Documentation/locking/atomic: Fix atomic-set litmus test
+Date: Thu, 27 Feb 2020 08:40:46 +0800
+Message-ID: <20200227004049.6853-3-boqun.feng@gmail.com>
+In-Reply-To: <20200227004049.6853-1-boqun.feng@gmail.com>
+References: <20200227004049.6853-1-boqun.feng@gmail.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20200205181935.3712-8-yu-cheng.yu@intel.com>
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Cc: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>, x86-patch-review@intel.com
-Message-ID: <20200225201111.1ru1ccBxbJQGxfkYGI9s5bxgSVVNv586iKg3Ecf6640@z>
+To: linux-kernel@vger.kernel.org
+Cc: Alan Stern <stern@rowland.harvard.edu>, Andrea Parri <parri.andrea@gmail.com>, Will Deacon <will@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Boqun Feng <boqun.feng@gmail.com>, Nicholas Piggin <npiggin@gmail.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, "Paul E. McKenney" <paulmck@kernel.org>, Akira Yokosawa <akiyks@gmail.com>, Daniel Lustig <dlustig@nvidia.com>, Jonathan Corbet <corbet@lwn.net>, Mauro Carvalho Chehab <mchehab+samsung@kernel.org>, "David S. Miller" <davem@davemloft.net>, Rob Herring <robh@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jonathan Cameron <Jonathan.Cameron@huawei.com>, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org
+Message-ID: <20200227004046.7UFmMAze-24AvslbTS2oxkI3lMGYNLT-ZRMjCB2DilU@z>
 
-On Wed, Feb 05, 2020 at 10:19:15AM -0800, Yu-cheng Yu wrote:
-> INCSSPD/INCSSPQ instruction is used to unwind a Shadow Stack (SHSTK).  It
-> performs 'pop and discard' of the first and last element from SHSTK in the
-> range specified in the operand.  The maximum value of the operand is 255,
-> and the maximum moving distance of the SHSTK pointer is 255 * 4 for
-> INCSSPD, 255 * 8 for INCSSPQ.
-> 
-> Since SHSTK has a fixed size, creating a guard page above prevents
-> INCSSP/RET from moving beyond.  Likewise, creating a guard page below
-> prevents CALL from underflowing the SHSTK.
+Currently the litmus test "atomic-set" in atomic_t.txt has a few things
+to be improved:
 
-This commit log doesn't really explain why the code changes below are
-needed? stack_guard_gap is configurable at boot, etc. This appears to be
-limiting it? I don't follow this change...
+1)	The CPU/Processor numbers "P1,P2" are not only inconsistent with
+	the rest of the document, which uses "CPU0" and "CPU1", but also
+	unacceptable by the herd tool, which requires processors start
+	at "P0".
 
--Kees
+2)	The initialization block uses a "atomic_set()", which is OK, but
+	it's better to use ATOMIC_INIT() to make clear this is an
+	initialization.
 
-> 
-> Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
-> ---
->  include/linux/mm.h | 20 ++++++++++++++++----
->  1 file changed, 16 insertions(+), 4 deletions(-)
-> 
-> diff --git a/include/linux/mm.h b/include/linux/mm.h
-> index b5145fbe102e..75de07674649 100644
-> --- a/include/linux/mm.h
-> +++ b/include/linux/mm.h
-> @@ -2464,9 +2464,15 @@ static inline struct vm_area_struct * find_vma_intersection(struct mm_struct * m
->  static inline unsigned long vm_start_gap(struct vm_area_struct *vma)
->  {
->  	unsigned long vm_start = vma->vm_start;
-> +	unsigned long gap = 0;
->  
-> -	if (vma->vm_flags & VM_GROWSDOWN) {
-> -		vm_start -= stack_guard_gap;
-> +	if (vma->vm_flags & VM_GROWSDOWN)
-> +		gap = stack_guard_gap;
-> +	else if (vma->vm_flags & VM_SHSTK)
-> +		gap = PAGE_SIZE;
-> +
-> +	if (gap != 0) {
-> +		vm_start -= gap;
->  		if (vm_start > vma->vm_start)
->  			vm_start = 0;
->  	}
-> @@ -2476,9 +2482,15 @@ static inline unsigned long vm_start_gap(struct vm_area_struct *vma)
->  static inline unsigned long vm_end_gap(struct vm_area_struct *vma)
->  {
->  	unsigned long vm_end = vma->vm_end;
-> +	unsigned long gap = 0;
-> +
-> +	if (vma->vm_flags & VM_GROWSUP)
-> +		gap = stack_guard_gap;
-> +	else if (vma->vm_flags & VM_SHSTK)
-> +		gap = PAGE_SIZE;
->  
-> -	if (vma->vm_flags & VM_GROWSUP) {
-> -		vm_end += stack_guard_gap;
-> +	if (gap != 0) {
-> +		vm_end += gap;
->  		if (vm_end < vma->vm_end)
->  			vm_end = -PAGE_SIZE;
->  	}
-> -- 
-> 2.21.0
-> 
+3)	The return value of atomic_add_unless() is discarded
+	inexplicitly, which is OK for C language, but it will be helpful
+	to the herd tool if we use a void cast to make the discard
+	explicit.
 
+Therefore fix these and this is the preparation for adding the litmus
+test into memory-model litmus-tests directory so that people can
+understand better about our requirements of atomic APIs and klitmus tool
+can be used to generate tests.
+
+Signed-off-by: Boqun Feng <boqun.feng@gmail.com>
+---
+ Documentation/atomic_t.txt | 8 ++++----
+ 1 file changed, 4 insertions(+), 4 deletions(-)
+
+diff --git a/Documentation/atomic_t.txt b/Documentation/atomic_t.txt
+index 0ab747e0d5ac..ceb85ada378e 100644
+--- a/Documentation/atomic_t.txt
++++ b/Documentation/atomic_t.txt
+@@ -91,15 +91,15 @@ ops. That is:
+   C atomic-set
+ 
+   {
+-    atomic_set(v, 1);
++    atomic_t v = ATOMIC_INIT(1);
+   }
+ 
+-  P1(atomic_t *v)
++  P0(atomic_t *v)
+   {
+-    atomic_add_unless(v, 1, 0);
++    (void)atomic_add_unless(v, 1, 0);
+   }
+ 
+-  P2(atomic_t *v)
++  P1(atomic_t *v)
+   {
+     atomic_set(v, 0);
+   }
 -- 
-Kees Cook
+2.25.0
