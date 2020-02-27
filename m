@@ -1,71 +1,79 @@
-From: Boqun Feng <boqun.feng@gmail.com>
-Subject: Re: [PATCH] tools/memory-model: Remove lock-final checking in
- lock.cat
-Date: Thu, 27 Feb 2020 07:59:42 +0800
-Message-ID: <20200226235942.GR69864@debian-boqun.qqnc3lrjykvubdpftowmye0fmh.lx.internal.cloudapp.net>
-References: <20200226032142.89424-1-boqun.feng@gmail.com>
- <Pine.LNX.4.44L0.2002260953110.3674-100000@netrider.rowland.org>
+From: Dave Hansen <dave.hansen@intel.com>
+Subject: Re: [RFC PATCH v9 14/27] mm: Handle Shadow Stack page fault
+Date: Wed, 26 Feb 2020 16:08:06 -0800
+Message-ID: <4902a6ee-cb0f-2700-1f6d-9d756593183c@intel.com>
+References: <20200205181935.3712-1-yu-cheng.yu@intel.com>
+ <20200205181935.3712-15-yu-cheng.yu@intel.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <Pine.LNX.4.44L0.2002260953110.3674-100000@netrider.rowland.org>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Alan Stern <stern@rowland.harvard.edu>
-Cc: linux-kernel@vger.kernel.org, rcu@vger.kernel.org, Andrea Parri <parri.andrea@gmail.com>, Will Deacon <will@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Nicholas Piggin <npiggin@gmail.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, "Paul E. McKenney" <paulmck@kernel.org>, Akira Yokosawa <akiyks@gmail.com>, Daniel Lustig <dlustig@nvidia.com>, linux-arch@vger.kernel.org
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 8bit
+Return-path: <linux-doc-owner@vger.kernel.org>
+In-Reply-To: <20200205181935.3712-15-yu-cheng.yu@intel.com>
+Content-Language: en-US
+Sender: linux-doc-owner@vger.kernel.org
+To: Yu-cheng Yu <yu-cheng.yu@intel.com>, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Feb 26, 2020 at 09:58:12AM -0500, Alan Stern wrote:
-> On Wed, 26 Feb 2020, Boqun Feng wrote:
-> 
-> > In commit 30b795df11a1 ("tools/memory-model: Improve mixed-access
-> > checking in lock.cat"), we have added the checking to disallow any
-> > normal memory access to lock variables, and this checking is stronger
-> > than lock-final. So remove the lock-final checking as it's unnecessary
-> > now.
-> 
-> I don't understand this description.  Why do you say that the
-> normal-access checking is stronger than the lock-final check?
-> 
-> > Signed-off-by: Boqun Feng <boqun.feng@gmail.com>
-> > ---
-> >  tools/memory-model/lock.cat | 3 ---
-> >  1 file changed, 3 deletions(-)
-> > 
-> > diff --git a/tools/memory-model/lock.cat b/tools/memory-model/lock.cat
-> > index 6b52f365d73a..827a3646607c 100644
-> > --- a/tools/memory-model/lock.cat
-> > +++ b/tools/memory-model/lock.cat
-> > @@ -54,9 +54,6 @@ flag ~empty LKR \ domain(lk-rmw) as unpaired-LKR
-> >   *)
-> >  empty ([LKW] ; po-loc ; [LKR]) \ (po-loc ; [UL] ; po-loc) as lock-nest
-> >  
-> > -(* The final value of a spinlock should not be tested *)
-> > -flag ~empty [FW] ; loc ; [ALL-LOCKS] as lock-final
-> > -
-> >  (*
-> >   * Put lock operations in their appropriate classes, but leave UL out of W
-> >   * until after the co relation has been generated.
-> 
-> With this check removed, what will prevent people from writing litmus 
-> tests like this?
+> diff --git a/mm/memory.c b/mm/memory.c
+> index 45442d9a4f52..6daa28614327 100644
+> --- a/mm/memory.c
+> +++ b/mm/memory.c
+> @@ -772,7 +772,8 @@ copy_one_pte(struct mm_struct *dst_mm, struct mm_struct *src_mm,
+>  	 * If it's a COW mapping, write protect it both
+>  	 * in the parent and the child
+>  	 */
+> -	if (is_cow_mapping(vm_flags) && pte_write(pte)) {
+> +	if ((is_cow_mapping(vm_flags) && pte_write(pte)) ||
+> +	    arch_copy_pte_mapping(vm_flags)) {
+>  		ptep_set_wrprotect(src_mm, addr, src_pte);
+>  		pte = pte_wrprotect(pte);
+>  	}
+
+You have to modify this because pte_write()==0 for shadow stack PTEs, right?
+
+Aren't shadow stack ptes *logically* writable, even if they don't have
+the write bit set?  What would happen if we made pte_write()==1 for them?
+
+> @@ -2417,6 +2418,7 @@ static inline void wp_page_reuse(struct vm_fault *vmf)
+>  	flush_cache_page(vma, vmf->address, pte_pfn(vmf->orig_pte));
+>  	entry = pte_mkyoung(vmf->orig_pte);
+>  	entry = maybe_mkwrite(pte_mkdirty(entry), vma);
+> +	entry = pte_set_vma_features(entry, vma);
+>  	if (ptep_set_access_flags(vma, vmf->address, vmf->pte, entry, 1))
+>  		update_mmu_cache(vma, vmf->address, vmf->pte);
+>  	pte_unmap_unlock(vmf->pte, vmf->ptl);
+> @@ -2504,6 +2506,7 @@ static vm_fault_t wp_page_copy(struct vm_fault *vmf)
+>  		flush_cache_page(vma, vmf->address, pte_pfn(vmf->orig_pte));
+>  		entry = mk_pte(new_page, vma->vm_page_prot);
+>  		entry = maybe_mkwrite(pte_mkdirty(entry), vma);
+> +		entry = pte_set_vma_features(entry, vma);
+>  		/*
+>  		 * Clear the pte entry and flush it first, before updating the
+>  		 * pte with the new entry. This will avoid a race condition
+> @@ -3023,6 +3026,7 @@ vm_fault_t do_swap_page(struct vm_fault *vmf)
+>  	pte = mk_pte(page, vma->vm_page_prot);
+>  	if ((vmf->flags & FAULT_FLAG_WRITE) && reuse_swap_page(page, NULL)) {
+>  		pte = maybe_mkwrite(pte_mkdirty(pte), vma);
+> +		pte = pte_set_vma_features(pte, vma);
+>  		vmf->flags &= ~FAULT_FLAG_WRITE;
+>  		ret |= VM_FAULT_WRITE;
+>  		exclusive = RMAP_EXCLUSIVE;
+> @@ -3165,6 +3169,7 @@ static vm_fault_t do_anonymous_page(struct vm_fault *vmf)
+>  	entry = mk_pte(page, vma->vm_page_prot);
+>  	if (vma->vm_flags & VM_WRITE)
+>  		entry = pte_mkwrite(pte_mkdirty(entry));
+> +	entry = pte_set_vma_features(entry, vma);
+>  
+>  	vmf->pte = pte_offset_map_lock(vma->vm_mm, vmf->pmd, vmf->address,
+>  			&vmf->ptl);
 > 
 
-You are right, one thing I was missing is although FW is a subset of M,
-however FW & IW is not empty. Thanks! I will drop this.
+These seem wrong, or at best inconsistent with what's already done.
 
-Regards,
-Boqun
+We don't need anything like pte_set_vma_features() today because we have
+vma->vm_page_prot.  We could easily have done what you suggest here for
+things like protection keys: ignore the pkey PTE bits until we create
+the final PTE then shove them in there.
 
-> C test
-> 
-> {
-> 	spinlock_t s;
-> }
-> 
-> ...
-> 
-> exists (s=0)
-> 
-> Alan
-> 
+What are the bit patterns of the shadow stack bits that come out of
+these sites?  Can they be represented in ->vm_page_prot?
