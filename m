@@ -1,35 +1,73 @@
-Return-Path: <SRS0=LzcT=4H=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail.skyhub.de ([5.9.137.197]:55246 "EHLO mail.skyhub.de"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726528AbgBSQ5D (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 19 Feb 2020 11:57:03 -0500
-Date: Wed, 19 Feb 2020 17:56:50 +0100
-From: Borislav Petkov <bp@alien8.de>
-Subject: Re: [PATCH v3 01/22] hardirq/nmi: Allow nested nmi_enter()
-Message-ID: <20200219165650.GB32346@zn.tnic>
-References: <20200219144724.800607165@infradead.org>
- <20200219150744.428764577@infradead.org>
- <20200219103126.33f67cf3@gandalf.local.home>
+Return-Path: <SRS0=BIEI=4P=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from iolanthe.rowland.org ([192.131.102.54]:38922 "HELO
+        iolanthe.rowland.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with SMTP id S1730194AbgB0QgH (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 27 Feb 2020 11:36:07 -0500
+Date: Thu, 27 Feb 2020 11:36:06 -0500 (EST)
+From: Alan Stern <stern@rowland.harvard.edu>
+Subject: Re: [PATCH v3 3/5] Documentation/locking/atomic: Introduce atomic-tests
+ directory
+In-Reply-To: <20200227004049.6853-4-boqun.feng@gmail.com>
+Message-ID: <Pine.LNX.4.44L0.2002271135320.1730-100000@iolanthe.rowland.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-In-Reply-To: <20200219103126.33f67cf3@gandalf.local.home>
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Steven Rostedt <rostedt@goodmis.org>
-Cc: Peter Zijlstra <peterz@infradead.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org, joel@joelfernandes.org, gregkh@linuxfoundation.org, gustavo@embeddedor.com, tglx@linutronix.de, paulmck@kernel.org, josh@joshtriplett.org, mathieu.desnoyers@efficios.com, jiangshanlai@gmail.com, luto@kernel.org, tony.luck@intel.com, frederic@kernel.org, dan.carpenter@oracle.com, mhiramat@kernel.org, Will Deacon <will@kernel.org>, Marc Zyngier <maz@kernel.org>, Michael Ellerman <mpe@ellerman.id.au>, Petr Mladek <pmladek@suse.com>
-Message-ID: <20200219165650.hxC6lHu6hUBrprnrWiSZalAoH04-U1HQY2SrZw4UA6I@z>
+To: Boqun Feng <boqun.feng@gmail.com>
+Cc: linux-kernel@vger.kernel.org, Andrea Parri <parri.andrea@gmail.com>, Will Deacon <will@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Nicholas Piggin <npiggin@gmail.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, "Paul E. McKenney" <paulmck@kernel.org>, Akira Yokosawa <akiyks@gmail.com>, Daniel Lustig <dlustig@nvidia.com>, Jonathan Corbet <corbet@lwn.net>, Mauro Carvalho Chehab <mchehab+samsung@kernel.org>, "David S. Miller" <davem@davemloft.net>, Rob Herring <robh@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jonathan Cameron <Jonathan.Cameron@huawei.com>, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org
+Message-ID: <20200227163606.28mIgAjr9ytWuRnYBloXykPvCE6ijVlY6GNZjx1zHh0@z>
 
-On Wed, Feb 19, 2020 at 10:31:26AM -0500, Steven Rostedt wrote:
-> Probably should document somewhere (in a comment above nmi_enter()?)
-> that we allow nmi_enter() to nest up to 15 times.
+On Thu, 27 Feb 2020, Boqun Feng wrote:
 
-Yah, and can we make the BUG_ON() WARN_ON or so instead, so that there's
-at least a chance to be able to catch it for debugging. Or is the box
-going to be irreparably wedged after the 4 bits overflow?
+> Although we have atomic_t.txt and its friends to describe the semantics
+> of atomic APIs and lib/atomic64_test.c for build testing and testing in
+> UP mode, the tests for our atomic APIs in real SMP mode are still
+> missing. Since now we have the LKMM tool in kernel and litmus tests can
+> be used to generate kernel modules for testing purpose with "klitmus" (a
+> tool from the LKMM toolset), it makes sense to put a few typical litmus
+> tests into kernel so that
+> 
+> 1)	they are the examples to describe the conceptual mode of the
+> 	semantics of atomic APIs, and
+> 
+> 2)	they can be used to generate kernel test modules for anyone
+> 	who is interested to test the atomic APIs implementation (in
+> 	most cases, is the one who implements the APIs for a new arch)
+> 
+> Therefore, introduce the atomic-tests directory for this purpose. The
+> directory is maintained by the LKMM group to make sure the litmus tests
+> are always aligned with our memory model.
+> 
+> Signed-off-by: Boqun Feng <boqun.feng@gmail.com>
 
--- 
-Regards/Gruss,
-    Boris.
+Acked-by: Alan Stern <stern@rowland.harvard.edu>
 
-https://people.kernel.org/tglx/notes-about-netiquette
+> ---
+>  Documentation/atomic-tests/README | 4 ++++
+>  MAINTAINERS                       | 1 +
+>  2 files changed, 5 insertions(+)
+>  create mode 100644 Documentation/atomic-tests/README
+> 
+> diff --git a/Documentation/atomic-tests/README b/Documentation/atomic-tests/README
+> new file mode 100644
+> index 000000000000..ae61201a4271
+> --- /dev/null
+> +++ b/Documentation/atomic-tests/README
+> @@ -0,0 +1,4 @@
+> +This directory contains litmus tests that are typical to describe the semantics
+> +of our atomic APIs. For more information about how to "run" a litmus test or
+> +how to generate a kernel test module based on a litmus test, please see
+> +tools/memory-model/README.
+> diff --git a/MAINTAINERS b/MAINTAINERS
+> index ffc7d5712735..ebca5f6263bb 100644
+> --- a/MAINTAINERS
+> +++ b/MAINTAINERS
+> @@ -9718,6 +9718,7 @@ T:	git git://git.kernel.org/pub/scm/linux/kernel/git/paulmck/linux-rcu.git dev
+>  F:	tools/memory-model/
+>  F:	Documentation/atomic_bitops.txt
+>  F:	Documentation/atomic_t.txt
+> +F:	Documentation/atomic-tests/
+>  F:	Documentation/core-api/atomic_ops.rst
+>  F:	Documentation/core-api/refcount-vs-atomic.rst
+>  F:	Documentation/memory-barriers.txt
+> 
