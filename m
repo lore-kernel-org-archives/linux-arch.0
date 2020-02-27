@@ -1,255 +1,51 @@
-Return-Path: <SRS0=jiAz=4M=vger.kernel.org=linux-doc-owner@kernel.org>
-From: =?UTF-8?q?Micka=C3=ABl=20Sala=C3=BCn?= <mic@digikod.net>
-Subject: [RFC PATCH v14 03/10] landlock: Set up the security framework and manage credentials
-Date: Mon, 24 Feb 2020 17:02:08 +0100
-Message-ID: <20200224160215.4136-4-mic@digikod.net>
-In-Reply-To: <20200224160215.4136-1-mic@digikod.net>
-References: <20200224160215.4136-1-mic@digikod.net>
+Return-Path: <SRS0=BIEI=4P=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail-ot1-f65.google.com ([209.85.210.65]:38518 "EHLO
+        mail-ot1-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727964AbgB0BDF (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 26 Feb 2020 20:03:05 -0500
 MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
-Sender: linux-doc-owner@vger.kernel.org
-To: linux-kernel@vger.kernel.org
-Cc: =?UTF-8?q?Micka=C3=ABl=20Sala=C3=BCn?= <mic@digikod.net>, Al Viro <viro@zeniv.linux.org.uk>, Andy Lutomirski <luto@amacapital.net>, Arnd Bergmann <arnd@arndb.de>, Casey Schaufler <casey@schaufler-ca.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, James Morris <jmorris@namei.org>, Jann Horn <jann@thejh.net>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Michael Kerrisk <mtk.manpages@gmail.com>, =?UTF-8?q?Micka=C3=ABl=20Sala=C3=BCn?= <mickael.salaun@ssi.gouv.fr>, "Serge E . Hallyn" <serge@hallyn.com>, Shuah Khan <shuah@kernel.org>, Vincent Dagonneau <vincent.dagonneau@ssi.gouv.fr>, kernel-hardening@lists.openwall.com, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-security-module@vger.kernel.org, x86@kernel.org
+References: <20200205181935.3712-1-yu-cheng.yu@intel.com> <20200205181935.3712-6-yu-cheng.yu@intel.com>
+ <d4dabb84-5636-2657-c45e-795f3f2dcbbc@intel.com>
+In-Reply-To: <d4dabb84-5636-2657-c45e-795f3f2dcbbc@intel.com>
+From: "H.J. Lu" <hjl.tools@gmail.com>
+Date: Wed, 26 Feb 2020 17:02:28 -0800
+Message-ID: <CAMe9rOouOwNC873v=LOv5rJWcbe9Zvg+od8229J33V=ZfrB1rg@mail.gmail.com>
+Subject: Re: [RFC PATCH v9 05/27] x86/cet/shstk: Add Kconfig option for
+ user-mode Shadow Stack protection
+Content-Type: text/plain; charset="UTF-8"
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200224160208.rWXxuakG7IiLgYlX5Hm6BwZvTpc1K4OuHT5rglY8rsw@z>
+To: Dave Hansen <dave.hansen@intel.com>
+Cc: Yu-cheng Yu <yu-cheng.yu@intel.com>, the arch/x86 maintainers <x86@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, LKML <linux-kernel@vger.kernel.org>, linux-doc@vger.kernel.org, Linux-MM <linux-mm@kvack.org>, linux-arch <linux-arch@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>, x86-patch-review@intel.com
+Message-ID: <20200227010228.w7CqsKlp9e9SxrKt51Jk2xQPU-vDHJCpGc5BYGbaOHU@z>
 
-A process credentials point to a Landlock domain, which is underneath
-implemented with a ruleset.  In the following commits, this domain is
-used to check and enforce the ptrace and filesystem security policies.
-A domain is inherited from a parent to its child the same way a thread
-inherits a seccomp policy.
+On Wed, Feb 26, 2020 at 10:05 AM Dave Hansen <dave.hansen@intel.com> wrote:
+>
+> On 2/5/20 10:19 AM, Yu-cheng Yu wrote:
+> > +# Check assembler Shadow Stack suppot
+>
+>                                   ^ support
+>
+> > +ifdef CONFIG_X86_INTEL_SHADOW_STACK_USER
+> > +  ifeq ($(call as-instr, saveprevssp, y),)
+> > +      $(error CONFIG_X86_INTEL_SHADOW_STACK_USER not supported by the assembler)
+> > +  endif
+> > +endif
+>
+> Is this *just* looking for instruction support in the assembler?
+>
+> We usually just .byte them, like this for pkeys:
+>
+>         asm volatile(".byte 0x0f,0x01,0xee\n\t"
+>                      : "=a" (pkru), "=d" (edx)
+>                      : "c" (ecx));
+>
+> That way everybody with old toolchains can still build the kernel (and
+> run/test code with your config option on, btw...).
 
-Signed-off-by: Mickaël Salaün <mic@digikod.net>
-Cc: Andy Lutomirski <luto@amacapital.net>
-Cc: James Morris <jmorris@namei.org>
-Cc: Kees Cook <keescook@chromium.org>
-Cc: Serge E. Hallyn <serge@hallyn.com>
----
+CET requires a complete new OS image from kernel, toolchain, run-time.
+CET enabled kernel without the rest of updated OS won't give you CET
+at all.
 
-Changes since v13:
-* totally get ride of the seccomp dependency
-* only keep credential management and LSM setup.
-
-Previous version:
-https://lore.kernel.org/lkml/20191104172146.30797-4-mic@digikod.net/
----
- security/Kconfig           | 10 +++----
- security/landlock/Makefile |  3 ++-
- security/landlock/cred.c   | 47 ++++++++++++++++++++++++++++++++
- security/landlock/cred.h   | 55 ++++++++++++++++++++++++++++++++++++++
- security/landlock/setup.c  | 30 +++++++++++++++++++++
- security/landlock/setup.h  | 18 +++++++++++++
- 6 files changed, 157 insertions(+), 6 deletions(-)
- create mode 100644 security/landlock/cred.c
- create mode 100644 security/landlock/cred.h
- create mode 100644 security/landlock/setup.c
- create mode 100644 security/landlock/setup.h
-
-diff --git a/security/Kconfig b/security/Kconfig
-index 9d9981394fb0..76547b5c694d 100644
---- a/security/Kconfig
-+++ b/security/Kconfig
-@@ -278,11 +278,11 @@ endchoice
- 
- config LSM
- 	string "Ordered list of enabled LSMs"
--	default "lockdown,yama,loadpin,safesetid,integrity,smack,selinux,tomoyo,apparmor" if DEFAULT_SECURITY_SMACK
--	default "lockdown,yama,loadpin,safesetid,integrity,apparmor,selinux,smack,tomoyo" if DEFAULT_SECURITY_APPARMOR
--	default "lockdown,yama,loadpin,safesetid,integrity,tomoyo" if DEFAULT_SECURITY_TOMOYO
--	default "lockdown,yama,loadpin,safesetid,integrity" if DEFAULT_SECURITY_DAC
--	default "lockdown,yama,loadpin,safesetid,integrity,selinux,smack,tomoyo,apparmor"
-+	default "landlock,lockdown,yama,loadpin,safesetid,integrity,smack,selinux,tomoyo,apparmor" if DEFAULT_SECURITY_SMACK
-+	default "landlock,lockdown,yama,loadpin,safesetid,integrity,apparmor,selinux,smack,tomoyo" if DEFAULT_SECURITY_APPARMOR
-+	default "landlock,lockdown,yama,loadpin,safesetid,integrity,tomoyo" if DEFAULT_SECURITY_TOMOYO
-+	default "landlock,lockdown,yama,loadpin,safesetid,integrity" if DEFAULT_SECURITY_DAC
-+	default "landlock,lockdown,yama,loadpin,safesetid,integrity,selinux,smack,tomoyo,apparmor"
- 	help
- 	  A comma-separated list of LSMs, in initialization order.
- 	  Any LSMs left off this list will be ignored. This can be
-diff --git a/security/landlock/Makefile b/security/landlock/Makefile
-index d846eba445bb..041ea242e627 100644
---- a/security/landlock/Makefile
-+++ b/security/landlock/Makefile
-@@ -1,3 +1,4 @@
- obj-$(CONFIG_SECURITY_LANDLOCK) := landlock.o
- 
--landlock-y := object.o ruleset.o
-+landlock-y := setup.o object.o ruleset.o \
-+	cred.o
-diff --git a/security/landlock/cred.c b/security/landlock/cred.c
-new file mode 100644
-index 000000000000..69ef93e29a53
---- /dev/null
-+++ b/security/landlock/cred.c
-@@ -0,0 +1,47 @@
-+// SPDX-License-Identifier: GPL-2.0-only
-+/*
-+ * Landlock LSM - Credential hooks
-+ *
-+ * Copyright © 2017-2019 Mickaël Salaün <mic@digikod.net>
-+ * Copyright © 2018-2019 ANSSI
-+ */
-+
-+#include <linux/cred.h>
-+#include <linux/lsm_hooks.h>
-+
-+#include "cred.h"
-+#include "ruleset.h"
-+#include "setup.h"
-+
-+static int hook_cred_prepare(struct cred *new, const struct cred *old,
-+		gfp_t gfp)
-+{
-+	const struct landlock_cred_security *cred_old = landlock_cred(old);
-+	struct landlock_cred_security *cred_new = landlock_cred(new);
-+	struct landlock_ruleset *dom_old;
-+
-+	dom_old = cred_old->domain;
-+	if (dom_old) {
-+		landlock_get_ruleset(dom_old);
-+		cred_new->domain = dom_old;
-+	} else {
-+		cred_new->domain = NULL;
-+	}
-+	return 0;
-+}
-+
-+static void hook_cred_free(struct cred *cred)
-+{
-+	landlock_put_ruleset_enqueue(landlock_cred(cred)->domain);
-+}
-+
-+static struct security_hook_list landlock_hooks[] __lsm_ro_after_init = {
-+	LSM_HOOK_INIT(cred_prepare, hook_cred_prepare),
-+	LSM_HOOK_INIT(cred_free, hook_cred_free),
-+};
-+
-+__init void landlock_add_hooks_cred(void)
-+{
-+	security_add_hooks(landlock_hooks, ARRAY_SIZE(landlock_hooks),
-+			LANDLOCK_NAME);
-+}
-diff --git a/security/landlock/cred.h b/security/landlock/cred.h
-new file mode 100644
-index 000000000000..1e24682ee27e
---- /dev/null
-+++ b/security/landlock/cred.h
-@@ -0,0 +1,55 @@
-+/* SPDX-License-Identifier: GPL-2.0-only */
-+/*
-+ * Landlock LSM - Credential hooks
-+ *
-+ * Copyright © 2019 Mickaël Salaün <mic@digikod.net>
-+ * Copyright © 2019 ANSSI
-+ */
-+
-+#ifndef _SECURITY_LANDLOCK_CRED_H
-+#define _SECURITY_LANDLOCK_CRED_H
-+
-+#include <linux/cred.h>
-+#include <linux/init.h>
-+#include <linux/rcupdate.h>
-+
-+#include "ruleset.h"
-+#include "setup.h"
-+
-+struct landlock_cred_security {
-+	struct landlock_ruleset *domain;
-+};
-+
-+static inline struct landlock_cred_security *landlock_cred(
-+		const struct cred *cred)
-+{
-+	return cred->security + landlock_blob_sizes.lbs_cred;
-+}
-+
-+static inline struct landlock_ruleset *landlock_get_current_domain(void)
-+{
-+	return landlock_cred(current_cred())->domain;
-+}
-+
-+/*
-+ * The caller needs an RCU lock.
-+ */
-+static inline struct landlock_ruleset *landlock_get_task_domain(
-+		struct task_struct *task)
-+{
-+	return landlock_cred(__task_cred(task))->domain;
-+}
-+
-+static inline bool landlocked(struct task_struct *task)
-+{
-+	bool has_dom;
-+
-+	rcu_read_lock();
-+	has_dom = !!landlock_get_task_domain(task);
-+	rcu_read_unlock();
-+	return has_dom;
-+}
-+
-+__init void landlock_add_hooks_cred(void);
-+
-+#endif /* _SECURITY_LANDLOCK_CRED_H */
-diff --git a/security/landlock/setup.c b/security/landlock/setup.c
-new file mode 100644
-index 000000000000..fca5fa185465
---- /dev/null
-+++ b/security/landlock/setup.c
-@@ -0,0 +1,30 @@
-+// SPDX-License-Identifier: GPL-2.0-only
-+/*
-+ * Landlock LSM - Security framework setup
-+ *
-+ * Copyright © 2016-2020 Mickaël Salaün <mic@digikod.net>
-+ * Copyright © 2018-2020 ANSSI
-+ */
-+
-+#include <linux/init.h>
-+#include <linux/lsm_hooks.h>
-+
-+#include "cred.h"
-+#include "setup.h"
-+
-+struct lsm_blob_sizes landlock_blob_sizes __lsm_ro_after_init = {
-+	.lbs_cred = sizeof(struct landlock_cred_security),
-+};
-+
-+static int __init landlock_init(void)
-+{
-+	pr_info(LANDLOCK_NAME ": Registering hooks\n");
-+	landlock_add_hooks_cred();
-+	return 0;
-+}
-+
-+DEFINE_LSM(LANDLOCK_NAME) = {
-+	.name = LANDLOCK_NAME,
-+	.init = landlock_init,
-+	.blobs = &landlock_blob_sizes,
-+};
-diff --git a/security/landlock/setup.h b/security/landlock/setup.h
-new file mode 100644
-index 000000000000..52eb8d806376
---- /dev/null
-+++ b/security/landlock/setup.h
-@@ -0,0 +1,18 @@
-+/* SPDX-License-Identifier: GPL-2.0-only */
-+/*
-+ * Landlock LSM - Security framework setup
-+ *
-+ * Copyright © 2016-2020 Mickaël Salaün <mic@digikod.net>
-+ * Copyright © 2018-2020 ANSSI
-+ */
-+
-+#ifndef _SECURITY_LANDLOCK_SETUP_H
-+#define _SECURITY_LANDLOCK_SETUP_H
-+
-+#include <linux/lsm_hooks.h>
-+
-+#define LANDLOCK_NAME "landlock"
-+
-+extern struct lsm_blob_sizes landlock_blob_sizes;
-+
-+#endif /* _SECURITY_LANDLOCK_SETUP_H */
 -- 
-2.25.0
+H.J.
