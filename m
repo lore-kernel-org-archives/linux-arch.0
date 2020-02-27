@@ -1,95 +1,49 @@
-Return-Path: <SRS0=0XgO=4J=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:45608 "EHLO
-        merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728895AbgBUNuo (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 21 Feb 2020 08:50:44 -0500
-Message-ID: <20200221134216.747377168@infradead.org>
-Date: Fri, 21 Feb 2020 14:34:41 +0100
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: [PATCH v4 25/27] lib/bsearch: Provide __always_inline variant
-References: <20200221133416.777099322@infradead.org>
+Return-Path: <SRS0=BIEI=4P=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from foss.arm.com ([217.140.110.172]:55676 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1730705AbgB0Ron (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 27 Feb 2020 12:44:43 -0500
+From: Mark Brown <broonie@kernel.org>
+Subject: [PATCH v8 09/11] arm64: BTI: Reset BTYPE when skipping emulated instructions
+Date: Thu, 27 Feb 2020 17:44:15 +0000
+Message-ID: <20200227174417.23722-10-broonie@kernel.org>
+In-Reply-To: <20200227174417.23722-1-broonie@kernel.org>
+References: <20200227174417.23722-1-broonie@kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, rostedt@goodmis.org
-Cc: peterz@infradead.org, mingo@kernel.org, joel@joelfernandes.org, gregkh@linuxfoundation.org, gustavo@embeddedor.com, tglx@linutronix.de, paulmck@kernel.org, josh@joshtriplett.org, mathieu.desnoyers@efficios.com, jiangshanlai@gmail.com, luto@kernel.org, tony.luck@intel.com, frederic@kernel.org, dan.carpenter@oracle.com, mhiramat@kernel.org
-Message-ID: <20200221133441.c_KJuytLSmxIhDbQtrLpfZBrEJ5qltLklhrfYDdVl_o@z>
+To: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>
+Cc: Alexander Viro <viro@zeniv.linux.org.uk>, Paul Elliott <paul.elliott@arm.com>, Peter Zijlstra <peterz@infradead.org>, Yu-cheng Yu <yu-cheng.yu@intel.com>, Amit Kachhap <amit.kachhap@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Marc Zyngier <maz@kernel.org>, Eugene Syromiatnikov <esyr@redhat.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, "H . J . Lu " <hjl.tools@gmail.com>, Andrew Jones <drjones@redhat.com>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Jann Horn <jannh@google.com>, Richard Henderson <richard.henderson@linaro.org>, =?UTF-8?q?Kristina=20Mart=C5=A1enko?= <kristina.martsenko@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Florian Weimer <fweimer@redhat.com>, Sudakshina Das <sudi.das@arm.com>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, Dave Martin <Dave.Martin@arm.com>, Mark Brown <broonie@kernel.org>
+Message-ID: <20200227174415.OIWjjatIz2cMJ9ERnDmZhW_71tu1r02smPeuNsTC7Qg@z>
 
-For code that needs the ultimate performance (it can inline the @cmp
-function too) or simply needs to avoid calling external functions for
-whatever reason, provide an __always_inline variant of bsearch().
+From: Dave Martin <Dave.Martin@arm.com>
 
-Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+Since normal execution of any non-branch instruction resets the
+PSTATE BTYPE field to 0, so do the same thing when emulating a
+trapped instruction.
+
+Branches don't trap directly, so we should never need to assign a
+non-zero value to BTYPE here.
+
+Signed-off-by: Dave Martin <Dave.Martin@arm.com>
+Signed-off-by: Mark Brown <broonie@kernel.org>
 ---
- arch/x86/kernel/alternative.c |    9 ++++-----
- include/linux/bsearch.h       |   26 ++++++++++++++++++++++++--
- lib/bsearch.c                 |   22 ++--------------------
- 3 files changed, 30 insertions(+), 27 deletions(-)
+ arch/arm64/kernel/traps.c | 2 ++
+ 1 file changed, 2 insertions(+)
 
---- a/include/linux/bsearch.h
-+++ b/include/linux/bsearch.h
-@@ -4,7 +4,29 @@
+diff --git a/arch/arm64/kernel/traps.c b/arch/arm64/kernel/traps.c
+index 3c07a7074145..52ed261e7739 100644
+--- a/arch/arm64/kernel/traps.c
++++ b/arch/arm64/kernel/traps.c
+@@ -335,6 +335,8 @@ void arm64_skip_faulting_instruction(struct pt_regs *regs, unsigned long size)
  
- #include <linux/types.h>
- 
--void *bsearch(const void *key, const void *base, size_t num, size_t size,
--	      cmp_func_t cmp);
-+static __always_inline
-+void *__bsearch(const void *key, const void *base, size_t num, size_t size, cmp_func_t cmp)
-+{
-+	const char *pivot;
-+	int result;
-+
-+	while (num > 0) {
-+		pivot = base + (num >> 1) * size;
-+		result = cmp(key, pivot);
-+
-+		if (result == 0)
-+			return (void *)pivot;
-+
-+		if (result > 0) {
-+			base = pivot + size;
-+			num--;
-+		}
-+		num >>= 1;
-+	}
-+
-+	return NULL;
-+}
-+
-+extern void *bsearch(const void *key, const void *base, size_t num, size_t size, cmp_func_t cmp);
- 
- #endif /* _LINUX_BSEARCH_H */
---- a/lib/bsearch.c
-+++ b/lib/bsearch.c
-@@ -28,27 +28,9 @@
-  * the key and elements in the array are of the same type, you can use
-  * the same comparison function for both sort() and bsearch().
-  */
--void *bsearch(const void *key, const void *base, size_t num, size_t size,
--	      cmp_func_t cmp)
-+void *bsearch(const void *key, const void *base, size_t num, size_t size, cmp_func_t cmp)
- {
--	const char *pivot;
--	int result;
--
--	while (num > 0) {
--		pivot = base + (num >> 1) * size;
--		result = cmp(key, pivot);
--
--		if (result == 0)
--			return (void *)pivot;
--
--		if (result > 0) {
--			base = pivot + size;
--			num--;
--		}
--		num >>= 1;
--	}
--
--	return NULL;
-+	return __bsearch(key, base, num, size, cmp);
+ 	if (compat_user_mode(regs))
+ 		advance_itstate(regs);
++	else
++		regs->pstate &= ~PSR_BTYPE_MASK;
  }
- EXPORT_SYMBOL(bsearch);
- NOKPROBE_SYMBOL(bsearch);
+ 
+ static LIST_HEAD(undef_hook);
+-- 
+2.20.1
