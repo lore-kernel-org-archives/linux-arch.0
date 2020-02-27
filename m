@@ -1,223 +1,107 @@
-Return-Path: <SRS0=0XgO=4J=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:45628 "EHLO
-        merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728913AbgBUNup (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 21 Feb 2020 08:50:45 -0500
-Message-ID: <20200221134215.149193474@infradead.org>
-Date: Fri, 21 Feb 2020 14:34:18 +0100
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: [PATCH v4 02/27] hardirq/nmi: Allow nested nmi_enter()
-References: <20200221133416.777099322@infradead.org>
+Return-Path: <SRS0=BIEI=4P=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from foss.arm.com ([217.140.110.172]:55620 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1730666AbgB0Roi (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 27 Feb 2020 12:44:38 -0500
+From: Mark Brown <broonie@kernel.org>
+Subject: [PATCH v8 07/11] arm64: unify native/compat instruction skipping
+Date: Thu, 27 Feb 2020 17:44:13 +0000
+Message-ID: <20200227174417.23722-8-broonie@kernel.org>
+In-Reply-To: <20200227174417.23722-1-broonie@kernel.org>
+References: <20200227174417.23722-1-broonie@kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, rostedt@goodmis.org
-Cc: peterz@infradead.org, mingo@kernel.org, joel@joelfernandes.org, gregkh@linuxfoundation.org, gustavo@embeddedor.com, tglx@linutronix.de, paulmck@kernel.org, josh@joshtriplett.org, mathieu.desnoyers@efficios.com, jiangshanlai@gmail.com, luto@kernel.org, tony.luck@intel.com, frederic@kernel.org, dan.carpenter@oracle.com, mhiramat@kernel.org, Will Deacon <will@kernel.org>, Petr Mladek <pmladek@suse.com>, Marc Zyngier <maz@kernel.org>
-Message-ID: <20200221133418.YVhvQRA1XaHSIQiqqLp1V2OefMrgtHt2Va-6jMN87WE@z>
+To: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>
+Cc: Alexander Viro <viro@zeniv.linux.org.uk>, Paul Elliott <paul.elliott@arm.com>, Peter Zijlstra <peterz@infradead.org>, Yu-cheng Yu <yu-cheng.yu@intel.com>, Amit Kachhap <amit.kachhap@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Marc Zyngier <maz@kernel.org>, Eugene Syromiatnikov <esyr@redhat.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, "H . J . Lu " <hjl.tools@gmail.com>, Andrew Jones <drjones@redhat.com>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Jann Horn <jannh@google.com>, Richard Henderson <richard.henderson@linaro.org>, =?UTF-8?q?Kristina=20Mart=C5=A1enko?= <kristina.martsenko@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Florian Weimer <fweimer@redhat.com>, Sudakshina Das <sudi.das@arm.com>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, Dave Martin <Dave.Martin@arm.com>, Mark Rutland <mark.rutland@arm.com>, Mark Brown <broonie@kernel.org>
+Message-ID: <20200227174413.aQcMKFb3WfeuLpa-MWjZ1EYXweRQhggmqbr_-LTEraQ@z>
 
-Since there are already a number of sites (ARM64, PowerPC) that
-effectively nest nmi_enter(), lets make the primitive support this
-before adding even more.
+From: Dave Martin <Dave.Martin@arm.com>
 
-Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
-Reviewed-by: Petr Mladek <pmladek@suse.com>
-Acked-by: Will Deacon <will@kernel.org>
-Acked-by: Marc Zyngier <maz@kernel.org>
+Skipping of an instruction on AArch32 works a bit differently from
+AArch64, mainly due to the different CPSR/PSTATE semantics.
+
+Currently arm64_skip_faulting_instruction() is only suitable for
+AArch64, and arm64_compat_skip_faulting_instruction() handles the IT
+state machine but is local to traps.c.
+
+Since manual instruction skipping implies a trap, it's a relatively
+slow path.
+
+So, make arm64_skip_faulting_instruction() handle both compat and
+native, and get rid of the arm64_compat_skip_faulting_instruction()
+special case.
+
+Signed-off-by: Dave Martin <Dave.Martin@arm.com>
+Reviewed-by: Mark Rutland <mark.rutland@arm.com>
+Reviewed-by: Kees Cook <keescook@chromium.org>
+Signed-off-by: Mark Brown <broonie@kernel.org>
 ---
- arch/arm64/include/asm/hardirq.h |    4 ++--
- arch/arm64/kernel/sdei.c         |   14 ++------------
- arch/arm64/kernel/traps.c        |    8 ++------
- arch/powerpc/kernel/traps.c      |   22 ++++++----------------
- include/linux/hardirq.h          |    5 ++++-
- include/linux/preempt.h          |    4 ++--
- kernel/printk/printk_safe.c      |    6 ++++--
- 7 files changed, 22 insertions(+), 41 deletions(-)
+ arch/arm64/kernel/traps.c | 18 ++++++++----------
+ 1 file changed, 8 insertions(+), 10 deletions(-)
 
---- a/arch/arm64/include/asm/hardirq.h
-+++ b/arch/arm64/include/asm/hardirq.h
-@@ -38,7 +38,7 @@ DECLARE_PER_CPU(struct nmi_ctx, nmi_cont
- 
- #define arch_nmi_enter()							\
- 	do {									\
--		if (is_kernel_in_hyp_mode()) {					\
-+		if (is_kernel_in_hyp_mode() && !in_nmi()) {			\
- 			struct nmi_ctx *nmi_ctx = this_cpu_ptr(&nmi_contexts);	\
- 			nmi_ctx->hcr = read_sysreg(hcr_el2);			\
- 			if (!(nmi_ctx->hcr & HCR_TGE)) {			\
-@@ -50,7 +50,7 @@ DECLARE_PER_CPU(struct nmi_ctx, nmi_cont
- 
- #define arch_nmi_exit()								\
- 	do {									\
--		if (is_kernel_in_hyp_mode()) {					\
-+		if (is_kernel_in_hyp_mode() && !in_nmi()) {			\
- 			struct nmi_ctx *nmi_ctx = this_cpu_ptr(&nmi_contexts);	\
- 			if (!(nmi_ctx->hcr & HCR_TGE))				\
- 				write_sysreg(nmi_ctx->hcr, hcr_el2);		\
---- a/arch/arm64/kernel/sdei.c
-+++ b/arch/arm64/kernel/sdei.c
-@@ -251,22 +251,12 @@ asmlinkage __kprobes notrace unsigned lo
- __sdei_handler(struct pt_regs *regs, struct sdei_registered_event *arg)
- {
- 	unsigned long ret;
--	bool do_nmi_exit = false;
- 
--	/*
--	 * nmi_enter() deals with printk() re-entrance and use of RCU when
--	 * RCU believed this CPU was idle. Because critical events can
--	 * interrupt normal events, we may already be in_nmi().
--	 */
--	if (!in_nmi()) {
--		nmi_enter();
--		do_nmi_exit = true;
--	}
-+	nmi_enter();
- 
- 	ret = _sdei_handler(regs, arg);
- 
--	if (do_nmi_exit)
--		nmi_exit();
-+	nmi_exit();
- 
- 	return ret;
- }
+diff --git a/arch/arm64/kernel/traps.c b/arch/arm64/kernel/traps.c
+index b8c714dda851..bc9f4292bfc3 100644
 --- a/arch/arm64/kernel/traps.c
 +++ b/arch/arm64/kernel/traps.c
-@@ -906,17 +906,13 @@ bool arm64_is_fatal_ras_serror(struct pt
- 
- asmlinkage void do_serror(struct pt_regs *regs, unsigned int esr)
- {
--	const bool was_in_nmi = in_nmi();
--
--	if (!was_in_nmi)
--		nmi_enter();
-+	nmi_enter();
- 
- 	/* non-RAS errors are not containable */
- 	if (!arm64_is_ras_serror(esr) || arm64_is_fatal_ras_serror(regs, esr))
- 		arm64_serror_panic(regs, esr);
- 
--	if (!was_in_nmi)
--		nmi_exit();
-+	nmi_exit();
+@@ -272,6 +272,8 @@ void arm64_notify_die(const char *str, struct pt_regs *regs,
+ 	}
  }
  
- asmlinkage void enter_from_user_mode(void)
---- a/arch/powerpc/kernel/traps.c
-+++ b/arch/powerpc/kernel/traps.c
-@@ -441,15 +441,9 @@ void hv_nmi_check_nonrecoverable(struct
- void system_reset_exception(struct pt_regs *regs)
++static void advance_itstate(struct pt_regs *regs);
++
+ void arm64_skip_faulting_instruction(struct pt_regs *regs, unsigned long size)
  {
- 	unsigned long hsrr0, hsrr1;
--	bool nested = in_nmi();
- 	bool saved_hsrrs = false;
+ 	regs->pc += size;
+@@ -282,6 +284,9 @@ void arm64_skip_faulting_instruction(struct pt_regs *regs, unsigned long size)
+ 	 */
+ 	if (user_mode(regs))
+ 		user_fastforward_single_step(current);
++
++	if (regs->pstate & PSR_MODE32_BIT)
++		advance_itstate(regs);
+ }
  
--	/*
--	 * Avoid crashes in case of nested NMI exceptions. Recoverability
--	 * is determined by RI and in_nmi
--	 */
--	if (!nested)
--		nmi_enter();
-+	nmi_enter();
+ static LIST_HEAD(undef_hook);
+@@ -644,19 +649,12 @@ static void advance_itstate(struct pt_regs *regs)
+ 	compat_set_it_state(regs, it);
+ }
  
- 	/*
- 	 * System reset can interrupt code where HSRRs are live and MSR[RI]=1.
-@@ -521,8 +515,7 @@ void system_reset_exception(struct pt_re
- 		mtspr(SPRN_HSRR1, hsrr1);
+-static void arm64_compat_skip_faulting_instruction(struct pt_regs *regs,
+-						   unsigned int sz)
+-{
+-	advance_itstate(regs);
+-	arm64_skip_faulting_instruction(regs, sz);
+-}
+-
+ static void compat_cntfrq_read_handler(unsigned int esr, struct pt_regs *regs)
+ {
+ 	int reg = (esr & ESR_ELx_CP15_32_ISS_RT_MASK) >> ESR_ELx_CP15_32_ISS_RT_SHIFT;
+ 
+ 	pt_regs_write_reg(regs, reg, arch_timer_get_rate());
+-	arm64_compat_skip_faulting_instruction(regs, 4);
++	arm64_skip_faulting_instruction(regs, 4);
+ }
+ 
+ static const struct sys64_hook cp15_32_hooks[] = {
+@@ -676,7 +674,7 @@ static void compat_cntvct_read_handler(unsigned int esr, struct pt_regs *regs)
+ 
+ 	pt_regs_write_reg(regs, rt, lower_32_bits(val));
+ 	pt_regs_write_reg(regs, rt2, upper_32_bits(val));
+-	arm64_compat_skip_faulting_instruction(regs, 4);
++	arm64_skip_faulting_instruction(regs, 4);
+ }
+ 
+ static const struct sys64_hook cp15_64_hooks[] = {
+@@ -697,7 +695,7 @@ void do_cp15instr(unsigned int esr, struct pt_regs *regs)
+ 		 * There is no T16 variant of a CP access, so we
+ 		 * always advance PC by 4 bytes.
+ 		 */
+-		arm64_compat_skip_faulting_instruction(regs, 4);
++		arm64_skip_faulting_instruction(regs, 4);
+ 		return;
  	}
  
--	if (!nested)
--		nmi_exit();
-+	nmi_exit();
- 
- 	/* What should we do here? We could issue a shutdown or hard reset. */
- }
-@@ -823,9 +816,8 @@ int machine_check_generic(struct pt_regs
- void machine_check_exception(struct pt_regs *regs)
- {
- 	int recover = 0;
--	bool nested = in_nmi();
--	if (!nested)
--		nmi_enter();
-+
-+	nmi_enter();
- 
- 	__this_cpu_inc(irq_stat.mce_exceptions);
- 
-@@ -851,8 +843,7 @@ void machine_check_exception(struct pt_r
- 	if (check_io_access(regs))
- 		goto bail;
- 
--	if (!nested)
--		nmi_exit();
-+	nmi_exit();
- 
- 	die("Machine check", regs, SIGBUS);
- 
-@@ -863,8 +854,7 @@ void machine_check_exception(struct pt_r
- 	return;
- 
- bail:
--	if (!nested)
--		nmi_exit();
-+	nmi_exit();
- }
- 
- void SMIException(struct pt_regs *regs)
---- a/include/linux/hardirq.h
-+++ b/include/linux/hardirq.h
-@@ -65,13 +65,16 @@ extern void irq_exit(void);
- #define arch_nmi_exit()		do { } while (0)
- #endif
- 
-+/*
-+ * nmi_enter() can nest up to 15 times; see NMI_BITS.
-+ */
- #define nmi_enter()						\
- 	do {							\
- 		arch_nmi_enter();				\
- 		printk_nmi_enter();				\
- 		lockdep_off();					\
- 		ftrace_nmi_enter();				\
--		BUG_ON(in_nmi());				\
-+		BUG_ON(in_nmi() == NMI_MASK);			\
- 		preempt_count_add(NMI_OFFSET + HARDIRQ_OFFSET);	\
- 		rcu_nmi_enter();				\
- 		trace_hardirq_enter();				\
---- a/include/linux/preempt.h
-+++ b/include/linux/preempt.h
-@@ -26,13 +26,13 @@
-  *         PREEMPT_MASK:	0x000000ff
-  *         SOFTIRQ_MASK:	0x0000ff00
-  *         HARDIRQ_MASK:	0x000f0000
-- *             NMI_MASK:	0x00100000
-+ *             NMI_MASK:	0x00f00000
-  * PREEMPT_NEED_RESCHED:	0x80000000
-  */
- #define PREEMPT_BITS	8
- #define SOFTIRQ_BITS	8
- #define HARDIRQ_BITS	4
--#define NMI_BITS	1
-+#define NMI_BITS	4
- 
- #define PREEMPT_SHIFT	0
- #define SOFTIRQ_SHIFT	(PREEMPT_SHIFT + PREEMPT_BITS)
---- a/kernel/printk/printk_safe.c
-+++ b/kernel/printk/printk_safe.c
-@@ -296,12 +296,14 @@ static __printf(1, 0) int vprintk_nmi(co
- 
- void notrace printk_nmi_enter(void)
- {
--	this_cpu_or(printk_context, PRINTK_NMI_CONTEXT_MASK);
-+	if (!in_nmi())
-+		this_cpu_or(printk_context, PRINTK_NMI_CONTEXT_MASK);
- }
- 
- void notrace printk_nmi_exit(void)
- {
--	this_cpu_and(printk_context, ~PRINTK_NMI_CONTEXT_MASK);
-+	if (!in_nmi())
-+		this_cpu_and(printk_context, ~PRINTK_NMI_CONTEXT_MASK);
- }
- 
- /*
+-- 
+2.20.1
