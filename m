@@ -1,69 +1,43 @@
-From: Anshuman Khandual <anshuman.khandual@arm.com>
-Subject: Re: [PATCH V14] mm/debug: Add tests validating architecture page
- table helpers
-Date: Thu, 27 Feb 2020 08:04:05 +0530
-Message-ID: <52db1e9b-83b3-c41f-ef03-0f43e2159a83@arm.com>
-References: <1581909460-19148-1-git-send-email-anshuman.khandual@arm.com>
- <1582726182.7365.123.camel@lca.pw> <1582726340.7365.124.camel@lca.pw>
- <eb154054-68ab-a659-065b-f4f7dcbb8671@c-s.fr>
-Mime-Version: 1.0
+From: Andy Lutomirski <luto@amacapital.net>
+Subject: Re: [RFC PATCH v9 05/27] x86/cet/shstk: Add Kconfig option for user-mode Shadow Stack protection
+Date: Wed, 26 Feb 2020 19:57:01 -0800
+Message-ID: <FF42D299-D7A4-4884-9E45-DBEB5853FE56@amacapital.net>
+References: <CAMe9rOqhf4y+e6h8i7P8+70pwLSg8n=ise6LEqABNPKarECdeA@mail.gmail.com>
+Mime-Version: 1.0 (1.0)
 Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 8bit
+Content-Transfer-Encoding: quoted-printable
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:44794 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1728164AbgB0CeS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 26 Feb 2020 21:34:18 -0500
-In-Reply-To: <eb154054-68ab-a659-065b-f4f7dcbb8671@c-s.fr>
-Content-Language: en-US
+Received: from mail-pf1-f193.google.com ([209.85.210.193]:43199 "EHLO
+        mail-pf1-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1728266AbgB0D5F (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 26 Feb 2020 22:57:05 -0500
+Received: by mail-pf1-f193.google.com with SMTP id s1so883145pfh.10
+        for <linux-arch@vger.kernel.org>; Wed, 26 Feb 2020 19:57:05 -0800 (PST)
+In-Reply-To: <CAMe9rOqhf4y+e6h8i7P8+70pwLSg8n=ise6LEqABNPKarECdeA@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Christophe Leroy <christophe.leroy@c-s.fr>, Qian Cai <cai@lca.pw>, linux-mm@kvack.org
-Cc: Andrew Morton <akpm@linux-foundation.org>, Mike Rapoport <rppt@linux.ibm.com>, Vineet Gupta <vgupta@synopsys.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Heiko Carstens <heiko.carstens@de.ibm.com>, Vasily Gorbik <gor@linux.ibm.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, "Kirill A . Shutemov" <kirill@shutemov.name>, Paul Walmsley <paul.walmsley@sifive.com>, Palmer Dabbelt <palmer@dabbelt.com>, linux-snps-arc@lists.infradead.org, linux-arm-kern
-
-On 02/26/2020 08:14 PM, Christophe Leroy wrote:
-> 
-> 
-> Le 26/02/2020 à 15:12, Qian Cai a écrit :
->> On Wed, 2020-02-26 at 09:09 -0500, Qian Cai wrote:
->>> On Mon, 2020-02-17 at 08:47 +0530, Anshuman Khandual wrote:
->>>
->>> How useful is this that straightly crash the powerpc?
->>
->> And then generate warnings on arm64,
->>
->> [  146.634626][    T1] debug_vm_pgtable: debug_vm_pgtable: Validating
->> architecture page table helpers
->> [  146.643995][    T1] ------------[ cut here ]------------
->> [  146.649350][    T1] virt_to_phys used for non-linear address:
->> (____ptrval____) (start_kernel+0x0/0x580)
-> 
-> Must be something wrong with the following in debug_vm_pgtable()
-> 
->     paddr = __pa(&start_kernel);
-> 
-> Is there any explaination why start_kernel() is not in linear memory on ARM64 ?
+To: "H.J. Lu" <hjl.tools@gmail.com>
+Cc: Dave Hansen <dave.hansen@intel.com>, Yu-cheng Yu <yu-cheng.yu@intel.com>, the arch/x86 maintainers <x86@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, LKML <linux-kernel@vger.kernel.org>, linux-doc@vger.kernel.org, Linux-MM <linux-mm@kvack.org>, linux-arch <linux-arch@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>
 
 
-Cc: + James Morse <james.morse@arm.com>
+> On Feb 26, 2020, at 6:11 PM, H.J. Lu <hjl.tools@gmail.com> wrote:
+>=20
+> =EF=BB=BFOn Wed, Feb 26, 2020 at 5:16 PM Dave Hansen <dave.hansen@intel.co=
+m> wrote:
+>>=20
+>> On 2/26/20 5:02 PM, H.J. Lu wrote:
+>>>> That way everybody with old toolchains can still build the kernel (and
+>>>> run/test code with your config option on, btw...).
+>>> CET requires a complete new OS image from kernel, toolchain, run-time.
+>>> CET enabled kernel without the rest of updated OS won't give you CET
+>>> at all.
+>>=20
+>> If you require a new toolchain, nobody even builds your fancy feature.
+>> Probably including 0day and all of the lazy maintainers with crufty old
+>> distros.
+>=20
+> GCC 8 or above is needed since vDSO must be compiled with
+> --fcf-protection=3Dbranch.
 
-This warning gets exposed with DEBUG_VIRTUAL due to __pa() on a kernel symbol
-i.e 'start_kernel' which might be outside the linear map. This happens due to
-kernel mapping position randomization with KASLR. Adding James here in case he
-might like to add more.
-
-__pa_symbol() should have been used instead, for accessing the physical address
-here. On arm64 __pa() does check for linear address with __is_lm_address() and
-switch accordingly if it is a kernel text symbol. Nevertheless, its much better
-to use __pa_symbol() here rather than __pa().
-
-Rather than respining the patch once more, will just send a fix replacing this
-helper __pa() with __pa_symbol() for Andrew to pick up as this patch is already
-part of linux-next (next-20200226). But can definitely respin if that will be
-preferred.
-
-Thanks Qian for catching this.
-
-> 
-> Christophe
-> 
+Fair enough. I don=E2=80=99t particularly want to carry a gross hack to add t=
+he ENDBRANCHes without compiler support.
