@@ -1,53 +1,67 @@
 From: Boqun Feng <boqun.feng@gmail.com>
-Subject: [PATCH v3 1/5] tools/memory-model: Add an exception for limitations on _unless() family
-Date: Thu, 27 Feb 2020 08:40:45 +0800
-Message-ID: <20200227004049.6853-2-boqun.feng@gmail.com>
+Subject: [PATCH v3 2/5] Documentation/locking/atomic: Fix atomic-set litmus test
+Date: Thu, 27 Feb 2020 08:40:46 +0800
+Message-ID: <20200227004049.6853-3-boqun.feng@gmail.com>
 References: <20200227004049.6853-1-boqun.feng@gmail.com>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qk1-f195.google.com ([209.85.222.195]:39473 "EHLO
-        mail-qk1-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727987AbgB0AlF (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 26 Feb 2020 19:41:05 -0500
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20200227004049.6853-1-boqun.feng@gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org
 Cc: Alan Stern <stern@rowland.harvard.edu>, Andrea Parri <parri.andrea@gmail.com>, Will Deacon <will@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Boqun Feng <boqun.feng@gmail.com>, Nicholas Piggin <npiggin@gmail.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, "Paul E. McKenney" <paulmck@kernel.org>, Akira Yokosawa <akiyks@gmail.com>, Daniel Lustig <dlustig@nvidia.com>, Jonathan Corbet <corbet@lwn.net>, Mauro Carvalho Chehab <mchehab+samsung@kernel.org>, "David S. Miller" <davem@davemloft.net>, Rob Herring <robh@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jonathan Cameron <Jonathan.Cameron@huawei.com>, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-According to Luc, atomic_add_unless() is directly provided by herd7,
-therefore it can be used in litmus tests. So change the limitation
-section in README to unlimit the use of atomic_add_unless().
+Currently the litmus test "atomic-set" in atomic_t.txt has a few things
+to be improved:
 
-Cc: Luc Maranget <luc.maranget@inria.fr>
+1)	The CPU/Processor numbers "P1,P2" are not only inconsistent with
+	the rest of the document, which uses "CPU0" and "CPU1", but also
+	unacceptable by the herd tool, which requires processors start
+	at "P0".
+
+2)	The initialization block uses a "atomic_set()", which is OK, but
+	it's better to use ATOMIC_INIT() to make clear this is an
+	initialization.
+
+3)	The return value of atomic_add_unless() is discarded
+	inexplicitly, which is OK for C language, but it will be helpful
+	to the herd tool if we use a void cast to make the discard
+	explicit.
+
+Therefore fix these and this is the preparation for adding the litmus
+test into memory-model litmus-tests directory so that people can
+understand better about our requirements of atomic APIs and klitmus tool
+can be used to generate tests.
+
 Signed-off-by: Boqun Feng <boqun.feng@gmail.com>
 ---
- tools/memory-model/README | 10 +++++++---
- 1 file changed, 7 insertions(+), 3 deletions(-)
+ Documentation/atomic_t.txt | 8 ++++----
+ 1 file changed, 4 insertions(+), 4 deletions(-)
 
-diff --git a/tools/memory-model/README b/tools/memory-model/README
-index fc07b52f2028..409211b1c544 100644
---- a/tools/memory-model/README
-+++ b/tools/memory-model/README
-@@ -207,11 +207,15 @@ The Linux-kernel memory model (LKMM) has the following limitations:
- 		case as a store release.
+diff --git a/Documentation/atomic_t.txt b/Documentation/atomic_t.txt
+index 0ab747e0d5ac..ceb85ada378e 100644
+--- a/Documentation/atomic_t.txt
++++ b/Documentation/atomic_t.txt
+@@ -91,15 +91,15 @@ ops. That is:
+   C atomic-set
  
- 	b.	The "unless" RMW operations are not currently modeled:
--		atomic_long_add_unless(), atomic_add_unless(),
--		atomic_inc_unless_negative(), and
--		atomic_dec_unless_positive().  These can be emulated
-+		atomic_long_add_unless(), atomic_inc_unless_negative(),
-+		and atomic_dec_unless_positive().  These can be emulated
- 		in litmus tests, for example, by using atomic_cmpxchg().
+   {
+-    atomic_set(v, 1);
++    atomic_t v = ATOMIC_INIT(1);
+   }
  
-+		One exception of this limitation is atomic_add_unless(),
-+		which is provided directly by herd7 (so no corresponding
-+		definition in linux-kernel.def). atomic_add_unless() is
-+		modeled by herd7 therefore it can be used in litmus tests.
-+
- 	c.	The call_rcu() function is not modeled.  It can be
- 		emulated in litmus tests by adding another process that
- 		invokes synchronize_rcu() and the body of the callback
+-  P1(atomic_t *v)
++  P0(atomic_t *v)
+   {
+-    atomic_add_unless(v, 1, 0);
++    (void)atomic_add_unless(v, 1, 0);
+   }
+ 
+-  P2(atomic_t *v)
++  P1(atomic_t *v)
+   {
+     atomic_set(v, 0);
+   }
 -- 
 2.25.0
