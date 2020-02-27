@@ -1,146 +1,56 @@
-Return-Path: <SRS0=e/bK=4N=vger.kernel.org=linux-doc-owner@kernel.org>
-Date: Tue, 25 Feb 2020 12:14:34 -0800
-From: Kees Cook <keescook@chromium.org>
-Subject: Re: [RFC PATCH v9 12/27] x86/mm: Modify ptep_set_wrprotect and
- pmdp_set_wrprotect for _PAGE_DIRTY_SW
-Message-ID: <202002251214.8B2063AA87@keescook>
+Return-Path: <SRS0=WXCa=4P=vger.kernel.org=linux-doc-owner@kernel.org>
+Subject: Re: [RFC PATCH v9 16/27] mm: Update can_follow_write_pte() for Shadow
+ Stack
 References: <20200205181935.3712-1-yu-cheng.yu@intel.com>
- <20200205181935.3712-13-yu-cheng.yu@intel.com>
+ <20200205181935.3712-17-yu-cheng.yu@intel.com>
+From: Dave Hansen <dave.hansen@intel.com>
+Message-ID: <fc4f65ef-ce4b-9410-5586-5f4637c249bc@intel.com>
+Date: Wed, 26 Feb 2020 16:34:49 -0800
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20200205181935.3712-13-yu-cheng.yu@intel.com>
+In-Reply-To: <20200205181935.3712-17-yu-cheng.yu@intel.com>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
+Content-Transfer-Encoding: 8bit
 Sender: linux-doc-owner@vger.kernel.org
-To: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Cc: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>, x86-patch-review@intel.com
+To: Yu-cheng Yu <yu-cheng.yu@intel.com>, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>, x86-patch-review@intel.com
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200225201434.bK1y4lZIPjd2tCa1KCIAegEdUQycnDU2O0Zy2c15j4w@z>
+Message-ID: <20200227003449.m1Odq6o8r3KR37ipT3MkvMz3SJImfb7OirrHMixQ7xQ@z>
 
-On Wed, Feb 05, 2020 at 10:19:20AM -0800, Yu-cheng Yu wrote:
-> When Shadow Stack (SHSTK) is enabled, the [R/O + PAGE_DIRTY_HW] setting is
-> reserved only for SHSTK.  Non-Shadow Stack R/O PTEs are
-> [R/O + PAGE_DIRTY_SW].
-> 
-> When a PTE goes from [R/W + PAGE_DIRTY_HW] to [R/O + PAGE_DIRTY_SW], it
-> could become a transient SHSTK PTE in two cases.
-> 
-> The first case is that some processors can start a write but end up seeing
-> a read-only PTE by the time they get to the Dirty bit, creating a transient
-> SHSTK PTE.  However, this will not occur on processors supporting SHSTK
-> therefore we don't need a TLB flush here.
-> 
-> The second case is that when the software, without atomic, tests & replaces
-> PAGE_DIRTY_HW with PAGE_DIRTY_SW, a transient SHSTK PTE can exist.  This is
-> prevented with cmpxchg.
-> 
-> Dave Hansen, Jann Horn, Andy Lutomirski, and Peter Zijlstra provided many
-> insights to the issue.  Jann Horn provided the cmpxchg solution.
-> 
-> v9:
-> - Change compile-time conditionals to runtime checks.
-> - Fix parameters of try_cmpxchg(): change pte_t/pmd_t to
->   pte_t.pte/pmd_t.pmd.
-> 
-> v4:
-> - Implement try_cmpxchg().
-> 
-> Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
+> +inline bool pte_exclusive(pte_t pte, struct vm_area_struct *vma)
+> +{
+> +	if (vma->vm_flags & VM_SHSTK)
+> +		return pte_dirty_hw(pte);
+> +	else
+> +		return pte_dirty(pte);
+> +}
 
-Reviewed-by: Kees Cook <keescook@chromium.org>
+I'm not really getting the naming.  What is exclusive?
 
--Kees
+> diff --git a/mm/gup.c b/mm/gup.c
+> index 7646bf993b25..d1dbfbde8443 100644
+> --- a/mm/gup.c
+> +++ b/mm/gup.c
+> @@ -164,10 +164,12 @@ static int follow_pfn_pte(struct vm_area_struct *vma, unsigned long address,
+>   * FOLL_FORCE can write to even unwritable pte's, but only
+>   * after we've gone through a COW cycle and they are dirty.
+>   */
+> -static inline bool can_follow_write_pte(pte_t pte, unsigned int flags)
+> +static inline bool can_follow_write(pte_t pte, unsigned int flags,
+> +				    struct vm_area_struct *vma)
 
-> ---
->  arch/x86/include/asm/pgtable.h | 66 ++++++++++++++++++++++++++++++++++
->  1 file changed, 66 insertions(+)
-> 
-> diff --git a/arch/x86/include/asm/pgtable.h b/arch/x86/include/asm/pgtable.h
-> index 2733e7ec16b3..43cb27379208 100644
-> --- a/arch/x86/include/asm/pgtable.h
-> +++ b/arch/x86/include/asm/pgtable.h
-> @@ -1253,6 +1253,39 @@ static inline pte_t ptep_get_and_clear_full(struct mm_struct *mm,
->  static inline void ptep_set_wrprotect(struct mm_struct *mm,
->  				      unsigned long addr, pte_t *ptep)
+Having two identically named functions in two files in the same
+subsystem seems like a recipe for confusion when I grep or cscope for
+things.  It hardly seems worth the 4 characters of space savings IMNHO.
+
 >  {
-> +	/*
-> +	 * Some processors can start a write, but end up seeing a read-only
-> +	 * PTE by the time they get to the Dirty bit.  In this case, they
-> +	 * will set the Dirty bit, leaving a read-only, Dirty PTE which
-> +	 * looks like a Shadow Stack PTE.
-> +	 *
-> +	 * However, this behavior has been improved and will not occur on
-> +	 * processors supporting Shadow Stack.  Without this guarantee, a
-> +	 * transition to a non-present PTE and flush the TLB would be
-> +	 * needed.
-> +	 *
-> +	 * When changing a writable PTE to read-only and if the PTE has
-> +	 * _PAGE_DIRTY_HW set, we move that bit to _PAGE_DIRTY_SW so that
-> +	 * the PTE is not a valid Shadow Stack PTE.
-> +	 */
-> +#ifdef CONFIG_X86_64
-> +	if (static_cpu_has(X86_FEATURE_SHSTK)) {
-> +		pte_t new_pte, pte = READ_ONCE(*ptep);
-> +
-> +		do {
-> +			/*
-> +			 * This is the same as moving _PAGE_DIRTY_HW
-> +			 * to _PAGE_DIRTY_SW.
-> +			 */
-> +			new_pte = pte_wrprotect(pte);
-> +			new_pte.pte |= (new_pte.pte & _PAGE_DIRTY_HW) >>
-> +					_PAGE_BIT_DIRTY_HW << _PAGE_BIT_DIRTY_SW;
-> +			new_pte.pte &= ~_PAGE_DIRTY_HW;
-> +		} while (!try_cmpxchg(&ptep->pte, &pte.pte, new_pte.pte));
-> +
-> +		return;
-> +	}
-> +#endif
->  	clear_bit(_PAGE_BIT_RW, (unsigned long *)&ptep->pte);
+>  	return pte_write(pte) ||
+> -		((flags & FOLL_FORCE) && (flags & FOLL_COW) && pte_dirty(pte));
+> +		((flags & FOLL_FORCE) && (flags & FOLL_COW) &&
+> +		 pte_exclusive(pte, vma));
 >  }
->  
-> @@ -1303,6 +1336,39 @@ static inline pud_t pudp_huge_get_and_clear(struct mm_struct *mm,
->  static inline void pmdp_set_wrprotect(struct mm_struct *mm,
->  				      unsigned long addr, pmd_t *pmdp)
->  {
-> +	/*
-> +	 * Some processors can start a write, but end up seeing a read-only
-> +	 * PMD by the time they get to the Dirty bit.  In this case, they
-> +	 * will set the Dirty bit, leaving a read-only, Dirty PMD which
-> +	 * looks like a Shadow Stack PMD.
-> +	 *
-> +	 * However, this behavior has been improved and will not occur on
-> +	 * processors supporting Shadow Stack.  Without this guarantee, a
-> +	 * transition to a non-present PMD and flush the TLB would be
-> +	 * needed.
-> +	 *
-> +	 * When changing a writable PMD to read-only and if the PMD has
-> +	 * _PAGE_DIRTY_HW set, we move that bit to _PAGE_DIRTY_SW so that
-> +	 * the PMD is not a valid Shadow Stack PMD.
-> +	 */
-> +#ifdef CONFIG_X86_64
-> +	if (static_cpu_has(X86_FEATURE_SHSTK)) {
-> +		pmd_t new_pmd, pmd = READ_ONCE(*pmdp);
-> +
-> +		do {
-> +			/*
-> +			 * This is the same as moving _PAGE_DIRTY_HW
-> +			 * to _PAGE_DIRTY_SW.
-> +			 */
-> +			new_pmd = pmd_wrprotect(pmd);
-> +			new_pmd.pmd |= (new_pmd.pmd & _PAGE_DIRTY_HW) >>
-> +					_PAGE_BIT_DIRTY_HW << _PAGE_BIT_DIRTY_SW;
-> +			new_pmd.pmd &= ~_PAGE_DIRTY_HW;
-> +		} while (!try_cmpxchg(&pmdp->pmd, &pmd.pmd, new_pmd.pmd));
-> +
-> +		return;
-> +	}
-> +#endif
->  	clear_bit(_PAGE_BIT_RW, (unsigned long *)pmdp);
->  }
->  
-> -- 
-> 2.21.0
-> 
 
--- 
-Kees Cook
+FWIW, this is the hunk that fixed DirtyCOW.
+
+The least this deserves is acknowledgement of that in the changelog and
+a missive about how you're sure you didn't just introduce
+ShadowDirtyCOW.  Don't bother.  I already registered the domain. ;)
