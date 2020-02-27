@@ -1,73 +1,66 @@
-From: Luc Maranget <luc.maranget@inria.fr>
-Subject: Re: [PATCH v3 1/5] tools/memory-model: Add an exception for
- limitations on _unless() family
-Date: Thu, 27 Feb 2020 17:49:02 +0100
-Message-ID: <20200227164901.jxwk26ey3i2n2yhu@yquem.inria.fr>
-References: <20200227004049.6853-2-boqun.feng@gmail.com>
- <Pine.LNX.4.44L0.2002271129370.1730-100000@iolanthe.rowland.org>
+From: =?UTF-8?Q?Micka=c3=abl_Sala=c3=bcn?= <mic@digikod.net>
+Subject: Re: [RFC PATCH v14 05/10] fs,landlock: Support filesystem
+ access-control
+Date: Thu, 27 Feb 2020 17:50:31 +0100
+Message-ID: <34319b76-44bd-8915-fd7c-5147f901615e@digikod.net>
+References: <20200224160215.4136-1-mic@digikod.net>
+ <20200224160215.4136-6-mic@digikod.net>
+ <CAG48ez36SMrPPgsj0omcVukRLwOzBzqWOQjuGCmmmrmsGiNukw@mail.gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=utf-8
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <Pine.LNX.4.44L0.2002271129370.1730-100000@iolanthe.rowland.org>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Alan Stern <stern@rowland.harvard.edu>
-Cc: Boqun Feng <boqun.feng@gmail.com>, linux-kernel@vger.kernel.org, Andrea Parri <parri.andrea@gmail.com>, Will Deacon <will@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Nicholas Piggin <npiggin@gmail.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, "Paul E. McKenney" <paulmck@kernel.org>, Akira Yokosawa <akiyks@gmail.com>, Daniel Lustig <dlustig@nvidia.com>, Jonathan Corbet <corbet@lwn.net>, Mauro Carvalho Chehab <mchehab+samsung@kernel.org>, "David S. Miller" <davem@davemloft.net>, Rob Herring <robh@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jonathan Cameron <Jonathan.Cameron@huawei.com>, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org
+Content-Transfer-Encoding: 8bit
+Return-path: <kernel-hardening-return-17974-glkh-kernel-hardening=m.gmane-mx.org@lists.openwall.com>
+List-Post: <mailto:kernel-hardening@lists.openwall.com>
+List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
+List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
+List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
+In-Reply-To: <CAG48ez36SMrPPgsj0omcVukRLwOzBzqWOQjuGCmmmrmsGiNukw@mail.gmail.com>
+Content-Language: en-US
+To: Jann Horn <jannh@google.com>
+Cc: kernel list <linux-kernel@vger.kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, Andy Lutomirski <luto@amacapital.net>, Arnd Bergmann <arnd@arndb.de>, Casey Schaufler <casey@schaufler-ca.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, James Morris <jmorris@namei.org>, Jann Horn <jann@thejh.net>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Michael Kerrisk <mtk.manpages@gmail.com>, =?UTF-8?Q?Micka=c3=abl_Sala=c3=bcn?= <mickael.salaun@ssi.gouv.fr>, "Serge E . Hallyn" <serge@hallyn.com>, Shuah Khan <shuah@kernel.org>, Vincent Dagonneau <vincent.dagonneau@ssi.gouv.fr>, Kernel Hardening <kernel-hardening@lists.openwall.com>, Linux API <linux-api@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, linux-doc@vger.kernel.orglinux-fsdevel <linux>
 List-Id: linux-arch.vger.kernel.org
 
-> On Thu, 27 Feb 2020, Boqun Feng wrote:
-> 
-> > According to Luc, atomic_add_unless() is directly provided by herd7,
-> > therefore it can be used in litmus tests. So change the limitation
-> > section in README to unlimit the use of atomic_add_unless().
-> 
-> Is this really true?  Why does herd treat atomic_add_unless() different
-> from all the other atomic RMS ops?  All the other ones we support do
-> have entries in linux-kernel.def.
 
-I think this to be true :)
 
-As far as I remember atomic_add_unless is quite different fron other atomic
-RMW ops and called for a specific all-OCaml implementation, without an
-entry in linux-kernel.def. As to  atomic_long_add_unless, I was not aware
-of its existence.
+On 26/02/2020 21:29, Jann Horn wrote:
+> On Mon, Feb 24, 2020 at 5:03 PM Mickaël Salaün <mic@digikod.net> wrote:
+>> +static inline u32 get_mem_access(unsigned long prot, bool private)
+>> +{
+>> +       u32 access = LANDLOCK_ACCESS_FS_MAP;
+>> +
+>> +       /* Private mapping do not write to files. */
+>> +       if (!private && (prot & PROT_WRITE))
+>> +               access |= LANDLOCK_ACCESS_FS_WRITE;
+>> +       if (prot & PROT_READ)
+>> +               access |= LANDLOCK_ACCESS_FS_READ;
+>> +       if (prot & PROT_EXEC)
+>> +               access |= LANDLOCK_ACCESS_FS_EXECUTE;
+>> +       return access;
+>> +}
+> 
+> When I do the following, is landlock going to detect that the mmap()
+> is a read access, or is it incorrectly going to think that it's
+> neither read nor write?
+> 
+> $ cat write-only.c
+> #include <fcntl.h>
+> #include <sys/mman.h>
+> #include <stdio.h>
+> int main(void) {
+>   int fd = open("/etc/passwd", O_RDONLY);
+>   char *ptr = mmap(NULL, 0x1000, PROT_WRITE, MAP_PRIVATE, fd, 0);
+>   printf("'%.*s'\n", 4, ptr);
+> }
+> $ gcc -o write-only write-only.c -Wall
+> $ ./write-only
+> 'root'
+> $
+> 
 
---Luc
+Thanks to the "if (!private && (prot & PROT_WRITE))", Landlock allows
+this private mmap (as intended) even if there is no write access to this
+file, but not with a shared mmap (and a file opened with O_RDWR). I just
+added a test for this to be sure.
 
-> 
-> Alan
-> 
-> PS: It seems strange to support atomic_add_unless but not 
-> atomic_long_add_unless.  The difference between the two is trivial.
-> 
-> > 
-> > Cc: Luc Maranget <luc.maranget@inria.fr>
-> > Signed-off-by: Boqun Feng <boqun.feng@gmail.com>
-> > ---
-> >  tools/memory-model/README | 10 +++++++---
-> >  1 file changed, 7 insertions(+), 3 deletions(-)
-> > 
-> > diff --git a/tools/memory-model/README b/tools/memory-model/README
-> > index fc07b52f2028..409211b1c544 100644
-> > --- a/tools/memory-model/README
-> > +++ b/tools/memory-model/README
-> > @@ -207,11 +207,15 @@ The Linux-kernel memory model (LKMM) has the following limitations:
-> >  		case as a store release.
-> >  
-> >  	b.	The "unless" RMW operations are not currently modeled:
-> > -		atomic_long_add_unless(), atomic_add_unless(),
-> > -		atomic_inc_unless_negative(), and
-> > -		atomic_dec_unless_positive().  These can be emulated
-> > +		atomic_long_add_unless(), atomic_inc_unless_negative(),
-> > +		and atomic_dec_unless_positive().  These can be emulated
-> >  		in litmus tests, for example, by using atomic_cmpxchg().
-> >  
-> > +		One exception of this limitation is atomic_add_unless(),
-> > +		which is provided directly by herd7 (so no corresponding
-> > +		definition in linux-kernel.def). atomic_add_unless() is
-> > +		modeled by herd7 therefore it can be used in litmus tests.
-> > +
-> >  	c.	The call_rcu() function is not modeled.  It can be
-> >  		emulated in litmus tests by adding another process that
-> >  		invokes synchronize_rcu() and the body of the callback
-> > 
+However, I'm not sure this hook is useful for now. Indeed, the process
+still need to have a file descriptor open with the right accesses.
