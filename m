@@ -1,58 +1,56 @@
-Return-Path: <SRS0=n14h=4F=kvack.org=owner-linux-mm@kernel.org>
-From: Anshuman Khandual <anshuman.khandual@arm.com>
-Subject: [PATCH 0/5] mm/vma: Use available wrappers when possible
-Date: Mon, 17 Feb 2020 10:33:48 +0530
-Message-ID: <1581915833-21984-1-git-send-email-anshuman.khandual@arm.com>
-Sender: owner-linux-mm@kvack.org
-To: linux-mm@kvack.org, linux-kernel@vger.kernel.org
-Cc: Anshuman Khandual <anshuman.khandual@arm.com>, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org, kvm-ppc@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org
+Return-Path: <rppt@kernel.org>
+From: Mike Rapoport <rppt@kernel.org>
+Subject: [PATCH v3 03/14] hexagon: remove __ARCH_USE_5LEVEL_HACK
+Date: Thu, 27 Feb 2020 10:45:57 +0200
+Message-ID: <20200227084608.18223-4-rppt@kernel.org>
+In-Reply-To: <20200227084608.18223-1-rppt@kernel.org>
+References: <20200227084608.18223-1-rppt@kernel.org>
+MIME-Version: 1.0
+Content-Transfer-Encoding: 8bit
+To: linux-kernel@vger.kernel.org
+Cc: Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Brian Cain <bcain@codeaurora.org>, Catalin Marinas <catalin.marinas@arm.com>, Christophe Leroy <christophe.leroy@c-s.fr>, Fenghua Yu <fenghua.yu@intel.com>, Geert Uytterhoeven <geert+renesas@glider.be>, Guan Xuetao <gxt@pku.edu.cn>, James Morse <james.morse@arm.com>, Jonas Bonn <jonas@southpole.se>, Julien Thierry <julien.thierry.kdev@gmail.com>, Ley Foon Tan <ley.foon.tan@intel.com>, Marc Zyngier <maz@kernel.org>, Michael Ellerman <mpe@ellerman.id.au>, Paul Mackerras <paulus@samba.org>, Rich Felker <dalias@libc.org>, Russell King <linux@armlinux.org.uk>, Stafford Horne <shorne@gmail.com>, Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>, Suzuki K Poulose <suzuki.poulose@arm.com>, Tony Luck <tony.luck@intel.com>, Will Deacon <will@kernel.org>, Yoshinori Sato <ysato@users.sourceforge.jp>, kvmarm@lists.cs.columbia.edu, kvm-ppc@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-mm@kvack.org, linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org, nios2-dev@lists.rocketboards.org, openrisc@lists.librecores.org, uclinux-h8-devel@lists.sourceforge.jp, Mike Rapoport <rppt@kernel.org>, Mike Rapoport <rppt@linux.ibm.com>
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200217050348.wWo-Z505yPPlkgrV8u5O-P-uC3G93fiQTiDiQoWq8nY@z>
+Message-ID: <20200227084557.krFG3QbJTl5bzeq0FnIu_FbYsjDwhRYQoFOYT_uJqxc@z>
 
-Apart from adding a VMA flag readable name for trace purpose, this series
-does some open encoding replacements with availabe VMA specific wrappers.
-This skips VM_HUGETLB check in vma_migratable() as its already being done
-with another patch (https://patchwork.kernel.org/patch/11347831/) which
-is yet to be merged.
+From: Mike Rapoport <rppt@linux.ibm.com>
 
-This series applies on 5.6-rc2. This has been build tested on multiple
-platforms, though boot and runtime testing was limited to arm64 and x86.
+The hexagon architecture has 2 level page tables and as such most of the
+page table folding is already implemented in asm-generic/pgtable-nopmd.h.
 
-Cc: linux-kernel@vger.kernel.org
-Cc: linux-m68k@lists.linux-m68k.org
-Cc: linux-mips@vger.kernel.org
-Cc: linuxppc-dev@lists.ozlabs.org
-Cc: linux-sh@vger.kernel.org
-Cc: kvm-ppc@vger.kernel.org
-Cc: linux-fsdevel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org
-Cc: linux-mm@kvack.org
+Fixup the only place in arch/hexagon to unfold the p4d level and remove
+__ARCH_USE_5LEVEL_HACK.
 
-Anshuman Khandual (5):
-  mm/vma: Add missing VMA flag readable name for VM_SYNC
-  mm/vma: Make vma_is_accessible() available for general use
-  mm/vma: Replace all remaining open encodings with is_vm_hugetlb_page()
-  mm/vma: Replace all remaining open encodings with vma_set_anonymous()
-  mm/vma: Replace all remaining open encodings with vma_is_anonymous()
+Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
+---
+ arch/hexagon/include/asm/fixmap.h  | 4 ++--
+ arch/hexagon/include/asm/pgtable.h | 1 -
+ 2 files changed, 2 insertions(+), 3 deletions(-)
 
- arch/csky/mm/fault.c              | 2 +-
- arch/m68k/mm/fault.c              | 2 +-
- arch/mips/mm/fault.c              | 2 +-
- arch/powerpc/kvm/e500_mmu_host.c  | 2 +-
- arch/powerpc/mm/fault.c           | 2 +-
- arch/sh/mm/fault.c                | 2 +-
- arch/x86/mm/fault.c               | 2 +-
- drivers/misc/mic/scif/scif_mmap.c | 2 +-
- fs/binfmt_elf.c                   | 2 +-
- include/asm-generic/tlb.h         | 2 +-
- include/linux/mm.h                | 5 +++++
- include/trace/events/mmflags.h    | 1 +
- kernel/events/core.c              | 3 ++-
- kernel/sched/fair.c               | 2 +-
- mm/gup.c                          | 5 +++--
- mm/memory.c                       | 5 -----
- mm/mempolicy.c                    | 3 +--
- 17 files changed, 23 insertions(+), 21 deletions(-)
-
+diff --git a/arch/hexagon/include/asm/fixmap.h b/arch/hexagon/include/asm/fixmap.h
+index 933dac167504..97b1b062e750 100644
+--- a/arch/hexagon/include/asm/fixmap.h
++++ b/arch/hexagon/include/asm/fixmap.h
+@@ -16,7 +16,7 @@
+ #include <asm-generic/fixmap.h>
+ 
+ #define kmap_get_fixmap_pte(vaddr) \
+-	pte_offset_kernel(pmd_offset(pud_offset(pgd_offset_k(vaddr), \
+-				(vaddr)), (vaddr)), (vaddr))
++	pte_offset_kernel(pmd_offset(pud_offset(p4d_offset(pgd_offset_k(vaddr), \
++				(vaddr)), (vaddr)), (vaddr)), (vaddr))
+ 
+ #endif
+diff --git a/arch/hexagon/include/asm/pgtable.h b/arch/hexagon/include/asm/pgtable.h
+index 2fec20ad939e..83b544936eed 100644
+--- a/arch/hexagon/include/asm/pgtable.h
++++ b/arch/hexagon/include/asm/pgtable.h
+@@ -12,7 +12,6 @@
+  * Page table definitions for Qualcomm Hexagon processor.
+  */
+ #include <asm/page.h>
+-#define __ARCH_USE_5LEVEL_HACK
+ #include <asm-generic/pgtable-nopmd.h>
+ 
+ /* A handy thing to have if one has the RAM. Declared in head.S */
 -- 
-2.20.1
+2.24.0
