@@ -1,7 +1,7 @@
 From: Boqun Feng <boqun.feng@gmail.com>
-Subject: [PATCH v3 3/5] Documentation/locking/atomic: Introduce atomic-tests directory
-Date: Thu, 27 Feb 2020 08:40:47 +0800
-Message-ID: <20200227004049.6853-4-boqun.feng@gmail.com>
+Subject: [PATCH v3 4/5] Documentation/locking/atomic: Add a litmus test for atomic_set()
+Date: Thu, 27 Feb 2020 08:40:48 +0800
+Message-ID: <20200227004049.6853-5-boqun.feng@gmail.com>
 References: <20200227004049.6853-1-boqun.feng@gmail.com>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
@@ -12,53 +12,84 @@ To: linux-kernel@vger.kernel.org
 Cc: Alan Stern <stern@rowland.harvard.edu>, Andrea Parri <parri.andrea@gmail.com>, Will Deacon <will@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Boqun Feng <boqun.feng@gmail.com>, Nicholas Piggin <npiggin@gmail.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, "Paul E. McKenney" <paulmck@kernel.org>, Akira Yokosawa <akiyks@gmail.com>, Daniel Lustig <dlustig@nvidia.com>, Jonathan Corbet <corbet@lwn.net>, Mauro Carvalho Chehab <mchehab+samsung@kernel.org>, "David S. Miller" <davem@davemloft.net>, Rob Herring <robh@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jonathan Cameron <Jonathan.Cameron@huawei.com>, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-Although we have atomic_t.txt and its friends to describe the semantics
-of atomic APIs and lib/atomic64_test.c for build testing and testing in
-UP mode, the tests for our atomic APIs in real SMP mode are still
-missing. Since now we have the LKMM tool in kernel and litmus tests can
-be used to generate kernel modules for testing purpose with "klitmus" (a
-tool from the LKMM toolset), it makes sense to put a few typical litmus
-tests into kernel so that
+We already use a litmus test in atomic_t.txt to describe the behavior of
+an atomic_set() with the an atomic RMW, so add it into atomic-tests
+directory to make it easily accessible for anyone who cares about the
+semantics of our atomic APIs.
 
-1)	they are the examples to describe the conceptual mode of the
-	semantics of atomic APIs, and
-
-2)	they can be used to generate kernel test modules for anyone
-	who is interested to test the atomic APIs implementation (in
-	most cases, is the one who implements the APIs for a new arch)
-
-Therefore, introduce the atomic-tests directory for this purpose. The
-directory is maintained by the LKMM group to make sure the litmus tests
-are always aligned with our memory model.
+Additionally, change the sentences describing the test in atomic_t.txt
+with better wording.
 
 Signed-off-by: Boqun Feng <boqun.feng@gmail.com>
 ---
- Documentation/atomic-tests/README | 4 ++++
- MAINTAINERS                       | 1 +
- 2 files changed, 5 insertions(+)
- create mode 100644 Documentation/atomic-tests/README
+ ...c-RMW-ops-are-atomic-WRT-atomic_set.litmus | 24 +++++++++++++++++++
+ Documentation/atomic-tests/README             |  7 ++++++
+ Documentation/atomic_t.txt                    |  6 ++---
+ 3 files changed, 34 insertions(+), 3 deletions(-)
+ create mode 100644 Documentation/atomic-tests/Atomic-RMW-ops-are-atomic-WRT-atomic_set.litmus
 
-diff --git a/Documentation/atomic-tests/README b/Documentation/atomic-tests/README
+diff --git a/Documentation/atomic-tests/Atomic-RMW-ops-are-atomic-WRT-atomic_set.litmus b/Documentation/atomic-tests/Atomic-RMW-ops-are-atomic-WRT-atomic_set.litmus
 new file mode 100644
-index 000000000000..ae61201a4271
+index 000000000000..5dd7f04e504a
 --- /dev/null
++++ b/Documentation/atomic-tests/Atomic-RMW-ops-are-atomic-WRT-atomic_set.litmus
+@@ -0,0 +1,24 @@
++C Atomic-set-observable-to-RMW
++
++(*
++ * Result: Never
++ *
++ * Test that atomic_set() cannot break the atomicity of atomic RMWs.
++ *)
++
++{
++	atomic_t v = ATOMIC_INIT(1);
++}
++
++P0(atomic_t *v)
++{
++	(void)atomic_add_unless(v,1,0);
++}
++
++P1(atomic_t *v)
++{
++	atomic_set(v, 0);
++}
++
++exists
++(v=2)
+diff --git a/Documentation/atomic-tests/README b/Documentation/atomic-tests/README
+index ae61201a4271..a1b72410b539 100644
+--- a/Documentation/atomic-tests/README
 +++ b/Documentation/atomic-tests/README
-@@ -0,0 +1,4 @@
-+This directory contains litmus tests that are typical to describe the semantics
-+of our atomic APIs. For more information about how to "run" a litmus test or
-+how to generate a kernel test module based on a litmus test, please see
-+tools/memory-model/README.
-diff --git a/MAINTAINERS b/MAINTAINERS
-index ffc7d5712735..ebca5f6263bb 100644
---- a/MAINTAINERS
-+++ b/MAINTAINERS
-@@ -9718,6 +9718,7 @@ T:	git git://git.kernel.org/pub/scm/linux/kernel/git/paulmck/linux-rcu.git dev
- F:	tools/memory-model/
- F:	Documentation/atomic_bitops.txt
- F:	Documentation/atomic_t.txt
-+F:	Documentation/atomic-tests/
- F:	Documentation/core-api/atomic_ops.rst
- F:	Documentation/core-api/refcount-vs-atomic.rst
- F:	Documentation/memory-barriers.txt
+@@ -2,3 +2,10 @@ This directory contains litmus tests that are typical to describe the semantics
+ of our atomic APIs. For more information about how to "run" a litmus test or
+ how to generate a kernel test module based on a litmus test, please see
+ tools/memory-model/README.
++
++============
++LITMUS TESTS
++============
++
++Atomic-RMW-ops-are-atomic-WRT-atomic_set.litmus
++	Test that atomic_set() cannot break the atomicity of atomic RMWs.
+diff --git a/Documentation/atomic_t.txt b/Documentation/atomic_t.txt
+index ceb85ada378e..67d1d99f8589 100644
+--- a/Documentation/atomic_t.txt
++++ b/Documentation/atomic_t.txt
+@@ -85,10 +85,10 @@ smp_store_release() respectively. Therefore, if you find yourself only using
+ the Non-RMW operations of atomic_t, you do not in fact need atomic_t at all
+ and are doing it wrong.
+ 
+-A subtle detail of atomic_set{}() is that it should be observable to the RMW
+-ops. That is:
++A note for the implementation of atomic_set{}() is that it must not break the
++atomicity of the RMW ops. That is:
+ 
+-  C atomic-set
++  C Atomic-RMW-ops-are-atomic-WRT-atomic_set
+ 
+   {
+     atomic_t v = ATOMIC_INIT(1);
 -- 
 2.25.0
