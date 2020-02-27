@@ -1,351 +1,445 @@
-From: Hillf Danton <hdanton@sina.com>
-Subject: Re: [RFC PATCH v14 01/10] landlock: Add object and rule management
-Date: Thu, 27 Feb 2020 12:20:02 +0800
-Message-ID: <20200227042002.3032-1-hdanton@sina.com>
-References: <20200224160215.4136-1-mic@digikod.net>
+From: Anshuman Khandual <anshuman.khandual@arm.com>
+Subject: [PATCH] mm/debug: Add tests validating arch page table helpers for
+ core features
+Date: Thu, 27 Feb 2020 16:03:57 +0530
+Message-ID: <1582799637-11786-1-git-send-email-anshuman.khandual@arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=y
-Content-Transfer-Encoding: 8bit
-Return-path: <kernel-hardening-return-17970-glkh-kernel-hardening=m.gmane-mx.org@lists.openwall.com>
-List-Post: <mailto:kernel-hardening@lists.openwall.com>
-List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
-List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
-List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
-In-Reply-To: <20200224160215.4136-1-mic@digikod.net>
-To: =?UTF-8?q?Micka=C3=ABl=20Sala=C3=BCn?= <mic@digikod.net>
-Cc: linux-kernel@vger.kernel.org, Al Viro <viro@zeniv.linux.org.uk>, Andy Lutomirski <luto@amacapital.net>, Arnd Bergmann <arnd@arndb.de>, Casey Schaufler <casey@schaufler-ca.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, James Morris <jmorris@namei.org>, Jann Horn <jann@thejh.net>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Michael Kerrisk <mtk.manpages@gmail.com>, =?UTF-8?q?Micka=C3=ABl=20Sala=C3=BCn?= <mickael.salaun@ssi.gouv.fr>, "Serge E. Hallyn" <serge@hallyn.com>, Shuah Khan <shuah@kernel.org>, Vincent Dagonneau <vincent.dagonneau@ssi.gouv.fr>, kernel-hardening@lists.openwall.com, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-security-module@vger.kernel.org, x86@kernel.org
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane-mx.org@lists.infradead.org>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane-mx.org@lists.infradead.org
+To: linux-mm@kvack.org
+Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, Paul Mackerras <paulus@samba.org>, "H. Peter Anvin" <hpa@zytor.com>, linux-riscv@lists.infradead.org, Will Deacon <will@kernel.org>, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, Michael Ellerman <mpe@ellerman.id.au>, x86@kernel.org, Mike Rapoport <rppt@linux.ibm.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Ingo Molnar <mingo@redhat.com>, Catalin Marinas <catalin.marinas@arm.com>, linux-snps-arc@lists.infradead.org, Vasily Gorbik <gor@linux.ibm.com>, Anshuman Khandual <anshuman.khandual@arm.com>, Borislav Petkov <bp@alien8.de>, Paul Walmsley <paul.walmsley@sifive.com>, "Kirill A . Shutemov" <kirill@shutemov.name>, Thomas Gleixner <tglx@linutronix.de>, linux-arm-kernel@lists.infradead.org, Vineet Gupta <vgupta@synopsys.com>, linux-kernel@vger.kernel.org, Palm
 List-Id: linux-arch.vger.kernel.org
 
+This adds new tests validating arch page table helpers for these following
+core memory features. These tests create and test specific mapping types at
+various page table levels.
 
-On Mon, 24 Feb 2020 17:02:06 +0100 Mickaël Salaün 
-> A Landlock object enables to identify a kernel object (e.g. an inode).
-> A Landlock rule is a set of access rights allowed on an object.  Rules
-> are grouped in rulesets that may be tied to a set of processes (i.e.
-> subjects) to enforce a scoped access-control (i.e. a domain).
-> 
-> Because Landlock's goal is to empower any process (especially
-> unprivileged ones) to sandbox themselves, we can't rely on a system-wide
-> object identification such as file extended attributes.  Indeed, we need
-> innocuous, composable and modular access-controls.
-> 
-> The main challenge with this constraints is to identify kernel objects
-> while this identification is useful (i.e. when a security policy makes
-> use of this object).  But this identification data should be freed once
-> no policy is using it.  This ephemeral tagging should not and may not be
-> written in the filesystem.  We then need to manage the lifetime of a
-> rule according to the lifetime of its object.  To avoid a global lock,
-> this implementation make use of RCU and counters to safely reference
-> objects.
-> 
-> A following commit uses this generic object management for inodes.
-> 
-> Signed-off-by: Mickaël Salaün <mic@digikod.net>
-> Cc: Andy Lutomirski <luto@amacapital.net>
-> Cc: James Morris <jmorris@namei.org>
-> Cc: Kees Cook <keescook@chromium.org>
-> Cc: Serge E. Hallyn <serge@hallyn.com>
-> ---
-> 
-> Changes since v13:
-> * New dedicated implementation, removing the need for eBPF.
-> 
-> Previous version:
-> https://lore.kernel.org/lkml/20190721213116.23476-6-mic@digikod.net/
-> ---
->  MAINTAINERS                |  10 ++
->  security/Kconfig           |   1 +
->  security/Makefile          |   2 +
->  security/landlock/Kconfig  |  15 ++
->  security/landlock/Makefile |   3 +
->  security/landlock/object.c | 339 +++++++++++++++++++++++++++++++++++++
->  security/landlock/object.h | 134 +++++++++++++++
->  7 files changed, 504 insertions(+)
->  create mode 100644 security/landlock/Kconfig
->  create mode 100644 security/landlock/Makefile
->  create mode 100644 security/landlock/object.c
->  create mode 100644 security/landlock/object.h
-> 
-> diff --git a/MAINTAINERS b/MAINTAINERS
-> index fcd79fc38928..206f85768cd9 100644
-> --- a/MAINTAINERS
-> +++ b/MAINTAINERS
-> @@ -9360,6 +9360,16 @@ F:	net/core/skmsg.c
->  F:	net/core/sock_map.c
->  F:	net/ipv4/tcp_bpf.c
->  
-> +LANDLOCK SECURITY MODULE
-> +M:	Mickaël Salaün <mic@digikod.net>
-> +L:	linux-security-module@vger.kernel.org
-> +W:	https://landlock.io
-> +T:	git https://github.com/landlock-lsm/linux.git
-> +S:	Supported
-> +F:	security/landlock/
-> +K:	landlock
-> +K:	LANDLOCK
-> +
->  LANTIQ / INTEL Ethernet drivers
->  M:	Hauke Mehrtens <hauke@hauke-m.de>
->  L:	netdev@vger.kernel.org
-> diff --git a/security/Kconfig b/security/Kconfig
-> index 2a1a2d396228..9d9981394fb0 100644
-> --- a/security/Kconfig
-> +++ b/security/Kconfig
-> @@ -238,6 +238,7 @@ source "security/loadpin/Kconfig"
->  source "security/yama/Kconfig"
->  source "security/safesetid/Kconfig"
->  source "security/lockdown/Kconfig"
-> +source "security/landlock/Kconfig"
->  
->  source "security/integrity/Kconfig"
->  
-> diff --git a/security/Makefile b/security/Makefile
-> index 746438499029..2472ef96d40a 100644
-> --- a/security/Makefile
-> +++ b/security/Makefile
-> @@ -12,6 +12,7 @@ subdir-$(CONFIG_SECURITY_YAMA)		+= yama
->  subdir-$(CONFIG_SECURITY_LOADPIN)	+= loadpin
->  subdir-$(CONFIG_SECURITY_SAFESETID)    += safesetid
->  subdir-$(CONFIG_SECURITY_LOCKDOWN_LSM)	+= lockdown
-> +subdir-$(CONFIG_SECURITY_LANDLOCK)		+= landlock
->  
->  # always enable default capabilities
->  obj-y					+= commoncap.o
-> @@ -29,6 +30,7 @@ obj-$(CONFIG_SECURITY_YAMA)		+= yama/
->  obj-$(CONFIG_SECURITY_LOADPIN)		+= loadpin/
->  obj-$(CONFIG_SECURITY_SAFESETID)       += safesetid/
->  obj-$(CONFIG_SECURITY_LOCKDOWN_LSM)	+= lockdown/
-> +obj-$(CONFIG_SECURITY_LANDLOCK)	+= landlock/
->  obj-$(CONFIG_CGROUP_DEVICE)		+= device_cgroup.o
->  
->  # Object integrity file lists
-> diff --git a/security/landlock/Kconfig b/security/landlock/Kconfig
-> new file mode 100644
-> index 000000000000..4a321d5b3f67
-> --- /dev/null
-> +++ b/security/landlock/Kconfig
-> @@ -0,0 +1,15 @@
-> +# SPDX-License-Identifier: GPL-2.0-only
-> +
-> +config SECURITY_LANDLOCK
-> +	bool "Landlock support"
-> +	depends on SECURITY
-> +	default n
-> +	help
-> +	  This selects Landlock, a safe sandboxing mechanism.  It enables to
-> +	  restrict processes on the fly (i.e. enforce an access control policy),
-> +	  which can complement seccomp-bpf.  The security policy is a set of access
-> +	  rights tied to an object, which could be a file, a socket or a process.
-> +
-> +	  See Documentation/security/landlock/ for further information.
-> +
-> +	  If you are unsure how to answer this question, answer N.
-> diff --git a/security/landlock/Makefile b/security/landlock/Makefile
-> new file mode 100644
-> index 000000000000..cb6deefbf4c0
-> --- /dev/null
-> +++ b/security/landlock/Makefile
-> @@ -0,0 +1,3 @@
-> +obj-$(CONFIG_SECURITY_LANDLOCK) := landlock.o
-> +
-> +landlock-y := object.o
-> diff --git a/security/landlock/object.c b/security/landlock/object.c
-> new file mode 100644
-> index 000000000000..38fbbb108120
-> --- /dev/null
-> +++ b/security/landlock/object.c
-> @@ -0,0 +1,339 @@
-> +// SPDX-License-Identifier: GPL-2.0-only
-> +/*
-> + * Landlock LSM - Object and rule management
-> + *
-> + * Copyright © 2016-2020 Mickaël Salaün <mic@digikod.net>
-> + * Copyright © 2018-2020 ANSSI
-> + *
-> + * Principles and constraints of the object and rule management:
-> + * - Do not leak memory.
-> + * - Try as much as possible to free a memory allocation as soon as it is
-> + *   unused.
-> + * - Do not use global lock.
-> + * - Do not charge processes other than the one requesting a Landlock
-> + *   operation.
-> + */
-> +
-> +#include <linux/bug.h>
-> +#include <linux/compiler.h>
-> +#include <linux/compiler_types.h>
-> +#include <linux/err.h>
-> +#include <linux/errno.h>
-> +#include <linux/fs.h>
-> +#include <linux/kernel.h>
-> +#include <linux/list.h>
-> +#include <linux/rbtree.h>
-> +#include <linux/rcupdate.h>
-> +#include <linux/refcount.h>
-> +#include <linux/slab.h>
-> +#include <linux/spinlock.h>
-> +#include <linux/workqueue.h>
-> +
-> +#include "object.h"
-> +
-> +struct landlock_object *landlock_create_object(
-> +		const enum landlock_object_type type, void *underlying_object)
-> +{
-> +	struct landlock_object *object;
-> +
-> +	if (WARN_ON_ONCE(!underlying_object))
-> +		return NULL;
-> +	object = kzalloc(sizeof(*object), GFP_KERNEL);
-> +	if (!object)
-> +		return NULL;
-> +	refcount_set(&object->usage, 1);
-> +	refcount_set(&object->cleaners, 1);
-> +	spin_lock_init(&object->lock);
-> +	INIT_LIST_HEAD(&object->rules);
-> +	object->type = type;
-> +	WRITE_ONCE(object->underlying_object, underlying_object);
-> +	return object;
-> +}
-> +
-> +struct landlock_object *landlock_get_object(struct landlock_object *object)
-> +	__acquires(object->usage)
-> +{
-> +	__acquire(object->usage);
-> +	/*
-> +	 * If @object->usage equal 0, then it will be ignored by writers, and
-> +	 * underlying_object->object may be replaced, but this is not an issue
-> +	 * for release_object().
-> +	 */
-> +	if (object && refcount_inc_not_zero(&object->usage)) {
-> +		/*
-> +		 * It should not be possible to get a reference to an object if
-> +		 * its underlying object is being terminated (e.g. with
-> +		 * landlock_release_object()), because an object is only
-> +		 * modifiable through such underlying object.  This is not the
-> +		 * case with landlock_get_object_cleaner().
-> +		 */
-> +		WARN_ON_ONCE(!READ_ONCE(object->underlying_object));
-> +		return object;
-> +	}
-> +	return NULL;
-> +}
-> +
-> +static struct landlock_object *get_object_cleaner(
-> +		struct landlock_object *object)
-> +	__acquires(object->cleaners)
-> +{
-> +	__acquire(object->cleaners);
-> +	if (object && refcount_inc_not_zero(&object->cleaners))
-> +		return object;
-> +	return NULL;
-> +}
-> +
-> +/*
-> + * There is two cases when an object should be free and the reference to the
-> + * underlying object should be put:
-> + * - when the last rule tied to this object is removed, which is handled by
-> + *   landlock_put_rule() and then release_object();
-> + * - when the object is being terminated (e.g. no more reference to an inode),
-> + *   which is handled by landlock_put_object().
-> + */
-> +static void put_object_free(struct landlock_object *object)
-> +	__releases(object->cleaners)
-> +{
-> +	__release(object->cleaners);
-> +	if (!refcount_dec_and_test(&object->cleaners))
-> +		return;
-> +	WARN_ON_ONCE(refcount_read(&object->usage));
-> +	/*
-> +	 * Ensures a safe use of @object in the RCU block from
-> +	 * landlock_put_rule().
-> +	 */
-> +	kfree_rcu(object, rcu_free);
-> +}
-> +
-> +/*
-> + * Destroys a newly created and useless object.
-> + */
-> +void landlock_drop_object(struct landlock_object *object)
-> +{
-> +	if (WARN_ON_ONCE(!refcount_dec_and_test(&object->usage)))
-> +		return;
-> +	__acquire(object->cleaners);
-> +	put_object_free(object);
-> +}
-> +
-> +/*
-> + * Puts the underlying object (e.g. inode) if it is the first request to
-> + * release @object, without calling landlock_put_object().
-> + *
-> + * Return true if this call effectively marks @object as released, false
-> + * otherwise.
-> + */
-> +static bool release_object(struct landlock_object *object)
-> +	__releases(&object->lock)
-> +{
-> +	void *underlying_object;
-> +
-> +	lockdep_assert_held(&object->lock);
-> +
-> +	underlying_object = xchg(&object->underlying_object, NULL);
+* SPECIAL mapping
+* PROTNONE mapping
+* DEVMAP mapping
+* SOFTDIRTY mapping
+* SWAP mapping
+* MIGRATION mapping
+* HUGETLB mapping
+* THP mapping
 
-A one-line comment looks needed for xchg.
+Cc: Andrew Morton <akpm@linux-foundation.org>
+Cc: Mike Rapoport <rppt@linux.ibm.com>
+Cc: Vineet Gupta <vgupta@synopsys.com>
+Cc: Catalin Marinas <catalin.marinas@arm.com>
+Cc: Will Deacon <will@kernel.org>
+Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: Paul Mackerras <paulus@samba.org>
+Cc: Michael Ellerman <mpe@ellerman.id.au>
+Cc: Heiko Carstens <heiko.carstens@de.ibm.com>
+Cc: Vasily Gorbik <gor@linux.ibm.com>
+Cc: Christian Borntraeger <borntraeger@de.ibm.com>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: Ingo Molnar <mingo@redhat.com>
+Cc: Borislav Petkov <bp@alien8.de>
+Cc: "H. Peter Anvin" <hpa@zytor.com>
+Cc: Kirill A. Shutemov <kirill@shutemov.name>
+Cc: Paul Walmsley <paul.walmsley@sifive.com>
+Cc: Palmer Dabbelt <palmer@dabbelt.com>
+Cc: linux-snps-arc@lists.infradead.org
+Cc: linux-arm-kernel@lists.infradead.org
+Cc: linuxppc-dev@lists.ozlabs.org
+Cc: linux-s390@vger.kernel.org
+Cc: linux-riscv@lists.infradead.org
+Cc: x86@kernel.org
+Cc: linux-arch@vger.kernel.org
+Cc: linux-kernel@vger.kernel.org
+Suggested-by: Catalin Marinas <catalin.marinas@arm.com>
+Signed-off-by: Anshuman Khandual <anshuman.khandual@arm.com>
+---
+Tested on arm64 and x86 platforms without any test failures. But this has
+only been built tested on several other platforms. Individual tests need
+to be verified on all current enabling platforms for the test i.e s390,
+ppc32, arc etc.
 
-> +	spin_unlock(&object->lock);
-> +	might_sleep();
+This patch must be applied on v5.6-rc3 after these patches
 
-Have trouble working out what might_sleep is put for.
+1. https://patchwork.kernel.org/patch/11385057/
+2. https://patchwork.kernel.org/patch/11407715/
 
-> +	if (!underlying_object)
-> +		return false;
-> +
-> +	switch (object->type) {
-> +	case LANDLOCK_OBJECT_INODE:
-> +		break;
-> +	default:
-> +		WARN_ON_ONCE(1);
-> +	}
-> +	return true;
-> +}
-> +
-> +static void put_object_cleaner(struct landlock_object *object)
-> +	__releases(object->cleaners)
-> +{
-> +	/* Let's try an early lockless check. */
-> +	if (list_empty(&object->rules) &&
-> +			READ_ONCE(object->underlying_object)) {
-> +		/*
-> +		 * Puts @object if there is no rule tied to it and the
-> +		 * remaining user is the underlying object.  This check is
-> +		 * atomic because @object->rules and @object->underlying_object
-> +		 * are protected by @object->lock.
-> +		 */
-> +		spin_lock(&object->lock);
-> +		if (list_empty(&object->rules) &&
-> +				READ_ONCE(object->underlying_object) &&
-> +				refcount_dec_if_one(&object->usage)) {
-> +			/*
-> +			 * Releases @object, in place of
-> +			 * landlock_release_object().
-> +			 *
-> +			 * @object is already empty, implying that all its
-> +			 * previous rules are already disabled.
-> +			 *
-> +			 * Unbalance the @object->cleaners counter to reflect
-> +			 * the underlying object release.
-> +			 */
-> +			if (!WARN_ON_ONCE(!release_object(object))) {
+OR
 
-Two ! hurt more than help.
-> +				__acquire(object->cleaners);
-> +				put_object_free(object);
+This patch must be applied on linux-next (next-20200227) after this patch
 
-Why put object more than once?
+2. https://patchwork.kernel.org/patch/11407715/
 
-> +			}
-> +		} else {
-> +			spin_unlock(&object->lock);
-> +		}
-> +	}
-> +	put_object_free(object);
-> +}
-> +
+ mm/debug_vm_pgtable.c | 310 +++++++++++++++++++++++++++++++++++++++++-
+ 1 file changed, 309 insertions(+), 1 deletion(-)
+
+diff --git a/mm/debug_vm_pgtable.c b/mm/debug_vm_pgtable.c
+index 96dd7d574cef..3fb90d5b604e 100644
+--- a/mm/debug_vm_pgtable.c
++++ b/mm/debug_vm_pgtable.c
+@@ -41,6 +41,44 @@
+  * wrprotect(entry)		= A write protected and not a write entry
+  * pxx_bad(entry)		= A mapped and non-table entry
+  * pxx_same(entry1, entry2)	= Both entries hold the exact same value
++ *
++ * Specific feature operations
++ *
++ * pte_mkspecial(entry)		= Creates a special entry at PTE level
++ * pte_special(entry)		= Tests a special entry at PTE level
++ *
++ * pte_protnone(entry)		= Tests a no access entry at PTE level
++ * pmd_protnone(entry)		= Tests a no access entry at PMD level
++ *
++ * pte_mkdevmap(entry)		= Creates a device entry at PTE level
++ * pmd_mkdevmap(entry)		= Creates a device entry at PMD level
++ * pud_mkdevmap(entry)		= Creates a device entry at PUD level
++ * pte_devmap(entry)		= Tests a device entry at PTE level
++ * pmd_devmap(entry)		= Tests a device entry at PMD level
++ * pud_devmap(entry)		= Tests a device entry at PUD level
++ *
++ * pte_mksoft_dirty(entry)	= Creates a soft dirty entry at PTE level
++ * pmd_mksoft_dirty(entry)	= Creates a soft dirty entry at PMD level
++ * pte_swp_mksoft_dirty(entry)	= Creates a soft dirty swap entry at PTE level
++ * pmd_swp_mksoft_dirty(entry)	= Creates a soft dirty swap entry at PMD level
++ * pte_soft_dirty(entry)	= Tests a soft dirty entry at PTE level
++ * pmd_soft_dirty(entry)	= Tests a soft dirty entry at PMD level
++ * pte_swp_soft_dirty(entry)	= Tests a soft dirty swap entry at PTE level
++ * pmd_swp_soft_dirty(entry)	= Tests a soft dirty swap entry at PMD level
++ * pte_clear_soft_dirty(entry)	   = Clears a soft dirty entry at PTE level
++ * pmd_clear_soft_dirty(entry)	   = Clears a soft dirty entry at PMD level
++ * pte_swp_clear_soft_dirty(entry) = Clears a soft dirty swap entry at PTE level
++ * pmd_swp_clear_soft_dirty(entry) = Clears a soft dirty swap entry at PMD level
++ *
++ * pte_mkhuge(entry)		= Creates a HugeTLB entry at given level
++ * pte_huge(entry)		= Tests a HugeTLB entry at given level
++ *
++ * pmd_trans_huge(entry)	= Tests a trans huge page at PMD level
++ * pud_trans_huge(entry)	= Tests a trans huge page at PUD level
++ * pmd_present(entry)		= Tests an entry points to memory at PMD level
++ * pud_present(entry)		= Tests an entry points to memory at PUD level
++ * pmd_mknotpresent(entry)	= Invalidates an PMD entry for MMU
++ * pud_mknotpresent(entry)	= Invalidates an PUD entry for MMU
+  */
+ #define VMFLAGS	(VM_READ|VM_WRITE|VM_EXEC)
+ 
+@@ -287,6 +325,233 @@ static void __init pmd_populate_tests(struct mm_struct *mm, pmd_t *pmdp,
+ 	WARN_ON(pmd_bad(pmd));
+ }
+ 
++#ifdef CONFIG_ARCH_HAS_PTE_SPECIAL
++static void __init pte_special_tests(unsigned long pfn, pgprot_t prot)
++{
++	pte_t pte = pfn_pte(pfn, prot);
++
++	WARN_ON(!pte_special(pte_mkspecial(pte)));
++}
++#else
++static void __init pte_special_tests(unsigned long pfn, pgprot_t prot) { }
++#endif
++
++#ifdef CONFIG_NUMA_BALANCING
++static void __init pte_protnone_tests(unsigned long pfn, pgprot_t prot)
++{
++	pte_t pte = pfn_pte(pfn, prot);
++
++	WARN_ON(!pte_protnone(pte));
++	WARN_ON(!pte_present(pte));
++}
++
++static void __init pmd_protnone_tests(unsigned long pfn, pgprot_t prot)
++{
++	pmd_t pmd = pfn_pmd(pfn, prot);
++
++	WARN_ON(!pmd_protnone(pmd));
++	WARN_ON(!pmd_present(pmd));
++}
++#else
++static void __init pte_protnone_tests(unsigned long pfn, pgprot_t prot) { }
++static void __init pmd_protnone_tests(unsigned long pfn, pgprot_t prot) { }
++#endif
++
++#ifdef CONFIG_ARCH_HAS_PTE_DEVMAP
++static void __init pte_devmap_tests(unsigned long pfn, pgprot_t prot)
++{
++	pte_t pte = pfn_pte(pfn, prot);
++
++	WARN_ON(!pte_devmap(pte_mkdevmap(pte)));
++}
++
++#ifdef CONFIG_TRANSPARENT_HUGEPAGE
++static void __init pmd_devmap_tests(unsigned long pfn, pgprot_t prot)
++{
++	pmd_t pmd = pfn_pmd(pfn, prot);
++
++	WARN_ON(!pmd_devmap(pmd_mkdevmap(pmd)));
++}
++
++#ifdef CONFIG_HAVE_ARCH_TRANSPARENT_HUGEPAGE_PUD
++static void __init pud_devmap_tests(unsigned long pfn, pgprot_t prot)
++{
++	pud_t pud = pfn_pud(pfn, prot);
++
++	WARN_ON(!pud_devmap(pud_mkdevmap(pud)));
++}
++#else
++static void __init pud_devmap_tests(unsigned long pfn, pgprot_t prot) { }
++#endif
++#else
++static void __init pmd_devmap_tests(unsigned long pfn, pgprot_t prot) { }
++static void __init pud_devmap_tests(unsigned long pfn, pgprot_t prot) { }
++#endif
++#else
++static void __init pte_devmap_tests(unsigned long pfn, pgprot_t prot) { }
++static void __init pmd_devmap_tests(unsigned long pfn, pgprot_t prot) { }
++static void __init pud_devmap_tests(unsigned long pfn, pgprot_t prot) { }
++#endif
++
++#ifdef CONFIG_MEM_SOFT_DIRTY
++static void __init pte_soft_dirty_tests(unsigned long pfn, pgprot_t prot)
++{
++	pte_t pte = pfn_pte(pfn, prot);
++
++	WARN_ON(!pte_soft_dirty(pte_mksoft_dirty(pte)));
++	WARN_ON(pte_soft_dirty(pte_clear_soft_dirty(pte)));
++}
++
++static void __init pte_swap_soft_dirty_tests(unsigned long pfn, pgprot_t prot)
++{
++	pte_t pte = pfn_pte(pfn, prot);
++
++	WARN_ON(!pte_swp_soft_dirty(pte_swp_mksoft_dirty(pte)));
++	WARN_ON(pte_swp_soft_dirty(pte_swp_clear_soft_dirty(pte)));
++}
++
++#ifdef CONFIG_ARCH_ENABLE_THP_MIGRATION
++static void __init pmd_soft_dirty_tests(unsigned long pfn, pgprot_t prot)
++{
++	pmd_t pmd = pfn_pmd(pfn, prot);
++
++	WARN_ON(!pmd_soft_dirty(pmd_mksoft_dirty(pmd)));
++	WARN_ON(pmd_soft_dirty(pmd_clear_soft_dirty(pmd)));
++}
++
++static void __init pmd_swap_soft_dirty_tests(unsigned long pfn, pgprot_t prot)
++{
++	pmd_t pmd = pfn_pmd(pfn, prot);
++
++	WARN_ON(!pmd_swp_soft_dirty(pmd_swp_mksoft_dirty(pmd)));
++	WARN_ON(pmd_swp_soft_dirty(pmd_swp_clear_soft_dirty(pmd)));
++}
++#else
++static void __init pmd_soft_dirty_tests(unsigned long pfn, pgprot_t prot) { }
++static void __init pmd_swap_soft_dirty_tests(unsigned long pfn, pgprot_t prot)
++{
++}
++#endif
++#else
++static void __init pte_soft_dirty_tests(unsigned long pfn, pgprot_t prot) { }
++static void __init pmd_soft_dirty_tests(unsigned long pfn, pgprot_t prot) { }
++static void __init pte_swap_soft_dirty_tests(unsigned long pfn, pgprot_t prot)
++{
++}
++static void __init pmd_swap_soft_dirty_tests(unsigned long pfn, pgprot_t prot)
++{
++}
++#endif
++
++static void __init pte_swap_tests(unsigned long pfn, pgprot_t prot)
++{
++	swp_entry_t swp;
++	pte_t pte;
++
++	pte = pfn_pte(pfn, prot);
++	swp = __pte_to_swp_entry(pte);
++	WARN_ON(!pte_same(pte, __swp_entry_to_pte(swp)));
++}
++
++#ifdef CONFIG_ARCH_ENABLE_THP_MIGRATION
++static void __init pmd_swap_tests(unsigned long pfn, pgprot_t prot)
++{
++	swp_entry_t swp;
++	pmd_t pmd;
++
++	pmd = pfn_pmd(pfn, prot);
++	swp = __pmd_to_swp_entry(pmd);
++	WARN_ON(!pmd_same(pmd, __swp_entry_to_pmd(swp)));
++}
++#else
++static void __init pmd_swap_tests(unsigned long pfn, pgprot_t prot) { }
++#endif
++
++#ifdef CONFIG_MIGRATION
++static void __init swap_migration_tests(struct page *page)
++{
++	swp_entry_t swp;
++
++	/*
++	 * make_migration_entry() expects given page to be
++	 * locked, otherwise it stumbles upon a BUG_ON().
++	 */
++	__SetPageLocked(page);
++	swp = make_migration_entry(page, 1);
++	WARN_ON(!is_migration_entry(swp));
++	WARN_ON(!is_write_migration_entry(swp));
++
++	make_migration_entry_read(&swp);
++	WARN_ON(!is_migration_entry(swp));
++	WARN_ON(is_write_migration_entry(swp));
++
++	swp = make_migration_entry(page, 0);
++	WARN_ON(!is_migration_entry(swp));
++	WARN_ON(is_write_migration_entry(swp));
++	__ClearPageLocked(page);
++}
++#else
++static void __init swap_migration_tests(struct page *page) { }
++#endif
++
++#ifdef CONFIG_HUGETLB_PAGE
++static void __init hugetlb_tests(unsigned long pfn, pgprot_t prot)
++{
++#ifdef CONFIG_ARCH_WANT_GENERAL_HUGETLB
++	pte_t pte = pfn_pte(pfn, prot);
++
++	WARN_ON(!pte_huge(pte_mkhuge(pte)));
++#endif
++}
++#else
++static void __init hugetlb_tests(unsigned long pfn, pgprot_t prot) { }
++#endif
++
++#ifdef CONFIG_TRANSPARENT_HUGEPAGE
++static void __init pmd_thp_tests(unsigned long pfn, pgprot_t prot)
++{
++	pmd_t pmd;
++
++	/*
++	 * pmd_trans_huge() and pmd_present() must return negative
++	 * after MMU invalidation with pmd_mknotpresent().
++	 */
++	pmd = pfn_pmd(pfn, prot);
++	WARN_ON(!pmd_trans_huge(pmd_mkhuge(pmd)));
++
++	/*
++	 * Though platform specific test exclusions are not ideal,
++	 * in this case S390 does not define pmd_mknotpresent()
++	 * which should be tested on other platforms enabling THP.
++	 */
++#ifndef CONFIG_S390
++	WARN_ON(pmd_trans_huge(pmd_mknotpresent(pmd)));
++	WARN_ON(pmd_present(pmd_mknotpresent(pmd)));
++#endif
++}
++
++#ifdef CONFIG_HAVE_ARCH_TRANSPARENT_HUGEPAGE_PUD
++static void __init pud_thp_tests(unsigned long pfn, pgprot_t prot)
++{
++	pud_t pud;
++
++	/*
++	 * pud_trans_huge() and pud_present() must return negative
++	 * after MMU invalidation with pud_mknotpresent().
++	 */
++	pud = pfn_pud(pfn, prot);
++	WARN_ON(!pud_trans_huge(pud_mkhuge(pud)));
++	WARN_ON(pud_trans_huge(pud_mknotpresent(pud)));
++	WARN_ON(pud_present(pud_mknotpresent(pud)));
++}
++#else
++static void __init pud_thp_tests(unsigned long pfn, pgprot_t prot) { }
++#endif
++#else
++static void __init pmd_thp_tests(unsigned long pfn, pgprot_t prot) { }
++static void __init pud_thp_tests(unsigned long pfn, pgprot_t prot) { }
++#endif
++
+ static unsigned long __init get_random_vaddr(void)
+ {
+ 	unsigned long random_vaddr, random_pages, total_user_pages;
+@@ -302,13 +567,14 @@ static unsigned long __init get_random_vaddr(void)
+ void __init debug_vm_pgtable(void)
+ {
+ 	struct mm_struct *mm;
++	struct page *page;
+ 	pgd_t *pgdp;
+ 	p4d_t *p4dp, *saved_p4dp;
+ 	pud_t *pudp, *saved_pudp;
+ 	pmd_t *pmdp, *saved_pmdp, pmd;
+ 	pte_t *ptep;
+ 	pgtable_t saved_ptep;
+-	pgprot_t prot;
++	pgprot_t prot, protnone;
+ 	phys_addr_t paddr;
+ 	unsigned long vaddr, pte_aligned, pmd_aligned;
+ 	unsigned long pud_aligned, p4d_aligned, pgd_aligned;
+@@ -322,6 +588,25 @@ void __init debug_vm_pgtable(void)
+ 		return;
+ 	}
+ 
++	/*
++	 * swap_migration_tests() requires a dedicated page as it needs to
++	 * be locked before creating a migration entry from it. Locking the
++	 * page that actually maps kernel text ('start_kernel') can be real
++	 * problematic. Lets allocate a dedicated page explicitly for this
++	 * purpose that will be freed later.
++	 */
++	page = alloc_page(GFP_KERNEL);
++	if (!page) {
++		pr_err("page allocation failed\n");
++		return;
++	}
++
++	/*
++	 * __P000 (or even __S000) will help create page table entries with
++	 * PROT_NONE permission as required for pxx_protnone_tests().
++	 */
++	protnone = __P000;
++
+ 	/*
+ 	 * PFN for mapping at PTE level is determined from a standard kernel
+ 	 * text symbol. But pfns for higher page table levels are derived by
+@@ -377,11 +662,34 @@ void __init debug_vm_pgtable(void)
+ 	p4d_populate_tests(mm, p4dp, saved_pudp);
+ 	pgd_populate_tests(mm, pgdp, saved_p4dp);
+ 
++	pte_special_tests(pte_aligned, prot);
++	pte_protnone_tests(pte_aligned, protnone);
++	pmd_protnone_tests(pmd_aligned, protnone);
++
++	pte_devmap_tests(pte_aligned, prot);
++	pmd_devmap_tests(pmd_aligned, prot);
++	pud_devmap_tests(pud_aligned, prot);
++
++	pte_soft_dirty_tests(pte_aligned, prot);
++	pmd_soft_dirty_tests(pmd_aligned, prot);
++	pte_swap_soft_dirty_tests(pte_aligned, prot);
++	pmd_swap_soft_dirty_tests(pmd_aligned, prot);
++
++	pte_swap_tests(pte_aligned, prot);
++	pmd_swap_tests(pmd_aligned, prot);
++
++	swap_migration_tests(page);
++	hugetlb_tests(pte_aligned, prot);
++
++	pmd_thp_tests(pmd_aligned, prot);
++	pud_thp_tests(pud_aligned, prot);
++
+ 	p4d_free(mm, saved_p4dp);
+ 	pud_free(mm, saved_pudp);
+ 	pmd_free(mm, saved_pmdp);
+ 	pte_free(mm, saved_ptep);
+ 
++	__free_page(page);
+ 	mm_dec_nr_puds(mm);
+ 	mm_dec_nr_pmds(mm);
+ 	mm_dec_nr_ptes(mm);
+-- 
+2.20.1
