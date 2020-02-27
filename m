@@ -1,58 +1,42 @@
-Return-Path: <SRS0=LzcT=4H=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:33020 "EHLO
-        merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726712AbgBSQex (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 19 Feb 2020 11:34:53 -0500
-Date: Wed, 19 Feb 2020 17:34:09 +0100
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH v3 04/22] x86/doublefault: Make memmove() notrace/NOKPROBE
-Message-ID: <20200219163409.GI18400@hirez.programming.kicks-ass.net>
-References: <20200219144724.800607165@infradead.org>
- <20200219150744.604459293@infradead.org>
- <20200219103614.2299ff61@gandalf.local.home>
- <20200219154031.GE18400@hirez.programming.kicks-ass.net>
- <20200219155715.GD14946@hirez.programming.kicks-ass.net>
- <20200219160442.GE14946@hirez.programming.kicks-ass.net>
- <20200219111228.44c2999b@gandalf.local.home>
- <20200219162747.GX2935@paulmck-ThinkPad-P72>
+Return-Path: <SRS0=BIEI=4P=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mga11.intel.com ([192.55.52.93]:43614 "EHLO mga11.intel.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1727964AbgB0BQ3 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 26 Feb 2020 20:16:29 -0500
+Subject: Re: [RFC PATCH v9 05/27] x86/cet/shstk: Add Kconfig option for
+ user-mode Shadow Stack protection
+References: <20200205181935.3712-1-yu-cheng.yu@intel.com>
+ <20200205181935.3712-6-yu-cheng.yu@intel.com>
+ <d4dabb84-5636-2657-c45e-795f3f2dcbbc@intel.com>
+ <CAMe9rOouOwNC873v=LOv5rJWcbe9Zvg+od8229J33V=ZfrB1rg@mail.gmail.com>
+From: Dave Hansen <dave.hansen@intel.com>
+Message-ID: <71791bbf-7ee3-fa70-b569-ae643151646e@intel.com>
+Date: Wed, 26 Feb 2020 17:16:27 -0800
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20200219162747.GX2935@paulmck-ThinkPad-P72>
+In-Reply-To: <CAMe9rOouOwNC873v=LOv5rJWcbe9Zvg+od8229J33V=ZfrB1rg@mail.gmail.com>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Paul E. McKenney" <paulmck@kernel.org>
-Cc: Steven Rostedt <rostedt@goodmis.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org, joel@joelfernandes.org, gregkh@linuxfoundation.org, gustavo@embeddedor.com, tglx@linutronix.de, josh@joshtriplett.org, mathieu.desnoyers@efficios.com, jiangshanlai@gmail.com, luto@kernel.org, tony.luck@intel.com, frederic@kernel.org, dan.carpenter@oracle.com, mhiramat@kernel.org
-Message-ID: <20200219163409.V0OShbxcAWIWGic4w7m-6ZWO76myRY5_fkFL9WON5hA@z>
+To: "H.J. Lu" <hjl.tools@gmail.com>
+Cc: Yu-cheng Yu <yu-cheng.yu@intel.com>, the arch/x86 maintainers <x86@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, LKML <linux-kernel@vger.kernel.org>, linux-doc@vger.kernel.org, Linux-MM <linux-mm@kvack.org>, linux-arch <linux-arch@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>, x86-patch-review@intel.com
+Message-ID: <20200227011627.6bGihzkfbNVRkb9ytJF8Ey5FlGvueoQ0VN_9pI_kM7o@z>
 
-On Wed, Feb 19, 2020 at 08:27:47AM -0800, Paul E. McKenney wrote:
-> On Wed, Feb 19, 2020 at 11:12:28AM -0500, Steven Rostedt wrote:
-> > On Wed, 19 Feb 2020 17:04:42 +0100
-> > Peter Zijlstra <peterz@infradead.org> wrote:
-> > 
-> > > > -		memmove(&gpregs->ip, (void *)regs->sp, 5*8);
-> > > > +		for (i = 0; i < count; i++) {
-> > > > +			int idx = (dst <= src) ? i : count - i;  
-> > > 
-> > > That's an off-by-one for going backward; 'count - 1 - i' should work
-> > > better, or I should just stop typing for today ;-)
-> > 
-> > Or, we could just cut and paste the current memmove and make a notrace
-> > version too. Then we don't need to worry bout bugs like this.
-> 
-> OK, I will bite...
-> 
-> Can we just make the core be an inline function and make a notrace and
-> a trace caller?  Possibly going one step further and having one call
-> the other?  (Presumably the traceable version invoking the notrace
-> version, but it has been one good long time since I have looked at
-> function preambles.)
+On 2/26/20 5:02 PM, H.J. Lu wrote:
+>> That way everybody with old toolchains can still build the kernel (and
+>> run/test code with your config option on, btw...).
+> CET requires a complete new OS image from kernel, toolchain, run-time.
+> CET enabled kernel without the rest of updated OS won't give you CET
+> at all.
 
-One complication is that GCC (and others) are prone to stick their own
-implementation of memmove() (and other string functions) in at 'random'.
-That is, it is up to the compiler's discretion wether or not to put a
-call to memmove() in or just emit some random giberish they feel has the
-same effect.
+If you require a new toolchain, nobody even builds your fancy feature.
+Probably including 0day and all of the lazy maintainers with crufty old
+distros.
 
-So if we go play silly games like that, we need be careful (or just call
-__memmove I suppose, which is supposed to avoid that IIRC).
+The point isn't to actually run CET at all.  The point is to get as many
+people as possible testing as much of it as possible.  Testing includes
+compile testing, static analysis and bloat watching.  It also includes
+functional and performance testing when you've got the feature compiled
+in but unavailable at runtime.  Did this hurt anything even when I'm not
+using it?
