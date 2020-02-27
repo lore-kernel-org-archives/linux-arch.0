@@ -1,39 +1,372 @@
-From: Jann Horn <jannh@google.com>
-Subject: Re: [RFC PATCH v14 05/10] fs,landlock: Support filesystem access-control
-Date: Thu, 27 Feb 2020 17:51:51 +0100
-Message-ID: <CAG48ez1ETFhAZE1A9x=zB=b+t=pFYp3Yc0j8psFQhGwFRdDu2A@mail.gmail.com>
-References: <20200224160215.4136-1-mic@digikod.net> <20200224160215.4136-6-mic@digikod.net>
- <CAG48ez36SMrPPgsj0omcVukRLwOzBzqWOQjuGCmmmrmsGiNukw@mail.gmail.com> <34319b76-44bd-8915-fd7c-5147f901615e@digikod.net>
+From: =?UTF-8?Q?Micka=c3=abl_Sala=c3=bcn?= <mic-WFhQfpSGs3bR7s880joybQ@public.gmane.org>
+Subject: Re: [RFC PATCH v14 01/10] landlock: Add object and rule management
+Date: Thu, 27 Feb 2020 18:01:00 +0100
+Message-ID: <216c8e89-2906-4ad5-f8a1-ab3ec50614fe@digikod.net>
+References: <20200224160215.4136-1-mic@digikod.net>
+ <20200227042002.3032-1-hdanton@sina.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
-Return-path: <linux-doc-owner@vger.kernel.org>
-In-Reply-To: <34319b76-44bd-8915-fd7c-5147f901615e@digikod.net>
-Sender: linux-doc-owner@vger.kernel.org
-To: =?UTF-8?B?TWlja2HDq2wgU2FsYcO8bg==?= <mic@digikod.net>
-Cc: kernel list <linux-kernel@vger.kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, Andy Lutomirski <luto@amacapital.net>, Arnd Bergmann <arnd@arndb.de>, Casey Schaufler <casey@schaufler-ca.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, James Morris <jmorris@namei.org>, Jann Horn <jann@thejh.net>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Michael Kerrisk <mtk.manpages@gmail.com>, =?UTF-8?B?TWlja2HDq2wgU2FsYcO8bg==?= <mickael.salaun@ssi.gouv.fr>, "Serge E . Hallyn" <serge@hallyn.com>, Shuah Khan <shuah@kernel.org>, Vincent Dagonneau <vincent.dagonneau@ssi.gouv.fr>, Kernel Hardening <kernel-hardening@lists.openwall.com>, Linux API <linux-api@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, linux-doc@vger.kernel.o
+Content-Type: text/plain; charset=iso-8859-15
+Content-Transfer-Encoding: 8bit
+Return-path: <linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+In-Reply-To: <20200227042002.3032-1-hdanton-k+cT0dCbe1g@public.gmane.org>
+Content-Language: fr
+Sender: linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: Hillf Danton <hdanton-k+cT0dCbe1g@public.gmane.org>
+Cc: linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Al Viro <viro-RmSDqhL/yNMiFSDQTTA3OLVCufUGDwFn@public.gmane.org>, Andy Lutomirski <luto-kltTT9wpgjJwATOyAt5JVQ@public.gmane.org>, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, Casey Schaufler <casey-iSGtlc1asvQWG2LlvL+J4A@public.gmane.org>, Greg Kroah-Hartman <gregkh-hQyY1W1yCW8ekmWlsbkhG0B+6BGkLq7r@public.gmane.org>, James Morris <jmorris-gx6/JNMH7DfYtjvyW6yDsg@public.gmane.org>, Jann Horn <jann-XZ1E9jl8jIdeoWH0uzbU5w@public.gmane.org>, Jonathan Corbet <corbet-T1hC0tSOHrs@public.gmane.org>, Kees Cook <keescook-F7+t8E8rja9g9hUCZPvPmw@public.gmane.org>, Michael Kerrisk <mtk.manpages-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, =?UTF-8?Q?Micka=c3=abl_Sala=c3=bcn?= <mickael.salaun-D9rjmswh09VWj0EZb7rXcA@public.gmane.org>, "Serge E. Hallyn" <serge-A9i7LUbDfNHQT0dZR+AlfA@public.gmane.org>, Shuah Khan <shuah-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Vincent Dagonneau <vincent.dagonneau-D9rjmswh09VWj0EZb7rXcA@public.gmane.org>, kernel-hardening-ZwoEplunGu1jrUoiu81ncdBPR1lH4CV8@public.gmane.org, linux-api-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-doc-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-fsdevel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-kselftest-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, Feb 27, 2020 at 5:50 PM Micka=C3=ABl Sala=C3=BCn <mic@digikod.net> =
-wrote:
-> On 26/02/2020 21:29, Jann Horn wrote:
-> > On Mon, Feb 24, 2020 at 5:03 PM Micka=C3=ABl Sala=C3=BCn <mic@digikod.n=
-et> wrote:
-> >> +static inline u32 get_mem_access(unsigned long prot, bool private)
-> >> +{
-> >> +       u32 access =3D LANDLOCK_ACCESS_FS_MAP;
-> >> +
-> >> +       /* Private mapping do not write to files. */
-> >> +       if (!private && (prot & PROT_WRITE))
-> >> +               access |=3D LANDLOCK_ACCESS_FS_WRITE;
-> >> +       if (prot & PROT_READ)
-> >> +               access |=3D LANDLOCK_ACCESS_FS_READ;
-> >> +       if (prot & PROT_EXEC)
-> >> +               access |=3D LANDLOCK_ACCESS_FS_EXECUTE;
-> >> +       return access;
-> >> +}
-[...]
-> However, I'm not sure this hook is useful for now. Indeed, the process
-> still need to have a file descriptor open with the right accesses.
 
-Yeah, agreed.
+
+On 27/02/2020 05:20, Hillf Danton wrote:
+> 
+> On Mon, 24 Feb 2020 17:02:06 +0100 Mickaël Salaün 
+>> A Landlock object enables to identify a kernel object (e.g. an inode).
+>> A Landlock rule is a set of access rights allowed on an object.  Rules
+>> are grouped in rulesets that may be tied to a set of processes (i.e.
+>> subjects) to enforce a scoped access-control (i.e. a domain).
+>>
+>> Because Landlock's goal is to empower any process (especially
+>> unprivileged ones) to sandbox themselves, we can't rely on a system-wide
+>> object identification such as file extended attributes.  Indeed, we need
+>> innocuous, composable and modular access-controls.
+>>
+>> The main challenge with this constraints is to identify kernel objects
+>> while this identification is useful (i.e. when a security policy makes
+>> use of this object).  But this identification data should be freed once
+>> no policy is using it.  This ephemeral tagging should not and may not be
+>> written in the filesystem.  We then need to manage the lifetime of a
+>> rule according to the lifetime of its object.  To avoid a global lock,
+>> this implementation make use of RCU and counters to safely reference
+>> objects.
+>>
+>> A following commit uses this generic object management for inodes.
+>>
+>> Signed-off-by: Mickaël Salaün <mic-WFhQfpSGs3bR7s880joybQ@public.gmane.org>
+>> Cc: Andy Lutomirski <luto-kltTT9wpgjJwATOyAt5JVQ@public.gmane.org>
+>> Cc: James Morris <jmorris-gx6/JNMH7DfYtjvyW6yDsg@public.gmane.org>
+>> Cc: Kees Cook <keescook-F7+t8E8rja9g9hUCZPvPmw@public.gmane.org>
+>> Cc: Serge E. Hallyn <serge-A9i7LUbDfNHQT0dZR+AlfA@public.gmane.org>
+>> ---
+>>
+>> Changes since v13:
+>> * New dedicated implementation, removing the need for eBPF.
+>>
+>> Previous version:
+>> https://lore.kernel.org/lkml/20190721213116.23476-6-mic-WFhQfpSGs3bR7s880joybQ@public.gmane.org/
+>> ---
+>>  MAINTAINERS                |  10 ++
+>>  security/Kconfig           |   1 +
+>>  security/Makefile          |   2 +
+>>  security/landlock/Kconfig  |  15 ++
+>>  security/landlock/Makefile |   3 +
+>>  security/landlock/object.c | 339 +++++++++++++++++++++++++++++++++++++
+>>  security/landlock/object.h | 134 +++++++++++++++
+>>  7 files changed, 504 insertions(+)
+>>  create mode 100644 security/landlock/Kconfig
+>>  create mode 100644 security/landlock/Makefile
+>>  create mode 100644 security/landlock/object.c
+>>  create mode 100644 security/landlock/object.h
+>>
+>> diff --git a/MAINTAINERS b/MAINTAINERS
+>> index fcd79fc38928..206f85768cd9 100644
+>> --- a/MAINTAINERS
+>> +++ b/MAINTAINERS
+>> @@ -9360,6 +9360,16 @@ F:	net/core/skmsg.c
+>>  F:	net/core/sock_map.c
+>>  F:	net/ipv4/tcp_bpf.c
+>>  
+>> +LANDLOCK SECURITY MODULE
+>> +M:	Mickaël Salaün <mic-WFhQfpSGs3bR7s880joybQ@public.gmane.org>
+>> +L:	linux-security-module-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+>> +W:	https://landlock.io
+>> +T:	git https://github.com/landlock-lsm/linux.git
+>> +S:	Supported
+>> +F:	security/landlock/
+>> +K:	landlock
+>> +K:	LANDLOCK
+>> +
+>>  LANTIQ / INTEL Ethernet drivers
+>>  M:	Hauke Mehrtens <hauke-5/S+JYg5SzeELgA04lAiVw@public.gmane.org>
+>>  L:	netdev-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+>> diff --git a/security/Kconfig b/security/Kconfig
+>> index 2a1a2d396228..9d9981394fb0 100644
+>> --- a/security/Kconfig
+>> +++ b/security/Kconfig
+>> @@ -238,6 +238,7 @@ source "security/loadpin/Kconfig"
+>>  source "security/yama/Kconfig"
+>>  source "security/safesetid/Kconfig"
+>>  source "security/lockdown/Kconfig"
+>> +source "security/landlock/Kconfig"
+>>  
+>>  source "security/integrity/Kconfig"
+>>  
+>> diff --git a/security/Makefile b/security/Makefile
+>> index 746438499029..2472ef96d40a 100644
+>> --- a/security/Makefile
+>> +++ b/security/Makefile
+>> @@ -12,6 +12,7 @@ subdir-$(CONFIG_SECURITY_YAMA)		+= yama
+>>  subdir-$(CONFIG_SECURITY_LOADPIN)	+= loadpin
+>>  subdir-$(CONFIG_SECURITY_SAFESETID)    += safesetid
+>>  subdir-$(CONFIG_SECURITY_LOCKDOWN_LSM)	+= lockdown
+>> +subdir-$(CONFIG_SECURITY_LANDLOCK)		+= landlock
+>>  
+>>  # always enable default capabilities
+>>  obj-y					+= commoncap.o
+>> @@ -29,6 +30,7 @@ obj-$(CONFIG_SECURITY_YAMA)		+= yama/
+>>  obj-$(CONFIG_SECURITY_LOADPIN)		+= loadpin/
+>>  obj-$(CONFIG_SECURITY_SAFESETID)       += safesetid/
+>>  obj-$(CONFIG_SECURITY_LOCKDOWN_LSM)	+= lockdown/
+>> +obj-$(CONFIG_SECURITY_LANDLOCK)	+= landlock/
+>>  obj-$(CONFIG_CGROUP_DEVICE)		+= device_cgroup.o
+>>  
+>>  # Object integrity file lists
+>> diff --git a/security/landlock/Kconfig b/security/landlock/Kconfig
+>> new file mode 100644
+>> index 000000000000..4a321d5b3f67
+>> --- /dev/null
+>> +++ b/security/landlock/Kconfig
+>> @@ -0,0 +1,15 @@
+>> +# SPDX-License-Identifier: GPL-2.0-only
+>> +
+>> +config SECURITY_LANDLOCK
+>> +	bool "Landlock support"
+>> +	depends on SECURITY
+>> +	default n
+>> +	help
+>> +	  This selects Landlock, a safe sandboxing mechanism.  It enables to
+>> +	  restrict processes on the fly (i.e. enforce an access control policy),
+>> +	  which can complement seccomp-bpf.  The security policy is a set of access
+>> +	  rights tied to an object, which could be a file, a socket or a process.
+>> +
+>> +	  See Documentation/security/landlock/ for further information.
+>> +
+>> +	  If you are unsure how to answer this question, answer N.
+>> diff --git a/security/landlock/Makefile b/security/landlock/Makefile
+>> new file mode 100644
+>> index 000000000000..cb6deefbf4c0
+>> --- /dev/null
+>> +++ b/security/landlock/Makefile
+>> @@ -0,0 +1,3 @@
+>> +obj-$(CONFIG_SECURITY_LANDLOCK) := landlock.o
+>> +
+>> +landlock-y := object.o
+>> diff --git a/security/landlock/object.c b/security/landlock/object.c
+>> new file mode 100644
+>> index 000000000000..38fbbb108120
+>> --- /dev/null
+>> +++ b/security/landlock/object.c
+>> @@ -0,0 +1,339 @@
+>> +// SPDX-License-Identifier: GPL-2.0-only
+>> +/*
+>> + * Landlock LSM - Object and rule management
+>> + *
+>> + * Copyright © 2016-2020 Mickaël Salaün <mic-WFhQfpSGs3bR7s880joybQ@public.gmane.org>
+>> + * Copyright © 2018-2020 ANSSI
+>> + *
+>> + * Principles and constraints of the object and rule management:
+>> + * - Do not leak memory.
+>> + * - Try as much as possible to free a memory allocation as soon as it is
+>> + *   unused.
+>> + * - Do not use global lock.
+>> + * - Do not charge processes other than the one requesting a Landlock
+>> + *   operation.
+>> + */
+>> +
+>> +#include <linux/bug.h>
+>> +#include <linux/compiler.h>
+>> +#include <linux/compiler_types.h>
+>> +#include <linux/err.h>
+>> +#include <linux/errno.h>
+>> +#include <linux/fs.h>
+>> +#include <linux/kernel.h>
+>> +#include <linux/list.h>
+>> +#include <linux/rbtree.h>
+>> +#include <linux/rcupdate.h>
+>> +#include <linux/refcount.h>
+>> +#include <linux/slab.h>
+>> +#include <linux/spinlock.h>
+>> +#include <linux/workqueue.h>
+>> +
+>> +#include "object.h"
+>> +
+>> +struct landlock_object *landlock_create_object(
+>> +		const enum landlock_object_type type, void *underlying_object)
+>> +{
+>> +	struct landlock_object *object;
+>> +
+>> +	if (WARN_ON_ONCE(!underlying_object))
+>> +		return NULL;
+>> +	object = kzalloc(sizeof(*object), GFP_KERNEL);
+>> +	if (!object)
+>> +		return NULL;
+>> +	refcount_set(&object->usage, 1);
+>> +	refcount_set(&object->cleaners, 1);
+>> +	spin_lock_init(&object->lock);
+>> +	INIT_LIST_HEAD(&object->rules);
+>> +	object->type = type;
+>> +	WRITE_ONCE(object->underlying_object, underlying_object);
+>> +	return object;
+>> +}
+>> +
+>> +struct landlock_object *landlock_get_object(struct landlock_object *object)
+>> +	__acquires(object->usage)
+>> +{
+>> +	__acquire(object->usage);
+>> +	/*
+>> +	 * If @object->usage equal 0, then it will be ignored by writers, and
+>> +	 * underlying_object->object may be replaced, but this is not an issue
+>> +	 * for release_object().
+>> +	 */
+>> +	if (object && refcount_inc_not_zero(&object->usage)) {
+>> +		/*
+>> +		 * It should not be possible to get a reference to an object if
+>> +		 * its underlying object is being terminated (e.g. with
+>> +		 * landlock_release_object()), because an object is only
+>> +		 * modifiable through such underlying object.  This is not the
+>> +		 * case with landlock_get_object_cleaner().
+>> +		 */
+>> +		WARN_ON_ONCE(!READ_ONCE(object->underlying_object));
+>> +		return object;
+>> +	}
+>> +	return NULL;
+>> +}
+>> +
+>> +static struct landlock_object *get_object_cleaner(
+>> +		struct landlock_object *object)
+>> +	__acquires(object->cleaners)
+>> +{
+>> +	__acquire(object->cleaners);
+>> +	if (object && refcount_inc_not_zero(&object->cleaners))
+>> +		return object;
+>> +	return NULL;
+>> +}
+>> +
+>> +/*
+>> + * There is two cases when an object should be free and the reference to the
+>> + * underlying object should be put:
+>> + * - when the last rule tied to this object is removed, which is handled by
+>> + *   landlock_put_rule() and then release_object();
+>> + * - when the object is being terminated (e.g. no more reference to an inode),
+>> + *   which is handled by landlock_put_object().
+>> + */
+>> +static void put_object_free(struct landlock_object *object)
+>> +	__releases(object->cleaners)
+>> +{
+>> +	__release(object->cleaners);
+>> +	if (!refcount_dec_and_test(&object->cleaners))
+>> +		return;
+>> +	WARN_ON_ONCE(refcount_read(&object->usage));
+>> +	/*
+>> +	 * Ensures a safe use of @object in the RCU block from
+>> +	 * landlock_put_rule().
+>> +	 */
+>> +	kfree_rcu(object, rcu_free);
+>> +}
+>> +
+>> +/*
+>> + * Destroys a newly created and useless object.
+>> + */
+>> +void landlock_drop_object(struct landlock_object *object)
+>> +{
+>> +	if (WARN_ON_ONCE(!refcount_dec_and_test(&object->usage)))
+>> +		return;
+>> +	__acquire(object->cleaners);
+>> +	put_object_free(object);
+>> +}
+>> +
+>> +/*
+>> + * Puts the underlying object (e.g. inode) if it is the first request to
+>> + * release @object, without calling landlock_put_object().
+>> + *
+>> + * Return true if this call effectively marks @object as released, false
+>> + * otherwise.
+>> + */
+>> +static bool release_object(struct landlock_object *object)
+>> +	__releases(&object->lock)
+>> +{
+>> +	void *underlying_object;
+>> +
+>> +	lockdep_assert_held(&object->lock);
+>> +
+>> +	underlying_object = xchg(&object->underlying_object, NULL);
+> 
+> A one-line comment looks needed for xchg.
+
+Ok. This is to have a guarantee that the underlying_object (e.g. the
+inode pointer) is only used once. I'll add a comment.
+
+> 
+>> +	spin_unlock(&object->lock);
+>> +	might_sleep();
+> 
+> Have trouble working out what might_sleep is put for.
+
+Patch 5 adds a call to landlock_release_inode(underlying_object, object)
+(LANDLOCK_OBJECT_INODE case), which can sleep e.g., with a call to iput().
+
+> 
+>> +	if (!underlying_object)
+>> +		return false;
+>> +
+>> +	switch (object->type) {
+>> +	case LANDLOCK_OBJECT_INODE:
+>> +		break;
+>> +	default:
+>> +		WARN_ON_ONCE(1);
+>> +	}
+>> +	return true;
+>> +}
+>> +
+>> +static void put_object_cleaner(struct landlock_object *object)
+>> +	__releases(object->cleaners)
+>> +{
+>> +	/* Let's try an early lockless check. */
+>> +	if (list_empty(&object->rules) &&
+>> +			READ_ONCE(object->underlying_object)) {
+>> +		/*
+>> +		 * Puts @object if there is no rule tied to it and the
+>> +		 * remaining user is the underlying object.  This check is
+>> +		 * atomic because @object->rules and @object->underlying_object
+>> +		 * are protected by @object->lock.
+>> +		 */
+>> +		spin_lock(&object->lock);
+>> +		if (list_empty(&object->rules) &&
+>> +				READ_ONCE(object->underlying_object) &&
+>> +				refcount_dec_if_one(&object->usage)) {
+>> +			/*
+>> +			 * Releases @object, in place of
+>> +			 * landlock_release_object().
+>> +			 *
+>> +			 * @object is already empty, implying that all its
+>> +			 * previous rules are already disabled.
+>> +			 *
+>> +			 * Unbalance the @object->cleaners counter to reflect
+>> +			 * the underlying object release.
+>> +			 */
+>> +			if (!WARN_ON_ONCE(!release_object(object))) {
+> 
+> Two ! hurt more than help.
+
+Well, it may not look nice but don't you think it is better than a
+WARN_ON_ONCE(1) in the if block?
+
+>> +				__acquire(object->cleaners);
+>> +				put_object_free(object);
+> 
+> Why put object more than once?
+
+I just replied to Jann about this subject. This is to "unbalance" the
+counter to potentially free it (if there is no more user). I explain it
+here:
+https://lore.kernel.org/lkml/67465638-e22c-5d1a-df37-862b31d999a1-WFhQfpSGs3bR7s880joybQ@public.gmane.org/
+
+> 
+>> +			}
+>> +		} else {
+>> +			spin_unlock(&object->lock);
+>> +		}
+>> +	}
+>> +	put_object_free(object);
+>> +}
+>> +
+> 
