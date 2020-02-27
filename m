@@ -1,44 +1,37 @@
-From: Dave Hansen <dave.hansen@intel.com>
-Subject: Re: [RFC PATCH v9 05/27] x86/cet/shstk: Add Kconfig option for
- user-mode Shadow Stack protection
-Date: Thu, 27 Feb 2020 10:03:36 -0800
-Message-ID: <e4027ef5-8e35-aeb2-c090-d3074aafe4cb@intel.com>
-References: <CAMe9rOqhf4y+e6h8i7P8+70pwLSg8n=ise6LEqABNPKarECdeA@mail.gmail.com>
- <FF42D299-D7A4-4884-9E45-DBEB5853FE56@amacapital.net>
+From: Alan Stern <stern@rowland.harvard.edu>
+Subject: Re: [PATCH v3 1/5] tools/memory-model: Add an exception for limitations
+ on _unless() family
+Date: Thu, 27 Feb 2020 13:16:37 -0500 (EST)
+Message-ID: <Pine.LNX.4.44L0.2002271314081.1730-100000@iolanthe.rowland.org>
+References: <20200227164901.jxwk26ey3i2n2yhu@yquem.inria.fr>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 8bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mga11.intel.com ([192.55.52.93]:48746 "EHLO mga11.intel.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726805AbgB0SDh (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 27 Feb 2020 13:03:37 -0500
-In-Reply-To: <FF42D299-D7A4-4884-9E45-DBEB5853FE56@amacapital.net>
-Content-Language: en-US
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Andy Lutomirski <luto@amacapital.net>, "H.J. Lu" <hjl.tools@gmail.com>
-Cc: Yu-cheng Yu <yu-cheng.yu@intel.com>, the arch/x86 maintainers <x86@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, LKML <linux-kernel@vger.kernel.org>, linux-doc@vger.kernel.org, Linux-MM <linux-mm@kvack.org>, linux-arch <linux-arch@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>
+Content-Type: TEXT/PLAIN; charset=US-ASCII
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20200227164901.jxwk26ey3i2n2yhu@yquem.inria.fr>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Luc Maranget <luc.maranget@inria.fr>
+Cc: Boqun Feng <boqun.feng@gmail.com>, linux-kernel@vger.kernel.org, Andrea Parri <parri.andrea@gmail.com>, Will Deacon <will@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Nicholas Piggin <npiggin@gmail.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, "Paul E. McKenney" <paulmck@kernel.org>, Akira Yokosawa <akiyks@gmail.com>, Daniel Lustig <dlustig@nvidia.com>, Jonathan Corbet <corbet@lwn.net>, Mauro Carvalho Chehab <mchehab+samsung@kernel.org>, "David S. Miller" <davem@davemloft.net>, Rob Herring <robh@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jonathan Cameron <Jonathan.Cameron@huawei.com>, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On 2/26/20 7:57 PM, Andy Lutomirski wrote:
->> GCC 8 or above is needed since vDSO must be compiled with 
->> --fcf-protection=branch.
-> Fair enough. I don’t particularly want to carry a gross hack to add
-> the ENDBRANCHes without compiler support.
+On Thu, 27 Feb 2020, Luc Maranget wrote:
 
-Yeah, that's not worth it.
+> > On Thu, 27 Feb 2020, Boqun Feng wrote:
+> > 
+> > > According to Luc, atomic_add_unless() is directly provided by herd7,
+> > > therefore it can be used in litmus tests. So change the limitation
+> > > section in README to unlimit the use of atomic_add_unless().
+> > 
+> > Is this really true?  Why does herd treat atomic_add_unless() different
+> > from all the other atomic RMS ops?  All the other ones we support do
+> > have entries in linux-kernel.def.
+> 
+> I think this to be true :)
+> 
+> As far as I remember atomic_add_unless is quite different fron other atomic
+> RMW ops and called for a specific all-OCaml implementation, without an
+> entry in linux-kernel.def. As to  atomic_long_add_unless, I was not aware
+> of its existence.
 
-But my main issue the shadow stack instructions:
+Can you explain what is so different about atomic_add_unless?
 
->> +ifdef CONFIG_X86_INTEL_SHADOW_STACK_USER
->> +  ifeq ($(call as-instr, saveprevssp, y),)
->> +      $(error CONFIG_X86_INTEL_SHADOW_STACK_USER not supported by the assembler)
->> +  endif
->> +endif
-
-Which are unrelated to ENDBRANCH.
-
-But, in any case, let's say Kconfig says we should try to use IBT, but
-we get to building the vDSO and don't have the right toolchain.  Do we
-just stop the build?  Or do we let the build go on and then decline to
-let folks enable IBT at runtime?
+Alan
