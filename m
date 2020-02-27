@@ -1,170 +1,168 @@
-Return-Path: <SRS0=BIEI=4P=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:55650 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1730705AbgB0Rol (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 27 Feb 2020 12:44:41 -0500
-From: Mark Brown <broonie@kernel.org>
-Subject: [PATCH v8 08/11] arm64: traps: Shuffle code to eliminate forward declarations
-Date: Thu, 27 Feb 2020 17:44:14 +0000
-Message-ID: <20200227174417.23722-9-broonie@kernel.org>
-In-Reply-To: <20200227174417.23722-1-broonie@kernel.org>
-References: <20200227174417.23722-1-broonie@kernel.org>
+Return-Path: <rppt@kernel.org>
+From: Mike Rapoport <rppt@kernel.org>
+Subject: [PATCH v3 14/14] mm: remove __ARCH_HAS_5LEVEL_HACK and include/asm-generic/5level-fixup.h
+Date: Thu, 27 Feb 2020 10:46:08 +0200
+Message-ID: <20200227084608.18223-15-rppt@kernel.org>
+In-Reply-To: <20200227084608.18223-1-rppt@kernel.org>
+References: <20200227084608.18223-1-rppt@kernel.org>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
-Sender: linux-arch-owner@vger.kernel.org
+To: linux-kernel@vger.kernel.org
+Cc: Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Brian Cain <bcain@codeaurora.org>, Catalin Marinas <catalin.marinas@arm.com>, Christophe Leroy <christophe.leroy@c-s.fr>, Fenghua Yu <fenghua.yu@intel.com>, Geert Uytterhoeven <geert+renesas@glider.be>, Guan Xuetao <gxt@pku.edu.cn>, James Morse <james.morse@arm.com>, Jonas Bonn <jonas@southpole.se>, Julien Thierry <julien.thierry.kdev@gmail.com>, Ley Foon Tan <ley.foon.tan@intel.com>, Marc Zyngier <maz@kernel.org>, Michael Ellerman <mpe@ellerman.id.au>, Paul Mackerras <paulus@samba.org>, Rich Felker <dalias@libc.org>, Russell King <linux@armlinux.org.uk>, Stafford Horne <shorne@gmail.com>, Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>, Suzuki K Poulose <suzuki.poulose@arm.com>, Tony Luck <tony.luck@intel.com>, Will Deacon <will@kernel.org>, Yoshinori Sato <ysato@users.sourceforge.jp>, kvmarm@lists.cs.columbia.edu, kvm-ppc@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-mm@kvack.org, linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org, nios2-dev@lists.rocketboards.org, openrisc@lists.librecores.org, uclinux-h8-devel@lists.sourceforge.jp, Mike Rapoport <rppt@kernel.org>, Mike Rapoport <rppt@linux.ibm.com>
 List-ID: <linux-arch.vger.kernel.org>
-To: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>
-Cc: Alexander Viro <viro@zeniv.linux.org.uk>, Paul Elliott <paul.elliott@arm.com>, Peter Zijlstra <peterz@infradead.org>, Yu-cheng Yu <yu-cheng.yu@intel.com>, Amit Kachhap <amit.kachhap@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Marc Zyngier <maz@kernel.org>, Eugene Syromiatnikov <esyr@redhat.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, "H . J . Lu " <hjl.tools@gmail.com>, Andrew Jones <drjones@redhat.com>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Jann Horn <jannh@google.com>, Richard Henderson <richard.henderson@linaro.org>, =?UTF-8?q?Kristina=20Mart=C5=A1enko?= <kristina.martsenko@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Florian Weimer <fweimer@redhat.com>, Sudakshina Das <sudi.das@arm.com>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, Dave Martin <Dave.Martin@arm.com>, Mark Brown <broonie@kernel.org>
-Message-ID: <20200227174414.YuEF9_c4ObMmWp7pnJV-JhpC2rkPaRAP8JWD5RhCC5E@z>
+Message-ID: <20200227084608.qQEnwWlqzJ1Map1kWe_eTBU959FU774CpZ0r2wjjUBE@z>
 
-From: Dave Martin <Dave.Martin@arm.com>
+From: Mike Rapoport <rppt@linux.ibm.com>
 
-Hoist the IT state handling code earlier in traps.c, to avoid
-accumulating forward declarations.
+There are no architectures that use include/asm-generic/5level-fixup.h
+therefore it can be removed along with __ARCH_HAS_5LEVEL_HACK define and
+the code it surrounds
 
-No functional change.
-
-Signed-off-by: Dave Martin <Dave.Martin@arm.com>
-Reviewed-by: Kees Cook <keescook@chromium.org>
-Signed-off-by: Mark Brown <broonie@kernel.org>
+Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
 ---
- arch/arm64/kernel/traps.c | 103 ++++++++++++++++++--------------------
- 1 file changed, 50 insertions(+), 53 deletions(-)
+ include/asm-generic/5level-fixup.h | 58 ------------------------------
+ include/linux/mm.h                 |  6 ----
+ mm/kasan/init.c                    | 11 ------
+ mm/memory.c                        |  8 -----
+ 4 files changed, 83 deletions(-)
+ delete mode 100644 include/asm-generic/5level-fixup.h
 
-diff --git a/arch/arm64/kernel/traps.c b/arch/arm64/kernel/traps.c
-index bc9f4292bfc3..3c07a7074145 100644
---- a/arch/arm64/kernel/traps.c
-+++ b/arch/arm64/kernel/traps.c
-@@ -272,7 +272,55 @@ void arm64_notify_die(const char *str, struct pt_regs *regs,
- 	}
- }
- 
--static void advance_itstate(struct pt_regs *regs);
-+#ifdef CONFIG_COMPAT
-+#define PSTATE_IT_1_0_SHIFT	25
-+#define PSTATE_IT_1_0_MASK	(0x3 << PSTATE_IT_1_0_SHIFT)
-+#define PSTATE_IT_7_2_SHIFT	10
-+#define PSTATE_IT_7_2_MASK	(0x3f << PSTATE_IT_7_2_SHIFT)
-+
-+static u32 compat_get_it_state(struct pt_regs *regs)
-+{
-+	u32 it, pstate = regs->pstate;
-+
-+	it  = (pstate & PSTATE_IT_1_0_MASK) >> PSTATE_IT_1_0_SHIFT;
-+	it |= ((pstate & PSTATE_IT_7_2_MASK) >> PSTATE_IT_7_2_SHIFT) << 2;
-+
-+	return it;
-+}
-+
-+static void compat_set_it_state(struct pt_regs *regs, u32 it)
-+{
-+	u32 pstate_it;
-+
-+	pstate_it  = (it << PSTATE_IT_1_0_SHIFT) & PSTATE_IT_1_0_MASK;
-+	pstate_it |= ((it >> 2) << PSTATE_IT_7_2_SHIFT) & PSTATE_IT_7_2_MASK;
-+
-+	regs->pstate &= ~PSR_AA32_IT_MASK;
-+	regs->pstate |= pstate_it;
-+}
-+
-+static void advance_itstate(struct pt_regs *regs)
-+{
-+	u32 it;
-+
-+	/* ARM mode */
-+	if (!(regs->pstate & PSR_AA32_T_BIT) ||
-+	    !(regs->pstate & PSR_AA32_IT_MASK))
-+		return;
-+
-+	it  = compat_get_it_state(regs);
-+
-+	/*
-+	 * If this is the last instruction of the block, wipe the IT
-+	 * state. Otherwise advance it.
-+	 */
-+	if (!(it & 7))
-+		it = 0;
-+	else
-+		it = (it & 0xe0) | ((it << 1) & 0x1f);
-+
-+	compat_set_it_state(regs, it);
-+}
- 
- void arm64_skip_faulting_instruction(struct pt_regs *regs, unsigned long size)
- {
-@@ -285,7 +333,7 @@ void arm64_skip_faulting_instruction(struct pt_regs *regs, unsigned long size)
- 	if (user_mode(regs))
- 		user_fastforward_single_step(current);
- 
--	if (regs->pstate & PSR_MODE32_BIT)
-+	if (compat_user_mode(regs))
- 		advance_itstate(regs);
- }
- 
-@@ -578,34 +626,6 @@ static const struct sys64_hook sys64_hooks[] = {
- 	{},
- };
- 
+diff --git a/include/asm-generic/5level-fixup.h b/include/asm-generic/5level-fixup.h
+deleted file mode 100644
+index 4c74b1c1d13b..000000000000
+--- a/include/asm-generic/5level-fixup.h
++++ /dev/null
+@@ -1,58 +0,0 @@
+-/* SPDX-License-Identifier: GPL-2.0 */
+-#ifndef _5LEVEL_FIXUP_H
+-#define _5LEVEL_FIXUP_H
 -
--#ifdef CONFIG_COMPAT
--#define PSTATE_IT_1_0_SHIFT	25
--#define PSTATE_IT_1_0_MASK	(0x3 << PSTATE_IT_1_0_SHIFT)
--#define PSTATE_IT_7_2_SHIFT	10
--#define PSTATE_IT_7_2_MASK	(0x3f << PSTATE_IT_7_2_SHIFT)
+-#define __ARCH_HAS_5LEVEL_HACK
+-#define __PAGETABLE_P4D_FOLDED 1
 -
--static u32 compat_get_it_state(struct pt_regs *regs)
+-#define P4D_SHIFT			PGDIR_SHIFT
+-#define P4D_SIZE			PGDIR_SIZE
+-#define P4D_MASK			PGDIR_MASK
+-#define MAX_PTRS_PER_P4D		1
+-#define PTRS_PER_P4D			1
+-
+-#define p4d_t				pgd_t
+-
+-#define pud_alloc(mm, p4d, address) \
+-	((unlikely(pgd_none(*(p4d))) && __pud_alloc(mm, p4d, address)) ? \
+-		NULL : pud_offset(p4d, address))
+-
+-#define p4d_alloc(mm, pgd, address)	(pgd)
+-#define p4d_offset(pgd, start)		(pgd)
+-
+-#ifndef __ASSEMBLY__
+-static inline int p4d_none(p4d_t p4d)
 -{
--	u32 it, pstate = regs->pstate;
--
--	it  = (pstate & PSTATE_IT_1_0_MASK) >> PSTATE_IT_1_0_SHIFT;
--	it |= ((pstate & PSTATE_IT_7_2_MASK) >> PSTATE_IT_7_2_SHIFT) << 2;
--
--	return it;
+-	return 0;
 -}
 -
--static void compat_set_it_state(struct pt_regs *regs, u32 it)
+-static inline int p4d_bad(p4d_t p4d)
 -{
--	u32 pstate_it;
--
--	pstate_it  = (it << PSTATE_IT_1_0_SHIFT) & PSTATE_IT_1_0_MASK;
--	pstate_it |= ((it >> 2) << PSTATE_IT_7_2_SHIFT) & PSTATE_IT_7_2_MASK;
--
--	regs->pstate &= ~PSR_AA32_IT_MASK;
--	regs->pstate |= pstate_it;
+-	return 0;
 -}
 -
- static bool cp15_cond_valid(unsigned int esr, struct pt_regs *regs)
- {
- 	int cond;
-@@ -626,29 +646,6 @@ static bool cp15_cond_valid(unsigned int esr, struct pt_regs *regs)
- 	return aarch32_opcode_cond_checks[cond](regs->pstate);
- }
+-static inline int p4d_present(p4d_t p4d)
+-{
+-	return 1;
+-}
+-#endif
+-
+-#define p4d_ERROR(p4d)			do { } while (0)
+-#define p4d_clear(p4d)			pgd_clear(p4d)
+-#define p4d_val(p4d)			pgd_val(p4d)
+-#define p4d_populate(mm, p4d, pud)	pgd_populate(mm, p4d, pud)
+-#define p4d_populate_safe(mm, p4d, pud)	pgd_populate(mm, p4d, pud)
+-#define p4d_page(p4d)			pgd_page(p4d)
+-#define p4d_page_vaddr(p4d)		pgd_page_vaddr(p4d)
+-
+-#define __p4d(x)			__pgd(x)
+-#define set_p4d(p4dp, p4d)		set_pgd(p4dp, p4d)
+-
+-#undef p4d_free_tlb
+-#define p4d_free_tlb(tlb, x, addr)	do { } while (0)
+-#define p4d_free(mm, x)			do { } while (0)
+-
+-#undef  p4d_addr_end
+-#define p4d_addr_end(addr, end)		(end)
+-
+-#endif
+diff --git a/include/linux/mm.h b/include/linux/mm.h
+index 52269e56c514..69fb46e1d91b 100644
+--- a/include/linux/mm.h
++++ b/include/linux/mm.h
+@@ -1841,11 +1841,6 @@ int __pte_alloc_kernel(pmd_t *pmd);
  
--static void advance_itstate(struct pt_regs *regs)
--{
--	u32 it;
--
--	/* ARM mode */
--	if (!(regs->pstate & PSR_AA32_T_BIT) ||
--	    !(regs->pstate & PSR_AA32_IT_MASK))
--		return;
--
--	it  = compat_get_it_state(regs);
--
--	/*
--	 * If this is the last instruction of the block, wipe the IT
--	 * state. Otherwise advance it.
--	 */
--	if (!(it & 7))
--		it = 0;
--	else
--		it = (it & 0xe0) | ((it << 1) & 0x1f);
--
--	compat_set_it_state(regs, it);
--}
--
- static void compat_cntfrq_read_handler(unsigned int esr, struct pt_regs *regs)
+ #if defined(CONFIG_MMU)
+ 
+-/*
+- * The following ifdef needed to get the 5level-fixup.h header to work.
+- * Remove it when 5level-fixup.h has been removed.
+- */
+-#ifndef __ARCH_HAS_5LEVEL_HACK
+ static inline p4d_t *p4d_alloc(struct mm_struct *mm, pgd_t *pgd,
+ 		unsigned long address)
  {
- 	int reg = (esr & ESR_ELx_CP15_32_ISS_RT_MASK) >> ESR_ELx_CP15_32_ISS_RT_SHIFT;
+@@ -1859,7 +1854,6 @@ static inline pud_t *pud_alloc(struct mm_struct *mm, p4d_t *p4d,
+ 	return (unlikely(p4d_none(*p4d)) && __pud_alloc(mm, p4d, address)) ?
+ 		NULL : pud_offset(p4d, address);
+ }
+-#endif /* !__ARCH_HAS_5LEVEL_HACK */
+ 
+ static inline pmd_t *pmd_alloc(struct mm_struct *mm, pud_t *pud, unsigned long address)
+ {
+diff --git a/mm/kasan/init.c b/mm/kasan/init.c
+index ce45c491ebcd..fe6be0be1f76 100644
+--- a/mm/kasan/init.c
++++ b/mm/kasan/init.c
+@@ -250,20 +250,9 @@ int __ref kasan_populate_early_shadow(const void *shadow_start,
+ 			 * 3,2 - level page tables where we don't have
+ 			 * puds,pmds, so pgd_populate(), pud_populate()
+ 			 * is noops.
+-			 *
+-			 * The ifndef is required to avoid build breakage.
+-			 *
+-			 * With 5level-fixup.h, pgd_populate() is not nop and
+-			 * we reference kasan_early_shadow_p4d. It's not defined
+-			 * unless 5-level paging enabled.
+-			 *
+-			 * The ifndef can be dropped once all KASAN-enabled
+-			 * architectures will switch to pgtable-nop4d.h.
+ 			 */
+-#ifndef __ARCH_HAS_5LEVEL_HACK
+ 			pgd_populate(&init_mm, pgd,
+ 					lm_alias(kasan_early_shadow_p4d));
+-#endif
+ 			p4d = p4d_offset(pgd, addr);
+ 			p4d_populate(&init_mm, p4d,
+ 					lm_alias(kasan_early_shadow_pud));
+diff --git a/mm/memory.c b/mm/memory.c
+index 0bccc622e482..10cc147db1b8 100644
+--- a/mm/memory.c
++++ b/mm/memory.c
+@@ -4252,19 +4252,11 @@ int __pud_alloc(struct mm_struct *mm, p4d_t *p4d, unsigned long address)
+ 	smp_wmb(); /* See comment in __pte_alloc */
+ 
+ 	spin_lock(&mm->page_table_lock);
+-#ifndef __ARCH_HAS_5LEVEL_HACK
+ 	if (!p4d_present(*p4d)) {
+ 		mm_inc_nr_puds(mm);
+ 		p4d_populate(mm, p4d, new);
+ 	} else	/* Another has populated it */
+ 		pud_free(mm, new);
+-#else
+-	if (!pgd_present(*p4d)) {
+-		mm_inc_nr_puds(mm);
+-		pgd_populate(mm, p4d, new);
+-	} else	/* Another has populated it */
+-		pud_free(mm, new);
+-#endif /* __ARCH_HAS_5LEVEL_HACK */
+ 	spin_unlock(&mm->page_table_lock);
+ 	return 0;
+ }
 -- 
-2.20.1
+2.24.0
