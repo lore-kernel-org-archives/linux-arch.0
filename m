@@ -1,169 +1,63 @@
-Return-Path: <SRS0=bqXs=4A=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:37110 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1729099AbgBLT3a (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 12 Feb 2020 14:29:30 -0500
-From: Mark Brown <broonie@kernel.org>
-Subject: [PATCH v6 08/11] arm64: traps: Shuffle code to eliminate forward declarations
-Date: Wed, 12 Feb 2020 19:29:03 +0000
-Message-ID: <20200212192906.53366-9-broonie@kernel.org>
-In-Reply-To: <20200212192906.53366-1-broonie@kernel.org>
-References: <20200212192906.53366-1-broonie@kernel.org>
+Return-Path: <SRS0=BIEI=4P=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail-wm1-f68.google.com ([209.85.128.68]:52861 "EHLO
+        mail-wm1-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1728253AbgB0DRh (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 26 Feb 2020 22:17:37 -0500
+Received: by mail-wm1-f68.google.com with SMTP id p9so1844510wmc.2
+        for <linux-arch@vger.kernel.org>; Wed, 26 Feb 2020 19:17:34 -0800 (PST)
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Reply-To: mrsanna.h.bruun119@gmail.com
+From: "Mrs. Anna H. Bruun" <mrsanna.h.bruun119@gmail.com>
+Date: Wed, 26 Feb 2020 19:17:32 -0800
+Message-ID: <CAD3OtNpobt8wahDp-PO=a56WERZ9=T_qoaEdi-Y-fuOUoHRnOQ@mail.gmail.com>
+Subject: My Greetings
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>
-Cc: Alexander Viro <viro@zeniv.linux.org.uk>, Paul Elliott <paul.elliott@arm.com>, Peter Zijlstra <peterz@infradead.org>, Yu-cheng Yu <yu-cheng.yu@intel.com>, Amit Kachhap <amit.kachhap@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Marc Zyngier <maz@kernel.org>, Eugene Syromiatnikov <esyr@redhat.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, "H . J . Lu " <hjl.tools@gmail.com>, Andrew Jones <drjones@redhat.com>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Jann Horn <jannh@google.com>, Richard Henderson <richard.henderson@linaro.org>, =?UTF-8?q?Kristina=20Mart=C5=A1enko?= <kristina.martsenko@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Florian Weimer <fweimer@redhat.com>, Sudakshina Das <sudi.das@arm.com>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, Dave Martin <Dave.Martin@arm.com>, Mark Brown <broonie@kernel.org>
-Message-ID: <20200212192903.43l5K1vXT4sifEiyvJAaTlxo3rbZPBr-RW_DNJgEGJo@z>
 
-From: Dave Martin <Dave.Martin@arm.com>
+My Dear
 
-Hoist the IT state handling code earlier in traps.c, to avoid
-accumulating forward declarations.
+My Name is Mrs. Anna H. Bruun, from Norway. I know that this message
+will be a surprise to you. Firstly, I am married to Mr. Patrick Bruun,
+A gold merchant who owns a small gold Mine in Burkina Faso; He died of
+Cardiovascular Disease in mid-March 2011. During his life time he
+deposited the sum of =E2=82=AC 8.5 Million Euro) Eight million, Five hundre=
+d
+thousand Euros in a bank in Ouagadougou the capital city of Burkina
+Faso. The deposited money was from the sale of the shares, death
+benefits payment and entitlements of my deceased husband by his
+company.
 
-No functional change.
+I am sending this message to you praying that it will reach you in
+good health, since I am not in good health condition in which I sleep
+every night without knowing if I may be alive to see the next day. I
+am suffering from long time cancer and presently i am partially
+suffering from a stroke illness which has become almost impossible for
+me to move around. I am married to my late husband for over 4 years
+before he died and is unfortunately that we don't have a child, my
+doctor confided in me that i have less chance to live. Having known my
+health condition, I decided to contact you to claim the fund since I
+don't have any relation I grew up from the orphanage home,
 
-Signed-off-by: Dave Martin <Dave.Martin@arm.com>
-Signed-off-by: Mark Brown <broonie@kernel.org>
----
- arch/arm64/kernel/traps.c | 103 ++++++++++++++++++--------------------
- 1 file changed, 50 insertions(+), 53 deletions(-)
+I have decided to donate what I have to you for the support of helping
+Motherless babies/Less privileged/Widows' because I am dying and
+diagnosed of cancer for about 2 years ago. I have been touched by God
+Almighty to donate from what I have inherited from my late husband to
+you for good work of God Almighty. I have asked Almighty God to
+forgive me and believe he has, because He is a Merciful God I will be
+going in for an operation surgery soon
 
-diff --git a/arch/arm64/kernel/traps.c b/arch/arm64/kernel/traps.c
-index bc9f4292bfc3..3c07a7074145 100644
---- a/arch/arm64/kernel/traps.c
-+++ b/arch/arm64/kernel/traps.c
-@@ -272,7 +272,55 @@ void arm64_notify_die(const char *str, struct pt_regs *regs,
- 	}
- }
- 
--static void advance_itstate(struct pt_regs *regs);
-+#ifdef CONFIG_COMPAT
-+#define PSTATE_IT_1_0_SHIFT	25
-+#define PSTATE_IT_1_0_MASK	(0x3 << PSTATE_IT_1_0_SHIFT)
-+#define PSTATE_IT_7_2_SHIFT	10
-+#define PSTATE_IT_7_2_MASK	(0x3f << PSTATE_IT_7_2_SHIFT)
-+
-+static u32 compat_get_it_state(struct pt_regs *regs)
-+{
-+	u32 it, pstate = regs->pstate;
-+
-+	it  = (pstate & PSTATE_IT_1_0_MASK) >> PSTATE_IT_1_0_SHIFT;
-+	it |= ((pstate & PSTATE_IT_7_2_MASK) >> PSTATE_IT_7_2_SHIFT) << 2;
-+
-+	return it;
-+}
-+
-+static void compat_set_it_state(struct pt_regs *regs, u32 it)
-+{
-+	u32 pstate_it;
-+
-+	pstate_it  = (it << PSTATE_IT_1_0_SHIFT) & PSTATE_IT_1_0_MASK;
-+	pstate_it |= ((it >> 2) << PSTATE_IT_7_2_SHIFT) & PSTATE_IT_7_2_MASK;
-+
-+	regs->pstate &= ~PSR_AA32_IT_MASK;
-+	regs->pstate |= pstate_it;
-+}
-+
-+static void advance_itstate(struct pt_regs *regs)
-+{
-+	u32 it;
-+
-+	/* ARM mode */
-+	if (!(regs->pstate & PSR_AA32_T_BIT) ||
-+	    !(regs->pstate & PSR_AA32_IT_MASK))
-+		return;
-+
-+	it  = compat_get_it_state(regs);
-+
-+	/*
-+	 * If this is the last instruction of the block, wipe the IT
-+	 * state. Otherwise advance it.
-+	 */
-+	if (!(it & 7))
-+		it = 0;
-+	else
-+		it = (it & 0xe0) | ((it << 1) & 0x1f);
-+
-+	compat_set_it_state(regs, it);
-+}
- 
- void arm64_skip_faulting_instruction(struct pt_regs *regs, unsigned long size)
- {
-@@ -285,7 +333,7 @@ void arm64_skip_faulting_instruction(struct pt_regs *regs, unsigned long size)
- 	if (user_mode(regs))
- 		user_fastforward_single_step(current);
- 
--	if (regs->pstate & PSR_MODE32_BIT)
-+	if (compat_user_mode(regs))
- 		advance_itstate(regs);
- }
- 
-@@ -578,34 +626,6 @@ static const struct sys64_hook sys64_hooks[] = {
- 	{},
- };
- 
--
--#ifdef CONFIG_COMPAT
--#define PSTATE_IT_1_0_SHIFT	25
--#define PSTATE_IT_1_0_MASK	(0x3 << PSTATE_IT_1_0_SHIFT)
--#define PSTATE_IT_7_2_SHIFT	10
--#define PSTATE_IT_7_2_MASK	(0x3f << PSTATE_IT_7_2_SHIFT)
--
--static u32 compat_get_it_state(struct pt_regs *regs)
--{
--	u32 it, pstate = regs->pstate;
--
--	it  = (pstate & PSTATE_IT_1_0_MASK) >> PSTATE_IT_1_0_SHIFT;
--	it |= ((pstate & PSTATE_IT_7_2_MASK) >> PSTATE_IT_7_2_SHIFT) << 2;
--
--	return it;
--}
--
--static void compat_set_it_state(struct pt_regs *regs, u32 it)
--{
--	u32 pstate_it;
--
--	pstate_it  = (it << PSTATE_IT_1_0_SHIFT) & PSTATE_IT_1_0_MASK;
--	pstate_it |= ((it >> 2) << PSTATE_IT_7_2_SHIFT) & PSTATE_IT_7_2_MASK;
--
--	regs->pstate &= ~PSR_AA32_IT_MASK;
--	regs->pstate |= pstate_it;
--}
--
- static bool cp15_cond_valid(unsigned int esr, struct pt_regs *regs)
- {
- 	int cond;
-@@ -626,29 +646,6 @@ static bool cp15_cond_valid(unsigned int esr, struct pt_regs *regs)
- 	return aarch32_opcode_cond_checks[cond](regs->pstate);
- }
- 
--static void advance_itstate(struct pt_regs *regs)
--{
--	u32 it;
--
--	/* ARM mode */
--	if (!(regs->pstate & PSR_AA32_T_BIT) ||
--	    !(regs->pstate & PSR_AA32_IT_MASK))
--		return;
--
--	it  = compat_get_it_state(regs);
--
--	/*
--	 * If this is the last instruction of the block, wipe the IT
--	 * state. Otherwise advance it.
--	 */
--	if (!(it & 7))
--		it = 0;
--	else
--		it = (it & 0xe0) | ((it << 1) & 0x1f);
--
--	compat_set_it_state(regs, it);
--}
--
- static void compat_cntfrq_read_handler(unsigned int esr, struct pt_regs *regs)
- {
- 	int reg = (esr & ESR_ELx_CP15_32_ISS_RT_MASK) >> ESR_ELx_CP15_32_ISS_RT_SHIFT;
--- 
-2.20.1
+This is the reason i need your services to stand as my next of kin or
+an executor to claim the funds for charity purposes. If this money
+remains unclaimed after my death, the bank executives or the
+government will take the money as unclaimed fund and maybe use it for
+selfish and worthless ventures, I need a very honest person who can
+claim this money and use it for Charity works, for orphanages, widows
+and also build schools for less privilege that will be named after my
+late husband and my name; I need your urgent answer to know if you
+will be able to execute this project, and I will give you more
+Information on how the fund will be transferred to your bank account.
+
+Thanks
+Mrs. Anna H.
