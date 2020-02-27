@@ -1,63 +1,150 @@
-From: Michal Simek <michal.simek@xilinx.com>
-Subject: Re: [PATCH 00/10] Hi,
-Date: Thu, 27 Feb 2020 08:31:28 +0100
-Message-ID: <5dfa98df-8955-59fd-1d65-c0a988190acb@xilinx.com>
-References: <cover.1581497860.git.michal.simek@xilinx.com>
- <CAL_JsqJeXJ6zWvEUi=gyOV0eCcXsvNmkK9EstC9hg9AKfMXnKw@mail.gmail.com>
- <0f8140c1-da6f-ef04-0809-252d6de6a5d7@xilinx.com>
- <CAL_JsqLf2e3z+m14264WFcsQgiwKR35Rs9Rw0c_MgoFvKwO2Xg@mail.gmail.com>
+From: Mike Rapoport <rppt@kernel.org>
+Subject: [PATCH v3 00/14] mm: remove __ARCH_HAS_5LEVEL_HACK
+Date: Thu, 27 Feb 2020 10:45:54 +0200
+Message-ID: <20200227084608.18223-1-rppt@kernel.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-dm6nam12on2064.outbound.protection.outlook.com ([40.107.243.64]:4011
-        "EHLO NAM12-DM6-obe.outbound.protection.outlook.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1726999AbgB0Hby (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 27 Feb 2020 02:31:54 -0500
-In-Reply-To: <CAL_JsqLf2e3z+m14264WFcsQgiwKR35Rs9Rw0c_MgoFvKwO2Xg@mail.gmail.com>
-Content-Language: en-US
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Rob Herring <robh@kernel.org>, Michal Simek <michal.simek@xilinx.com>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Michal Simek <monstr@monstr.eu>, git <git@xilinx.com>, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>, Arvind Sankar <nivedita@alum.mit.edu>, Borislav Petkov <bp@suse.de>, Cornelia Huck <cohuck@redhat.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Greg Ungerer <gerg@linux-m68k.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, Kees Cook <keescook@chromium.org>, Masahiro Yamada <yamada.masahiro@socionext.com>, Mike Rapoport <rppt@linux.ibm.com>, Mubin Sayyed <mubinusm@xilinx.com>, Nicholas Piggin <npiggin@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Palmer
+Content-Transfer-Encoding: 8bit
+Return-path: <linux-hexagon-owner@vger.kernel.org>
+Sender: linux-hexagon-owner@vger.kernel.org
+To: linux-kernel@vger.kernel.org
+Cc: Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Brian Cain <bcain@codeaurora.org>, Catalin Marinas <catalin.marinas@arm.com>, Christophe Leroy <christophe.leroy@c-s.fr>, Fenghua Yu <fenghua.yu@intel.com>, Geert Uytterhoeven <geert+renesas@glider.be>, Guan Xuetao <gxt@pku.edu.cn>, James Morse <james.morse@arm.com>, Jonas Bonn <jonas@southpole.se>, Julien Thierry <julien.thierry.kdev@gmail.com>, Ley Foon Tan <ley.foon.tan@intel.com>, Marc Zyngier <maz@kernel.org>, Michael Ellerman <mpe@ellerman.id.au>, Paul Mackerras <paulus@samba.org>, Rich Felker <dalias@libc.org>, Russell King <linux@armlinux.org.uk>, Stafford Horne <shorne@gmail.com>Stefan Kristiansson <s>
+List-Id: linux-arch.vger.kernel.org
 
-On 25. 02. 20 17:32, Rob Herring wrote:
-> On Mon, Feb 17, 2020 at 8:28 AM Michal Simek <michal.simek@xilinx.com> wrote:
->>
->> Hi Rob,
->>
->> On 14. 02. 20 0:47, Rob Herring wrote:
->>> On Wed, Feb 12, 2020 at 2:58 AM Michal Simek <michal.simek@xilinx.com> wrote:
->>>>
->>>>
->>>> I am sending this series as before SMP support.
->>>> Most of these patches are clean ups and should be easy to review them. I
->>>> expect there will be more discussions about SMP support.
->>>
->>> While not really related to adding SMP, any chance you or someone
->>> could look at moving microblaze PCI support to drivers/pci/? I suspect
->>> much of the code should drop out as we have common helpers for much of
->>> it now. That would leave only powerpc and mips for DT+PCI platforms.
->>
->> can you please suggest changes which could be done?
->> I have CC Bharat and he could look at it.
-> 
-> Look at the host controller drivers in drivers/pci/controller/.
-> pci-host-{generic,common}.c is a good template to start with as that's
-> a controller with standard config space accesses and no h/w setup
-> needed. Essentially you need to call devm_pci_alloc_host_bridge(),
-> pci_parse_request_of_pci_ranges() and pci_host_probe() with whatever
-> h/w setup you need in between those calls.
-> 
-> Looking at the microblaze PCI code, looks like you may need custom
-> config space accessors which is quite common. Probably all the
-> resource and device scanning can be removed. If you look at arm64, all
-> the arch PCI code is just for ACPI.
+From: Mike Rapoport <rppt@linux.ibm.com>
 
-Thanks Rob.
+Hi,
 
-Bharat: Can you please take a look?
+These patches convert several architectures to use page table folding and
+remove __ARCH_HAS_5LEVEL_HACK along with include/asm-generic/5level-fixup.h
+and include/asm-generic/pgtable-nop4d-hack.h. With that we'll have a single
+and consistent way of dealing with page table folding instead of a mix of
+three existing options.
 
-Thanks,
-Michal
+The changes are mostly about mechanical replacement of pgd accessors with p4d
+ones and the addition of higher levels to page table traversals.
+
+v3:
+* add Christophe's patch that removes ppc32 get_pteptr()
+* reduce amount of upper layer walks in powerpc
+
+v2:
+* collect per-arch patches into a single set
+* include Geert's update of 'sh' printing messages
+* rebase on v5.6-rc1+
+
+Christophe Leroy (1):
+  powerpc/32: drop get_pteptr()
+
+Geert Uytterhoeven (1):
+  sh: fault: Modernize printing of kernel messages
+
+Mike Rapoport (12):
+  arm/arm64: add support for folded p4d page tables
+  h8300: remove usage of __ARCH_USE_5LEVEL_HACK
+  hexagon: remove __ARCH_USE_5LEVEL_HACK
+  ia64: add support for folded p4d page tables
+  nios2: add support for folded p4d page tables
+  openrisc: add support for folded p4d page tables
+  powerpc: add support for folded p4d page tables
+  sh: drop __pXd_offset() macros that duplicate pXd_index() ones
+  sh: add support for folded p4d page tables
+  unicore32: remove __ARCH_USE_5LEVEL_HACK
+  asm-generic: remove pgtable-nop4d-hack.h
+  mm: remove __ARCH_HAS_5LEVEL_HACK and
+    include/asm-generic/5level-fixup.h
+
+ arch/arm/include/asm/kvm_mmu.h                |   5 +-
+ arch/arm/include/asm/pgtable.h                |   1 -
+ arch/arm/include/asm/stage2_pgtable.h         |  15 +-
+ arch/arm/lib/uaccess_with_memcpy.c            |   9 +-
+ arch/arm/mach-sa1100/assabet.c                |   2 +-
+ arch/arm/mm/dump.c                            |  29 ++-
+ arch/arm/mm/fault-armv.c                      |   7 +-
+ arch/arm/mm/fault.c                           |  28 ++-
+ arch/arm/mm/idmap.c                           |   3 +-
+ arch/arm/mm/init.c                            |   2 +-
+ arch/arm/mm/ioremap.c                         |  12 +-
+ arch/arm/mm/mm.h                              |   2 +-
+ arch/arm/mm/mmu.c                             |  35 ++-
+ arch/arm/mm/pgd.c                             |  40 +++-
+ arch/arm64/include/asm/kvm_mmu.h              |  10 +-
+ arch/arm64/include/asm/pgalloc.h              |  10 +-
+ arch/arm64/include/asm/pgtable-types.h        |   5 +-
+ arch/arm64/include/asm/pgtable.h              |  37 ++--
+ arch/arm64/include/asm/stage2_pgtable.h       |  48 +++-
+ arch/arm64/kernel/hibernate.c                 |  44 +++-
+ arch/arm64/mm/fault.c                         |   9 +-
+ arch/arm64/mm/hugetlbpage.c                   |  15 +-
+ arch/arm64/mm/kasan_init.c                    |  26 ++-
+ arch/arm64/mm/mmu.c                           |  52 +++--
+ arch/arm64/mm/pageattr.c                      |   7 +-
+ arch/h8300/include/asm/pgtable.h              |   1 -
+ arch/hexagon/include/asm/fixmap.h             |   4 +-
+ arch/hexagon/include/asm/pgtable.h            |   1 -
+ arch/ia64/include/asm/pgalloc.h               |   4 +-
+ arch/ia64/include/asm/pgtable.h               |  17 +-
+ arch/ia64/mm/fault.c                          |   7 +-
+ arch/ia64/mm/hugetlbpage.c                    |  18 +-
+ arch/ia64/mm/init.c                           |  28 ++-
+ arch/nios2/include/asm/pgtable.h              |   3 +-
+ arch/nios2/mm/fault.c                         |   9 +-
+ arch/nios2/mm/ioremap.c                       |   6 +-
+ arch/openrisc/include/asm/pgtable.h           |   1 -
+ arch/openrisc/mm/fault.c                      |  10 +-
+ arch/openrisc/mm/init.c                       |   4 +-
+ arch/powerpc/include/asm/book3s/32/pgtable.h  |   1 -
+ arch/powerpc/include/asm/book3s/64/hash.h     |   4 +-
+ arch/powerpc/include/asm/book3s/64/pgalloc.h  |   4 +-
+ arch/powerpc/include/asm/book3s/64/pgtable.h  |  60 ++---
+ arch/powerpc/include/asm/book3s/64/radix.h    |   6 +-
+ arch/powerpc/include/asm/nohash/32/pgtable.h  |   1 -
+ arch/powerpc/include/asm/nohash/64/pgalloc.h  |   2 +-
+ .../include/asm/nohash/64/pgtable-4k.h        |  32 +--
+ arch/powerpc/include/asm/nohash/64/pgtable.h  |   6 +-
+ arch/powerpc/include/asm/pgtable.h            |   6 +-
+ arch/powerpc/kvm/book3s_64_mmu_radix.c        |  30 ++-
+ arch/powerpc/lib/code-patching.c              |   7 +-
+ arch/powerpc/mm/book3s32/mmu.c                |   2 +-
+ arch/powerpc/mm/book3s32/tlb.c                |   4 +-
+ arch/powerpc/mm/book3s64/hash_pgtable.c       |   4 +-
+ arch/powerpc/mm/book3s64/radix_pgtable.c      |  26 ++-
+ arch/powerpc/mm/book3s64/subpage_prot.c       |   6 +-
+ arch/powerpc/mm/hugetlbpage.c                 |  28 ++-
+ arch/powerpc/mm/kasan/kasan_init_32.c         |   8 +-
+ arch/powerpc/mm/mem.c                         |   4 +-
+ arch/powerpc/mm/nohash/40x.c                  |   4 +-
+ arch/powerpc/mm/nohash/book3e_pgtable.c       |  15 +-
+ arch/powerpc/mm/pgtable.c                     |  30 ++-
+ arch/powerpc/mm/pgtable_32.c                  |  45 +---
+ arch/powerpc/mm/pgtable_64.c                  |  10 +-
+ arch/powerpc/mm/ptdump/hashpagetable.c        |  20 +-
+ arch/powerpc/mm/ptdump/ptdump.c               |  14 +-
+ arch/powerpc/xmon/xmon.c                      |  18 +-
+ arch/sh/include/asm/pgtable-2level.h          |   1 -
+ arch/sh/include/asm/pgtable-3level.h          |   1 -
+ arch/sh/include/asm/pgtable_32.h              |   5 +-
+ arch/sh/include/asm/pgtable_64.h              |   5 +-
+ arch/sh/kernel/io_trapped.c                   |   7 +-
+ arch/sh/mm/cache-sh4.c                        |   4 +-
+ arch/sh/mm/cache-sh5.c                        |   7 +-
+ arch/sh/mm/fault.c                            |  65 ++++--
+ arch/sh/mm/hugetlbpage.c                      |  28 ++-
+ arch/sh/mm/init.c                             |  15 +-
+ arch/sh/mm/kmap.c                             |   2 +-
+ arch/sh/mm/tlbex_32.c                         |   6 +-
+ arch/sh/mm/tlbex_64.c                         |   7 +-
+ arch/unicore32/include/asm/pgtable.h          |   1 -
+ arch/unicore32/kernel/hibernate.c             |   4 +-
+ include/asm-generic/5level-fixup.h            |  58 -----
+ include/asm-generic/pgtable-nop4d-hack.h      |  64 ------
+ include/asm-generic/pgtable-nopud.h           |   4 -
+ include/linux/mm.h                            |   6 -
+ mm/kasan/init.c                               |  11 -
+ mm/memory.c                                   |   8 -
+ virt/kvm/arm/mmu.c                            | 209 +++++++++++++++---
+ 89 files changed, 917 insertions(+), 564 deletions(-)
+ delete mode 100644 include/asm-generic/5level-fixup.h
+ delete mode 100644 include/asm-generic/pgtable-nop4d-hack.h
+
+-- 
+2.24.0
