@@ -1,55 +1,53 @@
-From: Dave Hansen <dave.hansen@intel.com>
-Subject: Re: [RFC PATCH v9 16/27] mm: Update can_follow_write_pte() for Shadow
- Stack
-Date: Wed, 26 Feb 2020 16:34:49 -0800
-Message-ID: <fc4f65ef-ce4b-9410-5586-5f4637c249bc@intel.com>
-References: <20200205181935.3712-1-yu-cheng.yu@intel.com>
- <20200205181935.3712-17-yu-cheng.yu@intel.com>
+From: Boqun Feng <boqun.feng@gmail.com>
+Subject: [PATCH v3 1/5] tools/memory-model: Add an exception for limitations on _unless() family
+Date: Thu, 27 Feb 2020 08:40:45 +0800
+Message-ID: <20200227004049.6853-2-boqun.feng@gmail.com>
+References: <20200227004049.6853-1-boqun.feng@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
 Content-Transfer-Encoding: 8bit
-Return-path: <linux-doc-owner@vger.kernel.org>
-In-Reply-To: <20200205181935.3712-17-yu-cheng.yu@intel.com>
-Content-Language: en-US
-Sender: linux-doc-owner@vger.kernel.org
-To: Yu-cheng Yu <yu-cheng.yu@intel.com>, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-qk1-f195.google.com ([209.85.222.195]:39473 "EHLO
+        mail-qk1-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727987AbgB0AlF (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 26 Feb 2020 19:41:05 -0500
+In-Reply-To: <20200227004049.6853-1-boqun.feng@gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: linux-kernel@vger.kernel.org
+Cc: Alan Stern <stern@rowland.harvard.edu>, Andrea Parri <parri.andrea@gmail.com>, Will Deacon <will@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Boqun Feng <boqun.feng@gmail.com>, Nicholas Piggin <npiggin@gmail.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, "Paul E. McKenney" <paulmck@kernel.org>, Akira Yokosawa <akiyks@gmail.com>, Daniel Lustig <dlustig@nvidia.com>, Jonathan Corbet <corbet@lwn.net>, Mauro Carvalho Chehab <mchehab+samsung@kernel.org>, "David S. Miller" <davem@davemloft.net>, Rob Herring <robh@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jonathan Cameron <Jonathan.Cameron@huawei.com>, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org
 
-> +inline bool pte_exclusive(pte_t pte, struct vm_area_struct *vma)
-> +{
-> +	if (vma->vm_flags & VM_SHSTK)
-> +		return pte_dirty_hw(pte);
-> +	else
-> +		return pte_dirty(pte);
-> +}
+According to Luc, atomic_add_unless() is directly provided by herd7,
+therefore it can be used in litmus tests. So change the limitation
+section in README to unlimit the use of atomic_add_unless().
 
-I'm not really getting the naming.  What is exclusive?
+Cc: Luc Maranget <luc.maranget@inria.fr>
+Signed-off-by: Boqun Feng <boqun.feng@gmail.com>
+---
+ tools/memory-model/README | 10 +++++++---
+ 1 file changed, 7 insertions(+), 3 deletions(-)
 
-> diff --git a/mm/gup.c b/mm/gup.c
-> index 7646bf993b25..d1dbfbde8443 100644
-> --- a/mm/gup.c
-> +++ b/mm/gup.c
-> @@ -164,10 +164,12 @@ static int follow_pfn_pte(struct vm_area_struct *vma, unsigned long address,
->   * FOLL_FORCE can write to even unwritable pte's, but only
->   * after we've gone through a COW cycle and they are dirty.
->   */
-> -static inline bool can_follow_write_pte(pte_t pte, unsigned int flags)
-> +static inline bool can_follow_write(pte_t pte, unsigned int flags,
-> +				    struct vm_area_struct *vma)
-
-Having two identically named functions in two files in the same
-subsystem seems like a recipe for confusion when I grep or cscope for
-things.  It hardly seems worth the 4 characters of space savings IMNHO.
-
->  {
->  	return pte_write(pte) ||
-> -		((flags & FOLL_FORCE) && (flags & FOLL_COW) && pte_dirty(pte));
-> +		((flags & FOLL_FORCE) && (flags & FOLL_COW) &&
-> +		 pte_exclusive(pte, vma));
->  }
-
-FWIW, this is the hunk that fixed DirtyCOW.
-
-The least this deserves is acknowledgement of that in the changelog and
-a missive about how you're sure you didn't just introduce
-ShadowDirtyCOW.  Don't bother.  I already registered the domain. ;)
+diff --git a/tools/memory-model/README b/tools/memory-model/README
+index fc07b52f2028..409211b1c544 100644
+--- a/tools/memory-model/README
++++ b/tools/memory-model/README
+@@ -207,11 +207,15 @@ The Linux-kernel memory model (LKMM) has the following limitations:
+ 		case as a store release.
+ 
+ 	b.	The "unless" RMW operations are not currently modeled:
+-		atomic_long_add_unless(), atomic_add_unless(),
+-		atomic_inc_unless_negative(), and
+-		atomic_dec_unless_positive().  These can be emulated
++		atomic_long_add_unless(), atomic_inc_unless_negative(),
++		and atomic_dec_unless_positive().  These can be emulated
+ 		in litmus tests, for example, by using atomic_cmpxchg().
+ 
++		One exception of this limitation is atomic_add_unless(),
++		which is provided directly by herd7 (so no corresponding
++		definition in linux-kernel.def). atomic_add_unless() is
++		modeled by herd7 therefore it can be used in litmus tests.
++
+ 	c.	The call_rcu() function is not modeled.  It can be
+ 		emulated in litmus tests by adding another process that
+ 		invokes synchronize_rcu() and the body of the callback
+-- 
+2.25.0
