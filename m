@@ -1,60 +1,92 @@
-Return-Path: <SRS0=n14h=4F=kvack.org=owner-linux-mm@kernel.org>
-From: Anshuman Khandual <anshuman.khandual@arm.com>
-Subject: Re: [PATCH 3/5] mm/vma: Replace all remaining open encodings with
- is_vm_hugetlb_page()
-References: <1581915833-21984-1-git-send-email-anshuman.khandual@arm.com>
- <1581915833-21984-4-git-send-email-anshuman.khandual@arm.com>
-Message-ID: <50a93384-7a97-6a8e-9c46-c82d47330c06@arm.com>
-Date: Mon, 17 Feb 2020 14:51:45 +0530
+Return-Path: <SRS0=WXCa=4P=vger.kernel.org=linux-doc-owner@kernel.org>
+Date: Thu, 27 Feb 2020 18:54:41 +0100
+From: Andrea Parri <parri.andrea@gmail.com>
+Subject: Re: [PATCH v3 0/5] Documentation/locking/atomic: Add litmus tests
+ for atomic APIs
+Message-ID: <20200227175441.GB12046@andrea>
+References: <20200227004049.6853-1-boqun.feng@gmail.com>
 MIME-Version: 1.0
-In-Reply-To: <1581915833-21984-4-git-send-email-anshuman.khandual@arm.com>
-Content-Type: text/plain; charset=utf-8
-Content-Language: en-US
-Content-Transfer-Encoding: 7bit
-Sender: owner-linux-mm@kvack.org
-To: linux-mm@kvack.org, linux-kernel@vger.kernel.org
-Cc: Paul Mackerras <paulus@ozlabs.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Michael Ellerman <mpe@ellerman.id.au>, Alexander Viro <viro@zeniv.linux.org.uk>, Will Deacon <will@kernel.org>, "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, Nick Piggin <npiggin@gmail.com>, Peter Zijlstra <peterz@infradead.org>, Arnd Bergmann <arnd@arndb.de>, Ingo Molnar <mingo@redhat.com>, Arnaldo Carvalho de Melo <acme@kernel.org>, kvm-ppc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20200227004049.6853-1-boqun.feng@gmail.com>
+Sender: linux-doc-owner@vger.kernel.org
+To: Boqun Feng <boqun.feng@gmail.com>
+Cc: linux-kernel@vger.kernel.org, Alan Stern <stern@rowland.harvard.edu>, Will Deacon <will@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Nicholas Piggin <npiggin@gmail.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, "Paul E. McKenney" <paulmck@kernel.org>, Akira Yokosawa <akiyks@gmail.com>, Daniel Lustig <dlustig@nvidia.com>, Jonathan Corbet <corbet@lwn.net>, Mauro Carvalho Chehab <mchehab+samsung@kernel.org>, "David S. Miller" <davem@davemloft.net>, Rob Herring <robh@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jonathan Cameron <Jonathan.Cameron@huawei.com>, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200217092145.GVRQDgNHFhpaWMCI9I8gS_3Ms2nNeg5WnG41ootbBLM@z>
+Message-ID: <20200227175441.OwqaIN3QUA7p1z7rPB4rrUh59THl-2yoA993sXtGY-E@z>
 
-On 02/17/2020 10:33 AM, Anshuman Khandual wrote:
-> This replaces all remaining open encodings with is_vm_hugetlb_page().
+On Thu, Feb 27, 2020 at 08:40:44AM +0800, Boqun Feng wrote:
+> A recent discussion raises up the requirement for having test cases for
+> atomic APIs:
 > 
-> Cc: Paul Mackerras <paulus@ozlabs.org>
-> Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-> Cc: Michael Ellerman <mpe@ellerman.id.au>
-> Cc: Alexander Viro <viro@zeniv.linux.org.uk>
-> Cc: Will Deacon <will@kernel.org>
-> Cc: "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>
-> Cc: Andrew Morton <akpm@linux-foundation.org>
-> Cc: Nick Piggin <npiggin@gmail.com>
-> Cc: Peter Zijlstra <peterz@infradead.org>
-> Cc: Arnd Bergmann <arnd@arndb.de>
-> Cc: Ingo Molnar <mingo@redhat.com>
-> Cc: Arnaldo Carvalho de Melo <acme@kernel.org>
-> Cc: kvm-ppc@vger.kernel.org
-> Cc: linuxppc-dev@lists.ozlabs.org
-> Cc: linux-kernel@vger.kernel.org
-> Cc: linux-fsdevel@vger.kernel.org
-> Cc: linux-arch@vger.kernel.org
-> Cc: linux-mm@kvack.org
-> Signed-off-by: Anshuman Khandual <anshuman.khandual@arm.com>
-> ---
->  arch/powerpc/kvm/e500_mmu_host.c | 2 +-
->  fs/binfmt_elf.c                  | 2 +-
->  include/asm-generic/tlb.h        | 2 +-
->  kernel/events/core.c             | 3 ++-
->  4 files changed, 5 insertions(+), 4 deletions(-)
+> 	https://lore.kernel.org/lkml/20200213085849.GL14897@hirez.programming.kicks-ass.net/
 > 
-> diff --git a/arch/powerpc/kvm/e500_mmu_host.c b/arch/powerpc/kvm/e500_mmu_host.c
-> index 425d13806645..3922575a1c31 100644
-> --- a/arch/powerpc/kvm/e500_mmu_host.c
-> +++ b/arch/powerpc/kvm/e500_mmu_host.c
-> @@ -422,7 +422,7 @@ static inline int kvmppc_e500_shadow_map(struct kvmppc_vcpu_e500 *vcpu_e500,
->  				break;
->  			}
->  		} else if (vma && hva >= vma->vm_start &&
-> -			   (vma->vm_flags & VM_HUGETLB)) {
-> +			   (is_vm_hugetlb_page(vma))) {
+> , and since we already have a way to generate a test module from a
+> litmus test with klitmus[1]. It makes sense that we add more litmus
+> tests for atomic APIs. And based on the previous discussion, I create a
+> new directory Documentation/atomic-tests and put these litmus tests
+> here.
+> 
+> This patchset starts the work by adding the litmus tests which are
+> already used in atomic_t.txt, and also improve the atomic_t.txt to make
+> it consistent with the litmus tests.
+> 
+> Previous version:
+> v1: https://lore.kernel.org/linux-doc/20200214040132.91934-1-boqun.feng@gmail.com/
+> v2: https://lore.kernel.org/lkml/20200219062627.104736-1-boqun.feng@gmail.com/
+> 
+> Changes since v2:
+> 
+> *	Change from "RFC" to "PATCH".
+> 
+> *	Wording improvement in atomic_t.txt as per Alan's suggestion.
+> 
+> *	Add a new patch describing the usage of atomic_add_unless() is
+> 	not limited anymore for LKMM litmus tests.
+> 
+> My PR on supporting "(void) expr;" statement has been merged by Luc
+> (Thank you, Luc). So all the litmus tests in this patchset can be
+> handled by the herdtools compiled from latest master branch of the
+> source code.
+> 
+> Comments and suggestions are welcome!
 
-Additional braces around is_vm_hugetlb_page() can be dropped here.
+A few nits (see inline), but otherwise the series looks good to me;
+with those fixed, please feel free to add:
+
+Acked-by: Andrea Parri <parri.andrea@gmail.com>
+
+to the entire series.
+
+Thanks,
+  Andrea
+
+
+> 
+> Regards,
+> Boqun
+> 
+> [1]: http://diy.inria.fr/doc/litmus.html#klitmus
+> 
+> Boqun Feng (5):
+>   tools/memory-model: Add an exception for limitations on _unless()
+>     family
+>   Documentation/locking/atomic: Fix atomic-set litmus test
+>   Documentation/locking/atomic: Introduce atomic-tests directory
+>   Documentation/locking/atomic: Add a litmus test for atomic_set()
+>   Documentation/locking/atomic: Add a litmus test smp_mb__after_atomic()
+> 
+>  ...ter_atomic-is-stronger-than-acquire.litmus | 32 +++++++++++++++++++
+>  ...c-RMW-ops-are-atomic-WRT-atomic_set.litmus | 24 ++++++++++++++
+>  Documentation/atomic-tests/README             | 16 ++++++++++
+>  Documentation/atomic_t.txt                    | 24 +++++++-------
+>  MAINTAINERS                                   |  1 +
+>  tools/memory-model/README                     | 10 ++++--
+>  6 files changed, 92 insertions(+), 15 deletions(-)
+>  create mode 100644 Documentation/atomic-tests/Atomic-RMW+mb__after_atomic-is-stronger-than-acquire.litmus
+>  create mode 100644 Documentation/atomic-tests/Atomic-RMW-ops-are-atomic-WRT-atomic_set.litmus
+>  create mode 100644 Documentation/atomic-tests/README
+> 
+> -- 
+> 2.25.0
+> 
