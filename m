@@ -1,68 +1,77 @@
-Return-Path: <SRS0=LzcT=4H=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:33574 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726551AbgBSQn5 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 19 Feb 2020 11:43:57 -0500
-Date: Wed, 19 Feb 2020 08:43:56 -0800
-From: "Paul E. McKenney" <paulmck@kernel.org>
-Subject: Re: [PATCH v3 13/22] tracing: Remove regular RCU context for
- _rcuidle tracepoints (again)
-Message-ID: <20200219164356.GB2935@paulmck-ThinkPad-P72>
-Reply-To: paulmck@kernel.org
-References: <20200219144724.800607165@infradead.org>
- <20200219150745.125119627@infradead.org>
+Return-Path: <SRS0=WXCa=4P=vger.kernel.org=linux-doc-owner@kernel.org>
+Date: Thu, 27 Feb 2020 11:34:55 -0500 (EST)
+From: Alan Stern <stern@rowland.harvard.edu>
+Subject: Re: [PATCH v3 2/5] Documentation/locking/atomic: Fix atomic-set
+ litmus test
+In-Reply-To: <20200227004049.6853-3-boqun.feng@gmail.com>
+Message-ID: <Pine.LNX.4.44L0.2002271133300.1730-100000@iolanthe.rowland.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20200219150745.125119627@infradead.org>
-Sender: linux-arch-owner@vger.kernel.org
+Content-Type: TEXT/PLAIN; charset=US-ASCII
+Sender: linux-doc-owner@vger.kernel.org
+To: Boqun Feng <boqun.feng@gmail.com>
+Cc: linux-kernel@vger.kernel.org, Andrea Parri <parri.andrea@gmail.com>, Will Deacon <will@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Nicholas Piggin <npiggin@gmail.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, "Paul E. McKenney" <paulmck@kernel.org>, Akira Yokosawa <akiyks@gmail.com>, Daniel Lustig <dlustig@nvidia.com>, Jonathan Corbet <corbet@lwn.net>, Mauro Carvalho Chehab <mchehab+samsung@kernel.org>, "David S. Miller" <davem@davemloft.net>, Rob Herring <robh@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jonathan Cameron <Jonathan.Cameron@huawei.com>, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, rostedt@goodmis.org, mingo@kernel.org, joel@joelfernandes.org, gregkh@linuxfoundation.org, gustavo@embeddedor.com, tglx@linutronix.de, josh@joshtriplett.org, mathieu.desnoyers@efficios.com, jiangshanlai@gmail.com, luto@kernel.org, tony.luck@intel.com, frederic@kernel.org, dan.carpenter@oracle.com, mhiramat@kernel.org
-Message-ID: <20200219164356.oyNkKkYyMR0jcnDxl25ZeW7RNs6izxIa98V_V_QdiIo@z>
+Message-ID: <20200227163455.qaWTXQPILxdlFvyIz7qv14gtsZOw2Vl_HL__tfHr81Y@z>
 
-On Wed, Feb 19, 2020 at 03:47:37PM +0100, Peter Zijlstra wrote:
-> Effectively revert commit 865e63b04e9b2 ("tracing: Add back in
-> rcu_irq_enter/exit_irqson() for rcuidle tracepoints") now that we've
-> taught perf how to deal with not having an RCU context provided.
+On Thu, 27 Feb 2020, Boqun Feng wrote:
+
+> Currently the litmus test "atomic-set" in atomic_t.txt has a few things
+> to be improved:
 > 
-> Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+> 1)	The CPU/Processor numbers "P1,P2" are not only inconsistent with
+> 	the rest of the document, which uses "CPU0" and "CPU1", but also
+> 	unacceptable by the herd tool, which requires processors start
+> 	at "P0".
+> 
+> 2)	The initialization block uses a "atomic_set()", which is OK, but
+> 	it's better to use ATOMIC_INIT() to make clear this is an
+> 	initialization.
+> 
+> 3)	The return value of atomic_add_unless() is discarded
+> 	inexplicitly, which is OK for C language, but it will be helpful
+> 	to the herd tool if we use a void cast to make the discard
+> 	explicit.
+> 
+> Therefore fix these and this is the preparation for adding the litmus
+> test into memory-model litmus-tests directory so that people can
+> understand better about our requirements of atomic APIs and klitmus tool
+> can be used to generate tests.
+> 
+> Signed-off-by: Boqun Feng <boqun.feng@gmail.com>
+
+Patch 5/5 in this series does basically the same thing for 
+Atomic-RMW+mb__after_atomic-is-stronger-than-acquire.  How come you 
+used one patch for that, but this is split into two patches (2/5 and 
+4/5)?
+
+Alan
+
 > ---
->  include/linux/tracepoint.h |    8 ++------
->  1 file changed, 2 insertions(+), 6 deletions(-)
+>  Documentation/atomic_t.txt | 8 ++++----
+>  1 file changed, 4 insertions(+), 4 deletions(-)
 > 
-> --- a/include/linux/tracepoint.h
-> +++ b/include/linux/tracepoint.h
-> @@ -179,10 +179,8 @@ static inline struct tracepoint *tracepo
-
-Shouldn't we also get rid of this line above?
-
-		int __maybe_unused __idx = 0;				\
-
-							Thanx, Paul
-
->  		 * For rcuidle callers, use srcu since sched-rcu	\
->  		 * doesn't work from the idle path.			\
->  		 */							\
-> -		if (rcuidle) {						\
-> +		if (rcuidle)						\
->  			__idx = srcu_read_lock_notrace(&tracepoint_srcu);\
-> -			rcu_irq_enter_irqsave();			\
-> -		}							\
->  									\
->  		it_func_ptr = rcu_dereference_raw((tp)->funcs);		\
->  									\
-> @@ -194,10 +192,8 @@ static inline struct tracepoint *tracepo
->  			} while ((++it_func_ptr)->func);		\
->  		}							\
->  									\
-> -		if (rcuidle) {						\
-> -			rcu_irq_exit_irqsave();				\
-> +		if (rcuidle)						\
->  			srcu_read_unlock_notrace(&tracepoint_srcu, __idx);\
-> -		}							\
->  									\
->  		preempt_enable_notrace();				\
->  	} while (0)
-> 
+> diff --git a/Documentation/atomic_t.txt b/Documentation/atomic_t.txt
+> index 0ab747e0d5ac..ceb85ada378e 100644
+> --- a/Documentation/atomic_t.txt
+> +++ b/Documentation/atomic_t.txt
+> @@ -91,15 +91,15 @@ ops. That is:
+>    C atomic-set
+>  
+>    {
+> -    atomic_set(v, 1);
+> +    atomic_t v = ATOMIC_INIT(1);
+>    }
+>  
+> -  P1(atomic_t *v)
+> +  P0(atomic_t *v)
+>    {
+> -    atomic_add_unless(v, 1, 0);
+> +    (void)atomic_add_unless(v, 1, 0);
+>    }
+>  
+> -  P2(atomic_t *v)
+> +  P1(atomic_t *v)
+>    {
+>      atomic_set(v, 0);
+>    }
 > 
