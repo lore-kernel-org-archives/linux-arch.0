@@ -1,57 +1,92 @@
-Return-Path: <SRS0=LzcT=4H=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.133]:36042 "EHLO
-        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727799AbgBSPOg (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 19 Feb 2020 10:14:36 -0500
-Message-ID: <20200219150745.060958307@infradead.org>
-Date: Wed, 19 Feb 2020 15:47:36 +0100
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: [PATCH v3 12/22] tracing: Employ trace_rcu_{enter,exit}()
-References: <20200219144724.800607165@infradead.org>
+Return-Path: <SRS0=BIEI=4P=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from foss.arm.com ([217.140.110.172]:55442 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1727053AbgB0RoX (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 27 Feb 2020 12:44:23 -0500
+From: Mark Brown <broonie@kernel.org>
+Subject: [PATCH v8 01/11] ELF: UAPI and Kconfig additions for ELF program properties
+Date: Thu, 27 Feb 2020 17:44:07 +0000
+Message-ID: <20200227174417.23722-2-broonie@kernel.org>
+In-Reply-To: <20200227174417.23722-1-broonie@kernel.org>
+References: <20200227174417.23722-1-broonie@kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, rostedt@goodmis.org
-Cc: peterz@infradead.org, mingo@kernel.org, joel@joelfernandes.org, gregkh@linuxfoundation.org, gustavo@embeddedor.com, tglx@linutronix.de, paulmck@kernel.org, josh@joshtriplett.org, mathieu.desnoyers@efficios.com, jiangshanlai@gmail.com, luto@kernel.org, tony.luck@intel.com, frederic@kernel.org, dan.carpenter@oracle.com, mhiramat@kernel.org
-Message-ID: <20200219144736.9NesiOaXlsluqOUt5heiC7gjo10PWXAM0c5CvDkHfs4@z>
+To: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>
+Cc: Alexander Viro <viro@zeniv.linux.org.uk>, Paul Elliott <paul.elliott@arm.com>, Peter Zijlstra <peterz@infradead.org>, Yu-cheng Yu <yu-cheng.yu@intel.com>, Amit Kachhap <amit.kachhap@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Marc Zyngier <maz@kernel.org>, Eugene Syromiatnikov <esyr@redhat.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, "H . J . Lu " <hjl.tools@gmail.com>, Andrew Jones <drjones@redhat.com>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Jann Horn <jannh@google.com>, Richard Henderson <richard.henderson@linaro.org>, =?UTF-8?q?Kristina=20Mart=C5=A1enko?= <kristina.martsenko@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Florian Weimer <fweimer@redhat.com>, Sudakshina Das <sudi.das@arm.com>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, Dave Martin <Dave.Martin@arm.com>, Mark Brown <broonie@kernel.org>
+Message-ID: <20200227174407.q7kfuSr_sDcMndBfCljcR8sW2wRM4GRmBky98lw6WN4@z>
 
-Replace the opencoded (and incomplete) RCU manipulations with the new
-helpers to ensure a regular RCU context when calling into
-__ftrace_trace_stack().
+From: Dave Martin <Dave.Martin@arm.com>
 
-Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+Pull the basic ELF definitions relating to the
+NT_GNU_PROPERTY_TYPE_0 note from Yu-Cheng Yu's earlier x86 shstk
+series.
+
+Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Signed-off-by: Dave Martin <Dave.Martin@arm.com>
+Reviewed-by: Kees Cook <keescook@chromium.org>
+Reviewed-by: Catalin Marinas <catalin.marinas@arm.com>
+Signed-off-by: Mark Brown <broonie@kernel.org>
 ---
- kernel/trace/trace.c |   19 +++----------------
- 1 file changed, 3 insertions(+), 16 deletions(-)
+ fs/Kconfig.binfmt        |  3 +++
+ include/linux/elf.h      | 12 ++++++++++++
+ include/uapi/linux/elf.h |  1 +
+ 3 files changed, 16 insertions(+)
 
---- a/kernel/trace/trace.c
-+++ b/kernel/trace/trace.c
-@@ -2989,24 +2989,11 @@ void __trace_stack(struct trace_array *t
- 		   int pc)
- {
- 	struct trace_buffer *buffer = tr->array_buffer.buffer;
-+	unsigned long rcu_flags;
+diff --git a/fs/Kconfig.binfmt b/fs/Kconfig.binfmt
+index 62dc4f577ba1..d2cfe0729a73 100644
+--- a/fs/Kconfig.binfmt
++++ b/fs/Kconfig.binfmt
+@@ -36,6 +36,9 @@ config COMPAT_BINFMT_ELF
+ config ARCH_BINFMT_ELF_STATE
+ 	bool
  
--	if (rcu_is_watching()) {
--		__ftrace_trace_stack(buffer, flags, skip, pc, NULL);
--		return;
--	}
--
--	/*
--	 * When an NMI triggers, RCU is enabled via rcu_nmi_enter(),
--	 * but if the above rcu_is_watching() failed, then the NMI
--	 * triggered someplace critical, and rcu_irq_enter() should
--	 * not be called from NMI.
--	 */
--	if (unlikely(in_nmi()))
--		return;
--
--	rcu_irq_enter_irqsave();
-+	rcu_flags = trace_rcu_enter();
- 	__ftrace_trace_stack(buffer, flags, skip, pc, NULL);
--	rcu_irq_exit_irqsave();
-+	trace_rcu_exit(rcu_flags);
- }
++config ARCH_USE_GNU_PROPERTY
++	bool
++
+ config BINFMT_ELF_FDPIC
+ 	bool "Kernel support for FDPIC ELF binaries"
+ 	default y if !BINFMT_ELF
+diff --git a/include/linux/elf.h b/include/linux/elf.h
+index e3649b3e970e..f7b24c5fcfb6 100644
+--- a/include/linux/elf.h
++++ b/include/linux/elf.h
+@@ -2,6 +2,7 @@
+ #ifndef _LINUX_ELF_H
+ #define _LINUX_ELF_H
  
- /**
++#include <linux/types.h>
+ #include <asm/elf.h>
+ #include <uapi/linux/elf.h>
+ 
+@@ -56,4 +57,15 @@ static inline int elf_coredump_extra_notes_write(struct coredump_params *cprm) {
+ extern int elf_coredump_extra_notes_size(void);
+ extern int elf_coredump_extra_notes_write(struct coredump_params *cprm);
+ #endif
++
++/*
++ * NT_GNU_PROPERTY_TYPE_0 header:
++ * Keep this internal until/unless there is an agreed UAPI definition.
++ * pr_type values (GNU_PROPERTY_*) are public and defined in the UAPI header.
++ */
++struct gnu_property {
++	u32 pr_type;
++	u32 pr_datasz;
++};
++
+ #endif /* _LINUX_ELF_H */
+diff --git a/include/uapi/linux/elf.h b/include/uapi/linux/elf.h
+index 34c02e4290fe..c37731407074 100644
+--- a/include/uapi/linux/elf.h
++++ b/include/uapi/linux/elf.h
+@@ -36,6 +36,7 @@ typedef __s64	Elf64_Sxword;
+ #define PT_LOPROC  0x70000000
+ #define PT_HIPROC  0x7fffffff
+ #define PT_GNU_EH_FRAME		0x6474e550
++#define PT_GNU_PROPERTY		0x6474e553
+ 
+ #define PT_GNU_STACK	(PT_LOOS + 0x474e551)
+ 
+-- 
+2.20.1
