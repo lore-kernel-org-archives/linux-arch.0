@@ -1,7 +1,7 @@
 From: Boqun Feng <boqun.feng@gmail.com>
-Subject: [PATCH v3 2/5] Documentation/locking/atomic: Fix atomic-set litmus test
-Date: Thu, 27 Feb 2020 08:40:46 +0800
-Message-ID: <20200227004049.6853-3-boqun.feng@gmail.com>
+Subject: [PATCH v3 3/5] Documentation/locking/atomic: Introduce atomic-tests directory
+Date: Thu, 27 Feb 2020 08:40:47 +0800
+Message-ID: <20200227004049.6853-4-boqun.feng@gmail.com>
 References: <20200227004049.6853-1-boqun.feng@gmail.com>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
@@ -12,56 +12,53 @@ To: linux-kernel@vger.kernel.org
 Cc: Alan Stern <stern@rowland.harvard.edu>, Andrea Parri <parri.andrea@gmail.com>, Will Deacon <will@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Boqun Feng <boqun.feng@gmail.com>, Nicholas Piggin <npiggin@gmail.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, "Paul E. McKenney" <paulmck@kernel.org>, Akira Yokosawa <akiyks@gmail.com>, Daniel Lustig <dlustig@nvidia.com>, Jonathan Corbet <corbet@lwn.net>, Mauro Carvalho Chehab <mchehab+samsung@kernel.org>, "David S. Miller" <davem@davemloft.net>, Rob Herring <robh@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jonathan Cameron <Jonathan.Cameron@huawei.com>, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-Currently the litmus test "atomic-set" in atomic_t.txt has a few things
-to be improved:
+Although we have atomic_t.txt and its friends to describe the semantics
+of atomic APIs and lib/atomic64_test.c for build testing and testing in
+UP mode, the tests for our atomic APIs in real SMP mode are still
+missing. Since now we have the LKMM tool in kernel and litmus tests can
+be used to generate kernel modules for testing purpose with "klitmus" (a
+tool from the LKMM toolset), it makes sense to put a few typical litmus
+tests into kernel so that
 
-1)	The CPU/Processor numbers "P1,P2" are not only inconsistent with
-	the rest of the document, which uses "CPU0" and "CPU1", but also
-	unacceptable by the herd tool, which requires processors start
-	at "P0".
+1)	they are the examples to describe the conceptual mode of the
+	semantics of atomic APIs, and
 
-2)	The initialization block uses a "atomic_set()", which is OK, but
-	it's better to use ATOMIC_INIT() to make clear this is an
-	initialization.
+2)	they can be used to generate kernel test modules for anyone
+	who is interested to test the atomic APIs implementation (in
+	most cases, is the one who implements the APIs for a new arch)
 
-3)	The return value of atomic_add_unless() is discarded
-	inexplicitly, which is OK for C language, but it will be helpful
-	to the herd tool if we use a void cast to make the discard
-	explicit.
-
-Therefore fix these and this is the preparation for adding the litmus
-test into memory-model litmus-tests directory so that people can
-understand better about our requirements of atomic APIs and klitmus tool
-can be used to generate tests.
+Therefore, introduce the atomic-tests directory for this purpose. The
+directory is maintained by the LKMM group to make sure the litmus tests
+are always aligned with our memory model.
 
 Signed-off-by: Boqun Feng <boqun.feng@gmail.com>
 ---
- Documentation/atomic_t.txt | 8 ++++----
- 1 file changed, 4 insertions(+), 4 deletions(-)
+ Documentation/atomic-tests/README | 4 ++++
+ MAINTAINERS                       | 1 +
+ 2 files changed, 5 insertions(+)
+ create mode 100644 Documentation/atomic-tests/README
 
-diff --git a/Documentation/atomic_t.txt b/Documentation/atomic_t.txt
-index 0ab747e0d5ac..ceb85ada378e 100644
---- a/Documentation/atomic_t.txt
-+++ b/Documentation/atomic_t.txt
-@@ -91,15 +91,15 @@ ops. That is:
-   C atomic-set
- 
-   {
--    atomic_set(v, 1);
-+    atomic_t v = ATOMIC_INIT(1);
-   }
- 
--  P1(atomic_t *v)
-+  P0(atomic_t *v)
-   {
--    atomic_add_unless(v, 1, 0);
-+    (void)atomic_add_unless(v, 1, 0);
-   }
- 
--  P2(atomic_t *v)
-+  P1(atomic_t *v)
-   {
-     atomic_set(v, 0);
-   }
+diff --git a/Documentation/atomic-tests/README b/Documentation/atomic-tests/README
+new file mode 100644
+index 000000000000..ae61201a4271
+--- /dev/null
++++ b/Documentation/atomic-tests/README
+@@ -0,0 +1,4 @@
++This directory contains litmus tests that are typical to describe the semantics
++of our atomic APIs. For more information about how to "run" a litmus test or
++how to generate a kernel test module based on a litmus test, please see
++tools/memory-model/README.
+diff --git a/MAINTAINERS b/MAINTAINERS
+index ffc7d5712735..ebca5f6263bb 100644
+--- a/MAINTAINERS
++++ b/MAINTAINERS
+@@ -9718,6 +9718,7 @@ T:	git git://git.kernel.org/pub/scm/linux/kernel/git/paulmck/linux-rcu.git dev
+ F:	tools/memory-model/
+ F:	Documentation/atomic_bitops.txt
+ F:	Documentation/atomic_t.txt
++F:	Documentation/atomic-tests/
+ F:	Documentation/core-api/atomic_ops.rst
+ F:	Documentation/core-api/refcount-vs-atomic.rst
+ F:	Documentation/memory-barriers.txt
 -- 
 2.25.0
