@@ -1,45 +1,69 @@
-From: "H.J. Lu" <hjl.tools@gmail.com>
-Subject: Re: [RFC PATCH v9 05/27] x86/cet/shstk: Add Kconfig option for
- user-mode Shadow Stack protection
-Date: Wed, 26 Feb 2020 18:11:17 -0800
-Message-ID: <CAMe9rOqhf4y+e6h8i7P8+70pwLSg8n=ise6LEqABNPKarECdeA@mail.gmail.com>
-References: <20200205181935.3712-1-yu-cheng.yu@intel.com> <20200205181935.3712-6-yu-cheng.yu@intel.com>
- <d4dabb84-5636-2657-c45e-795f3f2dcbbc@intel.com> <CAMe9rOouOwNC873v=LOv5rJWcbe9Zvg+od8229J33V=ZfrB1rg@mail.gmail.com>
- <71791bbf-7ee3-fa70-b569-ae643151646e@intel.com>
+From: Anshuman Khandual <anshuman.khandual@arm.com>
+Subject: Re: [PATCH V14] mm/debug: Add tests validating architecture page
+ table helpers
+Date: Thu, 27 Feb 2020 08:04:05 +0530
+Message-ID: <52db1e9b-83b3-c41f-ef03-0f43e2159a83@arm.com>
+References: <1581909460-19148-1-git-send-email-anshuman.khandual@arm.com>
+ <1582726182.7365.123.camel@lca.pw> <1582726340.7365.124.camel@lca.pw>
+ <eb154054-68ab-a659-065b-f4f7dcbb8671@c-s.fr>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <linux-doc-owner@vger.kernel.org>
-In-Reply-To: <71791bbf-7ee3-fa70-b569-ae643151646e@intel.com>
-Sender: linux-doc-owner@vger.kernel.org
-To: Dave Hansen <dave.hansen@intel.com>
-Cc: Yu-cheng Yu <yu-cheng.yu@intel.com>, the arch/x86 maintainers <x86@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, LKML <linux-kernel@vger.kernel.org>, linux-doc@vger.kernel.org, Linux-MM <linux-mm@kvack.org>, linux-arch <linux-arch@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 8bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from foss.arm.com ([217.140.110.172]:44794 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1728164AbgB0CeS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 26 Feb 2020 21:34:18 -0500
+In-Reply-To: <eb154054-68ab-a659-065b-f4f7dcbb8671@c-s.fr>
+Content-Language: en-US
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Christophe Leroy <christophe.leroy@c-s.fr>, Qian Cai <cai@lca.pw>, linux-mm@kvack.org
+Cc: Andrew Morton <akpm@linux-foundation.org>, Mike Rapoport <rppt@linux.ibm.com>, Vineet Gupta <vgupta@synopsys.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Heiko Carstens <heiko.carstens@de.ibm.com>, Vasily Gorbik <gor@linux.ibm.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, "Kirill A . Shutemov" <kirill@shutemov.name>, Paul Walmsley <paul.walmsley@sifive.com>, Palmer Dabbelt <palmer@dabbelt.com>, linux-snps-arc@lists.infradead.org, linux-arm-kern
 
-On Wed, Feb 26, 2020 at 5:16 PM Dave Hansen <dave.hansen@intel.com> wrote:
->
-> On 2/26/20 5:02 PM, H.J. Lu wrote:
-> >> That way everybody with old toolchains can still build the kernel (and
-> >> run/test code with your config option on, btw...).
-> > CET requires a complete new OS image from kernel, toolchain, run-time.
-> > CET enabled kernel without the rest of updated OS won't give you CET
-> > at all.
->
-> If you require a new toolchain, nobody even builds your fancy feature.
-> Probably including 0day and all of the lazy maintainers with crufty old
-> distros.
+On 02/26/2020 08:14 PM, Christophe Leroy wrote:
+> 
+> 
+> Le 26/02/2020 à 15:12, Qian Cai a écrit :
+>> On Wed, 2020-02-26 at 09:09 -0500, Qian Cai wrote:
+>>> On Mon, 2020-02-17 at 08:47 +0530, Anshuman Khandual wrote:
+>>>
+>>> How useful is this that straightly crash the powerpc?
+>>
+>> And then generate warnings on arm64,
+>>
+>> [  146.634626][    T1] debug_vm_pgtable: debug_vm_pgtable: Validating
+>> architecture page table helpers
+>> [  146.643995][    T1] ------------[ cut here ]------------
+>> [  146.649350][    T1] virt_to_phys used for non-linear address:
+>> (____ptrval____) (start_kernel+0x0/0x580)
+> 
+> Must be something wrong with the following in debug_vm_pgtable()
+> 
+>     paddr = __pa(&start_kernel);
+> 
+> Is there any explaination why start_kernel() is not in linear memory on ARM64 ?
 
-GCC 8 or above is needed since vDSO must be compiled with
---fcf-protection=branch.
 
-> The point isn't to actually run CET at all.  The point is to get as many
-> people as possible testing as much of it as possible.  Testing includes
-> compile testing, static analysis and bloat watching.  It also includes
-> functional and performance testing when you've got the feature compiled
-> in but unavailable at runtime.  Did this hurt anything even when I'm not
-> using it?
->
+Cc: + James Morse <james.morse@arm.com>
 
-I will leave the CET toolchain issue to Yu-cheng.
+This warning gets exposed with DEBUG_VIRTUAL due to __pa() on a kernel symbol
+i.e 'start_kernel' which might be outside the linear map. This happens due to
+kernel mapping position randomization with KASLR. Adding James here in case he
+might like to add more.
 
--- 
-H.J.
+__pa_symbol() should have been used instead, for accessing the physical address
+here. On arm64 __pa() does check for linear address with __is_lm_address() and
+switch accordingly if it is a kernel text symbol. Nevertheless, its much better
+to use __pa_symbol() here rather than __pa().
+
+Rather than respining the patch once more, will just send a fix replacing this
+helper __pa() with __pa_symbol() for Andrew to pick up as this patch is already
+part of linux-next (next-20200226). But can definitely respin if that will be
+preferred.
+
+Thanks Qian for catching this.
+
+> 
+> Christophe
+> 
