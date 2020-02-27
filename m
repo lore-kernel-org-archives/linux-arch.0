@@ -1,84 +1,65 @@
-From: "Paul E. McKenney" <paulmck@kernel.org>
-Subject: Re: [PATCH v3 0/5] Documentation/locking/atomic: Add litmus tests
- for atomic APIs
-Date: Thu, 27 Feb 2020 07:47:55 -0800
-Message-ID: <20200227154755.GJ2935@paulmck-ThinkPad-P72>
-References: <20200227004049.6853-1-boqun.feng@gmail.com>
-Reply-To: paulmck@kernel.org
+From: Alan Stern <stern@rowland.harvard.edu>
+Subject: Re: [PATCH v3 1/5] tools/memory-model: Add an exception for limitations
+ on _unless() family
+Date: Thu, 27 Feb 2020 11:32:11 -0500 (EST)
+Message-ID: <Pine.LNX.4.44L0.2002271129370.1730-100000@iolanthe.rowland.org>
+References: <20200227004049.6853-2-boqun.feng@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-doc-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20200227004049.6853-1-boqun.feng@gmail.com>
-Sender: linux-doc-owner@vger.kernel.org
+Content-Type: TEXT/PLAIN; charset=US-ASCII
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from iolanthe.rowland.org ([192.131.102.54]:38786 "HELO
+        iolanthe.rowland.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with SMTP id S1730013AbgB0QcM (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 27 Feb 2020 11:32:12 -0500
+In-Reply-To: <20200227004049.6853-2-boqun.feng@gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: Boqun Feng <boqun.feng@gmail.com>
-Cc: linux-kernel@vger.kernel.org, Alan Stern <stern@rowland.harvard.edu>, Andrea Parri <parri.andrea@gmail.com>, Will Deacon <will@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Nicholas Piggin <npiggin@gmail.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, Akira Yokosawa <akiyks@gmail.com>, Daniel Lustig <dlustig@nvidia.com>, Jonathan Corbet <corbet@lwn.net>, Mauro Carvalho Chehab <mchehab+samsung@kernel.org>, "David S. Miller" <davem@davemloft.net>, Rob Herring <robh@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jonathan Cameron <Jonathan.Cameron@huawei.com>, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Cc: linux-kernel@vger.kernel.org, Andrea Parri <parri.andrea@gmail.com>, Will Deacon <will@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Nicholas Piggin <npiggin@gmail.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, "Paul E. McKenney" <paulmck@kernel.org>, Akira Yokosawa <akiyks@gmail.com>, Daniel Lustig <dlustig@nvidia.com>, Jonathan Corbet <corbet@lwn.net>, Mauro Carvalho Chehab <mchehab+samsung@kernel.org>, "David S. Miller" <davem@davemloft.net>, Rob Herring <robh@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jonathan Cameron <Jonathan.Cameron@huawei.com>, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org
 
-On Thu, Feb 27, 2020 at 08:40:44AM +0800, Boqun Feng wrote:
-> A recent discussion raises up the requirement for having test cases for
-> atomic APIs:
-> 
-> 	https://lore.kernel.org/lkml/20200213085849.GL14897@hirez.programming.kicks-ass.net/
-> 
-> , and since we already have a way to generate a test module from a
-> litmus test with klitmus[1]. It makes sense that we add more litmus
-> tests for atomic APIs. And based on the previous discussion, I create a
-> new directory Documentation/atomic-tests and put these litmus tests
-> here.
-> 
-> This patchset starts the work by adding the litmus tests which are
-> already used in atomic_t.txt, and also improve the atomic_t.txt to make
-> it consistent with the litmus tests.
-> 
-> Previous version:
-> v1: https://lore.kernel.org/linux-doc/20200214040132.91934-1-boqun.feng@gmail.com/
-> v2: https://lore.kernel.org/lkml/20200219062627.104736-1-boqun.feng@gmail.com/
-> 
-> Changes since v2:
-> 
-> *	Change from "RFC" to "PATCH".
-> 
-> *	Wording improvement in atomic_t.txt as per Alan's suggestion.
-> 
-> *	Add a new patch describing the usage of atomic_add_unless() is
-> 	not limited anymore for LKMM litmus tests.
-> 
-> My PR on supporting "(void) expr;" statement has been merged by Luc
-> (Thank you, Luc). So all the litmus tests in this patchset can be
-> handled by the herdtools compiled from latest master branch of the
-> source code.
-> 
-> Comments and suggestions are welcome!
-> 
-> Regards,
-> Boqun
+On Thu, 27 Feb 2020, Boqun Feng wrote:
 
-Queued for further review, thank you, Boqun!
+> According to Luc, atomic_add_unless() is directly provided by herd7,
+> therefore it can be used in litmus tests. So change the limitation
+> section in README to unlimit the use of atomic_add_unless().
 
-							Thanx, Paul
+Is this really true?  Why does herd treat atomic_add_unless() different
+from all the other atomic RMS ops?  All the other ones we support do
+have entries in linux-kernel.def.
 
-> [1]: http://diy.inria.fr/doc/litmus.html#klitmus
+Alan
+
+PS: It seems strange to support atomic_add_unless but not 
+atomic_long_add_unless.  The difference between the two is trivial.
+
 > 
-> Boqun Feng (5):
->   tools/memory-model: Add an exception for limitations on _unless()
->     family
->   Documentation/locking/atomic: Fix atomic-set litmus test
->   Documentation/locking/atomic: Introduce atomic-tests directory
->   Documentation/locking/atomic: Add a litmus test for atomic_set()
->   Documentation/locking/atomic: Add a litmus test smp_mb__after_atomic()
+> Cc: Luc Maranget <luc.maranget@inria.fr>
+> Signed-off-by: Boqun Feng <boqun.feng@gmail.com>
+> ---
+>  tools/memory-model/README | 10 +++++++---
+>  1 file changed, 7 insertions(+), 3 deletions(-)
 > 
->  ...ter_atomic-is-stronger-than-acquire.litmus | 32 +++++++++++++++++++
->  ...c-RMW-ops-are-atomic-WRT-atomic_set.litmus | 24 ++++++++++++++
->  Documentation/atomic-tests/README             | 16 ++++++++++
->  Documentation/atomic_t.txt                    | 24 +++++++-------
->  MAINTAINERS                                   |  1 +
->  tools/memory-model/README                     | 10 ++++--
->  6 files changed, 92 insertions(+), 15 deletions(-)
->  create mode 100644 Documentation/atomic-tests/Atomic-RMW+mb__after_atomic-is-stronger-than-acquire.litmus
->  create mode 100644 Documentation/atomic-tests/Atomic-RMW-ops-are-atomic-WRT-atomic_set.litmus
->  create mode 100644 Documentation/atomic-tests/README
-> 
-> -- 
-> 2.25.0
+> diff --git a/tools/memory-model/README b/tools/memory-model/README
+> index fc07b52f2028..409211b1c544 100644
+> --- a/tools/memory-model/README
+> +++ b/tools/memory-model/README
+> @@ -207,11 +207,15 @@ The Linux-kernel memory model (LKMM) has the following limitations:
+>  		case as a store release.
+>  
+>  	b.	The "unless" RMW operations are not currently modeled:
+> -		atomic_long_add_unless(), atomic_add_unless(),
+> -		atomic_inc_unless_negative(), and
+> -		atomic_dec_unless_positive().  These can be emulated
+> +		atomic_long_add_unless(), atomic_inc_unless_negative(),
+> +		and atomic_dec_unless_positive().  These can be emulated
+>  		in litmus tests, for example, by using atomic_cmpxchg().
+>  
+> +		One exception of this limitation is atomic_add_unless(),
+> +		which is provided directly by herd7 (so no corresponding
+> +		definition in linux-kernel.def). atomic_add_unless() is
+> +		modeled by herd7 therefore it can be used in litmus tests.
+> +
+>  	c.	The call_rcu() function is not modeled.  It can be
+>  		emulated in litmus tests by adding another process that
+>  		invokes synchronize_rcu() and the body of the callback
 > 
