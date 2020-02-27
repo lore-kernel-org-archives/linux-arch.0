@@ -1,48 +1,64 @@
 Return-Path: <SRS0=BIEI=4P=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:55724 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1730705AbgB0Ros (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 27 Feb 2020 12:44:48 -0500
-From: Mark Brown <broonie@kernel.org>
-Subject: [PATCH v8 11/11] arm64: mm: Display guarded pages in ptdump
-Date: Thu, 27 Feb 2020 17:44:17 +0000
-Message-ID: <20200227174417.23722-12-broonie@kernel.org>
-In-Reply-To: <20200227174417.23722-1-broonie@kernel.org>
-References: <20200227174417.23722-1-broonie@kernel.org>
+Received: from mail-dm6nam12on2064.outbound.protection.outlook.com ([40.107.243.64]:4011
+        "EHLO NAM12-DM6-obe.outbound.protection.outlook.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1726999AbgB0Hby (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 27 Feb 2020 02:31:54 -0500
+Subject: Re: [PATCH 00/10] Hi,
+References: <cover.1581497860.git.michal.simek@xilinx.com>
+ <CAL_JsqJeXJ6zWvEUi=gyOV0eCcXsvNmkK9EstC9hg9AKfMXnKw@mail.gmail.com>
+ <0f8140c1-da6f-ef04-0809-252d6de6a5d7@xilinx.com>
+ <CAL_JsqLf2e3z+m14264WFcsQgiwKR35Rs9Rw0c_MgoFvKwO2Xg@mail.gmail.com>
+From: Michal Simek <michal.simek@xilinx.com>
+Message-ID: <5dfa98df-8955-59fd-1d65-c0a988190acb@xilinx.com>
+Date: Thu, 27 Feb 2020 08:31:28 +0100
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+In-Reply-To: <CAL_JsqLf2e3z+m14264WFcsQgiwKR35Rs9Rw0c_MgoFvKwO2Xg@mail.gmail.com>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>
-Cc: Alexander Viro <viro@zeniv.linux.org.uk>, Paul Elliott <paul.elliott@arm.com>, Peter Zijlstra <peterz@infradead.org>, Yu-cheng Yu <yu-cheng.yu@intel.com>, Amit Kachhap <amit.kachhap@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Marc Zyngier <maz@kernel.org>, Eugene Syromiatnikov <esyr@redhat.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, "H . J . Lu " <hjl.tools@gmail.com>, Andrew Jones <drjones@redhat.com>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Jann Horn <jannh@google.com>, Richard Henderson <richard.henderson@linaro.org>, =?UTF-8?q?Kristina=20Mart=C5=A1enko?= <kristina.martsenko@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Florian Weimer <fweimer@redhat.com>, Sudakshina Das <sudi.das@arm.com>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, Mark Brown <broonie@kernel.org>
-Message-ID: <20200227174417.24s2NZJkuUGA0v_fmVkJt8WoZ6heKwEQ5MjSMhO0p6w@z>
+To: Rob Herring <robh@kernel.org>, Michal Simek <michal.simek@xilinx.com>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Michal Simek <monstr@monstr.eu>, git <git@xilinx.com>, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>, Arvind Sankar <nivedita@alum.mit.edu>, Borislav Petkov <bp@suse.de>, Cornelia Huck <cohuck@redhat.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Greg Ungerer <gerg@linux-m68k.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, Kees Cook <keescook@chromium.org>, Masahiro Yamada <yamada.masahiro@socionext.com>, Mike Rapoport <rppt@linux.ibm.com>, Mubin Sayyed <mubinusm@xilinx.com>, Nicholas Piggin <npiggin@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Palmer Dabbelt <palmer@dabbelt.com>, Paolo Bonzini <pbonzini@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, Shubhrajyoti Datta <shubhrajyoti.datta@xilinx.com>, Siva Durga Prasad Paladugu <siva.durga.paladugu@xilinx.com>, Stefan Asserhall <stefan.asserhall@xilinx.com>, Vladimir Murzin <vladimir.murzin@arm.com>, Will Deacon <will@kernel.org>, "open list:GENERIC INCLUDE/ASM HEADER FILES" <linux-arch@vger.kernel.org>, linux-mm@kvack.org, Bharat Kumar Gogada <bharatku@xilinx.com>
+Message-ID: <20200227073128.l_lmywRdfVRHL3tpq0lDSBEtbuupBOOuZsOPm-Rqh3I@z>
 
-v8.5-BTI introduces the GP field in stage 1 translation tables which
-indicates that blocks and pages with it set are guarded pages for which
-branch target identification checks should be performed. Decode this
-when dumping the page tables to aid debugging.
+On 25. 02. 20 17:32, Rob Herring wrote:
+> On Mon, Feb 17, 2020 at 8:28 AM Michal Simek <michal.simek@xilinx.com> wrote:
+>>
+>> Hi Rob,
+>>
+>> On 14. 02. 20 0:47, Rob Herring wrote:
+>>> On Wed, Feb 12, 2020 at 2:58 AM Michal Simek <michal.simek@xilinx.com> wrote:
+>>>>
+>>>>
+>>>> I am sending this series as before SMP support.
+>>>> Most of these patches are clean ups and should be easy to review them. I
+>>>> expect there will be more discussions about SMP support.
+>>>
+>>> While not really related to adding SMP, any chance you or someone
+>>> could look at moving microblaze PCI support to drivers/pci/? I suspect
+>>> much of the code should drop out as we have common helpers for much of
+>>> it now. That would leave only powerpc and mips for DT+PCI platforms.
+>>
+>> can you please suggest changes which could be done?
+>> I have CC Bharat and he could look at it.
+> 
+> Look at the host controller drivers in drivers/pci/controller/.
+> pci-host-{generic,common}.c is a good template to start with as that's
+> a controller with standard config space accesses and no h/w setup
+> needed. Essentially you need to call devm_pci_alloc_host_bridge(),
+> pci_parse_request_of_pci_ranges() and pci_host_probe() with whatever
+> h/w setup you need in between those calls.
+> 
+> Looking at the microblaze PCI code, looks like you may need custom
+> config space accessors which is quite common. Probably all the
+> resource and device scanning can be removed. If you look at arm64, all
+> the arch PCI code is just for ACPI.
 
-Signed-off-by: Mark Brown <broonie@kernel.org>
-Reviewed-by: Kees Cook <keescook@chromium.org>
----
- arch/arm64/mm/dump.c | 5 +++++
- 1 file changed, 5 insertions(+)
+Thanks Rob.
 
-diff --git a/arch/arm64/mm/dump.c b/arch/arm64/mm/dump.c
-index 860c00ec8bd3..78163b7a7dde 100644
---- a/arch/arm64/mm/dump.c
-+++ b/arch/arm64/mm/dump.c
-@@ -145,6 +145,11 @@ static const struct prot_bits pte_bits[] = {
- 		.val	= PTE_UXN,
- 		.set	= "UXN",
- 		.clear	= "   ",
-+	}, {
-+		.mask	= PTE_GP,
-+		.val	= PTE_GP,
-+		.set	= "GP",
-+		.clear	= "  ",
- 	}, {
- 		.mask	= PTE_ATTRINDX_MASK,
- 		.val	= PTE_ATTRINDX(MT_DEVICE_nGnRnE),
--- 
-2.20.1
+Bharat: Can you please take a look?
+
+Thanks,
+Michal
