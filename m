@@ -1,82 +1,100 @@
-Return-Path: <SRS0=2OaM=4Q=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail-pf1-f193.google.com ([209.85.210.193]:33847 "EHLO
-        mail-pf1-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1730396AbgB1AWw (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 27 Feb 2020 19:22:52 -0500
-Received: by mail-pf1-f193.google.com with SMTP id i6so740897pfc.1
-        for <linux-arch@vger.kernel.org>; Thu, 27 Feb 2020 16:22:50 -0800 (PST)
-From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH 4/9] x86/boot: Warn on orphan section placement
-Date: Thu, 27 Feb 2020 16:22:39 -0800
-Message-ID: <20200228002244.15240-5-keescook@chromium.org>
-In-Reply-To: <20200228002244.15240-1-keescook@chromium.org>
-References: <20200228002244.15240-1-keescook@chromium.org>
+Return-Path: <SRS0=BIEI=4P=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail-qk1-f195.google.com ([209.85.222.195]:47095 "EHLO
+        mail-qk1-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727987AbgB0AlK (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 26 Feb 2020 19:41:10 -0500
+From: Boqun Feng <boqun.feng@gmail.com>
+Subject: [PATCH v3 4/5] Documentation/locking/atomic: Add a litmus test for atomic_set()
+Date: Thu, 27 Feb 2020 08:40:48 +0800
+Message-ID: <20200227004049.6853-5-boqun.feng@gmail.com>
+In-Reply-To: <20200227004049.6853-1-boqun.feng@gmail.com>
+References: <20200227004049.6853-1-boqun.feng@gmail.com>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Borislav Petkov <bp@suse.de>
-Cc: Kees Cook <keescook@chromium.org>, "H.J. Lu" <hjl.tools@gmail.com>, Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Mark Rutland <mark.rutland@arm.com>, Peter Collingbourne <pcc@google.com>, James Morse <james.morse@arm.com>, Arnd Bergmann <arnd@arndb.de>, Masahiro Yamada <masahiroy@kernel.org>, x86@kernel.org, linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, linux-kbuild@vger.kernel.org, clang-built-linux@googlegroups.com, linux-kernel@vger.kernel.org
-Message-ID: <20200228002239.ZRhkO_j4lqKKv5WVXNDzD5mk2UYCHfF11fKsnZUolUU@z>
+To: linux-kernel@vger.kernel.org
+Cc: Alan Stern <stern@rowland.harvard.edu>, Andrea Parri <parri.andrea@gmail.com>, Will Deacon <will@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Boqun Feng <boqun.feng@gmail.com>, Nicholas Piggin <npiggin@gmail.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, "Paul E. McKenney" <paulmck@kernel.org>, Akira Yokosawa <akiyks@gmail.com>, Daniel Lustig <dlustig@nvidia.com>, Jonathan Corbet <corbet@lwn.net>, Mauro Carvalho Chehab <mchehab+samsung@kernel.org>, "David S. Miller" <davem@davemloft.net>, Rob Herring <robh@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jonathan Cameron <Jonathan.Cameron@huawei.com>, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org
+Message-ID: <20200227004048.q0o7HyMWGl1Lkkk4xNhrQyfLhOayIShoexH_Vik3K_A@z>
 
-We don't want to depend on the linker's orphan section placement
-heuristics as these can vary between linkers, and may change between
-versions. All sections need to be explicitly named in the linker
-script.
+We already use a litmus test in atomic_t.txt to describe the behavior of
+an atomic_set() with the an atomic RMW, so add it into atomic-tests
+directory to make it easily accessible for anyone who cares about the
+semantics of our atomic APIs.
 
-Add the common debugging sections. Discard the unused note, rel, plt,
-dyn, and hash sections that are not needed in the compressed vmlinux.
-Disable .eh_frame generation in the linker and enable orphan section
-warnings.
+Additionally, change the sentences describing the test in atomic_t.txt
+with better wording.
 
-Signed-off-by: Kees Cook <keescook@chromium.org>
+Signed-off-by: Boqun Feng <boqun.feng@gmail.com>
 ---
- arch/x86/boot/compressed/Makefile      |  3 ++-
- arch/x86/boot/compressed/vmlinux.lds.S | 13 +++++++++++++
- 2 files changed, 15 insertions(+), 1 deletion(-)
+ ...c-RMW-ops-are-atomic-WRT-atomic_set.litmus | 24 +++++++++++++++++++
+ Documentation/atomic-tests/README             |  7 ++++++
+ Documentation/atomic_t.txt                    |  6 ++---
+ 3 files changed, 34 insertions(+), 3 deletions(-)
+ create mode 100644 Documentation/atomic-tests/Atomic-RMW-ops-are-atomic-WRT-atomic_set.litmus
 
-diff --git a/arch/x86/boot/compressed/Makefile b/arch/x86/boot/compressed/Makefile
-index c33111341325..e0ea6b0924e8 100644
---- a/arch/x86/boot/compressed/Makefile
-+++ b/arch/x86/boot/compressed/Makefile
-@@ -46,6 +46,7 @@ GCOV_PROFILE := n
- UBSAN_SANITIZE :=n
- 
- KBUILD_LDFLAGS := -m elf_$(UTS_MACHINE)
-+KBUILD_LDFLAGS += --no-ld-generated-unwind-info
- # Compressed kernel should be built as PIE since it may be loaded at any
- # address by the bootloader.
- ifeq ($(CONFIG_X86_32),y)
-@@ -57,7 +58,7 @@ else
- KBUILD_LDFLAGS += $(shell $(LD) --help 2>&1 | grep -q "\-z noreloc-overflow" \
- 	&& echo "-z noreloc-overflow -pie --no-dynamic-linker")
- endif
--LDFLAGS_vmlinux := -T
-+LDFLAGS_vmlinux := --orphan-handling=warn -T
- 
- hostprogs	:= mkpiggy
- HOST_EXTRACFLAGS += -I$(srctree)/tools/include
-diff --git a/arch/x86/boot/compressed/vmlinux.lds.S b/arch/x86/boot/compressed/vmlinux.lds.S
-index 508cfa6828c5..b5406a8cebe0 100644
---- a/arch/x86/boot/compressed/vmlinux.lds.S
-+++ b/arch/x86/boot/compressed/vmlinux.lds.S
-@@ -73,4 +73,17 @@ SECTIONS
- #endif
- 	. = ALIGN(PAGE_SIZE);	/* keep ZO size page aligned */
- 	_end = .;
+diff --git a/Documentation/atomic-tests/Atomic-RMW-ops-are-atomic-WRT-atomic_set.litmus b/Documentation/atomic-tests/Atomic-RMW-ops-are-atomic-WRT-atomic_set.litmus
+new file mode 100644
+index 000000000000..5dd7f04e504a
+--- /dev/null
++++ b/Documentation/atomic-tests/Atomic-RMW-ops-are-atomic-WRT-atomic_set.litmus
+@@ -0,0 +1,24 @@
++C Atomic-set-observable-to-RMW
 +
-+	STABS_DEBUG
-+	DWARF_DEBUG
++(*
++ * Result: Never
++ *
++ * Test that atomic_set() cannot break the atomicity of atomic RMWs.
++ *)
 +
-+	DISCARDS
-+	/DISCARD/ : {
-+		*(.note.*)
-+		*(.rela.*) *(.rela_*)
-+		*(.rel.*) *(.rel_*)
-+		*(.plt) *(.plt.*)
-+		*(.dyn*)
-+		*(.hash) *(.gnu.hash)
-+	}
- }
++{
++	atomic_t v = ATOMIC_INIT(1);
++}
++
++P0(atomic_t *v)
++{
++	(void)atomic_add_unless(v,1,0);
++}
++
++P1(atomic_t *v)
++{
++	atomic_set(v, 0);
++}
++
++exists
++(v=2)
+diff --git a/Documentation/atomic-tests/README b/Documentation/atomic-tests/README
+index ae61201a4271..a1b72410b539 100644
+--- a/Documentation/atomic-tests/README
++++ b/Documentation/atomic-tests/README
+@@ -2,3 +2,10 @@ This directory contains litmus tests that are typical to describe the semantics
+ of our atomic APIs. For more information about how to "run" a litmus test or
+ how to generate a kernel test module based on a litmus test, please see
+ tools/memory-model/README.
++
++============
++LITMUS TESTS
++============
++
++Atomic-RMW-ops-are-atomic-WRT-atomic_set.litmus
++	Test that atomic_set() cannot break the atomicity of atomic RMWs.
+diff --git a/Documentation/atomic_t.txt b/Documentation/atomic_t.txt
+index ceb85ada378e..67d1d99f8589 100644
+--- a/Documentation/atomic_t.txt
++++ b/Documentation/atomic_t.txt
+@@ -85,10 +85,10 @@ smp_store_release() respectively. Therefore, if you find yourself only using
+ the Non-RMW operations of atomic_t, you do not in fact need atomic_t at all
+ and are doing it wrong.
+ 
+-A subtle detail of atomic_set{}() is that it should be observable to the RMW
+-ops. That is:
++A note for the implementation of atomic_set{}() is that it must not break the
++atomicity of the RMW ops. That is:
+ 
+-  C atomic-set
++  C Atomic-RMW-ops-are-atomic-WRT-atomic_set
+ 
+   {
+     atomic_t v = ATOMIC_INIT(1);
 -- 
-2.20.1
+2.25.0
