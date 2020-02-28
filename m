@@ -1,134 +1,32 @@
-Return-Path: <SRS0=as/e=4M=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.133]:47694 "EHLO
-        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726593AbgBXTpL (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 24 Feb 2020 14:45:11 -0500
-From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 1/5] dma-direct: remove the cached_kernel_address hook
-Date: Mon, 24 Feb 2020 11:44:41 -0800
-Message-ID: <20200224194446.690816-2-hch@lst.de>
-In-Reply-To: <20200224194446.690816-1-hch@lst.de>
-References: <20200224194446.690816-1-hch@lst.de>
+Return-Path: <SRS0=2OaM=4Q=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail-pl1-f196.google.com ([209.85.214.196]:41023 "EHLO
+        mail-pl1-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1730155AbgB1Bfn (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 27 Feb 2020 20:35:43 -0500
+Received: by mail-pl1-f196.google.com with SMTP id t14so550759plr.8
+        for <linux-arch@vger.kernel.org>; Thu, 27 Feb 2020 17:35:43 -0800 (PST)
+Subject: Re: [PATCH v8 00/11] arm64: Branch Target Identification support
+References: <20200227174417.23722-1-broonie@kernel.org>
+From: Richard Henderson <richard.henderson@linaro.org>
+Message-ID: <562edd23-9d86-800e-aae3-e54c92601929@linaro.org>
+Date: Thu, 27 Feb 2020 17:35:39 -0800
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+In-Reply-To: <20200227174417.23722-1-broonie@kernel.org>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jonas Bonn <jonas@southpole.se>, Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>, Stafford Horne <shorne@gmail.com>
-Cc: Marek Szyprowski <m.szyprowski@samsung.com>, Robin Murphy <robin.murphy@arm.com>, Will Deacon <will@kernel.org>, Mark Rutland <mark.rutland@arm.com>, openrisc@lists.librecores.org, iommu@lists.linux-foundation.org, linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20200224194441.rNMsZLfz2R6Z-4eBOpQeT_Z_f1nbVIRytFFywmEKgyQ@z>
+To: Mark Brown <broonie@kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>
+Cc: Alexander Viro <viro@zeniv.linux.org.uk>, Paul Elliott <paul.elliott@arm.com>, Peter Zijlstra <peterz@infradead.org>, Yu-cheng Yu <yu-cheng.yu@intel.com>, Amit Kachhap <amit.kachhap@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Marc Zyngier <maz@kernel.org>, Eugene Syromiatnikov <esyr@redhat.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, "H . J . Lu" <hjl.tools@gmail.com>, Andrew Jones <drjones@redhat.com>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Jann Horn <jannh@google.com>, =?UTF-8?Q?Kristina_Mart=c5=a1enko?= <kristina.martsenko@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Florian Weimer <fweimer@redhat.com>, Sudakshina Das <sudi.das@arm.com>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org
+Message-ID: <20200228013539.FT7MZ2y972d9dE0S5QUMBDkQy6VvETn5lz5suJCdJbk@z>
 
-dma-direct now finds the kernel address for coherent allocations based
-on the dma address, so the cached_kernel_address hooks is unused and
-can be removed entirely.
+On 2/27/20 9:44 AM, Mark Brown wrote:
+>  * Binutils trunk supports the new ELF note, but this wasn't in a release
+>    the last time I posted this series.  (The situation _might_ have changed
+>    in the meantime...)
 
-Signed-off-by: Christoph Hellwig <hch@lst.de>
----
- arch/Kconfig                    |  2 +-
- arch/microblaze/mm/consistent.c |  7 -------
- arch/mips/mm/dma-noncoherent.c  |  5 -----
- arch/nios2/mm/dma-mapping.c     | 10 ----------
- arch/xtensa/kernel/pci-dma.c    | 10 ++--------
- include/linux/dma-noncoherent.h |  1 -
- 6 files changed, 3 insertions(+), 32 deletions(-)
+I believe this support is in binutils 2.32.
 
-diff --git a/arch/Kconfig b/arch/Kconfig
-index 98de654b79b3..7994b239f155 100644
---- a/arch/Kconfig
-+++ b/arch/Kconfig
-@@ -249,7 +249,7 @@ config ARCH_HAS_SET_DIRECT_MAP
- 
- #
- # Select if arch has an uncached kernel segment and provides the
--# uncached_kernel_address / cached_kernel_address symbols to use it
-+# uncached_kernel_address symbol to use it
- #
- config ARCH_HAS_UNCACHED_SEGMENT
- 	select ARCH_HAS_DMA_PREP_COHERENT
-diff --git a/arch/microblaze/mm/consistent.c b/arch/microblaze/mm/consistent.c
-index 8c5f0c332d8b..cede7c5e8135 100644
---- a/arch/microblaze/mm/consistent.c
-+++ b/arch/microblaze/mm/consistent.c
-@@ -49,11 +49,4 @@ void *uncached_kernel_address(void *ptr)
- 		pr_warn("ERROR: Your cache coherent area is CACHED!!!\n");
- 	return (void *)addr;
- }
--
--void *cached_kernel_address(void *ptr)
--{
--	unsigned long addr = (unsigned long)ptr;
--
--	return (void *)(addr & ~UNCACHED_SHADOW_MASK);
--}
- #endif /* CONFIG_MMU */
-diff --git a/arch/mips/mm/dma-noncoherent.c b/arch/mips/mm/dma-noncoherent.c
-index dc42ffc83825..77dce28ad0a0 100644
---- a/arch/mips/mm/dma-noncoherent.c
-+++ b/arch/mips/mm/dma-noncoherent.c
-@@ -54,11 +54,6 @@ void *uncached_kernel_address(void *addr)
- 	return (void *)(__pa(addr) + UNCAC_BASE);
- }
- 
--void *cached_kernel_address(void *addr)
--{
--	return __va(addr) - UNCAC_BASE;
--}
--
- static inline void dma_sync_virt(void *addr, size_t size,
- 		enum dma_data_direction dir)
- {
-diff --git a/arch/nios2/mm/dma-mapping.c b/arch/nios2/mm/dma-mapping.c
-index 0ed711e37902..f30f2749257c 100644
---- a/arch/nios2/mm/dma-mapping.c
-+++ b/arch/nios2/mm/dma-mapping.c
-@@ -75,13 +75,3 @@ void *uncached_kernel_address(void *ptr)
- 
- 	return (void *)ptr;
- }
--
--void *cached_kernel_address(void *ptr)
--{
--	unsigned long addr = (unsigned long)ptr;
--
--	addr &= ~CONFIG_NIOS2_IO_REGION_BASE;
--	addr |= CONFIG_NIOS2_KERNEL_REGION_BASE;
--
--	return (void *)ptr;
--}
-diff --git a/arch/xtensa/kernel/pci-dma.c b/arch/xtensa/kernel/pci-dma.c
-index 72b6222daa0b..6a685545d5c9 100644
---- a/arch/xtensa/kernel/pci-dma.c
-+++ b/arch/xtensa/kernel/pci-dma.c
-@@ -88,18 +88,12 @@ void arch_dma_prep_coherent(struct page *page, size_t size)
- 
- /*
-  * Memory caching is platform-dependent in noMMU xtensa configurations.
-- * The following two functions should be implemented in platform code
-- * in order to enable coherent DMA memory operations when CONFIG_MMU is not
-- * enabled.
-+ * This function should be implemented in platform code in order to enable
-+ * coherent DMA memory operations when CONFIG_MMU is not enabled.
-  */
- #ifdef CONFIG_MMU
- void *uncached_kernel_address(void *p)
- {
- 	return p + XCHAL_KSEG_BYPASS_VADDR - XCHAL_KSEG_CACHED_VADDR;
- }
--
--void *cached_kernel_address(void *p)
--{
--	return p + XCHAL_KSEG_CACHED_VADDR - XCHAL_KSEG_BYPASS_VADDR;
--}
- #endif /* CONFIG_MMU */
-diff --git a/include/linux/dma-noncoherent.h b/include/linux/dma-noncoherent.h
-index ca9b5770caee..b6b72e19b0cd 100644
---- a/include/linux/dma-noncoherent.h
-+++ b/include/linux/dma-noncoherent.h
-@@ -109,6 +109,5 @@ static inline void arch_dma_prep_coherent(struct page *page, size_t size)
- #endif /* CONFIG_ARCH_HAS_DMA_PREP_COHERENT */
- 
- void *uncached_kernel_address(void *addr);
--void *cached_kernel_address(void *addr);
- 
- #endif /* _LINUX_DMA_NONCOHERENT_H */
--- 
-2.24.1
+
+r~
