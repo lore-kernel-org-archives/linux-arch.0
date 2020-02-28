@@ -1,84 +1,94 @@
 From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH 0/9] Enable orphan section warning
-Date: Thu, 27 Feb 2020 16:22:35 -0800
-Message-ID: <20200228002244.15240-1-keescook@chromium.org>
+Subject: [PATCH 9/9] arm/boot: Warn on orphan section placement
+Date: Thu, 27 Feb 2020 16:22:44 -0800
+Message-ID: <20200228002244.15240-10-keescook@chromium.org>
+References: <20200228002244.15240-1-keescook@chromium.org>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pj1-f68.google.com ([209.85.216.68]:53965 "EHLO
-        mail-pj1-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1730409AbgB1AWw (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 27 Feb 2020 19:22:52 -0500
-Received: by mail-pj1-f68.google.com with SMTP id i11so435812pju.3
-        for <linux-arch@vger.kernel.org>; Thu, 27 Feb 2020 16:22:51 -0800 (PST)
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Return-path: <linux-kbuild-owner@vger.kernel.org>
+In-Reply-To: <20200228002244.15240-1-keescook@chromium.org>
+Sender: linux-kbuild-owner@vger.kernel.org
 To: Borislav Petkov <bp@suse.de>
 Cc: Kees Cook <keescook@chromium.org>, "H.J. Lu" <hjl.tools@gmail.com>, Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Mark Rutland <mark.rutland@arm.com>, Peter Collingbourne <pcc@google.com>, James Morse <james.morse@arm.com>, Arnd Bergmann <arnd@arndb.de>, Masahiro Yamada <masahiroy@kernel.org>, x86@kernel.org, linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, linux-kbuild@vger.kernel.org, clang-built-linux@googlegroups.com, linux-kernel@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-Hi!
+We don't want to depend on the linker's orphan section placement
+heuristics as these can vary between linkers, and may change between
+versions. All sections need to be explicitly named in the linker
+script.
 
-A recent bug was solved for builds linked with ld.lld, and tracking
-it down took way longer than it needed to (a year). Ultimately, it
-boiled down to differences between ld.bfd and ld.lld's handling of
-orphan sections. Similarly, the recent FGKASLR series brough up orphan
-section handling too[2]. In both cases, it would have been nice if the
-linker was running with --orphan-handling=warn so that surprise sections
-wouldn't silently get mapped into the kernel image at locations up to
-the whim of the linker's orphan handling logic. Instead, all desired
-sections should be explicitly identified in the linker script (to be
-either kept or discarded) with any orphans throwing a warning. The
-powerpc architecture actually already does this, so this series seeks
-to extend this coverage to x86, arm64, and arm.
+Use common macros for debug sections, discards, and text stubs. Add
+discards for unwanted .note, and .rel sections. Finally, enable orphan
+section warning.
 
-This series depends on tip/x86/boot (where recent .eh_frame fixes[3]
-landed), and has a minor conflict[4] with the ARM tree (related to
-the earlier mentioned bug). As it uses refactorings in the asm-generic
-linker script, and makes changes to kbuild, I think the cleanest place
-for this series to land would also be through -tip. Once again (like
-my READ_IMPLIES_EXEC series), I'm looking to get maintainer Acks so
-this can go all together with the least disruption. Splitting it up by
-architecture seems needlessly difficult.
+Signed-off-by: Kees Cook <keescook@chromium.org>
+---
+ arch/arm/boot/compressed/Makefile      |  2 ++
+ arch/arm/boot/compressed/vmlinux.lds.S | 17 +++++++----------
+ 2 files changed, 9 insertions(+), 10 deletions(-)
 
-Thanks!
-
--Kees
-
-[1] https://github.com/ClangBuiltLinux/linux/issues/282
-[2] https://lore.kernel.org/lkml/202002242122.AA4D1B8@keescook/
-[3] https://lore.kernel.org/lkml/158264960194.28353.10560165361470246192.tip-bot2@tip-bot2/
-[4] https://www.arm.linux.org.uk/developer/patches/viewpatch.php?id=8959/1
-
-H.J. Lu (1):
-  Add RUNTIME_DISCARD_EXIT to generic DISCARDS
-
-Kees Cook (8):
-  scripts/link-vmlinux.sh: Delay orphan handling warnings until final
-    link
-  vmlinux.lds.h: Add .gnu.version* to DISCARDS
-  x86/build: Warn on orphan section placement
-  x86/boot: Warn on orphan section placement
-  arm64/build: Use common DISCARDS in linker script
-  arm64/build: Warn on orphan section placement
-  arm/build: Warn on orphan section placement
-  arm/boot: Warn on orphan section placement
-
- arch/arm/Makefile                             |  4 ++++
- arch/arm/boot/compressed/Makefile             |  2 ++
- arch/arm/boot/compressed/vmlinux.lds.S        | 17 ++++++--------
- .../arm/{kernel => include/asm}/vmlinux.lds.h | 22 ++++++++++++++-----
- arch/arm/kernel/vmlinux-xip.lds.S             |  5 ++---
- arch/arm/kernel/vmlinux.lds.S                 |  5 ++---
- arch/arm64/Makefile                           |  4 ++++
- arch/arm64/kernel/vmlinux.lds.S               | 13 +++++------
- arch/x86/Makefile                             |  4 ++++
- arch/x86/boot/compressed/Makefile             |  3 ++-
- arch/x86/boot/compressed/vmlinux.lds.S        | 13 +++++++++++
- arch/x86/kernel/vmlinux.lds.S                 |  7 ++++++
- include/asm-generic/vmlinux.lds.h             | 11 ++++++++--
- scripts/link-vmlinux.sh                       |  6 +++++
- 14 files changed, 85 insertions(+), 31 deletions(-)
- rename arch/arm/{kernel => include/asm}/vmlinux.lds.h (92%)
-
+diff --git a/arch/arm/boot/compressed/Makefile b/arch/arm/boot/compressed/Makefile
+index da599c3a1193..7faa2b5e7e16 100644
+--- a/arch/arm/boot/compressed/Makefile
++++ b/arch/arm/boot/compressed/Makefile
+@@ -136,6 +136,8 @@ endif
+ LDFLAGS_vmlinux += --no-undefined
+ # Delete all temporary local symbols
+ LDFLAGS_vmlinux += -X
++# Report orphan sections
++LDFLAGS_vmlinux += --orphan-handling=warn
+ # Next argument is a linker script
+ LDFLAGS_vmlinux += -T
+ 
+diff --git a/arch/arm/boot/compressed/vmlinux.lds.S b/arch/arm/boot/compressed/vmlinux.lds.S
+index fc7ed03d8b93..a6a51b5d2328 100644
+--- a/arch/arm/boot/compressed/vmlinux.lds.S
++++ b/arch/arm/boot/compressed/vmlinux.lds.S
+@@ -2,6 +2,7 @@
+ /*
+  *  Copyright (C) 2000 Russell King
+  */
++#include <asm/vmlinux.lds.h>
+ 
+ #ifdef CONFIG_CPU_ENDIAN_BE8
+ #define ZIMAGE_MAGIC(x) ( (((x) >> 24) & 0x000000ff) | \
+@@ -17,8 +18,11 @@ ENTRY(_start)
+ SECTIONS
+ {
+   /DISCARD/ : {
++    ARM_COMMON_DISCARD
+     *(.ARM.exidx*)
+     *(.ARM.extab*)
++    *(.note.*)
++    *(.rel.*)
+     /*
+      * Discard any r/w data - this produces a link error if we have any,
+      * which is required for PIC decompression.  Local data generates
+@@ -37,9 +41,7 @@ SECTIONS
+     *(.text)
+     *(.text.*)
+     *(.fixup)
+-    *(.gnu.warning)
+-    *(.glue_7t)
+-    *(.glue_7)
++    ARM_STUBS_TEXT
+   }
+   .table : ALIGN(4) {
+     _table_start = .;
+@@ -124,12 +126,7 @@ SECTIONS
+   PROVIDE(__pecoff_data_size = ALIGN(512) - ADDR(.data));
+   PROVIDE(__pecoff_end = ALIGN(512));
+ 
+-  .stab 0		: { *(.stab) }
+-  .stabstr 0		: { *(.stabstr) }
+-  .stab.excl 0		: { *(.stab.excl) }
+-  .stab.exclstr 0	: { *(.stab.exclstr) }
+-  .stab.index 0		: { *(.stab.index) }
+-  .stab.indexstr 0	: { *(.stab.indexstr) }
+-  .comment 0		: { *(.comment) }
++  STABS_DEBUG
++  DWARF_DEBUG
+ }
+ ASSERT(_edata_real == _edata, "error: zImage file size is incorrect");
 -- 
 2.20.1
