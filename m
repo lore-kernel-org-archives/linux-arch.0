@@ -1,74 +1,55 @@
-Return-Path: <leonardo@linux.ibm.com>
-From: Leonardo Bras <leonardo@linux.ibm.com>
-Subject: [PATCH v6 07/11] powerpc/kvm/e500: Use functions to track lockless pgtbl walks
-Date: Thu,  6 Feb 2020 00:08:56 -0300
-Message-ID: <20200206030900.147032-8-leonardo@linux.ibm.com>
-In-Reply-To: <20200206030900.147032-1-leonardo@linux.ibm.com>
-References: <20200206030900.147032-1-leonardo@linux.ibm.com>
-MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
-To: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>, Nicholas Piggin <npiggin@gmail.com>, Christophe Leroy <christophe.leroy@c-s.fr>, Steven Price <steven.price@arm.com>, Robin Murphy <robin.murphy@arm.com>, Leonardo Bras <leonardo@linux.ibm.com>, Mahesh Salgaonkar <mahesh@linux.vnet.ibm.com>, Balbir Singh <bsingharora@gmail.com>, Reza Arbab <arbab@linux.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, Allison Randal <allison@lohutok.net>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Mike Rapoport <rppt@linux.ibm.com>, Michal Suchanek <msuchanek@suse.de>
-Cc: linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, kvm-ppc@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
+Return-Path: <3-WpYXg4KBCoHXKTJGTNOMMOTYMUUMRK.IUSXVVZROTad.OHS.IUS@flex--brendanhiggins.bounces.google.com>
+Date: Thu, 27 Feb 2020 17:20:30 -0800
+In-Reply-To: <20200228012036.15682-1-brendanhiggins@google.com>
+Message-ID: <20200228012036.15682-2-brendanhiggins@google.com>
+Mime-Version: 1.0
+References: <20200228012036.15682-1-brendanhiggins@google.com>
+Subject: [PATCH v3 1/7] vmlinux.lds.h: add linker section for KUnit test suites
+From: Brendan Higgins <brendanhiggins@google.com>
+Content-Type: text/plain; charset="UTF-8"
+To: jdike@addtoit.com, richard@nod.at, anton.ivanov@cambridgegreys.com, arnd@arndb.de, keescook@chromium.org, skhan@linuxfoundation.org, alan.maguire@oracle.com, yzaikin@google.com, davidgow@google.com, akpm@linux-foundation.org, rppt@linux.ibm.com, frowand.list@gmail.com
+Cc: gregkh@linuxfoundation.org, sboyd@kernel.org, logang@deltatee.com, mcgrof@kernel.org, linux-um@lists.infradead.org, linux-arch@vger.kernel.org, linux-kselftest@vger.kernel.org, kunit-dev@googlegroups.com, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, Brendan Higgins <brendanhiggins@google.com>
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200206030856.Hqv5E3YMmnoMvLuek0B06lVCsWLc35MAS0a3GXA0PA0@z>
+Message-ID: <20200228012030.WihYyCPI1RdsEbpLeRmZDrXKibxaAccWqNB-OiDQjrI@z>
 
-Applies the new functions used for tracking lockless pgtable walks on
-kvmppc_e500_shadow_map().
+Add a linker section where KUnit can put references to its test suites.
+This patch is the first step in transitioning to dispatching all KUnit
+tests from a centralized executor rather than having each as its own
+separate late_initcall.
 
-Fixes the place where local_irq_restore() is called: previously, if ptep
-was NULL, local_irq_restore() would never be called.
-
-local_irq_{save,restore} is already inside {begin,end}_lockless_pgtbl_walk,
-so there is no need to repeat it here.
-
-Variable that saves the	irq mask was renamed from flags to irq_mask so it
-doesn't lose meaning now it's not directly passed to local_irq_* functions.
-
-Signed-off-by: Leonardo Bras <leonardo@linux.ibm.com>
+Co-developed-by: Iurii Zaikin <yzaikin@google.com>
+Signed-off-by: Iurii Zaikin <yzaikin@google.com>
+Signed-off-by: Brendan Higgins <brendanhiggins@google.com>
+Reviewed-by: Stephen Boyd <sboyd@kernel.org>
 ---
- arch/powerpc/kvm/e500_mmu_host.c | 9 +++++----
- 1 file changed, 5 insertions(+), 4 deletions(-)
+ include/asm-generic/vmlinux.lds.h | 8 ++++++++
+ 1 file changed, 8 insertions(+)
 
-diff --git a/arch/powerpc/kvm/e500_mmu_host.c b/arch/powerpc/kvm/e500_mmu_host.c
-index 425d13806645..3dcf11f77256 100644
---- a/arch/powerpc/kvm/e500_mmu_host.c
-+++ b/arch/powerpc/kvm/e500_mmu_host.c
-@@ -336,7 +336,7 @@ static inline int kvmppc_e500_shadow_map(struct kvmppc_vcpu_e500 *vcpu_e500,
- 	pte_t *ptep;
- 	unsigned int wimg = 0;
- 	pgd_t *pgdir;
--	unsigned long flags;
-+	unsigned long irq_mask;
+diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
+index e00f41aa8ec4f..99a866f49cb3d 100644
+--- a/include/asm-generic/vmlinux.lds.h
++++ b/include/asm-generic/vmlinux.lds.h
+@@ -856,6 +856,13 @@
+ 		KEEP(*(.con_initcall.init))				\
+ 		__con_initcall_end = .;
  
- 	/* used to check for invalidations in progress */
- 	mmu_seq = kvm->mmu_notifier_seq;
-@@ -473,7 +473,7 @@ static inline int kvmppc_e500_shadow_map(struct kvmppc_vcpu_e500 *vcpu_e500,
- 	 * We are holding kvm->mmu_lock so a notifier invalidate
- 	 * can't run hence pfn won't change.
- 	 */
--	local_irq_save(flags);
-+	irq_mask = begin_lockless_pgtbl_walk();
- 	ptep = find_linux_pte(pgdir, hva, NULL, NULL);
- 	if (ptep) {
- 		pte_t pte = READ_ONCE(*ptep);
-@@ -481,15 +481,16 @@ static inline int kvmppc_e500_shadow_map(struct kvmppc_vcpu_e500 *vcpu_e500,
- 		if (pte_present(pte)) {
- 			wimg = (pte_val(pte) >> PTE_WIMGE_SHIFT) &
- 				MAS2_WIMGE_MASK;
--			local_irq_restore(flags);
- 		} else {
--			local_irq_restore(flags);
-+			end_lockless_pgtbl_walk(irq_mask);
- 			pr_err_ratelimited("%s: pte not present: gfn %lx,pfn %lx\n",
- 					   __func__, (long)gfn, pfn);
- 			ret = -EINVAL;
- 			goto out;
- 		}
- 	}
-+	end_lockless_pgtbl_walk(irq_mask);
++/* Alignment must be consistent with (kunit_suite *) in include/kunit/test.h */
++#define KUNIT_TEST_SUITES						\
++		. = ALIGN(8);						\
++		__kunit_suites_start = .;				\
++		KEEP(*(.kunit_test_suites))				\
++		__kunit_suites_end = .;
 +
- 	kvmppc_e500_ref_setup(ref, gtlbe, pfn, wimg);
+ #ifdef CONFIG_BLK_DEV_INITRD
+ #define INIT_RAM_FS							\
+ 	. = ALIGN(4);							\
+@@ -1024,6 +1031,7 @@
+ 		INIT_CALLS						\
+ 		CON_INITCALL						\
+ 		INIT_RAM_FS						\
++		KUNIT_TEST_SUITES					\
+ 	}
  
- 	kvmppc_e500_setup_stlbe(&vcpu_e500->vcpu, gtlbe, tsize,
+ #define BSS_SECTION(sbss_align, bss_align, stop_align)			\
 -- 
-2.24.1
+2.25.1.481.gfbce0eb801-goog
