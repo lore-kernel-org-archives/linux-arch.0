@@ -1,189 +1,55 @@
-Return-Path: <leonardo@linux.ibm.com>
-Message-ID: <31b7229b979da2b0bdec041724dd1698cf76298c.camel@linux.ibm.com>
-Subject: Re: [PATCH v6 06/11] powerpc/mm/book3s64/hash: Use functions to
- track lockless pgtbl walks
-From: Leonardo Bras <leonardo@linux.ibm.com>
-Date: Fri, 07 Feb 2020 00:49:56 -0300
-In-Reply-To: <1b65f1a8-42a8-6ffc-3a06-08fbb34edab5@c-s.fr>
-References: <20200206030900.147032-1-leonardo@linux.ibm.com>
-	 <20200206030900.147032-7-leonardo@linux.ibm.com>
-	 <1b65f1a8-42a8-6ffc-3a06-08fbb34edab5@c-s.fr>
-Content-Type: multipart/signed; micalg="pgp-sha256";
-	protocol="application/pgp-signature"; boundary="=-CBJiDJxhT4An72p6WJMR"
+Return-Path: <linux-riscv-bounces+rppt=linux.ibm.com@lists.infradead.org>
+Subject: Re: [PATCH] mm/debug: Add tests validating arch page table helpers
+ for core features
+References: <1582799637-11786-1-git-send-email-anshuman.khandual@arm.com>
+ <51421bb3-9075-d7e9-1750-0553a1ebe64a@c-s.fr>
+From: Anshuman Khandual <anshuman.khandual@arm.com>
+Message-ID: <f99692be-5d38-fdb7-46f1-205c7cc7481c@arm.com>
+Date: Fri, 28 Feb 2020 14:50:09 +0530
 MIME-Version: 1.0
-To: Christophe Leroy <christophe.leroy@c-s.fr>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>, Nicholas Piggin <npiggin@gmail.com>, Steven Price <steven.price@arm.com>, Robin Murphy <robin.murphy@arm.com>, Mahesh Salgaonkar <mahesh@linux.vnet.ibm.com>, Balbir Singh <bsingharora@gmail.com>, Reza Arbab <arbab@linux.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, Allison Randal <allison@lohutok.net>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Mike Rapoport <rppt@linux.ibm.com>, Michal Suchanek <msuchanek@suse.de>
-Cc: linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, kvm-ppc@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
+In-Reply-To: <51421bb3-9075-d7e9-1750-0553a1ebe64a@c-s.fr>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
+Content-Transfer-Encoding: 8bit
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-riscv>,
+ <mailto:linux-riscv-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-riscv/>
+List-Post: <mailto:linux-riscv@lists.infradead.org>
+List-Help: <mailto:linux-riscv-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-riscv>,
+ <mailto:linux-riscv-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-riscv" <linux-riscv-bounces@lists.infradead.org>
+Errors-To: linux-riscv-bounces+rppt=linux.ibm.com@lists.infradead.org
+To: Christophe Leroy <christophe.leroy@c-s.fr>, linux-mm@kvack.org
+Cc: Catalin Marinas <catalin.marinas@arm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Paul Mackerras <paulus@samba.org>, "H. Peter Anvin" <hpa@zytor.com>, linux-riscv@lists.infradead.org, Will Deacon <will@kernel.org>, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, x86@kernel.org, Mike Rapoport <rppt@linux.ibm.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Ingo Molnar <mingo@redhat.com>, linux-snps-arc@lists.infradead.org, Vasily Gorbik <gor@linux.ibm.com>, Borislav Petkov <bp@alien8.de>, Paul Walmsley <paul.walmsley@sifive.com>, "Kirill A . Shutemov" <kirill@shutemov.name>, Thomas Gleixner <tglx@linutronix.de>, linux-arm-kernel@lists.infradead.org, Vineet Gupta <vgupta@synopsys.com>, linux-kernel@vger.kernel.org, Palmer Dabbelt <palmer@dabbelt.com>, Andrew Morton <akpm@linux-foundation.org>, linuxppc-dev@lists.ozlabs.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200207034956.iEvtrAK2qoBJ_IoxVi1iwTXpuTjFcYPL7dWpKykoRmE@z>
+Message-ID: <20200228092009.JgBwVW1pIpCDxBYT894wKcFPurmQm77FUQy9kiXnxsk@z>
 
 
---=-CBJiDJxhT4An72p6WJMR
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
 
-On Thu, 2020-02-06 at 07:06 +0100, Christophe Leroy wrote:
-> > -	/* Get PTE and page size from page tables */
-> > +	/* Get PTE and page size from page tables :
-> > +	 * Called in from DataAccess interrupt (data_access_common: 0x300),
-> > +	 * interrupts are disabled here.
-> > +	 */
->=20
-> Comments formatting is not in line with Linux kernel rules. Should be no=
-=20
-> text on the first /* line.
+On 02/27/2020 04:12 PM, Christophe Leroy wrote:
+> 
+> 
+> Le 27/02/2020 à 11:33, Anshuman Khandual a écrit :
+>> This adds new tests validating arch page table helpers for these following
+>> core memory features. These tests create and test specific mapping types at
+>> various page table levels.
+>>
+>> * SPECIAL mapping
+>> * PROTNONE mapping
+>> * DEVMAP mapping
+>> * SOFTDIRTY mapping
+>> * SWAP mapping
+>> * MIGRATION mapping
+>> * HUGETLB mapping
+> 
+> For testing HUGETLB mappings, you also have to include tests of hugepd functions/helpers. Not all archictures have hugepage size which matches with page tables levels (e.g. powerpc). Those architectures use hugepd_t.
 
-My mistake. Will be corrected in v7.
+Dont see much hugepd_t in generic HugeTLB. Just wondering which generic
+hugepd helpers can be tested here. Could you please be bit more specific.
+As we have not yet started looking for arch specific page table helpers
+test requirements, all the test scenarios here need to be generic.
 
-> > +	__begin_lockless_pgtbl_walk(false);
->=20
-> I think it would be better to not use __begin_lockless_pgtbl_walk()=20
-> directly but keep it in a single place, and define something like=20
-> begin_lockless_pgtbl_walk_noirq() similar to begin_lockless_pgtbl_walk()
-
-There are places where touching irq is decided by a boolean, like in
-patch 8: http://patchwork.ozlabs.org/patch/1234130/
-
-If I were to change this, I would have to place ifs and decide to call
-either normal or *_noirq() versions in every function.
-
-What you suggest?
-
-> >   	ptep =3D find_linux_pte(pgdir, ea, &is_thp, &hugeshift);
-> >   	if (ptep =3D=3D NULL || !pte_present(*ptep)) {
-> >   		DBG_LOW(" no PTE !\n");
-> >   		rc =3D 1;
-> > -		goto bail;
-> > +		goto bail_pgtbl_walk;
->=20
-> What's the point in changing the name of this label ? There is only one=
-=20
-> label, why polute the function with so huge name ?
->=20
-> For me, everyone understand what 'bail' means. Unneccessary changes=20
-> should be avoided. If you really really want to do it, it should be=20
-> another patch.
->=20
-> See kernel codying style, chapter 'naming':
-> "LOCAL variable names should be short". This also applies to labels.
->=20
-> "C is a Spartan language, and so should your naming be. Unlike Modula-2=
-=20
-> and Pascal programmers, C programmers do not use cute names like=20
-> ThisVariableIsATemporaryCounter. A C programmer would call that variable=
-=20
-> tmp, which is much easier to write, and not the least more difficult to=
-=20
-> understand."
->=20
-
-It's not label name changing. There are two possible bails in
-hash_page_mm(): one for before __begin_lockless_pagetable_walk() and
-other for after it. The new one also runs __end_lockless_pgtbl_walk()
-before running what the previous did:
-
-> > +bail_pgtbl_walk:
-> > +	__end_lockless_pgtbl_walk(0, false);
-> >   bail:
-> >   	exception_exit(prev_state);
-> >   	return rc;
-
-As for the label name lengh, I see no problem changing it to something
-like bail_ptw.=20
-
-
-> > @@ -1545,7 +1551,7 @@ static void hash_preload(struct mm_struct *mm, un=
-signed long ea,
-> >   	unsigned long vsid;
-> >   	pgd_t *pgdir;
-> >   	pte_t *ptep;
-> > -	unsigned long flags;
-> > +	unsigned long irq_mask;
-> >   	int rc, ssize, update_flags =3D 0;
-> >   	unsigned long access =3D _PAGE_PRESENT | _PAGE_READ | (is_exec ? _PA=
-GE_EXEC : 0);
-> >  =20
-> > @@ -1567,11 +1573,12 @@ static void hash_preload(struct mm_struct *mm, =
-unsigned long ea,
-> >   	vsid =3D get_user_vsid(&mm->context, ea, ssize);
-> >   	if (!vsid)
-> >   		return;
-> > +
->=20
-> Is this new line related to the patch ?
-
-Nope. I have added while reading code and it just went trough my pre-
-sending revision. I can remove it, if it bothers.
-
->=20
-> >   	/*
-> >   	 * Hash doesn't like irqs. Walking linux page table with irq disable=
-d
-> >   	 * saves us from holding multiple locks.
-> >   	 */
-> > -	local_irq_save(flags);
-> > +	irq_mask =3D begin_lockless_pgtbl_walk();
-> >  =20
-> >   	/*
-> >   	 * THP pages use update_mmu_cache_pmd. We don't do
-> > @@ -1616,7 +1623,7 @@ static void hash_preload(struct mm_struct *mm, un=
-signed long ea,
-> >   				   mm_ctx_user_psize(&mm->context),
-> >   				   pte_val(*ptep));
-> >   out_exit:
-> > -	local_irq_restore(flags);
-> > +	end_lockless_pgtbl_walk(irq_mask);
-> >   }
-> >  =20
-> >   /*
-> > @@ -1679,16 +1686,16 @@ u16 get_mm_addr_key(struct mm_struct *mm, unsig=
-ned long address)
-> >   {
-> >   	pte_t *ptep;
-> >   	u16 pkey =3D 0;
-> > -	unsigned long flags;
-> > +	unsigned long irq_mask;
-> >  =20
-> >   	if (!mm || !mm->pgd)
-> >   		return 0;
-> >  =20
-> > -	local_irq_save(flags);
-> > +	irq_mask =3D begin_lockless_pgtbl_walk();
-> >   	ptep =3D find_linux_pte(mm->pgd, address, NULL, NULL);
-> >   	if (ptep)
-> >   		pkey =3D pte_to_pkey_bits(pte_val(READ_ONCE(*ptep)));
-> > -	local_irq_restore(flags);
-> > +	end_lockless_pgtbl_walk(irq_mask);
-> >  =20
-> >   	return pkey;
-> >   }
-> >=20
->=20
+> 
 > Christophe
-
-Thanks for giving feedback,
-
-Leonardo Bras
-
---=-CBJiDJxhT4An72p6WJMR
-Content-Type: application/pgp-signature; name="signature.asc"
-Content-Description: This is a digitally signed message part
-Content-Transfer-Encoding: 7bit
-
------BEGIN PGP SIGNATURE-----
-
-iQIzBAABCAAdFiEEMdeUgIzgjf6YmUyOlQYWtz9SttQFAl483mQACgkQlQYWtz9S
-ttT0RhAA0oKi/2XxY/SIX1F2r5GCR1RED6qxY0qr3xnxzpM3v721Eauf6gu1qqn+
-mLHWCjePDMZExodUEzcikEKxWX8xKJremMeTtKb9NsWunyDeBJsc/DZYjfgrbV06
-gIolgdRivEhBdPxuy1PuDVgkw1wbtWXIcbOV38cZUK5nPplruTem+BgpHUey7B9P
-X4FMTaZS4I4FLTxW21HLzr8finjGCD/Te4UeStnFaf5CWDb1rHhYmfVS6d0sVs7d
-yX97lrw9TkiQdwiCVv7ubcdyyJzP7ZJvhYvikVx2R+S2QZU2sSy9omWp14kAmmDS
-fBou25w24OyCphm2MD+cHl+i51aCOVhRwM4SmxFtUhDdoSTzSwJpLr4W+iyTOQGE
-DghnMCnPNN8f+zdJG+cofT0SxIPq8M2qvUyppRximtgc8C2mlLNgrm1dmcDj+/He
-cR0V5zvcCUNpGEQFZ7McZYh3iYkyKOOgWDbnf9NCWCO7wxKaFJm/OuRE3QnI1R1L
-wK/1YkmxJYw+e2ighyOrsIc95aezgjWO1ErqrbUr8slXMu7cj26MAFHCwa/2apCO
-gbieqVCJc80O47JXNXW9hTiTcyly25oGR98Mowr8k+C4tcRtFwFwaG8yEz1nyoUV
-54GtadMwB6OFVlSJdalc+p/GPxVPFwYyWVXGs15Y6g0DdXVkQbc=
-=D0Zg
------END PGP SIGNATURE-----
-
---=-CBJiDJxhT4An72p6WJMR--
+> 
