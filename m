@@ -1,62 +1,101 @@
-Return-Path: <SRS0=hCVk=4O=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:34128 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1728073AbgBZLU3 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 26 Feb 2020 06:20:29 -0500
-Date: Wed, 26 Feb 2020 11:20:27 +0000
-From: Mark Brown <broonie@kernel.org>
-Subject: Re: [PATCH v6 01/11] ELF: UAPI and Kconfig additions for ELF program
- properties
-Message-ID: <20200226112027.GA4136@sirena.org.uk>
-References: <20200212192906.53366-1-broonie@kernel.org>
- <20200212192906.53366-2-broonie@kernel.org>
- <202002252147.7BFF9EE@keescook>
+Return-Path: <SRS0=2OaM=4Q=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail-pj1-f68.google.com ([209.85.216.68]:53968 "EHLO
+        mail-pj1-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1730474AbgB1AW5 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 27 Feb 2020 19:22:57 -0500
+Received: by mail-pj1-f68.google.com with SMTP id i11so435887pju.3
+        for <linux-arch@vger.kernel.org>; Thu, 27 Feb 2020 16:22:56 -0800 (PST)
+From: Kees Cook <keescook@chromium.org>
+Subject: [PATCH 9/9] arm/boot: Warn on orphan section placement
+Date: Thu, 27 Feb 2020 16:22:44 -0800
+Message-ID: <20200228002244.15240-10-keescook@chromium.org>
+In-Reply-To: <20200228002244.15240-1-keescook@chromium.org>
+References: <20200228002244.15240-1-keescook@chromium.org>
 MIME-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha512;
-        protocol="application/pgp-signature"; boundary="liOOAslEiF7prFVr"
-Content-Disposition: inline
-In-Reply-To: <202002252147.7BFF9EE@keescook>
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Kees Cook <keescook@chromium.org>
-Cc: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Alexander Viro <viro@zeniv.linux.org.uk>, Paul Elliott <paul.elliott@arm.com>, Peter Zijlstra <peterz@infradead.org>, Yu-cheng Yu <yu-cheng.yu@intel.com>, Amit Kachhap <amit.kachhap@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Marc Zyngier <maz@kernel.org>, Eugene Syromiatnikov <esyr@redhat.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, "H . J . Lu " <hjl.tools@gmail.com>, Andrew Jones <drjones@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Jann Horn <jannh@google.com>, Richard Henderson <richard.henderson@linaro.org>, Kristina =?utf-8?Q?Mart=C5=A1enko?= <kristina.martsenko@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Florian Weimer <fweimer@redhat.com>, Sudakshina Das <sudi.das@arm.com>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, Dave Martin <Dave.Martin@arm.com>
-Message-ID: <20200226112027.Gl2wbNlsDs6nS0qfPUnH13cMoV0JO22eD_IucTDI9HQ@z>
+To: Borislav Petkov <bp@suse.de>
+Cc: Kees Cook <keescook@chromium.org>, "H.J. Lu" <hjl.tools@gmail.com>, Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Mark Rutland <mark.rutland@arm.com>, Peter Collingbourne <pcc@google.com>, James Morse <james.morse@arm.com>, Arnd Bergmann <arnd@arndb.de>, Masahiro Yamada <masahiroy@kernel.org>, x86@kernel.org, linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, linux-kbuild@vger.kernel.org, clang-built-linux@googlegroups.com, linux-kernel@vger.kernel.org
+Message-ID: <20200228002244.wU0IoJdchFxPooDoiayOPtfGcMnq3PghjT4DqtWYEEg@z>
 
+We don't want to depend on the linker's orphan section placement
+heuristics as these can vary between linkers, and may change between
+versions. All sections need to be explicitly named in the linker
+script.
 
---liOOAslEiF7prFVr
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
+Use common macros for debug sections, discards, and text stubs. Add
+discards for unwanted .note, and .rel sections. Finally, enable orphan
+section warning.
 
-On Tue, Feb 25, 2020 at 09:49:35PM -0800, Kees Cook wrote:
+Signed-off-by: Kees Cook <keescook@chromium.org>
+---
+ arch/arm/boot/compressed/Makefile      |  2 ++
+ arch/arm/boot/compressed/vmlinux.lds.S | 17 +++++++----------
+ 2 files changed, 9 insertions(+), 10 deletions(-)
 
-> Both BTI and SHSTK depend on this. If BTI doesn't land soon, can this
-> and patch 2 land separately? I don't like seeing the older version in
-> the SHSTK series -- I worry there will be confusion and the BTI version
-> (which is more up to date) will get missed.
-
-Please.
-
-> What's left to land BTI support?
-
-As far as I'm aware it's basically good to go, there's been no really
-substantial feedback in the months I've been pushing it, just fairly
-trivial stuff and rebases - it's going to need another resend for your
-comment just now about moving a hunk forward to a different patch for
-example.
-
---liOOAslEiF7prFVr
-Content-Type: application/pgp-signature; name="signature.asc"
-
------BEGIN PGP SIGNATURE-----
-
-iQEzBAABCgAdFiEEreZoqmdXGLWf4p/qJNaLcl1Uh9AFAl5WVHcACgkQJNaLcl1U
-h9AcDwf9GZxAN5rdZOpKz4dNmbfGRCoB9nc9O6lSiDkP2JOEtG8pbkeX6TMI39Hm
-+x/8gudWU6oq2Yg4KpIdz4QyZ8guZTRdoEsg9e7NJJaYC/JppbOBEsk8tR8qGRDQ
-2ryYp2atIxhfcBQ+KuDEPP9/qMOhCNrDZHwfNe1jI+LtTc3aZ94XgbloqFvno9+B
-2fpH28bHWi8iL+Kk5K7wN78O1dyb+8EkWz/2WXjo2hz5mfEJsAnIR2QnaY2HoJSO
-9t6fLU/TJ21XcOExtnjTB19nWEScEcIltEWCGjWlAGJRxSQyWnlXZaPc4cDjyN+x
-iGx9ujR4FphdpqhQNmWrZOccbdTqwQ==
-=QAgA
------END PGP SIGNATURE-----
-
---liOOAslEiF7prFVr--
+diff --git a/arch/arm/boot/compressed/Makefile b/arch/arm/boot/compressed/Makefile
+index da599c3a1193..7faa2b5e7e16 100644
+--- a/arch/arm/boot/compressed/Makefile
++++ b/arch/arm/boot/compressed/Makefile
+@@ -136,6 +136,8 @@ endif
+ LDFLAGS_vmlinux += --no-undefined
+ # Delete all temporary local symbols
+ LDFLAGS_vmlinux += -X
++# Report orphan sections
++LDFLAGS_vmlinux += --orphan-handling=warn
+ # Next argument is a linker script
+ LDFLAGS_vmlinux += -T
+ 
+diff --git a/arch/arm/boot/compressed/vmlinux.lds.S b/arch/arm/boot/compressed/vmlinux.lds.S
+index fc7ed03d8b93..a6a51b5d2328 100644
+--- a/arch/arm/boot/compressed/vmlinux.lds.S
++++ b/arch/arm/boot/compressed/vmlinux.lds.S
+@@ -2,6 +2,7 @@
+ /*
+  *  Copyright (C) 2000 Russell King
+  */
++#include <asm/vmlinux.lds.h>
+ 
+ #ifdef CONFIG_CPU_ENDIAN_BE8
+ #define ZIMAGE_MAGIC(x) ( (((x) >> 24) & 0x000000ff) | \
+@@ -17,8 +18,11 @@ ENTRY(_start)
+ SECTIONS
+ {
+   /DISCARD/ : {
++    ARM_COMMON_DISCARD
+     *(.ARM.exidx*)
+     *(.ARM.extab*)
++    *(.note.*)
++    *(.rel.*)
+     /*
+      * Discard any r/w data - this produces a link error if we have any,
+      * which is required for PIC decompression.  Local data generates
+@@ -37,9 +41,7 @@ SECTIONS
+     *(.text)
+     *(.text.*)
+     *(.fixup)
+-    *(.gnu.warning)
+-    *(.glue_7t)
+-    *(.glue_7)
++    ARM_STUBS_TEXT
+   }
+   .table : ALIGN(4) {
+     _table_start = .;
+@@ -124,12 +126,7 @@ SECTIONS
+   PROVIDE(__pecoff_data_size = ALIGN(512) - ADDR(.data));
+   PROVIDE(__pecoff_end = ALIGN(512));
+ 
+-  .stab 0		: { *(.stab) }
+-  .stabstr 0		: { *(.stabstr) }
+-  .stab.excl 0		: { *(.stab.excl) }
+-  .stab.exclstr 0	: { *(.stab.exclstr) }
+-  .stab.index 0		: { *(.stab.index) }
+-  .stab.indexstr 0	: { *(.stab.indexstr) }
+-  .comment 0		: { *(.comment) }
++  STABS_DEBUG
++  DWARF_DEBUG
+ }
+ ASSERT(_edata_real == _edata, "error: zImage file size is incorrect");
+-- 
+2.20.1
