@@ -1,67 +1,103 @@
-Return-Path: <brendanhiggins@google.com>
-MIME-Version: 1.0
-References: <20200228012036.15682-1-brendanhiggins@google.com> <20200228012036.15682-2-brendanhiggins@google.com>
-In-Reply-To: <20200228012036.15682-2-brendanhiggins@google.com>
+Return-Path: <3BmtYXg4KBDcUkXgWTgabZZbglZhhZeX.Vhfkiimebgnq.bUf.Vhf@flex--brendanhiggins.bounces.google.com>
+Date: Thu, 27 Feb 2020 17:20:35 -0800
+In-Reply-To: <20200228012036.15682-1-brendanhiggins@google.com>
+Message-ID: <20200228012036.15682-7-brendanhiggins@google.com>
+Mime-Version: 1.0
+References: <20200228012036.15682-1-brendanhiggins@google.com>
+Subject: [PATCH v3 6/7] kunit: Add 'kunit_shutdown' option
 From: Brendan Higgins <brendanhiggins@google.com>
-Date: Thu, 27 Feb 2020 23:22:31 -0800
-Message-ID: <CAFd5g46dVaV18=5mPLTHh06KQ6nDh4Xw4r8PAZDfSXASi=Qpmg@mail.gmail.com>
-Subject: Re: [PATCH v3 1/7] vmlinux.lds.h: add linker section for KUnit test suites
 Content-Type: text/plain; charset="UTF-8"
-To: Jeff Dike <jdike@addtoit.com>, Richard Weinberger <richard@nod.at>, Anton Ivanov <anton.ivanov@cambridgegreys.com>, Arnd Bergmann <arnd@arndb.de>, Kees Cook <keescook@chromium.org>, Shuah Khan <skhan@linuxfoundation.org>, Alan Maguire <alan.maguire@oracle.com>, Iurii Zaikin <yzaikin@google.com>, David Gow <davidgow@google.com>, Andrew Morton <akpm@linux-foundation.org>, rppt@linux.ibm.com, Frank Rowand <frowand.list@gmail.com>
-Cc: Greg KH <gregkh@linuxfoundation.org>, Stephen Boyd <sboyd@kernel.org>, Logan Gunthorpe <logang@deltatee.com>, Luis Chamberlain <mcgrof@kernel.org>, linux-um <linux-um@lists.infradead.org>, linux-arch@vger.kernel.org, "open list:KERNEL SELFTEST FRAMEWORK" <linux-kselftest@vger.kernel.org>, KUnit Development <kunit-dev@googlegroups.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>
+To: jdike@addtoit.com, richard@nod.at, anton.ivanov@cambridgegreys.com, arnd@arndb.de, keescook@chromium.org, skhan@linuxfoundation.org, alan.maguire@oracle.com, yzaikin@google.com, davidgow@google.com, akpm@linux-foundation.org, rppt@linux.ibm.com, frowand.list@gmail.com
+Cc: gregkh@linuxfoundation.org, sboyd@kernel.org, logang@deltatee.com, mcgrof@kernel.org, linux-um@lists.infradead.org, linux-arch@vger.kernel.org, linux-kselftest@vger.kernel.org, kunit-dev@googlegroups.com, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, Brendan Higgins <brendanhiggins@google.com>
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200228072231.T-K_TmOIgaeegQ3rq38i7zdT3AvQN8p2TurKZK_uBU4@z>
+Message-ID: <20200228012035.AwrDPK9-tJ-hXuY3c8wEMG_72n8JSfgTDWhM2ogzeNY@z>
 
-On Thu, Feb 27, 2020 at 5:20 PM Brendan Higgins
-<brendanhiggins@google.com> wrote:
->
-> Add a linker section where KUnit can put references to its test suites.
-> This patch is the first step in transitioning to dispatching all KUnit
-> tests from a centralized executor rather than having each as its own
-> separate late_initcall.
->
-> Co-developed-by: Iurii Zaikin <yzaikin@google.com>
-> Signed-off-by: Iurii Zaikin <yzaikin@google.com>
-> Signed-off-by: Brendan Higgins <brendanhiggins@google.com>
-> Reviewed-by: Stephen Boyd <sboyd@kernel.org>
-> ---
->  include/asm-generic/vmlinux.lds.h | 8 ++++++++
->  1 file changed, 8 insertions(+)
->
-> diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
-> index e00f41aa8ec4f..99a866f49cb3d 100644
-> --- a/include/asm-generic/vmlinux.lds.h
-> +++ b/include/asm-generic/vmlinux.lds.h
-> @@ -856,6 +856,13 @@
->                 KEEP(*(.con_initcall.init))                             \
->                 __con_initcall_end = .;
->
-> +/* Alignment must be consistent with (kunit_suite *) in include/kunit/test.h */
-> +#define KUNIT_TEST_SUITES                                              \
-> +               . = ALIGN(8);                                           \
+From: David Gow <davidgow@google.com>
 
-After posting this, I saw I had gotten an email from 0day[1]. After
-some investigation, I discovered that this 8 byte alignment works for
-x86 64 bit fine, but only *sometimes* for 32 bit. 4 byte alignment
-seems to work in all cases (so far). I am not sure why we went with
-such a large alignment in hindsight. In any case, I should have a
-fixed revision out pretty soon.
+Add a new kernel command-line option, 'kunit_shutdown', which allows the
+user to specify that the kernel poweroff, halt, or reboot after
+completing all KUnit tests; this is very handy for running KUnit tests
+on UML or a VM so that the UML/VM process exits cleanly immediately
+after running all tests without needing a special initramfs.
 
-> +               __kunit_suites_start = .;                               \
-> +               KEEP(*(.kunit_test_suites))                             \
-> +               __kunit_suites_end = .;
-> +
->  #ifdef CONFIG_BLK_DEV_INITRD
->  #define INIT_RAM_FS                                                    \
->         . = ALIGN(4);                                                   \
-> @@ -1024,6 +1031,7 @@
->                 INIT_CALLS                                              \
->                 CON_INITCALL                                            \
->                 INIT_RAM_FS                                             \
-> +               KUNIT_TEST_SUITES                                       \
->         }
->
->  #define BSS_SECTION(sbss_align, bss_align, stop_align)                 \
-> --
+Signed-off-by: David Gow <davidgow@google.com>
+Signed-off-by: Brendan Higgins <brendanhiggins@google.com>
+Reviewed-by: Stephen Boyd <sboyd@kernel.org>
+---
+ lib/kunit/executor.c                | 20 ++++++++++++++++++++
+ tools/testing/kunit/kunit_kernel.py |  2 +-
+ tools/testing/kunit/kunit_parser.py |  2 +-
+ 3 files changed, 22 insertions(+), 2 deletions(-)
 
-[1] https://lists.01.org/hyperkitty/list/lkp@lists.01.org/thread/4I4UW4OAT63ETMIEUJQTOF3BFTMO6ROD/
+diff --git a/lib/kunit/executor.c b/lib/kunit/executor.c
+index 7fd16feff157e..a93821116ccec 100644
+--- a/lib/kunit/executor.c
++++ b/lib/kunit/executor.c
+@@ -1,5 +1,6 @@
+ // SPDX-License-Identifier: GPL-2.0
+ 
++#include <linux/reboot.h>
+ #include <kunit/test.h>
+ 
+ /*
+@@ -11,6 +12,23 @@ extern struct kunit_suite * const * const __kunit_suites_end[];
+ 
+ #if IS_BUILTIN(CONFIG_KUNIT)
+ 
++static char *kunit_shutdown;
++core_param(kunit_shutdown, kunit_shutdown, charp, 0644);
++
++static void kunit_handle_shutdown(void)
++{
++	if (!kunit_shutdown)
++		return;
++
++	if (!strcmp(kunit_shutdown, "poweroff"))
++		kernel_power_off();
++	else if (!strcmp(kunit_shutdown, "halt"))
++		kernel_halt();
++	else if (!strcmp(kunit_shutdown, "reboot"))
++		kernel_restart(NULL);
++
++}
++
+ static void kunit_print_tap_header(void)
+ {
+ 	struct kunit_suite * const * const *suites, * const *subsuite;
+@@ -42,6 +60,8 @@ int kunit_run_all_tests(void)
+ 		}
+ 	}
+ 
++	kunit_handle_shutdown();
++
+ 	if (has_test_failed)
+ 		return -EFAULT;
+ 
+diff --git a/tools/testing/kunit/kunit_kernel.py b/tools/testing/kunit/kunit_kernel.py
+index d99ae75ef72fa..6cf0697c788b6 100644
+--- a/tools/testing/kunit/kunit_kernel.py
++++ b/tools/testing/kunit/kunit_kernel.py
+@@ -145,7 +145,7 @@ class LinuxSourceTree(object):
+ 		return self.validate_config(build_dir)
+ 
+ 	def run_kernel(self, args=[], timeout=None, build_dir=''):
+-		args.extend(['mem=256M'])
++		args.extend(['mem=256M', 'kunit_shutdown=halt'])
+ 		process = self._ops.linux_bin(args, timeout, build_dir)
+ 		with open(os.path.join(build_dir, 'test.log'), 'w') as f:
+ 			for line in process.stdout:
+diff --git a/tools/testing/kunit/kunit_parser.py b/tools/testing/kunit/kunit_parser.py
+index 78b3bdd03b1e4..633811dd9bce8 100644
+--- a/tools/testing/kunit/kunit_parser.py
++++ b/tools/testing/kunit/kunit_parser.py
+@@ -48,7 +48,7 @@ class TestStatus(Enum):
+ 	FAILURE_TO_PARSE_TESTS = auto()
+ 
+ kunit_start_re = re.compile(r'^TAP version [0-9]+$')
+-kunit_end_re = re.compile('List of all partitions:')
++kunit_end_re = re.compile(r'reboot: System halted')
+ 
+ def isolate_kunit_output(kernel_output):
+ 	started = False
+-- 
+2.25.1.481.gfbce0eb801-goog
