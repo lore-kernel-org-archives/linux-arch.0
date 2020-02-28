@@ -1,37 +1,75 @@
-From: Alan Stern <stern@rowland.harvard.edu>
-Subject: Re: [PATCH v3 1/5] tools/memory-model: Add an exception for limitations
- on _unless() family
-Date: Thu, 27 Feb 2020 13:16:37 -0500 (EST)
-Message-ID: <Pine.LNX.4.44L0.2002271314081.1730-100000@iolanthe.rowland.org>
-References: <20200227164901.jxwk26ey3i2n2yhu@yquem.inria.fr>
+From: Kees Cook <keescook@chromium.org>
+Subject: [PATCH 4/9] x86/boot: Warn on orphan section placement
+Date: Thu, 27 Feb 2020 16:22:39 -0800
+Message-ID: <20200228002244.15240-5-keescook@chromium.org>
+References: <20200228002244.15240-1-keescook@chromium.org>
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20200227164901.jxwk26ey3i2n2yhu@yquem.inria.fr>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Luc Maranget <luc.maranget@inria.fr>
-Cc: Boqun Feng <boqun.feng@gmail.com>, linux-kernel@vger.kernel.org, Andrea Parri <parri.andrea@gmail.com>, Will Deacon <will@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Nicholas Piggin <npiggin@gmail.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, "Paul E. McKenney" <paulmck@kernel.org>, Akira Yokosawa <akiyks@gmail.com>, Daniel Lustig <dlustig@nvidia.com>, Jonathan Corbet <corbet@lwn.net>, Mauro Carvalho Chehab <mchehab+samsung@kernel.org>, "David S. Miller" <davem@davemloft.net>, Rob Herring <robh@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jonathan Cameron <Jonathan.Cameron@huawei.com>, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org
+Content-Transfer-Encoding: 8bit
+Return-path: <linux-kbuild-owner@vger.kernel.org>
+In-Reply-To: <20200228002244.15240-1-keescook@chromium.org>
+Sender: linux-kbuild-owner@vger.kernel.org
+To: Borislav Petkov <bp@suse.de>
+Cc: Kees Cook <keescook@chromium.org>, "H.J. Lu" <hjl.tools@gmail.com>, Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Mark Rutland <mark.rutland@arm.com>, Peter Collingbourne <pcc@google.com>, James Morse <james.morse@arm.com>, Arnd Bergmann <arnd@arndb.de>, Masahiro Yamada <masahiroy@kernel.org>, x86@kernel.org, linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, linux-kbuild@vger.kernel.org, clang-built-linux@googlegroups.com, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, 27 Feb 2020, Luc Maranget wrote:
+We don't want to depend on the linker's orphan section placement
+heuristics as these can vary between linkers, and may change between
+versions. All sections need to be explicitly named in the linker
+script.
 
-> > On Thu, 27 Feb 2020, Boqun Feng wrote:
-> > 
-> > > According to Luc, atomic_add_unless() is directly provided by herd7,
-> > > therefore it can be used in litmus tests. So change the limitation
-> > > section in README to unlimit the use of atomic_add_unless().
-> > 
-> > Is this really true?  Why does herd treat atomic_add_unless() different
-> > from all the other atomic RMS ops?  All the other ones we support do
-> > have entries in linux-kernel.def.
-> 
-> I think this to be true :)
-> 
-> As far as I remember atomic_add_unless is quite different fron other atomic
-> RMW ops and called for a specific all-OCaml implementation, without an
-> entry in linux-kernel.def. As to  atomic_long_add_unless, I was not aware
-> of its existence.
+Add the common debugging sections. Discard the unused note, rel, plt,
+dyn, and hash sections that are not needed in the compressed vmlinux.
+Disable .eh_frame generation in the linker and enable orphan section
+warnings.
 
-Can you explain what is so different about atomic_add_unless?
+Signed-off-by: Kees Cook <keescook@chromium.org>
+---
+ arch/x86/boot/compressed/Makefile      |  3 ++-
+ arch/x86/boot/compressed/vmlinux.lds.S | 13 +++++++++++++
+ 2 files changed, 15 insertions(+), 1 deletion(-)
 
-Alan
+diff --git a/arch/x86/boot/compressed/Makefile b/arch/x86/boot/compressed/Makefile
+index c33111341325..e0ea6b0924e8 100644
+--- a/arch/x86/boot/compressed/Makefile
++++ b/arch/x86/boot/compressed/Makefile
+@@ -46,6 +46,7 @@ GCOV_PROFILE := n
+ UBSAN_SANITIZE :=n
+ 
+ KBUILD_LDFLAGS := -m elf_$(UTS_MACHINE)
++KBUILD_LDFLAGS += --no-ld-generated-unwind-info
+ # Compressed kernel should be built as PIE since it may be loaded at any
+ # address by the bootloader.
+ ifeq ($(CONFIG_X86_32),y)
+@@ -57,7 +58,7 @@ else
+ KBUILD_LDFLAGS += $(shell $(LD) --help 2>&1 | grep -q "\-z noreloc-overflow" \
+ 	&& echo "-z noreloc-overflow -pie --no-dynamic-linker")
+ endif
+-LDFLAGS_vmlinux := -T
++LDFLAGS_vmlinux := --orphan-handling=warn -T
+ 
+ hostprogs	:= mkpiggy
+ HOST_EXTRACFLAGS += -I$(srctree)/tools/include
+diff --git a/arch/x86/boot/compressed/vmlinux.lds.S b/arch/x86/boot/compressed/vmlinux.lds.S
+index 508cfa6828c5..b5406a8cebe0 100644
+--- a/arch/x86/boot/compressed/vmlinux.lds.S
++++ b/arch/x86/boot/compressed/vmlinux.lds.S
+@@ -73,4 +73,17 @@ SECTIONS
+ #endif
+ 	. = ALIGN(PAGE_SIZE);	/* keep ZO size page aligned */
+ 	_end = .;
++
++	STABS_DEBUG
++	DWARF_DEBUG
++
++	DISCARDS
++	/DISCARD/ : {
++		*(.note.*)
++		*(.rela.*) *(.rela_*)
++		*(.rel.*) *(.rel_*)
++		*(.plt) *(.plt.*)
++		*(.dyn*)
++		*(.hash) *(.gnu.hash)
++	}
+ }
+-- 
+2.20.1
