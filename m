@@ -1,66 +1,107 @@
-From: Marco Elver <elver@google.com>
-Subject: [PATCH] tools/memory-model/Documentation: Fix "conflict" definition
-Date: Fri, 28 Feb 2020 17:46:21 +0100
-Message-ID: <20200228164621.87523-1-elver@google.com>
+From: Alan Stern <stern@rowland.harvard.edu>
+Subject: Re: [PATCH] tools/memory-model/Documentation: Fix "conflict" definition
+Date: Fri, 28 Feb 2020 12:24:54 -0500 (EST)
+Message-ID: <Pine.LNX.4.44L0.2002281202230.1599-100000@iolanthe.rowland.org>
+References: <20200228164621.87523-1-elver@google.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qt1-f202.google.com ([209.85.160.202]:48063 "EHLO
-        mail-qt1-f202.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726118AbgB1Qrd (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 28 Feb 2020 11:47:33 -0500
-Received: by mail-qt1-f202.google.com with SMTP id x8so3374959qtq.14
-        for <linux-arch@vger.kernel.org>; Fri, 28 Feb 2020 08:47:33 -0800 (PST)
+Received: from iolanthe.rowland.org ([192.131.102.54]:44932 "HELO
+        iolanthe.rowland.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with SMTP id S1725900AbgB1RYz (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 28 Feb 2020 12:24:55 -0500
+In-Reply-To: <20200228164621.87523-1-elver@google.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: elver@google.com
-Cc: paulmck@kernel.org, andreyknvl@google.com, glider@google.com, dvyukov@google.com, kasan-dev@googlegroups.com, linux-kernel@vger.kernel.org, stern@rowland.harvard.edu, parri.andrea@gmail.com, will@kernel.org, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, dlustig@nvidia.com, joel@joelfernandes.org, linux-arch@vger.kernel.org
+To: Marco Elver <elver@google.com>
+Cc: paulmck@kernel.org, andreyknvl@google.com, glider@google.com, dvyukov@google.com, kasan-dev@googlegroups.com, linux-kernel@vger.kernel.org, parri.andrea@gmail.com, will@kernel.org, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, dlustig@nvidia.com, joel@joelfernandes.org, linux-arch@vger.kernel.org
 
-For language-level memory consistency models that are adaptations of
-data-race-free, the definition of "data race" can be summarized as
-"concurrent conflicting accesses, where at least one is non-sync/plain".
+On Fri, 28 Feb 2020, Marco Elver wrote:
 
-The definition of "conflict" should not include the type of access nor
-whether the accesses are concurrent or not, which this patch addresses
-for explanation.txt.
+> For language-level memory consistency models that are adaptations of
+> data-race-free, the definition of "data race" can be summarized as
+> "concurrent conflicting accesses, where at least one is non-sync/plain".
+> 
+> The definition of "conflict" should not include the type of access nor
+> whether the accesses are concurrent or not, which this patch addresses
+> for explanation.txt.
 
-The definition of "data race" remains unchanged, but the informal
-definition for "conflict" is restored to what can be found in the
-literature.
+Why shouldn't it?  Can you provide any references to justify this 
+assertion?
 
-Signed-by: Marco Elver <elver@google.com>
----
- tools/memory-model/Documentation/explanation.txt | 15 ++++++---------
- 1 file changed, 6 insertions(+), 9 deletions(-)
+Also, note two things: (1) The existing text does not include
+concurrency in the definition of "conflict".  (2) Your new text does
+include the type of access in the definition (you say that at least one
+of the accesses must be a write).
 
-diff --git a/tools/memory-model/Documentation/explanation.txt b/tools/memory-model/Documentation/explanation.txt
-index e91a2eb19592a..11cf89b5b85d9 100644
---- a/tools/memory-model/Documentation/explanation.txt
-+++ b/tools/memory-model/Documentation/explanation.txt
-@@ -1986,18 +1986,15 @@ violates the compiler's assumptions, which would render the ultimate
- outcome undefined.
- 
- In technical terms, the compiler is allowed to assume that when the
--program executes, there will not be any data races.  A "data race"
--occurs when two conflicting memory accesses execute concurrently;
--two memory accesses "conflict" if:
-+program executes, there will not be any data races. A "data race"
-+occurs if:
- 
--	they access the same location,
-+	two concurrent memory accesses "conflict";
- 
--	they occur on different CPUs (or in different threads on the
--	same CPU),
-+	and at least one of the accesses is a plain access;
- 
--	at least one of them is a plain access,
--
--	and at least one of them is a store.
-+	where two memory accesses "conflict" if they access the same
-+	memory location, and at least one performs a write;
- 
- The LKMM tries to determine whether a program contains two conflicting
- accesses which may execute concurrently; if it does then the LKMM says
--- 
-2.25.1.481.gfbce0eb801-goog
+> The definition of "data race" remains unchanged, but the informal
+> definition for "conflict" is restored to what can be found in the
+> literature.
+
+It does not remain unchanged.  You removed the portion that talks about
+accesses executing on different CPUs or threads.  Without that
+restriction, you raise the nonsensical possibility that a single thread
+may by definition have a data race with itself (since modern CPUs use
+multiple-instruction dispatch, in which several instructions can
+execute at the same time).
+
+> Signed-by: Marco Elver <elver@google.com>
+> ---
+>  tools/memory-model/Documentation/explanation.txt | 15 ++++++---------
+>  1 file changed, 6 insertions(+), 9 deletions(-)
+> 
+> diff --git a/tools/memory-model/Documentation/explanation.txt b/tools/memory-model/Documentation/explanation.txt
+> index e91a2eb19592a..11cf89b5b85d9 100644
+> --- a/tools/memory-model/Documentation/explanation.txt
+> +++ b/tools/memory-model/Documentation/explanation.txt
+> @@ -1986,18 +1986,15 @@ violates the compiler's assumptions, which would render the ultimate
+>  outcome undefined.
+>  
+>  In technical terms, the compiler is allowed to assume that when the
+> -program executes, there will not be any data races.  A "data race"
+> -occurs when two conflicting memory accesses execute concurrently;
+> -two memory accesses "conflict" if:
+> +program executes, there will not be any data races. A "data race"
+
+Unnecessary (and inconsistent with the rest of the document) whitespace 
+change.
+
+> +occurs if:
+>  
+> -	they access the same location,
+> +	two concurrent memory accesses "conflict";
+>  
+> -	they occur on different CPUs (or in different threads on the
+> -	same CPU),
+> +	and at least one of the accesses is a plain access;
+>  
+> -	at least one of them is a plain access,
+> -
+> -	and at least one of them is a store.
+> +	where two memory accesses "conflict" if they access the same
+> +	memory location, and at least one performs a write;
+>  
+>  The LKMM tries to determine whether a program contains two conflicting
+>  accesses which may execute concurrently; if it does then the LKMM says
+
+To tell the truth, the only major change I can see here (apart from the
+"differenct CPUs" restriction) is that you want to remove the "at least
+one is plain" part from the definition of "conflict" and instead make
+it a separate requirement for a data race.  That's fine with me in
+principle, but there ought to be an easier way of doing it.
+
+Furthermore, this section of explanation.txt goes on to use the words
+"conflict" and "conflicting" in a way that your patch doesn't address.  
+For example, shortly after this spot it says "Determining whether two
+accesses conflict is easy"; you should change it to say "Determining
+whether two accesses conflict and at least one of them is plain is
+easy" -- but this looks pretty ungainly.  A better approach might be to
+introduce a new term, define it to mean "conflicting accesses at least
+one of which is plain", and then use it instead throughout.
+
+Alternatively, you could simply leave the text as it stands and just
+add a parenthetical disclaimer pointing out that in the CS literature,
+the term "conflict" is used even when both accesses are marked, so the
+usage here is somewhat non-standard.
+
+Alan
