@@ -1,94 +1,65 @@
 From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH 9/9] arm/boot: Warn on orphan section placement
-Date: Thu, 27 Feb 2020 16:22:44 -0800
-Message-ID: <20200228002244.15240-10-keescook@chromium.org>
+Subject: [PATCH 5/9] Add RUNTIME_DISCARD_EXIT to generic DISCARDS
+Date: Thu, 27 Feb 2020 16:22:40 -0800
+Message-ID: <20200228002244.15240-6-keescook@chromium.org>
 References: <20200228002244.15240-1-keescook@chromium.org>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
-Return-path: <linux-kbuild-owner@vger.kernel.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20200228002244.15240-1-keescook@chromium.org>
-Sender: linux-kbuild-owner@vger.kernel.org
+Sender: linux-kernel-owner@vger.kernel.org
 To: Borislav Petkov <bp@suse.de>
 Cc: Kees Cook <keescook@chromium.org>, "H.J. Lu" <hjl.tools@gmail.com>, Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Mark Rutland <mark.rutland@arm.com>, Peter Collingbourne <pcc@google.com>, James Morse <james.morse@arm.com>, Arnd Bergmann <arnd@arndb.de>, Masahiro Yamada <masahiroy@kernel.org>, x86@kernel.org, linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, linux-kbuild@vger.kernel.org, clang-built-linux@googlegroups.com, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-We don't want to depend on the linker's orphan section placement
-heuristics as these can vary between linkers, and may change between
-versions. All sections need to be explicitly named in the linker
-script.
+From: "H.J. Lu" <hjl.tools@gmail.com>
 
-Use common macros for debug sections, discards, and text stubs. Add
-discards for unwanted .note, and .rel sections. Finally, enable orphan
-section warning.
+In x86 kernel, .exit.text and .exit.data sections are discarded at
+runtime, not by linker.  Add RUNTIME_DISCARD_EXIT to generic DISCARDS
+and define it in x86 kernel linker script to keep them.
 
+Signed-off-by: H.J. Lu <hjl.tools@gmail.com>
+Link: https://lore.kernel.org/r/20200130224337.4150-1-hjl.tools@gmail.com
 Signed-off-by: Kees Cook <keescook@chromium.org>
 ---
- arch/arm/boot/compressed/Makefile      |  2 ++
- arch/arm/boot/compressed/vmlinux.lds.S | 17 +++++++----------
- 2 files changed, 9 insertions(+), 10 deletions(-)
+ arch/x86/kernel/vmlinux.lds.S     |  1 +
+ include/asm-generic/vmlinux.lds.h | 10 ++++++++--
+ 2 files changed, 9 insertions(+), 2 deletions(-)
 
-diff --git a/arch/arm/boot/compressed/Makefile b/arch/arm/boot/compressed/Makefile
-index da599c3a1193..7faa2b5e7e16 100644
---- a/arch/arm/boot/compressed/Makefile
-+++ b/arch/arm/boot/compressed/Makefile
-@@ -136,6 +136,8 @@ endif
- LDFLAGS_vmlinux += --no-undefined
- # Delete all temporary local symbols
- LDFLAGS_vmlinux += -X
-+# Report orphan sections
-+LDFLAGS_vmlinux += --orphan-handling=warn
- # Next argument is a linker script
- LDFLAGS_vmlinux += -T
+diff --git a/arch/x86/kernel/vmlinux.lds.S b/arch/x86/kernel/vmlinux.lds.S
+index 1e345f302a46..1e12c097d09b 100644
+--- a/arch/x86/kernel/vmlinux.lds.S
++++ b/arch/x86/kernel/vmlinux.lds.S
+@@ -21,6 +21,7 @@
+ #define LOAD_OFFSET __START_KERNEL_map
+ #endif
  
-diff --git a/arch/arm/boot/compressed/vmlinux.lds.S b/arch/arm/boot/compressed/vmlinux.lds.S
-index fc7ed03d8b93..a6a51b5d2328 100644
---- a/arch/arm/boot/compressed/vmlinux.lds.S
-+++ b/arch/arm/boot/compressed/vmlinux.lds.S
-@@ -2,6 +2,7 @@
- /*
-  *  Copyright (C) 2000 Russell King
++#define RUNTIME_DISCARD_EXIT
+ #define EMITS_PT_NOTE
+ #define RO_EXCEPTION_TABLE_ALIGN	16
+ 
+diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
+index 303597e51396..1797f2c9bb41 100644
+--- a/include/asm-generic/vmlinux.lds.h
++++ b/include/asm-generic/vmlinux.lds.h
+@@ -894,10 +894,16 @@
+  * section definitions so that such archs put those in earlier section
+  * definitions.
   */
-+#include <asm/vmlinux.lds.h>
- 
- #ifdef CONFIG_CPU_ENDIAN_BE8
- #define ZIMAGE_MAGIC(x) ( (((x) >> 24) & 0x000000ff) | \
-@@ -17,8 +18,11 @@ ENTRY(_start)
- SECTIONS
- {
-   /DISCARD/ : {
-+    ARM_COMMON_DISCARD
-     *(.ARM.exidx*)
-     *(.ARM.extab*)
-+    *(.note.*)
-+    *(.rel.*)
-     /*
-      * Discard any r/w data - this produces a link error if we have any,
-      * which is required for PIC decompression.  Local data generates
-@@ -37,9 +41,7 @@ SECTIONS
-     *(.text)
-     *(.text.*)
-     *(.fixup)
--    *(.gnu.warning)
--    *(.glue_7t)
--    *(.glue_7)
-+    ARM_STUBS_TEXT
-   }
-   .table : ALIGN(4) {
-     _table_start = .;
-@@ -124,12 +126,7 @@ SECTIONS
-   PROVIDE(__pecoff_data_size = ALIGN(512) - ADDR(.data));
-   PROVIDE(__pecoff_end = ALIGN(512));
- 
--  .stab 0		: { *(.stab) }
--  .stabstr 0		: { *(.stabstr) }
--  .stab.excl 0		: { *(.stab.excl) }
--  .stab.exclstr 0	: { *(.stab.exclstr) }
--  .stab.index 0		: { *(.stab.index) }
--  .stab.indexstr 0	: { *(.stab.indexstr) }
--  .comment 0		: { *(.comment) }
-+  STABS_DEBUG
-+  DWARF_DEBUG
- }
- ASSERT(_edata_real == _edata, "error: zImage file size is incorrect");
++#ifdef RUNTIME_DISCARD_EXIT
++#define EXIT_DISCARDS
++#else
++#define EXIT_DISCARDS							\
++	EXIT_TEXT							\
++	EXIT_DATA
++#endif
+ #define DISCARDS							\
+ 	/DISCARD/ : {							\
+-	EXIT_TEXT							\
+-	EXIT_DATA							\
++	EXIT_DISCARDS							\
+ 	EXIT_CALL							\
+ 	*(.discard)							\
+ 	*(.discard.*)							\
 -- 
 2.20.1
