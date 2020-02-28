@@ -1,99 +1,116 @@
-From: Boqun Feng <boqun.feng@gmail.com>
-Subject: Re: [PATCH v3 2/5] Documentation/locking/atomic: Fix atomic-set
- litmus test
-Date: Fri, 28 Feb 2020 14:30:24 +0800
-Message-ID: <20200228063024.GU69864@debian-boqun.qqnc3lrjykvubdpftowmye0fmh.lx.internal.cloudapp.net>
-References: <20200227004049.6853-3-boqun.feng@gmail.com>
- <Pine.LNX.4.44L0.2002271133300.1730-100000@iolanthe.rowland.org>
+From: Sedat Dilek <sedat.dilek@gmail.com>
+Subject: Re: [PATCH 0/9] Enable orphan section warning
+Date: Fri, 28 Feb 2020 07:51:21 +0100
+Message-ID: <CA+icZUVRnjOWKZynAGDniXD_H9KRccONmeKHs25DPPU1c8ZcGg@mail.gmail.com>
+References: <20200228002244.15240-1-keescook@chromium.org>
+Reply-To: sedat.dilek@gmail.com
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qt1-f193.google.com ([209.85.160.193]:36430 "EHLO
-        mail-qt1-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1725802AbgB1Gad (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 28 Feb 2020 01:30:33 -0500
-Content-Disposition: inline
-In-Reply-To: <Pine.LNX.4.44L0.2002271133300.1730-100000@iolanthe.rowland.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Alan Stern <stern@rowland.harvard.edu>
-Cc: linux-kernel@vger.kernel.org, Andrea Parri <parri.andrea@gmail.com>, Will Deacon <will@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Nicholas Piggin <npiggin@gmail.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, "Paul E. McKenney" <paulmck@kernel.org>, Akira Yokosawa <akiyks@gmail.com>, Daniel Lustig <dlustig@nvidia.com>, Jonathan Corbet <corbet@lwn.net>, Mauro Carvalho Chehab <mchehab+samsung@kernel.org>, "David S. Miller" <davem@davemloft.net>, Rob Herring <robh@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jonathan Cameron <Jonathan.Cameron@huawei.com>, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org
+Content-Type: text/plain; charset="UTF-8"
+Return-path: <linux-kbuild-owner@vger.kernel.org>
+In-Reply-To: <20200228002244.15240-1-keescook@chromium.org>
+Sender: linux-kbuild-owner@vger.kernel.org
+To: Kees Cook <keescook@chromium.org>
+Cc: Borislav Petkov <bp@suse.de>, "H.J. Lu" <hjl.tools@gmail.com>, Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Mark Rutland <mark.rutland@arm.com>, Peter Collingbourne <pcc@google.com>, James Morse <james.morse@arm.com>, Arnd Bergmann <arnd@arndb.de>, Masahiro Yamada <masahiroy@kernel.org>, x86@kernel.org, linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, linux-kbuild@vger.kernel.org, Clang-Built-Linux ML <clang-built-linux@googlegroups.com>, linux-kernel@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On Thu, Feb 27, 2020 at 11:34:55AM -0500, Alan Stern wrote:
-> On Thu, 27 Feb 2020, Boqun Feng wrote:
-> 
-> > Currently the litmus test "atomic-set" in atomic_t.txt has a few things
-> > to be improved:
-> > 
-> > 1)	The CPU/Processor numbers "P1,P2" are not only inconsistent with
-> > 	the rest of the document, which uses "CPU0" and "CPU1", but also
-> > 	unacceptable by the herd tool, which requires processors start
-> > 	at "P0".
-> > 
-> > 2)	The initialization block uses a "atomic_set()", which is OK, but
-> > 	it's better to use ATOMIC_INIT() to make clear this is an
-> > 	initialization.
-> > 
-> > 3)	The return value of atomic_add_unless() is discarded
-> > 	inexplicitly, which is OK for C language, but it will be helpful
-> > 	to the herd tool if we use a void cast to make the discard
-> > 	explicit.
-> > 
-> > Therefore fix these and this is the preparation for adding the litmus
-> > test into memory-model litmus-tests directory so that people can
-> > understand better about our requirements of atomic APIs and klitmus tool
-> > can be used to generate tests.
-> > 
-> > Signed-off-by: Boqun Feng <boqun.feng@gmail.com>
-> 
-> Patch 5/5 in this series does basically the same thing for 
-> Atomic-RMW+mb__after_atomic-is-stronger-than-acquire.  How come you 
-> used one patch for that, but this is split into two patches (2/5 and 
-> 4/5)?
-> 
+On Fri, Feb 28, 2020 at 1:22 AM Kees Cook <keescook@chromium.org> wrote:
+>
+> Hi!
+>
+> A recent bug was solved for builds linked with ld.lld, and tracking
+> it down took way longer than it needed to (a year). Ultimately, it
+> boiled down to differences between ld.bfd and ld.lld's handling of
+> orphan sections. Similarly, the recent FGKASLR series brough up orphan
+> section handling too[2]. In both cases, it would have been nice if the
+> linker was running with --orphan-handling=warn so that surprise sections
+> wouldn't silently get mapped into the kernel image at locations up to
+> the whim of the linker's orphan handling logic. Instead, all desired
+> sections should be explicitly identified in the linker script (to be
+> either kept or discarded) with any orphans throwing a warning. The
+> powerpc architecture actually already does this, so this series seeks
+> to extend this coverage to x86, arm64, and arm.
+>
+> This series depends on tip/x86/boot (where recent .eh_frame fixes[3]
+> landed), and has a minor conflict[4] with the ARM tree (related to
+> the earlier mentioned bug). As it uses refactorings in the asm-generic
+> linker script, and makes changes to kbuild, I think the cleanest place
+> for this series to land would also be through -tip. Once again (like
+> my READ_IMPLIES_EXEC series), I'm looking to get maintainer Acks so
+> this can go all together with the least disruption. Splitting it up by
+> architecture seems needlessly difficult.
+>
+> Thanks!
+>
+> -Kees
+>
+> [1] https://github.com/ClangBuiltLinux/linux/issues/282
+> [2] https://lore.kernel.org/lkml/202002242122.AA4D1B8@keescook/
+> [3] https://lore.kernel.org/lkml/158264960194.28353.10560165361470246192.tip-bot2@tip-bot2/
+> [4] https://www.arm.linux.org.uk/developer/patches/viewpatch.php?id=8959/1
+>
 
-When I was working one the first version, I wasn't so sure that we would
-reach the agreement of where to put the litmus tests, and the litmus
-test in the atomic_t.txt obviously needs a fix, so I separated the fix
-and the adding of a litmus test to make my rebase easier ;-). But you're
-right, the separation is not needed now. 
+Hi Kees,
 
-I will merge those two patches into one in the next version, also with
-the name adjustment you and Andrea have pointed out. Thanks!
+is this an updated version of what you have in your
+kees/linux.git#linker/orphans/x86-arm Git branch?
+
+Especially, I saw a difference in [2] and "[PATCH 4/9] x86/boot: Warn
+on orphan section placement"
+
+[ arch/x86/boot/compressed/Makefile ]
+
++KBUILD_LDFLAGS += --no-ld-generated-unwind-info
+
+Can you comment on why this KBUILD_LDFLAGS was added/needed?
+
+I like when people offer their work in a Git branch.
+Do you plan to do that?
+
+Thanks.
 
 Regards,
-Boqun
+- Sedat -
 
-> Alan
-> 
-> > ---
-> >  Documentation/atomic_t.txt | 8 ++++----
-> >  1 file changed, 4 insertions(+), 4 deletions(-)
-> > 
-> > diff --git a/Documentation/atomic_t.txt b/Documentation/atomic_t.txt
-> > index 0ab747e0d5ac..ceb85ada378e 100644
-> > --- a/Documentation/atomic_t.txt
-> > +++ b/Documentation/atomic_t.txt
-> > @@ -91,15 +91,15 @@ ops. That is:
-> >    C atomic-set
-> >  
-> >    {
-> > -    atomic_set(v, 1);
-> > +    atomic_t v = ATOMIC_INIT(1);
-> >    }
-> >  
-> > -  P1(atomic_t *v)
-> > +  P0(atomic_t *v)
-> >    {
-> > -    atomic_add_unless(v, 1, 0);
-> > +    (void)atomic_add_unless(v, 1, 0);
-> >    }
-> >  
-> > -  P2(atomic_t *v)
-> > +  P1(atomic_t *v)
-> >    {
-> >      atomic_set(v, 0);
-> >    }
-> > 
-> 
-> 
+[1] https://git.kernel.org/pub/scm/linux/kernel/git/kees/linux.git/log/?h=linker/orphans/x86-arm
+[2] https://git.kernel.org/pub/scm/linux/kernel/git/kees/linux.git/commit/?h=linker/orphans/x86-arm&id=e43aa77956c40b9b6db0b37b3780423aa2e661ad
+
+
+
+> H.J. Lu (1):
+>   Add RUNTIME_DISCARD_EXIT to generic DISCARDS
+>
+> Kees Cook (8):
+>   scripts/link-vmlinux.sh: Delay orphan handling warnings until final
+>     link
+>   vmlinux.lds.h: Add .gnu.version* to DISCARDS
+>   x86/build: Warn on orphan section placement
+>   x86/boot: Warn on orphan section placement
+>   arm64/build: Use common DISCARDS in linker script
+>   arm64/build: Warn on orphan section placement
+>   arm/build: Warn on orphan section placement
+>   arm/boot: Warn on orphan section placement
+>
+>  arch/arm/Makefile                             |  4 ++++
+>  arch/arm/boot/compressed/Makefile             |  2 ++
+>  arch/arm/boot/compressed/vmlinux.lds.S        | 17 ++++++--------
+>  .../arm/{kernel => include/asm}/vmlinux.lds.h | 22 ++++++++++++++-----
+>  arch/arm/kernel/vmlinux-xip.lds.S             |  5 ++---
+>  arch/arm/kernel/vmlinux.lds.S                 |  5 ++---
+>  arch/arm64/Makefile                           |  4 ++++
+>  arch/arm64/kernel/vmlinux.lds.S               | 13 +++++------
+>  arch/x86/Makefile                             |  4 ++++
+>  arch/x86/boot/compressed/Makefile             |  3 ++-
+>  arch/x86/boot/compressed/vmlinux.lds.S        | 13 +++++++++++
+>  arch/x86/kernel/vmlinux.lds.S                 |  7 ++++++
+>  include/asm-generic/vmlinux.lds.h             | 11 ++++++++--
+>  scripts/link-vmlinux.sh                       |  6 +++++
+>  14 files changed, 85 insertions(+), 31 deletions(-)
+>  rename arch/arm/{kernel => include/asm}/vmlinux.lds.h (92%)
+>
+> --
+> 2.20.1
+>
+> --
+> You received this message because you are subscribed to the Google Groups "Clang Built Linux" group.
+> To unsubscribe from this group and stop receiving emails from it, send an email to clang-built-linux+unsubscribe@googlegroups.com.
+> To view this discussion on the web visit https://groups.google.com/d/msgid/clang-built-linux/20200228002244.15240-1-keescook%40chromium.org.
