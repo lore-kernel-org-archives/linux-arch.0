@@ -1,112 +1,82 @@
-Return-Path: <SRS0=ZbOS=4O=kvack.org=owner-linux-mm@kernel.org>
-Subject: Re: [RFC PATCH v9 10/27] x86/mm: Update pte_modify, pmd_modify, and
- _PAGE_CHG_MASK for _PAGE_DIRTY_SW
-References: <20200205181935.3712-1-yu-cheng.yu@intel.com>
- <20200205181935.3712-11-yu-cheng.yu@intel.com>
-From: Dave Hansen <dave.hansen@intel.com>
-Message-ID: <c215a795-1411-9ab0-10a6-520dd4771016@intel.com>
-Date: Wed, 26 Feb 2020 14:02:06 -0800
+Return-Path: <SRS0=2OaM=4Q=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail-pf1-f193.google.com ([209.85.210.193]:33847 "EHLO
+        mail-pf1-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1730396AbgB1AWw (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 27 Feb 2020 19:22:52 -0500
+Received: by mail-pf1-f193.google.com with SMTP id i6so740897pfc.1
+        for <linux-arch@vger.kernel.org>; Thu, 27 Feb 2020 16:22:50 -0800 (PST)
+From: Kees Cook <keescook@chromium.org>
+Subject: [PATCH 4/9] x86/boot: Warn on orphan section placement
+Date: Thu, 27 Feb 2020 16:22:39 -0800
+Message-ID: <20200228002244.15240-5-keescook@chromium.org>
+In-Reply-To: <20200228002244.15240-1-keescook@chromium.org>
+References: <20200228002244.15240-1-keescook@chromium.org>
 MIME-Version: 1.0
-In-Reply-To: <20200205181935.3712-11-yu-cheng.yu@intel.com>
-Content-Type: text/plain; charset=utf-8
-Content-Language: en-US
-Content-Transfer-Encoding: quoted-printable
-Sender: owner-linux-mm@kvack.org
-To: Yu-cheng Yu <yu-cheng.yu@intel.com>, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>, x86-patch-review@intel.com
+Content-Transfer-Encoding: 8bit
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200226220206.jwj1249DQNNvdPCYzVWsCpRs-KwlehQe4PLPIpZq730@z>
+To: Borislav Petkov <bp@suse.de>
+Cc: Kees Cook <keescook@chromium.org>, "H.J. Lu" <hjl.tools@gmail.com>, Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Mark Rutland <mark.rutland@arm.com>, Peter Collingbourne <pcc@google.com>, James Morse <james.morse@arm.com>, Arnd Bergmann <arnd@arndb.de>, Masahiro Yamada <masahiroy@kernel.org>, x86@kernel.org, linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, linux-kbuild@vger.kernel.org, clang-built-linux@googlegroups.com, linux-kernel@vger.kernel.org
+Message-ID: <20200228002239.ZRhkO_j4lqKKv5WVXNDzD5mk2UYCHfF11fKsnZUolUU@z>
 
-The subject really needs work.  Could you think of a way to summarize
-the changes here in english as opposed to just listing the symbols you
-modified?
+We don't want to depend on the linker's orphan section placement
+heuristics as these can vary between linkers, and may change between
+versions. All sections need to be explicitly named in the linker
+script.
 
-I think we could probably just auto-generate subjects for patches if the
-existing one were sufficient.
+Add the common debugging sections. Discard the unused note, rel, plt,
+dyn, and hash sections that are not needed in the compressed vmlinux.
+Disable .eh_frame generation in the linker and enable orphan section
+warnings.
 
-On 2/5/20 10:19 AM, Yu-cheng Yu wrote:
-> After the introduction of _PAGE_DIRTY_SW, pte_modify and pmd_modify nee=
-d to
-> set the Dirty bit accordingly: if Shadow Stack is enabled and _PAGE_RW =
-is
-> cleared, use _PAGE_DIRTY_SW; otherwise _PAGE_DIRTY_HW.
+Signed-off-by: Kees Cook <keescook@chromium.org>
+---
+ arch/x86/boot/compressed/Makefile      |  3 ++-
+ arch/x86/boot/compressed/vmlinux.lds.S | 13 +++++++++++++
+ 2 files changed, 15 insertions(+), 1 deletion(-)
 
-You've basically gone and written the code's if() statement in english
-here.  That doesn't really help me understand the patch.
-
-> Since the Dirty bit is modify by pte_modify(), remove _PAGE_DIRTY_HW fr=
-om
-> PAGE_CHG_MASK.
-
-			 ^ modified
-
-This is a great example of a changelog that adds very little value.
-It's following the comments and doing what they say, but it's pretty
-obvious that the analysis stopped there.
-
-What *kinds* of bits are in _PAGE_CHG_MASK or not?  What changed about
-_PAGE_DIRTY_HW.  By this definition, shouldn't _PAGE_DIRTY_SW have
-technically been in this mask before this patch?
-
-> diff --git a/arch/x86/include/asm/pgtable.h b/arch/x86/include/asm/pgta=
-ble.h
-> index 62aeb118bc36..2733e7ec16b3 100644
-> --- a/arch/x86/include/asm/pgtable.h
-> +++ b/arch/x86/include/asm/pgtable.h
-> @@ -702,6 +702,14 @@ static inline pte_t pte_modify(pte_t pte, pgprot_t=
- newprot)
->  	val &=3D _PAGE_CHG_MASK;
->  	val |=3D check_pgprot(newprot) & ~_PAGE_CHG_MASK;
->  	val =3D flip_protnone_guard(oldval, val, PTE_PFN_MASK);
-> +
-> +	if (pte_dirty(pte)) {
-> +		if (static_cpu_has(X86_FEATURE_SHSTK) && !(val & _PAGE_RW))
-> +			val |=3D _PAGE_DIRTY_SW;
-> +		else
-> +			val |=3D _PAGE_DIRTY_HW;
-> +	}
-> +
->  	return __pte(val);
->  }
-
-OK, so this is a path we use for changing bunches of PTEs to 'newprot'.
- It doesn't use the pte_*() helpers that the previous patch fixed up, so
-we need a new site.
-
-Right?
-
-Maybe that would make good changelog text.
-
-Also, couldn't we just have a pte_fixup() function or something that did
-this logic and could be shared?
-
-> @@ -712,6 +720,14 @@ static inline pmd_t pmd_modify(pmd_t pmd, pgprot_t=
- newprot)
->  	val &=3D _HPAGE_CHG_MASK;
->  	val |=3D check_pgprot(newprot) & ~_HPAGE_CHG_MASK;
->  	val =3D flip_protnone_guard(oldval, val, PHYSICAL_PMD_PAGE_MASK);
-> +
-> +	if (pmd_dirty(pmd)) {
-> +		if (static_cpu_has(X86_FEATURE_SHSTK) && !(val & _PAGE_RW))
-> +			val |=3D _PAGE_DIRTY_SW;
-> +		else
-> +			val |=3D _PAGE_DIRTY_HW;
-> +	}
-> +
->  	return __pmd(val);
->  }
-> =20
-> diff --git a/arch/x86/include/asm/pgtable_types.h b/arch/x86/include/as=
-m/pgtable_types.h
-> index 826823df917f..e7e28bf7e919 100644
-> --- a/arch/x86/include/asm/pgtable_types.h
-> +++ b/arch/x86/include/asm/pgtable_types.h
-> @@ -150,8 +150,8 @@
->   * instance, and is *not* included in this mask since
->   * pte_modify() does modify it.
->   */
-> -#define _PAGE_CHG_MASK	(PTE_PFN_MASK | _PAGE_PCD | _PAGE_PWT |		\
-> -			 _PAGE_SPECIAL | _PAGE_ACCESSED | _PAGE_DIRTY_HW |	\
-> +#define _PAGE_CHG_MASK	(PTE_PFN_MASK | _PAGE_PCD | _PAGE_PWT |	\
-> +			 _PAGE_SPECIAL | _PAGE_ACCESSED |	\
->  			 _PAGE_SOFT_DIRTY | _PAGE_DEVMAP)
->  #define _HPAGE_CHG_MASK (_PAGE_CHG_MASK | _PAGE_PSE)
+diff --git a/arch/x86/boot/compressed/Makefile b/arch/x86/boot/compressed/Makefile
+index c33111341325..e0ea6b0924e8 100644
+--- a/arch/x86/boot/compressed/Makefile
++++ b/arch/x86/boot/compressed/Makefile
+@@ -46,6 +46,7 @@ GCOV_PROFILE := n
+ UBSAN_SANITIZE :=n
+ 
+ KBUILD_LDFLAGS := -m elf_$(UTS_MACHINE)
++KBUILD_LDFLAGS += --no-ld-generated-unwind-info
+ # Compressed kernel should be built as PIE since it may be loaded at any
+ # address by the bootloader.
+ ifeq ($(CONFIG_X86_32),y)
+@@ -57,7 +58,7 @@ else
+ KBUILD_LDFLAGS += $(shell $(LD) --help 2>&1 | grep -q "\-z noreloc-overflow" \
+ 	&& echo "-z noreloc-overflow -pie --no-dynamic-linker")
+ endif
+-LDFLAGS_vmlinux := -T
++LDFLAGS_vmlinux := --orphan-handling=warn -T
+ 
+ hostprogs	:= mkpiggy
+ HOST_EXTRACFLAGS += -I$(srctree)/tools/include
+diff --git a/arch/x86/boot/compressed/vmlinux.lds.S b/arch/x86/boot/compressed/vmlinux.lds.S
+index 508cfa6828c5..b5406a8cebe0 100644
+--- a/arch/x86/boot/compressed/vmlinux.lds.S
++++ b/arch/x86/boot/compressed/vmlinux.lds.S
+@@ -73,4 +73,17 @@ SECTIONS
+ #endif
+ 	. = ALIGN(PAGE_SIZE);	/* keep ZO size page aligned */
+ 	_end = .;
++
++	STABS_DEBUG
++	DWARF_DEBUG
++
++	DISCARDS
++	/DISCARD/ : {
++		*(.note.*)
++		*(.rela.*) *(.rela_*)
++		*(.rel.*) *(.rel_*)
++		*(.plt) *(.plt.*)
++		*(.dyn*)
++		*(.hash) *(.gnu.hash)
++	}
+ }
+-- 
+2.20.1
