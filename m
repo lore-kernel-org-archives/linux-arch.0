@@ -1,72 +1,72 @@
-Return-Path: <SRS0=BIEI=4P=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail-qk1-f193.google.com ([209.85.222.193]:33965 "EHLO
-        mail-qk1-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727987AbgB0AlI (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 26 Feb 2020 19:41:08 -0500
-From: Boqun Feng <boqun.feng@gmail.com>
-Subject: [PATCH v3 2/5] Documentation/locking/atomic: Fix atomic-set litmus test
-Date: Thu, 27 Feb 2020 08:40:46 +0800
-Message-ID: <20200227004049.6853-3-boqun.feng@gmail.com>
-In-Reply-To: <20200227004049.6853-1-boqun.feng@gmail.com>
-References: <20200227004049.6853-1-boqun.feng@gmail.com>
+Return-Path: <SRS0=2OaM=4Q=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail-pf1-f193.google.com ([209.85.210.193]:46002 "EHLO
+        mail-pf1-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1730447AbgB1AW4 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 27 Feb 2020 19:22:56 -0500
+Received: by mail-pf1-f193.google.com with SMTP id 2so713893pfg.12
+        for <linux-arch@vger.kernel.org>; Thu, 27 Feb 2020 16:22:55 -0800 (PST)
+From: Kees Cook <keescook@chromium.org>
+Subject: [PATCH 5/9] Add RUNTIME_DISCARD_EXIT to generic DISCARDS
+Date: Thu, 27 Feb 2020 16:22:40 -0800
+Message-ID: <20200228002244.15240-6-keescook@chromium.org>
+In-Reply-To: <20200228002244.15240-1-keescook@chromium.org>
+References: <20200228002244.15240-1-keescook@chromium.org>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: Alan Stern <stern@rowland.harvard.edu>, Andrea Parri <parri.andrea@gmail.com>, Will Deacon <will@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Boqun Feng <boqun.feng@gmail.com>, Nicholas Piggin <npiggin@gmail.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, "Paul E. McKenney" <paulmck@kernel.org>, Akira Yokosawa <akiyks@gmail.com>, Daniel Lustig <dlustig@nvidia.com>, Jonathan Corbet <corbet@lwn.net>, Mauro Carvalho Chehab <mchehab+samsung@kernel.org>, "David S. Miller" <davem@davemloft.net>, Rob Herring <robh@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jonathan Cameron <Jonathan.Cameron@huawei.com>, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org
-Message-ID: <20200227004046.7UFmMAze-24AvslbTS2oxkI3lMGYNLT-ZRMjCB2DilU@z>
+To: Borislav Petkov <bp@suse.de>
+Cc: Kees Cook <keescook@chromium.org>, "H.J. Lu" <hjl.tools@gmail.com>, Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Mark Rutland <mark.rutland@arm.com>, Peter Collingbourne <pcc@google.com>, James Morse <james.morse@arm.com>, Arnd Bergmann <arnd@arndb.de>, Masahiro Yamada <masahiroy@kernel.org>, x86@kernel.org, linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, linux-kbuild@vger.kernel.org, clang-built-linux@googlegroups.com, linux-kernel@vger.kernel.org
+Message-ID: <20200228002240.zTanaxAhzPQqznuo9iAbeoHK_qtYNOT_nKIvgz5W8Aw@z>
 
-Currently the litmus test "atomic-set" in atomic_t.txt has a few things
-to be improved:
+From: "H.J. Lu" <hjl.tools@gmail.com>
 
-1)	The CPU/Processor numbers "P1,P2" are not only inconsistent with
-	the rest of the document, which uses "CPU0" and "CPU1", but also
-	unacceptable by the herd tool, which requires processors start
-	at "P0".
+In x86 kernel, .exit.text and .exit.data sections are discarded at
+runtime, not by linker.  Add RUNTIME_DISCARD_EXIT to generic DISCARDS
+and define it in x86 kernel linker script to keep them.
 
-2)	The initialization block uses a "atomic_set()", which is OK, but
-	it's better to use ATOMIC_INIT() to make clear this is an
-	initialization.
-
-3)	The return value of atomic_add_unless() is discarded
-	inexplicitly, which is OK for C language, but it will be helpful
-	to the herd tool if we use a void cast to make the discard
-	explicit.
-
-Therefore fix these and this is the preparation for adding the litmus
-test into memory-model litmus-tests directory so that people can
-understand better about our requirements of atomic APIs and klitmus tool
-can be used to generate tests.
-
-Signed-off-by: Boqun Feng <boqun.feng@gmail.com>
+Signed-off-by: H.J. Lu <hjl.tools@gmail.com>
+Link: https://lore.kernel.org/r/20200130224337.4150-1-hjl.tools@gmail.com
+Signed-off-by: Kees Cook <keescook@chromium.org>
 ---
- Documentation/atomic_t.txt | 8 ++++----
- 1 file changed, 4 insertions(+), 4 deletions(-)
+ arch/x86/kernel/vmlinux.lds.S     |  1 +
+ include/asm-generic/vmlinux.lds.h | 10 ++++++++--
+ 2 files changed, 9 insertions(+), 2 deletions(-)
 
-diff --git a/Documentation/atomic_t.txt b/Documentation/atomic_t.txt
-index 0ab747e0d5ac..ceb85ada378e 100644
---- a/Documentation/atomic_t.txt
-+++ b/Documentation/atomic_t.txt
-@@ -91,15 +91,15 @@ ops. That is:
-   C atomic-set
+diff --git a/arch/x86/kernel/vmlinux.lds.S b/arch/x86/kernel/vmlinux.lds.S
+index 1e345f302a46..1e12c097d09b 100644
+--- a/arch/x86/kernel/vmlinux.lds.S
++++ b/arch/x86/kernel/vmlinux.lds.S
+@@ -21,6 +21,7 @@
+ #define LOAD_OFFSET __START_KERNEL_map
+ #endif
  
-   {
--    atomic_set(v, 1);
-+    atomic_t v = ATOMIC_INIT(1);
-   }
++#define RUNTIME_DISCARD_EXIT
+ #define EMITS_PT_NOTE
+ #define RO_EXCEPTION_TABLE_ALIGN	16
  
--  P1(atomic_t *v)
-+  P0(atomic_t *v)
-   {
--    atomic_add_unless(v, 1, 0);
-+    (void)atomic_add_unless(v, 1, 0);
-   }
- 
--  P2(atomic_t *v)
-+  P1(atomic_t *v)
-   {
-     atomic_set(v, 0);
-   }
+diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
+index 303597e51396..1797f2c9bb41 100644
+--- a/include/asm-generic/vmlinux.lds.h
++++ b/include/asm-generic/vmlinux.lds.h
+@@ -894,10 +894,16 @@
+  * section definitions so that such archs put those in earlier section
+  * definitions.
+  */
++#ifdef RUNTIME_DISCARD_EXIT
++#define EXIT_DISCARDS
++#else
++#define EXIT_DISCARDS							\
++	EXIT_TEXT							\
++	EXIT_DATA
++#endif
+ #define DISCARDS							\
+ 	/DISCARD/ : {							\
+-	EXIT_TEXT							\
+-	EXIT_DATA							\
++	EXIT_DISCARDS							\
+ 	EXIT_CALL							\
+ 	*(.discard)							\
+ 	*(.discard.*)							\
 -- 
-2.25.0
+2.20.1
