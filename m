@@ -1,32 +1,66 @@
-From: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Subject: Re: [RFC PATCH v9 01/27] Documentation/x86: Add CET description
-Date: Fri, 28 Feb 2020 07:55:33 -0800
-Message-ID: <e35cc25c4ba1dcb4154276b1e2731891a3c600ec.camel@intel.com>
-References: <20200205181935.3712-1-yu-cheng.yu@intel.com>
-         <20200205181935.3712-2-yu-cheng.yu@intel.com>
-         <202002251159.939AA6A@keescook>
+From: Marco Elver <elver@google.com>
+Subject: [PATCH] tools/memory-model/Documentation: Fix "conflict" definition
+Date: Fri, 28 Feb 2020 17:46:21 +0100
+Message-ID: <20200228164621.87523-1-elver@google.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-doc-owner@vger.kernel.org>
-In-Reply-To: <202002251159.939AA6A@keescook>
-Sender: linux-doc-owner@vger.kernel.org
-To: Kees Cook <keescook@chromium.org>
-Cc: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-qt1-f202.google.com ([209.85.160.202]:48063 "EHLO
+        mail-qt1-f202.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726118AbgB1Qrd (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 28 Feb 2020 11:47:33 -0500
+Received: by mail-qt1-f202.google.com with SMTP id x8so3374959qtq.14
+        for <linux-arch@vger.kernel.org>; Fri, 28 Feb 2020 08:47:33 -0800 (PST)
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: elver@google.com
+Cc: paulmck@kernel.org, andreyknvl@google.com, glider@google.com, dvyukov@google.com, kasan-dev@googlegroups.com, linux-kernel@vger.kernel.org, stern@rowland.harvard.edu, parri.andrea@gmail.com, will@kernel.org, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, dlustig@nvidia.com, joel@joelfernandes.org, linux-arch@vger.kernel.org
 
-On Tue, 2020-02-25 at 12:02 -0800, Kees Cook wrote:
-> On Wed, Feb 05, 2020 at 10:19:09AM -0800, Yu-cheng Yu wrote:
-> > Explain no_cet_shstk/no_cet_ibt kernel parameters, and introduce a new
-> > document on Control-flow Enforcement Technology (CET).
-> > 
-> > Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
-> 
-> I'm not a huge fan of the boot param names, but I can't suggest anything
-> better. ;) I love the extensive docs!
-> 
-> Reviewed-by: Kees Cook <keescook@chromium.org>
+For language-level memory consistency models that are adaptations of
+data-race-free, the definition of "data race" can be summarized as
+"concurrent conflicting accesses, where at least one is non-sync/plain".
 
-Thanks for reviewing!
+The definition of "conflict" should not include the type of access nor
+whether the accesses are concurrent or not, which this patch addresses
+for explanation.txt.
 
-Yu-cheng
+The definition of "data race" remains unchanged, but the informal
+definition for "conflict" is restored to what can be found in the
+literature.
+
+Signed-by: Marco Elver <elver@google.com>
+---
+ tools/memory-model/Documentation/explanation.txt | 15 ++++++---------
+ 1 file changed, 6 insertions(+), 9 deletions(-)
+
+diff --git a/tools/memory-model/Documentation/explanation.txt b/tools/memory-model/Documentation/explanation.txt
+index e91a2eb19592a..11cf89b5b85d9 100644
+--- a/tools/memory-model/Documentation/explanation.txt
++++ b/tools/memory-model/Documentation/explanation.txt
+@@ -1986,18 +1986,15 @@ violates the compiler's assumptions, which would render the ultimate
+ outcome undefined.
+ 
+ In technical terms, the compiler is allowed to assume that when the
+-program executes, there will not be any data races.  A "data race"
+-occurs when two conflicting memory accesses execute concurrently;
+-two memory accesses "conflict" if:
++program executes, there will not be any data races. A "data race"
++occurs if:
+ 
+-	they access the same location,
++	two concurrent memory accesses "conflict";
+ 
+-	they occur on different CPUs (or in different threads on the
+-	same CPU),
++	and at least one of the accesses is a plain access;
+ 
+-	at least one of them is a plain access,
+-
+-	and at least one of them is a store.
++	where two memory accesses "conflict" if they access the same
++	memory location, and at least one performs a write;
+ 
+ The LKMM tries to determine whether a program contains two conflicting
+ accesses which may execute concurrently; if it does then the LKMM says
+-- 
+2.25.1.481.gfbce0eb801-goog
