@@ -1,59 +1,67 @@
-Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.133]:49032 "EHLO
- bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with
- ESMTP id S1726561AbgBCRll (ORCPT <rfc822;linux-arch@vger.kernel.org>); Mon, 3
- Feb 2020 12:41:41 -0500
-Date: Mon, 3 Feb 2020 09:41:34 -0800
-From: Christoph Hellwig <hch@infradead.org>
-Subject: Re: [kernel-hardening] [PATCH 09/38] usercopy: Mark kmalloc caches as
- usercopy caches
-Message-ID: <20200203174134.GC30011@infradead.org>
-References: <202001281457.FA11CC313A@keescook>
- <alpine.DEB.2.21.2001291640350.1546@www.lameter.com>
- <6844ea47-8e0e-4fb7-d86f-68046995a749@de.ibm.com>
- <20200129170939.GA4277@infradead.org>
- <771c5511-c5ab-3dd1-d938-5dbc40396daa@de.ibm.com>
- <202001300945.7D465B5F5@keescook>
- <CAG48ez1a4waGk9kB0WLaSbs4muSoK0AYAVk8=XYaKj4_+6e6Hg@mail.gmail.com>
- <202002010952.ACDA7A81@keescook>
- <CAG48ez2ms+TDEXQdDONuQ1GG0K20E69nV1r_yjKxxYjYKv1VCg@mail.gmail.com>
- <20200203074644.GD8731@bombadil.infradead.org>
+Return-Path: <brendanhiggins@google.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20200203074644.GD8731@bombadil.infradead.org>
-Sender: linux-arch-owner@vger.kernel.org
+References: <20200228012036.15682-1-brendanhiggins@google.com> <20200228012036.15682-2-brendanhiggins@google.com>
+In-Reply-To: <20200228012036.15682-2-brendanhiggins@google.com>
+From: Brendan Higgins <brendanhiggins@google.com>
+Date: Thu, 27 Feb 2020 23:22:31 -0800
+Message-ID: <CAFd5g46dVaV18=5mPLTHh06KQ6nDh4Xw4r8PAZDfSXASi=Qpmg@mail.gmail.com>
+Subject: Re: [PATCH v3 1/7] vmlinux.lds.h: add linker section for KUnit test suites
+Content-Type: text/plain; charset="UTF-8"
+To: Jeff Dike <jdike@addtoit.com>, Richard Weinberger <richard@nod.at>, Anton Ivanov <anton.ivanov@cambridgegreys.com>, Arnd Bergmann <arnd@arndb.de>, Kees Cook <keescook@chromium.org>, Shuah Khan <skhan@linuxfoundation.org>, Alan Maguire <alan.maguire@oracle.com>, Iurii Zaikin <yzaikin@google.com>, David Gow <davidgow@google.com>, Andrew Morton <akpm@linux-foundation.org>, rppt@linux.ibm.com, Frank Rowand <frowand.list@gmail.com>
+Cc: Greg KH <gregkh@linuxfoundation.org>, Stephen Boyd <sboyd@kernel.org>, Logan Gunthorpe <logang@deltatee.com>, Luis Chamberlain <mcgrof@kernel.org>, linux-um <linux-um@lists.infradead.org>, linux-arch@vger.kernel.org, "open list:KERNEL SELFTEST FRAMEWORK" <linux-kselftest@vger.kernel.org>, KUnit Development <kunit-dev@googlegroups.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>
 List-ID: <linux-arch.vger.kernel.org>
-To: Matthew Wilcox <willy@infradead.org>
-Cc: Jann Horn <jannh@google.com>, Kees Cook <keescook@chromium.org>, Christian Borntraeger <borntraeger@de.ibm.com>, Christoph Hellwig <hch@infradead.org>, Christopher Lameter <cl@linux.com>, Jiri Slaby <jslaby@suse.cz>, Julian Wiedmann <jwi@linux.ibm.com>, Ursula Braun <ubraun@linux.ibm.com>, Alexander Viro <viro@zeniv.linux.org.uk>, kernel list <linux-kernel@vger.kernel.org>, David Windsor <dave@nullcore.net>, Pekka Enberg <penberg@kernel.org>, David Rientjes <rientjes@google.com>, Joonsoo Kim <iamjoonsoo.kim@lge.com>, Andrew Morton <akpm@linux-foundation.org>, Linux-MM <linux-mm@kvack.org>, linux-xfs@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, "David S. Miller" <davem@davemloft.net>, Laura Abbott <labbott@redhat.com>, Mark Rutland <mark.rutland@arm.com>, "Martin K. Petersen" <martin.petersen@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Dave Kleikamp <dave.kleikamp@oracle.com>, Jan Kara <jack@suse.cz>, Marc Zyngier <marc.zyngier@arm.com>, Matthew Garrett <mjg59@google.com>, linux-fsdevel <linux-fsdevel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Network Development <netdev@vger.kernel.org>, Kernel Hardening <kernel-hardening@lists.openwall.com>, Vlastimil Babka <vbabka@suse.cz>, Michal Kubecek <mkubecek@suse.cz>
-Message-ID: <20200203174134.FH1D16Wg437t-rxbMPXqE4pocHgFvbdz6o75X8ESdEs@z>
+Message-ID: <20200228072231.T-K_TmOIgaeegQ3rq38i7zdT3AvQN8p2TurKZK_uBU4@z>
 
-On Sun, Feb 02, 2020 at 11:46:44PM -0800, Matthew Wilcox wrote:
-> > gives the hardware access to completely unrelated memory.) Instead,
-> > they get pages from the page allocator, and these pages may e.g. be
-> > allocated from the DMA, DMA32 or NORMAL zones depending on the
-> > restrictions imposed by hardware. So I think the usercopy restriction
-> > only affects a few oddball drivers (like this s390 stuff), which is
-> > why you're not seeing more bug reports caused by this.
-> 
-> Getting pages from the page allocator is true for dma_alloc_coherent()
-> and friends.
+On Thu, Feb 27, 2020 at 5:20 PM Brendan Higgins
+<brendanhiggins@google.com> wrote:
+>
+> Add a linker section where KUnit can put references to its test suites.
+> This patch is the first step in transitioning to dispatching all KUnit
+> tests from a centralized executor rather than having each as its own
+> separate late_initcall.
+>
+> Co-developed-by: Iurii Zaikin <yzaikin@google.com>
+> Signed-off-by: Iurii Zaikin <yzaikin@google.com>
+> Signed-off-by: Brendan Higgins <brendanhiggins@google.com>
+> Reviewed-by: Stephen Boyd <sboyd@kernel.org>
+> ---
+>  include/asm-generic/vmlinux.lds.h | 8 ++++++++
+>  1 file changed, 8 insertions(+)
+>
+> diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
+> index e00f41aa8ec4f..99a866f49cb3d 100644
+> --- a/include/asm-generic/vmlinux.lds.h
+> +++ b/include/asm-generic/vmlinux.lds.h
+> @@ -856,6 +856,13 @@
+>                 KEEP(*(.con_initcall.init))                             \
+>                 __con_initcall_end = .;
+>
+> +/* Alignment must be consistent with (kunit_suite *) in include/kunit/test.h */
+> +#define KUNIT_TEST_SUITES                                              \
+> +               . = ALIGN(8);                                           \
 
-dma_alloc_coherent also has a few other memory sources than the page
-allocator..
+After posting this, I saw I had gotten an email from 0day[1]. After
+some investigation, I discovered that this 8 byte alignment works for
+x86 64 bit fine, but only *sometimes* for 32 bit. 4 byte alignment
+seems to work in all cases (so far). I am not sure why we went with
+such a large alignment in hindsight. In any case, I should have a
+fixed revision out pretty soon.
 
-> But it's not true for streaming DMA mappings (dma_map_*)
-> for which the memory usually comes from kmalloc().  If this is something
-> we want to fix (and I have an awful feeling we're going to regret it
-> if we say "no, we trust the hardware"), we're going to have to come up
-> with a new memory allocation API for these cases.  Or bounce bugger the
-> memory for devices we don't trust.
+> +               __kunit_suites_start = .;                               \
+> +               KEEP(*(.kunit_test_suites))                             \
+> +               __kunit_suites_end = .;
+> +
+>  #ifdef CONFIG_BLK_DEV_INITRD
+>  #define INIT_RAM_FS                                                    \
+>         . = ALIGN(4);                                                   \
+> @@ -1024,6 +1031,7 @@
+>                 INIT_CALLS                                              \
+>                 CON_INITCALL                                            \
+>                 INIT_RAM_FS                                             \
+> +               KUNIT_TEST_SUITES                                       \
+>         }
+>
+>  #define BSS_SECTION(sbss_align, bss_align, stop_align)                 \
+> --
 
-There aren't too many places that use slab allocations for streaming
-mappings, and then do usercopies into them.  But I vaguely remember
-some usb code getting the annotations for that a while ago.
-
-But if you don't trust your hardware you will need to use IOMMUs and
-page aligned memory, or IOMMUs plus bounce buffering for the kmalloc
-allocations (we've recently grown code to do that for the intel-iommu
-driver, which needs to be lifted into the generic IOMMU code).
+[1] https://lists.01.org/hyperkitty/list/lkp@lists.01.org/thread/4I4UW4OAT63ETMIEUJQTOF3BFTMO6ROD/
