@@ -1,260 +1,335 @@
-Return-Path: <SRS0=oITL=4O=vger.kernel.org=linux-doc-owner@kernel.org>
+Return-Path: <SRS0=BJSq=4R=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from bombadil.infradead.org ([198.137.202.133]:55886 "EHLO
+        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727177AbgB2RXq (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 29 Feb 2020 12:23:46 -0500
+Subject: Re: [RFC PATCH v14 10/10] landlock: Add user and kernel documentation
+References: <20200224160215.4136-1-mic@digikod.net>
+ <20200224160215.4136-11-mic@digikod.net>
+From: Randy Dunlap <rdunlap@infradead.org>
+Message-ID: <cc8da381-d3dc-3c0a-5afd-96824362b636@infradead.org>
+Date: Sat, 29 Feb 2020 09:23:38 -0800
 MIME-Version: 1.0
-References: <20200224160215.4136-1-mic@digikod.net> <20200224160215.4136-2-mic@digikod.net>
- <CAG48ez1FN0B05r35c-EDuQNoW=5ZTy1iBzksbkt+toqs+_tdqg@mail.gmail.com> <67465638-e22c-5d1a-df37-862b31d999a1@digikod.net>
-In-Reply-To: <67465638-e22c-5d1a-df37-862b31d999a1@digikod.net>
-From: Jann Horn <jannh@google.com>
-Date: Wed, 26 Feb 2020 21:24:04 +0100
-Message-ID: <CAG48ez33WjzAee9h_Nfxi6vbnjognsKziv=whi_7ocT36DCXcg@mail.gmail.com>
-Subject: Re: [RFC PATCH v14 01/10] landlock: Add object and rule management
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
-Sender: linux-doc-owner@vger.kernel.org
-To: =?UTF-8?B?TWlja2HDq2wgU2FsYcO8bg==?= <mic@digikod.net>
-Cc: kernel list <linux-kernel@vger.kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, Andy Lutomirski <luto@amacapital.net>, Arnd Bergmann <arnd@arndb.de>, Casey Schaufler <casey@schaufler-ca.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, James Morris <jmorris@namei.org>, Jann Horn <jann@thejh.net>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Michael Kerrisk <mtk.manpages@gmail.com>, =?UTF-8?B?TWlja2HDq2wgU2FsYcO8bg==?= <mickael.salaun@ssi.gouv.fr>, "Serge E . Hallyn" <serge@hallyn.com>, Shuah Khan <shuah@kernel.org>, Vincent Dagonneau <vincent.dagonneau@ssi.gouv.fr>, Kernel Hardening <kernel-hardening@lists.openwall.com>, Linux API <linux-api@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, linux-doc@vger.kernel.org, linux-fsdevel <linux-fsdevel@vger.kernel.org>, "open list:KERNEL SELFTEST FRAMEWORK" <linux-kselftest@vger.kernel.org>, linux-security-module <linux-security-module@vger.kernel.org>, the arch/x86 maintainers <x86@kernel.org>
+In-Reply-To: <20200224160215.4136-11-mic@digikod.net>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
+Content-Transfer-Encoding: 8bit
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200226202404.BxdPaJt3iB3RwDAvghylIGqu3rKB1HLwaaQB8OkzUU4@z>
+To: =?UTF-8?Q?Micka=c3=abl_Sala=c3=bcn?= <mic@digikod.net>, linux-kernel@vger.kernel.org
+Cc: Al Viro <viro@zeniv.linux.org.uk>, Andy Lutomirski <luto@amacapital.net>, Arnd Bergmann <arnd@arndb.de>, Casey Schaufler <casey@schaufler-ca.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, James Morris <jmorris@namei.org>, Jann Horn <jann@thejh.net>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Michael Kerrisk <mtk.manpages@gmail.com>, =?UTF-8?Q?Micka=c3=abl_Sala=c3=bcn?= <mickael.salaun@ssi.gouv.fr>, "Serge E . Hallyn" <serge@hallyn.com>, Shuah Khan <shuah@kernel.org>, Vincent Dagonneau <vincent.dagonneau@ssi.gouv.fr>, kernel-hardening@lists.openwall.com, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-security-module@vger.kernel.org, x86@kernel.org
+Message-ID: <20200229172338.arSHE5z5LAtIiX0DI2HF7RoYVP6SZ4tiZ3J4PjAZnkM@z>
 
-On Wed, Feb 26, 2020 at 4:32 PM Micka=C3=ABl Sala=C3=BCn <mic@digikod.net> =
-wrote:
-> On 25/02/2020 21:49, Jann Horn wrote:
-> > On Mon, Feb 24, 2020 at 5:05 PM Micka=C3=ABl Sala=C3=BCn <mic@digikod.n=
-et> wrote:
-> >> A Landlock object enables to identify a kernel object (e.g. an inode).
-> >> A Landlock rule is a set of access rights allowed on an object.  Rules
-> >> are grouped in rulesets that may be tied to a set of processes (i.e.
-> >> subjects) to enforce a scoped access-control (i.e. a domain).
-> >>
-> >> Because Landlock's goal is to empower any process (especially
-> >> unprivileged ones) to sandbox themselves, we can't rely on a system-wi=
-de
-> >> object identification such as file extended attributes.  Indeed, we ne=
-ed
-> >> innocuous, composable and modular access-controls.
-> >>
-> >> The main challenge with this constraints is to identify kernel objects
-> >> while this identification is useful (i.e. when a security policy makes
-> >> use of this object).  But this identification data should be freed onc=
-e
-> >> no policy is using it.  This ephemeral tagging should not and may not =
-be
-> >> written in the filesystem.  We then need to manage the lifetime of a
-> >> rule according to the lifetime of its object.  To avoid a global lock,
-> >> this implementation make use of RCU and counters to safely reference
-> >> objects.
-> >>
-> >> A following commit uses this generic object management for inodes.
-[...]
-> >> +config SECURITY_LANDLOCK
-> >> +       bool "Landlock support"
-> >> +       depends on SECURITY
-> >> +       default n
-> >
-> > (I think "default n" is implicit?)
->
-> It seems that most (all?) Kconfig are written like this.
+Hi,
+Here are a few corrections for you to consider.
 
-See e.g. <https://lore.kernel.org/lkml/c187bb77-e804-93bd-64db-9418be58f191=
-@infradead.org/>.
 
-[...]
-> >> +       return object;
-> >> +}
-> >> +
-> >> +struct landlock_object *landlock_get_object(struct landlock_object *o=
-bject)
-> >> +       __acquires(object->usage)
-> >> +{
-> >> +       __acquire(object->usage);
-> >> +       /*
-> >> +        * If @object->usage equal 0, then it will be ignored by write=
-rs, and
-> >> +        * underlying_object->object may be replaced, but this is not =
-an issue
-> >> +        * for release_object().
-> >> +        */
-> >> +       if (object && refcount_inc_not_zero(&object->usage)) {
-> >> +               /*
-> >> +                * It should not be possible to get a reference to an =
-object if
-> >> +                * its underlying object is being terminated (e.g. wit=
-h
-> >> +                * landlock_release_object()), because an object is on=
-ly
-> >> +                * modifiable through such underlying object.  This is=
- not the
-> >> +                * case with landlock_get_object_cleaner().
-> >> +                */
-> >> +               WARN_ON_ONCE(!READ_ONCE(object->underlying_object));
-> >> +               return object;
-> >> +       }
-> >> +       return NULL;
-> >> +}
-> >> +
-> >> +static struct landlock_object *get_object_cleaner(
-> >> +               struct landlock_object *object)
-> >> +       __acquires(object->cleaners)
-> >> +{
-> >> +       __acquire(object->cleaners);
-> >> +       if (object && refcount_inc_not_zero(&object->cleaners))
-> >> +               return object;
-> >> +       return NULL;
-> >> +}
-> >
-> > I don't get this whole "cleaners" thing. Can you give a quick
-> > description of why this is necessary, and what benefits it has over a
-> > standard refcounting+RCU scheme? I don't immediately see anything that
-> > requires this.
->
-> This indeed needs more documentation here. Here is a comment I'll add to
-> get_object_cleaner():
->
-> This enables to safely get a reference to an object to potentially free
-> it if it is not already being freed by a concurrent thread.
+On 2/24/20 8:02 AM, Mickaël Salaün wrote:
+> This documentation can be built with the Sphinx framework.
+> 
+> Another location might be more appropriate, though.
+> 
+> Signed-off-by: Mickaël Salaün <mic@digikod.net>
+> Reviewed-by: Vincent Dagonneau <vincent.dagonneau@ssi.gouv.fr>
+> Cc: Andy Lutomirski <luto@amacapital.net>
+> Cc: James Morris <jmorris@namei.org>
+> Cc: Kees Cook <keescook@chromium.org>
+> Cc: Serge E. Hallyn <serge@hallyn.com>
+> ---
+> 
+> Changes since v13:
+> * Rewrote the documentation according to the major revamp.
+> 
+> Previous version:
+> https://lore.kernel.org/lkml/20191104172146.30797-8-mic@digikod.net/
+> ---
+>  Documentation/security/index.rst           |   1 +
+>  Documentation/security/landlock/index.rst  |  18 ++
+>  Documentation/security/landlock/kernel.rst |  44 ++++
+>  Documentation/security/landlock/user.rst   | 233 +++++++++++++++++++++
+>  4 files changed, 296 insertions(+)
+>  create mode 100644 Documentation/security/landlock/index.rst
+>  create mode 100644 Documentation/security/landlock/kernel.rst
+>  create mode 100644 Documentation/security/landlock/user.rst
+> 
+> diff --git a/Documentation/security/landlock/index.rst b/Documentation/security/landlock/index.rst
+> new file mode 100644
+> index 000000000000..dbd33b96ce60
+> --- /dev/null
+> +++ b/Documentation/security/landlock/index.rst
+> @@ -0,0 +1,18 @@
+> +=========================================
+> +Landlock LSM: unprivileged access control
+> +=========================================
+> +
+> +:Author: Mickaël Salaün
+> +
+> +The goal of Landlock is to enable to restrict ambient rights (e.g.  global
+> +filesystem access) for a set of processes.  Because Landlock is a stackable
+> +LSM, it makes possible to create safe security sandboxes as new security layers
+> +in addition to the existing system-wide access-controls. This kind of sandbox
+> +is expected to help mitigate the security impact of bugs or
+> +unexpected/malicious behaviors in user-space applications. Landlock empower any
 
-"get a reference to an object to potentially free it" just sounds all
-wrong to me. You free an object when you're *dropping* a reference to
-it. Your refcounting scheme doesn't fit my mental models of how normal
-refcounting works at all...
+                                                                       empowers
 
-[...]
-> >> +/*
-> >> + * Putting an object is easy when the object is being terminated, but=
- it is
-> >> + * much more tricky when the reason is that there is no more rule tie=
-d to this
-> >> + * object.  Indeed, new rules could be added at the same time.
-> >> + */
-> >> +void landlock_put_object(struct landlock_object *object)
-> >> +       __releases(object->usage)
-> >> +{
-> >> +       struct landlock_object *object_cleaner;
-> >> +
-> >> +       __release(object->usage);
-> >> +       might_sleep();
-> >> +       if (!object)
-> >> +               return;
-> >> +       /*
-> >> +        * Guards against concurrent termination to be able to termina=
-te
-> >> +        * @object if it is empty and not referenced by another rule-a=
-ppender
-> >> +        * other than the underlying object.
-> >> +        */
-> >> +       object_cleaner =3D get_object_cleaner(object);
-[...]
-> >> +       /*
-> >> +        * Decrements @object->usage and if it reach zero, also decrem=
-ent
-> >> +        * @object->cleaners.  If both reach zero, then release and fr=
-ee
-> >> +        * @object.
-> >> +        */
-> >> +       if (refcount_dec_and_test(&object->usage)) {
-> >> +               struct landlock_rule *rule_walker, *rule_walker2;
-> >> +
-> >> +               spin_lock(&object->lock);
-> >> +               /*
-> >> +                * Disables all the rules tied to @object when it is f=
-orbidden
-> >> +                * to add new rule but still allowed to remove them wi=
-th
-> >> +                * landlock_put_rule().  This is crucial to be able to=
- safely
-> >> +                * free a rule according to landlock_rule_is_disabled(=
-).
-> >> +                */
-> >> +               list_for_each_entry_safe(rule_walker, rule_walker2,
-> >> +                               &object->rules, list)
-> >> +                       list_del_rcu(&rule_walker->list);
+> +process, including unprivileged ones, to securely restrict themselves.
+> +
+> +.. toctree::
+> +
+> +    user
+> +    kernel
+> diff --git a/Documentation/security/landlock/kernel.rst b/Documentation/security/landlock/kernel.rst
+> new file mode 100644
+> index 000000000000..b87769909029
+> --- /dev/null
+> +++ b/Documentation/security/landlock/kernel.rst
+> @@ -0,0 +1,44 @@
+> +==============================
+> +Landlock: kernel documentation
+> +==============================
+> +
+> +Landlock's goal is to create scoped access-control (i.e. sandboxing).  To
+> +harden a whole system, this feature should be available to any process,
+> +including unprivileged ones.  Because such process may be compromised or
+> +backdoored (i.e. untrusted), Landlock's features must be safe to use from the
+> +kernel and other processes point of view.  Landlock's interface must therefore
+> +expose a minimal attack surface.
+> +
+> +Landlock is designed to be usable by unprivileged processes while following the
+> +system security policy enforced by other access control mechanisms (e.g. DAC,
+> +LSM).  Indeed, a Landlock rule shall not interfere with other access-controls
+> +enforced on the system, only add more restrictions.
+> +
+> +Any user can enforce Landlock rulesets on their processes.  They are merged and
+> +evaluated according to the inherited ones in a way that ensure that only more
 
-So... rules don't take references on the landlock_objects they use?
-Instead, the landlock_object knows which rules use it, and when the
-landlock_object goes away, it nukes all the rules associated with
-itself?
+                                                           ensures
 
-That seems terrible to me - AFAICS it means that if some random
-process decides to install a landlock rule that uses inode X, and then
-that process dies together with all its landlock rules, the inode
-still stays pinned in kernel memory as long as the superblock is
-mounted. In other words, it's a resource leak. (And if I'm not missing
-something in patch 5, that applies even if the inode has been
-unlinked?)
+> +constraints can be added.
+> +
+> +
+> +Guiding principles for safe access controls
+> +===========================================
+> +
+> +* A Landlock rule shall be focused on access control on kernel objects instead
+> +  of syscall filtering (i.e. syscall arguments), which is the purpose of
+> +  seccomp-bpf.
+> +* To avoid multiple kind of side-channel attacks (e.g. leak of security
 
-Can you please refactor your refcounting as follows?
+                       kinds
 
- - A rule takes a reference on each landlock_object it uses.
- - A landlock_object takes a reference on the underlying object (just like =
-now).
- - The underlying object *DOES NOT* take a reference on the
-landlock_object (unlike now); the reference from the underlying object
-to the landlock_object has weak pointer semantics.
- - When a landlock_object's refcount drops to zero (iow no rules use
-it anymore), it is freed.
+> +  policies, CPU-based attacks), Landlock rules shall not be able to
+> +  programmatically communicate with user space.
+> +* Kernel access check shall not slow down access request from unsandboxed
+> +  processes.
+> +* Computation related to Landlock operations (e.g. enforce a ruleset) shall
+> +  only impact the processes requesting them.
+> +
+> +
+> +Landlock rulesets and domains
+> +=============================
+> +
+> +A domain is a read-only ruleset tied to a set of subjects (i.e. tasks).  A
+> +domain can transition to a new one which is the intersection of the constraints
+> +from the current and a new ruleset.  The definition of a subject is implicit
+> +for a task sandboxing itself, which makes the reasoning much easier and helps
+> +avoid pitfalls.
+> diff --git a/Documentation/security/landlock/user.rst b/Documentation/security/landlock/user.rst
+> new file mode 100644
+> index 000000000000..cbd7f61fca8c
+> --- /dev/null
+> +++ b/Documentation/security/landlock/user.rst
+> @@ -0,0 +1,233 @@
+> +=================================
+> +Landlock: userspace documentation
+> +=================================
+> +
+> +Landlock rules
+> +==============
+> +
+> +A Landlock rule enables to describe an action on an object.  An object is
+> +currently a file hierarchy, and the related filesystem actions are defined in
+> +`Access rights`_.  A set of rules are aggregated in a ruleset, which can then
 
-That might also help get rid of the awkward ->cleaners thing?
+                                     is
 
-> >> +               /*
-> >> +                * Releases @object if it is not already released (e.g=
-. with
-> >> +                * landlock_release_object()).
-> >> +                */
-> >> +               release_object(object);
-> >> +               /*
-> >> +                * Unbalances the @object->cleaners counter to reflect=
- the
-> >> +                * underlying object release.
-> >> +                */
-> >> +               __acquire(object->cleaners);
-> >> +               put_object_free(object);
-> >> +       }
-> >> +       put_object_cleaner(object_cleaner);
-> >> +}
-[...]
-> >> +static inline bool landlock_rule_is_disabled(
-> >> +               struct landlock_rule *rule)
-> >> +{
-> >> +       /*
-> >> +        * Disabling (i.e. unlinking) a landlock_rule is a one-way ope=
-ration.
-> >> +        * It is not possible to re-enable such a rule, then there is =
-no need
-> >> +        * for smp_load_acquire().
-> >> +        *
-> >> +        * LIST_POISON2 is set by list_del() and list_del_rcu().
-> >> +        */
-> >> +       return !rule || READ_ONCE(rule->list.prev) =3D=3D LIST_POISON2=
-;
-> >
-> > You're not allowed to do this, the comment above list_del() states:
-> >
-> >  * Note: list_empty() on entry does not return true after this, the ent=
-ry is
-> >  * in an undefined state.
->
-> list_del() checks READ_ONCE(head->next) =3D=3D head, but
-> landlock_rule_is_disabled() checks READ_ONCE(rule->list.prev) =3D=3D
-> LIST_POISON2.
-> The comment about LIST_POISON2 is right but may be misleading. There is
-> no use of list_empty() with a landlock_rule->list, only
-> landlock_object->rules. The only list_del() is in landlock_put_rule()
-> when there is a guarantee that there is no other reference to it, hence
-> no possible use of landlock_rule_is_disabled() with this rule. I could
-> replace it with a call to list_del_rcu() to make it more consistent.
->
-> >
-> > If you want to be able to test whether the element is on a list
-> > afterwards, use stuff like list_del_init().
->
-> There is no need to re-initialize the list but using list_del_init() and
-> list_empty() could work too. However, there is no list_del_init_rcu()
-> helper. Moreover, resetting the list's pointer with LIST_POISON2 might
-> help to detect bugs.
+> +restricts the thread enforcing it, and its future children.
 
-Either way, you are currently using the list_head API in a way that
-goes against what the header documents. If you want to rely on
-list_del() bringing the object into a specific state, then you can't
-leave the comment above list_del() as-is that says that it puts the
-object in an undefined state; and this kind of check should probably
-be done in a helper in list.h instead of open-coding the check for
-LIST_POISON2.
+   restrict
+
+> +
+> +
+> +Defining and enforcing a security policy
+> +----------------------------------------
+> +
+> +Before defining a security policy, an application should first probe for the
+> +features supported by the running kernel, which is important to be compatible
+> +with older kernels.  This can be done thanks to the `landlock` syscall (cf.
+> +:ref:`syscall`).
+> +
+> +.. code-block:: c
+> +
+> +    struct landlock_attr_features attr_features;
+> +
+> +    if (landlock(LANDLOCK_CMD_GET_FEATURES, LANDLOCK_OPT_GET_FEATURES,
+> +            sizeof(attr_features), &attr_features)) {
+> +        perror("Failed to probe the Landlock supported features");
+> +        return 1;
+> +    }
+> +
+> +Then, we need to create the ruleset that will contains our rules.  For this
+
+                                                 contain
+
+> +example, the ruleset will contains rules which only allow read actions, but
+
+                             contain
+
+> +write actions will be denied.  The ruleset then needs to handle both of these
+> +kind of actions.  To have a backward compatibility, these actions should be
+> +ANDed with the supported ones.
+> +
+> +.. code-block:: c
+> +
+> +    int ruleset_fd;
+> +    struct landlock_attr_ruleset ruleset = {
+> +        .handled_access_fs =
+> +            LANDLOCK_ACCESS_FS_READ |
+> +            LANDLOCK_ACCESS_FS_READDIR |
+> +            LANDLOCK_ACCESS_FS_EXECUTE |
+> +            LANDLOCK_ACCESS_FS_WRITE |
+> +            LANDLOCK_ACCESS_FS_TRUNCATE |
+> +            LANDLOCK_ACCESS_FS_CHMOD |
+> +            LANDLOCK_ACCESS_FS_CHOWN |
+> +            LANDLOCK_ACCESS_FS_CHGRP |
+> +            LANDLOCK_ACCESS_FS_LINK_TO |
+> +            LANDLOCK_ACCESS_FS_RENAME_FROM |
+> +            LANDLOCK_ACCESS_FS_RENAME_TO |
+> +            LANDLOCK_ACCESS_FS_RMDIR |
+> +            LANDLOCK_ACCESS_FS_UNLINK |
+> +            LANDLOCK_ACCESS_FS_MAKE_CHAR |
+> +            LANDLOCK_ACCESS_FS_MAKE_DIR |
+> +            LANDLOCK_ACCESS_FS_MAKE_REG |
+> +            LANDLOCK_ACCESS_FS_MAKE_SOCK |
+> +            LANDLOCK_ACCESS_FS_MAKE_FIFO |
+> +            LANDLOCK_ACCESS_FS_MAKE_BLOCK |
+> +            LANDLOCK_ACCESS_FS_MAKE_SYM,
+> +    };
+> +
+> +    ruleset.handled_access_fs &= attr_features.access_fs;
+> +    ruleset_fd = landlock(LANDLOCK_CMD_CREATE_RULESET,
+> +                    LANDLOCK_OPT_CREATE_RULESET, sizeof(ruleset), &ruleset);
+> +    if (ruleset_fd < 0) {
+> +        perror("Failed to create a ruleset");
+> +        return 1;
+> +    }
+> +
+> +We can now add a new rule to this ruleset thanks to the returned file
+> +descriptor referring to this ruleset.  The rule will only enable to read the
+> +file hierarchy ``/usr``.  Without other rule, write actions would then be
+
+                             Without other rules,
+or
+                             Without another rule,
+
+> +denied by the ruleset.  To add ``/usr`` to the ruleset, we open it with the
+> +``O_PATH`` flag and fill the &struct landlock_attr_path_beneath with this file
+> +descriptor.
+> +
+> +.. code-block:: c
+> +
+> +    int err;
+> +    struct landlock_attr_path_beneath path_beneath = {
+> +        .ruleset_fd = ruleset_fd,
+> +        .allowed_access =
+> +            LANDLOCK_ACCESS_FS_READ |
+> +            LANDLOCK_ACCESS_FS_READDIR |
+> +            LANDLOCK_ACCESS_FS_EXECUTE,
+> +    };
+> +
+> +    path_beneath.allowed_access &= attr_features.access_fs;
+> +    path_beneath.parent_fd = open("/usr", O_PATH | O_CLOEXEC);
+> +    if (path_beneath.parent_fd < 0) {
+> +        perror("Failed to open file");
+> +        close(ruleset_fd);
+> +        return 1;
+> +    }
+> +    err = landlock(LANDLOCK_CMD_ADD_RULE, LANDLOCK_OPT_ADD_RULE_PATH_BENEATH,
+> +            sizeof(path_beneath), &path_beneath);
+> +    close(path_beneath.parent_fd);
+> +    if (err) {
+> +        perror("Failed to update ruleset");
+> +        close(ruleset_fd);
+> +        return 1;
+> +    }
+> +
+> +We now have a ruleset with one rule allowing read access to ``/usr`` while
+> +denying all accesses featured in ``attr_features.access_fs`` to everything else
+> +on the filesystem.  The next step is to restrict the current thread from
+> +gaining more privileges (e.g. thanks to a SUID binary).
+> +
+> +.. code-block:: c
+> +
+> +    if (prctl(PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0)) {
+> +        perror("Failed to restrict privileges");
+> +        close(ruleset_fd);
+> +        return 1;
+> +    }
+> +
+> +The current thread is now ready to sandbox itself with the ruleset.
+> +
+> +.. code-block:: c
+> +
+> +    struct landlock_attr_enforce attr_enforce = {
+> +        .ruleset_fd = ruleset_fd,
+> +    };
+> +
+> +    if (landlock(LANDLOCK_CMD_ENFORCE_RULESET, LANDLOCK_OPT_ENFORCE_RULESET,
+> +            sizeof(attr_enforce), &attr_enforce)) {
+> +        perror("Failed to enforce ruleset");
+> +        close(ruleset_fd);
+> +        return 1;
+> +    }
+> +    close(ruleset_fd);
+> +
+> +If this last system call succeeds, the current thread is now restricted and
+
+   If this last landlock system call succeeds,
+
+[because close() is the last system call]
+
+> +this policy will be enforced on all its subsequently created children as well.
+> +Once a thread is landlocked, there is no way to remove its security policy,
+
+                                                   preferably:         policy;
+
+> +only adding more restrictions is allowed.  These threads are now in a new
+> +Landlock domain, merge of their parent one (if any) with the new ruleset.
+> +
+> +A full working code can be found in `samples/landlock/sandboxer.c`_.
+
+   Full working code
+
+> +
+> +
+> +Inheritance
+> +-----------
+> +
+> +Every new thread resulting from a :manpage:`clone(2)` inherits Landlock program
+> +restrictions from its parent.  This is similar to the seccomp inheritance (cf.
+> +:doc:`/userspace-api/seccomp_filter`) or any other LSM dealing with task's
+> +:manpage:`credentials(7)`.  For instance, one process' thread may apply
+
+                                                 process's
+
+> +Landlock rules to itself, but they will not be automatically applied to other
+> +sibling threads (unlike POSIX thread credential changes, cf.
+> +:manpage:`nptl(7)`).
+
+[snip]
+
+thanks for the documentation.
+
+-- 
+~Randy
