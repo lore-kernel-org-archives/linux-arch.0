@@ -1,51 +1,49 @@
-From: Sandipan Das <sandipan@linux.ibm.com>
-Subject: Re: [PATCH v18 00/24] selftests, powerpc, x86: Memory Protection Keys
-Date: Mon, 2 Mar 2020 15:55:52 +0530
-Message-ID: <a86a4a5b-9d44-efed-8bad-a18f108e2746@linux.ibm.com>
-References: <cover.1580365432.git.sandipan@linux.ibm.com>
- <5887a858-b669-752e-b65e-ed7d7ded34aa@intel.com>
+From: Anshuman Khandual <anshuman.khandual@arm.com>
+Subject: Re: [PATCH] mm/special: Create generic fallbacks for pte_special()
+ and pte_mkspecial()
+Date: Mon, 2 Mar 2020 16:07:27 +0530
+Message-ID: <02997860-9374-28b9-8703-dc9b62b3f8ff@arm.com>
+References: <1583114190-7678-1-git-send-email-anshuman.khandual@arm.com>
+ <CAMuHMdXnUeYib2dMALyzrW8LKhTjsnGFsqALoTxVHzPGc+OUTg@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
+Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:14206 "EHLO
-        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1726874AbgCBK0F (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 2 Mar 2020 05:26:05 -0500
-Received: from pps.filterd (m0098394.ppops.net [127.0.0.1])
-        by mx0a-001b2d01.pphosted.com (8.16.0.42/8.16.0.42) with SMTP id 022APDxv006611
-        for <linux-arch@vger.kernel.org>; Mon, 2 Mar 2020 05:26:04 -0500
-Received: from e06smtp05.uk.ibm.com (e06smtp05.uk.ibm.com [195.75.94.101])
-        by mx0a-001b2d01.pphosted.com with ESMTP id 2yfnbejvu0-1
-        (version=TLSv1.2 cipher=AES256-GCM-SHA384 bits=256 verify=NOT)
-        for <linux-arch@vger.kernel.org>; Mon, 02 Mar 2020 05:26:04 -0500
-Received: from localhost
-        by e06smtp05.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-        for <linux-arch@vger.kernel.org> from <sandipan@linux.ibm.com>;
-        Mon, 2 Mar 2020 10:26:01 -0000
-In-Reply-To: <5887a858-b669-752e-b65e-ed7d7ded34aa@intel.com>
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane-mx.org@lists.infradead.org>
+In-Reply-To: <CAMuHMdXnUeYib2dMALyzrW8LKhTjsnGFsqALoTxVHzPGc+OUTg@mail.gmail.com>
 Content-Language: en-US
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: shuah@kernel.org, skhan@linuxfoundation.org
-Cc: Dave Hansen <dave.hansen@intel.com>, linux-kselftest@vger.kernel.org, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, x86@kernel.org, linux-mm@kvack.org, fweimer@redhat.com, linuxram@us.ibm.com, mhocko@kernel.org, mingo@redhat.com, aneesh.kumar@linux.ibm.com, bauerman@linux.ibm.com, msuchanek@suse.de, mpe@ellerman.id.au, akpm@linux-foundation.org
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane-mx.org@lists.infradead.org
+To: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: "linux-ia64@vger.kernel.org" <linux-ia64@vger.kernel.org>, "open list:TENSILICA XTENSA PORT (xtensa)" <linux-xtensa@linux-xtensa.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "James E.J. Bottomley" <James.Bottomley@hansenpartnership.com>, Linux MM <linux-mm@kvack.org>, Guo Ren <guoren@kernel.org>, linux-csky@vger.kernel.org, sparclinux <sparclinux@vger.kernel.org>, "open list:QUALCOMM HEXAGON..." <linux-hexagon@vger.kernel.org>, Vincent Chen <deanbo422@gmail.com>, Anton Ivanov <anton.ivanov@cambridgegreys.com>, Jonas Bonn <jonas@southpole.se>, Paul Burton <paulburton@kernel.org>, Richard Weinberger <richard@nod.at>, Helge Deller <deller@gmx.de>, Russell King <linux@armlinux.org.uk>, Ley Foon Tan <ley.foon.tan@intel.com>, Parisc List <linux-parisc@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Matt Turner <mattst88@gmail.com>, Sam
+List-Id: linux-arch.vger.kernel.org
 
-Hi Shuah,
 
-On 31/01/20 3:21 am, Dave Hansen wrote:
-> On 1/29/20 10:36 PM, Sandipan Das wrote:
->> v18:
->> 	(1) Fixed issues with x86 multilib builds based on
->> 	    feedback from Dave.
->> 	(2) Moved patch 2 to the end of the series.
+On 03/02/2020 01:49 PM, Geert Uytterhoeven wrote:
+> Hi Anshuman,
 > 
-> These (finally) build and run successfully for me on an x86 system with
-> protection keys.  Feel free to add my Tested-by, and Acked-by.
+> Thanks for your patch!
 > 
-> FWIW, I don't think look perfect, but my standards are lower for
-> selftests/ than normal kernel code. :)
+> On Mon, Mar 2, 2020 at 2:56 AM Anshuman Khandual
+> <anshuman.khandual@arm.com> wrote:
+>> Currently there are many platforms that dont enable HAVE_ARCH_PTE_SPECIAL
+> ARCH_HAS_PTE_SPECIAL
+> 
+>> but required to define quite similar fallback stubs for special page table
+>> entry helpers such as pte_special() and pte_mkspecial(), as they get build
+>> in generic MM without a config check. This creates two generic fallback
+>> stub definitions for these helpers, eliminating much code duplication.
+>>
+>> mips platform has a special case where pte_special() and pte_mkspecial()
+>> visibility is wider than what HAVE_ARCH_PTE_SPECIAL enablement requires.
+> ARCH_HAS_PTE_SPECIAL
 > 
 
-Any updates on considering this for merging?
-
-- Sandipan
+Oops, will fix it. I have been juggling between too many HAVE_ARCH_* and
+ARCH_HAS_* lately :)
