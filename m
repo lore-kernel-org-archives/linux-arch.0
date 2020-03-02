@@ -1,77 +1,42 @@
-Return-Path: <SRS0=06hN=5A=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail-ed1-f67.google.com ([209.85.208.67]:35863 "EHLO
-        mail-ed1-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726668AbgCODgm (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sat, 14 Mar 2020 23:36:42 -0400
-Date: Sat, 14 Mar 2020 12:02:58 +0100
-From: Krzysztof Kozlowski <krzk@kernel.org>
-Subject: Re: [RESEND PATCH v2 1/9] iomap: Constify ioreadX() iomem argument
- (as in generic implementation)
-Message-ID: <20200314110258.GA16135@kozik-lap>
-References: <20200219175007.13627-1-krzk@kernel.org>
- <20200219175007.13627-2-krzk@kernel.org>
+Return-Path: <SRS0=2lSW=4T=kvack.org=owner-linux-mm@kernel.org>
+Subject: Re: [PATCH] mm/special: Create generic fallbacks for pte_special()
+ and pte_mkspecial()
+References: <1583114190-7678-1-git-send-email-anshuman.khandual@arm.com>
+ <CAMuHMdXnUeYib2dMALyzrW8LKhTjsnGFsqALoTxVHzPGc+OUTg@mail.gmail.com>
+From: Anshuman Khandual <anshuman.khandual@arm.com>
+Message-ID: <02997860-9374-28b9-8703-dc9b62b3f8ff@arm.com>
+Date: Mon, 2 Mar 2020 16:07:27 +0530
 MIME-Version: 1.0
+In-Reply-To: <CAMuHMdXnUeYib2dMALyzrW8LKhTjsnGFsqALoTxVHzPGc+OUTg@mail.gmail.com>
 Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-In-Reply-To: <20200219175007.13627-2-krzk@kernel.org>
-Sender: linux-arch-owner@vger.kernel.org
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
+Sender: owner-linux-mm@kvack.org
+To: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: Linux MM <linux-mm@kvack.org>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Russell King <linux@armlinux.org.uk>, Guo Ren <guoren@kernel.org>, Brian Cain <bcain@codeaurora.org>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Sam Creasey <sammy@sammy.net>, Michal Simek <monstr@monstr.eu>, Ralf Baechle <ralf@linux-mips.org>, Paul Burton <paulburton@kernel.org>, Nick Hu <nickhu@andestech.com>, Greentime Hu <green.hu@gmail.com>, Vincent Chen <deanbo422@gmail.com>, Ley Foon Tan <ley.foon.tan@intel.com>, Jonas Bonn <jonas@southpole.se>, Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>, Stafford Horne <shorne@gmail.com>, "James E.J. Bottomley" <James.Bottomley@hansenpartnership.com>, Helge Deller <deller@gmx.de>, "David S. Miller" <davem@davemloft.net>, Jeff Dike <jdike@addtoit.com>, Richard Weinberger <richard@nod.at>, Anton Ivanov <anton.ivanov@cambridgegreys.com>, Guan Xuetao <gxt@pku.edu.cn>, Chris Zankel <chris@zankel.net>, Max Filippov <jcmvbkbc@gmail.com>, Andrew Morton <akpm@linux-foundation.org>, alpha <linux-alpha@vger.kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, linux-csky@vger.kernel.org, "open list:QUALCOMM HEXAGON..." <linux-hexagon@vger.kernel.org>, "linux-ia64@vger.kernel.org" <linux-ia64@vger.kernel.org>, linux-m68k <linux-m68k@lists.linux-m68k.org>, linux-mips@vger.kernel.org, nios2-dev@lists.rocketboards.org, Openrisc <openrisc@lists.librecores.org>, Parisc List <linux-parisc@vger.kernel.org>, sparclinux <sparclinux@vger.kernel.org>, linux-um <linux-um@lists.infradead.org>, "open list:TENSILICA XTENSA PORT (xtensa)" <linux-xtensa@linux-xtensa.org>, Linux-Arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Alexey Brodkin <abrodkin@synopsys.com>, Vineet Gupta <vgupta@synopsys.com>, "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>, Helge Deller <deller@gmx.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, Dave Airlie <airlied@redhat.com>, David Airlie <airlied@linux.ie>, Daniel Vetter <daniel@ffwll.ch>, Ben Skeggs <bskeggs@redhat.com>, Mauro Carvalho Chehab <mchehab@kernel.org>, Jiri Slaby <jirislaby@gmail.com>, Nick Kossifidis <mickflemm@gmail.com>, Luis Chamberlain <mcgrof@kernel.org>, Kalle Valo <kvalo@codeaurora.org>, "David S. Miller" <davem@davemloft.net>, Dave Jiang <dave.jiang@intel.com>, Jon Mason <jdmason@kudzu.us>, Allen Hubbe <allenbh@gmail.com>, "Michael S. Tsirkin" <mst@redhat.com>, Jason Wang <jasowang@redhat.com>, Geert Uytterhoeven <geert+renesas@glider.be>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-snps-arc@lists.infradead.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org, dri-devel@lists.freedesktop.org, nouveau@lists.freedesktop.org, linux-media@vger.kernel.org, linux-wireless@vger.kernel.org, netdev@vger.kernel.org, linux-ntb@googlegroups.com, virtualization@lists.linux-foundation.org, linux-arch@vger.kernel.org
-Message-ID: <20200314110258.FRV5iytIcNlBx6_MwMh8zAPIOeQ3HJdv0JkPnENHYyM@z>
+Message-ID: <20200302103727.gq2WOZFr81EVAP8D-6Ps52gM2-ChHmaWXekFq7Mj9oo@z>
 
-On Wed, Feb 19, 2020 at 06:49:59PM +0100, Krzysztof Kozlowski wrote:
-> The ioreadX() and ioreadX_rep() helpers have inconsistent interface.  On
-> some architectures void *__iomem address argument is a pointer to const,
-> on some not.
+
+On 03/02/2020 01:49 PM, Geert Uytterhoeven wrote:
+> Hi Anshuman,
 > 
-> Implementations of ioreadX() do not modify the memory under the address
-> so they can be converted to a "const" version for const-safety and
-> consistency among architectures.
+> Thanks for your patch!
 > 
-> Suggested-by: Geert Uytterhoeven <geert@linux-m68k.org>
-> Signed-off-by: Krzysztof Kozlowski <krzk@kernel.org>
-> Reviewed-by: Geert Uytterhoeven <geert+renesas@glider.be>
-> Reviewed-by: Arnd Bergmann <arnd@arndb.de>
-
-Hi Arnd,
-
-This patch touches multipel file systems so no one is brave enough to
-pick it up. However you are mentioned as maintainer of generic asm
-headers so maybe you could apply it to arm-soc?
-
-Best regards,
-Krzysztof
-
-
+> On Mon, Mar 2, 2020 at 2:56 AM Anshuman Khandual
+> <anshuman.khandual@arm.com> wrote:
+>> Currently there are many platforms that dont enable HAVE_ARCH_PTE_SPECIAL
+> ARCH_HAS_PTE_SPECIAL
 > 
-> ---
+>> but required to define quite similar fallback stubs for special page table
+>> entry helpers such as pte_special() and pte_mkspecial(), as they get build
+>> in generic MM without a config check. This creates two generic fallback
+>> stub definitions for these helpers, eliminating much code duplication.
+>>
+>> mips platform has a special case where pte_special() and pte_mkspecial()
+>> visibility is wider than what HAVE_ARCH_PTE_SPECIAL enablement requires.
+> ARCH_HAS_PTE_SPECIAL
 > 
-> Changes since v1:
-> 1. Constify also ioreadX_rep() and mmio_insX(),
-> 2. Squash lib+alpha+powerpc+parisc+sh into one patch for bisectability,
-> 3. Add Geert's review.
-> 4. Add Arnd's review.
-> ---
->  arch/alpha/include/asm/core_apecs.h   |  6 +--
->  arch/alpha/include/asm/core_cia.h     |  6 +--
->  arch/alpha/include/asm/core_lca.h     |  6 +--
->  arch/alpha/include/asm/core_marvel.h  |  4 +-
->  arch/alpha/include/asm/core_mcpcia.h  |  6 +--
->  arch/alpha/include/asm/core_t2.h      |  2 +-
->  arch/alpha/include/asm/io.h           | 12 ++---
->  arch/alpha/include/asm/io_trivial.h   | 16 +++---
->  arch/alpha/include/asm/jensen.h       |  2 +-
->  arch/alpha/include/asm/machvec.h      |  6 +--
->  arch/alpha/kernel/core_marvel.c       |  2 +-
->  arch/alpha/kernel/io.c                | 12 ++---
->  arch/parisc/include/asm/io.h          |  4 +-
->  arch/parisc/lib/iomap.c               | 72 +++++++++++++--------------
->  arch/powerpc/kernel/iomap.c           | 28 +++++------
->  arch/sh/kernel/iomap.c                | 22 ++++----
->  include/asm-generic/iomap.h           | 28 +++++------
->  include/linux/io-64-nonatomic-hi-lo.h |  4 +-
->  include/linux/io-64-nonatomic-lo-hi.h |  4 +-
->  lib/iomap.c                           | 30 +++++------
->  20 files changed, 136 insertions(+), 136 deletions(-)
-> 
+
+Oops, will fix it. I have been juggling between too many HAVE_ARCH_* and
+ARCH_HAS_* lately :)
