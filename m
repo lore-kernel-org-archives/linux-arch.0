@@ -1,44 +1,65 @@
-From: Brendan Higgins <brendanhiggins@google.com>
-Subject: Re: [RFC v2 21/37] lkl tools: "boot" test
-Date: Mon, 2 Mar 2020 14:25:35 -0800
-Message-ID: <CAFd5g44+PD9FM6Vhy2uFAkSvgsOdxjy2gcP6duBzuhJGJaddgg@mail.gmail.com>
-References: <fb0fcf4ffddaabc7eae82e25d7ec5ea9c37eb2ae.1573179553.git.thehajime@gmail.com>
- <20200123193315.132434-1-brendanhiggins@google.com> <20200302195116.GF11244@42.do-not-panic.com>
+From: Kees Cook <keescook@chromium.org>
+Subject: Re: [PATCH v3 4/7] init: main: add KUnit to kernel init
+Date: Mon, 2 Mar 2020 14:45:30 -0800
+Message-ID: <202003021439.A6B6FD8@keescook>
+References: <20200228012036.15682-5-brendanhiggins@google.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pf1-f177.google.com ([209.85.210.177]:47033 "EHLO
-        mail-pf1-f177.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726700AbgCBWZr (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 2 Mar 2020 17:25:47 -0500
-Received: by mail-pf1-f177.google.com with SMTP id o24so383454pfp.13
-        for <linux-arch@vger.kernel.org>; Mon, 02 Mar 2020 14:25:47 -0800 (PST)
-In-Reply-To: <20200302195116.GF11244@42.do-not-panic.com>
+Received: from mail-pf1-f195.google.com ([209.85.210.195]:35583 "EHLO
+        mail-pf1-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726843AbgCBWpe (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 2 Mar 2020 17:45:34 -0500
+Received: by mail-pf1-f195.google.com with SMTP id i19so432614pfa.2
+        for <linux-arch@vger.kernel.org>; Mon, 02 Mar 2020 14:45:33 -0800 (PST)
+Content-Disposition: inline
+In-Reply-To: <20200228012036.15682-5-brendanhiggins@google.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Luis Chamberlain <mcgrof@kernel.org>
-Cc: KUnit Development <kunit-dev@googlegroups.com>, Hajime Tazaki <thehajime@gmail.com>, Octavian Purdila <tavi.purdila@gmail.com>, David Gow <davidgow@google.com>, Aleksa Sarai <cyphar@cyphar.com>, linux-um <linux-um@lists.infradead.org>, linux-arch@vger.kernel.org, Patrick Collins <pscollins@google.com>, Conrad Meyer <cem@freebsd.org>, Motomu Utsumi <motomuman@gmail.com>, Lai Jiangshan <jiangshanlai@gmail.com>, Akira Moroo <retrage01@gmail.com>, Petros Angelatos <petrosagg@gmail.com>, Yuan Liu <liuyuan@google.com>, Thomas Liebetraut <thomas@tommie-lie.de>, Mark Stillwell <mark@stillwell.me>, David Disseldorp <ddiss@suse.de>, linux-kernel-library@freelists.org, Luca Dariz <luca.dariz@gmail.com>
+To: Brendan Higgins <brendanhiggins@google.com>
+Cc: Frank Rowand <frowand.list@gmail.com>, jdike@addtoit.com, richard@nod.at, anton.ivanov@cambridgegreys.com, arnd@arndb.de, skhan@linuxfoundation.org, alan.maguire@oracle.com, yzaikin@google.com, davidgow@google.com, akpm@linux-foundation.org, rppt@linux.ibm.com, gregkh@linuxfoundation.org, sboyd@kernel.org, logang@deltatee.com, mcgrof@kernel.org, linux-um@lists.infradead.org, linux-arch@vger.kernel.org, linux-kselftest@vger.kernel.org, kunit-dev@googlegroups.com, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org
 
-On Mon, Mar 2, 2020 at 11:51 AM Luis Chamberlain <mcgrof@kernel.org> wrote:
->
-> On Thu, Jan 23, 2020 at 11:33:15AM -0800, Brendan Higgins wrote:
-> > Luis,
-> >
-> > Does this kind of match what you were thinking with the syscall testing?
->
-> Without looking too deeply into the code, it seems to be the case.
-> Are you going to expose / port kunit to tools/ to allow usersapace
-> to run kunit tests?
+On 2/27/20 7:20 PM, Brendan Higgins wrote:
+> Remove KUnit from init calls entirely, instead call directly from
+> kernel_init().
+> 
+> Co-developed-by: Alan Maguire <alan.maguire@oracle.com>
+> Signed-off-by: Alan Maguire <alan.maguire@oracle.com>
+> Signed-off-by: Brendan Higgins <brendanhiggins@google.com>
+> Reviewed-by: Stephen Boyd <sboyd@kernel.org>
+> [...]
+> diff --git a/init/main.c b/init/main.c
+> index ee4947af823f3..7875a5c486dc4 100644
+> --- a/init/main.c
+> +++ b/init/main.c
+> @@ -104,6 +104,8 @@
+>  #define CREATE_TRACE_POINTS
+>  #include <trace/events/initcall.h>
+>  
+> +#include <kunit/test.h>
+> +
+>  static int kernel_init(void *);
+>  
+>  extern void init_IRQ(void);
+> @@ -1444,6 +1446,8 @@ static noinline void __init kernel_init_freeable(void)
+>  
+>  	do_basic_setup();
+>  
+> +	kunit_run_all_tests();
+> +
+>  	console_on_rootfs();
+>  
+>  	/*
 
-Yes, I am thinking about this as a distinct possibility. I think it
-only really makes sense in the context of syscall testing, probably
-via LKL (assuming this works), but for general end-to-end testing, I
-think kselftest has that area covered and users would be better served
-by just integrating KUnit with kselftest.
+I'm nervous about this happening before two key pieces of the kernel
+setup, which might lead to weird timing-sensitive bugs or false
+positives:
+	async_synchronize_full()
+	mark_readonly()
 
-> > In any case, I am excited about this. Please keep me posted in the
-> > future!
->
-> Yes please Cc me too.
->
->   Luis
+Now, I realize kunit tests _should_ be self-contained, but this seems
+like a possible robustness problem. Is there any reason this can't be
+moved after rcu_end_inkernel_boot() in kernel_init() instead?
+
+-- 
+Kees Cook
