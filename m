@@ -1,43 +1,112 @@
-Return-Path: <brendanhiggins@google.com>
-MIME-Version: 1.0
-References: <20200228012036.15682-1-brendanhiggins@google.com>
- <20200302200337.GH11244@42.do-not-panic.com> <20200302211640.GA8364@roeck-us.net>
-In-Reply-To: <20200302211640.GA8364@roeck-us.net>
-From: Brendan Higgins <brendanhiggins@google.com>
-Date: Mon, 2 Mar 2020 14:19:57 -0800
-Message-ID: <CAFd5g452oaKojBZfvTYw-L14wTFqsjDeX4mtYDM=kv6xhcTnig@mail.gmail.com>
-Subject: Re: [PATCH v3 0/7] kunit: create a centralized executor to dispatch
+Return-Path: <mcgrof@gmail.com>
+Date: Mon, 2 Mar 2020 19:05:37 +0000
+From: Luis Chamberlain <mcgrof@kernel.org>
+Subject: Re: [RFC v1 0/6] kunit: create a centralized executor to dispatch
  all KUnit tests
-Content-Type: text/plain; charset="UTF-8"
-To: Guenter Roeck <linux@roeck-us.net>, Luis Chamberlain <mcgrof@kernel.org>
-Cc: Jeff Dike <jdike@addtoit.com>, Richard Weinberger <richard@nod.at>, Anton Ivanov <anton.ivanov@cambridgegreys.com>, Arnd Bergmann <arnd@arndb.de>, Kees Cook <keescook@chromium.org>, Shuah Khan <skhan@linuxfoundation.org>, Alan Maguire <alan.maguire@oracle.com>, Iurii Zaikin <yzaikin@google.com>, David Gow <davidgow@google.com>, Andrew Morton <akpm@linux-foundation.org>, rppt@linux.ibm.com, Frank Rowand <frowand.list@gmail.com>, Greg KH <gregkh@linuxfoundation.org>, Stephen Boyd <sboyd@kernel.org>, Logan Gunthorpe <logang@deltatee.com>, linux-um <linux-um@lists.infradead.org>, linux-arch@vger.kernel.org, "open list:KERNEL SELFTEST FRAMEWORK" <linux-kselftest@vger.kernel.org>, KUnit Development <kunit-dev@googlegroups.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>
+Message-ID: <20200302190537.GC11244@42.do-not-panic.com>
+References: <20191216220555.245089-1-brendanhiggins@google.com>
+ <20200106224022.GX11244@42.do-not-panic.com>
+ <CAFd5g456c2Zs7rCvRPgio83G=SrtPGi25zbqAUyTBHspHwtu4w@mail.gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <CAFd5g456c2Zs7rCvRPgio83G=SrtPGi25zbqAUyTBHspHwtu4w@mail.gmail.com>
+To: Brendan Higgins <brendanhiggins@google.com>
+Cc: Jeff Dike <jdike@addtoit.com>, Richard Weinberger <richard@nod.at>, Anton Ivanov <anton.ivanov@cambridgegreys.com>, Arnd Bergmann <arnd@arndb.de>, Kees Cook <keescook@chromium.org>, Shuah Khan <skhan@linuxfoundation.org>, Alan Maguire <alan.maguire@oracle.com>, Iurii Zaikin <yzaikin@google.com>, David Gow <davidgow@google.com>, Andrew Morton <akpm@linux-foundation.org>, rppt@linux.ibm.com, Greg KH <gregkh@linuxfoundation.org>, Stephen Boyd <sboyd@kernel.org>, Logan Gunthorpe <logang@deltatee.com>, Knut Omang <knut.omang@oracle.com>, linux-um <linux-um@lists.infradead.org>, linux-arch@vger.kernel.org, "open list:KERNEL SELFTEST FRAMEWORK" <linux-kselftest@vger.kernel.org>, KUnit Development <kunit-dev@googlegroups.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200302221957.JfaVIIfw-lQENIkI-uvSvXmQLRmvZzHTVL6jKGHZPaQ@z>
+Message-ID: <20200302190537.0bZp12Qdg-c0Uk37sw8YWs7EGGGoH6QrYR089_sC2yA@z>
 
-On Mon, Mar 2, 2020 at 1:16 PM Guenter Roeck <linux@roeck-us.net> wrote:
->
-> On Mon, Mar 02, 2020 at 08:03:37PM +0000, Luis Chamberlain wrote:
-> > Guenter,
+On Thu, Jan 23, 2020 at 02:40:31PM -0800, Brendan Higgins wrote:
+> On Mon, Jan 6, 2020 at 2:40 PM Luis Chamberlain <mcgrof@kernel.org> wrote:
+> > On Mon, Dec 16, 2019 at 02:05:49PM -0800, Brendan Higgins wrote:
+> > dispatcher could be configurable to run at an arbirary time after boot.
+> > If there are not immediate use cases for that though, then I suppose
+> > this is not a requirement for the dispatcher. But since there exists
+> > another modular test framework with its own dispatcher and it seems the
+> > goal is to merge the work long term, this might preempt the requirement
+> > to define how and when we can dispatch tests post boot.
 > >
-> > are you still running your cross-architecture tests? If so any chance
->
-> Yes
->
-> > you can try this for your build tests?
+> > And, if we're going to do that, I can suggest that a data structure
+> > instead of just a function init call be used to describe tests to be
+> > placed into an ELF section. With my linker table work this would be
+> > easy, I define section ranges for code describing only executable
+> > routines, but it defines linker tables for when a component in the
+> > kernel would define a data structure, part of which can be a callback.
+> > Such data structure stuffed into an ELF section could allow dynamic
+> > configuration of the dipsatching, even post boot.
+> 
+> The linker table work does sound interesting. Do you have a link?
+
+Sure
+
+https://git.kernel.org/pub/scm/linux/kernel/git/mcgrof/linux-next.git/log/?h=20170620-linker-tables-v8
+
+I had dropped this long ago mostly due to the fact that my use case
+(removal of dead code) was more long term, and not immediate so the
+use case wasn't there yet.
+
+I have been meaning to pick this work up again.
+
+> I was thinking about dynamic dispatching, actually. I thought it would
+> be handy to be able to build all tests into a single kernel and then
+> run different tests on different invocations.
+
+For built-in code it would be up to it to manage that. The linker table
+stuff would just allow a way for you to systematically aggregate
+data into an ELF section in a generic way. It does have a built in
+light weight sort mechanism, if you opt out of that and say wanted
+to do your own order it'd be up to how you program it in on the data
+structure and dispatching after that.
+
+> Also, for post boot dynamic dispatching, you should check out Alan's
+> debugfs patches:
+> 
+> https://lore.kernel.org/linux-kselftest/CAFd5g46657gZ36PaP8Pi999hPPgBU2Kz94nrMspS-AzGwdBF+g@mail.gmail.com/T/#m210cadbeee267e5c5a9253d83b7b7ca723d1f871
+> 
+> They look pretty handy!
+
+Sure.
+
+> > I think this is a good stepping stone forward then, and to allow
+> > dynamic configuration of the dispatcher could mean eventual extensions
+> > to kunit's init stuff to stuff init calls into a data structure which
+> > can then allow configuration of the dispatching. One benefit that the
+> > linker table work *may* be able to help here with is that it allows
+> > an easy way to create kunit specific ordering, at linker time.
+> > There is also an example of addressing / generalizing dynamic / run time
+> > changes of ordering, by using the x86 IOMMU initialization as an
+> > example case. We don't have an easy way to do this today, but if kunit
+> > could benefit from such framework, it'd be another use case for
+> > the linker table work. That is, the ability to easilly allow
+> > dynamically modifying run time ordering of code through ELF sections.
 > >
->
-> I didn't have KUNIT_TEST enabled to start with. I did that now, and
-> started a test run on mainline a minute ago. We'll see how that goes.
+> > > In addition, by dispatching tests from a single location, we can
+> > > guarantee that all KUnit tests run after late_init is complete, which
+> > > was a concern during the initial KUnit patchset review (this has not
+> > > been a problem in practice, but resolving with certainty is nevertheless
+> > > desirable).
+> >
+> > Indeed, the concern is just a real semantics limitations. With the tests
+> > *always* running after all subsystem init stuff, we know we'd have a
+> > real full kernel ready.
+> 
+> Yep.
+> 
+> > It does beg the question if this means kunit is happy to not be a tool
+> > to test pre basic setup stuff (terminology used in init.c, meaning prior
+> > to running all init levels). I suspect this is the case.
+> 
+> Not sure. I still haven't seen any cases where this is necessary, so I
+> am not super worried about it. Regardless, I don't think this patchset
+> really changes anything in that regard, we are moving from late_init
+> to after late_init, so it isn't that big of a change for most use
+> cases.
+> 
+> Please share if you can think of some things that need to be tested in
+> early init.
 
-FYI, kbuild already found some architectures for which this change doesn't work.
+If and when we get to that point we can deal with it then. My instincts
+tell me that for early init code we should probably be specially crafted
+tests and have they should have their own hand crafted dispatchers.
 
-So far, I need to fix:
-- arm64 (32 bit seems to work fine)
-- i386 in some cases.
-
-> Afterwards, sure, I can run the series in a test branch. It would be great
-> if I can pick it up from a repository somewhere.
-
-Cool, I will post my next revision to a branch somewhere.
-
-Thanks!
+  Luis
