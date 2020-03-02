@@ -1,64 +1,71 @@
-From: Alan Stern <stern@rowland.harvard.edu>
-Subject: Re: [PATCH v3] tools/memory-model/Documentation: Fix "conflict"
+From: "Paul E. McKenney" <paulmck@kernel.org>
+Subject: Re: [PATCH v2] tools/memory-model/Documentation: Fix "conflict"
  definition
-Date: Mon, 2 Mar 2020 12:56:59 -0500 (EST)
-Message-ID: <Pine.LNX.4.44L0.2003021256130.1555-100000@iolanthe.rowland.org>
-References: <20200302172101.157917-1-elver@google.com>
+Date: Mon, 2 Mar 2020 10:28:42 -0800
+Message-ID: <20200302182841.GJ2935@paulmck-ThinkPad-P72>
+References: <20200302141819.40270-1-elver@google.com>
+ <8d5fdc95ed3847508bf0d523f41a5862@AcuMS.aculab.com>
+Reply-To: paulmck@kernel.org
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from iolanthe.rowland.org ([192.131.102.54]:34134 "HELO
-        iolanthe.rowland.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with SMTP id S1727261AbgCBR5A (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 2 Mar 2020 12:57:00 -0500
-In-Reply-To: <20200302172101.157917-1-elver@google.com>
+Received: from mail.kernel.org ([198.145.29.99]:51480 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726451AbgCBS2n (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 2 Mar 2020 13:28:43 -0500
+Content-Disposition: inline
+In-Reply-To: <8d5fdc95ed3847508bf0d523f41a5862@AcuMS.aculab.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Marco Elver <elver@google.com>
-Cc: linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, parri.andrea@gmail.com, will@kernel.org, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, paulmck@kernel.org, akiyks@gmail.com, dlustig@nvidia.com, joel@joelfernandes.org, linux-arch@vger.kernel.org
+To: David Laight <David.Laight@ACULAB.COM>
+Cc: 'Marco Elver' <elver@google.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "kasan-dev@googlegroups.com" <kasan-dev@googlegroups.com>, "stern@rowland.harvard.edu" <stern@rowland.harvard.edu>, "parri.andrea@gmail.com" <parri.andrea@gmail.com>, "will@kernel.org" <will@kernel.org>, "peterz@infradead.org" <peterz@infradead.org>, "boqun.feng@gmail.com" <boqun.feng@gmail.com>, "npiggin@gmail.com" <npiggin@gmail.com>, "dhowells@redhat.com" <dhowells@redhat.com>, "j.alglave@ucl.ac.uk" <j.alglave@ucl.ac.uk>, "luc.maranget@inria.fr" <luc.maranget@inria.fr>, "akiyks@gmail.com" <akiyks@gmail.com>, "dlustig@nvidia.com" <dlustig@nvidia.com>, "joel@joelfernandes.org" <joel@joelfernandes.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
 
-On Mon, 2 Mar 2020, Marco Elver wrote:
+On Mon, Mar 02, 2020 at 05:44:11PM +0000, David Laight wrote:
+> From: Marco Elver
+> > Sent: 02 March 2020 14:18
+> > 
+> > The definition of "conflict" should not include the type of access nor
+> > whether the accesses are concurrent or not, which this patch addresses.
+> > The definition of "data race" remains unchanged.
+> > 
+> > The definition of "conflict" as we know it and is cited by various
+> > papers on memory consistency models appeared in [1]: "Two accesses to
+> > the same variable conflict if at least one is a write; two operations
+> > conflict if they execute conflicting accesses."
+> 
+> I'm pretty sure that Linux requires that the underlying memory
+> subsystem remove any possible 'conflicts' by serialising the
+> requests (in an arbitrary order).
+> 
+> So 'conflicts' are never relevant.
+> 
+> There are memory subsystems where conflicts MUST be avoided.
+> For instance the fpga I use have some dual-ported memory.
+> Concurrent accesses on the two ports for the same address
+> must (usually) be avoided if one is a write.
+> Two writes will generate corrupt memory.
+> A concurrent write+read will generate a garbage read.
+> In the special case where the two ports use the same clock
+> it is possible to force the read to be 'old data' but that
+> constrains the timings.
+> 
+> On such systems the code must avoid conflicting cycles.
 
-> The definition of "conflict" should not include the type of access nor
-> whether the accesses are concurrent or not, which this patch addresses.
-> The definition of "data race" remains unchanged.
-> 
-> The definition of "conflict" as we know it and is cited by various
-> papers on memory consistency models appeared in [1]: "Two accesses to
-> the same variable conflict if at least one is a write; two operations
-> conflict if they execute conflicting accesses."
-> 
-> The LKMM as well as the C11 memory model are adaptations of
-> data-race-free, which are based on the work in [2]. Necessarily, we need
-> both conflicting data operations (plain) and synchronization operations
-> (marked). For example, C11's definition is based on [3], which defines a
-> "data race" as: "Two memory operations conflict if they access the same
-> memory location, and at least one of them is a store, atomic store, or
-> atomic read-modify-write operation. In a sequentially consistent
-> execution, two memory operations from different threads form a type 1
-> data race if they conflict, at least one of them is a data operation,
-> and they are adjacent in <T (i.e., they may be executed concurrently)."
-> 
-> [1] D. Shasha, M. Snir, "Efficient and Correct Execution of Parallel
->     Programs that Share Memory", 1988.
-> 	URL: http://snir.cs.illinois.edu/listed/J21.pdf
-> 
-> [2] S. Adve, "Designing Memory Consistency Models for Shared-Memory
->     Multiprocessors", 1993.
-> 	URL: http://sadve.cs.illinois.edu/Publications/thesis.pdf
-> 
-> [3] H.-J. Boehm, S. Adve, "Foundations of the C++ Concurrency Memory
->     Model", 2008.
-> 	URL: https://www.hpl.hp.com/techreports/2008/HPL-2008-56.pdf
-> 
-> Signed-off-by: Marco Elver <elver@google.com>
-> Co-developed-by: Alan Stern <stern@rowland.harvard.edu>
-> Signed-off-by: Alan Stern <stern@rowland.harvard.edu>
-> ---
-> v3:
-> * Apply Alan's suggestion.
-> * s/two race candidates/race candidates/
+That would be yet another definition of "conflicts".  Quite relevant on
+some older hardware I have worked with.  But what we are concerned with
+here are cases where (as you say) the memory subsystem will do just fine,
+but where the fact that the memory subsystem is called upon to do the
+necessary serialization constitutes a bug of some sort.
 
-Looks good!
+There are unfortunately a wide variety of definitions and opinions as
+to exactly what sorts of conflicts constitute bugs.  The generic pattern
+for these definitions and opinions is "a concurrent set of insufficiently
+marked accesses to a given location, at least one of which is a write".
 
-Alan
+The differences in definitions and opinions center around exactly what
+is meant by the word "insufficiently" in this last sentence.  We will
+probably be tolerating some variety of definitions in the kernel,
+and given the wide variety of code contained therein, this should be
+just fine.
+
+							Thanx, Paul
