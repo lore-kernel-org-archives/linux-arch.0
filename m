@@ -1,42 +1,48 @@
-Return-Path: <SRS0=twat=5M=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail-vs1-f67.google.com ([209.85.217.67]:44756 "EHLO
-        mail-vs1-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1725956AbgC0InI (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 27 Mar 2020 04:43:08 -0400
+Return-Path: <SRS0=wGQB=4T=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from foss.arm.com ([217.140.110.172]:34664 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1727170AbgCBQFS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 2 Mar 2020 11:05:18 -0500
+Subject: Re: provide in-place uncached remapping for dma-direct v2
+References: <20200224194446.690816-1-hch@lst.de>
+From: Robin Murphy <robin.murphy@arm.com>
+Message-ID: <4fe14c57-78d4-6590-a4c4-14fbe061238e@arm.com>
+Date: Mon, 2 Mar 2020 16:05:12 +0000
 MIME-Version: 1.0
-References: <4473787e1b6bc3cc226067e8d122092a678b63de.camel@marvell.com>
- <aed12dd15ea2981bc9554cfa8b5e273c1342c756.camel@marvell.com> <105f17f25e90a9a58299a7ed644bdd0f36434c87.camel@marvell.com>
-In-Reply-To: <105f17f25e90a9a58299a7ed644bdd0f36434c87.camel@marvell.com>
-From: Marta Rybczynska <rybczynska@gmail.com>
-Date: Fri, 27 Mar 2020 09:42:55 +0100
-Message-ID: <CAApg2=ThxqOj8a2uZbRVgXZFjHWHk9g_xY3eseobQWwHLxiREg@mail.gmail.com>
-Subject: Re: [PATCH v2 03/12] task_isolation: userspace hard isolation from kernel
-Content-Type: text/plain; charset="UTF-8"
+In-Reply-To: <20200224194446.690816-1-hch@lst.de>
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Language: en-GB
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Alex Belits <abelits@marvell.com>
-Cc: "frederic@kernel.org" <frederic@kernel.org>, "rostedt@goodmis.org" <rostedt@goodmis.org>, "mingo@kernel.org" <mingo@kernel.org>, "peterz@infradead.org" <peterz@infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Prasun Kapoor <pkapoor@marvell.com>, "tglx@linutronix.de" <tglx@linutronix.de>, "linux-api@vger.kernel.org" <linux-api@vger.kernel.org>, "catalin.marinas@arm.com" <catalin.marinas@arm.com>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "netdev@vger.kernel.org" <netdev@vger.kernel.org>, "davem@davemloft.net" <davem@davemloft.net>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "will@kernel.org" <will@kernel.org>
-Message-ID: <20200327084255.IrdtnUX4lqABLHCCreFaiGXTZ6E7BC4NXgYFrGI6IrQ@z>
+To: Christoph Hellwig <hch@lst.de>, Jonas Bonn <jonas@southpole.se>, Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>, Stafford Horne <shorne@gmail.com>
+Cc: Marek Szyprowski <m.szyprowski@samsung.com>, Will Deacon <will@kernel.org>, Mark Rutland <mark.rutland@arm.com>, openrisc@lists.librecores.org, iommu@lists.linux-foundation.org, linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20200302160512.PsQ8vFLSPWEBz_4PCGNr5Uuz6NgV8Gk2xfaKcr-4xA0@z>
 
-On Sun, Mar 8, 2020 at 4:48 AM Alex Belits <abelits@marvell.com> wrote:
-> +/* Enable task_isolation mode for TASK_ISOLATION kernels. */
-> +#define PR_TASK_ISOLATION              48
-> +# define PR_TASK_ISOLATION_ENABLE      (1 << 0)
-> +# define PR_TASK_ISOLATION_SET_SIG(sig)        (((sig) & 0x7f) << 8)
-> +# define PR_TASK_ISOLATION_GET_SIG(bits) (((bits) >> 8) & 0x7f)
-> +
-Thank you for resurrecting this code!
+On 24/02/2020 7:44 pm, Christoph Hellwig wrote:
+> Hi all,
+> 
+> this series provides support for remapping places uncached in-place in
+> the generic dma-direct code, and moves openrisc over from its own
+> in-place remapping scheme.  The arm64 folks also had interest in such
+> a scheme to avoid problems with speculating into cache aliases.
+> 
+> Also all architectures that always use small page mappings for the
+> kernel and have non-coherent DMA should look into enabling this
+> scheme, as it is much more efficient than the vmap remapping.
+> 
+> Changes since v1:
+>   - share the arch hook for inline remap and uncached segment support
+> 
 
-I have a question on the UAPI: the example code is using
-PR_TASK_ISOLATION_USERSIG and it seems to be removed from this
-version.
+For the whole series:
 
-To enable isolation with SIGUSR1 the task should run:
-prctl(PR_SET_TASK_ISOLATION, PR_TASK_ISOLATION_ENABLE
-    | PR_TASK_ISOLATION_SET_SIG(SIGUSR1), 0, 0, 0);
+Reviewed-by: Robin Murphy <robin.murphy@arm.com>
 
-And to disable:
-prctl(PR_SET_TASK_ISOLATION, 0, 0, 0, 0);
+I think we might ultimately want to fiddle around a bit more in 
+dma_direct_alloc_pages() to give ARCH_HAS_DMA_SET_UNCACHED clear 
+precedence over DMA_DIRECT_REMAP if they have to coexist, but let's land 
+these patches first as a solid foundation.
 
-Is this correct?
-Marta
+Thanks,
+Robin.
