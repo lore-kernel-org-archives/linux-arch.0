@@ -1,78 +1,42 @@
-Return-Path: <SRS0=WjNt=46=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:58722 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727281AbgCMPov (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 13 Mar 2020 11:44:51 -0400
-From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Subject: [PATCH v3 14/26] linux/ktime.h: Extract common header for vDSO
-Date: Fri, 13 Mar 2020 15:43:33 +0000
-Message-ID: <20200313154345.56760-15-vincenzo.frascino@arm.com>
-In-Reply-To: <20200313154345.56760-1-vincenzo.frascino@arm.com>
-References: <20200313154345.56760-1-vincenzo.frascino@arm.com>
+Return-Path: <SRS0=2lSW=4T=kvack.org=owner-linux-mm@kernel.org>
+Subject: Re: [PATCH] mm/special: Create generic fallbacks for pte_special()
+ and pte_mkspecial()
+References: <1583114190-7678-1-git-send-email-anshuman.khandual@arm.com>
+From: Helge Deller <deller@gmx.de>
+Message-ID: <c026934a-02c1-8589-f925-e267fcc367ad@gmx.de>
+Date: Mon, 2 Mar 2020 12:19:28 +0100
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
-Sender: linux-arch-owner@vger.kernel.org
+In-Reply-To: <1583114190-7678-1-git-send-email-anshuman.khandual@arm.com>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
+Content-Transfer-Encoding: quoted-printable
+Sender: owner-linux-mm@kvack.org
+To: Anshuman Khandual <anshuman.khandual@arm.com>, linux-mm@kvack.org
+Cc: Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Russell King <linux@armlinux.org.uk>, Guo Ren <guoren@kernel.org>, Brian Cain <bcain@codeaurora.org>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Sam Creasey <sammy@sammy.net>, Michal Simek <monstr@monstr.eu>, Ralf Baechle <ralf@linux-mips.org>, Paul Burton <paulburton@kernel.org>, Nick Hu <nickhu@andestech.com>, Greentime Hu <green.hu@gmail.com>, Vincent Chen <deanbo422@gmail.com>, Ley Foon Tan <ley.foon.tan@intel.com>, Jonas Bonn <jonas@southpole.se>, Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>, Stafford Horne <shorne@gmail.com>, "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>, "David S. Miller" <davem@davemloft.net>, Jeff Dike <jdike@addtoit.com>, Richard Weinberger <richard@nod.at>, Anton Ivanov <anton.ivanov@cambridgegreys.com>, Guan Xuetao <gxt@pku.edu.cn>, Chris Zankel <chris@zankel.net>, Max Filippov <jcmvbkbc@gmail.com>, Andrew Morton <akpm@linux-foundation.org>, linux-alpha@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-csky@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, nios2-dev@lists.rocketboards.org, openrisc@lists.librecores.org, linux-parisc@vger.kernel.org, sparclinux@vger.kernel.org, linux-um@lists.infradead.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org, clang-built-linux@googlegroups.com, x86@kernel.org
-Cc: Vincenzo Frascino <vincenzo.frascino@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Paul Burton <paul.burton@mips.com>, Thomas Gleixner <tglx@linutronix.de>, Andy Lutomirski <luto@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Stephen Boyd <sboyd@kernel.org>, Mark Salyzyn <salyzyn@android.com>, Kees Cook <keescook@chromium.org>, Peter Collingbourne <pcc@google.com>, Dmitry Safonov <0x7f454c46@gmail.com>, Andrei Vagin <avagin@openvz.org>, Nick Desaulniers <ndesaulniers@google.com>, Marc Zyngier <maz@kernel.org>, Mark Rutland <Mark.Rutland@arm.com>
-Message-ID: <20200313154333.m1qfotW5nsc1xHCSp5JcpHsXqMu7HyMzrx_Fzh5XKcA@z>
+Message-ID: <20200302111928.SafMQQ5u4Fcj00G6iwIDmkpKAK8oAHPX6lvvumvYOR0@z>
 
-The vDSO library should only include the necessary headers required for
-a userspace library (UAPI and a minimal set of kernel headers). To make
-this possible it is necessary to isolate from the kernel headers the
-common parts that are strictly necessary to build the library.
+On 02.03.20 02:56, Anshuman Khandual wrote:
+> Currently there are many platforms that dont enable HAVE_ARCH_PTE_SPECIA=
+L
+> but required to define quite similar fallback stubs for special page tab=
+le
+> entry helpers such as pte_special() and pte_mkspecial(), as they get bui=
+ld
+> in generic MM without a config check. This creates two generic fallback
+> stub definitions for these helpers, eliminating much code duplication.
+>
+> mips platform has a special case where pte_special() and pte_mkspecial()
+> visibility is wider than what HAVE_ARCH_PTE_SPECIAL enablement requires.
+> This restricts those symbol visibility in order to avoid redefinitions
+> which is now exposed through this new generic stubs and subsequent build
+> failure. arm platform set_pte_at() definition needs to be moved into a C
+> file just to prevent a build failure.
+>
+> Signed-off-by: Anshuman Khandual <anshuman.khandual@arm.com>
 
-Split ktime.h into linux and common headers to make the latter suitable
-for inclusion in the vDSO library.
+for parisc:
 
-Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
----
- include/linux/ktime.h |  9 +--------
- include/vdso/ktime.h  | 16 ++++++++++++++++
- 2 files changed, 17 insertions(+), 8 deletions(-)
- create mode 100644 include/vdso/ktime.h
+Acked-by: Helge Deller <deller@gmx.de> # parisc
 
-diff --git a/include/linux/ktime.h b/include/linux/ktime.h
-index b2bb44f87f5a..1fcfce97a020 100644
---- a/include/linux/ktime.h
-+++ b/include/linux/ktime.h
-@@ -253,14 +253,7 @@ static inline __must_check bool ktime_to_timespec64_cond(const ktime_t kt,
- 	}
- }
- 
--/*
-- * The resolution of the clocks. The resolution value is returned in
-- * the clock_getres() system call to give application programmers an
-- * idea of the (in)accuracy of timers. Timer values are rounded up to
-- * this resolution values.
-- */
--#define LOW_RES_NSEC		TICK_NSEC
--#define KTIME_LOW_RES		(LOW_RES_NSEC)
-+#include <vdso/ktime.h>
- 
- static inline ktime_t ns_to_ktime(u64 ns)
- {
-diff --git a/include/vdso/ktime.h b/include/vdso/ktime.h
-new file mode 100644
-index 000000000000..a0fd07239e0e
---- /dev/null
-+++ b/include/vdso/ktime.h
-@@ -0,0 +1,16 @@
-+/* SPDX-License-Identifier: GPL-2.0 */
-+#ifndef __VDSO_KTIME_H
-+#define __VDSO_KTIME_H
-+
-+#include <vdso/jiffies.h>
-+
-+/*
-+ * The resolution of the clocks. The resolution value is returned in
-+ * the clock_getres() system call to give application programmers an
-+ * idea of the (in)accuracy of timers. Timer values are rounded up to
-+ * this resolution values.
-+ */
-+#define LOW_RES_NSEC		TICK_NSEC
-+#define KTIME_LOW_RES		(LOW_RES_NSEC)
-+
-+#endif /* __VDSO_KTIME_H */
--- 
-2.25.1
+Helge
