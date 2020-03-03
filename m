@@ -1,58 +1,96 @@
-Return-Path: <SRS0=LVrk=5K=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from szxga03-in.huawei.com ([45.249.212.189]:3045 "EHLO huawei.com"
+Return-Path: <SRS0=/o7P=4U=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lhrrgout.huawei.com ([185.176.76.210]:2506 "EHLO huawei.com"
         rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1727212AbgCYCKu (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 24 Mar 2020 22:10:50 -0400
-From: "yezhenyu (A)" <yezhenyu2@huawei.com>
-Subject: RE: [RFC PATCH v4 4/6] mm: Add page table level flags to vm_flags
-Date: Wed, 25 Mar 2020 02:10:40 +0000
-Message-ID: <10338CF38D9A684EA38E1CF7D8D3411B045BA207@dggeml533-mbs.china.huawei.com>
-References: <20200324134534.1570-1-yezhenyu2@huawei.com>
-        <20200324134534.1570-5-yezhenyu2@huawei.com>
- <20200324144436.043659c2@gandalf.local.home>
-In-Reply-To: <20200324144436.043659c2@gandalf.local.home>
-Content-Language: zh-CN
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
+        id S1729100AbgCCRQW (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 3 Mar 2020 12:16:22 -0500
+Subject: Re: About commit "io: change inX() to have their own IO barrier
+ overrides"
+References: <2e80d7bc-32a0-cc40-00a9-8a383a1966c2@huawei.com>
+ <c1489f55-369d-2cff-ff36-b10fb5d3ee79@kernel.org>
+ <8207cd51-5b94-2f15-de9f-d85c9c385bca@huawei.com>
+ <6115fa56-a471-1e9f-edbb-e643fa4e7e11@kernel.org>
+ <7c955142-1fcb-d99e-69e4-1e0d3d9eb8c3@huawei.com>
+ <CAK8P3a0f9hnKGd6GJ8qFZSu+J-n4fY23TCGxQkmgJaxbpre50Q@mail.gmail.com>
+From: John Garry <john.garry@huawei.com>
+Message-ID: <773c5d63-5626-ca3d-634b-73d3a7776ddb@huawei.com>
+Date: Tue, 3 Mar 2020 17:16:18 +0000
 MIME-Version: 1.0
+In-Reply-To: <CAK8P3a0f9hnKGd6GJ8qFZSu+J-n4fY23TCGxQkmgJaxbpre50Q@mail.gmail.com>
+Content-Type: text/plain; charset="utf-8"; format=flowed
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Steven Rostedt <rostedt@goodmis.org>
-Cc: "will@kernel.org" <will@kernel.org>, "mark.rutland@arm.com" <mark.rutland@arm.com>, "catalin.marinas@arm.com" <catalin.marinas@arm.com>, "aneesh.kumar@linux.ibm.com" <aneesh.kumar@linux.ibm.com>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "npiggin@gmail.com" <npiggin@gmail.com>, "peterz@infradead.org" <peterz@infradead.org>, "arnd@arndb.de" <arnd@arndb.de>, "maz@kernel.org" <maz@kernel.org>, "suzuki.poulose@arm.com" <suzuki.poulose@arm.com>, "tglx@linutronix.de" <tglx@linutronix.de>, "yuzhao@google.com" <yuzhao@google.com>, "Dave.Martin@arm.com" <Dave.Martin@arm.com>, "steven.price@arm.com" <steven.price@arm.com>, "broonie@kernel.org" <broonie@kernel.org>, "Guohanjun (Hanjun Guo)" <guohanjun@huawei.com>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "arm@kernel.org" <arm@kernel.org>, Xiexiangyou <xiexiangyou@huawei.com>, "Zengtao (B)" <prime.zeng@hisilicon.com>, Zhangshaokun <zhangshaokun@hisilicon.com>
-Message-ID: <20200325021040.2RlmQi6Fb62atlxF79GASd4upiY5RKusHb1OtIp2id4@z>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Sinan Kaya <okaya@kernel.org>, "xuwei (O)" <xuwei5@hisilicon.com>, Bjorn Helgaas <bhelgaas@google.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Jiaxun Yang <jiaxun.yang@flygoat.com>, linux-arch <linux-arch@vger.kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, Will Deacon <will@kernel.org>, Catalin Marinas <catalin.marinas@arm.com>
+Message-ID: <20200303171618.oKtUB17vmVR9hrFwAHRgW6YpPklvjBC0dz2XF0NO_6Y@z>
 
-SGkgU3RldmUsDQoNCk9uIFdlZCwgMjUgTWFyIDIwMjAgMjo0NSwgU3RldmUgd3JvdGU6DQo+IE9u
-IFR1ZSwgMjQgTWFyIDIwMjAgMjE6NDU6MzIgKzA4MDANCj4gWmhlbnl1IFllIDx5ZXpoZW55dTJA
-aHVhd2VpLmNvbT4gd3JvdGU6DQo+IA0KPiA+IC0tLSBhL2luY2x1ZGUvdHJhY2UvZXZlbnRzL21t
-ZmxhZ3MuaA0KPiA+ICsrKyBiL2luY2x1ZGUvdHJhY2UvZXZlbnRzL21tZmxhZ3MuaA0KPiA+IEBA
-IC0xMzAsNiArMTMwLDE2IEBAIElGX0hBVkVfUEdfSURMRShQR19pZGxlLAkJImlkbGUiCQkpDQo+
-ID4gICNkZWZpbmUgSUZfSEFWRV9WTV9TT0ZURElSVFkoZmxhZyxuYW1lKQ0KPiA+ICAjZW5kaWYN
-Cj4gPg0KPiA+ICsjaWZkZWYgQ09ORklHXzY0QklUDQo+ID4gKyNkZWZpbmUgSUZfSEFWRV9WTV9M
-RVZFTF9QVUQoZmxhZyxuYW1lKQl7ZmxhZywgbmFtZX0NCj4gPiArI2RlZmluZSBJRl9IQVZFX1ZN
-X0xFVkVMX1BNRChmbGFnLG5hbWUpCXtmbGFnLCBuYW1lfQ0KPiA+ICsjZGVmaW5lIElGX0hBVkVf
-Vk1fTEVWRUxfUFRFKGZsYWcsbmFtZSkJe2ZsYWcsIG5hbWV9DQo+ID4gKyNlbHNlDQo+ID4gKyNk
-ZWZpbmUgSUZfSEFWRV9WTV9MRVZFTF9QVUQoZmxhZyxuYW1lKQ0KPiA+ICsjZGVmaW5lIElGX0hB
-VkVfVk1fTEVWRUxfUE1EKGZsYWcsbmFtZSkNCj4gPiArI2RlZmluZSBJRl9IQVZFX1ZNX0xFVkVM
-X1BURShmbGFnLG5hbWUpDQo+ID4gKyNlbmRpZg0KPiA+ICsNCj4gPiAgI2RlZmluZSBfX2RlZl92
-bWFmbGFnX25hbWVzCQkJCQkJXA0KPiA+ICAJe1ZNX1JFQUQsCQkJInJlYWQiCQl9LAkJXA0KPiA+
-ICAJe1ZNX1dSSVRFLAkJCSJ3cml0ZSIJCX0sCQlcDQo+ID4gQEAgLTE2MSw3ICsxNzEsMTAgQEAg
-SUZfSEFWRV9WTV9TT0ZURElSVFkoVk1fU09GVERJUlRZLA0KPiAJInNvZnRkaXJ0eSIJKQkJXA0K
-PiA+ICAJe1ZNX01JWEVETUFQLAkJCSJtaXhlZG1hcCIJfSwJCVwNCj4gPiAgCXtWTV9IVUdFUEFH
-RSwJCQkiaHVnZXBhZ2UiCX0sCQlcDQo+ID4gIAl7Vk1fTk9IVUdFUEFHRSwJCQkibm9odWdlcGFn
-ZSIJfSwJCVwNCj4gPiAtCXtWTV9NRVJHRUFCTEUsCQkJIm1lcmdlYWJsZSIJfQkJXA0KPiA+ICsJ
-e1ZNX01FUkdFQUJMRSwJCQkibWVyZ2VhYmxlIgl9LAkJXA0KPiA+ICtJRl9IQVZFX1ZNX0xFVkVM
-X1BVRChWTV9MRVZFTF9QVUQsCSJwdWQtbGV2ZWwiCSksCQlcDQo+ID4gK0lGX0hBVkVfVk1fTEVW
-RUxfUE1EKFZNX0xFVkVMX1BNRCwJInBtZC1sZXZlbCIJKSwJCVwNCj4gPiArSUZfSEFWRV9WTV9M
-RVZFTF9QVEUoVk1fTEVWRUxfUFRFLAkicHRlLWxldmVsIgkpCQlcDQo+ID4NCj4gDQo+IEhhdmUg
-eW91IHRlc3RlZCB0aGlzIG9uIDMyYml0PyBJdCBsb29rcyBsaWtlIHlvdSdsbCBnZXQgZW1wdHkg
-Y29tbWFzIHRoZXJlLg0KPiBQZXJoYXBzIHRoZSBkZWZpbmVzIG5lZWQgdG8gYmU6DQo+IA0KPiAj
-aWZkZWYgQ09ORklHXzY0QklUDQo+ICNkZWZpbmUgSUZfSEFWRV9WTV9MRVZFTF9QVUQoZmxhZyxu
-YW1lKQl7ZmxhZywgbmFtZX0sDQo+ICNkZWZpbmUgSUZfSEFWRV9WTV9MRVZFTF9QTUQoZmxhZyxu
-YW1lKQl7ZmxhZywgbmFtZX0sDQo+ICNkZWZpbmUgSUZfSEFWRV9WTV9MRVZFTF9QVEUoZmxhZyxu
-YW1lKQl7ZmxhZywgbmFtZX0NCj4gI2Vsc2UNCj4gI2RlZmluZSBJRl9IQVZFX1ZNX0xFVkVMX1BV
-RChmbGFnLG5hbWUpDQo+ICNkZWZpbmUgSUZfSEFWRV9WTV9MRVZFTF9QTUQoZmxhZyxuYW1lKQ0K
-PiAjZGVmaW5lIElGX0hBVkVfVk1fTEVWRUxfUFRFKGZsYWcsbmFtZSkNCj4gI2VuZGlmDQo+IA0K
-PiBBbmQgbGVhdmUgb3V0IHRoZSBjb21tYXMgaW4gdGhlIGxpc3QuDQo+IA0KPiAtLSBTdGV2ZQ0K
-DQpUaGFua3MgZm9yIHlvdXIgcmV2aWV3LiBJIHdpbGwgZml4IHRoaXMgaW4gbmV4dCB2ZXJzaW9u
-LCBpZiBJIGNvdWxkIHN0aWxsIHVzZSB2bV9mbGFncw0KYXQgdGhhdCB0aW1lIDopLg0KDQpaaGVu
-eXUNCg0K
+On 03/03/2020 16:40, Arnd Bergmann wrote:
+> On Tue, Mar 3, 2020 at 2:18 PM John Garry <john.garry@huawei.com> wrote:
+>>
+>> + linux-arch
+>>
+>> For background, see
+>> https://lore.kernel.org/lkml/2e80d7bc-32a0-cc40-00a9-8a383a1966c2@huawei.com/
+>>
+>>>>
+>>>> So today only ARM64 uses it for this relevant code, above. But maybe
+>>>> others in future will want to use it - any arch without native IO port
+>>>> access is a candidate.
+>>>
+>>> I'm looking at Arnd here for help.
+>>>
+>>>>
+>>>>>
+>>>>> As long as the expectations are set, I see no reason why it shouldn't
+>>>>> but, I'll let Arnd comment on it too.
+>>>>
+>>>> ok, so it looks reasonable consider replicating your change for ***, above.
+>>
+>> To be clear, I would make this change in lib/logic_pio.c since
+>> __io_pbr() can be overridden per-arch:
+>>
+>>    #define BUILD_LOGIC_IO(bw, type)
+>>    type logic_in##bw(unsigned long addr)
+>>    {
+>>         type ret = (type)~0;
+>>         if (addr < MMIO_UPPER_LIMIT) {
+>> -          ret = read##bw(PCI_IOBASE + addr);
+>> +          __io_pbr();
+>> +          ret = __raw_read##bw(PCI_IOBASE + addr);
+>> +          __io_pbr();
+> 
+> __io_par();
+> 
+>>         } else if (addr >= MMIO_UPPER_LIMIT && addr < IO_SPACE_LIMIT) {
+>>             struct logic_pio_hwaddr *entry = find_io_range(addr);
+>>
+>> ...
+>>
+>> (forgetting leX_to_cpu for the moment)
+> 
+> Yes, I suppose this is required to get consistent behavior on arm64,
+> which overrides __io_par() but not __io_ar(), with the current code
+> the barrier after read is weaker when LOGIC_PIO is enabled than it
+> is otherwise.
+
+Ok.
+
+Apart from that, this code is somewhat hidden. I mean, most people would 
+consider generic IO port accessors come from asm-generic/io.h only, 
+which is not the case here. Maybe this can be better integrated into 
+asm-generic/io.h, the only hint today being the logic_pio.h include half 
+way through the file.
+
+> 
+> For other architectures, I suppose we would need another indirection
+> level, as those can also override the default inb() itself to do something
+> other than readb(PCI_IOBASE + addr), and that is not handled
+> here either. We can do that if we need LOGIC_PIO on a second
+> architecture.
+
+Jiaxun Yang did mention that MIPS may want to move away from its own IO 
+space management.
+
+Thanks,
+John
