@@ -1,65 +1,104 @@
 From: Kees Cook <keescook@chromium.org>
-Subject: Re: [PATCH v3 4/7] init: main: add KUnit to kernel init
-Date: Mon, 2 Mar 2020 14:45:30 -0800
-Message-ID: <202003021439.A6B6FD8@keescook>
-References: <20200228012036.15682-5-brendanhiggins@google.com>
+Subject: Re: [PATCH 0/9] Enable orphan section warning
+Date: Mon, 2 Mar 2020 20:32:51 -0800
+Message-ID: <202003022029.B549AA3@keescook>
+References: <20200228002244.15240-1-keescook@chromium.org>
+ <CA+icZUVRnjOWKZynAGDniXD_H9KRccONmeKHs25DPPU1c8ZcGg@mail.gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pf1-f195.google.com ([209.85.210.195]:35583 "EHLO
-        mail-pf1-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726843AbgCBWpe (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 2 Mar 2020 17:45:34 -0500
-Received: by mail-pf1-f195.google.com with SMTP id i19so432614pfa.2
-        for <linux-arch@vger.kernel.org>; Mon, 02 Mar 2020 14:45:33 -0800 (PST)
+Return-path: <linux-kbuild-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <20200228012036.15682-5-brendanhiggins@google.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Brendan Higgins <brendanhiggins@google.com>
-Cc: Frank Rowand <frowand.list@gmail.com>, jdike@addtoit.com, richard@nod.at, anton.ivanov@cambridgegreys.com, arnd@arndb.de, skhan@linuxfoundation.org, alan.maguire@oracle.com, yzaikin@google.com, davidgow@google.com, akpm@linux-foundation.org, rppt@linux.ibm.com, gregkh@linuxfoundation.org, sboyd@kernel.org, logang@deltatee.com, mcgrof@kernel.org, linux-um@lists.infradead.org, linux-arch@vger.kernel.org, linux-kselftest@vger.kernel.org, kunit-dev@googlegroups.com, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org
+In-Reply-To: <CA+icZUVRnjOWKZynAGDniXD_H9KRccONmeKHs25DPPU1c8ZcGg@mail.gmail.com>
+Sender: linux-kbuild-owner@vger.kernel.org
+To: Sedat Dilek <sedat.dilek@gmail.com>
+Cc: Borislav Petkov <bp@suse.de>, "H.J. Lu" <hjl.tools@gmail.com>, Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Mark Rutland <mark.rutland@arm.com>, Peter Collingbourne <pcc@google.com>, James Morse <james.morse@arm.com>, Arnd Bergmann <arnd@arndb.de>, Masahiro Yamada <masahiroy@kernel.org>, x86@kernel.org, linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, linux-kbuild@vger.kernel.org, Clang-Built-Linux ML <clang-built-linux@googlegroups.com>, linux-kernel@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On 2/27/20 7:20 PM, Brendan Higgins wrote:
-> Remove KUnit from init calls entirely, instead call directly from
-> kernel_init().
+On Fri, Feb 28, 2020 at 07:51:21AM +0100, Sedat Dilek wrote:
+> On Fri, Feb 28, 2020 at 1:22 AM Kees Cook <keescook@chromium.org> wrote:
+> > This series depends on tip/x86/boot (where recent .eh_frame fixes[3]
+> > landed), and has a minor conflict[4] with the ARM tree (related to
+> > the earlier mentioned bug). As it uses refactorings in the asm-generic
+> > linker script, and makes changes to kbuild, I think the cleanest place
+> > for this series to land would also be through -tip. Once again (like
+> > my READ_IMPLIES_EXEC series), I'm looking to get maintainer Acks so
+> > this can go all together with the least disruption. Splitting it up by
+> > architecture seems needlessly difficult.
 > 
-> Co-developed-by: Alan Maguire <alan.maguire@oracle.com>
-> Signed-off-by: Alan Maguire <alan.maguire@oracle.com>
-> Signed-off-by: Brendan Higgins <brendanhiggins@google.com>
-> Reviewed-by: Stephen Boyd <sboyd@kernel.org>
-> [...]
-> diff --git a/init/main.c b/init/main.c
-> index ee4947af823f3..7875a5c486dc4 100644
-> --- a/init/main.c
-> +++ b/init/main.c
-> @@ -104,6 +104,8 @@
->  #define CREATE_TRACE_POINTS
->  #include <trace/events/initcall.h>
->  
-> +#include <kunit/test.h>
-> +
->  static int kernel_init(void *);
->  
->  extern void init_IRQ(void);
-> @@ -1444,6 +1446,8 @@ static noinline void __init kernel_init_freeable(void)
->  
->  	do_basic_setup();
->  
-> +	kunit_run_all_tests();
-> +
->  	console_on_rootfs();
->  
->  	/*
+> Hi Kees,
+> 
+> is this an updated version of what you have in your
+> kees/linux.git#linker/orphans/x86-arm Git branch?
 
-I'm nervous about this happening before two key pieces of the kernel
-setup, which might lead to weird timing-sensitive bugs or false
-positives:
-	async_synchronize_full()
-	mark_readonly()
+Hi; yes indeed.
 
-Now, I realize kunit tests _should_ be self-contained, but this seems
-like a possible robustness problem. Is there any reason this can't be
-moved after rcu_end_inkernel_boot() in kernel_init() instead?
+> Especially, I saw a difference in [2] and "[PATCH 4/9] x86/boot: Warn
+> on orphan section placement"
+> 
+> [ arch/x86/boot/compressed/Makefile ]
+> 
+> +KBUILD_LDFLAGS += --no-ld-generated-unwind-info
+> 
+> Can you comment on why this KBUILD_LDFLAGS was added/needed?
+
+It looks like the linker decided to add .eh_frame sections even when all
+the .o files lacked it. Adding this flag solved it (which I prefer over
+adding it to DISCARD).
+
+> I like when people offer their work in a Git branch.
+> Do you plan to do that?
+
+Since it was based on a -tip sub-branch I didn't push a
+copy, but since you asked here it is:
+https://git.kernel.org/pub/scm/linux/kernel/git/kees/linux.git/log/?h=orphans/tip/x86/boot
+
+And this email can serve as a "ping" to the arch maintainers too...
+does this all look okay to you? I think it'd be a nice improvement. :)
+
+Thanks!
+
+-Kees
+
+> Thanks.
+> 
+> Regards,
+> - Sedat -
+> 
+> [1] https://git.kernel.org/pub/scm/linux/kernel/git/kees/linux.git/log/?h=linker/orphans/x86-arm
+> [2] https://git.kernel.org/pub/scm/linux/kernel/git/kees/linux.git/commit/?h=linker/orphans/x86-arm&id=e43aa77956c40b9b6db0b37b3780423aa2e661ad
+> 
+> 
+> 
+> > H.J. Lu (1):
+> >   Add RUNTIME_DISCARD_EXIT to generic DISCARDS
+> >
+> > Kees Cook (8):
+> >   scripts/link-vmlinux.sh: Delay orphan handling warnings until final
+> >     link
+> >   vmlinux.lds.h: Add .gnu.version* to DISCARDS
+> >   x86/build: Warn on orphan section placement
+> >   x86/boot: Warn on orphan section placement
+> >   arm64/build: Use common DISCARDS in linker script
+> >   arm64/build: Warn on orphan section placement
+> >   arm/build: Warn on orphan section placement
+> >   arm/boot: Warn on orphan section placement
+> >
+> >  arch/arm/Makefile                             |  4 ++++
+> >  arch/arm/boot/compressed/Makefile             |  2 ++
+> >  arch/arm/boot/compressed/vmlinux.lds.S        | 17 ++++++--------
+> >  .../arm/{kernel => include/asm}/vmlinux.lds.h | 22 ++++++++++++++-----
+> >  arch/arm/kernel/vmlinux-xip.lds.S             |  5 ++---
+> >  arch/arm/kernel/vmlinux.lds.S                 |  5 ++---
+> >  arch/arm64/Makefile                           |  4 ++++
+> >  arch/arm64/kernel/vmlinux.lds.S               | 13 +++++------
+> >  arch/x86/Makefile                             |  4 ++++
+> >  arch/x86/boot/compressed/Makefile             |  3 ++-
+> >  arch/x86/boot/compressed/vmlinux.lds.S        | 13 +++++++++++
+> >  arch/x86/kernel/vmlinux.lds.S                 |  7 ++++++
+> >  include/asm-generic/vmlinux.lds.h             | 11 ++++++++--
+> >  scripts/link-vmlinux.sh                       |  6 +++++
+> >  14 files changed, 85 insertions(+), 31 deletions(-)
+> >  rename arch/arm/{kernel => include/asm}/vmlinux.lds.h (92%)
 
 -- 
 Kees Cook
