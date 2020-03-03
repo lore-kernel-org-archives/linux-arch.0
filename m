@@ -1,168 +1,72 @@
-From: Michael Ellerman <mpe@ellerman.id.au>
-Subject: Re: [PATCH 2/2] powerpc/powernv: Wire up OPAL address lookups
-Date: Tue, 03 Mar 2020 22:43:36 +1100
-Message-ID: <87v9nlr7dj.fsf@mpe.ellerman.id.au>
-References: <20200228031027.271510-1-npiggin@gmail.com> <20200228031027.271510-2-npiggin@gmail.com>
+From: John Garry <john.garry@huawei.com>
+Subject: Re: About commit "io: change inX() to have their own IO barrier
+ overrides"
+Date: Tue, 3 Mar 2020 13:18:21 +0000
+Message-ID: <7c955142-1fcb-d99e-69e4-1e0d3d9eb8c3@huawei.com>
+References: <2e80d7bc-32a0-cc40-00a9-8a383a1966c2@huawei.com>
+ <c1489f55-369d-2cff-ff36-b10fb5d3ee79@kernel.org>
+ <8207cd51-5b94-2f15-de9f-d85c9c385bca@huawei.com>
+ <6115fa56-a471-1e9f-edbb-e643fa4e7e11@kernel.org>
 Mime-Version: 1.0
-Content-Type: text/plain
+Content-Type: text/plain; charset="utf-8"; format=flowed
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from bilbo.ozlabs.org ([203.11.71.1]:56549 "EHLO ozlabs.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727738AbgCCLnm (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 3 Mar 2020 06:43:42 -0500
-In-Reply-To: <20200228031027.271510-2-npiggin@gmail.com>
+Received: from lhrrgout.huawei.com ([185.176.76.210]:2504 "EHLO huawei.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1727901AbgCCNSY (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 3 Mar 2020 08:18:24 -0500
+In-Reply-To: <6115fa56-a471-1e9f-edbb-e643fa4e7e11@kernel.org>
+Content-Language: en-US
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linuxppc-dev@lists.ozlabs.org
-Cc: Nicholas Piggin <npiggin@gmail.com>, skiboot@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: Sinan Kaya <okaya@kernel.org>, Arnd Bergmann <arnd@arndb.de>
+Cc: "xuwei (O)" <xuwei5@hisilicon.com>, Bjorn Helgaas <bhelgaas@google.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Jiaxun Yang <jiaxun.yang@flygoat.com>, linux-arch <linux-arch@vger.kernel.org>
 
-Nicholas Piggin <npiggin@gmail.com> writes:
-> Use ARCH_HAS_ADDRESS_LOOKUP to look up the opal symbol table. This
-> allows crashes and xmon debugging to print firmware symbols.
->
->   Oops: System Reset, sig: 6 [#1]
->   LE PAGE_SIZE=64K MMU=Radix SMP NR_CPUS=2048 NUMA PowerNV
->   Modules linked in:
->   CPU: 0 PID: 0 Comm: swapper/0 Not tainted 5.6.0-rc2-dirty #903
->   NIP:  0000000030020434 LR: 000000003000378c CTR: 0000000030020414
->   REGS: c0000000fffc3d70 TRAP: 0100   Not tainted  (5.6.0-rc2-dirty)
->   MSR:  9000000002101002 <SF,HV,VEC,ME,RI>  CR: 28022284  XER: 20040000
->   CFAR: 0000000030003788 IRQMASK: 3
->   GPR00: 000000003000378c 0000000031c13c90 0000000030136200 c0000000012cfa10
->   GPR04: c0000000012cfa10 0000000000000010 0000000000000000 0000000031c10060
->   GPR08: c0000000012cfaaf 0000000030003640 0000000000000000 0000000000000001
->   GPR12: 00000000300e0000 c000000001490000 0000000000000000 c00000000139c588
->   GPR16: 0000000031c10000 c00000000125a900 0000000000000000 c0000000012076a8
->   GPR20: c0000000012a3950 0000000000000001 0000000031c10060 c0000000012cfaaf
->   GPR24: 0000000000000019 0000000030003640 0000000000000000 0000000000000000
->   GPR28: 0000000000000010 c0000000012cfa10 0000000000000000 0000000000000000
->   NIP [0000000030020434] .dummy_console_write_buffer_space+0x20/0x64 [OPAL]
->   LR [000000003000378c] opal_entry+0x14c/0x17c [OPAL]
->
-> This won't unwind the firmware stack (or its Linux caller) properly if
-> firmware and kernel endians don't match, but that problem could be solved
-> in powerpc's unwinder.
++ linux-arch
 
-How well does this work if we're tracing opal calls at the time we oops :)
+For background, see 
+https://lore.kernel.org/lkml/2e80d7bc-32a0-cc40-00a9-8a383a1966c2@huawei.com/
 
-Though it looks like that's already fishy because we don't do anything
-to disable tracing of opal_console_write().
+>>
+>> So today only ARM64 uses it for this relevant code, above. But maybe
+>> others in future will want to use it - any arch without native IO port
+>> access is a candidate.
+> 
+> I'm looking at Arnd here for help.
+> 
+>>
+>>>
+>>> As long as the expectations are set, I see no reason why it shouldn't
+>>> but, I'll let Arnd comment on it too.
+>>
+>> ok, so it looks reasonable consider replicating your change for ***, above.
 
-I guess I'm a bit wary of adding numerous further opal calls in the oops
-path, I'm sure the opal symbol lookup code is bug free, but still.
+To be clear, I would make this change in lib/logic_pio.c since 
+__io_pbr() can be overridden per-arch:
 
-Could we instead suck in the opal symbols early on, and search them in
-Linux? I suspect you've thought of that and rejected it, but it would be
-good to document why.
+  #define BUILD_LOGIC_IO(bw, type)
+  type logic_in##bw(unsigned long addr)
+  {
+       type ret = (type)~0;
+       if (addr < MMIO_UPPER_LIMIT) {
+-          ret = read##bw(PCI_IOBASE + addr);
++          __io_pbr();
++          ret = __raw_read##bw(PCI_IOBASE + addr);
++          __io_pbr();	
+       } else if (addr >= MMIO_UPPER_LIMIT && addr < IO_SPACE_LIMIT) {
+           struct logic_pio_hwaddr *entry = find_io_range(addr);
 
-cheers
+...
 
-> diff --git a/arch/powerpc/Kconfig b/arch/powerpc/Kconfig
-> index 497b7d0b2d7e..4d32b02d35e8 100644
-> --- a/arch/powerpc/Kconfig
-> +++ b/arch/powerpc/Kconfig
-> @@ -115,6 +115,7 @@ config PPC
->  	# Please keep this list sorted alphabetically.
->  	#
->  	select ARCH_32BIT_OFF_T if PPC32
-> +	select ARCH_HAS_ADDRESS_LOOKUP		if PPC_POWERNV
->  	select ARCH_HAS_DEBUG_VIRTUAL
->  	select ARCH_HAS_DEVMEM_IS_ALLOWED
->  	select ARCH_HAS_ELF_RANDOMIZE
-> diff --git a/arch/powerpc/include/asm/opal-api.h b/arch/powerpc/include/asm/opal-api.h
-> index c1f25a760eb1..c3a2a797177a 100644
-> --- a/arch/powerpc/include/asm/opal-api.h
-> +++ b/arch/powerpc/include/asm/opal-api.h
-> @@ -214,7 +214,11 @@
->  #define OPAL_SECVAR_GET				176
->  #define OPAL_SECVAR_GET_NEXT			177
->  #define OPAL_SECVAR_ENQUEUE_UPDATE		178
-> -#define OPAL_LAST				178
-> +#define OPAL_PHB_SET_OPTION			179
-> +#define OPAL_PHB_GET_OPTION			180
+(forgetting leX_to_cpu for the moment)
 
-Only pull in the calls you need for this patch.
+> 
+> Arnd is the maintainer here. We should consult first.
 
-> +#define OPAL_GET_SYMBOL				181
-> +#define OPAL_LOOKUP_SYMBOL			182
-> +#define OPAL_LAST				182
->  
->  #define QUIESCE_HOLD			1 /* Spin all calls at entry */
->  #define QUIESCE_REJECT			2 /* Fail all calls with OPAL_BUSY */
-> diff --git a/arch/powerpc/include/asm/opal.h b/arch/powerpc/include/asm/opal.h
-> index 9986ac34b8e2..ef2d9273f06f 100644
-> --- a/arch/powerpc/include/asm/opal.h
-> +++ b/arch/powerpc/include/asm/opal.h
-> @@ -312,6 +312,9 @@ s64 opal_mpipl_query_tag(enum opal_mpipl_tags tag, u64 *addr);
->  s64 opal_signal_system_reset(s32 cpu);
->  s64 opal_quiesce(u64 shutdown_type, s32 cpu);
->  
-> +int64_t opal_get_symbol(uint64_t addr, __be64 *symaddr, __be64 *symsize, char *namebuf, uint64_t buflen);
-> +int64_t opal_lookup_symbol(const char *name, __be64 *symaddr, __be64 *symsize);
-> +
->  /* Internal functions */
->  extern int early_init_dt_scan_opal(unsigned long node, const char *uname,
->  				   int depth, void *data);
-> diff --git a/arch/powerpc/platforms/powernv/opal-call.c b/arch/powerpc/platforms/powernv/opal-call.c
-> index 5cd0f52d258f..ba11112d94df 100644
-> --- a/arch/powerpc/platforms/powernv/opal-call.c
-> +++ b/arch/powerpc/platforms/powernv/opal-call.c
-> @@ -293,3 +293,5 @@ OPAL_CALL(opal_mpipl_query_tag,			OPAL_MPIPL_QUERY_TAG);
->  OPAL_CALL(opal_secvar_get,			OPAL_SECVAR_GET);
->  OPAL_CALL(opal_secvar_get_next,			OPAL_SECVAR_GET_NEXT);
->  OPAL_CALL(opal_secvar_enqueue_update,		OPAL_SECVAR_ENQUEUE_UPDATE);
-> +OPAL_CALL(opal_get_symbol,			OPAL_GET_SYMBOL);
-> +OPAL_CALL(opal_lookup_symbol,			OPAL_LOOKUP_SYMBOL);
-> diff --git a/arch/powerpc/platforms/powernv/opal.c b/arch/powerpc/platforms/powernv/opal.c
-> index 2b3dfd0b6cdd..fdf6c4e6f7f9 100644
-> --- a/arch/powerpc/platforms/powernv/opal.c
-> +++ b/arch/powerpc/platforms/powernv/opal.c
-> @@ -107,6 +107,46 @@ void opal_configure_cores(void)
->  		cur_cpu_spec->cpu_restore();
->  }
->  
-> +const char *arch_address_lookup(unsigned long addr,
-> +			    unsigned long *symbolsize,
-> +			    unsigned long *offset,
-> +			    char **modname, char *namebuf)
-> +{
-> +	__be64 symaddr;
-> +	__be64 symsize;
-> +
-> +	if (!firmware_has_feature(FW_FEATURE_OPAL))
-> +		return NULL;
-> +
-> +	if (opal_get_symbol(addr, &symaddr, &symsize, namebuf,
-> +			cpu_to_be64(KSYM_NAME_LEN)) != OPAL_SUCCESS)
-> +		return NULL;
-> +
-> +	*symbolsize = be64_to_cpu(symsize);
-> +	*offset = addr - be64_to_cpu(symaddr);
-> +	*modname = "OPAL";
-> +
-> +	return namebuf;
-> +}
-> +
-> +unsigned long arch_address_lookup_name(const char *name)
-> +{
-> +	__be64 addr;
-> +	__be64 size;
-> +
-> +	if (!firmware_has_feature(FW_FEATURE_OPAL))
-> +		return 0;
-> +
-> +	/* opal: prefix allows lookup of symbols that clash with kernel */
-> +	if (!strncasecmp(name, "opal:", strlen("opal:")))
-> +		name += strlen("opal:");
-> +
-> +	if (opal_lookup_symbol(name, &addr, &size) != OPAL_SUCCESS)
-> +		return 0;
-> +
-> +	return be64_to_cpu(addr);
-> +}
-> +
->  int __init early_init_dt_scan_opal(unsigned long node,
->  				   const char *uname, int depth, void *data)
->  {
-> -- 
-> 2.23.0
+ok, fine.
+
+> I believe there is also a linux-arch mailing list. Going there with this
+> question makes sense IMO.
+
+Cheers,
+John
