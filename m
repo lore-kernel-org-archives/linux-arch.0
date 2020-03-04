@@ -1,77 +1,53 @@
-Return-Path: <SRS0=twat=5M=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from zeniv.linux.org.uk ([195.92.253.2]:35918 "EHLO
-        ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727028AbgC0XbU (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 27 Mar 2020 19:31:20 -0400
-From: Al Viro <viro@ZenIV.linux.org.uk>
-Subject: [RFC][PATCH 08/14] parisc: turn csum_partial_copy_from_user() into csum_and_copy_from_user()
-Date: Fri, 27 Mar 2020 23:31:11 +0000
-Message-ID: <20200327233117.1031393-8-viro@ZenIV.linux.org.uk>
-In-Reply-To: <20200327233117.1031393-1-viro@ZenIV.linux.org.uk>
-References: <20200327233006.GW23230@ZenIV.linux.org.uk>
- <20200327233117.1031393-1-viro@ZenIV.linux.org.uk>
+Return-Path: <SRS0=Zkb6=4V=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from pegase1.c-s.fr ([93.17.236.30]:7396 "EHLO pegase1.c-s.fr"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1725283AbgCDGtF (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 4 Mar 2020 01:49:05 -0500
+Subject: Re: [PATCH V14] mm/debug: Add tests validating architecture page
+ table helpers
+References: <1581909460-19148-1-git-send-email-anshuman.khandual@arm.com>
+ <1582726182.7365.123.camel@lca.pw>
+ <7c707b7f-ce3d-993b-8042-44fdc1ed28bf@c-s.fr>
+ <1582732318.7365.129.camel@lca.pw> <1583178042.7365.146.camel@lca.pw>
+ <e8516497-f1b9-b222-e219-73b68880ac75@arm.com>
+ <12260F9A-695D-40F8-932F-61D86D77D441@lca.pw>
+From: Christophe Leroy <christophe.leroy@c-s.fr>
+Message-ID: <c022e863-0807-fab1-cd41-3c320381f448@c-s.fr>
+Date: Wed, 4 Mar 2020 07:48:54 +0100
 MIME-Version: 1.0
+In-Reply-To: <12260F9A-695D-40F8-932F-61D86D77D441@lca.pw>
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Language: fr
 Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20200327233111.UMA3xmJYzQ8sb4qvLQr03Pz91fGFIKxt0QsSwruNbRc@z>
+To: Qian Cai <cai@lca.pw>, Anshuman Khandual <anshuman.khandual@arm.com>
+Cc: Linux Memory Management List <linux-mm@kvack.org>, Andrew Morton <akpm@linux-foundation.org>, Mike Rapoport <rppt@linux.ibm.com>, Vineet Gupta <vgupta@synopsys.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Heiko Carstens <heiko.carstens@de.ibm.com>, Vasily Gorbik <gor@linux.ibm.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, "Kirill A . Shutemov" <kirill@shutemov.name>, Paul Walmsley <paul.walmsley@sifive.com>, Palmer Dabbelt <palmer@dabbelt.com>, linux-snps-arc@lists.infradead.org, linux-arm-kernel@lists.infradead.org, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, linux-s390@vger.kernel.org, linux-riscv@lists.infradead.org, the arch/x86 maintainers <x86@kernel.org>, linux-arch@vger.kernel.org, LKML <linux-kernel@vger.kernel.org>, "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>
+Message-ID: <20200304064854.KRp718E7SekG4bUw_mIXystvrKCEege2tMkXuVfnD8w@z>
 
-From: Al Viro <viro@zeniv.linux.org.uk>
 
-Already has the right semantics.  Incidentally. failing copy_from_user()
-zeroes the tail of destination - no need to repeat that manually
 
-Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
----
- arch/parisc/include/asm/checksum.h |  3 ++-
- arch/parisc/lib/checksum.c         | 12 +++---------
- 2 files changed, 5 insertions(+), 10 deletions(-)
+Le 04/03/2020 à 02:39, Qian Cai a écrit :
+> 
+>> Below is slightly modified version of your change above and should still
+>> prevent the bug on powerpc. Will it be possible for you to re-test this
+>> ? Once confirmed, will send a patch enabling this test on powerpc64
+>> keeping your authorship. Thank you.
+> 
+> This works fine on radix MMU but I decided to go a bit future to test hash
+> MMU. The kernel will stuck here below. I did confirm that pte_alloc_map_lock()
+> was successful, so I don’t understand hash MMU well enough to tell why
+> it could still take an interrupt at pte_clear_tests() even before we calls
+> pte_unmap_unlock()?
 
-diff --git a/arch/parisc/include/asm/checksum.h b/arch/parisc/include/asm/checksum.h
-index c1c22819a04d..7c69ce9634c7 100644
---- a/arch/parisc/include/asm/checksum.h
-+++ b/arch/parisc/include/asm/checksum.h
-@@ -26,11 +26,12 @@ extern __wsum csum_partial(const void *, int, __wsum);
-  */
- extern __wsum csum_partial_copy_nocheck(const void *, void *, int, __wsum);
- 
-+#define _HAVE_ARCH_COPY_AND_CSUM_FROM_USER
- /*
-  * this is a new version of the above that records errors it finds in *errp,
-  * but continues and zeros the rest of the buffer.
-  */
--extern __wsum csum_partial_copy_from_user(const void __user *src,
-+extern __wsum csum_and_copy_from_user(const void __user *src,
- 		void *dst, int len, __wsum sum, int *errp);
- 
- /*
-diff --git a/arch/parisc/lib/checksum.c b/arch/parisc/lib/checksum.c
-index 256322c7b648..4e47c2ff2bcd 100644
---- a/arch/parisc/lib/checksum.c
-+++ b/arch/parisc/lib/checksum.c
-@@ -128,18 +128,12 @@ EXPORT_SYMBOL(csum_partial_copy_nocheck);
-  * Copy from userspace and compute checksum.  If we catch an exception
-  * then zero the rest of the buffer.
-  */
--__wsum csum_partial_copy_from_user(const void __user *src,
-+__wsum csum_and_copy_from_user(const void __user *src,
- 					void *dst, int len,
- 					__wsum sum, int *err_ptr)
- {
--	int missing;
--
--	missing = copy_from_user(dst, src, len);
--	if (missing) {
--		memset(dst + len - missing, 0, missing);
-+	if (copy_from_user(dst, src, len))
- 		*err_ptr = -EFAULT;
--	}
--		
- 	return csum_partial(dst, len, sum);
- }
--EXPORT_SYMBOL(csum_partial_copy_from_user);
-+EXPORT_SYMBOL(csum_and_copy_from_user);
--- 
-2.11.0
+AFAIU, you are not taking an interrupt here. You are stuck in the 
+pte_update(), most likely due to nested locks. Try with LOCKDEP ?
+
+Christophe
+
+> 
+> [   33.881515][    T1] ok 8 - property-entry
+> [   33.883653][    T1] debug_vm_pgtable: debug_vm_pgtable: Validating
+> architecture page table helpers
+> [   60.418885][    C8] watchdog: BUG: soft lockup - CPU#8 stuck for 23s!
+> [swapper/0:1]
