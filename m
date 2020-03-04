@@ -1,89 +1,55 @@
-Return-Path: <SRS0=13L8=5I=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:50640 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727149AbgCWOzy (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 23 Mar 2020 10:55:54 -0400
-Date: Mon, 23 Mar 2020 14:55:46 +0000
-From: Mark Rutland <mark.rutland@arm.com>
-Subject: Re: [PATCH v10 00/13] arm64: Branch Target Identification support
-Message-ID: <20200323145546.GB3959@C02TD0UTHF1T.local>
-References: <20200316165055.31179-1-broonie@kernel.org>
- <20200320173945.GC27072@arm.com>
- <20200323122143.GB4892@mbp>
- <20200323132412.GD4948@sirena.org.uk>
- <20200323135722.GA3959@C02TD0UTHF1T.local>
- <20200323143954.GC4892@mbp>
+Return-Path: <SRS0=Zkb6=4V=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mx0a-0016f401.pphosted.com ([67.231.148.174]:26746 "EHLO
+        mx0b-0016f401.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
+        by vger.kernel.org with ESMTP id S1729855AbgCDQFG (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 4 Mar 2020 11:05:06 -0500
+From: Alex Belits <abelits@marvell.com>
+Subject: [PATCH 02/12] task_isolation: vmstat: add vmstat_idle function
+Date: Wed, 4 Mar 2020 16:04:37 +0000
+Message-ID: <d25c6aee46e6d3140651f29261352ad9c271c552.camel@marvell.com>
+References: <4473787e1b6bc3cc226067e8d122092a678b63de.camel@marvell.com>
+In-Reply-To: <4473787e1b6bc3cc226067e8d122092a678b63de.camel@marvell.com>
+Content-Language: en-US
+Content-Type: text/plain; charset="utf-8"
+Content-ID: <1C5ECF33757A4B4180F606FB4C9F5039@namprd18.prod.outlook.com>
+Content-Transfer-Encoding: base64
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20200323143954.GC4892@mbp>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Mark Brown <broonie@kernel.org>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Will Deacon <will@kernel.org>, Alexander Viro <viro@zeniv.linux.org.uk>, Paul Elliott <paul.elliott@arm.com>, Peter Zijlstra <peterz@infradead.org>, Yu-cheng Yu <yu-cheng.yu@intel.com>, Amit Kachhap <amit.kachhap@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Marc Zyngier <maz@kernel.org>, Eugene Syromiatnikov <esyr@redhat.com>, "H . J . Lu " <hjl.tools@gmail.com>, Andrew Jones <drjones@redhat.com>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Jann Horn <jannh@google.com>, Richard Henderson <richard.henderson@linaro.org>, Kristina =?utf-8?Q?Mart=C5=A1enko?= <kristina.martsenko@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Florian Weimer <fweimer@redhat.com>, Sudakshina Das <sudi.das@arm.com>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, nd@arm.com
-Message-ID: <20200323145546.PTZoREt1znJvnHaw-rMsxfAQLhy6PJ52dmCXHgqfGsI@z>
+To: "frederic@kernel.org" <frederic@kernel.org>, "rostedt@goodmis.org" <rostedt@goodmis.org>
+Cc: "mingo@kernel.org" <mingo@kernel.org>, "peterz@infradead.org" <peterz@infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Prasun Kapoor <pkapoor@marvell.com>, "tglx@linutronix.de" <tglx@linutronix.de>, "linux-api@vger.kernel.org" <linux-api@vger.kernel.org>, "linux-mm@vger.kernel.org" <linux-mm@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+Message-ID: <20200304160437.zbSnNWRv1PbUDomoYO0vjhfuV2YZlbxtWxOlkcr_b_E@z>
 
-On Mon, Mar 23, 2020 at 02:39:55PM +0000, Catalin Marinas wrote:
-> On Mon, Mar 23, 2020 at 01:57:22PM +0000, Mark Rutland wrote:
-> > On Mon, Mar 23, 2020 at 01:24:12PM +0000, Mark Brown wrote:
-> > > On Mon, Mar 23, 2020 at 12:21:44PM +0000, Catalin Marinas wrote:
-> > > > On Fri, Mar 20, 2020 at 05:39:46PM +0000, Szabolcs Nagy wrote:
-> > > 
-> > > > +int arch_elf_adjust_prot(int prot, const struct arch_elf_state *state,
-> > > > +                        bool has_interp, bool is_interp)
-> > > > +{
-> > > > +       if (is_interp != has_interp)
-> > > > +               return prot;
-> > > > +
-> > > > +       if (!(state->flags & ARM64_ELF_BTI))
-> > > > +               return prot;
-> > > > +
-> > > > +       if (prot & PROT_EXEC)
-> > > > +               prot |= PROT_BTI;
-> > > > +
-> > > > +       return prot;
-> > > > +}
-> > > 
-> > > > At a quick look, for dynamic binaries we have has_interp == true and
-> > > > is_interp == false. I don't know why but, either way, the above code
-> > > > needs a comment with some justification.
-> > > 
-> > > I don't really know for certain either, I inherited this code as is with
-> > > the understanding that this was all agreed with the toolchain and libc
-> > > people - the actual discussion that lead to the decisions being made
-> > > happened before I was involved.  My understanding is that the idea was
-> > > that the dynamic linker would be responsible for mapping everything in
-> > > dynamic applications other than itself but other than consistency I
-> > > don't know why.  I guess it defers more decision making to userspace but
-> > > I'm having a hard time thinking of sensible cases where one might wish
-> > > to make a decision other than enabling PROT_BTI.
-> > 
-> > My understanding was this had been agreed with the toolchain folk a
-> > while back -- anything static loaded by the kernel (i.e. a static
-> > executable or the dynamic linker) would get GP set. In other cases the
-> > linker will mess with the permissions on the pages anyhow, and needs to
-> > be aware of BTI in order to do the right thing, so it was better to
-> > leave it to userspace consistently (e.g. as that had the least risk of
-> > subtle changes in behaviour leading to ABI difficulties).
-> 
-> So this means that the interpreter will have to mprotect(PROT_BTI) the
-> text section of the primary executable.
-
-Yes, but after fixing up any relocations in that section it's going to
-have to call mprotect() on it anyhow (e.g. in order to make it
-read-only), and in doing so would throw away BTI unless it was BTI
-aware.
-
-> > I think it would be best to document the current behaviour, as it's a
-> > simple ABI that we can guarantee, and the dynamic linker will have to be
-> > aware of BTI in order to do the right thing anyhow.
-> 
-> That's a valid point. If we have an old dynamic linker and the kernel
-> enabled BTI automatically for the main executable, could things go wrong
-> (e.g. does the PLT need to be BTI-aware)?
-
-I believe that a PLT in an unguarded page needs no special treatment. A
-PLT within a guarded page needs to be built specially for BTI.
-
-Thanks,
-Mark.
+RnJvbTogQ2hyaXMgTWV0Y2FsZiA8Y21ldGNhbGZAbWVsbGFub3guY29tPg0KDQpUaGlzIGZ1bmN0
+aW9uIGNoZWNrcyB0byBzZWUgaWYgYSB2bXN0YXQgd29ya2VyIGlzIG5vdCBydW5uaW5nLA0KYW5k
+IHRoZSB2bXN0YXQgZGlmZnMgZG9uJ3QgcmVxdWlyZSBhbiB1cGRhdGUuICBUaGUgZnVuY3Rpb24g
+aXMNCmNhbGxlZCBmcm9tIHRoZSB0YXNrLWlzb2xhdGlvbiBjb2RlIHRvIHNlZSBpZiB3ZSBuZWVk
+IHRvDQphY3R1YWxseSBkbyBzb21lIHdvcmsgdG8gcXVpZXQgdm1zdGF0Lg0KDQpTaWduZWQtb2Zm
+LWJ5OiBBbGV4IEJlbGl0cyA8YWJlbGl0c0BtYXJ2ZWxsLmNvbT4NCi0tLQ0KIGluY2x1ZGUvbGlu
+dXgvdm1zdGF0LmggfCAgMiArKw0KIG1tL3Ztc3RhdC5jICAgICAgICAgICAgfCAxMCArKysrKysr
+KysrDQogMiBmaWxlcyBjaGFuZ2VkLCAxMiBpbnNlcnRpb25zKCspDQoNCmRpZmYgLS1naXQgYS9p
+bmNsdWRlL2xpbnV4L3Ztc3RhdC5oIGIvaW5jbHVkZS9saW51eC92bXN0YXQuaA0KaW5kZXggMmJj
+NWU4NWYyNTE0Li42NmQ5YWUzMmNmMDcgMTAwNjQ0DQotLS0gYS9pbmNsdWRlL2xpbnV4L3Ztc3Rh
+dC5oDQorKysgYi9pbmNsdWRlL2xpbnV4L3Ztc3RhdC5oDQpAQCAtMjcxLDYgKzI3MSw3IEBAIGV4
+dGVybiB2b2lkIF9fZGVjX25vZGVfc3RhdGUoc3RydWN0IHBnbGlzdF9kYXRhICosIGVudW0gbm9k
+ZV9zdGF0X2l0ZW0pOw0KIA0KIHZvaWQgcXVpZXRfdm1zdGF0KHZvaWQpOw0KIHZvaWQgcXVpZXRf
+dm1zdGF0X3N5bmModm9pZCk7DQorYm9vbCB2bXN0YXRfaWRsZSh2b2lkKTsNCiB2b2lkIGNwdV92
+bV9zdGF0c19mb2xkKGludCBjcHUpOw0KIHZvaWQgcmVmcmVzaF96b25lX3N0YXRfdGhyZXNob2xk
+cyh2b2lkKTsNCiANCkBAIC0zNzQsNiArMzc1LDcgQEAgc3RhdGljIGlubGluZSB2b2lkIHJlZnJl
+c2hfem9uZV9zdGF0X3RocmVzaG9sZHModm9pZCkgeyB9DQogc3RhdGljIGlubGluZSB2b2lkIGNw
+dV92bV9zdGF0c19mb2xkKGludCBjcHUpIHsgfQ0KIHN0YXRpYyBpbmxpbmUgdm9pZCBxdWlldF92
+bXN0YXQodm9pZCkgeyB9DQogc3RhdGljIGlubGluZSB2b2lkIHF1aWV0X3Ztc3RhdF9zeW5jKHZv
+aWQpIHsgfQ0KK3N0YXRpYyBpbmxpbmUgYm9vbCB2bXN0YXRfaWRsZSh2b2lkKSB7IHJldHVybiB0
+cnVlOyB9DQogDQogc3RhdGljIGlubGluZSB2b2lkIGRyYWluX3pvbmVzdGF0KHN0cnVjdCB6b25l
+ICp6b25lLA0KIAkJCXN0cnVjdCBwZXJfY3B1X3BhZ2VzZXQgKnBzZXQpIHsgfQ0KZGlmZiAtLWdp
+dCBhL21tL3Ztc3RhdC5jIGIvbW0vdm1zdGF0LmMNCmluZGV4IDFmYTBiMmQwNGFmYS4uNWM0YWVj
+NjUxMDYyIDEwMDY0NA0KLS0tIGEvbW0vdm1zdGF0LmMNCisrKyBiL21tL3Ztc3RhdC5jDQpAQCAt
+MTg3OSw2ICsxODc5LDE2IEBAIHZvaWQgcXVpZXRfdm1zdGF0X3N5bmModm9pZCkNCiAJcmVmcmVz
+aF9jcHVfdm1fc3RhdHMoZmFsc2UpOw0KIH0NCiANCisvKg0KKyAqIFJlcG9ydCBvbiB3aGV0aGVy
+IHZtc3RhdCBwcm9jZXNzaW5nIGlzIHF1aWVzY2VkIG9uIHRoZSBjb3JlIGN1cnJlbnRseToNCisg
+KiBubyB2bXN0YXQgd29ya2VyIHJ1bm5pbmcgYW5kIG5vIHZtc3RhdCB1cGRhdGVzIHRvIHBlcmZv
+cm0uDQorICovDQorYm9vbCB2bXN0YXRfaWRsZSh2b2lkKQ0KK3sNCisJcmV0dXJuICFkZWxheWVk
+X3dvcmtfcGVuZGluZyh0aGlzX2NwdV9wdHIoJnZtc3RhdF93b3JrKSkgJiYNCisJCSFuZWVkX3Vw
+ZGF0ZShzbXBfcHJvY2Vzc29yX2lkKCkpOw0KK30NCisNCiAvKg0KICAqIFNoZXBoZXJkIHdvcmtl
+ciB0aHJlYWQgdGhhdCBjaGVja3MgdGhlDQogICogZGlmZmVyZW50aWFscyBvZiBwcm9jZXNzb3Jz
+IHRoYXQgaGF2ZSB0aGVpciB3b3JrZXINCi0tIA0KMi4yMC4xDQoNCg==
