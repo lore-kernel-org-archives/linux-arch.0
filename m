@@ -1,152 +1,164 @@
-Return-Path: <SRS0=ZCnS=4X=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:45432 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1725935AbgCFSBz (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 6 Mar 2020 13:01:55 -0500
-Date: Sat, 7 Mar 2020 03:01:49 +0900
-From: Masami Hiramatsu <mhiramat@kernel.org>
-Subject: Re: [PATCH v2 3/9] rcu,tracing: Create trace_rcu_{enter,exit}()
-Message-ID: <20200307030149.1f70bdb019ad5ea896bce5a7@kernel.org>
-In-Reply-To: <20200219114510.6f942b56868a97e06352738c@kernel.org>
-References: <20200213163800.5c51a5f1@gandalf.local.home>
-        <20200213215004.GM2935@paulmck-ThinkPad-P72>
-        <20200213170451.690c4e5c@gandalf.local.home>
-        <20200213223918.GN2935@paulmck-ThinkPad-P72>
-        <20200214151906.b1354a7ed6b01fc3bf2de862@kernel.org>
-        <20200215145934.GD2935@paulmck-ThinkPad-P72>
-        <20200217175519.12a694a969c1a8fb2e49905e@kernel.org>
-        <20200217163112.GM2935@paulmck-ThinkPad-P72>
-        <20200218133335.c87d7b2399ee6532bf28b74a@kernel.org>
-        <20200218124609.1a33f868@gandalf.local.home>
-        <20200218201806.GI2935@paulmck-ThinkPad-P72>
-        <20200219114510.6f942b56868a97e06352738c@kernel.org>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Return-Path: <SRS0=Zkb6=4V=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mx0a-0016f401.pphosted.com ([67.231.148.174]:23648 "EHLO
+        mx0b-0016f401.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
+        by vger.kernel.org with ESMTP id S1726561AbgCDQMO (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 4 Mar 2020 11:12:14 -0500
+From: Alex Belits <abelits@marvell.com>
+Subject: [PATCH 07/12] task_isolation: arch/arm: enable task isolation
+ functionality
+Date: Wed, 4 Mar 2020 16:11:46 +0000
+Message-ID: <1c99a9d8d0afea11fd818c0c2b987504adb8a216.camel@marvell.com>
+References: <4473787e1b6bc3cc226067e8d122092a678b63de.camel@marvell.com>
+In-Reply-To: <4473787e1b6bc3cc226067e8d122092a678b63de.camel@marvell.com>
+Content-Language: en-US
+Content-Type: text/plain; charset="utf-8"
+Content-ID: <16D26AAF19DEBE4892F4DEC3B3CB2BE8@namprd18.prod.outlook.com>
+Content-Transfer-Encoding: base64
+MIME-Version: 1.0
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Masami Hiramatsu <mhiramat@kernel.org>
-Cc: paulmck@kernel.org, Steven Rostedt <rostedt@goodmis.org>, Joel Fernandes <joel@joelfernandes.org>, Peter Zijlstra <peterz@infradead.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org, gregkh@linuxfoundation.org, gustavo@embeddedor.com, tglx@linutronix.de, josh@joshtriplett.org, mathieu.desnoyers@efficios.com, jiangshanlai@gmail.com
-Message-ID: <20200306180149.dXpArPRXunTQdZGDRsOqXJapqGVBiFz1m59t1cJtMI4@z>
+To: "frederic@kernel.org" <frederic@kernel.org>, "rostedt@goodmis.org" <rostedt@goodmis.org>
+Cc: "mingo@kernel.org" <mingo@kernel.org>, "peterz@infradead.org" <peterz@infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Prasun Kapoor <pkapoor@marvell.com>, "tglx@linutronix.de" <tglx@linutronix.de>, "linux-api@vger.kernel.org" <linux-api@vger.kernel.org>, "linux-mm@vger.kernel.org" <linux-mm@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+Message-ID: <20200304161146.fAAad8XSvIb1fTsa_KXeH_qwxWXTJXebhSJnEEz7TYc@z>
 
-Hi,
-
-On Wed, 19 Feb 2020 11:45:10 +0900
-Masami Hiramatsu <mhiramat@kernel.org> wrote:
-
-> On Tue, 18 Feb 2020 12:18:06 -0800
-> "Paul E. McKenney" <paulmck@kernel.org> wrote:
-> 
-> > On Tue, Feb 18, 2020 at 12:46:09PM -0500, Steven Rostedt wrote:
-> > > On Tue, 18 Feb 2020 13:33:35 +0900
-> > > Masami Hiramatsu <mhiramat@kernel.org> wrote:
-> > > 
-> > > > On Mon, 17 Feb 2020 08:31:12 -0800
-> > > > "Paul E. McKenney" <paulmck@kernel.org> wrote:
-> > > > >   
-> > > > > > BTW, if you consider the x86 specific code is in the generic file,
-> > > > > > we can move NOKPROBE_SYMBOL() in arch/x86/kernel/traps.c.
-> > > > > > (Sorry, I've hit this idea right now)  
-> > > > > 
-> > > > > Might this affect other architectures with NMIs and probe-like things?
-> > > > > If so, it might make sense to leave it where it is.  
-> > > > 
-> > > > Yes, git grep shows that arm64 is using rcu_nmi_enter() in
-> > > > debug_exception_enter().
-> > > > OK, let's keep it, but maybe it is good to update the comment for
-> > > > arm64 too. What about following?
-> > > > 
-> > > > +/*
-> > > > + * All functions in do_int3() on x86, do_debug_exception() on arm64 must be
-> > > > + * marked NOKPROBE before kprobes handler is called.
-> > > > + * ist_enter() on x86 and debug_exception_enter() on arm64 which is called
-> > > > + * before kprobes handle happens to call rcu_nmi_enter() which means
-> > > > + * that rcu_nmi_enter() must be marked NOKRPOBE.
-> > > > + */
-> > > > 
-> > > 
-> > > Ah, why don't we just say...
-> > > 
-> > > /*
-> > >  * All functions called in the breakpoint trap handler (e.g. do_int3()
-> > >  * on x86), must not allow kprobes until the kprobe breakpoint handler
-> > >  * is called, otherwise it can cause an infinite recursion.
-> > >  * On some archs, rcu_nmi_enter() is called in the breakpoint handler
-> > >  * before the kprobe breakpoint handler is called, thus it must be
-> > >  * marked as NOKPROBE.
-> > >  */
-> > > 
-> > > And that way we don't make this an arch specific comment.
-> > 
-> > That looks good to me.  Masami, does this work for you?
-> 
-> Yes, that looks good to me too :)
-
-Oops, I'm guilty!
-Sorry *rcu_nmi_exit()* also must be NOKPROBE, since even if we could catch
-a recursive kprobe call, we can only skip the kprobe handler, but we must
-exit from do_int3() and hit rcu_nmi_exit() again!
-
-[45235.497591] Unrecoverable kprobe detected.
-[45235.501400] Dumping kprobe:
-[45235.502433] Name: (null)
-[45235.502433] Offset: 0
-[45235.502433] Address: rcu_nmi_exit+0x0/0x290
-[45235.504044] ------------[ cut here ]------------
-[45235.504855] kernel BUG at arch/x86/kernel/kprobes/core.c:646!
-[45235.505816] invalid opcode: 0000 [#1] PREEMPT SMP PTI
-[45235.506615] CPU: 7 PID: 143 Comm: sh Not tainted 5.6.0-rc3+ #143
-[45235.507662] Hardware name: QEMU Standard PC (i440FX + PIIX, 1996), BIOS rel-1.12.1-0-ga5cab58e9a3f-prebuilt.qemu.org 04/01/2014
-[45235.509764] RIP: 0010:reenter_kprobe.cold+0x14/0x16
-[45235.510630] Code: 48 8b 75 10 48 c7 c7 f0 70 0e 82 48 8b 56 28 e8 22 91 08 00 0f 0b 48 c7 c7 20 71 0e 82 e8 14 91 08 00 48 89 ef e8 23 ee 0f 00 <0f> 0b 48 89 ee 48 c7 c7 48 71 0e 82 e8 fb 90 08 00 e9 c3 fc ff ff
-[45235.513948] RSP: 0018:ffffc90000347bf8 EFLAGS: 00010046
-[45235.514906] RAX: 0000000000000036 RBX: 0000000000017f20 RCX: 0000000000000000
-[45235.516109] RDX: 0000000000000000 RSI: 0000000000000000 RDI: 0000000000000001
-[45235.517278] RBP: ffff88807c9820c0 R08: 0000000000000000 R09: 0000000000000001
-[45235.518415] R10: 0000000000000000 R11: ffff88807c9d1f18 R12: ffff88807d9d7f20
-[45235.519609] R13: ffffc90000347c68 R14: ffffffff810e8a60 R15: ffffffff810e8a61
-[45235.520787] FS:  0000000001d9a8c0(0000) GS:ffff88807d9c0000(0000) knlGS:0000000000000000
-[45235.522198] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
-[45235.523172] CR2: 0000000001da9000 CR3: 000000007a880000 CR4: 00000000000006a0
-[45235.524288] Call Trace:
-[45235.524825]  kprobe_int3_handler+0x74/0x150
-[45235.525627]  do_int3+0x36/0xf0
-[45235.526244]  int3+0x42/0x50
-[45235.526767] RIP: 0010:rcu_nmi_exit+0x1/0x290
-[45235.527551] Code: a2 0d 82 be c2 01 00 00 48 c7 c7 d5 44 0f 82 c6 05 e7 ac 24 01 01 e8 1f ba fd ff eb b8 66 66 2e 0f 1f 84 00 00 00 00 00 90 cc <57> 41 56 41 55 41 54 55 48 c7 c5 40 c2 02 00 53 48 89 eb e8 77 75
-[45235.530898] RSP: 0018:ffffc90000347d40 EFLAGS: 00000046
-[45235.531816] RAX: 0000000000000000 RBX: 0000000000000000 RCX: 0000000000000000
-[45235.533001] RDX: 0000000000000001 RSI: ffffffff8101e1fe RDI: ffffffff8101e1fe
-[45235.534252] RBP: 0000000000000000 R08: 0000000000000001 R09: 0000000000000000
-[45235.535516] R10: 0000000000000000 R11: 0000000000000000 R12: 0000000000000000
-[45235.536759] R13: 0000000000000000 R14: 0000000000000000 R15: 0000000000000000
-[45235.537945]  ? ist_exit+0xe/0x20
-[45235.538593]  ? ist_exit+0xe/0x20
-[45235.539239]  ? rcu_nmi_exit+0x1/0x290
-[45235.541182]  int3+0x42/0x50
-[45235.541687] RIP: 0010:0xffffffffa000005a
-[45235.542363] Code: 2e 16 13 e1 00 00 00 00 00 00 00 00 89 f8 e9 1f 16 13 e1 00 00 00 00 00 00 00 00 89 f8 e9 20 16 13 e1 00 00 00 00 00 00 00 00 <41> 57 e9 01 8a 0e e1 00 00 00 00 00 00 00 00 41 57 e9 f2 22 26 e1
-[45235.545628] RSP: 0018:ffffc90000347e20 EFLAGS: 00000146
-[45235.546596] RAX: 0000000000000000 RBX: 0000000000000000 RCX: 0000000000000000
-[45235.547989] RDX: 0000000000000001 RSI: ffffffff8101e1fe RDI: ffffffff8101e1fe
-[45235.550183] RBP: 0000000000000000 R08: 0000000000000001 R09: ffff88807d2aa000
-[45235.551591] R10: 0000000000000a4c R11: ffff88807bfec600 R12: 0000000000000000
-[45235.552893] R13: 0000000000000000 R14: 0000000000000000 R15: 0000000000000000
-[45235.554633]  ? ist_exit+0xe/0x20
-[45235.555537]  ? ist_exit+0xe/0x20
-[45235.556565]  ? rcu_nmi_exit+0x1/0x290
-[45235.557909]  ? int3+0x42/0x50
-[45235.559156]  ? 0xffffffffa0000069
-[45235.560547]  ? vfs_read+0x1/0x150
-[45235.561522]  ? ksys_read+0x60/0xe0
-[45235.562458]  ? do_syscall_64+0x4b/0x1e0
-[45235.563404]  ? entry_SYSCALL_64_after_hwframe+0x49/0xbe
-[45235.564705] Modules linked in:
-[45235.565556] ---[ end trace 870af8724dba9ac8 ]---
-
-So all functions called from do_int3() must be NOKPROBE.
-
-Thank you,
-
--- 
-Masami Hiramatsu <mhiramat@kernel.org>
+RnJvbTogRnJhbmNpcyBHaXJhbGRlYXUgPGZyYW5jaXMuZ2lyYWxkZWF1QGdtYWlsLmNvbT4NCg0K
+VGhpcyBwYXRjaCBpcyBhIHBvcnQgb2YgdGhlIHRhc2sgaXNvbGF0aW9uIGZ1bmN0aW9uYWxpdHkg
+dG8gdGhlIGFybSAzMi1iaXQNCmFyY2hpdGVjdHVyZS4gVGhlIHRhc2sgaXNvbGF0aW9uIG5lZWRz
+IGFuIGFkZGl0aW9uYWwgdGhyZWFkIGZsYWcgdGhhdA0KcmVxdWlyZXMgdG8gY2hhbmdlIHRoZSBl
+bnRyeSBhc3NlbWJseSBjb2RlIHRvIGFjY2VwdCBhIGJpdGZpZWxkIGxhcmdlciB0aGFuDQpvbmUg
+Ynl0ZS4gVGhlIGNvbnN0YW50cyBfVElGX1NZU0NBTExfV09SSyBhbmQgX1RJRl9XT1JLX01BU0sg
+YXJlIG5vdw0KZGVmaW5lZCBpbiB0aGUgbGl0ZXJhbCBwb29sLiBUaGUgcmVzdCBvZiB0aGUgcGF0
+Y2ggaXMgc3RyYWlnaHRmb3J3YXJkIGFuZA0KcmVmbGVjdHMgd2hhdCBpcyBkb25lIG9uIG90aGVy
+IGFyY2hpdGVjdHVyZXMuDQoNClRvIGF2b2lkIHByb2JsZW1zIHdpdGggdGhlIHRzdCBpbnN0cnVj
+dGlvbiBpbiB0aGUgdjdtIGJ1aWxkLCB3ZSByZW51bWJlcg0KVElGX1NFQ0NPTVAgdG8gYml0IDgg
+YW5kIGxldCBUSUZfVEFTS19JU09MQVRJT04gdXNlIGJpdCA3Lg0KDQpTaWduZWQtb2ZmLWJ5OiBB
+bGV4IEJlbGl0cyA8YWJlbGl0c0BtYXJ2ZWxsLmNvbT4NCi0tLQ0KIGFyY2gvYXJtL0tjb25maWcg
+ICAgICAgICAgICAgICAgICAgfCAgMSArDQogYXJjaC9hcm0vaW5jbHVkZS9hc20vdGhyZWFkX2lu
+Zm8uaCB8IDEwICsrKysrKystLS0NCiBhcmNoL2FybS9rZXJuZWwvZW50cnktY29tbW9uLlMgICAg
+IHwgMTUgKysrKysrKysrKy0tLS0tDQogYXJjaC9hcm0va2VybmVsL3NpZ25hbC5jICAgICAgICAg
+ICB8IDEwICsrKysrKysrKy0NCiBhcmNoL2FybS9rZXJuZWwvc21wLmMgICAgICAgICAgICAgIHwg
+IDQgKysrKw0KIGFyY2gvYXJtL21tL2ZhdWx0LmMgICAgICAgICAgICAgICAgfCAgOCArKysrKysr
+LQ0KIDYgZmlsZXMgY2hhbmdlZCwgMzggaW5zZXJ0aW9ucygrKSwgMTAgZGVsZXRpb25zKC0pDQoN
+CmRpZmYgLS1naXQgYS9hcmNoL2FybS9LY29uZmlnIGIvYXJjaC9hcm0vS2NvbmZpZw0KaW5kZXgg
+OTc4NjRhYWJjMmE2Li4xYTY2ZTZjNjgwN2MgMTAwNjQ0DQotLS0gYS9hcmNoL2FybS9LY29uZmln
+DQorKysgYi9hcmNoL2FybS9LY29uZmlnDQpAQCAtNjcsNiArNjcsNyBAQCBjb25maWcgQVJNDQog
+CXNlbGVjdCBIQVZFX0FSQ0hfS0dEQiBpZiAhQ1BVX0VORElBTl9CRTMyICYmIE1NVQ0KIAlzZWxl
+Y3QgSEFWRV9BUkNIX01NQVBfUk5EX0JJVFMgaWYgTU1VDQogCXNlbGVjdCBIQVZFX0FSQ0hfU0VD
+Q09NUF9GSUxURVIgaWYgQUVBQkkgJiYgIU9BQklfQ09NUEFUDQorCXNlbGVjdCBIQVZFX0FSQ0hf
+VEFTS19JU09MQVRJT04NCiAJc2VsZWN0IEhBVkVfQVJDSF9USFJFQURfU1RSVUNUX1dISVRFTElT
+VA0KIAlzZWxlY3QgSEFWRV9BUkNIX1RSQUNFSE9PSw0KIAlzZWxlY3QgSEFWRV9BUk1fU01DQ0Mg
+aWYgQ1BVX1Y3DQpkaWZmIC0tZ2l0IGEvYXJjaC9hcm0vaW5jbHVkZS9hc20vdGhyZWFkX2luZm8u
+aCBiL2FyY2gvYXJtL2luY2x1ZGUvYXNtL3RocmVhZF9pbmZvLmgNCmluZGV4IDBkMGQ1MTc4ZTJj
+My4uZWMzYzIwODRjMzkxIDEwMDY0NA0KLS0tIGEvYXJjaC9hcm0vaW5jbHVkZS9hc20vdGhyZWFk
+X2luZm8uaA0KKysrIGIvYXJjaC9hcm0vaW5jbHVkZS9hc20vdGhyZWFkX2luZm8uaA0KQEAgLTEz
+OSw3ICsxMzksOCBAQCBleHRlcm4gaW50IHZmcF9yZXN0b3JlX3VzZXJfaHdzdGF0ZShzdHJ1Y3Qg
+dXNlcl92ZnAgKiwNCiAjZGVmaW5lIFRJRl9TWVNDQUxMX1RSQUNFCTQJLyogc3lzY2FsbCB0cmFj
+ZSBhY3RpdmUgKi8NCiAjZGVmaW5lIFRJRl9TWVNDQUxMX0FVRElUCTUJLyogc3lzY2FsbCBhdWRp
+dGluZyBhY3RpdmUgKi8NCiAjZGVmaW5lIFRJRl9TWVNDQUxMX1RSQUNFUE9JTlQJNgkvKiBzeXNj
+YWxsIHRyYWNlcG9pbnQgaW5zdHJ1bWVudGF0aW9uICovDQotI2RlZmluZSBUSUZfU0VDQ09NUAkJ
+NwkvKiBzZWNjb21wIHN5c2NhbGwgZmlsdGVyaW5nIGFjdGl2ZSAqLw0KKyNkZWZpbmUgVElGX1RB
+U0tfSVNPTEFUSU9OCTcJLyogdGFzayBpc29sYXRpb24gYWN0aXZlICovDQorI2RlZmluZSBUSUZf
+U0VDQ09NUAkJOAkvKiBzZWNjb21wIHN5c2NhbGwgZmlsdGVyaW5nIGFjdGl2ZSAqLw0KIA0KICNk
+ZWZpbmUgVElGX05PSFoJCTEyCS8qIGluIGFkYXB0aXZlIG5vaHogbW9kZSAqLw0KICNkZWZpbmUg
+VElGX1VTSU5HX0lXTU1YVAkxNw0KQEAgLTE1MywxOCArMTU0LDIxIEBAIGV4dGVybiBpbnQgdmZw
+X3Jlc3RvcmVfdXNlcl9od3N0YXRlKHN0cnVjdCB1c2VyX3ZmcCAqLA0KICNkZWZpbmUgX1RJRl9T
+WVNDQUxMX1RSQUNFCSgxIDw8IFRJRl9TWVNDQUxMX1RSQUNFKQ0KICNkZWZpbmUgX1RJRl9TWVND
+QUxMX0FVRElUCSgxIDw8IFRJRl9TWVNDQUxMX0FVRElUKQ0KICNkZWZpbmUgX1RJRl9TWVNDQUxM
+X1RSQUNFUE9JTlQJKDEgPDwgVElGX1NZU0NBTExfVFJBQ0VQT0lOVCkNCisjZGVmaW5lIF9USUZf
+VEFTS19JU09MQVRJT04JKDEgPDwgVElGX1RBU0tfSVNPTEFUSU9OKQ0KICNkZWZpbmUgX1RJRl9T
+RUNDT01QCQkoMSA8PCBUSUZfU0VDQ09NUCkNCiAjZGVmaW5lIF9USUZfVVNJTkdfSVdNTVhUCSgx
+IDw8IFRJRl9VU0lOR19JV01NWFQpDQogDQogLyogQ2hlY2tzIGZvciBhbnkgc3lzY2FsbCB3b3Jr
+IGluIGVudHJ5LWNvbW1vbi5TICovDQogI2RlZmluZSBfVElGX1NZU0NBTExfV09SSyAoX1RJRl9T
+WVNDQUxMX1RSQUNFIHwgX1RJRl9TWVNDQUxMX0FVRElUIHwgXA0KLQkJCSAgIF9USUZfU1lTQ0FM
+TF9UUkFDRVBPSU5UIHwgX1RJRl9TRUNDT01QKQ0KKwkJCSAgIF9USUZfU1lTQ0FMTF9UUkFDRVBP
+SU5UIHwgX1RJRl9TRUNDT01QIHwgXA0KKwkJCSAgIF9USUZfVEFTS19JU09MQVRJT04pDQogDQog
+LyoNCiAgKiBDaGFuZ2UgdGhlc2UgYW5kIHlvdSBicmVhayBBU00gY29kZSBpbiBlbnRyeS1jb21t
+b24uUw0KICAqLw0KICNkZWZpbmUgX1RJRl9XT1JLX01BU0sJCShfVElGX05FRURfUkVTQ0hFRCB8
+IF9USUZfU0lHUEVORElORyB8IFwNCi0JCQkJIF9USUZfTk9USUZZX1JFU1VNRSB8IF9USUZfVVBS
+T0JFKQ0KKwkJCQkgX1RJRl9OT1RJRllfUkVTVU1FIHwgX1RJRl9VUFJPQkUgfCBcDQorCQkJCSBf
+VElGX1RBU0tfSVNPTEFUSU9OKQ0KIA0KICNlbmRpZiAvKiBfX0tFUk5FTF9fICovDQogI2VuZGlm
+IC8qIF9fQVNNX0FSTV9USFJFQURfSU5GT19IICovDQpkaWZmIC0tZ2l0IGEvYXJjaC9hcm0va2Vy
+bmVsL2VudHJ5LWNvbW1vbi5TIGIvYXJjaC9hcm0va2VybmVsL2VudHJ5LWNvbW1vbi5TDQppbmRl
+eCAyNzFjYjhhMWViYTEuLjZjZWI1Y2I4MDhhOSAxMDA2NDQNCi0tLSBhL2FyY2gvYXJtL2tlcm5l
+bC9lbnRyeS1jb21tb24uUw0KKysrIGIvYXJjaC9hcm0va2VybmVsL2VudHJ5LWNvbW1vbi5TDQpA
+QCAtNTMsNyArNTMsOCBAQCBfX3JldF9mYXN0X3N5c2NhbGw6DQogCWNtcAlyMiwgI1RBU0tfU0la
+RQ0KIAlibG5lCWFkZHJfbGltaXRfY2hlY2tfZmFpbGVkDQogCWxkcglyMSwgW3RzaywgI1RJX0ZM
+QUdTXQkJQCByZS1jaGVjayBmb3Igc3lzY2FsbCB0cmFjaW5nDQotCXRzdAlyMSwgI19USUZfU1lT
+Q0FMTF9XT1JLIHwgX1RJRl9XT1JLX01BU0sNCisJbGRyCXIyLCA9X1RJRl9TWVNDQUxMX1dPUksg
+fCBfVElGX1dPUktfTUFTSw0KKwl0c3QJcjEsIHIyDQogCWJuZQlmYXN0X3dvcmtfcGVuZGluZw0K
+IA0KIA0KQEAgLTkwLDcgKzkxLDggQEAgX19yZXRfZmFzdF9zeXNjYWxsOg0KIAljbXAJcjIsICNU
+QVNLX1NJWkUNCiAJYmxuZQlhZGRyX2xpbWl0X2NoZWNrX2ZhaWxlZA0KIAlsZHIJcjEsIFt0c2ss
+ICNUSV9GTEFHU10JCUAgcmUtY2hlY2sgZm9yIHN5c2NhbGwgdHJhY2luZw0KLQl0c3QJcjEsICNf
+VElGX1NZU0NBTExfV09SSyB8IF9USUZfV09SS19NQVNLDQorCWxkcglyMiwgPV9USUZfU1lTQ0FM
+TF9XT1JLIHwgX1RJRl9XT1JLX01BU0sNCisJdHN0CXIxLCByMg0KIAliZXEJbm9fd29ya19wZW5k
+aW5nDQogIFVOV0lORCguZm5lbmQJCSkNCiBFTkRQUk9DKHJldF9mYXN0X3N5c2NhbGwpDQpAQCAt
+OTgsNyArMTAwLDggQEAgRU5EUFJPQyhyZXRfZmFzdF9zeXNjYWxsKQ0KIAkvKiBTbG93ZXIgcGF0
+aCAtIGZhbGwgdGhyb3VnaCB0byB3b3JrX3BlbmRpbmcgKi8NCiAjZW5kaWYNCiANCi0JdHN0CXIx
+LCAjX1RJRl9TWVNDQUxMX1dPUksNCisJbGRyCXIyLCA9X1RJRl9TWVNDQUxMX1dPUksNCisJdHN0
+CXIxLCByMg0KIAlibmUJX19zeXNfdHJhY2VfcmV0dXJuX25vc2F2ZQ0KIHNsb3dfd29ya19wZW5k
+aW5nOg0KIAltb3YJcjAsIHNwCQkJCUAgJ3JlZ3MnDQpAQCAtMTMxLDcgKzEzNCw4IEBAIEVOVFJZ
+KHJldF90b191c2VyX2Zyb21faXJxKQ0KIAljbXAJcjIsICNUQVNLX1NJWkUNCiAJYmxuZQlhZGRy
+X2xpbWl0X2NoZWNrX2ZhaWxlZA0KIAlsZHIJcjEsIFt0c2ssICNUSV9GTEFHU10NCi0JdHN0CXIx
+LCAjX1RJRl9XT1JLX01BU0sNCisJbGRyCXIyLCA9X1RJRl9XT1JLX01BU0sNCisJdHN0CXIxLCBy
+Mg0KIAlibmUJc2xvd193b3JrX3BlbmRpbmcNCiBub193b3JrX3BlbmRpbmc6DQogCWFzbV90cmFj
+ZV9oYXJkaXJxc19vbiBzYXZlID0gMA0KQEAgLTI1MSw3ICsyNTUsOCBAQCBsb2NhbF9yZXN0YXJ0
+Og0KIAlsZHIJcjEwLCBbdHNrLCAjVElfRkxBR1NdCQlAIGNoZWNrIGZvciBzeXNjYWxsIHRyYWNp
+bmcNCiAJc3RtZGIJc3AhLCB7cjQsIHI1fQkJCUAgcHVzaCBmaWZ0aCBhbmQgc2l4dGggYXJncw0K
+IA0KLQl0c3QJcjEwLCAjX1RJRl9TWVNDQUxMX1dPUksJCUAgYXJlIHdlIHRyYWNpbmcgc3lzY2Fs
+bHM/DQorCWxkcglyMTEsID1fVElGX1NZU0NBTExfV09SSwkJQCBhcmUgd2UgdHJhY2luZyBzeXNj
+YWxscz8NCisJdHN0CXIxMCwgcjExDQogCWJuZQlfX3N5c190cmFjZQ0KIA0KIAlpbnZva2Vfc3lz
+Y2FsbCB0YmwsIHNjbm8sIHIxMCwgX19yZXRfZmFzdF9zeXNjYWxsDQpkaWZmIC0tZ2l0IGEvYXJj
+aC9hcm0va2VybmVsL3NpZ25hbC5jIGIvYXJjaC9hcm0va2VybmVsL3NpZ25hbC5jDQppbmRleCBh
+YjI1Njg5OTZkZGIuLmY3NzVjYmNiNzQ4NyAxMDA2NDQNCi0tLSBhL2FyY2gvYXJtL2tlcm5lbC9z
+aWduYWwuYw0KKysrIGIvYXJjaC9hcm0va2VybmVsL3NpZ25hbC5jDQpAQCAtMTIsNiArMTIsNyBA
+QA0KICNpbmNsdWRlIDxsaW51eC90cmFjZWhvb2suaD4NCiAjaW5jbHVkZSA8bGludXgvdXByb2Jl
+cy5oPg0KICNpbmNsdWRlIDxsaW51eC9zeXNjYWxscy5oPg0KKyNpbmNsdWRlIDxsaW51eC9pc29s
+YXRpb24uaD4NCiANCiAjaW5jbHVkZSA8YXNtL2VsZi5oPg0KICNpbmNsdWRlIDxhc20vY2FjaGVm
+bHVzaC5oPg0KQEAgLTYzOSw2ICs2NDAsOSBAQCBzdGF0aWMgaW50IGRvX3NpZ25hbChzdHJ1Y3Qg
+cHRfcmVncyAqcmVncywgaW50IHN5c2NhbGwpDQogCXJldHVybiAwOw0KIH0NCiANCisjZGVmaW5l
+IFdPUktfUEVORElOR19MT09QX0ZMQUdTCShfVElGX05FRURfUkVTQ0hFRCB8IF9USUZfU0lHUEVO
+RElORyB8CVwNCisJCQkJIF9USUZfTk9USUZZX1JFU1VNRSB8IF9USUZfVVBST0JFKQ0KKw0KIGFz
+bWxpbmthZ2UgaW50DQogZG9fd29ya19wZW5kaW5nKHN0cnVjdCBwdF9yZWdzICpyZWdzLCB1bnNp
+Z25lZCBpbnQgdGhyZWFkX2ZsYWdzLCBpbnQgc3lzY2FsbCkNCiB7DQpAQCAtNjc2LDcgKzY4MCwx
+MSBAQCBkb193b3JrX3BlbmRpbmcoc3RydWN0IHB0X3JlZ3MgKnJlZ3MsIHVuc2lnbmVkIGludCB0
+aHJlYWRfZmxhZ3MsIGludCBzeXNjYWxsKQ0KIAkJfQ0KIAkJbG9jYWxfaXJxX2Rpc2FibGUoKTsN
+CiAJCXRocmVhZF9mbGFncyA9IGN1cnJlbnRfdGhyZWFkX2luZm8oKS0+ZmxhZ3M7DQotCX0gd2hp
+bGUgKHRocmVhZF9mbGFncyAmIF9USUZfV09SS19NQVNLKTsNCisJfSB3aGlsZSAodGhyZWFkX2Zs
+YWdzICYgV09SS19QRU5ESU5HX0xPT1BfRkxBR1MpOw0KKw0KKwlpZiAodGhyZWFkX2ZsYWdzICYg
+X1RJRl9UQVNLX0lTT0xBVElPTikNCisJCXRhc2tfaXNvbGF0aW9uX3N0YXJ0KCk7DQorDQogCXJl
+dHVybiAwOw0KIH0NCiANCmRpZmYgLS1naXQgYS9hcmNoL2FybS9rZXJuZWwvc21wLmMgYi9hcmNo
+L2FybS9rZXJuZWwvc21wLmMNCmluZGV4IDQ2ZTFiZTllNTdhOC4uOTVmMTliOTgwNzc2IDEwMDY0
+NA0KLS0tIGEvYXJjaC9hcm0va2VybmVsL3NtcC5jDQorKysgYi9hcmNoL2FybS9rZXJuZWwvc21w
+LmMNCkBAIC0yNiw2ICsyNiw3IEBADQogI2luY2x1ZGUgPGxpbnV4L2NvbXBsZXRpb24uaD4NCiAj
+aW5jbHVkZSA8bGludXgvY3B1ZnJlcS5oPg0KICNpbmNsdWRlIDxsaW51eC9pcnFfd29yay5oPg0K
+KyNpbmNsdWRlIDxsaW51eC9pc29sYXRpb24uaD4NCiANCiAjaW5jbHVkZSA8bGludXgvYXRvbWlj
+Lmg+DQogI2luY2x1ZGUgPGFzbS9idWdzLmg+DQpAQCAtNTYwLDYgKzU2MSw3IEBAIHZvaWQgYXJj
+aF9zZW5kX2NhbGxfZnVuY3Rpb25faXBpX21hc2soY29uc3Qgc3RydWN0IGNwdW1hc2sgKm1hc2sp
+DQogDQogdm9pZCBhcmNoX3NlbmRfd2FrZXVwX2lwaV9tYXNrKGNvbnN0IHN0cnVjdCBjcHVtYXNr
+ICptYXNrKQ0KIHsNCisJdGFza19pc29sYXRpb25fcmVtb3RlX2NwdW1hc2sobWFzaywgIndha2V1
+cCBJUEkiKTsNCiAJc21wX2Nyb3NzX2NhbGwobWFzaywgSVBJX1dBS0VVUCk7DQogfQ0KIA0KQEAg
+LTU3OSw2ICs1ODEsNyBAQCB2b2lkIGFyY2hfaXJxX3dvcmtfcmFpc2Uodm9pZCkNCiAjaWZkZWYg
+Q09ORklHX0dFTkVSSUNfQ0xPQ0tFVkVOVFNfQlJPQURDQVNUDQogdm9pZCB0aWNrX2Jyb2FkY2Fz
+dChjb25zdCBzdHJ1Y3QgY3B1bWFzayAqbWFzaykNCiB7DQorCXRhc2tfaXNvbGF0aW9uX3JlbW90
+ZV9jcHVtYXNrKG1hc2ssICJ0aW1lciBJUEkiKTsNCiAJc21wX2Nyb3NzX2NhbGwobWFzaywgSVBJ
+X1RJTUVSKTsNCiB9DQogI2VuZGlmDQpAQCAtNzAyLDYgKzcwNSw3IEBAIHZvaWQgaGFuZGxlX0lQ
+SShpbnQgaXBpbnIsIHN0cnVjdCBwdF9yZWdzICpyZWdzKQ0KIA0KIHZvaWQgc21wX3NlbmRfcmVz
+Y2hlZHVsZShpbnQgY3B1KQ0KIHsNCisJdGFza19pc29sYXRpb25fcmVtb3RlKGNwdSwgInJlc2No
+ZWR1bGUgSVBJIik7DQogCXNtcF9jcm9zc19jYWxsKGNwdW1hc2tfb2YoY3B1KSwgSVBJX1JFU0NI
+RURVTEUpOw0KIH0NCiANCmRpZmYgLS1naXQgYS9hcmNoL2FybS9tbS9mYXVsdC5jIGIvYXJjaC9h
+cm0vbW0vZmF1bHQuYw0KaW5kZXggYmQwZjQ4MjFmN2UxLi5hY2QxMWE2OWM0ZTQgMTAwNjQ0DQot
+LS0gYS9hcmNoL2FybS9tbS9mYXVsdC5jDQorKysgYi9hcmNoL2FybS9tbS9mYXVsdC5jDQpAQCAt
+MTcsNiArMTcsNyBAQA0KICNpbmNsdWRlIDxsaW51eC9zY2hlZC9kZWJ1Zy5oPg0KICNpbmNsdWRl
+IDxsaW51eC9oaWdobWVtLmg+DQogI2luY2x1ZGUgPGxpbnV4L3BlcmZfZXZlbnQuaD4NCisjaW5j
+bHVkZSA8bGludXgvaXNvbGF0aW9uLmg+DQogDQogI2luY2x1ZGUgPGFzbS9wZ3RhYmxlLmg+DQog
+I2luY2x1ZGUgPGFzbS9zeXN0ZW1fbWlzYy5oPg0KQEAgLTMzMiw4ICszMzMsMTMgQEAgZG9fcGFn
+ZV9mYXVsdCh1bnNpZ25lZCBsb25nIGFkZHIsIHVuc2lnbmVkIGludCBmc3IsIHN0cnVjdCBwdF9y
+ZWdzICpyZWdzKQ0KIAkvKg0KIAkgKiBIYW5kbGUgdGhlICJub3JtYWwiIGNhc2UgZmlyc3QgLSBW
+TV9GQVVMVF9NQUpPUg0KIAkgKi8NCi0JaWYgKGxpa2VseSghKGZhdWx0ICYgKFZNX0ZBVUxUX0VS
+Uk9SIHwgVk1fRkFVTFRfQkFETUFQIHwgVk1fRkFVTFRfQkFEQUNDRVNTKSkpKQ0KKwlpZiAobGlr
+ZWx5KCEoZmF1bHQgJiAoVk1fRkFVTFRfRVJST1IgfCBWTV9GQVVMVF9CQURNQVAgfA0KKwkJCSAg
+ICAgIFZNX0ZBVUxUX0JBREFDQ0VTUykpKSkgew0KKwkJLyogTm8gc2lnbmFsIHdhcyBnZW5lcmF0
+ZWQsIGJ1dCBub3RpZnkgdGFzay1pc29sYXRpb24gdGFza3MuICovDQorCQlpZiAodXNlcl9tb2Rl
+KHJlZ3MpKQ0KKwkJCXRhc2tfaXNvbGF0aW9uX2ludGVycnVwdCgicGFnZSBmYXVsdCBhdCAlI2x4
+IiwgYWRkcik7DQogCQlyZXR1cm4gMDsNCisJfQ0KIA0KIAkvKg0KIAkgKiBJZiB3ZSBhcmUgaW4g
+a2VybmVsIG1vZGUgYXQgdGhpcyBwb2ludCwgd2UNCi0tIA0KMi4yMC4xDQoNCg==
