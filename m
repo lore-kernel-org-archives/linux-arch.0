@@ -1,117 +1,92 @@
-Return-Path: <SRS0=ZCnS=4X=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:33792 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726490AbgCFNdn (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 6 Mar 2020 08:33:43 -0500
-From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Subject: [PATCH v2 16/20] mips: vdso: Enable mips to use common headers
-Date: Fri,  6 Mar 2020 13:32:38 +0000
-Message-ID: <20200306133242.26279-17-vincenzo.frascino@arm.com>
-In-Reply-To: <20200306133242.26279-1-vincenzo.frascino@arm.com>
-References: <20200306133242.26279-1-vincenzo.frascino@arm.com>
+Return-Path: <SRS0=Zkb6=4V=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mx0a-0016f401.pphosted.com ([67.231.148.174]:49856 "EHLO
+        mx0b-0016f401.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
+        by vger.kernel.org with ESMTP id S1726650AbgCDQOx (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 4 Mar 2020 11:14:53 -0500
+From: Alex Belits <abelits@marvell.com>
+Subject: [PATCH 10/12] task_isolation: ringbuffer: don't interrupt CPUs
+ running isolated tasks on buffer resize
+Date: Wed, 4 Mar 2020 16:14:28 +0000
+Message-ID: <426ee885b89985f6bf348d64909eeb6a2cd83162.camel@marvell.com>
+References: <4473787e1b6bc3cc226067e8d122092a678b63de.camel@marvell.com>
+In-Reply-To: <4473787e1b6bc3cc226067e8d122092a678b63de.camel@marvell.com>
+Content-Language: en-US
+Content-Type: text/plain; charset="utf-8"
+Content-ID: <E153F72FDB45B04287EDA1D4247A88EA@namprd18.prod.outlook.com>
+Content-Transfer-Encoding: base64
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org, clang-built-linux@googlegroups.com, x86@kernel.org
-Cc: Vincenzo Frascino <vincenzo.frascino@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Paul Burton <paul.burton@mips.com>, Thomas Gleixner <tglx@linutronix.de>, Andy Lutomirski <luto@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Stephen Boyd <sboyd@kernel.org>, Mark Salyzyn <salyzyn@android.com>, Kees Cook <keescook@chromium.org>, Peter Collingbourne <pcc@google.com>, Dmitry Safonov <0x7f454c46@gmail.com>, Andrei Vagin <avagin@openvz.org>, Nick Desaulniers <ndesaulniers@google.com>, Paul Burton <paulburton@kernel.org>
-Message-ID: <20200306133238.m70DVV0qSq59kNR4PYAPEQ6Q-u2WjJ_5LjEFhzLJT5E@z>
+To: "frederic@kernel.org" <frederic@kernel.org>, "rostedt@goodmis.org" <rostedt@goodmis.org>
+Cc: "mingo@kernel.org" <mingo@kernel.org>, "peterz@infradead.org" <peterz@infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Prasun Kapoor <pkapoor@marvell.com>, "tglx@linutronix.de" <tglx@linutronix.de>, "linux-api@vger.kernel.org" <linux-api@vger.kernel.org>, "linux-mm@vger.kernel.org" <linux-mm@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+Message-ID: <20200304161428.nAE8_V1LlJI0KIicVRfFXyoSshOSIgqzaq12siAcGAI@z>
 
-Enable mips to use only the common headers in the implementation of
-the vDSO library.
-
-Cc: Paul Burton <paulburton@kernel.org>
-Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
----
- arch/mips/include/asm/common/processor.h  | 27 +++++++++++++++++++++++
- arch/mips/include/asm/processor.h         | 16 +-------------
- arch/mips/include/asm/vdso/gettimeofday.h |  4 ----
- 3 files changed, 28 insertions(+), 19 deletions(-)
- create mode 100644 arch/mips/include/asm/common/processor.h
-
-diff --git a/arch/mips/include/asm/common/processor.h b/arch/mips/include/asm/common/processor.h
-new file mode 100644
-index 000000000000..d2ee5d397d2b
---- /dev/null
-+++ b/arch/mips/include/asm/common/processor.h
-@@ -0,0 +1,27 @@
-+/* SPDX-License-Identifier: GPL-2.0-only */
-+/*
-+ * Copyright (C) 2020 ARM Ltd.
-+ */
-+#ifndef __ASM_COMMON_PROCESSOR_H
-+#define __ASM_COMMON_PROCESSOR_H
-+
-+#ifndef __ASSEMBLY__
-+
-+#ifdef CONFIG_CPU_LOONGSON64
-+/*
-+ * Loongson-3's SFB (Store-Fill-Buffer) may buffer writes indefinitely when a
-+ * tight read loop is executed, because reads take priority over writes & the
-+ * hardware (incorrectly) doesn't ensure that writes will eventually occur.
-+ *
-+ * Since spin loops of any kind should have a cpu_relax() in them, force an SFB
-+ * flush from cpu_relax() such that any pending writes will become visible as
-+ * expected.
-+ */
-+#define cpu_relax()	smp_mb()
-+#else
-+#define cpu_relax()	barrier()
-+#endif
-+
-+#endif /* __ASSEMBLY__ */
-+
-+#endif /* __ASM_COMMON_PROCESSOR_H */
-diff --git a/arch/mips/include/asm/processor.h b/arch/mips/include/asm/processor.h
-index 7619ad319400..b7eca25e2066 100644
---- a/arch/mips/include/asm/processor.h
-+++ b/arch/mips/include/asm/processor.h
-@@ -22,6 +22,7 @@
- #include <asm/dsemul.h>
- #include <asm/mipsregs.h>
- #include <asm/prefetch.h>
-+#include <asm/common/processor.h>
- 
- /*
-  * System setup and hardware flags..
-@@ -385,21 +386,6 @@ unsigned long get_wchan(struct task_struct *p);
- #define KSTK_ESP(tsk) (task_pt_regs(tsk)->regs[29])
- #define KSTK_STATUS(tsk) (task_pt_regs(tsk)->cp0_status)
- 
--#ifdef CONFIG_CPU_LOONGSON64
--/*
-- * Loongson-3's SFB (Store-Fill-Buffer) may buffer writes indefinitely when a
-- * tight read loop is executed, because reads take priority over writes & the
-- * hardware (incorrectly) doesn't ensure that writes will eventually occur.
-- *
-- * Since spin loops of any kind should have a cpu_relax() in them, force an SFB
-- * flush from cpu_relax() such that any pending writes will become visible as
-- * expected.
-- */
--#define cpu_relax()	smp_mb()
--#else
--#define cpu_relax()	barrier()
--#endif
--
- /*
-  * Return_address is a replacement for __builtin_return_address(count)
-  * which on certain architectures cannot reasonably be implemented in GCC
-diff --git a/arch/mips/include/asm/vdso/gettimeofday.h b/arch/mips/include/asm/vdso/gettimeofday.h
-index a58687e26c5d..e8ab2fafe067 100644
---- a/arch/mips/include/asm/vdso/gettimeofday.h
-+++ b/arch/mips/include/asm/vdso/gettimeofday.h
-@@ -13,12 +13,8 @@
- 
- #ifndef __ASSEMBLY__
- 
--#include <linux/compiler.h>
--#include <linux/time.h>
--
- #include <asm/vdso/vdso.h>
- #include <asm/clocksource.h>
--#include <asm/io.h>
- #include <asm/unistd.h>
- #include <asm/vdso.h>
- 
--- 
-2.25.1
+RnJvbTogWXVyaSBOb3JvdiA8eW5vcm92QG1hcnZlbGwuY29tPg0KDQpDUFVzIHJ1bm5pbmcgaXNv
+bGF0ZWQgdGFza3MgYXJlIGluIHVzZXJzcGFjZSwgc28gdGhleSBkb24ndCBoYXZlIHRvDQpwZXJm
+b3JtIHJpbmcgYnVmZmVyIHVwZGF0ZXMgaW1tZWRpYXRlbHkuIElmIHJpbmdfYnVmZmVyX3Jlc2l6
+ZSgpDQpzY2hlZHVsZXMgdGhlIHVwZGF0ZSBvbiB0aG9zZSBDUFVzLCBpc29sYXRpb24gaXMgYnJv
+a2VuLiBUbyBwcmV2ZW50DQp0aGF0LCB1cGRhdGVzIGZvciBDUFVzIHJ1bm5pbmcgaXNvbGF0ZWQg
+dGFza3MgYXJlIHBlcmZvcm1lZCBsb2NhbGx5LA0KbGlrZSBmb3Igb2ZmbGluZSBDUFVzLg0KDQpB
+IHJhY2UgY29uZGl0aW9uIGJldHdlZW4gdGhpcyB1cGRhdGUgYW5kIGlzb2xhdGlvbiBicmVha2lu
+ZyBpcyBhdm9pZGVkDQphdCB0aGUgY29zdCBvZiBkaXNhYmxpbmcgcGVyX2NwdSBidWZmZXIgd3Jp
+dGluZyBmb3IgdGhlIHRpbWUgb2YgdXBkYXRlDQp3aGVuIGl0IGNvaW5jaWRlcyB3aXRoIGlzb2xh
+dGlvbiBicmVha2luZy4NCg0KU2lnbmVkLW9mZi1ieTogQWxleCBCZWxpdHMgPGFiZWxpdHNAbWFy
+dmVsbC5jb20+DQotLS0NCiBrZXJuZWwvdHJhY2UvcmluZ19idWZmZXIuYyB8IDYxICsrKysrKysr
+KysrKysrKysrKysrKysrKysrKysrKysrKystLS0tDQogMSBmaWxlIGNoYW5nZWQsIDU1IGluc2Vy
+dGlvbnMoKyksIDYgZGVsZXRpb25zKC0pDQoNCmRpZmYgLS1naXQgYS9rZXJuZWwvdHJhY2Uvcmlu
+Z19idWZmZXIuYyBiL2tlcm5lbC90cmFjZS9yaW5nX2J1ZmZlci5jDQppbmRleCA2MWYwZTkyYWNl
+OTkuLjZjNzQ3OWI2NDExZCAxMDA2NDQNCi0tLSBhL2tlcm5lbC90cmFjZS9yaW5nX2J1ZmZlci5j
+DQorKysgYi9rZXJuZWwvdHJhY2UvcmluZ19idWZmZXIuYw0KQEAgLTIxLDYgKzIxLDcgQEANCiAj
+aW5jbHVkZSA8bGludXgvZGVsYXkuaD4NCiAjaW5jbHVkZSA8bGludXgvc2xhYi5oPg0KICNpbmNs
+dWRlIDxsaW51eC9pbml0Lmg+DQorI2luY2x1ZGUgPGxpbnV4L2lzb2xhdGlvbi5oPg0KICNpbmNs
+dWRlIDxsaW51eC9oYXNoLmg+DQogI2luY2x1ZGUgPGxpbnV4L2xpc3QuaD4NCiAjaW5jbHVkZSA8
+bGludXgvY3B1Lmg+DQpAQCAtMTcwMSw2ICsxNzAyLDM3IEBAIHN0YXRpYyB2b2lkIHVwZGF0ZV9w
+YWdlc19oYW5kbGVyKHN0cnVjdCB3b3JrX3N0cnVjdCAqd29yaykNCiAJY29tcGxldGUoJmNwdV9i
+dWZmZXItPnVwZGF0ZV9kb25lKTsNCiB9DQogDQorc3RhdGljIGJvb2wgdXBkYXRlX2lmX2lzb2xh
+dGVkKHN0cnVjdCByaW5nX2J1ZmZlcl9wZXJfY3B1ICpjcHVfYnVmZmVyLA0KKwkJCSAgICAgICBp
+bnQgY3B1KQ0KK3sNCisJYm9vbCBydiA9IGZhbHNlOw0KKw0KKwlpZiAodGFza19pc29sYXRpb25f
+b25fY3B1KGNwdSkpIHsNCisJCS8qDQorCQkgKiBDUFUgaXMgcnVubmluZyBpc29sYXRlZCB0YXNr
+LiBTaW5jZSBpdCBtYXkgbG9zZQ0KKwkJICogaXNvbGF0aW9uIGFuZCByZS1lbnRlciBrZXJuZWwg
+c2ltdWx0YW5lb3VzbHkgd2l0aA0KKwkJICogdGhpcyB1cGRhdGUsIGRpc2FibGUgcmVjb3JkaW5n
+IHVudGlsIGl0J3MgZG9uZS4NCisJCSAqLw0KKwkJYXRvbWljX2luYygmY3B1X2J1ZmZlci0+cmVj
+b3JkX2Rpc2FibGVkKTsNCisJCS8qIE1ha2Ugc3VyZSwgdXBkYXRlIGlzIGRvbmUsIGFuZCBpc29s
+YXRpb24gc3RhdGUgaXMgY3VycmVudCAqLw0KKwkJc21wX21iKCk7DQorCQlpZiAodGFza19pc29s
+YXRpb25fb25fY3B1KGNwdSkpIHsNCisJCQkvKg0KKwkJCSAqIElmIENQVSBpcyBzdGlsbCBydW5u
+aW5nIGlzb2xhdGVkIHRhc2ssIHdlDQorCQkJICogY2FuIGJlIHN1cmUgdGhhdCBicmVha2luZyBp
+c29sYXRpb24gd2lsbA0KKwkJCSAqIGhhcHBlbiB3aGlsZSByZWNvcmRpbmcgaXMgZGlzYWJsZWQs
+IGFuZCBDUFUNCisJCQkgKiB3aWxsIG5vdCB0b3VjaCB0aGlzIGJ1ZmZlciB1bnRpbCB0aGUgdXBk
+YXRlDQorCQkJICogaXMgZG9uZS4NCisJCQkgKi8NCisJCQlyYl91cGRhdGVfcGFnZXMoY3B1X2J1
+ZmZlcik7DQorCQkJY3B1X2J1ZmZlci0+bnJfcGFnZXNfdG9fdXBkYXRlID0gMDsNCisJCQlydiA9
+IHRydWU7DQorCQl9DQorCQlhdG9taWNfZGVjKCZjcHVfYnVmZmVyLT5yZWNvcmRfZGlzYWJsZWQp
+Ow0KKwl9DQorCXJldHVybiBydjsNCit9DQorDQogLyoqDQogICogcmluZ19idWZmZXJfcmVzaXpl
+IC0gcmVzaXplIHRoZSByaW5nIGJ1ZmZlcg0KICAqIEBidWZmZXI6IHRoZSBidWZmZXIgdG8gcmVz
+aXplLg0KQEAgLTE3ODQsMTMgKzE4MTYsMjIgQEAgaW50IHJpbmdfYnVmZmVyX3Jlc2l6ZShzdHJ1
+Y3QgdHJhY2VfYnVmZmVyICpidWZmZXIsIHVuc2lnbmVkIGxvbmcgc2l6ZSwNCiAJCQlpZiAoIWNw
+dV9idWZmZXItPm5yX3BhZ2VzX3RvX3VwZGF0ZSkNCiAJCQkJY29udGludWU7DQogDQotCQkJLyog
+Q2FuJ3QgcnVuIHNvbWV0aGluZyBvbiBhbiBvZmZsaW5lIENQVS4gKi8NCisJCQkvKg0KKwkJCSAq
+IENhbid0IHJ1biBzb21ldGhpbmcgb24gYW4gb2ZmbGluZSBDUFUuDQorCQkJICoNCisJCQkgKiBD
+UFVzIHJ1bm5pbmcgaXNvbGF0ZWQgdGFza3MgZG9uJ3QgaGF2ZSB0bw0KKwkJCSAqIHVwZGF0ZSBy
+aW5nIGJ1ZmZlcnMgdW50aWwgdGhleSBleGl0DQorCQkJICogaXNvbGF0aW9uIGJlY2F1c2UgdGhl
+eSBhcmUgaW4NCisJCQkgKiB1c2Vyc3BhY2UuIFVzZSB0aGUgcHJvY2VkdXJlIHRoYXQgcHJldmVu
+dHMNCisJCQkgKiByYWNlIGNvbmRpdGlvbiB3aXRoIGlzb2xhdGlvbiBicmVha2luZy4NCisJCQkg
+Ki8NCiAJCQlpZiAoIWNwdV9vbmxpbmUoY3B1KSkgew0KIAkJCQlyYl91cGRhdGVfcGFnZXMoY3B1
+X2J1ZmZlcik7DQogCQkJCWNwdV9idWZmZXItPm5yX3BhZ2VzX3RvX3VwZGF0ZSA9IDA7DQogCQkJ
+fSBlbHNlIHsNCi0JCQkJc2NoZWR1bGVfd29ya19vbihjcHUsDQotCQkJCQkJJmNwdV9idWZmZXIt
+PnVwZGF0ZV9wYWdlc193b3JrKTsNCisJCQkJaWYgKCF1cGRhdGVfaWZfaXNvbGF0ZWQoY3B1X2J1
+ZmZlciwgY3B1KSkNCisJCQkJCXNjaGVkdWxlX3dvcmtfb24oY3B1LA0KKwkJCQkJJmNwdV9idWZm
+ZXItPnVwZGF0ZV9wYWdlc193b3JrKTsNCiAJCQl9DQogCQl9DQogDQpAQCAtMTgyOSwxMyArMTg3
+MCwyMiBAQCBpbnQgcmluZ19idWZmZXJfcmVzaXplKHN0cnVjdCB0cmFjZV9idWZmZXIgKmJ1ZmZl
+ciwgdW5zaWduZWQgbG9uZyBzaXplLA0KIA0KIAkJZ2V0X29ubGluZV9jcHVzKCk7DQogDQotCQkv
+KiBDYW4ndCBydW4gc29tZXRoaW5nIG9uIGFuIG9mZmxpbmUgQ1BVLiAqLw0KKwkJLyoNCisJCSAq
+IENhbid0IHJ1biBzb21ldGhpbmcgb24gYW4gb2ZmbGluZSBDUFUuDQorCQkgKg0KKwkJICogQ1BV
+cyBydW5uaW5nIGlzb2xhdGVkIHRhc2tzIGRvbid0IGhhdmUgdG8gdXBkYXRlDQorCQkgKiByaW5n
+IGJ1ZmZlcnMgdW50aWwgdGhleSBleGl0IGlzb2xhdGlvbiBiZWNhdXNlIHRoZXkNCisJCSAqIGFy
+ZSBpbiB1c2Vyc3BhY2UuIFVzZSB0aGUgcHJvY2VkdXJlIHRoYXQgcHJldmVudHMNCisJCSAqIHJh
+Y2UgY29uZGl0aW9uIHdpdGggaXNvbGF0aW9uIGJyZWFraW5nLg0KKwkJICovDQogCQlpZiAoIWNw
+dV9vbmxpbmUoY3B1X2lkKSkNCiAJCQlyYl91cGRhdGVfcGFnZXMoY3B1X2J1ZmZlcik7DQogCQll
+bHNlIHsNCi0JCQlzY2hlZHVsZV93b3JrX29uKGNwdV9pZCwNCisJCQlpZiAoIXVwZGF0ZV9pZl9p
+c29sYXRlZChjcHVfYnVmZmVyLCBjcHVfaWQpKQ0KKwkJCQlzY2hlZHVsZV93b3JrX29uKGNwdV9p
+ZCwNCiAJCQkJCSAmY3B1X2J1ZmZlci0+dXBkYXRlX3BhZ2VzX3dvcmspOw0KLQkJCXdhaXRfZm9y
+X2NvbXBsZXRpb24oJmNwdV9idWZmZXItPnVwZGF0ZV9kb25lKTsNCisJCQkJd2FpdF9mb3JfY29t
+cGxldGlvbigmY3B1X2J1ZmZlci0+dXBkYXRlX2RvbmUpOw0KKwkJCX0NCiAJCX0NCiANCiAJCWNw
+dV9idWZmZXItPm5yX3BhZ2VzX3RvX3VwZGF0ZSA9IDA7DQotLSANCjIuMjAuMQ0KDQo=
