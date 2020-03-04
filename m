@@ -1,184 +1,157 @@
-Return-Path: <SRS0=zClU=5C=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:37266 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726452AbgCQMYJ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 17 Mar 2020 08:24:09 -0400
-From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Subject: [PATCH v4 24/26] arm: vdso: Enable arm to use common headers
-Date: Tue, 17 Mar 2020 12:22:18 +0000
-Message-ID: <20200317122220.30393-25-vincenzo.frascino@arm.com>
-In-Reply-To: <20200317122220.30393-1-vincenzo.frascino@arm.com>
-References: <20200317122220.30393-1-vincenzo.frascino@arm.com>
+Return-Path: <SRS0=Zkb6=4V=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mx0b-0016f401.pphosted.com ([67.231.156.173]:33886 "EHLO
+        mx0b-0016f401.pphosted.com" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S1726561AbgCDQLH (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 4 Mar 2020 11:11:07 -0500
+From: Alex Belits <abelits@marvell.com>
+Subject: [PATCH 06/12] task_isolation: arch/arm64: enable task isolation
+ functionality
+Date: Wed, 4 Mar 2020 16:10:28 +0000
+Message-ID: <ef365b5754ffc07980ed1df6ac8531a8ff590a17.camel@marvell.com>
+References: <4473787e1b6bc3cc226067e8d122092a678b63de.camel@marvell.com>
+In-Reply-To: <4473787e1b6bc3cc226067e8d122092a678b63de.camel@marvell.com>
+Content-Language: en-US
+Content-Type: text/plain; charset="utf-8"
+Content-ID: <19826A3FF96BC442A256A26B771E2E6C@namprd18.prod.outlook.com>
+Content-Transfer-Encoding: base64
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, clang-built-linux@googlegroups.com, linux-mips@vger.kernel.org, x86@kernel.org
-Cc: Vincenzo Frascino <vincenzo.frascino@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Paul Burton <paul.burton@mips.com>, Thomas Gleixner <tglx@linutronix.de>, Andy Lutomirski <luto@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Stephen Boyd <sboyd@kernel.org>, Mark Salyzyn <salyzyn@android.com>, Kees Cook <keescook@chromium.org>, Peter Collingbourne <pcc@google.com>, Dmitry Safonov <0x7f454c46@gmail.com>, Andrei Vagin <avagin@openvz.org>, Nick Desaulniers <ndesaulniers@google.com>, Marc Zyngier <maz@kernel.org>, Mark Rutland <Mark.Rutland@arm.com>
-Message-ID: <20200317122218.5hI10mRv_STA9pwYDYErD7bW5EfcRjuVspBJUnClwBU@z>
+To: "frederic@kernel.org" <frederic@kernel.org>, "rostedt@goodmis.org" <rostedt@goodmis.org>
+Cc: "mingo@kernel.org" <mingo@kernel.org>, "peterz@infradead.org" <peterz@infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Prasun Kapoor <pkapoor@marvell.com>, "tglx@linutronix.de" <tglx@linutronix.de>, "linux-api@vger.kernel.org" <linux-api@vger.kernel.org>, "linux-mm@vger.kernel.org" <linux-mm@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+Message-ID: <20200304161028.kPUnl_psSiA9ZVYIiT7InlQmzOyT6GGORN3JeHpIBac@z>
 
-Enable arm to use only the common headers in the implementation
-of the vDSO library.
-
-Cc: Russell King <linux@armlinux.org.uk>
-Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
----
- arch/arm/include/asm/cp15.h              | 20 +------------
- arch/arm/include/asm/processor.h         | 11 +------
- arch/arm/include/asm/vdso/cp15.h         | 38 ++++++++++++++++++++++++
- arch/arm/include/asm/vdso/gettimeofday.h |  4 +--
- arch/arm/include/asm/vdso/processor.h    | 22 ++++++++++++++
- 5 files changed, 64 insertions(+), 31 deletions(-)
- create mode 100644 arch/arm/include/asm/vdso/cp15.h
- create mode 100644 arch/arm/include/asm/vdso/processor.h
-
-diff --git a/arch/arm/include/asm/cp15.h b/arch/arm/include/asm/cp15.h
-index d2453e2d3f1f..a54230e65647 100644
---- a/arch/arm/include/asm/cp15.h
-+++ b/arch/arm/include/asm/cp15.h
-@@ -50,25 +50,7 @@
- 
- #ifdef CONFIG_CPU_CP15
- 
--#define __ACCESS_CP15(CRn, Op1, CRm, Op2)	\
--	"mrc", "mcr", __stringify(p15, Op1, %0, CRn, CRm, Op2), u32
--#define __ACCESS_CP15_64(Op1, CRm)		\
--	"mrrc", "mcrr", __stringify(p15, Op1, %Q0, %R0, CRm), u64
--
--#define __read_sysreg(r, w, c, t) ({				\
--	t __val;						\
--	asm volatile(r " " c : "=r" (__val));			\
--	__val;							\
--})
--#define read_sysreg(...)		__read_sysreg(__VA_ARGS__)
--
--#define __write_sysreg(v, r, w, c, t)	asm volatile(w " " c : : "r" ((t)(v)))
--#define write_sysreg(v, ...)		__write_sysreg(v, __VA_ARGS__)
--
--#define BPIALL				__ACCESS_CP15(c7, 0, c5, 6)
--#define ICIALLU				__ACCESS_CP15(c7, 0, c5, 0)
--
--#define CNTVCT				__ACCESS_CP15_64(1, c14)
-+#include <asm/vdso/cp15.h>
- 
- extern unsigned long cr_alignment;	/* defined in entry-armv.S */
- 
-diff --git a/arch/arm/include/asm/processor.h b/arch/arm/include/asm/processor.h
-index 614bf829e454..b9241051e5cb 100644
---- a/arch/arm/include/asm/processor.h
-+++ b/arch/arm/include/asm/processor.h
-@@ -14,6 +14,7 @@
- #include <asm/ptrace.h>
- #include <asm/types.h>
- #include <asm/unified.h>
-+#include <asm/vdso/processor.h>
- 
- #ifdef __KERNEL__
- #define STACK_TOP	((current->personality & ADDR_LIMIT_32BIT) ? \
-@@ -85,16 +86,6 @@ extern void release_thread(struct task_struct *);
- 
- unsigned long get_wchan(struct task_struct *p);
- 
--#if __LINUX_ARM_ARCH__ == 6 || defined(CONFIG_ARM_ERRATA_754327)
--#define cpu_relax()						\
--	do {							\
--		smp_mb();					\
--		__asm__ __volatile__("nop; nop; nop; nop; nop; nop; nop; nop; nop; nop;");	\
--	} while (0)
--#else
--#define cpu_relax()			barrier()
--#endif
--
- #define task_pt_regs(p) \
- 	((struct pt_regs *)(THREAD_START_SP + task_stack_page(p)) - 1)
- 
-diff --git a/arch/arm/include/asm/vdso/cp15.h b/arch/arm/include/asm/vdso/cp15.h
-new file mode 100644
-index 000000000000..bed16fa1865e
---- /dev/null
-+++ b/arch/arm/include/asm/vdso/cp15.h
-@@ -0,0 +1,38 @@
-+/* SPDX-License-Identifier: GPL-2.0-only */
-+/*
-+ * Copyright (C) 2020 ARM Ltd.
-+ */
-+#ifndef __ASM_VDSO_CP15_H
-+#define __ASM_VDSO_CP15_H
-+
-+#ifndef __ASSEMBLY__
-+
-+#ifdef CONFIG_CPU_CP15
-+
-+#include <linux/stringify.h>
-+
-+#define __ACCESS_CP15(CRn, Op1, CRm, Op2)	\
-+	"mrc", "mcr", __stringify(p15, Op1, %0, CRn, CRm, Op2), u32
-+#define __ACCESS_CP15_64(Op1, CRm)		\
-+	"mrrc", "mcrr", __stringify(p15, Op1, %Q0, %R0, CRm), u64
-+
-+#define __read_sysreg(r, w, c, t) ({				\
-+	t __val;						\
-+	asm volatile(r " " c : "=r" (__val));			\
-+	__val;							\
-+})
-+#define read_sysreg(...)		__read_sysreg(__VA_ARGS__)
-+
-+#define __write_sysreg(v, r, w, c, t)	asm volatile(w " " c : : "r" ((t)(v)))
-+#define write_sysreg(v, ...)		__write_sysreg(v, __VA_ARGS__)
-+
-+#define BPIALL				__ACCESS_CP15(c7, 0, c5, 6)
-+#define ICIALLU				__ACCESS_CP15(c7, 0, c5, 0)
-+
-+#define CNTVCT				__ACCESS_CP15_64(1, c14)
-+
-+#endif /* CONFIG_CPU_CP15 */
-+
-+#endif /* __ASSEMBLY__ */
-+
-+#endif /* __ASM_VDSO_CP15_H */
-diff --git a/arch/arm/include/asm/vdso/gettimeofday.h b/arch/arm/include/asm/vdso/gettimeofday.h
-index 07d791c65cf7..36dc18553ed8 100644
---- a/arch/arm/include/asm/vdso/gettimeofday.h
-+++ b/arch/arm/include/asm/vdso/gettimeofday.h
-@@ -7,9 +7,9 @@
- 
- #ifndef __ASSEMBLY__
- 
--#include <asm/barrier.h>
--#include <asm/cp15.h>
-+#include <asm/errno.h>
- #include <asm/unistd.h>
-+#include <asm/vdso/cp15.h>
- #include <uapi/linux/time.h>
- 
- #define VDSO_HAS_CLOCK_GETRES		1
-diff --git a/arch/arm/include/asm/vdso/processor.h b/arch/arm/include/asm/vdso/processor.h
-new file mode 100644
-index 000000000000..45efb3ff511c
---- /dev/null
-+++ b/arch/arm/include/asm/vdso/processor.h
-@@ -0,0 +1,22 @@
-+/* SPDX-License-Identifier: GPL-2.0-only */
-+/*
-+ * Copyright (C) 2020 ARM Ltd.
-+ */
-+#ifndef __ASM_VDSO_PROCESSOR_H
-+#define __ASM_VDSO_PROCESSOR_H
-+
-+#ifndef __ASSEMBLY__
-+
-+#if __LINUX_ARM_ARCH__ == 6 || defined(CONFIG_ARM_ERRATA_754327)
-+#define cpu_relax()						\
-+	do {							\
-+		smp_mb();					\
-+		__asm__ __volatile__("nop; nop; nop; nop; nop; nop; nop; nop; nop; nop;");	\
-+	} while (0)
-+#else
-+#define cpu_relax()			barrier()
-+#endif
-+
-+#endif /* __ASSEMBLY__ */
-+
-+#endif /* __ASM_VDSO_PROCESSOR_H */
--- 
-2.25.1
+RnJvbTogQ2hyaXMgTWV0Y2FsZiA8Y21ldGNhbGZAbWVsbGFub3guY29tPg0KDQpJbiBkb19ub3Rp
+ZnlfcmVzdW1lKCksIGNhbGwgdGFza19pc29sYXRpb25fc3RhcnQoKSBmb3INClRJRl9UQVNLX0lT
+T0xBVElPTiB0YXNrcy4gQWRkIF9USUZfVEFTS19JU09MQVRJT04gdG8gX1RJRl9XT1JLX01BU0ss
+DQphbmQgZGVmaW5lIGEgbG9jYWwgTk9USUZZX1JFU1VNRV9MT09QX0ZMQUdTIHRvIGNoZWNrIGlu
+IHRoZSBsb29wLA0Kc2luY2Ugd2UgZG9uJ3QgY2xlYXIgX1RJRl9UQVNLX0lTT0xBVElPTiBpbiB0
+aGUgbG9vcC4NCg0KV2UgdHdlYWsgc3lzY2FsbF90cmFjZV9lbnRlcigpIHNsaWdodGx5IHRvIGNh
+cnJ5IHRoZSAiZmxhZ3MiDQp2YWx1ZSBmcm9tIGN1cnJlbnRfdGhyZWFkX2luZm8oKS0+ZmxhZ3Mg
+Zm9yIGVhY2ggb2YgdGhlIHRlc3RzLA0KcmF0aGVyIHRoYW4gZG9pbmcgYSB2b2xhdGlsZSByZWFk
+IGZyb20gbWVtb3J5IGZvciBlYWNoIG9uZS4gVGhpcw0KYXZvaWRzIGEgc21hbGwgb3ZlcmhlYWQg
+Zm9yIGVhY2ggdGVzdCwgYW5kIGluIHBhcnRpY3VsYXIgYXZvaWRzDQp0aGF0IG92ZXJoZWFkIGZv
+ciBUSUZfTk9IWiB3aGVuIFRBU0tfSVNPTEFUSU9OIGlzIG5vdCBlbmFibGVkLg0KDQpXZSBpbnN0
+cnVtZW50IHRoZSBzbXBfc2VuZF9yZXNjaGVkdWxlKCkgcm91dGluZSBzbyB0aGF0IGl0IGNoZWNr
+cyBmb3INCmlzb2xhdGVkIHRhc2tzIGFuZCBnZW5lcmF0ZXMgYSBzdWl0YWJsZSB3YXJuaW5nIGlm
+IG5lZWRlZC4NCg0KRmluYWxseSwgcmVwb3J0IG9uIHBhZ2UgZmF1bHRzIGluIHRhc2staXNvbGF0
+aW9uIHByb2Nlc3NlcyBpbg0KZG9fcGFnZV9mYXVsdHMoKS4NCg0KU2lnbmVkLW9mZi1ieTogQWxl
+eCBCZWxpdHMgPGFiZWxpdHNAbWFydmVsbC5jb20+DQotLS0NCiBhcmNoL2FybTY0L0tjb25maWcg
+ICAgICAgICAgICAgICAgICAgfCAgMSArDQogYXJjaC9hcm02NC9pbmNsdWRlL2FzbS90aHJlYWRf
+aW5mby5oIHwgIDUgKysrKy0NCiBhcmNoL2FybTY0L2tlcm5lbC9wdHJhY2UuYyAgICAgICAgICAg
+fCAxMCArKysrKysrKysrDQogYXJjaC9hcm02NC9rZXJuZWwvc2lnbmFsLmMgICAgICAgICAgIHwg
+MTMgKysrKysrKysrKysrLQ0KIGFyY2gvYXJtNjQva2VybmVsL3NtcC5jICAgICAgICAgICAgICB8
+ICA3ICsrKysrKysNCiBhcmNoL2FybTY0L21tL2ZhdWx0LmMgICAgICAgICAgICAgICAgfCAgNSAr
+KysrKw0KIDYgZmlsZXMgY2hhbmdlZCwgMzkgaW5zZXJ0aW9ucygrKSwgMiBkZWxldGlvbnMoLSkN
+Cg0KZGlmZiAtLWdpdCBhL2FyY2gvYXJtNjQvS2NvbmZpZyBiL2FyY2gvYXJtNjQvS2NvbmZpZw0K
+aW5kZXggMGIzMGU4ODRlMDg4Li45M2I2YWFiYzhiZTkgMTAwNjQ0DQotLS0gYS9hcmNoL2FybTY0
+L0tjb25maWcNCisrKyBiL2FyY2gvYXJtNjQvS2NvbmZpZw0KQEAgLTEyOSw2ICsxMjksNyBAQCBj
+b25maWcgQVJNNjQNCiAJc2VsZWN0IEhBVkVfQVJDSF9QUkVMMzJfUkVMT0NBVElPTlMNCiAJc2Vs
+ZWN0IEhBVkVfQVJDSF9TRUNDT01QX0ZJTFRFUg0KIAlzZWxlY3QgSEFWRV9BUkNIX1NUQUNLTEVB
+Sw0KKwlzZWxlY3QgSEFWRV9BUkNIX1RBU0tfSVNPTEFUSU9ODQogCXNlbGVjdCBIQVZFX0FSQ0hf
+VEhSRUFEX1NUUlVDVF9XSElURUxJU1QNCiAJc2VsZWN0IEhBVkVfQVJDSF9UUkFDRUhPT0sNCiAJ
+c2VsZWN0IEhBVkVfQVJDSF9UUkFOU1BBUkVOVF9IVUdFUEFHRQ0KZGlmZiAtLWdpdCBhL2FyY2gv
+YXJtNjQvaW5jbHVkZS9hc20vdGhyZWFkX2luZm8uaCBiL2FyY2gvYXJtNjQvaW5jbHVkZS9hc20v
+dGhyZWFkX2luZm8uaA0KaW5kZXggZjBjZWM0MTYwMTM2Li43NTYzMDk4ZWI1YjIgMTAwNjQ0DQot
+LS0gYS9hcmNoL2FybTY0L2luY2x1ZGUvYXNtL3RocmVhZF9pbmZvLmgNCisrKyBiL2FyY2gvYXJt
+NjQvaW5jbHVkZS9hc20vdGhyZWFkX2luZm8uaA0KQEAgLTYzLDYgKzYzLDcgQEAgdm9pZCBhcmNo
+X3JlbGVhc2VfdGFza19zdHJ1Y3Qoc3RydWN0IHRhc2tfc3RydWN0ICp0c2spOw0KICNkZWZpbmUg
+VElGX0ZPUkVJR05fRlBTVEFURQkzCS8qIENQVSdzIEZQIHN0YXRlIGlzIG5vdCBjdXJyZW50J3Mg
+Ki8NCiAjZGVmaW5lIFRJRl9VUFJPQkUJCTQJLyogdXByb2JlIGJyZWFrcG9pbnQgb3Igc2luZ2xl
+c3RlcCAqLw0KICNkZWZpbmUgVElGX0ZTQ0hFQ0sJCTUJLyogQ2hlY2sgRlMgaXMgVVNFUl9EUyBv
+biByZXR1cm4gKi8NCisjZGVmaW5lIFRJRl9UQVNLX0lTT0xBVElPTgk2DQogI2RlZmluZSBUSUZf
+Tk9IWgkJNw0KICNkZWZpbmUgVElGX1NZU0NBTExfVFJBQ0UJOAkvKiBzeXNjYWxsIHRyYWNlIGFj
+dGl2ZSAqLw0KICNkZWZpbmUgVElGX1NZU0NBTExfQVVESVQJOQkvKiBzeXNjYWxsIGF1ZGl0aW5n
+ICovDQpAQCAtODMsNiArODQsNyBAQCB2b2lkIGFyY2hfcmVsZWFzZV90YXNrX3N0cnVjdChzdHJ1
+Y3QgdGFza19zdHJ1Y3QgKnRzayk7DQogI2RlZmluZSBfVElGX05FRURfUkVTQ0hFRAkoMSA8PCBU
+SUZfTkVFRF9SRVNDSEVEKQ0KICNkZWZpbmUgX1RJRl9OT1RJRllfUkVTVU1FCSgxIDw8IFRJRl9O
+T1RJRllfUkVTVU1FKQ0KICNkZWZpbmUgX1RJRl9GT1JFSUdOX0ZQU1RBVEUJKDEgPDwgVElGX0ZP
+UkVJR05fRlBTVEFURSkNCisjZGVmaW5lIF9USUZfVEFTS19JU09MQVRJT04JKDEgPDwgVElGX1RB
+U0tfSVNPTEFUSU9OKQ0KICNkZWZpbmUgX1RJRl9OT0haCQkoMSA8PCBUSUZfTk9IWikNCiAjZGVm
+aW5lIF9USUZfU1lTQ0FMTF9UUkFDRQkoMSA8PCBUSUZfU1lTQ0FMTF9UUkFDRSkNCiAjZGVmaW5l
+IF9USUZfU1lTQ0FMTF9BVURJVAkoMSA8PCBUSUZfU1lTQ0FMTF9BVURJVCkNCkBAIC05Niw3ICs5
+OCw4IEBAIHZvaWQgYXJjaF9yZWxlYXNlX3Rhc2tfc3RydWN0KHN0cnVjdCB0YXNrX3N0cnVjdCAq
+dHNrKTsNCiANCiAjZGVmaW5lIF9USUZfV09SS19NQVNLCQkoX1RJRl9ORUVEX1JFU0NIRUQgfCBf
+VElGX1NJR1BFTkRJTkcgfCBcDQogCQkJCSBfVElGX05PVElGWV9SRVNVTUUgfCBfVElGX0ZPUkVJ
+R05fRlBTVEFURSB8IFwNCi0JCQkJIF9USUZfVVBST0JFIHwgX1RJRl9GU0NIRUNLKQ0KKwkJCQkg
+X1RJRl9VUFJPQkUgfCBfVElGX0ZTQ0hFQ0sgfCBcDQorCQkJCSBfVElGX1RBU0tfSVNPTEFUSU9O
+KQ0KIA0KICNkZWZpbmUgX1RJRl9TWVNDQUxMX1dPUksJKF9USUZfU1lTQ0FMTF9UUkFDRSB8IF9U
+SUZfU1lTQ0FMTF9BVURJVCB8IFwNCiAJCQkJIF9USUZfU1lTQ0FMTF9UUkFDRVBPSU5UIHwgX1RJ
+Rl9TRUNDT01QIHwgXA0KZGlmZiAtLWdpdCBhL2FyY2gvYXJtNjQva2VybmVsL3B0cmFjZS5jIGIv
+YXJjaC9hcm02NC9rZXJuZWwvcHRyYWNlLmMNCmluZGV4IGNkNmU1ZmE0OGI5Yy4uYjM1YjliMGM1
+OTRjIDEwMDY0NA0KLS0tIGEvYXJjaC9hcm02NC9rZXJuZWwvcHRyYWNlLmMNCisrKyBiL2FyY2gv
+YXJtNjQva2VybmVsL3B0cmFjZS5jDQpAQCAtMjksNiArMjksNyBAQA0KICNpbmNsdWRlIDxsaW51
+eC9yZWdzZXQuaD4NCiAjaW5jbHVkZSA8bGludXgvdHJhY2Vob29rLmg+DQogI2luY2x1ZGUgPGxp
+bnV4L2VsZi5oPg0KKyNpbmNsdWRlIDxsaW51eC9pc29sYXRpb24uaD4NCiANCiAjaW5jbHVkZSA8
+YXNtL2NvbXBhdC5oPg0KICNpbmNsdWRlIDxhc20vY3B1ZmVhdHVyZS5oPg0KQEAgLTE4MzYsNiAr
+MTgzNywxNSBAQCBpbnQgc3lzY2FsbF90cmFjZV9lbnRlcihzdHJ1Y3QgcHRfcmVncyAqcmVncykN
+CiAJCQlyZXR1cm4gLTE7DQogCX0NCiANCisJLyoNCisJICogSW4gdGFzayBpc29sYXRpb24gbW9k
+ZSwgd2UgbWF5IHByZXZlbnQgdGhlIHN5c2NhbGwgZnJvbQ0KKwkgKiBydW5uaW5nLCBhbmQgaWYg
+c28gd2UgYWxzbyBkZWxpdmVyIGEgc2lnbmFsIHRvIHRoZSBwcm9jZXNzLg0KKwkgKi8NCisJaWYg
+KHRlc3RfdGhyZWFkX2ZsYWcoVElGX1RBU0tfSVNPTEFUSU9OKSkgew0KKwkJaWYgKHRhc2tfaXNv
+bGF0aW9uX3N5c2NhbGwocmVncy0+c3lzY2FsbG5vKSA9PSAtMSkNCisJCQlyZXR1cm4gLTE7DQor
+CX0NCisNCiAJLyogRG8gdGhlIHNlY3VyZSBjb21wdXRpbmcgYWZ0ZXIgcHRyYWNlOyBmYWlsdXJl
+cyBzaG91bGQgYmUgZmFzdC4gKi8NCiAJaWYgKHNlY3VyZV9jb21wdXRpbmcoKSA9PSAtMSkNCiAJ
+CXJldHVybiAtMTsNCmRpZmYgLS1naXQgYS9hcmNoL2FybTY0L2tlcm5lbC9zaWduYWwuYyBiL2Fy
+Y2gvYXJtNjQva2VybmVsL3NpZ25hbC5jDQppbmRleCAzMzk4ODJkYjVhOTEuLmQ0ODhjOTFhNDg3
+NyAxMDA2NDQNCi0tLSBhL2FyY2gvYXJtNjQva2VybmVsL3NpZ25hbC5jDQorKysgYi9hcmNoL2Fy
+bTY0L2tlcm5lbC9zaWduYWwuYw0KQEAgLTIwLDYgKzIwLDcgQEANCiAjaW5jbHVkZSA8bGludXgv
+dHJhY2Vob29rLmg+DQogI2luY2x1ZGUgPGxpbnV4L3JhdGVsaW1pdC5oPg0KICNpbmNsdWRlIDxs
+aW51eC9zeXNjYWxscy5oPg0KKyNpbmNsdWRlIDxsaW51eC9pc29sYXRpb24uaD4NCiANCiAjaW5j
+bHVkZSA8YXNtL2RhaWZmbGFncy5oPg0KICNpbmNsdWRlIDxhc20vZGVidWctbW9uaXRvcnMuaD4N
+CkBAIC04OTgsNiArODk5LDExIEBAIHN0YXRpYyB2b2lkIGRvX3NpZ25hbChzdHJ1Y3QgcHRfcmVn
+cyAqcmVncykNCiAJcmVzdG9yZV9zYXZlZF9zaWdtYXNrKCk7DQogfQ0KIA0KKyNkZWZpbmUgTk9U
+SUZZX1JFU1VNRV9MT09QX0ZMQUdTIFwNCisJKF9USUZfTkVFRF9SRVNDSEVEIHwgX1RJRl9TSUdQ
+RU5ESU5HIHwgXA0KKwlfVElGX05PVElGWV9SRVNVTUUgfCBfVElGX0ZPUkVJR05fRlBTVEFURSB8
+IFwNCisJX1RJRl9VUFJPQkUgfCBfVElGX0ZTQ0hFQ0spDQorDQogYXNtbGlua2FnZSB2b2lkIGRv
+X25vdGlmeV9yZXN1bWUoc3RydWN0IHB0X3JlZ3MgKnJlZ3MsDQogCQkJCSB1bnNpZ25lZCBsb25n
+IHRocmVhZF9mbGFncykNCiB7DQpAQCAtOTA4LDYgKzkxNCw4IEBAIGFzbWxpbmthZ2Ugdm9pZCBk
+b19ub3RpZnlfcmVzdW1lKHN0cnVjdCBwdF9yZWdzICpyZWdzLA0KIAkgKi8NCiAJdHJhY2VfaGFy
+ZGlycXNfb2ZmKCk7DQogDQorCXRhc2tfaXNvbGF0aW9uX2NoZWNrX3J1bl9jbGVhbnVwKCk7DQor
+DQogCWRvIHsNCiAJCS8qIENoZWNrIHZhbGlkIHVzZXIgRlMgaWYgbmVlZGVkICovDQogCQlhZGRy
+X2xpbWl0X3VzZXJfY2hlY2soKTsNCkBAIC05MzgsNyArOTQ2LDEwIEBAIGFzbWxpbmthZ2Ugdm9p
+ZCBkb19ub3RpZnlfcmVzdW1lKHN0cnVjdCBwdF9yZWdzICpyZWdzLA0KIA0KIAkJbG9jYWxfZGFp
+Zl9tYXNrKCk7DQogCQl0aHJlYWRfZmxhZ3MgPSBSRUFEX09OQ0UoY3VycmVudF90aHJlYWRfaW5m
+bygpLT5mbGFncyk7DQotCX0gd2hpbGUgKHRocmVhZF9mbGFncyAmIF9USUZfV09SS19NQVNLKTsN
+CisJfSB3aGlsZSAodGhyZWFkX2ZsYWdzICYgTk9USUZZX1JFU1VNRV9MT09QX0ZMQUdTKTsNCisN
+CisJaWYgKHRocmVhZF9mbGFncyAmIF9USUZfVEFTS19JU09MQVRJT04pDQorCQl0YXNrX2lzb2xh
+dGlvbl9zdGFydCgpOw0KIH0NCiANCiB1bnNpZ25lZCBsb25nIF9fcm9fYWZ0ZXJfaW5pdCBzaWdu
+YWxfbWluc2lnc3Rrc3o7DQpkaWZmIC0tZ2l0IGEvYXJjaC9hcm02NC9rZXJuZWwvc21wLmMgYi9h
+cmNoL2FybTY0L2tlcm5lbC9zbXAuYw0KaW5kZXggZDRlZDlhMTlkOGZlLi4wMGYwZjc3YWRlYTAg
+MTAwNjQ0DQotLS0gYS9hcmNoL2FybTY0L2tlcm5lbC9zbXAuYw0KKysrIGIvYXJjaC9hcm02NC9r
+ZXJuZWwvc21wLmMNCkBAIC0zMiw2ICszMiw3IEBADQogI2luY2x1ZGUgPGxpbnV4L2lycV93b3Jr
+Lmg+DQogI2luY2x1ZGUgPGxpbnV4L2tleGVjLmg+DQogI2luY2x1ZGUgPGxpbnV4L2t2bV9ob3N0
+Lmg+DQorI2luY2x1ZGUgPGxpbnV4L2lzb2xhdGlvbi5oPg0KIA0KICNpbmNsdWRlIDxhc20vYWx0
+ZXJuYXRpdmUuaD4NCiAjaW5jbHVkZSA8YXNtL2F0b21pYy5oPg0KQEAgLTgxOCw2ICs4MTksNyBA
+QCB2b2lkIGFyY2hfc2VuZF9jYWxsX2Z1bmN0aW9uX3NpbmdsZV9pcGkoaW50IGNwdSkNCiAjaWZk
+ZWYgQ09ORklHX0FSTTY0X0FDUElfUEFSS0lOR19QUk9UT0NPTA0KIHZvaWQgYXJjaF9zZW5kX3dh
+a2V1cF9pcGlfbWFzayhjb25zdCBzdHJ1Y3QgY3B1bWFzayAqbWFzaykNCiB7DQorCXRhc2tfaXNv
+bGF0aW9uX3JlbW90ZV9jcHVtYXNrKG1hc2ssICJ3YWtldXAgSVBJIik7DQogCXNtcF9jcm9zc19j
+YWxsKG1hc2ssIElQSV9XQUtFVVApOw0KIH0NCiAjZW5kaWYNCkBAIC04ODYsNiArODg4LDkgQEAg
+dm9pZCBoYW5kbGVfSVBJKGludCBpcGluciwgc3RydWN0IHB0X3JlZ3MgKnJlZ3MpDQogCQlfX2lu
+Y19pcnFfc3RhdChjcHUsIGlwaV9pcnFzW2lwaW5yXSk7DQogCX0NCiANCisJdGFza19pc29sYXRp
+b25faW50ZXJydXB0KCJJUEkgdHlwZSAlZCAoJXMpIiwgaXBpbnIsDQorCQkJCSBpcGluciA8IE5S
+X0lQSSA/IGlwaV90eXBlc1tpcGlucl0gOiAidW5rbm93biIpOw0KKw0KIAlzd2l0Y2ggKGlwaW5y
+KSB7DQogCWNhc2UgSVBJX1JFU0NIRURVTEU6DQogCQlzY2hlZHVsZXJfaXBpKCk7DQpAQCAtOTQ4
+LDEyICs5NTMsMTQgQEAgdm9pZCBoYW5kbGVfSVBJKGludCBpcGluciwgc3RydWN0IHB0X3JlZ3Mg
+KnJlZ3MpDQogDQogdm9pZCBzbXBfc2VuZF9yZXNjaGVkdWxlKGludCBjcHUpDQogew0KKwl0YXNr
+X2lzb2xhdGlvbl9yZW1vdGUoY3B1LCAicmVzY2hlZHVsZSBJUEkiKTsNCiAJc21wX2Nyb3NzX2Nh
+bGwoY3B1bWFza19vZihjcHUpLCBJUElfUkVTQ0hFRFVMRSk7DQogfQ0KIA0KICNpZmRlZiBDT05G
+SUdfR0VORVJJQ19DTE9DS0VWRU5UU19CUk9BRENBU1QNCiB2b2lkIHRpY2tfYnJvYWRjYXN0KGNv
+bnN0IHN0cnVjdCBjcHVtYXNrICptYXNrKQ0KIHsNCisJdGFza19pc29sYXRpb25fcmVtb3RlX2Nw
+dW1hc2sobWFzaywgInRpbWVyIElQSSIpOw0KIAlzbXBfY3Jvc3NfY2FsbChtYXNrLCBJUElfVElN
+RVIpOw0KIH0NCiAjZW5kaWYNCmRpZmYgLS1naXQgYS9hcmNoL2FybTY0L21tL2ZhdWx0LmMgYi9h
+cmNoL2FybTY0L21tL2ZhdWx0LmMNCmluZGV4IDg1NTY2ZDMyOTU4Zi4uZmM0YjQyYzgxYzRmIDEw
+MDY0NA0KLS0tIGEvYXJjaC9hcm02NC9tbS9mYXVsdC5jDQorKysgYi9hcmNoL2FybTY0L21tL2Zh
+dWx0LmMNCkBAIC0yMyw2ICsyMyw3IEBADQogI2luY2x1ZGUgPGxpbnV4L3BlcmZfZXZlbnQuaD4N
+CiAjaW5jbHVkZSA8bGludXgvcHJlZW1wdC5oPg0KICNpbmNsdWRlIDxsaW51eC9odWdldGxiLmg+
+DQorI2luY2x1ZGUgPGxpbnV4L2lzb2xhdGlvbi5oPg0KIA0KICNpbmNsdWRlIDxhc20vYWNwaS5o
+Pg0KICNpbmNsdWRlIDxhc20vYnVnLmg+DQpAQCAtNTQzLDYgKzU0NCwxMCBAQCBzdGF0aWMgaW50
+IF9fa3Byb2JlcyBkb19wYWdlX2ZhdWx0KHVuc2lnbmVkIGxvbmcgYWRkciwgdW5zaWduZWQgaW50
+IGVzciwNCiAJICovDQogCWlmIChsaWtlbHkoIShmYXVsdCAmIChWTV9GQVVMVF9FUlJPUiB8IFZN
+X0ZBVUxUX0JBRE1BUCB8DQogCQkJICAgICAgVk1fRkFVTFRfQkFEQUNDRVNTKSkpKSB7DQorCQkv
+KiBObyBzaWduYWwgd2FzIGdlbmVyYXRlZCwgYnV0IG5vdGlmeSB0YXNrLWlzb2xhdGlvbiB0YXNr
+cy4gKi8NCisJCWlmICh1c2VyX21vZGUocmVncykpDQorCQkJdGFza19pc29sYXRpb25faW50ZXJy
+dXB0KCJwYWdlIGZhdWx0IGF0ICUjbHgiLCBhZGRyKTsNCisNCiAJCS8qDQogCQkgKiBNYWpvci9t
+aW5vciBwYWdlIGZhdWx0IGFjY291bnRpbmcgaXMgb25seSBkb25lDQogCQkgKiBvbmNlLiBJZiB3
+ZSBnbyB0aHJvdWdoIGEgcmV0cnksIGl0IGlzIGV4dHJlbWVseQ0KLS0gDQoyLjIwLjENCg0K
