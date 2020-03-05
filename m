@@ -1,66 +1,41 @@
-From: Anshuman Khandual <anshuman.khandual@arm.com>
-Subject: Re: [PATCH] mm/special: Create generic fallbacks for pte_special()
- and pte_mkspecial()
-Date: Thu, 5 Mar 2020 13:04:19 +0530
-Message-ID: <58aecdcf-ea16-c958-0deb-97541792e081@arm.com>
-References: <1583114190-7678-1-git-send-email-anshuman.khandual@arm.com>
+From: "Juanito S. Galang" <juanito.galang@pagasa.dost.gov.ph>
+Subject: (unknown)
+Date: Thu, 5 Mar 2020 18:46:46 +0800 (PST)
+Message-ID: <1980644409.3575157.1583405206290.JavaMail.zimbra__7307.37472638197$1583406522$gmane$org@pagasa.dost.gov.ph>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-m68k-owner@vger.kernel.org>
-In-Reply-To: <1583114190-7678-1-git-send-email-anshuman.khandual@arm.com>
-Content-Language: en-US
-Sender: linux-m68k-owner@vger.kernel.org
-To: linux-mm@kvack.org, Ralf Baechle <ralf@linux-mips.org>, Paul Burton <paulburton@kernel.org>
-Cc: Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Russell King <linux@armlinux.org.uk>, Guo Ren <guoren@kernel.org>, Brian Cain <bcain@codeaurora.org>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Sam Creasey <sammy@sammy.net>, Michal Simek <monstr@monstr.eu>, Nick Hu <nickhu@andestech.com>, Greentime Hu <green.hu@gmail.com>, Vincent Chen <deanbo422@gmail.com>, Ley Foon Tan <ley.foon.tan@intel.com>, Jonas Bonn <jonas@southpole.se>, Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>, Stafford Horne <shorne@gmail.com>, "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>, Helge Deller <deller@gmx.de>
-List-Id: linux-arch.vger.kernel.org
+Content-Transfer-Encoding: quoted-printable
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from ulan.pagasa.dost.gov.ph ([202.90.128.205]:45842 "EHLO
+        mailgw.pagasa.dost.gov.ph" rhost-flags-OK-OK-OK-FAIL)
+        by vger.kernel.org with ESMTP id S1726048AbgCELId (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 5 Mar 2020 06:08:33 -0500
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 
 
-On 03/02/2020 07:26 AM, Anshuman Khandual wrote:
-> diff --git a/arch/mips/include/asm/pgtable.h b/arch/mips/include/asm/pgtable.h
-> index aef5378f909c..8e4e4be1ca00 100644
-> --- a/arch/mips/include/asm/pgtable.h
-> +++ b/arch/mips/include/asm/pgtable.h
-> @@ -269,6 +269,36 @@ static inline void set_pte_at(struct mm_struct *mm, unsigned long addr,
->   */
->  extern pgd_t swapper_pg_dir[];
->  
-> +/*
-> + * Platform specific pte_special() and pte_mkspecial() definitions
-> + * are required only when ARCH_HAS_PTE_SPECIAL is enabled.
-> + */
-> +#if !defined(CONFIG_32BIT) && !defined(CONFIG_CPU_HAS_RIXI)
-> +#if defined(CONFIG_PHYS_ADDR_T_64BIT) && defined(CONFIG_CPU_MIPS32)
-> +static inline int pte_special(pte_t pte)
-> +{
-> +	return pte.pte_low & _PAGE_SPECIAL;
-> +}
-> +
-> +static inline pte_t pte_mkspecial(pte_t pte)
-> +{
-> +	pte.pte_low |= _PAGE_SPECIAL;
-> +	return pte;
-> +}
-> +#else
-> +static inline int pte_special(pte_t pte)
-> +{
-> +	return pte_val(pte) & _PAGE_SPECIAL;
-> +}
-> +
-> +static inline pte_t pte_mkspecial(pte_t pte)
-> +{
-> +	pte_val(pte) |= _PAGE_SPECIAL;
-> +	return pte;
-> +}
-> +#endif
-> +#endif
-> +
 
-Hello Ralf/Paul,
-
-This change now restricts mips definitions for pte_special() and pte_mkspecial()
-and makes them visible only for configs where ARCH_HAS_PTE_SPECIAL is enabled.
-Does this look okay ? In almost all other platforms we drop the stub definitions
-for pte_special() and pte_mkspecial().
-
-- Anshuman
+Herzlichen Gl=C3=BCckwunsch Lieber Beg=C3=BCnstigter,Sie erhalten diese E-M=
+ail von der Robert Bailey Foundation. Ich bin ein pensionierter Regierungsa=
+ngestellter aus Harlem und ein Gewinner des Powerball Lottery Jackpot im We=
+rt von 343,8 Millionen US-Dollar. Ich bin der gr=C3=B6=C3=9Fte Jackpot-Gewi=
+nner in der Geschichte der New Yorker Lotterie im US-Bundesstaat Amerika. I=
+ch habe diese Lotterie am 27. Oktober 2018 gewonnen und m=C3=B6chte Sie dar=
+=C3=BCber informieren, dass Google in Zusammenarbeit mit Microsoft Ihre "E-=
+Mail-Adresse" auf meine Bitte, einen Spendenbetrag von 3.000.000,00 Million=
+en Euro zu erhalten, =C3=BCbermittelt hat. Ich spende diese 3 Millionen Eur=
+o an Sie, um den Wohlt=C3=A4tigkeitsheimen und armen Menschen in Ihrer Geme=
+inde zu helfen, damit wir die Welt f=C3=BCr alle verbessern k=C3=B6nnen.Wei=
+tere Informationen finden Sie auf der folgenden Website, damit Sie nicht sk=
+eptisch sind
+Diese Spende von 3 Mio. EUR.https://nypost.com/2018/11/14/meet-the-winner-o=
+f-the-biggest-lottery-jackpot-in-new-york-history/Sie k=C3=B6nnen auch mein=
+ YouTube f=C3=BCr mehr Best=C3=A4tigung aufpassen:
+https://www.youtube.com/watch?v=3DH5vT18Ysavc
+Bitte beachten Sie, dass alle Antworten an (robertdonation7@gmail.com=C2=A0=
+ ) gesendet werden, damit wir das k=C3=B6nnen
+Fahren Sie fort, um das gespendete Geld an Sie zu =C3=BCberweisen.E-Mail: r=
+obertdonation7@gmail.comFreundliche Gr=C3=BC=C3=9Fe,
+Robert Bailey
+* * * * * * * * * * * * * * * *
+Powerball Jackpot Gewinner
