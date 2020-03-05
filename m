@@ -1,61 +1,50 @@
-From: Randy Dunlap <rdunlap@infradead.org>
-Subject: Re: [PATCH v3 7/7] Documentation: Add kunit_shutdown to
- kernel-parameters.txt
-Date: Wed, 4 Mar 2020 15:10:49 -0800
-Message-ID: <22704191-ce7e-cac7-f7a0-1db822b20d84@infradead.org>
-References: <20200228012036.15682-1-brendanhiggins@google.com>
- <20200228012036.15682-8-brendanhiggins@google.com>
+From: Anshuman Khandual <anshuman.khandual@arm.com>
+Subject: Re: [PATCH V14] mm/debug: Add tests validating architecture page
+ table helpers
+Date: Thu, 5 Mar 2020 06:24:44 +0530
+Message-ID: <57a3bc61-bbd5-e251-9621-7bc28f7901a1@arm.com>
+References: <c022e863-0807-fab1-cd41-3c320381f448@c-s.fr>
+ <11F41980-97CF-411F-8120-41287DC1A382@lca.pw>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=utf-8
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-doc-owner@vger.kernel.org>
-In-Reply-To: <20200228012036.15682-8-brendanhiggins@google.com>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <11F41980-97CF-411F-8120-41287DC1A382@lca.pw>
 Content-Language: en-US
-Sender: linux-doc-owner@vger.kernel.org
-To: Brendan Higgins <brendanhiggins@google.com>, jdike@addtoit.com, richard@nod.at, anton.ivanov@cambridgegreys.com, arnd@arndb.de, keescook@chromium.org, skhan@linuxfoundation.org, alan.maguire@oracle.com, yzaikin@google.com, davidgow@google.com, akpm@linux-foundation.org, rppt@linux.ibm.com, frowand.list@gmail.com
-Cc: gregkh@linuxfoundation.org, sboyd@kernel.org, logang@deltatee.com, mcgrof@kernel.org, linux-um@lists.infradead.org, linux-arch@vger.kernel.org, linux-kselftest@vger.kernel.org, kunit-dev@googlegroups.com, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org
+Sender: linux-kernel-owner@vger.kernel.org
+To: Qian Cai <cai@lca.pw>, Christophe Leroy <christophe.leroy@c-s.fr>
+Cc: Linux Memory Management List <linux-mm@kvack.org>, Andrew Morton <akpm@linux-foundation.org>, Mike Rapoport <rppt@linux.ibm.com>, Vineet Gupta <vgupta@synopsys.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Heiko Carstens <heiko.carstens@de.ibm.com>, Vasily Gorbik <gor@linux.ibm.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, "Kirill A . Shutemov" <kirill@shutemov.name>, Paul Walmsley <paul.walmsley@sifive.com>, Palmer Dabbelt <palmer@dabbelt.com>
 List-Id: linux-arch.vger.kernel.org
 
-On 2/27/20 5:20 PM, Brendan Higgins wrote:
-> Add kunit_shutdown, an option to specify that the kernel shutsdown after
-> running KUnit tests, to the kernel-parameters.txt documentation.
+
+
+On 03/04/2020 04:59 PM, Qian Cai wrote:
 > 
-> Signed-off-by: Brendan Higgins <brendanhiggins@google.com>
-> Reviewed-by: Stephen Boyd <sboyd@kernel.org>
-
-Hi Brendan,
-
-To be consistent with other parameters in this file:
-
-> ---
->  Documentation/admin-guide/kernel-parameters.txt | 8 ++++++++
->  1 file changed, 8 insertions(+)
 > 
-> diff --git a/Documentation/admin-guide/kernel-parameters.txt b/Documentation/admin-guide/kernel-parameters.txt
-> index dbc22d6846275..6ad63e98916f9 100644
-> --- a/Documentation/admin-guide/kernel-parameters.txt
-> +++ b/Documentation/admin-guide/kernel-parameters.txt
-> @@ -2099,6 +2099,14 @@
->  			0: force disabled
->  			1: force enabled
->  
-> +	kunit_shutdown	[KERNEL UNIT TESTING FRAMEWORK] Shutdown kernel after
-
-that line should have an '=' sign after the param name:
-	kunit_shutdown=
-
-> +			running built-in tests. Tests configured as modules will
-> +			not be run.
-> +			Default:	(flag not present) don't shutdown
-> +			poweroff:	poweroff the kernel after running tests
-> +			halt:		halt the kernel after running tests
-> +			reboot:		reboot the kernel after running tests
-> +
->  	kvm.ignore_msrs=[KVM] Ignore guest accesses to unhandled MSRs.
->  			Default is 0 (don't ignore, but inject #GP)
->  
+>> On Mar 4, 2020, at 1:49 AM, Christophe Leroy <christophe.leroy@c-s.fr> wrote:
+>>
+>> AFAIU, you are not taking an interrupt here. You are stuck in the pte_update(), most likely due to nested locks. Try with LOCKDEP ?
 > 
+> Not exactly sure what did you mean here, but the kernel has all lockdep enabled and did not flag anything here.
 
-thanks.
--- 
-~Randy
+As the patch has been dropped from Linux next (next-20200304) perhaps in
+order to fold back the __pa_symbol() fix [1], so I am planning to respin
+the original patch once more as V15 while adding Qian's signed off by for
+the powerpc part. For now lets enable radix MMU ppc64 along with existing
+ppc32. As PPC_RADIX_MMU depends on PPC_BOOK3S_64, the following change
+should be good enough ?
+
+diff --git a/arch/powerpc/Kconfig b/arch/powerpc/Kconfig
+index 497b7d0b2d7e..8d5ae14c5d4c 100644
+--- a/arch/powerpc/Kconfig
++++ b/arch/powerpc/Kconfig
+@@ -116,6 +116,7 @@  config PPC
+ 	#
+ 	select ARCH_32BIT_OFF_T if PPC32
+ 	select ARCH_HAS_DEBUG_VIRTUAL
++	select ARCH_HAS_DEBUG_VM_PGTABLE if (PPC_RADIX_MMU || PPC32)
+ 	select ARCH_HAS_DEVMEM_IS_ALLOWED
+ 	select ARCH_HAS_ELF_RANDOMIZE
+ 	select ARCH_HAS_FORTIFY_SOURCE
+
+[1] https://patchwork.kernel.org/patch/11407715/
