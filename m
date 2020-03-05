@@ -1,38 +1,33 @@
-Return-Path: <SRS0=06hN=5A=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:34416 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1728211AbgCOS3f (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Sun, 15 Mar 2020 14:29:35 -0400
-Date: Sun, 15 Mar 2020 18:29:29 +0000
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [PATCH v3 06/26] arm64: Introduce asm/vdso/clocksource.h
-Message-ID: <20200315182928.GA32205@mbp>
-References: <20200313154345.56760-1-vincenzo.frascino@arm.com>
- <20200313154345.56760-7-vincenzo.frascino@arm.com>
+Return-Path: <SRS0=ObY3=4W=vger.kernel.org=linux-doc-owner@kernel.org>
+Message-ID: <5dcc9da2caff92a9af16846cbe1f168f61368c51.camel@intel.com>
+Subject: Re: [RFC PATCH v9 18/27] x86/cet/shstk: Introduce WRUSS instruction
+From: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Date: Thu, 05 Mar 2020 10:39:08 -0800
+In-Reply-To: <202002251309.E238DFEEB4@keescook>
+References: <20200205181935.3712-1-yu-cheng.yu@intel.com>
+         <20200205181935.3712-19-yu-cheng.yu@intel.com>
+         <202002251309.E238DFEEB4@keescook>
+Content-Type: text/plain; charset="UTF-8"
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20200313154345.56760-7-vincenzo.frascino@arm.com>
-Sender: linux-arch-owner@vger.kernel.org
+Content-Transfer-Encoding: 7bit
+Sender: linux-doc-owner@vger.kernel.org
+To: Kees Cook <keescook@chromium.org>
+Cc: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>, x86-patch-review@intel.com
 List-ID: <linux-arch.vger.kernel.org>
-To: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Cc: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org, clang-built-linux@googlegroups.com, x86@kernel.org, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Paul Burton <paul.burton@mips.com>, Thomas Gleixner <tglx@linutronix.de>, Andy Lutomirski <luto@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Stephen Boyd <sboyd@kernel.org>, Mark Salyzyn <salyzyn@android.com>, Kees Cook <keescook@chromium.org>, Peter Collingbourne <pcc@google.com>, Dmitry Safonov <0x7f454c46@gmail.com>, Andrei Vagin <avagin@openvz.org>, Nick Desaulniers <ndesaulniers@google.com>, Marc Zyngier <maz@kernel.org>, Mark Rutland <Mark.Rutland@arm.com>, Will Deacon <will@kernel.org>
-Message-ID: <20200315182929.Ez9M3D2ViPDt5l8b5-jh82od0PYEh8mhXLyW8-64bvg@z>
+Message-ID: <20200305183908.se7gspHfn87tzjvSzQdprAJHAwwKnt5Wrm59-MQ-1YY@z>
 
-On Fri, Mar 13, 2020 at 03:43:25PM +0000, Vincenzo Frascino wrote:
-> The vDSO library should only include the necessary headers required for
-> a userspace library (UAPI and a minimal set of kernel headers). To make
-> this possible it is necessary to isolate from the kernel headers the
-> common parts that are strictly necessary to build the library.
+On Tue, 2020-02-25 at 13:10 -0800, Kees Cook wrote:
+> On Wed, Feb 05, 2020 at 10:19:26AM -0800, Yu-cheng Yu wrote:
+> > WRUSS is a new kernel-mode instruction but writes directly to user Shadow
+> > Stack (SHSTK) memory.  This is used to construct a return address on SHSTK
+> > for the signal handler.
+> > 
+> > This instruction can fault if the user SHSTK is not valid SHSTK memory.
+> > In that case, the kernel does a fixup.
 > 
-> Introduce asm/vdso/clocksource.h to contain all the arm64 specific
-> functions that are suitable for vDSO inclusion.
-> 
-> This header will be required by a future patch that will generalize
-> vdso/clocksource.h.
-> 
-> Cc: Catalin Marinas <catalin.marinas@arm.com>
-> Cc: Will Deacon <will@kernel.org>
-> Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
+> Since these functions aren't used in this patch, should this get merged
+> with patch 19?
 
-Acked-by: Catalin Marinas <catalin.marinas@arm.com>
+Yes, I can do that.
+
+Yu-cheng
