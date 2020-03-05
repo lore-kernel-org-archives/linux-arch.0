@@ -1,50 +1,107 @@
-From: Anshuman Khandual <anshuman.khandual@arm.com>
-Subject: Re: [PATCH V14] mm/debug: Add tests validating architecture page
- table helpers
-Date: Thu, 5 Mar 2020 06:24:44 +0530
-Message-ID: <57a3bc61-bbd5-e251-9621-7bc28f7901a1@arm.com>
-References: <c022e863-0807-fab1-cd41-3c320381f448@c-s.fr>
- <11F41980-97CF-411F-8120-41287DC1A382@lca.pw>
+From: Nicholas Piggin <npiggin@gmail.com>
+Subject: Re: [PATCH 2/2] powerpc/powernv: Wire up OPAL address lookups
+Date: Thu, 05 Mar 2020 13:43:28 +1000
+Message-ID: <1583379277.x4nb7vp876.astroid@bobo.none>
+References: <20200228031027.271510-1-npiggin@gmail.com>
+        <20200228031027.271510-2-npiggin@gmail.com>
+        <87v9nlr7dj.fsf@mpe.ellerman.id.au>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <11F41980-97CF-411F-8120-41287DC1A382@lca.pw>
-Content-Language: en-US
-Sender: linux-kernel-owner@vger.kernel.org
-To: Qian Cai <cai@lca.pw>, Christophe Leroy <christophe.leroy@c-s.fr>
-Cc: Linux Memory Management List <linux-mm@kvack.org>, Andrew Morton <akpm@linux-foundation.org>, Mike Rapoport <rppt@linux.ibm.com>, Vineet Gupta <vgupta@synopsys.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Heiko Carstens <heiko.carstens@de.ibm.com>, Vasily Gorbik <gor@linux.ibm.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, "Kirill A . Shutemov" <kirill@shutemov.name>, Paul Walmsley <paul.walmsley@sifive.com>, Palmer Dabbelt <palmer@dabbelt.com>
-List-Id: linux-arch.vger.kernel.org
+Content-Transfer-Encoding: quoted-printable
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-pj1-f67.google.com ([209.85.216.67]:51773 "EHLO
+        mail-pj1-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1725810AbgCEDng (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 4 Mar 2020 22:43:36 -0500
+In-Reply-To: <87v9nlr7dj.fsf@mpe.ellerman.id.au>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: linuxppc-dev@lists.ozlabs.org, Michael Ellerman <mpe@ellerman.id.au>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, skiboot@lists.ozlabs.org
 
-
-
-On 03/04/2020 04:59 PM, Qian Cai wrote:
-> 
-> 
->> On Mar 4, 2020, at 1:49 AM, Christophe Leroy <christophe.leroy@c-s.fr> wrote:
+Michael Ellerman's on March 3, 2020 9:43 pm:
+> Nicholas Piggin <npiggin@gmail.com> writes:
+>> Use ARCH_HAS_ADDRESS_LOOKUP to look up the opal symbol table. This
+>> allows crashes and xmon debugging to print firmware symbols.
 >>
->> AFAIU, you are not taking an interrupt here. You are stuck in the pte_update(), most likely due to nested locks. Try with LOCKDEP ?
-> 
-> Not exactly sure what did you mean here, but the kernel has all lockdep enabled and did not flag anything here.
+>>   Oops: System Reset, sig: 6 [#1]
+>>   LE PAGE_SIZE=3D64K MMU=3DRadix SMP NR_CPUS=3D2048 NUMA PowerNV
+>>   Modules linked in:
+>>   CPU: 0 PID: 0 Comm: swapper/0 Not tainted 5.6.0-rc2-dirty #903
+>>   NIP:  0000000030020434 LR: 000000003000378c CTR: 0000000030020414
+>>   REGS: c0000000fffc3d70 TRAP: 0100   Not tainted  (5.6.0-rc2-dirty)
+>>   MSR:  9000000002101002 <SF,HV,VEC,ME,RI>  CR: 28022284  XER: 20040000
+>>   CFAR: 0000000030003788 IRQMASK: 3
+>>   GPR00: 000000003000378c 0000000031c13c90 0000000030136200 c0000000012c=
+fa10
+>>   GPR04: c0000000012cfa10 0000000000000010 0000000000000000 0000000031c1=
+0060
+>>   GPR08: c0000000012cfaaf 0000000030003640 0000000000000000 000000000000=
+0001
+>>   GPR12: 00000000300e0000 c000000001490000 0000000000000000 c00000000139=
+c588
+>>   GPR16: 0000000031c10000 c00000000125a900 0000000000000000 c00000000120=
+76a8
+>>   GPR20: c0000000012a3950 0000000000000001 0000000031c10060 c0000000012c=
+faaf
+>>   GPR24: 0000000000000019 0000000030003640 0000000000000000 000000000000=
+0000
+>>   GPR28: 0000000000000010 c0000000012cfa10 0000000000000000 000000000000=
+0000
+>>   NIP [0000000030020434] .dummy_console_write_buffer_space+0x20/0x64 [OP=
+AL]
+>>   LR [000000003000378c] opal_entry+0x14c/0x17c [OPAL]
+>>
+>> This won't unwind the firmware stack (or its Linux caller) properly if
+>> firmware and kernel endians don't match, but that problem could be solve=
+d
+>> in powerpc's unwinder.
+>=20
+> How well does this work if we're tracing opal calls at the time we oops :=
+)
+>=20
+> Though it looks like that's already fishy because we don't do anything
+> to disable tracing of opal_console_write().
 
-As the patch has been dropped from Linux next (next-20200304) perhaps in
-order to fold back the __pa_symbol() fix [1], so I am planning to respin
-the original patch once more as V15 while adding Qian's signed off by for
-the powerpc part. For now lets enable radix MMU ppc64 along with existing
-ppc32. As PPC_RADIX_MMU depends on PPC_BOOK3S_64, the following change
-should be good enough ?
+Yeah we don't do perfectly well in this case still. OPAL itself has
+locks in its console paths and some issues with stack reentrancy.
+We should do a bit better with cutting out more junk including tracing
+from crash paths, so this doesn't fundamentally make things harder.
 
-diff --git a/arch/powerpc/Kconfig b/arch/powerpc/Kconfig
-index 497b7d0b2d7e..8d5ae14c5d4c 100644
---- a/arch/powerpc/Kconfig
-+++ b/arch/powerpc/Kconfig
-@@ -116,6 +116,7 @@  config PPC
- 	#
- 	select ARCH_32BIT_OFF_T if PPC32
- 	select ARCH_HAS_DEBUG_VIRTUAL
-+	select ARCH_HAS_DEBUG_VM_PGTABLE if (PPC_RADIX_MMU || PPC32)
- 	select ARCH_HAS_DEVMEM_IS_ALLOWED
- 	select ARCH_HAS_ELF_RANDOMIZE
- 	select ARCH_HAS_FORTIFY_SOURCE
+> I guess I'm a bit wary of adding numerous further opal calls in the oops
+> path, I'm sure the opal symbol lookup code is bug free, but still.
 
-[1] https://patchwork.kernel.org/patch/11407715/
+There's a few, console write, event poll, reboot, and NMI IPI AFAIK,
+so we have to make the opal call path itself robust (it's getting
+there).
+
+> Could we instead suck in the opal symbols early on, and search them in
+> Linux? I suspect you've thought of that and rejected it, but it would be
+> good to document why.
+
+We could, I was thinking we might want OPAL to do something special
+with them like add module annotations [OPAL] vs [HOMER] or whatever,
+relocate itself after boot if we randomize where it's loaded etc.
+but perhaps none of those things really prevent the symbols being
+discovered at boot time. I don't know, it was easier? :)
+
+>> diff --git a/arch/powerpc/include/asm/opal-api.h b/arch/powerpc/include/=
+asm/opal-api.h
+>> index c1f25a760eb1..c3a2a797177a 100644
+>> --- a/arch/powerpc/include/asm/opal-api.h
+>> +++ b/arch/powerpc/include/asm/opal-api.h
+>> @@ -214,7 +214,11 @@
+>>  #define OPAL_SECVAR_GET				176
+>>  #define OPAL_SECVAR_GET_NEXT			177
+>>  #define OPAL_SECVAR_ENQUEUE_UPDATE		178
+>> -#define OPAL_LAST				178
+>> +#define OPAL_PHB_SET_OPTION			179
+>> +#define OPAL_PHB_GET_OPTION			180
+>=20
+> Only pull in the calls you need for this patch.
+
+Ah okay I didn't realise that was the policy, makes sense.
+
+Thanks,
+Nick
+=
