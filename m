@@ -1,79 +1,121 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: About commit "io: change inX() to have their own IO barrier overrides"
-Date: Fri, 6 Mar 2020 16:16:52 +0100
-Message-ID: <CAK8P3a2wdCrBP=a8ZypWoC=HyCU3oYYNeCddWM7oT+xM9gTPhw@mail.gmail.com>
-References: <2e80d7bc-32a0-cc40-00a9-8a383a1966c2@huawei.com>
- <c1489f55-369d-2cff-ff36-b10fb5d3ee79@kernel.org> <8207cd51-5b94-2f15-de9f-d85c9c385bca@huawei.com>
- <6115fa56-a471-1e9f-edbb-e643fa4e7e11@kernel.org> <7c955142-1fcb-d99e-69e4-1e0d3d9eb8c3@huawei.com>
- <CAK8P3a0f9hnKGd6GJ8qFZSu+J-n4fY23TCGxQkmgJaxbpre50Q@mail.gmail.com>
- <90af535f-00ef-c1e3-ec20-aae2bd2a0d88@kernel.org> <CAK8P3a2Grd0JsBNsB19oAxrAFtOdpvjrpGcfeArKe7zD_jrUZw@mail.gmail.com>
- <ae0a1bf1-948f-7df0-9efb-cd1e94e27d2d@huawei.com>
+From: Frederic Weisbecker <frederic@kernel.org>
+Subject: Re: [PATCH 03/12] task_isolation: userspace hard isolation from
+ kernel
+Date: Fri, 6 Mar 2020 16:26:33 +0100
+Message-ID: <20200306152632.GB8590@lenoir>
+References: <4473787e1b6bc3cc226067e8d122092a678b63de.camel@marvell.com>
+ <36d84b8dd168a38e6a56549dedc15dd6ebf8c09e.camel@marvell.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mout.kundenserver.de ([217.72.192.75]:45207 "EHLO
-        mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1725873AbgCFPRL (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 6 Mar 2020 10:17:11 -0500
-In-Reply-To: <ae0a1bf1-948f-7df0-9efb-cd1e94e27d2d@huawei.com>
+Received: from mail.kernel.org ([198.145.29.99]:42412 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1725835AbgCFP0g (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 6 Mar 2020 10:26:36 -0500
+Content-Disposition: inline
+In-Reply-To: <36d84b8dd168a38e6a56549dedc15dd6ebf8c09e.camel@marvell.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: John Garry <john.garry@huawei.com>
-Cc: Sinan Kaya <okaya@kernel.org>, "xuwei (O)" <xuwei5@hisilicon.com>, Bjorn Helgaas <bhelgaas@google.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Jiaxun Yang <jiaxun.yang@flygoat.com>, linux-arch <linux-arch@vger.kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, Will Deacon <will@kernel.org>, Catalin Marinas <catalin.marinas@arm.com>
+To: Alex Belits <abelits@marvell.com>
+Cc: "rostedt@goodmis.org" <rostedt@goodmis.org>, "mingo@kernel.org" <mingo@kernel.org>, "peterz@infradead.org" <peterz@infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Prasun Kapoor <pkapoor@marvell.com>, "tglx@linutronix.de" <tglx@linutronix.de>, "linux-api@vger.kernel.org" <linux-api@vger.kernel.org>, "linux-mm@vger.kernel.org" <linux-mm@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
 
-On Fri, Mar 6, 2020 at 11:40 AM John Garry <john.garry@huawei.com> wrote:
-> On 06/03/2020 07:54, Arnd Bergmann wrote:
-> > On Fri, Mar 6, 2020 at 4:44 AM Sinan Kaya <okaya@kernel.org> wrote:
-> -- a/lib/logic_pio.c
-> +++ b/lib/logic_pio.c
-> @@ -229,13 +229,21 @@ unsigned long
-> logic_pio_trans_cpuaddr(resource_size_t addr)
->   }
->
->   #if defined(CONFIG_INDIRECT_PIO) && defined(PCI_IOBASE)
+On Wed, Mar 04, 2020 at 04:07:12PM +0000, Alex Belits wrote:
 > +
-> +#define logic_in_to_cpu_b(x) (x)
-> +#define logic_in_to_cpu_w(x) __le16_to_cpu(x)
-> +#define logic_in_to_cpu_l(x) __le32_to_cpu(x)
+> +/*
+> + * Print message prefixed with the description of the current (or
+> + * last) isolated task on a given CPU. Intended for isolation breaking
+> + * messages that include target task for the user's convenience.
+> + *
+> + * Messages produced with this function may have obsolete task
+> + * information if isolated tasks managed to exit, start and enter
+> + * isolation multiple times, or multiple tasks tried to enter
+> + * isolation on the same CPU at once. For those unusual cases it would
+> + * contain a valid description of the cause for isolation breaking and
+> + * target CPU number, just not the correct description of which task
+> + * ended up losing isolation.
+> + */
+> +int task_isolation_message(int cpu, int level, bool supp, const char *fmt, ...)
+> +{
+> +	struct isol_task_desc *desc;
+> +	struct task_struct *task;
+> +	va_list args;
+> +	char buf_prefix[TASK_COMM_LEN + 20 + 3 * 20];
+> +	char buf[200];
+> +	int curr_cpu, ind_counter, ind_counter_old, ind;
 > +
->   #define BUILD_LOGIC_IO(bw, type)                                      \
->   type logic_in##bw(unsigned long addr)                                 \
->   {                                                                     \
->          type ret = (type)~0;                                           \
->                                                                         \
->          if (addr < MMIO_UPPER_LIMIT) {                                 \
-> -               ret = read##bw(PCI_IOBASE + addr);                     \
-> +               void __iomem *_addr = PCI_IOBASE + addr;               \
-> +               __io_pbr();                                            \
-> +               ret = logic_in_to_cpu_##bw(__raw_read##bw(_addr));     \
-> +               __io_par(ret);                                         \
->          } else if (addr >= MMIO_UPPER_LIMIT && addr < IO_SPACE_LIMIT) {\
->                  struct logic_pio_hwaddr *entry = find_io_rang
->
-> We could prob combine the le_to_cpu and __raw_read into a single macro.
+> +	curr_cpu = get_cpu();
+> +	desc = &per_cpu(isol_task_descs, cpu);
+> +	ind_counter = atomic_read(&desc->curr_index);
+> +
+> +	if (curr_cpu == cpu) {
+> +		/*
+> +		 * Message is for the current CPU so current
+> +		 * task_struct should be used instead of cached
+> +		 * information.
+> +		 *
+> +		 * Like in other diagnostic messages, if issued from
+> +		 * interrupt context, current will be the interrupted
+> +		 * task. Unlike other diagnostic messages, this is
+> +		 * always relevant because the message is about
+> +		 * interrupting a task.
+> +		 */
+> +		ind = ind_counter & 1;
+> +		if (supp && desc->warned[ind]) {
+> +			/*
+> +			 * If supp is true, skip the message if the
+> +			 * same task was mentioned in the message
+> +			 * originated on remote CPU, and it did not
+> +			 * re-enter isolated state since then (warned
+> +			 * is true). Only local messages following
+> +			 * remote messages, likely about the same
+> +			 * isolation breaking event, are skipped to
+> +			 * avoid duplication. If remote cause is
+> +			 * immediately followed by a local one before
+> +			 * isolation is broken, local cause is skipped
+> +			 * from messages.
+> +			 */
+> +			put_cpu();
+> +			return 0;
+> +		}
+> +		task = current;
+> +		snprintf(buf_prefix, sizeof(buf_prefix),
+> +			 "isolation %s/%d/%d (cpu %d)",
+> +			 task->comm, task->tgid, task->pid, cpu);
+> +		put_cpu();
+> +	} else {
+> +		/*
+> +		 * Message is for remote CPU, use cached information.
+> +		 */
+> +		put_cpu();
+> +		/*
+> +		 * Make sure, index remained unchanged while data was
+> +		 * copied. If it changed, data that was copied may be
+> +		 * inconsistent because two updates in a sequence could
+> +		 * overwrite the data while it was being read.
+> +		 */
+> +		do {
+> +			/* Make sure we are reading up to date values */
+> +			smp_mb();
+> +			ind = ind_counter & 1;
+> +			snprintf(buf_prefix, sizeof(buf_prefix),
+> +				 "isolation %s/%d/%d (cpu %d)",
+> +				 desc->comm[ind], desc->tgid[ind],
+> +				 desc->pid[ind], cpu);
+> +			desc->warned[ind] = true;
+> +			ind_counter_old = ind_counter;
+> +			/* Record the warned flag, then re-read descriptor */
+> +			smp_mb();
+> +			ind_counter = atomic_read(&desc->curr_index);
+> +			/*
+> +			 * If the counter changed, something was updated, so
+> +			 * repeat everything to get the current data
+> +			 */
+> +		} while (ind_counter != ind_counter_old);
+> +	}
 
-What is the purpose of splitting out the byteswap rather than leaving the
-open-coded rather than __le16_to_cpu(__raw_readw(PCI_IOBASE + addr))?
+So the need to log the fact we are sending an event to a remote CPU that *may be*
+running an isolated task makes things very complicated and even racy.
 
-If this is needed to work across architectures, how about adding
-an intermediate __raw_inw() etc in asm-generic/io.h like
+How bad would it be to only log those interruptions once they land on the target?
 
-#ifndef __raw_inw
-#define __raw_inw(a) __raw_readw(PCI_IOBASE + addr));
-#endif
-
-#include <linux/logic_pio.h>
-
-#ifndef inw
-static inline u16 inw(unsigned long addr)
-{
-        u16 val;
-
-        __io_pbr();
-        val = __le16_to_cpu(__raw_inw(addr));
-        __io_par(val);
-        return val;
-}
-#endif
-
-       Arnd
+Thanks.
