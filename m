@@ -1,52 +1,80 @@
-From: YunQiang Su <syq-8fiUuRrzOP0dnm+yROfE0A@public.gmane.org>
-Subject: Re: [PATCH] binfmt_misc: pass binfmt_misc P flag to the interpreter
-Date: Fri, 6 Mar 2020 19:29:57 +0800
-Message-ID: <CAKcpw6WEO5Rmsv+WFkOMrkH+0jwtFKKy7b2n3U9xgv-xGC0UUQ@mail.gmail.com>
-References: <20200306080905.173466-1-syq@debian.org> <87r1y53npd.fsf@mid.deneb.enyo.de>
- <8441f497-61eb-5c14-bf1e-c90a464105a7@vivier.eu> <87mu8t3mlw.fsf@mid.deneb.enyo.de>
- <40da389d-4e74-2644-2e7c-04d988fcc26f@vivier.eu>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH v4 16/27] tracing: Remove regular RCU context for
+ _rcuidle tracepoints (again)
+Date: Fri, 6 Mar 2020 12:31:35 +0100
+Message-ID: <20200306113135.GA8787@worktop.programming.kicks-ass.net>
+References: <20200221133416.777099322@infradead.org>
+ <20200221134216.051596115@infradead.org>
+ <20200306104335.GF3348@worktop.programming.kicks-ass.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 8BIT
-Return-path: <linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-In-Reply-To: <40da389d-4e74-2644-2e7c-04d988fcc26f-Rq8OgNgcdU6HXe+LvDLADg@public.gmane.org>
-Sender: linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-To: Laurent Vivier <laurent-Rq8OgNgcdU6HXe+LvDLADg@public.gmane.org>
-Cc: Florian Weimer <fw-d32yF4oPJVt0XxTmqZlbVQ@public.gmane.org>, torvalds-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org, Greg KH <gregkh-hQyY1W1yCW8ekmWlsbkhG0B+6BGkLq7r@public.gmane.org>, akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org, Al Viro <viro-RmSDqhL/yNMiFSDQTTA3OLVCufUGDwFn@public.gmane.org>, James Bottomley <James.Bottomley-JuX6DAaQMKPCXq6kfMZ53/egYHeGw8Jk@public.gmane.org>, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-fsdevel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-api-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, libc-alpha-9JcytcrH/bA+uJoB2kUjGw@public.gmane.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <20200306104335.GF3348@worktop.programming.kicks-ass.net>
+Sender: linux-kernel-owner@vger.kernel.org
+To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, rostedt@goodmis.org
+Cc: mingo@kernel.org, joel@joelfernandes.org, gregkh@linuxfoundation.org, gustavo@embeddedor.com, tglx@linutronix.de, paulmck@kernel.org, josh@joshtriplett.org, mathieu.desnoyers@efficios.com, jiangshanlai@gmail.com, luto@kernel.org, tony.luck@intel.com, frederic@kernel.org, dan.carpenter@oracle.com, mhiramat@kernel.org, alexei.starovoitov@gmail.com
 List-Id: linux-arch.vger.kernel.org
 
-Laurent Vivier <laurent-Rq8OgNgcdU6HXe+LvDLADg@public.gmane.org> 于2020年3月6日周五 下午7:13写道：
->
-> Le 06/03/2020 à 09:37, Florian Weimer a écrit :
-> > * Laurent Vivier:
-> >
-> >> Le 06/03/2020 à 09:13, Florian Weimer a écrit :
-> >>> * YunQiang Su:
-> >>>
-> >>>> +  if (bprm->interp_flags & BINPRM_FLAGS_PRESERVE_ARGV0)
-> >>>> +          flags |= AT_FLAGS_PRESERVE_ARGV0;
-> >>>> +  NEW_AUX_ENT(AT_FLAGS, flags);
-> >>>
-> >>> Is it necessary to reuse AT_FLAGS?  I think it's cleaner to define a
-> >>> separate AT_ tag dedicated to binfmt_misc.
-> >>
-> >> Not necessary, but it seemed simpler and cleaner to re-use a flag that
-> >> is marked as unused and with a name matching the new role. It avoids to
-> >> patch other packages (like glibc) to add it as it is already defined.
-> >
-> > You still need to define AT_FLAGS_PRESERVE_ARGV0.  At that point, you
-> > might as well define AT_BINFMT and AT_BINFMT_PRESERVE_ARGV0.
-> >
->
-> Yes, you're right.
->
-> But is there any reason to not reuse AT_FLAGS?
+On Fri, Mar 06, 2020 at 11:43:35AM +0100, Peter Zijlstra wrote:
+> On Fri, Feb 21, 2020 at 02:34:32PM +0100, Peter Zijlstra wrote:
+> > Effectively revert commit 865e63b04e9b2 ("tracing: Add back in
+> > rcu_irq_enter/exit_irqson() for rcuidle tracepoints") now that we've
+> > taught perf how to deal with not having an RCU context provided.
+> > 
+> > Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+> > Reviewed-by: Steven Rostedt (VMware) <rostedt@goodmis.org>
+> > ---
+> >  include/linux/tracepoint.h |    8 ++------
+> >  1 file changed, 2 insertions(+), 6 deletions(-)
+> > 
+> > --- a/include/linux/tracepoint.h
+> > +++ b/include/linux/tracepoint.h
+> > @@ -179,10 +179,8 @@ static inline struct tracepoint *tracepo
+> >  		 * For rcuidle callers, use srcu since sched-rcu	\
+> >  		 * doesn't work from the idle path.			\
+> >  		 */							\
+> > -		if (rcuidle) {						\
+> > +		if (rcuidle)						\
+> >  			__idx = srcu_read_lock_notrace(&tracepoint_srcu);\
+> > -			rcu_irq_enter_irqsave();			\
+> > -		}							\
+> >  									\
+> >  		it_func_ptr = rcu_dereference_raw((tp)->funcs);		\
+> >  									\
+> > @@ -194,10 +192,8 @@ static inline struct tracepoint *tracepo
+> >  			} while ((++it_func_ptr)->func);		\
+> >  		}							\
+> >  									\
+> > -		if (rcuidle) {						\
+> > -			rcu_irq_exit_irqsave();				\
+> > +		if (rcuidle)						\
+> >  			srcu_read_unlock_notrace(&tracepoint_srcu, __idx);\
+> > -		}							\
+> >  									\
+> >  		preempt_enable_notrace();				\
+> >  	} while (0)
+> 
+> So what happens when BPF registers for these tracepoints? BPF very much
+> wants RCU on AFAIU.
 
-AT_* only has 32 slot and now. I was afraid that maybe we shouldn't take one.
-   /* AT_* values 18 through 22 are reserved */
-   27,28,29,30 are not used now.
-Which should we use?
+I suspect we needs something like this...
 
->
-> Thanks,
-> Laurent
+diff --git a/kernel/trace/bpf_trace.c b/kernel/trace/bpf_trace.c
+index a2f15222f205..67a39dbce0ce 100644
+--- a/kernel/trace/bpf_trace.c
++++ b/kernel/trace/bpf_trace.c
+@@ -1475,11 +1475,13 @@ void bpf_put_raw_tracepoint(struct bpf_raw_event_map *btp)
+ static __always_inline
+ void __bpf_trace_run(struct bpf_prog *prog, u64 *args)
+ {
++	int rcu_flags = trace_rcu_enter();
+ 	rcu_read_lock();
+ 	preempt_disable();
+ 	(void) BPF_PROG_RUN(prog, args);
+ 	preempt_enable();
+ 	rcu_read_unlock();
++	trace_rcu_exit(rcu_flags);
+ }
+ 
+ #define UNPACK(...)			__VA_ARGS__
