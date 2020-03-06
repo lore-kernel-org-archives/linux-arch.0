@@ -1,65 +1,104 @@
-Return-Path: <SRS0=3EsF=5L=kvack.org=owner-linux-mm@kernel.org>
-Subject: Re: [RFC PATCH v4 0/6] arm64: tlb: add support for TTL feature
-References: <20200324134534.1570-1-yezhenyu2@huawei.com>
- <aaf017a8-3658-fe4d-c0cf-2f45656020af@arm.com>
-From: Zhenyu Ye <yezhenyu2@huawei.com>
-Message-ID: <7859561b-78b4-4a12-2642-3741d7d3e7b8@huawei.com>
-Date: Thu, 26 Mar 2020 14:45:46 +0800
+Return-Path: <SRS0=ZCnS=4X=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from foss.arm.com ([217.140.110.172]:33392 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1727152AbgCFNdG (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 6 Mar 2020 08:33:06 -0500
+From: Vincenzo Frascino <vincenzo.frascino@arm.com>
+Subject: [PATCH v2 04/20] linux/math64.h: Extract common header for vDSO
+Date: Fri,  6 Mar 2020 13:32:26 +0000
+Message-ID: <20200306133242.26279-5-vincenzo.frascino@arm.com>
+In-Reply-To: <20200306133242.26279-1-vincenzo.frascino@arm.com>
+References: <20200306133242.26279-1-vincenzo.frascino@arm.com>
 MIME-Version: 1.0
-In-Reply-To: <aaf017a8-3658-fe4d-c0cf-2f45656020af@arm.com>
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: 7bit
-Sender: owner-linux-mm@kvack.org
-To: James Morse <james.morse@arm.com>
-Cc: will@kernel.org, mark.rutland@arm.com, catalin.marinas@arm.com, aneesh.kumar@linux.ibm.com, akpm@linux-foundation.org, npiggin@gmail.com, peterz@infradead.org, arnd@arndb.de, rostedt@goodmis.org, maz@kernel.org, suzuki.poulose@arm.com, tglx@linutronix.de, yuzhao@google.com, Dave.Martin@arm.com, steven.price@arm.com, broonie@kernel.org, guohanjun@huawei.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, arm@kernel.org, xiexiangyou@huawei.com, prime.zeng@hisilicon.com, zhangshaokun@hisilicon.com
+Content-Transfer-Encoding: 8bit
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200326064546.lwA-sz-2fS2S_ppJTkBC5Rw02QvjpctDlzz4TPA4E1Q@z>
+To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org, clang-built-linux@googlegroups.com, x86@kernel.org
+Cc: Vincenzo Frascino <vincenzo.frascino@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Paul Burton <paul.burton@mips.com>, Thomas Gleixner <tglx@linutronix.de>, Andy Lutomirski <luto@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Stephen Boyd <sboyd@kernel.org>, Mark Salyzyn <salyzyn@android.com>, Kees Cook <keescook@chromium.org>, Peter Collingbourne <pcc@google.com>, Dmitry Safonov <0x7f454c46@gmail.com>, Andrei Vagin <avagin@openvz.org>, Nick Desaulniers <ndesaulniers@google.com>
+Message-ID: <20200306133226.4Rh3cBOTg9gB8SJnP_AhN79N1nyTE0kslOprGzfyggg@z>
 
-Hi James,
+The vDSO library should only include the necessary headers required for
+a userspace library (UAPI and a minimal set of kernel headers). To make
+this possible it is necessary to isolate from the kernel headers the
+common parts that are strictly necessary to build the library.
 
-On 2020/3/26 0:15, James Morse wrote:
-> Hi Zhenyu,
-> 
-> On 3/24/20 1:45 PM, Zhenyu Ye wrote:
->> In order to reduce the cost of TLB invalidation, the ARMv8.4 TTL
->> feature allows TLBs to be issued with a level allowing for quicker
->> invalidation.  This series provide support for this feature. 
->>
->> Patch 1 and Patch 2 was provided by Marc on his NV series[1] patches,
->> which detect the TTL feature and add __tlbi_level interface.
-> 
-> How does this interact with THP?
-> (I don't see anything on that in the series.)
-> 
-> With THP, there is no one answer to the size of mapping in a VMA.
-> This is a problem because the arm-arm has in "Translation table level
-> hints" in D5.10.2 of DDI0487E.a:
-> | If an incorrect value for the entry being invalidated by the
-> | instruction is specified in the TTL field, then no entries are
-> | required by the architecture to be invalidated from the TLB.
-> 
-> If we get it wrong, not TLB maintenance occurs!
-> 
+Split math64.h into linux and common headers to make the latter suitable
+for inclusion in the vDSO library.
 
-Thanks for your review.  With THP, we should update the TTL value
-after the page collapse and merge.  If not sure what it should be,
-we can set it to 0 to avoid "no TLB maintenance occur" problem.
-The Table D5-53 in DDI0487E.a says:
-| when TTL[1:0] is 0b00:
-|   This value is reserved, and hardware should treat this as if TTL[3:2] is 0b00
-| when TTL[3:2] is 0b00:
-|   Hardware must assume that the entry can be from any level.
+Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
+---
+ include/common/math64.h | 24 ++++++++++++++++++++++++
+ include/linux/math64.h  | 20 +-------------------
+ 2 files changed, 25 insertions(+), 19 deletions(-)
+ create mode 100644 include/common/math64.h
 
-> Unless THP leaves its fingerprints on the vma, I think you can only do
-> this for VMA types that THP can't mess with. (see
-> transparent_hugepage_enabled())
-> 
-
-I will try to add struct mmu_gather to TLBI interfaces, which has enough
-info to track tlb's level.  See in next patch version!
-
-
-Thanks,
-Zhenyu
-
-.
+diff --git a/include/common/math64.h b/include/common/math64.h
+new file mode 100644
+index 000000000000..4e1870e40182
+--- /dev/null
++++ b/include/common/math64.h
+@@ -0,0 +1,24 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++#ifndef __COMMON_MATH64_H
++#define __COMMON_MATH64_H
++
++static __always_inline u32
++__iter_div_u64_rem(u64 dividend, u32 divisor, u64 *remainder)
++{
++	u32 ret = 0;
++
++	while (dividend >= divisor) {
++		/* The following asm() prevents the compiler from
++		   optimising this loop into a modulo operation.  */
++		asm("" : "+rm"(dividend));
++
++		dividend -= divisor;
++		ret++;
++	}
++
++	*remainder = dividend;
++
++	return ret;
++}
++
++#endif /* __COMMON_MATH64_H */
+diff --git a/include/linux/math64.h b/include/linux/math64.h
+index 65bef21cdddb..54eb486b5d1a 100644
+--- a/include/linux/math64.h
++++ b/include/linux/math64.h
+@@ -3,6 +3,7 @@
+ #define _LINUX_MATH64_H
+ 
+ #include <linux/types.h>
++#include <common/math64.h>
+ #include <asm/div64.h>
+ 
+ #if BITS_PER_LONG == 64
+@@ -142,25 +143,6 @@ static inline s64 div_s64(s64 dividend, s32 divisor)
+ 
+ u32 iter_div_u64_rem(u64 dividend, u32 divisor, u64 *remainder);
+ 
+-static __always_inline u32
+-__iter_div_u64_rem(u64 dividend, u32 divisor, u64 *remainder)
+-{
+-	u32 ret = 0;
+-
+-	while (dividend >= divisor) {
+-		/* The following asm() prevents the compiler from
+-		   optimising this loop into a modulo operation.  */
+-		asm("" : "+rm"(dividend));
+-
+-		dividend -= divisor;
+-		ret++;
+-	}
+-
+-	*remainder = dividend;
+-
+-	return ret;
+-}
+-
+ #ifndef mul_u32_u32
+ /*
+  * Many a GCC version messes this up and generates a 64x64 mult :-(
+-- 
+2.25.1
