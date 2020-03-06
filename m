@@ -1,56 +1,69 @@
-Return-Path: <SRS0=RUJ7=44=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:54394 "EHLO foss.arm.com"
+Return-Path: <SRS0=ZCnS=4X=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from foss.arm.com ([217.140.110.172]:33426 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1731348AbgCKTdV (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 11 Mar 2020 15:33:21 -0400
-From: Mark Brown <broonie@kernel.org>
-Subject: [PATCH v9 10/13] KVM: arm64: BTI: Reset BTYPE when skipping emulated instructions
-Date: Wed, 11 Mar 2020 19:26:05 +0000
-Message-ID: <20200311192608.40095-11-broonie@kernel.org>
-In-Reply-To: <20200311192608.40095-1-broonie@kernel.org>
-References: <20200311192608.40095-1-broonie@kernel.org>
+        id S1727186AbgCFNdJ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 6 Mar 2020 08:33:09 -0500
+From: Vincenzo Frascino <vincenzo.frascino@arm.com>
+Subject: [PATCH v2 05/20] linux/time.h: Extract common header for vDSO
+Date: Fri,  6 Mar 2020 13:32:27 +0000
+Message-ID: <20200306133242.26279-6-vincenzo.frascino@arm.com>
+In-Reply-To: <20200306133242.26279-1-vincenzo.frascino@arm.com>
+References: <20200306133242.26279-1-vincenzo.frascino@arm.com>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>
-Cc: Alexander Viro <viro@zeniv.linux.org.uk>, Paul Elliott <paul.elliott@arm.com>, Peter Zijlstra <peterz@infradead.org>, Yu-cheng Yu <yu-cheng.yu@intel.com>, Amit Kachhap <amit.kachhap@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Marc Zyngier <maz@kernel.org>, Eugene Syromiatnikov <esyr@redhat.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, "H . J . Lu " <hjl.tools@gmail.com>, Andrew Jones <drjones@redhat.com>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Jann Horn <jannh@google.com>, Richard Henderson <richard.henderson@linaro.org>, =?UTF-8?q?Kristina=20Mart=C5=A1enko?= <kristina.martsenko@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Florian Weimer <fweimer@redhat.com>, Sudakshina Das <sudi.das@arm.com>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, Dave Martin <Dave.Martin@arm.com>, Mark Brown <broonie@kernel.org>
-Message-ID: <20200311192605.iqWernDWAdVasRCA_GSXgdE8RdfrlsCHtO3ocI-Zz_w@z>
+To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org, clang-built-linux@googlegroups.com, x86@kernel.org
+Cc: Vincenzo Frascino <vincenzo.frascino@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Paul Burton <paul.burton@mips.com>, Thomas Gleixner <tglx@linutronix.de>, Andy Lutomirski <luto@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Stephen Boyd <sboyd@kernel.org>, Mark Salyzyn <salyzyn@android.com>, Kees Cook <keescook@chromium.org>, Peter Collingbourne <pcc@google.com>, Dmitry Safonov <0x7f454c46@gmail.com>, Andrei Vagin <avagin@openvz.org>, Nick Desaulniers <ndesaulniers@google.com>
+Message-ID: <20200306133227.iUwT9qj93E9j1w5f2N3XuRj8L6MeXeAy0XpwJLnMiWI@z>
 
-From: Dave Martin <Dave.Martin@arm.com>
+The vDSO library should only include the necessary headers required for
+a userspace library (UAPI and a minimal set of kernel headers). To make
+this possible it is necessary to isolate from the kernel headers the
+common parts that are strictly necessary to build the library.
 
-Since normal execution of any non-branch instruction resets the
-PSTATE BTYPE field to 0, so do the same thing when emulating a
-trapped instruction.
+Split time.h into linux and common headers to make the latter suitable
+for inclusion in the vDSO library.
 
-Branches don't trap directly, so we should never need to assign a
-non-zero value to BTYPE here.
-
-Signed-off-by: Dave Martin <Dave.Martin@arm.com>
-Acked-by: Marc Zyngier <maz@kernel.org>
-Signed-off-by: Mark Brown <broonie@kernel.org>
+Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
 ---
- arch/arm64/include/asm/kvm_emulate.h | 6 ++++--
- 1 file changed, 4 insertions(+), 2 deletions(-)
+ include/common/time.h | 12 ++++++++++++
+ include/linux/time.h  |  5 +----
+ 2 files changed, 13 insertions(+), 4 deletions(-)
+ create mode 100644 include/common/time.h
 
-diff --git a/arch/arm64/include/asm/kvm_emulate.h b/arch/arm64/include/asm/kvm_emulate.h
-index 688c63412cc2..dee51c1dcb93 100644
---- a/arch/arm64/include/asm/kvm_emulate.h
-+++ b/arch/arm64/include/asm/kvm_emulate.h
-@@ -506,10 +506,12 @@ static inline unsigned long vcpu_data_host_to_guest(struct kvm_vcpu *vcpu,
+diff --git a/include/common/time.h b/include/common/time.h
+new file mode 100644
+index 000000000000..90eb9bdb40ec
+--- /dev/null
++++ b/include/common/time.h
+@@ -0,0 +1,12 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++#ifndef __COMMON_TIME_H
++#define __COMMON_TIME_H
++
++#include <uapi/linux/types.h>
++
++struct timens_offset {
++	s64	sec;
++	u64	nsec;
++};
++
++#endif /* __COMMON_TIME_H */
+diff --git a/include/linux/time.h b/include/linux/time.h
+index 8ef5e5cc9f57..617a01e2c8bb 100644
+--- a/include/linux/time.h
++++ b/include/linux/time.h
+@@ -111,9 +111,6 @@ static inline bool itimerspec64_valid(const struct itimerspec64 *its)
+  */
+ #define time_between32(t, l, h) ((u32)(h) - (u32)(l) >= (u32)(t) - (u32)(l))
  
- static inline void kvm_skip_instr(struct kvm_vcpu *vcpu, bool is_wide_instr)
- {
--	if (vcpu_mode_is_32bit(vcpu))
-+	if (vcpu_mode_is_32bit(vcpu)) {
- 		kvm_skip_instr32(vcpu, is_wide_instr);
--	else
-+	} else {
- 		*vcpu_pc(vcpu) += 4;
-+		*vcpu_cpsr(vcpu) &= ~PSR_BTYPE_MASK;
-+	}
+-struct timens_offset {
+-	s64	sec;
+-	u64	nsec;
+-};
++# include <common/time.h>
  
- 	/* advance the singlestep state machine */
- 	*vcpu_cpsr(vcpu) &= ~DBG_SPSR_SS;
+ #endif
 -- 
-2.20.1
+2.25.1
