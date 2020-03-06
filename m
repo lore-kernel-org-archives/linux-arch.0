@@ -1,55 +1,46 @@
-Return-Path: <SRS0=Zkb6=4V=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mx0a-0016f401.pphosted.com ([67.231.148.174]:26746 "EHLO
-        mx0b-0016f401.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
-        by vger.kernel.org with ESMTP id S1729855AbgCDQFG (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 4 Mar 2020 11:05:06 -0500
-From: Alex Belits <abelits@marvell.com>
-Subject: [PATCH 02/12] task_isolation: vmstat: add vmstat_idle function
-Date: Wed, 4 Mar 2020 16:04:37 +0000
-Message-ID: <d25c6aee46e6d3140651f29261352ad9c271c552.camel@marvell.com>
-References: <4473787e1b6bc3cc226067e8d122092a678b63de.camel@marvell.com>
-In-Reply-To: <4473787e1b6bc3cc226067e8d122092a678b63de.camel@marvell.com>
-Content-Language: en-US
-Content-Type: text/plain; charset="utf-8"
-Content-ID: <1C5ECF33757A4B4180F606FB4C9F5039@namprd18.prod.outlook.com>
-Content-Transfer-Encoding: base64
+Return-Path: <SRS0=ldhC=4X=vger.kernel.org=linux-doc-owner@kernel.org>
+Message-ID: <d1e483574f496d16aa2ff92562debfdacaff0f36.camel@intel.com>
+Subject: Re: [RFC PATCH v9 05/27] x86/cet/shstk: Add Kconfig option for
+ user-mode Shadow Stack protection
+From: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Date: Fri, 06 Mar 2020 13:16:55 -0800
+In-Reply-To: <d4e09cf8-4237-d168-7e46-929f2b536332@intel.com>
+References: <20200205181935.3712-1-yu-cheng.yu@intel.com>
+         <20200205181935.3712-6-yu-cheng.yu@intel.com>
+         <d4dabb84-5636-2657-c45e-795f3f2dcbbc@intel.com>
+         <070d9d78981f0aad2baf740233e8dfc32ecd29d7.camel@intel.com>
+         <d4e09cf8-4237-d168-7e46-929f2b536332@intel.com>
+Content-Type: text/plain; charset="UTF-8"
 MIME-Version: 1.0
-Sender: linux-arch-owner@vger.kernel.org
+Content-Transfer-Encoding: 7bit
+Sender: linux-doc-owner@vger.kernel.org
+To: Dave Hansen <dave.hansen@intel.com>, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>, x86-patch-review@intel.com
 List-ID: <linux-arch.vger.kernel.org>
-To: "frederic@kernel.org" <frederic@kernel.org>, "rostedt@goodmis.org" <rostedt@goodmis.org>
-Cc: "mingo@kernel.org" <mingo@kernel.org>, "peterz@infradead.org" <peterz@infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Prasun Kapoor <pkapoor@marvell.com>, "tglx@linutronix.de" <tglx@linutronix.de>, "linux-api@vger.kernel.org" <linux-api@vger.kernel.org>, "linux-mm@vger.kernel.org" <linux-mm@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
-Message-ID: <20200304160437.zbSnNWRv1PbUDomoYO0vjhfuV2YZlbxtWxOlkcr_b_E@z>
+Message-ID: <20200306211655.USUyRGhN7RIPsRXl6PEc_vDaHqxSqddBjxOsCffozbU@z>
 
-RnJvbTogQ2hyaXMgTWV0Y2FsZiA8Y21ldGNhbGZAbWVsbGFub3guY29tPg0KDQpUaGlzIGZ1bmN0
-aW9uIGNoZWNrcyB0byBzZWUgaWYgYSB2bXN0YXQgd29ya2VyIGlzIG5vdCBydW5uaW5nLA0KYW5k
-IHRoZSB2bXN0YXQgZGlmZnMgZG9uJ3QgcmVxdWlyZSBhbiB1cGRhdGUuICBUaGUgZnVuY3Rpb24g
-aXMNCmNhbGxlZCBmcm9tIHRoZSB0YXNrLWlzb2xhdGlvbiBjb2RlIHRvIHNlZSBpZiB3ZSBuZWVk
-IHRvDQphY3R1YWxseSBkbyBzb21lIHdvcmsgdG8gcXVpZXQgdm1zdGF0Lg0KDQpTaWduZWQtb2Zm
-LWJ5OiBBbGV4IEJlbGl0cyA8YWJlbGl0c0BtYXJ2ZWxsLmNvbT4NCi0tLQ0KIGluY2x1ZGUvbGlu
-dXgvdm1zdGF0LmggfCAgMiArKw0KIG1tL3Ztc3RhdC5jICAgICAgICAgICAgfCAxMCArKysrKysr
-KysrDQogMiBmaWxlcyBjaGFuZ2VkLCAxMiBpbnNlcnRpb25zKCspDQoNCmRpZmYgLS1naXQgYS9p
-bmNsdWRlL2xpbnV4L3Ztc3RhdC5oIGIvaW5jbHVkZS9saW51eC92bXN0YXQuaA0KaW5kZXggMmJj
-NWU4NWYyNTE0Li42NmQ5YWUzMmNmMDcgMTAwNjQ0DQotLS0gYS9pbmNsdWRlL2xpbnV4L3Ztc3Rh
-dC5oDQorKysgYi9pbmNsdWRlL2xpbnV4L3Ztc3RhdC5oDQpAQCAtMjcxLDYgKzI3MSw3IEBAIGV4
-dGVybiB2b2lkIF9fZGVjX25vZGVfc3RhdGUoc3RydWN0IHBnbGlzdF9kYXRhICosIGVudW0gbm9k
-ZV9zdGF0X2l0ZW0pOw0KIA0KIHZvaWQgcXVpZXRfdm1zdGF0KHZvaWQpOw0KIHZvaWQgcXVpZXRf
-dm1zdGF0X3N5bmModm9pZCk7DQorYm9vbCB2bXN0YXRfaWRsZSh2b2lkKTsNCiB2b2lkIGNwdV92
-bV9zdGF0c19mb2xkKGludCBjcHUpOw0KIHZvaWQgcmVmcmVzaF96b25lX3N0YXRfdGhyZXNob2xk
-cyh2b2lkKTsNCiANCkBAIC0zNzQsNiArMzc1LDcgQEAgc3RhdGljIGlubGluZSB2b2lkIHJlZnJl
-c2hfem9uZV9zdGF0X3RocmVzaG9sZHModm9pZCkgeyB9DQogc3RhdGljIGlubGluZSB2b2lkIGNw
-dV92bV9zdGF0c19mb2xkKGludCBjcHUpIHsgfQ0KIHN0YXRpYyBpbmxpbmUgdm9pZCBxdWlldF92
-bXN0YXQodm9pZCkgeyB9DQogc3RhdGljIGlubGluZSB2b2lkIHF1aWV0X3Ztc3RhdF9zeW5jKHZv
-aWQpIHsgfQ0KK3N0YXRpYyBpbmxpbmUgYm9vbCB2bXN0YXRfaWRsZSh2b2lkKSB7IHJldHVybiB0
-cnVlOyB9DQogDQogc3RhdGljIGlubGluZSB2b2lkIGRyYWluX3pvbmVzdGF0KHN0cnVjdCB6b25l
-ICp6b25lLA0KIAkJCXN0cnVjdCBwZXJfY3B1X3BhZ2VzZXQgKnBzZXQpIHsgfQ0KZGlmZiAtLWdp
-dCBhL21tL3Ztc3RhdC5jIGIvbW0vdm1zdGF0LmMNCmluZGV4IDFmYTBiMmQwNGFmYS4uNWM0YWVj
-NjUxMDYyIDEwMDY0NA0KLS0tIGEvbW0vdm1zdGF0LmMNCisrKyBiL21tL3Ztc3RhdC5jDQpAQCAt
-MTg3OSw2ICsxODc5LDE2IEBAIHZvaWQgcXVpZXRfdm1zdGF0X3N5bmModm9pZCkNCiAJcmVmcmVz
-aF9jcHVfdm1fc3RhdHMoZmFsc2UpOw0KIH0NCiANCisvKg0KKyAqIFJlcG9ydCBvbiB3aGV0aGVy
-IHZtc3RhdCBwcm9jZXNzaW5nIGlzIHF1aWVzY2VkIG9uIHRoZSBjb3JlIGN1cnJlbnRseToNCisg
-KiBubyB2bXN0YXQgd29ya2VyIHJ1bm5pbmcgYW5kIG5vIHZtc3RhdCB1cGRhdGVzIHRvIHBlcmZv
-cm0uDQorICovDQorYm9vbCB2bXN0YXRfaWRsZSh2b2lkKQ0KK3sNCisJcmV0dXJuICFkZWxheWVk
-X3dvcmtfcGVuZGluZyh0aGlzX2NwdV9wdHIoJnZtc3RhdF93b3JrKSkgJiYNCisJCSFuZWVkX3Vw
-ZGF0ZShzbXBfcHJvY2Vzc29yX2lkKCkpOw0KK30NCisNCiAvKg0KICAqIFNoZXBoZXJkIHdvcmtl
-ciB0aHJlYWQgdGhhdCBjaGVja3MgdGhlDQogICogZGlmZmVyZW50aWFscyBvZiBwcm9jZXNzb3Jz
-IHRoYXQgaGF2ZSB0aGVpciB3b3JrZXINCi0tIA0KMi4yMC4xDQoNCg==
+On Fri, 2020-03-06 at 11:02 -0800, Dave Hansen wrote:
+> On 3/6/20 10:37 AM, Yu-cheng Yu wrote:
+> > We used to do this for CET instructions, but after adding kernel-mode
+> > instructions and inserting ENDBR's, the code becomes cluttered.  I also
+> > found an earlier discussion on the ENDBR:
+> > 
+> > https://lore.kernel.org/lkml/CALCETrVRH8LeYoo7V1VBPqg4WS0Enxtizt=T7dPvgoeWfJrdzA@mail.gmail.com/
+> > 
+> > It makes sense to let the user know early on that the system cannot support
+> > CET and cannot build a CET-enabled kernel.
+> > 
+> > One thing we can do is to disable CET in Kconfig and not in kernel
+> > build, which I will do in the next version.
+> 
+> I'll go on the record and say I think we should allow building
+> CET-enabled kernels on old toolchains.  We need it for build test
+> coverage.  We can spit out a warning, but we need to allow building it.
+
+The build test will go through (assembler or .byte), once the opcode patch
+is applied [1].  Also, when we enable kernel-mode CET, it is difficult to
+build IBT code without the right tool chain.
+
+Yu-cheng
+
+[1] opcode patch: 
+https://lore.kernel.org/lkml/20200204171425.28073-1-yu-cheng.yu@intel.com/
