@@ -1,117 +1,41 @@
-From: Steven Rostedt <rostedt@goodmis.org>
-Subject: Re: [PATCH v4 16/27] tracing: Remove regular RCU context for
- _rcuidle tracepoints (again)
-Date: Fri, 6 Mar 2020 13:59:25 -0500
-Message-ID: <20200306135925.50c38bec@gandalf.local.home>
-References: <20200221133416.777099322@infradead.org>
-        <20200221134216.051596115@infradead.org>
-        <20200306104335.GF3348@worktop.programming.kicks-ass.net>
-        <20200306113135.GA8787@worktop.programming.kicks-ass.net>
-        <CAADnVQKp=UKg8HAuMOFknhmXtfm_LVu_ynTNJuedHqKdA6zh1g@mail.gmail.com>
-        <1896740806.20220.1583510668164.JavaMail.zimbra@efficios.com>
-        <20200306125500.6aa75c0d@gandalf.local.home>
-        <20200306184538.GA92717@google.com>
+From: Dave Hansen <dave.hansen@intel.com>
+Subject: Re: [RFC PATCH v9 05/27] x86/cet/shstk: Add Kconfig option for
+ user-mode Shadow Stack protection
+Date: Fri, 6 Mar 2020 11:02:08 -0800
+Message-ID: <d4e09cf8-4237-d168-7e46-929f2b536332@intel.com>
+References: <20200205181935.3712-1-yu-cheng.yu@intel.com>
+ <20200205181935.3712-6-yu-cheng.yu@intel.com>
+ <d4dabb84-5636-2657-c45e-795f3f2dcbbc@intel.com>
+ <070d9d78981f0aad2baf740233e8dfc32ecd29d7.camel@intel.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 8bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:34804 "EHLO mail.kernel.org"
+Received: from mga17.intel.com ([192.55.52.151]:1470 "EHLO mga17.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726083AbgCFS73 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 6 Mar 2020 13:59:29 -0500
-In-Reply-To: <20200306184538.GA92717@google.com>
+        id S1726167AbgCFTCL (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 6 Mar 2020 14:02:11 -0500
+In-Reply-To: <070d9d78981f0aad2baf740233e8dfc32ecd29d7.camel@intel.com>
+Content-Language: en-US
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Joel Fernandes <joel@joelfernandes.org>
-Cc: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, Alexei Starovoitov <alexei.starovoitov@gmail.com>, Peter Zijlstra <peterz@infradead.org>, linux-kernel <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Ingo Molnar <mingo@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, "Gustavo A. R. Silva" <gustavo@embeddedor.com>, Thomas Gleixner <tglx@linutronix.de>, paulmck <paulmck@kernel.org>, Josh Triplett <josh@joshtriplett.org>, Lai Jiangshan <jiangshanlai@gmail.com>, Andy Lutomirski <luto@kernel.org>, Tony Luck <tony.luck@intel.com>, Frederic Weisbecker <frederic@kernel.org>, dan carpenter <dan.carpenter@oracle.com>, Masami Hiramatsu <mhiramat@kernel.org>
+To: Yu-cheng Yu <yu-cheng.yu@intel.com>, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>
 
-On Fri, 6 Mar 2020 13:45:38 -0500
-Joel Fernandes <joel@joelfernandes.org> wrote:
+On 3/6/20 10:37 AM, Yu-cheng Yu wrote:
+> We used to do this for CET instructions, but after adding kernel-mode
+> instructions and inserting ENDBR's, the code becomes cluttered.  I also
+> found an earlier discussion on the ENDBR:
+> 
+> https://lore.kernel.org/lkml/CALCETrVRH8LeYoo7V1VBPqg4WS0Enxtizt=T7dPvgoeWfJrdzA@mail.gmail.com/
+> 
+> It makes sense to let the user know early on that the system cannot support
+> CET and cannot build a CET-enabled kernel.
+> 
+> One thing we can do is to disable CET in Kconfig and not in kernel
+> build, which I will do in the next version.
 
-> On Fri, Mar 06, 2020 at 12:55:00PM -0500, Steven Rostedt wrote:
-> > On Fri, 6 Mar 2020 11:04:28 -0500 (EST)
-> > Mathieu Desnoyers <mathieu.desnoyers@efficios.com> wrote:
-> >   
-> > > If we care about not adding those extra branches on the fast-path, there is
-> > > an alternative way to do things: BPF could provide two distinct probe callbacks,
-> > > one meant for rcuidle tracepoints (which would have the trace_rcu_enter/exit), and
-> > > the other for the for 99% of the other callsites which have RCU watching.
-> > > 
-> > > I would recommend performing benchmarks justifying the choice of one approach over
-> > > the other though.  
-> > 
-> > I just whipped this up (haven't even tried to compile it), but this should
-> > satisfy everyone. Those that register a callback that needs RCU protection
-> > simply registers with one of the _rcu versions, and all will be done. And
-> > since DO_TRACE is a macro, and rcuidle is a constant, the rcu protection
-> > code will be compiled out for locations that it is not needed.
-> > 
-> > With this, perf doesn't even need to do anything extra but register with
-> > the "_rcu" version.  
-> 
-> Looks nice! Some comments below:
-> 
-> > -- Steve
-> > 
-> > diff --git a/include/linux/tracepoint-defs.h b/include/linux/tracepoint-defs.h
-> > index b29950a19205..582dece30170 100644
-> > --- a/include/linux/tracepoint-defs.h
-> > +++ b/include/linux/tracepoint-defs.h
-> > @@ -25,6 +25,7 @@ struct tracepoint_func {
-> >  	void *func;
-> >  	void *data;
-> >  	int prio;
-> > +	int requires_rcu;
-> >  };
-> >  
-> >  struct tracepoint {
-> > diff --git a/include/linux/tracepoint.h b/include/linux/tracepoint.h
-> > index 1fb11daa5c53..5f4de82ffa0f 100644
-> > --- a/include/linux/tracepoint.h
-> > +++ b/include/linux/tracepoint.h
-> > @@ -179,25 +179,28 @@ static inline struct tracepoint *tracepoint_ptr_deref(tracepoint_ptr_t *p)
-> >  		 * For rcuidle callers, use srcu since sched-rcu	\
-> >  		 * doesn't work from the idle path.			\
-> >  		 */							\
-> > -		if (rcuidle) {						\
-> > +		if (rcuidle)						\
-> >  			__idx = srcu_read_lock_notrace(&tracepoint_srcu);\  
-> 
-> Small addition:
-> To prevent confusion, we could make more clear that SRCU here is just to
-> protect the tracepoint function table and not the callbacks themselves.
-> 
-> > -			rcu_irq_enter_irqson();				\
-> > -		}							\
-> >  									\
-> >  		it_func_ptr = rcu_dereference_raw((tp)->funcs);		\
-> >  									\
-> >  		if (it_func_ptr) {					\
-> >  			do {						\
-> > +				int rcu_flags;				\
-> >  				it_func = (it_func_ptr)->func;		\
-> > +				if (rcuidle &&				\
-> > +				    (it_func_ptr)->requires_rcu)	\
-> > +					rcu_flags = trace_rcu_enter();	\
-> >  				__data = (it_func_ptr)->data;		\
-> >  				((void(*)(proto))(it_func))(args);	\
-> > +				if (rcuidle &&				\
-> > +				    (it_func_ptr)->requires_rcu)	\
-> > +					trace_rcu_exit(rcu_flags);	\  
-> 
-> Nit: If we have incurred the cost of trace_rcu_enter() once, we can call
-> it only once and then call trace_rcu_exit() after the do-while loop. That way
-> we pay the price only once.
->
+I'll go on the record and say I think we should allow building
+CET-enabled kernels on old toolchains.  We need it for build test
+coverage.  We can spit out a warning, but we need to allow building it.
 
-I thought about that, but the common case is only one callback attached at
-a time. To make the code complex for the non common case seemed too much
-of an overkill. If we find that it does help, it's best to do that as a
-separate patch because then if something goes wrong we know where it
-happened.
-
-Currently, this provides the same overhead as if each callback did it
-themselves like we were proposing (but without the added need to do it for
-all instances of the callback).
-
--- Steve
+Andy L, do you have any heartburn with that?
