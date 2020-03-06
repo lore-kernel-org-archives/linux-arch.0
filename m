@@ -1,113 +1,41 @@
-Return-Path: <SRS0=zClU=5C=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:39878 "EHLO foss.arm.com"
+Return-Path: <SRS0=ZCnS=4X=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from albireo.enyo.de ([37.24.231.21]:54812 "EHLO albireo.enyo.de"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726016AbgCQPuh (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 17 Mar 2020 11:50:37 -0400
-Date: Tue, 17 Mar 2020 15:50:31 +0000
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [PATCH v4 18/26] arm64: vdso32: Replace TASK_SIZE_32 check in
- vgettimeofday
-Message-ID: <20200317155031.GD632169@arrakis.emea.arm.com>
-References: <20200317122220.30393-1-vincenzo.frascino@arm.com>
- <20200317122220.30393-19-vincenzo.frascino@arm.com>
- <20200317143834.GC632169@arrakis.emea.arm.com>
- <f03a9493-c8c2-e981-f560-b2f437a208e4@arm.com>
+        id S1725873AbgCFIjS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 6 Mar 2020 03:39:18 -0500
+From: Florian Weimer <fw@deneb.enyo.de>
+Subject: Re: [PATCH] binfmt_misc: pass binfmt_misc P flag to the interpreter
+References: <20200306080905.173466-1-syq@debian.org>
+        <87r1y53npd.fsf@mid.deneb.enyo.de>
+        <8441f497-61eb-5c14-bf1e-c90a464105a7@vivier.eu>
+Date: Fri, 06 Mar 2020 09:37:31 +0100
+In-Reply-To: <8441f497-61eb-5c14-bf1e-c90a464105a7@vivier.eu> (Laurent
+        Vivier's message of "Fri, 6 Mar 2020 09:21:46 +0100")
+Message-ID: <87mu8t3mlw.fsf@mid.deneb.enyo.de>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <f03a9493-c8c2-e981-f560-b2f437a208e4@arm.com>
+Content-Type: text/plain; charset=iso-8859-1
+Content-Transfer-Encoding: 8BIT
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Cc: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, clang-built-linux@googlegroups.com, linux-mips@vger.kernel.org, x86@kernel.org, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Paul Burton <paul.burton@mips.com>, Thomas Gleixner <tglx@linutronix.de>, Andy Lutomirski <luto@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Stephen Boyd <sboyd@kernel.org>, Mark Salyzyn <salyzyn@android.com>, Kees Cook <keescook@chromium.org>, Peter Collingbourne <pcc@google.com>, Dmitry Safonov <0x7f454c46@gmail.com>, Andrei Vagin <avagin@openvz.org>, Nick Desaulniers <ndesaulniers@google.com>, Marc Zyngier <maz@kernel.org>, Mark Rutland <Mark.Rutland@arm.com>, Will Deacon <will@kernel.org>
-Message-ID: <20200317155031.m-Qp07-4Uue2pljDLQz0vgVxloSSqXKDinzbBMt8nSg@z>
+To: Laurent Vivier <laurent@vivier.eu>
+Cc: YunQiang Su <syq@debian.org>, torvalds@linux-foundation.org, gregkh@linuxfoundation.org, akpm@linux-foundation.org, viro@zeniv.linux.org.uk, James.Bottomley@hansenpartnership.com, linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, libc-alpha@sourceware.org
+Message-ID: <20200306083731.TsAnSMX3k8yokKBIZgeMUNhPEMJqD4EVrJ540ecJ3cU@z>
 
-On Tue, Mar 17, 2020 at 03:04:01PM +0000, Vincenzo Frascino wrote:
-> On 3/17/20 2:38 PM, Catalin Marinas wrote:
-> > On Tue, Mar 17, 2020 at 12:22:12PM +0000, Vincenzo Frascino wrote:
-> >> diff --git a/arch/arm64/kernel/vdso32/vgettimeofday.c b/arch/arm64/kernel/vdso32/vgettimeofday.c
-> >> index 54fc1c2ce93f..91138077b073 100644
-> >> --- a/arch/arm64/kernel/vdso32/vgettimeofday.c
-> >> +++ b/arch/arm64/kernel/vdso32/vgettimeofday.c
-> >> @@ -8,11 +8,14 @@
-> >>  #include <linux/time.h>
-> >>  #include <linux/types.h>
-> >>  
-> >> +#define VALID_CLOCK_ID(x) \
-> >> +	((x >= 0) && (x < VDSO_BASES))
-> >> +
-> >>  int __vdso_clock_gettime(clockid_t clock,
-> >>  			 struct old_timespec32 *ts)
-> >>  {
-> >>  	/* The checks below are required for ABI consistency with arm */
-> >> -	if ((u32)ts >= TASK_SIZE_32)
-> >> +	if ((u32)ts > UINTPTR_MAX - sizeof(*ts) + 1)
-> >>  		return -EFAULT;
-> >>  
-> >>  	return __cvdso_clock_gettime32(clock, ts);
-> > 
-> > I probably miss something but I can't find the TASK_SIZE check in the
-> > arch/arm/vdso/vgettimeofday.c code. Is this done elsewhere?
-> 
-> Can TASK_SIZE > UINTPTR_MAX on an arm64 system?
+* Laurent Vivier:
 
-TASK_SIZE yes on arm64 but not TASK_SIZE_32. I was asking about the
-arm32 check where TASK_SIZE < UINTPTR_MAX. How does the vdsotest return
--EFAULT on arm32? Which code path causes this in the user vdso code?
+> Le 06/03/2020 à 09:13, Florian Weimer a écrit :
+>> * YunQiang Su:
+>> 
+>>> +	if (bprm->interp_flags & BINPRM_FLAGS_PRESERVE_ARGV0)
+>>> +		flags |= AT_FLAGS_PRESERVE_ARGV0;
+>>> +	NEW_AUX_ENT(AT_FLAGS, flags);
+>> 
+>> Is it necessary to reuse AT_FLAGS?  I think it's cleaner to define a
+>> separate AT_ tag dedicated to binfmt_misc.
+>
+> Not necessary, but it seemed simpler and cleaner to re-use a flag that
+> is marked as unused and with a name matching the new role. It avoids to
+> patch other packages (like glibc) to add it as it is already defined.
 
-My guess is that on arm32 it only fails with -EFAULT in the syscall
-fallback path since a copy_to_user() would fail the access_ok() check.
-Does it always take the fallback path if ts > TASK_SIZE?
-
-On arm64, while we have a similar access_ok() check, USER_DS is (1 <<
-VA_BITS) even for compat tasks (52-bit maximum), so it doesn't detect
-the end of the user address space for 32-bit tasks.
-
-Is this an issue for other syscalls expecting EFAULT at UINTPTR_MAX and
-instead getting a signal? The vdsotest seems to be the only one assuming
-this. I don't have a simple solution here since USER_DS currently needs
-to be a constant (used in entry.S).
-
-I could as well argue that this is not a valid ABI test, no real-world
-program relying on this behaviour ;).
-
-> >> @@ -22,7 +25,7 @@ int __vdso_clock_gettime64(clockid_t clock,
-> >>  			   struct __kernel_timespec *ts)
-> >>  {
-> >>  	/* The checks below are required for ABI consistency with arm */
-> >> -	if ((u32)ts >= TASK_SIZE_32)
-> >> +	if ((u32)ts > UINTPTR_MAX - sizeof(*ts) + 1)
-> >>  		return -EFAULT;
-> >>  
-> >>  	return __cvdso_clock_gettime(clock, ts);
-> >> @@ -38,9 +41,12 @@ int __vdso_clock_getres(clockid_t clock_id,
-> >>  			struct old_timespec32 *res)
-> >>  {
-> >>  	/* The checks below are required for ABI consistency with arm */
-> >> -	if ((u32)res >= TASK_SIZE_32)
-> >> +	if ((u32)res > UINTPTR_MAX - sizeof(res) + 1)
-> >>  		return -EFAULT;
-> >>  
-> >> +	if (!VALID_CLOCK_ID(clock_id) && res == NULL)
-> >> +		return -EINVAL;
-> > 
-> > This last check needs an explanation. If the clock_id is invalid but res
-> > is not NULL, we allow it. I don't see where the compatibility issue is,
-> > arm32 doesn't have such check.
-> 
-> The case that you are describing has to return -EPERM per ABI spec. This case
-> has to return -EINVAL.
-> 
-> The first case is taken care from the generic code. But if we don't do this
-> check before on arm64 compat we end up returning the wrong error code.
-
-I guess I have the same question as above. Where does the arm32 code
-return -EINVAL for that case? Did it work correctly before you removed
-the TASK_SIZE_32 check?
-
-Sorry, just trying to figure out where the compatibility aspect is and
-that we don't add some artificial checks only to satisfy a vdsotest case
-that may or may not have relevance to any other user program.
-
--- 
-Catalin
+You still need to define AT_FLAGS_PRESERVE_ARGV0.  At that point, you
+might as well define AT_BINFMT and AT_BINFMT_PRESERVE_ARGV0.
