@@ -1,187 +1,134 @@
-From: Andy Lutomirski <luto@amacapital.net>
-Subject: Re: [PATCH v2 00/20] Introduce common headers
-Date: Fri, 6 Mar 2020 08:04:44 -0800
-Message-ID: <3278D604-28F1-47A1-BAB8-D8EB439995E8@amacapital.net>
-References: <20200306133242.26279-1-vincenzo.frascino@arm.com>
-Mime-Version: 1.0 (1.0)
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane-mx.org@lists.infradead.org>
-In-Reply-To: <20200306133242.26279-1-vincenzo.frascino@arm.com>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane-mx.org@lists.infradead.org
-To: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Cc: Catalin Marinas <catalin.marinas@arm.com>, Dmitry Safonov <0x7f454c46@gmail.com>, linux-mips@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org, Russell King <linux@armlinux.org.uk>, clang-built-linux@googlegroups.com, Ingo Molnar <mingo@redhat.com>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Will Deacon <will.deacon@arm.com>, Borislav Petkov <bp@alien8.de>, Andy Lutomirski <luto@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Peter Collingbourne <pcc@google.com>, linux-arm-kernel@lists.infradead.org, Andrei Vagin <avagin@openvz.org>, Stephen Boyd <sboyd@kernel.org>, Nick Desaulniers <ndesaulniers@google.com>, linux-kernel@vger.kernel.org, Mark Salyzyn <salyzyn@android.com>, Paul Burton <paul.burton@mips.com>
-List-Id: linux-arch.vger.kernel.org
+From: John Garry <john.garry@huawei.com>
+Subject: Re: About commit "io: change inX() to have their own IO barrier
+ overrides"
+Date: Fri, 6 Mar 2020 16:18:33 +0000
+Message-ID: <182a37c2-7437-b1bd-8b86-5c9ce2e29f00@huawei.com>
+References: <2e80d7bc-32a0-cc40-00a9-8a383a1966c2@huawei.com>
+ <c1489f55-369d-2cff-ff36-b10fb5d3ee79@kernel.org>
+ <8207cd51-5b94-2f15-de9f-d85c9c385bca@huawei.com>
+ <6115fa56-a471-1e9f-edbb-e643fa4e7e11@kernel.org>
+ <7c955142-1fcb-d99e-69e4-1e0d3d9eb8c3@huawei.com>
+ <CAK8P3a0f9hnKGd6GJ8qFZSu+J-n4fY23TCGxQkmgJaxbpre50Q@mail.gmail.com>
+ <90af535f-00ef-c1e3-ec20-aae2bd2a0d88@kernel.org>
+ <CAK8P3a2Grd0JsBNsB19oAxrAFtOdpvjrpGcfeArKe7zD_jrUZw@mail.gmail.com>
+ <ae0a1bf1-948f-7df0-9efb-cd1e94e27d2d@huawei.com>
+ <CAK8P3a2wdCrBP=a8ZypWoC=HyCU3oYYNeCddWM7oT+xM9gTPhw@mail.gmail.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="utf-8"; format=flowed
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from lhrrgout.huawei.com ([185.176.76.210]:2515 "EHLO huawei.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1726167AbgCFQSh (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 6 Mar 2020 11:18:37 -0500
+In-Reply-To: <CAK8P3a2wdCrBP=a8ZypWoC=HyCU3oYYNeCddWM7oT+xM9gTPhw@mail.gmail.com>
+Content-Language: en-US
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Sinan Kaya <okaya@kernel.org>, "xuwei (O)" <xuwei5@hisilicon.com>, Bjorn Helgaas <bhelgaas@google.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Jiaxun Yang <jiaxun.yang@flygoat.com>, linux-arch <linux-arch@vger.kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, Will Deacon <will@kernel.org>, Catalin Marinas <catalin.marinas@arm.com>
 
-Cgo+IE9uIE1hciA2LCAyMDIwLCBhdCA1OjMyIEFNLCBWaW5jZW56byBGcmFzY2lubyA8dmluY2Vu
-em8uZnJhc2Npbm9AYXJtLmNvbT4gd3JvdGU6Cj4gCj4g77u/QmFjayBpbiBKdWx5IGxhc3QgeWVh
-ciB3ZSBzdGFydGVkIGhhdmluZyBhIHByb2JsZW0gaW4gYnVpbGRpbmcgY29tcGF0Cj4gdkRTT3Mg
-b24gYXJtNjQgWzFdIFsyXSB0aGF0IHdhcyBub3QgcHJlc2VudCB3aGVuIHRoZSBhcm02NCBwb3J0
-aW5nIHRvCj4gdGhlIFVuaWZpZWQgdkRTTyB3YXMgZG9uZS4gSW4gcGFydGljdWxhciB3aGVuIHRo
-ZSBjb21wYXQgdkRTTyBvbiBzdWNoCj4gYXJjaGl0ZWN0dXJlIGlzIGJ1aWx0IHdpdGggZ2NjIGl0
-IGdlbmVyYXRlcyB0aGUgd2FybmluZyBiZWxvdzoKPiAKPiBJbiBmaWxlIGluY2x1ZGVkIGZyb20g
-Li9hcmNoL2FybTY0L2luY2x1ZGUvYXNtL3RocmVhZF9pbmZvLmg6MTc6MCwKPiAgICAgICAgICAg
-ICAgICAgZnJvbSAuL2luY2x1ZGUvbGludXgvdGhyZWFkX2luZm8uaDozOCwKPiAgICAgICAgICAg
-ICAgICAgZnJvbSAuL2FyY2gvYXJtNjQvaW5jbHVkZS9hc20vcHJlZW1wdC5oOjUsCj4gICAgICAg
-ICAgICAgICAgIGZyb20gLi9pbmNsdWRlL2xpbnV4L3ByZWVtcHQuaDo3OCwKPiAgICAgICAgICAg
-ICAgICAgZnJvbSAuL2luY2x1ZGUvbGludXgvc3BpbmxvY2suaDo1MSwKPiAgICAgICAgICAgICAg
-ICAgZnJvbSAuL2luY2x1ZGUvbGludXgvc2VxbG9jay5oOjM2LAo+ICAgICAgICAgICAgICAgICBm
-cm9tIC4vaW5jbHVkZS9saW51eC90aW1lLmg6NiwKPiAgICAgICAgICAgICAgICAgZnJvbSAuL2xp
-Yi92ZHNvL2dldHRpbWVvZmRheS5jOjcsCj4gICAgICAgICAgICAgICAgIGZyb20gPGNvbW1hbmQt
-bGluZT46MDoKPiAuL2FyY2gvYXJtNjQvaW5jbHVkZS9hc20vbWVtb3J5Lmg6IEluIGZ1bmN0aW9u
-IOKAmF9fdGFnX3NldOKAmToKPiAuL2FyY2gvYXJtNjQvaW5jbHVkZS9hc20vbWVtb3J5Lmg6MjMz
-OjE1OiB3YXJuaW5nOiBjYXN0IGZyb20gcG9pbnRlcgo+ICAgICAgICAgICAgICAgIHRvIGludGVn
-ZXIgb2YgZGlmZmVyZW50IHNpemUgWy1XcG9pbnRlci10by1pbnQtY2FzdF0KPiAgdTY0IF9fYWRk
-ciA9ICh1NjQpYWRkciAmIH5fX3RhZ19zaGlmdGVkKDB4ZmYpOwo+ICAgICAgICAgICAgICAgXgo+
-IEluIGZpbGUgaW5jbHVkZWQgZnJvbSAuL2FyY2gvYXJtNjQvaW5jbHVkZS9hc20vcGd0YWJsZS1o
-d2RlZi5oOjg6MCwKPiAgICAgICAgICAgICAgICAgZnJvbSAuL2FyY2gvYXJtNjQvaW5jbHVkZS9h
-c20vcHJvY2Vzc29yLmg6MzQsCj4gICAgICAgICAgICAgICAgIGZyb20gLi9hcmNoL2FybTY0L2lu
-Y2x1ZGUvYXNtL2VsZi5oOjExOCwKPiAgICAgICAgICAgICAgICAgZnJvbSAuL2luY2x1ZGUvbGlu
-dXgvZWxmLmg6NSwKPiAgICAgICAgICAgICAgICAgZnJvbSAuL2luY2x1ZGUvbGludXgvZWxmbm90
-ZS5oOjYyLAo+ICAgICAgICAgICAgICAgICBmcm9tIGFyY2gvYXJtNjQva2VybmVsL3Zkc28zMi9u
-b3RlLmM6MTE6Cj4gLi9hcmNoL2FybTY0L2luY2x1ZGUvYXNtL21lbW9yeS5oOiBJbiBmdW5jdGlv
-biDigJhfX3RhZ19zZXTigJk6Cj4gLi9hcmNoL2FybTY0L2luY2x1ZGUvYXNtL21lbW9yeS5oOjIz
-MzoxNTogd2FybmluZzogY2FzdCBmcm9tIHBvaW50ZXIKPiAgICAgICAgICAgICAgICB0byBpbnRl
-Z2VyIG9mIGRpZmZlcmVudCBzaXplIFstV3BvaW50ZXItdG8taW50LWNhc3RdCj4gIHU2NCBfX2Fk
-ZHIgPSAodTY0KWFkZHIgJiB+X190YWdfc2hpZnRlZCgweGZmKTsKPiAKPiBUaGUgc2FtZSBwb3J0
-aW5nIGRvZXMgbm90IGJ1aWxkIGF0IGFsbCB3aGVuIHRoZSBzZWxlY3RlZCBjb21waWxlciBpcwo+
-IGNsYW5nLgo+IAo+IEkgc3RhcnRlZCBhbiBpbnZlc3RpZ2F0aW9uIHRvIHRyeSB0byB1bmRlcnN0
-YW5kIGJldHRlciB0aGUgcHJvYmxlbSBhbmQKPiBhZnRlciB2YXJpb3VzIGRpc2N1c3Npb25zIGF0
-IFBsdW1iZXJzIGFuZCBSZWNpcGVzIGxhc3QgeWVhciB0aGUKPiBjb25jbHVzaW9uIHdhcyB0aGF0
-IHRoZSB2RFNPIGxpYnJhcnkgYXMgaXQgc3RhbmRzIGl0IGlzIGluY2x1ZGluZyBtb3JlCj4gaGVh
-ZGVycyB0aGF0IGl0IG5lZWRzLiBJbiBwYXJ0aWN1bGFyLCBiZWluZyBhIHVzZXItc3BhY2UgbGli
-cmFyeSwgaXQKPiBzaG91bGQgcmVxdWlyZSBvbmx5IHRoZSBVQVBJIGFuZCBhIG1pbmltYWwgdkRT
-TyBrZXJuZWwgaW50ZXJmYWNlIGluc3RlYWQKPiBvZiBhbGwgdGhlIGtlcm5lbC1yZWxhdGVkIGlu
-bGluZSBmdW5jdGlvbnMgd2hpY2ggYXJlIG5vdCBkaXJlY3RseSB1c2VkCj4gYW5kIGluIHNvbWUg
-Y2FzZXMgY2FuIGhhdmUgc2lkZSBlZmZlY3RzLgo+IAo+IFRvIHNvbHZlIHRoZSBwcm9ibGVtLCBJ
-IGRlY2lkZWQgdG8gdXNlIHRoZSBhcHByb2FjaCBiZWxvdzoKPiAgKiBFeHRyYWN0IGZyb20gaW5j
-bHVkZS9saW51eC8gdGhlIHZEU08gcmVxdWlyZWQga2VybmVsIGludGVyZmFjZQo+ICAgIGFuZCBw
-bGFjZSBpdCBpbiBpbmNsdWRlL2NvbW1vbi8KCkkgcmVhbGx5IGxpa2UgdGhlIGFwcHJvYWNoLCBi
-dXQgSeKAmW0gd29uZGVyaW5nIGlmIOKAnGNvbW1vbuKAnSBpcyB0aGUgcmlnaHQgbmFtZS4gVGhp
-cyBkaXJlY3RvcnkgaXMgaGVhZGVycyB0aGF0IGFyZW7igJl0IHN0YWJsZSBBQkkgbGlrZSB1YXBp
-IGJ1dCBhcmUgc2hhcmVkIGJldHdlZW4gdGhlIGtlcm5lbCBhbmQgdGhlIHZEU08uIFJlZ3VsYXIg
-dXNlciBjb2RlIHNob3VsZCAqbm90KiBpbmNsdWRlIHRoZXNlLCByaWdodD8KCldvdWxkIOKAnHZk
-c2/igJ0gb3IgcGVyaGFwcyDigJxwcml2YXRlLWFiaeKAnSBiZSBjbGVhcmVyPwoKPiAgKiBNYWtl
-IHN1cmUgdGhhdCB3aGVyZSBtZWFuaW5nZnVsIHRoZSBrZXJuZWwgaW5jbHVkZXMgImNvbW1vbiIK
-PiAgKiBMaW1pdCB0aGUgdkRTTyBsaWJyYXJ5IHRvIGluY2x1ZGUgaGVhZGVycyBjb21pbmcgb25s
-eSBmcm9tIFVBUEkKPiAgICBhbmQgImNvbW1vbiIgKHdpdGggMiBleGNlcHRpb25zIGNvbXBpbGVy
-LmggZm9yIGJhcnJpZXJzIGFuZAo+ICAgIHBhcmFtLmggZm9yIEhaKS4KPiAgKiBBZGFwdCBhbGwg
-dGhlIGFyY2hpdGVjdHVyZXMgdGhhdCBzdXBwb3J0IHRoZSB1bmlmaWVkIHZEU08gbGlicmFyeQo+
-ICAgIHRvIHVzZSAiY29tbW9uIiBoZWFkZXJzLgoKPiAKPiBBY2NvcmRpbmcgdG8gbWUgdGhpcyBh
-cHByb2FjaCBhbGxvd3MgdXAgdG8gZXhlcmNpc2UgYSBiZXR0ZXIgY29udHJvbCBvbgo+IHdoYXQg
-dGhlIHZEU08gbGlicmFyeSBjYW4gaW5jbHVkZSBhbmQgdG8gcHJldmVudCBwb3RlbnRpYWwgaXNz
-dWVzIGluCj4gZnV0dXJlLgo+IAo+IFRoaXMgcGF0Y2ggc2VyaWVzIGNvbnRhaW5zIHRoZSBpbXBs
-ZW1lbnRhdGlvbiBvZiB0aGUgZGVzY3JpYmVkIGFwcHJvYWNoLgo+IAo+IFRoZSAiY29tbW9uIiBo
-ZWFkZXJzIGhhdmUgYmVlbiB2ZXJpZmllZCBvbiBhbGwgdGhlIGFyY2hpdGVjdHVyZXMgdGhhdCBz
-dXBwb3J0Cj4gdW5pZmllZCB2RFNPIHVzaW5nIHRoZSB2ZHNvdGVzdCBbM10gdGVzdHN1aXRlIGZv
-ciB3aGF0IGNvbmNlcm5zIHRoZSB2RFNPIHBhcnQKPiBhbmQgcmFuZGNvbmZpZyB0byB2ZXJpZnkg
-dGhhdCB0aGV5IGFyZSBpbmNsdWRlZCBpbiB0aGUgY29ycmVjdCBwbGFjZXMuCj4gCj4gVG8gc2lt
-cGxpZnkgdGhlIHRlc3RpbmcsIGEgY29weSBvZiB0aGUgcGF0Y2hzZXQgb24gdG9wIG9mIGEgcmVj
-ZW50IGxpbnV4Cj4gdHJlZSBjYW4gYmUgZm91bmQgYXQgWzRdLgo+IAo+IFsxXSBodHRwczovL2dp
-dGh1Yi5jb20vQ2xhbmdCdWlsdExpbnV4L2xpbnV4L2lzc3Vlcy81OTUKPiBbMl0gaHR0cHM6Ly9s
-b3JlLmtlcm5lbC5vcmcvbGttbC8yMDE5MDkyNjE1MTcwNC5HSDk2ODlAYXJyYWtpcy5lbWVhLmFy
-bS5jb20KPiBbM10gaHR0cHM6Ly9naXRodWIuY29tL25hdGhhbmx5bmNoL3Zkc290ZXN0Cj4gWzRd
-IGdpdDovL2xpbnV4LWFybS5vcmcvbGludXgtdmYuZ2l0IGNvbW1vbi1oZWFkZXJzL3YyCj4gCj4g
-Q2hhbmdlczoKPiAtLS0tLS0tLQo+IHYyOgo+ICAtIEFkZHJlc3NlZCByZXZpZXcgY29tbWVudHMg
-Zm9yIGNsYW5nIHN1cHBvcnQuCj4gIC0gUmViYXNlZCBvbiA1LjYtcmM0Lgo+IAo+IENjOiBDYXRh
-bGluIE1hcmluYXMgPGNhdGFsaW4ubWFyaW5hc0Bhcm0uY29tPgo+IENjOiBXaWxsIERlYWNvbiA8
-d2lsbC5kZWFjb25AYXJtLmNvbT4KPiBDYzogQXJuZCBCZXJnbWFubiA8YXJuZEBhcm5kYi5kZT4K
-PiBDYzogUnVzc2VsbCBLaW5nIDxsaW51eEBhcm1saW51eC5vcmcudWs+Cj4gQ2M6IFBhdWwgQnVy
-dG9uIDxwYXVsLmJ1cnRvbkBtaXBzLmNvbT4KPiBDYzogVGhvbWFzIEdsZWl4bmVyIDx0Z2x4QGxp
-bnV0cm9uaXguZGU+Cj4gQ2M6IEFuZHkgTHV0b21pcnNraSA8bHV0b0BrZXJuZWwub3JnPgo+IENj
-OiBJbmdvIE1vbG5hciA8bWluZ29AcmVkaGF0LmNvbT4KPiBDYzogQm9yaXNsYXYgUGV0a292IDxi
-cEBhbGllbjguZGU+Cj4gQ2M6IFN0ZXBoZW4gQm95ZCA8c2JveWRAa2VybmVsLm9yZz4KPiBDYzog
-TWFyayBTYWx5enluIDxzYWx5enluQGFuZHJvaWQuY29tPgo+IENjOiBLZWVzIENvb2sgPGtlZXNj
-b29rQGNocm9taXVtLm9yZz4KPiBDYzogUGV0ZXIgQ29sbGluZ2JvdXJuZSA8cGNjQGdvb2dsZS5j
-b20+Cj4gQ2M6IERtaXRyeSBTYWZvbm92IDwweDdmNDU0YzQ2QGdtYWlsLmNvbT4KPiBDYzogQW5k
-cmVpIFZhZ2luIDxhdmFnaW5Ab3BlbnZ6Lm9yZz4KPiBDYzogTmljayBEZXNhdWxuaWVycyA8bmRl
-c2F1bG5pZXJzQGdvb2dsZS5jb20+Cj4gU2lnbmVkLW9mZi1ieTogVmluY2Vuem8gRnJhc2Npbm8g
-PHZpbmNlbnpvLmZyYXNjaW5vQGFybS5jb20+Cj4gCj4gVmluY2Vuem8gRnJhc2Npbm8gKDIwKToK
-PiAgbGludXgvY29uc3QuaDogRXh0cmFjdCBjb21tb24gaGVhZGVyIGZvciB2RFNPCj4gIGxpbnV4
-L2JpdHMuaDogRXh0cmFjdCBjb21tb24gaGVhZGVyIGZvciB2RFNPCj4gIGxpbnV4L2xpbWl0cy5o
-OiBFeHRyYWN0IGNvbW1vbiBoZWFkZXIgZm9yIHZEU08KPiAgbGludXgvbWF0aDY0Lmg6IEV4dHJh
-Y3QgY29tbW9uIGhlYWRlciBmb3IgdkRTTwo+ICBsaW51eC90aW1lLmg6IEV4dHJhY3QgY29tbW9u
-IGhlYWRlciBmb3IgdkRTTwo+ICBsaW51eC90aW1lMzIuaDogRXh0cmFjdCBjb21tb24gaGVhZGVy
-IGZvciB2RFNPCj4gIGxpbnV4L3RpbWU2NC5oOiBFeHRyYWN0IGNvbW1vbiBoZWFkZXIgZm9yIHZE
-U08KPiAgbGludXgvamlmZmllcy5oOiBFeHRyYWN0IGNvbW1vbiBoZWFkZXIgZm9yIHZEU08KPiAg
-bGludXgva3RpbWUuaDogRXh0cmFjdCBjb21tb24gaGVhZGVyIGZvciB2RFNPCj4gIGNvbW1vbjog
-SW50cm9kdWNlIHByb2Nlc3Nvci5oCj4gIGxpbnV4L2VsZm5vdGUuaDogUmVwbGFjZSBlbGYuaCB3
-aXRoIFVBUEkgZXF1aXZhbGVudAo+ICBhcm02NDogSW50cm9kdWNlIGFzbS9jb21tb24vcHJvY2Vz
-c29yLmgKPiAgYXJtNjQ6IHZkc286IEluY2x1ZGUgY29tbW9uIGhlYWRlcnMgaW4gdGhlIHZkc28g
-bGlicmFyeQo+ICBhcm02NDogdmRzbzMyOiBJbmNsdWRlIGNvbW1vbiBoZWFkZXJzIGluIHRoZSB2
-ZHNvIGxpYnJhcnkKPiAgYXJtNjQ6IEludHJvZHVjZSBhc20vY29tbW9uL2FyY2hfdGltZXIuaAo+
-ICBtaXBzOiB2ZHNvOiBFbmFibGUgbWlwcyB0byB1c2UgY29tbW9uIGhlYWRlcnMKPiAgeDg2OiB2
-ZHNvOiBFbmFibGUgeDg2IHRvIHVzZSBjb21tb24gaGVhZGVycwo+ICBhcm06IHZkc286IEVuYWJs
-ZSBhcm0gdG8gdXNlIGNvbW1vbiBoZWFkZXJzCj4gIGxpYjogdmRzbzogRW5hYmxlIGNvbW1vbiBo
-ZWFkZXJzCj4gIGFybTY0OiB2ZHNvMzI6IEVuYWJsZSBDbGFuZyBDb21waWxhdGlvbgo+IAo+IGFy
-Y2gvYXJtL2luY2x1ZGUvYXNtL2NvbW1vbi9jcDE1LmggICAgICAgICAgICB8IDM4ICsrKysrKysr
-KysrKysrKysrKysKPiBhcmNoL2FybS9pbmNsdWRlL2FzbS9jb21tb24vcHJvY2Vzc29yLmggICAg
-ICAgfCAyMiArKysrKysrKysrKwo+IGFyY2gvYXJtL2luY2x1ZGUvYXNtL2NwMTUuaCAgICAgICAg
-ICAgICAgICAgICB8IDIwICstLS0tLS0tLS0KPiBhcmNoL2FybS9pbmNsdWRlL2FzbS9wcm9jZXNz
-b3IuaCAgICAgICAgICAgICAgfCAxMSArLS0tLS0KPiBhcmNoL2FybS9pbmNsdWRlL2FzbS92ZHNv
-L2dldHRpbWVvZmRheS5oICAgICAgfCAgNCArLQo+IGFyY2gvYXJtNjQvaW5jbHVkZS9hc20vYXJj
-aF90aW1lci5oICAgICAgICAgICB8IDI5ICsrKy0tLS0tLS0tLS0tCj4gYXJjaC9hcm02NC9pbmNs
-dWRlL2FzbS9jb21tb24vYXJjaF90aW1lci5oICAgIHwgMzMgKysrKysrKysrKysrKysrKwo+IGFy
-Y2gvYXJtNjQvaW5jbHVkZS9hc20vY29tbW9uL3Byb2Nlc3Nvci5oICAgICB8IDMxICsrKysrKysr
-KysrKysrKwo+IGFyY2gvYXJtNjQvaW5jbHVkZS9hc20vcHJvY2Vzc29yLmggICAgICAgICAgICB8
-IDE2ICstLS0tLS0tCj4gLi4uL2luY2x1ZGUvYXNtL3Zkc28vY29tcGF0X2dldHRpbWVvZmRheS5o
-ICAgIHwgIDIgKy0KPiBhcmNoL2FybTY0L2luY2x1ZGUvYXNtL3Zkc28vZ2V0dGltZW9mZGF5Lmgg
-ICAgfCAgOCArKy0tCj4gYXJjaC9hcm02NC9rZXJuZWwvdmRzby92Z2V0dGltZW9mZGF5LmMgICAg
-ICAgIHwgIDIgLQo+IGFyY2gvYXJtNjQva2VybmVsL3Zkc28zMi9NYWtlZmlsZSAgICAgICAgICAg
-ICB8IDEzICsrKysrKy0KPiBhcmNoL2FybTY0L2tlcm5lbC92ZHNvMzIvdmdldHRpbWVvZmRheS5j
-ICAgICAgfCAgMyAtLQo+IGFyY2gvbWlwcy9pbmNsdWRlL2FzbS9jb21tb24vcHJvY2Vzc29yLmgg
-ICAgICB8IDI3ICsrKysrKysrKysrKysKPiBhcmNoL21pcHMvaW5jbHVkZS9hc20vcHJvY2Vzc29y
-LmggICAgICAgICAgICAgfCAxNiArLS0tLS0tLQo+IGFyY2gvbWlwcy9pbmNsdWRlL2FzbS92ZHNv
-L2dldHRpbWVvZmRheS5oICAgICB8ICA0IC0tCj4gYXJjaC94ODYvaW5jbHVkZS9hc20vY29tbW9u
-L3Byb2Nlc3Nvci5oICAgICAgIHwgMjMgKysrKysrKysrKysKPiBhcmNoL3g4Ni9pbmNsdWRlL2Fz
-bS9wcm9jZXNzb3IuaCAgICAgICAgICAgICAgfCAxMiArLS0tLS0KPiBpbmNsdWRlL2NvbW1vbi9i
-aXRzLmggICAgICAgICAgICAgICAgICAgICAgICAgfCAgOSArKysrKwo+IGluY2x1ZGUvY29tbW9u
-L2NvbnN0LmggICAgICAgICAgICAgICAgICAgICAgICB8IDEwICsrKysrCj4gaW5jbHVkZS9jb21t
-b24vamlmZmllcy5oICAgICAgICAgICAgICAgICAgICAgIHwgMTEgKysrKysrCj4gaW5jbHVkZS9j
-b21tb24va3RpbWUuaCAgICAgICAgICAgICAgICAgICAgICAgIHwgMTYgKysrKysrKysKPiBpbmNs
-dWRlL2NvbW1vbi9saW1pdHMuaCAgICAgICAgICAgICAgICAgICAgICAgfCAxOCArKysrKysrKysK
-PiBpbmNsdWRlL2NvbW1vbi9tYXRoNjQuaCAgICAgICAgICAgICAgICAgICAgICAgfCAyNCArKysr
-KysrKysrKysKPiBpbmNsdWRlL2NvbW1vbi9wcm9jZXNzb3IuaCAgICAgICAgICAgICAgICAgICAg
-fCAxNCArKysrKysrCj4gaW5jbHVkZS9jb21tb24vdGltZS5oICAgICAgICAgICAgICAgICAgICAg
-ICAgIHwgMTIgKysrKysrCj4gaW5jbHVkZS9jb21tb24vdGltZTMyLmggICAgICAgICAgICAgICAg
-ICAgICAgIHwgMTcgKysrKysrKysrCj4gaW5jbHVkZS9jb21tb24vdGltZTY0LmggICAgICAgICAg
-ICAgICAgICAgICAgIHwgMTQgKysrKysrKwo+IGluY2x1ZGUvbGludXgvYml0cy5oICAgICAgICAg
-ICAgICAgICAgICAgICAgICB8ICAyICstCj4gaW5jbHVkZS9saW51eC9jb25zdC5oICAgICAgICAg
-ICAgICAgICAgICAgICAgIHwgIDUgKy0tCj4gaW5jbHVkZS9saW51eC9lbGZub3RlLmggICAgICAg
-ICAgICAgICAgICAgICAgIHwgIDIgKy0KPiBpbmNsdWRlL2xpbnV4L2ppZmZpZXMuaCAgICAgICAg
-ICAgICAgICAgICAgICAgfCAgNCArLQo+IGluY2x1ZGUvbGludXgva3RpbWUuaCAgICAgICAgICAg
-ICAgICAgICAgICAgICB8ICA5ICstLS0tCj4gaW5jbHVkZS9saW51eC9saW1pdHMuaCAgICAgICAg
-ICAgICAgICAgICAgICAgIHwgMTMgKy0tLS0tLQo+IGluY2x1ZGUvbGludXgvbWF0aDY0LmggICAg
-ICAgICAgICAgICAgICAgICAgICB8IDIwICstLS0tLS0tLS0KPiBpbmNsdWRlL2xpbnV4L3RpbWUu
-aCAgICAgICAgICAgICAgICAgICAgICAgICAgfCAgNSArLS0KPiBpbmNsdWRlL2xpbnV4L3RpbWUz
-Mi5oICAgICAgICAgICAgICAgICAgICAgICAgfCAxMyArLS0tLS0tCj4gaW5jbHVkZS9saW51eC90
-aW1lNjQuaCAgICAgICAgICAgICAgICAgICAgICAgIHwgMTAgKy0tLS0KPiBpbmNsdWRlL3Zkc28v
-ZGF0YXBhZ2UuaCAgICAgICAgICAgICAgICAgICAgICAgfCAzMiArKysrKysrKysrKysrKy0tCj4g
-bGliL3Zkc28vZ2V0dGltZW9mZGF5LmMgICAgICAgICAgICAgICAgICAgICAgIHwgMjEgLS0tLS0t
-LS0tLQo+IDQxIGZpbGVzIGNoYW5nZWQsIDM4OCBpbnNlcnRpb25zKCspLCAyMDcgZGVsZXRpb25z
-KC0pCj4gY3JlYXRlIG1vZGUgMTAwNjQ0IGFyY2gvYXJtL2luY2x1ZGUvYXNtL2NvbW1vbi9jcDE1
-LmgKPiBjcmVhdGUgbW9kZSAxMDA2NDQgYXJjaC9hcm0vaW5jbHVkZS9hc20vY29tbW9uL3Byb2Nl
-c3Nvci5oCj4gY3JlYXRlIG1vZGUgMTAwNjQ0IGFyY2gvYXJtNjQvaW5jbHVkZS9hc20vY29tbW9u
-L2FyY2hfdGltZXIuaAo+IGNyZWF0ZSBtb2RlIDEwMDY0NCBhcmNoL2FybTY0L2luY2x1ZGUvYXNt
-L2NvbW1vbi9wcm9jZXNzb3IuaAo+IGNyZWF0ZSBtb2RlIDEwMDY0NCBhcmNoL21pcHMvaW5jbHVk
-ZS9hc20vY29tbW9uL3Byb2Nlc3Nvci5oCj4gY3JlYXRlIG1vZGUgMTAwNjQ0IGFyY2gveDg2L2lu
-Y2x1ZGUvYXNtL2NvbW1vbi9wcm9jZXNzb3IuaAo+IGNyZWF0ZSBtb2RlIDEwMDY0NCBpbmNsdWRl
-L2NvbW1vbi9iaXRzLmgKPiBjcmVhdGUgbW9kZSAxMDA2NDQgaW5jbHVkZS9jb21tb24vY29uc3Qu
-aAo+IGNyZWF0ZSBtb2RlIDEwMDY0NCBpbmNsdWRlL2NvbW1vbi9qaWZmaWVzLmgKPiBjcmVhdGUg
-bW9kZSAxMDA2NDQgaW5jbHVkZS9jb21tb24va3RpbWUuaAo+IGNyZWF0ZSBtb2RlIDEwMDY0NCBp
-bmNsdWRlL2NvbW1vbi9saW1pdHMuaAo+IGNyZWF0ZSBtb2RlIDEwMDY0NCBpbmNsdWRlL2NvbW1v
-bi9tYXRoNjQuaAo+IGNyZWF0ZSBtb2RlIDEwMDY0NCBpbmNsdWRlL2NvbW1vbi9wcm9jZXNzb3Iu
-aAo+IGNyZWF0ZSBtb2RlIDEwMDY0NCBpbmNsdWRlL2NvbW1vbi90aW1lLmgKPiBjcmVhdGUgbW9k
-ZSAxMDA2NDQgaW5jbHVkZS9jb21tb24vdGltZTMyLmgKPiBjcmVhdGUgbW9kZSAxMDA2NDQgaW5j
-bHVkZS9jb21tb24vdGltZTY0LmgKPiAKPiAtLSAKPiAyLjI1LjEKPiAKCl9fX19fX19fX19fX19f
-X19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fCmxpbnV4LWFybS1rZXJuZWwgbWFpbGlu
-ZyBsaXN0CmxpbnV4LWFybS1rZXJuZWxAbGlzdHMuaW5mcmFkZWFkLm9yZwpodHRwOi8vbGlzdHMu
-aW5mcmFkZWFkLm9yZy9tYWlsbWFuL2xpc3RpbmZvL2xpbnV4LWFybS1rZXJuZWwK
+On 06/03/2020 15:16, Arnd Bergmann wrote:
+> On Fri, Mar 6, 2020 at 11:40 AM John Garry <john.garry@huawei.com> wrote:
+>> On 06/03/2020 07:54, Arnd Bergmann wrote:
+>>> On Fri, Mar 6, 2020 at 4:44 AM Sinan Kaya <okaya@kernel.org> wrote:
+>> -- a/lib/logic_pio.c
+>> +++ b/lib/logic_pio.c
+>> @@ -229,13 +229,21 @@ unsigned long
+>> logic_pio_trans_cpuaddr(resource_size_t addr)
+>>    }
+>>
+>>    #if defined(CONFIG_INDIRECT_PIO) && defined(PCI_IOBASE)
+>> +
+>> +#define logic_in_to_cpu_b(x) (x)
+>> +#define logic_in_to_cpu_w(x) __le16_to_cpu(x)
+>> +#define logic_in_to_cpu_l(x) __le32_to_cpu(x)
+>> +
+>>    #define BUILD_LOGIC_IO(bw, type)                                      \
+
+Note: The "bw" argument name could be improved to "bwl", since this 
+macro is used for building inl() also.
+
+>>    type logic_in##bw(unsigned long addr)                                 \
+>>    {                                                                     \
+>>           type ret = (type)~0;                                           \
+>>                                                                          \
+>>           if (addr < MMIO_UPPER_LIMIT) {                                 \
+>> -               ret = read##bw(PCI_IOBASE + addr);                     \
+>> +               void __iomem *_addr = PCI_IOBASE + addr;               \
+>> +               __io_pbr();                                            \
+>> +               ret = logic_in_to_cpu_##bw(__raw_read##bw(_addr));     \
+>> +               __io_par(ret);                                         \
+>>           } else if (addr >= MMIO_UPPER_LIMIT && addr < IO_SPACE_LIMIT) {\
+>>                   struct logic_pio_hwaddr *entry = find_io_rang
+>>
+>> We could prob combine the le_to_cpu and __raw_read into a single macro.
+> 
+> What is the purpose of splitting out the byteswap rather than leaving the
+> open-coded rather than __le16_to_cpu(__raw_readw(PCI_IOBASE + addr))?
+
+I'm just copying what is in asm-generic io.h, which uses the 16b and 32b 
+byteswaps in the w and l variants, respectively.
+
+> 
+> If this is needed to work across architectures, how about adding
+> an intermediate __raw_inw() etc in asm-generic/io.h like
+> 
+> #ifndef __raw_inw
+> #define __raw_inw(a) __raw_readw(PCI_IOBASE + addr));
+> #endif
+> 
+> #include <linux/logic_pio.h>
+> 
+> #ifndef inw
+> static inline u16 inw(unsigned long addr)
+> {
+>          u16 val;
+> 
+>          __io_pbr();
+>          val = __le16_to_cpu(__raw_inw(addr));
+>          __io_par(val);
+>          return val;
+> }
+> #endif
+> 
+
+The idea is good, but it would be nice if we just somehow use a common 
+asm-generic io.h definition directly in logic_pio.c, like:
+
+asm-generic io.h:
+
+#ifndef __raw_inw // name?
+#define __raw_inw __raw_inw
+static inline u16 __raw_inw(unsigned long addr)
+{
+	u16 val;
+
+	__io_pbr();
+	val = __le16_to_cpu(__raw_readw(addr));
+	__io_par(val);
+	return val;
+}
+#endif
+
+#include <linux/logic_pio.h>
+
+#ifndef inw
+#define inw __raw_inw
+#endif
+
+logic_pio.c:
+
+  #define BUILD_LOGIC_IO(bw, type)                                      \
+  type logic_in##bw(unsigned long addr)                                 \
+  {                                                                     \
+         type ret = (type)~0;                                           \
+                                                                        \
+         if (addr < MMIO_UPPER_LIMIT) {                                 \
+-               ret = read##bw(PCI_IOBASE + addr);                     \
++               ret = __raw_in##bw(PCI_IOBASE + addr);                 \
+         } else if (addr >= MMIO_UPPER_LIMIT && addr < IO_SPACE_LIMIT) {\
+                 struct logic_pio_hwaddr *entry = find_io_rang
+
+Thanks,
+John
