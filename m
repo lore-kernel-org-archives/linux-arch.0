@@ -1,61 +1,57 @@
-Return-Path: <SRS0=yjua=5B=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:52350 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1732287AbgCPQvZ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 16 Mar 2020 12:51:25 -0400
-From: Mark Brown <broonie@kernel.org>
-Subject: [PATCH v10 12/13] mm: smaps: Report arm64 guarded pages in smaps
-Date: Mon, 16 Mar 2020 16:50:54 +0000
-Message-ID: <20200316165055.31179-13-broonie@kernel.org>
-In-Reply-To: <20200316165055.31179-1-broonie@kernel.org>
-References: <20200316165055.31179-1-broonie@kernel.org>
+Return-Path: <SRS0=ZCnS=4X=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail-qk1-f196.google.com ([209.85.222.196]:44732 "EHLO
+        mail-qk1-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726108AbgCFLaK (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 6 Mar 2020 06:30:10 -0500
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+References: <20200306080905.173466-1-syq@debian.org> <87r1y53npd.fsf@mid.deneb.enyo.de>
+ <8441f497-61eb-5c14-bf1e-c90a464105a7@vivier.eu> <87mu8t3mlw.fsf@mid.deneb.enyo.de>
+ <40da389d-4e74-2644-2e7c-04d988fcc26f@vivier.eu>
+In-Reply-To: <40da389d-4e74-2644-2e7c-04d988fcc26f@vivier.eu>
+From: YunQiang Su <syq@debian.org>
+Date: Fri, 6 Mar 2020 19:29:57 +0800
+Message-ID: <CAKcpw6WEO5Rmsv+WFkOMrkH+0jwtFKKy7b2n3U9xgv-xGC0UUQ@mail.gmail.com>
+Subject: Re: [PATCH] binfmt_misc: pass binfmt_misc P flag to the interpreter
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 8BIT
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>
-Cc: Alexander Viro <viro@zeniv.linux.org.uk>, Paul Elliott <paul.elliott@arm.com>, Peter Zijlstra <peterz@infradead.org>, Yu-cheng Yu <yu-cheng.yu@intel.com>, Amit Kachhap <amit.kachhap@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Marc Zyngier <maz@kernel.org>, Eugene Syromiatnikov <esyr@redhat.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, "H . J . Lu " <hjl.tools@gmail.com>, Andrew Jones <drjones@redhat.com>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Jann Horn <jannh@google.com>, Richard Henderson <richard.henderson@linaro.org>, =?UTF-8?q?Kristina=20Mart=C5=A1enko?= <kristina.martsenko@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Florian Weimer <fweimer@redhat.com>, Sudakshina Das <sudi.das@arm.com>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, Daniel Kiss <daniel.kiss@arm.com>, Mark Brown <broonie@kernel.org>
-Message-ID: <20200316165054.fLVN5g0gaJDGcxj3tKkN_zzQKfGeTsdXTczVnpXY2xk@z>
+To: Laurent Vivier <laurent@vivier.eu>
+Cc: Florian Weimer <fw@deneb.enyo.de>, torvalds@linux-foundation.org, Greg KH <gregkh@linuxfoundation.org>, akpm@linux-foundation.org, Al Viro <viro@zeniv.linux.org.uk>, James Bottomley <James.Bottomley@hansenpartnership.com>, linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, libc-alpha@sourceware.org
+Message-ID: <20200306112957.Ycf1g-W__UAshzGyYpEbX9zqqU8w0hiMRyzv-LFWfMU@z>
 
-From: Daniel Kiss <daniel.kiss@arm.com>
+Laurent Vivier <laurent@vivier.eu> 于2020年3月6日周五 下午7:13写道：
+>
+> Le 06/03/2020 à 09:37, Florian Weimer a écrit :
+> > * Laurent Vivier:
+> >
+> >> Le 06/03/2020 à 09:13, Florian Weimer a écrit :
+> >>> * YunQiang Su:
+> >>>
+> >>>> +  if (bprm->interp_flags & BINPRM_FLAGS_PRESERVE_ARGV0)
+> >>>> +          flags |= AT_FLAGS_PRESERVE_ARGV0;
+> >>>> +  NEW_AUX_ENT(AT_FLAGS, flags);
+> >>>
+> >>> Is it necessary to reuse AT_FLAGS?  I think it's cleaner to define a
+> >>> separate AT_ tag dedicated to binfmt_misc.
+> >>
+> >> Not necessary, but it seemed simpler and cleaner to re-use a flag that
+> >> is marked as unused and with a name matching the new role. It avoids to
+> >> patch other packages (like glibc) to add it as it is already defined.
+> >
+> > You still need to define AT_FLAGS_PRESERVE_ARGV0.  At that point, you
+> > might as well define AT_BINFMT and AT_BINFMT_PRESERVE_ARGV0.
+> >
+>
+> Yes, you're right.
+>
+> But is there any reason to not reuse AT_FLAGS?
 
-The arm64 Branch Target Identification support is activated by marking
-executable pages as guarded pages.  Report pages mapped this way in
-smaps to aid diagnostics.
+AT_* only has 32 slot and now. I was afraid that maybe we shouldn't take one.
+   /* AT_* values 18 through 22 are reserved */
+   27,28,29,30 are not used now.
+Which should we use?
 
-Signed-off-by: Daniel Kiss <daniel.kiss@arm.com>
-Reviewed-by: Kees Cook <keescook@chromium.org>
-Signed-off-by: Mark Brown <broonie@kernel.org>
----
- Documentation/filesystems/proc.txt | 1 +
- fs/proc/task_mmu.c                 | 3 +++
- 2 files changed, 4 insertions(+)
-
-diff --git a/Documentation/filesystems/proc.txt b/Documentation/filesystems/proc.txt
-index 99ca040e3f90..ed5465d0f435 100644
---- a/Documentation/filesystems/proc.txt
-+++ b/Documentation/filesystems/proc.txt
-@@ -519,6 +519,7 @@ manner. The codes are the following:
-     hg  - huge page advise flag
-     nh  - no-huge page advise flag
-     mg  - mergable advise flag
-+    bt  - arm64 BTI guarded page
- 
- Note that there is no guarantee that every flag and associated mnemonic will
- be present in all further kernel releases. Things get changed, the flags may
-diff --git a/fs/proc/task_mmu.c b/fs/proc/task_mmu.c
-index 3ba9ae83bff5..1e3409c484d1 100644
---- a/fs/proc/task_mmu.c
-+++ b/fs/proc/task_mmu.c
-@@ -668,6 +668,9 @@ static void show_smap_vma_flags(struct seq_file *m, struct vm_area_struct *vma)
- 		[ilog2(VM_ARCH_1)]	= "ar",
- 		[ilog2(VM_WIPEONFORK)]	= "wf",
- 		[ilog2(VM_DONTDUMP)]	= "dd",
-+#ifdef CONFIG_ARM64_BTI
-+		[ilog2(VM_ARM64_BTI)]	= "bt",
-+#endif
- #ifdef CONFIG_MEM_SOFT_DIRTY
- 		[ilog2(VM_SOFTDIRTY)]	= "sd",
- #endif
--- 
-2.20.1
+>
+> Thanks,
+> Laurent
