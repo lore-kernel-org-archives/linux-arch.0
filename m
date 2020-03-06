@@ -1,61 +1,50 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH v4 16/27] tracing: Remove regular RCU context for
- _rcuidle tracepoints (again)
-Date: Fri, 6 Mar 2020 11:43:35 +0100
-Message-ID: <20200306104335.GF3348@worktop.programming.kicks-ass.net>
-References: <20200221133416.777099322@infradead.org>
- <20200221134216.051596115@infradead.org>
+From: Laurent Vivier <laurent@vivier.eu>
+Subject: Re: [PATCH] binfmt_misc: pass binfmt_misc P flag to the interpreter
+Date: Fri, 6 Mar 2020 12:13:41 +0100
+Message-ID: <40da389d-4e74-2644-2e7c-04d988fcc26f@vivier.eu>
+References: <20200306080905.173466-1-syq@debian.org>
+ <87r1y53npd.fsf@mid.deneb.enyo.de>
+ <8441f497-61eb-5c14-bf1e-c90a464105a7@vivier.eu>
+ <87mu8t3mlw.fsf@mid.deneb.enyo.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 8bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:43358 "EHLO
-        merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726026AbgCFKoa (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 6 Mar 2020 05:44:30 -0500
-Content-Disposition: inline
-In-Reply-To: <20200221134216.051596115@infradead.org>
+Received: from mout.kundenserver.de ([212.227.126.130]:60699 "EHLO
+        mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726162AbgCFLOA (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 6 Mar 2020 06:14:00 -0500
+In-Reply-To: <87mu8t3mlw.fsf@mid.deneb.enyo.de>
+Content-Language: fr
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, rostedt@goodmis.org
-Cc: mingo@kernel.org, joel@joelfernandes.org, gregkh@linuxfoundation.org, gustavo@embeddedor.com, tglx@linutronix.de, paulmck@kernel.org, josh@joshtriplett.org, mathieu.desnoyers@efficios.com, jiangshanlai@gmail.com, luto@kernel.org, tony.luck@intel.com, frederic@kernel.org, dan.carpenter@oracle.com, mhiramat@kernel.org
+To: Florian Weimer <fw@deneb.enyo.de>
+Cc: YunQiang Su <syq@debian.org>, torvalds@linux-foundation.org, gregkh@linuxfoundation.org, akpm@linux-foundation.org, viro@zeniv.linux.org.uk, James.Bottomley@hansenpartnership.com, linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, libc-alpha@sourceware.org
 
-On Fri, Feb 21, 2020 at 02:34:32PM +0100, Peter Zijlstra wrote:
-> Effectively revert commit 865e63b04e9b2 ("tracing: Add back in
-> rcu_irq_enter/exit_irqson() for rcuidle tracepoints") now that we've
-> taught perf how to deal with not having an RCU context provided.
+Le 06/03/2020 à 09:37, Florian Weimer a écrit :
+> * Laurent Vivier:
 > 
-> Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
-> Reviewed-by: Steven Rostedt (VMware) <rostedt@goodmis.org>
-> ---
->  include/linux/tracepoint.h |    8 ++------
->  1 file changed, 2 insertions(+), 6 deletions(-)
+>> Le 06/03/2020 à 09:13, Florian Weimer a écrit :
+>>> * YunQiang Su:
+>>>
+>>>> +	if (bprm->interp_flags & BINPRM_FLAGS_PRESERVE_ARGV0)
+>>>> +		flags |= AT_FLAGS_PRESERVE_ARGV0;
+>>>> +	NEW_AUX_ENT(AT_FLAGS, flags);
+>>>
+>>> Is it necessary to reuse AT_FLAGS?  I think it's cleaner to define a
+>>> separate AT_ tag dedicated to binfmt_misc.
+>>
+>> Not necessary, but it seemed simpler and cleaner to re-use a flag that
+>> is marked as unused and with a name matching the new role. It avoids to
+>> patch other packages (like glibc) to add it as it is already defined.
 > 
-> --- a/include/linux/tracepoint.h
-> +++ b/include/linux/tracepoint.h
-> @@ -179,10 +179,8 @@ static inline struct tracepoint *tracepo
->  		 * For rcuidle callers, use srcu since sched-rcu	\
->  		 * doesn't work from the idle path.			\
->  		 */							\
-> -		if (rcuidle) {						\
-> +		if (rcuidle)						\
->  			__idx = srcu_read_lock_notrace(&tracepoint_srcu);\
-> -			rcu_irq_enter_irqsave();			\
-> -		}							\
->  									\
->  		it_func_ptr = rcu_dereference_raw((tp)->funcs);		\
->  									\
-> @@ -194,10 +192,8 @@ static inline struct tracepoint *tracepo
->  			} while ((++it_func_ptr)->func);		\
->  		}							\
->  									\
-> -		if (rcuidle) {						\
-> -			rcu_irq_exit_irqsave();				\
-> +		if (rcuidle)						\
->  			srcu_read_unlock_notrace(&tracepoint_srcu, __idx);\
-> -		}							\
->  									\
->  		preempt_enable_notrace();				\
->  	} while (0)
+> You still need to define AT_FLAGS_PRESERVE_ARGV0.  At that point, you
+> might as well define AT_BINFMT and AT_BINFMT_PRESERVE_ARGV0.
+> 
 
-So what happens when BPF registers for these tracepoints? BPF very much
-wants RCU on AFAIU.
+Yes, you're right.
+
+But is there any reason to not reuse AT_FLAGS?
+
+Thanks,
+Laurent
