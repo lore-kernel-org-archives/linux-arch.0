@@ -1,90 +1,71 @@
-Return-Path: <SRS0=yjua=5B=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:45530 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1730550AbgCPK2v (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 16 Mar 2020 06:28:51 -0400
-Subject: Re: [PATCH v3 18/26] arm64: Introduce asm/vdso/processor.h
-References: <20200313154345.56760-1-vincenzo.frascino@arm.com>
- <20200313154345.56760-19-vincenzo.frascino@arm.com>
- <20200315182950.GB32205@mbp> <c2c0157a-107a-debf-100f-0d97781add7c@arm.com>
- <20200316102214.GA5746@lakrids.cambridge.arm.com>
-From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Message-ID: <c1ebab37-4df5-a763-129c-bb088cc0b151@arm.com>
-Date: Mon, 16 Mar 2020 10:29:13 +0000
+Return-Path: <SRS0=ZCnS=4X=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail-qv1-f68.google.com ([209.85.219.68]:36879 "EHLO
+        mail-qv1-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726090AbgCFTOM (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 6 Mar 2020 14:14:12 -0500
+Received: by mail-qv1-f68.google.com with SMTP id w16so1029666qvn.4
+        for <linux-arch@vger.kernel.org>; Fri, 06 Mar 2020 11:14:11 -0800 (PST)
+Date: Fri, 6 Mar 2020 14:14:10 -0500
+From: Joel Fernandes <joel@joelfernandes.org>
+Subject: Re: [PATCH v4 16/27] tracing: Remove regular RCU context for
+ _rcuidle tracepoints (again)
+Message-ID: <20200306191410.GB60713@google.com>
+References: <20200221133416.777099322@infradead.org>
+ <20200221134216.051596115@infradead.org>
+ <20200306104335.GF3348@worktop.programming.kicks-ass.net>
+ <20200306113135.GA8787@worktop.programming.kicks-ass.net>
+ <CAADnVQKp=UKg8HAuMOFknhmXtfm_LVu_ynTNJuedHqKdA6zh1g@mail.gmail.com>
+ <1896740806.20220.1583510668164.JavaMail.zimbra@efficios.com>
+ <20200306125500.6aa75c0d@gandalf.local.home>
+ <20200306184538.GA92717@google.com>
+ <20200306135925.50c38bec@gandalf.local.home>
 MIME-Version: 1.0
-In-Reply-To: <20200316102214.GA5746@lakrids.cambridge.arm.com>
-Content-Type: text/plain; charset=utf-8
-Content-Language: en-US
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20200306135925.50c38bec@gandalf.local.home>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Mark Rutland <mark.rutland@arm.com>
-Cc: Catalin Marinas <catalin.marinas@arm.com>, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org, clang-built-linux@googlegroups.com, x86@kernel.org, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Paul Burton <paul.burton@mips.com>, Thomas Gleixner <tglx@linutronix.de>, Andy Lutomirski <luto@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Stephen Boyd <sboyd@kernel.org>, Mark Salyzyn <salyzyn@android.com>, Kees Cook <keescook@chromium.org>, Peter Collingbourne <pcc@google.com>, Dmitry Safonov <0x7f454c46@gmail.com>, Andrei Vagin <avagin@openvz.org>, Nick Desaulniers <ndesaulniers@google.com>, Marc Zyngier <maz@kernel.org>, Will Deacon <will@kernel.org>
-Message-ID: <20200316102913.ASorIxon230GIxSteEwgW0uHRiLlSCW11TBWA9PPqu4@z>
+To: Steven Rostedt <rostedt@goodmis.org>
+Cc: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, Alexei Starovoitov <alexei.starovoitov@gmail.com>, Peter Zijlstra <peterz@infradead.org>, linux-kernel <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Ingo Molnar <mingo@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, "Gustavo A. R. Silva" <gustavo@embeddedor.com>, Thomas Gleixner <tglx@linutronix.de>, paulmck <paulmck@kernel.org>, Josh Triplett <josh@joshtriplett.org>, Lai Jiangshan <jiangshanlai@gmail.com>, Andy Lutomirski <luto@kernel.org>, Tony Luck <tony.luck@intel.com>, Frederic Weisbecker <frederic@kernel.org>, dan carpenter <dan.carpenter@oracle.com>, Masami Hiramatsu <mhiramat@kernel.org>
+Message-ID: <20200306191410.2DqPyNmKVFWV1xVxmCluDtmUO6lsgpRj0z8plE_bcW8@z>
 
-
-On 3/16/20 10:22 AM, Mark Rutland wrote:
-> Hi Vincenzo,
+On Fri, Mar 06, 2020 at 01:59:25PM -0500, Steven Rostedt wrote:
+[snip]
+> > > -			rcu_irq_enter_irqson();				\
+> > > -		}							\
+> > >  									\
+> > >  		it_func_ptr = rcu_dereference_raw((tp)->funcs);		\
+> > >  									\
+> > >  		if (it_func_ptr) {					\
+> > >  			do {						\
+> > > +				int rcu_flags;				\
+> > >  				it_func = (it_func_ptr)->func;		\
+> > > +				if (rcuidle &&				\
+> > > +				    (it_func_ptr)->requires_rcu)	\
+> > > +					rcu_flags = trace_rcu_enter();	\
+> > >  				__data = (it_func_ptr)->data;		\
+> > >  				((void(*)(proto))(it_func))(args);	\
+> > > +				if (rcuidle &&				\
+> > > +				    (it_func_ptr)->requires_rcu)	\
+> > > +					trace_rcu_exit(rcu_flags);	\  
+> > 
+> > Nit: If we have incurred the cost of trace_rcu_enter() once, we can call
+> > it only once and then call trace_rcu_exit() after the do-while loop. That way
+> > we pay the price only once.
+> >
 > 
-> On Mon, Mar 16, 2020 at 09:42:32AM +0000, Vincenzo Frascino wrote:
->> On 3/15/20 6:30 PM, Catalin Marinas wrote:
->>> On Fri, Mar 13, 2020 at 03:43:37PM +0000, Vincenzo Frascino wrote:
->>>> --- /dev/null
->>>> +++ b/arch/arm64/include/asm/vdso/processor.h
->>>> @@ -0,0 +1,31 @@
->>>> +/* SPDX-License-Identifier: GPL-2.0-only */
->>>> +/*
->>>> + * Copyright (C) 2020 ARM Ltd.
->>>> + */
->>>> +#ifndef __ASM_VDSO_PROCESSOR_H
->>>> +#define __ASM_VDSO_PROCESSOR_H
->>>> +
->>>> +#ifndef __ASSEMBLY__
->>>> +
->>>> +#include <asm/page-def.h>
->>>> +
->>>> +#ifdef CONFIG_COMPAT
->>>> +#if defined(CONFIG_ARM64_64K_PAGES) && defined(CONFIG_KUSER_HELPERS)
->>>> +/*
->>>> + * With CONFIG_ARM64_64K_PAGES enabled, the last page is occupied
->>>> + * by the compat vectors page.
->>>> + */
->>>> +#define TASK_SIZE_32		UL(0x100000000)
->>>> +#else
->>>> +#define TASK_SIZE_32		(UL(0x100000000) - PAGE_SIZE)
->>>> +#endif /* CONFIG_ARM64_64K_PAGES */
->>>> +#endif /* CONFIG_COMPAT */
->>>
->>> Just curious, what's TASK_SIZE_32 used for in the vDSO code? You don't
->>> seem to move TASK_SIZE.
->>>
->>
->> I tried to fine grain the headers as much as I could in order to avoid
->> unneeded/unwanted inclusions:
->>  * TASK_SIZE_32 is used to verify ABI consistency on vdso32 (please refer to
->>    arch/arm64/kernel/vdso32/vgettimeofday.c).
->>  * TASK_SIZE is not required by the vdso library hence it is not present in
->>    these headers.
+> I thought about that, but the common case is only one callback attached at
+> a time. To make the code complex for the non common case seemed too much
+> of an overkill. If we find that it does help, it's best to do that as a
+> separate patch because then if something goes wrong we know where it
+> happened.
 > 
-> It would be worth noting the former point in the commit message, since
-> it can be surprising.
->
+> Currently, this provides the same overhead as if each callback did it
+> themselves like we were proposing (but without the added need to do it for
+> all instances of the callback).
 
-Sure it is a good point, I will add this to the commit message.
+That's ok, it could be a separate patch.
 
-> I also think it's worth keeping the definitions together if that's easy,
-> as it makes it easier to navigate the codebase, even if TASK_SIZE isn't
-> necessary for the VDSO itself.
+thanks,
 
-This can't be done because TASK_SIZE on arm64 requires test_thread_flag() with
-is not suited for vDSO. In other words can cause the same problem we are trying
-to solve.
-
-> 
-> Thanks,
-> Mark.
-> 
-
--- 
-Regards,
-Vincenzo
+ - Joel
