@@ -1,7 +1,7 @@
 From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Subject: [PATCH v2 03/20] linux/limits.h: Extract common header for vDSO
-Date: Fri,  6 Mar 2020 13:32:25 +0000
-Message-ID: <20200306133242.26279-4-vincenzo.frascino@arm.com>
+Subject: [PATCH v2 06/20] linux/time32.h: Extract common header for vDSO
+Date: Fri,  6 Mar 2020 13:32:28 +0000
+Message-ID: <20200306133242.26279-7-vincenzo.frascino@arm.com>
 References: <20200306133242.26279-1-vincenzo.frascino@arm.com>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
@@ -17,64 +17,62 @@ a userspace library (UAPI and a minimal set of kernel headers). To make
 this possible it is necessary to isolate from the kernel headers the
 common parts that are strictly necessary to build the library.
 
-Split limits.h into linux and common headers to make the latter suitable
+Split time32.h into linux and common headers to make the latter suitable
 for inclusion in the vDSO library.
 
 Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
 ---
- include/common/limits.h | 18 ++++++++++++++++++
- include/linux/limits.h  | 13 +------------
- 2 files changed, 19 insertions(+), 12 deletions(-)
- create mode 100644 include/common/limits.h
+ include/common/time32.h | 17 +++++++++++++++++
+ include/linux/time32.h  | 13 +------------
+ 2 files changed, 18 insertions(+), 12 deletions(-)
+ create mode 100644 include/common/time32.h
 
-diff --git a/include/common/limits.h b/include/common/limits.h
+diff --git a/include/common/time32.h b/include/common/time32.h
 new file mode 100644
-index 000000000000..587269010add
+index 000000000000..d5b85abdfaf1
 --- /dev/null
-+++ b/include/common/limits.h
-@@ -0,0 +1,18 @@
++++ b/include/common/time32.h
+@@ -0,0 +1,17 @@
 +/* SPDX-License-Identifier: GPL-2.0 */
-+#ifndef __COMMON_LIMITS_H
-+#define __COMMON_LIMITS_H
++#ifndef __COMMON_TIME32_H
++#define __COMMON_TIME32_H
 +
-+#define USHRT_MAX	((unsigned short)~0U)
-+#define SHRT_MAX	((short)(USHRT_MAX >> 1))
-+#define SHRT_MIN	((short)(-SHRT_MAX - 1))
-+#define INT_MAX		((int)(~0U >> 1))
-+#define INT_MIN		(-INT_MAX - 1)
-+#define UINT_MAX	(~0U)
-+#define LONG_MAX	((long)(~0UL >> 1))
-+#define LONG_MIN	(-LONG_MAX - 1)
-+#define ULONG_MAX	(~0UL)
-+#define LLONG_MAX	((long long)(~0ULL >> 1))
-+#define LLONG_MIN	(-LLONG_MAX - 1)
-+#define ULLONG_MAX	(~0ULL)
++typedef s32		old_time32_t;
 +
-+#endif /* __COMMON_LIMITS_H */
-diff --git a/include/linux/limits.h b/include/linux/limits.h
-index 76afcd24ff8c..ac20d2b2edd9 100644
---- a/include/linux/limits.h
-+++ b/include/linux/limits.h
-@@ -4,19 +4,8 @@
++struct old_timespec32 {
++	old_time32_t	tv_sec;
++	s32		tv_nsec;
++};
++
++struct old_timeval32 {
++	old_time32_t	tv_sec;
++	s32		tv_usec;
++};
++
++#endif /* __COMMON_TIME32_H */
+diff --git a/include/linux/time32.h b/include/linux/time32.h
+index cf9320cd2d0b..e75dd5f9df8f 100644
+--- a/include/linux/time32.h
++++ b/include/linux/time32.h
+@@ -11,18 +11,7 @@
  
- #include <uapi/linux/limits.h>
- #include <linux/types.h>
-+#include <common/limits.h>
+ #include <linux/time64.h>
+ #include <linux/timex.h>
+-
+-typedef s32		old_time32_t;
+-
+-struct old_timespec32 {
+-	old_time32_t	tv_sec;
+-	s32		tv_nsec;
+-};
+-
+-struct old_timeval32 {
+-	old_time32_t	tv_sec;
+-	s32		tv_usec;
+-};
++#include <common/time32.h>
  
--#define USHRT_MAX	((unsigned short)~0U)
--#define SHRT_MAX	((short)(USHRT_MAX >> 1))
--#define SHRT_MIN	((short)(-SHRT_MAX - 1))
--#define INT_MAX		((int)(~0U >> 1))
--#define INT_MIN		(-INT_MAX - 1)
--#define UINT_MAX	(~0U)
--#define LONG_MAX	((long)(~0UL >> 1))
--#define LONG_MIN	(-LONG_MAX - 1)
--#define ULONG_MAX	(~0UL)
--#define LLONG_MAX	((long long)(~0ULL >> 1))
--#define LLONG_MIN	(-LLONG_MAX - 1)
--#define ULLONG_MAX	(~0ULL)
- #define SIZE_MAX	(~(size_t)0)
- #define PHYS_ADDR_MAX	(~(phys_addr_t)0)
- 
+ struct old_itimerspec32 {
+ 	struct old_timespec32 it_interval;
 -- 
 2.25.1
